@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_FILE_HPP_INCLUDED
 
 #include <memory>
+#include <stdexcept>
 
 #include <boost/noncopyable.hpp>
 #include <boost/filesystem/path.hpp>
@@ -55,7 +56,7 @@ namespace libtorrent
 
 		class seek_mode
 		{
-		friend file;
+		friend class file;
 		private:
 			seek_mode(int v): m_val(v) {}
 			int m_val;
@@ -66,7 +67,7 @@ namespace libtorrent
 
 		class open_mode
 		{
-		friend file;
+		friend class file;
 		public:
 
 			open_mode(): m_mask(0) {}
