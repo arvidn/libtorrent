@@ -33,10 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ALERT_TYPES_HPP_INCLUDED
 #define TORRENT_ALERT_TYPES_HPP_INCLUDED
 
-#include <string>
-
 #include "libtorrent/alert.hpp"
 #include "libtorrent/torrent_handle.hpp"
+#include "libtorrent/socket.hpp"
+#include "libtorrent/peer_connection.hpp"
 
 namespace libtorrent
 {
