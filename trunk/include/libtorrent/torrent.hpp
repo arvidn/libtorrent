@@ -270,6 +270,8 @@ namespace libtorrent
 			m_password = pw;
 		}
 
+		const address& current_tracker() const;
+
 		// DEBUG
 #ifndef NDEBUG
 		logger* spawn_logger(const char* title);

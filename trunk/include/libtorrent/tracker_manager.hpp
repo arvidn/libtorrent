@@ -105,6 +105,8 @@ namespace libtorrent
 			int response_code
 			, const std::string& description) = 0;
 
+		address m_tracker_address;
+
 #ifndef NDEBUG
 		virtual void debug_log(const std::string& line) = 0;
 #endif

@@ -718,6 +718,11 @@ namespace libtorrent
 		return true;
 	}
 
+	const address& torrent::current_tracker() const
+	{
+		return m_tracker_address;
+	}
+
 	torrent_status torrent::status() const
 	{
 		assert(std::accumulate(

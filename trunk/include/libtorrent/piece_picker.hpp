@@ -100,8 +100,7 @@ namespace libtorrent
 			// info about each block
 			block_info info[max_blocks_per_piece];
 
-			// TODO: store a crc and a peer_connection reference
-			// for each block. Then if the hash test fails on the
+			// TODO: If the hash test fails on the
 			// piece, redownload one block from another peer
 			// then the first time, and check the hash again.
 			// also maintain a counter how many times a piece-hash
