@@ -921,7 +921,7 @@ namespace libtorrent
 		if (!have_all) return false;
 
 		hasher h;
-		h.update(&m_metadata[0], m_metadata.size());
+		h.update(&m_metadata[0], (int)m_metadata.size());
 		sha1_hash info_hash = h.final();
 
 		if (info_hash != m_torrent_file.info_hash())

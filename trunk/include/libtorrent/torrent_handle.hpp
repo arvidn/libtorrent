@@ -185,6 +185,7 @@ namespace libtorrent
 		// abort the torrent.
 
 		void set_upload_limit(int limit);
+		void set_download_limit(int limit);
 
 		// manually connect a peer
 		void connect_peer(const address& adr) const;

@@ -212,6 +212,16 @@ namespace libtorrent
 			, boost::bind(&torrent::set_upload_limit, _1, limit));
 	}
 
+	void torrent_handle::set_download_limit(int limit)
+	{
+		INVARIANT_CHECK;
+
+		assert(limit >= -1);
+
+		call_member<void>(m_ses, m_chk, m_info_hash
+			, boost::bind(&torrent::set_download_limit, _1, limit));
+	}
+
 	bool torrent_handle::is_paused() const
 	{
 		INVARIANT_CHECK;
