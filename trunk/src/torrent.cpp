@@ -514,7 +514,7 @@ namespace libtorrent
 		// disconnect all peers and close all
 		// files belonging to the torrent
 		disconnect_all();
-		m_storage->release_files();
+		if (m_storage.get()) m_storage->release_files();
 	}
 
 	void torrent::announce_piece(int index)
