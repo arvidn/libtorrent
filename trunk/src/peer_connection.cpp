@@ -1476,8 +1476,8 @@ namespace libtorrent
 			detail::write_uint32((int)m_torrent->metadata().size(), ptr);
 			detail::write_uint32(offset.first, ptr);
 			std::vector<char> const& metadata = m_torrent->metadata();
-			std::copy(&metadata[offset.first], &metadata[offset.first
-				+ offset.second], ptr);
+			std::copy(metadata.begin() + offset.first
+				, metadata.begin() + offset.first + offset.second, ptr);
 		}
 		else
 		{

@@ -120,7 +120,10 @@ namespace libtorrent { namespace detail
 			{
 				assert(t != 0);
 				t->parse_resume_data(t->resume_data, t->torrent_ptr->torrent_file());
-				t->resume_data = entry(); // clear the resume data now that it has been used
+
+				// clear the resume data now that it has been used
+				// (the fast resume data is now parsed and stored in t)
+				t->resume_data = entry();
 				t->torrent_ptr->check_files(*t, m_mutex);
 				// lock the session to add the new torrent
 
@@ -128,9 +131,9 @@ namespace libtorrent { namespace detail
 				if (!t->abort)
 				{
 					boost::mutex::scoped_lock l(m_ses.m_mutex);
-
 					m_ses.m_torrents.insert(
 						std::make_pair(t->info_hash, t->torrent_ptr)).first;
+					m_torrents.pop_front();
 					if (t->torrent_ptr->is_seed() && m_ses.m_alerts.should_post(alert::info))
 					{
 						m_ses.m_alerts.post_alert(torrent_finished_alert(
@@ -150,7 +153,8 @@ namespace libtorrent { namespace detail
 			catch(const std::exception& e)
 			{
 				// This will happen if the storage fails to initialize
-				boost::mutex::scoped_lock l(m_ses.m_mutex);
+				boost::mutex::scoped_lock l(m_mutex);
+				boost::mutex::scoped_lock l2(m_ses.m_mutex);
 				if (m_ses.m_alerts.should_post(alert::fatal))
 				{
 					m_ses.m_alerts.post_alert(
@@ -158,6 +162,7 @@ namespace libtorrent { namespace detail
 							t->torrent_ptr->get_handle()
 							, e.what()));
 				}
+				m_torrents.pop_front();
 			}
 			catch(...)
 			{
@@ -165,12 +170,9 @@ namespace libtorrent { namespace detail
 				std::cerr << "error while checking files\n";
 #endif
 				assert(false);
+				boost::mutex::scoped_lock l(m_mutex);
+				m_torrents.pop_front();
 			}
-
-			// remove ourself from the 'checking'-list
-			// (we're no longer in the checking state)
-			boost::mutex::scoped_lock l(m_mutex);
-			m_torrents.pop_front();
 		}
 	}
 
@@ -868,6 +870,12 @@ namespace libtorrent
 			+ peer_connection::num_supported_extensions, false);
 	}
 
+	void session::set_peer_id(peer_id const& id)
+	{
+		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		m_impl.m_peer_id = id;
+	}
+
 	void session::enable_extension(peer_connection::extension_index i)
 	{
 		assert(i >= 0);
@@ -878,28 +886,24 @@ namespace libtorrent
 
 	std::vector<torrent_handle> session::get_torrents()
 	{
+		boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
+		boost::mutex::scoped_lock l2(m_impl.m_mutex);
 		std::vector<torrent_handle> ret;
+		for (std::deque<detail::piece_checker_data>::iterator i
+			= m_checker_impl.m_torrents.begin()
+			, end(m_checker_impl.m_torrents.end()); i != end; ++i)
 		{
-			boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
-			for (std::deque<detail::piece_checker_data>::iterator i
-				= m_checker_impl.m_torrents.begin()
-				, end(m_checker_impl.m_torrents.end()); i != end; ++i)
-			{
-				ret.push_back(torrent_handle(&m_impl, &m_checker_impl
-					, i->info_hash));
-			}
+			ret.push_back(torrent_handle(&m_impl, &m_checker_impl
+				, i->info_hash));
 		}
 
+		for (detail::session_impl::torrent_map::iterator i
+			= m_impl.m_torrents.begin(), end(m_impl.m_torrents.end());
+			i != end; ++i)
 		{
-			boost::mutex::scoped_lock l(m_impl.m_mutex);
-			for (detail::session_impl::torrent_map::iterator i
-				= m_impl.m_torrents.begin(), end(m_impl.m_torrents.end());
-				i != end; ++i)
-			{
-				if (i->second->is_aborted()) continue;
-				ret.push_back(torrent_handle(&m_impl, &m_checker_impl
-					, i->first));
-			}
+			if (i->second->is_aborted()) continue;
+			ret.push_back(torrent_handle(&m_impl, &m_checker_impl
+				, i->first));
 		}
 		return ret;
 	}

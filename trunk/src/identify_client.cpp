@@ -170,6 +170,7 @@ namespace
 		, map_entry("TS", "TorrentStorm")
 		, map_entry("U",  "UPnP")
 		, map_entry("XT", "XanTorrent")
+		, map_entry("eX", "eXeem")
 	};
 
 	bool compare_first_string(map_entry const& e, char const* str)

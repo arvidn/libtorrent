@@ -73,7 +73,7 @@ namespace
 
 	mode_t map_open_mode(int m)
 	{
-//		if (m == (mode_in | mode_out)) return O_RDWR | O_BINARY;
+		if (m == (mode_in | mode_out)) return O_RDWR | O_CREAT | O_BINARY | O_RANDOM;
 		if (m == mode_out) return O_WRONLY | O_CREAT | O_BINARY | O_RANDOM;
 		if (m == mode_in) return O_RDONLY | O_BINARY | O_RANDOM;
 		assert(false);
@@ -138,7 +138,7 @@ namespace libtorrent
 
 		size_type read(char* buf, size_type num_bytes)
 		{
-			assert(m_open_mode == mode_in);
+			assert(m_open_mode & mode_in);
 			assert(m_fd != -1);
 
 			size_type ret = ::read(m_fd, buf, num_bytes);
@@ -153,7 +153,7 @@ namespace libtorrent
 
 		size_type write(const char* buf, size_type num_bytes)
 		{
-			assert(m_open_mode == mode_out);
+			assert(m_open_mode & mode_out);
 			assert(m_fd != -1);
 
 			size_type ret = ::write(m_fd, buf, num_bytes);

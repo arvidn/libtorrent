@@ -104,8 +104,12 @@ namespace libtorrent
 	{
 	public:
 		file_logger(boost::filesystem::path const& filename)
-			: m_file(boost::filesystem::complete("libtorrent_logs" / filename))
-		{}
+		{
+			using namespace boost::filesystem;
+			path dir(complete("libtorrent_logs"));
+			if (!exists(dir)) create_directories(dir);
+			m_file.open(dir / filename);
+		}
 		virtual void log(const char* text) { assert(text); m_file << text; }
 
 		boost::filesystem::ofstream m_file;

@@ -396,6 +396,10 @@ namespace libtorrent
 
 	void piece_picker::dec_refcount(int i)
 	{
+#ifndef NDEBUG
+//		integrity_check();
+#endif
+
 		assert(i >= 0);
 		assert(i < (int)m_piece_map.size());
 

@@ -95,6 +95,11 @@ namespace libtorrent
 
 		bool move_storage(boost::filesystem::path save_path);
 
+		// this will close all open files that are opened for
+		// writing. This is called when a torrent has finished
+		// downloading.
+		void release();
+
 #ifndef NDEBUG
 		// overwrites some slots with the
 		// contents of others
@@ -120,6 +125,8 @@ namespace libtorrent
 			boost::mutex& mutex
 		  , detail::piece_checker_data& data
 		  , std::vector<bool>& pieces);
+
+		void release();
 
 		void allocate_slots(int num_slots);
 		void mark_failed(int index);

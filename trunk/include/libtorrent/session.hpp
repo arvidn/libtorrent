@@ -175,7 +175,7 @@ namespace libtorrent
 			// in this struct
 			mutable boost::mutex m_mutex;
 			torrent* find_torrent(const sha1_hash& info_hash);
-			const peer_id& get_peer_id() const { return m_peer_id; }
+			peer_id const& get_peer_id() const { return m_peer_id; }
 
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
@@ -313,6 +313,8 @@ namespace libtorrent
 
 		void enable_extension(peer_connection::extension_index i);
 		void disable_extensions();
+
+		void set_peer_id(peer_id const& id);
 
 		bool is_listening() const;
 

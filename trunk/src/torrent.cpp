@@ -280,8 +280,6 @@ namespace libtorrent
 
 		m_last_working_tracker
 			= prioritize_tracker(m_currently_trying_tracker);
-		m_next_request = second_clock::universal_time()
-			+ boost::posix_time::seconds(m_duration);
 		m_currently_trying_tracker = 0;
 
 		m_duration = interval;
@@ -289,7 +287,7 @@ namespace libtorrent
 		{
 			// if the peer list is empty, we should contact the
 			// tracker soon again to see if there are any peers
-			m_next_request = second_clock::universal_time() + boost::posix_time::seconds(60);
+			m_next_request = second_clock::universal_time() + boost::posix_time::minutes(2);
 		}
 		else
 		{
@@ -531,7 +529,6 @@ namespace libtorrent
 
 	tracker_request torrent::generate_tracker_request()
 	{
-		m_duration = 1800;
 		m_next_request
 			= second_clock::universal_time()
 			+ boost::posix_time::seconds(tracker_retry_delay_max);
@@ -673,6 +670,8 @@ namespace libtorrent
 				i->second->disconnect();
 		}
 
+		m_storage->release();
+
 		// make the next tracker request
 		// be a completed-event
 		m_event = tracker_request::completed;
@@ -807,6 +806,7 @@ namespace libtorrent
 
 	void torrent::pause()
 	{
+		if (m_paused) return;
 		disconnect_all();
 		m_paused = true;
 		// tell the tracker that we stopped
@@ -816,6 +816,7 @@ namespace libtorrent
 
 	void torrent::resume()
 	{
+		if (!m_paused) return;
 		m_paused = false;
 
 		// tell the tracker that we're back
@@ -921,6 +922,7 @@ namespace libtorrent
 		assert(m_storage.get());
 		assert(piece_index >= 0);
 		assert(piece_index < m_torrent_file.num_pieces());
+		assert(piece_index < m_have_pieces.size());
 
 		int size = static_cast<int>(m_torrent_file.piece_size(piece_index));
 		std::vector<char> buffer(size);

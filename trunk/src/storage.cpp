@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iterator>
 #include <algorithm>
 #include <set>
+#include <functional>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -49,6 +50,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/fstream.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/ref.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/bind.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -72,9 +75,12 @@ namespace std
 #endif
 
 using namespace boost::filesystem;
+namespace pt = boost::posix_time;
+using boost::bind;
 
 namespace
 {
+	using namespace libtorrent;
 
 	void print_to_log(const std::string& s)
 	{
@@ -93,6 +99,58 @@ namespace
 		else
 			return t.name() / p;
 	}
+
+	struct file_entry
+	{
+		file_entry(boost::shared_ptr<file> const& f_)
+			: f(f_)
+			, last_use(pt::second_clock::universal_time()) {}
+		boost::shared_ptr<file> f;
+		pt::ptime last_use;
+		file::open_mode mode;
+	};
+
+	struct file_pool
+	{
+		file_pool(int size): m_size(size) {}
+
+		boost::shared_ptr<file> open_file(path const& p, file::open_mode m)
+		{
+			typedef std::map<path, file_entry>::iterator iterator;
+			iterator i = m_files.find(p);
+			if (i != m_files.end())
+			{
+				i->second.last_use = pt::second_clock::universal_time();
+				if ((i->second.mode & m) != m)
+				{
+					i->second.f.reset(new file(p, m));
+					i->second.mode = m;
+				}
+				return i->second.f;
+			}
+			// the file is not in our cache
+			if ((int)m_files.size() >= m_size)
+			{
+				i = m_files.begin();
+				for (iterator j = boost::next(m_files.begin()); j != m_files.end(); ++j)
+					if (j->second.last_use < i->second.last_use) i = j;
+				m_files.erase(i);
+			}
+			file_entry e(boost::shared_ptr<file>(new file(p, m)));
+			e.mode = m;
+			m_files.insert(std::make_pair(p, e));
+			return e.f;
+		}
+
+		void release()
+		{
+			m_files.clear();
+		}
+
+	private:
+		int m_size;
+		std::map<path, file_entry> m_files;
+	};
 }
 
 namespace libtorrent
@@ -194,6 +252,7 @@ namespace libtorrent
 		impl(torrent_info const& info, path const& path)
 			: thread_safe_storage(info.num_pieces())
 			, info(info)
+			, files(10)
 		{
 			save_path = complete(path);
 			assert(save_path.is_complete());
@@ -203,16 +262,23 @@ namespace libtorrent
 			: thread_safe_storage(x.info.num_pieces())
 			, info(x.info)
 			, save_path(x.save_path)
+			, files(x.files)
 		{}
 
 		torrent_info const& info;
 		path save_path;
+		file_pool files;
 	};
 
 	storage::storage(const torrent_info& info, const path& path)
 		: m_pimpl(new impl(info, path))
 	{
 		assert(info.begin_files() != info.end_files());
+	}
+
+	void storage::release()
+	{
+		m_pimpl->files.release();
 	}
 
 	void storage::swap(storage& other)
@@ -232,6 +298,8 @@ namespace libtorrent
 			create_directory(save_path);
 		else if(!is_directory(save_path))
 			return false;
+
+		m_pimpl->files.release();
 
 		if (m_pimpl->info.num_files() == 1)
 		{
@@ -323,21 +391,21 @@ namespace libtorrent
 			++file_iter;
 		}
 
-		file in(
+		boost::shared_ptr<file> in(m_pimpl->files.open_file(
 			m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path)
-			, file::in);
+			, file::in));
 
 		assert(file_offset < file_iter->size);
 
-		in.seek(file_offset);
-		if (in.tell() != file_offset)
+		in->seek(file_offset);
+		if (in->tell() != file_offset)
 		{
 			// the file was not big enough
 			throw file_error("slot has no storage");
 		}
 
 #ifndef NDEBUG
-		size_type in_tell = in.tell();
+		size_type in_tell = in->tell();
 		assert(in_tell == file_offset);
 #endif
 
@@ -358,7 +426,7 @@ namespace libtorrent
 			if (file_offset + read_bytes > file_iter->size)
 				read_bytes = static_cast<int>(file_iter->size - file_offset);
 
-			size_type actual_read = in.read(buf + buf_pos, read_bytes);
+			size_type actual_read = in->read(buf + buf_pos, read_bytes);
 
 			if (read_bytes != actual_read)
 			{
@@ -377,7 +445,8 @@ namespace libtorrent
 				path path = m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path);
 
 				file_offset = 0;
-				in.open(path, file::in);
+				in = m_pimpl->files.open_file(path, file::in);
+				in->seek(0);
 			}
 		}
 
@@ -415,12 +484,12 @@ namespace libtorrent
 		}
 
 		path p(m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path));
-		file out(p, file::out);
+		boost::shared_ptr<file> out = m_pimpl->files.open_file(p, file::out | file::in);
 
 		assert(file_offset < file_iter->size);
 
-		out.seek(file_offset);
-		size_type pos = out.tell();
+		out->seek(file_offset);
+		size_type pos = out->tell();
 
 		if (pos != file_offset)
 		{
@@ -450,7 +519,7 @@ namespace libtorrent
 
 			assert(buf_pos >= 0);
 			assert(write_bytes > 0);
-			size_type written = out.write(buf + buf_pos, write_bytes);
+			size_type written = out->write(buf + buf_pos, write_bytes);
 
 			if (written != write_bytes)
 			{
@@ -472,7 +541,8 @@ namespace libtorrent
 				assert(file_iter != m_pimpl->info.end_files());
  				path p = m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path);
 				file_offset = 0;
-				out.open(p, file::out);
+				out = m_pimpl->files.open_file(p, file::out | file::in);
+				out->seek(0);
 			}
 		}
 	}
@@ -496,6 +566,8 @@ namespace libtorrent
 			boost::mutex& mutex
 		  , detail::piece_checker_data& data
 		  , std::vector<bool>& pieces);
+
+		void release();
 
 		void allocate_slots(int num_slots);
 		void mark_failed(int index);
@@ -610,6 +682,16 @@ namespace libtorrent
 
 	piece_manager::~piece_manager()
 	{
+	}
+
+	void piece_manager::release()
+	{
+		m_pimpl->release();
+	}
+
+	void piece_manager::impl::release()
+	{
+		m_storage.release();
 	}
 
 	void piece_manager::impl::export_piece_map(
