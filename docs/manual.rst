@@ -70,6 +70,7 @@ libtorrent has been successfully compiled and tested on:
 	* Windows 2000 vc7.1
 	* Linux x86 (debian) GCC 3.0.4, GCC 3.2.3
 	* Windows 2000, msvc6 sp5 (does not support 64-bit values due to problems with operator<<(ostream&, __int64))
+	* MacOS X, GCC 3.3
 
 Fails on:
 
@@ -112,6 +113,9 @@ in the libtorrent directory.
 If you're building on a platform where dlls share the same heap, you can build libtorrent
 as a dll too, by typing ``link=shared`` instead of ``link=static``.
 
+To build on MacOS X, you need the latest version of boost-build, from the `boost cvs`__.
+
+__ http://sourceforge.net/cvs/?group_id=7586
 
 If you're making your own project file, note that there are two versions of the file
 abstraction. There's one ``file_win.cpp`` which relies on windows file API that supports
