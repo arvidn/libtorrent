@@ -177,7 +177,7 @@ libtorrent::peer_connection::~peer_connection()
 void libtorrent::peer_connection::set_send_quota(int num_bytes)
 {
 	assert(num_bytes <= m_send_quota_limit || m_send_quota_limit == -1);
-	if (num_bytes > m_send_quota_limit) num_bytes = m_send_quota_limit;
+	if (num_bytes > m_send_quota_limit && m_send_quota_limit!=-1) num_bytes = m_send_quota_limit;
 
 	m_send_quota = num_bytes;
 	m_send_quota_left = num_bytes;
