@@ -134,9 +134,9 @@ namespace libtorrent
 
 			m_file.clear();
 			if (m_open_mode == mode_in)
-				return m_file.tellg();
+				return static_cast<std::streamoff>(m_file.tellg());
 			else
-				return m_file.tellp();
+				return static_cast<std::streamoff>(m_file.tellp());
 		}
 	
 		fs::fstream m_file;
