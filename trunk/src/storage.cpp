@@ -401,6 +401,7 @@ namespace libtorrent {
 		storage m_storage;
 
 		// total number of bytes left to be downloaded
+		// TODO: this member shouldn't be necessaty any more
 		size_type m_bytes_left;
 
 		// a bitmask representing the pieces we have
