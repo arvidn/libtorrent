@@ -57,15 +57,19 @@ namespace
 
 	void throw_exception(const char* thrower)
 	{
-		char *buffer = 0;
 		int err = GetLastError();
 
-		#ifdef _UNICODE
+		#ifdef UNICODE
+			wchar_t *wbuffer = 0;
 			FormatMessage(
 				FORMAT_MESSAGE_FROM_SYSTEM
 				|FORMAT_MESSAGE_ALLOCATE_BUFFER
-				, 0, err, 0, (LPWSTR)(LPCSTR)&buffer, 0, 0);
+				, 0, err, 0, (LPWCSTR)&wbuffer, 0, 0);
+			std::string tmp_utf8;
+			wchar_utf8(wbuffer, tmp_utf8);
+			char* buffer = tmp_utf8.c_str();
 		#else
+			char* buffer = 0;
 			FormatMessage(
 				FORMAT_MESSAGE_FROM_SYSTEM
 				|FORMAT_MESSAGE_ALLOCATE_BUFFER
@@ -116,7 +120,7 @@ namespace libtorrent
 
 			assert(access_mask & (GENERIC_READ | GENERIC_WRITE));
 
-		#ifdef _UNICODE
+		#ifdef UNICODE
 			std::wstring wfile_name(utf8_wchar(file_name));
 			HANDLE new_handle = CreateFile(
 				(LPCWSTR)wfile_name.c_str()
