@@ -293,13 +293,11 @@ namespace libtorrent
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry());
 
-#ifdef TORRENT_ENABLE_EXTENSIONS
 		torrent_handle add_torrent(
 			char const* tracker_url
 			, sha1_hash const& info_hash
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry());
-#endif
 
 		session_status status() const;
 
