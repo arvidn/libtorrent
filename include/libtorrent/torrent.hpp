@@ -110,7 +110,25 @@ namespace libtorrent
 
 		int bytes_downloaded() const { return m_bytes_downloaded; }
 		int bytes_uploaded() const { return m_bytes_uploaded; }
-		int bytes_left() const { return m_storage.bytes_left(); }
+		int bytes_left() const
+		{
+			const std::vector<bool>& p = m_storage.pieces();
+			int num_pieces = std::accumulate(p.begin(), p.end(), 0);
+			int total_blocks
+				= (m_torrent_file.total_size()+m_block_size-1)/m_block_size;
+			int blocks_per_piece
+				= m_torrent_file.piece_length() / m_block_size;
+			int unverified_blocks = m_picker.unverified_blocks();
+			int blocks_we_have = num_pieces * blocks_per_piece;
+			const int last_piece = m_torrent_file.num_pieces()-1;
+			if (p[last_piece])
+			{
+				blocks_we_have += m_picker.blocks_in_piece(last_piece)
+					- blocks_per_piece;
+			}
+			return m_torrent_file.total_size()
+				- (blocks_we_have + unverified_blocks) * m_block_size;
+		}
 
 		torrent_status status() const;
 
@@ -262,7 +280,7 @@ namespace libtorrent
 
 		torrent_info m_torrent_file;
 
-		storage m_storage;
+		piece_manager m_storage;
 
 		// the time of next tracker request
 		boost::posix_time::ptime m_next_request;

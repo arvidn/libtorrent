@@ -75,7 +75,7 @@ namespace libtorrent
 		virtual ~file_allocation_failed() throw() {}
 		std::string m_msg;
 	};
-
+/*
 	// wraps access to pieces with a file-like interface
 	class piece_file
 	{
@@ -151,6 +151,7 @@ namespace libtorrent
 	friend class piece_file;
 	friend class piece_sorter;
 	public:
+		typedef entry::integer_type size_type;
 
 		void initialize_pieces(torrent* t,
 			const boost::filesystem::path& path,
@@ -168,6 +169,9 @@ namespace libtorrent
 
 		entry::integer_type piece_storage(int piece);
 		void allocate_pieces(int num);
+
+		size_type read(char* buf, int slot, size_type offset, size_type size);
+		void write(const char* buf, int slot, size_type offset, size_type size);
 
 	private:
 
@@ -202,23 +206,83 @@ namespace libtorrent
 		boost::condition m_unlocked_pieces;
 		std::vector<bool> m_locked_pieces;
 
-		boost::recursive_mutex m_mutex;
+		mutable boost::recursive_mutex m_mutex;
 
 		torrent* m_torrent;
 	};
-
-	class piece_sorter
+*/
+	class storage
 	{
 	public:
-		void operator()();
+		storage(
+			const torrent_info& info
+		  , const boost::filesystem::path& path);
+
+		typedef entry::integer_type size_type;
+
+		size_type read(char* buf, int slot, size_type offset, size_type size);
+		void write(const char* buf, int slot, size_type offset, size_type size);
 
 	private:
-		typedef std::vector<int> pieces_type;
+		const torrent_info& m_info;
+		const boost::filesystem::path m_save_path;
+	};
 
-		storage* m_storage;	
-		boost::mutex m_monitor;
-		boost::condition m_more_pieces;
-		pieces_type m_pieces;
+	class piece_manager
+	{
+	public:
+
+		typedef entry::integer_type size_type;
+
+		piece_manager(
+			const torrent_info& info
+		  , const boost::filesystem::path& path);
+
+		void check_pieces(boost::mutex& mutex, detail::piece_checker_data& data);
+
+		void allocate_slots(int num_slots);
+
+		size_type read(char* buf, int piece_index, size_type offset, size_type size);
+		size_type write(const char* buf, int piece_index, size_type offset, size_type size);
+
+	private:
+
+		// returns the slot currently associated with the given
+		// piece or assigns the given piece_index to a free slot
+		int slot_for_piece(int piece_index);
+		
+		void check_invariant() const;
+
+		storage m_storage;
+
+		// total number of bytes left to be downloaded
+		size_type m_bytes_left;
+
+		// a bitmask representing the pieces we have
+		std::vector<bool> m_have_piece;
+
+		const torrent_info& m_info;
+
+		// maps piece index to slot index. -1 means the piece
+		// doesn't exist
+		std::vector<int> m_piece_to_slot;
+		// slots that hasn't had any file storage allocated
+		std::vector<int> m_unallocated_slots;
+		// slots that has file storage, but isn't assigned to a piece
+		std::vector<int> m_free_slots;
+
+		// index here is a slot number in the file
+		// -1 : the slot is unallocated
+		// -2 : the slot is allocated but not assigned to a piece
+		//  * : the slot is assigned to this piece
+		std::vector<int> m_slot_to_piece;
+
+		// synchronization
+		boost::mutex m_locked_pieces_monitor;
+		boost::condition m_unlocked_pieces;
+		std::vector<bool> m_locked_pieces;
+
+		mutable boost::recursive_mutex m_mutex;
 	};
 
 }
