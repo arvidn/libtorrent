@@ -334,6 +334,9 @@ namespace libtorrent
 		bool support_extensions() const
 		{ return m_supports_extensions; }
 
+		bool is_local() const
+		{ return m_active; }
+
 #ifndef NDEBUG
 		boost::shared_ptr<logger> m_logger;
 #endif
@@ -458,8 +461,10 @@ namespace libtorrent
 		// a back reference to the session
 		// the peer belongs to.
 		detail::session_impl& m_ses;
+
 		// is true if it was we that connected to the peer
 		// and false if we got an incomming connection
+		// could be considered: true = local, false = remote
 		bool m_active;
 
 		// this is true as long as this peer's

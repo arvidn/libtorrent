@@ -250,6 +250,8 @@ namespace libtorrent
 	TODO: implement some kind of limit of the number of sockets
 	opened, to use for systems where a user has a limited number
 	of open file descriptors. and for windows which has a buggy tcp-stack.
+	This means also to implement a 'connecion purger', that identifies
+	more or less useless connections and closes them.
 */
 
 	policy::policy(torrent* t)

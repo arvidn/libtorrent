@@ -363,6 +363,7 @@ namespace libtorrent
 			if (peer->is_peer_interested()) p.flags |= peer_info::remote_interested;
 			if (peer->has_peer_choked()) p.flags |= peer_info::remote_choked;
 			if (peer->support_extensions()) p.flags |= peer_info::supports_extensions;
+			if (peer->is_local()) p.flags |= peer_info::local_connection;
 
 			p.pieces = peer->get_bitfield();
 		}

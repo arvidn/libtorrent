@@ -342,6 +342,9 @@ namespace libtorrent
 		// start with redownloading the pieces that the client
 		// that has sent the least number of pieces
 		m_picker.restore_piece(index);
+
+		// TODO: make sure restore_piece() works
+		assert(m_have_pieces[index] == false);
 	}
 
 
