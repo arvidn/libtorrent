@@ -153,7 +153,7 @@ The ``session`` class has the following synopsis::
 
 		torrent_handle add_torrent(
 			const torrent_info& t
-			, const std::string& save_path
+			, const boost::filesystem::path& save_path
 			, const entry& resume_data = entry());
 
 		void remove_torrent(const torrent_handle& h);

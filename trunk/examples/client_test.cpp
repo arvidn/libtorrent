@@ -259,7 +259,7 @@ int main(int argc, char* argv[])
 				{}
 
 				handles.push_back(ses.add_torrent(t, save_path, resume_data));
-				handles.back().set_max_connections(5);
+				handles.back().set_max_connections(60);
 				handles.back().set_max_uploads(-1);
 				handles.back().set_ratio(1.02);
 			}
