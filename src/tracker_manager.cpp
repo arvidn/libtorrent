@@ -334,7 +334,7 @@ namespace libtorrent
 			start = end;
 
 			end = std::find(start, req.url.end(), '/');
-			std::string::const_iterator port_pos
+			std::string::iterator port_pos
 				= std::find(start, req.url.end(), ':');
 
 			if (port_pos < end)
