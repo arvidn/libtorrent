@@ -161,7 +161,7 @@ namespace libtorrent
 
 			session_impl(
 				std::pair<int, int> listen_port_range
-				, const fingerprint& cl_fprint
+				, fingerprint const& cl_fprint
 				, const char* listen_interface);
 
 			void operator()();
@@ -255,10 +255,10 @@ namespace libtorrent
 	{
 	public:
 
-		session(std::pair<int, int> listen_port_range);
+		session(fingerprint const& print = fingerprint("LT", 0, 1, 0, 0));
 		session(
-			std::pair<int, int> listen_port_range
-			, const fingerprint& print
+			fingerprint const& print
+			, std::pair<int, int> listen_port_range
 			, const char* listen_interface = 0);
 
 		~session();
