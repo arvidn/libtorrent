@@ -1339,6 +1339,21 @@ void libtorrent::storage::initialize_pieces(torrent* t,
 	print_bitmask(m_have_piece);
 	std::cout << "\n";
 	std::cout << std::count(m_have_piece.begin(), m_have_piece.end(), true) << "\n";
+
+	invariant();
+}
+
+void libtorrent::storage::invariant() const
+{
+	// synchronization ------------------------------------------------------
+	boost::recursive_mutex::scoped_lock lock(m_mutex);
+	// ----------------------------------------------------------------------
+
+	for (int i = 0; i < m_torrent_file->num_pieces(); ++i)
+	{
+		if (m_allocated_pieces[i] != m_torrent_file->piece_length() * i)
+			assert(m_slot_to_piece[i] < 0);
+	}
 }
 
 #if 0 // OLD STORAGE
