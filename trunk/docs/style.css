@@ -1,0 +1,78 @@
+body
+{
+	background-color: white;
+	color: black;
+	margin: 1em 2em 1em 2em;
+}
+
+h1 { font-family: Verdana, Arial, Helvetica, sans-serif; font-weight: bold; text-align: left; font-size: 140%; }
+h2 { font-family: Verdana, Arial, Helvetica, sans-serif; font-weight: bold; text-align: left; font-size: 110%; }
+h3 { font-family: "courier new", courier, monospace; font-weight: bold; text-align: left; font-size: 100%; }
+
+pre
+{
+	border: gray 1pt solid;
+	padding: 2pt;
+
+	display: block;
+	font-family: "courier new", courier, monospace;
+	background-color: #eeeeee;
+	color: black;
+	font-size: small
+}
+
+code
+{
+	white-space: pre;
+	border: gray 1pt solid;
+	padding: 2pt;
+
+	display: block;
+	font-family: "courier new", courier, monospace;
+	color: black;
+	font-size: small
+}
+
+tt
+{
+	display: inline;
+	font-family: "Courier New", Courier, monospace;
+}
+
+p
+{
+	text-align: justify;
+	font-family: Georgia, "Times New Roman", Times, serif
+}
+
+ul
+{
+	font-family: Georgia, "Times New Roman", Times, serif
+}
+
+ol
+{
+	font-family: Georgia, "Times New Roman", Times, serif
+}
+
+a
+{
+	font-weight: bold;
+	color: #003366;
+	text-decoration: none;
+}
+
+table
+{
+	border: 1px solid black
+}
+
+td
+{
+	border: 1px solid black
+}
+
+a:hover
+{
+	color: #8080FF;
+}

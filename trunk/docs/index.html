@@ -1,0 +1,597 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+
+<html>
+<head>
+	<title>libtorrent</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+	<link href="style.css" type="text/css" rel="stylesheet">
+</head>
+
+<body>
+
+<h1>libtorrent</h1>
+<p>
+libtorrent is a C++ library that aims to be a good alternative to all the
+<a href="links.html">other bittorrent implementations</a> around. It is a
+library and not a full featured client, although it comes with a working
+example client.
+</p>
+
+<p>
+The main goals of libtorrent are:
+</p>
+
+<ul>
+	<li>to be cpu efficient
+	<li>to be memory efficient
+	<li>to be very easy to use
+</ul>
+
+<p>
+libtorrent is not finished. It is an ongoing project (including this documentation).
+The current state includes the following features:
+</p>
+
+<ul>
+	<li>multitracker extension support
+	(as <a href="http://home.elp.rr.com/tur/multitracker-spec.txt">described by TheShadow</a>)
+	<li>serves multiple torrents on a single port and a single thread
+	<li>supports http proxies and proxy authentication
+	<li>gzipped tracker-responses
+	<li>piece picking on block-level (as opposed to piece-level) like in
+	<a href="http://azureus.sourceforge.net/">Azureus</a>
+</ul>
+
+<p>
+libtorrent is portable at least among windows, macosx, and UNIX-systems. It uses boost.thread,
+boost.filesystem and various other boost libraries and zlib.
+</p>
+
+<h1>building</h1>
+
+<p>
+To build libtorrent you need <a href="http://www.boost.org">boost</a> and bjam installed.
+Then you can use <tt>bjam</tt> to build libtorrent.
+</p>
+
+<p>
+To make bjam work, you need to set the environment variable <tt>BOOST_ROOT</tt> to the
+path where boost is installed (e.g. c:\boost_1_30_2 on windows). Then you can just run
+<tt>bjam</tt> in the libtorrent directory.
+</p>
+
+<p>
+TODO: more detailed build instructions.
+</p>
+
+<h1>using</h1>
+
+<p>
+The interface of libtorrent consists of a few classes. The main class is
+the <tt>session</tt>, it contains the main loop that serves all torrents.
+</p>
+
+<h2>session</h2>
+
+<p>
+The <tt>session</tt> class has the following synopsis:
+</p>
+
+<pre>
+class session: public boost::noncopyable
+{
+	session(int listen_port);
+
+	torrent_handle add_torrent(const torrent_info&amp; t, const std::string&amp; save_path);
+
+	void set_http_settings(const http_settings&amp; settings);
+};
+</pre>
+
+<p>
+Once it's created, it will spawn the main thread that will do all the work.
+The main thread will be idle as long it doesn't have any torrents to participate in.
+You add torrents through the <tt>add_torrent()</tt>-function where you give an
+object representing the information found in the torrent file and the path where you
+want to save the files. The <tt>save_path</tt> will be prepended to the directory-
+structure in the torrent-file.
+</p>
+
+<p>
+How to parse a torrent file and create a <tt>torrent_info</tt> object is described below.
+</p>
+
+<p>
+The <a href="#torrent_handle"><tt>torrent_handle</tt></a> returned by <tt>add_torrent</tt>
+can be used to retrieve information about the torrent's progress, its peers etc. It
+is also used to abort a torrent.
+</p>
+
+<p>
+The constructor takes a listen port as argument, if the given port is busy it will
+increase the port number by one and try again. If it still fails it will continue
+increasing the port number until it succeeds or has failed 9 ports. <i>This will
+change in the future to give more control of the listen-port.</i>
+</p>
+
+<h2>parsing torrent files</h2>
+
+<p>
+The torrent files are <a href="http://bitconjurer.org/BitTorrent/protocol.html">
+bencoded</a>. There are two functions in libtorrent that can encode and decode
+bencoded data. They are:
+</p>
+
+<h3>
+template&lt;class InIt&gt;
+entry bdecode(InIt start, InIt end);<br>
+
+template&lt;class OutIt&gt;
+void bencode(OutIt out, const entry&amp; e);
+</h3>
+
+<p>
+The <tt>entry</tt> class is the internal representation of the bencoded data
+and it can be used to retreive information, an entry can also be build by
+the program and given to <tt>bencode()</tt> to encode it into the <tt>OutIt</tt>
+iterator.
+</p>
+
+<p>
+The <tt>OutIt</tt> and <tt>InIt</tt> are iterators
+(<a href="http://www.sgi.com/tech/stl/InputIterator.html"><tt>InputIterator</tt></a>
+and <a href="http://www.sgi.com/tech/stl/OutputIterator.html"><tt>OutputIterator</tt></a>
+respectively). They are templates and are usually instantiated as
+<a href="http://www.sgi.com/tech/stl/ostream_iterator.html">
+<tt>std::ostream_iterator</tt></a>,
+<a href="http://www.sgi.com/tech/stl/back_insert_iterator.html">
+<tt>std::back_insert_iterator</tt></a> or
+<a href="http://www.sgi.com/tech/stl/istream_iterator.html">
+<tt>std::istream_iterator</tt></a>. These functions will assume that the iterator
+refers to a character (<tt>char</tt>). So, if you want to encode entry <tt>e</tt>
+into a buffer in memory, you can do it like this:
+</p>
+
+<code>
+std::vector&lt;char&gt; buffer;
+bencode(std::back_insert_iterator&lt;std::vector&lt;char&gt; &gt;(buf), e);
+</code>
+
+<p>
+If you want to decode a torrent file from a buffer in memory, you can do it like this:
+</p>
+
+<code>
+std::vector&lt;char&gt; buffer;
+
+// ...
+
+entry e = bdecode(buf.begin(), buf.end());
+</code>
+
+<p>
+Or, if you have a raw char buffer:
+</p>
+
+<code>
+const char* buf;
+
+// ...
+
+entry e = bdecode(buf, buf + data_size);
+</code>
+
+<p>
+Now we just need to know how to retrieve information from the <tt>entry</tt>.
+</p>
+
+<h2>entry</h2>
+
+<p>
+The <tt>entry</tt> class represents one node in a bencoded hierarchy. It works as a
+variant type, it can be either a list, a dictionary (<tt>std::map</tt>), an integer
+or a string. This is its synopsis:
+</p>
+
+<pre>
+class entry
+{
+public:
+
+	typedef std::map&lt;std::string, entry&gt; dictionary_type;
+	typedef std::string string_type;
+	typedef std::vector&lt;entry&gt; list_type;
+	typedef <i>implementation-defined</i> integer_type;
+
+	enum data_type
+	{
+		int_t,
+		string_t,
+		list_t,
+		dictionary_t,
+		undefined_t
+	};
+
+	data_type type() const;
+
+	entry();
+	entry(data_type t);
+	entry(const entry&amp; e);
+
+	void operator=(const entry&amp; e);
+
+	integer_type&amp; integer()
+	const integer_type&amp; integer() const;
+	string_type&amp; string();
+	const string_type&amp; string() const;
+	list_type&amp; list();
+	const list_type&amp; list() const;
+	dictionary_type&amp; dict();
+	const dictionary_type&amp; dict() const;
+
+	void print(std::ostream&amp; os, int indent) const;
+};
+</pre>
+
+<p>
+The <tt>integer()</tt>, <tt>string()</tt>, <tt>list()</tt> and <tt>dict()</tt> functions
+are accessorts that return the respecive type. If the <tt>entry</tt> object isn't of the
+type you request, the accessor will throw <tt>type_error</tt> (which derives from
+<tt>std::runtime_error</tt>). You can ask an <tt>entry</tt> for its type through the
+<tt>type()</tt> function.
+</p>
+
+<p>
+The <tt>print()</tt> function is there for debug purposes only.
+</p>
+
+<p>
+If you want to create an <tt>entry</tt> you give it the type you want it to have in its
+constructor, and then use one of the non-const accessors to get a reference which you then
+can assign the value you want it to have.
+</p>
+
+<p>
+The typical code to get info from a torrent file will then look like this:
+</p>
+
+<code>
+entry torrent_file;
+
+// ...
+
+const entry::dictionary_type&amp; dict = torrent_file.dict();
+entry::dictionary_type::const_iterator i;
+i = dict.find("announce");
+if (i != dict.end())
+{
+	std::string tracker_url= i-&gt;second.string();
+	std::cout &lt;&lt; tracker_url &lt;&lt; "\n";
+}
+</code>
+
+<p>
+To make it easier to extract information from a torren file, the class <tt>torrent_info</tt>
+exists.
+</p>
+
+<h2>torrent_info</h2>
+<p>
+The <tt>torrent_info</tt> has the following synopsis:
+</p>
+
+<pre>
+class torrent_info
+{
+public:
+
+	torrent_info(const entry&amp; torrent_file)
+
+	typedef std::vector&lt;file&gt;::const_iterator file_iterator;
+	typedef std::vector&lt;file&gt;::const_reverse_iterator reverse_file_iterator;
+
+	file_iterator begin_files() const;
+	file_iterator end_files() const;
+	reverse_file_iterator rbegin_files() const;
+	reverse_file_iterator rend_files() const;
+
+	std::size_t num_files() const;
+	const file&amp; file_at(int index) const;
+
+	const std::vector&lt;announce_entry&gt;&amp; trackers() const;
+
+	int prioritize_tracker(int index);
+
+	entry::integer_type total_size() const;
+	entry::integer_type piece_length() const;
+	std::size_t num_pieces() const;
+	const sha1_hash&amp; info_hash() const;
+
+	void print(std::ostream&amp; os) const;
+
+	entry::integer_type piece_size(unsigned int index) const;
+	const sha1_hash&amp; hash_for_piece(unsigned int index) const;
+};
+</pre>
+
+<p>
+This class will need some explanation. First of all, to get a list of all files
+in the torrent, you can use <tt>begin_files()</tt>, <tt>end_files()</tt>,
+<tt>rbegin_files()</tt> and <tt>rend_files()</tt>. These will give you standard vector
+iterators with the type <tt>file</tt>.
+</p>
+
+<pre>
+struct file
+{
+	std::string path;
+	std::string filename;
+	entry::integer_type size;
+};
+</pre>
+
+<p>
+If you need index-access to files you can use the <tt>num_files()</tt> and <tt>file_at()
+</tt> to access files using indices.
+</p>
+
+<p>
+The <tt>print()</tt> function is there for debug purposes only. It will print the info from
+the torrent file to the given outstream.
+</p>
+
+<p>
+The <tt>trackers()</tt> function will return a sorted vector of <tt>announce_entry</tt>.
+Each announce entry contains a string, which is the tracker url, and a tier index. The
+tier index is the high-level priority. No matter which trackers that works or not, the
+ones with lower tier will always be tried before the one with higher tier number.
+</p>
+
+<pre>
+struct announce_entry
+{
+	std::string url;
+	int tier;
+};
+</pre>
+
+<p>
+The <tt>prioritize_tracker()</tt> is used internally to move a tracker to the front
+of its tier group. i.e. It will never be moved pass a tracker with a different tier
+number. For more information about how multiple trackers are dealt with, see the
+<a href="http://home.elp.rr.com/tur/multitracker-spec.txt">specification</a>.
+</p>
+
+<p>
+<tt>total_size()</tt>, <tt>piece_length()</tt> and <tt>num_pieces()</tt> returns the total
+number of bytes the torrent-file represents (all the files in it), the number of byte for
+each piece and the total number of pieces, respectively. The difference between
+<tt>piece_size()</tt> and <tt>piece_length()</tt> is that <tt>piece_size()</tt> takes
+the piece index as argument and gives you the exact size of that piece. It will always
+be the same as <tt>piece_length()</tt> except in the case of the last piece, which may
+be smaller.
+</p>
+
+<p>
+<tt>hash_for_piece()</tt> takes a piece-index and returns the 20-bytes sha1-hash for that
+piece and <tt>info_hash()</tt> returns the 20-bytes sha1-hash for the info-section of the
+torrent file. For more information on the <tt>sha1_hash</tt>, see the <a href="#big_number">big_number</a> class.
+</p>
+
+<h2><a name="torrent_handle"></a>torrent_hande</h2>
+
+<p>
+You will usually have to store your <tt>torrent_handle</tt>s somewhere, since it's the
+object thought which you retrieve infromation about the torrent and aborts the torrent.
+Its declaration looks like this:
+</p>
+
+<pre>
+struct torrent_handle
+{
+	torrent_handle();
+
+	float progress() const;
+	void get_peer_info(std::vector&lt;peer_info&gt;&amp; v);
+	void abort();
+
+	enum state_t
+	{
+		checking_files,
+		connecting_to_tracker,
+		downloading,
+		seeding
+	};
+	state_t state() const;
+};
+</pre>
+
+<!-- TODO: temporary comment -->
+<p><tt>progress()</tt> and <tt>state()</tt>is not implemented yet</tt>.</p>
+
+<p>
+<tt>progress()</tt> will return a value in the range [0, 1], that represents the progress
+of the torrent's current task. It may be checking files, connecting to tracker, or downloading
+etc. You can get the torrent's current task bu calling <tt>state()</tt>, it will return one of
+the following:
+</p>
+
+<table>
+	<tr>
+		<td>
+			<tt>checking_files</tt>
+		</td>
+		<td>
+			The torrent has not started its download yet, and is currently checking existing
+			files or is queued for having its files checked.
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<tt>connecting_to_tracker</tt>
+		</td>
+		<td>
+			The torrent is waiting for tracker reply or waiting to retry a tracker connection.
+			If it's waiting to retry the progress meter will hint about when it will retry.
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<tt>downloading</tt>
+		</td>
+		<td>
+			The torrent is being downloaded. This is the state most torrents will be in most
+			of the time. The progress meter will tell how much of the files that has been
+			downloaded.
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<tt>seeding</tt>
+		</td>
+		<td>
+			In this state the torrent has finished downloading and is a pure seeder.
+		</td>
+	</tr>
+</table>
+
+<p>
+<tt>abort()</tt> will close all peer connections associated with this torrent and tell
+the tracker that we've stopped participating in the swarm. This handle will become invalid
+shortly after this call has been made.
+</p>
+
+<p>
+<tt>get_peer_info()</tt> takes a reference to a vector that will be cleared and filled
+with one entry for each peer connected to this torrent. Each entry contains information about
+that particular peer. It contains the following information:
+</p>
+
+<pre>
+struct peer_info
+{
+	enum
+	{
+		interesting = 0x1,
+		choked = 0x2,
+		remote_interested = 0x4,
+		remote_choked = 0x8
+	};
+	unsigned int flags;
+	address ip;
+	float up_speed;
+	float down_speed;
+	peer_id id;
+	std::vector&lt;bool&gt; pieces;
+};
+</pre>
+
+<p>
+The <tt>flags</tt> attribute tells you in which state the peer is. It is set to
+any combination of the four enums above. Where <tt>interesting</tt> means that we
+are interested in pieces from this peer. <tt>choked</tt> means that <u>we</u> has
+choked this peer. <tt>remote_interested</tt> and <tt>remote_choked</tt> means the
+same thing but that the peer is interested in pieces from us and the peer has choked
+<u>us</u>.
+</p>
+
+<p>
+The <tt>ip</tt> field is the IP-address to this peer. Its type is a wrapper around the
+actual address and the port number. See <a href"#address">address</a> class.
+</p>
+
+<p>
+<tt>up_speed</tt> and <tt>down_speed</tt> is the current upload and download speed
+we have to and from this peer. These figures are updated aproximately once every second.
+</p>
+
+<p>
+<tt>id</tt> is the peer's id as used in the bit torrent protocol. This id can be used to
+extract 'fingerprints' from the peer. Sometimes it can tell you which client the peer
+is using.
+</p>
+
+<p>
+<tt>pieces</tt> is a vector of booleans that has as many entries as there are pieces
+in the torrent. Each boolean tells you if the peer has that piece (if it's set to true)
+or if the peer miss that piece (set to false).
+</p>
+
+<h2>http_settings</h2>
+
+<p>
+You have some control over tracker requests through the <tt>http_settings</tt> object. You
+create it and fill it with your settings and the use <tt>session::set_http_settings()</tt>
+to apply them. You have control over proxy and authorization settings and also the user-agent
+that will be sent to the tracker. The user-agent is a good way to identify your client.
+</p>
+
+<pre>
+struct http_settings
+{
+	http_settings();
+	std::string proxy_ip;
+	int proxy_port;
+	std::string proxy_login;
+	std::string proxy_password;
+	std::string user_agent;
+};
+</pre>
+
+<p>
+TODO: address
+</p>
+
+<h2><a name="big_number"></a>big_number</h2>
+
+<p>
+Both the <tt>peer_id</tt> and <tt>sha1_hash</tt> types are typedefs of the class
+<tt>big_number</tt>. It represents 20 bytes of data. Its synopsis follows:
+</p>
+
+<pre>
+class big_number
+{
+public:
+	bool operator==(const big_number&amp; n) const;
+	bool operator!=(const big_number&amp; n) const;
+	bool operator&lt;(const big_number&amp; n) const;
+
+	const unsigned char* begin() const;
+	const unsigned char* end() const;
+
+	unsigned char* begin();
+	unsigned char* end();
+};
+</pre>
+
+<p>
+The iterators gives you access to individual bytes.
+</p>
+
+<h1>Credits</h1>
+
+<p>
+Copyright &copy; 2003 Arvid Norberg
+</p>
+
+<p>
+	<a href="http://sourceforge.net/">
+	<img style="border:0; width: 88px; height: 31px"
+	src="http://sourceforge.net/sflogo.php?group_id=79942"
+	alt="SourceForge" /></a>
+
+	<a href="http://validator.w3.org/check/referer">
+	<img style="border:0;width:88px;height:31px"
+	src="http://www.w3.org/Icons/valid-html401"
+	alt="Valid HTML 4.01!"></a>
+
+	<a href="http://jigsaw.w3.org/css-validator/">
+	<img style="border:0;width:88px;height:31px"
+	src="http://jigsaw.w3.org/css-validator/images/vcss"
+	alt="Valid CSS!"></a>
+
+</p>
+
+</body></html>
+
