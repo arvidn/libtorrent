@@ -105,10 +105,6 @@ namespace {
 
 }
 
-// TODO: implement fast resume. i.e. the possibility to
-// supply additional information about which pieces are
-// assigned to which slots.
-
 namespace libtorrent {
 
 	struct thread_safe_storage

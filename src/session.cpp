@@ -746,9 +746,10 @@ namespace libtorrent
 	// TODO: add a check to see if filenames are accepted on the
 	// current platform.
 	// if the torrent already exists, this will throw duplicate_torrent
-	torrent_handle session::add_torrent(
+	torrent_handle session::add_torrent_impl(
 		const torrent_info& ti
-		, const boost::filesystem::path& save_path)
+		, const boost::filesystem::path& save_path
+		, const std::vector<char>* resume_data)
 	{
 
 		{
@@ -772,13 +773,15 @@ namespace libtorrent
 		// create the torrent and the data associated with
 		// the checker thread and store it before starting
 		// the thread
-		boost::shared_ptr<torrent> torrent_ptr(new torrent(m_impl, ti, save_path));
+		boost::shared_ptr<torrent> torrent_ptr(
+			new torrent(m_impl, ti, save_path));
 
 		detail::piece_checker_data d;
 		d.torrent_ptr = torrent_ptr;
 		d.save_path = save_path;
 		d.info_hash = ti.info_hash();
-
+		d.parse_resume_data(resume_data, torrent_ptr->torrent_file());
+		
 		// lock the checker thread
 		boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
 
@@ -877,4 +880,66 @@ namespace libtorrent
 		m_impl.m_alerts.set_severity(s);
 	}
 
+	void detail::piece_checker_data::parse_resume_data(
+		const std::vector<char>* rd
+		, const torrent_info& info)
+	{
+		piece_map.clear();
+		unfinished_pieces.clear();
+
+		std::vector<int> tmp_pieces;
+		std::vector<piece_picker::downloading_piece> tmp_unfinished;
+
+		if (rd == 0) return;
+
+		const std::vector<char>& data = *rd;
+
+		if (data.size() < 3 * 4) return;
+		std::vector<char>::const_iterator ptr = data.begin();
+
+		int num_slots = detail::read_int(ptr);
+		if (num_slots < 0) return;
+		if (data.size() < (3 + num_slots) * 4) return;
+
+		tmp_pieces.reserve(num_slots);
+		for (int i = 0; i < num_slots; ++i)
+		{
+			int index = read_int(ptr);
+			if (index >= info.num_pieces() || index < -2)
+				return;
+			tmp_pieces.push_back(index);
+		}
+
+		int num_blocks_per_piece = read_int(ptr);
+		if (num_blocks_per_piece > 128 || num_blocks_per_piece < 0)
+			return;
+
+		int num_unfinished = read_int(ptr);
+		if (num_unfinished < 0) return;
+		if (data.size() != (3 + num_slots + 1 + num_unfinished) * 4)
+			return;
+
+		tmp_unfinished.reserve(num_unfinished);
+		for (int i = 0; i < num_unfinished; ++i)
+		{
+			piece_picker::downloading_piece p;
+			p.index = detail::read_int(ptr);
+			p.finished_blocks.reset();
+			p.requested_blocks.reset();
+
+			if (p.index < 0
+				|| p.index >= info.num_pieces())
+				return;
+
+			for (int j = 0; j < num_blocks_per_piece / 32; ++j)
+			{
+				unsigned int bits = read_int(ptr);
+				for (int k = 0; k < 32; ++k) p.finished_blocks[j * 32 + k] = true;
+			}
+			tmp_unfinished.push_back(p);
+		}
+
+		piece_map.swap(tmp_pieces);
+		unfinished_pieces.swap(tmp_unfinished);
+	}
 }

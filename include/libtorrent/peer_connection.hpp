@@ -75,6 +75,44 @@ namespace libtorrent
 	namespace detail
 	{
 		struct session_impl;
+
+		// reads an integer from a byte stream
+		// in big endian byte order and converts
+		// it to native endianess
+		template<class InIt>
+		unsigned int read_uint(InIt& start)
+		{
+			unsigned int val = 0;
+			val |= static_cast<unsigned char>(*start) << 24; ++start;
+			val |= static_cast<unsigned char>(*start) << 16; ++start;
+			val |= static_cast<unsigned char>(*start) << 8; ++start;
+			val |= static_cast<unsigned char>(*start); ++start;
+			return val;
+		}
+
+		template<class InIt>
+		inline int read_int(InIt& start)
+		{
+			return static_cast<int>(read_uint(start));
+		}
+
+		// reads an integer to a byte stream
+		// and converts it from native endianess
+		template<class OutIt>
+		void write_uint(unsigned int val, OutIt& start)
+		{
+			*start = static_cast<unsigned char>((val >> 24) & 0xff); ++start;
+			*start = static_cast<unsigned char>((val >> 16) & 0xff); ++start;
+			*start = static_cast<unsigned char>((val >> 8) & 0xff); ++start;
+			*start = static_cast<unsigned char>((val) & 0xff); ++start;
+		}
+
+		template<class OutIt>
+		inline void write_int(int val, OutIt& start)
+		{
+			write_uint(reinterpret_cast<unsigned int&>(val), start);
+		}
+
 	}
 
 	struct protocol_error: std::runtime_error
