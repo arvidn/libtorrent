@@ -190,7 +190,7 @@ namespace libtorrent
 				{
 					listener->listen(m_listen_port, 5);
 				}
-				catch(network_error&)
+				catch(std::exception&)
 				{
 					if (m_listen_port > max_port)
 						throw;
@@ -299,7 +299,7 @@ namespace libtorrent
 //							(*m_logger) << "readable: " << p->first->sender().as_string() << "\n";
 							p->second->receive_data();
 						}
-						catch(network_error&)
+						catch(std::exception&)
 						{
 							// the connection wants to disconnect for some reason, remove it
 							// from the connection-list
@@ -338,7 +338,7 @@ namespace libtorrent
 			//				(*m_logger) << "writable: " << p->first->sender().as_string() << "\n";
 							p->second->send_data();
 						}
-						catch(network_error&)
+						catch(std::exception&)
 						{
 							// the connection wants to disconnect for some reason, remove it
 							// from the connection-list

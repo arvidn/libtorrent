@@ -216,6 +216,11 @@ namespace libtorrent
 
 		piece_picker& picker() { return m_picker; }
 
+		// this is called from the peer_connection
+		// each time a piece has failed the hash
+		// test
+		void piece_failed(int index);
+
 		// DEBUG
 #ifndef NDEBUG
 		logger* spawn_logger(const char* title);

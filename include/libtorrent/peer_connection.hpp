@@ -66,6 +66,11 @@ namespace libtorrent
 		struct session_impl;
 	}
 
+	struct protocol_error: std::runtime_error
+	{
+		protocol_error(const std::string& msg): std::runtime_error(msg) {};
+	};
+
 	struct peer_request
 	{
 		int piece;
@@ -181,13 +186,28 @@ namespace libtorrent
 		// peer.
 		int send_quota() const { return m_send_quota; }
 
+		void received_valid_data()
+		{
+			m_trust_points++;
+			if (m_trust_points > 20) m_trust_points = 20;
+		}
+
+		void received_invalid_data()
+		{
+			m_trust_points--;
+			if (m_trust_points < 5) m_trust_points = 5;
+		}
+
+		int trust_points() const
+		{ return m_trust_points; }
+
 #ifndef NDEBUG
 		boost::shared_ptr<logger> m_logger;
 #endif
 
 	private:
 
-		bool dispatch_message();
+		void dispatch_message();
 		void send_buffer_updated();
 
 		void send_bitfield();
@@ -314,6 +334,14 @@ namespace libtorrent
 		// speed
 		int m_send_quota;
 		int m_send_quota_left;
+
+		// for every valid piece we receive where this
+		// peer was one of the participants, we increase
+		// this value. For every invalid piece we receive
+		// where this peer was a participant, we decrease
+		// this value. If it sinks below a threshold, its
+		// considered a bad peer and will be banned.
+		int m_trust_points;
 	};
 
 	// this is called each time this peer generates some

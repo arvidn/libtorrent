@@ -366,6 +366,7 @@ int libtorrent::piece_file::read(char* buf, int size, bool lock_)
 		int read_bytes = left_to_read;
 		if (m_file_offset + read_bytes > m_file_iter->size)
 			read_bytes = m_file_iter->size - m_file_offset;
+		assert(read_bytes > 0);
 
 		m_file.read(buf + buf_pos, read_bytes);
 
@@ -505,7 +506,10 @@ void libtorrent::piece_file::write(const char* buf, int size, bool lock_)
 	{
 		int write_bytes = left_to_write;
 		if (m_file_offset + write_bytes > m_file_iter->size)
+		{
+			assert(m_file_iter->size > m_file_offset);
 			write_bytes = m_file_iter->size - m_file_offset;
+		}
 
 		assert(buf_pos >= 0);
 		assert(write_bytes > 0);
@@ -515,6 +519,7 @@ void libtorrent::piece_file::write(const char* buf, int size, bool lock_)
 		buf_pos += write_bytes;
 		assert(buf_pos >= 0);
 		m_file_offset += write_bytes;
+		assert(m_file_offset < m_file_iter->size);
 		m_piece_offset += write_bytes;
 
 		if (left_to_write > 0)
@@ -522,6 +527,7 @@ void libtorrent::piece_file::write(const char* buf, int size, bool lock_)
 			++m_file_iter;
 
 			assert(m_file_iter != m_storage->m_torrent_file->end_files());
+			assert(m_file_iter->size > m_file_offset);
 
 			boost::filesystem::path path = m_storage->m_save_path /
 				m_file_iter->path / m_file_iter->filename;

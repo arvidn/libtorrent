@@ -156,6 +156,11 @@ namespace libtorrent
 			++i)
 		{
 			peer_connection* peer = *i;
+
+			// peers that hasn't finished the handshake should
+			// not be included in this list
+			if (peer->associated_torrent() == 0) continue;
+
 			v.push_back(peer_info());
 			peer_info& p = v.back();
 

@@ -240,8 +240,69 @@ namespace libtorrent
 			!= m_connections.end();
 	}
 
+	void torrent::piece_failed(int index)
+	{
+		std::vector<peer_id> downloaders;
+		m_picker.get_downloaders(downloaders, index);
+
+#ifndef NDEBUG
+		std::cout << "hash-test failed. Some of these peers sent invalid data:\n";
+		std::copy(downloaders.begin(), downloaders.end(), std::ostream_iterator<peer_id>(std::cout, "\n"));
+#endif
+
+		// decrease the trust point of all peers that sent
+		// parts of this piece.
+		// TODO: implement this loop more efficient
+		for (std::vector<peer_connection*>::iterator i = m_connections.begin();
+			i != m_connections.end();
+			++i)
+		{
+			if (std::find(downloaders.begin(), downloaders.end(), (*i)->get_peer_id())
+				!= downloaders.end())
+			{
+				(*i)->received_invalid_data();
+				if ((*i)->trust_points() <= -5)
+				{
+					// we don't trust this peer anymore
+					// ban it.
+					m_policy->ban_peer(*(*i));
+				}
+			}
+		}
+
+		// we have to let the piece_picker know that
+		// this piece failed the check as it can restore it
+		// and mark it as being interesting for download
+		// TODO: do this more intelligently! and keep track
+		// of how much crap (data that failed hash-check) and
+		// how much redundant data we have downloaded
+		// if some clients has sent more than one piece
+		// start with redownloading the pieces that the client
+		// that has sent the least number of pieces
+		m_picker.restore_piece(index);
+	}
+
+
 	void torrent::announce_piece(int index)
 	{
+		std::vector<peer_id> downloaders;
+		m_picker.get_downloaders(downloaders, index);
+
+		// increase the trust point of all peers that sent
+		// parts of this piece.
+		// TODO: implement this loop more efficient
+		for (std::vector<peer_connection*>::iterator i = m_connections.begin();
+			i != m_connections.end();
+			++i)
+		{
+			if (std::find(downloaders.begin(), downloaders.end(), (*i)->get_peer_id())
+				!= downloaders.end())
+			{
+				(*i)->received_valid_data();
+			}
+		}
+
+
 		m_picker.we_have(index);
 		for (std::vector<peer_connection*>::iterator i = m_connections.begin(); i != m_connections.end(); ++i)
 			(*i)->announce_piece(index);
@@ -378,7 +439,7 @@ namespace libtorrent
 			= m_ses->m_connections.find(p->get_socket());
 		assert(i != m_ses->m_connections.end());
 
-		m_policy->new_connection(i->second);
+		if (!m_policy->new_connection(i->second)) throw network_error(0);
 	}
 
 	void torrent::close_all_connections()

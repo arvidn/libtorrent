@@ -197,9 +197,11 @@ namespace libtorrent
 	void peer_connection::request_piece(int index);
 	const std::vector<int>& peer_connection::download_queue();
 
-	TODO: to implement choking/unchoking we need a list with all
-	connected peers. Something like this:
+	TODO: implement a limit of the number of unchoked peers.
 
+	TODO: implement some kind of limit of the number of sockets
+	opened, to use for systems where a user has a limited number
+	of open file descriptors
 */
 
 
@@ -238,6 +240,10 @@ namespace libtorrent
 			else if (uploaded - downloaded <= m_torrent->block_size()
 				&& c->is_choked() && c->is_peer_interested())
 			{
+				// TODO: if we're not interested in this peer
+				// we should only unchoke it if it' its turn
+				// to be optimistically unchoked.
+
 				// we have catched up. We have now shared the same amount
 				// to eachother. Unchoke this peer.
 				c->unchoke();
@@ -245,11 +251,19 @@ namespace libtorrent
 		}
 	}
 
-	void policy::new_connection(const boost::weak_ptr<peer_connection>& c)
+	void policy::ban_peer(const peer_connection& c)
+	{
+		std::vector<peer>::iterator i = std::find(m_peers.begin(), m_peers.end(), c.get_peer_id());
+		assert(i != m_peers.end());
+
+		i->banned = true;
+	}
+
+	bool policy::new_connection(const boost::weak_ptr<peer_connection>& c)
 	{
 		boost::shared_ptr<peer_connection> con = c.lock();
 		assert(con.get() != 0);
-		if (con.get() == 0) return;
+		if (con.get() == 0) return false;
 
 		std::vector<peer>::iterator i
 			= std::find(m_peers.begin(), m_peers.end(), con->get_peer_id());
@@ -264,10 +278,12 @@ namespace libtorrent
 		else
 		{
 			assert(i->connection.expired());
+			if (i->banned) return false;
 		}
 		
 		i->connected = boost::posix_time::second_clock::local_time();
 		i->connection = c;
+		return true;
 	}
 
 	void policy::peer_from_tracker(const address& remote, const peer_id& id)
@@ -291,11 +307,14 @@ namespace libtorrent
 				return;
 			}
 
+			if (i->banned) return;
+
 			i->connected = boost::posix_time::second_clock::local_time();
 			i->connection = m_torrent->connect_to_peer(remote, id);
 
 		}
 		catch(network_error&) {}
+		catch(protocol_error&) {}
 	}
 
 	// this is called when we are choked by a peer

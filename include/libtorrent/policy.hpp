@@ -62,7 +62,8 @@ namespace libtorrent
 		void pulse();
 
 		// called when an incoming connection is accepted
-		void new_connection(const boost::weak_ptr<peer_connection>& c);
+		// return false if the connection closed
+		bool new_connection(const boost::weak_ptr<peer_connection>& c);
 
 		// this is called once for every peer we get from
 		// the tracker
@@ -70,6 +71,10 @@ namespace libtorrent
 
 		// the given connection was just closed
 		void connection_closed(const peer_connection& c);
+
+		// is called when a peer is believed to have
+		// sent invalid data
+		void ban_peer(const peer_connection& c);
 
 		// the peer has got at least one interesting piece
 		void peer_is_interesting(peer_connection& c);
@@ -105,6 +110,7 @@ namespace libtorrent
 				, optimistic_unchokes(0)
 				, prev_amount_upload(0)
 				, prev_amount_download(0)
+				, banned(false)
 			{}
 
 			bool operator==(const peer_id& pid) const
@@ -139,6 +145,9 @@ namespace libtorrent
 			// statistics from the peer_connection.
 			int prev_amount_upload;
 			int prev_amount_download;
+
+			// is set to true if this peer has been banned
+			bool banned;
 
 			// if the peer is connected now, this
 			// will refer to a valid peer_connection
