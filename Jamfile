@@ -77,7 +77,6 @@ lib torrent
 	:
 	<include>./include
 	<threading>multi
-	<link>static
 	: debug release
 	;
 
