@@ -40,7 +40,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#ifndef _MODE_T_
 typedef int mode_t;
+#endif
 
 #else
 
