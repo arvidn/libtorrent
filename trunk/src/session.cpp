@@ -709,14 +709,17 @@ namespace libtorrent { namespace detail
 		catch (std::bad_cast& e)
 		{
 			std::cerr << e.what() << "\n";
+			assert(false);
 		}
 		catch (std::exception& e)
 		{
 			std::cerr << e.what() << "\n";
+			assert(false);
 		}
 		catch (...)
 		{
 			std::cerr << "error!\n";
+			assert(false);
 		}
 #endif
 	}
