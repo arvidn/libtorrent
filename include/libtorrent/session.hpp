@@ -156,6 +156,8 @@ namespace libtorrent
 		struct session_impl: boost::noncopyable
 		{
 			friend class invariant_access;
+			// TODO: maybe this should be changed to a sorted vector
+			// using lower_bound?
 			typedef std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> > connection_map;
 			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
 

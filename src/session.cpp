@@ -330,11 +330,16 @@ namespace libtorrent { namespace detail
 				{
 					if (e.error_code() == socket::address_not_available)
 					{
-						std::string msg = "cannot listen on the given interface '" + m_listen_interface.as_string() + "'";
-						m_alerts.post_alert(listen_failed_alert(msg));
+						if (m_alerts.should_post(alert::fatal))
+						{
+							std::string msg = "cannot listen on the given interface '" + m_listen_interface.as_string() + "'";
+							m_alerts.post_alert(listen_failed_alert(msg));
+						}
 #ifndef NDEBUG
+						std::string msg = "cannot listen on the given interface '" + m_listen_interface.as_string() + "'";
 						(*m_logger) << msg << "\n";
 #endif
+						assert(m_listen_socket.unique());
 						m_listen_socket.reset();
 						break;
 					}
@@ -622,6 +627,20 @@ namespace libtorrent { namespace detail
 					p->second->set_failed();
 					m_connections.erase(p);
 				}
+				else if (*i == m_listen_socket)
+				{
+					if (m_alerts.should_post(alert::fatal))
+					{
+						std::string msg = "cannot listen on the given interface '" + m_listen_interface.as_string() + "'";
+						m_alerts.post_alert(listen_failed_alert(msg));
+					}
+#ifndef NDEBUG
+					std::string msg = "cannot listen on the given interface '" + m_listen_interface.as_string() + "'";
+					(*m_logger) << msg << "\n";
+#endif
+					assert(m_listen_socket.unique());
+					m_listen_socket.reset();
+				}
 			}
 
 #ifndef NDEBUG
@@ -637,7 +656,7 @@ namespace libtorrent { namespace detail
 			// ************************
 
 #ifndef NDEBUG
-			// std::cout << "\n\nloops: " << loops_per_second << "\n";
+			if (loops_per_second > 800) std::cout << "\n\nloops: " << loops_per_second << "\n";
 			loops_per_second = 0;
 #endif
 
