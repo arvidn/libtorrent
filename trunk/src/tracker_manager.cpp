@@ -289,7 +289,7 @@ namespace libtorrent
 			boost::shared_ptr<tracker_connection>& c = *i;
 			try
 			{
-				if (!c->tick()) return;
+				if (!c->tick()) continue;
 			}
 			catch (const std::exception& e)
 			{
