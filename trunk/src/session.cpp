@@ -63,8 +63,6 @@ namespace std
 };
 #endif
 
-// TODO: enable floating point exceptions in debug mode!
-
 namespace
 {
 
@@ -886,7 +884,6 @@ namespace libtorrent
 		m_impl.m_alerts.set_severity(s);
 	}
 
-	// TODO: store resume data as an entry instead
 	void detail::piece_checker_data::parse_resume_data(
 		const entry& resume_data
 		, const torrent_info& info)

@@ -247,24 +247,6 @@ namespace
 namespace libtorrent
 {
 /*
-	TODO: make two proxy classes that filter out
-	all unneccesary members from torrent and peer_connection
-	to make it easier to use them in the policy
-
-	useful member functions:
-
-	void torrent::connect_to_peer(address, peer_id);
-	piece_picker& torrent::picker();
-	std::vector<peer_connection*>::const_iterator torrent::begin() const
-	std::vector<peer_connection*>::const_iterator torrent::end() const
-
-	void peer_connection::interested();
-	void peer_connection::not_interested();
-	void peer_connection::choke();
-	void peer_connection::unchoke();
-	void peer_connection::request_piece(int index);
-	const std::vector<int>& peer_connection::download_queue();
-
 	TODO: implement some kind of limit of the number of sockets
 	opened, to use for systems where a user has a limited number
 	of open file descriptors. and for windows which has a buggy tcp-stack.
@@ -565,8 +547,6 @@ namespace libtorrent
 					i->connection->not_interested();
 			}
 		}
-		// TODO: if verification failed, mark the peers that were involved
-		// in some way
 	}
 
 	// TODO: we must be able to get interested
