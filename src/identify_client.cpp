@@ -77,19 +77,19 @@ namespace
 			++i;
 		}
 
-		if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+		if (*i < '0') return boost::optional<fingerprint>();
 		ret.major_version = *i - '0';
 		++i;
 
-		if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+		if (*i < '0') return boost::optional<fingerprint>();
 		ret.minor_version = *i - '0';
 		++i;
 
-		if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+		if (*i < '0') return boost::optional<fingerprint>();
 		ret.revision_version = *i - '0';
 		++i;
 
-		if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+		if (*i < '0') return boost::optional<fingerprint>();
 		ret.tag_version = *i - '0';
 		++i;
 
@@ -105,22 +105,22 @@ namespace
 		fingerprint ret("..", 0, 0, 0, 0);
 		peer_id::const_iterator i = id.begin();
 
-		if (!std::isprint(*i)) return boost::optional<fingerprint>();
+		if (*i < '0') return boost::optional<fingerprint>();
 		ret.id[0] = *i;
 		ret.id[1] = 0;
 		++i;
 
 		if (std::equal(id.begin()+4, id.begin()+8, "----"))
 		{
-			if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+			if (*i < '0') return boost::optional<fingerprint>();
 			ret.major_version = *i - '0';
 			++i;
 
-			if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+			if (*i < '0') return boost::optional<fingerprint>();
 			ret.minor_version = *i - '0';
 			++i;
 
-			if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+			if (*i < '0') return boost::optional<fingerprint>();
 			ret.revision_version = *i - '0';
 		}
 		else if (id[8] == 0)
@@ -156,21 +156,21 @@ namespace
 		ret.id[1] = 0;
 		++i;
 
-		if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+		if (*i < '0') return boost::optional<fingerprint>();
 		ret.major_version = *i - '0';
 		++i;
 
 		if (*i != '-') return boost::optional<fingerprint>();
 		++i;
 
-		if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+		if (*i < '0') return boost::optional<fingerprint>();
 		ret.minor_version = *i - '0';
 		++i;
 
 		if (*i != '-') return boost::optional<fingerprint>();
 		++i;
 
-		if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+		if (*i < '0') return boost::optional<fingerprint>();
 		ret.revision_version = *i - '0';
 		++i;
 
