@@ -1443,7 +1443,6 @@ namespace libtorrent
 
 						// yes, we found the torrent
 						// reply with our handshake
-						std::copy(m_recv_buffer.begin()+28, m_recv_buffer.begin() + 48, (char*)m_peer_id.begin());
 						send_handshake();
 						send_bitfield();
 					}
