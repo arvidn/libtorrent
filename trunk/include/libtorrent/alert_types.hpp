@@ -140,6 +140,21 @@ namespace libtorrent
 		torrent_handle handle;
 	};
 
+	// TODO: document and test
+	struct file_error_alert: alert
+	{
+		file_error_alert(
+			const torrent_handle& h
+			, const std::string& msg)
+			: alert(alert::fatal, msg)
+			, handle(h)
+		{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new file_error_alert(*this)); }
+
+		torrent_handle handle;
+	};
 }
 
 

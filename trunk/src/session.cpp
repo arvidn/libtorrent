@@ -65,6 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
+#include "libtorrent/file.hpp"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 namespace std
@@ -419,7 +420,7 @@ namespace libtorrent
 				{
 					listener->listen(m_listen_port, 5);
 				}
-				catch(std::exception&)
+				catch (std::exception&)
 				{
 					if (m_listen_port > max_port)
 						throw;
@@ -517,7 +518,21 @@ namespace libtorrent
 							assert(p->second->get_socket()->is_writable());
 							p->second->send_data();
 						}
-						catch(std::exception& e)
+						catch (file_error& e)
+						{
+							if (m_alerts.should_post(alert::fatal))
+							{
+								m_alerts.post_alert(
+									file_error_alert(
+									p->second->associated_torrent()->get_handle()
+									, e.what()));
+							}
+
+							m_selector.remove(*i);
+							m_connections.erase(p);
+							assert(m_selector.count_read_monitors() == m_connections.size() + 1);
+						}
+						catch (std::exception& e)
 						{
 							// the connection wants to disconnect for some reason,
 							// remove it from the connection-list
@@ -583,7 +598,21 @@ namespace libtorrent
 //							(*m_logger) << "readable: " << p->first->sender().as_string() << "\n";
 							p->second->receive_data();
 						}
-						catch(std::exception& e)
+						catch (file_error& e)
+						{
+							if (m_alerts.should_post(alert::fatal))
+							{
+								m_alerts.post_alert(
+									file_error_alert(
+									p->second->associated_torrent()->get_handle()
+									, e.what()));
+							}
+
+							m_selector.remove(*i);
+							m_connections.erase(p);
+							assert(m_selector.count_read_monitors() == m_connections.size() + 1);
+						}
+						catch (std::exception& e)
 						{
 							if (m_alerts.should_post(alert::debug))
 							{
@@ -720,15 +749,15 @@ namespace libtorrent
 
 #ifndef NDEBUG
 			}
-			catch(std::bad_cast& e)
+			catch (std::bad_cast& e)
 			{
 				std::cerr << e.what() << "\n";
 			}
-			catch(std::exception& e)
+			catch (std::exception& e)
 			{
 				std::cerr << e.what() << "\n";
 			}
-			catch(...)
+			catch (...)
 			{
 				std::cerr << "error!\n";
 			}
