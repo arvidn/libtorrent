@@ -82,7 +82,7 @@ namespace libtorrent
 		, tracker_request const& req
 		, std::string const& hostname
 		, unsigned short port
-		, std::string const& request
+		, std::string request
 		, boost::weak_ptr<request_callback> c
 		, const http_settings& stn
 		, std::string const& auth)
@@ -129,46 +129,69 @@ namespace libtorrent
 				m_send_buffer += boost::lexical_cast<std::string>(port);
 		}
 
+		if (m_req.kind == tracker_request::scrape_request)
+		{
+			// TODO: find and replace "announce" with "scrape"
+			// in request
+
+			std::size_t pos = request.find("announce");
+			if (pos == std::string::npos)
+				throw std::runtime_error("scrape is not available on url: '"
+				+ m_req.url +"'");
+			request.replace(pos, 8, "scrape");
+		}
+
 		m_send_buffer += request;
 
-		m_send_buffer += "?info_hash=";
+		// if request-string already contains
+		// some parameters, append an ampersand instead
+		// of a question mark
+		if (request.find('?') != std::string::npos)
+			m_send_buffer += "&";
+		else
+			m_send_buffer += "?";
+
+		m_send_buffer += "info_hash=";
 		m_send_buffer += escape_string(
 			reinterpret_cast<const char*>(req.info_hash.begin()), 20);
 
-		m_send_buffer += "&peer_id=";
-		m_send_buffer += escape_string(
-			reinterpret_cast<const char*>(req.id.begin()), 20);
-
-		m_send_buffer += "&port=";
-		m_send_buffer += boost::lexical_cast<std::string>(req.listen_port);
-
-		m_send_buffer += "&uploaded=";
-		m_send_buffer += boost::lexical_cast<std::string>(req.uploaded);
-
-		m_send_buffer += "&downloaded=";
-		m_send_buffer += boost::lexical_cast<std::string>(req.downloaded);
-
-		m_send_buffer += "&left=";
-		m_send_buffer += boost::lexical_cast<std::string>(req.left);
-
-		if (req.event != tracker_request::none)
+		if (m_req.kind == tracker_request::announce_request)
 		{
-			const char* event_string[] = {"completed", "started", "stopped"};
-			m_send_buffer += "&event=";
-			m_send_buffer += event_string[req.event - 1];
-		}
-		m_send_buffer += "&key=";
-		std::stringstream key_string;
-		key_string << std::hex << req.key;
-		m_send_buffer += key_string.str();
-		m_send_buffer += "&compact=1";
-		m_send_buffer += "&numwant=";
-		m_send_buffer += boost::lexical_cast<std::string>(
-			std::min(req.num_want, 999));
+			m_send_buffer += "&peer_id=";
+			m_send_buffer += escape_string(
+				reinterpret_cast<const char*>(req.id.begin()), 20);
 
-		// extension that tells the tracker that
-		// we don't need any peer_id's in the response
-		m_send_buffer += "&no_peer_id=1";
+			m_send_buffer += "&port=";
+			m_send_buffer += boost::lexical_cast<std::string>(req.listen_port);
+
+			m_send_buffer += "&uploaded=";
+			m_send_buffer += boost::lexical_cast<std::string>(req.uploaded);
+
+			m_send_buffer += "&downloaded=";
+			m_send_buffer += boost::lexical_cast<std::string>(req.downloaded);
+
+			m_send_buffer += "&left=";
+			m_send_buffer += boost::lexical_cast<std::string>(req.left);
+
+			if (req.event != tracker_request::none)
+			{
+				const char* event_string[] = {"completed", "started", "stopped"};
+				m_send_buffer += "&event=";
+				m_send_buffer += event_string[req.event - 1];
+			}
+			m_send_buffer += "&key=";
+			std::stringstream key_string;
+			key_string << std::hex << req.key;
+			m_send_buffer += key_string.str();
+			m_send_buffer += "&compact=1";
+			m_send_buffer += "&numwant=";
+			m_send_buffer += boost::lexical_cast<std::string>(
+				std::min(req.num_want, 999));
+
+			// extension that tells the tracker that
+			// we don't need any peer_id's in the response
+			m_send_buffer += "&no_peer_id=1";
+		}
 
 		m_send_buffer += " HTTP/1.0\r\nAccept-Encoding: gzip\r\n"
 			"User-Agent: ";
@@ -546,11 +569,9 @@ namespace libtorrent
 	{
 		if (!has_requester()) return;
 
-		std::vector<peer_entry> peer_list;
 		try
 		{
 			// parse the response
-
 			try
 			{
 				entry const& failure = e["failure reason"];
@@ -561,9 +582,22 @@ namespace libtorrent
 			}
 			catch (type_error const&) {}
 
-			int interval = (int)e["interval"].integer();
+			std::vector<peer_entry> peer_list;
 
-			peer_list.clear();
+			if (m_req.kind == tracker_request::scrape_request)
+			{
+				std::string ih;
+				std::copy(m_req.info_hash.begin(), m_req.info_hash.end()
+					, std::back_inserter(ih));
+				entry scrape_data = e["files"][ih];
+				int complete = scrape_data["complete"].integer();
+				int incomplete = scrape_data["incomplete"].integer();
+				requester().tracker_response(peer_list, 0, complete
+					, incomplete);
+				return;
+			}
+
+			int interval = (int)e["interval"].integer();
 
 			if (e["peers"].type() == entry::string_t)
 			{

@@ -70,7 +70,7 @@ namespace libtorrent
 			, tracker_request const& req
 			, std::string const& hostname
 			, unsigned short port
-			, std::string const& request
+			, std::string request
 			, boost::weak_ptr<request_callback> c
 			, const http_settings& stn
 			, std::string const& password = "");

@@ -73,6 +73,9 @@ namespace libtorrent
 		, m_settings(stn)
 		, m_attempts(0)
 	{
+		// only announce is suppoerted at this time
+		assert(req.kind == tracker_request::announce_request);
+
 		// TODO: this is a problem. DNS-lookup is blocking!
 		// (may block up to 5 seconds)
 		address a(hostname.c_str(), port);

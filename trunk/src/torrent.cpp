@@ -1033,6 +1033,12 @@ namespace libtorrent
 			= boost::posix_time::seconds(0);
 		st.announce_interval = boost::posix_time::seconds(m_duration);
 
+		if (m_last_working_tracker >= 0)
+		{
+			st.current_tracker
+				= m_trackers[m_last_working_tracker].url;
+		}
+
 		// if we don't have any metadata, stop here
 
 		if (!valid_metadata())
@@ -1042,28 +1048,15 @@ namespace libtorrent
 			else
 				st.state = torrent_status::downloading_metadata;
 
-			if (m_have_metadata.empty())
-			{
-				st.progress = 0.f;
-			}
-			else
-			{
-				st.progress = std::count(
-					m_have_metadata.begin()
-					, m_have_metadata.end()
-					, true) / 256.f;
-			}
+			st.progress = std::count(
+				m_have_metadata.begin()
+				, m_have_metadata.end()
+				, true) / 256.f;
 
 			return st;
 		}
 
 		// fill in status that depends on metadata
-
-		if (m_last_working_tracker >= 0)
-		{
-			st.current_tracker
-				= m_trackers[m_last_working_tracker].url;
-		}
 
 		st.progress = st.total_done
 			/ static_cast<float>(m_torrent_file.total_size());

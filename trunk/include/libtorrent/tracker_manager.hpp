@@ -77,6 +77,19 @@ namespace libtorrent
 
 	struct tracker_request
 	{
+		tracker_request()
+			: kind(announce_request)
+			, event(none)
+			, key(0)
+			, num_want(0)
+		{}
+
+		enum
+		{
+			announce_request,
+			scrape_request
+		} kind;
+
 		enum event_t
 		{
 			none,
@@ -162,10 +175,6 @@ namespace libtorrent
 		tracker_connections_t m_connections;
 		const http_settings& m_settings;
 	};
-/*
-	inline request_callback::~request_callback()
-	{ if (m_manager) m_manager->abort_request(this); }
-*/
 }
 
 #endif // TORRENT_TRACKER_MANAGER_HPP_INCLUDED
