@@ -106,7 +106,8 @@ namespace libtorrent
 		{
 			if (m_attempts >= udp_connection_retries)
 			{
-				if (has_requester()) requester().tracker_request_timed_out();
+				if (has_requester())
+					requester().tracker_request_timed_out(m_request);
 				return true;
 			}
 			send_udp_connect();
@@ -118,7 +119,8 @@ namespace libtorrent
 		{
 			if (m_attempts >= udp_announce_retries)
 			{
-				if (has_requester()) requester().tracker_request_timed_out();
+				if (has_requester())
+					requester().tracker_request_timed_out(m_request);
 				return true;
 			}
 
@@ -140,7 +142,8 @@ namespace libtorrent
 		if (ret == udp_buffer_size)
 		{
 			if (has_requester())
-				requester().tracker_request_error(-1, "tracker reply too big");
+				requester().tracker_request_error(
+					m_request, -1, "tracker reply too big");
 			return true;
 		}
 
@@ -239,7 +242,8 @@ namespace libtorrent
 		if (action == error)
 		{
 			if (has_requester())
-				requester().tracker_request_error(-1, std::string(buf, buf + len - 8));
+				requester().tracker_request_error(
+					m_request, -1, std::string(buf, buf + len - 8));
 			return true;
 		}
 		if (action != announce) return false;
@@ -260,7 +264,8 @@ namespace libtorrent
 		if ((len - 24) % 6 != 0)
 		{
 			if (has_requester())
-				requester().tracker_request_error(-1, "invalid tracker response");
+				requester().tracker_request_error(
+					m_request, -1, "invalid tracker response");
 			return true;
 		}
 
@@ -281,7 +286,8 @@ namespace libtorrent
 			peer_list.push_back(e);
 		}
 
-		requester().tracker_response(peer_list, interval, complete, incomplete);
+		requester().tracker_response(m_request, peer_list, interval
+			, complete, incomplete);
 		return true;
 	}
 
@@ -306,7 +312,8 @@ namespace libtorrent
 		if (action == error)
 		{
 			if (has_requester())
-				requester().tracker_request_error(-1, std::string(ptr, buf + len));
+				requester().tracker_request_error(
+					m_request, -1, std::string(ptr, buf + len));
 			return true;
 		}
 		if (action != connect) return false;

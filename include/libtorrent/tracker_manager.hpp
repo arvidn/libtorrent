@@ -70,11 +70,6 @@ namespace libtorrent
 	// returns -1 if gzip header is invalid or the header size in bytes
 	int gzip_header(const char* buf, int size);
 
-	bool inflate_gzip(
-		std::vector<char>& buffer
-		, request_callback* requester
-		, int maximum_tracker_response_length);
-
 	struct tracker_request
 	{
 		tracker_request()
@@ -116,13 +111,16 @@ namespace libtorrent
 		request_callback(): m_manager(0) {}
 		virtual ~request_callback() {}
 		virtual void tracker_response(
-			std::vector<peer_entry>& peers
+			tracker_request const&
+			, std::vector<peer_entry>& peers
 			, int interval
 			, int complete
 			, int incomplete) = 0;
-		virtual void tracker_request_timed_out() = 0;
+		virtual void tracker_request_timed_out(
+			tracker_request const&) = 0;
 		virtual void tracker_request_error(
-			int response_code
+			tracker_request const&
+			, int response_code
 			, const std::string& description) = 0;
 
 		address m_tracker_address;
@@ -133,6 +131,12 @@ namespace libtorrent
 	private:
 		tracker_manager* m_manager;
 	};
+
+	bool inflate_gzip(
+		std::vector<char>& buffer
+		, tracker_request const& req
+		, request_callback* requester
+		, int maximum_tracker_response_length);
 
 	struct tracker_connection: boost::noncopyable
 	{
@@ -145,6 +149,7 @@ namespace libtorrent
 		bool has_requester() const { return !m_requester.expired(); }
 		request_callback& requester();
 		virtual ~tracker_connection() {}
+		virtual tracker_request const& tracker_req() const = 0;
 
 	protected:
 

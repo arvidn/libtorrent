@@ -192,10 +192,14 @@ namespace libtorrent
 		// (either http_tracker_connection or udp_tracker_connection)
 		// when this torrent got a response from its tracker request
 		// or when a failure occured
-		virtual void tracker_response(std::vector<peer_entry>& e, int interval
+		virtual void tracker_response(
+			tracker_request const& r
+			, std::vector<peer_entry>& e, int interval
 			, int complete, int incomplete);
-		virtual void tracker_request_timed_out();
-		virtual void tracker_request_error(int response_code, const std::string& str);
+		virtual void tracker_request_timed_out(
+			tracker_request const& r);
+		virtual void tracker_request_error(tracker_request const& r
+			, int response_code, const std::string& str);
 
 		// generates a request string for sending
 		// to the tracker

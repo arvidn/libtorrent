@@ -131,7 +131,7 @@ namespace libtorrent
 
 		if (m_req.kind == tracker_request::scrape_request)
 		{
-			// TODO: find and replace "announce" with "scrape"
+			// find and replace "announce" with "scrape"
 			// in request
 
 			std::size_t pos = request.find("announce");
@@ -242,7 +242,7 @@ namespace libtorrent
 		if (d > seconds(m_settings.tracker_timeout) ||
 			(!has_requester() && d > seconds(m_settings.stop_tracker_timeout)))
 		{
-			if (has_requester()) requester().tracker_request_timed_out();
+			if (has_requester()) requester().tracker_request_timed_out(m_req);
 			return true;
 		}
 
@@ -278,7 +278,7 @@ namespace libtorrent
 		if (m_socket->has_error())
 		{
 			if (has_requester()) requester().tracker_request_error(
-				-1, "connection refused");
+				m_req, -1, "connection refused");
 			return true;
 		}
 
@@ -298,8 +298,7 @@ namespace libtorrent
 			{
 				if (has_requester())
 				{
-					requester().tracker_request_error(
-						200
+					requester().tracker_request_error(m_req, 200
 						, "too large tracker response");
 				}
 				return true;
@@ -327,8 +326,7 @@ namespace libtorrent
 			{
 				if (has_requester())
 				{
-					requester().tracker_request_error(
-						-1
+					requester().tracker_request_error(m_req, -1
 						, "invalid tracker response, connection closed");
 				}
 				return true;
@@ -353,7 +351,7 @@ namespace libtorrent
 			if (m_server_protocol.substr(0, 5) != "HTTP/")
 			{
 				std::string error_msg = "unknown protocol in response: " + m_server_protocol;
-				if (has_requester()) requester().tracker_request_error(-1, error_msg.c_str());
+				if (has_requester()) requester().tracker_request_error(m_req, -1, error_msg.c_str());
 				return true;
 			}
 			line >> m_code;
@@ -366,8 +364,9 @@ namespace libtorrent
 			if (received <= 0)
 			{
 				if (has_requester())
-					requester().tracker_request_error(-1, "invalid tracker "
-					"response, connection closed while reading header");
+					requester().tracker_request_error(m_req, -1
+					, "invalid tracker response, connection closed "
+					"while reading header");
 				return true;
 			}
 
@@ -395,8 +394,7 @@ namespace libtorrent
 					{
 						if (has_requester())
 						{
-							requester().tracker_request_error(
-								-1, 
+							requester().tracker_request_error(m_req, -1, 
 								"invalid content-length in tracker response");
 						}
 						return true;
@@ -405,8 +403,7 @@ namespace libtorrent
 					{
 						if (has_requester())
 						{
-							requester().tracker_request_error(
-								-1
+							requester().tracker_request_error(m_req, -1
 								, "content-length is greater than maximum response length");
 						}
 						return true;
@@ -416,8 +413,7 @@ namespace libtorrent
 					{
 						if (has_requester())
 						{
-							requester().tracker_request_error(
-								-1
+							requester().tracker_request_error(m_req, -1
 								, "content-length is smaller than minimum response length");
 						}
 						return true;
@@ -435,7 +431,8 @@ namespace libtorrent
 						error_str += line.substr(18, line.length() - 18 - 2);
 						error_str += "\"";
 						if (has_requester())
-							requester().tracker_request_error(-1, error_str.c_str());
+							requester().tracker_request_error(m_req, -1
+								, error_str.c_str());
 						return true;
 					}
 				}
@@ -461,7 +458,8 @@ namespace libtorrent
 							error_str += boost::lexical_cast<std::string>(m_code);
 							error_str += ") without 'Location' header";
 							if (has_requester())
-								requester().tracker_request_error(m_code, error_str.c_str());
+								requester().tracker_request_error(m_req
+									, m_code, error_str.c_str());
 							return true;
 						}
 
@@ -499,7 +497,7 @@ namespace libtorrent
 				{
 					boost::shared_ptr<request_callback> r = m_requester.lock();
 					if (!r) return true;
-					if (inflate_gzip(m_buffer, r.get(),
+					if (inflate_gzip(m_buffer, m_req, r.get(),
 						m_settings.tracker_maximum_response_length))
 						return true;
 				}
@@ -515,8 +513,7 @@ namespace libtorrent
 		{
 			if (has_requester())
 			{
-				requester().tracker_request_error(
-					-1
+				requester().tracker_request_error(m_req, -1
 					, "invalid tracker response (body > content_length)");
 			}
 			return true;
@@ -532,7 +529,7 @@ namespace libtorrent
 			throw;			
 		}
 #endif
-}
+	}
 
 	peer_entry http_tracker_connection::extract_peer_info(const entry& info)
 	{
@@ -577,7 +574,7 @@ namespace libtorrent
 				entry const& failure = e["failure reason"];
 
 				if (has_requester()) requester().tracker_request_error(
-					m_code, failure.string().c_str());
+					m_req, m_code, failure.string().c_str());
 				return;
 			}
 			catch (type_error const&) {}
@@ -592,7 +589,7 @@ namespace libtorrent
 				entry scrape_data = e["files"][ih];
 				int complete = scrape_data["complete"].integer();
 				int incomplete = scrape_data["incomplete"].integer();
-				requester().tracker_response(peer_list, 0, complete
+				requester().tracker_response(m_req, peer_list, 0, complete
 					, incomplete);
 				return;
 			}
@@ -639,16 +636,16 @@ namespace libtorrent
 			try { incomplete = e["incomplete"].integer(); }
 			catch(type_error& e) {}
 			
-			requester().tracker_response(peer_list, interval, complete
+			requester().tracker_response(m_req, peer_list, interval, complete
 				, incomplete);
 		}
 		catch(type_error& e)
 		{
-			requester().tracker_request_error(-1, e.what());
+			requester().tracker_request_error(m_req, -1, e.what());
 		}
 		catch(std::runtime_error& e)
 		{
-			requester().tracker_request_error(-1, e.what());
+			requester().tracker_request_error(m_req, -1, e.what());
 		}
 	}
 
