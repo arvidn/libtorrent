@@ -326,7 +326,7 @@ namespace libtorrent
 #endif
 	}
 
-	bool piece_picker::inc_refcount(int i)
+	void piece_picker::inc_refcount(int i)
 	{
 		assert(i >= 0);
 		assert(i < m_piece_map.size());
@@ -336,14 +336,16 @@ namespace libtorrent
 
 		m_piece_map[i].peer_count++;
 
-		if (index == 0xffffff) return false;
+		// if we have the piece, we don't have to move
+		// any entries in the piece_info vector
+		if (index == 0xffffff) return;
 
 		move(m_piece_map[i].downloading, peer_count, index);
 
 #ifndef NDEBUG
 //		integrity_check();
 #endif
-		return true;
+		return;
 	}
 
 	void piece_picker::dec_refcount(int i)

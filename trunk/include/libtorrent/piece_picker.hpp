@@ -110,9 +110,10 @@ namespace libtorrent
 
 		// increases the peer count for the given piece
 		// (is used when a HAVE or BITFIELD message is received)
-		// returns true if this piece was interesting
-		bool inc_refcount(int index);
+		void inc_refcount(int index);
 
+		// decreases the peer count for the given piece
+		// (used when a peer disconnects)
 		void dec_refcount(int index);
 
 		// This indicates that we just received this piece

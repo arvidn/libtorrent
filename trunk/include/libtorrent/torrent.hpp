@@ -197,17 +197,12 @@ namespace libtorrent
 
 		// when we get a have- or bitfield- messages, this is called for every
 		// piece a peer has gained.
-		// returns true if this piece is interesting (i.e. if we would like to download it)
-		bool peer_has(int index)
-		{
-			return m_picker.inc_refcount(index);
-		}
+		void peer_has(int index)
+		{ m_picker.inc_refcount(index); }
 
 		// when peer disconnects, this is called for every piece it had
 		void peer_lost(int index)
-		{
-			m_picker.dec_refcount(index);
-		}
+		{ m_picker.dec_refcount(index); }
 
 		int block_size() const { return m_block_size; }
 

@@ -411,9 +411,23 @@ namespace libtorrent
 			m_picker.abort_download(*i);
 		}
 
-		for (std::size_t i = 0; i < torrent_file().num_pieces(); ++i)
+		std::vector<int> piece_list;
+		const std::vector<bool>& pieces = p->get_bitfield();
+
+		for (std::vector<bool>::const_iterator i = pieces.begin();
+			i != pieces.end();
+			++i)
 		{
-			if (p->has_piece(i)) peer_lost(i);
+			if (*i) piece_list.push_back(i - pieces.begin());
+		}
+
+		std::random_shuffle(piece_list.begin(), piece_list.end());
+
+		for (std::vector<int>::iterator i = piece_list.begin();
+			i != piece_list.end();
+			++i)
+		{
+			peer_lost(*i);
 		}
 
 //		std::cout << p->get_socket()->sender().as_string() << " *** DISCONNECT\n";
