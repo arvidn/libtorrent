@@ -1,7 +1,7 @@
 use-project /torrent : .. ;
 
 project 
-   : requirements <source>/torrent <threading>multi
+   : requirements <threading>multi <library>/torrent
    ;  
 
 exe client_test	: client_test.cpp ;
