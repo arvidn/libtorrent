@@ -119,15 +119,15 @@ namespace libtorrent
 		const torrent_info& torrent_file() const
 		{ return m_torrent_file; }
 
-		policy& get_policy() { assert(m_policy); return *m_policy; }
+		policy& get_policy() { return *m_policy; }
 
 		piece_manager& filesystem() { return m_storage; }
 
 		void set_ratio(float ratio)
-		{ assert(ratio>=0.0f); m_ratio = ratio; }
+		{ assert(ratio >= 0.0f); m_ratio = ratio; }
 
 		float ratio() const
-		{ assert(m_ratio>=0.0f); return m_ratio; }
+		{ return m_ratio; }
 
 // --------------------------------------------
 		// PEER MANAGEMENT
@@ -188,8 +188,10 @@ namespace libtorrent
 
 		// returns true if we have downloaded the given piece
 		bool have_piece(int index) const
-		{ assert(index>=0 && (unsigned)index<m_have_pieces.size());
-		  return m_have_pieces[index]; }
+		{
+			assert(index >= 0 && index < (signed)m_have_pieces.size());
+			return m_have_pieces[index];
+		}
 
 		const std::vector<bool>& pieces() const
 		{ return m_have_pieces; }
@@ -197,14 +199,19 @@ namespace libtorrent
 		// when we get a have- or bitfield- messages, this is called for every
 		// piece a peer has gained.
 		void peer_has(int index)
-		{ assert(index>=0 && (unsigned)index<m_have_pieces.size());
-		  m_picker.inc_refcount(index); }
+		{
+			assert(index >= 0 && index < (signed)m_have_pieces.size());
+			m_picker.inc_refcount(index);
+		}
 
 		// when peer disconnects, this is called for every piece it had
 		void peer_lost(int index)
-		{ m_picker.dec_refcount(index); }
+		{
+			assert(index >= 0 && index < (signed)m_have_pieces.size());
+			m_picker.dec_refcount(index);
+		}
 
-		int block_size() const { assert(m_block_size>0); return m_block_size; }
+		int block_size() const { return m_block_size; }
 
 		// this will tell all peers that we just got his piece
 		// and also let the piece picker know that we have this piece

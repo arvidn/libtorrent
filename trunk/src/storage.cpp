@@ -68,8 +68,8 @@ namespace {
 			: data(data_)
 			, size(size_)
 		{
-			assert(data_);
-			assert(size_>0);
+			assert(data_ != 0);
+			assert(size_ > 0);
 		}
 
 		const libtorrent::sha1_hash& get() const
@@ -159,7 +159,7 @@ namespace libtorrent
 	{
 		thread_safe_storage(std::size_t n)
 			: slots(n, false)
-		{ assert(n>=0); }
+		{}
 
 		boost::mutex mutex;
 		boost::condition condition;
@@ -172,7 +172,7 @@ namespace libtorrent
 			: storage_(s)
 			, slot(slot_)
 		{
-			assert(slot_>=0 && (unsigned)slot_ < s.slots.size());
+			assert(slot_>=0 && slot_ < (int)s.slots.size());
 			boost::mutex::scoped_lock lock(storage_.mutex);
 
 			while (storage_.slots[slot])
@@ -316,7 +316,7 @@ namespace libtorrent
 
 	void storage::write(const char* buf, int slot, size_type offset, size_type size)
 	{
-		assert(buf);
+		assert(buf != 0);
 		assert(slot >= 0 && slot < m_pimpl->info.num_pieces());
 		assert(offset >= 0);
 		assert(size > 0);
@@ -563,7 +563,7 @@ namespace libtorrent
 #ifndef NDEBUG
 		check_invariant();
 #endif
-		assert(piece_index >= 0 && (unsigned)piece_index < m_piece_to_slot.size());
+		assert(piece_index >= 0 && piece_index < (int)m_piece_to_slot.size());
 		assert(m_piece_to_slot[piece_index] >= 0);
 
 		int slot_index = m_piece_to_slot[piece_index];
@@ -609,8 +609,9 @@ namespace libtorrent
 		, int block_size
 		, const std::bitset<256>& bitmask)
 	{
-		assert(slot_index >= 0 && slot_index < m_info.num_pieces());
-		assert(block_size>0);
+		assert(slot_index >= 0);
+		assert(slot_index < m_info.num_pieces());
+		assert(block_size > 0);
 
 		adler32_crc crc;
 		std::vector<char> buf(block_size);
@@ -649,10 +650,10 @@ namespace libtorrent
 		assert(buf);
 		assert(offset >= 0);
 		assert(size > 0);
-		assert(piece_index >= 0 && (unsigned)piece_index < m_piece_to_slot.size());
-		assert(m_piece_to_slot[piece_index] >= 0 && (unsigned)m_piece_to_slot[piece_index] < m_slot_to_piece.size());
+		assert(piece_index >= 0 && piece_index < (int)m_piece_to_slot.size());
+		assert(m_piece_to_slot[piece_index] >= 0 && m_piece_to_slot[piece_index] < (int)m_slot_to_piece.size());
 		int slot = m_piece_to_slot[piece_index];
-		assert(slot >= 0 && (unsigned)slot < m_slot_to_piece.size());
+		assert(slot >= 0 && slot < (int)m_slot_to_piece.size());
 		return m_storage.read(buf, slot, offset, size);
 	}
 
@@ -674,9 +675,9 @@ namespace libtorrent
 		assert(buf);
 		assert(offset >= 0);
 		assert(size > 0);
-		assert(piece_index >= 0 && (unsigned)piece_index < m_piece_to_slot.size());
+		assert(piece_index >= 0 && piece_index < (int)m_piece_to_slot.size());
 		int slot = allocate_slot_for_piece(piece_index);
-		assert(slot >= 0 && (unsigned)slot < m_slot_to_piece.size());
+		assert(slot >= 0 && slot < (int)m_slot_to_piece.size());
 		m_storage.write(buf, slot, offset, size);
 	}
 
@@ -689,8 +690,6 @@ namespace libtorrent
 		m_pimpl->write(buf, piece_index, offset, size);
 	}
 
-	// TODO: must handle the case where some hashes are identical
-	// correctly
 	void piece_manager::impl::check_pieces(
 		boost::mutex& mutex
 	  , detail::piece_checker_data& data
@@ -707,8 +706,8 @@ namespace libtorrent
 		m_allocating = false;
 		m_piece_to_slot.resize(m_info.num_pieces(), has_no_slot);
 		m_slot_to_piece.resize(m_info.num_pieces(), unallocated);
-		m_free_slots.resize(0);
-		m_unallocated_slots.resize(0);
+		m_free_slots.clear();
+		m_unallocated_slots.clear();
 
 		const std::size_t piece_size = m_info.piece_length();
 		const std::size_t last_piece_size = m_info.piece_size(
@@ -721,7 +720,7 @@ namespace libtorrent
 		if (!data.piece_map.empty()
 			&& data.piece_map.size() <= m_slot_to_piece.size())
 		{
-			for (int i = 0; (unsigned)i < data.piece_map.size(); ++i)
+			for (int i = 0; i < (int)data.piece_map.size(); ++i)
 			{
 				m_slot_to_piece[i] = data.piece_map[i];
 				if (data.piece_map[i] >= 0)
@@ -751,7 +750,7 @@ namespace libtorrent
 				}
 			}
 
-			for (int i = data.piece_map.size(); (unsigned)i < pieces.size(); ++i)
+			for (int i = data.piece_map.size(); i < (int)pieces.size(); ++i)
 			{
 				m_unallocated_slots.push_back(i);
 			}
@@ -766,7 +765,6 @@ namespace libtorrent
 		// do the real check (we didn't have valid resume data)
 
 		bool changed_file = true;
-//		fs::ifstream in;
 		file in;
 
 		std::vector<char> piece_data(m_info.piece_length());
@@ -878,11 +876,11 @@ namespace libtorrent
 			}
 
 			assert(current_slot < m_info.num_pieces());
-			assert(m_slot_to_piece[current_slot]==unallocated);
-			assert(m_piece_to_slot[current_slot]==has_no_slot ||
-				(m_piece_to_slot[current_slot]>=0 &&
-				 m_piece_to_slot[current_slot]<current_slot &&
-				 m_slot_to_piece[m_piece_to_slot[current_slot]]==current_slot));
+			assert(m_slot_to_piece[current_slot] == unallocated);
+			assert(m_piece_to_slot[current_slot] == has_no_slot ||
+				(m_piece_to_slot[current_slot] >= 0 &&
+				 m_piece_to_slot[current_slot] < current_slot &&
+				 m_slot_to_piece[m_piece_to_slot[current_slot]] == current_slot));
 
 			// we need to take special actions if this is 
 			// the last piece, since that piece might actually 
@@ -924,28 +922,28 @@ namespace libtorrent
 					assert(m_piece_to_slot[found_piece] == current_slot);
 					m_slot_to_piece[m_piece_to_slot[found_piece]] = unassigned;
 					m_free_slots.push_back(m_piece_to_slot[found_piece]);
-					m_piece_to_slot[found_piece]=has_no_slot;
+					m_piece_to_slot[found_piece] = has_no_slot;
 				}
 
-				assert(m_piece_to_slot[found_piece]==has_no_slot);
+				assert(m_piece_to_slot[found_piece] == has_no_slot);
 				m_piece_to_slot[found_piece] = current_slot;
 				m_slot_to_piece[current_slot] = found_piece;
 				pieces[found_piece] = true;
 			}
 			else
 			{
-				assert(found_piece==-1);
+				assert(found_piece == -1);
 				m_slot_to_piece[current_slot] = unassigned;
 
 				m_free_slots.push_back(current_slot);
 			}
 
-			assert(m_slot_to_piece[current_slot]!=unallocated);
+			assert(m_slot_to_piece[current_slot] != unallocated);
 
 			// done with piece, move on to next
 			piece_offset = 0;
 			++current_slot;
-			if(current_slot==m_info.num_pieces())
+			if (current_slot == m_info.num_pieces())
 			{
 				assert(file_iter == end_iter-1);
 				break;
@@ -954,23 +952,28 @@ namespace libtorrent
 		}
 
 		// dirty "fix" for a bug when file is corrupt
-		for(int i=0;(unsigned)i<m_info.num_pieces();i++)
+		for(int i = 0; i < (int)m_info.num_pieces(); ++i)
 		{
-			if(m_piece_to_slot[i]!=has_no_slot && m_piece_to_slot[i]!=i && m_slot_to_piece[i]!=unallocated)
+			if(m_piece_to_slot[i] != has_no_slot
+				&& m_piece_to_slot[i] != i
+				&& m_slot_to_piece[i] != unallocated)
 			{
-				assert(m_piece_to_slot[i]>=0 && (unsigned)m_piece_to_slot[i]<m_slot_to_piece.size());
-				assert(m_slot_to_piece[m_piece_to_slot[i]]==i);
+				assert(m_piece_to_slot[i] >= 0);
+				assert(m_piece_to_slot[i] < (int)m_slot_to_piece.size());
+				assert(m_slot_to_piece[m_piece_to_slot[i]] == i);
 				if(m_slot_to_piece[i]!=unassigned)
 				{
-					assert(m_slot_to_piece[i]>=0 && (unsigned)m_slot_to_piece[i]<m_piece_to_slot.size());
-					assert(m_piece_to_slot[m_slot_to_piece[i]]==i);
-					m_piece_to_slot[m_slot_to_piece[i]]=has_no_slot;
-					m_slot_to_piece[i]=unassigned;
+					assert(m_slot_to_piece[i] >= 0);
+					assert(m_slot_to_piece[i] < (int)m_piece_to_slot.size());
+					assert(m_piece_to_slot[m_slot_to_piece[i]] == i);
+					
+					m_piece_to_slot[m_slot_to_piece[i]] = has_no_slot;
+					m_slot_to_piece[i] = unassigned;
 					m_free_slots.push_back(i);
 				}
-				m_slot_to_piece[m_piece_to_slot[i]]=unassigned;
+				m_slot_to_piece[m_piece_to_slot[i]] = unassigned;
 				m_free_slots.push_back(m_piece_to_slot[i]);
-				m_piece_to_slot[i]=has_no_slot;
+				m_piece_to_slot[i] = has_no_slot;
 			}
 		}
 
@@ -1016,14 +1019,16 @@ namespace libtorrent
 		check_invariant();
 #endif
 
-		assert(piece_index >= 0 && (unsigned)piece_index < m_piece_to_slot.size());
+		assert(piece_index >= 0);
+	  	assert(piece_index < (int)m_piece_to_slot.size());
 		assert(m_piece_to_slot.size() == m_slot_to_piece.size());
 
 		int slot_index = m_piece_to_slot[piece_index];
 
 		if (slot_index != has_no_slot)
 		{
-			assert(slot_index >= 0 && (unsigned)slot_index < m_slot_to_piece.size());
+			assert(slot_index >= 0);
+			assert(slot_index < (int)m_slot_to_piece.size());
 
 #ifndef NDEBUG
 			check_invariant();
@@ -1117,7 +1122,8 @@ namespace libtorrent
 #endif
 		}
 
-		assert(slot_index>=0 && (unsigned)slot_index < m_slot_to_piece.size());
+		assert(slot_index >= 0);
+	  	assert(slot_index < (int)m_slot_to_piece.size());
 
 #ifndef NDEBUG
 		check_invariant();
@@ -1214,33 +1220,39 @@ namespace libtorrent
 		assert(m_piece_to_slot.size() == m_info.num_pieces());
 		assert(m_slot_to_piece.size() == m_info.num_pieces());
 
-		for(int i=0;(unsigned)i<m_free_slots.size();++i)
+		for (int i = 0; i < (int)m_free_slots.size(); ++i)
 		{
-			unsigned slot=m_free_slots[i];
+			unsigned slot = m_free_slots[i];
 			assert(slot<m_slot_to_piece.size());
 			assert(m_slot_to_piece[slot] == unassigned);
 		}
 
-		for(int i=0;(unsigned)i<m_unallocated_slots.size();++i)
+		for (int i = 0; i < (int)m_unallocated_slots.size(); ++i)
 		{
-			unsigned slot=m_unallocated_slots[i];
-			assert(slot<m_slot_to_piece.size());
+			unsigned slot = m_unallocated_slots[i];
+			assert(slot < m_slot_to_piece.size());
 			assert(m_slot_to_piece[slot] == unallocated);
 		}
 
 		for (int i = 0; i < m_info.num_pieces(); ++i)
 		{
 			// Check domain of piece_to_slot's elements
-			assert(m_piece_to_slot[i]==has_no_slot
-				||(m_piece_to_slot[i]>=0 && (unsigned)m_piece_to_slot[i]<m_slot_to_piece.size()));
+			if (m_piece_to_slot[i] != has_no_slot)
+			{
+				assert(m_piece_to_slot[i] >= 0);
+				assert(m_piece_to_slot[i] < (int)m_slot_to_piece.size());
+			}
 
 			// Check domain of slot_to_piece's elements
-			assert(m_slot_to_piece[i]==unallocated
-				|| m_slot_to_piece[i]==unassigned
-				||(m_slot_to_piece[i]>=0 && (unsigned)m_slot_to_piece[i]<m_piece_to_slot.size()));
+			if (m_slot_to_piece[i] != unallocated
+				&& m_slot_to_piece[i] != unassigned)
+			{
+				assert(m_slot_to_piece[i] >= 0);
+				assert(m_slot_to_piece[i] < (int)m_piece_to_slot.size());
+			}
 
 			// do more detailed checks on piece_to_slot
-			if (m_piece_to_slot[i]>=0)
+			if (m_piece_to_slot[i] >= 0)
 			{
 				assert(m_slot_to_piece[m_piece_to_slot[i]]==i);
 				if (m_piece_to_slot[i] != i)
@@ -1257,8 +1269,8 @@ namespace libtorrent
 
 			if (m_slot_to_piece[i]>=0)
 			{
-				assert((unsigned)m_slot_to_piece[i]<m_piece_to_slot.size());
-				assert(m_piece_to_slot[m_slot_to_piece[i]]==i);
+				assert(m_slot_to_piece[i] < (int)m_piece_to_slot.size());
+				assert(m_piece_to_slot[m_slot_to_piece[i]] == i);
 #ifdef TORRENT_STORAGE_DEBUG
 				assert(
 					std::find(

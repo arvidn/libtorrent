@@ -65,7 +65,8 @@ namespace libtorrent
 
 	void torrent_handle::set_max_uploads(int max_uploads)
 	{
-		assert(max_uploads>=2 || max_uploads==-1);
+		assert(max_uploads >= 2 || max_uploads == -1);
+
 		if (m_ses == 0) throw invalid_handle();
 
 		{
@@ -95,7 +96,8 @@ namespace libtorrent
 
 	void torrent_handle::set_max_connections(int max_connections)
 	{
-		assert(max_connections>=2 || max_connections==-1);
+		assert(max_connections > 2 || max_connections == -1);
+
 		if (m_ses == 0) throw invalid_handle();
 
 		{

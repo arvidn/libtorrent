@@ -116,7 +116,7 @@ namespace
 	{
 		using namespace libtorrent;
 
-		assert(upload_limit > 0 || upload_limit==-1);
+		assert(upload_limit > 0 || upload_limit == -1);
 
 		if (connections.empty()) return;
 
@@ -153,9 +153,9 @@ namespace
 				peer_connection& p = *i->second;
 				connection_info pi;
 
-				pi.p=&p;
-				pi.allocated_quota=0; // we haven't given it any bandwith yet
-				pi.quota_limit=p.send_quota_limit();
+				pi.p = &p;
+				pi.allocated_quota = 0; // we haven't given it any bandwith yet
+				pi.quota_limit = p.send_quota_limit();
 
 				pi.estimated_upload_capacity=
 					p.has_data() ? std::max(10,(int)ceil(p.statistics().upload_rate()*1.1f))
@@ -170,21 +170,21 @@ namespace
 			// Sum all peer_connections' quota limit to get the total quota limit.
 
 			int sum_total_of_quota_limits=0;
-			for(int i=0;(unsigned)i<peer_info.size();i++)
+			for (int i = 0; i < (int)peer_info.size(); ++i)
 			{
-				int quota_limit=peer_info[i].quota_limit;
-				if(quota_limit==-1)
+				int quota_limit = peer_info[i].quota_limit;
+				if (quota_limit == -1)
 				{
 					// quota_limit=-1 means infinite, so
 					// sum_total_of_quota_limits will be infinite too...
-					sum_total_of_quota_limits=std::numeric_limits<int>::max();
+					sum_total_of_quota_limits = std::numeric_limits<int>::max();
 					break;
 				}
-				sum_total_of_quota_limits+=quota_limit;
+				sum_total_of_quota_limits += quota_limit;
 			}
 
 			// This is how much total bandwidth that can be distributed.
-			int quota_left_to_distribute=std::min(upload_limit,sum_total_of_quota_limits);
+			int quota_left_to_distribute = std::min(upload_limit,sum_total_of_quota_limits);
 
 
 			// Sort w.r.t. channel capacitiy, lowest channel capacity first.
@@ -194,37 +194,42 @@ namespace
 
 			// Distribute quota until there's nothing more to distribute
 
-			while(quota_left_to_distribute!=0)
+			while (quota_left_to_distribute != 0)
 			{
-				assert(quota_left_to_distribute>0);
+				assert(quota_left_to_distribute > 0);
 
-				for(int i=0;(unsigned)i<peer_info.size();i++)
+				for (int i = 0; i < (int)peer_info.size(); ++i)
 				{
 					// Traverse the peer list from slowest connection to fastest.
 
 					// In each step, share bandwidth equally between this peer_connection
 					// and the following faster peer_connections.
 					//
-					// Rounds upwards to avoid trying to give 0 bandwidth to someone (may get caught in an endless loop otherwise)
+					// Rounds upwards to avoid trying to give 0 bandwidth to someone
+					// (may get caught in an endless loop otherwise)
 					
-					int num_peers_left_to_share_quota=peer_info.size()-i;
-					int try_to_give_to_this_peer=(quota_left_to_distribute+num_peers_left_to_share_quota-1)/num_peers_left_to_share_quota;
+					int num_peers_left_to_share_quota = peer_info.size() - i;
+					int try_to_give_to_this_peer
+						= (quota_left_to_distribute + num_peers_left_to_share_quota - 1)
+						/ num_peers_left_to_share_quota;
 
 					// But do not allocate more than the estimated upload capacity.
-					try_to_give_to_this_peer=std::min(
-						peer_info[i].estimated_upload_capacity,
-						try_to_give_to_this_peer);
+					try_to_give_to_this_peer = std::min(
+						peer_info[i].estimated_upload_capacity
+						, try_to_give_to_this_peer);
 
-					// Also, when the peer is given quota, it will not accept more than it's quota_limit.
-					int quota_actually_given_to_peer=peer_info[i].give(try_to_give_to_this_peer);
+					// Also, when the peer is given quota, it will
+					// not accept more than it's quota_limit.
+					int quota_actually_given_to_peer
+						= peer_info[i].give(try_to_give_to_this_peer);
 
-					quota_left_to_distribute-=quota_actually_given_to_peer;
+					quota_left_to_distribute -= quota_actually_given_to_peer;
 				}
 			}
 			
 			// Finally, inform the peers of how much quota they get.
 
-			for(int i=0;(unsigned)i<peer_info.size();i++)
+			for(int i = 0; i < (int)peer_info.size(); ++i)
 				peer_info[i].p->set_send_quota(peer_info[i].allocated_quota);
 		}
 
@@ -295,9 +300,9 @@ namespace libtorrent
 					boost::mutex::scoped_lock l(m_mutex);
 					if (!t->abort)
 					{
-						boost::mutex::scoped_lock l(m_ses->m_mutex);
+						boost::mutex::scoped_lock l(m_ses.m_mutex);
 
-						m_ses->m_torrents.insert(
+						m_ses.m_torrents.insert(
 							std::make_pair(t->info_hash, t->torrent_ptr)).first;
 
 						peer_id id;
@@ -350,7 +355,7 @@ namespace libtorrent
 			, m_upload_rate(-1)
 			, m_incoming_connection(false)
 		{
-			assert(listen_port>0);
+			assert(listen_port > 0);
 
 			// ---- generate a peer id ----
 
@@ -779,9 +784,10 @@ namespace libtorrent
 
 	}
 
+	// TODO: take a port range instead!
 	session::session(int listen_port, const fingerprint& id)
 		: m_impl(listen_port, id)
-		, m_checker_impl(&m_impl)
+		, m_checker_impl(m_impl)
 		, m_thread(boost::ref(m_impl))
 		, m_checker_thread(boost::ref(m_checker_impl))
 	{
@@ -796,7 +802,7 @@ namespace libtorrent
 
 	session::session(int listen_port)
 		: m_impl(listen_port, fingerprint("LT",0,0,1,0))
-		, m_checker_impl(&m_impl)
+		, m_checker_impl(m_impl)
 		, m_thread(boost::ref(m_impl))
 		, m_checker_thread(boost::ref(m_checker_impl))
 	{
