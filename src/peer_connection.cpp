@@ -231,6 +231,38 @@ void libtorrent::peer_connection::send_handshake()
 	send_buffer_updated();
 }
 
+boost::optional<piece_block_progress> libtorrent::peer_connection::downloading_piece() const
+{
+	// are we currently receiving a 'piece' message?
+	if (m_state != read_packet
+		|| m_recv_pos < 9
+		|| m_recv_buffer[0] != msg_piece)
+		return boost::optional<piece_block_progress>();
+
+	int piece_index = read_int(&m_recv_buffer[1]);
+	int offset = read_int(&m_recv_buffer[5]);
+	int len = m_packet_size - 9;
+
+	// is any of the piece message header data invalid?
+	// TODO: make sure that len is == block_size or less only
+	// if its's the last block.
+	if (piece_index < 0
+		|| piece_index >= m_torrent->torrent_file().num_pieces()
+		|| offset < 0
+		|| offset + len > m_torrent->torrent_file().piece_size(piece_index)
+		|| offset % m_torrent->block_size() != 0)
+		return boost::optional<piece_block_progress>();
+
+	piece_block_progress p;
+
+	p.piece_index = piece_index;
+	p.block_index = offset / m_torrent->block_size();
+	p.bytes_downloaded = m_recv_pos - 9;
+	p.full_block_bytes = len;
+
+	return boost::optional<piece_block_progress>(p);
+}
+
 bool libtorrent::peer_connection::dispatch_message(int received)
 {
 	assert(m_recv_pos >= received);
@@ -470,6 +502,8 @@ bool libtorrent::peer_connection::dispatch_message(int received)
 #endif
 				throw protocol_error("piece message contains more data than the piece size");
 			}
+			// TODO: make sure that len is == block_size or less only
+			// if its's the last block.
 
 			if (offset % m_torrent->block_size() != 0)
 			{
@@ -790,9 +824,15 @@ void libtorrent::peer_connection::second_tick()
 		// upload rate of 10 kB/s more than we dowlload
 		// if we have uploaded too much, send with a rate of
 		// 10 kB/s less than we receive
-		int bias = (diff > -32*1024 ? 10 : -10) * 1024;
+		if (diff > -32*1024)
+		{
+			m_send_quota_limit = m_statistics.download_rate() * 1.5;
+		}
+		else
+		{
+			m_send_quota_limit = m_statistics.download_rate() * .5;
+		}
 		// the maximum send_quota given our download rate from this peer
-		m_send_quota_limit = m_statistics.download_rate() + bias;
 		if (m_send_quota_limit < 500) m_send_quota_limit = 500;
 	}
 	assert(m_send_quota_limit >= 500 || m_send_quota_limit == -1);

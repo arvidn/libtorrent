@@ -58,6 +58,14 @@ namespace libtorrent
 		std::vector<bool> pieces;
 		int upload_limit;
 		int upload_ceiling;
+
+		// the currently downloading piece
+		// if piece index is -1 all associated
+		// members are just set to 0
+		int downloading_piece_index;
+		int downloading_block_index;
+		int downloading_progress;
+		int downloading_total;
 	};
 
 }

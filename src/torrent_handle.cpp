@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/convenience.hpp>
+#include <boost/optional.hpp>
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -210,6 +211,22 @@ namespace libtorrent
 
 			p.upload_limit = peer->send_quota();
 			p.upload_ceiling = peer->send_quota_limit();
+
+			boost::optional<piece_block_progress> ret = peer->downloading_piece();
+			if (ret)
+			{
+				p.downloading_piece_index = ret->piece_index;
+				p.downloading_block_index = ret->block_index;
+				p.downloading_progress = ret->bytes_downloaded;
+				p.downloading_total = ret->full_block_bytes;
+			}
+			else
+			{
+				p.downloading_piece_index = -1;
+				p.downloading_block_index = -1;
+				p.downloading_progress = 0;
+				p.downloading_total = 0;
+			}
 
 			p.flags = 0;
 			if (peer->is_interesting()) p.flags |= peer_info::interesting;
