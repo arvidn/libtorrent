@@ -107,14 +107,6 @@ namespace libtorrent
 			std::bitset<max_blocks_per_piece> finished_blocks;
 			// info about each block
 			block_info info[max_blocks_per_piece];
-
-			// TODO: If the hash test fails on the
-			// piece, redownload one block from another peer
-			// then the first time, and check the hash again.
-			// also maintain a counter how many times a piece-hash
-			// has been confirmed. Download blocks that hasn't
-			// been confirmed (since they are most probably the
-			// invalid blocks)
 		};
 
 		piece_picker(int blocks_per_piece,
@@ -166,7 +158,7 @@ namespace libtorrent
 		void mark_as_downloading(piece_block block, const address& peer);
 		void mark_as_finished(piece_block block, const address& peer);
 
-		// if a piece had a hash-failure, it must be restured and
+		// if a piece had a hash-failure, it must be restored and
 		// made available for redownloading
 		void restore_piece(int index);
 
@@ -176,7 +168,7 @@ namespace libtorrent
 
 		bool is_piece_finished(int index) const;
 
-		// returns the number of blocks there is in the goven piece
+		// returns the number of blocks there is in the given piece
 		int blocks_in_piece(int index) const;
 
 		// the number of downloaded blocks that hasn't passed
