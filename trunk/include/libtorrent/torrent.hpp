@@ -318,10 +318,7 @@ namespace libtorrent
 		// from the tracker
 		int m_duration;
 
-		// TODO: this should be a map, mapping address
-		// to peer_connection*
 		std::map<address, peer_connection*> m_connections;
-//		std::vector<peer_connection*> m_connections;
 
 		// this is the upload and download statistics for the whole torrent.
 		// it's updated from all its peers once every second.

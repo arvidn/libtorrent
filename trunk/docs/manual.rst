@@ -39,7 +39,7 @@ The current state includes the following features:
 	* fast resume support, a way to get rid of the costly piece check at the start
 	  of a resumed torrent. Saves the storage state, piece_picker state as well as all local
 	  peers in a separate fast-resume file.
-	* The extension protocol `described by Nolar`__. See extensions_.
+	* Supports the extension protocol `described by Nolar`__. See extensions_.
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
 .. _Azureus: http://azureus.sourceforge.net
@@ -65,6 +65,10 @@ It does not compile on
 
 	* GCC 2.95
 
+libtorrent is released under the BSD-license_.
+
+.. _BSD-license: http://www.opensource.org/licenses/bsd-license.php
+
 building
 ========
 
@@ -74,7 +78,7 @@ Then you can use ``bjam`` to build libtorrent.
 .. _boost: http://www.boost.org
 
 To make bjam work, you need to set the environment variable ``BOOST_ROOT`` to the
-path where boost is installed (e.g. c:\boost_1_30_2 on windows). Then you can just run
+path where boost is installed (e.g. c:\\boost_1_30_2 on windows). Then you can just run
 ``bjam`` in the libtorrent directory.
 
 The Jamfile doesn't work yet. On unix-systems you can use the makefile however. You
@@ -1373,21 +1377,25 @@ fast-resume data is corrupt or doesn't fit the storage for that torrent, then it
 not trust the fast-resume data and just do the checking.
 
 file format
-===========
+-----------
 
 The file format is a bencoded dictionary containing the following fields:
 
 +----------------------+--------------------------------------------------------------+
 | ``file-format``      | string: "libtorrent resume file"                             |
+|                      |                                                              |
 +----------------------+--------------------------------------------------------------+
 | ``file-version``     | integer: 1                                                   |
+|                      |                                                              |
 +----------------------+--------------------------------------------------------------+
 | ``info-hash``        | string, the info hash of the torrent this data is saved for. |
+|                      |                                                              |
 +----------------------+--------------------------------------------------------------+
 | ``blocks per piece`` | integer, the number of blocks per piece. Must be: piece_size |
 |                      | / (16 * 1024). Clamped to be within the range [1, 128]. It   |
 |                      | is the number of blocks per (normal sized) piece. Usually    |
-|                      | each piece is 16 * 1024 bytes in size.                       |
+|                      | each block is 16 * 1024 bytes in size.                       |
+|                      |                                                              |
 +----------------------+--------------------------------------------------------------+
 | ``slots``            | list of integers. The list mappes slots ti piece indices. It |
 |                      | tells which piece is on which slot. If piece index is -2 it  |
@@ -1397,6 +1405,7 @@ The file format is a bencoded dictionary containing the following fields:
 |                      |                                                              |
 |                      | If there's a slot at the position of the piece index,        |
 |                      | the piece must be located in that slot.                      |
+|                      |                                                              |
 +----------------------+--------------------------------------------------------------+
 | ``peers``            | list of dictionaries. Each dictionary has the following      |
 |                      | layout:                                                      |
@@ -1409,6 +1418,7 @@ The file format is a bencoded dictionary containing the following fields:
 |                      |                                                              |
 |                      | These are the local peers we were connected to when this     |
 |                      | fast-resume data was saved.                                  |
+|                      |                                                              |
 +----------------------+--------------------------------------------------------------+
 | ``unfinished``       | list of dictionaries. Each dictionary represents an          |
 |                      | piece, and has the following layout:                         |
@@ -1435,27 +1445,30 @@ length-prefix, message-id nor extension-id).
 
 __ http://nolar.com/azureus/extended.html
 
-These are the extensions that are currently implemented.
+The extension protocol is currently disabled, since it may not be compatible
+with future versions of bittorrent.
 
-chat messages
--------------
+.. These are the extensions that are currently implemented.
 
-Extension name: "chat"
+.. chat messages
+.. -------------
 
-The payload in the packet is a bencoded dictionary with any
-combination of the following entries:
+.. Extension name: "chat"
 
-+----------+--------------------------------------------------------+
-| "msg"    | This is a string that contains a message that          |
-|          | should be displayed to the user.                       |
-+----------+--------------------------------------------------------+
-| "ctrl"   | This is a control string that can tell a client that   |
-|          | it is ignored (to make the user aware of that) and     |
-|          | it can also tell a client that it is no longer ignored.|
-|          | These notifications are encoded as the strings:        |
-|          | "ignored" and "not ignored".                           |
-|          | Any unrecognized strings should be ignored.            |
-+----------+--------------------------------------------------------+
+.. The payload in the packet is a bencoded dictionary with any
+.. combination of the following entries:
+
+.. +----------+--------------------------------------------------------+
+   | "msg"    | This is a string that contains a message that          |
+   |          | should be displayed to the user.                       |
+   +----------+--------------------------------------------------------+
+   | "ctrl"   | This is a control string that can tell a client that   |
+   |          | it is ignored (to make the user aware of that) and     |
+   |          | it can also tell a client that it is no longer ignored.|
+   |          | These notifications are encoded as the strings:        |
+   |          | "ignored" and "not ignored".                           |
+   |          | Any unrecognized strings should be ignored.            |
+   +----------+--------------------------------------------------------+
 
 
 

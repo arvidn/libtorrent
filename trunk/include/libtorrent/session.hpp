@@ -64,8 +64,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #	include <eh.h>
 #endif
 
-// TODO: if we're a seed and the peer is a seed, close the connections
-
 namespace libtorrent
 {
 
@@ -237,7 +235,8 @@ namespace libtorrent
 		void set_http_settings(const http_settings& s);
 		void set_upload_rate_limit(int bytes_per_second);
 
-		// TODO: add a session_status that contain 
+		// TODO: add a session_status that contain
+		// some indication of if the listen-port works
 
 		std::auto_ptr<alert> pop_alert();
 		void set_severity_level(alert::severity_t s);

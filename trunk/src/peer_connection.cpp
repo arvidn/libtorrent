@@ -230,7 +230,8 @@ namespace libtorrent
 			, m_send_buffer.begin() + pos + 8
 			, 0);
 		// indicate that we support the extension protocol
-		m_send_buffer[pos] = 0x80;
+		// curently disabled
+//		m_send_buffer[pos] = 0x80;
 		pos += 8;
 
 		// info hash
@@ -1287,10 +1288,11 @@ namespace libtorrent
 					// TODO: if the protocol is to be extended
 					// these 8 bytes would be used to describe the
 					// extensions available on the other side
-					if (m_recv_buffer[0] & 0x80)
-					{
-						m_supports_extensions = true;
-					}
+					// currently disabled
+//					if (m_recv_buffer[0] & 0x80)
+//					{
+//						m_supports_extensions = true;
+//					}
 
 					if (m_torrent == 0)
 					{
