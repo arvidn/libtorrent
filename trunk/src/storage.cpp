@@ -361,7 +361,7 @@ namespace libtorrent
 			if (left_to_read > 0)
 			{
 				++file_iter;
-				fs::path path = m_pimpl->save_path / m_pimpl->info.name() / file_iter->path;
+				fs::path path = m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path);
 
 				file_offset = 0;
 				in.open(path, file::in);
@@ -457,7 +457,7 @@ namespace libtorrent
 
 				assert(file_iter != m_pimpl->info.end_files());
 
- 				fs::path path = m_pimpl->save_path / m_pimpl->info.name() / file_iter->path;
+ 				fs::path path = m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path);
 
 				file_offset = 0;
 /*
@@ -972,7 +972,7 @@ namespace libtorrent
 			file_iter != end_iter;
 			++file_iter)
 		{
-			fs::path dir = m_save_path / m_info.name() / file_iter->path;
+			fs::path dir = m_save_path / get_filename(m_info, file_iter->path);
 			fs::create_directories(dir.branch_path());
 		}
 
