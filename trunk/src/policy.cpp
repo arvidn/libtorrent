@@ -131,7 +131,7 @@ namespace
 		// from this peer instead)
 
 		peer_connection* peer = 0;
-		float down_speed = 0.f;
+		float down_speed = -1.f;
 		// find the peer with the lowest download
 		// speed that also has a piece thatt this
 		// peer could send us
