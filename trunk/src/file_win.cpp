@@ -111,7 +111,7 @@ namespace libtorrent
 				, access_mask
 				, FILE_SHARE_READ
 				, 0
-				, OPEN_ALWAYS
+				, (flags & read_flag)?OPEN_EXISTING:OPEN_ALWAYS
 				, FILE_ATTRIBUTE_NORMAL
 				, 0);
 

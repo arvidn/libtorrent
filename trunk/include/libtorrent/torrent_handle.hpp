@@ -183,6 +183,7 @@ namespace libtorrent
 		torrent_status status() const;
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 
+		bool has_metadata() const;
 		const torrent_info& get_torrent_info() const;
 		bool is_valid() const;
 
@@ -195,9 +196,15 @@ namespace libtorrent
 		// to.
 		void use_interface(const char* net_interface);
 
-		// TODO: there must be a way to get resume data and
-		// shut down the torrent in one atomic operation
 		entry write_resume_data() const;
+
+		// kind of similar to get_torrent_info() but this
+		// is low level, returning the exact info-part of
+		// the .torrent file. This when hashed, this buffer
+		// will produce the same hash as the info hash.
+		// the reference is valid only as long as the torrent
+		// is running.
+		std::vector<char> const& metadata() const;
 
 		// forces this torrent to reannounce
 		// (make a rerequest from the tracker)

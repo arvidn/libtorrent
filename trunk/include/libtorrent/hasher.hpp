@@ -36,6 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cassert>
 #include <boost/cstdint.hpp>
 
+#include "libtorrent/peer_id.hpp"
+
 // from sha1.cpp
 struct SHA1_CTX
 {
