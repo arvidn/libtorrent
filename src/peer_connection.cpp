@@ -1232,7 +1232,7 @@ namespace libtorrent
 		// client has sent us. This is the mean to
 		// maintain the share ratio given by m_ratio
 		// with all peers.
-
+/*
 		if (m_torrent->is_seed() || is_choked() || m_torrent->ratio()==0.0f)
 		{
 			// if we have downloaded more than one piece more
@@ -1241,19 +1241,19 @@ namespace libtorrent
 			if(!m_send_buffer.empty() || (!m_requests.empty() && !is_choked()))
 				upload_bandwidth.wanted = std::numeric_limits<int>::max();
 			else
-				upload_bandwidth.wanted = 0;
+				upload_bandwidth.wanted = 1;
 		}
 		else
 		{
 			double bias = 0x20000 + m_free_upload;
 
-			double break_even_time = 10;
+			double break_even_time = 5;
 			double have_uploaded = (double)m_statistics.total_payload_upload();
 			double have_downloaded = (double)m_statistics.total_payload_download();
 			double download_speed = m_statistics.download_rate();
 
 			double soon_downloaded =
-				have_downloaded+download_speed * 2 * break_even_time;
+				have_downloaded+download_speed * 1.5 * break_even_time;
 
 			double upload_speed_limit = (soon_downloaded*m_torrent->ratio()
 				                   - have_uploaded + bias) / break_even_time;
@@ -1263,8 +1263,8 @@ namespace libtorrent
 
 			upload_bandwidth.wanted = (int) upload_speed_limit;
 		}
+*/
 
-/*
 		size_type diff = share_diff();
 
 		enum { block_limit = 2 }; // how many blocks difference is considered unfair
@@ -1300,7 +1300,6 @@ namespace libtorrent
 			// the maximum send_quota given our download rate from this peer
 			if (upload_bandwidth.wanted < 256) upload_bandwidth.wanted = 256;
 		}
-*/
 	}
 
 	// --------------------------

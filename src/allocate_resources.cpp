@@ -208,7 +208,7 @@ namespace libtorrent
 					int toGive = 1+std::min(max_give-1,r->used);
 					resources_to_distribute-=give(r,toGive);
 				}
-#elif 1
+#elif 0
 				size_type total_used=0;
 				size_type max_used=0;
 				for(int i = 0;i < (int)requests.size();++i)
@@ -288,13 +288,13 @@ namespace libtorrent
 					kNumer=1;
 					kDenom=max_used;
 				}
-
+/*
 				if(kNumer > kDenom)
 				{
 					kNumer=1;
 					kDenom=1;
 				}
-
+*/
 				for(int i = 0;i < (int)requests.size() && resources_to_distribute;++i)
 				{
 					resource_request *r=requests[i];
