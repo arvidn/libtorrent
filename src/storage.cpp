@@ -1650,17 +1650,6 @@ namespace libtorrent {
 
 				if (hash == m_info.hash_for_piece(i))
 					found_piece = i;
-/*
-				if (hash == m_info.hash_for_piece(i))
-				{
-					m_bytes_left -= m_info.piece_size(i);
-
-					m_piece_to_slot[i] = current_piece;
-					m_slot_to_piece[current_piece] = i;
-					pieces[i] = true;
-					found = true;
-					break;
-				}*/
 			}
 
 			if (found_piece != -1)
