@@ -31,16 +31,17 @@ The current state includes the following features:
 	  thread-safe library interface. (i.e. There's no way for the user to cause a deadlock).
 	* can limit the upload bandwidth usage and the maximum number of unchoked peers
 	* piece-wise file allocation
-	* Implements fair trade. User settable trade-ratio, must at least be 1:1,
+	* implements fair trade. User settable trade-ratio, must at least be 1:1,
 	  but one can choose to trade 1 for 2 or any other ratio that isn't unfair to the other
 	  party.
 	* fast resume support, a way to get rid of the costly piece check at the start
 	  of a resumed torrent. Saves the storage state, piece_picker state as well as all local
 	  peers in a separate fast-resume file.
-	* Supports the extension protocol `described by Nolar`__. See extensions_.
-	* Supports files > 2 gigabytes (currently only on windows).
-	* Supports the ``no_peer_id=1`` extension that will ease the load off trackers.
-	* Supports the `udp-tracker protocol`__.
+	* supports the extension protocol `described by Nolar`__. See extensions_.
+	* supports files > 2 gigabytes (currently only on windows).
+	* supports the ``no_peer_id=1`` extension that will ease the load off trackers.
+	* supports the `udp-tracker protocol`__.
+	* possibility to limit the number of connections.
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
 .. _Azureus: http://azureus.sourceforge.net
@@ -50,10 +51,9 @@ __ udp_tracker_protocol.html
 
 Functions that are yet to be implemented:
 
-	* number of connections limit
 	* better handling of peers that send bad data
 	* ip-filters
-	* file-level piece priority
+	* file-level priority
 
 libtorrent is portable at least among windows, macosx, and UNIX-systems. It uses boost.thread,
 boost.filesystem, boost.date_time and various other boost libraries as well as zlib.
@@ -63,6 +63,7 @@ libtorrent has been successfully compiled and tested on:
 	* Cygwin GCC 3.3.1
 	* Windows 2000 vc7.1
 	* Linux x86 (debian) GCC 3.0
+	* Windows 2000, msvc6 sp5 (does not support 64-bit values due to problems with operator<<(ostream&, __int64))
 
 It does not compile on
 
@@ -71,6 +72,7 @@ It does not compile on
 libtorrent is released under the BSD-license_.
 
 .. _BSD-license: http://www.opensource.org/licenses/bsd-license.php
+
 
 building
 ========
@@ -1518,7 +1520,7 @@ with future versions of bittorrent.
 
 
 
-Aknowledgements
+aknowledgements
 ===============
 
 Written by Arvid Norberg. Copyright (c) 2003
