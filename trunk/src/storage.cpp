@@ -1282,6 +1282,16 @@ void libtorrent::storage::write(const char* buf, int slot, size_type offset, siz
 
 namespace fs = boost::filesystem;
 
+namespace {
+
+	void print_to_log(const std::string& s)
+	{
+		static std::ofstream log("log.txt");
+		log << s;
+	}
+
+}
+
 namespace libtorrent {
 
 	storage::storage(const torrent_info& info, const fs::path& path)
@@ -1297,6 +1307,8 @@ namespace libtorrent {
 	  , size_type offset
   	  , size_type size)
 	{
+		assert(size > 0);
+		
 		size_type start = slot * m_info.piece_length() + offset;
 
 		// find the file iterator and file offset
@@ -1319,7 +1331,9 @@ namespace libtorrent {
 
 		assert(file_offset < file_iter->size);
 
-		in.seekg(std::ios_base::beg, file_offset);
+		in.seekg(file_offset);
+
+		assert(size_type(in.tellg()) == file_offset);
 
 		size_type left_to_read = size;
 		size_type slot_size = m_info.piece_size(slot);
@@ -1366,6 +1380,8 @@ namespace libtorrent {
 
 	void storage::write(const char* buf, int slot, size_type offset, size_type size)
 	{
+		assert(size > 0);
+
 		size_type start = slot * m_info.piece_length() + offset;
 
 		// find the file iterator and file offset
@@ -1381,14 +1397,19 @@ namespace libtorrent {
 			++file_iter;
 		}
 
-		fs::ofstream out(
-			m_save_path / file_iter->path / file_iter->filename
-		, std::ios_base::in | std::ios_base::binary
-		);
+		fs::path path(m_save_path / file_iter->path / file_iter->filename);
+		fs::ofstream out;
+
+		if (fs::exists(path))
+			out.open(path, std::ios_base::binary | std::ios_base::in);
+		else
+			out.open(path, std::ios_base::binary);
 
 		assert(file_offset < file_iter->size);
 
-		out.seekp(std::ios_base::beg, file_offset);
+		out.seekp(file_offset);
+
+		assert(file_offset == out.tellp());
 
 		size_type left_to_write = size;
 		size_type slot_size = m_info.piece_size(slot);
@@ -1432,7 +1453,11 @@ namespace libtorrent {
 				file_offset = 0;
 				out.close();
 				out.clear();
-				out.open(path, std::ios_base::in | std::ios_base::binary);
+
+				if (fs::exists(path))
+					out.open(path, std::ios_base::binary | std::ios_base::in);
+				else
+					out.open(path, std::ios_base::binary);
 			}
 		}
 	}	
@@ -1517,7 +1542,7 @@ namespace libtorrent {
 					return;
 			}
 
-			assert(current_piece < m_info.num_pieces());
+			assert(current_piece <= m_info.num_pieces());
 			
 			fs::path path(m_save_path / file_iter->path);
 
@@ -1728,11 +1753,28 @@ namespace libtorrent {
 	
 		// there is another piece already assigned to
 		// the slot we are interested in, swap positions
-		if (m_slot_to_piece[piece_index] >= 0)
+		if (slot_index != piece_index
+			&& m_slot_to_piece[piece_index] >= 0)
 		{
+			std::stringstream s;
+
+			s << "there is another piece at our slot, swapping..";
+
+			s << "\n   piece_index: ";
+			s << piece_index;
+			s << "\n   slot_index: ";
+			s << slot_index;
+			s << "\n   piece at our slot: ";
+			s << m_slot_to_piece[piece_index];
+			s << "\n";
+
+			print_to_log(s.str());
+
+			debug_log();
+
 			std::vector<char> buf(m_info.piece_length());
-			m_storage.read(&buf[0], piece_index, m_info.piece_length(), 0);
-			m_storage.write(&buf[0], slot_index, m_info.piece_length(), 0);
+			m_storage.read(&buf[0], piece_index, 0, m_info.piece_length());
+			m_storage.write(&buf[0], slot_index, 0, m_info.piece_length());
 
 			std::swap(
 				m_slot_to_piece[piece_index]
@@ -1743,7 +1785,11 @@ namespace libtorrent {
 				, m_piece_to_slot[slot_index]);
 
 			slot_index = piece_index;
+
+			debug_log();
 		}
+
+		check_invariant();
 
 		return slot_index;
 	}
@@ -1848,6 +1894,8 @@ namespace libtorrent {
 		if (last_piece_index != -1)
 			std::swap(m_free_pieces[last_piece_index], m_free_pieces.front());
 */
+
+		check_invariant();
 	}
 	
 	void piece_manager::check_invariant() const
@@ -1858,11 +1906,27 @@ namespace libtorrent {
 
 		for (int i = 0; i < m_info.num_pieces(); ++i)
 		{
-			if (m_piece_to_slot[i] != i)
-				assert(m_slot_to_piece[i] < 0);
+			if (m_piece_to_slot[i] != i && m_piece_to_slot[i] >= 0)
+				assert(m_slot_to_piece[i] == -1);
 		}
 	}
 
+	void piece_manager::debug_log() const
+	{
+		std::stringstream s;
+
+		s << "index\tslot\tpiece\n";
+
+		for (int i = 0; i < m_info.num_pieces(); ++i)
+		{
+			s << i << "\t" << m_slot_to_piece[i] << "\t";
+			s << m_piece_to_slot[i] << "\n";
+		}
+
+		s << "---------------------------------\n";
+
+		print_to_log(s.str());
+	}
 	
 } // namespace libtorrent
 
