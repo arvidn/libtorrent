@@ -251,8 +251,8 @@ namespace libtorrent
 		
 		if (find_string(PID, "eX"))
 		{
-			std::string user(PID + 2, PID + 20);
-			return "eXeem ('" + user + "')"; 
+			std::string user(PID + 2, PID + 14);
+			return std::string("eXeem ('") + user.c_str() + "')"; 
 		}
 
 		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\0\x97"))
