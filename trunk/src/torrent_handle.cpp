@@ -73,6 +73,8 @@ namespace libtorrent
 			st.progress = 0.f;
 			st.state = torrent_status::invalid_handle;
 			st.next_announce = boost::posix_time::time_duration();
+			st.pieces.clear();
+			st.total_done = 0;
 			return st;
 		}
 
@@ -98,6 +100,9 @@ namespace libtorrent
 					st.state = torrent_status::queued_for_checking;
 				st.progress = d->progress;
 				st.next_announce = boost::posix_time::time_duration();
+				st.pieces.clear();
+				st.pieces.resize(d->torrent_ptr->torrent_file().num_pieces(), false);
+				st.total_done = 0;
 				return st;
 			}
 		}
@@ -107,7 +112,9 @@ namespace libtorrent
 		st.total_upload = 0;
 		st.progress = 0.f;
 		st.state = torrent_status::invalid_handle;
+		st.pieces.clear();
 		st.next_announce = boost::posix_time::time_duration();
+		st.total_done = 0;
 		return st;
 	}
 

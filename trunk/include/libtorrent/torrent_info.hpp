@@ -41,6 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 
+#include "boost/date_time/posix_time/posix_time.hpp"
+
 /*
  * This file declares the following functions:
  *
@@ -49,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
  *
  */
 
-// TODO: add std::string comment() and creation_date()
+// TODO: add std::string comment()
 
 namespace libtorrent
 {
@@ -77,6 +79,9 @@ namespace libtorrent
 	public:
 
 		torrent_info(const entry& torrent_file)
+			: m_creation_date(boost::gregorian::date(1970
+				, boost::gregorian::Jan
+				, 1))
 		{
 			try
 			{
@@ -131,6 +136,12 @@ namespace libtorrent
 			return m_piece_hash[index];
 		}
 
+		boost::posix_time::ptime creation_date() const
+		{ return m_creation_date; }
+
+		const std::string& comment() const
+		{ return m_comment; }
+
 	private:
 
 		void read_torrent_info(const entry& libtorrent);
@@ -154,6 +165,15 @@ namespace libtorrent
 		sha1_hash m_info_hash;
 
 		std::string m_name;
+		
+		// if a creation date is found in the torrent file
+		// this will be set to that, otherwise it'll be
+		// 1970, Jan 1
+		boost::posix_time::ptime m_creation_date;
+
+		// if a comment is found in the torrent file
+		// this will be set to that comment
+		std::string m_comment;
 	};
 
 }

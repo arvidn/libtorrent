@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/limits.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/entry.hpp"
@@ -218,6 +218,9 @@ namespace libtorrent
 #endif
 
 	private:
+#ifndef NDEBUG
+		virtual void debug_log(const std::string& line);
+#endif
 
 		void try_next_tracker();
 

@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_TORRENT_HANDLE_HPP_INCLUDED
 
 #include <vector>
-#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer_info.hpp"
@@ -69,8 +69,14 @@ namespace libtorrent
 		state_t state;
 		float progress;
 		boost::posix_time::time_duration next_announce;
+
+		// transferred this session!
 		std::size_t total_download;
 		std::size_t total_upload;
+		std::vector<bool> pieces;
+
+		// the number of bytes of the file we have
+		std::size_t total_done;
 	};
 
 	struct partial_piece_info

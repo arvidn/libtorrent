@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 
 #include <boost/lexical_cast.hpp>
+#include <boost/date_time/time.hpp>
 
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/bencode.hpp"
@@ -169,6 +170,20 @@ namespace libtorrent
 			extract_files(i->second.list(), m_files, m_name);
 		}
 
+		// extract creation date
+		i = info.dict().find("creation date");
+		if (i != info.dict().end() && i->second.type() == entry::int_t)
+		{
+			m_creation_date = m_creation_date + boost::posix_time::seconds(i->second.integer());
+		}
+
+		// extract comment
+		i = info.dict().find("comment");
+		if (i != info.dict().end() && i->second.type() == entry::string_t)
+		{
+			m_comment = i->second.string();
+		}
+
 		// calculate total size of all pieces
 		m_total_size = 0;
 		for (std::vector<file>::iterator i = m_files.begin(); i != m_files.end(); ++i)
@@ -210,6 +225,10 @@ namespace libtorrent
 		{
 			os << i->tier << ": " << i->url << "\n";
 		}
+		if (!m_comment.empty())
+			os << "comment: " << m_comment << "\n";
+		if (m_creation_date != boost::posix_time::ptime(boost::gregorian::date(1970, boost::gregorian::Jan, 1)))
+			os << "creation date: " << to_simple_string(m_creation_date) << "\n";
 		os << "number of pieces: " << num_pieces() << "\n";
 		os << "piece length: " << piece_length() << "\n";
 		os << "files:\n";
