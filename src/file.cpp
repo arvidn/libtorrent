@@ -77,7 +77,11 @@ namespace libtorrent
 		{
 			if (m_file.is_open()) m_file.close();
 			m_file.clear();
+#if defined(_MSC_VER) && _MSC_VER < 1300
+			m_file.open(path.native_file_string().c_str(), map_open_mode(path, mode));
+#else
 			m_file.open(path, map_open_mode(path, mode));
+#endif
 			m_open_mode = mode;
 
 			assert(mode == mode_in ||mode == mode_out);
