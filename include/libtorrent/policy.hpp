@@ -150,6 +150,8 @@ namespace libtorrent
 		peer* find_choke_candidate();
 		peer* find_unchoke_candidate();
 
+
+
 		// a functor that identifies peers that have disconnected and that
 		// are too old for still being saved.
 		struct old_disconnected_peer
@@ -177,6 +179,10 @@ namespace libtorrent
 		// the number of unchoked peers
 		// at any given time
 		int m_num_unchoked;
+
+		// free download we have got that hasn't
+		// been distributed yet.
+		int m_available_free_upload;
 	};
 
 }

@@ -128,10 +128,11 @@ first have to build boost.thread and boost.filesystem. You do this by, in the di
 'boost-1.30.2/tools/build/jam_src' run the build script <tt class="literal"><span class="pre">./build.sh</span></tt>. This should
 produce at least one folder with the 'bin' prefix (and the rest of the name describes
 your platform). Put the files in that folder somewhere in your path.</p>
-<p>You can then invoke <tt class="literal"><span class="pre">bjam</span></tt> in the directories 'boost-1.30.2/libs/thread/build' and
-'boost-1.30.2/libs/filesystem/build'. That will produce the needed libraries. Put these
-libraries in the libtorrent root directory. You then have to modify the makefile to use
-you prefered compiler and to have the correct path to your boost istallation.</p>
+<p>You can then invoke <tt class="literal"><span class="pre">bjam</span></tt> in the directories 'boost-1.30.2/libs/thread/build',
+'boost-1.30.2/libs/date_time/build' and 'boost-1.30.2/libs/filesystem/build'. That will
+produce the needed libraries. Put these libraries in the libtorrent root directory.
+You then have to modify the makefile to use you prefered compiler and to have the
+correct path to your boost istallation.</p>
 <p>Then the makefile should be able to do the rest.</p>
 <p>When building (with boost 1.30.2) on linux and solaris however, I found that I had to make the following
 modifications to the boost.date-time library. In the file:

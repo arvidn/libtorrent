@@ -178,6 +178,55 @@ namespace
 		num_requests--;
 	}
 
+
+	int collect_free_download(
+		torrent::peer_iterator start
+		, torrent::peer_iterator end)
+	{
+		int accumulator = 0;
+		for (torrent::peer_iterator i = start; i != end; ++i)
+		{
+			// if the peer is interested in us, it means it may
+			// want to trade it's surplus uploads for downloads itself
+			// (and we should consider it free). If the share diff is
+			// negative, there's no free download to get from this peer.
+			int diff = (*i)->share_diff();
+			if ((*i)->is_peer_interested() || diff <= 0)
+				continue;
+
+			(*i)->add_free_upload(-diff);
+			accumulator += diff;
+		}
+		return accumulator;
+	}
+
+
+	// returns the amount of free upload left after
+	// it has been distributed to the peers
+	int distribute_free_upload(
+		torrent::peer_iterator start
+		, torrent::peer_iterator end
+		, int free_upload)
+	{
+		if (free_upload == 0) return free_upload;
+		int num_peers = 0;
+		for (torrent::peer_iterator i = start; i != end; ++i)
+		{
+			if ((*i)->is_interesting() || !(*i)->is_peer_interested()) continue;
+			++num_peers;
+		}
+
+		if (num_peers == 0) return free_upload;
+		int upload_share = free_upload / num_peers;
+
+		for (torrent::peer_iterator i = start; i != end; ++i)
+		{
+			if ((*i)->is_interesting() || !(*i)->is_peer_interested()) continue;
+			(*i)->add_free_upload(upload_share);
+			free_upload -= upload_share;
+		}
+		return free_upload;
+	}
 }
 
 namespace libtorrent
@@ -211,6 +260,7 @@ namespace libtorrent
 		, m_torrent(t)
 		, m_max_uploads(-1)
 		, m_num_unchoked(0)
+		, m_available_free_upload(0)
 	{}
 	// finds the peer that has the worst download rate
 	// and returns it. May return 0 if all peers are
@@ -269,7 +319,7 @@ namespace libtorrent
 			if (c == 0) continue;
 			if (!c->is_choked()) continue;
 			if (!c->is_peer_interested()) continue;
-			if (i->total_download() - i->total_upload()
+			if (c->share_diff()
 				< -free_upload_amount) continue;
 			if (i->last_optimistically_unchoked > min_time) continue;
 
@@ -289,6 +339,19 @@ namespace libtorrent
 			, m_peers.end()
 			, old_disconnected_peer())
 			, m_peers.end());
+
+		// accumulate all the free download we get
+		// and add it to the available free upload
+		m_available_free_upload
+			+= collect_free_download(
+				m_torrent->begin()
+				, m_torrent->end());
+
+		// distribute the free upload among the peers
+		m_available_free_upload = distribute_free_upload(
+			m_torrent->begin()
+			, m_torrent->end()
+			, m_available_free_upload);
 
 		if (m_max_uploads != -1)
 		{
@@ -454,14 +517,7 @@ namespace libtorrent
 	// called when a peer is interested in us
 	void policy::interested(peer_connection& c)
 	{
-		// if we're interested in the peer, we unchoke it
-		// and hopes it will unchoke us too
-/*		if (c.is_interesting())
-		{
-			c.unchoke();
-			++m_num_unchoked;
-		}
-*/	}
+	}
 
 	// called when a peer is no longer interested in us
 	void policy::not_interested(peer_connection& c)
@@ -496,6 +552,7 @@ namespace libtorrent
 			--m_num_unchoked;
 			unchoke_one_peer();
 		}
+		m_available_free_upload += i->connection->share_diff();
 		i->connection = 0;
 	}
 

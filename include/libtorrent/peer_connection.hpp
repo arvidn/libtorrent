@@ -213,6 +213,9 @@ namespace libtorrent
 		// quota is unlimited.
 		int send_quota_left() const { return m_send_quota_left; }
 
+		void add_free_upload(int free_upload)
+		{ m_free_upload += free_upload; }
+
 		// returns the send quota assigned to this
 		// peer.
 		int send_quota() const { return m_send_quota; }
@@ -235,6 +238,13 @@ namespace libtorrent
 		int send_quota_limit() const
 		{ return m_send_quota_limit; }
 
+		int share_diff() const
+		{
+			return m_free_upload
+				+ m_statistics.total_download()
+				- m_statistics.total_upload();
+		}
+
 #ifndef NDEBUG
 		boost::shared_ptr<logger> m_logger;
 #endif
@@ -247,7 +257,6 @@ namespace libtorrent
 		void send_bitfield();
 		void send_have(int index);
 		void send_handshake();
-
 
 		// is used during handshake
 		enum state
@@ -344,10 +353,6 @@ namespace libtorrent
 		// remote peer's id
 		peer_id m_peer_id;
 
-		// the pieces that we are sending and receiving
-//		piece_file m_sending_piece;
-//		piece_file m_receiving_piece;
-
 		// other side says that it's interested in downloading
 		// from us.
 		bool m_peer_interested;
@@ -378,7 +383,18 @@ namespace libtorrent
 		// from this peer
 		std::deque<piece_block> m_download_queue;
 
+		// statistics about upload and download speeds
+		// and total amount of uploads and downloads for
+		// this peer
 		stat m_statistics;
+
+		// the amount of data this peer has been given
+		// as free upload. This is distributed from
+		// peers from which we get free download
+		// this will be negative on a peer from which
+		// we get free download, and positive on peers
+		// that we give the free upload, to keep the balance.
+		int m_free_upload;
 
 		// this is used to limit upload bandwidth.
 		// it is reset to the allowed number of
