@@ -342,6 +342,10 @@ namespace libtorrent
 		peer* worst_peer = 0;
 		size_type min_weight = std::numeric_limits<int>::min();
 
+#ifndef NDEBUG
+		int unchoked_counter = m_num_unchoked;
+#endif
+		
 		// TODO: make this selection better
 
 		for (std::vector<peer>::iterator i = m_peers.begin();
@@ -351,6 +355,9 @@ namespace libtorrent
 
 			if (c == 0) continue;
 			if (c->is_choked()) continue;
+#ifndef NDEBUG
+			unchoked_counter--;
+#endif
 			// if the peer isn't interested, just choke it
 			if (!c->is_peer_interested())
 				return &(*i);
@@ -360,14 +367,15 @@ namespace libtorrent
 
 			size_type weight = static_cast<int>(c->statistics().download_rate() * 10.f)
 				+ diff
-				+ (c->has_peer_choked()?-10:10)*1024;
+				+ ((c->is_interesting() && c->has_peer_choked())?-10:10)*1024;
 
-			if (weight > min_weight) continue;
+			if (weight >= min_weight && worst_peer) continue;
 
 			min_weight = weight;
 			worst_peer = &(*i);
 			continue;
 		}
+		assert(unchoked_counter == 0);
 		return worst_peer;
 	}
 
@@ -732,6 +740,8 @@ namespace libtorrent
 			
 			if (m_torrent->m_uploads_quota.given < m_torrent->num_peers())
 			{
+				assert(m_torrent->m_uploads_quota.given >= 0);
+
 				// make sure we don't have too many
 				// unchoked peers
 				while (m_num_unchoked > m_torrent->m_uploads_quota.given)
