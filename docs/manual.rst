@@ -116,6 +116,16 @@ version of boost, `boost 1.30.2`__.
 
 __ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&release_id=178835
 
+There are two versions of the socket code, one that works with unix systems (and bsd-sockets) and
+one that uses winsock. If you're building in windows, the file ``socket_win.cpp`` is supposed to
+be included in the build while ``socket_bsd.cpp`` is supposed to be excluded.
+
+The file abstraction has the same kind of separation. There's one ``file_win.cpp`` which
+relies on windows file API that supports files larger than 2 Gigabytes. This does not work
+in vc6 for some reason, possibly because it may require windows NT and above. The other file,
+``file.cpp`` is the default implementation that simply relies on the standard library's fstream,
+and as a result does not support files larger than 2 Gigabytes.
+
 release and debug builds
 ------------------------
 

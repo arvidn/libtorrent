@@ -487,6 +487,9 @@ namespace libtorrent
 	{
 		using namespace boost::posix_time;
 
+		// TODO: we must also remove peers that
+		// we failed to connect to from this list
+		// to avoid being part of a DDOS-attack
 		// remove old disconnected peers from the list
 		m_peers.erase(
 			std::remove_if(m_peers.begin()
@@ -719,9 +722,12 @@ namespace libtorrent
 		}
 		
 		assert(i->connection == 0);
+		c.add_stat(i->prev_amount_download, i->prev_amount_upload);
+		i->prev_amount_download = 0;
+		i->prev_amount_upload = 0;
 		i->connection = &c;
 		i->connected = boost::posix_time::second_clock::local_time();
-		m_last_optimistic_disconnect=boost::posix_time::second_clock::local_time();
+		m_last_optimistic_disconnect = boost::posix_time::second_clock::local_time();
 	}
 
 	void policy::peer_from_tracker(const address& remote, const peer_id& id)
@@ -906,6 +912,9 @@ namespace libtorrent
 		assert(p->type==peer::connectable);
 		
 		p->connection = &m_torrent->connect_to_peer(p->id);
+		p->connection->add_stat(p->prev_amount_download, p->prev_amount_upload);
+		p->prev_amount_download = 0;
+		p->prev_amount_upload = 0;
 		p->connected = boost::posix_time::second_clock::local_time();
 		return true;
 	}
@@ -1015,8 +1024,8 @@ namespace libtorrent
 	{
 		if (connection != 0)
 		{
-			return connection->statistics().total_payload_download()
-				+ prev_amount_download;
+			assert(prev_amount_download == 0);
+			return connection->statistics().total_payload_download();
 		}
 		else
 		{
@@ -1028,8 +1037,8 @@ namespace libtorrent
 	{
 		if (connection != 0)
 		{
-			return connection->statistics().total_payload_upload()
-				+ prev_amount_upload;
+			assert(prev_amount_upload == 0);
+			return connection->statistics().total_payload_upload();
 		}
 		else
 		{

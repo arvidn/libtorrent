@@ -225,7 +225,7 @@ namespace libtorrent
 		return false;
 	}
 
-	entry torrent_handle::write_resume_data()
+	entry torrent_handle::write_resume_data() const
 	{
 		std::vector<int> piece_index;
 		if (m_ses == 0)

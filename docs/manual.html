@@ -135,13 +135,13 @@ boost.filesystem, boost.date_time and various other boost libraries as well as z
 <li>Windows 2000 vc7.1</li>
 <li>Linux x86 (debian) GCC 3.0.4, GCC 3.2.3</li>
 <li>Windows 2000, msvc6 sp5 (does not support 64-bit values due to problems with operator&lt;&lt;(ostream&amp;, __int64))</li>
+<li>Cygwin GCC 3.3.1</li>
 </ul>
 </blockquote>
 <p>Fails on:</p>
 <blockquote>
 <ul class="simple">
-<li>Linux x86 (Debian) GCC 2.95.4 (<tt class="literal"><span class="pre">std::ios_base</span></tt> is missing)</li>
-<li>Cygwin GCC 3.3.1 (compiles but crashes)</li>
+<li>GCC 2.95.4 (<tt class="literal"><span class="pre">std::ios_base</span></tt> is missing)</li>
 </ul>
 </blockquote>
 <p>libtorrent is released under the <a class="reference" href="http://www.opensource.org/licenses/bsd-license.php">BSD-license</a>.</p>
@@ -166,6 +166,14 @@ bjam &lt;toolset&gt;
 &quot;force conformance in for loop scope&quot; and &quot;treat wchar_t as built-in type&quot; to Yes.</p>
 <p>If you're building in developer studio 6, you will probably have to use the previous
 version of boost, <a class="reference" href="http://sourceforge.net/project/showfiles.php?group_id=7586&amp;package_id=8041&amp;release_id=178835">boost 1.30.2</a>.</p>
+<p>There are two versions of the socket code, one that works with unix systems (and bsd-sockets) and
+one that uses winsock. If you're building in windows, the file <tt class="literal"><span class="pre">socket_win.cpp</span></tt> is supposed to
+be included in the build while <tt class="literal"><span class="pre">socket_bsd.cpp</span></tt> is supposed to be excluded.</p>
+<p>The file abstraction has the same kind of separation. There's one <tt class="literal"><span class="pre">file_win.cpp</span></tt> which
+relies on windows file API that supports files larger than 2 Gigabytes. This does not work
+in vc6 for some reason, possibly because it may require windows NT and above. The other file,
+<tt class="literal"><span class="pre">file.cpp</span></tt> is the default implementation that simply relies on the standard library's fstream,
+and as a result does not support files larger than 2 Gigabytes.</p>
 <div class="section" id="release-and-debug-builds">
 <h2><a name="release-and-debug-builds">release and debug builds</a></h2>
 <p>The <tt class="literal"><span class="pre">Jamfile</span></tt> can build both a release and debug version of libtorrent. In debug mode,
