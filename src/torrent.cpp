@@ -224,7 +224,7 @@ namespace libtorrent
 		, m_storage(m_torrent_file, save_path)
 		, m_next_request(boost::posix_time::second_clock::local_time())
 		, m_duration(1800)
-		, m_policy(new policy(this))
+		, m_policy(new policy(this)) // warning: uses this in member init list
 		, m_ses(ses)
 		, m_picker(torrent_file.piece_length() / m_block_size,
 			static_cast<int>((torrent_file.total_size()+m_block_size-1)/m_block_size))
