@@ -873,7 +873,8 @@ namespace libtorrent
 	void session::remove_torrent(const torrent_handle& h)
 	{
 		if (h.m_ses != &m_impl) return;
-		assert(h.m_chk == &m_checker_impl);
+		assert(h.m_chk == &m_checker_impl || h.m_chk == 0);
+		assert(h.m_ses != 0);
 
 		{
 			boost::mutex::scoped_lock l(m_impl.m_mutex);
@@ -885,6 +886,7 @@ namespace libtorrent
 			}
 		}
 
+		if (h.m_chk)
 		{
 			boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
 

@@ -59,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/invariant_check.hpp"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 namespace std
@@ -71,8 +72,19 @@ namespace std
 namespace libtorrent
 {
 
+#ifndef NDEBUG
+
+	void torrent_handle::check_invariant() const
+	{
+		assert((m_ses == 0 && m_chk == 0) || (m_ses != 0));
+	}
+
+#endif
+
 	void torrent_handle::set_max_uploads(int max_uploads)
 	{
+		INVARIANT_CHECK;
+
 		assert(max_uploads >= 2 || max_uploads == -1);
 
 		if (m_ses == 0) throw invalid_handle();
@@ -104,6 +116,8 @@ namespace libtorrent
 
 	void torrent_handle::use_interface(const char* net_interface)
 	{
+		INVARIANT_CHECK;
+
 		if (m_ses == 0) throw invalid_handle();
 
 		{
@@ -133,6 +147,8 @@ namespace libtorrent
 
 	void torrent_handle::set_max_connections(int max_connections)
 	{
+		INVARIANT_CHECK;
+
 		assert(max_connections > 2 || max_connections == -1);
 
 		if (m_ses == 0) throw invalid_handle();
@@ -164,6 +180,8 @@ namespace libtorrent
 	
 	torrent_status torrent_handle::status() const
 	{
+		INVARIANT_CHECK;
+
 		if (m_ses == 0) throw invalid_handle();
 
 		{
@@ -196,6 +214,8 @@ namespace libtorrent
 
 	const torrent_info& torrent_handle::get_torrent_info() const
 	{
+		INVARIANT_CHECK;
+
 		if (m_ses == 0) throw invalid_handle();
 	
 		{
@@ -216,6 +236,8 @@ namespace libtorrent
 
 	void torrent_handle::set_tracker_login(std::string const& name, std::string const& password)
 	{
+		INVARIANT_CHECK;
+
 		if (m_ses == 0) throw invalid_handle();
 	
 		{
@@ -244,6 +266,8 @@ namespace libtorrent
 
 	bool torrent_handle::is_valid() const
 	{
+		INVARIANT_CHECK;
+
 		if (m_ses == 0) return false;
 
 		{
@@ -264,6 +288,8 @@ namespace libtorrent
 
 	entry torrent_handle::write_resume_data() const
 	{
+		INVARIANT_CHECK;
+
 		std::vector<int> piece_index;
 		if (m_ses == 0)
 			throw invalid_handle();
@@ -376,6 +402,8 @@ namespace libtorrent
 
 	boost::filesystem::path torrent_handle::save_path() const
 	{
+		INVARIANT_CHECK;
+
 		if (m_ses == 0) throw invalid_handle();
 
 		// copy the path into this local variable before
@@ -411,6 +439,8 @@ namespace libtorrent
 
 	void torrent_handle::connect_peer(const address& adr) const
 	{
+		INVARIANT_CHECK;
+
 		if (m_ses == 0) throw invalid_handle();
 	
 		boost::mutex::scoped_lock l(m_ses->m_mutex);
@@ -424,6 +454,8 @@ namespace libtorrent
 
 	void torrent_handle::force_reannounce() const
 	{
+		INVARIANT_CHECK;
+
 		if (m_ses == 0) throw invalid_handle();
 	
 		boost::mutex::scoped_lock l(m_ses->m_mutex);
@@ -435,6 +467,8 @@ namespace libtorrent
 
 	void torrent_handle::set_ratio(float ratio)
 	{
+		INVARIANT_CHECK;
+
 		assert(ratio >= 0.f);
 
 		if (m_ses == 0) throw invalid_handle();
@@ -464,6 +498,8 @@ namespace libtorrent
 
 	void torrent_handle::get_peer_info(std::vector<peer_info>& v) const
 	{
+		INVARIANT_CHECK;
+
 		v.clear();
 		if (m_ses == 0) throw invalid_handle();
 
@@ -539,6 +575,8 @@ namespace libtorrent
 
 	void torrent_handle::get_download_queue(std::vector<partial_piece_info>& queue) const
 	{
+		INVARIANT_CHECK;
+
 		queue.clear();
 
 		if (m_ses == 0) throw invalid_handle();
