@@ -607,6 +607,7 @@ namespace libtorrent
 			if (peer->is_local()) p.flags |= peer_info::local_connection;
 
 			p.pieces = peer->get_bitfield();
+			p.seed = peer->is_seed();
 		}
 	}
 

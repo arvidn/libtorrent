@@ -2370,7 +2370,9 @@ namespace libtorrent
 
 	bool peer_connection::is_seed() const
 	{
-		return m_num_pieces == (int)m_have_piece.size();
+		// if m_num_pieces == 0, we probably doesn't have the
+		// metadata yet.
+		return m_num_pieces == (int)m_have_piece.size() && m_num_pieces > 0;
 	}
 
 	void peer_connection::send_buffer_updated()
