@@ -779,9 +779,7 @@ namespace libtorrent
 
 			if(m_torrent->num_peers() < m_max_connections)
 			{
-				i->connection = &m_torrent->connect_to_peer(remote);
-				i->connected = boost::posix_time::second_clock::local_time();
-				m_last_optimistic_disconnect=boost::posix_time::second_clock::local_time();
+				connect_peer(&*i);
 			}
 			return;
 		}
@@ -910,13 +908,20 @@ namespace libtorrent
 		assert(!p->banned);
 		assert(!p->connection);
 		assert(p->type==peer::connectable);
-		
+
+		connect_peer(p);
+		return true;
+	}
+
+	void policy::connect_peer(peer *p)
+	{
 		p->connection = &m_torrent->connect_to_peer(p->id);
 		p->connection->add_stat(p->prev_amount_download, p->prev_amount_upload);
 		p->prev_amount_download = 0;
 		p->prev_amount_upload = 0;
-		p->connected = boost::posix_time::second_clock::local_time();
-		return true;
+		p->connected =
+			m_last_optimistic_disconnect = 
+				boost::posix_time::second_clock::local_time();
 	}
 
 	bool policy::disconnect_one_peer()
@@ -940,8 +945,6 @@ namespace libtorrent
 		assert(i->connection == &c);
 
 		i->connected = boost::posix_time::second_clock::local_time();
-		i->prev_amount_download += c.statistics().total_payload_download();
-		i->prev_amount_upload += c.statistics().total_payload_upload();
 		if (!i->connection->is_choked() && !m_torrent->is_aborted())
 		{
 			--m_num_unchoked;
@@ -956,6 +959,8 @@ namespace libtorrent
 			assert(i->connection->share_diff() < std::numeric_limits<int>::max());
 			m_available_free_upload += i->connection->share_diff();
 		}
+		i->prev_amount_download += c.statistics().total_payload_download();
+		i->prev_amount_upload += c.statistics().total_payload_upload();
 		i->connection = 0;
 	}
 

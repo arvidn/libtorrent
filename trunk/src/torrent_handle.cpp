@@ -454,8 +454,6 @@ namespace libtorrent
 			p.id = peer->get_peer_id();
 			p.ip = peer->get_socket()->sender();
 
-			// TODO: add the prev_amount_downloaded and prev_amount_uploaded
-			// from the peer list in the policy
 			p.total_download = statistics.total_payload_download();
 			p.total_upload = statistics.total_payload_upload();
 
