@@ -183,7 +183,7 @@ namespace libtorrent
 		ret.dict()["file-version"] = 1;
 
 		const sha1_hash& info_hash = t->torrent_file().info_hash();
-		ret.dict()["info-hash"] = std::string(info_hash.begin(), info_hash.end());
+		ret.dict()["info-hash"] = std::string((char*)info_hash.begin(), (char*)info_hash.end());
 
 		ret.dict()["slots"] = entry(entry::list_t);
 		entry::list_type& slots = ret.dict()["slots"].list();
@@ -222,7 +222,7 @@ namespace libtorrent
 				unsigned char v = 0;
 				for (int k = 0; k < 8; ++k)
 					v |= i->finished_blocks[j*8+k]?(1 << k):0;
-				bitmask.push_back(v);
+				bitmask.insert(bitmask.end(), v);
 			}
 			piece_struct["bitmask"] = bitmask;
 

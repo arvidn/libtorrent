@@ -107,8 +107,6 @@ namespace libtorrent
 	{
 	public:
 
-		typedef boost::int64_t size_type;
-
 		torrent(
 			detail::session_impl& ses
 			, const torrent_info& torrent_file

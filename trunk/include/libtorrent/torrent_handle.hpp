@@ -64,8 +64,6 @@ namespace libtorrent
 
 	struct torrent_status
 	{
-		typedef boost::int64_t size_type;
-
 		torrent_status()
 			: state(queued_for_checking)
 			, progress(0.f)

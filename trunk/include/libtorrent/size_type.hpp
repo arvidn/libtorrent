@@ -30,86 +30,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_FILE_HPP_INCLUDED
-#define TORRENT_FILE_HPP_INCLUDED
+#ifndef TORRENT_SIZE_TYPE_HPP_INCLUDED
+#define TORRENT_SIZE_TYPE_HPP_INCLUDED
 
-#include <memory>
-#include <stdexcept>
-
-#include <boost/noncopyable.hpp>
-#include <boost/filesystem/path.hpp>
-
-#include "libtorrent/size_type.hpp"
+#include <boost/cstdint.hpp>
 
 namespace libtorrent
 {
-
-	struct file_error: std::runtime_error
-	{
-		file_error(std::string const& msg): std::runtime_error(msg) {}
-	};
-
-	class file: public boost::noncopyable
-	{
-	public:
-
-		class seek_mode
-		{
-		friend class file;
-		private:
-			seek_mode(int v): m_val(v) {}
-			int m_val;
-		};
-
-		const static seek_mode begin;
-		const static seek_mode end;
-
-		class open_mode
-		{
-		friend class file;
-		public:
-
-			open_mode(): m_mask(0) {}
-
-			open_mode operator|(open_mode m) const
-			{ return open_mode(m.m_mask | m_mask); }
-
-			open_mode operator|=(open_mode m)
-			{
-				m_mask |= m.m_mask;
-				return *this;
-			}
-
-		private:
-
-			open_mode(int val): m_mask(val) {}
-			int m_mask;
-		};
-
-		const static open_mode in;
-		const static open_mode out;
-
-		file();
-		file(boost::filesystem::path const& p, open_mode m);
-		~file();
-
-		void open(boost::filesystem::path const& p, open_mode m);
-		void close();
-
-		size_type write(const char*, size_type num_bytes);
-		size_type read(char*, size_type num_bytes);
-
-		void seek(size_type pos, seek_mode m = begin);
-		size_type tell();
-
-	private:
-
-		struct impl;
-		const std::auto_ptr<impl> m_impl;
-
-	};
-
+#if defined(_MSC_VER) && _MSC_VER < 1300
+	typedef int size_type;
+#else
+	typedef boost::int64_t size_type;
+#endif
 }
 
-#endif // TORRENT_FILE_HPP_INCLUDED
 
+#endif

@@ -82,8 +82,6 @@ namespace libtorrent
 	{
 	public:
 
-		typedef boost::int64_t size_type;
-
 		torrent_info(const entry& torrent_file)
 			: m_creation_date(boost::gregorian::date(1970
 				, boost::gregorian::Jan

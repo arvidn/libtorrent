@@ -167,22 +167,22 @@ namespace libtorrent
 		m_impl->close();
 	}
 
-	file::size_type file::write(const char* buf, file::size_type num_bytes)
+	size_type file::write(const char* buf, size_type num_bytes)
 	{
 		return m_impl->write(buf, num_bytes);
 	}
 
-	file::size_type file::read(char* buf, file::size_type num_bytes)
+	size_type file::read(char* buf, size_type num_bytes)
 	{
 		return m_impl->read(buf, num_bytes);
 	}
 
-	void file::seek(file::size_type pos, file::seek_mode m)
+	void file::seek(size_type pos, file::seek_mode m)
 	{
 		m_impl->seek(pos, m.m_val);
 	}
 
-	file::size_type file::tell()
+	size_type file::tell()
 	{
 		return m_impl->tell();
 	}

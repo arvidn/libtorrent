@@ -67,6 +67,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cassert>
 #include <boost/cstdint.hpp>
 
+#include "libtorrent/size_type.hpp"
+
 namespace libtorrent
 {
 
@@ -109,8 +111,7 @@ namespace libtorrent
 		typedef std::map<std::string, entry> dictionary_type;
 		typedef std::string string_type;
 		typedef std::vector<entry> list_type;
-
-		typedef boost::int64_t integer_type;
+		typedef size_type integer_type;
 
 		enum data_type
 		{

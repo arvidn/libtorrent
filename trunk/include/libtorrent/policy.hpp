@@ -105,7 +105,7 @@ namespace libtorrent
 		{
 			enum connection_type { connectable, not_connectable };
 
-			peer(const address& ip, peer::connection_type t);
+			peer(const address& ip, connection_type t);
 
 			int total_download() const;
 			int total_upload() const;
