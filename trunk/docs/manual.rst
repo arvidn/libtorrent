@@ -768,6 +768,7 @@ Its declaration looks like this::
 		bool is_paused() const;
 
 		boost::filsystem::path save_path() const;
+		bool move_storage(boost::filesystem::path const& save_path);
 
 		sha1_hash info_hash() const;
 
@@ -790,6 +791,19 @@ save_path()
 
 ``save_path()`` returns the path that was given to `add_torrent()`_ when this torrent
 was started.
+
+move_storage()
+--------------
+
+	::
+
+		bool move_storage(boost::filsystem::path const& save_path);
+
+Moves the file(s) that this torrent are currently seeding from or downloading to. This
+operation will only have the desired effect if the given ``save_path`` is located on
+the same drive as the original save path. If the move operation fails, this function
+returns false, otherwise true. Post condition for successful operation is:
+``save_path() == save_path``.
 
 
 force_reannounce()

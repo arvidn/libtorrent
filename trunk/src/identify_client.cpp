@@ -58,6 +58,12 @@ namespace
 
 	using namespace libtorrent;
 
+	int decode_digit(char c)
+	{
+		if (std::isdigit(c)) return c - '0';
+		return std::toupper(c) - 'A' + 10;
+	}
+
 	// takes a peer id and returns a valid boost::optional
 	// object if the peer id matched the azureus style encoding
 	// the returned fingerprint contains information about the
@@ -77,20 +83,20 @@ namespace
 			++i;
 		}
 
-		if (*i < '0') return boost::optional<fingerprint>();
-		ret.major_version = *i - '0';
+		if (!std::isalnum(*i)) return boost::optional<fingerprint>();
+		ret.major_version = decode_digit(*i);
 		++i;
 
-		if (*i < '0') return boost::optional<fingerprint>();
-		ret.minor_version = *i - '0';
+		if (!std::isalnum(*i)) return boost::optional<fingerprint>();
+		ret.minor_version = decode_digit(*i);
 		++i;
 
-		if (*i < '0') return boost::optional<fingerprint>();
-		ret.revision_version = *i - '0';
+		if (!std::isalnum(*i)) return boost::optional<fingerprint>();
+		ret.revision_version = decode_digit(*i);
 		++i;
 
-		if (*i < '0') return boost::optional<fingerprint>();
-		ret.tag_version = *i - '0';
+		if (!std::isalnum(*i)) return boost::optional<fingerprint>();
+		ret.tag_version = decode_digit(*i);
 		++i;
 
 		if (*i != '-') return boost::optional<fingerprint>();
@@ -105,23 +111,23 @@ namespace
 		fingerprint ret("..", 0, 0, 0, 0);
 		peer_id::const_iterator i = id.begin();
 
-		if (*i < '0') return boost::optional<fingerprint>();
+		if (!std::isalnum(*i)) return boost::optional<fingerprint>();
 		ret.id[0] = *i;
 		ret.id[1] = 0;
 		++i;
 
 		if (std::equal(id.begin()+4, id.begin()+8, "----"))
 		{
-			if (*i < '0') return boost::optional<fingerprint>();
-			ret.major_version = *i - '0';
+			if (!std::isalnum(*i)) return boost::optional<fingerprint>();
+			ret.major_version = decode_digit(*i);
 			++i;
 
-			if (*i < '0') return boost::optional<fingerprint>();
-			ret.minor_version = *i - '0';
+			if (!std::isalnum(*i)) return boost::optional<fingerprint>();
+			ret.minor_version = decode_digit(*i);
 			++i;
 
-			if (*i < '0') return boost::optional<fingerprint>();
-			ret.revision_version = *i - '0';
+			if (!std::isalnum(*i)) return boost::optional<fingerprint>();
+			ret.revision_version = decode_digit(*i);
 		}
 		else if (id[8] == 0)
 		{
@@ -139,7 +145,6 @@ namespace
 		else
 			return boost::optional<fingerprint>();
 
-
 		ret.tag_version = 0;
 		return boost::optional<fingerprint>(ret);
 	}
@@ -156,22 +161,22 @@ namespace
 		ret.id[1] = 0;
 		++i;
 
-		if (*i < '0') return boost::optional<fingerprint>();
-		ret.major_version = *i - '0';
+		if (!std::isalnum(*i)) return boost::optional<fingerprint>();
+		ret.major_version = decode_digit(*i);
 		++i;
 
 		if (*i != '-') return boost::optional<fingerprint>();
 		++i;
 
-		if (*i < '0') return boost::optional<fingerprint>();
-		ret.minor_version = *i - '0';
+		if (!std::isalnum(*i)) return boost::optional<fingerprint>();
+		ret.minor_version = decode_digit(*i);
 		++i;
 
 		if (*i != '-') return boost::optional<fingerprint>();
 		++i;
 
-		if (*i < '0') return boost::optional<fingerprint>();
-		ret.revision_version = *i - '0';
+		if (!std::isalnum(*i)) return boost::optional<fingerprint>();
+		ret.revision_version = decode_digit(*i);
 		++i;
 
 		if (!std::equal(i, i+1, "--")) return boost::optional<fingerprint>();
@@ -190,7 +195,7 @@ namespace libtorrent
 		peer_id::const_iterator PID = p.begin();
 		boost::optional<fingerprint> f;
 
-		if (p.is_all_zeros()) return "Unkown";
+		if (p.is_all_zeros()) return "Unknown";
 
 		// look for azureus style id	
 		f = parse_az_style(p);
@@ -338,7 +343,10 @@ namespace libtorrent
 			return "SimpleBT";
 		}
 
-		if (std::equal(PID, PID + 7, "turbobt"))
+		if (std::equal(PID, PID + 7, "turbobt")
+			&& std::isalnum(PID[8])
+			&& std::isalnum(PID[10])
+			&& std::isalnum(PID[12]))
 		{
 			std::stringstream s;
 			s << "TurboBT " << PID[8] << "." << PID[10] << "." << PID[12];
