@@ -157,9 +157,19 @@ namespace libtorrent
 #ifndef NDEBUG
 			debug_log("*** tracker timed out");
 #endif
+			// TODO: increase the retry_delay for
+			// each failed attempt on the same tracker!
+			// maybe we should add a counter that keeps
+			// track of how many times a specific tracker
+			// has timed out?
 			try_next_tracker();
 		}
 
+		// TODO: this function should also take the
+		// HTTP-response code as an argument
+		// with some codes, we should just consider
+		// the tracker as a failure and not retry
+		// it anymore
 		void tracker_request_error(const char* str)
 		{
 #ifndef NDEBUG

@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/url_handler.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/alert.hpp"
+#include "libtorrent/fingerprint.hpp"
 #include "libtorrent/debug.hpp"
 
 
@@ -130,7 +131,7 @@ namespace libtorrent
 		{
 			typedef std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> > connection_map;
 
-			session_impl(int listen_port, const std::string& fingerprint);
+			session_impl(int listen_port, const fingerprint& cl_fprint);
 			void operator()();
 
 			// must be locked to access the data
@@ -187,7 +188,8 @@ namespace libtorrent
 	{
 	public:
 
-		session(int listen_port, const std::string& fingerprint = std::string());
+		session(int listen_port, const fingerprint& print);
+		session(int listen_port);
 
 		~session();
 

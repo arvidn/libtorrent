@@ -184,7 +184,7 @@ int main(int argc, char* argv[])
 	try
 	{
 		std::vector<torrent_handle> handles;
-		session s(6881, "E\x1");
+		session s(6881);
 
 		// limit upload rate to 100 kB/s
 		s.set_upload_rate_limit(100 * 1024);
@@ -282,7 +282,7 @@ int main(int argc, char* argv[])
 						<< "u: " << add_suffix(i->up_speed) << "/s "
 						<< "(" << add_suffix(i->total_upload) << ") "
 //						<< "df: " << add_suffix((int)i->total_download - (int)i->total_upload) << " "
-						<< "l: " << add_suffix(i->upload_limit) << "/s "
+						<< "b: " << add_suffix(i->load_balancing) << "/s "
 						<< "f: "
 						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
 						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")

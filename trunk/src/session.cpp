@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/fingerprint.hpp"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 namespace std
@@ -329,7 +330,7 @@ namespace libtorrent
 		}
 
 		session_impl::session_impl(int listen_port,
-			const std::string& cl_fprint)
+			const fingerprint& cl_fprint)
 			: m_abort(false)
 			, m_tracker_manager(m_settings)
 			, m_listen_port(listen_port)
@@ -340,18 +341,17 @@ namespace libtorrent
 
 			std::srand(std::time(0));
 
-			const int len1 = std::min(cl_fprint.length(), (std::size_t)7);
-			const int len2 = 12 - len1;
+			std::string print = cl_fprint.to_string();
+			assert(print.length() == 8);
 
 			// the client's fingerprint
-			std::copy(cl_fprint.begin(), cl_fprint.begin()+len2, m_peer_id.begin());
-
-			// the zeros
-			std::fill(m_peer_id.begin()+len1, m_peer_id.begin()+len1+len2, 0);
-			assert(len1 + len2 == 12);
+			std::copy(
+				print.begin()
+				, print.begin() + print.length()
+				, m_peer_id.begin());
 
 			// the random number
-			for (unsigned char* i = m_peer_id.begin()+len1+len2;
+			for (unsigned char* i = m_peer_id.begin() + print.length();
 				i != m_peer_id.end();
 				++i)
 			{
@@ -696,8 +696,23 @@ namespace libtorrent
 
 	}
 
-	session::session(int listen_port, const std::string& fingerprint)
-		: m_impl(listen_port, fingerprint)
+	session::session(int listen_port, const fingerprint& id)
+		: m_impl(listen_port, id)
+		, m_checker_impl(&m_impl)
+		, m_thread(boost::ref(m_impl))
+		, m_checker_thread(boost::ref(m_checker_impl))
+	{
+#ifndef NDEBUG
+		// this test was added after it came to my attention
+		// that devstudios managed c++ failed to generate
+		// correct code for boost.function
+		boost::function0<void> test = boost::ref(m_impl);
+		assert(!test.empty());
+#endif
+	}
+
+	session::session(int listen_port)
+		: m_impl(listen_port, fingerprint("LT",0,0,1,0))
 		, m_checker_impl(&m_impl)
 		, m_thread(boost::ref(m_impl))
 		, m_checker_thread(boost::ref(m_checker_impl))
@@ -707,7 +722,6 @@ namespace libtorrent
 		assert(!test.empty());
 #endif
 	}
-
 
 	// TODO: add a check to see if filenames are accepted on the
 	// current platform.
