@@ -427,6 +427,13 @@ namespace libtorrent
 		void allocate_slots(int num_slots);
 		void mark_failed(int index);
 
+		unsigned long piece_crc(
+			int slot_index
+			, int block_size
+			, const std::bitset<256>& bitmask);
+
+		int slot_for_piece(int piece_index) const;
+
 		size_type read(char* buf, int piece_index, size_type offset, size_type size);
 		void write(const char* buf, int piece_index, size_type offset, size_type size);
 
@@ -438,16 +445,14 @@ namespace libtorrent
 	private:
 		// returns the slot currently associated with the given
 		// piece or assigns the given piece_index to a free slot
-		int slot_for_piece(int piece_index);
+		int allocate_slot_for_piece(int piece_index);
 #ifndef NDEBUG
 		void check_invariant() const;
+#ifdef TORRENT_STORAGE_DEBUG
 		void debug_log() const;
 #endif
+#endif
 		storage m_storage;
-
-		// total number of bytes left to be downloaded
-		// TODO: this member shouldn't be necessaty any more
-		size_type m_bytes_left;
 
 		// a bitmask representing the pieces we have
 		std::vector<bool> m_have_piece;
@@ -571,6 +576,57 @@ namespace libtorrent
 		m_pimpl->mark_failed(index);
 	}
 
+	int piece_manager::slot_for_piece(int piece_index) const
+	{
+		return m_pimpl->slot_for_piece(piece_index);
+	}
+
+	int piece_manager::impl::slot_for_piece(int piece_index) const
+	{
+		assert(piece_index >= 0 && piece_index < m_info.num_pieces());
+		return m_piece_to_slot[piece_index];
+	}
+
+	unsigned long piece_manager::piece_crc(
+		int index
+		, int block_size
+		, const std::bitset<256>& bitmask)
+	{
+		return m_pimpl->piece_crc(index, block_size, bitmask);
+	}
+
+	unsigned long piece_manager::impl::piece_crc(
+		int slot_index
+		, int block_size
+		, const std::bitset<256>& bitmask)
+	{
+		adler32_crc crc;
+		std::vector<char> buf(block_size);
+		int num_blocks = m_info.piece_size(slot_index) / block_size;
+		int last_block_size = m_info.piece_size(slot_index) % block_size;
+		if (last_block_size == 0) last_block_size = block_size;
+
+		for (int i = 0; i < num_blocks-1; ++i)
+		{
+			if (!bitmask[i]) continue;
+			m_storage.read(
+				&buf[0]
+				, slot_index
+				, i * block_size
+				, block_size);
+			crc.update(&buf[0], block_size);
+		}
+		if (bitmask[num_blocks - 1])
+		{
+			m_storage.read(
+				&buf[0]
+				, slot_index
+				, block_size * (num_blocks - 1)
+				, last_block_size);
+			crc.update(&buf[0], last_block_size);
+		}
+		return crc.final();
+	}
 
 	size_type piece_manager::impl::read(
 		char* buf
@@ -598,7 +654,7 @@ namespace libtorrent
 	  , size_type offset
 	  , size_type size)
 	{
-		int slot = slot_for_piece(piece_index);
+		int slot = allocate_slot_for_piece(piece_index);
 		m_storage.write(buf, slot, offset, size);
 	}
 
@@ -625,8 +681,6 @@ namespace libtorrent
 		m_allocating = false;
 		m_piece_to_slot.resize(m_info.num_pieces(), has_no_slot);
 		m_slot_to_piece.resize(m_info.num_pieces(), unallocated);
-
-		m_bytes_left = m_info.total_size();
 
 		const std::size_t piece_size = m_info.piece_length();
 		const std::size_t last_piece_size = m_info.piece_size(
@@ -655,7 +709,6 @@ namespace libtorrent
 						, piece_picker::has_index(found_piece))
 						== data.unfinished_pieces.end())
 					{
-						m_bytes_left -= m_info.piece_size(found_piece);
 						pieces[found_piece] = true;
 					}
 				}
@@ -832,10 +885,6 @@ namespace libtorrent
 					m_slot_to_piece[m_piece_to_slot[found_piece]] = unassigned;
 					m_free_slots.push_back(m_piece_to_slot[found_piece]);
 				}
-				else
-				{
-					m_bytes_left -= m_info.piece_size(found_piece);
-				}
 
 				m_piece_to_slot[found_piece] = current_slot;
 				m_slot_to_piece[current_slot] = found_piece;
@@ -892,7 +941,7 @@ namespace libtorrent
 		m_pimpl->check_pieces(mutex, data, pieces);
 	}
 	
-	int piece_manager::impl::slot_for_piece(int piece_index)
+	int piece_manager::impl::allocate_slot_for_piece(int piece_index)
 	{
 		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
@@ -979,7 +1028,9 @@ namespace libtorrent
 			assert(m_piece_to_slot[piece_at_our_slot] == piece_index);
 #ifndef NDEBUG
 			print_to_log(s.str());
+#ifdef TORRENT_STORAGE_DEBUG
 			debug_log();
+#endif
 #endif
 			std::swap(
 				m_slot_to_piece[piece_index]
@@ -997,7 +1048,7 @@ namespace libtorrent
 			assert(m_piece_to_slot[piece_index] == piece_index);
 
 			slot_index = piece_index;
-#ifndef NDEBUG
+#if !defined(NDEBUG) && defined(TORRENT_STORAGE_DEBUG)
 			debug_log();
 #endif
 		}
@@ -1098,7 +1149,8 @@ namespace libtorrent
 			{
 				assert(m_slot_to_piece[i]<m_piece_to_slot.size());
 				assert(m_piece_to_slot[m_slot_to_piece[i]]==i);
-/*				assert(
+#ifdef TORRENT_STORAGE_DEBUG
+				assert(
 					std::find(
 						m_unallocated_slots.begin()
 						, m_unallocated_slots.end()
@@ -1110,25 +1162,30 @@ namespace libtorrent
 						, m_free_slots.end()
 						, i) == m_free_slots.end()
 				);
-*/			}
+#endif
+			}
 			else if (m_slot_to_piece[i] == unallocated)
 			{
-/*				assert(
+#ifdef TORRENT_STORAGE_DEBUG
+				assert(
 					std::find(
 						m_unallocated_slots.begin()
 						, m_unallocated_slots.end()
 						, i) != m_unallocated_slots.end()
 				);
-*/			}
+#endif
+			}
 			else if (m_slot_to_piece[i] == unassigned)
 			{
-/*				assert(
+#ifdef TORRENT_STORAGE_DEBUG
+				assert(
 					std::find(
 						m_free_slots.begin()
 						, m_free_slots.end()
 						, i) != m_free_slots.end()
 				);
-*/			}
+#endif
+			}
 			else
 			{
 				assert(false && "m_slot_to_piece[i] is invalid");
@@ -1136,6 +1193,7 @@ namespace libtorrent
 		}
 	}
 
+#ifdef TORRENT_STORAGE_DEBUG
 	void piece_manager::impl::debug_log() const
 	{
 		std::stringstream s;
@@ -1152,6 +1210,7 @@ namespace libtorrent
 
 		print_to_log(s.str());
 	}
+#endif
 #endif
 } // namespace libtorrent
 

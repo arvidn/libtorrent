@@ -41,13 +41,33 @@ extern "C"
 		unsigned char buffer[64];
 	} SHA1_CTX;
 
+	/* from sha1.c */
 	void SHA1Init(SHA1_CTX* context);
 	void SHA1Update(SHA1_CTX* context, unsigned char* data, unsigned int len);
 	void SHA1Final(unsigned char* digest, SHA1_CTX* context);
+
+	/* from zlib/adler32.c */
+	unsigned long adler32(unsigned long adler, const char* data, unsigned int len);
 }
 
 namespace libtorrent
 {
+
+	class adler32_crc
+	{
+	public:
+		adler32_crc(): m_adler(adler32(0, 0, 0)) {}
+
+		void update(const char* data, int len)
+		{ m_adler = adler32(m_adler, data, len); }
+		unsigned long final() const { return m_adler; }
+		void reset() { m_adler = adler32(0, 0, 0); }
+
+	private:
+
+		unsigned long m_adler;
+
+	};
 
 	class hasher
 	{

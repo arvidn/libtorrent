@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_STORAGE_HPP_INCLUDE
 
 #include <vector>
+#include <bitset>
 
 #include <boost/limits.hpp>
 #include <boost/filesystem/path.hpp>
@@ -102,6 +103,12 @@ namespace libtorrent
 
 		void allocate_slots(int num_slots);
 		void mark_failed(int index);
+
+		unsigned long piece_crc(
+			int slot_index
+			, int block_size
+			, const std::bitset<256>& bitmask);
+		int slot_for_piece(int piece_index) const;
 
 		size_type read(char* buf, int piece_index, size_type offset, size_type size);
 		void write(const char* buf, int piece_index, size_type offset, size_type size);

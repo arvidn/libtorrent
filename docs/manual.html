@@ -14,56 +14,59 @@
 <p class="topic-title"><a name="contents">Contents</a></p>
 <ul class="simple">
 <li><a class="reference" href="#introduction" id="id9" name="id9">introduction</a></li>
-<li><a class="reference" href="#building" id="id10" name="id10">building</a></li>
-<li><a class="reference" href="#using" id="id11" name="id11">using</a></li>
-<li><a class="reference" href="#session" id="id12" name="id12">session</a></li>
-<li><a class="reference" href="#parsing-torrent-files" id="id13" name="id13">parsing torrent files</a></li>
-<li><a class="reference" href="#entry" id="id14" name="id14">entry</a></li>
-<li><a class="reference" href="#torrent-info" id="id15" name="id15">torrent_info</a></li>
-<li><a class="reference" href="#torrent-handle" id="id16" name="id16">torrent_handle</a><ul>
-<li><a class="reference" href="#status" id="id17" name="id17">status()</a></li>
-<li><a class="reference" href="#get-download-queue" id="id18" name="id18">get_download_queue()</a></li>
-<li><a class="reference" href="#get-peer-info" id="id19" name="id19">get_peer_info()</a></li>
-<li><a class="reference" href="#get-torrent-info" id="id20" name="id20">get_torrent_info()</a></li>
-<li><a class="reference" href="#is-valid" id="id21" name="id21">is_valid()</a></li>
+<li><a class="reference" href="#building" id="id10" name="id10">building</a><ul>
+<li><a class="reference" href="#release-and-debug-builds" id="id11" name="id11">release and debug builds</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#address" id="id22" name="id22">address</a></li>
-<li><a class="reference" href="#http-settings" id="id23" name="id23">http_settings</a></li>
-<li><a class="reference" href="#big-number" id="id24" name="id24">big_number</a></li>
-<li><a class="reference" href="#hasher" id="id25" name="id25">hasher</a></li>
-<li><a class="reference" href="#fingerprint" id="id26" name="id26">fingerprint</a><ul>
-<li><a class="reference" href="#identify-client" id="id27" name="id27">identify_client</a></li>
+<li><a class="reference" href="#using" id="id12" name="id12">using</a></li>
+<li><a class="reference" href="#session" id="id13" name="id13">session</a></li>
+<li><a class="reference" href="#parsing-torrent-files" id="id14" name="id14">parsing torrent files</a></li>
+<li><a class="reference" href="#entry" id="id15" name="id15">entry</a></li>
+<li><a class="reference" href="#torrent-info" id="id16" name="id16">torrent_info</a></li>
+<li><a class="reference" href="#torrent-handle" id="id17" name="id17">torrent_handle</a><ul>
+<li><a class="reference" href="#status" id="id18" name="id18">status()</a></li>
+<li><a class="reference" href="#get-download-queue" id="id19" name="id19">get_download_queue()</a></li>
+<li><a class="reference" href="#get-peer-info" id="id20" name="id20">get_peer_info()</a></li>
+<li><a class="reference" href="#get-torrent-info" id="id21" name="id21">get_torrent_info()</a></li>
+<li><a class="reference" href="#is-valid" id="id22" name="id22">is_valid()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#alerts" id="id28" name="id28">alerts</a><ul>
-<li><a class="reference" href="#tracker-alert" id="id29" name="id29">tracker_alert</a></li>
-<li><a class="reference" href="#hash-failed-alert" id="id30" name="id30">hash_failed_alert</a></li>
-<li><a class="reference" href="#peer-error-alert" id="id31" name="id31">peer_error_alert</a></li>
-<li><a class="reference" href="#invalid-request-alert" id="id32" name="id32">invalid_request_alert</a></li>
-<li><a class="reference" href="#torrent-finished-alert" id="id33" name="id33">torrent_finished_alert</a></li>
-<li><a class="reference" href="#dispatcher" id="id34" name="id34">dispatcher</a></li>
+<li><a class="reference" href="#address" id="id23" name="id23">address</a></li>
+<li><a class="reference" href="#http-settings" id="id24" name="id24">http_settings</a></li>
+<li><a class="reference" href="#big-number" id="id25" name="id25">big_number</a></li>
+<li><a class="reference" href="#hasher" id="id26" name="id26">hasher</a></li>
+<li><a class="reference" href="#fingerprint" id="id27" name="id27">fingerprint</a><ul>
+<li><a class="reference" href="#identify-client" id="id28" name="id28">identify_client</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#exceptions" id="id35" name="id35">exceptions</a><ul>
-<li><a class="reference" href="#invalid-handle" id="id36" name="id36">invalid_handle</a></li>
-<li><a class="reference" href="#duplicate-torrent" id="id37" name="id37">duplicate_torrent</a></li>
-<li><a class="reference" href="#invalid-encoding" id="id38" name="id38">invalid_encoding</a></li>
-<li><a class="reference" href="#type-error" id="id39" name="id39">type_error</a></li>
-<li><a class="reference" href="#invalid-torrent-file" id="id40" name="id40">invalid_torrent_file</a></li>
+<li><a class="reference" href="#alerts" id="id29" name="id29">alerts</a><ul>
+<li><a class="reference" href="#tracker-alert" id="id30" name="id30">tracker_alert</a></li>
+<li><a class="reference" href="#hash-failed-alert" id="id31" name="id31">hash_failed_alert</a></li>
+<li><a class="reference" href="#peer-error-alert" id="id32" name="id32">peer_error_alert</a></li>
+<li><a class="reference" href="#invalid-request-alert" id="id33" name="id33">invalid_request_alert</a></li>
+<li><a class="reference" href="#torrent-finished-alert" id="id34" name="id34">torrent_finished_alert</a></li>
+<li><a class="reference" href="#dispatcher" id="id35" name="id35">dispatcher</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#examples" id="id41" name="id41">examples</a><ul>
-<li><a class="reference" href="#dump-torrent" id="id42" name="id42">dump_torrent</a></li>
-<li><a class="reference" href="#simple-client" id="id43" name="id43">simple client</a></li>
+<li><a class="reference" href="#exceptions" id="id36" name="id36">exceptions</a><ul>
+<li><a class="reference" href="#invalid-handle" id="id37" name="id37">invalid_handle</a></li>
+<li><a class="reference" href="#duplicate-torrent" id="id38" name="id38">duplicate_torrent</a></li>
+<li><a class="reference" href="#invalid-encoding" id="id39" name="id39">invalid_encoding</a></li>
+<li><a class="reference" href="#type-error" id="id40" name="id40">type_error</a></li>
+<li><a class="reference" href="#invalid-torrent-file" id="id41" name="id41">invalid_torrent_file</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#fast-resume" id="id44" name="id44">fast resume</a><ul>
-<li><a class="reference" href="#file-format" id="id45" name="id45">file format</a></li>
+<li><a class="reference" href="#examples" id="id42" name="id42">examples</a><ul>
+<li><a class="reference" href="#dump-torrent" id="id43" name="id43">dump_torrent</a></li>
+<li><a class="reference" href="#simple-client" id="id44" name="id44">simple client</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#extensions" id="id46" name="id46">extensions</a></li>
-<li><a class="reference" href="#aknowledgements" id="id47" name="id47">aknowledgements</a></li>
+<li><a class="reference" href="#fast-resume" id="id45" name="id45">fast resume</a><ul>
+<li><a class="reference" href="#file-format" id="id46" name="id46">file format</a></li>
+</ul>
+</li>
+<li><a class="reference" href="#extensions" id="id47" name="id47">extensions</a></li>
+<li><a class="reference" href="#aknowledgements" id="id48" name="id48">aknowledgements</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
@@ -105,6 +108,8 @@ peers in a separate fast-resume file.</li>
 <li>supports the <tt class="literal"><span class="pre">no_peer_id=1</span></tt> extension that will ease the load off trackers.</li>
 <li>supports the <a class="reference" href="udp_tracker_protocol.html">udp-tracker protocol</a>.</li>
 <li>possibility to limit the number of connections.</li>
+<li>delays have messages if there's no other outgoing traffic to the peer, and doesn't
+send have messages to peers that already has the piece. This saves bandwidth.</li>
 </ul>
 </blockquote>
 <p>Functions that are yet to be implemented:</p>
@@ -136,9 +141,6 @@ boost.filesystem, boost.date_time and various other boost libraries as well as z
 </div>
 <div class="section" id="building">
 <h1><a name="building">building</a></h1>
-<p>Whwn building in release mode you need to define NDEBUG in order to avoid
-all asserts and invariant checks within libtorrent. Developer studio does
-this by default.</p>
 <p>To build libtorrent you need <a class="reference" href="http://www.boost.org">boost</a> and bjam installed.
 Then you can use <tt class="literal"><span class="pre">bjam</span></tt> to build libtorrent.</p>
 <p>To make bjam work, you need to set the environment variable <tt class="literal"><span class="pre">BOOST_ROOT</span></tt> to the
@@ -168,6 +170,46 @@ of the file:</p>
 <p>In developer studio, you may have to set the compiler options &quot;force conformance in for
 loop scope&quot; and &quot;treat wchar_t as built-in type&quot; to Yes.</p>
 <p>TODO: more detailed build instructions.</p>
+<div class="section" id="release-and-debug-builds">
+<h2><a name="release-and-debug-builds">release and debug builds</a></h2>
+<p>If you just invoke the makefile you'll get a debug build. In debug the libtorrent vill
+have pretty expensive invariant checks and asserts built into it. If you want to disable
+such checks (you want to do that in a release build) you can see the table below for which
+defines you can use to control the build.</p>
+<table border class="table">
+<colgroup>
+<col width="39%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th>macro</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">NDEBUG</span></tt></td>
+<td>If you define this macro, all asserts,
+invariant checks and general debug code will be
+removed. This option takes precedence over
+other debug settings.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">TORRENT_VERBOSE_LOGGING</span></tt></td>
+<td>If you define this macro, every peer connection
+will log its traffic to a log file.
+This setting requires a debug build, i.e.
+if you set <tt class="literal"><span class="pre">NDEBUG</span></tt> aswell, no logs will be
+written.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">TORRENT_STORAGE_DEBUG</span></tt></td>
+<td>This will enable extra expensive invariant
+checks in the storage, including logging of
+piece sorting.</td>
+</tr>
+</tbody>
+</table>
+<p>If you experience that libtorrent uses unreasonable amounts of cpu, it will definately help to
+define <tt class="literal"><span class="pre">NDEBUG</span></tt>.</p>
+</div>
 </div>
 <div class="section" id="using">
 <h1><a name="using">using</a></h1>

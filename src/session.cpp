@@ -378,6 +378,7 @@ namespace libtorrent
 			{
 				m_connections.erase(m_disconnect_peer.back());
 				m_disconnect_peer.pop_back();
+				assert(m_selector.count_read_monitors() == m_connections.size() + 1);
 			}
 		}
 
@@ -500,12 +501,19 @@ namespace libtorrent
 							assert(p->second->get_socket()->is_writable());
 							p->second->send_data();
 						}
-						catch(std::exception&)
+						catch(std::exception& e)
 						{
-							// the connection wants to disconnect for some reason, remove it
-							// from the connection-list
+							// the connection wants to disconnect for some reason,
+							// remove it from the connection-list
+							if (m_alerts.should_post(alert::debug))
+							{
+								m_alerts.post_alert(
+									peer_error_alert(p->second->get_peer_id(), e.what()));
+							}
+
 							m_selector.remove(*i);
 							m_connections.erase(p);
+							assert(m_selector.count_read_monitors() == m_connections.size() + 1);
 						}
 					}
 				}
@@ -558,10 +566,6 @@ namespace libtorrent
 						{
 //							(*m_logger) << "readable: " << p->first->sender().as_string() << "\n";
 							p->second->receive_data();
-
-#ifndef NDEBUG
-							assert_invariant();
-#endif
 						}
 						catch(std::exception& e)
 						{
@@ -574,6 +578,7 @@ namespace libtorrent
 							// from the connection-list
 							m_selector.remove(*i);
 							m_connections.erase(p);
+							assert(m_selector.count_read_monitors() == m_connections.size() + 1);
 						}
 					}
 				}
@@ -593,10 +598,21 @@ namespace libtorrent
 					++i)
 				{
 					connection_map::iterator p = m_connections.find(*i);
+					if (m_alerts.should_post(alert::debug))
+					{
+						m_alerts.post_alert(
+							peer_error_alert(
+								p->second->get_peer_id()
+								, "socket received an exception"));
+					}
 
 					m_selector.remove(*i);
 					// the connection may have been disconnected in the receive or send phase
-					if (p != m_connections.end()) m_connections.erase(p);
+					if (p != m_connections.end())
+					{
+						m_connections.erase(p);
+						assert(m_selector.count_read_monitors() == m_connections.size() + 1);
+					}
 				}
 
 #ifndef NDEBUG
@@ -631,6 +647,7 @@ namespace libtorrent
 					{
 						m_selector.remove(j->first);
 						m_connections.erase(j);
+						assert(m_selector.count_read_monitors() == m_connections.size() + 1);
 						continue;
 					}
 
@@ -1018,6 +1035,34 @@ namespace libtorrent
 							p.finished_blocks[bit] = true;
 					}
 				}
+
+				if (p.finished_blocks.count() == 0) continue;
+
+				std::vector<int>::iterator slot_iter
+					= std::find(tmp_pieces.begin(), tmp_pieces.end(), p.index);
+				if (slot_iter == tmp_pieces.end())
+				{
+					// this piece is marked as unfinished
+					// but doesn't have any storage
+					return;
+				}
+
+				assert(*slot_iter == p.index);
+				int slot_index = slot_iter - tmp_pieces.begin();
+				unsigned long adler
+					= torrent_ptr->filesystem().piece_crc(
+						slot_index
+						, torrent_ptr->block_size()
+						, p.finished_blocks);
+
+				entry::dictionary_type::iterator ad = i->dict().find("adler32");
+				if (ad != i->dict().end())
+				{
+					// crc's didn't match, don't use the resume data
+					if (ad->second.integer() != adler)
+						return;
+				}
+
 				tmp_unfinished.push_back(p);
 			}
 
