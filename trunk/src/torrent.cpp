@@ -162,6 +162,7 @@ namespace libtorrent
 		, m_policy()
 		, m_ses(ses)
 		, m_picker(0)
+		, m_trackers(m_torrent_file.trackers())
 		, m_last_working_tracker(-1)
 		, m_currently_trying_tracker(0)
 		, m_failed_trackers(0)
@@ -213,6 +214,7 @@ namespace libtorrent
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_save_path(save_path)
 	{
+		m_trackers.push_back(announce_entry(tracker_url));
 		m_requested_metadata.resize(256, 0);
 		m_policy.reset(new policy(this));
 		m_torrent_file.add_tracker(tracker_url);
@@ -265,7 +267,7 @@ namespace libtorrent
 		if (interval < 60) interval = 60;
 
 		m_last_working_tracker
-			= m_torrent_file.prioritize_tracker(m_currently_trying_tracker);
+			= prioritize_tracker(m_currently_trying_tracker);
 		m_next_request = boost::posix_time::second_clock::local_time()
 			+ boost::posix_time::seconds(m_duration);
 		m_currently_trying_tracker = 0;
@@ -416,15 +418,20 @@ namespace libtorrent
 
 		// decrease the trust point of all peers that sent
 		// parts of this piece.
-		for (std::vector<address>::iterator i = downloaders.begin();
-			i != downloaders.end();
-			++i)
+		// first, build a set of all peers that participated
+		std::set<address> peers;
+		std::copy(downloaders.begin(), downloaders.end(), std::inserter(peers, peers.begin()));
+
+		for (std::set<address>::iterator i = peers.begin()
+			, end(peers.end()); i != end; ++i)
 		{
 			peer_iterator p = m_connections.find(*i);
 			if (p == m_connections.end()) continue;
 			p->second->received_invalid_data();
 
-			if (p->second->trust_points() <= -7)
+			// either, we have received too many failed hashes
+			// or this was the only peer that sent us this piece.
+			if (p->second->trust_points() <= -7 || peers.size() == 1)
 			{
 				// we don't trust this peer anymore
 				// ban it.
@@ -467,9 +474,11 @@ namespace libtorrent
 
 		// increase the trust point of all peers that sent
 		// parts of this piece.
-		for (std::vector<address>::iterator i = downloaders.begin();
-			i != downloaders.end();
-			++i)
+		std::set<address> peers;
+		std::copy(downloaders.begin(), downloaders.end(), std::inserter(peers, peers.begin()));
+
+		for (std::set<address>::iterator i = peers.begin()
+			, end(peers.end()); i != end; ++i)
 		{
 			peer_iterator p = m_connections.find(*i);
 			if (p == m_connections.end()) continue;
@@ -487,6 +496,15 @@ namespace libtorrent
 		return m_username + ":" + m_password;
 	}
 
+	void torrent::replace_trackers(std::vector<announce_entry> const& urls)
+	{
+		assert(!urls.empty());
+		m_trackers = urls;
+		if (m_currently_trying_tracker >= (int)m_trackers.size())
+			m_currently_trying_tracker = m_trackers.size()-1;
+		m_last_working_tracker = -1;
+	}
+
 	tracker_request torrent::generate_tracker_request()
 	{
 		m_duration = 1800;
@@ -502,7 +520,7 @@ namespace libtorrent
 		req.left = bytes_left();
 		if (req.left == -1) req.left = 1000;
 		req.event = m_event;
-		req.url = m_torrent_file.trackers()[m_currently_trying_tracker].url;
+		req.url = m_trackers[m_currently_trying_tracker].url;
 		req.num_want = std::max(
 			(m_policy->get_max_connections()
 			- m_policy->num_peers()), 0);
@@ -637,12 +655,27 @@ namespace libtorrent
 		force_tracker_request();
 	}
 
+	// this will move the tracker with the given index
+	// to a prioritized position in the list (move it towards
+	// the begining) and return the new index to the tracker.
+	int torrent::prioritize_tracker(int index)
+	{
+		assert(index >= 0);
+		if (index >= (int)m_trackers.size()) return (int)m_trackers.size()-1;
+
+		while (index > 0 && m_trackers[index].tier == m_trackers[index-1].tier)
+		{
+			std::swap(m_trackers[index].url, m_trackers[index-1].url);
+			--index;
+		}
+		return index;
+	}
 
 	void torrent::try_next_tracker()
 	{
 		++m_currently_trying_tracker;
 
-		if ((unsigned)m_currently_trying_tracker >= m_torrent_file.trackers().size())
+		if ((unsigned)m_currently_trying_tracker >= m_trackers.size())
 		{
 			int delay = tracker_retry_delay_min
 				+ std::min(m_failed_trackers, (int)tracker_failed_max)
@@ -659,6 +692,7 @@ namespace libtorrent
 			// don't delay before trying the next tracker
 			m_next_request = boost::posix_time::second_clock::local_time();
 		}
+
 	}
 
 	void torrent::check_files(detail::piece_checker_data& data,
@@ -921,7 +955,7 @@ namespace libtorrent
 		if (m_last_working_tracker >= 0)
 		{
             st.current_tracker
-				= m_torrent_file.trackers()[m_last_working_tracker].url;
+				= m_trackers[m_last_working_tracker].url;
 		}
 
 		st.progress = st.total_done
@@ -1060,9 +1094,10 @@ namespace libtorrent
 		{
 			std::stringstream s;
 			s << "tracker: \""
-				<< m_torrent_file.trackers()[m_currently_trying_tracker].url
+				<< m_trackers[m_currently_trying_tracker].url
 				<< "\" timed out";
-			m_ses.m_alerts.post_alert(tracker_alert(get_handle(), s.str()));
+			m_ses.m_alerts.post_alert(tracker_alert(get_handle()
+				, m_failed_trackers, s.str()));
 		}
 		try_next_tracker();
 	}
@@ -1079,9 +1114,10 @@ namespace libtorrent
 		{
 			std::stringstream s;
 			s << "tracker: \""
-				<< m_torrent_file.trackers()[m_currently_trying_tracker].url
+				<< m_trackers[m_currently_trying_tracker].url
 				<< "\" " << str;
-			m_ses.m_alerts.post_alert(tracker_alert(get_handle(), s.str()));
+			m_ses.m_alerts.post_alert(tracker_alert(get_handle()
+				, m_failed_trackers, s.str()));
 		}
 
 

@@ -183,6 +183,9 @@ namespace libtorrent
 		torrent_status status() const;
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 
+		std::vector<announce_entry> const& trackers() const;
+		void replace_trackers(std::vector<announce_entry> const&);
+
 		bool has_metadata() const;
 		const torrent_info& get_torrent_info() const;
 		bool is_valid() const;

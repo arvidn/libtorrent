@@ -559,7 +559,7 @@ The ``torrent_info`` has the following synopsis::
 	{
 	public:
 
-		torrent_info(const entry& torrent_file)
+		torrent_info(entry const& torrent_file)
 		torrent_info(int piece_size, const char* name);
 
 		entry create_torrent() const;
@@ -569,7 +569,7 @@ The ``torrent_info`` has the following synopsis::
 		void add_tracker(std::string const& url, int tier = 0);
 		void add_file(boost::filesystem::path file, size_type size);
 
-		typedef std::vector>file_entry>::const_iterator file_iterator;
+		typedef std::vector<file_entry>::const_iterator file_iterator;
 		typedef std::vector<file_entry>::const_reverse_iterator reverse_file_iterator;
 
 		file_iterator begin_files() const;
@@ -578,11 +578,9 @@ The ``torrent_info`` has the following synopsis::
 		reverse_file_iterator rend_files() const;
 
 		int num_files() const;
-		const file_entry& file_at(int index) const;
+		file_entry const& file_at(int index) const;
 
-		const std::vector<announce_entry>& trackers() const;
-
-		int prioritize_tracker(int index);
+		std::vector<announce_entry> const& trackers() const;
 
 		size_type total_size() const;
 		size_type piece_length() const;
@@ -649,13 +647,12 @@ The ``print()`` function is there for debug purposes only. It will print the inf
 the torrent file to the given outstream.
 
 
-trackers() prioritize_tracker()
--------------------------------
+trackers()
+----------
 
 	::
 
 		const std::vector<announce_entry>& trackers() const;
-		int prioritize_tracker(int index);
 
 The ``trackers()`` function will return a sorted vector of ``announce_entry``.
 Each announce entry contains a string, which is the tracker url, and a tier index. The
@@ -666,16 +663,10 @@ ones with lower tier will always be tried before the one with higher tier number
 
 	struct announce_entry
 	{
+		announce_entry(std::string const& url);
 		std::string url;
 		int tier;
 	};
-
-The ``prioritize_tracker()`` is used internally to move a tracker to the front
-of its tier group. i.e. It will never be moved pass a tracker with a different tier
-number. For more information about how multiple trackers are dealt with, see the
-specification_.
-
-.. _specification: http://home.elp.rr.com/tur/multitracker-spec.txt
 
 
 total_size() piece_length() piece_size() num_pieces()
@@ -756,6 +747,9 @@ Its declaration looks like this::
 
 		void set_tracker_login(std::string const& username, std::string const& password);
 
+		std::vector<announce_entry> const& trackers() const;
+		void replace_trackers(std::vector<announce_entry> const&);
+
 		void set_ratio(float ratio);
 		void set_max_uploads(int max_uploads);
 		void set_max_connections(int max_connections);
@@ -784,6 +778,7 @@ The default constructor will initialize the handle to an invalid state. Which me
 perform any operation on it, unless you first assign it a valid handle. If you try to perform
 any operation on an uninitialized handle, it will throw ``invalid_handle``.
 
+*TODO: document ``trackers()`` and ``replace_trackers()``*
 
 save_path()
 -----------
@@ -1709,15 +1704,20 @@ This alert is generated on tracker time outs, premature disconnects, invalid res
 a HTTP response other than "200 OK". From the alert you can get the handle to the torrent
 the tracker belongs to. This alert is generated as severity level ``warning``.
 
+The ``times_in_row`` member says how many times in a row this tracker has failed.
+
 ::
 
 	struct tracker_alert: alert
 	{
-		tracker_alert(const torrent_handle& h, const std::string& msg);
+		tracker_alert(const torrent_handle& h, int times
+			, const std::string& msg);
 		virtual std::auto_ptr<alert> clone() const;
 
 		torrent_handle handle;
+		int times_in_row;
 	};
+
 
 
 hash_failed_alert

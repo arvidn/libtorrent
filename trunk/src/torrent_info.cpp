@@ -193,9 +193,8 @@ namespace libtorrent
 				const entry::list_type& ll = j->list();
 				for (entry::list_type::const_iterator k = ll.begin(); k != ll.end(); ++k)
 				{
-					announce_entry e;
+					announce_entry e(k->string());
 					e.tier = (int)std::distance(l.begin(), j);
-					e.url = k->string();
 					m_urls.push_back(e);
 				}
 			}
@@ -220,10 +219,7 @@ namespace libtorrent
 		{
 			i = torrent_file.find_key("announce");
 			if (i == 0) throw invalid_torrent_file();
-			announce_entry e;
-			e.tier = 0;
-			e.url = i->string();
-			m_urls.push_back(e);
+			m_urls.push_back(announce_entry(i->string()));
 		}
 
 		// extract creation date
@@ -271,8 +267,7 @@ namespace libtorrent
 
 	void torrent_info::add_tracker(std::string const& url, int tier)
 	{
-		announce_entry e;
-		e.url = url;
+		announce_entry e(url);
 		e.tier = tier;
 		m_urls.push_back(e);
 	}
@@ -412,19 +407,6 @@ namespace libtorrent
 	void torrent_info::convert_file_names()
 	{
 		assert(false);
-	}
-
-	int torrent_info::prioritize_tracker(int index)
-	{
-		assert(index >= 0);
-		if (index >= (int)m_urls.size()) return (int)m_urls.size()-1;
-
-		while (index > 0 && m_urls[index].tier == m_urls[index-1].tier)
-		{
-			std::swap(m_urls[index].url, m_urls[index-1].url);
-			--index;
-		}
-		return index;
 	}
 
 	void torrent_info::print(std::ostream& os) const

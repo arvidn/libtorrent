@@ -313,6 +313,22 @@ namespace libtorrent
 		throw invalid_handle();
 	}
 
+	std::vector<announce_entry> const& torrent_handle::trackers() const
+	{
+		INVARIANT_CHECK;
+
+		return call_member<std::vector<announce_entry> const&>(m_ses
+			, m_chk, m_info_hash, boost::bind(&torrent::trackers, _1));
+	}
+
+	void torrent_handle::replace_trackers(std::vector<announce_entry> const& urls)
+	{
+		INVARIANT_CHECK;
+
+		call_member<void>(m_ses, m_chk, m_info_hash
+			, boost::bind(&torrent::replace_trackers, _1, urls));
+	}
+
 	const torrent_info& torrent_handle::get_torrent_info() const
 	{
 		INVARIANT_CHECK;
