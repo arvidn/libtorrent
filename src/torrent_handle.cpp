@@ -276,6 +276,30 @@ namespace libtorrent
 		throw invalid_handle();
 	}
 
+	void torrent_handle::connect_peer(const address& adr) const
+	{
+		if (m_ses == 0) throw invalid_handle();
+	
+		boost::mutex::scoped_lock l(m_ses->m_mutex);
+		torrent* t = m_ses->find_torrent(m_info_hash);
+		if (t == 0) throw invalid_handle();
+
+		peer_id id;
+		std::fill(id.begin(), id.end(), 0);
+		t->get_policy().peer_from_tracker(adr, id);
+	}
+
+	void torrent_handle::force_reannounce() const
+	{
+		if (m_ses == 0) throw invalid_handle();
+	
+		boost::mutex::scoped_lock l(m_ses->m_mutex);
+		torrent* t = m_ses->find_torrent(m_info_hash);
+		if (t == 0) throw invalid_handle();
+
+		t->force_tracker_request();
+	}
+
 	void torrent_handle::get_peer_info(std::vector<peer_info>& v) const
 	{
 		v.clear();

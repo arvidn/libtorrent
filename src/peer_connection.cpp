@@ -1264,20 +1264,7 @@ namespace libtorrent
 					}
 	#endif
 
-					if (m_active)
-					{
-						// verify peer_id
-						// TODO: It seems like the original client ignores to check the peer id
-						// can that be correct?
-						if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (const char*)m_peer_id.begin()))
-						{
-	#ifndef NDEBUG
-							(*m_logger) << m_socket->sender().as_string() << " invalid peer_id (it doesn't equal the one from the tracker)\n";
-	#endif
-							throw network_error(0);
-						}
-					}
-					else
+					if (!m_active)
 					{
 						// check to make sure we don't have another connection with the same
 						// info_hash and peer_id. If we do. close this connection.

@@ -127,10 +127,16 @@ namespace libtorrent
 			return m_next_request < boost::posix_time::second_clock::local_time();
 		}
 
+		void force_tracker_request()
+		{
+			m_next_request = boost::posix_time::second_clock::local_time();
+		}
+
 		void print(std::ostream& os) const;
 
-		void check_files(detail::piece_checker_data& data,
-			boost::mutex& mutex);
+		void check_files(
+			detail::piece_checker_data& data
+			, boost::mutex& mutex);
 
 		stat statistics() const { return m_stat; }
 		size_type bytes_left() const;
@@ -141,7 +147,7 @@ namespace libtorrent
 			const address& a
 			, const peer_id& id);
 
-		const torrent_info& torrent_file() const throw()
+		const torrent_info& torrent_file() const
 		{ return m_torrent_file; }
 
 		policy& get_policy() { return *m_policy; }

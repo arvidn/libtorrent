@@ -469,6 +469,8 @@ Its declaration looks like this::
 		bool is_valid();
 
 		entry write_resume_data();
+		void force_reannounce();
+		void connect_peer(const address& adr) const;
 
 		boost::filsystem::path save_path() const;
 
@@ -487,6 +489,17 @@ any operation on an uninitialized handle, it will throw ``invalid_handle``.
 
 ``save_path()`` returns the path that was given to ``add_torrent()`` when this torrent
 was started.
+
+``force_reannounce()`` will force this torrent to do another tracker request, to receive new
+peers. If the torrent is invalid, queued or in checking mode, this functions will throw
+invalid_handle_.
+
+``connect_peer()`` is a way to manually connect to peers that one believe is a part of the
+torrent. If the peer does not respond, or is not a member of this torrent, it will simply
+be disconnected. No harm can be done by using this other than an unnecessary connection
+attempt is made. If the torrent is uninitialized or in queued or checking mode, this
+will throw invalid_handle_.
+
 
 ``info_hash()`` returns the info hash for the torrent.
 
@@ -676,7 +689,7 @@ the payload data.
 
 ``id`` is the peer's id as used in the bit torrent protocol. This id can be used to
 extract 'fingerprints' from the peer. Sometimes it can tell you which client the peer
-is using.
+is using. See identify_client_
 
 ``pieces`` is a vector of booleans that has as many entries as there are pieces
 in the torrent. Each boolean tells you if the peer has that piece (if it's set to true)
@@ -907,6 +920,18 @@ The ``major``, ``minor``, ``revision`` and ``tag`` parameters are used to identi
 version of your client. All these numbers must be within the range [0, 9].
 
 ``to_string()`` will generate the actual string put in the peer-id, and return it.
+
+identify_client
+~~~~~~~~~~~~~~~
+
+There's a function, in the header ``libtorrent/identify_client.hpp``, that can be used
+to extract a string describing a client version from its peer-id. It has the following
+declaration::
+
+	std::string identify_client(const peer_id& id);
+
+It will recognize most clients that have this kind of identification in the peer-id.
+
 
 alerts
 ======

@@ -135,11 +135,16 @@ namespace libtorrent
 
 		entry write_resume_data();
 
-		// TODO: add force reannounce
+		// forces this torrent to reannounce
+		// (make a rerequest from the tracker)
+		void force_reannounce() const;
 
 		// TODO: add a feature where the user can ask the torrent
 		// to finish all pieces currently in the pipeline, and then
 		// abort the torrent.
+
+		// manually connect a peer
+		void connect_peer(const address& adr) const;
 
 		// TODO: add finish_file_allocation, which will force the
 		// torrent to allocate storage for all pieces.

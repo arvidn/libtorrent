@@ -721,7 +721,7 @@ namespace libtorrent
 	}
 
 	// TODO: this function should also take the
-	// HTTP-response code as an argument
+	// HTTP-response code as an argument.
 	// with some codes, we should just consider
 	// the tracker as a failure and not retry
 	// it anymore
