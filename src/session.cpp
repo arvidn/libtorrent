@@ -840,14 +840,12 @@ namespace libtorrent
 				throw duplicate_torrent();
 		}
 
-		{
-			// lock the checker_thread
-			boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
+		// lock the checker_thread
+		boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
 
-			// is the torrent currently being checked?
-			if (m_checker_impl.find_torrent(ti.info_hash()))
-				throw duplicate_torrent();
-		}
+		// is the torrent currently being checked?
+		if (m_checker_impl.find_torrent(ti.info_hash()))
+			throw duplicate_torrent();
 
 		// create the torrent and the data associated with
 		// the checker thread and store it before starting
@@ -861,9 +859,6 @@ namespace libtorrent
 		d.info_hash = ti.info_hash();
 		d.parse_resume_data(resume_data, torrent_ptr->torrent_file());
 		
-		// lock the checker thread
-		boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
-
 		// add the torrent to the queue to be checked
 		m_checker_impl.m_torrents.push_back(d);
 		// and notify the thread that it got another
@@ -881,15 +876,6 @@ namespace libtorrent
 		, entry const& resume_data)
 	{
 		{
-			// lock the session
-			boost::mutex::scoped_lock l(m_impl.m_mutex);
-
-			// is the torrent already active?
-			if (m_impl.find_torrent(info_hash))
-				throw duplicate_torrent();
-		}
-
-		{
 			// lock the checker_thread
 			boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
 
@@ -898,13 +884,19 @@ namespace libtorrent
 				throw duplicate_torrent();
 		}
 
+		// lock the session
+		boost::mutex::scoped_lock l(m_impl.m_mutex);
+
+		// is the torrent already active?
+		if (m_impl.find_torrent(info_hash))
+			throw duplicate_torrent();
+
 		// create the torrent and the data associated with
 		// the checker thread and store it before starting
 		// the thread
 		boost::shared_ptr<torrent> torrent_ptr(
 			new torrent(m_impl, tracker_url, info_hash, save_path, m_impl.m_listen_interface));
 
-		boost::mutex::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_torrents.insert(
 			std::make_pair(info_hash, torrent_ptr)).first;
 
@@ -1006,6 +998,7 @@ namespace libtorrent
 	session::~session()
 	{
 		{
+			// lock the main thread and abort it
 			boost::mutex::scoped_lock l(m_impl.m_mutex);
 			m_impl.m_abort = true;
 		}
@@ -1032,8 +1025,7 @@ namespace libtorrent
 		assert(bytes_per_second > 0 || bytes_per_second == -1);
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_upload_rate = bytes_per_second;
-		if (m_impl.m_upload_rate != -1/* || !m_impl.m_connections.empty()*/)
-			return;
+		if (m_impl.m_upload_rate != -1) return;
 
 		for (detail::session_impl::connection_map::iterator i
 			= m_impl.m_connections.begin();
@@ -1048,8 +1040,7 @@ namespace libtorrent
 		assert(bytes_per_second > 0 || bytes_per_second == -1);
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_download_rate = bytes_per_second;
-		if (m_impl.m_download_rate != -1/* || !m_impl.m_connections.empty()*/)
-			return;
+		if (m_impl.m_download_rate != -1) return;
 
 		for (detail::session_impl::connection_map::iterator i
 			= m_impl.m_connections.begin();

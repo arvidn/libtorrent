@@ -177,7 +177,7 @@ namespace libtorrent
 		friend class session;
 		friend class torrent;
 
-		torrent_handle(): m_ses(0) {}
+		torrent_handle(): m_ses(0), m_chk(0) {}
 
 		void get_peer_info(std::vector<peer_info>& v) const;
 		torrent_status status() const;
