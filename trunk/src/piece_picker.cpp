@@ -316,6 +316,11 @@ namespace libtorrent
 	// to insert the element at a random
 	// index when moving it to another
 	// vector.
+	// one solution might be to create a
+	// vector of all piece indices that
+	// are to have their ref_count increased
+	// and then random_shuffle that vector
+	// before processing them.
 	bool piece_picker::inc_refcount(int i)
 	{
 		assert(i >= 0);

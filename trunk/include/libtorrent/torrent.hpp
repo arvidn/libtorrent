@@ -235,6 +235,9 @@ namespace libtorrent
 			m_priority = p;
 		}
 
+		bool is_seed() const
+		{ return m_num_pieces == m_torrent_file.num_pieces(); }
+
 		boost::filesystem::path save_path() const
 		{ return m_storage.save_path(); }
 

@@ -8,7 +8,7 @@ libtorrent
 =================== ===============
 
 .. _sourceforge page: http://www.sourceforge.net/projects/libtorrent
-.. _mailing list: http://lists.sourceforge.net/lists/listinfo/libtorrent-discus
+.. _mailing list: http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 
 .. contents::
 
@@ -398,11 +398,11 @@ piece and ``info_hash()`` returns the 20-bytes sha1-hash for the info-section of
 torrent file. For more information on the ``sha1_hash``, see the big_number_ class.
 
 ``comment()`` returns the comment associated with the torrent. If there's no comment,
-it will return an empty string. ``creation_date()`` returns a ``boost::posix_time::ptime_``
+it will return an empty string. ``creation_date()`` returns a `boost::posix_time::ptime`__
 object, representing the time when this torrent file was created. If there's no timestamp
 in the torrent file, this will return a date of january 1:st 1970.
 
-.. _boost::posix_time::ptime: http://www.boost.org/libs/date_time/doc/class_ptime.html
+__ http://www.boost.org/libs/date_time/doc/class_ptime.html
 
 
 
@@ -437,7 +437,7 @@ The default constructor will initialize the handle to an invalid state. Which me
 perform any operation on it, unless you first assign it a valid handle. If you try to perform
 any operation they will simply return.
 
-``save_path()`` returns the path that were given to ``add_torrent()`` when this torrent
+``save_path()`` returns the path that was given to ``add_torrent()`` when this torrent
 was started.
 
 ``info_hash()`` returns the info hash for the torrent.
@@ -570,6 +570,11 @@ fields::
 		std::vector<bool> pieces;
 		int upload_limit;
 		int upload_ceiling;
+
+		int downloading_piece_index;
+		int downloading_block_index;
+		int downloading_progress;
+		int downloading_total;
 	};
 
 The ``flags`` attribute tells you in which state the peer is. It is set to
@@ -604,6 +609,16 @@ should sum up to the upload limit set by ``session::set_upload_limit``.
 ``upload_ceiling`` is the current maximum allowed upload rate given the cownload
 rate and share ratio. If the global upload rate is inlimited, the ``upload_limit``
 for every peer will be the same as their ``upload_ceiling``.
+
+You can know which piece, and which part of that piece, that is currently being
+downloaded from a specific peer by looking at the next four members.
+``downloading_piece_index`` is the index of the piece that is currently being downloaded.
+This may be set to -1 if there's currently no piece downloading from this peer. If it is
+>= 0, the other three members are valid. ``downloading_block_index`` is the index of the
+block (or sub-piece) that is being downloaded. ``downloading_progress`` is the number
+of bytes of this block we have received from the peer, and ``downloading_total`` is
+the total number of bytes in this block.
+
 
 get_torrent_info()
 ~~~~~~~~~~~~~~~~~~

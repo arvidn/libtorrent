@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/noncopyable.hpp>
 #include <boost/array.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/optional.hpp>
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
@@ -54,6 +55,11 @@ POSSIBILITY OF SUCH DAMAGE.
 // from another peer. That peer must be given
 // a chance to request another block instead.
 // Where it also could become not-interested.
+
+// TODO: maybe there should be some kind of 
+// per-torrent free-upload counter. All free
+// download we get is put in there and increases
+// the amount of free upload we give.
 
 namespace libtorrent
 {
@@ -76,6 +82,21 @@ namespace libtorrent
 		int length;
 		bool operator==(const peer_request& r)
 		{ return piece == r.piece && start == r.start && length	== r.length; }
+	};
+
+	struct piece_block_progress
+	{
+		// the piece and block index
+		// determines exactly which
+		// part of the torrent that
+		// is currently being downloaded
+		int piece_index;
+		int block_index;
+		// the number of bytes we have received
+		// of this block
+		int bytes_downloaded;
+		// the number of bytes in the block
+		int full_block_bytes;
 	};
 
 	class peer_connection: public boost::noncopyable
@@ -139,6 +160,13 @@ namespace libtorrent
 		void request_block(piece_block block);
 		void cancel_block(piece_block block);
 
+		// returns the block currently being
+		// downloaded. And the progress of that
+		// block. If the peer isn't downloading
+		// a piece for the moment, the boost::optional
+		// will be invalid.
+		boost::optional<piece_block_progress> downloading_piece() const;
+
 		bool is_interesting() const throw() { return m_interesting; }
 		bool is_choked() const throw() { return m_choked; }
 
@@ -188,7 +216,7 @@ namespace libtorrent
 		void received_invalid_data()
 		{
 			m_trust_points--;
-			if (m_trust_points < 5) m_trust_points = 5;
+			if (m_trust_points < -5) m_trust_points = -5;
 		}
 
 		int trust_points() const
