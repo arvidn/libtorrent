@@ -352,7 +352,7 @@ namespace libtorrent
 	{
 		// if we're interested in the peer, we unchoke it
 		// and hopes it will unchoke us too
-		if (c.is_interesting) c.unchoke();
+		if (c.is_interesting()) c.unchoke();
 	}
 
 	void policy::not_interested(peer_connection& c)

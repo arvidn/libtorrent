@@ -75,7 +75,7 @@ void clear()
 	HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
 	COORD c = {0, 0};
 	DWORD n;
-	FillConsoleOutputCharacter(h, ' ', 80 * 50, c, &n);
+	FillConsoleOutputCharacter(h, ' ', 80 * 80, c, &n);
 }
 
 #else
@@ -197,7 +197,7 @@ int main(int argc, char* argv[])
 				entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
 				torrent_info t(e);
 				t.print(std::cout);
-				handles.push_back(s.add_torrent(t, boost::filesystem::path("", boost::filesystem::native)));
+				handles.push_back(s.add_torrent(t, ""));
 			}
 			catch (std::exception& e)
 			{
@@ -256,6 +256,9 @@ int main(int argc, char* argv[])
 					% add_suffix(total_up)
 					% add_suffix(up);
 */
+				std::cout.precision(4);
+				std::cout.width(5);
+				std::cout.fill(' ');
 				std::cout << (s.progress*100) << "% ";
 				for (int i = 0; i < 50; ++i)
 				{
@@ -279,10 +282,13 @@ int main(int argc, char* argv[])
 					i != peers.end();
 					++i)
 				{
-					std::cout << "d: " << add_suffix(i->down_speed) << "/s (" << add_suffix(i->total_download)
-						<< ") u: " << add_suffix(i->up_speed) << "/s (" << add_suffix(i->total_upload)
-						<< ") df: " << add_suffix((int)i->total_download - (int)i->total_upload)
-						<< " f: "
+					std::cout << "d: " << add_suffix(i->down_speed) << "/s "
+						<< "(" << add_suffix(i->total_download) << ") "
+						<< "u: " << add_suffix(i->up_speed) << "/s "
+						<< "(" << add_suffix(i->total_upload) << ") "
+						<< "df: " << add_suffix((int)i->total_download - (int)i->total_upload) << " "
+						<< "l: " << add_suffix(i->upload_ceiling) << "/s "
+						<< "f: "
 						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
 						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
 						<< static_cast<const char*>((i->flags & peer_info::remote_interested)?"i":"_")

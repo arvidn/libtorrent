@@ -569,6 +569,7 @@ fields::
 		peer_id id;
 		std::vector<bool> pieces;
 		int upload_limit;
+		int upload_ceiling;
 	};
 
 The ``flags`` attribute tells you in which state the peer is. It is set to
@@ -600,6 +601,9 @@ or if the peer miss that piece (set to false).
 peer every second. It may be -1 if there's no limit. The upload limits of all peers
 should sum up to the upload limit set by ``session::set_upload_limit``.
 
+``upload_ceiling`` is the current maximum allowed upload rate given the cownload
+rate and share ratio. If the global upload rate is inlimited, the ``upload_limit``
+for every peer will be the same as their ``upload_ceiling``.
 
 get_torrent_info()
 ~~~~~~~~~~~~~~~~~~

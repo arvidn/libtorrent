@@ -209,6 +209,7 @@ namespace libtorrent
 			p.total_upload = statistics.total_upload();
 
 			p.upload_limit = peer->send_quota();
+			p.upload_ceiling = peer->send_quota_limit();
 
 			p.flags = 0;
 			if (peer->is_interesting()) p.flags |= peer_info::interesting;
