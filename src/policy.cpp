@@ -70,36 +70,14 @@ namespace
 		free_upload_amount = 4 * 16 * 1024
 	};
 
-
 	using namespace libtorrent;
 
-	template<class It1, class It2>
-	bool has_intersection(It1 start1, It1 end1, It2 start2, It2 end2)
+	float to_seconds(const boost::posix_time::time_duration& d)
 	{
-		return std::find_first_of(start1,end1,start2,end2) != end1;
-	}
-
-	piece_block find_first_common(const std::deque<piece_block>& queue,
-		const std::vector<piece_block>& busy)
-	{
-		std::deque<piece_block>::const_reverse_iterator common_block =
-			std::find_first_of(queue.rbegin(),queue.rend(),busy.begin(),busy.end());
-
-		if(common_block!=queue.rend())
-			return *common_block;
-		assert(false);
-		return piece_block(-1, -1);
-	}
-
-	namespace
-	{
-		float to_seconds(const boost::posix_time::time_duration& d)
-		{
-			return d.hours() * 60.f * 60.f
-				+ d.minutes() * 60.f
-				+ d.seconds()
-				+ d.fractional_seconds() / 1000.f;
-		}
+		return d.hours() * 60.f * 60.f
+			+ d.minutes() * 60.f
+			+ d.seconds()
+			+ d.fractional_seconds() / 1000.f;
 	}
 
 	void request_a_block(torrent& t, peer_connection& c)
@@ -171,7 +149,7 @@ namespace
 		// from this peer instead)
 
 		peer_connection* peer = 0;
-		float down_speed = -1.f;
+		float down_speed = std::numeric_limits<float>::max();
 		// find the peer with the lowest download
 		// speed that also has a piece that this
 		// peer could send us
@@ -180,14 +158,17 @@ namespace
 			++i)
 		{
 			const std::deque<piece_block>& queue = i->second->download_queue();
-			if (i->second->statistics().down_peak() > down_speed
-				&& has_intersection(busy_pieces.begin(),
-					busy_pieces.end(),
-					queue.begin(),
-					queue.end()))
+			const float weight = i->second->statistics().down_peak()
+				/ i->second->download_queue().size();
+			if (weight < down_speed
+				&& std::find_first_of(
+					busy_pieces.begin()
+					, busy_pieces.end()
+					, queue.begin()
+					, queue.end()) != busy_pieces.end())
 			{
 				peer = i->second;
-				down_speed = peer->statistics().down_peak();
+				down_speed = weight;
 			}
 		}
 
@@ -195,10 +176,21 @@ namespace
 
 		// this peer doesn't have a faster connection than the
 		// slowest peer. Don't take over any blocks
-		if (c.statistics().down_peak() <= down_speed) return;
+		// TODO: is this correct? shouldn't it take over a piece
+		// anyway?
+		if (c.statistics().down_peak() / c.download_queue().size() <= down_speed) return;
 
 		// find a suitable block to take over from this peer
-		piece_block block = find_first_common(peer->download_queue(), busy_pieces);
+
+		std::deque<piece_block>::const_reverse_iterator common_block =
+			std::find_first_of(
+				peer->download_queue().rbegin()
+				, peer->download_queue().rend()
+				, busy_pieces.begin()
+				, busy_pieces.end());
+
+		assert(common_block != peer->download_queue().rend());
+		piece_block block = *common_block;
 		peer->send_cancel(block);
 		c.send_request(block);
 
