@@ -30,8 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_SOCKET_WIN_HPP_INCLUDED
-#define TORRENT_SOCKET_WIN_HPP_INCLUDED
+#ifndef TORRENT_SOCKET_HPP_INCLUDED
+#define TORRENT_SOCKET_HPP_INCLUDED
 
 // TODO: remove the dependency of
 // platform specific headers here.
@@ -77,23 +77,34 @@ namespace libtorrent
 	friend class socket;
 	public:
 		address();
-		address(unsigned char a, unsigned char b, unsigned char c, unsigned char d, unsigned short  port);
+		address(
+			unsigned char a
+			, unsigned char b
+			, unsigned char c
+			, unsigned char d
+			, unsigned short port);
+		
 		address(unsigned int addr, unsigned short port);
+
 		address(const std::string& addr, unsigned short port);
 		address(const address& a);
 		~address();
 
 		std::string as_string() const;
-		unsigned int ip() const { return m_sockaddr.sin_addr.s_addr; }
-		unsigned short port() const { return htons(m_sockaddr.sin_port); }
+		unsigned int ip() const { return m_ip; }
+		unsigned short port() const { return m_port; }
 
-		bool operator<(const address& a) const { if (ip() == a.ip()) return port() < a.port(); else return ip() < a.ip(); }
-		bool operator!=(const address& a) const { return (ip() != a.ip()) || port() != a.port(); }
-		bool operator==(const address& a) const { return (ip() == a.ip()) && port() == a.port(); }
+		bool operator<(const address& a) const
+		{ if (ip() == a.ip()) return port() < a.port(); else return ip() < a.ip(); }
+		bool operator!=(const address& a) const
+		{ return (ip() != a.ip()) || port() != a.port(); }
+		bool operator==(const address& a) const
+		{ return (ip() == a.ip()) && port() == a.port(); }
 
 	private:
 
-		sockaddr_in m_sockaddr;
+		unsigned int m_ip;
+		unsigned short m_port;
 	};
 
 	class socket: public boost::noncopyable
@@ -248,4 +259,5 @@ namespace libtorrent
 
 }
 
-#endif // TORRENT_SOCKET_WIN_HPP_INCLUDED
+#endif // TORRENT_SOCKET_WIN_INCLUDED
+
