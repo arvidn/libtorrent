@@ -1139,7 +1139,8 @@ namespace libtorrent
 		// we send it data faster, otherwise, slower.
 		// It will also depend on how much data the
 		// client has sent us. This is the mean to
-		// maintain a 1:1 share ratio with all peers.
+		// maintain the share ratio given by m_ratio
+		// with all peers.
 
 		int diff = share_diff();
 
