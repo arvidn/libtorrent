@@ -463,6 +463,46 @@ namespace libtorrent
 #ifndef NDEBUG
 				assert_invariant();
 #endif
+
+				// ************************
+				// SEND SOCKETS
+				// ************************
+
+				// let the writable clients send data
+				for (std::vector<boost::shared_ptr<socket> >::iterator i
+					= writable_clients.begin();
+					i != writable_clients.end();
+					++i)
+				{
+					assert((*i)->is_writable());
+					connection_map::iterator p = m_connections.find(*i);
+					// the connection may have been disconnected in the receive phase
+					if (p == m_connections.end())
+					{
+						m_selector.remove(*i);
+					}
+					else
+					{
+						try
+						{
+							assert(m_selector.is_writability_monitored(p->first));
+							assert(p->second->has_data());
+							assert(p->second->get_socket()->is_writable());
+							p->second->send_data();
+						}
+						catch(std::exception&)
+						{
+							// the connection wants to disconnect for some reason, remove it
+							// from the connection-list
+							m_selector.remove(*i);
+							m_connections.erase(p);
+						}
+					}
+				}
+
+#ifndef NDEBUG
+				assert_invariant();
+#endif
 				// ************************
 				// RECEIVE SOCKETS
 				// ************************
@@ -530,42 +570,6 @@ namespace libtorrent
 #ifndef NDEBUG
 				assert_invariant();
 #endif
-
-				// ************************
-				// SEND SOCKETS
-				// ************************
-
-				// let the writable clients send data
-				for (std::vector<boost::shared_ptr<socket> >::iterator i
-					= writable_clients.begin();
-					i != writable_clients.end();
-					++i)
-				{
-					assert((*i)->is_writable());
-					connection_map::iterator p = m_connections.find(*i);
-					// the connection may have been disconnected in the receive phase
-					if (p == m_connections.end())
-					{
-						m_selector.remove(*i);
-					}
-					else
-					{
-						try
-						{
-							assert(m_selector.is_writability_monitored(p->first));
-							assert(p->second->has_data());
-							assert(p->second->get_socket()->is_writable());
-							p->second->send_data();
-						}
-						catch(std::exception&)
-						{
-							// the connection wants to disconnect for some reason, remove it
-							// from the connection-list
-							m_selector.remove(*i);
-							m_connections.erase(p);
-						}
-					}
-				}
 
 				// ************************
 				// ERROR SOCKETS
