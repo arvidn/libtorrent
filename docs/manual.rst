@@ -66,14 +66,14 @@ boost.filesystem, boost.date_time and various other boost libraries as well as z
 
 libtorrent has been successfully compiled and tested on:
 
-	* Cygwin GCC 3.3.1
 	* Windows 2000 vc7.1
-	* Linux x86 (debian) GCC 3.0
+	* Linux x86 (debian) GCC 3.0.4, GCC 3.2.3
 	* Windows 2000, msvc6 sp5 (does not support 64-bit values due to problems with operator<<(ostream&, __int64))
 
-It does not compile on
+Fails on:
 
-	* GCC 2.95
+	* Linux x86 (Debian) GCC 2.95.4 (``std::ios_base`` is missing)
+	* Cygwin GCC 3.3.1 (compiles but crashes)
 
 libtorrent is released under the BSD-license_.
 
@@ -412,7 +412,7 @@ The ``torrent_info`` has the following synopsis::
 		reverse_file_iterator rbegin_files() const;
 		reverse_file_iterator rend_files() const;
 
-		std::size_t num_files() const;
+		int num_files() const;
 		const file& file_at(int index) const;
 
 		const std::vector<announce_entry>& trackers() const;
@@ -421,7 +421,7 @@ The ``torrent_info`` has the following synopsis::
 
 		entry::integer_type total_size() const;
 		entry::integer_type piece_length() const;
-		std::size_t num_pieces() const;
+		int num_pieces() const;
 		const sha1_hash& info_hash() const;
 		const std::stirng& name() const;
 		const std::string& comment() const;
@@ -672,7 +672,7 @@ all peers. The rates are given as the number of bytes per second.
 get_download_queue()
 --------------------
 
-``get_download_queue()`` takes a non-const reference to a vector which it will fill
+``get_download_queue()`` takes a non-const reference to a vector which it will fill with
 information about pieces that are partially downloaded or not downloaded at all but partially
 requested. The entry in the vector (``partial_piece_info``) looks like this::
 

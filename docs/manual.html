@@ -131,16 +131,16 @@ boost.filesystem, boost.date_time and various other boost libraries as well as z
 <p>libtorrent has been successfully compiled and tested on:</p>
 <blockquote>
 <ul class="simple">
-<li>Cygwin GCC 3.3.1</li>
 <li>Windows 2000 vc7.1</li>
-<li>Linux x86 (debian) GCC 3.0</li>
+<li>Linux x86 (debian) GCC 3.0.4, GCC 3.2.3</li>
 <li>Windows 2000, msvc6 sp5 (does not support 64-bit values due to problems with operator&lt;&lt;(ostream&amp;, __int64))</li>
 </ul>
 </blockquote>
-<p>It does not compile on</p>
+<p>Fails on:</p>
 <blockquote>
 <ul class="simple">
-<li>GCC 2.95</li>
+<li>Linux x86 (Debian) GCC 2.95.4 (<tt class="literal"><span class="pre">std::ios_base</span></tt> is missing)</li>
+<li>Cygwin GCC 3.3.1 (compiles but crashes)</li>
 </ul>
 </blockquote>
 <p>libtorrent is released under the <a class="reference" href="http://www.opensource.org/licenses/bsd-license.php">BSD-license</a>.</p>
@@ -444,7 +444,7 @@ public:
         reverse_file_iterator rbegin_files() const;
         reverse_file_iterator rend_files() const;
 
-        std::size_t num_files() const;
+        int num_files() const;
         const file&amp; file_at(int index) const;
 
         const std::vector&lt;announce_entry&gt;&amp; trackers() const;
@@ -453,7 +453,7 @@ public:
 
         entry::integer_type total_size() const;
         entry::integer_type piece_length() const;
-        std::size_t num_pieces() const;
+        int num_pieces() const;
         const sha1_hash&amp; info_hash() const;
         const std::stirng&amp; name() const;
         const std::string&amp; comment() const;
