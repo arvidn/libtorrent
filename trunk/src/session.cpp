@@ -872,6 +872,8 @@ namespace libtorrent
 		, const boost::filesystem::path& save_path
 		, const entry& resume_data)
 	{
+		if (ti.begin_files() == ti.end_files())
+			throw std::runtime_error("no files in torrent");
 
 		{
 			// lock the session

@@ -102,6 +102,7 @@ namespace libtorrent
 		};
 	}
 
+	class entry;
 
 	class entry
 	{
@@ -171,13 +172,14 @@ namespace libtorrent
 
 		data_type m_type;
 
-#if defined(_MSC_VER)
-
+#if defined(_MSC_VER) && _MSC_VER < 1300
 		// workaround for msvc-bug.
 		// assumes sizeof(map<string, char>) == sizeof(map<string, entry>)
+		// and sizeof(list<char>) == sizeof(list<entry>)
 		union
 		{
-			char data[detail::max4<sizeof(list_type)
+			char data[
+				detail::max4<sizeof(std::list<char>)
 				, sizeof(std::map<std::string, char>)
 				, sizeof(string_type)
 				, sizeof(integer_type)>::value];

@@ -38,10 +38,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cassert>
 #include <algorithm>
 #include <boost/limits.hpp>
-#include <boost/iterator/transform_iterator.hpp>
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 #define for if (false) {} else for
+#else
+#include <boost/iterator/transform_iterator.hpp>
 #endif
 
 namespace libtorrent
@@ -252,6 +253,68 @@ namespace libtorrent
 			, res);
 	}
 */
+#if defined(_MSC_VER) && _MSC_VER < 1300
+
+	namespace detail
+	{
+		struct iterator_wrapper
+		{
+			typedef std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator orig_iter;
+
+			orig_iter iter;
+
+			iterator_wrapper(orig_iter i): iter(i) {}
+			void operator++() { ++iter; }
+			torrent& operator*() { return *(iter->second); }
+			bool operator==(const iterator_wrapper& i) const
+			{ return iter == i.iter; }
+			bool operator!=(const iterator_wrapper& i) const
+			{ return iter != i.iter; }
+		};
+
+		struct iterator_wrapper2
+		{
+			typedef std::map<address, peer_connection*>::iterator orig_iter;
+
+			orig_iter iter;
+
+			iterator_wrapper2(orig_iter i): iter(i) {}
+			void operator++() { ++iter; }
+			peer_connection& operator*() { return *(iter->second); }
+			bool operator==(const iterator_wrapper2& i) const
+			{ return iter == i.iter; }
+			bool operator!=(const iterator_wrapper2& i) const
+			{ return iter != i.iter; }
+		};
+
+	}
+
+	void allocate_resources(
+		int resources
+		, std::map<sha1_hash, boost::shared_ptr<torrent> >& c
+		, resource_request torrent::* res)
+	{
+		allocate_resources_impl(
+			resources
+			, detail::iterator_wrapper(c.begin())
+			, detail::iterator_wrapper(c.end())
+			, res);
+	}
+
+	void allocate_resources(
+		int resources
+		, std::map<address, peer_connection*>& c
+		, resource_request peer_connection::* res)
+	{
+		allocate_resources_impl(
+			resources
+			, detail::iterator_wrapper2(c.begin())
+			, detail::iterator_wrapper2(c.end())
+			, res);
+	}
+
+#else
+
 	void allocate_resources(
 		int resources
 		, std::map<sha1_hash, boost::shared_ptr<torrent> >& c
@@ -283,5 +346,6 @@ namespace libtorrent
 			, new_iter(c.end(), &pick_peer2)
 			, res);
 	}
+#endif
 
 } // namespace libtorrent
