@@ -1164,7 +1164,7 @@ void libtorrent::storage::initialize_pieces(torrent* t,
 		{
 			boost::mutex::scoped_lock lock(mutex);
 
-			data->progress += (float)current_piece / m_torrent_file->num_pieces();
+			data->progress = (float)current_piece / m_torrent_file->num_pieces();
 			if (data->abort)
 				return;
 		}

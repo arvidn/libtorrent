@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/policy.hpp"
 #include "libtorrent/url_handler.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/alert.hpp"
 #include "libtorrent/debug.hpp"
 
 
@@ -166,6 +167,9 @@ namespace libtorrent
 			// unlimited
 			int m_upload_rate;
 
+			// handles delayed alerts
+			alert_manager m_alerts;
+
 #ifndef NDEBUG
 			boost::shared_ptr<logger> create_log(std::string name);
 			boost::shared_ptr<logger> m_logger;
@@ -194,6 +198,8 @@ namespace libtorrent
 
 		void set_http_settings(const http_settings& s);
 		void set_upload_rate_limit(int bytes_per_second);
+
+		std::auto_ptr<alert> pop_alert();
 
 	private:
 
