@@ -305,6 +305,7 @@ namespace libtorrent
 			{
 #endif
 			// create listener socket
+			// TODO: if this fails, no alert is generated
 			boost::shared_ptr<socket> listener(new socket(socket::tcp, false));
 
 			for(;;)

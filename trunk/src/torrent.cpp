@@ -236,7 +236,7 @@ namespace libtorrent
 		, m_num_pieces(0)
 		, m_got_tracker_response(false)
 		, m_ratio(0.f)
-		, m_net_interface(net_interface)
+		, m_net_interface(net_interface.ip(), address::any_port)
 	{
 		assert(torrent_file.begin_files() != torrent_file.end_files());
 		m_have_pieces.resize(torrent_file.num_pieces(), false);
