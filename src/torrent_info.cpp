@@ -192,7 +192,7 @@ namespace libtorrent
 		// extract sha-1 hashes for all pieces
 		// we want this division to round upwards, that's why we have the
 		// extra addition
-		entry::integer_type num_pieces = (m_total_size + m_piece_length - 1) / m_piece_length;
+		size_type num_pieces = (m_total_size + m_piece_length - 1) / m_piece_length;
 		i = info.dict().find("pieces");
 		if (i == info.dict().end()) throw invalid_torrent_file();
 

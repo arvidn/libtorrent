@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <vector>
+#include <assert.h>
+#include <boost/cstdint.hpp>
 
 namespace libtorrent
 {
@@ -43,6 +45,9 @@ namespace libtorrent
 	{
 	enum { history = 10 };
 	public:
+
+		typedef boost::int64_t size_type;
+
 
 		stat()
 			: m_downloaded_payload(0)
@@ -77,14 +82,19 @@ namespace libtorrent
 
 		void received_bytes(int bytes_payload, int bytes_protocol)
 		{
+			assert(bytes_payload>=0);
+			assert(bytes_protocol>=0);
 			m_downloaded_payload += bytes_payload;
 			m_total_download_payload += bytes_payload;
 
 			m_downloaded_protocol += bytes_protocol;
 			m_total_download_protocol += bytes_protocol;
 		}
+
 		void sent_bytes(int bytes_payload, int bytes_protocol)
 		{
+			assert(bytes_payload>=0);
+			assert(bytes_protocol>=0);
 			m_uploaded_payload += bytes_payload;
 			m_total_upload_payload += bytes_payload;
 
@@ -102,11 +112,11 @@ namespace libtorrent
 		float down_peak() const { return m_peak_downloaded_per_second; }
 		float up_peak() const { return m_peak_uploaded_per_second; }
 
-		unsigned int total_payload_upload() const { return m_total_upload_payload; }
-		unsigned int total_payload_download() const { return m_total_download_payload; }
+		size_type total_payload_upload() const { return m_total_upload_payload; }
+		size_type total_payload_download() const { return m_total_download_payload; }
 
-		unsigned int total_protocol_upload() const { return m_total_upload_protocol; }
-		unsigned int total_protocol_download() const { return m_total_download_protocol; }
+		size_type total_protocol_upload() const { return m_total_upload_protocol; }
+		size_type total_protocol_download() const { return m_total_download_protocol; }
 
 	private:
 
@@ -130,13 +140,13 @@ namespace libtorrent
 
 		// total download/upload counters
 		// only counting payload data
-		unsigned int m_total_download_payload;
-		unsigned int m_total_upload_payload;
+		size_type m_total_download_payload;
+		size_type m_total_upload_payload;
 
 		// total download/upload counters
 		// only counting protocol chatter
-		unsigned int m_total_download_protocol;
-		unsigned int m_total_upload_protocol;
+		size_type m_total_download_protocol;
+		size_type m_total_upload_protocol;
 
 		// peak mean download/upload rates
 		unsigned int m_peak_downloaded_per_second;
