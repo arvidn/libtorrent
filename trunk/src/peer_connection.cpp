@@ -240,7 +240,7 @@ namespace libtorrent
 			, m_send_buffer.begin() + pos);
 
 	#ifndef NDEBUG
-		(*m_logger) << m_socket->sender().as_string() << " ==> HANDSHAKE\n";
+		(*m_logger) << " ==> HANDSHAKE\n";
 	#endif
 
 		send_buffer_updated();
@@ -343,7 +343,7 @@ namespace libtorrent
 		if (m_recv_pos < m_packet_size) return;
 
 #ifndef NDEBUG
-		(*m_logger) << m_socket->sender().as_string() << " <== INTERESTED\n";
+		(*m_logger) << " <== INTERESTED\n";
 #endif
 		m_peer_interested = true;
 		m_torrent->get_policy().interested(*this);
@@ -388,13 +388,13 @@ namespace libtorrent
 			throw protocol_error("have message with higher index than the number of pieces");
 
 #ifndef NDEBUG
-		(*m_logger) << m_socket->sender().as_string() << " <== HAVE [ piece: " << index << "]\n";
+		(*m_logger) << " <== HAVE [ piece: " << index << "]\n";
 #endif
 
 		if (m_have_piece[index])
 		{
 #ifndef NDEBUG
-			(*m_logger) << m_socket->sender().as_string() << " oops.. we already knew that: " << index << "\n";
+			(*m_logger) << " oops.. we already knew that: " << index << "\n";
 #endif
 		}
 		else
@@ -419,7 +419,7 @@ namespace libtorrent
 		if (m_recv_pos < m_packet_size) return;
 
 #ifndef NDEBUG
-		(*m_logger) << m_socket->sender().as_string() << " <== BITFIELD\n";
+		(*m_logger) << " <== BITFIELD\n";
 #endif
 		// build a vector of all pieces
 		std::vector<int> piece_list;
@@ -489,21 +489,31 @@ namespace libtorrent
 			&& r.start >= 0
 			&& r.start < m_torrent->torrent_file().piece_size(r.piece)
 			&& r.length > 0
-			&& r.length + r.start < m_torrent->torrent_file().piece_size(r.piece)
+			&& r.length + r.start <= m_torrent->torrent_file().piece_size(r.piece)
 			&& m_peer_interested)
 		{
 			// if we have choked the client
 			// ignore the request
-			if (m_choked) return;
+			if (m_choked)
+				return;
 
 			m_requests.push_back(r);
 			send_buffer_updated();
 #ifndef NDEBUG
-			(*m_logger) << m_socket->sender().as_string() << " <== REQUEST [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
+			(*m_logger) << " <== REQUEST [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
 #endif
 		}
 		else
 		{
+#ifndef NDEBUG
+			(*m_logger) << " <== INVALID REQUEST [ "
+				"piece: " << r.piece << " | "
+				"s: " << r.start << " | "
+				"l: " << r.length << " | "
+				"i: " << m_peer_interested << " | "
+				"t: " << (int)m_torrent->torrent_file().piece_size(r.piece) << " | "
+				"n: " << m_torrent->torrent_file().num_pieces() << " ]\n";
+#endif
 			// TODO: log this illegal request
 		}
 	}
@@ -796,7 +806,7 @@ namespace libtorrent
 		detail::write_int(block_size, ptr);
 
 	#ifndef NDEBUG
-		(*m_logger) << m_socket->sender().as_string() << " ==> CANCEL [ piece: " << block.piece_index << " | s: " << block_offset << " | l: " << block_size << " | " << block.block_index << " ]\n";
+		(*m_logger) << " ==> CANCEL [ piece: " << block.piece_index << " | s: " << block_offset << " | l: " << block_size << " | " << block.block_index << " ]\n";
 	#endif
 
 		send_buffer_updated();
@@ -837,7 +847,7 @@ namespace libtorrent
 		detail::write_int(block_size, ptr);
 
 	#ifndef NDEBUG
-		(*m_logger) << m_socket->sender().as_string() << " ==> REQUEST [ piece: " << block.piece_index << " | s: " << block_offset << " | l: " << block_size << " | " << block.block_index << " ]\n";
+		(*m_logger) << " ==> REQUEST [ piece: " << block.piece_index << " | s: " << block_offset << " | l: " << block_size << " | " << block.block_index << " ]\n";
 	#endif
 
 		send_buffer_updated();
@@ -846,7 +856,7 @@ namespace libtorrent
 	void peer_connection::send_bitfield()
 	{
 	#ifndef NDEBUG
-		(*m_logger) << m_socket->sender().as_string() << " ==> BITFIELD\n";
+		(*m_logger) << " ==> BITFIELD\n";
 	#endif
 		const int packet_size = (m_have_piece.size() + 7) / 8 + 5;
 		const int old_size = m_send_buffer.size();
@@ -866,7 +876,7 @@ namespace libtorrent
 	void peer_connection::send_extensions()
 	{
 	#ifndef NDEBUG
-		(*m_logger) << m_socket->sender().as_string() << " ==> EXTENSIONS\n";
+		(*m_logger) << " ==> EXTENSIONS\n";
 	#endif
 		assert(m_supports_extensions);
 
@@ -905,7 +915,7 @@ namespace libtorrent
 		m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
 		m_choked = true;
 	#ifndef NDEBUG
-		(*m_logger) << m_socket->sender().as_string() << " ==> CHOKE\n";
+		(*m_logger) << " ==> CHOKE\n";
 	#endif
 		m_requests.clear();
 		send_buffer_updated();
@@ -918,7 +928,7 @@ namespace libtorrent
 		m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
 		m_choked = false;
 	#ifndef NDEBUG
-		(*m_logger) << m_socket->sender().as_string() << " ==> UNCHOKE\n";
+		(*m_logger) << " ==> UNCHOKE\n";
 	#endif
 		send_buffer_updated();
 	}
@@ -930,7 +940,7 @@ namespace libtorrent
 		m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
 		m_interesting = true;
 	#ifndef NDEBUG
-		(*m_logger) << m_socket->sender().as_string() << " ==> INTERESTED\n";
+		(*m_logger) << " ==> INTERESTED\n";
 	#endif
 		send_buffer_updated();
 	}
@@ -942,7 +952,7 @@ namespace libtorrent
 		m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
 		m_interesting = false;
 	#ifndef NDEBUG
-		(*m_logger) << m_socket->sender().as_string() << " ==> NOT_INTERESTED\n";
+		(*m_logger) << " ==> NOT_INTERESTED\n";
 	#endif
 		send_buffer_updated();
 	}
@@ -955,7 +965,7 @@ namespace libtorrent
 		detail::write_int(index, ptr);
 		m_send_buffer.insert(m_send_buffer.end(), msg, msg + packet_size);
 	#ifndef NDEBUG
-		(*m_logger) << m_socket->sender().as_string() << " ==> HAVE [ piece: " << index << " ]\n";
+		(*m_logger) << " ==> HAVE [ piece: " << index << " ]\n";
 	#endif
 		send_buffer_updated();
 	}
@@ -1021,7 +1031,7 @@ namespace libtorrent
 			// connection closed
 			if (received == 0)
 			{
-				throw network_error(0);
+				throw protocol_error("connection closed by remote host");
 			}
 
 			// an error
@@ -1052,18 +1062,22 @@ namespace libtorrent
 
 					m_packet_size = reinterpret_cast<unsigned char&>(m_recv_buffer[0]);
 	#ifndef NDEBUG
-					(*m_logger) << m_socket->sender().as_string() << " protocol length: " << m_packet_size << "\n";
+					(*m_logger) << " protocol length: " << m_packet_size << "\n";
 	#endif
 					m_state = read_protocol_string;
 					m_recv_buffer.resize(m_packet_size);
 					m_recv_pos = 0;
 
-					if (m_packet_size == 0)
+					if (m_packet_size != 19)
 					{
 	#ifndef NDEBUG
 							(*m_logger) << "incorrect protocol length\n";
 	#endif
-							throw network_error(0);
+							std::stringstream s;
+							s << "received incorrect protocol length ("
+								<< m_packet_size
+								<< ") should be 19.";
+							throw protocol_error(s.str());
 					}
 					break;
 
@@ -1074,7 +1088,7 @@ namespace libtorrent
 						if (m_recv_pos < m_packet_size) break;
 						assert(m_recv_pos == m_packet_size);
 	#ifndef NDEBUG
-						(*m_logger) << m_socket->sender().as_string() << " protocol: '" << std::string(m_recv_buffer.begin(), m_recv_buffer.end()) << "'\n";
+						(*m_logger) << " protocol: '" << std::string(m_recv_buffer.begin(), m_recv_buffer.end()) << "'\n";
 	#endif
 						const char protocol_string[] = "BitTorrent protocol";
 						const int protocol_len = sizeof(protocol_string) - 1;
@@ -1083,7 +1097,11 @@ namespace libtorrent
 	#ifndef NDEBUG
 							(*m_logger) << "incorrect protocol name\n";
 	#endif
-							throw network_error(0);
+							std::stringstream s;
+							s << "got invalid protocol name: '"
+								<< std::string(m_recv_buffer.begin(), m_recv_buffer.end())
+								<< "'";
+							throw protocol_error(s.str());
 						}
 
 						m_state = read_info_hash;
@@ -1123,9 +1141,9 @@ namespace libtorrent
 						{
 							// we couldn't find the torrent!
 	#ifndef NDEBUG
-							(*m_logger) << m_socket->sender().as_string() << " couldn't find a torrent with the given info_hash\n";
+							(*m_logger) << " couldn't find a torrent with the given info_hash\n";
 	#endif
-							throw network_error(0);
+							throw protocol_error("got info-hash that is not in our session");
 						}
 
 						// assume the other end has no pieces
@@ -1144,9 +1162,9 @@ namespace libtorrent
 						if (!std::equal(m_recv_buffer.begin()+8, m_recv_buffer.begin() + 28, (const char*)m_torrent->torrent_file().info_hash().begin()))
 						{
 	#ifndef NDEBUG
-							(*m_logger) << m_socket->sender().as_string() << " received invalid info_hash\n";
+							(*m_logger) << " received invalid info_hash\n";
 	#endif
-							throw network_error(0);
+							throw protocol_error("invalid info-hash in handshake");
 						}
 					}
 
@@ -1157,7 +1175,7 @@ namespace libtorrent
 					m_recv_pos = 0;
 					m_recv_buffer.resize(20);
 	#ifndef NDEBUG
-					(*m_logger) << m_socket->sender().as_string() << " info_hash received\n";
+					(*m_logger) << " info_hash received\n";
 	#endif
 					break;
 				}
@@ -1233,10 +1251,10 @@ namespace libtorrent
 					if (m_packet_size > 1024*1024 || m_packet_size < 0)
 					{
 	#ifndef NDEBUG
-						(*m_logger) << m_socket->sender().as_string() << " packet too large (packet_size > 1 Megabyte), abort\n";
+						(*m_logger) << " packet too large (packet_size > 1 Megabyte), abort\n";
 	#endif
 						// packet too large
-						throw network_error(0);
+						throw protocol_error("packet > 1 MB");
 					}
 					
 					if (m_packet_size == 0)
@@ -1336,14 +1354,14 @@ namespace libtorrent
 					, r.start
 					, r.length);
 	#ifndef NDEBUG
-				(*m_logger) << m_socket->sender().as_string() << " ==> PIECE [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
+				(*m_logger) << " ==> PIECE [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
 	#endif
 				m_payloads.push_back(range(send_buffer_offset+13, r.length));
 			}
 			else
 			{
 	#ifndef NDEBUG
-				(*m_logger) << m_socket->sender().as_string()
+				(*m_logger)
 					<< " *** WARNING [ illegal piece request idx: " << r.piece
 					<< " | s: " << r.start
 					<< " | l: " << r.length
@@ -1457,6 +1475,7 @@ namespace libtorrent
 			if (m_socket->is_writable())
 			{
 				std::cout << "ERROR\n";
+				assert(false);
 			}
 		}
 	#endif
@@ -1473,7 +1492,7 @@ namespace libtorrent
 			m_send_buffer.insert(m_send_buffer.end(), noop, noop+4);
 			m_last_sent = boost::posix_time::second_clock::local_time();
 	#ifndef NDEBUG
-			(*m_logger) << m_socket->sender().as_string() << " ==> NOP\n";
+			(*m_logger) << " ==> NOP\n";
 	#endif
 			send_buffer_updated();
 		}
