@@ -162,37 +162,37 @@ namespace libtorrent
 		if (m_transaction_id == 0)
 			m_transaction_id = rand() | (rand() << 16);
 
-		char buf[94];
-		char* ptr = buf;
+		std::vector<char> buf;
+		std::back_insert_iterator<std::vector<char> > out(buf);
 
 		// connection_id
-		detail::write_int64(m_connection_id, ptr);
+		detail::write_int64(m_connection_id, out);
 		// action (announce)
-		detail::write_int32(announce, ptr);
+		detail::write_int32(announce, out);
 		// transaction_id
-		detail::write_int32(m_transaction_id, ptr);
+		detail::write_int32(m_transaction_id, out);
 		// info_hash
-		std::copy(m_request.info_hash.begin(), m_request.info_hash.end(), ptr);
-		ptr += 20;
+		std::copy(m_request.info_hash.begin(), m_request.info_hash.end(), out);
 		// peer_id
-		std::copy(m_request.id.begin(), m_request.id.end(), ptr);
-		ptr += 20;
+		std::copy(m_request.id.begin(), m_request.id.end(), out);
 		// downloaded
-		detail::write_int64(m_request.downloaded, ptr);
+		detail::write_int64(m_request.downloaded, out);
 		// left
-		detail::write_int64(m_request.left, ptr);
+		detail::write_int64(m_request.left, out);
 		// uploaded
-		detail::write_int64(m_request.uploaded, ptr);
+		detail::write_int64(m_request.uploaded, out);
 		// event
-		detail::write_int32(m_request.event, ptr);
+		detail::write_int32(m_request.event, out);
 		// ip address
-		detail::write_int32(0, ptr);
+		detail::write_int32(0, out);
+		// key
+		detail::write_int32(m_request.key, out);
 		// num_want
-		detail::write_int32(m_request.num_want, ptr);
+		detail::write_int32(m_request.num_want, out);
 		// port
-		detail::write_uint16(m_request.listen_port, ptr);
+		detail::write_uint16(m_request.listen_port, out);
 	
-		m_socket->send(buf, 94);
+		m_socket->send(&buf[0], buf.size());
 		m_request_time = second_clock::universal_time();
 		++m_attempts;
 	}
