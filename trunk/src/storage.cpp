@@ -212,7 +212,15 @@ namespace libtorrent {
 		in.seek(file_offset);
 
 //		assert(size_type(in.tellg()) == file_offset);
-		assert(size_type(in.tell()) == file_offset);
+#ifndef NDEBUG
+		size_type p = in.tell();
+		if (p != file_offset)
+		{
+			std::cerr << "in.tell(): " << p << "\n"
+				"file_offset: " << file_offset << "\n";
+		}
+		assert(in.tell() == file_offset);
+#endif
 
 		size_type left_to_read = size;
 		size_type slot_size = m_pimpl->info.piece_size(slot);
