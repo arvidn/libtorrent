@@ -477,6 +477,11 @@ public:
 
         torrent_info(const entry&amp; torrent_file)
 
+        torrent_info(
+                int piece_size
+                , const char* name
+                , const char* comment = 0);
+
         typedef std::vector&gt;file_entry&gt;::const_iterator file_iterator;
         typedef std::vector&lt;file_entry&gt;::const_reverse_iterator reverse_file_iterator;
 
@@ -1115,6 +1120,7 @@ any events at all.</p>
 <p>When you get an alert, you can use <tt class="literal"><span class="pre">typeid()</span></tt> or <tt class="literal"><span class="pre">dynamic_cast&lt;&gt;</span></tt> to get more detailed
 information on exactly which type it is. i.e. what kind of error it is. You can also use a
 <a class="reference" href="#dispatcher">dispatcher</a> mechanism that's available in libtorrent.</p>
+<p>All alert types are defined in the <tt class="literal"><span class="pre">&lt;libtorrent/alert_types.hpp&gt;</span></tt> header file.</p>
 <p>The <tt class="literal"><span class="pre">alert</span></tt> class is the base class that specific messages are derived from. This
 is its synopsis:</p>
 <pre class="literal-block">
