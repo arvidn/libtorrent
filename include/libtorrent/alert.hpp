@@ -45,37 +45,31 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/preprocessor/repetition/enum.hpp>
 #include <boost/preprocessor/repetition/enum_params.hpp>
 #include <boost/preprocessor/repetition/enum_shifted_params.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 namespace libtorrent {
 
-	// TODO: all alerts should have a timestamp
 	class alert
 	{
 	public:
 		enum severity_t { debug, info, warning, critical, fatal, none };
 
-		alert(severity_t severity, const std::string& msg)
-			: m_msg(msg)
-			, m_severity(severity)
-		{}
+		alert(severity_t severity, const std::string& msg);
+		virtual ~alert();
 
-		virtual ~alert() {}
+		// a timestamp is automatically created in the constructor
+		boost::posix_time::ptime timestamp() const;
 
-		const std::string& msg() const
-		{
-			return m_msg;
-		}
+		const std::string& msg() const;
 
-		severity_t severity() const
-		{
-			return m_severity;
-		}
+		severity_t severity() const;
 
 		virtual std::auto_ptr<alert> clone() const = 0;
 
 	private:
 		std::string m_msg;
 		severity_t m_severity;
+		boost::posix_time::ptime m_timestamp;
 	};
 
 	class alert_manager
@@ -89,8 +83,7 @@ namespace libtorrent {
 		std::auto_ptr<alert> get();
 
 		void set_severity(alert::severity_t severity);
-		bool should_post(alert::severity_t severity) const
-		{ return severity >= m_severity; }
+		bool should_post(alert::severity_t severity) const;
 
 	private:
 		std::queue<alert*> m_alerts;
