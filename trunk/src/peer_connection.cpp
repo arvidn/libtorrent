@@ -106,7 +106,6 @@ namespace libtorrent
 		, m_trust_points(0)
 		, m_num_invalid_requests(0)
 		, m_last_piece(boost::posix_time::second_clock::local_time())
-		, m_last_piece_time(boost::posix_time::seconds(0))
 		, m_disconnecting(false)
 		, m_became_uninterested(boost::posix_time::second_clock::local_time())
 		, m_became_uninteresting(boost::posix_time::second_clock::local_time())
@@ -171,7 +170,6 @@ namespace libtorrent
 		, m_trust_points(0)
 		, m_num_invalid_requests(0)
 		, m_last_piece(boost::posix_time::second_clock::local_time())
-		, m_last_piece_time(boost::posix_time::seconds(0))
 		, m_disconnecting(false)
 		, m_became_uninterested(boost::posix_time::second_clock::local_time())
 		, m_became_uninteresting(boost::posix_time::second_clock::local_time())
@@ -646,9 +644,6 @@ namespace libtorrent
 		}
 
 		if (m_recv_pos < m_packet_size) return;
-
-		m_last_piece_time = m_last_piece
-			- boost::posix_time::second_clock::local_time();
 
 		const char* ptr = &m_recv_buffer[1];
 		peer_request p;

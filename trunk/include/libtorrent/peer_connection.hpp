@@ -252,9 +252,6 @@ namespace libtorrent
 		bool support_extensions() const
 		{ return m_supports_extensions; }
 
-		const boost::posix_time::time_duration& last_piece_time() const
-		{ return m_last_piece_time; }
-
 		// a connection is local if it was initiated by us.
 		// if it was an incoming connection, it is remote
 		bool is_local() const
@@ -522,10 +519,6 @@ namespace libtorrent
 		// the time at which we started to get the last piece
 		// message from this peer
 		boost::posix_time::ptime m_last_piece;
-
-		// the time it took for the peer to send the piece
-		// message
-		boost::posix_time::time_duration m_last_piece_time;
 
 		// this is true if this connection has been added
 		// to the list of connections that will be closed.
