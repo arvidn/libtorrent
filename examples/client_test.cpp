@@ -192,7 +192,7 @@ int main(int argc, char* argv[])
 		// limit upload rate to 100 kB/s
 		ses.set_upload_rate_limit(100 * 1024);
 		ses.set_http_settings(settings);
-		ses.set_severity_level(alert::info);
+		ses.set_severity_level(alert::debug);
 
 		for (int i = 0; i < argc-1; ++i)
 		{
@@ -244,7 +244,7 @@ int main(int argc, char* argv[])
 			a = ses.pop_alert();
 			while (a.get())
 			{
-				if (events.size() >= 6) events.pop_front();
+				if (events.size() >= 10) events.pop_front();
 				events.push_front(a->msg());
 				a = ses.pop_alert();
 			}
