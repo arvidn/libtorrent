@@ -254,7 +254,8 @@ namespace libtorrent
 				// ************************
 
 				// let the writable clients send data
-				for (std::vector<boost::shared_ptr<socket> >::iterator i = writable_clients.begin();
+				for (std::vector<boost::shared_ptr<socket> >::iterator i
+					= writable_clients.begin();
 					i != writable_clients.end();
 					++i)
 				{
@@ -313,7 +314,8 @@ namespace libtorrent
 
 				// loop over all clients and purge the ones that has timed out
 				// and check if they have pending data to be sent
-				for (connection_map::iterator i = m_connections.begin(); i != m_connections.end();)
+				for (connection_map::iterator i = m_connections.begin();
+					i != m_connections.end();)
 				{
 					connection_map::iterator j = i;
 					++i;

@@ -173,6 +173,12 @@ namespace libtorrent
 				{
 					m_ses->run(m_listen_port);
 				}
+				catch(std::exception& e)
+				{
+					std::cerr << typeid(e).name() << "\n";
+					std::cerr << e.what() << "\n";
+					assert(false);
+				}
 				catch(...)
 				{
 					assert(false);

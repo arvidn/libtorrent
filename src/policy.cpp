@@ -115,8 +115,12 @@ namespace libtorrent
 
 	void policy::peer_from_tracker(const address& remote, const peer_id& id)
 	{
-		m_torrent->connect_to_peer(remote, id);
-		m_num_peers++;
+		try
+		{
+			m_torrent->connect_to_peer(remote, id);
+			m_num_peers++;
+		}
+		catch(network_error&) {}
 	}
 
 	// this is called when we are choked by a peer
