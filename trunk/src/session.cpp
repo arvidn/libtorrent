@@ -274,6 +274,9 @@ namespace libtorrent { namespace detail
 		, m_download_rate(-1)
 		, m_incoming_connection(false)
 	{
+#ifndef NDEBUG
+		m_logger = create_log("main session");
+#endif
 		// ---- generate a peer id ----
 
 		std::srand((unsigned int)std::time(0));
@@ -376,8 +379,6 @@ namespace libtorrent { namespace detail
 	{
 		eh_initializer();
 #ifndef NDEBUG
-		m_logger = create_log("main session");
-
 		try
 		{
 #endif
