@@ -124,6 +124,9 @@ namespace
 				i->second.last_use = pt::second_clock::universal_time();
 				if ((i->second.mode & m) != m)
 				{
+					// close the file before we open it with
+					// the new read/write privilages
+					i->second.f.reset();
 					i->second.f.reset(new file(p, m));
 					i->second.mode = m;
 				}
