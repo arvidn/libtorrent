@@ -926,6 +926,7 @@ namespace libtorrent {
 			s << "\n";
 
 			int piece_at_our_slot = m_slot_to_piece[piece_index];
+			assert(m_piece_to_slot[piece_at_our_slot] == piece_index);
 
 			print_to_log(s.str());
 
@@ -942,6 +943,9 @@ namespace libtorrent {
 			std::swap(
 				m_piece_to_slot[piece_index]
 				, m_piece_to_slot[piece_at_our_slot]);
+
+			assert(m_slot_to_piece[piece_index] == piece_index);
+			assert(m_piece_to_slot[piece_index] == piece_index);
 
 			slot_index = piece_index;
 
