@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
 			++i)
 		{
 			std::cout << "  " << std::setw(11) << i->size
-			<< "  " << i->path << " " << i->filename << "\n";
+			<< " " << i->path.string() << "\n";
 		}
 		
 	}

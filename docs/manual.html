@@ -498,7 +498,9 @@ public:
         const sha1_hash&amp; info_hash() const;
         const std::stirng&amp; name() const;
         const std::string&amp; comment() const;
-        boost::posiz_time::ptime creation_date() const;
+
+        boost::optional&lt;boost::posix_time::ptime&gt;
+        creation_date() const;
 
 
         void print(std::ostream&amp; os) const;
@@ -514,8 +516,7 @@ iterators with the type <tt class="literal"><span class="pre">file_entry</span><
 <pre class="literal-block">
 struct file_entry
 {
-        std::string path;
-        std::string filename;
+        boost::filesystem::path path;
         size_type size;
 };
 </pre>

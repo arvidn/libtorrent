@@ -456,6 +456,11 @@ The ``torrent_info`` has the following synopsis::
 
 		torrent_info(const entry& torrent_file)
 
+		torrent_info(
+			int piece_size
+			, const char* name
+			, const char* comment = 0);
+
 		typedef std::vector>file_entry>::const_iterator file_iterator;
 		typedef std::vector<file_entry>::const_reverse_iterator reverse_file_iterator;
 
@@ -477,7 +482,9 @@ The ``torrent_info`` has the following synopsis::
 		const sha1_hash& info_hash() const;
 		const std::stirng& name() const;
 		const std::string& comment() const;
-		boost::posiz_time::ptime creation_date() const;
+
+		boost::optional<boost::posix_time::ptime>
+		creation_date() const;
 
 
 		void print(std::ostream& os) const;
@@ -495,8 +502,7 @@ iterators with the type ``file_entry``.
 
 	struct file_entry
 	{
-		std::string path;
-		std::string filename;
+		boost::filesystem::path path;
 		size_type size;
 	};
 
