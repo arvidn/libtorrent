@@ -165,14 +165,14 @@ namespace
 		, map_entry("M",  "Mainline")
 		, map_entry("MT", "Moonlight Torrent")
 		, map_entry("S",  "Shadow")
+		, map_entry("SN", "ShareNet")
 		, map_entry("SS", "SwarmScope")
 		, map_entry("T",  "BitTornado")
-		, map_entry("TN", "TorrentDotNET")
+		, map_entry("TN", "Torrent.NET")
 		, map_entry("TS", "TorrentStorm")
 		, map_entry("U",  "UPnP")
 		, map_entry("XT", "XanTorrent")
 		, map_entry("ZT", "ZipTorrent")
-		, map_entry("eX", "eXeem")
 	};
 
 	bool compare_first_string(map_entry const& e, char const* str)
@@ -219,18 +219,6 @@ namespace libtorrent
 
 		if (p.is_all_zeros()) return "Unknown";
 
-		// look for azureus style id
-		f = parse_az_style(p);
-		if (f) return lookup(*f);
-
-		// look for shadow style id
-		f = parse_shadow_style(p);
-		if (f) return lookup(*f);
-
-		// look for mainline style id
-		f = parse_mainline_style(p);
-		if (f) return lookup(*f);
-
 		// ----------------------
 		// non standard encodings
 		// ----------------------
@@ -245,6 +233,9 @@ namespace libtorrent
 		if (find_string(PID, "martini")) return "Martini Man";
 		if (find_string(PID, "Plus---")) return "Bittorrent Plus";
 		if (find_string(PID, "turbobt")) return "TurboBT";
+		if (find_string(PID, "a00---0")) return "Swarmy";
+		if (find_string(PID, "a02---0")) return "Swarmy";
+		if (find_string(PID, "T00---0")) return "Teeweety";
 		if (find_string(PID, "BTDWV-")) return "Deadman Walking";
 		if (find_string(PID + 2, "BS")) return "BitSpirit";
 		if (find_string(PID, "btuga")) return "BTugaXP";
@@ -255,12 +246,37 @@ namespace libtorrent
 		if (find_string(PID, "-G3")) return "G3 Torrent";
 		if (find_string(PID, "XBT")) return "XBT";
 
+		if (find_string(PID, "-BOW") && PID[7] == '-')
+			return "Bits on Wheels " + std::string(PID + 4, PID + 7);
+		
+		if (find_string(PID, "eX"))
+		{
+			std::string user(PID + 2, PID + 20);
+			return "eXeem ('" + user + "')"; 
+		}
+
 		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\0\x97"))
 			return "Experimental 3.2.1b2";
 
 		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\0\0"))
 			return "Experimental 3.1";
 
+      if (p.is_all_zeros()) return "Unknown";
+
+		
+		// look for azureus style id
+		f = parse_az_style(p);
+		if (f) return lookup(*f);
+
+		// look for shadow style id
+		f = parse_shadow_style(p);
+		if (f) return lookup(*f);
+
+		// look for mainline style id
+		f = parse_mainline_style(p);
+		if (f) return lookup(*f);
+														
+		
 		if (std::equal(PID, PID + 12, "\0\0\0\0\0\0\0\0\0\0\0\0"))
 			return "Generic";
 
