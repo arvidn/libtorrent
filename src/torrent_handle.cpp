@@ -74,7 +74,6 @@ using boost::bind;
 
 namespace libtorrent
 {
-
 	namespace
 	{
 #if defined(_MSC_VER) && _MSC_VER < 1300
@@ -172,8 +171,6 @@ namespace libtorrent
 	}
 
 #endif
-
-
 
 	void torrent_handle::set_max_uploads(int max_uploads)
 	{
@@ -557,7 +554,7 @@ namespace libtorrent
 		{
 			peer_connection* peer = i->second;
 
-			// peers that hasn't finished the handshake should
+			// peers that haven't finished the handshake should
 			// not be included in this list
 			if (peer->associated_torrent() == 0) continue;
 
@@ -615,6 +612,40 @@ namespace libtorrent
 			p.pieces = peer->get_bitfield();
 			p.seed = peer->is_seed();
 		}
+	}
+  
+	bool torrent_handle::send_chat_message(address ip, std::string message) const
+	{
+		if (m_ses == 0) throw invalid_handle();
+
+		boost::mutex::scoped_lock l(m_ses->m_mutex);
+		const torrent* t = m_ses->find_torrent(m_info_hash);
+		if (t == 0) return false;
+
+		for (torrent::const_peer_iterator i = t->begin();
+			i != t->end(); ++i)
+		{
+			peer_connection* peer = i->second;
+
+			// peers that haven't finished the handshake should
+			// not be included in this list
+			if (peer->associated_torrent() == 0) continue;
+
+			// peers that don's support chat message extension
+			// should not be included either
+			if (!peer->supports_extension(
+				peer_connection::extended_chat_message))
+				continue;
+
+			// loop until we find the required ip address
+			if (ip == peer->get_socket()->sender())
+			{
+				// send the message 
+				peer->send_chat_message(message);
+				return true;
+			}
+		}
+		return false;
 	}
 
 	void torrent_handle::get_download_queue(std::vector<partial_piece_info>& queue) const

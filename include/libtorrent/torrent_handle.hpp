@@ -192,6 +192,7 @@ namespace libtorrent
 		torrent_handle(): m_ses(0), m_chk(0) {}
 
 		void get_peer_info(std::vector<peer_info>& v) const;
+		bool send_chat_message(address ip, std::string message) const;
 		torrent_status status() const;
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 
