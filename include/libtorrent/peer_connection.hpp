@@ -150,45 +150,6 @@ namespace libtorrent
 		int full_block_bytes;
 	};
 
-	struct chat_message_alert: alert
-	{
-		chat_message_alert(
-			const torrent_handle& h
-			, const peer_id& send
-			, const std::string& msg)
-			: alert(alert::critical, msg)
-			, handle(h)
-			, sender(send)
-		{}
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new chat_message_alert(*this)); }
-
-		torrent_handle handle;
-		peer_id sender;
-	};
-
-	struct invalid_request_alert: alert
-	{
-		invalid_request_alert(
-			const peer_request& r
-			, const torrent_handle& h
-			, const peer_id& send
-			, const std::string& msg)
-			: alert(alert::debug, msg)
-			, handle(h)
-			, sender(send)
-			, request(r)
-		{}
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new invalid_request_alert(*this)); }
-
-		torrent_handle handle;
-		peer_id sender;
-		peer_request request;
-	};
-
 	class peer_connection: public boost::noncopyable
 	{
 	public:

@@ -67,19 +67,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	struct peer_error_alert: alert
-	{
-		peer_error_alert(const peer_id& pid, const std::string& msg)
-			: alert(alert::debug, msg)
-			, id(pid)
-		{}
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new peer_error_alert(*this)); }
-
-		peer_id id;
-	};
-
 	namespace detail
 	{
 		// workaround for microsofts

@@ -55,24 +55,54 @@ ol
 	font-family: Georgia, "Times New Roman", Times, serif
 }
 
-a
+a:link
 {
 	font-weight: bold;
 	color: #003366;
 	text-decoration: none;
 }
 
+a:visited
+{
+	font-weight: bold;
+	color: #003366;
+	text-decoration: none;
+}
+
+
 table
 {
-	border: 1px solid black
+	border: 1px solid black;
+	border-collapse: collapse;
 }
+
+table td
+{
+	padding: 6px;
+}
+
+table th
+{
+	border: 3px solid black;
+	padding: 6px;
+}
+
+table.menu
+{
+	border-style: none;
+}
+
+table.menu td
+{
+	padding-left: 15px;
+	padding-right: 15px;
+	padding-top: 7px;
+	padding-bottom: 7px;
+}
+
 
 td
 {
 	border: 1px solid black
 }
 
-a:hover
-{
-	color: #8080FF;
-}

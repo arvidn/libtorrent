@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/identify_client.hpp"
+#include "libtorrent/alert_types.hpp"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 namespace std
