@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <bitset>
 #include <cassert>
 
+#include "libtorrent/peer_id.hpp"
+
 namespace libtorrent
 {
 
@@ -59,6 +61,37 @@ namespace libtorrent
 	public:
 
 		enum { max_blocks_per_piece = 128 };
+
+		struct block_info
+		{
+			block_info(): num_downloads(0) {}
+			// the peer this block was requested or
+			// downloaded from
+			peer_id peer;
+			// the number of times this block has been downloaded
+			int num_downloads;
+		};
+
+		struct downloading_piece
+		{
+			int index;
+			// each bit represents a block in the piece
+			// set to one if the block has been requested
+			std::bitset<max_blocks_per_piece> requested_blocks;
+			// the bit is set to one if the block has been acquired
+			std::bitset<max_blocks_per_piece> finished_blocks;
+			// info about each block
+			block_info info[max_blocks_per_piece];
+
+			// TODO: store a hash and a peer_connection reference
+			// for each block. Then if the hash test fails on the
+			// piece, redownload one block from another peer
+			// then the first time, and check the hash again.
+			// also maintain a counter how many times a piece-hash
+			// has been confirmed. Download blocks that hasn't
+			// been confirmed (since they are most probably the
+			// invalid blocks)
+		};
 
 		piece_picker(int blocks_per_piece,
 			int total_num_blocks);
@@ -92,7 +125,8 @@ namespace libtorrent
 		// itself, by using the mark_as_downloading() member function.
 		// THIS IS DONE BY THE peer_connection::request_piece() MEMBER FUNCTION!
 		void pick_pieces(const std::vector<bool>& pieces,
-			std::vector<piece_block>& interesting_blocks) const;
+			std::vector<piece_block>& interesting_blocks,
+			int num_pieces) const;
 
 		// returns true if any client is currently downloading this
 		// piece-block, or if it's queued for downloading by some client
@@ -100,11 +134,11 @@ namespace libtorrent
 		bool is_downloading(piece_block block) const;
 
 		// marks this piece-block as queued for downloading
-		void mark_as_downloading(piece_block block);
+		void mark_as_downloading(piece_block block, const peer_id& peer);
 		void mark_as_finished(piece_block block);
 
 		// if a piece had a hash-failure, it must be restured and
-		// made available fro redownloading
+		// made available for redownloading
 		void restore_piece(int index);
 
 		// clears the given piece's download flag
@@ -113,8 +147,16 @@ namespace libtorrent
 
 		bool is_piece_finished(int index) const;
 
+		// returns the number of blocks there is in the goven piece
 		int blocks_in_piece(int index) const;
+
+		// the number of downloaded blocks that hasn't passed
+		// the hash-check yet
 		int unverified_blocks() const;
+
+		void get_downloaders(std::vector<peer_id>& d, int index);
+		const std::vector<downloading_piece>& get_download_queue() const
+		{ return m_downloads; }
 
 #ifndef NDEBUG
 		// used in debug mode
@@ -147,20 +189,7 @@ namespace libtorrent
 
 		};
 
-		struct downloading_piece
-		{
-			int index;
-			std::bitset<max_blocks_per_piece> requested_blocks;
-			std::bitset<max_blocks_per_piece> finished_blocks;
-			// TODO: store a hash and a peer_connection reference
-			// for each block. Then if the hash test fails on the
-			// piece, redownload one block from another peer
-			// then the first time, and check the hash again.
-			// also maintain a counter how many times a piece-hash
-			// has been confirmed. Download blocks that hasn't
-			// been confirmed (since they are most probably the
-			// invalid blocks)
-		};
+
 
 		struct has_index
 		{
@@ -173,9 +202,10 @@ namespace libtorrent
 		void move(bool downloading, int vec_index, int elem_index);
 		void remove(bool downloading, int vec_index, int elem_index);
 
-		bool add_interesting_blocks(const std::vector<int>& piece_list,
+		int add_interesting_blocks(const std::vector<int>& piece_list,
 				const std::vector<bool>& pieces,
-				std::vector<piece_block>& interesting_pieces) const;
+				std::vector<piece_block>& interesting_pieces,
+				int num_blocks) const;
 
 		// this vector contains all pieces we don't have.
 		// in the first entry (index 0) is a vector of all pieces

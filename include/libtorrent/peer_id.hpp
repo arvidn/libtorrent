@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PEER_ID_HPP_INCLUDED
 #define TORRENT_PEER_ID_HPP_INCLUDED
 
+#include <iostream>
+#include <iomanip>
 
 namespace libtorrent
 {
@@ -63,11 +65,14 @@ namespace libtorrent
 			return false;
 		}
 
-		const unsigned char* begin() const { return m_number; }
-		const unsigned char* end() const { return m_number+number_size; }
+		typedef const unsigned char* const_iterator;
+		typedef unsigned char* iterator;
 
-		unsigned char* begin() { return m_number; }
-		unsigned char* end() { return m_number+number_size; }
+		const_iterator begin() const { return m_number; }
+		const_iterator end() const { return m_number+number_size; }
+
+		iterator begin() { return m_number; }
+		iterator end() { return m_number+number_size; }
 
 	private:
 
@@ -77,6 +82,19 @@ namespace libtorrent
 
 	typedef big_number peer_id;
 	typedef big_number sha1_hash;
+
+	inline std::ostream& operator<<(std::ostream& os, const big_number& peer)
+	{
+		for (big_number::const_iterator i = peer.begin();
+			i != peer.end();
+			++i)
+		{
+			os << std::hex << std::setw(2) << std::setfill('0')
+				<< static_cast<unsigned int>(*i);
+		}
+		os << std::dec << std::cout << std::setfill(' ');
+		return os;
+	}
 
 }
 

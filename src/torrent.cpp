@@ -187,9 +187,9 @@ namespace libtorrent
 					std::cout << std::hex << std::setw(2) << std::setfill('0')
 					<< static_cast<unsigned int>(*j);
 				}
-				std::cout << " " << extract_fingerprint(i->id) << "\n";
+				std::cout << std::dec << " " << extract_fingerprint(i->id) << "\n";
 			}
-			std::cout << std::dec << std::setfill(' ');
+			std::cout << std::setfill(' ');
 
 
 			// for each of the peers we got from the tracker

@@ -39,13 +39,30 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace
 {
+	enum
+	{
+		// we try to maintain 4 requested blocks in the download
+		// queue
+		request_queue = 4
+	};
+
+
 	using namespace libtorrent;
 	void request_a_block(torrent& t, peer_connection& c)
 	{
 		piece_picker& p = t.picker();
 		std::vector<piece_block> interesting_pieces;
 		interesting_pieces.reserve(100);
-		p.pick_pieces(c.get_bitfield(), interesting_pieces);
+
+		int num_requests = request_queue - c.download_queue().size();
+		if (num_requests <= 0) num_requests = 1;
+
+		// picks the interesting pieces from this peer
+		// the integer is the number of pieces that
+		// should be guaranteed to be available for download
+		// (if this number is too big, too many pieces are
+		// picked and cpu-time is wasted)
+		p.pick_pieces(c.get_bitfield(), interesting_pieces, num_requests);
 
 		// this vector is filled with the interestin pieces
 		// that some other peer is currently downloading
@@ -68,7 +85,8 @@ namespace
 			// ok, we found a piece that's not being downloaded
 			// by somebody else. request it from this peer
 			c.request_block(*i);
-			return;
+			num_requests++;
+			if (num_requests >= request_queue) return;
 		}
 
 		// TODO: compare this peer's bandwidth against the
