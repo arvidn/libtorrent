@@ -104,7 +104,10 @@ namespace libtorrent
 		virtual ~request_callback() {}
 		virtual void tracker_response(
 			std::vector<peer_entry>& peers
-			, int interval) = 0;
+			, int interval
+			, int complete
+			, int incomplete
+			, int downloaded) = 0;
 		virtual void tracker_request_timed_out() = 0;
 		virtual void tracker_request_error(
 			int response_code

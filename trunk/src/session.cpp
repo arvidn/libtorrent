@@ -132,8 +132,7 @@ namespace libtorrent { namespace detail
 				if (!t->abort)
 				{
 					boost::mutex::scoped_lock l(m_ses.m_mutex);
-					m_ses.m_torrents.insert(
-						std::make_pair(t->info_hash, t->torrent_ptr)).first;
+					m_ses.m_torrents.insert(std::make_pair(t->info_hash, t->torrent_ptr));
 					m_torrents.pop_front();
 					if (t->torrent_ptr->is_seed() && m_ses.m_alerts.should_post(alert::info))
 					{

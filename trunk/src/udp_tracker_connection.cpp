@@ -241,18 +241,20 @@ namespace libtorrent
 		}
 		if (action != announce) return false;
 
-		if (len < 12)
+		if (len < 24)
 		{
 #ifndef NDEBUG
 			if (has_requester())
 				requester().debug_log("udp_tracker_connection: "
-				"got a message with size < 12, ignoring");
+				"got a message with size < 24, ignoring");
 #endif
 			return false;
 		}
 		int interval = detail::read_int32(buf);
-		int num_peers = (len - 12) / 6;
-		if ((len - 12) % 6 != 0)
+		int incomplete = detail::read_int32(buf);
+		int complete = detail::read_int32(buf);
+		int num_peers = (len - 24) / 6;
+		if ((len - 24) % 6 != 0)
 		{
 			if (has_requester())
 				requester().tracker_request_error(-1, "invalid tracker response");
@@ -276,7 +278,7 @@ namespace libtorrent
 			peer_list.push_back(e);
 		}
 
-		requester().tracker_response(peer_list, interval);
+		requester().tracker_response(peer_list, interval, complete, incomplete, -1);
 		return true;
 	}
 
