@@ -53,6 +53,23 @@ The current state includes the following features:
 	<li>gzipped tracker-responses
 	<li>piece picking on block-level (as opposed to piece-level) like in
 	<a href="http://azureus.sourceforge.net/">Azureus</a>
+	<li>queues torrents for file check, instead of checking all of them in parallel.
+	<li>uses separate threads for checking files and for main downloader, with a fool-proof
+	thread-safe library interface. (i.e. There's no way for the user to cause a deadlock).
+</ul>
+
+<p>
+Functions that are yet to be implemented:
+</p>
+
+<ul>
+	<li>optimistic unchoke
+	<li>upload speed cap
+	<li>Snubbing
+	<li>end game mode
+	<li>new allocation model
+	<li>fast resume
+	<li>file-level piece priority
 </ul>
 
 <p>
@@ -151,6 +168,12 @@ You add torrents through the <tt>add_torrent()</tt>-function where you give an
 object representing the information found in the torrent file and the path where you
 want to save the files. The <tt>save_path</tt> will be prepended to the directory-
 structure in the torrent-file.
+</p>
+
+<p>
+If the torrent you are trying to add already exists in the session (is either queued
+for checking, being checked or downloading) <tt>add_torrent()</tt> will throw
+<tt>duplicate_torrent</tt> which derives from <tt>std::exception</tt>.
 </p>
 
 <p>
@@ -453,27 +476,28 @@ Its declaration looks like this:
 struct torrent_handle
 {
 	torrent_handle();
-
-	void get_peer_info(std::vector&lt;peer_info&gt;&amp; v);
 	void abort();
 
-	enum state_t
-	{
-		checking_files,
-		connecting_to_tracker,
-		downloading,
-		seeding
-	};
-	
 	torrent_status status() const;
+	void get_download_queue(std::vector&lt;partial_piece_info&gt;&amp; queue);
+	void get_peer_info(std::vector&lt;peer_info&gt;&amp; v);
 };
 </pre>
+
+<p>
+The default constructor will initialize the handle to an invalid state. Which means you cannot
+perform any operation on it, unless you first assign it a valid handle. If you try to perform
+any operation they will simply return.
+</p>
+
 
 <p>
 <tt>abort()</tt> will close all peer connections associated with this torrent and tell
 the tracker that we've stopped participating in the swarm. This handle will become invalid
 shortly after this call has been made.
 </p>
+
+<h3>status()</h3>
 
 <p>
 <tt>status()</tt> will return a structure with information about the status of this
@@ -488,7 +512,6 @@ struct torrent_status
 		invalid_handle,
 		queued_for_checking,
 		checking_files,
-		connecting_to_tracker,
 		downloading,
 		seeding
 	};
@@ -507,6 +530,15 @@ current task is in the <tt>state</tt> member, it will be one of the following:
 </p>
 
 <table>
+	<tr>
+		<td>
+			<tt>invalid_handle</tt>
+		</td>
+		<td>
+			This will be the state if you called status on an uninitialized handle (a
+			handle that was constructed with the default constructor).
+		</td>
+	</tr>
 	<tr>
 		<td>
 			<tt>queued_for_checking</tt>
@@ -549,6 +581,52 @@ current task is in the <tt>state</tt> member, it will be one of the following:
 <tt>total_download</tt> and <tt>total_upload</tt> is the number of bytes downloaded and
 uploaded to all peers, accumulated.
 </p>
+
+<h3>get_download_queue()</h3>
+
+<p>
+<tt>get_download_queue()</tt> takes a non-const reference to a vector which it will fill
+information about pieces that are partially downloaded or not downloaded at all but partially
+requested. The entry in the vector (<tt>partial_piece_info</tt>) looks like this:
+</p>
+
+<pre>
+struct partial_piece_info
+{
+	enum { max_blocks_per_piece = <i>implementation-defined</i> };
+	int piece_index;
+	int blocks_in_piece;
+	std::bitset&lt;max_blocks_per_piece&gt; requested_blocks;
+	std::bitset&lt;max_blocks_per_piece&gt; finished_blocks;
+	peer_id peer[max_blocks_per_piece];
+	int num_downloads[max_blocks_per_piece];
+};
+</pre>
+
+<p>
+<tt>piece_index</tt> is the index of the piece in question. <tt>blocks_in_piece</tt> is the
+number of blocks in this particular piece. This number will be the same for most pieces, but
+the last piece may have fewer blocks than the standard pieces.
+</p>
+
+<p>
+<tt>requested_blocks</tt> is a bitset with one bit per block in the piece. If a bit is set, it
+means that that block has been requested, but not necessarily fully downloaded yet. To know
+from whom the block has been requested, have a look in the <tt>peer</tt> array. The bit-index
+in the <tt>requested_blocks</tt> and <tt>finished_blocks</tt> correspons to the array-index into
+<tt>peers</tt> and <tt>num_downloads</tt>. The array of peers is contains the id of the
+peer the piece was requested from. If a piece hasn't been requested (the bit in
+<tt>requested_blocks</tt> is not set) the peer array entry will be undefined.
+</p>
+
+<p>
+The <tt>finished_blocks</tt> is a bitset where each bit says if the block is fully downloaded
+or not. And the <tt>num_downloads</tt> array says how many times that block has been downloaded.
+When a piece fails a hash verification, single blocks may be redownloaded to see if the hash teast
+may pass then.
+</p>
+
+<h3>get_peer_info()</h3>
 
 <p>
 <tt>get_peer_info()</tt> takes a reference to a vector that will be cleared and filled
@@ -718,6 +796,16 @@ call <tt>reset()</tt> to reinitialize it.
 <p>
 The sha1-algorithm used was implemented by Steve Reid and released as public domain.
 For more info, see <tt>src/sha1.c</tt>.
+</p>
+
+<h1>Feedback</h1>
+
+<p>
+There's a <a href="http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss">mailing list</a>.
+</p>
+
+<p>
+You can usually find me as hydri in <tt>#btports @ irc.freenode.net</tt>.
 </p>
 
 <h1>Credits</h1>

@@ -143,10 +143,43 @@ namespace libtorrent
 		}
 	}
 
+	void torrent_handle::get_download_queue(std::vector<partial_piece_info>& queue) const
+	{
+		queue.clear();
+
+		if (m_ses == 0) return;
+	
+		boost::mutex::scoped_lock l(m_ses->m_mutex);
+		torrent* t = m_ses->find_torrent(m_info_hash);
+		if (t == 0) return;
+
+		const piece_picker& p = t->picker();
+
+		const std::vector<piece_picker::downloading_piece>& q
+			= p.get_download_queue();
+
+		for (std::vector<piece_picker::downloading_piece>::const_iterator i
+			= q.begin();
+			i != q.end();
+			++i)
+		{
+			partial_piece_info pi;
+			pi.finished_blocks = i->finished_blocks;
+			pi.requested_blocks = i->requested_blocks;
+			for (int j = 0; j < partial_piece_info::max_blocks_per_piece; ++j)
+			{
+				pi.peer[j] = i->info[j].peer;
+				pi.num_downloads[j] = i->info[j].num_downloads;
+			}
+			pi.piece_index = i->index;
+			pi.blocks_in_piece = p.blocks_in_piece(i->index);
+			queue.push_back(pi);
+		}
+	}
+
 	void torrent_handle::abort()
 	{
 		if (m_ses == 0) return;
-
 
 		{
 			boost::mutex::scoped_lock l(m_ses->m_mutex);

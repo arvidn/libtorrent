@@ -182,6 +182,8 @@ namespace libtorrent
 #if defined(TORRENT_VERBOSE_LOGGING)
 			m_logger = create_log("main session");
 #endif
+			try
+			{
 
 			boost::shared_ptr<socket> listener(new socket(socket::tcp, false));
 			int max_port = m_listen_port + 9;
@@ -233,6 +235,11 @@ namespace libtorrent
 #endif
 			for(;;)
 			{
+#ifndef NDEBUG
+				std::clock_t time__ = std::clock();
+#endif
+
+
 				// if nothing happens within 500000 microseconds (0.5 seconds)
 				// do the loop anyway to check if anything else has changed
 		//		(*m_logger) << "sleeping\n";
@@ -242,6 +249,10 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG_SOCKETS
 				num_loops++;
 #endif
+
+
+				assert(readable_clients.size() + writable_clients.size() + error_clients.size() > 0
+					|| (std::clock() - time__) > CLOCKS_PER_SEC / 3);
 
 				// +1 for the listen socket
 				assert(m_selector.count_read_monitors() == m_connections.size() + 1);
@@ -261,6 +272,7 @@ namespace libtorrent
 					m_torrents.clear();
 					break;
 				}
+
 
 				// ************************
 				// RECEIVE SOCKETS
@@ -297,7 +309,6 @@ namespace libtorrent
 						continue;
 					}
 
-
 					connection_map::iterator p = m_connections.find(*i);
 					if(p == m_connections.end())
 					{
@@ -321,7 +332,6 @@ namespace libtorrent
 				}
 
 
-
 				// ************************
 				// SEND SOCKETS
 				// ************************
@@ -342,8 +352,15 @@ namespace libtorrent
 					{
 						try
 						{
+							assert(m_selector.is_writability_monitored(p->first));
+							assert(p->second->has_data());
 			//				(*m_logger) << "writable: " << p->first->sender().as_string() << "\n";
 							p->second->send_data();
+							// if the peer doesn't have
+							// any data left to send, remove it
+							// from the writabilty monitor
+							if (!p->second->has_data())
+								m_selector.remove_writable(p->first);
 						}
 						catch(network_error&)
 						{
@@ -374,16 +391,27 @@ namespace libtorrent
 					if (p != m_connections.end()) m_connections.erase(p);
 				}
 
+#ifndef NDEBUG
+				for (connection_map::iterator i = m_connections.begin();
+					i != m_connections.end();
+					++i)
+				{
+					if (m_selector.is_writability_monitored(i->first))
+						assert(i->second->has_data());
+				}
+#endif
+
 
 				// clear all writablility monitors and add
 				// the ones who still has data to send
-				m_selector.clear_writable();
+/*				m_selector.clear_writable();
 
 
 				// ************************
 				// BUILD WRITER LIST
 				// ************************
 
+				// TODO: REWRITE THIS! DON'T GO THROUGH THIS LOOP EVERY TIME!
 
 				// loop over all clients and purge the ones that has timed out
 				// and check if they have pending data to be sent
@@ -411,7 +439,7 @@ namespace libtorrent
 						}
 					}
 				}
-
+*/
 		//      (*m_logger) << "time: " << std::clock()-timer << "\n"; 
 				boost::posix_time::time_duration d = boost::posix_time::second_clock::local_time() - timer;
 				if (d.seconds() < 1) continue;
@@ -422,18 +450,41 @@ namespace libtorrent
 				// THE SECTION BELOW IS EXECUTED ONCE EVERY SECOND
 				// ************************
 
+
 #ifdef TORRENT_DEBUG_SOCKETS
 				std::cout << "\nloops: " << num_loops << "\n";
-				assert(loops < 1300);
+				if (num_loops > 1300)
+				{
+					int i = 0;
+				}
 				num_loops = 0;
 #endif
 
 
 				// do the second_tick() on each connection
 				// this will update their statistics (download and upload speeds)
-				for (connection_map::iterator i = m_connections.begin(); i != m_connections.end(); ++i)
+				// also purge sockets that have timed out
+				// and keep sockets open by keeping them alive.
+				for (connection_map::iterator i = m_connections.begin();
+					i != m_connections.end();)
 				{
 					i->second->second_tick();
+
+					connection_map::iterator j = i;
+					++i;
+					// if this socket has timed out
+					// close it.
+					if (j->second->has_timed_out())
+					{
+						m_selector.remove(j->first);
+						m_connections.erase(j);
+						continue;
+					}
+
+					j->second->keep_alive();
+
+					if (j->second->has_data() && !m_selector.is_writability_monitored(j->first))
+						m_selector.monitor_writability(j->first);
 				}
 
 				// check each torrent for abortion or
@@ -484,6 +535,17 @@ namespace libtorrent
 				t.nsec += 1000000;
 				boost::thread::sleep(t);
 			}
+			}
+			catch(const std::exception& e)
+			{
+				std::cout << e.what() << "\n";
+			}
+			catch(...)
+			{
+				std::cout << "error\n";
+			}
+
+
 		}
 
 		// the return value from this function is valid only as long as the
@@ -498,6 +560,7 @@ namespace libtorrent
 
 	}
 
+	// if the torrent already exists, this will throw duplicate_torrent
 	torrent_handle session::add_torrent(const torrent_info& ti,
 		const std::string& save_path)
 	{
@@ -507,9 +570,8 @@ namespace libtorrent
 			boost::mutex::scoped_lock l(m_impl.m_mutex);
 
 			// is the torrent already active?
-			// TODO: this should throw
 			if (m_impl.find_torrent(ti.info_hash()))
-				return torrent_handle(&m_impl, &m_checker_impl, ti.info_hash());
+				throw duplicate_torrent();
 		}
 
 		{
@@ -517,9 +579,8 @@ namespace libtorrent
 			boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
 
 			// is the torrent currently being checked?
-			// TODO: This should throw
 			if (m_checker_impl.find_torrent(ti.info_hash()))
-				return torrent_handle(&m_impl, &m_checker_impl, ti.info_hash());
+				throw duplicate_torrent();
 		}
 
 		// create the torrent and the data associated with

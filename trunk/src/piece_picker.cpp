@@ -360,9 +360,15 @@ namespace libtorrent
 #endif
 	}
 
-	void piece_picker::pick_pieces(const std::vector<bool>& pieces, std::vector<piece_block>& interesting_pieces) const
+	void piece_picker::pick_pieces(const std::vector<bool>& pieces,
+		std::vector<piece_block>& interesting_pieces,
+		int num_blocks) const
 	{
 		assert(pieces.size() == m_piece_map.size());
+
+#ifndef NDEBUG
+		integrity_check();
+#endif
 
 		// free refers to pieces that are free to download, noone else
 		// is downloading them.
@@ -378,10 +384,8 @@ namespace libtorrent
 			{
 				for (int i = 0; i < 2; ++i)
 				{
-					if (add_interesting_blocks(*partial, pieces, interesting_pieces))
-					{
-						return;
-					}
+					num_blocks = add_interesting_blocks(*partial, pieces, interesting_pieces, num_blocks);
+					if (num_blocks == 0) return;
 					++partial;
 					if (partial == m_downloading_piece_info.end()) break;
 				}
@@ -389,18 +393,17 @@ namespace libtorrent
 
 			if (free != m_piece_info.end())
 			{
-				if (add_interesting_blocks(*free, pieces, interesting_pieces))
-				{
-					return;
-				}
+				num_blocks = add_interesting_blocks(*free, pieces, interesting_pieces, num_blocks);
+				if (num_blocks == 0) return;
 				++free;
 			}
 		}
 	}
 
-	bool piece_picker::add_interesting_blocks(const std::vector<int>& piece_list,
+	int piece_picker::add_interesting_blocks(const std::vector<int>& piece_list,
 		const std::vector<bool>& pieces,
-		std::vector<piece_block>& interesting_blocks) const
+		std::vector<piece_block>& interesting_blocks,
+		int num_blocks) const
 	{
 
 		for (std::vector<int>::const_iterator i = piece_list.begin();
@@ -418,15 +421,20 @@ namespace libtorrent
 
 			if (m_piece_map[*i].downloading == 0)
 			{
-				interesting_blocks.push_back(piece_block(*i, 0));
-				return true; // we have found a piece that's free to download
+				int piece_blocks = std::min(blocks_in_piece(*i), num_blocks);
+				for (int j = 0; j < piece_blocks; ++j)
+				{
+					interesting_blocks.push_back(piece_block(*i, 0));
+				}
+				num_blocks -= piece_blocks;
+				if (num_blocks == 0) return num_blocks;
+				continue;
 			}
 
 			// calculate the number of blocks in this
 			// piece. It's always m_blocks_per_piece, except
 			// in the last piece.
-			int num_blocks_in_piece
-				= (*i == m_piece_map.size()-1)?m_blocks_in_last_piece:m_blocks_per_piece;
+			int num_blocks_in_piece = blocks_in_piece(*i);
 
 			std::vector<downloading_piece>::const_iterator p
 				= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(*i));
@@ -436,10 +444,14 @@ namespace libtorrent
 			{
 				interesting_blocks.push_back(piece_block(*i, j));
 				if (p->requested_blocks[j] == 0)
-					return true; // we have found a piece that's free to download
+				{
+					// we have found a piece that's free to download
+					num_blocks--;
+					if (num_blocks == 0) return num_blocks;
+				}
 			}
 		}
-		return false;
+		return num_blocks;
 	}
 
 	bool piece_picker::is_piece_finished(int index) const
@@ -471,7 +483,7 @@ namespace libtorrent
 		return i->requested_blocks[block.block_index];
 	}
 
-	void piece_picker::mark_as_downloading(piece_block block)
+	void piece_picker::mark_as_downloading(piece_block block, const peer_id& peer)
 	{
 #ifndef NDEBUG
 		integrity_check();
@@ -488,6 +500,7 @@ namespace libtorrent
 			downloading_piece dp;
 			dp.index = block.piece_index;
 			dp.requested_blocks[block.block_index] = 1;
+			dp.info[block.block_index].peer = peer;
 			m_downloads.push_back(dp);
 		}
 		else
@@ -496,6 +509,7 @@ namespace libtorrent
 				= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
 			assert(i != m_downloads.end());
 			assert(i->requested_blocks[block.block_index] == 0);
+			i->info[block.block_index].peer = peer;
 			i->requested_blocks[block.block_index] = 1;
 		}
 #ifndef NDEBUG
@@ -518,11 +532,24 @@ namespace libtorrent
 		assert(i != m_downloads.end());
 		assert(i->requested_blocks[block.block_index] == 1);
 		i->finished_blocks[block.block_index] = 1;
+		i->info[block.block_index].num_downloads++;
 #ifndef NDEBUG
 		integrity_check();
 #endif
 	}
 
+	void piece_picker::get_downloaders(std::vector<peer_id>& d, int index)
+	{
+		std::vector<downloading_piece>::iterator i
+			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(index));
+		assert(i != m_downloads.end());
+
+		d.clear();
+		for (int j = 0; j < blocks_in_piece(index); ++j)
+		{
+			d.push_back(i->info[j].peer);
+		}
+	}
 
 	void piece_picker::abort_download(piece_block block)
 	{

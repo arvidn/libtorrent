@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/piece_picker.hpp"
 
 
 namespace libtorrent
@@ -47,6 +48,11 @@ namespace libtorrent
 		struct checker_impl;
 	}
 
+	struct duplicate_torrent: std::exception
+	{
+		virtual const char* what() const { return "torrent already exists in session"; }
+	};
+
 	struct torrent_status
 	{
 		enum state_t
@@ -54,7 +60,6 @@ namespace libtorrent
 			invalid_handle,
 			queued_for_checking,
 			checking_files,
-			connecting_to_tracker,
 			downloading,
 			seeding
 		};
@@ -63,6 +68,17 @@ namespace libtorrent
 		float progress;
 		std::size_t total_download;
 		std::size_t total_upload;
+	};
+
+	struct partial_piece_info
+	{
+		enum { max_blocks_per_piece = piece_picker::max_blocks_per_piece };
+		int piece_index;
+		int blocks_in_piece;
+		std::bitset<max_blocks_per_piece> requested_blocks;
+		std::bitset<max_blocks_per_piece> finished_blocks;
+		peer_id peer[max_blocks_per_piece];
+		int num_downloads[max_blocks_per_piece];
 	};
 
 	struct torrent_handle
@@ -75,6 +91,8 @@ namespace libtorrent
 		void abort();
 
 		torrent_status status() const;
+
+		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 
 		// TODO: add a 'time to next announce' query.
 

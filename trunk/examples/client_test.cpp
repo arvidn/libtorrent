@@ -35,12 +35,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iterator>
 #include <exception>
 
+#include <boost/format.hpp>
+
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/http_settings.hpp"
 
 #ifdef WIN32
+#include <windows.h>
 #include <conio.h>
 
 bool sleep_and_input(char* c)
@@ -53,6 +56,21 @@ bool sleep_and_input(char* c)
 	}
 	return false;
 };
+
+void set_cursor(int x, int y)
+{
+	HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+	COORD c = {x, y};
+	SetConsoleCursorPosition(h, c);
+}
+
+void clear()
+{
+	HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+	COORD c = {0, 0};
+	DWORD n;
+	FillConsoleOutputCharacter(h, ' ', 80 * 50, c, &n);
+}
 
 #else
 
@@ -155,6 +173,7 @@ int main(int argc, char* argv[])
 		}
 
 		std::vector<peer_info> peers;
+		std::vector<partial_piece_info> queue;
 
 		for (;;)
 		{
@@ -164,6 +183,8 @@ int main(int argc, char* argv[])
 				if (c == 'q') break;
 			}
 
+			clear();
+			set_cursor(0, 0);
 			for (std::vector<torrent_handle>::iterator i = handles.begin();
 				i != handles.end();
 				++i)
@@ -173,20 +194,18 @@ int main(int argc, char* argv[])
 				switch(s.state)
 				{
 					case torrent_status::queued_for_checking:
-						std::cout << "queued for checking: ";
+						std::cout << "queued ";
 						break;
 					case torrent_status::checking_files:
-						std::cout << "checking files: ";
+						std::cout << "checking ";
 						break;
 					case torrent_status::downloading:
-						std::cout << "downloading: ";
+						std::cout << "dloading ";
 						break;
 					case torrent_status::seeding:
-						std::cout << "seeding: ";
+						std::cout << "seeding ";
 						break;
 				};
-
-				std::cout << s.progress*100 << "% ";
 
 				// calculate download and upload speeds
 				i->get_peer_info(peers);
@@ -205,14 +224,35 @@ int main(int argc, char* argv[])
 					total_down += i->total_download;
 					total_up += i->total_upload;
 				}
-
-				std::cout << "p:" << num_peers;
-				
-				std::cout << " d:("
-					<< add_suffix(total_down) << ") " << add_suffix(down) << "/s up:("
+/*
+				std::cout << boost::format("%f%% p:%d d:(%s) %s/s u:(%s) %s/s\n")
+					% (s.progress*100)
+					% num_peers
+					% add_suffix(total_down)
+					% add_suffix(down)
+					% add_suffix(total_up)
+					% add_suffix(up);
+*/
+				std::cout << (s.progress*100) << "% p:" << num_peers << " d:("
+					<< add_suffix(total_down) << ") " << add_suffix(down) << "/s u:("
 					<< add_suffix(total_up) << ") " << add_suffix(up) << "/s\n";
+
+				i->get_download_queue(queue);
+				for (std::vector<partial_piece_info>::iterator i = queue.begin();
+					i != queue.end();
+					++i)
+				{
+					std::cout << i->piece_index << ": ";
+					for (int j = 0; j < i->blocks_in_piece; ++j)
+					{
+						if (i->finished_blocks[j]) std::cout << "#";
+						else if (i->requested_blocks[j]) std::cout << "-";
+						else std::cout << ".";
+					}
+					std::cout << "\n";
+				}
+				std::cout << "___________________________________\n";
 			}
-			std::cout << "----\n";
 		}
 	}
 	catch (std::exception& e)

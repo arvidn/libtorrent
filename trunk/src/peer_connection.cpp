@@ -399,12 +399,21 @@ bool libtorrent::peer_connection::dispatch_message()
 				}
 				else
 				{
+#ifndef NDEBUG
+					std::cout << "hash-test failed. Some of these peers sent invalid data:\n";
+					std::vector<peer_id> downloaders;
+					picker.get_downloaders(downloaders, index);
+					std::copy(downloaders.begin(), downloaders.end(), std::ostream_iterator<peer_id>(std::cout, "\n"));
+#endif
 					// we have to let the piece_picker know that
 					// this piece failed the check as it can restore it
 					// and mark it as being interesting for download
 					// TODO: do this more intelligently! and keep track
 					// of how much crap (data that failed hash-check) and
 					// how much redundant data we have downloaded
+					// if some clients has sent more than one piece
+					// start with redownloading the pieces that the client
+					// that has sent the least number of pieces
 					picker.restore_piece(index);
 				}
 				m_torrent->get_policy().piece_finished(*this, index, verified);
@@ -446,7 +455,7 @@ void libtorrent::peer_connection::request_block(piece_block block)
 	assert(block.piece_index < m_torrent->torrent_file().num_pieces());
 	assert(!m_torrent->picker().is_downloading(block));
 
-	m_torrent->picker().mark_as_downloading(block);
+	m_torrent->picker().mark_as_downloading(block, m_peer_id);
 
 	m_download_queue.push_back(block);
 
@@ -785,6 +794,8 @@ bool libtorrent::peer_connection::has_data() const throw()
 // throws exception when the client should be disconnected
 void libtorrent::peer_connection::send_data()
 {
+	assert(has_data());
+
 	// only add new piece-chunks if the send buffer is empty
 	// otherwise there will be no end to how large it will be!
 	if (!m_requests.empty() && m_send_buffer.empty() && m_peer_interested && !m_choked)
