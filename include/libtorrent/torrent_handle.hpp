@@ -186,6 +186,7 @@ namespace libtorrent
 		const torrent_info& get_torrent_info() const;
 		bool is_valid() const;
 
+		bool is_seed() const;
 		bool is_paused() const;
 		void pause();
 		void resume();

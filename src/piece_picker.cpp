@@ -246,18 +246,24 @@ namespace libtorrent
 		}
 
 	}
-	#endif
+#endif
+
 	float piece_picker::distributed_copies() const
 	{
-		for(int count=0;count<(int)m_piece_info.size();count++)
+		const float num_pieces = static_cast<float>(m_piece_map.size());
+
+		for (int i = 0; i < (int)m_piece_info.size(); ++i)
 		{
-			if(!m_piece_info[count].empty()) {
+			int p = (int)m_piece_info[i].size();
+			assert(float(p) / num_pieces <= 1.f);
+			if (p > 0)
+			{
 				float fraction_above_count =
-					1.f - float(m_piece_info[count].size())/float(m_piece_map.size());
-				return count+fraction_above_count;
+					1.f - float(p) / num_pieces;
+				return i + fraction_above_count;
 			}
 		}
-		return 0.f;
+		return 1.f;
 	}
 
 	void piece_picker::move(bool downloading, int peer_count, int elem_index)

@@ -125,7 +125,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		m_ul_bandwidth_quota.min = 10;
-		m_ul_bandwidth_quota.max = 10;
+		m_ul_bandwidth_quota.max = 400;
+		m_ul_bandwidth_quota.given = 400;
 		m_dl_bandwidth_quota.min = 10;
 		m_dl_bandwidth_quota.max = std::numeric_limits<int>::max();
 		m_dl_bandwidth_quota.given = 400;
@@ -1707,8 +1708,6 @@ namespace libtorrent
 			(int)ceil(statistics().upload_rate())
 			, m_ul_bandwidth_quota.given);
 
-		send_buffer_updated();
-		
 		// If the client sends more data
 		// we send it data faster, otherwise, slower.
 		// It will also depend on how much data the
@@ -1750,6 +1749,13 @@ namespace libtorrent
 			m_ul_bandwidth_quota.max
 				= std::max((int)upload_speed_limit, m_ul_bandwidth_quota.min);
 		}
+		if (m_ul_bandwidth_quota.given > m_ul_bandwidth_quota.max)
+			m_ul_bandwidth_quota.given = m_ul_bandwidth_quota.max;
+
+		if (m_ul_bandwidth_quota.used > m_ul_bandwidth_quota.given)
+			m_ul_bandwidth_quota.used = m_ul_bandwidth_quota.given;
+
+		send_buffer_updated();
 
 /*
 		size_type diff = share_diff();
@@ -2366,5 +2372,4 @@ namespace libtorrent
 		assert(m_writability_monitored);
 		assert(m_selector.is_writability_monitored(m_socket));
 	}
-
 }

@@ -117,6 +117,8 @@ namespace libtorrent { namespace detail
 			try
 			{
 				assert(t != 0);
+				t->parse_resume_data(t->resume_data, t->torrent_ptr->torrent_file());
+				t->resume_data = entry(); // clear the resume data now that it has been used
 				t->torrent_ptr->check_files(*t, m_mutex);
 				// lock the session to add the new torrent
 
@@ -324,7 +326,10 @@ namespace libtorrent { namespace detail
 		{
 
 #ifndef NDEBUG
-			check_invariant("loops_per_second++");
+			{
+				boost::mutex::scoped_lock l(m_mutex);
+				check_invariant("before SELECT");
+			}
 			loops_per_second++;
 #endif
 
@@ -334,6 +339,11 @@ namespace libtorrent { namespace detail
 			m_selector.wait(500000, readable_clients, writable_clients, error_clients);
 
 #ifndef NDEBUG
+			{
+				boost::mutex::scoped_lock l(m_mutex);
+				check_invariant("after SELECT");
+			}
+
 			for (std::vector<boost::shared_ptr<libtorrent::socket> >::iterator i =
 				writable_clients.begin();
 				i != writable_clients.end();
@@ -341,8 +351,19 @@ namespace libtorrent { namespace detail
 			{
 				assert((*i)->is_writable());
 			}
+
+			for (std::vector<boost::shared_ptr<libtorrent::socket> >::iterator i =
+				readable_clients.begin();
+				i != readable_clients.end();
+				++i)
+			{
+				assert((*i)->is_readable());
+			}
 #endif
 			boost::mutex::scoped_lock l(m_mutex);
+#ifndef NDEBUG
+			check_invariant("before abort");
+#endif
 
 			if (m_abort)
 			{
@@ -857,7 +878,7 @@ namespace libtorrent
 		d.torrent_ptr = torrent_ptr;
 		d.save_path = save_path;
 		d.info_hash = ti.info_hash();
-		d.parse_resume_data(resume_data, torrent_ptr->torrent_file());
+		d.resume_data = resume_data;
 		
 		// add the torrent to the queue to be checked
 		m_checker_impl.m_torrents.push_back(d);
@@ -1025,14 +1046,6 @@ namespace libtorrent
 		assert(bytes_per_second > 0 || bytes_per_second == -1);
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_upload_rate = bytes_per_second;
-		if (m_impl.m_upload_rate != -1) return;
-
-		for (detail::session_impl::connection_map::iterator i
-			= m_impl.m_connections.begin();
-			i != m_impl.m_connections.end(); ++i)
-		{
-			i->second->m_ul_bandwidth_quota.given = std::numeric_limits<int>::max();
-		}
 	}
 
 	void session::set_download_rate_limit(int bytes_per_second)
@@ -1040,14 +1053,6 @@ namespace libtorrent
 		assert(bytes_per_second > 0 || bytes_per_second == -1);
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_download_rate = bytes_per_second;
-		if (m_impl.m_download_rate != -1) return;
-
-		for (detail::session_impl::connection_map::iterator i
-			= m_impl.m_connections.begin();
-			i != m_impl.m_connections.end(); ++i)
-		{
-			i->second->m_dl_bandwidth_quota.given = std::numeric_limits<int>::max();
-		}
 	}
 
 	std::auto_ptr<alert> session::pop_alert()
