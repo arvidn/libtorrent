@@ -57,7 +57,7 @@ __ http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 You can usually find me as hydri in ``#btports @ irc.freenode.net``.
 
 
-Aknowledgements
+Acknowledgements
 ===============
 
 Written by Arvid Norberg. Copyright (c) 2003
