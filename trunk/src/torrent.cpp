@@ -184,7 +184,7 @@ namespace libtorrent
 					std::cout << std::hex << std::setw(2) << std::setfill('0')
 					<< static_cast<unsigned int>(*j);
 				}
-				std::cout << "\n";
+				std::cout << " " << extract_fingerprint(i->id) << "\n";
 			}
 			std::cout << std::dec << std::setfill(' ');
 
@@ -354,13 +354,6 @@ namespace libtorrent
 		m_ses->m_selector.monitor_errors(s);
 		std::cout << "connecting to: " << a.as_string() << ":" << a.port() << "\n";
 	}
-
-#ifndef NDEBUG
-	logger* torrent::spawn_logger(const char* title)
-	{
-		return m_ses->m_log_spawner->create_logger(title);
-	}
-#endif
 
 	void torrent::close_all_connections()
 	{

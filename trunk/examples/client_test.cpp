@@ -41,25 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_settings.hpp"
 
 
-#ifndef NDEBUG
-struct cout_logger: libtorrent::logger
-{
-public:
-	virtual void log(const char* text) { std::cout << text; }
-	virtual void clear() {}
-};
-
-struct cout_log_creator: libtorrent::log_spawner
-{
-	virtual libtorrent::logger* create_logger(const char* title)
-	{
-		cout_logger* log = new cout_logger();
-		return log;
-	}
-};
-
-#endif
-
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
@@ -78,15 +59,14 @@ int main(int argc, char* argv[])
 //	settings.proxy_password = "foobar";
 	settings.user_agent = "example";
 
+	const char* fingerprint = "ex01";
+	std::copy(fingerprint, fingerprint+4, settings.fingerprint);
+
 	try
 	{
 		std::vector<torrent_handle> handles;
-#ifndef NDEBUG
-		cout_log_creator l;
-		session s(6881, &l);
-#else
 		session s(6881);
-#endif
+
 		s.set_http_settings(settings);
 		for (int i = 0; i < argc-1; ++i)
 		{

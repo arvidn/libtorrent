@@ -75,7 +75,6 @@ namespace libtorrent
 		{ return piece == r.piece && start == r.start && length	== r.length; }
 	};
 
-	// TODO: add checks to make sure we only get pieces we ask for
 	class peer_connection: public boost::noncopyable
 	{
 	public:
@@ -146,7 +145,7 @@ namespace libtorrent
 		const peer_id& get_peer_id() const { return m_peer_id; }
 		const std::vector<bool>& get_bitfield() const { return m_have_piece; }
 
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 		boost::shared_ptr<logger> m_logger;
 #endif
 

@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 	// DEBUG API
 
 	struct logger
@@ -65,7 +65,6 @@ namespace libtorrent
 			return *this; 
 		}
 
-
 		logger& operator<<(char i)
 		{
 			char c[2];
@@ -76,20 +75,25 @@ namespace libtorrent
 		}
 
 		virtual void log(const char*) = 0;
-		virtual void clear() = 0;
 		virtual ~logger() {}
 	};
 
-	// this is an abstract base for a log-window creator
-	// this is called every time a new peer connects
-	// the logger that gets created will be deleted
-	// by the library when it's finished with it.
-	struct log_spawner
+	struct cout_logger: libtorrent::logger
 	{
-		virtual logger* create_logger(const char* title) = 0;
-		virtual ~log_spawner() {}
+	public:
+		virtual void log(const char* text) { std::cout << text; }
 	};
 
+	struct file_logger: libtorrent::logger
+	{
+	public:
+		file_logger(const char* filename)
+			: m_file(filename)
+		{}
+		virtual void log(const char* text) { m_file << text; }
+
+		std::ofstream m_file;
+	};
 #endif
 
 }
