@@ -231,7 +231,7 @@ namespace libtorrent
 			, save_path(x.save_path)
 		{}
 
-		const torrent_info& info;
+		torrent_info const& info;
 		const boost::filesystem::path save_path;
 	};
 
@@ -784,9 +784,12 @@ namespace libtorrent
 		hasher small_digest;
 		small_digest.update(&piece_data[0], last_piece_size);
 		hasher large_digest(small_digest);
-		large_digest.update(
-			&piece_data[last_piece_size]
-			, piece_size - last_piece_size);
+		if (piece_size - last_piece_size > 0)
+		{
+			large_digest.update(
+				&piece_data[last_piece_size]
+				, piece_size - last_piece_size);
+		}
 		sha1_hash large_hash = large_digest.final();
 		sha1_hash small_hash = small_digest.final();
 
@@ -902,6 +905,7 @@ namespace libtorrent
 	  , detail::piece_checker_data& data
 	  , std::vector<bool>& pieces)
 	{
+		assert(m_info.piece_length() > 0);
 		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		// ----------------------------------------------------------------------
