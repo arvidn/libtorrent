@@ -61,7 +61,7 @@ namespace libtorrent
 			: alert(alert::info, msg)
 			, handle(h)
 			, piece_index(index)
-			{}
+			{ assert(index >= 0);}
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new hash_failed_alert(*this)); }

@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/torrent_handle.hpp"
+#include "libtorrent/torrent.hpp"
 
 // TODO: each time a block is 'taken over'
 // from another peer. That peer must be given
@@ -228,6 +229,7 @@ namespace libtorrent
 		// it will let the peer know that we have the given piece
 		void announce_piece(int index)
 		{
+			assert(index >= 0 && index < m_torrent->torrent_file().num_pieces());
 			m_announce_queue.push_back(index);
 		}
 
@@ -252,7 +254,9 @@ namespace libtorrent
 		void keep_alive();
 
 		const peer_id& id() const { return m_peer_id; }
-		bool has_piece(int i) const { return m_have_piece[i]; }
+		bool has_piece(int i) const
+		{ assert(i >= 0 && i < m_torrent->torrent_file().num_pieces());
+		  return m_have_piece[i]; }
 
 		const std::deque<piece_block>& download_queue() const
 		{ return m_download_queue; }
@@ -456,7 +460,7 @@ namespace libtorrent
 		// seperately on payload and protocol data.
 		struct range
 		{
-			range(int s, int l): start(s), length(l) {}
+			range(int s, int l): start(s), length(l) { assert(s>=0); assert(l>0);}
 			int start;
 			int length;
 		};

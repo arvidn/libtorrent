@@ -227,6 +227,7 @@ namespace
 		, torrent::peer_iterator end
 		, size_type free_upload)
 	{
+		assert(free_upload >= 0);
 		if (free_upload <= 0) return free_upload;
 		int num_peers = 0;
 		size_type total_diff = 0;
@@ -296,7 +297,7 @@ namespace libtorrent
 		, m_num_unchoked(0)
 		, m_available_free_upload(0)
 		, m_last_optimistic_disconnect(boost::gregorian::date(1970,boost::gregorian::Jan,1))
-	{}
+	{ assert(t); }
 	// finds the peer that has the worst download rate
 	// and returns it. May return 0 if all peers are
 	// choked.
@@ -742,6 +743,8 @@ namespace libtorrent
 
 	void policy::piece_finished(int index, bool successfully_verified)
 	{
+		assert(index >= 0 && index < m_torrent->torrent_file().num_pieces());
+
 		if (successfully_verified)
 		{
 			// have all peers update their interested-flag
@@ -909,6 +912,7 @@ namespace libtorrent
 #ifndef NDEBUG
 	bool policy::has_connection(const peer_connection* c)
 	{
+		assert(c);
 		return std::find_if(
 			m_peers.begin()
 			, m_peers.end()

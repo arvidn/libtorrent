@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HASHER_HPP_INCLUDED
 #define TORRENT_HASHER_HPP_INCLUDED
 
+#include <cassert>
+
 extern "C"
 {
 	typedef struct {
@@ -59,7 +61,7 @@ namespace libtorrent
 		adler32_crc(): m_adler(adler32(0, 0, 0)) {}
 
 		void update(const char* data, int len)
-		{ m_adler = adler32(m_adler, data, len); }
+		{ assert(data); assert(len>0); m_adler = adler32(m_adler, data, len); }
 		unsigned long final() const { return m_adler; }
 		void reset() { m_adler = adler32(0, 0, 0); }
 
@@ -74,8 +76,8 @@ namespace libtorrent
 	public:
 
 		hasher() { SHA1Init(&m_context); }
-		void update(const char* data, unsigned int len)
-		{ SHA1Update(&m_context, reinterpret_cast<unsigned char*>(const_cast<char*>(data)), len); }
+		void update(const char* data, int len)
+		{ assert(data); assert(len>0); SHA1Update(&m_context, reinterpret_cast<unsigned char*>(const_cast<char*>(data)), len); }
 
 		sha1_hash final()
 		{

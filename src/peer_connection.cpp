@@ -205,6 +205,7 @@ namespace libtorrent
 
 	void peer_connection::set_send_quota(int num_bytes)
 	{
+		assert(num_bytes>=0 || num_bytes==-1);
 		INVARIANT_CHECK;
 
 		assert(num_bytes <= m_send_quota_limit || m_send_quota_limit == -1);
@@ -321,6 +322,7 @@ namespace libtorrent
 
 	void peer_connection::on_choke(int received)
 	{
+		assert(received>0);
 		INVARIANT_CHECK;
 
 		if (m_packet_size != 1)
@@ -354,6 +356,7 @@ namespace libtorrent
 
 	void peer_connection::on_unchoke(int received)
 	{
+		assert(received>0);
 		INVARIANT_CHECK;
 
 		if (m_packet_size != 1)
@@ -374,6 +377,7 @@ namespace libtorrent
 
 	void peer_connection::on_interested(int received)
 	{
+		assert(received>0);
 		INVARIANT_CHECK;
 
 		if (m_packet_size != 1)
@@ -394,6 +398,7 @@ namespace libtorrent
 
 	void peer_connection::on_not_interested(int received)
 	{
+		assert(received>0);
 		INVARIANT_CHECK;
 
 		if (m_packet_size != 1)
@@ -417,6 +422,7 @@ namespace libtorrent
 
 	void peer_connection::on_have(int received)
 	{
+		assert(received>0);
 		INVARIANT_CHECK;
 
 		if (m_packet_size != 5)
@@ -461,6 +467,7 @@ namespace libtorrent
 
 	void peer_connection::on_bitfield(int received)
 	{
+		assert(received>0);
 		INVARIANT_CHECK;
 
 		if (m_packet_size - 1 != (m_have_piece.size() + 7) / 8)
@@ -528,6 +535,7 @@ namespace libtorrent
 
 	void peer_connection::on_request(int received)
 	{
+		assert(received>0);
 		INVARIANT_CHECK;
 
 		if (m_packet_size != 13)
@@ -595,6 +603,7 @@ namespace libtorrent
 
 	void peer_connection::on_piece(int received)
 	{
+		assert(received>0);
 		INVARIANT_CHECK;
 
 		if (m_recv_pos - received <= 9)
@@ -742,6 +751,7 @@ namespace libtorrent
 
 	void peer_connection::on_cancel(int received)
 	{
+		assert(received>0);
 		INVARIANT_CHECK;
 
 		if (m_packet_size != 13)
@@ -779,6 +789,7 @@ namespace libtorrent
 
 	void peer_connection::on_extension_list(int received)
 	{
+		assert(received>0);
 		INVARIANT_CHECK;
 
 		if (m_packet_size > 100 * 1024)
@@ -829,6 +840,7 @@ namespace libtorrent
 
 	void peer_connection::on_extended(int received)
 	{
+		assert(received>0);
 		INVARIANT_CHECK;
 
 		m_statistics.received_bytes(0, received);
@@ -904,6 +916,7 @@ namespace libtorrent
 
 	bool peer_connection::dispatch_message(int received)
 	{
+		assert(received>0);
 		INVARIANT_CHECK;
 
 		assert(m_recv_pos >= received);
@@ -935,6 +948,8 @@ namespace libtorrent
 
 		assert(block.piece_index >= 0);
 		assert(block.piece_index < m_torrent->torrent_file().num_pieces());
+		assert(block.block_index >= 0);
+		assert(block.block_index < m_torrent->torrent_file().piece_size(block.piece_index));
 		assert(m_torrent->picker().is_downloading(block));
 
 		m_torrent->picker().abort_download(block);
@@ -983,6 +998,8 @@ namespace libtorrent
 
 		assert(block.piece_index >= 0);
 		assert(block.piece_index < m_torrent->torrent_file().num_pieces());
+		assert(block.block_index >= 0);
+		assert(block.block_index < m_torrent->torrent_file().piece_size(block.piece_index));
 		assert(!m_torrent->picker().is_downloading(block));
 
 		m_torrent->picker().mark_as_downloading(block, m_socket->sender());
@@ -1166,6 +1183,8 @@ namespace libtorrent
 
 	void peer_connection::send_have(int index)
 	{
+		assert(index >= 0);
+		assert(index < m_torrent->torrent_file().num_pieces());
 		INVARIANT_CHECK;
 
 		// optimization, don't send have messages
@@ -1536,7 +1555,7 @@ namespace libtorrent
 		// requested block. Have a limit of how much of the requested
 		// block is actually read at a time.
 		while (!m_requests.empty()
-			&& ((int)m_send_buffer.size() < m_torrent->block_size())
+			&& (m_send_buffer.size() < (unsigned)m_torrent->block_size())
 			&& !m_choked)
 		{
 			peer_request& r = m_requests.front();
