@@ -83,8 +83,8 @@ namespace
 		peer_id ret;
 		std::srand(std::time(0));
 		// TODO: add ability to control fingerprint
-//		unsigned char fingerprint[] = "lt.\0\0\0\0\0\0\0";
-		unsigned char fingerprint[] = "lt.\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+		unsigned char fingerprint[] = "lt.\0\0\0\0\0\0\0";
+//		unsigned char fingerprint[] = "lt.\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 		const int len = sizeof(fingerprint)-1;
 		std::copy(fingerprint, fingerprint+len, ret.begin());
 		for (unsigned char* i = ret.begin()+len; i != ret.end(); ++i) *i = rand();
