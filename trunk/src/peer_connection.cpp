@@ -71,17 +71,24 @@ namespace
 
 }
 
-libtorrent::peer_connection::peer_connection(detail::session_impl* ses, torrent* t, boost::shared_ptr<libtorrent::socket> s, const peer_id& p)
+libtorrent::peer_connection::peer_connection(
+	detail::session_impl* ses
+	, selector& sel
+	, torrent* t
+	, boost::shared_ptr<libtorrent::socket> s
+	, const peer_id& p)
 	: m_state(read_protocol_length)
 	, m_timeout(120)
 	, m_packet_size(1)
 	, m_recv_pos(0)
 	, m_last_receive(std::time(0))
 	, m_last_sent(std::time(0))
+	, m_selector(sel)
 	, m_socket(s)
 	, m_torrent(t)
 	, m_ses(ses)
 	, m_active(true)
+	, m_added_to_selector(false)
 	, m_peer_id(p)
 	, m_peer_interested(false)
 	, m_peer_choked(true)
@@ -107,17 +114,22 @@ libtorrent::peer_connection::peer_connection(detail::session_impl* ses, torrent*
 	send_bitfield();
 }
 
-libtorrent::peer_connection::peer_connection(detail::session_impl* ses, boost::shared_ptr<libtorrent::socket> s)
+libtorrent::peer_connection::peer_connection(
+	detail::session_impl* ses
+	, selector& sel
+	, boost::shared_ptr<libtorrent::socket> s)
 	: m_state(read_protocol_length)
 	, m_timeout(120)
 	, m_packet_size(1)
 	, m_recv_pos(0)
 	, m_last_receive(std::time(0))
 	, m_last_sent(std::time(0))
+	, m_selector(sel)
 	, m_socket(s)
 	, m_torrent(0)
 	, m_ses(ses)
 	, m_active(false)
+	, m_added_to_selector(false)
 	, m_peer_id()
 	, m_peer_interested(false)
 	, m_peer_choked(true)
@@ -161,6 +173,7 @@ void libtorrent::peer_connection::send_handshake()
 	(*m_logger) << m_socket->sender().as_string() << " ==> HANDSHAKE\n";
 #endif
 
+	send_buffer_updated();
 }
 
 bool libtorrent::peer_connection::dispatch_message()
@@ -305,6 +318,8 @@ bool libtorrent::peer_connection::dispatch_message()
 			r.length = read_int(&m_recv_buffer[9]);
 			m_requests.push_back(r);
 
+			send_buffer_updated();
+
 #if defined(TORRENT_VERBOSE_LOGGING)
 			(*m_logger) << m_socket->sender().as_string() << " <== REQUEST [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
 #endif
@@ -351,7 +366,7 @@ bool libtorrent::peer_connection::dispatch_message()
 #endif
 				return false;
 			}
-
+/*
 			piece_block req = m_download_queue.front();
 			if (req.piece_index != index)
 			{
@@ -368,31 +383,48 @@ bool libtorrent::peer_connection::dispatch_message()
 #endif
 				return false;
 			}
-
-			m_receiving_piece.open(m_torrent->filesystem(), index, piece_file::out, offset);
-
+*/
 #if defined(TORRENT_VERBOSE_LOGGING)
 			(*m_logger) << m_socket->sender().as_string() << " <== PIECE [ piece: " << index << " | s: " << offset << " | l: " << len << " ]\n";
 #endif
 
-			m_receiving_piece.write(&m_recv_buffer[9], len);
 			m_torrent->downloaded_bytes(len);
 
 			piece_picker& picker = m_torrent->picker();
 			piece_block block_finished(index, offset / m_torrent->block_size());
-			picker.mark_as_finished(block_finished);
 
-			// pop the request that just finished
-			// from the download queue
-			m_download_queue.erase(m_download_queue.begin());
-			m_torrent->m_unverified_blocks++;
+			std::vector<piece_block>::iterator b
+				= std::find(
+					m_download_queue.begin()
+					, m_download_queue.end()
+					, block_finished);
+
+			if (b != m_download_queue.end())
+			{
+				// pop the request that just finished
+				// from the download queue
+				m_download_queue.erase(b);
+			}
+			else
+			{
+				// TODO: cancel the block from the
+				// peer that has taken over it.
+			}
+
+			if (picker.is_finished(block_finished)) break;
+
+			m_receiving_piece.open(m_torrent->filesystem(), index, piece_file::out, offset);
+			m_receiving_piece.write(&m_recv_buffer[9], len);
+			m_receiving_piece.close();
+
+			picker.mark_as_finished(block_finished, m_peer_id);
 
 			// did we just finish the piece?
 			if (picker.is_piece_finished(index))
 			{
-				m_torrent->m_unverified_blocks -= picker.blocks_in_piece(index);
-
+				m_receiving_piece.open(m_torrent->filesystem(), index, piece_file::in);
 				bool verified = m_torrent->filesystem()->verify_piece(m_receiving_piece);
+				m_receiving_piece.close();
 				if (verified)
 				{
 					m_torrent->announce_piece(index);
@@ -438,15 +470,69 @@ bool libtorrent::peer_connection::dispatch_message()
 				m_requests.erase(i);
 			}
 
+			if (!has_data() && m_added_to_selector)
+			{
+				m_added_to_selector = false;
+				m_selector.remove_writable(m_socket);
+			}
+
 #if defined(TORRENT_VERBOSE_LOGGING)
 			(*m_logger) << m_socket->sender().as_string() << " <== CANCEL [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
 #endif
-			m_requests.clear();
 			break;
 		}
 	}
 
 	return true;
+}
+
+void libtorrent::peer_connection::cancel_block(piece_block block)
+{
+	assert(block.piece_index >= 0);
+	assert(block.piece_index < m_torrent->torrent_file().num_pieces());
+	assert(m_torrent->picker().is_downloading(block));
+
+	m_torrent->picker().abort_download(block);
+
+	std::vector<piece_block>::iterator i
+		= std::find(m_download_queue.begin(), m_download_queue.end(), block);
+	assert(i != m_download_queue.end());
+
+	m_download_queue.erase(i);
+
+
+	int block_offset = block.block_index * m_torrent->block_size();
+	int block_size
+		= std::min((int)m_torrent->torrent_file().piece_size(block.piece_index)-block_offset,
+		m_torrent->block_size());
+	assert(block_size > 0);
+	assert(block_size <= m_torrent->block_size());
+
+	char buf[] = {0,0,0,13, msg_cancel};
+
+	std::size_t start_offset = m_send_buffer.size();
+	m_send_buffer.resize(start_offset + 17);
+
+	std::copy(buf, buf + 5, m_send_buffer.begin()+start_offset);
+	start_offset +=5;
+
+	// index
+	write_int(block.piece_index, &m_send_buffer[start_offset]);
+	start_offset += 4;
+
+	// begin
+	write_int(block_offset, &m_send_buffer[start_offset]);
+	start_offset += 4;
+
+	// length
+	write_int(block_size, &m_send_buffer[start_offset]);
+	start_offset += 4;
+#if defined(TORRENT_VERBOSE_LOGGING)
+	(*m_logger) << m_socket->sender().as_string() << " ==> CANCEL [ piece: " << block.piece_index << " | s: " << block_offset << " | l: " << block_size << " | " << block.block_index << " ]\n";
+#endif
+	assert(start_offset == m_send_buffer.size());
+
+	send_buffer_updated();
 }
 
 void libtorrent::peer_connection::request_block(piece_block block)
@@ -493,6 +579,7 @@ void libtorrent::peer_connection::request_block(piece_block block)
 #endif
 	assert(start_offset == m_send_buffer.size());
 
+	send_buffer_updated();
 }
 
 void libtorrent::peer_connection::send_bitfield()
@@ -511,6 +598,7 @@ void libtorrent::peer_connection::send_bitfield()
 		if (m_torrent->have_piece(i))
 			m_send_buffer[old_size + 5 + (i>>3)] |= 1 << (7 - (i&7));
 	}
+	send_buffer_updated();
 }
 
 void libtorrent::peer_connection::choke()
@@ -522,6 +610,7 @@ void libtorrent::peer_connection::choke()
 #if defined(TORRENT_VERBOSE_LOGGING)
 	(*m_logger) << m_socket->sender().as_string() << " ==> CHOKE\n";
 #endif
+	send_buffer_updated();
 }
 
 void libtorrent::peer_connection::unchoke()
@@ -533,6 +622,7 @@ void libtorrent::peer_connection::unchoke()
 #if defined(TORRENT_VERBOSE_LOGGING)
 	(*m_logger) << m_socket->sender().as_string() << " ==> UNCHOKE\n";
 #endif
+	send_buffer_updated();
 }
 
 void libtorrent::peer_connection::interested()
@@ -544,6 +634,7 @@ void libtorrent::peer_connection::interested()
 #if defined(TORRENT_VERBOSE_LOGGING)
 	(*m_logger) << m_socket->sender().as_string() << " ==> INTERESTED\n";
 #endif
+	send_buffer_updated();
 }
 
 void libtorrent::peer_connection::not_interested()
@@ -555,6 +646,7 @@ void libtorrent::peer_connection::not_interested()
 #if defined(TORRENT_VERBOSE_LOGGING)
 	(*m_logger) << m_socket->sender().as_string() << " ==> NOT_INTERESTED\n";
 #endif
+	send_buffer_updated();
 }
 
 void libtorrent::peer_connection::send_have(int index)
@@ -565,6 +657,7 @@ void libtorrent::peer_connection::send_have(int index)
 #if defined(TORRENT_VERBOSE_LOGGING)
 	(*m_logger) << m_socket->sender().as_string() << " ==> HAVE [ piece: " << index << " ]\n";
 #endif
+	send_buffer_updated();
 }
 
 
@@ -784,7 +877,7 @@ bool libtorrent::peer_connection::has_data() const throw()
 {
 	// if we have requests or pending data to be sent or announcements to be made
 	// we want to send data
-	return !m_requests.empty() || !m_send_buffer.empty() || !m_announce_queue.empty();
+	return (!m_requests.empty() && !m_choked) || !m_send_buffer.empty() || !m_announce_queue.empty();
 }
 
 // --------------------------
@@ -794,11 +887,17 @@ bool libtorrent::peer_connection::has_data() const throw()
 // throws exception when the client should be disconnected
 void libtorrent::peer_connection::send_data()
 {
+	assert(m_socket->is_writable());
 	assert(has_data());
 
-	// only add new piece-chunks if the send buffer is empty
+	// only add new piece-chunks if the send buffer is small enough
 	// otherwise there will be no end to how large it will be!
-	if (!m_requests.empty() && m_send_buffer.empty() && m_peer_interested && !m_choked)
+	// TODO: make ths a bit better. Don't always read the entire
+	// requested block. Have a limit of how much of the requested
+	// block is actually read at a time.
+	while (!m_requests.empty()
+		&& (m_send_buffer.size() < m_torrent->block_size())
+		&& !m_choked)
 	{
 		peer_request& r = m_requests.front();
 		
@@ -840,23 +939,25 @@ void libtorrent::peer_connection::send_data()
 
 			m_sending_piece.read(&m_send_buffer[13], r.length);
 #if defined(TORRENT_VERBOSE_LOGGING)
-			(*m_logger) << m_socket->sender().as_string() << " ==> PIECE [ idx: " << r.piece << " | s: " << r.start << " | l: " << r.length << " | dest: " << m_socket->sender().as_string() << " ]\n";
+			(*m_logger) << m_socket->sender().as_string() << " ==> PIECE [ idx: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
 #endif
 			// let the torrent keep track of how much we have uploaded
 			m_torrent->uploaded_bytes(r.length);
-			m_requests.erase(m_requests.begin());
 		}
 		else
 		{
 #if defined(TORRENT_VERBOSE_LOGGING)
-			(*m_logger) << m_socket->sender().as_string() << " *** WARNING [ illegal piece request ]\n";
+			(*m_logger) << m_socket->sender().as_string() << " *** WARNING [ illegal piece request idx: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
 #endif
 		}
+		m_requests.erase(m_requests.begin());
 	}
 
 	if (!m_announce_queue.empty())
 	{
-		for (std::vector<int>::iterator i = m_announce_queue.begin(); i != m_announce_queue.end(); ++i)
+		for (std::vector<int>::iterator i = m_announce_queue.begin();
+			i != m_announce_queue.end();
+			++i)
 		{
 //			(*m_logger) << "have piece: " << *i << " sent to: " << m_socket->sender().as_string() << "\n";
 			send_have(*i);
@@ -867,12 +968,15 @@ void libtorrent::peer_connection::send_data()
 	// send the actual buffer
 	if (!m_send_buffer.empty())
 	{
-		// we have data that's scheduled for sending
-		std::size_t sent = m_socket->send(&m_send_buffer[0], m_send_buffer.size());
 
-#if defined(TORRENT_VERBOSE_LOGGING)
+		// we have data that's scheduled for sending
+		int sent = m_socket->send(
+			&m_send_buffer[0]
+			, m_send_buffer.size());
+
+	#if defined(TORRENT_VERBOSE_LOGGING)
 		(*m_logger) << m_socket->sender().as_string() << " ==> SENT [ length: " << sent << " ]\n";
-#endif
+	#endif
 
 		if (sent > 0)
 		{
@@ -882,14 +986,40 @@ void libtorrent::peer_connection::send_data()
 			// only a part of the buffer could be sent
 			// remove the part that was sent from the buffer
 			if (sent == m_send_buffer.size())
+			{
 				m_send_buffer.clear();
+			}
 			else
-				m_send_buffer.erase(m_send_buffer.begin(), m_send_buffer.begin() + sent);
+			{
+				m_send_buffer.erase(
+					m_send_buffer.begin()
+					, m_send_buffer.begin() + sent);
+			}
+		}
+		else
+		{
+			assert(sent == -1);
+			throw network_error(m_socket->last_error());
 		}
 
 		m_last_sent = boost::posix_time::second_clock::local_time();
 	}
 
+	assert(m_added_to_selector);
+	if (!has_data())
+	{
+		m_selector.remove_writable(m_socket);
+		m_added_to_selector = false;
+	}
+#ifndef NDEBUG
+	else
+	{
+		if (m_socket->is_writable())
+		{
+			std::cout << "ERROR\n";
+		}
+	}
+#endif
 }
 
 
@@ -905,6 +1035,6 @@ void libtorrent::peer_connection::keep_alive()
 #if defined(TORRENT_VERBOSE_LOGGING)
 		(*m_logger) << m_socket->sender().as_string() << " ==> NOP\n";
 #endif
-
+		send_buffer_updated();
 	}
 }

@@ -286,6 +286,7 @@ void libtorrent::piece_file::seek_forward(int step)
 bool libtorrent::storage::verify_piece(piece_file& file)
 {
 	int index = file.index();
+	assert(index >= 0 && index < m_have_piece.size());
 	if (m_have_piece[index]) return true;
 
 	std::vector<char> buffer(m_torrent_file->piece_size(index));
@@ -353,7 +354,6 @@ void libtorrent::storage::initialize_pieces(torrent* t,
 */
 
 
-
 	// we don't know of any piece we have right now. Initialize
 	// it to say we don't have anything and fill it in later on.
 	m_have_piece.resize(m_torrent_file->num_pieces());
@@ -381,10 +381,6 @@ void libtorrent::storage::initialize_pieces(torrent* t,
 	const int chunksize = 8192;
 	char zeros[chunksize];
 	std::fill(zeros, zeros+chunksize, 0);
-
-#ifndef NDEBUG
-	std::cout << "allocating files\n";
-#endif
 
 	// remember which directories we have created, so
 	// we don't have to ask the filesystem all the time
@@ -490,10 +486,6 @@ void libtorrent::storage::initialize_pieces(torrent* t,
 		}
 //		std::cout << "\n";
 	}
-
-#ifndef NDEBUG
-	std::cout << "allocation/checking DONE!\n";
-#endif
 
 }
 /*

@@ -518,6 +518,7 @@ struct torrent_status
 	
 	state_t state;
 	float progress;
+	boost::posix_time::time_duration next_announce;
 	std::size_t total_download;
 	std::size_t total_upload;
 };
@@ -576,6 +577,10 @@ current task is in the <tt>state</tt> member, it will be one of the following:
 		</td>
 	</tr>
 </table>
+
+<p>
+<tt>next_announce</tt> is the time until the torrent will announce itself to the tracker.
+</p>
 
 <p>
 <tt>total_download</tt> and <tt>total_upload</tt> is the number of bytes downloaded and

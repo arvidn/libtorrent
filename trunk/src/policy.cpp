@@ -43,19 +43,53 @@ namespace
 	{
 		// we try to maintain 4 requested blocks in the download
 		// queue
-		request_queue = 4
+		request_queue = 16
 	};
 
 
 	using namespace libtorrent;
+
+
+	// TODO: replace these two functions with std::find_first_of
+	template<class It1, class It2>
+	bool has_intersection(It1 start1, It1 end1, It2 start2, It2 end2)
+	{
+		for (;start1 != end1; ++start1)
+			for (;start2 != end2; ++start2)
+				if (*start1 == *start2) return true;
+		return false;
+	}
+
+	piece_block find_first_common(const std::vector<piece_block>& queue,
+		const std::vector<piece_block>& busy)
+	{
+		for (std::vector<piece_block>::const_reverse_iterator i
+			= queue.rbegin();
+			i != queue.rend();
+			++i)
+		{
+			for (std::vector<piece_block>::const_iterator j
+				= busy.begin();
+				j != busy.end();
+				++j)
+			{
+				if ((*j) == (*i)) return *i;
+			}
+		}
+		assert(false);
+	}
+
 	void request_a_block(torrent& t, peer_connection& c)
 	{
+		int num_requests = request_queue - c.download_queue().size();
+
+		// if our request queue is already full, we
+		// don't have to make any new requests yet
+		if (num_requests <= 0) return;
+
 		piece_picker& p = t.picker();
 		std::vector<piece_block> interesting_pieces;
 		interesting_pieces.reserve(100);
-
-		int num_requests = request_queue - c.download_queue().size();
-		if (num_requests <= 0) num_requests = 1;
 
 		// picks the interesting pieces from this peer
 		// the integer is the number of pieces that
@@ -85,12 +119,53 @@ namespace
 			// ok, we found a piece that's not being downloaded
 			// by somebody else. request it from this peer
 			c.request_block(*i);
-			num_requests++;
-			if (num_requests >= request_queue) return;
+			num_requests--;
+			if (num_requests <= 0) return;
 		}
 
-		// TODO: compare this peer's bandwidth against the
-		// ones downloading these pieces (busy_pieces)
+		if (busy_pieces.empty()) return;
+
+		// first look for blocks that are just queued
+		// and not actually sent to us yet
+		// (then we can cancel those and request them
+		// from this peer instead)
+
+		peer_connection* peer = 0;
+		float down_speed = 0.f;
+		// find the peer with the lowest download
+		// speed that also has a piece thatt this
+		// peer could send us
+		for (torrent::peer_iterator i = t.begin();
+			i != t.end();
+			++i)
+		{
+			const std::vector<piece_block>& queue = (*i)->download_queue();
+			if ((*i)->statistics().down_peak() > down_speed
+				&& has_intersection(busy_pieces.begin(),
+					busy_pieces.end(),
+					queue.begin(),
+					queue.end()))
+			{
+				peer = *i;
+				down_speed = (*i)->statistics().down_peak();
+			}
+		}
+
+		assert(peer != 0);
+
+		// this peer doesn't have a faster connection than the
+		// slowest peer. Don't take over any blocks
+		if (c.statistics().down_peak() <= down_speed) return;
+
+		// find a suitable block to take over from this peer
+		piece_block block = find_first_common(peer->download_queue(), busy_pieces);
+		peer->cancel_block(block);
+		c.request_block(block);
+
+		// the one we interrupted may need to request a new piece
+		request_a_block(t, *peer);
+
+		num_requests--;
 	}
 }
 

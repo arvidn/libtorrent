@@ -424,7 +424,7 @@ namespace libtorrent
 				int piece_blocks = std::min(blocks_in_piece(*i), num_blocks);
 				for (int j = 0; j < piece_blocks; ++j)
 				{
-					interesting_blocks.push_back(piece_block(*i, 0));
+					interesting_blocks.push_back(piece_block(*i, j));
 				}
 				num_blocks -= piece_blocks;
 				if (num_blocks == 0) return num_blocks;
@@ -442,6 +442,8 @@ namespace libtorrent
 	
 			for (int j = 0; j < num_blocks_in_piece; ++j)
 			{
+				if (p->finished_blocks[j] == 1) continue;
+
 				interesting_blocks.push_back(piece_block(*i, j));
 				if (p->requested_blocks[j] == 0)
 				{
@@ -483,13 +485,27 @@ namespace libtorrent
 		return i->requested_blocks[block.block_index];
 	}
 
+	bool piece_picker::is_finished(piece_block block) const
+	{
+		assert(block.piece_index < m_piece_map.size());
+		assert(block.block_index < max_blocks_per_piece);
+
+		if (m_piece_map[block.piece_index].index == 0xffffff) return true;
+		if (m_piece_map[block.piece_index].downloading == 0) return false;
+		std::vector<downloading_piece>::const_iterator i
+			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
+		assert(i != m_downloads.end());
+		return i->finished_blocks[block.block_index];
+	}
+
+
 	void piece_picker::mark_as_downloading(piece_block block, const peer_id& peer)
 	{
 #ifndef NDEBUG
 		integrity_check();
 #endif
 		assert(block.piece_index < m_piece_map.size());
-		assert(block.block_index < max_blocks_per_piece);
+		assert(block.block_index < blocks_in_piece(block.piece_index));
 
 		piece_pos& p = m_piece_map[block.piece_index];
 		if (p.downloading == 0)
@@ -517,27 +533,67 @@ namespace libtorrent
 #endif
 	}
 
-	void piece_picker::mark_as_finished(piece_block block)
+	void piece_picker::mark_as_finished(piece_block block, const peer_id& peer)
 	{
 #ifndef NDEBUG
 		integrity_check();
 #endif
 		assert(block.piece_index < m_piece_map.size());
-		assert(block.block_index < max_blocks_per_piece);
+		assert(block.block_index < blocks_in_piece(block.piece_index));
+
+		piece_pos& p = m_piece_map[block.piece_index];
+		if (p.downloading == 0)
+		{
+			p.downloading = 1;
+			move(false, p.peer_count, p.index);
+
+			downloading_piece dp;
+			dp.index = block.piece_index;
+			dp.requested_blocks[block.block_index] = 1;
+			dp.finished_blocks[block.block_index] = 1;
+			dp.info[block.block_index].peer = peer;
+			m_downloads.push_back(dp);
+		}
+		else
+		{
+			std::vector<downloading_piece>::iterator i
+				= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
+			assert(i != m_downloads.end());
+			i->info[block.block_index].peer = peer;
+			i->requested_blocks[block.block_index] = 1;
+			i->finished_blocks[block.block_index] = 1;
+		}
+#ifndef NDEBUG
+		integrity_check();
+#endif
+	}
+/*
+	void piece_picker::mark_as_finished(piece_block block, const peer_id& peer)
+	{
+#ifndef NDEBUG
+		integrity_check();
+#endif
+		assert(block.piece_index < m_piece_map.size());
+		assert(block.block_index < blocks_in_piece(block.piece_index));
 
 		assert(m_piece_map[block.piece_index].downloading == 1);
 
 		std::vector<downloading_piece>::iterator i
 			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
 		assert(i != m_downloads.end());
-		assert(i->requested_blocks[block.block_index] == 1);
 		i->finished_blocks[block.block_index] = 1;
+		// the block may have been requested, then cancled
+		// and requested by a peer that disconnects
+		// that way we can actually receive the piece
+		// without the requested bit is set.
+		i->requested_blocks[block.block_index] = 1;
 		i->info[block.block_index].num_downloads++;
+		i->info[block.block_index].peer = peer;
 #ifndef NDEBUG
 		integrity_check();
 #endif
 	}
-
+*/
 	void piece_picker::get_downloaders(std::vector<peer_id>& d, int index)
 	{
 		std::vector<downloading_piece>::iterator i
@@ -569,6 +625,10 @@ namespace libtorrent
 		std::vector<downloading_piece>::iterator i
 			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
 		assert(i != m_downloads.end());
+
+		if (i->finished_blocks[block.block_index]) return;
+
+		assert(block.block_index < blocks_in_piece(block.piece_index));
 		assert(i->requested_blocks[block.block_index] == 1);
 
 		// clear this block as being downloaded

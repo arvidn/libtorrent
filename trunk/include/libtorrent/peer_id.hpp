@@ -92,7 +92,7 @@ namespace libtorrent
 			os << std::hex << std::setw(2) << std::setfill('0')
 				<< static_cast<unsigned int>(*i);
 		}
-		os << std::dec << std::cout << std::setfill(' ');
+		os << std::dec << std::setfill(' ');
 		return os;
 	}
 

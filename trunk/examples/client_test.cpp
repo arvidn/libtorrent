@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <exception>
 
 #include <boost/format.hpp>
+//#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
@@ -113,6 +114,16 @@ bool sleep_and_input(char* c)
 		return true;
 	}
 	return false;
+}
+
+void set_cursor(int x, int y)
+{
+   std::cout << "\033[" << y << ";" << x << "H";
+}
+
+void clear()
+{
+   std::cout << "\033[2J";
 }
 
 #endif
@@ -237,6 +248,10 @@ int main(int argc, char* argv[])
 					<< add_suffix(total_down) << ") " << add_suffix(down) << "/s u:("
 					<< add_suffix(total_up) << ") " << add_suffix(up) << "/s\n";
 
+				boost::posix_time::time_duration t = s.next_announce;
+//				std::cout << "next announce: " << boost::posix_time::to_simple_string(t) << "\n";
+				std::cout << "next announce: " << t.hours() << ":" << t.minutes() << ":" << t.seconds() << "\n";
+
 				i->get_download_queue(queue);
 				for (std::vector<partial_piece_info>::iterator i = queue.begin();
 					i != queue.end();
@@ -245,7 +260,7 @@ int main(int argc, char* argv[])
 					std::cout << i->piece_index << ": ";
 					for (int j = 0; j < i->blocks_in_piece; ++j)
 					{
-						if (i->finished_blocks[j]) std::cout << "#";
+						if (i->finished_blocks[j]) std::cout << "+";
 						else if (i->requested_blocks[j]) std::cout << "-";
 						else std::cout << ".";
 					}

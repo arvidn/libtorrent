@@ -81,17 +81,29 @@ namespace libtorrent
 
 		// this is the constructor where the we are teh active part. The peer_conenction
 		// should handshake and verify that the other end has the correct id
-		peer_connection(detail::session_impl* ses, torrent* t, boost::shared_ptr<libtorrent::socket> s, const peer_id& p);
+		peer_connection(
+			detail::session_impl* ses
+			, selector& sel
+			, torrent* t
+			, boost::shared_ptr<libtorrent::socket> s
+			, const peer_id& p);
 
 		// with this constructor we have been contacted and we still don't know which torrent the
 		// connection belongs to
-		peer_connection(detail::session_impl* ses, boost::shared_ptr<libtorrent::socket> s);
+		peer_connection(
+			detail::session_impl* ses
+			, selector& sel
+			, boost::shared_ptr<libtorrent::socket> s);
 
 		~peer_connection();
 
 		// this adds an announcement in the announcement queue
 		// it will let the peer know that we have the given piece
-		void announce_piece(int index) { m_announce_queue.push_back(index); }
+		void announce_piece(int index)
+		{
+			m_announce_queue.push_back(index);
+			send_buffer_updated();
+		}
 
 		// called from the main loop when this connection has any
 		// work to do.
@@ -122,6 +134,7 @@ namespace libtorrent
 		void interested();
 		void not_interested();
 		void request_block(piece_block block);
+		void cancel_block(piece_block block);
 
 		bool is_interesting() const throw() { return m_interesting; }
 		bool has_choked() const throw() { return m_choked; }
@@ -152,6 +165,7 @@ namespace libtorrent
 	private:
 
 		bool dispatch_message();
+		void send_buffer_updated();
 
 		void send_bitfield();
 		void send_have(int index);
@@ -200,12 +214,22 @@ namespace libtorrent
 		boost::posix_time::ptime m_last_receive;
 		boost::posix_time::ptime m_last_sent;
 
+		selector& m_selector;
 		boost::shared_ptr<libtorrent::socket> m_socket;
 		torrent* m_torrent;
 		detail::session_impl* m_ses;
 		// is true if it was we that connected to the peer
 		// and false if we got an incomming connection
 		bool m_active;
+
+		// this is true as long as this peer's
+		// socket is added to the selector to
+		// monitor writability. Each time we do
+		// something that generates data to be 
+		// sent to this peer, we check this and
+		// if it's not added to the selector we
+		// add it.
+		bool m_added_to_selector;
 
 		// remote peer's id
 		peer_id m_peer_id;
@@ -242,6 +266,21 @@ namespace libtorrent
 		stat m_statistics;
 	};
 
+	// this is called each time this peer generates some
+	// data to be sent. It will add this socket to
+	// the writibility monitor in the selector.
+	inline void peer_connection::send_buffer_updated()
+	{
+		if (!has_data()) return;
+
+		if (!m_added_to_selector)
+		{
+			m_selector.monitor_writability(m_socket);
+			m_added_to_selector = true;
+		}
+		assert(m_added_to_selector);
+		assert(m_selector.is_writability_monitored(m_socket));
+	}
 }
 
 #endif // TORRENT_PEER_CONNECTION_HPP_INCLUDED
