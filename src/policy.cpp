@@ -115,7 +115,7 @@ namespace
 		// matlab expression to plot:
 		// x = 1:100:100000; plot(x, round(min(max(x ./ 5000 + 1.5, 2), 16)));
 
-		int desired_queue_size = rate / 5000.f + 1.5f;
+		int desired_queue_size = static_cast<int>(rate / 5000.f + 1.5f);
 		if (desired_queue_size > max_request_queue) desired_queue_size = max_request_queue;
 		if (desired_queue_size < min_request_queue) desired_queue_size = min_request_queue;
 
