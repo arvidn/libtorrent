@@ -395,11 +395,11 @@ The ``torrent_info`` has the following synopsis::
 This class will need some explanation. First of all, to get a list of all files
 in the torrent, you can use ``begin_files()``, ``end_files()``,
 ``rbegin_files()`` and ``rend_files()``. These will give you standard vector
-iterators with the type ``file``.
+iterators with the type ``file_entry``.
 
 ::
 
-	struct file
+	struct file_entry
 	{
 		std::string path;
 		std::string filename;

@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/file.hpp"
 
 #if defined(_MSC_VER)
 #define for if (false) {} else for
@@ -185,7 +186,7 @@ namespace libtorrent {
 
 		// find the file iterator and file offset
 		size_type file_offset = start;
-		std::vector<file>::const_iterator file_iter;
+		std::vector<file_entry>::const_iterator file_iter;
 
 		for (file_iter = m_pimpl->info.begin_files();;)
 		{
@@ -261,7 +262,7 @@ namespace libtorrent {
 
 		// find the file iterator and file offset
 		size_type file_offset = start;
-		std::vector<file>::const_iterator file_iter;
+		std::vector<file_entry>::const_iterator file_iter;
 
 		for (file_iter = m_pimpl->info.begin_files();;)
 		{
