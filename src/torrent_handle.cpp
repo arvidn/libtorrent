@@ -221,14 +221,22 @@ namespace libtorrent
 		{
 			boost::mutex::scoped_lock l(m_ses->m_mutex);
 			torrent* t = m_ses->find_torrent(m_info_hash);
-			if (t != 0) t->set_tracker_login(name, password);
+			if (t != 0)
+			{
+				t->set_tracker_login(name, password);
+				return;
+			}
 		}
 
 		if (m_chk)
 		{
 			boost::mutex::scoped_lock l(m_chk->m_mutex);
 			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
-			if (d != 0) d->torrent_ptr->set_tracker_login(name, password);
+			if (d != 0)
+			{
+				d->torrent_ptr->set_tracker_login(name, password);
+				return;
+			}
 		}
 
 		throw invalid_handle();
