@@ -226,7 +226,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-//	boost::filesystem::path::default_name_check(boost::filesystem::native);
+	boost::filesystem::path::default_name_check(boost::filesystem::native);
 	
 	http_settings settings;
 //	settings.proxy_ip = "192.168.0.1";
@@ -340,6 +340,12 @@ int main(int argc, char* argv[])
 				i != handles.end();
 				++i)
 			{
+				if (!i->is_valid())
+				{
+					handles.erase(i);
+					--i;
+					continue;
+				}
 				torrent_status s = i->status();
 
 				switch(s.state)

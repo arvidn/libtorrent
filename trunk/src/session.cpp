@@ -215,17 +215,22 @@ namespace libtorrent { namespace detail
 			}
 			catch(const std::exception& e)
 			{
-				// TODO: generate an alert here!
 				// This will happen if the storage fails to initialize
-#ifndef NDEBUG
-				std::cerr << "error while checking files: " << e.what() << "\n";
-#endif
+				boost::mutex::scoped_lock l(m_ses.m_mutex);
+				if (m_ses.m_alerts.should_post(alert::fatal))
+				{
+					m_ses.m_alerts.post_alert(
+						file_error_alert(
+							t->torrent_ptr->get_handle()
+							, e.what()));
+				}
 			}
 			catch(...)
 			{
 #ifndef NDEBUG
 				std::cerr << "error while checking files\n";
 #endif
+				assert(false);
 			}
 
 			// remove ourself from the 'checking'-list
@@ -730,6 +735,15 @@ namespace libtorrent { namespace detail
 	{
 		std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
 			= m_torrents.find(info_hash);
+#ifndef NDEBUG
+		for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator j
+			= m_torrents.begin();
+			j != m_torrents.end();
+			++j)
+		{
+			torrent* p = boost::get_pointer(j->second);
+		}
+#endif
 		if (i != m_torrents.end()) return boost::get_pointer(i->second);
 		return 0;
 	}

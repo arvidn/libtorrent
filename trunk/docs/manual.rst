@@ -891,7 +891,11 @@ is_valid()
 ----------
 
 Returns true if this handle refers to a valid torrent and false if it hasn't been initialized
-or if the torrent it refers to has been aborted.
+or if the torrent it refers to has been aborted. Note that a handle may become invalid after
+it has been added to the session. Usually this is because the storage for the torrent is
+somehow invalid or if the filenames are not allowed (and hence cannot be opened/created) on
+your filesystem. If such an error occurs, a file_error_alert_ is generated and all handles
+that refers to that torrent will become invalid.
 
 
 
