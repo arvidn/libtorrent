@@ -963,7 +963,7 @@ namespace libtorrent
 			++file_iter)
 		{
 			fs::path dir = m_save_path / m_info.name() / file_iter->path;
-			fs::create_directories(dir);
+			fs::create_directories(dir.branch_path());
 		}
 
 		std::vector<char> piece_data(m_info.piece_length());
