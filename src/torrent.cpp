@@ -493,6 +493,15 @@ namespace libtorrent
 		assert(m_have_pieces[index] == false);
 	}
 
+	void torrent::abort()
+	{
+		m_abort = true;
+		m_event = tracker_request::stopped;
+		// disconnect all peers and close all
+		// files belonging to the torrent
+		disconnect_all();
+		m_storage.release();
+	}
 
 	void torrent::announce_piece(int index)
 	{
@@ -829,6 +838,9 @@ namespace libtorrent
 		// tell the tracker that we stopped
 		m_event = tracker_request::stopped;
 		m_just_paused = true;
+		// this will make the storage close all
+		// files and flush all cached data
+		if (m_storage.get()) m_storage->release();
 	}
 
 	void torrent::resume()

@@ -187,7 +187,7 @@ namespace libtorrent
 				size = file_size(f);
 				time = last_write_time(f);
 			}
-			catch (file_error&) {}
+			catch (std::exception&) {}
 			sizes.push_back(std::make_pair(size, time));
 		}
 		return sizes;
@@ -215,7 +215,7 @@ namespace libtorrent
 				size = file_size(f);
 				time = last_write_time(f);
 			}
-			catch (file_error&) {}
+			catch (std::exception&) {}
 			if (size != s->first || time != s->second)
 				return false;
 		}

@@ -1310,10 +1310,13 @@ namespace libtorrent
 	void peer_connection::disconnect()
 	{
 		if (m_disconnecting) return;
-		detail::session_impl::connection_map::iterator i = m_ses.m_connections.find(m_socket);
+		detail::session_impl::connection_map::iterator i
+			= m_ses.m_connections.find(m_socket);
 		m_disconnecting = true;
 		assert(i != m_ses.m_connections.end());
-		assert(std::find(m_ses.m_disconnect_peer.begin(), m_ses.m_disconnect_peer.end(), i) == m_ses.m_disconnect_peer.end());
+		assert(std::find(m_ses.m_disconnect_peer.begin()
+			, m_ses.m_disconnect_peer.end(), i)
+			== m_ses.m_disconnect_peer.end());
 		m_ses.m_disconnect_peer.push_back(i);
 	}
 
@@ -1849,6 +1852,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		assert(!m_disconnecting);
 		assert(!m_socket->is_blocking());
 		assert(m_packet_size > 0);
 		assert(m_socket->is_readable());
@@ -2158,6 +2162,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		assert(!m_disconnecting);
 		assert(m_socket->is_writable());
 		assert(can_write());
 

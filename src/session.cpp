@@ -404,6 +404,7 @@ namespace libtorrent { namespace detail
 #ifndef NDEBUG
 			check_invariant("before abort");
 #endif
+			purge_connections();
 
 			if (m_abort)
 			{
@@ -690,8 +691,6 @@ namespace libtorrent { namespace detail
 					req.listen_port = m_listen_interface.port;
 					req.key = m_key;
 					m_tracker_manager.queue_request(req, t.tracker_login());
-					t.disconnect_all();
-					purge_connections();
 #ifndef NDEBUG
 					sha1_hash i_hash = t.torrent_file().info_hash();
 #endif
