@@ -102,14 +102,7 @@ namespace libtorrent
 
 		void allocate_files(detail::piece_checker_data* data,
 			boost::mutex& mutex,
-			const std::string& save_path)
-		{
-			m_storage.initialize_pieces(this, save_path, data, mutex);
-			m_picker.files_checked(m_storage.pieces());
-#ifndef NDEBUG
-			m_picker.integrity_check(this);
-#endif	
-		}
+			const boost::filesystem::path& save_path);
 
 		void uploaded_bytes(int num_bytes) { assert(num_bytes > 0); m_bytes_uploaded += num_bytes; }
 		void downloaded_bytes(int num_bytes) { assert(num_bytes > 0); m_bytes_downloaded += num_bytes; }

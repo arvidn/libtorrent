@@ -400,6 +400,17 @@ namespace libtorrent
 		}
 	}
 
+	void torrent::allocate_files(detail::piece_checker_data* data,
+		boost::mutex& mutex,
+		const boost::filesystem::path& save_path)
+	{
+		m_storage.initialize_pieces(this, save_path, data, mutex);
+		m_picker.files_checked(m_storage.pieces());
+#ifndef NDEBUG
+		m_picker.integrity_check(this);
+#endif	
+	}
+
 	torrent_status torrent::status() const
 	{
 		torrent_status st;

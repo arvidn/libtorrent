@@ -105,7 +105,7 @@ namespace libtorrent
 			piece_checker_data(): progress(0.f), abort(false) {}
 
 			boost::shared_ptr<torrent> torrent_ptr;
-			std::string save_path;
+			boost::filesystem::path save_path;
 
 			sha1_hash info_hash;
 
@@ -197,17 +197,14 @@ namespace libtorrent
 	{
 	public:
 
-		session(int listen_port, const std::string& fingerprint = std::string())
-			: m_impl(listen_port, fingerprint)
-			, m_checker_impl(&m_impl)
-			, m_thread(boost::ref(m_impl))
-			, m_checker_thread(boost::ref(m_checker_impl))
-		{}
+		session(int listen_port, const std::string& fingerprint = std::string());
 
 		~session();
 
 		// all torrent_handles must be destructed before the session is destructed!
-		torrent_handle add_torrent(const torrent_info& ti, const std::string& save_path);
+		torrent_handle add_torrent(
+			const torrent_info& ti
+			, const boost::filesystem::path& save_path);
 
 		void set_http_settings(const http_settings& s);
 
