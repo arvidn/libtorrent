@@ -747,6 +747,7 @@ namespace libtorrent
 				while (m_num_unchoked > m_torrent->m_uploads_quota.given)
 				{
 					peer* p = find_choke_candidate();
+					if (!p) break;
 					assert(p);
 					p->connection->send_choke();
 					--m_num_unchoked;

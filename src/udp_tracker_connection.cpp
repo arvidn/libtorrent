@@ -191,7 +191,7 @@ namespace libtorrent
 		detail::write_int32(m_request.num_want, out);
 		// port
 		detail::write_uint16(m_request.listen_port, out);
-	
+
 		m_socket->send(&buf[0], buf.size());
 		m_request_time = second_clock::universal_time();
 		++m_attempts;
