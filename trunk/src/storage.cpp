@@ -918,6 +918,7 @@ namespace libtorrent
 		m_slot_to_piece.resize(m_info.num_pieces(), unallocated);
 		m_free_slots.clear();
 		m_unallocated_slots.clear();
+
 		pieces.clear();
 		pieces.resize(m_info.num_pieces(), false);
 
@@ -1257,6 +1258,7 @@ namespace libtorrent
 		if (iter == m_free_slots.end())
 		{
 			assert(m_slot_to_piece[piece_index] != unassigned);
+			assert(!m_free_slots.empty());
 			iter = m_free_slots.end() - 1;
 
 			// special case to make sure we don't use the last slot
@@ -1388,6 +1390,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		namespace fs = boost::filesystem;
+
+		assert(!m_unallocated_slots.empty());
 		
 		const int piece_size = static_cast<int>(m_info.piece_length());
 
@@ -1514,11 +1518,11 @@ namespace libtorrent
 			else if (m_slot_to_piece[i] == unallocated)
 			{
 #ifdef TORRENT_STORAGE_DEBUG
-				assert(
-					std::find(
+				assert(m_unallocated_slots.empty()
+					|| (std::find(
 						m_unallocated_slots.begin()
 						, m_unallocated_slots.end()
-						, i) != m_unallocated_slots.end()
+						, i) != m_unallocated_slots.end())
 				);
 #endif
 			}
