@@ -227,7 +227,6 @@ namespace
 		, torrent::peer_iterator end
 		, size_type free_upload)
 	{
-		assert(free_upload >= 0);
 		if (free_upload <= 0) return free_upload;
 		int num_peers = 0;
 		size_type total_diff = 0;
