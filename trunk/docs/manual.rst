@@ -281,7 +281,7 @@ the parameters, see ``listen_on()`` function.
 ----------
 
 The destructor of session will notify all trackers that our torrents have been shut down.
-If some trackers are down, they will timout. All this before the destructor of session
+If some trackers are down, they will time out. All this before the destructor of session
 returns. So, it's adviced that any kind of interface (such as windows) are closed before
 destructing the sessoin object. Because it can take a few second for it to finish. The
 timeout can be set with ``set_http_settings()``.

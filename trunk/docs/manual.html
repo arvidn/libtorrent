@@ -376,7 +376,7 @@ the parameters, see <tt class="literal"><span class="pre">listen_on()</span></tt
 <div class="section" id="id9">
 <h2><a name="id9">~session()</a></h2>
 <p>The destructor of session will notify all trackers that our torrents have been shut down.
-If some trackers are down, they will timout. All this before the destructor of session
+If some trackers are down, they will time out. All this before the destructor of session
 returns. So, it's adviced that any kind of interface (such as windows) are closed before
 destructing the sessoin object. Because it can take a few second for it to finish. The
 timeout can be set with <tt class="literal"><span class="pre">set_http_settings()</span></tt>.</p>
