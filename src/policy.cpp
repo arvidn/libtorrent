@@ -65,33 +65,20 @@ namespace
 
 	using namespace libtorrent;
 
-
-	// TODO: replace these two functions with std::find_first_of
 	template<class It1, class It2>
 	bool has_intersection(It1 start1, It1 end1, It2 start2, It2 end2)
 	{
-		for (;start1 != end1; ++start1)
-			for (;start2 != end2; ++start2)
-				if (*start1 == *start2) return true;
-		return false;
+		return std::find_first_of(start1,end1,start2,end2) != end1;
 	}
 
 	piece_block find_first_common(const std::deque<piece_block>& queue,
 		const std::vector<piece_block>& busy)
 	{
-		for (std::deque<piece_block>::const_reverse_iterator i
-			= queue.rbegin();
-			i != queue.rend();
-			++i)
-		{
-			for (std::vector<piece_block>::const_iterator j
-				= busy.begin();
-				j != busy.end();
-				++j)
-			{
-				if ((*j) == (*i)) return *i;
-			}
-		}
+		std::deque<piece_block>::const_reverse_iterator common_block =
+			std::find_first_of(queue.rbegin(),queue.rend(),busy.begin(),busy.end());
+
+		if(common_block!=queue.rend())
+			return *common_block;
 		assert(false);
 		return piece_block(-1, -1);
 	}
