@@ -44,6 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/time.hpp>
+#include <boost/date_time/gregorian/gregorian_types.hpp>
+#include <boost/filesystem/path.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -58,44 +60,44 @@ using namespace libtorrent;
 
 namespace
 {
-	void extract_single_file(const entry::dictionary_type& dict, file_entry& target)
+	void extract_single_file(const entry& dict, file_entry& target)
 	{
-		entry::dictionary_type::const_iterator i = dict.find("length");
-		if (i == dict.end()) throw invalid_torrent_file();
-		target.size = i->second.integer();
-
-		i = dict.find("path");
-		if (i == dict.end()) throw invalid_torrent_file();
-
-		const entry::list_type& list = i->second.list();
-		for (entry::list_type::const_iterator i = list.begin(); i != list.end()-1; ++i)
+		target.size = dict["length"].integer();
+		const entry::list_type& list = dict["path"].list();
+		for (entry::list_type::const_iterator i = list.begin();
+			i != list.end();
+			++i)
 		{
-			target.path += '/';
-			target.path += i->string();
+			target.path /= i->string();
 		}
-		target.path += '/';
-		target.filename = list.back().string();
 	}
 
-	void extract_files(const entry::list_type& list, std::vector<file_entry>& target, const std::string& root_directory)
+	void extract_files(const entry::list_type& list, std::vector<file_entry>& target)
 	{
 		for (entry::list_type::const_iterator i = list.begin(); i != list.end(); ++i)
 		{
 			target.push_back(file_entry());
-			target.back().path = root_directory;
-			extract_single_file(i->dict(), target.back());
+			extract_single_file(*i, target.back());
 		}
+	}
+
+	size_type to_seconds(const boost::posix_time::time_duration& d)
+	{
+		return d.hours() * 60 * 60
+			+ d.minutes() * 60
+			+ d.seconds();
 	}
 }
 
 namespace libtorrent
 {
 
+	using namespace boost::gregorian;
+	using namespace boost::posix_time;
+
 	// standard constructor that parses a torrent file
 	torrent_info::torrent_info(const entry& torrent_file)
-		: m_creation_date(boost::gregorian::date(1970
-			, boost::gregorian::Jan
-			, 1))
+		: m_creation_date(date(not_a_date_time))
 	{
 		try
 		{
@@ -111,21 +113,17 @@ namespace libtorrent
 	// will not contain any hashes, comments, creation date
 	// just the necessary to use it with piece manager
 	torrent_info::torrent_info(
-		const std::vector<file_entry>& files
-		, int piece_size)
+		int piece_size
+		, const char* name
+		, const char* comment)
 		: m_piece_length(piece_size)
-		, m_files(files)
-		, m_creation_date(boost::gregorian::date(1970
-			, boost::gregorian::Jan
-			, 1))
+		, m_total_size(0)
+		, m_creation_date(second_clock::local_time())
 	{
-		// calculate total size of all pieces
-		m_total_size = 0;
-		for (std::vector<file_entry>::iterator i = m_files.begin(); i != m_files.end(); ++i)
-			m_total_size += i->size;
+		m_info_hash.clear();
 
-		int num_pieces = static_cast<int>((m_total_size + m_piece_length - 1) / m_piece_length);
-
+		if (comment)
+			m_comment = comment;
 	}
 
 
@@ -182,8 +180,8 @@ namespace libtorrent
 		if (i != dict.end() && i->second.type() == entry::int_t)
 		{
 			m_creation_date
-				= m_creation_date
-				+ boost::posix_time::seconds((long)i->second.integer());
+				= ptime(date(1970, Jan, 1))
+				+ seconds((long)i->second.integer());
 		}
 
 		// extract comment
@@ -205,14 +203,10 @@ namespace libtorrent
 		m_info_hash = h.final();
 
 		// extract piece length
-		i = info.dict().find("piece length");
-		if (i == info.dict().end()) throw invalid_torrent_file();
-		m_piece_length = (int)i->second.integer();
+		m_piece_length = (int)info["piece length"].integer();
 
 		// extract file name (or the directory name if it's a multifile libtorrent)
-		i = info.dict().find("name");
-		if (i == info.dict().end()) throw invalid_torrent_file();
-		m_name = i->second.string();
+		m_name = info["name"].string();
 
 		// extract file list
 		i = info.dict().find("files");
@@ -220,16 +214,14 @@ namespace libtorrent
 		{
 			// if there's no list of files, there has to be a length
 			// field.
-			i = info.dict().find("length");
-			if (i == info.dict().end()) throw invalid_torrent_file();
-
-			m_files.push_back(file_entry());
-			m_files.back().filename = m_name;
-			m_files.back().size = i->second.integer();
+			file_entry e;
+			e.path = m_name;
+			e.size = info["length"].integer();
+			m_files.push_back(e);
 		}
 		else
 		{
-			extract_files(i->second.list(), m_files, m_name);
+			extract_files(i->second.list(), m_files);
 		}
 
 		// calculate total size of all pieces
@@ -240,13 +232,11 @@ namespace libtorrent
 		// extract sha-1 hashes for all pieces
 		// we want this division to round upwards, that's why we have the
 		// extra addition
+
 		int num_pieces = static_cast<int>((m_total_size + m_piece_length - 1) / m_piece_length);
-		i = info.dict().find("pieces");
-		if (i == info.dict().end()) throw invalid_torrent_file();
-
 		m_piece_hash.resize(num_pieces);
+		const std::string& hash_string = info["pieces"].string();
 
-		const std::string& hash_string = i->second.string();
 		if ((int)hash_string.length() != num_pieces * 20)
 			throw invalid_torrent_file();
 
@@ -254,33 +244,157 @@ namespace libtorrent
 			std::copy(hash_string.begin() + i*20, hash_string.begin() + (i+1)*20, m_piece_hash[i].begin());
 	}
 
-	void torrent_info::convert_file_names()
+	boost::optional<boost::posix_time::ptime>
+	torrent_info::creation_date() const
 	{
-		for (std::vector<file_entry>::iterator i = m_files.begin(); i != m_files.end(); ++i)
+		if (m_creation_date !=
+			boost::posix_time::ptime(
+			boost::gregorian::date(
+				boost::date_time::not_a_date_time)))
 		{
-			// replace all dots in directory names with underscores
-			std::string& path = i->path;
-			std::string& filename = i->filename;
-			for (std::string::iterator c = path.begin(); c != path.end(); ++c)
-			{
-				if (*c == '.') *c = '_';
-				if (*c == ' ') *c = '_';
-				if (*c == '[') *c = '_';
-				if (*c == ']') *c = '_';
-			}
+			return m_creation_date;
+		}
+		return boost::optional<boost::posix_time::ptime>();
+	}
 
-			// replace all dots, but the last one,
-			// in file names with underscores
-			std::string::reverse_iterator last_dot
-				= std::find(filename.rbegin(), filename.rend(), '.');
-			for (std::string::reverse_iterator c = filename.rbegin(); c != filename.rend(); ++c)
+	int torrent_info::piece_size(int index) const
+	{
+		assert(index >= 0 && index < num_pieces());
+		if (index == num_pieces()-1)
+		{
+			int s = static_cast<int>(total_size()
+				- (size_type)(num_pieces() - 1) * piece_length());
+			assert(s > 0);
+			assert(s <= piece_length());
+			return s;
+		}
+		else
+			return piece_length();
+	}
+
+	void torrent_info::add_tracker(std::string const& url, int tier)
+	{
+		announce_entry e;
+		e.url = url;
+		e.tier = tier;
+		m_urls.push_back(e);
+	}
+
+	void torrent_info::add_file(boost::filesystem::path file, size_type size)
+	{
+		file_entry e;
+		e.path = file;
+		e.size = size;
+		m_files.push_back(e);
+
+		m_total_size += size;
+
+		int num_pieces = static_cast<int>((m_total_size + m_piece_length - 1) / m_piece_length);
+
+		int old_num_pieces = m_piece_hash.size();
+
+		m_piece_hash.resize(num_pieces);
+		for (std::vector<sha1_hash>::iterator i = m_piece_hash.begin() + old_num_pieces;
+			i != m_piece_hash.end();
+			++i)
+		{
+			i->clear();
+		}
+
+	}
+
+	entry torrent_info::create_torrent(const char* created_by) const
+	{
+		using namespace boost::gregorian;
+		using namespace boost::posix_time;
+
+		namespace fs = boost::filesystem;
+
+		entry dict(entry::dictionary_t);
+
+		if (m_urls.empty() || m_files.empty())
+		{
+			// TODO: throw something here
+			// throw
+			return entry();
+		}
+
+		dict["announce"] = m_urls.front().url;
+		if (!m_comment.empty())
+			dict["comment"] = m_comment;
+
+		dict["creation date"] =
+			to_seconds(m_creation_date - ptime(date(1970, Jan, 1)));
+
+		if (created_by)
+			dict["created by"] = std::string(created_by);
+
+		entry& info = dict["info"];
+		info = entry(entry::dictionary_t);
+
+		info["length"] = m_total_size;
+
+		if (m_files.size() == 1)
+		{
+			info["name"] = m_files.front().path.string();
+		}
+		else
+		{
+			info["name"] = m_name;
+		}
+
+		if (m_files.size() > 1)
+		{
+			entry& files = info["files"];
+			files = entry(entry::list_t);
+
+			for (std::vector<file_entry>::const_iterator i = m_files.begin();
+				i != m_files.end();
+				++i)
 			{
-				if (c != last_dot && *c == '.') *c = '_';
-				if (*c == ' ') *c = '_';
-				if (*c == '[') *c = '_';
-				if (*c == ']') *c = '_';
+				files.list().push_back(entry(entry::dictionary_t));
+				entry& file_e = files.list().back();
+				file_e["length"] = i->size;
+				entry& path_e = file_e["path"];
+				path_e = entry(entry::list_t);
+
+				fs::path file_path(i->path);
+
+				for (fs::path::iterator j = file_path.begin();
+					j != file_path.end();
+					++j)
+				{
+					path_e.list().push_back(*j);
+				}
 			}
 		}
+
+		info["piece length"] = piece_length();
+		entry& pieces = info["pieces"];
+		pieces = entry(entry::string_t);
+
+		std::string& p = pieces.string();
+
+		for (std::vector<sha1_hash>::const_iterator i = m_piece_hash.begin();
+			i != m_piece_hash.end();
+			++i)
+		{
+			p.append((char*)i->begin(), (char*)i->end());
+		}
+
+		return dict;
+	}
+
+	void torrent_info::set_hash(int index, const sha1_hash& h)
+	{
+		assert(index >= 0);
+		assert(index < m_piece_hash.size());
+		m_piece_hash[index] = h;
+	}
+
+	void torrent_info::convert_file_names()
+	{
+		assert(false);
 	}
 
 	int torrent_info::prioritize_tracker(int index)
@@ -313,7 +427,7 @@ namespace libtorrent
 		os << "piece length: " << piece_length() << "\n";
 		os << "files:\n";
 		for (file_iterator i = begin_files(); i != end_files(); ++i)
-			os << "  " << std::setw(11) << i->size << "  " << i->path << " " << i->filename << "\n";
+			os << "  " << std::setw(11) << i->size << "  " << i->path.string() << "\n";
 	}
 
 }

@@ -303,13 +303,13 @@ namespace libtorrent
 
 		entry ret(entry::dictionary_t);
 
-		ret.dict()["file-format"] = "libtorrent resume file";
-		ret.dict()["file-version"] = 1;
+		ret["file-format"] = "libtorrent resume file";
+		ret["file-version"] = 1;
 
 		const sha1_hash& info_hash = t->torrent_file().info_hash();
-		ret.dict()["info-hash"] = std::string((char*)info_hash.begin(), (char*)info_hash.end());
+		ret["info-hash"] = std::string((char*)info_hash.begin(), (char*)info_hash.end());
 
-		ret.dict()["slots"] = entry(entry::list_t);
+		ret["slots"] = entry(entry::list_t);
 		entry::list_type& slots = ret.dict()["slots"].list();
 		std::copy(piece_index.begin(), piece_index.end(), std::back_inserter(slots));
 
@@ -321,12 +321,12 @@ namespace libtorrent
 		// blocks per piece
 		int num_blocks_per_piece =
 			t->torrent_file().piece_length() / t->block_size();
-		ret.dict()["blocks per piece"] = num_blocks_per_piece;
+		ret["blocks per piece"] = num_blocks_per_piece;
 
 		// num unfinished pieces
 		int num_unfinished = (int)q.size();
-		ret.dict()["unfinished"] = entry::list_type();
-		entry::list_type& up = ret.dict()["unfinished"].list();
+		ret["unfinished"] = entry::list_type();
+		entry::list_type& up = ret["unfinished"].list();
 
 		// info for each unfinished piece
 		for (std::vector<piece_picker::downloading_piece>::const_iterator i
@@ -369,8 +369,8 @@ namespace libtorrent
 
 		// write local peers
 
-		ret.dict()["peers"] = entry::list_type();
-		entry::list_type& peer_list = ret.dict()["peers"].list();
+		ret["peers"] = entry::list_type();
+		entry::list_type& peer_list = ret["peers"].list();
 
 		for (torrent::const_peer_iterator i = t->begin();
 			i != t->end();
@@ -390,11 +390,11 @@ namespace libtorrent
 		std::vector<size_type> file_sizes
 			= get_filesizes(t->torrent_file(), t->save_path());
 
-		ret.dict()["file sizes"] = entry::list_type();
+		ret["file sizes"] = entry::list_type();
 		std::copy(
 			file_sizes.begin()
 			, file_sizes.end()
-			, std::back_inserter(ret.dict()["file sizes"].list()));
+			, std::back_inserter(ret["file sizes"].list()));
 
 		return ret;
 	}

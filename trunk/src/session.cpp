@@ -162,6 +162,14 @@ namespace
 
 namespace libtorrent { namespace detail
 {
+
+	// This is the checker thread
+	// it is looping in an infinite loop
+	// until the session is aborted. It will
+	// normally just block in a wait() call,
+	// waiting for a signal from session that
+	// there's a new torrent to check.
+
 	void checker_impl::operator()()
 	{
 		eh_initializer();
@@ -1013,21 +1021,21 @@ namespace libtorrent
 
 		try
 		{
-			if (rd.dict()["file-format"].string() != "libtorrent resume file")
+			if (rd["file-format"].string() != "libtorrent resume file")
 				return;
 
-			if (rd.dict()["file-version"].integer() != 1)
+			if (rd["file-version"].integer() != 1)
 				return;
 
 			// verify info_hash
-			const std::string &hash = rd.dict()["info-hash"].string();
+			const std::string &hash = rd["info-hash"].string();
 			std::string real_hash((char*)info.info_hash().begin(), (char*)info.info_hash().end());
 			if (hash != real_hash)
 				return;
 
 			// the peers
 
-			entry::list_type& peer_list = rd.dict()["peers"].list();
+			entry::list_type& peer_list = rd["peers"].list();
 
 			std::vector<address> tmp_peers;
 			tmp_peers.reserve(peer_list.size());
@@ -1036,8 +1044,8 @@ namespace libtorrent
 				++i)
 			{
 				address a(
-					i->dict()["ip"].string().c_str()
-					, (unsigned short)i->dict()["port"].integer());
+					(*i)["ip"].string().c_str()
+					, (unsigned short)(*i)["port"].integer());
 				tmp_peers.push_back(a);
 			}
 
@@ -1046,7 +1054,7 @@ namespace libtorrent
 
 
 			// read piece map
-			const entry::list_type& slots = rd.dict()["slots"].list();
+			const entry::list_type& slots = rd["slots"].list();
 			if ((int)slots.size() > info.num_pieces())
 				return;
 
@@ -1117,13 +1125,11 @@ namespace libtorrent
 						, torrent_ptr->block_size()
 						, p.finished_blocks);
 
-				entry::dictionary_type::iterator ad = i->dict().find("adler32");
-				if (ad != i->dict().end())
-				{
-					// crc's didn't match, don't use the resume data
-					if (ad->second.integer() != adler)
-						return;
-				}
+				const entry& ad = (*i)["adler32"];
+
+				// crc's didn't match, don't use the resume data
+				if (ad.integer() != adler)
+					return;
 
 				tmp_unfinished.push_back(p);
 			}
@@ -1131,7 +1137,7 @@ namespace libtorrent
 			// verify file sizes
 
 			std::vector<size_type> file_sizes;
-			entry::list_type& l = rd.dict()["file sizes"].list();
+			entry::list_type& l = rd["file sizes"].list();
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 			for (entry::list_type::iterator i = l.begin();
