@@ -68,9 +68,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // only should be given to those we are not interested
 // in?
 
-// TODO: the interested flag has to be updated when we
-// get pieces.
-
 namespace libtorrent
 {
 	class torrent;
