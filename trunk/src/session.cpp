@@ -79,6 +79,7 @@ namespace libtorrent
 	{
 		void checker_impl::operator()()
 		{
+			eh_initializer();
 			for (;;)
 			{
 				piece_checker_data* t;
@@ -176,6 +177,7 @@ namespace libtorrent
 
 		void session_impl::operator()()
 		{
+			eh_initializer();
 #if defined(TORRENT_VERBOSE_LOGGING)
 			m_logger = create_log("main session");
 #endif
