@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/noncopyable.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/cstdint.hpp>
 
 namespace libtorrent
 {
@@ -50,17 +51,14 @@ namespace libtorrent
 	{
 	public:
 
-#ifdef _MSC_VER
-		typedef _int64 size_type;
-#else
-		typedef long long int size_type;
-#endif
+		typedef boost::int64_t size_type;
 
 		class seek_mode
 		{
 		friend file;
-		seek_mode(int v): m_val(v) {}
-		int m_val;
+		private:
+			seek_mode(int v): m_val(v) {}
+			int m_val;
 		};
 
 		const static seek_mode begin;
