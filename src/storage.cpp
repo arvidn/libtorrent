@@ -1427,7 +1427,8 @@ namespace libtorrent {
 
 			in.read(buf + buf_pos, read_bytes);
 
-			assert(read_bytes == in.gcount());
+			int actual_read = in.gcount();
+			assert(read_bytes == actual_read);
 
 			left_to_read -= read_bytes;
 			buf_pos += read_bytes;
@@ -1590,7 +1591,7 @@ namespace libtorrent {
 		std::vector<char> piece_data(m_info.piece_length());
 		std::size_t piece_offset = 0;
 
-		std::size_t current_piece = 0;
+		int current_piece = 0;
 		std::size_t bytes_to_read = piece_size;
 		std::size_t bytes_current_read = 0;
 		std::size_t seek_into_next = 0;
@@ -1679,6 +1680,7 @@ namespace libtorrent {
 					{
 						m_unallocated_slots.push_back(current_piece);
 						++current_piece;
+						assert(current_piece <= m_info.num_pieces());
 					}
 
 					seek_into_next = pos - file_end;
