@@ -185,7 +185,8 @@ namespace libtorrent
 
 		void seek(size_type pos, seek_mode from_where)
 		{
-			assert(pos >= 0);
+			assert(pos >= 0 || from_where != seek_begin);
+			assert(pos <= 0 || from_where != seek_end);
 			LARGE_INTEGER offs;
 			offs.QuadPart = pos;
 			if (FALSE == SetFilePointerEx(

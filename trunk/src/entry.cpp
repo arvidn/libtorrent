@@ -45,6 +45,7 @@ namespace
 	template <class T>
 	void call_destructor(T* o)
 	{
+		assert(o);
 		o->~T();
 	}
 }
@@ -174,6 +175,7 @@ namespace libtorrent
 
 	void entry::print(std::ostream& os, int indent) const
 	{
+		assert(indent >= 0);
 		for (int i = 0; i < indent; ++i) os << " ";
 		switch (m_type)
 		{

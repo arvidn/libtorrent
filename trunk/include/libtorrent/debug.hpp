@@ -54,7 +54,7 @@ namespace libtorrent
 	struct logger
 	{
 		logger& operator<<(const char* t)
-		{ log(t); return *this; }
+		{ assert(t); log(t); return *this; }
 		logger& operator<<(const std::string& t)
 		{ log(t.c_str()); return *this; }
 		logger& operator<<(int i)
@@ -103,8 +103,8 @@ namespace libtorrent
 	public:
 		file_logger(const char* filename)
 			: m_file(filename)
-		{}
-		virtual void log(const char* text) { m_file << text; }
+		{ assert(filename); }
+		virtual void log(const char* text) { assert(text); m_file << text; }
 
 		std::ofstream m_file;
 	};

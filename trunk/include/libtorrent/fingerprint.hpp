@@ -49,6 +49,7 @@ namespace libtorrent
 			, revision_version(revision)
 			, tag_version(tag)
 		{
+			assert(id_string);
 			assert(major >= 0 && major < 10);
 			assert(minor >= 0 && minor < 10);
 			assert(revision >= 0 && revision < 10);

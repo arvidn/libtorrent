@@ -59,6 +59,9 @@ namespace libtorrent
 		, m_downloading_piece_info(2)
 		, m_piece_map((total_num_blocks + blocks_per_piece-1) / blocks_per_piece)
 	{
+		assert(blocks_per_piece>0);
+		assert(total_num_blocks>0);
+
 		m_blocks_per_piece = blocks_per_piece;
 		m_blocks_in_last_piece = total_num_blocks % blocks_per_piece;
 		if (m_blocks_in_last_piece == 0) m_blocks_in_last_piece = blocks_per_piece;
@@ -100,7 +103,7 @@ namespace libtorrent
 			++i)
 		{
 			int index = *i;
-			assert(index < (int)m_piece_map.size());
+			assert(index >= 0 && index < (int)m_piece_map.size());
 			assert(m_piece_map[index].index  == 0xffffff);
 
 			int peer_count = m_piece_map[index].peer_count;
@@ -247,6 +250,8 @@ namespace libtorrent
 
 	void piece_picker::move(bool downloading, int peer_count, int elem_index)
 	{
+		assert(peer_count >= 0);
+		assert(elem_index >= 0);
 		std::vector<std::vector<int> >& src_vec = (downloading)?m_downloading_piece_info:m_piece_info;
 
 		assert((int)src_vec.size() > peer_count);
@@ -295,6 +300,9 @@ namespace libtorrent
 
 	void piece_picker::remove(bool downloading, int peer_count, int elem_index)
 	{
+		assert(peer_count >= 0);
+		assert(elem_index >= 0);
+
 		std::vector<std::vector<int> >& src_vec = (downloading)?m_downloading_piece_info:m_piece_info;
 
 		assert((int)src_vec.size() > peer_count);
@@ -385,7 +393,7 @@ namespace libtorrent
 
 	void piece_picker::we_have(int index)
 	{
-		assert(index < (int)m_piece_map.size());
+		assert(index >= 0 && index < (int)m_piece_map.size());
 		int info_index = m_piece_map[index].index;
 		int peer_count = m_piece_map[index].peer_count;
 
@@ -402,6 +410,7 @@ namespace libtorrent
 		std::vector<piece_block>& interesting_pieces,
 		int num_blocks) const
 	{
+		assert(num_blocks>0);
 		assert(pieces.size() == m_piece_map.size());
 
 #ifndef NDEBUG
@@ -443,11 +452,13 @@ namespace libtorrent
 		std::vector<piece_block>& interesting_blocks,
 		int num_blocks) const
 	{
+		assert(num_blocks>0);
 
 		for (std::vector<int>::const_iterator i = piece_list.begin();
 			i != piece_list.end();
 			++i)
 		{
+			assert(*i >= 0);
 			assert(*i < (int)m_piece_map.size());
 			// if the peer doesn't have the piece
 			// skip it
@@ -513,8 +524,10 @@ namespace libtorrent
 
 	bool piece_picker::is_downloading(piece_block block) const
 	{
+		assert(block.piece_index >= 0);
+		assert(block.block_index >= 0);
 		assert(block.piece_index < (int)m_piece_map.size());
-		assert(block.block_index < max_blocks_per_piece);
+		assert(block.block_index < (int)max_blocks_per_piece);
 
 		if (m_piece_map[block.piece_index].downloading == 0) return false;
 		std::vector<downloading_piece>::const_iterator i
@@ -529,8 +542,10 @@ namespace libtorrent
 
 	bool piece_picker::is_finished(piece_block block) const
 	{
+		assert(block.piece_index >= 0);
+		assert(block.block_index >= 0);
 		assert(block.piece_index < (int)m_piece_map.size());
-		assert(block.block_index < max_blocks_per_piece);
+		assert(block.block_index < (int)max_blocks_per_piece);
 
 		if (m_piece_map[block.piece_index].index == 0xffffff) return true;
 		if (m_piece_map[block.piece_index].downloading == 0) return false;
@@ -546,6 +561,8 @@ namespace libtorrent
 #ifndef NDEBUG
 //		integrity_check();
 #endif
+		assert(block.piece_index >= 0);
+		assert(block.block_index >= 0);
 		assert(block.piece_index < (int)m_piece_map.size());
 		assert(block.block_index < blocks_in_piece(block.piece_index));
 
@@ -580,6 +597,8 @@ namespace libtorrent
 #ifndef NDEBUG
 //		integrity_check();
 #endif
+		assert(block.piece_index >= 0);
+		assert(block.block_index >= 0);
 		assert(block.piece_index < (int)m_piece_map.size());
 		assert(block.block_index < blocks_in_piece(block.piece_index));
 
@@ -615,6 +634,8 @@ namespace libtorrent
 #ifndef NDEBUG
 		integrity_check();
 #endif
+		assert(block.piece_index >= 0);
+		assert(block.block_index >= 0);
 		assert(block.piece_index < m_piece_map.size());
 		assert(block.block_index < blocks_in_piece(block.piece_index));
 
@@ -638,6 +659,7 @@ namespace libtorrent
 */
 	void piece_picker::get_downloaders(std::vector<address>& d, int index) const
 	{
+		assert(index >= 0 && index <= (int)m_piece_map.size());
 		std::vector<downloading_piece>::const_iterator i
 			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(index));
 		assert(i != m_downloads.end());
@@ -675,8 +697,10 @@ namespace libtorrent
 //		integrity_check();
 #endif
 
+		assert(block.piece_index >= 0);
+		assert(block.block_index >= 0);
 		assert(block.piece_index < (int)m_piece_map.size());
-		assert(block.block_index < max_blocks_per_piece);
+		assert(block.block_index < blocks_in_piece(block.piece_index));
 
 		if (m_piece_map[block.piece_index].downloading == 0)
 		{
