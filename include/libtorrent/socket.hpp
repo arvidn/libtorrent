@@ -185,7 +185,7 @@ namespace libtorrent
 
 	private:
 
-		socket(int sock, const address& sender);
+		socket(int sock, const address& sender, bool blocking);
 
 		int m_socket;
 		address m_sender;
