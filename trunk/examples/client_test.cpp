@@ -152,7 +152,7 @@ int main(int argc, char* argv[])
 	using namespace libtorrent;
 
 	// TEMPORARY
-	boost::filesystem::path::default_name_check(boost::filesystem::no_check);
+//	boost::filesystem::path::default_name_check(boost::filesystem::no_check);
 
 	if (argc < 2)
 	{

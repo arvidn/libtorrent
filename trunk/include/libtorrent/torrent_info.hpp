@@ -72,6 +72,11 @@ namespace libtorrent
 		virtual const char* what() const throw() { return "invalid torrent file"; }
 	};
 
+	// TODO: add a check to see if filenames are accepted on the
+	// current platform.
+	// TODO: add a filename converter function that will transform
+	// invalid filenames to valid filenames on the current platform
+
 	class torrent_info
 	{
 	public:

@@ -1088,7 +1088,6 @@ entry::integer_type libtorrent::storage::piece_storage(int piece)
 			return m_allocated_pieces[piece];
 		}
 
-		assert(false);
 	}
 
 	return result;

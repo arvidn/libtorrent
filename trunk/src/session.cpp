@@ -532,6 +532,8 @@ namespace libtorrent
 	}
 
 
+	// TODO: add a check to see if filenames are accepted on the
+	// current platform.
 	// if the torrent already exists, this will throw duplicate_torrent
 	torrent_handle session::add_torrent(
 		const torrent_info& ti
