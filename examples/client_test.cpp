@@ -54,6 +54,49 @@ bool sleep_and_input(char* c)
 	return false;
 };
 
+#else
+
+#include <stdlib.h>
+#include <stdio.h>
+
+#include <termios.h>
+#include <string.h>
+
+struct set_keypress
+{
+	set_keypress()
+	{
+		termios new_settings;
+		tcgetattr(0,&stored_settings);
+		new_settings = stored_settings;
+		// Disable canonical mode, and set buffer size to 1 byte
+		new_settings.c_lflag &= (~ICANON);
+		new_settings.c_cc[VTIME] = 0;
+		new_settings.c_cc[VMIN] = 1;
+		tcsetattr(0,TCSANOW,&new_settings);
+	}
+	~set_keypress() { tcsetattr(0,TCSANOW,&stored_settings); }
+	termios stored_settings;
+};
+
+bool sleep_and_input(char* c)
+{
+	// sets the terminal to single-character mode
+	// and resets when destructed
+	set_keypress s;
+
+	fd_set set;
+	FD_ZERO(&set);
+	FD_SET(0, &set);
+	timeval tv = {1, 0};
+	if (select(1, &set, 0, 0, &tv) > 0)
+	{
+		*c = getc(stdin);
+		return true;
+	}
+	return false;
+}
+
 #endif
 
 std::string add_suffix(float val)
