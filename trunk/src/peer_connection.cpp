@@ -1391,7 +1391,7 @@ namespace libtorrent
 #ifndef NDEBUG
 								(*m_logger) << "sending libtorrent version\n";
 #endif
-								int ret = m_socket->send("libtorrent version 0.1.0.0\n");
+								int ret = m_socket->send("libtorrent version 0.1.0.0\n", 27);
 								throw protocol_error("closing");
 							}
 #ifndef NDEBUG

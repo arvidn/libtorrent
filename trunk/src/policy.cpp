@@ -483,6 +483,61 @@ namespace libtorrent
 		return candidate;
 	}
 
+	policy::peer* policy::find_seed_choke_candidate()
+	{
+		peer* candidate = 0;
+		boost::posix_time::ptime last_unchoke
+			= boost::posix_time::ptime(boost::posix_time::ptime(boost::gregorian::date(1970, boost::gregorian::Jan, 1)));
+
+		for (std::vector<peer>::iterator i = m_peers.begin();
+			i != m_peers.end();
+			++i)
+		{
+			peer_connection* c = i->connection;
+			if (c == 0) continue;
+			if (c->is_choked()) continue;
+			if (last_unchoke > i->last_optimistically_unchoked) continue;
+			last_unchoke = i->last_optimistically_unchoked;
+			candidate = &(*i);
+		}
+		return candidate;
+	}
+
+	policy::peer* policy::find_seed_unchoke_candidate()
+	{
+		peer* candidate = 0;
+		boost::posix_time::ptime last_unchoke
+			= boost::posix_time::second_clock::local_time();
+
+		for (std::vector<peer>::iterator i = m_peers.begin();
+			i != m_peers.end();
+			++i)
+		{
+			peer_connection* c = i->connection;
+			if (c == 0) continue;
+			if (!c->is_choked()) continue;
+			if (!c->is_peer_interested()) continue;
+			if (c->is_disconnecting()) continue;
+			if (last_unchoke < i->last_optimistically_unchoked) continue;
+			last_unchoke = i->last_optimistically_unchoked;
+			candidate = &(*i);
+		}
+		return candidate;
+	}
+
+	bool policy::seed_unchoke_one_peer()
+	{
+		peer* p = find_seed_unchoke_candidate();
+		if (p != 0)
+		{
+			p->connection->send_unchoke();
+			p->last_optimistically_unchoked
+				= boost::posix_time::second_clock::local_time();
+			++m_num_unchoked;
+		}
+		return p != 0;
+	}
+
 	void policy::pulse()
 	{
 		using namespace boost::posix_time;
@@ -497,51 +552,69 @@ namespace libtorrent
 			, old_disconnected_peer())
 			, m_peers.end());
 
-		if(m_max_connections != std::numeric_limits<int>::max())
+		// -------------------------------------
+		// maintain the number of connections
+		// -------------------------------------
+
+		// count the number of connected peers except for peers
+		// that are currently in the process of disconnecting
+		int num_connected_peers = 0;
+
+		for (std::vector<peer>::iterator i = m_peers.begin();
+					i != m_peers.end();
+					++i)
 		{
-			// count the number of connected peers except for peers
-			// that are currently in the process of disconnecting
-			int num_connected_peers=0;
+			if (i->connection && !i->connection->is_disconnecting())
+				++num_connected_peers;
+		}
 
-			for (std::vector<peer>::iterator i = m_peers.begin();
-						i != m_peers.end();
-						++i)
-			{
-				if(i->connection && !i->connection->is_disconnecting())
-					++num_connected_peers;
-			}
+		if (m_max_connections != std::numeric_limits<int>::max())
+		{
 
-			int max_connections=m_max_connections;
+			int max_connections = m_max_connections;
 
-			if(num_connected_peers >= max_connections)
+			if (num_connected_peers >= max_connections)
 			{
 				// every minute, disconnect the worst peer in hope of finding a better peer
 
-				boost::posix_time::ptime local_time=boost::posix_time::second_clock::local_time();
-				if(m_last_optimistic_disconnect+boost::posix_time::seconds(120) <= local_time)
+				boost::posix_time::ptime local_time = boost::posix_time::second_clock::local_time();
+				if(m_last_optimistic_disconnect + boost::posix_time::seconds(120) <= local_time)
 				{
-					m_last_optimistic_disconnect=local_time;
+					m_last_optimistic_disconnect = local_time;
 					--max_connections; // this will have the effect of disconnecting the worst peer
 				}
 			}
 			else
 			{
 				// don't do a disconnect earlier than 1 minute after some peer was connected
-				m_last_optimistic_disconnect=boost::posix_time::second_clock::local_time();
+				m_last_optimistic_disconnect = boost::posix_time::second_clock::local_time();
 			}
 
-			while(num_connected_peers > max_connections)
+			while (num_connected_peers > max_connections)
 			{
 				assert(disconnect_one_peer());
 				--num_connected_peers;
 			}
 		}
 
-		while(m_torrent->num_peers() < m_max_connections)
+		while (m_torrent->num_peers() < m_max_connections)
 		{
-			if(!connect_one_peer())
+			if (!connect_one_peer())
 				break;
 		}
+
+
+		// ------------------------
+		// upload shift
+		// ------------------------
+
+		// this part will shift downloads
+		// from peers that are seeds and peers
+		// that don't want to download from us
+		// to peers that cannot upload anything
+		// to us. The shifting will make sure
+		// that the torrent's share ratio
+		// will be maintained
 
 		// if the share ratio is 0 (infinite)
 		// m_available_free_upload isn't used
@@ -563,25 +636,23 @@ namespace libtorrent
 		}
 
 		// ------------------------
-		// seed policy
+		// seed choking policy
 		// ------------------------
 		if (m_torrent->is_seed())
 		{
+			if (num_connected_peers > m_max_uploads)
+			{
+				// this means there are some peers that
+				// are choked. To have the choked peers
+				// rotate, unchoke one peer here
+				// and let the next condiional block
+				// make sure another peer is choked.
+				seed_unchoke_one_peer();
+			}
+
 			while (m_num_unchoked > m_max_uploads)
 			{
-				peer* p = 0;
-				for (std::vector<peer>::iterator i = m_peers.begin();
-					i != m_peers.end();
-					++i)
-				{
-					peer_connection* c = i->connection;
-					if (c == 0) continue;
-					if (c->is_choked()) continue;
-// TODO: add some more criterions here. Maybe the peers
-// that have less should be promoted? (to allow them to trade)
-					p = &(*i);
-					break;
-				}
+				peer* p = find_seed_choke_candidate();
 
 				if (p == 0) break;
 
@@ -593,33 +664,13 @@ namespace libtorrent
 			// unchoked peers
 			while (m_num_unchoked < m_max_uploads)
 			{
-				peer* p = 0;
-				for (std::vector<peer>::iterator i = m_peers.begin();
-					i != m_peers.end();
-					++i)
-				{
-					peer_connection* c = i->connection;
-					if (c == 0) continue;
-					if (!c->is_choked()) continue;
-					if (!c->is_peer_interested()) continue;
-					if (c->is_disconnecting()) continue;
-// TODO: add some more criterions here. Maybe the peers
-// that have less should be promoted? (to allow them to trade)
-					p = &(*i);
-					break;
-				}
-
-				if (p == 0) break;
-
-				p->connection->send_unchoke();
-				p->last_optimistically_unchoked = boost::posix_time::second_clock::local_time();
-				++m_num_unchoked;
+				if (!seed_unchoke_one_peer()) break;
 			}
 		}
 
-		// ------------------------
-		// downloading policy
-		// ------------------------
+		// ----------------------------
+		// downloading choking policy
+		// ----------------------------
 		else
 		{
 			// choke peers that have leeched too much without giving anything back
