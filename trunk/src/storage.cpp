@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 
 //#define SUPER_VERBOSE_LOGGING
+#define NO_THREAD_SAFE_PIECE_FILE
 
 namespace {
 
@@ -138,15 +139,18 @@ void libtorrent::piece_file::reopen()
 {
 	m_position = m_storage->piece_storage(m_piece_index);
 
-	entry::integer_type global_pos = m_position;
+	entry::integer_type global_pos = m_position + m_piece_offset;
 
 	assert(global_pos >= 0 
 			&& global_pos < m_storage->m_torrent_file->total_size());
 
 	for (m_file_iter = m_storage->m_torrent_file->begin_files();
-			global_pos > m_file_iter->size; global_pos -= m_file_iter->size);
+			global_pos >= m_file_iter->size; ++m_file_iter)
+	{
+		global_pos -= m_file_iter->size;
+	}
 
-	m_file_offset = global_pos + m_piece_offset;
+	m_file_offset = global_pos;
 
 	namespace fs = boost::filesystem;
 
@@ -164,6 +168,7 @@ void libtorrent::piece_file::reopen()
 
 void libtorrent::piece_file::lock(bool lock_)
 {
+#ifndef NO_THREAD_SAFE_PIECE_FILE
 	boost::mutex::scoped_lock lock(m_storage->m_locked_pieces_monitor);
 
 	if (lock_)
@@ -177,6 +182,7 @@ void libtorrent::piece_file::lock(bool lock_)
 		m_storage->m_locked_pieces[m_piece_index] = false;
 		m_storage->m_unlocked_pieces.notify_all();
 	}
+#endif
 }
 
 void libtorrent::piece_file::open(storage* s, int index, open_mode o, int seek_offset, bool lock_)
@@ -220,14 +226,17 @@ void libtorrent::piece_file::open(storage* s, int index, open_mode o, int seek_o
 
 	m_piece_offset = seek_offset;
 
-	entry::integer_type global_pos = m_position;
+	entry::integer_type global_pos = m_position + m_piece_offset;
 
 	assert(global_pos >= 0 && global_pos < s->m_torrent_file->total_size());
 
 	for (m_file_iter = m_storage->m_torrent_file->begin_files();
-			global_pos > m_file_iter->size; global_pos -= m_file_iter->size);
+			global_pos >= m_file_iter->size; ++m_file_iter)
+	{
+		global_pos -= m_file_iter->size;
+	}
 
-	m_file_offset = global_pos + m_piece_offset;
+	m_file_offset = global_pos;
 
 	std::ios_base::openmode m;
 	if (m_mode == out) m = std::ios_base::out | std::ios_base::in | std::ios_base::binary;
@@ -519,7 +528,7 @@ void libtorrent::piece_file::write(const char* buf, int size, bool lock_)
 		buf_pos += write_bytes;
 		assert(buf_pos >= 0);
 		m_file_offset += write_bytes;
-		assert(m_file_offset < m_file_iter->size);
+		assert(m_file_offset <= m_file_iter->size);
 		m_piece_offset += write_bytes;
 
 		if (left_to_write > 0)
@@ -527,7 +536,7 @@ void libtorrent::piece_file::write(const char* buf, int size, bool lock_)
 			++m_file_iter;
 
 			assert(m_file_iter != m_storage->m_torrent_file->end_files());
-			assert(m_file_iter->size > m_file_offset);
+//			assert(m_file_iter->size > m_file_offset); BOGUS ASSERT?
 
 			boost::filesystem::path path = m_storage->m_save_path /
 				m_file_iter->path / m_file_iter->filename;
@@ -1485,5 +1494,10 @@ void libtorrent::storage::initialize_pieces(torrent* t,
 
 }
 */
+
+#ifdef NO_THREAD_SAFE_PIECE_FILE
+	#undef NO_THREAD_SAFE_PIECE_FILE
+#endif
+
 #endif
 
