@@ -63,37 +63,6 @@ namespace libtorrent
 	std::string escape_string(const char* str, int len);
 	std::string unescape_string(std::string const& s);
 
-	struct tracker_alert: alert
-	{
-		tracker_alert(const torrent_handle& h
-			, const std::string& msg)
-			: alert(alert::warning, msg)
-			, handle(h)
-			{}
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new tracker_alert(*this)); }
-
-		torrent_handle handle;
-	};
-
-	struct hash_failed_alert: alert
-	{
-		hash_failed_alert(
-			const torrent_handle& h
-			, int index
-			, const std::string& msg)
-			: alert(alert::info, msg)
-			, handle(h)
-			, piece_index(index)
-			{}
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new hash_failed_alert(*this)); }
-
-		torrent_handle handle;
-		int piece_index;
-	};
 
 	namespace detail
 	{

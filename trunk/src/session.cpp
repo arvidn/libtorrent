@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/entry.hpp"
+#include "libtorrent/alert_types.hpp"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 namespace std

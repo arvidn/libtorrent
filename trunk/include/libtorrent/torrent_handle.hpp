@@ -62,6 +62,7 @@ namespace libtorrent
 		{ return "invalid torrent handle used"; }
 	};
 
+	// TODO: put torrent_info in its own header
 	struct torrent_status
 	{
 		torrent_status()

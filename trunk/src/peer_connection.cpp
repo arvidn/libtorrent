@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/alert_types.hpp"
 
 #if defined(_MSC_VER)
 #define for if (false) {} else for
@@ -704,7 +705,12 @@ namespace libtorrent
 			if (!was_seed && is_seed())
 			{
 				assert(verified);
-				// TODO: post torrent_finished_alert
+				if (m_torrent->alerts().should_post(alert::warning))
+				{
+					m_torrent->alerts().post_alert(torrent_finished_alert(
+						m_torrent->get_handle()
+						, "torrent is finished downloading"));
+				}
 			}
 
 		}

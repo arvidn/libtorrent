@@ -38,10 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_connection.hpp"
-
-// TODO: move all alerts to a single header
-// session.hpp is included just for the peer_error_alert
-#include "libtorrent/session.hpp"
+#include "libtorrent/alert_types.hpp"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 #	define for if (false) {} else for
