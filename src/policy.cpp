@@ -584,8 +584,9 @@ namespace libtorrent
 
 	void policy::peer_from_tracker(const address& remote, const peer_id& id)
 	{
-		assert(remote.ip() != 0);
-		assert(remote.port() != 0);
+		if(remote.ip()==0 || remote.port()==0)
+			return;
+
 		try
 		{
 			std::vector<peer>::iterator i = std::find_if(
