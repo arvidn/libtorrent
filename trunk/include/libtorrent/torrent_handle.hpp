@@ -218,7 +218,6 @@ namespace libtorrent
 			, m_info_hash(h)
 		{
 			assert(m_ses != 0);
-			assert(m_chk != 0);
 		}
 
 #ifndef NDEBUG

@@ -304,6 +304,7 @@ int main(int argc, char* argv[])
 						boost::filesystem::ofstream out(h.save_path() / s.str(), std::ios_base::binary);
 						out.unsetf(std::ios_base::skipws);
 						bencode(std::ostream_iterator<char>(out), data);
+						ses.remove_torrent(*i);
 					}
 					break;
 				}
