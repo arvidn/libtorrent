@@ -76,7 +76,7 @@ namespace
 		int quota_limit;	// bandwidth limit
 		int estimated_upload_capacity; // estimated channel bandwidth
 
-		bool operator < (connection_info &other) const
+		bool operator < (const connection_info &other) const
 		{
 			return estimated_upload_capacity < other.estimated_upload_capacity;
 		}

@@ -61,10 +61,10 @@ namespace libtorrent
 		{
 			std::stringstream s;
 			s << "-" << id[0] << id[1]
-				<< major_version
-				<< minor_version
-				<< revision_version
-				<< tag_version << "-";
+				<< (int)major_version
+				<< (int)minor_version
+				<< (int)revision_version
+				<< (int)tag_version << "-";
 			return s.str();
 		}
 

@@ -282,7 +282,7 @@ int main(int argc, char* argv[])
 						<< "u: " << add_suffix(i->up_speed) << "/s "
 						<< "(" << add_suffix(i->total_upload) << ") "
 //						<< "df: " << add_suffix((int)i->total_download - (int)i->total_upload) << " "
-						<< "b: " << add_suffix(i->load_balancing) << "/s "
+						<< "b: " << add_suffix(i->load_balancing) << " "
 						<< "f: "
 						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
 						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
