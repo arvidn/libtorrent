@@ -14,9 +14,8 @@ lib winsock : : <name>wsock32.lib ;
 project torrent
 	: requirements
 
-	: usage-requirements 
-
 	<include>./include
+	<include>./zlib
 	<include>$(BOOST_ROOT)
 	<variant>release:<define>NDEBUG
 	<define>BOOST_ALL_NO_LIB
@@ -37,6 +36,13 @@ project torrent
 # darwin switches
 
 	<toolset>darwin:<cxxflags>-Wno-unused-variable
+
+	: usage-requirements 
+
+	<include>./include
+	<include>$(BOOST_ROOT)
+	<variant>release:<define>NDEBUG
+	<define>BOOST_ALL_NO_LIB
 
 	;
 
@@ -65,6 +71,21 @@ SOURCES =
 	sha1.c
 	;
 
+ZLIB_SOURCES = 
+	adler32.c
+	compress.c
+	crc32.c
+	deflate.c
+	gzio.c
+	infback.c
+	inffast.c
+	inflate.c
+	inftrees.c
+	trees.c
+	uncompr.c
+	zutil.c
+	;
+
 
 # some windows specific settings
 
@@ -81,8 +102,8 @@ SOURCES =
 
 lib torrent
 	:
-	zlib//zlib
 	src/$(SOURCES)
+	zlib/$(ZLIB_SOURCES)
 	$(LIBS)
 	/boost/thread//boost_thread
 	/boost/filesystem//boost_filesystem/<link>static

@@ -117,7 +117,9 @@ namespace libtorrent
 		void receive_data();
 
 		// tells if this connection has data it want to send
-		bool has_data() const;
+		// and has enough upload bandwidth quota left to send it.
+		bool can_write() const;
+		bool can_read() const;
 
 		bool is_seed() const;
 
@@ -170,13 +172,6 @@ namespace libtorrent
 		// mainloop to disconnect peers.
 		void disconnect();
 		bool is_disconnecting() const { return m_disconnecting; }
-
-		// returns the send quota this peer has
-		// left until will stop sending.
-		// if the send_quota is -1, it means the
-		// quota is unlimited.
-		int send_quota_left() const;
-		resource_request* upload_bandwidth_quota();
 
 		// This is called for every peer right after the upload
 		// bandwidth has been distributed among them
@@ -248,7 +243,9 @@ namespace libtorrent
 
 		// how much bandwidth we're using, how much we want,
 		// and how much we are allowed to use.
-		resource_request m_upload_bandwidth_quota;
+		resource_request m_ul_bandwidth_quota;
+		resource_request m_dl_bandwidth_quota;
+		resource_request m_unchoked_quota;
 
 	private:
 
@@ -340,8 +337,8 @@ namespace libtorrent
 		boost::shared_ptr<libtorrent::socket> m_socket;
 		
 		// upload bandwidth used this second.
-		// Must not exceed m_upload_bandwidth_quota.given.
-//		int m_upload_bandwidth_quota_used;
+		// Must not exceed m_ul_bandwidth_quota.given.
+//		int m_ul_bandwidth_quota_used;
 
 		// this is the torrent this connection is
 		// associated with. If the connection is an
@@ -372,7 +369,8 @@ namespace libtorrent
 		// sent to this peer, we check this and
 		// if it's not added to the selector we
 		// add it. (this is done in send_buffer_updated())
-		bool m_added_to_selector;
+		bool m_writability_monitored;
+		bool m_readability_monitored;
 
 		// remote peer's id
 		peer_id m_peer_id;

@@ -107,10 +107,10 @@ namespace libtorrent
 	{
 	public:
 
-		// we need a vector here to maintain the order
-		// of elements. Since the info-hash is reconstructed
-		// from an entry, it's important that the order is
-		// preserved.
+		// we need a list here instead of a map, to maintain
+		// the order of elements. Since the info-hash is
+		// reconstructed from an entry, it's important that
+		// the order is preserved.
 		typedef std::list<std::pair<std::string, entry> > dictionary_type;
 		typedef std::string string_type;
 		typedef std::list<entry> list_type;
@@ -125,76 +125,32 @@ namespace libtorrent
 			undefined_t
 		};
 
-		data_type type() const { return m_type; }
+		data_type type() const;
 
 		entry(const dictionary_type&);
 		entry(const string_type&);
 		entry(const list_type&);
 		entry(const integer_type&);
 
-		entry(): m_type(undefined_t) {}
-		entry(data_type t): m_type(t) { construct(t); }
-		entry(const entry& e) { copy(e); }
-		~entry() { destruct(); }
+		entry();
+		entry(data_type t);
+		entry(const entry& e);
+		~entry();
 
-		void operator=(const entry& e)
-		{
-			destruct();
-			copy(e);
-		}
-
+		void operator=(const entry& e);
 		void operator=(const dictionary_type&);
 		void operator=(const string_type&);
 		void operator=(const list_type&);
 		void operator=(const integer_type&);
 
-		integer_type& integer()
-		{
-			if (m_type != int_t) throw type_error("invalid type requested from entry");
-			return *reinterpret_cast<integer_type*>(data);
-		}
-
-		const integer_type& integer() const
-		{
-			if (m_type != int_t) throw type_error("invalid type requested from entry");
-			return *reinterpret_cast<const integer_type*>(data);
-		}
-
-		string_type& string()
-		{
-			if (m_type != string_t) throw type_error("invalid type requested from entry");
-			return *reinterpret_cast<string_type*>(data);
-		}
-
-		const string_type& string() const
-		{
-			if (m_type != string_t) throw type_error("invalid type requested from entry");
-			return *reinterpret_cast<const string_type*>(data);
-		}
-
-		list_type& list()
-		{
-			if (m_type != list_t) throw type_error("invalid type requested from entry");
-			return *reinterpret_cast<list_type*>(data);
-		}
-
-		const list_type& list() const
-		{
-			if (m_type != list_t) throw type_error("invalid type requested from entry");
-			return *reinterpret_cast<const list_type*>(data);
-		}
-
-		dictionary_type& dict()
-		{
-			if (m_type != dictionary_t) throw type_error("invalid type requested from entry");
-			return *reinterpret_cast<dictionary_type*>(data);
-		}
-
-		const dictionary_type& dict() const
-		{
-			if (m_type != dictionary_t) throw type_error("invalid type requested from entry");
-			return *reinterpret_cast<const dictionary_type*>(data);
-		}
+		integer_type& integer();
+		const integer_type& integer() const;
+		string_type& string();
+		const string_type& string() const;
+		list_type& list();
+		const list_type& list() const;
+		dictionary_type& dict();
+		const dictionary_type& dict() const;
 
 		// these functions requires that the entry
 		// is a dictionary, otherwise they will throw	
@@ -244,6 +200,67 @@ namespace libtorrent
 	{
 		e.print(os, 0);
 		return os;
+	}
+
+	inline entry::data_type entry::type() const { return m_type; }
+
+	inline entry::entry(): m_type(undefined_t) {}
+	inline entry::entry(data_type t): m_type(t) { construct(t); }
+	inline entry::entry(const entry& e) { copy(e); }
+	inline entry::~entry() { destruct(); }
+
+	inline void entry::operator=(const entry& e)
+	{
+		destruct();
+		copy(e);
+	}
+
+	inline entry::integer_type& entry::integer()
+	{
+		if (m_type != int_t) throw type_error("invalid type requested from entry");
+		return *reinterpret_cast<integer_type*>(data);
+	}
+
+	inline entry::integer_type const& entry::integer() const
+	{
+		if (m_type != int_t) throw type_error("invalid type requested from entry");
+		return *reinterpret_cast<const integer_type*>(data);
+	}
+
+	inline entry::string_type& entry::string()
+	{
+		if (m_type != string_t) throw type_error("invalid type requested from entry");
+		return *reinterpret_cast<string_type*>(data);
+	}
+
+	inline entry::string_type const& entry::string() const
+	{
+		if (m_type != string_t) throw type_error("invalid type requested from entry");
+		return *reinterpret_cast<const string_type*>(data);
+	}
+
+	inline entry::list_type& entry::list()
+	{
+		if (m_type != list_t) throw type_error("invalid type requested from entry");
+		return *reinterpret_cast<list_type*>(data);
+	}
+
+	inline entry::list_type const& entry::list() const
+	{
+		if (m_type != list_t) throw type_error("invalid type requested from entry");
+		return *reinterpret_cast<const list_type*>(data);
+	}
+
+	inline entry::dictionary_type& entry::dict()
+	{
+		if (m_type != dictionary_t) throw type_error("invalid type requested from entry");
+		return *reinterpret_cast<dictionary_type*>(data);
+	}
+
+	inline entry::dictionary_type const& entry::dict() const
+	{
+		if (m_type != dictionary_t) throw type_error("invalid type requested from entry");
+		return *reinterpret_cast<const dictionary_type*>(data);
 	}
 
 }

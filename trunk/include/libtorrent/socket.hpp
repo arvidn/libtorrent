@@ -240,10 +240,19 @@ namespace libtorrent
 		void remove_writable(boost::shared_ptr<socket> s)
 		{ m_writable.erase(std::find(m_writable.begin(), m_writable.end(), s)); }
 
+		void remove_readable(boost::shared_ptr<socket> s)
+		{ m_readable.erase(std::find(m_readable.begin(), m_readable.end(), s)); }
+
 		bool is_writability_monitored(boost::shared_ptr<socket> s)
 		{
 			return std::find(m_writable.begin(), m_writable.end(), s)
 				!= m_writable.end();
+		}
+
+		bool is_readability_monitored(boost::shared_ptr<socket> s)
+		{
+			return std::find(m_readable.begin(), m_readable.end(), s)
+				!= m_readable.end();
 		}
 
 		void wait(int timeout

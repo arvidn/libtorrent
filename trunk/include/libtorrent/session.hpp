@@ -225,6 +225,7 @@ namespace libtorrent
 			// bytes per second. -1 means
 			// unlimited
 			int m_upload_rate;
+			int m_download_rate;
 
 			// handles delayed alerts
 			alert_manager m_alerts;
@@ -292,6 +293,7 @@ namespace libtorrent
 
 		void set_http_settings(const http_settings& s);
 		void set_upload_rate_limit(int bytes_per_second);
+		void set_download_rate_limit(int bytes_per_second);
 
 		// TODO: add a session_status that contain
 		// some indication of if the listen-port works

@@ -44,6 +44,13 @@ namespace libtorrent
 			, given(0)
 		{}
 
+		int left() const
+		{
+			assert(given >= used);
+			return given - used;
+		}
+
+
 		// I'm right now actively using:
 		int used;
 

@@ -29,18 +29,18 @@ The current state includes the following features:
 	* queues torrents for file check, instead of checking all of them in parallel.
 	* uses separate threads for checking files and for main downloader, with a fool-proof
 	  thread-safe library interface. (i.e. There's no way for the user to cause a deadlock).
-	* can limit the upload bandwidth usage and the maximum number of unchoked peers
-	* piece-wise file allocation
+	* can limit the upload and download bandwidth usage and the maximum number of unchoked peers
+	* piece-wise, unordered, file allocation
 	* implements fair trade. User settable trade-ratio, must at least be 1:1,
 	  but one can choose to trade 1 for 2 or any other ratio that isn't unfair to the other
-	  party.
+	  party. (i.e. real tit for tat)
 	* fast resume support, a way to get rid of the costly piece check at the start
 	  of a resumed torrent. Saves the storage state, piece_picker state as well as all local
 	  peers in a separate fast-resume file.
 	* supports the extension protocol `described by Nolar`__. See extensions_.
 	* supports files > 2 gigabytes (currently only on windows).
 	* supports the ``no_peer_id=1`` extension that will ease the load off trackers.
-	* supports the `udp-tracker protocol`__.
+	* supports the `udp-tracker protocol`__ by Olaf van der Spek.
 	* possibility to limit the number of connections.
 	* delays have messages if there's no other outgoing traffic to the peer, and doesn't
 	  send have messages to peers that already has the piece. This saves bandwidth.
@@ -129,7 +129,7 @@ cygwin and msvc
 ---------------
 
 Note that if you're building on windows using the ``msvc`` toolset, you cannot run it
-from a cygwin terminal, you'll have to run it from a cmd terminal. The same goes for
+from a cygwin terminal, you'll have to run it from a ``cmd`` terminal. The same goes for
 cygwin, if you're building with gcc (mingw) you'll have to run it from a cygwin terminal.
 Also, make sure the paths are correct in the different environments. In cygwin, the paths
 (``BOOST_BUILD_PATH`` and ``BOOST_ROOT``) should be in the typical unix-format (e.g.
@@ -225,6 +225,7 @@ The ``session`` class has the following synopsis::
 
 		void set_http_settings(const http_settings& settings);
 		void set_upload_rate_limit(int bytes_per_second);
+		void set_download_rate_limit(int bytes_per_second);
 
 		bool is_listening() const;
 		unsigned short listen_port() const;
@@ -242,7 +243,7 @@ Once it's created, it will spawn the main thread that will do all the work.
 The main thread will be idle as long it doesn't have any torrents to participate in.
 You add torrents through the ``add_torrent()``-function where you give an
 object representing the information found in the torrent file and the path where you
-want to save the files. The ``save_path`` will be prepended to the directory-
+want to save the files. The ``save_path`` will be prepended to the directory
 structure in the torrent-file. ``add_torrent`` will throw duplicate_torrent_ exception
 if the torrent already exists in the session.
 
@@ -266,6 +267,8 @@ fingerprint class.
 ``set_upload_rate_limit()`` set the maximum number of bytes allowed to be
 sent to peers per second. This bandwidth is distributed among all the peers. If
 you don't want to limit upload rate, you can set this to -1 (the default).
+``set_download_rate_limit()`` works the same way but for download rate instead
+of upload rate.
 
 ``is_listening()`` will tell you wether or not the session has successfully
 opened a listening port. If it hasn't, this function will return false, and
@@ -374,10 +377,10 @@ or a string. This is its synopsis::
 	{
 	public:
 
-		typedef std::map<std::string, entry> dictionary_type;
+		typedef std::list<std::pair<std::string, entry> > dictionary_type;
 		typedef std::string string_type;
-		typedef std::vector<entry> list_type;
-		typedef implementation-defined integer_type;
+		typedef std::list<entry> list_type;
+		typedef size_type integer_type;
 
 		enum data_type
 		{
@@ -398,7 +401,6 @@ or a string. This is its synopsis::
 		entry();
 		entry(data_type t);
 		entry(const entry& e);
-
 		~entry();
 
 		void operator=(const entry& e);
@@ -407,7 +409,7 @@ or a string. This is its synopsis::
 		void operator=(const list_type&);
 		void operator=(const integer_type&);
 
-		integer_type& integer()
+		integer_type& integer();
 		const integer_type& integer() const;
 		string_type& string();
 		const string_type& string() const;
@@ -416,6 +418,15 @@ or a string. This is its synopsis::
 		dictionary_type& dict();
 		const dictionary_type& dict() const;
 
+		// these functions requires that the entry
+		// is a dictionary, otherwise they will throw	
+		entry& operator[](char const* key);
+		entry& operator[](std::string const& key);
+		const entry& operator[](char const* key) const;
+		const entry& operator[](std::string const& key) const;
+		entry* find_key(char const* key);
+		entry const* find_key(char const* key) const;
+		
 		void print(std::ostream& os, int indent = 0) const;
 	};
 
@@ -586,11 +597,13 @@ Its declaration looks like this::
 		void force_reannounce();
 		void connect_peer(const address& adr) const;
 
-		void set_ratio(float ratio);
 		void set_tracker_login(std::string const& username, std::string const& password);
+
+		void set_ratio(float ratio);
 		void set_max_uploads(int max_uploads);
 		void set_max_connections(int max_connections);
 		void set_upload_limit(int limit);
+		void set_download_limit(int limit);
 		void use_interface(const char* net_interface);
 
 		void pause();
@@ -634,6 +647,10 @@ as a standard client.
 
 ``set_upload_limit`` will limit the upload bandwidth used by this particular torrent to the
 limit you set. It is given as the number of bytes per second the torrent is allowed to upload.
+``set_download_limit`` works the same way but for download bandwidth instead of upload bandwidth.
+Note that setting i higher limit on a torrent then the global limit (``session::set_upload_rate_limit``)
+will not override the global rate limit. The torrent can never upload more than the global rate
+limit.
 
 ``pause()``, and ``resume()`` will disconnect all peers and reconnect all peers respectively.
 When a torrent is paused, it will however remember all share ratios to all peers and remember
@@ -1300,7 +1317,7 @@ to the torrent that this peer was a member of.
 
 	struct peer_ban_alert: alert
 	{
-		peer_error_alert(
+		peer_ban_alert(
 			address const& pip
 			, torrent_handle h
 			, const std::string& msg);
@@ -1323,10 +1340,15 @@ is generated as severity level ``debug``.
 
 	struct peer_error_alert: alert
 	{
-		peer_error_alert(const address& pid, const std::string& msg);
+		peer_error_alert(
+			address const& pip
+			, peer_id const& pid
+			, const std::string& msg);
+
 		virtual std::auto_ptr<alert> clone() const;
 
 		address ip;
+		peer_id id;
 	};
 
 
@@ -1343,16 +1365,18 @@ is a handle to the torrent the peer is a member of. ``ìp`` is the address of the
 	struct invalid_request_alert: alert
 	{
 		invalid_request_alert(
-			const peer_request& r
-			, const torrent_handle& h
-			, const address& send
-			, const std::string& msg);
+			peer_request const& r
+			, torrent_handle const& h
+			, address const& send
+			, peer_id const& pid
+			, std::string const& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
 
 		torrent_handle handle;
 		address ip;
 		peer_request request;
+		peer_id id;
 	};
 
 
@@ -1361,7 +1385,7 @@ is a handle to the torrent the peer is a member of. ``ìp`` is the address of the
 		int piece;
 		int start;
 		int length;
-		bool operator==(const peer_request& r);
+		bool operator==(peer_request const& r) const;
 	};
 
 

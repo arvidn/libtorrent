@@ -271,6 +271,7 @@ namespace libtorrent { namespace detail
 		, m_listen_interface(listen_interface, listen_port_range.first)
 		, m_abort(false)
 		, m_upload_rate(-1)
+		, m_download_rate(-1)
 		, m_incoming_connection(false)
 	{
 		assert(listen_port_range.first > 0);
@@ -309,7 +310,6 @@ namespace libtorrent { namespace detail
 		{
 			m_connections.erase(m_disconnect_peer.back());
 			m_disconnect_peer.pop_back();
-			assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
 		}
 	}
 
@@ -420,8 +420,6 @@ namespace libtorrent { namespace detail
 #endif
 			boost::mutex::scoped_lock l(m_mutex);
 
-			assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
-
 			if (m_abort)
 			{
 				m_tracker_manager.abort_all_requests();
@@ -467,7 +465,7 @@ namespace libtorrent { namespace detail
 					try
 					{
 						assert(m_selector.is_writability_monitored(p->first));
-						assert(p->second->has_data());
+						assert(p->second->can_write());
 						assert(p->second->get_socket()->is_writable());
 						p->second->send_data();
 					}
@@ -486,7 +484,6 @@ namespace libtorrent { namespace detail
 
 						// pause the torrent
 						t->pause();
-						assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
 					}
 					catch (std::exception& e)
 					{
@@ -495,13 +492,15 @@ namespace libtorrent { namespace detail
 						if (m_alerts.should_post(alert::debug))
 						{
 							m_alerts.post_alert(
-								peer_error_alert(p->first->sender(), e.what()));
+								peer_error_alert(
+									p->first->sender()
+									, p->second->id()
+									, e.what()));
 						}
 
 						p->second->set_failed();
 						m_selector.remove(*i);
 						m_connections.erase(p);
-						assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
 					}
 				}
 			}
@@ -573,7 +572,6 @@ namespace libtorrent { namespace detail
 								, e.what()));
 						}
 
-						assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
 						t->pause();
 					}
 					catch (std::exception& e)
@@ -581,14 +579,16 @@ namespace libtorrent { namespace detail
 						if (m_alerts.should_post(alert::debug))
 						{
 							m_alerts.post_alert(
-								peer_error_alert(p->first->sender(), e.what()));
+								peer_error_alert(
+									p->first->sender()
+									, p->second->id()
+									, e.what()));
 						}
 						// the connection wants to disconnect for some reason, remove it
 						// from the connection-list
 						p->second->set_failed();
 						m_selector.remove(*i);
 						m_connections.erase(p);
-						assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
 					}
 				}
 			}
@@ -613,7 +613,8 @@ namespace libtorrent { namespace detail
 					m_alerts.post_alert(
 						peer_error_alert(
 							p->first->sender()
-							, "socket received an exception"));
+							, p->second->id()
+							, "connection closed"));
 				}
 
 				m_selector.remove(*i);
@@ -622,7 +623,6 @@ namespace libtorrent { namespace detail
 				{
 					p->second->set_failed();
 					m_connections.erase(p);
-					assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
 				}
 			}
 
@@ -659,12 +659,14 @@ namespace libtorrent { namespace detail
 					if (m_alerts.should_post(alert::debug))
 					{
 						m_alerts.post_alert(
-							peer_error_alert(j->first->sender(), "connection timed out"));
+							peer_error_alert(
+								j->first->sender()
+								, j->second->id()
+								, "connection timed out"));
 					}
 					j->second->set_failed();
 					m_selector.remove(j->first);
 					m_connections.erase(j);
-					assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
 					continue;
 				}
 
@@ -713,7 +715,13 @@ namespace libtorrent { namespace detail
 				? std::numeric_limits<int>::max()
 				: m_upload_rate
 				, m_torrents
-				, &torrent::m_upload_bandwidth_quota);
+				, &torrent::m_ul_bandwidth_quota);
+
+			allocate_resources(m_download_rate == -1
+				? std::numeric_limits<int>::max()
+				: m_download_rate
+				, m_torrents
+				, &torrent::m_dl_bandwidth_quota);
 
 			for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
 				= m_torrents.begin(); i != m_torrents.end(); ++i)
@@ -795,15 +803,18 @@ namespace libtorrent { namespace detail
 			i != m_connections.end();
 			++i)
 		{
-			if (i->second->has_data() != m_selector.is_writability_monitored(i->first))
+			if (i->second->can_write() != m_selector.is_writability_monitored(i->first)
+				|| i->second->can_read() != m_selector.is_readability_monitored(i->first))
 			{
 				std::ofstream error_log("error.log", std::ios_base::app);
 				boost::shared_ptr<peer_connection> p = i->second;
-				error_log << "session_imple::check_invariant()\n"
-					"peer_connection::has_data() != is_writability_monitored()\n";
-				error_log << "peer_connection::has_data() " << p->has_data() << "\n";
-				error_log << "peer_connection::send_quota_left " << p->send_quota_left() << "\n";
-				error_log << "peer_connection::upload_bandwidth_quota()->given " << p->upload_bandwidth_quota()->given << "\n";
+				error_log << "selector::is_writability_monitored() " << m_selector.is_writability_monitored(i->first) << "\n";
+				error_log << "selector::is_readability_monitored() " << m_selector.is_readability_monitored(i->first) << "\n";
+				error_log << "peer_connection::can_write() " << p->can_write() << "\n";
+				error_log << "peer_connection::can_read() " << p->can_read() << "\n";
+				error_log << "peer_connection::ul_quota_left " << p->m_ul_bandwidth_quota.left() << "\n";
+				error_log << "peer_connection::dl_quota_left " << p->m_dl_bandwidth_quota.left() << "\n";
+				error_log << "peer_connection::m_ul_bandwidth_quota.given " << p->m_ul_bandwidth_quota.given << "\n";
 				error_log << "peer_connection::get_peer_id " << p->get_peer_id() << "\n";
 				error_log << "place: " << place << "\n";
 				error_log.flush();
@@ -1007,12 +1018,26 @@ namespace libtorrent
 
 		for (detail::session_impl::connection_map::iterator i
 			= m_impl.m_connections.begin();
-			i != m_impl.m_connections.end();)
+			i != m_impl.m_connections.end(); ++i)
 		{
-			i->second->upload_bandwidth_quota()->given = std::numeric_limits<int>::max();
-//			i->second->update_send_quota_left();
+			i->second->m_ul_bandwidth_quota.given = std::numeric_limits<int>::max();
 		}
+	}
 
+	void session::set_download_rate_limit(int bytes_per_second)
+	{
+		assert(bytes_per_second > 0 || bytes_per_second == -1);
+		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		m_impl.m_download_rate = bytes_per_second;
+		if (m_impl.m_download_rate != -1 || !m_impl.m_connections.empty())
+			return;
+
+		for (detail::session_impl::connection_map::iterator i
+			= m_impl.m_connections.begin();
+			i != m_impl.m_connections.end(); ++i)
+		{
+			i->second->m_dl_bandwidth_quota.given = std::numeric_limits<int>::max();
+		}
 	}
 
 	std::auto_ptr<alert> session::pop_alert()

@@ -1189,8 +1189,9 @@ namespace libtorrent
 				}
 
 				assert(file_offset > current_offset);
-				int skip_blocks = (file_offset - current_offset + m_info.piece_length() - 1)
-					/ m_info.piece_length();
+				int skip_blocks = static_cast<int>(
+					(file_offset - current_offset + m_info.piece_length() - 1)
+					/ m_info.piece_length());
 
 				for (int i = current_slot; i < current_slot + skip_blocks; ++i)
 				{
