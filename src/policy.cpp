@@ -162,7 +162,7 @@ namespace
 		// from this peer instead)
 
 		peer_connection* peer = 0;
-		float down_speed = std::numeric_limits<float>::max();
+		float min_weight = std::numeric_limits<float>::max();
 		// find the peer with the lowest download
 		// speed that also has a piece that this
 		// peer could send us
@@ -170,15 +170,21 @@ namespace
 			i != t.end();
 			++i)
 		{
+			// don't try to take over blocks from ourself
+			if (i->second == &c)
+				continue;
+
 			// ignore all peers in the ignore list
 			if (std::find(ignore.begin(), ignore.end(), i->second) != ignore.end())
 				continue;
 
 			const std::deque<piece_block>& queue = i->second->download_queue();
-			const float weight = i->second->statistics().down_peak()
-				/ i->second->download_queue().size();
+			const int queue_size = i->second->download_queue().size();
+			const float weight = queue_size == 0
+				? std::numeric_limits<float>::max()
+				: i->second->statistics().down_peak() / queue_size;
 
-			if (weight < down_speed
+			if (weight < min_weight
 				&& std::find_first_of(
 					busy_pieces.begin()
 					, busy_pieces.end()
@@ -186,7 +192,7 @@ namespace
 					, queue.end()) != busy_pieces.end())
 			{
 				peer = i->second;
-				down_speed = weight;
+				min_weight = weight;
 			}
 		}
 
@@ -199,7 +205,12 @@ namespace
 
 		// this peer doesn't have a faster connection than the
 		// slowest peer. Don't take over any blocks
-		if (c.statistics().down_peak() / c.download_queue().size() <= down_speed) return;
+		const int queue_size = c.download_queue().size();
+		const float weight = queue_size == 0
+			? std::numeric_limits<float>::max()
+			: c.statistics().down_peak() / queue_size;
+
+		if (weight <= min_weight) return;
 
 		// find a suitable block to take over from this peer
 
@@ -555,6 +566,28 @@ namespace libtorrent
 		// ------------------------
 		if (m_torrent->is_seed())
 		{
+			while (m_num_unchoked > m_max_uploads)
+			{
+				peer* p = 0;
+				for (std::vector<peer>::iterator i = m_peers.begin();
+					i != m_peers.end();
+					++i)
+				{
+					peer_connection* c = i->connection;
+					if (c == 0) continue;
+					if (c->is_choked()) continue;
+// TODO: add some more criterions here. Maybe the peers
+// that have less should be promoted? (to allow them to trade)
+					p = &(*i);
+					break;
+				}
+
+				if (p == 0) break;
+
+				p->connection->send_choke();
+				--m_num_unchoked;
+			}
+
 			// make sure we have enough
 			// unchoked peers
 			while (m_num_unchoked < m_max_uploads)
@@ -572,6 +605,7 @@ namespace libtorrent
 // TODO: add some more criterions here. Maybe the peers
 // that have less should be promoted? (to allow them to trade)
 					p = &(*i);
+					break;
 				}
 
 				if (p == 0) break;
@@ -608,6 +642,8 @@ namespace libtorrent
 			
 			// make sure we don't have too many
 			// unchoked peers
+			// TODO: this could result in two quick
+			// choke-unchoke messages.
 			while (m_num_unchoked > m_max_uploads)
 			{
 				peer* p = find_choke_candidate();
