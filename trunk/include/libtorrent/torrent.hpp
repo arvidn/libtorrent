@@ -51,12 +51,45 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/url_handler.hpp"
 #include "libtorrent/stat.hpp"
+#include "libtorrent/alert.hpp"
 
 namespace libtorrent
 {
 #ifndef NDEBUG
 	struct logger;
 #endif
+
+	struct tracker_alert: alert
+	{
+		tracker_alert(const torrent_handle& h
+			, const std::string& msg)
+			: alert(alert::warning, msg)
+			, handle(h)
+			{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new tracker_alert(*this)); }
+
+		torrent_handle handle;
+	};
+
+	struct hash_failed_alert: alert
+	{
+		hash_failed_alert(
+			const torrent_handle& h
+			, int index
+			, const std::string& msg)
+			: alert(alert::info, msg)
+			, handle(h)
+			, piece_index(index)
+			{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new hash_failed_alert(*this)); }
+
+		torrent_handle handle;
+		int piece_index;
+	};
 
 	namespace detail
 	{
@@ -150,33 +183,9 @@ namespace libtorrent
 
 		// this is a callback called by the tracker_connection class
 		// when this torrent got a response from its tracker request
-		void tracker_response(const entry& e);
-
-		void tracker_request_timed_out()
-		{
-#ifndef NDEBUG
-			debug_log("*** tracker timed out");
-#endif
-			// TODO: increase the retry_delay for
-			// each failed attempt on the same tracker!
-			// maybe we should add a counter that keeps
-			// track of how many times a specific tracker
-			// has timed out?
-			try_next_tracker();
-		}
-
-		// TODO: this function should also take the
-		// HTTP-response code as an argument
-		// with some codes, we should just consider
-		// the tracker as a failure and not retry
-		// it anymore
-		void tracker_request_error(const char* str)
-		{
-#ifndef NDEBUG
-			debug_log(std::string("*** tracker error: ") + str);
-#endif
-			try_next_tracker();
-		}
+		virtual void tracker_response(const entry& e);
+		virtual void tracker_request_timed_out();
+		virtual void tracker_request_error(const char* str);
 
 		// generates a request string for sending
 		// to the tracker
@@ -324,6 +333,11 @@ namespace libtorrent
 		// std::accumulate(m_have_pieces.begin(),
 		// m_have_pieces.end(), 0)
 		int m_num_pieces;
+
+		// is false by default and set to
+		// true when the first tracker reponse
+		// is received
+		bool m_got_tracker_response;
 	};
 
 }

@@ -171,6 +171,12 @@ namespace libtorrent
 			// handles delayed alerts
 			alert_manager m_alerts;
 
+			// is false by default and set to true when
+			// the first incoming connection is established
+			// this is used to know if the client is behind
+			// NAT or not.
+			bool m_incoming_connection;
+
 #ifndef NDEBUG
 			void assert_invariant();
 			boost::shared_ptr<logger> create_log(std::string name);
@@ -181,8 +187,6 @@ namespace libtorrent
 	}
 
 	struct http_settings;
-
-	std::string identify_client(const peer_id& p);
 
 	class session: public boost::noncopyable, detail::eh_initializer
 	{
@@ -202,7 +206,10 @@ namespace libtorrent
 		void set_http_settings(const http_settings& s);
 		void set_upload_rate_limit(int bytes_per_second);
 
+		// TODO: add a session_status that contain 
+
 		std::auto_ptr<alert> pop_alert();
+		void set_severity_level(alert::severity_t s);
 
 	private:
 

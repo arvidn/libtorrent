@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_FINGERPRINT_HPP_INCLUDED
 
 #include <string>
+#include <sstream>
 
 #include "libtorrent/peer_id.hpp"
 

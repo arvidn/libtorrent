@@ -63,10 +63,23 @@ namespace libtorrent
 
 	struct torrent_status
 	{
+		torrent_status()
+			: state(queued_for_checking)
+			, progress(0.f)
+			, total_download(0)
+			, total_upload(0)
+			, total_payload_download(0)
+			, total_payload_upload(0)
+			, download_rate(0)
+			, upload_rate(0)
+			, total_done(0)
+		{}
+
 		enum state_t
 		{
 			queued_for_checking,
 			checking_files,
+			connecting_to_tracker,
 			downloading,
 			seeding
 		};
@@ -76,17 +89,23 @@ namespace libtorrent
 		boost::posix_time::time_duration next_announce;
 
 		// transferred this session!
+		// total, payload plus protocol
 		std::size_t total_download;
 		std::size_t total_upload;
+
+		// payload only
+		std::size_t total_payload_download;
+		std::size_t total_payload_upload;
+
+		// current transfer rate
+		// payload plus protocol
 		float download_rate;
 		float upload_rate;
+
 		std::vector<bool> pieces;
 
 		// the number of bytes of the file we have
 		std::size_t total_done;
-
-		// TODO: add flag that says if there have
-		// been any incoming connections
 	};
 
 	struct partial_piece_info
@@ -103,6 +122,8 @@ namespace libtorrent
 	struct torrent_handle
 	{
 		friend class session;
+		friend class torrent;
+
 		torrent_handle(): m_ses(0) {}
 
 		void get_peer_info(std::vector<peer_info>& v) const;

@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/identify_client.hpp"
 
 #if defined(_MSC_VER)
 #define for if (false) {} else for
@@ -381,7 +382,6 @@ bool libtorrent::peer_connection::dispatch_message(int received)
 			{
 				m_have_piece[index] = true;
 
-				// TODO: maybe this if-statement should be moved into the policy
 				m_torrent->peer_has(index);
 				if (!m_torrent->have_piece(index) && !is_interesting())
 					m_torrent->get_policy().peer_is_interesting(*this);
@@ -859,12 +859,12 @@ void libtorrent::peer_connection::second_tick()
 		int bias = 0;
 		if (diff > -2*m_torrent->block_size())
 		{
-			bias = m_statistics.download_rate() * .5;
+			bias = m_statistics.download_rate() / 2;
 			if (bias < 10*1024) bias = 10*1024;
 		}
 		else
 		{
-			bias = -m_statistics.download_rate() * .5;
+			bias = -m_statistics.download_rate() / 2;
 		}
 		m_send_quota_limit = m_statistics.download_rate() + bias;
 		// the maximum send_quota given our download rate from this peer
@@ -1030,6 +1030,16 @@ void libtorrent::peer_connection::receive_data()
 				if (m_recv_pos < m_packet_size) break;
 				assert(m_recv_pos == m_packet_size);
 
+#ifndef NDEBUG
+				{
+					peer_id tmp;
+					std::copy(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (char*)tmp.begin());
+					std::stringstream s;
+					s << "received peer_id: " << tmp << " client: " << identify_client(tmp) << "\n";
+					(*m_logger) << s.str();
+				}
+#endif
+
 				if (m_active)
 				{
 					// verify peer_id
@@ -1052,7 +1062,7 @@ void libtorrent::peer_connection::receive_data()
 					if (m_torrent->has_peer(m_peer_id))
 					{
 #ifndef NDEBUG
-						(*m_logger) << m_socket->sender().as_string() << " duplicate connection, closing\n";
+						(*m_logger) << " duplicate connection, closing\n";
 #endif
 						throw network_error(0);
 					}
@@ -1066,9 +1076,7 @@ void libtorrent::peer_connection::receive_data()
 				m_packet_size = 4;
 				m_recv_pos = 0;
 				m_recv_buffer.resize(4);
-#ifndef NDEBUG
-				(*m_logger) << m_socket->sender().as_string() << " received peer_id\n";
-#endif
+
 				break;
 			}
 
@@ -1234,7 +1242,7 @@ void libtorrent::peer_connection::send_data()
 			, amount_to_send);
 
 	#ifndef NDEBUG
-		(*m_logger) << m_socket->sender().as_string() << " ==> SENT [ length: " << sent << " ]\n";
+//		(*m_logger) << m_socket->sender().as_string() << " ==> SENT [ length: " << sent << " ]\n";
 	#endif
 
 		if (sent > 0)

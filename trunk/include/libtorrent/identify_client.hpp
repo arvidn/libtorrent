@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Arvid Norberg, Daniel Wallin
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,55 +30,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/alert.hpp"
+#ifndef TORRENT_IDENTIFY_CLIENT_HPP_INCLUDED
+#define TORRENT_IDENTIFY_CLIENT_HPP_INCLUDED
 
-namespace libtorrent {
+#include "libtorrent/peer_id.hpp"
 
-	alert_manager::alert_manager()
-		: m_severity(alert::none)
-	{}
+namespace libtorrent
+{
 
-	alert_manager::~alert_manager()
-	{
-		while (!m_alerts.empty())
-		{
-			delete m_alerts.front();
-			m_alerts.pop();
-		}
-	}
+	std::string identify_client(const peer_id& p);
 
-	void alert_manager::post_alert(const alert& alert_)
-	{
-		boost::mutex::scoped_lock lock(m_mutex);
-		
-		if (m_severity <= alert_.severity())
-			m_alerts.push(alert_.clone().release());
-	}
+}
 
-	std::auto_ptr<alert> alert_manager::get()
-	{
-		boost::mutex::scoped_lock lock(m_mutex);
-		
-		assert(!m_alerts.empty());
-
-		alert* result = m_alerts.front();
-		m_alerts.pop();
-		return std::auto_ptr<alert>(result);
-	}
-
-	bool alert_manager::pending() const
-	{
-		boost::mutex::scoped_lock lock(m_mutex);
-		
-		return !m_alerts.empty();
-	}
-
-	void alert_manager::set_severity(alert::severity_t severity)
-	{
-		boost::mutex::scoped_lock lock(m_mutex);
-		
-		m_severity = severity;
-	}
-    
-} // namespace libtorrent
-
+#endif // TORRENT_IDENTIFY_CLIENT_HPP_INCLUDED

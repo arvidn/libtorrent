@@ -1,5 +1,6 @@
 SOURCES =
 	entry.cpp
+	identify_client.cpp
 	peer_connection.cpp
 	piece_picker.cpp
 	policy.cpp

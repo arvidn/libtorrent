@@ -51,10 +51,10 @@ void libtorrent::stat::second_tick()
 		m_upload_per_second_history+history-1,
 		m_upload_per_second_history+1);
 
-	m_download_per_second_history[0] = m_downloaded + m_downloaded_protocol;
-	m_upload_per_second_history[0] = m_uploaded + m_uploaded_protocol;
-	m_downloaded = 0;
-	m_uploaded = 0;
+	m_download_per_second_history[0] = m_downloaded_payload + m_downloaded_protocol;
+	m_upload_per_second_history[0] = m_uploaded_payload + m_uploaded_protocol;
+	m_downloaded_payload = 0;
+	m_uploaded_payload = 0;
 	m_downloaded_protocol = 0;
 	m_uploaded_protocol = 0;
 

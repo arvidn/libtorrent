@@ -51,7 +51,7 @@ namespace libtorrent {
 	class alert
 	{
 	public:
-		enum severity_t { info, warning, critital, fatal };
+		enum severity_t { debug, info, warning, critital, fatal, none };
 
 		alert(severity_t severity, const std::string& msg)
 			: m_msg(msg)
@@ -88,6 +88,8 @@ namespace libtorrent {
 		std::auto_ptr<alert> get();
 
 		void set_severity(alert::severity_t severity);
+		bool should_post(alert::severity_t severity) const
+		{ return severity >= m_severity; }
 
 	private:
 		std::queue<alert*> m_alerts;
