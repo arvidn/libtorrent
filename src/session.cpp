@@ -430,6 +430,15 @@ namespace libtorrent
 		//		 << "sleeping\n";
 				m_selector.wait(500000, readable_clients, writable_clients, error_clients);
 
+#ifndef NDEBUG
+				for (std::vector<boost::shared_ptr<libtorrent::socket> >::iterator i =
+					writable_clients.begin();
+					i != writable_clients.end();
+					++i)
+				{
+					assert((*i)->is_writable());
+				}
+#endif
 				boost::mutex::scoped_lock l(m_mutex);
 
 				// +1 for the listen socket
