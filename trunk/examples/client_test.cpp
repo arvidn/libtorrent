@@ -242,8 +242,7 @@ int main(int argc, char* argv[])
 		std::vector<torrent_handle> handles;
 		session ses(
 			std::make_pair(6881, 6889)
-			, fingerprint("LT", 0, 1, 0, 0)
-			, "192.168.0.1");
+			, fingerprint("LT", 0, 1, 0, 0));
 
 		ses.set_upload_rate_limit(20 * 1024);
 		ses.set_http_settings(settings);
