@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 bool sleep_and_input(char* c)
 {
-	Sleep(1000);
+	Sleep(200);
 	if (kbhit())
 	{
 		*c = getch();
@@ -112,7 +112,7 @@ bool sleep_and_input(char* c)
 	fd_set set;
 	FD_ZERO(&set);
 	FD_SET(0, &set);
-	timeval tv = {1, 0};
+	timeval tv = {0, 200000};
 	if (select(1, &set, 0, 0, &tv) > 0)
 	{
 		*c = getc(stdin);
@@ -294,10 +294,24 @@ int main(int argc, char* argv[])
 						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
 						<< static_cast<const char*>((i->flags & peer_info::remote_interested)?"i":"_")
 						<< static_cast<const char*>((i->flags & peer_info::remote_choked)?"c":"_") << "\n";
+
+					if (i->downloading_piece_index >= 0)
+					{
+						out << i->downloading_piece_index << ";"
+							<< i->downloading_block_index << ": ";
+						float progress = i->downloading_progress / static_cast<float>(i->downloading_total);
+						for (int j = 0; j < 20; ++j)
+						{
+							if (progress * 20 > j) out << "#";
+							else out << "-";
+						}
+					}
+
+					out << "\n";
 				}
 
 				out << "___________________________________\n";
-
+/*
 				i->get_download_queue(queue);
 				for (std::vector<partial_piece_info>::iterator i = queue.begin();
 					i != queue.end();
@@ -316,6 +330,7 @@ int main(int argc, char* argv[])
 				}
 
 				out << "___________________________________\n";
+*/
 			}
 
 			clear();
