@@ -84,18 +84,31 @@ namespace
 	{
 		peer_id ret;
 		std::srand(std::time(0));
-
+/*
+		std::fill(ret.begin(), ret.end(), 0);
+		std::copy(s.fingerprint, s.fingerprint+4, std::ostream_iterator<int>(std::cout, " "));
+		std::cout << "\n";
+*/		
 		// libtorrent's fingerprint
 		unsigned char fingerprint[] = "lt.";
-		const int len = sizeof(fingerprint)-1-(s.fingerprint[0] == 0)?1:0;
+		const int len = 3-(s.fingerprint[0] == 0?1:0);
 		std::copy(fingerprint, fingerprint+len, ret.begin());
-
+//		std::copy(ret.begin(), ret.end(), std::ostream_iterator<int>(std::cout, " "));
+//		std::cout << "\n";
+		
 		// the client's fingerprint
-		const int len2 = std::find(s.fingerprint, s.fingerprint+4, 0) - s.fingerprint;
-		std::copy(s.fingerprint, s.fingerprint+len2, ret.begin()+len);
-
+		const int len2 = std::find(s.fingerprint, s.fingerprint+sizeof(s.fingerprint), 0)
+			- s.fingerprint;
+//		std::cout << "len: " << len << "\n";
+//		std::cout << "len2: " << len2 << "\n";
+		std::copy(s.fingerprint, s.fingerprint+len2, ret.begin()+len); 
+//		std::copy(ret.begin(), ret.end(), std::ostream_iterator<int>(std::cout, " "));
+//		std::cout << "\n";
+  
 		// the zeros
 		std::fill(ret.begin()+len+len2, ret.begin()+len+len2+3, 0);
+//		std::copy(ret.begin(), ret.end(), std::ostream_iterator<int>(std::cout, " "));
+//		std::cout << "\n";
 
 		// the random number
 		for (unsigned char* i = ret.begin()+len+len2+3;
@@ -104,6 +117,8 @@ namespace
 		{
 			*i = rand();
 		}
+//		std::copy(ret.begin(), ret.end(), std::ostream_iterator<int>(std::cout, " "));
+//		std::cout << "\n";
 		return ret;
 	}
 
@@ -119,6 +134,8 @@ namespace libtorrent
 			m_logger = create_log("main session");
 #endif
 
+			// TODO: don't generate peer id until we need it
+			// this way it's possible to set the fingerprint
 			m_peer_id = generate_peer_id(m_settings);
 
 			boost::shared_ptr<socket> listener(new socket(socket::tcp, false));
@@ -175,6 +192,7 @@ namespace libtorrent
 
 				boost::mutex::scoped_lock l(m_mutex);
 
+				std::cout << "peers: " << m_connections.size() << "\n";
 				if (m_abort)
 				{
 					m_tracker_manager.abort_all_requests();
