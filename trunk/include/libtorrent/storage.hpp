@@ -90,7 +90,7 @@ namespace libtorrent
 		enum open_mode { in, out };
 
 		// opens a piece with the given index from storage s
-		void open(storage* s, int index, open_mode m, int seek_offset = 0);
+		void open(storage* s, int index, open_mode m, int seek_offset = 0, bool lock_ = true);
 		void close()
 		{
 			//std::cout << std::clock() << "close " << m_piece_index << "\n";
@@ -99,17 +99,20 @@ namespace libtorrent
 			m_storage = 0;
 		}
 
-		void write(const char* buf, int size);
-		int read(char* buf, int size);
-		void seek_forward(int step);
+		void write(const char* buf, int size, bool lock_ = true);
+		int read(char* buf, int size, bool lock_ = true);
+		void seek_forward(int step, bool lock_ = true);
 
 		// tells the position in the file
 		int tell() const { return m_piece_offset; }
 		int left() const { return m_piece_size - m_piece_offset; }
 
 		int index() const { return m_piece_index; }
-
+		void lock(bool lock_ = true);
+		
 	private:
+
+		void reopen();
 
 		// the file itself
 		std::fstream m_file;
@@ -123,6 +126,9 @@ namespace libtorrent
 		// file we're currently reading from/writing to
 		std::vector<file>::const_iterator m_file_iter;
 
+		// the global position
+		entry::integer_type m_position;
+		
 		// the position we're at in the current file
 		std::size_t m_file_offset;
 
@@ -142,6 +148,7 @@ namespace libtorrent
 	class storage
 	{
 	friend class piece_file;
+	friend class piece_sorter;
 	public:
 
 		void initialize_pieces(torrent* t,
@@ -158,6 +165,9 @@ namespace libtorrent
 
 		const std::vector<bool>& pieces() const { return m_have_piece; }
 
+		entry::integer_type piece_storage(int piece);
+		void allocate_pieces(int num);
+
 	private:
 
 		// total number of bytes left to be downloaded
@@ -171,8 +181,44 @@ namespace libtorrent
 
 		const torrent_info* m_torrent_file;
 
+		// allocated pieces in file
+		std::vector<entry::integer_type> m_allocated_pieces;
+		// unallocated blocks at the end of files
+		std::vector<entry::integer_type> m_free_blocks;
+		// allocated blocks whose checksum doesn't match
+		std::vector<entry::integer_type> m_free_pieces;
+
+		// index here is a slot number in the file
+		// -1 : the slot is unallocated
+		// -2 : the slot is allocated but not assigned to a piece
+		//  * : the slot is assigned to this piece
+		std::vector<int> m_slot_to_piece;
+
+		// synchronization
+		boost::mutex m_locked_pieces_monitor;
+		boost::condition m_unlocked_pieces;
+		std::vector<bool> m_locked_pieces;
+
+		boost::recursive_mutex m_mutex;
+
+		torrent* m_torrent;
+	};
+
+	class piece_sorter
+	{
+	public:
+		void operator()();
+
+	private:
+		typedef std::vector<int> pieces_type;
+
+		storage* m_storage;	
+		boost::mutex m_monitor;
+		boost::condition m_more_pieces;
+		pieces_type m_pieces;
 	};
 
 }
 
 #endif // TORRENT_STORAGE_HPP_INCLUDED
+
