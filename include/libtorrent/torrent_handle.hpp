@@ -72,6 +72,7 @@ namespace libtorrent
 			, total_payload_upload(0)
 			, download_rate(0)
 			, upload_rate(0)
+			, num_peers(0)
 			, total_done(0)
 		{}
 
@@ -101,6 +102,10 @@ namespace libtorrent
 		// payload plus protocol
 		float download_rate;
 		float upload_rate;
+
+		// the number of peers this torrent
+		// is connected to.
+		int num_peers;
 
 		std::vector<bool> pieces;
 
