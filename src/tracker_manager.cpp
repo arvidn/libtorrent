@@ -359,8 +359,8 @@ namespace libtorrent
 
 	void tracker_manager::queue_request(
 		tracker_request req
-		, boost::weak_ptr<request_callback> c
-		, std::string const& password)
+		, std::string const& auth
+		, boost::weak_ptr<request_callback> c)
 	{
 		assert(req.num_want >= 0);
 		if (req.event == tracker_request::stopped)
@@ -425,7 +425,7 @@ namespace libtorrent
 					, request_string
 					, c
 					, m_settings
-					, password));
+					, auth));
 			}
 			else if (protocol == "udp")
 			{
