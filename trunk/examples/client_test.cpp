@@ -44,6 +44,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_settings.hpp"
 
 #ifdef WIN32
+
+#if defined(_MSC_VER)
+#	define for if (false) {} else for
+#endif
+
 #include <windows.h>
 #include <conio.h>
 
@@ -164,7 +169,7 @@ int main(int argc, char* argv[])
 	{
 		std::vector<torrent_handle> handles;
 		session s(6881, "E\x1");
-
+		s.set_upload_rate_limit(10240);
 		s.set_http_settings(settings);
 		for (int i = 0; i < argc-1; ++i)
 		{

@@ -68,7 +68,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/entry.hpp"
 
-#if defined(_MSC_VER) && _MSC_VER < 1300
+#if defined(_MSC_VER)
 namespace std
 {
 	using ::isdigit;

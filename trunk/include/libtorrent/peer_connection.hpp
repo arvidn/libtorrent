@@ -151,12 +151,35 @@ namespace libtorrent
 		const stat& statistics() const { return m_statistics; }
 
 		// is called once every second by the main loop
-		void second_tick() { m_statistics.second_tick(); }
+		void second_tick()
+		{
+			m_statistics.second_tick();
+			m_send_quota_left = m_send_quota;
+			if (m_send_quota > 0) send_buffer_updated();
+		}
 
 		boost::shared_ptr<libtorrent::socket> get_socket() const { return m_socket; }
 
 		const peer_id& get_peer_id() const { return m_peer_id; }
 		const std::vector<bool>& get_bitfield() const { return m_have_piece; }
+
+		// sets the number of bytes this peer
+		// is allowed to send until it should
+		// stop sending. When it stops sending
+		// it will simply wait for another call
+		// to second_tick() where it will get
+		// more send quota.
+		void set_send_quota(int num_bytes);
+
+		// returns the send quota this peer has
+		// left until will stop sending.
+		// if the send_quota is -1, it means the
+		// quota is unlimited.
+		int send_quota_left() const { return m_send_quota_left; }
+
+		// returns the send quota assigned to this
+		// peer.
+		int send_quota() const { return m_send_quota; }
 
 #ifndef NDEBUG
 		boost::shared_ptr<logger> m_logger;
@@ -176,7 +199,7 @@ namespace libtorrent
 		enum state
 		{
 			read_protocol_length = 0,
-			read_protocol_version,
+			read_protocol_string,
 			read_info_hash,
 			read_peer_id,
 
@@ -264,6 +287,20 @@ namespace libtorrent
 		std::vector<piece_block> m_download_queue;
 
 		stat m_statistics;
+
+		// this is used to limit upload bandwidth.
+		// it is reset to the allowed number of
+		// bytes to send frequently. Every time
+		// thie peer send some data,
+		// m_send_quota_left variable will be decreased
+		// so it can limit the number of bytes next
+		// time it sends data. when it reaches zero
+		// the client will stop send data and await
+		// more quota. if it is set to -1, the peer
+		// will ignore the qouta and send at maximum
+		// speed
+		int m_send_quota;
+		int m_send_quota_left;
 	};
 
 	// this is called each time this peer generates some
@@ -271,8 +308,18 @@ namespace libtorrent
 	// the writibility monitor in the selector.
 	inline void peer_connection::send_buffer_updated()
 	{
-		if (!has_data()) return;
+		if (!has_data())
+		{
+			if (m_added_to_selector)
+			{
+				m_selector.remove_writable(m_socket);
+				m_added_to_selector = false;
+			}
+			assert(!m_selector.is_writability_monitored(m_socket));
+			return;
+		}
 
+		assert(has_data());
 		if (!m_added_to_selector)
 		{
 			m_selector.monitor_writability(m_socket);

@@ -1,5 +1,4 @@
 
-project boost : $(BOOST_ROOT) ;
 
 SOURCES =
 	entry.cpp
@@ -7,7 +6,6 @@ SOURCES =
 	piece_picker.cpp
 	policy.cpp
 	session.cpp
-#	socket_bsd.cpp
 	socket_win.cpp
 	stat.cpp
 	storage.cpp
@@ -20,6 +18,9 @@ SOURCES =
 
 lib torrent
 	: src/$(SOURCES)
+	  zlib//zlib
+	  $(BOOST_ROOT)/libs/filesystem/build//boost_filesystem
+	  $(BOOST_ROOT)/libs/thread/build//boost_thread
 	: <include>$(BOOST_ROOT)
 	  <sysinclude>$(BOOST_ROOT)
 	  <include>./include
@@ -32,9 +33,7 @@ lib torrent
 
 exe client_test
 	: examples/client_test.cpp
-	  <lib>torrent
-	  @boost/libs/filesystem/build/boost_filesystem
-	  @boost/libs/thread/build/boost_thread
+	  torrent
 	: <include>$(BOOST_ROOT)
 	  <sysinclude>$(BOOST_ROOT)
 	  <include>./include

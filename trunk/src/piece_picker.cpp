@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp"
 #endif
 
-#if defined(_MSC_VER) && _MSC_VER < 1300
+#if defined(_MSC_VER)
 #define for if (false) {} else for
 #endif
 

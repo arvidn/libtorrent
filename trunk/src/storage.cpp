@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/session.hpp"
 
-#if defined(_MSC_VER) && _MSV_CER < 1300
+#if defined(_MSC_VER)
 #define for if (false) {} else for
 #endif
 
