@@ -561,9 +561,9 @@ namespace libtorrent
 		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		// ----------------------------------------------------------------------
-#ifndef NDEBUG
-		check_invariant();
-#endif
+
+		INVARIANT_CHECK;
+
 		p.clear();
 		std::vector<int>::const_reverse_iterator last; 
 		for (last = m_slot_to_piece.rbegin();
@@ -580,10 +580,6 @@ namespace libtorrent
 		{
 			p.push_back(*i);
 		}
-
-#ifndef NDEBUG
-		check_invariant();
-#endif
 	}
 
 	void piece_manager::export_piece_map(
@@ -598,9 +594,8 @@ namespace libtorrent
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		// ----------------------------------------------------------------------
 
-#ifndef NDEBUG
-		check_invariant();
-#endif
+		INVARIANT_CHECK;
+
 		assert(piece_index >= 0 && piece_index < (int)m_piece_to_slot.size());
 		assert(m_piece_to_slot[piece_index] >= 0);
 
@@ -611,11 +606,6 @@ namespace libtorrent
 		m_slot_to_piece[slot_index] = unassigned;
 		m_piece_to_slot[piece_index] = has_no_slot;
 		m_free_slots.push_back(slot_index);
-
-#ifndef NDEBUG
-		check_invariant();
-#endif
-
 	}
 
 	void piece_manager::mark_failed(int index)
@@ -1252,7 +1242,8 @@ namespace libtorrent
 			catch (file_error&)
 			{
 				// this means the slot wasn't allocated
-				m_slot_to_piece[current_slot] = unallocated;
+				assert(m_slot_to_piece[current_slot] == unallocated);
+//				m_slot_to_piece[current_slot] = unallocated;
 				m_unallocated_slots.push_back(current_slot);
 			}
 
@@ -1386,6 +1377,30 @@ namespace libtorrent
 		return slot_index;
 	}
 
+	namespace
+	{
+		// this is used to notify potential other
+		// threads that the allocation-function has exited
+		struct allocation_cleanup
+		{
+			allocation_cleanup(bool& flag, boost::condition& cond)
+				: m_flag(flag)
+				, m_cond(cond)
+			{}
+
+			~allocation_cleanup()
+			{
+				m_flag = false;
+				m_cond.notify_one();
+			}
+
+			bool& m_flag;
+			boost::condition& m_cond;
+		};
+	
+	}
+
+	// TODO: signal the m_allocating_condition on exit!
 	void piece_manager::impl::allocate_slots(int num_slots)
 	{
 		assert(num_slots > 0);
@@ -1399,6 +1414,10 @@ namespace libtorrent
 			m_allocating = true;
 		}
 
+		// this object will signal the other threads and
+		// set m_allocating to false upon exit
+		allocation_cleanup clean_obj(m_allocating, m_allocating_condition);
+
 		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		// ----------------------------------------------------------------------
@@ -1407,25 +1426,18 @@ namespace libtorrent
 
 		namespace fs = boost::filesystem;
 		
-		std::vector<int>::iterator iter
-			= m_unallocated_slots.begin();
-		std::vector<int>::iterator end_iter 
-			= m_unallocated_slots.end();
-
 		const int piece_size = m_info.piece_length();
 
 		std::vector<char> zeros(piece_size, 0);
 
-		for (int i = 0; i < num_slots; ++i, ++iter)
+		for (int i = 0;
+			i < num_slots && !m_unallocated_slots.empty();
+			++i)
 		{
-			if (iter == end_iter)
-				break;
-
-			int pos = *iter;
+			int pos = m_unallocated_slots.front();
 			int piece_pos = pos;
 
 			int new_free_slot = pos;
-
 			if (m_piece_to_slot[pos] != has_no_slot)
 			{
 				assert(m_piece_to_slot[pos] >= 0);
@@ -1435,25 +1447,14 @@ namespace libtorrent
 				m_piece_to_slot[pos] = pos;
 			}
 
-			m_slot_to_piece[new_free_slot] = unassigned;
-			m_free_slots.push_back(new_free_slot);
+			m_storage.write(&zeros[0], pos, 0, m_info.piece_size(pos));
 
-			try
-			{
-				m_storage.write(&zeros[0], pos, 0, m_info.piece_size(pos));
-			}
-			catch(file_error&)
-			{
-				m_allocating = false;
-				throw;
-			}
+			m_free_slots.push_back(new_free_slot);
+			m_slot_to_piece[new_free_slot] = unassigned;
+			m_unallocated_slots.erase(m_unallocated_slots.begin());
 		}
 
-		m_unallocated_slots.erase(m_unallocated_slots.begin(), iter);
-
-		m_allocating = false;
-
-		assert(m_free_slots.size()>0);
+		assert(m_free_slots.size() > 0);
 	}
 
 	void piece_manager::allocate_slots(int num_slots)
@@ -1477,18 +1478,22 @@ namespace libtorrent
 		assert(m_piece_to_slot.size() == m_info.num_pieces());
 		assert(m_slot_to_piece.size() == m_info.num_pieces());
 
-		for (int i = 0; i < (int)m_free_slots.size(); ++i)
+		for (std::vector<int>::const_iterator i = m_free_slots.begin();
+			i != m_free_slots.end();
+			++i)
 		{
-			unsigned slot = m_free_slots[i];
-			assert(slot<m_slot_to_piece.size());
-			assert(m_slot_to_piece[slot] == unassigned);
+			assert(*i < (int)m_slot_to_piece.size());
+			assert(*i >= 0);
+			assert(m_slot_to_piece[*i] == unassigned);
 		}
 
-		for (int i = 0; i < (int)m_unallocated_slots.size(); ++i)
+		for (std::vector<int>::const_iterator i = m_unallocated_slots.begin();
+			i != m_unallocated_slots.end();
+			++i)
 		{
-			unsigned slot = m_unallocated_slots[i];
-			assert(slot < m_slot_to_piece.size());
-			assert(m_slot_to_piece[slot] == unallocated);
+			assert(*i < (int)m_slot_to_piece.size());
+			assert(*i >= 0);
+			assert(m_slot_to_piece[*i] == unallocated);
 		}
 
 		for (int i = 0; i < m_info.num_pieces(); ++i)
@@ -1524,7 +1529,7 @@ namespace libtorrent
 
 			// do more detailed checks on slot_to_piece
 
-			if (m_slot_to_piece[i]>=0)
+			if (m_slot_to_piece[i] >= 0)
 			{
 				assert(m_slot_to_piece[i] < (int)m_piece_to_slot.size());
 				assert(m_piece_to_slot[m_slot_to_piece[i]] == i);

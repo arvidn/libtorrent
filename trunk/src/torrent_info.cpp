@@ -169,7 +169,7 @@ namespace libtorrent
 		// extract piece length
 		i = info.dict().find("piece length");
 		if (i == info.dict().end()) throw invalid_torrent_file();
-		m_piece_length = i->second.integer();
+		m_piece_length = (int)i->second.integer();
 
 		// extract file name (or the directory name if it's a multifile libtorrent)
 		i = info.dict().find("name");
