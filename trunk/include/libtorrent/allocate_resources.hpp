@@ -55,6 +55,9 @@ namespace libtorrent
 	// It takes into account the current use, and the consumer's desired use.
 	// Should be invoked periodically to allow it adjust to the situation (make
 	// sure "used" is updated between calls!).
+	// If resources = std::numeric_limits<int>::max() it means there is an infinite
+	// supply of resources (so everyone can get what they want).
+
 	
 	void allocate_resources(int resources,
 		std::vector<resource_request *> & requests);

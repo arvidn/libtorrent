@@ -100,7 +100,6 @@ namespace libtorrent
 		, m_supports_extensions(false)
 		, m_num_pieces(0)
 		, m_free_upload(0)
-		, m_send_quota_left(0)
 		, m_trust_points(0)
 		, m_num_invalid_requests(0)
 		, m_last_piece(boost::posix_time::second_clock::local_time())
@@ -162,7 +161,6 @@ namespace libtorrent
 		, m_supports_extensions(false)
 		, m_num_pieces(0)
 		, m_free_upload(0)
-		, m_send_quota_left(0)
 		, m_trust_points(0)
 		, m_num_invalid_requests(0)
 		, m_last_piece(boost::posix_time::second_clock::local_time())
@@ -1226,7 +1224,7 @@ namespace libtorrent
 
 		m_statistics.second_tick();
 
-		update_send_quota_left();
+//		update_send_quota_left();
 		
 		// If the client sends more data
 		// we send it data faster, otherwise, slower.
@@ -1240,7 +1238,10 @@ namespace libtorrent
 			// if we have downloaded more than one piece more
 			// than we have uploaded OR if we are a seed
 			// have an unlimited upload rate
-			upload_bandwidth.wanted = std::numeric_limits<int>::max();
+//			if(!m_send_buffer.empty() || (!m_requests.empty() && !is_choked()))
+				upload_bandwidth.wanted = std::numeric_limits<int>::max();
+//			else
+//				upload_bandwidth.wanted = 0;
 		}
 		else
 		{
@@ -1566,7 +1567,7 @@ namespace libtorrent
 		// we want to send data
 		return ((!m_requests.empty() && !m_choked)
 			|| !m_send_buffer.empty())
-			&& m_send_quota_left != 0;
+			&& upload_bandwidth.used < upload_bandwidth.given;
 	}
 
 	// --------------------------
@@ -1645,17 +1646,15 @@ namespace libtorrent
 			m_announce_queue.clear();
 		}
 
-		assert(m_send_quota_left != 0);
+		assert(upload_bandwidth.used < upload_bandwidth.given);
 
 		// send the actual buffer
 		if (!m_send_buffer.empty())
 		{
 
 			int amount_to_send = (int)m_send_buffer.size();
-			assert(m_send_quota_left != 0);
-			if (m_send_quota_left > 0)
-				amount_to_send = std::min(m_send_quota_left, amount_to_send);
-
+			assert(upload_bandwidth.used < upload_bandwidth.given);
+			amount_to_send = std::min(upload_bandwidth.given-upload_bandwidth.used, amount_to_send);
 
 			// we have data that's scheduled for sending
 			int sent = m_socket->send(
@@ -1664,11 +1663,7 @@ namespace libtorrent
 
 			if (sent > 0)
 			{
-				if (m_send_quota_left != -1)
-				{
-					assert(m_send_quota_left >= sent);
-					m_send_quota_left -= sent;
-				}
+				upload_bandwidth.used += sent;
 
 				// manage the payload markers
 				int amount_payload = 0;

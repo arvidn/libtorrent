@@ -192,22 +192,14 @@ namespace libtorrent
 		{
 			boost::mutex::scoped_lock l(m_ses->m_mutex);
 			torrent* t = m_ses->find_torrent(m_info_hash);
-			if (t != 0)
-			{
-				t->set_tracker_login(name, password);
-				return;
-			}
+			if (t != 0) t->set_tracker_login(name, password);
 		}
 
 		if (m_chk)
 		{
 			boost::mutex::scoped_lock l(m_chk->m_mutex);
 			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
-			if (d != 0)
-			{
-				d->torrent_ptr->set_tracker_login(name, password);
-				return;
-			}
+			if (d != 0) d->torrent_ptr->set_tracker_login(name, password);
 		}
 
 		throw invalid_handle();
@@ -467,8 +459,15 @@ namespace libtorrent
 			p.total_download = statistics.total_payload_download();
 			p.total_upload = statistics.total_payload_upload();
 
-			p.upload_limit = peer->send_quota();
-			p.upload_ceiling = peer->send_quota_limit();
+			if (peer->upload_bandwidth.given == std::numeric_limits<int>::max())
+				p.upload_limit = -1;
+			else
+				p.upload_limit = peer->upload_bandwidth.given;
+
+			if (peer->upload_bandwidth.wanted == std::numeric_limits<int>::max())
+				p.upload_ceiling = -1;
+			else
+				p.upload_ceiling = peer->upload_bandwidth.wanted;
 
 			p.load_balancing = peer->total_free_upload();
 

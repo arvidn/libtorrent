@@ -378,7 +378,7 @@ int main(int argc, char* argv[])
 				out << "next announce: " << boost::posix_time::to_simple_string(t) << "\n";
 				out << "tracker: " << s.current_tracker << "\n";
 
-				out << "___________________________________\n";
+//				out << "___________________________________\n";
 
 				for (std::vector<peer_info>::iterator i = peers.begin();
 					i != peers.end();
@@ -389,17 +389,17 @@ int main(int argc, char* argv[])
 						<< "u:" << add_suffix(i->up_speed) << "/s "
 						<< "(" << add_suffix(i->total_upload) << ") "
 						<< "ul:" << add_suffix(i->upload_limit) << "/s "
-//						<< "uc:" << add_suffix(i->upload_ceiling) << "/s "
+						<< "uc:" << add_suffix(i->upload_ceiling) << "/s "
 //						<< "df:" << ratio(i->total_download, i->total_upload) << " "
-						<< "q:" << i->download_queue_length << " "
-						<< "r:" << i->upload_queue_length << " "
-						<< "f:"
-						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
-						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
-						<< static_cast<const char*>((i->flags & peer_info::remote_interested)?"i":"_")
-						<< static_cast<const char*>((i->flags & peer_info::remote_choked)?"c":"_")
-						<< static_cast<const char*>((i->flags & peer_info::supports_extensions)?"e":"_")
-						<< static_cast<const char*>((i->flags & peer_info::local_connection)?"l":"r")
+//						<< "q:" << i->download_queue_length << " "
+//						<< "r:" << i->upload_queue_length << " "
+//						<< "f:"
+//						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
+//						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
+//						<< static_cast<const char*>((i->flags & peer_info::remote_interested)?"i":"_")
+//						<< static_cast<const char*>((i->flags & peer_info::remote_choked)?"c":"_")
+//						<< static_cast<const char*>((i->flags & peer_info::supports_extensions)?"e":"_")
+//						<< static_cast<const char*>((i->flags & peer_info::local_connection)?"l":"r")
 						<< "\n";
 /*
 					if (i->downloading_piece_index >= 0)
@@ -415,7 +415,7 @@ int main(int argc, char* argv[])
 					}
 */
 				}
-
+/*
 				out << "___________________________________\n";
 
 				i->get_download_queue(queue);
@@ -436,7 +436,7 @@ int main(int argc, char* argv[])
 				}
 
 				out << "___________________________________\n";
-
+*/
 			}
 
 			for (std::deque<std::string>::iterator i = events.begin();
