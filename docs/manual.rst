@@ -1238,6 +1238,7 @@ It contains the following fields::
 		size_type total_upload;
 		peer_id id;
 		std::vector<bool> pieces;
+		bool seed;
 		int upload_limit;
 		int upload_ceiling;
 
@@ -1292,6 +1293,8 @@ is using. See identify_client()_
 ``pieces`` is a vector of booleans that has as many entries as there are pieces
 in the torrent. Each boolean tells you if the peer has that piece (if it's set to true)
 or if the peer miss that piece (set to false).
+
+``seed`` is true if this peer is a seed.
 
 ``upload_limit`` is the number of bytes per second we are allowed to send to this
 peer every second. It may be -1 if there's no limit. The upload limits of all peers

@@ -246,6 +246,9 @@ namespace libtorrent
 
 	void entry::sort()
 	{
+#if (defined(_MSC_VER) && _MSC_VER < 1300)
+		assert(false);
+#else
 		using boost::bind;
 		if (type() == dictionary_t)
 		{
@@ -254,6 +257,7 @@ namespace libtorrent
 					, bind(&entry::dictionary_type::value_type::first, _1)
 					, bind(&entry::dictionary_type::value_type::first, _2)));
 		}
+#endif
 	}
 
 	void entry::print(std::ostream& os, int indent) const
