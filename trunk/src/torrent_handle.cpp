@@ -346,8 +346,7 @@ namespace libtorrent
 			static_cast<int>(t->torrent_file().piece_length()) / t->block_size();
 		ret["blocks per piece"] = num_blocks_per_piece;
 
-		// num unfinished pieces
-		int num_unfinished = (int)q.size();
+		// unfinished pieces
 		ret["unfinished"] = entry::list_type();
 		entry::list_type& up = ret["unfinished"].list();
 

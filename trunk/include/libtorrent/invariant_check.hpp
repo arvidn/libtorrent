@@ -5,7 +5,6 @@
 #ifndef TORRENT_INVARIANT_ACCESS_HPP_INCLUDED
 #define TORRENT_INVARIANT_ACCESS_HPP_INCLUDED
 
-#include <iostream>
 #include <cassert>
 
 namespace libtorrent
@@ -69,7 +68,9 @@ namespace libtorrent
 
 #ifndef NDEBUG
 #define INVARIANT_CHECK \
-	invariant_checker const& _invariant_check = make_invariant_checker(*this)
+	invariant_checker const& _invariant_check = make_invariant_checker(*this); \
+	(void)_invariant_check; \
+	do {} while (false)
 #else
 #define INVARIANT_CHECK do {} while (false)
 #endif

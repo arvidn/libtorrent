@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/io.hpp"
+#include "libtorrent/version.hpp"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 #define for if (false) {} else for
@@ -907,7 +908,9 @@ namespace libtorrent
 		try
 		{
 			entry e = bdecode(m_recv_buffer.begin()+1, m_recv_buffer.end());
+#ifndef NDEBUG
 			entry::dictionary_type& extensions = e.dict();
+#endif
 
 			for (int i = 0; i < num_supported_extensions; ++i)
 			{
@@ -1515,7 +1518,7 @@ namespace libtorrent
 #ifndef NDEBUG
 								(*m_logger) << "sending libtorrent version\n";
 #endif
-								int ret = m_socket->send("libtorrent version 0.1.0.0\n", 27);
+								m_socket->send("libtorrent version " LIBTORRENT_VERSION "\n", 27);
 								throw protocol_error("closing");
 							}
 #ifndef NDEBUG
