@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/limits.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
+#include <boost/shared_ptr.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -50,7 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/opaque_value_ptr.hpp"
 
 namespace libtorrent
 {
@@ -101,7 +101,7 @@ namespace libtorrent
 
 	private:
 		class impl;
-		opaque_value_ptr<impl> m_pimpl;
+		boost::shared_ptr<impl> m_pimpl;
 	};
 
 	class piece_manager : boost::noncopyable
