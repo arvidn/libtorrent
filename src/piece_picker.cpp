@@ -72,7 +72,9 @@ namespace libtorrent
 		std::fill(m_piece_map.begin(), m_piece_map.end(), piece_pos(0, 0xffffff));
 	}
 
-	void piece_picker::files_checked(const std::vector<bool>& pieces)
+	void piece_picker::files_checked(
+		const std::vector<bool>& pieces
+		, const std::vector<downloading_piece>& unfinished)
 	{
 		// build a vector of all the pieces we don't have
 		std::vector<int> piece_list;
@@ -107,6 +109,25 @@ namespace libtorrent
 
 			m_piece_map[index].index = m_piece_info[peer_count].size();
 			m_piece_info[peer_count].push_back(index);
+		}
+
+		// if we have fast resume info
+		// use it
+		if (!unfinished.empty())
+		{
+			for (std::vector<downloading_piece>::const_iterator i
+				= unfinished.begin();
+				i != unfinished.end();
+				++i)
+			{
+				peer_id peer;
+				std::fill(peer.begin(), peer.end(), 0);
+				for (int j = 0; j < m_blocks_per_piece; ++j)
+				{
+					if (i->finished_blocks[j])
+						mark_as_finished(piece_block(i->index, j), peer);
+				}
+			}
 		}
 #ifndef NDEBUG
 //		integrity_check();

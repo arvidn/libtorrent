@@ -513,6 +513,50 @@ namespace libtorrent {
 		const std::size_t last_piece_size = m_info.piece_size(
 				m_info.num_pieces() - 1);
 
+		// if we have fast-resume info
+		// use it instead of doingthe actual checking
+		if (!data.piece_map.empty()
+			&& data.piece_map.size() <= m_slot_to_piece.size())
+		{
+			for (int i = 0; i < data.piece_map.size(); ++i)
+			{
+				m_slot_to_piece[i] = data.piece_map[i];
+				if (data.piece_map[i] >= 0)
+				{
+					m_piece_to_slot[data.piece_map[i]] = i;
+					int found_piece = data.piece_map[i];
+
+					// if the piece is not in the unfinished list
+					// we have all of it
+					if (std::find_if(
+						data.unfinished_pieces.begin()
+						, data.unfinished_pieces.end()
+						, piece_picker::has_index(found_piece))
+						== data.unfinished_pieces.end())
+					{
+						m_bytes_left -= m_info.piece_size(found_piece);
+						pieces[found_piece] = true;
+					}
+				}
+				else if (data.piece_map[i] == -2)
+				{
+					m_free_slots.push_back(i);
+				}
+				else
+				{
+					assert(data.piece_map[i] == -1);
+					m_unallocated_slots.push_back(i);
+				}
+			}
+
+			for (int i = data.piece_map.size(); i < pieces.size(); ++i)
+			{
+				m_unallocated_slots.push_back(i);
+			}
+
+			return;
+		}
+
 		bool changed_file = true;
 		fs::ifstream in;
 
@@ -658,6 +702,9 @@ namespace libtorrent {
 
 			if (found_piece != -1)
 			{
+				// if we have found this piece hash once already
+				// move it to the free pieces and don't decrease
+				// bytes_left
 				if (pieces[found_piece])
 				{
 					assert(m_piece_to_slot[found_piece] != -1);

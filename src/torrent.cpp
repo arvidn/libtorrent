@@ -571,7 +571,7 @@ namespace libtorrent
 		  , m_have_pieces.end()
 		  , 0);
 
-		m_picker.files_checked(m_have_pieces);
+		m_picker.files_checked(m_have_pieces, data.unfinished_pieces);
 #ifndef NDEBUG
 		m_picker.integrity_check(this);
 #endif
