@@ -195,6 +195,7 @@ namespace libtorrent
 			, info(info)
 		{
 			save_path = complete(path);
+			assert(save_path.is_complete());
 		}
 
 		impl(impl const& x)
@@ -591,12 +592,13 @@ namespace libtorrent
 
 	piece_manager::impl::impl(
 		const torrent_info& info
-	  , const path& save_path)
+		, const path& save_path)
 		: m_storage(info, save_path)
 		, m_info(info)
 		, m_allocating(false)
+		, m_save_path(complete(save_path));
 	{
-		m_save_path = complete(save_path);
+		assert(m_save_path.is_complete());
 	}
 
 	piece_manager::piece_manager(

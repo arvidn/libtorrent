@@ -176,7 +176,7 @@ namespace libtorrent
 		, m_net_interface(net_interface.ip(), address::any_port)
 		, m_upload_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
-		, m_save_path(save_path)
+		, m_save_path(complete(save_path))
 	{
 		m_policy.reset(new policy(this));
 		bencode(std::back_inserter(m_metadata), metadata["info"]);
@@ -213,7 +213,7 @@ namespace libtorrent
 		, m_net_interface(net_interface.ip(), address::any_port)
 		, m_upload_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
-		, m_save_path(save_path)
+		, m_save_path(complete(save_path))
 	{
 		m_trackers.push_back(announce_entry(tracker_url));
 		m_requested_metadata.resize(256, 0);
