@@ -1288,6 +1288,7 @@ namespace {
 	{
 		static std::ofstream log("log.txt");
 		log << s;
+		log.flush();
 	}
 
 }
@@ -1825,15 +1826,7 @@ namespace libtorrent {
 						m_info.piece_size(
 							m_info.num_pieces() - 1);
 
-				// treat the last slot as unallocated space.
-				// this means that when we get to the last
-				// slot we are either allocating space for
-				// the last piece, or the last piece has already
-				// been allocated
-				if (current_piece == m_info.num_pieces() - 1)
-					m_unallocated_slots.push_back(current_piece);
-				else
-					m_free_slots.push_back(current_piece);
+				m_free_slots.push_back(current_piece);
 			}
 
 			// done with piece, move on to next
@@ -1869,6 +1862,8 @@ namespace libtorrent {
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		// ----------------------------------------------------------------------
 
+		check_invariant();
+
 		assert(piece_index >= 0 && piece_index < m_piece_to_slot.size());
 		assert(m_piece_to_slot.size() == m_slot_to_piece.size());
 
@@ -1895,6 +1890,7 @@ namespace libtorrent {
 
 		if (iter == m_free_slots.end())
 		{
+			assert(m_slot_to_piece[piece_index] != -2);
 			iter = m_free_slots.end() - 1;
 
 			// special case to make sure we don't use the last slot
@@ -1978,6 +1974,8 @@ namespace libtorrent {
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		// ----------------------------------------------------------------------
 
+		check_invariant();
+
 		namespace fs = boost::filesystem;
 		
 		std::cout << "allocating pieces...\n";
@@ -2043,6 +2041,16 @@ namespace libtorrent {
 		{
 			if (m_piece_to_slot[i] != i && m_piece_to_slot[i] >= 0)
 				assert(m_slot_to_piece[i] == -1);
+
+			if (m_slot_to_piece[i] == -2)
+			{
+				assert(
+					std::find(
+						m_free_slots.begin()
+						, m_free_slots.end()
+						, i) != m_free_slots.end()
+				);
+			}
 		}
 	}
 
