@@ -24,36 +24,36 @@
 <div class="contents topic" id="contents">
 <p class="topic-title"><a name="contents">Contents</a></p>
 <ul class="simple">
-<li><a class="reference" href="#introduction" id="id5" name="id5">introduction</a></li>
-<li><a class="reference" href="#building" id="id6" name="id6">building</a></li>
-<li><a class="reference" href="#using" id="id7" name="id7">using</a><ul>
-<li><a class="reference" href="#session" id="id8" name="id8">session</a></li>
-<li><a class="reference" href="#parsing-torrent-files" id="id9" name="id9">parsing torrent files</a></li>
-<li><a class="reference" href="#entry" id="id10" name="id10">entry</a></li>
-<li><a class="reference" href="#torrent-info" id="id11" name="id11">torrent_info</a></li>
-<li><a class="reference" href="#torrent-handle" id="id12" name="id12">torrent_handle</a><ul>
-<li><a class="reference" href="#status" id="id13" name="id13">status()</a></li>
-<li><a class="reference" href="#get-download-queue" id="id14" name="id14">get_download_queue()</a></li>
-<li><a class="reference" href="#get-peer-info" id="id15" name="id15">get_peer_info()</a></li>
+<li><a class="reference" href="#introduction" id="id6" name="id6">introduction</a></li>
+<li><a class="reference" href="#building" id="id7" name="id7">building</a></li>
+<li><a class="reference" href="#using" id="id8" name="id8">using</a><ul>
+<li><a class="reference" href="#session" id="id9" name="id9">session</a></li>
+<li><a class="reference" href="#parsing-torrent-files" id="id10" name="id10">parsing torrent files</a></li>
+<li><a class="reference" href="#entry" id="id11" name="id11">entry</a></li>
+<li><a class="reference" href="#torrent-info" id="id12" name="id12">torrent_info</a></li>
+<li><a class="reference" href="#torrent-handle" id="id13" name="id13">torrent_handle</a><ul>
+<li><a class="reference" href="#status" id="id14" name="id14">status()</a></li>
+<li><a class="reference" href="#get-download-queue" id="id15" name="id15">get_download_queue()</a></li>
+<li><a class="reference" href="#get-peer-info" id="id16" name="id16">get_peer_info()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#address" id="id16" name="id16">address</a></li>
-<li><a class="reference" href="#http-settings" id="id17" name="id17">http_settings</a></li>
-<li><a class="reference" href="#big-number" id="id18" name="id18">big_number</a></li>
-<li><a class="reference" href="#hasher" id="id19" name="id19">hasher</a></li>
-<li><a class="reference" href="#example-usage" id="id20" name="id20">example usage</a><ul>
-<li><a class="reference" href="#dump-torrent" id="id21" name="id21">dump_torrent</a></li>
-<li><a class="reference" href="#simple-client" id="id22" name="id22">simple client</a></li>
+<li><a class="reference" href="#address" id="id17" name="id17">address</a></li>
+<li><a class="reference" href="#http-settings" id="id18" name="id18">http_settings</a></li>
+<li><a class="reference" href="#big-number" id="id19" name="id19">big_number</a></li>
+<li><a class="reference" href="#hasher" id="id20" name="id20">hasher</a></li>
+<li><a class="reference" href="#example-usage" id="id21" name="id21">example usage</a><ul>
+<li><a class="reference" href="#dump-torrent" id="id22" name="id22">dump_torrent</a></li>
+<li><a class="reference" href="#simple-client" id="id23" name="id23">simple client</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a class="reference" href="#feedback" id="id23" name="id23">Feedback</a></li>
-<li><a class="reference" href="#aknowledgements" id="id24" name="id24">Aknowledgements</a></li>
+<li><a class="reference" href="#feedback" id="id24" name="id24">Feedback</a></li>
+<li><a class="reference" href="#aknowledgements" id="id25" name="id25">Aknowledgements</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
-<h1><a class="toc-backref" href="#id5" name="introduction">introduction</a></h1>
+<h1><a class="toc-backref" href="#id6" name="introduction">introduction</a></h1>
 <p>libtorrent is a C++ library that aims to be a good alternative to all the
 <a class="reference" href="links.html">other bittorrent implementations</a> around. It is a
 library and not a full featured client, although it comes with a working
@@ -79,18 +79,18 @@ The current state includes the following features:</p>
 <li>uses separate threads for checking files and for main downloader, with a fool-proof
 thread-safe library interface. (i.e. There's no way for the user to cause a deadlock).</li>
 <li>can limit the upload bandwidth usage</li>
+<li>piece-wise file allocation</li>
 </ul>
 </blockquote>
 <p>Functions that are yet to be implemented:</p>
 <blockquote>
 <ul class="simple">
 <li>optimistic unchoke</li>
+<li>choke/unchoke algorithm</li>
 <li>Snubbing</li>
-<li>end game mode</li>
-<li>new allocation model</li>
 <li>fast resume</li>
 <li>file-level piece priority</li>
-<li>a good upload speed cap</li>
+<li>a good upload speed cap (the one currently used don't balance loads between peers)</li>
 </ul>
 </blockquote>
 <p>libtorrent is portable at least among windows, macosx, and UNIX-systems. It uses boost.thread,
@@ -105,7 +105,7 @@ boost.filesystem boost.date_time and various other boost libraries and zlib.</p>
 </blockquote>
 </div>
 <div class="section" id="building">
-<h1><a class="toc-backref" href="#id6" name="building">building</a></h1>
+<h1><a class="toc-backref" href="#id7" name="building">building</a></h1>
 <p>To build libtorrent you need <a class="reference" href="http://www.boost.org">boost</a> and bjam installed.
 Then you can use <tt class="literal"><span class="pre">bjam</span></tt> to build libtorrent.</p>
 <p>To make bjam work, you need to set the environment variable <tt class="literal"><span class="pre">BOOST_ROOT</span></tt> to the
@@ -136,11 +136,11 @@ loop scope&quot; and &quot;treat wchar_t as built-in type&quot; to Yes.</p>
 <p>TODO: more detailed build instructions.</p>
 </div>
 <div class="section" id="using">
-<h1><a class="toc-backref" href="#id7" name="using">using</a></h1>
+<h1><a class="toc-backref" href="#id8" name="using">using</a></h1>
 <p>The interface of libtorrent consists of a few classes. The main class is
 the <tt class="literal"><span class="pre">session</span></tt>, it contains the main loop that serves all torrents.</p>
 <div class="section" id="session">
-<h2><a class="toc-backref" href="#id8" name="session">session</a></h2>
+<h2><a class="toc-backref" href="#id9" name="session">session</a></h2>
 <p>The <tt class="literal"><span class="pre">session</span></tt> class has the following synopsis:</p>
 <pre class="literal-block">
 class session: public boost::noncopyable
@@ -185,7 +185,7 @@ increasing the port number until it succeeds or has failed 9 ports. <em>This wil
 change in the future to give more control of the listen-port.</em></p>
 </div>
 <div class="section" id="parsing-torrent-files">
-<h2><a class="toc-backref" href="#id9" name="parsing-torrent-files">parsing torrent files</a></h2>
+<h2><a class="toc-backref" href="#id10" name="parsing-torrent-files">parsing torrent files</a></h2>
 <p>The torrent files are <a class="reference" href="http://bitconjurer.org/BitTorrent/protocol.html">bencoded</a>. There are two functions in libtorrent that can encode and decode
 bencoded data. They are:</p>
 <pre class="literal-block">
@@ -222,7 +222,7 @@ entry e = bdecode(buf, buf + data_size);
 <p>Now we just need to know how to retrieve information from the <tt class="literal"><span class="pre">entry</span></tt>.</p>
 </div>
 <div class="section" id="entry">
-<h2><a class="toc-backref" href="#id10" name="entry">entry</a></h2>
+<h2><a class="toc-backref" href="#id11" name="entry">entry</a></h2>
 <p>The <tt class="literal"><span class="pre">entry</span></tt> class represents one node in a bencoded hierarchy. It works as a
 variant type, it can be either a list, a dictionary (<tt class="literal"><span class="pre">std::map</span></tt>), an integer
 or a string. This is its synopsis:</p>
@@ -292,7 +292,7 @@ if (i != dict.end())
 exists.</p>
 </div>
 <div class="section" id="torrent-info">
-<h2><a class="toc-backref" href="#id11" name="torrent-info">torrent_info</a></h2>
+<h2><a class="toc-backref" href="#id12" name="torrent-info">torrent_info</a></h2>
 <p>The <tt class="literal"><span class="pre">torrent_info</span></tt> has the following synopsis:</p>
 <pre class="literal-block">
 class torrent_info
@@ -379,7 +379,7 @@ object, representing the time when this torrent file was created. If there's no 
 in the torrent file, this will return a date of january 1:st 1970.</p>
 </div>
 <div class="section" id="torrent-handle">
-<h2><a class="toc-backref" href="#id12" name="torrent-handle">torrent_handle</a></h2>
+<h2><a class="toc-backref" href="#id13" name="torrent-handle">torrent_handle</a></h2>
 <p>You will usually have to store your torrent handles somewhere, since it's the
 object through which you retrieve infromation about the torrent and aborts the torrent.
 Its declaration looks like this:</p>
@@ -397,7 +397,7 @@ struct torrent_handle
 perform any operation on it, unless you first assign it a valid handle. If you try to perform
 any operation they will simply return.</p>
 <div class="section" id="status">
-<h3><a class="toc-backref" href="#id13" name="status">status()</a></h3>
+<h3><a class="toc-backref" href="#id14" name="status">status()</a></h3>
 <p><tt class="literal"><span class="pre">status()</span></tt> will return a structure with information about the status of this
 torrent. It contains the following fields:</p>
 <pre class="literal-block">
@@ -464,7 +464,7 @@ the pieces we don't have.</p>
 <p><tt class="literal"><span class="pre">total_done</span></tt> is the total number of bytes of the file(s) that we have.</p>
 </div>
 <div class="section" id="get-download-queue">
-<h3><a class="toc-backref" href="#id14" name="get-download-queue">get_download_queue()</a></h3>
+<h3><a class="toc-backref" href="#id15" name="get-download-queue">get_download_queue()</a></h3>
 <p><tt class="literal"><span class="pre">get_download_queue()</span></tt> takes a non-const reference to a vector which it will fill
 information about pieces that are partially downloaded or not downloaded at all but partially
 requested. The entry in the vector (<tt class="literal"><span class="pre">partial_piece_info</span></tt>) looks like this:</p>
@@ -496,7 +496,7 @@ When a piece fails a hash verification, single blocks may be redownloaded to see
 may pass then.</p>
 </div>
 <div class="section" id="get-peer-info">
-<h3><a class="toc-backref" href="#id15" name="get-peer-info">get_peer_info()</a></h3>
+<h3><a class="toc-backref" href="#id16" name="get-peer-info">get_peer_info()</a></h3>
 <p><tt class="literal"><span class="pre">get_peer_info()</span></tt> takes a reference to a vector that will be cleared and filled
 with one entry for each peer connected to this torrent. Each entry contains information about
 that particular peer. It contains the following information:</p>
@@ -545,7 +545,7 @@ peer every second. It may be -1 if there's no limit.</p>
 </div>
 </div>
 <div class="section" id="address">
-<h2><a class="toc-backref" href="#id16" name="address">address</a></h2>
+<h2><a class="toc-backref" href="#id17" name="address">address</a></h2>
 <p>The <tt class="literal"><span class="pre">address</span></tt> class represents a name of a network endpoint (usually referred to as
 IP-address) and a port number. This is the same thing as a <tt class="literal"><span class="pre">sockaddr_in</span></tt> would contain.
 Its declaration looks like this:</p>
@@ -579,7 +579,7 @@ while it does the DNS lookup, it returns a string that points to the address rep
 <p><tt class="literal"><span class="pre">ip()</span></tt> will return the 32-bit ip-address as an integer. <tt class="literal"><span class="pre">port()</span></tt> returns the port number.</p>
 </div>
 <div class="section" id="http-settings">
-<h2><a class="toc-backref" href="#id17" name="http-settings">http_settings</a></h2>
+<h2><a class="toc-backref" href="#id18" name="http-settings">http_settings</a></h2>
 <p>You have some control over tracker requests through the <tt class="literal"><span class="pre">http_settings</span></tt> object. You
 create it and fill it with your settings and the use <tt class="literal"><span class="pre">session::set_http_settings()</span></tt>
 to apply them. You have control over proxy and authorization settings and also the user-agent
@@ -609,7 +609,7 @@ uncompressed (given your limit is lower than 2 megs). Default limit is
 1 megabyte.</p>
 </div>
 <div class="section" id="big-number">
-<h2><a class="toc-backref" href="#id18" name="big-number">big_number</a></h2>
+<h2><a class="toc-backref" href="#id19" name="big-number">big_number</a></h2>
 <p>Both the <tt class="literal"><span class="pre">peer_id</span></tt> and <tt class="literal"><span class="pre">sha1_hash</span></tt> types are typedefs of the class
 <tt class="literal"><span class="pre">big_number</span></tt>. It represents 20 bytes of data. Its synopsis follows:</p>
 <pre class="literal-block">
@@ -630,7 +630,7 @@ public:
 <p>The iterators gives you access to individual bytes.</p>
 </div>
 <div class="section" id="hasher">
-<h2><a class="toc-backref" href="#id19" name="hasher">hasher</a></h2>
+<h2><a class="toc-backref" href="#id20" name="hasher">hasher</a></h2>
 <p>This class creates sha1-hashes. Its declaration looks like this:</p>
 <pre class="literal-block">
 class hasher
@@ -654,9 +654,9 @@ call <tt class="literal"><span class="pre">reset()</span></tt> to reinitialize i
 For more info, see <tt class="literal"><span class="pre">src/sha1.c</span></tt>.</p>
 </div>
 <div class="section" id="example-usage">
-<h2><a class="toc-backref" href="#id20" name="example-usage">example usage</a></h2>
+<h2><a class="toc-backref" href="#id21" name="example-usage">example usage</a></h2>
 <div class="section" id="dump-torrent">
-<h3><a class="toc-backref" href="#id21" name="dump-torrent">dump_torrent</a></h3>
+<h3><a class="toc-backref" href="#id22" name="dump-torrent">dump_torrent</a></h3>
 <p>This is an example of a program that will take a torrent-file as a parameter and
 print information about it to std out:</p>
 <pre class="literal-block">
@@ -722,7 +722,7 @@ int main(int argc, char* argv[])
 </pre>
 </div>
 <div class="section" id="simple-client">
-<h3><a class="toc-backref" href="#id22" name="simple-client">simple client</a></h3>
+<h3><a class="toc-backref" href="#id23" name="simple-client">simple client</a></h3>
 <p>This is a simple client. It doesn't have much output to keep it simple:</p>
 <pre class="literal-block">
 #include &lt;iostream&gt;
@@ -775,13 +775,15 @@ int main(int argc, char* argv[])
 </div>
 </div>
 <div class="section" id="feedback">
-<h1><a class="toc-backref" href="#id23" name="feedback">Feedback</a></h1>
+<h1><a class="toc-backref" href="#id24" name="feedback">Feedback</a></h1>
 <p>There's a <a class="reference" href="http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss">mailing list</a>.</p>
 <p>You can usually find me as hydri in <tt class="literal"><span class="pre">#btports</span> <span class="pre">&#64;</span> <span class="pre">irc.freenode.net</span></tt>.</p>
 </div>
 <div class="section" id="aknowledgements">
-<h1><a class="toc-backref" href="#id24" name="aknowledgements">Aknowledgements</a></h1>
-<p>Written by Arvid Norberg. Copyright (c) 2003 Arvid Norberg</p>
+<h1><a class="toc-backref" href="#id25" name="aknowledgements">Aknowledgements</a></h1>
+<p>Written by Arvid Norberg and Daniel Wallin. Copyright (c) 2003</p>
+<p>Project is hosted by sourceforge.</p>
+<p><a class="reference" href="http://sourceforge.net"><img alt="sf_logo" src="http://sourceforge.net/sflogo.php?group_id=7994" /></a></p>
 </div>
 </div>
 </body>
