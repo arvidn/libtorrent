@@ -202,7 +202,7 @@ std::string add_suffix(float val)
 			return to_string(val, i==0?7:6) + prefix[i];
 		val /= 1000.f;
 	}
-	return to_string(val, 6) + prefix[i];
+	return to_string(val, 6) + "PB";
 }
 
 std::string progress_bar(float progress, int width)
