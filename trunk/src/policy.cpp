@@ -485,6 +485,7 @@ namespace libtorrent
 				// this means we're already connected
 				// to this peer. don't connect to
 				// it again.
+				assert(i->connection->associated_torrent() == m_torrent);
 				return;
 			}
 

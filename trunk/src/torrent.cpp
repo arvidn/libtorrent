@@ -73,8 +73,22 @@ namespace
 
 	int calculate_block_size(const torrent_info& i)
 	{
-		// TODO: if blocks_per_piece > 128 increase block-size
-		return 16*1024;
+		const int default_block_size = 16 * 1024;
+
+		// if pieces are too small, adjust the block size
+		if (i.piece_length() < default_block_size)
+		{
+			return i.piece_length();
+		}
+
+		// if pieces are too large, adjust the block size
+		if (i.piece_length() / default_block_size > 128)
+		{
+			return i.piece_length() / 128;
+		}
+
+		// otherwise, go with the default
+		return default_block_size;
 	}
 
 
@@ -199,7 +213,7 @@ namespace libtorrent
 			{
 				std::cout << "  " << std::setfill(' ') << std::setw(16) << i->ip
 					<< " " << std::setw(5) << std::dec << i->port << "  "
-					<< i->id << " " << extract_fingerprint(i->id) << "\n";
+					<< i->id << " " << identify_client(i->id) << "\n";
 			}
 			std::cout << std::setfill(' ');
 

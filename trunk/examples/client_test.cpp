@@ -302,8 +302,13 @@ int main(int argc, char* argv[])
 							if (progress > j) out << "#";
 							else out << "-";
 						}
-						out << "\n";
+						out << "   ";
 					}
+					else
+					{
+						for (int i = 0; i < 19; ++i) out << "  ";
+					}
+					out << identify_client(i->id) << "\n";
 				}
 
 				out << "___________________________________\n";
