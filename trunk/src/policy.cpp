@@ -187,6 +187,7 @@ namespace
 		{
 			// we probably couldn't request the block because
 			// we are ignoring a certain block
+			return;
 		}
 
 		// this peer doesn't have a faster connection than the
