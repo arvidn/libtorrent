@@ -243,15 +243,15 @@ namespace libtorrent
 		ret.dict()["peers"] = entry::list_type();
 		entry::list_type& peer_list = ret.dict()["peers"].list();
 
-		for (torrent::peer_const_iterator i = t->begin();
+		for (torrent::const_peer_iterator i = t->begin();
 			i != t->end();
 			++i)
 		{
 			// we cannot save remote connection
 			// since we don't know their listen port
-			if (!(*i)->is_local()) continue;
+			if (!i->second->is_local()) continue;
 
-			address ip = (*i)->get_socket()->sender();
+			address ip = i->second->get_socket()->sender();
 			entry::dictionary_type peer;
 			peer["ip"] = ip.as_string();
 			peer["port"] = ip.port();
@@ -360,11 +360,11 @@ namespace libtorrent
 		const torrent* t = m_ses->find_torrent(m_info_hash);
 		if (t == 0) return;
 
-		for (std::vector<peer_connection*>::const_iterator i = t->begin();
+		for (torrent::const_peer_iterator i = t->begin();
 			i != t->end();
 			++i)
 		{
-			peer_connection* peer = *i;
+			peer_connection* peer = i->second;
 
 			// peers that hasn't finished the handshake should
 			// not be included in this list

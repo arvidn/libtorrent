@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <iomanip>
 #include <vector>
-
 #include <limits>
 
 #include "libtorrent/peer_connection.hpp"
@@ -620,8 +619,8 @@ namespace libtorrent
 				&& i->block_index == p.start / m_torrent->block_size())
 				break;
 
-			(*m_logger) << " <== SKIPPED_PIECE [ piece: " << i->piece_index << " | "
-				"b: " << i->block_index << " ]\n";
+			(*m_logger) << " *** SKIPPED_PIECE [ piece: " << i->piece_index << " | "
+				"b: " << i->block_index << " ] ***\n";
 			if (m_torrent->alerts().should_post(alert::debug))
 			{
 				std::stringstream s;
@@ -640,6 +639,9 @@ namespace libtorrent
 		piece_picker& picker = m_torrent->picker();
 		piece_block block_finished(p.piece, p.start / m_torrent->block_size());
 
+		// if the block we got is already finished, then ignore it
+		if (picker.is_finished(block_finished)) return;
+
 		std::deque<piece_block>::iterator b
 			= std::find(
 				m_download_queue.begin()
@@ -654,12 +656,31 @@ namespace libtorrent
 		}
 		else
 		{
-			// TODO: cancel the block from the
+			// cancel the block from the
 			// peer that has taken over it.
+			boost::optional<address> peer = m_torrent->picker().get_downloader(block_finished);
+			if (peer)
+			{
+				peer_connection* pc = m_torrent->connection_for(*peer);
+				if (pc && pc != this)
+				{
+					pc->send_cancel(block_finished);
+				}
+			}
+			else
+			{
+				if (m_torrent->alerts().should_post(alert::debug))
+				{
+					m_torrent->alerts().post_alert(
+						peer_error_alert(
+						m_peer_id
+						, "got a block that was not requested"));
+				}
+#ifndef NDEBUG
+				(*m_logger) << " *** The block we just got was not requested ***\n";
+#endif
+			}
 		}
-
-		// if the block we got is already finished, then ignore it
-		if (picker.is_finished(block_finished)) return;
 
 		m_torrent->filesystem().write(&m_recv_buffer[9], p.piece, p.start, p.length);
 
@@ -1026,7 +1047,6 @@ namespace libtorrent
 		send_buffer_updated();
 	}
 
-	// TODO: rename to send_choke?
 	void peer_connection::send_choke()
 	{
 		if (m_choked) return;

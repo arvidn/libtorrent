@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/format.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/filesystem/fstream.hpp>
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
@@ -186,9 +187,9 @@ std::string add_suffix(float val)
 	int i;
 	for (i = 0; i < num_prefix; ++i)
 	{
-		if (fabs(val) < 1024.f)
+		if (fabs(val) < 1000.f)
 			return to_string(val, i==0?7:6) + prefix[i];
-		val /= 1024.f;
+		val /= 1000.f;
 	}
 	return to_string(val, 6) + prefix[i];
 }
@@ -233,11 +234,13 @@ int main(int argc, char* argv[])
 				torrent_info t(e);
 				t.print(std::cout);
 
+				boost::filesystem::path save_path("");
 				entry resume_data;
 				try
 				{
-					// TODO: use a torrent-specific name here
-					std::ifstream resume_file("test.fastresume", std::ios_base::binary);
+					std::stringstream s;
+					s << t.name() << ".fastresume";
+					boost::filesystem::ifstream resume_file(save_path / s.str(), std::ios_base::binary);
 					resume_file.unsetf(std::ios_base::skipws);
 					resume_data = bdecode(std::istream_iterator<char>(resume_file)
 						, std::istream_iterator<char>());
@@ -245,7 +248,7 @@ int main(int argc, char* argv[])
 				catch (invalid_encoding&)
 				{}
 
-				handles.push_back(ses.add_torrent(t, "", resume_data));
+				handles.push_back(ses.add_torrent(t, save_path, resume_data));
 				handles.back().set_max_uploads(7);
 				handles.back().set_ratio(1);
 			}
@@ -265,11 +268,18 @@ int main(int argc, char* argv[])
 			{
 				if (c == 'q')
 				{
-					entry data = handles.front().write_resume_data();
-					// TODO: use a torrent-specific name here
-					std::ofstream out("test.fastresume", std::ios_base::binary);
-					out.unsetf(std::ios_base::skipws);
-					bencode(std::ostream_iterator<char>(out), data);
+					for (std::vector<torrent_handle>::iterator i = handles.begin();
+						i != handles.end();
+						++i)
+					{
+						torrent_handle h = *i;
+						entry data = h.write_resume_data();
+						std::stringstream s;
+						s << h.get_torrent_info().name() << ".fastresume";
+						boost::filesystem::ofstream out(h.save_path() / s.str(), std::ios_base::binary);
+						out.unsetf(std::ios_base::skipws);
+						bencode(std::ostream_iterator<char>(out), data);
+					}
 					break;
 				}
 			}

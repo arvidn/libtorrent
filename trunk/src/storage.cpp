@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/thread/mutex.hpp>
-#include <boost/bind.hpp>
 #include <boost/ref.hpp>
 
 #include "libtorrent/storage.hpp"
@@ -437,6 +436,8 @@ namespace libtorrent {
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		// ----------------------------------------------------------------------
 
+		check_invariant();
+
 		p.clear();
 		std::vector<int>::const_reverse_iterator last; 
 		for (last = m_slot_to_piece.rbegin();
@@ -453,6 +454,9 @@ namespace libtorrent {
 		{
 			p.push_back(*i);
 		}
+
+		check_invariant();
+
 	}
 
 	void piece_manager::export_piece_map(
@@ -462,22 +466,30 @@ namespace libtorrent {
 	}
 
 	// TODO: daniel, make sure this function does everything it needs to do
-	void piece_manager::impl::mark_failed(int index)
+	void piece_manager::impl::mark_failed(int piece_index)
 	{
 		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		// ----------------------------------------------------------------------
 
-		assert(index >= 0 && index < m_piece_to_slot.size());
-		assert(m_piece_to_slot[index] >= 0);
+#ifndef NDEBUG
+		check_invariant();
+#endif
+		assert(piece_index >= 0 && piece_index < m_piece_to_slot.size());
+		assert(m_piece_to_slot[piece_index] >= 0);
 
-		int slot = m_slot_to_piece[m_piece_to_slot[index]];
+		int slot_index = m_piece_to_slot[piece_index];
 
-		assert(slot >= 0);
+		assert(slot_index >= 0);
 
-		m_slot_to_piece[m_piece_to_slot[index]] = -2;
-		m_piece_to_slot[index] = -1;
-		m_free_slots.push_back(slot);
+		m_slot_to_piece[slot_index] = -2;
+		m_piece_to_slot[piece_index] = -1;
+		m_free_slots.push_back(slot_index);
+
+#ifndef NDEBUG
+		check_invariant();
+#endif
+
 	}
 
 	void piece_manager::mark_failed(int index)
@@ -809,6 +821,9 @@ namespace libtorrent {
 		{
 			assert(slot_index >= 0);
 			assert(slot_index < m_slot_to_piece.size());
+
+			check_invariant();
+
 			return slot_index;
 		}
 

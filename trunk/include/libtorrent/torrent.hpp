@@ -173,6 +173,13 @@ namespace libtorrent
 		// decreased in the piece_picker
 		void remove_peer(peer_connection* p);
 
+		peer_connection* connection_for(const address& a)
+		{
+			peer_iterator i = m_connections.find(a);
+			if (i == m_connections.end()) return 0;
+			return i->second;
+		}
+
 		// the number of peers that belong to this torrent
 		int num_peers() const { return m_connections.size(); }
 
@@ -180,11 +187,11 @@ namespace libtorrent
 		// to a peer with the given peer_id
 		bool has_peer(const peer_id& id) const;
 
-		typedef std::vector<peer_connection*>::iterator peer_iterator;
-		typedef std::vector<peer_connection*>::const_iterator peer_const_iterator;
+		typedef std::map<address, peer_connection*>::iterator peer_iterator;
+		typedef std::map<address, peer_connection*>::const_iterator const_peer_iterator;
 
-		peer_const_iterator begin() const { return m_connections.begin(); }
-		peer_const_iterator end() const { return m_connections.end(); }
+		const_peer_iterator begin() const { return m_connections.begin(); }
+		const_peer_iterator end() const { return m_connections.end(); }
 
 		peer_iterator begin() { return m_connections.begin(); }
 		peer_iterator end() { return m_connections.end(); }
@@ -311,7 +318,10 @@ namespace libtorrent
 		// from the tracker
 		int m_duration;
 
-		std::vector<peer_connection*> m_connections;
+		// TODO: this should be a map, mapping address
+		// to peer_connection*
+		std::map<address, peer_connection*> m_connections;
+//		std::vector<peer_connection*> m_connections;
 
 		// this is the upload and download statistics for the whole torrent.
 		// it's updated from all its peers once every second.
