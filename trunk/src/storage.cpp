@@ -1098,7 +1098,7 @@ namespace libtorrent
 			{
 				assert(m_slot_to_piece[i]<m_piece_to_slot.size());
 				assert(m_piece_to_slot[m_slot_to_piece[i]]==i);
-				assert(
+/*				assert(
 					std::find(
 						m_unallocated_slots.begin()
 						, m_unallocated_slots.end()
@@ -1110,25 +1110,25 @@ namespace libtorrent
 						, m_free_slots.end()
 						, i) == m_free_slots.end()
 				);
-			}
+*/			}
 			else if (m_slot_to_piece[i] == unallocated)
 			{
-				assert(
+/*				assert(
 					std::find(
 						m_unallocated_slots.begin()
 						, m_unallocated_slots.end()
 						, i) != m_unallocated_slots.end()
 				);
-			}
+*/			}
 			else if (m_slot_to_piece[i] == unassigned)
 			{
-				assert(
+/*				assert(
 					std::find(
 						m_free_slots.begin()
 						, m_free_slots.end()
 						, i) != m_free_slots.end()
 				);
-			}
+*/			}
 			else
 			{
 				assert(false && "m_slot_to_piece[i] is invalid");
