@@ -1379,22 +1379,24 @@ namespace libtorrent
 						m_statistics.received_bytes(0, received);
 						if (m_recv_pos < m_packet_size) break;
 						assert(m_recv_pos == m_packet_size);
-	#ifndef NDEBUG
+#ifndef NDEBUG
 						(*m_logger) << " protocol: '" << std::string(m_recv_buffer.begin(), m_recv_buffer.end()) << "'\n";
-	#endif
+#endif
 						const char protocol_string[] = "BitTorrent protocol";
 						if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.end(), protocol_string))
 						{
 							const char cmd[] = "version";
 							if (m_recv_buffer.size() == 7 && std::equal(m_recv_buffer.begin(), m_recv_buffer.end(), cmd))
 							{
-								(*m_logger << "sending libtorrent version\n");
+#ifndef NDEBUG
+								(*m_logger) << "sending libtorrent version\n";
+#endif
 								int ret = m_socket->send("libtorrent version 0.1.0.0\n");
 								throw protocol_error("closing");
 							}
-	#ifndef NDEBUG
+#ifndef NDEBUG
 							(*m_logger) << "incorrect protocol name\n";
-	#endif
+#endif
 							std::stringstream s;
 							s << "got invalid protocol name: '"
 								<< std::string(m_recv_buffer.begin(), m_recv_buffer.end())
