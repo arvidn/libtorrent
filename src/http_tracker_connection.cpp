@@ -460,7 +460,7 @@ namespace libtorrent
 		catch (std::exception&)
 		{
 			if (requester())
-				requester()->debug_log(std::string(m_buffer.begin(), m_buffer.end());
+				requester()->debug_log(std::string(m_buffer.begin(), m_buffer.end()));
 			throw;			
 		}
 #endif
