@@ -778,7 +778,7 @@ The default constructor will initialize the handle to an invalid state. Which me
 perform any operation on it, unless you first assign it a valid handle. If you try to perform
 any operation on an uninitialized handle, it will throw ``invalid_handle``.
 
-*TODO: document ``trackers()`` and ``replace_trackers()``*
+**TODO: document trackers() and replace_trackers()**
 
 save_path()
 -----------

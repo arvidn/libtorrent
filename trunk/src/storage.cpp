@@ -350,9 +350,6 @@ namespace libtorrent
 			if (file_offset + read_bytes > file_iter->size)
 				read_bytes = static_cast<int>(file_iter->size - file_offset);
 
-			// TODO: this assert will be hit if a file has size 0
-			assert(read_bytes > 0);
-
 			size_type actual_read = in.read(buf + buf_pos, read_bytes);
 
 			if (read_bytes != actual_read)
