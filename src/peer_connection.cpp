@@ -1527,6 +1527,8 @@ namespace libtorrent
 			assert(m_send_quota_left != 0);
 			if (m_send_quota_left > 0)
 				amount_to_send = std::min(m_send_quota_left, amount_to_send);
+
+
 			// we have data that's scheduled for sending
 			int sent = m_socket->send(
 				&m_send_buffer[0]
@@ -1540,6 +1542,7 @@ namespace libtorrent
 					m_send_quota_left -= sent;
 				}
 
+				// manage the payload markers
 				int amount_payload = 0;
 				if (!m_payloads.empty())
 				{
@@ -1596,6 +1599,7 @@ namespace libtorrent
 
 		assert(m_added_to_selector);
 		send_buffer_updated();
+/*
 	#ifndef NDEBUG
 		if (has_data())
 		{
@@ -1605,6 +1609,7 @@ namespace libtorrent
 			}
 		}
 	#endif
+*/
 	}
 
 

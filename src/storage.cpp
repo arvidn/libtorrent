@@ -81,14 +81,6 @@ namespace {
 		}
 	};
 
-	void print_bitmask(const std::vector<bool>& x)
-	{
-		for (std::size_t i = 0; i < x.size(); ++i)
-		{
-			std::cout << x[i];
-		}
-	}
-
 } // namespace unnamed
 
 namespace fs = boost::filesystem;
@@ -104,7 +96,43 @@ namespace {
 
 }
 
-namespace libtorrent {
+namespace libtorrent
+{
+
+	std::vector<size_type> get_filesizes(
+		const torrent_info& t
+		, const boost::filesystem::path& p)
+	{
+		std::vector<size_type> sizes;
+		for (torrent_info::file_iterator i = t.begin_files();
+			i != t.end_files();
+			++i)
+		{
+			file f(p / i->path / i->filename, file::in);
+			f.seek(0, file::end);
+			sizes.push_back(f.tell());
+		}
+		return sizes;
+	}
+
+	bool match_filesizes(
+		const torrent_info& t
+		, const boost::filesystem::path& p
+		, const std::vector<size_type>& sizes)
+	{
+		if (sizes.size() != t.num_files()) return false;
+
+		std::vector<size_type>::const_iterator s = sizes.begin();
+		for (torrent_info::file_iterator i = t.begin_files();
+			i != t.end_files();
+			++i, ++s)
+		{
+			file f(p / i->path / i->filename, file::in);
+			f.seek(0, file::end);
+			if (f.tell() != *s) return false;
+		}
+		return true;
+	}
 
 	struct thread_safe_storage
 	{
@@ -394,10 +422,10 @@ namespace libtorrent {
 		// returns the slot currently associated with the given
 		// piece or assigns the given piece_index to a free slot
 		int slot_for_piece(int piece_index);
-
+#ifndef NDEBUG
 		void check_invariant() const;
 		void debug_log() const;
-
+#endif
 		storage m_storage;
 
 		// total number of bytes left to be downloaded
@@ -464,9 +492,9 @@ namespace libtorrent {
 		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		// ----------------------------------------------------------------------
-
+#ifndef NDEBUG
 		check_invariant();
-
+#endif
 		p.clear();
 		std::vector<int>::const_reverse_iterator last; 
 		for (last = m_slot_to_piece.rbegin();
@@ -484,8 +512,9 @@ namespace libtorrent {
 			p.push_back(*i);
 		}
 
+#ifndef NDEBUG
 		check_invariant();
-
+#endif
 	}
 
 	void piece_manager::export_piece_map(
@@ -586,8 +615,10 @@ namespace libtorrent {
 		const std::size_t last_piece_size = m_info.piece_size(
 				m_info.num_pieces() - 1);
 
+
+
 		// if we have fast-resume info
-		// use it instead of doingthe actual checking
+		// use it instead of doing the actual checking
 		if (!data.piece_map.empty()
 			&& data.piece_map.size() <= m_slot_to_piece.size())
 		{
@@ -629,6 +660,9 @@ namespace libtorrent {
 
 			return;
 		}
+
+
+		// do the real check (we didn't have valid resume data)
 
 		bool changed_file = true;
 //		fs::ifstream in;
@@ -675,26 +709,6 @@ namespace libtorrent {
 
 			if (changed_file)
 			{
-/*
-				in.close();
-				in.clear();
-				in.open(path, std::ios_base::binary);
-
-				changed_file = false;
-
-				bytes_current_read = seek_into_next;
-
-				if (!in)
-				{
-					filesize = 0;
-				}
-				else
-				{
-					in.seekg(0, std::ios_base::end);
-					filesize = in.tellg();
-					in.seekg(seek_into_next, std::ios_base::beg);
-				}
-*/
 				try
 				{
 					changed_file = false;
@@ -709,7 +723,6 @@ namespace libtorrent {
 				{
 					filesize = 0;
 				}
-
 			}
 
 			// we are at the start of a new piece
@@ -721,8 +734,6 @@ namespace libtorrent {
 
 			if (filesize > 0)
 			{
-//				in.read(&piece_data[piece_offset], bytes_to_read);
-//				bytes_read = in.gcount();
 				bytes_read = in.read(&piece_data[piece_offset], bytes_to_read);
 			}
 
@@ -832,16 +843,28 @@ namespace libtorrent {
 			bytes_to_read = m_info.piece_size(current_slot);
 		}
 
-		std::cout << " m_free_slots: " << m_free_slots.size() << "\n";
-		std::cout << " m_unallocated_slots: " << m_unallocated_slots.size() << "\n";
-		std::cout << " num pieces: " << m_info.num_pieces() << "\n";
+#ifndef NDEBUG
+		std::stringstream s;
 
-		std::cout << " have_pieces: ";
-		print_bitmask(pieces);
-		std::cout << "\n";
-		std::cout << std::count(pieces.begin(), pieces.end(), true) << "\n";
+		s << " m_free_slots: " << m_free_slots.size() << "\n"
+			" m_unallocated_slots: " << m_unallocated_slots.size() << "\n"
+			" num pieces: " << m_info.num_pieces() << "\n"
+			" have_pieces:\n";
+		for (std::vector<bool>::iterator i = pieces.begin();
+			i != pieces.end();
+			++i)
+		{
+			if (((i - pieces.begin()) % 60) == 0) s << "\n";
+			if (*i) s << "1"; else s << "0";
+		}
+		s << "\n";
+		s << std::count(pieces.begin(), pieces.end(), true) << "\n";
+		data.torrent_ptr->debug_log(s.str());
+#endif
 
+#ifndef NDEBUG
 		check_invariant();
+#endif
 	}
 
 	void piece_manager::check_pieces(
@@ -858,7 +881,9 @@ namespace libtorrent {
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		// ----------------------------------------------------------------------
 
+#ifndef NDEBUG
 		check_invariant();
+#endif
 
 		assert(piece_index >= 0 && piece_index < m_piece_to_slot.size());
 		assert(m_piece_to_slot.size() == m_slot_to_piece.size());
@@ -870,7 +895,9 @@ namespace libtorrent {
 			assert(slot_index >= 0);
 			assert(slot_index < m_slot_to_piece.size());
 
+#ifndef NDEBUG
 			check_invariant();
+#endif
 
 			return slot_index;
 		}
@@ -918,6 +945,7 @@ namespace libtorrent {
 		if (slot_index != piece_index
 			&& m_slot_to_piece[piece_index] >= 0)
 		{
+#ifndef NDEBUG
 			std::stringstream s;
 
 			s << "there is another piece at our slot, swapping..";
@@ -929,18 +957,13 @@ namespace libtorrent {
 			s << "\n   piece at our slot: ";
 			s << m_slot_to_piece[piece_index];
 			s << "\n";
-
+#endif
 			int piece_at_our_slot = m_slot_to_piece[piece_index];
 			assert(m_piece_to_slot[piece_at_our_slot] == piece_index);
-
+#ifndef NDEBUG
 			print_to_log(s.str());
-
 			debug_log();
-
-			std::vector<char> buf(m_info.piece_length());
-			m_storage.read(&buf[0], piece_index, 0, m_info.piece_length());
-			m_storage.write(&buf[0], slot_index, 0, m_info.piece_length());
-
+#endif
 			std::swap(
 				m_slot_to_piece[piece_index]
 				, m_slot_to_piece[slot_index]);
@@ -949,16 +972,22 @@ namespace libtorrent {
 				m_piece_to_slot[piece_index]
 				, m_piece_to_slot[piece_at_our_slot]);
 
+			std::vector<char> buf(m_info.piece_length());
+			m_storage.read(&buf[0], piece_index, 0, m_info.piece_length());
+			m_storage.write(&buf[0], slot_index, 0, m_info.piece_length());
+
 			assert(m_slot_to_piece[piece_index] == piece_index);
 			assert(m_piece_to_slot[piece_index] == piece_index);
 
 			slot_index = piece_index;
-
+#ifndef NDEBUG
 			debug_log();
+#endif
 		}
 
+#ifndef NDEBUG
 		check_invariant();
-
+#endif
 		return slot_index;
 	}
 
@@ -977,7 +1006,9 @@ namespace libtorrent {
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		// ----------------------------------------------------------------------
 
+#ifndef NDEBUG
 		check_invariant();
+#endif
 
 		namespace fs = boost::filesystem;
 		
@@ -1019,7 +1050,9 @@ namespace libtorrent {
 
 		m_allocating = false;
 		
+#ifndef NDEBUG
 		check_invariant();
+#endif
 	}
 
 	void piece_manager::allocate_slots(int num_slots)
@@ -1031,7 +1064,8 @@ namespace libtorrent {
 	{
 		return m_pimpl->save_path();
 	}
-	
+
+#ifndef NDEBUG
 	void piece_manager::impl::check_invariant() const
 	{
 		// synchronization ------------------------------------------------------
@@ -1101,6 +1135,6 @@ namespace libtorrent {
 
 		print_to_log(s.str());
 	}
-
+#endif
 } // namespace libtorrent
 

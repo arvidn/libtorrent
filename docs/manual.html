@@ -101,7 +101,7 @@ party.</li>
 of a resumed torrent. Saves the storage state, piece_picker state as well as all local
 peers in a separate fast-resume file.</li>
 <li>Supports the extension protocol <a class="reference" href="http://nolar.com/azureus/extended.htm">described by Nolar</a>. See <a class="reference" href="#extensions">extensions</a>.</li>
-<li>SUpports files &gt; 2 gigabytes (currently only on windows)</li>
+<li>Supports files &gt; 2 gigabytes (currently only on windows)</li>
 </ul>
 </blockquote>
 <p>Functions that are yet to be implemented:</p>
@@ -133,6 +133,9 @@ boost.filesystem, boost.date_time and various other boost libraries as well as z
 </div>
 <div class="section" id="building">
 <h1><a class="toc-backref" href="#id10" name="building">building</a></h1>
+<p>Whwn building in release mode you need to define NDEBUG in order to avoid
+all asserts and invariant checks within libtorrent. Developer studio does
+this by default.</p>
 <p>To build libtorrent you need <a class="reference" href="http://www.boost.org">boost</a> and bjam installed.
 Then you can use <tt class="literal"><span class="pre">bjam</span></tt> to build libtorrent.</p>
 <p>To make bjam work, you need to set the environment variable <tt class="literal"><span class="pre">BOOST_ROOT</span></tt> to the
@@ -253,7 +256,7 @@ change in the future to give more control of the listen-port.</em></p>
 </div>
 <div class="section" id="parsing-torrent-files">
 <h1><a class="toc-backref" href="#id13" name="parsing-torrent-files">parsing torrent files</a></h1>
-<p>The torrent files are <a class="reference" href="http://bitconjurer.org/BitTorrent/protocol.html">bencoded</a>. There are two functions in libtorrent that can encode and decode
+<p>The torrent files are <a class="reference" href="http://wiki.theory.org/index.php/BitTorrentSpecification">bencoded</a>. There are two functions in libtorrent that can encode and decode
 bencoded data. They are:</p>
 <pre class="literal-block">
 template&lt;class InIt&gt; entry bdecode(InIt start, InIt end);
@@ -537,6 +540,7 @@ struct torrent_status
         state_t state;
         float progress;
         boost::posix_time::time_duration next_announce;
+        boost::posix_time::time_duration announce_interval;
 
         std::size_t total_download;
         std::size_t total_upload;
@@ -587,7 +591,9 @@ is a pure seeder.</td>
 </tr>
 </tbody>
 </table>
-<p><tt class="literal"><span class="pre">next_announce</span></tt> is the time until the torrent will announce itself to the tracker.</p>
+<p><tt class="literal"><span class="pre">next_announce</span></tt> is the time until the torrent will announce itself to the tracker. And
+<tt class="literal"><span class="pre">announce_interval</span></tt> is the time the tracker want us to wait until we announce ourself
+again the next time.</p>
 <p><tt class="literal"><span class="pre">total_download</span></tt> and <tt class="literal"><span class="pre">total_upload</span></tt> is the number of bytes downloaded and
 uploaded to all peers, accumulated, <em>this session</em> only.</p>
 <p><tt class="literal"><span class="pre">total_payload_download</span></tt> and <tt class="literal"><span class="pre">total_payload_upload</span></tt> counts the amount of bytes

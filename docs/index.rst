@@ -3,12 +3,13 @@ libtorrent
 ==========
 
 
-=================== ======= =========== ===============
-`sourceforge page`_ manual_ screenshot_ `mailing list`_
-=================== ======= =========== ===============
+=================== ============== ============== =========== ===============
+`sourceforge page`_ documentation_ `report bugs`_ screenshot_ `mailing list`_
+=================== ============== ============== =========== ===============
 
 .. _sourceforge page: http://www.sourceforge.net/projects/libtorrent
-.. _manual: manual.html
+.. _documentation: manual.html
+.. _`report bugs`: http://sourceforge.net/tracker/?group_id=79942&atid=558250
 .. _screenshot: libtorrent_screen.png
 .. _mailing list: http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 
@@ -26,15 +27,34 @@ The main goals of libtorrent are:
 	* to be very easy to use
 
 
+Donate
+======
+
+Support the development of libtorrent
+
+.. raw:: html
+	
+	<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+		<input type="hidden" name="cmd" value="_xclick">
+		<input type="hidden" name="business" value="c99ang@cs.umu.se">
+		<input type="hidden" name="item_name" value="libtorrent">
+		<input type="hidden" name="return" value="http://libtorrent.sf.net">
+		<input type="hidden" name="currency_code" value="EUR">
+		<input type="hidden" name="tax" value="0">
+		<input type="image" src="https://www.paypal.com/images/x-click-but04.gif"
+			border="0" name="submit" alt="Make payments with PayPal - it's fast, free and secure!">
+	</form>
+
+
+
 Feedback
 ========
 
-There's a `mailing list`__.
+There's a `mailing list`__, general libtorrent discussion.
 
 __ http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 
 You can usually find me as hydri in ``#btports @ irc.freenode.net``.
-
 
 
 Aknowledgements

@@ -49,7 +49,19 @@ namespace libtorrent
 	{
 		struct piece_checker_data;
 	}
+
 	class session;
+
+	typedef boost::int64_t size_type;
+
+	std::vector<size_type> get_filesizes(
+		const torrent_info& t
+		, const boost::filesystem::path& p);
+
+	bool match_filesizes(
+		const torrent_info& t
+		, const boost::filesystem::path& p
+		, const std::vector<size_type>& sizes);
 
 	struct file_allocation_failed: std::exception
 	{
