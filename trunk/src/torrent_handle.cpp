@@ -451,10 +451,10 @@ namespace libtorrent
 			else
 				p.upload_limit = peer->upload_bandwidth_quota()->given;
 
-			if (peer->upload_bandwidth_quota()->wanted == std::numeric_limits<int>::max())
+			if (peer->upload_bandwidth_quota()->max == std::numeric_limits<int>::max())
 				p.upload_ceiling = -1;
 			else
-				p.upload_ceiling = peer->upload_bandwidth_quota()->wanted;
+				p.upload_ceiling = peer->upload_bandwidth_quota()->max;
 
 			p.load_balancing = peer->total_free_upload();
 

@@ -37,12 +37,21 @@ namespace libtorrent
 {
 	struct resource_request
 	{
-		resource_request() : used(0), wanted(0), given(0) {}
+		resource_request()
+			: used(0)
+			, min(0)
+			, max(0)
+			, given(0)
+		{}
 
 		// I'm right now actively using:
 		int used;
-		// I would like to use this much:
-		int wanted;
+
+		// given cannot be smaller than min
+		// and not greater than max.
+		int min;
+		int max;
+
 		// Reply: Okay, you're allowed to use this much (a compromise):
 		int given;
 	};

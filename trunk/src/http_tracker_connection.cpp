@@ -152,10 +152,11 @@ namespace libtorrent
 			m_send_buffer += event_string[req.event - 1];
 		}
 		m_send_buffer += "&key=";
-		// TODO: this should be encoded as hex
-		m_send_buffer += boost::lexical_cast<std::string>((unsigned int)req.key);
+		std::stringstream key_string;
+		key_string << std::hex << req.key;
+		m_send_buffer += key_string.str();
 		m_send_buffer += "&compact=1";
-		m_send_buffer += "&num_want=";
+		m_send_buffer += "&numwant=";
 		m_send_buffer += boost::lexical_cast<std::string>(req.num_want);
 
 		// extension that tells the tracker that

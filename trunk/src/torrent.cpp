@@ -197,6 +197,7 @@ namespace libtorrent
 		m_currently_trying_tracker = 0;
 
 		m_duration = interval;
+		m_next_request = boost::posix_time::second_clock::local_time() + boost::posix_time::seconds(m_duration);
 
 		// connect to random peers from the list
 		std::random_shuffle(peer_list.begin(), peer_list.end());
@@ -412,7 +413,9 @@ namespace libtorrent
 	tracker_request torrent::generate_tracker_request()
 	{
 		m_duration = 1800;
-		m_next_request = boost::posix_time::second_clock::local_time() + boost::posix_time::seconds(m_duration);
+		m_next_request
+			= boost::posix_time::second_clock::local_time()
+			+ boost::posix_time::seconds(tracker_retry_delay);
 
 		tracker_request req;
 		req.info_hash = m_torrent_file.info_hash();
@@ -637,7 +640,8 @@ namespace libtorrent
 		}
 
 		m_upload_bandwidth_quota.used = 0;
-		m_upload_bandwidth_quota.wanted = 0;
+		m_upload_bandwidth_quota.max = 0;
+		m_upload_bandwidth_quota.min = 0;
 
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end();
@@ -647,13 +651,14 @@ namespace libtorrent
 			m_stat += p->statistics();
 			p->second_tick();
 			m_upload_bandwidth_quota.used += p->m_upload_bandwidth_quota.used;
-			m_upload_bandwidth_quota.wanted = saturated_add(
-				m_upload_bandwidth_quota.wanted
-				, p->m_upload_bandwidth_quota.wanted);
+			m_upload_bandwidth_quota.min += p->m_upload_bandwidth_quota.min;
+			m_upload_bandwidth_quota.max = saturated_add(
+				m_upload_bandwidth_quota.max
+				, p->m_upload_bandwidth_quota.max);
 		}
 
-		m_upload_bandwidth_quota.wanted
-			= std::min(m_upload_bandwidth_quota.wanted, m_upload_bandwidth_limit);
+		m_upload_bandwidth_quota.max
+			= std::min(m_upload_bandwidth_quota.max, m_upload_bandwidth_limit);
 
 		m_stat.second_tick();
 	}

@@ -30,6 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <algorithm>
 #include "libtorrent/entry.hpp"
 #include <boost/bind.hpp>
 
