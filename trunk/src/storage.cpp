@@ -1635,16 +1635,22 @@ namespace libtorrent {
 				&large_digest, &small_digest
 			};
 
-			bool found = false;
+			int found_piece = -1;
 
 			for (int i = 0; i < m_info.num_pieces(); ++i)
 			{
+				if (i > current_piece)
+					break;
+
 				if (pieces[i])
 					continue;
 
 				const sha1_hash& hash = digest[
 					i == m_info.num_pieces() - 1]->get();
 
+				if (hash == m_info.hash_for_piece(i))
+					found_piece = i;
+/*
 				if (hash == m_info.hash_for_piece(i))
 				{
 					m_bytes_left -= m_info.piece_size(i);
@@ -1654,10 +1660,18 @@ namespace libtorrent {
 					pieces[i] = true;
 					found = true;
 					break;
-				}
+				}*/
 			}
 
-			if (!found)
+			if (found_piece != -1)
+			{
+					m_bytes_left -= m_info.piece_size(found_piece);
+
+					m_piece_to_slot[found_piece] = current_piece;
+					m_slot_to_piece[current_piece] = found_piece;
+					pieces[found_piece] = true;
+			}
+			else
 			{
 				m_slot_to_piece[current_piece] = -2;
 

@@ -512,6 +512,11 @@ namespace libtorrent
 		boost::mutex& mutex)
 	{
 		m_storage.check_pieces(mutex, data, m_have_pieces);
+		m_num_pieces = std::accumulate(
+			m_have_pieces.begin()
+		  , m_have_pieces.end()
+		  , 0);
+
 		m_picker.files_checked(m_have_pieces);
 #ifndef NDEBUG
 		m_picker.integrity_check(this);
