@@ -1,0 +1,25 @@
+
+
+exe client_test
+	: client_test.cpp
+	  ..//torrent
+	:
+	: debug release
+	;
+
+
+exe simple_client
+	: simple_client.cpp
+	  ..//torrent
+	:
+	: debug release
+	;
+
+
+exe dump_torrent
+	: dump_torrent.cpp
+	  ..//torrent
+	:
+	: debug release
+	;
+

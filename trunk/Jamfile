@@ -1,6 +1,7 @@
 #This Jamfile requires boost-build v2 to build.
 
 import modules ;
+import os ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 
@@ -20,21 +21,19 @@ project torrent
 	  <library>/boost/filesystem
 
 	: usage-requirements 
-#	  <use>/boost/thread
-#	  <use>/boost/date_time
-#	  <use>/boost/filesystem
 
 	  <include>./include
 	  <include>$(BOOST_ROOT)
 
 # devstudio switches
 
-	  <cxxflags>/Zc:wchar_t
-	  <cxxflags>/D"WIN32"
+	  <toolset>msvc-7:<cxxflags>/Zc:wchar_t
+	  <toolset>msvc-7.1:<cxxflags>/Zc:wchar_t
+	  <toolset>msvc:<define>WIN32
 
 # gcc switches
 
-#	  <cxxflags>-Wno-unused-variable
+	  <toolset>gcc:<cxxflags>-Wno-unused-variable
 
 	;
 
@@ -57,25 +56,32 @@ SOURCES =
 	http_tracker_connection.cpp
 	udp_tracker_connection.cpp
 	sha1.c
-
-# unix versions
-
-#	socket_bsd.cpp
-#	file.cpp
-
-# windows versions
-
-	socket_win.cpp
-	file_win.cpp
-
 	;
+
+# use different versions of some files for
+# windows
+
+	if [ modules.peek : NT ]
+	{
+		SOURCES += socket_win.cpp ;
+	}
+	else
+	{
+		SOURCES += socket_bsd.cpp ;
+	}
+
+	if [ modules.peek : NT ] && toolset != msvc-6
+	{
+		SOURCES += file_win.cpp ;
+	}
+	else
+	{
+		SOURCES += file.cpp ;
+	}
 
 
 lib torrent
 	:
-#	  /boost/thread
-#	  /boost/filesystem
-#	  /boost/date_time
 	  zlib//zlib
 	  src/$(SOURCES)
 	: <include>./include
@@ -84,11 +90,4 @@ lib torrent
 	: debug release
 	;
 
-
-exe client_test
-	: examples/client_test.cpp
-	  torrent
-	:
-	: debug release
-	;
 
