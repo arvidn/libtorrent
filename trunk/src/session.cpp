@@ -662,6 +662,7 @@ namespace libtorrent { namespace detail
 				if (t.is_aborted())
 				{
 					tracker_request req = t.generate_tracker_request();
+					assert(req.event == tracker_request::stopped);
 					req.listen_port = m_listen_interface.port;
 					req.key = m_key;
 					m_tracker_manager.queue_request(req);
@@ -875,6 +876,35 @@ namespace libtorrent
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_extension_enabled[i] = true;
 	}
+
+	std::vector<torrent_handle> session::get_torrents()
+	{
+		std::vector<torrent_handle> ret;
+		{
+			boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
+			for (std::deque<detail::piece_checker_data>::iterator i
+				= m_checker_impl.m_torrents.begin()
+				, end(m_checker_impl.m_torrents.end()); i != end; ++i)
+			{
+				ret.push_back(torrent_handle(&m_impl, &m_checker_impl
+					, i->info_hash));
+			}
+		}
+
+		{
+			boost::mutex::scoped_lock l(m_impl.m_mutex);
+			for (detail::session_impl::torrent_map::iterator i
+				= m_impl.m_torrents.begin(), end(m_impl.m_torrents.end());
+				i != end; ++i)
+			{
+				if (i->second->is_aborted()) continue;
+				ret.push_back(torrent_handle(&m_impl, &m_checker_impl
+					, i->first));
+			}
+		}
+		return ret;
+	}
+
 
 	// TODO: add a check to see if filenames are accepted on the
 	// current platform.
@@ -1270,6 +1300,25 @@ namespace libtorrent
 				, std::back_inserter(file_sizes)
 				, boost::bind((mem_fun_type)&entry::integer, _1));
 #endif
+
+			if (tmp_pieces.size() == info.num_pieces()
+				&& std::find_if(tmp_pieces.begin(), tmp_pieces.end()
+				, boost::bind(std::less<int>(), _1, 0)) == tmp_pieces.end())
+			{
+				if (info.num_files() != file_sizes.size())
+					return;
+
+				std::vector<size_type>::iterator fs = file_sizes.begin();
+				// the resume data says we have the entire torrent
+				// make sure the file sizes are the right ones
+				for (torrent_info::file_iterator i = info.begin_files()
+					, end(info.end_files()); i != end; ++i, ++fs)
+				{
+					if (i->size != *fs) return;
+				}
+			}
+
+
 			if (!match_filesizes(info, save_path, file_sizes))
 				return;
 

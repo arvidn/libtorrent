@@ -57,10 +57,10 @@ namespace libtorrent
 			, tag_version(tag)
 		{
 			assert(id_string);
-			assert(major >= 0 && major < 10);
-			assert(minor >= 0 && minor < 10);
-			assert(revision >= 0 && revision < 10);
-			assert(tag >= 0 && tag < 10);
+			assert(major >= 0);
+			assert(minor >= 0);
+			assert(revision >= 0);
+			assert(tag >= 0);
 			assert(std::strlen(id_string) == 2);
 			id[0] = id_string[0];
 			id[1] = id_string[1];
@@ -70,10 +70,10 @@ namespace libtorrent
 		{
 			std::stringstream s;
 			s << "-" << id[0] << id[1]
-				<< (int)major_version
-				<< (int)minor_version
-				<< (int)revision_version
-				<< (int)tag_version << "-";
+				<< version_to_char(major_version)
+				<< version_to_char(minor_version)
+				<< version_to_char(revision_version)
+				<< version_to_char(tag_version) << "-";
 			return s.str();
 		}
 
@@ -82,6 +82,15 @@ namespace libtorrent
 		char minor_version;
 		char revision_version;
 		char tag_version;
+
+	private:
+
+		char version_to_char(int v) const
+		{
+			if (v >= 0 && v < 10) return '0' + v;
+			else if (v >= 10) return 'A' + (v - 10);
+			assert(false);
+		}
 
 	};
 

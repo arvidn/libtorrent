@@ -240,6 +240,8 @@ namespace libtorrent
 	void torrent::init()
 	{
 		assert(m_torrent_file.is_valid());
+		assert(m_torrent_file.num_files() > 0);
+		assert(m_torrent_file.total_size() > 0);
 
 		m_have_pieces.resize(m_torrent_file.num_pieces(), false);
 		m_storage = std::auto_ptr<piece_manager>(new piece_manager(m_torrent_file, m_save_path));
@@ -542,6 +544,7 @@ namespace libtorrent
 		req.left = bytes_left();
 		if (req.left == -1) req.left = 1000;
 		req.event = m_event;
+		m_event = tracker_request::none;
 		req.url = m_trackers[m_currently_trying_tracker].url;
 		req.num_want = std::max(
 			(m_connections_quota.given
@@ -743,7 +746,9 @@ namespace libtorrent
 
 	bool torrent::move_storage(boost::filesystem::path const& save_path)
 	{
-		return m_storage->move_storage(save_path);
+		bool ret = m_storage->move_storage(save_path);
+		m_save_path = m_storage->save_path();
+		return ret;
 	}
 
 	piece_manager& torrent::filesystem()

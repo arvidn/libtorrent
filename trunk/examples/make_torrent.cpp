@@ -77,8 +77,7 @@ int main(int argc, char* argv[])
 
 	if (argc != 4)
 	{
-		std::cerr << "usage: make_torrent <output torrent-file> <announce url> <file or directory to create torrent from>\n\n"
-			"the torrent file will be written to stdout.\n";
+		std::cerr << "usage: make_torrent <output torrent-file> <announce url> <file or directory to create torrent from>\n";
 		return 1;
 	}
 
@@ -112,7 +111,7 @@ int main(int argc, char* argv[])
 
 		t.set_creator(creator_str);
 
-		// create the torrent and print it to stdout
+		// create the torrent and print it to out
 		entry e = t.create_torrent();
 		libtorrent::bencode(std::ostream_iterator<char>(out), e);
 	}

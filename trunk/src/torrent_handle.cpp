@@ -197,6 +197,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		assert(max_connections >= 2 || max_connections == -1);
+
 		call_member<void>(m_ses, m_chk, m_info_hash
 			, bind(&torrent::set_max_connections, _1, max_connections));
 	}
