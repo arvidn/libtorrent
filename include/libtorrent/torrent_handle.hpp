@@ -85,6 +85,8 @@ namespace libtorrent
 			, num_peers(0)
 			, pieces(0)
 			, total_done(0)
+			, num_seeds(0)
+			, distributed_copies(0.f)
 		{}
 
 		enum state_t
@@ -136,6 +138,20 @@ namespace libtorrent
 
 		// the number of bytes of the file we have
 		size_type total_done;
+
+		// the number of peers this torrent is connected to
+		// that are seeding.
+		int num_seeds;
+
+		// the number of distributed copies of the file.
+		// note that one copy may be spread out among many peers.
+		//
+		// the whole number part tells how many copies
+		//   there are of the rarest piece(s)
+		//
+		// the fractional part tells the fraction of pieces that
+		//   have more copies than the rarest piece(s).
+		float distributed_copies;
 	};
 
 	struct partial_piece_info

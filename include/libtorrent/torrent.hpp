@@ -169,6 +169,7 @@ namespace libtorrent
 
 		// the number of peers that belong to this torrent
 		int num_peers() const { return (int)m_connections.size(); }
+		int num_seeds() const;
 
 		typedef std::map<address, peer_connection*>::iterator peer_iterator;
 		typedef std::map<address, peer_connection*>::const_iterator const_peer_iterator;

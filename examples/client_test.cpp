@@ -199,7 +199,7 @@ std::string add_suffix(float val)
 	{
 		if (fabs(val) < 1000.f)
 			return to_string(val, i==0?7:6) + prefix[i];
-		val /= 1000.f;
+		val /= 1024.f;
 	}
 	return to_string(val, 6) + "PB";
 }
@@ -282,8 +282,7 @@ int main(int argc, char* argv[])
 		session ses(fingerprint("LT", 0, 1, 0, 0));
 
 		ses.listen_on(std::make_pair(6881, 6889));
-		ses.set_upload_rate_limit(31 * 1024);
-//		ses.set_download_rate_limit(50000);
+		ses.set_upload_rate_limit(512 * 1024);
 		ses.set_http_settings(settings);
 		ses.set_severity_level(alert::debug);
 //		ses.set_severity_level(alert::info);
@@ -301,7 +300,7 @@ int main(int argc, char* argv[])
 					handles.push_back(ses.add_torrent(argv[i+1], info_hash, save_path));
 					handles.back().set_max_connections(60);
 					handles.back().set_max_uploads(7);
-					handles.back().set_ratio(1.02f);
+					handles.back().set_ratio(1.1f);
 					++i;
 
 					continue;
@@ -328,8 +327,8 @@ int main(int argc, char* argv[])
 
 				handles.push_back(ses.add_torrent(e, save_path, resume_data));
 				handles.back().set_max_connections(100);
-				handles.back().set_max_uploads(3);
-				handles.back().set_ratio(0.f);
+				handles.back().set_max_uploads(-1);
+				handles.back().set_ratio(1.02f);
 			}
 			catch (std::exception& e)
 			{
@@ -484,10 +483,12 @@ int main(int argc, char* argv[])
 				out << progress_bar(s.progress, 49);
 				out << "\n";
 				out << "total downloaded: " << s.total_done << " Bytes\n";
-				out << "peers: " << (int)peers.size() << " "
-					<< "d:" << add_suffix(s.download_rate) << "/s "
+				out	<< "peers: " << s.num_peers << " "
+				    << "seeds: " << s.num_seeds << " "
+				    << "distributed copies: " << s.distributed_copies << "\n";
+				out << "download:" << add_suffix(s.download_rate) << "/s "
 					<< "(" << add_suffix(s.total_download) << ") "
-					<< "u:" << add_suffix(s.upload_rate) << "/s "
+					<< "upload:" << add_suffix(s.upload_rate) << "/s "
 					<< "(" << add_suffix(s.total_upload) << ") "
 					<< "ratio: " << ratio(s.total_payload_download, s.total_payload_upload) << "\n";
 				out << "info-hash: " << i->info_hash() << "\n";

@@ -199,6 +199,8 @@ namespace libtorrent
 		int blocks_in_last_piece() const
 		{ return m_blocks_in_last_piece; }
 
+		float distributed_copies() const;
+
 	private:
 
 		struct piece_pos

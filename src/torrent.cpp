@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/convenience.hpp>
+#include <boost/bind.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -872,7 +873,7 @@ namespace libtorrent
 
 		torrent_status st;
 
-		st.num_peers = (int)m_connections.size();
+		st.num_peers = num_peers();
 		st.paused = m_paused;
 		st.total_done = bytes_done();
 
@@ -934,7 +935,16 @@ namespace libtorrent
 		else
 			st.state = torrent_status::downloading;
 
+		st.num_seeds = num_seeds();
+		st.distributed_copies = m_picker->distributed_copies();
 		return st;
+	}
+
+	int torrent::num_seeds() const
+	{
+		return (int)count_if(m_connections.begin(),	m_connections.end(),
+			boost::bind(&peer_connection::is_seed,
+				boost::bind(&std::map<address,peer_connection*>::value_type::second, _1)));
 	}
 
 	bool torrent::received_metadata(char const* buf, int size, int offset, int total_size)
