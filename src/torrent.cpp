@@ -571,6 +571,9 @@ namespace libtorrent
 		req.num_want = std::max(
 			(m_connections_quota.given
 			- m_policy->num_peers()), 10);
+		// if we are aborting. we don't want any new peers
+		if (req.event == tracker_request::stopped)
+			req.num_want = 0;
 
 		// default initialize, these should be set by caller
 		// before passing the request to the tracker_manager
