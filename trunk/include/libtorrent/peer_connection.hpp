@@ -226,7 +226,9 @@ namespace libtorrent
 		void receive_data();
 
 		// tells if this connection has data it want to send
-		bool has_data() const throw();
+		bool has_data() const;
+
+		bool is_seed() const;
 
 		bool has_timed_out()
 		{
@@ -238,18 +240,11 @@ namespace libtorrent
 		// will send a keep-alive message to the peer
 		void keep_alive();
 
-		const peer_id& id() const throw() { return m_peer_id; }
-		bool has_piece(int i) const throw() { return m_have_piece[i]; }
+		const peer_id& id() const { return m_peer_id; }
+		bool has_piece(int i) const { return m_have_piece[i]; }
 
-		const std::deque<piece_block>& download_queue() const throw()
+		const std::deque<piece_block>& download_queue() const
 		{ return m_download_queue; }
-
-		void choke();
-		void unchoke();
-		void interested();
-		void not_interested();
-		void request_block(piece_block block);
-		void cancel_block(piece_block block);
 
 		// returns the block currently being
 		// downloaded. And the progress of that
@@ -258,17 +253,17 @@ namespace libtorrent
 		// will be invalid.
 		boost::optional<piece_block_progress> downloading_piece() const;
 
-		bool is_interesting() const throw() { return m_interesting; }
-		bool is_choked() const throw() { return m_choked; }
+		bool is_interesting() const { return m_interesting; }
+		bool is_choked() const { return m_choked; }
 
-		bool is_peer_interested() const throw() { return m_peer_interested; }
-		bool has_peer_choked() const throw() { return m_peer_choked; }
+		bool is_peer_interested() const { return m_peer_interested; }
+		bool has_peer_choked() const { return m_peer_choked; }
 
 		// returns the torrent this connection is a part of
 		// may be zero if the connection is an incoming connection
 		// and it hasn't received enough information to determine
 		// which torrent it should be associated with
-		torrent* associated_torrent() const throw() { return m_attached_to_torrent?m_torrent:0; }
+		torrent* associated_torrent() const { return m_attached_to_torrent?m_torrent:0; }
 
 		bool verify_piece(const peer_request& p) const;
 
@@ -329,6 +324,11 @@ namespace libtorrent
 		bool support_extensions() const
 		{ return m_supports_extensions; }
 
+		const boost::posix_time::time_duration& last_piece_time() const
+		{ return m_last_piece_time; }
+
+		// a connection is local if it was initiated by us.
+		// if it was an incoming connection, it is remote
 		bool is_local() const
 		{ return m_active; }
 
@@ -358,16 +358,25 @@ namespace libtorrent
 
 		typedef void (peer_connection::*message_handler)(int received);
 
-	private:
-
-		bool dispatch_message(int received);
-		void send_buffer_updated();
-
+		// the following functions appends messages
+		// to the send buffer
+		void send_choke();
+		void send_unchoke();
+		void send_interested();
+		void send_not_interested();
+		void send_request(piece_block block);
+		void send_cancel(piece_block block);
 		void send_bitfield();
 		void send_have(int index);
 		void send_handshake();
 		void send_extensions();
 		void send_chat_message(const std::string& msg);
+
+
+	private:
+
+		bool dispatch_message(int received);
+		void send_buffer_updated();
 
 		// is used during handshake
 		enum state
@@ -557,7 +566,24 @@ namespace libtorrent
 			num_supported_extensions
 		};
 		static const char* extension_names[num_supported_extensions];
-		unsigned char m_extension_messages[num_supported_extensions];
+		int m_extension_messages[num_supported_extensions];
+
+		// the number of invalid piece-requests
+		// we have got from this peer. If the request
+		// queue gets empty, and there have been
+		// invalid requests, we can assume the
+		// peer is waiting for those pieces.
+		// we can then clear its download queue
+		// by sending choke, unchoke.
+		int m_num_invalid_requests;
+
+		// the time at which we started to get the last piece
+		// message from this peer
+		boost::posix_time::ptime m_last_piece;
+
+		// the time it took for the peer to send the piece
+		// message
+		boost::posix_time::time_duration m_last_piece_time;
 	};
 
 	// this is called each time this peer generates some

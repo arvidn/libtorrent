@@ -251,19 +251,20 @@ namespace libtorrent
 			std::random_shuffle(peer_list.begin(), peer_list.end());
 
 
-			std::cout << "interval: " << m_duration << "\n";
-			std::cout << "peers:\n";
+#ifndef NDEBUG
+			std::stringstream s;
+			s << "interval: " << m_duration << "\n";
+			s << "peers:\n";
 			for (std::vector<peer>::const_iterator i = peer_list.begin();
 				i != peer_list.end();
 				++i)
 			{
-				std::cout << "  " << std::setfill(' ') << std::setw(16) << i->ip
+				s << "  " << std::setfill(' ') << std::setw(16) << i->ip
 					<< " " << std::setw(5) << std::dec << i->port << "  "
 					<< i->id << " " << identify_client(i->id) << "\n";
 			}
-			std::cout << std::setfill(' ');
-
-
+			debug_log(s.str());
+#endif
 			// for each of the peers we got from the tracker
 			for (std::vector<peer>::iterator i = peer_list.begin();
 				i != peer_list.end();
@@ -314,6 +315,11 @@ namespace libtorrent
 			, m_connections.end()
 			, find_peer_by_id(id, this)) <= 1);
 
+		// pretend that we are connected to
+		// ourself to avoid real connections
+		// to ourself
+		if (id == m_ses.m_peer_id) return true;
+
 		return std::find_if(
 			m_connections.begin()
 			, m_connections.end()
@@ -344,7 +350,7 @@ namespace libtorrent
 			s << "hash for piece " << index << " failed";
 			m_ses.m_alerts.post_alert(hash_failed_alert(get_handle(), index, s.str()));
 		}
-		std::vector<peer_id> downloaders;
+		std::vector<address> downloaders;
 		m_picker.get_downloaders(downloaders, index);
 
 #ifndef NDEBUG
@@ -359,7 +365,7 @@ namespace libtorrent
 			i != m_connections.end();
 			++i)
 		{
-			if (std::find(downloaders.begin(), downloaders.end(), (*i)->get_peer_id())
+			if (std::find(downloaders.begin(), downloaders.end(), (*i)->get_socket()->sender())
 				== downloaders.end()) continue;
 
 			(*i)->received_invalid_data();
@@ -390,7 +396,7 @@ namespace libtorrent
 
 	void torrent::announce_piece(int index)
 	{
-		std::vector<peer_id> downloaders;
+		std::vector<address> downloaders;
 		m_picker.get_downloaders(downloaders, index);
 
 		// increase the trust point of all peers that sent
@@ -400,7 +406,7 @@ namespace libtorrent
 			i != m_connections.end();
 			++i)
 		{
-			if (std::find(downloaders.begin(), downloaders.end(), (*i)->get_peer_id())
+			if (std::find(downloaders.begin(), downloaders.end(), (*i)->get_socket()->sender())
 				!= downloaders.end())
 			{
 				(*i)->received_valid_data();
@@ -561,7 +567,7 @@ namespace libtorrent
 			= m_ses.m_connections.find(p->get_socket());
 		assert(i != m_ses.m_connections.end());
 
-		if (!m_policy->new_connection(*i->second)) throw network_error(0);
+		m_policy->new_connection(*i->second);
 	}
 
 	void torrent::close_all_connections()

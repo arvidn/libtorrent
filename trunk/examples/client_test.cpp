@@ -197,9 +197,6 @@ int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
 
-	// TEMPORARY
-//	boost::filesystem::path::default_name_check(boost::filesystem::no_check);
-
 	if (argc < 2)
 	{
 		std::cerr << "usage: ./client_test torrent-files ...\n"
@@ -350,13 +347,15 @@ int main(int argc, char* argv[])
 						<< "(" << add_suffix(i->total_download) << ") "
 						<< "u: " << add_suffix(i->up_speed) << "/s "
 						<< "(" << add_suffix(i->total_upload) << ") "
-						<< "df: " << ratio(i->total_download, i->total_upload) << " "
+//						<< "df: " << ratio(i->total_download, i->total_upload) << " "
+						<< "q: " << i->download_queue_length << " "
 						<< "f: "
 						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
 						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
 						<< static_cast<const char*>((i->flags & peer_info::remote_interested)?"i":"_")
 						<< static_cast<const char*>((i->flags & peer_info::remote_choked)?"c":"_")
 						<< static_cast<const char*>((i->flags & peer_info::supports_extensions)?"e":"_")
+						<< static_cast<const char*>((i->flags & peer_info::local_connection)?"l":"r")
 						<< "\n";
 
 					if (i->downloading_piece_index >= 0)

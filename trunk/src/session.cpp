@@ -940,22 +940,21 @@ namespace libtorrent
 
 			// the unfinished pieces
 
-			const entry::list_type& unfinished = rd.dict()["unfinished"].list();
+			entry::list_type& unfinished = rd.dict()["unfinished"].list();
 
 			std::vector<piece_picker::downloading_piece> tmp_unfinished;
 			tmp_unfinished.reserve(unfinished.size());
-			for (entry::list_type::const_iterator i = unfinished.begin();
+			for (entry::list_type::iterator i = unfinished.begin();
 				i != unfinished.end();
 				++i)
 			{
 				piece_picker::downloading_piece p;
-				if (i->list().size() < 2) return;
 
-				p.index = i->list()[0].integer();
+				p.index = i->dict()["piece"].integer();
 				if (p.index < 0 || p.index >= info.num_pieces())
 					return;
 
-				const std::string& bitmask = i->list()[1].string();
+				const std::string& bitmask = i->dict()["bitmask"].string();
 
 				const int num_bitmask_bytes = std::max(num_blocks_per_piece / 8, 1);
 				if (bitmask.size() != num_bitmask_bytes) return;

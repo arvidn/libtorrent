@@ -55,7 +55,7 @@ namespace libtorrent
 	{
 		file_allocation_failed(const char* error_msg): m_msg(error_msg) {}
 		virtual const char* what() const throw() { return m_msg.c_str(); }
-		virtual ~file_allocation_failed() throw() {}
+		virtual ~file_allocation_failed() {}
 		std::string m_msg;
 	};
 

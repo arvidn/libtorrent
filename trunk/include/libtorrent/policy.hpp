@@ -61,7 +61,7 @@ namespace libtorrent
 
 		// called when an incoming connection is accepted
 		// return false if the connection closed
-		bool new_connection(peer_connection& c);
+		void new_connection(peer_connection& c);
 
 		// this is called once for every peer we get from
 		// the tracker
@@ -103,6 +103,9 @@ namespace libtorrent
 
 	private:
 
+		// TODO: for the moment the peer_id is never updated
+		// when we get it from the peer. It's kindof useless
+		// in here right now.
 		struct peer
 		{
 			peer(const peer_id& pid, const address& a);
