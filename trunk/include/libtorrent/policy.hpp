@@ -96,6 +96,11 @@ namespace libtorrent
 
 		void set_max_uploads(int num_unchoked);
 
+		/*
+			A limit on the number of sockets opened, for use on systems where a
+			user has a limited number of open file descriptors. And for windows
+			which has a buggy tcp-stack.
+		*/
 		void set_max_connections(int num_connected);
 
 #ifndef NDEBUG

@@ -280,7 +280,6 @@ namespace
 
 namespace libtorrent
 {
-
 	policy::policy(torrent* t)
 		: m_num_peers(0)
 		, m_torrent(t)
