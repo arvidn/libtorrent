@@ -156,7 +156,7 @@ void libtorrent::piece_file::reopen()
 	m_file.close();
 	m_file.clear();
 
-	m_file.open(path.native_file_string().c_str(), m_file_mode);
+	m_file.open(path, m_file_mode);
 
 	if (m_mode == in) m_file.seekg(m_file_offset, std::ios_base::beg);
 	else m_file.seekp(m_file_offset, std::ios_base::beg);
@@ -242,7 +242,7 @@ void libtorrent::piece_file::open(storage* s, int index, open_mode o, int seek_o
 	m_file.clear();
 
 	m_file_mode = m;
-	m_file.open(path.native_file_string().c_str(), m_file_mode);
+	m_file.open(path, m_file_mode);
 
 	if (m_mode == in) m_file.seekg(m_file_offset, std::ios_base::beg);
 	else m_file.seekp(m_file_offset, std::ios_base::beg);
@@ -294,7 +294,7 @@ void libtorrent::piece_file::open(storage* s, int index, open_mode o, int seek_o
 		m_file.clear();
 
 		m_file_mode = m;
-		m_file.open(p.native_file_string().c_str(), m_file_mode);
+		m_file.open(p, m_file_mode);
 //		std::cout << "opening file: '" << p.native_file_string() << "'\n";
 		if (m_file.fail())
 		{
@@ -373,6 +373,7 @@ int libtorrent::piece_file::read(char* buf, int size, bool lock_)
 
 		left_to_read -= read_bytes;
 		buf_pos += read_bytes;
+		assert(buf_pos >= 0);
 		m_file_offset += read_bytes;
 		m_piece_offset += read_bytes;
 
@@ -385,7 +386,7 @@ int libtorrent::piece_file::read(char* buf, int size, bool lock_)
 			m_file_offset = 0;
 			m_file.close();
 			m_file.clear();
-			m_file.open(path.native_file_string().c_str(), m_file_mode);
+			m_file.open(path, m_file_mode);
 		}
 	}
 
@@ -413,11 +414,14 @@ int libtorrent::piece_file::read(char* buf, int size, bool lock_)
 		int available = std::min(static_cast<entry::integer_type>(m_file_iter->size - m_file_offset),
 			static_cast<entry::integer_type>(left_to_read));
 
+		assert(buf_pos >= 0);
 		m_file.read(buf + buf_pos, available);
 		int read = m_file.gcount();
+		assert(read > 0);
 		left_to_read -= read;
 		read_total += read;
 		buf_pos += read;
+		assert(buf_pos >= 0);
 		m_file_offset += read;
 		m_piece_offset += read;
 
@@ -432,7 +436,7 @@ int libtorrent::piece_file::read(char* buf, int size, bool lock_)
 			m_file_offset = 0;
 			m_file.close();
 			m_file.clear();
-			m_file.open(path.native_file_string().c_str(), m_file_mode);
+			m_file.open(path, m_file_mode);
 //			std::cout << "opening file: '" << path.native_file_string() << "'\n";
 			if (m_file.fail())
 			{
@@ -503,10 +507,13 @@ void libtorrent::piece_file::write(const char* buf, int size, bool lock_)
 		if (m_file_offset + write_bytes > m_file_iter->size)
 			write_bytes = m_file_iter->size - m_file_offset;
 
+		assert(buf_pos >= 0);
+		assert(write_bytes > 0);
 		m_file.write(buf + buf_pos, write_bytes);
 
 		left_to_write -= write_bytes;
 		buf_pos += write_bytes;
+		assert(buf_pos >= 0);
 		m_file_offset += write_bytes;
 		m_piece_offset += write_bytes;
 
@@ -522,12 +529,12 @@ void libtorrent::piece_file::write(const char* buf, int size, bool lock_)
 			m_file_offset = 0;
 			m_file.close();
 			m_file.clear();
-			m_file.open(path.native_file_string().c_str(), m_file_mode);
+			m_file.open(path, m_file_mode);
 		}
 	}
 
 #if 0 // old implementation
-	
+	/*
 	assert(m_mode == out);
 	int left_to_write = size;
 
@@ -558,7 +565,7 @@ void libtorrent::piece_file::write(const char* buf, int size, bool lock_)
 
 			m_file_offset = 0;
 			m_file.close();
-			m_file.open(path.native_file_string().c_str(), m_file_mode);
+			m_file.open(path, m_file_mode);
 //			std::cout << "opening file: '" << path.native_file_string() << "'\n";
 			if (m_file.fail())
 			{
@@ -567,7 +574,7 @@ void libtorrent::piece_file::write(const char* buf, int size, bool lock_)
 			}
 		}
 	} while (left_to_write > 0);
-
+*/
 #endif
 }
 
@@ -608,7 +615,7 @@ void libtorrent::piece_file::seek_forward(int step, bool lock_)
 		path /= m_file_iter->filename;
 
 		m_file.close();
-		m_file.open(path.native_file_string().c_str(), std::ios_base::in | std::ios_base::binary);
+		m_file.open(path, std::ios_base::in | std::ios_base::binary);
 	}
 
 	m_file_offset += left_to_seek;
@@ -771,9 +778,9 @@ void libtorrent::storage::allocate_pieces(int num)
 			fs::ofstream out;
 
 			if (fs::exists(path))
-				out.open(path.native_file_string().c_str(), std::ios_base::binary | std::ios_base::in);
+				out.open(path, std::ios_base::binary | std::ios_base::in);
 			else
-				out.open(path.native_file_string().c_str(), std::ios_base::binary);
+				out.open(path, std::ios_base::binary);
 
 //			std::ofstream out((m_save_path / file_iter->path / file_iter->filename).native_file_string().c_str()
 //				, std::ios_base::binary | std::ios_base::in);
@@ -831,7 +838,7 @@ entry::integer_type libtorrent::storage::piece_storage(int piece)
 
 	if (m_free_pieces.empty())
 	{
-		allocate_pieces(5000);
+		allocate_pieces(5);
 		assert(!m_free_pieces.empty());
 	}
 
@@ -1182,7 +1189,7 @@ void libtorrent::storage::initialize_pieces(torrent* t,
 		{
 			in.close();
 			in.clear();
-			in.open(path.native_file_string().c_str(), std::ios_base::binary);
+			in.open(path, std::ios_base::binary);
 
 			changed_file = false;
 

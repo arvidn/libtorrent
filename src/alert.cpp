@@ -59,9 +59,9 @@ namespace libtorrent {
 	{
 		boost::mutex::scoped_lock lock(m_mutex);
 		
-		assert(pending());
+		assert(!m_alerts.empty());
 
-		alert* result(m_alerts.front());
+		alert* result = m_alerts.front();
 		m_alerts.pop();
 		return std::auto_ptr<alert>(result);
 	}

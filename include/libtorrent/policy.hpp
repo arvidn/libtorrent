@@ -36,6 +36,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <vector>
 
+#include <boost/weak_ptr.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 #include "libtorrent/peer.hpp"
 #include "libtorrent/piece_picker.hpp"
 
@@ -53,9 +56,13 @@ namespace libtorrent
 	public:
 
 		policy(torrent* t);
-		// this is called each time we get an incoming connection
-		// return true to accept the connection
-		bool accept_connection(const address& remote);
+
+		// this is called every 10 seconds to allow
+		// for peer choking management
+		void pulse();
+
+		// called when an incoming connection is accepted
+		void new_connection(const boost::weak_ptr<peer_connection>& c);
 
 		// this is called once for every peer we get from
 		// the tracker
@@ -83,7 +90,76 @@ namespace libtorrent
 		// the peer is not interested in our pieces
 		void not_interested(peer_connection& c);
 
+#ifndef NDEBUG
+		bool has_connection(const peer_connection* p);
+#endif
+
 	private:
+
+		struct peer
+		{
+			peer(const peer_id& pid)
+				: id(pid)
+				, last_optimistically_unchoked(boost::posix_time::second_clock::local_time())
+				, connected(boost::posix_time::second_clock::local_time())
+				, optimistic_unchokes(0)
+				, prev_amount_upload(0)
+				, prev_amount_download(0)
+			{}
+
+			bool operator==(const peer_id& pid) const
+			{ return id == pid; }
+
+			// the id of the peer. This is needed to store information
+			// about peers that aren't connected right now. This
+			// is to avoid peers reconnecting. unconnected entries
+			// will be saved a limited amount of time
+			peer_id id;
+
+			// the time when this peer was optimistically unchoked
+			// the last time.
+			boost::posix_time::ptime last_optimistically_unchoked;
+
+			// the time when the peer connected to us
+			// or disconnected if it isn't connected right now
+			boost::posix_time::ptime connected;
+
+			// the number of optimistic unchokes this peer has
+			// been given
+			int optimistic_unchokes;
+
+			// this is the accumulated amount of
+			// uploaded and downloaded data to this
+			// peer. It only accounts for what was
+			// shared during the last connection to
+			// this peer. i.e. These are only updated
+			// when the connection is closed. For the
+			// total amount of upload and download
+			// we'll have to add thes figures with the
+			// statistics from the peer_connection.
+			int prev_amount_upload;
+			int prev_amount_download;
+
+			// if the peer is connected now, this
+			// will refer to a valid peer_connection
+			boost::weak_ptr<peer_connection> connection;
+		};
+
+		// a functor that identifies peers that have disconnected and that
+		// are too old for still being saved.
+		struct old_disconnected_peer
+		{
+			bool operator()(const peer& p)
+			{
+				using namespace boost::posix_time;
+
+				return p.connection.expired()
+					&& second_clock::local_time() - p.connected > seconds(5*60);
+			}
+		};
+
+
+		std::vector<peer> m_peers;
 
 		int m_num_peers;
 		torrent* m_torrent;

@@ -137,7 +137,7 @@ namespace libtorrent
 		void cancel_block(piece_block block);
 
 		bool is_interesting() const throw() { return m_interesting; }
-		bool has_choked() const throw() { return m_choked; }
+		bool is_choked() const throw() { return m_choked; }
 
 		bool is_peer_interested() const throw() { return m_peer_interested; }
 		bool has_peer_choked() const throw() { return m_peer_choked; }
@@ -146,7 +146,7 @@ namespace libtorrent
 		// may be zero if the connection is an incoming connection
 		// and it hasn't received enough information to determine
 		// which torrent it should be associated with
-		torrent* associated_torrent() const throw() { return m_torrent; }
+		torrent* associated_torrent() const throw() { return m_attached_to_torrent?m_torrent:0; }
 
 		const stat& statistics() const { return m_statistics; }
 
@@ -239,7 +239,20 @@ namespace libtorrent
 
 		selector& m_selector;
 		boost::shared_ptr<libtorrent::socket> m_socket;
+
+		// this is the torrent this connection is
+		// associated with. If the connection is an
+		// incoming conncetion, this is set to zero
+		// until the info_hash is received. Then it's
+		// set to the torrent it belongs to.
 		torrent* m_torrent;
+
+		// this is set to false until the peer_id
+		// is received from the other end. Or is
+		// true if the conenction was actively
+		// opened from our side.
+		bool m_attached_to_torrent;
+
 		detail::session_impl* m_ses;
 		// is true if it was we that connected to the peer
 		// and false if we got an incomming connection

@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/limits.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/filesystem/fstream.hpp>
 #include <boost/thread.hpp>
 
 #include "libtorrent/entry.hpp"
@@ -115,7 +116,7 @@ namespace libtorrent
 		void reopen();
 
 		// the file itself
-		std::fstream m_file;
+		boost::filesystem::fstream m_file;
 
 		// the mode with which this file was opened
 		open_mode m_mode;

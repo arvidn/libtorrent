@@ -182,8 +182,9 @@ int main(int argc, char* argv[])
 				in.unsetf(std::ios_base::skipws);
 				entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
 				torrent_info t(e);
+//				t.convert_file_names();
 				t.print(std::cout);
-				handles.push_back(s.add_torrent(t, ""));
+				handles.push_back(s.add_torrent(t, boost::filesystem::path("", boost::filesystem::native)));
 			}
 			catch (std::exception& e)
 			{
