@@ -1238,10 +1238,10 @@ namespace libtorrent
 			// if we have downloaded more than one piece more
 			// than we have uploaded OR if we are a seed
 			// have an unlimited upload rate
-//			if(!m_send_buffer.empty() || (!m_requests.empty() && !is_choked()))
+			if(!m_send_buffer.empty() || (!m_requests.empty() && !is_choked()))
 				upload_bandwidth.wanted = std::numeric_limits<int>::max();
-//			else
-//				upload_bandwidth.wanted = 0;
+			else
+				upload_bandwidth.wanted = 0;
 		}
 		else
 		{
