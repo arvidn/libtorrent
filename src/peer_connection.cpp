@@ -107,7 +107,7 @@ namespace libtorrent
 		, m_disconnecting(false)
 		, m_became_uninterested(boost::posix_time::second_clock::local_time())
 		, m_became_uninteresting(boost::posix_time::second_clock::local_time())
-		, m_upload_bandwidth_quota_used(0)
+//		, m_upload_bandwidth_quota_used(0)
 	{
 		INVARIANT_CHECK;
 
@@ -170,7 +170,7 @@ namespace libtorrent
 		, m_disconnecting(false)
 		, m_became_uninterested(boost::posix_time::second_clock::local_time())
 		, m_became_uninteresting(boost::posix_time::second_clock::local_time())
-		, m_upload_bandwidth_quota_used(0)
+//		, m_upload_bandwidth_quota_used(0)
 	{
 		INVARIANT_CHECK;
 
@@ -272,12 +272,12 @@ namespace libtorrent
 
 	int peer_connection::send_quota_left() const
 	{
-		return m_upload_bandwidth_quota.given - m_upload_bandwidth_quota_used;
+		return m_upload_bandwidth_quota.given - m_upload_bandwidth_quota.used;
 	}
 
-	void peer_connection::update_send_quota_left()
+	void peer_connection::reset_upload_quota()
 	{
-		m_upload_bandwidth_quota_used=0;
+		m_upload_bandwidth_quota.used = 0;
 		send_buffer_updated();
 	}
 
@@ -285,7 +285,6 @@ namespace libtorrent
 	{
 		return &m_upload_bandwidth_quota;
 	}
-
 
 	void peer_connection::send_handshake()
 	{
@@ -1303,9 +1302,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		m_statistics.second_tick();
-		m_upload_bandwidth_quota.used=(int)ceil(statistics().upload_rate());
+		m_upload_bandwidth_quota.used = (int)ceil(statistics().upload_rate());
 
-//		update_send_quota_left();
+		send_buffer_updated();
 		
 		// If the client sends more data
 		// we send it data faster, otherwise, slower.
@@ -1678,7 +1677,7 @@ namespace libtorrent
 		// we want to send data
 		return ((!m_requests.empty() && !m_choked)
 			|| !m_send_buffer.empty())
-			&& send_quota_left()>0;
+			&& send_quota_left() > 0;
 	}
 
 	// --------------------------
@@ -1757,7 +1756,7 @@ namespace libtorrent
 			m_announce_queue.clear();
 		}
 
-		assert(m_upload_bandwidth_quota_used < m_upload_bandwidth_quota.given);
+		assert(m_upload_bandwidth_quota.used <= m_upload_bandwidth_quota.given);
 
 		// send the actual buffer
 		if (!m_send_buffer.empty())
@@ -1774,7 +1773,7 @@ namespace libtorrent
 
 			if (sent > 0)
 			{
-				m_upload_bandwidth_quota_used += sent;
+				m_upload_bandwidth_quota.used += sent;
 
 				// manage the payload markers
 				int amount_payload = 0;
