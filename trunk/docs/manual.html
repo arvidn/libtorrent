@@ -159,9 +159,11 @@ path where you installed boost. This will be used to build and link against the 
 boost libraries as well as be used as include path for boost headers.</p>
 <p>To build you just have to run:</p>
 <pre class="literal-block">
-bjam &lt;toolset&gt;
+bjam &lt;toolset&gt; link=static
 </pre>
 <p>in the libtorrent directory.</p>
+<p>If you're building on a platform where dlls share the same heap, you can build libtorrent
+as a dll too, by typing <tt class="literal"><span class="pre">link=shared</span></tt> instead of <tt class="literal"><span class="pre">link=static</span></tt>.</p>
 <p>If you're building in developer studio, you may have to set the compiler options
 &quot;force conformance in for loop scope&quot; and &quot;treat wchar_t as built-in type&quot; to Yes.</p>
 <p>If you're building in developer studio 6, you will probably have to use the previous

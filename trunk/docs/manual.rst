@@ -104,9 +104,12 @@ boost libraries as well as be used as include path for boost headers.
 
 To build you just have to run::
 
-	bjam <toolset>
+	bjam <toolset> link=static
 
 in the libtorrent directory.
+
+If you're building on a platform where dlls share the same heap, you can build libtorrent
+as a dll too, by typing ``link=shared`` instead of ``link=static``.
 
 If you're building in developer studio, you may have to set the compiler options
 "force conformance in for loop scope" and "treat wchar_t as built-in type" to Yes.
