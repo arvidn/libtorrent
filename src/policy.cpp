@@ -84,7 +84,10 @@ namespace
 	// have only one piece that we don't have, and it's the
 	// same piece for both peers. Then they might get into an
 	// infinite recursion, fighting to request the same blocks.
-	void request_a_block(torrent& t, peer_connection& c, peer_connection* ignore_peer = 0)
+	void request_a_block(
+		torrent& t
+		, peer_connection& c
+		, std::vector<peer_connection*> ignore = std::vector<peer_connection*>())
 	{
 		float time_for_last_piece = to_seconds(c.last_piece_time());
 		if (time_for_last_piece == 0) time_for_last_piece = 0.001f;
@@ -167,11 +170,14 @@ namespace
 			i != t.end();
 			++i)
 		{
-			if (i->second == ignore_peer) continue;
+			// ignore all peers in the ignore list
+			if (std::find(ignore.begin(), ignore.end(), i->second) != ignore.end())
+				continue;
 
 			const std::deque<piece_block>& queue = i->second->download_queue();
 			const float weight = i->second->statistics().down_peak()
 				/ i->second->download_queue().size();
+
 			if (weight < down_speed
 				&& std::find_first_of(
 					busy_pieces.begin()
@@ -187,7 +193,7 @@ namespace
 		if (peer == 0)
 		{
 			// we probably couldn't request the block because
-			// we are ignoring a certain peer
+			// we are ignoring some peers
 			return;
 		}
 
@@ -210,9 +216,10 @@ namespace
 		c.send_request(block);
 
 		// the one we interrupted may need to request a new piece
-		// make sure it doesn't request the block we just requested
-		// by giving it as the ignore_block
-		request_a_block(t, *peer, &c);
+		// make sure it doesn't take over a block from the peer
+		// that just took over its block
+		ignore.push_back(&c);
+		request_a_block(t, *peer, ignore);
 
 		num_requests--;
 	}
