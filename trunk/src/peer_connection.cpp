@@ -474,7 +474,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		assert(received > 0);
-		if (m_packet_size - 1 != (m_have_piece.size() + 7) / 8)
+		if (m_packet_size - 1 != ((int)m_have_piece.size() + 7) / 8)
 			throw protocol_error("bitfield with invalid size");
 		m_statistics.received_bytes(0, received);
 		if (m_recv_pos < m_packet_size) return;
@@ -1353,7 +1353,6 @@ namespace libtorrent
 						(*m_logger) << " protocol: '" << std::string(m_recv_buffer.begin(), m_recv_buffer.end()) << "'\n";
 	#endif
 						const char protocol_string[] = "BitTorrent protocol";
-						const int protocol_len = sizeof(protocol_string) - 1;
 						if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.end(), protocol_string))
 						{
 	#ifndef NDEBUG
@@ -1555,9 +1554,6 @@ namespace libtorrent
 
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
-		// TODO: make this a bit better. Don't always read the entire
-		// requested block. Have a limit of how much of the requested
-		// block is actually read at a time.
 		while (!m_requests.empty()
 			&& ((int)m_send_buffer.size() < m_torrent->block_size())
 			&& !m_choked)
@@ -1680,7 +1676,7 @@ namespace libtorrent
 				// empty the entire buffer at once or if
 				// only a part of the buffer could be sent
 				// remove the part that was sent from the buffer
-				if (sent == m_send_buffer.size())
+				if (sent == (int)m_send_buffer.size())
 				{
 					m_send_buffer.clear();
 				}
@@ -1749,6 +1745,6 @@ namespace libtorrent
 	bool peer_connection::is_seed() const
 	{
 		return std::count(m_have_piece.begin(), m_have_piece.end(), true)
-			== m_have_piece.size();
+			== (int)m_have_piece.size();
 	}
 }

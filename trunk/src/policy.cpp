@@ -761,7 +761,7 @@ namespace libtorrent
 				const std::vector<bool>& peer_has = i->connection->get_bitfield();
 				const std::vector<bool>& we_have = m_torrent->pieces();
 				assert(we_have.size() == peer_has.size());
-				for (int j = 0; j != we_have.size(); ++j)
+				for (int j = 0; j != (int)we_have.size(); ++j)
 				{
 					if (!we_have[j] && peer_has[j])
 					{

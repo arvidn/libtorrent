@@ -156,7 +156,10 @@ namespace libtorrent
 			friend class invariant_access;
 			typedef std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> > connection_map;
 
-			session_impl(int listen_port, const fingerprint& cl_fprint);
+			session_impl(
+				std::pair<int, int> listen_port_range
+				, const fingerprint& cl_fprint);
+
 			void operator()();
 
 			// must be locked to access the data
@@ -181,6 +184,9 @@ namespace libtorrent
 
 			// the peer id that is generated at the start of each torrent
 			peer_id m_peer_id;
+
+			// the range of ports we try to listen on
+			std::pair<int, int> m_listen_port_range;
 
 			// the port we are listening on for connections
 			int m_listen_port;
@@ -231,8 +237,8 @@ namespace libtorrent
 	{
 	public:
 
-		session(int listen_port, const fingerprint& print);
-		session(int listen_port);
+		session(std::pair<int, int> listen_port_range, const fingerprint& print);
+		session(std::pair<int, int> listen_port_range);
 
 		~session();
 
