@@ -102,6 +102,35 @@ namespace libtorrent
 		throw invalid_handle();
 	}
 
+	void torrent_handle::use_interface(const char* net_interface)
+	{
+		if (m_ses == 0) throw invalid_handle();
+
+		{
+			boost::mutex::scoped_lock l(m_ses->m_mutex);
+			torrent* t = m_ses->find_torrent(m_info_hash);
+			if (t != 0)
+			{
+				t->use_interface(net_interface);
+				return;
+			}
+		}
+
+
+		if (m_chk)
+		{
+			boost::mutex::scoped_lock l(m_chk->m_mutex);
+
+			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
+			if (d != 0)
+			{
+				d->torrent_ptr->use_interface(net_interface);
+				return;
+			}
+		}
+		throw invalid_handle();
+	}
+
 	void torrent_handle::set_max_connections(int max_connections)
 	{
 		assert(max_connections > 2 || max_connections == -1);
@@ -320,7 +349,7 @@ namespace libtorrent
 			address ip = i->second->get_socket()->sender();
 			entry::dictionary_type peer;
 			peer["ip"] = ip.as_string();
-			peer["port"] = ip.port();
+			peer["port"] = ip.port;
 			peer_list.push_back(peer);
 		}
 

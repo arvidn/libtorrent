@@ -216,7 +216,8 @@ namespace libtorrent
 	torrent::torrent(
 		detail::session_impl& ses
 		, const torrent_info& torrent_file
-		, const boost::filesystem::path& save_path)
+		, const boost::filesystem::path& save_path
+		, address const& net_interface)
 		: m_block_size(calculate_block_size(torrent_file))
 		, m_abort(false)
 		, m_event(tracker_request::started)
@@ -235,6 +236,7 @@ namespace libtorrent
 		, m_num_pieces(0)
 		, m_got_tracker_response(false)
 		, m_ratio(0.f)
+		, m_net_interface(net_interface)
 	{
 		assert(torrent_file.begin_files() != torrent_file.end_files());
 		m_have_pieces.resize(torrent_file.num_pieces(), false);
@@ -243,6 +245,11 @@ namespace libtorrent
 	torrent::~torrent()
 	{
 		if (m_ses.m_abort) m_abort = true;
+	}
+
+	void torrent::use_interface(const char* net_interface)
+	{
+		m_net_interface = address(net_interface, address::any_port);
 	}
 
 	void torrent::tracker_response(
@@ -290,7 +297,7 @@ namespace libtorrent
 			if (i->id == m_ses.get_peer_id())
 				continue;
 
-			address a(i->ip, i->port);
+			address a(i->ip.c_str(), i->port);
 
 			m_policy->peer_from_tracker(a, i->id);
 		}
@@ -530,7 +537,7 @@ namespace libtorrent
 	peer_connection& torrent::connect_to_peer(const address& a)
 	{
 		boost::shared_ptr<socket> s(new socket(socket::tcp, false));
-		s->connect(a);
+		s->connect(a, m_net_interface);
 		boost::shared_ptr<peer_connection> c(new peer_connection(
 			m_ses
 			, m_ses.m_selector

@@ -69,11 +69,11 @@ libtorrent has been successfully compiled and tested on:
 	* Windows 2000 vc7.1
 	* Linux x86 (debian) GCC 3.0.4, GCC 3.2.3
 	* Windows 2000, msvc6 sp5 (does not support 64-bit values due to problems with operator<<(ostream&, __int64))
-	* Cygwin GCC 3.3.1
 
 Fails on:
 
 	* GCC 2.95.4 (``std::ios_base`` is missing)
+	* Cygwin GCC 3.3.1 (builds but crashes)
 
 libtorrent is released under the BSD-license_.
 
@@ -116,11 +116,7 @@ version of boost, `boost 1.30.2`__.
 
 __ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&release_id=178835
 
-There are two versions of the socket code, one that works with unix systems (and bsd-sockets) and
-one that uses winsock. If you're building in windows, the file ``socket_win.cpp`` is supposed to
-be included in the build while ``socket_bsd.cpp`` is supposed to be excluded.
-
-The file abstraction has the same kind of separation. There's one ``file_win.cpp`` which
+There are two versions of the file abstraction. There's one ``file_win.cpp`` which
 relies on windows file API that supports files larger than 2 Gigabytes. This does not work
 in vc6 for some reason, possibly because it may require windows NT and above. The other file,
 ``file.cpp`` is the default implementation that simply relies on the standard library's fstream,
@@ -189,8 +185,12 @@ The ``session`` class has the following synopsis::
 
 	class session: public boost::noncopyable
 	{
-		session(std::pair<int, int> listen_port_range, const fingerprint& print);
+
 		session(std::pair<int, int> listen_port_range);
+		session(
+			std::pair<int, int> listen_port_range
+			, const fingerprint& print
+			, const char* listen_interface = 0);
 
 		torrent_handle add_torrent(
 			const torrent_info& t
@@ -250,7 +250,11 @@ increase the port number by one and try again. If it still fails it will continu
 increasing the port number until it succeeds or has reached the end of the range. If it
 fails with all ports, a listen_failed_alert_ will be posted and the session thread will
 exit. The only thing you can do with your session if this alert is posted is to destruct
-it and possibly try again or change the port range.
+it and possibly try again or change the port range. The listen interaface string is
+the name (ip address) of the interface you want to listen on. If this is left as
+0, the os will decide which interface to listen on (works in most cases). All torrents
+will use this interface to open outgoing connections on by default. You can change
+which interface  to use for outgoing connections on a per torrent basis. See torrent_handle_.
 
 For information about the ``pop_alert()`` function, see alerts_.
 
@@ -527,6 +531,8 @@ Its declaration looks like this::
 
 		void set_tracker_login(std::string const& username, std::string const& password);
 
+		void use_interface(const char* net_interface);
+
 		boost::filsystem::path save_path() const;
 
 		void set_max_uploads(int max_uploads);
@@ -567,6 +573,9 @@ as a standard client.
 
 ``set_tracker_login()`` sets a username and password that will be sent along in the HTTP-request
 of the tracker announce. Set this if the tracker requires authorization.
+
+``use_interface()`` sets the network interface this torrent will use when it opens outgoing
+connections. By default, it uses the same interface as the session_ uses to listen on.
 
 ``info_hash()`` returns the info hash for the torrent.
 

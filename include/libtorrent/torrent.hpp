@@ -86,7 +86,8 @@ namespace libtorrent
 		torrent(
 			detail::session_impl& ses
 			, const torrent_info& torrent_file
-			, const boost::filesystem::path& save_path);
+			, const boost::filesystem::path& save_path
+			, address const& net_interface);
 
 		~torrent();
 
@@ -122,6 +123,7 @@ namespace libtorrent
 
 		torrent_status status() const;
 
+		void use_interface(const char* net_interface);
 		peer_connection& connect_to_peer(const address& a);
 
 		const torrent_info& torrent_file() const
@@ -357,6 +359,7 @@ namespace libtorrent
 
 		std::string m_username;
 		std::string m_password;
+		address m_net_interface;
 	};
 
 }

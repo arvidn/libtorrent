@@ -124,6 +124,9 @@ namespace libtorrent
 		size_type total_protocol_upload() const { return m_total_upload_protocol; }
 		size_type total_protocol_download() const { return m_total_download_protocol; }
 
+		// this is used to offset the statistics when a
+		// peer_connection is opened and have some previous
+		// transfers from earlier connections.
 		void add_stat(size_type downloaded, size_type uploaded)
 		{
 			m_total_download_payload += downloaded;
