@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //use them instead of std::min() and std::max().To disable the 
 //generation of the min and max macros in Visual C++, #define 
 //NOMINMAX before #including <windows.h>.
+
 #ifdef _WIN32
     //support boost1.32.0(2004-11-19 18:47)
     //now all libs can be compiled and linked with static module
