@@ -568,7 +568,6 @@ namespace libtorrent
 	// called when a peer is no longer interested in us
 	void policy::not_interested(peer_connection& c)
 	{
-		c.not_interested();
 	}
 
 	bool policy::unchoke_one_peer()
