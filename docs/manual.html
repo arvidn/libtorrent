@@ -438,8 +438,8 @@ public:
 
         torrent_info(const entry&amp; torrent_file)
 
-        typedef std::vector&gt;file&gt;::const_iterator file_iterator;
-        typedef std::vector&lt;file&gt;::const_reverse_iterator reverse_file_iterator;
+        typedef std::vector&gt;file_entry&gt;::const_iterator file_iterator;
+        typedef std::vector&lt;file_entry&gt;::const_reverse_iterator reverse_file_iterator;
 
         file_iterator begin_files() const;
         file_iterator end_files() const;
@@ -447,14 +447,14 @@ public:
         reverse_file_iterator rend_files() const;
 
         int num_files() const;
-        const file&amp; file_at(int index) const;
+        const file_entry&amp; file_at(int index) const;
 
         const std::vector&lt;announce_entry&gt;&amp; trackers() const;
 
         int prioritize_tracker(int index);
 
-        entry::integer_type total_size() const;
-        entry::integer_type piece_length() const;
+        size_type total_size() const;
+        size_type piece_length() const;
         int num_pieces() const;
         const sha1_hash&amp; info_hash() const;
         const std::stirng&amp; name() const;
@@ -464,7 +464,7 @@ public:
 
         void print(std::ostream&amp; os) const;
 
-        entry::integer_type piece_size(unsigned int index) const;
+        size_type piece_size(unsigned int index) const;
         const sha1_hash&amp; hash_for_piece(unsigned int index) const;
 };
 </pre>
@@ -477,7 +477,7 @@ struct file_entry
 {
         std::string path;
         std::string filename;
-        entry::integer_type size;
+        size_type size;
 };
 </pre>
 <p>If you need index-access to files you can use the <tt class="literal"><span class="pre">num_files()</span></tt> and <tt class="literal"><span class="pre">file_at()</span></tt>
@@ -588,7 +588,6 @@ struct torrent_status
 {
         enum state_t
         {
-                invalid_handle,
                 queued_for_checking,
                 checking_files,
                 connecting_to_tracker,
