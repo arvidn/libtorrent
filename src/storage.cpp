@@ -1100,7 +1100,6 @@ namespace libtorrent
 
 				// take one of the other matching pieces
 				// that hasn't already been assigned
-				std::sort(matching_pieces.begin(), matching_pieces.end());
 				int other_piece = -1;
 				for (std::vector<int>::iterator i = matching_pieces.begin();
 					i != matching_pieces.end();
@@ -1122,16 +1121,29 @@ namespace libtorrent
 					m_slot_to_piece[other_slot] = unassigned;
 					m_free_slots.push_back(other_slot);
 				}
+				assert(m_piece_to_slot[piece_index] != current_slot);
+				assert(m_piece_to_slot[piece_index] >= 0);
+				m_piece_to_slot[piece_index] = has_no_slot;
 			}
 			
 			have_pieces[piece_index] = true;
 			return piece_index;
 		}
 
-		std::sort(matching_pieces.begin(), matching_pieces.end());
-		const int piece_index = matching_pieces.back();
-		have_pieces[piece_index] = true;
-		return piece_index;
+		// find a matching piece that hasn't
+		// already been assigned
+		int free_piece = -1;
+		for (std::vector<int>::iterator i = matching_pieces.begin();
+			i != matching_pieces.end();
+			++i)
+		{
+			if (have_pieces[*i]) continue;
+			free_piece = *i;
+			break;
+		}
+
+		if (free_piece >= 0) have_pieces[free_piece] = true;
+		return free_piece;
 	}
 
 	void piece_manager::impl::check_pieces(
@@ -1239,6 +1251,9 @@ namespace libtorrent
 
 				if (piece_index >= 0)
 				{
+ 					assert(m_slot_to_piece[current_slot] == unallocated);
+					assert(m_piece_to_slot[piece_index] == has_no_slot);
+
 					// the slot was identified as piece 'piece_index'
 					m_piece_to_slot[piece_index] = current_slot;
 					m_slot_to_piece[current_slot] = piece_index;
