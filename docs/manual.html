@@ -39,7 +39,7 @@
 <li><a class="reference" href="#begin-files-end-files-rbegin-files-rend-files" id="id34" name="id34">begin_files() end_files() rbegin_files() rend_files()</a></li>
 <li><a class="reference" href="#num-files-file-at" id="id35" name="id35">num_files() file_at()</a></li>
 <li><a class="reference" href="#print" id="id36" name="id36">print()</a></li>
-<li><a class="reference" href="#trackers-prioritize-tracker" id="id37" name="id37">trackers() prioritize_tracker()</a></li>
+<li><a class="reference" href="#trackers" id="id37" name="id37">trackers()</a></li>
 <li><a class="reference" href="#total-size-piece-length-piece-size-num-pieces" id="id38" name="id38">total_size() piece_length() piece_size() num_pieces()</a></li>
 <li><a class="reference" href="#hash-for-piece-info-hash" id="id39" name="id39">hash_for_piece() info_hash()</a></li>
 <li><a class="reference" href="#name-comment-creation-date" id="id40" name="id40">name() comment() creation_date()</a></li>
@@ -635,7 +635,7 @@ class torrent_info
 {
 public:
 
-        torrent_info(const entry&amp; torrent_file)
+        torrent_info(entry const&amp; torrent_file)
         torrent_info(int piece_size, const char* name);
 
         entry create_torrent() const;
@@ -645,7 +645,7 @@ public:
         void add_tracker(std::string const&amp; url, int tier = 0);
         void add_file(boost::filesystem::path file, size_type size);
 
-        typedef std::vector&gt;file_entry&gt;::const_iterator file_iterator;
+        typedef std::vector&lt;file_entry&gt;::const_iterator file_iterator;
         typedef std::vector&lt;file_entry&gt;::const_reverse_iterator reverse_file_iterator;
 
         file_iterator begin_files() const;
@@ -654,11 +654,9 @@ public:
         reverse_file_iterator rend_files() const;
 
         int num_files() const;
-        const file_entry&amp; file_at(int index) const;
+        file_entry const&amp; file_at(int index) const;
 
-        const std::vector&lt;announce_entry&gt;&amp; trackers() const;
-
-        int prioritize_tracker(int index);
+        std::vector&lt;announce_entry&gt; const&amp; trackers() const;
 
         size_type total_size() const;
         size_type piece_length() const;
@@ -720,12 +718,11 @@ void print(std::ostream&amp; os) const;
 <p>The <tt class="literal"><span class="pre">print()</span></tt> function is there for debug purposes only. It will print the info from
 the torrent file to the given outstream.</p>
 </div>
-<div class="section" id="trackers-prioritize-tracker">
-<h2><a name="trackers-prioritize-tracker">trackers() prioritize_tracker()</a></h2>
+<div class="section" id="trackers">
+<h2><a name="trackers">trackers()</a></h2>
 <blockquote>
 <pre class="literal-block">
 const std::vector&lt;announce_entry&gt;&amp; trackers() const;
-int prioritize_tracker(int index);
 </pre>
 </blockquote>
 <p>The <tt class="literal"><span class="pre">trackers()</span></tt> function will return a sorted vector of <tt class="literal"><span class="pre">announce_entry</span></tt>.
@@ -735,14 +732,11 @@ ones with lower tier will always be tried before the one with higher tier number
 <pre class="literal-block">
 struct announce_entry
 {
+        announce_entry(std::string const&amp; url);
         std::string url;
         int tier;
 };
 </pre>
-<p>The <tt class="literal"><span class="pre">prioritize_tracker()</span></tt> is used internally to move a tracker to the front
-of its tier group. i.e. It will never be moved pass a tracker with a different tier
-number. For more information about how multiple trackers are dealt with, see the
-<a class="reference" href="http://home.elp.rr.com/tur/multitracker-spec.txt">specification</a>.</p>
 </div>
 <div class="section" id="total-size-piece-length-piece-size-num-pieces">
 <h2><a name="total-size-piece-length-piece-size-num-pieces">total_size() piece_length() piece_size() num_pieces()</a></h2>
@@ -813,6 +807,9 @@ struct torrent_handle
 
         void set_tracker_login(std::string const&amp; username, std::string const&amp; password);
 
+        std::vector&lt;announce_entry&gt; const&amp; trackers() const;
+        void replace_trackers(std::vector&lt;announce_entry&gt; const&amp;);
+
         void set_ratio(float ratio);
         void set_max_uploads(int max_uploads);
         void set_max_connections(int max_connections);
@@ -840,6 +837,7 @@ struct torrent_handle
 <p>The default constructor will initialize the handle to an invalid state. Which means you cannot
 perform any operation on it, unless you first assign it a valid handle. If you try to perform
 any operation on an uninitialized handle, it will throw <tt class="literal"><span class="pre">invalid_handle</span></tt>.</p>
+<p><em>TODO: document ``trackers()`` and ``replace_trackers()``</em></p>
 <div class="section" id="save-path">
 <h2><a name="save-path">save_path()</a></h2>
 <blockquote>
@@ -1691,13 +1689,16 @@ struct file_error_alert: alert
 <p>This alert is generated on tracker time outs, premature disconnects, invalid response or
 a HTTP response other than &quot;200 OK&quot;. From the alert you can get the handle to the torrent
 the tracker belongs to. This alert is generated as severity level <tt class="literal"><span class="pre">warning</span></tt>.</p>
+<p>The <tt class="literal"><span class="pre">times_in_row</span></tt> member says how many times in a row this tracker has failed.</p>
 <pre class="literal-block">
 struct tracker_alert: alert
 {
-        tracker_alert(const torrent_handle&amp; h, const std::string&amp; msg);
+        tracker_alert(const torrent_handle&amp; h, int times
+                , const std::string&amp; msg);
         virtual std::auto_ptr&lt;alert&gt; clone() const;
 
         torrent_handle handle;
+        int times_in_row;
 };
 </pre>
 </div>

@@ -43,15 +43,18 @@ namespace libtorrent
 	struct tracker_alert: alert
 	{
 		tracker_alert(const torrent_handle& h
+			, int times
 			, const std::string& msg)
 			: alert(alert::warning, msg)
 			, handle(h)
+			, times_in_row(times)
 			{}
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new tracker_alert(*this)); }
 
 		torrent_handle handle;
+		int times_in_row;
 	};
 
 	struct hash_failed_alert: alert

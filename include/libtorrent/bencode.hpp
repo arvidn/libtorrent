@@ -93,10 +93,6 @@ namespace libtorrent
 
 	struct invalid_encoding: std::exception
 	{
-		invalid_encoding()
-		{
-			int i = 0;
-		}
 		virtual const char* what() const throw() { return "invalid bencoding"; }
 	};
 

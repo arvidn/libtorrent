@@ -67,6 +67,7 @@ namespace libtorrent
 
 	struct announce_entry
 	{
+		announce_entry(std::string const& u): url(u), tier(0) {}
 		std::string url;
 		int tier;
 	};
@@ -114,11 +115,6 @@ namespace libtorrent
 		{ assert(index >= 0 && index < (int)m_files.size()); return m_files[index]; }
 
 		const std::vector<announce_entry>& trackers() const { return m_urls; }
-
-		// this will move the tracker with the given index
-		// to a prioritized position in the list (move it towards
-		// the begining) and return the new index to the tracker.
-		int prioritize_tracker(int index);
 
 		size_type total_size() const { assert(m_piece_length > 0); return m_total_size; }
 		size_type piece_length() const { assert(m_piece_length > 0); return m_piece_length; }

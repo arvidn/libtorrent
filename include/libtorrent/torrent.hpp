@@ -301,6 +301,11 @@ namespace libtorrent
 		piece_manager& filesystem();
 		torrent_info const& torrent_file() const { return m_torrent_file; }
 
+		std::vector<announce_entry> const& trackers() const
+		{ return m_trackers; }
+
+		void replace_trackers(std::vector<announce_entry> const& urls);
+
 		torrent_handle get_handle() const;
 
 		// DEBUG
@@ -343,6 +348,7 @@ namespace libtorrent
 	private:
 
 		void try_next_tracker();
+		int prioritize_tracker(int tracker_index);
 
 		torrent_info m_torrent_file;
 
@@ -396,11 +402,13 @@ namespace libtorrent
 
 		std::auto_ptr<piece_picker> m_picker;
 
+		std::vector<announce_entry> m_trackers;
 		// this is an index into m_torrent_file.trackers()
 		int m_last_working_tracker;
 		int m_currently_trying_tracker;
 		// the number of connection attempts that has
-		// failed in a row
+		// failed in a row, this is currently used to
+		// determine the timeout until next try.
 		int m_failed_trackers;
 
 		// this is a counter that is increased every
