@@ -867,7 +867,8 @@ namespace libtorrent
 
 			if (i->banned) return;
 
-			if (m_torrent->num_peers() < m_max_connections)
+			if (m_torrent->num_peers() < m_max_connections
+				&& !m_torrent->is_paused())
 			{
 				connect_peer(&*i);
 			}

@@ -251,7 +251,16 @@ namespace libtorrent
 		m_currently_trying_tracker = 0;
 
 		m_duration = interval;
-		m_next_request = boost::posix_time::second_clock::local_time() + boost::posix_time::seconds(m_duration);
+		if (peer_list.empty())
+		{
+			// if the peer list is empty, we should contact the
+			// tracker soon again to see if there are any peers
+			m_next_request = boost::posix_time::second_clock::local_time() + boost::posix_time::seconds(60);
+		}
+		else
+		{
+			m_next_request = boost::posix_time::second_clock::local_time() + boost::posix_time::seconds(m_duration);
+		}
 
 		// connect to random peers from the list
 		std::random_shuffle(peer_list.begin(), peer_list.end());

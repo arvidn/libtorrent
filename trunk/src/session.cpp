@@ -131,8 +131,7 @@ namespace libtorrent { namespace detail
 					peer_id id;
 					std::fill(id.begin(), id.end(), 0);
 					for (std::vector<address>::const_iterator i = t->peers.begin();
-						i != t->peers.end();
-						++i)
+						i != t->peers.end(); ++i)
 					{
 						t->torrent_ptr->get_policy().peer_from_tracker(*i, id);
 					}
