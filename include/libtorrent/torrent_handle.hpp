@@ -161,6 +161,8 @@ namespace libtorrent
 		// to finish all pieces currently in the pipeline, and then
 		// abort the torrent.
 
+		// TODO: add a max upload rate per torrent too.
+
 		// manually connect a peer
 		void connect_peer(const address& adr) const;
 

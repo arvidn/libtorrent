@@ -316,6 +316,11 @@ int main(int argc, char* argv[])
 			a = ses.pop_alert();
 			while (a.get())
 			{
+				torrent_finished_alert* p = dynamic_cast<torrent_finished_alert*>(a.get());
+				if (p)
+				{
+					ses.set_upload_rate_limit(30 * 1024);
+				}
 				if (events.size() >= 10) events.pop_front();
 				events.push_back(a->msg());
 				a = ses.pop_alert();
