@@ -40,6 +40,7 @@ The current state includes the following features:
 	* uses separate threads for checking files and for main downloader, with a fool-proof
 	  thread-safe library interface. (i.e. There's no way for the user to cause a deadlock).
 	* can limit the upload bandwidth usage
+	* piece-wise file allocation
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
 .. _Azureus: http://azureus.sourceforge.net
@@ -47,12 +48,11 @@ __ http://home.elp.rr.com/tur/multitracker-spec.txt
 Functions that are yet to be implemented:
 
 	* optimistic unchoke
+	* choke/unchoke algorithm
 	* Snubbing
-	* end game mode
-	* new allocation model
 	* fast resume
 	* file-level piece priority
-	* a good upload speed cap
+	* a good upload speed cap (the one currently used don't balance loads between peers)
 
 libtorrent is portable at least among windows, macosx, and UNIX-systems. It uses boost.thread,
 boost.filesystem boost.date_time and various other boost libraries and zlib.
@@ -849,6 +849,13 @@ You can usually find me as hydri in ``#btports @ irc.freenode.net``.
 Aknowledgements
 ===============
 
-Written by Arvid Norberg. Copyright (c) 2003 Arvid Norberg
+Written by Arvid Norberg and Daniel Wallin. Copyright (c) 2003
+
+Project is hosted by sourceforge.
+
+|sf_logo|__
+
+.. |sf_logo| image:: http://sourceforge.net/sflogo.php?group_id=7994
+__ http://sourceforge.net
 
 
