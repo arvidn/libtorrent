@@ -152,11 +152,11 @@ namespace libtorrent
 			if (t != 0)
 			{
 				int actual_peer_count = 0;
-				for (std::vector<peer_connection*>::const_iterator peer = t->begin();
+				for (torrent::const_peer_iterator peer = t->begin();
 					peer != t->end();
 					++peer)
 				{
-					if ((*peer)->has_piece(index)) actual_peer_count++;
+					if (peer->second->has_piece(index)) actual_peer_count++;
 				}
 
 				assert(i->peer_count == actual_peer_count);
@@ -518,7 +518,11 @@ namespace libtorrent
 
 		if (m_piece_map[block.piece_index].downloading == 0) return false;
 		std::vector<downloading_piece>::const_iterator i
-			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
+			= std::find_if(
+				m_downloads.begin()
+				, m_downloads.end()
+				, has_index(block.piece_index));
+
 		assert(i != m_downloads.end());
 		return i->requested_blocks[block.block_index];
 	}
@@ -632,9 +636,9 @@ namespace libtorrent
 #endif
 	}
 */
-	void piece_picker::get_downloaders(std::vector<address>& d, int index)
+	void piece_picker::get_downloaders(std::vector<address>& d, int index) const
 	{
-		std::vector<downloading_piece>::iterator i
+		std::vector<downloading_piece>::const_iterator i
 			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(index));
 		assert(i != m_downloads.end());
 
@@ -643,6 +647,26 @@ namespace libtorrent
 		{
 			d.push_back(i->info[j].peer);
 		}
+	}
+
+	boost::optional<address> piece_picker::get_downloader(piece_block block) const
+	{
+		std::vector<downloading_piece>::const_iterator i = std::find_if(
+			m_downloads.begin()
+			, m_downloads.end()
+			, has_index(block.piece_index));
+
+		if (i == m_downloads.end())
+			return boost::optional<address>();
+
+		assert(block.block_index < max_blocks_per_piece);
+		assert(block.block_index >= 0);
+
+		if (i->requested_blocks[block.block_index] == false
+			|| i->finished_blocks[block.block_index] == true)
+			return boost::optional<address>();
+
+		return boost::optional<address>(i->info[block.block_index].peer);
 	}
 
 	void piece_picker::abort_download(piece_block block)

@@ -168,7 +168,6 @@ namespace libtorrent
 		peer_id sender;
 	};
 
-	// TODO: document
 	struct invalid_request_alert: alert
 	{
 		invalid_request_alert(

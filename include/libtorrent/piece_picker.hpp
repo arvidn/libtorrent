@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <bitset>
 #include <cassert>
 
+#include <boost/optional.hpp>
+
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/socket.hpp"
 
@@ -166,9 +168,12 @@ namespace libtorrent
 		// the hash-check yet
 		int unverified_blocks() const;
 
-		void get_downloaders(std::vector<address>& d, int index);
+		void get_downloaders(std::vector<address>& d, int index) const;
+
 		const std::vector<downloading_piece>& get_download_queue() const
 		{ return m_downloads; }
+
+		boost::optional<address> get_downloader(piece_block block) const;
 
 #ifndef NDEBUG
 		// used in debug mode

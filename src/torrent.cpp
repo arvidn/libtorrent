@@ -167,16 +167,6 @@ namespace
 			return true;
 		}
 
-		bool operator()(const peer_connection* p) const
-		{
-			if (p->get_peer_id() != id) return false;
-			if (tor != p->associated_torrent()) return false;
-			// have a special case for all zeros. We can have any number
-			// of peers with that id, since it's used to indicate no id.
-			if (std::count(id.begin(), id.end(), 0) == 20) return false;
-			return true;
-		}
-
 		const peer_id& id;
 		const torrent* tor;
 	};
@@ -194,6 +184,23 @@ namespace
 
 		const address& ip;
 		const torrent* tor;
+	};
+
+
+	struct peer_by_id
+	{
+		peer_by_id(const peer_id& i): id(i) {}
+		
+		bool operator()(const std::pair<address, peer_connection*>& p) const
+		{
+			if (p.second->get_peer_id() != id) return false;
+			// have a special case for all zeros. We can have any number
+			// of peers with that id, since it's used to indicate no id.
+			if (std::count(id.begin(), id.end(), 0) == 20) return false;
+			return true;
+		}
+
+		const peer_id& id;
 	};
 
 }
@@ -313,7 +320,7 @@ namespace libtorrent
 	{
 		assert(std::count_if(m_connections.begin()
 			, m_connections.end()
-			, find_peer_by_id(id, this)) <= 1);
+			, peer_by_id(id)) <= 1);
 
 		// pretend that we are connected to
 		// ourself to avoid real connections
@@ -323,7 +330,7 @@ namespace libtorrent
 		return std::find_if(
 			m_connections.begin()
 			, m_connections.end()
-			, find_peer_by_id(id, this))
+			, peer_by_id(id))
 			!= m_connections.end();
 	}
 
@@ -360,20 +367,19 @@ namespace libtorrent
 
 		// decrease the trust point of all peers that sent
 		// parts of this piece.
-		// TODO: implement this loop more efficient
-		for (std::vector<peer_connection*>::iterator i = m_connections.begin();
-			i != m_connections.end();
+		for (std::vector<address>::iterator i = downloaders.begin();
+			i != downloaders.end();
 			++i)
 		{
-			if (std::find(downloaders.begin(), downloaders.end(), (*i)->get_socket()->sender())
-				== downloaders.end()) continue;
+			peer_iterator p = m_connections.find(*i);
+			if (p == m_connections.end()) continue;
+			p->second->received_invalid_data();
 
-			(*i)->received_invalid_data();
-			if ((*i)->trust_points() <= -5)
+			if (p->second->trust_points() <= -5)
 			{
 				// we don't trust this peer anymore
 				// ban it.
-				m_policy->ban_peer(*(*i));
+				m_policy->ban_peer(*p->second);
 			}
 		}
 
@@ -401,22 +407,20 @@ namespace libtorrent
 
 		// increase the trust point of all peers that sent
 		// parts of this piece.
-		// TODO: implement this loop more efficient
-		for (std::vector<peer_connection*>::iterator i = m_connections.begin();
-			i != m_connections.end();
+		for (std::vector<address>::iterator i = downloaders.begin();
+			i != downloaders.end();
 			++i)
 		{
-			if (std::find(downloaders.begin(), downloaders.end(), (*i)->get_socket()->sender())
-				!= downloaders.end())
-			{
-				(*i)->received_valid_data();
-			}
+			peer_iterator p = m_connections.find(*i);
+			if (p == m_connections.end()) continue;
+			p->second->received_valid_data();
 		}
 
-
 		m_picker.we_have(index);
-		for (std::vector<peer_connection*>::iterator i = m_connections.begin(); i != m_connections.end(); ++i)
-			(*i)->announce_piece(index);
+		for (peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
+			i->second->announce_piece(index);
+
+		// TODO: if we became a seed, disconnect from all other seeds
 	}
 
 	std::string torrent::generate_tracker_request(int port)
@@ -489,7 +493,7 @@ namespace libtorrent
 
 	void torrent::remove_peer(peer_connection* p)
 	{
-		std::vector<peer_connection*>::iterator i = std::find(m_connections.begin(), m_connections.end(), p);
+		peer_iterator i = m_connections.find(p->get_socket()->sender());
 		assert(i != m_connections.end());
 
 		// if the peer_connection was downloading any pieces
@@ -540,18 +544,20 @@ namespace libtorrent
 			, this
 			, s
 			, id));
+
 		if (m_ses.m_upload_rate != -1) c->set_send_quota(0);
+
 		detail::session_impl::connection_map::iterator p =
 			m_ses.m_connections.insert(std::make_pair(s, c)).first;
 
 		// add the newly connected peer to this torrent's peer list
-		assert(std::find(
-			m_connections.begin()
-			, m_connections.end()
-			, boost::get_pointer(p->second))
+		assert(m_connections.find(p->second->get_socket()->sender())
 			== m_connections.end());
 		
-		m_connections.push_back(boost::get_pointer(p->second));
+		m_connections.insert(
+			std::make_pair(
+				p->second->get_socket()->sender()
+				, boost::get_pointer(p->second)));
 
 		m_ses.m_selector.monitor_readability(s);
 		m_ses.m_selector.monitor_errors(s);
@@ -561,8 +567,10 @@ namespace libtorrent
 
 	void torrent::attach_peer(peer_connection* p)
 	{
-		assert(std::find(m_connections.begin(), m_connections.end(), p) == m_connections.end());
-		m_connections.push_back(p);
+		assert(m_connections.find(p->get_socket()->sender()) == m_connections.end());
+
+		m_connections.insert(std::make_pair(p->get_socket()->sender(), p));
+
 		detail::session_impl::connection_map::iterator i
 			= m_ses.m_connections.find(p->get_socket());
 		assert(i != m_ses.m_connections.end());
@@ -572,29 +580,25 @@ namespace libtorrent
 
 	void torrent::close_all_connections()
 	{
-		for (detail::session_impl::connection_map::iterator i = m_ses.m_connections.begin();
-			i != m_ses.m_connections.end();)
+		for (peer_iterator i = m_connections.begin();
+			i != m_connections.end();)
 		{
-			if (i->second->associated_torrent() == this)
-			{
-	#ifndef NDEBUG
-				std::size_t num_connections = m_connections.size();
-				peer_connection* pc = boost::get_pointer(i->second);
-	#endif
-				assert(std::find(m_connections.begin(), m_connections.end(), pc) != m_connections.end());
-				detail::session_impl::connection_map::iterator j = i;
-				++i;
-				m_ses.m_connections.erase(j);
-				assert(m_connections.size() + 1 == num_connections);
-				assert(std::find(m_connections.begin(), m_connections.end(), pc) == m_connections.end());
-			}
-			else
-			{
-				assert(std::find(m_connections.begin(), m_connections.end(), boost::get_pointer(i->second)) == m_connections.end());
-				++i;
-			}
+			assert(i->second->associated_torrent() == this);
+			
+			detail::session_impl::connection_map::iterator j =
+				m_ses.m_connections.find(i->second->get_socket());
+
+			assert(j != m_ses.m_connections.end());
+
+			// in the destructor of the peer_connection
+			// it will remove itself from this torrent
+			// and from the list we're iterating over.
+			// so we need to increment the iterator riht
+			// away.
+			++i;
+
+			m_ses.m_connections.erase(j);
 		}
-		assert(m_connections.empty());
 	}
 
 
@@ -659,11 +663,11 @@ namespace libtorrent
 			m_policy->pulse();
 		}
 
-		for (std::vector<peer_connection*>::iterator i = m_connections.begin();
+		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end();
 			++i)
 		{
-			peer_connection* p = (*i);
+			peer_connection* p = i->second;
 			const stat& s = p->statistics();
 			m_stat += s;
 			p->second_tick();

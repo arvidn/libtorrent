@@ -168,15 +168,15 @@ namespace
 			i != t.end();
 			++i)
 		{
-			const std::deque<piece_block>& queue = (*i)->download_queue();
-			if ((*i)->statistics().down_peak() > down_speed
+			const std::deque<piece_block>& queue = i->second->download_queue();
+			if (i->second->statistics().down_peak() > down_speed
 				&& has_intersection(busy_pieces.begin(),
 					busy_pieces.end(),
 					queue.begin(),
 					queue.end()))
 			{
-				peer = *i;
-				down_speed = (*i)->statistics().down_peak();
+				peer = i->second;
+				down_speed = peer->statistics().down_peak();
 			}
 		}
 
@@ -209,12 +209,12 @@ namespace
 			// want to trade it's surplus uploads for downloads itself
 			// (and we should consider it free). If the share diff is
 			// negative, there's no free download to get from this peer.
-			int diff = (*i)->share_diff();
-			if ((*i)->is_peer_interested() || diff <= 0)
+			int diff = i->second->share_diff();
+			if (i->second->is_peer_interested() || diff <= 0)
 				continue;
 
 			assert(diff > 0);
-			(*i)->add_free_upload(-diff);
+			i->second->add_free_upload(-diff);
 			accumulator += diff;
 			assert(accumulator > 0);
 		}
@@ -235,8 +235,8 @@ namespace
 		int total_diff = 0;
 		for (torrent::peer_iterator i = start; i != end; ++i)
 		{
-			total_diff += (*i)->share_diff();
-			if (!(*i)->is_peer_interested() || (*i)->share_diff() >= 0) continue;
+			total_diff += i->second->share_diff();
+			if (!i->second->is_peer_interested() || i->second->share_diff() >= 0) continue;
 			++num_peers;
 		}
 
@@ -254,8 +254,9 @@ namespace
 
 		for (torrent::peer_iterator i = start; i != end; ++i)
 		{
-			if (!(*i)->is_peer_interested() || (*i)->share_diff() >= 0) continue;
-			(*i)->add_free_upload(upload_share);
+			peer_connection* p = i->second;
+			if (!p->is_peer_interested() || p->share_diff() >= 0) continue;
+			p->add_free_upload(upload_share);
 			free_upload -= upload_share;
 		}
 		return free_upload;
