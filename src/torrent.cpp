@@ -1009,7 +1009,15 @@ namespace libtorrent
 		detail::piece_checker_data d;
 		d.abort = false;
 		// TODO: this check should be moved to the checker thread
+		// not really a high priority, since no files would usually
+		// be available if the metadata wasn't available.
 		check_files(d, m);
+
+		if (m_ses.m_alerts.should_post(alert::info))
+		{
+			m_ses.m_alerts.post_alert(metadata_received_alert(
+				get_handle(), "metadata successfully received from swarm"));
+		}
 
 		// all peer connections have to initialize themselves now that the metadata
 		// is available

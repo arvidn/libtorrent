@@ -86,7 +86,10 @@ namespace libtorrent
 	public:
 
 		torrent_info(const entry& torrent_file);
-		torrent_info(int piece_size, const char* name, sha1_hash const& info_hash = sha1_hash(0));
+		torrent_info(
+			int piece_size
+			, const char* name
+			, sha1_hash const& info_hash = sha1_hash(0));
 
 		entry create_torrent() const;
 		entry create_info_metadata() const;

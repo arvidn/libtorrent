@@ -230,6 +230,14 @@ namespace libtorrent
 			, boost::bind(&torrent::move_storage, _1, save_path));
 	}
 
+	bool torrent_handle::has_metadata() const
+	{
+		INVARIANT_CHECK;
+
+		return call_member<bool>(m_ses, m_chk, m_info_hash
+			, boost::bind(&torrent::valid_metadata, _1));
+	}
+
 	bool torrent_handle::is_seed() const
 	{
 		INVARIANT_CHECK;
@@ -309,6 +317,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		if (!has_metadata()) throw invalid_handle();
 		return call_member<torrent_info const&>(m_ses, m_chk, m_info_hash
 			, boost::bind(&torrent::torrent_file, _1));
 	}
@@ -459,6 +468,14 @@ namespace libtorrent
 
 		return call_member<boost::filesystem::path>(m_ses, m_chk, m_info_hash
 			, boost::bind(&torrent::save_path, _1));
+	}
+
+	std::vector<char> const& torrent_handle::metadata() const
+	{
+		INVARIANT_CHECK;
+
+		return call_member<std::vector<char> const&>(m_ses, m_chk, m_info_hash
+			, boost::bind(&torrent::metadata, _1));
 	}
 
 	void torrent_handle::connect_peer(const address& adr) const

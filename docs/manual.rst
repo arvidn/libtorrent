@@ -750,6 +750,7 @@ Its declaration looks like this::
 		bool is_valid();
 
 		entry write_resume_data();
+		std::vector<char> const& metadata() const;
 		void force_reannounce();
 		void connect_peer(address const& adr) const;
 
@@ -766,6 +767,8 @@ Its declaration looks like this::
 		void resume();
 		bool is_paused() const;
 		bool is_seed() const;
+
+		bool has_metadata() const;
 
 		boost::filsystem::path save_path() const;
 		bool move_storage(boost::filesystem::path const& save_path);
@@ -889,6 +892,16 @@ is_seed()
 
 Returns true if the torrent is in seed mode (i.e. if it has finished downloading).
 
+has_metadata()
+
+	::
+
+		bool has_metadata() const;
+
+Returns true if this torrent has metadata (either it was started from a .torrent file or the
+metadata has been downloaded). The only scenario where this can return false is when the torrent
+was started torrent-less (i.e. with just an info-hash and tracker ip). Note that if the torrent
+doesn't have metadata, the member `get_torrent_info()`_ will throw.
 
 set_tracker_login()
 -------------------
@@ -954,6 +967,18 @@ It may throw invalid_handle_ if the torrent handle is invalid.
 Note that by the time this function returns, the resume data may already be invalid if the torrent
 is still downloading! The recommended practice is to first pause the torrent, then generate the
 fast resume data, and then close it down.
+
+
+metadata()
+-------------------
+
+	::
+
+		std::vector<char> const& metadata() const;
+
+``metadata()`` will return a reference to a buffer containing the exact info part of the
+.torrent file. This buffer will be valid as long as the torrent is still running. When hashed,
+it will produce the same hash as the info-hash.
 
 
 status()
@@ -1030,7 +1055,10 @@ get_torrent_info()
 
 Returns a const reference to the torrent_info_ object associated with this torrent.
 This reference is valid as long as the torrent_handle_ is valid, no longer. If the
-torrent_handle_ is invalid, invalid_handle_ exception will be thrown.
+torrent_handle_ is invalid or if it doesn't have any metadata, invalid_handle_
+exception will be thrown. The torrent may be in a state without metadata only if
+it was started without a .torrent file, i.e. by using the libtorrent extension of
+just supplying a tracker and info-hash.
 
 
 is_valid()
@@ -1821,6 +1849,28 @@ torrent in question. This alert is generated as severity level ``info``.
 
 		torrent_handle handle;
 	};
+
+metadata_received_alert
+-----------------------
+
+This alert is generated when the metadata has been completely received and the torrent
+can start downloading. It is not generated on torrents that are started with metadata, bu
+only those that needs to download it from peers (when utilizing the libtorrent extension).
+It is generated at severity level ``info``.
+
+::
+
+	struct metadata_received_alert: alert
+	{
+		metadata_received_alert(
+			const torrent_handle& h
+			, const std::string& msg);
+			
+		virtual std::auto_ptr<alert> clone() const;
+
+		torrent_handle handle;
+	};
+
 
 
 .. chat_message_alert

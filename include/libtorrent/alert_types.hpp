@@ -175,6 +175,21 @@ namespace libtorrent
 		torrent_handle handle;
 	};
 
+	struct metadata_received_alert: alert
+	{
+		metadata_received_alert(
+			const torrent_handle& h
+			, const std::string& msg)
+			: alert(alert::info, msg)
+			, handle(h)
+		{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new metadata_received_alert(*this)); }
+
+		torrent_handle handle;
+	};
+
 	struct listen_failed_alert: alert
 	{
 		listen_failed_alert(
