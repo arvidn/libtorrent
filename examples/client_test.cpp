@@ -206,10 +206,8 @@ int main(int argc, char* argv[])
 
 				std::ifstream resume_file("test.fastresume", std::ios_base::binary);
 				resume_file.unsetf(std::ios_base::skipws);
-				std::vector<char> resume_data;
-				std::copy(std::istream_iterator<char>(resume_file)
-					, std::istream_iterator<char>()
-					, std::back_inserter(resume_data));
+				entry resume_data = bdecode(std::istream_iterator<char>(resume_file)
+					, std::istream_iterator<char>());
 
 				handles.push_back(ses.add_torrent(t, "", resume_data));
 				handles.back().set_max_uploads(40);
@@ -230,12 +228,11 @@ int main(int argc, char* argv[])
 			{
 				if (c == 'q')
 				{
-					std::vector<char> data;
-					handles.front().write_resume_data(data);
+					entry data = handles.front().write_resume_data();
 
 					std::ofstream out("test.fastresume", std::ios_base::binary);
 					out.unsetf(std::ios_base::skipws);
-					std::copy(data.begin(), data.end(), std::ostream_iterator<char>(out));
+					bencode(std::ostream_iterator<char>(out), data);
 					break;
 				}
 			}
@@ -313,8 +310,7 @@ int main(int argc, char* argv[])
 						<< "(" << add_suffix(i->total_download) << ") "
 						<< "u: " << add_suffix(i->up_speed) << "/s "
 						<< "(" << add_suffix(i->total_upload) << ") "
-//						<< "df: " << add_suffix((int)i->total_download - (int)i->total_upload) << " "
-						<< "q: " << i->download_queue_length << " "
+						<< "df: " << add_suffix((int)i->total_download - (int)i->total_upload) << " "
 						<< "f: "
 						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
 						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
@@ -336,13 +332,8 @@ int main(int argc, char* argv[])
 							if (progress > j) out << "#";
 							else out << "-";
 						}
-						out << "   ";
+						out << "\n";
 					}
-					else
-					{
-						for (int i = 0; i < 19; ++i) out << "  ";
-					}
-					out << identify_client(i->id) << "\n";
 				}
 
 				out << "___________________________________\n";

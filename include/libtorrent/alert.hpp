@@ -51,7 +51,7 @@ namespace libtorrent {
 	class alert
 	{
 	public:
-		enum severity_t { debug, info, warning, critital, fatal, none };
+		enum severity_t { debug, info, warning, critical, fatal, none };
 
 		alert(severity_t severity, const std::string& msg)
 			: m_msg(msg)

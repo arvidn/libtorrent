@@ -116,7 +116,7 @@ namespace libtorrent
 			sha1_hash info_hash;
 
 			void parse_resume_data(
-				const std::vector<char>* rd
+				const entry& rd
 				, const torrent_info& info);
 			std::vector<int> piece_map;
 			std::vector<piece_picker::downloading_piece> unfinished_pieces;
@@ -227,18 +227,8 @@ namespace libtorrent
 		// all torrent_handles must be destructed before the session is destructed!
 		torrent_handle add_torrent(
 			const torrent_info& ti
-			, const boost::filesystem::path& save_path)
-		{
-			return add_torrent_impl(ti, save_path, 0);
-		}
-
-		torrent_handle add_torrent(
-			const torrent_info& ti
 			, const boost::filesystem::path& save_path
-			, const std::vector<char>& resume_data)
-		{
-			return add_torrent_impl(ti, save_path, &resume_data);
-		}
+			, const entry& resume_data = entry());
 
 		void remove_torrent(const torrent_handle& h);
 
@@ -251,11 +241,6 @@ namespace libtorrent
 		void set_severity_level(alert::severity_t s);
 
 	private:
-
-		torrent_handle add_torrent_impl(
-			const torrent_info& ti
-			, const boost::filesystem::path& save_path
-			, const std::vector<char>* resume_data);
 
 		// data shared between the main thread
 		// and the working thread

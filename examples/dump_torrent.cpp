@@ -55,7 +55,6 @@ int main(int argc, char* argv[])
 		std::ifstream in(argv[1], std::ios_base::binary);
 		in.unsetf(std::ios_base::skipws);
 		entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
-		torrent_info t(e);
 
 
 
@@ -63,6 +62,8 @@ int main(int argc, char* argv[])
 		e.print(std::cout);
 
 
+		torrent_info t(e);
+	
 		// print info about torrent
 		std::cout << "\n\n----- torrent file info -----\n\n";
 		std::cout << "trackers:\n";

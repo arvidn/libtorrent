@@ -170,43 +170,30 @@ namespace libtorrent
 		return false;
 	}
 
-	void torrent_handle::write_resume_data(std::vector<char>& buf)
+	entry torrent_handle::write_resume_data()
 	{
-		buf.clear();
 		std::vector<int> piece_index;
-		if (m_ses == 0) return;
+		if (m_ses == 0)
+			throw invalid_handle();
 
 		boost::mutex::scoped_lock l(m_ses->m_mutex);
 		torrent* t = m_ses->find_torrent(m_info_hash);
-		if (t == 0) return;
+		if (t == 0)
+			throw invalid_handle();
 			
 		t->filesystem().export_piece_map(piece_index);
 
-		std::back_insert_iterator<std::vector<char> > out(buf);
+		entry ret(entry::dictionary_t);
 
-		// TODO: write file header
-		// TODO: write modification-dates for all files
+		ret.dict()["file-format"] = "libtorrent resume file";
+		ret.dict()["file-version"] = 1;
 
-		for (sha1_hash::const_iterator i = m_info_hash.begin();
-			i != m_info_hash.end();
-			++i)
-		{
-			detail::write_uchar(*i, out);
-		}
+		const sha1_hash& info_hash = t->torrent_file().info_hash();
+		ret.dict()["info-hash"] = std::string(info_hash.begin(), info_hash.end());
 
-		// number of slots
-		int num_slots = piece_index.size();
-		detail::write_int(num_slots, out);
-
-		// the piece indices for each slot (-1 means no index assigned)
-		for (std::vector<int>::iterator i = piece_index.begin();
-			i != piece_index.end();
-			++i)
-		{
-			detail::write_int(*i, out);
-			assert(*i >= -2);
-			assert(*i < t->torrent_file().num_pieces());
-		}
+		ret.dict()["slots"] = entry(entry::list_t);
+		entry::list_type& slots = ret.dict()["slots"].list();
+		std::copy(piece_index.begin(), piece_index.end(), std::back_inserter(slots));
 
 		const piece_picker& p = t->picker();
 
@@ -216,11 +203,12 @@ namespace libtorrent
 		// blocks per piece
 		int num_blocks_per_piece =
 			t->torrent_file().piece_length() / t->block_size();
-		detail::write_int(num_blocks_per_piece, out);
+		ret.dict()["blocks per piece"] = num_blocks_per_piece;
 
 		// num unfinished pieces
 		int num_unfinished = q.size();
-		detail::write_int(num_unfinished, out);
+		ret.dict()["unfinished"] = entry(entry::list_t);
+		entry::list_type& up = ret.dict()["unfinished"].list();
 
 		// info for each unfinished piece
 		for (std::vector<piece_picker::downloading_piece>::const_iterator i
@@ -228,20 +216,28 @@ namespace libtorrent
 			i != q.end();
 			++i)
 		{
-			// the unsinished piece's index
-			detail::write_int(i->index, out);
+			entry piece_struct(entry::list_t);
 
-			// TODO: write the bitmask in correct byteorder
-			// TODO: make sure to read it in the correct order too
+			// the unfinished piece's index
+			piece_struct.list().push_back(i->index);
+
+			std::string bitmask;
 			const int num_bitmask_bytes = std::max(num_blocks_per_piece / 8, 1);
 			for (int j = 0; j < num_bitmask_bytes; ++j)
 			{
 				unsigned char v = 0;
 				for (int k = 0; k < 8; ++k)
 					v |= i->finished_blocks[j*8+k]?(1 << k):0;
-				detail::write_uchar(v, out);
+				bitmask.push_back(v);
 			}
+			piece_struct.list().push_back(bitmask);
+
+			// TODO: add a hash to piece_struct
+
+			// push the struct onto the unfinished-piece list
+			up.push_back(piece_struct);
 		}
+		return ret;
 	}
 
 

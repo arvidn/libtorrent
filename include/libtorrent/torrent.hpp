@@ -247,6 +247,9 @@ namespace libtorrent
 		boost::filesystem::path save_path() const
 		{ return m_storage.save_path(); }
 
+		alert_manager& alerts() const;
+		torrent_handle get_handle() const;
+
 		// DEBUG
 #ifndef NDEBUG
 		logger* spawn_logger(const char* title);

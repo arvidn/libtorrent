@@ -52,7 +52,7 @@ namespace libtorrent
 	// the names of the extensions to look for in
 	// the extensions-message
 	const char* peer_connection::extension_names[] =
-	{ "gzip" };
+	{ "chat" };
 
 	const peer_connection::message_handler peer_connection::m_message_handler[] =
 	{
@@ -728,7 +728,57 @@ namespace libtorrent
 
 	void peer_connection::on_extended(int received)
 	{
-	
+		m_statistics.received_bytes(0, received);
+		if (m_packet_size < 5)
+			throw protocol_error("'extended' message smaller than 5 bytes");
+
+		if (m_torrent == 0)
+			throw protocol_error("'extended' message sent before proper handshake");
+
+
+		if (m_recv_pos < 5) return;
+
+		const char* ptr = &m_recv_buffer[1];
+
+		int extended_id = detail::read_int(ptr);
+
+		switch (extended_id)
+		{
+		case extended_chat_message:
+			{
+				if (m_packet_size > 2 * 1024)
+				if (m_recv_pos < m_packet_size) return;
+					throw protocol_error("CHAT message larger than 2 kB");
+				try
+				{
+					entry d = bdecode(m_recv_buffer.begin()+5, m_recv_buffer.end());
+					entry::dictionary_type::const_iterator i = d.dict().find("msg");
+					if (i == d.dict().end())
+						throw protocol_error("CHAT message did not contain any 'msg'");
+
+					const std::string& str = i->second.string();
+
+					if (m_torrent->alerts().should_post(alert::critical))
+					{
+						m_torrent->alerts()
+							.post_alert(chat_message_alert(m_torrent->get_handle(), m_peer_id, str));
+					}
+
+				}
+				catch (invalid_encoding& e)
+				{
+					throw protocol_error("invalid bencoding in CHAT message");
+				}
+				catch (type_error& e)
+				{
+					throw protocol_error("invalid types in bencoded CHAT message");
+				}
+				return;
+			}
+		default:
+			throw protocol_error("unknown extended message id");
+
+		};
 	}
 
 
@@ -746,6 +796,7 @@ namespace libtorrent
 	{
 		assert(m_recv_pos >= received);
 		assert(m_recv_pos > 0);
+		assert(m_torrent);
 
 		int packet_type = m_recv_buffer[0];
 		if (packet_type < 0
@@ -853,6 +904,25 @@ namespace libtorrent
 		send_buffer_updated();
 	}
 
+	void peer_connection::send_chat_message(const std::string& msg)
+	{
+		assert(msg.length() <= 1 * 1024);
+		if (m_extension_messages[extended_chat_message] == 0) return;
+
+		entry e(entry::dictionary_t);
+		e.dict()["msg"] = msg;
+
+		std::vector<char> message;
+		bencode(std::back_inserter(message), e);
+		std::back_insert_iterator<std::vector<char> > ptr(m_send_buffer);
+
+		detail::write_uint(1 + 4 + message.size(), ptr);
+		detail::write_uchar(msg_extended, ptr);
+		detail::write_int(m_extension_messages[extended_chat_message], ptr);
+		std::copy(message.begin(), message.end(), ptr);
+		send_buffer_updated();
+	}
+
 	void peer_connection::send_bitfield()
 	{
 	#ifndef NDEBUG
@@ -884,9 +954,7 @@ namespace libtorrent
 
 		for (int i = 0; i < num_supported_extensions; ++i)
 		{
-			entry msg_index(entry::int_t);
-			msg_index.integer() = i;
-			extension_list.dict()[extension_names[i]] = msg_index;
+			extension_list.dict()[extension_names[i]] = i;
 		}
 
 		// make room for message size
