@@ -105,7 +105,8 @@ namespace libtorrent
 		// thread that initialize pieces
 		struct piece_checker_data
 		{
-			piece_checker_data(): progress(0.f), abort(false) {}
+			piece_checker_data()
+				: progress(0.f), abort(false), processing(false) {}
 
 			boost::shared_ptr<torrent> torrent_ptr;
 			boost::filesystem::path save_path;
@@ -120,6 +121,12 @@ namespace libtorrent
 			std::vector<piece_picker::downloading_piece> unfinished_pieces;
 			std::vector<address> peers;
 			entry resume_data;
+
+			// this is true if this torrent is being processed (checked)
+			// if it is not being processed, then it can be removed from
+			// the queue without problems, otherwise the abort flag has
+			// to be set.
+			volatile bool processing;
 
 			// is filled in by storage::initialize_pieces()
 			// and represents the progress. It should be a
@@ -137,6 +144,7 @@ namespace libtorrent
 			checker_impl(session_impl& s): m_ses(s), m_abort(false) {}
 			void operator()();
 			piece_checker_data* find_torrent(const sha1_hash& info_hash);
+			void remove_torrent(sha1_hash const& info_hash);
 
 			// when the files has been checked
 			// the torrent is added to the session
@@ -315,6 +323,7 @@ namespace libtorrent
 		void disable_extensions();
 
 		void set_peer_id(peer_id const& id);
+		void set_key(int key);
 
 		bool is_listening() const;
 
