@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <deque>
 #include <string>
-#include "allocate_resources.hpp"
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -64,6 +63,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent.hpp"
+#include "libtorrent/allocate_resources.hpp"
+#include "libtorrent/peer_request.hpp"
+#include "libtorrent/piece_block_progress.hpp"
 
 // TODO: each time a block is 'taken over'
 // from another peer. That peer must be given
@@ -81,30 +83,6 @@ namespace libtorrent
 	struct protocol_error: std::runtime_error
 	{
 		protocol_error(const std::string& msg): std::runtime_error(msg) {};
-	};
-
-	struct peer_request
-	{
-		int piece;
-		int start;
-		int length;
-		bool operator==(const peer_request& r)
-		{ return piece == r.piece && start == r.start && length	== r.length; }
-	};
-
-	struct piece_block_progress
-	{
-		// the piece and block index
-		// determines exactly which
-		// part of the torrent that
-		// is currently being downloaded
-		int piece_index;
-		int block_index;
-		// the number of bytes we have received
-		// of this block
-		int bytes_downloaded;
-		// the number of bytes in the block
-		int full_block_bytes;
 	};
 
 	class peer_connection: public boost::noncopyable
