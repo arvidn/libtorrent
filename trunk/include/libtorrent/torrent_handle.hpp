@@ -139,6 +139,7 @@ namespace libtorrent
 
 	struct torrent_handle
 	{
+		friend class invariant_access;
 		friend class session;
 		friend class torrent;
 
@@ -215,7 +216,14 @@ namespace libtorrent
 			: m_ses(s)
 			, m_chk(c)
 			, m_info_hash(h)
-		{}
+		{
+			assert(m_ses != 0);
+			assert(m_chk != 0);
+		}
+
+#ifndef NDEBUG
+		void check_invariant() const;
+#endif
 
 		detail::session_impl* m_ses;
 		detail::checker_impl* m_chk;
