@@ -186,7 +186,13 @@ namespace libtorrent
 		}
 		m_send_buffer += "\r\n\r\n";
 	#ifndef NDEBUG
-		if (c) c->debug_log("==> TRACKER_REQUEST [ str: " + m_send_buffer + " ]");
+		if (c)
+		{
+			c->debug_log("==> TRACKER_REQUEST [ str: " + m_send_buffer + " ]");
+			std::stringstream info_hash_str;
+			info_hash_str << req.info_hash;
+			c->debug_log("info_hash: " + info_hash_str.str() + "\n");
+		}
 	#endif
 		m_socket = s;
 	}
@@ -513,7 +519,7 @@ namespace libtorrent
 			}
 			catch (const type_error&) {}
 
-			int interval = e["interval"].integer();
+			int interval = (int)e["interval"].integer();
 
 			peer_list.clear();
 

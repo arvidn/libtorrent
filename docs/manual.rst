@@ -218,7 +218,7 @@ The ``session`` class has the following synopsis::
 			, const char* listen_interface = 0);
 
 		torrent_handle add_torrent(
-			torrent_info const& t
+			entry const& e
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry());
 
@@ -269,7 +269,7 @@ the parameters, see ``listen_on()`` function.
 ~session()
 ----------
 
-The destructor of session will notify all trackers that our torrents has been shut down.
+The destructor of session will notify all trackers that our torrents have been shut down.
 If some trackers are down, they will timout. All this before the destructor of session
 returns. So, it's adviced that any kind of interface (such as windows) are closed before
 destructing the sessoin object. Because it can take a few second for it to finish. The
@@ -282,7 +282,7 @@ add_torrent()
 	::
 
 		torrent_handle add_torrent(
-			torrent_info const& t
+			entry const& e
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry());
 
@@ -336,7 +336,7 @@ status()
 
 		session_status status() const;
 
-``status()`` returns session wide statistics and status. The ``session_status``
+``status()`` returns session wide-statistics and status. The ``session_status``
 struct has the following members::
 
 	struct session_status
@@ -358,7 +358,7 @@ struct has the following members::
 		int num_peers;
 	};
 
-``has_incoming_connections`` is false as long as no incoming connections has been
+``has_incoming_connections`` is false as long as no incoming connections have been
 established on the listening socket. Every time you change the listen port, this will
 be reset to false.
 
@@ -1407,6 +1407,12 @@ sure not to clash with anybody else. Here are some taken id's:
 +----------+-----------------------+
 | 'MT'     | Moonlight Torrent     |
 +----------+-----------------------+
+| 'TS'     | Torrent Storm         |
++----------+-----------------------+
+| 'SS'     | Swarm Scope           |
++----------+-----------------------+
+| 'XT'     | Xan Torrent           |
++----------+-----------------------+
 
 
 The ``major``, ``minor``, ``revision`` and ``tag`` parameters are used to identify the
@@ -1555,14 +1561,14 @@ is its synopsis::
 		alert(severity_t severity, const std::string& msg);
 		virtual ~alert();
 
-		const std::string& msg() const;
+		std::string const& msg() const;
 		severity_t severity() const;
 
 		virtual std::auto_ptr<alert> clone() const = 0;
 	};
 
 This means that all alerts have at least a string describing it. They also
-have a severity leve that can be used to sort them or present them to the
+have a severity level that can be used to sort them or present them to the
 user in different ways.
 
 The specific alerts, that all derives from ``alert``, are:
@@ -1967,8 +1973,7 @@ This is a simple client. It doesn't have much output to keep it simple::
 			std::ifstream in(argv[1], std::ios_base::binary);
 			in.unsetf(std::ios_base::skipws);
 			entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
-			torrent_info t(e);
-			s.add_torrent(t, "");
+			s.add_torrent(e, "");
 				
 			// wait for the user to end
 			char a;

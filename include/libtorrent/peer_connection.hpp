@@ -105,6 +105,12 @@ namespace libtorrent
 			, selector& sel
 			, boost::shared_ptr<libtorrent::socket> s);
 
+		// this function is called once the torrent associated
+		// with this peer connection has retrieved the meta-
+		// data. If the torrent was spawned with metadata
+		// this is called from the constructor.
+		void init();
+
 		~peer_connection();
 
 		// this adds an announcement in the announcement queue
@@ -205,6 +211,18 @@ namespace libtorrent
 		boost::shared_ptr<logger> m_logger;
 #endif
 
+		enum extension_index
+		{
+			extended_chat_message,
+			extended_metadata_message,
+			extended_peer_exchange_message,
+			extended_listen_port_message,
+			num_supported_extensions
+		};
+
+		bool supports_extension(extension_index ex) const
+		{ return m_extension_messages[ex] != -1; }
+
 		// the message handlers are called
 		// each time a recv() returns some new
 		// data, the last time it will be called
@@ -225,6 +243,11 @@ namespace libtorrent
 		void on_extension_list(int received);
 		void on_extended(int received);
 
+		void on_chat();
+		void on_metadata();
+		void on_peer_exchange();
+		void on_listen_port();
+
 		typedef void (peer_connection::*message_handler)(int received);
 
 		// the following functions appends messages
@@ -240,6 +263,8 @@ namespace libtorrent
 		void send_handshake();
 		void send_extensions();
 		void send_chat_message(const std::string& msg);
+		void send_metadata(int start, int size);
+		void send_metadata_request(int start, int size);
 
 		// how much bandwidth we're using, how much we want,
 		// and how much we are allowed to use.
@@ -249,10 +274,16 @@ namespace libtorrent
 
 	private:
 
+#ifndef NDEBUG
 		void check_invariant() const;
+#endif
 
 		bool dispatch_message(int received);
 
+		// if we don't have all metadata
+		// this function will request a part of it
+		// from this peer
+		void request_metadata();
 
 		// this is called each time this peer generates some
 		// data to be sent. It will add this socket to
@@ -336,10 +367,6 @@ namespace libtorrent
 		selector& m_selector;
 		boost::shared_ptr<libtorrent::socket> m_socket;
 		
-		// upload bandwidth used this second.
-		// Must not exceed m_ul_bandwidth_quota.given.
-//		int m_ul_bandwidth_quota_used;
-
 		// this is the torrent this connection is
 		// associated with. If the connection is an
 		// incoming conncetion, this is set to zero
@@ -443,11 +470,6 @@ namespace libtorrent
 		// considered a bad peer and will be banned.
 		int m_trust_points;
 
-		enum extension_index
-		{
-			extended_chat_message,
-			num_supported_extensions
-		};
 		static const char* extension_names[num_supported_extensions];
 		int m_extension_messages[num_supported_extensions];
 
@@ -475,6 +497,10 @@ namespace libtorrent
 		// the time when we sent a not_interested message to
 		// this peer the last time.
 		boost::posix_time::ptime m_became_uninteresting;
+
+		// this is set to the current time each time we get a
+		// "I don't have metadata" message.
+		boost::posix_time::ptime m_no_metadata;
 	};
 }
 

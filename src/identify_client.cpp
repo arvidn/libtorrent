@@ -144,6 +144,42 @@ namespace
 		return boost::optional<fingerprint>(ret);
 	}
 
+	// checks if a peer id can possibly contain a mainline-style
+	// identification
+	boost::optional<fingerprint> parse_mainline_style(const peer_id& id)
+	{
+		fingerprint ret("..", 0, 0, 0, 0);
+		peer_id::const_iterator i = id.begin();
+
+		if (!std::isprint(*i)) return boost::optional<fingerprint>();
+		ret.id[0] = *i;
+		ret.id[1] = 0;
+		++i;
+
+		if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+		ret.major_version = *i - '0';
+		++i;
+
+		if (*i != '-') return boost::optional<fingerprint>();
+		++i;
+
+		if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+		ret.minor_version = *i - '0';
+		++i;
+
+		if (*i != '-') return boost::optional<fingerprint>();
+		++i;
+
+		if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+		ret.revision_version = *i - '0';
+		++i;
+
+		if (!std::equal(i, i+1, "--")) return boost::optional<fingerprint>();
+
+		ret.tag_version = 0;
+		return boost::optional<fingerprint>(ret);
+	}
+
 } // namespace unnamed
 
 namespace libtorrent
@@ -231,6 +267,26 @@ namespace libtorrent
 			return identity.str();
 		}
 	
+		f = parse_mainline_style(p);
+		if (f)
+		{
+			std::stringstream identity;
+
+			// Mainline
+			if (std::equal(f->id, f->id+1, "M"))
+				identity << "Mainline ";
+
+			// unknown client
+			else
+				identity << std::string(f->id, f->id+1) << " ";
+
+			identity << (int)f->major_version
+				<< "." << (int)f->minor_version
+				<< "." << (int)f->revision_version;
+
+			return identity.str();
+		}
+
 		// ----------------------
 		// non standard encodings
 		// ----------------------

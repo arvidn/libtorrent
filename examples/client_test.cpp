@@ -226,7 +226,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-    namespace fs = boost::filesystem;
+	namespace fs = boost::filesystem;
 	fs::path::default_name_check(fs::no_check);
 	
 	http_settings settings;
@@ -243,8 +243,8 @@ int main(int argc, char* argv[])
 		std::vector<torrent_handle> handles;
 		session ses(fingerprint("LT", 0, 1, 0, 0));
 
-		ses.listen_on(std::make_pair(100, 110));
-		ses.set_upload_rate_limit(50000);
+		ses.listen_on(std::make_pair(6881, 6889));
+		ses.set_upload_rate_limit(100000);
 //		ses.set_download_rate_limit(50000);
 		ses.set_http_settings(settings);
 		ses.set_severity_level(alert::debug);
@@ -254,13 +254,26 @@ int main(int argc, char* argv[])
 		{
 			try
 			{
+				boost::filesystem::path save_path("");
+
+				if (std::string(argv[i+1]).substr(0, 7) == "http://")
+				{
+					sha1_hash info_hash = boost::lexical_cast<sha1_hash>(argv[i+2]);
+
+					handles.push_back(ses.add_torrent(argv[i+1], info_hash, save_path));
+					handles.back().set_max_connections(60);
+					handles.back().set_max_uploads(7);
+					handles.back().set_ratio(1.02f);
+					++i;
+
+					continue;
+				}
 				std::ifstream in(argv[i+1], std::ios_base::binary);
 				in.unsetf(std::ios_base::skipws);
 				entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
 				torrent_info t(e);
 				t.print(std::cout);
 
-				boost::filesystem::path save_path("");
 				entry resume_data;
 				try
 				{
@@ -275,9 +288,9 @@ int main(int argc, char* argv[])
 				catch (invalid_encoding&) {}
 				catch (boost::filesystem::filesystem_error&) {}
 
-				handles.push_back(ses.add_torrent(t, save_path, resume_data));
-				handles.back().set_max_connections(60);
-				handles.back().set_max_uploads(7);
+				handles.push_back(ses.add_torrent(e, save_path, resume_data));
+				handles.back().set_max_connections(200);
+				handles.back().set_max_uploads(20);
 				handles.back().set_ratio(1.02f);
 			}
 			catch (std::exception& e)
@@ -285,6 +298,8 @@ int main(int argc, char* argv[])
 				std::cout << e.what() << "\n";
 			}
 		}
+
+		if (handles.empty()) return 1;
 
 		std::vector<peer_info> peers;
 		std::vector<partial_piece_info> queue;
@@ -301,6 +316,8 @@ int main(int argc, char* argv[])
 						++i)
 					{
 						torrent_handle h = *i;
+						if (!h.get_torrent_info().is_valid()) continue;
+
 						entry data = h.write_resume_data();
 						std::stringstream s;
 						s << h.get_torrent_info().name() << ".fastresume";
@@ -396,6 +413,9 @@ int main(int argc, char* argv[])
 					case torrent_status::connecting_to_tracker:
 						out << "connecting to tracker ";
 						break;
+					case torrent_status::downloading_metadata:
+						out << "downloading metadata ";
+						break;
 					case torrent_status::downloading:
 						out << "downloading ";
 						break;
@@ -419,6 +439,7 @@ int main(int argc, char* argv[])
 					<< "u:" << add_suffix(s.upload_rate) << "/s "
 					<< "(" << add_suffix(s.total_upload) << ") "
 					<< "ratio: " << ratio(s.total_payload_download, s.total_payload_upload) << "\n";
+				out << "info-hash: " << i->info_hash() << "\n";
 
 				boost::posix_time::time_duration t = s.next_announce;
 				out << "next announce: " << boost::posix_time::to_simple_string(t) << "\n";

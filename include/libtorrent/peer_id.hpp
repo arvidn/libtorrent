@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <iomanip>
 #include <cassert>
+#include <cctype>
 #include <algorithm>
 
 namespace libtorrent
@@ -43,9 +44,16 @@ namespace libtorrent
 
 	class big_number
 	{
+	// private type
+		struct private_pointer {};
 	// the number of bytes of the number
 	enum { number_size = 20 };
 	public:
+
+		big_number() {}
+
+		// when initialized with 0
+		big_number(private_pointer*) { clear(); }
 
 		void clear()
 		{
@@ -101,7 +109,7 @@ namespace libtorrent
 	typedef big_number peer_id;
 	typedef big_number sha1_hash;
 
-	inline std::ostream& operator<<(std::ostream& os, const big_number& peer)
+	inline std::ostream& operator<<(std::ostream& os, big_number const& peer)
 	{
 		for (big_number::const_iterator i = peer.begin();
 			i != peer.end();
@@ -112,6 +120,19 @@ namespace libtorrent
 		}
 		os << std::dec << std::setfill(' ');
 		return os;
+	}
+
+	inline std::istream& operator>>(std::istream& is, big_number& peer)
+	{
+		for (big_number::iterator i = peer.begin();
+			i != peer.end(); ++i)
+		{
+			char c[2];
+			is >> c[0] >> c[1];
+			*i = ((std::isdigit(c[0])?c[0]-'0':c[0]-'a'+10) << 4)
+				+ (std::isdigit(c[1])?c[1]-'0':c[1]-'a'+10);
+		}
+		return is;
 	}
 
 }

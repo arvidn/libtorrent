@@ -289,9 +289,15 @@ namespace libtorrent
 
 		// all torrent_handles must be destructed before the session is destructed!
 		torrent_handle add_torrent(
-			const torrent_info& ti
-			, const boost::filesystem::path& save_path
-			, const entry& resume_data = entry());
+			entry const& metadata
+			, boost::filesystem::path const& save_path
+			, entry const& resume_data = entry());
+
+		torrent_handle add_torrent(
+			char const* tracker_url
+			, sha1_hash const& info_hash
+			, boost::filesystem::path const& save_path
+			, entry const& resume_data = entry());
 
 		session_status status() const;
 

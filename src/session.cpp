@@ -805,10 +805,12 @@ namespace libtorrent
 	// current platform.
 	// if the torrent already exists, this will throw duplicate_torrent
 	torrent_handle session::add_torrent(
-		const torrent_info& ti
-		, const boost::filesystem::path& save_path
-		, const entry& resume_data)
+		entry const& metadata
+		, boost::filesystem::path const& save_path
+		, entry const& resume_data)
 	{
+		torrent_info ti(metadata);
+
 		if (ti.begin_files() == ti.end_files())
 			throw std::runtime_error("no files in torrent");
 
@@ -834,7 +836,7 @@ namespace libtorrent
 		// the checker thread and store it before starting
 		// the thread
 		boost::shared_ptr<torrent> torrent_ptr(
-			new torrent(m_impl, ti, save_path, m_impl.m_listen_interface));
+			new torrent(m_impl, metadata, save_path, m_impl.m_listen_interface));
 
 		detail::piece_checker_data d;
 		d.torrent_ptr = torrent_ptr;
@@ -853,6 +855,44 @@ namespace libtorrent
 
 		return torrent_handle(&m_impl, &m_checker_impl, ti.info_hash());
 	}
+
+	torrent_handle session::add_torrent(
+		char const* tracker_url
+		, sha1_hash const& info_hash
+		, boost::filesystem::path const& save_path
+		, entry const& resume_data)
+	{
+		{
+			// lock the session
+			boost::mutex::scoped_lock l(m_impl.m_mutex);
+
+			// is the torrent already active?
+			if (m_impl.find_torrent(info_hash))
+				throw duplicate_torrent();
+		}
+
+		{
+			// lock the checker_thread
+			boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
+
+			// is the torrent currently being checked?
+			if (m_checker_impl.find_torrent(info_hash))
+				throw duplicate_torrent();
+		}
+
+		// create the torrent and the data associated with
+		// the checker thread and store it before starting
+		// the thread
+		boost::shared_ptr<torrent> torrent_ptr(
+			new torrent(m_impl, tracker_url, info_hash, save_path, m_impl.m_listen_interface));
+
+		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		m_impl.m_torrents.insert(
+			std::make_pair(info_hash, torrent_ptr)).first;
+
+		return torrent_handle(&m_impl, &m_checker_impl, info_hash);
+	}
+
 
 	void session::remove_torrent(const torrent_handle& h)
 	{
