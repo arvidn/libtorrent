@@ -532,6 +532,7 @@ namespace libtorrent
 					i != writable_clients.end();
 					++i)
 				{
+					assert((*i)->is_writable());
 					connection_map::iterator p = m_connections.find(*i);
 					// the connection may have been disconnected in the receive phase
 					if (p == m_connections.end())
@@ -544,6 +545,7 @@ namespace libtorrent
 						{
 							assert(m_selector.is_writability_monitored(p->first));
 							assert(p->second->has_data());
+							assert(p->second->get_socket()->is_writable());
 							p->second->send_data();
 						}
 						catch(std::exception&)

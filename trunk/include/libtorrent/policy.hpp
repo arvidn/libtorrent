@@ -103,12 +103,13 @@ namespace libtorrent
 
 		struct peer
 		{
-			peer(const address& ip);
+			enum connection_type { connectable, not_connectable };
+
+			peer(const address& ip, peer::connection_type t);
 
 			int total_download() const;
 			int total_upload() const;
 
-			enum connection_type { local_connection, remote_connection };
 			// the ip/port pair this peer is or was connected on
 			// if it was a remote (incoming) connection, type is
 			// set thereafter. If it was a peer we got from the

@@ -1609,8 +1609,7 @@ namespace libtorrent
 		{
 			if (m_socket->is_writable())
 			{
-				std::cout << "ERROR\n";
-				assert(false);
+				std::cout << "ERROR, not good\n";
 			}
 		}
 	#endif
