@@ -307,6 +307,7 @@ namespace libtorrent
 		, request_callback* c
 		, std::string const& password)
 	{
+		assert(req.num_want >= 0);
 		try
 		{
 			std::string hostname; // hostname only
