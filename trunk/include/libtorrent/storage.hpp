@@ -236,14 +236,20 @@ namespace libtorrent
 
 		piece_manager(
 			const torrent_info& info
-		  , const boost::filesystem::path& path);
+			, const boost::filesystem::path& path);
 
-		void check_pieces(boost::mutex& mutex, detail::piece_checker_data& data);
+		void check_pieces(
+			boost::mutex& mutex
+			, detail::piece_checker_data& data
+			, std::vector<bool>& pieces);
 
 		void allocate_slots(int num_slots);
 
 		size_type read(char* buf, int piece_index, size_type offset, size_type size);
-		size_type write(const char* buf, int piece_index, size_type offset, size_type size);
+		void write(const char* buf, int piece_index, size_type offset, size_type size);
+
+		const boost::filesystem::path& save_path() const
+		{ return m_save_path; }
 
 	private:
 
@@ -276,6 +282,8 @@ namespace libtorrent
 		// -2 : the slot is allocated but not assigned to a piece
 		//  * : the slot is assigned to this piece
 		std::vector<int> m_slot_to_piece;
+
+		boost::filesystem::path m_save_path;
 
 		// synchronization
 		boost::mutex m_locked_pieces_monitor;

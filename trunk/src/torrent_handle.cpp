@@ -63,7 +63,7 @@ namespace std
 namespace libtorrent
 {
 	
-	torrent_status torrent_handle::status()
+	torrent_status torrent_handle::status() const
 	{
 		if (m_ses == 0) throw invalid_handle();
 
@@ -83,6 +83,8 @@ namespace libtorrent
 				torrent_status st;
 				st.total_download = 0;
 				st.total_upload = 0;
+				st.download_rate = 0.f;
+				st.upload_rate = 0.f;
 				if (d == &m_chk->m_torrents.front())
 					st.state = torrent_status::checking_files;
 				else
@@ -96,11 +98,10 @@ namespace libtorrent
 			}
 		}
 
-		m_ses = 0;
 		throw invalid_handle();
 	}
 
-	const torrent_info& torrent_handle::get_torrent_info()
+	const torrent_info& torrent_handle::get_torrent_info() const
 	{
 		if (m_ses == 0) throw invalid_handle();
 	
@@ -116,11 +117,10 @@ namespace libtorrent
 			if (d != 0) return d->torrent_ptr->torrent_file();
 		}
 
-		m_ses = 0;
 		throw invalid_handle();
 	}
 
-	bool torrent_handle::is_valid()
+	bool torrent_handle::is_valid() const
 	{
 		if (m_ses == 0) return false;
 
@@ -136,11 +136,44 @@ namespace libtorrent
 			if (d != 0) return true;
 		}
 
-		m_ses = 0;
 		return false;
 	}
 
-	void torrent_handle::get_peer_info(std::vector<peer_info>& v)
+	boost::filesystem::path torrent_handle::save_path() const
+	{
+		if (m_ses == 0) throw invalid_handle();
+
+		// copy the path into this local variable before
+		// unlocking and returning. Since we could get really
+		// unlucky and having the path removed after we
+		// have unlocked the data but before the return
+		// value has been copied into the destination
+		boost::filesystem::path ret;
+
+		{
+			boost::mutex::scoped_lock l(m_ses->m_mutex);
+			torrent* t = m_ses->find_torrent(m_info_hash);
+			if (t != 0)
+			{
+				ret = t->save_path();
+				return ret;
+			}
+		}
+
+		{
+			boost::mutex::scoped_lock l(m_chk->m_mutex);
+			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
+			if (d != 0)
+			{
+				ret = d->save_path;
+				return ret;
+			}
+		}
+
+		throw invalid_handle();
+	}
+
+	void torrent_handle::get_peer_info(std::vector<peer_info>& v) const
 	{
 		v.clear();
 		if (m_ses == 0) throw invalid_handle();
@@ -187,7 +220,7 @@ namespace libtorrent
 		}
 	}
 
-	void torrent_handle::get_download_queue(std::vector<partial_piece_info>& queue)
+	void torrent_handle::get_download_queue(std::vector<partial_piece_info>& queue) const
 	{
 		queue.clear();
 

@@ -238,7 +238,7 @@ namespace libtorrent
 				c->choke();
 			}
 			else if (uploaded - downloaded <= m_torrent->block_size()
-				&& c->is_choked() && c->is_peer_interested())
+				&& c->is_choked() && c->is_interesting())
 			{
 				// TODO: if we're not interested in this peer
 				// we should only unchoke it if it' its turn
@@ -352,6 +352,7 @@ namespace libtorrent
 	{
 		// if we're interested in the peer, we unchoke it
 		// and hopes it will unchoke us too
+		if (c.is_interesting) c.unchoke();
 	}
 
 	void policy::not_interested(peer_connection& c)

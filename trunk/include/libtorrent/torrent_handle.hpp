@@ -78,6 +78,8 @@ namespace libtorrent
 		// transferred this session!
 		std::size_t total_download;
 		std::size_t total_upload;
+		float download_rate;
+		float upload_rate;
 		std::vector<bool> pieces;
 
 		// the number of bytes of the file we have
@@ -100,18 +102,32 @@ namespace libtorrent
 		friend class session;
 		torrent_handle(): m_ses(0) {}
 
-		void get_peer_info(std::vector<peer_info>& v);
-		torrent_status status();
-		void get_download_queue(std::vector<partial_piece_info>& queue);
+		void get_peer_info(std::vector<peer_info>& v) const;
+		torrent_status status() const;
+		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 
-		const torrent_info& get_torrent_info();
-		bool is_valid();
+		const torrent_info& get_torrent_info() const;
+		bool is_valid() const;
 
 		// TODO: add force reannounce
 
 		// TODO: add a feature where the user can ask the torrent
 		// to finish all pieces currently in the pipeline, and then
 		// abort the torrent.
+
+		boost::filesystem::path save_path() const;
+
+		const sha1_hash& info_hash() const
+		{ return m_info_hash; }
+
+		bool operator==(const torrent_handle& h) const
+		{ return m_info_hash == h.m_info_hash; }
+
+		bool operator!=(const torrent_handle& h) const
+		{ return m_info_hash != h.m_info_hash; }
+
+		bool operator<(const torrent_handle& h) const
+		{ return m_info_hash < h.m_info_hash; }
 
 	private:
 
