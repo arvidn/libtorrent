@@ -151,7 +151,9 @@ The ``Jamfile`` can build both a release and debug version of libtorrent. In deb
 libtorrent will have pretty expensive invariant checks and asserts built into it. If you
 want to disable such checks (you want to do that in a release build) you can see the
 table below for which defines you can use to control the build. The ``Jamfile`` will define
-``NDEBUG`` when it's building a release build.
+``NDEBUG`` when it's building a release build. There are two other build variants available
+in the ``Jamfile``. debug_log and release_log, these two variants inherits from the
+debug and release variants respectively, but adds extra logging (``TORRENT_VERBOSE_LOGGIN``).
 
 +--------------------------------+-------------------------------------------------+
 | macro                          | description                                     |
@@ -163,9 +165,6 @@ table below for which defines you can use to control the build. The ``Jamfile`` 
 +--------------------------------+-------------------------------------------------+
 | ``TORRENT_VERBOSE_LOGGING``    | If you define this macro, every peer connection |
 |                                | will log its traffic to a log file.             |
-|                                | This setting requires a debug build, i.e.       |
-|                                | if you set ``NDEBUG`` aswell, no logs will be   |
-|                                | written.                                        |
 +--------------------------------+-------------------------------------------------+
 | ``TORRENT_STORAGE_DEBUG``      | This will enable extra expensive invariant      |
 |                                | checks in the storage, including logging of     |
