@@ -249,8 +249,8 @@ namespace libtorrent
 
 		void parse_response(const entry& e, std::vector<peer>& peer_list);
 
-		// total amount of bytes uploaded, downloaded and
-		// the number of bytes left to be downloaded
+		// TODO: Replace with stat-object
+		// total amount of bytes uploaded, downloaded
 		entry::integer_type m_bytes_uploaded;
 		entry::integer_type m_bytes_downloaded;
 

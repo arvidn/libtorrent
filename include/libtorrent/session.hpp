@@ -85,7 +85,7 @@ namespace libtorrent
 		// workaround for microsofts
 		// hardware exceptions that makes
 		// it hard to debug stuff
-#if defined(WIN32) && !defined(NDEBUG)
+#if defined(_MSC_VER) && !defined(NDEBUG)
 		struct eh_initializer
 		{
 			eh_initializer()

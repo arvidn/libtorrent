@@ -69,13 +69,14 @@ namespace libtorrent
 		{
 			torrent_status st;
 			st.total_download = 0;
-			st.total_download = 0;
+			st.total_upload = 0;
 			st.progress = 0.f;
 			st.state = torrent_status::invalid_handle;
 			st.next_announce = boost::posix_time::time_duration();
 			return st;
 		}
 
+		assert(m_chk != 0);
 		{
 			boost::mutex::scoped_lock l(m_ses->m_mutex);
 			torrent* t = m_ses->find_torrent(m_info_hash);
@@ -103,7 +104,7 @@ namespace libtorrent
 
 		torrent_status st;
 		st.total_download = 0;
-		st.total_download = 0;
+		st.total_upload = 0;
 		st.progress = 0.f;
 		st.state = torrent_status::invalid_handle;
 		st.next_announce = boost::posix_time::time_duration();
@@ -114,6 +115,8 @@ namespace libtorrent
 	{
 		v.clear();
 		if (m_ses == 0) return;
+		assert(m_chk != 0);
+
 		boost::mutex::scoped_lock l(m_ses->m_mutex);
 		
 		const torrent* t = m_ses->find_torrent(m_info_hash);
@@ -151,6 +154,7 @@ namespace libtorrent
 		queue.clear();
 
 		if (m_ses == 0) return;
+		assert(m_chk != 0);
 	
 		boost::mutex::scoped_lock l(m_ses->m_mutex);
 		torrent* t = m_ses->find_torrent(m_info_hash);
@@ -183,6 +187,7 @@ namespace libtorrent
 	void torrent_handle::abort()
 	{
 		if (m_ses == 0) return;
+		assert(m_chk != 0);
 
 		{
 			boost::mutex::scoped_lock l(m_ses->m_mutex);

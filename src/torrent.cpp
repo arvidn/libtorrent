@@ -422,9 +422,8 @@ namespace libtorrent
 				- blocks_per_piece;
 		}
 
-		// TODO: Implement total download and total_upload
-		st.total_download = 0;
-		st.total_upload = 0;
+		st.total_download = m_bytes_downloaded;
+		st.total_upload = m_bytes_uploaded;
 		st.progress = (blocks_we_have + unverified_blocks)
 			/ static_cast<float>(total_blocks);
 
