@@ -297,7 +297,13 @@ namespace libtorrent
 			return "Generic";
 		}
 
-		return "Unknown";
+		std::string unknown("Unknown [");
+		for (peer_id::const_iterator i = p.begin(); i != p.end(); ++i)
+		{
+			unknown += std::isprint(*i)?*i:'.';
+		}
+		unknown += "]";
+		return unknown;
 	}
 
 }
