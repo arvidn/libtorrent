@@ -1161,6 +1161,8 @@ When you get an alert, you can use ``typeid()`` or ``dynamic_cast<>`` to get mor
 information on exactly which type it is. i.e. what kind of error it is. You can also use a
 dispatcher_ mechanism that's available in libtorrent.
 
+All alert types are defined in the ``<libtorrent/alert_types.hpp>`` header file.
+
 The ``alert`` class is the base class that specific messages are derived from. This
 is its synopsis::
 
