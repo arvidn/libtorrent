@@ -57,7 +57,6 @@ __ udp_tracker_protocol.html
 
 Functions that are yet to be implemented:
 
-	* large file support on linux and Mac OS X.
 	* better identification of peers that send bad data
 	* ip-filters
 	* file-level priority
@@ -121,8 +120,8 @@ If you're making your own project file, note that there are two versions of the 
 abstraction. There's one ``file_win.cpp`` which relies on windows file API that supports
 files larger than 2 Gigabytes. This does not work in vc6 for some reason, possibly because
 it may require windows NT and above. The other file, ``file.cpp`` is the default
-implementation that simply relies on the standard library's fstream, and as a result does
-not support files larger than 2 Gigabytes.
+implementation that simply relies on the standard low level io routines (read, write etc.),
+but for some reason this implementation doesn't seem to work on windows.
 
 
 cygwin and msvc
