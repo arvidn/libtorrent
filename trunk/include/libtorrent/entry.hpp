@@ -172,7 +172,7 @@ namespace libtorrent
 
 		data_type m_type;
 
-#if defined(_MSC_VER) && _MSC_VER < 1300
+#if defined(_MSC_VER) && _MSC_VER < 1310
 		// workaround for msvc-bug.
 		// assumes sizeof(map<string, char>) == sizeof(map<string, entry>)
 		// and sizeof(list<char>) == sizeof(list<entry>)

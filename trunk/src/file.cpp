@@ -73,6 +73,7 @@ namespace
 		if (m == mode_out) return O_WRONLY | O_CREAT | O_BINARY | O_RANDOM;
 		if (m == mode_in) return O_RDONLY | O_BINARY | O_RANDOM;
 		assert(false);
+		return 0;
 	}
 }
 
