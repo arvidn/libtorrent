@@ -242,7 +242,7 @@ int main(int argc, char* argv[])
 		std::vector<torrent_handle> handles;
 		session ses(std::make_pair(6881, 6889));
 
-//		ses.set_upload_rate_limit(30 * 1024);
+		ses.set_upload_rate_limit(40 * 1024);
 		ses.set_http_settings(settings);
 		ses.set_severity_level(alert::debug);
 
@@ -384,16 +384,16 @@ int main(int argc, char* argv[])
 					i != peers.end();
 					++i)
 				{
-					out << "d: " << add_suffix(i->down_speed) << "/s "
+					out << "d:" << add_suffix(i->down_speed) << "/s "
 						<< "(" << add_suffix(i->total_download) << ") "
-						<< "u: " << add_suffix(i->up_speed) << "/s "
+						<< "u:" << add_suffix(i->up_speed) << "/s "
 						<< "(" << add_suffix(i->total_upload) << ") "
 						<< "ul:" << add_suffix(i->upload_limit) << "/s "
 //						<< "uc:" << add_suffix(i->upload_ceiling) << "/s "
-//						<< "df: " << ratio(i->total_download, i->total_upload) << " "
-//						<< "q: " << i->download_queue_length << " "
-						<< "r: " << i->upload_queue_length << " "
-						<< "f: "
+//						<< "df:" << ratio(i->total_download, i->total_upload) << " "
+						<< "q:" << i->download_queue_length << " "
+						<< "r:" << i->upload_queue_length << " "
+						<< "f:"
 						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
 						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
 						<< static_cast<const char*>((i->flags & peer_info::remote_interested)?"i":"_")

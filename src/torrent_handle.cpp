@@ -459,8 +459,8 @@ namespace libtorrent
 			p.total_download = statistics.total_payload_download();
 			p.total_upload = statistics.total_payload_upload();
 
-			p.upload_limit = peer->send_quota();
-			p.upload_ceiling = peer->send_quota_limit();
+			p.upload_limit = peer->upload_bandwidth.given;
+			p.upload_ceiling = peer->upload_bandwidth.wanted;
 
 			p.load_balancing = peer->total_free_upload();
 

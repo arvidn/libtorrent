@@ -36,39 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/limits.hpp>
 
 namespace libtorrent {
-	
-	resource_consumer::resource_consumer(boost::any who, int desired_use, int current_use)
-		: m_who(who)
-		, m_desired_use(desired_use)
-		, m_current_use(current_use)
-		, m_allowed_use(0)
-	{
-		assert(desired_use>=0);
-		assert(current_use>=0);
-	}
-
-	int resource_consumer::give(int num_resources)
-	{
-		assert(num_resources>0);
-		
-		int accepted_resources=std::min(num_resources, m_desired_use-m_allowed_use);
-		assert(accepted_resources>=0);
-		
-		m_allowed_use+=accepted_resources;
-		assert(m_allowed_use<=m_desired_use);
-		
-		return accepted_resources;
-	}
-
 	namespace
 	{
-		bool by_desired_use(
-			const resource_consumer &a,
-			const resource_consumer &b)
-		{
-			return a.desired_use() < b.desired_use();
-		}
-	
 		int saturated_add(int a, int b)
 		{
 			assert(a>=0);
@@ -92,78 +61,133 @@ namespace libtorrent {
 			return result;
 		}
 
-		int total_demand(std::vector<resource_consumer> & consumers)
-		{
-			int total_demand=0;
 
-			for(int i=0;i<(int)consumers.size();i++)
+		// for use with std::sort
+		bool by_used(const resource_request *a, const resource_request *b)
+		{ return a->used < b->used; }
+
+		// give num_resources to r,
+		// return how how many were actually accepted.
+		int give(resource_request *r, int num_resources)
+		{
+			assert(r);
+			assert(num_resources > 0);
+			assert(r->given <= r->wanted);
+			
+			int accepted=std::min(num_resources, r->wanted - r->given);
+			assert(accepted >= 0);
+
+			r->given += accepted;
+			assert(r->given <= r->wanted);
+
+			return accepted;
+		}
+
+		int total_wanted(std::vector<resource_request *> & requests)
+		{
+			int total_wanted=0;
+
+			for(int i=0;i<(int)requests.size();i++)
 			{
-				total_demand=saturated_add(total_demand, consumers[i].desired_use());
-				if(total_demand == std::numeric_limits<int>::max())
+				total_wanted=
+					saturated_add(total_wanted,requests[i]->wanted);
+				
+				if(total_wanted == std::numeric_limits<int>::max())
 					break;
 			}
 
-			assert(total_demand>=0);
-			return total_demand;
+			assert(total_wanted>=0);
+			return total_wanted;
 		}
 	}
 
-	void allocate_resources(int resources,
-		std::vector<resource_consumer> & consumers)
+#ifndef NDEBUG
+	class allocate_resources_contract_check
 	{
-		assert(resources>=0);
-		
-		// no competition for resources?
-		if(resources==std::numeric_limits<int>::max())
+		int resources;
+		std::vector<resource_request *> & requests;
+	public:
+		allocate_resources_contract_check(int resources_,std::vector<resource_request *> & requests_)
+			: resources(resources_)
+			, requests(requests_)
 		{
-			for(int i=0;i<(int)consumers.size();i++)
-				consumers[i].give(std::numeric_limits<int>::max());
+			assert(resources >= 0);
+			for(int i=0;i<(int)requests.size();i++)
+			{
+				assert(requests[i]->used >= 0);
+				assert(requests[i]->wanted >= 0);
+				assert(requests[i]->given >= 0);
+			}
+		}
+
+		~allocate_resources_contract_check()
+		{
+			int sum_given = 0;
+			int sum_wanted = 0;
+			for(int i=0;i<(int)requests.size();i++)
+			{
+				assert(requests[i]->used >= 0);
+				assert(requests[i]->wanted >= 0);
+				assert(requests[i]->given >= 0);
+				assert(requests[i]->given <= requests[i]->wanted);
+
+				sum_given = saturated_add(sum_given, requests[i]->given);
+				sum_wanted = saturated_add(sum_wanted, requests[i]->wanted);
+			}
+			assert(sum_given == std::min(resources,sum_wanted));
+		}
+	};
+#endif
+
+	void allocate_resources(int resources,
+		std::vector<resource_request *> & requests)
+	{
+#ifndef NDEBUG
+		allocate_resources_contract_check
+			contract_check(resources,requests);
+#endif
+		
+		if(resources == std::numeric_limits<int>::max())
+		{
+			// No competition for resources.
+			// Just give everyone what they want.
+			for(int i=0;i<(int)requests.size();i++)
+				requests[i]->given = requests[i]->wanted;
 		}
 		else
 		{
+			// Resources are scarce
+
+			for(int i=0;i < (int)requests.size();i++)
+				requests[i]->given = 0;
+
+			if(resources == 0)
+				return;
+
 			int resources_to_distribute = 
 				std::min(
 					resources,
-					total_demand(consumers));
+					total_wanted(requests));
 
-			if (resources_to_distribute != 0)
-			{
-				assert(resources_to_distribute>0);
+			if (resources_to_distribute == 0)
+				return;
+
+			assert(resources_to_distribute>0);
 				
-				std::random_shuffle(consumers.begin(),consumers.end());
-				std::sort(consumers.begin(),consumers.end(),by_desired_use);
+			std::random_shuffle(requests.begin(),requests.end());
+			std::sort(requests.begin(),requests.end(),by_used);
 
-				while(resources_to_distribute > 0)
-					for(int i = 0; i < (int)consumers.size() && resources_to_distribute>0; i++)
-						resources_to_distribute -=
-							consumers[i].give(
-								std::min(
-									round_up_division(
-										(int)resources_to_distribute,
-										(int)consumers.size()),
-									std::min(
-										consumers[i].current_use()*2+1, // allow for fast growth
-										consumers[i].desired_use())));
-			}
+			while(resources_to_distribute > 0)
+				for(int i = 0; i < (int)requests.size() && resources_to_distribute>0; i++)
+					resources_to_distribute -=
+						give(
+							requests[i],
+							std::min(
+								requests[i]->used+1,
+								round_up_division(
+									(int)resources_to_distribute,
+									(int)requests.size()-i)));
 			assert(resources_to_distribute == 0);
 		}
-
-#ifndef NDEBUG
-		{
-			int sum_given = 0;
-			int sum_desired = 0;
-			for (std::vector<resource_consumer>::iterator i = consumers.begin();
-				i != consumers.end();
-				++i)
-			{
-				assert(i->allowed_use() <= i->desired_use());
-
-				sum_given = saturated_add(sum_given, i->allowed_use());
-				sum_desired = saturated_add(sum_desired, i->desired_use());
-			}
-			assert(sum_given == std::min(resources,sum_desired));
-		}
-#endif
 	}
-
 }
