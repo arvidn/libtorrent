@@ -425,6 +425,10 @@ namespace libtorrent {
 	{
 	}
 
+	piece_manager::~piece_manager()
+	{
+	}
+
 	void piece_manager::impl::export_piece_map(
 			std::vector<int>& p) const
 	{

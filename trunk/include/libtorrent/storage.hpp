@@ -87,6 +87,8 @@ namespace libtorrent
 			const torrent_info& info
 		  , const boost::filesystem::path& path);
 
+		~piece_manager();
+
 		void check_pieces(
 			boost::mutex& mutex
 		  , detail::piece_checker_data& data
@@ -107,7 +109,7 @@ namespace libtorrent
 
 	private:
 		struct impl;
-		opaque_value_ptr<impl, false> m_pimpl;
+		std::auto_ptr<impl> m_pimpl;
 	};
 
 }
