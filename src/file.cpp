@@ -57,6 +57,10 @@ namespace libtorrent
 	const file::seek_mode file::begin(1);
 	const file::seek_mode file::end(2);
 
+	// TODO: this implementation will behave strange if
+	// a file is opened for both reading and writing
+	// and both read from and written to. Since the
+	// write-file position isn't updated when reading.
 	struct file::impl
 	{
 		impl() {}
@@ -93,8 +97,9 @@ namespace libtorrent
 		size_type write(const char* buf, size_type num_bytes)
 		{
 			// TODO: split the write if num_bytes > 2 gig
+			std::ostream::pos_type a = m_file.tellp();
 			m_file.write(buf, num_bytes);
-			return 0;
+			return m_file.tellp() - a;
 		}
 
 		void seek(size_type offset, int m)
@@ -113,6 +118,7 @@ namespace libtorrent
 		fs::fstream m_file;
 	};
 
+	// pimpl forwardings
 
 	file::file() : m_impl(new impl()) {}
 
