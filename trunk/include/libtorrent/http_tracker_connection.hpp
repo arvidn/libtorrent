@@ -66,7 +66,8 @@ namespace libtorrent
 	public:
 
 		http_tracker_connection(
-			tracker_request const& req
+			tracker_manager& man
+			, tracker_request const& req
 			, std::string const& hostname
 			, unsigned short port
 			, std::string const& request
@@ -79,13 +80,19 @@ namespace libtorrent
 
 	private:
 
+		void init_send_buffer(
+			std::string const& hostname
+			, std::string const& request);
+
 		void parse(const entry& e);
 		peer_entry extract_peer_info(const entry& e);
 
+		tracker_manager& m_man;
 		enum { read_status, read_header, read_body } m_state;
 
 		enum { plain, gzip } m_content_encoding;
 		int m_content_length;
+		std::string m_location;
 
 		boost::shared_ptr<socket> m_socket;
 		int m_recv_pos;
@@ -99,6 +106,9 @@ namespace libtorrent
 		std::string m_server_protocol;
 
 		const http_settings& m_settings;
+		tracker_request m_req;
+		std::string m_password;
+		int m_code;
 	};
 
 }
