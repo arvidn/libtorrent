@@ -1195,7 +1195,7 @@ namespace libtorrent
 				<< m_trackers[m_currently_trying_tracker].url
 				<< "\" timed out";
 			m_ses.m_alerts.post_alert(tracker_alert(get_handle()
-				, m_failed_trackers, s.str()));
+				, m_failed_trackers + 1, s.str()));
 		}
 		try_next_tracker();
 	}
@@ -1215,7 +1215,7 @@ namespace libtorrent
 				<< m_trackers[m_currently_trying_tracker].url
 				<< "\" " << str;
 			m_ses.m_alerts.post_alert(tracker_alert(get_handle()
-				, m_failed_trackers, s.str()));
+				, m_failed_trackers + 1, s.str()));
 		}
 
 
