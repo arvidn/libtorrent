@@ -885,8 +885,6 @@ namespace libtorrent {
 
 		namespace fs = boost::filesystem;
 		
-		std::cout << "allocating pieces...\n";
-
 		std::vector<int>::iterator iter
 			= m_unallocated_slots.begin();
 		std::vector<int>::iterator end_iter 
