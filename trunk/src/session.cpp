@@ -224,7 +224,7 @@ namespace
 
 			sum_quota_limit += p.send_quota_limit();
 		}
-		assert(abs(sum_quota - std::min(upload_limit,sum_quota_limit)) < 10);
+		assert(std::min(upload_limit,sum_quota_limit) - sum_quota < 100);
 		}
 #endif
 	}

@@ -172,3 +172,4 @@ void libtorrent::entry::print(std::ostream& os, int indent) const
 		os << "<uninitialized>\n";
 	}
 }
+

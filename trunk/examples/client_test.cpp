@@ -72,10 +72,12 @@ void set_cursor(int x, int y)
 
 void clear()
 {
+	CONSOLE_SCREEN_BUFFER_INFO si;
 	HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+	GetConsoleScreenBufferInfo(h, &si);
 	COORD c = {0, 0};
 	DWORD n;
-	FillConsoleOutputCharacter(h, ' ', 120 * 80, c, &n);
+	FillConsoleOutputCharacter(h, ' ', si.dwSize.X * si.dwSize.Y, c, &n);
 }
 
 #else
@@ -133,12 +135,12 @@ void clear()
 
 #endif
 
-std::string to_string(float v)
+std::string to_string(float v, int width)
 {
 	std::stringstream s;
-	s.precision(3);
+	s.precision(width-2);
 	s.flags(std::ios_base::right);
-	s.width(4);
+	s.width(width);
 	s.fill(' ');
 	s << v;
 	return s.str();
@@ -146,16 +148,16 @@ std::string to_string(float v)
 
 std::string add_suffix(float val)
 {
-	const char* prefix[] = {"B ", "kB", "MB", "GB", "TB"};
+	const char* prefix[] = {"B", "kB", "MB", "GB", "TB"};
 	const int num_prefix = sizeof(prefix) / sizeof(const char*);
 	int i;
 	for (i = 0; i < num_prefix; ++i)
 	{
 		if (abs(val) < 1024.f)
-			return to_string(val) + prefix[i];
+			return to_string(val, i==0?7:6) + prefix[i];
 		val /= 1024.f;
 	}
-	return to_string(val) + prefix[i];
+	return to_string(val, 6) + prefix[i];
 }
 
 int main(int argc, char* argv[])
@@ -279,7 +281,7 @@ int main(int argc, char* argv[])
 						<< "(" << add_suffix(i->total_download) << ") "
 						<< "u: " << add_suffix(i->up_speed) << "/s "
 						<< "(" << add_suffix(i->total_upload) << ") "
-						<< "df: " << add_suffix((int)i->total_download - (int)i->total_upload) << " "
+//						<< "df: " << add_suffix((int)i->total_download - (int)i->total_upload) << " "
 						<< "l: " << add_suffix(i->upload_limit) << "/s "
 						<< "f: "
 						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
@@ -291,10 +293,13 @@ int main(int argc, char* argv[])
 					{
 						out << i->downloading_piece_index << ";"
 							<< i->downloading_block_index << ": ";
-						float progress = i->downloading_progress / static_cast<float>(i->downloading_total);
-						for (int j = 0; j < 20; ++j)
+						float progress
+							= i->downloading_progress
+							/ static_cast<float>(i->downloading_total)
+							* 35;
+						for (int j = 0; j < 35; ++j)
 						{
-							if (progress * 20 > j) out << "#";
+							if (progress > j) out << "#";
 							else out << "-";
 						}
 						out << "\n";

@@ -65,6 +65,9 @@ libtorrent has been successfully compiled and tested on:
 	* Windows 2000 vc7.1
 	* Linux x86 (debian) GCC 3.0
 
+It does not compile on
+
+	* GCC 2.95
 
 building
 ========
@@ -84,10 +87,11 @@ first have to build boost.thread and boost.filesystem. You do this by, in the di
 produce at least one folder with the 'bin' prefix (and the rest of the name describes
 your platform). Put the files in that folder somewhere in your path.
 
-You can then invoke ``bjam`` in the directories 'boost-1.30.2/libs/thread/build' and
-'boost-1.30.2/libs/filesystem/build'. That will produce the needed libraries. Put these
-libraries in the libtorrent root directory. You then have to modify the makefile to use
-you prefered compiler and to have the correct path to your boost istallation.
+You can then invoke ``bjam`` in the directories 'boost-1.30.2/libs/thread/build',
+'boost-1.30.2/libs/date_time/build' and 'boost-1.30.2/libs/filesystem/build'. That will
+produce the needed libraries. Put these libraries in the libtorrent root directory.
+You then have to modify the makefile to use you prefered compiler and to have the
+correct path to your boost istallation.
 
 Then the makefile should be able to do the rest.
 

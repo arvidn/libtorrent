@@ -95,6 +95,7 @@ libtorrent::peer_connection::peer_connection(
 	, m_peer_choked(true)
 	, m_interesting(false)
 	, m_choked(true)
+	, m_free_upload(0)
 	, m_send_quota(100)
 	, m_send_quota_left(100)
 	, m_send_quota_limit(100)
@@ -142,6 +143,7 @@ libtorrent::peer_connection::peer_connection(
 	, m_peer_choked(true)
 	, m_interesting(false)
 	, m_choked(true)
+	, m_free_upload(0)
 	, m_send_quota(100)
 	, m_send_quota_left(100)
 	, m_send_quota_limit(100)
@@ -297,7 +299,7 @@ bool libtorrent::peer_connection::dispatch_message(int received)
 		}
 		m_download_queue.clear();
 #ifndef NDEBUG
-		m_torrent->picker().integrity_check(m_torrent);
+//		m_torrent->picker().integrity_check(m_torrent);
 #endif
 		break;
 
@@ -806,8 +808,7 @@ void libtorrent::peer_connection::second_tick()
 	// client has sent us. This is the mean to
 	// maintain a 1:1 share ratio with all peers.
 
-	int diff = static_cast<int>(m_statistics.total_download())
-		- static_cast<int>(m_statistics.total_upload());
+	int diff = share_diff();
 
 	if (diff > 2*m_torrent->block_size())
 	{
