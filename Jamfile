@@ -57,8 +57,8 @@ SOURCES =
 	sha1.c
 	;
 
-# use different versions of some files for
-# windows
+
+# some windows specific settings
 
 	if [ modules.peek : NT ] && toolset != msvc-6
 	{
@@ -80,8 +80,8 @@ lib torrent
 	/boost/filesystem//boost_filesystem/<link>static
 	$(LIBS)
 	:
-	<include>./include
 	<threading>multi
+	<link>static
 	: debug release
 	;
 
