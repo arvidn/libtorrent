@@ -30,46 +30,52 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_PEER_INFO_HPP_INCLUDED
-#define TORRENT_PEER_INFO_HPP_INCLUDED
+#ifndef TORRENT_FINGERPRINT_HPP_INCLUDED
+#define TORRENT_FINGERPRINT_HPP_INCLUDED
 
-#include <vector>
-#include "libtorrent/socket.hpp"
+#include <string>
+
 #include "libtorrent/peer_id.hpp"
 
 namespace libtorrent
 {
-	struct peer_info
+
+	struct fingerprint
 	{
-		enum
+		fingerprint(const char* id_string, int major, int minor, int revision, int tag)
+			: major_version(major)
+			, minor_version(minor)
+			, revision_version(revision)
+			, tag_version(tag)
 		{
-			interesting = 0x1,
-			choked = 0x2,
-			remote_interested = 0x4,
-			remote_choked = 0x8
-		};
-		unsigned int flags;
-		address ip;
-		float up_speed;
-		float down_speed;
-		unsigned int total_download;
-		unsigned int total_upload;
-		peer_id id;
-		std::vector<bool> pieces;
-		int upload_limit;
-		int upload_ceiling;
+			assert(major >= 0 && major < 10);
+			assert(minor >= 0 && minor < 10);
+			assert(revision >= 0 && revision < 10);
+			assert(tag >= 0 && tag < 10);
+			assert(std::strlen(id_string) == 2);
+			id[0] = id_string[0];
+			id[1] = id_string[1];
+		}
 
-		int load_balancing;
+		std::string to_string() const
+		{
+			std::stringstream s;
+			s << "-" << id[0] << id[1]
+				<< major_version
+				<< minor_version
+				<< revision_version
+				<< tag_version << "-";
+			return s.str();
+		}
 
-		// the currently downloading piece
-		// if piece index is -1 all associated
-		// members are just set to 0
-		int downloading_piece_index;
-		int downloading_block_index;
-		int downloading_progress;
-		int downloading_total;
+		char id[2];
+		char major_version;
+		char minor_version;
+		char revision_version;
+		char tag_version;
+
 	};
 
 }
 
-#endif // TORRENT_PEER_INFO_HPP_INCLUDED
+#endif // TORRENT_FINGERPRINT_HPP_INCLUDED

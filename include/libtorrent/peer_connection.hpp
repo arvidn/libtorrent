@@ -213,6 +213,9 @@ namespace libtorrent
 		// quota is unlimited.
 		int send_quota_left() const { return m_send_quota_left; }
 
+		int total_free_upload() const
+		{ return m_free_upload; }
+
 		void add_free_upload(int free_upload)
 		{ m_free_upload += free_upload; }
 

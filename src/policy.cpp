@@ -194,9 +194,12 @@ namespace
 			if ((*i)->is_peer_interested() || diff <= 0)
 				continue;
 
+			assert(diff > 0);
 			(*i)->add_free_upload(-diff);
 			accumulator += diff;
+			assert(accumulator > 0);
 		}
+		assert(accumulator >= 0);
 		return accumulator;
 	}
 
@@ -208,7 +211,7 @@ namespace
 		, torrent::peer_iterator end
 		, int free_upload)
 	{
-		if (free_upload == 0) return free_upload;
+		if (free_upload <= 0) return free_upload;
 		int num_peers = 0;
 		int total_diff = 0;
 		for (torrent::peer_iterator i = start; i != end; ++i)

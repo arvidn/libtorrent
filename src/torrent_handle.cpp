@@ -241,6 +241,8 @@ namespace libtorrent
 			p.upload_limit = peer->send_quota();
 			p.upload_ceiling = peer->send_quota_limit();
 
+			p.load_balancing = peer->total_free_upload();
+
 			boost::optional<piece_block_progress> ret = peer->downloading_piece();
 			if (ret)
 			{

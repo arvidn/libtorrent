@@ -130,7 +130,8 @@ The ``session`` class has the following synopsis::
 
 	class session: public boost::noncopyable
 	{
-		session(int listen_port, const std::string& fingerprint = std::string());
+		session(int listen_port, const fingerprint& print);
+		session(int listen_port);
 
 		torrent_handle add_torrent(const torrent_info& t, const std::string& save_path);
 		void remove_torrent(const torrent_handle& h);
@@ -154,9 +155,11 @@ If the torrent you are trying to add already exists in the session (is either qu
 for checking, being checked or downloading) ``add_torrent()`` will throw
 ``duplicate_torrent`` which derives from ``std::exception``.
 
-``fingerprint`` is a short string that will be used in the peer_id to
-identify the client. If the string is longer than 7 characters it will
-be trimmed down to 7 characters. The default is an empty string.
+The difference between the two constructors is that one of them takes a fingerprint
+as argument. If this is ommited, the client will get a default fingerprint stating
+the version of libtorrent. The fingerprint is a short string that will be used in
+the peer-id to identify the client and the client's version. For more details see the
+fingerprint class.
 
 ``set_upload_rate_limit()`` set the maximum number of bytes allowed to be
 sent to peers per second. This bandwidth is distributed among all the peers. If
@@ -582,6 +585,8 @@ fields::
 		int upload_limit;
 		int upload_ceiling;
 
+		int load_balancing;
+
 		int downloading_piece_index;
 		int downloading_block_index;
 		int downloading_progress;
@@ -620,6 +625,12 @@ should sum up to the upload limit set by ``session::set_upload_limit``.
 ``upload_ceiling`` is the current maximum allowed upload rate given the cownload
 rate and share ratio. If the global upload rate is inlimited, the ``upload_limit``
 for every peer will be the same as their ``upload_ceiling``.
+
+``load_balancing`` is a measurment of the balancing of free download (that we get)
+and free upload that we give. Every peer gets a certain amount of free upload, but
+this member says how much *extra* free upload this peer has got. If it is a negative
+number it means that this was a peer from which we have got this amount of free
+download.
 
 You can know which piece, and which part of that piece, that is currently being
 downloaded from a specific peer by looking at the next four members.
@@ -787,7 +798,44 @@ The sha1-algorithm used was implemented by Steve Reid and released as public dom
 For more info, see ``src/sha1.c``.
 
 
+fingerprint
+-----------
 
+The fingerprint class represents information about a client and its version. It is used
+to encode this information into the client's peer id.
+
+This is the class declaration::
+
+	struct fingerprint
+	{
+		fingerprint(const char* id_string, int major, int minor, int revision, int tag);
+
+		std::string to_string() const;
+
+		char id[2];
+		char major_version;
+		char minor_version;
+		char revision_version;
+		char tag_version;
+
+	};
+
+The constructor takes a ``const char*`` that should point to a string constant containing
+exactly two characters. These are the characters that should be unique for your client. Make
+sure not to clash with anybody else. Here are some taken id's:
+
++----------+-----------------------+
+| id chars | client                |
++==========+=======================+
+| 'AZ'     | Azureus               |
++----------+-----------------------+
+| 'LT'     | libtorrent (default)  |
++----------+-----------------------+
+
+The ``major``, ``minor``, ``revision`` and ``tag`` parameters are used to identify the
+version of your client. All these numbers must be within the range [0, 9].
+
+``to_string()`` will generate the actual string put in the peer-id, and return it.
 
 exceptions
 ----------
@@ -964,7 +1012,7 @@ This is a simple client. It doesn't have much output to keep it simple::
 
 		try
 		{
-			session s(6881, "E\x1");
+			session s(6881);
 	
 			std::ifstream in(argv[1], std::ios_base::binary);
 			in.unsetf(std::ios_base::skipws);
