@@ -210,7 +210,7 @@ namespace
 			// (and we should consider it free). If the share diff is
 			// negative, there's no free download to get from this peer.
 			int diff = i->second->share_diff();
-			if (i->second->is_peer_interested() || diff <= 0)
+			if (i->second->is_peer_interested() || diff <= 0 || diff==std::numeric_limits<int>::max())
 				continue;
 
 			assert(diff > 0);
@@ -233,10 +233,13 @@ namespace
 		if (free_upload <= 0) return free_upload;
 		int num_peers = 0;
 		int total_diff = 0;
+		
 		for (torrent::peer_iterator i = start; i != end; ++i)
 		{
-			total_diff += i->second->share_diff();
-			if (!i->second->is_peer_interested() || i->second->share_diff() >= 0) continue;
+			int diff=i->second->share_diff();
+			if(diff==std::numeric_limits<int>::max()) continue;
+			total_diff += diff;
+			if (!i->second->is_peer_interested() || diff >= 0) continue;
 			++num_peers;
 		}
 
@@ -305,6 +308,8 @@ namespace libtorrent
 //			int diff = i->total_download()
 //				- i->total_upload();
 			int diff = c->share_diff();
+			if(diff==std::numeric_limits<int>::max())
+				diff=0;
 
 			int weight = static_cast<int>(c->statistics().download_rate() * 10.f)
 				+ diff
@@ -450,6 +455,7 @@ namespace libtorrent
 				if (c == 0) continue;
 
 				int diff=c->share_diff();
+				// no problem if diff returns std::numeric_limits<int>::max()
 
 				if (diff <= -free_upload_amount
 					&& !c->is_choked())
