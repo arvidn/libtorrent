@@ -115,7 +115,7 @@ namespace libtorrent
 		// loop in session_impl will check for this state
 		// on all torrents once every second, and take
 		// the necessary actions then.
-		void abort() { m_abort = true; m_event = tracker_request::stopped; }
+		void abort();
 		bool is_aborted() const { return m_abort; }
 
 		// is called every second by session. This will
@@ -379,7 +379,7 @@ namespace libtorrent
 		// blocks when requested
 		int m_block_size;
 
-		// if this pointer is 0, the peer_connection is in
+		// if this pointer is 0, the torrent is in
 		// a state where the metadata hasn't been
 		// received yet.
 		std::auto_ptr<piece_manager> m_storage;

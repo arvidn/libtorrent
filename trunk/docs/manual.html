@@ -2205,6 +2205,16 @@ blocks specified by <tt class="docutils literal"><span class="pre">bitmask</span
 </table>
 </td>
 </tr>
+<tr><td><tt class="docutils literal"><span class="pre">file</span> <span class="pre">sizes</span></tt></td>
+<td>list where each entry corresponds to a file in the file list
+in the metadata. Each entry has a list of two values, the
+first value is the size of the file in bytes, the second
+is the timestamp when the last time someone wrote to it.
+This information is used to compare with the files on disk.
+All the files must match exactly this information in order
+to consider the resume data as current. Otherwise a full
+re-check is issued.</td>
+</tr>
 </tbody>
 </table>
 </div>
