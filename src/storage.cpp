@@ -116,6 +116,7 @@ namespace
 
 		boost::shared_ptr<file> open_file(path const& p, file::open_mode m)
 		{
+			assert(p.is_complete());
 			typedef std::map<path, file_entry>::iterator iterator;
 			iterator i = m_files.find(p);
 			if (i != m_files.end())
