@@ -262,9 +262,9 @@ namespace libtorrent
 		, int interval)
 	{
 		m_failed_trackers = 0;
-		// less than 60 seconds announce intervals
+		// less than 5 minutes announce intervals
 		// are insane.
-		if (interval < 60) interval = 60;
+		if (interval < 60 * 5) interval = 60 * 5;
 
 		m_last_working_tracker
 			= prioritize_tracker(m_currently_trying_tracker);
