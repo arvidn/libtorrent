@@ -177,8 +177,8 @@ namespace
 		// this peer doesn't have a faster connection than the
 		// slowest peer. Don't take over any blocks
 		// TODO: is this correct? shouldn't it take over a piece
-		// anyway?
-		if (c.statistics().down_peak() / c.download_queue().size() <= down_speed) return;
+		// anyways?
+//		if (c.statistics().down_peak() / c.download_queue().size() <= down_speed) return;
 
 		// find a suitable block to take over from this peer
 
