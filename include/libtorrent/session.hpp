@@ -97,12 +97,12 @@ namespace libtorrent
 			// is filled in by storage::initialize_pieces()
 			// and represents the progress. It should be a
 			// value in the range [0, 1]
-			float progress;
+			volatile float progress;
 
 			// abort defaults to false and is typically
 			// filled in by torrent_handle when the user
 			// aborts the torrent
-			bool abort;
+			volatile bool abort;
 		};
 
 		struct checker_impl: boost::noncopyable
@@ -158,7 +158,7 @@ namespace libtorrent
 			// the settings for the client
 			http_settings m_settings;
 
-			bool m_abort;
+			volatile bool m_abort;
 			
 #if defined(TORRENT_VERBOSE_LOGGING)
 			boost::shared_ptr<logger> create_log(std::string name)
