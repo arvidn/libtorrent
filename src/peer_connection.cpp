@@ -107,9 +107,11 @@ namespace libtorrent
 		, m_disconnecting(false)
 		, m_became_uninterested(boost::posix_time::second_clock::local_time())
 		, m_became_uninteresting(boost::posix_time::second_clock::local_time())
-//		, m_upload_bandwidth_quota_used(0)
 	{
 		INVARIANT_CHECK;
+
+		m_upload_bandwidth_quota.min = 10;
+		m_upload_bandwidth_quota.max = 10;
 
 		assert(!m_socket->is_blocking());
 		assert(m_torrent != 0);
@@ -173,6 +175,14 @@ namespace libtorrent
 //		, m_upload_bandwidth_quota_used(0)
 	{
 		INVARIANT_CHECK;
+
+		// upload bandwidth will only be given to connections
+		// that are part of a torrent. Since this is an incoming
+		// connection, we have to give it some initial bandwidth
+		// to send the handshake
+		m_upload_bandwidth_quota.min = 10;
+		m_upload_bandwidth_quota.max = 400;
+		m_upload_bandwidth_quota.given = 400;
 
 		assert(!m_socket->is_blocking());
 
@@ -1319,9 +1329,9 @@ namespace libtorrent
 			// than we have uploaded OR if we are a seed
 			// have an unlimited upload rate
 			if(!m_send_buffer.empty() || (!m_requests.empty() && !is_choked()))
-				m_upload_bandwidth_quota.wanted = std::numeric_limits<int>::max();
+				m_upload_bandwidth_quota.max = std::numeric_limits<int>::max();
 			else
-				m_upload_bandwidth_quota.wanted = 1;
+				m_upload_bandwidth_quota.max = m_upload_bandwidth_quota.min;
 		}
 		else
 		{
@@ -1336,17 +1346,17 @@ namespace libtorrent
 			size_type soon_downloaded =
 				have_downloaded + (size_type)(download_speed * break_even_time*1.5);
 
-			if(m_torrent->ratio() != 1.0f)
+			if(m_torrent->ratio() != 1.f)
 				soon_downloaded = (size_type)(soon_downloaded*(double)m_torrent->ratio());
 
 			double upload_speed_limit = (soon_downloaded - have_uploaded
 				                         + bias) / break_even_time;
 
-			upload_speed_limit=std::max(upload_speed_limit,1.0);
-			upload_speed_limit=std::min(upload_speed_limit,
-				                        (double)std::numeric_limits<int>::max());
+			upload_speed_limit = std::min(upload_speed_limit,
+				(double)std::numeric_limits<int>::max());
 
-			m_upload_bandwidth_quota.wanted = (int) upload_speed_limit;
+			m_upload_bandwidth_quota.max
+				= std::max((int)upload_speed_limit, m_upload_bandwidth_quota.min);
 		}
 
 /*
@@ -1924,7 +1934,7 @@ namespace libtorrent
 			return;
 		}
 
-		assert(send_quota_left()>0);
+		assert(send_quota_left() > 0);
 		assert(has_data());
 		if (!m_added_to_selector)
 		{

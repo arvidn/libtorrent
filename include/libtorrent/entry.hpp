@@ -61,7 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 #include <map>
-#include <vector>
+#include <list>
 #include <string>
 #include <stdexcept>
 #include <cassert>
@@ -111,9 +111,9 @@ namespace libtorrent
 		// of elements. Since the info-hash is reconstructed
 		// from an entry, it's important that the order is
 		// preserved.
-		typedef std::vector<std::pair<std::string, entry> > dictionary_type;
+		typedef std::list<std::pair<std::string, entry> > dictionary_type;
 		typedef std::string string_type;
-		typedef std::vector<entry> list_type;
+		typedef std::list<entry> list_type;
 		typedef size_type integer_type;
 
 		enum data_type

@@ -138,7 +138,7 @@ namespace libtorrent
 				for (entry::list_type::const_iterator k = ll.begin(); k != ll.end(); ++k)
 				{
 					announce_entry e;
-					e.tier = (int)(j - l.begin());
+					e.tier = (int)std::distance(l.begin(), j);
 					e.url = k->string();
 					m_urls.push_back(e);
 				}
