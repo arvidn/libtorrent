@@ -1,28 +1,29 @@
+use-project /torrent : .. ;
 
 
 exe client_test
 	: client_test.cpp
-	  ..//torrent
+	  /torrent
 	:
-#	<threading>multi
+	<threading>multi
 	: debug release
 	;
 
 
 exe simple_client
 	: simple_client.cpp
-	  ..//torrent
+	  /torrent
 	:
-#	<threading>multi
+	<threading>multi
 	: debug release
 	;
 
 
 exe dump_torrent
 	: dump_torrent.cpp
-	  ..//torrent
+	  /torrent
 	:
-#	<threading>multi
+	<threading>multi
 	: debug release
 	;
 

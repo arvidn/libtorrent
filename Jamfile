@@ -25,13 +25,6 @@ REQUIREMENTS =
 	<toolset>msvc-7.1:<cxxflags>/Zc:wchar_t
 	<toolset>msvc:<define>WIN32
 
-# gcc switches
-
-	<toolset>gcc:<cxxflags>-Wno-unused-variable
-
-# darwin switches
-
-	<toolset>darwin:<cxxflags>-Wno-unused-variable
 	;
 
 USAGE_REQUIREMENTS =
@@ -83,8 +76,8 @@ ZLIB_SOURCES =
 
 	if [ os.name ] = NT
 	{
-		lib winsock : : <name>wsock32.lib ;
-		REQUIREMENTS += <library>winsock ;
+#		lib wsock32 : : <name>wsock32.lib ;
+		REQUIREMENTS += <library>wsock32.lib ;
 		SOURCES += file_win.cpp ;
 	}
 	else

@@ -707,6 +707,7 @@ namespace libtorrent { namespace detail
 			++j)
 		{
 			torrent* p = boost::get_pointer(j->second);
+			assert(p);
 		}
 #endif
 		if (i != m_torrents.end()) return boost::get_pointer(i->second);
