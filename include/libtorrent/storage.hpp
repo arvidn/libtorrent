@@ -258,6 +258,7 @@ namespace libtorrent
 		int slot_for_piece(int piece_index);
 		
 		void check_invariant() const;
+		void debug_log() const;
 
 		storage m_storage;
 

@@ -544,7 +544,7 @@ namespace libtorrent
 	{
 		size_type size = m_torrent_file.piece_size(piece_index);
 		std::vector<char> buffer(size);
-		m_storage.read(&buffer[0], piece_index, size, 0);
+		m_storage.read(&buffer[0], piece_index, 0, size);
 
 		hasher h;
 		h.update(&buffer[0], size);

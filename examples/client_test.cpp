@@ -252,7 +252,7 @@ int main(int argc, char* argv[])
 				boost::posix_time::time_duration t = s.next_announce;
 //				std::cout << "next announce: " << boost::posix_time::to_simple_string(t) << "\n";
 				std::cout << "next announce: " << t.hours() << ":" << t.minutes() << ":" << t.seconds() << "\n";
-
+/*
 				for (std::vector<peer_info>::iterator i = peers.begin();
 					i != peers.end();
 					++i)
@@ -267,8 +267,8 @@ int main(int argc, char* argv[])
 						<< static_cast<const char*>((i->flags & peer_info::remote_choked)?"c":"_") << "\n";
 
 				}
+*/
 
-/*
 				i->get_download_queue(queue);
 				for (std::vector<partial_piece_info>::iterator i = queue.begin();
 					i != queue.end();
@@ -283,7 +283,7 @@ int main(int argc, char* argv[])
 					}
 					std::cout << "\n";
 				}
-*/
+
 				std::cout << "___________________________________\n";
 
 			}
