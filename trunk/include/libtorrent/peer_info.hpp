@@ -69,6 +69,11 @@ namespace libtorrent
 		// for yet
 		int download_queue_length;
 
+		// this is the number of requests
+		// the peer has sent to us
+		// that we haven't sent yet
+		int upload_queue_length;
+
 		// the currently downloading piece
 		// if piece index is -1 all associated
 		// members are just set to 0

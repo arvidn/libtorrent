@@ -219,8 +219,8 @@ int main(int argc, char* argv[])
 		std::vector<torrent_handle> handles;
 		session ses(6881);
 
-		// limit global upload rate to 30 kB/s
-		ses.set_upload_rate_limit(30 * 1024);
+//		// limit global upload rate to 30 kB/s
+//		ses.set_upload_rate_limit(30 * 1024);
 		ses.set_http_settings(settings);
 		ses.set_severity_level(alert::debug);
 
@@ -249,8 +249,8 @@ int main(int argc, char* argv[])
 				{}
 
 				handles.push_back(ses.add_torrent(t, save_path, resume_data));
-				handles.back().set_max_uploads(7);
-				handles.back().set_ratio(1);
+				handles.back().set_max_uploads(-1);
+				handles.back().set_ratio(1.02);
 			}
 			catch (std::exception& e)
 			{
@@ -357,8 +357,11 @@ int main(int argc, char* argv[])
 						<< "(" << add_suffix(i->total_download) << ") "
 						<< "u: " << add_suffix(i->up_speed) << "/s "
 						<< "(" << add_suffix(i->total_upload) << ") "
+						<< "ul:" << add_suffix(i->upload_limit) << "/s "
+//						<< "uc:" << add_suffix(i->upload_ceiling) << "/s "
 //						<< "df: " << ratio(i->total_download, i->total_upload) << " "
-						<< "q: " << i->download_queue_length << " "
+//						<< "q: " << i->download_queue_length << " "
+						<< "r: " << i->upload_queue_length << " "
 						<< "f: "
 						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
 						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
@@ -367,7 +370,7 @@ int main(int argc, char* argv[])
 						<< static_cast<const char*>((i->flags & peer_info::supports_extensions)?"e":"_")
 						<< static_cast<const char*>((i->flags & peer_info::local_connection)?"l":"r")
 						<< "\n";
-
+/*
 					if (i->downloading_piece_index >= 0)
 					{
 						out << i->downloading_piece_index << ";"
@@ -383,8 +386,9 @@ int main(int argc, char* argv[])
 						}
 						out << "\n";
 					}
+*/
 				}
-
+/*
 				out << "___________________________________\n";
 
 				i->get_download_queue(queue);
@@ -405,19 +409,20 @@ int main(int argc, char* argv[])
 				}
 
 				out << "___________________________________\n";
-
+*/
 			}
-
+/*
 			for (std::deque<std::string>::iterator i = events.begin();
 				i != events.end();
 				++i)
 			{
 				out << *i << "\n";
 			}
-
+*/
 			clear();
 			set_cursor(0, 0);
 			std::cout << out.str();
+			std::cout.flush();
 		}
 	}
 	catch (std::exception& e)

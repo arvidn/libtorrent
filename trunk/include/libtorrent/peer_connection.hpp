@@ -244,6 +244,8 @@ namespace libtorrent
 
 		const std::deque<piece_block>& download_queue() const
 		{ return m_download_queue; }
+		const std::deque<peer_request>& upload_queue() const
+		{ return m_requests; }
 
 		// returns the block currently being
 		// downloaded. And the progress of that

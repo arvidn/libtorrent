@@ -302,8 +302,9 @@ namespace libtorrent
 			if (!c->is_peer_interested())
 				return &(*i);
 
-			int diff = i->total_download()
-				- i->total_upload();
+//			int diff = i->total_download()
+//				- i->total_upload();
+			int diff = c->share_diff();
 
 			int weight = static_cast<int>(c->statistics().download_rate() * 10.f)
 				+ diff
@@ -448,18 +449,17 @@ namespace libtorrent
 				peer_connection* c = i->connection;
 				if (c == 0) continue;
 
-				int downloaded = i->total_download();
-				int uploaded = i->total_upload();
+				int diff=c->share_diff();
 
-				if (downloaded - uploaded < -free_upload_amount
+				if (diff <= -free_upload_amount
 					&& !c->is_choked())
 				{
 					// if we have uploaded more than a piece for free, choke peer and
 					// wait until we catch up with our download.
 					c->send_choke();
 				}
-				else if (downloaded - uploaded > -free_upload_amount
-					&& c->is_choked() && c->is_peer_interested())
+				else if (diff > -free_upload_amount
+					&& c->is_choked() /* && c->is_peer_interested()*/)
 				{
 					// we have catched up. We have now shared the same amount
 					// to eachother. Unchoke this peer.

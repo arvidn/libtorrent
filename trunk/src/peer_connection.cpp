@@ -1143,7 +1143,9 @@ namespace libtorrent
 
 		int diff = share_diff();
 
-		if (diff > 2*m_torrent->block_size() || m_torrent->is_seed())
+		enum { blockLimit=2 }; // how many blocks difference is considered unfair
+
+		if (diff > blockLimit*m_torrent->block_size() || m_torrent->is_seed())
 		{
 			// if we have downloaded more than one piece more
 			// than we have uploaded OR if we are a seed
@@ -1158,7 +1160,7 @@ namespace libtorrent
 			// if we have uploaded too much, send with a rate of
 			// 10 kB/s less than we receive
 			int bias = 0;
-			if (diff > -2*m_torrent->block_size())
+			if (diff > -blockLimit*m_torrent->block_size())
 			{
 				bias = static_cast<int>(m_statistics.download_rate() * ratio) / 2;
 				if (bias < 10*1024) bias = 10*1024;
