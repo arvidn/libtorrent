@@ -943,7 +943,7 @@ namespace libtorrent
 				for (int k = 0; k < 8; ++k)
 				{
 					const int bit = j * 8 + k;
-					if (bits & (1 << bit))
+					if (bits & (1 << k))
 						p.finished_blocks[bit] = true;
 				}
 			}
