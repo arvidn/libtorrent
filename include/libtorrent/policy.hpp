@@ -203,7 +203,7 @@ namespace libtorrent
 
 				return p.connection == 0
 					&& p.connected != not_tried_yet
-					&& second_clock::local_time() - p.connected > minutes(30);
+					&& second_clock::universal_time() - p.connected > minutes(30);
 			}
 		};
 

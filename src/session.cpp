@@ -77,6 +77,8 @@ namespace std
 };
 #endif
 
+using namespace boost::posix_time;
+
 namespace libtorrent { namespace detail
 {
 
@@ -320,7 +322,7 @@ namespace libtorrent { namespace detail
 		std::vector<boost::shared_ptr<socket> > readable_clients;
 		std::vector<boost::shared_ptr<socket> > writable_clients;
 		std::vector<boost::shared_ptr<socket> > error_clients;
-		boost::posix_time::ptime timer = boost::posix_time::second_clock::local_time();
+		boost::posix_time::ptime timer = second_clock::universal_time();
 
 #ifndef NDEBUG
 		int loops_per_second = 0;
@@ -597,9 +599,9 @@ namespace libtorrent { namespace detail
 			check_invariant("after ERROR SOCKETS");
 #endif
 
-			boost::posix_time::time_duration d = boost::posix_time::second_clock::local_time() - timer;
+			boost::posix_time::time_duration d = second_clock::universal_time() - timer;
 			if (d.seconds() < 1) continue;
-			timer = boost::posix_time::second_clock::local_time();
+			timer = second_clock::universal_time();
 
 			// ************************
 			// THE SECTION BELOW IS EXECUTED ONCE EVERY SECOND

@@ -559,11 +559,13 @@ The ``torrent_info`` has the following synopsis::
 	{
 	public:
 
-		torrent_info(entry const& torrent_file)
-		torrent_info(int piece_size, const char* name);
+		torrent_info();
+		torrent_info(sha1_hash const& info_hash);
+		torrent_info(entry const& torrent_file);
 
 		entry create_torrent() const;
 		void set_comment(char const* str);
+		void set_piece_size(int size);
 		void set_creator(char const* str);
 		void set_hash(int index, const sha1_hash& h);
 		void add_tracker(std::string const& url, int tier = 0);
@@ -2318,7 +2320,7 @@ __ http://www.boost.org/libs/filesystem/doc/index.htm
 
 
 acknowledgements
-===============
+================
 
 Written by Arvid Norberg. Copyright (c) 2003
 

@@ -128,7 +128,7 @@ namespace libtorrent
 		, m_total_size(0)
 		, m_info_hash(info_hash)
 		, m_name()
-		, m_creation_date(second_clock::local_time())
+		, m_creation_date(second_clock::universal_time())
 	{
 	}
 
@@ -137,7 +137,7 @@ namespace libtorrent
 		, m_total_size(0)
 		, m_info_hash(0)
 		, m_name()
-		, m_creation_date(second_clock::local_time())
+		, m_creation_date(second_clock::universal_time())
 	{
 	}
 
@@ -363,13 +363,12 @@ namespace libtorrent
 
 		entry info(entry::dictionary_t);
 
-		info["length"] = m_total_size;
-
 		assert(!m_files.empty());
 
 		if (m_files.size() == 1)
 		{
 			info["name"] = m_name;
+			info["length"] = m_files.front().size;
 		}
 		else
 		{

@@ -115,7 +115,7 @@
 </ul>
 </li>
 <li><a class="reference" href="#filename-checks" id="id96" name="id96">filename checks</a></li>
-<li><a class="reference" href="#aknowledgements" id="id97" name="id97">aknowledgements</a></li>
+<li><a class="reference" href="#acknowledgements" id="id97" name="id97">acknowledgements</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
@@ -635,11 +635,13 @@ class torrent_info
 {
 public:
 
-        torrent_info(entry const&amp; torrent_file)
-        torrent_info(int piece_size, const char* name);
+        torrent_info();
+        torrent_info(sha1_hash const&amp; info_hash);
+        torrent_info(entry const&amp; torrent_file);
 
         entry create_torrent() const;
         void set_comment(char const* str);
+        void set_piece_size(int size);
         void set_creator(char const* str);
         void set_hash(int index, const sha1_hash&amp; h);
         void add_tracker(std::string const&amp; url, int tier = 0);
@@ -2326,8 +2328,8 @@ boost::filesystem::path::default_name_check(boost::filesystem::native);
 </pre>
 <p>for example. For more information, see the <a class="reference" href="http://www.boost.org/libs/filesystem/doc/index.htm">Boost.Filesystem docs</a>.</p>
 </div>
-<div class="section" id="aknowledgements">
-<h1><a name="aknowledgements">aknowledgements</a></h1>
+<div class="section" id="acknowledgements">
+<h1><a name="acknowledgements">acknowledgements</a></h1>
 <p>Written by Arvid Norberg. Copyright (c) 2003</p>
 <p>Contributions by Magnus Jonsson and Daniel Wallin</p>
 <p>Thanks to Reimond Retz for bugfixes, suggestions and testing</p>

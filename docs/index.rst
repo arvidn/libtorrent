@@ -58,7 +58,7 @@ You can usually find me as hydri in ``#btports @ irc.freenode.net``.
 
 
 Acknowledgements
-===============
+================
 
 Written by Arvid Norberg. Copyright (c) 2003
 

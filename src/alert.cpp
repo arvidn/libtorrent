@@ -37,7 +37,7 @@ namespace libtorrent {
 	alert::alert(severity_t severity, const std::string& msg)
 		: m_msg(msg)
 		, m_severity(severity)
-		, m_timestamp(boost::posix_time::second_clock::local_time())
+		, m_timestamp(boost::posix_time::second_clock::universal_time())
 	{
 	}
 
