@@ -369,11 +369,11 @@ namespace libtorrent
 
 		if (m_files.size() == 1)
 		{
-			info["name"] = m_files.front().path.string();
+			info["name"] = m_name;
 		}
 		else
 		{
-			info["name"] = m_files.front().path.root_name();
+			info["name"] = m_name;
 		}
 
 		if (m_files.size() > 1)

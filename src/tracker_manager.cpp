@@ -74,6 +74,51 @@ namespace
 namespace libtorrent
 {
 
+	address parse_url(std::string const& url)
+	{
+		std::string hostname; // hostname only
+		int port = 80;
+
+		// PARSE URL
+		std::string::const_iterator start = url.begin();
+		std::string::const_iterator end
+			= std::find(url.begin(), url.end(), ':');
+
+		if (end == url.end()) throw std::runtime_error("invalid url");
+		++end;
+		if (end == url.end()) throw std::runtime_error("invalid url");
+		if (*end != '/') throw std::runtime_error("invalid url");
+		++end;
+		if (end == url.end()) throw std::runtime_error("invalid url");
+		if (*end != '/') throw std::runtime_error("invalid url");
+		++end;
+		start = end;
+
+		end = std::find(start, url.end(), '/');
+		std::string::const_iterator port_pos
+			= std::find(start, url.end(), ':');
+
+		if (port_pos < end)
+		{
+			hostname.assign(start, port_pos);
+			++port_pos;
+			try
+			{
+				port = boost::lexical_cast<int>(std::string(port_pos, end));
+			}
+			catch(boost::bad_lexical_cast&)
+			{
+				throw std::runtime_error("invalid url: \"" + url + "\"");
+			}
+		}
+		else
+		{
+			hostname.assign(start, end);
+		}
+
+		return address(hostname.c_str(), port);
+	}
+
 	// returns -1 if gzip header is invalid or the header size in bytes
 	int gzip_header(const char* buf, int size)
 	{
