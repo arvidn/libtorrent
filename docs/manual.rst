@@ -38,7 +38,7 @@ The current state includes the following features:
 	  of a resumed torrent. Saves the storage state, piece_picker state as well as all local
 	  peers in a separate fast-resume file.
 	* supports the extension protocol `described by Nolar`__. See extensions_.
-	* supports files > 2 gigabytes (currently only on windows).
+	* supports files > 2 gigabytes.
 	* supports the ``no_peer_id=1`` extension that will ease the load off trackers.
 	* supports the `udp-tracker protocol`__ by Olaf van der Spek.
 	* possibility to limit the number of connections.
