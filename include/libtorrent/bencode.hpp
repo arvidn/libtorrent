@@ -132,7 +132,7 @@ namespace libtorrent
 		template<class InIt>
 		std::string read_string(InIt& in, InIt end,  int len)
 		{
-			assert(len>=0);
+			assert(len >= 0);
 			std::string ret;
 			for (int i = 0; i < len; ++i)
 			{

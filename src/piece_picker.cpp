@@ -59,8 +59,8 @@ namespace libtorrent
 		, m_downloading_piece_info(2)
 		, m_piece_map((total_num_blocks + blocks_per_piece-1) / blocks_per_piece)
 	{
-		assert(blocks_per_piece>0);
-		assert(total_num_blocks>0);
+		assert(blocks_per_piece > 0);
+		assert(total_num_blocks > 0);
 
 		m_blocks_per_piece = blocks_per_piece;
 		m_blocks_in_last_piece = total_num_blocks % blocks_per_piece;
@@ -103,7 +103,8 @@ namespace libtorrent
 			++i)
 		{
 			int index = *i;
-			assert(index >= 0 && index < (int)m_piece_map.size());
+			assert(index >= 0);
+			assert(index < (int)m_piece_map.size());
 			assert(m_piece_map[index].index  == 0xffffff);
 
 			int peer_count = m_piece_map[index].peer_count;
@@ -393,7 +394,9 @@ namespace libtorrent
 
 	void piece_picker::we_have(int index)
 	{
-		assert(index >= 0 && index < (int)m_piece_map.size());
+		assert(index >= 0);
+		assert(index < (int)m_piece_map.size());
+
 		int info_index = m_piece_map[index].index;
 		int peer_count = m_piece_map[index].peer_count;
 
@@ -410,7 +413,7 @@ namespace libtorrent
 		std::vector<piece_block>& interesting_pieces,
 		int num_blocks) const
 	{
-		assert(num_blocks>0);
+		assert(num_blocks > 0);
 		assert(pieces.size() == m_piece_map.size());
 
 #ifndef NDEBUG
@@ -452,7 +455,7 @@ namespace libtorrent
 		std::vector<piece_block>& interesting_blocks,
 		int num_blocks) const
 	{
-		assert(num_blocks>0);
+		assert(num_blocks > 0);
 
 		for (std::vector<int>::const_iterator i = piece_list.begin();
 			i != piece_list.end();
