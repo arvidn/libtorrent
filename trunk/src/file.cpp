@@ -56,6 +56,11 @@ typedef int mode_t;
 #define O_BINARY 0
 #endif
 
+#ifndef O_RANDOM
+#define O_RANDOM 0
+#endif
+
+
 namespace fs = boost::filesystem;
 
 namespace
@@ -65,8 +70,8 @@ namespace
 	mode_t map_open_mode(int m)
 	{
 //		if (m == (mode_in | mode_out)) return O_RDWR | O_BINARY;
-		if (m == mode_out) return O_WRONLY | O_CREAT | O_BINARY;
-		if (m == mode_in) return O_RDONLY | O_BINARY;
+		if (m == mode_out) return O_WRONLY | O_CREAT | O_BINARY | O_RANDOM;
+		if (m == mode_in) return O_RDONLY | O_BINARY | O_RANDOM;
 		assert(false);
 	}
 }
@@ -113,9 +118,6 @@ namespace libtorrent
 					<< strerror(errno);
 				throw file_error(msg.str());
 			}
-#ifdef WIN32
-			assert(_lseeki64(m_fd, 0, SEEK_SET) == 0);
-#endif
 			m_open_mode = mode;
 		}
 
@@ -172,14 +174,20 @@ namespace libtorrent
 #else
 			size_type ret = lseek(m_fd, offset, seekdir);
 #endif
-/*
+
+			// For some strange reason this fails
+			// on win32. Use windows specific file
+			// wrapper instead.
 			if (ret == -1)
 			{
 				std::stringstream msg;
-				msg << "seek failed: '" << strerror(errno) << "' fd: " << m_fd << " offset: " << offset << " seekdir: " << seekdir;
+				msg << "seek failed: '" << strerror(errno)
+					<< "' fd: " << m_fd
+					<< " offset: " << offset
+					<< " seekdir: " << seekdir;
 				throw file_error(msg.str());
 			}
-*/
+
 		}
 
 		size_type tell()

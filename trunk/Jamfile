@@ -93,6 +93,11 @@ ZLIB_SOURCES =
 	if [ modules.peek : NT ]
 	{
 		LIBS += winsock ;
+		SOURCES += file_win.cpp
+	}
+	else
+	{
+		SOURCES += file.cpp
 	}
 
 lib torrent
