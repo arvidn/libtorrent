@@ -56,7 +56,7 @@ SOURCES =
 	tracker_manager.cpp
 	http_tracker_connection.cpp
 	udp_tracker_connection.cpp
-	sha1.c
+	sha1.cpp
 	;
 
 ZLIB_SOURCES = 

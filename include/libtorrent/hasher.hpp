@@ -34,21 +34,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HASHER_HPP_INCLUDED
 
 #include <cassert>
+#include <boost/cstdint.hpp>
+
+// from sha1.cpp
+struct SHA1_CTX
+{
+	boost::uint32_t state[5];
+	boost::uint32_t count[2];
+	boost::uint8_t buffer[64];
+};
+
+void SHA1Init(SHA1_CTX* context);
+void SHA1Update(SHA1_CTX* context, boost::uint8_t const* data, boost::uint32_t len);
+void SHA1Final(SHA1_CTX* context, boost::uint8_t* digest);
 
 extern "C"
 {
-	typedef struct {
-		unsigned int state[5];
-		unsigned int count[2];
-		unsigned char buffer[64];
-	} SHA1_CTX;
-
-	/* from sha1.c */
-	void SHA1Init(SHA1_CTX* context);
-	void SHA1Update(SHA1_CTX* context, unsigned char* data, unsigned int len);
-	void SHA1Final(unsigned char* digest, SHA1_CTX* context);
-
-	/* from zlib/adler32.c */
+	// from zlib/adler32.c
 	unsigned long adler32(unsigned long adler, const char* data, unsigned int len);
 }
 
@@ -90,7 +92,7 @@ namespace libtorrent
 		sha1_hash final()
 		{
 			sha1_hash digest;
-			SHA1Final(digest.begin(), &m_context);
+			SHA1Final(&m_context, digest.begin());
 			return digest;
 		}
 
