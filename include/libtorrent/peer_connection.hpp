@@ -224,6 +224,8 @@ namespace libtorrent
 		bool supports_extension(extension_index ex) const
 		{ return m_extension_messages[ex] != -1; }
 
+		bool has_metadata() const;
+
 		// the message handlers are called
 		// each time a recv() returns some new
 		// data, the last time it will be called
@@ -264,8 +266,8 @@ namespace libtorrent
 		void send_handshake();
 		void send_extensions();
 		void send_chat_message(const std::string& msg);
-		void send_metadata(int start, int size);
-		void send_metadata_request(int start, int size);
+		void send_metadata(std::pair<int, int> req);
+		void send_metadata_request(std::pair<int, int> req);
 
 		// how much bandwidth we're using, how much we want,
 		// and how much we are allowed to use.
@@ -511,6 +513,10 @@ namespace libtorrent
 		// request to this peer, and reset to false when
 		// we receive a reply to our request.
 		bool m_waiting_metadata_request;
+
+		// if we're waiting for a metadata request
+		// this was the request we sent
+		std::pair<int, int> m_last_metadata_request;
 	};
 }
 

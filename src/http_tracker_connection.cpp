@@ -161,7 +161,8 @@ namespace libtorrent
 		m_send_buffer += key_string.str();
 		m_send_buffer += "&compact=1";
 		m_send_buffer += "&numwant=";
-		m_send_buffer += boost::lexical_cast<std::string>(req.num_want);
+		m_send_buffer += boost::lexical_cast<std::string>(
+			std::min(req.num_want, 999));
 
 		// extension that tells the tracker that
 		// we don't need any peer_id's in the response

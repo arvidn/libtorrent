@@ -995,12 +995,11 @@ namespace libtorrent
 
 		// first, create all missing directories
 		for (torrent_info::file_iterator file_iter = m_info.begin_files(),
-			end_iter = m_info.end_files(); 
-			file_iter != end_iter;
-			++file_iter)
+			end_iter = m_info.end_files();  file_iter != end_iter; ++file_iter)
 		{
 			fs::path dir = m_save_path / get_filename(m_info, file_iter->path);
-			fs::create_directories(dir.branch_path());
+			if (!fs::exists(dir.branch_path()))
+				fs::create_directories(dir.branch_path());
 		}
 
 		std::vector<char> piece_data(static_cast<int>(m_info.piece_length()));

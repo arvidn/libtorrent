@@ -79,6 +79,10 @@ namespace libtorrent
 		struct piece_checker_data;
 	}
 
+	int div_round_up(int numerator, int denominator);
+	std::pair<int, int> req_to_offset(std::pair<int, int> req, int total_size);
+	std::pair<int, int> offset_to_req(std::pair<int, int> offset, int total_size);
+
 	// a torrent is a class that holds information
 	// for a specific download. It updates itself against
 	// the tracker
@@ -344,6 +348,7 @@ namespace libtorrent
 		// returns a range of the metadata that
 		// we should request.
 		std::pair<int, int> metadata_request();
+		void cancel_metadata_request(std::pair<int, int> req);
 
 	private:
 

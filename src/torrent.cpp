@@ -501,7 +501,7 @@ namespace libtorrent
 		assert(!urls.empty());
 		m_trackers = urls;
 		if (m_currently_trying_tracker >= (int)m_trackers.size())
-			m_currently_trying_tracker = m_trackers.size()-1;
+			m_currently_trying_tracker = (int)m_trackers.size()-1;
 		m_last_working_tracker = -1;
 	}
 
@@ -982,6 +982,43 @@ namespace libtorrent
 				boost::bind(&std::map<address,peer_connection*>::value_type::second, _1)));
 	}
 
+	int div_round_up(int numerator, int denominator)
+	{
+		return (numerator + denominator - 1) / denominator;
+	}
+
+	std::pair<int, int> req_to_offset(std::pair<int, int> req, int total_size)
+	{
+		assert(req.first >= 0);
+		assert(req.second > 0);
+		assert(req.second <= 256);
+		assert(req.first + req.second <= 256);
+
+		int start = div_round_up(req.first * total_size, 256);
+		int size = div_round_up((req.first + req.second) * total_size, 256) - start;
+		return std::make_pair(start, size);
+	}
+
+	std::pair<int, int> offset_to_req(std::pair<int, int> offset, int total_size)
+	{
+		int start = offset.first * 256 / total_size;
+		int size = (offset.first + offset.second) * 256 / total_size - start;
+
+		std::pair<int, int> ret(start, size);
+	
+		assert(start >= 0);
+		assert(size > 0);
+		assert(start <= 256);
+		assert(start + size <= 256);
+
+		// assert the identity of this function
+#ifndef NDEBUG
+		std::pair<int, int> identity = req_to_offset(ret, total_size);
+		assert(offset == identity);
+#endif
+		return ret;
+	}
+
 	bool torrent::received_metadata(char const* buf, int size, int offset, int total_size)
 	{
 		INVARIANT_CHECK;
@@ -997,28 +1034,19 @@ namespace libtorrent
 			, &m_metadata[offset]);
 
 		if (m_have_metadata.empty())
-			m_have_metadata.resize(255, false);
+			m_have_metadata.resize(256, false);
 
-		int start = offset * 255 / (int)m_metadata.size();
-		if ((offset * 255) % (int)m_metadata.size() != 0)
-			throw protocol_error("unaligned metadata message offset");
-
-		int block_size = size * (255 - offset) / (int)m_metadata.size() - start;
-
-		assert(start >= 0);
-		assert(block_size > 0);
-		assert(start < 256);
-		assert(start + block_size <= 256);
+		std::pair<int, int> req = offset_to_req(std::make_pair(offset, size), total_size);
 
 		std::fill(
-			m_have_metadata.begin() + start
-			, m_have_metadata.begin() + start + block_size
+			m_have_metadata.begin() + req.first
+			, m_have_metadata.begin() + req.first + req.second
 			, true);
 	
 		bool have_all = std::count(
 			m_have_metadata.begin()
 			, m_have_metadata.end()
-			, true) == 255;
+			, true) == 256;
 
 		if (!have_all) return false;
 
@@ -1030,7 +1058,7 @@ namespace libtorrent
 		{
 			std::fill(
 				m_have_metadata.begin()
-				, m_have_metadata.end() + start + block_size
+				, m_have_metadata.end() + req.first + req.second
 				, false);
 			return false;
 		}
@@ -1055,8 +1083,9 @@ namespace libtorrent
 
 		// all peer connections have to initialize themselves now that the metadata
 		// is available
-		for (std::map<address, peer_connection*>::iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
+		typedef std::map<address, peer_connection*> conn_map;
+		for (conn_map::iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
 		{
 			i->second->init();
 		}
@@ -1074,15 +1103,61 @@ namespace libtorrent
 
 	std::pair<int, int> torrent::metadata_request()
 	{
-		// TODO: count the peers that supports the
-		// metadata extension
-		// check to see if we know how big the metadata
-		// is (if m_metadata.size() > 0)
-		std::pair<int, int> ret(0, 256);
+		// count the number of peers that supports the
+		// extension and that has metadata
+		int peers = 0;
+		typedef std::map<address, peer_connection*> conn_map;
+		for (conn_map::iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
+		{
+			if (!i->second->supports_extension(
+				peer_connection::extended_metadata_message))
+				continue;
+			if (!i->second->has_metadata())
+				continue;
+			++peers;
+		}
 
+		// the number of blocks to request
+		int num_blocks = 256 / (peers + 1);
+		if (num_blocks < 1) num_blocks = 1;
+		assert(num_blocks <= 128);
+
+		int min_element = std::numeric_limits<int>::max();
+		int best_index = 0;
+		for (int i = 0; i < 256 - num_blocks + 1; ++i)
+		{
+			int min = *std::min_element(m_requested_metadata.begin() + i
+				, m_requested_metadata.begin() + i + num_blocks);
+			min += std::accumulate(m_requested_metadata.begin() + i
+				, m_requested_metadata.begin() + i + num_blocks, (int)0);
+
+			if (min_element > min)
+			{
+				best_index = i;
+				min_element = min;
+			}
+		}
+
+		std::pair<int, int> ret(best_index, num_blocks);
 		for (int i = ret.first; i < ret.first + ret.second; ++i)
 			m_requested_metadata[i]++;
+
+		assert(ret.first >= 0);
+		assert(ret.second > 0);
+		assert(ret.second <= 256);
+		assert(ret.first + ret.second <= 256);
+
 		return ret;
+	}
+
+	void torrent::cancel_metadata_request(std::pair<int, int> req)
+	{
+		for (int i = req.first; i < req.first + req.second; ++i)
+		{
+            assert(m_requested_metadata[i] > 0);
+			--m_requested_metadata[i];
+		}
 	}
 
 	void torrent::tracker_request_timed_out()
