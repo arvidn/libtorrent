@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg, Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -826,16 +826,19 @@ entry::integer_type libtorrent::storage::piece_storage(int piece)
 
 	if (result != -1)
 	{
-			return result;
+		return result;
 	}
 
 	if (m_free_pieces.empty())
 	{
-		allocate_pieces(5);
+		allocate_pieces(5000);
 		assert(!m_free_pieces.empty());
 	}
 
 	entry::integer_type wanted_pos = piece * m_torrent_file->piece_length();
+
+	int n = m_free_pieces.size();
+	int m = m_free_blocks.size();
 
 	std::vector<entry::integer_type>::iterator iter(
 		std::find(
@@ -1149,6 +1152,11 @@ void libtorrent::storage::initialize_pieces(torrent* t,
 	entry::integer_type start_of_read = 0;
 	entry::integer_type start_of_file = 0;
 
+	{
+		boost::mutex::scoped_lock lock(mutex);
+		data->progress = 0.f;
+	}
+
 	for (torrent_info::file_iterator file_iter = m_torrent_file->begin_files(),
 		  end_iter = m_torrent_file->end_files(); 
 		  file_iter != end_iter;)
@@ -1156,9 +1164,7 @@ void libtorrent::storage::initialize_pieces(torrent* t,
 		{
 			boost::mutex::scoped_lock lock(mutex);
 
-// TODO: finish
-//			data->progress = ;
-
+			data->progress += (float)current_piece / m_torrent_file->num_pieces();
 			if (data->abort)
 				return;
 		}
