@@ -1147,13 +1147,13 @@ namespace libtorrent
 				file_sizes.push_back(i->integer());
 			}
 #else
-//			typedef entry::integer_type (entry::*mem_fun_type)() const;
+			typedef entry::integer_type const& (entry::*mem_fun_type)() const;
 
 			std::transform(
 				l.begin()
 				, l.end()
 				, std::back_inserter(file_sizes)
-				, boost::bind(&entry::integer, _1));
+				, boost::bind((mem_fun_type)&entry::integer, _1));
 #endif
 			if (!match_filesizes(info, save_path, file_sizes))
 				return;
