@@ -568,6 +568,8 @@ namespace libtorrent
 	// called when a peer is no longer interested in us
 	void policy::not_interested(peer_connection& c)
 	{
+		// TODO: return the diff() of this peer to the
+		// pool of undistributed free upload
 	}
 
 	bool policy::unchoke_one_peer()
