@@ -26,7 +26,6 @@ REQUIREMENTS =
 
 	<toolset>msvc-7:<cxxflags>/Zc:wchar_t
 	<toolset>msvc-7.1:<cxxflags>/Zc:wchar_t
-	<toolset>msvc:<define>WIN32
 
 	;
 
@@ -106,7 +105,6 @@ lib torrent
 	<threading>multi
 	<link>static
 #	<variant>debug:<define>TORRENT_VERBOSE_LOGGING
-	<define>TORRENT_ENABLE_EXTENSIONS
 	: debug release
 	;
 

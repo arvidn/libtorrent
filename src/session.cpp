@@ -237,6 +237,7 @@ namespace libtorrent { namespace detail
 		try
 		{
 			// create listener socket
+			m_selector.remove(m_listen_socket);
 			m_listen_socket = boost::shared_ptr<socket>(new socket(socket::tcp, false));
 
 			for(;;)
@@ -872,7 +873,7 @@ namespace libtorrent
 		return torrent_handle(&m_impl, &m_checker_impl, ti.info_hash());
 	}
 
-#ifdef TORRENT_ENABLE_EXTENSIONS
+#ifndef TORRENT_DISABLE_EXTENSIONS
 	torrent_handle session::add_torrent(
 		char const* tracker_url
 		, sha1_hash const& info_hash

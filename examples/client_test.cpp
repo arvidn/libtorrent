@@ -218,7 +218,7 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 {
 	using namespace libtorrent;
 
-	out << " down       up        q  r  flags  block\n";
+	out << " down       up         q  r flags  block\n";
 
 	for (std::vector<peer_info>::const_iterator i = peers.begin();
 		i != peers.end();
@@ -233,14 +233,15 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 //						<< "ul:" << add_suffix(i->upload_limit) << "/s "
 //						<< "uc:" << add_suffix(i->upload_ceiling) << "/s "
 //						<< "df:" << ratio(i->total_download, i->total_upload) << " "
-			<< i->download_queue_length << " "
-			<< i->upload_queue_length << " "
+			<< to_string(i->download_queue_length, 2) << " "
+			<< to_string(i->upload_queue_length, 2) << " "
 			<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
 			<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
 			<< static_cast<const char*>((i->flags & peer_info::remote_interested)?"i":"_")
 			<< static_cast<const char*>((i->flags & peer_info::remote_choked)?"c":"_")
 			<< static_cast<const char*>((i->flags & peer_info::supports_extensions)?"e":"_")
-			<< static_cast<const char*>((i->flags & peer_info::local_connection)?"l":"r");
+			<< static_cast<const char*>((i->flags & peer_info::local_connection)?"l":"r") << " "
+			<< identify_client(i->id);
 
 		if (i->downloading_piece_index >= 0)
 		{
@@ -279,7 +280,7 @@ int main(int argc, char* argv[])
 	try
 	{
 		std::vector<torrent_handle> handles;
-		session ses(fingerprint("LT", 0, 1, 0, 0));
+		session ses;
 
 		ses.listen_on(std::make_pair(6881, 6889));
 		ses.set_upload_rate_limit(512 * 1024);

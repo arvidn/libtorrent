@@ -90,16 +90,17 @@ namespace libtorrent
 	friend class invariant_access;
 	public:
 
-		// this is the constructor where the we are teh active part. The peer_conenction
-		// should handshake and verify that the other end has the correct id
+		// this is the constructor where the we are teh active part.
+		// The peer_conenction should handshake and verify that the
+		// other end has the correct id
 		peer_connection(
 			detail::session_impl& ses
 			, selector& sel
 			, torrent* t
 			, boost::shared_ptr<libtorrent::socket> s);
 
-		// with this constructor we have been contacted and we still don't know which torrent the
-		// connection belongs to
+		// with this constructor we have been contacted and we still don't
+		// know which torrent the connection belongs to
 		peer_connection(
 			detail::session_impl& ses
 			, selector& sel
@@ -501,6 +502,15 @@ namespace libtorrent
 		// this is set to the current time each time we get a
 		// "I don't have metadata" message.
 		boost::posix_time::ptime m_no_metadata;
+
+		// this is set to the time when we last sent
+		// a request for metadata to this peer
+		boost::posix_time::ptime m_metadata_request;
+
+		// this is set to true when we send a metadata
+		// request to this peer, and reset to false when
+		// we receive a reply to our request.
+		bool m_waiting_metadata_request;
 	};
 }
 

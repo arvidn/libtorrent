@@ -117,6 +117,10 @@ namespace libtorrent
 		, m_no_metadata(
 			boost::gregorian::date(1970, boost::date_time::Jan, 1)
 			, boost::posix_time::seconds(0))
+		, m_metadata_request(
+			boost::gregorian::date(1970, boost::date_time::Jan, 1)
+			, boost::posix_time::seconds(0))
+		, m_waiting_metadata_request(false)
 	{
 		INVARIANT_CHECK;
 
@@ -190,6 +194,10 @@ namespace libtorrent
 		, m_no_metadata(
 			boost::gregorian::date(1970, boost::date_time::Jan, 1)
 			, boost::posix_time::seconds(0))
+		, m_metadata_request(
+			boost::gregorian::date(1970, boost::date_time::Jan, 1)
+			, boost::posix_time::seconds(0))
+		, m_waiting_metadata_request(false)
 	{
 		INVARIANT_CHECK;
 
@@ -402,7 +410,7 @@ namespace libtorrent
 			, m_send_buffer.begin() + pos + 8
 			, 0);
 		// indicate that we support the extension protocol
-#ifdef TORRENT_ENABLE_EXTENSIONS
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		m_send_buffer[pos+7] = 0x01;
 #endif
 		pos += 8;
@@ -1059,6 +1067,9 @@ namespace libtorrent
 			entry e = bdecode(m_recv_buffer.begin()+1, m_recv_buffer.end());
 #ifndef NDEBUG
 			entry::dictionary_type& extensions = e.dict();
+			std::stringstream ext;
+			e.print(ext);
+			(*m_logger) << ext.str();
 #endif
 
 			for (int i = 0; i < num_supported_extensions; ++i)
@@ -1078,13 +1089,6 @@ namespace libtorrent
 				(*m_logger) << i->first << "\n";
 			}
 #endif
-			// TODO: move the requesting into second-tick
-			// of the torrent.
-			if (!m_torrent->valid_metadata()
-				&& supports_extension(extended_metadata_message))
-			{
-				send_metadata_request(0, 256);
-			}
 		}
 		catch(invalid_encoding&)
 		{
@@ -1216,11 +1220,13 @@ namespace libtorrent
 				if (offset + data_size > total_size)
 					throw protocol_error("invalid metadata message");
 
+				m_waiting_metadata_request = false;
 				m_torrent->received_metadata(&m_recv_buffer[5+9], data_size, offset, total_size);
 			}
 			break;
 		case 2: // have no data
 			m_no_metadata = boost::posix_time::second_clock::local_time();
+			m_waiting_metadata_request = false;
 			break;
 		}
 		
@@ -1680,6 +1686,22 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		// if we don't have any metadata, and this peer
+		// supports the request metadata extension
+		// and we aren't currently waiting for a request
+		// reply.
+		if (!m_torrent->valid_metadata()
+			&& supports_extension(extended_metadata_message)
+			&& !m_waiting_metadata_request)
+		{
+			assert(m_torrent);
+			std::pair<int, int> req = m_torrent->metadata_request();
+			send_metadata_request(req.first, req.second);
+			m_waiting_metadata_request = true;
+			m_metadata_request = boost::posix_time::second_clock::local_time();
+		}
+
+
 		m_statistics.second_tick();
 		m_ul_bandwidth_quota.used = std::min(
 			(int)ceil(statistics().upload_rate())
@@ -1694,7 +1716,7 @@ namespace libtorrent
 		// maintain the share ratio given by m_ratio
 		// with all peers.
 
-		if (m_torrent->is_seed() || is_choked() || m_torrent->ratio()==0.0f)
+		if (m_torrent->is_seed() || is_choked() || m_torrent->ratio() == 0.0f)
 		{
 			// if we have downloaded more than one piece more
 			// than we have uploaded OR if we are a seed
@@ -1901,7 +1923,7 @@ namespace libtorrent
 					// these 8 bytes would be used to describe the
 					// extensions available on the other side
 					// currently disabled
-#ifdef TORRENT_ENABLE_EXTENSIONS
+#ifndef TORRENT_DISABLE_EXTENSIONS
 					if (m_recv_buffer[7] & 0x01)
 						m_supports_extensions = true;
 #endif
