@@ -5,6 +5,9 @@ import os ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 
+ECHO "BOOST_ROOT =" $(BOOST_ROOT) ;
+ECHO "OS =" [ os.name ] ;
+
 use-project /boost/thread : $(BOOST_ROOT)/libs/thread/build ;
 use-project /boost/filesystem : $(BOOST_ROOT)/libs/filesystem/build ;
 use-project /boost/date_time : $(BOOST_ROOT)/libs/date_time/build ;
