@@ -247,7 +247,8 @@ int main(int argc, char* argv[])
 
 		ses.set_upload_rate_limit(100000);
 		ses.set_http_settings(settings);
-		ses.set_severity_level(alert::debug);
+//		ses.set_severity_level(alert::debug);
+		ses.set_severity_level(alert::info);
 
 		for (int i = 0; i < argc-1; ++i)
 		{
