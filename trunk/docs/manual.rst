@@ -69,19 +69,24 @@ libtorrent has been successfully compiled and tested on:
 	* Windows 2000 vc7.1
 	* Linux x86 (debian) GCC 3.0.4, GCC 3.2.3
 	* Windows 2000, msvc6 sp5 (does not support 64-bit values due to problems with operator<<(ostream&, __int64))
+	* Cygwin GCC 3.3.1
 
 Fails on:
 
-	* Linux x86 (Debian) GCC 2.95.4 (``std::ios_base`` is missing)
-	* Cygwin GCC 3.3.1 (compiles but crashes)
+	* GCC 2.95.4 (``std::ios_base`` is missing)
 
 libtorrent is released under the BSD-license_.
 
 .. _BSD-license: http://www.opensource.org/licenses/bsd-license.php
 
 
-building
-========
+downloading and building
+========================
+
+To acquire the latest version of libtorrent, you'll have to grab it from CVS. You'll find instructions
+on how to do this here__ (see Anonymous CVS access).
+
+__ http://sourceforge.net/cvs/?group_id=79942
 
 The easiest way to build libtorrent is probably to use `boost-build`_. Make sure you install it
 correctly by setting the environment variable ``BOOST_BUILD_PATH`` and modifying the
@@ -114,10 +119,11 @@ __ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&re
 release and debug builds
 ------------------------
 
-If you just invoke the makefile you'll get a debug build. In debug the libtorrent vill
-have pretty expensive invariant checks and asserts built into it. If you want to disable
-such checks (you want to do that in a release build) you can see the table below for which
-defines you can use to control the build.
+The ``Jamfile`` can build both a release and debug version of libtorrent. In debug mode,
+libtorrent will have pretty expensive invariant checks and asserts built into it. If you
+want to disable such checks (you want to do that in a release build) you can see the
+table below for which defines you can use to control the build. The ``Jamfile`` will define
+``NDEBUG`` when it's building a release build.
 
 +-------------------------------+-------------------------------------------------+
 | macro                         | description                                     |

@@ -271,9 +271,7 @@ namespace libtorrent
 		// DEBUG
 #ifndef NDEBUG
 		logger* spawn_logger(const char* title);
-#endif
 
-#ifndef NDEBUG
 		virtual void debug_log(const std::string& line);
 		void check_invariant();
 #endif
