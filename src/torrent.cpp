@@ -94,28 +94,12 @@ namespace
 		return default_block_size;
 	}
 
-/*
-	struct find_peer_by_id
-	{
-		find_peer_by_id(const peer_id& i, const torrent* t): id(i), tor(t) { assert(t); }
-		
-		bool operator()(const detail::session_impl::connection_map::value_type& c) const
-		{
-			if (c.second->get_peer_id() != id) return false;
-			if (tor != c.second->associated_torrent()) return false;
-			// have a special case for all zeros. We can have any number
-			// of peers with that id, since it's used to indicate no id.
-			if (std::count(id.begin(), id.end(), 0) == 20) return false;
-			return true;
-		}
-
-		const peer_id& id;
-		const torrent* tor;
-	};
-*/
 	struct find_peer_by_ip
 	{
-		find_peer_by_ip(const address& a, const torrent* t): ip(a), tor(t) { assert(t); }
+		find_peer_by_ip(const address& a, const torrent* t)
+			: ip(a)
+			, tor(t)
+		{ assert(t != 0); }
 		
 		bool operator()(const detail::session_impl::connection_map::value_type& c) const
 		{
@@ -192,8 +176,8 @@ namespace libtorrent
 
 	std::string escape_string(const char* str, int len)
 	{
-		assert(str);
-		assert(len>=0);
+		assert(str != 0);
+		assert(len >= 0);
 		// http://www.ietf.org/rfc/rfc2396.txt
 		// section 2.3
 		static const char unreserved_chars[] = "-_.!~*'()";
@@ -257,7 +241,10 @@ namespace libtorrent
 		std::vector<peer_entry>& peer_list
 		, int interval)
 	{
-		assert(interval>0);
+		// less than 60 seconds announce intervals
+		// are insane.
+		if (interval < 60) interval = 60;
+
 		m_last_working_tracker
 			= m_torrent_file.prioritize_tracker(m_currently_trying_tracker);
 		m_next_request = boost::posix_time::second_clock::local_time()
@@ -394,7 +381,9 @@ namespace libtorrent
 
 	void torrent::piece_failed(int index)
 	{
-		assert(index >= 0 && index < m_torrent_file.num_pieces());
+		assert(index >= 0);
+	  	assert(index < m_torrent_file.num_pieces());
+
 		if (m_ses.m_alerts.should_post(alert::info))
 		{
 			std::stringstream s;
@@ -440,7 +429,9 @@ namespace libtorrent
 
 	void torrent::announce_piece(int index)
 	{
-		assert(index >= 0 && index < m_torrent_file.num_pieces());
+		assert(index >= 0);
+		assert(index < m_torrent_file.num_pieces());
+
 		std::vector<address> downloaders;
 		m_picker.get_downloaders(downloaders, index);
 
@@ -462,7 +453,7 @@ namespace libtorrent
 
 	tracker_request torrent::generate_tracker_request(int port)
 	{
-		assert(port>0);
+		assert(port > 0);
 		assert((unsigned short)port == port);
 		m_duration = 1800;
 		m_next_request = boost::posix_time::second_clock::local_time() + boost::posix_time::seconds(m_duration);
@@ -481,7 +472,8 @@ namespace libtorrent
 
 	void torrent::remove_peer(peer_connection* p)
 	{
-		assert(p);
+		assert(p != 0);
+
 		peer_iterator i = m_connections.find(p->get_socket()->sender());
 		assert(i != m_connections.end());
 
@@ -552,7 +544,7 @@ namespace libtorrent
 
 	void torrent::attach_peer(peer_connection* p)
 	{
-		assert(p);
+		assert(p != 0);
 		assert(m_connections.find(p->get_socket()->sender()) == m_connections.end());
 		assert(!p->is_local());
 
@@ -652,6 +644,9 @@ namespace libtorrent
 	{
 		assert(m_num_pieces
 			== std::count(m_have_pieces.begin(), m_have_pieces.end(), true));
+		assert(m_priority >= 0.f && m_priority < 1.f);
+		assert(m_block_size > 0);
+		assert((m_torrent_file.piece_length() % m_block_size) == 0);
 	}
 #endif
 
@@ -679,7 +674,9 @@ namespace libtorrent
 
 	bool torrent::verify_piece(int piece_index)
 	{
-		assert(piece_index >= 0 && piece_index < m_torrent_file.num_pieces());
+		assert(piece_index >= 0);
+		assert(piece_index < m_torrent_file.num_pieces());
+
 		size_type size = m_torrent_file.piece_size(piece_index);
 		std::vector<char> buffer(size);
 		assert(size > 0);

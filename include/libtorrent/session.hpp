@@ -123,13 +123,13 @@ namespace libtorrent
 
 		struct checker_impl: boost::noncopyable
 		{
-			checker_impl(session_impl* s): m_ses(s), m_abort(false) { assert(s); }
+			checker_impl(session_impl& s): m_ses(s), m_abort(false) {}
 			void operator()();
 			piece_checker_data* find_torrent(const sha1_hash& info_hash);
 
 			// when the files has been checked
 			// the torrent is added to the session
-			session_impl* m_ses;
+			session_impl& m_ses;
 
 			boost::mutex m_mutex;
 			boost::condition m_cond;
