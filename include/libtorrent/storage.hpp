@@ -171,6 +171,8 @@ namespace libtorrent
 
 	private:
 
+		void libtorrent::storage::invariant() const;
+
 		// total number of bytes left to be downloaded
 		entry::integer_type m_bytes_left;
 
