@@ -327,8 +327,8 @@ namespace libtorrent
 		void set_upload_rate_limit(int bytes_per_second);
 		void set_download_rate_limit(int bytes_per_second);
 
-		// TODO: add a session_status that contain
-		// some indication of if the listen-port works
+		// TODO: global max connections setting
+		// TODO: global max uploads setting
 
 		std::auto_ptr<alert> pop_alert();
 		void set_severity_level(alert::severity_t s);

@@ -208,7 +208,7 @@ namespace libtorrent
 
 		// returns true if it is time for this torrent to make another
 		// tracker request
-		bool should_request() const;
+		bool should_request();
 
 		// forcefully sets next_announce to the current time
 		void force_tracker_request();
@@ -343,6 +343,9 @@ namespace libtorrent
 
 		// is true if this torrent has been paused
 		bool m_paused;
+		// this is true from the time when the torrent was
+		// paused to the time should_request() is called
+		bool m_just_paused;
 
 		tracker_request::event_t m_event;
 
@@ -446,20 +449,16 @@ namespace libtorrent
 		// (size 0) if we haven't received any metadata
 		// or if we already have all metadata
 		std::vector<bool> m_have_metadata;
+		// this vector keeps track of how many times each meatdata
+		// block has been requested
+		std::vector<int> m_requested_metadata;
 
 		boost::filesystem::path m_save_path;
 	};
 
 	inline boost::posix_time::ptime torrent::next_announce() const
-	{ return m_next_request; }
-
-	// returns true if it is time for this torrent to make another
-	// tracker request
-	inline bool torrent::should_request() const
 	{
-		namespace time = boost::posix_time;
-		return !m_paused &&
-			m_next_request < time::second_clock::local_time();
+		return m_next_request;
 	}
 
 	inline void torrent::force_tracker_request()
@@ -474,22 +473,6 @@ namespace libtorrent
 	{
 		m_username = name;
 		m_password = pw;
-	}
-
-	inline void torrent::set_upload_limit(int limit)
-	{
-		assert(limit >= -1);
-		if (limit == -1) limit = std::numeric_limits<int>::max();
-		if (limit < num_peers() * 10) limit = num_peers() * 10;
-		m_upload_bandwidth_limit = limit;
-	}
-
-	inline void torrent::set_download_limit(int limit)
-	{
-		assert(limit >= -1);
-		if (limit == -1) limit = std::numeric_limits<int>::max();
-		if (limit < num_peers() * 10) limit = num_peers() * 10;
-		m_download_bandwidth_limit = limit;
 	}
 
 }

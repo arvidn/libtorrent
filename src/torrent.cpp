@@ -152,12 +152,13 @@ namespace libtorrent
 		: m_torrent_file(metadata)
 		, m_abort(false)
 		, m_paused(false)
+		, m_just_paused(false)
 		, m_event(tracker_request::started)
 		, m_block_size(0)
 		, m_storage(0)
 		, m_next_request(boost::posix_time::second_clock::local_time())
 		, m_duration(1800)
-		, m_policy(new policy(this)) // warning: uses this in member init list
+		, m_policy()
 		, m_ses(ses)
 		, m_picker(0)
 		, m_last_working_tracker(-1)
@@ -174,6 +175,7 @@ namespace libtorrent
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_save_path(save_path)
 	{
+		m_policy.reset(new policy(this));
 		bencode(std::back_inserter(m_metadata), metadata["info"]);
 		init();
 	}
@@ -187,12 +189,13 @@ namespace libtorrent
 		: m_torrent_file(0, 0, info_hash)
 		, m_abort(false)
 		, m_paused(false)
+		, m_just_paused(false)
 		, m_event(tracker_request::started)
 		, m_block_size(0)
 		, m_storage(0)
 		, m_next_request(boost::posix_time::second_clock::local_time())
 		, m_duration(1800)
-		, m_policy(new policy(this)) // warning: uses this in member init list
+		, m_policy()
 		, m_ses(ses)
 		, m_picker(0)
 		, m_last_working_tracker(-1)
@@ -209,6 +212,8 @@ namespace libtorrent
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_save_path(save_path)
 	{
+		m_requested_metadata.resize(256, 0);
+		m_policy.reset(new policy(this));
 		m_torrent_file.add_tracker(tracker_url);
 	}
 
@@ -233,6 +238,20 @@ namespace libtorrent
 	void torrent::use_interface(const char* net_interface)
 	{
 		m_net_interface = address(net_interface, address::any_port);
+	}
+
+	// returns true if it is time for this torrent to make another
+	// tracker request
+	bool torrent::should_request()
+	{
+		namespace time = boost::posix_time;
+		if (m_just_paused)
+		{
+			m_just_paused = false;
+			return true;
+		}
+		return !m_paused &&
+			m_next_request < time::second_clock::local_time();
 	}
 
 	void torrent::tracker_response(
@@ -695,19 +714,39 @@ namespace libtorrent
 	}
 #endif
 
+	void torrent::set_upload_limit(int limit)
+	{
+		assert(limit >= -1);
+		if (limit == -1) limit = std::numeric_limits<int>::max();
+		if (limit < num_peers() * 10) limit = num_peers() * 10;
+		m_upload_bandwidth_limit = limit;
+	}
+
+	void torrent::set_download_limit(int limit)
+	{
+		assert(limit >= -1);
+		if (limit == -1) limit = std::numeric_limits<int>::max();
+		if (limit < num_peers() * 10) limit = num_peers() * 10;
+		m_download_bandwidth_limit = limit;
+	}
+
 	void torrent::pause()
 	{
 		disconnect_all();
-		// TODO: announce to tracker that we stopped!
-		// possibly with some delay
 		m_paused = true;
+		// tell the tracker that we stopped
+		m_event = tracker_request::stopped;
+		m_just_paused = true;
 	}
 
 	void torrent::resume()
 	{
 		m_paused = false;
-		// TODO: announce to the tracker that we started.
-		// possibly with some delay
+
+		// tell the tracker that we're back
+		m_event = tracker_request::started;
+		force_tracker_request();
+
 		// make pulse be called as soon as possible
 		m_time_scaler = 0;
 	}
@@ -974,8 +1013,10 @@ namespace libtorrent
 
 		// clear the storage for the bitfield
 		{
-			std::vector<bool> t;
-			m_have_metadata.swap(t);
+			std::vector<bool> t1;
+			m_have_metadata.swap(t1);
+			std::vector<int> t2;
+			m_requested_metadata.swap(t2);
 		}
 
 		return true;
