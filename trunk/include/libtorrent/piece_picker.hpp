@@ -62,10 +62,7 @@ namespace libtorrent
 		piece_block(int p_index, int b_index)
 			: piece_index(p_index)
 			, block_index(b_index)
-		{
-			assert(p_index >= 0);
-			assert(b_index >= 0);
-		}
+		{}
 		int piece_index;
 		int block_index;
 		bool operator==(const piece_block& b) const

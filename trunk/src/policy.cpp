@@ -80,7 +80,11 @@ namespace
 			+ d.fractional_seconds() / 1000.f;
 	}
 
-	void request_a_block(torrent& t, peer_connection& c)
+	// the case where ignore_block is motivated is if two peers
+	// have only one piece that we don't have, and it's the
+	// same piece for both peers. Then they might get into an
+	// infinite recursion, fighting to request the same block.
+	void request_a_block(torrent& t, peer_connection& c, piece_block ignore_block = piece_block(-1, -1))
 	{
 		float time_for_last_piece = to_seconds(c.last_piece_time());
 		if (time_for_last_piece == 0) time_for_last_piece = 0.001f;
@@ -128,6 +132,7 @@ namespace
 			i != interesting_pieces.end();
 			++i)
 		{
+			if (*i == ignore_block) continue;
 			if (p.is_downloading(*i))
 			{
 				busy_pieces.push_back(*i);
@@ -136,10 +141,16 @@ namespace
 
 			// ok, we found a piece that's not being downloaded
 			// by somebody else. request it from this peer
+			// and return
 			c.send_request(*i);
 			num_requests--;
 			if (num_requests <= 0) return;
 		}
+
+		// in this case, we could not find any blocks
+		// that was free. If we couldn't find any busy
+		// blocks as well, we cannot download anything
+		// more from this peer.
 
 		if (busy_pieces.empty()) return;
 
@@ -172,13 +183,17 @@ namespace
 			}
 		}
 
-		assert(peer != 0);
+		if (peer == 0)
+		{
+			// we probably couldn't request the block because
+			// we are ignoring a certain block
+		}
 
 		// this peer doesn't have a faster connection than the
 		// slowest peer. Don't take over any blocks
 		// TODO: is this correct? shouldn't it take over a piece
 		// anyways?
-		if (c.statistics().down_peak() / c.download_queue().size() <= down_speed) return;
+		//if (c.statistics().down_peak() / c.download_queue().size() <= down_speed) return;
 
 		// find a suitable block to take over from this peer
 
@@ -195,7 +210,9 @@ namespace
 		c.send_request(block);
 
 		// the one we interrupted may need to request a new piece
-		request_a_block(t, *peer);
+		// make sure it doesn't request the block we just requested
+		// by giving it as the ignore_block
+		request_a_block(t, *peer, block);
 
 		num_requests--;
 	}
