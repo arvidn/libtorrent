@@ -163,6 +163,7 @@ namespace
 		, map_entry("CT", "CTorrent")
 		, map_entry("LT", "libtorrent")
 		, map_entry("M",  "Mainline")
+		. map_emtry("MP", "MooPolice")
 		, map_entry("MT", "Moonlight Torrent")
 		, map_entry("S",  "Shadow")
 		, map_entry("SN", "ShareNet")
