@@ -146,6 +146,10 @@ namespace libtorrent
 		// manually connect a peer
 		void connect_peer(const address& adr) const;
 
+		// valid ratios are 0 (infinite ratio) or [ 1.0 , inf )
+		// the ratio is uploaded / downloaded. less than 1 is not allowed
+		void set_ratio(float up_down_ratio);
+
 		// TODO: add finish_file_allocation, which will force the
 		// torrent to allocate storage for all pieces.
 

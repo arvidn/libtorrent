@@ -100,11 +100,18 @@ namespace
 
 		const entry::dictionary_type& info = e.dict();
 
-		// extract peer id
+		// extract peer id (if any)
 		entry::dictionary_type::const_iterator i = info.find("peer id");
-		if (i == info.end()) throw std::runtime_error("invalid response from tracker");
-		if (i->second.string().length() != 20) throw std::runtime_error("invalid response from tracker");
-		std::copy(i->second.string().begin(), i->second.string().end(), ret.id.begin());
+		if (i != info.end())
+		{
+			if (i->second.string().length() != 20) throw std::runtime_error("invalid response from tracker");
+			std::copy(i->second.string().begin(), i->second.string().end(), ret.id.begin());
+		}
+		else
+		{
+			// if there's no peer_id, just initialize it to a bunch of zeroes
+			std::fill_n(ret.id.begin(), 20, 0);
+		}
 
 		// extract ip
 		i = info.find("ip");
@@ -146,14 +153,17 @@ namespace
 		return ret.str();
 	}
 
-	struct find_peer
+	struct find_peer_by_id
 	{
-		find_peer(const peer_id& i, const torrent* t): id(i), tor(t) {}
+		find_peer_by_id(const peer_id& i, const torrent* t): id(i), tor(t) {}
 		
 		bool operator()(const detail::session_impl::connection_map::value_type& c) const
 		{
 			if (c.second->get_peer_id() != id) return false;
 			if (tor != c.second->associated_torrent()) return false;
+			// have a special case for all zeros. We can have any number
+			// of peers with that id, since it's used to indicate no id.
+			if (std::count(id.begin(), id.end(), 0) == 20) return false;
 			return true;
 		}
 
@@ -161,12 +171,31 @@ namespace
 		{
 			if (p->get_peer_id() != id) return false;
 			if (tor != p->associated_torrent()) return false;
+			// have a special case for all zeros. We can have any number
+			// of peers with that id, since it's used to indicate no id.
+			if (std::count(id.begin(), id.end(), 0) == 20) return false;
 			return true;
 		}
 
 		const peer_id& id;
 		const torrent* tor;
 	};
+
+	struct find_peer_by_ip
+	{
+		find_peer_by_ip(const address& a, const torrent* t): ip(a), tor(t) {}
+		
+		bool operator()(const detail::session_impl::connection_map::value_type& c) const
+		{
+			if (c.first->sender() != ip) return false;
+			if (tor != c.second->associated_torrent()) return false;
+			return true;
+		}
+
+		const address& ip;
+		const torrent* tor;
+	};
+
 }
 
 namespace libtorrent
@@ -193,6 +222,7 @@ namespace libtorrent
 		, m_priority(.5)
 		, m_num_pieces(0)
 		, m_got_tracker_response(false)
+		, m_ratio(0.f)
 	{
 		assert(torrent_file.begin_files() != torrent_file.end_files());
 		m_have_pieces.resize(torrent_file.num_pieces(), false);
@@ -246,9 +276,18 @@ namespace libtorrent
 				address a(i->ip, i->port);
 
 				// if we aleady have a connection to the person, don't make another one
-				if (std::find_if(m_ses.m_connections.begin(),
-					m_ses.m_connections.end(),
-					find_peer(i->id, this)) != m_ses.m_connections.end())
+				if (std::find_if(
+					m_ses.m_connections.begin()
+					, m_ses.m_connections.end()
+					, find_peer_by_id(i->id, this)) != m_ses.m_connections.end())
+				{
+					continue;
+				}
+
+				if (std::find_if(
+					m_ses.m_connections.begin()
+					, m_ses.m_connections.end()
+					, find_peer_by_ip(a, this)) != m_ses.m_connections.end())
 				{
 					continue;
 				}
@@ -273,12 +312,12 @@ namespace libtorrent
 	{
 		assert(std::count_if(m_connections.begin()
 			, m_connections.end()
-			, find_peer(id, this)) <= 1);
+			, find_peer_by_id(id, this)) <= 1);
 
 		return std::find_if(
 			m_connections.begin()
 			, m_connections.end()
-			, find_peer(id, this))
+			, find_peer_by_id(id, this))
 			!= m_connections.end();
 	}
 
@@ -342,6 +381,7 @@ namespace libtorrent
 		// start with redownloading the pieces that the client
 		// that has sent the least number of pieces
 		m_picker.restore_piece(index);
+		m_storage.mark_failed(index);
 
 		// TODO: make sure restore_piece() works
 		assert(m_have_pieces[index] == false);
@@ -406,6 +446,10 @@ namespace libtorrent
 			request += event_string[m_event];
 			m_event = event_none;
 		}
+
+		// extension that tells the tracker that
+		// we don't need any peer_id's in the response
+		request += "&no_peer_id=1";
 
 		return request;
 	}
@@ -495,7 +539,8 @@ namespace libtorrent
 			m_ses.m_connections.insert(std::make_pair(s, c)).first;
 
 		// add the newly connected peer to this torrent's peer list
-		assert(std::find(m_connections.begin()
+		assert(std::find(
+			m_connections.begin()
 			, m_connections.end()
 			, boost::get_pointer(p->second))
 			== m_connections.end());

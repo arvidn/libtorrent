@@ -324,12 +324,7 @@ namespace libtorrent
 		int send_quota_limit() const
 		{ return m_send_quota_limit; }
 
-		int share_diff() const
-		{
-			return m_free_upload
-				+ m_statistics.total_payload_download()
-				- m_statistics.total_payload_upload();
-		}
+		int share_diff() const;
 
 		bool support_extensions() const
 		{ return m_supports_extensions; }

@@ -473,6 +473,7 @@ struct torrent_handle
         entry write_resume_data();
         void force_reannounce();
         void connect_peer(const address&amp; adr) const;
+        void set_ratio(float ratio);
 
         boost::filsystem::path save_path() const;
 
@@ -498,6 +499,13 @@ torrent. If the peer does not respond, or is not a member of this torrent, it wi
 be disconnected. No harm can be done by using this other than an unnecessary connection
 attempt is made. If the torrent is uninitialized or in queued or checking mode, this
 will throw <a class="reference" href="#invalid-handle">invalid_handle</a>.</p>
+<p><tt class="literal"><span class="pre">set_ratio()</span></tt> sets the desired download / upload ratio. If set to 0, it is considered being
+infinite. i.e. the client will always upload as much as it can, no matter how much it gets back
+in return. With this setting it will work much like the standard clients.</p>
+<p>Besides 0, the ration can be set to any number greater than or equal to 1. It means how much to
+attempt to upload in return for each download. e.g. if set to 2, the client will try to upload
+2 bytes for every byte received. The default setting for this is 0, which will make it work
+as a standard client.</p>
 <p><tt class="literal"><span class="pre">info_hash()</span></tt> returns the info hash for the torrent.</p>
 <p><tt class="literal"><span class="pre">set_max_uploads()</span></tt> sets the maximum number of peers that's unchoked at the same time on this
 torrent. If you set this to -1, there will be no limit.</p>
@@ -1264,6 +1272,49 @@ not trust the fast-resume data and just do the checking.</p>
 </div>
 <div class="section" id="file-format">
 <h1><a class="toc-backref" href="#id44" name="file-format">file format</a></h1>
+<p>The file format is a bencoded dictionary containing the following fields:</p>
+<table border class="table">
+<colgroup>
+<col width="26%" />
+<col width="74%" />
+</colgroup>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">file-format</span></tt></td>
+<td>string: &quot;libtorrent resume file&quot;</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">file-version</span></tt></td>
+<td>integer: 1</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">info-hash</span></tt></td>
+<td>string, the info hash of the torrent this data is saved for.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">blocks</span> <span class="pre">per</span> <span class="pre">piece</span></tt></td>
+<td>integer, the number of blocks per piece. Must be: piece_size
+/ (16 * 1024). Clamped to be within the range [1, 128]. It
+is the number of blocks per (normal sized) piece. Usually
+each piece is 16 * 1024 bytes in size.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">slots</span></tt></td>
+<td><p class="first">list of integers. The list mappes slots ti piece indices. It
+tells which piece is on which slot. If piece index is -2 it
+means it is free, that there's no piece there. If it is -1,
+means the slot isn't allocated on disk yet. The pieces have
+to meet the following requirements:</p>
+<ul class="simple">
+<li>if there's a slot at the position of the piece index,
+the piece must be located in that slot.</li>
+</ul>
+<p class="last">TODO: finish</p>
+</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">peers</span></tt></td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">unfinished</span></tt></td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
 <p>TODO: describe the file format</p>
 </div>
 <div class="section" id="extensions">

@@ -471,6 +471,7 @@ Its declaration looks like this::
 		entry write_resume_data();
 		void force_reannounce();
 		void connect_peer(const address& adr) const;
+		void set_ratio(float ratio);
 
 		boost::filsystem::path save_path() const;
 
@@ -500,6 +501,14 @@ be disconnected. No harm can be done by using this other than an unnecessary con
 attempt is made. If the torrent is uninitialized or in queued or checking mode, this
 will throw invalid_handle_.
 
+``set_ratio()`` sets the desired download / upload ratio. If set to 0, it is considered being
+infinite. i.e. the client will always upload as much as it can, no matter how much it gets back
+in return. With this setting it will work much like the standard clients.
+
+Besides 0, the ration can be set to any number greater than or equal to 1. It means how much to
+attempt to upload in return for each download. e.g. if set to 2, the client will try to upload
+2 bytes for every byte received. The default setting for this is 0, which will make it work
+as a standard client.
 
 ``info_hash()`` returns the info hash for the torrent.
 
@@ -1336,6 +1345,37 @@ not trust the fast-resume data and just do the checking.
 
 file format
 ===========
+
+The file format is a bencoded dictionary containing the following fields:
+
++----------------------+--------------------------------------------------------------+
+| ``file-format``      | string: "libtorrent resume file"                             |
++----------------------+--------------------------------------------------------------+
+| ``file-version``     | integer: 1                                                   |
++----------------------+--------------------------------------------------------------+
+| ``info-hash``        | string, the info hash of the torrent this data is saved for. |
++----------------------+--------------------------------------------------------------+
+| ``blocks per piece`` | integer, the number of blocks per piece. Must be: piece_size |
+|                      | / (16 * 1024). Clamped to be within the range [1, 128]. It   |
+|                      | is the number of blocks per (normal sized) piece. Usually    |
+|                      | each piece is 16 * 1024 bytes in size.                       |
++----------------------+--------------------------------------------------------------+
+| ``slots``            | list of integers. The list mappes slots ti piece indices. It |
+|                      | tells which piece is on which slot. If piece index is -2 it  |
+|                      | means it is free, that there's no piece there. If it is -1,  |
+|                      | means the slot isn't allocated on disk yet. The pieces have  |
+|                      | to meet the following requirements:                          |
+|                      |                                                              |
+|                      | * if there's a slot at the position of the piece index,      |
+|                      |   the piece must be located in that slot.                    |
+|                      |                                                              | 
+|                      | TODO: finish                                                 | 
++----------------------+--------------------------------------------------------------+
+| ``peers``            |                                                              |
++----------------------+--------------------------------------------------------------+
+| ``unfinished``       |                                                              |
++----------------------+--------------------------------------------------------------+
+
 
 TODO: describe the file format
 

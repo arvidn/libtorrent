@@ -39,6 +39,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_connection.hpp"
 
+// TODO: move all alerts to a single header
+// session.hpp is included just for the peer_error_alert
+#include "libtorrent/session.hpp"
+
 #if defined(_MSC_VER) && _MSC_VER < 1300
 #	define for if (false) {} else for
 #endif
@@ -445,7 +449,8 @@ namespace libtorrent
 
 	void policy::ban_peer(const peer_connection& c)
 	{
-		std::vector<peer>::iterator i = std::find(m_peers.begin(), m_peers.end(), c.get_peer_id());
+		std::vector<peer>::iterator i =
+			std::find(m_peers.begin(), m_peers.end(), c.get_socket()->sender());
 		assert(i != m_peers.end());
 
 		i->banned = true;
@@ -454,7 +459,7 @@ namespace libtorrent
 	bool policy::new_connection(peer_connection& c)
 	{
 		std::vector<peer>::iterator i
-			= std::find(m_peers.begin(), m_peers.end(), c.get_peer_id());
+			= std::find(m_peers.begin(), m_peers.end(), c.get_socket()->sender());
 		if (i == m_peers.end())
 		{
 			using namespace boost::posix_time;
@@ -462,7 +467,7 @@ namespace libtorrent
 
 			// we don't have ny info about this peer.
 			// add a new entry
-			peer p(c.get_peer_id());
+			peer p(c.get_peer_id(), c.get_socket()->sender());
 			m_peers.push_back(p);
 			i = m_peers.end()-1;
 		}
@@ -481,7 +486,8 @@ namespace libtorrent
 	{
 		try
 		{
-			std::vector<peer>::iterator i = std::find(m_peers.begin(), m_peers.end(), id);
+			std::vector<peer>::iterator i =
+				std::find(m_peers.begin(), m_peers.end(), remote);
 			if (i == m_peers.end())
 			{
 				using namespace boost::posix_time;
@@ -489,7 +495,7 @@ namespace libtorrent
 
 				// we don't have ny info about this peer.
 				// add a new entry
-				peer p(id);
+				peer p(id, remote);
 				m_peers.push_back(p);
 				i = m_peers.end()-1;
 			}
@@ -508,8 +514,22 @@ namespace libtorrent
 			i->connection = &m_torrent->connect_to_peer(remote, id);
 
 		}
-		catch(network_error&) {}
-		catch(protocol_error&) {}
+		catch(network_error& e)
+		{
+			if (m_torrent->alerts().should_post(alert::debug))
+			{
+				m_torrent->alerts().post_alert(
+					peer_error_alert(id, e.what()));
+			}
+		}
+		catch(protocol_error& e)
+		{
+			if (m_torrent->alerts().should_post(alert::debug))
+			{
+				m_torrent->alerts().post_alert(
+					peer_error_alert(id, e.what()));
+			}
+		}
 	}
 
 	// this is called when we are choked by a peer
@@ -599,7 +619,7 @@ namespace libtorrent
 	void policy::connection_closed(const peer_connection& c)
 	{
 		std::vector<peer>::iterator i
-			= std::find(m_peers.begin(), m_peers.end(), c.get_peer_id());
+			= std::find(m_peers.begin(), m_peers.end(), c.get_socket()->sender());
 
 		assert(i != m_peers.end());
 
@@ -631,7 +651,8 @@ namespace libtorrent
 #ifndef NDEBUG
 	bool policy::has_connection(const peer_connection* p)
 	{
-		return std::find(m_peers.begin(), m_peers.end(), p->get_peer_id()) != m_peers.end();
+		return std::find(m_peers.begin(), m_peers.end(), p->get_socket()->sender())
+			!= m_peers.end();
 	}
 
 	void policy::check_invariant()
@@ -649,8 +670,11 @@ namespace libtorrent
 	}
 #endif
 
-	policy::peer::peer(const peer_id& pid)
+	policy::peer::peer(
+		const peer_id& pid
+		, const address& a)
 		: id(pid)
+		, ip(a)
 		, last_optimistically_unchoked(
 			boost::gregorian::date(1970,boost::gregorian::Jan,1))
 		, connected(boost::posix_time::second_clock::local_time())
