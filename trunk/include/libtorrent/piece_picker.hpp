@@ -65,10 +65,18 @@ namespace libtorrent
 		{}
 		int piece_index;
 		int block_index;
-		bool operator==(const piece_block& b) const
+
+		bool operator<(piece_block const& b) const
+		{
+			if (piece_index < b.piece_index) return true;
+			if (piece_index == b.piece_index) return block_index < b.block_index;
+			return false;
+		}
+
+		bool operator==(piece_block const& b) const
 		{ return piece_index == b.piece_index && block_index == b.block_index; }
 
-		bool operator!=(const piece_block& b) const
+		bool operator!=(piece_block const& b) const
 		{ return piece_index != b.piece_index || block_index != b.block_index; }
 
 	};

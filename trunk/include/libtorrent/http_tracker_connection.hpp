@@ -71,7 +71,7 @@ namespace libtorrent
 			, std::string const& hostname
 			, unsigned short port
 			, std::string const& request
-			, request_callback* c
+			, boost::weak_ptr<request_callback> c
 			, const http_settings& stn
 			, std::string const& password = "");
 		virtual bool tick();

@@ -365,13 +365,11 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		std::vector<int> piece_index;
-		if (m_ses == 0)
-			throw invalid_handle();
+		if (m_ses == 0) return entry();
 
 		boost::mutex::scoped_lock l(m_ses->m_mutex);
 		torrent* t = m_ses->find_torrent(m_info_hash);
-		if (t == 0)
-			throw invalid_handle();
+		if (t == 0) return entry();
 
 		if (!t->valid_metadata()) return entry();
 

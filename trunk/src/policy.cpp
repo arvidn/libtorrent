@@ -567,6 +567,7 @@ namespace libtorrent
 		// TODO: we must also remove peers that
 		// we failed to connect to from this list
 		// to avoid being part of a DDOS-attack
+
 		// remove old disconnected peers from the list
 		m_peers.erase(
 			std::remove_if(m_peers.begin()
@@ -770,6 +771,7 @@ namespace libtorrent
 		// if the connection comes from the tracker,
 		// it's probably just a NAT-check. Ignore the
 		// num connections constraint then.
+
 		// TODO: only allow _one_ connection to use this
 		// override at a time
 		if (m_torrent->num_peers() >= m_max_connections
@@ -928,6 +930,7 @@ namespace libtorrent
 				}
 				if (!interested)
 					i->connection->send_not_interested();
+				assert(i->connection->is_interesting() == interested);
 			}
 		}
 	}
@@ -1002,7 +1005,7 @@ namespace libtorrent
 		if (p == 0) return false;
 		assert(!p->banned);
 		assert(!p->connection);
-		assert(p->type==peer::connectable);
+		assert(p->type == peer::connectable);
 
 		return connect_peer(p);
 	}

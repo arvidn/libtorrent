@@ -1002,8 +1002,17 @@ entry write_resume_data();
 </pre>
 </blockquote>
 <p><tt class="literal"><span class="pre">write_resume_data()</span></tt> generates fast-resume data and returns it as an <a class="reference" href="#entry">entry</a>. This <a class="reference" href="#entry">entry</a>
-is suitable for being bencoded. For more information about how fast-resume works, see <a class="reference" href="#fast-resume">fast resume</a>.
-It may throw <a class="reference" href="#invalid-handle">invalid_handle</a> if the torrent handle is invalid.</p>
+is suitable for being bencoded. For more information about how fast-resume works, see <a class="reference" href="#fast-resume">fast resume</a>.</p>
+<p>There are three cases where this function will just return an empty <tt class="literal"><span class="pre">entry</span></tt>:</p>
+<blockquote>
+<ol class="arabic simple">
+<li>The torrent handle is invalid.</li>
+<li>The torrent is checking (or is queued for checking) its storage, it will obviously
+not be ready to write resume data.</li>
+<li>The torrent hasn't received valid metadata and was started without metadata
+(see libtorrent's <a class="reference" href="#metadata-from-peers">metadata from peers</a> extension)</li>
+</ol>
+</blockquote>
 <p>Note that by the time this function returns, the resume data may already be invalid if the torrent
 is still downloading! The recommended practice is to first pause the torrent, then generate the
 fast resume data, and then close it down.</p>
@@ -1820,7 +1829,7 @@ struct torrent_finished_alert: alert
 <div class="section" id="metadata-received-alert">
 <h2><a name="metadata-received-alert">metadata_received_alert</a></h2>
 <p>This alert is generated when the metadata has been completely received and the torrent
-can start downloading. It is not generated on torrents that are started with metadata, bu
+can start downloading. It is not generated on torrents that are started with metadata, but
 only those that needs to download it from peers (when utilizing the libtorrent extension).
 It is generated at severity level <tt class="literal"><span class="pre">info</span></tt>.</p>
 <pre class="literal-block">
@@ -2130,7 +2139,7 @@ piece.</td>
 </tr>
 <tr><td><tt class="literal"><span class="pre">adler32</span></tt></td>
 <td>The adler32 checksum of the data in the
-blocks specified by <tt class="literal"><span class="pre">bitmsk</span></tt>.</td>
+blocks specified by <tt class="literal"><span class="pre">bitmask</span></tt>.</td>
 </tr>
 </tbody>
 </table>

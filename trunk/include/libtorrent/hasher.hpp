@@ -84,11 +84,18 @@ namespace libtorrent
 	public:
 
 		hasher() { SHA1Init(&m_context); }
+		hasher(const char* data, int len)
+		{
+			SHA1Init(&m_context);
+			assert(data != 0);
+			assert(len > 0);
+			SHA1Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
+		}
 		void update(const char* data, int len)
 		{
 			assert(data != 0);
 			assert(len > 0);
-			SHA1Update(&m_context, reinterpret_cast<unsigned char*>(const_cast<char*>(data)), len);
+			SHA1Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
 		}
 
 		sha1_hash final()

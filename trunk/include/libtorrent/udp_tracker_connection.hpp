@@ -68,7 +68,7 @@ namespace libtorrent
 			tracker_request const& req
 			, std::string const& hostname
 			, unsigned short port
-			, request_callback* c
+			, boost::weak_ptr<request_callback> c
 			, const http_settings& stn);
 
 		virtual bool tick();

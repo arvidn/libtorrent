@@ -202,7 +202,7 @@ namespace libtorrent
 				ptime not_tried_yet(boost::gregorian::date(1970,boost::gregorian::Jan,1));
 
 				return p.connection == 0
-					&& p.connected!=not_tried_yet
+					&& p.connected != not_tried_yet
 					&& second_clock::local_time() - p.connected > minutes(30);
 			}
 		};
