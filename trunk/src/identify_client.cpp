@@ -150,6 +150,7 @@ namespace
 
 	typedef std::pair<char const*, char const*> map_entry;
 
+	// only support BitTorrentSpecification
 	// must be ordered alphabetically
 	map_entry name_map[] =
 	{
@@ -164,7 +165,7 @@ namespace
 		, map_entry("S",  "Shadow")
 		, map_entry("SS", "SwarmScope")
 		, map_entry("T",  "BitTornado")
-		, map_entry("TN", "TorrentDonNet")
+		, map_entry("TN", "TorrentDotNET")
 		, map_entry("TS", "TorrentStorm")
 		, map_entry("U",  "UPnP")
 		, map_entry("XT", "XanTorrent")
