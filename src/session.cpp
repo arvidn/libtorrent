@@ -1169,5 +1169,9 @@ namespace libtorrent
 		{
 			return;
 		}
+		catch (file_error)
+		{
+			return;
+		}
 	}
 }
