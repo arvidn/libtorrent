@@ -46,7 +46,7 @@ namespace libtorrent
 	class stat
 	{
 	friend class invariant_access;
-	enum { history = 10 };
+	enum { history = 5 };
 	public:
 
 		stat()

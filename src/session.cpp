@@ -110,9 +110,7 @@ namespace
 			c != connections.end(); ++c)
 		{
 			boost::shared_ptr<peer_connection> p = c->second;
-			p->upload_bandwidth.used = (int) ((p->statistics().upload_rate()+p->upload_bandwidth.used) / 2);
-//				p->has_data() ? (int) (p->upload_bandwidth.given - p->send_quota_left()) //ceil(p->statistics().upload_rate())
-//				             : 0;
+			p->upload_bandwidth.used = (int)ceil(p->statistics().upload_rate());
 			
 			requests.push_back(&p->upload_bandwidth);
 		}

@@ -242,7 +242,7 @@ int main(int argc, char* argv[])
 		std::vector<torrent_handle> handles;
 		session ses(std::make_pair(6881, 6889));
 
-		ses.set_upload_rate_limit(40 * 1024);
+		ses.set_upload_rate_limit(20 * 1024);
 		ses.set_http_settings(settings);
 		ses.set_severity_level(alert::debug);
 

@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/stat.hpp"
 #include "libtorrent/invariant_check.hpp"
+#include <algorithm>
 
 using namespace libtorrent;
 
@@ -46,13 +47,11 @@ void libtorrent::stat::second_tick()
 {
 	INVARIANT_CHECK;
 
-	std::copy(m_download_per_second_history,
-		m_download_per_second_history+history-1,
-		m_download_per_second_history+1);
-
-	std::copy(m_upload_per_second_history,
-		m_upload_per_second_history+history-1,
-		m_upload_per_second_history+1);
+	for(int i=history-2;i>=0;--i)
+	{
+		m_download_per_second_history[i+1]=m_download_per_second_history[i];
+		m_upload_per_second_history[i+1]=m_upload_per_second_history[i];
+	}
 
 	m_download_per_second_history[0] = m_downloaded_payload + m_downloaded_protocol;
 	m_upload_per_second_history[0] = m_uploaded_payload + m_uploaded_protocol;

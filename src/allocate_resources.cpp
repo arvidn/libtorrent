@@ -186,7 +186,7 @@ namespace libtorrent
 
 			while(resources_to_distribute > 0)
 			{
-#if 1
+#if 0
 				int num_active=0;
 				for(int i = 0;i < (int)requests.size();++i)
 				{
@@ -208,7 +208,7 @@ namespace libtorrent
 					int toGive = 1+std::min(max_give-1,r->used);
 					resources_to_distribute-=give(r,toGive);
 				}
-#else
+#elif 1
 				size_type total_used=0;
 				size_type max_used=0;
 				for(int i = 0;i < (int)requests.size();++i)
@@ -266,6 +266,74 @@ namespace libtorrent
 						toGive=std::numeric_limits<int>::max();
 					resources_to_distribute-=give(r,(int)toGive);
 				}
+#else
+				size_type total_used=0;
+				size_type max_used=0;
+				for(int i = 0;i < (int)requests.size();++i)
+				{
+					resource_request *r=requests[i];
+					if(r->given == r->wanted)
+						continue;
+					assert(r->given < r->wanted);
+
+					max_used = std::max(max_used, (size_type)r->used + 1);
+					total_used += (size_type)r->used + 1;
+				}
+
+				size_type kNumer=resources_to_distribute;
+				size_type kDenom=total_used;
+
+				if(kNumer*max_used <= kDenom)
+				{
+					kNumer=1;
+					kDenom=max_used;
+				}
+
+				if(kNumer > kDenom)
+				{
+					kNumer=1;
+					kDenom=1;
+				}
+
+				for(int i = 0;i < (int)requests.size() && resources_to_distribute;++i)
+				{
+					resource_request *r=requests[i];
+					if(r->given == r->wanted)
+						continue;
+					assert(r->given < r->wanted);
+
+					size_type used = (size_type)r->used + 1;
+					size_type toGive = used * kNumer / kDenom;
+					if(toGive>std::numeric_limits<int>::max())
+						toGive=std::numeric_limits<int>::max();
+					resources_to_distribute-=give(r,(int)toGive);
+				}
+/*
+				while(resources_to_distribute != 0)
+				{
+					int num_active=0;
+					for(int i = 0;i < (int)requests.size();++i)
+					{
+						resource_request *r=requests[i];
+						if(r->given == r->wanted)
+							continue;
+						num_active++;
+					}
+
+					int max_give=resources_to_distribute/num_active;
+					max_give=std::max(max_give,1);
+					
+					for(int i = 0;i < (int)requests.size() && resources_to_distribute;++i)
+					{
+						resource_request *r=requests[i];
+						if(r->given == r->wanted)
+							continue;
+
+						int toGive = 1+std::min(max_give-1,r->used);
+						resources_to_distribute-=give(r,toGive);
+					}
+				}
+*/
 #endif
 				assert(resources_to_distribute >= 0);
 			}
