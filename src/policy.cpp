@@ -340,7 +340,7 @@ namespace libtorrent
 	policy::peer* policy::find_choke_candidate()
 	{
 		peer* worst_peer = 0;
-		size_type min_weight = std::numeric_limits<int>::max();
+		size_type min_weight = std::numeric_limits<int>::min();
 
 		// TODO: make this selection better
 
@@ -395,7 +395,7 @@ namespace libtorrent
 			if (c->is_disconnecting()) continue;
 			if (!c->is_choked()) continue;
 			if (!c->is_peer_interested()) continue;
-			if (c->share_diff()	< -free_upload_amount
+			if (c->share_diff() < -free_upload_amount
 				&& m_torrent->ratio() != 0) continue;
 			if (c->statistics().download_rate() < max_down_speed) continue;
 //			if (i->last_optimistically_unchoked > min_time) continue;
