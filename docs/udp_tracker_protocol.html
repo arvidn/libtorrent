@@ -34,8 +34,10 @@
 </ul>
 </li>
 <li><a class="reference" href="#actions" id="id18" name="id18">actions</a></li>
-<li><a class="reference" href="#extensions" id="id19" name="id19">extensions</a></li>
+<li><a class="reference" href="#extensions" id="id19" name="id19">extensions</a><ul>
 <li><a class="reference" href="#authentication" id="id20" name="id20">authentication</a></li>
+</ul>
+</li>
 <li><a class="reference" href="#credits" id="id21" name="id21">credits</a></li>
 </ul>
 </div>
@@ -73,7 +75,9 @@ retrying.</p>
 <tbody valign="top">
 <tr><td>int64_t</td>
 <td>connection_id</td>
-<td>Not used, ignored by tracker.</td>
+<td>Must be initialized to 0x41727101980
+in network byte order. This will
+identify the protocol.</td>
 </tr>
 <tr><td>int32_t</td>
 <td>action</td>
@@ -150,7 +154,8 @@ establishing the connection.</td>
 </tr>
 <tr><td>int32_t</td>
 <td>action</td>
-<td>Action. in this case, 1 for announce.</td>
+<td>Action. in this case, 1 for announce.
+See <a class="reference" href="#actions">actions</a>.</td>
 </tr>
 <tr><td>int32_t</td>
 <td>transaction_id</td>
@@ -239,7 +244,8 @@ in the reply. Use -1 for default.</td>
 <td>action</td>
 <td>The action this is a reply to. Should
 in this case be 1 for announce.
-If 3 (for error) see <a class="reference" href="#errors">errors</a>.</td>
+If 3 (for error) see <a class="reference" href="#errors">errors</a>.
+See <a class="reference" href="#actions">actions</a>.</td>
 </tr>
 <tr><td>int32_t</td>
 <td>transaction_id</td>
@@ -315,7 +321,7 @@ establishing of the connection.</td>
 <tr><td>int32_t</td>
 <td>action</td>
 <td>The action, in this case, 2 for
-scrape.</td>
+scrape. See <a class="reference" href="#actions">actions</a>.</td>
 </tr>
 <tr><td>int32_t</td>
 <td>transaction_id</td>
@@ -380,7 +386,8 @@ If 3 (for error) see <a class="reference" href="#errors">errors</a>.</td>
 </tr>
 </tbody>
 </table>
-<p>The rest of the packet contains a variable number of the following structures:</p>
+<p>The rest of the packet contains the following structures once for each info-hash
+you asked in the scrape request.</p>
 <table border class="table">
 <colgroup>
 <col width="18%" />
@@ -432,7 +439,8 @@ leechers.</td>
 <tbody valign="top">
 <tr><td>int32_t</td>
 <td>action</td>
-<td>The action, in this case 3, for error.</td>
+<td>The action, in this case 3, for error.
+See <a class="reference" href="#actions">actions</a>.</td>
 </tr>
 <tr><td>int32_t</td>
 <td>transaction_id</td>
@@ -469,9 +477,8 @@ bits are assigned:</p>
 <li>1 = <a class="reference" href="#authentication">authentication</a>.</li>
 </ul>
 </blockquote>
-</div>
 <div class="section" id="authentication">
-<h1><a name="authentication">authentication</a></h1>
+<h2><a name="authentication">authentication</a></h2>
 <p>The packet will have an authentication part
 appended to it. It has the following format:</p>
 <table border class="table">
@@ -497,15 +504,18 @@ username.</td>
 <td>The username, the number of characters
 as specified in the previous field.</td>
 </tr>
-<tr><td>uint8_t[20]</td>
+<tr><td>uint8_t[8]</td>
 <td>passwd_hash</td>
 <td>sha1(packet + sha1(password))
 The packet in this case means the
-entire packet except these 20 bytes
-that are the password hash.</td>
+entire packet except these 8 bytes
+that are the password hash. These are
+the 8 first bytes (most significant)
+from the 20 bytes hash calculated.</td>
 </tr>
 </tbody>
 </table>
+</div>
 </div>
 <div class="section" id="credits">
 <h1><a name="credits">credits</a></h1>

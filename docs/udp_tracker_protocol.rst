@@ -40,7 +40,9 @@ Client sends packet:
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
 +=============+=====================+========================================+
-| int64_t     | connection_id       | Not used, ignored by tracker.          |
+| int64_t     | connection_id       | Must be initialized to 0x41727101980   |
+|             |                     | in network byte order. This will       |
+|             |                     | identify the protocol.                 |
 +-------------+---------------------+----------------------------------------+
 | int32_t     | action              | 0 for a connection request             |
 +-------------+---------------------+----------------------------------------+
@@ -83,6 +85,7 @@ Client sends packet:
 |             |                     | establishing the connection.           |
 +-------------+---------------------+----------------------------------------+
 | int32_t     | action              | Action. in this case, 1 for announce.  |
+|             |                     | See actions_.                          |
 +-------------+---------------------+----------------------------------------+
 | int32_t     | transaction_id      | Randomized by client.                  |
 +-------------+---------------------+----------------------------------------+
@@ -132,6 +135,7 @@ Server replies with packet:
 | int32_t     | action              | The action this is a reply to. Should  |
 |             |                     | in this case be 1 for announce.        |
 |             |                     | If 3 (for error) see errors_.          |
+|             |                     | See actions_.                          |
 +-------------+---------------------+----------------------------------------+
 | int32_t     | transaction_id      | Must match the transaction_id sent     |
 |             |                     | in the announce request.               |
@@ -172,7 +176,7 @@ Client sends packet:
 |             |                     | establishing of the connection.        |
 +-------------+---------------------+----------------------------------------+
 | int32_t     | action              | The action, in this case, 2 for        |
-|             |                     | scrape.                                |
+|             |                     | scrape. See actions_.                  |
 +-------------+---------------------+----------------------------------------+
 | int32_t     | transaction_id      | Randomized by client.                  |
 +-------------+---------------------+----------------------------------------+
@@ -204,7 +208,8 @@ Server replies with packet:
 | int32_t     | transaction_id      | Must match the sent transaction id.    |
 +-------------+---------------------+----------------------------------------+
 
-The rest of the packet contains a variable number of the following structures:
+The rest of the packet contains the following structures once for each info-hash
+you asked in the scrape request.
 
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
@@ -231,6 +236,7 @@ server replies packet:
 | size        | name                | description                            |
 +=============+=====================+========================================+
 | int32_t     | action              | The action, in this case 3, for error. |
+|             |                     | See actions_.                          |
 +-------------+---------------------+----------------------------------------+
 | int32_t     | transaction_id      | Must match the transaction_id sent     |
 |             |                     | from the client.                       |
@@ -262,7 +268,7 @@ bits are assigned:
 
 
 authentication
-++++++++++++++
+--------------
 
 The packet will have an authentication part
 appended to it. It has the following format:
@@ -276,10 +282,12 @@ appended to it. It has the following format:
 | int8_t[]    | username            | The username, the number of characters |
 |             |                     | as specified in the previous field.    |
 +-------------+---------------------+----------------------------------------+
-| uint8_t[20] | passwd_hash         | sha1(packet + sha1(password))          |
+| uint8_t[8]  | passwd_hash         | sha1(packet + sha1(password))          |
 |             |                     | The packet in this case means the      |
-|             |                     | entire packet except these 20 bytes    |
-|             |                     | that are the password hash.            |
+|             |                     | entire packet except these 8 bytes     |
+|             |                     | that are the password hash. These are  |
+|             |                     | the 8 first bytes (most significant)   |
+|             |                     | from the 20 bytes hash calculated.     |
 +-------------+---------------------+----------------------------------------+
 
 
