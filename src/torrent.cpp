@@ -877,13 +877,6 @@ namespace libtorrent
 
 	void torrent::second_tick(stat& accumulator)
 	{
-		if (m_paused)
-		{
-			// let the stats fade out to 0
- 			m_stat.second_tick();
-			return;
-		}
-
 		m_connections_quota.used = (int)m_connections.size();
 		m_uploads_quota.used = m_policy->num_uploads();
 
@@ -895,9 +888,16 @@ namespace libtorrent
 		m_dl_bandwidth_quota.min = 0;
 		m_dl_bandwidth_quota.max = 0;
 
+		if (m_paused)
+		{
+			// let the stats fade out to 0
+ 			m_stat.second_tick();
+			return;
+		}
+
+
 		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end();
-			++i)
+			i != m_connections.end(); ++i)
 		{
 			peer_connection* p = i->second;
 			m_stat += p->statistics();
