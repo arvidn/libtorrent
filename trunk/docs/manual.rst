@@ -123,7 +123,9 @@ abstraction. There's one ``file_win.cpp`` which relies on windows file API that 
 files larger than 2 Gigabytes. This does not work in vc6 for some reason, possibly because
 it may require windows NT and above. The other file, ``file.cpp`` is the default
 implementation that simply relies on the standard low level io routines (read, write etc.),
-but for some reason this implementation doesn't seem to work on windows.
+this is the preferred implementation that should be used in all cases. The ``file_win.cpp``
+have had some problems with failing seeks (I don't know why), so I advise everyone to use
+the other file.
 
 
 cygwin and msvc
@@ -820,6 +822,7 @@ perform any operation on it, unless you first assign it a valid handle. If you t
 any operation on an uninitialized handle, it will throw ``invalid_handle``.
 
 **TODO: document trackers() and replace_trackers()**
+**TODO: document how to create a .torrent**
 
 save_path()
 -----------
