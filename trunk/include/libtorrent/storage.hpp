@@ -231,17 +231,16 @@ namespace libtorrent
 	class piece_manager : boost::noncopyable
 	{
 	public:
-
 		typedef entry::integer_type size_type;
 
 		piece_manager(
 			const torrent_info& info
-			, const boost::filesystem::path& path);
+		  , const boost::filesystem::path& path);
 
 		void check_pieces(
 			boost::mutex& mutex
-			, detail::piece_checker_data& data
-			, std::vector<bool>& pieces);
+		  , detail::piece_checker_data& data
+		  , std::vector<bool>& pieces);
 
 		void allocate_slots(int num_slots);
 
