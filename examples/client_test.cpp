@@ -245,7 +245,7 @@ int main(int argc, char* argv[])
 			std::make_pair(6881, 6889)
 			, fingerprint("LT", 0, 1, 0, 0));
 
-		ses.set_upload_rate_limit(20 * 1024);
+		ses.set_upload_rate_limit(100000);
 		ses.set_http_settings(settings);
 		ses.set_severity_level(alert::debug);
 
@@ -345,16 +345,29 @@ int main(int argc, char* argv[])
 			a = ses.pop_alert();
 			while (a.get())
 			{
-				torrent_finished_alert* p = dynamic_cast<torrent_finished_alert*>(a.get());
-				if (p)
+				if (torrent_finished_alert* p = dynamic_cast<torrent_finished_alert*>(a.get()))
 				{
 					// limit the bandwidth for all seeding torrents
 					p->handle.set_max_connections(10);
 					p->handle.set_max_uploads(5);
-					p->handle.set_upload_limit(30000);
+					p->handle.set_upload_limit(10000);
+					events.push_back(
+						p->handle.get_torrent_info().name() + ": " + a->msg());
 				}
+				else if (peer_error_alert* p = dynamic_cast<peer_error_alert*>(a.get()))
+				{
+					events.push_back(identify_client(p->id) + ": " + a->msg());
+				}
+				else if (invalid_request_alert* p = dynamic_cast<invalid_request_alert*>(a.get()))
+				{
+					events.push_back(identify_client(p->id) + ": " + a->msg());
+				}
+				else
+				{
+					events.push_back(a->msg());
+				}
+
 				if (events.size() >= 10) events.pop_front();
-				events.push_back(a->msg());
 				a = ses.pop_alert();
 			}
 

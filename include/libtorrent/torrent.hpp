@@ -92,27 +92,20 @@ namespace libtorrent
 
 		~torrent();
 
+		// this will flag the torrent as aborted. The main
+		// loop in session_impl will check for this state
+		// on all torrents once every second, and take
+		// the necessary actions then.
 		void abort() { m_abort = true; m_event = tracker_request::stopped; }
 		bool is_aborted() const { return m_abort; }
 
-		// is called every second by session.
+		// is called every second by session. This will
+		// caclulate the upload/download and number
+		// of connections this torrent needs. And prepare
+		// it for being used by allocate_resources.
 		void second_tick();
 
-		// returns true if it time for this torrent to make another
-		// tracker request
-		bool should_request() const
-		{
-			namespace time = boost::posix_time;
-			return !m_paused &&
-				m_next_request < time::second_clock::local_time();
-		}
-
-		void force_tracker_request()
-		{
-			namespace time = boost::posix_time;
-			m_next_request = time::second_clock::local_time();
-		}
-
+		// debug purpose only
 		void print(std::ostream& os) const;
 
 		void check_files(
@@ -131,13 +124,6 @@ namespace libtorrent
 
 		void use_interface(const char* net_interface);
 		peer_connection& connect_to_peer(const address& a);
-
-		const torrent_info& torrent_file() const
-		{ return m_torrent_file; }
-
-		policy& get_policy() { return *m_policy; }
-
-		piece_manager& filesystem() { return m_storage; }
 
 		void set_ratio(float ratio)
 		{ assert(ratio >= 0.0f); m_ratio = ratio; }
@@ -169,10 +155,6 @@ namespace libtorrent
 		// the number of peers that belong to this torrent
 		int num_peers() const { return (int)m_connections.size(); }
 
-		// returns true if this torrent has a connection
-		// to a peer with the given peer_id
-//		bool has_peer(const peer_id& id) const;
-
 		typedef std::map<address, peer_connection*>::iterator peer_iterator;
 		typedef std::map<address, peer_connection*>::const_iterator const_peer_iterator;
 
@@ -186,8 +168,10 @@ namespace libtorrent
 // --------------------------------------------
 		// TRACKER MANAGEMENT
 
-		// this is a callback called by the tracker_connection class
+		// these are callbacks called by the tracker_connection instance
+		// (either http_tracker_connection or udp_tracker_connection)
 		// when this torrent got a response from its tracker request
+		// or when a failure occured
 		virtual void tracker_response(std::vector<peer_entry>& e, int interval);
 		virtual void tracker_request_timed_out();
 		virtual void tracker_request_error(int response_code, const std::string& str);
@@ -195,10 +179,32 @@ namespace libtorrent
 		// generates a request string for sending
 		// to the tracker
 		tracker_request generate_tracker_request();
-		std::string tracker_password() const;
 
-		boost::posix_time::ptime next_announce() const
-		{ return m_next_request; }
+		// if no password and username is set
+		// this will return an empty string, otherwise
+		// it will concatenate the login and password
+		// ready to be sent over http (but without
+		// base64 encoding).
+		std::string tracker_login() const;
+
+		// returns the absolute time when the next tracker
+		// announce will take place.
+		boost::posix_time::ptime next_announce() const;
+
+		// returns true if it is time for this torrent to make another
+		// tracker request
+		bool should_request() const;
+
+		// forcefully sets next_announce to the current time
+		void force_tracker_request();
+
+		// sets the username and password that will be sent to
+		// the tracker
+		void set_tracker_login(std::string const& name, std::string const& pw);
+
+		// the address of the tracker that we managed to
+		// announce ourself at the last time we tried to announce
+		const address& current_tracker() const;
 
 // --------------------------------------------
 		// PIECE MANAGEMENT
@@ -242,9 +248,6 @@ namespace libtorrent
 		// all seeds and let the tracker know we're finished.
 		void completed();
 
-		piece_picker& picker() { return m_picker; }
-
-
 		bool verify_piece(int piece_index);
 
 		// this is called from the peer_connection
@@ -266,17 +269,13 @@ namespace libtorrent
 
 		boost::filesystem::path save_path() const
 		{ return m_storage.save_path(); }
-
 		alert_manager& alerts() const;
+		piece_picker& picker() { return m_picker; }
+		policy& get_policy() { return *m_policy; }
+		piece_manager& filesystem() { return m_storage; }
+		torrent_info const& torrent_file() const { return m_torrent_file; }
+
 		torrent_handle get_handle() const;
-
-		void set_tracker_login(std::string const& name, std::string const& pw)
-		{
-			m_username = name;
-			m_password = pw;
-		}
-
-		const address& current_tracker() const;
 
 		// DEBUG
 #ifndef NDEBUG
@@ -286,18 +285,20 @@ namespace libtorrent
 		void check_invariant();
 #endif
 
+// --------------------------------------------
+		// RESOURCE MANAGEMENT
+
 		// this will distribute the given upload/download
-		// quotas among the peers
+		// quotas and number of connections, among the peers
 		void distribute_resources();
 
-		resource_request m_upload_bandwidth_quota;
+		resource_request m_ul_bandwidth_quota;
+		resource_request m_dl_bandwidth_quota;
+		resource_request m_unchoked_quota;
+		resource_request m_connections_quota;
 
-		void set_upload_limit(int limit)
-		{
-			assert(limit >= -1);
-			if (limit == -1) limit = std::numeric_limits<int>::max();
-			m_upload_bandwidth_limit = limit;
-		}
+		void set_upload_limit(int limit);
+		void set_download_limit(int limit);
 
 	private:
 
@@ -391,7 +392,50 @@ namespace libtorrent
 		// the max number of bytes this torrent
 		// can upload per second
 		int m_upload_bandwidth_limit;
+		int m_download_bandwidth_limit;
 	};
+
+	inline boost::posix_time::ptime torrent::next_announce() const
+	{ return m_next_request; }
+
+	// returns true if it is time for this torrent to make another
+	// tracker request
+	inline bool torrent::should_request() const
+	{
+		namespace time = boost::posix_time;
+		return !m_paused &&
+			m_next_request < time::second_clock::local_time();
+	}
+
+	inline void torrent::force_tracker_request()
+	{
+		namespace time = boost::posix_time;
+		m_next_request = time::second_clock::local_time();
+	}
+
+	inline void torrent::set_tracker_login(
+		std::string const& name
+		, std::string const& pw)
+	{
+		m_username = name;
+		m_password = pw;
+	}
+
+	inline void torrent::set_upload_limit(int limit)
+	{
+		assert(limit >= -1);
+		if (limit == -1) limit = std::numeric_limits<int>::max();
+		if (limit < num_peers() * 10) limit = num_peers() * 10;
+		m_upload_bandwidth_limit = limit;
+	}
+
+	inline void torrent::set_download_limit(int limit)
+	{
+		assert(limit >= -1);
+		if (limit == -1) limit = std::numeric_limits<int>::max();
+		if (limit < num_peers() * 10) limit = num_peers() * 10;
+		m_download_bandwidth_limit = limit;
+	}
 
 }
 

@@ -90,15 +90,17 @@ namespace libtorrent
 
 	struct peer_error_alert: alert
 	{
-		peer_error_alert(const address& pip, const std::string& msg)
+		peer_error_alert(address const& pip, peer_id const& pid, const std::string& msg)
 			: alert(alert::debug, msg)
 			, ip(pip)
+			, id(pid)
 		{}
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new peer_error_alert(*this)); }
 
 		address ip;
+		peer_id id;
 	};
 
 	struct chat_message_alert: alert
@@ -122,14 +124,16 @@ namespace libtorrent
 	struct invalid_request_alert: alert
 	{
 		invalid_request_alert(
-			const peer_request& r
-			, const torrent_handle& h
-			, const address& sender
-			, const std::string& msg)
+			peer_request const& r
+			, torrent_handle const& h
+			, address const& sender
+			, peer_id const& pid
+			, std::string const& msg)
 			: alert(alert::debug, msg)
 			, handle(h)
 			, ip(sender)
 			, request(r)
+			, id(pid)
 		{}
 
 		virtual std::auto_ptr<alert> clone() const
@@ -138,6 +142,7 @@ namespace libtorrent
 		torrent_handle handle;
 		address ip;
 		peer_request request;
+		peer_id id;
 	};
 
 	struct torrent_finished_alert: alert

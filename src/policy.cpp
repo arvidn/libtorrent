@@ -748,6 +748,8 @@ namespace libtorrent
 		// it's probably just a NAT-check. Ignore the
 		// num connections constraint then.
 		// TODO: mske sure this works
+		// TODO: only allow _one_ connection to use this
+		// override at a time
 		if (m_torrent->num_peers() >= m_max_connections
 			&& c.get_socket()->sender().ip() != m_torrent->current_tracker().ip())
 		{
@@ -853,7 +855,7 @@ namespace libtorrent
 			if (m_torrent->alerts().should_post(alert::debug))
 			{
 				m_torrent->alerts().post_alert(
-					peer_error_alert(remote, e.what()));
+					peer_error_alert(remote, id, e.what()));
 			}
 		}
 		catch(protocol_error& e)
@@ -861,7 +863,7 @@ namespace libtorrent
 			if (m_torrent->alerts().should_post(alert::debug))
 			{
 				m_torrent->alerts().post_alert(
-					peer_error_alert(remote, e.what()));
+					peer_error_alert(remote, id, e.what()));
 			}
 		}
 	}

@@ -40,7 +40,7 @@ namespace libtorrent
 		int piece;
 		int start;
 		int length;
-		bool operator==(const peer_request& r)
+		bool operator==(peer_request const& r) const
 		{ return piece == r.piece && start == r.start && length	== r.length; }
 	};
 }

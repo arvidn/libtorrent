@@ -380,14 +380,6 @@ namespace libtorrent
 						}
 						return true;
 					}
-	#ifndef NDEBUG
-					if (requester())
-					{
-						requester()->debug_log(
-							std::string("m_content_length = ")
-							+ boost::lexical_cast<std::string>(m_content_length));
-					}
-	#endif
 				}
 				else if (line.substr(0, 18) == "Content-Encoding: ")
 				{
