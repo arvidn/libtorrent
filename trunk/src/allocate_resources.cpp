@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <boost/limits.hpp>
 
-#if defined(_MSC_VER) && _MSC_VER < 1300
+#if defined(_MSC_VER) && _MSC_VER < 1310
 #define for if (false) {} else for
 #else
 #include <boost/iterator/transform_iterator.hpp>
@@ -253,7 +253,7 @@ namespace libtorrent
 			, res);
 	}
 */
-#if defined(_MSC_VER) && _MSC_VER < 1300
+#if defined(_MSC_VER) && _MSC_VER < 1310
 
 	namespace detail
 	{
