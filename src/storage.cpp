@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <ctime>
 #include <iostream>
+#include <ios>
 #include <fstream>
 #include <iomanip>
 #include <iterator>
