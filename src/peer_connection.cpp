@@ -440,20 +440,30 @@ bool libtorrent::peer_connection::dispatch_message(int received)
 			r.start = read_int(&m_recv_buffer[5]);
 			r.length = read_int(&m_recv_buffer[9]);
 
-			if (!m_choked)
+			// make sure this request
+			// is legal and taht the peer
+			// is not choked
+			if (r.piece >= 0
+				&& r.piece < m_torrent->torrent_file().num_pieces()
+				&& r.start >= 0
+				&& r.start < m_torrent->torrent_file().piece_size(r.piece)
+				&& r.length > 0
+				&& r.length + r.start < m_torrent->torrent_file().piece_size(r.piece)
+				&& !m_choked)
 			{
 				m_requests.push_back(r);
 				send_buffer_updated();
+#ifndef NDEBUG
+				(*m_logger) << m_socket->sender().as_string() << " <== REQUEST [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
+#endif
 			}
 			else
 			{
-				// ignoring request since we have
-				// choked this peer
+				// TODO: log this illegal request
+				// if the only error is that the
+				// peer is choked, it may not be a
+				// mistake
 			}
-
-#ifndef NDEBUG
-			(*m_logger) << m_socket->sender().as_string() << " <== REQUEST [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
-#endif
 
 			break;
 		}
@@ -1125,6 +1135,12 @@ void libtorrent::peer_connection::send_data()
 		{
 			// make sure the request is ok
 			if (r.start + r.length > m_torrent->torrent_file().piece_size(r.piece))
+			{
+				// NOT OK! disconnect
+				throw network_error(0);
+			}
+
+			if (r.length <= 0 || r.start < 0)
 			{
 				// NOT OK! disconnect
 				throw network_error(0);

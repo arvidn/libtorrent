@@ -180,6 +180,8 @@ namespace libtorrent {
 	  , size_type offset
   	  , size_type size)
 	{
+		assert(offset >= 0);
+		assert(offset < m_pimpl->info.piece_size(slot));
 		assert(size > 0);
 
 		slot_lock lock(*m_pimpl, slot);

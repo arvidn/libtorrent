@@ -517,6 +517,7 @@ namespace libtorrent
 				if (i->connection == 0) continue;
 				// if we're not interested, we will not become interested
 				if (!i->connection->is_interesting()) continue;
+				if (!i->connection->has_piece(index)) continue;
 
 				bool interested = false;
 				const std::vector<bool>& peer_has = i->connection->get_bitfield();
