@@ -66,6 +66,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/debug.hpp"
+#include "libtorrent/peer_request.hpp"
+#include "libtorrent/piece_block_progress.hpp"
 
 #if !defined(NDEBUG) && defined(_MSC_VER)
 #	include <float.h>
