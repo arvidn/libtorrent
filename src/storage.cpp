@@ -407,8 +407,9 @@ namespace libtorrent
 		assert(file_offset < file_iter->size);
 
 		out.seek(file_offset);
+		size_type pos = out.tell();
 
-		if (out.tell() != file_offset)
+		if (pos != file_offset)
 		{
 			std::stringstream s;
 			s << "no storage for slot " << slot;

@@ -1007,7 +1007,7 @@ namespace libtorrent
 
 	void peer_connection::disconnect()
 	{
-		assert(m_disconnecting == false);
+		if (m_disconnecting) return;
 		detail::session_impl::connection_map::iterator i = m_ses.m_connections.find(m_socket);
 		m_disconnecting = true;
 		assert(i != m_ses.m_connections.end());
