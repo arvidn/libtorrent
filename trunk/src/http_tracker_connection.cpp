@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
+#include "libtorrent/io.hpp"
 
 using namespace libtorrent;
 
@@ -154,6 +155,7 @@ namespace libtorrent
 		// extension that tells the tracker that
 		// we don't need any peer_id's in the response
 		m_send_buffer += "&no_peer_id=1";
+		m_send_buffer += "&compact=1";
 
 		m_send_buffer += " HTTP/1.0\r\nAccept-Encoding: gzip\r\n"
 			"User-Agent: ";
@@ -504,11 +506,34 @@ namespace libtorrent
 
 			peer_list.clear();
 
-			const entry::list_type& l = e["peers"].list();
-			for(entry::list_type::const_iterator i = l.begin(); i != l.end(); ++i)
+			if (e["peers"].type() == entry::string_t)
 			{
-				peer_entry p = extract_peer_info(*i);
-				peer_list.push_back(p);
+				std::string const& peers = e["peers"].string();
+				for (std::string::const_iterator i = peers.begin();
+					i != peers.end();)
+				{
+					if (std::distance(i, peers.end()) < 6) break;
+
+					peer_entry p;
+					p.id.clear();
+					std::stringstream ip_str;
+					ip_str << (int)detail::read_uint8(i) << ".";
+					ip_str << (int)detail::read_uint8(i) << ".";
+					ip_str << (int)detail::read_uint8(i) << ".";
+					ip_str << (int)detail::read_uint8(i);
+					p.ip = ip_str.str();
+					p.port = detail::read_uint16(i);
+					peer_list.push_back(p);
+				}
+			}
+			else
+			{
+				const entry::list_type& l = e["peers"].list();
+				for(entry::list_type::const_iterator i = l.begin(); i != l.end(); ++i)
+				{
+					peer_entry p = extract_peer_info(*i);
+					peer_list.push_back(p);
+				}
 			}
 
 			requester()->tracker_response(peer_list, interval);

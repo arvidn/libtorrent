@@ -486,8 +486,17 @@ namespace libtorrent
 			++i)
 		{
 			peer_connection* c = i->connection;
+            // ignore peers that are choked or
+            // whose connection is closed
 			if (c == 0) continue;
 			if (c->is_choked()) continue;
+
+            // if we still owe this peer some upload
+            // don't choke it
+            if (c->share_diff() > 0) continue;
+
+            // select the one that has been waiting
+            // for an unchoke the longest
 			if (last_unchoke > i->last_optimistically_unchoked) continue;
 			last_unchoke = i->last_optimistically_unchoked;
 			candidate = &(*i);
