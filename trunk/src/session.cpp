@@ -663,6 +663,11 @@ namespace libtorrent
 		}
 	}
 
+	std::auto_ptr<alert> session::pop_alert()
+	{
+		return m_impl.m_alerts.get();
+	}
+
 	// TODO: document
 	// TODO: if the first 4 charachters are printable
 	// maybe they should be considered a fingerprint?
