@@ -181,6 +181,8 @@ namespace libtorrent
 		// -1 means unlimited connections
 		void set_max_connections(int max_connections);
 
+		void set_tracker_login(std::string const& name, std::string const& password);
+
 		const sha1_hash& info_hash() const
 		{ return m_info_hash; }
 

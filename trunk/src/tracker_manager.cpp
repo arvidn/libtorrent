@@ -304,7 +304,8 @@ namespace libtorrent
 
 	void tracker_manager::queue_request(
 		tracker_request const& req
-		, request_callback* c)
+		, request_callback* c
+		, std::string const& password)
 	{
 		try
 		{
@@ -363,7 +364,8 @@ namespace libtorrent
 					, port
 					, request_string
 					, c
-					, m_settings));
+					, m_settings
+					, password));
 			}
 			else if (protocol == "udp")
 			{

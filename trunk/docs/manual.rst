@@ -83,47 +83,33 @@ libtorrent is released under the BSD-license_.
 building
 ========
 
-To build libtorrent you need boost_ and bjam installed.
-Then you can use ``bjam`` to build libtorrent.
+The easiest way to build libtorrent is probably to use `boost-build`_. Make sure you install it
+correctly by setting the environment variable ``BOOST_BUILD_PATH`` and modifying the
+``user_config.jam`` to reflect the toolsets you have installed.
 
-.. _boost: http://www.boost.org
+.. _`boost-build`: http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=80982
 
-.. http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=80982
+You also need to install `boost 1.31.0`__.
 
-To make bjam work, you need to set the environment variable ``BOOST_ROOT`` to the
-path where boost is installed (e.g. c:\\boost_1_30_2 on windows). Then you can just run
-``bjam`` in the libtorrent directory.
+__ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&release_id=214915
 
-The Jamfile doesn't work yet. On unix-systems you can use the makefile however. You
-first have to build boost.thread and boost.filesystem. You do this by, in the directory
-'boost-1.30.2/tools/build/jam_src' run the build script ``./build.sh``. This should
-produce at least one folder with the 'bin' prefix (and the rest of the name describes
-your platform). Put the files in that folder somewhere in your path.
+Before you invoke ``bjam`` you have to set the environment variable ``BOOST_ROOT`` to the
+path where you installed boost. This will be used to build and link against the required
+boost libraries as well as be used as include path for boost headers.
 
-You can then invoke ``bjam`` in the directories 'boost-1.30.2/libs/thread/build',
-'boost-1.30.2/libs/date_time/build' and 'boost-1.30.2/libs/filesystem/build'. That will
-produce the needed libraries. Put these libraries in the libtorrent root directory.
-You then have to modify the makefile to use you prefered compiler and to have the
-correct path to your boost istallation.
+To build you just have to run::
 
-Then the makefile should be able to do the rest.
+	bjam <toolset>
 
-When building (with boost 1.30.2) on linux and solaris however, I found that I had to make the following
-modifications to the boost.date-time library. In the file:
-'boost-1.30.2/boost/date_time/gregorian_calendar.hpp' line 59. Prepend 'boost/date_time/'
-to the include path.
+in the libtorrent directory.
 
-And the second modification was in the file:
-'boost-1.30.2/boost/date_time/microsec_time_clock.hpp' add the following include at the top
-of the file::
+If you're building in developer studio, you may have to set the compiler options
+"force conformance in for loop scope" and "treat wchar_t as built-in type" to Yes.
 
-	#include "boost/cstdint.hpp"
+If you're building in developer studio 6, you will probably have to use the previous
+version of boost, `boost 1.30.2`__.
 
-In developer studio, you may have to set the compiler options "force conformance in for
-loop scope" and "treat wchar_t as built-in type" to Yes.
-
-TODO: more detailed build instructions.
-
+__ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&release_id=178835
 
 release and debug builds
 ------------------------
@@ -523,6 +509,8 @@ Its declaration looks like this::
 		void connect_peer(const address& adr) const;
 		void set_ratio(float ratio);
 
+		void set_tracker_login(std::string const& username, std::string const& password);
+
 		boost::filsystem::path save_path() const;
 
 		void set_max_uploads(int max_uploads);
@@ -556,10 +544,13 @@ will throw invalid_handle_.
 infinite. i.e. the client will always upload as much as it can, no matter how much it gets back
 in return. With this setting it will work much like the standard clients.
 
-Besides 0, the ration can be set to any number greater than or equal to 1. It means how much to
+Besides 0, the ratio can be set to any number greater than or equal to 1. It means how much to
 attempt to upload in return for each download. e.g. if set to 2, the client will try to upload
 2 bytes for every byte received. The default setting for this is 0, which will make it work
 as a standard client.
+
+``set_tracker_login()`` sets a username and password that will be sent along in the HTTP-request
+of the tracker announce. Set this if the tracker requires authorization.
 
 ``info_hash()`` returns the info hash for the torrent.
 

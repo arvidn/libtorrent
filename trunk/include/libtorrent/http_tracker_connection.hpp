@@ -71,7 +71,8 @@ namespace libtorrent
 			, unsigned short port
 			, std::string const& request
 			, request_callback* c
-			, const http_settings& stn);
+			, const http_settings& stn
+			, std::string const& password = "");
 		virtual bool tick();
 		virtual bool send_finished() const
 		{ return m_send_buffer.empty(); }

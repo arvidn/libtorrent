@@ -459,6 +459,12 @@ namespace libtorrent
 			i->second->announce_piece(index);
 	}
 
+	std::string torrent::tracker_password() const
+	{
+		if (m_username.empty() && m_password.empty()) return "";
+		return m_username + ":" + m_password;
+	}
+
 	tracker_request torrent::generate_tracker_request(int port)
 	{
 		assert(port > 0);
