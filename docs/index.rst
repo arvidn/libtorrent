@@ -39,9 +39,10 @@ The current state includes the following features:
 	* queues torrents for file check, instead of checking all of them in parallel.
 	* uses separate threads for checking files and for main downloader, with a fool-proof
 	  thread-safe library interface. (i.e. There's no way for the user to cause a deadlock).
-	* can limit the upload bandwidth usage
+	* can limit the upload bandwidth usage and the maximum number of unchoked peers
 	* piece-wise file allocation
-	* upload rate limit, balanced depending on download speed and upload bandwidth
+	* tries to maintain a 1:1 share ratio between all peers but also shifts free
+	  download to peers as free upload. To maintain a global 1:1 ratio.
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
 .. _Azureus: http://azureus.sourceforge.net
