@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <iomanip>
 #include <cassert>
+#include <algorithm>
 
 namespace libtorrent
 {

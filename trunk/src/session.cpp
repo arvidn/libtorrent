@@ -291,12 +291,15 @@ namespace libtorrent { namespace detail
 			, print.begin() + print.length()
 			, m_peer_id.begin());
 
+		// http-accepted characters:
+		static char const printable[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_.!~*'()";
+
 		// the random number
 		for (unsigned char* i = m_peer_id.begin() + print.length();
 			i != m_peer_id.end();
 			++i)
 		{
-			*i = rand();
+			*i = printable[rand() % (sizeof(printable)-1)];
 		}
 	}
 

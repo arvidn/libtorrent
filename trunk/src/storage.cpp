@@ -1178,10 +1178,26 @@ namespace libtorrent
 			}
 			catch (file_error&)
 			{
-				// TODO: skip the whole file here!
-				// this means the slot wasn't allocated
-				assert(m_slot_to_piece[current_slot] == unallocated);
-				m_unallocated_slots.push_back(current_slot);
+				// find the file that failed, and skip all the blocks in that file
+				size_type file_offset = 0;
+				size_type current_offset = current_slot * m_info.piece_length();
+				for (torrent_info::file_iterator i = m_info.begin_files();
+					i != m_info.end_files(); ++i)
+				{
+					file_offset += i->size;
+					if (file_offset > current_offset) break;
+				}
+
+				assert(file_offset > current_offset);
+				int skip_blocks = (file_offset - current_offset + m_info.piece_length() - 1)
+					/ m_info.piece_length();
+
+				for (int i = current_slot; i < current_slot + skip_blocks; ++i)
+				{
+					assert(m_slot_to_piece[i] == unallocated);
+					m_unallocated_slots.push_back(i);
+				}
+				current_slot += skip_blocks;
 			}
 
 			// Update progress meter and check if we've been requested to abort
