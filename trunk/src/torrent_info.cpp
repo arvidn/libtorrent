@@ -158,11 +158,9 @@ namespace libtorrent
 		int old_num_pieces = static_cast<int>(m_piece_hash.size());
 
 		m_piece_hash.resize(num_pieces);
-		for (std::vector<sha1_hash>::iterator i = m_piece_hash.begin() + old_num_pieces;
-			i != m_piece_hash.end();
-			++i)
+		for (int i = old_num_pieces; i < num_pieces; ++i)
 		{
-			i->clear();
+			m_piece_hash[i].clear();
 		}
 	}
 

@@ -90,6 +90,7 @@ namespace libtorrent
 			if (v >= 0 && v < 10) return '0' + v;
 			else if (v >= 10) return 'A' + (v - 10);
 			assert(false);
+			return '0';
 		}
 
 	};

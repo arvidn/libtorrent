@@ -905,7 +905,6 @@ namespace libtorrent
 		return ret;
 	}
 
-
 	// TODO: add a check to see if filenames are accepted on the
 	// current platform.
 	// if the torrent already exists, this will throw duplicate_torrent
@@ -947,7 +946,7 @@ namespace libtorrent
 		d.save_path = save_path;
 		d.info_hash = ti.info_hash();
 		d.resume_data = resume_data;
-		
+
 		// add the torrent to the queue to be checked
 		m_checker_impl.m_torrents.push_back(d);
 		// and notify the thread that it got another
@@ -1301,11 +1300,11 @@ namespace libtorrent
 				, boost::bind((mem_fun_type)&entry::integer, _1));
 #endif
 
-			if (tmp_pieces.size() == info.num_pieces()
+			if ((int)tmp_pieces.size() == info.num_pieces()
 				&& std::find_if(tmp_pieces.begin(), tmp_pieces.end()
 				, boost::bind(std::less<int>(), _1, 0)) == tmp_pieces.end())
 			{
-				if (info.num_files() != file_sizes.size())
+				if (info.num_files() != (int)file_sizes.size())
 					return;
 
 				std::vector<size_type>::iterator fs = file_sizes.begin();

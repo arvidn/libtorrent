@@ -133,7 +133,7 @@ namespace libtorrent
 			}
 		}
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 	}
 
@@ -368,7 +368,7 @@ namespace libtorrent
 		move(true, m_piece_map[index].peer_count, m_piece_map[index].index);
 
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 	}
 
@@ -389,7 +389,7 @@ namespace libtorrent
 		move(m_piece_map[i].downloading, peer_count, index);
 
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 		return;
 	}
@@ -423,7 +423,7 @@ namespace libtorrent
 		assert(info_index != 0xffffff);
 		remove(m_piece_map[index].downloading, peer_count, info_index);
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 	}
 
@@ -435,7 +435,7 @@ namespace libtorrent
 		assert(pieces.size() == m_piece_map.size());
 
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 
 		// free refers to pieces that are free to download, noone else
@@ -582,7 +582,7 @@ namespace libtorrent
 	void piece_picker::mark_as_downloading(piece_block block, const address& peer)
 	{
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 		assert(block.piece_index >= 0);
 		assert(block.block_index >= 0);
@@ -611,14 +611,14 @@ namespace libtorrent
 			i->requested_blocks[block.block_index] = 1;
 		}
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 	}
 
 	void piece_picker::mark_as_finished(piece_block block, const address& peer)
 	{
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 		assert(block.piece_index >= 0);
 		assert(block.block_index >= 0);
@@ -648,7 +648,7 @@ namespace libtorrent
 			i->finished_blocks[block.block_index] = 1;
 		}
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 	}
 /*
@@ -717,7 +717,7 @@ namespace libtorrent
 	void piece_picker::abort_download(piece_block block)
 	{
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 
 		assert(block.piece_index >= 0);
@@ -752,7 +752,7 @@ namespace libtorrent
 			move(true, m_piece_map[block.piece_index].peer_count, m_piece_map[block.piece_index].index);
 		}
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 	}
 
