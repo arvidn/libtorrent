@@ -90,9 +90,8 @@ libtorrent::peer_connection::peer_connection(detail::session_impl* ses, torrent*
 {
 	assert(m_torrent != 0);
 
-#ifndef NDEBUG
-	m_logger = boost::shared_ptr<logger>(
-		m_torrent->spawn_logger(s->sender().as_string().c_str()));
+#if defined(TORRENT_VERBOSE_LOGGING)
+	m_logger = m_ses->create_log(s->sender().as_string().c_str());
 #endif
 
 	send_handshake();
@@ -126,9 +125,8 @@ libtorrent::peer_connection::peer_connection(detail::session_impl* ses, boost::s
 	, m_choked(true)
 {
 
-#ifndef NDEBUG
-	m_logger = boost::shared_ptr<logger>(
-		m_ses->m_log_spawner->create_logger(s->sender().as_string().c_str()));
+#if defined(TORRENT_VERBOSE_LOGGING)
+	m_logger = m_ses->create_log(s->sender().as_string().c_str());
 #endif
 
 	// we are not attached to any torrent yet.
@@ -159,7 +157,7 @@ void libtorrent::peer_connection::send_handshake()
 	std::copy(m_torrent->torrent_file().info_hash().begin(), m_torrent->torrent_file().info_hash().end(), m_send_buffer.begin() + 28);
 	std::copy(m_ses->get_peer_id().begin(), m_ses->get_peer_id().end(), m_send_buffer.begin() + 48);
 
-#if !defined(NDEBUG) && defined(VERBOSE)
+#if defined(TORRENT_VERBOSE_LOGGING)
 	(*m_logger) << m_socket->sender().as_string() << " ==> HANDSHAKE\n";
 #endif
 
@@ -176,7 +174,7 @@ bool libtorrent::peer_connection::dispatch_message()
 
 		// *************** CHOKE ***************
 	case msg_choke:
-#if !defined(NDEBUG) && defined(VERBOSE)
+#if defined(TORRENT_VERBOSE_LOGGING)
 		(*m_logger) << m_socket->sender().as_string() << " <== CHOKE\n";
 #endif
 		m_peer_choked = true;
@@ -200,7 +198,7 @@ bool libtorrent::peer_connection::dispatch_message()
 
 		// *************** UNCHOKE ***************
 	case msg_unchoke:
-#if !defined(NDEBUG) && defined(VERBOSE)
+#if defined(TORRENT_VERBOSE_LOGGING)
 		(*m_logger) << m_socket->sender().as_string() << " <== UNCHOKE\n";
 #endif
 		m_peer_choked = false;
@@ -210,7 +208,7 @@ bool libtorrent::peer_connection::dispatch_message()
 
 		// *************** INTERESTED ***************
 	case msg_interested:
-#if !defined(NDEBUG) && defined(VERBOSE)
+#if defined(TORRENT_VERBOSE_LOGGING)
 		(*m_logger) << m_socket->sender().as_string() << " <== INTERESTED\n";
 #endif
 		m_peer_interested = true;
@@ -220,7 +218,7 @@ bool libtorrent::peer_connection::dispatch_message()
 
 		// *************** NOT INTERESTED ***************
 	case msg_not_interested:
-#if !defined(NDEBUG) && defined(VERBOSE)
+#if defined(TORRENT_VERBOSE_LOGGING)
 		(*m_logger) << m_socket->sender().as_string() << " <== NOT_INTERESTED\n";
 #endif
 		m_peer_interested = false;
@@ -237,13 +235,13 @@ bool libtorrent::peer_connection::dispatch_message()
 			if (index >= m_have_piece.size())
 				return false;
 
-#if !defined(NDEBUG) && defined(VERBOSE)
+#if defined(TORRENT_VERBOSE_LOGGING)
 			(*m_logger) << m_socket->sender().as_string() << " <== HAVE [ piece: " << index << "]\n";
 #endif
 
 			if (m_have_piece[index])
 			{
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 				(*m_logger) << m_socket->sender().as_string() << " oops.. we already knew that: " << index << "\n";
 #endif
 			}
@@ -265,7 +263,7 @@ bool libtorrent::peer_connection::dispatch_message()
 			if (m_packet_size - 1 != (m_have_piece.size() + 7) / 8)
 				return false;
 
-#if !defined(NDEBUG) && defined(VERBOSE)
+#if defined(TORRENT_VERBOSE_LOGGING)
 			(*m_logger) << m_socket->sender().as_string() << " <== BITFIELD\n";
 #endif
 			bool interesting = false;
@@ -287,7 +285,7 @@ bool libtorrent::peer_connection::dispatch_message()
 			}
 			if (is_seed)
 			{
-#if !defined(NDEBUG) && defined(VERBOSE)
+#if defined(TORRENT_VERBOSE_LOGGING)
 				(*m_logger) << m_socket->sender().as_string() << " *** THIS IS A SEED ***\n";
 #endif
 			}
@@ -307,7 +305,7 @@ bool libtorrent::peer_connection::dispatch_message()
 			r.length = read_int(&m_recv_buffer[9]);
 			m_requests.push_back(r);
 
-#if !defined(NDEBUG) && defined(VERBOSE)
+#if defined(TORRENT_VERBOSE_LOGGING)
 			(*m_logger) << m_socket->sender().as_string() << " <== REQUEST [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
 #endif
 
@@ -322,7 +320,7 @@ bool libtorrent::peer_connection::dispatch_message()
 			std::size_t index = read_int(&m_recv_buffer[1]);
 			if (index < 0 || index >= m_torrent->torrent_file().num_pieces())
 			{
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 				(*m_logger) << m_socket->sender().as_string() << " piece index invalid\n";
 #endif
 				return false;
@@ -332,7 +330,7 @@ bool libtorrent::peer_connection::dispatch_message()
 
 			if (offset < 0)
 			{
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 				(*m_logger) << m_socket->sender().as_string() << " offset < 0\n";
 #endif
 				return false;
@@ -340,7 +338,7 @@ bool libtorrent::peer_connection::dispatch_message()
 
 			if (offset + len > m_torrent->torrent_file().piece_size(index))
 			{
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 				(*m_logger) << m_socket->sender().as_string() << " piece packet contains more data than the piece size\n";
 #endif
 				return false;
@@ -348,7 +346,7 @@ bool libtorrent::peer_connection::dispatch_message()
 
 			if (offset % m_torrent->block_size() != 0)
 			{
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 				(*m_logger) << m_socket->sender().as_string() << " piece packet contains unaligned offset\n";
 #endif
 				return false;
@@ -357,7 +355,7 @@ bool libtorrent::peer_connection::dispatch_message()
 			piece_block req = m_download_queue.front();
 			if (req.piece_index != index)
 			{
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 				(*m_logger) << m_socket->sender().as_string() << " piece packet contains unrequested index\n";
 #endif
 				return false;
@@ -365,7 +363,7 @@ bool libtorrent::peer_connection::dispatch_message()
 
 			if (req.block_index != offset / m_torrent->block_size())
 			{
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 				(*m_logger) << m_socket->sender().as_string() << " piece packet contains unrequested offset\n";
 #endif
 				return false;
@@ -376,7 +374,7 @@ bool libtorrent::peer_connection::dispatch_message()
 			m_receiving_piece.open(m_torrent->filesystem(), index, piece_file::out);
 //			}
 
-#if !defined(NDEBUG) && defined(VERBOSE)
+#if defined(TORRENT_VERBOSE_LOGGING)
 			(*m_logger) << m_socket->sender().as_string() << " <== PIECE [ piece: " << index << " | s: " << offset << " | l: " << len << " ]\n";
 #endif
 
@@ -432,7 +430,7 @@ bool libtorrent::peer_connection::dispatch_message()
 				m_requests.erase(i);
 			}
 
-#if !defined(NDEBUG) && defined(VERBOSE)
+#if defined(TORRENT_VERBOSE_LOGGING)
 			(*m_logger) << m_socket->sender().as_string() << " <== CANCEL [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
 #endif
 			m_requests.clear();
@@ -482,8 +480,8 @@ void libtorrent::peer_connection::request_block(piece_block block)
 	// length
 	write_int(block_size, &m_send_buffer[start_offset]);
 	start_offset += 4;
-#if !defined(NDEBUG) && defined(VERBOSE)
-		(*m_logger) << m_socket->sender().as_string() << " ==> REQUEST [ piece: " << block.piece_index << " | s: " << block_offset << " | l: " << block_size << " | " << block.block_index << " ]\n";
+#if defined(TORRENT_VERBOSE_LOGGING)
+	(*m_logger) << m_socket->sender().as_string() << " ==> REQUEST [ piece: " << block.piece_index << " | s: " << block_offset << " | l: " << block_size << " | " << block.block_index << " ]\n";
 #endif
 	assert(start_offset == m_send_buffer.size());
 
@@ -491,7 +489,7 @@ void libtorrent::peer_connection::request_block(piece_block block)
 
 void libtorrent::peer_connection::send_bitfield()
 {
-#if !defined(NDEBUG) && defined(VERBOSE)
+#if defined(TORRENT_VERBOSE_LOGGING)
 	(*m_logger) << m_socket->sender().as_string() << " ==> BITFIELD\n";
 #endif
 	const int packet_size = (m_have_piece.size() + 7) / 8 + 5;
@@ -513,7 +511,7 @@ void libtorrent::peer_connection::choke()
 	char msg[] = {0,0,0,1,msg_choke};
 	m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
 	m_choked = true;
-#if !defined(NDEBUG) && defined(VERBOSE)
+#if defined(TORRENT_VERBOSE_LOGGING)
 	(*m_logger) << m_socket->sender().as_string() << " ==> CHOKE\n";
 #endif
 }
@@ -524,7 +522,7 @@ void libtorrent::peer_connection::unchoke()
 	char msg[] = {0,0,0,1,msg_unchoke};
 	m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
 	m_choked = false;
-#if !defined(NDEBUG) && defined(VERBOSE)
+#if defined(TORRENT_VERBOSE_LOGGING)
 	(*m_logger) << m_socket->sender().as_string() << " ==> UNCHOKE\n";
 #endif
 }
@@ -535,7 +533,7 @@ void libtorrent::peer_connection::interested()
 	char msg[] = {0,0,0,1,msg_interested};
 	m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
 	m_interesting = true;
-#if !defined(NDEBUG) && defined(VERBOSE)
+#if defined(TORRENT_VERBOSE_LOGGING)
 	(*m_logger) << m_socket->sender().as_string() << " ==> INTERESTED\n";
 #endif
 }
@@ -546,7 +544,7 @@ void libtorrent::peer_connection::not_interested()
 	char msg[] = {0,0,0,1,msg_not_interested};
 	m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
 	m_interesting = false;
-#if !defined(NDEBUG) && defined(VERBOSE)
+#if defined(TORRENT_VERBOSE_LOGGING)
 	(*m_logger) << m_socket->sender().as_string() << " ==> NOT_INTERESTED\n";
 #endif
 }
@@ -556,7 +554,7 @@ void libtorrent::peer_connection::send_have(int index)
 	char msg[9] = {0,0,0,5,msg_have};
 	write_int(index, msg+5);
 	m_send_buffer.insert(m_send_buffer.end(), msg, msg+9);
-#if !defined(NDEBUG) && defined(VERBOSE)
+#if defined(TORRENT_VERBOSE_LOGGING)
 	(*m_logger) << m_socket->sender().as_string() << " ==> HAVE [ piece: " << index << " ]\n";
 #endif
 }
@@ -594,7 +592,7 @@ void libtorrent::peer_connection::receive_data()
 			{
 			case read_protocol_length:
 				m_packet_size = reinterpret_cast<unsigned char&>(m_recv_buffer[0]);
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 				(*m_logger) << m_socket->sender().as_string() << " protocol length: " << m_packet_size << "\n";
 #endif
 				m_state = read_protocol_version;
@@ -608,7 +606,7 @@ void libtorrent::peer_connection::receive_data()
 			case read_protocol_version:
 				{
 					const char* protocol_version = "BitTorrent protocol";
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 					(*m_logger) << m_socket->sender().as_string() << " protocol name: " << std::string(m_recv_buffer.begin(), m_recv_buffer.end()) << "\n";
 #endif
 					if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.end(), protocol_version))
@@ -640,7 +638,7 @@ void libtorrent::peer_connection::receive_data()
 					if (m_torrent == 0)
 					{
 						// we couldn't find the torrent!
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 						(*m_logger) << m_socket->sender().as_string() << " couldn't find a torrent with the given info_hash\n";
 #endif
 						throw network_error(0);
@@ -662,7 +660,7 @@ void libtorrent::peer_connection::receive_data()
 					// verify info hash
 					if (!std::equal(m_recv_buffer.begin()+8, m_recv_buffer.begin() + 28, (const char*)m_torrent->torrent_file().info_hash().begin()))
 					{
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 						(*m_logger) << m_socket->sender().as_string() << " received invalid info_hash\n";
 #endif
 						throw network_error(0);
@@ -673,7 +671,7 @@ void libtorrent::peer_connection::receive_data()
 				m_packet_size = 20;
 				m_recv_pos = 0;
 				m_recv_buffer.resize(20);
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 				(*m_logger) << m_socket->sender().as_string() << " info_hash received\n";
 #endif
 				break;
@@ -689,7 +687,7 @@ void libtorrent::peer_connection::receive_data()
 					// can this be correct?
 					if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (const char*)m_peer_id.begin()))
 					{
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 						(*m_logger) << m_socket->sender().as_string() << " invalid peer_id (it doesn't equal the one from the tracker)\n";
 #endif
 						throw network_error(0);
@@ -702,7 +700,7 @@ void libtorrent::peer_connection::receive_data()
 					std::copy(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (char*)m_peer_id.begin());
 					if (m_torrent->num_connections(m_peer_id) > 1)
 					{
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 						(*m_logger) << m_socket->sender().as_string() << " duplicate connection, closing\n";
 #endif
 						throw network_error(0);
@@ -713,7 +711,7 @@ void libtorrent::peer_connection::receive_data()
 				m_packet_size = 4;
 				m_recv_pos = 0;
 				m_recv_buffer.resize(4);
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 				(*m_logger) << m_socket->sender().as_string() << " received peer_id\n";
 #endif
 				break;
@@ -726,7 +724,7 @@ void libtorrent::peer_connection::receive_data()
 				// don't accept packets larger than 1 MB
 				if (m_packet_size > 1024*1024 || m_packet_size < 0)
 				{
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 					(*m_logger) << m_socket->sender().as_string() << " packet too large (packet_size > 1 Megabyte), abort\n";
 #endif
 					// packet too large
@@ -750,7 +748,7 @@ void libtorrent::peer_connection::receive_data()
 			case read_packet:
 				if (!dispatch_message())
 				{
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 					(*m_logger) << m_socket->sender().as_string() << " received invalid packet\n";
 #endif
 					// invalid message
@@ -825,7 +823,7 @@ void libtorrent::peer_connection::send_data()
 			}
 
 			m_sending_piece.read(&m_send_buffer[13], r.length);
-#if !defined(NDEBUG) && defined(VERBOSE)
+#if defined(TORRENT_VERBOSE_LOGGING)
 			(*m_logger) << m_socket->sender().as_string() << " ==> PIECE [ idx: " << r.piece << " | s: " << r.start << " | l: " << r.length << " | dest: " << m_socket->sender().as_string() << " ]\n";
 #endif
 			// let the torrent keep track of how much we have uploaded
@@ -834,7 +832,7 @@ void libtorrent::peer_connection::send_data()
 		}
 		else
 		{
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 			(*m_logger) << m_socket->sender().as_string() << " *** WARNING [ illegal piece request ]\n";
 #endif
 		}
@@ -856,7 +854,7 @@ void libtorrent::peer_connection::send_data()
 		// we have data that's scheduled for sending
 		std::size_t sent = m_socket->send(&m_send_buffer[0], m_send_buffer.size());
 
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 		(*m_logger) << m_socket->sender().as_string() << " ==> SENT [ length: " << sent << " ]\n";
 #endif
 
@@ -888,7 +886,7 @@ void libtorrent::peer_connection::keep_alive()
 		char noop[] = {0,0,0,0};
 		m_send_buffer.insert(m_send_buffer.end(), noop, noop+4);
 		m_last_sent = boost::posix_time::second_clock::local_time();
-#if !defined(NDEBUG) && defined(VERBOSE)
+#if defined(TORRENT_VERBOSE_LOGGING)
 		(*m_logger) << m_socket->sender().as_string() << " ==> NOP\n";
 #endif
 

@@ -51,6 +51,8 @@ namespace libtorrent
 			, m_total_upload(0)
 			, m_peak_downloaded_per_second(0)
 			, m_peak_uploaded_per_second(0)
+			, m_mean_download_per_second(0)
+			, m_mean_upload_per_second(0)
 		{
 			std::fill(m_download_per_second_history, m_download_per_second_history+history, 0);
 			std::fill(m_upload_per_second_history, m_upload_per_second_history+history, 0);

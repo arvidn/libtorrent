@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iterator>
 #include <algorithm>
 #include <set>
+#include <cctype>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/convenience.hpp>
@@ -53,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace std
 {
 	using ::srand;
+	using ::isprint;
 };
 #endif
 
@@ -78,16 +80,30 @@ namespace
 {
 	using namespace libtorrent;
 
-	peer_id generate_peer_id()
+	peer_id generate_peer_id(const http_settings& s)
 	{
 		peer_id ret;
 		std::srand(std::time(0));
-		// TODO: add ability to control fingerprint
-		unsigned char fingerprint[] = "lt.\0\0\0\0\0\0\0";
-//		unsigned char fingerprint[] = "lt.\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
-		const int len = sizeof(fingerprint)-1;
+
+		// libtorrent's fingerprint
+		unsigned char fingerprint[] = "lt.";
+		const int len = sizeof(fingerprint)-1-(s.fingerprint[0] == 0)?1:0;
 		std::copy(fingerprint, fingerprint+len, ret.begin());
-		for (unsigned char* i = ret.begin()+len; i != ret.end(); ++i) *i = rand();
+
+		// the client's fingerprint
+		const int len2 = std::find(s.fingerprint, s.fingerprint+4, 0) - s.fingerprint;
+		std::copy(s.fingerprint, s.fingerprint+len2, ret.begin()+len);
+
+		// the zeros
+		std::fill(ret.begin()+len+len2, ret.begin()+len+len2+3, 0);
+
+		// the random number
+		for (unsigned char* i = ret.begin()+len+len2+3;
+			i != ret.end();
+			++i)
+		{
+			*i = rand();
+		}
 		return ret;
 	}
 
@@ -99,12 +115,11 @@ namespace libtorrent
 	{
 		void session_impl::run(int listen_port)
 		{
-#ifndef NDEBUG
-			m_logger = boost::shared_ptr<logger>(
-				m_log_spawner->create_logger("main session"));
+#if defined(TORRENT_VERBOSE_LOGGING)
+			m_logger = create_log("main session");
 #endif
 
-			m_peer_id = generate_peer_id();
+			m_peer_id = generate_peer_id(m_settings);
 
 			boost::shared_ptr<socket> listener(new socket(socket::tcp, false));
 			int max_port = listen_port + 9;
@@ -127,7 +142,9 @@ namespace libtorrent
 				break;
 			}
 
-			std::cout << "listening on port: " << listen_port << "\n";   
+#if defined(TORRENT_VERBOSE_LOGGING)
+			(*m_logger) << "listening on port: " << listen_port << "\n";
+#endif
 			m_selector.monitor_readability(listener);
 			m_selector.monitor_errors(listener);
 
@@ -194,7 +211,7 @@ namespace libtorrent
 						if (s)
 						{
 							// we got a connection request!
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 							(*m_logger) << s->sender().as_string() << " <== INCOMING CONNECTION\n";
 #endif
 							// TODO: the send buffer size should be controllable from the outside
@@ -364,26 +381,13 @@ namespace libtorrent
 				}
 				m_tracker_manager.tick();
 
-#ifndef NDEBUG
+#if defined(TORRENT_VERBOSE_LOGGING)
 				(*m_logger) << "peers: " << m_connections.size() << "                           \n";
 				for (connection_map::iterator i = m_connections.begin();
 					i != m_connections.end();
 					++i)
 				{
 					(*m_logger) << "h: " << i->first->sender().as_string()
-						<< " | down: " << i->second->statistics().download_rate()
-						<< " b/s | up: " << i->second->statistics().upload_rate()
-						<< " b/s             \n";
-				}
-
-				m_logger->clear();
-#else
-				std::cout << "peers: " << m_connections.size() << "                           \n";
-				for (connection_map::iterator i = m_connections.begin();
-					i != m_connections.end();
-					++i)
-				{
-					std::cout << "h: " << i->first->sender().as_string()
 						<< " | down: " << i->second->statistics().download_rate()
 						<< " b/s | up: " << i->second->statistics().upload_rate()
 						<< " b/s             \n";
@@ -474,7 +478,7 @@ namespace libtorrent
 	void session::set_http_settings(const http_settings& s)
 	{
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
-		m_impl.m_tracker_manager.set_settings(s);
+		m_impl.m_settings = s;
 	}
 
 	session::~session()
@@ -544,4 +548,19 @@ namespace libtorrent
 		m_ses = 0;
 	}
 
+	// TODO: document
+	std::string extract_fingerprint(const peer_id& p)
+	{
+		std::string ret;
+		const unsigned char* c = p.begin();
+		while (c != p.end() && *c != 0)
+		{
+			if (!std::isprint(*c)) return std::string();
+			ret += *c;
+			++c;
+		}
+		if (c == p.end()) return std::string();
+
+		return ret;
+	}
 }

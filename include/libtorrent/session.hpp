@@ -115,16 +115,11 @@ namespace libtorrent
 		{
 			typedef std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> > connection_map;
 
-#ifndef NDEBUG
-			session_impl(log_spawner* log_creator): m_abort(false)
-			{
-				m_log_spawner = log_creator;
-			}
-#else
-			session_impl(): m_abort(false)
-			{
-			}
-#endif
+			session_impl()
+				: m_abort(false)
+				, m_tracker_manager(m_settings)
+			{}
+
 			// must be locked to access the data
 			// in this struct
 			boost::mutex m_mutex;
@@ -146,14 +141,24 @@ namespace libtorrent
 			// them
 			selector m_selector;
 
+			// the settings for the client
+			http_settings m_settings;
+
 			bool m_abort;
 			
 			void run(int listen_port);
 
 			torrent* find_torrent(const sha1_hash& info_hash);
 			const peer_id& get_peer_id() const { return m_peer_id; }
-#ifndef NDEBUG
-			log_spawner* m_log_spawner;
+
+#if defined(TORRENT_VERBOSE_LOGGING)
+			boost::shared_ptr<logger> create_log(std::string name)
+			{
+				name += ".log";
+				// current options are file_logger and cout_logger
+				return boost::shared_ptr<logger>(new file_logger(name.c_str()));
+			}
+
 			boost::shared_ptr<logger> m_logger;
 #endif
 		};
@@ -161,12 +166,12 @@ namespace libtorrent
 		struct main_loop_thread
 		{
 			main_loop_thread(int listen_port, session_impl* s)
-				: m_ses(s), m_listen_port(listen_port) {}
+				: m_ses(s), m_listen_port(listen_port)
+			{}
+
 			void operator()()
-			{
-				std::cout << "main thread started\n";
-				m_ses->run(m_listen_port);
-			}
+			{ m_ses->run(m_listen_port); }
+
 			session_impl* m_ses;
 			int m_listen_port;
 		};
@@ -174,6 +179,8 @@ namespace libtorrent
 	}
 
 	struct http_settings;
+
+	std::string extract_fingerprint(const peer_id& p);
 
 	struct torrent_handle
 	{
@@ -208,16 +215,10 @@ namespace libtorrent
 	class session: public boost::noncopyable
 	{
 	public:
-#ifndef NDEBUG
-		session(int listen_port, log_spawner* new_log)
-			: m_impl(new_log)
-			, m_thread(detail::main_loop_thread(listen_port, &m_impl))
-		{
-		}
-#else
+
 		session(int listen_port)
 			: m_thread(detail::main_loop_thread(listen_port, &m_impl)) {}
-#endif
+
 		~session();
 
 		// all torrent_handles must be destructed before the session is destructed!
