@@ -224,8 +224,8 @@ namespace libtorrent { namespace detail
 		, m_max_connections(-1)
 		, m_incoming_connection(false)
 	{
-#ifndef NDEBUG
-		m_logger = create_log("main session");
+#ifdef TORRENT_VERBOSE_LOGGING
+		m_logger = create_log("main_session");
 #endif
 		std::fill(m_extension_enabled, m_extension_enabled
 			+ peer_connection::num_supported_extensions, true);
@@ -799,15 +799,11 @@ namespace libtorrent { namespace detail
 		return 0;
 	}
 
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 	boost::shared_ptr<logger> session_impl::create_log(std::string const& name)
 	{
 		// current options are file_logger, cout_logger and null_logger
-#if defined(TORRENT_VERBOSE_LOGGING)
 		return boost::shared_ptr<logger>(new file_logger(name + ".log"));
-#else
-		return boost::shared_ptr<logger>(new null_logger());
-#endif
 	}
 #endif
 

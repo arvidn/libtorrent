@@ -300,8 +300,8 @@ namespace libtorrent
 	// returns true on success
 	bool storage::move_storage(path save_path)
 	{
-		std::string old_path;
-		std::string new_path;
+		path old_path;
+		path new_path;
 
 		save_path = complete(save_path);
 
@@ -318,27 +318,23 @@ namespace libtorrent
 			if (single_file.has_branch_path())
 				create_directory(save_path / single_file.branch_path());
 
-			old_path = (m_pimpl->save_path / single_file)
-				.native_file_string();
-			new_path = (save_path / m_pimpl->info.begin_files()->path)
-				.native_file_string();
+			old_path = m_pimpl->save_path / single_file;
+			new_path = save_path / m_pimpl->info.begin_files()->path;
 		}
 		else
 		{
 			assert(m_pimpl->info.num_files() > 1);
-			old_path = (m_pimpl->save_path / m_pimpl->info.name())
-				.native_directory_string();
-			new_path = (save_path / m_pimpl->info.name())
-				.native_directory_string();
+			old_path = m_pimpl->save_path / m_pimpl->info.name();
+			new_path = save_path / m_pimpl->info.name();
 		}
 
-		int ret = std::rename(old_path.c_str(), new_path.c_str()); 
-		// This seems to return -1 even when it successfully moves the file
-//		if (ret == 0)
+		try
 		{
+			rename(old_path, new_path);
 			m_pimpl->save_path = save_path;
 			return true;
 		}
+		catch (std::exception&) {}
 		return false;
 	}
 
@@ -375,9 +371,9 @@ namespace libtorrent
 
 	size_type storage::read(
 		char* buf
-	  , int slot
-	  , int offset
-  	  , int size)
+		, int slot
+		, int offset
+		, int size)
 	{
 		assert(buf != 0);
 		assert(slot >= 0 && slot < m_pimpl->info.num_pieces());

@@ -313,7 +313,7 @@ namespace libtorrent
 		std::random_shuffle(peer_list.begin(), peer_list.end());
 
 
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 		std::stringstream s;
 		s << "TRACKER RESPONSE:\n"
 			"interval: " << m_duration << "\n"
@@ -1265,7 +1265,7 @@ namespace libtorrent
 
 	void torrent::tracker_request_timed_out()
 	{
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 		debug_log("*** tracker timed out");
 #endif
 		if (m_ses.m_alerts.should_post(alert::warning))
@@ -1285,7 +1285,7 @@ namespace libtorrent
 	// it anymore
 	void torrent::tracker_request_error(int response_code, const std::string& str)
 	{
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 		debug_log(std::string("*** tracker error: ") + str);
 #endif
 		if (m_ses.m_alerts.should_post(alert::warning))
@@ -1303,7 +1303,7 @@ namespace libtorrent
 	}
 
 
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 	void torrent::debug_log(const std::string& line)
 	{
 		(*m_ses.m_logger) << line << "\n";

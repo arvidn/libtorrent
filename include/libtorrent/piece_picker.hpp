@@ -216,11 +216,11 @@ namespace libtorrent
 			}
 
 			// selects which vector to look in
-			unsigned peer_count : 7;
+			unsigned peer_count : 11;
 			// is 1 if the piece is marked as being downloaded
 			unsigned downloading : 1;
 			// index in to the piece_info vector
-			unsigned index : 24;
+			unsigned index : 20;
 
 			bool operator!=(piece_pos p)
 			{ return index != p.index || peer_count != p.peer_count; }
@@ -254,7 +254,7 @@ namespace libtorrent
 
 		// this maps indices to number of peers that has this piece and
 		// index into the m_piece_info vectors.
-		// 0xffffff means that we have the piece, so it doesn't
+		// 0xfffff means that we have the piece, so it doesn't
 		// exist in the piece_info buckets
 		std::vector<piece_pos> m_piece_map;
 

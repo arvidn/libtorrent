@@ -221,7 +221,7 @@ namespace libtorrent
 
 		if (len < 8)
 		{
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 			if (has_requester())
 				requester().debug_log("udp_tracker_connection: "
 				"got a message with size < 8, ignoring");
@@ -246,7 +246,7 @@ namespace libtorrent
 
 		if (len < 24)
 		{
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 			if (has_requester())
 				requester().debug_log("udp_tracker_connection: "
 				"got a message with size < 24, ignoring");
@@ -292,7 +292,7 @@ namespace libtorrent
 
 		if (len < 8)
 		{
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 			if (has_requester())
 				requester().debug_log("udp_tracker_connection: "
 				"got a message with size < 8, ignoring");
@@ -312,7 +312,7 @@ namespace libtorrent
 		if (action != connect) return false;
 		if (m_transaction_id != transaction)
 		{
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 			if (has_requester())
 				requester().debug_log("udp_tracker_connection: "
 				"got a message with incorrect transaction id, ignoring");
@@ -322,7 +322,7 @@ namespace libtorrent
 
 		if (len < 16)
 		{
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 			if (has_requester())
 				requester().debug_log("udp_tracker_connection: "
 				"got a connection message size < 16, ignoring");
@@ -340,3 +340,4 @@ namespace libtorrent
 
 
 }
+
