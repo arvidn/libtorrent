@@ -420,7 +420,7 @@ namespace libtorrent
 			{
 
 #ifndef NDEBUG
-				assert_invariant();
+				assert_invariant(0);
 				loops_per_second++;
 #endif
 
@@ -714,8 +714,10 @@ namespace libtorrent
 #endif
 
 #ifndef NDEBUG
-		void session_impl::assert_invariant()
+		void session_impl::assert_invariant(int marker)
 		{
+			static int place = 0;
+			if (marker != -1) place = 0;
 			for (connection_map::iterator i = m_connections.begin();
 				i != m_connections.end();
 				++i)
@@ -730,6 +732,7 @@ namespace libtorrent
 					error_log << "peer_connection::send_quota_left " << p->send_quota_left() << "\n";
 					error_log << "peer_connection::send_quota " << p->send_quota() << "\n";
 					error_log << "peer_connection::get_peer_id " << p->get_peer_id() << "\n";
+					error_log << "place: " << place << "\n";
 					error_log.flush();
 					assert(false);
 				}
@@ -739,6 +742,7 @@ namespace libtorrent
 						->get_policy().has_connection(boost::get_pointer(i->second)));
 				}
 			}
+			place++;
 		}
 #endif
 

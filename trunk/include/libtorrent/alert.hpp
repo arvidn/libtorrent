@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+	// TODO: all alerts should have a timestamp
 	class alert
 	{
 	public:
