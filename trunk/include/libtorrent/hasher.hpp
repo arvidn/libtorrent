@@ -61,7 +61,11 @@ namespace libtorrent
 		adler32_crc(): m_adler(adler32(0, 0, 0)) {}
 
 		void update(const char* data, int len)
-		{ assert(data); assert(len>0); m_adler = adler32(m_adler, data, len); }
+		{
+			assert(data != 0);
+			assert(len > 0);
+			m_adler = adler32(m_adler, data, len);
+		}
 		unsigned long final() const { return m_adler; }
 		void reset() { m_adler = adler32(0, 0, 0); }
 
@@ -77,7 +81,11 @@ namespace libtorrent
 
 		hasher() { SHA1Init(&m_context); }
 		void update(const char* data, int len)
-		{ assert(data); assert(len>0); SHA1Update(&m_context, reinterpret_cast<unsigned char*>(const_cast<char*>(data)), len); }
+		{
+			assert(data != 0);
+			assert(len > 0);
+			SHA1Update(&m_context, reinterpret_cast<unsigned char*>(const_cast<char*>(data)), len);
+		}
 
 		sha1_hash final()
 		{

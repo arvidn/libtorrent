@@ -255,8 +255,11 @@ namespace libtorrent
 
 		const peer_id& id() const { return m_peer_id; }
 		bool has_piece(int i) const
-		{ assert(i >= 0 && i < m_torrent->torrent_file().num_pieces());
-		  return m_have_piece[i]; }
+		{
+			assert(i >= 0);
+			assert(i < m_torrent->torrent_file().num_pieces());
+			return m_have_piece[i];
+		}
 
 		const std::deque<piece_block>& download_queue() const
 		{ return m_download_queue; }
@@ -460,7 +463,13 @@ namespace libtorrent
 		// seperately on payload and protocol data.
 		struct range
 		{
-			range(int s, int l): start(s), length(l) { assert(s>=0); assert(l>0);}
+			range(int s, int l)
+				: start(s)
+				, length(l)
+			{
+				assert(s >= 0);
+				assert(l > 0);
+			}
 			int start;
 			int length;
 		};
