@@ -120,7 +120,7 @@ namespace libtorrent
 
 		// returns true if it time for this torrent to make another
 		// tracker request
-		bool should_request() const throw()
+		bool should_request() const
 		{
 //			boost::posix_time::time_duration d = m_next_request - boost::posix_time::second_clock::local_time();
 //			return d.is_negative();

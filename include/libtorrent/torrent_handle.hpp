@@ -115,7 +115,7 @@ namespace libtorrent
 		int blocks_in_piece;
 		std::bitset<max_blocks_per_piece> requested_blocks;
 		std::bitset<max_blocks_per_piece> finished_blocks;
-		peer_id peer[max_blocks_per_piece];
+		address peer[max_blocks_per_piece];
 		int num_downloads[max_blocks_per_piece];
 	};
 

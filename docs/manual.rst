@@ -33,10 +33,12 @@ The current state includes the following features:
 	  thread-safe library interface. (i.e. There's no way for the user to cause a deadlock).
 	* can limit the upload bandwidth usage and the maximum number of unchoked peers
 	* piece-wise file allocation
-	* tries to maintain a 1:1 share ratio between all peers but also shifts free
-	  download to peers as free upload. To maintain a global 1:1 ratio.
+	* Implements fair trade. User settable trade-ratio, must at least be 1:1,
+	  but one can choose to trade 1 for 2 or any other ratio that isn't unfair to the other
+	  party.
 	* fast resume support, a way to get rid of the costly piece check at the start
-	  of a resumed torrent. Saves the storage state in a separate fast-resume file.
+	  of a resumed torrent. Saves the storage state, piece_picker state as well as all local
+	  peers in a separate fast-resume file.
 	* The extension protocol `described by Nolar`__. See extensions_.
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
@@ -670,6 +672,7 @@ fields::
 		int upload_ceiling;
 
 		int load_balancing;
+		int download_queue_length;
 
 		int downloading_piece_index;
 		int downloading_block_index;
@@ -731,6 +734,9 @@ and free upload that we give. Every peer gets a certain amount of free upload, b
 this member says how much *extra* free upload this peer has got. If it is a negative
 number it means that this was a peer from which we have got this amount of free
 download.
+
+``download_queue_length`` is the number of block-requests we have sent to this peer
+that hasn't been answered with a piece yet.
 
 You can know which piece, and which part of that piece, that is currently being
 downloaded from a specific peer by looking at the next four members.
@@ -1364,20 +1370,36 @@ The file format is a bencoded dictionary containing the following fields:
 |                      | tells which piece is on which slot. If piece index is -2 it  |
 |                      | means it is free, that there's no piece there. If it is -1,  |
 |                      | means the slot isn't allocated on disk yet. The pieces have  |
-|                      | to meet the following requirements:                          |
+|                      | to meet the following requirement:                           |
 |                      |                                                              |
 |                      | * if there's a slot at the position of the piece index,      |
 |                      |   the piece must be located in that slot.                    |
-|                      |                                                              | 
-|                      | TODO: finish                                                 | 
 +----------------------+--------------------------------------------------------------+
-| ``peers``            |                                                              |
+| ``peers``            | list of dictionaries. Each dictionary has the following      |
+|                      | layout:                                                      |
+|                      |                                                              |
+|                      | +----------+-----------------------------------------------+ |
+|                      | | ``ip``   | string, the ip address of the peer.           | |
+|                      | +----------+-----------------------------------------------+ |
+|                      | | ``port`` | integer, the listen port of the peer          | |
+|                      | +----------+-----------------------------------------------+ |
+|                      |                                                              |
+|                      | These are the local peers we were connected to when this     |
+|                      | fast-resume data was saved.                                  |
 +----------------------+--------------------------------------------------------------+
-| ``unfinished``       |                                                              |
+| ``unfinished``       | list of dictionaries. Each dictionary represents an          |
+|                      | piece, and has the following layout:                         |
+|                      |                                                              |
+|                      | +-------------+--------------------------------------------+ |
+|                      | | ``piece``   | integer, the index of the piece this entry | |
+|                      | |             | refers to.                                 | |
+|                      | +-------------+--------------------------------------------+ |
+|                      | | ``bitmask`` | string, a binary bitmask representing the  | |
+|                      | |             | blocks that have been downloaded in this   | |
+|                      | |             | piece.                                     | |
+|                      | +-------------+--------------------------------------------+ |
 +----------------------+--------------------------------------------------------------+
 
-
-TODO: describe the file format
 
 extensions
 ==========

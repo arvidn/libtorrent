@@ -41,7 +41,7 @@ namespace libtorrent
 
 	class stat
 	{
-	enum { history = 5 };
+	enum { history = 10 };
 	public:
 
 		stat()

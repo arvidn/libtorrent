@@ -120,8 +120,7 @@ namespace libtorrent
 				i != unfinished.end();
 				++i)
 			{
-				peer_id peer;
-				std::fill(peer.begin(), peer.end(), 0);
+				address peer;
 				for (int j = 0; j < m_blocks_per_piece; ++j)
 				{
 					if (i->finished_blocks[j])
@@ -538,7 +537,7 @@ namespace libtorrent
 	}
 
 
-	void piece_picker::mark_as_downloading(piece_block block, const peer_id& peer)
+	void piece_picker::mark_as_downloading(piece_block block, const address& peer)
 	{
 #ifndef NDEBUG
 //		integrity_check();
@@ -572,7 +571,7 @@ namespace libtorrent
 #endif
 	}
 
-	void piece_picker::mark_as_finished(piece_block block, const peer_id& peer)
+	void piece_picker::mark_as_finished(piece_block block, const address& peer)
 	{
 #ifndef NDEBUG
 //		integrity_check();
@@ -633,7 +632,7 @@ namespace libtorrent
 #endif
 	}
 */
-	void piece_picker::get_downloaders(std::vector<peer_id>& d, int index)
+	void piece_picker::get_downloaders(std::vector<address>& d, int index)
 	{
 		std::vector<downloading_piece>::iterator i
 			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(index));

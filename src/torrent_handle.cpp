@@ -216,10 +216,10 @@ namespace libtorrent
 			i != q.end();
 			++i)
 		{
-			entry piece_struct(entry::list_t);
+			entry::dictionary_type piece_struct;
 
 			// the unfinished piece's index
-			piece_struct.list().push_back(i->index);
+			piece_struct["piece"] = i->index;
 
 			std::string bitmask;
 			const int num_bitmask_bytes = std::max(num_blocks_per_piece / 8, 1);
@@ -230,7 +230,7 @@ namespace libtorrent
 					v |= i->finished_blocks[j*8+k]?(1 << k):0;
 				bitmask.push_back(v);
 			}
-			piece_struct.list().push_back(bitmask);
+			piece_struct["bitmask"] = bitmask;
 
 			// TODO: add a hash to piece_struct
 

@@ -94,10 +94,12 @@ The current state includes the following features:</p>
 thread-safe library interface. (i.e. There's no way for the user to cause a deadlock).</li>
 <li>can limit the upload bandwidth usage and the maximum number of unchoked peers</li>
 <li>piece-wise file allocation</li>
-<li>tries to maintain a 1:1 share ratio between all peers but also shifts free
-download to peers as free upload. To maintain a global 1:1 ratio.</li>
+<li>Implements fair trade. User settable trade-ratio, must at least be 1:1,
+but one can choose to trade 1 for 2 or any other ratio that isn't unfair to the other
+party.</li>
 <li>fast resume support, a way to get rid of the costly piece check at the start
-of a resumed torrent. Saves the storage state in a separate fast-resume file.</li>
+of a resumed torrent. Saves the storage state, piece_picker state as well as all local
+peers in a separate fast-resume file.</li>
 <li>The extension protocol <a class="reference" href="http://nolar.com/azureus/extended.htm">described by Nolar</a>. See <a class="reference" href="#extensions">extensions</a>.</li>
 </ul>
 </blockquote>
@@ -657,6 +659,7 @@ struct peer_info
         int upload_ceiling;
 
         int load_balancing;
+        int download_queue_length;
 
         int downloading_piece_index;
         int downloading_block_index;
@@ -720,6 +723,8 @@ and free upload that we give. Every peer gets a certain amount of free upload, b
 this member says how much <em>extra</em> free upload this peer has got. If it is a negative
 number it means that this was a peer from which we have got this amount of free
 download.</p>
+<p><tt class="literal"><span class="pre">download_queue_length</span></tt> is the number of block-requests we have sent to this peer
+that hasn't been answered with a piece yet.</p>
 <p>You can know which piece, and which part of that piece, that is currently being
 downloaded from a specific peer by looking at the next four members.
 <tt class="literal"><span class="pre">downloading_piece_index</span></tt> is the index of the piece that is currently being downloaded.
@@ -1299,23 +1304,58 @@ each piece is 16 * 1024 bytes in size.</td>
 tells which piece is on which slot. If piece index is -2 it
 means it is free, that there's no piece there. If it is -1,
 means the slot isn't allocated on disk yet. The pieces have
-to meet the following requirements:</p>
-<ul class="simple">
+to meet the following requirement:</p>
+<ul class="last simple">
 <li>if there's a slot at the position of the piece index,
 the piece must be located in that slot.</li>
 </ul>
-<p class="last">TODO: finish</p>
 </td>
 </tr>
 <tr><td><tt class="literal"><span class="pre">peers</span></tt></td>
-<td>&nbsp;</td>
+<td><p class="first">list of dictionaries. Each dictionary has the following
+layout:</p>
+<table border class="table">
+<colgroup>
+<col width="18%" />
+<col width="82%" />
+</colgroup>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">ip</span></tt></td>
+<td>string, the ip address of the peer.</td>
 </tr>
-<tr><td><tt class="literal"><span class="pre">unfinished</span></tt></td>
-<td>&nbsp;</td>
+<tr><td><tt class="literal"><span class="pre">port</span></tt></td>
+<td>integer, the listen port of the peer</td>
 </tr>
 </tbody>
 </table>
-<p>TODO: describe the file format</p>
+<p class="last">These are the local peers we were connected to when this
+fast-resume data was saved.</p>
+</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">unfinished</span></tt></td>
+<td><p class="first">list of dictionaries. Each dictionary represents an
+piece, and has the following layout:</p>
+<table border class="last table">
+<colgroup>
+<col width="23%" />
+<col width="77%" />
+</colgroup>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">piece</span></tt></td>
+<td>integer, the index of the piece this entry
+refers to.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">bitmask</span></tt></td>
+<td>string, a binary bitmask representing the
+blocks that have been downloaded in this
+piece.</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="section" id="extensions">
 <h1><a class="toc-backref" href="#id45" name="extensions">extensions</a></h1>

@@ -107,7 +107,7 @@ namespace libtorrent
 				if (!std::isdigit(*i)) return boost::optional<fingerprint>();
 				ret.revision_version = *i - '0';
 			}
-			else if (id[0] == 0)
+			else if (id[8] == 0)
 			{
 				if (*i > 127) return boost::optional<fingerprint>();
 				ret.major_version = *i;

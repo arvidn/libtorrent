@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cassert>
 
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/socket.hpp"
 
 namespace libtorrent
 {
@@ -73,7 +74,7 @@ namespace libtorrent
 			block_info(): num_downloads(0) {}
 			// the peer this block was requested or
 			// downloaded from
-			peer_id peer;
+			address peer;
 			// the number of times this block has been downloaded
 			int num_downloads;
 		};
@@ -145,8 +146,8 @@ namespace libtorrent
 		bool is_finished(piece_block block) const;
 
 		// marks this piece-block as queued for downloading
-		void mark_as_downloading(piece_block block, const peer_id& peer);
-		void mark_as_finished(piece_block block, const peer_id& peer);
+		void mark_as_downloading(piece_block block, const address& peer);
+		void mark_as_finished(piece_block block, const address& peer);
 
 		// if a piece had a hash-failure, it must be restured and
 		// made available for redownloading
@@ -165,7 +166,7 @@ namespace libtorrent
 		// the hash-check yet
 		int unverified_blocks() const;
 
-		void get_downloaders(std::vector<peer_id>& d, int index);
+		void get_downloaders(std::vector<address>& d, int index);
 		const std::vector<downloading_piece>& get_download_queue() const
 		{ return m_downloads; }
 
