@@ -39,11 +39,13 @@ namespace fs = boost::filesystem;
 
 namespace
 {
+	enum { mode_in = 1, mode_out = 2 };
+
 	std::ios_base::openmode map_open_mode(fs::path const& p, int m)
 	{
 		std::ios_base::openmode ret(std::ios_base::binary);
-		if ((m & 1) || fs::exists(p)) ret |= std::ios_base::in;
-		if (m & 2) ret |= std::ios_base::out;
+		if ((m & mode_in) || fs::exists(p)) ret |= std::ios_base::in;
+		if (m & mode_out) ret |= std::ios_base::out;
 		return ret;
 	}
 }
@@ -51,8 +53,8 @@ namespace
 namespace libtorrent
 {
 
-	const file::open_mode file::in(1);
-	const file::open_mode file::out(2);
+	const file::open_mode file::in(mode_in);
+	const file::open_mode file::out(mode_out);
 
 	const file::seek_mode file::begin(1);
 	const file::seek_mode file::end(2);
@@ -63,11 +65,14 @@ namespace libtorrent
 	// write-file position isn't updated when reading.
 	struct file::impl
 	{
-		impl() {}
+		impl(): m_open_mode(0) {}
 
 		impl(fs::path const& path, int mode)
 			: m_file(path, map_open_mode(path, mode))
+			, m_open_mode(mode)
 		{
+			assert(mode == mode_in ||mode == mode_out);
+
 			if (m_file.fail())
 				throw file_error("open failed '" + path.native_file_string() + "'");
 		}
@@ -77,6 +82,9 @@ namespace libtorrent
 			if (m_file.is_open()) m_file.close();
 			m_file.clear();
 			m_file.open(path, map_open_mode(path, mode));
+			m_open_mode = mode;
+
+			assert(mode == mode_in ||mode == mode_out);
 
 			if (m_file.fail())
 				throw file_error("open failed '" + path.native_file_string() + "'");
@@ -85,10 +93,14 @@ namespace libtorrent
 		void close()
 		{
 			m_file.close();
+			m_open_mode = 0;
 		}
 
 		size_type read(char* buf, size_type num_bytes)
 		{
+			assert(m_open_mode == mode_in);
+			assert(m_file.is_open());
+
 			// TODO: split the read if num_bytes > 2 gig
 			m_file.read(buf, num_bytes);
 			return m_file.gcount();
@@ -96,6 +108,9 @@ namespace libtorrent
 
 		size_type write(const char* buf, size_type num_bytes)
 		{
+			assert(m_open_mode == mode_out);
+			assert(m_file.is_open());
+
 			// TODO: split the write if num_bytes > 2 gig
 			std::ostream::pos_type a = m_file.tellp();
 			m_file.write(buf, num_bytes);
@@ -104,18 +119,32 @@ namespace libtorrent
 
 		void seek(size_type offset, int m)
 		{
+			assert(m_open_mode);
+			assert(m_file.is_open());
+
 			std::ios_base::seekdir d =
 				(m == 1) ? std::ios_base::beg : std::ios_base::end;
-			m_file.seekp(offset, d);
-			m_file.seekg(offset, d);
+			m_file.clear();
+			if (m_open_mode == mode_in)
+				m_file.seekg(offset, d);
+			else
+				m_file.seekp(offset, d);
 		}
 
 		size_type tell()
 		{
-			return std::max(m_file.tellg(), m_file.tellp());
+			assert(m_open_mode);
+			assert(m_file.is_open());
+
+			m_file.clear();
+			if (m_open_mode == mode_in)
+				return m_file.tellg();
+			else
+				m_file.tellp();
 		}
 	
 		fs::fstream m_file;
+		int m_open_mode;
 	};
 
 	// pimpl forwardings
