@@ -476,9 +476,18 @@ namespace libtorrent
 
 	policy::peer* policy::find_seed_choke_candidate()
 	{
+		// first choice candidate.
+		// it is a candidate we owe nothing to and which has been unchoked
+		// the longest.
 		peer* candidate = 0;
-		boost::posix_time::ptime last_unchoke
+		boost::posix_time::ptime last_unchoke // not valid when candidate==0
 			= boost::posix_time::ptime(boost::posix_time::ptime(boost::gregorian::date(1970, boost::gregorian::Jan, 1)));
+
+		// second choice candidate.
+		// if there is no first choice candidate, this candidate will be chosen.
+		// it is the candidate that we owe the least to.
+		peer* secondCandidate = 0;
+		size_type lowest_share_diff; // not valid when secondCandidate==0
 
 		for (std::vector<peer>::iterator i = m_peers.begin();
 			i != m_peers.end();
@@ -488,19 +497,32 @@ namespace libtorrent
             // ignore peers that are choked or
             // whose connection is closed
 			if (c == 0) continue;
+
 			if (c->is_choked()) continue;
 
-            // if we still owe this peer some upload
-            // don't choke it
-            if (c->share_diff() > 0) continue;
+			size_type share_diff=c->share_diff();
 
-            // select the one that has been waiting
-            // for an unchoke the longest
-			if (last_unchoke > i->last_optimistically_unchoked) continue;
-			last_unchoke = i->last_optimistically_unchoked;
-			candidate = &(*i);
+			// select as second candidate the one that we owe the least
+			// to
+			if(!secondCandidate || share_diff <= lowest_share_diff)
+			{
+				lowest_share_diff = share_diff;
+				secondCandidate=&(*i);
+			}
+			
+            // select as first candidate the one that we don't owe anything to
+			// and has been waiting for an unchoke the longest
+			if (share_diff > 0) continue;
+			if (!candidate || last_unchoke > i->last_optimistically_unchoked)
+			{
+				last_unchoke = i->last_optimistically_unchoked;
+				candidate = &(*i);
+			}
 		}
-		return candidate;
+		if(candidate) return candidate;
+		if(secondCandidate) return secondCandidate;
+		assert(false);
+		return 0;
 	}
 
 	policy::peer* policy::find_seed_unchoke_candidate()

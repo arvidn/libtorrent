@@ -1352,8 +1352,7 @@ namespace libtorrent
 		}
 		else
 		{
-			size_type bias = std::max(0x20000,
-				m_torrent->block_size()) + m_free_upload;
+			size_type bias = 0x10000+2*m_torrent->block_size() + m_free_upload;
 
 			double break_even_time = 15; // seconds.
 			size_type have_uploaded = m_statistics.total_payload_upload();
