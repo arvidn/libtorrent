@@ -1838,13 +1838,10 @@ namespace libtorrent
 	#ifndef NDEBUG
 					(*m_logger) << " protocol length: " << m_packet_size << "\n";
 	#endif
-					if (m_packet_size != 19 && m_packet_size != 7)
+					if (m_packet_size > 100 || m_packet_size <= 0)
 					{
-	#ifndef NDEBUG
-							(*m_logger) << "incorrect protocol length\n";
-	#endif
 							std::stringstream s;
-							s << "received incorrect protocol length ("
+							s << "incorrect protocol length ("
 								<< m_packet_size
 								<< ") should be 19.";
 							throw protocol_error(s.str());

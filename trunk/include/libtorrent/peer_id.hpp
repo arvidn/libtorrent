@@ -44,10 +44,10 @@ namespace libtorrent
 
 	class big_number
 	{
-	// private type
+		// private type
 		struct private_pointer {};
-	// the number of bytes of the number
-	enum { number_size = 20 };
+		// the number of bytes of the number
+		enum { number_size = 20 };
 	public:
 
 		big_number() {}
