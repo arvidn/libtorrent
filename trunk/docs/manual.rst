@@ -91,14 +91,15 @@ on how to do this here__ (see Anonymous CVS access).
 __ http://sourceforge.net/cvs/?group_id=79942
 
 The easiest way to build libtorrent is probably to use `boost-build`_. Make sure you install it
-correctly by setting the environment variable ``BOOST_BUILD_PATH`` and modifying the
-``user_config.jam`` to reflect the toolsets you have installed.
+correctly by setting the environment variable ``BOOST_BUILD_PATH`` to point to your boost build
+installation. Also you have to modify the ``user_config.jam`` to reflect the toolsets you have installed.
+(if you're building with gcc, uncomment the line "using gcc ;")
 
-.. _`boost-build`: http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=80982
+.. _`boost-build`: http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=80982&release_id=278763
 
-You also need to install `boost 1.31.0`__.
+You also need to install boost__ (at least version 1.31.0).
 
-__ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&release_id=214915
+__ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&release_id=284047
 
 Before you invoke ``bjam`` you have to set the environment variable ``BOOST_ROOT`` to the
 path where you installed boost. This will be used to build and link against the required
@@ -133,18 +134,12 @@ from a cygwin terminal, you'll have to run it from a ``cmd`` terminal. The same 
 cygwin, if you're building with gcc (mingw) you'll have to run it from a cygwin terminal.
 Also, make sure the paths are correct in the different environments. In cygwin, the paths
 (``BOOST_BUILD_PATH`` and ``BOOST_ROOT``) should be in the typical unix-format (e.g.
-``/cygdrive/c/boost_1_31_0``). In the windows environment, they should have the typical
-windows format (``c:/boost_1_31_0``).
+``/cygdrive/c/boost_1_32_0``). In the windows environment, they should have the typical
+windows format (``c:/boost_1_32_0``).
 
 If you're building in developer studio, you may have to set the compiler options
 "force conformance in for loop scope", "treat wchar_t as built-in type" and
 "Enable Run-Time Type Info" to Yes.
-
-If you're building in developer studio 6, you will probably have to use the previous
-version of boost, `boost 1.30.2`__. And you'll definately have to use at least service
-pack 5 (sp5).
-
-__ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&release_id=178835
 
 
 release and debug builds
@@ -177,9 +172,7 @@ table below for which defines you can use to control the build. The ``Jamfile`` 
 
 
 If you experience that libtorrent uses unreasonable amounts of cpu, it will definately help to
-define ``NDEBUG``.
-
-
+define ``NDEBUG``, since it will remove the invariant checks within the library.
 
 
 using
