@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.3.1: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.3.8: http://docutils.sourceforge.net/" />
 <title>Bittorrent udp-tracker protocol extension</title>
 <link rel="stylesheet" href="style.css" type="text/css" />
 </head>
@@ -11,7 +11,7 @@
 <div class="document" id="bittorrent-udp-tracker-protocol-extension">
 <h1 class="title">Bittorrent udp-tracker protocol extension</h1>
 <div class="contents topic" id="contents">
-<p class="topic-title"><a name="contents">Contents</a></p>
+<p class="topic-title first"><a name="contents">Contents</a></p>
 <ul class="simple">
 <li><a class="reference" href="#introduction" id="id6" name="id6">introduction</a></li>
 <li><a class="reference" href="#connecting" id="id7" name="id7">connecting</a><ul>
@@ -60,7 +60,7 @@ retrying.</p>
 <h1><a name="connecting">connecting</a></h1>
 <div class="section" id="client-sends-packet">
 <h2><a name="client-sends-packet">Client sends packet:</a></h2>
-<table border class="table">
+<table border="1" class="docutils">
 <colgroup>
 <col width="18%" />
 <col width="28%" />
@@ -92,7 +92,7 @@ identify the protocol.</td>
 </div>
 <div class="section" id="server-replies-with-packet">
 <h2><a name="server-replies-with-packet">Server replies with packet:</a></h2>
-<table border class="table">
+<table border="1" class="docutils">
 <colgroup>
 <col width="18%" />
 <col width="28%" />
@@ -134,7 +134,7 @@ anymore.</td>
 <h1><a name="announcing">announcing</a></h1>
 <div class="section" id="id2">
 <h2><a name="id2">Client sends packet:</a></h2>
-<table border class="table">
+<table border="1" class="docutils">
 <colgroup>
 <col width="18%" />
 <col width="28%" />
@@ -201,7 +201,7 @@ in this session.</td>
 <tr><td>uint32_t</td>
 <td>ip</td>
 <td>Your ip address. Set to 0 if you want
-the tracker to use the <tt class="literal"><span class="pre">sender</span></tt> of
+the tracker to use the <tt class="docutils literal"><span class="pre">sender</span></tt> of
 this udp packet.</td>
 </tr>
 <tr><td>uint32_t</td>
@@ -227,7 +227,7 @@ in the reply. Use -1 for default.</td>
 </div>
 <div class="section" id="id3">
 <h2><a name="id3">Server replies with packet:</a></h2>
-<table border class="table">
+<table border="1" class="docutils">
 <colgroup>
 <col width="18%" />
 <col width="28%" />
@@ -271,7 +271,7 @@ seeding.</td>
 </tbody>
 </table>
 <p>The rest of the server reply is a variable number of the following structure:</p>
-<table border class="table">
+<table border="1" class="docutils">
 <colgroup>
 <col width="18%" />
 <col width="28%" />
@@ -300,7 +300,7 @@ seeding.</td>
 <h1><a name="scraping">scraping</a></h1>
 <div class="section" id="id4">
 <h2><a name="id4">Client sends packet:</a></h2>
-<table border class="table">
+<table border="1" class="docutils">
 <colgroup>
 <col width="18%" />
 <col width="28%" />
@@ -338,8 +338,8 @@ follow.</td>
 </tr>
 </tbody>
 </table>
-<p>The following structure is repeated <tt class="literal"><span class="pre">num_info_hashes</span></tt> times:</p>
-<table border class="table">
+<p>The following structure is repeated <tt class="docutils literal"><span class="pre">num_info_hashes</span></tt> times:</p>
+<table border="1" class="docutils">
 <colgroup>
 <col width="18%" />
 <col width="28%" />
@@ -361,7 +361,7 @@ follow.</td>
 </div>
 <div class="section" id="id5">
 <h2><a name="id5">Server replies with packet:</a></h2>
-<table border class="table">
+<table border="1" class="docutils">
 <colgroup>
 <col width="18%" />
 <col width="28%" />
@@ -388,7 +388,7 @@ If 3 (for error) see <a class="reference" href="#errors">errors</a>.</td>
 </table>
 <p>The rest of the packet contains the following structures once for each info-hash
 you asked in the scrape request.</p>
-<table border class="table">
+<table border="1" class="docutils">
 <colgroup>
 <col width="18%" />
 <col width="28%" />
@@ -424,7 +424,7 @@ leechers.</td>
 <p>In case of a tracker error,</p>
 <div class="section" id="server-replies-packet">
 <h2><a name="server-replies-packet">server replies packet:</a></h2>
-<table border class="table">
+<table border="1" class="docutils">
 <colgroup>
 <col width="18%" />
 <col width="28%" />
@@ -481,7 +481,7 @@ bits are assigned:</p>
 <h2><a name="authentication">authentication</a></h2>
 <p>The packet will have an authentication part
 appended to it. It has the following format:</p>
-<table border class="table">
+<table border="1" class="docutils">
 <colgroup>
 <col width="18%" />
 <col width="28%" />
