@@ -510,7 +510,7 @@ current task is in the <tt>state</tt> member, it will be one of the following:
 <table>
 	<tr>
 		<td>
-			<tt>queued_for_cecking</tt>
+			<tt>queued_for_checking</tt>
 		</td>
 		<td>
 			The torrent is in the queue for being checked. But there currently is another
@@ -581,7 +581,7 @@ struct peer_info
 <p>
 The <tt>flags</tt> attribute tells you in which state the peer is. It is set to
 any combination of the four enums above. Where <tt>interesting</tt> means that we
-are interested in pieces from this peer. <tt>choked</tt> means that <u>we</u> has
+are interested in pieces from this peer. <tt>choked</tt> means that <u>we</u> have
 choked this peer. <tt>remote_interested</tt> and <tt>remote_choked</tt> means the
 same thing but that the peer is interested in pieces from us and the peer has choked
 <u>us</u>.
