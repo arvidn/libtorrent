@@ -40,33 +40,35 @@
 </ul>
 </li>
 <li><a class="reference" href="#alerts" id="id29" name="id29">alerts</a><ul>
-<li><a class="reference" href="#tracker-alert" id="id30" name="id30">tracker_alert</a></li>
-<li><a class="reference" href="#hash-failed-alert" id="id31" name="id31">hash_failed_alert</a></li>
-<li><a class="reference" href="#peer-error-alert" id="id32" name="id32">peer_error_alert</a></li>
-<li><a class="reference" href="#invalid-request-alert" id="id33" name="id33">invalid_request_alert</a></li>
-<li><a class="reference" href="#torrent-finished-alert" id="id34" name="id34">torrent_finished_alert</a></li>
-<li><a class="reference" href="#dispatcher" id="id35" name="id35">dispatcher</a></li>
+<li><a class="reference" href="#listen-failed-alert" id="id30" name="id30">listen_failed_alert</a></li>
+<li><a class="reference" href="#file-error-alert" id="id31" name="id31">file_error_alert</a></li>
+<li><a class="reference" href="#tracker-alert" id="id32" name="id32">tracker_alert</a></li>
+<li><a class="reference" href="#hash-failed-alert" id="id33" name="id33">hash_failed_alert</a></li>
+<li><a class="reference" href="#peer-error-alert" id="id34" name="id34">peer_error_alert</a></li>
+<li><a class="reference" href="#invalid-request-alert" id="id35" name="id35">invalid_request_alert</a></li>
+<li><a class="reference" href="#torrent-finished-alert" id="id36" name="id36">torrent_finished_alert</a></li>
+<li><a class="reference" href="#dispatcher" id="id37" name="id37">dispatcher</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#exceptions" id="id36" name="id36">exceptions</a><ul>
-<li><a class="reference" href="#invalid-handle" id="id37" name="id37">invalid_handle</a></li>
-<li><a class="reference" href="#duplicate-torrent" id="id38" name="id38">duplicate_torrent</a></li>
-<li><a class="reference" href="#invalid-encoding" id="id39" name="id39">invalid_encoding</a></li>
-<li><a class="reference" href="#type-error" id="id40" name="id40">type_error</a></li>
-<li><a class="reference" href="#invalid-torrent-file" id="id41" name="id41">invalid_torrent_file</a></li>
+<li><a class="reference" href="#exceptions" id="id38" name="id38">exceptions</a><ul>
+<li><a class="reference" href="#invalid-handle" id="id39" name="id39">invalid_handle</a></li>
+<li><a class="reference" href="#duplicate-torrent" id="id40" name="id40">duplicate_torrent</a></li>
+<li><a class="reference" href="#invalid-encoding" id="id41" name="id41">invalid_encoding</a></li>
+<li><a class="reference" href="#type-error" id="id42" name="id42">type_error</a></li>
+<li><a class="reference" href="#invalid-torrent-file" id="id43" name="id43">invalid_torrent_file</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#examples" id="id42" name="id42">examples</a><ul>
-<li><a class="reference" href="#dump-torrent" id="id43" name="id43">dump_torrent</a></li>
-<li><a class="reference" href="#simple-client" id="id44" name="id44">simple client</a></li>
+<li><a class="reference" href="#examples" id="id44" name="id44">examples</a><ul>
+<li><a class="reference" href="#dump-torrent" id="id45" name="id45">dump_torrent</a></li>
+<li><a class="reference" href="#simple-client" id="id46" name="id46">simple client</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#fast-resume" id="id45" name="id45">fast resume</a><ul>
-<li><a class="reference" href="#file-format" id="id46" name="id46">file format</a></li>
+<li><a class="reference" href="#fast-resume" id="id47" name="id47">fast resume</a><ul>
+<li><a class="reference" href="#file-format" id="id48" name="id48">file format</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#extensions" id="id47" name="id47">extensions</a></li>
-<li><a class="reference" href="#aknowledgements" id="id48" name="id48">aknowledgements</a></li>
+<li><a class="reference" href="#extensions" id="id49" name="id49">extensions</a></li>
+<li><a class="reference" href="#aknowledgements" id="id50" name="id50">aknowledgements</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
@@ -110,6 +112,8 @@ peers in a separate fast-resume file.</li>
 <li>possibility to limit the number of connections.</li>
 <li>delays have messages if there's no other outgoing traffic to the peer, and doesn't
 send have messages to peers that already has the piece. This saves bandwidth.</li>
+<li>Does not have any requirements on the piece order in a torrent that it resumes. This
+means it can resume a torrent downloaded by any client.</li>
 </ul>
 </blockquote>
 <p>Functions that are yet to be implemented:</p>
@@ -244,8 +248,8 @@ the <tt class="literal"><span class="pre">session</span></tt>, it contains the m
 <pre class="literal-block">
 class session: public boost::noncopyable
 {
-        session(int listen_port, const fingerprint&amp; print);
-        session(int listen_port);
+        session(std::pair&lt;int, int&gt; listen_port_range, const fingerprint&amp; print);
+        session(std::pair&lt;int, int&gt; listen_port_range);
 
         torrent_handle add_torrent(
                 const torrent_info&amp; t
@@ -292,10 +296,12 @@ destructing the sessoin object. Because it can take a few second for it to finis
 timeout can be set with <tt class="literal"><span class="pre">set_http_settings()</span></tt>.</p>
 <p>The <a class="reference" href="#torrent-handle">torrent_handle</a> returned by <tt class="literal"><span class="pre">add_torrent</span></tt> can be used to retrieve information
 about the torrent's progress, its peers etc. It is also used to abort a torrent.</p>
-<p>The constructor takes a listen port as argument, if the given port is busy it will
+<p>The constructor takes a range of listen ports as argument, if the first port is busy it will
 increase the port number by one and try again. If it still fails it will continue
-increasing the port number until it succeeds or has failed 9 ports. <em>This will
-change in the future to give more control of the listen-port.</em></p>
+increasing the port number until it succeeds or has reached the end of the range. If it
+fails with all ports, a <a class="reference" href="#listen-failed-alert">listen_failed_alert</a> will be posted and the session thread will
+exit. The only thing you can do with your session if this alert is posted is to destruct
+it and possibly try again or change the port range.</p>
 <p>For information about the <tt class="literal"><span class="pre">pop_alert()</span></tt> function, see <a class="reference" href="#alerts">alerts</a>.</p>
 </div>
 <div class="section" id="parsing-torrent-files">
@@ -1072,6 +1078,36 @@ public:
 have a severity leve that can be used to sort them or present them to the
 user in different ways.</p>
 <p>The specific alerts, that all derives from <tt class="literal"><span class="pre">alert</span></tt>, are:</p>
+<div class="section" id="listen-failed-alert">
+<h2><a name="listen-failed-alert">listen_failed_alert</a></h2>
+<p>This alert is generated when none of the ports, given in the port range, to
+<a class="reference" href="#session">session</a> can be opened for listening. Without a listening port the session
+object will exit its thread. This alert is generated as severity level <tt class="literal"><span class="pre">fatal</span></tt>.</p>
+<pre class="literal-block">
+struct listen_failed_alert: alert
+{
+        listen_failed_alert(const std::string&amp; msg);
+        virtual std::auto_ptr&lt;alert&gt; clone() const;
+};
+</pre>
+</div>
+<div class="section" id="file-error-alert">
+<h2><a name="file-error-alert">file_error_alert</a></h2>
+<p>If the storage fails to read or write files that it needs access to, this alert is
+generated and the torrent is aborted. It is generated as severity level <tt class="literal"><span class="pre">fatal</span></tt>.</p>
+<pre class="literal-block">
+struct file_error_alert: alert
+{
+        file_error_alert(
+                const torrent_handle&amp; h
+                , const std::string&amp; msg);
+                
+        virtual std::auto_ptr&lt;alert&gt; clone() const;
+
+        torrent_handle handle;
+};
+</pre>
+</div>
 <div class="section" id="tracker-alert">
 <h2><a name="tracker-alert">tracker_alert</a></h2>
 <p>This alert is generated on tracker time outs, premature disconnects, invalid response or
@@ -1344,7 +1380,7 @@ int main(int argc, char* argv[])
 
         try
         {
-                session s(6881);
+                session s(std::make_pair(6881, 6889));
 
                 std::ifstream in(argv[1], std::ios_base::binary);
                 in.unsetf(std::ios_base::skipws);
