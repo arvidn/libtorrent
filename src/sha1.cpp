@@ -19,25 +19,23 @@ changelog at the end of the file.
 
 #include <boost/cstdint.hpp>
 
-using namespace boost;
-
 struct SHA1_CTX
 {
-	uint32_t state[5];
-	uint32_t count[2];
-	uint8_t buffer[64];
+	boost::uint32_t state[5];
+	boost::uint32_t count[2];
+	boost::uint8_t buffer[64];
 };
 
 void SHA1Init(SHA1_CTX* context);
-void SHA1Update(SHA1_CTX* context, uint8_t const* data, uint32_t len);
-void SHA1Final(SHA1_CTX* context, uint8_t* digest);
+void SHA1Update(SHA1_CTX* context, boost::uint8_t const* data, boost::uint32_t len);
+void SHA1Final(SHA1_CTX* context, boost::uint8_t* digest);
 
 namespace
 {
 	union CHAR64LONG16
 	{
-		uint8_t c[64];
-		uint32_t l[16];
+		boost::uint8_t c[64];
+		boost::uint32_t l[16];
 	};
 
 #define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
@@ -46,7 +44,7 @@ namespace
 // I got the idea of expanding during the round function from SSLeay
 	struct little_endian_blk0
 	{
-		static uint32_t apply(CHAR64LONG16* block, int i)
+		static boost::uint32_t apply(CHAR64LONG16* block, int i)
 		{
 			return block->l[i] = (rol(block->l[i],24)&0xFF00FF00)
 				| (rol(block->l[i],8)&0x00FF00FF);
@@ -55,7 +53,7 @@ namespace
 
 	struct big_endian_blk0
 	{
-		static uint32_t apply(CHAR64LONG16* block, int i)
+		static boost::uint32_t apply(CHAR64LONG16* block, int i)
 		{
 			return  block->l[i];
 		}
@@ -74,12 +72,12 @@ namespace
 
 	// Hash a single 512-bit block. This is the core of the algorithm.
 	template <class BlkFun>
-	void SHA1Transform(uint32_t state[5], uint8_t const buffer[64])
+	void SHA1Transform(boost::uint32_t state[5], boost::uint8_t const buffer[64])
 	{
-		uint32_t a, b, c, d, e;
+		boost::uint32_t a, b, c, d, e;
 
 		CHAR64LONG16* block;
-		uint8_t workspace[64];
+		boost::uint8_t workspace[64];
 		block = (CHAR64LONG16*)workspace;
 		std::memcpy(block, buffer, 64);
 
@@ -130,9 +128,9 @@ namespace
 	}
 
 	template <class BlkFun>
-	void internal_update(SHA1_CTX* context, uint8_t const* data, uint32_t len)
+	void internal_update(SHA1_CTX* context, boost::uint8_t const* data, boost::uint32_t len)
 	{
-		uint32_t i, j;	// JHB
+		boost::uint32_t i, j;	// JHB
 
 #ifdef VERBOSE
 		SHAPrintContext(context, "before");
@@ -162,8 +160,8 @@ namespace
 
 	bool is_big_endian()
 	{
-		uint32_t test = 1;
-		return *reinterpret_cast<uint8_t*>(&test) == 0;
+		boost::uint32_t test = 1;
+		return *reinterpret_cast<boost::uint8_t*>(&test) == 0;
 	}
 }
 
@@ -183,7 +181,7 @@ void SHA1Init(SHA1_CTX* context)
 
 // Run your data through this.
 
-void SHA1Update(SHA1_CTX* context, uint8_t const* data, uint32_t len)
+void SHA1Update(SHA1_CTX* context, boost::uint8_t const* data, boost::uint32_t len)
 {
 #if defined __BIG_ENDIAN__
 	internal_update<big_endian_blk0>(context, data, len);
@@ -202,24 +200,24 @@ void SHA1Update(SHA1_CTX* context, uint8_t const* data, uint32_t len)
 
 // Add padding and return the message digest.
 
-void SHA1Final(SHA1_CTX* context, uint8_t* digest)
+void SHA1Final(SHA1_CTX* context, boost::uint8_t* digest)
 {
-	uint8_t finalcount[8];
+	boost::uint8_t finalcount[8];
 
-	for (uint32_t i = 0; i < 8; ++i)
+	for (boost::uint32_t i = 0; i < 8; ++i)
 	{
 		// Endian independent
-		finalcount[i] = static_cast<uint8_t>(
+		finalcount[i] = static_cast<boost::uint8_t>(
 			(context->count[(i >= 4 ? 0 : 1)]
 			>> ((3-(i & 3)) * 8) ) & 255);
 	}
 
-	SHA1Update(context, (uint8_t const*)"\200", 1);
+	SHA1Update(context, (boost::uint8_t const*)"\200", 1);
 	while ((context->count[0] & 504) != 448)
-		SHA1Update(context, (uint8_t const*)"\0", 1);
+		SHA1Update(context, (boost::uint8_t const*)"\0", 1);
 	SHA1Update(context, finalcount, 8);  // Should cause a SHA1Transform()
 
-	for (uint32_t i = 0; i < 20; ++i)
+	for (boost::uint32_t i = 0; i < 20; ++i)
 	{
 		digest[i] = static_cast<unsigned char>(
 			(context->state[i>>2] >> ((3-(i & 3)) * 8) ) & 255);
