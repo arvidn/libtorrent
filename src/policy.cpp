@@ -276,7 +276,7 @@ namespace libtorrent
 	policy::policy(torrent* t)
 		: m_num_peers(0)
 		, m_torrent(t)
-		, m_max_uploads(-1)
+		, m_max_uploads(std::numeric_limits<int>::max())
 		, m_num_unchoked(0)
 		, m_available_free_upload(0)
 	{}
@@ -420,11 +420,14 @@ namespace libtorrent
 				, m_available_free_upload);
 		}
 
+		// ------------------------
+		// seed policy
+		// ------------------------
 		if (m_torrent->is_seed())
 		{
 			// make sure we have enough
 			// unchoked peers
-			while (m_num_unchoked < m_max_uploads || m_max_uploads == -1)
+			while (m_num_unchoked < m_max_uploads)
 			{
 				peer* p = 0;
 				for (std::vector<peer>::iterator i = m_peers.begin();
@@ -447,6 +450,10 @@ namespace libtorrent
 				++m_num_unchoked;
 			}
 		}
+
+		// ------------------------
+		// downloading policy
+		// ------------------------
 		else
 		{
 			// choke peers that have leeched too much without giving anything back
@@ -470,7 +477,7 @@ namespace libtorrent
 			
 			// make sure we don't have too many
 			// unchoked peers
-			while (m_num_unchoked > m_max_uploads && m_max_uploads != -1)
+			while (m_num_unchoked > m_max_uploads)
 			{
 				peer* p = find_choke_candidate();
 				assert(p);
@@ -492,7 +499,7 @@ namespace libtorrent
 
 			// make sure we have enough
 			// unchoked peers
-			while ((m_num_unchoked < m_max_uploads || m_max_uploads == -1) && unchoke_one_peer());
+			while (m_num_unchoked < m_max_uploads && unchoke_one_peer());
 		}
 
 #ifndef NDEBUG
@@ -712,6 +719,7 @@ namespace libtorrent
 	void policy::set_max_uploads(int max_uploads)
 	{
 		assert(max_uploads > 1 || max_uploads == -1);
+		if (max_uploads == -1) max_uploads = std::numeric_limits<int>::max();
 		m_max_uploads = max_uploads;
 	}
 
@@ -731,7 +739,7 @@ namespace libtorrent
 
 	void policy::check_invariant()
 	{
-		assert(m_max_uploads >= 2 || m_max_uploads == -1);
+		assert(m_max_uploads >= 2);
 		int actual_unchoked = 0;
 		for (std::vector<peer>::iterator i = m_peers.begin();
 			i != m_peers.end();
@@ -740,7 +748,7 @@ namespace libtorrent
 			if (!i->connection) continue;
 			if (!i->connection->is_choked()) actual_unchoked++;
 		}
-		assert(actual_unchoked <= m_max_uploads || m_max_uploads == -1);	
+		assert(actual_unchoked <= m_max_uploads);
 	}
 #endif
 
