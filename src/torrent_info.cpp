@@ -43,10 +43,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/lexical_cast.hpp>
-#include <boost/date_time/time.hpp>
 #include <boost/date_time/gregorian/gregorian_types.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/next_prior.hpp>
+#include <boost/bind.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -81,13 +81,6 @@ namespace
 			target.push_back(file_entry());
 			extract_single_file(*i, target.back());
 		}
-	}
-
-	size_type to_seconds(const boost::posix_time::time_duration& d)
-	{
-		return d.hours() * 60 * 60
-			+ d.minutes() * 60
-			+ d.seconds();
 	}
 
 	void remove_dir(path& p)
@@ -318,6 +311,10 @@ namespace libtorrent
 		announce_entry e(url);
 		e.tier = tier;
 		m_urls.push_back(e);
+
+		using boost::bind;
+		std::sort(m_urls.begin(), m_urls.end(), bind(std::less<int>()
+			, bind(&announce_entry::tier, _1), bind(&announce_entry::tier, _2)));
 	}
 
 	void torrent_info::add_file(boost::filesystem::path file, size_type size)
@@ -455,12 +452,32 @@ namespace libtorrent
 		}
 
 		dict["announce"] = m_urls.front().url;
-		
+
+		if (m_urls.size() > 1)
+		{
+			entry trackers(entry::list_t);
+			entry tier(entry::list_t);
+			int current_tier = m_urls.front().tier;
+			for (std::vector<announce_entry>::const_iterator i = m_urls.begin();
+				i != m_urls.end(); ++i)
+			{
+				if (i->tier != current_tier)
+				{
+					current_tier = i->tier;
+					trackers.list().push_back(tier);
+					tier.list().clear();
+				}
+				tier.list().push_back(i->url);
+			}
+			trackers.list().push_back(tier);
+			dict["announce-list"] = trackers;
+		}
+
 		if (!m_comment.empty())
 			dict["comment"] = m_comment;
 
 		dict["creation date"] =
-			to_seconds(m_creation_date - ptime(date(1970, Jan, 1)));
+			(m_creation_date - ptime(date(1970, Jan, 1))).total_seconds();
 
 		if (!m_created_by.empty())
 			dict["created by"] = m_created_by;

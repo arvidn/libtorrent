@@ -827,7 +827,7 @@ namespace libtorrent
 		if (m_paused)
 		{
 			// let the stats fade out to 0
-			m_stat.second_tick();
+ 			m_stat.second_tick();
 			return;
 		}
 

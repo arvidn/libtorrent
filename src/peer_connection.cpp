@@ -413,9 +413,9 @@ namespace libtorrent
 			, m_send_buffer.begin() + pos + 8
 			, 0);
 		// indicate that we support the extension protocol
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		m_send_buffer[pos+7] = 0x01;
-#endif
+
+		if (m_ses.extensions_enabled())
+			m_send_buffer[pos+7] = 0x01;
 		pos += 8;
 
 		// info hash
@@ -1057,7 +1057,7 @@ namespace libtorrent
 
 		assert(m_torrent);
 		assert(received > 0);
-		if (m_packet_size > 100 * 1024)
+		if (m_packet_size > 100 * 1000)
 		{
 			// too big extension message, abort
 			throw protocol_error("'extensions' message size > 100kB");
@@ -1124,6 +1124,9 @@ namespace libtorrent
 
 		const char* ptr = &m_recv_buffer[1];
 		int extended_id = detail::read_int32(ptr);
+
+		if (!m_ses.m_extension_enabled[extended_id])
+			throw protocol_error("'extended' message using disabled extension");
 
 		switch (extended_id)
 		{
@@ -1587,6 +1590,9 @@ namespace libtorrent
 
 		for (int i = 0; i < num_supported_extensions; ++i)
 		{
+			// if this specific extension is disabled
+			// just don't add it to the supported set
+			if (!m_ses.m_extension_enabled[i]) continue;
 			extension_list[extension_names[i]] = i;
 		}
 
@@ -1953,10 +1959,8 @@ namespace libtorrent
 					// ok, now we have got enough of the handshake. Is this connection
 					// attached to a torrent?
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-					if (m_recv_buffer[7] & 0x01)
+					if ((m_recv_buffer[7] & 0x01) && m_ses.extensions_enabled())
 						m_supports_extensions = true;
-#endif
 
 					if (m_torrent == 0)
 					{
