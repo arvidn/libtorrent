@@ -173,7 +173,7 @@ namespace libtorrent
 
 		detail::session_impl* m_ses;
 		detail::checker_impl* m_chk;
-		sha1_hash m_info_hash; // should be replaced with a torrent*?
+		sha1_hash m_info_hash;
 
 	};
 
