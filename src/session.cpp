@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/exception.hpp>
+#include <boost/limits.hpp>
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -74,7 +75,7 @@ namespace
 		int quota_limit;	// bandwidth limit
 		int estimated_upload_capacity; // estimated channel bandwidth
 
-		bool operator < (const connection_info &other) const
+		bool operator < (connection_info &other) const
 		{
 			return estimated_upload_capacity < other.estimated_upload_capacity;
 		}
@@ -92,7 +93,8 @@ namespace
 
 			int old_quota=allocated_quota;
 			allocated_quota+=amount;
-			allocated_quota=std::min(allocated_quota,quota_limit);
+			if(quota_limit!=-1)
+				allocated_quota=std::min(allocated_quota,quota_limit);
 			allocated_quota=std::max(0,allocated_quota);
 			return allocated_quota-old_quota;
 		}
@@ -151,7 +153,7 @@ namespace
 				pi.quota_limit=p.send_quota_limit();
 
 				pi.estimated_upload_capacity=
-					p.has_data() ? std::max(10,(int)p.statistics().upload_rate()*11/10)
+					p.has_data() ? std::max(10,(int)ceil(p.statistics().upload_rate()*1.1f))
 					// If there's no data to send, upload capacity is practically 0.
 					// Here we set it to 1 though, because otherwise it will not be able
 					// to accept any quota at all, which may upset quota_limit balances.
@@ -164,7 +166,17 @@ namespace
 
 			int sum_total_of_quota_limits=0;
 			for(int i=0;i<peer_info.size();i++)
-				sum_total_of_quota_limits+=peer_info[i].quota_limit;
+			{
+				int quota_limit=peer_info[i].quota_limit;
+				if(quota_limit==-1)
+				{
+					// quota_limit=-1 means infinite, so
+					// sum_total_of_quota_limits will be infinite too...
+					sum_total_of_quota_limits=std::numeric_limits<int>::max();
+					break;
+				}
+				sum_total_of_quota_limits+=quota_limit;
+			}
 
 			// This is how much total bandwidth that can be distributed.
 			int quota_left_to_distribute=std::min(upload_limit,sum_total_of_quota_limits);
@@ -191,7 +203,7 @@ namespace
 					// Rounds upwards to avoid trying to give 0 bandwidth to someone (may get caught in an endless loop otherwise)
 					
 					int num_peers_left_to_share_quota=peer_info.size()-i;
-					int try_to_give_to_this_peer=(quota_left_to_distribute + num_peers_left_to_share_quota-1)/num_peers_left_to_share_quota;
+					int try_to_give_to_this_peer=(quota_left_to_distribute+num_peers_left_to_share_quota-1)/num_peers_left_to_share_quota;
 
 					// But do not allocate more than the estimated upload capacity.
 					try_to_give_to_this_peer=std::min(
@@ -222,9 +234,17 @@ namespace
 			peer_connection& p = *i->second;
 			sum_quota += p.send_quota();
 
-			sum_quota_limit += p.send_quota_limit();
+			if(p.send_quota_limit() == -1)
+			{
+				sum_quota_limit=std::numeric_limits<int>::max();
+			}
+
+			if(sum_quota_limit!=std::numeric_limits<int>::max())
+			{
+				sum_quota_limit += p.send_quota_limit();
+			}
 		}
-		assert(std::min(upload_limit,sum_quota_limit) - sum_quota < 100);
+		assert(sum_quota == std::min(upload_limit,sum_quota_limit));
 		}
 #endif
 	}
