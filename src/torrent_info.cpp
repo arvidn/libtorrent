@@ -235,7 +235,8 @@ namespace libtorrent
 
 	int torrent_info::prioritize_tracker(int index)
 	{
-		if (index > (int)m_urls.size()) return (int)m_urls.size()-1;
+		assert(index >= 0);
+		if (index >= (int)m_urls.size()) return (int)m_urls.size()-1;
 
 		while (index > 0 && m_urls[index].tier == m_urls[index-1].tier)
 		{

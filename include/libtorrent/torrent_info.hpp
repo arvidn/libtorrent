@@ -116,8 +116,8 @@ namespace libtorrent
 		// the begining) and return the new index to the tracker.
 		int prioritize_tracker(int index);
 
-		size_type total_size() const { return m_total_size; }
-		size_type piece_length() const { return m_piece_length; }
+		size_type total_size() const { assert(m_total_size>=0); return m_total_size; }
+		size_type piece_length() const { assert(m_piece_length>0); return m_piece_length; }
 		int num_pieces() const { return (int)m_piece_hash.size(); }
 		const sha1_hash& info_hash() const { return m_info_hash; }
 		const std::string& name() const { return m_name; }
