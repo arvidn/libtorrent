@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <iterator>
 #include <exception>
+#include <vector>
+#include <iomanip>
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
@@ -45,54 +47,38 @@ int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
 
-	if (argc < 2)
+	if (argc != 2)
 	{
-		std::cerr << "usage: ./client_test torrent-files ...\n"
-			"to stop the client, type a number and press enter.\n";
+		std::cerr << "usage: dump_torrent torrent-file\n";
 		return 1;
 	}
 
-	http_settings settings;
-//	settings.proxy_ip = "192.168.0.1";
-//	settings.proxy_port = 80;
-//	settings.proxy_login = "hyd";
-//	settings.proxy_password = "foobar";
-	settings.user_agent = "example";
-
-	const char* fingerprint = "ex01";
-	std::copy(fingerprint, fingerprint+4, settings.fingerprint);
-
 	try
 	{
-		std::vector<torrent_handle> handles;
-		session s(6881);
+		std::ifstream in(argv[1], std::ios_base::binary);
+		in.unsetf(std::ios_base::skipws);
+		entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
+		torrent_info t(e);
 
-		s.set_http_settings(settings);
-		for (int i = 0; i < argc-1; ++i)
+		// print info about torrent
+		std::cout << "trackers:\n";
+		for (std::vector<announce_entry>::const_iterator i = t.trackers().begin();
+			i != t.trackers().end();
+			++i)
 		{
-			try
-			{
-				std::ifstream in(argv[i+1], std::ios_base::binary);
-				in.unsetf(std::ios_base::skipws);
-				entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
-				torrent_info t(e);
-				t.print(std::cout);
-				handles.push_back(s.add_torrent(t, ""));
-			}
-			catch (std::exception& e)
-			{
-				std::cout << e.what() << "\n";
-			}
+			std::cout << i->tier << ": " << i->url << "\n";
 		}
 
-		while (!handles.empty())
+		std::cout << "number of pieces: " << t.num_pieces() << "\n";
+		std::cout << "piece length: " << t.piece_length() << "\n";
+		std::cout << "files:\n";
+		for (torrent_info::file_iterator i = t.begin_files();
+			i != t.end_files();
+			++i)
 		{
-			int a;
-			std::cin >> a;
-			handles.back().abort();
-			handles.pop_back();
+			std::cout << "  " << std::setw(11) << i->size << "  " << i->path << " " << i->filename << "\n";
 		}
-
+		
 	}
 	catch (std::exception& e)
 	{
@@ -101,3 +87,4 @@ int main(int argc, char* argv[])
 
 	return 0;
 }
+
