@@ -220,7 +220,10 @@ namespace libtorrent
 		std::string old_path;
 		std::string new_path;
 
-		fs::create_directory(save_path);
+		if(!fs::exists(save_path))
+			fs::create_directory(save_path);
+		else if(!fx::is_directory(save_path))
+			return false;
 
 		if (m_pimpl->info.num_files() == 1)
 		{
