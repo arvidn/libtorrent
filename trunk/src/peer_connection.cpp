@@ -268,8 +268,6 @@ namespace libtorrent
 		assert(m_recv_pos > 0);
 
 		int packet_type = m_recv_buffer[0];
-		if (packet_type > msg_cancel || packet_type < msg_choke)
-			throw protocol_error("unknown message id");
 
 		switch (packet_type)
 		{
@@ -691,6 +689,8 @@ namespace libtorrent
 	#endif
 				break;
 			}
+		default:
+			throw protocol_error("unknown message id");
 		}
 		assert(m_recv_pos == m_packet_size);
 		return true;
