@@ -155,6 +155,7 @@ namespace
 	{
 		map_entry("A",  "ABC")
 		, map_entry("AZ", "Azureus")
+		, map_entry("BB", "BitBuddy")
 		, map_entry("BX", "BittorrentX")
 		, map_entry("LT", "libtorrent")
 		, map_entry("M",  "Mainline")

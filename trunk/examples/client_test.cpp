@@ -218,7 +218,7 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 {
 	using namespace libtorrent;
 
-	out << " down       up         q  r flags  block\n";
+	out << " down       up         q  r flags  client   block\n";
 
 	for (std::vector<peer_info>::const_iterator i = peers.begin();
 		i != peers.end();
