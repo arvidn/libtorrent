@@ -103,7 +103,7 @@ lib torrent
 	:
 	<threading>multi
 	<link>static
-	<variant>debug:<define>TORRENT_VERBOSE_LOGGING
+#	<variant>debug:<define>TORRENT_VERBOSE_LOGGING
 	: debug release
 	;
 

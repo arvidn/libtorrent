@@ -353,6 +353,9 @@ namespace libtorrent
 		// this is an index into m_torrent_file.trackers()
 		int m_last_working_tracker;
 		int m_currently_trying_tracker;
+		// the number of connection attempts that has
+		// failed in a row
+		int m_failed_trackers;
 
 		// this is a counter that is increased every
 		// second, and when it reaches 10, the policy::pulse()
