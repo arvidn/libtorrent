@@ -4,6 +4,7 @@ exe client_test
 	: client_test.cpp
 	  ..//torrent
 	:
+	<threading>multi
 	: debug release
 	;
 
@@ -12,6 +13,7 @@ exe simple_client
 	: simple_client.cpp
 	  ..//torrent
 	:
+	<threading>multi
 	: debug release
 	;
 
@@ -20,6 +22,7 @@ exe dump_torrent
 	: dump_torrent.cpp
 	  ..//torrent
 	:
+	<threading>multi
 	: debug release
 	;
 stage bin : dump_torrent simple_client client_test ;
