@@ -376,8 +376,8 @@ namespace libtorrent
 			}
 			else
 			{
-				++i;
 				assert(std::find(m_connections.begin(), m_connections.end(), boost::get_pointer(i->second)) == m_connections.end());
+				++i;
 			}
 		}
 		assert(m_connections.empty());
