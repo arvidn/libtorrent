@@ -189,8 +189,8 @@ int main(int argc, char* argv[])
 		std::vector<torrent_handle> handles;
 		session ses(6881);
 
-		// limit upload rate to 100 kB/s
-		ses.set_upload_rate_limit(100 * 1024);
+		// limit global upload rate to 30 kB/s
+		ses.set_upload_rate_limit(30 * 1024);
 		ses.set_http_settings(settings);
 		ses.set_severity_level(alert::debug);
 
@@ -216,7 +216,7 @@ int main(int argc, char* argv[])
 				{}
 
 				handles.push_back(ses.add_torrent(t, "", resume_data));
-				handles.back().set_max_uploads(40);
+				handles.back().set_max_uploads(7);
 			}
 			catch (std::exception& e)
 			{

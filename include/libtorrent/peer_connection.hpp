@@ -59,18 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // a chance to request another block instead.
 // Where it also could become not-interested.
 
-// TODO: maybe there should be some kind of 
-// per-torrent free-upload counter. All free
-// download we get is put in there and increases
-// the amount of free upload we give. The free upload
-// could be distributed to the interest peers
-// depending on amount we have downloaded from
-// the peer and depending on the share ratio.
-// there's no point in giving free upload to
-// peers we can trade with. Maybe the free upload
-// only should be given to those we are not interested
-// in?
-
 namespace libtorrent
 {
 	class torrent;
@@ -138,23 +126,6 @@ namespace libtorrent
 		protocol_error(const std::string& msg): std::runtime_error(msg) {};
 	};
 
-	struct chat_message_alert: alert
-	{
-		chat_message_alert(const torrent_handle& h
-			, const peer_id& send
-			, const std::string& msg)
-			: alert(alert::critical, msg)
-			, handle(h)
-			, sender(send)
-			{}
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new chat_message_alert(*this)); }
-
-		torrent_handle handle;
-		peer_id sender;
-	};
-
 	struct peer_request
 	{
 		int piece;
@@ -177,6 +148,46 @@ namespace libtorrent
 		int bytes_downloaded;
 		// the number of bytes in the block
 		int full_block_bytes;
+	};
+
+	struct chat_message_alert: alert
+	{
+		chat_message_alert(
+			const torrent_handle& h
+			, const peer_id& send
+			, const std::string& msg)
+			: alert(alert::critical, msg)
+			, handle(h)
+			, sender(send)
+		{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new chat_message_alert(*this)); }
+
+		torrent_handle handle;
+		peer_id sender;
+	};
+
+	// TODO: document
+	struct invalid_request_alert: alert
+	{
+		invalid_request_alert(
+			const peer_request& r
+			, const torrent_handle& h
+			, const peer_id& send
+			, const std::string& msg)
+			: alert(alert::debug, msg)
+			, handle(h)
+			, sender(send)
+			, request(r)
+		{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new invalid_request_alert(*this)); }
+
+		torrent_handle handle;
+		peer_id sender;
+		peer_request request;
 	};
 
 	class peer_connection: public boost::noncopyable
@@ -258,6 +269,8 @@ namespace libtorrent
 		// and it hasn't received enough information to determine
 		// which torrent it should be associated with
 		torrent* associated_torrent() const throw() { return m_attached_to_torrent?m_torrent:0; }
+
+		bool verify_piece(const peer_request& p) const;
 
 		const stat& statistics() const { return m_statistics; }
 
