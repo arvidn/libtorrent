@@ -59,13 +59,13 @@ namespace libtorrent
 		// for peer choking management
 		void pulse();
 
-		// called when an incoming connection is accepted
-		// return false if the connection closed
-		void new_connection(peer_connection& c);
-
 		// this is called once for every peer we get from
 		// the tracker
 		void peer_from_tracker(const address& remote, const peer_id& id);
+
+		// called when an incoming connection is accepted
+		// return false if the connection closed
+		void new_connection(peer_connection& c);
 
 		// the given connection was just closed
 		void connection_closed(const peer_connection& c);
@@ -158,6 +158,10 @@ namespace libtorrent
 		peer* find_unchoke_candidate();
 
 
+		bool connect_one_peer();
+		peer* find_connect_candidate();
+
+
 
 		// a functor that identifies peers that have disconnected and that
 		// are too old for still being saved.
@@ -168,7 +172,7 @@ namespace libtorrent
 				using namespace boost::posix_time;
 
 				return p.connection == 0
-					&& second_clock::local_time() - p.connected > seconds(5*60);
+					&& second_clock::local_time() - p.connected > seconds(30*60);
 			}
 		};
 
