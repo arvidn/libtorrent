@@ -60,6 +60,7 @@ namespace libtorrent
 #endif
 
 	std::string escape_string(const char* str, int len);
+	std::string unescape_string(std::string const& s);
 
 	struct tracker_alert: alert
 	{
