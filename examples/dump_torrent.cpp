@@ -60,7 +60,14 @@ int main(int argc, char* argv[])
 		entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
 		torrent_info t(e);
 
+
+
+		std::cout << "\n\n----- raw info -----\n\n";
+		e.print(std::cout);
+
+
 		// print info about torrent
+		std::cout << "\n\n----- torrent file info -----\n\n";
 		std::cout << "trackers:\n";
 		for (std::vector<announce_entry>::const_iterator i = t.trackers().begin();
 			i != t.trackers().end();
@@ -76,7 +83,8 @@ int main(int argc, char* argv[])
 			i != t.end_files();
 			++i)
 		{
-			std::cout << "  " << std::setw(11) << i->size << "  " << i->path << " " << i->filename << "\n";
+			std::cout << "  " << std::setw(11) << i->size
+			<< "  " << i->path << " " << i->filename << "\n";
 		}
 		
 	}

@@ -86,7 +86,7 @@ namespace libtorrent
 		enum open_mode { in, out };
 
 		// opens a piece with the given index from storage s
-		void open(storage* s, int index, open_mode m);
+		void open(storage* s, int index, open_mode m, int seek_offset = 0);
 		void close()
 		{
 			//std::cout << std::clock() << "close " << m_piece_index << "\n";

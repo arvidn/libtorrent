@@ -152,7 +152,7 @@ namespace libtorrent
 #if defined(TORRENT_VERBOSE_LOGGING)
 			boost::shared_ptr<logger> create_log(std::string name)
 			{
-				name += ".log";
+				name = "libtorrent_log_" + name + ".log";
 				// current options are file_logger and cout_logger
 				return boost::shared_ptr<logger>(new file_logger(name.c_str()));
 			}

@@ -57,7 +57,7 @@ using namespace libtorrent;
 // accepted as an argument, this way we may avoid opening a
 // file in vain if we're about to seek forward anyway
 
-void libtorrent::piece_file::open(storage* s, int index, open_mode o)
+void libtorrent::piece_file::open(storage* s, int index, open_mode o, int seek_offset)
 {
 	open_mode old_mode = m_mode;
 	storage* old_storage = m_storage;
@@ -71,11 +71,14 @@ void libtorrent::piece_file::open(storage* s, int index, open_mode o)
 
 	assert(index < m_storage->m_torrent_file->num_pieces() && "internal error");
 
-	m_piece_offset = 0;
-	int piece_byte_offset = index * m_storage->m_torrent_file->piece_length();
+	m_piece_offset = seek_offset;
+	int piece_byte_offset = index * m_storage->m_torrent_file->piece_length()
+		+ m_piece_offset;
 
 	entry::integer_type file_byte_offset = 0;
-	for (m_file_iter = m_storage->m_torrent_file->begin_files(); m_file_iter != m_storage->m_torrent_file->end_files(); ++m_file_iter)
+	for (m_file_iter = m_storage->m_torrent_file->begin_files();
+		m_file_iter != m_storage->m_torrent_file->end_files();
+		++m_file_iter)
 	{
 		if (file_byte_offset + m_file_iter->size > piece_byte_offset) break;
 		file_byte_offset += m_file_iter->size;
@@ -86,6 +89,7 @@ void libtorrent::piece_file::open(storage* s, int index, open_mode o)
 	if ((m_mode == out && !(m_file_mode & std::ios_base::out))
 		|| old_file_iter != m_file_iter
 		|| !m_file.is_open()
+		|| m_file.fail()
 		|| old_storage != m_storage)
 	{
 		std::ios_base::openmode m;
@@ -108,15 +112,18 @@ void libtorrent::piece_file::open(storage* s, int index, open_mode o)
 			assert(!m_file.fail());
 		}
 	}
+	assert(!m_file.fail());
 
 	m_file_offset = piece_byte_offset - file_byte_offset;
 	if (m_mode == in) m_file.seekg(m_file_offset, std::ios_base::beg);
 	else m_file.seekp(m_file_offset, std::ios_base::beg);
 
+#ifndef NDEBUG
 	int gpos = m_file.tellg();
 	int ppos = m_file.tellp();
 	assert(m_mode == out || m_file_offset == gpos && "internal error");
 	assert(m_mode == in || m_file_offset == ppos && "internal error");
+#endif
 }
 
 int libtorrent::piece_file::read(char* buf, int size)
@@ -125,6 +132,8 @@ int libtorrent::piece_file::read(char* buf, int size)
 //	std::cout << std::clock() << "read " << m_piece_index << "\n";
 
 	assert(m_mode == in);
+	assert(!m_file.fail());
+	assert(m_file.is_open());
 	int left_to_read = size;
 
 	// make sure we don't read more than what belongs to this piece
@@ -172,7 +181,10 @@ int libtorrent::piece_file::read(char* buf, int size)
 		}
 	} while (left_to_read > 0);
 
-	assert(m_file_offset == (long)m_file.tellg() && "internal error");
+#ifndef NDEBUG
+	int gpos = m_file.tellg();
+	assert(m_file_offset == gpos && "internal error");
+#endif
 	return read_total;
 }
 

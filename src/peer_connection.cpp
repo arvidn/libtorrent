@@ -369,16 +369,12 @@ bool libtorrent::peer_connection::dispatch_message()
 				return false;
 			}
 
-//			if (m_receiving_piece.index() < 0 || m_receiving_piece.index() != index)
-//			{
-			m_receiving_piece.open(m_torrent->filesystem(), index, piece_file::out);
-//			}
+			m_receiving_piece.open(m_torrent->filesystem(), index, piece_file::out, offset);
 
 #if defined(TORRENT_VERBOSE_LOGGING)
 			(*m_logger) << m_socket->sender().as_string() << " <== PIECE [ piece: " << index << " | s: " << offset << " | l: " << len << " ]\n";
 #endif
 
-			m_receiving_piece.seek_forward(offset);
 			m_receiving_piece.write(&m_recv_buffer[9], len);
 			m_torrent->downloaded_bytes(len);
 
