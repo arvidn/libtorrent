@@ -82,8 +82,9 @@ namespace
 	{
 		peer_id ret;
 		std::srand(std::time(0));
-//		unsigned char fingerprint[] = "h\0\0\0\0\0\0\0\0\0";
-		unsigned char fingerprint[] = "h\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+		// TODO: add ability to control fingerprint
+//		unsigned char fingerprint[] = "lt.\0\0\0\0\0\0\0";
+		unsigned char fingerprint[] = "lt.\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 		const int len = sizeof(fingerprint)-1;
 		std::copy(fingerprint, fingerprint+len, ret.begin());
 		for (unsigned char* i = ret.begin()+len; i != ret.end(); ++i) *i = rand();
@@ -181,7 +182,9 @@ namespace libtorrent
 				// that has been closed. Otherwise we have to wait 2 minutes for their timeout
 
 				// let the readable clients receive data
-				for (std::vector<boost::shared_ptr<socket> >::iterator i = readable_clients.begin(); i != readable_clients.end(); ++i)
+				for (std::vector<boost::shared_ptr<socket> >::iterator i = readable_clients.begin();
+					i != readable_clients.end();
+					++i)
 				{
 
 					// special case for listener socket
@@ -236,7 +239,9 @@ namespace libtorrent
 				// ************************
 
 				// let the writable clients send data
-				for (std::vector<boost::shared_ptr<socket> >::iterator i = writable_clients.begin(); i != writable_clients.end(); ++i)
+				for (std::vector<boost::shared_ptr<socket> >::iterator i = writable_clients.begin();
+					i != writable_clients.end();
+					++i)
 				{
 					connection_map::iterator p = m_connections.find(*i);
 					// the connection may have been disconnected in the receive phase
@@ -269,7 +274,9 @@ namespace libtorrent
 
 
 				// disconnect the one we couldn't connect to
-				for (std::vector<boost::shared_ptr<socket> >::iterator i = error_clients.begin(); i != error_clients.end(); ++i)
+				for (std::vector<boost::shared_ptr<socket> >::iterator i = error_clients.begin();
+					i != error_clients.end();
+					++i)
 				{
 					connection_map::iterator p = m_connections.find(*i);
 
@@ -439,7 +446,7 @@ namespace libtorrent
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
 
 		// is the torrent already active?
-		// TODO: Maybe this should throw?
+		// TODO: this should throw
 		if (m_impl.m_torrents.find(ti.info_hash()) != m_impl.m_torrents.end())
 			return torrent_handle(&m_impl, ti.info_hash());
 

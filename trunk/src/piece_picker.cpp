@@ -90,7 +90,6 @@ namespace libtorrent
 		// TODO: random_shuffle
 	}
 
-	// TODO: add a check to make sure m_downloads is intact
 #ifndef NDEBUG
 
 	void piece_picker::integrity_check(const torrent* t) const
@@ -304,6 +303,13 @@ namespace libtorrent
 #endif
 	}
 
+	// TODO: since inc_refcount is called
+	// with sequential indices when peers
+	// connect, it will sort the pieces
+	// that is not good. one solution is
+	// to insert the element at a random
+	// index when moving it to another
+	// vector.
 	bool piece_picker::inc_refcount(int i)
 	{
 		assert(i >= 0);
@@ -337,10 +343,6 @@ namespace libtorrent
 
 		if (index == 0xffffff) return;
 		move(m_piece_map[i].downloading, peer_count, index);
-
-#ifndef NDEBUG
-		integrity_check();
-#endif
 	}
 
 	void piece_picker::we_have(int index)
@@ -360,9 +362,7 @@ namespace libtorrent
 
 	void piece_picker::pick_pieces(const std::vector<bool>& pieces, std::vector<piece_block>& interesting_pieces) const
 	{
-		// TODO: modify this!
 		assert(pieces.size() == m_piece_map.size());
-
 
 		// free refers to pieces that are free to download, noone else
 		// is downloading them.

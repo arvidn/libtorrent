@@ -402,9 +402,12 @@ bool libtorrent::peer_connection::dispatch_message()
 				}
 				else
 				{
-					// TODO: we have to let the piece_picker know that
-					// this piece failed the check os it can restore it
+					// we have to let the piece_picker know that
+					// this piece failed the check as it can restore it
 					// and mark it as being interesting for download
+					// TODO: do this more intelligently! and keep track
+					// of how much crap (data that failed hash-check) and
+					// how much redundant data we have downloaded
 					picker.restore_piece(index);
 				}
 				m_torrent->get_policy().piece_finished(*this, index, verified);
@@ -464,8 +467,6 @@ void libtorrent::peer_connection::request_block(piece_block block)
 
 	// TODO: add a timeout to disconnect peer if we don't get any piece messages when
 	// we have requested.
-	// TODO: there must be a way to ask the storage if a given
-	// piece already has some data (and how much). To avoid requesting
 
 	std::copy(buf, buf + 5, m_send_buffer.begin()+start_offset);
 	start_offset +=5;
@@ -685,6 +686,7 @@ void libtorrent::peer_connection::receive_data()
 				{
 					// verify peer_id
 					// TODO: It seems like the original client ignores to check the peer id
+					// can this be correct?
 					if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (const char*)m_peer_id.begin()))
 					{
 #ifndef NDEBUG

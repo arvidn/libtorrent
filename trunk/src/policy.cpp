@@ -71,9 +71,8 @@ namespace
 			return;
 		}
 
-		// TODO:
-		// compare this peer's bandwidth against the ones downloading
-		// these pieces (busy_pieces)
+		// TODO: compare this peer's bandwidth against the
+		// ones downloading these pieces (busy_pieces)
 	}
 }
 
