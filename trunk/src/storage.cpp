@@ -1223,7 +1223,7 @@ namespace libtorrent
 			{
 				boost::mutex::scoped_lock lock(mutex);
 				data.progress = (float)current_slot / m_info.num_pieces();
-				if (data.abort || data.torrent_ptr->is_aborted())
+				if (data.abort || (data.torrent_ptr && data.torrent_ptr->is_aborted()))
 					return;
 			}
 		}
