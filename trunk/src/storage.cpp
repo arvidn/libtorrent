@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <ios>
 #include <ctime>
 #include <iostream>
-#include <fstream>
+//#include <fstream>
 #include <iomanip>
 #include <iterator>
 #include <algorithm>
@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/fstream.hpp>
+//#include <boost/filesystem/fstream.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/ref.hpp>
 
@@ -196,17 +196,23 @@ namespace libtorrent {
 			file_offset -= file_iter->size;
 			++file_iter;
 		}
-
+/*
 		fs::ifstream in(
 			m_pimpl->save_path / file_iter->path / file_iter->filename
 			, std::ios_base::binary
 		);
+*/
+		file in(
+			m_pimpl->save_path / file_iter->path / file_iter->filename
+			, file::in);
 
 		assert(file_offset < file_iter->size);
 
-		in.seekg(file_offset);
+//		in.seekg(file_offset);
+		in.seek(file_offset);
 
-		assert(size_type(in.tellg()) == file_offset);
+//		assert(size_type(in.tellg()) == file_offset);
+		assert(size_type(in.tell()) == file_offset);
 
 		size_type left_to_read = size;
 		size_type slot_size = m_pimpl->info.piece_size(slot);
@@ -227,9 +233,10 @@ namespace libtorrent {
 
 			assert(read_bytes > 0);
 
-			in.read(buf + buf_pos, read_bytes);
+//			in.read(buf + buf_pos, read_bytes);
+//			int actual_read = in.gcount();
+			int actual_read = in.read(buf + buf_pos, read_bytes);
 
-			int actual_read = in.gcount();
 			assert(read_bytes == actual_read);
 
 			left_to_read -= read_bytes;
@@ -243,9 +250,10 @@ namespace libtorrent {
 				fs::path path = m_pimpl->save_path / file_iter->path / file_iter->filename;
 
 				file_offset = 0;
-				in.close();
-				in.clear();
-				in.open(path, std::ios_base::binary);
+//				in.close();
+//				in.clear();
+//				in.open(path, std::ios_base::binary);
+				in.open(path, file::in);
 			}
 		}
 
@@ -274,18 +282,23 @@ namespace libtorrent {
 		}
 
 		fs::path path(m_pimpl->save_path / file_iter->path / file_iter->filename);
+/*
 		fs::ofstream out;
 
 		if (fs::exists(path))
 			out.open(path, std::ios_base::binary | std::ios_base::in);
 		else
 			out.open(path, std::ios_base::binary);
+*/
+		file out(path, file::out);
 
 		assert(file_offset < file_iter->size);
 
-		out.seekp(file_offset);
+//		out.seekp(file_offset);
+		out.seek(file_offset);
 
-		assert(file_offset == out.tellp());
+//		assert(file_offset == out.tellp());
+		assert(file_offset == out.tell());
 
 		size_type left_to_write = size;
 		size_type slot_size = m_pimpl->info.piece_size(slot);
@@ -327,6 +340,7 @@ namespace libtorrent {
 				fs::path path = m_pimpl->save_path / file_iter->path / file_iter->filename;
 
 				file_offset = 0;
+/*
 				out.close();
 				out.clear();
 
@@ -334,6 +348,8 @@ namespace libtorrent {
 					out.open(path, std::ios_base::binary | std::ios_base::in);
 				else
 					out.open(path, std::ios_base::binary);
+*/
+				out.open(path, file::out);
 			}
 		}
 	}
@@ -603,7 +619,8 @@ namespace libtorrent {
 		}
 
 		bool changed_file = true;
-		fs::ifstream in;
+//		fs::ifstream in;
+		file in;
 
 		std::vector<char> piece_data(m_info.piece_length());
 		std::size_t piece_offset = 0;
@@ -646,6 +663,7 @@ namespace libtorrent {
 
 			if (changed_file)
 			{
+/*
 				in.close();
 				in.clear();
 				in.open(path, std::ios_base::binary);
@@ -664,6 +682,22 @@ namespace libtorrent {
 					filesize = in.tellg();
 					in.seekg(seek_into_next, std::ios_base::beg);
 				}
+*/
+				try
+				{
+					changed_file = false;
+					bytes_current_read = seek_into_next;
+					in.open(path, file::in);
+
+					in.seek(0, file::end);
+					filesize = in.tell();
+					in.seek(seek_into_next);
+				}
+				catch (file_error&)
+				{
+					filesize = 0;
+				}
+
 			}
 
 			// we are at the start of a new piece
@@ -675,8 +709,9 @@ namespace libtorrent {
 
 			if (filesize > 0)
 			{
-				in.read(&piece_data[piece_offset], bytes_to_read);
-				bytes_read = in.gcount();
+//				in.read(&piece_data[piece_offset], bytes_to_read);
+//				bytes_read = in.gcount();
+				bytes_read = in.read(&piece_data[piece_offset], bytes_to_read);
 			}
 
 			bytes_current_read += bytes_read;

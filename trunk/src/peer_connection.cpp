@@ -624,14 +624,6 @@ namespace libtorrent
 
 			(*m_logger) << " *** SKIPPED_PIECE [ piece: " << i->piece_index << " | "
 				"b: " << i->block_index << " ] ***\n";
-			if (m_torrent->alerts().should_post(alert::debug))
-			{
-				std::stringstream s;
-				s << "skipped piece: " << i->piece_index << " b: " << i->block_index;
-				m_torrent->alerts().post_alert(
-					peer_error_alert(get_peer_id(), s.str()));
-
-			}
 		}
 		(*m_logger) << " <== PIECE   [ piece: " << p.piece << " | "
 			"b: " << p.start / m_torrent->block_size() << " | "
