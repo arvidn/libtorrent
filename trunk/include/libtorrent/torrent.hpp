@@ -100,10 +100,11 @@ namespace libtorrent
 
 		void print(std::ostream& os) const;
 
-		void allocate_files(boost::shared_ptr<detail::piece_checker_data> data,
+		void allocate_files(detail::piece_checker_data* data,
+			boost::mutex* mutex,
 			const std::string& save_path)
 		{
-			m_storage.initialize_pieces(this, save_path, data);
+			m_storage.initialize_pieces(this, save_path, data, mutex);
 			m_picker.files_checked(m_storage.pieces());
 #ifndef NDEBUG
 			m_picker.integrity_check(this);
@@ -117,7 +118,7 @@ namespace libtorrent
 		int bytes_uploaded() const { return m_bytes_uploaded; }
 		int bytes_left() const { return m_storage.bytes_left(); }
 
-		std::pair<torrent_handle::state_t, float> status() const;
+		torrent_status status() const;
 
 		void connect_to_peer(const address& a, const peer_id& id);
 

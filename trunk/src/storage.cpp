@@ -332,7 +332,8 @@ bool libtorrent::storage::verify_piece(piece_file& file)
 // and abortion information.
 void libtorrent::storage::initialize_pieces(torrent* t,
 	const boost::filesystem::path& path,
-	boost::shared_ptr<detail::piece_checker_data> data)
+	detail::piece_checker_data* data,
+	boost::mutex* mutex)
 {
 	m_save_path = path;
 	m_torrent_file = &t->torrent_file();
@@ -451,7 +452,7 @@ void libtorrent::storage::initialize_pieces(torrent* t,
 				left_to_write -= chunksize;
 				progress += chunksize;
 
-				boost::mutex::scoped_lock l(data->mutex);
+				boost::mutex::scoped_lock l(*mutex);
 				data->progress = static_cast<float>(progress) / total_bytes;
 				if (data->abort) return;
 			}
@@ -459,7 +460,7 @@ void libtorrent::storage::initialize_pieces(torrent* t,
 			if (left_to_write > 0) f.write(zeros, left_to_write);
 			progress += left_to_write;
 
-			boost::mutex::scoped_lock l(data->mutex);
+			boost::mutex::scoped_lock l(*mutex);
 			data->progress = static_cast<float>(progress) / total_bytes;
 			if (data->abort) return;
 		}
@@ -483,7 +484,7 @@ void libtorrent::storage::initialize_pieces(torrent* t,
 //			std::cout << i+1 << " / " << m_torrent_file->num_pieces() << " missing: " << missing << "\r";
 
 			progress += m_torrent_file->piece_size(i);
-			boost::mutex::scoped_lock l(data->mutex);
+			boost::mutex::scoped_lock l(*mutex);
 			data->progress = static_cast<float>(progress) / total_bytes;
 			if (data->abort) return;
 		}

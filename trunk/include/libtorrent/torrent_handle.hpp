@@ -44,7 +44,26 @@ namespace libtorrent
 	namespace detail
 	{
 		struct session_impl;
+		struct checker_impl;
 	}
+
+	struct torrent_status
+	{
+		enum state_t
+		{
+			invalid_handle,
+			queued_for_checking,
+			checking_files,
+			connecting_to_tracker,
+			downloading,
+			seeding
+		};
+		
+		state_t state;
+		float progress;
+		std::size_t total_download;
+		std::size_t total_upload;
+	};
 
 	struct torrent_handle
 	{
@@ -54,27 +73,23 @@ namespace libtorrent
 
 		void get_peer_info(std::vector<peer_info>& v);
 		void abort();
-		enum state_t
-		{
-			invalid_handle,
-			checking_files,
-			connecting_to_tracker,
-			downloading,
-			seeding
-		};
-		std::pair<state_t, float> status() const;
+
+		torrent_status status() const;
 
 		// TODO: add a 'time to next announce' query.
 
-
 	private:
 
-		torrent_handle(detail::session_impl* s, const sha1_hash& h)
+		torrent_handle(detail::session_impl* s,
+			detail::checker_impl* c,
+			const sha1_hash& h)
 			: m_ses(s)
+			, m_chk(c)
 			, m_info_hash(h)
 		{}
 
 		detail::session_impl* m_ses;
+		detail::checker_impl* m_chk;
 		sha1_hash m_info_hash; // should be replaced with a torrent*?
 
 	};

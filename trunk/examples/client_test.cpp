@@ -56,6 +56,20 @@ bool sleep_and_input(char* c)
 
 #endif
 
+std::string add_suffix(float val)
+{
+	const char* prefix[] = {"B", "kB", "MB", "GB", "TB"};
+	const int num_prefix = sizeof(prefix) / sizeof(const char*);
+	int i;
+	for (i = 0; i < num_prefix; ++i)
+	{
+		if (val < 1024.f)
+			return boost::lexical_cast<std::string>(val) + prefix[i];
+		val /= 1024.f;
+	}
+	return boost::lexical_cast<std::string>(val) + prefix[i];
+}
+
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
@@ -97,10 +111,6 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		std::pair<torrent_handle::state_t, float> prev_status
-			= std::make_pair(torrent_handle::invalid_handle, 0.f);
-
-
 		std::vector<peer_info> peers;
 
 		for (;;)
@@ -111,63 +121,55 @@ int main(int argc, char* argv[])
 				if (c == 'q') break;
 			}
 
-			// just print info from the first torrent
-			torrent_handle h = handles.front();
-
-			std::pair<torrent_handle::state_t, float> s
-				= h.status();
-
-			if (s.first == prev_status.first
-				&& s.second == prev_status.second)
-				continue;
-
-			switch(s.first)
-			{
-				case torrent_handle::checking_files:
-					std::cout << "checking files: ";
-					break;
-				case torrent_handle::downloading:
-					std::cout << "downloading: ";
-					break;
-				case torrent_handle::seeding:
-					std::cout << "seeding: ";
-					break;
-			};
-
-			std::cout.width(3);
-			std::cout.precision(3);
-			std::cout.fill('0');
-			std::cout << s.second*100 << "% ";
-
-			// calculate download and upload speeds
-			h.get_peer_info(peers);
-			float down = 0.f;
-			float up = 0.f;
-			unsigned int total_down = 0;
-			unsigned int total_up = 0;
-			int num_peers = peers.size();
-
-			for (std::vector<peer_info>::iterator i = peers.begin();
-				i != peers.end();
+			for (std::vector<torrent_handle>::iterator i = handles.begin();
+				i != handles.end();
 				++i)
 			{
-				down += i->down_speed;
-				up += i->up_speed;
-				total_down += i->total_download;
-				total_up += i->total_upload;
+				torrent_status s = i->status();
+
+				switch(s.state)
+				{
+					case torrent_status::queued_for_checking:
+						std::cout << "queued for checking: ";
+						break;
+					case torrent_status::checking_files:
+						std::cout << "checking files: ";
+						break;
+					case torrent_status::downloading:
+						std::cout << "downloading: ";
+						break;
+					case torrent_status::seeding:
+						std::cout << "seeding: ";
+						break;
+				};
+
+				std::cout << s.progress*100 << "% ";
+
+				// calculate download and upload speeds
+				i->get_peer_info(peers);
+				float down = 0.f;
+				float up = 0.f;
+				unsigned int total_down = 0;
+				unsigned int total_up = 0;
+				int num_peers = peers.size();
+
+				for (std::vector<peer_info>::iterator i = peers.begin();
+					i != peers.end();
+					++i)
+				{
+					down += i->down_speed;
+					up += i->up_speed;
+					total_down += i->total_download;
+					total_up += i->total_upload;
+				}
+
+				std::cout << "p:" << num_peers;
+				
+				std::cout << " d:("
+					<< add_suffix(total_down) << ") " << add_suffix(down) << "/s up:("
+					<< add_suffix(total_up) << ") " << add_suffix(up) << "/s\n";
 			}
-
-			std::cout.width(2);
-			std::cout.precision(2);
-
-			std::cout << "p:" << num_peers;
-			
-			std::cout.width(6);
-			std::cout.precision(6);
-
-			std::cout << " d:("
-				<< total_down/1024.f << " kB) " << down/1024.f << " kB/s up:("
-				<< total_up/1024.f << " kB) " << up/1024.f << " kB/s \r";
+			std::cout << "----\n";
 		}
 	}
 	catch (std::exception& e)

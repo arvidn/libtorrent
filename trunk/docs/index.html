@@ -455,7 +455,6 @@ struct torrent_handle
 {
 	torrent_handle();
 
-	float progress() const;
 	void get_peer_info(std::vector&lt;peer_info&gt;&amp; v);
 	void abort();
 
@@ -466,37 +465,65 @@ struct torrent_handle
 		downloading,
 		seeding
 	};
-	state_t state() const;
+	
+	torrent_status status() const;
 };
 </pre>
 
-<!-- TODO: temporary comment -->
-<p><tt>progress()</tt> and <tt>state()</tt>is not implemented yet</tt>.</p>
+<p>
+<tt>abort()</tt> will close all peer connections associated with this torrent and tell
+the tracker that we've stopped participating in the swarm. This handle will become invalid
+shortly after this call has been made.
+</p>
 
 <p>
-<tt>progress()</tt> will return a value in the range [0, 1], that represents the progress
-of the torrent's current task. It may be checking files, connecting to tracker, or downloading
-etc. You can get the torrent's current task bu calling <tt>state()</tt>, it will return one of
-the following:
+<tt>status()</tt> will return a structure with information about the status of this
+torrent. It contains the following fields:
+</p>
+
+<pre>
+struct torrent_status
+{
+	enum state_t
+	{
+		invalid_handle,
+		queued_for_checking,
+		checking_files,
+		connecting_to_tracker,
+		downloading,
+		seeding
+	};
+	
+	state_t state;
+	float progress;
+	std::size_t total_download;
+	std::size_t total_upload;
+};
+</pre>
+
+<p>
+<tt>progress</tt> is a value in the range [0, 1], that represents the progress of the
+torrent's current task. It may be checking files or downloading. The torrent's
+current task is in the <tt>state</tt> member, it will be one of the following:
 </p>
 
 <table>
+	<tr>
+		<td>
+			<tt>queued_for_cecking</tt>
+		</td>
+		<td>
+			The torrent is in the queue for being checked. But there currently is another
+			torrent that are being checked. This torrent will wait for its turn.
+		</td>
+	</tr>
 	<tr>
 		<td>
 			<tt>checking_files</tt>
 		</td>
 		<td>
 			The torrent has not started its download yet, and is currently checking existing
-			files or is queued for having its files checked.
-		</td>
-	</tr>
-	<tr>
-		<td>
-			<tt>connecting_to_tracker</tt>
-		</td>
-		<td>
-			The torrent is waiting for tracker reply or waiting to retry a tracker connection.
-			If it's waiting to retry the progress meter will hint about when it will retry.
+			files.
 		</td>
 	</tr>
 	<tr>
@@ -520,9 +547,8 @@ the following:
 </table>
 
 <p>
-<tt>abort()</tt> will close all peer connections associated with this torrent and tell
-the tracker that we've stopped participating in the swarm. This handle will become invalid
-shortly after this call has been made.
+<tt>total_download</tt> and <tt>total_upload</tt> is the number of bytes downloaded and
+uploaded to all peers, accumulated.
 </p>
 
 <p>

@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/limits.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/thread.hpp>
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -145,7 +146,8 @@ namespace libtorrent
 
 		void initialize_pieces(torrent* t,
 			const boost::filesystem::path& path,
-			boost::shared_ptr<detail::piece_checker_data> data);
+			detail::piece_checker_data* data,
+			boost::mutex* mutex);
 
 		int bytes_left() const { return m_bytes_left; }
 
