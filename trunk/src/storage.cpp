@@ -113,6 +113,16 @@ namespace
 		log.flush();
 	}
 
+	boost::filesystem::path get_filename(
+		libtorrent::torrent_info const& t
+		, boost::filesystem::path const& p)
+	{
+		assert(t.num_files() > 0);
+		if (t.num_files() == 1)
+			return p;
+		else
+			return t.name() / p;
+	}
 }
 
 namespace libtorrent
@@ -130,7 +140,7 @@ namespace libtorrent
 			size_type file_size;
 			try
 			{
-				file f(p / t.name() / i->path, file::in);
+				file f(p / get_filename(t, i->path), file::in);
 				f.seek(0, file::end);
 				file_size = f.tell();
 			}
@@ -158,7 +168,7 @@ namespace libtorrent
 			size_type file_size;
 			try
 			{
-				file f(p / t.name() / i->path, file::in);
+				file f(p / get_filename(t, i->path), file::in);
 				f.seek(0, file::end);
 				file_size = f.tell();
 			}
@@ -297,7 +307,7 @@ namespace libtorrent
 		}
 
 		file in(
-			m_pimpl->save_path / m_pimpl->info.name() / file_iter->path
+			m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path)
 			, file::in);
 
 		assert(file_offset < file_iter->size);
@@ -391,7 +401,7 @@ namespace libtorrent
 			++file_iter;
 		}
 
-		fs::path path(m_pimpl->save_path / m_pimpl->info.name() / file_iter->path);
+		fs::path path(m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path));
 		file out(path, file::out);
 
 		assert(file_offset < file_iter->size);

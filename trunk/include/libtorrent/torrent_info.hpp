@@ -97,6 +97,8 @@ namespace libtorrent
 		void add_tracker(std::string const& url, int tier = 0);
 		void add_file(boost::filesystem::path file, size_type size);
 
+		// TODO: set name
+
 		typedef std::vector<file_entry>::const_iterator file_iterator;
 		typedef std::vector<file_entry>::const_reverse_iterator reverse_file_iterator;
 
