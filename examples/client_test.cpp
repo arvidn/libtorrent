@@ -204,10 +204,16 @@ int main(int argc, char* argv[])
 				torrent_info t(e);
 				t.print(std::cout);
 
-				std::ifstream resume_file("test.fastresume", std::ios_base::binary);
-				resume_file.unsetf(std::ios_base::skipws);
-				entry resume_data = bdecode(std::istream_iterator<char>(resume_file)
-					, std::istream_iterator<char>());
+				entry resume_data;
+				try
+				{
+					std::ifstream resume_file("test.fastresume", std::ios_base::binary);
+					resume_file.unsetf(std::ios_base::skipws);
+					resume_data = bdecode(std::istream_iterator<char>(resume_file)
+						, std::istream_iterator<char>());
+				}
+				catch (invalid_encoding&)
+				{}
 
 				handles.push_back(ses.add_torrent(t, "", resume_data));
 				handles.back().set_max_uploads(40);
