@@ -250,6 +250,12 @@ namespace libtorrent
 				m_request_time = boost::posix_time::second_clock::local_time();
 		}
 
+		if (m_socket->has_error())
+		{
+			if (has_requester()) requester().tracker_request_error(
+				-1, "connection refused");
+			return true;
+		}
 
 		// if the socket isn't ready for reading, there's no point in continuing
 		// trying to read from it

@@ -62,13 +62,13 @@ namespace libtorrent
 	class session;
 
 	std::vector<size_type> get_filesizes(
-		const torrent_info& t
-		, const boost::filesystem::path& p);
+		torrent_info const& t
+		, boost::filesystem::path p);
 
 	bool match_filesizes(
-		const torrent_info& t
-		, const boost::filesystem::path& p
-		, const std::vector<size_type>& sizes);
+		torrent_info const& t
+		, boost::filesystem::path p
+		, std::vector<size_type> const& sizes);
 
 	struct file_allocation_failed: std::exception
 	{
@@ -93,7 +93,7 @@ namespace libtorrent
 		// may throw file_error if storage for slot hasn't been allocated
 		void write(const char* buf, int slot, int offset, int size);
 
-		bool move_storage(boost::filesystem::path const& save_path);
+		bool move_storage(boost::filesystem::path save_path);
 
 #ifndef NDEBUG
 		// overwrites some slots with the
