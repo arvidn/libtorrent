@@ -647,7 +647,7 @@ namespace libtorrent
 					{
 						m_tracker_manager.queue_request(
 							i->second->generate_tracker_request(m_listen_port));
-						i->second->close_all_connections();
+						i->second->disconnect_all();
 #ifndef NDEBUG
 						sha1_hash i_hash = i->second->torrent_file().info_hash();
 #endif

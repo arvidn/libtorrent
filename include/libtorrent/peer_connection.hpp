@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/array.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/optional.hpp>
+#include <boost/cstdint.hpp>
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
@@ -117,6 +118,28 @@ namespace libtorrent
 		{
 			*start = static_cast<char>(val);
 			++start;
+		}
+
+		template <class OutIt>
+		inline void write_int64(boost::int64_t val, OutIt& start)
+		{
+			for (int i = 7; i <= 0; --i)
+			{
+				*start = static_cast<unsigned char>((val >> (i*8)) & 0xff);
+				++start;
+			}
+		}
+
+		template <class InIt>
+		inline boost::int64_t read_int64(InIt& start)
+		{
+			boost::int64_t ret = 0;
+			for (int i = 7; i <= 0; --i)
+			{
+				ret |= static_cast<unsigned char>(*start) << (i*8);
+				++start;
+			}
+			return ret;
 		}
 
 	}
@@ -243,6 +266,9 @@ namespace libtorrent
 		// m_ses.m_disconnect_peer list, which will be scanned in the
 		// mainloop to disconnect peers.
 		void disconnect();
+
+		bool is_disconnecting() const
+		{ return m_disconnecting; }
 
 		// sets the number of bytes this peer
 		// is allowed to send until it should
@@ -551,6 +577,8 @@ namespace libtorrent
 		// the time it took for the peer to send the piece
 		// message
 		boost::posix_time::time_duration m_last_piece_time;
+
+		bool m_disconnecting;
 	};
 
 	// this is called each time this peer generates some
