@@ -372,7 +372,7 @@ namespace libtorrent
 
 			assert(i->connected <= local_time);
 
-			boost::posix_time::ptime next_connect=i->connected + boost::posix_time::seconds(2*60);
+			boost::posix_time::ptime next_connect=i->connected + boost::posix_time::seconds(10*60);
 
 			if (next_connect <= ptime)
 			{
