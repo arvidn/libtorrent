@@ -26,9 +26,10 @@ retrying.
 
 
 connecting
-----------
+++++++++++
 
 Client sends packet:
+--------------------
 
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
@@ -40,25 +41,8 @@ Client sends packet:
 | int32_t     | transaction_id      | Randomized by client.                  |
 +-------------+---------------------+----------------------------------------+
 
-optional part
-
-+-------------+---------------------+----------------------------------------+
-| size        | name                | description                            |
-+=============+=====================+========================================+
-| int8_t      | flags               | 1 = authentication                     |
-+-------------+---------------------+----------------------------------------+
-| int8_t[8]   | username            |                                        |
-+-------------+---------------------+----------------------------------------+
-| int8_t[8]   | password_hash       | sha1-hash of the tracker password      |
-+-------------+---------------------+----------------------------------------+
-
-what is the point of having a fixed size username field instead of
-a null-terminated string?
-
-Why send the hash of the password instead of the password itself?
-
-
 Server replies with packet:
+---------------------------
 
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
@@ -81,9 +65,10 @@ Server replies with packet:
 
 
 announcing
-----------
+++++++++++
 
 Client sends packet:
+--------------------
 
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
@@ -120,13 +105,34 @@ Client sends packet:
 |             |                     | the tracker to use the ``sender`` of   |
 |             |                     | this udp packet.                       |
 +-------------+---------------------+----------------------------------------+
+| uint32_t    | key                 | A unique key that is randomized by the |
+|             |                     | client.                                |
++-------------+---------------------+----------------------------------------+
 | int32_t     | num_want            | The maximum number of peers you want   |
 |             |                     | in the reply. Use -1 for default.      |
 +-------------+---------------------+----------------------------------------+
 | uint16_t    | port                | The port you're listening on.          |
 +-------------+---------------------+----------------------------------------+
 
+If the server requires authorization, the following structure has to be
+appended on the announce packet.
+
++-------------+---------------------+----------------------------------------+
+| size        | name                | description                            |
++=============+=====================+========================================+
+| uint8_t[20] | passwd_hash         | The sha1-hash of the announce packet   |
+|             |                     | with the password appended. The        |
+|             |                     | announce message here means the        |
+|             |                     | mandatory part, not including this     |
+|             |                     | authentication appendix.               |
++-------------+---------------------+----------------------------------------+
+| int8_t[]    | username            | The rest of the packet is the          |
+|             |                     | username.                              |
++-------------+---------------------+----------------------------------------+
+
+
 Server replies with packet:
+---------------------------
 
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
@@ -141,6 +147,13 @@ Server replies with packet:
 | int32_t     | interval            | the number of seconds you should wait  |
 |             |                     | until reannouncing yourself.           |
 +-------------+---------------------+----------------------------------------+
+| int32_t     | leechers            | The number of peers in the swarm that  |
+|             |                     | has not finished downloading.          |
++-------------+---------------------+----------------------------------------+
+| int32_t     | seeders             | The number of peers in the swarm that  |
+|             |                     | has finished downloading and are       |
+|             |                     | seeding.                               |
++-------------+---------------------+----------------------------------------+
 
 The rest of the server reply is a variable number of the following structure:
 
@@ -154,9 +167,11 @@ The rest of the server reply is a variable number of the following structure:
 
 
 scraping
---------
+++++++++
+
 
 Client sends packet:
+--------------------
 
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
@@ -169,10 +184,18 @@ Client sends packet:
 +-------------+---------------------+----------------------------------------+
 | int32_t     | transaction_id      | Randomized by client.                  |
 +-------------+---------------------+----------------------------------------+
+
+The rest of the packet contains a variable number of the following structure:
+
++-------------+---------------------+----------------------------------------+
+| size        | name                | description                            |
++=============+=====================+========================================+
 | int8_t[20]  | info_hash           | The info hash that is to be scraped.   |
 +-------------+---------------------+----------------------------------------+
 
+
 Server replies with packet:
+---------------------------
 
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
@@ -189,8 +212,6 @@ The rest of the packet contains a variable number of the following structures:
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
 +=============+=====================+========================================+
-| int8_t[20]  | info_hash           | The info hash of this info.            |
-+-------------+---------------------+----------------------------------------+
 | int32_t     | complete            | The total number of completed          |
 |             |                     | downloads.                             |
 +-------------+---------------------+----------------------------------------+
@@ -201,9 +222,12 @@ The rest of the packet contains a variable number of the following structures:
 +-------------+---------------------+----------------------------------------+
 
 errors
-------
+++++++
 
-In case of a tracker error, the server replies with this packet:
+In case of a tracker error,
+
+server replies packet:
+----------------------
 
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
@@ -219,7 +243,7 @@ In case of a tracker error, the server replies with this packet:
 
 
 actions
--------
++++++++
 
 The action fields has the following encoding:
 
@@ -230,7 +254,7 @@ The action fields has the following encoding:
 
 
 credits
--------
++++++++
 
 Protocol designed by Olaf van der Spek
 

@@ -24,7 +24,8 @@ the request. If no reply has been received after 60 seconds, stop
 retrying.</p>
 <div class="section" id="connecting">
 <h1><a name="connecting">connecting</a></h1>
-<p>Client sends packet:</p>
+<div class="section" id="client-sends-packet">
+<h2><a name="client-sends-packet">Client sends packet:</a></h2>
 <table border class="table">
 <colgroup>
 <col width="18%" />
@@ -52,38 +53,9 @@ retrying.</p>
 </tr>
 </tbody>
 </table>
-<p>optional part</p>
-<table border class="table">
-<colgroup>
-<col width="18%" />
-<col width="28%" />
-<col width="54%" />
-</colgroup>
-<thead valign="bottom">
-<tr><th>size</th>
-<th>name</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody valign="top">
-<tr><td>int8_t</td>
-<td>flags</td>
-<td>1 = authentication</td>
-</tr>
-<tr><td>int8_t[8]</td>
-<td>username</td>
-<td>&nbsp;</td>
-</tr>
-<tr><td>int8_t[8]</td>
-<td>password_hash</td>
-<td>sha1-hash of the tracker password</td>
-</tr>
-</tbody>
-</table>
-<p>what is the point of having a fixed size username field instead of
-a null-terminated string?</p>
-<p>Why send the hash of the password instead of the password itself?</p>
-<p>Server replies with packet:</p>
+</div>
+<div class="section" id="server-replies-with-packet">
+<h2><a name="server-replies-with-packet">Server replies with packet:</a></h2>
 <table border class="table">
 <colgroup>
 <col width="18%" />
@@ -121,9 +93,11 @@ anymore.</td>
 </tbody>
 </table>
 </div>
+</div>
 <div class="section" id="announcing">
 <h1><a name="announcing">announcing</a></h1>
-<p>Client sends packet:</p>
+<div class="section" id="id2">
+<h2><a name="id2">Client sends packet:</a></h2>
 <table border class="table">
 <colgroup>
 <col width="18%" />
@@ -193,6 +167,11 @@ in this session.</td>
 the tracker to use the <tt class="literal"><span class="pre">sender</span></tt> of
 this udp packet.</td>
 </tr>
+<tr><td>uint32_t</td>
+<td>key</td>
+<td>A unique key that is randomized by the
+client.</td>
+</tr>
 <tr><td>int32_t</td>
 <td>num_want</td>
 <td>The maximum number of peers you want
@@ -204,7 +183,39 @@ in the reply. Use -1 for default.</td>
 </tr>
 </tbody>
 </table>
-<p>Server replies with packet:</p>
+<p>If the server requires authorization, the following structure has to be
+appended on the announce packet.</p>
+<table border class="table">
+<colgroup>
+<col width="18%" />
+<col width="28%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th>size</th>
+<th>name</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>uint8_t[20]</td>
+<td>passwd_hash</td>
+<td>The sha1-hash of the announce packet
+with the password appended. The
+announce message here means the
+mandatory part, not including this
+authentication appendix.</td>
+</tr>
+<tr><td>int8_t[]</td>
+<td>username</td>
+<td>The rest of the packet is the
+username.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id3">
+<h2><a name="id3">Server replies with packet:</a></h2>
 <table border class="table">
 <colgroup>
 <col width="18%" />
@@ -234,6 +245,17 @@ in the announce request.</td>
 <td>the number of seconds you should wait
 until reannouncing yourself.</td>
 </tr>
+<tr><td>int32_t</td>
+<td>leechers</td>
+<td>The number of peers in the swarm that
+has not finished downloading.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>seeders</td>
+<td>The number of peers in the swarm that
+has finished downloading and are
+seeding.</td>
+</tr>
 </tbody>
 </table>
 <p>The rest of the server reply is a variable number of the following structure:</p>
@@ -261,9 +283,11 @@ until reannouncing yourself.</td>
 </tbody>
 </table>
 </div>
+</div>
 <div class="section" id="scraping">
 <h1><a name="scraping">scraping</a></h1>
-<p>Client sends packet:</p>
+<div class="section" id="id4">
+<h2><a name="id4">Client sends packet:</a></h2>
 <table border class="table">
 <colgroup>
 <col width="18%" />
@@ -291,13 +315,31 @@ scrape.</td>
 <td>transaction_id</td>
 <td>Randomized by client.</td>
 </tr>
+</tbody>
+</table>
+<p>The rest of the packet contains a variable number of the following structure:</p>
+<table border class="table">
+<colgroup>
+<col width="18%" />
+<col width="28%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th>size</th>
+<th>name</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr><td>int8_t[20]</td>
 <td>info_hash</td>
 <td>The info hash that is to be scraped.</td>
 </tr>
 </tbody>
 </table>
-<p>Server replies with packet:</p>
+</div>
+<div class="section" id="id5">
+<h2><a name="id5">Server replies with packet:</a></h2>
 <table border class="table">
 <colgroup>
 <col width="18%" />
@@ -337,10 +379,6 @@ If 3 (for error) see <a class="reference" href="#errors">errors</a>.</td>
 </tr>
 </thead>
 <tbody valign="top">
-<tr><td>int8_t[20]</td>
-<td>info_hash</td>
-<td>The info hash of this info.</td>
-</tr>
 <tr><td>int32_t</td>
 <td>complete</td>
 <td>The total number of completed
@@ -358,9 +396,12 @@ leechers.</td>
 </tbody>
 </table>
 </div>
+</div>
 <div class="section" id="errors">
 <h1><a name="errors">errors</a></h1>
-<p>In case of a tracker error, the server replies with this packet:</p>
+<p>In case of a tracker error,</p>
+<div class="section" id="server-replies-packet">
+<h2><a name="server-replies-packet">server replies packet:</a></h2>
 <table border class="table">
 <colgroup>
 <col width="18%" />
@@ -390,6 +431,7 @@ describing the error.</td>
 </tr>
 </tbody>
 </table>
+</div>
 </div>
 <div class="section" id="actions">
 <h1><a name="actions">actions</a></h1>

@@ -113,12 +113,19 @@ namespace libtorrent
 					<< strerror(errno);
 				throw file_error(msg.str());
 			}
+#ifdef WIN32
+			assert(_lseeki64(m_fd, 0, SEEK_SET) == 0);
+#endif
 			m_open_mode = mode;
 		}
 
 		void close()
 		{
 			if (m_fd == -1) return;
+
+			std::stringstream str;
+			str << "fd: " << m_fd << "\n";
+
 			::close(m_fd);
 			m_fd = -1;
 			m_open_mode = 0;
@@ -165,14 +172,14 @@ namespace libtorrent
 #else
 			size_type ret = lseek(m_fd, offset, seekdir);
 #endif
-
+/*
 			if (ret == -1)
 			{
 				std::stringstream msg;
 				msg << "seek failed: '" << strerror(errno) << "' fd: " << m_fd << " offset: " << offset << " seekdir: " << seekdir;
 				throw file_error(msg.str());
 			}
-
+*/
 		}
 
 		size_type tell()
