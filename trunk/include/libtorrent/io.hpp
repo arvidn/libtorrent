@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_IO_HPP_INCLUDED
 #define TORRENT_IO_HPP_INCLUDED
 
+#include <boost/cstdint.hpp>
+
 namespace libtorrent
 {
 	namespace detail
