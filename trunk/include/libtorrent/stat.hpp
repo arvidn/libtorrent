@@ -58,6 +58,10 @@ namespace libtorrent
 			std::fill(m_upload_per_second_history, m_upload_per_second_history+history, 0);
 		}
 
+		// TODO: these function should take two arguments
+		// to be able to count both total data sent and also
+		// count only the actual payload (not counting the
+		// protocol chatter)
 		void received_bytes(int num_bytes)
 		{ m_downloaded += num_bytes; m_total_download += num_bytes; }
 		void sent_bytes(int num_bytes)

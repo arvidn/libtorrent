@@ -86,6 +86,7 @@ libtorrent::peer_connection::peer_connection(
 	, m_selector(sel)
 	, m_socket(s)
 	, m_torrent(t)
+	, m_attached_to_torrent(true)
 	, m_ses(ses)
 	, m_active(true)
 	, m_added_to_selector(false)
@@ -130,6 +131,7 @@ libtorrent::peer_connection::peer_connection(
 	, m_selector(sel)
 	, m_socket(s)
 	, m_torrent(0)
+	, m_attached_to_torrent(0)
 	, m_ses(ses)
 	, m_active(false)
 	, m_added_to_selector(false)
@@ -159,7 +161,11 @@ libtorrent::peer_connection::peer_connection(
 libtorrent::peer_connection::~peer_connection()
 {
 	m_selector.remove(m_socket);
-	if (m_torrent) m_torrent->remove_peer(this);
+	if (m_attached_to_torrent)
+	{
+		assert(m_torrent != 0);
+		m_torrent->remove_peer(this);
+	}
 }
 
 void libtorrent::peer_connection::set_send_quota(int num_bytes)
@@ -715,13 +721,17 @@ void libtorrent::peer_connection::send_have(int index)
 void libtorrent::peer_connection::receive_data()
 {
 	assert(!m_socket->is_blocking());
+	assert(m_packet_size > 0);
 	for(;;)
 	{
-//		m_socket->set_blocking(false);
+		assert(m_packet_size > 0);
 		int received = m_socket->receive(&m_recv_buffer[m_recv_pos], m_packet_size - m_recv_pos);
 
 		// connection closed
-		if (received == 0) throw network_error(0);
+		if (received == 0)
+		{
+			throw network_error(0);
+		}
 
 		// an error
 		if (received < 0)
@@ -754,6 +764,14 @@ void libtorrent::peer_connection::receive_data()
 					m_state = read_protocol_string;
 					m_recv_buffer.resize(m_packet_size);
 					m_recv_pos = 0;
+
+					if (m_packet_size == 0)
+					{
+	#ifndef NDEBUG
+							(*m_logger) << "incorrect protocol length\n";
+	#endif
+							throw network_error(0);
+					}
 					break;
 
 
@@ -765,7 +783,12 @@ void libtorrent::peer_connection::receive_data()
 						const char protocol_string[] = "BitTorrent protocol";
 						const int protocol_len = sizeof(protocol_string) - 1;
 						if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.end(), protocol_string))
+						{
+	#ifndef NDEBUG
+							(*m_logger) << "incorrect protocol name\n";
+	#endif
 							throw network_error(0);
+						}
 
 						m_state = read_info_hash;
 						m_packet_size = 28;
@@ -800,7 +823,6 @@ void libtorrent::peer_connection::receive_data()
 	#endif
 							throw network_error(0);
 						}
-						m_torrent->attach_peer(this);
 
 						// assume the other end has no pieces
 						m_have_piece.resize(m_torrent->torrent_file().num_pieces());
@@ -855,13 +877,18 @@ void libtorrent::peer_connection::receive_data()
 						// check to make sure we don't have another connection with the same
 						// info_hash and peer_id. If we do. close this connection.
 						std::copy(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (char*)m_peer_id.begin());
-						if (m_torrent->num_connections(m_peer_id) > 1)
+
+						if (m_torrent->has_peer(m_peer_id))
 						{
 	#ifndef NDEBUG
 							(*m_logger) << m_socket->sender().as_string() << " duplicate connection, closing\n";
 	#endif
 							throw network_error(0);
 						}
+
+						m_attached_to_torrent = true;
+						m_torrent->attach_peer(this);
+						assert(m_torrent->get_policy().has_connection(this));
 					}
 
 					m_state = read_packet_size;
@@ -900,6 +927,7 @@ void libtorrent::peer_connection::receive_data()
 						m_recv_buffer.resize(m_packet_size);
 					}
 					m_recv_pos = 0;
+					assert(m_packet_size > 0);
 					break;
 
 				case read_packet:
@@ -917,11 +945,13 @@ void libtorrent::peer_connection::receive_data()
 					m_packet_size = 4;
 					m_recv_buffer.resize(4);
 					m_recv_pos = 0;
+					assert(m_packet_size > 0);
 					break;
 				}
 			}
 		}
 	}
+	assert(m_packet_size > 0);
 }
 
 

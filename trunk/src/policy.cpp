@@ -32,6 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 #include "libtorrent/policy.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/socket.hpp"
@@ -137,7 +139,7 @@ namespace
 		peer_connection* peer = 0;
 		float down_speed = -1.f;
 		// find the peer with the lowest download
-		// speed that also has a piece thatt this
+		// speed that also has a piece that this
 		// peer could send us
 		for (torrent::peer_iterator i = t.begin();
 			i != t.end();
@@ -171,6 +173,7 @@ namespace
 
 		num_requests--;
 	}
+
 }
 
 namespace libtorrent
@@ -197,14 +200,6 @@ namespace libtorrent
 	TODO: to implement choking/unchoking we need a list with all
 	connected peers. Something like this:
 
-	struct peer
-	{
-		peer_id id;
-		boost::posix_time::ptime last_optimistically_unchoked;
-		float average_down_rate;
-		boost::weak_ptr<peer_connection> connection;
-	};
-
 */
 
 
@@ -213,21 +208,92 @@ namespace libtorrent
 		, m_torrent(t)
 	{}
 
-
-	// this is called when a connection is made, before any
-	// handshake (it's possible to ban certain ip:s).
-	bool policy::accept_connection(const address& remote)
+	void policy::pulse()
 	{
-		m_num_peers++;
-		return true;
+		using namespace boost::posix_time;
+
+		// remove old disconnected peers from the list
+		m_peers.erase(
+			std::remove_if(m_peers.begin()
+			, m_peers.end()
+			, old_disconnected_peer())
+			, m_peers.end());
+
+		// choke peers that have leeched too much without giving anything back
+		for (std::vector<peer>::iterator i = m_peers.begin(); i != m_peers.end(); ++i)
+		{
+			boost::shared_ptr<peer_connection> c = i->connection.lock();
+			if (c.get() == 0) continue;
+
+			int downloaded = i->prev_amount_download + c->statistics().total_download();
+			int uploaded = i->prev_amount_upload + c->statistics().total_upload();
+
+			if (uploaded - downloaded > m_torrent->torrent_file().piece_length()
+				&& !c->is_choked())
+			{
+				// if we have uploaded more than a piece for free, choke peer and
+				// wait until we catch up with our download.
+				c->choke();
+			}
+			else if (uploaded - downloaded <= m_torrent->block_size()
+				&& c->is_choked() && c->is_peer_interested())
+			{
+				// we have catched up. We have now shared the same amount
+				// to eachother. Unchoke this peer.
+				c->unchoke();
+			}
+		}
+	}
+
+	void policy::new_connection(const boost::weak_ptr<peer_connection>& c)
+	{
+		boost::shared_ptr<peer_connection> con = c.lock();
+		assert(con.get() != 0);
+		if (con.get() == 0) return;
+
+		std::vector<peer>::iterator i
+			= std::find(m_peers.begin(), m_peers.end(), con->get_peer_id());
+		if (i == m_peers.end())
+		{
+			// we don't have ny info about this peer.
+			// add a new entry
+			peer p(con->get_peer_id());
+			m_peers.push_back(p);
+			i = m_peers.end()-1;
+		}
+		else
+		{
+			assert(i->connection.expired());
+		}
+		
+		i->connected = boost::posix_time::second_clock::local_time();
+		i->connection = c;
 	}
 
 	void policy::peer_from_tracker(const address& remote, const peer_id& id)
 	{
 		try
 		{
-			m_torrent->connect_to_peer(remote, id);
-			m_num_peers++;
+			std::vector<peer>::iterator i = std::find(m_peers.begin(), m_peers.end(), id);
+			if (i == m_peers.end())
+			{
+				// we don't have ny info about this peer.
+				// add a new entry
+				peer p(id);
+				m_peers.push_back(p);
+				i = m_peers.end()-1;
+			}
+			else if (!i->connection.expired())
+			{
+				// this means we're already connected
+				// to this peer. don't connect to
+				// it again.
+				return;
+			}
+
+			i->connected = boost::posix_time::second_clock::local_time();
+			i->connection = m_torrent->connect_to_peer(remote, id);
+
 		}
 		catch(network_error&) {}
 	}
@@ -237,9 +303,9 @@ namespace libtorrent
 	// anything for a while
 	void policy::choked(peer_connection& c)
 	{
-		c.choke();
 	}
 
+	// TODO: the peer_connection argument here should be removed.
 	void policy::piece_finished(peer_connection& c, int index, bool successfully_verified)
 	{
 		// TODO: if verification failed, mark the peers that were involved
@@ -248,8 +314,8 @@ namespace libtorrent
 
 	void policy::block_finished(peer_connection& c, piece_block b)
 	{
-		if (c.has_peer_choked()) return;
-		request_a_block(*m_torrent, c);
+		// if the peer hasn't choked us, ask for another piece
+		if (!c.has_peer_choked()) request_a_block(*m_torrent, c);
 	}
 
 	// this is called when we are unchoked by a peer
@@ -257,21 +323,33 @@ namespace libtorrent
 	// data from now on
 	void policy::unchoked(peer_connection& c)
 	{
-		c.unchoke();
-		if (c.is_interesting()) request_a_block(*m_torrent, c);
+		if (c.is_interesting())
+		{
+			request_a_block(*m_torrent, c);
+		}
 	}
 
 	void policy::interested(peer_connection& c)
 	{
-		c.unchoke();
+		// if we're interested in the peer, we unchoke it
+		// and hopes it will unchoke us too
 	}
 
 	void policy::not_interested(peer_connection& c)
 	{
 	}
 
+	// this is called whenever a peer connection is closed
 	void policy::connection_closed(const peer_connection& c)
 	{
+		std::vector<peer>::iterator i
+			= std::find(m_peers.begin(), m_peers.end(), c.get_peer_id());
+
+		assert(i != m_peers.end());
+
+		i->connected = boost::posix_time::second_clock::local_time();
+		i->prev_amount_download += c.statistics().total_download();
+		i->prev_amount_upload += c.statistics().total_upload();
 	}
 
 	void policy::peer_is_interesting(peer_connection& c)
@@ -280,4 +358,11 @@ namespace libtorrent
 		if (c.has_peer_choked()) return;
 		request_a_block(*m_torrent, c);
 	}
+
+#ifndef NDEBUG
+	bool policy::has_connection(const peer_connection* p)
+	{
+		return std::find(m_peers.begin(), m_peers.end(), p->get_peer_id()) != m_peers.end();
+	}
+#endif
 }

@@ -105,7 +105,7 @@ namespace libtorrent
 							std::make_pair(t->info_hash, t->torrent_ptr)).first;
 					}
 				}
-				catch(const boost::filesystem::filesystem_error& e)
+				catch(const std::exception& e)
 				{
 #ifndef NDEBUG
 					std::cerr << "error while checking files: " << e.what() << "\n";
@@ -206,40 +206,26 @@ namespace libtorrent
 			m_selector.monitor_readability(listener);
 			m_selector.monitor_errors(listener);
 
-		/*
-			// temp
-			const peer& p = *m_peer_list.begin();
-			boost::shared_ptr<libtorrent::socket> s(new socket(socket::tcp, false));
-			address a(p.ip, p.port);
-			s->connect(a);
-
-			m_connections.insert(std::make_pair(s, peer_connection(this, s, p.id)));
-			m_selector.monitor_readability(s);
-			m_selector.monitor_errors(s);
-			// ~temp
-		*/
-
-
 			std::vector<boost::shared_ptr<socket> > readable_clients;
 			std::vector<boost::shared_ptr<socket> > writable_clients;
 			std::vector<boost::shared_ptr<socket> > error_clients;
 			boost::posix_time::ptime timer = boost::posix_time::second_clock::local_time();
 
+#ifndef NDEBUG
+			int loops_per_second = 0;
+#endif
 			for(;;)
 			{
 
 #ifndef NDEBUG
-				for (connection_map::iterator i = m_connections.begin();
-					i != m_connections.end();
-					++i)
-				{
-					assert(i->second->has_data() == m_selector.is_writability_monitored(i->first));
-				}
+				assert_invariant();
+				loops_per_second++;
 #endif
+
 
 				// if nothing happens within 500000 microseconds (0.5 seconds)
 				// do the loop anyway to check if anything else has changed
-		//		(*m_logger) << "sleeping\n";
+		//		 << "sleeping\n";
 				m_selector.wait(500000, readable_clients, writable_clients, error_clients);
 
 				boost::mutex::scoped_lock l(m_mutex);
@@ -263,6 +249,9 @@ namespace libtorrent
 					break;
 				}
 
+#ifndef NDEBUG
+				assert_invariant();
+#endif
 				// ************************
 				// RECEIVE SOCKETS
 				// ************************
@@ -286,18 +275,18 @@ namespace libtorrent
 							// TODO: the send buffer size should be controllable from the outside
 //							s->set_send_bufsize(2048);
 
-							// TODO: add some possibility to filter IP:s
+							// TODO: filter ip:s
+
 							boost::shared_ptr<peer_connection> c(
 								new peer_connection(this, m_selector, s));
+
 							if (m_upload_rate != -1) c->set_send_quota(0);
 							m_connections.insert(std::make_pair(s, c));
 							m_selector.monitor_readability(s);
 							m_selector.monitor_errors(s);
 						}
-
 						continue;
 					}
-
 					connection_map::iterator p = m_connections.find(*i);
 					if(p == m_connections.end())
 					{
@@ -319,6 +308,10 @@ namespace libtorrent
 						}
 					}
 				}
+
+#ifndef NDEBUG
+				assert_invariant();
+#endif
 
 				// ************************
 				// SEND SOCKETS
@@ -373,12 +366,7 @@ namespace libtorrent
 				}
 
 #ifndef NDEBUG
-				for (connection_map::iterator i = m_connections.begin();
-					i != m_connections.end();
-					++i)
-				{
-					assert(i->second->has_data() == m_selector.is_writability_monitored(i->first));
-				}
+				assert_invariant();
 #endif
 
 				boost::posix_time::time_duration d = boost::posix_time::second_clock::local_time() - timer;
@@ -388,6 +376,11 @@ namespace libtorrent
 				// ************************
 				// THE SECTION BELOW IS EXECUTED ONCE EVERY SECOND
 				// ************************
+
+#ifndef NDEBUG
+				// std::cout << "\n\nloops: " << loops_per_second << "\n";
+				loops_per_second = 0;
+#endif
 
 				// distribute the maximum upload rate among the peers
 				// TODO: implement an intelligent algorithm that
@@ -458,6 +451,8 @@ namespace libtorrent
 							i->second->generate_tracker_request(m_listen_port),
 							boost::get_pointer(i->second));
 					}
+
+					i->second->second_tick();
 					++i;
 				}
 				m_tracker_manager.tick();
@@ -524,6 +519,23 @@ namespace libtorrent
 #else
 			return boost::shared_ptr<logger>(new null_logger());
 #endif
+		}
+#endif
+
+#ifndef NDEBUG
+		void session_impl::assert_invariant()
+		{
+			for (connection_map::iterator i = m_connections.begin();
+				i != m_connections.end();
+				++i)
+			{
+				assert(i->second->has_data() == m_selector.is_writability_monitored(i->first));
+				if (i->second->associated_torrent())
+				{
+					assert(i->second->associated_torrent()
+						->get_policy().has_connection(boost::get_pointer(i->second)));
+				}
+			}
 		}
 #endif
 

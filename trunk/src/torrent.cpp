@@ -128,6 +128,13 @@ namespace
 			return true;
 		}
 
+		bool operator()(const peer_connection* p) const
+		{
+			if (p->get_peer_id() != id) return false;
+			if (tor != p->associated_torrent()) return false;
+			return true;
+		}
+
 		const peer_id& id;
 		const torrent* tor;
 	};
@@ -151,6 +158,7 @@ namespace libtorrent
 			(torrent_file.total_size()+m_block_size-1)/m_block_size)
 		, m_last_working_tracker(0)
 		, m_currently_trying_tracker(0)
+		, m_time_scaler(0)
 	{
 	}
 
@@ -219,16 +227,17 @@ namespace libtorrent
 
 	}
 
-	int torrent::num_connections(const peer_id& id) const
+	bool torrent::has_peer(const peer_id& id) const
 	{
-		int num = 0;
-		for (detail::session_impl::connection_map::const_iterator i = m_ses->m_connections.begin();
-			i != m_ses->m_connections.end();
-			++i)
-		{
-			if (i->second->get_peer_id() == id && i->second->associated_torrent() == this) ++num;
-		}
-		return num;
+		assert(std::count_if(m_connections.begin()
+			, m_connections.end()
+			, find_peer(id, this)) <= 1);
+
+		return std::find_if(
+			m_connections.begin()
+			, m_connections.end()
+			, find_peer(id, this))
+			!= m_connections.end();
 	}
 
 	void torrent::announce_piece(int index)
@@ -236,10 +245,6 @@ namespace libtorrent
 		m_picker.we_have(index);
 		for (std::vector<peer_connection*>::iterator i = m_connections.begin(); i != m_connections.end(); ++i)
 			(*i)->announce_piece(index);
-
-	#ifndef NDEBUG
-		m_picker.integrity_check(this);
-	#endif
 	}
 
 	std::string torrent::generate_tracker_request(int port)
@@ -335,7 +340,7 @@ namespace libtorrent
 	#endif
 	}
 
-	void torrent::connect_to_peer(const address& a, const peer_id& id)
+	boost::weak_ptr<peer_connection> torrent::connect_to_peer(const address& a, const peer_id& id)
 	{
 		boost::shared_ptr<socket> s(new socket(socket::tcp, false));
 		// TODO: the send buffer size should be controllable from the outside
@@ -350,10 +355,30 @@ namespace libtorrent
 		if (m_ses->m_upload_rate != -1) c->set_send_quota(0);
 		detail::session_impl::connection_map::iterator p =
 			m_ses->m_connections.insert(std::make_pair(s, c)).first;
-		attach_peer(boost::get_pointer(p->second));
+
+		// add the newly connected peer to this torrent's peer list
+		assert(std::find(m_connections.begin()
+			, m_connections.end()
+			, boost::get_pointer(p->second))
+			== m_connections.end());
+		
+		m_connections.push_back(boost::get_pointer(p->second));
+
 		m_ses->m_selector.monitor_readability(s);
 		m_ses->m_selector.monitor_errors(s);
 //		std::cout << "connecting to: " << a.as_string() << ":" << a.port() << "\n";
+		return c;
+	}
+
+	void torrent::attach_peer(peer_connection* p)
+	{
+		assert(std::find(m_connections.begin(), m_connections.end(), p) == m_connections.end());
+		m_connections.push_back(p);
+		detail::session_impl::connection_map::iterator i
+			= m_ses->m_connections.find(p->get_socket());
+		assert(i != m_ses->m_connections.end());
+
+		m_policy->new_connection(i->second);
 	}
 
 	void torrent::close_all_connections()
@@ -410,6 +435,16 @@ namespace libtorrent
 #ifndef NDEBUG
 		m_picker.integrity_check(this);
 #endif	
+	}
+
+	void torrent::second_tick()
+	{
+		m_time_scaler++;
+		if (m_time_scaler >= 10)
+		{
+			m_time_scaler = 0;
+			m_policy->pulse();
+		}
 	}
 
 	torrent_status torrent::status() const

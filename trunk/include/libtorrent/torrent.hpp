@@ -87,6 +87,9 @@ namespace libtorrent
 		void abort() { m_abort = true; m_event = event_stopped; }
 		bool is_aborted() const { return m_abort; }
 
+		// is called every second by session.
+		void second_tick();
+
 		// returns true if it time for this torrent to make another
 		// tracker request
 		bool should_request() const throw()
@@ -95,9 +98,6 @@ namespace libtorrent
 //			return d.is_negative();
 			return m_next_request < boost::posix_time::second_clock::local_time();
 		}
-
-		bool failed() const throw() { return !m_failed.empty(); }
-		const char* fail_reason() const throw() { return m_failed.c_str(); }
 
 		void print(std::ostream& os) const;
 
@@ -114,9 +114,12 @@ namespace libtorrent
 
 		torrent_status status() const;
 
-		void connect_to_peer(const address& a, const peer_id& id);
+		boost::weak_ptr<peer_connection> connect_to_peer(
+			const address& a
+			, const peer_id& id);
 
-		const torrent_info& torrent_file() const throw() { return m_torrent_file; }
+		const torrent_info& torrent_file() const throw()
+		{ return m_torrent_file; }
 
 		policy& get_policy() { return *m_policy; }
 		storage* filesystem() { return &m_storage; }
@@ -128,11 +131,7 @@ namespace libtorrent
 		// used by peer_connection to attach itself to a torrent
 		// since incoming connections don't know what torrent
 		// they're a part of until they have received an info_hash.
-		void attach_peer(peer_connection* p)
-		{
-			assert(std::find(m_connections.begin(), m_connections.end(), p) == m_connections.end());
-			m_connections.push_back(p);
-		}
+		void attach_peer(peer_connection* p);
 
 		// this will remove the peer and make sure all
 		// the pieces it had have their reference counter
@@ -142,9 +141,9 @@ namespace libtorrent
 		// the number of peers that belong to this torrent
 		int num_peers() const { return m_connections.size(); }
 
-		// returns the number of connections this torrent has to
-		// the given peer_id (should be kept at max 1)
-		int num_connections(const peer_id& id) const;
+		// returns true if this torrent has a connection
+		// to a peer with the given peer_id
+		bool has_peer(const peer_id& id) const;
 
 		typedef std::vector<peer_connection*>::iterator peer_iterator;
 		typedef std::vector<peer_connection*>::const_iterator peer_const_iterator;
@@ -270,7 +269,6 @@ namespace libtorrent
 		// from the tracker
 		int m_duration;
 
-		std::string m_failed;
 		std::vector<peer_connection*> m_connections;
 
 		// -----------------------------
@@ -285,6 +283,10 @@ namespace libtorrent
 		int m_last_working_tracker;
 		int m_currently_trying_tracker;
 
+		// this is a counter that is increased every
+		// second, and when it reaches 10, the policy::pulse()
+		// is called and the time scaler is reset to 0.
+		int m_time_scaler;
 	};
 
 }

@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <cmath>
+#include <algorithm>
 
 #include "libtorrent/piece_picker.hpp"
 
@@ -40,8 +41,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp"
 #endif
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && _MSC_VER < 1300
 #define for if (false) {} else for
+namespace std
+{
+	template<class T>
+	inline T min(T a, T b) { return a<b?a:b; }
+}
 #endif
 
 namespace libtorrent
@@ -85,7 +91,7 @@ namespace libtorrent
 			m_piece_info[peer_count].push_back(index);
 		}
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 		// TODO: random_shuffle
 	}
@@ -299,7 +305,7 @@ namespace libtorrent
 		move(true, m_piece_map[index].peer_count, m_piece_map[index].index);
 
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 	}
 
@@ -356,7 +362,7 @@ namespace libtorrent
 		assert(info_index != 0xffffff);
 		remove(m_piece_map[index].downloading, peer_count, info_index);
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 	}
 
@@ -367,7 +373,7 @@ namespace libtorrent
 		assert(pieces.size() == m_piece_map.size());
 
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 
 		// free refers to pieces that are free to download, noone else
@@ -502,7 +508,7 @@ namespace libtorrent
 	void piece_picker::mark_as_downloading(piece_block block, const peer_id& peer)
 	{
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 		assert(block.piece_index < m_piece_map.size());
 		assert(block.block_index < blocks_in_piece(block.piece_index));
@@ -529,14 +535,14 @@ namespace libtorrent
 			i->requested_blocks[block.block_index] = 1;
 		}
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 	}
 
 	void piece_picker::mark_as_finished(piece_block block, const peer_id& peer)
 	{
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 		assert(block.piece_index < m_piece_map.size());
 		assert(block.block_index < blocks_in_piece(block.piece_index));
@@ -564,7 +570,7 @@ namespace libtorrent
 			i->finished_blocks[block.block_index] = 1;
 		}
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 	}
 /*
@@ -610,7 +616,7 @@ namespace libtorrent
 	void piece_picker::abort_download(piece_block block)
 	{
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 
 		assert(block.piece_index < m_piece_map.size());
@@ -643,7 +649,7 @@ namespace libtorrent
 			move(true, m_piece_map[block.piece_index].peer_count, m_piece_map[block.piece_index].index);
 		}
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 	}
 

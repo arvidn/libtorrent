@@ -122,6 +122,8 @@ namespace libtorrent
 		const std::string& name() const { return m_name; }
 		void print(std::ostream& os) const;
 
+		void convert_file_names();
+
 		entry::integer_type piece_size(unsigned int index) const
 		{
 			if (index == num_pieces()-1)

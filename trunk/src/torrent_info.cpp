@@ -204,6 +204,35 @@ namespace libtorrent
 			std::copy(hash_string.begin() + i*20, hash_string.begin() + (i+1)*20, m_piece_hash[i].begin());
 	}
 
+	void torrent_info::convert_file_names()
+	{
+		for (std::vector<file>::iterator i = m_files.begin(); i != m_files.end(); ++i)
+		{
+			// replace all dots in directory names with underscores
+			std::string& path = i->path;
+			std::string& filename = i->filename;
+			for (std::string::iterator c = path.begin(); c != path.end(); ++c)
+			{
+				if (*c == '.') *c = '_';
+				if (*c == ' ') *c = '_';
+				if (*c == '[') *c = '_';
+				if (*c == ']') *c = '_';
+			}
+
+			// replace all dots, but the last one,
+			// in file names with underscores
+			std::string::reverse_iterator last_dot
+				= std::find(filename.rbegin(), filename.rend(), '.');
+			for (std::string::reverse_iterator c = filename.rbegin(); c != filename.rend(); ++c)
+			{
+				if (c != last_dot && *c == '.') *c = '_';
+				if (*c == ' ') *c = '_';
+				if (*c == '[') *c = '_';
+				if (*c == ']') *c = '_';
+			}
+		}
+	}
+
 	int torrent_info::prioritize_tracker(int index)
 	{
 		if (index > m_urls.size()) return m_urls.size()-1;

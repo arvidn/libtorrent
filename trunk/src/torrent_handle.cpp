@@ -165,6 +165,8 @@ namespace libtorrent
 			p.id = peer->get_peer_id();
 			p.ip = peer->get_socket()->sender();
 
+			// TODO: add the prev_amount_downloaded and prev_amount_uploaded
+			// from the peer list in the policy
 			p.total_download = statistics.total_download();
 			p.total_upload = statistics.total_upload();
 
@@ -172,7 +174,7 @@ namespace libtorrent
 
 			p.flags = 0;
 			if (peer->is_interesting()) p.flags |= peer_info::interesting;
-			if (peer->has_choked()) p.flags |= peer_info::choked;
+			if (peer->is_choked()) p.flags |= peer_info::choked;
 			if (peer->is_peer_interested()) p.flags |= peer_info::remote_interested;
 			if (peer->has_peer_choked()) p.flags |= peer_info::remote_choked;
 

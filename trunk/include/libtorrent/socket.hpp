@@ -33,6 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SOCKET_WIN_HPP_INCLUDED
 #define TORRENT_SOCKET_WIN_HPP_INCLUDED
 
+// TODO: remove the dependency of
+// platform specific headers here.
+
 #if defined(_WIN32)
 	#include <winsock2.h>
 #else
@@ -135,57 +138,32 @@ namespace libtorrent
 
 		enum error_code
 		{
-#if defined(_WIN32)
-			netdown = WSAENETDOWN,
-			fault = WSAEFAULT,
-			access = WSAEACCES,
-			address_in_use = WSAEADDRINUSE,
-			address_not_available = WSAEADDRNOTAVAIL,
-			in_progress = WSAEINPROGRESS,
-			interrupted = WSAEINTR,
-			invalid = WSAEINVAL,
-			net_reset = WSAENETRESET,
-			not_connected = WSAENOTCONN,
-			no_buffers = WSAENOBUFS,
-			operation_not_supported = WSAEOPNOTSUPP,
-			not_socket = WSAENOTSOCK,
-			shutdown = WSAESHUTDOWN,
-			would_block = WSAEWOULDBLOCK,
-			connection_reset = WSAECONNRESET,
-			timed_out = WSAETIMEDOUT,
-			connection_aborted = WSAECONNABORTED,
-			message_size = WSAEMSGSIZE,
-			not_ready = WSAEALREADY,
-			no_support = WSAEAFNOSUPPORT,
-			connection_refused = WSAECONNREFUSED,
-			is_connected = WSAEISCONN,
-			net_unreachable = WSAENETUNREACH
-#else
-			netdown = ENETDOWN,
-			fault = EFAULT,
-			access = EACCES,
-			address_in_use = EADDRINUSE,
-			address_not_available = EADDRNOTAVAIL,
-			in_progress = EINPROGRESS,
-			interrupted = EINTR,
-			invalid = EINVAL,
-			net_reset = ENETRESET,
-			not_connected = ENOTCONN,
-			no_buffers = ENOMEM,
-			operation_not_supported = EOPNOTSUPP,
-			not_socket = ENOTSOCK,
-			shutdown = ESHUTDOWN,
-			would_block = EAGAIN,
-			connection_reset = ECONNRESET,
-			timed_out = ETIMEDOUT,
-			connection_aborted = ECONNABORTED,
-			message_size = EMSGSIZE,
-			not_ready = EALREADY,
-			no_support = EAFNOSUPPORT,
-			connection_refused = ECONNREFUSED,
-			is_connected = EISCONN,
-			net_unreachable = ENETUNREACH
-#endif
+			netdown,
+			fault,
+			access,
+			address_in_use,
+			address_not_available,
+			in_progress,
+			interrupted,
+			invalid,
+			net_reset,
+			not_connected,
+			no_buffers,
+			operation_not_supported,
+			not_socket,
+			shutdown,
+			would_block,
+			connection_reset,
+			timed_out,
+			connection_aborted,
+			message_size,
+			not_ready,
+			no_support,
+			connection_refused,
+			is_connected,
+			net_unreachable,
+			not_initialized,
+			unknown_error
 		};
 
 		error_code last_error() const;
