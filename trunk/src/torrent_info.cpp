@@ -50,7 +50,7 @@ using namespace libtorrent;
 
 namespace
 {
-	void extract_single_file(const entry::dictionary_type& dict, file& target)
+	void extract_single_file(const entry::dictionary_type& dict, file_entry& target)
 	{
 		entry::dictionary_type::const_iterator i = dict.find("length");
 		if (i == dict.end()) throw invalid_torrent_file();
@@ -69,11 +69,11 @@ namespace
 		target.filename = list.back().string();
 	}
 
-	void extract_files(const entry::list_type& list, std::vector<file>& target, const std::string& root_directory)
+	void extract_files(const entry::list_type& list, std::vector<file_entry>& target, const std::string& root_directory)
 	{
 		for (entry::list_type::const_iterator i = list.begin(); i != list.end(); ++i)
 		{
-			target.push_back(file());
+			target.push_back(file_entry());
 			target.back().path = root_directory;
 			extract_single_file(i->dict(), target.back());
 		}
@@ -161,7 +161,7 @@ namespace libtorrent
 			i = info.dict().find("length");
 			if (i == info.dict().end()) throw invalid_torrent_file();
 
-			m_files.push_back(file());
+			m_files.push_back(file_entry());
 			m_files.back().filename = m_name;
 			m_files.back().size = i->second.integer();
 		}
@@ -186,7 +186,7 @@ namespace libtorrent
 
 		// calculate total size of all pieces
 		m_total_size = 0;
-		for (std::vector<file>::iterator i = m_files.begin(); i != m_files.end(); ++i)
+		for (std::vector<file_entry>::iterator i = m_files.begin(); i != m_files.end(); ++i)
 			m_total_size += i->size;
 
 		// extract sha-1 hashes for all pieces
@@ -206,7 +206,7 @@ namespace libtorrent
 
 	void torrent_info::convert_file_names()
 	{
-		for (std::vector<file>::iterator i = m_files.begin(); i != m_files.end(); ++i)
+		for (std::vector<file_entry>::iterator i = m_files.begin(); i != m_files.end(); ++i)
 		{
 			// replace all dots in directory names with underscores
 			std::string& path = i->path;

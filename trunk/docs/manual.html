@@ -413,9 +413,9 @@ public:
 <p>This class will need some explanation. First of all, to get a list of all files
 in the torrent, you can use <tt class="literal"><span class="pre">begin_files()</span></tt>, <tt class="literal"><span class="pre">end_files()</span></tt>,
 <tt class="literal"><span class="pre">rbegin_files()</span></tt> and <tt class="literal"><span class="pre">rend_files()</span></tt>. These will give you standard vector
-iterators with the type <tt class="literal"><span class="pre">file</span></tt>.</p>
+iterators with the type <tt class="literal"><span class="pre">file_entry</span></tt>.</p>
 <pre class="literal-block">
-struct file
+struct file_entry
 {
         std::string path;
         std::string filename;
@@ -548,7 +548,7 @@ struct torrent_status
 
         int num_peers;
 
-        std::vector&lt;bool&gt; pieces;
+        const std::vector&lt;bool&gt;* pieces;
         std::size_t total_done;
 };
 </pre>
@@ -592,8 +592,9 @@ uploaded to all peers, accumulated, <em>this session</em> only.</p>
 <p><tt class="literal"><span class="pre">total_payload_download</span></tt> and <tt class="literal"><span class="pre">total_payload_upload</span></tt> counts the amount of bytes
 send and received this session, but only the actual oayload data (i.e the interesting
 data), these counters ignore any protocol overhead.</p>
-<p><tt class="literal"><span class="pre">pieces</span></tt> is the bitmask that representw which pieces we have (set to true) and
-the pieces we don't have.</p>
+<p><tt class="literal"><span class="pre">pieces</span></tt> is the bitmask that represents which pieces we have (set to true) and
+the pieces we don't have. It's a pointer and may be set to 0 if the torrent isn't
+downloading or seeding.</p>
 <p><tt class="literal"><span class="pre">download_rate</span></tt> and <tt class="literal"><span class="pre">upload_rate</span></tt> are the total rates for all peers for this
 torrent. These will usually have better precision than summing the rates from
 all peers. The rates are given as the number of bytes per second.</p>

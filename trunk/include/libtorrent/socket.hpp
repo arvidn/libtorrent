@@ -242,5 +242,5 @@ namespace libtorrent
 
 }
 
-#endif // TORRENT_SOCKET_WIN_INCLUDED
+#endif // TORRENT_SOCKET_HPP_INCLUDED
 

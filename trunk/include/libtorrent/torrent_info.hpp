@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	struct file
+	struct file_entry
 	{
 		std::string path;
 		std::string filename;
@@ -96,8 +96,8 @@ namespace libtorrent
 			}
 		}
 
-		typedef std::vector<file>::const_iterator file_iterator;
-		typedef std::vector<file>::const_reverse_iterator reverse_file_iterator;
+		typedef std::vector<file_entry>::const_iterator file_iterator;
+		typedef std::vector<file_entry>::const_reverse_iterator reverse_file_iterator;
 
 		// list the files in the torrent file
 		file_iterator begin_files() const { return m_files.begin(); }
@@ -106,7 +106,7 @@ namespace libtorrent
 		reverse_file_iterator rend_files() const { return m_files.rend(); }
 
 		std::size_t num_files() const { return m_files.size(); }
-		const file& file_at(int index) const { assert(index >= 0 && index < (int)m_files.size()); return m_files[index]; }
+		const file_entry& file_at(int index) const { assert(index >= 0 && index < (int)m_files.size()); return m_files[index]; }
 
 		const std::vector<announce_entry>& trackers() const { return m_urls; }
 
@@ -161,7 +161,7 @@ namespace libtorrent
 		std::vector<sha1_hash> m_piece_hash;
 
 		// the list of files that this torrent consists of
-		std::vector<file> m_files;
+		std::vector<file_entry> m_files;
 
 		// the sum of all filesizes
 		entry::integer_type m_total_size;

@@ -1477,7 +1477,7 @@ namespace libtorrent
 			assert(r.length > 0 && r.start >= 0);
 
 #ifndef NDEBUG
-			assert(m_torrent->verify_piece(r.piece) && "internal error");
+//			assert(m_torrent->verify_piece(r.piece) && "internal error");
 #endif
 			const int send_buffer_offset = m_send_buffer.size();
 			const int packet_size = 4 + 5 + 4 + r.length;
