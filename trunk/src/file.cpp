@@ -30,12 +30,26 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <fstream>
-
 #include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/fstream.hpp>
-
 #include "libtorrent/file.hpp"
+#include <sstream>
+
+#ifdef WIN32
+
+#include <io.h>
+#include <fcntl.h>
+
+#else
+
+#define _FILE_OFFSET_BITS 64
+#include <unistd.h>
+#include <fcntl.h>
+
+#endif
+
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
 
 namespace fs = boost::filesystem;
 
@@ -43,12 +57,12 @@ namespace
 {
 	enum { mode_in = 1, mode_out = 2 };
 
-	std::ios_base::openmode map_open_mode(fs::path const& p, int m)
+	int map_open_mode(int m)
 	{
-		std::ios_base::openmode ret(std::ios_base::binary);
-		if ((m & mode_in) || fs::exists(p)) ret |= std::ios_base::in;
-		if (m & mode_out) ret |= std::ios_base::out;
-		return ret;
+		if (m == (mode_in | mode_out)) return O_RDWR | O_BINARY;
+		if (m == mode_out) return O_WRONLY | O_CREAT | O_BINARY;
+		if (m == mode_in) return O_RDONLY | O_BINARY;
+		assert(false);
 	}
 }
 
@@ -63,96 +77,109 @@ namespace libtorrent
 
 	struct file::impl
 	{
-		impl(): m_open_mode(0) {}
+		impl()
+			: m_fd(-1)
+			, m_open_mode(0)
+		{}
 
 		impl(fs::path const& path, int mode)
-#if defined(_MSC_VER) && _MSC_VER < 1300
-			: m_file(path.native_file_string().c_str(), map_open_mode(path, mode))
-#else
-			: m_file(path, map_open_mode(path, mode))
-#endif
-			, m_open_mode(mode)
+			: m_fd(-1)
+			, m_open_mode(0)
 		{
-			assert(mode == mode_in ||mode == mode_out);
+			open(path, mode);
+		}
 
-			if (m_file.fail())
-				throw file_error("open failed '" + path.native_file_string() + "'");
+		~impl()
+		{
+			close();
 		}
 
 		void open(fs::path const& path, int mode)
 		{
-			if (m_file.is_open()) m_file.close();
-			m_file.clear();
-#if defined(_MSC_VER) && _MSC_VER < 1300
-			m_file.open(path.native_file_string().c_str(), map_open_mode(path, mode));
-#else
-			m_file.open(path, map_open_mode(path, mode));
-#endif
+			close();
+			m_fd = ::open(path.native_file_string().c_str(), map_open_mode(mode));
 			m_open_mode = mode;
-
-			assert(mode == mode_in ||mode == mode_out);
-
-			if (m_file.fail())
-				throw file_error("open failed '" + path.native_file_string() + "'");
+			if (m_fd == -1)
+			{
+				std::stringstream msg;
+				msg << "open failed: '" << path.native_file_string() << "'. "
+					<< strerror(errno);
+				throw file_error(msg.str());
+			}
 		}
 
 		void close()
 		{
-			m_file.close();
+			if (m_fd == -1) return;
+			::close(m_fd);
+			m_fd = -1;
 			m_open_mode = 0;
 		}
 
 		size_type read(char* buf, size_type num_bytes)
 		{
 			assert(m_open_mode == mode_in);
-			assert(m_file.is_open());
+			assert(m_fd != -1);
 
-			// TODO: split the read if num_bytes > 2 gig
-			m_file.read(buf, num_bytes);
-			return m_file.gcount();
+			size_type ret = ::read(m_fd, buf, num_bytes);
+			if (ret == -1)
+			{
+				std::stringstream msg;
+				msg << "read failed: " << strerror(errno);
+				throw file_error(msg.str());
+			}
+			return ret;
 		}
 
 		size_type write(const char* buf, size_type num_bytes)
 		{
 			assert(m_open_mode == mode_out);
-			assert(m_file.is_open());
+			assert(m_fd != -1);
 
-			// TODO: split the write if num_bytes > 2 gig
-			std::ostream::pos_type a = m_file.tellp();
-			m_file.write(buf, num_bytes);
-			return m_file.tellp() - a;
+			size_type ret = ::write(m_fd, buf, num_bytes);
+			if (ret == -1)
+			{
+				std::stringstream msg;
+				msg << "write failed: " << strerror(errno);
+				throw file_error(msg.str());
+			}
+			return ret;
 		}
 
 		void seek(size_type offset, int m)
 		{
 			assert(m_open_mode);
-			assert(m_file.is_open());
+			assert(m_fd != -1);
 
-			std::ios_base::seekdir d =
-				(m == 1) ? std::ios_base::beg : std::ios_base::end;
-			m_file.clear();
-			if (m_open_mode == mode_in)
-				m_file.seekg(offset, d);
-			else
-				m_file.seekp(offset, d);
+			int seekdir = (m == 1)?SEEK_SET:SEEK_END;
+#ifdef WIN32
+			size_type ret = _lseeki64(m_fd, offset, seekdir);
+#else
+			size_type ret = lseek(m_fd, offset, seekdir);
+#endif
+
+			if (ret == -1)
+			{
+				std::stringstream msg;
+				msg << "seek failed: " << strerror(errno);
+				throw file_error(msg.str());
+			}
+
 		}
 
 		size_type tell()
 		{
 			assert(m_open_mode);
-			assert(m_file.is_open());
+			assert(m_fd != -1);
 
-			m_file.clear();
-			if (m_open_mode == mode_in)
-				return static_cast<std::streamoff>(m_file.tellg());
-			else
-				return static_cast<std::streamoff>(m_file.tellp());
-		}
-#if defined(_MSC_VER) && _MSC_VER < 1300
-		std::fstream m_file;
+#ifdef WIN32
+			return _telli64(m_fd);
 #else
-		fs::fstream m_file;
+			return lseek(m_fd, 0, SEEK_CUR);
 #endif
+		}
+
+		int m_fd;
 		int m_open_mode;
 	};
 

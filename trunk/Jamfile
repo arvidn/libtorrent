@@ -54,6 +54,7 @@ SOURCES =
 	alert.cpp
 	entry.cpp
 	escape_string.cpp
+	file.cpp
 	identify_client.cpp
 	peer_connection.cpp
 	piece_picker.cpp
@@ -89,25 +90,16 @@ ZLIB_SOURCES =
 
 # some windows specific settings
 
-	if [ modules.peek : NT ] && toolset != msvc-6
+	if [ modules.peek : NT ]
 	{
-		SOURCES += file_win.cpp ;
 		LIBS += winsock ;
 	}
-	else
-	{
-		SOURCES += file.cpp ;
-	}
-
 
 lib torrent
 	:
 	src/$(SOURCES)
 	zlib/$(ZLIB_SOURCES)
 	$(LIBS)
-	/boost/thread//boost_thread
-	/boost/filesystem//boost_filesystem/<link>static
-	/boost/date_time//boost_date_time/<link>static
 	:
 	<threading>multi
 	<link>static
