@@ -220,9 +220,15 @@ namespace libtorrent
 		std::string old_path;
 		std::string new_path;
 
+		fs::create_directory(save_path);
+
 		if (m_pimpl->info.num_files() == 1)
 		{
-			old_path = (m_pimpl->save_path / m_pimpl->info.begin_files()->path)
+			fs::path single_file = m_pimpl->info.begin_files()->path;
+			if (single_file.has_branch_path())
+				fs::create_directory(save_path / single_file.branch_path());
+
+			old_path = (m_pimpl->save_path / single_file)
 				.native_file_string();
 			new_path = (save_path / m_pimpl->info.begin_files()->path)
 				.native_file_string();
@@ -236,7 +242,6 @@ namespace libtorrent
 				.native_directory_string();
 		}
 
-		fs::create_directory(save_path);
 		int ret = std::rename(old_path.c_str(), new_path.c_str()); 
 		if (ret == 0)
 		{
