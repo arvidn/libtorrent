@@ -312,7 +312,10 @@ namespace libtorrent { namespace detail
 #endif
 
 		if (m_listen_port_range.first != 0 && m_listen_port_range.second != 0)
+		{
+			boost::mutex::scoped_lock l(m_mutex);
 			open_listen_port();
+		}
 
 		std::vector<boost::shared_ptr<socket> > readable_clients;
 		std::vector<boost::shared_ptr<socket> > writable_clients;
@@ -1087,23 +1090,24 @@ namespace libtorrent
 
 			// the peers
 
-			entry::list_type& peer_list = rd["peers"].list();
-
-			std::vector<address> tmp_peers;
-			tmp_peers.reserve(peer_list.size());
-			for (entry::list_type::iterator i = peer_list.begin();
-				i != peer_list.end();
-				++i)
+			if (rd.find_key("peers"))
 			{
-				address a(
-					(*i)["ip"].string().c_str()
-					, (unsigned short)(*i)["port"].integer());
-				tmp_peers.push_back(a);
+				entry::list_type& peer_list = rd["peers"].list();
+
+				std::vector<address> tmp_peers;
+				tmp_peers.reserve(peer_list.size());
+				for (entry::list_type::iterator i = peer_list.begin();
+					i != peer_list.end();
+					++i)
+				{
+					address a(
+						(*i)["ip"].string().c_str()
+						, (unsigned short)(*i)["port"].integer());
+					tmp_peers.push_back(a);
+				}
+
+				peers.swap(tmp_peers);
 			}
-
-			peers.swap(tmp_peers);
-
-
 
 			// read piece map
 			const entry::list_type& slots = rd["slots"].list();

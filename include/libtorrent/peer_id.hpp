@@ -88,7 +88,7 @@ namespace libtorrent
 		unsigned char& operator[](int i)
 		{ assert(i >= 0 && i < number_size); return m_number[i]; }
 
-		unsigned char operator[](int i) const
+		unsigned char const& operator[](int i) const
 		{ assert(i >= 0 && i < number_size); return m_number[i]; }
 
 		typedef const unsigned char* const_iterator;
