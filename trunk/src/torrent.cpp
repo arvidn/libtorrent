@@ -619,6 +619,7 @@ namespace libtorrent
 	void torrent::attach_peer(peer_connection* p)
 	{
 		assert(m_connections.find(p->get_socket()->sender()) == m_connections.end());
+		assert(!p->is_local());
 
 		m_connections.insert(std::make_pair(p->get_socket()->sender(), p));
 
