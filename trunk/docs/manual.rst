@@ -1082,6 +1082,9 @@ It contains the following fields::
 
 		const std::vector<bool>* pieces;
 		size_type total_done;
+
+		int num_seeds;
+		float distributed_copies;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -1150,6 +1153,18 @@ be slightly smaller than the other rates, but if projected over a long time
 ``total_done`` is the total number of bytes of the file(s) that we have. All
 this does not necessarily has to be downloaded during this session (that's
 ``total_download_payload``).
+
+``num_seeds`` is the number of peers that are seeding that this torrent
+currently is connected to.
+
+``distributed_copies`` is the number of distributed copies of the torrent.
+Note that one copy may be spread out among many peers. The whole number part
+tells how many copies there are currently of the rarest piece(s) among the
+peers this torrent is connected to. The fractional part tells the share of
+pieces that have more copies than the rarest piece(s). For example: 2.5 would
+mean that the rarest pieces have only 2 copies among the peers this torrent is
+connected to, and that there are as many pieces that have 2 copies as there are
+pieces that have more than two copies.
 
 
 
