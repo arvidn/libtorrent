@@ -19,9 +19,7 @@ changelog at the end of the file.
 
 #include <boost/cstdint.hpp>
 
-using boost::int32_t;
-using boost::uint32_t;
-using boost::uint8_t;
+using namespace boost;
 
 struct SHA1_CTX
 {
