@@ -49,6 +49,7 @@ namespace libtorrent {
 
 	void alert_manager::post_alert(const alert& alert_)
 	{
+		// TODO: have an internal buffer limit
 		boost::mutex::scoped_lock lock(m_mutex);
 		
 		if (m_severity <= alert_.severity())

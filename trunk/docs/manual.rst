@@ -559,7 +559,7 @@ It contains the following fields::
 
 		int num_peers;
 
-		std::vector<bool> pieces;
+		const std::vector<bool>* pieces;
 		std::size_t total_done;
 	};
 
@@ -601,8 +601,9 @@ uploaded to all peers, accumulated, *this session* only.
 send and received this session, but only the actual oayload data (i.e the interesting
 data), these counters ignore any protocol overhead.
 
-``pieces`` is the bitmask that representw which pieces we have (set to true) and
-the pieces we don't have.
+``pieces`` is the bitmask that represents which pieces we have (set to true) and
+the pieces we don't have. It's a pointer and may be set to 0 if the torrent isn't
+downloading or seeding.
 
 ``download_rate`` and ``upload_rate`` are the total rates for all peers for this
 torrent. These will usually have better precision than summing the rates from
@@ -749,7 +750,6 @@ that hasn't been answered with a piece yet.
 
 ``upload_queue_length`` is the number of piece-requests we have received from this peer
 that we haven't answered with a piece yet.
-
 
 You can know which piece, and which part of that piece, that is currently being
 downloaded from a specific peer by looking at the next four members.
@@ -1401,9 +1401,10 @@ The file format is a bencoded dictionary containing the following fields:
 |                      |                                                              |
 +----------------------+--------------------------------------------------------------+
 | ``blocks per piece`` | integer, the number of blocks per piece. Must be: piece_size |
-|                      | / (16 * 1024). Clamped to be within the range [1, 128]. It   |
+|                      | / (16 * 1024). Clamped to be within the range [1, 256]. It   |
 |                      | is the number of blocks per (normal sized) piece. Usually    |
-|                      | each block is 16 * 1024 bytes in size.                       |
+|                      | each block is 16 * 1024 bytes in size. But if piece size is  |
+|                      | greater than 4 megabytes, the block size will increase.      |
 |                      |                                                              |
 +----------------------+--------------------------------------------------------------+
 | ``slots``            | list of integers. The list mappes slots ti piece indices. It |

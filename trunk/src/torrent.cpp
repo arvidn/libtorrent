@@ -84,9 +84,9 @@ namespace
 		}
 
 		// if pieces are too large, adjust the block size
-		if (i.piece_length() / default_block_size > 128)
+		if (i.piece_length() / default_block_size > piece_picker::max_blocks_per_piece)
 		{
-			return i.piece_length() / 128;
+			return i.piece_length() / piece_picker::max_blocks_per_piece;
 		}
 
 		// otherwise, go with the default
@@ -94,9 +94,9 @@ namespace
 	}
 
 
-	peer extract_peer_info(const entry& e)
+	peer_entry extract_peer_info(const entry& e)
 	{
-		peer ret;
+		peer_entry ret;
 
 		const entry::dictionary_type& info = e.dict();
 
@@ -126,6 +126,7 @@ namespace
 		return ret;
 	}
 
+/*
 	struct find_peer_by_id
 	{
 		find_peer_by_id(const peer_id& i, const torrent* t): id(i), tor(t) {}
@@ -143,14 +144,14 @@ namespace
 		const peer_id& id;
 		const torrent* tor;
 	};
-
+*/
 	struct find_peer_by_ip
 	{
 		find_peer_by_ip(const address& a, const torrent* t): ip(a), tor(t) {}
 		
 		bool operator()(const detail::session_impl::connection_map::value_type& c) const
 		{
-			if (c.first->sender() != ip) return false;
+			if (c.first->sender().ip() != ip.ip()) return false;
 			if (tor != c.second->associated_torrent()) return false;
 			return true;
 		}
@@ -158,7 +159,6 @@ namespace
 		const address& ip;
 		const torrent* tor;
 	};
-
 
 	struct peer_by_id
 	{
@@ -269,7 +269,7 @@ namespace libtorrent
 
 	void torrent::tracker_response(const entry& e)
 	{
-		std::vector<peer> peer_list;
+		std::vector<peer_entry> peer_list;
 		try
 		{
 			// parse the response
@@ -289,7 +289,7 @@ namespace libtorrent
 			std::stringstream s;
 			s << "interval: " << m_duration << "\n";
 			s << "peers:\n";
-			for (std::vector<peer>::const_iterator i = peer_list.begin();
+			for (std::vector<peer_entry>::const_iterator i = peer_list.begin();
 				i != peer_list.end();
 				++i)
 			{
@@ -300,7 +300,7 @@ namespace libtorrent
 			debug_log(s.str());
 #endif
 			// for each of the peers we got from the tracker
-			for (std::vector<peer>::iterator i = peer_list.begin();
+			for (std::vector<peer_entry>::iterator i = peer_list.begin();
 				i != peer_list.end();
 				++i)
 			{
@@ -310,39 +310,22 @@ namespace libtorrent
 
 				address a(i->ip, i->port);
 
-				// if we aleady have a connection to the person, don't make another one
-				if (std::find_if(
-					m_ses.m_connections.begin()
-					, m_ses.m_connections.end()
-					, find_peer_by_id(i->id, this)) != m_ses.m_connections.end())
-				{
-					continue;
-				}
-
-				if (std::find_if(
-					m_ses.m_connections.begin()
-					, m_ses.m_connections.end()
-					, find_peer_by_ip(a, this)) != m_ses.m_connections.end())
-				{
-					continue;
-				}
-
 				m_policy->peer_from_tracker(a, i->id);
 			}
 
 		}
 		catch(type_error& e)
 		{
-			tracker_request_error(e.what());
+			tracker_request_error(-1, e.what());
 		}
 		catch(std::runtime_error& e)
 		{
-			tracker_request_error(e.what());
+			tracker_request_error(-1, e.what());
 		}
 
 		m_got_tracker_response = true;
 	}
-
+/*
 	bool torrent::has_peer(const peer_id& id) const
 	{
 		assert(std::count_if(m_connections.begin()
@@ -360,21 +343,77 @@ namespace libtorrent
 			, peer_by_id(id))
 			!= m_connections.end();
 	}
+*/
 
 	torrent::size_type torrent::bytes_left() const
 	{
-		size_type have_bytes = m_num_pieces * m_torrent_file.piece_length();
-		int last_piece = m_torrent_file.num_pieces()-1;
-		if (m_have_pieces[last_piece])
-		{
-			have_bytes -= m_torrent_file.piece_length()
-				- m_torrent_file.piece_size(last_piece);
-		}
-
-		return m_torrent_file.total_size()
-			- have_bytes;
+		return m_torrent_file.total_size() - bytes_done();
 	}
 
+	torrent::size_type torrent::bytes_done() const
+	{
+		const int last_piece = m_torrent_file.num_pieces()-1;
+
+		torrent::size_type total_done
+			= m_num_pieces * m_torrent_file.piece_length();
+
+		// if we have the last piece, we have to correct
+		// the amount we have, since the first calculation
+		// assumed all pieces were of equal size
+		if (m_have_pieces[last_piece])
+		{
+			total_done -= m_torrent_file.piece_length();
+			total_done += m_torrent_file.piece_size(last_piece);
+		}
+
+		const std::vector<piece_picker::downloading_piece>& dl_queue
+			= m_picker.get_download_queue();
+
+		const int blocks_per_piece = m_torrent_file.piece_length() / m_block_size;
+
+		for (std::vector<piece_picker::downloading_piece>::const_iterator i =
+			dl_queue.begin();
+			i != dl_queue.end();
+			++i)
+		{
+			assert(!m_have_pieces[i->index]);
+
+			for (int j = 0; j < blocks_per_piece; ++j)
+			{
+				total_done += (i->finished_blocks[j]) * m_block_size;
+			}
+
+			// correction if this was the last piece
+			// and if we have the last block
+			if (i->index == last_piece
+				&& i->finished_blocks[m_picker.blocks_in_last_piece()-1])
+			{
+				total_done -= m_block_size;
+				total_done += m_torrent_file.piece_size(last_piece) % m_block_size;
+			}
+		}
+
+		// TODO: may report too much if two peers are downloading
+		// the same block
+		for (const_peer_iterator i = begin();
+			i != end();
+			++i)
+		{
+			boost::optional<piece_block_progress> p
+				= i->second->downloading_piece();
+			if (p)
+			{
+				if (m_have_pieces[p->piece_index])
+					continue;
+				if (m_picker.is_finished(piece_block(p->piece_index, p->block_index)))
+					continue;
+
+				total_done += p->bytes_downloaded;
+				assert(p->bytes_downloaded <= p->full_block_bytes);
+			}
+		}
+		return total_done;
+	}
 
 	void torrent::piece_failed(int index)
 	{
@@ -422,7 +461,6 @@ namespace libtorrent
 		m_picker.restore_piece(index);
 		m_storage.mark_failed(index);
 
-		// TODO: make sure restore_piece() works
 		assert(m_have_pieces[index] == false);
 	}
 
@@ -446,32 +484,6 @@ namespace libtorrent
 		m_picker.we_have(index);
 		for (peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
 			i->second->announce_piece(index);
-
-		// if we became a seed, disconnect from all other seeds
-		if (is_seed())
-		{
-			for (peer_iterator i = m_connections.begin();
-				i != m_connections.end();)
-			{
-				assert(i->second->associated_torrent() == this);
-				
-				if (!i->second->is_seed()) continue;
-
-				detail::session_impl::connection_map::iterator j =
-					m_ses.m_connections.find(i->second->get_socket());
-
-				assert(j != m_ses.m_connections.end());
-
-				// in the destructor of the peer_connection
-				// it will remove itself from this torrent
-				// and from the list we're iterating over.
-				// so we need to increment the iterator riht
-				// away.
-				++i;
-
-				m_ses.m_connections.erase(j);
-			}
-		}
 	}
 
 	std::string torrent::generate_tracker_request(int port)
@@ -515,7 +527,7 @@ namespace libtorrent
 		return request;
 	}
 
-	void torrent::parse_response(const entry& e, std::vector<peer>& peer_list)
+	void torrent::parse_response(const entry& e, std::vector<peer_entry>& peer_list)
 	{
 		entry::dictionary_type::const_iterator i = e.dict().find("failure reason");
 		if (i != e.dict().end())
@@ -537,7 +549,7 @@ namespace libtorrent
 		const entry::list_type& l = i->second.list();
 		for(entry::list_type::const_iterator i = l.begin(); i != l.end(); ++i)
 		{
-			peer p = extract_peer_info(*i);
+			peer_entry p = extract_peer_info(*i);
 			peer_list.push_back(p);
 		}
 	}
@@ -585,7 +597,7 @@ namespace libtorrent
 	#endif
 	}
 
-	peer_connection& torrent::connect_to_peer(const address& a, const peer_id& id)
+	peer_connection& torrent::connect_to_peer(const address& a)
 	{
 		boost::shared_ptr<socket> s(new socket(socket::tcp, false));
 		s->connect(a);
@@ -593,8 +605,7 @@ namespace libtorrent
 			m_ses
 			, m_ses.m_selector
 			, this
-			, s
-			, id));
+			, s));
 
 		if (m_ses.m_upload_rate != -1) c->set_send_quota(0);
 
@@ -753,25 +764,14 @@ namespace libtorrent
 
 	torrent_status torrent::status() const
 	{
+		assert(std::accumulate(
+			m_have_pieces.begin()
+			, m_have_pieces.end()
+			, 0) == m_num_pieces);
+
 		torrent_status st;
 
-		const std::vector<bool>& p = m_have_pieces;
-		assert(std::accumulate(p.begin(), p.end(), 0) == m_num_pieces);
-
-		int total_blocks
-			= (m_torrent_file.total_size()+m_block_size-1)/m_block_size;
-		int blocks_per_piece
-			= m_torrent_file.piece_length() / m_block_size;
-
-		int unverified_blocks = m_picker.unverified_blocks();
-
-		int blocks_we_have = m_num_pieces * blocks_per_piece;
-		const int last_piece = m_torrent_file.num_pieces()-1;
-		if (p[last_piece])
-		{
-			blocks_we_have += m_picker.blocks_in_piece(last_piece)
-				- blocks_per_piece;
-		}
+		st.total_done = bytes_done();
 
 		// payload transfer
 		st.total_payload_download = m_stat.total_payload_download();
@@ -787,23 +787,19 @@ namespace libtorrent
 		st.download_rate = m_stat.download_rate();
 		st.upload_rate = m_stat.upload_rate();
 
-		st.progress = (blocks_we_have + unverified_blocks)
-			/ static_cast<float>(total_blocks);
+		st.progress = st.total_done
+			/ static_cast<float>(m_torrent_file.total_size());
 
 		st.next_announce = next_announce()
 			- boost::posix_time::second_clock::local_time();
 
 		st.num_peers = m_connections.size();
 
-		// TODO: this is not accurate because it assumes the last
-		// block is m_block_size bytes
-		// TODO: st.pieces could be a const pointer maybe?
-		st.total_done = (blocks_we_have + unverified_blocks) * m_block_size;
-		st.pieces = m_have_pieces;
+		st.pieces = &m_have_pieces;
 
 		if (m_got_tracker_response == false)
 			st.state = torrent_status::connecting_to_tracker;
-		else if (m_num_pieces == p.size())
+		else if (m_num_pieces == m_have_pieces.size())
 			st.state = torrent_status::seeding;
 		else
 			st.state = torrent_status::downloading;
@@ -837,7 +833,7 @@ namespace libtorrent
 	// with some codes, we should just consider
 	// the tracker as a failure and not retry
 	// it anymore
-	void torrent::tracker_request_error(const char* str)
+	void torrent::tracker_request_error(int response_code, const char* str)
 	{
 #ifndef NDEBUG
 		debug_log(std::string("*** tracker error: ") + str);

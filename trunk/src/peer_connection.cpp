@@ -76,8 +76,7 @@ namespace libtorrent
 		detail::session_impl& ses
 		, selector& sel
 		, torrent* t
-		, boost::shared_ptr<libtorrent::socket> s
-		, const peer_id& p)
+		, boost::shared_ptr<libtorrent::socket> s)
 		: m_state(read_protocol_length)
 		, m_timeout(120)
 		, m_packet_size(1)
@@ -91,7 +90,6 @@ namespace libtorrent
 		, m_ses(ses)
 		, m_active(true)
 		, m_added_to_selector(false)
-		, m_peer_id(p)
 		, m_peer_interested(false)
 		, m_peer_choked(true)
 		, m_interesting(false)
@@ -112,6 +110,8 @@ namespace libtorrent
 	#ifndef NDEBUG
 		m_logger = m_ses.create_log(s->sender().as_string().c_str());
 	#endif
+
+		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
 
 		// initialize the extension list to zero, since
 		// we don't know which extensions the other
@@ -164,6 +164,8 @@ namespace libtorrent
 		, m_last_piece_time(boost::posix_time::seconds(0))
 	{
 		assert(!m_socket->is_blocking());
+
+		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
 
 	#ifndef NDEBUG
 		m_logger = m_ses.create_log(s->sender().as_string().c_str());
@@ -696,6 +698,8 @@ namespace libtorrent
 			if (verified)
 			{
 				m_torrent->announce_piece(p.piece);
+			// TODO: if we bacame a seed, disconnect
+			// from all seeds
 			}
 			else
 			{
@@ -1128,7 +1132,6 @@ namespace libtorrent
 			- m_statistics.total_payload_upload();
 	}
 
-
 	void peer_connection::second_tick()
 	{
 		m_statistics.second_tick();
@@ -1371,14 +1374,6 @@ namespace libtorrent
 						// check to make sure we don't have another connection with the same
 						// info_hash and peer_id. If we do. close this connection.
 						std::copy(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (char*)m_peer_id.begin());
-
-						if (m_torrent->has_peer(m_peer_id))
-						{
-	#ifndef NDEBUG
-							(*m_logger) << " duplicate connection, closing\n";
-	#endif
-							throw protocol_error("duplicate connection, closing");
-						}
 
 						m_attached_to_torrent = true;
 						m_torrent->attach_peer(this);

@@ -40,18 +40,18 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	struct peer
+	struct peer_entry
 	{
 		std::string ip;
 		int port;
 		peer_id id;
 
-		bool operator==(const peer& p) const
+		bool operator==(const peer_entry& p) const
 		{
 			return id == p.id;
 		}
 
-		bool operator<(const peer& p) const
+		bool operator<(const peer_entry& p) const
 		{
 			return id < p.id;
 		}

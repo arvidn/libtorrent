@@ -69,7 +69,7 @@ namespace libtorrent
 	{
 	public:
 
-		enum { max_blocks_per_piece = 128 };
+		enum { max_blocks_per_piece = 256 };
 
 		struct block_info
 		{
@@ -188,6 +188,9 @@ namespace libtorrent
 			{ return p.index == index; }
 			int index;
 		};
+
+		int blocks_in_last_piece() const
+		{ return m_blocks_in_last_piece; }
 
 	private:
 

@@ -194,6 +194,16 @@ std::string add_suffix(float val)
 	return to_string(val, 6) + prefix[i];
 }
 
+std::string progress_bar(float progress, int width)
+{
+	std::vector<char> bar;
+	bar.reserve(width);
+
+	std::fill_n(std::back_inserter(bar), progress * width, '#');
+	std::fill_n(std::back_inserter(bar), width - (progress * width), '-');
+	return std::string(bar.begin(), bar.end());
+}
+
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
@@ -335,15 +345,9 @@ int main(int argc, char* argv[])
 				out.width(5);
 				out.fill(' ');
 				out << (s.progress*100) << "% ";
-				for (int i = 0; i < 50; ++i)
-				{
-					if (i / 50.f > s.progress)
-						out << "-";
-					else
-						out << "#";
-				}
+				out << progress_bar(s.progress, 49);
 				out << "\n";
-
+				out << "total downloaded: " << s.total_done << " Bytes\n";
 				out << "peers: " << num_peers << " "
 					<< "d:" << add_suffix(down) << "/s "
 					<< "(" << add_suffix(total_down) << ") "
@@ -353,6 +357,8 @@ int main(int argc, char* argv[])
 
 				boost::posix_time::time_duration t = s.next_announce;
 				out << "next announce: " << boost::posix_time::to_simple_string(t) << "\n";
+
+				out << "___________________________________\n";
 
 				for (std::vector<peer_info>::iterator i = peers.begin();
 					i != peers.end();
@@ -375,25 +381,20 @@ int main(int argc, char* argv[])
 						<< static_cast<const char*>((i->flags & peer_info::supports_extensions)?"e":"_")
 						<< static_cast<const char*>((i->flags & peer_info::local_connection)?"l":"r")
 						<< "\n";
-/*
+
 					if (i->downloading_piece_index >= 0)
 					{
+						out.width(5);
+						out.fill('0');
 						out << i->downloading_piece_index << ";"
 							<< i->downloading_block_index << ": ";
-						float progress
-							= i->downloading_progress
-							/ static_cast<float>(i->downloading_total)
-							* 35;
-						for (int j = 0; j < 35; ++j)
-						{
-							if (progress > j) out << "#";
-							else out << "-";
-						}
+						out << progress_bar(
+							i->downloading_progress / static_cast<float>(i->downloading_total)
+							, 50);
 						out << "\n";
 					}
-*/
 				}
-/*
+
 				out << "___________________________________\n";
 
 				i->get_download_queue(queue);
@@ -407,14 +408,14 @@ int main(int argc, char* argv[])
 					for (int j = 0; j < i->blocks_in_piece; ++j)
 					{
 						if (i->finished_blocks[j]) out << "#";
-						else if (i->requested_blocks[j]) out << "=";
+						else if (i->requested_blocks[j]) out << "+";
 						else out << ".";
 					}
 					out << "|\n";
 				}
 
 				out << "___________________________________\n";
-*/
+
 			}
 
 			for (std::deque<std::string>::iterator i = events.begin();

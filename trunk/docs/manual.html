@@ -1321,9 +1321,10 @@ not trust the fast-resume data and just do the checking.</p>
 </tr>
 <tr><td><tt class="literal"><span class="pre">blocks</span> <span class="pre">per</span> <span class="pre">piece</span></tt></td>
 <td>integer, the number of blocks per piece. Must be: piece_size
-/ (16 * 1024). Clamped to be within the range [1, 128]. It
+/ (16 * 1024). Clamped to be within the range [1, 256]. It
 is the number of blocks per (normal sized) piece. Usually
-each block is 16 * 1024 bytes in size.</td>
+each block is 16 * 1024 bytes in size. But if piece size is
+greater than 4 megabytes, the block size will increase.</td>
 </tr>
 <tr><td><tt class="literal"><span class="pre">slots</span></tt></td>
 <td><p class="first">list of integers. The list mappes slots ti piece indices. It

@@ -143,12 +143,11 @@ namespace libtorrent
 
 		stat statistics() const { return m_stat; }
 		size_type bytes_left() const;
+		size_type bytes_done() const;
 
 		torrent_status status() const;
 
-		peer_connection& connect_to_peer(
-			const address& a
-			, const peer_id& id);
+		peer_connection& connect_to_peer(const address& a);
 
 		const torrent_info& torrent_file() const
 		{ return m_torrent_file; }
@@ -174,6 +173,7 @@ namespace libtorrent
 		// this will remove the peer and make sure all
 		// the pieces it had have their reference counter
 		// decreased in the piece_picker
+		// called from the peer_connection destructor
 		void remove_peer(peer_connection* p);
 
 		peer_connection* connection_for(const address& a)
@@ -188,7 +188,7 @@ namespace libtorrent
 
 		// returns true if this torrent has a connection
 		// to a peer with the given peer_id
-		bool has_peer(const peer_id& id) const;
+//		bool has_peer(const peer_id& id) const;
 
 		typedef std::map<address, peer_connection*>::iterator peer_iterator;
 		typedef std::map<address, peer_connection*>::const_iterator const_peer_iterator;
@@ -207,7 +207,7 @@ namespace libtorrent
 		// when this torrent got a response from its tracker request
 		virtual void tracker_response(const entry& e);
 		virtual void tracker_request_timed_out();
-		virtual void tracker_request_error(const char* str);
+		virtual void tracker_request_error(int response_code, const char* str);
 
 		// generates a request string for sending
 		// to the tracker
@@ -305,7 +305,7 @@ namespace libtorrent
 
 		event_id m_event;
 
-		void parse_response(const entry& e, std::vector<peer>& peer_list);
+		void parse_response(const entry& e, std::vector<peer_entry>& peer_list);
 
 		torrent_info m_torrent_file;
 

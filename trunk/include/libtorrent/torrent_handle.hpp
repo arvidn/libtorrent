@@ -63,6 +63,8 @@ namespace libtorrent
 
 	struct torrent_status
 	{
+		typedef entry::integer_type size_type;
+
 		torrent_status()
 			: state(queued_for_checking)
 			, progress(0.f)
@@ -73,6 +75,7 @@ namespace libtorrent
 			, download_rate(0)
 			, upload_rate(0)
 			, num_peers(0)
+			, pieces(0)
 			, total_done(0)
 		{}
 
@@ -91,12 +94,12 @@ namespace libtorrent
 
 		// transferred this session!
 		// total, payload plus protocol
-		std::size_t total_download;
-		std::size_t total_upload;
+		size_type total_download;
+		size_type total_upload;
 
 		// payload only
-		std::size_t total_payload_download;
-		std::size_t total_payload_upload;
+		size_type total_payload_download;
+		size_type total_payload_upload;
 
 		// current transfer rate
 		// payload plus protocol
@@ -107,10 +110,10 @@ namespace libtorrent
 		// is connected to.
 		int num_peers;
 
-		std::vector<bool> pieces;
+		const std::vector<bool>* pieces;
 
 		// the number of bytes of the file we have
-		std::size_t total_done;
+		size_type total_done;
 	};
 
 	struct partial_piece_info
