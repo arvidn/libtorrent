@@ -30,71 +30,53 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <iostream>
-#include <fstream>
-#include <iterator>
-#include <exception>
+#ifndef TORRENT_TORRENT_HANDLE_HPP_INCLUDED
+#define TORRENT_TORRENT_HANDLE_HPP_INCLUDED
 
-#include "libtorrent/entry.hpp"
-#include "libtorrent/bencode.hpp"
-#include "libtorrent/session.hpp"
-#include "libtorrent/http_settings.hpp"
+#include <vector>
+
+#include "libtorrent/peer_id.hpp"
+#include "libtorrent/peer_info.hpp"
 
 
-int main(int argc, char* argv[])
+namespace libtorrent
 {
-	using namespace libtorrent;
-
-	if (argc < 2)
+	namespace detail
 	{
-		std::cerr << "usage: ./client_test torrent-files ...\n"
-			"to stop the client, type a number and press enter.\n";
-		return 1;
+		struct session_impl;
 	}
 
-	http_settings settings;
-//	settings.proxy_ip = "192.168.0.1";
-//	settings.proxy_port = 80;
-//	settings.proxy_login = "hyd";
-//	settings.proxy_password = "foobar";
-	settings.user_agent = "example";
-
-	try
+	struct torrent_handle
 	{
-		std::vector<torrent_handle> handles;
-		session s(6881, "ex-01");
+		friend class session;
 
-		s.set_http_settings(settings);
-		for (int i = 0; i < argc-1; ++i)
+		torrent_handle(): m_ses(0) {}
+
+		void get_peer_info(std::vector<peer_info>& v);
+		void abort();
+		enum state_t
 		{
-			try
-			{
-				std::ifstream in(argv[i+1], std::ios_base::binary);
-				in.unsetf(std::ios_base::skipws);
-				entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
-				torrent_info t(e);
-				t.print(std::cout);
-				handles.push_back(s.add_torrent(t, ""));
-			}
-			catch (std::exception& e)
-			{
-				std::cout << e.what() << "\n";
-			}
-		}
+			invalid_handle,
+			checking_files,
+			connecting_to_tracker,
+			downloading,
+			seeding
+		};
+		std::pair<state_t, float> status() const;
 
-		while (!handles.empty())
-		{
-			int a;
-			std::cin >> a;
-			handles.back().abort();
-			handles.pop_back();
-		}
+	private:
 
-	}
-	catch (std::exception& e)
-	{
-  		std::cout << e.what() << "\n";
-	}
+		torrent_handle(detail::session_impl* s, const sha1_hash& h)
+			: m_ses(s)
+			, m_info_hash(h)
+		{}
 
-	return 0;
+		detail::session_impl* m_ses;
+		sha1_hash m_info_hash; // should be replaced with a torrent*?
+
+	};
+
+
 }
+
+#endif // TORRENT_TORRENT_HANDLE_HPP_INCLUDED

@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/convenience.hpp>
 
+#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/url_handler.hpp"
@@ -398,6 +399,14 @@ namespace libtorrent
 			// don't delay before trying the next tracker
 			m_next_request = boost::posix_time::second_clock::local_time();
 		}
+	}
+
+	// TODO: temporary implementation. Should count the actually
+	// verified pieces and should support the different states
+	// a torrent can be in.
+	std::pair<torrent_handle::state_t, float> torrent::status() const
+	{
+		return std::make_pair(torrent_handle::downloading, 0.f);
 	}
 
 }
