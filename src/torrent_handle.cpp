@@ -139,6 +139,8 @@ namespace libtorrent
 			p.total_download = statistics.total_download();
 			p.total_upload = statistics.total_upload();
 
+			p.upload_limit = peer->send_quota();
+
 			p.flags = 0;
 			if (peer->is_interesting()) p.flags |= peer_info::interesting;
 			if (peer->has_choked()) p.flags |= peer_info::choked;

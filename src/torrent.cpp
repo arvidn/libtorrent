@@ -347,6 +347,7 @@ namespace libtorrent
 			, this
 			, s
 			, id));
+		if (m_ses->m_upload_rate != -1) c->set_send_quota(100);
 		detail::session_impl::connection_map::iterator p =
 			m_ses->m_connections.insert(std::make_pair(s, c)).first;
 		attach_peer(boost::get_pointer(p->second));

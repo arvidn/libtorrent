@@ -59,20 +59,6 @@ namespace std
 };
 #endif
 
-/*
-
-DESIGN OVERVIEW AND RATIONALE
-
-The main goal of this library is to be efficient, primarily memory-wise
-but also CPU-wise. This goal has a number of implications:
-
-* It must handle multiple torrents (multiple processes uses much more memory)
-* It relies on a well working disk chache, since it will download directly to disk. This is
-  to scale better when having many peer connections.
-*
-
-*/
-
 namespace libtorrent
 {
 	namespace detail
@@ -149,6 +135,7 @@ namespace libtorrent
 			: m_abort(false)
 			, m_tracker_manager(m_settings)
 			, m_listen_port(listen_port)
+			, m_upload_rate(-1)
 		{
 
 			// ---- generate a peer id ----
@@ -178,11 +165,9 @@ namespace libtorrent
 		void session_impl::operator()()
 		{
 			eh_initializer();
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 			m_logger = create_log("main session");
 #endif
-			try
-			{
 
 			boost::shared_ptr<socket> listener(new socket(socket::tcp, false));
 			int max_port = m_listen_port + 9;
@@ -206,7 +191,7 @@ namespace libtorrent
 				break;
 			}
 
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 			(*m_logger) << "listening on port: " << m_listen_port << "\n";
 #endif
 			m_selector.monitor_readability(listener);
@@ -233,6 +218,17 @@ namespace libtorrent
 
 			for(;;)
 			{
+
+#ifndef NDEBUG
+				for (connection_map::iterator i = m_connections.begin();
+					i != m_connections.end();
+					++i)
+				{
+					assert(i->second->has_data() == m_selector.is_writability_monitored(i->first));
+				}
+#endif
+
+
 				// if nothing happens within 500000 microseconds (0.5 seconds)
 				// do the loop anyway to check if anything else has changed
 		//		(*m_logger) << "sleeping\n";
@@ -264,9 +260,6 @@ namespace libtorrent
 				// RECEIVE SOCKETS
 				// ************************
 
-				// TODO: once every second or so, all sockets should receive_data() to purge connections
-				// that has been closed. Otherwise we have to wait 2 minutes for their timeout
-
 				// let the readable clients receive data
 				for (std::vector<boost::shared_ptr<socket> >::iterator i = readable_clients.begin();
 					i != readable_clients.end();
@@ -280,14 +273,16 @@ namespace libtorrent
 						if (s)
 						{
 							// we got a connection request!
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 							(*m_logger) << s->sender().as_string() << " <== INCOMING CONNECTION\n";
 #endif
 							// TODO: the send buffer size should be controllable from the outside
 //							s->set_send_bufsize(2048);
 
 							// TODO: add some possibility to filter IP:s
-							boost::shared_ptr<peer_connection> c(new peer_connection(this, m_selector, s));
+							boost::shared_ptr<peer_connection> c(
+								new peer_connection(this, m_selector, s));
+							if (m_upload_rate != -1) c->set_send_quota(100);
 							m_connections.insert(std::make_pair(s, c));
 							m_selector.monitor_readability(s);
 							m_selector.monitor_errors(s);
@@ -378,51 +373,10 @@ namespace libtorrent
 					++i)
 				{
 					assert(i->second->has_data() == m_selector.is_writability_monitored(i->first));
-//					if (m_selector.is_writability_monitored(i->first))
-//						assert(i->second->has_data());
 				}
 #endif
 
 
-				// clear all writablility monitors and add
-				// the ones who still has data to send
-/*				m_selector.clear_writable();
-
-
-				// ************************
-				// BUILD WRITER LIST
-				// ************************
-
-				// TODO: REWRITE THIS! DON'T GO THROUGH THIS LOOP EVERY TIME!
-
-				// loop over all clients and purge the ones that has timed out
-				// and check if they have pending data to be sent
-				for (connection_map::iterator i = m_connections.begin();
-					i != m_connections.end();)
-				{
-					connection_map::iterator j = i;
-					++i;
-					if (j->second->has_timed_out())
-					{
-						m_selector.remove(j->first);
-						m_connections.erase(j);
-					}
-					else
-					{
-						j->second->keep_alive();
-						if (j->second->has_data())
-						{
-		//					(*m_logger) << j->first->sender().as_string() << " has data\n";
-							m_selector.monitor_writability(j->first);
-						}
-						else
-						{
-		//					(*m_logger) << j->first->sender().as_string() << " has NO data\n";
-						}
-					}
-				}
-*/
-		//      (*m_logger) << "time: " << std::clock()-timer << "\n"; 
 				boost::posix_time::time_duration d = boost::posix_time::second_clock::local_time() - timer;
 				if (d.seconds() < 1) continue;
 				timer = boost::posix_time::second_clock::local_time();
@@ -431,6 +385,23 @@ namespace libtorrent
 				// ************************
 				// THE SECTION BELOW IS EXECUTED ONCE EVERY SECOND
 				// ************************
+
+				// distribute the maximum upload rate among the peers
+				// TODO: implement an intelligent algorithm that
+				// will shift bandwidth from the peers that can't
+				// utilize all their assigned bandwidth to the peers
+				// that actually can maintain the upload rate.
+				if (m_upload_rate != -1 && !m_connections.empty())
+				{
+					assert(m_upload_rate >= 0);
+					int share = m_upload_rate / m_connections.size();
+					for (connection_map::iterator i = m_connections.begin();
+						i != m_connections.end();
+						++i)
+					{
+						i->second->set_send_quota(share);
+					}
+				}
 
 				// do the second_tick() on each connection
 				// this will update their statistics (download and upload speeds)
@@ -481,7 +452,7 @@ namespace libtorrent
 				}
 				m_tracker_manager.tick();
 
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 				(*m_logger) << "peers: " << m_connections.size() << "                           \n";
 				for (connection_map::iterator i = m_connections.begin();
 					i != m_connections.end();
@@ -503,17 +474,6 @@ namespace libtorrent
 				t.nsec += 1000000;
 				boost::thread::sleep(t);
 			}
-			}
-			catch(const std::exception& e)
-			{
-				std::cerr << e.what() << "\n";
-			}
-			catch(...)
-			{
-				std::cerr << "error\n";
-			}
-
-
 		}
 
 
@@ -526,6 +486,19 @@ namespace libtorrent
 			if (i != m_torrents.end()) return boost::get_pointer(i->second);
 			return 0;
 		}
+
+#ifndef NDEBUG
+		boost::shared_ptr<logger> session_impl::create_log(std::string name)
+		{
+			name = "libtorrent_log_" + name + ".log";
+			// current options are file_logger and cout_logger
+#if defined(TORRENT_VERBOSE_LOGGING)
+			return boost::shared_ptr<logger>(new file_logger(name.c_str()));
+#else
+			return boost::shared_ptr<logger>(new null_logger());
+#endif
+		}
+#endif
 
 	}
 
@@ -625,6 +598,22 @@ namespace libtorrent
 
 		m_thread.join();
 		m_checker_thread.join();
+	}
+
+	void session::set_upload_rate_limit(int bytes_per_second)
+	{
+		assert(bytes_per_second > 0);
+		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		m_impl.m_upload_rate = bytes_per_second;
+		if (m_impl.m_upload_rate != -1 || !m_impl.m_connections.empty())
+			return;
+
+		for (detail::session_impl::connection_map::iterator i
+			= m_impl.m_connections.begin();
+			i != m_impl.m_connections.end();)
+		{
+			i->second->set_send_quota(-1);
+		}
 	}
 
 	// TODO: document

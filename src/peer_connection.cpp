@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/session.hpp"
 
-#if defined(_MSC_VER) && _MSC_VER < 1300
+#if defined(_MSC_VER)
 #define for if (false) {} else for
 #endif
 
@@ -94,10 +94,12 @@ libtorrent::peer_connection::peer_connection(
 	, m_peer_choked(true)
 	, m_interesting(false)
 	, m_choked(true)
+	, m_send_quota(-1)
+	, m_send_quota_left(-1)
 {
 	assert(m_torrent != 0);
 
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 	m_logger = m_ses->create_log(s->sender().as_string().c_str());
 #endif
 
@@ -135,9 +137,11 @@ libtorrent::peer_connection::peer_connection(
 	, m_peer_choked(true)
 	, m_interesting(false)
 	, m_choked(true)
+	, m_send_quota(-1)
+	, m_send_quota_left(-1)
 {
 
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 	m_logger = m_ses->create_log(s->sender().as_string().c_str());
 #endif
 
@@ -156,20 +160,57 @@ libtorrent::peer_connection::~peer_connection()
 	if (m_torrent) m_torrent->remove_peer(this);
 }
 
+void libtorrent::peer_connection::set_send_quota(int num_bytes)
+{
+	assert(num_bytes >= 0);
+	m_send_quota = num_bytes;
+	m_send_quota_left = num_bytes;
+	send_buffer_updated();
+}
+
+
 void libtorrent::peer_connection::send_handshake()
 {
 	assert(m_send_buffer.size() == 0);
 
 	// add handshake to the send buffer
-	m_send_buffer.resize(68);
-	const char* version_string = "BitTorrent protocol";
-	m_send_buffer[0] = 19;
-	std::copy(version_string, version_string+19, m_send_buffer.begin()+1);
-	std::fill(m_send_buffer.begin() + 20, m_send_buffer.begin() + 28, 0);
-	std::copy(m_torrent->torrent_file().info_hash().begin(), m_torrent->torrent_file().info_hash().end(), m_send_buffer.begin() + 28);
-	std::copy(m_ses->get_peer_id().begin(), m_ses->get_peer_id().end(), m_send_buffer.begin() + 48);
+	const char version_string[] = "BitTorrent protocol";
+	const int string_len = sizeof(version_string)-1;
+	int pos = 1;
 
-#if defined(TORRENT_VERBOSE_LOGGING)
+	m_send_buffer.resize(1 + string_len + 8 + 20 + 20);
+
+	// length of version string
+	m_send_buffer[0] = string_len;
+
+	// version string itself
+	std::copy(
+		version_string
+		, version_string+string_len
+		, m_send_buffer.begin()+pos);
+	pos += string_len;
+
+	// 8 zeroes
+	std::fill(
+		m_send_buffer.begin() + pos
+		, m_send_buffer.begin() + pos + 8
+		, 0);
+	pos += 8;
+
+	// info hash
+	std::copy(
+		m_torrent->torrent_file().info_hash().begin()
+		, m_torrent->torrent_file().info_hash().end()
+		, m_send_buffer.begin() + pos);
+	pos += 20;
+
+	// peer id
+	std::copy(
+		m_ses->get_peer_id().begin()
+		, m_ses->get_peer_id().end()
+		, m_send_buffer.begin() + pos);
+
+#ifndef NDEBUG
 	(*m_logger) << m_socket->sender().as_string() << " ==> HANDSHAKE\n";
 #endif
 
@@ -187,7 +228,7 @@ bool libtorrent::peer_connection::dispatch_message()
 
 		// *************** CHOKE ***************
 	case msg_choke:
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 		(*m_logger) << m_socket->sender().as_string() << " <== CHOKE\n";
 #endif
 		m_peer_choked = true;
@@ -211,7 +252,7 @@ bool libtorrent::peer_connection::dispatch_message()
 
 		// *************** UNCHOKE ***************
 	case msg_unchoke:
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 		(*m_logger) << m_socket->sender().as_string() << " <== UNCHOKE\n";
 #endif
 		m_peer_choked = false;
@@ -221,7 +262,7 @@ bool libtorrent::peer_connection::dispatch_message()
 
 		// *************** INTERESTED ***************
 	case msg_interested:
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 		(*m_logger) << m_socket->sender().as_string() << " <== INTERESTED\n";
 #endif
 		m_peer_interested = true;
@@ -231,7 +272,7 @@ bool libtorrent::peer_connection::dispatch_message()
 
 		// *************** NOT INTERESTED ***************
 	case msg_not_interested:
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 		(*m_logger) << m_socket->sender().as_string() << " <== NOT_INTERESTED\n";
 #endif
 		m_peer_interested = false;
@@ -248,13 +289,13 @@ bool libtorrent::peer_connection::dispatch_message()
 			if (index >= m_have_piece.size())
 				return false;
 
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 			(*m_logger) << m_socket->sender().as_string() << " <== HAVE [ piece: " << index << "]\n";
 #endif
 
 			if (m_have_piece[index])
 			{
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 				(*m_logger) << m_socket->sender().as_string() << " oops.. we already knew that: " << index << "\n";
 #endif
 			}
@@ -276,7 +317,7 @@ bool libtorrent::peer_connection::dispatch_message()
 			if (m_packet_size - 1 != (m_have_piece.size() + 7) / 8)
 				return false;
 
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 			(*m_logger) << m_socket->sender().as_string() << " <== BITFIELD\n";
 #endif
 			bool interesting = false;
@@ -298,7 +339,7 @@ bool libtorrent::peer_connection::dispatch_message()
 			}
 			if (is_seed)
 			{
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 				(*m_logger) << m_socket->sender().as_string() << " *** THIS IS A SEED ***\n";
 #endif
 			}
@@ -323,7 +364,7 @@ bool libtorrent::peer_connection::dispatch_message()
 				send_buffer_updated();
 			}
 
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 			(*m_logger) << m_socket->sender().as_string() << " <== REQUEST [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
 #endif
 
@@ -338,7 +379,7 @@ bool libtorrent::peer_connection::dispatch_message()
 			std::size_t index = read_int(&m_recv_buffer[1]);
 			if (index < 0 || index >= m_torrent->torrent_file().num_pieces())
 			{
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 				(*m_logger) << m_socket->sender().as_string() << " piece index invalid\n";
 #endif
 				return false;
@@ -348,7 +389,7 @@ bool libtorrent::peer_connection::dispatch_message()
 
 			if (offset < 0)
 			{
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 				(*m_logger) << m_socket->sender().as_string() << " offset < 0\n";
 #endif
 				return false;
@@ -356,7 +397,7 @@ bool libtorrent::peer_connection::dispatch_message()
 
 			if (offset + len > m_torrent->torrent_file().piece_size(index))
 			{
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 				(*m_logger) << m_socket->sender().as_string() << " piece packet contains more data than the piece size\n";
 #endif
 				return false;
@@ -364,7 +405,7 @@ bool libtorrent::peer_connection::dispatch_message()
 
 			if (offset % m_torrent->block_size() != 0)
 			{
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 				(*m_logger) << m_socket->sender().as_string() << " piece packet contains unaligned offset\n";
 #endif
 				return false;
@@ -373,7 +414,7 @@ bool libtorrent::peer_connection::dispatch_message()
 			piece_block req = m_download_queue.front();
 			if (req.piece_index != index)
 			{
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 				(*m_logger) << m_socket->sender().as_string() << " piece packet contains unrequested index\n";
 #endif
 				return false;
@@ -381,13 +422,13 @@ bool libtorrent::peer_connection::dispatch_message()
 
 			if (req.block_index != offset / m_torrent->block_size())
 			{
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 				(*m_logger) << m_socket->sender().as_string() << " piece packet contains unrequested offset\n";
 #endif
 				return false;
 			}
 */
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 			(*m_logger) << m_socket->sender().as_string() << " <== PIECE [ piece: " << index << " | s: " << offset << " | l: " << len << " ]\n";
 #endif
 
@@ -479,7 +520,7 @@ bool libtorrent::peer_connection::dispatch_message()
 				m_selector.remove_writable(m_socket);
 			}
 
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 			(*m_logger) << m_socket->sender().as_string() << " <== CANCEL [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
 #endif
 			break;
@@ -530,7 +571,7 @@ void libtorrent::peer_connection::cancel_block(piece_block block)
 	// length
 	write_int(block_size, &m_send_buffer[start_offset]);
 	start_offset += 4;
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 	(*m_logger) << m_socket->sender().as_string() << " ==> CANCEL [ piece: " << block.piece_index << " | s: " << block_offset << " | l: " << block_size << " | " << block.block_index << " ]\n";
 #endif
 	assert(start_offset == m_send_buffer.size());
@@ -577,7 +618,7 @@ void libtorrent::peer_connection::request_block(piece_block block)
 	// length
 	write_int(block_size, &m_send_buffer[start_offset]);
 	start_offset += 4;
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 	(*m_logger) << m_socket->sender().as_string() << " ==> REQUEST [ piece: " << block.piece_index << " | s: " << block_offset << " | l: " << block_size << " | " << block.block_index << " ]\n";
 #endif
 	assert(start_offset == m_send_buffer.size());
@@ -587,7 +628,7 @@ void libtorrent::peer_connection::request_block(piece_block block)
 
 void libtorrent::peer_connection::send_bitfield()
 {
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 	(*m_logger) << m_socket->sender().as_string() << " ==> BITFIELD\n";
 #endif
 	const int packet_size = (m_have_piece.size() + 7) / 8 + 5;
@@ -610,7 +651,7 @@ void libtorrent::peer_connection::choke()
 	char msg[] = {0,0,0,1,msg_choke};
 	m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
 	m_choked = true;
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 	(*m_logger) << m_socket->sender().as_string() << " ==> CHOKE\n";
 #endif
 	send_buffer_updated();
@@ -622,7 +663,7 @@ void libtorrent::peer_connection::unchoke()
 	char msg[] = {0,0,0,1,msg_unchoke};
 	m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
 	m_choked = false;
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 	(*m_logger) << m_socket->sender().as_string() << " ==> UNCHOKE\n";
 #endif
 	send_buffer_updated();
@@ -634,7 +675,7 @@ void libtorrent::peer_connection::interested()
 	char msg[] = {0,0,0,1,msg_interested};
 	m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
 	m_interesting = true;
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 	(*m_logger) << m_socket->sender().as_string() << " ==> INTERESTED\n";
 #endif
 	send_buffer_updated();
@@ -646,7 +687,7 @@ void libtorrent::peer_connection::not_interested()
 	char msg[] = {0,0,0,1,msg_not_interested};
 	m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
 	m_interesting = false;
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 	(*m_logger) << m_socket->sender().as_string() << " ==> NOT_INTERESTED\n";
 #endif
 	send_buffer_updated();
@@ -657,7 +698,7 @@ void libtorrent::peer_connection::send_have(int index)
 	char msg[9] = {0,0,0,5,msg_have};
 	write_int(index, msg+5);
 	m_send_buffer.insert(m_send_buffer.end(), msg, msg+9);
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 	(*m_logger) << m_socket->sender().as_string() << " ==> HAVE [ piece: " << index << " ]\n";
 #endif
 	send_buffer_updated();
@@ -681,11 +722,13 @@ void libtorrent::peer_connection::receive_data()
 		// an error
 		if (received < 0)
 		{
-			// would block means that no data was ready to be received
+			// would_block means that no data was ready to be received
+			// this should never happen, since we have a selector
+			//assert(m_socket->last_error() != socket::would_block);
 			if (m_socket->last_error() == socket::would_block) return;
 
 			// the connection was closed
-			throw network_error(0);
+			throw network_error(m_socket->last_error());
 		}
 
 		if (received > 0)
@@ -701,28 +744,25 @@ void libtorrent::peer_connection::receive_data()
 				{
 				case read_protocol_length:
 					m_packet_size = reinterpret_cast<unsigned char&>(m_recv_buffer[0]);
-	#if defined(TORRENT_VERBOSE_LOGGING)
+	#ifndef NDEBUG
 					(*m_logger) << m_socket->sender().as_string() << " protocol length: " << m_packet_size << "\n";
 	#endif
-					m_state = read_protocol_version;
-					if (m_packet_size != 19)
-						throw network_error(0);
+					m_state = read_protocol_string;
 					m_recv_buffer.resize(m_packet_size);
 					m_recv_pos = 0;
 					break;
 
 
-				case read_protocol_version:
+				case read_protocol_string:
 					{
-						const char* protocol_version = "BitTorrent protocol";
-	#if defined(TORRENT_VERBOSE_LOGGING)
-						(*m_logger) << m_socket->sender().as_string() << " protocol name: " << std::string(m_recv_buffer.begin(), m_recv_buffer.end()) << "\n";
+	#ifndef NDEBUG
+						(*m_logger) << m_socket->sender().as_string() << " protocol: '" << std::string(m_recv_buffer.begin(), m_recv_buffer.end()) << "'\n";
 	#endif
-						if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.end(), protocol_version))
-						{
-							// unknown protocol, close connection
+						const char protocol_string[] = "BitTorrent protocol";
+						const int protocol_len = sizeof(protocol_string) - 1;
+						if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.end(), protocol_string))
 							throw network_error(0);
-						}
+
 						m_state = read_info_hash;
 						m_packet_size = 28;
 						m_recv_pos = 0;
@@ -738,7 +778,11 @@ void libtorrent::peer_connection::receive_data()
 
 					if (m_torrent == 0)
 					{
-						// no, we have to see if there's a torrent with the
+						// TODO: if the protocol is to be extended
+						// these 8 bytes would be used to describe the
+						// extensions available on the other side
+
+						// now, we have to see if there's a torrent with the
 						// info_hash we got from the peer
 						sha1_hash info_hash;
 						std::copy(m_recv_buffer.begin()+8, m_recv_buffer.begin() + 28, (char*)info_hash.begin());
@@ -747,7 +791,7 @@ void libtorrent::peer_connection::receive_data()
 						if (m_torrent == 0)
 						{
 							// we couldn't find the torrent!
-	#if defined(TORRENT_VERBOSE_LOGGING)
+	#ifndef NDEBUG
 							(*m_logger) << m_socket->sender().as_string() << " couldn't find a torrent with the given info_hash\n";
 	#endif
 							throw network_error(0);
@@ -769,7 +813,7 @@ void libtorrent::peer_connection::receive_data()
 						// verify info hash
 						if (!std::equal(m_recv_buffer.begin()+8, m_recv_buffer.begin() + 28, (const char*)m_torrent->torrent_file().info_hash().begin()))
 						{
-	#if defined(TORRENT_VERBOSE_LOGGING)
+	#ifndef NDEBUG
 							(*m_logger) << m_socket->sender().as_string() << " received invalid info_hash\n";
 	#endif
 							throw network_error(0);
@@ -780,7 +824,7 @@ void libtorrent::peer_connection::receive_data()
 					m_packet_size = 20;
 					m_recv_pos = 0;
 					m_recv_buffer.resize(20);
-	#if defined(TORRENT_VERBOSE_LOGGING)
+	#ifndef NDEBUG
 					(*m_logger) << m_socket->sender().as_string() << " info_hash received\n";
 	#endif
 					break;
@@ -796,7 +840,7 @@ void libtorrent::peer_connection::receive_data()
 						// can this be correct?
 						if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (const char*)m_peer_id.begin()))
 						{
-	#if defined(TORRENT_VERBOSE_LOGGING)
+	#ifndef NDEBUG
 							(*m_logger) << m_socket->sender().as_string() << " invalid peer_id (it doesn't equal the one from the tracker)\n";
 	#endif
 							throw network_error(0);
@@ -809,7 +853,7 @@ void libtorrent::peer_connection::receive_data()
 						std::copy(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (char*)m_peer_id.begin());
 						if (m_torrent->num_connections(m_peer_id) > 1)
 						{
-	#if defined(TORRENT_VERBOSE_LOGGING)
+	#ifndef NDEBUG
 							(*m_logger) << m_socket->sender().as_string() << " duplicate connection, closing\n";
 	#endif
 							throw network_error(0);
@@ -820,7 +864,7 @@ void libtorrent::peer_connection::receive_data()
 					m_packet_size = 4;
 					m_recv_pos = 0;
 					m_recv_buffer.resize(4);
-	#if defined(TORRENT_VERBOSE_LOGGING)
+	#ifndef NDEBUG
 					(*m_logger) << m_socket->sender().as_string() << " received peer_id\n";
 	#endif
 					break;
@@ -833,7 +877,7 @@ void libtorrent::peer_connection::receive_data()
 					// don't accept packets larger than 1 MB
 					if (m_packet_size > 1024*1024 || m_packet_size < 0)
 					{
-	#if defined(TORRENT_VERBOSE_LOGGING)
+	#ifndef NDEBUG
 						(*m_logger) << m_socket->sender().as_string() << " packet too large (packet_size > 1 Megabyte), abort\n";
 	#endif
 						// packet too large
@@ -857,7 +901,7 @@ void libtorrent::peer_connection::receive_data()
 				case read_packet:
 					if (!dispatch_message())
 					{
-	#if defined(TORRENT_VERBOSE_LOGGING)
+	#ifndef NDEBUG
 						(*m_logger) << m_socket->sender().as_string() << " received invalid packet\n";
 	#endif
 						// invalid message
@@ -880,7 +924,10 @@ bool libtorrent::peer_connection::has_data() const throw()
 {
 	// if we have requests or pending data to be sent or announcements to be made
 	// we want to send data
-	return (!m_requests.empty() && !m_choked) || !m_send_buffer.empty() || !m_announce_queue.empty();
+	return ((!m_requests.empty() && !m_choked)
+		|| !m_send_buffer.empty()
+		|| !m_announce_queue.empty())
+		&& m_send_quota_left != 0;
 }
 
 // --------------------------
@@ -913,18 +960,19 @@ void libtorrent::peer_connection::send_data()
 				throw network_error(0);
 			}
 
-			if (m_sending_piece.index() != r.piece)
-			{
-				m_sending_piece.open(
-					m_torrent->filesystem()
-					, r.piece
-					, piece_file::in
-					, r.start);
+			m_sending_piece.open(
+				m_torrent->filesystem()
+				, r.piece
+				, piece_file::in
+				, r.start);
 #ifndef NDEBUG
-				assert(m_torrent->filesystem()->verify_piece(m_sending_piece) && "internal error");
-				m_sending_piece.open(m_torrent->filesystem(), r.piece, piece_file::in);
+			assert(m_torrent->filesystem()->verify_piece(m_sending_piece) && "internal error");
+			m_sending_piece.open(
+				m_torrent->filesystem()
+				, r.piece
+				, piece_file::in
+				, r.start);
 #endif
-			}
 			const int send_buffer_offset = m_send_buffer.size();
 			const int packet_size = 4 + 5 + 4 + r.length;
 			m_send_buffer.resize(send_buffer_offset + packet_size);
@@ -936,7 +984,7 @@ void libtorrent::peer_connection::send_data()
 			assert(r.start == m_sending_piece.tell());
 
 			m_sending_piece.read(&m_send_buffer[send_buffer_offset+13], r.length);
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 			(*m_logger) << m_socket->sender().as_string() << " ==> PIECE [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
 #endif
 			// let the torrent keep track of how much we have uploaded
@@ -944,7 +992,7 @@ void libtorrent::peer_connection::send_data()
 		}
 		else
 		{
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 			(*m_logger) << m_socket->sender().as_string()
 				<< " *** WARNING [ illegal piece request idx: " << r.piece
 				<< " | s: " << r.start
@@ -970,22 +1018,33 @@ void libtorrent::peer_connection::send_data()
 		m_announce_queue.clear();
 	}
 
+	assert(m_send_quota_left != 0);
+
 	// send the actual buffer
 	if (!m_send_buffer.empty())
 	{
 
+		int amount_to_send = m_send_buffer.size();
+		assert(m_send_quota_left != 0);
+		if (m_send_quota_left > 0)
+			amount_to_send = std::min(m_send_quota_left, amount_to_send);
 		// we have data that's scheduled for sending
 		int sent = m_socket->send(
 			&m_send_buffer[0]
-			, m_send_buffer.size());
+			, amount_to_send);
 
-	#if defined(TORRENT_VERBOSE_LOGGING)
+	#ifndef NDEBUG
 		(*m_logger) << m_socket->sender().as_string() << " ==> SENT [ length: " << sent << " ]\n";
 	#endif
 
 		if (sent > 0)
 		{
 			m_statistics.sent_bytes(sent);
+			if (m_send_quota_left != -1)
+			{
+				assert(m_send_quota_left >= sent);
+				m_send_quota_left -= sent;
+			}
 
 			// empty the entire buffer at once or if
 			// only a part of the buffer could be sent
@@ -1011,13 +1070,9 @@ void libtorrent::peer_connection::send_data()
 	}
 
 	assert(m_added_to_selector);
-	if (!has_data())
-	{
-		m_selector.remove_writable(m_socket);
-		m_added_to_selector = false;
-	}
+	send_buffer_updated();
 #ifndef NDEBUG
-	else
+	if (has_data())
 	{
 		if (m_socket->is_writable())
 		{
@@ -1037,7 +1092,7 @@ void libtorrent::peer_connection::keep_alive()
 		char noop[] = {0,0,0,0};
 		m_send_buffer.insert(m_send_buffer.end(), noop, noop+4);
 		m_last_sent = boost::posix_time::second_clock::local_time();
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 		(*m_logger) << m_socket->sender().as_string() << " ==> NOP\n";
 #endif
 		send_buffer_updated();

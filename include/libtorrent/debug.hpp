@@ -77,6 +77,12 @@ namespace libtorrent
 		virtual ~logger() {}
 	};
 
+	struct null_logger: libtorrent::logger
+	{
+	public:
+		virtual void log(const char* text) {}
+	};
+
 	struct cout_logger: libtorrent::logger
 	{
 	public:

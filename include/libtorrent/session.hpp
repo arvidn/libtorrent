@@ -173,16 +173,18 @@ namespace libtorrent
 			// the settings for the client
 			http_settings m_settings;
 
+			// set to true when the session object
+			// is being destructed and the thread
+			// should exit
 			volatile bool m_abort;
-			
-#ifndef NDEBUG
-			boost::shared_ptr<logger> create_log(std::string name)
-			{
-				name = "libtorrent_log_" + name + ".log";
-				// current options are file_logger and cout_logger
-				return boost::shared_ptr<logger>(new file_logger(name.c_str()));
-			}
 
+			// maximum upload rate given in
+			// bytes per second. -1 means
+			// unlimited
+			int m_upload_rate;
+
+#ifndef NDEBUG
+			boost::shared_ptr<logger> create_log(std::string name);
 			boost::shared_ptr<logger> m_logger;
 #endif
 		};
@@ -208,6 +210,7 @@ namespace libtorrent
 		void remove_torrent(const torrent_handle& h);
 
 		void set_http_settings(const http_settings& s);
+		void set_upload_rate_limit(int bytes_per_second);
 
 	private:
 

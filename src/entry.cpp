@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/entry.hpp"
 
-#if defined(_MSC_VER) && _MSV_CER < 1300
+#if defined(_MSC_VER)
 namespace std
 {
 	using ::isprint;
