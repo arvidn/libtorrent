@@ -336,7 +336,8 @@ namespace libtorrent
 			{
 				std::string error_msg = boost::lexical_cast<std::string>(m_code)
 					+ " " + m_server_message;
-				if (requester()) requester()->tracker_request_error(m_code, error_msg.c_str());
+				if (requester()) requester()->tracker_request_error(
+					m_code, error_msg.c_str());
 				return true;
 			}
 		}
@@ -346,12 +347,14 @@ namespace libtorrent
 			if (received <= 0)
 			{
 				if (requester())
-					requester()->tracker_request_error(-1, "invalid tracker response, connection closed while reading header");
+					requester()->tracker_request_error(-1, "invalid tracker "
+					"response, connection closed while reading header");
 				return true;
 			}
 
 			std::vector<char>::iterator end = m_buffer.begin()+m_recv_pos;
-			std::vector<char>::iterator newline = std::find(m_buffer.begin(), end, '\n');
+			std::vector<char>::iterator newline
+				= std::find(m_buffer.begin(), end, '\n');
 			std::string line;
 
 			while (newline != end && m_state == read_header)
@@ -366,7 +369,8 @@ namespace libtorrent
 				{
 					try
 					{
-						m_content_length = boost::lexical_cast<int>(line.substr(16));
+						m_content_length = boost::lexical_cast<int>(
+							line.substr(16));
 					}
 					catch(boost::bad_lexical_cast&)
 					{
@@ -419,6 +423,10 @@ namespace libtorrent
 				else if (line.substr(0, 10) == "Location: ")
 				{
 					m_location.assign(line.begin() + 10, line.end());
+				}
+				else if (line.substr(0, 7) == "Server: ")
+				{
+					m_server.assign(line.begin() + 7, line.end());
 				}
 				else if (line.size() < 3)
 				{

@@ -980,7 +980,11 @@ namespace libtorrent
 			, m_have_metadata.begin() + start + block_size
 			, true);
 	
-		bool have_all = std::count(m_have_metadata.begin(), m_have_metadata.end(), true) == 255;
+		bool have_all = std::count(
+			m_have_metadata.begin()
+			, m_have_metadata.end()
+			, true) == 255;
+
 		if (!have_all) return false;
 
 		hasher h;
@@ -993,8 +997,6 @@ namespace libtorrent
 				m_have_metadata.begin()
 				, m_have_metadata.end() + start + block_size
 				, false);
-			// TODO: rerequest
-			assert(false);
 			return false;
 		}
 
@@ -1020,16 +1022,24 @@ namespace libtorrent
 		m_picker->integrity_check(this);
 #endif
 
-
 		// clear the storage for the bitfield
-		{
-			std::vector<bool> t1;
-			m_have_metadata.swap(t1);
-			std::vector<int> t2;
-			m_requested_metadata.swap(t2);
-		}
+		std::vector<bool>().swap(m_have_metadata);
+		std::vector<int>().swap(m_requested_metadata);
 
 		return true;
+	}
+
+	std::pair<int, int> torrent::metadata_request()
+	{
+		// TODO: count the peers that supports the
+		// metadata extension
+		// check to see if we know how big the metadata
+		// is (if m_metadata.size() > 0)
+		std::pair<int, int> ret(0, 256);
+
+		for (int i = ret.first; i < ret.first + ret.second; ++i)
+			m_requested_metadata[i]++;
+		return ret;
 	}
 
 	void torrent::tracker_request_timed_out()

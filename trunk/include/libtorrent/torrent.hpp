@@ -330,7 +330,15 @@ namespace libtorrent
 		bool valid_metadata() const { return m_storage.get() != 0; }
 		std::vector<char> const& metadata() const { return m_metadata; }
 
-		bool received_metadata(char const* buf, int size, int offset, int total_size);
+		bool received_metadata(
+			char const* buf
+			, int size
+			, int offset
+			, int total_size);
+
+		// returns a range of the metadata that
+		// we should request.
+		std::pair<int, int> metadata_request();
 
 	private:
 

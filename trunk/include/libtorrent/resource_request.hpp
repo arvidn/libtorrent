@@ -33,6 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_RESOURCE_REQUEST_HPP_INCLUDED
 #define TORRENT_RESOURCE_REQUEST_HPP_INCLUDED
 
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
+
 namespace libtorrent
 {
 	struct resource_request

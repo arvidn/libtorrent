@@ -71,35 +71,19 @@ namespace
 	boost::optional<fingerprint> parse_az_style(const peer_id& id)
 	{
 		fingerprint ret("..", 0, 0, 0, 0);
-		peer_id::const_iterator i = id.begin();
 
-		if (*i != '-') return boost::optional<fingerprint>();
-		++i;
+		if (id[0] != '-' || !std::isprint(id[1]) || !std::isprint(id[2])
+			|| !std::isalnum(id[3]) || !std::isalnum(id[4])
+			|| !std::isalnum(id[5]) || !std::isalnum(id[6])
+			|| id[7] != '-')
+			return boost::optional<fingerprint>();
 
-		for (int j = 0; j < 2; ++j)
-		{
-			if (!std::isprint(*i)) return boost::optional<fingerprint>();
-			ret.id[j] = *i;
-			++i;
-		}
-
-		if (!std::isalnum(*i)) return boost::optional<fingerprint>();
-		ret.major_version = decode_digit(*i);
-		++i;
-
-		if (!std::isalnum(*i)) return boost::optional<fingerprint>();
-		ret.minor_version = decode_digit(*i);
-		++i;
-
-		if (!std::isalnum(*i)) return boost::optional<fingerprint>();
-		ret.revision_version = decode_digit(*i);
-		++i;
-
-		if (!std::isalnum(*i)) return boost::optional<fingerprint>();
-		ret.tag_version = decode_digit(*i);
-		++i;
-
-		if (*i != '-') return boost::optional<fingerprint>();
+		ret.id[0] = id[1];
+		ret.id[1] = id[2];
+		ret.major_version = decode_digit(id[3]);
+		ret.minor_version = decode_digit(id[4]);
+		ret.revision_version = decode_digit(id[5]);
+		ret.tag_version = decode_digit(id[6]);
 
 		return boost::optional<fingerprint>(ret);
 	}
@@ -109,41 +93,30 @@ namespace
 	boost::optional<fingerprint> parse_shadow_style(const peer_id& id)
 	{
 		fingerprint ret("..", 0, 0, 0, 0);
-		peer_id::const_iterator i = id.begin();
 
-		if (!std::isalnum(*i)) return boost::optional<fingerprint>();
-		ret.id[0] = *i;
-		ret.id[1] = 0;
-		++i;
+		if (!std::isalnum(id[0]))
+			return boost::optional<fingerprint>();
 
 		if (std::equal(id.begin()+4, id.begin()+8, "----"))
 		{
-			if (!std::isalnum(*i)) return boost::optional<fingerprint>();
-			ret.major_version = decode_digit(*i);
-			++i;
-
-			if (!std::isalnum(*i)) return boost::optional<fingerprint>();
-			ret.minor_version = decode_digit(*i);
-			++i;
-
-			if (!std::isalnum(*i)) return boost::optional<fingerprint>();
-			ret.revision_version = decode_digit(*i);
-		}
-		else if (id[8] == 0)
-		{
-			if (*i > 127) return boost::optional<fingerprint>();
-			ret.major_version = *i;
-			++i;
-
-			if (*i > 127) return boost::optional<fingerprint>();
-			ret.minor_version = *i;
-			++i;
-
-			if (*i > 127) return boost::optional<fingerprint>();
-			ret.revision_version = *i;
+			if (!std::isalnum(id[1]) || !std::isalnum(id[2])
+				|| !std::isalnum(id[3]))
+				return boost::optional<fingerprint>();
+			ret.major_version = decode_digit(id[1]);
+			ret.minor_version = decode_digit(id[2]);
+			ret.revision_version = decode_digit(id[3]);
 		}
 		else
-			return boost::optional<fingerprint>();
+		{
+			if (id[8] != 0 || id[1] > 127 || id[2] > 127 || id[3] > 127)
+				return boost::optional<fingerprint>();
+			ret.major_version = id[1];
+			ret.minor_version = id[2];
+			ret.revision_version = id[3];
+		}
+
+		ret.id[0] = id[0];
+		ret.id[1] = 0;
 
 		ret.tag_version = 0;
 		return boost::optional<fingerprint>(ret);
@@ -153,39 +126,79 @@ namespace
 	// identification
 	boost::optional<fingerprint> parse_mainline_style(const peer_id& id)
 	{
+		if (!std::isprint(id[0])
+			|| !std::isalnum(id[1])
+			|| id[2] != '-'
+			|| !std::isalnum(id[3])
+			|| id[4] != '-'
+			|| !std::isalnum(id[5])
+			|| !std::equal(id.begin() + 6, id.begin() + 8, "--"))
+			return boost::optional<fingerprint>();
+
 		fingerprint ret("..", 0, 0, 0, 0);
-		peer_id::const_iterator i = id.begin();
 
-		if (!std::isprint(*i)) return boost::optional<fingerprint>();
-		ret.id[0] = *i;
+		ret.id[0] = id[0];
 		ret.id[1] = 0;
-		++i;
-
-		if (!std::isalnum(*i)) return boost::optional<fingerprint>();
-		ret.major_version = decode_digit(*i);
-		++i;
-
-		if (*i != '-') return boost::optional<fingerprint>();
-		++i;
-
-		if (!std::isalnum(*i)) return boost::optional<fingerprint>();
-		ret.minor_version = decode_digit(*i);
-		++i;
-
-		if (*i != '-') return boost::optional<fingerprint>();
-		++i;
-
-		if (!std::isalnum(*i)) return boost::optional<fingerprint>();
-		ret.revision_version = decode_digit(*i);
-		++i;
-
-		if (!std::equal(i, i+1, "--")) return boost::optional<fingerprint>();
-
+		ret.major_version = decode_digit(id[1]);
+		ret.minor_version = decode_digit(id[3]);
+		ret.revision_version = decode_digit(id[5]);
 		ret.tag_version = 0;
 		return boost::optional<fingerprint>(ret);
 	}
 
-} // namespace unnamed
+	typedef std::pair<char const*, char const*> map_entry;
+
+	// must be ordered alphabetically
+	map_entry name_map[] =
+	{
+		map_entry("A",  "ABC")
+		, map_entry("AZ", "Azureus")
+		, map_entry("BX", "BittorrentX")
+		, map_entry("LT", "libtorrent")
+		, map_entry("M",  "Mainline")
+		, map_entry("MT", "Moonlight Torrent")
+		, map_entry("S",  "Shadow")
+		, map_entry("SS", "SwarmScope")
+		, map_entry("T",  "BitTornado")
+		, map_entry("TN", "TorrentDonNet")
+		, map_entry("TS", "TorrentStorm")
+		, map_entry("U",  "UPnP")
+		, map_entry("XT", "XanTorrent")
+	};
+
+	bool compare_first_string(map_entry const& e, char const* str)
+	{
+		return e.first[0] < str[0]
+			|| ((e.first[0] == str[0]) && (e.first[1] < str[1]));
+	}
+
+	std::string lookup(fingerprint const& f)
+	{
+		std::stringstream identity;
+
+		const int size = sizeof(name_map)/sizeof(name_map[0]);
+		map_entry* i =
+			std::lower_bound(name_map, name_map + size
+				, f.id, &compare_first_string);
+
+		if (i < name_map + size && std::equal(f.id, f.id + 2, i->first))
+			identity << i->second;
+		else
+			identity << std::string(f.id, f.id + 2);
+
+		identity << " " << (int)f.major_version
+			<< "." << (int)f.minor_version
+			<< "." << (int)f.revision_version
+			<< "." << (int)f.tag_version;
+
+		return identity.str();
+	}
+
+	bool find_string(unsigned char const* id, char const* search)
+	{
+		return std::equal(search, search + std::strlen(search), id);
+	}
+}
 
 namespace libtorrent
 {
@@ -197,180 +210,50 @@ namespace libtorrent
 
 		if (p.is_all_zeros()) return "Unknown";
 
-		// look for azureus style id	
+		// look for azureus style id
 		f = parse_az_style(p);
-		if (f)
-		{
-			std::stringstream identity;
+		if (f) return lookup(*f);
 
-			// azureus
-			if (std::equal(f->id, f->id+2, "AZ"))
-				identity << "Azureus ";
-
-			// BittorrentX
-			else if (std::equal(f->id, f->id+2, "BX"))
-				identity << "BittorrentX ";
-
-			// libtorrent
-			else if (std::equal(f->id, f->id+2, "LT"))
-				identity << "libtorrent ";
-
-			// Moonlight Torrent
-			else if (std::equal(f->id, f->id+2, "MT"))
-				identity << "Moonlight Torrent ";
-
-			// Torrent Storm
-			else if (std::equal(f->id, f->id+2, "TS"))
-				identity << "TorrentStorm ";
-
-			// SwarmScope
-			else if (std::equal(f->id, f->id+2, "SS"))
-				identity << "SwarmScope ";
-
-			// XanTorrent
-			else if (std::equal(f->id, f->id+2, "XT"))
-				identity << "XanTorrent ";
-
-			// TorrentDotNet
-			else if (std::equal(f->id, f->id+2, "TN"))
-				identity << "TorrentDotNET ";
-
-			// unknown client
-			else
-				identity << std::string(f->id, f->id+2) << " ";
-
-			identity << (int)f->major_version
-				<< "." << (int)f->minor_version
-				<< "." << (int)f->revision_version
-				<< "." << (int)f->tag_version;
-
-			return identity.str();
-		}
-	
-
-		// look for shadow style id	
+		// look for shadow style id
 		f = parse_shadow_style(p);
-		if (f)
-		{
-			std::stringstream identity;
+		if (f) return lookup(*f);
 
-			// Shadow
-			if (std::equal(f->id, f->id+1, "S"))
-				identity << "Shadow ";
-
-			// ABC
-			else if (std::equal(f->id, f->id+1, "A"))
-				identity << "ABC ";
-
-			// UPnP
-			else if (std::equal(f->id, f->id+1, "U"))
-				identity << "UPnP ";
-
-			// BitTornado
-			else if (std::equal(f->id, f->id+1, "T"))
-				identity << "BitTornado ";
-
-			// unknown client
-			else
-				identity << std::string(f->id, f->id+1) << " ";
-
-			identity << (int)f->major_version
-				<< "." << (int)f->minor_version
-				<< "." << (int)f->revision_version;
-
-			return identity.str();
-		}
-	
+		// look for mainline style id
 		f = parse_mainline_style(p);
-		if (f)
-		{
-			std::stringstream identity;
-
-			// Mainline
-			if (std::equal(f->id, f->id+1, "M"))
-				identity << "Mainline ";
-
-			// unknown client
-			else
-				identity << std::string(f->id, f->id+1) << " ";
-
-			identity << (int)f->major_version
-				<< "." << (int)f->minor_version
-				<< "." << (int)f->revision_version;
-
-			return identity.str();
-		}
+		if (f) return lookup(*f);
 
 		// ----------------------
 		// non standard encodings
 		// ----------------------
 
-		if (std::equal(PID, PID + 12, "-G3g3rmz    "))
-		{
-			return "G3 Torrent";
-		}
-
-		if (std::equal(PID, PID + 4, "exbc"))
-		{
-			std::stringstream s;
-			s << "BitComet " << (int)PID[4] << "." << (int)PID[5]/10 << (int)PID[5]%10;
-			return s.str();
-		}
-
-		if (std::equal(PID + 5, PID + 5 + 8, "Azureus"))
-		{
-			return "Azureus 2.0.3.2";
-		}
-	
-		if (std::equal(PID, PID + 11, "DansClient"))
-		{
-			return "XanTorrent";
-		}
-
-		if (std::equal(PID, PID + 7, "Plus---"))
-		{
-			return "Bittorrent Plus";
-		}
-
-		if (std::equal(PID, PID + 16, "Deadman Walking-"))
-		{
-			return "Deadman";
-		}
-
-		if (std::equal(PID, PID + 7, "btuga"))
-		{
-			return "BTugaXP";
-		}
-
-		if (std::equal(PID, PID + 7, "btfans"))
-		{
-			return "SimpleBT";
-		}
-
-		if (std::equal(PID, PID + 7, "turbobt")
-			&& std::isalnum(PID[8])
-			&& std::isalnum(PID[10])
-			&& std::isalnum(PID[12]))
-		{
-			std::stringstream s;
-			s << "TurboBT " << PID[8] << "." << PID[10] << "." << PID[12];
-			return s.str();
-		}
+		if (find_string(PID, "Deadman Walking-")) return "Deadman";
+		if (find_string(PID + 5, "Azureus")) return "Azureus 2.0.3.2";
+		if (find_string(PID, "DansClient")) return "XanTorrent";
+		if (find_string(PID + 4, "btfans")) return "SimpleBT";
+		if (find_string(PID, "PRC.P---")) return "Bittorrent Plus! II";
+		if (find_string(PID, "P87.P---")) return "Bittorrent Plus!";
+		if (find_string(PID, "S587Plus")) return "Bittorrent Plus!";
+		if (find_string(PID, "martini")) return "Martini Man";
+		if (find_string(PID, "Plus---")) return "Bittorrent Plus";
+		if (find_string(PID, "turbobt")) return "TurboBT";
+		if (find_string(PID, "BTDWV-")) return "Deadman Walking";
+		if (find_string(PID + 2, "BS")) return "BitSpirit";
+		if (find_string(PID, "btuga")) return "BTugaXP";
+		if (find_string(PID, "oernu")) return "BTugaXP";
+		if (find_string(PID, "Mbrst")) return "Burst!";
+		if (find_string(PID, "Plus")) return "Plus!";
+		if (find_string(PID, "exbc")) return "BitComet";
+		if (find_string(PID, "-G3")) return "G3 Torrent";
+		if (find_string(PID, "XBT")) return "XBT";
 
 		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\0\x97"))
-		{
 			return "Experimental 3.2.1b2";
-		}
 
 		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\0\0"))
-		{
 			return "Experimental 3.1";
-		}
 
 		if (std::equal(PID, PID + 12, "\0\0\0\0\0\0\0\0\0\0\0\0"))
-		{
 			return "Generic";
-		}
 
 		std::string unknown("Unknown [");
 		for (peer_id::const_iterator i = p.begin(); i != p.end(); ++i)

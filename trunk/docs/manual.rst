@@ -155,29 +155,28 @@ want to disable such checks (you want to do that in a release build) you can see
 table below for which defines you can use to control the build. The ``Jamfile`` will define
 ``NDEBUG`` when it's building a release build.
 
-+-------------------------------+-------------------------------------------------+
-| macro                         | description                                     |
-+===============================+=================================================+
-| ``NDEBUG``                    | If you define this macro, all asserts,          |
-|                               | invariant checks and general debug code will be |
-|                               | removed. This option takes precedence over      |
-|                               | other debug settings.                           |
-+-------------------------------+-------------------------------------------------+
-| ``TORRENT_VERBOSE_LOGGING``   | If you define this macro, every peer connection |
-|                               | will log its traffic to a log file.             |
-|                               | This setting requires a debug build, i.e.       |
-|                               | if you set ``NDEBUG`` aswell, no logs will be   |
-|                               | written.                                        |
-+-------------------------------+-------------------------------------------------+
-| ``TORRENT_STORAGE_DEBUG``     | This will enable extra expensive invariant      |
-|                               | checks in the storage, including logging of     |
-|                               | piece sorting.                                  |
-+-------------------------------+-------------------------------------------------+
-| ``TORRENT_ENABLE_EXTENSIONS`` | If you want extensions to be enabled, you must  |
-|                               | build with this define. For more information on |
-|                               | which extensions are currently implemented, see |
-|                               | extensions_.                                    |
-+-------------------------------+-------------------------------------------------+
++--------------------------------+-------------------------------------------------+
+| macro                          | description                                     |
++================================+=================================================+
+| ``NDEBUG``                     | If you define this macro, all asserts,          |
+|                                | invariant checks and general debug code will be |
+|                                | removed. This option takes precedence over      |
+|                                | other debug settings.                           |
++--------------------------------+-------------------------------------------------+
+| ``TORRENT_VERBOSE_LOGGING``    | If you define this macro, every peer connection |
+|                                | will log its traffic to a log file.             |
+|                                | This setting requires a debug build, i.e.       |
+|                                | if you set ``NDEBUG`` aswell, no logs will be   |
+|                                | written.                                        |
++--------------------------------+-------------------------------------------------+
+| ``TORRENT_STORAGE_DEBUG``      | This will enable extra expensive invariant      |
+|                                | checks in the storage, including logging of     |
+|                                | piece sorting.                                  |
++--------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_EXTENSIONS`` | This will disble the support for extensions.    |
+|                                | For more information on which extensions are    |
+|                                |  currently implemented, see extensions_.        |
++--------------------------------+-------------------------------------------------+
 
 
 If you experience that libtorrent uses unreasonable amounts of cpu, it will definately help to
@@ -1154,18 +1153,16 @@ be slightly smaller than the other rates, but if projected over a long time
 this does not necessarily has to be downloaded during this session (that's
 ``total_download_payload``).
 
-``num_seeds`` is the number of peers that are seeding that this torrent
-currently is connected to.
+``num_seeds`` is the number of peers that are seeding that this client is
+currently connected to.
 
 ``distributed_copies`` is the number of distributed copies of the torrent.
-Note that one copy may be spread out among many peers. The whole number part
+Note that one copy may be spread out among many peers. The integer part
 tells how many copies there are currently of the rarest piece(s) among the
-peers this torrent is connected to. The fractional part tells the share of
+peers this client is connected to. The fractional part tells the share of
 pieces that have more copies than the rarest piece(s). For example: 2.5 would
 mean that the rarest pieces have only 2 copies among the peers this torrent is
-connected to, and that there are as many pieces that have 2 copies as there are
-pieces that have more than two copies.
-
+connected to, and that 50% of all the pieces have more than two copies.
 
 
 peer_info

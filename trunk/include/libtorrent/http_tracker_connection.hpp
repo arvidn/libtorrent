@@ -109,6 +109,9 @@ namespace libtorrent
 		tracker_request m_req;
 		std::string m_password;
 		int m_code;
+
+		// server string in http-reply
+		std::string m_server;
 	};
 
 }
