@@ -295,7 +295,7 @@ namespace libtorrent
 		assert(dst_vec[p.peer_count][p.index] == index);
 
 		// this will remove elem from the source vector without
-		// preserving order
+		// preserving order, but the order is random any way
 		int replace_index = src_vec[peer_count][elem_index] = src_vec[peer_count].back();
 		if (index != replace_index)
 		{
@@ -442,12 +442,12 @@ namespace libtorrent
 //		integrity_check();
 #endif
 
-		// free refers to pieces that are free to download, noone else
+		// free refers to pieces that are free to download, no one else
 		// is downloading them.
 		// partial is pieces that are partially being downloaded, and
 		// parts of them may be free for download as well, the
 		// partially donloaded pieces will be prioritized
-		assert(m_piece_info.begin()!=m_piece_info.end());
+		assert(m_piece_info.begin() != m_piece_info.end());
 		std::vector<std::vector<int> >::const_iterator free = m_piece_info.begin()+1;
 		assert(m_downloading_piece_info.begin()!=m_downloading_piece_info.end());
 		std::vector<std::vector<int> >::const_iterator partial = m_downloading_piece_info.begin()+1;
@@ -458,7 +458,8 @@ namespace libtorrent
 			{
 				for (int i = 0; i < 2; ++i)
 				{
-					num_blocks = add_interesting_blocks(*partial, pieces, interesting_pieces, num_blocks);
+					num_blocks = add_interesting_blocks(*partial, pieces
+						, interesting_pieces, num_blocks);
 					if (num_blocks == 0) return;
 					++partial;
 					if (partial == m_downloading_piece_info.end()) break;
