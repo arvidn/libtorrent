@@ -185,6 +185,7 @@ namespace libtorrent
 		std::back_insert_iterator<std::vector<char> > out(buf);
 
 		// TODO: write file header
+		// TODO: write modification-dates for all files
 		// TODO: write info hash
 
 		// number of slots

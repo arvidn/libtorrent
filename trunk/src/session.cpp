@@ -916,7 +916,7 @@ namespace libtorrent
 
 		int num_unfinished = read_int(ptr);
 		if (num_unfinished < 0) return;
-		if (data.size() != (3 + num_slots + 1 + num_unfinished) * 4)
+		if (data.size() != (1 + num_slots + 2 + num_unfinished * (num_blocks_per_piece / 32 + 1)) * 4)
 			return;
 
 		tmp_unfinished.reserve(num_unfinished);
@@ -934,7 +934,12 @@ namespace libtorrent
 			for (int j = 0; j < num_blocks_per_piece / 32; ++j)
 			{
 				unsigned int bits = read_int(ptr);
-				for (int k = 0; k < 32; ++k) p.finished_blocks[j * 32 + k] = true;
+				for (int k = 0; k < 32; ++k)
+				{
+					const int bit = j * 32 + k;
+					if (bits & (1 << bit))
+						p.finished_blocks[bit] = true;
+				}
 			}
 			tmp_unfinished.push_back(p);
 		}

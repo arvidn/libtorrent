@@ -106,7 +106,9 @@ namespace libtorrent
 		// after the local files has been checked.
 		// the vector tells which pieces we already have
 		// and which we don't have.
-		void files_checked(const std::vector<bool>& pieces);
+		void files_checked(
+			const std::vector<bool>& pieces
+			, const std::vector<downloading_piece>& unfinished);
 
 		// increases the peer count for the given piece
 		// (is used when a HAVE or BITFIELD message is received)
@@ -172,6 +174,15 @@ namespace libtorrent
 		void integrity_check(const torrent* t = 0) const;
 #endif
 
+		// functor that compares indices on downloading_pieces
+		struct has_index
+		{
+			has_index(int i): index(i) {}
+			bool operator()(const downloading_piece& p) const
+			{ return p.index == index; }
+			int index;
+		};
+
 	private:
 
 		struct piece_pos
@@ -198,15 +209,6 @@ namespace libtorrent
 
 		};
 
-
-
-		struct has_index
-		{
-			has_index(int i): index(i) {}
-			bool operator()(const downloading_piece& p) const
-			{ return p.index == index; }
-			int index;
-		};
 
 		void move(bool downloading, int vec_index, int elem_index);
 		void remove(bool downloading, int vec_index, int elem_index);
