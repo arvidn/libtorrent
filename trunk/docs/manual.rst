@@ -1084,6 +1084,8 @@ It contains the following fields::
 
 		int num_seeds;
 		float distributed_copies;
+
+		int block_size;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -1164,6 +1166,11 @@ pieces that have more copies than the rarest piece(s). For example: 2.5 would
 mean that the rarest pieces have only 2 copies among the peers this torrent is
 connected to, and that 50% of all the pieces have more than two copies.
 
+``block_size`` is the size of a block, in bytes. A block is a sub piece, it
+is the number of bytes that each piece request asks for and the number of
+bytes that each bit in the ``partial_piece_info``'s bitset represents
+(see `get_download_queue()`_). This is typically 16 kB, but it may be
+larger if the pieces are larger.
 
 peer_info
 =========

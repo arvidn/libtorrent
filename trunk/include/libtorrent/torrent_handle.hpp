@@ -87,6 +87,7 @@ namespace libtorrent
 			, total_done(0)
 			, num_seeds(0)
 			, distributed_copies(0.f)
+			, block_size(0)
 		{}
 
 		enum state_t
@@ -152,6 +153,11 @@ namespace libtorrent
 		// the fractional part tells the fraction of pieces that
 		//   have more copies than the rarest piece(s).
 		float distributed_copies;
+
+		// the block size that is used in this torrent. i.e.
+		// the number of bytes each piece request asks for
+		// and each bit in the download queue bitfield represents
+		int block_size;
 	};
 
 	struct partial_piece_info
