@@ -147,6 +147,38 @@ std::string to_string(float v, int width)
 	return s.str();
 }
 
+std::string pos_to_string(float v, int width)
+{
+	std::stringstream s;
+	s.precision(width-1);
+	s.flags(std::ios_base::right);
+	s.width(width);
+	s.fill(' ');
+	s << fabs(v);
+	return s.str();
+}
+
+std::string ratio(float a, float b)
+{
+	std::stringstream s;
+	if (a > b)
+	{
+		if (b < 0.001f) s << " inf:1";
+		else s << pos_to_string(a/b, 4) << ":1";
+	}
+	else if (a < b)
+	{
+		if (a < 0.001f) s << " 1:inf";
+		else s << "1:" << pos_to_string(b/a, 4);
+	}
+	else
+	{
+		s << "   1:1";
+	}
+
+	return s.str();
+}
+
 std::string add_suffix(float val)
 {
 	const char* prefix[] = {"B", "kB", "MB", "GB", "TB"};
@@ -207,6 +239,7 @@ int main(int argc, char* argv[])
 				entry resume_data;
 				try
 				{
+					// TODO: use a torrent-specific name here
 					std::ifstream resume_file("test.fastresume", std::ios_base::binary);
 					resume_file.unsetf(std::ios_base::skipws);
 					resume_data = bdecode(std::istream_iterator<char>(resume_file)
@@ -217,6 +250,7 @@ int main(int argc, char* argv[])
 
 				handles.push_back(ses.add_torrent(t, "", resume_data));
 				handles.back().set_max_uploads(7);
+				handles.back().set_ratio(1);
 			}
 			catch (std::exception& e)
 			{
@@ -235,7 +269,7 @@ int main(int argc, char* argv[])
 				if (c == 'q')
 				{
 					entry data = handles.front().write_resume_data();
-
+					// TODO: use a torrent-specific name here
 					std::ofstream out("test.fastresume", std::ios_base::binary);
 					out.unsetf(std::ios_base::skipws);
 					bencode(std::ostream_iterator<char>(out), data);
@@ -303,7 +337,7 @@ int main(int argc, char* argv[])
 					<< "(" << add_suffix(total_down) << ") "
 					<< "u:" << add_suffix(up) << "/s "
 					<< "(" << add_suffix(total_up) << ") "
-					<< "diff: " << add_suffix(total_down - total_up) << "\n";
+					<< "ratio: " << ratio(total_down, total_up) << "\n";
 
 				boost::posix_time::time_duration t = s.next_announce;
 				out << "next announce: " << boost::posix_time::to_simple_string(t) << "\n";
@@ -316,7 +350,7 @@ int main(int argc, char* argv[])
 						<< "(" << add_suffix(i->total_download) << ") "
 						<< "u: " << add_suffix(i->up_speed) << "/s "
 						<< "(" << add_suffix(i->total_upload) << ") "
-						<< "df: " << add_suffix((int)i->total_download - (int)i->total_upload) << " "
+						<< "df: " << ratio(i->total_download, i->total_upload) << " "
 						<< "f: "
 						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
 						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")

@@ -703,6 +703,15 @@ namespace libtorrent
 					m_extension_messages[i] = f->second.integer();
 				}
 			}
+#ifndef NDEBUG
+			(*m_logger) << "supported extensions:\n";
+			for (entry::dictionary_type::const_iterator i = extensions.begin();
+				i != extensions.end();
+				++i)
+			{
+				(*m_logger) << i->first << "\n";
+			}
+#endif
 		}
 		catch(invalid_encoding& e)
 		{
@@ -1037,6 +1046,20 @@ namespace libtorrent
 		send_buffer_updated();
 	}
 
+	int peer_connection::share_diff() const
+	{
+		float ratio = m_torrent->ratio();
+
+		// if we have an infinite ratio, just say we have downloaded
+		// much more than we have uploaded. And we'll keep uploading.
+		if (ratio == 0.f) return 99999.f;
+
+		return m_free_upload
+			+ (m_statistics.total_payload_download() * ratio)
+			- m_statistics.total_payload_upload();
+	}
+
+
 	void peer_connection::second_tick()
 	{
 		m_statistics.second_tick();
@@ -1060,6 +1083,7 @@ namespace libtorrent
 		}
 		else
 		{
+			float ratio = m_torrent->ratio();
 			// if we have downloaded too much, response with an
 			// upload rate of 10 kB/s more than we dowlload
 			// if we have uploaded too much, send with a rate of
@@ -1067,16 +1091,21 @@ namespace libtorrent
 			int bias = 0;
 			if (diff > -2*m_torrent->block_size())
 			{
-				bias = m_statistics.download_rate() / 2;
+				bias = (m_statistics.download_rate() * ratio) / 2;
 				if (bias < 10*1024) bias = 10*1024;
 			}
 			else
 			{
-				bias = -m_statistics.download_rate() / 2;
+				bias = -(m_statistics.download_rate() * ratio) / 2;
 			}
 			m_send_quota_limit = m_statistics.download_rate() + bias;
+
 			// the maximum send_quota given our download rate from this peer
 			if (m_send_quota_limit < 256) m_send_quota_limit = 256;
+
+			// if the peer has been choked, send tha current piece
+			// as fast as possible
+			if (is_choked()) m_send_quota_limit = -1;
 		}
 	}
 

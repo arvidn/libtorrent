@@ -207,7 +207,7 @@ namespace libtorrent
 
 		// num unfinished pieces
 		int num_unfinished = q.size();
-		ret.dict()["unfinished"] = entry(entry::list_t);
+		ret.dict()["unfinished"] = entry::list_type();
 		entry::list_type& up = ret.dict()["unfinished"].list();
 
 		// info for each unfinished piece
@@ -237,6 +237,27 @@ namespace libtorrent
 			// push the struct onto the unfinished-piece list
 			up.push_back(piece_struct);
 		}
+
+		// write local peers
+
+		ret.dict()["peers"] = entry::list_type();
+		entry::list_type& peer_list = ret.dict()["peers"].list();
+
+		for (torrent::peer_const_iterator i = t->begin();
+			i != t->end();
+			++i)
+		{
+			// we cannot save remote connection
+			// since we don't know their listen port
+			if (!(*i)->is_local()) continue;
+
+			address ip = (*i)->get_socket()->sender();
+			entry::dictionary_type peer;
+			peer["ip"] = ip.as_string();
+			peer["port"] = ip.port();
+			peer_list.push_back(peer);
+		}
+
 		return ret;
 	}
 
@@ -298,6 +319,35 @@ namespace libtorrent
 		if (t == 0) throw invalid_handle();
 
 		t->force_tracker_request();
+	}
+
+	void torrent_handle::set_ratio(float ratio)
+	{
+		assert(ratio >= 0.f);
+
+		if (m_ses == 0) throw invalid_handle();
+
+		if (ratio < 1.f && ratio > 0.f)
+			ratio = 1.f;
+
+		{
+			boost::mutex::scoped_lock l(m_ses->m_mutex);
+			torrent* t = m_ses->find_torrent(m_info_hash);
+			if (t != 0)
+			{
+				t->set_ratio(ratio);
+			}
+		}
+
+		if (m_chk)
+		{
+			boost::mutex::scoped_lock l(m_chk->m_mutex);
+			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
+			if (d != 0)
+			{
+				d->torrent_ptr->set_ratio(ratio);
+			}
+		}
 	}
 
 	void torrent_handle::get_peer_info(std::vector<peer_info>& v) const

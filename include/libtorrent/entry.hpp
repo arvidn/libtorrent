@@ -152,49 +152,49 @@ namespace libtorrent
 
 		integer_type& integer()
 		{
-			if (m_type != int_t) throw type_error("invalid typ requested from entry");
+			if (m_type != int_t) throw type_error("invalid type requested from entry");
 			return *reinterpret_cast<integer_type*>(data);
 		}
 
 		const integer_type& integer() const
 		{
-			if (m_type != int_t) throw type_error("invalid typ requested from entry");
+			if (m_type != int_t) throw type_error("invalid type requested from entry");
 			return *reinterpret_cast<const integer_type*>(data);
 		}
 
 		string_type& string()
 		{
-			if (m_type != string_t) throw type_error("invalid typ requested from entry");
+			if (m_type != string_t) throw type_error("invalid type requested from entry");
 			return *reinterpret_cast<string_type*>(data);
 		}
 
 		const string_type& string() const
 		{
-			if (m_type != string_t) throw type_error("invalid typ requested from entry");
+			if (m_type != string_t) throw type_error("invalid type requested from entry");
 			return *reinterpret_cast<const string_type*>(data);
 		}
 
 		list_type& list()
 		{
-			if (m_type != list_t) throw type_error("invalid typ requested from entry");
+			if (m_type != list_t) throw type_error("invalid type requested from entry");
 			return *reinterpret_cast<list_type*>(data);
 		}
 
 		const list_type& list() const
 		{
-			if (m_type != list_t) throw type_error("invalid typ requested from entry");
+			if (m_type != list_t) throw type_error("invalid type requested from entry");
 			return *reinterpret_cast<const list_type*>(data);
 		}
 
 		dictionary_type& dict()
 		{
-			if (m_type != dictionary_t) throw type_error("invalid typ requested from entry");
+			if (m_type != dictionary_t) throw type_error("invalid type requested from entry");
 			return *reinterpret_cast<dictionary_type*>(data);
 		}
 
 		const dictionary_type& dict() const
 		{
-			if (m_type != dictionary_t) throw type_error("invalid typ requested from entry");
+			if (m_type != dictionary_t) throw type_error("invalid type requested from entry");
 			return *reinterpret_cast<const dictionary_type*>(data);
 		}
 

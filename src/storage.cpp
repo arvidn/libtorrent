@@ -359,6 +359,7 @@ namespace libtorrent {
 		  , std::vector<bool>& pieces);
 
 		void allocate_slots(int num_slots);
+		void mark_failed(int index);
 
 		size_type read(char* buf, int piece_index, size_type offset, size_type size);
 		void write(const char* buf, int piece_index, size_type offset, size_type size);
@@ -432,6 +433,10 @@ namespace libtorrent {
 	void piece_manager::impl::export_piece_map(
 			std::vector<int>& p) const
 	{
+		// synchronization ------------------------------------------------------
+		boost::recursive_mutex::scoped_lock lock(m_mutex);
+		// ----------------------------------------------------------------------
+
 		p.clear();
 		std::vector<int>::const_reverse_iterator last; 
 		for (last = m_slot_to_piece.rbegin();
@@ -455,8 +460,32 @@ namespace libtorrent {
 	{
 		m_pimpl->export_piece_map(p);
 	}
-		
-	
+
+	// TODO: daniel, make sure this function does everything it needs to do
+	void piece_manager::impl::mark_failed(int index)
+	{
+		// synchronization ------------------------------------------------------
+		boost::recursive_mutex::scoped_lock lock(m_mutex);
+		// ----------------------------------------------------------------------
+
+		assert(index >= 0 && index < m_piece_to_slot.size());
+		assert(m_piece_to_slot[index] >= 0);
+
+		int slot = m_slot_to_piece[m_piece_to_slot[index]];
+
+		assert(slot >= 0);
+
+		m_slot_to_piece[m_piece_to_slot[index]] = -2;
+		m_piece_to_slot[index] = -1;
+		m_free_slots.push_back(slot);
+	}
+
+	void piece_manager::mark_failed(int index)
+	{
+		m_pimpl->mark_failed(index);
+	}
+
+
 	piece_manager::size_type piece_manager::impl::read(
 		char* buf
 	  , int piece_index

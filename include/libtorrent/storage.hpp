@@ -95,6 +95,7 @@ namespace libtorrent
 		  , std::vector<bool>& pieces);
 
 		void allocate_slots(int num_slots);
+		void mark_failed(int index);
 
 		size_type read(char* buf, int piece_index, size_type offset, size_type size);
 		void write(const char* buf, int piece_index, size_type offset, size_type size);

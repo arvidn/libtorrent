@@ -154,6 +154,12 @@ namespace libtorrent
 
 		piece_manager& filesystem() { return m_storage; }
 
+		void set_ratio(float ratio)
+		{ m_ratio = ratio; }
+
+		float ratio() const
+		{ return m_ratio; }
+
 // --------------------------------------------
 		// PEER MANAGEMENT
 
@@ -347,6 +353,11 @@ namespace libtorrent
 		// true when the first tracker reponse
 		// is received
 		bool m_got_tracker_response;
+
+		// the upload/download ratio that each peer
+		// tries to maintain.
+		// 0 is infinite
+		float m_ratio;
 	};
 
 }

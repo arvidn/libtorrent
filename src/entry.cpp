@@ -123,6 +123,7 @@ namespace libtorrent
 			new (data) dictionary_type;
 			break;
 		default:
+			assert(m_type == undefined_t);
 			m_type = undefined_t;
 		}
 	}
@@ -166,6 +167,7 @@ namespace libtorrent
 			call_destructor(reinterpret_cast<dictionary_type*>(data));
 			break;
 		default:
+			assert(m_type == undefined_t);
 			break;
 		}
 	}

@@ -296,6 +296,15 @@ namespace libtorrent
 
 						m_ses->m_torrents.insert(
 							std::make_pair(t->info_hash, t->torrent_ptr)).first;
+
+						peer_id id;
+						std::fill(id.begin(), id.end(), 0);
+						for (std::vector<address>::const_iterator i = t->peers.begin();
+							i != t->peers.end();
+							++i)
+						{
+							t->torrent_ptr->get_policy().peer_from_tracker(*i, id);
+						}
 					}
 				}
 				catch(const std::exception& e)
@@ -891,9 +900,6 @@ namespace libtorrent
 		// if we don't have any resume data, return
 		if (resume_data.type() == entry::undefined_t) return;
 
-		std::vector<int> tmp_pieces;
-		std::vector<piece_picker::downloading_piece> tmp_unfinished;
-
 		entry rd = resume_data;
 
 		try
@@ -915,6 +921,7 @@ namespace libtorrent
 			if (slots.size() > info.num_pieces())
 				return;
 
+			std::vector<int> tmp_pieces;
 			tmp_pieces.reserve(slots.size());
 			for (entry::list_type::const_iterator i = slots.begin();
 				i != slots.end();
@@ -931,8 +938,11 @@ namespace libtorrent
 			if (num_blocks_per_piece > 128 || num_blocks_per_piece < 1)
 				return;
 
+			// the unfinished pieces
+
 			const entry::list_type& unfinished = rd.dict()["unfinished"].list();
 
+			std::vector<piece_picker::downloading_piece> tmp_unfinished;
 			tmp_unfinished.reserve(unfinished.size());
 			for (entry::list_type::const_iterator i = unfinished.begin();
 				i != unfinished.end();
@@ -962,6 +972,21 @@ namespace libtorrent
 				tmp_unfinished.push_back(p);
 			}
 
+			// the peers
+
+			entry::list_type& peer_list = rd.dict()["peers"].list();
+
+			std::vector<address> tmp_peers;
+			tmp_peers.reserve(peer_list.size());
+			for (entry::list_type::iterator i = peer_list.begin();
+				i != peer_list.end();
+				++i)
+			{
+				address a(i->dict()["ip"].string(), i->dict()["port"].integer());
+				tmp_peers.push_back(a);
+			}
+
+			peers.swap(tmp_peers);
 			piece_map.swap(tmp_pieces);
 			unfinished_pieces.swap(tmp_unfinished);
 		}
@@ -974,78 +999,4 @@ namespace libtorrent
 			return;
 		}
 	}
-/*
-	void detail::piece_checker_data::parse_resume_data(
-		const std::vector<char>* rd
-		, const torrent_info& info)
-	{
-		piece_map.clear();
-		unfinished_pieces.clear();
-
-		std::vector<int> tmp_pieces;
-		std::vector<piece_picker::downloading_piece> tmp_unfinished;
-
-		if (rd == 0) return;
-
-		const std::vector<char>& data = *rd;
-
-		if (data.size() < 20 + 3 * 4) return;
-		std::vector<char>::const_iterator ptr = data.begin();
-
-		sha1_hash info_hash;
-		for (int i = 0; i < 20; ++i) info_hash[i] = read_uchar(ptr);
-		if (info.info_hash() != info_hash) return;
-
-		int num_slots = detail::read_int(ptr);
-		if (num_slots < 0) return;
-		if (data.size() < 20 + (3 + num_slots) * 4) return;
-
-		tmp_pieces.reserve(num_slots);
-		for (int i = 0; i < num_slots; ++i)
-		{
-			int index = read_int(ptr);
-			if (index >= info.num_pieces() || index < -2)
-				return;
-			tmp_pieces.push_back(index);
-		}
-
-		int num_blocks_per_piece = read_int(ptr);
-		if (num_blocks_per_piece > 128 || num_blocks_per_piece < 1)
-			return;
-
-		int num_unfinished = read_int(ptr);
-		if (num_unfinished < 0) return;
-		if (data.size() != 20 + (1 + num_slots + 2 + num_unfinished) * 4 + num_unfinished * (num_blocks_per_piece / 8))
-			return;
-
-		tmp_unfinished.reserve(num_unfinished);
-		for (int i = 0; i < num_unfinished; ++i)
-		{
-			piece_picker::downloading_piece p;
-			p.index = detail::read_int(ptr);
-			p.finished_blocks.reset();
-			p.requested_blocks.reset();
-
-			if (p.index < 0
-				|| p.index >= info.num_pieces())
-				return;
-
-			const int num_bitmask_bytes = std::max(num_blocks_per_piece / 8, 1);
-			for (int j = 0; j < num_bitmask_bytes; ++j)
-			{
-				unsigned char bits = read_uchar(ptr);
-				for (int k = 0; k < 8; ++k)
-				{
-					const int bit = j * 8 + k;
-					if (bits & (1 << k))
-						p.finished_blocks[bit] = true;
-				}
-			}
-			tmp_unfinished.push_back(p);
-		}
-
-		piece_map.swap(tmp_pieces);
-		unfinished_pieces.swap(tmp_unfinished);
-	}
-*/
 }

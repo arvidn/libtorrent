@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/peer.hpp"
 #include "libtorrent/piece_picker.hpp"
+#include "libtorrent/socket.hpp"
 
 namespace libtorrent
 {
@@ -104,19 +105,22 @@ namespace libtorrent
 
 		struct peer
 		{
-			peer(const peer_id& pid);
+			peer(const peer_id& pid, const address& a);
 
 			int total_download() const;
 			int total_upload() const;
 
-			bool operator==(const peer_id& pid) const
-			{ return id == pid; }
+			bool operator==(const address& pip) const
+			{ return ip == pip; }
 
 			// the id of the peer. This is needed to store information
 			// about peers that aren't connected right now. This
 			// is to avoid peers reconnecting. unconnected entries
 			// will be saved a limited amount of time
 			peer_id id;
+
+			// the ip/port pair this peer is or was connected on
+			address ip;
 
 			// the time when this peer was optimistically unchoked
 			// the last time.
