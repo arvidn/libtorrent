@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/ref.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/bind.hpp>
+#include <boost/version.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -71,6 +72,14 @@ namespace std
 {
 	using ::srand;
 	using ::rename;
+}
+#endif
+
+#if BOOST_VERSION < 103200
+bool operator<(boost::filesystem::path const& lhs
+	, boost::filesystem::path const& rhs)
+{
+	return lhs.string() < rhs.string();
 }
 #endif
 
@@ -160,28 +169,26 @@ namespace
 namespace libtorrent
 {
 
-	std::vector<size_type> get_filesizes(
+	std::vector<std::pair<size_type, std::time_t> > get_filesizes(
 		const torrent_info& t
 		, path p)
 	{
 		p = complete(p);
-		std::vector<size_type> sizes;
+		std::vector<std::pair<size_type, std::time_t> > sizes;
 		for (torrent_info::file_iterator i = t.begin_files();
 			i != t.end_files();
 			++i)
 		{
-			size_type file_size;
+			size_type size = 0;
+			std::time_t time = 0;
 			try
 			{
-				file f(p / get_filename(t, i->path), file::in);
-				f.seek(0, file::end);
-				file_size = f.tell();
+				path f = p / get_filename(t, i->path);
+				size = file_size(f);
+				time = last_write_time(f);
 			}
-			catch (file_error&)
-			{
-				file_size = 0;
-			}
-			sizes.push_back(file_size);
+			catch (file_error&) {}
+			sizes.push_back(std::make_pair(size, time));
 		}
 		return sizes;
 	}
@@ -189,28 +196,28 @@ namespace libtorrent
 	bool match_filesizes(
 		torrent_info const& t
 		, path p
-		, std::vector<size_type> const& sizes)
+		, std::vector<std::pair<size_type, std::time_t> > const& sizes)
 	{
 		if ((int)sizes.size() != t.num_files()) return false;
 		p = complete(p);
 
-		std::vector<size_type>::const_iterator s = sizes.begin();
+		std::vector<std::pair<size_type, std::time_t> >::const_iterator s
+			= sizes.begin();
 		for (torrent_info::file_iterator i = t.begin_files();
 			i != t.end_files();
 			++i, ++s)
 		{
-			size_type file_size;
+			size_type size = 0;
+			std::time_t time = 0;
 			try
 			{
-				file f(p / get_filename(t, i->path), file::in);
-				f.seek(0, file::end);
-				file_size = f.tell();
+				path f = p / get_filename(t, i->path);
+				size = file_size(f);
+				time = last_write_time(f);
 			}
-			catch (file_error&)
-			{
-				file_size = 0;
-			}
-			if (file_size != *s) return false;
+			catch (file_error&) {}
+			if (size != s->first || time != s->second)
+				return false;
 		}
 		return true;
 	}

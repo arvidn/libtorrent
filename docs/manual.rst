@@ -2243,6 +2243,15 @@ The file format is a bencoded dictionary containing the following fields:
 |                      | +-------------+--------------------------------------------+ |
 |                      |                                                              |
 +----------------------+--------------------------------------------------------------+
+| ``file sizes``       | list where each entry corresponds to a file in the file list |
+|                      | in the metadata. Each entry has a list of two values, the    |
+|                      | first value is the size of the file in bytes, the second     |
+|                      | is the timestamp when the last time someone wrote to it.     |
+|                      | This information is used to compare with the files on disk.  |
+|                      | All the files must match exactly this information in order   |
+|                      | to consider the resume data as current. Otherwise a full     |
+|                      | re-check is issued.                                          |
++----------------------+--------------------------------------------------------------+
 
 
 extensions
