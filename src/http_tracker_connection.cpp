@@ -195,6 +195,11 @@ namespace libtorrent
 	// the connections list.
 	bool http_tracker_connection::tick()
 	{
+#ifndef NDEBUG
+		try
+		{
+#endif
+	
 		using namespace boost::posix_time;
 
 		time_duration d = second_clock::local_time() - m_request_time;
@@ -450,7 +455,16 @@ namespace libtorrent
 		}
 
 		return false;
-	}
+#ifndef NDEBUG
+		}
+		catch (std::exception&)
+		{
+			if (requester())
+				requester()->debug_log(std::string(m_buffer.begin(), m_buffer.end());
+			throw;			
+		}
+#endif
+}
 
 	peer_entry http_tracker_connection::extract_peer_info(const entry& info)
 	{

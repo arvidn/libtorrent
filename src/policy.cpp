@@ -487,7 +487,7 @@ namespace libtorrent
 		// if there is no first choice candidate, this candidate will be chosen.
 		// it is the candidate that we owe the least to.
 		peer* secondCandidate = 0;
-		size_type lowest_share_diff; // not valid when secondCandidate==0
+		size_type lowest_share_diff = 0; // not valid when secondCandidate==0
 
 		for (std::vector<peer>::iterator i = m_peers.begin();
 			i != m_peers.end();
