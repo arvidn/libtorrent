@@ -1465,7 +1465,7 @@ an empty string, no http proxy will be used.</p>
 <p><tt class="docutils literal"><span class="pre">proxy_port</span></tt> is the port on which the http proxy listens. If <tt class="docutils literal"><span class="pre">proxy_ip</span></tt>
 is empty, this will be ignored.</p>
 <p><tt class="docutils literal"><span class="pre">proxy_login</span></tt> should be the login username for the http proxy, if this
-empty, the http proxy will be trid to be used without authentication.</p>
+empty, the http proxy will be tried to be used without authentication.</p>
 <p><tt class="docutils literal"><span class="pre">proxy_password</span></tt> the password string for the http proxy.</p>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker. It will
 be followed by the string &quot;(libtorrent)&quot; to identify that this library
@@ -1614,15 +1614,15 @@ and it can be used to retreive information, an <a class="reference" href="#entry
 the program and given to <tt class="docutils literal"><span class="pre">bencode()</span></tt> to encode it into the <tt class="docutils literal"><span class="pre">OutIt</span></tt>
 iterator.</p>
 <p>The <tt class="docutils literal"><span class="pre">OutIt</span></tt> and <tt class="docutils literal"><span class="pre">InIt</span></tt> are iterators
-(<tt class="docutils literal"><span class="pre">InputIterator_</span></tt> and <tt class="docutils literal"><span class="pre">OutputIterator_</span></tt> respectively). They
-are templates and are usually instantiated as <tt class="docutils literal"><span class="pre">ostream_iterator_</span></tt>,
-<tt class="docutils literal"><span class="pre">back_insert_iterator_</span></tt> or <tt class="docutils literal"><span class="pre">istream_iterator_</span></tt>. These
+(<a class="reference" href="http://www.sgi.com/tech/stl/InputIterator.html">InputIterator</a> and <a class="reference" href="http://www.sgi.com/tech/stl/OutputIterator.html">OutputIterator</a> respectively). They
+are templates and are usually instantiated as <a class="reference" href="http://www.sgi.com/tech/stl/ostream_iterator.html">ostream_iterator</a>,
+<a class="reference" href="http://www.sgi.com/tech/stl/back_insert_iterator.html">back_insert_iterator</a> or <a class="reference" href="http://www.sgi.com/tech/stl/istream_iterator.html">istream_iterator</a>. These
 functions will assume that the iterator refers to a character
 (<tt class="docutils literal"><span class="pre">char</span></tt>). So, if you want to encode entry <tt class="docutils literal"><span class="pre">e</span></tt> into a buffer
 in memory, you can do it like this:</p>
 <pre class="literal-block">
 std::vector&lt;char&gt; buffer;
-bencode(std::back_insert_iterator&lt;std::vector&lt;char&gt; &gt;(buf), e);
+bencode(std::back_inserter(buf), e);
 </pre>
 <p>If you want to decode a torrent file from a buffer in memory, you can do it like this:</p>
 <pre class="literal-block">
