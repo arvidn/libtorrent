@@ -122,7 +122,7 @@ namespace libtorrent
 		}
 
 		m_send_buffer += request;
-/*
+
 		m_send_buffer += "?info_hash=";
 		m_send_buffer += escape_string(
 			reinterpret_cast<const char*>(req.info_hash.begin()), 20);
@@ -153,7 +153,7 @@ namespace libtorrent
 		// extension that tells the tracker that
 		// we don't need any peer_id's in the response
 		m_send_buffer += "&no_peer_id=1";
-*/
+
 		m_send_buffer += " HTTP/1.0\r\nAccept-Encoding: gzip\r\n"
 			"User-Agent: ";
 		m_send_buffer += m_settings.user_agent;

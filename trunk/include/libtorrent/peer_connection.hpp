@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <deque>
 #include <string>
+#include "allocate_resources.hpp"
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -205,13 +206,7 @@ namespace libtorrent
 		bool is_disconnecting() const
 		{ return m_disconnecting; }
 
-		// sets the number of bytes this peer
-		// is allowed to send until it should
-		// stop sending. When it stops sending
-		// it will simply wait for another call
-		// to second_tick() where it will get
-		// more send quota.
-		void set_send_quota(int num_bytes);
+		resource_request upload_bandwidth;
 
 		// returns the send quota this peer has
 		// left until will stop sending.
@@ -219,15 +214,17 @@ namespace libtorrent
 		// quota is unlimited.
 		int send_quota_left() const { return m_send_quota_left; }
 
+		void update_send_quota_left() {
+			m_send_quota_left = upload_bandwidth.given;
+			if (m_send_quota_left > 0) send_buffer_updated();
+		}
+
 		size_type total_free_upload() const
 		{ return m_free_upload; }
 
 		void add_free_upload(size_type free_upload)
 		{ m_free_upload += free_upload; }
 
-		// returns the send quota assigned to this
-		// peer.
-		int send_quota() const { return m_send_quota; }
 
 		void received_valid_data()
 		{
@@ -243,9 +240,6 @@ namespace libtorrent
 
 		int trust_points() const
 		{ return m_trust_points; }
-
-		int send_quota_limit() const
-		{ return m_send_quota_limit; }
 
 		size_type share_diff() const;
 
@@ -481,15 +475,7 @@ namespace libtorrent
 		// more quota. if it is set to -1, the peer
 		// will ignore the qouta and send at maximum
 		// speed
-		int m_send_quota;
 		int m_send_quota_left;
-
-		// this is the maximum send quota we should give
-		// this peer given the current download rate
-		// and the current share ratio with this peer.
-		// this limit will maintain a 1:1 share ratio.
-		// -1 means no limit
-		int m_send_quota_limit;
 
 		// for every valid piece we receive where this
 		// peer was one of the participants, we increase

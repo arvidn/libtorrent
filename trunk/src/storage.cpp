@@ -281,7 +281,7 @@ namespace libtorrent
 
 		slot_lock lock(*m_pimpl, slot);
 
-		size_type start = slot * m_pimpl->info.piece_length() + offset;
+		size_type start = slot * (size_type)m_pimpl->info.piece_length() + offset;
 
 		// find the file iterator and file offset
 		size_type file_offset = start;
@@ -376,7 +376,7 @@ namespace libtorrent
 
 		slot_lock lock(*m_pimpl, slot);
 
-		size_type start = slot * m_pimpl->info.piece_length() + offset;
+		size_type start = slot * (size_type)m_pimpl->info.piece_length() + offset;
 
 		// find the file iterator and file offset
 		size_type file_offset = start;

@@ -100,9 +100,7 @@ namespace libtorrent
 		, m_supports_extensions(false)
 		, m_num_pieces(0)
 		, m_free_upload(0)
-		, m_send_quota(100)
-		, m_send_quota_left(100)
-		, m_send_quota_limit(100)
+		, m_send_quota_left(0)
 		, m_trust_points(0)
 		, m_num_invalid_requests(0)
 		, m_last_piece(boost::posix_time::second_clock::local_time())
@@ -164,9 +162,7 @@ namespace libtorrent
 		, m_supports_extensions(false)
 		, m_num_pieces(0)
 		, m_free_upload(0)
-		, m_send_quota(100)
-		, m_send_quota_left(100)
-		, m_send_quota_limit(100)
+		, m_send_quota_left(0)
 		, m_trust_points(0)
 		, m_num_invalid_requests(0)
 		, m_last_piece(boost::posix_time::second_clock::local_time())
@@ -206,23 +202,6 @@ namespace libtorrent
 			assert(m_torrent != 0);
 			m_torrent->remove_peer(this);
 		}
-	}
-
-	void peer_connection::set_send_quota(int num_bytes)
-	{
-		INVARIANT_CHECK;
-
-		assert(num_bytes >= 0 || num_bytes == -1);
-
-		if (num_bytes > m_send_quota_limit
-			&& m_send_quota_limit != -1)
-			num_bytes = m_send_quota_limit;
-
-		assert(num_bytes <= m_send_quota_limit || m_send_quota_limit == -1);
-
-		m_send_quota = num_bytes;
-		m_send_quota_left = num_bytes;
-		send_buffer_updated();
 	}
 
 	void peer_connection::send_handshake()
@@ -1246,9 +1225,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		m_statistics.second_tick();
-		m_send_quota_left = m_send_quota;
-		if (m_send_quota > 0) send_buffer_updated();
 
+		update_send_quota_left();
+		
 		// If the client sends more data
 		// we send it data faster, otherwise, slower.
 		// It will also depend on how much data the
@@ -1256,16 +1235,47 @@ namespace libtorrent
 		// maintain the share ratio given by m_ratio
 		// with all peers.
 
-		size_type diff = share_diff();
-
-		enum { block_limit=2 }; // how many blocks difference is considered unfair
-
-		if (diff > block_limit*m_torrent->block_size() || m_torrent->is_seed())
+		if (m_torrent->is_seed() || is_choked() || m_torrent->ratio()==0.0f)
 		{
 			// if we have downloaded more than one piece more
 			// than we have uploaded OR if we are a seed
 			// have an unlimited upload rate
-			m_send_quota_limit = -1;
+			upload_bandwidth.wanted = std::numeric_limits<int>::max();
+		}
+		else
+		{
+			double bias = 0x20000 + m_free_upload;
+
+			double break_even_time = 10;
+			double have_uploaded = (double)m_statistics.total_payload_upload();
+			double have_downloaded = (double)m_statistics.total_payload_download();
+			double download_speed = m_statistics.download_rate();
+
+			double soon_downloaded =
+				have_downloaded+download_speed * 2 * break_even_time;
+
+			double upload_speed_limit = (soon_downloaded*m_torrent->ratio()
+				                   - have_uploaded + bias) / break_even_time;
+			upload_speed_limit=std::max(upload_speed_limit,1.0);
+			upload_speed_limit=std::min(upload_speed_limit,
+				                        (double)std::numeric_limits<int>::max());
+
+			upload_bandwidth.wanted = (int) upload_speed_limit;
+		}
+
+/*
+		size_type diff = share_diff();
+
+		enum { block_limit=2 }; // how many blocks difference is considered unfair
+
+		// if the peer has been choked, send tha current piece
+		// as fast as possible
+		if (diff > block_limit*m_torrent->block_size() || m_torrent->is_seed() || is_choked())
+		{
+			// if we have downloaded more than one piece more
+			// than we have uploaded OR if we are a seed
+			// have an unlimited upload rate
+			upload_bandwidth.wanted = std::numeric_limits<int>::max();
 		}
 		else
 		{
@@ -1284,15 +1294,12 @@ namespace libtorrent
 			{
 				bias = -static_cast<int>(m_statistics.download_rate() * ratio) / 2;
 			}
-			m_send_quota_limit = static_cast<int>(m_statistics.download_rate()) + bias;
+			upload_bandwidth.wanted = static_cast<int>(m_statistics.download_rate()) + bias;
 
 			// the maximum send_quota given our download rate from this peer
-			if (m_send_quota_limit < 256) m_send_quota_limit = 256;
-
-			// if the peer has been choked, send tha current piece
-			// as fast as possible
-			if (is_choked()) m_send_quota_limit = -1;
+			if (upload_bandwidth.wanted < 256) upload_bandwidth.wanted = 256;
 		}
+*/
 	}
 
 	// --------------------------

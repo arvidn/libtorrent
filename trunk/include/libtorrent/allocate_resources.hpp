@@ -38,52 +38,26 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	struct resource_consumer;
+	struct resource_request {
+		resource_request() : used(0), wanted(0), given(0) { }
 
+		// I'm right now actively using:
+		int used;
+
+		// I would like to use this much:
+		int wanted;
+
+		// Reply: Okay, you're allowed to use this much (a compromise):
+		int given;
+	};
 
 	// Function to allocate a limited resource fairly among many consumers.
 	// It takes into account the current use, and the consumer's desired use.
-	// Should be invoked periodically to allow it adjust to the situation.
+	// Should be invoked periodically to allow it adjust to the situation (make
+	// sure "used" is updated between calls!).
 	
 	void allocate_resources(int resources,
-		std::vector<resource_consumer> & consumers);
-
-	// information needed by allocate_resources about each client.
-	struct resource_consumer
-	{
-		resource_consumer(
-			boost::any who,	// who is this info about?
-			int desired_use, // the max that the consumer is willing/able to use
-			int current_use // how many resources does it use right now?
-			); 
-			
-		// who/what is this info about?
-		boost::any const &who() const { return m_who; }
-
-		// after the allocation process, this is the resulting
-		// number of resources that this consumer is allowed to
-		// use up. If it's currently using up more resources it
-		// must free up resources accordingly.
-		int allowed_use() const { return m_allowed_use; };
-
-		// how many resources does it use right now?
-		int current_use() const { return m_current_use; }
-
-		// how many resources does it desire to use?
-		// - the max that the consumer is willing/able to use
-		int desired_use() const { return m_desired_use; }
-
-		// give allowance to use num_resources more resources
-		// than currently allowed. returns how many the consumer
-		// accepts. used internally by allocate_resources.
-		int give(int num_resources);
-
-	private:
-		boost::any m_who;
-		int m_current_use;
-		int m_desired_use;
-		int m_allowed_use;
-	};
+		std::vector<resource_request *> & requests);
 }
 
 
