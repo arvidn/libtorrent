@@ -141,8 +141,8 @@ If you're building in developer studio, you may have to set the compiler options
 "Enable Run-Time Type Info" to Yes.
 
 If you're building in developer studio 6, you will probably have to use the previous
-version of boost, `boost 1.30.2`__. And you'll definately have to use the latest service
-pack (sp5).
+version of boost, `boost 1.30.2`__. And you'll definately have to use at least service
+pack 5 (sp5).
 
 __ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&release_id=178835
 
@@ -191,9 +191,9 @@ the ``session``, it contains the main loop that serves all torrents.
 The basic usage is as follows:
 
 * conststruct a session
-* parse .torrent-files and add them to the session
-* main loop
-	* query the torrent_handles for progress
+* parse .torrent-files and add them to the session (see `bdecode() bencode()`_)
+* main loop (see session_)
+	* query the torrent_handles for progress (see torrent_handle_)
 	* query the session for information
 	* add and remove torrents from the session at run-time
 * destruct all torrent_handles
@@ -211,7 +211,7 @@ The ``session`` class has the following synopsis::
 	class session: public boost::noncopyable
 	{
 
-		session(const fingerprint& print = libtorrent::fingerprint("LT, 0, 1, 0, 0));
+		session(const fingerprint& print = libtorrent::fingerprint("LT", 0, 1, 0, 0));
 
 		session(
 			const fingerprint& print
@@ -219,13 +219,14 @@ The ``session`` class has the following synopsis::
 			, const char* listen_interface = 0);
 
 		torrent_handle add_torrent(
-			const torrent_info& t
-			, const boost::filesystem::path& save_path
-			, const entry& resume_data = entry());
+			torrent_info const& t
+			, boost::filesystem::path const& save_path
+			, entry const& resume_data = entry());
 
-		void remove_torrent(const torrent_handle& h);
+		void remove_torrent(torrent_handle const& h);
 
 		void set_http_settings(const http_settings& settings);
+
 		void set_upload_rate_limit(int bytes_per_second);
 		void set_download_rate_limit(int bytes_per_second);
 
@@ -233,7 +234,7 @@ The ``session`` class has the following synopsis::
 		unsigned short listen_port() const;
 		bool listen_on(
 			std::pair<int, int> const& port_range
-			, const char* interface = 0);
+			, char const* interface = 0);
 
 
 		std::auto_ptr<alert> pop_alert();
@@ -241,40 +242,102 @@ The ``session`` class has the following synopsis::
 
 	};
 
-Once it's created, it will spawn the main thread that will do all the work.
+Once it's created, the session object will spawn the main thread that will do all the work.
 The main thread will be idle as long it doesn't have any torrents to participate in.
-You add torrents through the ``add_torrent()``-function where you give an
+
+session()
+---------
+
+	::
+
+		session(const fingerprint& print = libtorrent::fingerprint("LT", 0, 1, 0, 0));
+		session(
+			const fingerprint& print
+			, std::pair<int, int> listen_port_range
+			, const char* listen_interface = 0);
+
+If the fingerprint in the first overload is ommited, the client will get a default
+fingerprint stating the version of libtorrent. The fingerprint is a short string that will be
+used in the peer-id to identify the client and the client's version. For more details see the
+fingerprint_ class. The constructor that only takes a fingerprint will not open a
+listen port for the session, to get it running you'll have to call ``session::listen_on()``.
+The other constructor, that takes a port range and an interface as well as the fingerprint
+will automatically try to listen on a port on the given interface. For more information about
+the parameters, see ``listen_on()`` function.
+
+~session()
+----------
+
+The destructor of session will notify all trackers that our torrents has been shut down.
+If some trackers are down, they will timout. All this before the destructor of session
+returns. So, it's adviced that any kind of interface (such as windows) are closed before
+destructing the sessoin object. Because it can take a few second for it to finish. The
+timeout can be set with ``set_http_settings()``.
+
+
+add_torrent()
+-------------
+
+	::
+
+		torrent_handle add_torrent(
+			torrent_info const& t
+			, boost::filesystem::path const& save_path
+			, entry const& resume_data = entry());
+
+You add torrents through the ``add_torrent()`` function where you give an
 object representing the information found in the torrent file and the path where you
 want to save the files. The ``save_path`` will be prepended to the directory
-structure in the torrent-file. ``add_torrent`` will throw duplicate_torrent_ exception
-if the torrent already exists in the session.
-
-The optional last parameter, ``resume_data`` can be given if up to date fast-resume data
-is available. The fast-resume data can be acquired from a running torrent by calling
-``torrent_handle::write_resume_data()``. See `fast resume`_.
-
-``remove_torrent()`` will close all peer connections associated with the torrent and tell
-the tracker that we've stopped participating in the swarm.
+structure in the torrent-file.
 
 If the torrent you are trying to add already exists in the session (is either queued
 for checking, being checked or downloading) ``add_torrent()`` will throw
 duplicate_torrent_ which derives from ``std::exception``.
 
-The difference between the two constructors is that one of them takes a fingerprint
-as argument. If this is ommited, the client will get a default fingerprint stating
-the version of libtorrent. The fingerprint is a short string that will be used in
-the peer-id to identify the client and the client's version. For more details see the
-fingerprint class. The constructor that only takes a finger print will not open a
-listen port for the session, to get it running you'll have to call ``session::listen_on()``.
-The other constructor, that takes a port range and an interface as well as the fingerprint
-will automatically try to listen on a port on the given interface. For more information about
-the parameters, see ``listen_on()`` function.
+The optional last parameter, ``resume_data`` can be given if up to date fast-resume data
+is available. The fast-resume data can be acquired from a running torrent by calling
+``torrent_handle::write_resume_data()``. See `fast resume`_.
+
+The torrent_handle_ returned by ``add_torrent()`` can be used to retrieve information
+about the torrent's progress, its peers etc. It is also used to abort a torrent.
+
+
+remove_torrent()
+----------------
+
+	::
+
+		void remove_torrent(torrent_handle const& h);
+
+``remove_torrent()`` will close all peer connections associated with the torrent and tell
+the tracker that we've stopped participating in the swarm.
+
+
+set_upload_rate_limit() set_downlad_rate_limit()
+------------------------------------------------
+
+	::
+
+		void set_upload_rate_limit(int bytes_per_second);
+		void set_download_rate_limit(int bytes_per_second);
 
 ``set_upload_rate_limit()`` set the maximum number of bytes allowed to be
 sent to peers per second. This bandwidth is distributed among all the peers. If
 you don't want to limit upload rate, you can set this to -1 (the default).
 ``set_download_rate_limit()`` works the same way but for download rate instead
 of upload rate.
+
+
+is_listening() listen_port() listen_on()
+----------------------------------------
+
+	::
+
+		bool is_listening() const;
+		unsigned short listen_port() const;
+		bool listen_on(
+			std::pair<int, int> const& port_range
+			, char const* interface = 0);
 
 ``is_listening()`` will tell you wether or not the session has successfully
 opened a listening port. If it hasn't, this function will return false, and
@@ -297,81 +360,18 @@ generate an appropriate alert (listen_failed_alert_).
 The interface parameter can also be a hostname that will resolve to the device you
 want to listen on.
 
-The destructor of session will notify all trackers that our torrents has been shut down.
-If some trackers are down, they will timout. All this before the destructor of session
-returns. So, it's adviced that any kind of interface (such as windows) are closed before
-destructing the sessoin object. Because it can take a few second for it to finish. The
-timeout can be set with ``set_http_settings()``.
 
-The torrent_handle_ returned by ``add_torrent`` can be used to retrieve information
-about the torrent's progress, its peers etc. It is also used to abort a torrent.
+pop_alert() set_severity_level()
+--------------------------------
 
-The constructor takes a range of listen ports as argument, if the first port is busy it will
-increase the port number by one and try again. If it still fails it will continue
-increasing the port number until it succeeds or has reached the end of the range. If it
-fails with all ports, a listen_failed_alert_ will be posted and the session thread will
-exit. The only thing you can do with your session if this alert is posted is to destruct
-it and possibly try again or change the port range. The listen interaface string is
-the name (ip address) of the interface you want to listen on. If this is left as
-0, the os will decide which interface to listen on (works in most cases). All torrents
-will use this interface to open outgoing connections on by default. You can change
-which interface  to use for outgoing connections on a per torrent basis. See torrent_handle_.
+	::
 
-For information about the ``pop_alert()`` function, see alerts_.
+		std::auto_ptr<alert> pop_alert();
+		void set_severity_level(alert::severity_t s);
 
-
-
-parsing torrent files
-=====================
-
-The torrent files are bencoded__. There are two functions in libtorrent that can encode and decode
-bencoded data. They are::
-
-	template<class InIt> entry bdecode(InIt start, InIt end);
-	template<class OutIt> void bencode(OutIt out, const entry& e);
-
-__ http://wiki.theory.org/index.php/BitTorrentSpecification
-
-
-The entry_ class is the internal representation of the bencoded data
-and it can be used to retreive information, an entry_ can also be build by
-the program and given to ``bencode()`` to encode it into the ``OutIt``
-iterator.
-
-The ``OutIt`` and ``InIt`` are iterators
-(``InputIterator_`` and ``OutputIterator_`` respectively). They
-are templates and are usually instantiated as ``ostream_iterator_``,
-``back_insert_iterator_`` or ``istream_iterator_``. These
-functions will assume that the iterator refers to a character
-(``char``). So, if you want to encode entry ``e`` into a buffer
-in memory, you can do it like this::
-
-	std::vector<char> buffer;
-	bencode(std::back_insert_iterator<std::vector<char> >(buf), e);
-
-.. _InputIterator: http://www.sgi.com/tech/stl/InputIterator.html
-.. _OutputIterator: http://www.sgi.com/tech/stl/OutputIterator.html
-.. _ostream_iterator: http://www.sgi.com/tech/stl/ostream_iterator.html
-.. _back_insert_iterator: http://www.sgi.com/tech/stl/back_insert_iterator.html
-.. _istream_iterator: http://www.sgi.com/tech/stl/istream_iterator.html
-
-
-If you want to decode a torrent file from a buffer in memory, you can do it like this::
-
-	std::vector<char> buffer;
-	// ...
-	entry e = bdecode(buf.begin(), buf.end());
-
-Or, if you have a raw char buffer::
-
-	const char* buf;
-	// ...
-	entry e = bdecode(buf, buf + data_size);
-
-Now we just need to know how to retrieve information from the entry_.
-
-If ``bdecode()`` encounters invalid encoded data in the range given to it
-it will throw invalid_encoding_.
+``pop_alert()`` is used to ask the session if any errors or events has occured. With
+``set_severity_level()`` you can filter how serious the event has to be for you to
+receive it through ``pop_alert()``. For information, see alerts_.
 
 
 
@@ -419,13 +419,13 @@ or a string. This is its synopsis::
 		void operator=(const integer_type&);
 
 		integer_type& integer();
-		const integer_type& integer() const;
+		integer_type const& integer() const;
 		string_type& string();
-		const string_type& string() const;
+		string_type const& string() const;
 		list_type& list();
-		const list_type& list() const;
+		list_type const& list() const;
 		dictionary_type& dict();
-		const dictionary_type& dict() const;
+		dictionary_type const& dict() const;
 
 		// these functions requires that the entry
 		// is a dictionary, otherwise they will throw	
@@ -438,6 +438,22 @@ or a string. This is its synopsis::
 		
 		void print(std::ostream& os, int indent = 0) const;
 	};
+
+*TODO: finish documentation of entry.*
+
+integer() string() list() dict() type()
+---------------------------------------
+
+	::
+
+		integer_type& integer();
+		integer_type const& integer() const;
+		string_type& string();
+		string_type const& string() const;
+		list_type& list();
+		list_type const& list() const;
+		dictionary_type& dict();
+		dictionary_type const& dict() const;
 
 The ``integer()``, ``string()``, ``list()`` and ``dict()`` functions
 are accessorts that return the respecive type. If the ``entry`` object isn't of the
@@ -521,6 +537,17 @@ The ``torrent_info`` has the following synopsis::
 		const sha1_hash& hash_for_piece(unsigned int index) const;
 	};
 
+
+begin_files() end_files() rbegin_files() rend_files()
+-----------------------------------------------------
+
+	::
+
+		file_iterator begin_files() const;
+		file_iterator end_files() const;
+		reverse_file_iterator rbegin_files() const;
+		reverse_file_iterator rend_files() const;
+
 This class will need some explanation. First of all, to get a list of all files
 in the torrent, you can use ``begin_files()``, ``end_files()``,
 ``rbegin_files()`` and ``rend_files()``. These will give you standard vector
@@ -534,13 +561,37 @@ iterators with the type ``file_entry``.
 		size_type size;
 	};
 
+
+num_files() file_at()
+---------------------
+
+	::
+	
+		int num_files() const;
+		const file_entry& file_at(int index) const;
+
 If you need index-access to files you can use the ``num_files()`` and ``file_at()``
 to access files using indices.
+
+
+print()
+-------
+
+	::
+
+		void print(std::ostream& os) const;
 
 The ``print()`` function is there for debug purposes only. It will print the info from
 the torrent file to the given outstream.
 
-``name()`` returns the name of the torrent.
+
+trackers() prioritize_tracker()
+-------------------------------
+
+	::
+
+		const std::vector<announce_entry>& trackers() const;
+		int prioritize_tracker(int index);
 
 The ``trackers()`` function will return a sorted vector of ``announce_entry``.
 Each announce entry contains a string, which is the tracker url, and a tier index. The
@@ -563,6 +614,17 @@ specification_.
 .. _specification: http://home.elp.rr.com/tur/multitracker-spec.txt
 
 
+total_size() piece_length() piece_size() num_pieces()
+-----------------------------------------------------
+
+	::
+
+		size_type total_size() const;
+		size_type piece_length() const;
+		size_type piece_size(unsigned int index) const;
+		int num_pieces() const;
+
+
 ``total_size()``, ``piece_length()`` and ``num_pieces()`` returns the total
 number of bytes the torrent-file represents (all the files in it), the number of byte for
 each piece and the total number of pieces, respectively. The difference between
@@ -571,9 +633,30 @@ the piece index as argument and gives you the exact size of that piece. It will 
 be the same as ``piece_length()`` except in the case of the last piece, which may
 be smaller.
 
+
+hash_for_piece() info_hash()
+----------------------------
+
+	::
+	
+		size_type piece_size(unsigned int index) const;
+		const sha1_hash& hash_for_piece(unsigned int index) const;
+
 ``hash_for_piece()`` takes a piece-index and returns the 20-bytes sha1-hash for that
 piece and ``info_hash()`` returns the 20-bytes sha1-hash for the info-section of the
 torrent file. For more information on the ``sha1_hash``, see the big_number_ class.
+
+
+name() comment() creation_date()
+--------------------------------
+
+	::
+
+		const std::stirng& name() const;
+		const std::string& comment() const;
+		boost::optional<boost::posix_time::ptime> creation_date() const;
+
+``name()`` returns the name of the torrent.
 
 ``comment()`` returns the comment associated with the torrent. If there's no comment,
 it will return an empty string. ``creation_date()`` returns a `boost::posix_time::ptime`__
@@ -599,12 +682,12 @@ Its declaration looks like this::
 		torrent_status status();
 		void get_download_queue(std::vector<partial_piece_info>& queue);
 		void get_peer_info(std::vector<peer_info>& v);
-		const torrent_info& get_torrent_info();
+		torrent_info const& get_torrent_info();
 		bool is_valid();
 
 		entry write_resume_data();
 		void force_reannounce();
-		void connect_peer(const address& adr) const;
+		void connect_peer(address const& adr) const;
 
 		void set_tracker_login(std::string const& username, std::string const& password);
 
@@ -613,7 +696,7 @@ Its declaration looks like this::
 		void set_max_connections(int max_connections);
 		void set_upload_limit(int limit);
 		void set_download_limit(int limit);
-		void use_interface(const char* net_interface);
+		void use_interface(char const* net_interface);
 
 		void pause();
 		void resume();
@@ -632,18 +715,50 @@ The default constructor will initialize the handle to an invalid state. Which me
 perform any operation on it, unless you first assign it a valid handle. If you try to perform
 any operation on an uninitialized handle, it will throw ``invalid_handle``.
 
-``save_path()`` returns the path that was given to ``add_torrent()`` when this torrent
+
+save_path()
+-----------
+
+	::
+
+		boost::filsystem::path save_path() const;
+
+``save_path()`` returns the path that was given to `add_torrent()`_ when this torrent
 was started.
+
+
+force_reannounce()
+------------------
+
+	::
+
+		void force_reannounce();
 
 ``force_reannounce()`` will force this torrent to do another tracker request, to receive new
 peers. If the torrent is invalid, queued or in checking mode, this functions will throw
 invalid_handle_.
+
+
+connect_peer()
+--------------
+
+	::
+
+		void connect_peer(address const& adr) const;
 
 ``connect_peer()`` is a way to manually connect to peers that one believe is a part of the
 torrent. If the peer does not respond, or is not a member of this torrent, it will simply
 be disconnected. No harm can be done by using this other than an unnecessary connection
 attempt is made. If the torrent is uninitialized or in queued or checking mode, this
 will throw invalid_handle_.
+
+
+set_ratio()
+-----------
+
+	::
+
+		void set_ratio(float ratio);
 
 ``set_ratio()`` sets the desired download / upload ratio. If set to 0, it is considered being
 infinite. i.e. the client will always upload as much as it can, no matter how much it gets back
@@ -654,6 +769,15 @@ attempt to upload in return for each download. e.g. if set to 2, the client will
 2 bytes for every byte received. The default setting for this is 0, which will make it work
 as a standard client.
 
+
+set_upload_limit() set_download_limit()
+---------------------------------------
+
+	::
+
+		void set_upload_limit(int limit);
+		void set_download_limit(int limit);
+
 ``set_upload_limit`` will limit the upload bandwidth used by this particular torrent to the
 limit you set. It is given as the number of bytes per second the torrent is allowed to upload.
 ``set_download_limit`` works the same way but for download bandwidth instead of upload bandwidth.
@@ -661,19 +785,63 @@ Note that setting i higher limit on a torrent then the global limit (``session::
 will not override the global rate limit. The torrent can never upload more than the global rate
 limit.
 
+
+pause() resume() is_paused()
+----------------------------
+
+	::
+
+		void pause();
+		void resume();
+		bool is_paused() const;
+
 ``pause()``, and ``resume()`` will disconnect all peers and reconnect all peers respectively.
 When a torrent is paused, it will however remember all share ratios to all peers and remember
 all potential (not connected) peers. You can use ``is_paused()`` to determine if a torrent
 is currently paused. Torrents may be paused automatically if there is a file error (eg. disk full)
 or something similar. See file_error_alert_.
 
+
+set_tracker_login()
+-------------------
+
+	::
+
+		void set_tracker_login(std::string const& username, std::string const& password);
+
 ``set_tracker_login()`` sets a username and password that will be sent along in the HTTP-request
 of the tracker announce. Set this if the tracker requires authorization.
 
-``use_interface()`` sets the network interface this torrent will use when it opens outgoing
-connections. By default, it uses the same interface as the session_ uses to listen on.
 
-``info_hash()`` returns the info hash for the torrent.
+use_interface()
+---------------
+
+	::
+
+		void use_interface(char const* net_interface);
+
+``use_interface()`` sets the network interface this torrent will use when it opens outgoing
+connections. By default, it uses the same interface as the session_ uses to listen on. The
+parameter can be a string containing an ip-address or a hostname.
+
+
+info_hash()
+-----------
+
+	::
+
+		sha1_hash info_hash() const;
+
+``info_hash()`` returns the info-hash for the torrent.
+
+
+set_max_uploads() set_max_connections()
+---------------------------------------
+
+	::
+
+		void set_max_uploads(int max_uploads);
+		void set_max_connections(int max_connections);
 
 ``set_max_uploads()`` sets the maximum number of peers that's unchoked at the same time on this
 torrent. If you set this to -1, there will be no limit.
@@ -683,15 +851,115 @@ connections are used up, incoming connections may be refused or poor connections
 This must be at least 2. The default is unlimited number of connections. If -1 is given to the
 function, it means unlimited.
 
-``write_resume_data()`` generates fast-resume data and returns it as an entry. This entry
+
+write_resume_data()
+-------------------
+
+	::
+
+		entry write_resume_data();
+
+``write_resume_data()`` generates fast-resume data and returns it as an entry_. This entry_
 is suitable for being bencoded. For more information about how fast-resume works, see `fast resume`_.
 It may throw invalid_handle_ if the torrent handle is invalid.
+
 
 status()
 --------
 
+	::
+
+		torrent_status status();
+
 ``status()`` will return a structure with information about the status of this
 torrent. If the torrent_handle_ is invalid, it will throw invalid_handle_ exception.
+See torrent_status_.
+
+
+get_download_queue()
+--------------------
+
+	::
+
+		void get_download_queue(std::vector<partial_piece_info>& queue);
+
+``get_download_queue()`` takes a non-const reference to a vector which it will fill with
+information about pieces that are partially downloaded or not downloaded at all but partially
+requested. The entry in the vector (``partial_piece_info``) looks like this::
+
+	struct partial_piece_info
+	{
+		enum { max_blocks_per_piece };
+		int piece_index;
+		int blocks_in_piece;
+		std::bitset<max_blocks_per_piece> requested_blocks;
+		std::bitset<max_blocks_per_piece> finished_blocks;
+		peer_id peer[max_blocks_per_piece];
+		int num_downloads[max_blocks_per_piece];
+	};
+
+``piece_index`` is the index of the piece in question. ``blocks_in_piece`` is the
+number of blocks in this particular piece. This number will be the same for most pieces, but
+the last piece may have fewer blocks than the standard pieces.
+
+``requested_blocks`` is a bitset with one bit per block in the piece. If a bit is set, it
+means that that block has been requested, but not necessarily fully downloaded yet. To know
+from whom the block has been requested, have a look in the ``peer`` array. The bit-index
+in the ``requested_blocks`` and ``finished_blocks`` correspons to the array-index into
+``peers`` and ``num_downloads``. The array of peers is contains the id of the
+peer the piece was requested from. If a piece hasn't been requested (the bit in
+``requested_blocks`` is not set) the peer array entry will be undefined.
+
+The ``finished_blocks`` is a bitset where each bit says if the block is fully downloaded
+or not. And the ``num_downloads`` array says how many times that block has been downloaded.
+When a piece fails a hash verification, single blocks may be redownloaded to see if the hash teast
+may pass then.
+
+
+get_peer_info()
+---------------
+
+	::
+
+		void get_peer_info(std::vector<peer_info>&);
+
+``get_peer_info()`` takes a reference to a vector that will be cleared and filled
+with one entry for each peer connected to this torrent, given the handle is valid. If the
+torrent_handle_ is invalid, it will throw invalid_handle_ exception. Each entry in
+the vector contains information about that particular peer. See peer_info_.
+
+
+get_torrent_info()
+------------------
+
+	::
+
+		torrent_info const& get_torrent_info();
+
+Returns a const reference to the torrent_info_ object associated with this torrent.
+This reference is valid as long as the torrent_handle_ is valid, no longer. If the
+torrent_handle_ is invalid, invalid_handle_ exception will be thrown.
+
+
+is_valid()
+----------
+
+	::
+
+		bool is_valid() const;
+
+Returns true if this handle refers to a valid torrent and false if it hasn't been initialized
+or if the torrent it refers to has been aborted. Note that a handle may become invalid after
+it has been added to the session. Usually this is because the storage for the torrent is
+somehow invalid or if the filenames are not allowed (and hence cannot be opened/created) on
+your filesystem. If such an error occurs, a file_error_alert_ is generated and all handles
+that refers to that torrent will become invalid.
+
+
+
+torrent_status
+==============
+
 It contains the following fields::
 
 	struct torrent_status
@@ -785,50 +1053,12 @@ all peers. The rates are given as the number of bytes per second.
 
 ``total_done`` is the total number of bytes of the file(s) that we have.
 
-get_download_queue()
---------------------
-
-``get_download_queue()`` takes a non-const reference to a vector which it will fill with
-information about pieces that are partially downloaded or not downloaded at all but partially
-requested. The entry in the vector (``partial_piece_info``) looks like this::
-
-	struct partial_piece_info
-	{
-		enum { max_blocks_per_piece };
-		int piece_index;
-		int blocks_in_piece;
-		std::bitset<max_blocks_per_piece> requested_blocks;
-		std::bitset<max_blocks_per_piece> finished_blocks;
-		peer_id peer[max_blocks_per_piece];
-		int num_downloads[max_blocks_per_piece];
-	};
-
-``piece_index`` is the index of the piece in question. ``blocks_in_piece`` is the
-number of blocks in this particular piece. This number will be the same for most pieces, but
-the last piece may have fewer blocks than the standard pieces.
-
-``requested_blocks`` is a bitset with one bit per block in the piece. If a bit is set, it
-means that that block has been requested, but not necessarily fully downloaded yet. To know
-from whom the block has been requested, have a look in the ``peer`` array. The bit-index
-in the ``requested_blocks`` and ``finished_blocks`` correspons to the array-index into
-``peers`` and ``num_downloads``. The array of peers is contains the id of the
-peer the piece was requested from. If a piece hasn't been requested (the bit in
-``requested_blocks`` is not set) the peer array entry will be undefined.
-
-The ``finished_blocks`` is a bitset where each bit says if the block is fully downloaded
-or not. And the ``num_downloads`` array says how many times that block has been downloaded.
-When a piece fails a hash verification, single blocks may be redownloaded to see if the hash teast
-may pass then.
 
 
-get_peer_info()
----------------
+peer_info
+=========
 
-``get_peer_info()`` takes a reference to a vector that will be cleared and filled
-with one entry for each peer connected to this torrent, given the handle is valid. If the
-torrent_handle_ is invalid, it will throw invalid_handle_ exception. Each entry in
-the vector contains information about that particular peer. It contains the following
-fields::
+It contains the following fields::
 
 	struct peer_info
 	{
@@ -898,7 +1128,7 @@ the payload data.
 
 ``id`` is the peer's id as used in the bit torrent protocol. This id can be used to
 extract 'fingerprints' from the peer. Sometimes it can tell you which client the peer
-is using. See identify_client_
+is using. See identify_client()_
 
 ``pieces`` is a vector of booleans that has as many entries as there are pieces
 in the torrent. Each boolean tells you if the peer has that piece (if it's set to true)
@@ -932,25 +1162,6 @@ This may be set to -1 if there's currently no piece downloading from this peer. 
 block (or sub-piece) that is being downloaded. ``downloading_progress`` is the number
 of bytes of this block we have received from the peer, and ``downloading_total`` is
 the total number of bytes in this block.
-
-
-get_torrent_info()
-------------------
-
-Returns a const reference to the torrent_info_ object associated with this torrent.
-This reference is valid as long as the torrent_handle_ is valid, no longer. If the
-torrent_handle_ is invalid, invalid_handle_ exception will be thrown.
-
-
-is_valid()
-----------
-
-Returns true if this handle refers to a valid torrent and false if it hasn't been initialized
-or if the torrent it refers to has been aborted. Note that a handle may become invalid after
-it has been added to the session. Usually this is because the storage for the torrent is
-somehow invalid or if the filenames are not allowed (and hence cannot be opened/created) on
-your filesystem. If such an error occurs, a file_error_alert_ is generated and all handles
-that refers to that torrent will become invalid.
 
 
 
@@ -988,7 +1199,6 @@ It is less-than comparable to make it possible to use it as a key in a map. ``as
 while it does the DNS lookup, it returns a string that points to the address represented by the object.
 
 ``ip()`` will return the 32-bit ip-address as an integer. ``port()`` returns the port number.
-
 
 
 
@@ -1118,7 +1328,7 @@ This is the class declaration::
 
 	};
 
-The constructor takes a ``const char*`` that should point to a string constant containing
+The constructor takes a ``char const*`` that should point to a string constant containing
 exactly two characters. These are the characters that should be unique for your client. Make
 sure not to clash with anybody else. Here are some taken id's:
 
@@ -1140,16 +1350,73 @@ version of your client. All these numbers must be within the range [0, 9].
 
 ``to_string()`` will generate the actual string put in the peer-id, and return it.
 
-identify_client
----------------
 
-There's a function, in the header ``libtorrent/identify_client.hpp``, that can be used
-to extract a string describing a client version from its peer-id. It has the following
-declaration::
+free functions
+==============
 
-	std::string identify_client(const peer_id& id);
+identify_client()
+-----------------
 
-It will recognize most clients that have this kind of identification in the peer-id.
+	::
+
+		std::string identify_client(peer_id const& id);
+
+This function is declared in the header ``<libtorrent/identify_client.hpp>``. It can can be used
+to extract a string describing a client version from its peer-id. It will recognize most clients
+that have this kind of identification in the peer-id.
+
+bdecode() bencode()
+-------------------
+
+	::
+
+		template<class InIt> entry bdecode(InIt start, InIt end);
+		template<class OutIt> void bencode(OutIt out, const entry& e);
+
+
+These functions will encode data to bencoded_ or decode bencoded_ data.
+
+.. _bencoded: http://wiki.theory.org/index.php/BitTorrentSpecification
+
+The entry_ class is the internal representation of the bencoded data
+and it can be used to retreive information, an entry_ can also be build by
+the program and given to ``bencode()`` to encode it into the ``OutIt``
+iterator.
+
+The ``OutIt`` and ``InIt`` are iterators
+(``InputIterator_`` and ``OutputIterator_`` respectively). They
+are templates and are usually instantiated as ``ostream_iterator_``,
+``back_insert_iterator_`` or ``istream_iterator_``. These
+functions will assume that the iterator refers to a character
+(``char``). So, if you want to encode entry ``e`` into a buffer
+in memory, you can do it like this::
+
+	std::vector<char> buffer;
+	bencode(std::back_insert_iterator<std::vector<char> >(buf), e);
+
+.. _InputIterator: http://www.sgi.com/tech/stl/InputIterator.html
+.. _OutputIterator: http://www.sgi.com/tech/stl/OutputIterator.html
+.. _ostream_iterator: http://www.sgi.com/tech/stl/ostream_iterator.html
+.. _back_insert_iterator: http://www.sgi.com/tech/stl/back_insert_iterator.html
+.. _istream_iterator: http://www.sgi.com/tech/stl/istream_iterator.html
+
+If you want to decode a torrent file from a buffer in memory, you can do it like this::
+
+	std::vector<char> buffer;
+	// ...
+	entry e = bdecode(buf.begin(), buf.end());
+
+Or, if you have a raw char buffer::
+
+	const char* buf;
+	// ...
+	entry e = bdecode(buf, buf + data_size);
+
+Now we just need to know how to retrieve information from the entry_.
+
+If ``bdecode()`` encounters invalid encoded data in the range given to it
+it will throw invalid_encoding_.
+
 
 
 alerts
@@ -1451,7 +1718,7 @@ torrent in question. This alert is generated as severity level ``info``.
 dispatcher
 ----------
 
-TODO: describe the dispatcher mechanism
+*TODO: describe the dispatcher mechanism*
 
 
 
@@ -1479,7 +1746,7 @@ been initialized or that has become invalid.
 duplicate_torrent
 -----------------
 
-This is thrown by ``session::add_torrent()`` if the torrent already has been added to
+This is thrown by `add_torrent()`_ if the torrent already has been added to
 the session.
 
 ::
@@ -1630,7 +1897,8 @@ This is a simple client. It doesn't have much output to keep it simple::
 
 		try
 		{
-			session s(std::make_pair(6881, 6889));
+			session s;
+			s.listen_on(std::make_pair(6881, 6889));
 	
 			std::ifstream in(argv[1], std::ios_base::binary);
 			in.unsetf(std::ios_base::skipws);
@@ -1662,7 +1930,7 @@ then, and rely on the information given in the fast-resume data. The fast-resume
 also contains information about which blocks, in the unfinished pieces, were downloaded,
 so it will not have to start from scratch on the partially downloaded pieces.
 
-To use the fast-resume data you simply give it to ``session::add_torrent()``, and it
+To use the fast-resume data you simply give it to `add_torrent()`_, and it
 will skip the time consuming checks. It may have to do the checking anyway, if the
 fast-resume data is corrupt or doesn't fit the storage for that torrent, then it will
 not trust the fast-resume data and just do the checking.
@@ -1723,6 +1991,10 @@ The file format is a bencoded dictionary containing the following fields:
 |                      | |             | blocks that have been downloaded in this   | |
 |                      | |             | piece.                                     | |
 |                      | +-------------+--------------------------------------------+ |
+|                      | | ``adler32`` | The adler32 checksum of the data in the    | |
+|                      | |             | blocks specified by ``bitmsk``.            | |
+|                      | |             |                                            | |
+|                      | +-------------+--------------------------------------------+ |
 |                      |                                                              |
 +----------------------+--------------------------------------------------------------+
 
@@ -1769,7 +2041,10 @@ filenames checks
 Boost.Filesystem will by default check all its paths to make sure they conform
 to filename requirements on many platforms. If you don't want this check, you can
 set it to either only check for native filesystem requirements or turn it off
-alltogether. You can use: ``boost::filesystem::path::default_name_check(boost::filesystem::native)``
+alltogether. You can use::
+
+	boost::filesystem::path::default_name_check(boost::filesystem::native);
+
 for example. For more information, see the `Boost.Filesystem docs`__.
 
 __ http://www.boost.org/libs/filesystem/doc/index.htm
