@@ -424,7 +424,7 @@ namespace libtorrent
 		{
 			// make sure we have enough
 			// unchoked peers
-			while (m_num_unchoked < m_max_uploads)
+			while (m_num_unchoked < m_max_uploads || m_max_uploads == -1)
 			{
 				peer* p = 0;
 				for (std::vector<peer>::iterator i = m_peers.begin();
@@ -469,7 +469,7 @@ namespace libtorrent
 			
 			// make sure we don't have too many
 			// unchoked peers
-			while (m_num_unchoked > m_max_uploads)
+			while (m_num_unchoked > m_max_uploads && m_max_uploads != -1)
 			{
 				peer* p = find_choke_candidate();
 				assert(p);
@@ -491,7 +491,7 @@ namespace libtorrent
 
 			// make sure we have enough
 			// unchoked peers
-			while (m_num_unchoked < m_max_uploads && unchoke_one_peer());
+			while ((m_num_unchoked < m_max_uploads || m_max_uploads == -1) && unchoke_one_peer());
 		}
 
 #ifndef NDEBUG
