@@ -1500,7 +1500,7 @@ If you want to reuse the hasher object once you have created a hash, you have to
 call ``reset()`` to reinitialize it.
 
 The sha1-algorithm used was implemented by Steve Reid and released as public domain.
-For more info, see ``src/sha1.c``.
+For more info, see ``src/sha1.cpp``.
 
 
 fingerprint
