@@ -13,62 +13,63 @@
 <div class="contents topic" id="contents">
 <p class="topic-title"><a name="contents">Contents</a></p>
 <ul class="simple">
-<li><a class="reference" href="#introduction" id="id9" name="id9">introduction</a></li>
-<li><a class="reference" href="#building" id="id10" name="id10">building</a><ul>
-<li><a class="reference" href="#release-and-debug-builds" id="id11" name="id11">release and debug builds</a></li>
+<li><a class="reference" href="#introduction" id="id10" name="id10">introduction</a></li>
+<li><a class="reference" href="#building" id="id11" name="id11">building</a><ul>
+<li><a class="reference" href="#release-and-debug-builds" id="id12" name="id12">release and debug builds</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#using" id="id12" name="id12">using</a></li>
-<li><a class="reference" href="#session" id="id13" name="id13">session</a></li>
-<li><a class="reference" href="#parsing-torrent-files" id="id14" name="id14">parsing torrent files</a></li>
-<li><a class="reference" href="#entry" id="id15" name="id15">entry</a></li>
-<li><a class="reference" href="#torrent-info" id="id16" name="id16">torrent_info</a></li>
-<li><a class="reference" href="#torrent-handle" id="id17" name="id17">torrent_handle</a><ul>
-<li><a class="reference" href="#status" id="id18" name="id18">status()</a></li>
-<li><a class="reference" href="#get-download-queue" id="id19" name="id19">get_download_queue()</a></li>
-<li><a class="reference" href="#get-peer-info" id="id20" name="id20">get_peer_info()</a></li>
-<li><a class="reference" href="#get-torrent-info" id="id21" name="id21">get_torrent_info()</a></li>
-<li><a class="reference" href="#is-valid" id="id22" name="id22">is_valid()</a></li>
+<li><a class="reference" href="#using" id="id13" name="id13">using</a></li>
+<li><a class="reference" href="#session" id="id14" name="id14">session</a></li>
+<li><a class="reference" href="#parsing-torrent-files" id="id15" name="id15">parsing torrent files</a></li>
+<li><a class="reference" href="#entry" id="id16" name="id16">entry</a></li>
+<li><a class="reference" href="#torrent-info" id="id17" name="id17">torrent_info</a></li>
+<li><a class="reference" href="#torrent-handle" id="id18" name="id18">torrent_handle</a><ul>
+<li><a class="reference" href="#status" id="id19" name="id19">status()</a></li>
+<li><a class="reference" href="#get-download-queue" id="id20" name="id20">get_download_queue()</a></li>
+<li><a class="reference" href="#get-peer-info" id="id21" name="id21">get_peer_info()</a></li>
+<li><a class="reference" href="#get-torrent-info" id="id22" name="id22">get_torrent_info()</a></li>
+<li><a class="reference" href="#is-valid" id="id23" name="id23">is_valid()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#address" id="id23" name="id23">address</a></li>
-<li><a class="reference" href="#http-settings" id="id24" name="id24">http_settings</a></li>
-<li><a class="reference" href="#big-number" id="id25" name="id25">big_number</a></li>
-<li><a class="reference" href="#hasher" id="id26" name="id26">hasher</a></li>
-<li><a class="reference" href="#fingerprint" id="id27" name="id27">fingerprint</a><ul>
-<li><a class="reference" href="#identify-client" id="id28" name="id28">identify_client</a></li>
+<li><a class="reference" href="#address" id="id24" name="id24">address</a></li>
+<li><a class="reference" href="#http-settings" id="id25" name="id25">http_settings</a></li>
+<li><a class="reference" href="#big-number" id="id26" name="id26">big_number</a></li>
+<li><a class="reference" href="#hasher" id="id27" name="id27">hasher</a></li>
+<li><a class="reference" href="#fingerprint" id="id28" name="id28">fingerprint</a><ul>
+<li><a class="reference" href="#identify-client" id="id29" name="id29">identify_client</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#alerts" id="id29" name="id29">alerts</a><ul>
-<li><a class="reference" href="#listen-failed-alert" id="id30" name="id30">listen_failed_alert</a></li>
-<li><a class="reference" href="#file-error-alert" id="id31" name="id31">file_error_alert</a></li>
-<li><a class="reference" href="#tracker-alert" id="id32" name="id32">tracker_alert</a></li>
-<li><a class="reference" href="#hash-failed-alert" id="id33" name="id33">hash_failed_alert</a></li>
-<li><a class="reference" href="#peer-error-alert" id="id34" name="id34">peer_error_alert</a></li>
-<li><a class="reference" href="#invalid-request-alert" id="id35" name="id35">invalid_request_alert</a></li>
-<li><a class="reference" href="#torrent-finished-alert" id="id36" name="id36">torrent_finished_alert</a></li>
-<li><a class="reference" href="#dispatcher" id="id37" name="id37">dispatcher</a></li>
+<li><a class="reference" href="#alerts" id="id30" name="id30">alerts</a><ul>
+<li><a class="reference" href="#listen-failed-alert" id="id31" name="id31">listen_failed_alert</a></li>
+<li><a class="reference" href="#file-error-alert" id="id32" name="id32">file_error_alert</a></li>
+<li><a class="reference" href="#tracker-alert" id="id33" name="id33">tracker_alert</a></li>
+<li><a class="reference" href="#hash-failed-alert" id="id34" name="id34">hash_failed_alert</a></li>
+<li><a class="reference" href="#peer-error-alert" id="id35" name="id35">peer_error_alert</a></li>
+<li><a class="reference" href="#invalid-request-alert" id="id36" name="id36">invalid_request_alert</a></li>
+<li><a class="reference" href="#torrent-finished-alert" id="id37" name="id37">torrent_finished_alert</a></li>
+<li><a class="reference" href="#dispatcher" id="id38" name="id38">dispatcher</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#exceptions" id="id38" name="id38">exceptions</a><ul>
-<li><a class="reference" href="#invalid-handle" id="id39" name="id39">invalid_handle</a></li>
-<li><a class="reference" href="#duplicate-torrent" id="id40" name="id40">duplicate_torrent</a></li>
-<li><a class="reference" href="#invalid-encoding" id="id41" name="id41">invalid_encoding</a></li>
-<li><a class="reference" href="#type-error" id="id42" name="id42">type_error</a></li>
-<li><a class="reference" href="#invalid-torrent-file" id="id43" name="id43">invalid_torrent_file</a></li>
+<li><a class="reference" href="#exceptions" id="id39" name="id39">exceptions</a><ul>
+<li><a class="reference" href="#invalid-handle" id="id40" name="id40">invalid_handle</a></li>
+<li><a class="reference" href="#duplicate-torrent" id="id41" name="id41">duplicate_torrent</a></li>
+<li><a class="reference" href="#invalid-encoding" id="id42" name="id42">invalid_encoding</a></li>
+<li><a class="reference" href="#type-error" id="id43" name="id43">type_error</a></li>
+<li><a class="reference" href="#invalid-torrent-file" id="id44" name="id44">invalid_torrent_file</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#examples" id="id44" name="id44">examples</a><ul>
-<li><a class="reference" href="#dump-torrent" id="id45" name="id45">dump_torrent</a></li>
-<li><a class="reference" href="#simple-client" id="id46" name="id46">simple client</a></li>
+<li><a class="reference" href="#examples" id="id45" name="id45">examples</a><ul>
+<li><a class="reference" href="#dump-torrent" id="id46" name="id46">dump_torrent</a></li>
+<li><a class="reference" href="#simple-client" id="id47" name="id47">simple client</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#fast-resume" id="id47" name="id47">fast resume</a><ul>
-<li><a class="reference" href="#file-format" id="id48" name="id48">file format</a></li>
+<li><a class="reference" href="#fast-resume" id="id48" name="id48">fast resume</a><ul>
+<li><a class="reference" href="#file-format" id="id49" name="id49">file format</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#extensions" id="id49" name="id49">extensions</a></li>
-<li><a class="reference" href="#aknowledgements" id="id50" name="id50">aknowledgements</a></li>
+<li><a class="reference" href="#extensions" id="id50" name="id50">extensions</a></li>
+<li><a class="reference" href="#filenames-checks" id="id51" name="id51">filenames checks</a></li>
+<li><a class="reference" href="#aknowledgements" id="id52" name="id52">aknowledgements</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
@@ -149,6 +150,7 @@ boost.filesystem, boost.date_time and various other boost libraries as well as z
 <h1><a name="building">building</a></h1>
 <p>To build libtorrent you need <a class="reference" href="http://www.boost.org">boost</a> and bjam installed.
 Then you can use <tt class="literal"><span class="pre">bjam</span></tt> to build libtorrent.</p>
+<!-- http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=80982 -->
 <p>To make bjam work, you need to set the environment variable <tt class="literal"><span class="pre">BOOST_ROOT</span></tt> to the
 path where boost is installed (e.g. c:\boost_1_30_2 on windows). Then you can just run
 <tt class="literal"><span class="pre">bjam</span></tt> in the libtorrent directory.</p>
@@ -671,7 +673,7 @@ all peers. The rates are given as the number of bytes per second.</p>
 </div>
 <div class="section" id="get-download-queue">
 <h2><a name="get-download-queue">get_download_queue()</a></h2>
-<p><tt class="literal"><span class="pre">get_download_queue()</span></tt> takes a non-const reference to a vector which it will fill
+<p><tt class="literal"><span class="pre">get_download_queue()</span></tt> takes a non-const reference to a vector which it will fill with
 information about pieces that are partially downloaded or not downloaded at all but partially
 requested. The entry in the vector (<tt class="literal"><span class="pre">partial_piece_info</span></tt>) looks like this:</p>
 <pre class="literal-block">
@@ -1542,6 +1544,14 @@ with future versions of bittorrent.</p>
 |          | "ignored" and "not ignored".                           |
 |          | Any unrecognized strings should be ignored.            |
 +- - - - - - - - - -+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -+ -->
+</div>
+<div class="section" id="filenames-checks">
+<h1><a name="filenames-checks">filenames checks</a></h1>
+<p>Boost.Filesystem will by default check all its paths to make sure they conform
+to filename requirements on many platforms. If you don't want this check, you can
+set it to either only check for native filesystem requirements or turn it off
+alltogether. You can use: <tt class="literal"><span class="pre">boost::filesystem::path::default_name_check(boost::filesystem::native)</span></tt>
+for example. For more information, see the <a class="reference" href="http://www.boost.org/libs/filesystem/doc/index.htm">Boost.Filesystem docs</a>.</p>
 </div>
 <div class="section" id="aknowledgements">
 <h1><a name="aknowledgements">aknowledgements</a></h1>

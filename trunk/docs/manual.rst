@@ -88,7 +88,7 @@ Then you can use ``bjam`` to build libtorrent.
 
 .. _boost: http://www.boost.org
 
-__ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=80982
+.. http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=80982
 
 To make bjam work, you need to set the environment variable ``BOOST_ROOT`` to the
 path where boost is installed (e.g. c:\\boost_1_30_2 on windows). Then you can just run
@@ -1612,6 +1612,17 @@ with future versions of bittorrent.
    |          | Any unrecognized strings should be ignored.            |
    +----------+--------------------------------------------------------+
 
+
+filenames checks
+================
+
+Boost.Filesystem will by default check all its paths to make sure they conform
+to filename requirements on many platforms. If you don't want this check, you can
+set it to either only check for native filesystem requirements or turn it off
+alltogether. You can use: ``boost::filesystem::path::default_name_check(boost::filesystem::native)``
+for example. For more information, see the `Boost.Filesystem docs`__.
+
+__ http://www.boost.org/libs/filesystem/doc/index.htm
 
 
 aknowledgements
