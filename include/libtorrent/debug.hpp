@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DEBUG_HPP_INCLUDED
 
 #include <string>
+#include <fstream>
 
 #include <boost/lexical_cast.hpp>
 

@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/storage.hpp"
+#include "libtorrent/piece_picker.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/debug.hpp"
 

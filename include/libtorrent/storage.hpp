@@ -32,25 +32,22 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_STORAGE_HPP_INCLUDE
 #define TORRENT_STORAGE_HPP_INCLUDE
-
+/*
 #include <ctime>
 #include <iostream>
 #include <ios>
-#include <algorithm>
+#include <algorithm>*/
 #include <vector>
-#include <set>
-#include <list>
-#include <fstream>
 
 #include <boost/limits.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/filesystem/fstream.hpp>
 #include <boost/thread.hpp>
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/socket.hpp"
-#include "libtorrent/policy.hpp"
+//#include "libtorrent/socket.hpp"
+//#include "libtorrent/policy.hpp"
+#include "libtorrent/opaque_value_ptr.hpp"
 
 /*
  * This file declares the following functions:
@@ -219,11 +216,6 @@ namespace libtorrent
 			const torrent_info& info
 		  , const boost::filesystem::path& path);
 
-		~storage();
-
-		storage(const storage&);
-		void operator=(const storage&);
-
 		void swap(storage&);
 
 		typedef entry::integer_type size_type;
@@ -232,8 +224,8 @@ namespace libtorrent
 		void write(const char* buf, int slot, size_type offset, size_type size);
 
 	private:
-		struct pimpl;
-		std::auto_ptr<pimpl> m_pimpl;
+		struct impl;
+		opaque_value_ptr<impl> m_pimpl;
 	};
 
 	class piece_manager : boost::noncopyable
@@ -256,18 +248,12 @@ namespace libtorrent
 		size_type read(char* buf, int piece_index, size_type offset, size_type size);
 		void write(const char* buf, int piece_index, size_type offset, size_type size);
 
-		const boost::filesystem::path& save_path() const
-		{ return m_save_path; }
+		const boost::filesystem::path& save_path() const;
 
 	private:
-
-		// returns the slot currently associated with the given
-		// piece or assigns the given piece_index to a free slot
-		int slot_for_piece(int piece_index);
-		
-		void check_invariant() const;
-		void debug_log() const;
-
+		struct impl;
+		opaque_value_ptr<impl, false> m_pimpl;
+/*
 		storage m_storage;
 
 		// total number of bytes left to be downloaded
@@ -298,7 +284,7 @@ namespace libtorrent
 
 		bool m_allocating;
 		boost::mutex m_allocating_monitor;
-		boost::condition m_allocating_condition;
+		boost::condition m_allocating_condition;*/
 	};
 
 }
