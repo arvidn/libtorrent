@@ -63,7 +63,7 @@ namespace
 	{
 		// the limits of the download queue size
 		max_request_queue = 16,
-		min_request_queue = 2,
+		min_request_queue = 4,
 
 		// the amount of free upload allowed before
 		// the peer is choked
@@ -113,7 +113,7 @@ namespace
 		// less will make the desired queue size 2 and at about 70 kB/s
 		// it will reach the maximum of 16 requests.
 		// matlab expression to plot:
-		// x = 1:100:100000; plot(x, round(min(max(x ./ 5000 + 1.5, 2), 16)));
+		// x = 1:100:100000; plot(x, round(min(max(x ./ 5000 + 1.5, 4), 16)));
 
 		int desired_queue_size = static_cast<int>(rate / 5000.f + 1.5f);
 		if (desired_queue_size > max_request_queue) desired_queue_size = max_request_queue;
