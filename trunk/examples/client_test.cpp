@@ -266,7 +266,8 @@ int main(int argc, char* argv[])
 					s << t.name() << ".fastresume";
 					boost::filesystem::ifstream resume_file(save_path / s.str(), std::ios_base::binary);
 					resume_file.unsetf(std::ios_base::skipws);
-					resume_data = bdecode(std::istream_iterator<char>(resume_file)
+					resume_data = bdecode(
+						std::istream_iterator<char>(resume_file)
 						, std::istream_iterator<char>());
 				}
 				catch (invalid_encoding&) {}
