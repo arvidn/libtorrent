@@ -290,7 +290,7 @@ namespace libtorrent { namespace detail
 		{
 			m_connections.erase(m_disconnect_peer.back());
 			m_disconnect_peer.pop_back();
-			assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
+			assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
 		}
 	}
 
@@ -403,7 +403,7 @@ namespace libtorrent { namespace detail
 			boost::mutex::scoped_lock l(m_mutex);
 
 			// +1 for the listen socket
-			assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
+			assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
 
 			if (m_abort)
 			{
@@ -466,7 +466,7 @@ namespace libtorrent { namespace detail
 
 						m_selector.remove(*i);
 						m_connections.erase(p);
-						assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
+						assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
 						t->abort();
 					}
 					catch (std::exception& e)
@@ -481,7 +481,7 @@ namespace libtorrent { namespace detail
 
 						m_selector.remove(*i);
 						m_connections.erase(p);
-						assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
+						assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
 					}
 				}
 			}
@@ -556,7 +556,7 @@ namespace libtorrent { namespace detail
 
 						m_selector.remove(*i);
 						m_connections.erase(p);
-						assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
+						assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
 						t->abort();
 					}
 					catch (std::exception& e)
@@ -570,7 +570,7 @@ namespace libtorrent { namespace detail
 						// from the connection-list
 						m_selector.remove(*i);
 						m_connections.erase(p);
-						assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
+						assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
 					}
 				}
 			}
@@ -603,7 +603,7 @@ namespace libtorrent { namespace detail
 				if (p != m_connections.end())
 				{
 					m_connections.erase(p);
-					assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
+					assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
 				}
 			}
 
@@ -644,7 +644,7 @@ namespace libtorrent { namespace detail
 					}
 					m_selector.remove(j->first);
 					m_connections.erase(j);
-					assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
+					assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
 					continue;
 				}
 
