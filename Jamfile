@@ -9,6 +9,7 @@ use-project /boost/thread : $(BOOST_ROOT)/libs/thread/build ;
 use-project /boost/filesystem : $(BOOST_ROOT)/libs/filesystem/build ;
 use-project /boost/date_time : $(BOOST_ROOT)/libs/date_time/build ;
 
+lib winsock : : <name>wsock32.lib ;
 
 project torrent
 	: requirements
@@ -32,6 +33,8 @@ project torrent
 
 	;
 
+
+LIBS = ;
 
 SOURCES =
 	allocate_resources.cpp
@@ -60,6 +63,7 @@ SOURCES =
 	if [ modules.peek : NT ] && toolset != msvc-6
 	{
 		SOURCES += file_win.cpp ;
+		LIBS += winsock ;
 	}
 	else
 	{
@@ -74,6 +78,7 @@ lib torrent
 	/boost/thread//boost_thread/<link>shared
 	/boost/date_time//boost_date_time/<link>static
 	/boost/filesystem//boost_filesystem/<link>static
+	$(LIBS)
 	:
 	<include>./include
 	<threading>multi

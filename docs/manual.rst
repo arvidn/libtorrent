@@ -111,19 +111,35 @@ in the libtorrent directory.
 If you're building on a platform where dlls share the same heap, you can build libtorrent
 as a dll too, by typing ``link=shared`` instead of ``link=static``.
 
+
+If you're making your own project file, note that there are two versions of the file
+abstraction. There's one ``file_win.cpp`` which relies on windows file API that supports
+files larger than 2 Gigabytes. This does not work in vc6 for some reason, possibly because
+it may require windows NT and above. The other file, ``file.cpp`` is the default
+implementation that simply relies on the standard library's fstream, and as a result does
+not support files larger than 2 Gigabytes.
+
+
+cygwin and msvc
+---------------
+
+Note that if you're building on windows using the ``msvc`` toolset, you cannot run it
+from a cygwin terminal, you'll have to run it from a cmd terminal. The same goes for
+cygwin, if you're building with gcc (mingw) you'll have to run it from a cygwin terminal.
+Also, make sure the paths are correct in the different environments. In cygwin, the paths
+(``BOOST_BUILD_PATH`` and ``BOOST_ROOT``) should be in the typical unix-format (e.g.
+``/cygdrive/c/boost_1_31_0``). In the windows environment, they should have the typical
+windows format (``c:/boost_1_31_0``).
+
 If you're building in developer studio, you may have to set the compiler options
 "force conformance in for loop scope" and "treat wchar_t as built-in type" to Yes.
 
 If you're building in developer studio 6, you will probably have to use the previous
-version of boost, `boost 1.30.2`__.
+version of boost, `boost 1.30.2`__. And you'll definately have to use the latest service
+pack (sp5).
 
 __ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&release_id=178835
 
-There are two versions of the file abstraction. There's one ``file_win.cpp`` which
-relies on windows file API that supports files larger than 2 Gigabytes. This does not work
-in vc6 for some reason, possibly because it may require windows NT and above. The other file,
-``file.cpp`` is the default implementation that simply relies on the standard library's fstream,
-and as a result does not support files larger than 2 Gigabytes.
 
 release and debug builds
 ------------------------
