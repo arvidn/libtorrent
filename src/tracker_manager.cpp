@@ -303,7 +303,7 @@ namespace libtorrent
 	}
 
 	void tracker_manager::queue_request(
-		tracker_request const& req
+		tracker_request req
 		, request_callback* c
 		, std::string const& password)
 	{
@@ -318,8 +318,8 @@ namespace libtorrent
 			int port = 80;
 
 			// PARSE URL
-			std::string::const_iterator start = req.url.begin();
-			std::string::const_iterator end
+			std::string::iterator start = req.url.begin();
+			std::string::iterator end
 				= std::find(req.url.begin(), req.url.end(), ':');
 			protocol = std::string(start, end);
 
