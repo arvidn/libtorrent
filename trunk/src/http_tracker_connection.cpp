@@ -215,7 +215,7 @@ namespace libtorrent
 			m_send_buffer += base64encode(auth);
 		}
 		m_send_buffer += "\r\n\r\n";
-	#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 		if (has_requester())
 		{
 			requester().debug_log("==> TRACKER_REQUEST [ str: " + m_send_buffer + " ]");
@@ -223,7 +223,7 @@ namespace libtorrent
 			info_hash_str << req.info_hash;
 			requester().debug_log("info_hash: " + info_hash_str.str() + "\n");
 		}
-	#endif
+#endif
 		m_socket = s;
 	}
 
@@ -231,7 +231,7 @@ namespace libtorrent
 	// the connections list.
 	bool http_tracker_connection::tick()
 	{
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 		try
 		{
 #endif
@@ -246,9 +246,9 @@ namespace libtorrent
 			return true;
 		}
 
-	#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 		if (has_requester()) requester().debug_log("tracker connection tick");
-	#endif
+#endif
 
 		// if we have a send buffer and the socket is ready for writing
 		// send the buffer
@@ -287,9 +287,9 @@ namespace libtorrent
 		if (!m_socket->is_readable()) return false;
 		m_request_time = second_clock::universal_time();
 
-	#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 		if (has_requester()) requester().debug_log("tracker connection socket readable");
-	#endif
+#endif
 
 		// if the receive buffer is full, expand it with http_buffer_size
 		if ((int)m_buffer.size() == m_recv_pos)
@@ -317,9 +317,9 @@ namespace libtorrent
 
 		if (received > 0) m_recv_pos += received;
 
-	#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 		if (has_requester()) requester().debug_log("received: " + boost::lexical_cast<std::string>(m_recv_pos));
-	#endif
+#endif
 
 		if (m_state == read_status)
 		{
@@ -339,9 +339,9 @@ namespace libtorrent
 			// if we don't have a full line yet, wait.
 			if (newline == end) return false;
 
-	#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 			if (has_requester()) requester().debug_log(std::string(m_buffer.begin(), newline));
-	#endif
+#endif
 
 			std::istringstream line(std::string(m_buffer.begin(), newline));
 			++newline;
@@ -380,9 +380,9 @@ namespace libtorrent
 			{
 				line.assign(m_buffer.begin(), newline);
 
-	#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 				if (has_requester()) requester().debug_log(line);
-	#endif
+#endif
 
 				if (line.substr(0, 16) == "Content-Length: ")
 				{
@@ -450,9 +450,9 @@ namespace libtorrent
 				else if (line.size() < 3)
 				{
 					m_state = read_body;
-	#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 					if (has_requester()) requester().debug_log("end of http header");
-	#endif
+#endif
 					if (m_code >= 300 && m_code < 400)
 					{
 						if (m_location.empty())
@@ -465,7 +465,7 @@ namespace libtorrent
 							return true;
 						}
 
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 						if (has_requester()) requester().debug_log("Redirecting to \"" + m_location + "\"");
 #endif
 						std::string::size_type i = m_location.find('?');
@@ -523,7 +523,7 @@ namespace libtorrent
 		}
 
 		return false;
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 		}
 		catch (std::exception&)
 		{
@@ -653,3 +653,4 @@ namespace libtorrent
 	}
 
 }
+

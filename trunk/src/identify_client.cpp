@@ -175,6 +175,7 @@ namespace
 		, map_entry("U",  "UPnP")
 		, map_entry("XT", "XanTorrent")
 		, map_entry("ZT", "ZipTorrent")
+		, map_entry("pX", "pHoeniX")
 	};
 
 	bool compare_first_string(map_entry const& e, char const* str)

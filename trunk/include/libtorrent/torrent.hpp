@@ -63,7 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 	struct logger;
 #endif
 
@@ -313,11 +313,15 @@ namespace libtorrent
 
 		torrent_handle get_handle() const;
 
-		// DEBUG
-#ifndef NDEBUG
+		// LOGGING
+#ifdef TORRENT_VERBOSE_LOGGING
 		logger* spawn_logger(const char* title);
 
 		virtual void debug_log(const std::string& line);
+#endif
+
+		// DEBUG
+#ifndef NDEBUG
 		void check_invariant() const;
 #endif
 
@@ -508,3 +512,4 @@ namespace libtorrent
 }
 
 #endif // TORRENT_TORRENT_HPP_INCLUDED
+

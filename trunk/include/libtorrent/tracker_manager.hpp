@@ -127,7 +127,7 @@ namespace libtorrent
 
 		address m_tracker_address;
 
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 		virtual void debug_log(const std::string& line) = 0;
 #endif
 	private:
@@ -178,3 +178,4 @@ namespace libtorrent
 }
 
 #endif // TORRENT_TRACKER_MANAGER_HPP_INCLUDED
+

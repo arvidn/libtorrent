@@ -208,7 +208,7 @@ namespace libtorrent
 		void set_failed() { m_failed = true; }
 		bool failed() const { return m_failed; }
 
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 		boost::shared_ptr<logger> m_logger;
 #endif
 
