@@ -2,12 +2,9 @@ import modules ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 
-ECHO $(BOOST_ROOT)
-
-	use-project /boost/thread : $(BOOST_ROOT)/libs/thread/build ;
-	use-project /boost/filesystem : $(BOOST_ROOT)/libs/filesystem/build ;
-	use-project /boost/date_time : $(BOOST_ROOT)/libs/date_time/build ;
-
+use-project /boost/thread : $(BOOST_ROOT)/libs/thread/build ;
+use-project /boost/filesystem : $(BOOST_ROOT)/libs/filesystem/build ;
+use-project /boost/date_time : $(BOOST_ROOT)/libs/date_time/build ;
 
 
 project torrent
@@ -28,22 +25,26 @@ project torrent
 	  <include>./include
 	  <include>$(BOOST_ROOT)
 
-# devstudio fixes
+# devstudio switches
 
 	  <cxxflags>/Zc:wchar_t
 	  <cxxflags>/D"WIN32"
+
+# gcc switches
+
+#	  <cxxflags>-Wno-unused-variable
 
 	;
 
 
 SOURCES =
+	alert.cpp
 	entry.cpp
 	identify_client.cpp
 	peer_connection.cpp
 	piece_picker.cpp
 	policy.cpp
 	session.cpp
-	socket_win.cpp
 	stat.cpp
 	storage.cpp
 	torrent.cpp
@@ -52,16 +53,23 @@ SOURCES =
 	tracker_manager.cpp
 	http_tracker_connection.cpp
 	udp_tracker_connection.cpp
-	file_win.cpp
 	sha1.c
+
+# unix versions
+
+#	socket_bsd.cpp
+#	file.cpp
+
+# windows versions
+
+	socket_win.cpp
+	file_win.cpp
+
 	;
 
 
 lib torrent
 	:
-#	  /boost/filesystem
-#	  /boost/thread
-#	  /boost/date_time
 	  zlib//zlib
 	  src/$(SOURCES)
 	: <include>./include
@@ -75,8 +83,6 @@ exe client_test
 	: examples/client_test.cpp
 	  torrent
 	:
-#	  <sysinclude>$(BOOST_ROOT)
-	  <threading>multi
 	: debug release
 	;
 
