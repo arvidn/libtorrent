@@ -1328,15 +1328,15 @@ namespace libtorrent {
 		int slot;
 	};
 
-	struct storage::pimpl : thread_safe_storage
+	struct storage::impl : thread_safe_storage
 	{
-		pimpl(const torrent_info& info, const fs::path& path)
+		impl(const torrent_info& info, const fs::path& path)
 			: thread_safe_storage(info.num_pieces())
 			, info(info)
 			, save_path(path)
 		{}
 
-		pimpl(const pimpl& x)
+		impl(const impl& x)
 			: thread_safe_storage(x.info.num_pieces())
 			, info(x.info)
 			, save_path(x.save_path)
@@ -1347,27 +1347,14 @@ namespace libtorrent {
 	};
 
 	storage::storage(const torrent_info& info, const fs::path& path)
-		: m_pimpl(new pimpl(info, path))
+		: m_pimpl(new impl(info, path))
 	{
 		assert(info.begin_files() != info.end_files());
 	}
 
-	storage::~storage() 
-	{}
-
-	storage::storage(const storage& other)
-		: m_pimpl(new pimpl(*other.m_pimpl))
-	{}
-
 	void storage::swap(storage& other)
 	{
-		std::swap(m_pimpl, other.m_pimpl);
-	}
-
-	void storage::operator=(const storage& other)
-	{
-		storage tmp(other);
-		tmp.swap(*this);
+		m_pimpl.swap(other.m_pimpl);
 	}
 
 	storage::size_type storage::read(
@@ -1379,7 +1366,7 @@ namespace libtorrent {
 		assert(size > 0);
 
 		slot_lock lock(*m_pimpl, slot);
-		
+
 		size_type start = slot * m_pimpl->info.piece_length() + offset;
 
 		// find the file iterator and file offset
@@ -1534,42 +1521,136 @@ namespace libtorrent {
 					out.open(path, std::ios_base::binary);
 			}
 		}
-	}	
+	}
 
-	piece_manager::piece_manager(
+
+
+
+
+	// -- piece_manager -----------------------------------------------------
+
+	class piece_manager::impl
+	{
+	public:
+		typedef entry::integer_type size_type;
+
+		impl(
+			const torrent_info& info
+		  , const boost::filesystem::path& path);
+
+		void check_pieces(
+			boost::mutex& mutex
+		  , detail::piece_checker_data& data
+		  , std::vector<bool>& pieces);
+
+		void allocate_slots(int num_slots);
+
+		size_type read(char* buf, int piece_index, size_type offset, size_type size);
+		void write(const char* buf, int piece_index, size_type offset, size_type size);
+
+		const boost::filesystem::path& save_path() const
+		{ return m_save_path; }
+
+	private:
+		// returns the slot currently associated with the given
+		// piece or assigns the given piece_index to a free slot
+		int slot_for_piece(int piece_index);
+
+		void check_invariant() const;
+		void debug_log() const;
+
+		storage m_storage;
+
+		// total number of bytes left to be downloaded
+		size_type m_bytes_left;
+
+		// a bitmask representing the pieces we have
+		std::vector<bool> m_have_piece;
+
+		const torrent_info& m_info;
+
+		// maps piece index to slot index. -1 means the piece
+		// doesn't exist
+		std::vector<int> m_piece_to_slot;
+		// slots that hasn't had any file storage allocated
+		std::vector<int> m_unallocated_slots;
+		// slots that has file storage, but isn't assigned to a piece
+		std::vector<int> m_free_slots;
+
+		// index here is a slot number in the file
+		// -1 : the slot is unallocated
+		// -2 : the slot is allocated but not assigned to a piece
+		//  * : the slot is assigned to this piece
+		std::vector<int> m_slot_to_piece;
+
+		boost::filesystem::path m_save_path;
+
+		mutable boost::recursive_mutex m_mutex;
+
+		bool m_allocating;
+		boost::mutex m_allocating_monitor;
+		boost::condition m_allocating_condition;
+	};
+
+	piece_manager::impl::impl(
 		const torrent_info& info
-		, const fs::path& save_path)
+	  , const fs::path& save_path)
 		: m_storage(info, save_path)
 		, m_info(info)
 		, m_save_path(save_path)
 	{
 	}
 
-	piece_manager::size_type piece_manager::read(
+	piece_manager::piece_manager(
+		const torrent_info& info
+	  , const fs::path& save_path)
+		: m_pimpl(new impl(info, save_path))
+	{
+	}
+
+	piece_manager::size_type piece_manager::impl::read(
 		char* buf
-		, int piece_index
-		, piece_manager::size_type offset
-		, piece_manager::size_type size)
+	  , int piece_index
+	  , piece_manager::size_type offset
+	  , piece_manager::size_type size)
 	{
 		assert(m_piece_to_slot[piece_index] >= 0);
 		int slot = m_piece_to_slot[piece_index];
 		return m_storage.read(buf, slot, offset, size);
 	}
 
-	void piece_manager::write(
+	piece_manager::size_type piece_manager::read(
+		char* buf
+	  , int piece_index
+	  , piece_manager::size_type offset
+	  , piece_manager::size_type size)
+	{
+		return m_pimpl->read(buf, piece_index, offset, size);
+	}
+
+	void piece_manager::impl::write(
 		const char* buf
-		, int piece_index
-		, piece_manager::size_type offset
-		, piece_manager::size_type size)
+	  , int piece_index
+	  , piece_manager::size_type offset
+	  , piece_manager::size_type size)
 	{
 		int slot = slot_for_piece(piece_index);
 		m_storage.write(buf, slot, offset, size);
 	}
 
-	void piece_manager::check_pieces(
+	void piece_manager::write(
+		const char* buf
+	  , int piece_index
+	  , piece_manager::size_type offset
+	  , piece_manager::size_type size)
+	{
+		m_pimpl->write(buf, piece_index, offset, size);
+	}
+
+	void piece_manager::impl::check_pieces(
 		boost::mutex& mutex
-		, detail::piece_checker_data& data
-		, std::vector<bool>& pieces)
+	  , detail::piece_checker_data& data
+	  , std::vector<bool>& pieces)
 	{
 		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
@@ -1774,7 +1855,15 @@ namespace libtorrent {
 		check_invariant();
 	}
 
-	int piece_manager::slot_for_piece(int piece_index)
+	void piece_manager::check_pieces(
+		boost::mutex& mutex
+	  , detail::piece_checker_data& data
+	  , std::vector<bool>& pieces)
+	{
+		m_pimpl->check_pieces(mutex, data, pieces);
+	}
+	
+	int piece_manager::impl::slot_for_piece(int piece_index)
 	{
 		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
@@ -1873,8 +1962,13 @@ namespace libtorrent {
 
 		return slot_index;
 	}
-
-	void piece_manager::allocate_slots(int num_slots)
+/*
+	int piece_manager::slot_for_piece(int piece_index)
+	{
+		return m_pimpl->slot_for_piece(piece_index);
+	}
+*/	
+	void piece_manager::impl::allocate_slots(int num_slots)
 	{
 		{
 			boost::mutex::scoped_lock lock(m_allocating_monitor);
@@ -1933,8 +2027,18 @@ namespace libtorrent {
 		
 		check_invariant();
 	}
+
+	void piece_manager::allocate_slots(int num_slots)
+	{
+		m_pimpl->allocate_slots(num_slots);
+	}
+
+	const boost::filesystem::path& piece_manager::save_path() const
+	{
+		return m_pimpl->save_path();
+	}
 	
-	void piece_manager::check_invariant() const
+	void piece_manager::impl::check_invariant() const
 	{
 		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
@@ -1947,7 +2051,7 @@ namespace libtorrent {
 		}
 	}
 
-	void piece_manager::debug_log() const
+	void piece_manager::impl::debug_log() const
 	{
 		std::stringstream s;
 
