@@ -126,33 +126,6 @@ namespace
 		return ret;
 	}
 
-	std::string escape_string(const char* str, int len)
-	{
-		static const char special_chars[] = "$-_.+!*'(),";
-
-		std::stringstream ret;
-		ret << std::hex  << std::setfill('0');
-		for (int i = 0; i < len; ++i)
-		{
-			if (std::isalnum(static_cast<unsigned char>(*str))
-				|| std::count(
-					special_chars
-					, special_chars+sizeof(special_chars)-1
-					, *str))
-			{
-				ret << *str;
-			}
-			else
-			{
-				ret << "%"
-					<< std::setw(2)
-					<< (int)static_cast<unsigned char>(*str);
-			}
-			++str;
-		}
-		return ret.str();
-	}
-
 	struct find_peer_by_id
 	{
 		find_peer_by_id(const peer_id& i, const torrent* t): id(i), tor(t) {}
@@ -207,6 +180,32 @@ namespace
 
 namespace libtorrent
 {
+	std::string escape_string(const char* str, int len)
+	{
+		static const char special_chars[] = "$-_.+!*'(),";
+
+		std::stringstream ret;
+		ret << std::hex  << std::setfill('0');
+		for (int i = 0; i < len; ++i)
+		{
+			if (std::isalnum(static_cast<unsigned char>(*str))
+				|| std::count(
+					special_chars
+					, special_chars+sizeof(special_chars)-1
+					, *str))
+			{
+				ret << *str;
+			}
+			else
+			{
+				ret << "%"
+					<< std::setw(2)
+					<< (int)static_cast<unsigned char>(*str);
+			}
+			++str;
+		}
+		return ret.str();
+	}
 
 	torrent::torrent(
 		detail::session_impl& ses

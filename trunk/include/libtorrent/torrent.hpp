@@ -59,6 +59,8 @@ namespace libtorrent
 	struct logger;
 #endif
 
+	std::string escape_string(const char* str, int len);
+
 	struct tracker_alert: alert
 	{
 		tracker_alert(const torrent_handle& h

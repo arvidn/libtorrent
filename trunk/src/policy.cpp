@@ -210,7 +210,7 @@ namespace
 			// (and we should consider it free). If the share diff is
 			// negative, there's no free download to get from this peer.
 			int diff = i->second->share_diff();
-			if (i->second->is_peer_interested() || diff <= 0 || diff==std::numeric_limits<int>::max())
+			if (i->second->is_peer_interested() || diff <= 0)
 				continue;
 
 			assert(diff > 0);
@@ -233,13 +233,10 @@ namespace
 		if (free_upload <= 0) return free_upload;
 		int num_peers = 0;
 		int total_diff = 0;
-		
 		for (torrent::peer_iterator i = start; i != end; ++i)
 		{
-			int diff=i->second->share_diff();
-			if(diff==std::numeric_limits<int>::max()) continue;
-			total_diff += diff;
-			if (!i->second->is_peer_interested() || diff >= 0) continue;
+			total_diff += i->second->share_diff();
+			if (!i->second->is_peer_interested() || i->second->share_diff() >= 0) continue;
 			++num_peers;
 		}
 
@@ -305,11 +302,8 @@ namespace libtorrent
 			if (!c->is_peer_interested())
 				return &(*i);
 
-//			int diff = i->total_download()
-//				- i->total_upload();
-			int diff = c->share_diff();
-			if(diff==std::numeric_limits<int>::max())
-				diff=0;
+			int diff = i->total_download()
+				- i->total_upload();
 
 			int weight = static_cast<int>(c->statistics().download_rate() * 10.f)
 				+ diff
@@ -371,6 +365,7 @@ namespace libtorrent
 			, old_disconnected_peer())
 			, m_peers.end());
 
+
 		// if the share ratio is 0 (infinite)
 		// m_available_free_upload isn't used
 		// because it isn't necessary
@@ -417,8 +412,26 @@ namespace libtorrent
 				++m_num_unchoked;
 			}
 		}
-		else if (m_max_uploads != -1)
+		else
 		{
+			// choke peers that have leeched too much without giving anything back
+			for (std::vector<peer>::iterator i = m_peers.begin();
+				i != m_peers.end();
+				++i)
+			{
+				peer_connection* c = i->connection;
+				if (c == 0) continue;
+
+				int diff = i->connection->share_diff();
+				if (diff < -free_upload_amount
+					&& !c->is_choked())
+				{
+					// if we have uploaded more than a piece for free, choke peer and
+					// wait until we catch up with our download.
+					c->send_choke();
+				}
+			}
+			
 			// make sure we don't have too many
 			// unchoked peers
 			while (m_num_unchoked > m_max_uploads)
@@ -440,39 +453,10 @@ namespace libtorrent
 				unchoke_one_peer();
 			}
 
+
 			// make sure we have enough
 			// unchoked peers
 			while (m_num_unchoked < m_max_uploads && unchoke_one_peer());
-		}
-		else
-		{
-			// choke peers that have leeched too much without giving anything back
-			for (std::vector<peer>::iterator i = m_peers.begin();
-				i != m_peers.end();
-				++i)
-			{
-				peer_connection* c = i->connection;
-				if (c == 0) continue;
-
-				int diff=c->share_diff();
-				// no problem if diff returns std::numeric_limits<int>::max()
-
-				if (diff <= -free_upload_amount
-					&& !c->is_choked())
-				{
-					// if we have uploaded more than a piece for free, choke peer and
-					// wait until we catch up with our download.
-					c->send_choke();
-				}
-				else if (diff > -free_upload_amount
-					&& c->is_choked() /* && c->is_peer_interested()*/)
-				{
-					// we have catched up. We have now shared the same amount
-					// to eachother. Unchoke this peer.
-					c->send_unchoke();
-				}
-			}
-		
 		}
 
 #ifndef NDEBUG
