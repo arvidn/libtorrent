@@ -189,7 +189,8 @@ namespace libtorrent
 	{
 		peer_id::const_iterator PID = p.begin();
 		boost::optional<fingerprint> f;
-	  
+
+		if (p.is_all_zeros()) return "Unkown";
 
 		// look for azureus style id	
 		f = parse_az_style(p);
@@ -247,6 +248,10 @@ namespace libtorrent
 			// Shadow
 			if (std::equal(f->id, f->id+1, "S"))
 				identity << "Shadow ";
+
+			// ABC
+			if (std::equal(f->id, f->id+1, "A"))
+				identity << "ABC ";
 
 			// UPnP
 			else if (std::equal(f->id, f->id+1, "U"))
