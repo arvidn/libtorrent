@@ -47,6 +47,7 @@ SOURCES =
 	allocate_resources.cpp
 	alert.cpp
 	entry.cpp
+	escape_string.cpp
 	identify_client.cpp
 	peer_connection.cpp
 	piece_picker.cpp
