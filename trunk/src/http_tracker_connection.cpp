@@ -85,7 +85,7 @@ namespace libtorrent
 		, std::string const& request
 		, boost::weak_ptr<request_callback> c
 		, const http_settings& stn
-		, std::string const& password)
+		, std::string const& auth)
 		: tracker_connection(c)
 		, m_man(man)
 		, m_state(read_status)
@@ -95,7 +95,7 @@ namespace libtorrent
 		, m_request_time(second_clock::universal_time())
 		, m_settings(stn)
 		, m_req(req)
-		, m_password(password)
+		, m_password(auth)
 		, m_code(0)
 	{
 		const std::string* connect_to_host;
@@ -186,10 +186,10 @@ namespace libtorrent
 			m_send_buffer += "\r\nProxy-Authorization: Basic ";
 			m_send_buffer += base64encode(m_settings.proxy_login + ":" + m_settings.proxy_password);
 		}
-		if (password != "")
+		if (auth != "")
 		{
 			m_send_buffer += "\r\nAuthorization: Basic ";
-			m_send_buffer += base64encode(password);
+			m_send_buffer += base64encode(auth);
 		}
 		m_send_buffer += "\r\n\r\n";
 	#ifndef NDEBUG
@@ -451,7 +451,7 @@ namespace libtorrent
 						else
 							m_req.url.assign(m_location.begin(), m_location.begin() + i);
 
-						m_man.queue_request(m_req, m_requester, m_password);
+						m_man.queue_request(m_req, m_password, m_requester);
 						return true;
 					}
 				}

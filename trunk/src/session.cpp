@@ -82,6 +82,13 @@ using namespace boost::posix_time;
 namespace libtorrent { namespace detail
 {
 
+	std::string generate_auth_string(std::string const& user
+		, std::string const& passwd)
+	{
+		if (user.empty()) return std::string();
+		return user + ":" + passwd;
+	}
+	
 	// This is the checker thread
 	// it is looping in an infinite loop
 	// until the session is aborted. It will
@@ -408,7 +415,7 @@ namespace libtorrent { namespace detail
 					tracker_request req = i->second->generate_tracker_request();
 					req.listen_port = m_listen_interface.port;
 					req.key = m_key;
-					m_tracker_manager.queue_request(req);
+					m_tracker_manager.queue_request(req, i->second->tracker_login());
 				}
 				m_connections.clear();
 				m_torrents.clear();
@@ -682,7 +689,7 @@ namespace libtorrent { namespace detail
 					assert(req.event == tracker_request::stopped);
 					req.listen_port = m_listen_interface.port;
 					req.key = m_key;
-					m_tracker_manager.queue_request(req);
+					m_tracker_manager.queue_request(req, t.tracker_login());
 					t.disconnect_all();
 					purge_connections();
 #ifndef NDEBUG
@@ -697,8 +704,7 @@ namespace libtorrent { namespace detail
 					tracker_request req = t.generate_tracker_request();
 					req.listen_port = m_listen_interface.port;
 					req.key = m_key;
-					m_tracker_manager.queue_request(
-						req, i->second);
+					m_tracker_manager.queue_request(req, t.tracker_login(), i->second);
 				}
 
 				// tick() will set the used upload quota

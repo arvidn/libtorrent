@@ -149,10 +149,9 @@ namespace libtorrent
 		void tick();
 		void queue_request(
 			tracker_request r
+			, std::string const& auth
 			, boost::weak_ptr<request_callback> c
-				= boost::weak_ptr<request_callback>()
-			, std::string const& password = "");
-//		void abort_request(request_callback* c);
+				= boost::weak_ptr<request_callback>());
 		void abort_all_requests();
 		bool send_finished() const;
 
