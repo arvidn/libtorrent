@@ -841,7 +841,7 @@ void libtorrent::peer_connection::receive_data()
 					{
 						// verify peer_id
 						// TODO: It seems like the original client ignores to check the peer id
-						// can this be correct?
+						// can that be correct?
 						if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (const char*)m_peer_id.begin()))
 						{
 	#ifndef NDEBUG

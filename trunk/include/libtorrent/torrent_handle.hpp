@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/piece_picker.hpp"
-
+#include "libtorrent/torrent_info.hpp"
 
 namespace libtorrent
 {
@@ -55,11 +55,16 @@ namespace libtorrent
 		{ return "torrent already exists in session"; }
 	};
 
+	struct invalid_handle: std::exception
+	{
+		virtual const char* what() const throw()
+		{ return "invalid torrent handle used"; }
+	};
+
 	struct torrent_status
 	{
 		enum state_t
 		{
-			invalid_handle,
 			queued_for_checking,
 			checking_files,
 			downloading,
@@ -96,16 +101,19 @@ namespace libtorrent
 		torrent_handle(): m_ses(0) {}
 
 		void get_peer_info(std::vector<peer_info>& v);
-		torrent_status status() const;
-		void get_download_queue(std::vector<partial_piece_info>& queue) const;
+		torrent_status status();
+		void get_download_queue(std::vector<partial_piece_info>& queue);
+
+		const torrent_info& get_torrent_info();
+		bool is_valid();
 
 		// TODO: add force reannounce
-		// TODO: add torrent_info getter
+
+		// TODO: add a feature where the user can ask the torrent
+		// to finish all pieces currently in the pipeline, and then
+		// abort the torrent.
 
 	private:
-
-		// called by session::remove_torrent()
-		void abort() const;
 
 		torrent_handle(detail::session_impl* s,
 			detail::checker_impl* c,

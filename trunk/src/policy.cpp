@@ -37,6 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_connection.hpp"
 
+#if defined(_MSC_VER) && _MSC_VER < 1300
+#	define for if (false) {} else for
+#endif
+
 namespace
 {
 	enum
@@ -189,6 +193,18 @@ namespace libtorrent
 	void peer_connection::unchoke();
 	void peer_connection::request_piece(int index);
 	const std::vector<int>& peer_connection::download_queue();
+
+	TODO: to implement choking/unchoking we need a list with all
+	connected peers. Something like this:
+
+	struct peer
+	{
+		peer_id id;
+		boost::posix_time::ptime last_optimistically_unchoked;
+		float average_down_rate;
+		boost::weak_ptr<peer_connection> connection;
+	};
+
 */
 
 

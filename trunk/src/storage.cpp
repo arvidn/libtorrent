@@ -771,9 +771,9 @@ void libtorrent::storage::allocate_pieces(int num)
 			fs::ofstream out;
 
 			if (fs::exists(path))
-				out.open(path, std::ios_base::binary | std::ios_base::in);
+				out.open(path.native_file_string().c_str(), std::ios_base::binary | std::ios_base::in);
 			else
-				out.open(path, std::ios_base::binary);
+				out.open(path.native_file_string().c_str(), std::ios_base::binary);
 
 //			std::ofstream out((m_save_path / file_iter->path / file_iter->filename).native_file_string().c_str()
 //				, std::ios_base::binary | std::ios_base::in);
@@ -1156,8 +1156,11 @@ void libtorrent::storage::initialize_pieces(torrent* t,
 		{
 			boost::mutex::scoped_lock lock(mutex);
 
+// TODO: finish
+//			data->progress = ;
+
 			if (data->abort)
-				;
+				return;
 		}
 
 		fs::path path(m_save_path / file_iter->path);
@@ -1173,7 +1176,7 @@ void libtorrent::storage::initialize_pieces(torrent* t,
 		{
 			in.close();
 			in.clear();
-			in.open(path, std::ios_base::binary);
+			in.open(path.native_file_string().c_str(), std::ios_base::binary);
 
 			changed_file = false;
 
@@ -1311,6 +1314,7 @@ void libtorrent::storage::initialize_pieces(torrent* t,
 }
 
 #if 0 // OLD STORAGE
+/*
 
 // allocate files will create all files that are missing
 // if there are some files that already exists, it checks
@@ -1326,21 +1330,6 @@ void libtorrent::storage::initialize_pieces(torrent* t,
 {
 	m_save_path = path;
 	m_torrent_file = &t->torrent_file();
-
-	// TEMPORARY!
-/*
-	m_bytes_left = 0;
-	m_have_piece.resize(m_torrent_file->num_pieces());
-	std::fill(m_have_piece.begin(), m_have_piece.end(), true);
-	return;
-*/
-/*
-	m_bytes_left = m_torrent_file->total_size();
-	m_have_piece.resize(m_torrent_file->num_pieces());
-	std::fill(m_have_piece.begin(), m_have_piece.end(), false);
-	return;
-*/
-
 
 	// we don't know of any piece we have right now. Initialize
 	// it to say we don't have anything and fill it in later on.
@@ -1476,6 +1465,6 @@ void libtorrent::storage::initialize_pieces(torrent* t,
 	}
 
 }
-
+*/
 #endif
 
