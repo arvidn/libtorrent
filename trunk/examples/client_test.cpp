@@ -283,7 +283,7 @@ int main(int argc, char* argv[])
 		session ses;
 
 		ses.listen_on(std::make_pair(6880, 6889));
-		ses.set_upload_rate_limit(512 * 1024);
+//		ses.set_upload_rate_limit(512 * 1024);
 		ses.set_http_settings(settings);
 		ses.set_severity_level(alert::debug);
 //		ses.set_severity_level(alert::info);
@@ -292,7 +292,7 @@ int main(int argc, char* argv[])
 		{
 			try
 			{
-				boost::filesystem::path save_path("");
+				boost::filesystem::path save_path("./");
 
 				if (std::string(argv[i+1]).substr(0, 7) == "http://")
 				{

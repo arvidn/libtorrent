@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/ref.hpp>
@@ -595,8 +596,8 @@ namespace libtorrent
 		, const path& save_path)
 		: m_storage(info, save_path)
 		, m_info(info)
+		, m_save_path(complete(save_path))
 		, m_allocating(false)
-		, m_save_path(complete(save_path));
 	{
 		assert(m_save_path.is_complete());
 	}

@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include "libtorrent/entry.hpp"
 #include <boost/bind.hpp>
+#include <boost/next_prior.hpp>
 
 #if defined(_MSC_VER)
 namespace std
@@ -63,6 +64,27 @@ namespace
 		}
 		char const* m_str;
 	};
+
+	template <class It, class Pred>
+	void bubble_sort(It start, It end, Pred p)
+	{
+		if (start == end) return;
+		--end;
+		for (It i = start; i != end; ++i)
+		{
+			bool unsorted = false;
+			for (It j = i; j != end; ++j)
+			{
+				It next = boost::next(j);
+				if (!p(*j, *next))
+				{
+					swap(*j, *next);
+					unsorted = true;
+				}
+			}
+			if (!unsorted) return;
+		}
+	}
 }
 
 namespace libtorrent
@@ -246,18 +268,14 @@ namespace libtorrent
 
 	void entry::sort()
 	{
-#if (defined(_MSC_VER) && _MSC_VER < 1300)
-		assert(false);
-#else
 		using boost::bind;
 		if (type() == dictionary_t)
 		{
-			std::stable_sort(dict().begin(), dict().end()
+			bubble_sort(dict().begin(), dict().end()
 				, bind(std::less<std::string>()
 					, bind(&entry::dictionary_type::value_type::first, _1)
 					, bind(&entry::dictionary_type::value_type::first, _2)));
 		}
-#endif
 	}
 
 	void entry::print(std::ostream& os, int indent) const

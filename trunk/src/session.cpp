@@ -849,6 +849,7 @@ namespace libtorrent
 		, boost::filesystem::path const& save_path
 		, entry const& resume_data)
 	{
+		assert(!save_path.empty());
 		torrent_info ti(metadata);
 
 		if (ti.begin_files() == ti.end_files())
@@ -898,6 +899,7 @@ namespace libtorrent
 		, boost::filesystem::path const& save_path
 		, entry const& resume_data)
 	{
+		assert(!save_path.empty());
 		{
 			// lock the checker_thread
 			boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
