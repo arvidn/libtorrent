@@ -110,10 +110,10 @@ namespace libtorrent
 				file_name
 				, access_mask
 				, FILE_SHARE_READ
-				, NULL
+				, 0
 				, OPEN_ALWAYS
 				, FILE_ATTRIBUTE_NORMAL
-				, NULL);
+				, 0);
 
 			if (new_handle == INVALID_HANDLE_VALUE)
 			{
@@ -153,7 +153,7 @@ namespace libtorrent
 					, buffer
 					, (DWORD)num_bytes
 					, &bytes_written
-					, NULL))
+					, 0))
 				{
 					throw_exception("file::write");
 				}
@@ -175,7 +175,7 @@ namespace libtorrent
 					, buffer
 					, (DWORD)num_bytes
 					, &bytes_read
-					, NULL))
+					, 0))
 				{
 					throw_exception("file::read");
 				}
