@@ -1891,8 +1891,6 @@ namespace libtorrent {
 
 		std::vector<char> zeros(piece_size, 0);
 		
-//		int last_piece_index = -1;
-
 		for (int i = 0; i < num_slots; ++i, ++iter)
 		{
 			if (iter == end_iter)
@@ -1900,12 +1898,6 @@ namespace libtorrent {
 
 			int pos = *iter;
 			int piece_pos = pos;
-/*
-			const bool last_piece = (pos == m_info.num_pieces() - 1);
-
-			if (last_piece)
-				last_piece_index = i;
-*/
 
 			int new_free_slot = pos;
 
@@ -1922,56 +1914,9 @@ namespace libtorrent {
 			m_free_slots.push_back(new_free_slot);
 
 			m_storage.write(&zeros[0], pos, 0, m_info.piece_size(pos));
-/*
-			torrent_info::file_iterator file_iter;
-
-			for (file_iter = m_torrent_file->begin_files();
-				pos > file_iter->size; ++file_iter)
-			{
-				pos -= file_iter->size;
-			}
-
-			entry::integer_type bytes_left = last_piece 
-				? m_torrent_file->piece_size(m_torrent_file->num_pieces() - 1)
-				: piece_size;
-
-			while (bytes_left > 0)
-			{
-				fs::path path(m_save_path / file_iter->path / file_iter->filename);
-
-				fs::ofstream out;
-
-				if (fs::exists(path))
-					out.open(path, std::ios_base::binary | std::ios_base::in);
-				else
-					out.open(path, std::ios_base::binary);
-
-				out.seekp(pos, std::ios_base::beg);
-
-				assert((entry::integer_type)out.tellp() == pos);
-
-				entry::integer_type bytes_to_write = bytes_left;
-
-				if (pos + bytes_to_write >= file_iter->size)
-				{
-					bytes_to_write = file_iter->size - pos;
-				}
-
-				out.write(&zeros[0], bytes_to_write);
-
-				bytes_left -= bytes_to_write;
-				++file_iter;
-				pos = 0;
-			}
-*/
 		}
 
 		m_unallocated_slots.erase(m_unallocated_slots.begin(), iter);
-
-/*		// move last slot to the end
-		if (last_piece_index != -1)
-			std::swap(m_free_pieces[last_piece_index], m_free_pieces.front());
-*/
 
 		check_invariant();
 	}
