@@ -1421,7 +1421,7 @@ namespace libtorrent {
 		{
 			int read_bytes = left_to_read;
 			if (file_offset + read_bytes > file_iter->size)
-				read_bytes = file_iter->size - offset;
+				read_bytes = file_iter->size - file_offset;
 
 			assert(read_bytes > 0);
 
@@ -1575,9 +1575,9 @@ namespace libtorrent {
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		// ----------------------------------------------------------------------
 
+		m_allocating = false;
 		m_piece_to_slot.resize(m_info.num_pieces(), -1);
 		m_slot_to_piece.resize(m_info.num_pieces(), -1);
-		m_locked_pieces.resize(m_info.num_pieces(), false);
 
 		m_bytes_left = m_info.total_size();
 
@@ -1684,7 +1684,7 @@ namespace libtorrent {
 					}
 
 					seek_into_next = pos - file_end;
-					bytes_to_read = piece_size;
+					bytes_to_read = m_info.piece_size(current_piece);
 					piece_offset = 0;
 				}
 				else
@@ -1876,6 +1876,15 @@ namespace libtorrent {
 
 	void piece_manager::allocate_slots(int num_slots)
 	{
+		{
+			boost::mutex::scoped_lock lock(m_allocating_monitor);
+
+			while (m_allocating)
+				m_allocating_condition.wait(lock);
+
+			m_allocating = true;
+		}
+
 		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		// ----------------------------------------------------------------------
@@ -1892,7 +1901,7 @@ namespace libtorrent {
 		const size_type piece_size = m_info.piece_length();
 
 		std::vector<char> zeros(piece_size, 0);
-		
+
 		for (int i = 0; i < num_slots; ++i, ++iter)
 		{
 			if (iter == end_iter)
@@ -1920,6 +1929,8 @@ namespace libtorrent {
 
 		m_unallocated_slots.erase(m_unallocated_slots.begin(), iter);
 
+		m_allocating = false;
+		
 		check_invariant();
 	}
 	
