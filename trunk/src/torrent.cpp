@@ -310,8 +310,8 @@ namespace libtorrent
 		m_picker.get_downloaders(downloaders, index);
 
 #ifndef NDEBUG
-		std::cout << "hash-test failed. Some of these peers sent invalid data:\n";
-		std::copy(downloaders.begin(), downloaders.end(), std::ostream_iterator<peer_id>(std::cout, "\n"));
+//		std::cout << "hash-test failed. Some of these peers sent invalid data:\n";
+//		std::copy(downloaders.begin(), downloaders.end(), std::ostream_iterator<peer_id>(std::cout, "\n"));
 #endif
 
 		// decrease the trust point of all peers that sent

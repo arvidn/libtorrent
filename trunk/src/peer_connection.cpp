@@ -889,10 +889,6 @@ namespace libtorrent
 			extension_list.dict()[extension_names[i]] = msg_index;
 		}
 
-#ifndef NDEBUG
-		extension_list.print(std::cout);
-#endif
-
 		// make room for message size
 		const int msg_size_pos = m_send_buffer.size();
 		m_send_buffer.resize(msg_size_pos + 4);
