@@ -1075,7 +1075,6 @@ namespace libtorrent
 		for (map_iter i = begin2; i != end2; ++i)
 			matching_pieces.push_back(i->second);
 
-
 		// no piece matched the data in the slot
 		if (matching_pieces.empty())
 			return -1;
@@ -1124,8 +1123,11 @@ namespace libtorrent
 				assert(m_piece_to_slot[piece_index] != current_slot);
 				assert(m_piece_to_slot[piece_index] >= 0);
 				m_piece_to_slot[piece_index] = has_no_slot;
+				have_pieces[piece_index] = false;
 			}
 			
+			assert(have_pieces[piece_index] == false);
+			assert(m_piece_to_slot[piece_index] == has_no_slot);
 			have_pieces[piece_index] = true;
 			return piece_index;
 		}
@@ -1142,8 +1144,18 @@ namespace libtorrent
 			break;
 		}
 
-		if (free_piece >= 0) have_pieces[free_piece] = true;
-		return free_piece;
+		if (free_piece >= 0)
+		{
+			assert(have_pieces[free_piece] == false);
+			assert(m_piece_to_slot[free_piece] == has_no_slot);
+			have_pieces[free_piece] = true;
+			return free_piece;
+		}
+		else
+		{
+			assert(free_piece == -1);
+			return -1;
+		}
 	}
 
 	void piece_manager::impl::check_pieces(
@@ -1248,7 +1260,7 @@ namespace libtorrent
 					, current_slot
 					, pieces
 					, hash_to_piece);
-
+				
 				if (piece_index >= 0)
 				{
  					assert(m_slot_to_piece[current_slot] == unallocated);
@@ -1256,12 +1268,14 @@ namespace libtorrent
 
 					// the slot was identified as piece 'piece_index'
 					m_piece_to_slot[piece_index] = current_slot;
+
 					m_slot_to_piece[current_slot] = piece_index;
 				}
 				else
 				{
 					// the data in the slot was not recognized
 					// consider the slot free
+					assert(m_slot_to_piece[current_slot]==unallocated);
 					m_slot_to_piece[current_slot] = unassigned;
 					m_free_slots.push_back(current_slot);
 				}
