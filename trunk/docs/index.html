@@ -74,6 +74,39 @@ path where boost is installed (e.g. c:\boost_1_30_2 on windows). Then you can ju
 </p>
 
 <p>
+The Jamfile doesn't work yet. On unix-systems you can use the makefile however. You
+first have to build boost.thread and boost.filesystem. You do this by, in the directory
+'boost-1.30.2/tools/build/jam_src' run the build script <tt>./build.sh</tt>. This should
+produce at least one folder with the 'bin' prefix (and the rest of the name describes
+your platform). Put the files in that folder somewhere in your path.
+</p>
+
+<p>
+You can then invoke <tt>bjam</tt> in the directories 'boost-1.30.2/libs/thread/build' and
+'boost-1.30.2/libs/filesystem/build'. That will produce the needed libraries. Put these
+libraries in the libtorrent root directory. You then have to modify the makefile to use
+you prefered compiler and to have the correct path to your boost istallation.
+</p>
+
+<p>
+Then the makefile should be able to do the rest.
+</p>
+
+<p>
+When building (with boost 1.30.2) on linux and solaris however, I found that I had to make the following
+modifications to the boost.date-time library. In the file:
+'boost-1.30.2/boost/date_time/gregorian_calendar.hpp' line 59. Add 'boost/date_time/'
+to the include path.
+</p>
+
+<p>And the second modification was in the file:
+'boost-1.30.2/boost/date_time/microsec_time_clock.hpp' add the following include at the top
+of the file:
+</p>
+
+<code>#include "boost/cstdint.hpp"</code>
+
+<p>
 TODO: more detailed build instructions.
 </p>
 
