@@ -1203,7 +1203,10 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-		// TODO: TEMP!
+		// This will corrupt the storage
+		// use while debugging to find
+		// states that cannot be scanned
+		// by check_pieces.
 //		m_storage.shuffle();
 
 		m_piece_to_slot.resize(m_info.num_pieces(), has_no_slot);
@@ -1212,7 +1215,7 @@ namespace libtorrent
 		m_unallocated_slots.clear();
 		pieces.clear();
 		pieces.resize(m_info.num_pieces(), false);
-/*
+
 		// if we have fast-resume info
 		// use it instead of doing the actual checking
 		if (!data.piece_map.empty()
@@ -1254,7 +1257,7 @@ namespace libtorrent
 			}
 			return;
 		}
-*/
+
 
 		// ------------------------
 		//    DO THE FULL CHECK
