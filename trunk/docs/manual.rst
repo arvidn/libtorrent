@@ -1445,7 +1445,7 @@ an empty string, no http proxy will be used.
 is empty, this will be ignored.
 
 ``proxy_login`` should be the login username for the http proxy, if this
-empty, the http proxy will be trid to be used without authentication.
+empty, the http proxy will be tried to be used without authentication.
 
 ``proxy_password`` the password string for the http proxy.
 
@@ -1604,15 +1604,15 @@ the program and given to ``bencode()`` to encode it into the ``OutIt``
 iterator.
 
 The ``OutIt`` and ``InIt`` are iterators
-(``InputIterator_`` and ``OutputIterator_`` respectively). They
-are templates and are usually instantiated as ``ostream_iterator_``,
-``back_insert_iterator_`` or ``istream_iterator_``. These
+(InputIterator_ and OutputIterator_ respectively). They
+are templates and are usually instantiated as ostream_iterator_,
+back_insert_iterator_ or istream_iterator_. These
 functions will assume that the iterator refers to a character
 (``char``). So, if you want to encode entry ``e`` into a buffer
 in memory, you can do it like this::
 
 	std::vector<char> buffer;
-	bencode(std::back_insert_iterator<std::vector<char> >(buf), e);
+	bencode(std::back_inserter(buf), e);
 
 .. _InputIterator: http://www.sgi.com/tech/stl/InputIterator.html
 .. _OutputIterator: http://www.sgi.com/tech/stl/OutputIterator.html
