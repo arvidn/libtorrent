@@ -244,6 +244,18 @@ namespace libtorrent
 		}
 	}
 
+	void entry::sort()
+	{
+		using boost::bind;
+		if (type() == dictionary_t)
+		{
+			std::stable_sort(dict().begin(), dict().end()
+				, bind(std::less<std::string>()
+					, bind(&entry::dictionary_type::value_type::first, _1)
+					, bind(&entry::dictionary_type::value_type::first, _2)));
+		}
+	}
+
 	void entry::print(std::ostream& os, int indent) const
 	{
 		assert(indent >= 0);

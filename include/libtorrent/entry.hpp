@@ -144,6 +144,8 @@ namespace libtorrent
 		void operator=(const list_type&);
 		void operator=(const integer_type&);
 
+		void sort();
+
 		integer_type& integer();
 		const integer_type& integer() const;
 		string_type& string();
