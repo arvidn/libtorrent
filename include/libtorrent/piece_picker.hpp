@@ -150,6 +150,14 @@ namespace libtorrent
 			int index;
 			std::bitset<max_blocks_per_piece> requested_blocks;
 			std::bitset<max_blocks_per_piece> finished_blocks;
+			// TODO: store a hash and a peer_connection reference
+			// for each block. Then if the hash test fails on the
+			// piece, redownload one block from another peer
+			// then the first time, and check the hash again.
+			// also maintain a counter how many times a piece-hash
+			// has been confirmed. Download blocks that hasn't
+			// been confirmed (since they are most probably the
+			// invalid blocks)
 		};
 
 		struct has_index
@@ -172,8 +180,12 @@ namespace libtorrent
 		// that no peer have, the vector at index 1 contains
 		// all pieces that exactly one peer have, index 2 contains
 		// all pieces exactly two peers have and so on.
-
 		std::vector<std::vector<int> > m_piece_info;
+
+		// this vector has the same structure as m_piece_info
+		// but only contains pieces we are currently downloading
+		// they have higher priority than pieces we aren't downloading
+		// during piece picking
 		std::vector<std::vector<int> > m_downloading_piece_info;
 
 		// this maps indices to number of peers that has this piece and

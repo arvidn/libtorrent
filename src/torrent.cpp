@@ -71,7 +71,7 @@ namespace
 
 	int calculate_block_size(const torrent_info& i)
 	{
-		// TODO: if blocks_per_piece > 64 increase block-size
+		// TODO: if blocks_per_piece > 128 increase block-size
 		return 16*1024;
 	}
 
@@ -154,10 +154,63 @@ namespace libtorrent
 
 	void torrent::tracker_response(const entry& e)
 	{
+		std::vector<peer> peer_list;
 		try
 		{
 			// parse the response
-			parse_response(e);
+			parse_response(e, peer_list);
+
+			m_last_working_tracker
+				= m_torrent_file.prioritize_tracker(m_currently_trying_tracker);
+			m_next_request = boost::posix_time::second_clock::local_time()
+				+ boost::posix_time::seconds(m_duration);
+			m_currently_trying_tracker = 0;
+
+			// connect to random peers from the list
+			std::random_shuffle(peer_list.begin(), peer_list.end());
+
+			std::cout << "interval: " << m_duration << "\n";
+			std::cout << "peers:\n";
+			for (std::vector<peer>::const_iterator i = peer_list.begin();
+				i != peer_list.end();
+				++i)
+			{
+				std::cout << "  " << std::setfill(' ') << std::setw(16) << i->ip
+					<< " " << std::setw(5) << std::dec << i->port << "  ";
+				for (const unsigned char* j = i->id.begin();
+					j != i->id.end();
+					++j)
+				{
+					std::cout << std::hex << std::setw(2) << std::setfill('0')
+					<< static_cast<unsigned int>(*j);
+				}
+				std::cout << "\n";
+			}
+			std::cout << std::dec << std::setfill(' ');
+
+
+			// for each of the peers we got from the tracker
+			for (std::vector<peer>::iterator i = peer_list.begin();
+				i != peer_list.end();
+				++i)
+			{
+				// don't make connections to ourself
+				if (i->id == m_ses->get_peer_id())
+					continue;
+
+				address a(i->ip, i->port);
+
+				// if we aleady have a connection to the person, don't make another one
+				if (std::find_if(m_ses->m_connections.begin(),
+					m_ses->m_connections.end(),
+					find_peer(i->id, this)) != m_ses->m_connections.end())
+				{
+					continue;
+				}
+
+				m_policy->peer_from_tracker(a, i->id);
+			}
+
 		}
 		catch(type_error& e)
 		{
@@ -168,30 +221,6 @@ namespace libtorrent
 			tracker_request_error(e.what());
 		}
 
-		m_last_working_tracker = m_torrent_file.prioritize_tracker(m_currently_trying_tracker);
-		m_next_request = boost::posix_time::second_clock::local_time() + boost::posix_time::seconds(m_duration);
-		m_currently_trying_tracker = 0;
-
-		// connect to random peers from the list
-		std::random_shuffle(m_peer_list.begin(), m_peer_list.end());
-
-		print(std::cout);
-
-		// for each of the peers we got from the tracker
-		for (std::vector<peer>::iterator i = m_peer_list.begin(); i != m_peer_list.end(); ++i)
-		{
-			// don't make connections to ourself
-			if (i->id == m_ses->get_peer_id())
-				continue;
-
-			address a(i->ip, i->port);
-
-			// if we aleady have a connection to the person, don't make another one
-			if (std::find_if(m_ses->m_connections.begin(), m_ses->m_connections.end(), find_peer(i->id, this)) != m_ses->m_connections.end())
-				continue;
-
-			m_policy->peer_from_tracker(a, i->id);
-		}
 	}
 
 	int torrent::num_connections(const peer_id& id) const
@@ -223,7 +252,6 @@ namespace libtorrent
 		m_next_request = boost::posix_time::second_clock::local_time() + boost::posix_time::seconds(m_duration);
 
 		std::vector<char> buffer;
-		// TODO: temporary! support multi-tracker
 		std::string request = m_torrent_file.trackers()[m_currently_trying_tracker].url;
 
 		request += "?info_hash=";
@@ -255,7 +283,7 @@ namespace libtorrent
 		return request;
 	}
 
-	void torrent::parse_response(const entry& e)
+	void torrent::parse_response(const entry& e, std::vector<peer>& peer_list)
 	{
 		entry::dictionary_type::const_iterator i = e.dict().find("failure reason");
 		if (i != e.dict().end())
@@ -272,15 +300,14 @@ namespace libtorrent
 		i = msg.find("peers");
 		if (i == msg.end()) throw std::runtime_error("invalid response from tracker");
 
-		m_peer_list.clear();
+		peer_list.clear();
 
-		const entry::list_type& peer_list = i->second.list();
-		for(entry::list_type::const_iterator i = peer_list.begin(); i != peer_list.end(); ++i)
+		const entry::list_type& l = i->second.list();
+		for(entry::list_type::const_iterator i = l.begin(); i != l.end(); ++i)
 		{
 			peer p = extract_peer_info(*i);
-			m_peer_list.push_back(p);
+			peer_list.push_back(p);
 		}
-
 	}
 
 	void torrent::remove_peer(peer_connection* p)
@@ -326,20 +353,6 @@ namespace libtorrent
 		m_ses->m_selector.monitor_readability(s);
 		m_ses->m_selector.monitor_errors(s);
 		std::cout << "connecting to: " << a.as_string() << ":" << a.port() << "\n";
-	}
-
-	void torrent::print(std::ostream& os) const
-	{
-		os << "interval: " << m_duration << "\n";
-		os << "peers:\n";
-		for (std::vector<peer>::const_iterator i = m_peer_list.begin(); i != m_peer_list.end(); ++i)
-		{
-			os << "  " << std::setfill(' ') << std::setw(16) << i->ip << " " << std::setw(5) << std::dec << i->port << "  ";
-			for (const unsigned char* j = i->id.begin(); j != i->id.end(); ++j)
-				os << std::hex << std::setw(2) << std::setfill('0') << static_cast<unsigned int>(*j);
-			os << "\n";
-		}
-		os << std::dec << std::setfill(' ');
 	}
 
 #ifndef NDEBUG

@@ -72,9 +72,6 @@ namespace libtorrent
 	};
 
 	// wraps access to pieces with a file-like interface
-	// TODO: add functionality for switching piece
-	// that's optimized not to closing the file if the
-	// new piece is in the same file
 	class piece_file
 	{
 	friend class storage;

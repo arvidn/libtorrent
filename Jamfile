@@ -26,13 +26,15 @@ lib torrent
 	;
 
 
-#exe torrent_test
-#	: src/main.cpp <lib>torrent
-#	  $(BOOST_ROOT)/libs/filesystem/build//boost_filesystem
-#	: <include>$(BOOST_ROOT)
-#	  <sysinclude>$(BOOST_ROOT)
-#	  <include>./
-#	  <threading>multi
-#	: debug release
-#	;
+exe client_test
+	: examples/client_test.cpp
+	  <lib>torrent
+#	  <lib>$(BOOST_ROOT)/libs/filesystem/build/boost_filesystem
+#	  <dll>$(BOOST_ROOT)/libs/thread/build/boost_thread
+	: <include>$(BOOST_ROOT)
+	  <sysinclude>$(BOOST_ROOT)
+	  <include>./include
+	  <threading>multi
+	: debug release
+	;
 

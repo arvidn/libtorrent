@@ -61,7 +61,7 @@ namespace libtorrent
 		struct session_impl;
 	}
 
-	// TODO: each torrent should have a status string that
+	// TODO: each torrent should have a status value that
 	// reflects what's happening to it
 	// TODO: There should be a maximum number of peers that
 	// is maintained (if someone disconnects, try to connect to
@@ -70,6 +70,7 @@ namespace libtorrent
 	// speed than one of the peers currently connected, it will be
 	// replaced to maximize bandwidth usage. It wil also have to
 	// depend on how many and which pieces the peers have.
+	// TODO: In debug mode all pieces that are sent should be checked.
 
 
 	// a torrent is a class that holds information
@@ -119,7 +120,8 @@ namespace libtorrent
 		int bytes_left() const { return m_storage.bytes_left(); }
 
 		// TODO: temporary implementation. Should count the actually
-		// verified pieces
+		// verified pieces and should support the different states
+		// a torrent can be in.
 		float progress() const
 		{
 			return bytes_downloaded() / static_cast<float>(m_torrent_file.total_size());
@@ -238,11 +240,13 @@ namespace libtorrent
 		// blocks when requested
 		int m_block_size;
 
+		// is set to true when the torrent has
+		// been aborted.
 		bool m_abort;
 
 		event_id m_event;
 
-		void parse_response(const entry& e);
+		void parse_response(const entry& e, std::vector<peer>& peer_list);
 
 		// total amount of bytes uploaded, downloaded and
 		// the number of bytes left to be downloaded
@@ -265,9 +269,6 @@ namespace libtorrent
 
 		std::string m_failed;
 		std::vector<peer_connection*> m_connections;
-
-		// TODO: move to a local function?
-		std::vector<peer> m_peer_list;
 
 		// -----------------------------
 
