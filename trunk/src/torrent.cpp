@@ -614,7 +614,7 @@ namespace libtorrent
 	void torrent::check_files(detail::piece_checker_data& data,
 		boost::mutex& mutex)
 	{
-		m_storage.check_pieces(mutex, data, m_have_pieces);
+ 		m_storage.check_pieces(mutex, data, m_have_pieces);
 		m_num_pieces = std::accumulate(
 			m_have_pieces.begin()
 		  , m_have_pieces.end()

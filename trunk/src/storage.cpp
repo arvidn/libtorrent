@@ -638,9 +638,9 @@ namespace libtorrent
 		assert(offset >= 0);
 		assert(size > 0);
 		assert(piece_index >= 0 && (unsigned)piece_index < m_piece_to_slot.size());
-		assert(m_piece_to_slot[piece_index] >= 0);
+		assert(m_piece_to_slot[piece_index] >= 0 && (unsigned)m_piece_to_slot[piece_index] < m_slot_to_piece.size());
 		int slot = m_piece_to_slot[piece_index];
-		assert(slot >= 0 && slot < (int)m_slot_to_piece.size());
+		assert(slot >= 0 && (unsigned)slot < m_slot_to_piece.size());
 		return m_storage.read(buf, slot, offset, size);
 	}
 
@@ -663,7 +663,6 @@ namespace libtorrent
 		assert(offset >= 0);
 		assert(size > 0);
 		assert(piece_index >= 0 && (unsigned)piece_index < m_piece_to_slot.size());
-		assert(m_piece_to_slot[piece_index] >= 0);
 		int slot = allocate_slot_for_piece(piece_index);
 		assert(slot >= 0 && (unsigned)slot < m_slot_to_piece.size());
 		m_storage.write(buf, slot, offset, size);
@@ -942,6 +941,27 @@ namespace libtorrent
 			bytes_to_read = m_info.piece_size(current_slot);
 		}
 
+		// dirty "fix" for a bug when file is corrupt
+		for(int i=0;(unsigned)i<m_info.num_pieces();i++)
+		{
+			if(m_piece_to_slot[i]!=has_no_slot && m_piece_to_slot[i]!=i && m_slot_to_piece[i]!=unallocated)
+			{
+				assert(m_piece_to_slot[i]>=0 && (unsigned)m_piece_to_slot[i]<m_slot_to_piece.size());
+				assert(m_slot_to_piece[m_piece_to_slot[i]]==i);
+				if(m_slot_to_piece[i]!=unassigned)
+				{
+					assert(m_slot_to_piece[i]>=0 && (unsigned)m_slot_to_piece[i]<m_piece_to_slot.size());
+					assert(m_piece_to_slot[m_slot_to_piece[i]]==i);
+					m_piece_to_slot[m_slot_to_piece[i]]=has_no_slot;
+					m_slot_to_piece[i]=unassigned;
+					m_free_slots.push_back(i);
+				}
+				m_slot_to_piece[m_piece_to_slot[i]]=unassigned;
+				m_free_slots.push_back(m_piece_to_slot[i]);
+				m_piece_to_slot[i]=has_no_slot;
+			}
+		}
+
 #ifndef NDEBUG
 		std::stringstream s;
 
@@ -1198,17 +1218,16 @@ namespace libtorrent
 
 		for (int i = 0; i < m_info.num_pieces(); ++i)
 		{
-			// Check that piece_to_slot's elements are within bounds
+			// Check domain of piece_to_slot's elements
 			assert(m_piece_to_slot[i]==has_no_slot
 				||(m_piece_to_slot[i]>=0 && (unsigned)m_piece_to_slot[i]<m_slot_to_piece.size()));
 
-			// Check that piece_to_slot's elements are within bounds
+			// Check domain of slot_to_piece's elements
 			assert(m_slot_to_piece[i]==unallocated
 				|| m_slot_to_piece[i]==unassigned
 				||(m_slot_to_piece[i]>=0 && (unsigned)m_slot_to_piece[i]<m_piece_to_slot.size()));
 
 			// do more detailed checks on piece_to_slot
-
 			if (m_piece_to_slot[i]>=0)
 			{
 				assert(m_slot_to_piece[m_piece_to_slot[i]]==i);
