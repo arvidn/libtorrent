@@ -175,7 +175,7 @@ table below for which defines you can use to control the build. The ``Jamfile`` 
 +--------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_EXTENSIONS`` | This will disble the support for extensions.    |
 |                                | For more information on which extensions are    |
-|                                |  currently implemented, see extensions_.        |
+|                                | currently implemented, see extensions_.         |
 +--------------------------------+-------------------------------------------------+
 
 
