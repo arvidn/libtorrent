@@ -346,7 +346,7 @@ namespace libtorrent
 	{
 		boost::shared_ptr<socket> s(new socket(socket::tcp, false));
 		// TODO: the send buffer size should be controllable from the outside
-		s->set_send_bufsize(2048);
+//		s->set_send_bufsize(2048);
 		s->connect(a);
 		boost::shared_ptr<peer_connection> c(new peer_connection(m_ses, this, s, id));
 		detail::session_impl::connection_map::iterator p =
@@ -403,15 +403,12 @@ namespace libtorrent
 		}
 	}
 
-	std::pair<torrent_handle::state_t, float> torrent::status() const
+	torrent_status torrent::status() const
 	{
-		// TODO: report progress on block-level.
-		// make sure to handle the case where a piece
-		// fails the hash-check
+		torrent_status st;
+
 		const std::vector<bool>& p = m_storage.pieces();
 		int num_pieces = std::accumulate(p.begin(), p.end(), 0);
-		if (num_pieces == p.size())
-			return std::make_pair(torrent_handle::seeding, 1.f);
 
 		int total_blocks
 			= (m_torrent_file.total_size()+m_block_size-1)/m_block_size;
@@ -420,9 +417,18 @@ namespace libtorrent
 
 		assert(m_unverified_blocks == m_picker.unverified_blocks());
 
-		return std::make_pair(torrent_handle::downloading,
-			(num_pieces * blocks_per_piece + m_unverified_blocks)
-			/ static_cast<float>(total_blocks));
+		// TODO: Implement total download and total_upload
+		st.total_download = 0;
+		st.total_upload = 0;
+		st.progress = (num_pieces * blocks_per_piece + m_unverified_blocks)
+			/ static_cast<float>(total_blocks);
+
+		if (num_pieces == p.size())
+			st.state = torrent_status::seeding;
+		else
+			st.state = torrent_status::downloading;
+
+		return st;
 	}
 
 }

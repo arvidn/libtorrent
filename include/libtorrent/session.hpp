@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <set>
 #include <list>
+#include <deque>
 
 #include <boost/limits.hpp>
 #include <boost/tuple/tuple.hpp>
@@ -86,20 +87,12 @@ namespace libtorrent
 		// thread that initialize pieces
 		struct piece_checker_data
 		{
-			piece_checker_data(): abort(false) {}
+			piece_checker_data(): progress(0.f), abort(false) {}
 
 			boost::shared_ptr<torrent> torrent_ptr;
 			std::string save_path;
 
-			// when the files has been checked
-			// the torrent is added to the session
-			session_impl* ses;
-
 			sha1_hash info_hash;
-
-			// must be locked to access the data
-			// below in this struct
-			boost::mutex mutex;
 
 			// is filled in by storage::initialize_pieces()
 			// and represents the progress. It should be a
@@ -112,41 +105,50 @@ namespace libtorrent
 			bool abort;
 		};
 
-		struct piece_check_thread
+		struct checker_impl: boost::noncopyable
 		{
-			piece_check_thread(const boost::shared_ptr<piece_checker_data>& p)
-				: m_data(p)
-			{}
+			checker_impl(session_impl* s): m_ses(s), m_abort(false) {}
 			void operator()();
-			boost::shared_ptr<piece_checker_data> m_data;
-		};
+			piece_checker_data* find_torrent(const sha1_hash& info_hash);
 
+			// when the files has been checked
+			// the torrent is added to the session
+			session_impl* m_ses;
+
+			boost::mutex m_mutex;
+			boost::condition m_cond;
+
+			// a list of all torrents that are currently checking
+			// their files (in separate threads)
+			std::deque<piece_checker_data> m_torrents;
+
+			bool m_abort;
+		};
 
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
-		struct session_impl
+		struct session_impl: boost::noncopyable
 		{
 			typedef std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> > connection_map;
 
-			session_impl(const std::string& fingerprint);
+			session_impl(int listen_port, const std::string& fingerprint);
+			void operator()();
 
 			// must be locked to access the data
 			// in this struct
 			boost::mutex m_mutex;
+			torrent* find_torrent(const sha1_hash& info_hash);
+			const peer_id& get_peer_id() const { return m_peer_id; }
 
 			tracker_manager m_tracker_manager;
 			std::map<sha1_hash, boost::shared_ptr<torrent> > m_torrents;
 			connection_map m_connections;
 
-			// a list of all torrents that are currently checking
-			// their files (in separate threads)
-			std::map<sha1_hash,
-				boost::shared_ptr<detail::piece_checker_data>
-				> m_checkers;
-			boost::thread_group m_checker_threads;
-
 			// the peer id that is generated at the start of each torrent
 			peer_id m_peer_id;
+
+			// the port we are listening on for connections
+			int m_listen_port;
 
 			// this is where all active sockets are stored.
 			// the selector can sleep while there's no activity on
@@ -158,13 +160,6 @@ namespace libtorrent
 
 			bool m_abort;
 			
-			void run(int listen_port);
-
-			torrent* find_active_torrent(const sha1_hash& info_hash);
-			detail::piece_checker_data* find_checking_torrent(const sha1_hash& info_hash);
-
-			const peer_id& get_peer_id() const { return m_peer_id; }
-
 #if defined(TORRENT_VERBOSE_LOGGING)
 			boost::shared_ptr<logger> create_log(std::string name)
 			{
@@ -175,34 +170,6 @@ namespace libtorrent
 
 			boost::shared_ptr<logger> m_logger;
 #endif
-		};
-
-		struct main_loop_thread
-		{
-			main_loop_thread(int listen_port, session_impl* s)
-				: m_ses(s), m_listen_port(listen_port)
-			{}
-
-			void operator()()
-			{
-				try
-				{
-					m_ses->run(m_listen_port);
-				}
-				catch(std::exception& e)
-				{
-					std::cerr << typeid(e).name() << "\n";
-					std::cerr << e.what() << "\n";
-					assert(false);
-				}
-				catch(...)
-				{
-					assert(false);
-				}
-			}
-
-			session_impl* m_ses;
-			int m_listen_port;
 		};
 
 	}
@@ -216,8 +183,11 @@ namespace libtorrent
 	public:
 
 		session(int listen_port, const std::string& fingerprint = std::string())
-			: m_impl(fingerprint)
-			, m_thread(detail::main_loop_thread(listen_port, &m_impl)) {}
+			: m_impl(listen_port, fingerprint)
+			, m_checker_impl(&m_impl)
+			, m_thread(boost::ref(m_impl))
+			, m_checker_thread(boost::ref(m_checker_impl))
+		{}
 
 		~session();
 
@@ -228,11 +198,20 @@ namespace libtorrent
 
 	private:
 
-		// data shared between the threads
+		// data shared between the main thread
+		// and the working thread
 		detail::session_impl m_impl;
+
+		// data shared between the main thread
+		// and the checker thread
+		detail::checker_impl m_checker_impl;
 
 		// the main working thread
 		boost::thread m_thread;
+
+		// the thread that calls initialize_pieces()
+		// on all torrents before they start downloading
+		boost::thread m_checker_thread;
 	};
 
 }

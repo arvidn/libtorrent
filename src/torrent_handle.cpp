@@ -63,24 +63,48 @@ namespace std
 namespace libtorrent
 {
 	
-	std::pair<torrent_handle::state_t, float> torrent_handle::status() const
+	torrent_status torrent_handle::status() const
 	{
-		if (m_ses == 0) return std::make_pair(invalid_handle, 0.f);
-
-		boost::mutex::scoped_lock l(m_ses->m_mutex);
-
-		torrent* t = m_ses->find_active_torrent(m_info_hash);
-		if (t != 0) return t->status();
-
-		detail::piece_checker_data* d = m_ses->find_checking_torrent(m_info_hash);
-
-		if (d != 0)
+		if (m_ses == 0)
 		{
-			boost::mutex::scoped_lock l(d->mutex);
-			return std::make_pair(checking_files, d->progress);
+			torrent_status st;
+			st.total_download = 0;
+			st.total_download = 0;
+			st.progress = 0.f;
+			st.state = torrent_status::invalid_handle;
+			return st;
 		}
 
-		return std::make_pair(invalid_handle, 0.f);
+		{
+			boost::mutex::scoped_lock l(m_ses->m_mutex);
+			torrent* t = m_ses->find_torrent(m_info_hash);
+			if (t != 0) return t->status();
+		}
+
+		{
+			boost::mutex::scoped_lock l(m_chk->m_mutex);
+
+			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
+			if (d != 0)
+			{
+				torrent_status st;
+				st.total_download = 0;
+				st.total_upload = 0;
+				if (d == &m_chk->m_torrents.front())
+					st.state = torrent_status::checking_files;
+				else
+					st.state = torrent_status::queued_for_checking;
+				st.progress = d->progress;
+				return st;
+			}
+		}
+
+		torrent_status st;
+		st.total_download = 0;
+		st.total_download = 0;
+		st.progress = 0.f;
+		st.state = torrent_status::invalid_handle;
+		return st;
 	}
 
 	void torrent_handle::get_peer_info(std::vector<peer_info>& v)
@@ -89,10 +113,8 @@ namespace libtorrent
 		if (m_ses == 0) return;
 		boost::mutex::scoped_lock l(m_ses->m_mutex);
 		
-		std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i = m_ses->m_torrents.find(m_info_hash);
-		if (i == m_ses->m_torrents.end()) return;
-
-		const torrent* t = boost::get_pointer(i->second);
+		const torrent* t = m_ses->find_torrent(m_info_hash);
+		if (t == 0) return;
 
 		for (std::vector<peer_connection*>::const_iterator i = t->begin();
 			i != t->end();
@@ -124,27 +146,29 @@ namespace libtorrent
 	void torrent_handle::abort()
 	{
 		if (m_ses == 0) return;
-		boost::mutex::scoped_lock l(m_ses->m_mutex);
 
-		torrent* t = m_ses->find_active_torrent(m_info_hash);
-		if (t != 0)
+
 		{
-			t->abort();
-			m_ses = 0;
-			return;
+			boost::mutex::scoped_lock l(m_ses->m_mutex);
+			torrent* t = m_ses->find_torrent(m_info_hash);
+			if (t != 0)
+			{
+				t->abort();
+				m_ses = 0;
+				return;
+			}
 		}
 
-		detail::piece_checker_data* d = m_ses->find_checking_torrent(m_info_hash);
-
-		if (d != 0)
 		{
-			boost::mutex::scoped_lock l(d->mutex);
-			d->abort = true;
-			// remove the checker. It will abort itself and
-			// close the thread now.
-			m_ses->m_checkers.erase(m_ses->m_checkers.find(m_info_hash));
-			m_ses = 0;
-			return;
+			boost::mutex::scoped_lock l(m_chk->m_mutex);
+
+			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
+			if (d != 0)
+			{
+				d->abort = true;
+				m_ses = 0;
+				return;
+			}
 		}
 
 		m_ses = 0;

@@ -199,6 +199,9 @@ namespace libtorrent
 		data_type m_type;
 
 #if defined(_MSC_VER)
+
+		// workaround for msvc-bug.
+		// assumes sizeof(map<string, char>) == sizeof(map<string, entry>)
 		union
 		{
 			char data[detail::max4<sizeof(list_type)

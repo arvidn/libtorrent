@@ -77,33 +77,98 @@ namespace libtorrent
 {
 	namespace detail
 	{
-		session_impl::session_impl(const std::string& cl_fprint)
+		void checker_impl::operator()()
+		{
+			for (;;)
+			{
+				piece_checker_data* t;
+				{
+					boost::mutex::scoped_lock l(m_mutex);
+
+					// if the job queue is empty and
+					// we shouldn't abort
+					// wait for a signal
+					if (m_torrents.empty() && !m_abort)
+						m_cond.wait(l);
+
+					if (m_abort) return;
+
+					assert(!m_torrents.empty());
+					
+					t = &m_torrents.front();
+					if (t->abort)
+					{
+						m_torrents.pop_front();
+						continue;
+					}
+				}
+
+				try
+				{
+					t->torrent_ptr->allocate_files(t, &m_mutex, t->save_path);
+					// lock the session to add the new torrent
+
+					boost::mutex::scoped_lock l(m_mutex);
+					if (!t->abort)
+					{
+#ifndef NDEBUG
+						std::cout << "adding torrent to session!\n";
+#endif
+						boost::mutex::scoped_lock l(m_ses->m_mutex);
+
+						m_ses->m_torrents.insert(
+							std::make_pair(t->info_hash, t->torrent_ptr)).first;
+					}
+				}
+				catch(...)
+				{
+#ifndef NDEBUG
+					std::cout << "error while checking files\n";
+#endif
+				}
+
+				// remove ourself from the 'checking'-list
+				// (we're no longer in the checking state)
+				boost::mutex::scoped_lock l(m_mutex);
+				m_torrents.pop_front();
+			}
+		}
+
+		detail::piece_checker_data* checker_impl::find_torrent(const sha1_hash& info_hash)
+		{
+			for (std::deque<piece_checker_data>::iterator i
+				= m_torrents.begin();
+				i != m_torrents.end();
+				++i)
+			{
+				if (i->info_hash == info_hash) return &(*i);
+			}
+			return 0;
+		}
+
+		session_impl::session_impl(int listen_port,
+			const std::string& cl_fprint)
 			: m_abort(false)
 			, m_tracker_manager(m_settings)
+			, m_listen_port(listen_port)
 		{
 
 			// ---- generate a peer id ----
 
 			std::srand(std::time(0));
 
-			// libtorrent's fingerprint
-			unsigned char fingerprint[] = "lt.";
+			const int len1 = std::min(cl_fprint.length(), (std::size_t)7);
+			const int len2 = 12 - len1;
 
-			const int len2 = std::min(cl_fprint.length(), (std::size_t)7);
-			const int len1 = (len2 == 0?2:3);
-			const int len3 = 12 - len1 - len2;
-
-			std::copy(fingerprint, fingerprint+len1, m_peer_id.begin());
-			
 			// the client's fingerprint
-			std::copy(cl_fprint.begin(), cl_fprint.begin()+len2, m_peer_id.begin()+len1); 
-	  
+			std::copy(cl_fprint.begin(), cl_fprint.begin()+len2, m_peer_id.begin());
+
 			// the zeros
-			std::fill(m_peer_id.begin()+len1+len2, m_peer_id.begin()+len1+len2+len3, 0);
-			assert(len1 + len2 + len3 == 12);
+			std::fill(m_peer_id.begin()+len1, m_peer_id.begin()+len1+len2, 0);
+			assert(len1 + len2 == 12);
 
 			// the random number
-			for (unsigned char* i = m_peer_id.begin()+len1+len2+len3;
+			for (unsigned char* i = m_peer_id.begin()+len1+len2;
 				i != m_peer_id.end();
 				++i)
 			{
@@ -112,14 +177,14 @@ namespace libtorrent
 		}
 
 
-		void session_impl::run(int listen_port)
+		void session_impl::operator()()
 		{
 #if defined(TORRENT_VERBOSE_LOGGING)
 			m_logger = create_log("main session");
 #endif
 
 			boost::shared_ptr<socket> listener(new socket(socket::tcp, false));
-			int max_port = listen_port + 9;
+			int max_port = m_listen_port + 9;
 
 
 			// create listener socket
@@ -128,19 +193,19 @@ namespace libtorrent
 			{
 				try
 				{
-					listener->listen(listen_port, 5);
+					listener->listen(m_listen_port, 5);
 				}
 				catch(network_error&)
 				{
-					if (listen_port > max_port) throw;
-					listen_port++;
+					if (m_listen_port > max_port) throw;
+					m_listen_port++;
 					continue;
 				}
 				break;
 			}
 
 #if defined(TORRENT_VERBOSE_LOGGING)
-			(*m_logger) << "listening on port: " << listen_port << "\n";
+			(*m_logger) << "listening on port: " << m_listen_port << "\n";
 #endif
 			m_selector.monitor_readability(listener);
 			m_selector.monitor_errors(listener);
@@ -163,6 +228,9 @@ namespace libtorrent
 			std::vector<boost::shared_ptr<socket> > writable_clients;
 			std::vector<boost::shared_ptr<socket> > error_clients;
 			boost::posix_time::ptime timer = boost::posix_time::second_clock::local_time();
+#ifdef TORRENT_DEBUG_SOCKETS
+			int num_loops = 0;
+#endif
 			for(;;)
 			{
 				// if nothing happens within 500000 microseconds (0.5 seconds)
@@ -171,6 +239,9 @@ namespace libtorrent
 				m_selector.wait(500000, readable_clients, writable_clients, error_clients);
 
 				boost::mutex::scoped_lock l(m_mutex);
+#ifdef TORRENT_DEBUG_SOCKETS
+				num_loops++;
+#endif
 
 				// +1 for the listen socket
 				assert(m_selector.count_read_monitors() == m_connections.size() + 1);
@@ -184,7 +255,7 @@ namespace libtorrent
 						++i)
 					{
 						i->second->abort();
-						m_tracker_manager.queue_request(i->second->generate_tracker_request(listen_port));
+						m_tracker_manager.queue_request(i->second->generate_tracker_request(m_listen_port));
 					}
 					m_connections.clear();
 					m_torrents.clear();
@@ -215,7 +286,7 @@ namespace libtorrent
 							(*m_logger) << s->sender().as_string() << " <== INCOMING CONNECTION\n";
 #endif
 							// TODO: the send buffer size should be controllable from the outside
-							s->set_send_bufsize(2048);
+//							s->set_send_bufsize(2048);
 
 							// TODO: add some possibility to filter IP:s
 							boost::shared_ptr<peer_connection> c(new peer_connection(this, s));
@@ -351,6 +422,12 @@ namespace libtorrent
 				// THE SECTION BELOW IS EXECUTED ONCE EVERY SECOND
 				// ************************
 
+#ifdef TORRENT_DEBUG_SOCKETS
+				std::cout << "\nloops: " << num_loops << "\n";
+				assert(loops < 1300);
+				num_loops = 0;
+#endif
+
 
 				// do the second_tick() on each connection
 				// this will update their statistics (download and upload speeds)
@@ -361,12 +438,14 @@ namespace libtorrent
 
 				// check each torrent for abortion or
 				// tracker updates
-				for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i = m_torrents.begin();
+				for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
+					= m_torrents.begin();
 					i != m_torrents.end();)
 				{
 					if (i->second->is_aborted())
 					{
-						m_tracker_manager.queue_request(i->second->generate_tracker_request(listen_port));
+						m_tracker_manager.queue_request(
+							i->second->generate_tracker_request(m_listen_port));
 						i->second->close_all_connections();
 						std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator j = i;
 						++i;
@@ -376,7 +455,7 @@ namespace libtorrent
 					else if (i->second->should_request())
 					{
 						m_tracker_manager.queue_request(
-							i->second->generate_tracker_request(listen_port),
+							i->second->generate_tracker_request(m_listen_port),
 							boost::get_pointer(i->second));
 					}
 					++i;
@@ -409,7 +488,7 @@ namespace libtorrent
 
 		// the return value from this function is valid only as long as the
 		// session is locked!
-		torrent* session_impl::find_active_torrent(const sha1_hash& info_hash)
+		torrent* session_impl::find_torrent(const sha1_hash& info_hash)
 		{
 			std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
 				= m_torrents.find(info_hash);
@@ -417,67 +496,31 @@ namespace libtorrent
 			return 0;
 		}
 
-		piece_checker_data* session_impl::find_checking_torrent(const sha1_hash& info_hash)
-		{
-			std::map<sha1_hash, boost::shared_ptr<detail::piece_checker_data> >::iterator i
-				= m_checkers.find(info_hash);
-
-			if (i != m_checkers.end())
-				return boost::get_pointer(i->second);
-
-			return 0;
-		}
-
-
-		void piece_check_thread::operator()()
-		{
-			// TODO: implement a way to abort a file check and
-			// to get feedback on how much of the data that has
-			// been checked and how much of the file we have
-			// (which should be about the same thing with the
-			// new allocation model)
-			try
-			{
-				m_data->torrent_ptr->allocate_files(m_data, m_data->save_path);
-			}
-			catch(...)
-			{
-				std::cout << "error while checking files\n";
-			}
-
-			// lock the session to add the new torrent
-			session_impl* ses = m_data->ses;
-			boost::mutex::scoped_lock l(ses->m_mutex);
-
-#ifndef NDEBUG
-			std::cout << "adding torrent to session!\n";
-#endif
-
-			ses->m_torrents.insert(
-				std::make_pair(m_data->info_hash, m_data->torrent_ptr)).first;
-
-			// remove ourself from the 'checking'-list
-			// (we're no longer in the checking state)
-			assert(ses->m_checkers.find(m_data->info_hash) != ses->m_checkers.end());
-			ses->m_checkers.erase(ses->m_checkers.find(m_data->info_hash));
-		}
-
 	}
 
 	torrent_handle session::add_torrent(const torrent_info& ti,
 		const std::string& save_path)
 	{
-		// lock the session
-		boost::mutex::scoped_lock l(m_impl.m_mutex);
 
-		// is the torrent already active?
-		// TODO: this should throw
-		if (m_impl.m_torrents.find(ti.info_hash()) != m_impl.m_torrents.end())
-			return torrent_handle(&m_impl, ti.info_hash());
+		{
+			// lock the session
+			boost::mutex::scoped_lock l(m_impl.m_mutex);
 
-		// is the torrent currently being checked?
-		if (m_impl.m_checkers.find(ti.info_hash()) != m_impl.m_checkers.end())
-			return torrent_handle(&m_impl, ti.info_hash());
+			// is the torrent already active?
+			// TODO: this should throw
+			if (m_impl.find_torrent(ti.info_hash()))
+				return torrent_handle(&m_impl, &m_checker_impl, ti.info_hash());
+		}
+
+		{
+			// lock the checker_thread
+			boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
+
+			// is the torrent currently being checked?
+			// TODO: This should throw
+			if (m_checker_impl.find_torrent(ti.info_hash()))
+				return torrent_handle(&m_impl, &m_checker_impl, ti.info_hash());
+		}
 
 		// create the torrent and the data associated with
 		// the checker thread and store it before starting
@@ -486,16 +529,21 @@ namespace libtorrent
 		// having them all run at the same time
 		boost::shared_ptr<torrent> torrent_ptr(new torrent(&m_impl, ti));
 
-		boost::shared_ptr<detail::piece_checker_data> d(new detail::piece_checker_data);
-		d->torrent_ptr = torrent_ptr;
-		d->save_path = save_path;
-		d->ses = &m_impl;
-		d->info_hash = ti.info_hash();
+		detail::piece_checker_data d;
+		d.torrent_ptr = torrent_ptr;
+		d.save_path = save_path;
+		d.info_hash = ti.info_hash();
 
-		m_impl.m_checkers.insert(std::make_pair(ti.info_hash(), d));
-		m_impl.m_checker_threads.create_thread(detail::piece_check_thread(d));
+		// lock the checker thread
+		boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
 
-		return torrent_handle(&m_impl, ti.info_hash());
+		// add the torrent to the queue to be checked
+		m_checker_impl.m_torrents.push_back(d);
+		// and notify the thread that it got another
+		// job in its queue
+		m_checker_impl.m_cond.notify_one();
+
+		return torrent_handle(&m_impl, &m_checker_impl, ti.info_hash());
 	}
 
 	void session::set_http_settings(const http_settings& s)
@@ -511,12 +559,26 @@ namespace libtorrent
 			m_impl.m_abort = true;
 		}
 
-		m_thread.join();
+		{
+			boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
+			// abort the checker thread
+			m_checker_impl.m_abort = true;
 
-		// TODO: join the checking threads!
+			// abort the currently checking torrent
+			if (!m_checker_impl.m_torrents.empty())
+			{
+				m_checker_impl.m_torrents.front().abort = true;
+			}
+			m_checker_impl.m_cond.notify_one();
+		}
+
+		m_thread.join();
+		m_checker_thread.join();
 	}
 
 	// TODO: document
+	// TODO: if the first 4 charachters are printable
+	// maybe they should be considered a fingerprint?
 	std::string extract_fingerprint(const peer_id& p)
 	{
 		std::string ret;
