@@ -516,6 +516,7 @@ namespace libtorrent
 
 		}
 
+
 		// the return value from this function is valid only as long as the
 		// session is locked!
 		torrent* session_impl::find_torrent(const sha1_hash& info_hash)
@@ -528,9 +529,23 @@ namespace libtorrent
 
 	}
 
+	session::session(int listen_port, const std::string& fingerprint)
+		: m_impl(listen_port, fingerprint)
+		, m_checker_impl(&m_impl)
+		, m_thread(boost::ref(m_impl))
+		, m_checker_thread(boost::ref(m_checker_impl))
+	{
+#ifndef NDEBUG
+		boost::function0<void> test = boost::ref(m_impl);
+		assert(!test.empty());
+#endif
+	}
+
+
 	// if the torrent already exists, this will throw duplicate_torrent
-	torrent_handle session::add_torrent(const torrent_info& ti,
-		const std::string& save_path)
+	torrent_handle session::add_torrent(
+		const torrent_info& ti
+		, const boost::filesystem::path& save_path)
 	{
 
 		{

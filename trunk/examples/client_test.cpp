@@ -118,12 +118,12 @@ bool sleep_and_input(char* c)
 
 void set_cursor(int x, int y)
 {
-   std::cout << "\033[" << y << ";" << x << "H";
+//	std::cout << "\033[" << y << ";" << x << "H";
 }
 
 void clear()
 {
-   std::cout << "\033[2J";
+//	std::cout << "\033[2J";
 }
 
 #endif
