@@ -89,6 +89,7 @@ namespace libtorrent
 		torrent_info();
 		torrent_info(sha1_hash const& info_hash);
 		torrent_info(entry const& torrent_file);
+		~torrent_info();
 
 		entry create_torrent() const;
 		entry create_info_metadata() const;

@@ -70,6 +70,8 @@ namespace std
 };
 #endif
 
+using boost::bind;
+
 namespace libtorrent
 {
 
@@ -180,9 +182,7 @@ namespace libtorrent
 		assert(max_uploads >= 2 || max_uploads == -1);
 
 		call_member<void>(m_ses, m_chk, m_info_hash
-			, boost::bind(&policy::set_max_uploads
-				, boost::bind(&torrent::get_policy, _1)
-				, max_uploads));
+			, bind(&torrent::set_max_uploads, _1, max_uploads));
 	}
 
 	void torrent_handle::use_interface(const char* net_interface)
@@ -190,7 +190,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		call_member<void>(m_ses, m_chk, m_info_hash
-			, boost::bind(&torrent::use_interface, _1, net_interface));
+			, bind(&torrent::use_interface, _1, net_interface));
 	}
 
 	void torrent_handle::set_max_connections(int max_connections)
@@ -198,8 +198,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		call_member<void>(m_ses, m_chk, m_info_hash
-			, boost::bind(&policy::set_max_connections
-				, boost::bind(&torrent::get_policy, _1), max_connections));
+			, bind(&torrent::set_max_connections, _1, max_connections));
 	}
 
 	void torrent_handle::set_upload_limit(int limit)
@@ -209,7 +208,7 @@ namespace libtorrent
 		assert(limit >= -1);
 
 		call_member<void>(m_ses, m_chk, m_info_hash
-			, boost::bind(&torrent::set_upload_limit, _1, limit));
+			, bind(&torrent::set_upload_limit, _1, limit));
 	}
 
 	void torrent_handle::set_download_limit(int limit)
@@ -219,7 +218,7 @@ namespace libtorrent
 		assert(limit >= -1);
 
 		call_member<void>(m_ses, m_chk, m_info_hash
-			, boost::bind(&torrent::set_download_limit, _1, limit));
+			, bind(&torrent::set_download_limit, _1, limit));
 	}
 
 	bool torrent_handle::move_storage(boost::filesystem::path const& save_path)
@@ -227,7 +226,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		return call_member<bool>(m_ses, m_chk, m_info_hash
-			, boost::bind(&torrent::move_storage, _1, save_path));
+			, bind(&torrent::move_storage, _1, save_path));
 	}
 
 	bool torrent_handle::has_metadata() const
@@ -235,7 +234,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		return call_member<bool>(m_ses, m_chk, m_info_hash
-			, boost::bind(&torrent::valid_metadata, _1));
+			, bind(&torrent::valid_metadata, _1));
 	}
 
 	bool torrent_handle::is_seed() const
@@ -243,7 +242,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		return call_member<bool>(m_ses, m_chk, m_info_hash
-			, boost::bind(&torrent::is_seed, _1));
+			, bind(&torrent::is_seed, _1));
 	}
 
 	bool torrent_handle::is_paused() const
@@ -251,7 +250,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		return call_member<bool>(m_ses, m_chk, m_info_hash
-			, boost::bind(&torrent::is_paused, _1));
+			, bind(&torrent::is_paused, _1));
 	}
 
 	void torrent_handle::pause()
@@ -259,7 +258,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		call_member<void>(m_ses, m_chk, m_info_hash
-			, boost::bind(&torrent::pause, _1));
+			, bind(&torrent::pause, _1));
 	}
 
 	void torrent_handle::resume()
@@ -267,7 +266,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		call_member<void>(m_ses, m_chk, m_info_hash
-			, boost::bind(&torrent::resume, _1));
+			, bind(&torrent::resume, _1));
 	}
 
 	void torrent_handle::set_tracker_login(std::string const& name, std::string const& password)
@@ -275,7 +274,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		call_member<void>(m_ses, m_chk, m_info_hash
-			, boost::bind(&torrent::set_tracker_login, _1, name, password));
+			, bind(&torrent::set_tracker_login, _1, name, password));
 	}
 
 
@@ -318,7 +317,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		return call_member<std::vector<announce_entry> const&>(m_ses
-			, m_chk, m_info_hash, boost::bind(&torrent::trackers, _1));
+			, m_chk, m_info_hash, bind(&torrent::trackers, _1));
 	}
 
 	void torrent_handle::replace_trackers(std::vector<announce_entry> const& urls)
@@ -326,7 +325,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		call_member<void>(m_ses, m_chk, m_info_hash
-			, boost::bind(&torrent::replace_trackers, _1, urls));
+			, bind(&torrent::replace_trackers, _1, urls));
 	}
 
 	const torrent_info& torrent_handle::get_torrent_info() const
@@ -335,7 +334,7 @@ namespace libtorrent
 
 		if (!has_metadata()) throw invalid_handle();
 		return call_member<torrent_info const&>(m_ses, m_chk, m_info_hash
-			, boost::bind(&torrent::torrent_file, _1));
+			, bind(&torrent::torrent_file, _1));
 	}
 
 	bool torrent_handle::is_valid() const
@@ -481,7 +480,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		return call_member<boost::filesystem::path>(m_ses, m_chk, m_info_hash
-			, boost::bind(&torrent::save_path, _1));
+			, bind(&torrent::save_path, _1));
 	}
 
 	std::vector<char> const& torrent_handle::metadata() const
@@ -489,7 +488,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		return call_member<std::vector<char> const&>(m_ses, m_chk, m_info_hash
-			, boost::bind(&torrent::metadata, _1));
+			, bind(&torrent::metadata, _1));
 	}
 
 	void torrent_handle::connect_peer(const address& adr) const
@@ -530,7 +529,7 @@ namespace libtorrent
 			ratio = 1.f;
 
 		call_member<void>(m_ses, m_chk, m_info_hash
-			, boost::bind(&torrent::set_ratio, _1, ratio));
+			, bind(&torrent::set_ratio, _1, ratio));
 	}
 
 	void torrent_handle::get_peer_info(std::vector<peer_info>& v) const

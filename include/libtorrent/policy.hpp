@@ -107,17 +107,6 @@ namespace libtorrent
 		// the peer is not interested in our pieces
 		void not_interested(peer_connection& c);
 
-		void set_max_uploads(int num_unchoked);
-		int get_max_uploads() const { return m_max_uploads; }
-
-		/*
-			A limit on the number of sockets opened, for use on systems where a
-			user has a limited number of open file descriptors. And for windows
-			which has a buggy tcp-stack.
-		*/
-		void set_max_connections(int num_connected);
-		int get_max_connections() const { return m_max_connections; }
-
 #ifndef NDEBUG
 		bool has_connection(const peer_connection* p);
 
@@ -173,6 +162,11 @@ namespace libtorrent
 			return m_num_peers;
 		}
 
+		int num_uploads() const
+		{
+			return m_num_unchoked;
+		}
+
 	private:
 
 		bool unchoke_one_peer();
@@ -212,13 +206,6 @@ namespace libtorrent
 
 		int m_num_peers;
 		torrent* m_torrent;
-
-		// the total number of unchoked peers at
-		// any given time. If set to -1, it's unlimited.
-		// must be 2 or higher otherwise.
-		int m_max_uploads;
-
-		int m_max_connections;
 
 		// the number of unchoked peers
 		// at any given time
