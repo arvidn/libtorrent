@@ -121,13 +121,26 @@ namespace
 
 	std::string escape_string(const char* str, int len)
 	{
+		static const char special_chars[] = "$-_.+!*'(),";
+
 		std::stringstream ret;
 		ret << std::hex  << std::setfill('0');
 		for (int i = 0; i < len; ++i)
 		{
-			// TODO: should alnum() be replaced with printable()?
-			if (std::isalnum(static_cast<unsigned char>(*str))) ret << *str;
-			else ret << "%" << std::setw(2) << (int)static_cast<unsigned char>(*str);
+			if (std::isalnum(static_cast<unsigned char>(*str))
+				|| std::find(
+					special_chars
+					, special_chars+sizeof(special_chars)-1
+					, *str))
+			{
+				ret << *str;
+			}
+			else
+			{
+				ret << "%"
+					<< std::setw(2)
+					<< (int)static_cast<unsigned char>(*str);
+			}
 			++str;
 		}
 		return ret.str();

@@ -33,23 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SOCKET_HPP_INCLUDED
 #define TORRENT_SOCKET_HPP_INCLUDED
 
-// TODO: remove the dependency of
-// platform specific headers here.
-// sockaddr_in is hard to get rid of in a nice way
-
-#if defined(_WIN32)
-	#include <winsock2.h>
-#else
-	#include <unistd.h>
-	#include <sys/socket.h>
-	#include <netinet/in.h>
-	#include <netdb.h>
-	#include <errno.h>
-	#include <pthread.h>
-	#include <fcntl.h>
-	#include <arpa/inet.h>
-#endif
-
 #include <boost/smart_ptr.hpp>
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>

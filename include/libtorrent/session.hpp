@@ -59,6 +59,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/debug.hpp"
 
+#if defined(_MSC_VER) && !defined(NDEBUG)
+
+#include <eh.h>
+
+#endif
 
 // TODO: if we're a seed and the peer is a seed, close the connections
 
@@ -71,12 +76,13 @@ namespace libtorrent
 		// hardware exceptions that makes
 		// it hard to debug stuff
 #if defined(_MSC_VER) && !defined(NDEBUG)
+
 		struct eh_initializer
 		{
 			eh_initializer()
-			{ _set_se_translator(straight_to_debugger); }
+			{ ::_set_se_translator(straight_to_debugger); }
 
-			static void straight_to_debugger(unsigned int, EXCEPTION_POINTERS*)
+			static void straight_to_debugger(unsigned int, _EXCEPTION_POINTERS*)
 			{ throw; }
 		};
 #else
