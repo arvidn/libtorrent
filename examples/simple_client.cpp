@@ -56,9 +56,8 @@ int main(int argc, char* argv[])
 
 	try
 	{
-		session s(
-				libtorrent::fingerprint("LT", 0, 1, 0, 0)
-				, std::make_pair(6881, 6889));
+		session s;
+		s.listen_on(std::make_pair(6881, 6889));
 	
 		std::ifstream in(argv[1], std::ios_base::binary);
 		in.unsetf(std::ios_base::skipws);
