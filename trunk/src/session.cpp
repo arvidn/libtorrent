@@ -431,6 +431,7 @@ namespace libtorrent
 				}
 				catch(const std::exception& e)
 				{
+					// TODO: generate an alert here!
 #ifndef NDEBUG
 					std::cerr << "error while checking files: " << e.what() << "\n";
 #endif

@@ -1,3 +1,5 @@
+#This Jamfile requires boost-build v2 to build.
+
 import modules ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
@@ -18,9 +20,9 @@ project torrent
 	  <library>/boost/filesystem
 
 	: usage-requirements 
-	  <use>/boost/thread
-	  <use>/boost/date_time
-	  <use>/boost/filesystem
+#	  <use>/boost/thread
+#	  <use>/boost/date_time
+#	  <use>/boost/filesystem
 
 	  <include>./include
 	  <include>$(BOOST_ROOT)
@@ -38,6 +40,7 @@ project torrent
 
 
 SOURCES =
+	allocate_resources.cpp
 	alert.cpp
 	entry.cpp
 	identify_client.cpp
@@ -70,6 +73,9 @@ SOURCES =
 
 lib torrent
 	:
+#	  /boost/thread
+#	  /boost/filesystem
+#	  /boost/date_time
 	  zlib//zlib
 	  src/$(SOURCES)
 	: <include>./include

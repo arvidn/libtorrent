@@ -419,6 +419,7 @@ namespace libtorrent
 
 		// clear the request queue if the client isn't interested
 		m_requests.clear();
+		send_buffer_updated();
 
 #ifndef NDEBUG
 		(*m_logger) << " <== NOT_INTERESTED\n";

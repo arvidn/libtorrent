@@ -249,6 +249,9 @@ namespace libtorrent
 			, const boost::filesystem::path& save_path
 			, const entry& resume_data = entry());
 
+		// TODO: add the ability to change listen-port on the fly
+		// TODO: make it possible to ask for the current listen port
+
 		void remove_torrent(const torrent_handle& h);
 
 		void set_http_settings(const http_settings& s);
