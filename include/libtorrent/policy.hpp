@@ -121,7 +121,7 @@ namespace libtorrent
 #ifndef NDEBUG
 		bool has_connection(const peer_connection* p);
 
-		void check_invariant();
+		void check_invariant() const;
 #endif
 
 		struct peer

@@ -653,8 +653,7 @@ namespace libtorrent
 			while (m_num_unchoked > m_max_uploads)
 			{
 				peer* p = find_seed_choke_candidate();
-
-				if (p == 0) break;
+				assert(p != 0);
 
 				p->connection->send_choke();
 				--m_num_unchoked;
@@ -666,6 +665,9 @@ namespace libtorrent
 			{
 				if (!seed_unchoke_one_peer()) break;
 			}
+#ifndef NDEBUG
+			check_invariant();
+#endif
 		}
 
 		// ----------------------------
@@ -720,7 +722,6 @@ namespace libtorrent
 			// unchoked peers
 			while (m_num_unchoked < m_max_uploads && unchoke_one_peer());
 		}
-
 #ifndef NDEBUG
 		check_invariant();
 #endif
@@ -815,7 +816,7 @@ namespace libtorrent
 				using namespace boost::posix_time;
 				using namespace boost::gregorian;
 
-				// we don't have ny info about this peer.
+				// we don't have any info about this peer.
 				// add a new entry
 				peer p(remote, peer::connectable);
 				m_peers.push_back(p);
@@ -1087,11 +1088,11 @@ namespace libtorrent
 			, match_peer_ip(c->get_socket()->sender())) != m_peers.end();
 	}
 
-	void policy::check_invariant()
+	void policy::check_invariant() const
 	{
 		assert(m_max_uploads >= 2);
 		int actual_unchoked = 0;
-		for (std::vector<peer>::iterator i = m_peers.begin();
+		for (std::vector<peer>::const_iterator i = m_peers.begin();
 			i != m_peers.end();
 			++i)
 		{

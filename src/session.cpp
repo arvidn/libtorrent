@@ -974,7 +974,7 @@ namespace libtorrent
 		assert(bytes_per_second > 0 || bytes_per_second == -1);
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_upload_rate = bytes_per_second;
-		if (m_impl.m_upload_rate != -1 || !m_impl.m_connections.empty())
+		if (m_impl.m_upload_rate != -1/* || !m_impl.m_connections.empty()*/)
 			return;
 
 		for (detail::session_impl::connection_map::iterator i
@@ -990,7 +990,7 @@ namespace libtorrent
 		assert(bytes_per_second > 0 || bytes_per_second == -1);
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_download_rate = bytes_per_second;
-		if (m_impl.m_download_rate != -1 || !m_impl.m_connections.empty())
+		if (m_impl.m_download_rate != -1/* || !m_impl.m_connections.empty()*/)
 			return;
 
 		for (detail::session_impl::connection_map::iterator i

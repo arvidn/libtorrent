@@ -243,8 +243,8 @@ int main(int argc, char* argv[])
 		std::vector<torrent_handle> handles;
 		session ses(fingerprint("LT", 0, 1, 0, 0));
 
-		ses.listen_on(std::make_pair(6881, 6889));
-//		ses.set_upload_rate_limit(100000);
+		ses.listen_on(std::make_pair(100, 110));
+		ses.set_upload_rate_limit(50000);
 //		ses.set_download_rate_limit(50000);
 		ses.set_http_settings(settings);
 		ses.set_severity_level(alert::debug);
@@ -277,7 +277,7 @@ int main(int argc, char* argv[])
 
 				handles.push_back(ses.add_torrent(t, save_path, resume_data));
 				handles.back().set_max_connections(60);
-				handles.back().set_max_uploads(-1);
+				handles.back().set_max_uploads(7);
 				handles.back().set_ratio(1.02f);
 			}
 			catch (std::exception& e)
