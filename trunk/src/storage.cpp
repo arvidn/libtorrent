@@ -67,7 +67,10 @@ namespace {
 		lazy_hash(const char* data_, std::size_t size_)
 			: data(data_)
 			, size(size_)
-		{}
+		{
+			assert(data_);
+			assert(size_>0);
+		}
 
 		const libtorrent::sha1_hash& get() const
 		{
@@ -156,7 +159,7 @@ namespace libtorrent
 	{
 		thread_safe_storage(std::size_t n)
 			: slots(n, false)
-		{}
+		{ assert(n>=0); }
 
 		boost::mutex mutex;
 		boost::condition condition;
@@ -169,6 +172,7 @@ namespace libtorrent
 			: storage_(s)
 			, slot(slot_)
 		{
+			assert(slot_>=0 && (unsigned)slot_ < s.slots.size());
 			boost::mutex::scoped_lock lock(storage_.mutex);
 
 			while (storage_.slots[slot])
@@ -221,6 +225,8 @@ namespace libtorrent
 	  , size_type offset
   	  , size_type size)
 	{
+		assert(buf);
+		assert(slot >= 0 && slot < m_pimpl->info.num_pieces());
 		assert(offset >= 0);
 		assert(offset < m_pimpl->info.piece_size(slot));
 		assert(size > 0);
@@ -310,6 +316,9 @@ namespace libtorrent
 
 	void storage::write(const char* buf, int slot, size_type offset, size_type size)
 	{
+		assert(buf);
+		assert(slot >= 0 && slot < m_pimpl->info.num_pieces());
+		assert(offset >= 0);
 		assert(size > 0);
 
 		slot_lock lock(*m_pimpl, slot);
@@ -600,6 +609,9 @@ namespace libtorrent
 		, int block_size
 		, const std::bitset<256>& bitmask)
 	{
+		assert(slot_index >= 0 && slot_index < m_info.num_pieces());
+		assert(block_size>0);
+
 		adler32_crc crc;
 		std::vector<char> buf(block_size);
 		int num_blocks = m_info.piece_size(slot_index) / block_size;

@@ -123,7 +123,7 @@ namespace libtorrent
 
 		struct checker_impl: boost::noncopyable
 		{
-			checker_impl(session_impl* s): m_ses(s), m_abort(false) {}
+			checker_impl(session_impl* s): m_ses(s), m_abort(false) { assert(s); }
 			void operator()();
 			piece_checker_data* find_torrent(const sha1_hash& info_hash);
 
@@ -208,7 +208,7 @@ namespace libtorrent
 			void purge_connections();
 
 #ifndef NDEBUG
-			void assert_invariant(int marker = -1);
+			void assert_invariant(const char *place);
 			boost::shared_ptr<logger> create_log(std::string name);
 			boost::shared_ptr<logger> m_logger;
 #endif

@@ -116,9 +116,10 @@ namespace
 	{
 		using namespace libtorrent;
 
+		assert(upload_limit > 0 || upload_limit==-1);
+
 		if (connections.empty()) return;
 
-		assert(upload_limit != 0);
 
 		if (upload_limit == -1)
 		{
@@ -169,7 +170,7 @@ namespace
 			// Sum all peer_connections' quota limit to get the total quota limit.
 
 			int sum_total_of_quota_limits=0;
-			for(int i=0;i<peer_info.size();i++)
+			for(int i=0;(unsigned)i<peer_info.size();i++)
 			{
 				int quota_limit=peer_info[i].quota_limit;
 				if(quota_limit==-1)
@@ -197,7 +198,7 @@ namespace
 			{
 				assert(quota_left_to_distribute>0);
 
-				for(int i=0;i<peer_info.size();i++)
+				for(int i=0;(unsigned)i<peer_info.size();i++)
 				{
 					// Traverse the peer list from slowest connection to fastest.
 
@@ -223,7 +224,7 @@ namespace
 			
 			// Finally, inform the peers of how much quota they get.
 
-			for(int i=0;i<peer_info.size();i++)
+			for(int i=0;(unsigned)i<peer_info.size();i++)
 				peer_info[i].p->set_send_quota(peer_info[i].allocated_quota);
 		}
 
@@ -349,6 +350,7 @@ namespace libtorrent
 			, m_upload_rate(-1)
 			, m_incoming_connection(false)
 		{
+			assert(listen_port>0);
 
 			// ---- generate a peer id ----
 
@@ -431,7 +433,7 @@ namespace libtorrent
 			{
 
 #ifndef NDEBUG
-				assert_invariant(0);
+				assert_invariant("loops_per_second++");
 				loops_per_second++;
 #endif
 
@@ -472,7 +474,7 @@ namespace libtorrent
 				}
 
 #ifndef NDEBUG
-				assert_invariant();
+				assert_invariant("before SEND SOCKETS");
 #endif
 
 				// ************************
@@ -520,7 +522,7 @@ namespace libtorrent
 				purge_connections();
 
 #ifndef NDEBUG
-				assert_invariant();
+				assert_invariant("after SEND SOCKETS");
 #endif
 				// ************************
 				// RECEIVE SOCKETS
@@ -584,7 +586,7 @@ namespace libtorrent
 				}
 				purge_connections();
 #ifndef NDEBUG
-				assert_invariant();
+				assert_invariant("after RECEIVE SOCKETS");
 #endif
 
 				// ************************
@@ -616,7 +618,7 @@ namespace libtorrent
 				}
 
 #ifndef NDEBUG
-				assert_invariant();
+				assert_invariant("after ERROR SOCKETS");
 #endif
 
 				boost::posix_time::time_duration d = boost::posix_time::second_clock::local_time() - timer;
@@ -744,10 +746,10 @@ namespace libtorrent
 #endif
 
 #ifndef NDEBUG
-		void session_impl::assert_invariant(int marker)
+		void session_impl::assert_invariant(const char *place)
 		{
-			static int place = 0;
-			if (marker != -1) place = 0;
+			assert(place);
+
 			for (connection_map::iterator i = m_connections.begin();
 				i != m_connections.end();
 				++i)
@@ -772,7 +774,6 @@ namespace libtorrent
 						->get_policy().has_connection(boost::get_pointer(i->second)));
 				}
 			}
-			place++;
 		}
 #endif
 
@@ -985,7 +986,7 @@ namespace libtorrent
 
 			// read piece map
 			const entry::list_type& slots = rd.dict()["slots"].list();
-			if (slots.size() > info.num_pieces())
+			if ((int)slots.size() > info.num_pieces())
 				return;
 
 			std::vector<int> tmp_pieces;
