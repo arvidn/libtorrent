@@ -177,8 +177,17 @@ namespace libtorrent
 			else if (std::equal(f->id, f->id+2, "MT"))
 				identity << "Moonlight Torrent ";
 
+			// Torrent Storm
 			else if (std::equal(f->id, f->id+2, "TS"))
 				identity << "TorrentStorm ";
+
+			// SwarmScope
+			else if (std::equal(f->id, f->id+2, "SS"))
+				identity << "SwarmScope ";
+
+			// XanTorrent
+			else if (std::equal(f->id, f->id+2, "XT"))
+				identity << "XanTorrent ";
 
 			// unknown client
 			else
@@ -206,6 +215,10 @@ namespace libtorrent
 			// UPnP
 			else if (std::equal(f->id, f->id+1, "U"))
 				identity << "UPnP ";
+
+			// BitTornado
+			else if (std::equal(f->id, f->id+1, "T"))
+				identity << "BitTornado ";
 
 			// unknown client
 			else

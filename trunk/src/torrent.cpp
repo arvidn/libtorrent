@@ -243,25 +243,6 @@ namespace libtorrent
 
 		m_got_tracker_response = true;
 	}
-/*
-	bool torrent::has_peer(const peer_id& id) const
-	{
-		assert(std::count_if(m_connections.begin()
-			, m_connections.end()
-			, peer_by_id(id)) <= 1);
-
-		// pretend that we are connected to
-		// ourself to avoid real connections
-		// to ourself
-		if (id == m_ses.m_peer_id) return true;
-
-		return std::find_if(
-			m_connections.begin()
-			, m_connections.end()
-			, peer_by_id(id))
-			!= m_connections.end();
-	}
-*/
 
 	size_type torrent::bytes_left() const
 	{

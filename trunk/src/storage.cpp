@@ -1415,12 +1415,11 @@ namespace libtorrent
 				m_slot_to_piece[pos] = pos;
 				m_piece_to_slot[pos] = pos;
 			}
+			m_unallocated_slots.erase(m_unallocated_slots.begin());
+			m_slot_to_piece[new_free_slot] = unassigned;
+			m_free_slots.push_back(new_free_slot);
 
 			m_storage.write(&zeros[0], pos, 0, static_cast<int>(m_info.piece_size(pos)));
-
-			m_free_slots.push_back(new_free_slot);
-			m_slot_to_piece[new_free_slot] = unassigned;
-			m_unallocated_slots.erase(m_unallocated_slots.begin());
 		}
 
 		assert(m_free_slots.size() > 0);
