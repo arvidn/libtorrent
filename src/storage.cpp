@@ -1200,7 +1200,9 @@ namespace libtorrent
 					assert(m_slot_to_piece[i] == unallocated);
 					m_unallocated_slots.push_back(i);
 				}
-				current_slot += skip_blocks;
+
+				// current slot will increase by one at the end of the for-loop too
+				current_slot += skip_blocks - 1;
 			}
 
 			// Update progress meter and check if we've been requested to abort

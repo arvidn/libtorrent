@@ -649,7 +649,12 @@ namespace libtorrent
 
 	void torrent::second_tick(stat& accumulator)
 	{
-		if (m_paused) return;
+		if (m_paused)
+		{
+			// let the stats fade out to 0
+			m_stat.second_tick();
+			return;
+		}
 
 		m_time_scaler--;
 		if (m_time_scaler <= 0)
