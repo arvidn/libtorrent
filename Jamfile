@@ -9,11 +9,7 @@ use-project /boost/thread : $(BOOST_ROOT)/libs/thread/build ;
 use-project /boost/filesystem : $(BOOST_ROOT)/libs/filesystem/build ;
 use-project /boost/date_time : $(BOOST_ROOT)/libs/date_time/build ;
 
-lib winsock : : <name>wsock32.lib ;
-
-project torrent
-	: requirements
-
+REQUIREMENTS = 
 	<include>./include
 	<include>./zlib
 	<include>$(BOOST_ROOT)
@@ -36,18 +32,14 @@ project torrent
 # darwin switches
 
 	<toolset>darwin:<cxxflags>-Wno-unused-variable
+	;
 
-	: usage-requirements 
-
+USAGE_REQIREMENTS =
 	<include>./include
 	<include>$(BOOST_ROOT)
 	<variant>release:<define>NDEBUG
 	<define>BOOST_ALL_NO_LIB
-
 	;
-
-
-LIBS = ;
 
 SOURCES =
 	allocate_resources.cpp
@@ -89,9 +81,10 @@ ZLIB_SOURCES =
 
 # some windows specific settings
 
-	if [ modules.peek : NT ]
+	if [ os.name ] = NT
 	{
-		LIBS += winsock ;
+		lib winsock : : <name>wsock32.lib ;
+		REQUIREMENTS += <library>winsock ;
 		SOURCES += file_win.cpp ;
 	}
 	else
@@ -99,11 +92,18 @@ ZLIB_SOURCES =
 		SOURCES += file.cpp ;
 	}
 
+project torrent
+	: requirements
+	$(REQUIREMENTS)
+	: usage-requirements 
+	$(USAGE_REQUIREMENTS)
+	;
+
+
 lib torrent
 	:
 	src/$(SOURCES)
 	zlib/$(ZLIB_SOURCES)
-	$(LIBS)
 	:
 	<threading>multi
 	<link>static
