@@ -141,6 +141,9 @@ namespace libtorrent
 	{
 	}
 
+	torrent_info::~torrent_info()
+	{}
+
 	void torrent_info::set_piece_size(int size)
 	{
 		// make sure the size is an even 2 exponential

@@ -68,13 +68,14 @@ libtorrent has been successfully compiled and tested on:
 
 	* Windows 2000 vc7.1
 	* Linux x86 (debian) GCC 3.0.4, GCC 3.2.3
-	* Windows 2000, msvc6 sp5 (does not support 64-bit values due to problems with operator<<(ostream&, __int64))
 	* MacOS X, GCC 3.3
+	* SunOS 5.8 GCC 3.1
 
 Fails on:
 
 	* GCC 2.95.4 (``std::ios_base`` is missing)
 	* Cygwin GCC 3.3.1 (builds but crashes)
+	* msvc6 sp5
 
 libtorrent is released under the BSD-license_.
 
@@ -238,6 +239,8 @@ The ``session`` class has the following synopsis::
 
 		void set_upload_rate_limit(int bytes_per_second);
 		void set_download_rate_limit(int bytes_per_second);
+		void set_max_uploads(int limit);
+		void set_max_connections(int limit);
 
 		session_status status() const;
 
@@ -250,7 +253,6 @@ The ``session`` class has the following synopsis::
 
 		std::auto_ptr<alert> pop_alert();
 		void set_severity_level(alert::severity_t s);
-
 	};
 
 Once it's created, the session object will spawn the main thread that will do all the work.
@@ -346,6 +348,21 @@ sent to peers per second. This bandwidth is distributed among all the peers. If
 you don't want to limit upload rate, you can set this to -1 (the default).
 ``set_download_rate_limit()`` works the same way but for download rate instead
 of upload rate.
+
+
+set_max_uploads() set_max_connections()
+---------------------------------------
+
+	::
+
+		void set_max_uploads(int limit);
+		void set_max_connections(int limit);
+
+These functions will set a global limit on the number of unchoked peers (uploads)
+and the number of connections opened. The number of connections is set to a hard
+minimum of at least two connections per torrent, so if you set a too low
+connections limit, and open too many torrents, the limit will not be met. The
+number of uploads is at least one per torrent.
 
 
 status()

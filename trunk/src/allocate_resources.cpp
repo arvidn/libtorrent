@@ -113,16 +113,20 @@ namespace libtorrent
 			{
 				int sum_given = 0;
 				int sum_max = 0;
+				int sum_min = 0;
 				for (It i = m_start, end(m_end); i != end; ++i)
 				{
 					assert(((*i).*m_res).max >= 0);
+					assert(((*i).*m_res).min >= 0);
+					assert(((*i).*m_res).max >= ((*i).*m_res).min);
 					assert(((*i).*m_res).given >= 0);
 					assert(((*i).*m_res).given <= ((*i).*m_res).max);
 
 					sum_given = saturated_add(sum_given, ((*i).*m_res).given);
 					sum_max = saturated_add(sum_max, ((*i).*m_res).max);
+					sum_min = saturated_add(sum_min, ((*i).*m_res).min);
 				}
-				assert(sum_given == std::min(m_resources, sum_max));
+				assert(sum_given == std::min(std::max(m_resources, sum_min), sum_max));
 			}
 		};
 
@@ -171,6 +175,7 @@ namespace libtorrent
 			if (resources == 0 || sum_max == 0)
 				return;
 
+			resources = std::max(resources, sum_min);
 			int resources_to_distribute = std::min(resources, sum_max) - sum_min;
 			assert(resources_to_distribute >= 0);
 

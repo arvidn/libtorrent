@@ -196,6 +196,8 @@ namespace libtorrent { namespace detail
 		, m_abort(false)
 		, m_upload_rate(-1)
 		, m_download_rate(-1)
+		, m_max_uploads(-1)
+		, m_max_connections(-1)
 		, m_incoming_connection(false)
 	{
 #ifndef NDEBUG
@@ -694,15 +696,24 @@ namespace libtorrent { namespace detail
 				, m_torrents
 				, &torrent::m_dl_bandwidth_quota);
 
+			allocate_resources(m_max_uploads == -1
+				? std::numeric_limits<int>::max()
+				: m_max_uploads
+				, m_torrents
+				, &torrent::m_uploads_quota);
+
+			allocate_resources(m_max_connections == -1
+				? std::numeric_limits<int>::max()
+				: m_max_connections
+				, m_torrents
+				, &torrent::m_connections_quota);
+
 			for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
 				= m_torrents.begin(); i != m_torrents.end(); ++i)
 			{
 				i->second->distribute_resources();
 			}
 
-			// TODO: there's a problem when removing torrents while
-			// they're waiting for tracker response. The requester-pointer
-			// will become invalid.
 			m_tracker_manager.tick();
 		}
 
@@ -1043,6 +1054,20 @@ namespace libtorrent
 
 		m_thread.join();
 		m_checker_thread.join();
+	}
+
+	void session::set_max_uploads(int limit)
+	{
+		assert(limit > 0 || limit == -1);
+		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		m_impl.m_max_uploads = limit;
+	}
+
+	void session::set_max_connections(int limit)
+	{
+		assert(limit > 0 || limit == -1);
+		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		m_impl.m_max_connections = limit;
 	}
 
 	void session::set_upload_rate_limit(int bytes_per_second)

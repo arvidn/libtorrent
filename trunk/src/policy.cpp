@@ -324,8 +324,8 @@ namespace libtorrent
 	policy::policy(torrent* t)
 		: m_num_peers(0)
 		, m_torrent(t)
-		, m_max_uploads(std::numeric_limits<int>::max())
-		, m_max_connections(std::numeric_limits<int>::max())
+//		, m_max_uploads(std::numeric_limits<int>::max())
+//		, m_max_connections(std::numeric_limits<int>::max())
 		, m_num_unchoked(0)
 		, m_available_free_upload(0)
 		, m_last_optimistic_disconnect(boost::gregorian::date(1970,boost::gregorian::Jan,1))
@@ -593,10 +593,10 @@ namespace libtorrent
 				++num_connected_peers;
 		}
 
-		if (m_max_connections != std::numeric_limits<int>::max())
+		if (m_torrent->m_connections_quota.given != std::numeric_limits<int>::max())
 		{
 
-			int max_connections = m_max_connections;
+			int max_connections = m_torrent->m_connections_quota.given;
 
 			if (num_connected_peers >= max_connections)
 			{
@@ -622,7 +622,7 @@ namespace libtorrent
 			}
 		}
 
-		while (m_torrent->num_peers() < m_max_connections)
+		while (m_torrent->num_peers() < m_torrent->m_connections_quota.given)
 		{
 			if (!connect_one_peer())
 				break;
@@ -665,7 +665,7 @@ namespace libtorrent
 		// ------------------------
 		if (m_torrent->is_seed())
 		{
-			if (num_connected_peers > m_max_uploads)
+			if (num_connected_peers > m_torrent->m_uploads_quota.given)
 			{
 				// this means there are some peers that
 				// are choked. To have the choked peers
@@ -675,7 +675,7 @@ namespace libtorrent
 				seed_unchoke_one_peer();
 			}
 
-			while (m_num_unchoked > m_max_uploads)
+			while (m_num_unchoked > m_torrent->m_uploads_quota.given)
 			{
 				peer* p = find_seed_choke_candidate();
 				assert(p != 0);
@@ -686,7 +686,7 @@ namespace libtorrent
 
 			// make sure we have enough
 			// unchoked peers
-			while (m_num_unchoked < m_max_uploads)
+			while (m_num_unchoked < m_torrent->m_uploads_quota.given)
 			{
 				if (!seed_unchoke_one_peer()) break;
 			}
@@ -719,11 +719,11 @@ namespace libtorrent
 				}
 			}
 			
-			if (m_max_uploads < m_torrent->num_peers())
+			if (m_torrent->m_uploads_quota.given < m_torrent->num_peers())
 			{
 				// make sure we don't have too many
 				// unchoked peers
-				while (m_num_unchoked > m_max_uploads)
+				while (m_num_unchoked > m_torrent->m_uploads_quota.given)
 				{
 					peer* p = find_choke_candidate();
 					assert(p);
@@ -745,7 +745,8 @@ namespace libtorrent
 
 			// make sure we have enough
 			// unchoked peers
-			while (m_num_unchoked < m_max_uploads && unchoke_one_peer());
+			while (m_num_unchoked < m_torrent->m_uploads_quota.given
+				&& unchoke_one_peer());
 		}
 #ifndef NDEBUG
 		check_invariant();
@@ -776,7 +777,7 @@ namespace libtorrent
 
 		// TODO: only allow _one_ connection to use this
 		// override at a time
-		if (m_torrent->num_peers() >= m_max_connections
+		if (m_torrent->num_peers() >= m_torrent->m_connections_quota.given
 			&& c.get_socket()->sender().ip() != m_torrent->current_tracker().ip())
 		{
 			throw protocol_error("too many connections, refusing incoming connection"); // cause a disconnect
@@ -870,7 +871,7 @@ namespace libtorrent
 
 			if (i->banned) return;
 
-			if (m_torrent->num_peers() < m_max_connections
+			if (m_torrent->num_peers() < m_torrent->m_connections_quota.given
 				&& !m_torrent->is_paused())
 			{
 				connect_peer(&*i);
@@ -1001,7 +1002,7 @@ namespace libtorrent
 
 	bool policy::connect_one_peer()
 	{
-		if(m_torrent->num_peers() >= m_max_connections)
+		if(m_torrent->num_peers() >= m_torrent->m_connections_quota.given)
 			return false;
 		peer* p = find_connect_candidate();
 		if (p == 0) return false;
@@ -1083,21 +1084,6 @@ namespace libtorrent
 		i->connection = 0;
 	}
 
-	void policy::set_max_uploads(int max_uploads)
-	{
-		assert(max_uploads > 1 || max_uploads == -1);
-		if (max_uploads == -1) max_uploads = std::numeric_limits<int>::max();
-		m_max_uploads = max_uploads;
-	}
-
-	void policy::set_max_connections(int max_connections)
-	{
-		assert(max_connections > 1 || max_connections == -1);
-		if (max_connections == -1) max_connections = std::numeric_limits<int>::max();
-		assert(max_connections >= 2);
-		m_max_connections = max_connections;
-	}
-
 	void policy::peer_is_interesting(peer_connection& c)
 	{
 		c.send_interested();
@@ -1117,7 +1103,7 @@ namespace libtorrent
 
 	void policy::check_invariant() const
 	{
-		assert(m_max_uploads >= 2);
+		assert(m_torrent->m_uploads_quota.given >= 2);
 		int actual_unchoked = 0;
 		for (std::vector<peer>::const_iterator i = m_peers.begin();
 			i != m_peers.end();
@@ -1126,7 +1112,7 @@ namespace libtorrent
 			if (!i->connection) continue;
 			if (!i->connection->is_choked()) actual_unchoked++;
 		}
-		assert(actual_unchoked <= m_max_uploads);
+		assert(actual_unchoked <= m_torrent->m_uploads_quota.given);
 	}
 #endif
 

@@ -178,6 +178,11 @@ namespace libtorrent
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_save_path(complete(save_path))
 	{
+		m_uploads_quota.min = 2;
+		m_connections_quota.min = 2;
+		m_uploads_quota.max = std::numeric_limits<int>::max();
+		m_connections_quota.max = std::numeric_limits<int>::max();
+
 		m_policy.reset(new policy(this));
 		bencode(std::back_inserter(m_metadata), metadata["info"]);
 		init();
@@ -215,6 +220,11 @@ namespace libtorrent
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_save_path(complete(save_path))
 	{
+		m_uploads_quota.min = 2;
+		m_connections_quota.min = 2;
+		m_uploads_quota.max = std::numeric_limits<int>::max();
+		m_connections_quota.max = std::numeric_limits<int>::max();
+
 		m_trackers.push_back(announce_entry(tracker_url));
 		m_requested_metadata.resize(256, 0);
 		m_policy.reset(new policy(this));
@@ -534,7 +544,7 @@ namespace libtorrent
 		req.event = m_event;
 		req.url = m_trackers[m_currently_trying_tracker].url;
 		req.num_want = std::max(
-			(m_policy->get_max_connections()
+			(m_connections_quota.given
 			- m_policy->num_peers()), 0);
 
 		// default initialize, these should be set by caller
@@ -761,6 +771,20 @@ namespace libtorrent
 	}
 #endif
 
+	void torrent::set_max_uploads(int limit)
+	{
+		assert(limit >= -1);
+		if (limit == -1) limit = std::numeric_limits<int>::max();
+		m_uploads_quota.max = std::max(m_uploads_quota.min, limit);
+	}
+
+	void torrent::set_max_connections(int limit)
+	{
+		assert(limit >= -1);
+		if (limit == -1) limit = std::numeric_limits<int>::max();
+		m_connections_quota.max = std::max(m_connections_quota.min, limit);
+	}
+
 	void torrent::set_upload_limit(int limit)
 	{
 		assert(limit >= -1);
@@ -807,12 +831,8 @@ namespace libtorrent
 			return;
 		}
 
-		m_time_scaler--;
-		if (m_time_scaler <= 0)
-		{
-			m_time_scaler = 10;
-			m_policy->pulse();
-		}
+		m_connections_quota.used = (int)m_connections.size();
+		m_uploads_quota.used = m_policy->num_uploads();
 
 		m_ul_bandwidth_quota.used = 0;
 		m_ul_bandwidth_quota.max = 0;
@@ -844,7 +864,6 @@ namespace libtorrent
 			m_dl_bandwidth_quota.max = saturated_add(
 				m_dl_bandwidth_quota.max
 				, p->m_dl_bandwidth_quota.max);
-
 		}
 
 		m_ul_bandwidth_quota.max
@@ -859,6 +878,13 @@ namespace libtorrent
 
 	void torrent::distribute_resources()
 	{
+		m_time_scaler--;
+		if (m_time_scaler <= 0)
+		{
+			m_time_scaler = 10;
+			m_policy->pulse();
+		}
+
 		// distribute allowed upload among the peers
 		allocate_resources(m_ul_bandwidth_quota.given
 			, m_connections
@@ -869,8 +895,16 @@ namespace libtorrent
 			, m_connections
 			, &peer_connection::m_dl_bandwidth_quota);
 
+		using boost::bind;
+
 		// tell all peers to reset their used quota. This is
 		// a new second and they can again use up their quota
+/*
+		std::for_each(m_connections.begin(), m_connections.end()
+			, bind(&peer_connection::reset_upload_quota
+				, bind(&std::pair<address, peer_connection*>::second, _1)));
+*/
+
 		for (std::map<address, peer_connection*>::iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
 		{

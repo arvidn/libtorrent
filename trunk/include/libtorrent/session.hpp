@@ -229,6 +229,8 @@ namespace libtorrent
 			// unlimited
 			int m_upload_rate;
 			int m_download_rate;
+			int m_max_uploads;
+			int m_max_connections;
 
 			// statistics gathered from all torrents.
 			stat m_stat;
@@ -327,9 +329,8 @@ namespace libtorrent
 		void set_http_settings(const http_settings& s);
 		void set_upload_rate_limit(int bytes_per_second);
 		void set_download_rate_limit(int bytes_per_second);
-
-		// TODO: global max connections setting
-		// TODO: global max uploads setting
+		void set_max_uploads(int limit);
+		void set_max_connections(int limit);
 
 		std::auto_ptr<alert> pop_alert();
 		void set_severity_level(alert::severity_t s);

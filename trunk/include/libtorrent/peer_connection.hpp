@@ -273,7 +273,6 @@ namespace libtorrent
 		// and how much we are allowed to use.
 		resource_request m_ul_bandwidth_quota;
 		resource_request m_dl_bandwidth_quota;
-		resource_request m_unchoked_quota;
 
 	private:
 
