@@ -343,6 +343,14 @@ namespace libtorrent
 			m_policy->peer_from_tracker(a, i->id);
 		}
 
+		if (m_ses.m_alerts.should_post(alert::info))
+		{
+			std::stringstream s;
+			s << "Got response from tracker: "
+				<< m_trackers[m_last_working_tracker].url;
+			m_ses.m_alerts.post_alert(tracker_reply_alert(
+				get_handle(), s.str()));
+		}
 		m_got_tracker_response = true;
 	}
 
@@ -1053,7 +1061,7 @@ namespace libtorrent
 
 		if (m_last_working_tracker >= 0)
 		{
-            st.current_tracker
+			st.current_tracker
 				= m_trackers[m_last_working_tracker].url;
 		}
 

@@ -57,6 +57,20 @@ namespace libtorrent
 		int times_in_row;
 	};
 
+	struct tracker_reply_alert: alert
+	{
+		tracker_reply_alert(const torrent_handle& h
+			, const std::string& msg)
+			: alert(alert::info, msg)
+			, handle(h)
+			{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new tracker_reply_alert(*this)); }
+
+		torrent_handle handle;
+	};
+	
 	struct hash_failed_alert: alert
 	{
 		hash_failed_alert(
