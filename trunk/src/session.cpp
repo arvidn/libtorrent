@@ -110,9 +110,7 @@ namespace
 			c != connections.end(); ++c)
 		{
 			boost::shared_ptr<peer_connection> p = c->second;
-			p->upload_bandwidth.used = (int)ceil(p->statistics().upload_rate());
-			
-			requests.push_back(&p->upload_bandwidth);
+			requests.push_back(p->upload_bandwidth_quota());
 		}
 
 		allocate_resources(upload_limit, requests);
@@ -530,7 +528,7 @@ namespace libtorrent { namespace detail
 
 						if (m_upload_rate != -1)
 						{
-							c->upload_bandwidth.given = 0;
+							c->upload_bandwidth_quota()->given = 0;
 							c->update_send_quota_left();
 						}
 
@@ -786,7 +784,7 @@ namespace libtorrent { namespace detail
 					"peer_connection::has_data() != is_writability_monitored()\n";
 				error_log << "peer_connection::has_data() " << p->has_data() << "\n";
 				error_log << "peer_connection::send_quota_left " << p->send_quota_left() << "\n";
-				error_log << "peer_connection::upload_bandwidth.given " << p->upload_bandwidth.given << "\n";
+				error_log << "peer_connection::upload_bandwidth_quota()->given " << p->upload_bandwidth_quota()->given << "\n";
 				error_log << "peer_connection::get_peer_id " << p->get_peer_id() << "\n";
 				error_log << "place: " << place << "\n";
 				error_log.flush();
@@ -992,7 +990,7 @@ namespace libtorrent
 			= m_impl.m_connections.begin();
 			i != m_impl.m_connections.end();)
 		{
-			i->second->upload_bandwidth.given = std::numeric_limits<int>::max();
+			i->second->upload_bandwidth_quota()->given = std::numeric_limits<int>::max();
 			i->second->update_send_quota_left();
 		}
 	}

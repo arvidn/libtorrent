@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	struct resource_request {
+
 		resource_request() : used(0), wanted(0), given(0) { }
 
 		// I'm right now actively using:

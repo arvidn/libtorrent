@@ -153,12 +153,11 @@ namespace libtorrent
 #endif
 	} // namespace unnamed
 
-	void allocate_resources(int resources
-		, std::vector<resource_request *>& requests)
+	void allocate_resources(int resources,
+		std::vector<resource_request *>& requests)
 	{
 #ifndef NDEBUG
-		allocate_resources_contract_check
-			contract_check(resources,requests);
+		allocate_resources_contract_check contract_check(resources,requests);
 #endif
 
 		if(resources == std::numeric_limits<int>::max())
