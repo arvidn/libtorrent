@@ -102,7 +102,7 @@ namespace libtorrent
 			"0123456789";
 
 		std::stringstream ret;
-		ret << std::hex  << std::setfill('0');
+		ret << std::hex << std::setfill('0');
 		for (int i = 0; i < len; ++i)
 		{
 			if (std::count(

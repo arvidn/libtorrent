@@ -73,6 +73,8 @@ namespace libtorrent
 
 		virtual bool tick();
 		virtual bool send_finished() const;
+		virtual tracker_request const& tracker_req() const
+		{ return m_request; }
 
 	private:
 

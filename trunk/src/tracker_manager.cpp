@@ -197,6 +197,7 @@ namespace libtorrent
 
 	bool inflate_gzip(
 		std::vector<char>& buffer
+		, tracker_request const& req
 		, request_callback* requester
 		, int maximum_tracker_response_length)
 	{
@@ -205,7 +206,7 @@ namespace libtorrent
 		int header_len = gzip_header(&buffer[0], (int)buffer.size());
 		if (header_len < 0)
 		{
-			requester->tracker_request_error(200, "invalid gzip header in tracker response");
+			requester->tracker_request_error(req, 200, "invalid gzip header in tracker response");
 			return true;
 		}
 
@@ -229,7 +230,7 @@ namespace libtorrent
 		// and just deflate the buffer
 		if (inflateInit2(&str, -15) != Z_OK)
 		{
-			requester->tracker_request_error(200, "gzip out of memory");
+			requester->tracker_request_error(req, 200, "gzip out of memory");
 			return true;
 		}
 
@@ -242,7 +243,8 @@ namespace libtorrent
 				if (inflate_buffer.size() >= (unsigned)maximum_tracker_response_length)
 				{
 					inflateEnd(&str);
-					requester->tracker_request_error(200, "tracker response too large");
+					requester->tracker_request_error(req, 200
+						, "tracker response too large");
 					return true;
 				}
 				int new_size = (int)inflate_buffer.size() * 2;
@@ -262,7 +264,7 @@ namespace libtorrent
 
 		if (ret != Z_STREAM_END)
 		{
-			requester->tracker_request_error(200, "gzip error");
+			requester->tracker_request_error(req, 200, "gzip error");
 			return true;
 		}
 
@@ -351,7 +353,8 @@ namespace libtorrent
 			catch (const std::exception& e)
 			{
 				if (c->has_requester())
-					c->requester().tracker_request_error(-1, e.what());
+					c->requester().tracker_request_error(c->tracker_req()
+						, -1, e.what());
 			}
 			if (c->has_requester()) c->requester().m_manager = 0;
 			i = m_connections.erase(i);
@@ -469,7 +472,7 @@ namespace libtorrent
 			if (!c.expired())
 			{
 				boost::shared_ptr<request_callback> r = c.lock();
-				r->tracker_request_error(-1, e.what());
+				r->tracker_request_error(req, -1, e.what());
 			}
 		}
 	}

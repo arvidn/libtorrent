@@ -280,7 +280,8 @@ namespace libtorrent
 	}
 
 	void torrent::tracker_response(
-		std::vector<peer_entry>& peer_list
+		tracker_request const& r
+		, std::vector<peer_entry>& peer_list
 		, int interval
 		, int complete
 		, int incomplete)
@@ -1259,11 +1260,13 @@ namespace libtorrent
 		for (int i = req.first; i < req.first + req.second; ++i)
 		{
             assert(m_requested_metadata[i] > 0);
-			--m_requested_metadata[i];
+			if (m_requested_metadata[i] > 0)
+				--m_requested_metadata[i];
 		}
 	}
 
-	void torrent::tracker_request_timed_out()
+	void torrent::tracker_request_timed_out(
+		tracker_request const&)
 	{
 #ifdef TORRENT_VERBOSE_LOGGING
 		debug_log("*** tracker timed out");
@@ -1283,7 +1286,8 @@ namespace libtorrent
 	// TODO: with some response codes, we should just consider
 	// the tracker as a failure and not retry
 	// it anymore
-	void torrent::tracker_request_error(int response_code, const std::string& str)
+	void torrent::tracker_request_error(tracker_request const& r
+		, int response_code, const std::string& str)
 	{
 #ifdef TORRENT_VERBOSE_LOGGING
 		debug_log(std::string("*** tracker error: ") + str);

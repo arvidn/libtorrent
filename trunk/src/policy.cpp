@@ -345,8 +345,7 @@ namespace libtorrent
 		// TODO: make this selection better
 
 		for (std::vector<peer>::iterator i = m_peers.begin();
-			i != m_peers.end();
-			++i)
+			i != m_peers.end(); ++i)
 		{
 			peer_connection* c = i->connection;
 
@@ -389,16 +388,15 @@ namespace libtorrent
 		// TODO: make this selection better
 
 		for (std::vector<peer>::iterator i = m_peers.begin();
-			i != m_peers.end();
-			++i)
+			i != m_peers.end(); ++i)
 		{
 			peer_connection* c = i->connection;
 			if (c == 0) continue;
 			if (c->is_disconnecting()) continue;
 			if (!c->is_choked()) continue;
 			if (!c->is_peer_interested()) continue;
-			if (c->share_diff()
-				< -free_upload_amount) continue;
+			if (c->share_diff()	< -free_upload_amount
+				&& m_torrent->ratio() != 0) continue;
 			if (c->statistics().download_rate() < max_down_speed) continue;
 //			if (i->last_optimistically_unchoked > min_time) continue;
 
@@ -613,7 +611,7 @@ namespace libtorrent
 				// every minute, disconnect the worst peer in hope of finding a better peer
 
 				boost::posix_time::ptime local_time = second_clock::universal_time();
-				if(m_last_optimistic_disconnect + boost::posix_time::seconds(120) <= local_time)
+				if (m_last_optimistic_disconnect + boost::posix_time::seconds(120) <= local_time)
 				{
 					m_last_optimistic_disconnect = local_time;
 					--max_connections; // this will have the effect of disconnecting the worst peer
@@ -627,7 +625,8 @@ namespace libtorrent
 
 			while (num_connected_peers > max_connections)
 			{
-				assert(disconnect_one_peer());
+				bool ret = disconnect_one_peer();
+				assert(ret);
 				--num_connected_peers;
 			}
 		}
@@ -714,8 +713,7 @@ namespace libtorrent
 			{
 				// choke peers that have leeched too much without giving anything back
 				for (std::vector<peer>::iterator i = m_peers.begin();
-					i != m_peers.end();
-					++i)
+					i != m_peers.end(); ++i)
 				{
 					peer_connection* c = i->connection;
 					if (c == 0) continue;
