@@ -485,7 +485,7 @@ namespace libtorrent {
 		std::vector<char> piece_data(m_info.piece_length());
 		std::size_t piece_offset = 0;
 
-		int current_piece = 0;
+		int current_slot = 0;
 		std::size_t bytes_to_read = piece_size;
 		std::size_t bytes_current_read = 0;
 		std::size_t seek_into_next = 0;
@@ -505,12 +505,12 @@ namespace libtorrent {
 			{
 				boost::mutex::scoped_lock lock(mutex);
 
-				data.progress = (float)current_piece / m_info.num_pieces();
+				data.progress = (float)current_slot / m_info.num_pieces();
 				if (data.abort)
 					return;
 			}
 
-			assert(current_piece <= m_info.num_pieces());
+			assert(current_slot <= m_info.num_pieces());
 			
 			fs::path path(m_save_path / file_iter->path);
 
@@ -545,8 +545,8 @@ namespace libtorrent {
 
 			// we are at the start of a new piece
 			// so we store the start of the piece
-			if (bytes_to_read == m_info.piece_size(current_piece))
-				start_of_read = current_piece * piece_size;
+			if (bytes_to_read == m_info.piece_size(current_slot))
+				start_of_read = current_slot * piece_size;
 
 			std::size_t bytes_read = 0;
 
@@ -572,13 +572,13 @@ namespace libtorrent {
 					for (pos = start_of_read; pos < file_end;
 							pos += piece_size)
 					{
-						m_unallocated_slots.push_back(current_piece);
-						++current_piece;
-						assert(current_piece <= m_info.num_pieces());
+						m_unallocated_slots.push_back(current_slot);
+						++current_slot;
+						assert(current_slot <= m_info.num_pieces());
 					}
 
 					seek_into_next = pos - file_end;
-					bytes_to_read = m_info.piece_size(current_piece);
+					bytes_to_read = m_info.piece_size(current_slot);
 					piece_offset = 0;
 				}
 				else
@@ -606,11 +606,8 @@ namespace libtorrent {
 
 			int found_piece = -1;
 
-			for (int i = 0; i < m_info.num_pieces(); ++i)
+			for (int i = current_slot; i < m_info.num_pieces(); ++i)
 			{
-				if (i > current_piece)
-					break;
-
 				if (pieces[i])
 					continue;
 
@@ -625,27 +622,27 @@ namespace libtorrent {
 			{
 					m_bytes_left -= m_info.piece_size(found_piece);
 
-					m_piece_to_slot[found_piece] = current_piece;
-					m_slot_to_piece[current_piece] = found_piece;
+					m_piece_to_slot[found_piece] = current_slot;
+					m_slot_to_piece[current_slot] = found_piece;
 					pieces[found_piece] = true;
 			}
 			else
 			{
-				m_slot_to_piece[current_piece] = -2;
+				m_slot_to_piece[current_slot] = -2;
 
 				entry::integer_type last_pos =
 					m_info.total_size() - 
 						m_info.piece_size(
 							m_info.num_pieces() - 1);
 
-				m_free_slots.push_back(current_piece);
+				m_free_slots.push_back(current_slot);
 			}
 
 			// done with piece, move on to next
 			piece_offset = 0;
-			++current_piece;
+			++current_slot;
 
-			bytes_to_read = m_info.piece_size(current_piece);
+			bytes_to_read = m_info.piece_size(current_slot);
 		}
 
 		std::cout << " m_free_slots: " << m_free_slots.size() << "\n";
