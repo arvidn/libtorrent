@@ -1195,8 +1195,20 @@ namespace libtorrent
 		}
 
 
+		// ------------------------
+		//    DO THE FULL CHECK
+		// ------------------------
 
-		// do the full check
+		// first, create all missing directories
+		for (torrent_info::file_iterator file_iter = m_info.begin_files(),
+			end_iter = m_info.end_files(); 
+			file_iter != end_iter;
+			++file_iter)
+		{
+			fs::path dir = m_save_path / file_iter->path;
+			fs::create_directories(dir);
+		}
+
 		std::vector<char> piece_data(m_info.piece_length());
 		const int piece_size = m_info.piece_length();
 		const int last_piece_size = m_info.piece_size(
