@@ -62,9 +62,9 @@ void add_files(
 	}
 	else
 	{
-		file f(f, file::in);
-		f.seek(0, file::end);
-		libtorrent::size_type size = f.tell();
+		file fi(f, file::in);
+		fi.seek(0, file::end);
+		libtorrent::size_type size = fi.tell();
 		t.add_file(l, size);
 	}
 }

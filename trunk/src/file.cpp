@@ -52,6 +52,7 @@ typedef int mode_t;
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <errno.h>
 
 #endif
 
