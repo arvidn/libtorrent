@@ -32,35 +32,38 @@
 <li><a class="reference" href="#http-settings" id="id23" name="id23">http_settings</a></li>
 <li><a class="reference" href="#big-number" id="id24" name="id24">big_number</a></li>
 <li><a class="reference" href="#hasher" id="id25" name="id25">hasher</a></li>
-<li><a class="reference" href="#fingerprint" id="id26" name="id26">fingerprint</a></li>
-<li><a class="reference" href="#alerts" id="id27" name="id27">alerts</a><ul>
-<li><a class="reference" href="#tracker-alert" id="id28" name="id28">tracker_alert</a></li>
-<li><a class="reference" href="#hash-failed-alert" id="id29" name="id29">hash_failed_alert</a></li>
-<li><a class="reference" href="#peer-error-alert" id="id30" name="id30">peer_error_alert</a></li>
-<li><a class="reference" href="#chat-message-alert" id="id31" name="id31">chat_message_alert</a></li>
-<li><a class="reference" href="#dispatcher" id="id32" name="id32">dispatcher</a></li>
+<li><a class="reference" href="#fingerprint" id="id26" name="id26">fingerprint</a><ul>
+<li><a class="reference" href="#identify-client" id="id27" name="id27">identify_client</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#exceptions" id="id33" name="id33">exceptions</a><ul>
-<li><a class="reference" href="#invalid-handle" id="id34" name="id34">invalid_handle</a></li>
-<li><a class="reference" href="#duplicate-torrent" id="id35" name="id35">duplicate_torrent</a></li>
-<li><a class="reference" href="#invalid-encoding" id="id36" name="id36">invalid_encoding</a></li>
-<li><a class="reference" href="#type-error" id="id37" name="id37">type_error</a></li>
-<li><a class="reference" href="#invalid-torrent-file" id="id38" name="id38">invalid_torrent_file</a></li>
+<li><a class="reference" href="#alerts" id="id28" name="id28">alerts</a><ul>
+<li><a class="reference" href="#tracker-alert" id="id29" name="id29">tracker_alert</a></li>
+<li><a class="reference" href="#hash-failed-alert" id="id30" name="id30">hash_failed_alert</a></li>
+<li><a class="reference" href="#peer-error-alert" id="id31" name="id31">peer_error_alert</a></li>
+<li><a class="reference" href="#chat-message-alert" id="id32" name="id32">chat_message_alert</a></li>
+<li><a class="reference" href="#dispatcher" id="id33" name="id33">dispatcher</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#examples" id="id39" name="id39">examples</a><ul>
-<li><a class="reference" href="#dump-torrent" id="id40" name="id40">dump_torrent</a></li>
-<li><a class="reference" href="#simple-client" id="id41" name="id41">simple client</a></li>
+<li><a class="reference" href="#exceptions" id="id34" name="id34">exceptions</a><ul>
+<li><a class="reference" href="#invalid-handle" id="id35" name="id35">invalid_handle</a></li>
+<li><a class="reference" href="#duplicate-torrent" id="id36" name="id36">duplicate_torrent</a></li>
+<li><a class="reference" href="#invalid-encoding" id="id37" name="id37">invalid_encoding</a></li>
+<li><a class="reference" href="#type-error" id="id38" name="id38">type_error</a></li>
+<li><a class="reference" href="#invalid-torrent-file" id="id39" name="id39">invalid_torrent_file</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#fast-resume" id="id42" name="id42">fast resume</a></li>
-<li><a class="reference" href="#file-format" id="id43" name="id43">file format</a></li>
-<li><a class="reference" href="#extensions" id="id44" name="id44">extensions</a><ul>
-<li><a class="reference" href="#chat-messages" id="id45" name="id45">chat messages</a></li>
+<li><a class="reference" href="#examples" id="id40" name="id40">examples</a><ul>
+<li><a class="reference" href="#dump-torrent" id="id41" name="id41">dump_torrent</a></li>
+<li><a class="reference" href="#simple-client" id="id42" name="id42">simple client</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#aknowledgements" id="id46" name="id46">Aknowledgements</a></li>
+<li><a class="reference" href="#fast-resume" id="id43" name="id43">fast resume</a></li>
+<li><a class="reference" href="#file-format" id="id44" name="id44">file format</a></li>
+<li><a class="reference" href="#extensions" id="id45" name="id45">extensions</a><ul>
+<li><a class="reference" href="#chat-messages" id="id46" name="id46">chat messages</a></li>
+</ul>
+</li>
+<li><a class="reference" href="#aknowledgements" id="id47" name="id47">Aknowledgements</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
@@ -468,6 +471,8 @@ struct torrent_handle
         bool is_valid();
 
         entry write_resume_data();
+        void force_reannounce();
+        void connect_peer(const address&amp; adr) const;
 
         boost::filsystem::path save_path() const;
 
@@ -485,6 +490,14 @@ perform any operation on it, unless you first assign it a valid handle. If you t
 any operation on an uninitialized handle, it will throw <tt class="literal"><span class="pre">invalid_handle</span></tt>.</p>
 <p><tt class="literal"><span class="pre">save_path()</span></tt> returns the path that was given to <tt class="literal"><span class="pre">add_torrent()</span></tt> when this torrent
 was started.</p>
+<p><tt class="literal"><span class="pre">force_reannounce()</span></tt> will force this torrent to do another tracker request, to receive new
+peers. If the torrent is invalid, queued or in checking mode, this functions will throw
+<a class="reference" href="#invalid-handle">invalid_handle</a>.</p>
+<p><tt class="literal"><span class="pre">connect_peer()</span></tt> is a way to manually connect to peers that one believe is a part of the
+torrent. If the peer does not respond, or is not a member of this torrent, it will simply
+be disconnected. No harm can be done by using this other than an unnecessary connection
+attempt is made. If the torrent is uninitialized or in queued or checking mode, this
+will throw <a class="reference" href="#invalid-handle">invalid_handle</a>.</p>
 <p><tt class="literal"><span class="pre">info_hash()</span></tt> returns the info hash for the torrent.</p>
 <p><tt class="literal"><span class="pre">set_max_uploads()</span></tt> sets the maximum number of peers that's unchoked at the same time on this
 torrent. If you set this to -1, there will be no limit.</p>
@@ -621,7 +634,8 @@ struct peer_info
                 choked = 0x2,
                 remote_interested = 0x4,
                 remote_choked = 0x8,
-                supports_extensions = 0x10
+                supports_extensions = 0x10,
+                local_connection = 0x20
         };
         unsigned int flags;
         address ip;
@@ -643,12 +657,37 @@ struct peer_info
 };
 </pre>
 <p>The <tt class="literal"><span class="pre">flags</span></tt> attribute tells you in which state the peer is. It is set to
-any combination of the four enums above. Where <tt class="literal"><span class="pre">interesting</span></tt> means that we
-are interested in pieces from this peer. <tt class="literal"><span class="pre">choked</span></tt> means that <strong>we</strong> have
-choked this peer. <tt class="literal"><span class="pre">remote_interested</span></tt> and <tt class="literal"><span class="pre">remote_choked</span></tt> means the
-same thing but that the peer is interested in pieces from us and the peer has choked
-<strong>us</strong>. <tt class="literal"><span class="pre">support_extensions</span></tt> means that this peer supports the <a class="reference" href="http://nolar.com/azureus/extended.htm">extension protocol
-as described by nolar</a>.</p>
+any combination of the enums above. The following table describes each flag:</p>
+<table border class="table">
+<colgroup>
+<col width="31%" />
+<col width="69%" />
+</colgroup>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">interesting</span></tt></td>
+<td>we are interested in pieces from this peer.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">choked</span></tt></td>
+<td><strong>we</strong> have choked this peer.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">remote_interested</span></tt>
+<tt class="literal"><span class="pre">remote_choked</span></tt></td>
+<td>means the same thing but that the peer is interested
+in pieces from us and the peer has choked <strong>us</strong>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">support_extensions</span></tt></td>
+<td>means that this peer supports the <a class="reference" href="http://nolar.com/azureus/extended.htm">extension protocol
+as described by nolar</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">local_connection</span></tt></td>
+<td>The connection was initiated by us, the peer has a
+listen port open, and that port is the same is in the
+<a class="reference" href="#address">address</a> of this peer. If this flag is not set, this
+peer connection was opened by this peer connecting to
+us.</td>
+</tr>
+</tbody>
+</table>
 <p>The <tt class="literal"><span class="pre">ip</span></tt> field is the IP-address to this peer. Its type is a wrapper around the
 actual address and the port number. See <a class="reference" href="#address">address</a> class.</p>
 <p><tt class="literal"><span class="pre">up_speed</span></tt> and <tt class="literal"><span class="pre">down_speed</span></tt> is the current upload and download speed
@@ -658,7 +697,7 @@ from and uploaded to this peer. These numbers do not include the protocol chatte
 the payload data.</p>
 <p><tt class="literal"><span class="pre">id</span></tt> is the peer's id as used in the bit torrent protocol. This id can be used to
 extract 'fingerprints' from the peer. Sometimes it can tell you which client the peer
-is using.</p>
+is using. See <a class="reference" href="#identify-client">identify_client</a></p>
 <p><tt class="literal"><span class="pre">pieces</span></tt> is a vector of booleans that has as many entries as there are pieces
 in the torrent. Each boolean tells you if the peer has that piece (if it's set to true)
 or if the peer miss that piece (set to false).</p>
@@ -863,9 +902,19 @@ sure not to clash with anybody else. Here are some taken id's:</p>
 <p>The <tt class="literal"><span class="pre">major</span></tt>, <tt class="literal"><span class="pre">minor</span></tt>, <tt class="literal"><span class="pre">revision</span></tt> and <tt class="literal"><span class="pre">tag</span></tt> parameters are used to identify the
 version of your client. All these numbers must be within the range [0, 9].</p>
 <p><tt class="literal"><span class="pre">to_string()</span></tt> will generate the actual string put in the peer-id, and return it.</p>
+<div class="section" id="identify-client">
+<h2><a class="toc-backref" href="#id27" name="identify-client">identify_client</a></h2>
+<p>There's a function, in the header <tt class="literal"><span class="pre">libtorrent/identify_client.hpp</span></tt>, that can be used
+to extract a string describing a client version from its peer-id. It has the following
+declaration:</p>
+<pre class="literal-block">
+std::string identify_client(const peer_id&amp; id);
+</pre>
+<p>It will recognize most clients that have this kind of identification in the peer-id.</p>
+</div>
 </div>
 <div class="section" id="alerts">
-<h1><a class="toc-backref" href="#id27" name="alerts">alerts</a></h1>
+<h1><a class="toc-backref" href="#id28" name="alerts">alerts</a></h1>
 <p>The <tt class="literal"><span class="pre">pop_alert()</span></tt> function on session is the interface for retrieving
 alerts, warnings, messages and errors from libtorrent. If there hasn't
 occured any errors (matching your severity level) <tt class="literal"><span class="pre">pop_alert()</span></tt> will
@@ -946,7 +995,7 @@ have a severity leve that can be used to sort them or present them to the
 user in different ways.</p>
 <p>The specific alerts, that all derives from <tt class="literal"><span class="pre">alert</span></tt>, are:</p>
 <div class="section" id="tracker-alert">
-<h2><a class="toc-backref" href="#id28" name="tracker-alert">tracker_alert</a></h2>
+<h2><a class="toc-backref" href="#id29" name="tracker-alert">tracker_alert</a></h2>
 <p>This alert is generated on tracker time outs, premature disconnects, invalid response or
 a HTTP response other than &quot;200 OK&quot;. From the alert you can get the handle to the torrent
 the tracker belongs to. This alert is generated as severity level <tt class="literal"><span class="pre">warning</span></tt>.</p>
@@ -961,7 +1010,7 @@ struct tracker_alert: alert
 </pre>
 </div>
 <div class="section" id="hash-failed-alert">
-<h2><a class="toc-backref" href="#id29" name="hash-failed-alert">hash_failed_alert</a></h2>
+<h2><a class="toc-backref" href="#id30" name="hash-failed-alert">hash_failed_alert</a></h2>
 <p>This alert is generated when a finished piece fails its hash check. You can get the handle
 to the torrent which got the failed piece and the index of the piece itself from the alert.
 This alert is generated as severity level <tt class="literal"><span class="pre">info</span></tt>.</p>
@@ -981,7 +1030,7 @@ struct hash_failed_alert: alert
 </pre>
 </div>
 <div class="section" id="peer-error-alert">
-<h2><a class="toc-backref" href="#id30" name="peer-error-alert">peer_error_alert</a></h2>
+<h2><a class="toc-backref" href="#id31" name="peer-error-alert">peer_error_alert</a></h2>
 <p>This alert is generated when a peer sends invalid data over the peer-peer protocol. The peer
 will be disconnected, but you get its peer-id from the alert. This alert is generated
 as severity level <tt class="literal"><span class="pre">debug</span></tt>.</p>
@@ -996,7 +1045,7 @@ struct peer_error_alert: alert
 </pre>
 </div>
 <div class="section" id="chat-message-alert">
-<h2><a class="toc-backref" href="#id31" name="chat-message-alert">chat_message_alert</a></h2>
+<h2><a class="toc-backref" href="#id32" name="chat-message-alert">chat_message_alert</a></h2>
 <p>This alert is generated when you receive a chat message from another peer. Chat messages
 are supported as an extension (&quot;chat&quot;). It is generated as severity level <tt class="literal"><span class="pre">critical</span></tt>,
 even though it doesn't necessarily require any user intervention, it's high priority
@@ -1018,16 +1067,16 @@ struct chat_message_alert: alert
 </pre>
 </div>
 <div class="section" id="dispatcher">
-<h2><a class="toc-backref" href="#id32" name="dispatcher">dispatcher</a></h2>
+<h2><a class="toc-backref" href="#id33" name="dispatcher">dispatcher</a></h2>
 <p>TODO: describe the dispatcher mechanism</p>
 </div>
 </div>
 <div class="section" id="exceptions">
-<h1><a class="toc-backref" href="#id33" name="exceptions">exceptions</a></h1>
+<h1><a class="toc-backref" href="#id34" name="exceptions">exceptions</a></h1>
 <p>There are a number of exceptions that can be thrown from different places in libtorrent,
 here's a complete list with description.</p>
 <div class="section" id="invalid-handle">
-<h2><a class="toc-backref" href="#id34" name="invalid-handle">invalid_handle</a></h2>
+<h2><a class="toc-backref" href="#id35" name="invalid-handle">invalid_handle</a></h2>
 <p>This exception is thrown when querying information from a <a class="reference" href="#torrent-handle">torrent_handle</a> that hasn't
 been initialized or that has become invalid.</p>
 <pre class="literal-block">
@@ -1038,7 +1087,7 @@ struct invalid_handle: std::exception
 </pre>
 </div>
 <div class="section" id="duplicate-torrent">
-<h2><a class="toc-backref" href="#id35" name="duplicate-torrent">duplicate_torrent</a></h2>
+<h2><a class="toc-backref" href="#id36" name="duplicate-torrent">duplicate_torrent</a></h2>
 <p>This is thrown by <tt class="literal"><span class="pre">session::add_torrent()</span></tt> if the torrent already has been added to
 the session.</p>
 <pre class="literal-block">
@@ -1049,7 +1098,7 @@ struct duplicate_torrent: std::exception
 </pre>
 </div>
 <div class="section" id="invalid-encoding">
-<h2><a class="toc-backref" href="#id36" name="invalid-encoding">invalid_encoding</a></h2>
+<h2><a class="toc-backref" href="#id37" name="invalid-encoding">invalid_encoding</a></h2>
 <p>This is thrown by <tt class="literal"><span class="pre">bdecode()</span></tt> if the input data is not a valid bencoding.</p>
 <pre class="literal-block">
 struct invalid_encoding: std::exception
@@ -1059,7 +1108,7 @@ struct invalid_encoding: std::exception
 </pre>
 </div>
 <div class="section" id="type-error">
-<h2><a class="toc-backref" href="#id37" name="type-error">type_error</a></h2>
+<h2><a class="toc-backref" href="#id38" name="type-error">type_error</a></h2>
 <p>This is thrown from the accessors of <tt class="literal"><span class="pre">entry</span></tt> if the data type of the <tt class="literal"><span class="pre">entry</span></tt> doesn't
 match the type you want to extract from it.</p>
 <pre class="literal-block">
@@ -1070,7 +1119,7 @@ struct type_error: std::runtime_error
 </pre>
 </div>
 <div class="section" id="invalid-torrent-file">
-<h2><a class="toc-backref" href="#id38" name="invalid-torrent-file">invalid_torrent_file</a></h2>
+<h2><a class="toc-backref" href="#id39" name="invalid-torrent-file">invalid_torrent_file</a></h2>
 <p>This exception is thrown from the constructor of <tt class="literal"><span class="pre">torrent_info</span></tt> if the given bencoded information
 doesn't meet the requirements on what information has to be present in a torrent file.</p>
 <pre class="literal-block">
@@ -1082,9 +1131,9 @@ struct invalid_torrent_file: std::exception
 </div>
 </div>
 <div class="section" id="examples">
-<h1><a class="toc-backref" href="#id39" name="examples">examples</a></h1>
+<h1><a class="toc-backref" href="#id40" name="examples">examples</a></h1>
 <div class="section" id="dump-torrent">
-<h2><a class="toc-backref" href="#id40" name="dump-torrent">dump_torrent</a></h2>
+<h2><a class="toc-backref" href="#id41" name="dump-torrent">dump_torrent</a></h2>
 <p>This is an example of a program that will take a torrent-file as a parameter and
 print information about it to std out:</p>
 <pre class="literal-block">
@@ -1148,7 +1197,7 @@ int main(int argc, char* argv[])
 </pre>
 </div>
 <div class="section" id="simple-client">
-<h2><a class="toc-backref" href="#id41" name="simple-client">simple client</a></h2>
+<h2><a class="toc-backref" href="#id42" name="simple-client">simple client</a></h2>
 <p>This is a simple client. It doesn't have much output to keep it simple:</p>
 <pre class="literal-block">
 #include &lt;iostream&gt;
@@ -1200,7 +1249,7 @@ int main(int argc, char* argv[])
 </div>
 </div>
 <div class="section" id="fast-resume">
-<h1><a class="toc-backref" href="#id42" name="fast-resume">fast resume</a></h1>
+<h1><a class="toc-backref" href="#id43" name="fast-resume">fast resume</a></h1>
 <p>The fast resume mechanism is a way to remember which pieces are downloaded and where they
 are put between sessions. You can generate fast resume data by calling
 <tt class="literal"><span class="pre">torrent_handle::write_resume_data()</span></tt> on <a class="reference" href="#torrent-handle">torrent_handle</a>. You can then save this data
@@ -1214,18 +1263,18 @@ fast-resume data is corrupt or doesn't fit the storage for that torrent, then it
 not trust the fast-resume data and just do the checking.</p>
 </div>
 <div class="section" id="file-format">
-<h1><a class="toc-backref" href="#id43" name="file-format">file format</a></h1>
+<h1><a class="toc-backref" href="#id44" name="file-format">file format</a></h1>
 <p>TODO: describe the file format</p>
 </div>
 <div class="section" id="extensions">
-<h1><a class="toc-backref" href="#id44" name="extensions">extensions</a></h1>
+<h1><a class="toc-backref" href="#id45" name="extensions">extensions</a></h1>
 <p>These extensions all operates within the <a class="reference" href="http://nolar.com/azureus/extended.html">extension protocol</a>. The
 name of the extension is the name used in the extension-list packets,
 and the payload is the data in the extended message (not counting the
 length-prefix, message-id nor extension-id).</p>
 <p>These are the extensions that are currently implemented.</p>
 <div class="section" id="chat-messages">
-<h2><a class="toc-backref" href="#id45" name="chat-messages">chat messages</a></h2>
+<h2><a class="toc-backref" href="#id46" name="chat-messages">chat messages</a></h2>
 <p>Extension name: &quot;chat&quot;</p>
 <p>The payload in the packet is a bencoded dictionary with any
 combination of the following entries:</p>
@@ -1252,7 +1301,7 @@ Any unrecognized strings should be ignored.</td>
 </div>
 </div>
 <div class="section" id="aknowledgements">
-<h1><a class="toc-backref" href="#id46" name="aknowledgements">Aknowledgements</a></h1>
+<h1><a class="toc-backref" href="#id47" name="aknowledgements">Aknowledgements</a></h1>
 <p>Written by Arvid Norberg and Daniel Wallin. Copyright (c) 2003</p>
 <p>Contributions by Magnus Jonsson</p>
 <p>Thanks to Reimond Retz for bugfixes, suggestions and testing</p>

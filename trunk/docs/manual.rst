@@ -646,7 +646,8 @@ fields::
 			choked = 0x2,
 			remote_interested = 0x4,
 			remote_choked = 0x8,
-			supports_extensions = 0x10
+			supports_extensions = 0x10,
+			local_connection = 0x20
 		};
 		unsigned int flags;
 		address ip;
@@ -668,12 +669,25 @@ fields::
 	};
 
 The ``flags`` attribute tells you in which state the peer is. It is set to
-any combination of the four enums above. Where ``interesting`` means that we
-are interested in pieces from this peer. ``choked`` means that **we** have
-choked this peer. ``remote_interested`` and ``remote_choked`` means the
-same thing but that the peer is interested in pieces from us and the peer has choked
-**us**. ``support_extensions`` means that this peer supports the `extension protocol
-as described by nolar`__.
+any combination of the enums above. The following table describes each flag:
+
++-------------------------+-------------------------------------------------------+
+| ``interesting``         | we are interested in pieces from this peer.           |
++-------------------------+-------------------------------------------------------+
+| ``choked``              | **we** have choked this peer.                         |
++-------------------------+-------------------------------------------------------+
+| ``remote_interested``   | means the same thing but that the peer is interested  |
+| ``remote_choked``       | in pieces from us and the peer has choked **us**.     |
++-------------------------+-------------------------------------------------------+
+| ``support_extensions``  | means that this peer supports the `extension protocol |
+|                         | as described by nolar`__.                             |
++-------------------------+-------------------------------------------------------+
+| ``local_connection``    | The connection was initiated by us, the peer has a    |
+|                         | listen port open, and that port is the same is in the |
+|                         | address_ of this peer. If this flag is not set, this  |
+|                         | peer connection was opened by this peer connecting to |
+|                         | us.                                                   |
++-------------------------+-------------------------------------------------------+
 
 __ http://nolar.com/azureus/extended.htm
 
@@ -922,7 +936,7 @@ version of your client. All these numbers must be within the range [0, 9].
 ``to_string()`` will generate the actual string put in the peer-id, and return it.
 
 identify_client
-~~~~~~~~~~~~~~~
+---------------
 
 There's a function, in the header ``libtorrent/identify_client.hpp``, that can be used
 to extract a string describing a client version from its peer-id. It has the following
