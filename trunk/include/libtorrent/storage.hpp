@@ -99,6 +99,10 @@ namespace libtorrent
 
 		const boost::filesystem::path& save_path() const;
 
+		// fills the vector with a map of pieces to
+		// slots, including not-yet-finished piece
+		void export_piece_map(std::vector<std::pair<int, int> >& pieces) const;
+
 	private:
 		struct impl;
 		opaque_value_ptr<impl, false> m_pimpl;
