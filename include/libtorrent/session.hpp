@@ -90,8 +90,8 @@ namespace libtorrent
 #ifndef NDEBUG
 				_clearfp();
 				_controlfp(_EM_INEXACT | _EM_UNDERFLOW, _MCW_EM );
-#endif
 				::_set_se_translator(straight_to_debugger);
+#endif
 			}
 
 			static void straight_to_debugger(unsigned int, _EXCEPTION_POINTERS*)

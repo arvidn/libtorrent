@@ -110,6 +110,7 @@ namespace libtorrent
 
 		void open(fs::path const& path, int mode)
 		{
+			assert(path.is_complete());
 			close();
 			m_fd = ::open(
 				path.native_file_string().c_str()
@@ -128,9 +129,6 @@ namespace libtorrent
 		void close()
 		{
 			if (m_fd == -1) return;
-
-			std::stringstream str;
-			str << "fd: " << m_fd << "\n";
 
 			::close(m_fd);
 			m_fd = -1;
