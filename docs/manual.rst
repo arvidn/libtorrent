@@ -88,6 +88,8 @@ Then you can use ``bjam`` to build libtorrent.
 
 .. _boost: http://www.boost.org
 
+__ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=80982
+
 To make bjam work, you need to set the environment variable ``BOOST_ROOT`` to the
 path where boost is installed (e.g. c:\\boost_1_30_2 on windows). Then you can just run
 ``bjam`` in the libtorrent directory.

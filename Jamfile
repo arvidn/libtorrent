@@ -1,3 +1,15 @@
+project torrent
+	: usage-requirements
+	  <include>./include
+	  <include>$(BOOST_ROOT)
+
+# devstudio fixes
+
+	  <cxxflags>/Zc:wchar_t
+	  <cxxflags>/D"WIN32"
+	;
+
+
 SOURCES =
 	entry.cpp
 	identify_client.cpp
@@ -20,16 +32,13 @@ SOURCES =
 
 
 lib torrent
-	: src/$(SOURCES)
-#	  <lib>zlib/zlib
-#	  zlib//zlib
-#	  <file>boost_filesystem.lib
-#	  <file>boost_date_time.lib
-#	  <file>boost_thread.dll
-	: <include>$(BOOST_ROOT)
-	  <sysinclude>$(BOOST_ROOT)
-	  <include>./include
-	  <include>./zlib
+	:
+# $(BOOST_ROOT)/libs/filesystem//boost_filesystem
+#	  $(BOOST_ROOT)/libs/thread//boost_thread
+#	  $(BOOST_ROOT)/libs/date_time//boost_date_time
+	  zlib//zlib
+	  src/$(SOURCES)
+	: <include>./include
 	  <threading>multi
 	  <link>static
 	: debug release
@@ -38,10 +47,8 @@ lib torrent
 
 exe client_test
 	: examples/client_test.cpp
-	  <lib>torrent
-	: <include>$(BOOST_ROOT)
-	  <sysinclude>$(BOOST_ROOT)
-	  <include>./include
+	  torrent
+	: <sysinclude>$(BOOST_ROOT)
 	  <threading>multi
 	: debug release
 	;

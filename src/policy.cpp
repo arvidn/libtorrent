@@ -198,17 +198,8 @@ namespace
 			{
 				// we probably couldn't request the block because
 				// we are ignoring some peers
-				return;
+				break;
 			}
-
-			// this peer doesn't have a faster connection than the
-			// slowest peer. Don't take over any blocks
-			const int queue_size = (int)c.download_queue().size();
-			const float weight = queue_size == 0
-				? std::numeric_limits<float>::max()
-				: c.statistics().down_peak() / queue_size;
-
-			if (weight <= min_weight) return;
 
 			// find a suitable block to take over from this peer
 
@@ -229,8 +220,16 @@ namespace
 			// that just took over its block
 			ignore.push_back(&c);
 			request_a_block(t, *peer, ignore);
-
 			num_requests--;
+
+			// this peer doesn't have a faster connection than the
+			// slowest peer. Don't take over any blocks
+			const int queue_size = (int)c.download_queue().size();
+			const float weight = queue_size == 0
+				? std::numeric_limits<float>::max()
+				: c.statistics().down_peak() / queue_size;
+
+			if (weight <= min_weight) break;
 		}
 	}
 
