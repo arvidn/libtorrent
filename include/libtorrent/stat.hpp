@@ -104,17 +104,17 @@ namespace libtorrent
 		void second_tick();
 
 		// only counts the payload data!
-		float upload_rate() const { return m_mean_upload_per_second; }
-		float download_rate() const { return m_mean_download_per_second; }
+		float upload_rate() const { assert(m_mean_upload_per_second>=0.0f); return m_mean_upload_per_second; }
+		float download_rate() const { assert(m_mean_download_per_second>=0.0f); return m_mean_download_per_second; }
 
 		float down_peak() const { return m_peak_downloaded_per_second; }
 		float up_peak() const { return m_peak_uploaded_per_second; }
 
-		size_type total_payload_upload() const { return m_total_upload_payload; }
-		size_type total_payload_download() const { return m_total_download_payload; }
+		size_type total_payload_upload() const { assert(m_total_upload_payload>=0); return m_total_upload_payload; }
+		size_type total_payload_download() const { assert(m_total_download_payload>=0); return m_total_download_payload; }
 
-		size_type total_protocol_upload() const { return m_total_upload_protocol; }
-		size_type total_protocol_download() const { return m_total_download_protocol; }
+		size_type total_protocol_upload() const { assert(m_total_upload_protocol>=0); return m_total_upload_protocol; }
+		size_type total_protocol_download() const { assert(m_total_download_protocol>=0); return m_total_download_protocol; }
 
 	private:
 
