@@ -269,6 +269,11 @@ namespace libtorrent
 
 		int packet_type = m_recv_buffer[0];
 
+		if (packet_type == 20)
+		{
+			int i = 0;
+		}
+
 		switch (packet_type)
 		{
 
@@ -823,16 +828,17 @@ namespace libtorrent
 		extension_list.print(std::cout);
 #endif
 
-		m_send_buffer.push_back(msg_extensions);
 		// make room for message size
 		const int msg_size_pos = m_send_buffer.size();
 		m_send_buffer.resize(msg_size_pos + 4);
+
+		m_send_buffer.push_back(msg_extensions);
 
 		bencode(std::back_inserter(m_send_buffer), extension_list);
 
 		// write the length of the message
 		char* ptr = &m_send_buffer[msg_size_pos];
-		detail::write_int(m_send_buffer.size() - msg_size_pos + 1, ptr);
+		detail::write_int(m_send_buffer.size() - msg_size_pos - 4, ptr);
 
 		send_buffer_updated();
 	}
