@@ -445,7 +445,17 @@ namespace libtorrent { namespace detail
 				if (*i == m_listen_socket)
 				{
 					assert(m_listen_socket);
-					boost::shared_ptr<libtorrent::socket> s = (*i)->accept();
+					boost::shared_ptr<libtorrent::socket> s;
+					try
+					{
+						s = (*i)->accept();
+					}
+					catch(std::exception& e)
+					{
+#ifndef NDEBUG
+						(*m_logger) << "accept failed: " << e.what() << "\n";
+#endif
+					}
 					if (s)
 					{
 						s->set_blocking(false);
