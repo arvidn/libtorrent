@@ -34,6 +34,7 @@ project torrent
 	<link>static
 	<threading>multi
 	<toolset>msvc:<cxxflags>/Zc:wchar_t
+	<variant>debug:<define>TORRENT_VERBOSE_LOGGING
 
 	: usage-requirements 
 
