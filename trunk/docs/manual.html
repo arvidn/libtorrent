@@ -132,11 +132,11 @@ example client.</p>
 The current state includes the following features:</p>
 <blockquote>
 <ul class="simple">
-<li>multitracker extension support (as <a class="reference" href="http://home.elp.rr.com/tur/multitracker-spec.txt">described by TheShadow</a>)</li>
+<li>multitracker extension support (as <a class="reference" href="http://home.elp.rr.com/tur/multitracker-spec.txt">described by John Hoffman</a>)</li>
 <li>serves multiple torrents on a single port and a single thread</li>
 <li>supports http proxies and proxy authentication</li>
 <li>gzipped tracker-responses</li>
-<li>piece picking on block-level (as opposed to piece-level) like in <a class="reference" href="http://azureus.sourceforge.net">Azureus</a></li>
+<li>piece picking on block-level like in <a class="reference" href="http://azureus.sourceforge.net">Azureus</a> (as opposed to piece-level).</li>
 <li>queues torrents for file check, instead of checking all of them in parallel.</li>
 <li>uses separate threads for checking files and for main downloader, with a fool-proof
 thread-safe library interface. (i.e. There's no way for the user to cause a deadlock).</li>
@@ -598,7 +598,7 @@ dictionary_type const&amp; dict() const;
 </pre>
 </blockquote>
 <p>The <tt class="literal"><span class="pre">integer()</span></tt>, <tt class="literal"><span class="pre">string()</span></tt>, <tt class="literal"><span class="pre">list()</span></tt> and <tt class="literal"><span class="pre">dict()</span></tt> functions
-are accessorts that return the respecive type. If the <tt class="literal"><span class="pre">entry</span></tt> object isn't of the
+are accessors that return the respecive type. If the <tt class="literal"><span class="pre">entry</span></tt> object isn't of the
 type you request, the accessor will throw <a class="reference" href="#type-error">type_error</a> (which derives from
 <tt class="literal"><span class="pre">std::runtime_error</span></tt>). You can ask an <tt class="literal"><span class="pre">entry</span></tt> for its type through the
 <tt class="literal"><span class="pre">type()</span></tt> function.</p>
@@ -892,7 +892,7 @@ void set_download_limit(int limit);
 <p><tt class="literal"><span class="pre">set_upload_limit</span></tt> will limit the upload bandwidth used by this particular torrent to the
 limit you set. It is given as the number of bytes per second the torrent is allowed to upload.
 <tt class="literal"><span class="pre">set_download_limit</span></tt> works the same way but for download bandwidth instead of upload bandwidth.
-Note that setting i higher limit on a torrent then the global limit (<tt class="literal"><span class="pre">session::set_upload_rate_limit</span></tt>)
+Note that setting a higher limit on a torrent then the global limit (<tt class="literal"><span class="pre">session::set_upload_rate_limit</span></tt>)
 will not override the global rate limit. The torrent can never upload more than the global rate
 limit.</p>
 </div>

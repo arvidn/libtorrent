@@ -21,11 +21,11 @@ The main goals of libtorrent are:
 libtorrent is not finished. It is an ongoing project (including this documentation).
 The current state includes the following features:
 
-	* multitracker extension support (as `described by TheShadow`__)
+	* multitracker extension support (as `described by John Hoffman`__)
 	* serves multiple torrents on a single port and a single thread
 	* supports http proxies and proxy authentication
 	* gzipped tracker-responses
-	* piece picking on block-level (as opposed to piece-level) like in Azureus_
+	* piece picking on block-level like in Azureus_ (as opposed to piece-level).
 	* queues torrents for file check, instead of checking all of them in parallel.
 	* uses separate threads for checking files and for main downloader, with a fool-proof
 	  thread-safe library interface. (i.e. There's no way for the user to cause a deadlock).
@@ -521,7 +521,7 @@ integer() string() list() dict() type()
 		dictionary_type const& dict() const;
 
 The ``integer()``, ``string()``, ``list()`` and ``dict()`` functions
-are accessorts that return the respecive type. If the ``entry`` object isn't of the
+are accessors that return the respecive type. If the ``entry`` object isn't of the
 type you request, the accessor will throw type_error_ (which derives from
 ``std::runtime_error``). You can ask an ``entry`` for its type through the
 ``type()`` function.
