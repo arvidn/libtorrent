@@ -131,8 +131,6 @@ namespace libtorrent
 	} // namespace unnamed
 
 
-
-	// TODO: document
 	std::string identify_client(const peer_id& p)
 	{
 		peer_id::const_iterator PID = p.begin();
