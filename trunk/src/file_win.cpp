@@ -35,8 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <windows.h>
 
-#define DWORD_MAX 0xffffffffu
-
 namespace
 {
 	// must be used to not leak memory in case something would throw
@@ -118,8 +116,9 @@ namespace libtorrent
 			assert(access_mask & (GENERIC_READ | GENERIC_WRITE));
 
 		#ifdef _UNICODE
+			std::wstring wfile_name(utf8_wchar(file_name));
 			HANDLE new_handle = CreateFile(
-				(LPCWSTR)file_name
+				(LPCWSTR)wfile_name.c_str()
 				, access_mask
 				, FILE_SHARE_READ
 				, 0
