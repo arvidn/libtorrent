@@ -197,6 +197,13 @@ namespace libtorrent
 		void pause();
 		void resume();
 
+		// interface for requesting tracker scrape data
+		// from tha last tracker announce response
+		// (optional, only sent by some trackers)
+		int num_complete() const;
+		int num_incomplete() const;
+		int num_downloaded() const;
+		
 		// set the interface to bind outgoing connections
 		// to.
 		void use_interface(const char* net_interface);

@@ -160,6 +160,9 @@ namespace libtorrent
 		, m_storage(0)
 		, m_next_request(second_clock::universal_time())
 		, m_duration(1800)
+		, m_complete(-1)
+		, m_incomplete(-1)
+		, m_downloaded(-1)
 		, m_policy()
 		, m_ses(ses)
 		, m_picker(0)
@@ -203,6 +206,9 @@ namespace libtorrent
 		, m_storage(0)
 		, m_next_request(second_clock::universal_time())
 		, m_duration(1800)
+		, m_complete(-1)
+		, m_incomplete(-1)
+		, m_downloaded(-1)
 		, m_policy()
 		, m_ses(ses)
 		, m_picker(0)
@@ -271,7 +277,10 @@ namespace libtorrent
 
 	void torrent::tracker_response(
 		std::vector<peer_entry>& peer_list
-		, int interval)
+		, int interval
+		, int complete
+		, int incomplete
+		, int downloaded)
 	{
 		m_failed_trackers = 0;
 		// less than 5 minutes announce intervals
@@ -294,6 +303,10 @@ namespace libtorrent
 			m_next_request = second_clock::universal_time() + boost::posix_time::seconds(m_duration);
 		}
 
+		if (complete >= 0) m_complete = complete;
+		if (incomplete >= 0) m_incomplete = incomplete;
+		if (downloaded >= 0) m_downloaded = downloaded;
+		
 		// connect to random peers from the list
 		std::random_shuffle(peer_list.begin(), peer_list.end());
 

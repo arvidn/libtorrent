@@ -189,7 +189,7 @@ The basic usage is as follows:
 	* query the torrent_handles for progress (see torrent_handle_)
 	* query the session for information
 	* add and remove torrents from the session at run-time
-* destruct all torrent_handles
+* save resume data for all torrent_handles (optional)
 * destruct session object
 
 Each class and function is described in this manual.
@@ -799,6 +799,10 @@ Its declaration looks like this::
 		bool is_paused() const;
 		bool is_seed() const;
 
+		int num_complete() const;
+		int num_incomplete() const;
+		int num_downloaded() const;
+
 		bool has_metadata() const;
 
 		boost::filsystem::path save_path() const;
@@ -924,7 +928,25 @@ is_seed()
 
 Returns true if the torrent is in seed mode (i.e. if it has finished downloading).
 
+num_complete() num_incomplete() num_downloaded()
+------------------------------------------------
+
+	::
+
+		int num_complete() const;
+		int num_incomplete() const;
+		int num_downloaded() const;
+
+These members returns the optional scrape data returned by the tracker in the announce response.
+If the tracker did not return any scrape data the return value of these functions are -1. Note
+that in some cases the tracker can return some scrape data, so there is no guarantee that all
+functions returns -1 just because one of them do. ``num_complete()`` is the total number of
+seeds in the swarm. ``num_incomplete()`` is the number of downloaders in the swarm and
+``num_downloaded()`` is the number of times this torrent has been downloaded.
+
+
 has_metadata()
+--------------
 
 	::
 

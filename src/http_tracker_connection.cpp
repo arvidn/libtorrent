@@ -542,7 +542,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	void http_tracker_connection::parse(const entry& e)
+	void http_tracker_connection::parse(entry const& e)
 	{
 		if (!has_requester()) return;
 
@@ -553,13 +553,13 @@ namespace libtorrent
 
 			try
 			{
-				const entry& failure = e["failure reason"];
+				entry const& failure = e["failure reason"];
 
 				if (has_requester()) requester().tracker_request_error(
 					m_code, failure.string().c_str());
 				return;
 			}
-			catch (const type_error&) {}
+			catch (type_error const&) {}
 
 			int interval = (int)e["interval"].integer();
 
@@ -587,7 +587,7 @@ namespace libtorrent
 			}
 			else
 			{
-				const entry::list_type& l = e["peers"].list();
+				entry::list_type const& l = e["peers"].list();
 				for(entry::list_type::const_iterator i = l.begin(); i != l.end(); ++i)
 				{
 					peer_entry p = extract_peer_info(*i);
@@ -595,7 +595,23 @@ namespace libtorrent
 				}
 			}
 
-			requester().tracker_response(peer_list, interval);
+			// look for optional crape info
+			int complete = -1;
+			int incomplete = -1;
+			int downloaded = -1;
+			try
+			{
+				entry const& f = e["files"];
+				entry const& sd = f[std::string(m_req.info_hash.begin()
+					, m_req.info_hash.end())];
+				complete = sd["complete"].integer();
+				incomplete = sd["incomplete"].integer();
+				downloaded = sd["downloaded"].integer();
+			}
+			catch(type_error& e) {}
+			
+			requester().tracker_response(peer_list, interval, complete
+				, incomplete, downloaded);
 		}
 		catch(type_error& e)
 		{
