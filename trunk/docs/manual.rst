@@ -56,6 +56,7 @@ __ udp_tracker_protocol.html
 
 Functions that are yet to be implemented:
 
+	* large file support on linux and Mac OS X.
 	* better identification of peers that send bad data
 	* ip-filters
 	* file-level priority
