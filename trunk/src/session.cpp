@@ -105,7 +105,7 @@ namespace libtorrent
 
 				try
 				{
-					t->torrent_ptr->allocate_files(t, &m_mutex, t->save_path);
+					t->torrent_ptr->allocate_files(t, m_mutex, t->save_path);
 					// lock the session to add the new torrent
 
 					boost::mutex::scoped_lock l(m_mutex);
