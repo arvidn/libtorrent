@@ -295,7 +295,7 @@ namespace libtorrent { namespace detail
 							std::string msg = "cannot listen on the given interface '" + m_listen_interface.as_string() + "'";
 							m_alerts.post_alert(listen_failed_alert(msg));
 						}
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 						std::string msg = "cannot listen on the given interface '" + m_listen_interface.as_string() + "'";
 						(*m_logger) << msg << "\n";
 #endif
@@ -312,7 +312,7 @@ namespace libtorrent { namespace detail
 							<< ", " << m_listen_port_range.second
 							<< "] could be opened for listening";
 						m_alerts.post_alert(listen_failed_alert(msg.str()));
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 						(*m_logger) << msg.str() << "\n";
 #endif
 						m_listen_socket.reset();
@@ -326,7 +326,7 @@ namespace libtorrent { namespace detail
 			m_alerts.post_alert(listen_failed_alert(e.what()));
 		}
 
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 		if (m_listen_socket)
 		{
 			(*m_logger) << "listening on port: " << m_listen_interface.port << "\n";
@@ -513,7 +513,7 @@ namespace libtorrent { namespace detail
 					}
 					catch(std::exception& e)
 					{
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 						(*m_logger) << "accept failed: " << e.what() << "\n";
 #endif
 					}
@@ -522,7 +522,7 @@ namespace libtorrent { namespace detail
 						s->set_blocking(false);
 						// we got a connection request!
 						m_incoming_connection = true;
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 						(*m_logger) << s->sender().as_string() << " <== INCOMING CONNECTION\n";
 #endif
 						// TODO: filter ip:s
@@ -622,7 +622,7 @@ namespace libtorrent { namespace detail
 						std::string msg = "cannot listen on the given interface '" + m_listen_interface.as_string() + "'";
 						m_alerts.post_alert(listen_failed_alert(msg));
 					}
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 					std::string msg = "cannot listen on the given interface '" + m_listen_interface.as_string() + "'";
 					(*m_logger) << msg << "\n";
 #endif

@@ -796,7 +796,7 @@ namespace libtorrent
 			throw protocol_error("too many connections, refusing incoming connection"); // cause a disconnect
 		}
 
-#ifndef NDEBUG
+#ifdef TORRENT_VERBOSE_LOGGING
 		if (c.get_socket()->sender().ip() == m_torrent->current_tracker().ip())
 		{
 			m_torrent->debug_log("overriding connection limit for tracker NAT-check");
