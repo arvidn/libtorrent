@@ -674,6 +674,7 @@ namespace libtorrent
 		peer* p = find_connect_candidate();
 		if (p==0) return false;
 		assert(!p->banned);
+		assert(!p->connection);
 
 		p->connection = &m_torrent->connect_to_peer(p->ip, p->id);
 		p->connected = boost::posix_time::second_clock::local_time();
