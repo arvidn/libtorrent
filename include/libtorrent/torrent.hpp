@@ -101,7 +101,7 @@ namespace libtorrent
 		void print(std::ostream& os) const;
 
 		void allocate_files(detail::piece_checker_data* data,
-			boost::mutex* mutex,
+			boost::mutex& mutex,
 			const std::string& save_path)
 		{
 			m_storage.initialize_pieces(this, save_path, data, mutex);

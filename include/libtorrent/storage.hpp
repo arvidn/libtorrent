@@ -147,7 +147,7 @@ namespace libtorrent
 		void initialize_pieces(torrent* t,
 			const boost::filesystem::path& path,
 			detail::piece_checker_data* data,
-			boost::mutex* mutex);
+			boost::mutex& mutex);
 
 		int bytes_left() const { return m_bytes_left; }
 
