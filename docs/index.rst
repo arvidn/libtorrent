@@ -51,14 +51,13 @@ __ http://home.elp.rr.com/tur/multitracker-spec.txt
 
 Functions that are yet to be implemented:
 
-	* choke/unchoke policy for seed-mode
 	* number of connections limit
 	* better handling of peers that send bad data
 	* ip-filters
 	* file-level piece priority
 
 libtorrent is portable at least among windows, macosx, and UNIX-systems. It uses boost.thread,
-boost.filesystem boost.date_time and various other boost libraries and zlib.
+boost.filesystem, boost.date_time and various other boost libraries as well as zlib.
 
 libtorrent has been successfully compiled and tested on:
 
@@ -245,13 +244,17 @@ dispatcher mechanism that's available in libtorrent.
 
 TODO: describe the type dispatching mechanism
 
-The currently available alert types are:
+You can do a ``dynamic_cast`` to a specific alert type to get more message-specific information.
+These are the different alert types.
 
-	* tracker_alert
-	* hash_failed_alert
+tracker_alert
+~~~~~~~~~~~~~
 
-You can try a ``dynamic_cast`` to these types to get more message-pecific information. Here
-are their definitions::
+This alert is generated on tracker time outs, premature disconnects, invalid response or
+a HTTP response other than "200 OK". From the alert you can get the handle to the torrent
+the tracker belongs to. This alert is generated as severity level ``warning``.
+
+::
 
 	struct tracker_alert: alert
 	{
@@ -260,6 +263,15 @@ are their definitions::
 
 		torrent_handle handle;
 	};
+
+hash_failed_alert
+~~~~~~~~~~~~~~~~~
+
+This alert is generated when a finished piece fails its hash check. You can get the handle
+to the torrent which got the failed piece and the index of the piece itself from the alert.
+This alert is generated as severity level ``info``.
+
+::
 
 	struct hash_failed_alert: alert
 	{
@@ -274,6 +286,22 @@ are their definitions::
 		int piece_index;
 	};
 
+peer_error_alert
+~~~~~~~~~~~~~~~~
+
+This alert is generated when a peer sends invalid data over the peer-peer protocol. The peer
+will be disconnected, but you get its peer-id from the alert. This alert is generated
+as severity level ``debug``.
+
+::
+
+	struct peer_error_alert: alert
+	{
+		peer_error_alert(const peer_id& pid, const std::string& msg);
+		virtual std::auto_ptr<alert> clone() const;
+
+		peer_id id;
+	};
 
 
 parsing torrent files
@@ -690,7 +718,8 @@ fields::
 			interesting = 0x1,
 			choked = 0x2,
 			remote_interested = 0x4,
-			remote_choked = 0x8
+			remote_choked = 0x8,
+			supports_extensions = 0x10
 		};
 		unsigned int flags;
 		address ip;
@@ -716,7 +745,10 @@ any combination of the four enums above. Where ``interesting`` means that we
 are interested in pieces from this peer. ``choked`` means that **we** have
 choked this peer. ``remote_interested`` and ``remote_choked`` means the
 same thing but that the peer is interested in pieces from us and the peer has choked
-**us**.
+**us**. ``support_extensions`` means that this peer supports the `extension protocol
+as described by nolar`__.
+
+__ http://nolar.com/azureus/extended.htm
 
 The ``ip`` field is the IP-address to this peer. Its type is a wrapper around the
 actual address and the port number. See address_ class.

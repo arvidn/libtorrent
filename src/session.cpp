@@ -497,6 +497,11 @@ namespace libtorrent
 						}
 						catch(std::exception& e)
 						{
+							if (m_alerts.should_post(alert::debug))
+							{
+								m_alerts.post_alert(
+									peer_error_alert(p->second->get_peer_id(), e.what()));
+							}
 							// the connection wants to disconnect for some reason, remove it
 							// from the connection-list
 							m_selector.remove(*i);

@@ -319,6 +319,8 @@ namespace libtorrent
 
 			p.load_balancing = peer->total_free_upload();
 
+			p.download_queue_length = peer->download_queue().size();
+
 			boost::optional<piece_block_progress> ret = peer->downloading_piece();
 			if (ret)
 			{
