@@ -82,17 +82,13 @@ namespace libtorrent
 	public:
 
 		torrent(detail::session_impl* ses, const torrent_info& torrent_file);
-
-		~torrent()
-		{
-			int i = 0;
-		}
+		~torrent() {}
 
 		void abort() { m_abort = true; m_event = event_stopped; }
 		bool is_aborted() const { return m_abort; }
 
-		// returns the number of seconds left until we are to make
-		// another tracker-request
+		// returns true if it time for this torrent to make another
+		// tracker request
 		bool should_request() const throw()
 		{
 			boost::posix_time::time_duration d = m_next_request - boost::posix_time::second_clock::local_time();

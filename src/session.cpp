@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <set>
 #include <cctype>
+#include <algorithm>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/convenience.hpp>
@@ -88,7 +89,7 @@ namespace libtorrent
 			// libtorrent's fingerprint
 			unsigned char fingerprint[] = "lt.";
 
-			const int len2 = std::min(cl_fprint.length(), (long)7);
+			const int len2 = std::min(cl_fprint.length(), (std::size_t)7);
 			const int len1 = (len2 == 0?2:3);
 			const int len3 = 12 - len1 - len2;
 
@@ -402,11 +403,20 @@ namespace libtorrent
 			}
 		}
 
+		// the return value from this function is valid only as long as the
+		// session is locked!
 		torrent* session_impl::find_torrent(const sha1_hash& info_hash)
 		{
-			std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i = m_torrents.find(info_hash);
-			if (i == m_torrents.end()) return 0;
-			return boost::get_pointer(i->second);
+			std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
+				= m_torrents.find(info_hash);
+			if (i != m_torrents.end()) return boost::get_pointer(i->second);
+
+			std::map<sha1_hash, boost::shared_ptr<detail::piece_checker_data> >::iterator j
+				= m_checkers.find(info_hash);
+			if (j != m_checkers.end())
+				return boost::get_pointer(j->second->torrent_ptr);
+
+			return 0;
 		}
 
 

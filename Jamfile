@@ -1,3 +1,6 @@
+
+project boost : $(BOOST_ROOT) ;
+
 SOURCES =
 	entry.cpp
 	peer_connection.cpp
@@ -29,8 +32,8 @@ lib torrent
 exe client_test
 	: examples/client_test.cpp
 	  <lib>torrent
-#	  <lib>$(BOOST_ROOT)/libs/filesystem/build/boost_filesystem
-#	  <dll>$(BOOST_ROOT)/libs/thread/build/boost_thread
+	  @boost/libs/filesystem/build/boost_filesystem
+	  @boost/libs/thread/build/boost_thread
 	: <include>$(BOOST_ROOT)
 	  <sysinclude>$(BOOST_ROOT)
 	  <include>./include
