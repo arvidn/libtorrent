@@ -278,7 +278,7 @@ namespace libtorrent
 			peer_list.push_back(e);
 		}
 
-		requester().tracker_response(peer_list, interval, complete, incomplete, -1);
+		requester().tracker_response(peer_list, interval, complete, incomplete);
 		return true;
 	}
 

@@ -106,8 +106,7 @@ namespace libtorrent
 			std::vector<peer_entry>& peers
 			, int interval
 			, int complete
-			, int incomplete
-			, int downloaded) = 0;
+			, int incomplete) = 0;
 		virtual void tracker_request_timed_out() = 0;
 		virtual void tracker_request_error(
 			int response_code

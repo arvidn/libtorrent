@@ -598,20 +598,15 @@ namespace libtorrent
 			// look for optional crape info
 			int complete = -1;
 			int incomplete = -1;
-			int downloaded = -1;
-			try
-			{
-				entry const& f = e["files"];
-				entry const& sd = f[std::string(m_req.info_hash.begin()
-					, m_req.info_hash.end())];
-				complete = sd["complete"].integer();
-				incomplete = sd["incomplete"].integer();
-				downloaded = sd["downloaded"].integer();
-			}
+
+			try { complete = e["complete"].integer(); }
+			catch(type_error& e) {}
+
+			try { incomplete = e["incomplete"].integer(); }
 			catch(type_error& e) {}
 			
 			requester().tracker_response(peer_list, interval, complete
-				, incomplete, downloaded);
+				, incomplete);
 		}
 		catch(type_error& e)
 		{

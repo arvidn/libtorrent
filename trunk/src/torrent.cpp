@@ -162,7 +162,6 @@ namespace libtorrent
 		, m_duration(1800)
 		, m_complete(-1)
 		, m_incomplete(-1)
-		, m_downloaded(-1)
 		, m_policy()
 		, m_ses(ses)
 		, m_picker(0)
@@ -208,7 +207,6 @@ namespace libtorrent
 		, m_duration(1800)
 		, m_complete(-1)
 		, m_incomplete(-1)
-		, m_downloaded(-1)
 		, m_policy()
 		, m_ses(ses)
 		, m_picker(0)
@@ -279,8 +277,7 @@ namespace libtorrent
 		std::vector<peer_entry>& peer_list
 		, int interval
 		, int complete
-		, int incomplete
-		, int downloaded)
+		, int incomplete)
 	{
 		m_failed_trackers = 0;
 		// less than 5 minutes announce intervals
@@ -305,7 +302,6 @@ namespace libtorrent
 
 		if (complete >= 0) m_complete = complete;
 		if (incomplete >= 0) m_incomplete = incomplete;
-		if (downloaded >= 0) m_downloaded = downloaded;
 		
 		// connect to random peers from the list
 		std::random_shuffle(peer_list.begin(), peer_list.end());
@@ -943,7 +939,7 @@ namespace libtorrent
 		assert(m_storage.get());
 		assert(piece_index >= 0);
 		assert(piece_index < m_torrent_file.num_pieces());
-		assert(piece_index < m_have_pieces.size());
+		assert(piece_index < (int)m_have_pieces.size());
 
 		int size = static_cast<int>(m_torrent_file.piece_size(piece_index));
 		std::vector<char> buffer(size);
@@ -1123,7 +1119,7 @@ namespace libtorrent
 		std::pair<int, int> req = offset_to_req(std::make_pair(offset, size)
 			, total_size);
 
-		assert(req.first + req.second <= m_have_metadata.size());
+		assert(req.first + req.second <= (int)m_have_metadata.size());
 
 		std::fill(
 			m_have_metadata.begin() + req.first

@@ -803,7 +803,6 @@ Its declaration looks like this::
 
 		int num_complete() const;
 		int num_incomplete() const;
-		int num_downloaded() const;
 
 		bool has_metadata() const;
 
@@ -931,21 +930,20 @@ is_seed()
 
 Returns true if the torrent is in seed mode (i.e. if it has finished downloading).
 
-num_complete() num_incomplete() num_downloaded()
-------------------------------------------------
+
+num_complete() num_incomplete()
+-------------------------------
 
 	::
 
 		int num_complete() const;
 		int num_incomplete() const;
-		int num_downloaded() const;
 
 These members returns the optional scrape data returned by the tracker in the announce response.
 If the tracker did not return any scrape data the return value of these functions are -1. Note
 that in some cases the tracker can return some scrape data, so there is no guarantee that all
 functions returns -1 just because one of them do. ``num_complete()`` is the total number of
-seeds in the swarm. ``num_incomplete()`` is the number of downloaders in the swarm and
-``num_downloaded()`` is the number of times this torrent has been downloaded.
+seeds in the swarm and ``num_incomplete()`` is the number of downloaders in the swarm.
 
 
 has_metadata()

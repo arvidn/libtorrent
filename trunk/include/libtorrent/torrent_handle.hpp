@@ -202,7 +202,6 @@ namespace libtorrent
 		// (optional, only sent by some trackers)
 		int num_complete() const;
 		int num_incomplete() const;
-		int num_downloaded() const;
 		
 		// set the interface to bind outgoing connections
 		// to.
