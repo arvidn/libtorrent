@@ -41,10 +41,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/convenience.hpp>
+#include <boost/thread/mutex.hpp>
 
 #include "libtorrent/storage.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/session.hpp"
 
 #if defined(_MSC_VER) && _MSV_CER < 1300
 #define for if (false) {} else for
@@ -105,7 +107,7 @@ void libtorrent::piece_file::open(storage* s, int index, open_mode o, int seek_o
 
 		m_file_mode = m;
 		m_file.open(p.native_file_string().c_str(), m_file_mode);
-		std::cout << "opening file: '" << p.native_file_string() << "'\n";
+//		std::cout << "opening file: '" << p.native_file_string() << "'\n";
 		if (m_file.fail())
 		{
 			// TODO: try to recover! create a new file?
@@ -168,7 +170,7 @@ int libtorrent::piece_file::read(char* buf, int size)
 			m_file.close();
 			m_file.clear();
 			m_file.open(path.native_file_string().c_str(), m_file_mode);
-			std::cout << "opening file: '" << path.native_file_string() << "'\n";
+//			std::cout << "opening file: '" << path.native_file_string() << "'\n";
 			if (m_file.fail())
 			{
 				// TODO: try to recover! create a new file?
@@ -221,7 +223,7 @@ void libtorrent::piece_file::write(const char* buf, int size)
 			m_file_offset = 0;
 			m_file.close();
 			m_file.open(path.native_file_string().c_str(), m_file_mode);
-			std::cout << "opening file: '" << path.native_file_string() << "'\n";
+//			std::cout << "opening file: '" << path.native_file_string() << "'\n";
 			if (m_file.fail())
 			{
 				// TODO: try to recover! create a new file?
@@ -294,10 +296,9 @@ bool libtorrent::storage::verify_piece(piece_file& file)
 	assert(read == m_torrent_file->piece_size(index));
 
 	// calculate hash for piece
-	sha1_hash digest;
 	hasher h;
 	h.update(&buffer[0], read);
-	h.final(digest);
+	sha1_hash digest = h.final();
 
 	if (std::equal(digest.begin(), digest.end(), m_torrent_file->hash_for_piece(index).begin()))
 	{
@@ -325,7 +326,13 @@ bool libtorrent::storage::verify_piece(piece_file& file)
 // allocate files will create all files that are missing
 // if there are some files that already exists, it checks
 // that they have the correct filesize
-void libtorrent::storage::initialize_pieces(torrent* t, const boost::filesystem::path& path)
+// data is the structure that is shared between the
+// thread where this function is run in and the
+// main thread. It is used to communicate progress
+// and abortion information.
+void libtorrent::storage::initialize_pieces(torrent* t,
+	const boost::filesystem::path& path,
+	boost::shared_ptr<detail::piece_checker_data> data)
 {
 	m_save_path = path;
 	m_torrent_file = &t->torrent_file();
@@ -366,13 +373,17 @@ void libtorrent::storage::initialize_pieces(torrent* t, const boost::filesystem:
 	// have
 	bool resume = false;
 
+	unsigned int total_bytes = m_torrent_file->total_size();
+	unsigned int progress = 0;
+
 	// the buffersize of the file writes
 	const int chunksize = 8192;
 	char zeros[chunksize];
 	std::fill(zeros, zeros+chunksize, 0);
 
-
+#ifndef NDEBUG
 	std::cout << "allocating files\n";
+#endif
 
 	// remember which directories we have created, so
 	// we don't have to ask the filesystem all the time
@@ -413,7 +424,7 @@ void libtorrent::storage::initialize_pieces(torrent* t, const boost::filesystem:
 				msg += "\" is in the way.";
 				throw file_allocation_failed(msg.c_str());
 			}
-			std::cout << "creating file: '" << path.native_file_string() << "'\n";
+//			std::cout << "creating file: '" << path.native_file_string() << "'\n";
 			std::ifstream f(path.native_file_string().c_str(), std::ios_base::binary);
 			f.seekg(0, std::ios_base::end);
 			int filesize = f.tellg();
@@ -438,9 +449,19 @@ void libtorrent::storage::initialize_pieces(torrent* t, const boost::filesystem:
 				f.write(zeros, chunksize);
 				// TODO: Check if disk is full
 				left_to_write -= chunksize;
+				progress += chunksize;
+
+				boost::mutex::scoped_lock l(data->mutex);
+				data->progress = static_cast<float>(progress) / total_bytes;
+				if (data->abort) return;
 			}
 			// TODO: Check if disk is full
 			if (left_to_write > 0) f.write(zeros, left_to_write);
+			progress += left_to_write;
+
+			boost::mutex::scoped_lock l(data->mutex);
+			data->progress = static_cast<float>(progress) / total_bytes;
+			if (data->abort) return;
 		}
 	}
 
@@ -448,20 +469,30 @@ void libtorrent::storage::initialize_pieces(torrent* t, const boost::filesystem:
 	if (resume)
 	{
 		int missing = 0;
-		std::cout << "checking existing files\n";
+//		std::cout << "checking existing files\n";
 
 		int num_pieces = m_torrent_file->num_pieces();
 
+		progress = 0;
 		piece_file f;
 		for (unsigned int i = 0; i < num_pieces; ++i)
 		{
 			f.open(this, i, piece_file::in);
 			if (!verify_piece(f)) missing++;
 
-			std::cout << i+1 << " / " << m_torrent_file->num_pieces() << " missing: " << missing << "\r";
+//			std::cout << i+1 << " / " << m_torrent_file->num_pieces() << " missing: " << missing << "\r";
+
+			progress += m_torrent_file->piece_size(i);
+			boost::mutex::scoped_lock l(data->mutex);
+			data->progress = static_cast<float>(progress) / total_bytes;
+			if (data->abort) return;
 		}
-		std::cout << "\n";
+//		std::cout << "\n";
 	}
+
+#ifndef NDEBUG
+	std::cout << "allocation/checking DONE!\n";
+#endif
 
 }
 /*

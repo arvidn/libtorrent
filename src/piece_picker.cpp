@@ -452,8 +452,7 @@ namespace libtorrent
 			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(index));
 		assert(i != m_downloads.end());
 		assert(i->finished_blocks.count() <= m_blocks_per_piece);
-		int max_blocks = m_blocks_per_piece;
-		if (index+1 == m_piece_map.size()) max_blocks = m_blocks_in_last_piece;
+		int max_blocks = blocks_in_piece(index);
 		if (i->finished_blocks.count() != max_blocks) return false;
 
 		assert(i->requested_blocks.count() == max_blocks);
@@ -559,6 +558,18 @@ namespace libtorrent
 #ifndef NDEBUG
 		integrity_check();
 #endif
+	}
+
+	int piece_picker::unverified_blocks() const
+	{
+		int counter = 0;
+		for (std::vector<downloading_piece>::const_iterator i = m_downloads.begin();
+			i != m_downloads.end();
+			++i)
+		{
+			counter += i->finished_blocks.count();
+		}
+		return counter;
 	}
 
 }

@@ -57,7 +57,14 @@ namespace libtorrent
 		void update(const char* data, unsigned int len)
 		{ SHA1Update(&m_context, reinterpret_cast<unsigned char*>(const_cast<char*>(data)), len); }
 
-		void final(sha1_hash& digest) { SHA1Final(digest.begin(), &m_context); }
+		sha1_hash final()
+		{
+			sha1_hash digest;
+			SHA1Final(digest.begin(), &m_context);
+			return digest;
+		}
+
+		void reset() { SHA1Init(&m_context); }
 
 	private:
 

@@ -113,6 +113,8 @@ namespace libtorrent
 
 		bool is_piece_finished(int index) const;
 
+		int blocks_in_piece(int index) const;
+		int unverified_blocks() const;
 
 #ifndef NDEBUG
 		// used in debug mode
@@ -204,6 +206,14 @@ namespace libtorrent
 		int m_blocks_in_last_piece;
 
 	};
+
+	inline int piece_picker::blocks_in_piece(int index) const
+	{
+		if (index+1 == m_piece_map.size())
+			return m_blocks_in_last_piece;
+		else
+			return m_blocks_per_piece;
+	}
 
 }
 

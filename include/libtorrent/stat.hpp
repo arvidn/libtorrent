@@ -73,7 +73,7 @@ namespace libtorrent
 		float up_peak() const { return m_peak_uploaded_per_second; }
 
 		unsigned int total_upload() const { return m_total_upload; }
-		unsigned int total_dowload() const { return m_total_download; }
+		unsigned int total_download() const { return m_total_download; }
 
 	private:
 
