@@ -156,6 +156,7 @@ class session: public boost::noncopyable
 	session(int listen_port, const std::string&amp; fingerprint = std::string());
 
 	torrent_handle add_torrent(const torrent_info&amp; t, const std::string&amp; save_path);
+	void remove_torrent(const torrent_handle&amp; h);
 
 	void set_http_settings(const http_settings&amp; settings);
 };
@@ -168,6 +169,11 @@ You add torrents through the <tt>add_torrent()</tt>-function where you give an
 object representing the information found in the torrent file and the path where you
 want to save the files. The <tt>save_path</tt> will be prepended to the directory-
 structure in the torrent-file.
+</p>
+
+<p>
+<tt>remove_torrent()</tt> will close all peer connections associated with the torrent and tell
+the tracker that we've stopped participating in the swarm.
 </p>
 
 <p>
@@ -476,7 +482,6 @@ Its declaration looks like this:
 struct torrent_handle
 {
 	torrent_handle();
-	void abort();
 
 	torrent_status status() const;
 	void get_download_queue(std::vector&lt;partial_piece_info&gt;&amp; queue);
@@ -488,13 +493,6 @@ struct torrent_handle
 The default constructor will initialize the handle to an invalid state. Which means you cannot
 perform any operation on it, unless you first assign it a valid handle. If you try to perform
 any operation they will simply return.
-</p>
-
-
-<p>
-<tt>abort()</tt> will close all peer connections associated with this torrent and tell
-the tracker that we've stopped participating in the swarm. This handle will become invalid
-shortly after this call has been made.
 </p>
 
 <h3>status()</h3>

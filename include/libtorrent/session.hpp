@@ -175,7 +175,7 @@ namespace libtorrent
 
 			volatile bool m_abort;
 			
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 			boost::shared_ptr<logger> create_log(std::string name)
 			{
 				name = "libtorrent_log_" + name + ".log";
@@ -205,6 +205,7 @@ namespace libtorrent
 		torrent_handle add_torrent(
 			const torrent_info& ti
 			, const boost::filesystem::path& save_path);
+		void remove_torrent(const torrent_handle& h);
 
 		void set_http_settings(const http_settings& s);
 
