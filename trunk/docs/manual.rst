@@ -47,6 +47,7 @@ The current state includes the following features:
 	* does not have any requirements on the piece order in a torrent that it resumes. This
 	  means it can resume a torrent downloaded by any client.
 	* adjusts the length of the request queue depending on download rate.
+	* supports the ``compact=1`` tracker parameter.
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
 .. _Azureus: http://azureus.sourceforge.net
