@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/limits.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
+#include <boost/cstdint.hpp>
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -68,7 +69,7 @@ namespace libtorrent
 
 		void swap(storage&);
 
-		typedef entry::integer_type size_type;
+		typedef boost::int64_t size_type;
 
 		size_type read(char* buf, int slot, size_type offset, size_type size);
 		void write(const char* buf, int slot, size_type offset, size_type size);
@@ -81,7 +82,7 @@ namespace libtorrent
 	class piece_manager : boost::noncopyable
 	{
 	public:
-		typedef entry::integer_type size_type;
+		typedef boost::int64_t size_type;
 
 		piece_manager(
 			const torrent_info& info

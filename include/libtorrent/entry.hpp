@@ -65,6 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <stdexcept>
 #include <cassert>
+#include <boost/cstdint.hpp>
 
 namespace libtorrent
 {
@@ -108,15 +109,8 @@ namespace libtorrent
 		typedef std::map<std::string, entry> dictionary_type;
 		typedef std::string string_type;
 		typedef std::vector<entry> list_type;
-#if defined(_MSC_VER) && _MSC_VER >= 1300
-		typedef __int64 integer_type;
-#elif defined(_MSC_VER)
-		typedef int integer_type;
-#elif defined(__GNUC__)
-		typedef long long integer_type;
-#else
-		typedef long integer_type;
-#endif
+
+		typedef boost::int64_t integer_type;
 
 		enum data_type
 		{
