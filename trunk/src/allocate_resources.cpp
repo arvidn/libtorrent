@@ -28,7 +28,24 @@ CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
-*/
+*/ 
+
+//The Standard Library defines the two template functions std::min() 
+//and std::max() in the <algorithm> header. In general, you should 
+//use these template functions for calculating the min and max values 
+//of a pair. Unfortunately, Visual C++ does not define these function
+// templates. This is because the names min and max clash with 
+//the traditional min and max macros defined in <windows.h>. 
+//As a workaround, Visual C++ defines two alternative templates with 
+//identical functionality called _cpp_min() and _cpp_max(). You can 
+//use them instead of std::min() and std::max().To disable the 
+//generation of the min and max macros in Visual C++, #define 
+//NOMINMAX before #including <windows.h>.
+#ifdef _WIN32
+    //support boost1.32.0(2004-11-19 18:47)
+    //now all libs can be compiled and linked with static module
+	#define NOMINMAX
+#endif
 
 #include "libtorrent/allocate_resources.hpp"
 #include "libtorrent/size_type.hpp"
