@@ -66,6 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace std
 {
 	using ::srand;
+	using ::rename;
 }
 #endif
 

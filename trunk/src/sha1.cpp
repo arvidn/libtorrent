@@ -19,6 +19,10 @@ changelog at the end of the file.
 
 #include <boost/cstdint.hpp>
 
+#if defined _MSC_VER && _MSC_VER < 1300
+#define for if (false) {} else for
+#endif
+
 struct SHA1_CTX
 {
 	boost::uint32_t state[5];
@@ -74,12 +78,13 @@ namespace
 	template <class BlkFun>
 	void SHA1Transform(boost::uint32_t state[5], boost::uint8_t const buffer[64])
 	{
+		using namespace std;
 		boost::uint32_t a, b, c, d, e;
 
 		CHAR64LONG16* block;
 		boost::uint8_t workspace[64];
 		block = (CHAR64LONG16*)workspace;
-		std::memcpy(block, buffer, 64);
+		memcpy(block, buffer, 64);
 
 		// Copy context->state[] to working vars
 		a = state[0];
@@ -120,7 +125,8 @@ namespace
 
 	void SHAPrintContext(SHA1_CTX *context, char *msg)
 	{
-		std::printf("%s (%d,%d) %x %x %x %x %x\n"
+		using namespace std;
+		printf("%s (%d,%d) %x %x %x %x %x\n"
 			, msg, context->count[0], context->count[1]
 			, context->state[0], context->state[1]
 			, context->state[2], context->state[3]
@@ -130,6 +136,7 @@ namespace
 	template <class BlkFun>
 	void internal_update(SHA1_CTX* context, boost::uint8_t const* data, boost::uint32_t len)
 	{
+		using namespace std;
 		boost::uint32_t i, j;	// JHB
 
 #ifdef VERBOSE
@@ -140,7 +147,7 @@ namespace
 		context->count[1] += (len >> 29);
 		if ((j + len) > 63)
 		{
-			std::memcpy(&context->buffer[j], data, (i = 64-j));
+			memcpy(&context->buffer[j], data, (i = 64-j));
 			SHA1Transform<BlkFun>(context->state, context->buffer);
 			for ( ; i + 63 < len; i += 64)
 			{
@@ -152,7 +159,7 @@ namespace
 		{
 			i = 0;
 		}
-		std::memcpy(&context->buffer[j], &data[i], len - i);
+		memcpy(&context->buffer[j], &data[i], len - i);
 #ifdef VERBOSE
 		SHAPrintContext(context, "after ");
 #endif
