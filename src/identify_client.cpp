@@ -177,6 +177,9 @@ namespace libtorrent
 			else if (std::equal(f->id, f->id+2, "MT"))
 				identity << "Moonlight Torrent ";
 
+			else if (std::equal(f->id, f->id+2, "TS"))
+				identity << "TorrentStorm ";
+
 			// unknown client
 			else
 				identity << std::string(f->id, f->id+2) << " ";
@@ -234,6 +237,21 @@ namespace libtorrent
 		if (std::equal(PID, PID + 11, "DansClient"))
 		{
 			return "XanTorrent";
+		}
+
+		if (std::equal(PID, PID + 7, "Plus---"))
+		{
+			return "Bittorrent Plus";
+		}
+
+		if (std::equal(PID, PID + 16, "Deadman Walking-"))
+		{
+			return "Deadman";
+		}
+
+		if (std::equal(PID, PID + 7, "btuga"))
+		{
+			return "BTugaXP";
 		}
 
 		if (std::equal(PID, PID + 7, "btfans"))

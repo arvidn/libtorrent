@@ -641,29 +641,29 @@ namespace libtorrent
 				}
 			}
 			
-			// make sure we don't have too many
-			// unchoked peers
-			// TODO: this could result in two quick
-			// choke-unchoke messages.
-			while (m_num_unchoked > m_max_uploads)
+			if (m_max_uploads < m_torrent->num_peers())
 			{
+				// make sure we don't have too many
+				// unchoked peers
+				while (m_num_unchoked > m_max_uploads)
+				{
+					peer* p = find_choke_candidate();
+					assert(p);
+					p->connection->send_choke();
+					--m_num_unchoked;
+				}
+
+				// optimistic unchoke. trade the 'worst'
+				// unchoked peer with one of the choked
+				assert(m_num_unchoked <= m_torrent->num_peers());
 				peer* p = find_choke_candidate();
-				assert(p);
-				p->connection->send_choke();
-				--m_num_unchoked;
+				if (p)
+				{
+					p->connection->send_choke();
+					--m_num_unchoked;
+					unchoke_one_peer();
+				}
 			}
-
-			// optimistic unchoke. trade the 'worst'
-			// unchoked peer with one of the choked
-			assert(m_num_unchoked <= m_torrent->num_peers());
-			peer* p = find_choke_candidate();
-			if (p)
-			{
-				p->connection->send_choke();
-				--m_num_unchoked;
-				unchoke_one_peer();
-			}
-
 
 			// make sure we have enough
 			// unchoked peers
@@ -691,10 +691,22 @@ namespace libtorrent
 	{
 		assert(!c.is_local());
 
-		// TODO: have an exception if the incoming connection
-		// is from the tracker
-		if(m_torrent->num_peers() >= m_max_connections)
+		// if the connection comes from the tracker,
+		// it's probably just a NAT-check. Ignore the
+		// num connections constraint then.
+		// TODO: mske sure this works
+		if (m_torrent->num_peers() >= m_max_connections
+			&& c.get_socket()->sender().ip() != m_torrent->current_tracker().ip())
+		{
 			throw protocol_error("too many connections, refusing incoming connection"); // cause a disconnect
+		}
+
+#ifndef NDEBUG
+		if (c.get_socket()->sender().ip() == m_torrent->current_tracker().ip())
+		{
+			m_torrent->debug_log("overriding connection limit for tracker NAT-check");
+		}
+#endif
 
 		std::vector<peer>::iterator i = std::find_if(
 			m_peers.begin()
