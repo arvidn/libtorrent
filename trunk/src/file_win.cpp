@@ -60,7 +60,7 @@ namespace
 	{
 		char *buffer=0;
 		int err = GetLastError();
-		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_ALLOCATE_BUFFER, 0, err, 0, (LPSTR)&buffer, 0, 0);
+		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_ALLOCATE_BUFFER, 0, err, 0, (LPWSTR)(LPCSTR)&buffer, 0, 0);
 
 		auto_LocalFree auto_free(buffer); // needed for exception safety
 		std::stringstream s;
@@ -107,7 +107,7 @@ namespace libtorrent
 			assert(access_mask & (GENERIC_READ | GENERIC_WRITE));
 
 			HANDLE new_handle = CreateFile(
-				file_name
+				(LPCWSTR)file_name
 				, access_mask
 				, FILE_SHARE_READ
 				, 0
