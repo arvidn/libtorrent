@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
+#include <boost/cstdint.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -51,6 +52,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 // TODO: support ToS
+// TODO: support binding to selected interface
+// Distinguish between binding listen sockets and
+// outgoing connections.
 
 namespace libtorrent
 {
@@ -60,6 +64,8 @@ namespace libtorrent
 	public:
 		network_error(int error_code): m_error_code(error_code) {}
 		virtual const char* what() const throw();
+		int error_code() const
+		{ return m_error_code; }
 	private:
 		int m_error_code;
 	};
@@ -80,25 +86,28 @@ namespace libtorrent
 		
 		address(unsigned int addr, unsigned short port);
 
-		address(const std::string& addr, unsigned short port);
+		address(const char* addr, unsigned short port);
 		address(const address& a);
 		~address();
 
 		std::string as_string() const;
 		unsigned int ip() const { return m_ip; }
-		unsigned short port() const { return m_port; }
 
 		bool operator<(const address& a) const
-		{ if (ip() == a.ip()) return port() < a.port(); else return ip() < a.ip(); }
+		{ if (ip() == a.ip()) return port < a.port; else return ip() < a.ip(); }
 		bool operator!=(const address& a) const
-		{ return ip() != a.ip() || port() != a.port(); }
+		{ return ip() != a.ip() || port != a.port; }
 		bool operator==(const address& a) const
-		{ return ip() == a.ip() && port() == a.port(); }
+		{ return ip() == a.ip() && port == a.port; }
+
+		unsigned short port;
+
+		const static unsigned short any_port = 0;
+		const static unsigned int any_addr = 0;
 
 	private:
 
 		unsigned int m_ip;
-		unsigned short m_port;
 	};
 
 	class socket: public boost::noncopyable
@@ -116,7 +125,10 @@ namespace libtorrent
 		socket(type t, bool blocking = true, unsigned short receive_port = 0);
 		virtual ~socket();
 
-		void connect(const address& addr);
+		void connect(
+			const address& addr
+			, address const& bind_to
+				= address(address::any_addr, address::any_port));
 		void close();
 		
 		void set_blocking(bool blocking);
@@ -125,7 +137,7 @@ namespace libtorrent
 		const address& sender() const { return m_sender; }
 		address name() const;
 
-		void listen(unsigned short port, int queue);
+		void listen(libtorrent::address const& iface, int queue);
 		boost::shared_ptr<libtorrent::socket> accept();
 
 		template<class T> int send(const T& buffer);

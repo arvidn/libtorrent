@@ -108,7 +108,7 @@ namespace libtorrent
 
 		// TODO: this is a problem. DNS-lookup is blocking!
 		// (may block up to 5 seconds)
-		address a(*connect_to_host, port);
+		address a(connect_to_host->c_str(), port);
 		boost::shared_ptr<socket> s(new socket(socket::tcp, false));
 		s->connect(a);
 

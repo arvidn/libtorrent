@@ -13,14 +13,6 @@ use-project /boost/date_time : $(BOOST_ROOT)/libs/date_time/build ;
 project torrent
 	: requirements
 
-	<use>/boost/thread
-	<use>/boost/date_time
-	<use>/boost/filesystem
-		
-	<library>/boost/thread
-	<library>/boost/date_time
-	<library>/boost/filesystem
-
 	: usage-requirements 
 
 	<include>./include
@@ -49,6 +41,7 @@ SOURCES =
 	piece_picker.cpp
 	policy.cpp
 	session.cpp
+	socket.cpp
 	stat.cpp
 	storage.cpp
 	torrent.cpp
@@ -62,15 +55,6 @@ SOURCES =
 
 # use different versions of some files for
 # windows
-
-	if [ modules.peek : NT ]
-	{
-		SOURCES += socket_win.cpp ;
-	}
-	else
-	{
-		SOURCES += socket_bsd.cpp ;
-	}
 
 	if [ modules.peek : NT ] && toolset != msvc-6
 	{
@@ -86,6 +70,9 @@ lib torrent
 	:
 	zlib//zlib
 	src/$(SOURCES)
+	/boost/thread//boost_thread/<link>shared
+	/boost/date_time//boost_date_time/<link>static
+	/boost/filesystem//boost_filesystem/<link>static
 	:
 	<include>./include
 	<threading>multi

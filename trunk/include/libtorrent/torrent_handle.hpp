@@ -151,6 +151,10 @@ namespace libtorrent
 		const torrent_info& get_torrent_info() const;
 		bool is_valid() const;
 
+		// set the interface to bind outgoing connections
+		// to.
+		void use_interface(const char* net_interface);
+
 		// TODO: there must be a way to get resume data and
 		// shut down the torrent in one atomic operation
 		entry write_resume_data() const;

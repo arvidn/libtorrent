@@ -248,18 +248,20 @@ namespace libtorrent
 			return 0;
 		}
 
-		session_impl::session_impl(std::pair<int, int> listen_port_range,
-			const fingerprint& cl_fprint)
+		session_impl::session_impl(
+			std::pair<int, int> listen_port_range
+			, const fingerprint& cl_fprint
+			, const char* listen_interface = 0)
 			: m_tracker_manager(m_settings)
 			, m_listen_port_range(listen_port_range)
-			, m_listen_port(listen_port_range.first)
+			, m_listen_interface(listen_interface, listen_port_range.first)
 			, m_abort(false)
 			, m_upload_rate(-1)
 			, m_incoming_connection(false)
 		{
 			assert(listen_port_range.first > 0);
 			assert(listen_port_range.first < listen_port_range.second);
-			assert(m_listen_port > 0);
+			assert(m_listen_interface.port > 0);
 
 			// ---- generate a peer id ----
 
@@ -309,12 +311,18 @@ namespace libtorrent
 			{
 				try
 				{
-					listener->listen(m_listen_port, 5);
+					listener->listen(m_listen_interface, 10);
 				}
-				catch (std::exception&)
+				catch (network_error& e)
 				{
-					m_listen_port++;
-					if (m_listen_port > m_listen_port_range.second)
+					if (e.error_code() == socket::address_not_available)
+					{
+						std::string msg = "cannot listen on the given interface '" + m_listen_interface.as_string() + "'";
+						m_alerts.post_alert(listen_failed_alert(msg));
+						return;
+					}
+					m_listen_interface.port++;
+					if (m_listen_interface.port > m_listen_port_range.second)
 					{
 						m_alerts.post_alert(listen_failed_alert(
 							"none of the ports in the given range could be opened"));
@@ -326,7 +334,7 @@ namespace libtorrent
 			}
 
 #ifndef NDEBUG
-			(*m_logger) << "listening on port: " << m_listen_port << "\n";
+			(*m_logger) << "listening on port: " << m_listen_interface.port << "\n";
 #endif
 			m_selector.monitor_readability(listener);
 			m_selector.monitor_errors(listener);
@@ -376,7 +384,7 @@ namespace libtorrent
 						++i)
 					{
 						i->second->abort();
-						m_tracker_manager.queue_request(i->second->generate_tracker_request(m_listen_port));
+						m_tracker_manager.queue_request(i->second->generate_tracker_request(m_listen_interface.port));
 					}
 					m_connections.clear();
 					m_torrents.clear();
@@ -621,7 +629,7 @@ namespace libtorrent
 					if (i->second->is_aborted())
 					{
 						m_tracker_manager.queue_request(
-							i->second->generate_tracker_request(m_listen_port));
+							i->second->generate_tracker_request(m_listen_interface.port));
 						i->second->disconnect_all();
 #ifndef NDEBUG
 						sha1_hash i_hash = i->second->torrent_file().info_hash();
@@ -635,7 +643,7 @@ namespace libtorrent
 					else if (i->second->should_request())
 					{
 						m_tracker_manager.queue_request(
-							i->second->generate_tracker_request(m_listen_port)
+							i->second->generate_tracker_request(m_listen_interface.port)
 							, boost::get_pointer(i->second));
 					}
 
@@ -740,8 +748,11 @@ namespace libtorrent
 
 	}
 
-	session::session(std::pair<int, int> listen_port_range, const fingerprint& id)
-		: m_impl(listen_port_range, id)
+	session::session(
+		std::pair<int, int> listen_port_range
+		, const fingerprint& id
+		, const char* listen_interface)
+		: m_impl(listen_port_range, id, listen_interface)
 		, m_checker_impl(m_impl)
 		, m_thread(boost::ref(m_impl))
 		, m_checker_thread(boost::ref(m_checker_impl))
@@ -802,7 +813,7 @@ namespace libtorrent
 		// the checker thread and store it before starting
 		// the thread
 		boost::shared_ptr<torrent> torrent_ptr(
-			new torrent(m_impl, ti, save_path));
+			new torrent(m_impl, ti, save_path, m_impl.m_listen_interface));
 
 		detail::piece_checker_data d;
 		d.torrent_ptr = torrent_ptr;
@@ -943,7 +954,7 @@ namespace libtorrent
 				++i)
 			{
 				address a(
-					i->dict()["ip"].string()
+					i->dict()["ip"].string().c_str()
 					, (unsigned short)i->dict()["port"].integer());
 				tmp_peers.push_back(a);
 			}

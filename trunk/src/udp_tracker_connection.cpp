@@ -73,7 +73,7 @@ namespace libtorrent
 	{
 		// TODO: this is a problem. DNS-lookup is blocking!
 		// (may block up to 5 seconds)
-		address a(hostname, port);
+		address a(hostname.c_str(), port);
 		m_socket.reset(new socket(socket::udp, false));
 		m_socket->connect(a);
 

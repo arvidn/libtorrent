@@ -159,7 +159,8 @@ namespace libtorrent
 
 			session_impl(
 				std::pair<int, int> listen_port_range
-				, const fingerprint& cl_fprint);
+				, const fingerprint& cl_fprint
+				, const char* listen_interface);
 
 			void operator()();
 
@@ -189,8 +190,12 @@ namespace libtorrent
 			// the range of ports we try to listen on
 			std::pair<int, int> m_listen_port_range;
 
-			// the port we are listening on for connections
-			int m_listen_port;
+			// the ip-address of the interface
+			// we are supposed to listen on.
+			// if the ip is set to zero, it means
+			// that we should let the os decide which
+			// interface to listen on
+			address m_listen_interface;
 
 			// this is where all active sockets are stored.
 			// the selector can sleep while there's no activity on
@@ -238,8 +243,11 @@ namespace libtorrent
 	{
 	public:
 
-		session(std::pair<int, int> listen_port_range, const fingerprint& print);
 		session(std::pair<int, int> listen_port_range);
+		session(
+			std::pair<int, int> listen_port_range
+			, const fingerprint& print
+			, const char* listen_interface = 0);
 
 		~session();
 
