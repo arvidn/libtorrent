@@ -214,7 +214,8 @@ namespace libtorrent
 		// quota is unlimited.
 		int send_quota_left() const { return m_send_quota_left; }
 
-		void update_send_quota_left() {
+		void update_send_quota_left()
+		{
 			m_send_quota_left = upload_bandwidth.given;
 			if (m_send_quota_left > 0) send_buffer_updated();
 		}

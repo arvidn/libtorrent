@@ -1266,9 +1266,9 @@ namespace libtorrent
 /*
 		size_type diff = share_diff();
 
-		enum { block_limit=2 }; // how many blocks difference is considered unfair
+		enum { block_limit = 2 }; // how many blocks difference is considered unfair
 
-		// if the peer has been choked, send tha current piece
+		// if the peer has been choked, send the current piece
 		// as fast as possible
 		if (diff > block_limit*m_torrent->block_size() || m_torrent->is_seed() || is_choked())
 		{
