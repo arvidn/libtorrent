@@ -44,6 +44,8 @@ The current state includes the following features:
 	* possibility to limit the number of connections.
 	* delays have messages if there's no other outgoing traffic to the peer, and doesn't
 	  send have messages to peers that already has the piece. This saves bandwidth.
+	* Does not have any requirements on the piece order in a torrent that it resumes. This
+	  means it can resume a torrent downloaded by any client.
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
 .. _Azureus: http://azureus.sourceforge.net
@@ -1115,11 +1117,11 @@ object will exit its thread. This alert is generated as severity level ``fatal``
 
 ::
 
-struct listen_failed_alert: alert
-{
-	listen_failed_alert(const std::string& msg);
-	virtual std::auto_ptr<alert> clone() const;
-};
+	struct listen_failed_alert: alert
+	{
+		listen_failed_alert(const std::string& msg);
+		virtual std::auto_ptr<alert> clone() const;
+	};
 
 
 file_error_alert
