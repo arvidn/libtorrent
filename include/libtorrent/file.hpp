@@ -82,11 +82,17 @@ namespace libtorrent
 			open_mode operator|(open_mode m) const
 			{ return open_mode(m.m_mask | m_mask); }
 
+			open_mode operator&(open_mode m) const
+			{ return open_mode(m.m_mask & m_mask); }
+
 			open_mode operator|=(open_mode m)
 			{
 				m_mask |= m.m_mask;
 				return *this;
 			}
+
+			bool operator==(open_mode m) const { return m_mask == m.m_mask; }
+			bool operator!=(open_mode m) const { return m_mask != m.m_mask; }
 
 		private:
 

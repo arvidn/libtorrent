@@ -65,17 +65,17 @@ namespace libtorrent
 			return std::count(m_number,m_number+number_size,0) == number_size;
 		}
 
-		bool operator==(const big_number& n) const
+		bool operator==(big_number const& n) const
 		{
 			return std::equal(n.m_number, n.m_number+number_size, m_number);
 		}
 
-		bool operator!=(const big_number& n) const
+		bool operator!=(big_number const& n) const
 		{
 			return !std::equal(n.m_number, n.m_number+number_size, m_number);
 		}
 
-		bool operator<(const big_number& n) const
+		bool operator<(big_number const& n) const
 		{
 			for(int i = 0; i < number_size; ++i)
 			{

@@ -91,7 +91,7 @@ namespace
 		// so, the queue size is 5 * down_rate / 16 kiB (16 kB is the size of each request)
 		// the minimum request size is 2 and the maximum is 100
 
-		int desired_queue_size = static_cast<int>(5.f * c.statistics().download_rate() / (16 * 1024));
+		int desired_queue_size = static_cast<int>(queue_time * c.statistics().download_rate() / (16 * 1024));
 		if (desired_queue_size > max_request_queue) desired_queue_size = max_request_queue;
 		if (desired_queue_size < min_request_queue) desired_queue_size = min_request_queue;
 
