@@ -480,11 +480,14 @@ class torrent_info
 public:
 
         torrent_info(const entry&amp; torrent_file)
+        torrent_info(int piece_size, const char* name);
 
-        torrent_info(
-                int piece_size
-                , const char* name
-                , const char* comment = 0);
+        entry create_torrent(const char* created_by = 0) const;
+        void set_comment(char const* str);
+        void set_creator(char const* str);
+        void set_hash(int index, const sha1_hash&amp; h);
+        void add_tracker(std::string const&amp; url, int tier = 0);
+        void add_file(boost::filesystem::path file, size_type size);
 
         typedef std::vector&gt;file_entry&gt;::const_iterator file_iterator;
         typedef std::vector&lt;file_entry&gt;::const_reverse_iterator reverse_file_iterator;
@@ -583,20 +586,19 @@ struct torrent_handle
         entry write_resume_data();
         void force_reannounce();
         void connect_peer(const address&amp; adr) const;
+
         void set_ratio(float ratio);
+        void set_tracker_login(std::string const&amp; username, std::string const&amp; password);
+        void set_max_uploads(int max_uploads);
+        void set_max_connections(int max_connections);
+        void set_upload_limit(int limit);
+        void use_interface(const char* net_interface);
 
         void pause();
         void resume();
         bool is_paused() const;
 
-        void set_tracker_login(std::string const&amp; username, std::string const&amp; password);
-
-        void use_interface(const char* net_interface);
-
         boost::filsystem::path save_path() const;
-
-        void set_max_uploads(int max_uploads);
-        void set_max_connections(int max_connections);
 
         sha1_hash info_hash() const;
 
@@ -625,6 +627,8 @@ in return. With this setting it will work much like the standard clients.</p>
 attempt to upload in return for each download. e.g. if set to 2, the client will try to upload
 2 bytes for every byte received. The default setting for this is 0, which will make it work
 as a standard client.</p>
+<p><tt class="literal"><span class="pre">set_upload_limit</span></tt> will limit the upload bandwidth used by this particular torrent to the
+limit you set. It is given as the number of bytes per second the torrent is allowed to upload.</p>
 <p><tt class="literal"><span class="pre">pause()</span></tt>, and <tt class="literal"><span class="pre">resume()</span></tt> will disconnect all peers and reconnect all peers respectively.
 When a torrent is paused, it will however remember all share ratios to all peers and remember
 all potential (not connected) peers. You can use <tt class="literal"><span class="pre">is_paused()</span></tt> to determine if a torrent

@@ -238,6 +238,7 @@ namespace libtorrent
 		, m_got_tracker_response(false)
 		, m_ratio(0.f)
 		, m_net_interface(net_interface.ip(), address::any_port)
+		, m_upload_bandwidth_limit(std::numeric_limits<int>::max())
 	{
 		assert(torrent_file.begin_files() != torrent_file.end_files());
 		m_have_pieces.resize(torrent_file.num_pieces(), false);
@@ -708,17 +709,39 @@ namespace libtorrent
 			m_policy->pulse();
 		}
 
+		m_upload_bandwidth_quota.used = 0;
+		m_upload_bandwidth_quota.wanted = 0;
+
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end();
 			++i)
 		{
 			peer_connection* p = i->second;
-			const stat& s = p->statistics();
-			m_stat += s;
+			m_stat += p->statistics();
 			p->second_tick();
+			m_upload_bandwidth_quota.used += p->m_upload_bandwidth_quota.used;
+			m_upload_bandwidth_quota.wanted = saturated_add(
+				m_upload_bandwidth_quota.wanted
+				, p->m_upload_bandwidth_quota.wanted);
 		}
 
+		m_upload_bandwidth_quota.wanted
+			= std::min(m_upload_bandwidth_quota.wanted, m_upload_bandwidth_limit);
+
 		m_stat.second_tick();
+	}
+
+	void torrent::distribute_resources()
+	{
+		allocate_resources(m_upload_bandwidth_quota.given
+			, m_connections
+			, &peer_connection::m_upload_bandwidth_quota);
+
+		for (std::map<address, peer_connection*>::iterator i = m_connections.begin();
+			i != m_connections.end(); ++i)
+		{
+			i->second->reset_upload_quota();
+		}
 	}
 
 	bool torrent::verify_piece(int piece_index)

@@ -671,8 +671,7 @@ namespace libtorrent { namespace detail
 			// check each torrent for abortion or
 			// tracker updates
 			for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
-				= m_torrents.begin();
-				i != m_torrents.end();)
+				= m_torrents.begin(); i != m_torrents.end();)
 			{
 				if (i->second->is_aborted())
 				{
@@ -685,9 +684,7 @@ namespace libtorrent { namespace detail
 #ifndef NDEBUG
 					sha1_hash i_hash = i->second->torrent_file().info_hash();
 #endif
-					std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator j = i;
-					++i;
-					m_torrents.erase(j);
+					m_torrents.erase(i++);
 					assert(m_torrents.find(i_hash) == m_torrents.end());
 					continue;
 				}
@@ -701,23 +698,24 @@ namespace libtorrent { namespace detail
 						, boost::get_pointer(i->second));
 				}
 
+				// tick() will set the used upload quota
 				i->second->second_tick();
 				++i;
 			}
 			purge_connections();
 
-			// distribute the maximum upload rate among the peers
+			// distribute the maximum upload rate among the torrents
 
 			allocate_resources(m_upload_rate == -1
 				? std::numeric_limits<int>::max()
 				: m_upload_rate
-				, m_connections
-				, &peer_connection::m_upload_bandwidth_quota);
+				, m_torrents
+				, &torrent::m_upload_bandwidth_quota);
 
-			for (detail::session_impl::connection_map::iterator c = m_connections.begin();
-				c != m_connections.end(); ++c)
+			for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
+				= m_torrents.begin(); i != m_torrents.end(); ++i)
 			{
-				c->second->reset_upload_quota();
+				i->second->distribute_resources();
 			}
 
 			m_tracker_manager.tick();

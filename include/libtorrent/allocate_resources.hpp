@@ -39,11 +39,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "libtorrent/resource_request.hpp"
+#include "libtorrent/peer_id.hpp"
+#include "libtorrent/socket.hpp"
 
 namespace libtorrent
 {
 	class socket;
 	class peer_connection;
+	class torrent;
+
+	int saturated_add(int a, int b);
 
 	// Function to allocate a limited resource fairly among many consumers.
 	// It takes into account the current use, and the consumer's desired use.
@@ -51,10 +56,20 @@ namespace libtorrent
 	// sure "used" is updated between calls!).
 	// If resources = std::numeric_limits<int>::max() it means there is an infinite
 	// supply of resources (so everyone can get what they want).
-
+/*
 	void allocate_resources(
 		int resources
 		, std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> >& connections
+		, resource_request peer_connection::* res);
+*/
+	void allocate_resources(
+		int resources
+		, std::map<sha1_hash, boost::shared_ptr<torrent> >& torrents
+		, resource_request torrent::* res);
+
+	void allocate_resources(
+		int resources
+		, std::map<address, peer_connection*>& connections
 		, resource_request peer_connection::* res);
 
 }

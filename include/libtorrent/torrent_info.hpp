@@ -86,18 +86,14 @@ namespace libtorrent
 	public:
 
 		torrent_info(const entry& torrent_file);
+		torrent_info(int piece_size, const char* name);
 
-		torrent_info(
-			int piece_size
-			, const char* name
-			, const char* comment = 0);
-
-		entry create_torrent(const char* created_by = 0) const;
+		entry create_torrent() const;
+		void set_comment(char const* str);
+		void set_creator(char const* str);
 		void set_hash(int index, const sha1_hash& h);
 		void add_tracker(std::string const& url, int tier = 0);
 		void add_file(boost::filesystem::path file, size_type size);
-
-		// TODO: set name
 
 		typedef std::vector<file_entry>::const_iterator file_iterator;
 		typedef std::vector<file_entry>::const_reverse_iterator reverse_file_iterator;
@@ -174,6 +170,10 @@ namespace libtorrent
 		// if a comment is found in the torrent file
 		// this will be set to that comment
 		std::string m_comment;
+
+		// an optional string naming the software used
+		// to create the torrent file
+		std::string m_created_by;
 	};
 
 }

@@ -222,6 +222,11 @@ namespace libtorrent
 		// non standard encodings
 		// ----------------------
 
+		if (std::equal(PID, PID + 12, "-G3g3rmz    "))
+		{
+			return "G3 Torrent";
+		}
+
 		if (std::equal(PID, PID + 4, "exbc"))
 		{
 			std::stringstream s;

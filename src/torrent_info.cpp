@@ -114,16 +114,12 @@ namespace libtorrent
 	// just the necessary to use it with piece manager
 	torrent_info::torrent_info(
 		int piece_size
-		, const char* name
-		, const char* comment)
+		, const char* name)
 		: m_piece_length(piece_size)
 		, m_total_size(0)
 		, m_creation_date(second_clock::local_time())
 	{
 		m_info_hash.clear();
-
-		if (comment)
-			m_comment = comment;
 	}
 
 
@@ -132,7 +128,6 @@ namespace libtorrent
 	void torrent_info::read_torrent_info(const entry& torrent_file)
 	{
 		// extract the url of the tracker
-//		const entry::dictionary_type& dict = torrent_file.dict();
 		entry const* i = torrent_file.find_key("announce-list");
 		if (i)
 		{
@@ -189,6 +184,13 @@ namespace libtorrent
 		if (i != 0 && i->type() == entry::string_t)
 		{
 			m_comment = i->string();
+		}
+
+		// extract comment
+		i = torrent_file.find_key("created by");
+		if (i != 0 && i->type() == entry::string_t)
+		{
+			m_created_by = i->string();
 		}
 
 		i = torrent_file.find_key("info");
@@ -278,8 +280,8 @@ namespace libtorrent
 
 		m_total_size += size;
 
-		int num_pieces = static_cast<int>((m_total_size + m_piece_length - 1) / m_piece_length);
-
+		int num_pieces = static_cast<int>(
+			(m_total_size + m_piece_length - 1) / m_piece_length);
 		int old_num_pieces = static_cast<int>(m_piece_hash.size());
 
 		m_piece_hash.resize(num_pieces);
@@ -292,7 +294,17 @@ namespace libtorrent
 
 	}
 
-	entry torrent_info::create_torrent(const char* created_by) const
+	void torrent_info::set_comment(char const* str)
+	{
+		m_comment = str;
+	}
+
+	void torrent_info::set_creator(char const* str)
+	{
+		m_created_by = str;
+	}
+
+	entry torrent_info::create_torrent() const
 	{
 		using namespace boost::gregorian;
 		using namespace boost::posix_time;
@@ -309,14 +321,15 @@ namespace libtorrent
 		}
 
 		dict["announce"] = m_urls.front().url;
+		
 		if (!m_comment.empty())
 			dict["comment"] = m_comment;
 
 		dict["creation date"] =
 			to_seconds(m_creation_date - ptime(date(1970, Jan, 1)));
 
-		if (created_by)
-			dict["created by"] = std::string(created_by);
+		if (!m_created_by.empty())
+			dict["created by"] = m_created_by;
 
 		entry& info = dict["info"];
 		info = entry(entry::dictionary_t);

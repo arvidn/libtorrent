@@ -460,11 +460,14 @@ The ``torrent_info`` has the following synopsis::
 	public:
 
 		torrent_info(const entry& torrent_file)
+		torrent_info(int piece_size, const char* name);
 
-		torrent_info(
-			int piece_size
-			, const char* name
-			, const char* comment = 0);
+		entry create_torrent(const char* created_by = 0) const;
+		void set_comment(char const* str);
+		void set_creator(char const* str);
+		void set_hash(int index, const sha1_hash& h);
+		void add_tracker(std::string const& url, int tier = 0);
+		void add_file(boost::filesystem::path file, size_type size);
 
 		typedef std::vector>file_entry>::const_iterator file_iterator;
 		typedef std::vector<file_entry>::const_reverse_iterator reverse_file_iterator;
@@ -582,20 +585,19 @@ Its declaration looks like this::
 		entry write_resume_data();
 		void force_reannounce();
 		void connect_peer(const address& adr) const;
+
 		void set_ratio(float ratio);
+		void set_tracker_login(std::string const& username, std::string const& password);
+		void set_max_uploads(int max_uploads);
+		void set_max_connections(int max_connections);
+		void set_upload_limit(int limit);
+		void use_interface(const char* net_interface);
 
 		void pause();
 		void resume();
 		bool is_paused() const;
 
-		void set_tracker_login(std::string const& username, std::string const& password);
-
-		void use_interface(const char* net_interface);
-
 		boost::filsystem::path save_path() const;
-
-		void set_max_uploads(int max_uploads);
-		void set_max_connections(int max_connections);
 
 		sha1_hash info_hash() const;
 
@@ -629,6 +631,9 @@ Besides 0, the ratio can be set to any number greater than or equal to 1. It mea
 attempt to upload in return for each download. e.g. if set to 2, the client will try to upload
 2 bytes for every byte received. The default setting for this is 0, which will make it work
 as a standard client.
+
+``set_upload_limit`` will limit the upload bandwidth used by this particular torrent to the
+limit you set. It is given as the number of bytes per second the torrent is allowed to upload.
 
 ``pause()``, and ``resume()`` will disconnect all peers and reconnect all peers respectively.
 When a torrent is paused, it will however remember all share ratios to all peers and remember
