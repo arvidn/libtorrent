@@ -231,6 +231,10 @@ namespace libtorrent
 			else if (std::equal(f->id, f->id+2, "XT"))
 				identity << "XanTorrent ";
 
+			// TorrentDotNet
+			else if (std::equal(f->id, f->id+2, "TN"))
+				identity << "TorrentDotNET ";
+
 			// unknown client
 			else
 				identity << std::string(f->id, f->id+2) << " ";
