@@ -58,8 +58,8 @@ namespace libtorrent
 		unsigned int total_upload;
 		peer_id id;
 		std::vector<bool> pieces;
-		int upload_limit;
-		int upload_ceiling;
+		int upload_limit; // from peer_connection
+		int upload_ceiling; // from the global upload limiter
 
 		int load_balancing;
 
