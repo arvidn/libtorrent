@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/format.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/exception.hpp>
@@ -244,7 +243,7 @@ int main(int argc, char* argv[])
 		session ses(fingerprint("LT", 0, 1, 0, 0));
 
 		ses.listen_on(std::make_pair(6881, 6889));
-		ses.set_upload_rate_limit(1000);
+//		ses.set_upload_rate_limit(1000);
 //		ses.set_download_rate_limit(50000);
 		ses.set_http_settings(settings);
 		ses.set_severity_level(alert::debug);
@@ -369,6 +368,10 @@ int main(int argc, char* argv[])
 					p->handle.set_max_connections(10);
 					p->handle.set_max_uploads(5);
 					p->handle.set_upload_limit(10000);
+
+					// all finished downloades are
+					// moved into this directory
+					p->handle.move_storage("finished");
 					events.push_back(
 						p->handle.get_torrent_info().name() + ": " + a->msg());
 				}
@@ -445,42 +448,40 @@ int main(int argc, char* argv[])
 				out << "next announce: " << boost::posix_time::to_simple_string(t) << "\n";
 				out << "tracker: " << s.current_tracker << "\n";
 
-//				out << "___________________________________\n";
+				out << "___________________________________\n";
+
+				out << " down       up        q  r  flags  block\n";
 
 				for (std::vector<peer_info>::iterator i = peers.begin();
 					i != peers.end();
 					++i)
 				{
-					out << "d:" << add_suffix(i->down_speed) << "/s "
+					out.fill(' ');
+					out.width(2);
+					out << add_suffix(i->down_speed) << "/s "
 //						<< "(" << add_suffix(i->total_download) << ") "
-						<< "u:" << add_suffix(i->up_speed) << "/s "
+						<< add_suffix(i->up_speed) << "/s "
 //						<< "(" << add_suffix(i->total_upload) << ") "
 //						<< "ul:" << add_suffix(i->upload_limit) << "/s "
 //						<< "uc:" << add_suffix(i->upload_ceiling) << "/s "
 //						<< "df:" << ratio(i->total_download, i->total_upload) << " "
-						<< "q:" << i->download_queue_length << " "
-						<< "r:" << i->upload_queue_length << " "
-						<< "f:"
+						<< i->download_queue_length << " "
+						<< i->upload_queue_length << " "
 						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
 						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
 						<< static_cast<const char*>((i->flags & peer_info::remote_interested)?"i":"_")
 						<< static_cast<const char*>((i->flags & peer_info::remote_choked)?"c":"_")
 						<< static_cast<const char*>((i->flags & peer_info::supports_extensions)?"e":"_")
-						<< static_cast<const char*>((i->flags & peer_info::local_connection)?"l":"r")
-						<< "\n";
+						<< static_cast<const char*>((i->flags & peer_info::local_connection)?"l":"r");
 
 					if (i->downloading_piece_index >= 0)
 					{
-						out.width(5);
-						out.fill('0');
-						out << i->downloading_piece_index << ";"
-							<< i->downloading_block_index << ": ";
-						out << progress_bar(
+						out << "  " << progress_bar(
 							i->downloading_progress / static_cast<float>(i->downloading_total)
-							, 50);
-						out << "\n";
+							, 15);
 					}
 
+					out << "\n";
 				}
 
 				out << "___________________________________\n";

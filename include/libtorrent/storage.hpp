@@ -93,6 +93,8 @@ namespace libtorrent
 		// may throw file_error if storage for slot hasn't been allocated
 		void write(const char* buf, int slot, int offset, int size);
 
+		bool move_storage(boost::filesystem::path const& save_path);
+
 #ifndef NDEBUG
 		// overwrites some slots with the
 		// contents of others
@@ -140,7 +142,8 @@ namespace libtorrent
 			, int offset
 			, int size);
 
-		const boost::filesystem::path& save_path() const;
+		boost::filesystem::path const& save_path() const;
+		bool move_storage(boost::filesystem::path const&);
 
 		// fills the vector that maps all allocated
 		// slots to the piece that is stored (or

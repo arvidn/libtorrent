@@ -222,6 +222,14 @@ namespace libtorrent
 			, boost::bind(&torrent::set_download_limit, _1, limit));
 	}
 
+	bool torrent_handle::move_storage(boost::filesystem::path const& save_path)
+	{
+		INVARIANT_CHECK;
+
+		return call_member<bool>(m_ses, m_chk, m_info_hash
+			, boost::bind(&torrent::move_storage, _1, save_path));
+	}
+
 	bool torrent_handle::is_paused() const
 	{
 		INVARIANT_CHECK;

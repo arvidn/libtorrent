@@ -127,6 +127,12 @@ namespace libtorrent { namespace detail
 
 					m_ses.m_torrents.insert(
 						std::make_pair(t->info_hash, t->torrent_ptr)).first;
+					if (t->torrent_ptr->is_seed() && m_ses.m_alerts.should_post(alert::info))
+					{
+						m_ses.m_alerts.post_alert(torrent_finished_alert(
+							t->torrent_ptr->get_handle()
+							, "torrent is complete"));
+					}
 
 					peer_id id;
 					std::fill(id.begin(), id.end(), 0);
@@ -197,7 +203,7 @@ namespace libtorrent { namespace detail
 
 		m_key = rand() + (rand() << 15) + (rand() << 30);
 		std::string print = cl_fprint.to_string();
-		assert(print.length() == 8);
+		assert(print.length() <= 20);
 
 		// the client's fingerprint
 		std::copy(

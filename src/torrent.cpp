@@ -665,6 +665,11 @@ namespace libtorrent
 		return m_storage->save_path();
 	}
 
+	bool torrent::move_storage(boost::filesystem::path const& save_path)
+	{
+		return m_storage->move_storage(save_path);
+	}
+
 	piece_manager& torrent::filesystem()
 	{
 		assert(m_storage.get());

@@ -324,6 +324,7 @@ namespace libtorrent
 
 		void set_upload_limit(int limit);
 		void set_download_limit(int limit);
+		bool move_storage(boost::filesystem::path const& save_path);
 
 		bool valid_metadata() const { return m_storage.get() != 0; }
 		std::vector<char> const& metadata() const { return m_metadata; }

@@ -207,6 +207,9 @@ namespace libtorrent
 
 		void set_tracker_login(std::string const& name, std::string const& password);
 
+		// post condition: save_path() == save_path if true is returned
+		bool move_storage(boost::filesystem::path const& save_path);
+
 		const sha1_hash& info_hash() const
 		{ return m_info_hash; }
 

@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <ios>
 #include <ctime>
+#include <cstdio>
 #include <iostream>
 #include <iomanip>
 #include <iterator>
@@ -68,39 +69,6 @@ namespace std
 }
 #endif
 
-/*
-namespace
-{
-	struct lazy_hash
-	{
-		mutable libtorrent::sha1_hash digest;
-		mutable libtorrent::hasher h;
-		mutable const char* data;
-		std::size_t size;
-
-		lazy_hash(const char* data_, std::size_t size_)
-			: data(data_)
-			, size(size_)
-		{
-			assert(data_ != 0);
-			assert(size_ > 0);
-		}
-
-		const libtorrent::sha1_hash& get() const
-		{
-			if (data)
-			{
-				h.update(data, size);
-				digest = h.final();
-				data = 0;
-			}
-			return digest;
-		}
-	};
-
-} // namespace unnamed
-*/
-
 namespace fs = boost::filesystem;
 
 namespace
@@ -113,9 +81,9 @@ namespace
 		log.flush();
 	}
 
-	boost::filesystem::path get_filename(
+	fs::path get_filename(
 		libtorrent::torrent_info const& t
-		, boost::filesystem::path const& p)
+		, fs::path const& p)
 	{
 		assert(t.num_files() > 0);
 		if (t.num_files() == 1)
@@ -130,7 +98,7 @@ namespace libtorrent
 
 	std::vector<size_type> get_filesizes(
 		const torrent_info& t
-		, const boost::filesystem::path& p)
+		, const fs::path& p)
 	{
 		std::vector<size_type> sizes;
 		for (torrent_info::file_iterator i = t.begin_files();
@@ -155,7 +123,7 @@ namespace libtorrent
 
 	bool match_filesizes(
 		const torrent_info& t
-		, const boost::filesystem::path& p
+		, const fs::path& p
 		, const std::vector<size_type>& sizes)
 	{
 		if ((int)sizes.size() != t.num_files()) return false;
@@ -232,7 +200,7 @@ namespace libtorrent
 		{}
 
 		torrent_info const& info;
-		const boost::filesystem::path save_path;
+		fs::path save_path;
 	};
 
 	storage::storage(const torrent_info& info, const fs::path& path)
@@ -244,6 +212,38 @@ namespace libtorrent
 	void storage::swap(storage& other)
 	{
 		m_pimpl.swap(other.m_pimpl);
+	}
+
+	// returns true on success
+	bool storage::move_storage(fs::path const& save_path)
+	{
+		std::string old_path;
+		std::string new_path;
+
+		if (m_pimpl->info.num_files() == 1)
+		{
+			old_path = (m_pimpl->save_path / m_pimpl->info.begin_files()->path)
+				.native_file_string();
+			new_path = (save_path / m_pimpl->info.begin_files()->path)
+				.native_file_string();
+		}
+		else
+		{
+			assert(m_pimpl->info.num_files() > 1);
+			old_path = (m_pimpl->save_path / m_pimpl->info.name())
+				.native_directory_string();
+			new_path = (save_path / m_pimpl->info.name())
+				.native_directory_string();
+		}
+
+		fs::create_directory(save_path);
+		int ret = std::rename(old_path.c_str(), new_path.c_str()); 
+		if (ret == 0)
+		{
+			m_pimpl->save_path = save_path;
+			return true;
+		}
+		return false;
 	}
 
 #ifndef NDEBUG
@@ -489,7 +489,7 @@ namespace libtorrent
 
 		impl(
 			const torrent_info& info
-		  , const boost::filesystem::path& path);
+		  , const fs::path& path);
 
 		void check_pieces(
 			boost::mutex& mutex
@@ -517,8 +517,18 @@ namespace libtorrent
 			, int offset
 			, int size);
 
-		const boost::filesystem::path& save_path() const
+		fs::path const& save_path() const
 		{ return m_save_path; }
+
+		bool move_storage(fs::path const& save_path)
+		{
+			if (m_storage.move_storage(save_path))
+			{
+				m_save_path = save_path;
+				return true;
+			}
+			return false;
+		}
 
 		void export_piece_map(std::vector<int>& p) const;
 		
@@ -570,7 +580,7 @@ namespace libtorrent
 		// it can either be 'unassigned' or 'unallocated'
 		std::vector<int> m_slot_to_piece;
 
-		boost::filesystem::path m_save_path;
+		fs::path m_save_path;
 
 		mutable boost::recursive_mutex m_mutex;
 
@@ -1397,7 +1407,7 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-		namespace fs = boost::filesystem;
+		namespace fs = fs;
 
 		assert(!m_unallocated_slots.empty());
 		
@@ -1436,9 +1446,14 @@ namespace libtorrent
 		m_pimpl->allocate_slots(num_slots);
 	}
 
-	const boost::filesystem::path& piece_manager::save_path() const
+	fs::path const& piece_manager::save_path() const
 	{
 		return m_pimpl->save_path();
+	}
+
+	bool piece_manager::move_storage(fs::path const& save_path)
+	{
+		return m_pimpl->move_storage(save_path);
 	}
 
 #ifndef NDEBUG
