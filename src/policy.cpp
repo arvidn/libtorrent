@@ -397,7 +397,7 @@ namespace libtorrent
 		{
 			if(i->connection) continue;
 			if(i->banned) continue;
-			if(i->type == peer::remote_connection) continue;
+			if(!i->connectable) continue;
 
 			assert(i->connected <= local_time);
 
@@ -565,7 +565,7 @@ namespace libtorrent
 			// we don't have ny info about this peer.
 			// add a new entry
 			
-			peer p(c.get_socket()->sender());
+			peer p(c.get_socket()->sender(), peer::not_connectable);
 			m_peers.push_back(p);
 			i = m_peers.end()-1;
 		}
@@ -600,8 +600,7 @@ namespace libtorrent
 
 				// we don't have ny info about this peer.
 				// add a new entry
-				peer p(remote);
-				p.type = peer::local_connection;
+				peer p(remote, peer::connectable);
 				m_peers.push_back(p);
 				// the iterator is invalid
 				// because of the push_back()
@@ -609,7 +608,7 @@ namespace libtorrent
 			}
 			else
 			{
-				i->type = peer::local_connection;
+				i->type = peer::connectable;
 
 				// in case we got the ip from a remote connection, port is
 				// not known, so save it. Client may also have changed port
@@ -739,7 +738,7 @@ namespace libtorrent
 		if (p == 0) return false;
 		assert(!p->banned);
 		assert(!p->connection);
-		assert(p->type != peer::remote_connection);
+		assert(p->connectable);
 
 		p->connection = &m_torrent->connect_to_peer(p->id);
 		p->connected = boost::posix_time::second_clock::local_time();
@@ -815,9 +814,9 @@ namespace libtorrent
 	}
 #endif
 
-	policy::peer::peer(const address& pid)
+	policy::peer::peer(const address& pid, peer::connection_type t)
 		: id(pid)
-		, type(remote_connection)
+		, type(t)
 		, last_optimistically_unchoked(
 			boost::gregorian::date(1970,boost::gregorian::Jan,1))
 		, connected(boost::gregorian::date(1970,boost::gregorian::Jan,1))
