@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/http_settings.hpp"
 #include "libtorrent/identify_client.hpp"
+#include "libtorrent/alert_types.hpp"
 
 #ifdef WIN32
 
