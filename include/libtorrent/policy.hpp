@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/size_type.hpp"
 
 namespace libtorrent
 {
@@ -95,6 +96,8 @@ namespace libtorrent
 
 		void set_max_uploads(int num_unchoked);
 
+		void set_max_connections(int num_connected);
+
 #ifndef NDEBUG
 		bool has_connection(const peer_connection* p);
 
@@ -103,12 +106,12 @@ namespace libtorrent
 
 		struct peer
 		{
-			enum connection_type { connectable, not_connectable };
+			enum connection_type { not_connectable,connectable };
 
 			peer(const address& ip, connection_type t);
 
-			int total_download() const;
-			int total_upload() const;
+			size_type total_download() const;
+			size_type total_upload() const;
 
 			// the ip/port pair this peer is or was connected on
 			// if it was a remote (incoming) connection, type is
@@ -134,8 +137,8 @@ namespace libtorrent
 			// total amount of upload and download
 			// we'll have to add thes figures with the
 			// statistics from the peer_connection.
-			int prev_amount_upload;
-			int prev_amount_download;
+			size_type prev_amount_upload;
+			size_type prev_amount_download;
 
 			// is set to true if this peer has been banned
 			bool banned;
@@ -153,6 +156,8 @@ namespace libtorrent
 
 
 		bool connect_one_peer();
+		bool disconnect_one_peer();
+		peer* find_disconnect_candidate();
 		peer* find_connect_candidate();
 
 
@@ -165,7 +170,10 @@ namespace libtorrent
 			{
 				using namespace boost::posix_time;
 
+				ptime not_tried_yet(boost::gregorian::date(1970,boost::gregorian::Jan,1));
+
 				return p.connection == 0
+					&& p.connected!=not_tried_yet
 					&& second_clock::local_time() - p.connected > minutes(30);
 			}
 		};
@@ -181,6 +189,8 @@ namespace libtorrent
 		// must be 2 or higher otherwise.
 		int m_max_uploads;
 
+		int m_max_connections;
+
 		// the number of unchoked peers
 		// at any given time
 		int m_num_unchoked;
@@ -188,6 +198,11 @@ namespace libtorrent
 		// free download we have got that hasn't
 		// been distributed yet.
 		int m_available_free_upload;
+
+		// if there is a connection limit,
+		// we disconnect one peer every minute in hope of
+		// establishing a connection with a better peer
+		boost::posix_time::ptime m_last_optimistic_disconnect;
 	};
 
 }

@@ -259,6 +259,7 @@ int main(int argc, char* argv[])
 				{}
 
 				handles.push_back(ses.add_torrent(t, save_path, resume_data));
+				handles.back().set_max_connections(5);
 				handles.back().set_max_uploads(-1);
 				handles.back().set_ratio(1.02);
 			}
@@ -385,7 +386,7 @@ int main(int argc, char* argv[])
 						<< static_cast<const char*>((i->flags & peer_info::supports_extensions)?"e":"_")
 						<< static_cast<const char*>((i->flags & peer_info::local_connection)?"l":"r")
 						<< "\n";
-
+/*
 					if (i->downloading_piece_index >= 0)
 					{
 						out.width(5);
@@ -397,8 +398,9 @@ int main(int argc, char* argv[])
 							, 50);
 						out << "\n";
 					}
+*/
 				}
-
+/*
 				out << "___________________________________\n";
 
 				i->get_download_queue(queue);
@@ -419,7 +421,7 @@ int main(int argc, char* argv[])
 				}
 
 				out << "___________________________________\n";
-
+*/
 			}
 
 			for (std::deque<std::string>::iterator i = events.begin();
@@ -431,8 +433,9 @@ int main(int argc, char* argv[])
 
 			clear();
 			set_cursor(0, 0);
-			std::cout << out.str();
-			std::cout.flush();
+			puts(out.str().c_str());
+//			std::cout << out.str();
+//			std::cout.flush();
 		}
 	}
 	catch (std::exception& e)

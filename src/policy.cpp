@@ -305,8 +305,10 @@ namespace libtorrent
 		: m_num_peers(0)
 		, m_torrent(t)
 		, m_max_uploads(std::numeric_limits<int>::max())
+		, m_max_connections(std::numeric_limits<int>::max())
 		, m_num_unchoked(0)
 		, m_available_free_upload(0)
+		, m_last_optimistic_disconnect(boost::gregorian::date(1970,boost::gregorian::Jan,1))
 	{}
 	// finds the peer that has the worst download rate
 	// and returns it. May return 0 if all peers are
@@ -368,6 +370,7 @@ namespace libtorrent
 		{
 			peer_connection* c = i->connection;
 			if (c == 0) continue;
+			if (c->is_disconnecting()) continue;
 			if (!c->is_choked()) continue;
 			if (!c->is_peer_interested()) continue;
 			if (c->share_diff()
@@ -382,6 +385,48 @@ namespace libtorrent
 		return unchoke_peer;
 	}
 
+	policy::peer* policy::find_disconnect_candidate()
+	{
+		peer *disconnect_peer = 0;
+		double slowest_transfer_rate=std::numeric_limits<double>::max();
+
+		bool is_seed=m_torrent->is_seed();
+
+		boost::posix_time::ptime local_time=boost::posix_time::second_clock::local_time();
+
+		for (std::vector<peer>::iterator i = m_peers.begin();
+			i != m_peers.end();
+			++i)
+		{
+			peer_connection* c = i->connection;
+			if(c == 0)
+				continue;
+			if(c->is_disconnecting())
+				continue;
+
+			double transferred_amount;
+
+			if(is_seed)
+				transferred_amount=c->statistics().total_payload_download();
+			else
+				transferred_amount=c->statistics().total_payload_download();
+
+			boost::posix_time::time_duration connected_time = local_time - i->connected;
+
+
+			double connected_time_in_seconds=connected_time.seconds() + connected_time.minutes()*60.0 + connected_time.hours()*60.0*60.0;
+
+			double transfer_rate=transferred_amount/(connected_time_in_seconds+1);
+
+			if (transfer_rate <= slowest_transfer_rate)
+			{
+				slowest_transfer_rate=transfer_rate;
+				disconnect_peer=&*i;
+			}
+		}
+		return disconnect_peer;
+	}
+
 	policy::peer *policy::find_connect_candidate()
 	{
 		boost::posix_time::ptime local_time=boost::posix_time::second_clock::local_time();
@@ -394,7 +439,7 @@ namespace libtorrent
 		{
 			if(i->connection) continue;
 			if(i->banned) continue;
-			if(!i->connectable) continue;
+			if(i->type==peer::not_connectable) continue;
 
 			assert(i->connected <= local_time);
 
@@ -416,16 +461,58 @@ namespace libtorrent
 	{
 		using namespace boost::posix_time;
 
-/*		// remove old disconnected peers from the list
+		// remove old disconnected peers from the list
 		m_peers.erase(
 			std::remove_if(m_peers.begin()
 			, m_peers.end()
 			, old_disconnected_peer())
 			, m_peers.end());
-*/
-		//while(connect_one_peer());
-		connect_one_peer();
 
+		if(m_max_connections != std::numeric_limits<int>::max())
+		{
+			// count the number of connected peers except for peers
+			// that are currently in the process of disconnecting
+			int num_connected_peers=0;
+
+			for (std::vector<peer>::iterator i = m_peers.begin();
+						i != m_peers.end();
+						++i)
+			{
+				if(i->connection && !i->connection->is_disconnecting())
+					++num_connected_peers;
+			}
+
+			int max_connections=m_max_connections;
+
+			if(num_connected_peers >= max_connections)
+			{
+				// every minute, disconnect the worst peer in hope of finding a better peer
+
+				boost::posix_time::ptime local_time=boost::posix_time::second_clock::local_time();
+				if(m_last_optimistic_disconnect+boost::posix_time::seconds(120) <= local_time)
+				{
+					m_last_optimistic_disconnect=local_time;
+					--max_connections; // this will have the effect of disconnecting the worst peer
+				}
+			}
+			else
+			{
+				// don't do a disconnect earlier than 1 minute after some peer was connected
+				m_last_optimistic_disconnect=boost::posix_time::second_clock::local_time();
+			}
+
+			while(num_connected_peers > max_connections)
+			{
+				assert(disconnect_one_peer());
+				--num_connected_peers;
+			}
+		}
+
+		while(m_torrent->num_peers() < m_max_connections)
+		{
+			if(!connect_one_peer())
+				break;
+		}
 
 		// if the share ratio is 0 (infinite)
 		// m_available_free_upload isn't used
@@ -464,6 +551,7 @@ namespace libtorrent
 					if (c == 0) continue;
 					if (!c->is_choked()) continue;
 					if (!c->is_peer_interested()) continue;
+					if (c->is_disconnecting()) continue;
 // TODO: add some more criterions here. Maybe the peers
 // that have less should be promoted? (to allow them to trade)
 					p = &(*i);
@@ -549,6 +637,9 @@ namespace libtorrent
 	{
 		assert(!c.is_local());
 
+		if(m_torrent->num_peers() >= m_max_connections)
+			throw protocol_error("too many connections, refusing incoming connection"); // cause a disconnect
+
 		std::vector<peer>::iterator i = std::find_if(
 			m_peers.begin()
 			, m_peers.end()
@@ -577,6 +668,7 @@ namespace libtorrent
 		assert(i->connection == 0);
 		i->connection = &c;
 		i->connected = boost::posix_time::second_clock::local_time();
+		m_last_optimistic_disconnect=boost::posix_time::second_clock::local_time();
 	}
 
 	void policy::peer_from_tracker(const address& remote, const peer_id& id)
@@ -626,8 +718,12 @@ namespace libtorrent
 
 			if (i->banned) return;
 
-			i->connection = &m_torrent->connect_to_peer(remote);
-			i->connected = boost::posix_time::second_clock::local_time();
+			if(m_torrent->num_peers() < m_max_connections)
+			{
+				i->connection = &m_torrent->connect_to_peer(remote);
+				i->connected = boost::posix_time::second_clock::local_time();
+				m_last_optimistic_disconnect=boost::posix_time::second_clock::local_time();
+			}
 			return;
 		}
 		catch(network_error& e)
@@ -735,6 +831,8 @@ namespace libtorrent
 	{
 		peer* p = find_unchoke_candidate();
 		if (p == 0) return false;
+		assert(p->connection);
+		assert(!p->connection->is_disconnecting());
 
 		p->connection->send_unchoke();
 		p->last_optimistically_unchoked = boost::posix_time::second_clock::local_time();
@@ -744,14 +842,25 @@ namespace libtorrent
 
 	bool policy::connect_one_peer()
 	{
+		if(m_torrent->num_peers() >= m_max_connections)
+			return false;
 		peer* p = find_connect_candidate();
 		if (p == 0) return false;
 		assert(!p->banned);
 		assert(!p->connection);
-		assert(p->connectable);
-
+		assert(p->type==peer::connectable);
+		
 		p->connection = &m_torrent->connect_to_peer(p->id);
 		p->connected = boost::posix_time::second_clock::local_time();
+		return true;
+	}
+
+	bool policy::disconnect_one_peer()
+	{
+		peer *p=find_disconnect_candidate();
+		if(!p)
+			return false;
+		p->connection->disconnect();
 		return true;
 	}
 
@@ -791,6 +900,13 @@ namespace libtorrent
 		assert(max_uploads > 1 || max_uploads == -1);
 		if (max_uploads == -1) max_uploads = std::numeric_limits<int>::max();
 		m_max_uploads = max_uploads;
+	}
+
+	void policy::set_max_connections(int max_connections)
+	{
+		assert(max_connections > 1 || max_connections == -1);
+		if (max_connections == -1) max_connections = std::numeric_limits<int>::max();
+		m_max_connections = max_connections;
 	}
 
 	void policy::peer_is_interesting(peer_connection& c)
@@ -838,7 +954,7 @@ namespace libtorrent
 		assert(connected < boost::posix_time::second_clock::local_time());
 	}
 
-	int policy::peer::total_download() const
+	size_type policy::peer::total_download() const
 	{
 		if (connection != 0)
 		{
@@ -851,7 +967,7 @@ namespace libtorrent
 		}
 	}
 
-	int policy::peer::total_upload() const
+	size_type policy::peer::total_upload() const
 	{
 		if (connection != 0)
 		{
