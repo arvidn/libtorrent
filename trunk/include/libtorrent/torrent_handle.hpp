@@ -74,6 +74,7 @@ namespace libtorrent
 	{
 		torrent_status()
 			: state(queued_for_checking)
+			, paused(false)
 			, progress(0.f)
 			, total_download(0)
 			, total_upload(0)

@@ -178,8 +178,12 @@ namespace libtorrent
 		int send_quota_left() const;
 		resource_request* upload_bandwidth_quota();
 
-		// ?? TODO: document
-		void update_send_quota_left();
+		// This is called for every peer right after the upload
+		// bandwidth has been distributed among them
+		// It will reset the used bandwidth to 0 and
+		// possibly add or remove the peer's socket
+		// from the socket monitor
+		void reset_upload_quota();
 
 		// free upload.
 		size_type total_free_upload() const;
@@ -242,6 +246,9 @@ namespace libtorrent
 		void send_extensions();
 		void send_chat_message(const std::string& msg);
 
+		// how much bandwidth we're using, how much we want,
+		// and how much we are allowed to use.
+		resource_request m_upload_bandwidth_quota;
 
 	private:
 
@@ -331,14 +338,10 @@ namespace libtorrent
 		// peer's socket from the writability monitor list.
 		selector& m_selector;
 		boost::shared_ptr<libtorrent::socket> m_socket;
-
-		// how much bandwidth we're using, how much we want,
-		// and how much we are allowed to use.
-		resource_request m_upload_bandwidth_quota;
 		
 		// upload bandwidth used this second.
 		// Must not exceed m_upload_bandwidth_quota.given.
-		int m_upload_bandwidth_quota_used;
+//		int m_upload_bandwidth_quota_used;
 
 		// this is the torrent this connection is
 		// associated with. If the connection is an

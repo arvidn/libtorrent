@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Magnus Jonsson
+Copyright (c) 2003, Magnus Jonsson, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/allocate_resources.hpp"
 #include "libtorrent/size_type.hpp"
+#include "libtorrent/peer_connection.hpp"
+
 #include <cassert>
 #include <algorithm>
 #include <boost/limits.hpp>
+#include <boost/iterator/transform_iterator.hpp>
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 #define for if (false) {} else for
@@ -46,89 +49,61 @@ namespace libtorrent
 	{
 		int saturated_add(int a, int b)
 		{
-			assert(a>=0);
-			assert(b>=0);
+			assert(a >= 0);
+			assert(b >= 0);
+			assert(std::numeric_limits<int>::max() + std::numeric_limits<int>::max() < 0);
 
-			int sum=a+b;
-			if(sum<0)
-				sum=std::numeric_limits<int>::max();
+			int sum = a + b;
+			if(sum < 0)
+				sum = std::numeric_limits<int>::max();
 
-			assert(sum>=a && sum>=b);
+			assert(sum >= a && sum >= b);
 			return sum;
 		}
-/*
-		int round_up_division(int numer, int denom)
-		{
-			assert(numer>0);
-			assert(denom>0);
-			int result=(numer+denom-1)/denom;
-			assert(result>0);
-			assert(result<=numer);
-			return result;
-		}
 
-
-		// for use with std::sort
-		bool by_used(const resource_request *a, const resource_request *b)
-		{ return a->used < b->used; }
-*/
 		// give num_resources to r,
 		// return how how many were actually accepted.
-		int give(resource_request *r, int num_resources)
+		int give(resource_request& r, int num_resources)
 		{
-			assert(r);
 			assert(num_resources >= 0);
-			assert(r->given <= r->wanted);
+			assert(r.given <= r.wanted);
 			
-			int accepted = std::min(num_resources, r->wanted - r->given);
+			int accepted = std::min(num_resources, r.wanted - r.given);
 			assert(accepted >= 0);
 
-			r->given += accepted;
-			assert(r->given <= r->wanted);
+			r.given += accepted;
+			assert(r.given <= r.wanted);
 
 			return accepted;
 		}
 
-		// sum of requests' "wanted" field.
-		int total_wanted(std::vector<resource_request *> & requests)
-		{
-			int total_wanted=0;
-
-			for(int i=0;i<(int)requests.size();i++)
-			{
-				total_wanted=
-					saturated_add(total_wanted,requests[i]->wanted);
-				
-				if(total_wanted == std::numeric_limits<int>::max())
-					break;
-			}
-
-			assert(total_wanted>=0);
-			return total_wanted;
-		}
-
 #ifndef NDEBUG
 
+		template<class It, class T>
 		class allocate_resources_contract_check
 		{
-
-			int resources;
-			std::vector<resource_request *> & requests;
+			int m_resources;
+			It m_start;
+			It m_end;
+			resource_request T::* m_res;
 
 		public:
-
 			allocate_resources_contract_check(
-				int resources_
-				, std::vector<resource_request *>& requests_)
-				: resources(resources_)
-				, requests(requests_)
+				int resources
+				, It start
+				, It end
+				, resource_request T::* res)
+				: m_resources(resources)
+				, m_start(start)
+				, m_end(end)
+				, m_res(res)
 			{
-				assert(resources >= 0);
-				for (int i = 0; i < (int)requests.size(); ++i)
+				assert(m_resources >= 0);
+				for (It i = m_start, end(m_end); i != end; ++i)
 				{
-					assert(requests[i]->used >= 0);
-					assert(requests[i]->wanted >= 0);
-					assert(requests[i]->given >= 0);
+					assert(((*i).*m_res).used >= 0);
+					assert(((*i).*m_res).wanted >= 0);
+					assert(((*i).*m_res).given >= 0);
 				}
 			}
 
@@ -136,212 +111,127 @@ namespace libtorrent
 			{
 				int sum_given = 0;
 				int sum_wanted = 0;
-				for (int i = 0; i < (int)requests.size(); ++i)
+				for (It i = m_start, end(m_end); i != end; ++i)
 				{
-					assert(requests[i]->used >= 0);
-					assert(requests[i]->wanted >= 0);
-					assert(requests[i]->given >= 0);
-					assert(requests[i]->given <= requests[i]->wanted);
+					assert(((*i).*m_res).wanted >= 0);
+					assert(((*i).*m_res).given >= 0);
+					assert(((*i).*m_res).given <= ((*i).*m_res).wanted);
 
-					sum_given = saturated_add(sum_given, requests[i]->given);
-					sum_wanted = saturated_add(sum_wanted, requests[i]->wanted);
+					sum_given = saturated_add(sum_given, ((*i).*m_res).given);
+					sum_wanted = saturated_add(sum_wanted, ((*i).*m_res).wanted);
 				}
-				assert(sum_given == std::min(resources,sum_wanted));
+				assert(sum_given == std::min(m_resources, sum_wanted));
 			}
 		};
 
 #endif
-	} // namespace unnamed
 
-	void allocate_resources(int resources,
-		std::vector<resource_request *>& requests)
-	{
-#ifndef NDEBUG
-		allocate_resources_contract_check contract_check(resources,requests);
-#endif
+		template<class It, class T>
+		void allocate_resources_impl(
+			int resources
+			, It start
+			, It end
+			, resource_request T::* res)
+		{
+	#ifndef NDEBUG
+			allocate_resources_contract_check<It, T> contract_check(
+				resources
+				, start
+				, end
+				, res);
+	#endif
 
-		if(resources == std::numeric_limits<int>::max())
-		{
-			// No competition for resources.
-			// Just give everyone what they want.
-			for(int i=0;i<(int)requests.size();i++)
-				requests[i]->given = requests[i]->wanted;
-		}
-		else
-		{
+			if(resources == std::numeric_limits<int>::max())
+			{
+				// No competition for resources.
+				// Just give everyone what they want.
+				for (It i = start; i != end; ++i)
+				{
+					((*i).*res).given = ((*i).*res).wanted;
+				}
+				return;
+			}
+
 			// Resources are scarce
 
-			for (int i = 0; i < (int)requests.size(); ++i)
-				requests[i]->given = 0;
+			int total_wanted = 0;
+			for (It i = start; i != end; ++i)
+			{
+				((*i).*res).given = 0;
+				total_wanted = saturated_add(total_wanted, ((*i).*res).wanted);
+			}
 
-			if (resources == 0)
+			if (resources == 0 || total_wanted == 0)
 				return;
 
-			int resources_to_distribute = 
-				std::min(
-					resources,
-					total_wanted(requests));
-
-			if (resources_to_distribute == 0)
-				return;
-
+			int resources_to_distribute = std::min(resources, total_wanted);
 			assert(resources_to_distribute > 0);
 
-			while(resources_to_distribute > 0)
+			while (resources_to_distribute > 0)
 			{
-#if 0
-				int num_active=0;
-				for(int i = 0;i < (int)requests.size();++i)
+				size_type total_used = 0;
+				size_type max_used = 0;
+				for (It i = start; i != end; ++i)
 				{
-					resource_request *r=requests[i];
-					if(r->given == r->wanted)
-						continue;
-					num_active++;
+					resource_request& r = (*i).*res;
+					if(r.given == r.wanted) continue;
+
+					assert(r.given < r.wanted);
+
+					max_used = std::max(max_used, (size_type)r.used + 1);
+					total_used += (size_type)r.used + 1;
 				}
 
-				int max_give=resources_to_distribute/num_active;
-				max_give=std::max(max_give,1);
-				
-				for(int i = 0;i < (int)requests.size() && resources_to_distribute;++i)
-				{
-					resource_request *r=requests[i];
-					if(r->given == r->wanted)
-						continue;
+				size_type kNumer = resources_to_distribute;
+				size_type kDenom = total_used;
 
-					int toGive = 1+std::min(max_give-1,r->used);
-					resources_to_distribute-=give(r,toGive);
-				}
-#elif 0
-				size_type total_used=0;
-				size_type max_used=0;
-				for(int i = 0;i < (int)requests.size();++i)
+				if (kNumer * max_used <= kDenom)
 				{
-					resource_request *r=requests[i];
-					if(r->given == r->wanted)
-						continue;
-					assert(r->given < r->wanted);
-
-					max_used = std::max(max_used, (size_type)r->used + 1);
-					total_used += (size_type)r->used + 1;
+					kNumer = 1;
+					kDenom = max_used;
 				}
 
-				size_type kNumer=resources_to_distribute;
-				size_type kDenom=total_used;
-
+				for (It i = start; i != end && resources_to_distribute > 0; ++i)
 				{
-					size_type numer=1;
-					size_type denom=max_used;
+					resource_request& r = (*i).*res;
+					if(r.given == r.wanted) continue;
 
-					if(numer*kDenom >= kNumer*denom)
-					{
-						kNumer=numer;
-						kDenom=denom;
-					}
-				}
+					assert(r.given < r.wanted);
 
-				for(int i = 0;i < (int)requests.size();++i)
-				{
-					resource_request *r=requests[i];
-					if(r->given == r->wanted)
-						continue;
-					assert(r->given < r->wanted);
-
-					size_type numer = r->wanted - r->given;
-					size_type denom = (size_type)r->used + 1;
-
-					if(numer*kDenom <= kNumer*denom)
-					{
-						kNumer=numer;
-						kDenom=denom;
-					}
-				}
-
-				for(int i = 0;i < (int)requests.size() && resources_to_distribute;++i)
-				{
-					resource_request *r=requests[i];
-					if(r->given == r->wanted)
-						continue;
-					assert(r->given < r->wanted);
-
-					size_type used = (size_type)r->used + 1;
-					size_type toGive = (used * kNumer) / kDenom;
-					if(toGive>std::numeric_limits<int>::max())
-						toGive=std::numeric_limits<int>::max();
-					resources_to_distribute-=give(r,(int)toGive);
-				}
-#else
-				size_type total_used=0;
-				size_type max_used=0;
-				for(int i = 0;i < (int)requests.size();++i)
-				{
-					resource_request *r=requests[i];
-					if(r->given == r->wanted)
-						continue;
-					assert(r->given < r->wanted);
-
-					max_used = std::max(max_used, (size_type)r->used + 1);
-					total_used += (size_type)r->used + 1;
-				}
-
-				size_type kNumer=resources_to_distribute;
-				size_type kDenom=total_used;
-
-				if(kNumer*max_used <= kDenom)
-				{
-					kNumer=1;
-					kDenom=max_used;
-				}
-/*
-				if(kNumer > kDenom)
-				{
-					kNumer=1;
-					kDenom=1;
-				}
-*/
-				for(int i = 0;i < (int)requests.size() && resources_to_distribute;++i)
-				{
-					resource_request *r=requests[i];
-					if(r->given == r->wanted)
-						continue;
-					assert(r->given < r->wanted);
-
-					size_type used = (size_type)r->used + 1;
+					size_type used = (size_type)r.used + 1;
 					size_type toGive = used * kNumer / kDenom;
-					if(toGive>std::numeric_limits<int>::max())
-						toGive=std::numeric_limits<int>::max();
-					resources_to_distribute-=give(r,(int)toGive);
+					if(toGive > std::numeric_limits<int>::max())
+						toGive = std::numeric_limits<int>::max();
+					resources_to_distribute -= give(r, (int)toGive);
 				}
-/*
-				while(resources_to_distribute != 0)
-				{
-					int num_active=0;
-					for(int i = 0;i < (int)requests.size();++i)
-					{
-						resource_request *r=requests[i];
-						if(r->given == r->wanted)
-							continue;
-						num_active++;
-					}
 
-					int max_give=resources_to_distribute/num_active;
-					max_give=std::max(max_give,1);
-					
-					for(int i = 0;i < (int)requests.size() && resources_to_distribute;++i)
-					{
-						resource_request *r=requests[i];
-						if(r->given == r->wanted)
-							continue;
-
-						int toGive = 1+std::min(max_give-1,r->used);
-						resources_to_distribute-=give(r,toGive);
-					}
-				}
-*/
-#endif
 				assert(resources_to_distribute >= 0);
 			}
-			assert(resources_to_distribute == 0);
-
 		}
+
+		peer_connection& pick_peer(
+			std::pair<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> > const& p)
+		{
+			return *p.second;
+		}
+
+	} // namespace anonymous
+
+
+	void allocate_resources(
+		int resources
+		, std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> >& c
+		, resource_request peer_connection::* res)
+	{
+		typedef std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> >::iterator orig_iter;
+		typedef std::pair<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> > in_param;
+		typedef boost::transform_iterator<peer_connection& (*)(in_param const&), orig_iter> new_iter;
+
+		allocate_resources_impl(
+			resources
+			, new_iter(c.begin(), &pick_peer)
+			, new_iter(c.end(), &pick_peer)
+			, res);
 	}
-}
+
+} // namespace libtorrent

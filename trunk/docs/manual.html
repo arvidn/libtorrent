@@ -662,6 +662,7 @@ struct torrent_status
         };
 
         state_t state;
+        bool paused;
         float progress;
         boost::posix_time::time_duration next_announce;
         boost::posix_time::time_duration announce_interval;
@@ -717,6 +718,7 @@ is a pure seeder.</td>
 </tr>
 </tbody>
 </table>
+<p><tt class="literal"><span class="pre">paused</span></tt> is set to true if the torrent is paused and false otherwise.</p>
 <p><tt class="literal"><span class="pre">next_announce</span></tt> is the time until the torrent will announce itself to the tracker. And
 <tt class="literal"><span class="pre">announce_interval</span></tt> is the time the tracker want us to wait until we announce ourself
 again the next time.</p>

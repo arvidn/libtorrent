@@ -30,33 +30,22 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_ALLOCATE_RESOURCES_HPP_INCLUDED
-#define TORRENT_ALLOCATE_RESOURCES_HPP_INCLUDED
-
-#include <map>
-#include <utility>
-
-#include <boost/shared_ptr.hpp>
-
-#include "libtorrent/resource_request.hpp"
+#ifndef TORRENT_RESOURCE_REQUEST_HPP_INCLUDED
+#define TORRENT_RESOURCE_REQUEST_HPP_INCLUDED
 
 namespace libtorrent
 {
-	class socket;
-	class peer_connection;
+	struct resource_request
+	{
+		resource_request() : used(0), wanted(0), given(0) {}
 
-	// Function to allocate a limited resource fairly among many consumers.
-	// It takes into account the current use, and the consumer's desired use.
-	// Should be invoked periodically to allow it adjust to the situation (make
-	// sure "used" is updated between calls!).
-	// If resources = std::numeric_limits<int>::max() it means there is an infinite
-	// supply of resources (so everyone can get what they want).
-
-	void allocate_resources(
-		int resources
-		, std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> >& connections
-		, resource_request peer_connection::* res);
-
+		// I'm right now actively using:
+		int used;
+		// I would like to use this much:
+		int wanted;
+		// Reply: Okay, you're allowed to use this much (a compromise):
+		int given;
+	};
 }
 
 

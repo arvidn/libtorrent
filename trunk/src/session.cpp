@@ -67,6 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/allocate_resources.hpp"
+#include "libtorrent/peer_connection.hpp"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 namespace std
@@ -78,6 +79,7 @@ namespace std
 
 namespace
 {
+/*
 	int saturated_add(int a, int b)
 	{
 		assert(a>=0);
@@ -90,13 +92,14 @@ namespace
 		assert(sum>=a && sum>=b);
 		return sum;
 	}
-
+*/
 	// adjusts the upload rates of every peer connection
 	// to make sure the sum of all send quotas equals
 	// the given upload_limit. An upload limit of
 	// std::numeric_limits<int>::max() means unlimited upload
 	// rate, but the rates of each peer has to be set anyway,
 	// since it depends on the download rate from the peer.
+/*
 	void control_upload_rates(
 		int upload_limit,
 		libtorrent::detail::session_impl::connection_map connections)
@@ -122,6 +125,7 @@ namespace
 			p->update_send_quota_left();
 		}
 	}
+*/
 /*
 	void control_number_of_connections(
 		int connections_limit,
@@ -530,12 +534,12 @@ namespace libtorrent { namespace detail
 						boost::shared_ptr<peer_connection> c(
 							new peer_connection(*this, m_selector, s));
 
-						if (m_upload_rate != -1)
+/*						if (m_upload_rate != -1)
 						{
 							c->upload_bandwidth_quota()->given = 0;
 							c->update_send_quota_left();
 						}
-
+*/
 						m_connections.insert(std::make_pair(s, c));
 						m_selector.monitor_readability(s);
 						m_selector.monitor_errors(s);
@@ -704,12 +708,17 @@ namespace libtorrent { namespace detail
 
 			// distribute the maximum upload rate among the peers
 
-			control_upload_rates(
-				m_upload_rate == -1
+			allocate_resources(m_upload_rate == -1
 				? std::numeric_limits<int>::max()
 				: m_upload_rate
-				, m_connections);
+				, m_connections
+				, &peer_connection::m_upload_bandwidth_quota);
 
+			for (detail::session_impl::connection_map::iterator c = m_connections.begin();
+				c != m_connections.end(); ++c)
+			{
+				c->second->reset_upload_quota();
+			}
 
 			m_tracker_manager.tick();
 		}
@@ -1000,8 +1009,9 @@ namespace libtorrent
 			i != m_impl.m_connections.end();)
 		{
 			i->second->upload_bandwidth_quota()->given = std::numeric_limits<int>::max();
-			i->second->update_send_quota_left();
+//			i->second->update_send_quota_left();
 		}
+
 	}
 
 	std::auto_ptr<alert> session::pop_alert()

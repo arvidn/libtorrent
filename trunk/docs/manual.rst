@@ -675,6 +675,7 @@ It contains the following fields::
 		};
 	
 		state_t state;
+		bool paused;
 		float progress;
 		boost::posix_time::time_duration next_announce;
 		boost::posix_time::time_duration announce_interval;
@@ -724,6 +725,8 @@ current task is in the ``state`` member, it will be one of the following:
 |                          |is a pure seeder.                                         |
 |                          |                                                          |
 +--------------------------+----------------------------------------------------------+
+
+``paused`` is set to true if the torrent is paused and false otherwise.
 
 ``next_announce`` is the time until the torrent will announce itself to the tracker. And
 ``announce_interval`` is the time the tracker want us to wait until we announce ourself
