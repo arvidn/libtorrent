@@ -492,6 +492,7 @@ namespace libtorrent
 
 			file_offset -= file_iter->size;
 			++file_iter;
+			assert(file_iter != m_pimpl->info.end_files());
 		}
 
 		path p(m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path));
@@ -524,12 +525,12 @@ namespace libtorrent
 			int write_bytes = left_to_write;
 			if (file_offset + write_bytes > file_iter->size)
 			{
-				assert(file_iter->size > file_offset);
+				assert(file_iter->size >= file_offset);
 				write_bytes = static_cast<int>(file_iter->size - file_offset);
 			}
 
 			assert(buf_pos >= 0);
-			assert(write_bytes > 0);
+			assert(write_bytes >= 0);
 			size_type written = out->write(buf + buf_pos, write_bytes);
 
 			if (written != write_bytes)
