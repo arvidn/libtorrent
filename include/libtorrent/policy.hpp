@@ -175,7 +175,7 @@ namespace libtorrent
 				using namespace boost::posix_time;
 
 				return p.connection == 0
-					&& second_clock::local_time() - p.connected > seconds(30*60);
+					&& second_clock::local_time() - p.connected > minutes(30);
 			}
 		};
 

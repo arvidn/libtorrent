@@ -294,7 +294,7 @@ int main(int argc, char* argv[])
 			while (a.get())
 			{
 				if (events.size() >= 10) events.pop_front();
-				events.push_front(a->msg());
+				events.push_back(a->msg());
 				a = ses.pop_alert();
 			}
 

@@ -180,6 +180,34 @@ namespace
 
 namespace libtorrent
 {
+	std::string unescape_string(std::string const& s)
+	{
+		std::string ret;
+		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
+		{
+			if (*i != '%') ret += *i;
+			else
+			{
+				if (i == s.end())
+					throw std::runtime_error("invalid escaped string");
+				++i;
+
+				int high = *i - '0';
+				if (i == s.end())
+					throw std::runtime_error("invalid escaped string");
+				++i;
+
+				int low = *i - '0';
+				if (high >= 16 || low >= 16 || high < 0 || low < 0)
+					throw std::runtime_error("invalid escaped string");
+
+				ret += char(high * 16 + low);
+			}
+		}
+		return ret;
+	}
+
+
 	std::string escape_string(const char* str, int len)
 	{
 		static const char special_chars[] = "$-_.+!*'(),";
