@@ -93,15 +93,29 @@ namespace
 
 	namespace
 	{
-		int to_seconds(const boost::posix_time::time_duration& d)
+		float to_seconds(const boost::posix_time::time_duration& d)
 		{
-			return d.hours() * 60 * 60 + d.minutes() * 60 + d.seconds();
+			return d.hours() * 60.f * 60.f
+				+ d.minutes() * 60.f
+				+ d.seconds()
+				+ d.fractional_seconds() / 1000.f;
 		}
 	}
 
 	void request_a_block(torrent& t, peer_connection& c)
 	{
-		int desired_queue_size = max_request_queue + 1 - to_seconds(c.last_piece_time()) / 4;
+		float time_for_last_piece = to_seconds(c.last_piece_time());
+		if (time_for_last_piece == 0) time_for_last_piece = 0.001f;
+		const float rate = 1.f / time_for_last_piece;
+
+		// this will make the number of requests linearly dependent
+		// on the rate in which we download from the peer. 2.5kB/s and
+		// less will make the desired queue size 2 and at about 70 kB/s
+		// it will reach the maximum of 16 requests.
+		// matlab expression to plot:
+		// x = 1:100:100000; plot(x, round(min(max(x ./ 5000 + 1.5, 2), 16)));
+
+		int desired_queue_size = rate / 5000.f + 1.5f;
 		if (desired_queue_size > max_request_queue) desired_queue_size = max_request_queue;
 		if (desired_queue_size < min_request_queue) desired_queue_size = min_request_queue;
 
@@ -624,7 +638,7 @@ namespace libtorrent
 	{
 		assert(!c.is_local());
 
-		// TODO: make an exception if the incoming connection
+		// TODO: have an exception if the incoming connection
 		// is from the tracker
 		if(m_torrent->num_peers() >= m_max_connections)
 			throw protocol_error("too many connections, refusing incoming connection"); // cause a disconnect
@@ -720,7 +734,7 @@ namespace libtorrent
 			if (m_torrent->alerts().should_post(alert::debug))
 			{
 				m_torrent->alerts().post_alert(
-					peer_error_alert(id, e.what()));
+					peer_error_alert(remote, e.what()));
 			}
 		}
 		catch(protocol_error& e)
@@ -728,7 +742,7 @@ namespace libtorrent
 			if (m_torrent->alerts().should_post(alert::debug))
 			{
 				m_torrent->alerts().post_alert(
-					peer_error_alert(id, e.what()));
+					peer_error_alert(remote, e.what()));
 			}
 		}
 	}

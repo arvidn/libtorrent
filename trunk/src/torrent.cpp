@@ -228,7 +228,7 @@ namespace libtorrent
 		, m_ses(ses)
 		, m_picker(torrent_file.piece_length() / m_block_size,
 			static_cast<int>((torrent_file.total_size()+m_block_size-1)/m_block_size))
-		, m_last_working_tracker(0)
+		, m_last_working_tracker(-1)
 		, m_currently_trying_tracker(0)
 		, m_time_scaler(0)
 		, m_priority(.5)
@@ -714,6 +714,12 @@ namespace libtorrent
 			, 0) == m_num_pieces);
 
 		torrent_status st;
+
+		if (m_last_working_tracker >= 0)
+		{
+            st.current_tracker
+				= m_torrent_file.trackers()[m_last_working_tracker].url;
+		}
 
 		st.total_done = bytes_done();
 

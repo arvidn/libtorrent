@@ -547,7 +547,7 @@ namespace libtorrent
 							if (m_alerts.should_post(alert::debug))
 							{
 								m_alerts.post_alert(
-									peer_error_alert(p->second->get_peer_id(), e.what()));
+									peer_error_alert(p->first->sender(), e.what()));
 							}
 
 							m_selector.remove(*i);
@@ -629,7 +629,7 @@ namespace libtorrent
 							if (m_alerts.should_post(alert::debug))
 							{
 								m_alerts.post_alert(
-									peer_error_alert(p->second->get_peer_id(), e.what()));
+									peer_error_alert(p->first->sender(), e.what()));
 							}
 							// the connection wants to disconnect for some reason, remove it
 							// from the connection-list
@@ -659,7 +659,7 @@ namespace libtorrent
 					{
 						m_alerts.post_alert(
 							peer_error_alert(
-								p->second->get_peer_id()
+								p->first->sender()
 								, "socket received an exception"));
 					}
 

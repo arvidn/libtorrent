@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <exception>
 #include <string>
 
-// TODO: support QoS
+// TODO: support ToS
 
 namespace libtorrent
 {

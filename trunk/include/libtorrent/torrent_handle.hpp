@@ -100,7 +100,7 @@ namespace libtorrent
 		boost::posix_time::time_duration next_announce;
 		boost::posix_time::time_duration announce_interval;
 
-		// TODO: add name of tracker that is currently used
+		std::string current_tracker;
 
 		// transferred this session!
 		// total, payload plus protocol

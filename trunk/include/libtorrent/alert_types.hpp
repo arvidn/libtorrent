@@ -72,35 +72,33 @@ namespace libtorrent
 
 	struct peer_error_alert: alert
 	{
-		peer_error_alert(const peer_id& pid, const std::string& msg)
+		peer_error_alert(const address& pip, const std::string& msg)
 			: alert(alert::debug, msg)
-			, id(pid)
+			, ip(pip)
 		{}
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new peer_error_alert(*this)); }
 
-		// TODO: use address instead of peer_id
-		peer_id id;
+		address ip;
 	};
 
 	struct chat_message_alert: alert
 	{
 		chat_message_alert(
 			const torrent_handle& h
-			, const peer_id& send
+			, const address& sender
 			, const std::string& msg)
 			: alert(alert::critical, msg)
 			, handle(h)
-			, sender(send)
+			, ip(sender)
 		{}
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new chat_message_alert(*this)); }
 
 		torrent_handle handle;
-		// TODO: use address instead of peer_id
-		peer_id sender;
+		address ip;
 	};
 
 	struct invalid_request_alert: alert
@@ -108,11 +106,11 @@ namespace libtorrent
 		invalid_request_alert(
 			const peer_request& r
 			, const torrent_handle& h
-			, const peer_id& send
+			, const address& sender
 			, const std::string& msg)
 			: alert(alert::debug, msg)
 			, handle(h)
-			, sender(send)
+			, ip(sender)
 			, request(r)
 		{}
 
@@ -120,8 +118,7 @@ namespace libtorrent
 		{ return std::auto_ptr<alert>(new invalid_request_alert(*this)); }
 
 		torrent_handle handle;
-		// TODO: use address instead of peer_id
-		peer_id sender;
+		address ip;
 		peer_request request;
 	};
 

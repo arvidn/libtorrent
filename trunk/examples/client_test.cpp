@@ -370,6 +370,7 @@ int main(int argc, char* argv[])
 
 				boost::posix_time::time_duration t = s.next_announce;
 				out << "next announce: " << boost::posix_time::to_simple_string(t) << "\n";
+				out << "tracker: " << s.current_tracker << "\n";
 
 				out << "___________________________________\n";
 

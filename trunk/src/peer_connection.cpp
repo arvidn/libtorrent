@@ -601,7 +601,7 @@ namespace libtorrent
 				m_torrent->alerts().post_alert(invalid_request_alert(
 					r
 					, m_torrent->get_handle()
-					, m_peer_id
+					, m_socket->sender()
 					, "peer sent an illegal request, ignoring"));
 			}
 		}
@@ -715,7 +715,7 @@ namespace libtorrent
 				{
 					m_torrent->alerts().post_alert(
 						peer_error_alert(
-						m_peer_id
+						m_socket->sender()
 						, "got a block that was not requested"));
 				}
 #ifndef NDEBUG
@@ -885,8 +885,10 @@ namespace libtorrent
 
 					if (m_torrent->alerts().should_post(alert::critical))
 					{
-						m_torrent->alerts()
-							.post_alert(chat_message_alert(m_torrent->get_handle(), m_peer_id, str));
+						m_torrent->alerts().post_alert(
+							chat_message_alert(
+								m_torrent->get_handle()
+								, m_socket->sender(), str));
 					}
 
 				}
@@ -1750,12 +1752,8 @@ namespace libtorrent
 		send_buffer_updated();
 	}
 
-	// TODO: this could be implemented more efficient
-	// by maintaining a counter of the number of pieces
-	// the peer has
 	bool peer_connection::is_seed() const
 	{
-		return std::count(m_have_piece.begin(), m_have_piece.end(), true)
-			== (int)m_have_piece.size();
+		return m_num_pieces == m_have_piece.size();
 	}
 }
