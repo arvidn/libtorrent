@@ -863,6 +863,10 @@ write_resume_data()
 is suitable for being bencoded. For more information about how fast-resume works, see `fast resume`_.
 It may throw invalid_handle_ if the torrent handle is invalid.
 
+Note that by the time this function returns, the resume data may already be invalid if the torrent
+is still downloading! The recommended practice is to first pause the torrent, then generate the
+fast resume data, and then close it down.
+
 
 status()
 --------
@@ -987,8 +991,13 @@ It contains the following fields::
 		size_type total_payload_download;
 		size_type total_payload_upload;
 
+		size_type total_failed_bytes;
+
 		float download_rate;
 		float upload_rate;
+
+		float download_payload_rate;
+		float upload_payload_rate;
 
 		int num_peers;
 
@@ -1041,17 +1050,27 @@ uploaded to all peers, accumulated, *this session* only.
 send and received this session, but only the actual oayload data (i.e the interesting
 data), these counters ignore any protocol overhead.
 
+``total_failed_bytes`` is the number of bytes that has been downloaded and that
+has failed the piece hash test. In other words, this is just how much crap that
+has been downloaded.
+
 ``pieces`` is the bitmask that represents which pieces we have (set to true) and
 the pieces we don't have. It's a pointer and may be set to 0 if the torrent isn't
 downloading or seeding.
 
 ``download_rate`` and ``upload_rate`` are the total rates for all peers for this
 torrent. These will usually have better precision than summing the rates from
-all peers. The rates are given as the number of bytes per second.
+all peers. The rates are given as the number of bytes per second. The
+``download_payload_rate`` and ``upload_payload_rate`` respectively is the
+total transfer rate of payload only, not counting protocol chatter. This might
+be slightly smaller than the other rates, but if projected over a long time
+(e.g. when calculating ETA:s) the difference may be noticable.
 
 ``num_peers`` is the number of peers this torrent currently is connected to.
 
-``total_done`` is the total number of bytes of the file(s) that we have.
+``total_done`` is the total number of bytes of the file(s) that we have. All
+this does not necessarily has to be downloaded during this session (that's
+``total_download_payload``).
 
 
 

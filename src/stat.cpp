@@ -47,29 +47,39 @@ void libtorrent::stat::second_tick()
 {
 	INVARIANT_CHECK;
 
-	for(int i=history-2;i>=0;--i)
+	for (int i = history - 2; i >= 0; --i)
 	{
-		m_download_per_second_history[i+1]=m_download_per_second_history[i];
-		m_upload_per_second_history[i+1]=m_upload_per_second_history[i];
+		m_download_rate_history[i + 1] = m_download_rate_history[i];
+		m_upload_rate_history[i + 1] = m_upload_rate_history[i];
+		m_download_payload_rate_history[i + 1] = m_download_payload_rate_history[i];
+		m_upload_payload_rate_history[i + 1] = m_upload_payload_rate_history[i];
 	}
 
-	m_download_per_second_history[0] = m_downloaded_payload + m_downloaded_protocol;
-	m_upload_per_second_history[0] = m_uploaded_payload + m_uploaded_protocol;
+	m_download_rate_history[0] = m_downloaded_payload + m_downloaded_protocol;
+	m_upload_rate_history[0] = m_uploaded_payload + m_uploaded_protocol;
+	m_download_payload_rate_history[0] = m_downloaded_payload;
+	m_upload_payload_rate_history[0] = m_uploaded_payload;
+
 	m_downloaded_payload = 0;
 	m_uploaded_payload = 0;
 	m_downloaded_protocol = 0;
 	m_uploaded_protocol = 0;
 
-	m_mean_download_per_second
-		= (float)std::accumulate(m_download_per_second_history,
-		m_download_per_second_history+history, 0) / history;
+	m_mean_download_rate = 0;
+	m_mean_upload_rate = 0;
+	m_mean_download_payload_rate = 0;
+	m_mean_upload_payload_rate = 0;
 
-	m_mean_upload_per_second
-		= (float)std::accumulate(m_upload_per_second_history,
-		m_upload_per_second_history+history, 0) / history;
+	for (int i = 0; i < history; ++i)
+	{
+		m_mean_download_rate += m_download_rate_history[i];
+		m_mean_upload_rate += m_upload_rate_history[i];
+		m_mean_download_payload_rate += m_download_payload_rate_history[i];
+		m_mean_upload_payload_rate += m_download_payload_rate_history[i];
+	}
 
-	if (m_mean_download_per_second > m_peak_downloaded_per_second)
-		m_peak_downloaded_per_second = m_mean_download_per_second;
-	if (m_mean_upload_per_second > m_peak_uploaded_per_second)
-		m_peak_uploaded_per_second = m_mean_upload_per_second;
+	m_mean_download_rate /= history;
+	m_mean_upload_rate /= history;
+	m_mean_download_payload_rate /= history;
+	m_mean_upload_payload_rate /= history;
 }

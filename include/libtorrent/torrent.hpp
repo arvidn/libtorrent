@@ -321,7 +321,6 @@ namespace libtorrent
 		void parse_response(const entry& e, std::vector<peer_entry>& peer_list);
 
 		torrent_info m_torrent_file;
-
 		piece_manager m_storage;
 
 		// the time of next tracker request
@@ -384,6 +383,10 @@ namespace libtorrent
 		// tries to maintain.
 		// 0 is infinite
 		float m_ratio;
+
+		// the number of bytes that has been
+		// downloaded that failed the hash-test
+		size_type m_total_failed_bytes;
 
 		std::string m_username;
 		std::string m_password;

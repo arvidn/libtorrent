@@ -229,6 +229,9 @@ namespace libtorrent
 			int m_upload_rate;
 			int m_download_rate;
 
+			// statistics gathered from all torrents.
+			stat m_stat;
+
 			// handles delayed alerts
 			alert_manager m_alerts;
 
@@ -253,6 +256,25 @@ namespace libtorrent
 
 	struct http_settings;
 
+	struct session_status
+	{
+		bool has_incoming_connections;
+
+		float upload_rate;
+		float download_rate;
+
+		float payload_upload_rate;
+		float payload_download_rate;
+
+		size_type total_download;
+		size_type total_upload;
+
+		size_type total_payload_download;
+		size_type total_payload_upload;
+
+		int num_peers;
+	};
+
 	class session: public boost::noncopyable, detail::eh_initializer
 	{
 	public:
@@ -270,6 +292,8 @@ namespace libtorrent
 			const torrent_info& ti
 			, const boost::filesystem::path& save_path
 			, const entry& resume_data = entry());
+
+		session_status status() const;
 
 		bool is_listening() const;
 

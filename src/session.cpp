@@ -637,9 +637,14 @@ namespace libtorrent { namespace detail
 
 				// tick() will set the used upload quota
 				i->second->second_tick();
+
+				// accumulate the statistics from all torrents
+				m_stat += i->second->statistics();
 				++i;
 			}
 			purge_connections();
+
+			m_stat.second_tick();
 
 			// distribute the maximum upload rate among the torrents
 
@@ -903,6 +908,13 @@ namespace libtorrent
 	{
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
 		return m_impl.m_listen_interface.port;
+	}
+
+	session_status session::status() const
+	{
+		session_status s;
+// TODO: implement
+		return s;
 	}
 
 	bool session::is_listening() const
