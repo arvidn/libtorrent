@@ -406,8 +406,8 @@ The ``torrent_info`` has the following synopsis::
 
 		torrent_info(const entry& torrent_file)
 
-		typedef std::vector>file>::const_iterator file_iterator;
-		typedef std::vector<file>::const_reverse_iterator reverse_file_iterator;
+		typedef std::vector>file_entry>::const_iterator file_iterator;
+		typedef std::vector<file_entry>::const_reverse_iterator reverse_file_iterator;
 
 		file_iterator begin_files() const;
 		file_iterator end_files() const;
@@ -415,14 +415,14 @@ The ``torrent_info`` has the following synopsis::
 		reverse_file_iterator rend_files() const;
 
 		int num_files() const;
-		const file& file_at(int index) const;
+		const file_entry& file_at(int index) const;
 
 		const std::vector<announce_entry>& trackers() const;
 
 		int prioritize_tracker(int index);
 
-		entry::integer_type total_size() const;
-		entry::integer_type piece_length() const;
+		size_type total_size() const;
+		size_type piece_length() const;
 		int num_pieces() const;
 		const sha1_hash& info_hash() const;
 		const std::stirng& name() const;
@@ -432,7 +432,7 @@ The ``torrent_info`` has the following synopsis::
 
 		void print(std::ostream& os) const;
 	
-		entry::integer_type piece_size(unsigned int index) const;
+		size_type piece_size(unsigned int index) const;
 		const sha1_hash& hash_for_piece(unsigned int index) const;
 	};
 
@@ -447,7 +447,7 @@ iterators with the type ``file_entry``.
 	{
 		std::string path;
 		std::string filename;
-		entry::integer_type size;
+		size_type size;
 	};
 
 If you need index-access to files you can use the ``num_files()`` and ``file_at()``
@@ -586,7 +586,6 @@ It contains the following fields::
 	{
 		enum state_t
 		{
-			invalid_handle,
 			queued_for_checking,
 			checking_files,
 			connecting_to_tracker,

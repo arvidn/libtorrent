@@ -564,6 +564,15 @@ namespace libtorrent
 		r.start = detail::read_int32(ptr);
 		r.length = detail::read_int32(ptr);
 
+		if (m_requests.size() > 40)
+		{
+			// don't allow clients to abuse our
+			// memory consumption.
+			// ignore requests if the client
+			// is making too many of them.
+			return;
+		}
+
 		// make sure this request
 		// is legal and taht the peer
 		// is not choked
