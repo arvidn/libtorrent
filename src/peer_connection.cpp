@@ -30,9 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <vector>
 #include <iostream>
 #include <iomanip>
-#include <vector>
 #include <limits>
 
 #include "libtorrent/peer_connection.hpp"
@@ -783,7 +783,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (m_requests.size() > 40)
+		if (m_requests.size() > 100)
 		{
 			// don't allow clients to abuse our
 			// memory consumption.
@@ -804,7 +804,7 @@ namespace libtorrent
 		}
 
 		// make sure this request
-		// is legal and taht the peer
+		// is legal and that the peer
 		// is not choked
 		if (r.piece >= 0
 			&& r.piece < m_torrent->torrent_file().num_pieces()
@@ -2154,8 +2154,9 @@ namespace libtorrent
 
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
+		// TODO: the buffer size should probably be dependent on the transfer speed
 		while (!m_requests.empty()
-			&& ((int)m_send_buffer.size() < m_torrent->block_size())
+			&& ((int)m_send_buffer.size() < m_torrent->block_size() * 6)
 			&& !m_choked)
 		{
 			assert(m_torrent->valid_metadata());

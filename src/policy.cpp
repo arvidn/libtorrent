@@ -64,7 +64,7 @@ namespace
 	enum
 	{
 		// the limits of the download queue size
-		max_request_queue = 16,
+		max_request_queue = 100,
 		min_request_queue = 2,
 
 		// the amount of free upload allowed before
@@ -84,13 +84,14 @@ namespace
 		, std::vector<peer_connection*> ignore = std::vector<peer_connection*>())
 	{
 		// this will make the number of requests linearly dependent
-		// on the rate in which we download from the peer. 2.5kB/s and
-		// less will make the desired queue size 2 and at about 70 kB/s
-		// it will reach the maximum of 16 requests.
-		// matlab expression to plot:
-		// x = 1:100:100000; plot(x, round(min(max(x ./ 5000 + 1.5, 4), 16)));
+		// on the rate in which we download from the peer.
+		// we want the queue to represent:
+		const int queue_time = 5; // seconds
+		// (if the latency is more than this, the download will stall)
+		// so, the queue size is 5 * down_rate / 16 kiB (16 kB is the size of each request)
+		// the minimum request size is 2 and the maximum is 100
 
-		int desired_queue_size = static_cast<int>(c.statistics().download_rate() / 5000.f + 1.5f);
+		int desired_queue_size = static_cast<int>(5.f * c.statistics().download_rate() / (16 * 1024));
 		if (desired_queue_size > max_request_queue) desired_queue_size = max_request_queue;
 		if (desired_queue_size < min_request_queue) desired_queue_size = min_request_queue;
 
@@ -571,6 +572,8 @@ namespace libtorrent
 
 	void policy::pulse()
 	{
+		if (m_torrent->is_paused()) return;
+
 		using namespace boost::posix_time;
 
 		// TODO: we must also remove peers that

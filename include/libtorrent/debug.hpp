@@ -103,9 +103,9 @@ namespace libtorrent
 	struct file_logger: libtorrent::logger
 	{
 	public:
-		file_logger(const char* filename)
-			: m_file(boost::filesystem::complete(filename))
-		{ assert(filename); }
+		file_logger(boost::filesystem::path const& filename)
+			: m_file(boost::filesystem::complete("libtorrent_logs" / filename))
+		{}
 		virtual void log(const char* text) { assert(text); m_file << text; }
 
 		boost::filesystem::ofstream m_file;

@@ -82,6 +82,8 @@ namespace libtorrent
 			, total_payload_upload(0)
 			, download_rate(0)
 			, upload_rate(0)
+			, download_payload_rate(0)
+			, upload_payload_rate(0)
 			, num_peers(0)
 			, pieces(0)
 			, total_done(0)
@@ -203,10 +205,9 @@ namespace libtorrent
 
 		// kind of similar to get_torrent_info() but this
 		// is low level, returning the exact info-part of
-		// the .torrent file. This when hashed, this buffer
-		// will produce the same hash as the info hash.
-		// the reference is valid only as long as the torrent
-		// is running.
+		// the .torrent file. When hashed, this buffer
+		// will produce the info hash. The reference is valid
+		// only as long as the torrent is running.
 		std::vector<char> const& metadata() const;
 
 		// forces this torrent to reannounce
