@@ -1166,9 +1166,9 @@ namespace libtorrent
 		case 0: // request
 			{
 				int start = detail::read_uint8(ptr);
-				int size = detail::read_uint8(ptr);
+				int size = detail::read_uint8(ptr) + 1;
 
-				if (start + size > 255 || start + size <= 0 || m_packet_size != 8)
+				if (m_packet_size != 8)
 				{
 					// invalid metadata request
 					throw protocol_error("invalid metadata request");
@@ -1391,8 +1391,7 @@ namespace libtorrent
 	{
 		assert(start >= 0);
 		assert(size > 0);
-		assert(start <= 255);
-		assert(start + size <= 255);
+		assert(start + size <= 256);
 		assert(m_torrent);
 		INVARIANT_CHECK;
 
@@ -1403,9 +1402,9 @@ namespace libtorrent
 
 		if (m_torrent->valid_metadata())
 		{
-			int offset = start * (int)m_torrent->metadata().size() / 255;
+			int offset = start * (int)m_torrent->metadata().size() / 256;
 			int metadata_size
-				= (start + size) * (int)m_torrent->metadata().size() / 255 - offset;
+				= (start + size) * (int)m_torrent->metadata().size() / 256 - offset;
 
 			// yes, we have metadata, send it
 			assert(size <= (int)m_torrent->metadata().size());
@@ -1436,8 +1435,7 @@ namespace libtorrent
 	{
 		assert(start >= 0);
 		assert(size > 0);
-		assert(start < 255);
-		assert(start + size <= 255);
+		assert(start + size <= 256);
 		assert(m_torrent);
 		assert(!m_torrent->valid_metadata());
 		INVARIANT_CHECK;
@@ -1453,7 +1451,7 @@ namespace libtorrent
 		// means 'request data'
 		detail::write_uint8(0, ptr);
 		detail::write_uint8(start, ptr);
-		detail::write_uint8(size, ptr);
+		detail::write_uint8(size - 1, ptr);
 		send_buffer_updated();
 	}
 
