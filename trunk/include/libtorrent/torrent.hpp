@@ -57,7 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/policy.hpp"
 #include "libtorrent/storage.hpp"
-#include "libtorrent/url_handler.hpp"
+#include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/alert.hpp"
 

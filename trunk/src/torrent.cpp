@@ -53,7 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/url_handler.hpp"
+#include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
