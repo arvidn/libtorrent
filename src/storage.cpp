@@ -287,7 +287,7 @@ namespace libtorrent
 		assert(info.begin_files() != info.end_files());
 	}
 
-	void storage::release()
+	void storage::release_files()
 	{
 		m_pimpl->files.release();
 	}
@@ -578,7 +578,7 @@ namespace libtorrent
 		  , detail::piece_checker_data& data
 		  , std::vector<bool>& pieces);
 
-		void release();
+		void release_files();
 
 		void allocate_slots(int num_slots);
 		void mark_failed(int index);
@@ -695,14 +695,14 @@ namespace libtorrent
 	{
 	}
 
-	void piece_manager::release()
+	void piece_manager::release_files()
 	{
-		m_pimpl->release();
+		m_pimpl->release_files();
 	}
 
-	void piece_manager::impl::release()
+	void piece_manager::impl::release_files()
 	{
-		m_storage.release();
+		m_storage.release_files();
 	}
 
 	void piece_manager::impl::export_piece_map(

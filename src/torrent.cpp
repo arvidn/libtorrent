@@ -514,7 +514,7 @@ namespace libtorrent
 		// disconnect all peers and close all
 		// files belonging to the torrent
 		disconnect_all();
-		m_storage.release();
+		m_storage->release_files();
 	}
 
 	void torrent::announce_piece(int index)
@@ -706,7 +706,7 @@ namespace libtorrent
 				i->second->disconnect();
 		}
 
-		m_storage->release();
+		m_storage->release_files();
 
 		// make the next tracker request
 		// be a completed-event
@@ -858,7 +858,7 @@ namespace libtorrent
 		m_just_paused = true;
 		// this will make the storage close all
 		// files and flush all cached data
-		if (m_storage.get()) m_storage->release();
+		if (m_storage.get()) m_storage->release_files();
 	}
 
 	void torrent::resume()
