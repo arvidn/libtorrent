@@ -150,7 +150,7 @@ namespace libtorrent
 		{
 			boost::posix_time::time_duration d;
 			d = boost::posix_time::second_clock::local_time() - m_last_receive;
-			return d.seconds() > m_timeout;
+			return d > boost::posix_time::seconds(m_timeout);
 		}
 
 		// will send a keep-alive message to the peer

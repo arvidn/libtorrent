@@ -348,11 +348,6 @@ int main(int argc, char* argv[])
 				};
 
 				i->get_peer_info(peers);
-				float down = s.download_rate;
-				float up = s.upload_rate;
-				size_type total_down = s.total_download;
-				size_type total_up = s.total_upload;
-				int num_peers = (int)peers.size();
 
 				out.precision(4);
 				out.width(5);
@@ -361,12 +356,12 @@ int main(int argc, char* argv[])
 				out << progress_bar(s.progress, 49);
 				out << "\n";
 				out << "total downloaded: " << s.total_done << " Bytes\n";
-				out << "peers: " << num_peers << " "
-					<< "d:" << add_suffix(down) << "/s "
-					<< "(" << add_suffix(total_down) << ") "
-					<< "u:" << add_suffix(up) << "/s "
-					<< "(" << add_suffix(total_up) << ") "
-					<< "ratio: " << ratio(total_down, total_up) << "\n";
+				out << "peers: " << (int)peers.size() << " "
+					<< "d:" << add_suffix(s.download_rate) << "/s "
+					<< "(" << add_suffix(s.total_download) << ") "
+					<< "u:" << add_suffix(s.upload_rate) << "/s "
+					<< "(" << add_suffix(s.total_upload) << ") "
+					<< "ratio: " << ratio(s.total_payload_download, s.total_payload_upload) << "\n";
 
 				boost::posix_time::time_duration t = s.next_announce;
 				out << "next announce: " << boost::posix_time::to_simple_string(t) << "\n";
