@@ -778,12 +778,11 @@ namespace libtorrent { namespace detail
 	}
 
 #ifndef NDEBUG
-	boost::shared_ptr<logger> session_impl::create_log(std::string name)
+	boost::shared_ptr<logger> session_impl::create_log(std::string const& name)
 	{
-		name = "libtorrent_log_" + name + ".log";
-		// current options are file_logger and cout_logger
+		// current options are file_logger, cout_logger and null_logger
 #if defined(TORRENT_VERBOSE_LOGGING)
-		return boost::shared_ptr<logger>(new file_logger(name.c_str()));
+		return boost::shared_ptr<logger>(new file_logger(name + ".log"));
 #else
 		return boost::shared_ptr<logger>(new null_logger());
 #endif

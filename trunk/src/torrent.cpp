@@ -598,7 +598,6 @@ namespace libtorrent
 
 		m_policy->connection_closed(*p);
 		m_connections.erase(i);
-
 	}
 
 	peer_connection& torrent::connect_to_peer(const address& a)
@@ -1098,7 +1097,10 @@ namespace libtorrent
 		if (m_have_metadata.empty())
 			m_have_metadata.resize(256, false);
 
-		std::pair<int, int> req = offset_to_req(std::make_pair(offset, size), total_size);
+		std::pair<int, int> req = offset_to_req(std::make_pair(offset, size)
+			, total_size);
+
+		assert(req.first + req.second <= m_have_metadata.size());
 
 		std::fill(
 			m_have_metadata.begin() + req.first
@@ -1120,7 +1122,7 @@ namespace libtorrent
 		{
 			std::fill(
 				m_have_metadata.begin()
-				, m_have_metadata.end() + req.first + req.second
+				, m_have_metadata.begin() + req.first + req.second
 				, false);
 			return false;
 		}

@@ -150,7 +150,7 @@ namespace libtorrent
 		// marked as being downloaded. If the user of this function
 		// decides to download a piece, it must mark it as being downloaded
 		// itself, by using the mark_as_downloading() member function.
-		// THIS IS DONE BY THE peer_connection::request_piece() MEMBER FUNCTION!
+		// THIS IS DONE BY THE peer_connection::send_request() MEMBER FUNCTION!
 		void pick_pieces(const std::vector<bool>& pieces,
 			std::vector<piece_block>& interesting_blocks,
 			int num_pieces) const;

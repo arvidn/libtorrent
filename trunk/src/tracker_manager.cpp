@@ -336,12 +336,16 @@ namespace libtorrent
 	void tracker_manager::tick()
 	{
 		tracker_connections_t::iterator i;
-		for (i = m_connections.begin(); i != m_connections.end(); ++i)
+		for (i = m_connections.begin(); i != m_connections.end();)
 		{
 			boost::shared_ptr<tracker_connection>& c = *i;
 			try
 			{
-				if (!c->tick()) continue;
+				if (!c->tick())
+				{
+					++i;
+					continue;
+				}
 			}
 			catch (const std::exception& e)
 			{

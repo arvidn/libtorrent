@@ -256,7 +256,7 @@ namespace libtorrent
 
 #ifndef NDEBUG
 			void check_invariant(const char *place = 0);
-			boost::shared_ptr<logger> create_log(std::string name);
+			boost::shared_ptr<logger> create_log(std::string const& name);
 			boost::shared_ptr<logger> m_logger;
 #endif
 		};
