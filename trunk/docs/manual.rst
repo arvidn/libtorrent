@@ -846,7 +846,7 @@ set_upload_limit() set_download_limit()
 ``set_upload_limit`` will limit the upload bandwidth used by this particular torrent to the
 limit you set. It is given as the number of bytes per second the torrent is allowed to upload.
 ``set_download_limit`` works the same way but for download bandwidth instead of upload bandwidth.
-Note that setting i higher limit on a torrent then the global limit (``session::set_upload_rate_limit``)
+Note that setting a higher limit on a torrent then the global limit (``session::set_upload_rate_limit``)
 will not override the global rate limit. The torrent can never upload more than the global rate
 limit.
 
