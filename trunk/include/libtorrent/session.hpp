@@ -139,7 +139,7 @@ namespace libtorrent
 			// the torrent is added to the session
 			session_impl& m_ses;
 
-			boost::mutex m_mutex;
+			mutable boost::mutex m_mutex;
 			boost::condition m_cond;
 
 			// a list of all torrents that are currently checking
@@ -164,9 +164,11 @@ namespace libtorrent
 
 			void operator()();
 
+			void open_listen_port();
+
 			// must be locked to access the data
 			// in this struct
-			boost::mutex m_mutex;
+			mutable boost::mutex m_mutex;
 			torrent* find_torrent(const sha1_hash& info_hash);
 			const peer_id& get_peer_id() const { return m_peer_id; }
 
@@ -201,6 +203,8 @@ namespace libtorrent
 			// the selector can sleep while there's no activity on
 			// them
 			selector m_selector;
+
+			boost::shared_ptr<socket> m_listen_socket;
 
 			// the settings for the client
 			http_settings m_settings;
@@ -257,8 +261,25 @@ namespace libtorrent
 			, const boost::filesystem::path& save_path
 			, const entry& resume_data = entry());
 
-		// TODO: add the ability to change listen-port on the fly
-		// TODO: make it possible to ask for the current listen port
+		bool is_listening() const;
+
+		// if the listen port failed in some way
+		// you can retry to listen on another port-
+		// range with this function. If the listener
+		// succeeded and is currently listening,
+		// a call to this function will shut down the
+		// listen port and reopen it using these new
+		// properties (the given interface and port range).
+		// As usual, if the interface is left as 0
+		// this function will return false on failure.
+		// If it fails, it will also generate alerts describing
+		// the error. It will return true on success.
+		bool listen_on(
+			std::pair<int, int> const& port_range
+			, const char* interface = 0);
+
+		// returns the port we ended up listening on
+		unsigned short listen_port() const;
 
 		void remove_torrent(const torrent_handle& h);
 
