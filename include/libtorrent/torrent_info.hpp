@@ -125,20 +125,23 @@ namespace libtorrent
 
 		void convert_file_names();
 
-		size_type piece_size(unsigned int index) const
+		size_type piece_size(int index) const
 		{
+			assert(index >= 0 && index < num_pieces());
 			if (index == num_pieces()-1)
 			{
-				size_type s = total_size() % m_piece_length;
-				return (s == 0)?m_piece_length:s;
+				size_type s = total_size() - (size_type)(num_pieces() - 1)*piece_length();
+				assert(s > 0);
+				assert(s <= piece_length());
+				return s;
 			}
 			else
 				return piece_length();
 		}
 
-		const sha1_hash& hash_for_piece(unsigned int index) const
+		const sha1_hash& hash_for_piece(int index) const
 		{
-			assert(index < m_piece_hash.size());
+			assert(index >= 0 && index < (int)m_piece_hash.size());
 			return m_piece_hash[index];
 		}
 

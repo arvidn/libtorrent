@@ -153,21 +153,35 @@ namespace libtorrent
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
 		{
-			if (*i != '%') ret += *i;
+			if(*i == '+')
+			{
+				ret+=' ';
+			}
+			else if (*i != '%')
+			{
+				ret += *i;
+			}
 			else
 			{
+				++i;
 				if (i == s.end())
 					throw std::runtime_error("invalid escaped string");
-				++i;
 
-				int high = *i - '0';
+				int high;
+				if(*i >= '0' && *i <= '9') high=*i - '0';
+				else if(*i >= 'A' && *i <= 'F') high=*i + 10 - 'A';
+				else if(*i >= 'a' && *i <= 'f') high=*i + 10 - 'a';
+				else throw std::runtime_error("invalid escaped string");
+
+				++i;
 				if (i == s.end())
 					throw std::runtime_error("invalid escaped string");
-				++i;
 
-				int low = *i - '0';
-				if (high >= 16 || low >= 16 || high < 0 || low < 0)
-					throw std::runtime_error("invalid escaped string");
+				int low;
+				if(*i >= '0' && *i <= '9') low=*i - '0';
+				else if(*i >= 'A' && *i <= 'F') low=*i + 10 - 'A';
+				else if(*i >= 'a' && *i <= 'f') low=*i + 10 - 'a';
+				else throw std::runtime_error("invalid escaped string");
 
 				ret += char(high * 16 + low);
 			}
@@ -178,7 +192,9 @@ namespace libtorrent
 
 	std::string escape_string(const char* str, int len)
 	{
-		static const char special_chars[] = "$-_.+!*'(),";
+		// http://www.ietf.org/rfc/rfc2396.txt
+		// section 2.3
+		static const char unreserved_chars[] = "-_.!~*'()";
 
 		std::stringstream ret;
 		ret << std::hex  << std::setfill('0');
@@ -186,15 +202,15 @@ namespace libtorrent
 		{
 			if (std::isalnum(static_cast<unsigned char>(*str))
 				|| std::count(
-					special_chars
-					, special_chars+sizeof(special_chars)-1
+					unreserved_chars
+					, unreserved_chars+sizeof(unreserved_chars)-1
 					, *str))
 			{
 				ret << *str;
 			}
 			else
 			{
-				ret << "%"
+				ret << '%'
 					<< std::setw(2)
 					<< (int)static_cast<unsigned char>(*str);
 			}
@@ -582,7 +598,7 @@ namespace libtorrent
 	{
 		m_currently_trying_tracker++;
 
-		if (m_currently_trying_tracker >= m_torrent_file.trackers().size())
+		if ((unsigned)m_currently_trying_tracker >= m_torrent_file.trackers().size())
 		{
 			// if we've looped the tracker list, wait a bit before retrying
 			m_currently_trying_tracker = 0;
