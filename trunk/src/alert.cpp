@@ -34,6 +34,34 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+	alert::alert(severity_t severity, const std::string& msg)
+		: m_msg(msg)
+		, m_severity(severity)
+		, m_timestamp(boost::posix_time::second_clock::local_time())
+	{
+	}
+
+	alert::~alert()
+	{
+	}
+
+	boost::posix_time::ptime alert::timestamp() const
+	{
+		return m_timestamp;
+	}
+
+	const std::string& alert::msg() const
+	{
+		return m_msg;
+	}
+
+	alert::severity_t alert::severity() const
+	{
+		return m_severity;
+	}
+
+
+
 	alert_manager::alert_manager()
 		: m_severity(alert::none)
 	{}
@@ -86,6 +114,11 @@ namespace libtorrent {
 		
 		m_severity = severity;
 	}
-    
+	
+	bool alert_manager::should_post(alert::severity_t severity) const
+	{
+		return severity >= m_severity;
+	}
+
 } // namespace libtorrent
 
