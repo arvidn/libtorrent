@@ -1498,13 +1498,12 @@ namespace libtorrent
 						(*m_logger) << s.str();
 					}
 	#endif
+					std::copy(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (char*)m_peer_id.begin());
 
 					if (!m_active)
 					{
 						// check to make sure we don't have another connection with the same
 						// info_hash and peer_id. If we do. close this connection.
-						std::copy(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (char*)m_peer_id.begin());
-
 						m_attached_to_torrent = true;
 						m_torrent->attach_peer(this);
 						assert(m_torrent->get_policy().has_connection(this));
