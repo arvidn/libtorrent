@@ -376,12 +376,12 @@ namespace libtorrent
 
 		const entry::dictionary_type& msg = e.dict();
 		i = msg.find("interval");
-		if (i == msg.end()) throw std::runtime_error("invalid response from tracker");
+		if (i == msg.end()) throw std::runtime_error("invalid response from tracker (no interval)");
 
 		m_duration = i->second.integer();
 
 		i = msg.find("peers");
-		if (i == msg.end()) throw std::runtime_error("invalid response from tracker");
+		if (i == msg.end()) throw std::runtime_error("invalid response from tracker (no peers)");
 
 		peer_list.clear();
 

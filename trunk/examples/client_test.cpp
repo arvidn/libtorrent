@@ -133,18 +133,29 @@ void clear()
 
 #endif
 
+std::string to_string(float v)
+{
+	std::stringstream s;
+	s.precision(4);
+	s.flags(std::ios_base::right);
+	s.width(5);
+	s.fill(' ');
+	s << v;
+	return s.str();
+}
+
 std::string add_suffix(float val)
 {
-	const char* prefix[] = {"B", "kB", "MB", "GB", "TB"};
+	const char* prefix[] = {"B ", "kB", "MB", "GB", "TB"};
 	const int num_prefix = sizeof(prefix) / sizeof(const char*);
 	int i;
 	for (i = 0; i < num_prefix; ++i)
 	{
 		if (val < 1024.f)
-			return boost::lexical_cast<std::string>(val) + prefix[i];
+			return to_string(val) + prefix[i];
 		val /= 1024.f;
 	}
-	return boost::lexical_cast<std::string>(val) + prefix[i];
+	return to_string(val) + prefix[i];
 }
 
 int main(int argc, char* argv[])
@@ -252,14 +263,14 @@ int main(int argc, char* argv[])
 				boost::posix_time::time_duration t = s.next_announce;
 //				std::cout << "next announce: " << boost::posix_time::to_simple_string(t) << "\n";
 				std::cout << "next announce: " << t.hours() << ":" << t.minutes() << ":" << t.seconds() << "\n";
-/*
+
 				for (std::vector<peer_info>::iterator i = peers.begin();
 					i != peers.end();
 					++i)
 				{
 					std::cout << "d: " << add_suffix(i->down_speed) << "/s (" << add_suffix(i->total_download)
 						<< ") u: " << add_suffix(i->up_speed) << "/s (" << add_suffix(i->total_upload)
-						<< ") ratio: " << static_cast<float>(i->total_upload+1) / static_cast<float>(i->total_download+1)
+						<< ") diff: " << add_suffix(i->total_download - i->total_upload)
 						<< " flags: "
 						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
 						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
@@ -267,8 +278,8 @@ int main(int argc, char* argv[])
 						<< static_cast<const char*>((i->flags & peer_info::remote_choked)?"c":"_") << "\n";
 
 				}
-*/
 
+/*
 				i->get_download_queue(queue);
 				for (std::vector<partial_piece_info>::iterator i = queue.begin();
 					i != queue.end();
@@ -283,7 +294,7 @@ int main(int argc, char* argv[])
 					}
 					std::cout << "\n";
 				}
-
+*/
 				std::cout << "___________________________________\n";
 
 			}

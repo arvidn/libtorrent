@@ -342,6 +342,7 @@ namespace libtorrent
 		// this peer given the current download rate
 		// and the current share ratio with this peer.
 		// this limit will maintain a 1:1 share ratio.
+		// -1 means no limit
 		int m_send_quota_limit;
 
 		// for every valid piece we receive where this
@@ -369,6 +370,7 @@ namespace libtorrent
 			return;
 		}
 
+		assert(m_send_quota_left > 0 || m_send_quota_left == -1);
 		assert(has_data());
 		if (!m_added_to_selector)
 		{

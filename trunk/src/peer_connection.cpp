@@ -762,15 +762,27 @@ void libtorrent::peer_connection::second_tick()
 	// both peers uses this technique! It could be
 	// enough to just have a constant positive bias
 	// of the send_quota_limit
-	int bias = (static_cast<int>(m_statistics.total_download())
-		- static_cast<int>(m_statistics.total_upload())) / 1024;
+	int diff = static_cast<int>(m_statistics.total_download())
+		- static_cast<int>(m_statistics.total_upload());
 
-	// the maximum send_quota given our download rate from this peer
-	int m_send_quota_limit = m_statistics.download_rate() + bias;
-	if (m_send_quota_limit < 500) m_send_quota_limit = 500;
-
-	// TODO: temporary
-	m_send_quota_limit = 1024*1024;
+	if (diff > m_torrent->torrent_file().piece_length())
+	{
+		// if we have downloaded more than one piece more
+		// than we have uploaded, have an unlimited
+		// upload rate
+		m_send_quota = -1;
+	}
+	else
+	{
+		// if we have downloaded too much, response with an
+		// upload rate of 10 kB/s more than we dowlload
+		// if we have uploaded too much, send with a rate of
+		// 10 kB/s less than we receive
+		int bias = (diff > 0 ? 10 : -10) * 1024;
+		// the maximum send_quota given our download rate from this peer
+		m_send_quota_limit = m_statistics.download_rate() + bias;
+		if (m_send_quota_limit < 500) m_send_quota_limit = 500;
+	}
 }
 
 // --------------------------

@@ -93,7 +93,7 @@ namespace
 			return;
 		}
 
-		// TODO: IMPLEMENT!
+		// TODO: upload limit support is currently broken
 		assert(false);
 
 
