@@ -203,6 +203,8 @@ namespace libtorrent { namespace detail
 #ifndef NDEBUG
 		m_logger = create_log("main session");
 #endif
+		std::fill(m_extension_enabled, m_extension_enabled
+			+ peer_connection::num_supported_extensions, true);
 		// ---- generate a peer id ----
 
 		std::srand((unsigned int)std::time(0));
@@ -227,6 +229,13 @@ namespace libtorrent { namespace detail
 		{
 			*i = printable[rand() % (sizeof(printable)-1)];
 		}
+	}
+
+	bool session_impl::extensions_enabled() const
+	{
+		const int n = peer_connection::num_supported_extensions;
+		return std::find(m_extension_enabled
+			, m_extension_enabled + n, true) != m_extension_enabled + n;
 	}
 
 	void session_impl::purge_connections()
@@ -852,6 +861,21 @@ namespace libtorrent
 #endif
 	}
 
+	void session::disable_extensions()
+	{
+		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		std::fill(m_impl.m_extension_enabled, m_impl.m_extension_enabled
+			+ peer_connection::num_supported_extensions, false);
+	}
+
+	void session::enable_extension(peer_connection::extension_index i)
+	{
+		assert(i >= 0);
+		assert(i < peer_connection::num_supported_extensions);
+		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		m_impl.m_extension_enabled[i] = true;
+	}
+
 	// TODO: add a check to see if filenames are accepted on the
 	// current platform.
 	// if the torrent already exists, this will throw duplicate_torrent
@@ -903,7 +927,6 @@ namespace libtorrent
 		return torrent_handle(&m_impl, &m_checker_impl, ti.info_hash());
 	}
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
 	torrent_handle session::add_torrent(
 		char const* tracker_url
 		, sha1_hash const& info_hash
@@ -923,6 +946,10 @@ namespace libtorrent
 		// lock the session
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
 
+		// the metadata extension has to be enabled for this to work
+		assert(m_impl.m_extension_enabled
+			[peer_connection::extended_metadata_message]);
+
 		// is the torrent already active?
 		if (m_impl.find_torrent(info_hash))
 			throw duplicate_torrent();
@@ -931,14 +958,14 @@ namespace libtorrent
 		// the checker thread and store it before starting
 		// the thread
 		boost::shared_ptr<torrent> torrent_ptr(
-			new torrent(m_impl, tracker_url, info_hash, save_path, m_impl.m_listen_interface));
+			new torrent(m_impl, tracker_url, info_hash, save_path
+			, m_impl.m_listen_interface));
 
 		m_impl.m_torrents.insert(
 			std::make_pair(info_hash, torrent_ptr)).first;
 
 		return torrent_handle(&m_impl, &m_checker_impl, info_hash);
 	}
-#endif
 
 	void session::remove_torrent(const torrent_handle& h)
 	{

@@ -1,38 +1,25 @@
 use-project /torrent : .. ;
 
+project 
+   : requirements <source>/torrent <threading>multi
+   ;  
 
 exe client_test
 	: client_test.cpp
-	  /torrent
-	:
-	<threading>multi
-	: debug release
 	;
 
 
 exe simple_client
 	: simple_client.cpp
-	  /torrent
-	:
-	<threading>multi
-	: debug release
 	;
 
 
 exe dump_torrent
 	: dump_torrent.cpp
-	  /torrent
-	:
-	<threading>multi
-	: debug release
 	;
 
 exe make_torrent
 	: make_torrent.cpp
-	  /torrent
-	:
-	<threading>multi
-	: debug release
 	;
 
 

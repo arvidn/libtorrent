@@ -216,6 +216,12 @@ namespace libtorrent
 
 			boost::shared_ptr<socket> m_listen_socket;
 
+			// the entries in this array maps the
+			// extension index (as specified in peer_connection)
+			bool m_extension_enabled[peer_connection::num_supported_extensions];
+
+			bool extensions_enabled() const;
+
 			// the settings for the client
 			http_settings m_settings;
 
@@ -303,6 +309,9 @@ namespace libtorrent
 			, entry const& resume_data = entry());
 
 		session_status status() const;
+
+		void enable_extension(peer_connection::extension_index i);
+		void disable_extensions();
 
 		bool is_listening() const;
 

@@ -61,20 +61,20 @@ Functions that are yet to be implemented:
 	* ip-filters
 	* file-level priority
 
-libtorrent is portable at least among windows, macosx, and UNIX-systems. It uses boost.thread,
-boost.filesystem, boost.date_time and various other boost libraries as well as zlib.
+libtorrent is portable at least among windows, macosx, and other UNIX-systems. It uses Boost.Thread,
+Boost.Filesystem, Boost.Date_time and various other boost libraries as well as zlib.
 
 libtorrent has been successfully compiled and tested on:
 
 	* Windows 2000 vc7.1
-	* Linux x86 (debian) GCC 3.0.4, GCC 3.2.3
+	* Linux x86 GCC 3.0.4, GCC 3.2.3, GCC 3.4.2
 	* MacOS X, GCC 3.3
 	* SunOS 5.8 GCC 3.1
+	* Cygwin GCC 3.3.3
 
 Fails on:
 
 	* GCC 2.95.4 (``std::ios_base`` is missing)
-	* Cygwin GCC 3.3.1 (builds but crashes)
 	* msvc6 sp5
 
 libtorrent is released under the BSD-license_.
@@ -174,10 +174,6 @@ table below for which defines you can use to control the build. The ``Jamfile`` 
 |                                | checks in the storage, including logging of     |
 |                                | piece sorting.                                  |
 +--------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_EXTENSIONS`` | This will disble the support for extensions.    |
-|                                | For more information on which extensions are    |
-|                                | currently implemented, see extensions_.         |
-+--------------------------------+-------------------------------------------------+
 
 
 If you experience that libtorrent uses unreasonable amounts of cpu, it will definately help to
@@ -234,6 +230,9 @@ The ``session`` class has the following synopsis::
 			, entry const& resume_data = entry());
 
 		void remove_torrent(torrent_handle const& h);
+
+		void disable_extensions();
+		void enable_extension(peer_connection::extension_index);
 
 		void set_http_settings(const http_settings& settings);
 
@@ -334,6 +333,32 @@ remove_torrent()
 ``remove_torrent()`` will close all peer connections associated with the torrent and tell
 the tracker that we've stopped participating in the swarm.
 
+
+disable_extensions() enable_extension()
+---------------------------------------
+
+	::
+
+		void disable_extensions();
+		void enable_extension(peer_connection::extension_index);
+
+``disable_extensions()`` will disable all extensions available in libtorrent.
+``enable_extension()`` will enable a single extension. The available extensions
+are enumerated in the ``peer_connection`` class. These are the available extensions::
+
+	enum extension_index
+	{
+		extended_chat_message,
+		extended_metadata_message,
+		extended_peer_exchange_message,
+		extended_listen_port_message,
+		num_supported_extensions
+	};
+
+*peer_exchange is not implemented yet*
+
+By default, all extensions are enabled.
+For more information about the extensions, see the extensions_ section.
 
 set_upload_rate_limit() set_download_rate_limit()
 -------------------------------------------------

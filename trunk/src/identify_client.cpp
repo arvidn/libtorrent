@@ -155,6 +155,7 @@ namespace
 	map_entry name_map[] =
 	{
 		map_entry("A",  "ABC")
+		, map_entry("AR", "Arctic Torrent")
 		, map_entry("AZ", "Azureus")
 		, map_entry("BB", "BitBuddy")
 		, map_entry("BX", "BittorrentX")
