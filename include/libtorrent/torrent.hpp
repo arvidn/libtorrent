@@ -82,7 +82,7 @@ namespace libtorrent
 
 		~torrent();
 
-		void abort() { m_abort = true; m_event = event_stopped; }
+		void abort() { m_abort = true; m_event = tracker_request::stopped; }
 		bool is_aborted() const { return m_abort; }
 
 		// is called every second by session.
@@ -172,7 +172,7 @@ namespace libtorrent
 
 		// this is a callback called by the tracker_connection class
 		// when this torrent got a response from its tracker request
-		virtual void tracker_response(const entry& e);
+		virtual void tracker_response(std::vector<peer_entry>& e, int interval);
 		virtual void tracker_request_timed_out();
 		virtual void tracker_request_error(int response_code, const char* str);
 
@@ -210,7 +210,11 @@ namespace libtorrent
 		void announce_piece(int index);
 
 		void disconnect_all();
-		void disconnect_seeds();
+
+		// this is called wheh the torrent has completed
+		// the download. It will post an event, disconnect
+		// all seeds and let the tracker know we're finished.
+		void completed();
 
 		piece_picker& picker() { return m_picker; }
 
@@ -254,14 +258,6 @@ namespace libtorrent
 
 		void try_next_tracker();
 
-		enum event_id
-		{
-			event_started = 0,
-			event_stopped,
-			event_completed,
-			event_none
-		};
-
 		// the size of a request block
 		// each piece is divided into these
 		// blocks when requested
@@ -271,7 +267,7 @@ namespace libtorrent
 		// been aborted.
 		bool m_abort;
 
-		event_id m_event;
+		tracker_request::event_t m_event;
 
 		void parse_response(const entry& e, std::vector<peer_entry>& peer_list);
 

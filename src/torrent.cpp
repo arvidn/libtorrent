@@ -94,39 +94,6 @@ namespace
 		return default_block_size;
 	}
 
-
-	peer_entry extract_peer_info(const entry& e)
-	{
-		peer_entry ret;
-
-		const entry::dictionary_type& info = e.dict();
-
-		// extract peer id (if any)
-		entry::dictionary_type::const_iterator i = info.find("peer id");
-		if (i != info.end())
-		{
-			if (i->second.string().length() != 20) throw std::runtime_error("invalid response from tracker");
-			std::copy(i->second.string().begin(), i->second.string().end(), ret.id.begin());
-		}
-		else
-		{
-			// if there's no peer_id, just initialize it to a bunch of zeroes
-			std::fill_n(ret.id.begin(), 20, 0);
-		}
-
-		// extract ip
-		i = info.find("ip");
-		if (i == info.end()) throw std::runtime_error("invalid response from tracker");
-		ret.ip = i->second.string();
-
-		// extract port
-		i = info.find("port");
-		if (i == info.end()) throw std::runtime_error("invalid response from tracker");
-		ret.port = i->second.integer();
-
-		return ret;
-	}
-
 /*
 	struct find_peer_by_id
 	{
@@ -242,7 +209,7 @@ namespace libtorrent
 		, const boost::filesystem::path& save_path)
 		: m_block_size(calculate_block_size(torrent_file))
 		, m_abort(false)
-		, m_event(event_started)
+		, m_event(tracker_request::started)
 		, m_torrent_file(torrent_file)
 		, m_storage(m_torrent_file, save_path)
 		, m_next_request(boost::posix_time::second_clock::local_time())
@@ -268,60 +235,48 @@ namespace libtorrent
 		if (m_ses.m_abort) m_abort = true;
 	}
 
-	void torrent::tracker_response(const entry& e)
+	void torrent::tracker_response(
+		std::vector<peer_entry>& peer_list
+		, int interval)
 	{
-		std::vector<peer_entry> peer_list;
-		try
-		{
-			// parse the response
-			parse_response(e, peer_list);
+		m_last_working_tracker
+			= m_torrent_file.prioritize_tracker(m_currently_trying_tracker);
+		m_next_request = boost::posix_time::second_clock::local_time()
+			+ boost::posix_time::seconds(m_duration);
+		m_currently_trying_tracker = 0;
 
-			m_last_working_tracker
-				= m_torrent_file.prioritize_tracker(m_currently_trying_tracker);
-			m_next_request = boost::posix_time::second_clock::local_time()
-				+ boost::posix_time::seconds(m_duration);
-			m_currently_trying_tracker = 0;
+		m_duration = interval;
 
-			// connect to random peers from the list
-			std::random_shuffle(peer_list.begin(), peer_list.end());
+		// connect to random peers from the list
+		std::random_shuffle(peer_list.begin(), peer_list.end());
 
 
 #ifndef NDEBUG
-			std::stringstream s;
-			s << "interval: " << m_duration << "\n";
-			s << "peers:\n";
-			for (std::vector<peer_entry>::const_iterator i = peer_list.begin();
-				i != peer_list.end();
-				++i)
-			{
-				s << "  " << std::setfill(' ') << std::setw(16) << i->ip
-					<< " " << std::setw(5) << std::dec << i->port << "  "
-					<< i->id << " " << identify_client(i->id) << "\n";
-			}
-			debug_log(s.str());
+		std::stringstream s;
+		s << "interval: " << m_duration << "\n";
+		s << "peers:\n";
+		for (std::vector<peer_entry>::const_iterator i = peer_list.begin();
+			i != peer_list.end();
+			++i)
+		{
+			s << "  " << std::setfill(' ') << std::setw(16) << i->ip
+				<< " " << std::setw(5) << std::dec << i->port << "  "
+				<< i->id << " " << identify_client(i->id) << "\n";
+		}
+		debug_log(s.str());
 #endif
-			// for each of the peers we got from the tracker
-			for (std::vector<peer_entry>::iterator i = peer_list.begin();
-				i != peer_list.end();
-				++i)
-			{
-				// don't make connections to ourself
-				if (i->id == m_ses.get_peer_id())
-					continue;
-
-				address a(i->ip, i->port);
-
-				m_policy->peer_from_tracker(a, i->id);
-			}
-
-		}
-		catch(type_error& e)
+		// for each of the peers we got from the tracker
+		for (std::vector<peer_entry>::iterator i = peer_list.begin();
+			i != peer_list.end();
+			++i)
 		{
-			tracker_request_error(-1, e.what());
-		}
-		catch(std::runtime_error& e)
-		{
-			tracker_request_error(-1, e.what());
+			// don't make connections to ourself
+			if (i->id == m_ses.get_peer_id())
+				continue;
+
+			address a(i->ip, i->port);
+
+			m_policy->peer_from_tracker(a, i->id);
 		}
 
 		m_got_tracker_response = true;
@@ -494,41 +449,9 @@ namespace libtorrent
 		req.uploaded = m_stat.total_payload_upload();
 		req.left = bytes_left();
 		req.listen_port = port;
-		if (m_event != event_none)
-		{
-			const char* event_string[] = {"started", "stopped", "completed"};
-			req.event += event_string[m_event];
-			m_event = event_none;
-		}
+		req.event = m_event;
 		req.url = m_torrent_file.trackers()[m_currently_trying_tracker].url;
 		return req;
-	}
-
-	void torrent::parse_response(const entry& e, std::vector<peer_entry>& peer_list)
-	{
-		entry::dictionary_type::const_iterator i = e.dict().find("failure reason");
-		if (i != e.dict().end())
-		{
-			throw std::runtime_error(i->second.string().c_str());
-		}
-
-		const entry::dictionary_type& msg = e.dict();
-		i = msg.find("interval");
-		if (i == msg.end()) throw std::runtime_error("invalid response from tracker (no interval)");
-
-		m_duration = i->second.integer();
-
-		i = msg.find("peers");
-		if (i == msg.end()) throw std::runtime_error("invalid response from tracker (no peers)");
-
-		peer_list.clear();
-
-		const entry::list_type& l = i->second.list();
-		for(entry::list_type::const_iterator i = l.begin(); i != l.end(); ++i)
-		{
-			peer_entry p = extract_peer_info(*i);
-			peer_list.push_back(p);
-		}
 	}
 
 	void torrent::remove_peer(peer_connection* p)
@@ -626,8 +549,17 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::disconnect_seeds()
+	void torrent::completed()
 	{
+		if (alerts().should_post(alert::info))
+		{
+			alerts().post_alert(torrent_finished_alert(
+				get_handle()
+				, "torrent is finished downloading"));
+		}
+
+
+	// disconnect all seeds
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end();
 			++i)
@@ -636,6 +568,11 @@ namespace libtorrent
 			if (i->second->is_seed())
 				i->second->disconnect();
 		}
+
+		// make the next tracker request
+		// be a completed-event
+		m_event = tracker_request::completed;
+		force_tracker_request();
 	}
 
 

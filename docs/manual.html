@@ -205,7 +205,7 @@ class session: public boost::noncopyable
 
         torrent_handle add_torrent(
                 const torrent_info&amp; t
-                , const std::string&amp; save_path
+                , const boost::filesystem::path&amp; save_path
                 , const entry&amp; resume_data = entry());
 
         void remove_torrent(const torrent_handle&amp; h);

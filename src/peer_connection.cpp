@@ -705,14 +705,7 @@ namespace libtorrent
 			if (!was_seed && m_torrent->is_seed())
 			{
 				assert(verified);
-				if (m_torrent->alerts().should_post(alert::info))
-				{
-					m_torrent->alerts().post_alert(torrent_finished_alert(
-						m_torrent->get_handle()
-						, "torrent is finished downloading"));
-				}
-
-				m_torrent->disconnect_seeds();
+				m_torrent->completed();
 			}
 
 		}

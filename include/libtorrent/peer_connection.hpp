@@ -96,6 +96,15 @@ namespace libtorrent
 			return ret;
 		}
 
+		template <class InIt>
+		inline unsigned short read_ushort(InIt& start)
+		{
+			unsigned short val = 0;
+			val |= static_cast<unsigned char>(*start) << 8; ++start;
+			val |= static_cast<unsigned char>(*start); ++start;
+			return val;
+		}
+
 		// reads an integer to a byte stream
 		// and converts it from native endianess
 		template <class OutIt>
@@ -111,6 +120,13 @@ namespace libtorrent
 		inline void write_int(int val, OutIt& start)
 		{
 			write_uint(static_cast<unsigned int>(val), start);
+		}
+
+		template <class OutIt>
+		void write_ushort(unsigned short val, OutIt& start)
+		{
+			*start = static_cast<unsigned char>((val >> 8) & 0xff); ++start;
+			*start = static_cast<unsigned char>((val) & 0xff); ++start;
 		}
 
 		template <class OutIt>

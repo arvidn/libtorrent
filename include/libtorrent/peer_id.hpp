@@ -46,7 +46,7 @@ namespace libtorrent
 	enum { number_size = 20 };
 	public:
 
-		void set_to_all_zero()
+		void clear()
 		{
 			std::fill(m_number,m_number+number_size,0);
 		}
