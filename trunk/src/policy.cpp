@@ -719,8 +719,19 @@ namespace libtorrent
 	// called when a peer is no longer interested in us
 	void policy::not_interested(peer_connection& c)
 	{
-		// TODO: return the diff() of this peer to the
-		// pool of undistributed free upload
+		if (m_torrent->ratio() != 0.f)
+		{
+			assert(c.share_diff() < std::numeric_limits<int>::max());
+			int diff = c.share_diff();
+			if (diff > 0 && c.is_seed())
+			{
+				// the peer is a seed and has sent
+				// us more than we have sent it back.
+				// consider the download as free download
+				m_available_free_upload += diff;
+				c.add_free_upload(-diff);
+			}
+		}
 	}
 
 	bool policy::unchoke_one_peer()

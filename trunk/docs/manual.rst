@@ -73,6 +73,11 @@ libtorrent is released under the BSD-license_.
 building
 ========
 
+Whwn building in release mode you need to define NDEBUG in order to avoid
+all asserts and invariant checks within libtorrent. Developer studio does
+this by default.
+
+
 To build libtorrent you need boost_ and bjam installed.
 Then you can use ``bjam`` to build libtorrent.
 
@@ -220,7 +225,7 @@ bencoded data. They are::
 	template<class InIt> entry bdecode(InIt start, InIt end);
 	template<class OutIt> void bencode(OutIt out, const entry& e);
 
-__ http://bitconjurer.org/BitTorrent/protocol.html
+__ http://wiki.theory.org/index.php/BitTorrentSpecification
 
 
 The entry_ class is the internal representation of the bencoded data
@@ -548,6 +553,7 @@ It contains the following fields::
 		state_t state;
 		float progress;
 		boost::posix_time::time_duration next_announce;
+		boost::posix_time::time_duration announce_interval;
 
 		std::size_t total_download;
 		std::size_t total_upload;
@@ -593,7 +599,9 @@ current task is in the ``state`` member, it will be one of the following:
 |                          |                                                          |
 +--------------------------+----------------------------------------------------------+
 
-``next_announce`` is the time until the torrent will announce itself to the tracker.
+``next_announce`` is the time until the torrent will announce itself to the tracker. And
+``announce_interval`` is the time the tracker want us to wait until we announce ourself
+again the next time.
 
 ``total_download`` and ``total_upload`` is the number of bytes downloaded and
 uploaded to all peers, accumulated, *this session* only.

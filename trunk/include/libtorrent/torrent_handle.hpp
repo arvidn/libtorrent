@@ -92,6 +92,9 @@ namespace libtorrent
 		state_t state;
 		float progress;
 		boost::posix_time::time_duration next_announce;
+		boost::posix_time::time_duration announce_interval;
+
+		// TODO: add name of tracker that is currently used
 
 		// transferred this session!
 		// total, payload plus protocol

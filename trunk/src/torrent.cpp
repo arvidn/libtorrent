@@ -426,11 +426,6 @@ namespace libtorrent
 		std::vector<address> downloaders;
 		m_picker.get_downloaders(downloaders, index);
 
-#ifndef NDEBUG
-//		std::cout << "hash-test failed. Some of these peers sent invalid data:\n";
-//		std::copy(downloaders.begin(), downloaders.end(), std::ostream_iterator<peer_id>(std::cout, "\n"));
-#endif
-
 		// decrease the trust point of all peers that sent
 		// parts of this piece.
 		for (std::vector<address>::iterator i = downloaders.begin();
@@ -587,8 +582,6 @@ namespace libtorrent
 			peer_lost(*i);
 		}
 
-//		std::cout << p->get_socket()->sender().as_string() << " *** DISCONNECT\n";
-
 		m_policy->connection_closed(*p);
 		m_connections.erase(i);
 
@@ -623,7 +616,6 @@ namespace libtorrent
 
 		m_ses.m_selector.monitor_readability(s);
 		m_ses.m_selector.monitor_errors(s);
-//		std::cout << "connecting to: " << a.as_string() << ":" << a.port() << "\n";
 		return *c;
 	}
 
@@ -792,6 +784,8 @@ namespace libtorrent
 
 		st.next_announce = next_announce()
 			- boost::posix_time::second_clock::local_time();
+		st.announce_interval = boost::posix_time::seconds(m_duration);
+
 
 		st.num_peers = m_connections.size();
 

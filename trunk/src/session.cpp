@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/exception.hpp>
 #include <boost/limits.hpp>
+#include <boost/bind.hpp>
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -935,6 +936,24 @@ namespace libtorrent
 			if (hash != real_hash)
 				return;
 
+			// the peers
+
+			entry::list_type& peer_list = rd.dict()["peers"].list();
+
+			std::vector<address> tmp_peers;
+			tmp_peers.reserve(peer_list.size());
+			for (entry::list_type::iterator i = peer_list.begin();
+				i != peer_list.end();
+				++i)
+			{
+				address a(i->dict()["ip"].string(), i->dict()["port"].integer());
+				tmp_peers.push_back(a);
+			}
+
+			peers.swap(tmp_peers);
+
+
+
 			// read piece map
 			const entry::list_type& slots = rd.dict()["slots"].list();
 			if (slots.size() > info.num_pieces())
@@ -990,21 +1009,19 @@ namespace libtorrent
 				tmp_unfinished.push_back(p);
 			}
 
-			// the peers
+			// verify file sizes
 
-			entry::list_type& peer_list = rd.dict()["peers"].list();
+			std::vector<size_type> file_sizes;
+			entry::list_type& l = rd.dict()["file sizes"].list();
+			std::transform(
+				l.begin()
+				, l.end()
+				, std::back_inserter(file_sizes)
+				, boost::bind(&entry::integer, _1));
 
-			std::vector<address> tmp_peers;
-			tmp_peers.reserve(peer_list.size());
-			for (entry::list_type::iterator i = peer_list.begin();
-				i != peer_list.end();
-				++i)
-			{
-				address a(i->dict()["ip"].string(), i->dict()["port"].integer());
-				tmp_peers.push_back(a);
-			}
+			if (!match_filesizes(info, save_path, file_sizes))
+				return;
 
-			peers.swap(tmp_peers);
 			piece_map.swap(tmp_pieces);
 			unfinished_pieces.swap(tmp_unfinished);
 		}

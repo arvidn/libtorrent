@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/format.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/bind.hpp>
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
@@ -56,7 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 bool sleep_and_input(char* c)
 {
-	Sleep(200);
+	Sleep(500);
 	if (kbhit())
 	{
 		*c = getch();
@@ -116,7 +117,7 @@ bool sleep_and_input(char* c)
 	fd_set set;
 	FD_ZERO(&set);
 	FD_SET(0, &set);
-	timeval tv = {0, 200000};
+	timeval tv = {0, 500000};
 	if (select(1, &set, 0, 0, &tv) > 0)
 	{
 		*c = getc(stdin);
@@ -220,7 +221,7 @@ int main(int argc, char* argv[])
 //	settings.proxy_port = 80;
 //	settings.proxy_login = "hyd";
 //	settings.proxy_password = "foobar";
-	settings.user_agent = "example";
+	settings.user_agent = "client_test";
 
 	std::deque<std::string> events;
 
@@ -229,7 +230,6 @@ int main(int argc, char* argv[])
 		std::vector<torrent_handle> handles;
 		session ses(6881);
 
-//		// limit global upload rate to 30 kB/s
 //		ses.set_upload_rate_limit(30 * 1024);
 		ses.set_http_settings(settings);
 		ses.set_severity_level(alert::debug);
@@ -293,9 +293,13 @@ int main(int argc, char* argv[])
 					break;
 				}
 
-				if(c==' ')
+				if(c == 'r')
 				{
-					events.pop_back();
+					// force reannounce on all torrents
+					std::for_each(
+						handles.begin()
+						, handles.end()
+						, boost::bind(&torrent_handle::force_reannounce, _1));
 				}
 			}
 

@@ -252,6 +252,15 @@ namespace libtorrent
 			peer_list.push_back(peer);
 		}
 
+		std::vector<size_type> file_sizes
+			= get_filesizes(t->torrent_file(), t->save_path());
+
+		ret.dict()["file sizes"] = entry::list_type();
+		std::copy(
+			file_sizes.begin()
+			, file_sizes.end()
+			, std::back_inserter(ret.dict()["file sizes"].list()));
+
 		return ret;
 	}
 
