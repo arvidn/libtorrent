@@ -157,6 +157,7 @@ namespace
 		, map_entry("AZ", "Azureus")
 		, map_entry("BB", "BitBuddy")
 		, map_entry("BX", "BittorrentX")
+		, map_entry("CT", "CTorrent")
 		, map_entry("LT", "libtorrent")
 		, map_entry("M",  "Mainline")
 		, map_entry("MT", "Moonlight Torrent")

@@ -328,19 +328,6 @@ namespace libtorrent
 			line >> m_code;
 			std::getline(line, m_server_message);
 			m_state = read_header;
-
-			if (m_code != 200
-				&& m_code != 301
-				&& m_code != 302
-				&& m_code != 303
-				&& m_code != 307)
-			{
-				std::string error_msg = boost::lexical_cast<std::string>(m_code)
-					+ " " + m_server_message;
-				if (has_requester()) requester().tracker_request_error(
-					m_code, error_msg.c_str());
-				return true;
-			}
 		}
 
 		if (m_state == read_header)
@@ -559,7 +546,10 @@ namespace libtorrent
 			try
 			{
 				const entry& failure = e["failure reason"];
-				throw std::runtime_error(failure.string().c_str());
+
+				if (has_requester()) requester().tracker_request_error(
+					m_code, failure.string().c_str());
+				return;
 			}
 			catch (const type_error&) {}
 
