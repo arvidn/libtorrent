@@ -33,8 +33,7 @@ project torrent
 	<library>/boost/date_time//boost_date_time/<link>static
 	<link>static
 	<threading>multi
-	<toolset>msvc-7:<cxxflags>/Zc:wchar_t
-	<toolset>msvc-7.1:<cxxflags>/Zc:wchar_t
+	<toolset>msvc:<cxxflags>/Zc:wchar_t
 
 	: usage-requirements 
 
