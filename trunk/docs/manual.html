@@ -135,7 +135,7 @@ boost.filesystem, boost.date_time and various other boost libraries as well as z
 <p>To build libtorrent you need <a class="reference" href="http://www.boost.org">boost</a> and bjam installed.
 Then you can use <tt class="literal"><span class="pre">bjam</span></tt> to build libtorrent.</p>
 <p>To make bjam work, you need to set the environment variable <tt class="literal"><span class="pre">BOOST_ROOT</span></tt> to the
-path where boost is installed (e.g. c:boost_1_30_2 on windows). Then you can just run
+path where boost is installed (e.g. c:\boost_1_30_2 on windows). Then you can just run
 <tt class="literal"><span class="pre">bjam</span></tt> in the libtorrent directory.</p>
 <p>The Jamfile doesn't work yet. On unix-systems you can use the makefile however. You
 first have to build boost.thread and boost.filesystem. You do this by, in the directory
@@ -546,6 +546,8 @@ struct torrent_status
         float download_rate;
         float upload_rate;
 
+        int num_peers;
+
         std::vector&lt;bool&gt; pieces;
         std::size_t total_done;
 };
@@ -595,6 +597,7 @@ the pieces we don't have.</p>
 <p><tt class="literal"><span class="pre">download_rate</span></tt> and <tt class="literal"><span class="pre">upload_rate</span></tt> are the total rates for all peers for this
 torrent. These will usually have better precision than summing the rates from
 all peers. The rates are given as the number of bytes per second.</p>
+<p><tt class="literal"><span class="pre">num_peers</span></tt> is the number of peers this torrent currently is connected to.</p>
 <p><tt class="literal"><span class="pre">total_done</span></tt> is the total number of bytes of the file(s) that we have.</p>
 </div>
 <div class="section" id="get-download-queue">
@@ -661,6 +664,7 @@ struct peer_info
 
         int load_balancing;
         int download_queue_length;
+        int upload_queue_length;
 
         int downloading_piece_index;
         int downloading_block_index;
@@ -724,8 +728,10 @@ and free upload that we give. Every peer gets a certain amount of free upload, b
 this member says how much <em>extra</em> free upload this peer has got. If it is a negative
 number it means that this was a peer from which we have got this amount of free
 download.</p>
-<p><tt class="literal"><span class="pre">download_queue_length</span></tt> is the number of block-requests we have sent to this peer
+<p><tt class="literal"><span class="pre">download_queue_length</span></tt> is the number of piece-requests we have sent to this peer
 that hasn't been answered with a piece yet.</p>
+<p><tt class="literal"><span class="pre">upload_queue_length</span></tt> is the number of piece-requests we have received from this peer
+that we haven't answered with a piece yet.</p>
 <p>You can know which piece, and which part of that piece, that is currently being
 downloaded from a specific peer by looking at the next four members.
 <tt class="literal"><span class="pre">downloading_piece_index</span></tt> is the index of the piece that is currently being downloaded.

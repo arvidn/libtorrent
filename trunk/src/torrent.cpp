@@ -793,6 +793,8 @@ namespace libtorrent
 		st.next_announce = next_announce()
 			- boost::posix_time::second_clock::local_time();
 
+		st.num_peers = m_connections.size();
+
 		// TODO: this is not accurate because it assumes the last
 		// block is m_block_size bytes
 		// TODO: st.pieces could be a const pointer maybe?

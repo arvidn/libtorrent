@@ -557,6 +557,8 @@ It contains the following fields::
 		float download_rate;
 		float upload_rate;
 
+		int num_peers;
+
 		std::vector<bool> pieces;
 		std::size_t total_done;
 	};
@@ -605,6 +607,8 @@ the pieces we don't have.
 ``download_rate`` and ``upload_rate`` are the total rates for all peers for this
 torrent. These will usually have better precision than summing the rates from
 all peers. The rates are given as the number of bytes per second.
+
+``num_peers`` is the number of peers this torrent currently is connected to.
 
 ``total_done`` is the total number of bytes of the file(s) that we have.
 
