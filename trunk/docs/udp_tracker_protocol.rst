@@ -131,7 +131,7 @@ The rest of the server reply is a variable number of the following structure:
 +=============+=====================+========================================+
 | int32_t     | ip                  | The ip of a peer in the swarm.         |
 +-------------+---------------------+----------------------------------------+
-| uint16_t    | port                | The peers listen port.                 |
+| uint16_t    | port                | The peer's listen port.                |
 +-------------+---------------------+----------------------------------------+
 
 
@@ -151,7 +151,7 @@ Client sends packet:
 +-------------+---------------------+----------------------------------------+
 | int32_t     | transaction_id      | Randomized by client.                  |
 +-------------+---------------------+----------------------------------------+
-| int8[20]    | info_hash           | The info hash that is to be scraped.   |
+| int8_t[20]  | info_hash           | The info hash that is to be scraped.   |
 +-------------+---------------------+----------------------------------------+
 
 Server replies with packet:
@@ -195,7 +195,7 @@ In case of a tracker error, the server replies with this packet:
 | int32_t     | transaction_id      | Must match the transaction_id sent     |
 |             |                     | from the client.                       |
 +-------------+---------------------+----------------------------------------+
-| int8[]      | error_string        | The rest of the packet is a string     |
+| int8_t[]    | error_string        | The rest of the packet is a string     |
 |             |                     | describing the error.                  |
 +-------------+---------------------+----------------------------------------+
 

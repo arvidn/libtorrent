@@ -225,7 +225,7 @@ until reannouncing yourself.</td>
 </tr>
 <tr><td>uint16_t</td>
 <td>port</td>
-<td>The peers listen port.</td>
+<td>The peer's listen port.</td>
 </tr>
 </tbody>
 </table>
@@ -260,7 +260,7 @@ scrape.</td>
 <td>transaction_id</td>
 <td>Randomized by client.</td>
 </tr>
-<tr><td>int8[20]</td>
+<tr><td>int8_t[20]</td>
 <td>info_hash</td>
 <td>The info hash that is to be scraped.</td>
 </tr>
@@ -352,7 +352,7 @@ leechers.</td>
 <td>Must match the transaction_id sent
 from the client.</td>
 </tr>
-<tr><td>int8[]</td>
+<tr><td>int8_t[]</td>
 <td>error_string</td>
 <td>The rest of the packet is a string
 describing the error.</td>
