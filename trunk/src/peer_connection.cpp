@@ -1852,12 +1852,13 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		assert(!m_disconnecting);
 		assert(!m_socket->is_blocking());
 		assert(m_packet_size > 0);
 		assert(m_socket->is_readable());
 		assert(can_read());
 		assert(m_selector.is_readability_monitored(m_socket));
+
+		if (m_disconnecting) return;
 
 		for(;;)
 		{
@@ -1865,7 +1866,8 @@ namespace libtorrent
 			int max_receive = std::min(
 				m_dl_bandwidth_quota.left()
 				, m_packet_size - m_recv_pos);
-			int received = m_socket->receive(&m_recv_buffer[m_recv_pos], max_receive);
+			int received = m_socket->receive(
+				&m_recv_buffer[m_recv_pos], max_receive);
 
 			// connection closed
 			if (received == 0)
