@@ -50,6 +50,8 @@ namespace std
 {
 	using ::isprint;
 	using ::isdigit;
+	using ::toupper;
+	using ::isalnum;
 }
 #endif
 

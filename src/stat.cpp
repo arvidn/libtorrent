@@ -41,6 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include <algorithm>
 
+#if defined _MSC_VER && _MSC_VER <= 1200
+#define for if (false) {} else for
+#endif
+
 using namespace libtorrent;
 
 void libtorrent::stat::second_tick()

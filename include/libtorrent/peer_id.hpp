@@ -124,13 +124,15 @@ namespace libtorrent
 
 	inline std::istream& operator>>(std::istream& is, big_number& peer)
 	{
+		using namespace std;
+
 		for (big_number::iterator i = peer.begin();
 			i != peer.end(); ++i)
 		{
 			char c[2];
 			is >> c[0] >> c[1];
-			*i = ((std::isdigit(c[0])?c[0]-'0':c[0]-'a'+10) << 4)
-				+ (std::isdigit(c[1])?c[1]-'0':c[1]-'a'+10);
+			*i = ((isdigit(c[0])?c[0]-'0':c[0]-'a'+10) << 4)
+				+ (isdigit(c[1])?c[1]-'0':c[1]-'a'+10);
 		}
 		return is;
 	}
