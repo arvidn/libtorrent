@@ -1311,25 +1311,16 @@ namespace libtorrent
 
 			// verify file sizes
 
-			std::vector<size_type> file_sizes;
+			std::vector<std::pair<size_type, std::time_t> > file_sizes;
 			entry::list_type& l = rd["file sizes"].list();
 
-#if defined(_MSC_VER) && _MSC_VER < 1300
 			for (entry::list_type::iterator i = l.begin();
-				i != l.end();
-				++i)
+				i != l.end(); ++i)
 			{
-				file_sizes.push_back(i->integer());
+				file_sizes.push_back(std::pair<size_type, std::time_t>(
+					i->list().front().integer()
+					, i->list().back().integer()));
 			}
-#else
-			typedef entry::integer_type const& (entry::*mem_fun_type)() const;
-
-			std::transform(
-				l.begin()
-				, l.end()
-				, std::back_inserter(file_sizes)
-				, boost::bind((mem_fun_type)&entry::integer, _1));
-#endif
 
 			if ((int)tmp_pieces.size() == info.num_pieces()
 				&& std::find_if(tmp_pieces.begin(), tmp_pieces.end()
@@ -1338,13 +1329,14 @@ namespace libtorrent
 				if (info.num_files() != (int)file_sizes.size())
 					return;
 
-				std::vector<size_type>::iterator fs = file_sizes.begin();
+				std::vector<std::pair<size_type, std::time_t> >::iterator
+					fs = file_sizes.begin();
 				// the resume data says we have the entire torrent
 				// make sure the file sizes are the right ones
 				for (torrent_info::file_iterator i = info.begin_files()
 					, end(info.end_files()); i != end; ++i, ++fs)
 				{
-					if (i->size != *fs) return;
+					if (i->size != fs->first) return;
 				}
 			}
 

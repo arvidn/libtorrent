@@ -61,14 +61,14 @@ namespace libtorrent
 
 	class session;
 
-	std::vector<size_type> get_filesizes(
+	std::vector<std::pair<size_type, std::time_t> > get_filesizes(
 		torrent_info const& t
 		, boost::filesystem::path p);
 
 	bool match_filesizes(
 		torrent_info const& t
 		, boost::filesystem::path p
-		, std::vector<size_type> const& sizes);
+		, std::vector<std::pair<size_type, std::time_t> > const& sizes);
 
 	struct file_allocation_failed: std::exception
 	{

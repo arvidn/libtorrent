@@ -464,14 +464,19 @@ namespace libtorrent
 			peer_list.push_back(peer);
 		}
 
-		std::vector<size_type> file_sizes
+		std::vector<std::pair<size_type, std::time_t> > file_sizes
 			= get_filesizes(t->torrent_file(), t->save_path());
 
 		ret["file sizes"] = entry::list_type();
-		std::copy(
-			file_sizes.begin()
-			, file_sizes.end()
-			, std::back_inserter(ret["file sizes"].list()));
+		entry::list_type& fl = ret["file sizes"].list();
+		for (std::vector<std::pair<size_type, std::time_t> >::iterator i
+			= file_sizes.begin(), end(file_sizes.end()); i != end; ++i)
+		{
+			entry::list_type p;
+			p.push_back(entry(i->first));
+			p.push_back(entry(i->second));
+			fl.push_back(entry(p));
+		}
 
 		return ret;
 	}
