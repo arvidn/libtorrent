@@ -54,6 +54,23 @@ namespace libtorrent
 	const char* peer_connection::extension_names[] =
 	{ "gzip" };
 
+	const peer_connection::message_handler peer_connection::m_message_handler[] =
+	{
+		&peer_connection::on_choke,
+		&peer_connection::on_unchoke,
+		&peer_connection::on_interested,
+		&peer_connection::on_not_interested,
+		&peer_connection::on_have,
+		&peer_connection::on_bitfield,
+		&peer_connection::on_request,
+		&peer_connection::on_piece,
+		&peer_connection::on_cancel,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		&peer_connection::on_extension_list,
+		&peer_connection::on_extended
+	};
+
+
 	peer_connection::peer_connection(
 		detail::session_impl& ses
 		, selector& sel
@@ -262,441 +279,479 @@ namespace libtorrent
 		return boost::optional<piece_block_progress>(p);
 	}
 
+
+	// message handlers
+
+	// -----------------------------
+	// ----------- CHOKE -----------
+	// -----------------------------
+
+	void peer_connection::on_choke(int received)
+	{
+		if (m_packet_size != 1)
+			throw protocol_error("'choke' message size != 1");
+		m_statistics.received_bytes(0, received);
+		if (m_recv_pos < m_packet_size) return;
+
+#ifndef NDEBUG
+		(*m_logger) << m_socket->sender().as_string() << " <== CHOKE\n";
+#endif
+		m_peer_choked = true;
+		m_torrent->get_policy().choked(*this);
+
+		// remove all pieces from this peers download queue and
+		// remove the 'downloading' flag from piece_picker.
+		for (std::deque<piece_block>::iterator i = m_download_queue.begin();
+			i != m_download_queue.end();
+			++i)
+		{
+			m_torrent->picker().abort_download(*i);
+		}
+		m_download_queue.clear();
+#ifndef NDEBUG
+//		m_torrent->picker().integrity_check(m_torrent);
+#endif
+	}
+
+	// -----------------------------
+	// ---------- UNCHOKE ----------
+	// -----------------------------
+
+	void peer_connection::on_unchoke(int received)
+	{
+		if (m_packet_size != 1)
+			throw protocol_error("'unchoke' message size != 1");
+		m_statistics.received_bytes(0, received);
+		if (m_recv_pos < m_packet_size) return;
+
+#ifndef NDEBUG
+		(*m_logger) << m_socket->sender().as_string() << " <== UNCHOKE\n";
+#endif
+		m_peer_choked = false;
+		m_torrent->get_policy().unchoked(*this);
+	}
+
+	// -----------------------------
+	// -------- INTERESTED ---------
+	// -----------------------------
+
+	void peer_connection::on_interested(int received)
+	{
+		if (m_packet_size != 1)
+			throw protocol_error("'interested' message size != 1");
+		m_statistics.received_bytes(0, received);
+		if (m_recv_pos < m_packet_size) return;
+
+#ifndef NDEBUG
+		(*m_logger) << m_socket->sender().as_string() << " <== INTERESTED\n";
+#endif
+		m_peer_interested = true;
+		m_torrent->get_policy().interested(*this);
+	}
+
+	// -----------------------------
+	// ------ NOT INTERESTED -------
+	// -----------------------------
+
+	void peer_connection::on_not_interested(int received)
+	{
+		if (m_packet_size != 1)
+			throw protocol_error("'not interested' message size != 1");
+		m_statistics.received_bytes(0, received);
+		if (m_recv_pos < m_packet_size) return;
+
+		// clear the request queue if the client isn't interested
+		m_requests.clear();
+
+#ifndef NDEBUG
+		(*m_logger) << m_socket->sender().as_string() << " <== NOT_INTERESTED\n";
+#endif
+		m_peer_interested = false;
+		m_torrent->get_policy().not_interested(*this);
+	}
+
+	// -----------------------------
+	// ----------- HAVE ------------
+	// -----------------------------
+
+	void peer_connection::on_have(int received)
+	{
+		if (m_packet_size != 5)
+			throw protocol_error("'have' message size != 5");
+		m_statistics.received_bytes(0, received);
+		if (m_recv_pos < m_packet_size) return;
+
+		const char* ptr = &m_recv_buffer[1];
+		int index = detail::read_int(ptr);
+		// if we got an invalid message, abort
+		if (index >= m_have_piece.size() || index < 0)
+			throw protocol_error("have message with higher index than the number of pieces");
+
+#ifndef NDEBUG
+		(*m_logger) << m_socket->sender().as_string() << " <== HAVE [ piece: " << index << "]\n";
+#endif
+
+		if (m_have_piece[index])
+		{
+#ifndef NDEBUG
+			(*m_logger) << m_socket->sender().as_string() << " oops.. we already knew that: " << index << "\n";
+#endif
+		}
+		else
+		{
+			m_have_piece[index] = true;
+
+			m_torrent->peer_has(index);
+			if (!m_torrent->have_piece(index) && !is_interesting())
+				m_torrent->get_policy().peer_is_interesting(*this);
+		}
+	}
+
+	// -----------------------------
+	// --------- BITFIELD ----------
+	// -----------------------------
+
+	void peer_connection::on_bitfield(int received)
+	{
+		if (m_packet_size - 1 != (m_have_piece.size() + 7) / 8)
+			throw protocol_error("bitfield with invalid size");
+		m_statistics.received_bytes(0, received);
+		if (m_recv_pos < m_packet_size) return;
+
+#ifndef NDEBUG
+		(*m_logger) << m_socket->sender().as_string() << " <== BITFIELD\n";
+#endif
+		// build a vector of all pieces
+		std::vector<int> piece_list;
+		for (std::size_t i = 0; i < m_have_piece.size(); ++i)
+		{
+			bool have = m_recv_buffer[1 + (i>>3)] & (1 << (7 - (i&7)));
+			if (have && !m_have_piece[i])
+			{
+				m_have_piece[i] = true;
+				piece_list.push_back(i);
+			}
+			else if (!have && m_have_piece[i])
+			{
+				m_have_piece[i] = false;
+				m_torrent->peer_lost(i);
+			}
+		}
+
+		// shuffle the piece list
+		std::random_shuffle(piece_list.begin(), piece_list.end());
+
+		// let the torrent know which pieces the
+		// peer has, in a shuffled order
+		bool interesting = false;
+		for (std::vector<int>::iterator i = piece_list.begin();
+			i != piece_list.end();
+			++i)
+		{
+			int index = *i;
+			m_torrent->peer_has(index);
+			if (!m_torrent->have_piece(index))
+				interesting = true;
+		}
+
+		if (piece_list.empty())
+		{
+#ifndef NDEBUG
+			(*m_logger) << m_socket->sender().as_string() << " *** THIS IS A SEED ***\n";
+#endif
+		}
+
+		if (interesting) m_torrent->get_policy().peer_is_interesting(*this);
+	}
+
+	// -----------------------------
+	// ---------- REQUEST ----------
+	// -----------------------------
+
+	void peer_connection::on_request(int received)
+	{
+		if (m_packet_size != 13)
+			throw protocol_error("'request' message size != 13");
+		m_statistics.received_bytes(0, received);
+		if (m_recv_pos < m_packet_size) return;
+
+		peer_request r;
+		const char* ptr = &m_recv_buffer[1];
+		r.piece = detail::read_int(ptr);
+		r.start = detail::read_int(ptr);
+		r.length = detail::read_int(ptr);
+
+		// make sure this request
+		// is legal and taht the peer
+		// is not choked
+		if (r.piece >= 0
+			&& r.piece < m_torrent->torrent_file().num_pieces()
+			&& r.start >= 0
+			&& r.start < m_torrent->torrent_file().piece_size(r.piece)
+			&& r.length > 0
+			&& r.length + r.start < m_torrent->torrent_file().piece_size(r.piece)
+			&& m_peer_interested)
+		{
+			// if we have choked the client
+			// ignore the request
+			if (m_choked) return;
+
+			m_requests.push_back(r);
+			send_buffer_updated();
+#ifndef NDEBUG
+			(*m_logger) << m_socket->sender().as_string() << " <== REQUEST [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
+#endif
+		}
+		else
+		{
+			// TODO: log this illegal request
+		}
+	}
+
+	// -----------------------------
+	// ----------- PIECE -----------
+	// -----------------------------
+
+	void peer_connection::on_piece(int received)
+	{
+		if (m_recv_pos <= 9)
+			// only received protocol data
+			m_statistics.received_bytes(0, received);
+		else if (m_recv_pos - received >= 9)
+			// only received payload data
+			m_statistics.received_bytes(received, 0);
+		else
+		{
+			// received a bit of both
+			assert(m_recv_pos - received < 9);
+			assert(m_recv_pos > 9);
+			assert(9 - (m_recv_pos - received) <= 9);
+			m_statistics.received_bytes(
+				m_recv_pos - 9
+				, 9 - (m_recv_pos - received));
+		}
+
+		if (m_recv_pos < m_packet_size) return;
+
+		const char* ptr = &m_recv_buffer[1];
+		int index = detail::read_int(ptr);
+		if (index < 0 || index >= m_torrent->torrent_file().num_pieces())
+		{
+#ifndef NDEBUG
+			(*m_logger) << m_socket->sender().as_string() << " piece index invalid\n";
+#endif
+			throw protocol_error("invalid piece index in piece message");
+		}
+		int offset = detail::read_int(ptr);
+		int len = m_packet_size - 9;
+
+		if (offset < 0)
+		{
+#ifndef NDEBUG
+			(*m_logger) << m_socket->sender().as_string() << " offset < 0\n";
+#endif
+			throw protocol_error("offset < 0 in piece message");
+		}
+
+		if (offset + len > m_torrent->torrent_file().piece_size(index))
+		{
+#ifndef NDEBUG
+			(*m_logger) << m_socket->sender().as_string() << " piece packet contains more data than the piece size\n";
+#endif
+			throw protocol_error("piece message contains more data than the piece size");
+		}
+		// TODO: make sure that len is == block_size or less only
+		// if its's the last block.
+
+		if (offset % m_torrent->block_size() != 0)
+		{
+#ifndef NDEBUG
+			(*m_logger) << m_socket->sender().as_string() << " piece packet contains unaligned offset\n";
+#endif
+			throw protocol_error("piece message contains unaligned offset");
+		}
+/*
+		piece_block req = m_download_queue.front();
+		if (req.piece_index != index)
+		{
+#ifndef NDEBUG
+			(*m_logger) << m_socket->sender().as_string() << " piece packet contains unrequested index\n";
+#endif
+			return false;
+		}
+
+		if (req.block_index != offset / m_torrent->block_size())
+		{
+#ifndef NDEBUG
+			(*m_logger) << m_socket->sender().as_string() << " piece packet contains unrequested offset\n";
+#endif
+			return false;
+		}
+*/
+#ifndef NDEBUG
+		(*m_logger) << m_socket->sender().as_string() << " <== PIECE [ piece: " << index << " | s: " << offset << " | l: " << len << " ]\n";
+#endif
+
+		piece_picker& picker = m_torrent->picker();
+		piece_block block_finished(index, offset / m_torrent->block_size());
+
+		std::deque<piece_block>::iterator b
+			= std::find(
+				m_download_queue.begin()
+				, m_download_queue.end()
+				, block_finished);
+
+		if (b != m_download_queue.end())
+		{
+			// pop the request that just finished
+			// from the download queue
+			m_download_queue.erase(b);
+		}
+		else
+		{
+			// TODO: cancel the block from the
+			// peer that has taken over it.
+		}
+
+		// if the block we got is already finished, then ignore it
+		if (picker.is_finished(block_finished)) return;
+
+		m_torrent->filesystem().write(&m_recv_buffer[9], index, offset, len);
+
+		picker.mark_as_finished(block_finished, m_peer_id);
+
+		m_torrent->get_policy().block_finished(*this, block_finished);
+
+		// did we just finish the piece?
+		if (picker.is_piece_finished(index))
+		{
+			bool verified = m_torrent->verify_piece(index);
+			if (verified)
+			{
+				m_torrent->announce_piece(index);
+			}
+			else
+			{
+				m_torrent->piece_failed(index);
+			}
+			m_torrent->get_policy().piece_finished(index, verified);
+		}
+	}
+
+	// -----------------------------
+	// ---------- CANCEL -----------
+	// -----------------------------
+
+	void peer_connection::on_cancel(int received)
+	{
+		if (m_packet_size != 13)
+			throw protocol_error("'cancel' message size != 13");
+		m_statistics.received_bytes(0, received);
+		if (m_recv_pos < m_packet_size) return;
+
+		peer_request r;
+		const char* ptr = &m_recv_buffer[1];
+		r.piece = detail::read_int(ptr);
+		r.start = detail::read_int(ptr);
+		r.length = detail::read_int(ptr);
+
+		std::deque<peer_request>::iterator i
+			= std::find(m_requests.begin(), m_requests.end(), r);
+		if (i != m_requests.end())
+		{
+			m_requests.erase(i);
+		}
+
+		if (!has_data() && m_added_to_selector)
+		{
+			m_added_to_selector = false;
+			m_selector.remove_writable(m_socket);
+		}
+
+#ifndef NDEBUG
+		(*m_logger) << m_socket->sender().as_string() << " <== CANCEL [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
+#endif
+	}
+
+	// -----------------------------
+	// ------ EXTENSION LIST -------
+	// -----------------------------
+
+	void peer_connection::on_extension_list(int received)
+	{
+		if (m_packet_size > 100 * 1024)
+		{
+			// too big extension message, abort
+			throw protocol_error("'extensions' message size > 100kB");
+		}
+		m_statistics.received_bytes(0, received);
+		if (m_recv_pos < m_packet_size) return;
+
+		try
+		{
+			entry e = bdecode(m_recv_buffer.begin()+1, m_recv_buffer.end());
+			entry::dictionary_type& extensions = e.dict();
+
+			for (int i = 0; i < num_supported_extensions; ++i)
+			{
+				entry::dictionary_type::iterator f =
+					extensions.find(extension_names[i]);
+				if (f != extensions.end())
+				{
+					m_extension_messages[i] = f->second.integer();
+				}
+			}
+		}
+		catch(invalid_encoding& e)
+		{
+			throw protocol_error("'extensions' packet contains invalid bencoding");
+		}
+		catch(type_error& e)
+		{
+			throw protocol_error("'extensions' packet contains incorrect types");
+		}
+	}
+
+	// -----------------------------
+	// --------- EXTENDED ----------
+	// -----------------------------
+
+	void peer_connection::on_extended(int received)
+	{
+	
+	}
+
+
+
+
+
+
+
+
+
+
+
+
 	bool peer_connection::dispatch_message(int received)
 	{
 		assert(m_recv_pos >= received);
 		assert(m_recv_pos > 0);
 
 		int packet_type = m_recv_buffer[0];
-
-		if (packet_type == 20)
+		if (packet_type < 0
+			|| packet_type >= num_supported_messages
+			|| m_message_handler[packet_type] == 0)
 		{
-			int i = 0;
-		}
-
-		switch (packet_type)
-		{
-
-			// *************** CHOKE ***************
-		case msg_choke:
-			if (m_packet_size != 1)
-				throw protocol_error("'choke' message size != 1");
-			m_statistics.received_bytes(0, received);
-			if (m_recv_pos < m_packet_size) return false;
-
-	#ifndef NDEBUG
-			(*m_logger) << m_socket->sender().as_string() << " <== CHOKE\n";
-	#endif
-			m_peer_choked = true;
-			m_torrent->get_policy().choked(*this);
-
-			// remove all pieces from this peers download queue and
-			// remove the 'downloading' flag from piece_picker.
-			for (std::deque<piece_block>::iterator i = m_download_queue.begin();
-				i != m_download_queue.end();
-				++i)
-			{
-				m_torrent->picker().abort_download(*i);
-			}
-			m_download_queue.clear();
-	#ifndef NDEBUG
-	//		m_torrent->picker().integrity_check(m_torrent);
-	#endif
-			break;
-
-
-
-			// *************** UNCHOKE ***************
-		case msg_unchoke:
-			if (m_packet_size != 1)
-				throw protocol_error("'unchoke' message size != 1");
-			m_statistics.received_bytes(0, received);
-			if (m_recv_pos < m_packet_size) return false;
-
-	#ifndef NDEBUG
-			(*m_logger) << m_socket->sender().as_string() << " <== UNCHOKE\n";
-	#endif
-			m_peer_choked = false;
-			m_torrent->get_policy().unchoked(*this);
-			break;
-
-
-			// *************** INTERESTED ***************
-		case msg_interested:
-			if (m_packet_size != 1)
-				throw protocol_error("'interested' message size != 1");
-			m_statistics.received_bytes(0, received);
-			if (m_recv_pos < m_packet_size) return false;
-
-	#ifndef NDEBUG
-			(*m_logger) << m_socket->sender().as_string() << " <== INTERESTED\n";
-	#endif
-			m_peer_interested = true;
-			m_torrent->get_policy().interested(*this);
-			break;
-
-
-			// *************** NOT INTERESTED ***************
-		case msg_not_interested:
-			if (m_packet_size != 1)
-				throw protocol_error("'not interested' message size != 1");
-			m_statistics.received_bytes(0, received);
-			if (m_recv_pos < m_packet_size) return false;
-
-			// clear the request queue if the client isn't interested
-			m_requests.clear();
-
-	#ifndef NDEBUG
-			(*m_logger) << m_socket->sender().as_string() << " <== NOT_INTERESTED\n";
-	#endif
-			m_peer_interested = false;
-			m_torrent->get_policy().not_interested(*this);
-			break;
-
-
-
-			// *************** HAVE ***************
-		case msg_have:
-			{
-				if (m_packet_size != 5)
-					throw protocol_error("'have' message size != 5");
-				m_statistics.received_bytes(0, received);
-				if (m_recv_pos < m_packet_size) return false;
-
-				const char* ptr = &m_recv_buffer[1];
-				int index = detail::read_int(ptr);
-				// if we got an invalid message, abort
-				if (index >= m_have_piece.size() || index < 0)
-					throw protocol_error("have message with higher index than the number of pieces");
-
-	#ifndef NDEBUG
-				(*m_logger) << m_socket->sender().as_string() << " <== HAVE [ piece: " << index << "]\n";
-	#endif
-
-				if (m_have_piece[index])
-				{
-	#ifndef NDEBUG
-					(*m_logger) << m_socket->sender().as_string() << " oops.. we already knew that: " << index << "\n";
-	#endif
-				}
-				else
-				{
-					m_have_piece[index] = true;
-
-					m_torrent->peer_has(index);
-					if (!m_torrent->have_piece(index) && !is_interesting())
-						m_torrent->get_policy().peer_is_interesting(*this);
-				}
-				break;
-			}
-
-
-
-
-			// *************** BITFIELD ***************
-		case msg_bitfield:
-			{
-				if (m_packet_size - 1 != (m_have_piece.size() + 7) / 8)
-					throw protocol_error("bitfield with invalid size");
-				m_statistics.received_bytes(0, received);
-				if (m_recv_pos < m_packet_size) return false;
-
-	#ifndef NDEBUG
-				(*m_logger) << m_socket->sender().as_string() << " <== BITFIELD\n";
-	#endif
-				// build a vector of all pieces
-				std::vector<int> piece_list;
-				for (std::size_t i = 0; i < m_have_piece.size(); ++i)
-				{
-					bool have = m_recv_buffer[1 + (i>>3)] & (1 << (7 - (i&7)));
-					if (have && !m_have_piece[i])
-					{
-						m_have_piece[i] = true;
-						piece_list.push_back(i);
-					}
-					else if (!have && m_have_piece[i])
-					{
-						m_have_piece[i] = false;
-						m_torrent->peer_lost(i);
-					}
-				}
-
-				// shuffle the piece list
-				std::random_shuffle(piece_list.begin(), piece_list.end());
-
-				// let the torrent know which pieces the
-				// peer has, in a shuffled order
-				bool interesting = false;
-				for (std::vector<int>::iterator i = piece_list.begin();
-					i != piece_list.end();
-					++i)
-				{
-					int index = *i;
-					m_torrent->peer_has(index);
-					if (!m_torrent->have_piece(index))
-						interesting = true;
-				}
-
-				if (piece_list.empty())
-				{
-	#ifndef NDEBUG
-					(*m_logger) << m_socket->sender().as_string() << " *** THIS IS A SEED ***\n";
-	#endif
-				}
-
-				if (interesting) m_torrent->get_policy().peer_is_interesting(*this);
-
-				break;
-			}
-
-
-			// *************** EXTENSIONS ***************
-		case msg_extensions:
-			{
-				if (m_packet_size > 100 * 1024)
-				{
-					// too big extension message, abort
-					throw protocol_error("'extensions' message size > 100kB");
-				}
-				m_statistics.received_bytes(0, received);
-				if (m_recv_pos < m_packet_size) return false;
-
-				try
-				{
-					entry e = bdecode(m_recv_buffer.begin()+1, m_recv_buffer.end());
-					entry::dictionary_type& extensions = e.dict();
-
-					for (int i = 0; i < num_supported_extensions; ++i)
-					{
-						entry::dictionary_type::iterator f =
-							extensions.find(extension_names[i]);
-						if (f != extensions.end())
-						{
-							m_extension_messages[i] = f->second.integer();
-						}
-					}
-				}
-				catch(invalid_encoding& e)
-				{
-					throw protocol_error("'extensions' packet contains invalid bencoding");
-				}
-				catch(type_error& e)
-				{
-					throw protocol_error("'extensions' packet contains incorrect types");
-				}
-
-				break;
-			}
-
-
-			// *************** REQUEST ***************
-		case msg_request:
-			{
-				if (m_packet_size != 13)
-					throw protocol_error("'request' message size != 13");
-				m_statistics.received_bytes(0, received);
-				if (m_recv_pos < m_packet_size) return false;
-
-				peer_request r;
-				const char* ptr = &m_recv_buffer[1];
-				r.piece = detail::read_int(ptr);
-				r.start = detail::read_int(ptr);
-				r.length = detail::read_int(ptr);
-
-				// make sure this request
-				// is legal and taht the peer
-				// is not choked
-				if (r.piece >= 0
-					&& r.piece < m_torrent->torrent_file().num_pieces()
-					&& r.start >= 0
-					&& r.start < m_torrent->torrent_file().piece_size(r.piece)
-					&& r.length > 0
-					&& r.length + r.start < m_torrent->torrent_file().piece_size(r.piece)
-					&& !m_choked
-					&& m_peer_interested)
-				{
-					m_requests.push_back(r);
-					send_buffer_updated();
-	#ifndef NDEBUG
-					(*m_logger) << m_socket->sender().as_string() << " <== REQUEST [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
-	#endif
-				}
-				else
-				{
-					// TODO: log this illegal request
-					// if the only error is that the
-					// peer is choked, it may not be a
-					// mistake
-				}
-
-				break;
-			}
-
-
-
-			// *************** PIECE ***************
-		case msg_piece:
-			{
-				if (m_recv_pos <= 9)
-					// only received protocol data
-					m_statistics.received_bytes(0, received);
-				else if (m_recv_pos - received >= 9)
-					// only received payload data
-					m_statistics.received_bytes(received, 0);
-				else
-				{
-					// received a bit of both
-					assert(m_recv_pos - received < 9);
-					assert(m_recv_pos > 9);
-					assert(9 - (m_recv_pos - received) <= 9);
-					m_statistics.received_bytes(
-						m_recv_pos - 9
-						, 9 - (m_recv_pos - received));
-				}
-
-				if (m_recv_pos < m_packet_size) return false;
-
-				const char* ptr = &m_recv_buffer[1];
-				int index = detail::read_int(ptr);
-				if (index < 0 || index >= m_torrent->torrent_file().num_pieces())
-				{
-	#ifndef NDEBUG
-					(*m_logger) << m_socket->sender().as_string() << " piece index invalid\n";
-	#endif
-					throw protocol_error("invalid piece index in piece message");
-				}
-				int offset = detail::read_int(ptr);
-				int len = m_packet_size - 9;
-
-				if (offset < 0)
-				{
-	#ifndef NDEBUG
-					(*m_logger) << m_socket->sender().as_string() << " offset < 0\n";
-	#endif
-					throw protocol_error("offset < 0 in piece message");
-				}
-
-				if (offset + len > m_torrent->torrent_file().piece_size(index))
-				{
-	#ifndef NDEBUG
-					(*m_logger) << m_socket->sender().as_string() << " piece packet contains more data than the piece size\n";
-	#endif
-					throw protocol_error("piece message contains more data than the piece size");
-				}
-				// TODO: make sure that len is == block_size or less only
-				// if its's the last block.
-
-				if (offset % m_torrent->block_size() != 0)
-				{
-	#ifndef NDEBUG
-					(*m_logger) << m_socket->sender().as_string() << " piece packet contains unaligned offset\n";
-	#endif
-					throw protocol_error("piece message contains unaligned offset");
-				}
-	/*
-				piece_block req = m_download_queue.front();
-				if (req.piece_index != index)
-				{
-	#ifndef NDEBUG
-					(*m_logger) << m_socket->sender().as_string() << " piece packet contains unrequested index\n";
-	#endif
-					return false;
-				}
-
-				if (req.block_index != offset / m_torrent->block_size())
-				{
-	#ifndef NDEBUG
-					(*m_logger) << m_socket->sender().as_string() << " piece packet contains unrequested offset\n";
-	#endif
-					return false;
-				}
-	*/
-	#ifndef NDEBUG
-				(*m_logger) << m_socket->sender().as_string() << " <== PIECE [ piece: " << index << " | s: " << offset << " | l: " << len << " ]\n";
-	#endif
-
-				piece_picker& picker = m_torrent->picker();
-				piece_block block_finished(index, offset / m_torrent->block_size());
-
-				std::deque<piece_block>::iterator b
-					= std::find(
-						m_download_queue.begin()
-						, m_download_queue.end()
-						, block_finished);
-
-				if (b != m_download_queue.end())
-				{
-					// pop the request that just finished
-					// from the download queue
-					m_download_queue.erase(b);
-				}
-				else
-				{
-					// TODO: cancel the block from the
-					// peer that has taken over it.
-				}
-
-				if (picker.is_finished(block_finished)) break;
-
-				m_torrent->filesystem().write(&m_recv_buffer[9], index, offset, len);
-
-				picker.mark_as_finished(block_finished, m_peer_id);
-
-				m_torrent->get_policy().block_finished(*this, block_finished);
-
-				// did we just finish the piece?
-				if (picker.is_piece_finished(index))
-				{
-					bool verified = m_torrent->verify_piece(index);
-					if (verified)
-					{
-						m_torrent->announce_piece(index);
-					}
-					else
-					{
-						m_torrent->piece_failed(index);
-					}
-					m_torrent->get_policy().piece_finished(index, verified);
-				}
-				break;
-			}
-
-
-			// *************** CANCEL ***************
-		case msg_cancel:
-			{
-				if (m_packet_size != 13)
-					throw protocol_error("'cancel' message size != 13");
-				m_statistics.received_bytes(0, received);
-				if (m_recv_pos < m_packet_size) return false;
-
-				peer_request r;
-				const char* ptr = &m_recv_buffer[1];
-				r.piece = detail::read_int(ptr);
-				r.start = detail::read_int(ptr);
-				r.length = detail::read_int(ptr);
-
-				std::deque<peer_request>::iterator i
-					= std::find(m_requests.begin(), m_requests.end(), r);
-				if (i != m_requests.end())
-				{
-					m_requests.erase(i);
-				}
-
-				if (!has_data() && m_added_to_selector)
-				{
-					m_added_to_selector = false;
-					m_selector.remove_writable(m_socket);
-				}
-
-	#ifndef NDEBUG
-				(*m_logger) << m_socket->sender().as_string() << " <== CANCEL [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
-	#endif
-				break;
-			}
-		default:
 			throw protocol_error("unknown message id");
 		}
+
+		assert(m_message_handler[packet_type] != 0);
+
+		// call the correct handler for this packet type
+		(this->*m_message_handler[packet_type])(received);
+
+		if (m_recv_pos < m_packet_size) return false;
+
 		assert(m_recv_pos == m_packet_size);
 		return true;
 	}
@@ -820,7 +875,7 @@ namespace libtorrent
 		for (int i = 0; i < num_supported_extensions; ++i)
 		{
 			entry msg_index(entry::int_t);
-			msg_index.integer() = msg_extensions + 1 + i;
+			msg_index.integer() = i;
 			extension_list.dict()[extension_names[i]] = msg_index;
 		}
 
@@ -832,7 +887,7 @@ namespace libtorrent
 		const int msg_size_pos = m_send_buffer.size();
 		m_send_buffer.resize(msg_size_pos + 4);
 
-		m_send_buffer.push_back(msg_extensions);
+		m_send_buffer.push_back(msg_extension_list);
 
 		bencode(std::back_inserter(m_send_buffer), extension_list);
 
@@ -919,11 +974,11 @@ namespace libtorrent
 
 		int diff = share_diff();
 
-		if (diff > 2*m_torrent->block_size())
+		if (diff > 2*m_torrent->block_size() || m_torrent->is_seed())
 		{
 			// if we have downloaded more than one piece more
-			// than we have uploaded, have an unlimited
-			// upload rate
+			// than we have uploaded OR if we are a seed
+			// have an unlimited upload rate
 			m_send_quota_limit = -1;
 		}
 		else

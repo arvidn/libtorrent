@@ -62,6 +62,12 @@ namespace libtorrent
 
 		int load_balancing;
 
+		// this is the number of requests
+		// we have sent to this peer
+		// that we haven't got a response
+		// for yet
+		int download_queue_length;
+
 		// the currently downloading piece
 		// if piece index is -1 all associated
 		// members are just set to 0

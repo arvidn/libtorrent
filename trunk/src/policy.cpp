@@ -368,7 +368,35 @@ namespace libtorrent
 			, m_torrent->end()
 			, m_available_free_upload);
 
-		if (m_max_uploads != -1)
+
+		if (m_torrent->is_seed())
+		{
+			// make sure we have enough
+			// unchoked peers
+			while (m_num_unchoked < m_max_uploads)
+			{
+				peer* p = 0;
+				for (std::vector<peer>::iterator i = m_peers.begin();
+					i != m_peers.end();
+					++i)
+				{
+					peer_connection* c = i->connection;
+					if (c == 0) continue;
+					if (!c->is_choked()) continue;
+					if (!c->is_peer_interested()) continue;
+// TODO: add some more criterion here. Maybe the peers
+// that have less should be promoted? (to allow them to trade)
+					p = &(*i);
+				}
+
+				if (p == 0) break;
+
+				p->connection->unchoke();
+				p->last_optimistically_unchoked = boost::posix_time::second_clock::local_time();
+				++m_num_unchoked;
+			}
+		}
+		else if (m_max_uploads != -1)
 		{
 			// make sure we don't have too many
 			// unchoked peers

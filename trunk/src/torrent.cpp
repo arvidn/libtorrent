@@ -700,7 +700,7 @@ namespace libtorrent
 				<< m_torrent_file.trackers()[m_currently_trying_tracker].url
 				<< "\" timed out";
 			torrent_handle self(&m_ses, 0, m_torrent_file.info_hash());
-			m_ses.m_alerts.post_alert(tracker_alert( self, s.str()));
+			m_ses.m_alerts.post_alert(tracker_alert(self, s.str()));
 		}
 		// TODO: increase the retry_delay for
 		// each failed attempt on the same tracker!

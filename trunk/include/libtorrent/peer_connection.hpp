@@ -305,6 +305,28 @@ namespace libtorrent
 		boost::shared_ptr<logger> m_logger;
 #endif
 
+		// the message handlers are called
+		// each time a recv() returns some new
+		// data, the last time it will be called
+		// is when the entire packet has been
+		// received, then it will no longer
+		// be called. i.e. most handlers need
+		// to check how much of the packet they
+		// have received before any processing
+		void on_choke(int received);
+		void on_unchoke(int received);
+		void on_interested(int received);
+		void on_not_interested(int received);
+		void on_have(int received);
+		void on_bitfield(int received);
+		void on_request(int received);
+		void on_piece(int received);
+		void on_cancel(int received);
+		void on_extension_list(int received);
+		void on_extended(int received);
+
+		typedef void (peer_connection::*message_handler)(int received);
+
 	private:
 
 		bool dispatch_message(int received);
@@ -345,10 +367,13 @@ namespace libtorrent
 			msg_piece,
 			msg_cancel,
 	// extension protocol message
-			msg_extensions = 20,
-	// extended messages
-			msg_gzip_piece
+			msg_extension_list = 20,
+			msg_extended,
+
+			num_supported_messages
 		};
+
+		const static message_handler m_message_handler[num_supported_messages];
 
 		std::size_t m_packet_size;
 		std::size_t m_recv_pos;

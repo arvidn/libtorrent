@@ -47,7 +47,7 @@ namespace libtorrent
 {
 	namespace detail
 	{
-		class piece_checker_data;
+		struct piece_checker_data;
 	}
 	class session;
 
