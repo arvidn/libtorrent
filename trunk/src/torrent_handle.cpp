@@ -271,21 +271,6 @@ namespace libtorrent
 			, bind(&torrent::resume, _1));
 	}
 
-
-	int torrent_handle::num_complete() const
-	{
-		INVARIANT_CHECK;
-		return call_member<int>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::num_complete, _1));
-	}
-
-	int torrent_handle::num_incomplete() const
-	{
-		INVARIANT_CHECK;
-		return call_member<int>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::num_incomplete, _1));
-	}
-
 	void torrent_handle::set_tracker_login(std::string const& name, std::string const& password)
 	{
 		INVARIANT_CHECK;

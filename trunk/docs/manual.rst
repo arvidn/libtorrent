@@ -931,21 +931,6 @@ is_seed()
 Returns true if the torrent is in seed mode (i.e. if it has finished downloading).
 
 
-num_complete() num_incomplete()
--------------------------------
-
-	::
-
-		int num_complete() const;
-		int num_incomplete() const;
-
-These members returns the optional scrape data returned by the tracker in the announce response.
-If the tracker did not return any scrape data the return value of these functions are -1. Note
-that in some cases the tracker can return some scrape data, so there is no guarantee that all
-functions returns -1 just because one of them do. ``num_complete()`` is the total number of
-seeds in the swarm and ``num_incomplete()`` is the number of downloaders in the swarm.
-
-
 has_metadata()
 --------------
 
@@ -1179,6 +1164,9 @@ It contains the following fields::
 
 		int num_peers;
 
+		int num_complete;
+		int num_incomplete;
+
 		const std::vector<bool>* pieces;
 		size_type total_done;
 
@@ -1250,6 +1238,12 @@ be slightly smaller than the other rates, but if projected over a long time
 (e.g. when calculating ETA:s) the difference may be noticable.
 
 ``num_peers`` is the number of peers this torrent currently is connected to.
+
+``num_complete`` and ``num_incomplete`` are set to -1 if the tracker did not
+send any scrape data in its announce reply. This data is optional and may
+not be available from all trackers. If these are not -1, they are the total
+number of peers that are seeding (complete) and the total number of peers
+that are still downloading (incomplete) this torrent.
 
 ``total_done`` is the total number of bytes of the file(s) that we have. All
 this does not necessarily has to be downloaded during this session (that's

@@ -158,6 +158,7 @@ namespace
 		, map_entry("AR", "Arctic Torrent")
 		, map_entry("AZ", "Azureus")
 		, map_entry("BB", "BitBuddy")
+		, map_entry("BS", "BTSlave")
 		, map_entry("BX", "BittorrentX")
 		, map_entry("CT", "CTorrent")
 		, map_entry("LT", "libtorrent")
@@ -170,6 +171,7 @@ namespace
 		, map_entry("TS", "TorrentStorm")
 		, map_entry("U",  "UPnP")
 		, map_entry("XT", "XanTorrent")
+		, map_entry("ZT", "ZipTorrent")
 		, map_entry("eX", "eXeem")
 	};
 

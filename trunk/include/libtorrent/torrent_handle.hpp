@@ -85,6 +85,8 @@ namespace libtorrent
 			, download_payload_rate(0)
 			, upload_payload_rate(0)
 			, num_peers(0)
+			, num_complete(-1)
+			, num_incomplete(-1)
 			, pieces(0)
 			, total_done(0)
 			, num_seeds(0)
@@ -136,6 +138,14 @@ namespace libtorrent
 		// the number of peers this torrent
 		// is connected to.
 		int num_peers;
+
+		// if the tracker sends scrape info in its
+		// announce reply, these fields will be
+		// set to the total number of peers that
+		// have the whole file and the total number
+		// of peers that are still downloading
+		int num_complete;
+		int num_incomplete;
 
 		const std::vector<bool>* pieces;
 
@@ -197,12 +207,6 @@ namespace libtorrent
 		void pause();
 		void resume();
 
-		// interface for requesting tracker scrape data
-		// from tha last tracker announce response
-		// (optional, only sent by some trackers)
-		int num_complete() const;
-		int num_incomplete() const;
-		
 		// set the interface to bind outgoing connections
 		// to.
 		void use_interface(const char* net_interface);

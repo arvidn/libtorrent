@@ -978,6 +978,8 @@ namespace libtorrent
 
 		st.block_size = block_size();
 		st.num_peers = num_peers();
+		st.num_complete = m_complete;
+		st.num_incomplete = m_incomplete;
 		st.paused = m_paused;
 		st.total_done = bytes_done();
 
