@@ -1783,6 +1783,23 @@ The ``times_in_row`` member says how many times in a row this tracker has failed
 	};
 
 
+tracker_reply_alert
+-------------------
+
+This alert is only for informational purpose. It is generated when a tracker announce
+succeeds. It is generated with severity level ``info``.
+
+::
+
+	struct tracker_reply_alert: alert
+	{
+		tracker_reply_alert(const torrent_handle& h
+			, const std::string& msg);
+
+		virtual std::auto_ptr<alert> clone() const;
+		torrent_handle handle;
+	};
+	
 
 hash_failed_alert
 -----------------
