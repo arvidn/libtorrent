@@ -424,7 +424,9 @@ namespace libtorrent
 		// partial is pieces that are partially being downloaded, and
 		// parts of them may be free for download as well, the
 		// partially donloaded pieces will be prioritized
+		assert(m_piece_info.begin()!=m_piece_info.end());
 		std::vector<std::vector<int> >::const_iterator free = m_piece_info.begin()+1;
+		assert(m_downloading_piece_info.begin()!=m_downloading_piece_info.end());
 		std::vector<std::vector<int> >::const_iterator partial = m_downloading_piece_info.begin()+1;
 
 		while((free != m_piece_info.end()) || (partial != m_downloading_piece_info.end()))
