@@ -79,7 +79,11 @@ namespace
 	enum
 	{
 		// wait 60 seconds before retrying a failed tracker
-		tracker_retry_delay = 60
+		tracker_retry_delay_min = 60
+		// when tracker_failed_max trackers
+		// has failed, wait 10 minutes instead
+		, tracker_retry_delay_max = 10 * 60
+		, tracker_failed_max = 5
 	};
 
 	int calculate_block_size(const torrent_info& i)
@@ -159,6 +163,7 @@ namespace libtorrent
 			static_cast<int>((torrent_file.total_size()+m_block_size-1)/m_block_size))
 		, m_last_working_tracker(-1)
 		, m_currently_trying_tracker(0)
+		, m_failed_trackers(0)
 		, m_time_scaler(0)
 		, m_priority(.5)
 		, m_num_pieces(0)
@@ -187,6 +192,7 @@ namespace libtorrent
 		std::vector<peer_entry>& peer_list
 		, int interval)
 	{
+		m_failed_trackers = 0;
 		// less than 60 seconds announce intervals
 		// are insane.
 		if (interval < 60) interval = 60;
@@ -417,7 +423,7 @@ namespace libtorrent
 		m_duration = 1800;
 		m_next_request
 			= boost::posix_time::second_clock::local_time()
-			+ boost::posix_time::seconds(tracker_retry_delay);
+			+ boost::posix_time::seconds(tracker_retry_delay_max);
 
 		tracker_request req;
 		req.info_hash = m_torrent_file.info_hash();
@@ -537,7 +543,7 @@ namespace libtorrent
 		{
 			alerts().post_alert(torrent_finished_alert(
 				get_handle()
-				, "torrent is finished downloading"));
+				, "torrent has finished downloading"));
 		}
 
 
@@ -560,13 +566,19 @@ namespace libtorrent
 
 	void torrent::try_next_tracker()
 	{
-		m_currently_trying_tracker++;
+		++m_currently_trying_tracker;
 
 		if ((unsigned)m_currently_trying_tracker >= m_torrent_file.trackers().size())
 		{
+			int delay = tracker_retry_delay_min
+				+ std::min(m_failed_trackers, (int)tracker_failed_max)
+				* (tracker_retry_delay_max - tracker_retry_delay_min)
+				/ tracker_failed_max;
+
+			++m_failed_trackers;
 			// if we've looped the tracker list, wait a bit before retrying
 			m_currently_trying_tracker = 0;
-			m_next_request = boost::posix_time::second_clock::local_time() + boost::posix_time::seconds(tracker_retry_delay);
+			m_next_request = boost::posix_time::second_clock::local_time() + boost::posix_time::seconds(delay);
 		}
 		else
 		{
@@ -804,11 +816,6 @@ namespace libtorrent
 				<< "\" timed out";
 			m_ses.m_alerts.post_alert(tracker_alert(get_handle(), s.str()));
 		}
-		// TODO: increase the retry_delay for
-		// each failed attempt on the same tracker!
-		// maybe we should add a counter that keeps
-		// track of how many times a specific tracker
-		// has timed out?
 		try_next_tracker();
 	}
 

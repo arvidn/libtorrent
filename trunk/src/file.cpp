@@ -161,7 +161,7 @@ namespace libtorrent
 			if (ret == -1)
 			{
 				std::stringstream msg;
-				msg << "seek failed: " << strerror(errno);
+				msg << "seek failed: '" << strerror(errno) << "' fd: " << m_fd << " offset: " << offset << " seekdir: " << seekdir;
 				throw file_error(msg.str());
 			}
 
