@@ -222,7 +222,7 @@ namespace libtorrent
 
 		if(!fs::exists(save_path))
 			fs::create_directory(save_path);
-		else if(!fx::is_directory(save_path))
+		else if(!fs::is_directory(save_path))
 			return false;
 
 		if (m_pimpl->info.num_files() == 1)
