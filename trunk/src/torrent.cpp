@@ -400,7 +400,7 @@ namespace libtorrent
 
 		// if the peer_connection was downloading any pieces
 		// abort them
-		for (std::vector<piece_block>::const_iterator i = p->download_queue().begin();
+		for (std::deque<piece_block>::const_iterator i = p->download_queue().begin();
 			i != p->download_queue().end();
 			++i)
 		{

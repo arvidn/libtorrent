@@ -66,10 +66,10 @@ namespace
 		return false;
 	}
 
-	piece_block find_first_common(const std::vector<piece_block>& queue,
+	piece_block find_first_common(const std::deque<piece_block>& queue,
 		const std::vector<piece_block>& busy)
 	{
-		for (std::vector<piece_block>::const_reverse_iterator i
+		for (std::deque<piece_block>::const_reverse_iterator i
 			= queue.rbegin();
 			i != queue.rend();
 			++i)
@@ -145,7 +145,7 @@ namespace
 			i != t.end();
 			++i)
 		{
-			const std::vector<piece_block>& queue = (*i)->download_queue();
+			const std::deque<piece_block>& queue = (*i)->download_queue();
 			if ((*i)->statistics().down_peak() > down_speed
 				&& has_intersection(busy_pieces.begin(),
 					busy_pieces.end(),

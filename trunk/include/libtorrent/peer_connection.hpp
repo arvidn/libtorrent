@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <ctime>
 #include <algorithm>
 #include <vector>
+#include <deque>
 
 #include <boost/smart_ptr.hpp>
 #include <boost/noncopyable.hpp>
@@ -48,14 +49,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/stat.hpp"
 #include "libtorrent/debug.hpp"
 
-/*
- * This file declares the following functions:
- *
- *----------------------------------
- *
- *
- *
- */
+// TODO: each time a block is 'taken over'
+// from another peer. That peer must be given
+// a chance to request another block instead.
+// Where it also could become not-interested.
 
 namespace libtorrent
 {
@@ -131,7 +128,7 @@ namespace libtorrent
 		const peer_id& id() const throw() { return m_peer_id; }
 		bool has_piece(int i) const throw() { return m_have_piece[i]; }
 
-		const std::vector<piece_block>& download_queue() const throw()
+		const std::deque<piece_block>& download_queue() const throw()
 		{ return m_download_queue; }
 
 		void choke();
@@ -205,7 +202,7 @@ namespace libtorrent
 
 	private:
 
-		void dispatch_message();
+		bool dispatch_message(int received);
 		void send_buffer_updated();
 
 		void send_bitfield();
@@ -251,6 +248,21 @@ namespace libtorrent
 		// to be sent is stored until it gets
 		// consumed by send()
 		std::vector<char> m_send_buffer;
+
+		// this is a queue of ranges that describes
+		// where in the send buffer actual payload
+		// data is located. This is currently
+		// only used to be able to gather statistics
+		// seperately on payload and protocol data.
+		struct range
+		{
+			range(int s, int l): start(s), length(l) {}
+			int start;
+			int length;
+		};
+		static bool range_below_zero(const range& r)
+		{ return r.start < 0; }
+		std::deque<range> m_payloads;
 
 		// timeouts
 		boost::posix_time::ptime m_last_receive;
@@ -314,13 +326,18 @@ namespace libtorrent
 		// the pieces the other end have
 		std::vector<bool> m_have_piece;
 
-		std::vector<peer_request> m_requests;
+		// the queue of requests we have got
+		// from this peer
+		std::deque<peer_request> m_requests;
 
 		// a list of pieces that have become available
 		// and should be announced as available to
 		// the peer
 		std::vector<int> m_announce_queue;
-		std::vector<piece_block> m_download_queue;
+
+		// the queue of blocks we have requested
+		// from this peer
+		std::deque<piece_block> m_download_queue;
 
 		stat m_statistics;
 
