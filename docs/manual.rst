@@ -1784,10 +1784,14 @@ Contributions by Magnus Jonsson and Daniel Wallin
 
 Thanks to Reimond Retz for bugfixes, suggestions and testing
 
+Thanks to `University of Umeå`__ for providing development and
+test hardware.
+
 Project is hosted by sourceforge.
 
 |sf_logo|__
 
+__ http://www.cs.umu.se
 .. |sf_logo| image:: http://sourceforge.net/sflogo.php?group_id=7994
 __ http://sourceforge.net
 
