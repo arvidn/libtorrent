@@ -225,11 +225,11 @@ void libtorrent::peer_connection::send_handshake()
 	send_buffer_updated();
 }
 
-bool libtorrent::peer_connection::dispatch_message()
+void libtorrent::peer_connection::dispatch_message()
 {
 	int packet_type = m_recv_buffer[0];
 	if (packet_type > 8 || packet_type < 0)
-		return false;
+		throw protocol_error("unknown message id");
 
 	switch (packet_type)
 	{
@@ -295,7 +295,7 @@ bool libtorrent::peer_connection::dispatch_message()
 			std::size_t index = read_int(&m_recv_buffer[1]);
 			// if we got an invalid message, abort
 			if (index >= m_have_piece.size())
-				return false;
+				throw protocol_error("have message with higher index than the number of pieces");
 
 #ifndef NDEBUG
 			(*m_logger) << m_socket->sender().as_string() << " <== HAVE [ piece: " << index << "]\n";
@@ -323,7 +323,7 @@ bool libtorrent::peer_connection::dispatch_message()
 	case msg_bitfield:
 		{
 			if (m_packet_size - 1 != (m_have_piece.size() + 7) / 8)
-				return false;
+				throw protocol_error("bitfield with invalid size");
 
 #ifndef NDEBUG
 			(*m_logger) << m_socket->sender().as_string() << " <== BITFIELD\n";
@@ -390,7 +390,7 @@ bool libtorrent::peer_connection::dispatch_message()
 #ifndef NDEBUG
 				(*m_logger) << m_socket->sender().as_string() << " piece index invalid\n";
 #endif
-				return false;
+				throw protocol_error("invalid piece index in piece message");
 			}
 			int offset = read_int(&m_recv_buffer[5]);
 			int len = m_packet_size - 9;
@@ -400,7 +400,7 @@ bool libtorrent::peer_connection::dispatch_message()
 #ifndef NDEBUG
 				(*m_logger) << m_socket->sender().as_string() << " offset < 0\n";
 #endif
-				return false;
+				throw protocol_error("offset < 0 in piece message");
 			}
 
 			if (offset + len > m_torrent->torrent_file().piece_size(index))
@@ -408,7 +408,7 @@ bool libtorrent::peer_connection::dispatch_message()
 #ifndef NDEBUG
 				(*m_logger) << m_socket->sender().as_string() << " piece packet contains more data than the piece size\n";
 #endif
-				return false;
+				throw protocol_error("piece message contains more data than the piece size");
 			}
 
 			if (offset % m_torrent->block_size() != 0)
@@ -416,7 +416,7 @@ bool libtorrent::peer_connection::dispatch_message()
 #ifndef NDEBUG
 				(*m_logger) << m_socket->sender().as_string() << " piece packet contains unaligned offset\n";
 #endif
-				return false;
+				throw protocol_error("piece message contains unaligned offset");
 			}
 /*
 			piece_block req = m_download_queue.front();
@@ -471,6 +471,8 @@ bool libtorrent::peer_connection::dispatch_message()
 
 			picker.mark_as_finished(block_finished, m_peer_id);
 
+			m_torrent->get_policy().block_finished(*this, block_finished);
+
 			// did we just finish the piece?
 			if (picker.is_piece_finished(index))
 			{
@@ -483,26 +485,10 @@ bool libtorrent::peer_connection::dispatch_message()
 				}
 				else
 				{
-#ifndef NDEBUG
-					std::cout << "hash-test failed. Some of these peers sent invalid data:\n";
-					std::vector<peer_id> downloaders;
-					picker.get_downloaders(downloaders, index);
-					std::copy(downloaders.begin(), downloaders.end(), std::ostream_iterator<peer_id>(std::cout, "\n"));
-#endif
-					// we have to let the piece_picker know that
-					// this piece failed the check as it can restore it
-					// and mark it as being interesting for download
-					// TODO: do this more intelligently! and keep track
-					// of how much crap (data that failed hash-check) and
-					// how much redundant data we have downloaded
-					// if some clients has sent more than one piece
-					// start with redownloading the pieces that the client
-					// that has sent the least number of pieces
-					picker.restore_piece(index);
+					m_torrent->piece_failed(index);
 				}
 				m_torrent->get_policy().piece_finished(*this, index, verified);
 			}
-			m_torrent->get_policy().block_finished(*this, block_finished);
 			break;
 		}
 
@@ -534,8 +520,6 @@ bool libtorrent::peer_connection::dispatch_message()
 			break;
 		}
 	}
-
-	return true;
 }
 
 void libtorrent::peer_connection::cancel_block(piece_block block)
@@ -932,14 +916,9 @@ void libtorrent::peer_connection::receive_data()
 
 				case read_packet:
 
-					if (!dispatch_message())
-					{
-	#ifndef NDEBUG
-						(*m_logger) << m_socket->sender().as_string() << " received invalid packet\n";
-	#endif
-						// invalid message
-						throw network_error(0);
-					}
+					// TODO: dispatch should throw instead of returning status
+					// and instead of throwing network_error, throw protocol_error
+					dispatch_message();
 
 					m_state = read_packet_size;
 					m_packet_size = 4;
