@@ -873,6 +873,7 @@ namespace libtorrent
 
 		torrent_status st;
 
+		st.block_size = block_size();
 		st.num_peers = num_peers();
 		st.paused = m_paused;
 		st.total_done = bytes_done();

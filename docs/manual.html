@@ -1114,6 +1114,8 @@ struct torrent_status
 
         int num_seeds;
         float distributed_copies;
+
+        int block_size;
 };
 </pre>
 <p><tt class="literal"><span class="pre">progress</span></tt> is a value in the range [0, 1], that represents the progress of the
@@ -1187,6 +1189,11 @@ peers this client is connected to. The fractional part tells the share of
 pieces that have more copies than the rarest piece(s). For example: 2.5 would
 mean that the rarest pieces have only 2 copies among the peers this torrent is
 connected to, and that 50% of all the pieces have more than two copies.</p>
+<p><tt class="literal"><span class="pre">block_size</span></tt> is the size of a block, in bytes. A block is a sub piece, it
+is the number of bytes that each piece request asks for and the number of
+bytes that each bit in the <tt class="literal"><span class="pre">partial_piece_info</span></tt>'s bitset represents
+(see <a class="reference" href="#get-download-queue">get_download_queue()</a>). This is typically 16 kB, but it may be
+larger if the pieces are larger.</p>
 </div>
 <div class="section" id="peer-info">
 <h1><a name="peer-info">peer_info</a></h1>
