@@ -60,9 +60,9 @@ You can usually find me as hydri in ``#btports @ irc.freenode.net``.
 Aknowledgements
 ===============
 
-Written by Arvid Norberg and Daniel Wallin. Copyright (c) 2003
+Written by Arvid Norberg. Copyright (c) 2003
 
-Contributions by Magnus Jonsson
+Contributions by Magnus Jonsson and Daniel Wallin
 
 Thanks to Reimond Retz for bugfixes, suggestions and testing
 

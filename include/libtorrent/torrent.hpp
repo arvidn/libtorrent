@@ -174,7 +174,7 @@ namespace libtorrent
 		// when this torrent got a response from its tracker request
 		virtual void tracker_response(std::vector<peer_entry>& e, int interval);
 		virtual void tracker_request_timed_out();
-		virtual void tracker_request_error(int response_code, const char* str);
+		virtual void tracker_request_error(int response_code, const std::string& str);
 
 		// generates a request string for sending
 		// to the tracker

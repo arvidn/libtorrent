@@ -68,95 +68,100 @@ namespace libtorrent
 	{
 		struct session_impl;
 
+		template <class T> struct type {};
+
 		// reads an integer from a byte stream
 		// in big endian byte order and converts
 		// it to native endianess
-		template <class InIt>
-		unsigned int read_uint(InIt& start)
+		template <class T, class InIt>
+		inline T read_impl(InIt& start, type<T>)
 		{
-			unsigned int val = 0;
-			val |= static_cast<unsigned char>(*start) << 24; ++start;
-			val |= static_cast<unsigned char>(*start) << 16; ++start;
-			val |= static_cast<unsigned char>(*start) << 8; ++start;
-			val |= static_cast<unsigned char>(*start); ++start;
-			return val;
-		}
-
-		template <class InIt>
-		inline int read_int(InIt& start)
-		{
-			return static_cast<int>(read_uint(start));
-		}
-
-		template <class InIt>
-		inline unsigned char read_uchar(InIt& start)
-		{
-			unsigned char ret = static_cast<unsigned char>(*start);
-			++start;
-			return ret;
-		}
-
-		template <class InIt>
-		inline unsigned short read_ushort(InIt& start)
-		{
-			unsigned short val = 0;
-			val |= static_cast<unsigned char>(*start) << 8; ++start;
-			val |= static_cast<unsigned char>(*start); ++start;
-			return val;
-		}
-
-		// reads an integer to a byte stream
-		// and converts it from native endianess
-		template <class OutIt>
-		void write_uint(unsigned int val, OutIt& start)
-		{
-			*start = static_cast<unsigned char>((val >> 24) & 0xff); ++start;
-			*start = static_cast<unsigned char>((val >> 16) & 0xff); ++start;
-			*start = static_cast<unsigned char>((val >> 8) & 0xff); ++start;
-			*start = static_cast<unsigned char>((val) & 0xff); ++start;
-		}
-
-		template <class OutIt>
-		inline void write_int(int val, OutIt& start)
-		{
-			write_uint(static_cast<unsigned int>(val), start);
-		}
-
-		template <class OutIt>
-		void write_ushort(unsigned short val, OutIt& start)
-		{
-			*start = static_cast<unsigned char>((val >> 8) & 0xff); ++start;
-			*start = static_cast<unsigned char>((val) & 0xff); ++start;
-		}
-
-		template <class OutIt>
-		inline void write_uchar(unsigned char val, OutIt& start)
-		{
-			*start = static_cast<char>(val);
-			++start;
-		}
-
-		template <class OutIt>
-		inline void write_int64(boost::int64_t val, OutIt& start)
-		{
-			for (int i = 7; i <= 0; --i)
+			T ret = 0;
+			for (int i = 0; i < sizeof(T); ++i)
 			{
-				*start = static_cast<unsigned char>((val >> (i*8)) & 0xff);
-				++start;
-			}
-		}
-
-		template <class InIt>
-		inline boost::int64_t read_int64(InIt& start)
-		{
-			boost::int64_t ret = 0;
-			for (int i = 7; i <= 0; --i)
-			{
-				ret |= static_cast<unsigned char>(*start) << (i*8);
+				ret <<= 8;
+				ret |= static_cast<unsigned char>(*start);
 				++start;
 			}
 			return ret;
 		}
+
+		template <class T, class OutIt>
+		inline void write_impl(T val, OutIt& start)
+		{
+			for (int i = sizeof(T)-1; i >= 0; --i)
+			{
+				*start = static_cast<unsigned char>((val >> (i * 8)) & 0xff);
+				++start;
+			}
+		}
+
+		// -- adaptors
+
+		template <class InIt>
+		boost::int64_t read_int64(InIt& start)
+		{ return read_impl(start, type<boost::int64_t>()); }
+
+		template <class InIt>
+		boost::uint64_t read_uint64(InIt& start)
+		{ return read_impl(start, type<boost::uint64_t>()); }
+
+		template <class InIt>
+		boost::uint32_t read_uint32(InIt& start)
+		{ return read_impl(start, type<boost::uint32_t>()); }
+
+		template <class InIt>
+		boost::int32_t read_int32(InIt& start)
+		{ return read_impl(start, type<boost::int32_t>()); }
+
+		template <class InIt>
+		boost::int16_t read_int16(InIt& start)
+		{ return read_impl(start, type<boost::int16_t>()); }
+
+		template <class InIt>
+		boost::uint16_t read_uint16(InIt& start)
+		{ return read_impl(start, type<boost::uint16_t>()); }
+
+		template <class InIt>
+		boost::int8_t read_int8(InIt& start)
+		{ return read_impl(start, type<boost::int8_t>()); }
+
+		template <class InIt>
+		boost::uint8_t read_uint8(InIt& start)
+		{ return read_impl(start, type<boost::uint8_t>()); }
+
+
+		template <class OutIt>
+		void write_uint64(boost::uint64_t val, OutIt& start)
+		{ write_impl(val, start); }
+
+		template <class OutIt>
+		void write_int64(boost::int64_t val, OutIt& start)
+		{ write_impl(val, start); }
+
+		template <class OutIt>
+		void write_uint32(boost::uint32_t val, OutIt& start)
+		{ write_impl(val, start); }
+
+		template <class OutIt>
+		void write_int32(boost::int32_t val, OutIt& start)
+		{ write_impl(val, start); }
+
+		template <class OutIt>
+		void write_uint16(boost::uint16_t val, OutIt& start)
+		{ write_impl(val, start); }
+
+		template <class OutIt>
+		void write_int16(boost::int16_t val, OutIt& start)
+		{ write_impl(val, start); }
+
+		template <class OutIt>
+		void write_uint8(boost::uint8_t val, OutIt& start)
+		{ write_impl(val, start); }
+
+		template <class OutIt>
+		void write_int8(boost::int8_t val, OutIt& start)
+		{ write_impl(val, start); }
 
 	}
 
