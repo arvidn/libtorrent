@@ -72,6 +72,9 @@ namespace
 		{
 			target.path /= i->string();
 		}
+		if (target.path.is_complete()) throw std::runtime_error("torrent contains "
+			"a file with an absolute path: '"
+			+ target.path.native_file_string() + "'");
 	}
 
 	void extract_files(const entry::list_type& list, std::vector<file_entry>& target)
@@ -187,6 +190,8 @@ namespace libtorrent
 			// field.
 			file_entry e;
 			e.path = m_name;
+			if (e.path.is_complete()) throw std::runtime_error("torrent contains "
+				"a file with an absolute path: '" + e.path.native_file_string() + "'");
 			e.size = info["length"].integer();
 			m_files.push_back(e);
 		}
