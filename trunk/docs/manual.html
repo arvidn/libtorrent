@@ -25,7 +25,7 @@
 <li><a class="reference" href="#id9" id="id24" name="id24">~session()</a></li>
 <li><a class="reference" href="#add-torrent" id="id25" name="id25">add_torrent()</a></li>
 <li><a class="reference" href="#remove-torrent" id="id26" name="id26">remove_torrent()</a></li>
-<li><a class="reference" href="#set-upload-rate-limit-set-downlad-rate-limit" id="id27" name="id27">set_upload_rate_limit() set_downlad_rate_limit()</a></li>
+<li><a class="reference" href="#set-upload-rate-limit-set-download-rate-limit" id="id27" name="id27">set_upload_rate_limit() set_download_rate_limit()</a></li>
 <li><a class="reference" href="#status" id="id28" name="id28">status()</a></li>
 <li><a class="reference" href="#is-listening-listen-port-listen-on" id="id29" name="id29">is_listening() listen_port() listen_on()</a></li>
 <li><a class="reference" href="#pop-alert-set-severity-level" id="id30" name="id30">pop_alert() set_severity_level()</a></li>
@@ -423,8 +423,8 @@ void remove_torrent(torrent_handle const&amp; h);
 <p><tt class="literal"><span class="pre">remove_torrent()</span></tt> will close all peer connections associated with the torrent and tell
 the tracker that we've stopped participating in the swarm.</p>
 </div>
-<div class="section" id="set-upload-rate-limit-set-downlad-rate-limit">
-<h2><a name="set-upload-rate-limit-set-downlad-rate-limit">set_upload_rate_limit() set_downlad_rate_limit()</a></h2>
+<div class="section" id="set-upload-rate-limit-set-download-rate-limit">
+<h2><a name="set-upload-rate-limit-set-download-rate-limit">set_upload_rate_limit() set_download_rate_limit()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void set_upload_rate_limit(int bytes_per_second);
