@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Magnus Jonsson
+Copyright (c) 2003, Magnus Jonsson & Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -168,8 +168,6 @@ namespace libtorrent
 			assert(pos >= 0);
 			LARGE_INTEGER offs;
 			offs.QuadPart = pos;
-				// FILE_CURRENT
-				// FILE_END
 			if (FALSE == SetFilePointerEx(
 				m_file_handle
 				, offs
