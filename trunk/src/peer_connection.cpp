@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
+#include "libtorrent/io.hpp"
 
 #if defined(_MSC_VER)
 #define for if (false) {} else for
