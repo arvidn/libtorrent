@@ -89,9 +89,9 @@ namespace
 		, peer_connection& c
 		, std::vector<peer_connection*> ignore = std::vector<peer_connection*>())
 	{
-		float time_for_last_piece = to_seconds(c.last_piece_time());
-		if (time_for_last_piece == 0) time_for_last_piece = 0.001f;
-		const float rate = 1.f / time_for_last_piece;
+		float piece_time = to_seconds(c.last_piece_time());
+		if (piece_time == 0) piece_time = 0.00001f;
+		const float rate = 1.f / piece_time;
 
 		// this will make the number of requests linearly dependent
 		// on the rate in which we download from the peer. 2.5kB/s and
