@@ -230,6 +230,8 @@ The ``session`` class has the following synopsis::
 		void set_upload_rate_limit(int bytes_per_second);
 		void set_download_rate_limit(int bytes_per_second);
 
+		session_status status() const;
+
 		bool is_listening() const;
 		unsigned short listen_port() const;
 		bool listen_on(
@@ -326,6 +328,50 @@ sent to peers per second. This bandwidth is distributed among all the peers. If
 you don't want to limit upload rate, you can set this to -1 (the default).
 ``set_download_rate_limit()`` works the same way but for download rate instead
 of upload rate.
+
+
+status()
+--------
+
+	::
+
+		session_status status() const;
+
+``status()`` returns session wide statistics and status. The ``session_status``
+struct has the following members::
+
+	struct session_status
+	{
+		bool has_incoming_connections;
+
+		float upload_rate;
+		float download_rate;
+
+		float payload_upload_rate;
+		float payload_download_rate;
+
+		size_type total_download;
+		size_type total_upload;
+
+		size_type total_payload_download;
+		size_type total_payload_upload;
+
+		int num_peers;
+	};
+
+``has_incoming_connections`` is false as long as no incoming connections has been
+established on the listening socket. Every time you change the listen port, this will
+be reset to false.
+
+``upload_rate``, ``download_rate``, ``payload_download_rate`` and ``payload_upload_rate``
+are the total download and upload rates accumulated from all torrents. The payload
+versions is the payload download only.
+
+``total_download`` and ``total_upload`` are the total number of bytes downloaded and
+uploaded to and from all torrents. ``total_payload_download`` and ``total_payload_upload``
+are the same thing but where only the payload is considered.
+
+``num_peers`` is the total number of peer connections this session have.
 
 
 is_listening() listen_port() listen_on()

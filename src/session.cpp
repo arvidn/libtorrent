@@ -636,10 +636,7 @@ namespace libtorrent { namespace detail
 				}
 
 				// tick() will set the used upload quota
-				i->second->second_tick();
-
-				// accumulate the statistics from all torrents
-				m_stat += i->second->statistics();
+				i->second->second_tick(m_stat);
 				++i;
 			}
 			purge_connections();
@@ -898,6 +895,8 @@ namespace libtorrent
 			m_impl.m_listen_socket.reset();
 		}
 
+		m_impl.m_incoming_connection = false;
+
 		m_impl.m_listen_port_range = port_range;
 		m_impl.m_listen_interface = address(net_interface, port_range.first);
 		m_impl.open_listen_port();
@@ -913,7 +912,24 @@ namespace libtorrent
 	session_status session::status() const
 	{
 		session_status s;
-// TODO: implement
+		s.has_incoming_connections = m_impl.m_incoming_connection;
+		s.num_peers = (int)m_impl.m_connections.size();
+
+		s.download_rate = m_impl.m_stat.download_rate();
+		s.upload_rate = m_impl.m_stat.upload_rate();
+
+		s.payload_download_rate = m_impl.m_stat.download_payload_rate();
+		s.payload_upload_rate = m_impl.m_stat.upload_payload_rate();
+
+		s.total_download = m_impl.m_stat.total_protocol_download()
+			+ m_impl.m_stat.total_payload_download();
+
+		s.total_upload = m_impl.m_stat.total_protocol_upload()
+			+ m_impl.m_stat.total_payload_upload();
+
+		s.total_payload_download = m_impl.m_stat.total_payload_download();
+		s.total_payload_upload = m_impl.m_stat.total_payload_upload();
+
 		return s;
 	}
 
