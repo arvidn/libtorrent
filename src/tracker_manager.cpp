@@ -283,7 +283,7 @@ namespace libtorrent
 
 	void tracker_manager::tick()
 	{
-		std::vector<boost::shared_ptr<tracker_connection> >::iterator i;
+		tracker_connections_t::iterator i;
 		for (i = m_connections.begin(); i != m_connections.end(); ++i)
 		{
 			boost::shared_ptr<tracker_connection>& c = *i;
@@ -297,8 +297,7 @@ namespace libtorrent
 					c->requester()->tracker_request_error(-1, e.what());
 			}
 			if (c->requester()) c->requester()->m_manager = 0;
-			m_connections.erase(i);
-			--i; // compensate for the remove
+			i = m_connections.erase(i);
 		}
 	}
 
@@ -347,7 +346,7 @@ namespace libtorrent
 				}
 				catch(boost::bad_lexical_cast&)
 				{
-					throw std::runtime_error("invalid url");
+					throw std::runtime_error("invalid url: \"" + req.url + "\"");
 				}
 			}
 			else
@@ -363,7 +362,8 @@ namespace libtorrent
 			if (protocol == "http")
 			{
 				con.reset(new http_tracker_connection(
-					req
+					*this
+					, req
 					, hostname
 					, port
 					, request_string
@@ -398,7 +398,7 @@ namespace libtorrent
 	void tracker_manager::abort_request(request_callback* c)
 	{
 		assert(c != 0);
-		std::vector<boost::shared_ptr<tracker_connection> >::iterator i;
+		tracker_connections_t::iterator i;
 		for (i = m_connections.begin(); i != m_connections.end(); ++i)
 		{
 			if ((*i)->requester() == c)
@@ -415,9 +415,9 @@ namespace libtorrent
 		// except those with a requester == 0 (since those are
 		// 'event=stopped'-requests)
 
-		std::vector<boost::shared_ptr<tracker_connection> > keep_connections;
+		tracker_connections_t keep_connections;
 
-		for (std::vector<boost::shared_ptr<tracker_connection> >::const_iterator i =
+		for (tracker_connections_t::const_iterator i =
 				m_connections.begin();
 			i != m_connections.end();
 			++i)
@@ -430,10 +430,8 @@ namespace libtorrent
 
 	bool tracker_manager::send_finished() const
 	{
-		for (std::vector<boost::shared_ptr<tracker_connection> >::const_iterator i =
-				m_connections.begin();
-			i != m_connections.end();
-			++i)
+		for (tracker_connections_t::const_iterator i =
+				m_connections.begin(); i != m_connections.end(); ++i)
 		{
 			if (!(*i)->send_finished()) return false;
 		}

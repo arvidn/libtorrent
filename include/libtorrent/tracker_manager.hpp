@@ -151,7 +151,9 @@ namespace libtorrent
 
 	private:
 
-		std::vector<boost::shared_ptr<tracker_connection> > m_connections;
+		typedef std::list<boost::shared_ptr<tracker_connection> >
+			tracker_connections_t;
+		tracker_connections_t m_connections;
 		const http_settings& m_settings;
 	};
 

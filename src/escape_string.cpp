@@ -95,7 +95,9 @@ namespace libtorrent
 		assert(len >= 0);
 		// http://www.ietf.org/rfc/rfc2396.txt
 		// section 2.3
-		static const char unreserved_chars[] = "-_.!~*'()";
+		// some trackers seems to require that ' is escaped
+//		static const char unreserved_chars[] = "-_.!~*'()";
+		static const char unreserved_chars[] = "-_.!~*()";
 
 		std::stringstream ret;
 		ret << std::hex  << std::setfill('0');
@@ -108,6 +110,10 @@ namespace libtorrent
 					, *str))
 			{
 				ret << *str;
+			}
+			else if (*str == ' ')
+			{
+				ret << '+';
 			}
 			else
 			{

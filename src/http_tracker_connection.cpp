@@ -75,9 +75,9 @@ namespace
 namespace libtorrent
 {
 
-
 	http_tracker_connection::http_tracker_connection(
-		tracker_request const& req
+		tracker_manager& man
+		, tracker_request const& req
 		, std::string const& hostname
 		, unsigned short port
 		, std::string const& request
@@ -85,12 +85,16 @@ namespace libtorrent
 		, const http_settings& stn
 		, std::string const& password)
 		: tracker_connection(c)
+		, m_man(man)
 		, m_state(read_status)
 		, m_content_encoding(plain)
 		, m_content_length(0)
 		, m_recv_pos(0)
 		, m_request_time(boost::posix_time::second_clock::local_time())
 		, m_settings(stn)
+		, m_req(req)
+		, m_password(password)
+		, m_code(0)
 	{
 		const std::string* connect_to_host;
 		bool using_proxy = false;
@@ -320,15 +324,19 @@ namespace libtorrent
 				if (requester()) requester()->tracker_request_error(-1, error_msg.c_str());
 				return true;
 			}
-			int code;
-			line >> code;
+			line >> m_code;
 			std::getline(line, m_server_message);
 			m_state = read_header;
 
-			if (code != 200)
+			if (m_code != 200
+				&& m_code != 301
+				&& m_code != 302
+				&& m_code != 303
+				&& m_code != 307)
 			{
-				std::string error_msg = boost::lexical_cast<std::string>(code) + " " + m_server_message;
-				if (requester()) requester()->tracker_request_error(code, error_msg.c_str());
+				std::string error_msg = boost::lexical_cast<std::string>(m_code)
+					+ " " + m_server_message;
+				if (requester()) requester()->tracker_request_error(m_code, error_msg.c_str());
 				return true;
 			}
 		}
@@ -381,7 +389,7 @@ namespace libtorrent
 						return true;
 					}
 
-					if (m_content_length < minimum_tracker_response_length)
+					if (m_content_length < minimum_tracker_response_length && m_code == 200)
 					{
 						if (requester())
 						{
@@ -404,11 +412,13 @@ namespace libtorrent
 						error_str += line.substr(18, line.length() - 18 - 2);
 						error_str += "\"";
 						if (requester())
-						{
 							requester()->tracker_request_error(-1, error_str.c_str());
-						}
 						return true;
 					}
+				}
+				else if (line.substr(0, 10) == "Location: ")
+				{
+					m_location.assign(line.begin() + 10, line.end());
 				}
 				else if (line.size() < 3)
 				{
@@ -416,6 +426,30 @@ namespace libtorrent
 	#ifndef NDEBUG
 					if (requester()) requester()->debug_log("end of http header");
 	#endif
+					if (m_code >= 300 && m_code < 400)
+					{
+						if (m_location.empty())
+						{
+							std::string error_str = "got redirection response (";
+							error_str += boost::lexical_cast<std::string>(m_code);
+							error_str += ") without 'Location' header";
+							if (requester())
+								requester()->tracker_request_error(m_code, error_str.c_str());
+							return true;
+						}
+
+#ifndef NDEBUG
+						if (requester()) requester()->debug_log("Redirecting to \"" + m_location + "\"");
+#endif
+						std::string::size_type i = m_location.find('?');
+						if (i == std::string::npos)
+							m_req.url = m_location;
+						else
+							m_req.url.assign(m_location.begin(), m_location.begin() + i);
+
+						m_man.queue_request(m_req, requester(), m_password);
+						return true;
+					}
 				}
 
 				++newline;
