@@ -294,12 +294,11 @@ namespace libtorrent
 
 		boost::filesystem::path m_save_path;
 
-		// synchronization
-		boost::mutex m_locked_pieces_monitor;
-		boost::condition m_unlocked_pieces;
-		std::vector<bool> m_locked_pieces;
-
 		mutable boost::recursive_mutex m_mutex;
+
+		bool m_allocating;
+		boost::mutex m_allocating_monitor;
+		boost::condition m_allocating_condition;
 	};
 
 }
