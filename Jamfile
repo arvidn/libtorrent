@@ -1,5 +1,30 @@
+import modules ;
+
+BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
+
+ECHO $(BOOST_ROOT)
+
+	use-project /boost/thread : $(BOOST_ROOT)/libs/thread/build ;
+	use-project /boost/filesystem : $(BOOST_ROOT)/libs/filesystem/build ;
+	use-project /boost/date_time : $(BOOST_ROOT)/libs/date_time/build ;
+
+
+
 project torrent
-	: usage-requirements
+	: requirements
+	  <use>/boost/thread
+	  <use>/boost/date_time
+	  <use>/boost/filesystem
+		
+	  <library>/boost/thread
+	  <library>/boost/date_time
+	  <library>/boost/filesystem
+
+	: usage-requirements 
+	  <use>/boost/thread
+	  <use>/boost/date_time
+	  <use>/boost/filesystem
+
 	  <include>./include
 	  <include>$(BOOST_ROOT)
 
@@ -7,6 +32,7 @@ project torrent
 
 	  <cxxflags>/Zc:wchar_t
 	  <cxxflags>/D"WIN32"
+
 	;
 
 
@@ -33,9 +59,9 @@ SOURCES =
 
 lib torrent
 	:
-# $(BOOST_ROOT)/libs/filesystem//boost_filesystem
-#	  $(BOOST_ROOT)/libs/thread//boost_thread
-#	  $(BOOST_ROOT)/libs/date_time//boost_date_time
+#	  /boost/filesystem
+#	  /boost/thread
+#	  /boost/date_time
 	  zlib//zlib
 	  src/$(SOURCES)
 	: <include>./include
@@ -48,7 +74,8 @@ lib torrent
 exe client_test
 	: examples/client_test.cpp
 	  torrent
-	: <sysinclude>$(BOOST_ROOT)
+	:
+#	  <sysinclude>$(BOOST_ROOT)
 	  <threading>multi
 	: debug release
 	;
