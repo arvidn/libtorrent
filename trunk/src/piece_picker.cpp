@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#include <numeric>
 
 #include "libtorrent/piece_picker.hpp"
 
@@ -73,13 +74,30 @@ namespace libtorrent
 
 	void piece_picker::files_checked(const std::vector<bool>& pieces)
 	{
+		// build a vector of all the pieces we don't have
+		std::vector<int> piece_list;
+		piece_list.reserve(
+			pieces.size()
+			- std::accumulate(pieces.begin(), pieces.end(), 0));
+
 		for (std::vector<bool>::const_iterator i = pieces.begin();
 			i != pieces.end();
 			++i)
 		{
 			if (*i) continue;
 			int index = i - pieces.begin();
+			piece_list.push_back(index);
+		}
+	
+		// random shuffle the list
+		std::random_shuffle(piece_list.begin(), piece_list.end());
 
+		// add the pieces to the piece_picker
+		for (std::vector<int>::iterator i = piece_list.begin();
+			i != piece_list.end();
+			++i)
+		{
+			int index = *i;
 			assert(index < m_piece_map.size());
 			assert(m_piece_map[index].index  == 0xffffff);
 
@@ -93,7 +111,6 @@ namespace libtorrent
 #ifndef NDEBUG
 //		integrity_check();
 #endif
-		// TODO: random_shuffle
 	}
 
 #ifndef NDEBUG
@@ -309,18 +326,6 @@ namespace libtorrent
 #endif
 	}
 
-	// TODO: since inc_refcount is called
-	// with sequential indices when peers
-	// connect, the pieces will be sorted.
-	// that is not good. one solution is
-	// to insert the element at a random
-	// index when moving it to another
-	// vector.
-	// one solution might be to create a
-	// vector of all piece indices that
-	// are to have their ref_count increased
-	// and then random_shuffle that vector
-	// before processing them.
 	bool piece_picker::inc_refcount(int i)
 	{
 		assert(i >= 0);

@@ -60,7 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 
 
-// TODO: if we're not interested and the peer isn't interested, close the connections
+// TODO: if we're a seed and the peer is a seed, close the connections
 
 namespace libtorrent
 {

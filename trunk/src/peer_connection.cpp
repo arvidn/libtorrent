@@ -377,6 +377,7 @@ bool libtorrent::peer_connection::dispatch_message(int received)
 			else
 			{
 				m_have_piece[index] = true;
+				// TODO: maybe this if-statement should be moved into the policy
 				if (!m_torrent->peer_has(index) && !is_interesting())
 					m_torrent->get_policy().peer_is_interesting(*this);
 			}
@@ -397,15 +398,17 @@ bool libtorrent::peer_connection::dispatch_message(int received)
 #ifndef NDEBUG
 			(*m_logger) << m_socket->sender().as_string() << " <== BITFIELD\n";
 #endif
-			bool interesting = false;
 			bool is_seed = true;
+
+			// build a vector of all pieces
+			std::vector<int> piece_list;
 			for (std::size_t i = 0; i < m_have_piece.size(); ++i)
 			{
 				bool have = m_recv_buffer[1 + (i>>3)] & (1 << (7 - (i&7)));
 				if (have && !m_have_piece[i])
 				{
 					m_have_piece[i] = true;
-					if (m_torrent->peer_has(i)) interesting = true;
+					piece_list.push_back(i);
 				}
 				else if (!have && m_have_piece[i])
 				{
@@ -414,6 +417,22 @@ bool libtorrent::peer_connection::dispatch_message(int received)
 				}
 				if (!have) is_seed = false;
 			}
+
+			// shuffle the piece list
+			std::random_shuffle(piece_list.begin(), piece_list.end());
+
+			// let the torrent know which pieces the
+			// peer has, in a shuffled order
+			bool interesting = false;
+			for (std::vector<int>::iterator i = piece_list.begin();
+				i != piece_list.end();
+				++i)
+			{
+				int index = *i;
+				if (m_torrent->peer_has(index))
+					interesting = true;
+			}
+
 			if (is_seed)
 			{
 #ifndef NDEBUG
