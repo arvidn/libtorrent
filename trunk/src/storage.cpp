@@ -60,8 +60,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/invariant_check.hpp"
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && _MSC_VER < 1300
 #define for if (false) {} else for
+namespace std
+{
+	using ::srand;
+}
 #endif
 
 /*

@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <fstream>
+
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/fstream.hpp>
 
@@ -64,7 +66,11 @@ namespace libtorrent
 		impl(): m_open_mode(0) {}
 
 		impl(fs::path const& path, int mode)
+#if defined(_MSC_VER) && _MSC_VER < 1300
+			: m_file(path.native_file_string().c_str(), map_open_mode(path, mode))
+#else
 			: m_file(path, map_open_mode(path, mode))
+#endif
 			, m_open_mode(mode)
 		{
 			assert(mode == mode_in ||mode == mode_out);
@@ -142,8 +148,11 @@ namespace libtorrent
 			else
 				return static_cast<std::streamoff>(m_file.tellp());
 		}
-	
+#if defined(_MSC_VER) && _MSC_VER < 1300
+		std::fstream m_file;
+#else
 		fs::fstream m_file;
+#endif
 		int m_open_mode;
 	};
 
