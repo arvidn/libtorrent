@@ -140,7 +140,7 @@ namespace libtorrent
 			if (m_open_mode == mode_in)
 				return m_file.tellg();
 			else
-				m_file.tellp();
+				return m_file.tellp();
 		}
 	
 		fs::fstream m_file;

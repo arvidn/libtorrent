@@ -213,13 +213,8 @@ namespace libtorrent {
 
 //		assert(size_type(in.tellg()) == file_offset);
 #ifndef NDEBUG
-		size_type p = in.tell();
-		if (p != file_offset)
-		{
-			std::cerr << "in.tell(): " << p << "\n"
-				"file_offset: " << file_offset << "\n";
-		}
-		assert(in.tell() == file_offset);
+		size_type in_tell = in.tell();
+		assert(in_tell == file_offset);
 #endif
 
 		size_type left_to_read = size;
@@ -306,7 +301,10 @@ namespace libtorrent {
 		out.seek(file_offset);
 
 //		assert(file_offset == out.tellp());
-		assert(file_offset == out.tell());
+#ifndef NDEBUG
+		size_type out_tell = out.tell();
+		assert(file_offset == out_tell);
+#endif
 
 		size_type left_to_write = size;
 		size_type slot_size = m_pimpl->info.piece_size(slot);
