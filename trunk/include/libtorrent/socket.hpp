@@ -249,6 +249,8 @@ namespace libtorrent
 			, std::vector<boost::shared_ptr<socket> >& writable
 			, std::vector<boost::shared_ptr<socket> >& error);
 
+		int count_read_monitors() const { return m_readable.size(); }
+
 	private:
 
 		std::vector<boost::shared_ptr<socket> > m_readable;

@@ -100,9 +100,10 @@ namespace libtorrent
 
 		void print(std::ostream& os) const;
 
-		void allocate_files(const std::string& save_path)
+		void allocate_files(boost::shared_ptr<detail::piece_checker_data> data,
+			const std::string& save_path)
 		{
-			m_storage.initialize_pieces(this, save_path);
+			m_storage.initialize_pieces(this, save_path, data);
 			m_picker.files_checked(m_storage.pieces());
 #ifndef NDEBUG
 			m_picker.integrity_check(this);
@@ -213,6 +214,10 @@ namespace libtorrent
 #ifndef NDEBUG
 		logger* spawn_logger(const char* title);
 #endif
+
+		// the number of blocks downloaded
+		// that hasn't been verified yet
+		int m_unverified_blocks;
 
 	private:
 

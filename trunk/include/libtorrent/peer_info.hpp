@@ -52,6 +52,8 @@ namespace libtorrent
 		address ip;
 		float up_speed;
 		float down_speed;
+		unsigned int total_download;
+		unsigned int total_upload;
 		peer_id id;
 		std::vector<bool> pieces;
 	};

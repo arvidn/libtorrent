@@ -12,6 +12,7 @@ SOURCES =
 	stat.cpp
 	storage.cpp
 	torrent.cpp
+	torrent_handle.cpp
 	torrent_info.cpp
 	url_handler.cpp
 	sha1.c

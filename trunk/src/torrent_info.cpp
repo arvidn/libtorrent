@@ -139,7 +139,7 @@ namespace libtorrent
 		bencode(std::back_insert_iterator<std::vector<char> >(buf), info);
 		hasher h;
 		h.update(&buf[0], buf.size());
-		h.final(m_info_hash);
+		m_info_hash = h.final();
 
 		// extract piece length
 		i = info.dict().find("piece length");

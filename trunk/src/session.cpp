@@ -172,7 +172,9 @@ namespace libtorrent
 
 				boost::mutex::scoped_lock l(m_mutex);
 
-				std::cout << "peers: " << m_connections.size() << "\n";
+				// +1 for the listen socket
+				assert(m_selector.count_read_monitors() == m_connections.size() + 1);
+
 				if (m_abort)
 				{
 					m_tracker_manager.abort_all_requests();
@@ -407,16 +409,21 @@ namespace libtorrent
 
 		// the return value from this function is valid only as long as the
 		// session is locked!
-		torrent* session_impl::find_torrent(const sha1_hash& info_hash)
+		torrent* session_impl::find_active_torrent(const sha1_hash& info_hash)
 		{
 			std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
 				= m_torrents.find(info_hash);
 			if (i != m_torrents.end()) return boost::get_pointer(i->second);
+			return 0;
+		}
 
-			std::map<sha1_hash, boost::shared_ptr<detail::piece_checker_data> >::iterator j
+		piece_checker_data* session_impl::find_checking_torrent(const sha1_hash& info_hash)
+		{
+			std::map<sha1_hash, boost::shared_ptr<detail::piece_checker_data> >::iterator i
 				= m_checkers.find(info_hash);
-			if (j != m_checkers.end())
-				return boost::get_pointer(j->second->torrent_ptr);
+
+			if (i != m_checkers.end())
+				return boost::get_pointer(i->second);
 
 			return 0;
 		}
@@ -431,7 +438,7 @@ namespace libtorrent
 			// new allocation model)
 			try
 			{
-				m_data->torrent_ptr->allocate_files(m_data->save_path);
+				m_data->torrent_ptr->allocate_files(m_data, m_data->save_path);
 			}
 			catch(...)
 			{
@@ -441,6 +448,10 @@ namespace libtorrent
 			// lock the session to add the new torrent
 			session_impl* ses = m_data->ses;
 			boost::mutex::scoped_lock l(ses->m_mutex);
+
+#ifndef NDEBUG
+			std::cout << "adding torrent to session!\n";
+#endif
 
 			ses->m_torrents.insert(
 				std::make_pair(m_data->info_hash, m_data->torrent_ptr)).first;
@@ -453,7 +464,8 @@ namespace libtorrent
 
 	}
 
-	torrent_handle session::add_torrent(const torrent_info& ti, const std::string& save_path)
+	torrent_handle session::add_torrent(const torrent_info& ti,
+		const std::string& save_path)
 	{
 		// lock the session
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
@@ -470,6 +482,8 @@ namespace libtorrent
 		// create the torrent and the data associated with
 		// the checker thread and store it before starting
 		// the thread
+		// TODO: have a queue of checking torrents instead of
+		// having them all run at the same time
 		boost::shared_ptr<torrent> torrent_ptr(new torrent(&m_impl, ti));
 
 		boost::shared_ptr<detail::piece_checker_data> d(new detail::piece_checker_data);
@@ -498,63 +512,8 @@ namespace libtorrent
 		}
 
 		m_thread.join();
-	}
 
-	std::pair<torrent_handle::state_t, float> torrent_handle::status() const
-	{
-		if (m_ses == 0) return std::make_pair(invalid_handle, 0.f);
-
-		boost::mutex::scoped_lock l(m_ses->m_mutex);
-
-		std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i = m_ses->m_torrents.find(m_info_hash);
-		if (i == m_ses->m_torrents.end()) return std::make_pair(invalid_handle, 0.f);
-		return i->second->status();
-	}
-
-	void torrent_handle::get_peer_info(std::vector<peer_info>& v)
-	{
-		v.clear();
-		if (m_ses == 0) return;
-		boost::mutex::scoped_lock l(m_ses->m_mutex);
-		
-		std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i = m_ses->m_torrents.find(m_info_hash);
-		if (i == m_ses->m_torrents.end()) return;
-
-		const torrent* t = boost::get_pointer(i->second);
-
-		for (std::vector<peer_connection*>::const_iterator i = t->begin();
-			i != t->end();
-			++i)
-		{
-			peer_connection* peer = *i;
-			v.push_back(peer_info());
-			peer_info& p = v.back();
-
-			const stat& statistics = peer->statistics();
-			p.down_speed = statistics.download_rate();
-			p.up_speed = statistics.upload_rate();
-			p.id = peer->get_peer_id();
-			p.ip = peer->get_socket()->sender();
-
-			p.flags = 0;
-			if (peer->is_interesting()) p.flags |= peer_info::interesting;
-			if (peer->has_choked()) p.flags |= peer_info::choked;
-			if (peer->is_peer_interested()) p.flags |= peer_info::remote_interested;
-			if (peer->has_peer_choked()) p.flags |= peer_info::remote_choked;
-
-			p.pieces = peer->get_bitfield();
-		}
-	}
-
-	void torrent_handle::abort()
-	{
-		if (m_ses == 0) return;
-		boost::mutex::scoped_lock l(m_ses->m_mutex);
-
-		std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i = m_ses->m_torrents.find(m_info_hash);
-		if (i == m_ses->m_torrents.end()) return;
-		i->second->abort();
-		m_ses = 0;
+		// TODO: join the checking threads!
 	}
 
 	// TODO: document

@@ -385,10 +385,13 @@ bool libtorrent::peer_connection::dispatch_message()
 			// pop the request that just finished
 			// from the download queue
 			m_download_queue.erase(m_download_queue.begin());
+			m_torrent->m_unverified_blocks++;
 
 			// did we just finish the piece?
 			if (picker.is_piece_finished(index))
 			{
+				m_torrent->m_unverified_blocks -= picker.blocks_in_piece(index);
+
 				bool verified = m_torrent->filesystem()->verify_piece(m_receiving_piece);
 				if (verified)
 				{
@@ -563,199 +566,205 @@ void libtorrent::peer_connection::send_have(int index)
 // throws exception when the client should be disconnected
 void libtorrent::peer_connection::receive_data()
 {
-	int received = m_socket->receive(&m_recv_buffer[m_recv_pos], m_packet_size - m_recv_pos);
-
-//	(*m_logger) << "<== RECV [ size: " << received << " ]\n";
-
-	if (received == 0) throw network_error(0);
-	if (received < 0)
+	for(;;)
 	{
-		if (m_socket->last_error() == socket::would_block) return;
-		// the connection was closed
-		throw network_error(0);
-	}
+		int received = m_socket->receive(&m_recv_buffer[m_recv_pos], m_packet_size - m_recv_pos);
 
-	if (received > 0)
-	{
-		m_statistics.received_bytes(received);
-		m_last_receive = boost::posix_time::second_clock::local_time();
+		// connection closed
+		if (received == 0) throw network_error(0);
 
-		m_recv_pos += received;
-
-		if (m_recv_pos == m_packet_size)
+		// an error
+		if (received < 0)
 		{
-			switch(m_state)
+			// would block means that no data was ready to be received
+			if (m_socket->last_error() == socket::would_block) return;
+
+			// the connection was closed
+			throw network_error(0);
+		}
+
+		if (received > 0)
+		{
+			m_statistics.received_bytes(received);
+			m_last_receive = boost::posix_time::second_clock::local_time();
+
+			m_recv_pos += received;
+
+			if (m_recv_pos == m_packet_size)
 			{
-			case read_protocol_length:
-				m_packet_size = reinterpret_cast<unsigned char&>(m_recv_buffer[0]);
-#if defined(TORRENT_VERBOSE_LOGGING)
-				(*m_logger) << m_socket->sender().as_string() << " protocol length: " << m_packet_size << "\n";
-#endif
-				m_state = read_protocol_version;
-				if (m_packet_size != 19)
-					throw network_error(0);
-				m_recv_buffer.resize(m_packet_size);
-				m_recv_pos = 0;
-				break;
-
-
-			case read_protocol_version:
+				switch(m_state)
 				{
-					const char* protocol_version = "BitTorrent protocol";
-#if defined(TORRENT_VERBOSE_LOGGING)
-					(*m_logger) << m_socket->sender().as_string() << " protocol name: " << std::string(m_recv_buffer.begin(), m_recv_buffer.end()) << "\n";
-#endif
-					if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.end(), protocol_version))
-					{
-						// unknown protocol, close connection
+				case read_protocol_length:
+					m_packet_size = reinterpret_cast<unsigned char&>(m_recv_buffer[0]);
+	#if defined(TORRENT_VERBOSE_LOGGING)
+					(*m_logger) << m_socket->sender().as_string() << " protocol length: " << m_packet_size << "\n";
+	#endif
+					m_state = read_protocol_version;
+					if (m_packet_size != 19)
 						throw network_error(0);
-					}
-					m_state = read_info_hash;
-					m_packet_size = 28;
+					m_recv_buffer.resize(m_packet_size);
 					m_recv_pos = 0;
-					m_recv_buffer.resize(28);
-				}
-				break;
+					break;
 
 
-			case read_info_hash:
-			{
-				// ok, now we have got enough of the handshake. Is this connection
-				// attached to a torrent?
+				case read_protocol_version:
+					{
+						const char* protocol_version = "BitTorrent protocol";
+	#if defined(TORRENT_VERBOSE_LOGGING)
+						(*m_logger) << m_socket->sender().as_string() << " protocol name: " << std::string(m_recv_buffer.begin(), m_recv_buffer.end()) << "\n";
+	#endif
+						if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.end(), protocol_version))
+						{
+							// unknown protocol, close connection
+							throw network_error(0);
+						}
+						m_state = read_info_hash;
+						m_packet_size = 28;
+						m_recv_pos = 0;
+						m_recv_buffer.resize(28);
+					}
+					break;
 
-				if (m_torrent == 0)
+
+				case read_info_hash:
 				{
-					// no, we have to see if there's a torrent with the
-					// info_hash we got from the peer
-					sha1_hash info_hash;
-					std::copy(m_recv_buffer.begin()+8, m_recv_buffer.begin() + 28, (char*)info_hash.begin());
-					
-					m_torrent = m_ses->find_torrent(info_hash);
+					// ok, now we have got enough of the handshake. Is this connection
+					// attached to a torrent?
+
 					if (m_torrent == 0)
 					{
-						// we couldn't find the torrent!
-#if defined(TORRENT_VERBOSE_LOGGING)
-						(*m_logger) << m_socket->sender().as_string() << " couldn't find a torrent with the given info_hash\n";
-#endif
-						throw network_error(0);
+						// no, we have to see if there's a torrent with the
+						// info_hash we got from the peer
+						sha1_hash info_hash;
+						std::copy(m_recv_buffer.begin()+8, m_recv_buffer.begin() + 28, (char*)info_hash.begin());
+						
+						m_torrent = m_ses->find_active_torrent(info_hash);
+						if (m_torrent == 0)
+						{
+							// we couldn't find the torrent!
+	#if defined(TORRENT_VERBOSE_LOGGING)
+							(*m_logger) << m_socket->sender().as_string() << " couldn't find a torrent with the given info_hash\n";
+	#endif
+							throw network_error(0);
+						}
+						m_torrent->attach_peer(this);
+
+						// assume the other end has no pieces
+						m_have_piece.resize(m_torrent->torrent_file().num_pieces());
+						std::fill(m_have_piece.begin(), m_have_piece.end(), false);
+
+						// yes, we found the torrent
+						// reply with our handshake
+						std::copy(m_recv_buffer.begin()+28, m_recv_buffer.begin() + 48, (char*)m_peer_id.begin());
+						send_handshake();
+						send_bitfield();
 					}
-					m_torrent->attach_peer(this);
-
-					// assume the other end has no pieces
-					m_have_piece.resize(m_torrent->torrent_file().num_pieces());
-					std::fill(m_have_piece.begin(), m_have_piece.end(), false);
-
-					// yes, we found the torrent
-					// reply with our handshake
-					std::copy(m_recv_buffer.begin()+28, m_recv_buffer.begin() + 48, (char*)m_peer_id.begin());
-					send_handshake();
-					send_bitfield();
-				}
-				else
-				{
-					// verify info hash
-					if (!std::equal(m_recv_buffer.begin()+8, m_recv_buffer.begin() + 28, (const char*)m_torrent->torrent_file().info_hash().begin()))
+					else
 					{
-#if defined(TORRENT_VERBOSE_LOGGING)
-						(*m_logger) << m_socket->sender().as_string() << " received invalid info_hash\n";
-#endif
-						throw network_error(0);
+						// verify info hash
+						if (!std::equal(m_recv_buffer.begin()+8, m_recv_buffer.begin() + 28, (const char*)m_torrent->torrent_file().info_hash().begin()))
+						{
+	#if defined(TORRENT_VERBOSE_LOGGING)
+							(*m_logger) << m_socket->sender().as_string() << " received invalid info_hash\n";
+	#endif
+							throw network_error(0);
+						}
 					}
+
+					m_state = read_peer_id;
+					m_packet_size = 20;
+					m_recv_pos = 0;
+					m_recv_buffer.resize(20);
+	#if defined(TORRENT_VERBOSE_LOGGING)
+					(*m_logger) << m_socket->sender().as_string() << " info_hash received\n";
+	#endif
+					break;
 				}
 
-				m_state = read_peer_id;
-				m_packet_size = 20;
-				m_recv_pos = 0;
-				m_recv_buffer.resize(20);
-#if defined(TORRENT_VERBOSE_LOGGING)
-				(*m_logger) << m_socket->sender().as_string() << " info_hash received\n";
-#endif
-				break;
-			}
 
-
-			case read_peer_id:
-			{
-				if (m_active)
+				case read_peer_id:
 				{
-					// verify peer_id
-					// TODO: It seems like the original client ignores to check the peer id
-					// can this be correct?
-					if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (const char*)m_peer_id.begin()))
+					if (m_active)
 					{
-#if defined(TORRENT_VERBOSE_LOGGING)
-						(*m_logger) << m_socket->sender().as_string() << " invalid peer_id (it doesn't equal the one from the tracker)\n";
-#endif
-						throw network_error(0);
+						// verify peer_id
+						// TODO: It seems like the original client ignores to check the peer id
+						// can this be correct?
+						if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (const char*)m_peer_id.begin()))
+						{
+	#if defined(TORRENT_VERBOSE_LOGGING)
+							(*m_logger) << m_socket->sender().as_string() << " invalid peer_id (it doesn't equal the one from the tracker)\n";
+	#endif
+							throw network_error(0);
+						}
 					}
-				}
-				else
-				{
-					// check to make sure we don't have another connection with the same
-					// info_hash and peer_id. If we do. close this connection.
-					std::copy(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (char*)m_peer_id.begin());
-					if (m_torrent->num_connections(m_peer_id) > 1)
+					else
 					{
-#if defined(TORRENT_VERBOSE_LOGGING)
-						(*m_logger) << m_socket->sender().as_string() << " duplicate connection, closing\n";
-#endif
-						throw network_error(0);
+						// check to make sure we don't have another connection with the same
+						// info_hash and peer_id. If we do. close this connection.
+						std::copy(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (char*)m_peer_id.begin());
+						if (m_torrent->num_connections(m_peer_id) > 1)
+						{
+	#if defined(TORRENT_VERBOSE_LOGGING)
+							(*m_logger) << m_socket->sender().as_string() << " duplicate connection, closing\n";
+	#endif
+							throw network_error(0);
+						}
 					}
-				}
 
-				m_state = read_packet_size;
-				m_packet_size = 4;
-				m_recv_pos = 0;
-				m_recv_buffer.resize(4);
-#if defined(TORRENT_VERBOSE_LOGGING)
-				(*m_logger) << m_socket->sender().as_string() << " received peer_id\n";
-#endif
-				break;
-			}
-
-
-			case read_packet_size:
-				// convert from big endian to native byte order
-				m_packet_size = read_int(&m_recv_buffer[0]);
-				// don't accept packets larger than 1 MB
-				if (m_packet_size > 1024*1024 || m_packet_size < 0)
-				{
-#if defined(TORRENT_VERBOSE_LOGGING)
-					(*m_logger) << m_socket->sender().as_string() << " packet too large (packet_size > 1 Megabyte), abort\n";
-#endif
-					// packet too large
-					throw network_error(0);
-				}
-				
-				if (m_packet_size == 0)
-				{
-					// keepalive message
 					m_state = read_packet_size;
 					m_packet_size = 4;
-				}
-				else
-				{
-					m_state = read_packet;
-					m_recv_buffer.resize(m_packet_size);
-				}
-				m_recv_pos = 0;
-				break;
-
-			case read_packet:
-				if (!dispatch_message())
-				{
-#if defined(TORRENT_VERBOSE_LOGGING)
-					(*m_logger) << m_socket->sender().as_string() << " received invalid packet\n";
-#endif
-					// invalid message
-					throw network_error(0);
+					m_recv_pos = 0;
+					m_recv_buffer.resize(4);
+	#if defined(TORRENT_VERBOSE_LOGGING)
+					(*m_logger) << m_socket->sender().as_string() << " received peer_id\n";
+	#endif
+					break;
 				}
 
-				m_state = read_packet_size;
-				m_packet_size = 4;
-				m_recv_buffer.resize(4);
-				m_recv_pos = 0;
-				break;
+
+				case read_packet_size:
+					// convert from big endian to native byte order
+					m_packet_size = read_int(&m_recv_buffer[0]);
+					// don't accept packets larger than 1 MB
+					if (m_packet_size > 1024*1024 || m_packet_size < 0)
+					{
+	#if defined(TORRENT_VERBOSE_LOGGING)
+						(*m_logger) << m_socket->sender().as_string() << " packet too large (packet_size > 1 Megabyte), abort\n";
+	#endif
+						// packet too large
+						throw network_error(0);
+					}
+					
+					if (m_packet_size == 0)
+					{
+						// keepalive message
+						m_state = read_packet_size;
+						m_packet_size = 4;
+					}
+					else
+					{
+						m_state = read_packet;
+						m_recv_buffer.resize(m_packet_size);
+					}
+					m_recv_pos = 0;
+					break;
+
+				case read_packet:
+					if (!dispatch_message())
+					{
+	#if defined(TORRENT_VERBOSE_LOGGING)
+						(*m_logger) << m_socket->sender().as_string() << " received invalid packet\n";
+	#endif
+						// invalid message
+						throw network_error(0);
+					}
+
+					m_state = read_packet_size;
+					m_packet_size = 4;
+					m_recv_buffer.resize(4);
+					m_recv_pos = 0;
+					break;
+				}
 			}
 		}
 	}

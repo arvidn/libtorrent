@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <set>
 #include <cctype>
+#include <numeric>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/convenience.hpp>
@@ -142,6 +143,7 @@ namespace libtorrent
 		, m_bytes_uploaded(0)
 		, m_bytes_downloaded(0)
 		, m_torrent_file(torrent_file)
+		, m_unverified_blocks(0)
 		, m_next_request(boost::posix_time::second_clock::local_time())
 		, m_duration(1800)
 		, m_policy(new policy(this))
@@ -401,12 +403,26 @@ namespace libtorrent
 		}
 	}
 
-	// TODO: temporary implementation. Should count the actually
-	// verified pieces and should support the different states
-	// a torrent can be in.
 	std::pair<torrent_handle::state_t, float> torrent::status() const
 	{
-		return std::make_pair(torrent_handle::downloading, 0.f);
+		// TODO: report progress on block-level.
+		// make sure to handle the case where a piece
+		// fails the hash-check
+		const std::vector<bool>& p = m_storage.pieces();
+		int num_pieces = std::accumulate(p.begin(), p.end(), 0);
+		if (num_pieces == p.size())
+			return std::make_pair(torrent_handle::seeding, 1.f);
+
+		int total_blocks
+			= (m_torrent_file.total_size()+m_block_size-1)/m_block_size;
+		int blocks_per_piece
+			= m_torrent_file.piece_length() / m_block_size;
+
+		assert(m_unverified_blocks == m_picker.unverified_blocks());
+
+		return std::make_pair(torrent_handle::downloading,
+			(num_pieces * blocks_per_piece + m_unverified_blocks)
+			/ static_cast<float>(total_blocks));
 	}
 
 }

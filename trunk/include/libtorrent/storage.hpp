@@ -60,7 +60,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
+	namespace detail
+	{
+		class piece_checker_data;
+	}
 	class session;
 
 	struct file_allocation_failed: std::exception
@@ -140,7 +143,9 @@ namespace libtorrent
 	friend class piece_file;
 	public:
 
-		void initialize_pieces(torrent* t, const boost::filesystem::path& path);
+		void initialize_pieces(torrent* t,
+			const boost::filesystem::path& path,
+			boost::shared_ptr<detail::piece_checker_data> data);
 
 		int bytes_left() const { return m_bytes_left; }
 

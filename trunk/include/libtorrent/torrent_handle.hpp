@@ -64,6 +64,9 @@ namespace libtorrent
 		};
 		std::pair<state_t, float> status() const;
 
+		// TODO: add a 'time to next announce' query.
+
+
 	private:
 
 		torrent_handle(detail::session_impl* s, const sha1_hash& h)

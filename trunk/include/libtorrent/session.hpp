@@ -82,8 +82,12 @@ namespace libtorrent
 	namespace detail
 	{
 
+		// this data is shared between the main thread and the
+		// thread that initialize pieces
 		struct piece_checker_data
 		{
+			piece_checker_data(): abort(false) {}
+
 			boost::shared_ptr<torrent> torrent_ptr;
 			std::string save_path;
 
@@ -97,7 +101,15 @@ namespace libtorrent
 			// below in this struct
 			boost::mutex mutex;
 
+			// is filled in by storage::initialize_pieces()
+			// and represents the progress. It should be a
+			// value in the range [0, 1]
 			float progress;
+
+			// abort defaults to false and is typically
+			// filled in by torrent_handle when the user
+			// aborts the torrent
+			bool abort;
 		};
 
 		struct piece_check_thread
@@ -128,7 +140,9 @@ namespace libtorrent
 
 			// a list of all torrents that are currently checking
 			// their files (in separate threads)
-			std::map<sha1_hash, boost::shared_ptr<piece_checker_data> > m_checkers;
+			std::map<sha1_hash,
+				boost::shared_ptr<detail::piece_checker_data>
+				> m_checkers;
 			boost::thread_group m_checker_threads;
 
 			// the peer id that is generated at the start of each torrent
@@ -146,7 +160,9 @@ namespace libtorrent
 			
 			void run(int listen_port);
 
-			torrent* find_torrent(const sha1_hash& info_hash);
+			torrent* find_active_torrent(const sha1_hash& info_hash);
+			detail::piece_checker_data* find_checking_torrent(const sha1_hash& info_hash);
+
 			const peer_id& get_peer_id() const { return m_peer_id; }
 
 #if defined(TORRENT_VERBOSE_LOGGING)
@@ -215,8 +231,8 @@ namespace libtorrent
 		// data shared between the threads
 		detail::session_impl m_impl;
 
+		// the main working thread
 		boost::thread m_thread;
-
 	};
 
 }

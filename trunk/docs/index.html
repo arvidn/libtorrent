@@ -105,7 +105,7 @@ Then the makefile should be able to do the rest.
 <p>
 When building (with boost 1.30.2) on linux and solaris however, I found that I had to make the following
 modifications to the boost.date-time library. In the file:
-'boost-1.30.2/boost/date_time/gregorian_calendar.hpp' line 59. Add 'boost/date_time/'
+'boost-1.30.2/boost/date_time/gregorian_calendar.hpp' line 59. Prepend 'boost/date_time/'
 to the include path.
 </p>
 
@@ -215,8 +215,7 @@ refers to a character (<tt>char</tt>). So, if you want to encode entry <tt>e</tt
 into a buffer in memory, you can do it like this:
 </p>
 
-<code>
-std::vector&lt;char&gt; buffer;
+<code>std::vector&lt;char&gt; buffer;
 bencode(std::back_insert_iterator&lt;std::vector&lt;char&gt; &gt;(buf), e);
 </code>
 
@@ -224,8 +223,7 @@ bencode(std::back_insert_iterator&lt;std::vector&lt;char&gt; &gt;(buf), e);
 If you want to decode a torrent file from a buffer in memory, you can do it like this:
 </p>
 
-<code>
-std::vector&lt;char&gt; buffer;
+<code>std::vector&lt;char&gt; buffer;
 
 // ...
 
@@ -236,8 +234,7 @@ entry e = bdecode(buf.begin(), buf.end());
 Or, if you have a raw char buffer:
 </p>
 
-<code>
-const char* buf;
+<code>const char* buf;
 
 // ...
 
@@ -318,8 +315,7 @@ can assign the value you want it to have.
 The typical code to get info from a torrent file will then look like this:
 </p>
 
-<code>
-entry torrent_file;
+<code>entry torrent_file;
 
 // ...
 
@@ -369,6 +365,7 @@ public:
 	entry::integer_type piece_length() const;
 	std::size_t num_pieces() const;
 	const sha1_hash&amp; info_hash() const;
+	const std::stirng&amp; name() const;
 
 	void print(std::ostream&amp; os) const;
 
@@ -401,6 +398,10 @@ If you need index-access to files you can use the <tt>num_files()</tt> and <tt>f
 <p>
 The <tt>print()</tt> function is there for debug purposes only. It will print the info from
 the torrent file to the given outstream.
+</p>
+
+<p>
+<tt>name()</tt> returns the name of the torrent.
 </p>
 
 <p>
@@ -544,6 +545,8 @@ struct peer_info
 	address ip;
 	float up_speed;
 	float down_speed;
+	unsigned int total_download;
+	unsigned int total_upload;
 	peer_id id;
 	std::vector&lt;bool&gt; pieces;
 };
@@ -566,6 +569,12 @@ actual address and the port number. See <a href"#address">address</a> class.
 <p>
 <tt>up_speed</tt> and <tt>down_speed</tt> is the current upload and download speed
 we have to and from this peer. These figures are updated aproximately once every second.
+</p>
+
+<p>
+<tt>total_download</tt> and <tt>total_upload</tt> are the total number of bytes downloaded
+from and uploaded to this peer. These numbers do not include the protocol chatter, but only
+the payload data.
 </p>
 
 <p>
@@ -648,6 +657,42 @@ public:
 
 <p>
 The iterators gives you access to individual bytes.
+</p>
+
+<h2>hasher</h2>
+
+<p>
+This class creates sha1-hashes. Its declaration looks like this:
+</p>
+
+<pre>
+class hasher
+{
+public:
+	hasher();
+
+	void update(const char* data, unsigned int len);
+	sha1_hash final();
+	void reset();
+};
+</pre>
+
+<p>
+You use it by first instantiating it, then call <tt>update()</tt> to feed it
+with data. i.e. you don't have to keep the entire buffer of which you want to
+create the hash in memory. You can feed the hasher parts of it at a time. When
+You have fed the hasher with all the data, you call <tt>final()</tt> and it
+will return the sha1-hash of the data.
+</p>
+
+<p>
+If you want to reuse the hasher object once you have created a hash, you have to
+call <tt>reset()</tt> to reinitialize it.
+</p>
+
+<p>
+The sha1-algorithm used was implemented by Steve Reid and released as public domain.
+For more info, see <tt>src/sha1.c</tt>.
 </p>
 
 <h1>Credits</h1>

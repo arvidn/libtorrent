@@ -40,6 +40,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/http_settings.hpp"
 
+#ifdef WIN32
+#include <conio.h>
+
+bool sleep_and_input(char* c)
+{
+	Sleep(500);
+	if (kbhit())
+	{
+		*c = getch();
+		return true;
+	}
+	return false;
+};
+
+#endif
 
 int main(int argc, char* argv[])
 {
@@ -62,7 +77,7 @@ int main(int argc, char* argv[])
 	try
 	{
 		std::vector<torrent_handle> handles;
-		session s(6881, "ex-01");
+		session s(6881, "E\x1");
 
 		s.set_http_settings(settings);
 		for (int i = 0; i < argc-1; ++i)
@@ -82,19 +97,82 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		while (!handles.empty())
-		{
-			int a;
-			std::cin >> a;
-			handles.back().abort();
-			handles.pop_back();
-		}
+		std::pair<torrent_handle::state_t, float> prev_status
+			= std::make_pair(torrent_handle::invalid_handle, 0.f);
 
+
+		std::vector<peer_info> peers;
+
+		for (;;)
+		{
+			char c;
+			if (sleep_and_input(&c))
+			{
+				if (c == 'q') break;
+			}
+
+			// just print info from the first torrent
+			torrent_handle h = handles.front();
+
+			std::pair<torrent_handle::state_t, float> s
+				= h.status();
+
+			if (s.first == prev_status.first
+				&& s.second == prev_status.second)
+				continue;
+
+			switch(s.first)
+			{
+				case torrent_handle::checking_files:
+					std::cout << "checking files: ";
+					break;
+				case torrent_handle::downloading:
+					std::cout << "downloading: ";
+					break;
+				case torrent_handle::seeding:
+					std::cout << "seeding: ";
+					break;
+			};
+
+			std::cout.width(3);
+			std::cout.precision(3);
+			std::cout.fill('0');
+			std::cout << s.second*100 << "% ";
+
+			// calculate download and upload speeds
+			h.get_peer_info(peers);
+			float down = 0.f;
+			float up = 0.f;
+			unsigned int total_down = 0;
+			unsigned int total_up = 0;
+			int num_peers = peers.size();
+
+			for (std::vector<peer_info>::iterator i = peers.begin();
+				i != peers.end();
+				++i)
+			{
+				down += i->down_speed;
+				up += i->up_speed;
+				total_down += i->total_download;
+				total_up += i->total_upload;
+			}
+
+			std::cout.width(2);
+			std::cout.precision(2);
+
+			std::cout << "p:" << num_peers;
+			
+			std::cout.width(6);
+			std::cout.precision(6);
+
+			std::cout << " d:("
+				<< total_down/1024.f << " kB) " << down/1024.f << " kB/s up:("
+				<< total_up/1024.f << " kB) " << up/1024.f << " kB/s \r";
+		}
 	}
 	catch (std::exception& e)
 	{
   		std::cout << e.what() << "\n";
 	}
-
 	return 0;
 }
