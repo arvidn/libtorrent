@@ -150,12 +150,6 @@ namespace libtorrent
 		float ratio() const
 		{ return m_ratio; }
 
-		int num_complete() const
-		{ return m_complete; }
-
-		int num_incomplete() const
-		{ return m_incomplete; }
-
 // --------------------------------------------
 		// PEER MANAGEMENT
 
