@@ -72,6 +72,7 @@ namespace std
 #endif
 
 using namespace libtorrent;
+using namespace boost::posix_time;
 
 
 namespace
@@ -157,7 +158,7 @@ namespace libtorrent
 		, m_event(tracker_request::started)
 		, m_block_size(0)
 		, m_storage(0)
-		, m_next_request(boost::posix_time::second_clock::local_time())
+		, m_next_request(second_clock::universal_time())
 		, m_duration(1800)
 		, m_policy()
 		, m_ses(ses)
@@ -195,7 +196,7 @@ namespace libtorrent
 		, m_event(tracker_request::started)
 		, m_block_size(0)
 		, m_storage(0)
-		, m_next_request(boost::posix_time::second_clock::local_time())
+		, m_next_request(second_clock::universal_time())
 		, m_duration(1800)
 		, m_policy()
 		, m_ses(ses)
@@ -247,14 +248,13 @@ namespace libtorrent
 	// tracker request
 	bool torrent::should_request()
 	{
-		namespace time = boost::posix_time;
 		if (m_just_paused)
 		{
 			m_just_paused = false;
 			return true;
 		}
 		return !m_paused &&
-			m_next_request < time::second_clock::local_time();
+			m_next_request < second_clock::universal_time();
 	}
 
 	void torrent::tracker_response(
@@ -268,7 +268,7 @@ namespace libtorrent
 
 		m_last_working_tracker
 			= prioritize_tracker(m_currently_trying_tracker);
-		m_next_request = boost::posix_time::second_clock::local_time()
+		m_next_request = second_clock::universal_time()
 			+ boost::posix_time::seconds(m_duration);
 		m_currently_trying_tracker = 0;
 
@@ -277,11 +277,11 @@ namespace libtorrent
 		{
 			// if the peer list is empty, we should contact the
 			// tracker soon again to see if there are any peers
-			m_next_request = boost::posix_time::second_clock::local_time() + boost::posix_time::seconds(60);
+			m_next_request = second_clock::universal_time() + boost::posix_time::seconds(60);
 		}
 		else
 		{
-			m_next_request = boost::posix_time::second_clock::local_time() + boost::posix_time::seconds(m_duration);
+			m_next_request = second_clock::universal_time() + boost::posix_time::seconds(m_duration);
 		}
 
 		// connect to random peers from the list
@@ -521,7 +521,7 @@ namespace libtorrent
 	{
 		m_duration = 1800;
 		m_next_request
-			= boost::posix_time::second_clock::local_time()
+			= second_clock::universal_time()
 			+ boost::posix_time::seconds(tracker_retry_delay_max);
 
 		tracker_request req;
@@ -698,12 +698,12 @@ namespace libtorrent
 			++m_failed_trackers;
 			// if we've looped the tracker list, wait a bit before retrying
 			m_currently_trying_tracker = 0;
-			m_next_request = second_clock::local_time() + seconds(delay);
+			m_next_request = second_clock::universal_time() + seconds(delay);
 		}
 		else
 		{
 			// don't delay before trying the next tracker
-			m_next_request = boost::posix_time::second_clock::local_time();
+			m_next_request = second_clock::universal_time();
 		}
 
 	}
@@ -944,7 +944,7 @@ namespace libtorrent
 		st.upload_payload_rate = m_stat.upload_payload_rate();
 
 		st.next_announce = next_announce()
-			- boost::posix_time::second_clock::local_time();
+			- second_clock::universal_time();
 		if (st.next_announce.is_negative()) st.next_announce
 			= boost::posix_time::seconds(0);
 		st.announce_interval = boost::posix_time::seconds(m_duration);

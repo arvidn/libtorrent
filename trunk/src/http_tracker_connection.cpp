@@ -72,6 +72,8 @@ namespace
 
 }
 
+using namespace boost::posix_time;
+
 namespace libtorrent
 {
 
@@ -90,7 +92,7 @@ namespace libtorrent
 		, m_content_encoding(plain)
 		, m_content_length(0)
 		, m_recv_pos(0)
-		, m_request_time(boost::posix_time::second_clock::local_time())
+		, m_request_time(second_clock::universal_time())
 		, m_settings(stn)
 		, m_req(req)
 		, m_password(password)
@@ -213,7 +215,7 @@ namespace libtorrent
 	
 		using namespace boost::posix_time;
 
-		time_duration d = second_clock::local_time() - m_request_time;
+		time_duration d = second_clock::universal_time() - m_request_time;
 		if (d > seconds(m_settings.tracker_timeout) ||
 			(!has_requester() && d > seconds(m_settings.stop_tracker_timeout)))
 		{
@@ -247,7 +249,7 @@ namespace libtorrent
 			}
 
 			if (sent != 0)
-				m_request_time = boost::posix_time::second_clock::local_time();
+				m_request_time = second_clock::universal_time();
 		}
 
 		if (m_socket->has_error())
@@ -260,7 +262,7 @@ namespace libtorrent
 		// if the socket isn't ready for reading, there's no point in continuing
 		// trying to read from it
 		if (!m_socket->is_readable()) return false;
-		m_request_time = boost::posix_time::second_clock::local_time();
+		m_request_time = second_clock::universal_time();
 
 	#ifndef NDEBUG
 		if (has_requester()) requester().debug_log("tracker connection socket readable");

@@ -486,7 +486,7 @@ namespace libtorrent
 	inline void torrent::force_tracker_request()
 	{
 		namespace time = boost::posix_time;
-		m_next_request = time::second_clock::local_time();
+		m_next_request = time::second_clock::universal_time();
 	}
 
 	inline void torrent::set_tracker_login(

@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
 
 	if (argc != 2)
 	{
-		std::cerr << "usage: ./simple_cient torrent-file\n"
+		std::cerr << "usage: ./simple_client torrent-file\n"
 			"to stop the client, press return.\n";
 		return 1;
 	}

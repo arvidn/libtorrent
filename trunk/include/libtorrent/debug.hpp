@@ -41,6 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/lexical_cast.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/convenience.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -102,11 +104,11 @@ namespace libtorrent
 	{
 	public:
 		file_logger(const char* filename)
-			: m_file(filename)
+			: m_file(boost::filesystem::complete(filename))
 		{ assert(filename); }
 		virtual void log(const char* text) { assert(text); m_file << text; }
 
-		std::ofstream m_file;
+		boost::filesystem::ofstream m_file;
 	};
 
 }

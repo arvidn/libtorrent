@@ -54,6 +54,8 @@ namespace
 	};
 }
 
+using namespace boost::posix_time;
+
 namespace libtorrent
 {
 
@@ -64,7 +66,7 @@ namespace libtorrent
 		, boost::weak_ptr<request_callback> c
 		, const http_settings& stn)
 		: tracker_connection(c)
-		, m_request_time(boost::posix_time::second_clock::local_time())
+		, m_request_time(second_clock::universal_time())
 		, m_request(req)
 		, m_transaction_id(0)
 		, m_connection_id(0)
@@ -85,7 +87,7 @@ namespace libtorrent
 	{
 		using namespace boost::posix_time;
 
-		time_duration d = second_clock::local_time() - m_request_time;
+		time_duration d = second_clock::universal_time() - m_request_time;
 		return (m_transaction_id != 0
 			&& m_connection_id != 0)
 			|| d > seconds(m_settings.tracker_timeout);
@@ -95,7 +97,7 @@ namespace libtorrent
 	{
 		using namespace boost::posix_time;
 
-		time_duration d = second_clock::local_time() - m_request_time;
+		time_duration d = second_clock::universal_time() - m_request_time;
 		if (m_connection_id == 0
 			&& d > seconds(udp_connect_timeout))
 		{
@@ -185,7 +187,7 @@ namespace libtorrent
 		detail::write_uint16(m_request.listen_port, ptr);
 	
 		m_socket->send(buf, 94);
-		m_request_time = boost::posix_time::second_clock::local_time();
+		m_request_time = second_clock::universal_time();
 		++m_attempts;
 	}
 
@@ -205,7 +207,7 @@ namespace libtorrent
 		detail::write_int32(m_transaction_id, ptr);
 
 		m_socket->send(send_buf, 16);
-		m_request_time = boost::posix_time::second_clock::local_time();
+		m_request_time = second_clock::universal_time();
 		++m_attempts;
 	}
 
