@@ -232,6 +232,36 @@ namespace libtorrent
 		m_pimpl.swap(other.m_pimpl);
 	}
 
+#ifndef NDEBUG
+
+	void storage::shuffle()
+	{
+		int num_pieces = m_pimpl->info.num_pieces();
+
+		std::vector<int> pieces(num_pieces);
+		for (std::vector<int>::iterator i = pieces.begin();
+			i != pieces.end();
+			++i)
+		{
+			*i = i - pieces.begin();
+		}
+		std::vector<int> targets(pieces);
+		std::random_shuffle(pieces.begin(), pieces.end());
+		std::random_shuffle(targets.begin(), targets.end());
+
+		for (int i = 0; i < num_pieces / 4; ++i)
+		{
+			const int slot_index = targets[i];
+			const int piece_index = pieces[i];
+			const int slot_size = m_pimpl->info.piece_size(slot_index);
+			std::vector<char> buf(slot_size);
+			read(&buf[0], piece_index, 0, slot_size);
+			write(&buf[0], slot_index, 0, slot_size);
+		}
+	}
+
+#endif
+
 	size_type storage::read(
 		char* buf
 	  , int slot
@@ -1033,6 +1063,8 @@ namespace libtorrent
 		, std::vector<bool>& have_pieces
 		, const std::multimap<sha1_hash, int>& hash_to_piece)
 	{
+		INVARIANT_CHECK;
+
 		assert((int)have_pieces.size() == m_info.num_pieces());
 
 		const int piece_size = m_info.piece_length();
@@ -1105,6 +1137,7 @@ namespace libtorrent
 				}
 				if (other_piece >= 0)
 				{
+					// replace the old slot with 'other_piece'
 					assert(have_pieces[other_piece] == false);
 					have_pieces[other_piece] = true;
 					m_slot_to_piece[other_slot] = other_piece;
@@ -1112,6 +1145,11 @@ namespace libtorrent
 				}
 				else
 				{
+					// this index is the only piece with this
+					// hash. The previous slot we found with
+					// this hash must be tha same piece. Mark
+					// that piece as unassigned, since this slot
+					// is the correct place for the piece.
 					m_slot_to_piece[other_slot] = unassigned;
 					m_free_slots.push_back(other_slot);
 				}
@@ -1144,6 +1182,7 @@ namespace libtorrent
 			assert(have_pieces[free_piece] == false);
 			assert(m_piece_to_slot[free_piece] == has_no_slot);
 			have_pieces[free_piece] = true;
+
 			return free_piece;
 		}
 		else
@@ -1164,13 +1203,16 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
+		// TODO: TEMP!
+//		m_storage.shuffle();
+
 		m_piece_to_slot.resize(m_info.num_pieces(), has_no_slot);
 		m_slot_to_piece.resize(m_info.num_pieces(), unallocated);
 		m_free_slots.clear();
 		m_unallocated_slots.clear();
 		pieces.clear();
 		pieces.resize(m_info.num_pieces(), false);
-
+/*
 		// if we have fast-resume info
 		// use it instead of doing the actual checking
 		if (!data.piece_map.empty()
@@ -1212,7 +1254,7 @@ namespace libtorrent
 			}
 			return;
 		}
-
+*/
 
 		// ------------------------
 		//    DO THE FULL CHECK
@@ -1241,6 +1283,7 @@ namespace libtorrent
 		{
 			try
 			{
+
 				m_storage.read(
 					&piece_data[0]
 					, current_slot
@@ -1255,19 +1298,49 @@ namespace libtorrent
 				
 				if (piece_index >= 0)
 				{
- 					assert(m_slot_to_piece[current_slot] == unallocated);
-					assert(m_piece_to_slot[piece_index] == has_no_slot);
+					INVARIANT_CHECK;
 
-					// the slot was identified as piece 'piece_index'
-					m_piece_to_slot[piece_index] = current_slot;
+					if (m_slot_to_piece[piece_index] >= 0)
+					{
+						// the storage is unsorted, sorting.
+						assert(piece_index != current_slot);
 
-					m_slot_to_piece[current_slot] = piece_index;
+						// swap piece_index with this slot
+						int other_piece = m_slot_to_piece[piece_index];
+
+						m_slot_to_piece[piece_index] = piece_index;
+						m_slot_to_piece[current_slot] = other_piece;
+
+						m_piece_to_slot[piece_index] = piece_index;
+						m_piece_to_slot[other_piece] = current_slot;
+
+						const int slot1_size = m_info.piece_size(current_slot);
+						const int slot2_size = m_info.piece_size(piece_index);
+						std::vector<char> buf1(slot1_size);
+						std::vector<char> buf2(slot2_size);
+						m_storage.read(&buf1[0], current_slot, 0, slot1_size);
+						m_storage.read(&buf2[0], piece_index, 0, slot2_size);
+						m_storage.write(&buf2[0], current_slot, 0, slot2_size);
+						m_storage.write(&buf1[0], piece_index, 0, slot1_size);
+					}
+					else
+					{
+						assert(m_slot_to_piece[current_slot] == unallocated);
+						assert(m_piece_to_slot[piece_index] == has_no_slot);
+
+						// the slot was identified as piece 'piece_index'
+						m_piece_to_slot[piece_index] = current_slot;
+
+						m_slot_to_piece[current_slot] = piece_index;
+					}
 				}
 				else
 				{
+					INVARIANT_CHECK;
+
 					// the data in the slot was not recognized
 					// consider the slot free
-					assert(m_slot_to_piece[current_slot]==unallocated);
+					assert(m_slot_to_piece[current_slot] == unallocated);
 					m_slot_to_piece[current_slot] = unassigned;
 					m_free_slots.push_back(current_slot);
 				}
@@ -1391,9 +1464,10 @@ namespace libtorrent
 				m_piece_to_slot[piece_index]
 				, m_piece_to_slot[piece_at_our_slot]);
 
-			std::vector<char> buf(m_info.piece_length());
-			m_storage.read(&buf[0], piece_index, 0, m_info.piece_length());
-			m_storage.write(&buf[0], slot_index, 0, m_info.piece_length());
+			const int slot_size = m_info.piece_size(slot_index);
+			std::vector<char> buf(slot_size);
+			m_storage.read(&buf[0], piece_index, 0, slot_size);
+			m_storage.write(&buf[0], slot_index, 0, slot_size);
 
 			assert(m_slot_to_piece[piece_index] == piece_index);
 			assert(m_piece_to_slot[piece_index] == piece_index);
@@ -1555,7 +1629,7 @@ namespace libtorrent
 			// do more detailed checks on piece_to_slot
 			if (m_piece_to_slot[i] >= 0)
 			{
-				assert(m_slot_to_piece[m_piece_to_slot[i]]==i);
+				assert(m_slot_to_piece[m_piece_to_slot[i]] == i);
 				if (m_piece_to_slot[i] != i)
 				{
 					assert(m_slot_to_piece[i] == unallocated);
@@ -1563,7 +1637,7 @@ namespace libtorrent
 			}
 			else
 			{
-				assert(m_piece_to_slot[i]==has_no_slot);
+				assert(m_piece_to_slot[i] == has_no_slot);
 			}
 
 			// do more detailed checks on slot_to_piece

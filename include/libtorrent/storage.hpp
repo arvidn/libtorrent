@@ -93,6 +93,12 @@ namespace libtorrent
 		// may throw file_error if storage for slot hasn't been allocated
 		void write(const char* buf, int slot, int offset, int size);
 
+#ifndef NDEBUG
+		// overwrites some slots with the
+		// contents of others
+		void storage::shuffle();
+#endif
+
 	private:
 		class impl;
 		opaque_value_ptr<impl> m_pimpl;
