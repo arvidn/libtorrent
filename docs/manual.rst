@@ -181,8 +181,8 @@ The ``session`` class has the following synopsis::
 
 	class session: public boost::noncopyable
 	{
-		session(int listen_port, const fingerprint& print);
-		session(int listen_port);
+		session(std::pair<int, int> listen_port_range, const fingerprint& print);
+		session(std::pair<int, int> listen_port_range);
 
 		torrent_handle add_torrent(
 			const torrent_info& t
@@ -237,10 +237,12 @@ timeout can be set with ``set_http_settings()``.
 The torrent_handle_ returned by ``add_torrent`` can be used to retrieve information
 about the torrent's progress, its peers etc. It is also used to abort a torrent.
 
-The constructor takes a listen port as argument, if the given port is busy it will
+The constructor takes a range of listen ports as argument, if the first port is busy it will
 increase the port number by one and try again. If it still fails it will continue
-increasing the port number until it succeeds or has failed 9 ports. *This will
-change in the future to give more control of the listen-port.*
+increasing the port number until it succeeds or has reached the end of the range. If it
+fails with all ports, a listen_failed_alert_ will be posted and the session thread will
+exit. The only thing you can do with your session if this alert is posted is to destruct
+it and possibly try again or change the port range.
 
 For information about the ``pop_alert()`` function, see alerts_.
 
@@ -1104,6 +1106,43 @@ user in different ways.
 The specific alerts, that all derives from ``alert``, are:
 
 
+listen_failed_alert
+-------------------
+
+This alert is generated when none of the ports, given in the port range, to
+session_ can be opened for listening. Without a listening port the session
+object will exit its thread. This alert is generated as severity level ``fatal``.
+
+::
+
+struct listen_failed_alert: alert
+{
+	listen_failed_alert(const std::string& msg);
+	virtual std::auto_ptr<alert> clone() const;
+};
+
+
+file_error_alert
+----------------
+
+If the storage fails to read or write files that it needs access to, this alert is
+generated and the torrent is aborted. It is generated as severity level ``fatal``.
+
+::
+
+	struct file_error_alert: alert
+	{
+		file_error_alert(
+			const torrent_handle& h
+			, const std::string& msg);
+			
+		virtual std::auto_ptr<alert> clone() const;
+
+		torrent_handle handle;
+	};
+
+
+
 tracker_alert
 -------------
 
@@ -1415,7 +1454,7 @@ This is a simple client. It doesn't have much output to keep it simple::
 
 		try
 		{
-			session s(6881);
+			session s(std::make_pair(6881, 6889));
 	
 			std::ifstream in(argv[1], std::ios_base::binary);
 			in.unsetf(std::ios_base::skipws);

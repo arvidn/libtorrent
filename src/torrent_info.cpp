@@ -209,7 +209,9 @@ namespace libtorrent
 		m_piece_hash.resize(num_pieces);
 
 		const std::string& hash_string = i->second.string();
-		if (hash_string.length() != num_pieces * 20) throw invalid_torrent_file();
+		if ((int)hash_string.length() != num_pieces * 20)
+			throw invalid_torrent_file();
+
 		for (int i = 0; i < num_pieces; ++i)
 			std::copy(hash_string.begin() + i*20, hash_string.begin() + (i+1)*20, m_piece_hash[i].begin());
 	}

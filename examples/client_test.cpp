@@ -236,7 +236,7 @@ int main(int argc, char* argv[])
 	try
 	{
 		std::vector<torrent_handle> handles;
-		session ses(6881);
+		session ses(std::make_pair(6881, 6889));
 
 //		ses.set_upload_rate_limit(30 * 1024);
 		ses.set_http_settings(settings);

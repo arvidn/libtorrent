@@ -275,7 +275,7 @@ namespace libtorrent
 	{
 		assert(index >= 0);
 		assert(index < (int)m_piece_map.size());
-		if (index+1 == m_piece_map.size())
+		if (index+1 == (int)m_piece_map.size())
 			return m_blocks_in_last_piece;
 		else
 			return m_blocks_per_piece;

@@ -357,15 +357,18 @@ namespace libtorrent
 			return 0;
 		}
 
-		session_impl::session_impl(int listen_port,
+		session_impl::session_impl(std::pair<int, int> listen_port_range,
 			const fingerprint& cl_fprint)
-			: m_abort(false)
-			, m_tracker_manager(m_settings)
-			, m_listen_port(listen_port)
+			: m_tracker_manager(m_settings)
+			, m_listen_port_range(listen_port_range)
+			, m_listen_port(listen_port_range.first)
+			, m_abort(false)
 			, m_upload_rate(-1)
 			, m_incoming_connection(false)
 		{
-			assert(listen_port > 0);
+			assert(listen_port_range.first > 0);
+			assert(listen_port_range.first < listen_port_range.second);
+			assert(m_listen_port > 0);
 
 			// ---- generate a peer id ----
 
@@ -395,7 +398,7 @@ namespace libtorrent
 			{
 				m_connections.erase(m_disconnect_peer.back());
 				m_disconnect_peer.pop_back();
-				assert(m_selector.count_read_monitors() == m_connections.size() + 1);
+				assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
 			}
 		}
 
@@ -408,11 +411,8 @@ namespace libtorrent
 			try
 			{
 #endif
-			boost::shared_ptr<socket> listener(new socket(socket::tcp, false));
-			int max_port = m_listen_port + 9;
-
-
 			// create listener socket
+			boost::shared_ptr<socket> listener(new socket(socket::tcp, false));
 
 			for(;;)
 			{
@@ -422,9 +422,13 @@ namespace libtorrent
 				}
 				catch (std::exception&)
 				{
-					if (m_listen_port > max_port)
-						throw;
 					m_listen_port++;
+					if (m_listen_port > m_listen_port_range.second)
+					{
+						m_alerts.post_alert(listen_failed_alert(
+							"none of the ports in the given range could be opened"));
+						return;
+					}
 					continue;
 				}
 				break;
@@ -470,7 +474,7 @@ namespace libtorrent
 				boost::mutex::scoped_lock l(m_mutex);
 
 				// +1 for the listen socket
-				assert(m_selector.count_read_monitors() == m_connections.size() + 1);
+				assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
 
 				if (m_abort)
 				{
@@ -520,17 +524,21 @@ namespace libtorrent
 						}
 						catch (file_error& e)
 						{
+							torrent* t = p->second->associated_torrent();
+							assert(t != 0);
+
 							if (m_alerts.should_post(alert::fatal))
 							{
 								m_alerts.post_alert(
 									file_error_alert(
-									p->second->associated_torrent()->get_handle()
+									t->get_handle()
 									, e.what()));
 							}
 
 							m_selector.remove(*i);
 							m_connections.erase(p);
-							assert(m_selector.count_read_monitors() == m_connections.size() + 1);
+							assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
+							t->abort();
 						}
 						catch (std::exception& e)
 						{
@@ -544,7 +552,7 @@ namespace libtorrent
 
 							m_selector.remove(*i);
 							m_connections.erase(p);
-							assert(m_selector.count_read_monitors() == m_connections.size() + 1);
+							assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
 						}
 					}
 				}
@@ -600,17 +608,21 @@ namespace libtorrent
 						}
 						catch (file_error& e)
 						{
+							torrent* t = p->second->associated_torrent();
+							assert(t != 0);
+
 							if (m_alerts.should_post(alert::fatal))
 							{
 								m_alerts.post_alert(
 									file_error_alert(
-									p->second->associated_torrent()->get_handle()
+									t->get_handle()
 									, e.what()));
 							}
 
 							m_selector.remove(*i);
 							m_connections.erase(p);
-							assert(m_selector.count_read_monitors() == m_connections.size() + 1);
+							assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
+							t->abort();
 						}
 						catch (std::exception& e)
 						{
@@ -623,7 +635,7 @@ namespace libtorrent
 							// from the connection-list
 							m_selector.remove(*i);
 							m_connections.erase(p);
-							assert(m_selector.count_read_monitors() == m_connections.size() + 1);
+							assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
 						}
 					}
 				}
@@ -656,7 +668,7 @@ namespace libtorrent
 					if (p != m_connections.end())
 					{
 						m_connections.erase(p);
-						assert(m_selector.count_read_monitors() == m_connections.size() + 1);
+						assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
 					}
 				}
 
@@ -692,7 +704,7 @@ namespace libtorrent
 					{
 						m_selector.remove(j->first);
 						m_connections.erase(j);
-						assert(m_selector.count_read_monitors() == m_connections.size() + 1);
+						assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
 						continue;
 					}
 
@@ -822,13 +834,14 @@ namespace libtorrent
 
 	}
 
-	// TODO: take a port range instead!
-	session::session(int listen_port, const fingerprint& id)
-		: m_impl(listen_port, id)
+	session::session(std::pair<int, int> listen_port_range, const fingerprint& id)
+		: m_impl(listen_port_range, id)
 		, m_checker_impl(m_impl)
 		, m_thread(boost::ref(m_impl))
 		, m_checker_thread(boost::ref(m_checker_impl))
 	{
+		assert(listen_port_range.first > 0);
+		assert(listen_port_range.first < listen_port_range.second);
 #ifndef NDEBUG
 		// this test was added after it came to my attention
 		// that devstudios managed c++ failed to generate
@@ -838,12 +851,14 @@ namespace libtorrent
 #endif
 	}
 
-	session::session(int listen_port)
-		: m_impl(listen_port, fingerprint("LT",0,0,1,0))
+	session::session(std::pair<int, int> listen_port_range)
+		: m_impl(listen_port_range, fingerprint("LT",0,0,1,0))
 		, m_checker_impl(m_impl)
 		, m_thread(boost::ref(m_impl))
 		, m_checker_thread(boost::ref(m_checker_impl))
 	{
+		assert(listen_port_range.first > 0);
+		assert(listen_port_range.first < listen_port_range.second);
 #ifndef NDEBUG
 		boost::function0<void> test = boost::ref(m_impl);
 		assert(!test.empty());
@@ -1071,7 +1086,7 @@ namespace libtorrent
 				const std::string& bitmask = i->dict()["bitmask"].string();
 
 				const int num_bitmask_bytes = std::max(num_blocks_per_piece / 8, 1);
-				if (bitmask.size() != num_bitmask_bytes) return;
+				if ((int)bitmask.size() != num_bitmask_bytes) return;
 				for (int j = 0; j < num_bitmask_bytes; ++j)
 				{
 					unsigned char bits = bitmask[j];

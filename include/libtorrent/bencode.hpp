@@ -166,7 +166,9 @@ namespace libtorrent
 				break;
 			case entry::dictionary_t:
 				*out = 'd'; ++out;
-				for (entry::dictionary_type::const_iterator i = e.dict().begin(); i != e.dict().end(); ++i)
+				for (entry::dictionary_type::const_iterator i = e.dict().begin();
+					i != e.dict().end();
+					++i)
 				{
 					// write key
 					write_integer(out, i->first.length());

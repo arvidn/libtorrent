@@ -140,7 +140,6 @@ namespace libtorrent
 		torrent_handle handle;
 	};
 
-	// TODO: document and test
 	struct file_error_alert: alert
 	{
 		file_error_alert(
@@ -154,6 +153,17 @@ namespace libtorrent
 		{ return std::auto_ptr<alert>(new file_error_alert(*this)); }
 
 		torrent_handle handle;
+	};
+
+	struct listen_failed_alert: alert
+	{
+		listen_failed_alert(
+			const std::string& msg)
+			: alert(alert::fatal, msg)
+		{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new listen_failed_alert(*this)); }
 	};
 }
 

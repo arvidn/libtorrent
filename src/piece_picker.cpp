@@ -144,9 +144,8 @@ namespace libtorrent
 		assert(sizeof(piece_pos) == 4);
 
 		if (t != 0)
-			assert(m_piece_map.size() == t->torrent_file().num_pieces());
+			assert((int)m_piece_map.size() == t->torrent_file().num_pieces());
 
-		int last_val = 0;
 		for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin();
 			i != m_piece_map.end();
 			++i)
@@ -163,7 +162,7 @@ namespace libtorrent
 					if (peer->second->has_piece(index)) actual_peer_count++;
 				}
 
-				assert(i->peer_count == actual_peer_count);
+				assert((int)i->peer_count == actual_peer_count);
 /*
 				int num_downloaders = 0;
 				for (std::vector<peer_connection*>::const_iterator peer = t->begin();
@@ -262,7 +261,7 @@ namespace libtorrent
 		// update the piece_map
 		piece_pos& p = m_piece_map[index];
 
-		assert(p.downloading != downloading || p.peer_count != peer_count);
+		assert(p.downloading != downloading || (int)p.peer_count != peer_count);
 
 		std::vector<std::vector<int> >& dst_vec = (p.downloading)?m_downloading_piece_info:m_piece_info;
 
@@ -286,13 +285,13 @@ namespace libtorrent
 			m_piece_map[replace_index].index = elem_index;
 
 			assert((int)src_vec[peer_count].size() > elem_index);
-			assert(m_piece_map[replace_index].peer_count == peer_count);
-			assert(m_piece_map[replace_index].index == elem_index);
+			assert((int)m_piece_map[replace_index].peer_count == peer_count);
+			assert((int)m_piece_map[replace_index].index == elem_index);
 			assert(src_vec[peer_count][elem_index] == replace_index);
 		}
 		else
 		{
-			assert(src_vec[peer_count].size() == elem_index+1);
+			assert((int)src_vec[peer_count].size() == elem_index+1);
 		}
 
 		src_vec[peer_count].pop_back();
@@ -519,9 +518,9 @@ namespace libtorrent
 		assert(i != m_downloads.end());
 		assert((int)i->finished_blocks.count() <= m_blocks_per_piece);
 		int max_blocks = blocks_in_piece(index);
-		if (i->finished_blocks.count() != max_blocks) return false;
+		if ((int)i->finished_blocks.count() != max_blocks) return false;
 
-		assert(i->requested_blocks.count() == max_blocks);
+		assert((int)i->requested_blocks.count() == max_blocks);
 		return true;
 	}
 

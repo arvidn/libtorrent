@@ -745,7 +745,7 @@ namespace libtorrent
 
 		if (m_got_tracker_response == false)
 			st.state = torrent_status::connecting_to_tracker;
-		else if (m_num_pieces == m_have_pieces.size())
+		else if (m_num_pieces == (int)m_have_pieces.size())
 			st.state = torrent_status::seeding;
 		else
 			st.state = torrent_status::downloading;
@@ -774,9 +774,7 @@ namespace libtorrent
 		try_next_tracker();
 	}
 
-	// TODO: this function should also take the
-	// HTTP-response code as an argument.
-	// with some codes, we should just consider
+	// TODO: with some response codes, we should just consider
 	// the tracker as a failure and not retry
 	// it anymore
 	void torrent::tracker_request_error(int response_code, const std::string& str)

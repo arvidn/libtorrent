@@ -144,7 +144,7 @@ namespace libtorrent
 		, const boost::filesystem::path& p
 		, const std::vector<size_type>& sizes)
 	{
-		if (sizes.size() != t.num_files()) return false;
+		if ((int)sizes.size() != t.num_files()) return false;
 
 		std::vector<size_type>::const_iterator s = sizes.begin();
 		for (torrent_info::file_iterator i = t.begin_files();
@@ -326,6 +326,7 @@ namespace libtorrent
 		return result;
 	}
 
+	// throws file_error if it fails to write
 	void storage::write(
 		const char* buf
 		, int slot
@@ -356,26 +357,18 @@ namespace libtorrent
 		}
 
 		fs::path path(m_pimpl->save_path / file_iter->path / file_iter->filename);
-/*
-		fs::ofstream out;
-
-		if (fs::exists(path))
-			out.open(path, std::ios_base::binary | std::ios_base::in);
-		else
-			out.open(path, std::ios_base::binary);
-*/
 		file out(path, file::out);
 
 		assert(file_offset < file_iter->size);
 
-//		out.seekp(file_offset);
 		out.seek(file_offset);
 
-//		assert(file_offset == out.tellp());
-#ifndef NDEBUG
-		size_type out_tell = out.tell();
-		assert(file_offset == out_tell);
-#endif
+		if (out.tell() != file_offset)
+		{
+			std::stringstream s;
+			s << "no storage for slot " << slot;
+			throw file_error(s.str());
+		}
 
 		int left_to_write = size;
 		int slot_size = m_pimpl->info.piece_size(slot);
@@ -387,8 +380,6 @@ namespace libtorrent
 
 		int buf_pos = 0;
 
-		// TODO
-		// handle case when we can't write size bytes.
 		while (left_to_write > 0)
 		{
 			int write_bytes = left_to_write;
@@ -400,7 +391,14 @@ namespace libtorrent
 
 			assert(buf_pos >= 0);
 			assert(write_bytes > 0);
-			out.write(buf + buf_pos, write_bytes);
+			size_type written = out.write(buf + buf_pos, write_bytes);
+
+			if (written != write_bytes)
+			{
+				std::stringstream s;
+				s << "no storage for slot " << slot;
+				throw file_error(s.str());
+			}
 
 			left_to_write -= write_bytes;
 			buf_pos += write_bytes;
@@ -926,9 +924,6 @@ namespace libtorrent
 
 			int found_piece = -1;
 
-			// TODO: there's still potential problems if some
-			// pieces have the same hash
-			// for the file not to be corrupt, piece_index <= slot_index
 			for (int i = current_slot; i < m_info.num_pieces(); ++i)
 			{
 				if (pieces[i] && i != current_slot) continue;
@@ -1038,7 +1033,7 @@ namespace libtorrent
 		, std::vector<bool>& have_pieces
 		, const std::multimap<sha1_hash, int>& hash_to_piece)
 	{
-		assert(have_pieces.size() == m_info.num_pieces());
+		assert((int)have_pieces.size() == m_info.num_pieces());
 
 		const int piece_size = m_info.piece_length();
 		const int last_piece_size = m_info.piece_size(
@@ -1234,9 +1229,6 @@ namespace libtorrent
 		}
 
 		std::vector<char> piece_data(m_info.piece_length());
-		const int piece_size = m_info.piece_length();
-		const int last_piece_size = m_info.piece_size(
-			m_info.num_pieces() - 1);
 
 		std::multimap<sha1_hash, int> hash_to_piece;
 		// build the hash-map, that maps hashes to pieces
@@ -1329,7 +1321,7 @@ namespace libtorrent
 
 		if (m_free_slots.empty())
 		{
-			allocate_slots(5);
+			allocate_slots(1);
 			assert(!m_free_slots.empty());
 		}
 
@@ -1349,9 +1341,9 @@ namespace libtorrent
 			if (*iter == m_info.num_pieces() - 1 && piece_index != *iter)
 			{
 				if (m_free_slots.size() == 1)
-					allocate_slots(5);
+					allocate_slots(1);
 				assert(m_free_slots.size() > 1);
-				// TODO: assumes that all allocated slots
+				// assumes that all allocated slots
 				// are put at the end of the free_slots vector
 				iter = m_free_slots.end() - 1;
 			}
@@ -1422,42 +1414,48 @@ namespace libtorrent
 	{
 		// this is used to notify potential other
 		// threads that the allocation-function has exited
-		struct allocation_cleanup
+		struct allocation_syncronization
 		{
-			allocation_cleanup(bool& flag, boost::condition& cond)
+			allocation_syncronization(
+				bool& flag
+				, boost::condition& cond
+				, boost::mutex& monitor)
 				: m_flag(flag)
 				, m_cond(cond)
-			{}
-
-			~allocation_cleanup()
+				, m_monitor(monitor)
 			{
+				boost::mutex::scoped_lock lock(m_monitor);
+
+				while (m_flag)
+					m_cond.wait(lock);
+
+				m_flag = true;
+			}
+
+			~allocation_syncronization()
+			{
+				boost::mutex::scoped_lock lock(m_monitor);
 				m_flag = false;
 				m_cond.notify_one();
 			}
 
 			bool& m_flag;
 			boost::condition& m_cond;
+			boost::mutex& m_monitor;
 		};
 	
 	}
 
-	// TODO: signal the m_allocating_condition on exit!
 	void piece_manager::impl::allocate_slots(int num_slots)
 	{
 		assert(num_slots > 0);
 
-		{
-			boost::mutex::scoped_lock lock(m_allocating_monitor);
-
-			while (m_allocating)
-				m_allocating_condition.wait(lock);
-
-			m_allocating = true;
-		}
-
-		// this object will signal the other threads and
-		// set m_allocating to false upon exit
-		allocation_cleanup clean_obj(m_allocating, m_allocating_condition);
+		// this object will syncronize the allocation with
+		// potential other threads
+		allocation_syncronization sync_obj(
+			m_allocating
+			, m_allocating_condition
+			, m_allocating_monitor);
 
 		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
@@ -1476,7 +1474,7 @@ namespace libtorrent
 			++i)
 		{
 			int pos = m_unallocated_slots.front();
-			int piece_pos = pos;
+//			int piece_pos = pos;
 
 			int new_free_slot = pos;
 			if (m_piece_to_slot[pos] != has_no_slot)
@@ -1516,8 +1514,8 @@ namespace libtorrent
 		// ----------------------------------------------------------------------
 		if (m_piece_to_slot.empty()) return;
 
-		assert(m_piece_to_slot.size() == m_info.num_pieces());
-		assert(m_slot_to_piece.size() == m_info.num_pieces());
+		assert((int)m_piece_to_slot.size() == m_info.num_pieces());
+		assert((int)m_slot_to_piece.size() == m_info.num_pieces());
 
 		for (std::vector<int>::const_iterator i = m_free_slots.begin();
 			i != m_free_slots.end();
