@@ -31,7 +31,7 @@ The main goals of libtorrent are:
 libtorrent is not finished. It is an ongoing project (including this documentation).
 The current state includes the following features:
 
-	* multitracker extension support (as `described by TheShadow`_)
+	* multitracker extension support (as `described by TheShadow`__)
 	* serves multiple torrents on a single port and a single thread
 	* supports http proxies and proxy authentication
 	* gzipped tracker-responses
@@ -41,7 +41,7 @@ The current state includes the following features:
 	  thread-safe library interface. (i.e. There's no way for the user to cause a deadlock).
 	* can limit the upload bandwidth usage
 
-.. _`described by TheShadow`: http://home.elp.rr.com/tur/multitracker-spec.txt
+__ http://home.elp.rr.com/tur/multitracker-spec.txt
 .. _Azureus: http://azureus.sourceforge.net
 
 Functions that are yet to be implemented:
@@ -55,7 +55,7 @@ Functions that are yet to be implemented:
 	* a good upload speed cap
 
 libtorrent is portable at least among windows, macosx, and UNIX-systems. It uses boost.thread,
-boost.filesystem and various other boost libraries and zlib.
+boost.filesystem boost.date_time and various other boost libraries and zlib.
 
 libtorrent has been successfully compiled and tested on:
 
@@ -588,7 +588,39 @@ peer every second. It may be -1 if there's no limit.
 address
 -------
 
-TODO
+The ``address`` class represents a name of a network endpoint (usually referred to as
+IP-address) and a port number. This is the same thing as a ``sockaddr_in`` would contain.
+Its declaration looks like this::
+
+	class address
+	{
+	public:
+		address();
+		address(
+			  unsigned char a
+			, unsigned char b
+			, unsigned char c
+			, unsigned char d
+			, unsigned short  port);
+		address(unsigned int addr, unsigned short port);
+		address(const std::string& addr, unsigned short port);
+		address(const address& a);
+		~address();
+
+		std::string as_string() const;
+		unsigned int ip() const;
+		unsigned short port() const;
+
+		bool operator<(const address& a) const;
+		bool operator!=(const address& a) const;
+		bool operator==(const address& a) const;
+	};
+
+It is less-than comparable to make it possible to use it as a key in a map. ``as_string()`` may block
+while it does the DNS lookup, it returns a string that points to the address represented by the object.
+
+``ip()`` will return the 32-bit ip-address as an integer. ``port()`` returns the port number.
+
 
 
 
@@ -681,6 +713,127 @@ The sha1-algorithm used was implemented by Steve Reid and released as public dom
 For more info, see ``src/sha1.c``.
 
 
+example usage
+-------------
+
+dump_torrent
+~~~~~~~~~~~~
+
+This is an example of a program that will take a torrent-file as a parameter and
+print information about it to std out::
+
+	#include <iostream>
+	#include <fstream>
+	#include <iterator>
+	#include <exception>
+	#include <vector>
+	#include <iomanip>
+
+	#include "libtorrent/entry.hpp"
+	#include "libtorrent/bencode.hpp"
+	#include "libtorrent/session.hpp"
+	#include "libtorrent/http_settings.hpp"
+
+
+	int main(int argc, char* argv[])
+	{
+		using namespace libtorrent;
+	
+		if (argc != 2)
+		{
+			std::cerr << "usage: dump_torrent torrent-file\n";
+			return 1;
+		}
+
+		try
+		{
+			std::ifstream in(argv[1], std::ios_base::binary);
+			in.unsetf(std::ios_base::skipws);
+			entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
+			torrent_info t(e);
+
+			// print info about torrent
+			std::cout << "\n\n----- torrent file info -----\n\n";
+			std::cout << "trackers:\n";
+			for (std::vector<announce_entry>::const_iterator i = t.trackers().begin();
+				i != t.trackers().end();
+				++i)
+			{
+				std::cout << i->tier << ": " << i->url << "\n";
+			}
+
+			std::cout << "number of pieces: " << t.num_pieces() << "\n";
+			std::cout << "piece length: " << t.piece_length() << "\n";
+			std::cout << "files:\n";
+			for (torrent_info::file_iterator i = t.begin_files();
+				i != t.end_files();
+				++i)
+			{
+				std::cout << "  " << std::setw(11) << i->size
+				<< "  " << i->path << " " << i->filename << "\n";
+			}
+			
+		}
+		catch (std::exception& e)
+		{
+	  		std::cout << e.what() << "\n";
+		}
+
+		return 0;
+	}
+
+
+simple client
+~~~~~~~~~~~~~
+
+This is a simple client. It doesn't have much output to keep it simple::
+
+	#include <iostream>
+	#include <fstream>
+	#include <iterator>
+	#include <exception>
+
+	#include <boost/format.hpp>
+	#include <boost/date_time/posix_time/posix_time.hpp>
+
+	#include "libtorrent/entry.hpp"
+	#include "libtorrent/bencode.hpp"
+	#include "libtorrent/session.hpp"
+	#include "libtorrent/http_settings.hpp"
+
+	int main(int argc, char* argv[])
+	{
+		using namespace libtorrent;
+	
+		if (argc != 2)
+		{
+			std::cerr << "usage: ./simple_cient torrent-file\n"
+				"to stop the client, press return.\n";
+			return 1;
+		}
+
+		try
+		{
+			session s(6881, "E\x1");
+	
+			std::ifstream in(argv[1], std::ios_base::binary);
+			in.unsetf(std::ios_base::skipws);
+			entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
+			torrent_info t(e);
+			s.add_torrent(t, "");
+				
+			// wait for the user to end
+			char a;
+			std::cin.unsetf(std::ios_base::skipws);
+			std::cin >> a;
+		}
+		catch (std::exception& e)
+		{
+	  		std::cout << e.what() << "\n";
+		}
+		return 0;
+	}
+
 
 Feedback
 ========
@@ -693,8 +846,9 @@ You can usually find me as hydri in ``#btports @ irc.freenode.net``.
 
 
 
-Credits
-=======
+Aknowledgements
+===============
 
-Copyright (c) 2003 Arvid Norberg
+Written by Arvid Norberg. Copyright (c) 2003 Arvid Norberg
+
 

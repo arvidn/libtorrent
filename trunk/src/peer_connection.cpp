@@ -97,6 +97,7 @@ libtorrent::peer_connection::peer_connection(
 	, m_send_quota(-1)
 	, m_send_quota_left(-1)
 {
+	assert(!m_socket->is_blocking());
 	assert(m_torrent != 0);
 
 #ifndef NDEBUG
@@ -140,6 +141,7 @@ libtorrent::peer_connection::peer_connection(
 	, m_send_quota(-1)
 	, m_send_quota_left(-1)
 {
+	assert(!m_socket->is_blocking());
 
 #ifndef NDEBUG
 	m_logger = m_ses->create_log(s->sender().as_string().c_str());
@@ -712,8 +714,10 @@ void libtorrent::peer_connection::send_have(int index)
 // throws exception when the client should be disconnected
 void libtorrent::peer_connection::receive_data()
 {
+	assert(!m_socket->is_blocking());
 	for(;;)
 	{
+//		m_socket->set_blocking(false);
 		int received = m_socket->receive(&m_recv_buffer[m_recv_pos], m_packet_size - m_recv_pos);
 
 		// connection closed
@@ -899,6 +903,7 @@ void libtorrent::peer_connection::receive_data()
 					break;
 
 				case read_packet:
+
 					if (!dispatch_message())
 					{
 	#ifndef NDEBUG

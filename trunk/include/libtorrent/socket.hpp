@@ -79,13 +79,13 @@ namespace libtorrent
 		address(const address& a);
 		~address();
 
-		std::string as_string() const throw();
-		unsigned int ip() const throw() { return m_sockaddr.sin_addr.s_addr; }
-		unsigned short  port() const throw() { return htons(m_sockaddr.sin_port); }
+		std::string as_string() const;
+		unsigned int ip() const { return m_sockaddr.sin_addr.s_addr; }
+		unsigned short port() const { return htons(m_sockaddr.sin_port); }
 
-		bool operator<(const address& a) const throw() { if (ip() == a.ip()) return port() < a.port(); else return ip() < a.ip(); }
-		bool operator!=(const address& a) const throw() { return (ip() != a.ip()) || port() != a.port(); }
-		bool operator==(const address& a) const throw() { return (ip() == a.ip()) && port() == a.port(); }
+		bool operator<(const address& a) const { if (ip() == a.ip()) return port() < a.port(); else return ip() < a.ip(); }
+		bool operator!=(const address& a) const { return (ip() != a.ip()) || port() != a.port(); }
+		bool operator==(const address& a) const { return (ip() == a.ip()) && port() == a.port(); }
 
 	private:
 
