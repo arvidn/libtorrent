@@ -13,100 +13,101 @@
 <div class="contents topic" id="contents">
 <p class="topic-title"><a name="contents">Contents</a></p>
 <ul class="simple">
-<li><a class="reference" href="#introduction" id="id16" name="id16">introduction</a></li>
-<li><a class="reference" href="#downloading-and-building" id="id17" name="id17">downloading and building</a><ul>
-<li><a class="reference" href="#cygwin-and-msvc" id="id18" name="id18">cygwin and msvc</a></li>
-<li><a class="reference" href="#release-and-debug-builds" id="id19" name="id19">release and debug builds</a></li>
+<li><a class="reference" href="#introduction" id="id17" name="id17">introduction</a></li>
+<li><a class="reference" href="#downloading-and-building" id="id18" name="id18">downloading and building</a><ul>
+<li><a class="reference" href="#cygwin-and-msvc" id="id19" name="id19">cygwin and msvc</a></li>
+<li><a class="reference" href="#release-and-debug-builds" id="id20" name="id20">release and debug builds</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#using" id="id20" name="id20">using</a></li>
-<li><a class="reference" href="#session" id="id21" name="id21">session</a><ul>
-<li><a class="reference" href="#id8" id="id22" name="id22">session()</a></li>
-<li><a class="reference" href="#id9" id="id23" name="id23">~session()</a></li>
-<li><a class="reference" href="#add-torrent" id="id24" name="id24">add_torrent()</a></li>
-<li><a class="reference" href="#remove-torrent" id="id25" name="id25">remove_torrent()</a></li>
-<li><a class="reference" href="#set-upload-rate-limit-set-downlad-rate-limit" id="id26" name="id26">set_upload_rate_limit() set_downlad_rate_limit()</a></li>
-<li><a class="reference" href="#is-listening-listen-port-listen-on" id="id27" name="id27">is_listening() listen_port() listen_on()</a></li>
-<li><a class="reference" href="#pop-alert-set-severity-level" id="id28" name="id28">pop_alert() set_severity_level()</a></li>
+<li><a class="reference" href="#using" id="id21" name="id21">using</a></li>
+<li><a class="reference" href="#session" id="id22" name="id22">session</a><ul>
+<li><a class="reference" href="#id8" id="id23" name="id23">session()</a></li>
+<li><a class="reference" href="#id9" id="id24" name="id24">~session()</a></li>
+<li><a class="reference" href="#add-torrent" id="id25" name="id25">add_torrent()</a></li>
+<li><a class="reference" href="#remove-torrent" id="id26" name="id26">remove_torrent()</a></li>
+<li><a class="reference" href="#set-upload-rate-limit-set-downlad-rate-limit" id="id27" name="id27">set_upload_rate_limit() set_downlad_rate_limit()</a></li>
+<li><a class="reference" href="#status" id="id28" name="id28">status()</a></li>
+<li><a class="reference" href="#is-listening-listen-port-listen-on" id="id29" name="id29">is_listening() listen_port() listen_on()</a></li>
+<li><a class="reference" href="#pop-alert-set-severity-level" id="id30" name="id30">pop_alert() set_severity_level()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#entry" id="id29" name="id29">entry</a><ul>
-<li><a class="reference" href="#integer-string-list-dict-type" id="id30" name="id30">integer() string() list() dict() type()</a></li>
+<li><a class="reference" href="#entry" id="id31" name="id31">entry</a><ul>
+<li><a class="reference" href="#integer-string-list-dict-type" id="id32" name="id32">integer() string() list() dict() type()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#torrent-info" id="id31" name="id31">torrent_info</a><ul>
-<li><a class="reference" href="#begin-files-end-files-rbegin-files-rend-files" id="id32" name="id32">begin_files() end_files() rbegin_files() rend_files()</a></li>
-<li><a class="reference" href="#num-files-file-at" id="id33" name="id33">num_files() file_at()</a></li>
-<li><a class="reference" href="#print" id="id34" name="id34">print()</a></li>
-<li><a class="reference" href="#trackers-prioritize-tracker" id="id35" name="id35">trackers() prioritize_tracker()</a></li>
-<li><a class="reference" href="#total-size-piece-length-piece-size-num-pieces" id="id36" name="id36">total_size() piece_length() piece_size() num_pieces()</a></li>
-<li><a class="reference" href="#hash-for-piece-info-hash" id="id37" name="id37">hash_for_piece() info_hash()</a></li>
-<li><a class="reference" href="#name-comment-creation-date" id="id38" name="id38">name() comment() creation_date()</a></li>
+<li><a class="reference" href="#torrent-info" id="id33" name="id33">torrent_info</a><ul>
+<li><a class="reference" href="#begin-files-end-files-rbegin-files-rend-files" id="id34" name="id34">begin_files() end_files() rbegin_files() rend_files()</a></li>
+<li><a class="reference" href="#num-files-file-at" id="id35" name="id35">num_files() file_at()</a></li>
+<li><a class="reference" href="#print" id="id36" name="id36">print()</a></li>
+<li><a class="reference" href="#trackers-prioritize-tracker" id="id37" name="id37">trackers() prioritize_tracker()</a></li>
+<li><a class="reference" href="#total-size-piece-length-piece-size-num-pieces" id="id38" name="id38">total_size() piece_length() piece_size() num_pieces()</a></li>
+<li><a class="reference" href="#hash-for-piece-info-hash" id="id39" name="id39">hash_for_piece() info_hash()</a></li>
+<li><a class="reference" href="#name-comment-creation-date" id="id40" name="id40">name() comment() creation_date()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#torrent-handle" id="id39" name="id39">torrent_handle</a><ul>
-<li><a class="reference" href="#save-path" id="id40" name="id40">save_path()</a></li>
-<li><a class="reference" href="#force-reannounce" id="id41" name="id41">force_reannounce()</a></li>
-<li><a class="reference" href="#connect-peer" id="id42" name="id42">connect_peer()</a></li>
-<li><a class="reference" href="#set-ratio" id="id43" name="id43">set_ratio()</a></li>
-<li><a class="reference" href="#set-upload-limit-set-download-limit" id="id44" name="id44">set_upload_limit() set_download_limit()</a></li>
-<li><a class="reference" href="#pause-resume-is-paused" id="id45" name="id45">pause() resume() is_paused()</a></li>
-<li><a class="reference" href="#set-tracker-login" id="id46" name="id46">set_tracker_login()</a></li>
-<li><a class="reference" href="#use-interface" id="id47" name="id47">use_interface()</a></li>
-<li><a class="reference" href="#info-hash" id="id48" name="id48">info_hash()</a></li>
-<li><a class="reference" href="#set-max-uploads-set-max-connections" id="id49" name="id49">set_max_uploads() set_max_connections()</a></li>
-<li><a class="reference" href="#write-resume-data" id="id50" name="id50">write_resume_data()</a></li>
-<li><a class="reference" href="#status" id="id51" name="id51">status()</a></li>
-<li><a class="reference" href="#get-download-queue" id="id52" name="id52">get_download_queue()</a></li>
-<li><a class="reference" href="#get-peer-info" id="id53" name="id53">get_peer_info()</a></li>
-<li><a class="reference" href="#get-torrent-info" id="id54" name="id54">get_torrent_info()</a></li>
-<li><a class="reference" href="#is-valid" id="id55" name="id55">is_valid()</a></li>
+<li><a class="reference" href="#torrent-handle" id="id41" name="id41">torrent_handle</a><ul>
+<li><a class="reference" href="#save-path" id="id42" name="id42">save_path()</a></li>
+<li><a class="reference" href="#force-reannounce" id="id43" name="id43">force_reannounce()</a></li>
+<li><a class="reference" href="#connect-peer" id="id44" name="id44">connect_peer()</a></li>
+<li><a class="reference" href="#set-ratio" id="id45" name="id45">set_ratio()</a></li>
+<li><a class="reference" href="#set-upload-limit-set-download-limit" id="id46" name="id46">set_upload_limit() set_download_limit()</a></li>
+<li><a class="reference" href="#pause-resume-is-paused" id="id47" name="id47">pause() resume() is_paused()</a></li>
+<li><a class="reference" href="#set-tracker-login" id="id48" name="id48">set_tracker_login()</a></li>
+<li><a class="reference" href="#use-interface" id="id49" name="id49">use_interface()</a></li>
+<li><a class="reference" href="#info-hash" id="id50" name="id50">info_hash()</a></li>
+<li><a class="reference" href="#set-max-uploads-set-max-connections" id="id51" name="id51">set_max_uploads() set_max_connections()</a></li>
+<li><a class="reference" href="#write-resume-data" id="id52" name="id52">write_resume_data()</a></li>
+<li><a class="reference" href="#id11" id="id53" name="id53">status()</a></li>
+<li><a class="reference" href="#get-download-queue" id="id54" name="id54">get_download_queue()</a></li>
+<li><a class="reference" href="#get-peer-info" id="id55" name="id55">get_peer_info()</a></li>
+<li><a class="reference" href="#get-torrent-info" id="id56" name="id56">get_torrent_info()</a></li>
+<li><a class="reference" href="#is-valid" id="id57" name="id57">is_valid()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#torrent-status" id="id56" name="id56">torrent_status</a></li>
-<li><a class="reference" href="#peer-info" id="id57" name="id57">peer_info</a></li>
-<li><a class="reference" href="#address" id="id58" name="id58">address</a></li>
-<li><a class="reference" href="#http-settings" id="id59" name="id59">http_settings</a></li>
-<li><a class="reference" href="#big-number" id="id60" name="id60">big_number</a></li>
-<li><a class="reference" href="#hasher" id="id61" name="id61">hasher</a></li>
-<li><a class="reference" href="#fingerprint" id="id62" name="id62">fingerprint</a></li>
-<li><a class="reference" href="#free-functions" id="id63" name="id63">free functions</a><ul>
-<li><a class="reference" href="#identify-client" id="id64" name="id64">identify_client()</a></li>
-<li><a class="reference" href="#bdecode-bencode" id="id65" name="id65">bdecode() bencode()</a></li>
+<li><a class="reference" href="#torrent-status" id="id58" name="id58">torrent_status</a></li>
+<li><a class="reference" href="#peer-info" id="id59" name="id59">peer_info</a></li>
+<li><a class="reference" href="#address" id="id60" name="id60">address</a></li>
+<li><a class="reference" href="#http-settings" id="id61" name="id61">http_settings</a></li>
+<li><a class="reference" href="#big-number" id="id62" name="id62">big_number</a></li>
+<li><a class="reference" href="#hasher" id="id63" name="id63">hasher</a></li>
+<li><a class="reference" href="#fingerprint" id="id64" name="id64">fingerprint</a></li>
+<li><a class="reference" href="#free-functions" id="id65" name="id65">free functions</a><ul>
+<li><a class="reference" href="#identify-client" id="id66" name="id66">identify_client()</a></li>
+<li><a class="reference" href="#bdecode-bencode" id="id67" name="id67">bdecode() bencode()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#alerts" id="id66" name="id66">alerts</a><ul>
-<li><a class="reference" href="#listen-failed-alert" id="id67" name="id67">listen_failed_alert</a></li>
-<li><a class="reference" href="#file-error-alert" id="id68" name="id68">file_error_alert</a></li>
-<li><a class="reference" href="#tracker-alert" id="id69" name="id69">tracker_alert</a></li>
-<li><a class="reference" href="#hash-failed-alert" id="id70" name="id70">hash_failed_alert</a></li>
-<li><a class="reference" href="#peer-ban-alert" id="id71" name="id71">peer_ban_alert</a></li>
-<li><a class="reference" href="#peer-error-alert" id="id72" name="id72">peer_error_alert</a></li>
-<li><a class="reference" href="#invalid-request-alert" id="id73" name="id73">invalid_request_alert</a></li>
-<li><a class="reference" href="#torrent-finished-alert" id="id74" name="id74">torrent_finished_alert</a></li>
-<li><a class="reference" href="#dispatcher" id="id75" name="id75">dispatcher</a></li>
+<li><a class="reference" href="#alerts" id="id68" name="id68">alerts</a><ul>
+<li><a class="reference" href="#listen-failed-alert" id="id69" name="id69">listen_failed_alert</a></li>
+<li><a class="reference" href="#file-error-alert" id="id70" name="id70">file_error_alert</a></li>
+<li><a class="reference" href="#tracker-alert" id="id71" name="id71">tracker_alert</a></li>
+<li><a class="reference" href="#hash-failed-alert" id="id72" name="id72">hash_failed_alert</a></li>
+<li><a class="reference" href="#peer-ban-alert" id="id73" name="id73">peer_ban_alert</a></li>
+<li><a class="reference" href="#peer-error-alert" id="id74" name="id74">peer_error_alert</a></li>
+<li><a class="reference" href="#invalid-request-alert" id="id75" name="id75">invalid_request_alert</a></li>
+<li><a class="reference" href="#torrent-finished-alert" id="id76" name="id76">torrent_finished_alert</a></li>
+<li><a class="reference" href="#dispatcher" id="id77" name="id77">dispatcher</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#exceptions" id="id76" name="id76">exceptions</a><ul>
-<li><a class="reference" href="#invalid-handle" id="id77" name="id77">invalid_handle</a></li>
-<li><a class="reference" href="#duplicate-torrent" id="id78" name="id78">duplicate_torrent</a></li>
-<li><a class="reference" href="#invalid-encoding" id="id79" name="id79">invalid_encoding</a></li>
-<li><a class="reference" href="#type-error" id="id80" name="id80">type_error</a></li>
-<li><a class="reference" href="#invalid-torrent-file" id="id81" name="id81">invalid_torrent_file</a></li>
+<li><a class="reference" href="#exceptions" id="id78" name="id78">exceptions</a><ul>
+<li><a class="reference" href="#invalid-handle" id="id79" name="id79">invalid_handle</a></li>
+<li><a class="reference" href="#duplicate-torrent" id="id80" name="id80">duplicate_torrent</a></li>
+<li><a class="reference" href="#invalid-encoding" id="id81" name="id81">invalid_encoding</a></li>
+<li><a class="reference" href="#type-error" id="id82" name="id82">type_error</a></li>
+<li><a class="reference" href="#invalid-torrent-file" id="id83" name="id83">invalid_torrent_file</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#examples" id="id82" name="id82">examples</a><ul>
-<li><a class="reference" href="#dump-torrent" id="id83" name="id83">dump_torrent</a></li>
-<li><a class="reference" href="#simple-client" id="id84" name="id84">simple client</a></li>
+<li><a class="reference" href="#examples" id="id84" name="id84">examples</a><ul>
+<li><a class="reference" href="#dump-torrent" id="id85" name="id85">dump_torrent</a></li>
+<li><a class="reference" href="#simple-client" id="id86" name="id86">simple client</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#fast-resume" id="id85" name="id85">fast resume</a><ul>
-<li><a class="reference" href="#file-format" id="id86" name="id86">file format</a></li>
+<li><a class="reference" href="#fast-resume" id="id87" name="id87">fast resume</a><ul>
+<li><a class="reference" href="#file-format" id="id88" name="id88">file format</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#extensions" id="id87" name="id87">extensions</a></li>
-<li><a class="reference" href="#filenames-checks" id="id88" name="id88">filenames checks</a></li>
-<li><a class="reference" href="#aknowledgements" id="id89" name="id89">aknowledgements</a></li>
+<li><a class="reference" href="#extensions" id="id89" name="id89">extensions</a></li>
+<li><a class="reference" href="#filenames-checks" id="id90" name="id90">filenames checks</a></li>
+<li><a class="reference" href="#aknowledgements" id="id91" name="id91">aknowledgements</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
@@ -321,6 +322,8 @@ class session: public boost::noncopyable
         void set_upload_rate_limit(int bytes_per_second);
         void set_download_rate_limit(int bytes_per_second);
 
+        session_status status() const;
+
         bool is_listening() const;
         unsigned short listen_port() const;
         bool listen_on(
@@ -409,6 +412,46 @@ sent to peers per second. This bandwidth is distributed among all the peers. If
 you don't want to limit upload rate, you can set this to -1 (the default).
 <tt class="literal"><span class="pre">set_download_rate_limit()</span></tt> works the same way but for download rate instead
 of upload rate.</p>
+</div>
+<div class="section" id="status">
+<h2><a name="status">status()</a></h2>
+<blockquote>
+<pre class="literal-block">
+session_status status() const;
+</pre>
+</blockquote>
+<p><tt class="literal"><span class="pre">status()</span></tt> returns session wide statistics and status. The <tt class="literal"><span class="pre">session_status</span></tt>
+struct has the following members:</p>
+<pre class="literal-block">
+struct session_status
+{
+        bool has_incoming_connections;
+
+        float upload_rate;
+        float download_rate;
+
+        float payload_upload_rate;
+        float payload_download_rate;
+
+        size_type total_download;
+        size_type total_upload;
+
+        size_type total_payload_download;
+        size_type total_payload_upload;
+
+        int num_peers;
+};
+</pre>
+<p><tt class="literal"><span class="pre">has_incoming_connections</span></tt> is false as long as no incoming connections has been
+established on the listening socket. Every time you change the listen port, this will
+be reset to false.</p>
+<p><tt class="literal"><span class="pre">upload_rate</span></tt>, <tt class="literal"><span class="pre">download_rate</span></tt>, <tt class="literal"><span class="pre">payload_download_rate</span></tt> and <tt class="literal"><span class="pre">payload_upload_rate</span></tt>
+are the total download and upload rates accumulated from all torrents. The payload
+versions is the payload download only.</p>
+<p><tt class="literal"><span class="pre">total_download</span></tt> and <tt class="literal"><span class="pre">total_upload</span></tt> are the total number of bytes downloaded and
+uploaded to and from all torrents. <tt class="literal"><span class="pre">total_payload_download</span></tt> and <tt class="literal"><span class="pre">total_payload_upload</span></tt>
+are the same thing but where only the payload is considered.</p>
+<p><tt class="literal"><span class="pre">num_peers</span></tt> is the total number of peer connections this session have.</p>
 </div>
 <div class="section" id="is-listening-listen-port-listen-on">
 <h2><a name="is-listening-listen-port-listen-on">is_listening() listen_port() listen_on()</a></h2>
@@ -899,9 +942,12 @@ entry write_resume_data();
 <p><tt class="literal"><span class="pre">write_resume_data()</span></tt> generates fast-resume data and returns it as an <a class="reference" href="#entry">entry</a>. This <a class="reference" href="#entry">entry</a>
 is suitable for being bencoded. For more information about how fast-resume works, see <a class="reference" href="#fast-resume">fast resume</a>.
 It may throw <a class="reference" href="#invalid-handle">invalid_handle</a> if the torrent handle is invalid.</p>
+<p>Note that by the time this function returns, the resume data may already be invalid if the torrent
+is still downloading! The recommended practice is to first pause the torrent, then generate the
+fast resume data, and then close it down.</p>
 </div>
-<div class="section" id="status">
-<h2><a name="status">status()</a></h2>
+<div class="section" id="id11">
+<h2><a name="id11">status()</a></h2>
 <blockquote>
 <pre class="literal-block">
 torrent_status status();
@@ -1015,8 +1061,13 @@ struct torrent_status
         size_type total_payload_download;
         size_type total_payload_upload;
 
+        size_type total_failed_bytes;
+
         float download_rate;
         float upload_rate;
+
+        float download_payload_rate;
+        float upload_payload_rate;
 
         int num_peers;
 
@@ -1069,14 +1120,23 @@ uploaded to all peers, accumulated, <em>this session</em> only.</p>
 <p><tt class="literal"><span class="pre">total_payload_download</span></tt> and <tt class="literal"><span class="pre">total_payload_upload</span></tt> counts the amount of bytes
 send and received this session, but only the actual oayload data (i.e the interesting
 data), these counters ignore any protocol overhead.</p>
+<p><tt class="literal"><span class="pre">total_failed_bytes</span></tt> is the number of bytes that has been downloaded and that
+has failed the piece hash test. In other words, this is just how much crap that
+has been downloaded.</p>
 <p><tt class="literal"><span class="pre">pieces</span></tt> is the bitmask that represents which pieces we have (set to true) and
 the pieces we don't have. It's a pointer and may be set to 0 if the torrent isn't
 downloading or seeding.</p>
 <p><tt class="literal"><span class="pre">download_rate</span></tt> and <tt class="literal"><span class="pre">upload_rate</span></tt> are the total rates for all peers for this
 torrent. These will usually have better precision than summing the rates from
-all peers. The rates are given as the number of bytes per second.</p>
+all peers. The rates are given as the number of bytes per second. The
+<tt class="literal"><span class="pre">download_payload_rate</span></tt> and <tt class="literal"><span class="pre">upload_payload_rate</span></tt> respectively is the
+total transfer rate of payload only, not counting protocol chatter. This might
+be slightly smaller than the other rates, but if projected over a long time
+(e.g. when calculating ETA:s) the difference may be noticable.</p>
 <p><tt class="literal"><span class="pre">num_peers</span></tt> is the number of peers this torrent currently is connected to.</p>
-<p><tt class="literal"><span class="pre">total_done</span></tt> is the total number of bytes of the file(s) that we have.</p>
+<p><tt class="literal"><span class="pre">total_done</span></tt> is the total number of bytes of the file(s) that we have. All
+this does not necessarily has to be downloaded during this session (that's
+<tt class="literal"><span class="pre">total_download_payload</span></tt>).</p>
 </div>
 <div class="section" id="peer-info">
 <h1><a name="peer-info">peer_info</a></h1>
