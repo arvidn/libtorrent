@@ -679,6 +679,8 @@ namespace libtorrent
 
 		m_torrent->filesystem().write(&m_recv_buffer[9], p.piece, p.start, p.length);
 
+		bool was_seed = is_seed();
+
 		picker.mark_as_finished(block_finished, m_socket->sender());
 
 		m_torrent->get_policy().block_finished(*this, block_finished);
@@ -698,6 +700,13 @@ namespace libtorrent
 				m_torrent->piece_failed(p.piece);
 			}
 			m_torrent->get_policy().piece_finished(p.piece, verified);
+
+			if (!was_seed && is_seed())
+			{
+				assert(verified);
+				// TODO: post torrent_finished_alert
+			}
+
 		}
 	}
 

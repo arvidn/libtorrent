@@ -108,9 +108,18 @@ namespace libtorrent
 			i != t.end_files();
 			++i)
 		{
-			file f(p / i->path / i->filename, file::in);
-			f.seek(0, file::end);
-			sizes.push_back(f.tell());
+			size_type file_size;
+			try
+			{
+				file f(p / i->path / i->filename, file::in);
+				f.seek(0, file::end);
+				file_size = f.tell();
+			}
+			catch (file_error&)
+			{
+				file_size = 0;
+			}
+			sizes.push_back(file_size);
 		}
 		return sizes;
 	}
@@ -127,9 +136,18 @@ namespace libtorrent
 			i != t.end_files();
 			++i, ++s)
 		{
-			file f(p / i->path / i->filename, file::in);
-			f.seek(0, file::end);
-			if (f.tell() != *s) return false;
+			size_type file_size;
+			try
+			{
+				file f(p / i->path / i->filename, file::in);
+				f.seek(0, file::end);
+				file_size = f.tell();
+			}
+			catch (file_error&)
+			{
+				file_size = 0;
+			}
+			if (file_size != *s) return false;
 		}
 		return true;
 	}
