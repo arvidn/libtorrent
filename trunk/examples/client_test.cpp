@@ -66,7 +66,8 @@ int main(int argc, char* argv[])
 
 	if (argc < 2)
 	{
-		std::cerr << "usage: torrent torrent-files ...\n";
+		std::cerr << "usage: torrent torrent-files ...\n"
+			"to stop the client, type a number and press enter.\n";
 		return 1;
 	}
 
