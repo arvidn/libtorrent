@@ -123,6 +123,9 @@ namespace libtorrent
 			peer_id id;
 
 			// the ip/port pair this peer is or was connected on
+			// TODO: if this peer was discovered by a remote connection,
+			// set port=0 to denote that port is unknown. Later if
+			// this ip comes from the tracker, fill in the right port.
 			address ip;
 
 			// the time when this peer was optimistically unchoked

@@ -677,6 +677,7 @@ fields::
 
 		int load_balancing;
 		int download_queue_length;
+		int upload_queue_length;
 
 		int downloading_piece_index;
 		int downloading_block_index;
@@ -739,8 +740,12 @@ this member says how much *extra* free upload this peer has got. If it is a nega
 number it means that this was a peer from which we have got this amount of free
 download.
 
-``download_queue_length`` is the number of block-requests we have sent to this peer
+``download_queue_length`` is the number of piece-requests we have sent to this peer
 that hasn't been answered with a piece yet.
+
+``upload_queue_length`` is the number of piece-requests we have received from this peer
+that we haven't answered with a piece yet.
+
 
 You can know which piece, and which part of that piece, that is currently being
 downloaded from a specific peer by looking at the next four members.
