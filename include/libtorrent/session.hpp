@@ -82,6 +82,21 @@ namespace libtorrent
 
 	namespace detail
 	{
+		// workaround for microsofts
+		// hardware exceptions that makes
+		// it hard to debug stuff
+#if defined(WIN32) && !defined(NDEBUG)
+		struct eh_initializer
+		{
+			eh_initializer()
+			{ _set_se_translator(straight_to_debugger); }
+
+			static void straight_to_debugger(unsigned int, EXCEPTION_POINTERS*)
+			{ throw; }
+		};
+#else
+		struct eh_initializer {};
+#endif
 
 		// this data is shared between the main thread and the
 		// thread that initialize pieces
@@ -178,7 +193,7 @@ namespace libtorrent
 
 	std::string extract_fingerprint(const peer_id& p);
 
-	class session: public boost::noncopyable
+	class session: public boost::noncopyable, detail::eh_initializer
 	{
 	public:
 
