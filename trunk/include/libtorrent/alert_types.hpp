@@ -90,7 +90,6 @@ namespace libtorrent
 		torrent_handle handle;
 	};
 
-
 	struct peer_error_alert: alert
 	{
 		peer_error_alert(address const& pip, peer_id const& pid, const std::string& msg)

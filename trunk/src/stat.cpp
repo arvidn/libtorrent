@@ -79,7 +79,7 @@ void libtorrent::stat::second_tick()
 		m_mean_download_rate += m_download_rate_history[i];
 		m_mean_upload_rate += m_upload_rate_history[i];
 		m_mean_download_payload_rate += m_download_payload_rate_history[i];
-		m_mean_upload_payload_rate += m_download_payload_rate_history[i];
+		m_mean_upload_payload_rate += m_upload_payload_rate_history[i];
 	}
 
 	m_mean_download_rate /= history;

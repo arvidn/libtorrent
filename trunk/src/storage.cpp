@@ -70,7 +70,7 @@ namespace std
 }
 #endif
 
-namespace fs = boost::filesystem;
+using namespace boost::filesystem;
 
 namespace
 {
@@ -82,9 +82,9 @@ namespace
 		log.flush();
 	}
 
-	fs::path get_filename(
+	path get_filename(
 		libtorrent::torrent_info const& t
-		, fs::path const& p)
+		, path const& p)
 	{
 		assert(t.num_files() > 0);
 		if (t.num_files() == 1)
@@ -99,8 +99,9 @@ namespace libtorrent
 
 	std::vector<size_type> get_filesizes(
 		const torrent_info& t
-		, const fs::path& p)
+		, path p)
 	{
+		p = complete(p);
 		std::vector<size_type> sizes;
 		for (torrent_info::file_iterator i = t.begin_files();
 			i != t.end_files();
@@ -123,11 +124,12 @@ namespace libtorrent
 	}
 
 	bool match_filesizes(
-		const torrent_info& t
-		, const fs::path& p
-		, const std::vector<size_type>& sizes)
+		torrent_info const& t
+		, path p
+		, std::vector<size_type> const& sizes)
 	{
 		if ((int)sizes.size() != t.num_files()) return false;
+		p = complete(p);
 
 		std::vector<size_type>::const_iterator s = sizes.begin();
 		for (torrent_info::file_iterator i = t.begin_files();
@@ -188,23 +190,24 @@ namespace libtorrent
 	class storage::impl : public thread_safe_storage
 	{
 	public:
-		impl(const torrent_info& info, const fs::path& path)
+		impl(torrent_info const& info, path const& path)
 			: thread_safe_storage(info.num_pieces())
 			, info(info)
-			, save_path(path)
-		{}
+		{
+			save_path = complete(path);
+		}
 
-		impl(const impl& x)
+		impl(impl const& x)
 			: thread_safe_storage(x.info.num_pieces())
 			, info(x.info)
 			, save_path(x.save_path)
 		{}
 
 		torrent_info const& info;
-		fs::path save_path;
+		path save_path;
 	};
 
-	storage::storage(const torrent_info& info, const fs::path& path)
+	storage::storage(const torrent_info& info, const path& path)
 		: m_pimpl(new impl(info, path))
 	{
 		assert(info.begin_files() != info.end_files());
@@ -216,21 +219,23 @@ namespace libtorrent
 	}
 
 	// returns true on success
-	bool storage::move_storage(fs::path const& save_path)
+	bool storage::move_storage(path save_path)
 	{
 		std::string old_path;
 		std::string new_path;
 
-		if(!fs::exists(save_path))
-			fs::create_directory(save_path);
-		else if(!fs::is_directory(save_path))
+		save_path = complete(save_path);
+
+		if(!exists(save_path))
+			create_directory(save_path);
+		else if(!is_directory(save_path))
 			return false;
 
 		if (m_pimpl->info.num_files() == 1)
 		{
-			fs::path single_file = m_pimpl->info.begin_files()->path;
+			path single_file = m_pimpl->info.begin_files()->path;
 			if (single_file.has_branch_path())
-				fs::create_directory(save_path / single_file.branch_path());
+				create_directory(save_path / single_file.branch_path());
 
 			old_path = (m_pimpl->save_path / single_file)
 				.native_file_string();
@@ -366,7 +371,7 @@ namespace libtorrent
 			if (left_to_read > 0)
 			{
 				++file_iter;
-				fs::path path = m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path);
+				path path = m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path);
 
 				file_offset = 0;
 				in.open(path, file::in);
@@ -406,8 +411,8 @@ namespace libtorrent
 			++file_iter;
 		}
 
-		fs::path path(m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path));
-		file out(path, file::out);
+		path p(m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path));
+		file out(p, file::out);
 
 		assert(file_offset < file_iter->size);
 
@@ -462,12 +467,9 @@ namespace libtorrent
 				++file_iter;
 
 				assert(file_iter != m_pimpl->info.end_files());
-
- 				fs::path path = m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path);
-
+ 				path p = m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path);
 				file_offset = 0;
-
-				out.open(path, file::out);
+				out.open(p, file::out);
 			}
 		}
 	}
@@ -485,7 +487,7 @@ namespace libtorrent
 
 		impl(
 			const torrent_info& info
-		  , const fs::path& path);
+		  , const path& path);
 
 		void check_pieces(
 			boost::mutex& mutex
@@ -513,11 +515,13 @@ namespace libtorrent
 			, int offset
 			, int size);
 
-		fs::path const& save_path() const
+		path const& save_path() const
 		{ return m_save_path; }
 
-		bool move_storage(fs::path const& save_path)
+		bool move_storage(path save_path)
 		{
+			m_save_path = complete(save_path);
+
 			if (m_storage.move_storage(save_path))
 			{
 				m_save_path = save_path;
@@ -576,7 +580,7 @@ namespace libtorrent
 		// it can either be 'unassigned' or 'unallocated'
 		std::vector<int> m_slot_to_piece;
 
-		fs::path m_save_path;
+		path m_save_path;
 
 		mutable boost::recursive_mutex m_mutex;
 
@@ -587,17 +591,17 @@ namespace libtorrent
 
 	piece_manager::impl::impl(
 		const torrent_info& info
-	  , const fs::path& save_path)
+	  , const path& save_path)
 		: m_storage(info, save_path)
 		, m_info(info)
-		, m_save_path(save_path)
 		, m_allocating(false)
 	{
+		m_save_path = complete(save_path);
 	}
 
 	piece_manager::piece_manager(
 		const torrent_info& info
-	  , const fs::path& save_path)
+	  , const path& save_path)
 		: m_pimpl(new impl(info, save_path))
 	{
 	}
@@ -984,9 +988,9 @@ namespace libtorrent
 		for (torrent_info::file_iterator file_iter = m_info.begin_files(),
 			end_iter = m_info.end_files();  file_iter != end_iter; ++file_iter)
 		{
-			fs::path dir = m_save_path / get_filename(m_info, file_iter->path);
-			if (!fs::exists(dir.branch_path()))
-				fs::create_directories(dir.branch_path());
+			path dir = m_save_path / get_filename(m_info, file_iter->path);
+			if (!exists(dir.branch_path()))
+				create_directories(dir.branch_path());
 		}
 
 		std::vector<char> piece_data(static_cast<int>(m_info.piece_length()));
@@ -1402,8 +1406,6 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-		namespace fs = fs;
-
 		assert(!m_unallocated_slots.empty());
 		
 		const int piece_size = static_cast<int>(m_info.piece_length());
@@ -1441,12 +1443,12 @@ namespace libtorrent
 		m_pimpl->allocate_slots(num_slots);
 	}
 
-	fs::path const& piece_manager::save_path() const
+	path const& piece_manager::save_path() const
 	{
 		return m_pimpl->save_path();
 	}
 
-	bool piece_manager::move_storage(fs::path const& save_path)
+	bool piece_manager::move_storage(path const& save_path)
 	{
 		return m_pimpl->move_storage(save_path);
 	}

@@ -150,6 +150,7 @@ namespace libtorrent
 
 		bool is_readable() const;
 		bool is_writable() const;
+		bool has_error() const;
 
 		enum error_code
 		{
@@ -178,6 +179,7 @@ namespace libtorrent
 			is_connected,
 			net_unreachable,
 			not_initialized,
+			host_not_found,
 			unknown_error
 		};
 

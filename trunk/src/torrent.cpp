@@ -188,7 +188,7 @@ namespace libtorrent
 		, sha1_hash const& info_hash
 		, boost::filesystem::path const& save_path
 		, address const& net_interface)
-		: m_torrent_file(0, "", info_hash)
+		: m_torrent_file(info_hash)
 		, m_abort(false)
 		, m_paused(false)
 		, m_just_paused(false)
@@ -685,6 +685,7 @@ namespace libtorrent
 
 	void torrent::try_next_tracker()
 	{
+		using namespace boost::posix_time;
 		++m_currently_trying_tracker;
 
 		if ((unsigned)m_currently_trying_tracker >= m_trackers.size())
@@ -697,7 +698,7 @@ namespace libtorrent
 			++m_failed_trackers;
 			// if we've looped the tracker list, wait a bit before retrying
 			m_currently_trying_tracker = 0;
-			m_next_request = boost::posix_time::second_clock::local_time() + boost::posix_time::seconds(delay);
+			m_next_request = second_clock::local_time() + seconds(delay);
 		}
 		else
 		{
@@ -727,8 +728,7 @@ namespace libtorrent
 
 	boost::filesystem::path torrent::save_path() const
 	{
-		assert(m_storage.get());
-		return m_storage->save_path();
+		return m_save_path;
 	}
 
 	bool torrent::move_storage(boost::filesystem::path const& save_path)

@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/date_time/time.hpp>
 #include <boost/date_time/gregorian/gregorian_types.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/next_prior.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -57,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 
 using namespace libtorrent;
+using namespace boost::filesystem;
 
 namespace
 {
@@ -87,6 +89,15 @@ namespace
 			+ d.minutes() * 60
 			+ d.seconds();
 	}
+
+	void remove_dir(path& p)
+	{
+		assert(p.begin() != p.end());
+		path tmp;
+		for (path::iterator i = boost::next(p.begin()); i != p.end(); ++i)
+			tmp /= *i;
+		p = tmp;
+	}
 }
 
 namespace libtorrent
@@ -112,18 +123,39 @@ namespace libtorrent
 	// constructor used for creating new torrents
 	// will not contain any hashes, comments, creation date
 	// just the necessary to use it with piece manager
-	torrent_info::torrent_info(
-		int piece_size
-		, const char* name
-		, sha1_hash const& info_hash)
-		: m_piece_length(piece_size)
+	torrent_info::torrent_info(sha1_hash const& info_hash)
+		: m_piece_length(256 * 1024)
 		, m_total_size(0)
 		, m_info_hash(info_hash)
-		, m_name(name)
+		, m_name()
 		, m_creation_date(second_clock::local_time())
 	{
 	}
 
+	torrent_info::torrent_info()
+		: m_piece_length(256 * 1024)
+		, m_total_size(0)
+		, m_info_hash(0)
+		, m_name()
+		, m_creation_date(second_clock::local_time())
+	{
+	}
+
+	void torrent_info::set_piece_size(int size)
+	{
+		// make sure the size is an even 2 exponential
+#ifndef NDEBUG
+		for (int i = 0; i < 32; ++i)
+		{
+			if (size & (1 << i))
+			{
+				assert((size & ~(1 << i)) == 0);
+				break;
+			}
+		}
+#endif
+		m_piece_length = size;
+	}
 
 	void torrent_info::parse_info_section(entry const& info)
 	{
@@ -274,6 +306,26 @@ namespace libtorrent
 
 	void torrent_info::add_file(boost::filesystem::path file, size_type size)
 	{
+		assert(file.begin() != file.end());
+
+		if (m_files.empty())
+		{
+			m_name = file.string();
+		}
+		else
+		{
+#ifndef NDEBUG
+			if (m_files.size() == 1)
+				assert(*m_files.front().path.begin() == *file.begin());
+			else
+				assert(m_name == *file.begin());
+#endif
+			m_name = *file.begin();
+			if (m_files.size() == 1)
+				remove_dir(m_files.front().path);
+			remove_dir(file);
+		}
+
 		file_entry e;
 		e.path = file;
 		e.size = size;
@@ -313,13 +365,15 @@ namespace libtorrent
 
 		info["length"] = m_total_size;
 
+		assert(!m_files.empty());
+
 		if (m_files.size() == 1)
 		{
 			info["name"] = m_files.front().path.string();
 		}
 		else
 		{
-			info["name"] = m_name;
+			info["name"] = m_files.front().path.root_name();
 		}
 
 		if (m_files.size() > 1)

@@ -131,6 +131,13 @@ namespace libtorrent
 		{
 			char c[2];
 			is >> c[0] >> c[1];
+			if (c[0] < 0 || c[1] < 0
+				|| c[0] > 'f' || c[1] > 'f'
+				|| is.fail())
+			{
+				is.setstate(ios_base::failbit);
+				return is;
+			}
 			*i = ((isdigit(c[0])?c[0]-'0':c[0]-'a'+10) << 4)
 				+ (isdigit(c[1])?c[1]-'0':c[1]-'a'+10);
 		}
