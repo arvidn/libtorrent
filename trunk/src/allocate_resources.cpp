@@ -35,7 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <boost/limits.hpp>
 
-namespace libtorrent {
+namespace libtorrent
+{
 	namespace
 	{
 		int saturated_add(int a, int b)
@@ -74,7 +75,7 @@ namespace libtorrent {
 			assert(num_resources > 0);
 			assert(r->given <= r->wanted);
 			
-			int accepted=std::min(num_resources, r->wanted - r->given);
+			int accepted = std::min(num_resources, r->wanted - r->given);
 			assert(accepted >= 0);
 
 			r->given += accepted;
@@ -99,48 +100,55 @@ namespace libtorrent {
 			assert(total_wanted>=0);
 			return total_wanted;
 		}
-	}
 
 #ifndef NDEBUG
-	class allocate_resources_contract_check
-	{
-		int resources;
-		std::vector<resource_request *> & requests;
-	public:
-		allocate_resources_contract_check(int resources_,std::vector<resource_request *> & requests_)
-			: resources(resources_)
-			, requests(requests_)
-		{
-			assert(resources >= 0);
-			for(int i=0;i<(int)requests.size();i++)
-			{
-				assert(requests[i]->used >= 0);
-				assert(requests[i]->wanted >= 0);
-				assert(requests[i]->given >= 0);
-			}
-		}
 
-		~allocate_resources_contract_check()
+		class allocate_resources_contract_check
 		{
-			int sum_given = 0;
-			int sum_wanted = 0;
-			for(int i=0;i<(int)requests.size();i++)
-			{
-				assert(requests[i]->used >= 0);
-				assert(requests[i]->wanted >= 0);
-				assert(requests[i]->given >= 0);
-				assert(requests[i]->given <= requests[i]->wanted);
 
-				sum_given = saturated_add(sum_given, requests[i]->given);
-				sum_wanted = saturated_add(sum_wanted, requests[i]->wanted);
+			int resources;
+			std::vector<resource_request *> & requests;
+
+		public:
+
+			allocate_resources_contract_check(
+				int resources_
+				, std::vector<resource_request *>& requests_)
+				: resources(resources_)
+				, requests(requests_)
+			{
+				assert(resources >= 0);
+				for (int i = 0; i < (int)requests.size(); ++i)
+				{
+					assert(requests[i]->used >= 0);
+					assert(requests[i]->wanted >= 0);
+					assert(requests[i]->given >= 0);
+				}
 			}
-			assert(sum_given == std::min(resources,sum_wanted));
-		}
-	};
+
+			~allocate_resources_contract_check()
+			{
+				int sum_given = 0;
+				int sum_wanted = 0;
+				for (int i = 0; i < (int)requests.size(); ++i)
+				{
+					assert(requests[i]->used >= 0);
+					assert(requests[i]->wanted >= 0);
+					assert(requests[i]->given >= 0);
+					assert(requests[i]->given <= requests[i]->wanted);
+
+					sum_given = saturated_add(sum_given, requests[i]->given);
+					sum_wanted = saturated_add(sum_wanted, requests[i]->wanted);
+				}
+				assert(sum_given == std::min(resources,sum_wanted));
+			}
+		};
+
 #endif
+	} // namespace unnamed
 
-	void allocate_resources(int resources,
-		std::vector<resource_request *> & requests)
+	void allocate_resources(int resources
+		, std::vector<resource_request *>& requests)
 	{
 #ifndef NDEBUG
 		allocate_resources_contract_check
@@ -158,10 +166,10 @@ namespace libtorrent {
 		{
 			// Resources are scarce
 
-			for(int i=0;i < (int)requests.size();i++)
+			for (int i = 0; i < (int)requests.size(); ++i)
 				requests[i]->given = 0;
 
-			if(resources == 0)
+			if (resources == 0)
 				return;
 
 			int resources_to_distribute = 
@@ -172,13 +180,17 @@ namespace libtorrent {
 			if (resources_to_distribute == 0)
 				return;
 
-			assert(resources_to_distribute>0);
+			assert(resources_to_distribute > 0);
 				
-			std::random_shuffle(requests.begin(),requests.end());
-			std::sort(requests.begin(),requests.end(),by_used);
+			std::random_shuffle(requests.begin(), requests.end());
+			std::sort(requests.begin(), requests.end(), by_used);
 
 			while(resources_to_distribute > 0)
-				for(int i = 0; i < (int)requests.size() && resources_to_distribute>0; i++)
+			{
+				for(int i = 0;
+					i < (int)requests.size() && resources_to_distribute > 0;
+					++i)
+				{
 					resources_to_distribute -=
 						give(
 							requests[i],
@@ -187,6 +199,8 @@ namespace libtorrent {
 								round_up_division(
 									(int)resources_to_distribute,
 									(int)requests.size()-i)));
+				}
+			}
 			assert(resources_to_distribute == 0);
 		}
 	}

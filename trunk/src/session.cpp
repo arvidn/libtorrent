@@ -480,8 +480,9 @@ namespace libtorrent
 							boost::shared_ptr<peer_connection> c(
 								new peer_connection(*this, m_selector, s));
 
-							if (m_upload_rate != -1) {
-								c->upload_bandwidth.given=0;
+							if (m_upload_rate != -1)
+							{
+								c->upload_bandwidth.given = 0;
 								c->update_send_quota_left();
 							}
 
@@ -636,8 +637,8 @@ namespace libtorrent
 					else if (i->second->should_request())
 					{
 						m_tracker_manager.queue_request(
-							i->second->generate_tracker_request(m_listen_port),
-							boost::get_pointer(i->second));
+							i->second->generate_tracker_request(m_listen_port)
+							, boost::get_pointer(i->second));
 					}
 
 					i->second->second_tick();
@@ -647,10 +648,11 @@ namespace libtorrent
 
 				// distribute the maximum upload rate among the peers
 
-				control_upload_rates(m_upload_rate == -1
-				                       ? std::numeric_limits<int>::max()
-									   : m_upload_rate
-				                    ,m_connections);
+				control_upload_rates(
+					m_upload_rate == -1
+					? std::numeric_limits<int>::max()
+					: m_upload_rate
+					, m_connections);
 
 
 				m_tracker_manager.tick();
@@ -891,7 +893,7 @@ namespace libtorrent
 			= m_impl.m_connections.begin();
 			i != m_impl.m_connections.end();)
 		{
-			i->second->upload_bandwidth.given=std::numeric_limits<int>::max();
+			i->second->upload_bandwidth.given = std::numeric_limits<int>::max();
 			i->second->update_send_quota_left();
 		}
 	}
