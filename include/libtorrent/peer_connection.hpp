@@ -212,12 +212,12 @@ namespace libtorrent
 		// left until will stop sending.
 		// if the send_quota is -1, it means the
 		// quota is unlimited.
-		int send_quota_left() const { return m_send_quota_left; }
+		int send_quota_left() const { return upload_bandwidth.given-upload_bandwidth.used; }
 
 		void update_send_quota_left()
 		{
-			m_send_quota_left = upload_bandwidth.given;
-			if (m_send_quota_left > 0) send_buffer_updated();
+			upload_bandwidth.used=0;
+			send_buffer_updated();
 		}
 
 		size_type total_free_upload() const
@@ -465,19 +465,6 @@ namespace libtorrent
 		// that we give the free upload, to keep the balance.
 		size_type m_free_upload;
 
-		// this is used to limit upload bandwidth.
-		// it is reset to the allowed number of
-		// bytes to send frequently. Every time
-		// thie peer send some data,
-		// m_send_quota_left variable will be decreased
-		// so it can limit the number of bytes next
-		// time it sends data. when it reaches zero
-		// the client will stop send data and await
-		// more quota. if it is set to -1, the peer
-		// will ignore the qouta and send at maximum
-		// speed
-		int m_send_quota_left;
-
 		// for every valid piece we receive where this
 		// peer was one of the participants, we increase
 		// this value. For every invalid piece we receive
@@ -536,7 +523,7 @@ namespace libtorrent
 			return;
 		}
 
-		assert(m_send_quota_left > 0 || m_send_quota_left == -1);
+		assert(upload_bandwidth.used < upload_bandwidth.given);
 		assert(has_data());
 		if (!m_added_to_selector)
 		{
