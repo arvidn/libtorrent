@@ -172,6 +172,7 @@ namespace libtorrent
 		, m_net_interface(net_interface.ip(), address::any_port)
 		, m_upload_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
+		, m_save_path(save_path)
 	{
 		bencode(std::back_inserter(m_metadata), metadata["info"]);
 		init();

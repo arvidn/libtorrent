@@ -173,6 +173,11 @@ table below for which defines you can use to control the build. The ``Jamfile`` 
 |                               | checks in the storage, including logging of     |
 |                               | piece sorting.                                  |
 +-------------------------------+-------------------------------------------------+
+| ``TORRENT_ENABLE_EXTENSIONS`` | If you want extensions to be enabled, you must  |
+|                               | build with this define. For more information on |
+|                               | which extensions are currently implemented, see |
+|                               | extensions_.                                    |
++-------------------------------+-------------------------------------------------+
 
 
 If you experience that libtorrent uses unreasonable amounts of cpu, it will definately help to
@@ -219,6 +224,12 @@ The ``session`` class has the following synopsis::
 
 		torrent_handle add_torrent(
 			entry const& e
+			, boost::filesystem::path const& save_path
+			, entry const& resume_data = entry());
+
+		torrent_handle add_torrent(
+			char const* tracker_url
+			, sha1_hash const& info_hash
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry());
 
@@ -285,6 +296,11 @@ add_torrent()
 			entry const& e
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry());
+		torrent_handle add_torrent(
+			char const* tracker_url
+			, sha1_hash const& info_hash
+			, boost::filesystem::path const& save_path
+			, entry const& resume_data = entry());
 
 You add torrents through the ``add_torrent()`` function where you give an
 object representing the information found in the torrent file and the path where you
@@ -302,6 +318,10 @@ is available. The fast-resume data can be acquired from a running torrent by cal
 The torrent_handle_ returned by ``add_torrent()`` can be used to retrieve information
 about the torrent's progress, its peers etc. It is also used to abort a torrent.
 
+The second overload that takes a tracker url and an info-hash instead of metadata (``entry``)
+can be used with torrents where (at least some) peers support the metadata extension. For
+the overload to be available, libtorrent must be built with extensions enabled
+(``TORRENT_ENABLE_EXTENSIONS`` defined).
 
 remove_torrent()
 ----------------
@@ -1168,8 +1188,8 @@ any combination of the enums above. The following table describes each flag:
 | ``remote_interested``   | means the same thing but that the peer is interested  |
 | ``remote_choked``       | in pieces from us and the peer has choked **us**.     |
 +-------------------------+-------------------------------------------------------+
-| ``support_extensions``  | means that this peer supports the `extension protocol |
-|                         | as described by nolar`__.                             |
+| ``support_extensions``  | means that this peer supports the                     |
+|                         | `extension protocol`__.                               |
 +-------------------------+-------------------------------------------------------+
 | ``local_connection``    | The connection was initiated by us, the peer has a    |
 |                         | listen port open, and that port is the same is in the |
@@ -1270,7 +1290,7 @@ http_settings
 =============
 
 You have some control over tracker requests through the ``http_settings`` object. You
-create it and fill it with your settings and the use ``session::set_http_settings()``
+create it and fill it with your settings and then use ``session::set_http_settings()``
 to apply them. You have control over proxy and authorization settings and also the user-agent
 that will be sent to the tracker. The user-agent is a good way to identify your client.
 
@@ -2078,20 +2098,21 @@ length-prefix, message-id nor extension-id).
 
 __ http://nolar.com/azureus/extended.html
 
-The extension protocol is currently disabled, since it may not be compatible
-with future versions of bittorrent.
+Note that since this protocol relies on one of the reserved bits in the
+handshake, it may be incompatible with future versions of the mainline
+bittorrent client.
 
-.. These are the extensions that are currently implemented.
+These are the extensions that are currently implemented.
 
-.. chat messages
-.. -------------
+chat messages
+-------------
 
-.. Extension name: "chat"
+Extension name: "chat"
 
-.. The payload in the packet is a bencoded dictionary with any
-.. combination of the following entries:
+The payload in the packet is a bencoded dictionary with any
+combination of the following entries:
 
-.. +----------+--------------------------------------------------------+
+   +----------+--------------------------------------------------------+
    | "msg"    | This is a string that contains a message that          |
    |          | should be displayed to the user.                       |
    +----------+--------------------------------------------------------+
@@ -2103,9 +2124,86 @@ with future versions of bittorrent.
    |          | Any unrecognized strings should be ignored.            |
    +----------+--------------------------------------------------------+
 
+metadata from peers
+-------------------
 
-filenames checks
-================
+Extension name: "metadata"
+
+The point with this extension is that you don't have to distribute the
+metadata (.torrent-file) separately. The metadata can be distributed
+through the bittorrent swarm. The only thing you need to download such
+a torrent is the tracker url and the info-hash of the torrent.
+
+It works by assuming that the initial seeder has the metadata and that
+the metadata will propagate through the network as more peers join.
+
+There are three kinds of messages in the metadata extension. These packets
+are put as payload to the extension message. The three packets are:
+
+	* request metadata
+	* metadata
+	* don't have metadata
+
+request metadata:
+
+	+-----------+---------------+----------------------------------------+
+	| size      | name          | description                            |
+	+===========+===============+========================================+
+	| uint8_t   | msg_type      | Determines the kind of message this is |
+	|           |               | 0 means 'request metadata'             |
+	+-----------+---------------+----------------------------------------+
+	| uint8_t   | start         | The start of the metadata block that   |
+	|           |               | is requested. It is given in 256:ths   |
+	|           |               | of the total size of the metadata,     |
+	|           |               | since the requesting client don't know |
+	|           |               | the size of the metadata.              |
+	+-----------+---------------+----------------------------------------+
+	| uint8_t   | size          | The size of the metadata block that is |
+	|           |               | requested. This is also given in       |
+	|           |               | 256:ths of the total size of the       |
+	|           |               | metadata. The size is given as size-1. |
+	|           |               | That means that if this field is set   |
+	|           |               | 0, the request wants one 256:th of the |
+	|           |               | metadata.                              |
+	+-----------+---------------+----------------------------------------+
+
+metadata:
+
+	+-----------+---------------+----------------------------------------+
+	| size      | name          | description                            |
+	+===========+===============+========================================+
+	| uint8_t   | msg_type      | 1 means 'metadata'                     |
+	+-----------+---------------+----------------------------------------+
+	| int32_t   | total_size    | The total size of the metadata, given  |
+	|           |               | in number of bytes.                    |
+	+-----------+---------------+----------------------------------------+
+	| int32_t   | offset        | The offset of where the metadata block |
+	|           |               | in this message belongs in the final   |
+	|           |               | metadata. This is given in bytes.      |
+	+-----------+---------------+----------------------------------------+
+	| uint8_t[] | metadata      | The actual metadata block. The size of |
+	|           |               | this part is given implicit by the     |
+	|           |               | length prefix in the bittorrent        |
+	|           |               | protocol packet.                       |
+	+-----------+---------------+----------------------------------------+
+
+Don't have metadata:
+
+	+-----------+---------------+----------------------------------------+
+	| size      | name          | description                            |
+	+===========+===============+========================================+
+	| uint8_t   | msg_type      | 2 means 'I don't have metadata'.       |
+	|           |               | This message is sent as a reply to a   |
+	|           |               | metadata request if the the client     |
+	|           |               | doesn't have any metadata.             |
+	+-----------+---------------+----------------------------------------+
+
+The current implementation of this extension in libtorrent is experimental,
+and not optimal in any way.
+
+
+filename checks
+===============
 
 Boost.Filesystem will by default check all its paths to make sure they conform
 to filename requirements on many platforms. If you don't want this check, you can

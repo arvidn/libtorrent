@@ -856,6 +856,7 @@ namespace libtorrent
 		return torrent_handle(&m_impl, &m_checker_impl, ti.info_hash());
 	}
 
+#ifdef TORRENT_ENABLE_EXTENSIONS
 	torrent_handle session::add_torrent(
 		char const* tracker_url
 		, sha1_hash const& info_hash
@@ -892,7 +893,7 @@ namespace libtorrent
 
 		return torrent_handle(&m_impl, &m_checker_impl, info_hash);
 	}
-
+#endif
 
 	void session::remove_torrent(const torrent_handle& h)
 	{

@@ -105,9 +105,13 @@
 <li><a class="reference" href="#file-format" id="id88" name="id88">file format</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#extensions" id="id89" name="id89">extensions</a></li>
-<li><a class="reference" href="#filenames-checks" id="id90" name="id90">filenames checks</a></li>
-<li><a class="reference" href="#aknowledgements" id="id91" name="id91">aknowledgements</a></li>
+<li><a class="reference" href="#extensions" id="id89" name="id89">extensions</a><ul>
+<li><a class="reference" href="#chat-messages" id="id90" name="id90">chat messages</a></li>
+<li><a class="reference" href="#metadata-from-peers" id="id91" name="id91">metadata from peers</a></li>
+</ul>
+</li>
+<li><a class="reference" href="#filename-checks" id="id92" name="id92">filename checks</a></li>
+<li><a class="reference" href="#aknowledgements" id="id93" name="id93">aknowledgements</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
@@ -262,6 +266,12 @@ written.</td>
 checks in the storage, including logging of
 piece sorting.</td>
 </tr>
+<tr><td><tt class="literal"><span class="pre">TORRENT_ENABLE_EXTENSIONS</span></tt></td>
+<td>If you want extensions to be enabled, you must
+build with this define. For more information on
+which extensions are currently implemented, see
+<a class="reference" href="#extensions">extensions</a>.</td>
+</tr>
 </tbody>
 </table>
 <p>If you experience that libtorrent uses unreasonable amounts of cpu, it will definately help to
@@ -311,6 +321,12 @@ class session: public boost::noncopyable
 
         torrent_handle add_torrent(
                 entry const&amp; e
+                , boost::filesystem::path const&amp; save_path
+                , entry const&amp; resume_data = entry());
+
+        torrent_handle add_torrent(
+                char const* tracker_url
+                , sha1_hash const&amp; info_hash
                 , boost::filesystem::path const&amp; save_path
                 , entry const&amp; resume_data = entry());
 
@@ -373,6 +389,11 @@ torrent_handle add_torrent(
         entry const&amp; e
         , boost::filesystem::path const&amp; save_path
         , entry const&amp; resume_data = entry());
+torrent_handle add_torrent(
+        char const* tracker_url
+        , sha1_hash const&amp; info_hash
+        , boost::filesystem::path const&amp; save_path
+        , entry const&amp; resume_data = entry());
 </pre>
 </blockquote>
 <p>You add torrents through the <tt class="literal"><span class="pre">add_torrent()</span></tt> function where you give an
@@ -387,6 +408,10 @@ is available. The fast-resume data can be acquired from a running torrent by cal
 <tt class="literal"><span class="pre">torrent_handle::write_resume_data()</span></tt>. See <a class="reference" href="#fast-resume">fast resume</a>.</p>
 <p>The <a class="reference" href="#torrent-handle">torrent_handle</a> returned by <tt class="literal"><span class="pre">add_torrent()</span></tt> can be used to retrieve information
 about the torrent's progress, its peers etc. It is also used to abort a torrent.</p>
+<p>The second overload that takes a tracker url and an info-hash instead of metadata (<tt class="literal"><span class="pre">entry</span></tt>)
+can be used with torrents where (at least some) peers support the metadata extension. For
+the overload to be available, libtorrent must be built with extensions enabled
+(<tt class="literal"><span class="pre">TORRENT_ENABLE_EXTENSIONS</span></tt> defined).</p>
 </div>
 <div class="section" id="remove-torrent">
 <h2><a name="remove-torrent">remove_torrent()</a></h2>
@@ -1194,8 +1219,8 @@ any combination of the enums above. The following table describes each flag:</p>
 in pieces from us and the peer has choked <strong>us</strong>.</td>
 </tr>
 <tr><td><tt class="literal"><span class="pre">support_extensions</span></tt></td>
-<td>means that this peer supports the <a class="reference" href="http://nolar.com/azureus/extended.htm">extension protocol
-as described by nolar</a>.</td>
+<td>means that this peer supports the
+<a class="reference" href="http://nolar.com/azureus/extended.htm">extension protocol</a>.</td>
 </tr>
 <tr><td><tt class="literal"><span class="pre">local_connection</span></tt></td>
 <td>The connection was initiated by us, the peer has a
@@ -1279,7 +1304,7 @@ while it does the DNS lookup, it returns a string that points to the address rep
 <div class="section" id="http-settings">
 <h1><a name="http-settings">http_settings</a></h1>
 <p>You have some control over tracker requests through the <tt class="literal"><span class="pre">http_settings</span></tt> object. You
-create it and fill it with your settings and the use <tt class="literal"><span class="pre">session::set_http_settings()</span></tt>
+create it and fill it with your settings and then use <tt class="literal"><span class="pre">session::set_http_settings()</span></tt>
 to apply them. You have control over proxy and authorization settings and also the user-agent
 that will be sent to the tracker. The user-agent is a good way to identify your client.</p>
 <pre class="literal-block">
@@ -2028,28 +2053,168 @@ blocks specified by <tt class="literal"><span class="pre">bitmsk</span></tt>.</t
 name of the extension is the name used in the extension-list packets,
 and the payload is the data in the extended message (not counting the
 length-prefix, message-id nor extension-id).</p>
-<p>The extension protocol is currently disabled, since it may not be compatible
-with future versions of bittorrent.</p>
-<!-- These are the extensions that are currently implemented. -->
-<!-- chat messages -->
-<!-- - - - - - - - - - - - - - -->
-<!-- Extension name: "chat" -->
-<!-- The payload in the packet is a bencoded dictionary with any -->
-<!-- combination of the following entries: -->
-<!-- +- - - - - - - - - -+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -+
-| "msg"    | This is a string that contains a message that          |
-|          | should be displayed to the user.                       |
-+- - - - - - - - - -+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -+
-| "ctrl"   | This is a control string that can tell a client that   |
-|          | it is ignored (to make the user aware of that) and     |
-|          | it can also tell a client that it is no longer ignored.|
-|          | These notifications are encoded as the strings:        |
-|          | "ignored" and "not ignored".                           |
-|          | Any unrecognized strings should be ignored.            |
-+- - - - - - - - - -+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -+ -->
+<p>Note that since this protocol relies on one of the reserved bits in the
+handshake, it may be incompatible with future versions of the mainline
+bittorrent client.</p>
+<p>These are the extensions that are currently implemented.</p>
+<div class="section" id="chat-messages">
+<h2><a name="chat-messages">chat messages</a></h2>
+<p>Extension name: &quot;chat&quot;</p>
+<p>The payload in the packet is a bencoded dictionary with any
+combination of the following entries:</p>
+<blockquote>
+<table border class="table">
+<colgroup>
+<col width="15%" />
+<col width="85%" />
+</colgroup>
+<tbody valign="top">
+<tr><td>&quot;msg&quot;</td>
+<td>This is a string that contains a message that
+should be displayed to the user.</td>
+</tr>
+<tr><td>&quot;ctrl&quot;</td>
+<td>This is a control string that can tell a client that
+it is ignored (to make the user aware of that) and
+it can also tell a client that it is no longer ignored.
+These notifications are encoded as the strings:
+&quot;ignored&quot; and &quot;not ignored&quot;.
+Any unrecognized strings should be ignored.</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
 </div>
-<div class="section" id="filenames-checks">
-<h1><a name="filenames-checks">filenames checks</a></h1>
+<div class="section" id="metadata-from-peers">
+<h2><a name="metadata-from-peers">metadata from peers</a></h2>
+<p>Extension name: &quot;metadata&quot;</p>
+<p>The point with this extension is that you don't have to distribute the
+metadata (.torrent-file) separately. The metadata can be distributed
+through the bittorrent swarm. The only thing you need to download such
+a torrent is the tracker url and the info-hash of the torrent.</p>
+<p>It works by assuming that the initial seeder has the metadata and that
+the metadata will propagate through the network as more peers join.</p>
+<p>There are three kinds of messages in the metadata extension. These packets
+are put as payload to the extension message. The three packets are:</p>
+<blockquote>
+<ul class="simple">
+<li>request metadata</li>
+<li>metadata</li>
+<li>don't have metadata</li>
+</ul>
+</blockquote>
+<p>request metadata:</p>
+<blockquote>
+<table border class="table">
+<colgroup>
+<col width="17%" />
+<col width="23%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th>size</th>
+<th>name</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>uint8_t</td>
+<td>msg_type</td>
+<td>Determines the kind of message this is
+0 means 'request metadata'</td>
+</tr>
+<tr><td>uint8_t</td>
+<td>start</td>
+<td>The start of the metadata block that
+is requested. It is given in 256:ths
+of the total size of the metadata,
+since the requesting client don't know
+the size of the metadata.</td>
+</tr>
+<tr><td>uint8_t</td>
+<td>size</td>
+<td>The size of the metadata block that is
+requested. This is also given in
+256:ths of the total size of the
+metadata. The size is given as size-1.
+That means that if this field is set
+0, the request wants one 256:th of the
+metadata.</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+<p>metadata:</p>
+<blockquote>
+<table border class="table">
+<colgroup>
+<col width="17%" />
+<col width="23%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th>size</th>
+<th>name</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>uint8_t</td>
+<td>msg_type</td>
+<td>1 means 'metadata'</td>
+</tr>
+<tr><td>int32_t</td>
+<td>total_size</td>
+<td>The total size of the metadata, given
+in number of bytes.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>offset</td>
+<td>The offset of where the metadata block
+in this message belongs in the final
+metadata. This is given in bytes.</td>
+</tr>
+<tr><td>uint8_t[]</td>
+<td>metadata</td>
+<td>The actual metadata block. The size of
+this part is given implicit by the
+length prefix in the bittorrent
+protocol packet.</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+<p>Don't have metadata:</p>
+<blockquote>
+<table border class="table">
+<colgroup>
+<col width="17%" />
+<col width="23%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th>size</th>
+<th>name</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>uint8_t</td>
+<td>msg_type</td>
+<td>2 means 'I don't have metadata'.
+This message is sent as a reply to a
+metadata request if the the client
+doesn't have any metadata.</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+<p>The current implementation of this extension in libtorrent is experimental,
+and not optimal in any way.</p>
+</div>
+</div>
+<div class="section" id="filename-checks">
+<h1><a name="filename-checks">filename checks</a></h1>
 <p>Boost.Filesystem will by default check all its paths to make sure they conform
 to filename requirements on many platforms. If you don't want this check, you can
 set it to either only check for native filesystem requirements or turn it off
