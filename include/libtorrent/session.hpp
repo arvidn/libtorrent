@@ -106,7 +106,7 @@ namespace libtorrent
 		struct piece_checker_data
 		{
 			piece_checker_data()
-				: progress(0.f), abort(false), processing(false) {}
+				: processing(false), progress(0.f), abort(false) {}
 
 			boost::shared_ptr<torrent> torrent_ptr;
 			boost::filesystem::path save_path;
