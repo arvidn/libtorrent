@@ -89,10 +89,6 @@ namespace
 		, peer_connection& c
 		, std::vector<peer_connection*> ignore = std::vector<peer_connection*>())
 	{
-		float piece_time = to_seconds(c.last_piece_time());
-		if (piece_time == 0) piece_time = 0.00001f;
-		const float rate = 1.f / piece_time;
-
 		// this will make the number of requests linearly dependent
 		// on the rate in which we download from the peer. 2.5kB/s and
 		// less will make the desired queue size 2 and at about 70 kB/s
@@ -100,7 +96,7 @@ namespace
 		// matlab expression to plot:
 		// x = 1:100:100000; plot(x, round(min(max(x ./ 5000 + 1.5, 4), 16)));
 
-		int desired_queue_size = static_cast<int>(rate / 5000.f + 1.5f);
+		int desired_queue_size = static_cast<int>(c.statistics().download_rate() / 5000.f + 1.5f);
 		if (desired_queue_size > max_request_queue) desired_queue_size = max_request_queue;
 		if (desired_queue_size < min_request_queue) desired_queue_size = min_request_queue;
 
@@ -179,7 +175,7 @@ namespace
 				continue;
 
 			const std::deque<piece_block>& queue = i->second->download_queue();
-			const int queue_size = i->second->download_queue().size();
+			const int queue_size = (int)i->second->download_queue().size();
 			const float weight = queue_size == 0
 				? std::numeric_limits<float>::max()
 				: i->second->statistics().down_peak() / queue_size;
@@ -205,7 +201,7 @@ namespace
 
 		// this peer doesn't have a faster connection than the
 		// slowest peer. Don't take over any blocks
-		const int queue_size = c.download_queue().size();
+		const int queue_size = (int)c.download_queue().size();
 		const float weight = queue_size == 0
 			? std::numeric_limits<float>::max()
 			: c.statistics().down_peak() / queue_size;
