@@ -188,8 +188,13 @@ namespace libtorrent
 			// in loops that iterate over them.
 			std::vector<connection_map::iterator> m_disconnect_peer;
 
-			// the peer id that is generated at the start of each torrent
+			// the peer id that is generated at the start of the session
 			peer_id m_peer_id;
+
+			// the key is an id that is used to identify the
+			// client with the tracker only. It is randomized
+			// at startup
+			int m_key;
 
 			// the range of ports we try to listen on
 			std::pair<int, int> m_listen_port_range;

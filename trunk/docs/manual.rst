@@ -584,6 +584,10 @@ Its declaration looks like this::
 		void connect_peer(const address& adr) const;
 		void set_ratio(float ratio);
 
+		void pause();
+		void resume();
+		bool is_paused() const;
+
 		void set_tracker_login(std::string const& username, std::string const& password);
 
 		void use_interface(const char* net_interface);
@@ -625,6 +629,12 @@ Besides 0, the ratio can be set to any number greater than or equal to 1. It mea
 attempt to upload in return for each download. e.g. if set to 2, the client will try to upload
 2 bytes for every byte received. The default setting for this is 0, which will make it work
 as a standard client.
+
+``pause()``, and ``resume()`` will disconnect all peers and reconnect all peers respectively.
+When a torrent is paused, it will however remember all share ratios to all peers and remember
+all potential (not connected) peers. You can use ``is_paused()`` to determine if a torrent
+is currently paused. Torrents may be paused automatically if there is a file error (eg. disk full)
+or something similar. See file_error_alert_.
 
 ``set_tracker_login()`` sets a username and password that will be sent along in the HTTP-request
 of the tracker announce. Set this if the tracker requires authorization.
@@ -1213,7 +1223,7 @@ file_error_alert
 ----------------
 
 If the storage fails to read or write files that it needs access to, this alert is
-generated and the torrent is aborted. It is generated as severity level ``fatal``.
+generated and the torrent is paused. It is generated as severity level ``fatal``.
 
 ::
 
@@ -1268,6 +1278,29 @@ This alert is generated as severity level ``info``.
 
 		torrent_handle handle;
 		int piece_index;
+	};
+
+
+peer_ban_alert
+--------------
+
+This alert is generated when a peer is banned because it has sent too many corrupt pieces
+to us. It is generated at severity level ``info``. The ``handle`` member is a torrent_handle_
+to the torrent that this peer was a member of.
+
+::
+
+	struct peer_ban_alert: alert
+	{
+		peer_error_alert(
+			address const& pip
+			, torrent_handle h
+			, const std::string& msg);
+
+		virtual std::auto_ptr<alert> clone() const;
+
+		address ip;
+		torrent_handle handle;
 	};
 
 

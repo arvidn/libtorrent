@@ -319,6 +319,25 @@ int main(int argc, char* argv[])
 						, handles.end()
 						, boost::bind(&torrent_handle::force_reannounce, _1));
 				}
+
+				if(c == 'p')
+				{
+					// pause all torrents
+					std::for_each(
+						handles.begin()
+						, handles.end()
+						, boost::bind(&torrent_handle::pause, _1));
+				}
+
+				if(c == 'u')
+				{
+					// unpause all torrents
+					std::for_each(
+						handles.begin()
+						, handles.end()
+						, boost::bind(&torrent_handle::resume, _1));
+				}
+
 			}
 
 			std::auto_ptr<alert> a;

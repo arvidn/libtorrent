@@ -220,6 +220,7 @@ namespace libtorrent
 		, address const& net_interface)
 		: m_block_size(calculate_block_size(torrent_file))
 		, m_abort(false)
+		, m_paused(false)
 		, m_event(tracker_request::started)
 		, m_torrent_file(torrent_file)
 		, m_storage(m_torrent_file, save_path)
@@ -419,11 +420,18 @@ namespace libtorrent
 			if (p == m_connections.end()) continue;
 			p->second->received_invalid_data();
 
-			if (p->second->trust_points() <= -5)
+			if (p->second->trust_points() <= -7)
 			{
 				// we don't trust this peer anymore
 				// ban it.
 				m_policy->ban_peer(*p->second);
+				if (m_ses.m_alerts.should_post(alert::info))
+				{
+					m_ses.m_alerts.post_alert(peer_ban_alert(
+						p->first
+						, get_handle()
+						, "banning peer because of too many corrupt pieces"));
+				}
 			}
 		}
 
@@ -473,10 +481,8 @@ namespace libtorrent
 		return m_username + ":" + m_password;
 	}
 
-	tracker_request torrent::generate_tracker_request(int port)
+	tracker_request torrent::generate_tracker_request()
 	{
-		assert(port > 0);
-		assert((unsigned short)port == port);
 		m_duration = 1800;
 		m_next_request = boost::posix_time::second_clock::local_time() + boost::posix_time::seconds(m_duration);
 
@@ -486,9 +492,16 @@ namespace libtorrent
 		req.downloaded = m_stat.total_payload_download();
 		req.uploaded = m_stat.total_payload_upload();
 		req.left = bytes_left();
-		req.listen_port = port;
 		req.event = m_event;
 		req.url = m_torrent_file.trackers()[m_currently_trying_tracker].url;
+		req.num_want = (m_policy->get_max_connections()
+			- m_policy->num_peers()) * 2;
+
+		// default initialize, these should be set by caller
+		// before passing the request to the tracker_manager
+		req.listen_port = 0;
+		req.key = 0;
+
 		return req;
 	}
 
@@ -530,9 +543,6 @@ namespace libtorrent
 		m_policy->connection_closed(*p);
 		m_connections.erase(i);
 
-	#ifndef NDEBUG
-//		m_picker.integrity_check(this);
-	#endif
 	}
 
 	peer_connection& torrent::connect_to_peer(const address& a)
@@ -670,12 +680,31 @@ namespace libtorrent
 	}
 #endif
 
+	void torrent::pause()
+	{
+		disconnect_all();
+		// TODO: announce to tracker that we stopped!
+		// possibly with some delay
+		m_paused = true;
+	}
+
+	void torrent::resume()
+	{
+		m_paused = false;
+		// TODO: announce to the tracker that we started.
+		// possibly with some delay
+		// make pulse be called as soon as possible
+		m_time_scaler = 0;
+	}
+
 	void torrent::second_tick()
 	{
-		m_time_scaler++;
-		if (m_time_scaler >= 10)
+		if (m_paused) return;
+
+		m_time_scaler--;
+		if (m_time_scaler <= 0)
 		{
-			m_time_scaler = 0;
+			m_time_scaler = 10;
 			m_policy->pulse();
 		}
 
@@ -738,6 +767,7 @@ namespace libtorrent
 				= m_torrent_file.trackers()[m_last_working_tracker].url;
 		}
 
+		st.paused = m_paused;
 		st.total_done = bytes_done();
 
 		// payload transfer
@@ -759,8 +789,9 @@ namespace libtorrent
 
 		st.next_announce = next_announce()
 			- boost::posix_time::second_clock::local_time();
+		if (st.next_announce.is_negative()) st.next_announce
+			= boost::posix_time::seconds(0);
 		st.announce_interval = boost::posix_time::seconds(m_duration);
-
 
 		st.num_peers = (int)m_connections.size();
 

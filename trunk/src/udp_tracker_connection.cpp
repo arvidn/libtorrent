@@ -180,7 +180,7 @@ namespace libtorrent
 		// ip address
 		detail::write_int32(0, ptr);
 		// num_want
-		detail::write_int32(-1, ptr);
+		detail::write_int32(m_request.num_want, ptr);
 		// port
 		detail::write_uint16(m_request.listen_port, ptr);
 	

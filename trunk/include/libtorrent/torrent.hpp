@@ -101,14 +101,15 @@ namespace libtorrent
 		// tracker request
 		bool should_request() const
 		{
-//			boost::posix_time::time_duration d = m_next_request - boost::posix_time::second_clock::local_time();
-//			return d.is_negative();
-			return m_next_request < boost::posix_time::second_clock::local_time();
+			namespace time = boost::posix_time;
+			return !m_paused &&
+				m_next_request < time::second_clock::local_time();
 		}
 
 		void force_tracker_request()
 		{
-			m_next_request = boost::posix_time::second_clock::local_time();
+			namespace time = boost::posix_time;
+			m_next_request = time::second_clock::local_time();
 		}
 
 		void print(std::ostream& os) const;
@@ -120,6 +121,10 @@ namespace libtorrent
 		stat statistics() const { return m_stat; }
 		size_type bytes_left() const;
 		size_type bytes_done() const;
+
+		void pause();
+		void resume();
+		bool is_paused() const { return m_paused; }
 
 		torrent_status status() const;
 
@@ -188,7 +193,7 @@ namespace libtorrent
 
 		// generates a request string for sending
 		// to the tracker
-		tracker_request generate_tracker_request(int port);
+		tracker_request generate_tracker_request();
 		std::string tracker_password() const;
 
 		boost::posix_time::ptime next_announce() const
@@ -292,6 +297,9 @@ namespace libtorrent
 		// is set to true when the torrent has
 		// been aborted.
 		bool m_abort;
+
+		// is true if this torrent has been paused
+		bool m_paused;
 
 		tracker_request::event_t m_event;
 

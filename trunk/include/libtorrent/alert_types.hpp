@@ -72,6 +72,22 @@ namespace libtorrent
 		int piece_index;
 	};
 
+	struct peer_ban_alert: alert
+	{
+		peer_ban_alert(const address& pip, torrent_handle h, const std::string& msg)
+			: alert(alert::info, msg)
+			, ip(pip)
+			, handle(h)
+		{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new peer_ban_alert(*this)); }
+
+		address ip;
+		torrent_handle handle;
+	};
+
+
 	struct peer_error_alert: alert
 	{
 		peer_error_alert(const address& pip, const std::string& msg)

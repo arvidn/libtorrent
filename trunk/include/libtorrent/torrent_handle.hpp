@@ -96,6 +96,7 @@ namespace libtorrent
 		};
 		
 		state_t state;
+		bool paused;
 		float progress;
 		boost::posix_time::time_duration next_announce;
 		boost::posix_time::time_duration announce_interval;
@@ -151,6 +152,10 @@ namespace libtorrent
 
 		const torrent_info& get_torrent_info() const;
 		bool is_valid() const;
+
+		bool is_paused() const;
+		void pause();
+		void resume();
 
 		// set the interface to bind outgoing connections
 		// to.
