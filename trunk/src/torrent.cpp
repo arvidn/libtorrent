@@ -417,10 +417,18 @@ namespace libtorrent
 
 		assert(m_unverified_blocks == m_picker.unverified_blocks());
 
+		int blocks_we_have = num_pieces * blocks_per_piece;
+		const int last_piece = m_torrent_file.num_pieces()-1;
+		if (p[last_piece])
+		{
+			blocks_we_have += m_picker.blocks_in_piece(last_piece)
+				- blocks_per_piece;
+		}
+
 		// TODO: Implement total download and total_upload
 		st.total_download = 0;
 		st.total_upload = 0;
-		st.progress = (num_pieces * blocks_per_piece + m_unverified_blocks)
+		st.progress = (blocks_we_have + m_unverified_blocks)
 			/ static_cast<float>(total_blocks);
 
 		if (num_pieces == p.size())

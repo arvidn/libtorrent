@@ -49,6 +49,8 @@ POSSIBILITY OF SUCH DAMAGE.
  *
  */
 
+// TODO: add std::string comment() and creation_date()
+
 namespace libtorrent
 {
 
