@@ -238,6 +238,12 @@ namespace libtorrent
 		const peer_id& get_peer_id() const { return m_peer_id; }
 		const std::vector<bool>& get_bitfield() const { return m_have_piece; }
 
+		// this will cause this peer_connection to be disconnected.
+		// what it does is that it puts a reference to it in
+		// m_ses.m_disconnect_peer list, which will be scanned in the
+		// mainloop to disconnect peers.
+		void disconnect();
+
 		// sets the number of bytes this peer
 		// is allowed to send until it should
 		// stop sending. When it stops sending

@@ -693,8 +693,6 @@ namespace libtorrent
 			if (verified)
 			{
 				m_torrent->announce_piece(p.piece);
-			// TODO: if we bacame a seed, disconnect
-			// from all seeds
 			}
 			else
 			{
@@ -711,6 +709,8 @@ namespace libtorrent
 						m_torrent->get_handle()
 						, "torrent is finished downloading"));
 				}
+
+				m_torrent->disconnect_seeds();
 			}
 
 		}
@@ -866,8 +866,13 @@ namespace libtorrent
 
 
 
-
-
+	void peer_connection::disconnect()
+	{
+		detail::session_impl::connection_map::iterator i = m_ses.m_connections.find(m_socket);
+		assert(i != m_ses.m_connections.end());
+		assert(std::find(m_ses.m_disconnect_peer.begin(), m_ses.m_disconnect_peer.end(), i) == m_ses.m_disconnect_peer.end());
+		m_ses.m_disconnect_peer.push_back(i);
+	}
 
 	bool peer_connection::dispatch_message(int received)
 	{

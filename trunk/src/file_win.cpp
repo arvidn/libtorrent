@@ -43,6 +43,8 @@ namespace
 	{
 		char buffer[1024];
 		int err = GetLastError();
+		// TODO: can this be done in an exception safe AND
+		// buffer overrun-safe way?
 		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, err, 0, buffer, 0, 0);
 		std::stringstream s;
 		s << thrower << ": " << buffer;
