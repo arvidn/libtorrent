@@ -157,6 +157,10 @@ namespace libtorrent
 			else if (std::equal(f->id, f->id+2, "LT"))
 				identity << "libtorrent ";
 
+			// Moonlight Torrent
+			else if (std::equal(f->id, f->id+2, "MT"))
+				identity << "Moonlight Torrent ";
+
 			// unknown client
 			else
 				identity << std::string(f->id, f->id+2) << " ";
