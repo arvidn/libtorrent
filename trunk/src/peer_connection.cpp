@@ -886,11 +886,10 @@ namespace libtorrent
 
 			for (int i = 0; i < num_supported_extensions; ++i)
 			{
-				entry::dictionary_type::iterator f =
-					extensions.find(extension_names[i]);
-				if (f != extensions.end())
+				entry* f = e.find_key(extension_names[i]);
+				if (f)
 				{
-					m_extension_messages[i] = (int)f->second.integer();
+					m_extension_messages[i] = (int)f->integer();
 				}
 			}
 #ifndef NDEBUG
@@ -1132,7 +1131,7 @@ namespace libtorrent
 		if (m_extension_messages[extended_chat_message] == -1) return;
 
 		entry e(entry::dictionary_t);
-		e.dict()["msg"] = msg;
+		e["msg"] = msg;
 
 		std::vector<char> message;
 		bencode(std::back_inserter(message), e);
@@ -1182,7 +1181,7 @@ namespace libtorrent
 
 		for (int i = 0; i < num_supported_extensions; ++i)
 		{
-			extension_list.dict()[extension_names[i]] = i;
+			extension_list[extension_names[i]] = i;
 		}
 
 		// make room for message size

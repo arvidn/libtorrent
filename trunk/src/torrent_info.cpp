@@ -132,11 +132,11 @@ namespace libtorrent
 	void torrent_info::read_torrent_info(const entry& torrent_file)
 	{
 		// extract the url of the tracker
-		const entry::dictionary_type& dict = torrent_file.dict();
-		entry::dictionary_type::const_iterator i = dict.find("announce-list");
-		if (i != dict.end())
+//		const entry::dictionary_type& dict = torrent_file.dict();
+		entry const* i = torrent_file.find_key("announce-list");
+		if (i)
 		{
-			const entry::list_type& l = i->second.list();
+			const entry::list_type& l = i->list();
 			for (entry::list_type::const_iterator j = l.begin(); j != l.end(); ++j)
 			{
 				const entry::list_type& ll = j->list();
@@ -167,33 +167,33 @@ namespace libtorrent
 		}
 		else
 		{
-			i = dict.find("announce");
-			if (i == dict.end()) throw invalid_torrent_file();
+			i = torrent_file.find_key("announce");
+			if (i == 0) throw invalid_torrent_file();
 			announce_entry e;
 			e.tier = 0;
-			e.url = i->second.string();
+			e.url = i->string();
 			m_urls.push_back(e);
 		}
 
 		// extract creation date
-		i = dict.find("creation date");
-		if (i != dict.end() && i->second.type() == entry::int_t)
+		i = torrent_file.find_key("creation date");
+		if (i != 0 && i->type() == entry::int_t)
 		{
 			m_creation_date
 				= ptime(date(1970, Jan, 1))
-				+ seconds((long)i->second.integer());
+				+ seconds((long)i->integer());
 		}
 
 		// extract comment
-		i = dict.find("comment");
-		if (i != dict.end() && i->second.type() == entry::string_t)
+		i = torrent_file.find_key("comment");
+		if (i != 0 && i->type() == entry::string_t)
 		{
-			m_comment = i->second.string();
+			m_comment = i->string();
 		}
 
-		i = dict.find("info");
-		if (i == dict.end()) throw invalid_torrent_file();
-		entry info = i->second;
+		i = torrent_file.find_key("info");
+		if (i == 0) throw invalid_torrent_file();
+		entry const& info = *i;
 
 		// encode the info-field in order to calculate it's sha1-hash
 		std::vector<char> buf;
@@ -209,8 +209,8 @@ namespace libtorrent
 		m_name = info["name"].string();
 
 		// extract file list
-		i = info.dict().find("files");
-		if (i == info.dict().end())
+		i = info.find_key("files");
+		if (i == 0)
 		{
 			// if there's no list of files, there has to be a length
 			// field.
@@ -221,7 +221,7 @@ namespace libtorrent
 		}
 		else
 		{
-			extract_files(i->second.list(), m_files);
+			extract_files(i->list(), m_files);
 		}
 
 		// calculate total size of all pieces
@@ -241,7 +241,10 @@ namespace libtorrent
 			throw invalid_torrent_file();
 
 		for (int i = 0; i < num_pieces; ++i)
-			std::copy(hash_string.begin() + i*20, hash_string.begin() + (i+1)*20, m_piece_hash[i].begin());
+			std::copy(
+				hash_string.begin() + i*20
+				, hash_string.begin() + (i+1)*20
+				, m_piece_hash[i].begin());
 	}
 
 	boost::optional<boost::posix_time::ptime>

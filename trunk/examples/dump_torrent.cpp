@@ -50,6 +50,8 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+	boost::filesystem::path::default_name_check(boost::filesystem::no_check);
+
 	try
 	{
 		std::ifstream in(argv[1], std::ios_base::binary);

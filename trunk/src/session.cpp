@@ -1069,13 +1069,13 @@ namespace libtorrent
 			}
 
 
-			int num_blocks_per_piece = (int)rd.dict()["blocks per piece"].integer();
+			int num_blocks_per_piece = (int)rd["blocks per piece"].integer();
 			if (num_blocks_per_piece != info.piece_length() / torrent_ptr->block_size())
 				return;
 
 			// the unfinished pieces
 
-			entry::list_type& unfinished = rd.dict()["unfinished"].list();
+			entry::list_type& unfinished = rd["unfinished"].list();
 
 			std::vector<piece_picker::downloading_piece> tmp_unfinished;
 			tmp_unfinished.reserve(unfinished.size());
@@ -1085,11 +1085,11 @@ namespace libtorrent
 			{
 				piece_picker::downloading_piece p;
 
-				p.index = (int)i->dict()["piece"].integer();
+				p.index = (int)(*i)["piece"].integer();
 				if (p.index < 0 || p.index >= info.num_pieces())
 					return;
 
-				const std::string& bitmask = i->dict()["bitmask"].string();
+				const std::string& bitmask = (*i)["bitmask"].string();
 
 				const int num_bitmask_bytes = std::max(num_blocks_per_piece / 8, 1);
 				if ((int)bitmask.size() != num_bitmask_bytes) return;

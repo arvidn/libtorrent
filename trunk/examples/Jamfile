@@ -22,4 +22,5 @@ exe dump_torrent
 	:
 	: debug release
 	;
+stage bin : dump_torrent simple_client client_test ;
 

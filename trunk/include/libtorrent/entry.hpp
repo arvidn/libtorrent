@@ -107,7 +107,11 @@ namespace libtorrent
 	{
 	public:
 
-		typedef std::map<std::string, entry> dictionary_type;
+		// we need a vector here to maintain the order
+		// of elements. Since the info-hash is reconstructed
+		// from an entry, it's important that the order is
+		// preserved.
+		typedef std::vector<std::pair<std::string, entry> > dictionary_type;
 		typedef std::string string_type;
 		typedef std::vector<entry> list_type;
 		typedef size_type integer_type;
@@ -192,32 +196,15 @@ namespace libtorrent
 			return *reinterpret_cast<const dictionary_type*>(data);
 		}
 
-		entry& operator[](const char* key)
-		{
-			return dict()[key];
-		}
-
-		entry& operator[](const std::string& key)
-		{
-			return dict()[key.c_str()];
-		}
-
-		const entry& operator[](const char* key) const
-		{
-			dictionary_type::const_iterator i =
-				dict().find(key);
-			if (i == dict().end()) throw type_error("key not found");
-			return i->second;
-		}
-
-		const entry& operator[](const std::string& key) const
-		{
-			dictionary_type::const_iterator i =
-				dict().find(key);
-			if (i == dict().end()) throw type_error("key not found");
-			return i->second;
-		}
-
+		// these functions requires that the entry
+		// is a dictionary, otherwise they will throw	
+		entry& operator[](char const* key);
+		entry& operator[](std::string const& key);
+		const entry& operator[](char const* key) const;
+		const entry& operator[](std::string const& key) const;
+		entry* find_key(char const* key);
+		entry const* find_key(char const* key) const;
+		
 		void print(std::ostream& os, int indent = 0) const;
 
 	private:

@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/entry.hpp"
+#include <boost/bind.hpp>
 
 #if defined(_MSC_VER)
 namespace std
@@ -48,10 +49,79 @@ namespace
 		assert(o);
 		o->~T();
 	}
+
+	struct compare_string
+	{
+		compare_string(char const* s): m_str(s)  {}
+	
+		bool operator()(
+			std::pair<std::string
+			, libtorrent::entry> const& e) const
+		{
+			return e.first == m_str;
+		}
+		char const* m_str;
+	};
 }
 
 namespace libtorrent
 {
+	entry& entry::operator[](char const* key)
+	{
+		dictionary_type::iterator i = std::find_if(
+			dict().begin()
+			, dict().end()
+			, compare_string(key));
+		if (i != dict().end()) return i->second;
+		dictionary_type::iterator ret = dict().insert(
+			dict().end()
+			, std::make_pair(std::string(key), entry()));
+		return ret->second;
+	}
+
+
+	entry& entry::operator[](std::string const& key)
+	{
+		return (*this)[key.c_str()];
+	}
+
+	entry* entry::find_key(char const* key)
+	{
+		dictionary_type::iterator i = std::find_if(
+			dict().begin()
+			, dict().end()
+			, compare_string(key));
+		if (i == dict().end()) return 0;
+		return &i->second;
+	
+	}
+
+	entry const* entry::find_key(char const* key) const
+	{
+		dictionary_type::const_iterator i = std::find_if(
+			dict().begin()
+			, dict().end()
+			, compare_string(key));
+		if (i == dict().end()) return 0;
+		return &i->second;
+	
+	}
+	
+	
+	const entry& entry::operator[](char const* key) const
+	{
+		dictionary_type::const_iterator i = std::find_if(
+			dict().begin()
+			, dict().end()
+			, compare_string(key));
+		if (i == dict().end()) throw type_error("key not found");
+		return i->second;
+	}
+
+	const entry& entry::operator[](std::string const& key) const
+	{
+		return (*this)[key.c_str()];
+	}
 
 	entry::entry(const dictionary_type& v)
 	{
