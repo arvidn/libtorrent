@@ -400,7 +400,7 @@ int main(int argc, char* argv[])
 					}
 */
 				}
-/*
+
 				out << "___________________________________\n";
 
 				i->get_download_queue(queue);
@@ -421,7 +421,7 @@ int main(int argc, char* argv[])
 				}
 
 				out << "___________________________________\n";
-*/
+
 			}
 
 			for (std::deque<std::string>::iterator i = events.begin();

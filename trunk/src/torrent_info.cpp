@@ -131,6 +131,20 @@ namespace libtorrent
 			m_urls.push_back(e);
 		}
 
+		// extract creation date
+		i = dict.find("creation date");
+		if (i != dict.end() && i->second.type() == entry::int_t)
+		{
+			m_creation_date = m_creation_date + boost::posix_time::seconds(i->second.integer());
+		}
+
+		// extract comment
+		i = dict.find("comment");
+		if (i != dict.end() && i->second.type() == entry::string_t)
+		{
+			m_comment = i->second.string();
+		}
+
 		i = dict.find("info");
 		if (i == dict.end()) throw invalid_torrent_file();
 		entry info = i->second;
@@ -168,20 +182,6 @@ namespace libtorrent
 		else
 		{
 			extract_files(i->second.list(), m_files, m_name);
-		}
-
-		// extract creation date
-		i = info.dict().find("creation date");
-		if (i != info.dict().end() && i->second.type() == entry::int_t)
-		{
-			m_creation_date = m_creation_date + boost::posix_time::seconds(i->second.integer());
-		}
-
-		// extract comment
-		i = info.dict().find("comment");
-		if (i != info.dict().end() && i->second.type() == entry::string_t)
-		{
-			m_comment = i->second.string();
 		}
 
 		// calculate total size of all pieces

@@ -1455,8 +1455,7 @@ namespace libtorrent
 		// if we have requests or pending data to be sent or announcements to be made
 		// we want to send data
 		return ((!m_requests.empty() && !m_choked)
-			|| !m_send_buffer.empty()
-			|| !m_announce_queue.empty())
+			|| !m_send_buffer.empty())
 			&& m_send_quota_left != 0;
 	}
 
@@ -1634,7 +1633,11 @@ namespace libtorrent
 	{
 		boost::posix_time::time_duration d;
 		d = boost::posix_time::second_clock::local_time() - m_last_sent;
-		if (d.seconds() > m_timeout / 2)
+		if (d.seconds() < m_timeout / 2) return;
+
+		// we must either send a keep-alive
+		// message or something else.
+		if (m_announce_queue.empty())
 		{
 			char noop[] = {0,0,0,0};
 			m_send_buffer.insert(m_send_buffer.end(), noop, noop+4);
@@ -1642,11 +1645,23 @@ namespace libtorrent
 	#ifndef NDEBUG
 			(*m_logger) << " ==> NOP\n";
 	#endif
-			send_buffer_updated();
 		}
+		else
+		{
+			for (std::vector<int>::iterator i = m_announce_queue.begin();
+				i != m_announce_queue.end();
+				++i)
+			{
+				send_have(*i);
+			}
+			m_announce_queue.clear();
+		}
+		send_buffer_updated();
 	}
 
 	// TODO: this could be implemented more efficient
+	// by maintaining a counter of the number of pieces
+	// the peer has
 	bool peer_connection::is_seed() const
 	{
 		return std::count(m_have_piece.begin(), m_have_piece.end(), true)

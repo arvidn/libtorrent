@@ -280,13 +280,6 @@ namespace
 
 namespace libtorrent
 {
-/*
-	TODO: implement some kind of limit of the number of sockets
-	opened, to use for systems where a user has a limited number
-	of open file descriptors. and for windows which has a buggy tcp-stack.
-	This means also to implement a 'connecion purger', that identifies
-	more or less useless connections and closes them.
-*/
 
 	policy::policy(torrent* t)
 		: m_num_peers(0)
@@ -624,6 +617,8 @@ namespace libtorrent
 	{
 		assert(!c.is_local());
 
+		// TODO: make an exception if the incoming connection
+		// is from the tracker
 		if(m_torrent->num_peers() >= m_max_connections)
 			throw protocol_error("too many connections, refusing incoming connection"); // cause a disconnect
 
@@ -893,6 +888,7 @@ namespace libtorrent
 	{
 		assert(max_connections > 1 || max_connections == -1);
 		if (max_connections == -1) max_connections = std::numeric_limits<int>::max();
+		assert(max_connections >= 2);
 		m_max_connections = max_connections;
 	}
 

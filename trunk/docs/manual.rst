@@ -42,6 +42,8 @@ The current state includes the following features:
 	* supports the ``no_peer_id=1`` extension that will ease the load off trackers.
 	* supports the `udp-tracker protocol`__.
 	* possibility to limit the number of connections.
+	* delays have messages if there's no other outgoing traffic to the peer, and doesn't
+	  send have messages to peers that already has the piece. This saves bandwidth.
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
 .. _Azureus: http://azureus.sourceforge.net
@@ -76,11 +78,6 @@ libtorrent is released under the BSD-license_.
 
 building
 ========
-
-Whwn building in release mode you need to define NDEBUG in order to avoid
-all asserts and invariant checks within libtorrent. Developer studio does
-this by default.
-
 
 To build libtorrent you need boost_ and bjam installed.
 Then you can use ``bjam`` to build libtorrent.
@@ -121,6 +118,37 @@ loop scope" and "treat wchar_t as built-in type" to Yes.
 
 TODO: more detailed build instructions.
 
+
+release and debug builds
+------------------------
+
+If you just invoke the makefile you'll get a debug build. In debug the libtorrent vill
+have pretty expensive invariant checks and asserts built into it. If you want to disable
+such checks (you want to do that in a release build) you can see the table below for which
+defines you can use to control the build.
+
++-------------------------------+-------------------------------------------------+
+| macro                         | description                                     |
++===============================+=================================================+
+| ``NDEBUG``                    | If you define this macro, all asserts,          |
+|                               | invariant checks and general debug code will be |
+|                               | removed. This option takes precedence over      |
+|                               | other debug settings.                           |
++-------------------------------+-------------------------------------------------+
+| ``TORRENT_VERBOSE_LOGGING``   | If you define this macro, every peer connection |
+|                               | will log its traffic to a log file.             |
+|                               | This setting requires a debug build, i.e.       |
+|                               | if you set ``NDEBUG`` aswell, no logs will be   |
+|                               | written.                                        |
++-------------------------------+-------------------------------------------------+
+| ``TORRENT_STORAGE_DEBUG``     | This will enable extra expensive invariant      |
+|                               | checks in the storage, including logging of     |
+|                               | piece sorting.                                  |
++-------------------------------+-------------------------------------------------+
+
+
+If you experience that libtorrent uses unreasonable amounts of cpu, it will definately help to
+define ``NDEBUG``.
 
 
 

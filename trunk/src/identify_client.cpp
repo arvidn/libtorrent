@@ -201,6 +201,12 @@ namespace libtorrent
 		// non standard encodings
 		// ----------------------
 
+		if (std::equal(PID, PID + 4, "exbc"))
+		{
+			std::stringstream s;
+			s << "BitComet " << (int)PID[4] << "." << (int)PID[5]/10 << (int)PID[5]%10;
+			return s.str();
+		}
 
 		if (std::equal(PID + 5, PID + 5 + 8, "Azureus"))
 		{
@@ -214,7 +220,7 @@ namespace libtorrent
 
 		if (std::equal(PID, PID + 7, "btfans"))
 		{
-			return "BitComet";
+			return "SimpleBT";
 		}
 
 		if (std::equal(PID, PID + 8, "turbobt"))

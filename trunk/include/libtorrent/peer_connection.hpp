@@ -220,7 +220,6 @@ namespace libtorrent
 		void announce_piece(int index)
 		{
 			m_announce_queue.push_back(index);
-			send_buffer_updated();
 		}
 
 		// called from the main loop when this connection has any

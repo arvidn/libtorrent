@@ -80,6 +80,7 @@ namespace libtorrent
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new peer_error_alert(*this)); }
 
+		// TODO: use address instead of peer_id
 		peer_id id;
 	};
 
@@ -98,6 +99,7 @@ namespace libtorrent
 		{ return std::auto_ptr<alert>(new chat_message_alert(*this)); }
 
 		torrent_handle handle;
+		// TODO: use address instead of peer_id
 		peer_id sender;
 	};
 
@@ -118,6 +120,7 @@ namespace libtorrent
 		{ return std::auto_ptr<alert>(new invalid_request_alert(*this)); }
 
 		torrent_handle handle;
+		// TODO: use address instead of peer_id
 		peer_id sender;
 		peer_request request;
 	};

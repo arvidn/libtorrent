@@ -94,7 +94,6 @@ namespace libtorrent
 
 	void torrent_handle::set_max_connections(int max_connections)
 	{
-		assert(max_connections >= 2);
 		if (m_ses == 0) throw invalid_handle();
 
 		{
@@ -240,13 +239,17 @@ namespace libtorrent
 			i != q.end();
 			++i)
 		{
+			if (i->finished_blocks.count() == 0) continue;
+
 			entry::dictionary_type piece_struct;
 
 			// the unfinished piece's index
 			piece_struct["piece"] = i->index;
 
 			std::string bitmask;
-			const int num_bitmask_bytes = std::max(num_blocks_per_piece / 8, 1);
+			const int num_bitmask_bytes
+				= std::max(num_blocks_per_piece / 8, 1);
+
 			for (int j = 0; j < num_bitmask_bytes; ++j)
 			{
 				unsigned char v = 0;
@@ -256,7 +259,14 @@ namespace libtorrent
 			}
 			piece_struct["bitmask"] = bitmask;
 
-			// TODO: add a hash to piece_struct
+			assert(t->filesystem().slot_for_piece(i->index) >= 0);
+			unsigned long adler
+				= t->filesystem().piece_crc(
+					t->filesystem().slot_for_piece(i->index)
+					, t->block_size()
+					, i->finished_blocks);
+
+			piece_struct["adler32"] = adler;
 
 			// push the struct onto the unfinished-piece list
 			up.push_back(piece_struct);
