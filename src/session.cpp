@@ -935,7 +935,7 @@ namespace libtorrent
 
 
 			int num_blocks_per_piece = rd.dict()["blocks per piece"].integer();
-			if (num_blocks_per_piece > 128 || num_blocks_per_piece < 1)
+			if (num_blocks_per_piece != info.piece_length() / torrent_ptr->block_size())
 				return;
 
 			// the unfinished pieces

@@ -51,10 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/session.hpp"
-// TODO: peer_connection is only used because of detail::write_int
-// and detail::read_int, they should probably be moved to a common
-// header.
-#include "libtorrent/peer_connection.hpp"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 namespace std
@@ -121,8 +117,6 @@ namespace libtorrent
 					st.state = torrent_status::queued_for_checking;
 				st.progress = d->progress;
 				st.next_announce = boost::posix_time::time_duration();
-				st.pieces.clear();
-				st.pieces.resize(d->torrent_ptr->torrent_file().num_pieces(), false);
 				return st;
 			}
 		}

@@ -47,6 +47,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #	define for if (false) {} else for
 #endif
 
+namespace libtorrent
+{
+	class peer_connection;
+}
+
 namespace
 {
 	enum
@@ -261,6 +266,32 @@ namespace
 		}
 		return free_upload;
 	}
+
+	struct match_peer_ip
+	{
+		match_peer_ip(const address& id)
+			: m_id(id)
+		{}
+
+		bool operator()(const policy::peer& p) const
+		{ return p.id.ip() == m_id.ip(); }
+
+		address m_id;
+	};
+
+	struct match_peer_connection
+	{
+		match_peer_connection(const peer_connection& c)
+			: m_conn(c)
+		{}
+
+		bool operator()(const policy::peer& p) const
+		{ return p.connection == &m_conn; }
+
+		const peer_connection& m_conn;
+	};
+
+
 }
 
 namespace libtorrent
@@ -366,10 +397,7 @@ namespace libtorrent
 		{
 			if(i->connection) continue;
 			if(i->banned) continue;
-			if(i->id.ip.port()==0) continue;
-
-			// TODO: Don't connect to peers that were discovered through
-			// remote connection, since we don't know the port.
+			if(i->type == peer::remote_connection) continue;
 
 			assert(i->connected <= local_time);
 
@@ -510,13 +538,11 @@ namespace libtorrent
 
 	void policy::ban_peer(const peer_connection& c)
 	{
-		address a(c.get_socket()->sender());
-		if(!c.is_local())
-			a=address(a.ip(),0);
-		peer_identification id(a,c.get_peer_id());
+		std::vector<peer>::iterator i = std::find_if(
+			m_peers.begin()
+			, m_peers.end()
+			, match_peer_connection(c));
 
-		std::vector<peer>::iterator i =
-			std::find_if(m_peers.begin(), m_peers.end(), peer_information_matches(id));
 		assert(i != m_peers.end());
 
 		i->banned = true;
@@ -525,12 +551,11 @@ namespace libtorrent
 	void policy::new_connection(peer_connection& c)
 	{
 		assert(!c.is_local());
-		assert(!c.get_peer_id().is_all_zeros());
 
-		peer_identification pid(address(c.get_socket()->sender().ip(),0),c.get_peer_id());
-		
-		std::vector<peer>::iterator i =
-			std::find_if(m_peers.begin(), m_peers.end(), peer_information_matches(pid));
+		std::vector<peer>::iterator i = std::find_if(
+			m_peers.begin()
+			, m_peers.end()
+			, match_peer_ip(c.get_socket()->sender()));
 
 		if (i == m_peers.end())
 		{
@@ -540,30 +565,33 @@ namespace libtorrent
 			// we don't have ny info about this peer.
 			// add a new entry
 			
-			peer p(pid);
+			peer p(c.get_socket()->sender());
 			m_peers.push_back(p);
 			i = m_peers.end()-1;
 		}
 		else
 		{
-			assert(i->connection == 0);
-			if (i->banned) throw protocol_error("ip address banned, disconnected");
+			if (i->connection != 0)
+				throw protocol_error("duplicate connection, closing");
+			if (i->banned)
+				throw protocol_error("ip address banned, disconnected");
 		}
 		
+		assert(i->connection == 0);
 		i->connection = &c;
 		i->connected = boost::posix_time::second_clock::local_time();
 	}
 
 	void policy::peer_from_tracker(const address& remote, const peer_id& id)
 	{
-		assert(remote.ip()!=0);
-		assert(remote.port()!=0);
+		assert(remote.ip() != 0);
+		assert(remote.port() != 0);
 		try
 		{
-			peer_identification pid(remote,id);
-
-			std::vector<peer>::iterator i =
-				std::find_if(m_peers.begin(), m_peers.end(), peer_information_matches(pid));
+			std::vector<peer>::iterator i = std::find_if(
+				m_peers.begin()
+				, m_peers.end()
+				, match_peer_ip(remote));
 			
 			if (i == m_peers.end())
 			{
@@ -572,20 +600,21 @@ namespace libtorrent
 
 				// we don't have ny info about this peer.
 				// add a new entry
-				peer p(pid);
+				peer p(remote);
+				p.type = peer::local_connection;
 				m_peers.push_back(p);
+				// the iterator is invalid
+				// because of the push_back()
 				i = m_peers.end()-1;
 			}
 			else
 			{
+				i->type = peer::local_connection;
+
 				// in case we got the ip from a remote connection, port is
 				// not known, so save it. Client may also have changed port
 				// for some reason.
-				i->id.ip=remote;
-
-				// fill in peer id if missing
-				if(!id.is_all_zeros())
-					i->id.id=id;
+				i->id = remote;
 
 				if (i->connection)
 				{
@@ -599,7 +628,7 @@ namespace libtorrent
 
 			if (i->banned) return;
 
-			i->connection = &m_torrent->connect_to_peer(remote, id);
+			i->connection = &m_torrent->connect_to_peer(remote);
 			i->connected = boost::posix_time::second_clock::local_time();
 			return;
 		}
@@ -707,12 +736,12 @@ namespace libtorrent
 	bool policy::connect_one_peer()
 	{
 		peer* p = find_connect_candidate();
-		if (p==0) return false;
+		if (p == 0) return false;
 		assert(!p->banned);
 		assert(!p->connection);
-		assert(p->id.ip.port()!=0);
+		assert(p->type != peer::remote_connection);
 
-		p->connection = &m_torrent->connect_to_peer(p->id.ip, p->id.id);
+		p->connection = &m_torrent->connect_to_peer(p->id);
 		p->connected = boost::posix_time::second_clock::local_time();
 		return true;
 	}
@@ -720,16 +749,13 @@ namespace libtorrent
 	// this is called whenever a peer connection is closed
 	void policy::connection_closed(const peer_connection& c)
 	{
-		address a(c.get_socket()->sender());
-		if(!c.is_local())
-			a=address(a.ip(),0);
+		std::vector<peer>::iterator i = std::find_if(
+			m_peers.begin()
+			, m_peers.end()
+			, match_peer_connection(c));
 
-		peer_identification cid(a,c.get_peer_id());
-		std::vector<peer>::iterator i =
-			std::find_if(m_peers.begin(), m_peers.end(), peer_information_matches(cid));
-
-		assert(i != m_peers.end());
-		assert(i->connection==&c);
+		if (i == m_peers.end()) return;
+		assert(i->connection == &c);
 
 		i->connected = boost::posix_time::second_clock::local_time();
 		i->prev_amount_download += c.statistics().total_payload_download();
@@ -768,13 +794,10 @@ namespace libtorrent
 #ifndef NDEBUG
 	bool policy::has_connection(const peer_connection* c)
 	{
-		address a(c->get_socket()->sender());
-		if(!c->is_local())
-			a=address(a.ip(),0);
-		peer_identification id(a,c->get_peer_id());
-
-		return m_peers.end() !=
-			std::find_if(m_peers.begin(), m_peers.end(), peer_information_matches(id));
+		return std::find_if(
+			m_peers.begin()
+			, m_peers.end()
+			, match_peer_ip(c->get_socket()->sender())) != m_peers.end();
 	}
 
 	void policy::check_invariant()
@@ -792,12 +815,11 @@ namespace libtorrent
 	}
 #endif
 
-	policy::peer::peer(
-		const peer_identification& pid)
+	policy::peer::peer(const address& pid)
 		: id(pid)
+		, type(remote_connection)
 		, last_optimistically_unchoked(
 			boost::gregorian::date(1970,boost::gregorian::Jan,1))
-		//, connected(boost::posix_time::second_clock::local_time())
 		, connected(boost::gregorian::date(1970,boost::gregorian::Jan,1))
 		, prev_amount_upload(0)
 		, prev_amount_download(0)
@@ -810,18 +832,26 @@ namespace libtorrent
 	int policy::peer::total_download() const
 	{
 		if (connection != 0)
+		{
 			return connection->statistics().total_payload_download()
 				+ prev_amount_download;
+		}
 		else
+		{
 			return prev_amount_download;
+		}
 	}
 
 	int policy::peer::total_upload() const
 	{
 		if (connection != 0)
+		{
 			return connection->statistics().total_payload_upload()
 				+ prev_amount_upload;
+		}
 		else
+		{
 			return prev_amount_upload;
+		}
 	}
 }

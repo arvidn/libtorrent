@@ -101,46 +101,20 @@ namespace libtorrent
 		void check_invariant();
 #endif
 
-	private:
-
-		// TODO: for the moment the peer_id is never updated
-		// when we get it from the peer. It's kindof useless
-		// in here right now.
-
-		struct peer_identification
-		{
-			peer_identification()
-				: ip(0,0)
-			{
-				id.set_to_all_zero();
-			}
-
-			peer_identification(address a, const peer_id &p)
-				: ip(a)
-				, id(p)
-			{
-			}
-			// If this info comes from a remote connection,
-			// port should be set to 0 to denote that the port is unknown.
-			address ip;
-			peer_id id;
-		};
-
 		struct peer
 		{
-			peer(const peer_identification &pid);
+			peer(const address& ip);
 
 			int total_download() const;
 			int total_upload() const;
 
-			// the id of the peer. This is needed to store information
-			// about peers that aren't connected right now. This
-			// is to avoid peers reconnecting. unconnected entries
-			// will be saved a limited amount of time
-
+			enum connection_type { local_connection, remote_connection };
 			// the ip/port pair this peer is or was connected on
-			
-			peer_identification id;
+			// if it was a remote (incoming) connection, type is
+			// set thereafter. If it was a peer we got from the
+			// tracker, type is set to local_connection.
+			address id;
+			connection_type type;
 
 			// the time when this peer was optimistically unchoked
 			// the last time.
@@ -170,34 +144,7 @@ namespace libtorrent
 			peer_connection* connection;
 		};
 
-		// predicate used to check if two peers with likelyness are the same one
-		struct peer_information_matches
-		{
-			peer_information_matches(const peer_identification &id)
-				: this_id(id)
-			{
-			}
-
-			bool operator()(const peer&other_peer) const
-			{
-				return operator()(other_peer.id);
-			}
-
-			bool operator()(const peer_identification &other_id) const
-			{
-				return
-					this_id.ip.ip() == other_id.ip.ip()
-//					&& (
-//						this_id.ip.port() == other_id.ip.port()
-//						|| ((this_id.ip.port() == 0) ^ (other_id.ip.port() == 0)) // one of them unknown
-//					)
-					&&  (
-						this_id.id == other_id.id
-						|| (this_id.id.is_all_zeros() ^ other_id.id.is_all_zeros()) // one of them unknown
-					);
-			}
-			peer_identification this_id;
-		};
+	private:
 
 		bool unchoke_one_peer();
 		peer* find_choke_candidate();

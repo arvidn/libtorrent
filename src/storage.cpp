@@ -465,7 +465,6 @@ namespace libtorrent {
 		m_pimpl->export_piece_map(p);
 	}
 
-	// TODO: daniel, make sure this function does everything it needs to do
 	void piece_manager::impl::mark_failed(int piece_index)
 	{
 		// synchronization ------------------------------------------------------

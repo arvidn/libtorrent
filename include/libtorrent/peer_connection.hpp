@@ -199,8 +199,7 @@ namespace libtorrent
 			detail::session_impl& ses
 			, selector& sel
 			, torrent* t
-			, boost::shared_ptr<libtorrent::socket> s
-			, const peer_id& p);
+			, boost::shared_ptr<libtorrent::socket> s);
 
 		// with this constructor we have been contacted and we still don't know which torrent the
 		// connection belongs to
