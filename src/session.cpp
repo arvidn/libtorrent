@@ -167,8 +167,10 @@ namespace libtorrent
 			eh_initializer();
 #ifndef NDEBUG
 			m_logger = create_log("main session");
-#endif
 
+			try
+			{
+#endif
 			boost::shared_ptr<socket> listener(new socket(socket::tcp, false));
 			int max_port = m_listen_port + 9;
 
@@ -282,7 +284,7 @@ namespace libtorrent
 							// TODO: add some possibility to filter IP:s
 							boost::shared_ptr<peer_connection> c(
 								new peer_connection(this, m_selector, s));
-							if (m_upload_rate != -1) c->set_send_quota(100);
+							if (m_upload_rate != -1) c->set_send_quota(0);
 							m_connections.insert(std::make_pair(s, c));
 							m_selector.monitor_readability(s);
 							m_selector.monitor_errors(s);
@@ -437,9 +439,13 @@ namespace libtorrent
 						m_tracker_manager.queue_request(
 							i->second->generate_tracker_request(m_listen_port));
 						i->second->close_all_connections();
+#ifndef NDEBUG
+						sha1_hash i_hash = i->second->torrent_file().info_hash();
+#endif
 						std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator j = i;
 						++i;
 						m_torrents.erase(j);
+						assert(m_torrents.find(i_hash) == m_torrents.end());
 						continue;
 					}
 					else if (i->second->should_request())
@@ -474,6 +480,22 @@ namespace libtorrent
 				t.nsec += 1000000;
 				boost::thread::sleep(t);
 			}
+
+#ifndef NDEBUG
+			}
+			catch(std::bad_cast& e)
+			{
+				std::cerr << e.what() << "\n";
+			}
+			catch(std::exception& e)
+			{
+				std::cerr << e.what() << "\n";
+			}
+			catch(...)
+			{
+				std::cerr << "error!\n";
+			}
+#endif
 		}
 
 
@@ -602,7 +624,7 @@ namespace libtorrent
 
 	void session::set_upload_rate_limit(int bytes_per_second)
 	{
-		assert(bytes_per_second > 0);
+		assert(bytes_per_second > 0 || bytes_per_second == -1);
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_upload_rate = bytes_per_second;
 		if (m_impl.m_upload_rate != -1 || !m_impl.m_connections.empty())
