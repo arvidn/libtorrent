@@ -169,7 +169,7 @@ namespace libtorrent
 		// (make a rerequest from the tracker)
 		void force_reannounce() const;
 
-		// TODO: add a feature where the user can ask the torrent
+		// TODO: add a feature where the user can tell the torrent
 		// to finish all pieces currently in the pipeline, and then
 		// abort the torrent.
 

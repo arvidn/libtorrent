@@ -135,13 +135,13 @@ boost.filesystem, boost.date_time and various other boost libraries as well as z
 <li>Windows 2000 vc7.1</li>
 <li>Linux x86 (debian) GCC 3.0.4, GCC 3.2.3</li>
 <li>Windows 2000, msvc6 sp5 (does not support 64-bit values due to problems with operator&lt;&lt;(ostream&amp;, __int64))</li>
-<li>Cygwin GCC 3.3.1</li>
 </ul>
 </blockquote>
 <p>Fails on:</p>
 <blockquote>
 <ul class="simple">
 <li>GCC 2.95.4 (<tt class="literal"><span class="pre">std::ios_base</span></tt> is missing)</li>
+<li>Cygwin GCC 3.3.1 (builds but crashes)</li>
 </ul>
 </blockquote>
 <p>libtorrent is released under the <a class="reference" href="http://www.opensource.org/licenses/bsd-license.php">BSD-license</a>.</p>
@@ -166,10 +166,7 @@ bjam &lt;toolset&gt;
 &quot;force conformance in for loop scope&quot; and &quot;treat wchar_t as built-in type&quot; to Yes.</p>
 <p>If you're building in developer studio 6, you will probably have to use the previous
 version of boost, <a class="reference" href="http://sourceforge.net/project/showfiles.php?group_id=7586&amp;package_id=8041&amp;release_id=178835">boost 1.30.2</a>.</p>
-<p>There are two versions of the socket code, one that works with unix systems (and bsd-sockets) and
-one that uses winsock. If you're building in windows, the file <tt class="literal"><span class="pre">socket_win.cpp</span></tt> is supposed to
-be included in the build while <tt class="literal"><span class="pre">socket_bsd.cpp</span></tt> is supposed to be excluded.</p>
-<p>The file abstraction has the same kind of separation. There's one <tt class="literal"><span class="pre">file_win.cpp</span></tt> which
+<p>There are two versions of the file abstraction. There's one <tt class="literal"><span class="pre">file_win.cpp</span></tt> which
 relies on windows file API that supports files larger than 2 Gigabytes. This does not work
 in vc6 for some reason, possibly because it may require windows NT and above. The other file,
 <tt class="literal"><span class="pre">file.cpp</span></tt> is the default implementation that simply relies on the standard library's fstream,
@@ -249,8 +246,12 @@ the <tt class="literal"><span class="pre">session</span></tt>, it contains the m
 <pre class="literal-block">
 class session: public boost::noncopyable
 {
-        session(std::pair&lt;int, int&gt; listen_port_range, const fingerprint&amp; print);
+
         session(std::pair&lt;int, int&gt; listen_port_range);
+        session(
+                std::pair&lt;int, int&gt; listen_port_range
+                , const fingerprint&amp; print
+                , const char* listen_interface = 0);
 
         torrent_handle add_torrent(
                 const torrent_info&amp; t
@@ -261,6 +262,13 @@ class session: public boost::noncopyable
 
         void set_http_settings(const http_settings&amp; settings);
         void set_upload_rate_limit(int bytes_per_second);
+
+        bool is_listening() const;
+        unsigned short listen_port() const;
+        bool listen_on(
+                std::pair&lt;int, int&gt; const&amp; port_range
+                , const char* interface = 0);
+
 
         std::auto_ptr&lt;alert&gt; pop_alert();
         void set_severity_level(alert::severity_t s);
@@ -290,6 +298,21 @@ fingerprint class.</p>
 <p><tt class="literal"><span class="pre">set_upload_rate_limit()</span></tt> set the maximum number of bytes allowed to be
 sent to peers per second. This bandwidth is distributed among all the peers. If
 you don't want to limit upload rate, you can set this to -1 (the default).</p>
+<p><tt class="literal"><span class="pre">is_listening()</span></tt> will tell you wether or not the session has successfully
+opened a listening port. If it hasn't, this function will return false, and
+then you can use <tt class="literal"><span class="pre">listen_on()</span></tt> to make another try.</p>
+<p><tt class="literal"><span class="pre">listen_port()</span></tt> returns the port we ended up listening on. Since you just pass
+a port-range to the constructor and to <tt class="literal"><span class="pre">listen_on()</span></tt>, to know which port it
+ended up using, you have to ask the session using this function.</p>
+<p><tt class="literal"><span class="pre">listen_on()</span></tt> will change the listen port and/or the listen interface. If the
+session is already listening on a port, this socket will be closed and a new socket
+will be opened with these new settings. The port range is the ports it will try
+to listen on, if the first port fails, it will continue trying the next port within
+the range and so on. The interface parameter can be left as 0, in that case the
+os will decide which interface to listen on, otherwise it should be the ip-address
+of the interface you want the listener socket bound to. <tt class="literal"><span class="pre">listen_on()</span></tt> returns true
+if it managed to open the socket, and false if it failed. If it fails, it will also
+generate an appropriate alert (<a class="reference" href="#listen-failed-alert">listen_failed_alert</a>).</p>
 <p>The destructor of session will notify all trackers that our torrents has been shut down.
 If some trackers are down, they will timout. All this before the destructor of session
 returns. So, it's adviced that any kind of interface (such as windows) are closed before
@@ -302,7 +325,11 @@ increase the port number by one and try again. If it still fails it will continu
 increasing the port number until it succeeds or has reached the end of the range. If it
 fails with all ports, a <a class="reference" href="#listen-failed-alert">listen_failed_alert</a> will be posted and the session thread will
 exit. The only thing you can do with your session if this alert is posted is to destruct
-it and possibly try again or change the port range.</p>
+it and possibly try again or change the port range. The listen interaface string is
+the name (ip address) of the interface you want to listen on. If this is left as
+0, the os will decide which interface to listen on (works in most cases). All torrents
+will use this interface to open outgoing connections on by default. You can change
+which interface  to use for outgoing connections on a per torrent basis. See <a class="reference" href="#torrent-handle">torrent_handle</a>.</p>
 <p>For information about the <tt class="literal"><span class="pre">pop_alert()</span></tt> function, see <a class="reference" href="#alerts">alerts</a>.</p>
 </div>
 <div class="section" id="parsing-torrent-files">
@@ -535,6 +562,8 @@ struct torrent_handle
 
         void set_tracker_login(std::string const&amp; username, std::string const&amp; password);
 
+        void use_interface(const char* net_interface);
+
         boost::filsystem::path save_path() const;
 
         void set_max_uploads(int max_uploads);
@@ -569,6 +598,8 @@ attempt to upload in return for each download. e.g. if set to 2, the client will
 as a standard client.</p>
 <p><tt class="literal"><span class="pre">set_tracker_login()</span></tt> sets a username and password that will be sent along in the HTTP-request
 of the tracker announce. Set this if the tracker requires authorization.</p>
+<p><tt class="literal"><span class="pre">use_interface()</span></tt> sets the network interface this torrent will use when it opens outgoing
+connections. By default, it uses the same interface as the <a class="reference" href="#session">session</a> uses to listen on.</p>
 <p><tt class="literal"><span class="pre">info_hash()</span></tt> returns the info hash for the torrent.</p>
 <p><tt class="literal"><span class="pre">set_max_uploads()</span></tt> sets the maximum number of peers that's unchoked at the same time on this
 torrent. If you set this to -1, there will be no limit.</p>
@@ -1089,8 +1120,8 @@ user in different ways.</p>
 <div class="section" id="listen-failed-alert">
 <h2><a name="listen-failed-alert">listen_failed_alert</a></h2>
 <p>This alert is generated when none of the ports, given in the port range, to
-<a class="reference" href="#session">session</a> can be opened for listening. Without a listening port the session
-object will exit its thread. This alert is generated as severity level <tt class="literal"><span class="pre">fatal</span></tt>.</p>
+<a class="reference" href="#session">session</a> can be opened for listening. This alert is generated as severity
+level <tt class="literal"><span class="pre">fatal</span></tt>.</p>
 <pre class="literal-block">
 struct listen_failed_alert: alert
 {

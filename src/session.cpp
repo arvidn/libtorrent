@@ -160,159 +160,153 @@ namespace
 */
 }
 
-namespace libtorrent
+namespace libtorrent { namespace detail
 {
-	namespace detail
+	void checker_impl::operator()()
 	{
-		void checker_impl::operator()()
+		eh_initializer();
+		for (;;)
 		{
-			eh_initializer();
-			for (;;)
+			piece_checker_data* t;
 			{
-				piece_checker_data* t;
-				{
-					boost::mutex::scoped_lock l(m_mutex);
-
-					// if the job queue is empty and
-					// we shouldn't abort
-					// wait for a signal
-					if (m_torrents.empty() && !m_abort)
-						m_cond.wait(l);
-
-					if (m_abort) return;
-
-					assert(!m_torrents.empty());
-					
-					t = &m_torrents.front();
-					if (t->abort)
-					{
-						m_torrents.pop_front();
-						continue;
-					}
-				}
-
-				try
-				{
-					assert(t != 0);
-					t->torrent_ptr->check_files(*t, m_mutex);
-					// lock the session to add the new torrent
-
-					boost::mutex::scoped_lock l(m_mutex);
-					if (!t->abort)
-					{
-						boost::mutex::scoped_lock l(m_ses.m_mutex);
-
-						m_ses.m_torrents.insert(
-							std::make_pair(t->info_hash, t->torrent_ptr)).first;
-
-						peer_id id;
-						std::fill(id.begin(), id.end(), 0);
-						for (std::vector<address>::const_iterator i = t->peers.begin();
-							i != t->peers.end();
-							++i)
-						{
-							t->torrent_ptr->get_policy().peer_from_tracker(*i, id);
-						}
-					}
-				}
-				catch(const std::exception& e)
-				{
-					// TODO: generate an alert here!
-#ifndef NDEBUG
-					std::cerr << "error while checking files: " << e.what() << "\n";
-#endif
-				}
-				catch(...)
-				{
-#ifndef NDEBUG
-					std::cerr << "error while checking files\n";
-#endif
-				}
-
-				// remove ourself from the 'checking'-list
-				// (we're no longer in the checking state)
 				boost::mutex::scoped_lock l(m_mutex);
-				m_torrents.pop_front();
+
+				// if the job queue is empty and
+				// we shouldn't abort
+				// wait for a signal
+				if (m_torrents.empty() && !m_abort)
+					m_cond.wait(l);
+
+				if (m_abort) return;
+
+				assert(!m_torrents.empty());
+				
+				t = &m_torrents.front();
+				if (t->abort)
+				{
+					m_torrents.pop_front();
+					continue;
+				}
 			}
-		}
-
-		detail::piece_checker_data* checker_impl::find_torrent(const sha1_hash& info_hash)
-		{
-			for (std::deque<piece_checker_data>::iterator i
-				= m_torrents.begin();
-				i != m_torrents.end();
-				++i)
-			{
-				if (i->info_hash == info_hash) return &(*i);
-			}
-			return 0;
-		}
-
-		session_impl::session_impl(
-			std::pair<int, int> listen_port_range
-			, const fingerprint& cl_fprint
-			, const char* listen_interface = 0)
-			: m_tracker_manager(m_settings)
-			, m_listen_port_range(listen_port_range)
-			, m_listen_interface(listen_interface, listen_port_range.first)
-			, m_abort(false)
-			, m_upload_rate(-1)
-			, m_incoming_connection(false)
-		{
-			assert(listen_port_range.first > 0);
-			assert(listen_port_range.first < listen_port_range.second);
-			assert(m_listen_interface.port > 0);
-
-			// ---- generate a peer id ----
-
-			std::srand((unsigned int)std::time(0));
-
-			std::string print = cl_fprint.to_string();
-			assert(print.length() == 8);
-
-			// the client's fingerprint
-			std::copy(
-				print.begin()
-				, print.begin() + print.length()
-				, m_peer_id.begin());
-
-			// the random number
-			for (unsigned char* i = m_peer_id.begin() + print.length();
-				i != m_peer_id.end();
-				++i)
-			{
-				*i = rand();
-			}
-		}
-
-		void session_impl::purge_connections()
-		{
-			while (!m_disconnect_peer.empty())
-			{
-				m_connections.erase(m_disconnect_peer.back());
-				m_disconnect_peer.pop_back();
-				assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
-			}
-		}
-
-		void session_impl::operator()()
-		{
-			eh_initializer();
-#ifndef NDEBUG
-			m_logger = create_log("main session");
 
 			try
 			{
+				assert(t != 0);
+				t->torrent_ptr->check_files(*t, m_mutex);
+				// lock the session to add the new torrent
+
+				boost::mutex::scoped_lock l(m_mutex);
+				if (!t->abort)
+				{
+					boost::mutex::scoped_lock l(m_ses.m_mutex);
+
+					m_ses.m_torrents.insert(
+						std::make_pair(t->info_hash, t->torrent_ptr)).first;
+
+					peer_id id;
+					std::fill(id.begin(), id.end(), 0);
+					for (std::vector<address>::const_iterator i = t->peers.begin();
+						i != t->peers.end();
+						++i)
+					{
+						t->torrent_ptr->get_policy().peer_from_tracker(*i, id);
+					}
+				}
+			}
+			catch(const std::exception& e)
+			{
+				// TODO: generate an alert here!
+				// This will happen if the storage fails to initialize
+#ifndef NDEBUG
+				std::cerr << "error while checking files: " << e.what() << "\n";
 #endif
+			}
+			catch(...)
+			{
+#ifndef NDEBUG
+				std::cerr << "error while checking files\n";
+#endif
+			}
+
+			// remove ourself from the 'checking'-list
+			// (we're no longer in the checking state)
+			boost::mutex::scoped_lock l(m_mutex);
+			m_torrents.pop_front();
+		}
+	}
+
+	detail::piece_checker_data* checker_impl::find_torrent(const sha1_hash& info_hash)
+	{
+		for (std::deque<piece_checker_data>::iterator i
+			= m_torrents.begin();
+			i != m_torrents.end();
+			++i)
+		{
+			if (i->info_hash == info_hash) return &(*i);
+		}
+		return 0;
+	}
+
+	session_impl::session_impl(
+		std::pair<int, int> listen_port_range
+		, const fingerprint& cl_fprint
+		, const char* listen_interface = 0)
+		: m_tracker_manager(m_settings)
+		, m_listen_port_range(listen_port_range)
+		, m_listen_interface(listen_interface, listen_port_range.first)
+		, m_abort(false)
+		, m_upload_rate(-1)
+		, m_incoming_connection(false)
+	{
+		assert(listen_port_range.first > 0);
+		assert(listen_port_range.first < listen_port_range.second);
+		assert(m_listen_interface.port > 0);
+
+		// ---- generate a peer id ----
+
+		std::srand((unsigned int)std::time(0));
+
+		std::string print = cl_fprint.to_string();
+		assert(print.length() == 8);
+
+		// the client's fingerprint
+		std::copy(
+			print.begin()
+			, print.begin() + print.length()
+			, m_peer_id.begin());
+
+		// the random number
+		for (unsigned char* i = m_peer_id.begin() + print.length();
+			i != m_peer_id.end();
+			++i)
+		{
+			*i = rand();
+		}
+	}
+
+	void session_impl::purge_connections()
+	{
+		while (!m_disconnect_peer.empty())
+		{
+			m_connections.erase(m_disconnect_peer.back());
+			m_disconnect_peer.pop_back();
+			assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
+		}
+	}
+
+	void session_impl::open_listen_port()
+	{
+		try
+		{
 			// create listener socket
-			// TODO: if this fails, no alert is generated
-			boost::shared_ptr<socket> listener(new socket(socket::tcp, false));
+			m_listen_socket = boost::shared_ptr<socket>(new socket(socket::tcp, false));
 
 			for(;;)
 			{
 				try
 				{
-					listener->listen(m_listen_interface, 10);
+					m_listen_socket->listen(m_listen_interface, 10);
+					break;
 				}
 				catch (network_error& e)
 				{
@@ -320,434 +314,473 @@ namespace libtorrent
 					{
 						std::string msg = "cannot listen on the given interface '" + m_listen_interface.as_string() + "'";
 						m_alerts.post_alert(listen_failed_alert(msg));
-						return;
+#ifndef NDEBUG
+						(*m_logger) << msg << "\n";
+#endif
+						m_listen_socket.reset();
+						break;
 					}
 					m_listen_interface.port++;
 					if (m_listen_interface.port > m_listen_port_range.second)
 					{
-						m_alerts.post_alert(listen_failed_alert(
-							"none of the ports in the given range could be opened"));
-						return;
+						std::stringstream msg;
+						msg << "none of the ports in the range ["
+							<< m_listen_port_range.first
+							<< ", " << m_listen_port_range.second
+							<< "] could be opened for listening";
+						m_alerts.post_alert(listen_failed_alert(msg.str()));
+#ifndef NDEBUG
+						(*m_logger) << msg.str() << "\n";
+#endif
+						m_listen_socket.reset();
+						break;
 					}
-					continue;
 				}
+			}
+		}
+		catch (network_error& e)
+		{
+			m_alerts.post_alert(listen_failed_alert(e.what()));
+		}
+
+#ifndef NDEBUG
+		if (m_listen_socket)
+		{
+			(*m_logger) << "listening on port: " << m_listen_interface.port << "\n";
+		}
+#endif
+		if (m_listen_socket)
+		{
+			m_selector.monitor_readability(m_listen_socket);
+			m_selector.monitor_errors(m_listen_socket);
+		}
+	}
+
+
+	void session_impl::operator()()
+	{
+		eh_initializer();
+#ifndef NDEBUG
+		m_logger = create_log("main session");
+
+		try
+		{
+#endif
+
+		open_listen_port();
+
+		std::vector<boost::shared_ptr<socket> > readable_clients;
+		std::vector<boost::shared_ptr<socket> > writable_clients;
+		std::vector<boost::shared_ptr<socket> > error_clients;
+		boost::posix_time::ptime timer = boost::posix_time::second_clock::local_time();
+
+#ifndef NDEBUG
+		int loops_per_second = 0;
+#endif
+		for(;;)
+		{
+
+#ifndef NDEBUG
+			check_invariant("loops_per_second++");
+			loops_per_second++;
+#endif
+
+
+			// if nothing happens within 500000 microseconds (0.5 seconds)
+			// do the loop anyway to check if anything else has changed
+	//		 << "sleeping\n";
+			m_selector.wait(500000, readable_clients, writable_clients, error_clients);
+
+#ifndef NDEBUG
+			for (std::vector<boost::shared_ptr<libtorrent::socket> >::iterator i =
+				writable_clients.begin();
+				i != writable_clients.end();
+				++i)
+			{
+				assert((*i)->is_writable());
+			}
+#endif
+			boost::mutex::scoped_lock l(m_mutex);
+
+			// +1 for the listen socket
+			assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
+
+			if (m_abort)
+			{
+				m_tracker_manager.abort_all_requests();
+				for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i =
+						m_torrents.begin();
+					i != m_torrents.end();
+					++i)
+				{
+					i->second->abort();
+					m_tracker_manager.queue_request(i->second->generate_tracker_request(m_listen_interface.port));
+				}
+				m_connections.clear();
+				m_torrents.clear();
 				break;
 			}
 
 #ifndef NDEBUG
-			(*m_logger) << "listening on port: " << m_listen_interface.port << "\n";
+			check_invariant("before SEND SOCKETS");
 #endif
-			m_selector.monitor_readability(listener);
-			m_selector.monitor_errors(listener);
 
-			std::vector<boost::shared_ptr<socket> > readable_clients;
-			std::vector<boost::shared_ptr<socket> > writable_clients;
-			std::vector<boost::shared_ptr<socket> > error_clients;
-			boost::posix_time::ptime timer = boost::posix_time::second_clock::local_time();
+			// ************************
+			// SEND SOCKETS
+			// ************************
 
-#ifndef NDEBUG
-			int loops_per_second = 0;
-#endif
-			for(;;)
+			// let the writable clients send data
+			for (std::vector<boost::shared_ptr<socket> >::iterator i
+				= writable_clients.begin();
+				i != writable_clients.end();
+				++i)
 			{
-
-#ifndef NDEBUG
-				check_invariant("loops_per_second++");
-				loops_per_second++;
-#endif
-
-
-				// if nothing happens within 500000 microseconds (0.5 seconds)
-				// do the loop anyway to check if anything else has changed
-		//		 << "sleeping\n";
-				m_selector.wait(500000, readable_clients, writable_clients, error_clients);
-
-#ifndef NDEBUG
-				for (std::vector<boost::shared_ptr<libtorrent::socket> >::iterator i =
-					writable_clients.begin();
-					i != writable_clients.end();
-					++i)
+				assert((*i)->is_writable());
+				connection_map::iterator p = m_connections.find(*i);
+				// the connection may have been disconnected in the receive phase
+				if (p == m_connections.end())
 				{
-					assert((*i)->is_writable());
-				}
-#endif
-				boost::mutex::scoped_lock l(m_mutex);
-
-				// +1 for the listen socket
-				assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
-
-				if (m_abort)
-				{
-					m_tracker_manager.abort_all_requests();
-					for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i =
-							m_torrents.begin();
-						i != m_torrents.end();
-						++i)
-					{
-						i->second->abort();
-						m_tracker_manager.queue_request(i->second->generate_tracker_request(m_listen_interface.port));
-					}
-					m_connections.clear();
-					m_torrents.clear();
-					break;
-				}
-
-#ifndef NDEBUG
-				check_invariant("before SEND SOCKETS");
-#endif
-
-				// ************************
-				// SEND SOCKETS
-				// ************************
-
-				// let the writable clients send data
-				for (std::vector<boost::shared_ptr<socket> >::iterator i
-					= writable_clients.begin();
-					i != writable_clients.end();
-					++i)
-				{
-					assert((*i)->is_writable());
-					connection_map::iterator p = m_connections.find(*i);
-					// the connection may have been disconnected in the receive phase
-					if (p == m_connections.end())
-					{
-						m_selector.remove(*i);
-					}
-					else
-					{
-						try
-						{
-							assert(m_selector.is_writability_monitored(p->first));
-							assert(p->second->has_data());
-							assert(p->second->get_socket()->is_writable());
-							p->second->send_data();
-						}
-						catch (file_error& e)
-						{
-							torrent* t = p->second->associated_torrent();
-							assert(t != 0);
-
-							if (m_alerts.should_post(alert::fatal))
-							{
-								m_alerts.post_alert(
-									file_error_alert(
-									t->get_handle()
-									, e.what()));
-							}
-
-							m_selector.remove(*i);
-							m_connections.erase(p);
-							assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
-							t->abort();
-						}
-						catch (std::exception& e)
-						{
-							// the connection wants to disconnect for some reason,
-							// remove it from the connection-list
-							if (m_alerts.should_post(alert::debug))
-							{
-								m_alerts.post_alert(
-									peer_error_alert(p->first->sender(), e.what()));
-							}
-
-							m_selector.remove(*i);
-							m_connections.erase(p);
-							assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
-						}
-					}
-				}
-				purge_connections();
-
-#ifndef NDEBUG
-				check_invariant("after SEND SOCKETS");
-#endif
-				// ************************
-				// RECEIVE SOCKETS
-				// ************************
-
-				// let the readable clients receive data
-				for (std::vector<boost::shared_ptr<socket> >::iterator i = readable_clients.begin();
-					i != readable_clients.end();
-					++i)
-				{
-					// special case for listener socket
-					if (*i == listener)
-					{
-						boost::shared_ptr<libtorrent::socket> s = (*i)->accept();
-						if (s)
-						{
-							s->set_blocking(false);
-							// we got a connection request!
-							m_incoming_connection = true;
-#ifndef NDEBUG
-							(*m_logger) << s->sender().as_string() << " <== INCOMING CONNECTION\n";
-#endif
-							// TODO: filter ip:s
-
-							boost::shared_ptr<peer_connection> c(
-								new peer_connection(*this, m_selector, s));
-
-							if (m_upload_rate != -1)
-							{
-								c->upload_bandwidth.given = 0;
-								c->update_send_quota_left();
-							}
-
-							m_connections.insert(std::make_pair(s, c));
-							m_selector.monitor_readability(s);
-							m_selector.monitor_errors(s);
-						}
-						continue;
-					}
-					connection_map::iterator p = m_connections.find(*i);
-					if(p == m_connections.end())
-					{
-						m_selector.remove(*i);
-					}
-					else
-					{
-						try
-						{
-//							(*m_logger) << "readable: " << p->first->sender().as_string() << "\n";
-							p->second->receive_data();
-						}
-						catch (file_error& e)
-						{
-							torrent* t = p->second->associated_torrent();
-							assert(t != 0);
-
-							if (m_alerts.should_post(alert::fatal))
-							{
-								m_alerts.post_alert(
-									file_error_alert(
-									t->get_handle()
-									, e.what()));
-							}
-
-							m_selector.remove(*i);
-							m_connections.erase(p);
-							assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
-							t->abort();
-						}
-						catch (std::exception& e)
-						{
-							if (m_alerts.should_post(alert::debug))
-							{
-								m_alerts.post_alert(
-									peer_error_alert(p->first->sender(), e.what()));
-							}
-							// the connection wants to disconnect for some reason, remove it
-							// from the connection-list
-							m_selector.remove(*i);
-							m_connections.erase(p);
-							assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
-						}
-					}
-				}
-				purge_connections();
-#ifndef NDEBUG
-				check_invariant("after RECEIVE SOCKETS");
-#endif
-
-				// ************************
-				// ERROR SOCKETS
-				// ************************
-
-
-				// disconnect the one we couldn't connect to
-				for (std::vector<boost::shared_ptr<socket> >::iterator i = error_clients.begin();
-					i != error_clients.end();
-					++i)
-				{
-					connection_map::iterator p = m_connections.find(*i);
-					if (m_alerts.should_post(alert::debug))
-					{
-						m_alerts.post_alert(
-							peer_error_alert(
-								p->first->sender()
-								, "socket received an exception"));
-					}
-
 					m_selector.remove(*i);
-					// the connection may have been disconnected in the receive or send phase
-					if (p != m_connections.end())
+				}
+				else
+				{
+					try
 					{
+						assert(m_selector.is_writability_monitored(p->first));
+						assert(p->second->has_data());
+						assert(p->second->get_socket()->is_writable());
+						p->second->send_data();
+					}
+					catch (file_error& e)
+					{
+						torrent* t = p->second->associated_torrent();
+						assert(t != 0);
+
+						if (m_alerts.should_post(alert::fatal))
+						{
+							m_alerts.post_alert(
+								file_error_alert(
+								t->get_handle()
+								, e.what()));
+						}
+
+						m_selector.remove(*i);
+						m_connections.erase(p);
+						assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
+						t->abort();
+					}
+					catch (std::exception& e)
+					{
+						// the connection wants to disconnect for some reason,
+						// remove it from the connection-list
+						if (m_alerts.should_post(alert::debug))
+						{
+							m_alerts.post_alert(
+								peer_error_alert(p->first->sender(), e.what()));
+						}
+
+						m_selector.remove(*i);
 						m_connections.erase(p);
 						assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
 					}
 				}
+			}
+			purge_connections();
 
 #ifndef NDEBUG
-				check_invariant("after ERROR SOCKETS");
+			check_invariant("after SEND SOCKETS");
 #endif
+			// ************************
+			// RECEIVE SOCKETS
+			// ************************
 
-				boost::posix_time::time_duration d = boost::posix_time::second_clock::local_time() - timer;
-				if (d.seconds() < 1) continue;
-				timer = boost::posix_time::second_clock::local_time();
-
-				// ************************
-				// THE SECTION BELOW IS EXECUTED ONCE EVERY SECOND
-				// ************************
-
-#ifndef NDEBUG
-				// std::cout << "\n\nloops: " << loops_per_second << "\n";
-				loops_per_second = 0;
-#endif
-
-				// do the second_tick() on each connection
-				// this will update their statistics (download and upload speeds)
-				// also purge sockets that have timed out
-				// and keep sockets open by keeping them alive.
-				for (connection_map::iterator i = m_connections.begin();
-					i != m_connections.end();)
+			// let the readable clients receive data
+			for (std::vector<boost::shared_ptr<socket> >::iterator i = readable_clients.begin();
+				i != readable_clients.end();
+				++i)
+			{
+				// special case for m_listen_socket socket
+				if (*i == m_listen_socket)
 				{
-					connection_map::iterator j = i;
-					++i;
-					// if this socket has timed out
-					// close it.
-					if (j->second->has_timed_out())
+					assert(m_listen_socket);
+					boost::shared_ptr<libtorrent::socket> s = (*i)->accept();
+					if (s)
+					{
+						s->set_blocking(false);
+						// we got a connection request!
+						m_incoming_connection = true;
+#ifndef NDEBUG
+						(*m_logger) << s->sender().as_string() << " <== INCOMING CONNECTION\n";
+#endif
+						// TODO: filter ip:s
+
+						boost::shared_ptr<peer_connection> c(
+							new peer_connection(*this, m_selector, s));
+
+						if (m_upload_rate != -1)
+						{
+							c->upload_bandwidth.given = 0;
+							c->update_send_quota_left();
+						}
+
+						m_connections.insert(std::make_pair(s, c));
+						m_selector.monitor_readability(s);
+						m_selector.monitor_errors(s);
+					}
+					continue;
+				}
+				connection_map::iterator p = m_connections.find(*i);
+				if(p == m_connections.end())
+				{
+					m_selector.remove(*i);
+				}
+				else
+				{
+					try
+					{
+//							(*m_logger) << "readable: " << p->first->sender().as_string() << "\n";
+						p->second->receive_data();
+					}
+					catch (file_error& e)
+					{
+						torrent* t = p->second->associated_torrent();
+						assert(t != 0);
+
+						if (m_alerts.should_post(alert::fatal))
+						{
+							m_alerts.post_alert(
+								file_error_alert(
+								t->get_handle()
+								, e.what()));
+						}
+
+						m_selector.remove(*i);
+						m_connections.erase(p);
+						assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
+						t->abort();
+					}
+					catch (std::exception& e)
 					{
 						if (m_alerts.should_post(alert::debug))
 						{
 							m_alerts.post_alert(
-								peer_error_alert(j->first->sender(), "connection timed out"));
+								peer_error_alert(p->first->sender(), e.what()));
 						}
-						m_selector.remove(j->first);
-						m_connections.erase(j);
+						// the connection wants to disconnect for some reason, remove it
+						// from the connection-list
+						m_selector.remove(*i);
+						m_connections.erase(p);
 						assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
-						continue;
 					}
-
-					j->second->keep_alive();
 				}
-
-				// check each torrent for abortion or
-				// tracker updates
-				for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
-					= m_torrents.begin();
-					i != m_torrents.end();)
-				{
-					if (i->second->is_aborted())
-					{
-						m_tracker_manager.queue_request(
-							i->second->generate_tracker_request(m_listen_interface.port));
-						i->second->disconnect_all();
+			}
+			purge_connections();
 #ifndef NDEBUG
-						sha1_hash i_hash = i->second->torrent_file().info_hash();
-#endif
-						std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator j = i;
-						++i;
-						m_torrents.erase(j);
-						assert(m_torrents.find(i_hash) == m_torrents.end());
-						continue;
-					}
-					else if (i->second->should_request())
-					{
-						m_tracker_manager.queue_request(
-							i->second->generate_tracker_request(m_listen_interface.port)
-							, boost::get_pointer(i->second));
-					}
-
-					i->second->second_tick();
-					++i;
-				}
-				purge_connections();
-
-				// distribute the maximum upload rate among the peers
-
-				control_upload_rates(
-					m_upload_rate == -1
-					? std::numeric_limits<int>::max()
-					: m_upload_rate
-					, m_connections);
-
-
-				m_tracker_manager.tick();
-			}
-
-			while (!m_tracker_manager.send_finished())
-			{
-				m_tracker_manager.tick();
-				boost::xtime t;
-				boost::xtime_get(&t, boost::TIME_UTC);
-				t.nsec += 100000000;
-				boost::thread::sleep(t);
-			}
-
-#ifndef NDEBUG
-			}
-			catch (std::bad_cast& e)
-			{
-				std::cerr << e.what() << "\n";
-			}
-			catch (std::exception& e)
-			{
-				std::cerr << e.what() << "\n";
-			}
-			catch (...)
-			{
-				std::cerr << "error!\n";
-			}
-#endif
-		}
-
-
-		// the return value from this function is valid only as long as the
-		// session is locked!
-		torrent* session_impl::find_torrent(const sha1_hash& info_hash)
-		{
-			std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
-				= m_torrents.find(info_hash);
-			if (i != m_torrents.end()) return boost::get_pointer(i->second);
-			return 0;
-		}
-
-#ifndef NDEBUG
-		boost::shared_ptr<logger> session_impl::create_log(std::string name)
-		{
-			name = "libtorrent_log_" + name + ".log";
-			// current options are file_logger and cout_logger
-#if defined(TORRENT_VERBOSE_LOGGING)
-			return boost::shared_ptr<logger>(new file_logger(name.c_str()));
-#else
-			return boost::shared_ptr<logger>(new null_logger());
-#endif
-		}
+			check_invariant("after RECEIVE SOCKETS");
 #endif
 
-#ifndef NDEBUG
-		void session_impl::check_invariant(const char *place)
-		{
-			assert(place);
+			// ************************
+			// ERROR SOCKETS
+			// ************************
 
-			for (connection_map::iterator i = m_connections.begin();
-				i != m_connections.end();
+
+			// disconnect the one we couldn't connect to
+			for (std::vector<boost::shared_ptr<socket> >::iterator i = error_clients.begin();
+				i != error_clients.end();
 				++i)
 			{
-				if (i->second->has_data() != m_selector.is_writability_monitored(i->first))
+				connection_map::iterator p = m_connections.find(*i);
+				if (m_alerts.should_post(alert::debug))
 				{
-					std::ofstream error_log("error.log", std::ios_base::app);
-					boost::shared_ptr<peer_connection> p = i->second;
-					error_log << "session_imple::check_invariant()\n"
-						"peer_connection::has_data() != is_writability_monitored()\n";
-					error_log << "peer_connection::has_data() " << p->has_data() << "\n";
-					error_log << "peer_connection::send_quota_left " << p->send_quota_left() << "\n";
-					error_log << "peer_connection::upload_bandwidth.given " << p->upload_bandwidth.given << "\n";
-					error_log << "peer_connection::get_peer_id " << p->get_peer_id() << "\n";
-					error_log << "place: " << place << "\n";
-					error_log.flush();
-					assert(false);
+					m_alerts.post_alert(
+						peer_error_alert(
+							p->first->sender()
+							, "socket received an exception"));
 				}
-				if (i->second->associated_torrent())
+
+				m_selector.remove(*i);
+				// the connection may have been disconnected in the receive or send phase
+				if (p != m_connections.end())
 				{
-					assert(i->second->associated_torrent()
-						->get_policy().has_connection(boost::get_pointer(i->second)));
+					m_connections.erase(p);
+					assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
 				}
 			}
-		}
+
+#ifndef NDEBUG
+			check_invariant("after ERROR SOCKETS");
 #endif
 
+			boost::posix_time::time_duration d = boost::posix_time::second_clock::local_time() - timer;
+			if (d.seconds() < 1) continue;
+			timer = boost::posix_time::second_clock::local_time();
+
+			// ************************
+			// THE SECTION BELOW IS EXECUTED ONCE EVERY SECOND
+			// ************************
+
+#ifndef NDEBUG
+			// std::cout << "\n\nloops: " << loops_per_second << "\n";
+			loops_per_second = 0;
+#endif
+
+			// do the second_tick() on each connection
+			// this will update their statistics (download and upload speeds)
+			// also purge sockets that have timed out
+			// and keep sockets open by keeping them alive.
+			for (connection_map::iterator i = m_connections.begin();
+				i != m_connections.end();)
+			{
+				connection_map::iterator j = i;
+				++i;
+				// if this socket has timed out
+				// close it.
+				if (j->second->has_timed_out())
+				{
+					if (m_alerts.should_post(alert::debug))
+					{
+						m_alerts.post_alert(
+							peer_error_alert(j->first->sender(), "connection timed out"));
+					}
+					m_selector.remove(j->first);
+					m_connections.erase(j);
+					assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);
+					continue;
+				}
+
+				j->second->keep_alive();
+			}
+
+			// check each torrent for abortion or
+			// tracker updates
+			for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
+				= m_torrents.begin();
+				i != m_torrents.end();)
+			{
+				if (i->second->is_aborted())
+				{
+					m_tracker_manager.queue_request(
+						i->second->generate_tracker_request(m_listen_interface.port));
+					i->second->disconnect_all();
+#ifndef NDEBUG
+					sha1_hash i_hash = i->second->torrent_file().info_hash();
+#endif
+					std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator j = i;
+					++i;
+					m_torrents.erase(j);
+					assert(m_torrents.find(i_hash) == m_torrents.end());
+					continue;
+				}
+				else if (i->second->should_request())
+				{
+					m_tracker_manager.queue_request(
+						i->second->generate_tracker_request(m_listen_interface.port)
+						, boost::get_pointer(i->second));
+				}
+
+				i->second->second_tick();
+				++i;
+			}
+			purge_connections();
+
+			// distribute the maximum upload rate among the peers
+
+			control_upload_rates(
+				m_upload_rate == -1
+				? std::numeric_limits<int>::max()
+				: m_upload_rate
+				, m_connections);
+
+
+			m_tracker_manager.tick();
+		}
+
+		while (!m_tracker_manager.send_finished())
+		{
+			m_tracker_manager.tick();
+			boost::xtime t;
+			boost::xtime_get(&t, boost::TIME_UTC);
+			t.nsec += 100000000;
+			boost::thread::sleep(t);
+		}
+
+#ifndef NDEBUG
+		}
+		catch (std::bad_cast& e)
+		{
+			std::cerr << e.what() << "\n";
+		}
+		catch (std::exception& e)
+		{
+			std::cerr << e.what() << "\n";
+		}
+		catch (...)
+		{
+			std::cerr << "error!\n";
+		}
+#endif
 	}
+
+
+	// the return value from this function is valid only as long as the
+	// session is locked!
+	torrent* session_impl::find_torrent(const sha1_hash& info_hash)
+	{
+		std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
+			= m_torrents.find(info_hash);
+		if (i != m_torrents.end()) return boost::get_pointer(i->second);
+		return 0;
+	}
+
+#ifndef NDEBUG
+	boost::shared_ptr<logger> session_impl::create_log(std::string name)
+	{
+		name = "libtorrent_log_" + name + ".log";
+		// current options are file_logger and cout_logger
+#if defined(TORRENT_VERBOSE_LOGGING)
+		return boost::shared_ptr<logger>(new file_logger(name.c_str()));
+#else
+		return boost::shared_ptr<logger>(new null_logger());
+#endif
+	}
+#endif
+
+#ifndef NDEBUG
+	void session_impl::check_invariant(const char *place)
+	{
+		assert(place);
+
+		for (connection_map::iterator i = m_connections.begin();
+			i != m_connections.end();
+			++i)
+		{
+			if (i->second->has_data() != m_selector.is_writability_monitored(i->first))
+			{
+				std::ofstream error_log("error.log", std::ios_base::app);
+				boost::shared_ptr<peer_connection> p = i->second;
+				error_log << "session_imple::check_invariant()\n"
+					"peer_connection::has_data() != is_writability_monitored()\n";
+				error_log << "peer_connection::has_data() " << p->has_data() << "\n";
+				error_log << "peer_connection::send_quota_left " << p->send_quota_left() << "\n";
+				error_log << "peer_connection::upload_bandwidth.given " << p->upload_bandwidth.given << "\n";
+				error_log << "peer_connection::get_peer_id " << p->get_peer_id() << "\n";
+				error_log << "place: " << place << "\n";
+				error_log.flush();
+				assert(false);
+			}
+			if (i->second->associated_torrent())
+			{
+				assert(i->second->associated_torrent()
+					->get_policy().has_connection(boost::get_pointer(i->second)));
+			}
+		}
+	}
+#endif
+
+}}
+
+namespace libtorrent
+{
 
 	session::session(
 		std::pair<int, int> listen_port_range
@@ -859,6 +892,36 @@ namespace libtorrent
 				return;
 			}
 		}
+	}
+
+	bool session::listen_on(
+		std::pair<int, int> const& port_range
+		, const char* net_interface)
+	{
+		boost::mutex::scoped_lock l(m_impl.m_mutex);
+
+		if (m_impl.m_listen_socket)
+		{
+			m_impl.m_selector.remove(m_impl.m_listen_socket);
+			m_impl.m_listen_socket.reset();
+		}
+
+		m_impl.m_listen_port_range = port_range;
+		m_impl.m_listen_interface = address(net_interface, port_range.first);
+		m_impl.open_listen_port();
+		return m_impl.m_listen_socket;
+	}
+
+	unsigned short session::listen_port() const
+	{
+		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		return m_impl.m_listen_interface.port;
+	}
+
+	bool session::is_listening() const
+	{
+		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		return m_impl.m_listen_socket;
 	}
 
 	void session::set_http_settings(const http_settings& s)

@@ -52,9 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 // TODO: support ToS
-// TODO: support binding to selected interface
-// Distinguish between binding listen sockets and
-// outgoing connections.
 
 namespace libtorrent
 {
@@ -102,8 +99,8 @@ namespace libtorrent
 
 		unsigned short port;
 
-		const static unsigned short any_port = 0;
-		const static unsigned int any_addr = 0;
+		BOOST_STATIC_CONSTANT(unsigned short, any_port = 0);
+		BOOST_STATIC_CONSTANT(unsigned int, any_addr = 0);
 
 	private:
 

@@ -202,6 +202,13 @@ The ``session`` class has the following synopsis::
 		void set_http_settings(const http_settings& settings);
 		void set_upload_rate_limit(int bytes_per_second);
 
+		bool is_listening() const;
+		unsigned short listen_port() const;
+		bool listen_on(
+			std::pair<int, int> const& port_range
+			, const char* interface = 0);
+
+
 		std::auto_ptr<alert> pop_alert();
 		void set_severity_level(alert::severity_t s);
 
@@ -235,6 +242,24 @@ fingerprint class.
 ``set_upload_rate_limit()`` set the maximum number of bytes allowed to be
 sent to peers per second. This bandwidth is distributed among all the peers. If
 you don't want to limit upload rate, you can set this to -1 (the default).
+
+``is_listening()`` will tell you wether or not the session has successfully
+opened a listening port. If it hasn't, this function will return false, and
+then you can use ``listen_on()`` to make another try.
+
+``listen_port()`` returns the port we ended up listening on. Since you just pass
+a port-range to the constructor and to ``listen_on()``, to know which port it
+ended up using, you have to ask the session using this function.
+
+``listen_on()`` will change the listen port and/or the listen interface. If the
+session is already listening on a port, this socket will be closed and a new socket
+will be opened with these new settings. The port range is the ports it will try
+to listen on, if the first port fails, it will continue trying the next port within
+the range and so on. The interface parameter can be left as 0, in that case the
+os will decide which interface to listen on, otherwise it should be the ip-address
+of the interface you want the listener socket bound to. ``listen_on()`` returns true
+if it managed to open the socket, and false if it failed. If it fails, it will also
+generate an appropriate alert (listen_failed_alert_).
 
 The destructor of session will notify all trackers that our torrents has been shut down.
 If some trackers are down, they will timout. All this before the destructor of session
@@ -1136,8 +1161,8 @@ listen_failed_alert
 -------------------
 
 This alert is generated when none of the ports, given in the port range, to
-session_ can be opened for listening. Without a listening port the session
-object will exit its thread. This alert is generated as severity level ``fatal``.
+session_ can be opened for listening. This alert is generated as severity
+level ``fatal``.
 
 ::
 
