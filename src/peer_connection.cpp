@@ -1912,8 +1912,8 @@ namespace libtorrent
 		d2 = second_clock::local_time() - m_became_uninteresting;
 		if (!m_interesting
 			&& !m_peer_interested
-			&& d1 > seconds(60)
-			&& d2 > seconds(60))
+			&& d1 > seconds(60 * 3)
+			&& d2 > seconds(60 * 3))
 		{
 			return true;
 		}
