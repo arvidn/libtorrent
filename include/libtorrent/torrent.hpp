@@ -210,6 +210,7 @@ namespace libtorrent
 		void announce_piece(int index);
 
 		void close_all_connections();
+		void disconnect_seeds();
 
 		piece_picker& picker() { return m_picker; }
 

@@ -156,7 +156,17 @@ namespace libtorrent
 
 			tracker_manager m_tracker_manager;
 			std::map<sha1_hash, boost::shared_ptr<torrent> > m_torrents;
+
+			// this maps sockets to their peer_connection
+			// object. It is the complete list of all connected
+			// peers.
 			connection_map m_connections;
+
+			// this is a list of iterators into the m_connections map
+			// that should be disconnected as soon as possible.
+			// It is used to delay disconnections to avoid troubles
+			// in loops that iterate over them.
+			std::vector<connection_map::iterator> m_disconnect_peer;
 
 			// the peer id that is generated at the start of each torrent
 			peer_id m_peer_id;
@@ -190,6 +200,10 @@ namespace libtorrent
 			// this is used to know if the client is behind
 			// NAT or not.
 			bool m_incoming_connection;
+
+			// does the actual disconnections
+			// that are queued up in m_disconnect_peer
+			void purge_connections();
 
 #ifndef NDEBUG
 			void assert_invariant(int marker = -1);

@@ -372,6 +372,14 @@ namespace libtorrent
 			}
 		}
 
+		void session_impl::purge_connections()
+		{
+			while (!m_disconnect_peer.empty())
+			{
+				m_connections.erase(m_disconnect_peer.back());
+				m_disconnect_peer.pop_back();
+			}
+		}
 
 		void session_impl::operator()()
 		{
@@ -501,6 +509,7 @@ namespace libtorrent
 						}
 					}
 				}
+				purge_connections();
 
 #ifndef NDEBUG
 				assert_invariant();
@@ -568,7 +577,7 @@ namespace libtorrent
 						}
 					}
 				}
-
+				purge_connections();
 #ifndef NDEBUG
 				assert_invariant();
 #endif
@@ -658,6 +667,8 @@ namespace libtorrent
 					i->second->second_tick();
 					++i;
 				}
+				purge_connections();
+
 				// distribute the maximum upload rate among the peers
 				control_upload_rates(m_upload_rate, m_connections);
 

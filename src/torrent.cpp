@@ -637,23 +637,23 @@ namespace libtorrent
 	void torrent::close_all_connections()
 	{
 		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end();)
+			i != m_connections.end();
+			++i)
 		{
 			assert(i->second->associated_torrent() == this);
-			
-			detail::session_impl::connection_map::iterator j =
-				m_ses.m_connections.find(i->second->get_socket());
+			i->second->disconnect();
+		}
+	}
 
-			assert(j != m_ses.m_connections.end());
-
-			// in the destructor of the peer_connection
-			// it will remove itself from this torrent
-			// and from the list we're iterating over.
-			// so we need to increment the iterator riht
-			// away.
-			++i;
-
-			m_ses.m_connections.erase(j);
+	void torrent::disconnect_seeds()
+	{
+		for (peer_iterator i = m_connections.begin();
+			i != m_connections.end();
+			++i)
+		{
+			assert(i->second->associated_torrent() == this);
+			if (i->second->is_seed())
+				i->second->disconnect();
 		}
 	}
 
