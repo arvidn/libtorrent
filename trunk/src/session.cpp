@@ -175,7 +175,7 @@ namespace libtorrent { namespace detail
 		eh_initializer();
 		for (;;)
 		{
-			piece_checker_data* t;
+			piece_checker_data* t = 0;
 			{
 				boost::mutex::scoped_lock l(m_mutex);
 
