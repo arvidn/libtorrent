@@ -112,7 +112,7 @@ namespace libtorrent
 		// initialize the extension list to zero, since
 		// we don't know which extensions the other
 		// end supports yet
-		std::fill(m_extension_messages, m_extension_messages + num_supported_extensions, 0);
+		std::fill(m_extension_messages, m_extension_messages + num_supported_extensions, -1);
 
 		send_handshake();
 
@@ -165,7 +165,7 @@ namespace libtorrent
 		// initialize the extension list to zero, since
 		// we don't know which extensions the other
 		// end supports yet
-		std::fill(m_extension_messages, m_extension_messages + num_supported_extensions, 0);
+		std::fill(m_extension_messages, m_extension_messages + num_supported_extensions, -1);
 
 		// we are not attached to any torrent yet.
 		// we have to wait for the handshake to see
@@ -711,6 +711,12 @@ namespace libtorrent
 					m_extension_messages[i] = f->second.integer();
 				}
 			}
+
+			// TODO: temporary
+//			if (m_extension_messages[extended_chat_message] != -1)
+//			{
+//				send_chat_message("Hi, this is a test chat message");
+//			}
 		}
 		catch(invalid_encoding& e)
 		{
@@ -747,8 +753,8 @@ namespace libtorrent
 		case extended_chat_message:
 			{
 				if (m_packet_size > 2 * 1024)
-				if (m_recv_pos < m_packet_size) return;
 					throw protocol_error("CHAT message larger than 2 kB");
+				if (m_recv_pos < m_packet_size) return;
 				try
 				{
 					entry d = bdecode(m_recv_buffer.begin()+5, m_recv_buffer.end());
@@ -907,7 +913,7 @@ namespace libtorrent
 	void peer_connection::send_chat_message(const std::string& msg)
 	{
 		assert(msg.length() <= 1 * 1024);
-		if (m_extension_messages[extended_chat_message] == 0) return;
+		if (m_extension_messages[extended_chat_message] == -1) return;
 
 		entry e(entry::dictionary_t);
 		e.dict()["msg"] = msg;
