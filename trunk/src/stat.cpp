@@ -30,6 +30,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+// TODO: Use two algorithms to estimate transfer rate.
+// one (simple) for transfer rates that are >= 1 packet
+// per second and one (low pass-filter) for rates < 1
+// packet per second.
+
 #include <numeric>
 
 #include "libtorrent/stat.hpp"

@@ -109,6 +109,7 @@ namespace libtorrent
 		entry::integer_type piece_length() const { return m_piece_length; }
 		std::size_t num_pieces() const { return m_piece_hash.size(); }
 		const sha1_hash& info_hash() const { return m_info_hash; }
+		const std::string& name() const { return m_name; }
 		void print(std::ostream& os) const;
 
 		entry::integer_type piece_size(unsigned int index) const
@@ -149,6 +150,8 @@ namespace libtorrent
 
 		// the hash that identifies this torrent
 		sha1_hash m_info_hash;
+
+		std::string m_name;
 	};
 
 }

@@ -149,7 +149,7 @@ namespace libtorrent
 		// extract file name (or the directory name if it's a multifile libtorrent)
 		i = info.dict().find("name");
 		if (i == info.dict().end()) throw invalid_torrent_file();
-		std::string filename = i->second.string();
+		m_name = i->second.string();
 
 		// extract file list
 		i = info.dict().find("files");
@@ -161,12 +161,12 @@ namespace libtorrent
 			if (i == info.dict().end()) throw invalid_torrent_file();
 
 			m_files.push_back(file());
-			m_files.back().filename = filename;
+			m_files.back().filename = m_name;
 			m_files.back().size = i->second.integer();
 		}
 		else
 		{
-			extract_files(i->second.list(), m_files, filename);
+			extract_files(i->second.list(), m_files, m_name);
 		}
 
 		// calculate total size of all pieces

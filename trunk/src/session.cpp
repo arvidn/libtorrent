@@ -564,8 +564,12 @@ namespace libtorrent
 		const unsigned char* c = p.begin();
 		while (c != p.end() && *c != 0)
 		{
-			if (!std::isprint(*c)) return std::string();
-			ret += *c;
+			if (std::isprint(*c))
+				ret += *c;
+			else if (*c <= 9)
+				ret += '0'+ *c;
+			else
+				return std::string();
 			++c;
 		}
 		if (c == p.end()) return std::string();

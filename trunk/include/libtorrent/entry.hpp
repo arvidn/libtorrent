@@ -188,7 +188,7 @@ namespace libtorrent
 			return *reinterpret_cast<const dictionary_type*>(data);
 		}
 
-		void print(std::ostream& os, int indent) const;
+		void print(std::ostream& os, int indent = 0) const;
 
 	private:
 
