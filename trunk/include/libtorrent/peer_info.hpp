@@ -46,7 +46,8 @@ namespace libtorrent
 			interesting = 0x1,
 			choked = 0x2,
 			remote_interested = 0x4,
-			remote_choked = 0x8
+			remote_choked = 0x8,
+			supports_extensions = 0x10
 		};
 		unsigned int flags;
 		address ip;

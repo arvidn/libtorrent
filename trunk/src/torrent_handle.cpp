@@ -231,12 +231,15 @@ namespace libtorrent
 			// the unsinished piece's index
 			detail::write_int(i->index, out);
 
-			// write
-			for (int j = 0; j < num_blocks_per_piece / 32; ++j)
+			// TODO: write the bitmask in correct byteorder
+			// TODO: make sure to read it in the correct order too
+			const int num_bitmask_bytes = std::max(num_blocks_per_piece / 8, 1);
+			for (int j = 0; j < num_bitmask_bytes; ++j)
 			{
-				unsigned int v = 0;
-				for (int k = 0; k < 32; ++k) v |= i->finished_blocks[j*32+k]?(1 << k):0;
-				detail::write_int(v, out);
+				unsigned char v = 0;
+				for (int k = 0; k < 8; ++k)
+					v |= i->finished_blocks[j*8+k]?(1 << k):0;
+				detail::write_uchar(v, out);
 			}
 		}
 	}
@@ -337,6 +340,7 @@ namespace libtorrent
 			if (peer->is_choked()) p.flags |= peer_info::choked;
 			if (peer->is_peer_interested()) p.flags |= peer_info::remote_interested;
 			if (peer->has_peer_choked()) p.flags |= peer_info::remote_choked;
+			if (peer->support_extensions()) p.flags |= peer_info::supports_extensions;
 
 			p.pieces = peer->get_bitfield();
 		}
