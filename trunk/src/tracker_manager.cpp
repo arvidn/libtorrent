@@ -308,6 +308,9 @@ namespace libtorrent
 		, std::string const& password)
 	{
 		assert(req.num_want >= 0);
+		if (req.event == tracker_request::stopped)
+			req.num_want = 0;
+
 		try
 		{
 			std::string hostname; // hostname only
