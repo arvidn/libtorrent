@@ -91,8 +91,9 @@ namespace libtorrent
 		// tracker request
 		bool should_request() const throw()
 		{
-			boost::posix_time::time_duration d = m_next_request - boost::posix_time::second_clock::local_time();
-			return d.is_negative();
+//			boost::posix_time::time_duration d = m_next_request - boost::posix_time::second_clock::local_time();
+//			return d.is_negative();
+			return m_next_request < boost::posix_time::second_clock::local_time();
 		}
 
 		bool failed() const throw() { return !m_failed.empty(); }
@@ -221,10 +222,11 @@ namespace libtorrent
 		logger* spawn_logger(const char* title);
 #endif
 
-	private:
 #ifndef NDEBUG
 		virtual void debug_log(const std::string& line);
 #endif
+
+	private:
 
 		void try_next_tracker();
 

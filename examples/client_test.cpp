@@ -151,6 +151,9 @@ int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
 
+	// TEMPORARY
+	boost::filesystem::path::default_name_check(boost::filesystem::no_check);
+
 	if (argc < 2)
 	{
 		std::cerr << "usage: ./client_test torrent-files ...\n"
