@@ -647,7 +647,7 @@ namespace libtorrent
 		m_time_scaler = 0;
 	}
 
-	void torrent::second_tick()
+	void torrent::second_tick(stat& accumulator)
 	{
 		if (m_paused) return;
 
@@ -672,7 +672,6 @@ namespace libtorrent
 		{
 			peer_connection* p = i->second;
 			m_stat += p->statistics();
-
 			// updates the peer connection's ul/dl bandwidth
 			// resource requests
 			p->second_tick();
@@ -698,6 +697,7 @@ namespace libtorrent
 		m_dl_bandwidth_quota.max
 			= std::min(m_dl_bandwidth_quota.max, m_download_bandwidth_limit);
 
+		accumulator += m_stat;
 		m_stat.second_tick();
 	}
 
