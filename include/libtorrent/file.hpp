@@ -56,13 +56,31 @@ namespace libtorrent
 		typedef long long int size_type;
 #endif
 
+		class seek_mode
+		{
+		friend file;
+		seek_mode(int v): m_val(v) {}
+		int m_val;
+		};
+
+		static seek_mode begin;
+		static seek_mode end;
+
 		class open_mode
 		{
 		friend file;
 		public:
 
-			open_mode operator|(open_mode m)
+			open_mode(): m_mask(0) {}
+
+			open_mode operator|(open_mode m) const
 			{ return open_mode(m.m_mask | m_mask); }
+
+			open_mode operator|=(open_mode m)
+			{
+				m_mask |= m.m_mask;
+				return *this;
+			}
 
 		private:
 
@@ -83,7 +101,7 @@ namespace libtorrent
 		size_type write(const char*, size_type num_bytes);
 		size_type read(char*, size_type num_bytes);
 
-		void seek(size_type pos);
+		void seek(size_type pos, seek_mode m);
 		size_type tell();
 
 	private:
