@@ -765,6 +765,7 @@ Its declaration looks like this::
 		void pause();
 		void resume();
 		bool is_paused() const;
+		bool is_seed() const;
 
 		boost::filsystem::path save_path() const;
 		bool move_storage(boost::filesystem::path const& save_path);
@@ -878,6 +879,15 @@ When a torrent is paused, it will however remember all share ratios to all peers
 all potential (not connected) peers. You can use ``is_paused()`` to determine if a torrent
 is currently paused. Torrents may be paused automatically if there is a file error (eg. disk full)
 or something similar. See file_error_alert_.
+
+is_seed()
+---------
+
+	::
+
+		bool is_seed() const;
+
+Returns true if the torrent is in seed mode (i.e. if it has finished downloading).
 
 
 set_tracker_login()

@@ -54,6 +54,8 @@ namespace libtorrent
 
 		int left() const
 		{
+			assert(given <= max);
+			assert(given >= min);
 			assert(given >= used);
 			return given - used;
 		}
