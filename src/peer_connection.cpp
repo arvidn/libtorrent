@@ -1355,11 +1355,7 @@ namespace libtorrent
 	#ifndef NDEBUG
 					(*m_logger) << " protocol length: " << m_packet_size << "\n";
 	#endif
-					m_state = read_protocol_string;
-					m_recv_buffer.resize(m_packet_size);
-					m_recv_pos = 0;
-
-					if (m_packet_size != 19)
+					if (m_packet_size != 19 && m_packet_size != 7)
 					{
 	#ifndef NDEBUG
 							(*m_logger) << "incorrect protocol length\n";
@@ -1370,6 +1366,11 @@ namespace libtorrent
 								<< ") should be 19.";
 							throw protocol_error(s.str());
 					}
+
+					m_state = read_protocol_string;
+					m_recv_buffer.resize(m_packet_size);
+					m_recv_pos = 0;
+
 					break;
 
 
@@ -1384,6 +1385,13 @@ namespace libtorrent
 						const char protocol_string[] = "BitTorrent protocol";
 						if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.end(), protocol_string))
 						{
+							const char cmd[] = "version";
+							if (m_recv_buffer.size() == 7 && std::equal(m_recv_buffer.begin(), m_recv_buffer.end(), cmd))
+							{
+								(*m_logger << "sending libtorrent version\n");
+								int ret = m_socket->send("libtorrent version 0.1.0.0\n");
+								throw protocol_error("closing");
+							}
 	#ifndef NDEBUG
 							(*m_logger) << "incorrect protocol name\n";
 	#endif

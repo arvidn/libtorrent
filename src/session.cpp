@@ -388,7 +388,6 @@ namespace libtorrent { namespace detail
 
 			// if nothing happens within 500000 microseconds (0.5 seconds)
 			// do the loop anyway to check if anything else has changed
-	//		 << "sleeping\n";
 			m_selector.wait(500000, readable_clients, writable_clients, error_clients);
 
 #ifndef NDEBUG
@@ -402,7 +401,6 @@ namespace libtorrent { namespace detail
 #endif
 			boost::mutex::scoped_lock l(m_mutex);
 
-			// +1 for the listen socket
 			assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
 
 			if (m_abort)
@@ -662,6 +660,7 @@ namespace libtorrent { namespace detail
 					m_tracker_manager.queue_request(
 						i->second->generate_tracker_request(m_listen_interface.port));
 					i->second->disconnect_all();
+					purge_connections();
 #ifndef NDEBUG
 					sha1_hash i_hash = i->second->torrent_file().info_hash();
 #endif

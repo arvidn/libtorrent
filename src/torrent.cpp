@@ -244,6 +244,7 @@ namespace libtorrent
 
 	torrent::~torrent()
 	{
+		assert(m_connections.empty());
 		if (m_ses.m_abort) m_abort = true;
 	}
 
