@@ -456,12 +456,11 @@ namespace libtorrent
 		{
 			if(i->connection) continue;
 			if(i->banned) continue;
-			if(i->type==peer::not_connectable) continue;
+			if(i->type == peer::not_connectable) continue;
 
 			assert(i->connected <= local_time);
 
-			boost::posix_time::ptime next_connect
-				= i->connected + boost::posix_time::seconds(10 * 60);
+			boost::posix_time::ptime next_connect = i->connected;
 
 			if (next_connect <= ptime)
 			{
@@ -736,6 +735,8 @@ namespace libtorrent
 
 		assert(i != m_peers.end());
 
+		i->type = peer::not_connectable;
+		i->id.port = address::any_port;
 		i->banned = true;
 	}
 
@@ -782,7 +783,7 @@ namespace libtorrent
 			if (i->connection != 0)
 				throw protocol_error("duplicate connection, closing");
 			if (i->banned)
-				throw protocol_error("ip address banned, disconnected");
+				throw protocol_error("ip address banned, closing");
 		}
 		
 		assert(i->connection == 0);
@@ -948,6 +949,11 @@ namespace libtorrent
 				c.add_free_upload(-diff);
 			}
 		}
+		if (!c.is_choked())
+		{
+			c.send_choke();
+			--m_num_unchoked;
+		}
 	}
 
 	bool policy::unchoke_one_peer()
@@ -999,7 +1005,7 @@ namespace libtorrent
 
 	bool policy::disconnect_one_peer()
 	{
-		peer *p=find_disconnect_candidate();
+		peer *p = find_disconnect_candidate();
 		if(!p)
 			return false;
 		p->connection->disconnect();
@@ -1014,14 +1020,24 @@ namespace libtorrent
 			, m_peers.end()
 			, match_peer_connection(c));
 
+		// if we couldn't find the connection in our list, just ignore it.
 		if (i == m_peers.end()) return;
 		assert(i->connection == &c);
 
 		i->connected = boost::posix_time::second_clock::local_time();
 		if (!i->connection->is_choked() && !m_torrent->is_aborted())
 		{
+			// if the peer that is diconnecting is unchoked
+			// then unchoke another peer in order to maintain
+			// the total number of unchoked peers
 			--m_num_unchoked;
 			unchoke_one_peer();
+		}
+
+		if (c.failed())
+		{
+			i->type = peer::not_connectable;
+			i->id.port = address::any_port;
 		}
 
 		// if the share ratio is 0 (infinite), the

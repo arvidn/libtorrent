@@ -90,6 +90,8 @@ namespace libtorrent
 		unsigned short listen_port;
 		event_t event;
 		std::string url;
+		int key;
+		int num_want;
 	};
 
 	struct request_callback

@@ -204,7 +204,18 @@ namespace libtorrent
 				else
 					st.state = torrent_status::queued_for_checking;
 				st.progress = d->progress;
+				st.paused = false;
 				st.next_announce = boost::posix_time::time_duration();
+				st.announce_interval = boost::posix_time::time_duration();
+				st.total_download = 0;
+				st.total_upload = 0;
+				st.total_payload_download = 0;
+				st.total_payload_upload = 0;
+				st.download_rate = 0.f;
+				st.upload_rate = 0.f;
+				st.num_peers = 0;
+				st.pieces = 0;
+				st.total_done = 0;
 				return st;
 			}
 		}
@@ -229,6 +240,73 @@ namespace libtorrent
 			boost::mutex::scoped_lock l(m_chk->m_mutex);
 			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
 			if (d != 0) return d->torrent_ptr->torrent_file();
+		}
+
+		throw invalid_handle();
+	}
+
+	bool torrent_handle::is_paused() const
+	{
+		INVARIANT_CHECK;
+
+		if (m_ses == 0) throw invalid_handle();
+	
+		{
+			boost::mutex::scoped_lock l(m_ses->m_mutex);
+			torrent* t = m_ses->find_torrent(m_info_hash);
+			if (t != 0) return t->is_paused();
+		}
+
+		if (m_chk)
+		{
+			boost::mutex::scoped_lock l(m_chk->m_mutex);
+			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
+			if (d != 0) return d->torrent_ptr->is_paused();
+		}
+
+		throw invalid_handle();
+	}
+
+		
+	void torrent_handle::pause()
+	{
+		INVARIANT_CHECK;
+
+		if (m_ses == 0) throw invalid_handle();
+	
+		{
+			boost::mutex::scoped_lock l(m_ses->m_mutex);
+			torrent* t = m_ses->find_torrent(m_info_hash);
+			if (t != 0) return t->pause();
+		}
+
+		if (m_chk)
+		{
+			boost::mutex::scoped_lock l(m_chk->m_mutex);
+			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
+			if (d != 0) return d->torrent_ptr->pause();
+		}
+
+		throw invalid_handle();
+	}
+
+	void torrent_handle::resume()
+	{
+		INVARIANT_CHECK;
+
+		if (m_ses == 0) throw invalid_handle();
+	
+		{
+			boost::mutex::scoped_lock l(m_ses->m_mutex);
+			torrent* t = m_ses->find_torrent(m_info_hash);
+			if (t != 0) return t->resume();
+		}
+
+		if (m_chk)
+		{
+			boost::mutex::scoped_lock l(m_chk->m_mutex);
+			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
+			if (d != 0) return d->torrent_ptr->resume();
 		}
 
 		throw invalid_handle();

@@ -277,6 +277,7 @@ namespace libtorrent { namespace detail
 
 		std::srand((unsigned int)std::time(0));
 
+		m_key = rand() + (rand() << 15) + (rand() << 30);
 		std::string print = cl_fprint.to_string();
 		assert(print.length() == 8);
 
@@ -423,7 +424,10 @@ namespace libtorrent { namespace detail
 					++i)
 				{
 					i->second->abort();
-					m_tracker_manager.queue_request(i->second->generate_tracker_request(m_listen_interface.port));
+					tracker_request req = i->second->generate_tracker_request();
+					req.listen_port = m_listen_interface.port;
+					req.key = m_key;
+					m_tracker_manager.queue_request(req);
 				}
 				m_connections.clear();
 				m_torrents.clear();
@@ -438,7 +442,7 @@ namespace libtorrent { namespace detail
 			// SEND SOCKETS
 			// ************************
 
-			// let the writable clients send data
+			// let the writable connections send data
 			for (std::vector<boost::shared_ptr<socket> >::iterator i
 				= writable_clients.begin();
 				i != writable_clients.end();
@@ -473,10 +477,9 @@ namespace libtorrent { namespace detail
 								, e.what()));
 						}
 
-						m_selector.remove(*i);
-						m_connections.erase(p);
+						// pause the torrent
+						t->pause();
 						assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
-						t->abort();
 					}
 					catch (std::exception& e)
 					{
@@ -488,6 +491,7 @@ namespace libtorrent { namespace detail
 								peer_error_alert(p->first->sender(), e.what()));
 						}
 
+						p->second->set_failed();
 						m_selector.remove(*i);
 						m_connections.erase(p);
 						assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
@@ -547,7 +551,6 @@ namespace libtorrent { namespace detail
 				{
 					try
 					{
-//							(*m_logger) << "readable: " << p->first->sender().as_string() << "\n";
 						p->second->receive_data();
 					}
 					catch (file_error& e)
@@ -563,10 +566,8 @@ namespace libtorrent { namespace detail
 								, e.what()));
 						}
 
-						m_selector.remove(*i);
-						m_connections.erase(p);
 						assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
-						t->abort();
+						t->pause();
 					}
 					catch (std::exception& e)
 					{
@@ -577,6 +578,7 @@ namespace libtorrent { namespace detail
 						}
 						// the connection wants to disconnect for some reason, remove it
 						// from the connection-list
+						p->second->set_failed();
 						m_selector.remove(*i);
 						m_connections.erase(p);
 						assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
@@ -611,6 +613,7 @@ namespace libtorrent { namespace detail
 				// the connection may have been disconnected in the receive or send phase
 				if (p != m_connections.end())
 				{
+					p->second->set_failed();
 					m_connections.erase(p);
 					assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
 				}
@@ -651,6 +654,7 @@ namespace libtorrent { namespace detail
 						m_alerts.post_alert(
 							peer_error_alert(j->first->sender(), "connection timed out"));
 					}
+					j->second->set_failed();
 					m_selector.remove(j->first);
 					m_connections.erase(j);
 					assert(m_selector.count_read_monitors() == (int)m_connections.size() + (bool)m_listen_socket);
@@ -668,8 +672,10 @@ namespace libtorrent { namespace detail
 			{
 				if (i->second->is_aborted())
 				{
-					m_tracker_manager.queue_request(
-						i->second->generate_tracker_request(m_listen_interface.port));
+					tracker_request req = i->second->generate_tracker_request();
+					req.listen_port = m_listen_interface.port;
+					req.key = m_key;
+					m_tracker_manager.queue_request(req);
 					i->second->disconnect_all();
 					purge_connections();
 #ifndef NDEBUG
@@ -683,8 +689,11 @@ namespace libtorrent { namespace detail
 				}
 				else if (i->second->should_request())
 				{
+					tracker_request req = i->second->generate_tracker_request();
+					req.listen_port = m_listen_interface.port;
+					req.key = m_key;
 					m_tracker_manager.queue_request(
-						i->second->generate_tracker_request(m_listen_interface.port)
+						req
 						, boost::get_pointer(i->second));
 				}
 

@@ -76,6 +76,11 @@ namespace libtorrent
 		// return false if the connection closed
 		void new_connection(peer_connection& c);
 
+		// this is called if a peer timed-out or
+		// forcefully closed the connection. This
+		// will mark the connection as non-reconnectale
+		void peer_failed(peer_connection const& c);
+
 		// the given connection was just closed
 		void connection_closed(const peer_connection& c);
 
@@ -162,6 +167,11 @@ namespace libtorrent
 			// will refer to a valid peer_connection
 			peer_connection* connection;
 		};
+
+		int num_peers() const
+		{
+			return m_num_peers;
+		}
 
 	private:
 

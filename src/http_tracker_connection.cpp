@@ -151,11 +151,16 @@ namespace libtorrent
 			m_send_buffer += "&event=";
 			m_send_buffer += event_string[req.event - 1];
 		}
+		m_send_buffer += "&key=";
+		// TODO: this should be encoded as hex
+		m_send_buffer += boost::lexical_cast<std::string>((unsigned int)req.key);
+		m_send_buffer += "&compact=1";
+		m_send_buffer += "&num_want=";
+		m_send_buffer += boost::lexical_cast<std::string>(req.num_want);
 
 		// extension that tells the tracker that
 		// we don't need any peer_id's in the response
 		m_send_buffer += "&no_peer_id=1";
-		m_send_buffer += "&compact=1";
 
 		m_send_buffer += " HTTP/1.0\r\nAccept-Encoding: gzip\r\n"
 			"User-Agent: ";

@@ -97,6 +97,7 @@ namespace libtorrent
 		, m_peer_choked(true)
 		, m_interesting(false)
 		, m_choked(true)
+		, m_failed(false)
 		, m_supports_extensions(false)
 		, m_num_pieces(0)
 		, m_free_upload(0)
@@ -159,6 +160,7 @@ namespace libtorrent
 		, m_peer_choked(true)
 		, m_interesting(false)
 		, m_choked(true)
+		, m_failed(false)
 		, m_supports_extensions(false)
 		, m_num_pieces(0)
 		, m_free_upload(0)
@@ -247,8 +249,10 @@ namespace libtorrent
 
 	void peer_connection::received_invalid_data()
 	{
-		m_trust_points--;
-		if (m_trust_points < -5) m_trust_points = -5;
+		// we decrease more than we increase, to keep the
+		// allowed failed/passed ratio low.
+		m_trust_points -= 2;
+		if (m_trust_points < -7) m_trust_points = -7;
 	}
 	
 	int peer_connection::trust_points() const
@@ -1530,6 +1534,16 @@ namespace libtorrent
 							throw protocol_error("got info-hash that is not in our session");
 						}
 
+						if (m_torrent->is_paused())
+						{
+							// paused torrents will not accept
+							// incoming connections
+	#ifndef NDEBUG
+							(*m_logger) << " rejected connection to paused torrent\n";
+	#endif
+							throw protocol_error("connection rejected by paused torrent");
+						}
+
 						// assume the other end has no pieces
 						m_have_piece.resize(m_torrent->torrent_file().num_pieces());
 						std::fill(m_have_piece.begin(), m_have_piece.end(), false);
@@ -1576,6 +1590,13 @@ namespace libtorrent
 						std::copy(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (char*)tmp.begin());
 						std::stringstream s;
 						s << "received peer_id: " << tmp << " client: " << identify_client(tmp) << "\n";
+						s << "as ascii: ";
+						for (peer_id::iterator i = tmp.begin(); i != tmp.end(); ++i)
+						{
+							if (std::isprint(*i)) s << *i;
+							else s << ".";
+						}
+						s << "\n";
 						(*m_logger) << s.str();
 					}
 	#endif

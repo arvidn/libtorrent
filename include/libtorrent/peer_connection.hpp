@@ -199,6 +199,9 @@ namespace libtorrent
 		// if it was an incoming connection, it is remote
 		bool is_local() const { return m_active; }
 
+		void set_failed() { m_failed = true; }
+		bool failed() const { return m_failed; }
+
 #ifndef NDEBUG
 		boost::shared_ptr<logger> m_logger;
 #endif
@@ -384,6 +387,12 @@ namespace libtorrent
 
 		// we have choked the upload to the peer
 		bool m_choked;
+
+		// this is set to true if the connection timed
+		// out or closed the connection. In that
+		// case we will not try to reconnect to
+		// this peer
+		bool m_failed;
 
 		// this is set to true if the handshake from
 		// the peer indicated that it supports the
