@@ -123,6 +123,7 @@ namespace libtorrent
 			boost::gregorian::date(1970, boost::date_time::Jan, 1)
 			, boost::posix_time::seconds(0))
 		, m_waiting_metadata_request(false)
+		, m_connecting(false)
 	{
 		INVARIANT_CHECK;
 
@@ -201,6 +202,7 @@ namespace libtorrent
 			boost::gregorian::date(1970, boost::date_time::Jan, 1)
 			, boost::posix_time::seconds(0))
 		, m_waiting_metadata_request(false)
+		, m_connecting(true)
 	{
 		INVARIANT_CHECK;
 
@@ -1894,6 +1896,7 @@ namespace libtorrent
 
 			if (received > 0)
 			{
+				m_connecting = false;
 				m_last_receive = second_clock::universal_time();
 
 				m_recv_pos += received;
@@ -2340,12 +2343,17 @@ namespace libtorrent
 	{
 		using namespace boost::posix_time;
 
+		// if the socket is still connecting, don't
+		// consider it timed out. Because Windows XP SP2
+		// may delay connection attempts.
+		if (m_connecting) return false;
+		
 		// if the peer hasn't said a thing for a certain
 		// time, it is considered to have timed out
 		time_duration d;
 		d = second_clock::universal_time() - m_last_receive;
 		if (d > seconds(m_timeout)) return true;
-
+/*
 		// if the peer hasn't become interested and we haven't
 		// become interested in the peer for 60 seconds, it
 		// has also timed out.
@@ -2360,6 +2368,7 @@ namespace libtorrent
 		{
 			return true;
 		}
+*/
 		return false;
 	}
 

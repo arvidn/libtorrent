@@ -516,6 +516,15 @@ namespace libtorrent
 		// if we're waiting for a metadata request
 		// this was the request we sent
 		std::pair<int, int> m_last_metadata_request;
+
+		// this is true until this socket has received
+		// data for the first time. While connecting
+		// the timeout will not be triggered. This is
+		// because windows XP SP2 may delay connection
+		// attempts, which means that the connection
+		// may not even have been attempted when the
+		// time out is reached.
+		bool m_connecting;
 	};
 }
 
