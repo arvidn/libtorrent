@@ -114,6 +114,7 @@ namespace libtorrent { namespace detail
 					m_torrents.pop_front();
 					continue;
 				}
+				t->processing = true;
 			}
 
 			try
@@ -176,7 +177,7 @@ namespace libtorrent { namespace detail
 		}
 	}
 
-	detail::piece_checker_data* checker_impl::find_torrent(const sha1_hash& info_hash)
+	detail::piece_checker_data* checker_impl::find_torrent(sha1_hash const& info_hash)
 	{
 		for (std::deque<piece_checker_data>::iterator i
 			= m_torrents.begin();
@@ -186,6 +187,21 @@ namespace libtorrent { namespace detail
 			if (i->info_hash == info_hash) return &(*i);
 		}
 		return 0;
+	}
+
+	void checker_impl::remove_torrent(sha1_hash const& info_hash)
+	{
+		for (std::deque<piece_checker_data>::iterator i
+			= m_torrents.begin();
+			i != m_torrents.end();
+			++i)
+		{
+			if (i->info_hash == info_hash)
+			{
+				m_torrents.erase(i);
+				return;
+			}
+		}
 	}
 
 	session_impl::session_impl(
@@ -876,6 +892,12 @@ namespace libtorrent
 		m_impl.m_peer_id = id;
 	}
 
+	void session::set_key(int key)
+	{
+		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		m_impl.m_key = key;
+	}
+
 	void session::enable_extension(peer_connection::extension_index i)
 	{
 		assert(i >= 0);
@@ -1022,7 +1044,8 @@ namespace libtorrent
 			detail::piece_checker_data* d = m_checker_impl.find_torrent(h.m_info_hash);
 			if (d != 0)
 			{
-				d->abort = true;
+				if (d->processing) d->abort = true;
+				else m_checker_impl.remove_torrent(h.m_info_hash);
 				return;
 			}
 		}
