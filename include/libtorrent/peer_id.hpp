@@ -46,6 +46,16 @@ namespace libtorrent
 	enum { number_size = 20 };
 	public:
 
+		void set_to_all_zero()
+		{
+			std::fill(m_number,m_number+number_size,0);
+		}
+
+		bool is_all_zeros() const
+		{
+			return std::count(m_number,m_number+number_size,0) == number_size;
+		}
+
 		bool operator==(const big_number& n) const
 		{
 			return std::equal(n.m_number, n.m_number+number_size, m_number);
