@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/alert_types.hpp"
 
-#ifdef WIN32
+#ifdef _WIN32
 
 #if defined(_MSC_VER)
 #	define for if (false) {} else for

@@ -1205,7 +1205,7 @@ namespace libtorrent
 					throw protocol_error("invalid metadata request");
 				}
 
-				send_metadata(start, size);
+				send_metadata(std::make_pair(start, size));
 			}
 			break;
 		case 1: // data
@@ -1221,12 +1221,22 @@ namespace libtorrent
 				if (offset + data_size > total_size)
 					throw protocol_error("invalid metadata message");
 
+#ifndef NDEBUG
+				using namespace boost::posix_time;
+				(*m_logger) << to_simple_string(second_clock::local_time())
+					<< " <== METADATA [ tot: " << total_size << " offset: "
+					<< offset << " size: " << data_size << " ]\n";
+#endif
+
+
 				m_waiting_metadata_request = false;
 				m_torrent->received_metadata(&m_recv_buffer[5+9], data_size, offset, total_size);
 			}
 			break;
 		case 2: // have no data
 			m_no_metadata = boost::posix_time::second_clock::local_time();
+			if (m_waiting_metadata_request)
+				m_torrent->cancel_metadata_request(m_last_metadata_request);
 			m_waiting_metadata_request = false;
 			break;
 		}
@@ -1274,6 +1284,12 @@ namespace libtorrent
 		address adr = m_socket->sender();
 		adr.port = port;
 		m_torrent->get_policy().peer_from_tracker(adr, m_peer_id);
+	}
+
+	bool peer_connection::has_metadata() const
+	{
+		using namespace boost::posix_time;
+		return second_clock::local_time() - m_no_metadata > minutes(5);
 	}
 
 
@@ -1427,11 +1443,12 @@ namespace libtorrent
 		send_buffer_updated();
 	}
 
-	void peer_connection::send_metadata(int start, int size)
+	void peer_connection::send_metadata(std::pair<int, int> req)
 	{
-		assert(start >= 0);
-		assert(size > 0);
-		assert(start + size <= 256);
+		assert(req.first >= 0);
+		assert(req.second > 0);
+		assert(req.second <= 256);
+		assert(req.first + req.second <= 256);
 		assert(m_torrent);
 		INVARIANT_CHECK;
 
@@ -1442,21 +1459,20 @@ namespace libtorrent
 
 		if (m_torrent->valid_metadata())
 		{
-			int offset = start * (int)m_torrent->metadata().size() / 256;
-			int metadata_size
-				= (start + size) * (int)m_torrent->metadata().size() / 256 - offset;
+			std::pair<int, int> offset
+				= req_to_offset(req, (int)m_torrent->metadata().size());
 
 			// yes, we have metadata, send it
-			assert(size <= (int)m_torrent->metadata().size());
-			detail::write_uint32(5 + 9 + metadata_size, ptr);
+			detail::write_uint32(5 + 9 + offset.second, ptr);
 			detail::write_uint8(msg_extended, ptr);
 			detail::write_int32(m_extension_messages[extended_metadata_message], ptr);
 			// means 'data packet'
 			detail::write_uint8(1, ptr);
 			detail::write_uint32((int)m_torrent->metadata().size(), ptr);
-			detail::write_uint32(offset, ptr);
+			detail::write_uint32(offset.first, ptr);
 			std::vector<char> const& metadata = m_torrent->metadata();
-			std::copy(&metadata[offset], &metadata[offset + metadata_size], ptr);
+			std::copy(&metadata[offset.first], &metadata[offset.first
+				+ offset.second], ptr);
 		}
 		else
 		{
@@ -1471,17 +1487,27 @@ namespace libtorrent
 		send_buffer_updated();
 	}
 
-	void peer_connection::send_metadata_request(int start, int size)
+	void peer_connection::send_metadata_request(std::pair<int, int> req)
 	{
-		assert(start >= 0);
-		assert(size > 0);
-		assert(start + size <= 256);
+		assert(req.first >= 0);
+		assert(req.second > 0);
+		assert(req.first + req.second <= 256);
 		assert(m_torrent);
 		assert(!m_torrent->valid_metadata());
 		INVARIANT_CHECK;
 
+		int start = req.first;
+		int size = req.second;
+
 		// abort if the peer doesn't support the metadata extension
 		if (!supports_extension(extended_metadata_message)) return;
+
+	#ifndef NDEBUG
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::local_time())
+			<< " ==> METADATA_REQUEST [ start: " << req.first
+			<< " size: " << req.second << " ]\n";
+	#endif
 
 		std::back_insert_iterator<std::vector<char> > ptr(m_send_buffer);
 
@@ -1690,18 +1716,18 @@ namespace libtorrent
 		// if we don't have any metadata, and this peer
 		// supports the request metadata extension
 		// and we aren't currently waiting for a request
-		// reply.
+		// reply. Then, send a request for some metadata.
 		if (!m_torrent->valid_metadata()
 			&& supports_extension(extended_metadata_message)
-			&& !m_waiting_metadata_request)
+			&& !m_waiting_metadata_request
+			&& has_metadata())
 		{
 			assert(m_torrent);
-			std::pair<int, int> req = m_torrent->metadata_request();
-			send_metadata_request(req.first, req.second);
+			m_last_metadata_request = m_torrent->metadata_request();
+			send_metadata_request(m_last_metadata_request);
 			m_waiting_metadata_request = true;
 			m_metadata_request = boost::posix_time::second_clock::local_time();
 		}
-
 
 		m_statistics.second_tick();
 		m_ul_bandwidth_quota.used = std::min(
