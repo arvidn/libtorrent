@@ -108,6 +108,8 @@ namespace libtorrent
 		, m_last_piece(boost::posix_time::second_clock::local_time())
 		, m_last_piece_time(boost::posix_time::seconds(0))
 		, m_disconnecting(false)
+		, m_became_uninterested(boost::posix_time::second_clock::local_time())
+		, m_became_uninteresting(boost::posix_time::second_clock::local_time())
 	{
 		INVARIANT_CHECK;
 
@@ -171,6 +173,8 @@ namespace libtorrent
 		, m_last_piece(boost::posix_time::second_clock::local_time())
 		, m_last_piece_time(boost::posix_time::seconds(0))
 		, m_disconnecting(false)
+		, m_became_uninterested(boost::posix_time::second_clock::local_time())
+		, m_became_uninteresting(boost::posix_time::second_clock::local_time())
 	{
 		INVARIANT_CHECK;
 
@@ -412,6 +416,8 @@ namespace libtorrent
 			throw protocol_error("'not interested' message size != 1");
 		m_statistics.received_bytes(0, received);
 		if (m_recv_pos < m_packet_size) return;
+
+		m_became_uninterested = boost::posix_time::second_clock::local_time();
 
 		// clear the request queue if the client isn't interested
 		m_requests.clear();
@@ -1187,6 +1193,9 @@ namespace libtorrent
 		char msg[] = {0,0,0,1,msg_not_interested};
 		m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
 		m_interesting = false;
+
+		m_became_uninteresting = boost::posix_time::second_clock::local_time();
+
 	#ifndef NDEBUG
 		(*m_logger) << " ==> NOT_INTERESTED\n";
 	#endif
@@ -1719,6 +1728,34 @@ namespace libtorrent
 			, true));
 	}
 #endif
+
+	bool peer_connection::has_timed_out() const
+	{
+		using namespace boost::posix_time;
+
+		// if the peer hasn't said a thing for a certain
+		// time, it is considered to have timed out
+		time_duration d;
+		d = second_clock::local_time() - m_last_receive;
+		if (d > seconds(m_timeout)) return true;
+
+		// if the peer hasn't become interested and we haven't
+		// become interested in the peer for 60 seconds, it
+		// has also timed out.
+		time_duration d1;
+		time_duration d2;
+		d1 = second_clock::local_time() - m_became_uninterested;
+		d2 = second_clock::local_time() - m_became_uninteresting;
+		if (!m_interesting
+			&& !m_peer_interested
+			&& d1 > seconds(60)
+			&& d2 > seconds(60))
+		{
+			return true;
+		}
+		return false;
+	}
+
 
 	void peer_connection::keep_alive()
 	{

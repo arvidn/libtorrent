@@ -146,12 +146,7 @@ namespace libtorrent
 
 		bool is_seed() const;
 
-		bool has_timed_out() const
-		{
-			boost::posix_time::time_duration d;
-			d = boost::posix_time::second_clock::local_time() - m_last_receive;
-			return d > boost::posix_time::seconds(m_timeout);
-		}
+		bool has_timed_out() const;
 
 		// will send a keep-alive message to the peer
 		void keep_alive();
@@ -532,7 +527,17 @@ namespace libtorrent
 		// message
 		boost::posix_time::time_duration m_last_piece_time;
 
+		// this is true if this connection has been added
+		// to the list of connections that will be closed.
 		bool m_disconnecting;
+
+		// the time when this peer sent us a not_interested message
+		// the last time.
+		boost::posix_time::ptime m_became_uninterested;
+
+		// the time when we sent a not_interested message to
+		// this peer the last time.
+		boost::posix_time::ptime m_became_uninteresting;
 	};
 
 	// this is called each time this peer generates some

@@ -22,7 +22,7 @@ SOURCES =
 lib torrent
 	: src/$(SOURCES)
 #	  <lib>zlib/zlib
-	  zlib//zlib
+#	  zlib//zlib
 #	  <file>boost_filesystem.lib
 #	  <file>boost_date_time.lib
 #	  <file>boost_thread.dll
