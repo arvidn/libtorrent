@@ -32,7 +32,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/date_time/posix_time/posix_time.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/policy.hpp"
 #include "libtorrent/torrent.hpp"
@@ -99,7 +107,7 @@ namespace
 
 		assert(desired_queue_size >= min_request_queue);
 
-		int num_requests = desired_queue_size - c.download_queue().size();
+		int num_requests = desired_queue_size - (int)c.download_queue().size();
 
 		// if our request queue is already full, we
 		// don't have to make any new requests yet
@@ -187,18 +195,18 @@ namespace
 	}
 
 
-	int collect_free_download(
+	size_type collect_free_download(
 		torrent::peer_iterator start
 		, torrent::peer_iterator end)
 	{
-		int accumulator = 0;
+		size_type accumulator = 0;
 		for (torrent::peer_iterator i = start; i != end; ++i)
 		{
 			// if the peer is interested in us, it means it may
 			// want to trade it's surplus uploads for downloads itself
 			// (and we should consider it free). If the share diff is
 			// negative, there's no free download to get from this peer.
-			int diff = i->second->share_diff();
+			size_type diff = i->second->share_diff();
 			if (i->second->is_peer_interested() || diff <= 0)
 				continue;
 
@@ -214,14 +222,14 @@ namespace
 
 	// returns the amount of free upload left after
 	// it has been distributed to the peers
-	int distribute_free_upload(
+	size_type distribute_free_upload(
 		torrent::peer_iterator start
 		, torrent::peer_iterator end
-		, int free_upload)
+		, size_type free_upload)
 	{
 		if (free_upload <= 0) return free_upload;
 		int num_peers = 0;
-		int total_diff = 0;
+		size_type total_diff = 0;
 		for (torrent::peer_iterator i = start; i != end; ++i)
 		{
 			total_diff += i->second->share_diff();
@@ -230,7 +238,7 @@ namespace
 		}
 
 		if (num_peers == 0) return free_upload;
-		int upload_share;
+		size_type upload_share;
 		if (total_diff >= 0)
 		{
 			upload_share = std::min(free_upload, total_diff) / num_peers;
@@ -295,7 +303,7 @@ namespace libtorrent
 	policy::peer* policy::find_choke_candidate()
 	{
 		peer* worst_peer = 0;
-		int min_weight = std::numeric_limits<int>::max();
+		size_type min_weight = std::numeric_limits<int>::max();
 
 		// TODO: make this selection better
 
@@ -311,10 +319,10 @@ namespace libtorrent
 			if (!c->is_peer_interested())
 				return &(*i);
 
-			int diff = i->total_download()
+			size_type diff = i->total_download()
 				- i->total_upload();
 
-			int weight = static_cast<int>(c->statistics().download_rate() * 10.f)
+			size_type weight = static_cast<int>(c->statistics().download_rate() * 10.f)
 				+ diff
 				+ (c->has_peer_choked()?-10:10)*1024;
 
@@ -367,11 +375,10 @@ namespace libtorrent
 	policy::peer* policy::find_disconnect_candidate()
 	{
 		peer *disconnect_peer = 0;
-		double slowest_transfer_rate=std::numeric_limits<double>::max();
+		double slowest_transfer_rate = std::numeric_limits<double>::max();
 
-		bool is_seed=m_torrent->is_seed();
-
-		boost::posix_time::ptime local_time=boost::posix_time::second_clock::local_time();
+		boost::posix_time::ptime local_time
+			= boost::posix_time::second_clock::local_time();
 
 		for (std::vector<peer>::iterator i = m_peers.begin();
 			i != m_peers.end();
@@ -383,24 +390,24 @@ namespace libtorrent
 			if(c->is_disconnecting())
 				continue;
 
-			double transferred_amount;
+			double transferred_amount
+				= (double)c->statistics().total_payload_download();
 
-			if(is_seed)
-				transferred_amount=c->statistics().total_payload_download();
-			else
-				transferred_amount=c->statistics().total_payload_download();
+			boost::posix_time::time_duration connected_time
+				= local_time - i->connected;
 
-			boost::posix_time::time_duration connected_time = local_time - i->connected;
+			double connected_time_in_seconds
+				= connected_time.seconds()
+				+ connected_time.minutes()*60.0
+				+ connected_time.hours()*60.0*60.0;
 
-
-			double connected_time_in_seconds=connected_time.seconds() + connected_time.minutes()*60.0 + connected_time.hours()*60.0*60.0;
-
-			double transfer_rate=transferred_amount/(connected_time_in_seconds+1);
+			double transfer_rate
+				= transferred_amount / (connected_time_in_seconds+1);
 
 			if (transfer_rate <= slowest_transfer_rate)
 			{
-				slowest_transfer_rate=transfer_rate;
-				disconnect_peer=&*i;
+				slowest_transfer_rate = transfer_rate;
+				disconnect_peer = &(*i);
 			}
 		}
 		return disconnect_peer;
@@ -410,7 +417,7 @@ namespace libtorrent
 	{
 		boost::posix_time::ptime local_time=boost::posix_time::second_clock::local_time();
 		boost::posix_time::ptime ptime(local_time);
-		policy::peer *candidate=0;
+		policy::peer* candidate  =0;
 
 		for (std::vector<peer>::iterator i = m_peers.begin();
 			i != m_peers.end();
@@ -422,12 +429,13 @@ namespace libtorrent
 
 			assert(i->connected <= local_time);
 
-			boost::posix_time::ptime next_connect=i->connected + boost::posix_time::seconds(10*60);
+			boost::posix_time::ptime next_connect
+				= i->connected + boost::posix_time::seconds(10 * 60);
 
 			if (next_connect <= ptime)
 			{
-				ptime=next_connect;
-				candidate=&*i;
+				ptime = next_connect;
+				candidate = &(*i);
 			}
 		}
 		
@@ -557,7 +565,7 @@ namespace libtorrent
 				peer_connection* c = i->connection;
 				if (c == 0) continue;
 
-				int diff = i->connection->share_diff();
+				size_type diff = i->connection->share_diff();
 				if (diff < -free_upload_amount
 					&& !c->is_choked())
 				{
@@ -796,7 +804,7 @@ namespace libtorrent
 		if (m_torrent->ratio() != 0.f)
 		{
 			assert(c.share_diff() < std::numeric_limits<int>::max());
-			int diff = c.share_diff();
+			size_type diff = c.share_diff();
 			if (diff > 0 && c.is_seed())
 			{
 				// the peer is a seed and has sent

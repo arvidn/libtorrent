@@ -35,10 +35,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iterator>
 #include <exception>
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/format.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/bind.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
@@ -261,7 +269,7 @@ int main(int argc, char* argv[])
 				handles.push_back(ses.add_torrent(t, save_path, resume_data));
 				handles.back().set_max_connections(60);
 				handles.back().set_max_uploads(-1);
-				handles.back().set_ratio(1.02);
+				handles.back().set_ratio(1.02f);
 			}
 			catch (std::exception& e)
 			{
@@ -342,9 +350,9 @@ int main(int argc, char* argv[])
 				i->get_peer_info(peers);
 				float down = s.download_rate;
 				float up = s.upload_rate;
-				int total_down = s.total_download;
-				int total_up = s.total_upload;
-				int num_peers = peers.size();
+				size_type total_down = s.total_download;
+				size_type total_up = s.total_upload;
+				int num_peers = (int)peers.size();
 
 				out.precision(4);
 				out.width(5);

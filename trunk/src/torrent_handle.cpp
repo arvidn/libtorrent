@@ -40,9 +40,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cctype>
 #include <algorithm>
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/optional.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -233,7 +241,7 @@ namespace libtorrent
 		ret.dict()["blocks per piece"] = num_blocks_per_piece;
 
 		// num unfinished pieces
-		int num_unfinished = q.size();
+		int num_unfinished = (int)q.size();
 		ret.dict()["unfinished"] = entry::list_type();
 		entry::list_type& up = ret.dict()["unfinished"].list();
 
@@ -436,8 +444,8 @@ namespace libtorrent
 
 			p.load_balancing = peer->total_free_upload();
 
-			p.download_queue_length = peer->download_queue().size();
-			p.upload_queue_length = peer->upload_queue().size();
+			p.download_queue_length = (int)peer->download_queue().size();
+			p.upload_queue_length = (int)peer->upload_queue().size();
 
 			boost::optional<piece_block_progress> ret = peer->downloading_piece();
 			if (ret)

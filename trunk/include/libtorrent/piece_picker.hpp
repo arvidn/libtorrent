@@ -37,7 +37,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <bitset>
 #include <cassert>
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/optional.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/socket.hpp"

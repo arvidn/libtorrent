@@ -36,7 +36,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <vector>
+
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/date_time/posix_time/posix_time.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/socket.hpp"
@@ -106,7 +115,7 @@ namespace libtorrent
 		reverse_file_iterator rbegin_files() const { return m_files.rbegin(); }
 		reverse_file_iterator rend_files() const { return m_files.rend(); }
 
-		std::size_t num_files() const { return m_files.size(); }
+		int num_files() const { return (int)m_files.size(); }
 		const file_entry& file_at(int index) const { assert(index >= 0 && index < (int)m_files.size()); return m_files[index]; }
 
 		const std::vector<announce_entry>& trackers() const { return m_urls; }
@@ -116,8 +125,8 @@ namespace libtorrent
 		// the begining) and return the new index to the tracker.
 		int prioritize_tracker(int index);
 
-		size_type total_size() const { assert(m_total_size>=0); return m_total_size; }
-		size_type piece_length() const { assert(m_piece_length>0); return m_piece_length; }
+		size_type total_size() const { return m_total_size; }
+		int piece_length() const { return m_piece_length; }
 		int num_pieces() const { return (int)m_piece_hash.size(); }
 		const sha1_hash& info_hash() const { return m_info_hash; }
 		const std::string& name() const { return m_name; }
@@ -125,12 +134,13 @@ namespace libtorrent
 
 		void convert_file_names();
 
-		size_type piece_size(int index) const
+		int piece_size(int index) const
 		{
 			assert(index >= 0 && index < num_pieces());
 			if (index == num_pieces()-1)
 			{
-				size_type s = total_size() - (size_type)(num_pieces() - 1)*piece_length();
+				int s = static_cast<int>(total_size()
+					- (size_type)(num_pieces() - 1) * piece_length());
 				assert(s > 0);
 				assert(s <= piece_length());
 				return s;
@@ -141,7 +151,8 @@ namespace libtorrent
 
 		const sha1_hash& hash_for_piece(int index) const
 		{
-			assert(index >= 0 && index < (int)m_piece_hash.size());
+			assert(index >= 0);
+			assert(index < (int)m_piece_hash.size());
 			return m_piece_hash[index];
 		}
 
@@ -159,7 +170,7 @@ namespace libtorrent
 		std::vector<announce_entry> m_urls;
 
 		// the length of one piece
-		size_type m_piece_length;
+		int m_piece_length;
 
 		// the sha-1 hashes of each piece
 		std::vector<sha1_hash> m_piece_hash;

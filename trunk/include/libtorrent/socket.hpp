@@ -33,9 +33,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SOCKET_HPP_INCLUDED
 #define TORRENT_SOCKET_HPP_INCLUDED
 
-#include <boost/smart_ptr.hpp>
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
+#include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 
 #include <vector>
 #include <exception>

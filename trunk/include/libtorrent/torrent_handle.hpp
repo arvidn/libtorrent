@@ -34,7 +34,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_TORRENT_HANDLE_HPP_INCLUDED
 
 #include <vector>
+
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/date_time/posix_time/posix_time.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer_info.hpp"

@@ -30,14 +30,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_ERROR_HPP_INCLUDED
-#define TORRENT_ERROR_HPP_INCLUDED
+#ifndef TORRENT_ALERT_HPP_INCLUDED
+#define TORRENT_ALERT_HPP_INCLUDED
 
 #include <memory>
 #include <queue>
 #include <string>
 #include <cassert>
 #include <typeinfo>
+
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
 
 #include <boost/thread/mutex.hpp>
 
@@ -46,6 +50,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/preprocessor/repetition/enum_params.hpp>
 #include <boost/preprocessor/repetition/enum_shifted_params.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 
 namespace libtorrent {
 
@@ -158,5 +167,5 @@ namespace libtorrent {
 
 } // namespace libtorrent
 
-#endif // TORRENT_ERROR_HPP_INCLUDED
+#endif // TORRENT_ALERT_HPP_INCLUDED
 

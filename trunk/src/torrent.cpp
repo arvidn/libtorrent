@@ -39,8 +39,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cctype>
 #include <numeric>
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/convenience.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/session.hpp"
@@ -219,7 +227,7 @@ namespace libtorrent
 		, m_policy(new policy(this))
 		, m_ses(ses)
 		, m_picker(torrent_file.piece_length() / m_block_size,
-			(torrent_file.total_size()+m_block_size-1)/m_block_size)
+			static_cast<int>((torrent_file.total_size()+m_block_size-1)/m_block_size))
 		, m_last_working_tracker(0)
 		, m_currently_trying_tracker(0)
 		, m_time_scaler(0)
@@ -493,7 +501,7 @@ namespace libtorrent
 			i != pieces.end();
 			++i)
 		{
-			if (*i) piece_list.push_back(i - pieces.begin());
+			if (*i) piece_list.push_back(static_cast<int>(i - pieces.begin()));
 		}
 
 		std::random_shuffle(piece_list.begin(), piece_list.end());
@@ -677,7 +685,7 @@ namespace libtorrent
 		assert(piece_index >= 0);
 		assert(piece_index < m_torrent_file.num_pieces());
 
-		size_type size = m_torrent_file.piece_size(piece_index);
+		int size = m_torrent_file.piece_size(piece_index);
 		std::vector<char> buffer(size);
 		assert(size > 0);
 		m_storage.read(&buffer[0], piece_index, 0, size);
@@ -731,7 +739,7 @@ namespace libtorrent
 		st.announce_interval = boost::posix_time::seconds(m_duration);
 
 
-		st.num_peers = m_connections.size();
+		st.num_peers = (int)m_connections.size();
 
 		st.pieces = &m_have_pieces;
 

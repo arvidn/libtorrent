@@ -36,7 +36,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <fstream>
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/lexical_cast.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 namespace libtorrent
 {

@@ -64,7 +64,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <cstdlib>
+
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/lexical_cast.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/entry.hpp"
 

@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/invariant_check.hpp"
 
 #if defined(_MSC_VER)
 #define for if (false) {} else for
@@ -82,8 +83,8 @@ namespace libtorrent
 		, m_timeout(120)
 		, m_packet_size(1)
 		, m_recv_pos(0)
-		, m_last_receive(boost::gregorian::date(std::time(0)))
-		, m_last_sent(boost::gregorian::date(std::time(0)))
+		, m_last_receive(boost::posix_time::second_clock::local_time())
+		, m_last_sent(boost::posix_time::second_clock::local_time())
 		, m_selector(sel)
 		, m_socket(s)
 		, m_torrent(t)
@@ -102,10 +103,12 @@ namespace libtorrent
 		, m_send_quota_limit(100)
 		, m_trust_points(0)
 		, m_num_invalid_requests(0)
-		, m_last_piece(boost::gregorian::date(std::time(0)))
+		, m_last_piece(boost::posix_time::second_clock::local_time())
 		, m_last_piece_time(boost::posix_time::seconds(0))
 		, m_disconnecting(false)
 	{
+		INVARIANT_CHECK;
+
 		assert(!m_socket->is_blocking());
 		assert(m_torrent != 0);
 
@@ -141,8 +144,8 @@ namespace libtorrent
 		, m_timeout(120)
 		, m_packet_size(1)
 		, m_recv_pos(0)
-		, m_last_receive(boost::gregorian::date(std::time(0)))
-		, m_last_sent(boost::gregorian::date(std::time(0)))
+		, m_last_receive(boost::posix_time::second_clock::local_time())
+		, m_last_sent(boost::posix_time::second_clock::local_time())
 		, m_selector(sel)
 		, m_socket(s)
 		, m_torrent(0)
@@ -162,10 +165,12 @@ namespace libtorrent
 		, m_send_quota_limit(100)
 		, m_trust_points(0)
 		, m_num_invalid_requests(0)
-		, m_last_piece(boost::gregorian::date(std::time(0)))
+		, m_last_piece(boost::posix_time::second_clock::local_time())
 		, m_last_piece_time(boost::posix_time::seconds(0))
 		, m_disconnecting(false)
 	{
+		INVARIANT_CHECK;
+
 		assert(!m_socket->is_blocking());
 
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
@@ -200,6 +205,8 @@ namespace libtorrent
 
 	void peer_connection::set_send_quota(int num_bytes)
 	{
+		INVARIANT_CHECK;
+
 		assert(num_bytes <= m_send_quota_limit || m_send_quota_limit == -1);
 		if (num_bytes > m_send_quota_limit && m_send_quota_limit!=-1) num_bytes = m_send_quota_limit;
 
@@ -210,6 +217,8 @@ namespace libtorrent
 
 	void peer_connection::send_handshake()
 	{
+		INVARIANT_CHECK;
+
 		assert(m_send_buffer.size() == 0);
 
 		// add handshake to the send buffer
@@ -312,6 +321,8 @@ namespace libtorrent
 
 	void peer_connection::on_choke(int received)
 	{
+		INVARIANT_CHECK;
+
 		if (m_packet_size != 1)
 			throw protocol_error("'choke' message size != 1");
 		m_statistics.received_bytes(0, received);
@@ -343,6 +354,8 @@ namespace libtorrent
 
 	void peer_connection::on_unchoke(int received)
 	{
+		INVARIANT_CHECK;
+
 		if (m_packet_size != 1)
 			throw protocol_error("'unchoke' message size != 1");
 		m_statistics.received_bytes(0, received);
@@ -361,6 +374,8 @@ namespace libtorrent
 
 	void peer_connection::on_interested(int received)
 	{
+		INVARIANT_CHECK;
+
 		if (m_packet_size != 1)
 			throw protocol_error("'interested' message size != 1");
 		m_statistics.received_bytes(0, received);
@@ -379,6 +394,8 @@ namespace libtorrent
 
 	void peer_connection::on_not_interested(int received)
 	{
+		INVARIANT_CHECK;
+
 		if (m_packet_size != 1)
 			throw protocol_error("'not interested' message size != 1");
 		m_statistics.received_bytes(0, received);
@@ -400,6 +417,8 @@ namespace libtorrent
 
 	void peer_connection::on_have(int received)
 	{
+		INVARIANT_CHECK;
+
 		if (m_packet_size != 5)
 			throw protocol_error("'have' message size != 5");
 		m_statistics.received_bytes(0, received);
@@ -408,7 +427,7 @@ namespace libtorrent
 		const char* ptr = &m_recv_buffer[1];
 		int index = detail::read_int32(ptr);
 		// if we got an invalid message, abort
-		if (index >= m_have_piece.size() || index < 0)
+		if (index >= (int)m_have_piece.size() || index < 0)
 			throw protocol_error("have message with higher index than the number of pieces");
 
 #ifndef NDEBUG
@@ -442,6 +461,8 @@ namespace libtorrent
 
 	void peer_connection::on_bitfield(int received)
 	{
+		INVARIANT_CHECK;
+
 		if (m_packet_size - 1 != (m_have_piece.size() + 7) / 8)
 			throw protocol_error("bitfield with invalid size");
 		m_statistics.received_bytes(0, received);
@@ -452,9 +473,9 @@ namespace libtorrent
 #endif
 		// build a vector of all pieces
 		std::vector<int> piece_list;
-		for (std::size_t i = 0; i < m_have_piece.size(); ++i)
+		for (int i = 0; i < (int)m_have_piece.size(); ++i)
 		{
-			bool have = m_recv_buffer[1 + (i>>3)] & (1 << (7 - (i&7)));
+			bool have = (m_recv_buffer[1 + (i>>3)] & (1 << (7 - (i&7)))) != 0;
 			if (have && !m_have_piece[i])
 			{
 				m_have_piece[i] = true;
@@ -507,6 +528,8 @@ namespace libtorrent
 
 	void peer_connection::on_request(int received)
 	{
+		INVARIANT_CHECK;
+
 		if (m_packet_size != 13)
 			throw protocol_error("'request' message size != 13");
 		m_statistics.received_bytes(0, received);
@@ -572,6 +595,8 @@ namespace libtorrent
 
 	void peer_connection::on_piece(int received)
 	{
+		INVARIANT_CHECK;
+
 		if (m_recv_pos - received <= 9)
 		{
 			m_last_piece = boost::posix_time::second_clock::local_time();
@@ -717,6 +742,8 @@ namespace libtorrent
 
 	void peer_connection::on_cancel(int received)
 	{
+		INVARIANT_CHECK;
+
 		if (m_packet_size != 13)
 			throw protocol_error("'cancel' message size != 13");
 		m_statistics.received_bytes(0, received);
@@ -752,6 +779,8 @@ namespace libtorrent
 
 	void peer_connection::on_extension_list(int received)
 	{
+		INVARIANT_CHECK;
+
 		if (m_packet_size > 100 * 1024)
 		{
 			// too big extension message, abort
@@ -771,7 +800,7 @@ namespace libtorrent
 					extensions.find(extension_names[i]);
 				if (f != extensions.end())
 				{
-					m_extension_messages[i] = f->second.integer();
+					m_extension_messages[i] = (int)f->second.integer();
 				}
 			}
 #ifndef NDEBUG
@@ -784,11 +813,11 @@ namespace libtorrent
 			}
 #endif
 		}
-		catch(invalid_encoding& e)
+		catch(invalid_encoding&)
 		{
 			throw protocol_error("'extensions' packet contains invalid bencoding");
 		}
-		catch(type_error& e)
+		catch(type_error&)
 		{
 			throw protocol_error("'extensions' packet contains incorrect types");
 		}
@@ -800,6 +829,8 @@ namespace libtorrent
 
 	void peer_connection::on_extended(int received)
 	{
+		INVARIANT_CHECK;
+
 		m_statistics.received_bytes(0, received);
 		if (m_packet_size < 5)
 			throw protocol_error("'extended' message smaller than 5 bytes");
@@ -837,11 +868,11 @@ namespace libtorrent
 					}
 
 				}
-				catch (invalid_encoding& e)
+				catch (invalid_encoding&)
 				{
 					throw protocol_error("invalid bencoding in CHAT message");
 				}
-				catch (type_error& e)
+				catch (type_error&)
 				{
 					throw protocol_error("invalid types in bencoded CHAT message");
 				}
@@ -873,6 +904,8 @@ namespace libtorrent
 
 	bool peer_connection::dispatch_message(int received)
 	{
+		INVARIANT_CHECK;
+
 		assert(m_recv_pos >= received);
 		assert(m_recv_pos > 0);
 		assert(m_torrent);
@@ -898,6 +931,8 @@ namespace libtorrent
 
 	void peer_connection::send_cancel(piece_block block)
 	{
+		INVARIANT_CHECK;
+
 		assert(block.piece_index >= 0);
 		assert(block.piece_index < m_torrent->torrent_file().num_pieces());
 		assert(m_torrent->picker().is_downloading(block));
@@ -944,6 +979,8 @@ namespace libtorrent
 
 	void peer_connection::send_request(piece_block block)
 	{
+		INVARIANT_CHECK;
+
 		assert(block.piece_index >= 0);
 		assert(block.piece_index < m_torrent->torrent_file().num_pieces());
 		assert(!m_torrent->picker().is_downloading(block));
@@ -995,6 +1032,8 @@ namespace libtorrent
 
 	void peer_connection::send_chat_message(const std::string& msg)
 	{
+		INVARIANT_CHECK;
+
 		assert(msg.length() <= 1 * 1024);
 		if (m_extension_messages[extended_chat_message] == -1) return;
 
@@ -1005,7 +1044,7 @@ namespace libtorrent
 		bencode(std::back_inserter(message), e);
 		std::back_insert_iterator<std::vector<char> > ptr(m_send_buffer);
 
-		detail::write_uint32(1 + 4 + message.size(), ptr);
+		detail::write_uint32(1 + 4 + (int)message.size(), ptr);
 		detail::write_uint8(msg_extended, ptr);
 		detail::write_int32(m_extension_messages[extended_chat_message], ptr);
 		std::copy(message.begin(), message.end(), ptr);
@@ -1014,17 +1053,21 @@ namespace libtorrent
 
 	void peer_connection::send_bitfield()
 	{
+		INVARIANT_CHECK;
+
 	#ifndef NDEBUG
 		(*m_logger) << " ==> BITFIELD\n";
 	#endif
-		const int packet_size = (m_have_piece.size() + 7) / 8 + 5;
-		const int old_size = m_send_buffer.size();
+		const int packet_size = ((int)m_have_piece.size() + 7) / 8 + 5;
+		const int old_size = (int)m_send_buffer.size();
 		m_send_buffer.resize(old_size + packet_size);
+
 		char* ptr = &m_send_buffer[old_size];
 		detail::write_int32(packet_size - 4, ptr);
-		m_send_buffer[old_size+4] = msg_bitfield;
-		std::fill(m_send_buffer.begin()+old_size+5, m_send_buffer.end(), 0);
-		for (std::size_t i = 0; i < m_have_piece.size(); ++i)
+		detail::write_uint8(msg_bitfield, ptr);
+
+		std::fill(m_send_buffer.begin() + old_size + 5, m_send_buffer.end(), 0);
+		for (int i = 0; i < (int)m_have_piece.size(); ++i)
 		{
 			if (m_torrent->have_piece(i))
 				m_send_buffer[old_size + 5 + (i>>3)] |= 1 << (7 - (i&7));
@@ -1034,6 +1077,8 @@ namespace libtorrent
 
 	void peer_connection::send_extensions()
 	{
+		INVARIANT_CHECK;
+
 	#ifndef NDEBUG
 		(*m_logger) << " ==> EXTENSIONS\n";
 	#endif
@@ -1047,7 +1092,7 @@ namespace libtorrent
 		}
 
 		// make room for message size
-		const int msg_size_pos = m_send_buffer.size();
+		const int msg_size_pos = (int)m_send_buffer.size();
 		m_send_buffer.resize(msg_size_pos + 4);
 
 		m_send_buffer.push_back(msg_extension_list);
@@ -1056,13 +1101,15 @@ namespace libtorrent
 
 		// write the length of the message
 		char* ptr = &m_send_buffer[msg_size_pos];
-		detail::write_int32(m_send_buffer.size() - msg_size_pos - 4, ptr);
+		detail::write_int32((int)m_send_buffer.size() - msg_size_pos - 4, ptr);
 
 		send_buffer_updated();
 	}
 
 	void peer_connection::send_choke()
 	{
+		INVARIANT_CHECK;
+
 		if (m_choked) return;
 		char msg[] = {0,0,0,1,msg_choke};
 		m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
@@ -1077,6 +1124,8 @@ namespace libtorrent
 
 	void peer_connection::send_unchoke()
 	{
+		INVARIANT_CHECK;
+
 		if (!m_choked) return;
 		char msg[] = {0,0,0,1,msg_unchoke};
 		m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
@@ -1089,6 +1138,8 @@ namespace libtorrent
 
 	void peer_connection::send_interested()
 	{
+		INVARIANT_CHECK;
+
 		if (m_interesting) return;
 		char msg[] = {0,0,0,1,msg_interested};
 		m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
@@ -1101,6 +1152,8 @@ namespace libtorrent
 
 	void peer_connection::send_not_interested()
 	{
+		INVARIANT_CHECK;
+
 		if (!m_interesting) return;
 		char msg[] = {0,0,0,1,msg_not_interested};
 		m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
@@ -1113,6 +1166,8 @@ namespace libtorrent
 
 	void peer_connection::send_have(int index)
 	{
+		INVARIANT_CHECK;
+
 		// optimization, don't send have messages
 		// to peers that already have the piece
 		if (m_have_piece[index]) return;
@@ -1128,7 +1183,7 @@ namespace libtorrent
 		send_buffer_updated();
 	}
 
-	int peer_connection::share_diff() const
+	size_type peer_connection::share_diff() const
 	{
 		float ratio = m_torrent->ratio();
 
@@ -1137,12 +1192,14 @@ namespace libtorrent
 		if (ratio == 0.f) return std::numeric_limits<int>::max();
 
 		return m_free_upload
-			+ static_cast<int>(m_statistics.total_payload_download() * ratio)
+			+ static_cast<size_type>(m_statistics.total_payload_download() * ratio)
 			- m_statistics.total_payload_upload();
 	}
 
 	void peer_connection::second_tick()
 	{
+		INVARIANT_CHECK;
+
 		m_statistics.second_tick();
 		m_send_quota_left = m_send_quota;
 		if (m_send_quota > 0) send_buffer_updated();
@@ -1154,7 +1211,7 @@ namespace libtorrent
 		// maintain the share ratio given by m_ratio
 		// with all peers.
 
-		int diff = share_diff();
+		size_type diff = share_diff();
 
 		enum { block_limit=2 }; // how many blocks difference is considered unfair
 
@@ -1200,6 +1257,8 @@ namespace libtorrent
 	// throws exception when the client should be disconnected
 	void peer_connection::receive_data()
 	{
+		INVARIANT_CHECK;
+
 		assert(!m_socket->is_blocking());
 		assert(m_packet_size > 0);
 		assert(m_socket->is_readable());
@@ -1466,6 +1525,8 @@ namespace libtorrent
 	// throws exception when the client should be disconnected
 	void peer_connection::send_data()
 	{
+		INVARIANT_CHECK;
+
 		assert(m_socket->is_writable());
 		assert(has_data());
 
@@ -1475,19 +1536,22 @@ namespace libtorrent
 		// requested block. Have a limit of how much of the requested
 		// block is actually read at a time.
 		while (!m_requests.empty()
-			&& (m_send_buffer.size() < m_torrent->block_size())
+			&& ((int)m_send_buffer.size() < m_torrent->block_size())
 			&& !m_choked)
 		{
 			peer_request& r = m_requests.front();
 			
-			assert(r.piece >= 0 && r.piece < m_have_piece.size() && m_torrent && m_torrent->have_piece(r.piece));
+			assert(r.piece >= 0);
+			assert(r.piece < (int)m_have_piece.size());
+			assert(m_torrent != 0);
+			assert(m_torrent->have_piece(r.piece));
 			assert(r.start + r.length <= m_torrent->torrent_file().piece_size(r.piece));
 			assert(r.length > 0 && r.start >= 0);
 
 #ifndef NDEBUG
 //			assert(m_torrent->verify_piece(r.piece) && "internal error");
 #endif
-			const int send_buffer_offset = m_send_buffer.size();
+			const int send_buffer_offset = (int)m_send_buffer.size();
 			const int packet_size = 4 + 5 + 4 + r.length;
 			m_send_buffer.resize(send_buffer_offset + packet_size);
 			char* ptr = &m_send_buffer[send_buffer_offset];
@@ -1539,7 +1603,7 @@ namespace libtorrent
 		if (!m_send_buffer.empty())
 		{
 
-			int amount_to_send = m_send_buffer.size();
+			int amount_to_send = (int)m_send_buffer.size();
 			assert(m_send_quota_left != 0);
 			if (m_send_quota_left > 0)
 				amount_to_send = std::min(m_send_quota_left, amount_to_send);
@@ -1615,22 +1679,19 @@ namespace libtorrent
 
 		assert(m_added_to_selector);
 		send_buffer_updated();
-/*
-	#ifndef NDEBUG
-		if (has_data())
-		{
-			if (m_socket->is_writable())
-			{
-				std::cout << "ERROR, not good\n";
-			}
-		}
-	#endif
-*/
 	}
 
+#ifndef NDEBUG
+	void peer_connection::check_invariant() const
+	{
+		assert(has_data() == m_selector.is_writability_monitored(m_socket));
+	}
+#endif
 
 	void peer_connection::keep_alive()
 	{
+		INVARIANT_CHECK;
+
 		boost::posix_time::time_duration d;
 		d = boost::posix_time::second_clock::local_time() - m_last_sent;
 		if (d.seconds() < m_timeout / 2) return;

@@ -36,7 +36,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <vector>
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/date_time/posix_time/posix_time.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/peer.hpp"
 #include "libtorrent/piece_picker.hpp"
@@ -202,7 +210,7 @@ namespace libtorrent
 
 		// free download we have got that hasn't
 		// been distributed yet.
-		int m_available_free_upload;
+		size_type m_available_free_upload;
 
 		// if there is a connection limit,
 		// we disconnect one peer every minute in hope of

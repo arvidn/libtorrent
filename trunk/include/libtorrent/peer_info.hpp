@@ -34,8 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PEER_INFO_HPP_INCLUDED
 
 #include <vector>
+
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/size_type.hpp"
 
 namespace libtorrent
 {
@@ -54,14 +56,14 @@ namespace libtorrent
 		address ip;
 		float up_speed;
 		float down_speed;
-		unsigned int total_download;
-		unsigned int total_upload;
+		size_type total_download;
+		size_type total_upload;
 		peer_id id;
 		std::vector<bool> pieces;
 		int upload_limit; // from peer_connection
 		int upload_ceiling; // from the global upload limiter
 
-		int load_balancing;
+		size_type load_balancing;
 
 		// this is the number of requests
 		// we have sent to this peer

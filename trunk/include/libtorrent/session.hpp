@@ -40,10 +40,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <deque>
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/limits.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent.hpp"
@@ -145,6 +153,7 @@ namespace libtorrent
 		// thread started to run the main downloader loop
 		struct session_impl: boost::noncopyable
 		{
+			friend class invariant_access;
 			typedef std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> > connection_map;
 
 			session_impl(int listen_port, const fingerprint& cl_fprint);
@@ -208,7 +217,7 @@ namespace libtorrent
 			void purge_connections();
 
 #ifndef NDEBUG
-			void assert_invariant(const char *place);
+			void check_invariant(const char *place = 0);
 			boost::shared_ptr<logger> create_log(std::string name);
 			boost::shared_ptr<logger> m_logger;
 #endif
