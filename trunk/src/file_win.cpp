@@ -49,7 +49,7 @@ namespace
 		}
 		~auto_LocalFree()
 		{
-			if(m_memory)
+			if (m_memory)
 				LocalFree(m_memory);
 		}
 	private:
@@ -58,7 +58,7 @@ namespace
 
 	void throw_exception(const char* thrower)
 	{
-		char *buffer=0;
+		char *buffer = 0;
 		int err = GetLastError();
 
 		#ifdef _UNICODE
@@ -211,7 +211,7 @@ namespace libtorrent
 				, &offs
 				, from_where))
 			{
-					throw_exception("file::seek");
+				throw_exception("file::seek");
 			}
 		}
 		
@@ -280,6 +280,7 @@ namespace libtorrent
 
 	void file::open(boost::filesystem::path const& p, open_mode m)
 	{
+		assert(p.is_complete());
 		m_impl->open(p.native_file_string().c_str(), impl::open_flags(m.m_mask));
 	}
 

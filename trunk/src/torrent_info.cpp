@@ -155,6 +155,19 @@ namespace libtorrent
 		}
 #endif
 		m_piece_length = size;
+
+
+		int num_pieces = static_cast<int>(
+			(m_total_size + m_piece_length - 1) / m_piece_length);
+		int old_num_pieces = static_cast<int>(m_piece_hash.size());
+
+		m_piece_hash.resize(num_pieces);
+		for (std::vector<sha1_hash>::iterator i = m_piece_hash.begin() + old_num_pieces;
+			i != m_piece_hash.end();
+			++i)
+		{
+			i->clear();
+		}
 	}
 
 	void torrent_info::parse_info_section(entry const& info)
