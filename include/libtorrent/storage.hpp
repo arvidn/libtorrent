@@ -99,9 +99,10 @@ namespace libtorrent
 
 		const boost::filesystem::path& save_path() const;
 
-		// fills the vector with a map of pieces to
-		// slots, including not-yet-finished piece
-		void export_piece_map(std::vector<std::pair<int, int> >& pieces) const;
+		// fills the vector that maps all allocated
+		// slots to the piece that is stored (or
+		// partially stored) there
+		void export_piece_map(std::vector<int>& pieces) const;
 
 	private:
 		struct impl;
