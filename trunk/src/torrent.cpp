@@ -182,6 +182,9 @@ namespace libtorrent
 	{
 		m_uploads_quota.min = 2;
 		m_connections_quota.min = 2;
+		// this will be corrected the next time the main session
+		// distributes resources, i.e. on average in 0.5 seconds
+		m_connections_quota.given = 100;
 		m_uploads_quota.max = std::numeric_limits<int>::max();
 		m_connections_quota.max = std::numeric_limits<int>::max();
 
@@ -226,6 +229,9 @@ namespace libtorrent
 	{
 		m_uploads_quota.min = 2;
 		m_connections_quota.min = 2;
+		// this will be corrected the next time the main session
+		// distributes resources, i.e. on average in 0.5 seconds
+		m_connections_quota.given = 100;
 		m_uploads_quota.max = std::numeric_limits<int>::max();
 		m_connections_quota.max = std::numeric_limits<int>::max();
 
@@ -561,9 +567,10 @@ namespace libtorrent
 		req.event = m_event;
 		m_event = tracker_request::none;
 		req.url = m_trackers[m_currently_trying_tracker].url;
+		assert(m_connections_quota.given > 0);
 		req.num_want = std::max(
 			(m_connections_quota.given
-			- m_policy->num_peers()), 0);
+			- m_policy->num_peers()), 10);
 
 		// default initialize, these should be set by caller
 		// before passing the request to the tracker_manager
@@ -933,14 +940,9 @@ namespace libtorrent
 
 		// tell all peers to reset their used quota. This is
 		// a new second and they can again use up their quota
-/*
-		std::for_each(m_connections.begin(), m_connections.end()
-			, bind(&peer_connection::reset_upload_quota
-				, bind(&std::pair<address, peer_connection*>::second, _1)));
-*/
 
-		for (std::map<address, peer_connection*>::iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
+		for (std::map<address, peer_connection*>::iterator i
+			= m_connections.begin(); i != m_connections.end(); ++i)
 		{
 			i->second->reset_upload_quota();
 		}
