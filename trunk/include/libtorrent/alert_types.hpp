@@ -122,7 +122,6 @@ namespace libtorrent
 		peer_request request;
 	};
 
-	// TODO: document
 	struct torrent_finished_alert: alert
 	{
 		torrent_finished_alert(

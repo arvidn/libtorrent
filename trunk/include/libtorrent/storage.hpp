@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/limits.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
-#include <boost/cstdint.hpp>
 
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/opaque_value_ptr.hpp"

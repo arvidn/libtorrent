@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/cstdint.hpp>
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer_info.hpp"

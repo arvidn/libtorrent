@@ -1,4 +1,6 @@
-.. image:: logo.png
+==========
+libtorrent
+==========
 
 
 .. class:: menu

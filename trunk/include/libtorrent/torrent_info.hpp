@@ -36,13 +36,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <vector>
-#include <boost/cstdint.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/size_type.hpp"
 
-#include "boost/date_time/posix_time/posix_time.hpp"
 
 /*
  * This file declares the following functions:
@@ -59,7 +59,7 @@ namespace libtorrent
 	{
 		std::string path;
 		std::string filename;
-		boost::int64_t size;
+		size_type size;
 	};
 
 	struct announce_entry
