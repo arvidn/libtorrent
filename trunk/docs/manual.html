@@ -267,10 +267,11 @@ the <tt class="literal"><span class="pre">session</span></tt>, it contains the m
 class session: public boost::noncopyable
 {
 
-        session(std::pair&lt;int, int&gt; listen_port_range);
+        session(const fingerprint&amp; print = libtorrent::fingerprint(&quot;LT, 0, 1, 0, 0));
+
         session(
-                std::pair&lt;int, int&gt; listen_port_range
-                , const fingerprint&amp; print
+                const fingerprint&amp; print
+                , std::pair&lt;int, int&gt; listen_port_range
                 , const char* listen_interface = 0);
 
         torrent_handle add_torrent(
@@ -315,7 +316,11 @@ for checking, being checked or downloading) <tt class="literal"><span class="pre
 as argument. If this is ommited, the client will get a default fingerprint stating
 the version of libtorrent. The fingerprint is a short string that will be used in
 the peer-id to identify the client and the client's version. For more details see the
-fingerprint class.</p>
+fingerprint class. The constructor that only takes a finger print will not open a
+listen port for the session, to get it running you'll have to call <tt class="literal"><span class="pre">session::listen_on()</span></tt>.
+The other constructor, that takes a port range and an interface as well as the fingerprint
+will automatically try to listen on a port on the given interface. For more information about
+the parameters, see <tt class="literal"><span class="pre">listen_on()</span></tt> function.</p>
 <p><tt class="literal"><span class="pre">set_upload_rate_limit()</span></tt> set the maximum number of bytes allowed to be
 sent to peers per second. This bandwidth is distributed among all the peers. If
 you don't want to limit upload rate, you can set this to -1 (the default).
@@ -336,6 +341,8 @@ os will decide which interface to listen on, otherwise it should be the ip-addre
 of the interface you want the listener socket bound to. <tt class="literal"><span class="pre">listen_on()</span></tt> returns true
 if it managed to open the socket, and false if it failed. If it fails, it will also
 generate an appropriate alert (<a class="reference" href="#listen-failed-alert">listen_failed_alert</a>).</p>
+<p>The interface parameter can also be a hostname that will resolve to the device you
+want to listen on.</p>
 <p>The destructor of session will notify all trackers that our torrents has been shut down.
 If some trackers are down, they will timout. All this before the destructor of session
 returns. So, it's adviced that any kind of interface (such as windows) are closed before

@@ -274,10 +274,6 @@ namespace libtorrent { namespace detail
 		, m_download_rate(-1)
 		, m_incoming_connection(false)
 	{
-		assert(listen_port_range.first > 0);
-		assert(listen_port_range.first < listen_port_range.second);
-		assert(m_listen_interface.port > 0);
-
 		// ---- generate a peer id ----
 
 		std::srand((unsigned int)std::time(0));
@@ -386,7 +382,8 @@ namespace libtorrent { namespace detail
 		{
 #endif
 
-		open_listen_port();
+		if (m_listen_port_range.first != 0 && m_listen_port_range.second != 0)
+			open_listen_port();
 
 		std::vector<boost::shared_ptr<socket> > readable_clients;
 		std::vector<boost::shared_ptr<socket> > writable_clients;
@@ -835,9 +832,9 @@ namespace libtorrent
 {
 
 	session::session(
-		std::pair<int, int> listen_port_range
-		, const fingerprint& id
-		, const char* listen_interface)
+		fingerprint const& id
+		, std::pair<int, int> listen_port_range
+		, char const* listen_interface)
 		: m_impl(listen_port_range, id, listen_interface)
 		, m_checker_impl(m_impl)
 		, m_thread(boost::ref(m_impl))
@@ -854,14 +851,12 @@ namespace libtorrent
 #endif
 	}
 
-	session::session(std::pair<int, int> listen_port_range)
-		: m_impl(listen_port_range, fingerprint("LT",0,0,1,0))
+	session::session(fingerprint const& id)
+		: m_impl(std::make_pair(0, 0), id)
 		, m_checker_impl(m_impl)
 		, m_thread(boost::ref(m_impl))
 		, m_checker_thread(boost::ref(m_checker_impl))
 	{
-		assert(listen_port_range.first > 0);
-		assert(listen_port_range.first < listen_port_range.second);
 #ifndef NDEBUG
 		boost::function0<void> test = boost::ref(m_impl);
 		assert(!test.empty());

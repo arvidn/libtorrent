@@ -211,10 +211,11 @@ The ``session`` class has the following synopsis::
 	class session: public boost::noncopyable
 	{
 
-		session(std::pair<int, int> listen_port_range);
+		session(const fingerprint& print = libtorrent::fingerprint("LT, 0, 1, 0, 0));
+
 		session(
-			std::pair<int, int> listen_port_range
-			, const fingerprint& print
+			const fingerprint& print
+			, std::pair<int, int> listen_port_range
 			, const char* listen_interface = 0);
 
 		torrent_handle add_torrent(
@@ -263,7 +264,11 @@ The difference between the two constructors is that one of them takes a fingerpr
 as argument. If this is ommited, the client will get a default fingerprint stating
 the version of libtorrent. The fingerprint is a short string that will be used in
 the peer-id to identify the client and the client's version. For more details see the
-fingerprint class.
+fingerprint class. The constructor that only takes a finger print will not open a
+listen port for the session, to get it running you'll have to call ``session::listen_on()``.
+The other constructor, that takes a port range and an interface as well as the fingerprint
+will automatically try to listen on a port on the given interface. For more information about
+the parameters, see ``listen_on()`` function.
 
 ``set_upload_rate_limit()`` set the maximum number of bytes allowed to be
 sent to peers per second. This bandwidth is distributed among all the peers. If
@@ -288,6 +293,9 @@ os will decide which interface to listen on, otherwise it should be the ip-addre
 of the interface you want the listener socket bound to. ``listen_on()`` returns true
 if it managed to open the socket, and false if it failed. If it fails, it will also
 generate an appropriate alert (listen_failed_alert_).
+
+The interface parameter can also be a hostname that will resolve to the device you
+want to listen on.
 
 The destructor of session will notify all trackers that our torrents has been shut down.
 If some trackers are down, they will timout. All this before the destructor of session
