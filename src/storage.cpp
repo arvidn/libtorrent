@@ -1768,6 +1768,8 @@ namespace libtorrent {
 			s << m_slot_to_piece[piece_index];
 			s << "\n";
 
+			int piece_at_our_slot = m_slot_to_piece[piece_index];
+
 			print_to_log(s.str());
 
 			debug_log();
@@ -1782,7 +1784,7 @@ namespace libtorrent {
 
 			std::swap(
 				m_piece_to_slot[piece_index]
-				, m_piece_to_slot[slot_index]);
+				, m_piece_to_slot[piece_at_our_slot]);
 
 			slot_index = piece_index;
 
