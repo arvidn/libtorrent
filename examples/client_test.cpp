@@ -320,7 +320,9 @@ int main(int argc, char* argv[])
 				torrent_finished_alert* p = dynamic_cast<torrent_finished_alert*>(a.get());
 				if (p)
 				{
-					ses.set_upload_rate_limit(30 * 1024);
+					ses.set_upload_rate_limit(30000);
+					p->handle.set_max_connections(10);
+					p->handle.set_max_uploads(5);
 				}
 				if (events.size() >= 10) events.pop_front();
 				events.push_back(a->msg());
