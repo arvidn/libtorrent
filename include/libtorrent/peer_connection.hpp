@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/smart_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/array.hpp>
-#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"

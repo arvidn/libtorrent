@@ -442,6 +442,11 @@ namespace libtorrent
 		st.next_announce = next_announce()
 			- boost::posix_time::second_clock::local_time();
 
+		// TODO: this is not accurate because it assumes the last
+		// block is m_block_size bytes
+		st.total_done = (blocks_we_have + unverified_blocks) * m_block_size;
+		st.pieces = m_storage.pieces();
+
 		if (num_pieces == p.size())
 			st.state = torrent_status::seeding;
 		else
@@ -449,6 +454,13 @@ namespace libtorrent
 
 		return st;
 	}
+
+#ifndef NDEBUG
+	void torrent::debug_log(const std::string& line)
+	{
+		(*m_ses->m_logger) << line << "\n";
+	}
+#endif
 
 }
 

@@ -410,6 +410,9 @@ public:
 	std::size_t num_pieces() const;
 	const sha1_hash&amp; info_hash() const;
 	const std::stirng&amp; name() const;
+	const std::string&amp; comment() const;
+	boost::posiz_time::ptime creation_date() const;
+
 
 	void print(std::ostream&amp; os) const;
 
@@ -484,6 +487,14 @@ be smaller.
 <tt>hash_for_piece()</tt> takes a piece-index and returns the 20-bytes sha1-hash for that
 piece and <tt>info_hash()</tt> returns the 20-bytes sha1-hash for the info-section of the
 torrent file. For more information on the <tt>sha1_hash</tt>, see the <a href="#big_number">big_number</a> class.
+</p>
+
+<p>
+<tt>comment()</tt> returns the comment associated with the torrent. If there's no comment,
+it will return an empty string. <tt>creation_date()</tt> returns a
+<a href="http://www.boost.org/libs/date_time/doc/class_ptime.html"><tt>boost::posix_time::ptime</tt></a>
+object, representing the time when this torrent file was created. If there's no timestamp
+in the torrent file, this will return a date of january 1:st 1970.
 </p>
 
 <h2><a name="torrent_handle"></a>torrent_handle</h2>
