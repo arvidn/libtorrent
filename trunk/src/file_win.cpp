@@ -39,15 +39,33 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace
 {
+	// must be used to not leak memory in case something would throw
+	class auto_LocalFree
+	{
+	public:
+		auto_LocalFree(HLOCAL memory)
+			: m_memory(memory)
+		{
+		}
+		~auto_LocalFree()
+		{
+			if(m_memory)
+				LocalFree(m_memory);
+		}
+	private:
+		HLOCAL m_memory;
+	};
+
 	void throw_exception(const char* thrower)
 	{
-		char buffer[1024];
+		char *buffer=0;
 		int err = GetLastError();
-		// TODO: can this be done in an exception safe AND
-		// buffer overrun-safe way?
-		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, err, 0, buffer, 0, 0);
+		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_ALLOCATE_BUFFER, 0, err, 0, (LPSTR)&buffer, 0, 0);
+
+		auto_LocalFree auto_free(buffer); // needed for exception safety
 		std::stringstream s;
-		s << thrower << ": " << buffer;
+		s << (thrower ? thrower : "NULL") << ": " << (buffer ? buffer : "NULL");
+
 		throw libtorrent::file_error(s.str());
 	}
 }
