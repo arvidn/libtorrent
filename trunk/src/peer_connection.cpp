@@ -427,7 +427,9 @@ namespace libtorrent
 			, m_send_buffer.begin() + pos);
 
 	#ifndef NDEBUG
-		(*m_logger) << " ==> HANDSHAKE\n";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::local_time())
+			<< " ==> HANDSHAKE\n";
 	#endif
 
 		send_buffer_updated();
@@ -497,7 +499,9 @@ namespace libtorrent
 		if (m_recv_pos < m_packet_size) return;
 
 #ifndef NDEBUG
-		(*m_logger) << " <== CHOKE\n";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::local_time())
+			<< " <== CHOKE\n";
 #endif
 		m_peer_choked = true;
 		m_torrent->get_policy().choked(*this);
@@ -531,7 +535,9 @@ namespace libtorrent
 		if (m_recv_pos < m_packet_size) return;
 
 #ifndef NDEBUG
-		(*m_logger) << " <== UNCHOKE\n";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::local_time())
+			<< " <== UNCHOKE\n";
 #endif
 		m_peer_choked = false;
 		m_torrent->get_policy().unchoked(*this);
@@ -552,7 +558,9 @@ namespace libtorrent
 		if (m_recv_pos < m_packet_size) return;
 
 #ifndef NDEBUG
-		(*m_logger) << " <== INTERESTED\n";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::local_time())
+			<< " <== INTERESTED\n";
 #endif
 		m_peer_interested = true;
 		m_torrent->get_policy().interested(*this);
@@ -579,7 +587,9 @@ namespace libtorrent
 		send_buffer_updated();
 
 #ifndef NDEBUG
-		(*m_logger) << " <== NOT_INTERESTED\n";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::local_time())
+			<< " <== NOT_INTERESTED\n";
 #endif
 		m_peer_interested = false;
 		m_torrent->get_policy().not_interested(*this);
@@ -606,7 +616,9 @@ namespace libtorrent
 			throw protocol_error("have message with higher index than the number of pieces");
 
 #ifndef NDEBUG
-		(*m_logger) << " <== HAVE    [ piece: " << index << "]\n";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::local_time())
+			<< " <== HAVE    [ piece: " << index << "]\n";
 #endif
 
 		if (m_have_piece[index])
@@ -657,7 +669,9 @@ namespace libtorrent
 		if (m_recv_pos < m_packet_size) return;
 
 #ifndef NDEBUG
-		(*m_logger) << " <== BITFIELD\n";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::local_time())
+			<< " <== BITFIELD\n";
 #endif
 
 		// if we don't have metadata yet
@@ -750,7 +764,9 @@ namespace libtorrent
 			// if we don't have valid metadata yet,
 			// we shouldn't get a request
 #ifndef NDEBUG
-			(*m_logger) << " <== UNEXPECTED_REQUEST [ "
+			using namespace boost::posix_time;
+			(*m_logger) << to_simple_string(second_clock::local_time())
+				<< " <== UNEXPECTED_REQUEST [ "
 				"piece: " << r.piece << " | "
 				"s: " << r.start << " | "
 				"l: " << r.length << " | "
@@ -768,7 +784,9 @@ namespace libtorrent
 			// ignore requests if the client
 			// is making too many of them.
 #ifndef NDEBUG
-			(*m_logger) << " <== TOO MANY REQUESTS [ "
+			using namespace boost::posix_time;
+			(*m_logger) << to_simple_string(second_clock::local_time())
+				<< " <== TOO MANY REQUESTS [ "
 				"piece: " << r.piece << " | "
 				"s: " << r.start << " | "
 				"l: " << r.length << " | "
@@ -799,13 +817,17 @@ namespace libtorrent
 			m_requests.push_back(r);
 			send_buffer_updated();
 #ifndef NDEBUG
-			(*m_logger) << " <== REQUEST [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
+			using namespace boost::posix_time;
+			(*m_logger) << to_simple_string(second_clock::local_time())
+				<< " <== REQUEST [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
 #endif
 		}
 		else
 		{
 #ifndef NDEBUG
-			(*m_logger) << " <== INVALID_REQUEST [ "
+			using namespace boost::posix_time;
+			(*m_logger) << to_simple_string(second_clock::local_time())
+				<< " <== INVALID_REQUEST [ "
 				"piece: " << r.piece << " | "
 				"s: " << r.start << " | "
 				"l: " << r.length << " | "
@@ -871,7 +893,9 @@ namespace libtorrent
 		if (!verify_piece(p))
 		{
 #ifndef NDEBUG
-			(*m_logger) << " <== INVALID_PIECE [ piece: " << p.piece << " | "
+			using namespace boost::posix_time;
+			(*m_logger) << to_simple_string(second_clock::local_time())
+				<< " <== INVALID_PIECE [ piece: " << p.piece << " | "
 				"start: " << p.start << " | "
 				"length: " << p.length << " ]\n";
 #endif
@@ -879,6 +903,7 @@ namespace libtorrent
 		}
 
 #ifndef NDEBUG
+		using namespace boost::posix_time;
 		for (std::deque<piece_block>::iterator i = m_download_queue.begin();
 			i != m_download_queue.end();
 			++i)
@@ -887,10 +912,12 @@ namespace libtorrent
 				&& i->block_index == p.start / m_torrent->block_size())
 				break;
 
-			(*m_logger) << " *** SKIPPED_PIECE [ piece: " << i->piece_index << " | "
+			(*m_logger) << to_simple_string(second_clock::local_time())
+				<< " *** SKIPPED_PIECE [ piece: " << i->piece_index << " | "
 				"b: " << i->block_index << " ] ***\n";
 		}
-		(*m_logger) << " <== PIECE   [ piece: " << p.piece << " | "
+		(*m_logger) << to_simple_string(second_clock::local_time())
+			<< " <== PIECE   [ piece: " << p.piece << " | "
 			"b: " << p.start / m_torrent->block_size() << " | "
 			"s: " << p.start << " | "
 			"l: " << p.length << " ]\n";
@@ -1008,7 +1035,9 @@ namespace libtorrent
 		}
 
 #ifndef NDEBUG
-		(*m_logger) << " <== CANCEL  [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::local_time())
+			<< " <== CANCEL  [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
 #endif
 	}
 
@@ -1215,6 +1244,7 @@ namespace libtorrent
 
 	void peer_connection::on_listen_port()
 	{
+		using namespace boost::posix_time;
 		assert(m_torrent);
 
 		if (m_packet_size != 7)
@@ -1223,7 +1253,8 @@ namespace libtorrent
 		if (is_local())
 		{
 #ifndef NDEBUG
-			(*m_logger) << "<== LISTEN_PORT [ UNEXPECTED ]\n";
+			(*m_logger) << to_simple_string(second_clock::local_time())
+				<< "<== LISTEN_PORT [ UNEXPECTED ]\n";
 #endif
 			return;
 		}
@@ -1232,7 +1263,8 @@ namespace libtorrent
 		unsigned short port = detail::read_uint16(ptr);
 
 #ifndef NDEBUG
-		(*m_logger) << "<== LISTEN_PORT [ port: " << port << " ]\n";
+		(*m_logger) << to_simple_string(second_clock::local_time())
+				<< "<== LISTEN_PORT [ port: " << port << " ]\n";
 #endif
 
 		address adr = m_socket->sender();
@@ -1325,7 +1357,9 @@ namespace libtorrent
 		detail::write_int32(block_size, ptr);
 
 	#ifndef NDEBUG
-		(*m_logger) << " ==> CANCEL  [ piece: " << block.piece_index << " | s: " << block_offset << " | l: " << block_size << " | " << block.block_index << " ]\n";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::local_time())
+				<< " ==> CANCEL  [ piece: " << block.piece_index << " | s: " << block_offset << " | l: " << block_size << " | " << block.block_index << " ]\n";
 	#endif
 
 		send_buffer_updated();
@@ -1371,7 +1405,9 @@ namespace libtorrent
 		detail::write_int32(block_size, ptr);
 
 	#ifndef NDEBUG
-		(*m_logger) << " ==> REQUEST [ "
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::local_time())
+			<< " ==> REQUEST [ "
 			"piece: " << block.piece_index << " | "
 			"b: " << block.block_index << " | "
 			"s: " << block_offset << " | "
@@ -1483,7 +1519,9 @@ namespace libtorrent
 		if (m_torrent->num_pieces() == 0) return;
 
 	#ifndef NDEBUG
-		(*m_logger) << " ==> BITFIELD\n";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::local_time())
+			<< " ==> BITFIELD\n";
 	#endif
 		const int packet_size = ((int)m_have_piece.size() + 7) / 8 + 5;
 		const int old_size = (int)m_send_buffer.size();
@@ -1507,7 +1545,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 	#ifndef NDEBUG
-		(*m_logger) << " ==> EXTENSIONS\n";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::local_time())
+			<< " ==> EXTENSIONS\n";
 	#endif
 		assert(m_supports_extensions);
 
@@ -1542,7 +1582,9 @@ namespace libtorrent
 		m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
 		m_choked = true;
 	#ifndef NDEBUG
-		(*m_logger) << " ==> CHOKE\n";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::local_time())
+			<< " ==> CHOKE\n";
 	#endif
 		m_num_invalid_requests = 0;
 		m_requests.clear();
@@ -1558,7 +1600,9 @@ namespace libtorrent
 		m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
 		m_choked = false;
 	#ifndef NDEBUG
-		(*m_logger) << " ==> UNCHOKE\n";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::local_time())
+			<< " ==> UNCHOKE\n";
 	#endif
 		send_buffer_updated();
 	}
@@ -1572,7 +1616,9 @@ namespace libtorrent
 		m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
 		m_interesting = true;
 	#ifndef NDEBUG
-		(*m_logger) << " ==> INTERESTED\n";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::local_time())
+			<< " ==> INTERESTED\n";
 	#endif
 		send_buffer_updated();
 	}
@@ -1589,7 +1635,9 @@ namespace libtorrent
 		m_became_uninteresting = boost::posix_time::second_clock::local_time();
 
 	#ifndef NDEBUG
-		(*m_logger) << " ==> NOT_INTERESTED\n";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::local_time())
+			<< " ==> NOT_INTERESTED\n";
 	#endif
 		send_buffer_updated();
 	}
@@ -1611,7 +1659,9 @@ namespace libtorrent
 		detail::write_int32(index, ptr);
 		m_send_buffer.insert(m_send_buffer.end(), msg, msg + packet_size);
 	#ifndef NDEBUG
-		(*m_logger) << " ==> HAVE    [ piece: " << index << " ]\n";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::local_time())
+			<< " ==> HAVE    [ piece: " << index << " ]\n";
 	#endif
 		send_buffer_updated();
 	}
@@ -2085,7 +2135,9 @@ namespace libtorrent
 				, r.start
 				, r.length);
 #ifndef NDEBUG
-			(*m_logger) << " ==> PIECE   [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
+			using namespace boost::posix_time;
+			(*m_logger) << to_simple_string(second_clock::local_time())
+				<< " ==> PIECE   [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
 #endif
 
 			m_payloads.push_back(range(send_buffer_offset+13, r.length));
@@ -2252,7 +2304,9 @@ namespace libtorrent
 			m_send_buffer.insert(m_send_buffer.end(), noop, noop+4);
 			m_last_sent = boost::posix_time::second_clock::local_time();
 	#ifndef NDEBUG
-			(*m_logger) << " ==> NOP\n";
+			using namespace boost::posix_time;
+			(*m_logger) << to_simple_string(second_clock::local_time())
+				<< " ==> NOP\n";
 	#endif
 		}
 		else

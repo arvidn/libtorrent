@@ -119,6 +119,7 @@ namespace libtorrent
 		: m_piece_length(piece_size)
 		, m_total_size(0)
 		, m_info_hash(info_hash)
+		, m_name(name)
 		, m_creation_date(second_clock::local_time())
 	{
 	}

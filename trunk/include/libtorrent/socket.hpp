@@ -228,13 +228,22 @@ namespace libtorrent
 	{
 	public:
 
-		void monitor_readability(boost::shared_ptr<socket> s) { m_readable.push_back(s); }
-		void monitor_writability(boost::shared_ptr<socket> s) { m_writable.push_back(s); }
-		void monitor_errors(boost::shared_ptr<socket> s) { m_error.push_back(s); }
-/*
-		void clear_readable() { m_readable.clear(); }
-		void clear_writable() { m_writable.clear(); }
-*/
+		void monitor_readability(boost::shared_ptr<socket> s)
+		{
+			assert(std::find(m_readable.begin(), m_readable.end(), s) == m_readable.end());
+			m_readable.push_back(s);
+		}
+		void monitor_writability(boost::shared_ptr<socket> s)
+		{
+			assert(std::find(m_writable.begin(), m_writable.end(), s) == m_writable.end());
+			m_writable.push_back(s);
+		}
+		void monitor_errors(boost::shared_ptr<socket> s)
+		{
+			assert(std::find(m_error.begin(), m_error.end(), s) == m_error.end());
+			m_error.push_back(s);
+		}
+
 		void remove(boost::shared_ptr<socket> s);
 
 		void remove_writable(boost::shared_ptr<socket> s)
