@@ -230,7 +230,6 @@ namespace libtorrent
 				}
 #endif
 
-
 				// if nothing happens within 500000 microseconds (0.5 seconds)
 				// do the loop anyway to check if anything else has changed
 		//		(*m_logger) << "sleeping\n";
@@ -257,7 +256,6 @@ namespace libtorrent
 					break;
 				}
 
-
 				// ************************
 				// RECEIVE SOCKETS
 				// ************************
@@ -267,11 +265,11 @@ namespace libtorrent
 					i != readable_clients.end();
 					++i)
 				{
-
 					// special case for listener socket
 					if (*i == listener)
 					{
 						boost::shared_ptr<libtorrent::socket> s = (*i)->accept();
+						s->set_blocking(false);
 						if (s)
 						{
 							// we got a connection request!
@@ -289,6 +287,7 @@ namespace libtorrent
 							m_selector.monitor_readability(s);
 							m_selector.monitor_errors(s);
 						}
+
 						continue;
 					}
 
@@ -301,7 +300,7 @@ namespace libtorrent
 					{
 						try
 						{
-			//				(*m_logger) << "readable: " << p->first->sender().as_string() << "\n";
+//							(*m_logger) << "readable: " << p->first->sender().as_string() << "\n";
 							p->second->receive_data();
 						}
 						catch(network_error&)
@@ -313,7 +312,6 @@ namespace libtorrent
 						}
 					}
 				}
-
 
 				// ************************
 				// SEND SOCKETS
@@ -350,8 +348,6 @@ namespace libtorrent
 					}
 				}
 
-
-
 				// ************************
 				// ERROR SOCKETS
 				// ************************
@@ -378,11 +374,9 @@ namespace libtorrent
 				}
 #endif
 
-
 				boost::posix_time::time_duration d = boost::posix_time::second_clock::local_time() - timer;
 				if (d.seconds() < 1) continue;
 				timer = boost::posix_time::second_clock::local_time();
-
 
 				// ************************
 				// THE SECTION BELOW IS EXECUTED ONCE EVERY SECOND
@@ -470,6 +464,7 @@ namespace libtorrent
 						<< " b/s             \n";
 				}
 #endif
+
 			}
 
 			while (!m_tracker_manager.send_finished())

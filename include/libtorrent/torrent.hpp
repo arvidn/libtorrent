@@ -164,13 +164,17 @@ namespace libtorrent
 
 		void tracker_request_timed_out()
 		{
-			std::cerr << "TRACKER TIMED OUT\n";
+#ifndef NDEBUG
+			debug_log("*** tracker timed out");
+#endif
 			try_next_tracker();
 		}
 
 		void tracker_request_error(const char* str)
 		{
-			std::cerr << "TRACKER ERROR: " << str << "\n";
+#ifndef NDEBUG
+			debug_log(std::string("*** tracker error: ") + str);
+#endif
 			try_next_tracker();
 		}
 

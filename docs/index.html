@@ -1,872 +1,788 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
-
-<html>
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-	<title>libtorrent</title>
-	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-	<link href="style.css" type="text/css" rel="stylesheet">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.1: http://docutils.sourceforge.net/" />
+<title>libtorrent</title>
+<link rel="stylesheet" href="style.css" type="text/css" />
 </head>
-
 <body>
-
-<h1>libtorrent</h1>
-
-<table style="margin-left:auto;margin-right:auto" cellpadding="10">
-<tr>
-	<td>
-		<a href="http://www.sourceforge.net/projects/libtorrent">sourceforge page</a>
-	</td>
-	<td>
-		<a href="http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss">mailing list</a>
-	</td>
+<div class="document" id="libtorrent">
+<h1 class="title">libtorrent</h1>
+<table border class="table">
+<colgroup>
+<col width="56%" />
+<col width="44%" />
+</colgroup>
+<tbody valign="top">
+<tr><td><a class="reference" href="http://www.sourceforge.net/projects/libtorrent">sourceforge page</a></td>
+<td><a class="reference" href="http://lists.sourceforge.net/lists/listinfo/libtorrent-discus">mailing list</a></td>
 </tr>
+</tbody>
 </table>
-
-
-<p>
-libtorrent is a C++ library that aims to be a good alternative to all the
-<a href="links.html">other bittorrent implementations</a> around. It is a
+<div class="contents topic" id="contents">
+<p class="topic-title"><a name="contents">Contents</a></p>
+<ul class="simple">
+<li><a class="reference" href="#introduction" id="id5" name="id5">introduction</a></li>
+<li><a class="reference" href="#building" id="id6" name="id6">building</a></li>
+<li><a class="reference" href="#using" id="id7" name="id7">using</a><ul>
+<li><a class="reference" href="#session" id="id8" name="id8">session</a></li>
+<li><a class="reference" href="#parsing-torrent-files" id="id9" name="id9">parsing torrent files</a></li>
+<li><a class="reference" href="#entry" id="id10" name="id10">entry</a></li>
+<li><a class="reference" href="#torrent-info" id="id11" name="id11">torrent_info</a></li>
+<li><a class="reference" href="#torrent-handle" id="id12" name="id12">torrent_handle</a><ul>
+<li><a class="reference" href="#status" id="id13" name="id13">status()</a></li>
+<li><a class="reference" href="#get-download-queue" id="id14" name="id14">get_download_queue()</a></li>
+<li><a class="reference" href="#get-peer-info" id="id15" name="id15">get_peer_info()</a></li>
+</ul>
+</li>
+<li><a class="reference" href="#address" id="id16" name="id16">address</a></li>
+<li><a class="reference" href="#http-settings" id="id17" name="id17">http_settings</a></li>
+<li><a class="reference" href="#big-number" id="id18" name="id18">big_number</a></li>
+<li><a class="reference" href="#hasher" id="id19" name="id19">hasher</a></li>
+<li><a class="reference" href="#example-usage" id="id20" name="id20">example usage</a><ul>
+<li><a class="reference" href="#dump-torrent" id="id21" name="id21">dump_torrent</a></li>
+<li><a class="reference" href="#simple-client" id="id22" name="id22">simple client</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference" href="#feedback" id="id23" name="id23">Feedback</a></li>
+<li><a class="reference" href="#aknowledgements" id="id24" name="id24">Aknowledgements</a></li>
+</ul>
+</div>
+<div class="section" id="introduction">
+<h1><a class="toc-backref" href="#id5" name="introduction">introduction</a></h1>
+<p>libtorrent is a C++ library that aims to be a good alternative to all the
+<a class="reference" href="links.html">other bittorrent implementations</a> around. It is a
 library and not a full featured client, although it comes with a working
-example client.
-</p>
-
-<p>
-The main goals of libtorrent are:
-</p>
-
-<ul>
-	<li>to be cpu efficient
-	<li>to be memory efficient
-	<li>to be very easy to use
+example client.</p>
+<p>The main goals of libtorrent are:</p>
+<blockquote>
+<ul class="simple">
+<li>to be cpu efficient</li>
+<li>to be memory efficient</li>
+<li>to be very easy to use</li>
 </ul>
-
-<p>
-libtorrent is not finished. It is an ongoing project (including this documentation).
-The current state includes the following features:
-</p>
-
-<ul>
-	<li>multitracker extension support
-	(as <a href="http://home.elp.rr.com/tur/multitracker-spec.txt">described by TheShadow</a>)
-	<li>serves multiple torrents on a single port and a single thread
-	<li>supports http proxies and proxy authentication
-	<li>gzipped tracker-responses
-	<li>piece picking on block-level (as opposed to piece-level) like in
-	<a href="http://azureus.sourceforge.net/">Azureus</a>
-	<li>queues torrents for file check, instead of checking all of them in parallel.
-	<li>uses separate threads for checking files and for main downloader, with a fool-proof
-	thread-safe library interface. (i.e. There's no way for the user to cause a deadlock).
-	<li>can limit the upload bandwidth usage
+</blockquote>
+<p>libtorrent is not finished. It is an ongoing project (including this documentation).
+The current state includes the following features:</p>
+<blockquote>
+<ul class="simple">
+<li>multitracker extension support (as <a class="reference" href="http://home.elp.rr.com/tur/multitracker-spec.txt">described by TheShadow</a>)</li>
+<li>serves multiple torrents on a single port and a single thread</li>
+<li>supports http proxies and proxy authentication</li>
+<li>gzipped tracker-responses</li>
+<li>piece picking on block-level (as opposed to piece-level) like in <a class="reference" href="http://azureus.sourceforge.net">Azureus</a></li>
+<li>queues torrents for file check, instead of checking all of them in parallel.</li>
+<li>uses separate threads for checking files and for main downloader, with a fool-proof
+thread-safe library interface. (i.e. There's no way for the user to cause a deadlock).</li>
+<li>can limit the upload bandwidth usage</li>
 </ul>
-
-<p>
-Functions that are yet to be implemented:
-</p>
-
-<ul>
-	<li>optimistic unchoke
-	<li>Snubbing
-	<li>end game mode
-	<li>new allocation model
-	<li>fast resume
-	<li>file-level piece priority
-	<li>a good upload speed cap
+</blockquote>
+<p>Functions that are yet to be implemented:</p>
+<blockquote>
+<ul class="simple">
+<li>optimistic unchoke</li>
+<li>Snubbing</li>
+<li>end game mode</li>
+<li>new allocation model</li>
+<li>fast resume</li>
+<li>file-level piece priority</li>
+<li>a good upload speed cap</li>
 </ul>
-
-<p>
-libtorrent is portable at least among windows, macosx, and UNIX-systems. It uses boost.thread,
-boost.filesystem and various other boost libraries and zlib.
-</p>
-
-<p>
-libtorrent has been successfully compiled and tested on:
-</p>
-
-<ul>
-	<li>Cygwin GCC 3.3.1
-	<li>Windows 2000 vc7.1
-	<li>Linux x86 (debian) GCC 3.0
+</blockquote>
+<p>libtorrent is portable at least among windows, macosx, and UNIX-systems. It uses boost.thread,
+boost.filesystem boost.date_time and various other boost libraries and zlib.</p>
+<p>libtorrent has been successfully compiled and tested on:</p>
+<blockquote>
+<ul class="simple">
+<li>Cygwin GCC 3.3.1</li>
+<li>Windows 2000 vc7.1</li>
+<li>Linux x86 (debian) GCC 3.0</li>
 </ul>
-
-<h1>building</h1>
-
-<p>
-To build libtorrent you need <a href="http://www.boost.org">boost</a> and bjam installed.
-Then you can use <tt>bjam</tt> to build libtorrent.
-</p>
-
-<p>
-To make bjam work, you need to set the environment variable <tt>BOOST_ROOT</tt> to the
-path where boost is installed (e.g. c:\boost_1_30_2 on windows). Then you can just run
-<tt>bjam</tt> in the libtorrent directory.
-</p>
-
-<p>
-The Jamfile doesn't work yet. On unix-systems you can use the makefile however. You
+</blockquote>
+</div>
+<div class="section" id="building">
+<h1><a class="toc-backref" href="#id6" name="building">building</a></h1>
+<p>To build libtorrent you need <a class="reference" href="http://www.boost.org">boost</a> and bjam installed.
+Then you can use <tt class="literal"><span class="pre">bjam</span></tt> to build libtorrent.</p>
+<p>To make bjam work, you need to set the environment variable <tt class="literal"><span class="pre">BOOST_ROOT</span></tt> to the
+path where boost is installed (e.g. c:boost_1_30_2 on windows). Then you can just run
+<tt class="literal"><span class="pre">bjam</span></tt> in the libtorrent directory.</p>
+<p>The Jamfile doesn't work yet. On unix-systems you can use the makefile however. You
 first have to build boost.thread and boost.filesystem. You do this by, in the directory
-'boost-1.30.2/tools/build/jam_src' run the build script <tt>./build.sh</tt>. This should
+'boost-1.30.2/tools/build/jam_src' run the build script <tt class="literal"><span class="pre">./build.sh</span></tt>. This should
 produce at least one folder with the 'bin' prefix (and the rest of the name describes
-your platform). Put the files in that folder somewhere in your path.
-</p>
-
-<p>
-You can then invoke <tt>bjam</tt> in the directories 'boost-1.30.2/libs/thread/build' and
+your platform). Put the files in that folder somewhere in your path.</p>
+<p>You can then invoke <tt class="literal"><span class="pre">bjam</span></tt> in the directories 'boost-1.30.2/libs/thread/build' and
 'boost-1.30.2/libs/filesystem/build'. That will produce the needed libraries. Put these
 libraries in the libtorrent root directory. You then have to modify the makefile to use
-you prefered compiler and to have the correct path to your boost istallation.
-</p>
-
-<p>
-Then the makefile should be able to do the rest.
-</p>
-
-<p>
-When building (with boost 1.30.2) on linux and solaris however, I found that I had to make the following
+you prefered compiler and to have the correct path to your boost istallation.</p>
+<p>Then the makefile should be able to do the rest.</p>
+<p>When building (with boost 1.30.2) on linux and solaris however, I found that I had to make the following
 modifications to the boost.date-time library. In the file:
 'boost-1.30.2/boost/date_time/gregorian_calendar.hpp' line 59. Prepend 'boost/date_time/'
-to the include path.
-</p>
-
+to the include path.</p>
 <p>And the second modification was in the file:
 'boost-1.30.2/boost/date_time/microsec_time_clock.hpp' add the following include at the top
-of the file:
-</p>
-
-<code>#include "boost/cstdint.hpp"</code>
-
-<p>
-TODO: more detailed build instructions.
-</p>
-
-<h1>using</h1>
-
-<p>
-The interface of libtorrent consists of a few classes. The main class is
-the <tt>session</tt>, it contains the main loop that serves all torrents.
-</p>
-
-<h2>session</h2>
-
-<p>
-The <tt>session</tt> class has the following synopsis:
-</p>
-
-<pre>
+of the file:</p>
+<pre class="literal-block">
+#include &quot;boost/cstdint.hpp&quot;
+</pre>
+<p>In developer studio, you may have to set the compiler options &quot;force conformance in for
+loop scope&quot; and &quot;treat wchar_t as built-in type&quot; to Yes.</p>
+<p>TODO: more detailed build instructions.</p>
+</div>
+<div class="section" id="using">
+<h1><a class="toc-backref" href="#id7" name="using">using</a></h1>
+<p>The interface of libtorrent consists of a few classes. The main class is
+the <tt class="literal"><span class="pre">session</span></tt>, it contains the main loop that serves all torrents.</p>
+<div class="section" id="session">
+<h2><a class="toc-backref" href="#id8" name="session">session</a></h2>
+<p>The <tt class="literal"><span class="pre">session</span></tt> class has the following synopsis:</p>
+<pre class="literal-block">
 class session: public boost::noncopyable
 {
-	session(int listen_port, const std::string&amp; fingerprint = std::string());
+        session(int listen_port, const std::string&amp; fingerprint = std::string());
 
-	torrent_handle add_torrent(const torrent_info&amp; t, const std::string&amp; save_path);
-	void remove_torrent(const torrent_handle&amp; h);
+        torrent_handle add_torrent(const torrent_info&amp; t, const std::string&amp; save_path);
+        void remove_torrent(const torrent_handle&amp; h);
 
-	void set_http_settings(const http_settings&amp; settings);
-	void set_upload_rate_limit(int bytes_per_second);
+        void set_http_settings(const http_settings&amp; settings);
+        void set_upload_rate_limit(int bytes_per_second);
 };
 </pre>
-
-<p>
-Once it's created, it will spawn the main thread that will do all the work.
+<p>Once it's created, it will spawn the main thread that will do all the work.
 The main thread will be idle as long it doesn't have any torrents to participate in.
-You add torrents through the <tt>add_torrent()</tt>-function where you give an
+You add torrents through the <tt class="literal"><span class="pre">add_torrent()</span></tt>-function where you give an
 object representing the information found in the torrent file and the path where you
-want to save the files. The <tt>save_path</tt> will be prepended to the directory-
-structure in the torrent-file.
-</p>
-
-<p>
-<tt>remove_torrent()</tt> will close all peer connections associated with the torrent and tell
-the tracker that we've stopped participating in the swarm.
-</p>
-
-<p>
-If the torrent you are trying to add already exists in the session (is either queued
-for checking, being checked or downloading) <tt>add_torrent()</tt> will throw
-<tt>duplicate_torrent</tt> which derives from <tt>std::exception</tt>.
-</p>
-
-<p>
-<tt>fingerprint</tt> is a short string that will be used in the peer_id to
+want to save the files. The <tt class="literal"><span class="pre">save_path</span></tt> will be prepended to the directory-
+structure in the torrent-file.</p>
+<p><tt class="literal"><span class="pre">remove_torrent()</span></tt> will close all peer connections associated with the torrent and tell
+the tracker that we've stopped participating in the swarm.</p>
+<p>If the torrent you are trying to add already exists in the session (is either queued
+for checking, being checked or downloading) <tt class="literal"><span class="pre">add_torrent()</span></tt> will throw
+<tt class="literal"><span class="pre">duplicate_torrent</span></tt> which derives from <tt class="literal"><span class="pre">std::exception</span></tt>.</p>
+<p><tt class="literal"><span class="pre">fingerprint</span></tt> is a short string that will be used in the peer_id to
 identify the client. If the string is longer than 7 characters it will
-be trimmed down to 7 characters. The default is an empty string.
-</p>
-
-<p>
-<tt>set_upload_rate_limit()</tt> set the maximum number of bytes allowed to be
+be trimmed down to 7 characters. The default is an empty string.</p>
+<p><tt class="literal"><span class="pre">set_upload_rate_limit()</span></tt> set the maximum number of bytes allowed to be
 sent to peers per second. This bandwidth is distributed among all the peers. If
-you don't want to limit upload rate, you can set this to -1 (the default).
-</p>
-
-<p>
-The destructor of session will notify all trackers that our torrents has been shut down.
+you don't want to limit upload rate, you can set this to -1 (the default).</p>
+<p>The destructor of session will notify all trackers that our torrents has been shut down.
 If some trackers are down, they will timout. All this before the destructor of session
 returns. So, it's adviced that any kind of interface (such as windows) are closed before
 destructing the sessoin object. Because it can take a few second for it to finish. The
-timeout can be set with <tt>set_http_settings()</tt>.
-</p>
-
-<p>
-How to parse a torrent file and create a <tt>torrent_info</tt> object is described below.
-</p>
-
-<p>
-The <a href="#torrent_handle"><tt>torrent_handle</tt></a> returned by <tt>add_torrent</tt>
-can be used to retrieve information about the torrent's progress, its peers etc. It
-is also used to abort a torrent.
-</p>
-
-<p>
-The constructor takes a listen port as argument, if the given port is busy it will
+timeout can be set with <tt class="literal"><span class="pre">set_http_settings()</span></tt>.</p>
+<p>How to parse a torrent file and create a <tt class="literal"><span class="pre">torrent_info</span></tt> object is described below.</p>
+<p>The <a class="reference" href="#torrent-handle">torrent_handle</a> returned by <tt class="literal"><span class="pre">add_torrent</span></tt> can be used to retrieve information
+about the torrent's progress, its peers etc. It is also used to abort a torrent.</p>
+<p>The constructor takes a listen port as argument, if the given port is busy it will
 increase the port number by one and try again. If it still fails it will continue
-increasing the port number until it succeeds or has failed 9 ports. <i>This will
-change in the future to give more control of the listen-port.</i>
-</p>
-
-<h2>parsing torrent files</h2>
-
-<p>
-The torrent files are <a href="http://bitconjurer.org/BitTorrent/protocol.html">
-bencoded</a>. There are two functions in libtorrent that can encode and decode
-bencoded data. They are:
-</p>
-
-<h3>
-template&lt;class InIt&gt;
-entry bdecode(InIt start, InIt end);<br>
-
-template&lt;class OutIt&gt;
-void bencode(OutIt out, const entry&amp; e);
-</h3>
-
-<p>
-The <tt>entry</tt> class is the internal representation of the bencoded data
+increasing the port number until it succeeds or has failed 9 ports. <em>This will
+change in the future to give more control of the listen-port.</em></p>
+</div>
+<div class="section" id="parsing-torrent-files">
+<h2><a class="toc-backref" href="#id9" name="parsing-torrent-files">parsing torrent files</a></h2>
+<p>The torrent files are <a class="reference" href="http://bitconjurer.org/BitTorrent/protocol.html">bencoded</a>. There are two functions in libtorrent that can encode and decode
+bencoded data. They are:</p>
+<pre class="literal-block">
+template&lt;class InIt&gt; entry bdecode(InIt start, InIt end);
+template&lt;class OutIt&gt; void bencode(OutIt out, const entry&amp; e);
+</pre>
+<p>The <tt class="literal"><span class="pre">entry</span></tt> class is the internal representation of the bencoded data
 and it can be used to retreive information, an entry can also be build by
-the program and given to <tt>bencode()</tt> to encode it into the <tt>OutIt</tt>
-iterator.
-</p>
-
-<p>
-The <tt>OutIt</tt> and <tt>InIt</tt> are iterators
-(<a href="http://www.sgi.com/tech/stl/InputIterator.html"><tt>InputIterator</tt></a>
-and <a href="http://www.sgi.com/tech/stl/OutputIterator.html"><tt>OutputIterator</tt></a>
-respectively). They are templates and are usually instantiated as
-<a href="http://www.sgi.com/tech/stl/ostream_iterator.html">
-<tt>std::ostream_iterator</tt></a>,
-<a href="http://www.sgi.com/tech/stl/back_insert_iterator.html">
-<tt>std::back_insert_iterator</tt></a> or
-<a href="http://www.sgi.com/tech/stl/istream_iterator.html">
-<tt>std::istream_iterator</tt></a>. These functions will assume that the iterator
-refers to a character (<tt>char</tt>). So, if you want to encode entry <tt>e</tt>
-into a buffer in memory, you can do it like this:
-</p>
-
-<code>std::vector&lt;char&gt; buffer;
+the program and given to <tt class="literal"><span class="pre">bencode()</span></tt> to encode it into the <tt class="literal"><span class="pre">OutIt</span></tt>
+iterator.</p>
+<p>The <tt class="literal"><span class="pre">OutIt</span></tt> and <tt class="literal"><span class="pre">InIt</span></tt> are iterators
+(<tt class="literal"><span class="pre">InputIterator_</span></tt> and <tt class="literal"><span class="pre">OutputIterator_</span></tt> respectively). They
+are templates and are usually instantiated as <tt class="literal"><span class="pre">ostream_iterator_</span></tt>,
+<tt class="literal"><span class="pre">back_insert_iterator_</span></tt> or <tt class="literal"><span class="pre">istream_iterator_</span></tt>. These
+functions will assume that the iterator refers to a character
+(<tt class="literal"><span class="pre">char</span></tt>). So, if you want to encode entry <tt class="literal"><span class="pre">e</span></tt> into a buffer
+in memory, you can do it like this:</p>
+<pre class="literal-block">
+std::vector&lt;char&gt; buffer;
 bencode(std::back_insert_iterator&lt;std::vector&lt;char&gt; &gt;(buf), e);
-</code>
-
-<p>
-If you want to decode a torrent file from a buffer in memory, you can do it like this:
-</p>
-
-<code>std::vector&lt;char&gt; buffer;
-
+</pre>
+<p>If you want to decode a torrent file from a buffer in memory, you can do it like this:</p>
+<pre class="literal-block">
+std::vector&lt;char&gt; buffer;
 // ...
-
 entry e = bdecode(buf.begin(), buf.end());
-</code>
-
-<p>
-Or, if you have a raw char buffer:
-</p>
-
-<code>const char* buf;
-
+</pre>
+<p>Or, if you have a raw char buffer:</p>
+<pre class="literal-block">
+const char* buf;
 // ...
-
 entry e = bdecode(buf, buf + data_size);
-</code>
-
-<p>
-Now we just need to know how to retrieve information from the <tt>entry</tt>.
-</p>
-
-<h2>entry</h2>
-
-<p>
-The <tt>entry</tt> class represents one node in a bencoded hierarchy. It works as a
-variant type, it can be either a list, a dictionary (<tt>std::map</tt>), an integer
-or a string. This is its synopsis:
-</p>
-
-<pre>
+</pre>
+<p>Now we just need to know how to retrieve information from the <tt class="literal"><span class="pre">entry</span></tt>.</p>
+</div>
+<div class="section" id="entry">
+<h2><a class="toc-backref" href="#id10" name="entry">entry</a></h2>
+<p>The <tt class="literal"><span class="pre">entry</span></tt> class represents one node in a bencoded hierarchy. It works as a
+variant type, it can be either a list, a dictionary (<tt class="literal"><span class="pre">std::map</span></tt>), an integer
+or a string. This is its synopsis:</p>
+<pre class="literal-block">
 class entry
 {
 public:
 
-	typedef std::map&lt;std::string, entry&gt; dictionary_type;
-	typedef std::string string_type;
-	typedef std::vector&lt;entry&gt; list_type;
-	typedef <i>implementation-defined</i> integer_type;
+        typedef std::map&lt;std::string, entry&gt; dictionary_type;
+        typedef std::string string_type;
+        typedef std::vector&lt;entry&gt; list_type;
+        typedef implementation-defined integer_type;
 
-	enum data_type
-	{
-		int_t,
-		string_t,
-		list_t,
-		dictionary_t,
-		undefined_t
-	};
+        enum data_type
+        {
+                int_t,
+                string_t,
+                list_t,
+                dictionary_t,
+                undefined_t
+        };
 
-	data_type type() const;
+        data_type type() const;
 
-	entry();
-	entry(data_type t);
-	entry(const entry&amp; e);
+        entry();
+        entry(data_type t);
+        entry(const entry&amp; e);
 
-	void operator=(const entry&amp; e);
+        void operator=(const entry&amp; e);
 
-	integer_type&amp; integer()
-	const integer_type&amp; integer() const;
-	string_type&amp; string();
-	const string_type&amp; string() const;
-	list_type&amp; list();
-	const list_type&amp; list() const;
-	dictionary_type&amp; dict();
-	const dictionary_type&amp; dict() const;
+        integer_type&amp; integer()
+        const integer_type&amp; integer() const;
+        string_type&amp; string();
+        const string_type&amp; string() const;
+        list_type&amp; list();
+        const list_type&amp; list() const;
+        dictionary_type&amp; dict();
+        const dictionary_type&amp; dict() const;
 
-	void print(std::ostream&amp; os, int indent = 0) const;
+        void print(std::ostream&amp; os, int indent = 0) const;
 };
 </pre>
-
-<p>
-The <tt>integer()</tt>, <tt>string()</tt>, <tt>list()</tt> and <tt>dict()</tt> functions
-are accessorts that return the respecive type. If the <tt>entry</tt> object isn't of the
-type you request, the accessor will throw <tt>type_error</tt> (which derives from
-<tt>std::runtime_error</tt>). You can ask an <tt>entry</tt> for its type through the
-<tt>type()</tt> function.
-</p>
-
-<p>
-The <tt>print()</tt> function is there for debug purposes only.
-</p>
-
-<p>
-If you want to create an <tt>entry</tt> you give it the type you want it to have in its
+<p>The <tt class="literal"><span class="pre">integer()</span></tt>, <tt class="literal"><span class="pre">string()</span></tt>, <tt class="literal"><span class="pre">list()</span></tt> and <tt class="literal"><span class="pre">dict()</span></tt> functions
+are accessorts that return the respecive type. If the <tt class="literal"><span class="pre">entry</span></tt> object isn't of the
+type you request, the accessor will throw <tt class="literal"><span class="pre">type_error</span></tt> (which derives from
+<tt class="literal"><span class="pre">std::runtime_error</span></tt>). You can ask an <tt class="literal"><span class="pre">entry</span></tt> for its type through the
+<tt class="literal"><span class="pre">type()</span></tt> function.</p>
+<p>The <tt class="literal"><span class="pre">print()</span></tt> function is there for debug purposes only.</p>
+<p>If you want to create an <tt class="literal"><span class="pre">entry</span></tt> you give it the type you want it to have in its
 constructor, and then use one of the non-const accessors to get a reference which you then
-can assign the value you want it to have.
-</p>
-
-<p>
-The typical code to get info from a torrent file will then look like this:
-</p>
-
-<code>entry torrent_file;
-
+can assign the value you want it to have.</p>
+<p>The typical code to get info from a torrent file will then look like this:</p>
+<pre class="literal-block">
+entry torrent_file;
 // ...
 
 const entry::dictionary_type&amp; dict = torrent_file.dict();
 entry::dictionary_type::const_iterator i;
-i = dict.find("announce");
+i = dict.find(&quot;announce&quot;);
 if (i != dict.end())
 {
-	std::string tracker_url= i-&gt;second.string();
-	std::cout &lt;&lt; tracker_url &lt;&lt; "\n";
+        std::string tracker_url= i-&gt;second.string();
+        std::cout &lt;&lt; tracker_url &lt;&lt; &quot;\n&quot;;
 }
-</code>
-
-<p>
-To make it easier to extract information from a torren file, the class <tt>torrent_info</tt>
-exists.
-</p>
-
-<h2>torrent_info</h2>
-<p>
-The <tt>torrent_info</tt> has the following synopsis:
-</p>
-
-<pre>
+</pre>
+<p>To make it easier to extract information from a torren file, the class <tt class="literal"><span class="pre">torrent_info</span></tt>
+exists.</p>
+</div>
+<div class="section" id="torrent-info">
+<h2><a class="toc-backref" href="#id11" name="torrent-info">torrent_info</a></h2>
+<p>The <tt class="literal"><span class="pre">torrent_info</span></tt> has the following synopsis:</p>
+<pre class="literal-block">
 class torrent_info
 {
 public:
 
-	torrent_info(const entry&amp; torrent_file)
+        torrent_info(const entry&amp; torrent_file)
 
-	typedef std::vector&lt;file&gt;::const_iterator file_iterator;
-	typedef std::vector&lt;file&gt;::const_reverse_iterator reverse_file_iterator;
+        typedef std::vector&gt;file&gt;::const_iterator file_iterator;
+        typedef std::vector&lt;file&gt;::const_reverse_iterator reverse_file_iterator;
 
-	file_iterator begin_files() const;
-	file_iterator end_files() const;
-	reverse_file_iterator rbegin_files() const;
-	reverse_file_iterator rend_files() const;
+        file_iterator begin_files() const;
+        file_iterator end_files() const;
+        reverse_file_iterator rbegin_files() const;
+        reverse_file_iterator rend_files() const;
 
-	std::size_t num_files() const;
-	const file&amp; file_at(int index) const;
+        std::size_t num_files() const;
+        const file&amp; file_at(int index) const;
 
-	const std::vector&lt;announce_entry&gt;&amp; trackers() const;
+        const std::vector&lt;announce_entry&gt;&amp; trackers() const;
 
-	int prioritize_tracker(int index);
+        int prioritize_tracker(int index);
 
-	entry::integer_type total_size() const;
-	entry::integer_type piece_length() const;
-	std::size_t num_pieces() const;
-	const sha1_hash&amp; info_hash() const;
-	const std::stirng&amp; name() const;
-	const std::string&amp; comment() const;
-	boost::posiz_time::ptime creation_date() const;
+        entry::integer_type total_size() const;
+        entry::integer_type piece_length() const;
+        std::size_t num_pieces() const;
+        const sha1_hash&amp; info_hash() const;
+        const std::stirng&amp; name() const;
+        const std::string&amp; comment() const;
+        boost::posiz_time::ptime creation_date() const;
 
 
-	void print(std::ostream&amp; os) const;
+        void print(std::ostream&amp; os) const;
 
-	entry::integer_type piece_size(unsigned int index) const;
-	const sha1_hash&amp; hash_for_piece(unsigned int index) const;
+        entry::integer_type piece_size(unsigned int index) const;
+        const sha1_hash&amp; hash_for_piece(unsigned int index) const;
 };
 </pre>
-
-<p>
-This class will need some explanation. First of all, to get a list of all files
-in the torrent, you can use <tt>begin_files()</tt>, <tt>end_files()</tt>,
-<tt>rbegin_files()</tt> and <tt>rend_files()</tt>. These will give you standard vector
-iterators with the type <tt>file</tt>.
-</p>
-
-<pre>
+<p>This class will need some explanation. First of all, to get a list of all files
+in the torrent, you can use <tt class="literal"><span class="pre">begin_files()</span></tt>, <tt class="literal"><span class="pre">end_files()</span></tt>,
+<tt class="literal"><span class="pre">rbegin_files()</span></tt> and <tt class="literal"><span class="pre">rend_files()</span></tt>. These will give you standard vector
+iterators with the type <tt class="literal"><span class="pre">file</span></tt>.</p>
+<pre class="literal-block">
 struct file
 {
-	std::string path;
-	std::string filename;
-	entry::integer_type size;
+        std::string path;
+        std::string filename;
+        entry::integer_type size;
 };
 </pre>
-
-<p>
-If you need index-access to files you can use the <tt>num_files()</tt> and <tt>file_at()
-</tt> to access files using indices.
-</p>
-
-<p>
-The <tt>print()</tt> function is there for debug purposes only. It will print the info from
-the torrent file to the given outstream.
-</p>
-
-<p>
-<tt>name()</tt> returns the name of the torrent.
-</p>
-
-<p>
-The <tt>trackers()</tt> function will return a sorted vector of <tt>announce_entry</tt>.
+<p>If you need index-access to files you can use the <tt class="literal"><span class="pre">num_files()</span></tt> and <tt class="literal"><span class="pre">file_at()</span></tt>
+to access files using indices.</p>
+<p>The <tt class="literal"><span class="pre">print()</span></tt> function is there for debug purposes only. It will print the info from
+the torrent file to the given outstream.</p>
+<p><tt class="literal"><span class="pre">name()</span></tt> returns the name of the torrent.</p>
+<p>The <tt class="literal"><span class="pre">trackers()</span></tt> function will return a sorted vector of <tt class="literal"><span class="pre">announce_entry</span></tt>.
 Each announce entry contains a string, which is the tracker url, and a tier index. The
 tier index is the high-level priority. No matter which trackers that works or not, the
-ones with lower tier will always be tried before the one with higher tier number.
-</p>
-
-<pre>
+ones with lower tier will always be tried before the one with higher tier number.</p>
+<pre class="literal-block">
 struct announce_entry
 {
-	std::string url;
-	int tier;
+        std::string url;
+        int tier;
 };
 </pre>
-
-<p>
-The <tt>prioritize_tracker()</tt> is used internally to move a tracker to the front
+<p>The <tt class="literal"><span class="pre">prioritize_tracker()</span></tt> is used internally to move a tracker to the front
 of its tier group. i.e. It will never be moved pass a tracker with a different tier
 number. For more information about how multiple trackers are dealt with, see the
-<a href="http://home.elp.rr.com/tur/multitracker-spec.txt">specification</a>.
-</p>
-
-<p>
-<tt>total_size()</tt>, <tt>piece_length()</tt> and <tt>num_pieces()</tt> returns the total
+<a class="reference" href="http://home.elp.rr.com/tur/multitracker-spec.txt">specification</a>.</p>
+<p><tt class="literal"><span class="pre">total_size()</span></tt>, <tt class="literal"><span class="pre">piece_length()</span></tt> and <tt class="literal"><span class="pre">num_pieces()</span></tt> returns the total
 number of bytes the torrent-file represents (all the files in it), the number of byte for
 each piece and the total number of pieces, respectively. The difference between
-<tt>piece_size()</tt> and <tt>piece_length()</tt> is that <tt>piece_size()</tt> takes
+<tt class="literal"><span class="pre">piece_size()</span></tt> and <tt class="literal"><span class="pre">piece_length()</span></tt> is that <tt class="literal"><span class="pre">piece_size()</span></tt> takes
 the piece index as argument and gives you the exact size of that piece. It will always
-be the same as <tt>piece_length()</tt> except in the case of the last piece, which may
-be smaller.
-</p>
-
-<p>
-<tt>hash_for_piece()</tt> takes a piece-index and returns the 20-bytes sha1-hash for that
-piece and <tt>info_hash()</tt> returns the 20-bytes sha1-hash for the info-section of the
-torrent file. For more information on the <tt>sha1_hash</tt>, see the <a href="#big_number">big_number</a> class.
-</p>
-
-<p>
-<tt>comment()</tt> returns the comment associated with the torrent. If there's no comment,
-it will return an empty string. <tt>creation_date()</tt> returns a
-<a href="http://www.boost.org/libs/date_time/doc/class_ptime.html"><tt>boost::posix_time::ptime</tt></a>
+be the same as <tt class="literal"><span class="pre">piece_length()</span></tt> except in the case of the last piece, which may
+be smaller.</p>
+<p><tt class="literal"><span class="pre">hash_for_piece()</span></tt> takes a piece-index and returns the 20-bytes sha1-hash for that
+piece and <tt class="literal"><span class="pre">info_hash()</span></tt> returns the 20-bytes sha1-hash for the info-section of the
+torrent file. For more information on the <tt class="literal"><span class="pre">sha1_hash</span></tt>, see the <a class="reference" href="#big-number">big_number</a> class.</p>
+<p><tt class="literal"><span class="pre">comment()</span></tt> returns the comment associated with the torrent. If there's no comment,
+it will return an empty string. <tt class="literal"><span class="pre">creation_date()</span></tt> returns a <tt class="literal"><span class="pre">boost::posix_time::ptime_</span></tt>
 object, representing the time when this torrent file was created. If there's no timestamp
-in the torrent file, this will return a date of january 1:st 1970.
-</p>
-
-<h2><a name="torrent_handle"></a>torrent_handle</h2>
-
-<p>
-You will usually have to store your <tt>torrent_handle</tt>s somewhere, since it's the
+in the torrent file, this will return a date of january 1:st 1970.</p>
+</div>
+<div class="section" id="torrent-handle">
+<h2><a class="toc-backref" href="#id12" name="torrent-handle">torrent_handle</a></h2>
+<p>You will usually have to store your torrent handles somewhere, since it's the
 object through which you retrieve infromation about the torrent and aborts the torrent.
-Its declaration looks like this:
-</p>
-
-<pre>
+Its declaration looks like this:</p>
+<pre class="literal-block">
 struct torrent_handle
 {
-	torrent_handle();
+        torrent_handle();
 
-	torrent_status status() const;
-	void get_download_queue(std::vector&lt;partial_piece_info&gt;&amp; queue);
-	void get_peer_info(std::vector&lt;peer_info&gt;&amp; v);
+        torrent_status status() const;
+        void get_download_queue(std::vector&lt;partial_piece_info&gt;&amp; queue);
+        void get_peer_info(std::vector&lt;peer_info&gt;&amp; v);
 };
 </pre>
-
-<p>
-The default constructor will initialize the handle to an invalid state. Which means you cannot
+<p>The default constructor will initialize the handle to an invalid state. Which means you cannot
 perform any operation on it, unless you first assign it a valid handle. If you try to perform
-any operation they will simply return.
-</p>
-
-<h3>status()</h3>
-
-<p>
-<tt>status()</tt> will return a structure with information about the status of this
-torrent. It contains the following fields:
-</p>
-
-<pre>
+any operation they will simply return.</p>
+<div class="section" id="status">
+<h3><a class="toc-backref" href="#id13" name="status">status()</a></h3>
+<p><tt class="literal"><span class="pre">status()</span></tt> will return a structure with information about the status of this
+torrent. It contains the following fields:</p>
+<pre class="literal-block">
 struct torrent_status
 {
-	enum state_t
-	{
-		invalid_handle,
-		queued_for_checking,
-		checking_files,
-		downloading,
-		seeding
-	};
-	
-	state_t state;
-	float progress;
-	boost::posix_time::time_duration next_announce;
-	std::size_t total_download;
-	std::size_t total_upload;
+        enum state_t
+        {
+                invalid_handle,
+                queued_for_checking,
+                checking_files,
+                downloading,
+                seeding
+        };
+
+        state_t state;
+        float progress;
+        boost::posix_time::time_duration next_announce;
+        std::size_t total_download;
+        std::size_t total_upload;
+        std::vector&lt;bool&gt; pieces;
+        std::size_t total_done;
 };
 </pre>
-
-<p>
-<tt>progress</tt> is a value in the range [0, 1], that represents the progress of the
+<p><tt class="literal"><span class="pre">progress</span></tt> is a value in the range [0, 1], that represents the progress of the
 torrent's current task. It may be checking files or downloading. The torrent's
-current task is in the <tt>state</tt> member, it will be one of the following:
-</p>
-
-<table>
-	<tr>
-		<td>
-			<tt>invalid_handle</tt>
-		</td>
-		<td>
-			This will be the state if you called status on an uninitialized handle (a
-			handle that was constructed with the default constructor).
-		</td>
-	</tr>
-	<tr>
-		<td>
-			<tt>queued_for_checking</tt>
-		</td>
-		<td>
-			The torrent is in the queue for being checked. But there currently is another
-			torrent that are being checked. This torrent will wait for its turn.
-		</td>
-	</tr>
-	<tr>
-		<td>
-			<tt>checking_files</tt>
-		</td>
-		<td>
-			The torrent has not started its download yet, and is currently checking existing
-			files.
-		</td>
-	</tr>
-	<tr>
-		<td>
-			<tt>downloading</tt>
-		</td>
-		<td>
-			The torrent is being downloaded. This is the state most torrents will be in most
-			of the time. The progress meter will tell how much of the files that has been
-			downloaded.
-		</td>
-	</tr>
-	<tr>
-		<td>
-			<tt>seeding</tt>
-		</td>
-		<td>
-			In this state the torrent has finished downloading and is a pure seeder.
-		</td>
-	</tr>
+current task is in the <tt class="literal"><span class="pre">state</span></tt> member, it will be one of the following:</p>
+<table border class="table">
+<colgroup>
+<col width="28%" />
+<col width="72%" />
+</colgroup>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">invalid_handle</span></tt></td>
+<td>This will be the state if you called status on an
+uninitialized handle (a handle that was constructed
+with the default constructor).</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">queued_for_checking</span></tt></td>
+<td>The torrent is in the queue for being checked. But there
+currently is another torrent that are being checked.
+This torrent will wait for its turn.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">checking_files</span></tt></td>
+<td>The torrent has not started its download yet, and is
+currently checking existing files.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">downloading</span></tt></td>
+<td>The torrent is being downloaded. This is the state
+most torrents will be in most of the time. The progress
+meter will tell how much of the files that has been
+downloaded.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">seeding</span></tt></td>
+<td>In this state the torrent has finished downloading and
+is a pure seeder.</td>
+</tr>
+</tbody>
 </table>
-
-<p>
-<tt>next_announce</tt> is the time until the torrent will announce itself to the tracker.
-</p>
-
-<p>
-<tt>total_download</tt> and <tt>total_upload</tt> is the number of bytes downloaded and
-uploaded to all peers, accumulated.
-</p>
-
-<h3>get_download_queue()</h3>
-
-<p>
-<tt>get_download_queue()</tt> takes a non-const reference to a vector which it will fill
+<p><tt class="literal"><span class="pre">next_announce</span></tt> is the time until the torrent will announce itself to the tracker.</p>
+<p><tt class="literal"><span class="pre">total_download</span></tt> and <tt class="literal"><span class="pre">total_upload</span></tt> is the number of bytes downloaded and
+uploaded to all peers, accumulated, <em>this session</em> only.</p>
+<p><tt class="literal"><span class="pre">pieces</span></tt> is the bitmask that representw which pieces we have (set to true) and
+the pieces we don't have.</p>
+<p><tt class="literal"><span class="pre">total_done</span></tt> is the total number of bytes of the file(s) that we have.</p>
+</div>
+<div class="section" id="get-download-queue">
+<h3><a class="toc-backref" href="#id14" name="get-download-queue">get_download_queue()</a></h3>
+<p><tt class="literal"><span class="pre">get_download_queue()</span></tt> takes a non-const reference to a vector which it will fill
 information about pieces that are partially downloaded or not downloaded at all but partially
-requested. The entry in the vector (<tt>partial_piece_info</tt>) looks like this:
-</p>
-
-<pre>
+requested. The entry in the vector (<tt class="literal"><span class="pre">partial_piece_info</span></tt>) looks like this:</p>
+<pre class="literal-block">
 struct partial_piece_info
 {
-	enum { max_blocks_per_piece = <i>implementation-defined</i> };
-	int piece_index;
-	int blocks_in_piece;
-	std::bitset&lt;max_blocks_per_piece&gt; requested_blocks;
-	std::bitset&lt;max_blocks_per_piece&gt; finished_blocks;
-	peer_id peer[max_blocks_per_piece];
-	int num_downloads[max_blocks_per_piece];
+        enum { max_blocks_per_piece };
+        int piece_index;
+        int blocks_in_piece;
+        std::bitset&lt;max_blocks_per_piece&gt; requested_blocks;
+        std::bitset&lt;max_blocks_per_piece&gt; finished_blocks;
+        peer_id peer[max_blocks_per_piece];
+        int num_downloads[max_blocks_per_piece];
 };
 </pre>
-
-<p>
-<tt>piece_index</tt> is the index of the piece in question. <tt>blocks_in_piece</tt> is the
+<p><tt class="literal"><span class="pre">piece_index</span></tt> is the index of the piece in question. <tt class="literal"><span class="pre">blocks_in_piece</span></tt> is the
 number of blocks in this particular piece. This number will be the same for most pieces, but
-the last piece may have fewer blocks than the standard pieces.
-</p>
-
-<p>
-<tt>requested_blocks</tt> is a bitset with one bit per block in the piece. If a bit is set, it
+the last piece may have fewer blocks than the standard pieces.</p>
+<p><tt class="literal"><span class="pre">requested_blocks</span></tt> is a bitset with one bit per block in the piece. If a bit is set, it
 means that that block has been requested, but not necessarily fully downloaded yet. To know
-from whom the block has been requested, have a look in the <tt>peer</tt> array. The bit-index
-in the <tt>requested_blocks</tt> and <tt>finished_blocks</tt> correspons to the array-index into
-<tt>peers</tt> and <tt>num_downloads</tt>. The array of peers is contains the id of the
+from whom the block has been requested, have a look in the <tt class="literal"><span class="pre">peer</span></tt> array. The bit-index
+in the <tt class="literal"><span class="pre">requested_blocks</span></tt> and <tt class="literal"><span class="pre">finished_blocks</span></tt> correspons to the array-index into
+<tt class="literal"><span class="pre">peers</span></tt> and <tt class="literal"><span class="pre">num_downloads</span></tt>. The array of peers is contains the id of the
 peer the piece was requested from. If a piece hasn't been requested (the bit in
-<tt>requested_blocks</tt> is not set) the peer array entry will be undefined.
-</p>
-
-<p>
-The <tt>finished_blocks</tt> is a bitset where each bit says if the block is fully downloaded
-or not. And the <tt>num_downloads</tt> array says how many times that block has been downloaded.
+<tt class="literal"><span class="pre">requested_blocks</span></tt> is not set) the peer array entry will be undefined.</p>
+<p>The <tt class="literal"><span class="pre">finished_blocks</span></tt> is a bitset where each bit says if the block is fully downloaded
+or not. And the <tt class="literal"><span class="pre">num_downloads</span></tt> array says how many times that block has been downloaded.
 When a piece fails a hash verification, single blocks may be redownloaded to see if the hash teast
-may pass then.
-</p>
-
-<h3>get_peer_info()</h3>
-
-<p>
-<tt>get_peer_info()</tt> takes a reference to a vector that will be cleared and filled
+may pass then.</p>
+</div>
+<div class="section" id="get-peer-info">
+<h3><a class="toc-backref" href="#id15" name="get-peer-info">get_peer_info()</a></h3>
+<p><tt class="literal"><span class="pre">get_peer_info()</span></tt> takes a reference to a vector that will be cleared and filled
 with one entry for each peer connected to this torrent. Each entry contains information about
-that particular peer. It contains the following information:
-</p>
-
-<pre>
+that particular peer. It contains the following information:</p>
+<pre class="literal-block">
 struct peer_info
 {
-	enum
-	{
-		interesting = 0x1,
-		choked = 0x2,
-		remote_interested = 0x4,
-		remote_choked = 0x8
-	};
-	unsigned int flags;
-	address ip;
-	float up_speed;
-	float down_speed;
-	unsigned int total_download;
-	unsigned int total_upload;
-	peer_id id;
-	std::vector&lt;bool&gt; pieces;
-	int upload_limit;
+        enum
+        {
+                interesting = 0x1,
+                choked = 0x2,
+                remote_interested = 0x4,
+                remote_choked = 0x8
+        };
+        unsigned int flags;
+        address ip;
+        float up_speed;
+        float down_speed;
+        unsigned int total_download;
+        unsigned int total_upload;
+        peer_id id;
+        std::vector&lt;bool&gt; pieces;
+        int upload_limit;
 };
 </pre>
-
-<p>
-The <tt>flags</tt> attribute tells you in which state the peer is. It is set to
-any combination of the four enums above. Where <tt>interesting</tt> means that we
-are interested in pieces from this peer. <tt>choked</tt> means that <u>we</u> have
-choked this peer. <tt>remote_interested</tt> and <tt>remote_choked</tt> means the
+<p>The <tt class="literal"><span class="pre">flags</span></tt> attribute tells you in which state the peer is. It is set to
+any combination of the four enums above. Where <tt class="literal"><span class="pre">interesting</span></tt> means that we
+are interested in pieces from this peer. <tt class="literal"><span class="pre">choked</span></tt> means that <strong>we</strong> have
+choked this peer. <tt class="literal"><span class="pre">remote_interested</span></tt> and <tt class="literal"><span class="pre">remote_choked</span></tt> means the
 same thing but that the peer is interested in pieces from us and the peer has choked
-<u>us</u>.
-</p>
-
-<p>
-The <tt>ip</tt> field is the IP-address to this peer. Its type is a wrapper around the
-actual address and the port number. See <a href"#address">address</a> class.
-</p>
-
-<p>
-<tt>up_speed</tt> and <tt>down_speed</tt> is the current upload and download speed
-we have to and from this peer. These figures are updated aproximately once every second.
-</p>
-
-<p>
-<tt>total_download</tt> and <tt>total_upload</tt> are the total number of bytes downloaded
+<strong>us</strong>.</p>
+<p>The <tt class="literal"><span class="pre">ip</span></tt> field is the IP-address to this peer. Its type is a wrapper around the
+actual address and the port number. See <a class="reference" href="#address">address</a> class.</p>
+<p><tt class="literal"><span class="pre">up_speed</span></tt> and <tt class="literal"><span class="pre">down_speed</span></tt> is the current upload and download speed
+we have to and from this peer. These figures are updated aproximately once every second.</p>
+<p><tt class="literal"><span class="pre">total_download</span></tt> and <tt class="literal"><span class="pre">total_upload</span></tt> are the total number of bytes downloaded
 from and uploaded to this peer. These numbers do not include the protocol chatter, but only
-the payload data.
-</p>
-
-<p>
-<tt>id</tt> is the peer's id as used in the bit torrent protocol. This id can be used to
+the payload data.</p>
+<p><tt class="literal"><span class="pre">id</span></tt> is the peer's id as used in the bit torrent protocol. This id can be used to
 extract 'fingerprints' from the peer. Sometimes it can tell you which client the peer
-is using.
-</p>
-
-<p>
-<tt>pieces</tt> is a vector of booleans that has as many entries as there are pieces
+is using.</p>
+<p><tt class="literal"><span class="pre">pieces</span></tt> is a vector of booleans that has as many entries as there are pieces
 in the torrent. Each boolean tells you if the peer has that piece (if it's set to true)
-or if the peer miss that piece (set to false).
-</p>
+or if the peer miss that piece (set to false).</p>
+<p><tt class="literal"><span class="pre">upload_limit</span></tt> is the number of bytes per second we are allowed to send to this
+peer every second. It may be -1 if there's no limit.</p>
+</div>
+</div>
+<div class="section" id="address">
+<h2><a class="toc-backref" href="#id16" name="address">address</a></h2>
+<p>The <tt class="literal"><span class="pre">address</span></tt> class represents a name of a network endpoint (usually referred to as
+IP-address) and a port number. This is the same thing as a <tt class="literal"><span class="pre">sockaddr_in</span></tt> would contain.
+Its declaration looks like this:</p>
+<pre class="literal-block">
+class address
+{
+public:
+        address();
+        address(
+                  unsigned char a
+                , unsigned char b
+                , unsigned char c
+                , unsigned char d
+                , unsigned short  port);
+        address(unsigned int addr, unsigned short port);
+        address(const std::string&amp; addr, unsigned short port);
+        address(const address&amp; a);
+        ~address();
 
-<p>
-<tt>upload_limit</tt> is the number of bytes per second we are allowed to send to this
-peer every second. It may be -1 if there's no limit.
-</p>
+        std::string as_string() const;
+        unsigned int ip() const;
+        unsigned short port() const;
 
-<p>
-TODO: address
-</p>
-
-<h2>http_settings</h2>
-
-<p>
-You have some control over tracker requests through the <tt>http_settings</tt> object. You
-create it and fill it with your settings and the use <tt>session::set_http_settings()</tt>
+        bool operator&lt;(const address&amp; a) const;
+        bool operator!=(const address&amp; a) const;
+        bool operator==(const address&amp; a) const;
+};
+</pre>
+<p>It is less-than comparable to make it possible to use it as a key in a map. <tt class="literal"><span class="pre">as_string()</span></tt> may block
+while it does the DNS lookup, it returns a string that points to the address represented by the object.</p>
+<p><tt class="literal"><span class="pre">ip()</span></tt> will return the 32-bit ip-address as an integer. <tt class="literal"><span class="pre">port()</span></tt> returns the port number.</p>
+</div>
+<div class="section" id="http-settings">
+<h2><a class="toc-backref" href="#id17" name="http-settings">http_settings</a></h2>
+<p>You have some control over tracker requests through the <tt class="literal"><span class="pre">http_settings</span></tt> object. You
+create it and fill it with your settings and the use <tt class="literal"><span class="pre">session::set_http_settings()</span></tt>
 to apply them. You have control over proxy and authorization settings and also the user-agent
-that will be sent to the tracker. The user-agent is a good way to identify your client.
-</p>
-
-<pre>
+that will be sent to the tracker. The user-agent is a good way to identify your client.</p>
+<pre class="literal-block">
 struct http_settings
 {
-	http_settings();
-	std::string proxy_ip;
-	int proxy_port;
-	std::string proxy_login;
-	std::string proxy_password;
-	std::string user_agent;
-	int tracker_timeout;
-	int tracker_maximum_response_length;
+        http_settings();
+        std::string proxy_ip;
+        int proxy_port;
+        std::string proxy_login;
+        std::string proxy_password;
+        std::string user_agent;
+        int tracker_timeout;
+        int tracker_maximum_response_length;
 };
 </pre>
-
-<p>
-<tt>tracker_timeout</tt> is the number of seconds the tracker connection will
+<p><tt class="literal"><span class="pre">tracker_timeout</span></tt> is the number of seconds the tracker connection will
 wait until it considers the tracker to have timed-out. Default value is 10
-seconds.
-</p>
-
-<p>
-<tt>tracker_maximum_response_length</tt> is the maximum number of bytes in a
+seconds.</p>
+<p><tt class="literal"><span class="pre">tracker_maximum_response_length</span></tt> is the maximum number of bytes in a
 tracker response. If a response size passes this number it will be rejected
 and the connection will be closed. On gzipped responses this size is measured
 on the uncompressed data. So, if you get 20 bytes of gzip response that'll
 expand to 2 megs, it will be interrupted before the entire response has been
 uncompressed (given your limit is lower than 2 megs). Default limit is
-1 megabyte.
-</p>
-
-<h2><a name="big_number"></a>big_number</h2>
-
-<p>
-Both the <tt>peer_id</tt> and <tt>sha1_hash</tt> types are typedefs of the class
-<tt>big_number</tt>. It represents 20 bytes of data. Its synopsis follows:
-</p>
-
-<pre>
+1 megabyte.</p>
+</div>
+<div class="section" id="big-number">
+<h2><a class="toc-backref" href="#id18" name="big-number">big_number</a></h2>
+<p>Both the <tt class="literal"><span class="pre">peer_id</span></tt> and <tt class="literal"><span class="pre">sha1_hash</span></tt> types are typedefs of the class
+<tt class="literal"><span class="pre">big_number</span></tt>. It represents 20 bytes of data. Its synopsis follows:</p>
+<pre class="literal-block">
 class big_number
 {
 public:
-	bool operator==(const big_number&amp; n) const;
-	bool operator!=(const big_number&amp; n) const;
-	bool operator&lt;(const big_number&amp; n) const;
+        bool operator==(const big_number&amp; n) const;
+        bool operator!=(const big_number&amp; n) const;
+        bool operator&lt;(const big_number&amp; n) const;
 
-	const unsigned char* begin() const;
-	const unsigned char* end() const;
+        const unsigned char* begin() const;
+        const unsigned char* end() const;
 
-	unsigned char* begin();
-	unsigned char* end();
+        unsigned char* begin();
+        unsigned char* end();
 };
 </pre>
-
-<p>
-The iterators gives you access to individual bytes.
-</p>
-
-<h2>hasher</h2>
-
-<p>
-This class creates sha1-hashes. Its declaration looks like this:
-</p>
-
-<pre>
+<p>The iterators gives you access to individual bytes.</p>
+</div>
+<div class="section" id="hasher">
+<h2><a class="toc-backref" href="#id19" name="hasher">hasher</a></h2>
+<p>This class creates sha1-hashes. Its declaration looks like this:</p>
+<pre class="literal-block">
 class hasher
 {
 public:
-	hasher();
+        hasher();
 
-	void update(const char* data, unsigned int len);
-	sha1_hash final();
-	void reset();
+        void update(const char* data, unsigned int len);
+        sha1_hash final();
+        void reset();
 };
 </pre>
-
-<p>
-You use it by first instantiating it, then call <tt>update()</tt> to feed it
+<p>You use it by first instantiating it, then call <tt class="literal"><span class="pre">update()</span></tt> to feed it
 with data. i.e. you don't have to keep the entire buffer of which you want to
 create the hash in memory. You can feed the hasher parts of it at a time. When
-You have fed the hasher with all the data, you call <tt>final()</tt> and it
-will return the sha1-hash of the data.
-</p>
+You have fed the hasher with all the data, you call <tt class="literal"><span class="pre">final()</span></tt> and it
+will return the sha1-hash of the data.</p>
+<p>If you want to reuse the hasher object once you have created a hash, you have to
+call <tt class="literal"><span class="pre">reset()</span></tt> to reinitialize it.</p>
+<p>The sha1-algorithm used was implemented by Steve Reid and released as public domain.
+For more info, see <tt class="literal"><span class="pre">src/sha1.c</span></tt>.</p>
+</div>
+<div class="section" id="example-usage">
+<h2><a class="toc-backref" href="#id20" name="example-usage">example usage</a></h2>
+<div class="section" id="dump-torrent">
+<h3><a class="toc-backref" href="#id21" name="dump-torrent">dump_torrent</a></h3>
+<p>This is an example of a program that will take a torrent-file as a parameter and
+print information about it to std out:</p>
+<pre class="literal-block">
+#include &lt;iostream&gt;
+#include &lt;fstream&gt;
+#include &lt;iterator&gt;
+#include &lt;exception&gt;
+#include &lt;vector&gt;
+#include &lt;iomanip&gt;
 
-<p>
-If you want to reuse the hasher object once you have created a hash, you have to
-call <tt>reset()</tt> to reinitialize it.
-</p>
+#include &quot;libtorrent/entry.hpp&quot;
+#include &quot;libtorrent/bencode.hpp&quot;
+#include &quot;libtorrent/session.hpp&quot;
+#include &quot;libtorrent/http_settings.hpp&quot;
 
-<p>
-The sha1-algorithm used was implemented by Steve Reid and released as public domain.
-For more info, see <tt>src/sha1.c</tt>.
-</p>
 
-<h1>Feedback</h1>
+int main(int argc, char* argv[])
+{
+        using namespace libtorrent;
 
-<p>
-There's a <a href="http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss">mailing list</a>.
-</p>
+        if (argc != 2)
+        {
+                std::cerr &lt;&lt; &quot;usage: dump_torrent torrent-file\n&quot;;
+                return 1;
+        }
 
-<p>
-You can usually find me as hydri in <tt>#btports @ irc.freenode.net</tt>.
-</p>
+        try
+        {
+                std::ifstream in(argv[1], std::ios_base::binary);
+                in.unsetf(std::ios_base::skipws);
+                entry e = bdecode(std::istream_iterator&lt;char&gt;(in), std::istream_iterator&lt;char&gt;());
+                torrent_info t(e);
 
-<h1>Credits</h1>
+                // print info about torrent
+                std::cout &lt;&lt; &quot;\n\n----- torrent file info -----\n\n&quot;;
+                std::cout &lt;&lt; &quot;trackers:\n&quot;;
+                for (std::vector&lt;announce_entry&gt;::const_iterator i = t.trackers().begin();
+                        i != t.trackers().end();
+                        ++i)
+                {
+                        std::cout &lt;&lt; i-&gt;tier &lt;&lt; &quot;: &quot; &lt;&lt; i-&gt;url &lt;&lt; &quot;\n&quot;;
+                }
 
-<p>
-Copyright &copy; 2003 Arvid Norberg
-</p>
+                std::cout &lt;&lt; &quot;number of pieces: &quot; &lt;&lt; t.num_pieces() &lt;&lt; &quot;\n&quot;;
+                std::cout &lt;&lt; &quot;piece length: &quot; &lt;&lt; t.piece_length() &lt;&lt; &quot;\n&quot;;
+                std::cout &lt;&lt; &quot;files:\n&quot;;
+                for (torrent_info::file_iterator i = t.begin_files();
+                        i != t.end_files();
+                        ++i)
+                {
+                        std::cout &lt;&lt; &quot;  &quot; &lt;&lt; std::setw(11) &lt;&lt; i-&gt;size
+                        &lt;&lt; &quot;  &quot; &lt;&lt; i-&gt;path &lt;&lt; &quot; &quot; &lt;&lt; i-&gt;filename &lt;&lt; &quot;\n&quot;;
+                }
+                
+        }
+        catch (std::exception&amp; e)
+        {
+                std::cout &lt;&lt; e.what() &lt;&lt; &quot;\n&quot;;
+        }
 
-<p>
-	<a href="http://sourceforge.net/">
-	<img style="border:0; width: 88px; height: 31px"
-	src="http://sourceforge.net/sflogo.php?group_id=79942"
-	alt="SourceForge" /></a>
+        return 0;
+}
+</pre>
+</div>
+<div class="section" id="simple-client">
+<h3><a class="toc-backref" href="#id22" name="simple-client">simple client</a></h3>
+<p>This is a simple client. It doesn't have much output to keep it simple:</p>
+<pre class="literal-block">
+#include &lt;iostream&gt;
+#include &lt;fstream&gt;
+#include &lt;iterator&gt;
+#include &lt;exception&gt;
 
-	<a href="http://validator.w3.org/check/referer">
-	<img style="border:0;width:88px;height:31px"
-	src="http://www.w3.org/Icons/valid-html401"
-	alt="Valid HTML 4.01!"></a>
+#include &lt;boost/format.hpp&gt;
+#include &lt;boost/date_time/posix_time/posix_time.hpp&gt;
 
-	<a href="http://jigsaw.w3.org/css-validator/">
-	<img style="border:0;width:88px;height:31px"
-	src="http://jigsaw.w3.org/css-validator/images/vcss"
-	alt="Valid CSS!"></a>
+#include &quot;libtorrent/entry.hpp&quot;
+#include &quot;libtorrent/bencode.hpp&quot;
+#include &quot;libtorrent/session.hpp&quot;
+#include &quot;libtorrent/http_settings.hpp&quot;
 
-</p>
+int main(int argc, char* argv[])
+{
+        using namespace libtorrent;
 
-</body></html>
+        if (argc != 2)
+        {
+                std::cerr &lt;&lt; &quot;usage: ./simple_cient torrent-file\n&quot;
+                        &quot;to stop the client, press return.\n&quot;;
+                return 1;
+        }
 
+        try
+        {
+                session s(6881, &quot;E\x1&quot;);
+
+                std::ifstream in(argv[1], std::ios_base::binary);
+                in.unsetf(std::ios_base::skipws);
+                entry e = bdecode(std::istream_iterator&lt;char&gt;(in), std::istream_iterator&lt;char&gt;());
+                torrent_info t(e);
+                s.add_torrent(t, &quot;&quot;);
+                        
+                // wait for the user to end
+                char a;
+                std::cin.unsetf(std::ios_base::skipws);
+                std::cin &gt;&gt; a;
+        }
+        catch (std::exception&amp; e)
+        {
+                std::cout &lt;&lt; e.what() &lt;&lt; &quot;\n&quot;;
+        }
+        return 0;
+}
+</pre>
+</div>
+</div>
+</div>
+<div class="section" id="feedback">
+<h1><a class="toc-backref" href="#id23" name="feedback">Feedback</a></h1>
+<p>There's a <a class="reference" href="http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss">mailing list</a>.</p>
+<p>You can usually find me as hydri in <tt class="literal"><span class="pre">#btports</span> <span class="pre">&#64;</span> <span class="pre">irc.freenode.net</span></tt>.</p>
+</div>
+<div class="section" id="aknowledgements">
+<h1><a class="toc-backref" href="#id24" name="aknowledgements">Aknowledgements</a></h1>
+<p>Written by Arvid Norberg. Copyright (c) 2003 Arvid Norberg</p>
+</div>
+</div>
+</body>
+</html>

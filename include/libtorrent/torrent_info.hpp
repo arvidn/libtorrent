@@ -51,8 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
  *
  */
 
-// TODO: add std::string comment()
-
 namespace libtorrent
 {
 
