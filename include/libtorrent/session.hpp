@@ -170,7 +170,16 @@ namespace libtorrent
 			{}
 
 			void operator()()
-			{ m_ses->run(m_listen_port); }
+			{
+				try
+				{
+					m_ses->run(m_listen_port);
+				}
+				catch(...)
+				{
+					assert(false);
+				}
+			}
 
 			session_impl* m_ses;
 			int m_listen_port;
