@@ -1294,11 +1294,80 @@ namespace {
 
 namespace libtorrent {
 
+	struct thread_safe_storage
+	{
+		thread_safe_storage(std::size_t n)
+			: slots(n, false)
+		{}
+
+		boost::mutex mutex;
+		boost::condition condition;
+		std::vector<bool> slots;
+	};
+
+	struct slot_lock
+	{
+		slot_lock(thread_safe_storage& s, int slot_)
+			: storage_(s)
+			, slot(slot_)
+		{
+			boost::mutex::scoped_lock lock(storage_.mutex);
+
+			while (storage_.slots[slot])
+				storage_.condition.wait(lock);
+			storage_.slots[slot] = true;
+		}
+
+		~slot_lock()
+		{
+			storage_.slots[slot] = false;
+			storage_.condition.notify_all();
+		}
+
+		thread_safe_storage& storage_;
+		int slot;
+	};
+
+	struct storage::pimpl : thread_safe_storage
+	{
+		pimpl(const torrent_info& info, const fs::path& path)
+			: thread_safe_storage(info.num_pieces())
+			, info(info)
+			, save_path(path)
+		{}
+
+		pimpl(const pimpl& x)
+			: thread_safe_storage(x.info.num_pieces())
+			, info(x.info)
+			, save_path(x.save_path)
+		{}
+
+		const torrent_info& info;
+		const boost::filesystem::path save_path;
+	};
+
 	storage::storage(const torrent_info& info, const fs::path& path)
-		: m_info(info)
-		, m_save_path(path)
+		: m_pimpl(new pimpl(info, path))
 	{
 		assert(info.begin_files() != info.end_files());
+	}
+
+	storage::~storage() 
+	{}
+
+	storage::storage(const storage& other)
+		: m_pimpl(new pimpl(*other.m_pimpl))
+	{}
+
+	void storage::swap(storage& other)
+	{
+		std::swap(m_pimpl, other.m_pimpl);
+	}
+
+	void storage::operator=(const storage& other)
+	{
+		storage tmp(other);
+		tmp.swap(*this);
 	}
 
 	storage::size_type storage::read(
@@ -1308,14 +1377,16 @@ namespace libtorrent {
   	  , size_type size)
 	{
 		assert(size > 0);
+
+		slot_lock lock(*m_pimpl, slot);
 		
-		size_type start = slot * m_info.piece_length() + offset;
+		size_type start = slot * m_pimpl->info.piece_length() + offset;
 
 		// find the file iterator and file offset
 		size_type file_offset = start;
 		std::vector<file>::const_iterator file_iter;
 
-		for (file_iter = m_info.begin_files();;)
+		for (file_iter = m_pimpl->info.begin_files();;)
 		{
 			if (file_offset < file_iter->size)
 				break;
@@ -1325,7 +1396,7 @@ namespace libtorrent {
 		}
 
 		fs::ifstream in(
-			m_save_path / file_iter->path / file_iter->filename
+			m_pimpl->save_path / file_iter->path / file_iter->filename
 			, std::ios_base::binary
 		);
 
@@ -1336,7 +1407,7 @@ namespace libtorrent {
 		assert(size_type(in.tellg()) == file_offset);
 
 		size_type left_to_read = size;
-		size_type slot_size = m_info.piece_size(slot);
+		size_type slot_size = m_pimpl->info.piece_size(slot);
 
 		if (offset + left_to_read > slot_size)
 			left_to_read = slot_size - offset;
@@ -1366,7 +1437,7 @@ namespace libtorrent {
 			if (left_to_read > 0)
 			{
 				++file_iter;
-				fs::path path = m_save_path / file_iter->path / file_iter->filename;
+				fs::path path = m_pimpl->save_path / file_iter->path / file_iter->filename;
 
 				file_offset = 0;
 				in.close();
@@ -1382,13 +1453,15 @@ namespace libtorrent {
 	{
 		assert(size > 0);
 
-		size_type start = slot * m_info.piece_length() + offset;
+		slot_lock lock(*m_pimpl, slot);
+
+		size_type start = slot * m_pimpl->info.piece_length() + offset;
 
 		// find the file iterator and file offset
 		size_type file_offset = start;
 		std::vector<file>::const_iterator file_iter;
 
-		for (file_iter = m_info.begin_files();;)
+		for (file_iter = m_pimpl->info.begin_files();;)
 		{
 			if (file_offset < file_iter->size)
 				break;
@@ -1397,7 +1470,7 @@ namespace libtorrent {
 			++file_iter;
 		}
 
-		fs::path path(m_save_path / file_iter->path / file_iter->filename);
+		fs::path path(m_pimpl->save_path / file_iter->path / file_iter->filename);
 		fs::ofstream out;
 
 		if (fs::exists(path))
@@ -1412,7 +1485,7 @@ namespace libtorrent {
 		assert(file_offset == out.tellp());
 
 		size_type left_to_write = size;
-		size_type slot_size = m_info.piece_size(slot);
+		size_type slot_size = m_pimpl->info.piece_size(slot);
 
 		if (offset + left_to_write > slot_size)
 			left_to_write = slot_size - offset;
@@ -1446,9 +1519,9 @@ namespace libtorrent {
 			{
 				++file_iter;
 
-				assert(file_iter != m_info.end_files());
+				assert(file_iter != m_pimpl->info.end_files());
 
-				fs::path path = m_save_path / file_iter->path / file_iter->filename;
+				fs::path path = m_pimpl->save_path / file_iter->path / file_iter->filename;
 
 				file_offset = 0;
 				out.close();

@@ -211,6 +211,7 @@ namespace libtorrent
 		torrent* m_torrent;
 	};
 */
+	// provides thread safe read/write operations on a torrent storage
 	class storage
 	{
 	public:
@@ -218,17 +219,24 @@ namespace libtorrent
 			const torrent_info& info
 		  , const boost::filesystem::path& path);
 
+		~storage();
+
+		storage(const storage&);
+		void operator=(const storage&);
+
+		void swap(storage&);
+
 		typedef entry::integer_type size_type;
 
 		size_type read(char* buf, int slot, size_type offset, size_type size);
 		void write(const char* buf, int slot, size_type offset, size_type size);
 
 	private:
-		const torrent_info& m_info;
-		const boost::filesystem::path m_save_path;
+		struct pimpl;
+		std::auto_ptr<pimpl> m_pimpl;
 	};
 
-	class piece_manager
+	class piece_manager : boost::noncopyable
 	{
 	public:
 
