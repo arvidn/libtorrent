@@ -98,7 +98,7 @@ namespace libtorrent
 		// this will close all open files that are opened for
 		// writing. This is called when a torrent has finished
 		// downloading.
-		void release();
+		void release_files();
 
 #ifndef NDEBUG
 		// overwrites some slots with the
@@ -126,7 +126,7 @@ namespace libtorrent
 		  , detail::piece_checker_data& data
 		  , std::vector<bool>& pieces);
 
-		void release();
+		void release_files();
 
 		void allocate_slots(int num_slots);
 		void mark_failed(int index);
