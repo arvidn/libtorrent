@@ -482,7 +482,7 @@ The ``torrent_info`` has the following synopsis::
 		torrent_info(const entry& torrent_file)
 		torrent_info(int piece_size, const char* name);
 
-		entry create_torrent(const char* created_by = 0) const;
+		entry create_torrent() const;
 		void set_comment(char const* str);
 		void set_creator(char const* str);
 		void set_hash(int index, const sha1_hash& h);

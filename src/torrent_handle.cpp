@@ -75,6 +75,64 @@ namespace libtorrent
 
 	namespace
 	{
+#if defined(_MSC_VER) && _MSC_VER < 1300
+
+		template<class T>
+		struct transform_void{ typedef T type; };
+
+		template<>
+		struct transform_void<void> { typedef int type; };
+
+		template<class Ret>
+		struct void_call_wrapper
+		{
+			template<class F>
+			static Ret call(F f, torrent& t)
+			{
+				return f(t);
+			}
+		};
+
+		template<>
+		struct void_call_wrapper<void>
+		{
+			template<class F>
+			static int call(F f, torrent& t)
+			{
+				f(t);
+				return 0;
+			}
+		};
+
+		template<class Ret, class F>
+			transform_void<Ret>::type call_member(
+			detail::session_impl* ses
+			, detail::checker_impl* chk
+			, sha1_hash const& hash
+			, F f)
+		{
+			typedef typename transform_void<Ret>::type ret;
+			if (ses == 0) throw invalid_handle();
+
+			{
+				boost::mutex::scoped_lock l(ses->m_mutex);
+				torrent* t = ses->find_torrent(hash);
+				if (t != 0) return void_call_wrapper<Ret>::call(f, *t);
+			}
+
+
+			if (chk)
+			{
+				boost::mutex::scoped_lock l(chk->m_mutex);
+
+				detail::piece_checker_data* d = chk->find_torrent(hash);
+				if (d != 0) return void_call_wrapper<Ret>::call(f, *d->torrent_ptr);
+			}
+			throw invalid_handle();
+		}
+
+#else
+
 		template<class Ret, class F>
 		Ret call_member(
 			detail::session_impl* ses
@@ -100,6 +158,8 @@ namespace libtorrent
 			}
 			throw invalid_handle();
 		}
+#endif
+	
 	}
 
 #ifndef NDEBUG
