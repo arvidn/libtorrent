@@ -71,13 +71,14 @@ ZLIB_SOURCES =
 	zutil.c
 	;
 
+LIBS = ;
 
 # some windows specific settings
 
 	if [ os.name ] = NT
 	{
-#		lib wsock32 : : <name>wsock32.lib ;
-		REQUIREMENTS += <library>wsock32.lib ;
+		lib wsock32 : : <name>wsock32.lib ;
+		LIBS += wsock32 ;
 		SOURCES += file_win.cpp ;
 	}
 	else
@@ -97,6 +98,7 @@ lib torrent
 	:
 	src/$(SOURCES)
 	zlib/$(ZLIB_SOURCES)
+	$(LIBS)
 	:
 	<threading>multi
 	<link>static
