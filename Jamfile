@@ -1,0 +1,38 @@
+SOURCES =
+	entry.cpp
+	peer_connection.cpp
+	piece_picker.cpp
+	policy.cpp
+	session.cpp
+#	socket_bsd.cpp
+	socket_win.cpp
+	stat.cpp
+	storage.cpp
+	torrent.cpp
+	torrent_info.cpp
+	url_handler.cpp
+	sha1.c
+	;
+
+lib torrent
+	: src/$(SOURCES)
+	: <include>$(BOOST_ROOT)
+	  <sysinclude>$(BOOST_ROOT)
+	  <include>./include
+	  <include>./
+	  <threading>multi
+	  <link>static
+	: debug release
+	;
+
+
+#exe torrent_test
+#	: src/main.cpp <lib>torrent
+#	  $(BOOST_ROOT)/libs/filesystem/build//boost_filesystem
+#	: <include>$(BOOST_ROOT)
+#	  <sysinclude>$(BOOST_ROOT)
+#	  <include>./
+#	  <threading>multi
+#	: debug release
+#	;
+
