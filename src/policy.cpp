@@ -548,8 +548,8 @@ namespace libtorrent
 		// remove old disconnected peers from the list
 		m_peers.erase(
 			std::remove_if(m_peers.begin()
-			, m_peers.end()
-			, old_disconnected_peer())
+				, m_peers.end()
+				, old_disconnected_peer())
 			, m_peers.end());
 
 		// -------------------------------------
@@ -747,7 +747,7 @@ namespace libtorrent
 		// if the connection comes from the tracker,
 		// it's probably just a NAT-check. Ignore the
 		// num connections constraint then.
-		// TODO: mske sure this works
+		// TODO: make sure this works
 		// TODO: only allow _one_ connection to use this
 		// override at a time
 		if (m_torrent->num_peers() >= m_max_connections

@@ -10,6 +10,37 @@
 <body>
 <div class="document" id="bittorrent-udp-tracker-protocol-extension">
 <h1 class="title">Bittorrent udp-tracker protocol extension</h1>
+<div class="contents topic" id="contents">
+<p class="topic-title"><a name="contents">Contents</a></p>
+<ul class="simple">
+<li><a class="reference" href="#introduction" id="id6" name="id6">introduction</a></li>
+<li><a class="reference" href="#connecting" id="id7" name="id7">connecting</a><ul>
+<li><a class="reference" href="#client-sends-packet" id="id8" name="id8">Client sends packet:</a></li>
+<li><a class="reference" href="#server-replies-with-packet" id="id9" name="id9">Server replies with packet:</a></li>
+</ul>
+</li>
+<li><a class="reference" href="#announcing" id="id10" name="id10">announcing</a><ul>
+<li><a class="reference" href="#id2" id="id11" name="id11">Client sends packet:</a></li>
+<li><a class="reference" href="#id3" id="id12" name="id12">Server replies with packet:</a></li>
+</ul>
+</li>
+<li><a class="reference" href="#scraping" id="id13" name="id13">scraping</a><ul>
+<li><a class="reference" href="#id4" id="id14" name="id14">Client sends packet:</a></li>
+<li><a class="reference" href="#id5" id="id15" name="id15">Server replies with packet:</a></li>
+</ul>
+</li>
+<li><a class="reference" href="#errors" id="id16" name="id16">errors</a><ul>
+<li><a class="reference" href="#server-replies-packet" id="id17" name="id17">server replies packet:</a></li>
+</ul>
+</li>
+<li><a class="reference" href="#actions" id="id18" name="id18">actions</a></li>
+<li><a class="reference" href="#extensions" id="id19" name="id19">extensions</a></li>
+<li><a class="reference" href="#authentication" id="id20" name="id20">authentication</a></li>
+<li><a class="reference" href="#credits" id="id21" name="id21">credits</a></li>
+</ul>
+</div>
+<div class="section" id="introduction">
+<h1><a name="introduction">introduction</a></h1>
 <p>A tracker with the protocol &quot;udp://&quot; in its URI
 is supposed to be contacted using this protocol.</p>
 <p>This protocol is supported by
@@ -22,6 +53,7 @@ are specified with ANSI-C standard types.</p>
 <p>If no response to a request is received within 15 seconds, resend
 the request. If no reply has been received after 60 seconds, stop
 retrying.</p>
+</div>
 <div class="section" id="connecting">
 <h1><a name="connecting">connecting</a></h1>
 <div class="section" id="client-sends-packet">
@@ -181,35 +213,9 @@ in the reply. Use -1 for default.</td>
 <td>port</td>
 <td>The port you're listening on.</td>
 </tr>
-</tbody>
-</table>
-<p>If the server requires authorization, the following structure has to be
-appended on the announce packet.</p>
-<table border class="table">
-<colgroup>
-<col width="18%" />
-<col width="28%" />
-<col width="54%" />
-</colgroup>
-<thead valign="bottom">
-<tr><th>size</th>
-<th>name</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody valign="top">
-<tr><td>uint8_t[20]</td>
-<td>passwd_hash</td>
-<td>The sha1-hash of the announce packet
-with the password appended. The
-announce message here means the
-mandatory part, not including this
-authentication appendix.</td>
-</tr>
-<tr><td>int8_t[]</td>
-<td>username</td>
-<td>The rest of the packet is the
-username.</td>
+<tr><td>uint16_t</td>
+<td>extensions</td>
+<td>See <a class="reference" href="#extensions">extensions</a></td>
 </tr>
 </tbody>
 </table>
@@ -315,9 +321,18 @@ scrape.</td>
 <td>transaction_id</td>
 <td>Randomized by client.</td>
 </tr>
+<tr><td>int16_t</td>
+<td>num_info_hashes</td>
+<td>The number of info-hashes that will
+follow.</td>
+</tr>
+<tr><td>uint16_t</td>
+<td>extensions</td>
+<td>See <a class="reference" href="#extensions">extensions</a>.</td>
+</tr>
 </tbody>
 </table>
-<p>The rest of the packet contains a variable number of the following structure:</p>
+<p>The following structure is repeated <tt class="literal"><span class="pre">num_info_hashes</span></tt> times:</p>
 <table border class="table">
 <colgroup>
 <col width="18%" />
@@ -444,6 +459,53 @@ describing the error.</td>
 <li>error = 3 (only in server replies)</li>
 </ul>
 </blockquote>
+</div>
+<div class="section" id="extensions">
+<h1><a name="extensions">extensions</a></h1>
+<p>The extensions field is a bitmask. The following
+bits are assigned:</p>
+<blockquote>
+<ul class="simple">
+<li>1 = <a class="reference" href="#authentication">authentication</a>.</li>
+</ul>
+</blockquote>
+</div>
+<div class="section" id="authentication">
+<h1><a name="authentication">authentication</a></h1>
+<p>The packet will have an authentication part
+appended to it. It has the following format:</p>
+<table border class="table">
+<colgroup>
+<col width="18%" />
+<col width="28%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th>size</th>
+<th>name</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>int8_t</td>
+<td>username_length</td>
+<td>The number of characters in the
+username.</td>
+</tr>
+<tr><td>int8_t[]</td>
+<td>username</td>
+<td>The username, the number of characters
+as specified in the previous field.</td>
+</tr>
+<tr><td>uint8_t[20]</td>
+<td>passwd_hash</td>
+<td>sha1(packet + sha1(password))
+The packet in this case means the
+entire packet except these 20 bytes
+that are the password hash.</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="section" id="credits">
 <h1><a name="credits">credits</a></h1>

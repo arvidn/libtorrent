@@ -2,6 +2,12 @@
 Bittorrent udp-tracker protocol extension
 =========================================
 
+.. contents::
+
+
+introduction
+++++++++++++
+
 A tracker with the protocol "udp://" in its URI
 is supposed to be contacted using this protocol.
 
@@ -113,21 +119,7 @@ Client sends packet:
 +-------------+---------------------+----------------------------------------+
 | uint16_t    | port                | The port you're listening on.          |
 +-------------+---------------------+----------------------------------------+
-
-If the server requires authorization, the following structure has to be
-appended on the announce packet.
-
-+-------------+---------------------+----------------------------------------+
-| size        | name                | description                            |
-+=============+=====================+========================================+
-| uint8_t[20] | passwd_hash         | The sha1-hash of the announce packet   |
-|             |                     | with the password appended. The        |
-|             |                     | announce message here means the        |
-|             |                     | mandatory part, not including this     |
-|             |                     | authentication appendix.               |
-+-------------+---------------------+----------------------------------------+
-| int8_t[]    | username            | The rest of the packet is the          |
-|             |                     | username.                              |
+| uint16_t    | extensions          | See extensions_                        |
 +-------------+---------------------+----------------------------------------+
 
 
@@ -184,8 +176,13 @@ Client sends packet:
 +-------------+---------------------+----------------------------------------+
 | int32_t     | transaction_id      | Randomized by client.                  |
 +-------------+---------------------+----------------------------------------+
+| int16_t     | num_info_hashes     | The number of info-hashes that will    |
+|             |                     | follow.                                |
++-------------+---------------------+----------------------------------------+
+| uint16_t    | extensions          | See extensions_.                       |
++-------------+---------------------+----------------------------------------+
 
-The rest of the packet contains a variable number of the following structure:
+The following structure is repeated ``num_info_hashes`` times:
 
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
@@ -221,6 +218,7 @@ The rest of the packet contains a variable number of the following structures:
 |             |                     | leechers.                              |
 +-------------+---------------------+----------------------------------------+
 
+
 errors
 ++++++
 
@@ -251,6 +249,38 @@ The action fields has the following encoding:
 	* announce = 1
 	* scrape = 2
 	* error = 3 (only in server replies)
+
+
+extensions
+++++++++++
+
+The extensions field is a bitmask. The following
+bits are assigned:
+
+	* 1 = authentication_.
+
+
+
+authentication
+++++++++++++++
+
+The packet will have an authentication part
+appended to it. It has the following format:
+
++-------------+---------------------+----------------------------------------+
+| size        | name                | description                            |
++=============+=====================+========================================+
+| int8_t      | username_length     | The number of characters in the        |
+|             |                     | username.                              |
++-------------+---------------------+----------------------------------------+
+| int8_t[]    | username            | The username, the number of characters |
+|             |                     | as specified in the previous field.    |
++-------------+---------------------+----------------------------------------+
+| uint8_t[20] | passwd_hash         | sha1(packet + sha1(password))          |
+|             |                     | The packet in this case means the      |
+|             |                     | entire packet except these 20 bytes    |
+|             |                     | that are the password hash.            |
++-------------+---------------------+----------------------------------------+
 
 
 credits
