@@ -250,7 +250,7 @@ namespace libtorrent
 				identity << "Shadow ";
 
 			// ABC
-			if (std::equal(f->id, f->id+1, "A"))
+			else if (std::equal(f->id, f->id+1, "A"))
 				identity << "ABC ";
 
 			// UPnP
