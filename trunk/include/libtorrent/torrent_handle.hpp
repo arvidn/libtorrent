@@ -133,6 +133,8 @@ namespace libtorrent
 		const torrent_info& get_torrent_info() const;
 		bool is_valid() const;
 
+		void write_resume_data(std::vector<char>& buf);
+
 		// TODO: add force reannounce
 
 		// TODO: add a feature where the user can ask the torrent

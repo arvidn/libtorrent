@@ -99,7 +99,7 @@ namespace libtorrent
 				for (entry::list_type::const_iterator k = ll.begin(); k != ll.end(); ++k)
 				{
 					announce_entry e;
-					e.tier = j - l.begin();
+					e.tier = (int)(j - l.begin());
 					e.url = k->string();
 					m_urls.push_back(e);
 				}
@@ -235,7 +235,7 @@ namespace libtorrent
 
 	int torrent_info::prioritize_tracker(int index)
 	{
-		if (index > m_urls.size()) return m_urls.size()-1;
+		if (index > (int)m_urls.size()) return (int)m_urls.size()-1;
 
 		while (index > 0 && m_urls[index].tier == m_urls[index-1].tier)
 		{

@@ -128,7 +128,7 @@ namespace
 		for (int i = 0; i < len; ++i)
 		{
 			if (std::isalnum(static_cast<unsigned char>(*str))
-				|| std::find(
+				|| std::count(
 					special_chars
 					, special_chars+sizeof(special_chars)-1
 					, *str))

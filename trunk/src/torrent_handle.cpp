@@ -51,15 +51,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/session.hpp"
+// TODO: peer_connection is only used because of detail::write_int
+// and detail::read_int, they should probably be moved to a common
+// header.
+#include "libtorrent/peer_connection.hpp"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 namespace std
 {
 	using ::srand;
-	using ::isprint;
+	using ::isalnum;
 };
 #endif
-
 
 namespace libtorrent
 {
@@ -166,6 +169,71 @@ namespace libtorrent
 
 		return false;
 	}
+
+	void torrent_handle::write_resume_data(std::vector<char>& buf)
+	{
+		buf.clear();
+		std::vector<int> piece_index;
+		if (m_ses == 0) return;
+
+		boost::mutex::scoped_lock l(m_ses->m_mutex);
+		torrent* t = m_ses->find_torrent(m_info_hash);
+		if (t == 0) return;
+			
+		t->filesystem().export_piece_map(piece_index);
+
+		std::back_insert_iterator<std::vector<char> > out(buf);
+
+		// TODO: write file header
+		// TODO: write info hash
+
+		// number of slots
+		int num_slots = piece_index.size();
+		detail::write_int(num_slots, out);
+
+		// the piece indices for each slot (-1 means no index assigned)
+		for (std::vector<int>::iterator i = piece_index.begin();
+			i != piece_index.end();
+			++i)
+		{
+			detail::write_int(*i, out);
+			assert(*i >= -2);
+			assert(*i < t->torrent_file().num_pieces());
+		}
+
+		const piece_picker& p = t->picker();
+
+		const std::vector<piece_picker::downloading_piece>& q
+			= p.get_download_queue();
+
+		// blocks per piece
+		int num_blocks_per_piece =
+			t->torrent_file().piece_length() / t->block_size();
+		detail::write_int(num_blocks_per_piece, out);
+
+		// num unfinished pieces
+		int num_unfinished = q.size();
+		detail::write_int(num_unfinished, out);
+
+		// info for each unfinished piece
+		for (std::vector<piece_picker::downloading_piece>::const_iterator i
+			= q.begin();
+			i != q.end();
+			++i)
+		{
+			// the unsinished piece's index
+			detail::write_int(i->index, out);
+
+			// write
+			for (int j = 0; j < num_blocks_per_piece / 32; ++j)
+			{
+				unsigned int v = 0;
+				for (int k = 0; k < 32; ++k) v |= i->finished_blocks[j*32+k]?(1 << k):0;
+				detail::write_int(v, out);
+			}
+		}
+	}
+
 
 	boost::filesystem::path torrent_handle::save_path() const
 	{

@@ -203,7 +203,15 @@ int main(int argc, char* argv[])
 				entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
 				torrent_info t(e);
 				t.print(std::cout);
-				handles.push_back(ses.add_torrent(t, ""));
+
+				std::ifstream resume_file("test.fastresume", std::ios_base::binary);
+				resume_file.unsetf(std::ios_base::skipws);
+				std::vector<char> resume_data;
+				std::copy(std::istream_iterator<char>(resume_file)
+					, std::istream_iterator<char>()
+					, std::back_inserter(resume_data));
+
+				handles.push_back(ses.add_torrent(t, "", resume_data));
 				handles.back().set_max_uploads(40);
 			}
 			catch (std::exception& e)
@@ -220,7 +228,16 @@ int main(int argc, char* argv[])
 			char c;
 			if (sleep_and_input(&c))
 			{
-				if (c == 'q') break;
+				if (c == 'q')
+				{
+					std::vector<char> data;
+					handles.front().write_resume_data(data);
+
+					std::ofstream out("test.fastresume", std::ios_base::binary);
+					out.unsetf(std::ios_base::skipws);
+					std::copy(data.begin(), data.end(), std::ostream_iterator<char>(out));
+					break;
+				}
 			}
 
 			std::auto_ptr<alert> a;

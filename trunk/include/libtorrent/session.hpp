@@ -59,10 +59,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/debug.hpp"
 
-#if defined(_MSC_VER) && !defined(NDEBUG)
-
-#include <eh.h>
-
+#if !defined(NDEBUG) && defined(_MSC_VER)
+#	include <float.h>
+#	include <eh.h>
 #endif
 
 // TODO: if we're a seed and the peer is a seed, close the connections
@@ -75,12 +74,15 @@ namespace libtorrent
 		// workaround for microsofts
 		// hardware exceptions that makes
 		// it hard to debug stuff
-#if defined(_MSC_VER) && !defined(NDEBUG)
-
+#if !defined(NDEBUG) && defined(MSC_VER)
 		struct eh_initializer
 		{
 			eh_initializer()
-			{ ::_set_se_translator(straight_to_debugger); }
+			{
+				_clearfp();
+				_controlfp(_EM_INEXACT | _EM_UNDERFLOW, _MCW_EM );
+				::_set_se_translator(straight_to_debugger);
+			}
 
 			static void straight_to_debugger(unsigned int, _EXCEPTION_POINTERS*)
 			{ throw; }
@@ -99,6 +101,12 @@ namespace libtorrent
 			boost::filesystem::path save_path;
 
 			sha1_hash info_hash;
+
+			void parse_resume_data(
+				const std::vector<char>* rd
+				, const torrent_info& info);
+			std::vector<int> piece_map;
+			std::vector<piece_picker::downloading_piece> unfinished_pieces;
 
 			// is filled in by storage::initialize_pieces()
 			// and represents the progress. It should be a
@@ -206,7 +214,19 @@ namespace libtorrent
 		// all torrent_handles must be destructed before the session is destructed!
 		torrent_handle add_torrent(
 			const torrent_info& ti
-			, const boost::filesystem::path& save_path);
+			, const boost::filesystem::path& save_path)
+		{
+			return add_torrent_impl(ti, save_path, 0);
+		}
+
+		torrent_handle add_torrent(
+			const torrent_info& ti
+			, const boost::filesystem::path& save_path
+			, const std::vector<char>& resume_data)
+		{
+			return add_torrent_impl(ti, save_path, &resume_data);
+		}
+
 		void remove_torrent(const torrent_handle& h);
 
 		void set_http_settings(const http_settings& s);
@@ -218,6 +238,11 @@ namespace libtorrent
 		void set_severity_level(alert::severity_t s);
 
 	private:
+
+		torrent_handle add_torrent_impl(
+			const torrent_info& ti
+			, const boost::filesystem::path& save_path
+			, const std::vector<char>* resume_data);
 
 		// data shared between the main thread
 		// and the working thread

@@ -101,7 +101,8 @@ namespace libtorrent
 
 		// fills the vector that maps all allocated
 		// slots to the piece that is stored (or
-		// partially stored) there
+		// partially stored) there. -2 is the index
+		// of unassigned pieces and -1 is unallocated
 		void export_piece_map(std::vector<int>& pieces) const;
 
 	private:

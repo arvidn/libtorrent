@@ -87,6 +87,7 @@ namespace
 			}
 		}
 		assert(false);
+		return piece_block(-1, -1);
 	}
 
 	void request_a_block(torrent& t, peer_connection& c)

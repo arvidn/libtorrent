@@ -106,7 +106,7 @@ namespace libtorrent
 		reverse_file_iterator rend_files() const { return m_files.rend(); }
 
 		std::size_t num_files() const { return m_files.size(); }
-		const file& file_at(int index) const { assert(index >= 0 && index < m_files.size()); return m_files[index]; }
+		const file& file_at(int index) const { assert(index >= 0 && index < (int)m_files.size()); return m_files[index]; }
 
 		const std::vector<announce_entry>& trackers() const { return m_urls; }
 
@@ -117,7 +117,7 @@ namespace libtorrent
 
 		entry::integer_type total_size() const { return m_total_size; }
 		entry::integer_type piece_length() const { return m_piece_length; }
-		std::size_t num_pieces() const { return m_piece_hash.size(); }
+		int num_pieces() const { return (int)m_piece_hash.size(); }
 		const sha1_hash& info_hash() const { return m_info_hash; }
 		const std::string& name() const { return m_name; }
 		void print(std::ostream& os) const;
