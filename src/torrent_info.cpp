@@ -91,6 +91,44 @@ namespace
 namespace libtorrent
 {
 
+	// standard constructor that parses a torrent file
+	torrent_info::torrent_info(const entry& torrent_file)
+		: m_creation_date(boost::gregorian::date(1970
+			, boost::gregorian::Jan
+			, 1))
+	{
+		try
+		{
+			read_torrent_info(torrent_file);
+		}
+		catch(type_error&)
+		{
+			throw invalid_torrent_file();
+		}
+	}
+
+	// constructor used for creating new torrents
+	// will not contain any hashes, comments, creation date
+	// just the necessary to use it with piece manager
+	torrent_info::torrent_info(
+		const std::vector<file_entry>& files
+		, int piece_size)
+		: m_piece_length(piece_size)
+		, m_files(files)
+		, m_creation_date(boost::gregorian::date(1970
+			, boost::gregorian::Jan
+			, 1))
+	{
+		// calculate total size of all pieces
+		m_total_size = 0;
+		for (std::vector<file_entry>::iterator i = m_files.begin(); i != m_files.end(); ++i)
+			m_total_size += i->size;
+
+		int num_pieces = static_cast<int>((m_total_size + m_piece_length - 1) / m_piece_length);
+
+	}
+
+
 	// extracts information from a libtorrent file and fills in the structures in
 	// the torrent object
 	void torrent_info::read_torrent_info(const entry& torrent_file)

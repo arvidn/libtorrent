@@ -91,20 +91,11 @@ namespace libtorrent
 	{
 	public:
 
-		torrent_info(const entry& torrent_file)
-			: m_creation_date(boost::gregorian::date(1970
-				, boost::gregorian::Jan
-				, 1))
-		{
-			try
-			{
-				read_torrent_info(torrent_file);
-			}
-			catch(type_error&)
-			{
-				throw invalid_torrent_file();
-			}
-		}
+		torrent_info(const entry& torrent_file);
+
+		torrent_info(
+			const std::vector<file_entry>& files
+			, int piece_size);
 
 		typedef std::vector<file_entry>::const_iterator file_iterator;
 		typedef std::vector<file_entry>::const_reverse_iterator reverse_file_iterator;
