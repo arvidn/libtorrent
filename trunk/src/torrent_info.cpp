@@ -310,37 +310,11 @@ namespace libtorrent
 		m_created_by = str;
 	}
 
-	entry torrent_info::create_torrent() const
+	entry torrent_info::create_info_metadata() const
 	{
-		assert(m_piece_length > 0);
-
-		using namespace boost::gregorian;
-		using namespace boost::posix_time;
-
 		namespace fs = boost::filesystem;
 
-		entry dict(entry::dictionary_t);
-
-		if (m_urls.empty() || m_files.empty())
-		{
-			// TODO: throw something here
-			// throw
-			return entry();
-		}
-
-		dict["announce"] = m_urls.front().url;
-		
-		if (!m_comment.empty())
-			dict["comment"] = m_comment;
-
-		dict["creation date"] =
-			to_seconds(m_creation_date - ptime(date(1970, Jan, 1)));
-
-		if (!m_created_by.empty())
-			dict["created by"] = m_created_by;
-
-		entry& info = dict["info"];
-		info = entry(entry::dictionary_t);
+		entry info(entry::dictionary_t);
 
 		info["length"] = m_total_size;
 
@@ -391,6 +365,39 @@ namespace libtorrent
 		{
 			p.append((char*)i->begin(), (char*)i->end());
 		}
+		return info;
+	}
+
+	entry torrent_info::create_torrent() const
+	{
+		assert(m_piece_length > 0);
+
+		using namespace boost::gregorian;
+		using namespace boost::posix_time;
+
+		namespace fs = boost::filesystem;
+
+		entry dict(entry::dictionary_t);
+
+		if (m_urls.empty() || m_files.empty())
+		{
+			// TODO: throw something here
+			// throw
+			return entry();
+		}
+
+		dict["announce"] = m_urls.front().url;
+		
+		if (!m_comment.empty())
+			dict["comment"] = m_comment;
+
+		dict["creation date"] =
+			to_seconds(m_creation_date - ptime(date(1970, Jan, 1)));
+
+		if (!m_created_by.empty())
+			dict["created by"] = m_created_by;
+
+		dict["info"] = create_info_metadata();
 
 		return dict;
 	}

@@ -214,6 +214,45 @@ std::string progress_bar(float progress, int width)
 	return std::string(bar.begin(), bar.end());
 }
 
+void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const& peers)
+{
+	using namespace libtorrent;
+
+	out << " down       up        q  r  flags  block\n";
+
+	for (std::vector<peer_info>::const_iterator i = peers.begin();
+		i != peers.end();
+		++i)
+	{
+		out.fill(' ');
+		out.width(2);
+		out << add_suffix(i->down_speed) << "/s "
+//						<< "(" << add_suffix(i->total_download) << ") "
+			<< add_suffix(i->up_speed) << "/s "
+//						<< "(" << add_suffix(i->total_upload) << ") "
+//						<< "ul:" << add_suffix(i->upload_limit) << "/s "
+//						<< "uc:" << add_suffix(i->upload_ceiling) << "/s "
+//						<< "df:" << ratio(i->total_download, i->total_upload) << " "
+			<< i->download_queue_length << " "
+			<< i->upload_queue_length << " "
+			<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
+			<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
+			<< static_cast<const char*>((i->flags & peer_info::remote_interested)?"i":"_")
+			<< static_cast<const char*>((i->flags & peer_info::remote_choked)?"c":"_")
+			<< static_cast<const char*>((i->flags & peer_info::supports_extensions)?"e":"_")
+			<< static_cast<const char*>((i->flags & peer_info::local_connection)?"l":"r");
+
+		if (i->downloading_piece_index >= 0)
+		{
+			out << "  " << progress_bar(
+				i->downloading_progress / static_cast<float>(i->downloading_total)
+				, 15);
+		}
+
+		out << "\n";
+	}
+}
+
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
@@ -243,7 +282,7 @@ int main(int argc, char* argv[])
 		session ses(fingerprint("LT", 0, 1, 0, 0));
 
 		ses.listen_on(std::make_pair(6881, 6889));
-//		ses.set_upload_rate_limit(1000);
+		ses.set_upload_rate_limit(31 * 1024);
 //		ses.set_download_rate_limit(50000);
 		ses.set_http_settings(settings);
 		ses.set_severity_level(alert::debug);
@@ -288,9 +327,9 @@ int main(int argc, char* argv[])
 				catch (boost::filesystem::filesystem_error&) {}
 
 				handles.push_back(ses.add_torrent(e, save_path, resume_data));
-				handles.back().set_max_connections(200);
-				handles.back().set_max_uploads(20);
-				handles.back().set_ratio(1.02f);
+				handles.back().set_max_connections(100);
+				handles.back().set_max_uploads(3);
+				handles.back().set_ratio(0.f);
 			}
 			catch (std::exception& e)
 			{
@@ -302,6 +341,10 @@ int main(int argc, char* argv[])
 
 		std::vector<peer_info> peers;
 		std::vector<partial_piece_info> queue;
+
+		bool print_peers = false;
+		bool print_log = false;
+		bool print_downloads = false;
 
 		for (;;)
 		{
@@ -354,6 +397,10 @@ int main(int argc, char* argv[])
 						, handles.end()
 						, boost::bind(&torrent_handle::resume, _1));
 				}
+
+				if (c == 'i') print_peers = !print_peers;
+				if (c == 'l') print_log = !print_log;
+				if (c == 'd') print_downloads = !print_downloads;
 
 			}
 
@@ -427,6 +474,7 @@ int main(int argc, char* argv[])
 						break;
 				};
 
+
 				i->get_peer_info(peers);
 
 				out.precision(4);
@@ -450,68 +498,43 @@ int main(int argc, char* argv[])
 
 				out << "___________________________________\n";
 
-				out << " down       up        q  r  flags  block\n";
-
-				for (std::vector<peer_info>::iterator i = peers.begin();
-					i != peers.end();
-					++i)
+				if (print_peers)
 				{
-					out.fill(' ');
-					out.width(2);
-					out << add_suffix(i->down_speed) << "/s "
-//						<< "(" << add_suffix(i->total_download) << ") "
-						<< add_suffix(i->up_speed) << "/s "
-//						<< "(" << add_suffix(i->total_upload) << ") "
-//						<< "ul:" << add_suffix(i->upload_limit) << "/s "
-//						<< "uc:" << add_suffix(i->upload_ceiling) << "/s "
-//						<< "df:" << ratio(i->total_download, i->total_upload) << " "
-						<< i->download_queue_length << " "
-						<< i->upload_queue_length << " "
-						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
-						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
-						<< static_cast<const char*>((i->flags & peer_info::remote_interested)?"i":"_")
-						<< static_cast<const char*>((i->flags & peer_info::remote_choked)?"c":"_")
-						<< static_cast<const char*>((i->flags & peer_info::supports_extensions)?"e":"_")
-						<< static_cast<const char*>((i->flags & peer_info::local_connection)?"l":"r");
-
-					if (i->downloading_piece_index >= 0)
-					{
-						out << "  " << progress_bar(
-							i->downloading_progress / static_cast<float>(i->downloading_total)
-							, 15);
-					}
-
-					out << "\n";
+					print_peer_info(out, peers);
+					out << "___________________________________\n";
 				}
 
-				out << "___________________________________\n";
-
-				i->get_download_queue(queue);
-				for (std::vector<partial_piece_info>::iterator i = queue.begin();
-					i != queue.end();
-					++i)
+				if (print_downloads)
 				{
-					out.width(4);
-					out.fill(' ');
-					out << i->piece_index << ": |";
-					for (int j = 0; j < i->blocks_in_piece; ++j)
+					i->get_download_queue(queue);
+					for (std::vector<partial_piece_info>::iterator i = queue.begin();
+						i != queue.end();
+						++i)
 					{
-						if (i->finished_blocks[j]) out << "#";
-						else if (i->requested_blocks[j]) out << "+";
-						else out << ".";
+						out.width(4);
+						out.fill(' ');
+						out << i->piece_index << ": |";
+						for (int j = 0; j < i->blocks_in_piece; ++j)
+						{
+							if (i->finished_blocks[j]) out << "#";
+							else if (i->requested_blocks[j]) out << "+";
+							else out << ".";
+						}
+						out << "|\n";
 					}
-					out << "|\n";
+
+					out << "___________________________________\n";
 				}
-
-				out << "___________________________________\n";
-
 			}
 
-			for (std::deque<std::string>::iterator i = events.begin();
-				i != events.end();
-				++i)
+			if (print_log)
 			{
-				out << *i << "\n";
+				for (std::deque<std::string>::iterator i = events.begin();
+					i != events.end();
+					++i)
+				{
+					out << *i << "\n";
+				}
 			}
 
 			clear();

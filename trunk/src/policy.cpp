@@ -770,7 +770,6 @@ namespace libtorrent
 		// if the connection comes from the tracker,
 		// it's probably just a NAT-check. Ignore the
 		// num connections constraint then.
-		// TODO: make sure this works
 		// TODO: only allow _one_ connection to use this
 		// override at a time
 		if (m_torrent->num_peers() >= m_max_connections

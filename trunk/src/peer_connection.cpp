@@ -1078,6 +1078,8 @@ namespace libtorrent
 				(*m_logger) << i->first << "\n";
 			}
 #endif
+			// TODO: move the requesting into second-tick
+			// of the torrent.
 			if (!m_torrent->valid_metadata()
 				&& supports_extension(extended_metadata_message))
 			{

@@ -615,24 +615,25 @@ namespace libtorrent { namespace detail
 			for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
 				= m_torrents.begin(); i != m_torrents.end();)
 			{
-				if (i->second->is_aborted())
+				torrent& t = *i->second;
+				if (t.is_aborted())
 				{
-					tracker_request req = i->second->generate_tracker_request();
+					tracker_request req = t.generate_tracker_request();
 					req.listen_port = m_listen_interface.port;
 					req.key = m_key;
 					m_tracker_manager.queue_request(req);
-					i->second->disconnect_all();
+					t.disconnect_all();
 					purge_connections();
 #ifndef NDEBUG
-					sha1_hash i_hash = i->second->torrent_file().info_hash();
+					sha1_hash i_hash = t.torrent_file().info_hash();
 #endif
 					m_torrents.erase(i++);
 					assert(m_torrents.find(i_hash) == m_torrents.end());
 					continue;
 				}
-				else if (i->second->should_request())
+				else if (t.should_request())
 				{
-					tracker_request req = i->second->generate_tracker_request();
+					tracker_request req = t.generate_tracker_request();
 					req.listen_port = m_listen_interface.port;
 					req.key = m_key;
 					m_tracker_manager.queue_request(
@@ -641,7 +642,7 @@ namespace libtorrent { namespace detail
 				}
 
 				// tick() will set the used upload quota
-				i->second->second_tick(m_stat);
+				t.second_tick(m_stat);
 				++i;
 			}
 			purge_connections();
