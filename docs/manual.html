@@ -56,7 +56,7 @@
 <li><a class="reference" href="#set-upload-limit-set-download-limit" id="id49" name="id49">set_upload_limit() set_download_limit()</a></li>
 <li><a class="reference" href="#pause-resume-is-paused" id="id50" name="id50">pause() resume() is_paused()</a></li>
 <li><a class="reference" href="#is-seed" id="id51" name="id51">is_seed()</a></li>
-<li><a class="reference" href="#num-complete-num-incomplete-num-downloaded" id="id52" name="id52">num_complete() num_incomplete() num_downloaded()</a></li>
+<li><a class="reference" href="#num-complete-num-incomplete" id="id52" name="id52">num_complete() num_incomplete()</a></li>
 <li><a class="reference" href="#has-metadata" id="id53" name="id53">has_metadata()</a></li>
 <li><a class="reference" href="#set-tracker-login" id="id54" name="id54">set_tracker_login()</a></li>
 <li><a class="reference" href="#use-interface" id="id55" name="id55">use_interface()</a></li>
@@ -869,7 +869,6 @@ struct torrent_handle
 
         int num_complete() const;
         int num_incomplete() const;
-        int num_downloaded() const;
 
         bool has_metadata() const;
 
@@ -989,21 +988,19 @@ bool is_seed() const;
 </blockquote>
 <p>Returns true if the torrent is in seed mode (i.e. if it has finished downloading).</p>
 </div>
-<div class="section" id="num-complete-num-incomplete-num-downloaded">
-<h2><a name="num-complete-num-incomplete-num-downloaded">num_complete() num_incomplete() num_downloaded()</a></h2>
+<div class="section" id="num-complete-num-incomplete">
+<h2><a name="num-complete-num-incomplete">num_complete() num_incomplete()</a></h2>
 <blockquote>
 <pre class="literal-block">
 int num_complete() const;
 int num_incomplete() const;
-int num_downloaded() const;
 </pre>
 </blockquote>
 <p>These members returns the optional scrape data returned by the tracker in the announce response.
 If the tracker did not return any scrape data the return value of these functions are -1. Note
 that in some cases the tracker can return some scrape data, so there is no guarantee that all
 functions returns -1 just because one of them do. <tt class="docutils literal"><span class="pre">num_complete()</span></tt> is the total number of
-seeds in the swarm. <tt class="docutils literal"><span class="pre">num_incomplete()</span></tt> is the number of downloaders in the swarm and
-<tt class="docutils literal"><span class="pre">num_downloaded()</span></tt> is the number of times this torrent has been downloaded.</p>
+seeds in the swarm and <tt class="docutils literal"><span class="pre">num_incomplete()</span></tt> is the number of downloaders in the swarm.</p>
 </div>
 <div class="section" id="has-metadata">
 <h2><a name="has-metadata">has_metadata()</a></h2>

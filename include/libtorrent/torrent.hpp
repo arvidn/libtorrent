@@ -156,9 +156,6 @@ namespace libtorrent
 		int num_incomplete() const
 		{ return m_incomplete; }
 
-		int num_downloaded() const
-		{ return m_downloaded; }
-	
 // --------------------------------------------
 		// PEER MANAGEMENT
 
@@ -202,7 +199,7 @@ namespace libtorrent
 		// when this torrent got a response from its tracker request
 		// or when a failure occured
 		virtual void tracker_response(std::vector<peer_entry>& e, int interval
-			, int complete, int incomplete, int downloaded);
+			, int complete, int incomplete);
 		virtual void tracker_request_timed_out();
 		virtual void tracker_request_error(int response_code, const std::string& str);
 
@@ -407,7 +404,6 @@ namespace libtorrent
 		// is optional and may be -1.
 		int m_complete;
 		int m_incomplete;
-		int m_downloaded;
 		
 		std::map<address, peer_connection*> m_connections;
 
