@@ -60,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/alert.hpp"
+#include "libtorrent/resource_request.hpp"
 
 namespace libtorrent
 {
@@ -285,6 +286,19 @@ namespace libtorrent
 		void check_invariant();
 #endif
 
+		// this will distribute the given upload/download
+		// quotas among the peers
+		void distribute_resources();
+
+		resource_request m_upload_bandwidth_quota;
+
+		void set_upload_limit(int limit)
+		{
+			assert(limit >= -1);
+			if (limit == -1) limit = std::numeric_limits<int>::max();
+			m_upload_bandwidth_limit = limit;
+		}
+
 	private:
 
 		void try_next_tracker();
@@ -369,7 +383,14 @@ namespace libtorrent
 
 		std::string m_username;
 		std::string m_password;
+
+		// the network interface all outgoing connections
+		// are opened through
 		address m_net_interface;
+
+		// the max number of bytes this torrent
+		// can upload per second
+		int m_upload_bandwidth_limit;
 	};
 
 }

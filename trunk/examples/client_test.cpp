@@ -340,6 +340,7 @@ int main(int argc, char* argv[])
 
 			}
 
+			// loop through the alert queue to see if anything has happened.
 			std::auto_ptr<alert> a;
 			a = ses.pop_alert();
 			while (a.get())
@@ -347,9 +348,10 @@ int main(int argc, char* argv[])
 				torrent_finished_alert* p = dynamic_cast<torrent_finished_alert*>(a.get());
 				if (p)
 				{
-					ses.set_upload_rate_limit(30000);
+					// limit the bandwidth for all seeding torrents
 					p->handle.set_max_connections(10);
 					p->handle.set_max_uploads(5);
+					p->handle.set_upload_limit(30000);
 				}
 				if (events.size() >= 10) events.pop_front();
 				events.push_back(a->msg());

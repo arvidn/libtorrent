@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/allocate_resources.hpp"
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/peer_connection.hpp"
+#include "libtorrent/torrent.hpp"
 
 #include <cassert>
 #include <algorithm>
@@ -45,22 +46,22 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	int saturated_add(int a, int b)
+	{
+		assert(a >= 0);
+		assert(b >= 0);
+		assert(std::numeric_limits<int>::max() + std::numeric_limits<int>::max() < 0);
+
+		int sum = a + b;
+		if(sum < 0)
+			sum = std::numeric_limits<int>::max();
+
+		assert(sum >= a && sum >= b);
+		return sum;
+	}
+
 	namespace
 	{
-		int saturated_add(int a, int b)
-		{
-			assert(a >= 0);
-			assert(b >= 0);
-			assert(std::numeric_limits<int>::max() + std::numeric_limits<int>::max() < 0);
-
-			int sum = a + b;
-			if(sum < 0)
-				sum = std::numeric_limits<int>::max();
-
-			assert(sum >= a && sum >= b);
-			return sum;
-		}
-
 		// give num_resources to r,
 		// return how how many were actually accepted.
 		int give(resource_request& r, int num_resources)
@@ -215,9 +216,21 @@ namespace libtorrent
 			return *p.second;
 		}
 
+		peer_connection& pick_peer2(
+			std::pair<address, peer_connection*> const& p)
+		{
+			return *p.second;
+		}
+
+		torrent& deref(std::pair<sha1_hash, boost::shared_ptr<torrent> > const& p)
+		{
+			return *p.second;
+		}
+
+
 	} // namespace anonymous
 
-
+/*
 	void allocate_resources(
 		int resources
 		, std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> >& c
@@ -231,6 +244,38 @@ namespace libtorrent
 			resources
 			, new_iter(c.begin(), &pick_peer)
 			, new_iter(c.end(), &pick_peer)
+			, res);
+	}
+*/
+	void allocate_resources(
+		int resources
+		, std::map<sha1_hash, boost::shared_ptr<torrent> >& c
+		, resource_request torrent::* res)
+	{
+		typedef std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator orig_iter;
+		typedef std::pair<sha1_hash, boost::shared_ptr<torrent> > in_param;
+		typedef boost::transform_iterator<torrent& (*)(in_param const&), orig_iter> new_iter;
+
+		allocate_resources_impl(
+			resources
+			, new_iter(c.begin(), &deref)
+			, new_iter(c.end(), &deref)
+			, res);
+	}
+
+	void allocate_resources(
+		int resources
+		, std::map<address, peer_connection*>& c
+		, resource_request peer_connection::* res)
+	{
+		typedef std::map<address, peer_connection*>::iterator orig_iter;
+		typedef std::pair<address, peer_connection*> in_param;
+		typedef boost::transform_iterator<peer_connection& (*)(in_param const&), orig_iter> new_iter;
+
+		allocate_resources_impl(
+			resources
+			, new_iter(c.begin(), &pick_peer2)
+			, new_iter(c.end(), &pick_peer2)
 			, res);
 	}
 
