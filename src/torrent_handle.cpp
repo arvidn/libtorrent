@@ -530,15 +530,15 @@ namespace libtorrent
 			p.total_download = statistics.total_payload_download();
 			p.total_upload = statistics.total_payload_upload();
 
-			if (peer->upload_bandwidth.given == std::numeric_limits<int>::max())
+			if (peer->upload_bandwidth_quota()->given == std::numeric_limits<int>::max())
 				p.upload_limit = -1;
 			else
-				p.upload_limit = peer->upload_bandwidth.given;
+				p.upload_limit = peer->upload_bandwidth_quota()->given;
 
-			if (peer->upload_bandwidth.wanted == std::numeric_limits<int>::max())
+			if (peer->upload_bandwidth_quota()->wanted == std::numeric_limits<int>::max())
 				p.upload_ceiling = -1;
 			else
-				p.upload_ceiling = peer->upload_bandwidth.wanted;
+				p.upload_ceiling = peer->upload_bandwidth_quota()->wanted;
 
 			p.load_balancing = peer->total_free_upload();
 

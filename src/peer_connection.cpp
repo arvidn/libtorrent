@@ -106,6 +106,7 @@ namespace libtorrent
 		, m_disconnecting(false)
 		, m_became_uninterested(boost::posix_time::second_clock::local_time())
 		, m_became_uninteresting(boost::posix_time::second_clock::local_time())
+		, m_upload_bandwidth_quota_used(0)
 	{
 		INVARIANT_CHECK;
 
@@ -167,6 +168,7 @@ namespace libtorrent
 		, m_disconnecting(false)
 		, m_became_uninterested(boost::posix_time::second_clock::local_time())
 		, m_became_uninteresting(boost::posix_time::second_clock::local_time())
+		, m_upload_bandwidth_quota_used(0)
 	{
 		INVARIANT_CHECK;
 
@@ -201,6 +203,85 @@ namespace libtorrent
 			m_torrent->remove_peer(this);
 		}
 	}
+
+	void peer_connection::announce_piece(int index)
+	{
+		assert(m_torrent);
+		assert(index >= 0 && index < m_torrent->torrent_file().num_pieces());
+		m_announce_queue.push_back(index);
+	}
+
+	bool peer_connection::has_piece(int i) const
+	{
+		assert(m_torrent);
+		assert(i >= 0);
+		assert(i < m_torrent->torrent_file().num_pieces());
+		return m_have_piece[i];
+	}
+
+	const std::deque<piece_block>& peer_connection::download_queue() const
+	{
+		return m_download_queue;
+	}
+	
+	const std::deque<peer_request>& peer_connection::upload_queue() const
+	{
+		return m_requests;
+	}
+
+	void peer_connection::add_stat(size_type downloaded, size_type uploaded)
+	{
+		m_statistics.add_stat(downloaded, uploaded);
+	}
+
+	const std::vector<bool>& peer_connection::get_bitfield() const
+	{
+		return m_have_piece;
+	}
+
+	void peer_connection::received_valid_data()
+	{
+		m_trust_points++;
+		if (m_trust_points > 20) m_trust_points = 20;
+	}
+
+	void peer_connection::received_invalid_data()
+	{
+		m_trust_points--;
+		if (m_trust_points < -5) m_trust_points = -5;
+	}
+	
+	int peer_connection::trust_points() const
+	{
+		return m_trust_points;
+	}
+
+	size_type peer_connection::total_free_upload() const
+	{
+		return m_free_upload;
+	}
+
+	void peer_connection::add_free_upload(size_type free_upload)
+	{
+		m_free_upload += free_upload;
+	}
+
+	int peer_connection::send_quota_left() const
+	{
+		return m_upload_bandwidth_quota.given - m_upload_bandwidth_quota_used;
+	}
+
+	void peer_connection::update_send_quota_left()
+	{
+		m_upload_bandwidth_quota_used=0;
+		send_buffer_updated();
+	}
+
+	resource_request* peer_connection::upload_bandwidth_quota()
+	{
+		return &m_upload_bandwidth_quota;
+	}
+
 
 	void peer_connection::send_handshake()
 	{
@@ -1219,6 +1300,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		m_statistics.second_tick();
+		m_upload_bandwidth_quota.used=(int)ceil(statistics().upload_rate());
 
 //		update_send_quota_left();
 		
@@ -1235,9 +1317,9 @@ namespace libtorrent
 			// than we have uploaded OR if we are a seed
 			// have an unlimited upload rate
 			if(!m_send_buffer.empty() || (!m_requests.empty() && !is_choked()))
-				upload_bandwidth.wanted = std::numeric_limits<int>::max();
+				m_upload_bandwidth_quota.wanted = std::numeric_limits<int>::max();
 			else
-				upload_bandwidth.wanted = 1;
+				m_upload_bandwidth_quota.wanted = 1;
 		}
 		else
 		{
@@ -1262,7 +1344,7 @@ namespace libtorrent
 			upload_speed_limit=std::min(upload_speed_limit,
 				                        (double)std::numeric_limits<int>::max());
 
-			upload_bandwidth.wanted = (int) upload_speed_limit;
+			m_upload_bandwidth_quota.wanted = (int) upload_speed_limit;
 		}
 
 /*
@@ -1277,7 +1359,7 @@ namespace libtorrent
 			// if we have downloaded more than one piece more
 			// than we have uploaded OR if we are a seed
 			// have an unlimited upload rate
-			upload_bandwidth.wanted = std::numeric_limits<int>::max();
+			m_upload_bandwidth_quota.wanted = std::numeric_limits<int>::max();
 		}
 		else
 		{
@@ -1296,10 +1378,10 @@ namespace libtorrent
 			{
 				bias = -static_cast<int>(m_statistics.download_rate() * ratio) / 2;
 			}
-			upload_bandwidth.wanted = static_cast<int>(m_statistics.download_rate()) + bias;
+			m_upload_bandwidth_quota.wanted = static_cast<int>(m_statistics.download_rate()) + bias;
 
 			// the maximum send_quota given our download rate from this peer
-			if (upload_bandwidth.wanted < 256) upload_bandwidth.wanted = 256;
+			if (m_upload_bandwidth_quota.wanted < 256) m_upload_bandwidth_quota.wanted = 256;
 		}
 */
 	}
@@ -1576,7 +1658,7 @@ namespace libtorrent
 		// we want to send data
 		return ((!m_requests.empty() && !m_choked)
 			|| !m_send_buffer.empty())
-			&& upload_bandwidth.used < upload_bandwidth.given;
+			&& send_quota_left()>0;
 	}
 
 	// --------------------------
@@ -1655,15 +1737,15 @@ namespace libtorrent
 			m_announce_queue.clear();
 		}
 
-		assert(upload_bandwidth.used < upload_bandwidth.given);
+		assert(m_upload_bandwidth_quota_used < m_upload_bandwidth_quota.given);
 
 		// send the actual buffer
 		if (!m_send_buffer.empty())
 		{
 
 			int amount_to_send = (int)m_send_buffer.size();
-			assert(upload_bandwidth.used < upload_bandwidth.given);
-			amount_to_send = std::min(upload_bandwidth.given-upload_bandwidth.used, amount_to_send);
+			amount_to_send = std::min(send_quota_left(), amount_to_send);
+			assert(amount_to_send>0);
 
 			// we have data that's scheduled for sending
 			int sent = m_socket->send(
@@ -1672,7 +1754,7 @@ namespace libtorrent
 
 			if (sent > 0)
 			{
-				upload_bandwidth.used += sent;
+				m_upload_bandwidth_quota_used += sent;
 
 				// manage the payload markers
 				int amount_payload = 0;
@@ -1809,4 +1891,29 @@ namespace libtorrent
 	{
 		return m_num_pieces == (int)m_have_piece.size();
 	}
+
+	void peer_connection::send_buffer_updated()
+	{
+		if (!has_data())
+		{
+			if (m_added_to_selector)
+			{
+				m_selector.remove_writable(m_socket);
+				m_added_to_selector = false;
+			}
+			assert(!m_selector.is_writability_monitored(m_socket));
+			return;
+		}
+
+		assert(send_quota_left()>0);
+		assert(has_data());
+		if (!m_added_to_selector)
+		{
+			m_selector.monitor_writability(m_socket);
+			m_added_to_selector = true;
+		}
+		assert(m_added_to_selector);
+		assert(m_selector.is_writability_monitored(m_socket));
+	}
+
 }

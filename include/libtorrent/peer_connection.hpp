@@ -131,11 +131,7 @@ namespace libtorrent
 
 		// this adds an announcement in the announcement queue
 		// it will let the peer know that we have the given piece
-		void announce_piece(int index)
-		{
-			assert(index >= 0 && index < m_torrent->torrent_file().num_pieces());
-			m_announce_queue.push_back(index);
-		}
+		void announce_piece(int index);
 
 		// called from the main loop when this connection has any
 		// work to do.
@@ -153,17 +149,10 @@ namespace libtorrent
 		void keep_alive();
 
 		const peer_id& id() const { return m_peer_id; }
-		bool has_piece(int i) const
-		{
-			assert(i >= 0);
-			assert(i < m_torrent->torrent_file().num_pieces());
-			return m_have_piece[i];
-		}
+		bool has_piece(int i) const;
 
-		const std::deque<piece_block>& download_queue() const
-		{ return m_download_queue; }
-		const std::deque<peer_request>& upload_queue() const
-		{ return m_requests; }
+		const std::deque<piece_block>& download_queue() const;
+		const std::deque<peer_request>& upload_queue() const;
 
 		// returns the block currently being
 		// downloaded. And the progress of that
@@ -187,8 +176,7 @@ namespace libtorrent
 		bool verify_piece(const peer_request& p) const;
 
 		const stat& statistics() const { return m_statistics; }
-		void add_stat(size_type downloaded, size_type uploaded)
-		{ m_statistics.add_stat(downloaded, uploaded); }
+		void add_stat(size_type downloaded, size_type uploaded);
 
 		// is called once every second by the main loop
 		void second_tick();
@@ -196,63 +184,42 @@ namespace libtorrent
 		boost::shared_ptr<libtorrent::socket> get_socket() const { return m_socket; }
 
 		const peer_id& get_peer_id() const { return m_peer_id; }
-		const std::vector<bool>& get_bitfield() const
-		{ return m_have_piece; }
+		const std::vector<bool>& get_bitfield() const;
 
 		// this will cause this peer_connection to be disconnected.
 		// what it does is that it puts a reference to it in
 		// m_ses.m_disconnect_peer list, which will be scanned in the
 		// mainloop to disconnect peers.
 		void disconnect();
-
-		bool is_disconnecting() const
-		{ return m_disconnecting; }
-
-		resource_request upload_bandwidth;
+		bool is_disconnecting() const { return m_disconnecting; }
 
 		// returns the send quota this peer has
 		// left until will stop sending.
 		// if the send_quota is -1, it means the
 		// quota is unlimited.
-		int send_quota_left() const { return upload_bandwidth.given-upload_bandwidth.used; }
+		int send_quota_left() const;
+		resource_request* upload_bandwidth_quota();
 
-		void update_send_quota_left()
-		{
-			upload_bandwidth.used=0;
-			send_buffer_updated();
-		}
+		// ?? TODO: document
+		void update_send_quota_left();
 
-		size_type total_free_upload() const
-		{ return m_free_upload; }
-
-		void add_free_upload(size_type free_upload)
-		{ m_free_upload += free_upload; }
+		// free upload.
+		size_type total_free_upload() const;
+		void add_free_upload(size_type free_upload);
 
 
-		void received_valid_data()
-		{
-			m_trust_points++;
-			if (m_trust_points > 20) m_trust_points = 20;
-		}
-
-		void received_invalid_data()
-		{
-			m_trust_points--;
-			if (m_trust_points < -5) m_trust_points = -5;
-		}
-
-		int trust_points() const
-		{ return m_trust_points; }
+		// trust management.
+		void received_valid_data();
+		void received_invalid_data();
+		int trust_points() const;
 
 		size_type share_diff() const;
 
-		bool support_extensions() const
-		{ return m_supports_extensions; }
+		bool support_extensions() const { return m_supports_extensions; }
 
 		// a connection is local if it was initiated by us.
 		// if it was an incoming connection, it is remote
-		bool is_local() const
-		{ return m_active; }
+		bool is_local() const { return m_active; }
 
 #ifndef NDEBUG
 		boost::shared_ptr<logger> m_logger;
@@ -300,6 +267,11 @@ namespace libtorrent
 		void check_invariant() const;
 
 		bool dispatch_message(int received);
+
+
+		// this is called each time this peer generates some
+		// data to be sent. It will add this socket to
+		// the writibility monitor in the selector.
 		void send_buffer_updated();
 
 		// is used during handshake
@@ -378,6 +350,14 @@ namespace libtorrent
 		// peer's socket from the writability monitor list.
 		selector& m_selector;
 		boost::shared_ptr<libtorrent::socket> m_socket;
+
+		// how much bandwidth we're using, how much we want,
+		// and how much we are allowed to use.
+		resource_request m_upload_bandwidth_quota;
+		
+		// upload bandwidth used this second.
+		// Must not exceed m_upload_bandwidth_quota.given.
+		int m_upload_bandwidth_quota_used;
 
 		// this is the torrent this connection is
 		// associated with. If the connection is an
@@ -508,33 +488,6 @@ namespace libtorrent
 		// this peer the last time.
 		boost::posix_time::ptime m_became_uninteresting;
 	};
-
-	// this is called each time this peer generates some
-	// data to be sent. It will add this socket to
-	// the writibility monitor in the selector.
-	inline void peer_connection::send_buffer_updated()
-	{
-		if (!has_data())
-		{
-			if (m_added_to_selector)
-			{
-				m_selector.remove_writable(m_socket);
-				m_added_to_selector = false;
-			}
-			assert(!m_selector.is_writability_monitored(m_socket));
-			return;
-		}
-
-		assert(upload_bandwidth.used < upload_bandwidth.given);
-		assert(has_data());
-		if (!m_added_to_selector)
-		{
-			m_selector.monitor_writability(m_socket);
-			m_added_to_selector = true;
-		}
-		assert(m_added_to_selector);
-		assert(m_selector.is_writability_monitored(m_socket));
-	}
 }
 
 #endif // TORRENT_PEER_CONNECTION_HPP_INCLUDED
