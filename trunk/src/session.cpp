@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/fingerprint.hpp"
+#include "libtorrent/entry.hpp"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 namespace std
@@ -751,10 +752,10 @@ namespace libtorrent
 	// TODO: add a check to see if filenames are accepted on the
 	// current platform.
 	// if the torrent already exists, this will throw duplicate_torrent
-	torrent_handle session::add_torrent_impl(
+	torrent_handle session::add_torrent(
 		const torrent_info& ti
 		, const boost::filesystem::path& save_path
-		, const std::vector<char>* resume_data)
+		, const entry& resume_data)
 	{
 
 		{
@@ -887,6 +888,97 @@ namespace libtorrent
 
 	// TODO: store resume data as an entry instead
 	void detail::piece_checker_data::parse_resume_data(
+		const entry& resume_data
+		, const torrent_info& info)
+	{
+		// if we don't have any resume data, return
+		if (resume_data.type() == entry::undefined_t) return;
+
+		std::vector<int> tmp_pieces;
+		std::vector<piece_picker::downloading_piece> tmp_unfinished;
+
+		entry rd = resume_data;
+
+		try
+		{
+			if (rd.dict()["file-format"].string() != "libtorrent resume file")
+				return;
+
+			if (rd.dict()["file-version"].integer() != 1)
+				return;
+
+			// verify info_hash
+			const std::string &hash = rd.dict()["info-hash"].string();
+			std::string real_hash(info.info_hash().begin(), info.info_hash().end());
+			if (hash != real_hash)
+				return;
+
+			// read piece map
+			const entry::list_type& slots = rd.dict()["slots"].list();
+			if (slots.size() > info.num_pieces())
+				return;
+
+			tmp_pieces.reserve(slots.size());
+			for (entry::list_type::const_iterator i = slots.begin();
+				i != slots.end();
+				++i)
+			{
+				int index = i->integer();
+				if (index >= info.num_pieces() || index < -2)
+					return;
+				tmp_pieces.push_back(index);
+			}
+
+
+			int num_blocks_per_piece = rd.dict()["blocks per piece"].integer();
+			if (num_blocks_per_piece > 128 || num_blocks_per_piece < 1)
+				return;
+
+			const entry::list_type& unfinished = rd.dict()["unfinished"].list();
+
+			tmp_unfinished.reserve(unfinished.size());
+			for (entry::list_type::const_iterator i = unfinished.begin();
+				i != unfinished.end();
+				++i)
+			{
+				piece_picker::downloading_piece p;
+				if (i->list().size() < 2) return;
+
+				p.index = i->list()[0].integer();
+				if (p.index < 0 || p.index >= info.num_pieces())
+					return;
+
+				const std::string& bitmask = i->list()[1].string();
+
+				const int num_bitmask_bytes = std::max(num_blocks_per_piece / 8, 1);
+				if (bitmask.size() != num_bitmask_bytes) return;
+				for (int j = 0; j < num_bitmask_bytes; ++j)
+				{
+					unsigned char bits = bitmask[j];
+					for (int k = 0; k < 8; ++k)
+					{
+						const int bit = j * 8 + k;
+						if (bits & (1 << k))
+							p.finished_blocks[bit] = true;
+					}
+				}
+				tmp_unfinished.push_back(p);
+			}
+
+			piece_map.swap(tmp_pieces);
+			unfinished_pieces.swap(tmp_unfinished);
+		}
+		catch (invalid_encoding)
+		{
+			return;
+		}
+		catch (type_error)
+		{
+			return;
+		}
+	}
+/*
+	void detail::piece_checker_data::parse_resume_data(
 		const std::vector<char>* rd
 		, const torrent_info& info)
 	{
@@ -958,4 +1050,5 @@ namespace libtorrent
 		piece_map.swap(tmp_pieces);
 		unfinished_pieces.swap(tmp_unfinished);
 	}
+*/
 }

@@ -129,6 +129,11 @@ namespace libtorrent
 
 		data_type type() const { return m_type; }
 
+		entry(const dictionary_type&);
+		entry(const string_type&);
+		entry(const list_type&);
+		entry(const integer_type&);
+
 		entry(): m_type(undefined_t) {}
 		entry(data_type t): m_type(t) { construct(t); }
 		entry(const entry& e) { copy(e); }
@@ -139,6 +144,11 @@ namespace libtorrent
 			destruct();
 			copy(e);
 		}
+
+		void operator=(const dictionary_type&);
+		void operator=(const string_type&);
+		void operator=(const list_type&);
+		void operator=(const integer_type&);
 
 		integer_type& integer()
 		{

@@ -303,8 +303,7 @@ namespace libtorrent
 		{
 			std::stringstream s;
 			s << "hash for piece " << index << " failed";
-			torrent_handle self(&m_ses, 0, m_torrent_file.info_hash());
-			m_ses.m_alerts.post_alert(hash_failed_alert(self, index, s.str()));
+			m_ses.m_alerts.post_alert(hash_failed_alert(get_handle(), index, s.str()));
 		}
 		std::vector<peer_id> downloaders;
 		m_picker.get_downloaders(downloaders, index);
@@ -577,6 +576,18 @@ namespace libtorrent
 #endif
 	}
 
+	alert_manager& torrent::alerts() const
+	{
+		return m_ses.m_alerts;
+	}
+
+	torrent_handle torrent::get_handle() const
+	{
+		return torrent_handle(&m_ses, 0, m_torrent_file.info_hash());
+	}
+
+
+
 #ifndef NDEBUG
 	void torrent::check_invariant()
 	{
@@ -699,8 +710,7 @@ namespace libtorrent
 			s << "tracker: \""
 				<< m_torrent_file.trackers()[m_currently_trying_tracker].url
 				<< "\" timed out";
-			torrent_handle self(&m_ses, 0, m_torrent_file.info_hash());
-			m_ses.m_alerts.post_alert(tracker_alert(self, s.str()));
+			m_ses.m_alerts.post_alert(tracker_alert(get_handle(), s.str()));
 		}
 		// TODO: increase the retry_delay for
 		// each failed attempt on the same tracker!
@@ -726,8 +736,7 @@ namespace libtorrent
 			s << "tracker: \""
 				<< m_torrent_file.trackers()[m_currently_trying_tracker].url
 				<< "\" " << str;
-			torrent_handle self(&m_ses, 0, m_torrent_file.info_hash());
-			m_ses.m_alerts.post_alert(tracker_alert(self, s.str()));
+			m_ses.m_alerts.post_alert(tracker_alert(get_handle(), s.str()));
 		}
 
 

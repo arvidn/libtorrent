@@ -133,7 +133,7 @@ namespace libtorrent
 		const torrent_info& get_torrent_info() const;
 		bool is_valid() const;
 
-		void write_resume_data(std::vector<char>& buf);
+		entry write_resume_data();
 
 		// TODO: add force reannounce
 

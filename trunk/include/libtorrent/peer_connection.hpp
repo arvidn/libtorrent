@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <vector>
 #include <deque>
+#include <string>
 
 #include <boost/smart_ptr.hpp>
 #include <boost/noncopyable.hpp>
@@ -50,6 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/debug.hpp"
+#include "libtorrent/alert.hpp"
+#include "libtorrent/torrent_handle.hpp"
 
 // TODO: each time a block is 'taken over'
 // from another peer. That peer must be given
@@ -133,6 +136,23 @@ namespace libtorrent
 	struct protocol_error: std::runtime_error
 	{
 		protocol_error(const std::string& msg): std::runtime_error(msg) {};
+	};
+
+	struct chat_message_alert: alert
+	{
+		chat_message_alert(const torrent_handle& h
+			, const peer_id& send
+			, const std::string& msg)
+			: alert(alert::critical, msg)
+			, handle(h)
+			, sender(send)
+			{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new chat_message_alert(*this)); }
+
+		torrent_handle handle;
+		peer_id sender;
 	};
 
 	struct peer_request
@@ -336,6 +356,7 @@ namespace libtorrent
 		void send_have(int index);
 		void send_handshake();
 		void send_extensions();
+		void send_chat_message(const std::string& msg);
 
 		// is used during handshake
 		enum state
@@ -519,7 +540,7 @@ namespace libtorrent
 
 		enum extension_index
 		{
-			gzip_piece,
+			extended_chat_message,
 			num_supported_extensions
 		};
 		static const char* extension_names[num_supported_extensions];
