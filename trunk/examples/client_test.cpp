@@ -149,7 +149,7 @@ int main(int argc, char* argv[])
 	if (argc < 2)
 	{
 		std::cerr << "usage: ./client_test torrent-files ...\n"
-			"to stop the client, type a number and press enter.\n";
+			"to stop the client, press q.\n";
 		return 1;
 	}
 
@@ -222,8 +222,8 @@ int main(int argc, char* argv[])
 				i->get_peer_info(peers);
 				float down = 0.f;
 				float up = 0.f;
-				unsigned int total_down = 0;
-				unsigned int total_up = 0;
+				unsigned int total_down = s.total_download;
+				unsigned int total_up = s.total_upload;
 				int num_peers = peers.size();
 
 				for (std::vector<peer_info>::iterator i = peers.begin();
@@ -232,8 +232,6 @@ int main(int argc, char* argv[])
 				{
 					down += i->down_speed;
 					up += i->up_speed;
-					total_down += i->total_download;
-					total_up += i->total_upload;
 				}
 /*
 				std::cout << boost::format("%f%% p:%d d:(%s) %s/s u:(%s) %s/s\n")
