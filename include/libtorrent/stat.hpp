@@ -38,12 +38,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 
 #include "libtorrent/size_type.hpp"
+#include "libtorrent/invariant_check.hpp"
 
 namespace libtorrent
 {
 
 	class stat
 	{
+	friend class invariant_access;
 	enum { history = 10 };
 	public:
 
@@ -67,6 +69,8 @@ namespace libtorrent
 
 		void operator+=(const stat& s)
 		{
+			INVARIANT_CHECK;
+
 			m_downloaded_payload += s.m_downloaded_payload;
 			m_total_download_payload += s.m_downloaded_payload;
 			m_downloaded_protocol += s.m_downloaded_protocol;
@@ -80,22 +84,26 @@ namespace libtorrent
 
 		void received_bytes(int bytes_payload, int bytes_protocol)
 		{
+			INVARIANT_CHECK;
+
 			assert(bytes_payload >= 0);
 			assert(bytes_protocol >= 0);
+
 			m_downloaded_payload += bytes_payload;
 			m_total_download_payload += bytes_payload;
-
 			m_downloaded_protocol += bytes_protocol;
 			m_total_download_protocol += bytes_protocol;
 		}
 
 		void sent_bytes(int bytes_payload, int bytes_protocol)
 		{
+			INVARIANT_CHECK;
+
 			assert(bytes_payload >= 0);
 			assert(bytes_protocol >= 0);
+
 			m_uploaded_payload += bytes_payload;
 			m_total_upload_payload += bytes_payload;
-
 			m_uploaded_protocol += bytes_protocol;
 			m_total_upload_protocol += bytes_protocol;
 		}
@@ -119,7 +127,7 @@ namespace libtorrent
 	private:
 
 #ifndef NDEBUG
-		void check_invariant()
+		void check_invariant() const
 		{
 			assert(m_mean_upload_per_second >= 0);
 			assert(m_mean_download_per_second >= 0);
@@ -159,12 +167,12 @@ namespace libtorrent
 		size_type m_total_upload_protocol;
 
 		// peak mean download/upload rates
-		int m_peak_downloaded_per_second;
-		int m_peak_uploaded_per_second;
+		float m_peak_downloaded_per_second;
+		float m_peak_uploaded_per_second;
 
 		// current mean download/upload rates
-		int m_mean_download_per_second;
-		int m_mean_upload_per_second;
+		float m_mean_download_per_second;
+		float m_mean_upload_per_second;
 	};
 
 }

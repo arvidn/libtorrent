@@ -39,9 +39,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <iostream>
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/limits.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/entry.hpp"
@@ -151,7 +159,7 @@ namespace libtorrent
 		}
 
 		// the number of peers that belong to this torrent
-		int num_peers() const { return m_connections.size(); }
+		int num_peers() const { return (int)m_connections.size(); }
 
 		// returns true if this torrent has a connection
 		// to a peer with the given peer_id

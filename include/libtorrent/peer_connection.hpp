@@ -39,12 +39,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <deque>
 #include <string>
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/smart_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/array.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/optional.hpp>
 #include <boost/cstdint.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
@@ -196,6 +204,7 @@ namespace libtorrent
 
 	class peer_connection: public boost::noncopyable
 	{
+	friend class invariant_access;
 	public:
 
 		// this is the constructor where the we are teh active part. The peer_conenction
@@ -304,10 +313,10 @@ namespace libtorrent
 		// quota is unlimited.
 		int send_quota_left() const { return m_send_quota_left; }
 
-		int total_free_upload() const
+		size_type total_free_upload() const
 		{ return m_free_upload; }
 
-		void add_free_upload(int free_upload)
+		void add_free_upload(size_type free_upload)
 		{ m_free_upload += free_upload; }
 
 		// returns the send quota assigned to this
@@ -332,7 +341,7 @@ namespace libtorrent
 		int send_quota_limit() const
 		{ return m_send_quota_limit; }
 
-		int share_diff() const;
+		size_type share_diff() const;
 
 		bool support_extensions() const
 		{ return m_supports_extensions; }
@@ -388,6 +397,8 @@ namespace libtorrent
 
 	private:
 
+		void check_invariant() const;
+
 		bool dispatch_message(int received);
 		void send_buffer_updated();
 
@@ -429,8 +440,8 @@ namespace libtorrent
 
 		const static message_handler m_message_handler[num_supported_messages];
 
-		std::size_t m_packet_size;
-		std::size_t m_recv_pos;
+		int m_packet_size;
+		int m_recv_pos;
 		std::vector<char> m_recv_buffer;
 
 		// this is the buffer where data that is
@@ -542,7 +553,7 @@ namespace libtorrent
 		// this will be negative on a peer from which
 		// we get free download, and positive on peers
 		// that we give the free upload, to keep the balance.
-		int m_free_upload;
+		size_type m_free_upload;
 
 		// this is used to limit upload bandwidth.
 		// it is reset to the allowed number of

@@ -38,8 +38,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <set>
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/time.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/bencode.hpp"
@@ -135,7 +143,9 @@ namespace libtorrent
 		i = dict.find("creation date");
 		if (i != dict.end() && i->second.type() == entry::int_t)
 		{
-			m_creation_date = m_creation_date + boost::posix_time::seconds(i->second.integer());
+			m_creation_date
+				= m_creation_date
+				+ boost::posix_time::seconds((long)i->second.integer());
 		}
 
 		// extract comment
@@ -153,7 +163,7 @@ namespace libtorrent
 		std::vector<char> buf;
 		bencode(std::back_insert_iterator<std::vector<char> >(buf), info);
 		hasher h;
-		h.update(&buf[0], buf.size());
+		h.update(&buf[0], (int)buf.size());
 		m_info_hash = h.final();
 
 		// extract piece length
@@ -192,7 +202,7 @@ namespace libtorrent
 		// extract sha-1 hashes for all pieces
 		// we want this division to round upwards, that's why we have the
 		// extra addition
-		size_type num_pieces = (m_total_size + m_piece_length - 1) / m_piece_length;
+		int num_pieces = static_cast<int>((m_total_size + m_piece_length - 1) / m_piece_length);
 		i = info.dict().find("pieces");
 		if (i == info.dict().end()) throw invalid_torrent_file();
 

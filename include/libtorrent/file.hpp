@@ -36,8 +36,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <stdexcept>
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/noncopyable.hpp>
 #include <boost/filesystem/path.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/size_type.hpp"
 

@@ -33,7 +33,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SIZE_TYPE_HPP_INCLUDED
 #define TORRENT_SIZE_TYPE_HPP_INCLUDED
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/cstdint.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 namespace libtorrent
 {

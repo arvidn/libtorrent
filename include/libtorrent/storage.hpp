@@ -36,9 +36,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <bitset>
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/limits.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/opaque_value_ptr.hpp"
@@ -78,11 +87,14 @@ namespace libtorrent
 
 		void swap(storage&);
 
-		size_type read(char* buf, int slot, size_type offset, size_type size);
-		void write(const char* buf, int slot, size_type offset, size_type size);
+		// may throw file_error if storage for slot does not exist
+		size_type read(char* buf, int slot, int offset, int size);
+
+		// may throw file_error if storage for slot hasn't been allocated
+		void write(const char* buf, int slot, int offset, int size);
 
 	private:
-		struct impl;
+		class impl;
 		opaque_value_ptr<impl> m_pimpl;
 	};
 
@@ -110,8 +122,17 @@ namespace libtorrent
 			, const std::bitset<256>& bitmask);
 		int slot_for_piece(int piece_index) const;
 
-		size_type read(char* buf, int piece_index, size_type offset, size_type size);
-		void write(const char* buf, int piece_index, size_type offset, size_type size);
+		size_type read(
+			char* buf
+			, int piece_index
+			, int offset
+			, int size);
+
+		void write(
+			const char* buf
+			, int piece_index
+			, int offset
+			, int size);
 
 		const boost::filesystem::path& save_path() const;
 
@@ -122,7 +143,7 @@ namespace libtorrent
 		void export_piece_map(std::vector<int>& pieces) const;
 
 	private:
-		struct impl;
+		class impl;
 		std::auto_ptr<impl> m_pimpl;
 	};
 

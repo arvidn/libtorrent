@@ -718,14 +718,15 @@ fields::
 		address ip;
 		float up_speed;
 		float down_speed;
-		unsigned int total_download;
-		unsigned int total_upload;
+		size_type total_download;
+		size_type total_upload;
 		peer_id id;
 		std::vector<bool> pieces;
 		int upload_limit;
 		int upload_ceiling;
 
-		int load_balancing;
+		size_type load_balancing;
+
 		int download_queue_length;
 		int upload_queue_length;
 

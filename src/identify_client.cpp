@@ -30,8 +30,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <boost/optional.hpp>
 #include <cctype>
+
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
+#include <boost/optional.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/fingerprint.hpp"

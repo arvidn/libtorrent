@@ -40,11 +40,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cctype>
 #include <algorithm>
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/exception.hpp>
 #include <boost/limits.hpp>
 #include <boost/bind.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -56,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/invariant_check.hpp"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 namespace std
@@ -208,7 +217,7 @@ namespace
 					// Rounds upwards to avoid trying to give 0 bandwidth to someone
 					// (may get caught in an endless loop otherwise)
 					
-					int num_peers_left_to_share_quota = peer_info.size() - i;
+					int num_peers_left_to_share_quota = (int)peer_info.size() - i;
 					int try_to_give_to_this_peer
 						= (quota_left_to_distribute + num_peers_left_to_share_quota - 1)
 						/ num_peers_left_to_share_quota;
@@ -359,7 +368,7 @@ namespace libtorrent
 
 			// ---- generate a peer id ----
 
-			std::srand(std::time(0));
+			std::srand((unsigned int)std::time(0));
 
 			std::string print = cl_fprint.to_string();
 			assert(print.length() == 8);
@@ -438,7 +447,7 @@ namespace libtorrent
 			{
 
 #ifndef NDEBUG
-				assert_invariant("loops_per_second++");
+				check_invariant("loops_per_second++");
 				loops_per_second++;
 #endif
 
@@ -479,7 +488,7 @@ namespace libtorrent
 				}
 
 #ifndef NDEBUG
-				assert_invariant("before SEND SOCKETS");
+				check_invariant("before SEND SOCKETS");
 #endif
 
 				// ************************
@@ -527,7 +536,7 @@ namespace libtorrent
 				purge_connections();
 
 #ifndef NDEBUG
-				assert_invariant("after SEND SOCKETS");
+				check_invariant("after SEND SOCKETS");
 #endif
 				// ************************
 				// RECEIVE SOCKETS
@@ -591,7 +600,7 @@ namespace libtorrent
 				}
 				purge_connections();
 #ifndef NDEBUG
-				assert_invariant("after RECEIVE SOCKETS");
+				check_invariant("after RECEIVE SOCKETS");
 #endif
 
 				// ************************
@@ -623,7 +632,7 @@ namespace libtorrent
 				}
 
 #ifndef NDEBUG
-				assert_invariant("after ERROR SOCKETS");
+				check_invariant("after ERROR SOCKETS");
 #endif
 
 				boost::posix_time::time_duration d = boost::posix_time::second_clock::local_time() - timer;
@@ -751,7 +760,7 @@ namespace libtorrent
 #endif
 
 #ifndef NDEBUG
-		void session_impl::assert_invariant(const char *place)
+		void session_impl::check_invariant(const char *place)
 		{
 			assert(place);
 
@@ -763,7 +772,7 @@ namespace libtorrent
 				{
 					std::ofstream error_log("error.log", std::ios_base::app);
 					boost::shared_ptr<peer_connection> p = i->second;
-					error_log << "session_imple::assert_invariant()\n"
+					error_log << "session_imple::check_invariant()\n"
 						"peer_connection::has_data() != is_writability_monitored()\n";
 					error_log << "peer_connection::has_data() " << p->has_data() << "\n";
 					error_log << "peer_connection::send_quota_left " << p->send_quota_left() << "\n";
@@ -982,7 +991,9 @@ namespace libtorrent
 				i != peer_list.end();
 				++i)
 			{
-				address a(i->dict()["ip"].string(), i->dict()["port"].integer());
+				address a(
+					i->dict()["ip"].string()
+					, (unsigned short)i->dict()["port"].integer());
 				tmp_peers.push_back(a);
 			}
 
@@ -1001,14 +1012,14 @@ namespace libtorrent
 				i != slots.end();
 				++i)
 			{
-				int index = i->integer();
+				int index = (int)i->integer();
 				if (index >= info.num_pieces() || index < -2)
 					return;
 				tmp_pieces.push_back(index);
 			}
 
 
-			int num_blocks_per_piece = rd.dict()["blocks per piece"].integer();
+			int num_blocks_per_piece = (int)rd.dict()["blocks per piece"].integer();
 			if (num_blocks_per_piece != info.piece_length() / torrent_ptr->block_size())
 				return;
 
@@ -1024,7 +1035,7 @@ namespace libtorrent
 			{
 				piece_picker::downloading_piece p;
 
-				p.index = i->dict()["piece"].integer();
+				p.index = (int)i->dict()["piece"].integer();
 				if (p.index < 0 || p.index >= info.num_pieces())
 					return;
 
@@ -1055,7 +1066,7 @@ namespace libtorrent
 				}
 
 				assert(*slot_iter == p.index);
-				int slot_index = slot_iter - tmp_pieces.begin();
+				int slot_index = static_cast<int>(slot_iter - tmp_pieces.begin());
 				unsigned long adler
 					= torrent_ptr->filesystem().piece_crc(
 						slot_index
