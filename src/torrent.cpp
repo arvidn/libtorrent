@@ -89,13 +89,13 @@ namespace
 		// if pieces are too small, adjust the block size
 		if (i.piece_length() < default_block_size)
 		{
-			return i.piece_length();
+			return static_cast<int>(i.piece_length());
 		}
 
 		// if pieces are too large, adjust the block size
 		if (i.piece_length() / default_block_size > piece_picker::max_blocks_per_piece)
 		{
-			return i.piece_length() / piece_picker::max_blocks_per_piece;
+			return static_cast<int>(i.piece_length() / piece_picker::max_blocks_per_piece);
 		}
 
 		// otherwise, go with the default
@@ -227,7 +227,7 @@ namespace libtorrent
 		, m_duration(1800)
 		, m_policy(new policy(this)) // warning: uses this in member init list
 		, m_ses(ses)
-		, m_picker(torrent_file.piece_length() / m_block_size,
+		, m_picker(static_cast<int>(torrent_file.piece_length() / m_block_size),
 			static_cast<int>((torrent_file.total_size()+m_block_size-1)/m_block_size))
 		, m_last_working_tracker(-1)
 		, m_currently_trying_tracker(0)
@@ -349,7 +349,7 @@ namespace libtorrent
 		const std::vector<piece_picker::downloading_piece>& dl_queue
 			= m_picker.get_download_queue();
 
-		const int blocks_per_piece = m_torrent_file.piece_length() / m_block_size;
+		const int blocks_per_piece = static_cast<int>(m_torrent_file.piece_length() / m_block_size);
 
 		for (std::vector<piece_picker::downloading_piece>::const_iterator i =
 			dl_queue.begin();
@@ -697,7 +697,7 @@ namespace libtorrent
 		assert(piece_index >= 0);
 		assert(piece_index < m_torrent_file.num_pieces());
 
-		int size = m_torrent_file.piece_size(piece_index);
+		int size = static_cast<int>(m_torrent_file.piece_size(piece_index));
 		std::vector<char> buffer(size);
 		assert(size > 0);
 		m_storage.read(&buffer[0], piece_index, 0, size);

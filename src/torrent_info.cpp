@@ -257,21 +257,6 @@ namespace libtorrent
 		return boost::optional<boost::posix_time::ptime>();
 	}
 
-	int torrent_info::piece_size(int index) const
-	{
-		assert(index >= 0 && index < num_pieces());
-		if (index == num_pieces()-1)
-		{
-			int s = static_cast<int>(total_size()
-				- (size_type)(num_pieces() - 1) * piece_length());
-			assert(s > 0);
-			assert(s <= piece_length());
-			return s;
-		}
-		else
-			return piece_length();
-	}
-
 	void torrent_info::add_tracker(std::string const& url, int tier)
 	{
 		announce_entry e;
@@ -291,7 +276,7 @@ namespace libtorrent
 
 		int num_pieces = static_cast<int>((m_total_size + m_piece_length - 1) / m_piece_length);
 
-		int old_num_pieces = m_piece_hash.size();
+		int old_num_pieces = static_cast<int>(m_piece_hash.size());
 
 		m_piece_hash.resize(num_pieces);
 		for (std::vector<sha1_hash>::iterator i = m_piece_hash.begin() + old_num_pieces;
@@ -388,7 +373,7 @@ namespace libtorrent
 	void torrent_info::set_hash(int index, const sha1_hash& h)
 	{
 		assert(index >= 0);
-		assert(index < m_piece_hash.size());
+		assert(index < (int)m_piece_hash.size());
 		m_piece_hash[index] = h;
 	}
 
@@ -430,4 +415,18 @@ namespace libtorrent
 			os << "  " << std::setw(11) << i->size << "  " << i->path.string() << "\n";
 	}
 
+	size_type torrent_info::piece_size(int index) const
+	{
+		assert(index >= 0 && index < num_pieces());
+		if (index == num_pieces()-1)
+		{
+			size_type size = total_size()
+				- (num_pieces() - 1) * piece_length();
+			assert(size > 0);
+			assert(size <= piece_length());
+			return size;
+		}
+		else
+			return piece_length();
+	}
 }

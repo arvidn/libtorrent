@@ -1228,7 +1228,7 @@ namespace libtorrent
 		// client has sent us. This is the mean to
 		// maintain the share ratio given by m_ratio
 		// with all peers.
-/*
+
 		if (m_torrent->is_seed() || is_choked() || m_torrent->ratio()==0.0f)
 		{
 			// if we have downloaded more than one piece more
@@ -1241,26 +1241,31 @@ namespace libtorrent
 		}
 		else
 		{
-			double bias = 0x20000 + m_free_upload;
+			size_type bias = std::max(0x20000,
+				m_torrent->block_size()) + m_free_upload;
 
-			double break_even_time = 5;
-			double have_uploaded = (double)m_statistics.total_payload_upload();
-			double have_downloaded = (double)m_statistics.total_payload_download();
+			double break_even_time = 15; // seconds.
+			size_type have_uploaded = m_statistics.total_payload_upload();
+			size_type have_downloaded = m_statistics.total_payload_download();
 			double download_speed = m_statistics.download_rate();
 
-			double soon_downloaded =
-				have_downloaded+download_speed * 1.5 * break_even_time;
+			size_type soon_downloaded =
+				have_downloaded + (size_type)(download_speed * break_even_time*1.5);
 
-			double upload_speed_limit = (soon_downloaded*m_torrent->ratio()
-				                   - have_uploaded + bias) / break_even_time;
+			if(m_torrent->ratio() != 1.0f)
+				soon_downloaded = (size_type)(soon_downloaded*(double)m_torrent->ratio());
+
+			double upload_speed_limit = (soon_downloaded - have_uploaded
+				                         + bias) / break_even_time;
+
 			upload_speed_limit=std::max(upload_speed_limit,1.0);
 			upload_speed_limit=std::min(upload_speed_limit,
 				                        (double)std::numeric_limits<int>::max());
 
 			upload_bandwidth.wanted = (int) upload_speed_limit;
 		}
-*/
 
+/*
 		size_type diff = share_diff();
 
 		enum { block_limit = 2 }; // how many blocks difference is considered unfair
@@ -1296,6 +1301,7 @@ namespace libtorrent
 			// the maximum send_quota given our download rate from this peer
 			if (upload_bandwidth.wanted < 256) upload_bandwidth.wanted = 256;
 		}
+*/
 	}
 
 	// --------------------------

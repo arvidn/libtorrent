@@ -119,14 +119,15 @@ namespace libtorrent
 		int prioritize_tracker(int index);
 
 		size_type total_size() const { return m_total_size; }
-		int piece_length() const { return m_piece_length; }
+		size_type piece_length() const { return m_piece_length; }
 		int num_pieces() const { return (int)m_piece_hash.size(); }
 		const sha1_hash& info_hash() const { return m_info_hash; }
 		const std::string& name() const { return m_name; }
 		void print(std::ostream& os) const;
 
 		void convert_file_names();
-		int piece_size(int index) const;
+
+		size_type piece_size(int index) const;
 
 		const sha1_hash& hash_for_piece(int index) const
 		{
@@ -149,7 +150,7 @@ namespace libtorrent
 		std::vector<announce_entry> m_urls;
 
 		// the length of one piece
-		int m_piece_length;
+		size_type m_piece_length;
 
 		// the sha-1 hashes of each piece
 		std::vector<sha1_hash> m_piece_hash;

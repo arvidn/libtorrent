@@ -320,8 +320,8 @@ namespace libtorrent
 
 		// blocks per piece
 		int num_blocks_per_piece =
-			t->torrent_file().piece_length() / t->block_size();
-		ret["blocks per piece"] = num_blocks_per_piece;
+			static_cast<int>(t->torrent_file().piece_length()) / t->block_size();
+		ret.dict()["blocks per piece"] = num_blocks_per_piece;
 
 		// num unfinished pieces
 		int num_unfinished = (int)q.size();
