@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <ios>
 #include <ctime>
 #include <iostream>
-//#include <fstream>
 #include <iomanip>
 #include <iterator>
 #include <algorithm>
@@ -41,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/convenience.hpp>
-//#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/fstream.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/ref.hpp>
 
@@ -411,7 +410,7 @@ namespace libtorrent {
 
 		// maps piece index to slot index. -1 means the piece
 		// doesn't exist
-		enum { has_no_slot=-3 };
+		enum { has_no_slot = -3 };
 		std::vector<int> m_piece_to_slot;
 		// slots that hasn't had any file storage allocated
 		std::vector<int> m_unallocated_slots;
@@ -421,10 +420,12 @@ namespace libtorrent {
 		// index here is a slot number in the file
 		// if index>=0, the slot is assigned to this piece
 		// otherwise it can have one of these values:
-		enum {
-			unallocated=-1, // the slot is unallocated
-			unassigned=-2   // the slot is allocated but not assigned to a piece
+		enum
+		{
+			unallocated = -1, // the slot is unallocated
+			unassigned = -2   // the slot is allocated but not assigned to a piece
 		};
+
 		std::vector<int> m_slot_to_piece;
 
 		boost::filesystem::path m_save_path;
