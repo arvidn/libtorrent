@@ -584,7 +584,8 @@ namespace libtorrent
 
 	void policy::peer_from_tracker(const address& remote, const peer_id& id)
 	{
-		if(remote.ip()==0 || remote.port()==0)
+		// just ignore the obviously invalid entries from the tracker
+		if(remote.ip() == 0 || remote.port() == 0)
 			return;
 
 		try
