@@ -377,7 +377,7 @@ bool libtorrent::peer_connection::dispatch_message(int received)
 			else
 			{
 				m_have_piece[index] = true;
-				if (m_torrent->peer_has(index))
+				if (!m_torrent->peer_has(index) && !is_interesting())
 					m_torrent->get_policy().peer_is_interesting(*this);
 			}
 			break;

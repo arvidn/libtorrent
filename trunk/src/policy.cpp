@@ -507,14 +507,45 @@ namespace libtorrent
 
 	void policy::piece_finished(int index, bool successfully_verified)
 	{
+		if (successfully_verified)
+		{
+			// have all peers update their interested-flag
+			for (std::vector<peer>::iterator i = m_peers.begin();
+				i != m_peers.end();
+				++i)
+			{
+				if (i->connection == 0) continue;
+				// if we're not interested, we will not become interested
+				if (!i->connection->is_interesting()) continue;
+
+				bool interested = false;
+				const std::vector<bool>& peer_has = i->connection->get_bitfield();
+				const std::vector<bool>& we_have = m_torrent->pieces();
+				assert(we_have.size() == peer_has.size());
+				for (int j = 0; j != we_have.size(); ++j)
+				{
+					if (!we_have[j] && peer_has[j])
+					{
+						interested = true;
+						break;
+					}
+				}
+				if (!interested)
+					i->connection->not_interested();
+			}
+		}
 		// TODO: if verification failed, mark the peers that were involved
 		// in some way
 	}
 
+	// TODO: we must be able to get interested
+	// in a peer again, if a piece fails that
+	// this peer has.
 	void policy::block_finished(peer_connection& c, piece_block b)
 	{
 		// if the peer hasn't choked us, ask for another piece
-		if (!c.has_peer_choked()) request_a_block(*m_torrent, c);
+		if (!c.has_peer_choked())
+			request_a_block(*m_torrent, c);
 	}
 
 	// this is called when we are unchoked by a peer

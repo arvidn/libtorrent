@@ -192,6 +192,9 @@ namespace libtorrent
 		bool have_piece(unsigned int index) const
 		{ return m_have_pieces[index]; }
 
+		const std::vector<bool>& pieces() const
+		{ return m_have_pieces; }
+
 		// when we get a have- or bitfield- messages, this is called for every
 		// piece a peer has gained.
 		// returns true if this piece is interesting (i.e. if we would like to download it)

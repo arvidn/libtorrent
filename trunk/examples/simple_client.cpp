@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
 
 	try
 	{
-		session s(6881, "E\x1");
+		session s(6881);
 	
 		std::ifstream in(argv[1], std::ios_base::binary);
 		in.unsetf(std::ios_base::skipws);
