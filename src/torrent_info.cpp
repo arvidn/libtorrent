@@ -303,7 +303,10 @@ namespace libtorrent
 		{
 			return boost::optional<boost::posix_time::ptime>(m_creation_date);
 		}
-		return boost::optional<boost::posix_time::ptime>();
+
+		// if there's no timestamp in the torrent file, this will return a date of january 1:st 1970.
+		boost::optional<boost::posix_time::ptime> pt(boost::gregorian::date(1970,1,1));
+		return pt;
 	}
 
 	void torrent_info::add_tracker(std::string const& url, int tier)
