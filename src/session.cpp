@@ -70,73 +70,52 @@ but also CPU-wise. This goal has a number of implications:
   to scale better when having many peer connections.
 *
 
-
-
-
-
 */
-
-namespace
-{
-	using namespace libtorrent;
-
-	peer_id generate_peer_id(const http_settings& s)
-	{
-		peer_id ret;
-		std::srand(std::time(0));
-/*
-		std::fill(ret.begin(), ret.end(), 0);
-		std::copy(s.fingerprint, s.fingerprint+4, std::ostream_iterator<int>(std::cout, " "));
-		std::cout << "\n";
-*/		
-		// libtorrent's fingerprint
-		unsigned char fingerprint[] = "lt.";
-		const int len = 3-(s.fingerprint[0] == 0?1:0);
-		std::copy(fingerprint, fingerprint+len, ret.begin());
-//		std::copy(ret.begin(), ret.end(), std::ostream_iterator<int>(std::cout, " "));
-//		std::cout << "\n";
-		
-		// the client's fingerprint
-		const int len2 = std::find(s.fingerprint, s.fingerprint+sizeof(s.fingerprint), 0)
-			- s.fingerprint;
-//		std::cout << "len: " << len << "\n";
-//		std::cout << "len2: " << len2 << "\n";
-		std::copy(s.fingerprint, s.fingerprint+len2, ret.begin()+len); 
-//		std::copy(ret.begin(), ret.end(), std::ostream_iterator<int>(std::cout, " "));
-//		std::cout << "\n";
-  
-		// the zeros
-		std::fill(ret.begin()+len+len2, ret.begin()+len+len2+3, 0);
-//		std::copy(ret.begin(), ret.end(), std::ostream_iterator<int>(std::cout, " "));
-//		std::cout << "\n";
-
-		// the random number
-		for (unsigned char* i = ret.begin()+len+len2+3;
-			i != ret.end();
-			++i)
-		{
-			*i = rand();
-		}
-//		std::copy(ret.begin(), ret.end(), std::ostream_iterator<int>(std::cout, " "));
-//		std::cout << "\n";
-		return ret;
-	}
-
-}
 
 namespace libtorrent
 {
 	namespace detail
 	{
+		session_impl::session_impl(const std::string& cl_fprint)
+			: m_abort(false)
+			, m_tracker_manager(m_settings)
+		{
+
+			// ---- generate a peer id ----
+
+			std::srand(std::time(0));
+
+			// libtorrent's fingerprint
+			unsigned char fingerprint[] = "lt.";
+
+			const int len2 = std::min(cl_fprint.length(), (long)7);
+			const int len1 = (len2 == 0?2:3);
+			const int len3 = 12 - len1 - len2;
+
+			std::copy(fingerprint, fingerprint+len1, m_peer_id.begin());
+			
+			// the client's fingerprint
+			std::copy(cl_fprint.begin(), cl_fprint.begin()+len2, m_peer_id.begin()+len1); 
+	  
+			// the zeros
+			std::fill(m_peer_id.begin()+len1+len2, m_peer_id.begin()+len1+len2+len3, 0);
+			assert(len1 + len2 + len3 == 12);
+
+			// the random number
+			for (unsigned char* i = m_peer_id.begin()+len1+len2+len3;
+				i != m_peer_id.end();
+				++i)
+			{
+				*i = rand();
+			}
+		}
+
+
 		void session_impl::run(int listen_port)
 		{
 #if defined(TORRENT_VERBOSE_LOGGING)
 			m_logger = create_log("main session");
 #endif
-
-			// TODO: don't generate peer id until we need it
-			// this way it's possible to set the fingerprint
-			m_peer_id = generate_peer_id(m_settings);
 
 			boost::shared_ptr<socket> listener(new socket(socket::tcp, false));
 			int max_port = listen_port + 9;
@@ -509,15 +488,15 @@ namespace libtorrent
 		m_thread.join();
 	}
 
-
-	float torrent_handle::progress() const
+	std::pair<torrent_handle::state_t, float> torrent_handle::status() const
 	{
-		if (m_ses == 0) return 0.f;
+		if (m_ses == 0) return std::make_pair(invalid_handle, 0.f);
+
 		boost::mutex::scoped_lock l(m_ses->m_mutex);
 
 		std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i = m_ses->m_torrents.find(m_info_hash);
-		if (i == m_ses->m_torrents.end()) return 0.f;
-		return i->second->progress();
+		if (i == m_ses->m_torrents.end()) return std::make_pair(invalid_handle, 0.f);
+		return i->second->status();
 	}
 
 	void torrent_handle::get_peer_info(std::vector<peer_info>& v)

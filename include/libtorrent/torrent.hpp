@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/path.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
+#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/socket.hpp"
@@ -119,13 +120,7 @@ namespace libtorrent
 		int bytes_uploaded() const { return m_bytes_uploaded; }
 		int bytes_left() const { return m_storage.bytes_left(); }
 
-		// TODO: temporary implementation. Should count the actually
-		// verified pieces and should support the different states
-		// a torrent can be in.
-		float progress() const
-		{
-			return bytes_downloaded() / static_cast<float>(m_torrent_file.total_size());
-		}
+		std::pair<torrent_handle::state_t, float> status() const;
 
 		void connect_to_peer(const address& a, const peer_id& id);
 

@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_SESION_HPP_INCLUDED
+#ifndef TORRENT_SESSION_HPP_INCLUDED
 #define TORRENT_SESSION_HPP_INCLUDED
 
 #include <ctime>
@@ -59,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
 
+#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -115,10 +116,7 @@ namespace libtorrent
 		{
 			typedef std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> > connection_map;
 
-			session_impl()
-				: m_abort(false)
-				, m_tracker_manager(m_settings)
-			{}
+			session_impl(const std::string& fingerprint);
 
 			// must be locked to access the data
 			// in this struct
@@ -191,42 +189,13 @@ namespace libtorrent
 
 	std::string extract_fingerprint(const peer_id& p);
 
-	struct torrent_handle
-	{
-		friend class session;
-
-		torrent_handle(): m_ses(0) {}
-
-		float progress() const;
-		void get_peer_info(std::vector<peer_info>& v);
-		void abort();
-		enum state_t
-		{
-			checking_files,
-			connecting_to_tracker,
-			downloading,
-			seeding
-		};
-//		state_t state() const;
-
-	private:
-
-		torrent_handle(detail::session_impl* s, const sha1_hash& h)
-			: m_ses(s)
-			, m_info_hash(h)
-		{}
-
-		detail::session_impl* m_ses;
-		sha1_hash m_info_hash; // should be replaced with a torrent*?
-
-	};
-
 	class session: public boost::noncopyable
 	{
 	public:
 
-		session(int listen_port)
-			: m_thread(detail::main_loop_thread(listen_port, &m_impl)) {}
+		session(int listen_port, const std::string& fingerprint = std::string())
+			: m_impl(fingerprint)
+			, m_thread(detail::main_loop_thread(listen_port, &m_impl)) {}
 
 		~session();
 
