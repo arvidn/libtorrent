@@ -1052,6 +1052,8 @@ Written by Arvid Norberg and Daniel Wallin. Copyright (c) 2003
 
 Contributions by Magnus Jonsson
 
+Thanks to Reimond Retz for bugfixes, suggestions and testing
+
 Project is hosted by sourceforge.
 
 |sf_logo|__

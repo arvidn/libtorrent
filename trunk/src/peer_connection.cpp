@@ -342,6 +342,9 @@ bool libtorrent::peer_connection::dispatch_message(int received)
 		m_statistics.received_bytes(0, received);
 		if (m_recv_pos < m_packet_size) return false;
 
+		// clear the request queue if the client isn't interested
+		m_requests.clear();
+
 #ifndef NDEBUG
 		(*m_logger) << m_socket->sender().as_string() << " <== NOT_INTERESTED\n";
 #endif
@@ -468,7 +471,8 @@ bool libtorrent::peer_connection::dispatch_message(int received)
 				&& r.start < m_torrent->torrent_file().piece_size(r.piece)
 				&& r.length > 0
 				&& r.length + r.start < m_torrent->torrent_file().piece_size(r.piece)
-				&& !m_choked)
+				&& !m_choked
+				&& m_peer_interested)
 			{
 				m_requests.push_back(r);
 				send_buffer_updated();
