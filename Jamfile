@@ -54,7 +54,6 @@ SOURCES =
 	alert.cpp
 	entry.cpp
 	escape_string.cpp
-	file.cpp
 	identify_client.cpp
 	peer_connection.cpp
 	piece_picker.cpp
@@ -93,11 +92,11 @@ ZLIB_SOURCES =
 	if [ modules.peek : NT ]
 	{
 		LIBS += winsock ;
-		SOURCES += file_win.cpp
+		SOURCES += file_win.cpp ;
 	}
 	else
 	{
-		SOURCES += file.cpp
+		SOURCES += file.cpp ;
 	}
 
 lib torrent
