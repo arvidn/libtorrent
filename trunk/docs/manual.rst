@@ -56,7 +56,7 @@ __ udp_tracker_protocol.html
 
 Functions that are yet to be implemented:
 
-	* better handling of peers that send bad data
+	* better identification of peers that send bad data
 	* ip-filters
 	* file-level priority
 

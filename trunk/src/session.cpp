@@ -702,6 +702,11 @@ namespace libtorrent
 					// close it.
 					if (j->second->has_timed_out())
 					{
+						if (m_alerts.should_post(alert::debug))
+						{
+							m_alerts.post_alert(
+								peer_error_alert(j->first->sender(), "connection timed out"));
+						}
 						m_selector.remove(j->first);
 						m_connections.erase(j);
 						assert(m_selector.count_read_monitors() == (int)m_connections.size() + 1);

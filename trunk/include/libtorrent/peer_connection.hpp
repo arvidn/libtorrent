@@ -146,7 +146,7 @@ namespace libtorrent
 
 		bool is_seed() const;
 
-		bool has_timed_out()
+		bool has_timed_out() const
 		{
 			boost::posix_time::time_duration d;
 			d = boost::posix_time::second_clock::local_time() - m_last_receive;
