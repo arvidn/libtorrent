@@ -245,7 +245,9 @@ windows format (<tt class="docutils literal"><span class="pre">c:/boost_1_32_0</
 libtorrent will have pretty expensive invariant checks and asserts built into it. If you
 want to disable such checks (you want to do that in a release build) you can see the
 table below for which defines you can use to control the build. The <tt class="docutils literal"><span class="pre">Jamfile</span></tt> will define
-<tt class="docutils literal"><span class="pre">NDEBUG</span></tt> when it's building a release build.</p>
+<tt class="docutils literal"><span class="pre">NDEBUG</span></tt> when it's building a release build. There are two other build variants available
+in the <tt class="docutils literal"><span class="pre">Jamfile</span></tt>. debug_log and release_log, these two variants inherits from the
+debug and release variants respectively, but adds extra logging (<tt class="docutils literal"><span class="pre">TORRENT_VERBOSE_LOGGIN</span></tt>).</p>
 <table border="1" class="docutils">
 <colgroup>
 <col width="40%" />
@@ -265,10 +267,7 @@ other debug settings.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">TORRENT_VERBOSE_LOGGING</span></tt></td>
 <td>If you define this macro, every peer connection
-will log its traffic to a log file.
-This setting requires a debug build, i.e.
-if you set <tt class="docutils literal"><span class="pre">NDEBUG</span></tt> aswell, no logs will be
-written.</td>
+will log its traffic to a log file.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">TORRENT_STORAGE_DEBUG</span></tt></td>
 <td>This will enable extra expensive invariant
