@@ -210,18 +210,29 @@ namespace
 	{
 		if (free_upload == 0) return free_upload;
 		int num_peers = 0;
+		int total_diff = 0;
 		for (torrent::peer_iterator i = start; i != end; ++i)
 		{
-			if ((*i)->is_interesting() || !(*i)->is_peer_interested()) continue;
+			total_diff += (*i)->share_diff();
+			if (!(*i)->is_peer_interested() || (*i)->share_diff() >= 0) continue;
 			++num_peers;
 		}
 
 		if (num_peers == 0) return free_upload;
-		int upload_share = free_upload / num_peers;
+		int upload_share;
+		if (total_diff >= 0)
+		{
+			upload_share = std::min(free_upload, total_diff) / num_peers;
+		}
+		else
+		{
+			upload_share = (free_upload + total_diff) / num_peers;
+		}
+		if (upload_share < 0) return free_upload;
 
 		for (torrent::peer_iterator i = start; i != end; ++i)
 		{
-			if ((*i)->is_interesting() || !(*i)->is_peer_interested()) continue;
+			if (!(*i)->is_peer_interested() || (*i)->share_diff() >= 0) continue;
 			(*i)->add_free_upload(upload_share);
 			free_upload -= upload_share;
 		}
