@@ -354,7 +354,6 @@ namespace libtorrent
 			{
 				// we don't trust this peer anymore
 				// ban it.
-				m_policy->ban_peer(*p->second);
 				if (m_ses.m_alerts.should_post(alert::info))
 				{
 					m_ses.m_alerts.post_alert(peer_ban_alert(
@@ -362,6 +361,8 @@ namespace libtorrent
 						, get_handle()
 						, "banning peer because of too many corrupt pieces"));
 				}
+				m_policy->ban_peer(*p->second);
+				p->second->disconnect();
 			}
 		}
 
