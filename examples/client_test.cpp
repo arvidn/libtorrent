@@ -226,7 +226,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	boost::filesystem::path::default_name_check(boost::filesystem::native);
+//	boost::filesystem::path::default_name_check(boost::filesystem::native);
 	
 	http_settings settings;
 //	settings.proxy_ip = "192.168.0.1";
@@ -388,21 +388,21 @@ int main(int argc, char* argv[])
 					++i)
 				{
 					out << "d:" << add_suffix(i->down_speed) << "/s "
-						<< "(" << add_suffix(i->total_download) << ") "
+//						<< "(" << add_suffix(i->total_download) << ") "
 						<< "u:" << add_suffix(i->up_speed) << "/s "
-						<< "(" << add_suffix(i->total_upload) << ") "
-						<< "ul:" << add_suffix(i->upload_limit) << "/s "
-						<< "uc:" << add_suffix(i->upload_ceiling) << "/s "
+//						<< "(" << add_suffix(i->total_upload) << ") "
+//						<< "ul:" << add_suffix(i->upload_limit) << "/s "
+//						<< "uc:" << add_suffix(i->upload_ceiling) << "/s "
 //						<< "df:" << ratio(i->total_download, i->total_upload) << " "
-//						<< "q:" << i->download_queue_length << " "
-//						<< "r:" << i->upload_queue_length << " "
-//						<< "f:"
-//						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
-//						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
-//						<< static_cast<const char*>((i->flags & peer_info::remote_interested)?"i":"_")
-//						<< static_cast<const char*>((i->flags & peer_info::remote_choked)?"c":"_")
-//						<< static_cast<const char*>((i->flags & peer_info::supports_extensions)?"e":"_")
-//						<< static_cast<const char*>((i->flags & peer_info::local_connection)?"l":"r")
+						<< "q:" << i->download_queue_length << " "
+						<< "r:" << i->upload_queue_length << " "
+						<< "f:"
+						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
+						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
+						<< static_cast<const char*>((i->flags & peer_info::remote_interested)?"i":"_")
+						<< static_cast<const char*>((i->flags & peer_info::remote_choked)?"c":"_")
+						<< static_cast<const char*>((i->flags & peer_info::supports_extensions)?"e":"_")
+						<< static_cast<const char*>((i->flags & peer_info::local_connection)?"l":"r")
 						<< "\n";
 
 					if (i->downloading_piece_index >= 0)

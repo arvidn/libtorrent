@@ -276,7 +276,7 @@ namespace libtorrent
 		// the error. It will return true on success.
 		bool listen_on(
 			std::pair<int, int> const& port_range
-			, const char* interface = 0);
+			, const char* net_interface = 0);
 
 		// returns the port we ended up listening on
 		unsigned short listen_port() const;

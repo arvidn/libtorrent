@@ -169,16 +169,17 @@ namespace libtorrent
 		peer* find_choke_candidate();
 		peer* find_unchoke_candidate();
 
+		// the seed prefix means that the
+		// function is used while seeding.
+		bool seed_unchoke_one_peer();
+		peer* find_seed_choke_candidate();
+		peer* find_seed_unchoke_candidate();
 
 		bool connect_peer(peer *);
-
-
 		bool connect_one_peer();
 		bool disconnect_one_peer();
 		peer* find_disconnect_candidate();
 		peer* find_connect_candidate();
-
-
 
 		// a functor that identifies peers that have disconnected and that
 		// are too old for still being saved.
