@@ -186,7 +186,13 @@ namespace libtorrent
 
 		// TODO: write file header
 		// TODO: write modification-dates for all files
-		// TODO: write info hash
+
+		for (sha1_hash::const_iterator i = m_info_hash.begin();
+			i != m_info_hash.end();
+			++i)
+		{
+			detail::write_uchar(*i, out);
+		}
 
 		// number of slots
 		int num_slots = piece_index.size();

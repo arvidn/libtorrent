@@ -894,12 +894,16 @@ namespace libtorrent
 
 		const std::vector<char>& data = *rd;
 
-		if (data.size() < 3 * 4) return;
+		if (data.size() < 20 + 3 * 4) return;
 		std::vector<char>::const_iterator ptr = data.begin();
+
+		sha1_hash info_hash;
+		for (int i = 0; i < 20; ++i) info_hash[i] = read_uchar(ptr);
+		if (info.info_hash() != info_hash) return;
 
 		int num_slots = detail::read_int(ptr);
 		if (num_slots < 0) return;
-		if (data.size() < (3 + num_slots) * 4) return;
+		if (data.size() < 20 + (3 + num_slots) * 4) return;
 
 		tmp_pieces.reserve(num_slots);
 		for (int i = 0; i < num_slots; ++i)
@@ -911,12 +915,12 @@ namespace libtorrent
 		}
 
 		int num_blocks_per_piece = read_int(ptr);
-		if (num_blocks_per_piece > 128 || num_blocks_per_piece < 0)
+		if (num_blocks_per_piece > 128 || num_blocks_per_piece < 1)
 			return;
 
 		int num_unfinished = read_int(ptr);
 		if (num_unfinished < 0) return;
-		if (data.size() != (1 + num_slots + 2 + num_unfinished * (num_blocks_per_piece / 32 + 1)) * 4)
+		if (data.size() != 20 + (1 + num_slots + 2 + num_unfinished * (num_blocks_per_piece / 32 + 1)) * 4)
 			return;
 
 		tmp_unfinished.reserve(num_unfinished);

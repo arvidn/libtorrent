@@ -43,6 +43,8 @@ The current state includes the following features:
 	* piece-wise file allocation
 	* tries to maintain a 1:1 share ratio between all peers but also shifts free
 	  download to peers as free upload. To maintain a global 1:1 ratio.
+	* fast resume support, a way to get rid of the costly piece check at the start
+	  of a resumed torrent. Saves the storage state in a separate fast-resume file.
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
 .. _Azureus: http://azureus.sourceforge.net
@@ -50,7 +52,6 @@ __ http://home.elp.rr.com/tur/multitracker-spec.txt
 Functions that are yet to be implemented:
 
 	* choke/unchoke policy for seed-mode
-	* fast resume
 	* number of connections limit
 	* better handling of peers that send bad data
 	* ip-filters
@@ -134,6 +135,11 @@ The ``session`` class has the following synopsis::
 		session(int listen_port);
 
 		torrent_handle add_torrent(const torrent_info& t, const std::string& save_path);
+		torrent_handle add_torrent(
+			const torrent_info& t
+			, const std::string& save_path
+			, const std::vector<char>& resume_data);
+
 		void remove_torrent(const torrent_handle& h);
 
 		void set_http_settings(const http_settings& settings);
@@ -151,6 +157,10 @@ object representing the information found in the torrent file and the path where
 want to save the files. The ``save_path`` will be prepended to the directory-
 structure in the torrent-file. ``add_torrent`` will throw ``duplicate_torrent`` exception
 if the torrent already exists in the session.
+
+The optional last parameter, ``resume_data`` can be given if up to date fast-resume data
+is available. The fast-resume data can be acquired from a running torrent by calling
+``torrent_handle::write_resume_data()``. See `fast resume`_.
 
 ``remove_torrent()`` will close all peer connections associated with the torrent and tell
 the tracker that we've stopped participating in the swarm.
@@ -515,6 +525,8 @@ Its declaration looks like this::
 		const torrent_info& get_torrent_info();
 		bool is_valid();
 
+		void write_resume_data(std::vector<char>& data);
+
 		boost::filsystem::path save_path() const;
 
 		void set_max_uploads(int max_uploads);
@@ -538,11 +550,14 @@ was started.
 ``set_max_uploads()`` sets the maximum number of peers that's unchoked at the same time on this
 torrent. If you set this to -1, there will be no limit.
 
+``write_resume_data()`` takes a non-const reference to a char-vector, that vector will be filled
+with the fast-resume data. For more information about hpw fast-resume works, see `fast resume`_.
+
 status()
 ~~~~~~~~
 
 ``status()`` will return a structure with information about the status of this
-torrent. If the ``torrent_handle`` is invalid, it will throw ``invalid_handle`` exception.
+torrent. If the torrent_handle_ is invalid, it will throw invalid_handle_ exception.
 It contains the following fields::
 
 	struct torrent_status
@@ -662,7 +677,7 @@ get_peer_info()
 
 ``get_peer_info()`` takes a reference to a vector that will be cleared and filled
 with one entry for each peer connected to this torrent, given the handle is valid. If the
-``torrent_handle`` is invalid, it will throw ``invalid_handle`` exception. Each entry in
+torrent_handle_ is invalid, it will throw ``invalid_handle`` exception. Each entry in
 the vector contains information about that particular peer. It contains the following
 fields::
 
@@ -747,8 +762,8 @@ get_torrent_info()
 ~~~~~~~~~~~~~~~~~~
 
 Returns a const reference to the ``torrent_info`` object associated with this torrent.
-This reference is valid as long as the ``torrent_handle`` is valid, no longer. If the
-``torrent_handle`` is invalid, ``invalid_handle`` exception will be thrown.
+This reference is valid as long as the torrent_handle_ is valid, no longer. If the
+torrent_handle_ is invalid, invalid_handle_ exception will be thrown.
 
 
 is_valid()
@@ -976,7 +991,7 @@ here's a complete list with description.
 invalid_handle
 ~~~~~~~~~~~~~~
 
-This exception is thrown when querying information from a ``torrent_handle`` that hasn't
+This exception is thrown when querying information from a torrent_handle_ that hasn't
 been initialized or that has become invalid.
 
 ::
@@ -1161,6 +1176,43 @@ This is a simple client. It doesn't have much output to keep it simple::
 		return 0;
 	}
 
+
+fast resume
+-----------
+
+The fast resume mechanism is a way to remember which pieces are downloaded and where they
+are put between sessions. You can generate fast resume data by calling
+``torrent_handle::write_resume_data()`` on torrent_handle_. You can then save this data
+to disk and use it when resuming the torrent. libtorrent will not check the piece hashes
+then, and rely on the information given in the fast-resume data. The fast-resume data
+also contains information about which bocks in the unfinished pieces were downloaded, so
+it will not have to start from scratch on the partially downloaded pieces.
+
+To use the fast-resume data you simply give it to ``session::add_torrent()``, and it
+will skip the time consuming checks. It may have to do the checking anyway, if the
+fast-resume data is corrupt or doesn't fit the storage for that torrent, then it will
+not trust the fast-resume data and just do the checking.
+
+file format
+~~~~~~~~~~~
+
+The format of the fast-resume data is as follows, given that all
+4-byte integers are stored as big-endian::
+
+	20 bytes, the info_hash for the torrent
+	4 bytes, the number of allocated slots in the storage
+	for each slot
+		4 bytes, piece index in this slot,
+		         -1 means there's no storage for the slot
+		         -2 means there's no piece at this slot, it's free
+	4 bytes, the number of blocks per piece.
+	         this must be piece_size / 16k or 1 if piece_size is < 16k
+	         and can be 128 at max.
+	4 bytes, the number of unfinished pieces
+	for each unfinished piece
+		4 bytes, index of the unfinished piece
+		blocks_per_piece / 32 bytes, the bitmask describing which
+		                             blocks are finished in this piece.
 
 Feedback
 ========

@@ -79,7 +79,7 @@ namespace libtorrent
 		// reads an integer from a byte stream
 		// in big endian byte order and converts
 		// it to native endianess
-		template<class InIt>
+		template <class InIt>
 		unsigned int read_uint(InIt& start)
 		{
 			unsigned int val = 0;
@@ -90,15 +90,23 @@ namespace libtorrent
 			return val;
 		}
 
-		template<class InIt>
+		template <class InIt>
 		inline int read_int(InIt& start)
 		{
 			return static_cast<int>(read_uint(start));
 		}
 
+		template <class InIt>
+		inline unsigned char read_uchar(InIt& start)
+		{
+			unsigned char ret = static_cast<unsigned char>(*start);
+			++start;
+			return ret;
+		}
+
 		// reads an integer to a byte stream
 		// and converts it from native endianess
-		template<class OutIt>
+		template <class OutIt>
 		void write_uint(unsigned int val, OutIt& start)
 		{
 			*start = static_cast<unsigned char>((val >> 24) & 0xff); ++start;
@@ -107,10 +115,17 @@ namespace libtorrent
 			*start = static_cast<unsigned char>((val) & 0xff); ++start;
 		}
 
-		template<class OutIt>
+		template <class OutIt>
 		inline void write_int(int val, OutIt& start)
 		{
-			write_uint(reinterpret_cast<unsigned int&>(val), start);
+			write_uint(static_cast<unsigned int>(val), start);
+		}
+
+		template <class OutIt>
+		inline void write_uchar(unsigned char val, OutIt& start)
+		{
+			*start = static_cast<char>(val);
+			++start;
 		}
 
 	}
