@@ -182,7 +182,7 @@ namespace libtorrent
 
 	struct http_settings;
 
-	std::string extract_fingerprint(const peer_id& p);
+	std::string identify_client(const peer_id& p);
 
 	class session: public boost::noncopyable, detail::eh_initializer
 	{

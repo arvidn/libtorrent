@@ -1,5 +1,3 @@
-
-
 SOURCES =
 	entry.cpp
 	peer_connection.cpp
@@ -16,15 +14,18 @@ SOURCES =
 	sha1.c
 	;
 
+
 lib torrent
 	: src/$(SOURCES)
-	  zlib//zlib
-	  $(BOOST_ROOT)/libs/filesystem/build//boost_filesystem
-	  $(BOOST_ROOT)/libs/thread/build//boost_thread
+#	  <lib>zlib/zlib
+#	  zlib//zlib
+#	  <file>boost_filesystem.lib
+#	  <file>boost_date_time.lib
+#	  <file>boost_thread.dll
 	: <include>$(BOOST_ROOT)
 	  <sysinclude>$(BOOST_ROOT)
 	  <include>./include
-	  <include>./
+	  <include>./zlib
 	  <threading>multi
 	  <link>static
 	: debug release
@@ -33,7 +34,7 @@ lib torrent
 
 exe client_test
 	: examples/client_test.cpp
-	  torrent
+	  <lib>torrent
 	: <include>$(BOOST_ROOT)
 	  <sysinclude>$(BOOST_ROOT)
 	  <include>./include

@@ -466,6 +466,8 @@ namespace libtorrent {
 		m_pimpl->write(buf, piece_index, offset, size);
 	}
 
+	// TODO: must handle the case where some hashes are identical
+	// correctly
 	void piece_manager::impl::check_pieces(
 		boost::mutex& mutex
 	  , detail::piece_checker_data& data
@@ -612,6 +614,8 @@ namespace libtorrent {
 
 			int found_piece = -1;
 
+			// TODO: there's still potential problems if some
+			// pieces have the same hash
 			for (int i = current_slot; i < m_info.num_pieces(); ++i)
 			{
 				if (pieces[i] && i != current_slot) continue;
@@ -620,7 +624,10 @@ namespace libtorrent {
 					i == m_info.num_pieces() - 1]->get();
 
 				if (hash == m_info.hash_for_piece(i))
+				{
 					found_piece = i;
+					if (i == current_slot) break;
+				}
 			}
 
 			if (found_piece != -1)

@@ -62,6 +62,8 @@ namespace std
 };
 #endif
 
+// TODO: enable floating point exceptions in debug mode!
+
 namespace
 {
 
@@ -486,6 +488,10 @@ namespace libtorrent
 						{
 //							(*m_logger) << "readable: " << p->first->sender().as_string() << "\n";
 							p->second->receive_data();
+
+#ifndef NDEBUG
+							assert_invariant();
+#endif
 						}
 						catch(std::exception& e)
 						{
@@ -684,7 +690,19 @@ namespace libtorrent
 				i != m_connections.end();
 				++i)
 			{
-				assert(i->second->has_data() == m_selector.is_writability_monitored(i->first));
+				if (i->second->has_data() != m_selector.is_writability_monitored(i->first))
+				{
+					std::ofstream error_log("error.log", std::ios_base::app);
+					boost::shared_ptr<peer_connection> p = i->second;
+					error_log << "session_imple::assert_invariant()\n"
+						"peer_connection::has_data() != is_writability_monitored()\n";
+					error_log << "peer_connection::has_data() " << p->has_data() << "\n";
+					error_log << "peer_connection::send_quota_left " << p->send_quota_left() << "\n";
+					error_log << "peer_connection::send_quota " << p->send_quota() << "\n";
+					error_log << "peer_connection::get_peer_id " << p->get_peer_id() << "\n";
+					error_log.flush();
+					assert(false);
+				}
 				if (i->second->associated_torrent())
 				{
 					assert(i->second->associated_torrent()
@@ -849,25 +867,200 @@ namespace libtorrent
 		return m_impl.m_alerts.get();
 	}
 
-	// TODO: document
-	// TODO: if the first 4 charachters are printable
-	// maybe they should be considered a fingerprint?
-	std::string extract_fingerprint(const peer_id& p)
+	namespace
 	{
-		std::string ret;
-		const unsigned char* c = p.begin();
-		while (c != p.end() && *c != 0)
-		{
-			if (std::isprint(*c))
-				ret += *c;
-			else if (*c <= 9)
-				ret += '0'+ *c;
-			else
-				return std::string();
-			++c;
-		}
-		if (c == p.end()) return std::string();
 
-		return ret;
-	}
+		// takes a peer id and returns a valid boost::optional
+		// object if the peer id matched the azureus style encoding
+		// the returned fingerprint contains information about the
+		// client's id
+		boost::optional<fingerprint> parse_az_style(const peer_id& id)
+		{
+			fingerprint ret("..", 0, 0, 0, 0);
+			peer_id::const_iterator i = id.begin();
+
+			if (*i != '-') return boost::optional<fingerprint>();
+			++i;
+
+			for (int j = 0; j < 2; ++j)
+			{
+				if (!std::isprint(*i)) return boost::optional<fingerprint>();
+				ret.id[j] = *i;
+				++i;
+			}
+
+			if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+			ret.major_version = *i - '0';
+			++i;
+
+			if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+			ret.minor_version = *i - '0';
+			++i;
+
+			if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+			ret.revision_version = *i - '0';
+			++i;
+
+			if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+			ret.tag_version = *i - '0';
+			++i;
+
+			if (*i != '-') return boost::optional<fingerprint>();
+
+			return boost::optional<fingerprint>(ret);
+		}
+
+		// checks if a peer id can possibly contain a shadow-style
+		// identification
+		boost::optional<fingerprint> parse_shadow_style(const peer_id& id)
+		{
+			fingerprint ret("..", 0, 0, 0, 0);
+			peer_id::const_iterator i = id.begin();
+
+			if (!std::isprint(*i)) return boost::optional<fingerprint>();
+			ret.id[0] = *i;
+			ret.id[1] = 0;
+			++i;
+
+			if (id[8] == 45)
+			{
+				if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+				ret.major_version = *i - '0';
+				++i;
+
+				if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+				ret.minor_version = *i - '0';
+				++i;
+
+				if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+				ret.revision_version = *i - '0';
+			}
+			else if (id[0] == 0)
+			{
+				if (*i > 127) return boost::optional<fingerprint>();
+				ret.major_version = *i;
+				++i;
+
+				if (*i > 127) return boost::optional<fingerprint>();
+				ret.minor_version = *i;
+				++i;
+
+				if (*i > 127) return boost::optional<fingerprint>();
+				ret.revision_version = *i;
+			}
+			else
+				return boost::optional<fingerprint>();
+
+
+			ret.tag_version = 0;
+			return boost::optional<fingerprint>(ret);
+		}
+
+	} // namespace unnamed
+
+
+
+	// TODO: document
+	std::string identify_client(const peer_id& p)
+	{
+		peer_id::const_iterator PID = p.begin();
+		boost::optional<fingerprint> f;
+	  
+
+		// look for azureus style id	
+		f = parse_az_style(p);
+		if (f)
+		{
+			std::stringstream identity;
+
+			// azureus
+			if (std::equal(f->id, f->id+2, "AZ"))
+				identity << "Azureus ";
+
+			// BittorrentX
+			else if (std::equal(f->id, f->id+2, "BX"))
+				identity << "BittorrentX ";
+
+			// libtorrent
+			else if (std::equal(f->id, f->id+2, "LT"))
+				identity << "libtorrent ";
+
+			// unknown client
+			else
+				identity << std::string(f->id, f->id+2) << " ";
+
+			identity << (int)f->major_version
+				<< "." << (int)f->minor_version
+				<< "." << (int)f->revision_version
+				<< "." << (int)f->tag_version;
+
+			return identity.str();
+		}
+	
+
+		// look for shadow style id	
+		f = parse_shadow_style(p);
+		if (f)
+		{
+			std::stringstream identity;
+
+			// Shadow
+			if (std::equal(f->id, f->id+1, "S"))
+				identity << "Shadow ";
+
+			// UPnP
+			else if (std::equal(f->id, f->id+1, "U"))
+				identity << "UPnP ";
+
+			// unknown client
+			else
+				identity << std::string(f->id, f->id+1) << " ";
+
+			identity << (int)f->major_version
+				<< "." << (int)f->minor_version
+				<< "." << (int)f->revision_version;
+
+			return identity.str();
+		}
+	
+		// ----------------------
+		// non standard encodings
+		// ----------------------
+
+
+		if (std::equal(PID + 5, PID + 5 + 8, "Azureus"))
+		{
+			return "Azureus 2.0.3.2";
+		}
+	
+
+		if (std::equal(PID, PID + 11, "DansClient"))
+		{
+			return "XanTorrent";
+		}
+
+		if (std::equal(PID, PID + 7, "btfans"))
+		{
+			return "BitComet";
+		}
+
+		if (std::equal(PID, PID + 8, "turbobt"))
+		{
+			return "TurboBT";
+		}
+
+
+		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\x97"))
+		{
+			return "Experimental 3.2.1b2";
+		}
+
+		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\0"))
+		{
+			return "Experimental 3.1";
+		}
+
+		return "Generic";
+	} 
+
 }

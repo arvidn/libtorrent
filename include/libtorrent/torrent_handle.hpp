@@ -84,6 +84,9 @@ namespace libtorrent
 
 		// the number of bytes of the file we have
 		std::size_t total_done;
+
+		// TODO: add flag that says if there have
+		// been any incoming connections
 	};
 
 	struct partial_piece_info

@@ -832,6 +832,8 @@ sure not to clash with anybody else. Here are some taken id's:
 +----------+-----------------------+
 | 'LT'     | libtorrent (default)  |
 +----------+-----------------------+
+| 'BX'     | BittorrentX           |
++----------+-----------------------+
 
 The ``major``, ``minor``, ``revision`` and ``tag`` parameters are used to identify the
 version of your client. All these numbers must be within the range [0, 9].
