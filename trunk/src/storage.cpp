@@ -370,7 +370,7 @@ namespace libtorrent {
 		const boost::filesystem::path& save_path() const
 		{ return m_save_path; }
 
-		void export_piece_map(std::vector<std::pair<int, int> >& p) const;
+		void export_piece_map(std::vector<int>& p) const;
 		
 	private:
 		// returns the slot currently associated with the given
@@ -430,20 +430,28 @@ namespace libtorrent {
 	}
 
 	void piece_manager::impl::export_piece_map(
-			std::vector<std::pair<int, int> >& p) const
+			std::vector<int>& p) const
 	{
 		p.clear();
-		for (std::vector<int>::const_iterator i = m_piece_to_slot.begin();
-			i != m_piece_to_slot.end();
+		std::vector<int>::const_reverse_iterator last; 
+		for (last = m_slot_to_piece.rbegin();
+			last != m_slot_to_piece.rend();
+			++last)
+		{
+			if (*last != -1) break;
+		}
+
+		for (std::vector<int>::const_iterator i =
+			m_slot_to_piece.begin();
+			i != last.base();
 			++i)
 		{
-			if (*i == -1) continue;
-			p.push_back(std::make_pair(i - m_piece_to_slot.begin(), *i));
+			p.push_back(*i);
 		}
 	}
 
 	void piece_manager::export_piece_map(
-			std::vector<std::pair<int, int> >& p) const
+			std::vector<int>& p) const
 	{
 		m_pimpl->export_piece_map(p);
 	}

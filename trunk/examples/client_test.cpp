@@ -154,7 +154,7 @@ std::string add_suffix(float val)
 	int i;
 	for (i = 0; i < num_prefix; ++i)
 	{
-		if (abs(val) < 1024.f)
+		if (fabs(val) < 1024.f)
 			return to_string(val, i==0?7:6) + prefix[i];
 		val /= 1024.f;
 	}
