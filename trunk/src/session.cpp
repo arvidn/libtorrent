@@ -66,6 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/allocate_resources.hpp"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 namespace std
@@ -77,8 +78,77 @@ namespace std
 
 namespace
 {
+	int saturated_add(int a, int b)
+	{
+		assert(a>=0);
+		assert(b>=0);
 
+		int sum=a+b;
+		if(sum<0)
+			sum=std::numeric_limits<int>::max();
 
+		assert(sum>=a && sum>=b);
+		return sum;
+	}
+
+	void control_upload_rates(
+		int upload_limit
+		, libtorrent::detail::session_impl::connection_map connections)
+	{
+		using namespace libtorrent;
+		std::vector<resource_consumer> peers;
+		
+		assert(upload_limit >= 0);
+
+		for (detail::session_impl::connection_map::iterator c = connections.begin();
+			c != connections.end(); ++c)
+		{
+			boost::shared_ptr<peer_connection> p = c->second;
+			int estimated_upload_capacity=
+				p->has_data() ? (int)ceil(p->statistics().upload_rate()) // std::max(10,(int)ceil(p->statistics().upload_rate()*1.1f))
+				             : 1;
+
+			int limit=p->send_quota_limit();
+			if(limit==-1)
+				limit=std::numeric_limits<int>::max();
+
+			peers.push_back(resource_consumer(p,limit,estimated_upload_capacity));
+		}
+
+		allocate_resources(upload_limit, peers);
+
+		for (std::vector<resource_consumer>::iterator r=peers.begin();
+			r!=peers.end(); ++r)
+		{
+			boost::any_cast<boost::shared_ptr<peer_connection> >
+				(r->who())->set_send_quota(r->allowed_use());
+		}
+
+#ifndef NDEBUG
+		{
+			int sum_quota = 0;
+			int sum_quota_limit = 0;
+			for (detail::session_impl::connection_map::iterator i = connections.begin();
+				i != connections.end();
+				++i)
+			{
+				peer_connection& p = *i->second;
+
+				int quota=p.send_quota();
+				int quota_limit=p.send_quota_limit();
+				if(quota==-1)
+					quota=std::numeric_limits<int>::max();
+				if(quota_limit==-1)
+					quota_limit=std::numeric_limits<int>::max();
+
+				sum_quota = saturated_add(sum_quota,quota);
+				sum_quota_limit = saturated_add(sum_quota_limit,quota_limit);
+			}
+			assert(sum_quota == std::min(upload_limit,sum_quota_limit));
+		}
+#endif
+	}
+/*
 	// This struct is used by control_upload_rates() below. It keeps
 	// track how much bandwidth has been allocated to each connection
 	// and other relevant information to assist in the allocation process.
@@ -268,6 +338,7 @@ namespace
 		}
 #endif
 	}
+*/
 }
 
 namespace libtorrent
@@ -749,7 +820,11 @@ namespace libtorrent
 				purge_connections();
 
 				// distribute the maximum upload rate among the peers
-				control_upload_rates(m_upload_rate, m_connections);
+
+				control_upload_rates(m_upload_rate == -1
+				                       ? std::numeric_limits<int>::max()
+									   : m_upload_rate
+				                    ,m_connections);
 
 
 				m_tracker_manager.tick();

@@ -1716,12 +1716,12 @@ namespace libtorrent
 	void peer_connection::check_invariant() const
 	{
 		assert(has_data() == m_selector.is_writability_monitored(m_socket));
-
+/*
 		assert(m_num_pieces == std::count(
 			m_have_piece.begin()
 			, m_have_piece.end()
 			, true));
-	}
+*/	}
 #endif
 
 	bool peer_connection::has_timed_out() const
