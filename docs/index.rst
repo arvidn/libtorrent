@@ -617,7 +617,7 @@ the pieces we don't have.
 
 ``download_rate`` and ``upload_rate`` are the total rates for all peers for this
 torrent. These will usually have better precision than summing the rates from
-all peers.
+all peers. The rates are given as the number of bytes per second.
 
 ``total_done`` is the total number of bytes of the file(s) that we have.
 
