@@ -59,10 +59,6 @@ namespace libtorrent
 	const file::seek_mode file::begin(1);
 	const file::seek_mode file::end(2);
 
-	// TODO: this implementation will behave strange if
-	// a file is opened for both reading and writing
-	// and both read from and written to. Since the
-	// write-file position isn't updated when reading.
 	struct file::impl
 	{
 		impl(): m_open_mode(0) {}

@@ -65,7 +65,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <stdexcept>
 #include <cassert>
-#include <boost/cstdint.hpp>
 
 #include "libtorrent/size_type.hpp"
 

@@ -680,7 +680,7 @@ namespace libtorrent
 
 		m_torrent->filesystem().write(&m_recv_buffer[9], p.piece, p.start, p.length);
 
-		bool was_seed = is_seed();
+		bool was_seed = m_torrent->is_seed();
 
 		picker.mark_as_finished(block_finished, m_socket->sender());
 
@@ -702,10 +702,10 @@ namespace libtorrent
 			}
 			m_torrent->get_policy().piece_finished(p.piece, verified);
 
-			if (!was_seed && is_seed())
+			if (!was_seed && m_torrent->is_seed())
 			{
 				assert(verified);
-				if (m_torrent->alerts().should_post(alert::warning))
+				if (m_torrent->alerts().should_post(alert::info))
 				{
 					m_torrent->alerts().post_alert(torrent_finished_alert(
 						m_torrent->get_handle()

@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <vector>
 #include <assert.h>
-#include <boost/cstdint.hpp>
 
 #include "libtorrent/size_type.hpp"
 
