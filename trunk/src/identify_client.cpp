@@ -45,31 +45,73 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/fingerprint.hpp"
 
-namespace libtorrent
+#if defined(_MSC_VER) && _MSC_VER < 1300
+namespace std
+{
+	using ::isprint;
+	using ::isdigit;
+}
+#endif
+
+namespace
 {
 
-	namespace
+	using namespace libtorrent;
+
+	// takes a peer id and returns a valid boost::optional
+	// object if the peer id matched the azureus style encoding
+	// the returned fingerprint contains information about the
+	// client's id
+	boost::optional<fingerprint> parse_az_style(const peer_id& id)
 	{
+		fingerprint ret("..", 0, 0, 0, 0);
+		peer_id::const_iterator i = id.begin();
 
-		// takes a peer id and returns a valid boost::optional
-		// object if the peer id matched the azureus style encoding
-		// the returned fingerprint contains information about the
-		// client's id
-		boost::optional<fingerprint> parse_az_style(const peer_id& id)
+		if (*i != '-') return boost::optional<fingerprint>();
+		++i;
+
+		for (int j = 0; j < 2; ++j)
 		{
-			fingerprint ret("..", 0, 0, 0, 0);
-			peer_id::const_iterator i = id.begin();
-
-			if (*i != '-') return boost::optional<fingerprint>();
+			if (!std::isprint(*i)) return boost::optional<fingerprint>();
+			ret.id[j] = *i;
 			++i;
+		}
 
-			for (int j = 0; j < 2; ++j)
-			{
-				if (!std::isprint(*i)) return boost::optional<fingerprint>();
-				ret.id[j] = *i;
-				++i;
-			}
+		if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+		ret.major_version = *i - '0';
+		++i;
 
+		if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+		ret.minor_version = *i - '0';
+		++i;
+
+		if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+		ret.revision_version = *i - '0';
+		++i;
+
+		if (!std::isdigit(*i)) return boost::optional<fingerprint>();
+		ret.tag_version = *i - '0';
+		++i;
+
+		if (*i != '-') return boost::optional<fingerprint>();
+
+		return boost::optional<fingerprint>(ret);
+	}
+
+	// checks if a peer id can possibly contain a shadow-style
+	// identification
+	boost::optional<fingerprint> parse_shadow_style(const peer_id& id)
+	{
+		fingerprint ret("..", 0, 0, 0, 0);
+		peer_id::const_iterator i = id.begin();
+
+		if (!std::isprint(*i)) return boost::optional<fingerprint>();
+		ret.id[0] = *i;
+		ret.id[1] = 0;
+		++i;
+
+		if (std::equal(id.begin()+4, id.begin()+8, "----"))
+		{
 			if (!std::isdigit(*i)) return boost::optional<fingerprint>();
 			ret.major_version = *i - '0';
 			++i;
@@ -80,65 +122,32 @@ namespace libtorrent
 
 			if (!std::isdigit(*i)) return boost::optional<fingerprint>();
 			ret.revision_version = *i - '0';
-			++i;
-
-			if (!std::isdigit(*i)) return boost::optional<fingerprint>();
-			ret.tag_version = *i - '0';
-			++i;
-
-			if (*i != '-') return boost::optional<fingerprint>();
-
-			return boost::optional<fingerprint>(ret);
 		}
-
-		// checks if a peer id can possibly contain a shadow-style
-		// identification
-		boost::optional<fingerprint> parse_shadow_style(const peer_id& id)
+		else if (id[8] == 0)
 		{
-			fingerprint ret("..", 0, 0, 0, 0);
-			peer_id::const_iterator i = id.begin();
-
-			if (!std::isprint(*i)) return boost::optional<fingerprint>();
-			ret.id[0] = *i;
-			ret.id[1] = 0;
+			if (*i > 127) return boost::optional<fingerprint>();
+			ret.major_version = *i;
 			++i;
 
-			if (std::equal(id.begin()+4, id.begin()+8, "----"))
-			{
-				if (!std::isdigit(*i)) return boost::optional<fingerprint>();
-				ret.major_version = *i - '0';
-				++i;
+			if (*i > 127) return boost::optional<fingerprint>();
+			ret.minor_version = *i;
+			++i;
 
-				if (!std::isdigit(*i)) return boost::optional<fingerprint>();
-				ret.minor_version = *i - '0';
-				++i;
-
-				if (!std::isdigit(*i)) return boost::optional<fingerprint>();
-				ret.revision_version = *i - '0';
-			}
-			else if (id[8] == 0)
-			{
-				if (*i > 127) return boost::optional<fingerprint>();
-				ret.major_version = *i;
-				++i;
-
-				if (*i > 127) return boost::optional<fingerprint>();
-				ret.minor_version = *i;
-				++i;
-
-				if (*i > 127) return boost::optional<fingerprint>();
-				ret.revision_version = *i;
-			}
-			else
-				return boost::optional<fingerprint>();
-
-
-			ret.tag_version = 0;
-			return boost::optional<fingerprint>(ret);
+			if (*i > 127) return boost::optional<fingerprint>();
+			ret.revision_version = *i;
 		}
+		else
+			return boost::optional<fingerprint>();
 
-	} // namespace unnamed
 
+		ret.tag_version = 0;
+		return boost::optional<fingerprint>(ret);
+	}
+
+} // namespace unnamed
+
+namespace libtorrent
+{
 
 	std::string identify_client(const peer_id& p)
 	{
