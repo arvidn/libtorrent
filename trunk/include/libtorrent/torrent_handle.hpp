@@ -89,15 +89,17 @@ namespace libtorrent
 		friend class session;
 		torrent_handle(): m_ses(0) {}
 
-		void abort();
-
 		void get_peer_info(std::vector<peer_info>& v);
 		torrent_status status() const;
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 
 		// TODO: add force reannounce
+		// TODO: add torrent_info getter
 
 	private:
+
+		// called by session::remove_torrent()
+		void abort() const;
 
 		torrent_handle(detail::session_impl* s,
 			detail::checker_impl* c,

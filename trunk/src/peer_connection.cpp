@@ -318,7 +318,10 @@ bool libtorrent::peer_connection::dispatch_message()
 			r.length = read_int(&m_recv_buffer[9]);
 			m_requests.push_back(r);
 
-			send_buffer_updated();
+			if (!m_choked)
+			{
+				send_buffer_updated();
+			}
 
 #if defined(TORRENT_VERBOSE_LOGGING)
 			(*m_logger) << m_socket->sender().as_string() << " <== REQUEST [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
@@ -912,34 +915,29 @@ void libtorrent::peer_connection::send_data()
 
 			if (m_sending_piece.index() != r.piece)
 			{
-				m_sending_piece.open(m_torrent->filesystem(), r.piece, piece_file::in);
+				m_sending_piece.open(
+					m_torrent->filesystem()
+					, r.piece
+					, piece_file::in
+					, r.start);
 #ifndef NDEBUG
 				assert(m_torrent->filesystem()->verify_piece(m_sending_piece) && "internal error");
 				m_sending_piece.open(m_torrent->filesystem(), r.piece, piece_file::in);
 #endif
 			}
+			const int send_buffer_offset = m_send_buffer.size();
 			const int packet_size = 4 + 5 + 4 + r.length;
-			m_send_buffer.resize(packet_size);
-			write_int(packet_size-4, &m_send_buffer[0]);
-			m_send_buffer[4] = msg_piece;
-			write_int(r.piece, &m_send_buffer[5]);
-			write_int(r.start, &m_send_buffer[9]);
+			m_send_buffer.resize(send_buffer_offset + packet_size);
+			write_int(packet_size-4, &m_send_buffer[send_buffer_offset]);
+			m_send_buffer[send_buffer_offset+4] = msg_piece;
+			write_int(r.piece, &m_send_buffer[send_buffer_offset+5]);
+			write_int(r.start, &m_send_buffer[send_buffer_offset+9]);
 
-			if (r.start > m_sending_piece.tell())
-			{
-				m_sending_piece.seek_forward(r.start - m_sending_piece.tell());
-			}
-			else if (r.start < m_sending_piece.tell())
-			{
-				int index = m_sending_piece.index();
-				m_sending_piece.close();
-				m_sending_piece.open(m_torrent->filesystem(), index, piece_file::in);
-				m_sending_piece.seek_forward(r.start);
-			}
+			assert(r.start == m_sending_piece.tell());
 
-			m_sending_piece.read(&m_send_buffer[13], r.length);
+			m_sending_piece.read(&m_send_buffer[send_buffer_offset+13], r.length);
 #if defined(TORRENT_VERBOSE_LOGGING)
-			(*m_logger) << m_socket->sender().as_string() << " ==> PIECE [ idx: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
+			(*m_logger) << m_socket->sender().as_string() << " ==> PIECE [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
 #endif
 			// let the torrent keep track of how much we have uploaded
 			m_torrent->uploaded_bytes(r.length);
@@ -947,7 +945,14 @@ void libtorrent::peer_connection::send_data()
 		else
 		{
 #if defined(TORRENT_VERBOSE_LOGGING)
-			(*m_logger) << m_socket->sender().as_string() << " *** WARNING [ illegal piece request idx: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
+			(*m_logger) << m_socket->sender().as_string()
+				<< " *** WARNING [ illegal piece request idx: " << r.piece
+				<< " | s: " << r.start
+				<< " | l: " << r.length
+				<< " | max_piece: " << m_have_piece.size()
+				<< " | torrent: " << (m_torrent != 0)
+				<< " | have: " << m_torrent->have_piece(r.piece)
+				<< " ]\n";
 #endif
 		}
 		m_requests.erase(m_requests.begin());

@@ -158,7 +158,7 @@ namespace libtorrent
 		const peer_id& get_peer_id() const { return m_peer_id; }
 		const std::vector<bool>& get_bitfield() const { return m_have_piece; }
 
-#if defined(TORRENT_VERBOSE_LOGGING)
+#ifndef NDEBUG
 		boost::shared_ptr<logger> m_logger;
 #endif
 
@@ -228,7 +228,7 @@ namespace libtorrent
 		// something that generates data to be 
 		// sent to this peer, we check this and
 		// if it's not added to the selector we
-		// add it.
+		// add it. (this is done in send_buffer_updated())
 		bool m_added_to_selector;
 
 		// remote peer's id

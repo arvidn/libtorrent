@@ -184,7 +184,7 @@ namespace libtorrent
 		}
 	}
 
-	void torrent_handle::abort()
+	void torrent_handle::abort() const
 	{
 		if (m_ses == 0) return;
 		assert(m_chk != 0);
@@ -195,7 +195,6 @@ namespace libtorrent
 			if (t != 0)
 			{
 				t->abort();
-				m_ses = 0;
 				return;
 			}
 		}
@@ -207,12 +206,9 @@ namespace libtorrent
 			if (d != 0)
 			{
 				d->abort = true;
-				m_ses = 0;
 				return;
 			}
 		}
-
-		m_ses = 0;
 	}
 
 }

@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-#if defined(TORRENT_VERBOSE_LOGGING)
 	// DEBUG API
 
 	struct logger
@@ -94,7 +93,6 @@ namespace libtorrent
 
 		std::ofstream m_file;
 	};
-#endif
 
 }
 

@@ -590,6 +590,13 @@ namespace libtorrent
 		return torrent_handle(&m_impl, &m_checker_impl, ti.info_hash());
 	}
 
+	void session::remove_torrent(const torrent_handle& h)
+	{
+		if (h.m_ses != &m_impl) return;
+		// TODO: move the code of abort() here instead of calling it
+		h.abort();
+	}
+
 	void session::set_http_settings(const http_settings& s)
 	{
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
