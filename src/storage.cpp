@@ -1962,12 +1962,7 @@ namespace libtorrent {
 
 		return slot_index;
 	}
-/*
-	int piece_manager::slot_for_piece(int piece_index)
-	{
-		return m_pimpl->slot_for_piece(piece_index);
-	}
-*/	
+
 	void piece_manager::impl::allocate_slots(int num_slots)
 	{
 		{
