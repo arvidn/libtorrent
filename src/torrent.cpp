@@ -420,7 +420,31 @@ namespace libtorrent
 		for (peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
 			i->second->announce_piece(index);
 
-		// TODO: if we became a seed, disconnect from all other seeds
+		// if we became a seed, disconnect from all other seeds
+		if (is_seed())
+		{
+			for (peer_iterator i = m_connections.begin();
+				i != m_connections.end();)
+			{
+				assert(i->second->associated_torrent() == this);
+				
+				if (!i->second->is_seed()) continue;
+
+				detail::session_impl::connection_map::iterator j =
+					m_ses.m_connections.find(i->second->get_socket());
+
+				assert(j != m_ses.m_connections.end());
+
+				// in the destructor of the peer_connection
+				// it will remove itself from this torrent
+				// and from the list we're iterating over.
+				// so we need to increment the iterator riht
+				// away.
+				++i;
+
+				m_ses.m_connections.erase(j);
+			}
+		}
 	}
 
 	std::string torrent::generate_tracker_request(int port)

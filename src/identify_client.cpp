@@ -94,7 +94,7 @@ namespace libtorrent
 			ret.id[1] = 0;
 			++i;
 
-			if (id[8] == 45)
+			if (std::equal(id.begin()+4, id.begin()+8, "----"))
 			{
 				if (!std::isdigit(*i)) return boost::optional<fingerprint>();
 				ret.major_version = *i - '0';

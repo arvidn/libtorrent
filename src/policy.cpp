@@ -365,19 +365,24 @@ namespace libtorrent
 			, old_disconnected_peer())
 			, m_peers.end());
 
-		// accumulate all the free download we get
-		// and add it to the available free upload
-		m_available_free_upload
-			+= collect_free_download(
+		// if the share ratio is 0 (infinite)
+		// m_available_free_upload isn't used
+		// because it isn't necessary
+		if (m_torrent->ratio() != 0.f)
+		{
+			// accumulate all the free download we get
+			// and add it to the available free upload
+			m_available_free_upload
+				+= collect_free_download(
+					m_torrent->begin()
+					, m_torrent->end());
+
+			// distribute the free upload among the peers
+			m_available_free_upload = distribute_free_upload(
 				m_torrent->begin()
-				, m_torrent->end());
-
-		// distribute the free upload among the peers
-		m_available_free_upload = distribute_free_upload(
-			m_torrent->begin()
-			, m_torrent->end()
-			, m_available_free_upload);
-
+				, m_torrent->end()
+				, m_available_free_upload);
+		}
 
 		if (m_torrent->is_seed())
 		{
@@ -652,7 +657,15 @@ namespace libtorrent
 			--m_num_unchoked;
 			unchoke_one_peer();
 		}
-		m_available_free_upload += i->connection->share_diff();
+
+		// if the share ratio is 0 (infinite), the
+		// m_available_free_upload isn't used,
+		// because it isn't necessary.
+		if (m_torrent->ratio() != 0.f)
+		{
+			assert(i->connection->share_diff() < std::numeric_limits<int>::max());
+			m_available_free_upload += i->connection->share_diff();
+		}
 		i->connection = 0;
 	}
 
