@@ -75,10 +75,6 @@ namespace libtorrent
 			m_total_upload_protocol += s.m_uploaded_protocol;
 		}
 
-		// TODO: these function should take two arguments
-		// to be able to count both total data sent and also
-		// count only the actual payload (not counting the
-		// protocol chatter)
 		void received_bytes(int bytes_payload, int bytes_protocol)
 		{
 			m_downloaded += bytes_payload;

@@ -174,8 +174,7 @@ libtorrent::peer_connection::~peer_connection()
 
 void libtorrent::peer_connection::set_send_quota(int num_bytes)
 {
-	assert(num_bytes <= m_send_quota_limit);
-	assert(num_bytes >= 0);
+	assert(num_bytes <= m_send_quota_limit || m_send_quota_limit == -1);
 	if (num_bytes > m_send_quota_limit) num_bytes = m_send_quota_limit;
 
 	m_send_quota = num_bytes;
@@ -438,11 +437,16 @@ bool libtorrent::peer_connection::dispatch_message(int received)
 			r.piece = read_int(&m_recv_buffer[1]);
 			r.start = read_int(&m_recv_buffer[5]);
 			r.length = read_int(&m_recv_buffer[9]);
-			m_requests.push_back(r);
 
 			if (!m_choked)
 			{
+				m_requests.push_back(r);
 				send_buffer_updated();
+			}
+			else
+			{
+				// ignoring request since we have
+				// choked this peer
 			}
 
 #ifndef NDEBUG
@@ -575,7 +579,7 @@ bool libtorrent::peer_connection::dispatch_message(int received)
 				{
 					m_torrent->piece_failed(index);
 				}
-				m_torrent->get_policy().piece_finished(*this, index, verified);
+				m_torrent->get_policy().piece_finished(index, verified);
 			}
 			break;
 		}
@@ -688,9 +692,6 @@ void libtorrent::peer_connection::request_block(piece_block block)
 	std::size_t start_offset = m_send_buffer.size();
 	m_send_buffer.resize(start_offset + 17);
 
-	// TODO: add a timeout to disconnect peer if we don't get any piece messages when
-	// we have requested.
-
 	std::copy(buf, buf + 5, m_send_buffer.begin()+start_offset);
 	start_offset +=5;
 
@@ -741,6 +742,7 @@ void libtorrent::peer_connection::choke()
 #ifndef NDEBUG
 	(*m_logger) << m_socket->sender().as_string() << " ==> CHOKE\n";
 #endif
+	m_requests.clear();
 	send_buffer_updated();
 }
 
@@ -804,19 +806,15 @@ void libtorrent::peer_connection::second_tick()
 	// client has sent us. This is the mean to
 	// maintain a 1:1 share ratio with all peers.
 
-	// TODO: make sure the rate is able to rise if
-	// both peers uses this technique! It could be
-	// enough to just have a constant positive bias
-	// of the send_quota_limit
 	int diff = static_cast<int>(m_statistics.total_download())
 		- static_cast<int>(m_statistics.total_upload());
 
-	if (diff > m_torrent->torrent_file().piece_length())
+	if (diff > 2*m_torrent->block_size())
 	{
 		// if we have downloaded more than one piece more
 		// than we have uploaded, have an unlimited
 		// upload rate
-		m_send_quota = -1;
+		m_send_quota_limit = -1;
 	}
 	else
 	{
@@ -824,18 +822,20 @@ void libtorrent::peer_connection::second_tick()
 		// upload rate of 10 kB/s more than we dowlload
 		// if we have uploaded too much, send with a rate of
 		// 10 kB/s less than we receive
-		if (diff > -32*1024)
+		int bias = 0;
+		if (diff > -2*m_torrent->block_size())
 		{
-			m_send_quota_limit = m_statistics.download_rate() * 1.5;
+			bias = m_statistics.download_rate() * .5;
+			if (bias < 10*1024) bias = 10*1024;
 		}
 		else
 		{
-			m_send_quota_limit = m_statistics.download_rate() * .5;
+			bias = -m_statistics.download_rate() * .5;
 		}
+		m_send_quota_limit = m_statistics.download_rate() + bias;
 		// the maximum send_quota given our download rate from this peer
-		if (m_send_quota_limit < 500) m_send_quota_limit = 500;
+		if (m_send_quota_limit < 256) m_send_quota_limit = 256;
 	}
-	assert(m_send_quota_limit >= 500 || m_send_quota_limit == -1);
 }
 
 // --------------------------

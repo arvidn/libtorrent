@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // TODO: remove the dependency of
 // platform specific headers here.
+// sockaddr_in is hard to get rid of in a nice way
 
 #if defined(_WIN32)
 	#include <winsock2.h>

@@ -105,6 +105,10 @@ namespace {
 
 }
 
+// TODO: implement fast resume. i.e. the possibility to
+// supply additional information about which pieces are
+// assigned to which slots.
+
 namespace libtorrent {
 
 	struct thread_safe_storage
@@ -608,8 +612,7 @@ namespace libtorrent {
 
 			for (int i = current_slot; i < m_info.num_pieces(); ++i)
 			{
-				if (pieces[i])
-					continue;
+				if (pieces[i] && i != current_slot) continue;
 
 				const sha1_hash& hash = digest[
 					i == m_info.num_pieces() - 1]->get();
@@ -620,11 +623,20 @@ namespace libtorrent {
 
 			if (found_piece != -1)
 			{
+				if (pieces[found_piece])
+				{
+					assert(m_piece_to_slot[found_piece] != -1);
+					m_slot_to_piece[m_piece_to_slot[found_piece]] = -2;
+					m_free_slots.push_back(m_piece_to_slot[found_piece]);
+				}
+				else
+				{
 					m_bytes_left -= m_info.piece_size(found_piece);
+				}
 
-					m_piece_to_slot[found_piece] = current_slot;
-					m_slot_to_piece[current_slot] = found_piece;
-					pieces[found_piece] = true;
+				m_piece_to_slot[found_piece] = current_slot;
+				m_slot_to_piece[current_slot] = found_piece;
+				pieces[found_piece] = true;
 			}
 			else
 			{

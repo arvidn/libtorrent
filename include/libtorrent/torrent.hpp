@@ -63,18 +63,6 @@ namespace libtorrent
 		struct session_impl;
 	}
 
-	// TODO: each torrent should have a status value that
-	// reflects what's happening to it
-	// TODO: There should be a maximum number of peers that
-	// is maintained (if someone disconnects, try to connect to
-	// anotherone). There should also be a candidate slot where a
-	// new peer is tried for one minute, and if it has better ownload
-	// speed than one of the peers currently connected, it will be
-	// replaced to maximize bandwidth usage. It wil also have to
-	// depend on how many and which pieces the peers have.
-	// TODO: In debug mode all pieces that are sent should be checked.
-
-
 	// a torrent is a class that holds information
 	// for a specific download. It updates itself against
 	// the tracker
@@ -88,7 +76,8 @@ namespace libtorrent
 			detail::session_impl& ses
 			, const torrent_info& torrent_file
 			, const boost::filesystem::path& save_path);
-		~torrent() {}
+
+		~torrent();
 
 		void abort() { m_abort = true; m_event = event_stopped; }
 		bool is_aborted() const { return m_abort; }
@@ -115,7 +104,7 @@ namespace libtorrent
 
 		torrent_status status() const;
 
-		boost::weak_ptr<peer_connection> connect_to_peer(
+		peer_connection& connect_to_peer(
 			const address& a
 			, const peer_id& id);
 
@@ -248,6 +237,7 @@ namespace libtorrent
 
 #ifndef NDEBUG
 		virtual void debug_log(const std::string& line);
+		void check_invariant();
 #endif
 
 	private:
