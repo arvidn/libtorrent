@@ -2317,7 +2317,7 @@ for example. For more information, see the `Boost.Filesystem docs`__.
 __ http://www.boost.org/libs/filesystem/doc/index.htm
 
 
-aknowledgements
+acknowledgements
 ===============
 
 Written by Arvid Norberg. Copyright (c) 2003
