@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <exception>
 
 #include <boost/format.hpp>
-//#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
@@ -75,7 +75,7 @@ void clear()
 	HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
 	COORD c = {0, 0};
 	DWORD n;
-	FillConsoleOutputCharacter(h, ' ', 80 * 80, c, &n);
+	FillConsoleOutputCharacter(h, ' ', 120 * 80, c, &n);
 }
 
 #else
@@ -185,7 +185,7 @@ int main(int argc, char* argv[])
 		session s(6881, "E\x1");
 
 		// limit upload rate to 100 kB/s
-//		s.set_upload_rate_limit(100 * 1024);
+		s.set_upload_rate_limit(100 * 1024);
 
 		s.set_http_settings(settings);
 		for (int i = 0; i < argc-1; ++i)
@@ -198,6 +198,7 @@ int main(int argc, char* argv[])
 				torrent_info t(e);
 				t.print(std::cout);
 				handles.push_back(s.add_torrent(t, ""));
+				handles.back().set_max_uploads(20);
 			}
 			catch (std::exception& e)
 			{
@@ -246,15 +247,7 @@ int main(int argc, char* argv[])
 				int total_down = s.total_download;
 				int total_up = s.total_upload;
 				int num_peers = peers.size();
-/*
-				std::cout << boost::format("%f%% p:%d d:(%s) %s/s u:(%s) %s/s\n")
-					% (s.progress*100)
-					% num_peers
-					% add_suffix(total_down)
-					% add_suffix(down)
-					% add_suffix(total_up)
-					% add_suffix(up);
-*/
+
 				out.precision(4);
 				out.width(5);
 				out.fill(' ');
@@ -276,8 +269,7 @@ int main(int argc, char* argv[])
 					<< "diff: " << add_suffix(total_down - total_up) << "\n";
 
 				boost::posix_time::time_duration t = s.next_announce;
-//				std::cout << "next announce: " << boost::posix_time::to_simple_string(t) << "\n";
-				out << "next announce: " << t.hours() << ":" << t.minutes() << ":" << t.seconds() << "\n";
+				out << "next announce: " << boost::posix_time::to_simple_string(t) << "\n";
 
 				for (std::vector<peer_info>::iterator i = peers.begin();
 					i != peers.end();
@@ -288,7 +280,7 @@ int main(int argc, char* argv[])
 						<< "u: " << add_suffix(i->up_speed) << "/s "
 						<< "(" << add_suffix(i->total_upload) << ") "
 						<< "df: " << add_suffix((int)i->total_download - (int)i->total_upload) << " "
-						<< "l: " << add_suffix(i->upload_ceiling) << "/s "
+						<< "l: " << add_suffix(i->upload_limit) << "/s "
 						<< "f: "
 						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
 						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
@@ -305,13 +297,12 @@ int main(int argc, char* argv[])
 							if (progress * 20 > j) out << "#";
 							else out << "-";
 						}
+						out << "\n";
 					}
-
-					out << "\n";
 				}
 
 				out << "___________________________________\n";
-/*
+
 				i->get_download_queue(queue);
 				for (std::vector<partial_piece_info>::iterator i = queue.begin();
 					i != queue.end();
@@ -324,13 +315,13 @@ int main(int argc, char* argv[])
 					{
 						if (i->finished_blocks[j]) out << "#";
 						else if (i->requested_blocks[j]) out << "=";
-						else out << "-";
+						else out << ".";
 					}
 					out << "|\n";
 				}
 
 				out << "___________________________________\n";
-*/
+
 			}
 
 			clear();

@@ -59,7 +59,17 @@ POSSIBILITY OF SUCH DAMAGE.
 // TODO: maybe there should be some kind of 
 // per-torrent free-upload counter. All free
 // download we get is put in there and increases
-// the amount of free upload we give.
+// the amount of free upload we give. The free upload
+// could be distributed to the interest peers
+// depending on amount we have downloaded from
+// the peer and depending on the share ratio.
+// there's no point in giving free upload to
+// peers we can trade with. Maybe the free upload
+// only should be given to those we are not interested
+// in?
+
+// TODO: the interested flag has to be updated when we
+// get pieces.
 
 namespace libtorrent
 {

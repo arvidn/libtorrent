@@ -36,13 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <vector>
 
-#include <boost/weak_ptr.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "libtorrent/peer.hpp"
 #include "libtorrent/piece_picker.hpp"
-
-// TODO: should be able to close connections with too low bandwidth to save memory
 
 namespace libtorrent
 {
@@ -63,7 +60,7 @@ namespace libtorrent
 
 		// called when an incoming connection is accepted
 		// return false if the connection closed
-		bool new_connection(const boost::weak_ptr<peer_connection>& c);
+		bool new_connection(peer_connection& c);
 
 		// this is called once for every peer we get from
 		// the tracker
@@ -79,7 +76,7 @@ namespace libtorrent
 		// the peer has got at least one interesting piece
 		void peer_is_interesting(peer_connection& c);
 
-		void piece_finished(peer_connection& c, int index, bool successfully_verified);
+		void piece_finished(int index, bool successfully_verified);
 
 		void block_finished(peer_connection& c, piece_block b);
 
@@ -95,23 +92,22 @@ namespace libtorrent
 		// the peer is not interested in our pieces
 		void not_interested(peer_connection& c);
 
+		void set_max_uploads(int num_unchoked);
+
 #ifndef NDEBUG
 		bool has_connection(const peer_connection* p);
+
+		void check_invariant();
 #endif
 
 	private:
 
 		struct peer
 		{
-			peer(const peer_id& pid)
-				: id(pid)
-				, last_optimistically_unchoked(boost::posix_time::second_clock::local_time())
-				, connected(boost::posix_time::second_clock::local_time())
-				, optimistic_unchokes(0)
-				, prev_amount_upload(0)
-				, prev_amount_download(0)
-				, banned(false)
-			{}
+			peer(const peer_id& pid);
+
+			int total_download() const;
+			int total_upload() const;
 
 			bool operator==(const peer_id& pid) const
 			{ return id == pid; }
@@ -130,10 +126,6 @@ namespace libtorrent
 			// or disconnected if it isn't connected right now
 			boost::posix_time::ptime connected;
 
-			// the number of optimistic unchokes this peer has
-			// been given
-			int optimistic_unchokes;
-
 			// this is the accumulated amount of
 			// uploaded and downloaded data to this
 			// peer. It only accounts for what was
@@ -151,8 +143,12 @@ namespace libtorrent
 
 			// if the peer is connected now, this
 			// will refer to a valid peer_connection
-			boost::weak_ptr<peer_connection> connection;
+			peer_connection* connection;
 		};
+
+		bool unchoke_one_peer();
+		peer* find_choke_candidate();
+		peer* find_unchoke_candidate();
 
 		// a functor that identifies peers that have disconnected and that
 		// are too old for still being saved.
@@ -162,7 +158,7 @@ namespace libtorrent
 			{
 				using namespace boost::posix_time;
 
-				return p.connection.expired()
+				return p.connection == 0
 					&& second_clock::local_time() - p.connected > seconds(5*60);
 			}
 		};
@@ -173,6 +169,14 @@ namespace libtorrent
 		int m_num_peers;
 		torrent* m_torrent;
 
+		// the total number of unchoked peers at
+		// any given time. If set to -1, it's unlimited.
+		// must be 2 or higher otherwise.
+		int m_max_uploads;
+
+		// the number of unchoked peers
+		// at any given time
+		int m_num_unchoked;
 	};
 
 }

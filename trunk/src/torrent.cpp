@@ -168,6 +168,11 @@ namespace libtorrent
 		m_have_pieces.resize(torrent_file.num_pieces(), false);
 	}
 
+	torrent::~torrent()
+	{
+		if (m_ses.m_abort) m_abort = true;
+	}
+
 	void torrent::tracker_response(const entry& e)
 	{
 		std::vector<peer> peer_list;
@@ -279,15 +284,14 @@ namespace libtorrent
 			++i)
 		{
 			if (std::find(downloaders.begin(), downloaders.end(), (*i)->get_peer_id())
-				!= downloaders.end())
+				== downloaders.end()) continue;
+
+			(*i)->received_invalid_data();
+			if ((*i)->trust_points() <= -5)
 			{
-				(*i)->received_invalid_data();
-				if ((*i)->trust_points() <= -5)
-				{
-					// we don't trust this peer anymore
-					// ban it.
-					m_policy->ban_peer(*(*i));
-				}
+				// we don't trust this peer anymore
+				// ban it.
+				m_policy->ban_peer(*(*i));
 			}
 		}
 
@@ -422,11 +426,9 @@ namespace libtorrent
 	#endif
 	}
 
-	boost::weak_ptr<peer_connection> torrent::connect_to_peer(const address& a, const peer_id& id)
+	peer_connection& torrent::connect_to_peer(const address& a, const peer_id& id)
 	{
 		boost::shared_ptr<socket> s(new socket(socket::tcp, false));
-		// TODO: the send buffer size should be controllable from the outside
-//		s->set_send_bufsize(2048);
 		s->connect(a);
 		boost::shared_ptr<peer_connection> c(new peer_connection(
 			m_ses
@@ -449,7 +451,7 @@ namespace libtorrent
 		m_ses.m_selector.monitor_readability(s);
 		m_ses.m_selector.monitor_errors(s);
 //		std::cout << "connecting to: " << a.as_string() << ":" << a.port() << "\n";
-		return c;
+		return *c;
 	}
 
 	void torrent::attach_peer(peer_connection* p)
@@ -460,7 +462,7 @@ namespace libtorrent
 			= m_ses.m_connections.find(p->get_socket());
 		assert(i != m_ses.m_connections.end());
 
-		if (!m_policy->new_connection(i->second)) throw network_error(0);
+		if (!m_policy->new_connection(*i->second)) throw network_error(0);
 	}
 
 	void torrent::close_all_connections()
@@ -522,6 +524,14 @@ namespace libtorrent
 		m_picker.integrity_check(this);
 #endif
 	}
+
+#ifndef NDEBUG
+	void torrent::check_invariant()
+	{
+		assert(m_num_pieces
+			== std::count(m_have_pieces.begin(), m_have_pieces.end(), true));
+	}
+#endif
 
 	void torrent::second_tick()
 	{

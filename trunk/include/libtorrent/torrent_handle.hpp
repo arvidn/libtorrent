@@ -115,7 +115,13 @@ namespace libtorrent
 		// to finish all pieces currently in the pipeline, and then
 		// abort the torrent.
 
+		// TODO: add finish_file_allocation, which will force the
+		// torrent to allocate storage for all pieces.
+
 		boost::filesystem::path save_path() const;
+
+		// -1 means unlimited unchokes
+		void set_max_uploads(int max_uploads);
 
 		const sha1_hash& info_hash() const
 		{ return m_info_hash; }

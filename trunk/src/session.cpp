@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg, Magnus Jonsson
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -63,6 +63,41 @@ namespace std
 namespace
 {
 
+
+	// This struct is used by control_upload_rates() below. It keeps
+	// track how much bandwidth has been allocated to each connection
+	// and other relevant information to assist in the allocation process.
+	struct connection_info
+	{
+		libtorrent::peer_connection* p; // which peer_connection this info refers to
+		int allocated_quota;	// bandwidth allocated to this peer connection
+		int quota_limit;	// bandwidth limit
+		int estimated_upload_capacity; // estimated channel bandwidth
+
+		bool operator < (const connection_info &other) const
+		{
+			return estimated_upload_capacity < other.estimated_upload_capacity;
+		}
+		
+		int give(int amount)
+		{
+
+			// if amount > 0, try to add amount to the allocated quota.
+			// if amount < 0, try to subtract abs(amount) from the allocated quota
+			// 
+			// Quota will not go above quota_limit or below 0. This means that
+			// not all the amount given or taken may be accepted.
+			//
+			// return value: how much quota was actually added (or subtracted if negative).
+
+			int old_quota=allocated_quota;
+			allocated_quota+=amount;
+			allocated_quota=std::min(allocated_quota,quota_limit);
+			allocated_quota=std::max(0,allocated_quota);
+			return allocated_quota-old_quota;
+		}
+	};
+
 	// adjusts the upload rates of every peer connection
 	// to make sure the sum of all send quotas equals
 	// the given upload_limit. An upload limit of -1 means
@@ -92,21 +127,105 @@ namespace
 			}
 			return;
 		}
+		else
+		{
+			// There's an upload limit, so we need to distribute the available
+			// upload bandwidth among the peer_connections fairly, but not
+			// wastefully.
 
-		// TODO: upload limit support is currently broken
-		assert(false);
+			// For each peer_connection, keep some local data about their
+			// quota limit and estimated upload capacity, and how much quota
+			// has been allocated to them.
 
+			std::vector<connection_info> peer_info;
+
+			for (detail::session_impl::connection_map::iterator i = connections.begin();
+				i != connections.end();
+				++i)
+			{
+				peer_connection& p = *i->second;
+				connection_info pi;
+
+				pi.p=&p;
+				pi.allocated_quota=0; // we haven't given it any bandwith yet
+				pi.quota_limit=p.send_quota_limit();
+
+				pi.estimated_upload_capacity=
+					p.has_data() ? std::max(10,(int)p.statistics().upload_rate()*11/10)
+					// If there's no data to send, upload capacity is practically 0.
+					// Here we set it to 1 though, because otherwise it will not be able
+					// to accept any quota at all, which may upset quota_limit balances.
+					              : 1;
+
+				peer_info.push_back(pi);
+			}
+
+			// Sum all peer_connections' quota limit to get the total quota limit.
+
+			int sum_total_of_quota_limits=0;
+			for(int i=0;i<peer_info.size();i++)
+				sum_total_of_quota_limits+=peer_info[i].quota_limit;
+
+			// This is how much total bandwidth that can be distributed.
+			int quota_left_to_distribute=std::min(upload_limit,sum_total_of_quota_limits);
+
+
+			// Sort w.r.t. channel capacitiy, lowest channel capacity first.
+			// Makes it easy to traverse the list in sorted order.
+			std::sort(peer_info.begin(),peer_info.end());
+
+
+			// Distribute quota until there's nothing more to distribute
+
+			while(quota_left_to_distribute!=0)
+			{
+				assert(quota_left_to_distribute>0);
+
+				for(int i=0;i<peer_info.size();i++)
+				{
+					// Traverse the peer list from slowest connection to fastest.
+
+					// In each step, share bandwidth equally between this peer_connection
+					// and the following faster peer_connections.
+					//
+					// Rounds upwards to avoid trying to give 0 bandwidth to someone (may get caught in an endless loop otherwise)
+					
+					int num_peers_left_to_share_quota=peer_info.size()-i;
+					int try_to_give_to_this_peer=(quota_left_to_distribute + num_peers_left_to_share_quota-1)/num_peers_left_to_share_quota;
+
+					// But do not allocate more than the estimated upload capacity.
+					try_to_give_to_this_peer=std::min(
+						peer_info[i].estimated_upload_capacity,
+						try_to_give_to_this_peer);
+
+					// Also, when the peer is given quota, it will not accept more than it's quota_limit.
+					int quota_actually_given_to_peer=peer_info[i].give(try_to_give_to_this_peer);
+
+					quota_left_to_distribute-=quota_actually_given_to_peer;
+				}
+			}
+			
+			// Finally, inform the peers of how much quota they get.
+
+			for(int i=0;i<peer_info.size();i++)
+				peer_info[i].p->set_send_quota(peer_info[i].allocated_quota);
+		}
 
 #ifndef NDEBUG
-		int sum = 0;
+		{
+		int sum_quota = 0;
+		int sum_quota_limit = 0;
 		for (detail::session_impl::connection_map::iterator i = connections.begin();
 			i != connections.end();
 			++i)
 		{
 			peer_connection& p = *i->second;
-			sum += p.send_quota();
+			sum_quota += p.send_quota();
+
+			sum_quota_limit += p.send_quota_limit();
 		}
-		assert(sum == upload_limit);
+		assert(abs(sum_quota - std::min(upload_limit,sum_quota_limit)) < 10);
+		}
 #endif
 	}
 }
@@ -324,9 +443,6 @@ namespace libtorrent
 #ifndef NDEBUG
 							(*m_logger) << s->sender().as_string() << " <== INCOMING CONNECTION\n";
 #endif
-							// TODO: the send buffer size should be controllable from the outside
-//							s->set_send_bufsize(2048);
-
 							// TODO: filter ip:s
 
 							boost::shared_ptr<peer_connection> c(
@@ -485,14 +601,6 @@ namespace libtorrent
 					++i;
 				}
 				// distribute the maximum upload rate among the peers
-				// TODO: implement an intelligent algorithm that
-				// will shift bandwidth from the peers that can't
-				// utilize all their assigned bandwidth to the peers
-				// that actually can maintain the upload rate.
-				// This should probably be done by accumulating the
-				// left-over bandwidth to next second. Since the
-				// the sockets consumes its data in rather big chunks.
-
 				control_upload_rates(m_upload_rate, m_connections);
 
 

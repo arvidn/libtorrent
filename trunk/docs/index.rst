@@ -41,18 +41,20 @@ The current state includes the following features:
 	  thread-safe library interface. (i.e. There's no way for the user to cause a deadlock).
 	* can limit the upload bandwidth usage
 	* piece-wise file allocation
+	* upload rate limit, balanced depending on download speed and upload bandwidth
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
 .. _Azureus: http://azureus.sourceforge.net
 
 Functions that are yet to be implemented:
 
-	* optimistic unchoke
-	* choke/unchoke algorithm
-	* Snubbing
+	* more generous optimistic unchoke
+	* better choke/unchoke algorithm
 	* fast resume
+	* number of connections limit
+	* better handling of peers that send bad data
+	* ip-filters
 	* file-level piece priority
-	* a good upload speed cap (the one currently used don't balance loads between peers)
 
 libtorrent is portable at least among windows, macosx, and UNIX-systems. It uses boost.thread,
 boost.filesystem boost.date_time and various other boost libraries and zlib.
@@ -426,6 +428,8 @@ Its declaration looks like this::
 
 		boost::filsystem::path save_path() const;
 
+		void set_max_uploads(int max_uploads);
+
 		sha1_hash info_hash() const;
 
 		bool operator==(const torrent_handle&) const;
@@ -435,12 +439,15 @@ Its declaration looks like this::
 
 The default constructor will initialize the handle to an invalid state. Which means you cannot
 perform any operation on it, unless you first assign it a valid handle. If you try to perform
-any operation they will simply return.
+any operation on an uninitialized handle, it will throw ``invalid_handle``.
 
 ``save_path()`` returns the path that was given to ``add_torrent()`` when this torrent
 was started.
 
 ``info_hash()`` returns the info hash for the torrent.
+
+``set_max_uploads()`` sets the maximum number of peers that's unchoked at the same time on this
+torrent. If you set this to -1, there will be no limit.
 
 status()
 ~~~~~~~~
@@ -989,6 +996,8 @@ Aknowledgements
 ===============
 
 Written by Arvid Norberg and Daniel Wallin. Copyright (c) 2003
+
+Contributions by Magnus Jonsson
 
 Project is hosted by sourceforge.
 
