@@ -250,7 +250,7 @@ namespace libtorrent
 		std::random_shuffle(pieces.begin(), pieces.end());
 		std::random_shuffle(targets.begin(), targets.end());
 
-		for (int i = 0; i < std::max(num_pieces / 100, 1); ++i)
+		for (int i = 0; i < std::max(num_pieces / 50, 1); ++i)
 		{
 			const int slot_index = targets[i];
 			const int piece_index = pieces[i];
