@@ -11,7 +11,10 @@ SOURCES =
 	torrent.cpp
 	torrent_handle.cpp
 	torrent_info.cpp
-	url_handler.cpp
+	tracker_manager.cpp
+	http_tracker_connection.cpp
+	udp_tracker_connection.cpp
+	file_win.cpp
 	sha1.c
 	;
 
@@ -19,7 +22,7 @@ SOURCES =
 lib torrent
 	: src/$(SOURCES)
 #	  <lib>zlib/zlib
-#	  zlib//zlib
+	  zlib//zlib
 #	  <file>boost_filesystem.lib
 #	  <file>boost_date_time.lib
 #	  <file>boost_thread.dll
