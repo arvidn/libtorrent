@@ -160,7 +160,6 @@ means it can resume a torrent downloaded by any client.</li>
 <p>Functions that are yet to be implemented:</p>
 <blockquote>
 <ul class="simple">
-<li>large file support on linux and Mac OS X.</li>
 <li>better identification of peers that send bad data</li>
 <li>ip-filters</li>
 <li>file-level priority</li>
@@ -209,8 +208,8 @@ as a dll too, by typing <tt class="literal"><span class="pre">link=shared</span>
 abstraction. There's one <tt class="literal"><span class="pre">file_win.cpp</span></tt> which relies on windows file API that supports
 files larger than 2 Gigabytes. This does not work in vc6 for some reason, possibly because
 it may require windows NT and above. The other file, <tt class="literal"><span class="pre">file.cpp</span></tt> is the default
-implementation that simply relies on the standard library's fstream, and as a result does
-not support files larger than 2 Gigabytes.</p>
+implementation that simply relies on the standard low level io routines (read, write etc.),
+but for some reason this implementation doesn't seem to work on windows.</p>
 <div class="section" id="cygwin-and-msvc">
 <h2><a name="cygwin-and-msvc">cygwin and msvc</a></h2>
 <p>Note that if you're building on windows using the <tt class="literal"><span class="pre">msvc</span></tt> toolset, you cannot run it
@@ -311,7 +310,7 @@ class session: public boost::noncopyable
                 , const char* listen_interface = 0);
 
         torrent_handle add_torrent(
-                torrent_info const&amp; t
+                entry const&amp; e
                 , boost::filesystem::path const&amp; save_path
                 , entry const&amp; resume_data = entry());
 
@@ -360,7 +359,7 @@ the parameters, see <tt class="literal"><span class="pre">listen_on()</span></tt
 </div>
 <div class="section" id="id9">
 <h2><a name="id9">~session()</a></h2>
-<p>The destructor of session will notify all trackers that our torrents has been shut down.
+<p>The destructor of session will notify all trackers that our torrents have been shut down.
 If some trackers are down, they will timout. All this before the destructor of session
 returns. So, it's adviced that any kind of interface (such as windows) are closed before
 destructing the sessoin object. Because it can take a few second for it to finish. The
@@ -371,7 +370,7 @@ timeout can be set with <tt class="literal"><span class="pre">set_http_settings(
 <blockquote>
 <pre class="literal-block">
 torrent_handle add_torrent(
-        torrent_info const&amp; t
+        entry const&amp; e
         , boost::filesystem::path const&amp; save_path
         , entry const&amp; resume_data = entry());
 </pre>
@@ -420,7 +419,7 @@ of upload rate.</p>
 session_status status() const;
 </pre>
 </blockquote>
-<p><tt class="literal"><span class="pre">status()</span></tt> returns session wide statistics and status. The <tt class="literal"><span class="pre">session_status</span></tt>
+<p><tt class="literal"><span class="pre">status()</span></tt> returns session wide-statistics and status. The <tt class="literal"><span class="pre">session_status</span></tt>
 struct has the following members:</p>
 <pre class="literal-block">
 struct session_status
@@ -442,7 +441,7 @@ struct session_status
         int num_peers;
 };
 </pre>
-<p><tt class="literal"><span class="pre">has_incoming_connections</span></tt> is false as long as no incoming connections has been
+<p><tt class="literal"><span class="pre">has_incoming_connections</span></tt> is false as long as no incoming connections have been
 established on the listening socket. Every time you change the listen port, this will
 be reset to false.</p>
 <p><tt class="literal"><span class="pre">upload_rate</span></tt>, <tt class="literal"><span class="pre">download_rate</span></tt>, <tt class="literal"><span class="pre">payload_download_rate</span></tt> and <tt class="literal"><span class="pre">payload_upload_rate</span></tt>
@@ -1408,6 +1407,15 @@ sure not to clash with anybody else. Here are some taken id's:</p>
 <tr><td>'MT'</td>
 <td>Moonlight Torrent</td>
 </tr>
+<tr><td>'TS'</td>
+<td>Torrent Storm</td>
+</tr>
+<tr><td>'SS'</td>
+<td>Swarm Scope</td>
+</tr>
+<tr><td>'XT'</td>
+<td>Xan Torrent</td>
+</tr>
 </tbody>
 </table>
 <p>The <tt class="literal"><span class="pre">major</span></tt>, <tt class="literal"><span class="pre">minor</span></tt>, <tt class="literal"><span class="pre">revision</span></tt> and <tt class="literal"><span class="pre">tag</span></tt> parameters are used to identify the
@@ -1540,14 +1548,14 @@ public:
         alert(severity_t severity, const std::string&amp; msg);
         virtual ~alert();
 
-        const std::string&amp; msg() const;
+        std::string const&amp; msg() const;
         severity_t severity() const;
 
         virtual std::auto_ptr&lt;alert&gt; clone() const = 0;
 };
 </pre>
 <p>This means that all alerts have at least a string describing it. They also
-have a severity leve that can be used to sort them or present them to the
+have a severity level that can be used to sort them or present them to the
 user in different ways.</p>
 <p>The specific alerts, that all derives from <tt class="literal"><span class="pre">alert</span></tt>, are:</p>
 <div class="section" id="listen-failed-alert">
@@ -1899,8 +1907,7 @@ int main(int argc, char* argv[])
                 std::ifstream in(argv[1], std::ios_base::binary);
                 in.unsetf(std::ios_base::skipws);
                 entry e = bdecode(std::istream_iterator&lt;char&gt;(in), std::istream_iterator&lt;char&gt;());
-                torrent_info t(e);
-                s.add_torrent(t, &quot;&quot;);
+                s.add_torrent(e, &quot;&quot;);
                         
                 // wait for the user to end
                 char a;

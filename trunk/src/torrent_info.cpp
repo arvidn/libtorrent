@@ -114,14 +114,69 @@ namespace libtorrent
 	// just the necessary to use it with piece manager
 	torrent_info::torrent_info(
 		int piece_size
-		, const char* name)
+		, const char* name
+		, sha1_hash const& info_hash)
 		: m_piece_length(piece_size)
 		, m_total_size(0)
+		, m_info_hash(info_hash)
 		, m_creation_date(second_clock::local_time())
 	{
-		m_info_hash.clear();
 	}
 
+
+	void torrent_info::parse_info_section(entry const& info)
+	{
+		// encode the info-field in order to calculate it's sha1-hash
+		std::vector<char> buf;
+		bencode(std::back_inserter(buf), info);
+		hasher h;
+		h.update(&buf[0], (int)buf.size());
+		m_info_hash = h.final();
+
+		// extract piece length
+		m_piece_length = (int)info["piece length"].integer();
+
+		// extract file name (or the directory name if it's a multifile libtorrent)
+		m_name = info["name"].string();
+
+		// extract file list
+		entry const* i = info.find_key("files");
+		if (i == 0)
+		{
+			// if there's no list of files, there has to be a length
+			// field.
+			file_entry e;
+			e.path = m_name;
+			e.size = info["length"].integer();
+			m_files.push_back(e);
+		}
+		else
+		{
+			extract_files(i->list(), m_files);
+		}
+
+		// calculate total size of all pieces
+		m_total_size = 0;
+		for (std::vector<file_entry>::iterator i = m_files.begin(); i != m_files.end(); ++i)
+			m_total_size += i->size;
+
+		// extract sha-1 hashes for all pieces
+		// we want this division to round upwards, that's why we have the
+		// extra addition
+
+		int num_pieces = static_cast<int>((m_total_size + m_piece_length - 1) / m_piece_length);
+		m_piece_hash.resize(num_pieces);
+		const std::string& hash_string = info["pieces"].string();
+
+		if ((int)hash_string.length() != num_pieces * 20)
+			throw invalid_torrent_file();
+
+		for (int i = 0; i < num_pieces; ++i)
+			std::copy(
+				hash_string.begin() + i*20
+				, hash_string.begin() + (i+1)*20
+				, m_piece_hash[i].begin());
+	}
 
 	// extracts information from a libtorrent file and fills in the structures in
 	// the torrent object
@@ -197,57 +252,7 @@ namespace libtorrent
 		if (i == 0) throw invalid_torrent_file();
 		entry const& info = *i;
 
-		// encode the info-field in order to calculate it's sha1-hash
-		std::vector<char> buf;
-		bencode(std::back_insert_iterator<std::vector<char> >(buf), info);
-		hasher h;
-		h.update(&buf[0], (int)buf.size());
-		m_info_hash = h.final();
-		std::copy(m_info_hash.begin(), m_info_hash.end(), std::ostream_iterator<int>(std::cout));
-
-		// extract piece length
-		m_piece_length = (int)info["piece length"].integer();
-
-		// extract file name (or the directory name if it's a multifile libtorrent)
-		m_name = info["name"].string();
-
-		// extract file list
-		i = info.find_key("files");
-		if (i == 0)
-		{
-			// if there's no list of files, there has to be a length
-			// field.
-			file_entry e;
-			e.path = m_name;
-			e.size = info["length"].integer();
-			m_files.push_back(e);
-		}
-		else
-		{
-			extract_files(i->list(), m_files);
-		}
-
-		// calculate total size of all pieces
-		m_total_size = 0;
-		for (std::vector<file_entry>::iterator i = m_files.begin(); i != m_files.end(); ++i)
-			m_total_size += i->size;
-
-		// extract sha-1 hashes for all pieces
-		// we want this division to round upwards, that's why we have the
-		// extra addition
-
-		int num_pieces = static_cast<int>((m_total_size + m_piece_length - 1) / m_piece_length);
-		m_piece_hash.resize(num_pieces);
-		const std::string& hash_string = info["pieces"].string();
-
-		if ((int)hash_string.length() != num_pieces * 20)
-			throw invalid_torrent_file();
-
-		for (int i = 0; i < num_pieces; ++i)
-			std::copy(
-				hash_string.begin() + i*20
-				, hash_string.begin() + (i+1)*20
-				, m_piece_hash[i].begin());
+		parse_info_section(info);
 	}
 
 	boost::optional<boost::posix_time::ptime>
@@ -306,6 +311,8 @@ namespace libtorrent
 
 	entry torrent_info::create_torrent() const
 	{
+		assert(m_piece_length > 0);
+
 		using namespace boost::gregorian;
 		using namespace boost::posix_time;
 

@@ -56,7 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/policy.hpp"
-#include "libtorrent/storage.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/alert.hpp"
@@ -68,6 +67,8 @@ namespace libtorrent
 	struct logger;
 #endif
 
+	class piece_manager;
+
 	std::string escape_string(const char* str, int len);
 	std::string unescape_string(std::string const& s);
 
@@ -75,6 +76,7 @@ namespace libtorrent
 	namespace detail
 	{
 		struct session_impl;
+		struct piece_checker_data;
 	}
 
 	// a torrent is a class that holds information
@@ -86,11 +88,24 @@ namespace libtorrent
 
 		torrent(
 			detail::session_impl& ses
-			, const torrent_info& torrent_file
-			, const boost::filesystem::path& save_path
+			, entry const& metadata
+			, boost::filesystem::path const& save_path
+			, address const& net_interface);
+
+		// used with metadata-less torrents
+		// (the metadata is downloaded from the peers)
+		torrent(
+			detail::session_impl& ses
+			, char const* tracker_url
+			, sha1_hash const& info_hash
+			, boost::filesystem::path const& save_path
 			, address const& net_interface);
 
 		~torrent();
+
+		// this is called when the torrent has metadata.
+		// it will initialize the storage and the piece-picker
+		void init();
 
 		// this will flag the torrent as aborted. The main
 		// loop in session_impl will check for this state
@@ -219,19 +234,23 @@ namespace libtorrent
 		const std::vector<bool>& pieces() const
 		{ return m_have_pieces; }
 
+		int num_pieces() const { return m_num_pieces; }
+
 		// when we get a have- or bitfield- messages, this is called for every
 		// piece a peer has gained.
 		void peer_has(int index)
 		{
+			assert(m_picker.get());
 			assert(index >= 0 && index < (signed)m_have_pieces.size());
-			m_picker.inc_refcount(index);
+			m_picker->inc_refcount(index);
 		}
 
 		// when peer disconnects, this is called for every piece it had
 		void peer_lost(int index)
 		{
+			assert(m_picker.get());
 			assert(index >= 0 && index < (signed)m_have_pieces.size());
-			m_picker.dec_refcount(index);
+			m_picker->dec_refcount(index);
 		}
 
 		int block_size() const { return m_block_size; }
@@ -265,14 +284,20 @@ namespace libtorrent
 		}
 
 		bool is_seed() const
-		{ return m_num_pieces == m_torrent_file.num_pieces(); }
+		{
+			return valid_metadata()
+				&& m_num_pieces == m_torrent_file.num_pieces();
+		}
 
-		boost::filesystem::path save_path() const
-		{ return m_storage.save_path(); }
+		boost::filesystem::path save_path() const;
 		alert_manager& alerts() const;
-		piece_picker& picker() { return m_picker; }
+		piece_picker& picker()
+		{
+			assert(m_picker.get());
+			return *m_picker;
+		}
 		policy& get_policy() { return *m_policy; }
-		piece_manager& filesystem() { return m_storage; }
+		piece_manager& filesystem();
 		torrent_info const& torrent_file() const { return m_torrent_file; }
 
 		torrent_handle get_handle() const;
@@ -282,7 +307,7 @@ namespace libtorrent
 		logger* spawn_logger(const char* title);
 
 		virtual void debug_log(const std::string& line);
-		void check_invariant();
+		void check_invariant() const;
 #endif
 
 // --------------------------------------------
@@ -300,14 +325,16 @@ namespace libtorrent
 		void set_upload_limit(int limit);
 		void set_download_limit(int limit);
 
+		bool valid_metadata() const { return m_storage.get() != 0; }
+		std::vector<char> const& metadata() const { return m_metadata; }
+
+		bool received_metadata(char const* buf, int size, int offset, int total_size);
+
 	private:
 
 		void try_next_tracker();
 
-		// the size of a request block
-		// each piece is divided into these
-		// blocks when requested
-		int m_block_size;
+		torrent_info m_torrent_file;
 
 		// is set to true when the torrent has
 		// been aborted.
@@ -320,8 +347,15 @@ namespace libtorrent
 
 		void parse_response(const entry& e, std::vector<peer_entry>& peer_list);
 
-		torrent_info m_torrent_file;
-		piece_manager m_storage;
+		// the size of a request block
+		// each piece is divided into these
+		// blocks when requested
+		int m_block_size;
+
+		// if this pointer is 0, the peer_connection is in
+		// a state where the metadata hasn't been
+		// received yet.
+		std::auto_ptr<piece_manager> m_storage;
 
 		// the time of next tracker request
 		boost::posix_time::ptime m_next_request;
@@ -347,7 +381,7 @@ namespace libtorrent
 		// this torrent belongs to.
 		detail::session_impl& m_ses;
 
-		piece_picker m_picker;
+		std::auto_ptr<piece_picker> m_picker;
 
 		// this is an index into m_torrent_file.trackers()
 		int m_last_working_tracker;
@@ -399,6 +433,20 @@ namespace libtorrent
 		// can upload per second
 		int m_upload_bandwidth_limit;
 		int m_download_bandwidth_limit;
+
+		// this buffer is filled with the info-section of
+		// the metadata file while downloading it from
+		// peers, and while sending it.
+		std::vector<char> m_metadata;
+
+		// this is a bitfield of size 256, each bit represents
+		// a piece of the metadata. It is set to one if we
+		// have that piece. This vector may be empty
+		// (size 0) if we haven't received any metadata
+		// or if we already have all metadata
+		std::vector<bool> m_have_metadata;
+
+		boost::filesystem::path m_save_path;
 	};
 
 	inline boost::posix_time::ptime torrent::next_announce() const

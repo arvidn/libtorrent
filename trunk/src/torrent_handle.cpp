@@ -321,7 +321,9 @@ namespace libtorrent
 		torrent* t = m_ses->find_torrent(m_info_hash);
 		if (t == 0)
 			throw invalid_handle();
-			
+
+		if (!t->valid_metadata()) return entry();
+
 		t->filesystem().export_piece_map(piece_index);
 
 		entry ret(entry::dictionary_t);
@@ -400,6 +402,9 @@ namespace libtorrent
 		{
 			// we cannot save remote connection
 			// since we don't know their listen port
+			// TODO: iterate the peers in the policy
+			// instead, since peers may be remote
+			// but still connectable
 			if (!i->second->is_local()) continue;
 
 			address ip = i->second->get_socket()->sender();
@@ -552,13 +557,14 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		queue.clear();
-
 		if (m_ses == 0) throw invalid_handle();
 	
 		boost::mutex::scoped_lock l(m_ses->m_mutex);
 		torrent* t = m_ses->find_torrent(m_info_hash);
+
+		queue.clear();
 		if (t == 0) return;
+		if (!t->valid_metadata()) return;
 
 		const piece_picker& p = t->picker();
 

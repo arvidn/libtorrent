@@ -54,7 +54,7 @@ namespace libtorrent
 		{
 			if(*i == '+')
 			{
-				ret+=' ';
+				ret += ' ';
 			}
 			else if (*i != '%')
 			{
@@ -67,9 +67,9 @@ namespace libtorrent
 					throw std::runtime_error("invalid escaped string");
 
 				int high;
-				if(*i >= '0' && *i <= '9') high=*i - '0';
-				else if(*i >= 'A' && *i <= 'F') high=*i + 10 - 'A';
-				else if(*i >= 'a' && *i <= 'f') high=*i + 10 - 'a';
+				if(*i >= '0' && *i <= '9') high = *i - '0';
+				else if(*i >= 'A' && *i <= 'F') high = *i + 10 - 'A';
+				else if(*i >= 'a' && *i <= 'f') high = *i + 10 - 'a';
 				else throw std::runtime_error("invalid escaped string");
 
 				++i;
@@ -77,9 +77,9 @@ namespace libtorrent
 					throw std::runtime_error("invalid escaped string");
 
 				int low;
-				if(*i >= '0' && *i <= '9') low=*i - '0';
-				else if(*i >= 'A' && *i <= 'F') low=*i + 10 - 'A';
-				else if(*i >= 'a' && *i <= 'f') low=*i + 10 - 'a';
+				if(*i >= '0' && *i <= '9') low = *i - '0';
+				else if(*i >= 'A' && *i <= 'F') low = *i + 10 - 'A';
+				else if(*i >= 'a' && *i <= 'f') low = *i + 10 - 'a';
 				else throw std::runtime_error("invalid escaped string");
 
 				ret += char(high * 16 + low);

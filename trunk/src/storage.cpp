@@ -341,6 +341,7 @@ namespace libtorrent
 			if (file_offset + read_bytes > file_iter->size)
 				read_bytes = static_cast<int>(file_iter->size - file_offset);
 
+			// TODO: this assert will be hit if a file has size 0
 			assert(read_bytes > 0);
 
 //			in.read(buf + buf_pos, read_bytes);
@@ -784,6 +785,7 @@ namespace libtorrent
 		hasher small_digest;
 		small_digest.update(&piece_data[0], last_piece_size);
 		hasher large_digest(small_digest);
+		assert(piece_size - last_piece_size >= 0);
 		if (piece_size - last_piece_size > 0)
 		{
 			large_digest.update(

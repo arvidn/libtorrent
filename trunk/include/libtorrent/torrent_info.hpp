@@ -86,7 +86,7 @@ namespace libtorrent
 	public:
 
 		torrent_info(const entry& torrent_file);
-		torrent_info(int piece_size, const char* name);
+		torrent_info(int piece_size, const char* name, sha1_hash const& info_hash = sha1_hash(0));
 
 		entry create_torrent() const;
 		void set_comment(char const* str);
@@ -104,8 +104,10 @@ namespace libtorrent
 		reverse_file_iterator rbegin_files() const { return m_files.rbegin(); }
 		reverse_file_iterator rend_files() const { return m_files.rend(); }
 
-		int num_files() const { return (int)m_files.size(); }
-		const file_entry& file_at(int index) const { assert(index >= 0 && index < (int)m_files.size()); return m_files[index]; }
+		int num_files() const
+		{ assert(m_piece_length > 0); return (int)m_files.size(); }
+		const file_entry& file_at(int index) const
+		{ assert(index >= 0 && index < (int)m_files.size()); return m_files[index]; }
 
 		const std::vector<announce_entry>& trackers() const { return m_urls; }
 
@@ -114,12 +116,13 @@ namespace libtorrent
 		// the begining) and return the new index to the tracker.
 		int prioritize_tracker(int index);
 
-		size_type total_size() const { return m_total_size; }
-		size_type piece_length() const { return m_piece_length; }
-		int num_pieces() const { return (int)m_piece_hash.size(); }
+		size_type total_size() const { assert(m_piece_length > 0); return m_total_size; }
+		size_type piece_length() const { assert(m_piece_length > 0); return m_piece_length; }
+		int num_pieces() const { assert(m_piece_length > 0); return (int)m_piece_hash.size(); }
 		const sha1_hash& info_hash() const { return m_info_hash; }
-		const std::string& name() const { return m_name; }
+		const std::string& name() const { assert(m_piece_length > 0); return m_name; }
 		void print(std::ostream& os) const;
+		bool is_valid() const { return m_piece_length > 0; }
 
 		void convert_file_names();
 
@@ -138,6 +141,8 @@ namespace libtorrent
 		const std::string& comment() const
 		{ return m_comment; }
 
+		void parse_info_section(entry const& e);
+
 	private:
 
 		void read_torrent_info(const entry& libtorrent);
@@ -146,6 +151,8 @@ namespace libtorrent
 		std::vector<announce_entry> m_urls;
 
 		// the length of one piece
+		// if this is 0, the torrent_info is
+		// in an uninitialized state
 		size_type m_piece_length;
 
 		// the sha-1 hashes of each piece
