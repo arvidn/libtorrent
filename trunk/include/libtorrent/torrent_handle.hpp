@@ -153,7 +153,13 @@ namespace libtorrent
 
 		// TODO: there must be a way to get resume data and
 		// shut down the torrent in one atomic operation
-		entry write_resume_data();
+		entry write_resume_data() const;
+
+		// TODO: support pause/resume
+		// that will not delete the torrent or its
+		// policy. If those are deleted all share
+		// ratios to all clients are lost, we don't
+		// want that.
 
 		// forces this torrent to reannounce
 		// (make a rerequest from the tracker)

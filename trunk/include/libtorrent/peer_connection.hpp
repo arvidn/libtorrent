@@ -187,6 +187,8 @@ namespace libtorrent
 		bool verify_piece(const peer_request& p) const;
 
 		const stat& statistics() const { return m_statistics; }
+		void add_stat(size_type downloaded, size_type uploaded)
+		{ m_statistics.add_stat(downloaded, uploaded); }
 
 		// is called once every second by the main loop
 		void second_tick();

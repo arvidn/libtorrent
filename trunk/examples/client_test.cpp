@@ -401,7 +401,7 @@ int main(int argc, char* argv[])
 //						<< static_cast<const char*>((i->flags & peer_info::supports_extensions)?"e":"_")
 //						<< static_cast<const char*>((i->flags & peer_info::local_connection)?"l":"r")
 						<< "\n";
-/*
+
 					if (i->downloading_piece_index >= 0)
 					{
 						out.width(5);
@@ -413,9 +413,9 @@ int main(int argc, char* argv[])
 							, 50);
 						out << "\n";
 					}
-*/
+
 				}
-/*
+
 				out << "___________________________________\n";
 
 				i->get_download_queue(queue);
@@ -436,7 +436,7 @@ int main(int argc, char* argv[])
 				}
 
 				out << "___________________________________\n";
-*/
+
 			}
 
 			for (std::deque<std::string>::iterator i = events.begin();

@@ -124,6 +124,12 @@ namespace libtorrent
 		size_type total_protocol_upload() const { return m_total_upload_protocol; }
 		size_type total_protocol_download() const { return m_total_download_protocol; }
 
+		void add_stat(size_type downloaded, size_type uploaded)
+		{
+			m_total_download_payload += downloaded;
+			m_total_upload_payload += uploaded;
+		}
+
 	private:
 
 #ifndef NDEBUG
