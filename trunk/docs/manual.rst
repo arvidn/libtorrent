@@ -40,6 +40,7 @@ The current state includes the following features:
 	  of a resumed torrent. Saves the storage state, piece_picker state as well as all local
 	  peers in a separate fast-resume file.
 	* Supports the extension protocol `described by Nolar`__. See extensions_.
+	* Supports files > 2 gigabytes (currently only on windows)
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
 .. _Azureus: http://azureus.sourceforge.net
