@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	path::default_name_check(native);
+	boost::filesystem::path::default_name_check(native);
 
 	try
 	{
