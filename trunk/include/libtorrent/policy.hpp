@@ -170,7 +170,7 @@ namespace libtorrent
 		peer* find_unchoke_candidate();
 
 
-		void connect_peer(peer *);
+		bool connect_peer(peer *);
 
 
 		bool connect_one_peer();

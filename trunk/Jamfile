@@ -18,6 +18,7 @@ project torrent
 	<include>./include
 	<include>$(BOOST_ROOT)
 	<variant>release:<define>NDEBUG
+	<define>BOOST_ALL_NO_LIB
 
 # devstudio switches
 
