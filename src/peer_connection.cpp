@@ -865,11 +865,7 @@ namespace libtorrent
 				try
 				{
 					entry d = bdecode(m_recv_buffer.begin()+5, m_recv_buffer.end());
-					entry::dictionary_type::const_iterator i = d.dict().find("msg");
-					if (i == d.dict().end())
-						throw protocol_error("CHAT message did not contain any 'msg'");
-
-					const std::string& str = i->second.string();
+					const std::string& str = d["msg"].string();
 
 					if (m_torrent->alerts().should_post(alert::critical))
 					{

@@ -72,14 +72,6 @@ namespace
 
 	using namespace libtorrent;
 
-	float to_seconds(const boost::posix_time::time_duration& d)
-	{
-		return d.hours() * 60.f * 60.f
-			+ d.minutes() * 60.f
-			+ d.seconds()
-			+ d.fractional_seconds() / 1000.f;
-	}
-
 	// the case where ignore_peer is motivated is if two peers
 	// have only one piece that we don't have, and it's the
 	// same piece for both peers. Then they might get into an

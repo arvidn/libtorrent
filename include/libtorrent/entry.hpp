@@ -192,6 +192,32 @@ namespace libtorrent
 			return *reinterpret_cast<const dictionary_type*>(data);
 		}
 
+		entry& operator[](const char* key)
+		{
+			return dict()[key];
+		}
+
+		entry& operator[](const std::string& key)
+		{
+			return dict()[key.c_str()];
+		}
+
+		const entry& operator[](const char* key) const
+		{
+			dictionary_type::const_iterator i =
+				dict().find(key);
+			if (i == dict().end()) throw type_error("key not found");
+			return i->second;
+		}
+
+		const entry& operator[](const std::string& key) const
+		{
+			dictionary_type::const_iterator i =
+				dict().find(key);
+			if (i == dict().end()) throw type_error("key not found");
+			return i->second;
+		}
+
 		void print(std::ostream& os, int indent = 0) const;
 
 	private:

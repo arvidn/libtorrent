@@ -42,6 +42,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/gregorian/gregorian_types.hpp>
+#include <boost/optional.hpp>
+#include <boost/filesystem/path.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -53,21 +56,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/size_type.hpp"
 
 
-/*
- * This file declares the following functions:
- *
- *
- *
- *
- */
-
 namespace libtorrent
 {
 
 	struct file_entry
 	{
-		std::string path;
-		std::string filename;
+		boost::filesystem::path path;
 		size_type size;
 	};
 
@@ -94,8 +88,14 @@ namespace libtorrent
 		torrent_info(const entry& torrent_file);
 
 		torrent_info(
-			const std::vector<file_entry>& files
-			, int piece_size);
+			int piece_size
+			, const char* name
+			, const char* comment = 0);
+
+		entry create_torrent(const char* created_by = 0) const;
+		void set_hash(int index, const sha1_hash& h);
+		void add_tracker(std::string const& url, int tier = 0);
+		void add_file(boost::filesystem::path file, size_type size);
 
 		typedef std::vector<file_entry>::const_iterator file_iterator;
 		typedef std::vector<file_entry>::const_reverse_iterator reverse_file_iterator;
@@ -124,21 +124,7 @@ namespace libtorrent
 		void print(std::ostream& os) const;
 
 		void convert_file_names();
-
-		int piece_size(int index) const
-		{
-			assert(index >= 0 && index < num_pieces());
-			if (index == num_pieces()-1)
-			{
-				int s = static_cast<int>(total_size()
-					- (size_type)(num_pieces() - 1) * piece_length());
-				assert(s > 0);
-				assert(s <= piece_length());
-				return s;
-			}
-			else
-				return piece_length();
-		}
+		int piece_size(int index) const;
 
 		const sha1_hash& hash_for_piece(int index) const
 		{
@@ -147,8 +133,8 @@ namespace libtorrent
 			return m_piece_hash[index];
 		}
 
-		boost::posix_time::ptime creation_date() const
-		{ return m_creation_date; }
+		boost::optional<boost::posix_time::ptime>
+		creation_date() const;
 
 		const std::string& comment() const
 		{ return m_comment; }

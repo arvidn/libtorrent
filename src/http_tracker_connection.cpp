@@ -493,24 +493,18 @@ namespace libtorrent
 		{
 			// parse the response
 
-			entry::dictionary_type::const_iterator i = e.dict().find("failure reason");
-			if (i != e.dict().end())
+			try
 			{
-				throw std::runtime_error(i->second.string().c_str());
+				const entry& failure = e["failure reason"];
+				throw std::runtime_error(failure.string().c_str());
 			}
+			catch (const type_error&) {}
 
-			const entry::dictionary_type& msg = e.dict();
-			i = msg.find("interval");
-			if (i == msg.end()) throw std::runtime_error("invalid response from tracker (no interval)");
-
-			int interval = (int)i->second.integer();
-
-			i = msg.find("peers");
-			if (i == msg.end()) throw std::runtime_error("invalid response from tracker (no peers)");
+			int interval = e["interval"].integer();
 
 			peer_list.clear();
 
-			const entry::list_type& l = i->second.list();
+			const entry::list_type& l = e["peers"].list();
 			for(entry::list_type::const_iterator i = l.begin(); i != l.end(); ++i)
 			{
 				peer_entry p = extract_peer_info(*i);
