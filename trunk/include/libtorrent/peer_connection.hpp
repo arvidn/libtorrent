@@ -291,8 +291,8 @@ namespace libtorrent
 		peer_id m_peer_id;
 
 		// the pieces that we are sending and receiving
-		piece_file m_sending_piece;
-		piece_file m_receiving_piece;
+//		piece_file m_sending_piece;
+//		piece_file m_receiving_piece;
 
 		// other side says that it's interested in downloading
 		// from us.
