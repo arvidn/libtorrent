@@ -744,8 +744,16 @@ namespace libtorrent
 
 	bool torrent::move_storage(boost::filesystem::path const& save_path)
 	{
-		bool ret = m_storage->move_storage(save_path);
-		m_save_path = m_storage->save_path();
+		bool ret = true;
+		if (m_storage.get())
+		{
+			ret = m_storage->move_storage(save_path);
+			m_save_path = m_storage->save_path();
+		}
+		else
+		{
+			m_save_path = save_path;
+		}
 		return ret;
 	}
 

@@ -297,6 +297,15 @@ namespace libtorrent
 
 	peer_connection::~peer_connection()
 	{
+#ifndef NDEBUG
+		using namespace boost::posix_time;
+		if (m_logger)
+		{
+			(*m_logger) << to_simple_string(second_clock::universal_time())
+				<< " *** CONNECTION CLOSED\n";
+		}
+#endif
+
 		m_selector.remove(m_socket);
 		if (m_attached_to_torrent)
 		{
@@ -2346,7 +2355,7 @@ namespace libtorrent
 
 		boost::posix_time::time_duration d;
 		d = second_clock::universal_time() - m_last_sent;
-		if (d.seconds() < m_timeout / 2) return;
+		if (d.total_seconds() < m_timeout / 2) return;
 
 		// we must either send a keep-alive
 		// message or something else.
