@@ -464,6 +464,7 @@ namespace libtorrent
 					// if we have uploaded more than a piece for free, choke peer and
 					// wait until we catch up with our download.
 					c->send_choke();
+					--m_num_unchoked;
 				}
 			}
 			
