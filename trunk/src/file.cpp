@@ -34,8 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include <sstream>
 
-#ifdef WIN32
-
+#ifdef _WIN32
+// windows part
 #include <io.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -46,7 +46,7 @@ typedef int mode_t;
 #endif
 
 #else
-
+// unix part
 #define _FILE_OFFSET_BITS 64
 #include <unistd.h>
 #include <fcntl.h>
@@ -173,7 +173,7 @@ namespace libtorrent
 			assert(m_fd != -1);
 
 			int seekdir = (m == 1)?SEEK_SET:SEEK_END;
-#ifdef WIN32
+#ifdef _WIN32
 			size_type ret = _lseeki64(m_fd, offset, seekdir);
 #else
 			size_type ret = lseek(m_fd, offset, seekdir);
@@ -199,7 +199,7 @@ namespace libtorrent
 			assert(m_open_mode);
 			assert(m_fd != -1);
 
-#ifdef WIN32
+#ifdef _WIN32
 			return _telli64(m_fd);
 #else
 			return lseek(m_fd, 0, SEEK_CUR);
