@@ -246,11 +246,6 @@ namespace libtorrent
 				++m_num_pieces;
 				piece_list.push_back(i);
 			}
-			else if (m_have_piece[i])
-			{
-				--m_num_pieces;
-				m_torrent->peer_lost(i);
-			}
 		}
 
 		// shuffle the piece list
@@ -699,6 +694,7 @@ namespace libtorrent
 			}
 			else if (!have && m_have_piece[i])
 			{
+				// this should probably not be allowed
 				m_have_piece[i] = false;
 				--m_num_pieces;
 				m_torrent->peer_lost(i);
