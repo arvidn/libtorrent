@@ -957,7 +957,14 @@ write_resume_data()
 
 ``write_resume_data()`` generates fast-resume data and returns it as an entry_. This entry_
 is suitable for being bencoded. For more information about how fast-resume works, see `fast resume`_.
-It may throw invalid_handle_ if the torrent handle is invalid.
+
+There are three cases where this function will just return an empty ``entry``:
+
+	1. The torrent handle is invalid.
+	2. The torrent is checking (or is queued for checking) its storage, it will obviously
+	   not be ready to write resume data.
+	3. The torrent hasn't received valid metadata and was started without metadata
+	   (see libtorrent's `metadata from peers`_ extension)
 
 Note that by the time this function returns, the resume data may already be invalid if the torrent
 is still downloading! The recommended practice is to first pause the torrent, then generate the
@@ -1854,7 +1861,7 @@ metadata_received_alert
 -----------------------
 
 This alert is generated when the metadata has been completely received and the torrent
-can start downloading. It is not generated on torrents that are started with metadata, bu
+can start downloading. It is not generated on torrents that are started with metadata, but
 only those that needs to download it from peers (when utilizing the libtorrent extension).
 It is generated at severity level ``info``.
 
@@ -2174,7 +2181,7 @@ The file format is a bencoded dictionary containing the following fields:
 |                      | |             | piece.                                     | |
 |                      | +-------------+--------------------------------------------+ |
 |                      | | ``adler32`` | The adler32 checksum of the data in the    | |
-|                      | |             | blocks specified by ``bitmsk``.            | |
+|                      | |             | blocks specified by ``bitmask``.           | |
 |                      | |             |                                            | |
 |                      | +-------------+--------------------------------------------+ |
 |                      |                                                              |

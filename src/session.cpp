@@ -369,9 +369,7 @@ namespace libtorrent { namespace detail
 			{
 				m_tracker_manager.abort_all_requests();
 				for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i =
-						m_torrents.begin();
-					i != m_torrents.end();
-					++i)
+					m_torrents.begin(); i != m_torrents.end(); ++i)
 				{
 					i->second->abort();
 					tracker_request req = i->second->generate_tracker_request();
@@ -491,12 +489,6 @@ namespace libtorrent { namespace detail
 						boost::shared_ptr<peer_connection> c(
 							new peer_connection(*this, m_selector, s));
 
-/*						if (m_upload_rate != -1)
-						{
-							c->upload_bandwidth_quota()->given = 0;
-							c->update_send_quota_left();
-						}
-*/
 						m_connections.insert(std::make_pair(s, c));
 						m_selector.monitor_readability(s);
 						m_selector.monitor_errors(s);
@@ -669,8 +661,7 @@ namespace libtorrent { namespace detail
 					req.listen_port = m_listen_interface.port;
 					req.key = m_key;
 					m_tracker_manager.queue_request(
-						req
-						, boost::get_pointer(i->second));
+						req, i->second);
 				}
 
 				// tick() will set the used upload quota
@@ -701,6 +692,9 @@ namespace libtorrent { namespace detail
 				i->second->distribute_resources();
 			}
 
+			// TODO: there's a problem when removing torrents while
+			// they're waiting for tracker response. The requester-pointer
+			// will become invalid.
 			m_tracker_manager.tick();
 		}
 

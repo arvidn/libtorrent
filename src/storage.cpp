@@ -353,8 +353,6 @@ namespace libtorrent
 			// TODO: this assert will be hit if a file has size 0
 			assert(read_bytes > 0);
 
-//			in.read(buf + buf_pos, read_bytes);
-//			int actual_read = in.gcount();
 			size_type actual_read = in.read(buf + buf_pos, read_bytes);
 
 			if (read_bytes != actual_read)
@@ -471,15 +469,7 @@ namespace libtorrent
  				fs::path path = m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path);
 
 				file_offset = 0;
-/*
-				out.close();
-				out.clear();
 
-				if (fs::exists(path))
-					out.open(path, std::ios_base::binary | std::ios_base::in);
-				else
-					out.open(path, std::ios_base::binary);
-*/
 				out.open(path, file::out);
 			}
 		}
@@ -1233,7 +1223,7 @@ namespace libtorrent
 			{
 				boost::mutex::scoped_lock lock(mutex);
 				data.progress = (float)current_slot / m_info.num_pieces();
-				if (data.abort)
+				if (data.abort || data.torrent_ptr->is_aborted())
 					return;
 			}
 		}

@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/cstdint.hpp>
+#include <boost/weak_ptr.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -98,7 +99,7 @@ namespace libtorrent
 	{
 		friend class tracker_manager;
 		request_callback(): m_manager(0) {}
-		virtual ~request_callback();
+		virtual ~request_callback() {}
 		virtual void tracker_response(
 			std::vector<peer_entry>& peers
 			, int interval) = 0;
@@ -118,18 +119,19 @@ namespace libtorrent
 
 	struct tracker_connection: boost::noncopyable
 	{
-		tracker_connection(request_callback* r)
+		tracker_connection(boost::weak_ptr<request_callback> r)
 			: m_requester(r)
 		{}
 
 		virtual bool tick() = 0;
 		virtual bool send_finished() const = 0;
-		request_callback* requester() { return m_requester; }
+		bool has_requester() const { return !m_requester.expired(); }
+		request_callback& requester();
 		virtual ~tracker_connection() {}
 
-	private:
+	protected:
 
-		request_callback* m_requester;
+		boost::weak_ptr<request_callback> m_requester;
 
 	};
 
@@ -143,9 +145,10 @@ namespace libtorrent
 		void tick();
 		void queue_request(
 			tracker_request r
-			, request_callback* c = 0
+			, boost::weak_ptr<request_callback> c
+				= boost::weak_ptr<request_callback>()
 			, std::string const& password = "");
-		void abort_request(request_callback* c);
+//		void abort_request(request_callback* c);
 		void abort_all_requests();
 		bool send_finished() const;
 
@@ -156,10 +159,10 @@ namespace libtorrent
 		tracker_connections_t m_connections;
 		const http_settings& m_settings;
 	};
-
+/*
 	inline request_callback::~request_callback()
 	{ if (m_manager) m_manager->abort_request(this); }
-
+*/
 }
 
 #endif // TORRENT_TRACKER_MANAGER_HPP_INCLUDED

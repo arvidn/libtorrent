@@ -61,7 +61,7 @@ namespace libtorrent
 		tracker_request const& req
 		, std::string const& hostname
 		, unsigned short port
-		, request_callback* c
+		, boost::weak_ptr<request_callback> c
 		, const http_settings& stn)
 		: tracker_connection(c)
 		, m_request_time(boost::posix_time::second_clock::local_time())
@@ -74,7 +74,7 @@ namespace libtorrent
 		// TODO: this is a problem. DNS-lookup is blocking!
 		// (may block up to 5 seconds)
 		address a(hostname.c_str(), port);
-		if (c) c->m_tracker_address = a;
+		if (has_requester()) requester().m_tracker_address = a;
 		m_socket.reset(new socket(socket::udp, false));
 		m_socket->connect(a);
 
@@ -101,7 +101,7 @@ namespace libtorrent
 		{
 			if (m_attempts >= udp_connection_retries)
 			{
-				if (requester()) requester()->tracker_request_timed_out();
+				if (has_requester()) requester().tracker_request_timed_out();
 				return true;
 			}
 			send_udp_connect();
@@ -113,7 +113,7 @@ namespace libtorrent
 		{
 			if (m_attempts >= udp_announce_retries)
 			{
-				if (requester()) requester()->tracker_request_timed_out();
+				if (has_requester()) requester().tracker_request_timed_out();
 				return true;
 			}
 
@@ -134,8 +134,8 @@ namespace libtorrent
 		}
 		if (ret == udp_buffer_size)
 		{
-			if (requester())
-				requester()->tracker_request_error(-1, "tracker reply too big");
+			if (has_requester())
+				requester().tracker_request_error(-1, "tracker reply too big");
 			return true;
 		}
 
@@ -217,8 +217,8 @@ namespace libtorrent
 		if (len < 8)
 		{
 #ifndef NDEBUG
-			if (requester())
-				requester()->debug_log("udp_tracker_connection: "
+			if (has_requester())
+				requester().debug_log("udp_tracker_connection: "
 				"got a message with size < 8, ignoring");
 #endif
 			return false;
@@ -233,8 +233,8 @@ namespace libtorrent
 
 		if (action == error)
 		{
-			if (requester())
-				requester()->tracker_request_error(-1, std::string(buf, buf + len - 8));
+			if (has_requester())
+				requester().tracker_request_error(-1, std::string(buf, buf + len - 8));
 			return true;
 		}
 		if (action != announce) return false;
@@ -242,8 +242,8 @@ namespace libtorrent
 		if (len < 12)
 		{
 #ifndef NDEBUG
-			if (requester())
-				requester()->debug_log("udp_tracker_connection: "
+			if (has_requester())
+				requester().debug_log("udp_tracker_connection: "
 				"got a message with size < 12, ignoring");
 #endif
 			return false;
@@ -252,12 +252,12 @@ namespace libtorrent
 		int num_peers = (len - 12) / 6;
 		if ((len - 12) % 6 != 0)
 		{
-			if (requester())
-				requester()->tracker_request_error(-1, "invalid tracker response");
+			if (has_requester())
+				requester().tracker_request_error(-1, "invalid tracker response");
 			return true;
 		}
 
-		if (requester() == 0) return true;
+		if (!has_requester()) return true;
 
 		std::vector<peer_entry> peer_list;
 		for (int i = 0; i < num_peers; ++i)
@@ -274,7 +274,7 @@ namespace libtorrent
 			peer_list.push_back(e);
 		}
 
-		requester()->tracker_response(peer_list, interval);
+		requester().tracker_response(peer_list, interval);
 		return true;
 	}
 
@@ -286,8 +286,8 @@ namespace libtorrent
 		if (len < 8)
 		{
 #ifndef NDEBUG
-			if (requester())
-				requester()->debug_log("udp_tracker_connection: "
+			if (has_requester())
+				requester().debug_log("udp_tracker_connection: "
 				"got a message with size < 8, ignoring");
 #endif
 			return false;
@@ -298,16 +298,16 @@ namespace libtorrent
 
 		if (action == error)
 		{
-			if (requester())
-				requester()->tracker_request_error(-1, std::string(ptr, buf + len));
+			if (has_requester())
+				requester().tracker_request_error(-1, std::string(ptr, buf + len));
 			return true;
 		}
 		if (action != connect) return false;
 		if (m_transaction_id != transaction)
 		{
 #ifndef NDEBUG
-			if (requester())
-				requester()->debug_log("udp_tracker_connection: "
+			if (has_requester())
+				requester().debug_log("udp_tracker_connection: "
 				"got a message with incorrect transaction id, ignoring");
 #endif
 			return false;
@@ -316,8 +316,8 @@ namespace libtorrent
 		if (len < 16)
 		{
 #ifndef NDEBUG
-			if (requester())
-				requester()->debug_log("udp_tracker_connection: "
+			if (has_requester())
+				requester().debug_log("udp_tracker_connection: "
 				"got a connection message size < 16, ignoring");
 #endif
 			return false;

@@ -115,7 +115,10 @@ namespace libtorrent
 		// loop in session_impl will check for this state
 		// on all torrents once every second, and take
 		// the necessary actions then.
-		void abort() { m_abort = true; m_event = tracker_request::stopped; }
+		void abort()
+		{
+			m_abort = true; m_event = tracker_request::stopped;
+		}
 		bool is_aborted() const { return m_abort; }
 
 		// is called every second by session. This will

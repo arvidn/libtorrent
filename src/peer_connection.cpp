@@ -1951,10 +1951,6 @@ namespace libtorrent
 					// ok, now we have got enough of the handshake. Is this connection
 					// attached to a torrent?
 
-					// TODO: if the protocol is to be extended
-					// these 8 bytes would be used to describe the
-					// extensions available on the other side
-					// currently disabled
 #ifndef TORRENT_DISABLE_EXTENSIONS
 					if (m_recv_buffer[7] & 0x01)
 						m_supports_extensions = true;

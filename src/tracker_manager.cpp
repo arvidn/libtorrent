@@ -280,6 +280,13 @@ namespace libtorrent
 		return ret;
 	}
 
+	request_callback& tracker_connection::requester()
+	{
+		boost::shared_ptr<request_callback> r = m_requester.lock();
+		assert(r);
+		return *r;
+	}
+
 
 	void tracker_manager::tick()
 	{
@@ -293,17 +300,17 @@ namespace libtorrent
 			}
 			catch (const std::exception& e)
 			{
-				if (c->requester())
-					c->requester()->tracker_request_error(-1, e.what());
+				if (c->has_requester())
+					c->requester().tracker_request_error(-1, e.what());
 			}
-			if (c->requester()) c->requester()->m_manager = 0;
+			if (c->has_requester()) c->requester().m_manager = 0;
 			i = m_connections.erase(i);
 		}
 	}
 
 	void tracker_manager::queue_request(
 		tracker_request req
-		, request_callback* c
+		, boost::weak_ptr<request_callback> c
 		, std::string const& password)
 	{
 		assert(req.num_want >= 0);
@@ -387,14 +394,18 @@ namespace libtorrent
 
 			m_connections.push_back(con);
 
-			if (con->requester()) con->requester()->m_manager = this;
+			if (con->has_requester()) con->requester().m_manager = this;
 		}
 		catch (std::exception& e)
 		{
-			if (c) c->tracker_request_error(-1, e.what());
+			if (!c.expired())
+			{
+				boost::shared_ptr<request_callback> r = c.lock();
+				r->tracker_request_error(-1, e.what());
+			}
 		}
 	}
-
+/*
 	void tracker_manager::abort_request(request_callback* c)
 	{
 		assert(c != 0);
@@ -408,7 +419,7 @@ namespace libtorrent
 			}
 		}
 	}
-
+*/
 	void tracker_manager::abort_all_requests()
 	{
 		// removes all connections from m_connections
@@ -422,7 +433,7 @@ namespace libtorrent
 			i != m_connections.end();
 			++i)
 		{
-			if ((*i)->requester() == 0) keep_connections.push_back(*i);
+			if (!(*i)->has_requester()) keep_connections.push_back(*i);
 		}
 
 		std::swap(m_connections, keep_connections);

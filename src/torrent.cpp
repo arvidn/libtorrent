@@ -375,11 +375,8 @@ namespace libtorrent
 			}
 		}
 
-		// TODO: may report too much if two peers are downloading
-		// the same block
-		for (const_peer_iterator i = begin();
-			i != end();
-			++i)
+		std::map<piece_block, int> downloading_piece;
+		for (const_peer_iterator i = begin(); i != end(); ++i)
 		{
 			boost::optional<piece_block_progress> p
 				= i->second->downloading_piece();
@@ -387,13 +384,28 @@ namespace libtorrent
 			{
 				if (m_have_pieces[p->piece_index])
 					continue;
-				if (m_picker->is_finished(piece_block(p->piece_index, p->block_index)))
+
+				piece_block block(p->piece_index, p->block_index);
+				if (m_picker->is_finished(block))
 					continue;
 
-				total_done += p->bytes_downloaded;
+				std::map<piece_block, int>::iterator dp
+					= downloading_piece.find(block);
+				if (dp != downloading_piece.end())
+				{
+					if (dp->second < p->bytes_downloaded)
+						dp->second = p->bytes_downloaded;
+				}
+				else
+				{
+					downloading_piece[block] = p->bytes_downloaded;
+				}
 				assert(p->bytes_downloaded <= p->full_block_bytes);
 			}
 		}
+		for (std::map<piece_block, int>::iterator i = downloading_piece.begin();
+			i != downloading_piece.end(); ++i)
+			total_done += i->second;
 		return total_done;
 	}
 
@@ -945,8 +957,19 @@ namespace libtorrent
 				st.state = torrent_status::connecting_to_tracker;
 			else
 				st.state = torrent_status::downloading_metadata;
-			// TODO: implement progress
-			st.progress = 0.f;
+
+			if (m_have_metadata.empty())
+			{
+				st.progress = 0.f;
+			}
+			else
+			{
+				st.progress = std::count(
+					m_have_metadata.begin()
+					, m_have_metadata.end()
+					, true) / 256.f;
+			}
+
 			return st;
 		}
 
