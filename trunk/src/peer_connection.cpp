@@ -156,7 +156,7 @@ libtorrent::peer_connection::peer_connection(
 
 libtorrent::peer_connection::~peer_connection()
 {
-	m_receiving_piece.close();
+	m_selector.remove(m_socket);
 	if (m_torrent) m_torrent->remove_peer(this);
 }
 
@@ -942,7 +942,7 @@ void libtorrent::peer_connection::send_data()
 
 	// only add new piece-chunks if the send buffer is small enough
 	// otherwise there will be no end to how large it will be!
-	// TODO: make ths a bit better. Don't always read the entire
+	// TODO: make this a bit better. Don't always read the entire
 	// requested block. Have a limit of how much of the requested
 	// block is actually read at a time.
 	while (!m_requests.empty()
