@@ -31,21 +31,22 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/file.hpp"
-#include <sstream>
+#include "libtorrent/utf8.hpp"
 
+#include <sstream>
 #include <windows.h>
 
 namespace
 {
 	// must be used to not leak memory in case something would throw
-	class auto_LocalFree
+	class auto_localfree
 	{
 	public:
-		auto_LocalFree(HLOCAL memory)
+		auto_localfree(HLOCAL memory)
 			: m_memory(memory)
 		{
 		}
-		~auto_LocalFree()
+		~auto_localfree()
 		{
 			if (m_memory)
 				LocalFree(m_memory);
@@ -71,7 +72,7 @@ namespace
 				, 0, err, 0, (LPSTR)&buffer, 0, 0);
 		#endif
 
-		auto_LocalFree auto_free(buffer); // needed for exception safety
+		auto_localfree auto_free(buffer); // needed for exception safety
 		std::stringstream s;
 		s << (thrower ? thrower : "NULL") << ": " << (buffer ? buffer : "NULL");
 
