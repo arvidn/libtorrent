@@ -325,6 +325,8 @@ Or, if you have a raw char buffer::
 
 Now we just need to know how to retrieve information from the ``entry``.
 
+If ``bdecode()`` encounters invalid encoded data in the range given to it
+it will throw invalid_encoding_.
 
 
 
@@ -375,7 +377,7 @@ or a string. This is its synopsis::
 
 The ``integer()``, ``string()``, ``list()`` and ``dict()`` functions
 are accessorts that return the respecive type. If the ``entry`` object isn't of the
-type you request, the accessor will throw ``type_error`` (which derives from
+type you request, the accessor will throw type_error_ (which derives from
 ``std::runtime_error``). You can ask an ``entry`` for its type through the
 ``type()`` function.
 
@@ -551,7 +553,7 @@ was started.
 torrent. If you set this to -1, there will be no limit.
 
 ``write_resume_data()`` takes a non-const reference to a char-vector, that vector will be filled
-with the fast-resume data. For more information about hpw fast-resume works, see `fast resume`_.
+with the fast-resume data. For more information about how fast-resume works, see `fast resume`_.
 
 status()
 ~~~~~~~~
@@ -1211,8 +1213,8 @@ The format of the fast-resume data is as follows, given that all
 	4 bytes, the number of unfinished pieces
 	for each unfinished piece
 		4 bytes, index of the unfinished piece
-		blocks_per_piece / 32 bytes, the bitmask describing which
-		                             blocks are finished in this piece.
+		blocks_per_piece / 8 bytes, the bitmask describing which
+		                            blocks are finished in this piece.
 
 Feedback
 ========

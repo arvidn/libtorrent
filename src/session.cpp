@@ -880,6 +880,7 @@ namespace libtorrent
 		m_impl.m_alerts.set_severity(s);
 	}
 
+	// TODO: store resume data as an entry instead
 	void detail::piece_checker_data::parse_resume_data(
 		const std::vector<char>* rd
 		, const torrent_info& info)
@@ -920,7 +921,7 @@ namespace libtorrent
 
 		int num_unfinished = read_int(ptr);
 		if (num_unfinished < 0) return;
-		if (data.size() != 20 + (1 + num_slots + 2 + num_unfinished * (num_blocks_per_piece / 32 + 1)) * 4)
+		if (data.size() != 20 + (1 + num_slots + 2 + num_unfinished) * 4 + num_unfinished * (num_blocks_per_piece / 8))
 			return;
 
 		tmp_unfinished.reserve(num_unfinished);
@@ -935,12 +936,13 @@ namespace libtorrent
 				|| p.index >= info.num_pieces())
 				return;
 
-			for (int j = 0; j < num_blocks_per_piece / 32; ++j)
+			const int num_bitmask_bytes = std::max(num_blocks_per_piece / 8, 1);
+			for (int j = 0; j < num_bitmask_bytes; ++j)
 			{
-				unsigned int bits = read_int(ptr);
-				for (int k = 0; k < 32; ++k)
+				unsigned char bits = read_uchar(ptr);
+				for (int k = 0; k < 8; ++k)
 				{
-					const int bit = j * 32 + k;
+					const int bit = j * 8 + k;
 					if (bits & (1 << bit))
 						p.finished_blocks[bit] = true;
 				}

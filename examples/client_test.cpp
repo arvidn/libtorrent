@@ -319,7 +319,9 @@ int main(int argc, char* argv[])
 						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
 						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
 						<< static_cast<const char*>((i->flags & peer_info::remote_interested)?"i":"_")
-						<< static_cast<const char*>((i->flags & peer_info::remote_choked)?"c":"_") << "\n";
+						<< static_cast<const char*>((i->flags & peer_info::remote_choked)?"c":"_")
+						<< static_cast<const char*>((i->flags & peer_info::supports_extensions)?"e":"_")
+						<< "\n";
 
 					if (i->downloading_piece_index >= 0)
 					{

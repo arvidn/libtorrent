@@ -298,6 +298,9 @@ namespace libtorrent
 				- m_statistics.total_payload_upload();
 		}
 
+		bool support_extensions() const
+		{ return m_supports_extensions; }
+
 #ifndef NDEBUG
 		boost::shared_ptr<logger> m_logger;
 #endif
@@ -310,6 +313,7 @@ namespace libtorrent
 		void send_bitfield();
 		void send_have(int index);
 		void send_handshake();
+		void send_extensions();
 
 		// is used during handshake
 		enum state
@@ -330,6 +334,7 @@ namespace libtorrent
 
 		enum message_type
 		{
+	// standard messages
 			msg_choke = 0,
 			msg_unchoke,
 			msg_interested,
@@ -338,7 +343,11 @@ namespace libtorrent
 			msg_bitfield,
 			msg_request,
 			msg_piece,
-			msg_cancel
+			msg_cancel,
+	// extension protocol message
+			msg_extensions = 20,
+	// extended messages
+			msg_gzip_piece
 		};
 
 		std::size_t m_packet_size;
@@ -420,6 +429,11 @@ namespace libtorrent
 		// we have choked the upload to the peer
 		bool m_choked;
 
+		// this is set to true if the handshake from
+		// the peer indicated that it supports the
+		// extension protocol
+		bool m_supports_extensions;
+
 		// the pieces the other end have
 		std::vector<bool> m_have_piece;
 
@@ -477,6 +491,14 @@ namespace libtorrent
 		// this value. If it sinks below a threshold, its
 		// considered a bad peer and will be banned.
 		int m_trust_points;
+
+		enum extension_index
+		{
+			gzip_piece,
+			num_supported_extensions
+		};
+		static const char* extension_names[num_supported_extensions];
+		unsigned char m_extension_messages[num_supported_extensions];
 	};
 
 	// this is called each time this peer generates some
