@@ -310,7 +310,7 @@ namespace libtorrent
 		ret["info-hash"] = std::string((char*)info_hash.begin(), (char*)info_hash.end());
 
 		ret["slots"] = entry(entry::list_t);
-		entry::list_type& slots = ret.dict()["slots"].list();
+		entry::list_type& slots = ret["slots"].list();
 		std::copy(piece_index.begin(), piece_index.end(), std::back_inserter(slots));
 
 		const piece_picker& p = t->picker();
@@ -321,7 +321,7 @@ namespace libtorrent
 		// blocks per piece
 		int num_blocks_per_piece =
 			static_cast<int>(t->torrent_file().piece_length()) / t->block_size();
-		ret.dict()["blocks per piece"] = num_blocks_per_piece;
+		ret["blocks per piece"] = num_blocks_per_piece;
 
 		// num unfinished pieces
 		int num_unfinished = (int)q.size();
@@ -336,7 +336,7 @@ namespace libtorrent
 		{
 			if (i->finished_blocks.count() == 0) continue;
 
-			entry::dictionary_type piece_struct;
+			entry piece_struct(entry::dictionary_t);
 
 			// the unfinished piece's index
 			piece_struct["piece"] = i->index;
@@ -381,7 +381,7 @@ namespace libtorrent
 			if (!i->second->is_local()) continue;
 
 			address ip = i->second->get_socket()->sender();
-			entry::dictionary_type peer;
+			entry peer(entry::dictionary_t);
 			peer["ip"] = ip.as_string();
 			peer["port"] = ip.port;
 			peer_list.push_back(peer);

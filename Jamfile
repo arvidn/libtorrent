@@ -20,6 +20,9 @@ project torrent
 	<include>$(BOOST_ROOT)
 	<variant>release:<define>NDEBUG
 	<define>BOOST_ALL_NO_LIB
+	<library>/boost/thread//boost_thread
+	<library>/boost/filesystem//boost_filesystem/<link>static
+	<library>/boost/date_time//boost_date_time/<link>static
 
 # devstudio switches
 
@@ -30,6 +33,10 @@ project torrent
 # gcc switches
 
 	<toolset>gcc:<cxxflags>-Wno-unused-variable
+
+# darwin switches
+
+	<toolset>darwin:<cxxflags>-Wno-unused-variable
 
 	;
 
@@ -75,13 +82,11 @@ lib torrent
 	:
 	zlib//zlib
 	src/$(SOURCES)
-	/boost/thread//boost_thread/<link>shared
-	/boost/date_time//boost_date_time/<link>static
-	/boost/filesystem//boost_filesystem/<link>static
 	$(LIBS)
 	:
 	<threading>multi
 	<link>static
+	<variant>debug:<define>TORRENT_VERBOSE_LOGGING
 	: debug release
 	;
 

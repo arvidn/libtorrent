@@ -454,18 +454,17 @@ namespace libtorrent
 		return false;
 	}
 
-	peer_entry http_tracker_connection::extract_peer_info(const entry& e)
+	peer_entry http_tracker_connection::extract_peer_info(const entry& info)
 	{
 		peer_entry ret;
 
-		const entry::dictionary_type& info = e.dict();
-
 		// extract peer id (if any)
-		entry::dictionary_type::const_iterator i = info.find("peer id");
-		if (i != info.end())
+		entry const* i = info.find_key("peer id");
+		if (i != 0)
 		{
-			if (i->second.string().length() != 20) throw std::runtime_error("invalid response from tracker");
-			std::copy(i->second.string().begin(), i->second.string().end(), ret.id.begin());
+			if (i->string().length() != 20)
+				throw std::runtime_error("invalid response from tracker");
+			std::copy(i->string().begin(), i->string().end(), ret.id.begin());
 		}
 		else
 		{
@@ -474,14 +473,14 @@ namespace libtorrent
 		}
 
 		// extract ip
-		i = info.find("ip");
-		if (i == info.end()) throw std::runtime_error("invalid response from tracker");
-		ret.ip = i->second.string();
+		i = info.find_key("ip");
+		if (i == 0) throw std::runtime_error("invalid response from tracker");
+		ret.ip = i->string();
 
 		// extract port
-		i = info.find("port");
-		if (i == info.end()) throw std::runtime_error("invalid response from tracker");
-		ret.port = (unsigned short)i->second.integer();
+		i = info.find_key("port");
+		if (i == 0) throw std::runtime_error("invalid response from tracker");
+		ret.port = (unsigned short)i->integer();
 
 		return ret;
 	}
