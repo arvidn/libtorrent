@@ -1710,7 +1710,8 @@ namespace libtorrent
 
 		// if we have an infinite ratio, just say we have downloaded
 		// much more than we have uploaded. And we'll keep uploading.
-		if (ratio == 0.f) return std::numeric_limits<int>::max();
+		if (ratio == 0.f)
+			return std::numeric_limits<size_type>::max();
 
 		return m_free_upload
 			+ static_cast<size_type>(m_statistics.total_payload_download() * ratio)

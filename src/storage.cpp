@@ -254,7 +254,8 @@ namespace libtorrent
 		}
 
 		int ret = std::rename(old_path.c_str(), new_path.c_str()); 
-		if (ret == 0)
+		// This seems to return -1 even when it successfully moves the file
+//		if (ret == 0)
 		{
 			m_pimpl->save_path = save_path;
 			return true;
@@ -522,11 +523,9 @@ namespace libtorrent
 
 		bool move_storage(path save_path)
 		{
-			m_save_path = complete(save_path);
-
 			if (m_storage.move_storage(save_path))
 			{
-				m_save_path = save_path;
+				m_save_path = complete(save_path);
 				return true;
 			}
 			return false;

@@ -237,9 +237,10 @@ namespace
 		{
 			// if the peer is interested in us, it means it may
 			// want to trade it's surplus uploads for downloads itself
-			// (and we should consider it free). If the share diff is
+			// (and we should not consider it free). If the share diff is
 			// negative, there's no free download to get from this peer.
 			size_type diff = i->second->share_diff();
+			assert(diff < std::numeric_limits<size_type>::max());
 			if (i->second->is_peer_interested() || diff <= 0)
 				continue;
 
@@ -265,7 +266,9 @@ namespace
 		size_type total_diff = 0;
 		for (torrent::peer_iterator i = start; i != end; ++i)
 		{
-			total_diff += i->second->share_diff();
+			size_type d = i->second->share_diff();
+			assert(d < std::numeric_limits<size_type>::max());
+			total_diff += d;
 			if (!i->second->is_peer_interested() || i->second->share_diff() >= 0) continue;
 			++num_peers;
 		}
@@ -481,14 +484,18 @@ namespace libtorrent
 		// first choice candidate.
 		// it is a candidate we owe nothing to and which has been unchoked
 		// the longest.
+		using namespace boost::posix_time;
+		using namespace boost::gregorian;
+
 		peer* candidate = 0;
-		boost::posix_time::ptime last_unchoke // not valid when candidate==0
-			= boost::posix_time::ptime(boost::posix_time::ptime(boost::gregorian::date(1970, boost::gregorian::Jan, 1)));
+
+		// not valid when candidate == 0
+		ptime last_unchoke = ptime(date(1970, Jan, 1));
 
 		// second choice candidate.
 		// if there is no first choice candidate, this candidate will be chosen.
 		// it is the candidate that we owe the least to.
-		peer* secondCandidate = 0;
+		peer* second_candidate = 0;
 		size_type lowest_share_diff = 0; // not valid when secondCandidate==0
 
 		for (std::vector<peer>::iterator i = m_peers.begin();
@@ -502,14 +509,14 @@ namespace libtorrent
 
 			if (c->is_choked()) continue;
 
-			size_type share_diff=c->share_diff();
+			size_type share_diff = c->share_diff();
 
 			// select as second candidate the one that we owe the least
 			// to
-			if(!secondCandidate || share_diff <= lowest_share_diff)
+			if(!second_candidate || share_diff <= lowest_share_diff)
 			{
 				lowest_share_diff = share_diff;
-				secondCandidate=&(*i);
+				second_candidate = &(*i);
 			}
 			
             // select as first candidate the one that we don't owe anything to
@@ -521,8 +528,8 @@ namespace libtorrent
 				candidate = &(*i);
 			}
 		}
-		if(candidate) return candidate;
-		if(secondCandidate) return secondCandidate;
+		if (candidate) return candidate;
+		if (second_candidate) return second_candidate;
 		assert(false);
 		return 0;
 	}
@@ -700,22 +707,25 @@ namespace libtorrent
 		// ----------------------------
 		else
 		{
-			// choke peers that have leeched too much without giving anything back
-			for (std::vector<peer>::iterator i = m_peers.begin();
-				i != m_peers.end();
-				++i)
+			if (m_torrent->ratio() != 0)
 			{
-				peer_connection* c = i->connection;
-				if (c == 0) continue;
-
-				size_type diff = i->connection->share_diff();
-				if (diff < -free_upload_amount
-					&& !c->is_choked())
+				// choke peers that have leeched too much without giving anything back
+				for (std::vector<peer>::iterator i = m_peers.begin();
+					i != m_peers.end();
+					++i)
 				{
-					// if we have uploaded more than a piece for free, choke peer and
-					// wait until we catch up with our download.
-					c->send_choke();
-					--m_num_unchoked;
+					peer_connection* c = i->connection;
+					if (c == 0) continue;
+
+					size_type diff = i->connection->share_diff();
+					if (diff < -free_upload_amount
+						&& !c->is_choked())
+					{
+						// if we have uploaded more than a piece for free, choke peer and
+						// wait until we catch up with our download.
+						c->send_choke();
+						--m_num_unchoked;
+					}
 				}
 			}
 			
@@ -969,7 +979,7 @@ namespace libtorrent
 	{
 		if (m_torrent->ratio() != 0.f)
 		{
-			assert(c.share_diff() < std::numeric_limits<int>::max());
+			assert(c.share_diff() < std::numeric_limits<size_type>::max());
 			size_type diff = c.share_diff();
 			if (diff > 0 && c.is_seed())
 			{
@@ -1076,7 +1086,8 @@ namespace libtorrent
 		// because it isn't necessary.
 		if (m_torrent->ratio() != 0.f)
 		{
-			assert(i->connection->share_diff() < std::numeric_limits<int>::max());
+			assert(i->connection->associated_torrent() == m_torrent);
+			assert(i->connection->share_diff() < std::numeric_limits<size_type>::max());
 			m_available_free_upload += i->connection->share_diff();
 		}
 		i->prev_amount_download += c.statistics().total_payload_download();

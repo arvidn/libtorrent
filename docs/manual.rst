@@ -2193,7 +2193,7 @@ The file format is a bencoded dictionary containing the following fields:
 |                      | greater than 4 megabytes, the block size will increase.      |
 |                      |                                                              |
 +----------------------+--------------------------------------------------------------+
-| ``slots``            | list of integers. The list mappes slots ti piece indices. It |
+| ``slots``            | list of integers. The list mappes slots to piece indices. It |
 |                      | tells which piece is on which slot. If piece index is -2 it  |
 |                      | means it is free, that there's no piece there. If it is -1,  |
 |                      | means the slot isn't allocated on disk yet. The pieces have  |

@@ -23,5 +23,5 @@ exe make_torrent
 	;
 
 
-stage bin : dump_torrent make_torrent simple_client client_test ;
+stage . : dump_torrent make_torrent simple_client client_test ;
 

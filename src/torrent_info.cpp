@@ -293,20 +293,14 @@ namespace libtorrent
 		parse_info_section(info);
 	}
 
-	boost::optional<boost::posix_time::ptime>
+	boost::optional<ptime>
 	torrent_info::creation_date() const
 	{
-		if (m_creation_date !=
-			boost::posix_time::ptime(
-			boost::gregorian::date(
-				boost::date_time::not_a_date_time)))
+		if (m_creation_date != ptime(date(not_a_date_time)))
 		{
-			return boost::optional<boost::posix_time::ptime>(m_creation_date);
+			return boost::optional<ptime>(m_creation_date);
 		}
-
-		// if there's no timestamp in the torrent file, this will return a date of january 1:st 1970.
-		boost::optional<boost::posix_time::ptime> pt(boost::gregorian::date(1970,1,1));
-		return pt;
+		return boost::optional<ptime>();
 	}
 
 	void torrent_info::add_tracker(std::string const& url, int tier)
@@ -515,8 +509,8 @@ namespace libtorrent
 		}
 		if (!m_comment.empty())
 			os << "comment: " << m_comment << "\n";
-		if (m_creation_date != boost::posix_time::ptime(boost::gregorian::date(1970, boost::gregorian::Jan, 1)))
-			os << "creation date: " << boost::posix_time::to_simple_string(m_creation_date) << "\n";
+		if (m_creation_date != ptime(date(not_a_date_time)))
+			os << "creation date: " << to_simple_string(m_creation_date) << "\n";
 		os << "number of pieces: " << num_pieces() << "\n";
 		os << "piece length: " << piece_length() << "\n";
 		os << "files:\n";

@@ -97,23 +97,20 @@ namespace libtorrent
 		// section 2.3
 		// some trackers seems to require that ' is escaped
 //		static const char unreserved_chars[] = "-_.!~*'()";
-		static const char unreserved_chars[] = "-_.!~*()";
+		static const char unreserved_chars[] = "-_.!~*()"
+			"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+			"0123456789";
 
 		std::stringstream ret;
 		ret << std::hex  << std::setfill('0');
 		for (int i = 0; i < len; ++i)
 		{
-			if (std::isalnum(static_cast<unsigned char>(*str))
-				|| std::count(
+			if (std::count(
 					unreserved_chars
 					, unreserved_chars+sizeof(unreserved_chars)-1
 					, *str))
 			{
 				ret << *str;
-			}
-			else if (*str == ' ')
-			{
-				ret << '+';
 			}
 			else
 			{

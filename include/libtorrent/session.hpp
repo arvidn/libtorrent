@@ -145,8 +145,8 @@ namespace libtorrent
 			mutable boost::mutex m_mutex;
 			boost::condition m_cond;
 
-			// a list of all torrents that are currently checking
-			// their files (in separate threads)
+			// a list of all torrents that are currently in queue
+			// or checking their files
 			std::deque<piece_checker_data> m_torrents;
 
 			bool m_abort;
@@ -260,7 +260,6 @@ namespace libtorrent
 			boost::shared_ptr<logger> m_logger;
 #endif
 		};
-
 	}
 
 	struct http_settings;
@@ -295,6 +294,8 @@ namespace libtorrent
 			, const char* listen_interface = 0);
 
 		~session();
+
+		std::vector<torrent_handle> get_torrents();
 
 		// all torrent_handles must be destructed before the session is destructed!
 		torrent_handle add_torrent(
