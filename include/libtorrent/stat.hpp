@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <boost/cstdint.hpp>
 
+#include "libtorrent/size_type.hpp"
+
 namespace libtorrent
 {
 
@@ -45,9 +47,6 @@ namespace libtorrent
 	{
 	enum { history = 10 };
 	public:
-
-		typedef boost::int64_t size_type;
-
 
 		stat()
 			: m_downloaded_payload(0)

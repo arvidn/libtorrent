@@ -932,7 +932,7 @@ namespace libtorrent
 
 			// verify info_hash
 			const std::string &hash = rd.dict()["info-hash"].string();
-			std::string real_hash(info.info_hash().begin(), info.info_hash().end());
+			std::string real_hash((char*)info.info_hash().begin(), (char*)info.info_hash().end());
 			if (hash != real_hash)
 				return;
 
@@ -1013,12 +1013,23 @@ namespace libtorrent
 
 			std::vector<size_type> file_sizes;
 			entry::list_type& l = rd.dict()["file sizes"].list();
+
+#if defined(_MSC_VER) && _MSC_VER < 1300
+			for (entry::list_type::iterator i = l.begin();
+				i != l.end();
+				++i)
+			{
+				file_sizes.push_back(i->integer());
+			}
+#else
+//			typedef entry::integer_type (entry::*mem_fun_type)() const;
+
 			std::transform(
 				l.begin()
 				, l.end()
 				, std::back_inserter(file_sizes)
 				, boost::bind(&entry::integer, _1));
-
+#endif
 			if (!match_filesizes(info, save_path, file_sizes))
 				return;
 

@@ -197,7 +197,7 @@ namespace libtorrent
 		m_pimpl.swap(other.m_pimpl);
 	}
 
-	storage::size_type storage::read(
+	size_type storage::read(
 		char* buf
 	  , int slot
 	  , size_type offset
@@ -396,7 +396,6 @@ namespace libtorrent
 	class piece_manager::impl
 	{
 	public:
-		typedef boost::int64_t size_type;
 
 		impl(
 			const torrent_info& info
@@ -555,22 +554,22 @@ namespace libtorrent
 	}
 
 
-	piece_manager::size_type piece_manager::impl::read(
+	size_type piece_manager::impl::read(
 		char* buf
 	  , int piece_index
-	  , piece_manager::size_type offset
-	  , piece_manager::size_type size)
+	  , size_type offset
+	  , size_type size)
 	{
 		assert(m_piece_to_slot[piece_index] >= 0);
 		int slot = m_piece_to_slot[piece_index];
 		return m_storage.read(buf, slot, offset, size);
 	}
 
-	piece_manager::size_type piece_manager::read(
+	size_type piece_manager::read(
 		char* buf
 	  , int piece_index
-	  , piece_manager::size_type offset
-	  , piece_manager::size_type size)
+	  , size_type offset
+	  , size_type size)
 	{
 		return m_pimpl->read(buf, piece_index, offset, size);
 	}
@@ -578,8 +577,8 @@ namespace libtorrent
 	void piece_manager::impl::write(
 		const char* buf
 	  , int piece_index
-	  , piece_manager::size_type offset
-	  , piece_manager::size_type size)
+	  , size_type offset
+	  , size_type size)
 	{
 		int slot = slot_for_piece(piece_index);
 		m_storage.write(buf, slot, offset, size);
@@ -588,8 +587,8 @@ namespace libtorrent
 	void piece_manager::write(
 		const char* buf
 	  , int piece_index
-	  , piece_manager::size_type offset
-	  , piece_manager::size_type size)
+	  , size_type offset
+	  , size_type size)
 	{
 		m_pimpl->write(buf, piece_index, offset, size);
 	}

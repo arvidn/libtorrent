@@ -52,8 +52,6 @@ namespace libtorrent
 
 	class session;
 
-	typedef boost::int64_t size_type;
-
 	std::vector<size_type> get_filesizes(
 		const torrent_info& t
 		, const boost::filesystem::path& p);
@@ -80,8 +78,6 @@ namespace libtorrent
 
 		void swap(storage&);
 
-		typedef boost::int64_t size_type;
-
 		size_type read(char* buf, int slot, size_type offset, size_type size);
 		void write(const char* buf, int slot, size_type offset, size_type size);
 
@@ -93,7 +89,6 @@ namespace libtorrent
 	class piece_manager : boost::noncopyable
 	{
 	public:
-		typedef boost::int64_t size_type;
 
 		piece_manager(
 			const torrent_info& info

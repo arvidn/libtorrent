@@ -345,16 +345,16 @@ namespace libtorrent
 	}
 */
 
-	torrent::size_type torrent::bytes_left() const
+	size_type torrent::bytes_left() const
 	{
 		return m_torrent_file.total_size() - bytes_done();
 	}
 
-	torrent::size_type torrent::bytes_done() const
+	size_type torrent::bytes_done() const
 	{
 		const int last_piece = m_torrent_file.num_pieces()-1;
 
-		torrent::size_type total_done
+		size_type total_done
 			= m_num_pieces * m_torrent_file.piece_length();
 
 		// if we have the last piece, we have to correct
