@@ -186,7 +186,7 @@ namespace libtorrent
 		, sha1_hash const& info_hash
 		, boost::filesystem::path const& save_path
 		, address const& net_interface)
-		: m_torrent_file(0, 0, info_hash)
+		: m_torrent_file(0, "", info_hash)
 		, m_abort(false)
 		, m_paused(false)
 		, m_just_paused(false)
