@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/policy.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/url_handler.hpp"
+#include "libtorrent/stat.hpp"
 
 namespace libtorrent
 {
@@ -81,7 +82,12 @@ namespace libtorrent
 	{
 	public:
 
-		torrent(detail::session_impl* ses, const torrent_info& torrent_file);
+		typedef entry::integer_type size_type;
+
+		torrent(
+			detail::session_impl& ses
+			, const torrent_info& torrent_file
+			, const boost::filesystem::path& save_path);
 		~torrent() {}
 
 		void abort() { m_abort = true; m_event = event_stopped; }
@@ -101,34 +107,11 @@ namespace libtorrent
 
 		void print(std::ostream& os) const;
 
-		void allocate_files(detail::piece_checker_data* data,
-			boost::mutex& mutex,
-			const boost::filesystem::path& save_path);
+		void check_files(detail::piece_checker_data& data,
+			boost::mutex& mutex);
 
-		void uploaded_bytes(int num_bytes) { assert(num_bytes > 0); m_bytes_uploaded += num_bytes; }
-		void downloaded_bytes(int num_bytes) { assert(num_bytes > 0); m_bytes_downloaded += num_bytes; }
-
-		int bytes_downloaded() const { return m_bytes_downloaded; }
-		int bytes_uploaded() const { return m_bytes_uploaded; }
-		int bytes_left() const
-		{
-			const std::vector<bool>& p = m_storage.pieces();
-			int num_pieces = std::accumulate(p.begin(), p.end(), 0);
-			int total_blocks
-				= (m_torrent_file.total_size()+m_block_size-1)/m_block_size;
-			int blocks_per_piece
-				= m_torrent_file.piece_length() / m_block_size;
-			int unverified_blocks = m_picker.unverified_blocks();
-			int blocks_we_have = num_pieces * blocks_per_piece;
-			const int last_piece = m_torrent_file.num_pieces()-1;
-			if (p[last_piece])
-			{
-				blocks_we_have += m_picker.blocks_in_piece(last_piece)
-					- blocks_per_piece;
-			}
-			return m_torrent_file.total_size()
-				- (blocks_we_have + unverified_blocks) * m_block_size;
-		}
+		stat statistics() const { return m_stat; }
+		size_type bytes_left() const;
 
 		torrent_status status() const;
 
@@ -140,8 +123,8 @@ namespace libtorrent
 		{ return m_torrent_file; }
 
 		policy& get_policy() { return *m_policy; }
-		storage* filesystem() { return &m_storage; }
 
+		piece_manager& filesystem() { return m_storage; }
 
 // --------------------------------------------
 		// PEER MANAGEMENT
@@ -207,7 +190,8 @@ namespace libtorrent
 		// PIECE MANAGEMENT
 
 		// returns true if we have downloaded the given piece
-		bool have_piece(unsigned int index) const { return m_storage.have_piece(index); }
+		bool have_piece(unsigned int index) const
+		{ return m_have_pieces[index]; }
 
 		// when we get a have- or bitfield- messages, this is called for every
 		// piece a peer has gained.
@@ -234,10 +218,25 @@ namespace libtorrent
 
 		piece_picker& picker() { return m_picker; }
 
+
+		bool verify_piece(int piece_index);
+
 		// this is called from the peer_connection
 		// each time a piece has failed the hash
 		// test
 		void piece_failed(int index);
+
+		float priority() const
+		{ return m_priority; }
+
+		void set_priority(float p)
+		{
+			assert(p >= 0.f && p <= 0.f);
+			m_priority = p;
+		}
+
+		boost::filesystem::path save_path() const
+		{ return m_storage.save_path(); }
 
 		// DEBUG
 #ifndef NDEBUG
@@ -273,11 +272,6 @@ namespace libtorrent
 
 		void parse_response(const entry& e, std::vector<peer>& peer_list);
 
-		// TODO: Replace with stat-object
-		// total amount of bytes uploaded, downloaded
-		entry::integer_type m_bytes_uploaded;
-		entry::integer_type m_bytes_downloaded;
-
 		torrent_info m_torrent_file;
 
 		piece_manager m_storage;
@@ -294,11 +288,17 @@ namespace libtorrent
 
 		std::vector<peer_connection*> m_connections;
 
+		// this is the upload and download statistics for the whole torrent.
+		// it's updated from all its peers once every second.
+		libtorrent::stat m_stat;
+
 		// -----------------------------
 
 		boost::shared_ptr<policy> m_policy;
 
-		detail::session_impl* m_ses;
+		// a back reference to the session
+		// this torrent belongs to.
+		detail::session_impl& m_ses;
 
 		piece_picker m_picker;
 
@@ -310,6 +310,19 @@ namespace libtorrent
 		// second, and when it reaches 10, the policy::pulse()
 		// is called and the time scaler is reset to 0.
 		int m_time_scaler;
+
+		// this is the priority of this torrent. It is used
+		// to weight the assigned upload bandwidth between peers
+		// it should be within the range [0, 1]
+		float m_priority;
+
+		// the bitmask that says which pieces we have
+		std::vector<bool> m_have_pieces;
+
+		// the number of pieces we have. The same as
+		// std::accumulate(m_have_pieces.begin(),
+		// m_have_pieces.end(), 0)
+		int m_num_pieces;
 	};
 
 }

@@ -423,12 +423,24 @@ Its declaration looks like this::
 		void get_peer_info(std::vector<peer_info>& v);
 		const torrent_info& get_torrent_info();
 		bool is_valid();
+
+		boost::filsystem::path save_path() const;
+
+		sha1_hash info_hash() const;
+
+		bool operator==(const torrent_handle&) const;
+		bool operator!=(const torrent_handle&) const;
+		bool operator<(const torrent_handle&) const;
 	};
 
 The default constructor will initialize the handle to an invalid state. Which means you cannot
 perform any operation on it, unless you first assign it a valid handle. If you try to perform
 any operation they will simply return.
 
+``save_path()`` returns the path that were given to ``add_torrent()`` when this torrent
+was started.
+
+``info_hash()`` returns the info hash for the torrent.
 
 status()
 ~~~~~~~~
@@ -453,6 +465,8 @@ It contains the following fields::
 		boost::posix_time::time_duration next_announce;
 		std::size_t total_download;
 		std::size_t total_upload;
+		float download_rate;
+		float upload_rate;
 		std::vector<bool> pieces;
 		std::size_t total_done;
 	};
@@ -485,6 +499,10 @@ uploaded to all peers, accumulated, *this session* only.
 
 ``pieces`` is the bitmask that representw which pieces we have (set to true) and
 the pieces we don't have.
+
+``download_rate`` and ``upload_rate`` are the total rates for all peers for this
+torrent. These will usually have better precision than summing the rates from
+all peers.
 
 ``total_done`` is the total number of bytes of the file(s) that we have.
 
@@ -579,7 +597,8 @@ in the torrent. Each boolean tells you if the peer has that piece (if it's set t
 or if the peer miss that piece (set to false).
 
 ``upload_limit`` is the number of bytes per second we are allowed to send to this
-peer every second. It may be -1 if there's no limit.
+peer every second. It may be -1 if there's no limit. The upload limits of all peers
+should sum up to the upload limit set by ``session::set_upload_limit``.
 
 
 get_torrent_info()
@@ -657,6 +676,21 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int tracker_maximum_response_length;
 	};
 
+``proxy_ip`` may be a hostname or ip to a http proxy to use. If this is
+an empty string, no http proxy will be used.
+
+``proxy_port`` is the port on which the http proxy listens. If ``proxy_ip``
+is empty, this will be ignored.
+
+``proxy_login`` should be the login username for the http proxy, if this
+empty, the http proxy will be trid to be used without authentication.
+
+``proxy_password`` the password string for the http proxy.
+
+``user_agent`` this is the client identification to the tracker. It will
+be followed by the string "(libtorrent)" to identify that this library
+is being used. This should be set to your client's name and version number.
+
 ``tracker_timeout`` is the number of seconds the tracker connection will
 wait until it considers the tracker to have timed-out. Default value is 10
 seconds.
@@ -669,7 +703,6 @@ expand to 2 megs, it will be interrupted before the entire response has been
 uncompressed (given your limit is lower than 2 megs). Default limit is
 1 megabyte.
 
-TODO: finish document http_settings
 
 big_number
 ----------

@@ -47,8 +47,12 @@ namespace libtorrent
 		stat()
 			: m_downloaded(0)
 			, m_uploaded(0)
+			, m_downloaded_protocol(0)
+			, m_uploaded_protocol(0)
 			, m_total_download(0)
 			, m_total_upload(0)
+			, m_total_download_protocol(0)
+			, m_total_upload_protocol(0)
 			, m_peak_downloaded_per_second(0)
 			, m_peak_uploaded_per_second(0)
 			, m_mean_download_per_second(0)
@@ -58,18 +62,44 @@ namespace libtorrent
 			std::fill(m_upload_per_second_history, m_upload_per_second_history+history, 0);
 		}
 
+		void operator+=(const stat& s)
+		{
+			m_downloaded += s.m_downloaded;
+			m_total_download += s.m_downloaded;
+			m_downloaded_protocol += s.m_downloaded_protocol;
+			m_total_download_protocol += s.m_downloaded_protocol;
+			
+			m_uploaded += s.m_uploaded;
+			m_total_upload += s.m_uploaded;
+			m_uploaded_protocol += s.m_uploaded_protocol;
+			m_total_upload_protocol += s.m_uploaded_protocol;
+		}
+
 		// TODO: these function should take two arguments
 		// to be able to count both total data sent and also
 		// count only the actual payload (not counting the
 		// protocol chatter)
-		void received_bytes(int num_bytes)
-		{ m_downloaded += num_bytes; m_total_download += num_bytes; }
-		void sent_bytes(int num_bytes)
-		{ m_uploaded += num_bytes; m_total_upload += num_bytes; }
+		void received_bytes(int bytes_payload, int bytes_protocol)
+		{
+			m_downloaded += bytes_payload;
+			m_total_download += bytes_payload;
+
+			m_downloaded_protocol += bytes_protocol;
+			m_total_download_protocol += bytes_protocol;
+		}
+		void sent_bytes(int bytes_payload, int bytes_protocol)
+		{
+			m_uploaded += bytes_payload;
+			m_total_upload += bytes_payload;
+
+			m_uploaded_protocol += bytes_protocol;
+			m_total_upload_protocol += bytes_protocol;
+		}
 
 		// should be called once every second
 		void second_tick();
 
+		// only counts the payload data!
 		float upload_rate() const { return m_mean_upload_per_second; }
 		float download_rate() const { return m_mean_download_per_second; }
 
@@ -81,18 +111,33 @@ namespace libtorrent
 
 	private:
 
+
+
 		// history of download/upload speeds a few seconds back
 		unsigned int m_download_per_second_history[history];
 		unsigned int m_upload_per_second_history[history];
 
 		// the accumulators we are adding the downloads/upploads
-		// to this second
+		// to this second. This only counts the actual payload
+		// and ignores the bytes sent as protocol chatter.
 		unsigned int m_downloaded;
 		unsigned int m_uploaded;
 
+		// the accumulators we are adding the downloads/upploads
+		// to this second. This only counts the protocol
+		// chatter and ignores the actual payload
+		unsigned int m_downloaded_protocol;
+		unsigned int m_uploaded_protocol;
+
 		// total download/upload counters
+		// only counting payload data
 		unsigned int m_total_download;
 		unsigned int m_total_upload;
+
+		// total download/upload counters
+		// only counting protocol chatter
+		unsigned int m_total_download_protocol;
+		unsigned int m_total_upload_protocol;
 
 		// peak mean download/upload rates
 		unsigned int m_peak_downloaded_per_second;

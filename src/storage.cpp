@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/peer_id.hpp"
 
 #if defined(_MSC_VER)
 #define for if (false) {} else for
@@ -479,8 +480,8 @@ namespace {
 */
 	struct lazy_hash
 	{
-		mutable sha1_hash digest;
-		mutable hasher h;
+		mutable libtorrent::sha1_hash digest;
+		mutable libtorrent::hasher h;
 		mutable const char* data;
 		std::size_t size;
 
@@ -489,7 +490,7 @@ namespace {
 			, size(size_)
 		{}
 
-		const sha1_hash& get() const
+		const libtorrent::sha1_hash& get() const
 		{
 			if (data)
 			{
@@ -1286,7 +1287,9 @@ namespace libtorrent {
 	storage::storage(const torrent_info& info, const fs::path& path)
 		: m_info(info)
 		, m_save_path(path)
-	{}
+	{
+		assert(info.begin_files() != info.end_files());
+	}
 
 	storage::size_type storage::read(
 		char* buf
@@ -1294,13 +1297,13 @@ namespace libtorrent {
 	  , size_type offset
   	  , size_type size)
 	{
-		size_type start = slot * m_info->piece_length() + offset;
+		size_type start = slot * m_info.piece_length() + offset;
 
 		// find the file iterator and file offset
 		size_type file_offset = start;
 		std::vector<file>::const_iterator file_iter;
 
-		for (file_iter = m_info->begin_files();;)
+		for (file_iter = m_info.begin_files();;)
 		{
 			if (file_offset < file_iter->size)
 				break;
@@ -1311,7 +1314,7 @@ namespace libtorrent {
 
 		fs::ifstream in(
 			m_save_path / file_iter->path / file_iter->filename
-		, std::ios_base::binary
+			, std::ios_base::binary
 		);
 
 		assert(file_offset < file_iter->size);
@@ -1319,7 +1322,7 @@ namespace libtorrent {
 		in.seekg(std::ios_base::beg, file_offset);
 
 		size_type left_to_read = size;
-		size_type slot_size = m_info->piece_size(slot);
+		size_type slot_size = m_info.piece_size(slot);
 
 		if (offset + left_to_read > slot_size)
 			left_to_read = slot_size - offset;
@@ -1363,13 +1366,13 @@ namespace libtorrent {
 
 	void storage::write(const char* buf, int slot, size_type offset, size_type size)
 	{
-		size_type start = slot * m_info->piece_length() + offset;
+		size_type start = slot * m_info.piece_length() + offset;
 
 		// find the file iterator and file offset
 		size_type file_offset = start;
 		std::vector<file>::const_iterator file_iter;
 
-		for (file_iter = m_info->begin_files();;)
+		for (file_iter = m_info.begin_files();;)
 		{
 			if (file_offset < file_iter->size)
 				break;
@@ -1388,7 +1391,7 @@ namespace libtorrent {
 		out.seekp(std::ios_base::beg, file_offset);
 
 		size_type left_to_write = size;
-		size_type slot_size = m_info->piece_size(slot);
+		size_type slot_size = m_info.piece_size(slot);
 
 		if (offset + left_to_write > slot_size)
 			left_to_write = slot_size - offset;
@@ -1422,7 +1425,7 @@ namespace libtorrent {
 			{
 				++file_iter;
 
-				assert(file_iter != m_info->end_files());
+				assert(file_iter != m_info.end_files());
 
 				fs::path path = m_save_path / file_iter->path / file_iter->filename;
 
@@ -1436,50 +1439,46 @@ namespace libtorrent {
 
 	piece_manager::piece_manager(
 		const torrent_info& info
-	  , const fs::path& save_path)
+		, const fs::path& save_path)
 		: m_storage(info, save_path)
 		, m_info(info)
+		, m_save_path(save_path)
 	{
 	}
 
-	size_type piece_manager::read(char* buf, int piece_index, size_type offset, size_type size)
+	piece_manager::size_type piece_manager::read(
+		char* buf
+		, int piece_index
+		, piece_manager::size_type offset
+		, piece_manager::size_type size)
 	{
 		assert(m_piece_to_slot[piece_index] >= 0);
 		int slot = m_piece_to_slot[piece_index];
 		return m_storage.read(buf, slot, offset, size);
 	}
 
-	void piece_manager::write(const char* buf, int piece_index, size_type offset, size_type size)
+	void piece_manager::write(
+		const char* buf
+		, int piece_index
+		, piece_manager::size_type offset
+		, piece_manager::size_type size)
 	{
 		int slot = slot_for_piece(piece_index);
 		m_storage.write(buf, slot, offset, size);
 	}
 
-	void piece_manager::check_pieces(boost::mutex& mutex, detail::piece_checker_data& data)
+	void piece_manager::check_pieces(
+		boost::mutex& mutex
+		, detail::piece_checker_data& data
+		, std::vector<bool>& pieces)
 	{
 		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		// ----------------------------------------------------------------------
 
-		// free up some memory
-		std::vector<bool>(
-			m_info.num_pieces(), false
-		).swap(m_have_piece);
-
-		std::vector<entry::integer_type>(
-			m_info.num_pieces(), -1
-		).swap(m_allocated_pieces);
-
-		std::vector<bool>(
-			m_info.num_pieces(), false
-		).swap(m_locked_pieces);
-
-		std::vector<int>(
-			m_info.num_pieces(), -1
-		).swap(m_slot_to_piece);
-
-		std::vector<entry::integer_type>().swap(m_free_blocks);
-		std::vector<entry::integer_type>().swap(m_free_pieces);
+		m_piece_to_slot.resize(m_info.num_pieces(), -1);
+		m_slot_to_piece.resize(m_info.num_pieces(), -1);
+		m_locked_pieces.resize(m_info.num_pieces(), false);
 
 		m_bytes_left = m_info.total_size();
 
@@ -1503,7 +1502,7 @@ namespace libtorrent {
 
 		{
 			boost::mutex::scoped_lock lock(mutex);
-			data->progress = 0.f;
+			data.progress = 0.f;
 		}
 
 		for (torrent_info::file_iterator file_iter = m_info.begin_files(),
@@ -1513,8 +1512,8 @@ namespace libtorrent {
 			{
 				boost::mutex::scoped_lock lock(mutex);
 
-				data->progress = (float)current_piece / m_info.num_pieces();
-				if (data->abort)
+				data.progress = (float)current_piece / m_info.num_pieces();
+				if (data.abort)
 					return;
 			}
 
@@ -1615,19 +1614,19 @@ namespace libtorrent {
 
 			for (int i = 0; i < m_info.num_pieces(); ++i)
 			{
-				if (m_have_piece[i])
+				if (pieces[i])
 					continue;
 
 				const sha1_hash& hash = digest[
 					i == m_info.num_pieces() - 1]->get();
 
-				if (equal_hash()(hash, m_info.hash_for_piece(i)))
+				if (hash == m_info.hash_for_piece(i))
 				{
 					m_bytes_left -= m_info.piece_size(i);
 
 					m_piece_to_slot[i] = current_piece;
 					m_slot_to_piece[current_piece] = i;
-					m_have_piece[i] = true;
+					pieces[i] = true;
 					found = true;
 					break;
 				}
@@ -1665,9 +1664,9 @@ namespace libtorrent {
 		std::cout << " num pieces: " << m_info.num_pieces() << "\n";
 
 		std::cout << " have_pieces: ";
-		print_bitmask(m_have_piece);
+		print_bitmask(pieces);
 		std::cout << "\n";
-		std::cout << std::count(m_have_piece.begin(), m_have_piece.end(), true) << "\n";
+		std::cout << std::count(pieces.begin(), pieces.end(), true) << "\n";
 
 		check_invariant();
 	}
@@ -1696,11 +1695,11 @@ namespace libtorrent {
 			assert(!m_free_slots.empty());
 		}
 
-		std::vector<entry::integer_type>::iterator iter(
+		std::vector<int>::iterator iter(
 			std::find(
 				m_free_slots.begin()
-			, m_free_slots.end()
-			, piece_index));
+				, m_free_slots.end()
+				, piece_index));
 
 		if (iter == m_free_slots.end())
 		{
@@ -1720,7 +1719,7 @@ namespace libtorrent {
 		}
 
 		slot_index = *iter;
-		m_free_pieces.erase(iter);
+		m_free_slots.erase(iter);
 
 		assert(m_slot_to_piece[slot_index] == -2);
 
@@ -1770,7 +1769,7 @@ namespace libtorrent {
 		
 //		int last_piece_index = -1;
 
-		for (int i = 0; i < num; ++i, ++iter)
+		for (int i = 0; i < num_slots; ++i, ++iter)
 		{
 			if (iter == end_iter)
 				break;
@@ -1841,7 +1840,6 @@ namespace libtorrent {
 				pos = 0;
 			}
 */
-			m_slot_to_piece[piece_pos / piece_size] = -2;
 		}
 
 		m_unallocated_slots.erase(m_unallocated_slots.begin(), iter);
@@ -1852,21 +1850,19 @@ namespace libtorrent {
 */
 	}
 	
-	void storage::check_invariant() const
+	void piece_manager::check_invariant() const
 	{
 		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		// ----------------------------------------------------------------------
 
 		for (int i = 0; i < m_info.num_pieces(); ++i)
-		{	
-			if (m_allocated_pieces[i] != m_info.piece_length() * i)
+		{
+			if (m_piece_to_slot[i] != i)
 				assert(m_slot_to_piece[i] < 0);
 		}
 	}
 
 	
 } // namespace libtorrent
-
-#endif
 

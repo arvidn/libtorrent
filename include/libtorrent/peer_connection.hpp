@@ -87,7 +87,7 @@ namespace libtorrent
 		// this is the constructor where the we are teh active part. The peer_conenction
 		// should handshake and verify that the other end has the correct id
 		peer_connection(
-			detail::session_impl* ses
+			detail::session_impl& ses
 			, selector& sel
 			, torrent* t
 			, boost::shared_ptr<libtorrent::socket> s
@@ -96,7 +96,7 @@ namespace libtorrent
 		// with this constructor we have been contacted and we still don't know which torrent the
 		// connection belongs to
 		peer_connection(
-			detail::session_impl* ses
+			detail::session_impl& ses
 			, selector& sel
 			, boost::shared_ptr<libtorrent::socket> s);
 
@@ -156,12 +156,7 @@ namespace libtorrent
 		const stat& statistics() const { return m_statistics; }
 
 		// is called once every second by the main loop
-		void second_tick()
-		{
-			m_statistics.second_tick();
-			m_send_quota_left = m_send_quota;
-			if (m_send_quota > 0) send_buffer_updated();
-		}
+		void second_tick();
 
 		boost::shared_ptr<libtorrent::socket> get_socket() const { return m_socket; }
 
@@ -200,6 +195,9 @@ namespace libtorrent
 
 		int trust_points() const
 		{ return m_trust_points; }
+
+		int send_quota_limit() const
+		{ return m_send_quota_limit; }
 
 #ifndef NDEBUG
 		boost::shared_ptr<logger> m_logger;
@@ -250,13 +248,16 @@ namespace libtorrent
 		std::vector<char> m_recv_buffer;
 
 		// this is the buffer where data that is
-		// to be sent is stored until
+		// to be sent is stored until it gets
+		// consumed by send()
 		std::vector<char> m_send_buffer;
 
 		// timeouts
 		boost::posix_time::ptime m_last_receive;
 		boost::posix_time::ptime m_last_sent;
 
+		// the selector is used to add and remove this
+		// peer's socket from the writability monitor list.
 		selector& m_selector;
 		boost::shared_ptr<libtorrent::socket> m_socket;
 
@@ -268,12 +269,14 @@ namespace libtorrent
 		torrent* m_torrent;
 
 		// this is set to false until the peer_id
-		// is received from the other end. Or is
-		// true if the conenction was actively
-		// opened from our side.
+		// is received from the other end. Or it is
+		// true from the start if the conenction
+		// was actively opened from our side.
 		bool m_attached_to_torrent;
 
-		detail::session_impl* m_ses;
+		// a back reference to the session
+		// the peer belongs to.
+		detail::session_impl& m_ses;
 		// is true if it was we that connected to the peer
 		// and false if we got an incomming connection
 		bool m_active;
@@ -334,6 +337,12 @@ namespace libtorrent
 		// speed
 		int m_send_quota;
 		int m_send_quota_left;
+
+		// this is the maximum send quota we should give
+		// this peer given the current download rate
+		// and the current share ratio with this peer.
+		// this limit will maintain a 1:1 share ratio.
+		int m_send_quota_limit;
 
 		// for every valid piece we receive where this
 		// peer was one of the participants, we increase

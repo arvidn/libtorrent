@@ -72,7 +72,7 @@ namespace
 }
 
 libtorrent::peer_connection::peer_connection(
-	detail::session_impl* ses
+	detail::session_impl& ses
 	, selector& sel
 	, torrent* t
 	, boost::shared_ptr<libtorrent::socket> s
@@ -97,12 +97,14 @@ libtorrent::peer_connection::peer_connection(
 	, m_choked(true)
 	, m_send_quota(-1)
 	, m_send_quota_left(-1)
+	, m_send_quota_limit(100)
+	, m_trust_points(0)
 {
 	assert(!m_socket->is_blocking());
 	assert(m_torrent != 0);
 
 #ifndef NDEBUG
-	m_logger = m_ses->create_log(s->sender().as_string().c_str());
+	m_logger = m_ses.create_log(s->sender().as_string().c_str());
 #endif
 
 	send_handshake();
@@ -119,7 +121,7 @@ libtorrent::peer_connection::peer_connection(
 }
 
 libtorrent::peer_connection::peer_connection(
-	detail::session_impl* ses
+	detail::session_impl& ses
 	, selector& sel
 	, boost::shared_ptr<libtorrent::socket> s)
 	: m_state(read_protocol_length)
@@ -142,11 +144,13 @@ libtorrent::peer_connection::peer_connection(
 	, m_choked(true)
 	, m_send_quota(-1)
 	, m_send_quota_left(-1)
+	, m_send_quota_limit(100)
+	, m_trust_points(0)
 {
 	assert(!m_socket->is_blocking());
 
 #ifndef NDEBUG
-	m_logger = m_ses->create_log(s->sender().as_string().c_str());
+	m_logger = m_ses.create_log(s->sender().as_string().c_str());
 #endif
 
 	// we are not attached to any torrent yet.
@@ -170,12 +174,14 @@ libtorrent::peer_connection::~peer_connection()
 
 void libtorrent::peer_connection::set_send_quota(int num_bytes)
 {
+	assert(num_bytes <= m_send_quota_limit);
 	assert(num_bytes >= 0);
+	if (num_bytes > m_send_quota_limit) num_bytes = m_send_quota_limit;
+
 	m_send_quota = num_bytes;
 	m_send_quota_left = num_bytes;
 	send_buffer_updated();
 }
-
 
 void libtorrent::peer_connection::send_handshake()
 {
@@ -214,13 +220,14 @@ void libtorrent::peer_connection::send_handshake()
 
 	// peer id
 	std::copy(
-		m_ses->get_peer_id().begin()
-		, m_ses->get_peer_id().end()
+		m_ses.get_peer_id().begin()
+		, m_ses.get_peer_id().end()
 		, m_send_buffer.begin() + pos);
 
 #ifndef NDEBUG
 	(*m_logger) << m_socket->sender().as_string() << " ==> HANDSHAKE\n";
 #endif
+	m_statistics.sent_bytes(0, m_send_buffer.size());
 
 	send_buffer_updated();
 }
@@ -236,6 +243,12 @@ void libtorrent::peer_connection::dispatch_message()
 
 		// *************** CHOKE ***************
 	case msg_choke:
+
+		if (m_packet_size != 5)
+			throw protocol_error("'choke' message size != 5");
+
+		m_statistics.received_bytes(0, m_packet_size);
+
 #ifndef NDEBUG
 		(*m_logger) << m_socket->sender().as_string() << " <== CHOKE\n";
 #endif
@@ -260,6 +273,11 @@ void libtorrent::peer_connection::dispatch_message()
 
 		// *************** UNCHOKE ***************
 	case msg_unchoke:
+		if (m_packet_size != 1)
+			throw protocol_error("'unchoke' message size != 1");
+
+		m_statistics.received_bytes(0, m_packet_size);
+
 #ifndef NDEBUG
 		(*m_logger) << m_socket->sender().as_string() << " <== UNCHOKE\n";
 #endif
@@ -270,6 +288,11 @@ void libtorrent::peer_connection::dispatch_message()
 
 		// *************** INTERESTED ***************
 	case msg_interested:
+		if (m_packet_size != 1)
+			throw protocol_error("'interested' message size != 1");
+
+		m_statistics.received_bytes(0, m_packet_size);
+
 #ifndef NDEBUG
 		(*m_logger) << m_socket->sender().as_string() << " <== INTERESTED\n";
 #endif
@@ -280,6 +303,11 @@ void libtorrent::peer_connection::dispatch_message()
 
 		// *************** NOT INTERESTED ***************
 	case msg_not_interested:
+		if (m_packet_size != 1)
+			throw protocol_error("'not interested' message size != 1");
+
+		m_statistics.received_bytes(0, m_packet_size);
+
 #ifndef NDEBUG
 		(*m_logger) << m_socket->sender().as_string() << " <== NOT_INTERESTED\n";
 #endif
@@ -292,6 +320,11 @@ void libtorrent::peer_connection::dispatch_message()
 		// *************** HAVE ***************
 	case msg_have:
 		{
+			if (m_packet_size != 5)
+				throw protocol_error("'have' message size != 5");
+
+			m_statistics.received_bytes(0, m_packet_size);
+
 			std::size_t index = read_int(&m_recv_buffer[1]);
 			// if we got an invalid message, abort
 			if (index >= m_have_piece.size())
@@ -324,6 +357,8 @@ void libtorrent::peer_connection::dispatch_message()
 		{
 			if (m_packet_size - 1 != (m_have_piece.size() + 7) / 8)
 				throw protocol_error("bitfield with invalid size");
+
+			m_statistics.received_bytes(0, m_packet_size);
 
 #ifndef NDEBUG
 			(*m_logger) << m_socket->sender().as_string() << " <== BITFIELD\n";
@@ -361,6 +396,11 @@ void libtorrent::peer_connection::dispatch_message()
 		// *************** REQUEST ***************
 	case msg_request:
 		{
+			if (m_packet_size != 13)
+				throw protocol_error("'request' message size != 13");
+
+			m_statistics.received_bytes(0, m_packet_size);
+
 			peer_request r;
 			r.piece = read_int(&m_recv_buffer[1]);
 			r.start = read_int(&m_recv_buffer[5]);
@@ -440,7 +480,8 @@ void libtorrent::peer_connection::dispatch_message()
 			(*m_logger) << m_socket->sender().as_string() << " <== PIECE [ piece: " << index << " | s: " << offset << " | l: " << len << " ]\n";
 #endif
 
-			m_torrent->downloaded_bytes(len);
+			assert(m_packet_size > len);
+			m_statistics.received_bytes(len, m_packet_size - len);
 
 			piece_picker& picker = m_torrent->picker();
 			piece_block block_finished(index, offset / m_torrent->block_size());
@@ -465,9 +506,7 @@ void libtorrent::peer_connection::dispatch_message()
 
 			if (picker.is_finished(block_finished)) break;
 
-			m_receiving_piece.open(m_torrent->filesystem(), index, piece_file::out, offset);
-			m_receiving_piece.write(&m_recv_buffer[9], len);
-			m_receiving_piece.close();
+			m_torrent->filesystem().write(&m_recv_buffer[9], index, offset, len);
 
 			picker.mark_as_finished(block_finished, m_peer_id);
 
@@ -476,9 +515,7 @@ void libtorrent::peer_connection::dispatch_message()
 			// did we just finish the piece?
 			if (picker.is_piece_finished(index))
 			{
-				m_receiving_piece.open(m_torrent->filesystem(), index, piece_file::in);
-				bool verified = m_torrent->filesystem()->verify_piece(m_receiving_piece);
-				m_receiving_piece.close();
+				bool verified = m_torrent->verify_piece(index);
 				if (verified)
 				{
 					m_torrent->announce_piece(index);
@@ -496,6 +533,10 @@ void libtorrent::peer_connection::dispatch_message()
 		// *************** CANCEL ***************
 	case msg_cancel:
 		{
+			if (m_packet_size != 13)
+				throw protocol_error("'cancel' message size != 13");
+			m_statistics.received_bytes(0, m_packet_size);
+
 			peer_request r;
 			r.piece = read_int(&m_recv_buffer[1]);
 			r.start = read_int(&m_recv_buffer[5]);
@@ -550,7 +591,7 @@ void libtorrent::peer_connection::cancel_block(piece_block block)
 	m_send_buffer.resize(start_offset + 17);
 
 	std::copy(buf, buf + 5, m_send_buffer.begin()+start_offset);
-	start_offset +=5;
+	start_offset += 5;
 
 	// index
 	write_int(block.piece_index, &m_send_buffer[start_offset]);
@@ -567,6 +608,7 @@ void libtorrent::peer_connection::cancel_block(piece_block block)
 	(*m_logger) << m_socket->sender().as_string() << " ==> CANCEL [ piece: " << block.piece_index << " | s: " << block_offset << " | l: " << block_size << " | " << block.block_index << " ]\n";
 #endif
 	assert(start_offset == m_send_buffer.size());
+	m_statistics.sent_bytes(0, 17);
 
 	send_buffer_updated();
 }
@@ -614,6 +656,7 @@ void libtorrent::peer_connection::request_block(piece_block block)
 	(*m_logger) << m_socket->sender().as_string() << " ==> REQUEST [ piece: " << block.piece_index << " | s: " << block_offset << " | l: " << block_size << " | " << block.block_index << " ]\n";
 #endif
 	assert(start_offset == m_send_buffer.size());
+	m_statistics.sent_bytes(0, 17);
 
 	send_buffer_updated();
 }
@@ -634,6 +677,7 @@ void libtorrent::peer_connection::send_bitfield()
 		if (m_torrent->have_piece(i))
 			m_send_buffer[old_size + 5 + (i>>3)] |= 1 << (7 - (i&7));
 	}
+	m_statistics.sent_bytes(0, packet_size);
 	send_buffer_updated();
 }
 
@@ -646,6 +690,7 @@ void libtorrent::peer_connection::choke()
 #ifndef NDEBUG
 	(*m_logger) << m_socket->sender().as_string() << " ==> CHOKE\n";
 #endif
+	m_statistics.sent_bytes(0, 5);
 	send_buffer_updated();
 }
 
@@ -658,6 +703,7 @@ void libtorrent::peer_connection::unchoke()
 #ifndef NDEBUG
 	(*m_logger) << m_socket->sender().as_string() << " ==> UNCHOKE\n";
 #endif
+	m_statistics.sent_bytes(0, 5);
 	send_buffer_updated();
 }
 
@@ -670,6 +716,7 @@ void libtorrent::peer_connection::interested()
 #ifndef NDEBUG
 	(*m_logger) << m_socket->sender().as_string() << " ==> INTERESTED\n";
 #endif
+	m_statistics.sent_bytes(0, 5);
 	send_buffer_updated();
 }
 
@@ -682,20 +729,49 @@ void libtorrent::peer_connection::not_interested()
 #ifndef NDEBUG
 	(*m_logger) << m_socket->sender().as_string() << " ==> NOT_INTERESTED\n";
 #endif
+	m_statistics.sent_bytes(0, 5);
 	send_buffer_updated();
 }
 
 void libtorrent::peer_connection::send_have(int index)
 {
-	char msg[9] = {0,0,0,5,msg_have};
+	const int packet_size = 9;
+	char msg[packet_size] = {0,0,0,5,msg_have};
 	write_int(index, msg+5);
-	m_send_buffer.insert(m_send_buffer.end(), msg, msg+9);
+	m_send_buffer.insert(m_send_buffer.end(), msg, msg + packet_size);
 #ifndef NDEBUG
 	(*m_logger) << m_socket->sender().as_string() << " ==> HAVE [ piece: " << index << " ]\n";
 #endif
+	m_statistics.sent_bytes(0, packet_size);
 	send_buffer_updated();
 }
 
+void libtorrent::peer_connection::second_tick()
+{
+	m_statistics.second_tick();
+	m_send_quota_left = m_send_quota;
+	if (m_send_quota > 0) send_buffer_updated();
+
+	// If the client sends more data
+	// we send it data faster, otherwise, slower.
+	// It will also depend on how much data the
+	// client has sent us. This is the mean to
+	// maintain a 1:1 share ratio with all peers.
+
+	// TODO: make sure the rate is able to rise if
+	// both peers uses this technique! It could be
+	// enough to just have a constant positive bias
+	// of the send_quota_limit
+	int bias = (static_cast<int>(m_statistics.total_download())
+		- static_cast<int>(m_statistics.total_upload())) / 1024;
+
+	// the maximum send_quota given our download rate from this peer
+	int m_send_quota_limit = m_statistics.download_rate() + bias;
+	if (m_send_quota_limit < 500) m_send_quota_limit = 500;
+
+	// TODO: temporary
+	m_send_quota_limit = 1024*1024;
+}
 
 // --------------------------
 // RECEIVE DATA
@@ -731,7 +807,6 @@ void libtorrent::peer_connection::receive_data()
 
 		if (received > 0)
 		{
-			m_statistics.received_bytes(received);
 			m_last_receive = boost::posix_time::second_clock::local_time();
 
 			m_recv_pos += received;
@@ -741,6 +816,8 @@ void libtorrent::peer_connection::receive_data()
 				switch(m_state)
 				{
 				case read_protocol_length:
+					m_statistics.received_bytes(0, received);
+
 					m_packet_size = reinterpret_cast<unsigned char&>(m_recv_buffer[0]);
 	#ifndef NDEBUG
 					(*m_logger) << m_socket->sender().as_string() << " protocol length: " << m_packet_size << "\n";
@@ -761,6 +838,7 @@ void libtorrent::peer_connection::receive_data()
 
 				case read_protocol_string:
 					{
+						m_statistics.received_bytes(0, received);
 	#ifndef NDEBUG
 						(*m_logger) << m_socket->sender().as_string() << " protocol: '" << std::string(m_recv_buffer.begin(), m_recv_buffer.end()) << "'\n";
 	#endif
@@ -784,6 +862,7 @@ void libtorrent::peer_connection::receive_data()
 
 				case read_info_hash:
 				{
+					m_statistics.received_bytes(0, received);
 					// ok, now we have got enough of the handshake. Is this connection
 					// attached to a torrent?
 
@@ -798,7 +877,7 @@ void libtorrent::peer_connection::receive_data()
 						sha1_hash info_hash;
 						std::copy(m_recv_buffer.begin()+8, m_recv_buffer.begin() + 28, (char*)info_hash.begin());
 						
-						m_torrent = m_ses->find_torrent(info_hash);
+						m_torrent = m_ses.find_torrent(info_hash);
 						if (m_torrent == 0)
 						{
 							// we couldn't find the torrent!
@@ -843,6 +922,7 @@ void libtorrent::peer_connection::receive_data()
 
 				case read_peer_id:
 				{
+					m_statistics.received_bytes(0, received);
 					if (m_active)
 					{
 						// verify peer_id
@@ -887,6 +967,8 @@ void libtorrent::peer_connection::receive_data()
 
 
 				case read_packet_size:
+					m_statistics.received_bytes(0, received);
+
 					// convert from big endian to native byte order
 					m_packet_size = read_int(&m_recv_buffer[0]);
 					// don't accept packets larger than 1 MB
@@ -916,8 +998,6 @@ void libtorrent::peer_connection::receive_data()
 
 				case read_packet:
 
-					// TODO: dispatch should throw instead of returning status
-					// and instead of throwing network_error, throw protocol_error
 					dispatch_message();
 
 					m_state = read_packet_size;
@@ -974,18 +1054,8 @@ void libtorrent::peer_connection::send_data()
 				throw network_error(0);
 			}
 
-			m_sending_piece.open(
-				m_torrent->filesystem()
-				, r.piece
-				, piece_file::in
-				, r.start);
 #ifndef NDEBUG
-			assert(m_torrent->filesystem()->verify_piece(m_sending_piece) && "internal error");
-			m_sending_piece.open(
-				m_torrent->filesystem()
-				, r.piece
-				, piece_file::in
-				, r.start);
+			assert(m_torrent->verify_piece(r.piece) && "internal error");
 #endif
 			const int send_buffer_offset = m_send_buffer.size();
 			const int packet_size = 4 + 5 + 4 + r.length;
@@ -995,14 +1065,16 @@ void libtorrent::peer_connection::send_data()
 			write_int(r.piece, &m_send_buffer[send_buffer_offset+5]);
 			write_int(r.start, &m_send_buffer[send_buffer_offset+9]);
 
-			assert(r.start == m_sending_piece.tell());
-
-			m_sending_piece.read(&m_send_buffer[send_buffer_offset+13], r.length);
+			m_torrent->filesystem().read(
+				&m_send_buffer[send_buffer_offset+13]
+				, r.piece
+				, r.start
+				, r.length);
 #ifndef NDEBUG
 			(*m_logger) << m_socket->sender().as_string() << " ==> PIECE [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
 #endif
 			// let the torrent keep track of how much we have uploaded
-			m_torrent->uploaded_bytes(r.length);
+			m_statistics.sent_bytes(r.length, packet_size - r.length);
 		}
 		else
 		{
@@ -1053,7 +1125,6 @@ void libtorrent::peer_connection::send_data()
 
 		if (sent > 0)
 		{
-			m_statistics.sent_bytes(sent);
 			if (m_send_quota_left != -1)
 			{
 				assert(m_send_quota_left >= sent);
@@ -1106,6 +1177,7 @@ void libtorrent::peer_connection::keep_alive()
 		char noop[] = {0,0,0,0};
 		m_send_buffer.insert(m_send_buffer.end(), noop, noop+4);
 		m_last_sent = boost::posix_time::second_clock::local_time();
+		m_statistics.sent_bytes(0, 4);
 #ifndef NDEBUG
 		(*m_logger) << m_socket->sender().as_string() << " ==> NOP\n";
 #endif

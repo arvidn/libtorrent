@@ -60,6 +60,57 @@ namespace std
 };
 #endif
 
+namespace
+{
+
+	// adjusts the upload rates of every peer connection
+	// to make sure the sum of all send quotas equals
+	// the given upload_limit. An upload limit of -1 means
+	// unlimited upload rate, but the rates of each peer
+	// has to be set anyway, since it depends on the download
+	// rate from the peer.
+	void control_upload_rates(
+		int upload_limit
+		, libtorrent::detail::session_impl::connection_map connections)
+	{
+		using namespace libtorrent;
+
+		if (connections.empty()) return;
+
+		assert(upload_limit != 0);
+
+		if (upload_limit == -1)
+		{
+			for (detail::session_impl::connection_map::iterator i = connections.begin();
+				i != connections.end();
+				++i)
+			{
+				// there's no limit, set the quota to max
+				// allowed
+				peer_connection& p = *i->second;
+				p.set_send_quota(p.send_quota_limit());
+			}
+			return;
+		}
+
+		// TODO: IMPLEMENT!
+		assert(false);
+
+
+#ifndef NDEBUG
+		int sum = 0;
+		for (detail::session_impl::connection_map::iterator i = connections.begin();
+			i != connections.end();
+			++i)
+		{
+			peer_connection& p = *i->second;
+			sum += p.send_quota();
+		}
+		assert(sum == upload_limit);
+#endif
+	}
+}
+
 namespace libtorrent
 {
 	namespace detail
@@ -93,7 +144,8 @@ namespace libtorrent
 
 				try
 				{
-					t->torrent_ptr->allocate_files(t, m_mutex, t->save_path);
+					assert(t != 0);
+					t->torrent_ptr->check_files(*t, m_mutex);
 					// lock the session to add the new torrent
 
 					boost::mutex::scoped_lock l(m_mutex);
@@ -278,7 +330,7 @@ namespace libtorrent
 							// TODO: filter ip:s
 
 							boost::shared_ptr<peer_connection> c(
-								new peer_connection(this, m_selector, s));
+								new peer_connection(*this, m_selector, s));
 
 							if (m_upload_rate != -1) c->set_send_quota(0);
 							m_connections.insert(std::make_pair(s, c));
@@ -299,7 +351,7 @@ namespace libtorrent
 //							(*m_logger) << "readable: " << p->first->sender().as_string() << "\n";
 							p->second->receive_data();
 						}
-						catch(std::exception&)
+						catch(std::exception& e)
 						{
 							// the connection wants to disconnect for some reason, remove it
 							// from the connection-list
@@ -335,7 +387,6 @@ namespace libtorrent
 						{
 							assert(m_selector.is_writability_monitored(p->first));
 							assert(p->second->has_data());
-			//				(*m_logger) << "writable: " << p->first->sender().as_string() << "\n";
 							p->second->send_data();
 						}
 						catch(std::exception&)
@@ -390,17 +441,8 @@ namespace libtorrent
 				// This should probably be done by accumulating the
 				// left-over bandwidth to next second. Since the
 				// the sockets consumes its data in rather big chunks.
-				if (m_upload_rate != -1 && !m_connections.empty())
-				{
-					assert(m_upload_rate >= 0);
-					int share = m_upload_rate / m_connections.size();
-					for (connection_map::iterator i = m_connections.begin();
-						i != m_connections.end();
-						++i)
-					{
-						i->second->set_send_quota(share);
-					}
-				}
+
+				control_upload_rates(m_upload_rate, m_connections);
 
 				// do the second_tick() on each connection
 				// this will update their statistics (download and upload speeds)
@@ -409,8 +451,6 @@ namespace libtorrent
 				for (connection_map::iterator i = m_connections.begin();
 					i != m_connections.end();)
 				{
-					i->second->second_tick();
-
 					connection_map::iterator j = i;
 					++i;
 					// if this socket has timed out
@@ -477,7 +517,7 @@ namespace libtorrent
 				m_tracker_manager.tick();
 				boost::xtime t;
 				boost::xtime_get(&t, boost::TIME_UTC);
-				t.nsec += 1000000;
+				t.nsec += 100000000;
 				boost::thread::sleep(t);
 			}
 
@@ -583,7 +623,7 @@ namespace libtorrent
 		// create the torrent and the data associated with
 		// the checker thread and store it before starting
 		// the thread
-		boost::shared_ptr<torrent> torrent_ptr(new torrent(&m_impl, ti));
+		boost::shared_ptr<torrent> torrent_ptr(new torrent(m_impl, ti, save_path));
 
 		detail::piece_checker_data d;
 		d.torrent_ptr = torrent_ptr;

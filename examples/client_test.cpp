@@ -152,7 +152,7 @@ int main(int argc, char* argv[])
 	using namespace libtorrent;
 
 	// TEMPORARY
-	boost::filesystem::path::default_name_check(boost::filesystem::no_check);
+//	boost::filesystem::path::default_name_check(boost::filesystem::no_check);
 
 	if (argc < 2)
 	{
@@ -172,7 +172,10 @@ int main(int argc, char* argv[])
 	{
 		std::vector<torrent_handle> handles;
 		session s(6881, "E\x1");
-//		s.set_upload_rate_limit(20 * 1024);
+
+		// limit upload rate to 100 kB/s
+//		s.set_upload_rate_limit(100 * 1024);
+
 		s.set_http_settings(settings);
 		for (int i = 0; i < argc-1; ++i)
 		{
@@ -182,7 +185,6 @@ int main(int argc, char* argv[])
 				in.unsetf(std::ios_base::skipws);
 				entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
 				torrent_info t(e);
-//				t.convert_file_names();
 				t.print(std::cout);
 				handles.push_back(s.add_torrent(t, boost::filesystem::path("", boost::filesystem::native)));
 			}
@@ -229,19 +231,11 @@ int main(int argc, char* argv[])
 
 				// calculate download and upload speeds
 				i->get_peer_info(peers);
-				float down = 0.f;
-				float up = 0.f;
+				float down = s.download_rate;
+				float up = s.upload_rate;
 				unsigned int total_down = s.total_download;
 				unsigned int total_up = s.total_upload;
 				int num_peers = peers.size();
-
-				for (std::vector<peer_info>::iterator i = peers.begin();
-					i != peers.end();
-					++i)
-				{
-					down += i->down_speed;
-					up += i->up_speed;
-				}
 /*
 				std::cout << boost::format("%f%% p:%d d:(%s) %s/s u:(%s) %s/s\n")
 					% (s.progress*100)
@@ -259,6 +253,22 @@ int main(int argc, char* argv[])
 //				std::cout << "next announce: " << boost::posix_time::to_simple_string(t) << "\n";
 				std::cout << "next announce: " << t.hours() << ":" << t.minutes() << ":" << t.seconds() << "\n";
 
+				for (std::vector<peer_info>::iterator i = peers.begin();
+					i != peers.end();
+					++i)
+				{
+					std::cout << "d: " << add_suffix(i->down_speed) << "/s (" << add_suffix(i->total_download)
+						<< ") u: " << add_suffix(i->up_speed) << "/s (" << add_suffix(i->total_upload)
+						<< ") ratio: " << static_cast<float>(i->total_upload+1) / static_cast<float>(i->total_download+1)
+						<< " flags: "
+						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
+						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
+						<< static_cast<const char*>((i->flags & peer_info::remote_interested)?"i":"_")
+						<< static_cast<const char*>((i->flags & peer_info::remote_choked)?"c":"_") << "\n";
+
+				}
+
+/*
 				i->get_download_queue(queue);
 				for (std::vector<partial_piece_info>::iterator i = queue.begin();
 					i != queue.end();
@@ -273,7 +283,9 @@ int main(int argc, char* argv[])
 					}
 					std::cout << "\n";
 				}
+*/
 				std::cout << "___________________________________\n";
+
 			}
 		}
 	}
