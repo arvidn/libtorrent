@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/format.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/exception.hpp>
 #include <boost/bind.hpp>
 
 #ifdef _MSC_VER
@@ -225,6 +226,8 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+	boost::filesystem::path::default_name_check(boost::filesystem::native);
+	
 	http_settings settings;
 //	settings.proxy_ip = "192.168.0.1";
 //	settings.proxy_port = 80;
@@ -264,8 +267,8 @@ int main(int argc, char* argv[])
 					resume_data = bdecode(std::istream_iterator<char>(resume_file)
 						, std::istream_iterator<char>());
 				}
-				catch (invalid_encoding&)
-				{}
+				catch (invalid_encoding&) {}
+				catch (boost::filesystem::filesystem_error&) {}
 
 				handles.push_back(ses.add_torrent(t, save_path, resume_data));
 				handles.back().set_max_connections(60);
