@@ -58,13 +58,15 @@ namespace libtorrent
 			, m_total_upload_payload(0)
 			, m_total_download_protocol(0)
 			, m_total_upload_protocol(0)
-			, m_peak_downloaded_per_second(0)
-			, m_peak_uploaded_per_second(0)
-			, m_mean_download_per_second(0)
-			, m_mean_upload_per_second(0)
+			, m_mean_download_rate(0)
+			, m_mean_upload_rate(0)
+			, m_mean_download_payload_rate(0)
+			, m_mean_upload_payload_rate(0)
 		{
-			std::fill(m_download_per_second_history, m_download_per_second_history+history, 0);
-			std::fill(m_upload_per_second_history, m_upload_per_second_history+history, 0);
+			std::fill(m_download_rate_history, m_download_rate_history+history, 0);
+			std::fill(m_upload_rate_history, m_upload_rate_history+history, 0);
+			std::fill(m_download_payload_rate_history, m_download_payload_rate_history+history, 0);
+			std::fill(m_upload_payload_rate_history, m_upload_payload_rate_history+history, 0);
 		}
 
 		void operator+=(const stat& s)
@@ -111,12 +113,11 @@ namespace libtorrent
 		// should be called once every second
 		void second_tick();
 
-		// only counts the payload data!
-		float upload_rate() const { return m_mean_upload_per_second; }
-		float download_rate() const { return m_mean_download_per_second; }
+		float upload_rate() const { return m_mean_upload_rate; }
+		float download_rate() const { return m_mean_download_rate; }
 
-		float down_peak() const { return m_peak_downloaded_per_second; }
-		float up_peak() const { return m_peak_uploaded_per_second; }
+		float upload_payload_rate() const { return m_mean_upload_payload_rate; }
+		float download_payload_rate() const { return m_mean_download_payload_rate; }
 
 		size_type total_payload_upload() const { return m_total_upload_payload; }
 		size_type total_payload_download() const { return m_total_download_payload; }
@@ -138,10 +139,10 @@ namespace libtorrent
 #ifndef NDEBUG
 		void check_invariant() const
 		{
-			assert(m_mean_upload_per_second >= 0);
-			assert(m_mean_download_per_second >= 0);
-			assert(m_peak_uploaded_per_second >= 0);
-			assert(m_peak_downloaded_per_second >= 0);
+			assert(m_mean_upload_rate >= 0);
+			assert(m_mean_download_rate >= 0);
+			assert(m_mean_upload_payload_rate >= 0);
+			assert(m_mean_download_payload_rate >= 0);
 			assert(m_total_upload_payload >= 0);
 			assert(m_total_download_payload >= 0);
 			assert(m_total_upload_protocol >= 0);
@@ -150,8 +151,11 @@ namespace libtorrent
 #endif
 
 		// history of download/upload speeds a few seconds back
-		int m_download_per_second_history[history];
-		int m_upload_per_second_history[history];
+		int m_download_rate_history[history];
+		int m_upload_rate_history[history];
+
+		int m_download_payload_rate_history[history];
+		int m_upload_payload_rate_history[history];
 
 		// the accumulators we are adding the downloads/upploads
 		// to this second. This only counts the actual payload
@@ -175,13 +179,12 @@ namespace libtorrent
 		size_type m_total_download_protocol;
 		size_type m_total_upload_protocol;
 
-		// peak mean download/upload rates
-		float m_peak_downloaded_per_second;
-		float m_peak_uploaded_per_second;
-
 		// current mean download/upload rates
-		float m_mean_download_per_second;
-		float m_mean_upload_per_second;
+		float m_mean_download_rate;
+		float m_mean_upload_rate;
+
+		float m_mean_download_payload_rate;
+		float m_mean_upload_payload_rate;
 	};
 
 }

@@ -113,10 +113,19 @@ namespace libtorrent
 		size_type total_payload_download;
 		size_type total_payload_upload;
 
+		// the amount of payload bytes that
+		// has failed their hash test
+		size_type total_failed_bytes;
+
 		// current transfer rate
 		// payload plus protocol
 		float download_rate;
 		float upload_rate;
+
+		// the rate of payload that is
+		// sent and received
+		float download_payload_rate;
+		float upload_payload_rate;
 
 		// the number of peers this torrent
 		// is connected to.

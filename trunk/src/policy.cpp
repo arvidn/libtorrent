@@ -172,7 +172,7 @@ namespace
 				const int queue_size = (int)i->second->download_queue().size();
 				const float weight = queue_size == 0
 					? std::numeric_limits<float>::max()
-					: i->second->statistics().down_peak() / queue_size;
+					: i->second->statistics().download_payload_rate() / queue_size;
 
 				if (weight < min_weight
 					&& std::find_first_of(
@@ -219,7 +219,7 @@ namespace
 			const int queue_size = (int)c.download_queue().size();
 			const float weight = queue_size == 0
 				? std::numeric_limits<float>::max()
-				: c.statistics().down_peak() / queue_size;
+				: c.statistics().download_payload_rate() / queue_size;
 
 			if (weight <= min_weight) break;
 		}

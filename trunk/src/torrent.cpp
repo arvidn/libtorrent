@@ -169,6 +169,7 @@ namespace libtorrent
 		, m_num_pieces(0)
 		, m_got_tracker_response(false)
 		, m_ratio(0.f)
+		, m_total_failed_bytes(0)
 		, m_net_interface(net_interface.ip(), address::any_port)
 		, m_upload_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
@@ -343,6 +344,9 @@ namespace libtorrent
 			s << "hash for piece " << index << " failed";
 			m_ses.m_alerts.post_alert(hash_failed_alert(get_handle(), index, s.str()));
 		}
+		// increase the total amount of failed bytes
+		m_total_failed_bytes += m_torrent_file.piece_size(index);
+
 		std::vector<address> downloaders;
 		m_picker.get_downloaders(downloaders, index);
 
@@ -777,9 +781,14 @@ namespace libtorrent
 		st.total_upload = m_stat.total_payload_upload()
 			+ m_stat.total_protocol_upload();
 
+		// failed bytes
+		st.total_failed_bytes = m_total_failed_bytes;
+
 		// transfer rate
 		st.download_rate = m_stat.download_rate();
 		st.upload_rate = m_stat.upload_rate();
+		st.download_payload_rate = m_stat.download_payload_rate();
+		st.upload_payload_rate = m_stat.upload_payload_rate();
 
 		st.progress = st.total_done
 			/ static_cast<float>(m_torrent_file.total_size());
