@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <cctype>
+#include <algorithm>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -163,7 +164,7 @@ namespace
 		, map_entry("CT", "CTorrent")
 		, map_entry("LT", "libtorrent")
 		, map_entry("M",  "Mainline")
-		. map_emtry("MP", "MooPolice")
+		, map_entry("MP", "MooPolice")
 		, map_entry("MT", "Moonlight Torrent")
 		, map_entry("S",  "Shadow")
 		, map_entry("SN", "ShareNet")
@@ -190,6 +191,14 @@ namespace
 		map_entry* i =
 			std::lower_bound(name_map, name_map + size
 				, f.id, &compare_first_string);
+
+#ifndef NDEBUG
+		for (int i = 1; i < size; ++i)
+		{
+			assert(compare_first_string(name_map[i-1]
+				, name_map[i].first));
+		}
+#endif
 
 		if (i < name_map + size && std::equal(f.id, f.id + 2, i->first))
 			identity << i->second;
@@ -261,8 +270,6 @@ namespace libtorrent
 
 		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\0\0"))
 			return "Experimental 3.1";
-
-      if (p.is_all_zeros()) return "Unknown";
 
 		
 		// look for azureus style id
