@@ -201,6 +201,7 @@ namespace libtorrent
 		hasher h;
 		h.update(&buf[0], (int)buf.size());
 		m_info_hash = h.final();
+		std::copy(m_info_hash.begin(), m_info_hash.end(), std::ostream_iterator<int>(std::cout));
 
 		// extract piece length
 		m_piece_length = (int)info["piece length"].integer();
@@ -255,7 +256,7 @@ namespace libtorrent
 			boost::gregorian::date(
 				boost::date_time::not_a_date_time)))
 		{
-			return m_creation_date;
+			return boost::optional<boost::posix_time::ptime>(m_creation_date);
 		}
 		return boost::optional<boost::posix_time::ptime>();
 	}

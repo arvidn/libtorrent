@@ -1178,6 +1178,7 @@ namespace libtorrent
 			}
 			catch (file_error&)
 			{
+				// TODO: skip the whole file here!
 				// this means the slot wasn't allocated
 				assert(m_slot_to_piece[current_slot] == unallocated);
 				m_unallocated_slots.push_back(current_slot);

@@ -83,6 +83,9 @@ lib torrent
 	zlib//zlib
 	src/$(SOURCES)
 	$(LIBS)
+	/boost/thread//boost_thread
+	/boost/filesystem//boost_filesystem/<link>static
+	/boost/date_time//boost_date_time/<link>static
 	:
 	<threading>multi
 	<link>static

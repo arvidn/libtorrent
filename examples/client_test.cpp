@@ -226,7 +226,8 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	boost::filesystem::path::default_name_check(boost::filesystem::no_check);
+    namespace fs = boost::filesystem;
+	fs::path::default_name_check(fs::no_check);
 	
 	http_settings settings;
 //	settings.proxy_ip = "192.168.0.1";
