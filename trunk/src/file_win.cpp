@@ -62,9 +62,15 @@ namespace
 		int err = GetLastError();
 
 		#ifdef _UNICODE
-			FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_ALLOCATE_BUFFER, 0, err, 0, (LPWSTR)(LPCSTR)&buffer, 0, 0);
+			FormatMessage(
+				FORMAT_MESSAGE_FROM_SYSTEM
+				|FORMAT_MESSAGE_ALLOCATE_BUFFER
+				, 0, err, 0, (LPWSTR)(LPCSTR)&buffer, 0, 0);
 		#else
-			FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_ALLOCATE_BUFFER, 0, err, 0, (LPSTR)&buffer, 0, 0);
+			FormatMessage(
+				FORMAT_MESSAGE_FROM_SYSTEM
+				|FORMAT_MESSAGE_ALLOCATE_BUFFER
+				, 0, err, 0, (LPSTR)&buffer, 0, 0);
 		#endif
 
 		auto_LocalFree auto_free(buffer); // needed for exception safety
@@ -117,7 +123,7 @@ namespace libtorrent
 				, access_mask
 				, FILE_SHARE_READ
 				, 0
-				, (flags & read_flag)?OPEN_EXISTING:OPEN_ALWAYS
+				, (flags & write_flag)?OPEN_ALWAYS:OPEN_EXISTING
 				, FILE_ATTRIBUTE_NORMAL
 				, 0);
 		#else
@@ -126,7 +132,7 @@ namespace libtorrent
 				, access_mask
 				, FILE_SHARE_READ
 				, 0
-				, (flags & read_flag)?OPEN_EXISTING:OPEN_ALWAYS
+				, (flags & write_flag)?OPEN_ALWAYS:OPEN_EXISTING
 				, FILE_ATTRIBUTE_NORMAL
 				, 0);
 		#endif
@@ -134,8 +140,7 @@ namespace libtorrent
 			if (new_handle == INVALID_HANDLE_VALUE)
 			{
 				std::stringstream s;
-				s << "couldn't open file '" << file_name << "'";
-				throw file_error(s.str());
+				throw_exception(file_name);
 			}
 			// will only close old file if the open succeeded
 			close();
