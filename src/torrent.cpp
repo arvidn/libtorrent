@@ -433,7 +433,8 @@ namespace libtorrent
 		req.left = bytes_left();
 		req.event = m_event;
 		req.url = m_torrent_file.trackers()[m_currently_trying_tracker].url;
-		req.num_want = std::max((m_policy->get_max_connections()
+		req.num_want = std::max(
+			(m_policy->get_max_connections()
 			- m_policy->num_peers()) * 2, 0);
 
 		// default initialize, these should be set by caller
