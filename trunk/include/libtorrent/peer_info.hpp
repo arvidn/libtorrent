@@ -57,6 +57,7 @@ namespace libtorrent
 		peer_id id;
 		std::vector<bool> pieces;
 		int upload_limit;
+		int upload_ceiling;
 	};
 
 }
