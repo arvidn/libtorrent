@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 #include "libtorrent/peer.hpp"
-#include "piece_picker.hpp"
+#include "libtorrent/piece_picker.hpp"
 
 // TODO: should be able to close connections with too low bandwidth to save memory
 

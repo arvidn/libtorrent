@@ -162,7 +162,11 @@ namespace libtorrent
 		{
 			main_loop_thread(int listen_port, session_impl* s)
 				: m_ses(s), m_listen_port(listen_port) {}
-			void operator()() { m_ses->run(m_listen_port); }
+			void operator()()
+			{
+				std::cout << "main thread started\n";
+				m_ses->run(m_listen_port);
+			}
 			session_impl* m_ses;
 			int m_listen_port;
 		};

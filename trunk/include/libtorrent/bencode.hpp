@@ -68,7 +68,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/entry.hpp"
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && _MSC_VER < 1300
 namespace std
 {
 	using ::isdigit;
@@ -226,7 +226,7 @@ namespace libtorrent
 			// ----------------------------------------------
 			// string
 			default:
-				if (std::isdigit(*in))
+				if (isdigit(*in))
 				{
 					std::string len_s = read_until(in, end, ':');
 					assert(*in == ':');

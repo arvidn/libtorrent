@@ -114,7 +114,10 @@ namespace libtorrent
 		entry::integer_type piece_size(unsigned int index) const
 		{
 			if (index == num_pieces()-1)
-				return total_size() % m_piece_length;
+			{
+				entry::integer_type s = total_size() % m_piece_length;
+				return (s == 0)?m_piece_length:s;
+			}
 			else
 				return piece_length();
 		}
