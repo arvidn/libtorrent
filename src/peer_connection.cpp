@@ -402,7 +402,6 @@ namespace libtorrent
 			, m_send_buffer.begin() + pos + 8
 			, 0);
 		// indicate that we support the extension protocol
-		// curently disabled
 #ifdef TORRENT_ENABLE_EXTENSIONS
 		m_send_buffer[pos+7] = 0x01;
 #endif

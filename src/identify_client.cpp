@@ -338,9 +338,11 @@ namespace libtorrent
 			return "SimpleBT";
 		}
 
-		if (std::equal(PID, PID + 8, "turbobt"))
+		if (std::equal(PID, PID + 7, "turbobt"))
 		{
-			return "TurboBT";
+			std::stringstream s;
+			s << "TurboBT " << PID[8] << "." << PID[10] << "." << PID[12];
+			return s.str();
 		}
 
 		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\0\x97"))
