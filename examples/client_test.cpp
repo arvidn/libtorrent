@@ -136,9 +136,9 @@ void clear()
 std::string to_string(float v)
 {
 	std::stringstream s;
-	s.precision(4);
+	s.precision(3);
 	s.flags(std::ios_base::right);
-	s.width(5);
+	s.width(4);
 	s.fill(' ');
 	s << v;
 	return s.str();
@@ -151,7 +151,7 @@ std::string add_suffix(float val)
 	int i;
 	for (i = 0; i < num_prefix; ++i)
 	{
-		if (val < 1024.f)
+		if (abs(val) < 1024.f)
 			return to_string(val) + prefix[i];
 		val /= 1024.f;
 	}
@@ -163,7 +163,7 @@ int main(int argc, char* argv[])
 	using namespace libtorrent;
 
 	// TEMPORARY
-	boost::filesystem::path::default_name_check(boost::filesystem::no_check);
+//	boost::filesystem::path::default_name_check(boost::filesystem::no_check);
 
 	if (argc < 2)
 	{
@@ -244,8 +244,8 @@ int main(int argc, char* argv[])
 				i->get_peer_info(peers);
 				float down = s.download_rate;
 				float up = s.upload_rate;
-				unsigned int total_down = s.total_download;
-				unsigned int total_up = s.total_upload;
+				int total_down = s.total_download;
+				int total_up = s.total_upload;
 				int num_peers = peers.size();
 /*
 				std::cout << boost::format("%f%% p:%d d:(%s) %s/s u:(%s) %s/s\n")
@@ -256,9 +256,20 @@ int main(int argc, char* argv[])
 					% add_suffix(total_up)
 					% add_suffix(up);
 */
-				std::cout << (s.progress*100) << "% p:" << num_peers << " d:("
-					<< add_suffix(total_down) << ") " << add_suffix(down) << "/s u:("
-					<< add_suffix(total_up) << ") " << add_suffix(up) << "/s\n";
+				std::cout << (s.progress*100) << "% ";
+				for (int i = 0; i < 50; ++i)
+				{
+					if (i / 50.f > s.progress)
+						std::cout << "-";
+					else
+						std::cout << "#";
+				}
+				std::cout << "\n";
+
+				std::cout << "peers:" << num_peers << " d:"
+					<< add_suffix(down) << "/s (" << add_suffix(total_down) << ") u:"
+					<< add_suffix(up) << "/s (" << add_suffix(total_up) << ") diff: "
+					<< add_suffix(total_down - total_up) << "\n";
 
 				boost::posix_time::time_duration t = s.next_announce;
 //				std::cout << "next announce: " << boost::posix_time::to_simple_string(t) << "\n";
@@ -270,8 +281,8 @@ int main(int argc, char* argv[])
 				{
 					std::cout << "d: " << add_suffix(i->down_speed) << "/s (" << add_suffix(i->total_download)
 						<< ") u: " << add_suffix(i->up_speed) << "/s (" << add_suffix(i->total_upload)
-						<< ") diff: " << add_suffix(i->total_download - i->total_upload)
-						<< " flags: "
+						<< ") df: " << add_suffix((int)i->total_download - (int)i->total_upload)
+						<< " f: "
 						<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
 						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
 						<< static_cast<const char*>((i->flags & peer_info::remote_interested)?"i":"_")
@@ -279,22 +290,25 @@ int main(int argc, char* argv[])
 
 				}
 
-/*
+				std::cout << "___________________________________\n";
+
 				i->get_download_queue(queue);
 				for (std::vector<partial_piece_info>::iterator i = queue.begin();
 					i != queue.end();
 					++i)
 				{
-					std::cout << i->piece_index << ": ";
+					std::cout.width(4);
+					std::cout.fill(' ');
+					std::cout << i->piece_index << ": |";
 					for (int j = 0; j < i->blocks_in_piece; ++j)
 					{
-						if (i->finished_blocks[j]) std::cout << "+";
-						else if (i->requested_blocks[j]) std::cout << "-";
-						else std::cout << ".";
+						if (i->finished_blocks[j]) std::cout << "#";
+						else if (i->requested_blocks[j]) std::cout << "=";
+						else std::cout << "-";
 					}
-					std::cout << "\n";
+					std::cout << "|\n";
 				}
-*/
+
 				std::cout << "___________________________________\n";
 
 			}
