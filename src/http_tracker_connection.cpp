@@ -81,7 +81,8 @@ namespace libtorrent
 		, unsigned short port
 		, std::string const& request
 		, request_callback* c
-		, const http_settings& stn)
+		, const http_settings& stn
+		, std::string const& password)
 		: tracker_connection(c)
 		, m_state(read_status)
 		, m_content_encoding(plain)
@@ -121,6 +122,7 @@ namespace libtorrent
 		}
 
 		m_send_buffer += request;
+/*
 		m_send_buffer += "?info_hash=";
 		m_send_buffer += escape_string(
 			reinterpret_cast<const char*>(req.info_hash.begin()), 20);
@@ -151,7 +153,7 @@ namespace libtorrent
 		// extension that tells the tracker that
 		// we don't need any peer_id's in the response
 		m_send_buffer += "&no_peer_id=1";
-
+*/
 		m_send_buffer += " HTTP/1.0\r\nAccept-Encoding: gzip\r\n"
 			"User-Agent: ";
 		m_send_buffer += m_settings.user_agent;
@@ -167,6 +169,11 @@ namespace libtorrent
 		{
 			m_send_buffer += "\r\nProxy-Authorization: Basic ";
 			m_send_buffer += base64encode(m_settings.proxy_login + ":" + m_settings.proxy_password);
+		}
+		if (password != "")
+		{
+			m_send_buffer += "\r\nAuthorization: Basic ";
+			m_send_buffer += base64encode(password);
 		}
 		m_send_buffer += "\r\n\r\n";
 	#ifndef NDEBUG

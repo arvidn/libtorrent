@@ -12,28 +12,30 @@ use-project /boost/date_time : $(BOOST_ROOT)/libs/date_time/build ;
 
 project torrent
 	: requirements
-	  <use>/boost/thread
-	  <use>/boost/date_time
-	  <use>/boost/filesystem
+
+	<use>/boost/thread
+	<use>/boost/date_time
+	<use>/boost/filesystem
 		
-	  <library>/boost/thread
-	  <library>/boost/date_time
-	  <library>/boost/filesystem
+	<library>/boost/thread
+	<library>/boost/date_time
+	<library>/boost/filesystem
 
 	: usage-requirements 
 
-	  <include>./include
-	  <include>$(BOOST_ROOT)
+	<include>./include
+	<include>$(BOOST_ROOT)
+	<variant>release:<define>NDEBUG
 
 # devstudio switches
 
-	  <toolset>msvc-7:<cxxflags>/Zc:wchar_t
-	  <toolset>msvc-7.1:<cxxflags>/Zc:wchar_t
-	  <toolset>msvc:<define>WIN32
+	<toolset>msvc-7:<cxxflags>/Zc:wchar_t
+	<toolset>msvc-7.1:<cxxflags>/Zc:wchar_t
+	<toolset>msvc:<define>WIN32
 
 # gcc switches
 
-	  <toolset>gcc:<cxxflags>-Wno-unused-variable
+	<toolset>gcc:<cxxflags>-Wno-unused-variable
 
 	;
 
@@ -82,11 +84,12 @@ SOURCES =
 
 lib torrent
 	:
-	  zlib//zlib
-	  src/$(SOURCES)
-	: <include>./include
-	  <threading>multi
-	  <link>static
+	zlib//zlib
+	src/$(SOURCES)
+	:
+	<include>./include
+	<threading>multi
+	<link>static
 	: debug release
 	;
 

@@ -187,6 +187,7 @@ namespace libtorrent
 		// generates a request string for sending
 		// to the tracker
 		tracker_request generate_tracker_request(int port);
+		std::string tracker_password() const;
 
 		boost::posix_time::ptime next_announce() const
 		{ return m_next_request; }
@@ -260,6 +261,12 @@ namespace libtorrent
 
 		alert_manager& alerts() const;
 		torrent_handle get_handle() const;
+
+		void set_tracker_login(std::string const& name, std::string const& pw)
+		{
+			m_username = name;
+			m_password = pw;
+		}
 
 		// DEBUG
 #ifndef NDEBUG
@@ -349,6 +356,9 @@ namespace libtorrent
 		// tries to maintain.
 		// 0 is infinite
 		float m_ratio;
+
+		std::string m_username;
+		std::string m_password;
 	};
 
 }

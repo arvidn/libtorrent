@@ -590,7 +590,8 @@ namespace libtorrent
 						++i)
 					{
 						i->second->abort();
-						m_tracker_manager.queue_request(i->second->generate_tracker_request(m_listen_port));
+						m_tracker_manager.queue_request(
+							i->second->generate_tracker_request(m_listen_port));
 					}
 					m_connections.clear();
 					m_torrents.clear();
@@ -844,8 +845,9 @@ namespace libtorrent
 					else if (i->second->should_request())
 					{
 						m_tracker_manager.queue_request(
-							i->second->generate_tracker_request(m_listen_port),
-							boost::get_pointer(i->second));
+							i->second->generate_tracker_request(m_listen_port)
+							, boost::get_pointer(i->second)
+							, i->second->tracker_password());
 					}
 
 					i->second->second_tick();
