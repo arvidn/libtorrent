@@ -411,6 +411,7 @@ namespace libtorrent {
 
 		// maps piece index to slot index. -1 means the piece
 		// doesn't exist
+		enum { has_no_slot=-3 };
 		std::vector<int> m_piece_to_slot;
 		// slots that hasn't had any file storage allocated
 		std::vector<int> m_unallocated_slots;
@@ -418,9 +419,12 @@ namespace libtorrent {
 		std::vector<int> m_free_slots;
 
 		// index here is a slot number in the file
-		// -1 : the slot is unallocated
-		// -2 : the slot is allocated but not assigned to a piece
-		//  * : the slot is assigned to this piece
+		// if index>=0, the slot is assigned to this piece
+		// otherwise it can have one of these values:
+		enum {
+			unallocated=-1, // the slot is unallocated
+			unassigned=-2   // the slot is allocated but not assigned to a piece
+		};
 		std::vector<int> m_slot_to_piece;
 
 		boost::filesystem::path m_save_path;
@@ -467,7 +471,7 @@ namespace libtorrent {
 			last != m_slot_to_piece.rend();
 			++last)
 		{
-			if (*last != -1) break;
+			if (*last != unallocated) break;
 		}
 
 		for (std::vector<int>::const_iterator i =
@@ -504,8 +508,8 @@ namespace libtorrent {
 
 		assert(slot_index >= 0);
 
-		m_slot_to_piece[slot_index] = -2;
-		m_piece_to_slot[piece_index] = -1;
+		m_slot_to_piece[slot_index] = unassigned;
+		m_piece_to_slot[piece_index] = has_no_slot;
 		m_free_slots.push_back(slot_index);
 
 #ifndef NDEBUG
@@ -571,8 +575,8 @@ namespace libtorrent {
 		// ----------------------------------------------------------------------
 
 		m_allocating = false;
-		m_piece_to_slot.resize(m_info.num_pieces(), -1);
-		m_slot_to_piece.resize(m_info.num_pieces(), -1);
+		m_piece_to_slot.resize(m_info.num_pieces(), has_no_slot);
+		m_slot_to_piece.resize(m_info.num_pieces(), unallocated);
 
 		m_bytes_left = m_info.total_size();
 
@@ -605,13 +609,13 @@ namespace libtorrent {
 						pieces[found_piece] = true;
 					}
 				}
-				else if (data.piece_map[i] == -2)
+				else if (data.piece_map[i] == unassigned)
 				{
 					m_free_slots.push_back(i);
 				}
 				else
 				{
-					assert(data.piece_map[i] == -1);
+					assert(data.piece_map[i] == unallocated);
 					m_unallocated_slots.push_back(i);
 				}
 			}
@@ -633,8 +637,8 @@ namespace libtorrent {
 
 		int current_slot = 0;
 		std::size_t bytes_to_read = piece_size;
-		std::size_t bytes_current_read = 0;
-		std::size_t seek_into_next = 0;
+		size_type bytes_current_read = 0;
+		size_type seek_into_next = 0;
 		size_type filesize = 0;
 		size_type start_of_read = 0;
 		size_type start_of_file = 0;
@@ -709,7 +713,7 @@ namespace libtorrent {
 			// we are at the start of a new piece
 			// so we store the start of the piece
 			if (bytes_to_read == m_info.piece_size(current_slot))
-				start_of_read = current_slot * piece_size;
+				start_of_read = current_slot * (size_type)piece_size;
 
 			std::size_t bytes_read = 0;
 
@@ -793,8 +797,9 @@ namespace libtorrent {
 				// bytes_left
 				if (pieces[found_piece])
 				{
-					assert(m_piece_to_slot[found_piece] != -1);
-					m_slot_to_piece[m_piece_to_slot[found_piece]] = -2;
+					assert(m_piece_to_slot[found_piece] >= 0);
+					assert(m_piece_to_slot[found_piece] < m_slot_to_piece.size());
+					m_slot_to_piece[m_piece_to_slot[found_piece]] = unassigned;
 					m_free_slots.push_back(m_piece_to_slot[found_piece]);
 				}
 				else
@@ -808,7 +813,7 @@ namespace libtorrent {
 			}
 			else
 			{
-				m_slot_to_piece[current_slot] = -2;
+				m_slot_to_piece[current_slot] = unassigned;
 
 				size_type last_pos =
 					m_info.total_size() - 
@@ -858,7 +863,7 @@ namespace libtorrent {
 
 		int slot_index = m_piece_to_slot[piece_index];
 
-		if (slot_index != -1)
+		if (slot_index != has_no_slot)
 		{
 			assert(slot_index >= 0);
 			assert(slot_index < m_slot_to_piece.size());
@@ -882,7 +887,7 @@ namespace libtorrent {
 
 		if (iter == m_free_slots.end())
 		{
-			assert(m_slot_to_piece[piece_index] != -2);
+			assert(m_slot_to_piece[piece_index] != unassigned);
 			iter = m_free_slots.end() - 1;
 
 			// special case to make sure we don't use the last slot
@@ -901,7 +906,7 @@ namespace libtorrent {
 		slot_index = *iter;
 		m_free_slots.erase(iter);
 
-		assert(m_slot_to_piece[slot_index] == -2);
+		assert(m_slot_to_piece[slot_index] == unassigned);
 
 		m_slot_to_piece[slot_index] = piece_index;
 		m_piece_to_slot[piece_index] = slot_index;
@@ -993,7 +998,7 @@ namespace libtorrent {
 
 			int new_free_slot = pos;
 
-			if (m_piece_to_slot[pos] != -1)
+			if (m_piece_to_slot[pos] != has_no_slot)
 			{
 				assert(m_piece_to_slot[pos] >= 0);
 				m_storage.read(&zeros[0], m_piece_to_slot[pos], 0, m_info.piece_size(pos));
@@ -1002,7 +1007,7 @@ namespace libtorrent {
 				m_piece_to_slot[pos] = pos;
 			}
 
-			m_slot_to_piece[new_free_slot] = -2;
+			m_slot_to_piece[new_free_slot] = unassigned;
 			m_free_slots.push_back(new_free_slot);
 
 			m_storage.write(&zeros[0], pos, 0, m_info.piece_size(pos));
@@ -1034,9 +1039,35 @@ namespace libtorrent {
 		for (int i = 0; i < m_info.num_pieces(); ++i)
 		{
 			if (m_piece_to_slot[i] != i && m_piece_to_slot[i] >= 0)
-				assert(m_slot_to_piece[i] == -1);
+				assert(m_slot_to_piece[i] == unallocated);
 
-			if (m_slot_to_piece[i] == -2)
+			if (m_slot_to_piece[i]>=0)
+			{
+				assert(m_slot_to_piece[i]<m_piece_to_slot.size());
+				assert(m_piece_to_slot[m_slot_to_piece[i]]==i);
+				assert(
+					std::find(
+						m_unallocated_slots.begin()
+						, m_unallocated_slots.end()
+						, i) == m_unallocated_slots.end()
+				);
+				assert(
+					std::find(
+						m_free_slots.begin()
+						, m_free_slots.end()
+						, i) == m_free_slots.end()
+				);
+			}
+			else if (m_slot_to_piece[i] == unallocated)
+			{
+				assert(
+					std::find(
+						m_unallocated_slots.begin()
+						, m_unallocated_slots.end()
+						, i) != m_unallocated_slots.end()
+				);
+			}
+			else if (m_slot_to_piece[i] == unassigned)
 			{
 				assert(
 					std::find(
@@ -1044,6 +1075,10 @@ namespace libtorrent {
 						, m_free_slots.end()
 						, i) != m_free_slots.end()
 				);
+			}
+			else
+			{
+				assert(false && "m_slot_to_piece[i] is invalid");
 			}
 		}
 	}

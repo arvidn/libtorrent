@@ -42,7 +42,6 @@ namespace libtorrent {
 			// will only close old file if the open succeeded
 			close();
 			m_file_handle=new_handle;
-
 		}
 
 		void close()
@@ -64,9 +63,6 @@ namespace libtorrent {
 			assert(buffer);
 			assert(num_bytes>0);
 			assert((DWORD)num_bytes==num_bytes);
-				throw file_error("file::impl::write: num_bytes is negative");
-			if (num_bytes>=DWORD_MAX)
-				throw file_error("file::impl::write: num_bytes does not fit DWORD");
 			DWORD bytes_written=0;
 			if (num_bytes!=0)
 			{
