@@ -63,7 +63,7 @@
 </ul>
 </li>
 <li><a class="reference" href="#extensions" id="id46" name="id46">extensions</a></li>
-<li><a class="reference" href="#aknowledgements" id="id47" name="id47">Aknowledgements</a></li>
+<li><a class="reference" href="#aknowledgements" id="id47" name="id47">aknowledgements</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
@@ -94,25 +94,25 @@ The current state includes the following features:</p>
 thread-safe library interface. (i.e. There's no way for the user to cause a deadlock).</li>
 <li>can limit the upload bandwidth usage and the maximum number of unchoked peers</li>
 <li>piece-wise file allocation</li>
-<li>Implements fair trade. User settable trade-ratio, must at least be 1:1,
+<li>implements fair trade. User settable trade-ratio, must at least be 1:1,
 but one can choose to trade 1 for 2 or any other ratio that isn't unfair to the other
 party.</li>
 <li>fast resume support, a way to get rid of the costly piece check at the start
 of a resumed torrent. Saves the storage state, piece_picker state as well as all local
 peers in a separate fast-resume file.</li>
-<li>Supports the extension protocol <a class="reference" href="http://nolar.com/azureus/extended.htm">described by Nolar</a>. See <a class="reference" href="#extensions">extensions</a>.</li>
-<li>Supports files &gt; 2 gigabytes (currently only on windows).</li>
-<li>Supports the <tt class="literal"><span class="pre">no_peer_id=1</span></tt> extension that will ease the load off trackers.</li>
-<li>Supports the <a class="reference" href="udp_tracker_protocol.html">udp-tracker protocol</a>.</li>
+<li>supports the extension protocol <a class="reference" href="http://nolar.com/azureus/extended.htm">described by Nolar</a>. See <a class="reference" href="#extensions">extensions</a>.</li>
+<li>supports files &gt; 2 gigabytes (currently only on windows).</li>
+<li>supports the <tt class="literal"><span class="pre">no_peer_id=1</span></tt> extension that will ease the load off trackers.</li>
+<li>supports the <a class="reference" href="udp_tracker_protocol.html">udp-tracker protocol</a>.</li>
+<li>possibility to limit the number of connections.</li>
 </ul>
 </blockquote>
 <p>Functions that are yet to be implemented:</p>
 <blockquote>
 <ul class="simple">
-<li>number of connections limit</li>
 <li>better handling of peers that send bad data</li>
 <li>ip-filters</li>
-<li>file-level piece priority</li>
+<li>file-level priority</li>
 </ul>
 </blockquote>
 <p>libtorrent is portable at least among windows, macosx, and UNIX-systems. It uses boost.thread,
@@ -123,6 +123,7 @@ boost.filesystem, boost.date_time and various other boost libraries as well as z
 <li>Cygwin GCC 3.3.1</li>
 <li>Windows 2000 vc7.1</li>
 <li>Linux x86 (debian) GCC 3.0</li>
+<li>Windows 2000, msvc6 sp5 (does not support 64-bit values due to problems with operator&lt;&lt;(ostream&amp;, __int64))</li>
 </ul>
 </blockquote>
 <p>It does not compile on</p>
@@ -1444,7 +1445,7 @@ with future versions of bittorrent.</p>
 +- - - - - - - - - -+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -+ -->
 </div>
 <div class="section" id="aknowledgements">
-<h1><a name="aknowledgements">Aknowledgements</a></h1>
+<h1><a name="aknowledgements">aknowledgements</a></h1>
 <p>Written by Arvid Norberg. Copyright (c) 2003</p>
 <p>Contributions by Magnus Jonsson and Daniel Wallin</p>
 <p>Thanks to Reimond Retz for bugfixes, suggestions and testing</p>

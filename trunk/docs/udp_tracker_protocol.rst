@@ -203,7 +203,7 @@ In case of a tracker error, the server replies with this packet:
 actions
 -------
 
-The action fields has the followinf encoding:
+The action fields has the following encoding:
 
 	* connect = 0
 	* announce = 1
