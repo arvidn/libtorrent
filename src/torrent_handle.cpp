@@ -72,6 +72,7 @@ namespace libtorrent
 			st.total_download = 0;
 			st.progress = 0.f;
 			st.state = torrent_status::invalid_handle;
+			st.next_announce = boost::posix_time::time_duration();
 			return st;
 		}
 
@@ -95,6 +96,7 @@ namespace libtorrent
 				else
 					st.state = torrent_status::queued_for_checking;
 				st.progress = d->progress;
+				st.next_announce = boost::posix_time::time_duration();
 				return st;
 			}
 		}
@@ -104,6 +106,7 @@ namespace libtorrent
 		st.total_download = 0;
 		st.progress = 0.f;
 		st.state = torrent_status::invalid_handle;
+		st.next_announce = boost::posix_time::time_duration();
 		return st;
 	}
 

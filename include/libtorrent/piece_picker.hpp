@@ -54,6 +54,12 @@ namespace libtorrent
 		{}
 		int piece_index;
 		int block_index;
+		bool operator==(const piece_block& b) const
+		{ return piece_index == b.piece_index && block_index == b.block_index; }
+
+		bool operator!=(const piece_block& b) const
+		{ return piece_index != b.piece_index || block_index != b.block_index; }
+
 	};
 
 	class piece_picker
@@ -133,9 +139,11 @@ namespace libtorrent
 		// or if it already has been successfully downlloaded
 		bool is_downloading(piece_block block) const;
 
+		bool is_finished(piece_block block) const;
+
 		// marks this piece-block as queued for downloading
 		void mark_as_downloading(piece_block block, const peer_id& peer);
-		void mark_as_finished(piece_block block);
+		void mark_as_finished(piece_block block, const peer_id& peer);
 
 		// if a piece had a hash-failure, it must be restured and
 		// made available for redownloading

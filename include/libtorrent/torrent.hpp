@@ -152,8 +152,14 @@ namespace libtorrent
 		// the given peer_id (should be kept at max 1)
 		int num_connections(const peer_id& id) const;
 
-		std::vector<peer_connection*>::const_iterator begin() const { return m_connections.begin(); }
-		std::vector<peer_connection*>::const_iterator end() const { return m_connections.end(); }
+		typedef std::vector<peer_connection*>::iterator peer_iterator;
+		typedef std::vector<peer_connection*>::const_iterator peer_const_iterator;
+
+		peer_const_iterator begin() const { return m_connections.begin(); }
+		peer_const_iterator end() const { return m_connections.end(); }
+
+		peer_iterator begin() { return m_connections.begin(); }
+		peer_iterator end() { return m_connections.end(); }
 
 
 // --------------------------------------------
@@ -165,13 +171,13 @@ namespace libtorrent
 
 		void tracker_request_timed_out()
 		{
-			std::cout << "TRACKER TIMED OUT\n";
+			std::cerr << "TRACKER TIMED OUT\n";
 			try_next_tracker();
 		}
 
 		void tracker_request_error(const char* str)
 		{
-			std::cout << "TRACKER ERROR: " << str << "\n";
+			std::cerr << "TRACKER ERROR: " << str << "\n";
 			try_next_tracker();
 		}
 
@@ -179,6 +185,8 @@ namespace libtorrent
 		// to the tracker
 		std::string generate_tracker_request(int port);
 
+		boost::posix_time::ptime next_announce() const
+		{ return m_next_request; }
 
 // --------------------------------------------
 		// PIECE MANAGEMENT
@@ -215,10 +223,6 @@ namespace libtorrent
 #ifndef NDEBUG
 		logger* spawn_logger(const char* title);
 #endif
-
-		// the number of blocks downloaded
-		// that hasn't been verified yet
-		int m_unverified_blocks;
 
 	private:
 

@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_TORRENT_HANDLE_HPP_INCLUDED
 
 #include <vector>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer_info.hpp"
@@ -50,7 +51,8 @@ namespace libtorrent
 
 	struct duplicate_torrent: std::exception
 	{
-		virtual const char* what() const { return "torrent already exists in session"; }
+		virtual const char* what() const throw()
+		{ return "torrent already exists in session"; }
 	};
 
 	struct torrent_status
@@ -66,6 +68,7 @@ namespace libtorrent
 		
 		state_t state;
 		float progress;
+		boost::posix_time::time_duration next_announce;
 		std::size_t total_download;
 		std::size_t total_upload;
 	};
@@ -84,17 +87,15 @@ namespace libtorrent
 	struct torrent_handle
 	{
 		friend class session;
-
 		torrent_handle(): m_ses(0) {}
 
-		void get_peer_info(std::vector<peer_info>& v);
 		void abort();
 
+		void get_peer_info(std::vector<peer_info>& v);
 		torrent_status status() const;
-
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 
-		// TODO: add a 'time to next announce' query.
+		// TODO: add force reannounce
 
 	private:
 
