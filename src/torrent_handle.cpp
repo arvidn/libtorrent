@@ -68,7 +68,6 @@ namespace libtorrent
 	{
 		if (m_ses == 0) throw invalid_handle();
 
-		assert(m_chk != 0);
 		{
 			boost::mutex::scoped_lock l(m_ses->m_mutex);
 			torrent* t = m_ses->find_torrent(m_info_hash);
@@ -80,6 +79,7 @@ namespace libtorrent
 		}
 
 
+		if (m_chk)
 		{
 			boost::mutex::scoped_lock l(m_chk->m_mutex);
 
@@ -97,13 +97,13 @@ namespace libtorrent
 	{
 		if (m_ses == 0) throw invalid_handle();
 
-		assert(m_chk != 0);
 		{
 			boost::mutex::scoped_lock l(m_ses->m_mutex);
 			torrent* t = m_ses->find_torrent(m_info_hash);
 			if (t != 0) return t->status();
 		}
 
+		if (m_chk)
 		{
 			boost::mutex::scoped_lock l(m_chk->m_mutex);
 
@@ -111,10 +111,7 @@ namespace libtorrent
 			if (d != 0)
 			{
 				torrent_status st;
-				st.total_download = 0;
-				st.total_upload = 0;
-				st.download_rate = 0.f;
-				st.upload_rate = 0.f;
+
 				if (d == &m_chk->m_torrents.front())
 					st.state = torrent_status::checking_files;
 				else
@@ -123,7 +120,6 @@ namespace libtorrent
 				st.next_announce = boost::posix_time::time_duration();
 				st.pieces.clear();
 				st.pieces.resize(d->torrent_ptr->torrent_file().num_pieces(), false);
-				st.total_done = 0;
 				return st;
 			}
 		}
@@ -141,6 +137,7 @@ namespace libtorrent
 			if (t != 0) return t->torrent_file();
 		}
 
+		if (m_chk)
 		{
 			boost::mutex::scoped_lock l(m_chk->m_mutex);
 			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
@@ -160,6 +157,7 @@ namespace libtorrent
 			if (t != 0) return true;
 		}
 
+		if (m_chk)
 		{
 			boost::mutex::scoped_lock l(m_chk->m_mutex);
 			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
@@ -190,6 +188,7 @@ namespace libtorrent
 			}
 		}
 
+		if (m_chk)
 		{
 			boost::mutex::scoped_lock l(m_chk->m_mutex);
 			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
@@ -207,7 +206,6 @@ namespace libtorrent
 	{
 		v.clear();
 		if (m_ses == 0) throw invalid_handle();
-		assert(m_chk != 0);
 
 		boost::mutex::scoped_lock l(m_ses->m_mutex);
 		
@@ -235,8 +233,8 @@ namespace libtorrent
 
 			// TODO: add the prev_amount_downloaded and prev_amount_uploaded
 			// from the peer list in the policy
-			p.total_download = statistics.total_download();
-			p.total_upload = statistics.total_upload();
+			p.total_download = statistics.total_payload_download();
+			p.total_upload = statistics.total_payload_upload();
 
 			p.upload_limit = peer->send_quota();
 			p.upload_ceiling = peer->send_quota_limit();
@@ -274,7 +272,6 @@ namespace libtorrent
 		queue.clear();
 
 		if (m_ses == 0) throw invalid_handle();
-		assert(m_chk != 0);
 	
 		boost::mutex::scoped_lock l(m_ses->m_mutex);
 		torrent* t = m_ses->find_torrent(m_info_hash);

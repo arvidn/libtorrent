@@ -51,6 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/peer.hpp"
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/alert.hpp"
+#include "libtorrent/identify_client.hpp"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 namespace std
@@ -177,6 +179,7 @@ namespace libtorrent
 		, m_time_scaler(0)
 		, m_priority(.5)
 		, m_num_pieces(0)
+		, m_got_tracker_response(false)
 	{
 		assert(torrent_file.begin_files() != torrent_file.end_files());
 		m_have_pieces.resize(torrent_file.num_pieces(), false);
@@ -250,6 +253,7 @@ namespace libtorrent
 			tracker_request_error(e.what());
 		}
 
+		m_got_tracker_response = true;
 	}
 
 	bool torrent::has_peer(const peer_id& id) const
@@ -282,6 +286,13 @@ namespace libtorrent
 
 	void torrent::piece_failed(int index)
 	{
+		if (m_ses.m_alerts.should_post(alert::info))
+		{
+			std::stringstream s;
+			s << "hash for piece " << index << " failed";
+			torrent_handle self(&m_ses, 0, m_torrent_file.info_hash());
+			m_ses.m_alerts.post_alert(hash_failed_alert(self, index, s.str()));
+		}
 		std::vector<peer_id> downloaders;
 		m_picker.get_downloaders(downloaders, index);
 
@@ -365,10 +376,10 @@ namespace libtorrent
 		request += boost::lexical_cast<std::string>(port);
 
 		request += "&uploaded=";
-		request += boost::lexical_cast<std::string>(m_stat.total_upload());
+		request += boost::lexical_cast<std::string>(m_stat.total_payload_upload());
 
 		request += "&downloaded=";
-		request += boost::lexical_cast<std::string>(m_stat.total_download());
+		request += boost::lexical_cast<std::string>(m_stat.total_payload_download());
 
 		request += "&left=";
 		request += boost::lexical_cast<std::string>(bytes_left());
@@ -450,7 +461,7 @@ namespace libtorrent
 		m_connections.erase(i);
 
 	#ifndef NDEBUG
-		m_picker.integrity_check(this);
+//		m_picker.integrity_check(this);
 	#endif
 	}
 
@@ -628,10 +639,20 @@ namespace libtorrent
 				- blocks_per_piece;
 		}
 
-		st.total_download = m_stat.total_download();
-		st.total_upload = m_stat.total_upload();
+		// payload transfer
+		st.total_payload_download = m_stat.total_payload_download();
+		st.total_payload_upload = m_stat.total_payload_upload();
+
+		// total transfer
+		st.total_download = m_stat.total_payload_download()
+			+ m_stat.total_protocol_download();
+		st.total_upload = m_stat.total_payload_upload()
+			+ m_stat.total_protocol_upload();
+
+		// transfer rate
 		st.download_rate = m_stat.download_rate();
 		st.upload_rate = m_stat.upload_rate();
+
 		st.progress = (blocks_we_have + unverified_blocks)
 			/ static_cast<float>(total_blocks);
 
@@ -644,13 +665,62 @@ namespace libtorrent
 		st.total_done = (blocks_we_have + unverified_blocks) * m_block_size;
 		st.pieces = m_have_pieces;
 
-		if (m_num_pieces == p.size())
+		if (m_got_tracker_response == false)
+			st.state = torrent_status::connecting_to_tracker;
+		else if (m_num_pieces == p.size())
 			st.state = torrent_status::seeding;
 		else
 			st.state = torrent_status::downloading;
 
 		return st;
 	}
+
+	void torrent::tracker_request_timed_out()
+	{
+#ifndef NDEBUG
+		debug_log("*** tracker timed out");
+#endif
+		if (m_ses.m_alerts.should_post(alert::warning))
+		{
+			std::stringstream s;
+			s << "tracker: \""
+				<< m_torrent_file.trackers()[m_currently_trying_tracker].url
+				<< "\" timed out";
+			torrent_handle self(&m_ses, 0, m_torrent_file.info_hash());
+			m_ses.m_alerts.post_alert(tracker_alert( self, s.str()));
+		}
+		// TODO: increase the retry_delay for
+		// each failed attempt on the same tracker!
+		// maybe we should add a counter that keeps
+		// track of how many times a specific tracker
+		// has timed out?
+		try_next_tracker();
+	}
+
+	// TODO: this function should also take the
+	// HTTP-response code as an argument
+	// with some codes, we should just consider
+	// the tracker as a failure and not retry
+	// it anymore
+	void torrent::tracker_request_error(const char* str)
+	{
+#ifndef NDEBUG
+		debug_log(std::string("*** tracker error: ") + str);
+#endif
+		if (m_ses.m_alerts.should_post(alert::warning))
+		{
+			std::stringstream s;
+			s << "tracker: \""
+				<< m_torrent_file.trackers()[m_currently_trying_tracker].url
+				<< "\" " << str;
+			torrent_handle self(&m_ses, 0, m_torrent_file.info_hash());
+			m_ses.m_alerts.post_alert(tracker_alert(self, s.str()));
+		}
+
+
+		try_next_tracker();
+	}
+
 
 #ifndef NDEBUG
 	void torrent::debug_log(const std::string& line)

@@ -49,8 +49,7 @@ __ http://home.elp.rr.com/tur/multitracker-spec.txt
 
 Functions that are yet to be implemented:
 
-	* more generous optimistic unchoke
-	* better choke/unchoke algorithm
+	* choke/unchoke policy for seed-mode
 	* fast resume
 	* number of connections limit
 	* better handling of peers that send bad data
@@ -139,6 +138,10 @@ The ``session`` class has the following synopsis::
 
 		void set_http_settings(const http_settings& settings);
 		void set_upload_rate_limit(int bytes_per_second);
+
+		std::auto_ptr<alert> pop_alert();
+		void set_severity_level(alert::severity_t s);
+
 	};
 
 Once it's created, it will spawn the main thread that will do all the work.
@@ -182,6 +185,84 @@ increase the port number by one and try again. If it still fails it will continu
 increasing the port number until it succeeds or has failed 9 ports. *This will
 change in the future to give more control of the listen-port.*
 
+The ``pop_alert()`` function is the interface for retrieving alerts, warnings and
+errors from libtorrent. If there hasn't occured any errors (matching your severity
+level) ``pop_alert()`` will return a zero pointer. If there has been some error, it will
+return a pointer to an alert object describing it. You can then use the query the
+alert_ object for information about the error or message. To retrieve any alerts, you
+have to select a severity level using ``set_severity_level()``. It defaults to
+``alert::none``, which means that you don't get any messages at all, ever. You have
+the following levels to select among:
+
++--------------+----------------------------------------------------------+
+| ``none``     | No alert will ever have this severity level, which       |
+|              | effectively filters all messages.                        |
+|              |                                                          |
++--------------+----------------------------------------------------------+
+| ``fatal``    | Fatal errors will have this severity level. Examples can |
+|              | be disk full or something else that will make it         |
+|              | impossible to continue normal execution.                 |
+|              |                                                          |
++--------------+----------------------------------------------------------+
+| ``critical`` | Signals errors that requires user interaction.           |
+|              |                                                          |
++--------------+----------------------------------------------------------+
+| ``warning``  | Messages with the warning severity can be a tracker that |
+|              | times out or responds with invalid data. It will be      |
+|              | retried automatically, and the possible next tracker in  |
+|              | a multitracker sequence will be tried. It does not       |
+|              | require any user interaction.                            |
+|              |                                                          |
++--------------+----------------------------------------------------------+
+| ``info``     | Events that can be considered normal, but still deserves |
+|              | an event. This could be a piece hash that fails.         |
+|              |                                                          |
++--------------+----------------------------------------------------------+
+| ``debug``    | This will include alot of debug events that can be used  |
+|              | both for debugging libtorrent but also when debugging    |
+|              | other clients that are connected to libtorrent. It will  |
+|              | report strange behaviors among the connected peers.      |
+|              |                                                          |
++--------------+----------------------------------------------------------+
+
+When setting a severity level, you will receive messages of that severity and all
+messages that are more sever. If you set ``alert::none`` (the default) you will not recieve
+any events at all.
+
+When you get an alert, you can use ``typeid()`` or ``dynamic_cast<>`` to get more detailed
+information on exactly which type it is. i.e. what kind of error it is. You can also use a
+dispatcher mechanism that's available in libtorrent.
+
+TODO: describe the type dispatching mechanism
+
+The currently available alert types are:
+
+	* tracker_alert
+	* hash_failed_alert
+
+You can try a ``dynamic_cast`` to these types to get more message-pecific information. Here
+are their definitions::
+
+	struct tracker_alert: alert
+	{
+		tracker_alert(const torrent_handle& h, const std::string& msg);
+		virtual std::auto_ptr<alert> clone() const;
+
+		torrent_handle handle;
+	};
+
+	struct hash_failed_alert: alert
+	{
+		hash_failed_alert(
+			const torrent_handle& h
+			, int index
+			, const std::string& msg);
+
+		virtual std::auto_ptr<alert> clone() const;
+
+		torrent_handle handle;
+		int piece_index;
+	};
 
 
 
@@ -471,6 +552,7 @@ It contains the following fields::
 			invalid_handle,
 			queued_for_checking,
 			checking_files,
+			connecting_to_tracker,
 			downloading,
 			seeding
 		};
@@ -478,10 +560,16 @@ It contains the following fields::
 		state_t state;
 		float progress;
 		boost::posix_time::time_duration next_announce;
+
 		std::size_t total_download;
 		std::size_t total_upload;
+
+		std::size_t total_payload_download;
+		std::size_t total_payload_upload;
+
 		float download_rate;
 		float upload_rate;
+
 		std::vector<bool> pieces;
 		std::size_t total_done;
 	};
@@ -490,27 +578,39 @@ It contains the following fields::
 torrent's current task. It may be checking files or downloading. The torrent's
 current task is in the ``state`` member, it will be one of the following:
 
-+-----------------------+----------------------------------------------------------+
-|``queued_for_checking``|The torrent is in the queue for being checked. But there  |
-|                       |currently is another torrent that are being checked.      |
-|                       |This torrent will wait for its turn.                      |
-+-----------------------+----------------------------------------------------------+
-|``checking_files``     |The torrent has not started its download yet, and is      |
-|                       |currently checking existing files.                        |
-+-----------------------+----------------------------------------------------------+
-|``downloading``        |The torrent is being downloaded. This is the state        |
-|                       |most torrents will be in most of the time. The progress   |
-|                       |meter will tell how much of the files that has been       |
-|                       |downloaded.                                               |
-+-----------------------+----------------------------------------------------------+
-|``seeding``            |In this state the torrent has finished downloading and    |
-|                       |is a pure seeder.                                         |
-+-----------------------+----------------------------------------------------------+
++--------------------------+----------------------------------------------------------+
+|``queued_for_checking``   |The torrent is in the queue for being checked. But there  |
+|                          |currently is another torrent that are being checked.      |
+|                          |This torrent will wait for its turn.                      |
+|                          |                                                          |
++--------------------------+----------------------------------------------------------+
+|``checking_files``        |The torrent has not started its download yet, and is      |
+|                          |currently checking existing files.                        |
+|                          |                                                          |
++--------------------------+----------------------------------------------------------+
+|``connecting_to_tracker`` |The torrent has sent a request to the tracker and is      |
+|                          |currently waiting for a response                          |
+|                          |                                                          |
++--------------------------+----------------------------------------------------------+
+|``downloading``           |The torrent is being downloaded. This is the state        |
+|                          |most torrents will be in most of the time. The progress   |
+|                          |meter will tell how much of the files that has been       |
+|                          |downloaded.                                               |
+|                          |                                                          |
++--------------------------+----------------------------------------------------------+
+|``seeding``               |In this state the torrent has finished downloading and    |
+|                          |is a pure seeder.                                         |
+|                          |                                                          |
++--------------------------+----------------------------------------------------------+
 
 ``next_announce`` is the time until the torrent will announce itself to the tracker.
 
 ``total_download`` and ``total_upload`` is the number of bytes downloaded and
 uploaded to all peers, accumulated, *this session* only.
+
+``total_payload_download`` and ``total_payload_upload`` counts the amount of bytes
+send and received this session, but only the actual oayload data (i.e the interesting
+data), these counters ignore any protocol overhead.
 
 ``pieces`` is the bitmask that representw which pieces we have (set to true) and
 the pieces we don't have.
@@ -839,6 +939,32 @@ The ``major``, ``minor``, ``revision`` and ``tag`` parameters are used to identi
 version of your client. All these numbers must be within the range [0, 9].
 
 ``to_string()`` will generate the actual string put in the peer-id, and return it.
+
+alert
+-----
+
+The ``alert`` class is used to pass messages of events from the libtorrent code
+to the user. It is a base class that specific messages are derived from. This
+is its synopsis::
+
+	class alert
+	{
+	public:
+
+		enum severity_t { debug, info, warning, critital, fatal, none };
+
+		alert(severity_t severity, const std::string& msg);
+
+		virtual ~alert() {}
+
+		const std::string& msg() const;
+		severity_t severity() const;
+
+		virtual std::auto_ptr<alert> clone() const = 0;
+	};
+
+
+
 
 exceptions
 ----------

@@ -593,8 +593,8 @@ namespace libtorrent
 		assert(i != m_peers.end());
 
 		i->connected = boost::posix_time::second_clock::local_time();
-		i->prev_amount_download += c.statistics().total_download();
-		i->prev_amount_upload += c.statistics().total_upload();
+		i->prev_amount_download += c.statistics().total_payload_download();
+		i->prev_amount_upload += c.statistics().total_payload_upload();
 		if (!i->connection->is_choked() && !m_torrent->is_aborted())
 		{
 			--m_num_unchoked;
@@ -651,7 +651,7 @@ namespace libtorrent
 	int policy::peer::total_download() const
 	{
 		if (connection != 0)
-			return connection->statistics().total_download()
+			return connection->statistics().total_payload_download()
 				+ prev_amount_download;
 		else
 			return prev_amount_download;
@@ -660,7 +660,7 @@ namespace libtorrent
 	int policy::peer::total_upload() const
 	{
 		if (connection != 0)
-			return connection->statistics().total_upload()
+			return connection->statistics().total_payload_upload()
 				+ prev_amount_upload;
 		else
 			return prev_amount_upload;

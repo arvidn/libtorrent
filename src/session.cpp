@@ -337,6 +337,7 @@ namespace libtorrent
 			, m_tracker_manager(m_settings)
 			, m_listen_port(listen_port)
 			, m_upload_rate(-1)
+			, m_incoming_connection(false)
 		{
 
 			// ---- generate a peer id ----
@@ -462,6 +463,7 @@ namespace libtorrent
 						if (s)
 						{
 							// we got a connection request!
+							m_incoming_connection = true;
 #ifndef NDEBUG
 							(*m_logger) << s->sender().as_string() << " <== INCOMING CONNECTION\n";
 #endif
@@ -864,203 +866,15 @@ namespace libtorrent
 
 	std::auto_ptr<alert> session::pop_alert()
 	{
-		return m_impl.m_alerts.get();
+		if (m_impl.m_alerts.pending())
+			return m_impl.m_alerts.get();
+		else
+			return std::auto_ptr<alert>(0);
 	}
 
-	namespace
+	void session::set_severity_level(alert::severity_t s)
 	{
-
-		// takes a peer id and returns a valid boost::optional
-		// object if the peer id matched the azureus style encoding
-		// the returned fingerprint contains information about the
-		// client's id
-		boost::optional<fingerprint> parse_az_style(const peer_id& id)
-		{
-			fingerprint ret("..", 0, 0, 0, 0);
-			peer_id::const_iterator i = id.begin();
-
-			if (*i != '-') return boost::optional<fingerprint>();
-			++i;
-
-			for (int j = 0; j < 2; ++j)
-			{
-				if (!std::isprint(*i)) return boost::optional<fingerprint>();
-				ret.id[j] = *i;
-				++i;
-			}
-
-			if (!std::isdigit(*i)) return boost::optional<fingerprint>();
-			ret.major_version = *i - '0';
-			++i;
-
-			if (!std::isdigit(*i)) return boost::optional<fingerprint>();
-			ret.minor_version = *i - '0';
-			++i;
-
-			if (!std::isdigit(*i)) return boost::optional<fingerprint>();
-			ret.revision_version = *i - '0';
-			++i;
-
-			if (!std::isdigit(*i)) return boost::optional<fingerprint>();
-			ret.tag_version = *i - '0';
-			++i;
-
-			if (*i != '-') return boost::optional<fingerprint>();
-
-			return boost::optional<fingerprint>(ret);
-		}
-
-		// checks if a peer id can possibly contain a shadow-style
-		// identification
-		boost::optional<fingerprint> parse_shadow_style(const peer_id& id)
-		{
-			fingerprint ret("..", 0, 0, 0, 0);
-			peer_id::const_iterator i = id.begin();
-
-			if (!std::isprint(*i)) return boost::optional<fingerprint>();
-			ret.id[0] = *i;
-			ret.id[1] = 0;
-			++i;
-
-			if (id[8] == 45)
-			{
-				if (!std::isdigit(*i)) return boost::optional<fingerprint>();
-				ret.major_version = *i - '0';
-				++i;
-
-				if (!std::isdigit(*i)) return boost::optional<fingerprint>();
-				ret.minor_version = *i - '0';
-				++i;
-
-				if (!std::isdigit(*i)) return boost::optional<fingerprint>();
-				ret.revision_version = *i - '0';
-			}
-			else if (id[0] == 0)
-			{
-				if (*i > 127) return boost::optional<fingerprint>();
-				ret.major_version = *i;
-				++i;
-
-				if (*i > 127) return boost::optional<fingerprint>();
-				ret.minor_version = *i;
-				++i;
-
-				if (*i > 127) return boost::optional<fingerprint>();
-				ret.revision_version = *i;
-			}
-			else
-				return boost::optional<fingerprint>();
-
-
-			ret.tag_version = 0;
-			return boost::optional<fingerprint>(ret);
-		}
-
-	} // namespace unnamed
-
-
-
-	// TODO: document
-	std::string identify_client(const peer_id& p)
-	{
-		peer_id::const_iterator PID = p.begin();
-		boost::optional<fingerprint> f;
-	  
-
-		// look for azureus style id	
-		f = parse_az_style(p);
-		if (f)
-		{
-			std::stringstream identity;
-
-			// azureus
-			if (std::equal(f->id, f->id+2, "AZ"))
-				identity << "Azureus ";
-
-			// BittorrentX
-			else if (std::equal(f->id, f->id+2, "BX"))
-				identity << "BittorrentX ";
-
-			// libtorrent
-			else if (std::equal(f->id, f->id+2, "LT"))
-				identity << "libtorrent ";
-
-			// unknown client
-			else
-				identity << std::string(f->id, f->id+2) << " ";
-
-			identity << (int)f->major_version
-				<< "." << (int)f->minor_version
-				<< "." << (int)f->revision_version
-				<< "." << (int)f->tag_version;
-
-			return identity.str();
-		}
-	
-
-		// look for shadow style id	
-		f = parse_shadow_style(p);
-		if (f)
-		{
-			std::stringstream identity;
-
-			// Shadow
-			if (std::equal(f->id, f->id+1, "S"))
-				identity << "Shadow ";
-
-			// UPnP
-			else if (std::equal(f->id, f->id+1, "U"))
-				identity << "UPnP ";
-
-			// unknown client
-			else
-				identity << std::string(f->id, f->id+1) << " ";
-
-			identity << (int)f->major_version
-				<< "." << (int)f->minor_version
-				<< "." << (int)f->revision_version;
-
-			return identity.str();
-		}
-	
-		// ----------------------
-		// non standard encodings
-		// ----------------------
-
-
-		if (std::equal(PID + 5, PID + 5 + 8, "Azureus"))
-		{
-			return "Azureus 2.0.3.2";
-		}
-	
-
-		if (std::equal(PID, PID + 11, "DansClient"))
-		{
-			return "XanTorrent";
-		}
-
-		if (std::equal(PID, PID + 7, "btfans"))
-		{
-			return "BitComet";
-		}
-
-		if (std::equal(PID, PID + 8, "turbobt"))
-		{
-			return "TurboBT";
-		}
-
-
-		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\x97"))
-		{
-			return "Experimental 3.2.1b2";
-		}
-
-		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\0"))
-		{
-			return "Experimental 3.1";
-		}
-
-		return "Generic";
-	} 
+		m_impl.m_alerts.set_severity(s);
+	}
 
 }

@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/http_settings.hpp"
+#include "libtorrent/identify_client.hpp"
 
 #ifdef WIN32
 
@@ -181,15 +182,18 @@ int main(int argc, char* argv[])
 //	settings.proxy_password = "foobar";
 	settings.user_agent = "example";
 
+	std::deque<std::string> events;
+
 	try
 	{
 		std::vector<torrent_handle> handles;
-		session s(6881);
+		session ses(6881);
 
 		// limit upload rate to 100 kB/s
-		s.set_upload_rate_limit(100 * 1024);
+		ses.set_upload_rate_limit(100 * 1024);
+		ses.set_http_settings(settings);
+		ses.set_severity_level(alert::info);
 
-		s.set_http_settings(settings);
 		for (int i = 0; i < argc-1; ++i)
 		{
 			try
@@ -199,8 +203,8 @@ int main(int argc, char* argv[])
 				entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
 				torrent_info t(e);
 				t.print(std::cout);
-				handles.push_back(s.add_torrent(t, ""));
-				handles.back().set_max_uploads(20);
+				handles.push_back(ses.add_torrent(t, ""));
+				handles.back().set_max_uploads(40);
 			}
 			catch (std::exception& e)
 			{
@@ -219,6 +223,15 @@ int main(int argc, char* argv[])
 				if (c == 'q') break;
 			}
 
+			std::auto_ptr<alert> a;
+			a = ses.pop_alert();
+			while (a.get())
+			{
+				if (events.size() >= 6) events.pop_front();
+				events.push_front(a->msg());
+				a = ses.pop_alert();
+			}
+
 			std::stringstream out;
 			for (std::vector<torrent_handle>::iterator i = handles.begin();
 				i != handles.end();
@@ -234,15 +247,17 @@ int main(int argc, char* argv[])
 					case torrent_status::checking_files:
 						out << "checking ";
 						break;
+					case torrent_status::connecting_to_tracker:
+						out << "connecting to tracker ";
+						break;
 					case torrent_status::downloading:
-						out << "dloading ";
+						out << "downloading ";
 						break;
 					case torrent_status::seeding:
 						out << "seeding ";
 						break;
 				};
 
-				// calculate download and upload speeds
 				i->get_peer_info(peers);
 				float down = s.download_rate;
 				float up = s.upload_rate;
@@ -332,6 +347,13 @@ int main(int argc, char* argv[])
 
 				out << "___________________________________\n";
 
+			}
+
+			for (std::deque<std::string>::iterator i = events.begin();
+				i != events.end();
+				++i)
+			{
+				out << *i << "\n";
 			}
 
 			clear();

@@ -241,8 +241,8 @@ namespace libtorrent
 		int share_diff() const
 		{
 			return m_free_upload
-				+ m_statistics.total_download()
-				- m_statistics.total_upload();
+				+ m_statistics.total_payload_download()
+				- m_statistics.total_payload_upload();
 		}
 
 #ifndef NDEBUG
