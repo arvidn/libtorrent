@@ -260,8 +260,8 @@ namespace libtorrent
 		int interval = detail::read_int32(buf);
 		int incomplete = detail::read_int32(buf);
 		int complete = detail::read_int32(buf);
-		int num_peers = (len - 24) / 6;
-		if ((len - 24) % 6 != 0)
+		int num_peers = (len - 20) / 6;
+		if ((len - 20) % 6 != 0)
 		{
 			if (has_requester())
 				requester().tracker_request_error(
