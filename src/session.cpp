@@ -433,17 +433,6 @@ namespace libtorrent
 				loops_per_second = 0;
 #endif
 
-				// distribute the maximum upload rate among the peers
-				// TODO: implement an intelligent algorithm that
-				// will shift bandwidth from the peers that can't
-				// utilize all their assigned bandwidth to the peers
-				// that actually can maintain the upload rate.
-				// This should probably be done by accumulating the
-				// left-over bandwidth to next second. Since the
-				// the sockets consumes its data in rather big chunks.
-
-				control_upload_rates(m_upload_rate, m_connections);
-
 				// do the second_tick() on each connection
 				// this will update their statistics (download and upload speeds)
 				// also purge sockets that have timed out
@@ -495,21 +484,19 @@ namespace libtorrent
 					i->second->second_tick();
 					++i;
 				}
+				// distribute the maximum upload rate among the peers
+				// TODO: implement an intelligent algorithm that
+				// will shift bandwidth from the peers that can't
+				// utilize all their assigned bandwidth to the peers
+				// that actually can maintain the upload rate.
+				// This should probably be done by accumulating the
+				// left-over bandwidth to next second. Since the
+				// the sockets consumes its data in rather big chunks.
+
+				control_upload_rates(m_upload_rate, m_connections);
+
+
 				m_tracker_manager.tick();
-
-#ifndef NDEBUG
-				(*m_logger) << "peers: " << m_connections.size() << "                           \n";
-				for (connection_map::iterator i = m_connections.begin();
-					i != m_connections.end();
-					++i)
-				{
-					(*m_logger) << "h: " << i->first->sender().as_string()
-						<< " | down: " << i->second->statistics().download_rate()
-						<< " b/s | up: " << i->second->statistics().upload_rate()
-						<< " b/s             \n";
-				}
-#endif
-
 			}
 
 			while (!m_tracker_manager.send_finished())

@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 bool sleep_and_input(char* c)
 {
-	Sleep(500);
+	Sleep(1000);
 	if (kbhit())
 	{
 		*c = getch();
@@ -216,8 +216,7 @@ int main(int argc, char* argv[])
 				if (c == 'q') break;
 			}
 
-			clear();
-			set_cursor(0, 0);
+			std::stringstream out;
 			for (std::vector<torrent_handle>::iterator i = handles.begin();
 				i != handles.end();
 				++i)
@@ -227,16 +226,16 @@ int main(int argc, char* argv[])
 				switch(s.state)
 				{
 					case torrent_status::queued_for_checking:
-						std::cout << "queued ";
+						out << "queued ";
 						break;
 					case torrent_status::checking_files:
-						std::cout << "checking ";
+						out << "checking ";
 						break;
 					case torrent_status::downloading:
-						std::cout << "dloading ";
+						out << "dloading ";
 						break;
 					case torrent_status::seeding:
-						std::cout << "seeding ";
+						out << "seeding ";
 						break;
 				};
 
@@ -256,33 +255,35 @@ int main(int argc, char* argv[])
 					% add_suffix(total_up)
 					% add_suffix(up);
 */
-				std::cout.precision(4);
-				std::cout.width(5);
-				std::cout.fill(' ');
-				std::cout << (s.progress*100) << "% ";
+				out.precision(4);
+				out.width(5);
+				out.fill(' ');
+				out << (s.progress*100) << "% ";
 				for (int i = 0; i < 50; ++i)
 				{
 					if (i / 50.f > s.progress)
-						std::cout << "-";
+						out << "-";
 					else
-						std::cout << "#";
+						out << "#";
 				}
-				std::cout << "\n";
+				out << "\n";
 
-				std::cout << "peers:" << num_peers << " d:"
-					<< add_suffix(down) << "/s (" << add_suffix(total_down) << ") u:"
-					<< add_suffix(up) << "/s (" << add_suffix(total_up) << ") diff: "
-					<< add_suffix(total_down - total_up) << "\n";
+				out << "peers: " << num_peers << " "
+					<< "d:" << add_suffix(down) << "/s "
+					<< "(" << add_suffix(total_down) << ") "
+					<< "u:" << add_suffix(up) << "/s "
+					<< "(" << add_suffix(total_up) << ") "
+					<< "diff: " << add_suffix(total_down - total_up) << "\n";
 
 				boost::posix_time::time_duration t = s.next_announce;
 //				std::cout << "next announce: " << boost::posix_time::to_simple_string(t) << "\n";
-				std::cout << "next announce: " << t.hours() << ":" << t.minutes() << ":" << t.seconds() << "\n";
+				out << "next announce: " << t.hours() << ":" << t.minutes() << ":" << t.seconds() << "\n";
 
 				for (std::vector<peer_info>::iterator i = peers.begin();
 					i != peers.end();
 					++i)
 				{
-					std::cout << "d: " << add_suffix(i->down_speed) << "/s "
+					out << "d: " << add_suffix(i->down_speed) << "/s "
 						<< "(" << add_suffix(i->total_download) << ") "
 						<< "u: " << add_suffix(i->up_speed) << "/s "
 						<< "(" << add_suffix(i->total_upload) << ") "
@@ -293,31 +294,33 @@ int main(int argc, char* argv[])
 						<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
 						<< static_cast<const char*>((i->flags & peer_info::remote_interested)?"i":"_")
 						<< static_cast<const char*>((i->flags & peer_info::remote_choked)?"c":"_") << "\n";
-
 				}
 
-				std::cout << "___________________________________\n";
+				out << "___________________________________\n";
 
 				i->get_download_queue(queue);
 				for (std::vector<partial_piece_info>::iterator i = queue.begin();
 					i != queue.end();
 					++i)
 				{
-					std::cout.width(4);
-					std::cout.fill(' ');
-					std::cout << i->piece_index << ": |";
+					out.width(4);
+					out.fill(' ');
+					out << i->piece_index << ": |";
 					for (int j = 0; j < i->blocks_in_piece; ++j)
 					{
-						if (i->finished_blocks[j]) std::cout << "#";
-						else if (i->requested_blocks[j]) std::cout << "=";
-						else std::cout << "-";
+						if (i->finished_blocks[j]) out << "#";
+						else if (i->requested_blocks[j]) out << "=";
+						else out << "-";
 					}
-					std::cout << "|\n";
+					out << "|\n";
 				}
 
-				std::cout << "___________________________________\n";
-
+				out << "___________________________________\n";
 			}
+
+			clear();
+			set_cursor(0, 0);
+			std::cout << out.str();
 		}
 	}
 	catch (std::exception& e)
