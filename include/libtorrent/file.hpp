@@ -99,7 +99,7 @@ namespace libtorrent
 		size_type write(const char*, size_type num_bytes);
 		size_type read(char*, size_type num_bytes);
 
-		void seek(size_type pos, seek_mode m);
+		void seek(size_type pos, seek_mode m = begin);
 		size_type tell();
 
 	private:
