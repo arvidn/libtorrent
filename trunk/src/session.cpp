@@ -558,13 +558,16 @@ namespace libtorrent { namespace detail
 				++i)
 			{
 				connection_map::iterator p = m_connections.find(*i);
-				if (m_alerts.should_post(alert::debug))
+				if (p != m_connections.end())
 				{
-					m_alerts.post_alert(
-						peer_error_alert(
-							p->first->sender()
-							, p->second->id()
-							, "connection closed"));
+					if (m_alerts.should_post(alert::debug))
+					{
+						m_alerts.post_alert(
+							peer_error_alert(
+								p->first->sender()
+								, p->second->id()
+								, "connection closed"));
+					}
 				}
 
 				m_selector.remove(*i);
