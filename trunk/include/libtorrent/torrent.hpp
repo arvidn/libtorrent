@@ -178,7 +178,7 @@ namespace libtorrent
 
 		// generates a request string for sending
 		// to the tracker
-		std::string generate_tracker_request(int port);
+		tracker_request generate_tracker_request(int port);
 
 		boost::posix_time::ptime next_announce() const
 		{ return m_next_request; }
@@ -209,7 +209,7 @@ namespace libtorrent
 		// so it wont pick it for download
 		void announce_piece(int index);
 
-		void close_all_connections();
+		void disconnect_all();
 		void disconnect_seeds();
 
 		piece_picker& picker() { return m_picker; }

@@ -482,45 +482,26 @@ namespace libtorrent
 			i->second->announce_piece(index);
 	}
 
-	std::string torrent::generate_tracker_request(int port)
+	tracker_request torrent::generate_tracker_request(int port)
 	{
 		m_duration = 1800;
 		m_next_request = boost::posix_time::second_clock::local_time() + boost::posix_time::seconds(m_duration);
 
-		std::vector<char> buffer;
-		std::string request = m_torrent_file.trackers()[m_currently_trying_tracker].url;
-
-		request += "?info_hash=";
-		request += escape_string(reinterpret_cast<const char*>(m_torrent_file.info_hash().begin()), 20);
-
-		request += "&peer_id=";
-		request += escape_string(reinterpret_cast<const char*>(m_ses.get_peer_id().begin()), 20);
-
-		request += "&port=";
-		request += boost::lexical_cast<std::string>(port);
-
-		request += "&uploaded=";
-		request += boost::lexical_cast<std::string>(m_stat.total_payload_upload());
-
-		request += "&downloaded=";
-		request += boost::lexical_cast<std::string>(m_stat.total_payload_download());
-
-		request += "&left=";
-		request += boost::lexical_cast<std::string>(bytes_left());
-
+		tracker_request req;
+		req.info_hash = m_torrent_file.info_hash();
+		req.id = m_ses.get_peer_id();
+		req.downloaded = m_stat.total_payload_download();
+		req.uploaded = m_stat.total_payload_upload();
+		req.left = bytes_left();
+		req.listen_port = port;
 		if (m_event != event_none)
 		{
 			const char* event_string[] = {"started", "stopped", "completed"};
-			request += "&event=";
-			request += event_string[m_event];
+			req.event += event_string[m_event];
 			m_event = event_none;
 		}
-
-		// extension that tells the tracker that
-		// we don't need any peer_id's in the response
-		request += "&no_peer_id=1";
-
-		return request;
+		req.url = m_torrent_file.trackers()[m_currently_trying_tracker].url;
+		return req;
 	}
 
 	void torrent::parse_response(const entry& e, std::vector<peer_entry>& peer_list)
@@ -634,7 +615,7 @@ namespace libtorrent
 		m_policy->new_connection(*i->second);
 	}
 
-	void torrent::close_all_connections()
+	void torrent::disconnect_all()
 	{
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end();

@@ -104,6 +104,7 @@ namespace libtorrent
 		, m_num_invalid_requests(0)
 		, m_last_piece(boost::gregorian::date(std::time(0)))
 		, m_last_piece_time(boost::posix_time::seconds(0))
+		, m_disconnecting(false)
 	{
 		assert(!m_socket->is_blocking());
 		assert(m_torrent != 0);
@@ -163,6 +164,7 @@ namespace libtorrent
 		, m_num_invalid_requests(0)
 		, m_last_piece(boost::gregorian::date(std::time(0)))
 		, m_last_piece_time(boost::posix_time::seconds(0))
+		, m_disconnecting(false)
 	{
 		assert(!m_socket->is_blocking());
 
@@ -868,7 +870,9 @@ namespace libtorrent
 
 	void peer_connection::disconnect()
 	{
+		assert(m_disconnecting == false);
 		detail::session_impl::connection_map::iterator i = m_ses.m_connections.find(m_socket);
+		m_disconnecting = true;
 		assert(i != m_ses.m_connections.end());
 		assert(std::find(m_ses.m_disconnect_peer.begin(), m_ses.m_disconnect_peer.end(), i) == m_ses.m_disconnect_peer.end());
 		m_ses.m_disconnect_peer.push_back(i);
