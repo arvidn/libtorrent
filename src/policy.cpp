@@ -367,6 +367,9 @@ namespace libtorrent
 			if(i->connection) continue;
 			if(i->banned) continue;
 
+			// TODO: Don't connect to peers that were discovered through
+			// remote connection, since we don't know the port.
+
 			assert(i->connected <= local_time);
 
 			boost::posix_time::ptime next_connect=i->connected + boost::posix_time::seconds(2*60);

@@ -282,6 +282,11 @@ int main(int argc, char* argv[])
 					}
 					break;
 				}
+
+				if(c==' ')
+				{
+					events.pop_back();
+				}
 			}
 
 			std::auto_ptr<alert> a;
@@ -411,14 +416,14 @@ int main(int argc, char* argv[])
 				out << "___________________________________\n";
 */
 			}
-/*
+
 			for (std::deque<std::string>::iterator i = events.begin();
 				i != events.end();
 				++i)
 			{
 				out << *i << "\n";
 			}
-*/
+
 			clear();
 			set_cursor(0, 0);
 			std::cout << out.str();
