@@ -40,10 +40,13 @@ The current state includes the following features:
 	* Supports the extension protocol `described by Nolar`__. See extensions_.
 	* Supports files > 2 gigabytes (currently only on windows).
 	* Supports the ``no_peer_id=1`` extension that will ease the load off trackers.
+	* Supports the `udp-tracker protocol`__.
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
 .. _Azureus: http://azureus.sourceforge.net
 __ http://nolar.com/azureus/extended.htm
+__ udp_tracker_protocol.html
+
 
 Functions that are yet to be implemented:
 
@@ -171,7 +174,7 @@ The main thread will be idle as long it doesn't have any torrents to participate
 You add torrents through the ``add_torrent()``-function where you give an
 object representing the information found in the torrent file and the path where you
 want to save the files. The ``save_path`` will be prepended to the directory-
-structure in the torrent-file. ``add_torrent`` will throw ``duplicate_torrent`` exception
+structure in the torrent-file. ``add_torrent`` will throw duplicate_torrent_ exception
 if the torrent already exists in the session.
 
 The optional last parameter, ``resume_data`` can be given if up to date fast-resume data
@@ -183,7 +186,7 @@ the tracker that we've stopped participating in the swarm.
 
 If the torrent you are trying to add already exists in the session (is either queued
 for checking, being checked or downloading) ``add_torrent()`` will throw
-``duplicate_torrent`` which derives from ``std::exception``.
+duplicate_torrent_ which derives from ``std::exception``.
 
 The difference between the two constructors is that one of them takes a fingerprint
 as argument. If this is ommited, the client will get a default fingerprint stating
@@ -200,8 +203,6 @@ If some trackers are down, they will timout. All this before the destructor of s
 returns. So, it's adviced that any kind of interface (such as windows) are closed before
 destructing the sessoin object. Because it can take a few second for it to finish. The
 timeout can be set with ``set_http_settings()``.
-
-How to parse a torrent file and create a ``torrent_info`` object is described below.
 
 The torrent_handle_ returned by ``add_torrent`` can be used to retrieve information
 about the torrent's progress, its peers etc. It is also used to abort a torrent.
@@ -487,6 +488,7 @@ Its declaration looks like this::
 		boost::filsystem::path save_path() const;
 
 		void set_max_uploads(int max_uploads);
+		void set_max_connections(int max_connections);
 
 		sha1_hash info_hash() const;
 
@@ -525,6 +527,11 @@ as a standard client.
 
 ``set_max_uploads()`` sets the maximum number of peers that's unchoked at the same time on this
 torrent. If you set this to -1, there will be no limit.
+
+``set_max_connections()`` sets the maximum number of connection this torrent will open. If all
+connections are used up, incoming connections may be refused or poor connections may be closed.
+This must be at least 2. The default is unlimited number of connections. If -1 is given to the
+function, it means unlimited.
 
 ``write_resume_data()`` generates fast-resume data and returns it as an entry. This entry
 is suitable for being bencoded. For more information about how fast-resume works, see `fast resume`_.
@@ -772,7 +779,7 @@ the total number of bytes in this block.
 get_torrent_info()
 ------------------
 
-Returns a const reference to the ``torrent_info`` object associated with this torrent.
+Returns a const reference to the torrent_info_ object associated with this torrent.
 This reference is valid as long as the torrent_handle_ is valid, no longer. If the
 torrent_handle_ is invalid, invalid_handle_ exception will be thrown.
 
@@ -1514,9 +1521,9 @@ with future versions of bittorrent.
 Aknowledgements
 ===============
 
-Written by Arvid Norberg and Daniel Wallin. Copyright (c) 2003
+Written by Arvid Norberg. Copyright (c) 2003
 
-Contributions by Magnus Jonsson
+Contributions by Magnus Jonsson and Daniel Wallin
 
 Thanks to Reimond Retz for bugfixes, suggestions and testing
 

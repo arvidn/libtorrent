@@ -253,15 +253,17 @@ namespace libtorrent
 
 #ifndef NDEBUG
 		std::stringstream s;
-		s << "interval: " << m_duration << "\n";
-		s << "peers:\n";
+		s << "TRACKER RESPONSE:\n"
+			"interval: " << m_duration << "\n"
+			"peers:\n";
 		for (std::vector<peer_entry>::const_iterator i = peer_list.begin();
 			i != peer_list.end();
 			++i)
 		{
 			s << "  " << std::setfill(' ') << std::setw(16) << i->ip
-				<< " " << std::setw(5) << std::dec << i->port << "  "
-				<< i->id << " " << identify_client(i->id) << "\n";
+				<< " " << std::setw(5) << std::dec << i->port << "  ";
+			if (!i->id.is_all_zeros()) s << " " << i->id << " " << identify_client(i->id);
+			s << "\n";
 		}
 		debug_log(s.str());
 #endif
@@ -746,7 +748,7 @@ namespace libtorrent
 	// with some codes, we should just consider
 	// the tracker as a failure and not retry
 	// it anymore
-	void torrent::tracker_request_error(int response_code, const char* str)
+	void torrent::tracker_request_error(int response_code, const std::string& str)
 	{
 #ifndef NDEBUG
 		debug_log(std::string("*** tracker error: ") + str);

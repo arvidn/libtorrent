@@ -94,6 +94,7 @@ namespace libtorrent
 
 	void torrent_handle::set_max_connections(int max_connections)
 	{
+		assert(max_connections >= 2);
 		if (m_ses == 0) throw invalid_handle();
 
 		{

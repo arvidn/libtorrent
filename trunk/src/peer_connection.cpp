@@ -285,8 +285,8 @@ namespace libtorrent
 
 		const char* ptr = &m_recv_buffer[1];
 		peer_request r;
-		r.piece = detail::read_int(ptr);
-		r.start = detail::read_int(ptr);
+		r.piece = detail::read_int32(ptr);
+		r.start = detail::read_int32(ptr);
 		r.length = m_packet_size - 9;
 
 		// is any of the piece message header data invalid?
@@ -406,7 +406,7 @@ namespace libtorrent
 		if (m_recv_pos < m_packet_size) return;
 
 		const char* ptr = &m_recv_buffer[1];
-		int index = detail::read_int(ptr);
+		int index = detail::read_int32(ptr);
 		// if we got an invalid message, abort
 		if (index >= m_have_piece.size() || index < 0)
 			throw protocol_error("have message with higher index than the number of pieces");
@@ -514,9 +514,9 @@ namespace libtorrent
 
 		peer_request r;
 		const char* ptr = &m_recv_buffer[1];
-		r.piece = detail::read_int(ptr);
-		r.start = detail::read_int(ptr);
-		r.length = detail::read_int(ptr);
+		r.piece = detail::read_int32(ptr);
+		r.start = detail::read_int32(ptr);
+		r.length = detail::read_int32(ptr);
 
 		// make sure this request
 		// is legal and taht the peer
@@ -602,8 +602,8 @@ namespace libtorrent
 
 		const char* ptr = &m_recv_buffer[1];
 		peer_request p;
-		p.piece = detail::read_int(ptr);
-		p.start = detail::read_int(ptr);
+		p.piece = detail::read_int32(ptr);
+		p.start = detail::read_int32(ptr);
 		p.length = m_packet_size - 9;
 
 		if (!verify_piece(p))
@@ -724,9 +724,9 @@ namespace libtorrent
 
 		peer_request r;
 		const char* ptr = &m_recv_buffer[1];
-		r.piece = detail::read_int(ptr);
-		r.start = detail::read_int(ptr);
-		r.length = detail::read_int(ptr);
+		r.piece = detail::read_int32(ptr);
+		r.start = detail::read_int32(ptr);
+		r.length = detail::read_int32(ptr);
 
 		std::deque<peer_request>::iterator i
 			= std::find(m_requests.begin(), m_requests.end(), r);
@@ -812,7 +812,7 @@ namespace libtorrent
 
 		const char* ptr = &m_recv_buffer[1];
 
-		int extended_id = detail::read_int(ptr);
+		int extended_id = detail::read_int32(ptr);
 
 		switch (extended_id)
 		{
@@ -929,11 +929,11 @@ namespace libtorrent
 		char* ptr = &m_send_buffer[start_offset];
 
 		// index
-		detail::write_int(block.piece_index, ptr);
+		detail::write_int32(block.piece_index, ptr);
 		// begin
-		detail::write_int(block_offset, ptr);
+		detail::write_int32(block_offset, ptr);
 		// length
-		detail::write_int(block_size, ptr);
+		detail::write_int32(block_size, ptr);
 
 	#ifndef NDEBUG
 		(*m_logger) << " ==> CANCEL  [ piece: " << block.piece_index << " | s: " << block_offset << " | l: " << block_size << " | " << block.block_index << " ]\n";
@@ -968,13 +968,13 @@ namespace libtorrent
 
 		char* ptr = &m_send_buffer[start_offset+5];
 		// index
-		detail::write_int(block.piece_index, ptr);
+		detail::write_int32(block.piece_index, ptr);
 
 		// begin
-		detail::write_int(block_offset, ptr);
+		detail::write_int32(block_offset, ptr);
 
 		// length
-		detail::write_int(block_size, ptr);
+		detail::write_int32(block_size, ptr);
 
 	#ifndef NDEBUG
 		(*m_logger) << " ==> REQUEST [ "
@@ -1005,9 +1005,9 @@ namespace libtorrent
 		bencode(std::back_inserter(message), e);
 		std::back_insert_iterator<std::vector<char> > ptr(m_send_buffer);
 
-		detail::write_uint(1 + 4 + message.size(), ptr);
-		detail::write_uchar(msg_extended, ptr);
-		detail::write_int(m_extension_messages[extended_chat_message], ptr);
+		detail::write_uint32(1 + 4 + message.size(), ptr);
+		detail::write_uint8(msg_extended, ptr);
+		detail::write_int32(m_extension_messages[extended_chat_message], ptr);
 		std::copy(message.begin(), message.end(), ptr);
 		send_buffer_updated();
 	}
@@ -1021,7 +1021,7 @@ namespace libtorrent
 		const int old_size = m_send_buffer.size();
 		m_send_buffer.resize(old_size + packet_size);
 		char* ptr = &m_send_buffer[old_size];
-		detail::write_int(packet_size - 4, ptr);
+		detail::write_int32(packet_size - 4, ptr);
 		m_send_buffer[old_size+4] = msg_bitfield;
 		std::fill(m_send_buffer.begin()+old_size+5, m_send_buffer.end(), 0);
 		for (std::size_t i = 0; i < m_have_piece.size(); ++i)
@@ -1056,7 +1056,7 @@ namespace libtorrent
 
 		// write the length of the message
 		char* ptr = &m_send_buffer[msg_size_pos];
-		detail::write_int(m_send_buffer.size() - msg_size_pos - 4, ptr);
+		detail::write_int32(m_send_buffer.size() - msg_size_pos - 4, ptr);
 
 		send_buffer_updated();
 	}
@@ -1120,7 +1120,7 @@ namespace libtorrent
 		const int packet_size = 9;
 		char msg[packet_size] = {0,0,0,5,msg_have};
 		char* ptr = msg+5;
-		detail::write_int(index, ptr);
+		detail::write_int32(index, ptr);
 		m_send_buffer.insert(m_send_buffer.end(), msg, msg + packet_size);
 	#ifndef NDEBUG
 		(*m_logger) << " ==> HAVE    [ piece: " << index << " ]\n";
@@ -1406,7 +1406,7 @@ namespace libtorrent
 
 					// convert from big endian to native byte order
 					const char* ptr = &m_recv_buffer[0];
-					m_packet_size = detail::read_int(ptr);
+					m_packet_size = detail::read_int32(ptr);
 					// don't accept packets larger than 1 MB
 					if (m_packet_size > 1024*1024 || m_packet_size < 0)
 					{
@@ -1492,10 +1492,10 @@ namespace libtorrent
 			const int packet_size = 4 + 5 + 4 + r.length;
 			m_send_buffer.resize(send_buffer_offset + packet_size);
 			char* ptr = &m_send_buffer[send_buffer_offset];
-			detail::write_int(packet_size-4, ptr);
+			detail::write_int32(packet_size-4, ptr);
 			*ptr = msg_piece; ++ptr;
-			detail::write_int(r.piece, ptr);
-			detail::write_int(r.start, ptr);
+			detail::write_int32(r.piece, ptr);
+			detail::write_int32(r.start, ptr);
 
 			m_torrent->filesystem().read(
 				&m_send_buffer[send_buffer_offset+13]
