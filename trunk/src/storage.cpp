@@ -363,7 +363,7 @@ namespace libtorrent {
 	class piece_manager::impl
 	{
 	public:
-		typedef entry::integer_type size_type;
+		typedef boost::int64_t size_type;
 
 		impl(
 			const torrent_info& info
@@ -629,9 +629,9 @@ namespace libtorrent {
 		std::size_t bytes_to_read = piece_size;
 		std::size_t bytes_current_read = 0;
 		std::size_t seek_into_next = 0;
-		entry::integer_type filesize = 0;
-		entry::integer_type start_of_read = 0;
-		entry::integer_type start_of_file = 0;
+		size_type filesize = 0;
+		size_type start_of_read = 0;
+		size_type start_of_file = 0;
 
 		{
 			boost::mutex::scoped_lock lock(mutex);
@@ -724,8 +724,8 @@ namespace libtorrent {
 			{
 				if (bytes_current_read != file_iter->size)
 				{
-					entry::integer_type pos;
-					entry::integer_type file_end = start_of_file + file_iter->size;
+					size_type pos;
+					size_type file_end = start_of_file + file_iter->size;
 
 					for (pos = start_of_read; pos < file_end;
 							pos += piece_size)
@@ -804,7 +804,7 @@ namespace libtorrent {
 			{
 				m_slot_to_piece[current_slot] = -2;
 
-				entry::integer_type last_pos =
+				size_type last_pos =
 					m_info.total_size() - 
 						m_info.piece_size(
 							m_info.num_pieces() - 1);

@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/limits.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/cstdint.hpp>
 
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/entry.hpp"
@@ -106,7 +107,7 @@ namespace libtorrent
 	{
 	public:
 
-		typedef entry::integer_type size_type;
+		typedef boost::int64_t size_type;
 
 		torrent(
 			detail::session_impl& ses

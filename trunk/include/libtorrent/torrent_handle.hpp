@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/cstdint.hpp>
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer_info.hpp"
@@ -63,7 +64,7 @@ namespace libtorrent
 
 	struct torrent_status
 	{
-		typedef entry::integer_type size_type;
+		typedef boost::int64_t size_type;
 
 		torrent_status()
 			: state(queued_for_checking)

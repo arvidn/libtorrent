@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <vector>
+#include <boost/cstdint.hpp>
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/socket.hpp"
@@ -58,7 +59,7 @@ namespace libtorrent
 	{
 		std::string path;
 		std::string filename;
-		entry::integer_type size;
+		boost::int64_t size;
 	};
 
 	struct announce_entry
@@ -80,6 +81,8 @@ namespace libtorrent
 	class torrent_info
 	{
 	public:
+
+		typedef boost::int64_t size_type;
 
 		torrent_info(const entry& torrent_file)
 			: m_creation_date(boost::gregorian::date(1970
@@ -115,8 +118,8 @@ namespace libtorrent
 		// the begining) and return the new index to the tracker.
 		int prioritize_tracker(int index);
 
-		entry::integer_type total_size() const { return m_total_size; }
-		entry::integer_type piece_length() const { return m_piece_length; }
+		size_type total_size() const { return m_total_size; }
+		size_type piece_length() const { return m_piece_length; }
 		int num_pieces() const { return (int)m_piece_hash.size(); }
 		const sha1_hash& info_hash() const { return m_info_hash; }
 		const std::string& name() const { return m_name; }
@@ -124,11 +127,11 @@ namespace libtorrent
 
 		void convert_file_names();
 
-		entry::integer_type piece_size(unsigned int index) const
+		size_type piece_size(unsigned int index) const
 		{
 			if (index == num_pieces()-1)
 			{
-				entry::integer_type s = total_size() % m_piece_length;
+				size_type s = total_size() % m_piece_length;
 				return (s == 0)?m_piece_length:s;
 			}
 			else
@@ -155,7 +158,7 @@ namespace libtorrent
 		std::vector<announce_entry> m_urls;
 
 		// the length of one piece
-		entry::integer_type m_piece_length;
+		size_type m_piece_length;
 
 		// the sha-1 hashes of each piece
 		std::vector<sha1_hash> m_piece_hash;
@@ -164,7 +167,7 @@ namespace libtorrent
 		std::vector<file_entry> m_files;
 
 		// the sum of all filesizes
-		entry::integer_type m_total_size;
+		size_type m_total_size;
 
 		// the hash that identifies this torrent
 		sha1_hash m_info_hash;
