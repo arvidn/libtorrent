@@ -205,7 +205,7 @@ namespace libtorrent
 			bool m_incoming_connection;
 
 #ifndef NDEBUG
-			void assert_invariant();
+			void assert_invariant(int marker = -1);
 			boost::shared_ptr<logger> create_log(std::string name);
 			boost::shared_ptr<logger> m_logger;
 #endif
