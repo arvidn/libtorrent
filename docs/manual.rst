@@ -137,7 +137,8 @@ Also, make sure the paths are correct in the different environments. In cygwin, 
 windows format (``c:/boost_1_31_0``).
 
 If you're building in developer studio, you may have to set the compiler options
-"force conformance in for loop scope" and "treat wchar_t as built-in type" to Yes.
+"force conformance in for loop scope", "treat wchar_t as built-in type" and
+"Enable Run-Time Type Info" to Yes.
 
 If you're building in developer studio 6, you will probably have to use the previous
 version of boost, `boost 1.30.2`__. And you'll definately have to use the latest service

@@ -4,7 +4,7 @@ exe client_test
 	: client_test.cpp
 	  ..//torrent
 	:
-	<threading>multi
+#	<threading>multi
 	: debug release
 	;
 
@@ -13,7 +13,7 @@ exe simple_client
 	: simple_client.cpp
 	  ..//torrent
 	:
-	<threading>multi
+#	<threading>multi
 	: debug release
 	;
 
@@ -22,7 +22,7 @@ exe dump_torrent
 	: dump_torrent.cpp
 	  ..//torrent
 	:
-	<threading>multi
+#	<threading>multi
 	: debug release
 	;
 
