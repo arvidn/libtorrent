@@ -1057,7 +1057,7 @@ namespace libtorrent
 			if (!m_torrent->valid_metadata()
 				&& supports_extension(extended_metadata_message))
 			{
-				send_metadata_request(0, 255);
+				send_metadata_request(0, 256);
 			}
 		}
 		catch(invalid_encoding&)
