@@ -34,7 +34,7 @@ REQUIREMENTS =
 	<toolset>darwin:<cxxflags>-Wno-unused-variable
 	;
 
-USAGE_REQIREMENTS =
+USAGE_REQUIREMENTS =
 	<include>./include
 	<include>$(BOOST_ROOT)
 	<variant>release:<define>NDEBUG

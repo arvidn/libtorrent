@@ -142,7 +142,7 @@ namespace libtorrent
 		
 		void tick();
 		void queue_request(
-			tracker_request const& r
+			tracker_request r
 			, request_callback* c = 0
 			, std::string const& password = "");
 		void abort_request(request_callback* c);
