@@ -40,6 +40,24 @@ Client sends packet:
 | int32_t     | transaction_id      | Randomized by client.                  |
 +-------------+---------------------+----------------------------------------+
 
+optional part
+
++-------------+---------------------+----------------------------------------+
+| size        | name                | description                            |
++=============+=====================+========================================+
+| int8_t      | flags               | 1 = authentication                     |
++-------------+---------------------+----------------------------------------+
+| int8_t[8]   | username            |                                        |
++-------------+---------------------+----------------------------------------+
+| int8_t[8]   | password_hash       | sha1-hash of the tracker password      |
++-------------+---------------------+----------------------------------------+
+
+what is the point of having a fixed size username field instead of
+a null-terminated string?
+
+Why send the hash of the password instead of the password itself?
+
+
 Server replies with packet:
 
 +-------------+---------------------+----------------------------------------+

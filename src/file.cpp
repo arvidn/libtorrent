@@ -38,12 +38,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <io.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+typedef int mode_t;
 
 #else
 
 #define _FILE_OFFSET_BITS 64
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #endif
 
@@ -57,9 +62,9 @@ namespace
 {
 	enum { mode_in = 1, mode_out = 2 };
 
-	int map_open_mode(int m)
+	mode_t map_open_mode(int m)
 	{
-		if (m == (mode_in | mode_out)) return O_RDWR | O_BINARY;
+//		if (m == (mode_in | mode_out)) return O_RDWR | O_BINARY;
 		if (m == mode_out) return O_WRONLY | O_CREAT | O_BINARY;
 		if (m == mode_in) return O_RDONLY | O_BINARY;
 		assert(false);
@@ -97,8 +102,10 @@ namespace libtorrent
 		void open(fs::path const& path, int mode)
 		{
 			close();
-			m_fd = ::open(path.native_file_string().c_str(), map_open_mode(mode));
-			m_open_mode = mode;
+			m_fd = ::open(
+				path.native_file_string().c_str()
+				, map_open_mode(mode)
+				, S_IREAD | S_IWRITE);
 			if (m_fd == -1)
 			{
 				std::stringstream msg;
@@ -106,6 +113,7 @@ namespace libtorrent
 					<< strerror(errno);
 				throw file_error(msg.str());
 			}
+			m_open_mode = mode;
 		}
 
 		void close()

@@ -52,6 +52,37 @@ retrying.</p>
 </tr>
 </tbody>
 </table>
+<p>optional part</p>
+<table border class="table">
+<colgroup>
+<col width="18%" />
+<col width="28%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th>size</th>
+<th>name</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>int8_t</td>
+<td>flags</td>
+<td>1 = authentication</td>
+</tr>
+<tr><td>int8_t[8]</td>
+<td>username</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>int8_t[8]</td>
+<td>password_hash</td>
+<td>sha1-hash of the tracker password</td>
+</tr>
+</tbody>
+</table>
+<p>what is the point of having a fixed size username field instead of
+a null-terminated string?</p>
+<p>Why send the hash of the password instead of the password itself?</p>
 <p>Server replies with packet:</p>
 <table border class="table">
 <colgroup>
