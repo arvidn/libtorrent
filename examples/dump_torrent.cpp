@@ -33,14 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <fstream>
 #include <iterator>
-#include <exception>
-#include <vector>
 #include <iomanip>
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/session.hpp"
-#include "libtorrent/http_settings.hpp"
+#include "libtorrent/torrent_info.hpp"
 
 
 int main(int argc, char* argv[])

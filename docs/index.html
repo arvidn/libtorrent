@@ -35,21 +35,31 @@
 <li><a class="reference" href="#status" id="id14" name="id14">status()</a></li>
 <li><a class="reference" href="#get-download-queue" id="id15" name="id15">get_download_queue()</a></li>
 <li><a class="reference" href="#get-peer-info" id="id16" name="id16">get_peer_info()</a></li>
+<li><a class="reference" href="#get-torrent-info" id="id17" name="id17">get_torrent_info()</a></li>
+<li><a class="reference" href="#is-valid" id="id18" name="id18">is_valid()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#address" id="id17" name="id17">address</a></li>
-<li><a class="reference" href="#http-settings" id="id18" name="id18">http_settings</a></li>
-<li><a class="reference" href="#big-number" id="id19" name="id19">big_number</a></li>
-<li><a class="reference" href="#hasher" id="id20" name="id20">hasher</a></li>
-<li><a class="reference" href="#example-usage" id="id21" name="id21">example usage</a><ul>
-<li><a class="reference" href="#dump-torrent" id="id22" name="id22">dump_torrent</a></li>
-<li><a class="reference" href="#simple-client" id="id23" name="id23">simple client</a></li>
+<li><a class="reference" href="#address" id="id19" name="id19">address</a></li>
+<li><a class="reference" href="#http-settings" id="id20" name="id20">http_settings</a></li>
+<li><a class="reference" href="#big-number" id="id21" name="id21">big_number</a></li>
+<li><a class="reference" href="#hasher" id="id22" name="id22">hasher</a></li>
+<li><a class="reference" href="#exceptions" id="id23" name="id23">exceptions</a><ul>
+<li><a class="reference" href="#invalid-handle" id="id24" name="id24">invalid_handle</a></li>
+<li><a class="reference" href="#duplicate-torrent" id="id25" name="id25">duplicate_torrent</a></li>
+<li><a class="reference" href="#invalid-encoding" id="id26" name="id26">invalid_encoding</a></li>
+<li><a class="reference" href="#type-error" id="id27" name="id27">type_error</a></li>
+<li><a class="reference" href="#invalid-torrent-file" id="id28" name="id28">invalid_torrent_file</a></li>
+</ul>
+</li>
+<li><a class="reference" href="#example-usage" id="id29" name="id29">example usage</a><ul>
+<li><a class="reference" href="#dump-torrent" id="id30" name="id30">dump_torrent</a></li>
+<li><a class="reference" href="#simple-client" id="id31" name="id31">simple client</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a class="reference" href="#feedback" id="id24" name="id24">Feedback</a></li>
-<li><a class="reference" href="#aknowledgements" id="id25" name="id25">Aknowledgements</a></li>
+<li><a class="reference" href="#feedback" id="id32" name="id32">Feedback</a></li>
+<li><a class="reference" href="#aknowledgements" id="id33" name="id33">Aknowledgements</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
@@ -159,7 +169,8 @@ The main thread will be idle as long it doesn't have any torrents to participate
 You add torrents through the <tt class="literal"><span class="pre">add_torrent()</span></tt>-function where you give an
 object representing the information found in the torrent file and the path where you
 want to save the files. The <tt class="literal"><span class="pre">save_path</span></tt> will be prepended to the directory-
-structure in the torrent-file.</p>
+structure in the torrent-file. <tt class="literal"><span class="pre">add_torrent</span></tt> will throw <tt class="literal"><span class="pre">duplicate_torrent</span></tt> exception
+if the torrent already exists in the session.</p>
 <p><tt class="literal"><span class="pre">remove_torrent()</span></tt> will close all peer connections associated with the torrent and tell
 the tracker that we've stopped participating in the swarm.</p>
 <p>If the torrent you are trying to add already exists in the session (is either queued
@@ -388,9 +399,11 @@ struct torrent_handle
 {
         torrent_handle();
 
-        torrent_status status() const;
+        torrent_status status();
         void get_download_queue(std::vector&lt;partial_piece_info&gt;&amp; queue);
         void get_peer_info(std::vector&lt;peer_info&gt;&amp; v);
+        const torrent_info&amp; get_torrent_info();
+        bool is_valid();
 };
 </pre>
 <p>The default constructor will initialize the handle to an invalid state. Which means you cannot
@@ -399,7 +412,8 @@ any operation they will simply return.</p>
 <div class="section" id="status">
 <h3><a class="toc-backref" href="#id14" name="status">status()</a></h3>
 <p><tt class="literal"><span class="pre">status()</span></tt> will return a structure with information about the status of this
-torrent. It contains the following fields:</p>
+torrent. If the <tt class="literal"><span class="pre">torrent_handle</span></tt> is invalid, it will throw <tt class="literal"><span class="pre">invalid_handle</span></tt> exception.
+It contains the following fields:</p>
 <pre class="literal-block">
 struct torrent_status
 {
@@ -430,11 +444,6 @@ current task is in the <tt class="literal"><span class="pre">state</span></tt> m
 <col width="72%" />
 </colgroup>
 <tbody valign="top">
-<tr><td><tt class="literal"><span class="pre">invalid_handle</span></tt></td>
-<td>This will be the state if you called status on an
-uninitialized handle (a handle that was constructed
-with the default constructor).</td>
-</tr>
 <tr><td><tt class="literal"><span class="pre">queued_for_checking</span></tt></td>
 <td>The torrent is in the queue for being checked. But there
 currently is another torrent that are being checked.
@@ -498,8 +507,10 @@ may pass then.</p>
 <div class="section" id="get-peer-info">
 <h3><a class="toc-backref" href="#id16" name="get-peer-info">get_peer_info()</a></h3>
 <p><tt class="literal"><span class="pre">get_peer_info()</span></tt> takes a reference to a vector that will be cleared and filled
-with one entry for each peer connected to this torrent. Each entry contains information about
-that particular peer. It contains the following information:</p>
+with one entry for each peer connected to this torrent, given the handle is valid. If the
+<tt class="literal"><span class="pre">torrent_handle</span></tt> is invalid, it will throw <tt class="literal"><span class="pre">invalid_handle</span></tt> exception. Each entry in
+the vector contains information about that particular peer. It contains the following
+fields:</p>
 <pre class="literal-block">
 struct peer_info
 {
@@ -543,9 +554,20 @@ or if the peer miss that piece (set to false).</p>
 <p><tt class="literal"><span class="pre">upload_limit</span></tt> is the number of bytes per second we are allowed to send to this
 peer every second. It may be -1 if there's no limit.</p>
 </div>
+<div class="section" id="get-torrent-info">
+<h3><a class="toc-backref" href="#id17" name="get-torrent-info">get_torrent_info()</a></h3>
+<p>Returns a const reference to the <tt class="literal"><span class="pre">torrent_info</span></tt> object associated with this torrent.
+This reference is valid as long as the <tt class="literal"><span class="pre">torrent_handle</span></tt> is valid, no longer. If the
+<tt class="literal"><span class="pre">torrent_handle</span></tt> is invalid, <tt class="literal"><span class="pre">invalid_handle</span></tt> exception will be thrown.</p>
+</div>
+<div class="section" id="is-valid">
+<h3><a class="toc-backref" href="#id18" name="is-valid">is_valid()</a></h3>
+<p>Returns true if this handle refers to a valid torrent and false if it hasn't been initialized
+or if the torrent it refers to has been aborted.</p>
+</div>
 </div>
 <div class="section" id="address">
-<h2><a class="toc-backref" href="#id17" name="address">address</a></h2>
+<h2><a class="toc-backref" href="#id19" name="address">address</a></h2>
 <p>The <tt class="literal"><span class="pre">address</span></tt> class represents a name of a network endpoint (usually referred to as
 IP-address) and a port number. This is the same thing as a <tt class="literal"><span class="pre">sockaddr_in</span></tt> would contain.
 Its declaration looks like this:</p>
@@ -554,8 +576,7 @@ class address
 {
 public:
         address();
-        address(
-                  unsigned char a
+        address(unsigned char a
                 , unsigned char b
                 , unsigned char c
                 , unsigned char d
@@ -579,7 +600,7 @@ while it does the DNS lookup, it returns a string that points to the address rep
 <p><tt class="literal"><span class="pre">ip()</span></tt> will return the 32-bit ip-address as an integer. <tt class="literal"><span class="pre">port()</span></tt> returns the port number.</p>
 </div>
 <div class="section" id="http-settings">
-<h2><a class="toc-backref" href="#id18" name="http-settings">http_settings</a></h2>
+<h2><a class="toc-backref" href="#id20" name="http-settings">http_settings</a></h2>
 <p>You have some control over tracker requests through the <tt class="literal"><span class="pre">http_settings</span></tt> object. You
 create it and fill it with your settings and the use <tt class="literal"><span class="pre">session::set_http_settings()</span></tt>
 to apply them. You have control over proxy and authorization settings and also the user-agent
@@ -607,9 +628,10 @@ on the uncompressed data. So, if you get 20 bytes of gzip response that'll
 expand to 2 megs, it will be interrupted before the entire response has been
 uncompressed (given your limit is lower than 2 megs). Default limit is
 1 megabyte.</p>
+<p>TODO: finish document http_settings</p>
 </div>
 <div class="section" id="big-number">
-<h2><a class="toc-backref" href="#id19" name="big-number">big_number</a></h2>
+<h2><a class="toc-backref" href="#id21" name="big-number">big_number</a></h2>
 <p>Both the <tt class="literal"><span class="pre">peer_id</span></tt> and <tt class="literal"><span class="pre">sha1_hash</span></tt> types are typedefs of the class
 <tt class="literal"><span class="pre">big_number</span></tt>. It represents 20 bytes of data. Its synopsis follows:</p>
 <pre class="literal-block">
@@ -630,7 +652,7 @@ public:
 <p>The iterators gives you access to individual bytes.</p>
 </div>
 <div class="section" id="hasher">
-<h2><a class="toc-backref" href="#id20" name="hasher">hasher</a></h2>
+<h2><a class="toc-backref" href="#id22" name="hasher">hasher</a></h2>
 <p>This class creates sha1-hashes. Its declaration looks like this:</p>
 <pre class="literal-block">
 class hasher
@@ -653,10 +675,69 @@ call <tt class="literal"><span class="pre">reset()</span></tt> to reinitialize i
 <p>The sha1-algorithm used was implemented by Steve Reid and released as public domain.
 For more info, see <tt class="literal"><span class="pre">src/sha1.c</span></tt>.</p>
 </div>
+<div class="section" id="exceptions">
+<h2><a class="toc-backref" href="#id23" name="exceptions">exceptions</a></h2>
+<p>There are a number of exceptions that can be thrown from different places in libtorrent,
+here's a complete list with description.</p>
+<div class="section" id="invalid-handle">
+<h3><a class="toc-backref" href="#id24" name="invalid-handle">invalid_handle</a></h3>
+<p>This exception is thrown when querying information from a <tt class="literal"><span class="pre">torrent_handle</span></tt> that hasn't
+been initialized or that has become invalid.</p>
+<pre class="literal-block">
+struct invalid_handle: std::exception
+{
+        const char* what() const throw();
+};
+</pre>
+</div>
+<div class="section" id="duplicate-torrent">
+<h3><a class="toc-backref" href="#id25" name="duplicate-torrent">duplicate_torrent</a></h3>
+<p>This is thrown by <tt class="literal"><span class="pre">session::add_torrent()</span></tt> if the torrent already has been added to
+the session.</p>
+<pre class="literal-block">
+struct duplicate_torrent: std::exception
+{
+        const char* what() const throw();
+};
+</pre>
+</div>
+<div class="section" id="invalid-encoding">
+<h3><a class="toc-backref" href="#id26" name="invalid-encoding">invalid_encoding</a></h3>
+<p>This is thrown by <tt class="literal"><span class="pre">bdecode()</span></tt> if the input data is not a valid bencoding.</p>
+<pre class="literal-block">
+struct invalid_encoding: std::exception
+{
+        const char* what() const throw();
+};
+</pre>
+</div>
+<div class="section" id="type-error">
+<h3><a class="toc-backref" href="#id27" name="type-error">type_error</a></h3>
+<p>This is thrown from the accessors of <tt class="literal"><span class="pre">entry</span></tt> if the data type of the <tt class="literal"><span class="pre">entry</span></tt> doesn't
+match the type you want to extract from it.</p>
+<pre class="literal-block">
+struct type_error: std::runtime_error
+{
+        type_error(const char* error);
+};
+</pre>
+</div>
+<div class="section" id="invalid-torrent-file">
+<h3><a class="toc-backref" href="#id28" name="invalid-torrent-file">invalid_torrent_file</a></h3>
+<p>This exception is thrown from the constructor of <tt class="literal"><span class="pre">torrent_info</span></tt> if the given bencoded information
+doesn't meet the requirements on what information has to be present in a torrent file.</p>
+<pre class="literal-block">
+struct invalid_torrent_file: std::exception
+{
+        const char* what() const throw();
+};
+</pre>
+</div>
+</div>
 <div class="section" id="example-usage">
-<h2><a class="toc-backref" href="#id21" name="example-usage">example usage</a></h2>
+<h2><a class="toc-backref" href="#id29" name="example-usage">example usage</a></h2>
 <div class="section" id="dump-torrent">
-<h3><a class="toc-backref" href="#id22" name="dump-torrent">dump_torrent</a></h3>
+<h3><a class="toc-backref" href="#id30" name="dump-torrent">dump_torrent</a></h3>
 <p>This is an example of a program that will take a torrent-file as a parameter and
 print information about it to std out:</p>
 <pre class="literal-block">
@@ -664,13 +745,11 @@ print information about it to std out:</p>
 #include &lt;fstream&gt;
 #include &lt;iterator&gt;
 #include &lt;exception&gt;
-#include &lt;vector&gt;
 #include &lt;iomanip&gt;
 
 #include &quot;libtorrent/entry.hpp&quot;
 #include &quot;libtorrent/bencode.hpp&quot;
-#include &quot;libtorrent/session.hpp&quot;
-#include &quot;libtorrent/http_settings.hpp&quot;
+#include &quot;libtorrent/torrent_info.hpp&quot;
 
 
 int main(int argc, char* argv[])
@@ -722,7 +801,7 @@ int main(int argc, char* argv[])
 </pre>
 </div>
 <div class="section" id="simple-client">
-<h3><a class="toc-backref" href="#id23" name="simple-client">simple client</a></h3>
+<h3><a class="toc-backref" href="#id31" name="simple-client">simple client</a></h3>
 <p>This is a simple client. It doesn't have much output to keep it simple:</p>
 <pre class="literal-block">
 #include &lt;iostream&gt;
@@ -775,12 +854,12 @@ int main(int argc, char* argv[])
 </div>
 </div>
 <div class="section" id="feedback">
-<h1><a class="toc-backref" href="#id24" name="feedback">Feedback</a></h1>
+<h1><a class="toc-backref" href="#id32" name="feedback">Feedback</a></h1>
 <p>There's a <a class="reference" href="http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss">mailing list</a>.</p>
 <p>You can usually find me as hydri in <tt class="literal"><span class="pre">#btports</span> <span class="pre">&#64;</span> <span class="pre">irc.freenode.net</span></tt>.</p>
 </div>
 <div class="section" id="aknowledgements">
-<h1><a class="toc-backref" href="#id25" name="aknowledgements">Aknowledgements</a></h1>
+<h1><a class="toc-backref" href="#id33" name="aknowledgements">Aknowledgements</a></h1>
 <p>Written by Arvid Norberg and Daniel Wallin. Copyright (c) 2003</p>
 <p>Project is hosted by sourceforge.</p>
 <p><a class="reference" href="http://sourceforge.net"><img alt="sf_logo" src="http://sourceforge.net/sflogo.php?group_id=7994" /></a></p>

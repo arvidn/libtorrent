@@ -228,7 +228,7 @@ namespace libtorrent
 		if (!m_comment.empty())
 			os << "comment: " << m_comment << "\n";
 		if (m_creation_date != boost::posix_time::ptime(boost::gregorian::date(1970, boost::gregorian::Jan, 1)))
-			os << "creation date: " << to_simple_string(m_creation_date) << "\n";
+			os << "creation date: " << boost::posix_time::to_simple_string(m_creation_date) << "\n";
 		os << "number of pieces: " << num_pieces() << "\n";
 		os << "piece length: " << piece_length() << "\n";
 		os << "files:\n";

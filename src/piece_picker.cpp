@@ -305,7 +305,7 @@ namespace libtorrent
 
 	// TODO: since inc_refcount is called
 	// with sequential indices when peers
-	// connect, it will sort the pieces
+	// connect, the pieces will be sorted.
 	// that is not good. one solution is
 	// to insert the element at a random
 	// index when moving it to another

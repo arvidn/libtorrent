@@ -63,20 +63,9 @@ namespace std
 namespace libtorrent
 {
 	
-	torrent_status torrent_handle::status() const
+	torrent_status torrent_handle::status()
 	{
-		if (m_ses == 0)
-		{
-			torrent_status st;
-			st.total_download = 0;
-			st.total_upload = 0;
-			st.progress = 0.f;
-			st.state = torrent_status::invalid_handle;
-			st.next_announce = boost::posix_time::time_duration();
-			st.pieces.clear();
-			st.total_done = 0;
-			return st;
-		}
+		if (m_ses == 0) throw invalid_handle();
 
 		assert(m_chk != 0);
 		{
@@ -107,21 +96,54 @@ namespace libtorrent
 			}
 		}
 
-		torrent_status st;
-		st.total_download = 0;
-		st.total_upload = 0;
-		st.progress = 0.f;
-		st.state = torrent_status::invalid_handle;
-		st.pieces.clear();
-		st.next_announce = boost::posix_time::time_duration();
-		st.total_done = 0;
-		return st;
+		m_ses = 0;
+		throw invalid_handle();
+	}
+
+	const torrent_info& torrent_handle::get_torrent_info()
+	{
+		if (m_ses == 0) throw invalid_handle();
+	
+		{
+			boost::mutex::scoped_lock l(m_ses->m_mutex);
+			torrent* t = m_ses->find_torrent(m_info_hash);
+			if (t != 0) return t->torrent_file();
+		}
+
+		{
+			boost::mutex::scoped_lock l(m_chk->m_mutex);
+			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
+			if (d != 0) return d->torrent_ptr->torrent_file();
+		}
+
+		m_ses = 0;
+		throw invalid_handle();
+	}
+
+	bool torrent_handle::is_valid()
+	{
+		if (m_ses == 0) return false;
+
+		{
+			boost::mutex::scoped_lock l(m_ses->m_mutex);
+			torrent* t = m_ses->find_torrent(m_info_hash);
+			if (t != 0) return true;
+		}
+
+		{
+			boost::mutex::scoped_lock l(m_chk->m_mutex);
+			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
+			if (d != 0) return true;
+		}
+
+		m_ses = 0;
+		return false;
 	}
 
 	void torrent_handle::get_peer_info(std::vector<peer_info>& v)
 	{
 		v.clear();
-		if (m_ses == 0) return;
+		if (m_ses == 0) throw invalid_handle();
 		assert(m_chk != 0);
 
 		boost::mutex::scoped_lock l(m_ses->m_mutex);
@@ -158,11 +180,11 @@ namespace libtorrent
 		}
 	}
 
-	void torrent_handle::get_download_queue(std::vector<partial_piece_info>& queue) const
+	void torrent_handle::get_download_queue(std::vector<partial_piece_info>& queue)
 	{
 		queue.clear();
 
-		if (m_ses == 0) return;
+		if (m_ses == 0) throw invalid_handle();
 		assert(m_chk != 0);
 	
 		boost::mutex::scoped_lock l(m_ses->m_mutex);
@@ -190,33 +212,6 @@ namespace libtorrent
 			pi.piece_index = i->index;
 			pi.blocks_in_piece = p.blocks_in_piece(i->index);
 			queue.push_back(pi);
-		}
-	}
-
-	void torrent_handle::abort() const
-	{
-		if (m_ses == 0) return;
-		assert(m_chk != 0);
-
-		{
-			boost::mutex::scoped_lock l(m_ses->m_mutex);
-			torrent* t = m_ses->find_torrent(m_info_hash);
-			if (t != 0)
-			{
-				t->abort();
-				return;
-			}
-		}
-
-		{
-			boost::mutex::scoped_lock l(m_chk->m_mutex);
-
-			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
-			if (d != 0)
-			{
-				d->abort = true;
-				return;
-			}
 		}
 	}
 

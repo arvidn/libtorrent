@@ -138,7 +138,8 @@ The main thread will be idle as long it doesn't have any torrents to participate
 You add torrents through the ``add_torrent()``-function where you give an
 object representing the information found in the torrent file and the path where you
 want to save the files. The ``save_path`` will be prepended to the directory-
-structure in the torrent-file.
+structure in the torrent-file. ``add_torrent`` will throw ``duplicate_torrent`` exception
+if the torrent already exists in the session.
 
 ``remove_torrent()`` will close all peer connections associated with the torrent and tell
 the tracker that we've stopped participating in the swarm.
@@ -417,9 +418,11 @@ Its declaration looks like this::
 	{
 		torrent_handle();
 
-		torrent_status status() const;
+		torrent_status status();
 		void get_download_queue(std::vector<partial_piece_info>& queue);
 		void get_peer_info(std::vector<peer_info>& v);
+		const torrent_info& get_torrent_info();
+		bool is_valid();
 	};
 
 The default constructor will initialize the handle to an invalid state. Which means you cannot
@@ -427,13 +430,12 @@ perform any operation on it, unless you first assign it a valid handle. If you t
 any operation they will simply return.
 
 
-
-
 status()
 ~~~~~~~~
 
 ``status()`` will return a structure with information about the status of this
-torrent. It contains the following fields::
+torrent. If the ``torrent_handle`` is invalid, it will throw ``invalid_handle`` exception.
+It contains the following fields::
 
 	struct torrent_status
 	{
@@ -459,10 +461,6 @@ torrent. It contains the following fields::
 torrent's current task. It may be checking files or downloading. The torrent's
 current task is in the ``state`` member, it will be one of the following:
 
-+-----------------------+----------------------------------------------------------+
-|``invalid_handle``     |This will be the state if you called status on an         |
-|                       |uninitialized handle (a handle that was constructed       |
-|                       |with the default constructor).                            |
 +-----------------------+----------------------------------------------------------+
 |``queued_for_checking``|The torrent is in the queue for being checked. But there  |
 |                       |currently is another torrent that are being checked.      |
@@ -526,14 +524,14 @@ When a piece fails a hash verification, single blocks may be redownloaded to see
 may pass then.
 
 
-
-
 get_peer_info()
 ~~~~~~~~~~~~~~~
 
 ``get_peer_info()`` takes a reference to a vector that will be cleared and filled
-with one entry for each peer connected to this torrent. Each entry contains information about
-that particular peer. It contains the following information::
+with one entry for each peer connected to this torrent, given the handle is valid. If the
+``torrent_handle`` is invalid, it will throw ``invalid_handle`` exception. Each entry in
+the vector contains information about that particular peer. It contains the following
+fields::
 
 	struct peer_info
 	{
@@ -584,6 +582,20 @@ or if the peer miss that piece (set to false).
 peer every second. It may be -1 if there's no limit.
 
 
+get_torrent_info()
+~~~~~~~~~~~~~~~~~~
+
+Returns a const reference to the ``torrent_info`` object associated with this torrent.
+This reference is valid as long as the ``torrent_handle`` is valid, no longer. If the
+``torrent_handle`` is invalid, ``invalid_handle`` exception will be thrown.
+
+
+is_valid()
+~~~~~~~~~~
+
+Returns true if this handle refers to a valid torrent and false if it hasn't been initialized
+or if the torrent it refers to has been aborted.
+
 
 address
 -------
@@ -596,8 +608,7 @@ Its declaration looks like this::
 	{
 	public:
 		address();
-		address(
-			  unsigned char a
+		address(unsigned char a
 			, unsigned char b
 			, unsigned char c
 			, unsigned char d
@@ -658,7 +669,7 @@ expand to 2 megs, it will be interrupted before the entire response has been
 uncompressed (given your limit is lower than 2 megs). Default limit is
 1 megabyte.
 
-
+TODO: finish document http_settings
 
 big_number
 ----------
@@ -713,6 +724,84 @@ The sha1-algorithm used was implemented by Steve Reid and released as public dom
 For more info, see ``src/sha1.c``.
 
 
+
+
+exceptions
+----------
+
+There are a number of exceptions that can be thrown from different places in libtorrent,
+here's a complete list with description.
+
+
+invalid_handle
+~~~~~~~~~~~~~~
+
+This exception is thrown when querying information from a ``torrent_handle`` that hasn't
+been initialized or that has become invalid.
+
+::
+
+	struct invalid_handle: std::exception
+	{
+		const char* what() const throw();
+	};
+
+
+duplicate_torrent
+~~~~~~~~~~~~~~~~~
+
+This is thrown by ``session::add_torrent()`` if the torrent already has been added to
+the session.
+
+::
+
+	struct duplicate_torrent: std::exception
+	{
+		const char* what() const throw();
+	};
+
+
+invalid_encoding
+~~~~~~~~~~~~~~~~
+
+This is thrown by ``bdecode()`` if the input data is not a valid bencoding.
+
+::
+
+	struct invalid_encoding: std::exception
+	{
+		const char* what() const throw();
+	};
+
+
+type_error
+~~~~~~~~~~
+
+This is thrown from the accessors of ``entry`` if the data type of the ``entry`` doesn't
+match the type you want to extract from it.
+
+::
+
+	struct type_error: std::runtime_error
+	{
+		type_error(const char* error);
+	};
+
+
+invalid_torrent_file
+~~~~~~~~~~~~~~~~~~~~
+
+This exception is thrown from the constructor of ``torrent_info`` if the given bencoded information
+doesn't meet the requirements on what information has to be present in a torrent file.
+
+::
+
+	struct invalid_torrent_file: std::exception
+	{
+		const char* what() const throw();
+	};
+
+
 example usage
 -------------
 
@@ -726,13 +815,11 @@ print information about it to std out::
 	#include <fstream>
 	#include <iterator>
 	#include <exception>
-	#include <vector>
 	#include <iomanip>
 
 	#include "libtorrent/entry.hpp"
 	#include "libtorrent/bencode.hpp"
-	#include "libtorrent/session.hpp"
-	#include "libtorrent/http_settings.hpp"
+	#include "libtorrent/torrent_info.hpp"
 
 
 	int main(int argc, char* argv[])

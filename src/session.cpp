@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/exception.hpp>
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -103,6 +104,12 @@ namespace libtorrent
 						m_ses->m_torrents.insert(
 							std::make_pair(t->info_hash, t->torrent_ptr)).first;
 					}
+				}
+				catch(const boost::filesystem::filesystem_error& e)
+				{
+#ifndef NDEBUG
+					std::cerr << "error while checking files: " << e.what() << "\n";
+#endif
 				}
 				catch(...)
 				{
@@ -387,6 +394,9 @@ namespace libtorrent
 				// will shift bandwidth from the peers that can't
 				// utilize all their assigned bandwidth to the peers
 				// that actually can maintain the upload rate.
+				// This should probably be done by accumulating the
+				// left-over bandwidth to next second. Since the
+				// the sockets consumes its data in rather big chunks.
 				if (m_upload_rate != -1 && !m_connections.empty())
 				{
 					assert(m_upload_rate >= 0);
@@ -561,8 +571,6 @@ namespace libtorrent
 		// create the torrent and the data associated with
 		// the checker thread and store it before starting
 		// the thread
-		// TODO: have a queue of checking torrents instead of
-		// having them all run at the same time
 		boost::shared_ptr<torrent> torrent_ptr(new torrent(&m_impl, ti));
 
 		detail::piece_checker_data d;
@@ -585,8 +593,28 @@ namespace libtorrent
 	void session::remove_torrent(const torrent_handle& h)
 	{
 		if (h.m_ses != &m_impl) return;
-		// TODO: move the code of abort() here instead of calling it
-		h.abort();
+		assert(h.m_chk == &m_checker_impl);
+
+		{
+			boost::mutex::scoped_lock l(m_impl.m_mutex);
+			torrent* t = m_impl.find_torrent(h.m_info_hash);
+			if (t != 0)
+			{
+				t->abort();
+				return;
+			}
+		}
+
+		{
+			boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
+
+			detail::piece_checker_data* d = m_checker_impl.find_torrent(h.m_info_hash);
+			if (d != 0)
+			{
+				d->abort = true;
+				return;
+			}
+		}
 	}
 
 	void session::set_http_settings(const http_settings& s)

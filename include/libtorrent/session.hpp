@@ -30,21 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-/*
-	implemented
-
-	* http-proxy authentication for tracker requests
-	* multitracker support
-	* spawns separate temporary threads for file checking
-	* 
-
-	missing
-
-	* endgame-mode
-	* correct algorithm for choking and unchoking
-
-*/
-
 #ifndef TORRENT_SESSION_HPP_INCLUDED
 #define TORRENT_SESSION_HPP_INCLUDED
 
@@ -74,8 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 // TODO: if we're not interested and the peer isn't interested, close the connections
-// TODO: instead of implementing end-game mode, have an algorithm that
-// constantly prioritizes high-bandwidth sources.
 
 namespace libtorrent
 {
