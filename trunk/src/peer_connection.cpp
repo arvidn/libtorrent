@@ -957,6 +957,7 @@ namespace libtorrent
 	{
 		assert(!m_socket->is_blocking());
 		assert(m_packet_size > 0);
+		assert(m_socket->is_readable());
 		for(;;)
 		{
 			assert(m_packet_size > 0);
