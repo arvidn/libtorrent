@@ -268,7 +268,7 @@ namespace libtorrent
 		{
 			const int slot_index = targets[i];
 			const int piece_index = pieces[i];
-			const int slot_size = m_pimpl->info.piece_size(slot_index);
+			const int slot_size =static_cast<int>(m_pimpl->info.piece_size(slot_index));
 			std::vector<char> buf(slot_size);
 			read(&buf[0], piece_index, 0, slot_size);
 			write(&buf[0], slot_index, 0, slot_size);
@@ -325,7 +325,7 @@ namespace libtorrent
 #endif
 
 		int left_to_read = size;
-		int slot_size = m_pimpl->info.piece_size(slot);
+		int slot_size = static_cast<int>(m_pimpl->info.piece_size(slot));
 
 		if (offset + left_to_read > slot_size)
 			left_to_read = slot_size - offset;
@@ -416,7 +416,7 @@ namespace libtorrent
 		}
 
 		int left_to_write = size;
-		int slot_size = m_pimpl->info.piece_size(slot);
+		int slot_size = static_cast<int>(m_pimpl->info.piece_size(slot));
 
 		if (offset + left_to_write > slot_size)
 			left_to_write = slot_size - offset;
@@ -686,8 +686,8 @@ namespace libtorrent
 
 		adler32_crc crc;
 		std::vector<char> buf(block_size);
-		int num_blocks = m_info.piece_size(slot_index) / block_size;
-		int last_block_size = m_info.piece_size(slot_index) % block_size;
+		int num_blocks = static_cast<int>(m_info.piece_size(slot_index)) / block_size;
+		int last_block_size = static_cast<int>(m_info.piece_size(slot_index)) % block_size;
 		if (last_block_size == 0) last_block_size = block_size;
 
 		for (int i = 0; i < num_blocks-1; ++i)
@@ -771,9 +771,9 @@ namespace libtorrent
 
 		assert((int)have_pieces.size() == m_info.num_pieces());
 
-		const int piece_size = m_info.piece_length();
-		const int last_piece_size = m_info.piece_size(
-			m_info.num_pieces() - 1);
+		const int piece_size = static_cast<int>(m_info.piece_length());
+		const int last_piece_size = static_cast<int>(m_info.piece_size(
+			m_info.num_pieces() - 1));
 
 		assert((int)piece_data.size() >= last_piece_size);
 
@@ -976,7 +976,7 @@ namespace libtorrent
 			fs::create_directories(dir.branch_path());
 		}
 
-		std::vector<char> piece_data(m_info.piece_length());
+		std::vector<char> piece_data(static_cast<int>(m_info.piece_length()));
 
 		std::multimap<sha1_hash, int> hash_to_piece;
 		// build the hash-map, that maps hashes to pieces
@@ -994,7 +994,7 @@ namespace libtorrent
 					&piece_data[0]
 					, current_slot
 					, 0
-					, m_info.piece_size(current_slot));
+					, static_cast<int>(m_info.piece_size(current_slot)));
 
 				int piece_index = identify_data(
 					piece_data
@@ -1056,8 +1056,8 @@ namespace libtorrent
 						m_free_slots.push_back(current_slot);
 					}
 
-					const int slot1_size = m_info.piece_size(piece_index);
-					const int slot2_size = other_piece >= 0 ? m_info.piece_size(other_piece) : 0;
+					const int slot1_size = static_cast<int>(m_info.piece_size(piece_index));
+					const int slot2_size = other_piece >= 0 ? static_cast<int>(m_info.piece_size(other_piece)) : 0;
 					std::vector<char> buf1(slot1_size);
 					m_storage.read(&buf1[0], current_slot, 0, slot1_size);
 					if (slot2_size > 0)
@@ -1089,8 +1089,8 @@ namespace libtorrent
 						m_free_slots.push_back(other_slot);
 					}
 
-					const int slot1_size = m_info.piece_size(other_piece);
-					const int slot2_size = piece_index >= 0 ? m_info.piece_size(piece_index) : 0;
+					const int slot1_size = static_cast<int>(m_info.piece_size(other_piece));
+					const int slot2_size = piece_index >= 0 ? static_cast<int>(m_info.piece_size(piece_index)) : 0;
 					std::vector<char> buf1(slot1_size);
 					m_storage.read(&buf1[0], other_slot, 0, slot1_size);
 					if (slot2_size > 0)
@@ -1139,12 +1139,12 @@ namespace libtorrent
 						m_free_slots.push_back(slot2);
 					}
 
-					const int slot1_size = piece1 >= 0 ? m_info.piece_size(piece1) : 0;
-					const int slot2_size = m_info.piece_size(piece2);
-					const int slot3_size = m_info.piece_size(piece_index);
+					const int slot1_size = piece1 >= 0 ? static_cast<int>(m_info.piece_size(piece1)) : 0;
+					const int slot2_size = static_cast<int>(m_info.piece_size(piece2));
+					const int slot3_size = static_cast<int>(m_info.piece_size(piece_index));
 
-					std::vector<char> buf1(m_info.piece_length());
-					std::vector<char> buf2(m_info.piece_length());
+					std::vector<char> buf1(static_cast<int>(m_info.piece_length()));
+					std::vector<char> buf2(static_cast<int>(m_info.piece_length()));
 
 					m_storage.read(&buf2[0], current_slot, 0, slot3_size);
 					m_storage.read(&buf1[0], slot2, 0, slot2_size);
@@ -1295,7 +1295,7 @@ namespace libtorrent
 				m_piece_to_slot[piece_index]
 				, m_piece_to_slot[piece_at_our_slot]);
 
-			const int slot_size = m_info.piece_size(slot_index);
+			const int slot_size = static_cast<int>(m_info.piece_size(slot_index));
 			std::vector<char> buf(slot_size);
 			m_storage.read(&buf[0], piece_index, 0, slot_size);
 			m_storage.write(&buf[0], slot_index, 0, slot_size);
@@ -1370,7 +1370,7 @@ namespace libtorrent
 
 		namespace fs = boost::filesystem;
 		
-		const int piece_size = m_info.piece_length();
+		const int piece_size = static_cast<int>(m_info.piece_length());
 
 		std::vector<char> zeros(piece_size, 0);
 
@@ -1385,13 +1385,13 @@ namespace libtorrent
 			if (m_piece_to_slot[pos] != has_no_slot)
 			{
 				assert(m_piece_to_slot[pos] >= 0);
-				m_storage.read(&zeros[0], m_piece_to_slot[pos], 0, m_info.piece_size(pos));
+				m_storage.read(&zeros[0], m_piece_to_slot[pos], 0, static_cast<int>(m_info.piece_size(pos)));
 				new_free_slot = m_piece_to_slot[pos];
 				m_slot_to_piece[pos] = pos;
 				m_piece_to_slot[pos] = pos;
 			}
 
-			m_storage.write(&zeros[0], pos, 0, m_info.piece_size(pos));
+			m_storage.write(&zeros[0], pos, 0, static_cast<int>(m_info.piece_size(pos)));
 
 			m_free_slots.push_back(new_free_slot);
 			m_slot_to_piece[new_free_slot] = unassigned;
