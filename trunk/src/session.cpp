@@ -92,13 +92,13 @@ namespace
 	}
 
 	void control_upload_rates(
-		int upload_limit
-		, libtorrent::detail::session_impl::connection_map connections)
+		int upload_limit,
+		libtorrent::detail::session_impl::connection_map connections)
 	{
+		assert(upload_limit >= 0);
+
 		using namespace libtorrent;
 		std::vector<resource_consumer> peers;
-		
-		assert(upload_limit >= 0);
 
 		for (detail::session_impl::connection_map::iterator c = connections.begin();
 			c != connections.end(); ++c)
@@ -148,6 +148,39 @@ namespace
 		}
 #endif
 	}
+	void control_number_of_connections(
+		int connections_limit,
+		libtorrent::detail::session_impl::torrent_map hash_list)
+	{
+		assert(connections_limit >= 0);
+
+		using namespace libtorrent;
+		std::vector<resource_consumer> torrents;
+
+		for (detail::session_impl::torrent_map::iterator c = hash_list.begin();
+			c != hash_list.end(); ++c)
+		{
+			boost::shared_ptr<torrent> t = c->second;
+
+			int estimated_capacity=t->num_peers()+1;
+			int limit =t->get_policy().get_max_connections();
+			if(limit==-1)
+				limit=std::numeric_limits<int>::max();
+
+			torrents.push_back(resource_consumer(t,limit,estimated_capacity));
+		}
+
+		allocate_resources(connections_limit, torrents);
+
+		for (std::vector<resource_consumer>::iterator r=torrents.begin();
+			r!=torrents.end(); ++r)
+		{
+			// TODO: inform torrent of how many connections it's allowed.
+//			boost::any_cast<boost::shared_ptr<torrent> >
+//				(r->who())->set_send_quota(r->allowed_use());
+		}
+	}
+
 /*
 	// This struct is used by control_upload_rates() below. It keeps
 	// track how much bandwidth has been allocated to each connection

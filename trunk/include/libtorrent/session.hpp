@@ -155,6 +155,7 @@ namespace libtorrent
 		{
 			friend class invariant_access;
 			typedef std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> > connection_map;
+			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
 
 			session_impl(
 				std::pair<int, int> listen_port_range
@@ -169,7 +170,7 @@ namespace libtorrent
 			const peer_id& get_peer_id() const { return m_peer_id; }
 
 			tracker_manager m_tracker_manager;
-			std::map<sha1_hash, boost::shared_ptr<torrent> > m_torrents;
+			torrent_map m_torrents;
 
 			// this maps sockets to their peer_connection
 			// object. It is the complete list of all connected

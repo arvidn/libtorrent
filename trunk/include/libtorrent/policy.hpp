@@ -103,6 +103,7 @@ namespace libtorrent
 		void not_interested(peer_connection& c);
 
 		void set_max_uploads(int num_unchoked);
+		int get_max_uploads() const { return m_max_uploads; }
 
 		/*
 			A limit on the number of sockets opened, for use on systems where a
@@ -110,6 +111,7 @@ namespace libtorrent
 			which has a buggy tcp-stack.
 		*/
 		void set_max_connections(int num_connected);
+		int get_max_connections() const { return m_max_connections; }
 
 #ifndef NDEBUG
 		bool has_connection(const peer_connection* p);
