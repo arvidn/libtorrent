@@ -243,7 +243,7 @@ namespace libtorrent
 			i != pieces.end();
 			++i)
 		{
-			*i = i - pieces.begin();
+			*i = static_cast<int>(i - pieces.begin());
 		}
 		std::srand((unsigned int)std::time(0));
 		std::vector<int> targets(pieces);
@@ -1333,8 +1333,6 @@ namespace libtorrent
 				// case 1
 				if (this_should_move && !other_should_move)
 				{
-					INVARIANT_CHECK;
-
 					assert(piece_index != current_slot);
 
 					const int other_slot = piece_index;
@@ -1372,8 +1370,6 @@ namespace libtorrent
 				// case 2
 				else if (!this_should_move && other_should_move)
 				{
-					INVARIANT_CHECK;
-
 					assert(piece_index != current_slot);
 
 					const int other_piece = current_slot;
@@ -1406,8 +1402,6 @@ namespace libtorrent
 				}
 				else if (this_should_move && other_should_move)
 				{
-					INVARIANT_CHECK;
-
 					assert(piece_index != current_slot);
 					assert(piece_index >= 0);
 
@@ -1463,8 +1457,6 @@ namespace libtorrent
 				}
 				else
 				{
-					INVARIANT_CHECK;
-
 					assert(m_piece_to_slot[current_slot] == has_no_slot || piece_index != current_slot);
 					assert(m_slot_to_piece[current_slot] == unallocated);
 					assert(piece_index == unassigned || m_piece_to_slot[piece_index] == has_no_slot);

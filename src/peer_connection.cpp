@@ -98,6 +98,7 @@ namespace libtorrent
 		, m_interesting(false)
 		, m_choked(true)
 		, m_supports_extensions(false)
+		, m_num_pieces(0)
 		, m_free_upload(0)
 		, m_send_quota(100)
 		, m_send_quota_left(100)
@@ -160,6 +161,7 @@ namespace libtorrent
 		, m_interesting(false)
 		, m_choked(true)
 		, m_supports_extensions(false)
+		, m_num_pieces(0)
 		, m_free_upload(0)
 		, m_send_quota(100)
 		, m_send_quota_left(100)
@@ -454,8 +456,9 @@ namespace libtorrent
 		else
 		{
 			m_have_piece[index] = true;
-
+			++m_num_pieces;
 			m_torrent->peer_has(index);
+
 			if (!m_torrent->have_piece(index) && !is_interesting())
 				m_torrent->get_policy().peer_is_interesting(*this);
 
@@ -491,11 +494,13 @@ namespace libtorrent
 			if (have && !m_have_piece[i])
 			{
 				m_have_piece[i] = true;
+				++m_num_pieces;
 				piece_list.push_back(i);
 			}
 			else if (!have && m_have_piece[i])
 			{
 				m_have_piece[i] = false;
+				--m_num_pieces;
 				m_torrent->peer_lost(i);
 			}
 		}
@@ -1705,6 +1710,11 @@ namespace libtorrent
 	void peer_connection::check_invariant() const
 	{
 		assert(has_data() == m_selector.is_writability_monitored(m_socket));
+
+		assert(m_num_pieces == std::count(
+			m_have_piece.begin()
+			, m_have_piece.end()
+			, true));
 	}
 #endif
 

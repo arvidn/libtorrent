@@ -44,7 +44,7 @@ The current state includes the following features:
 	* possibility to limit the number of connections.
 	* delays have messages if there's no other outgoing traffic to the peer, and doesn't
 	  send have messages to peers that already has the piece. This saves bandwidth.
-	* Does not have any requirements on the piece order in a torrent that it resumes. This
+	* does not have any requirements on the piece order in a torrent that it resumes. This
 	  means it can resume a torrent downloaded by any client.
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt

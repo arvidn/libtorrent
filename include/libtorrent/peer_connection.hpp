@@ -66,8 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // TODO: each time a block is 'taken over'
 // from another peer. That peer must be given
-// a chance to request another block instead.
-// Where it also could become not-interested.
+// a chance to become not-interested.
 
 namespace libtorrent
 {
@@ -199,7 +198,8 @@ namespace libtorrent
 		boost::shared_ptr<libtorrent::socket> get_socket() const { return m_socket; }
 
 		const peer_id& get_peer_id() const { return m_peer_id; }
-		const std::vector<bool>& get_bitfield() const { return m_have_piece; }
+		const std::vector<bool>& get_bitfield() const
+		{ return m_have_piece; }
 
 		// this will cause this peer_connection to be disconnected.
 		// what it does is that it puts a reference to it in
@@ -445,6 +445,12 @@ namespace libtorrent
 
 		// the pieces the other end have
 		std::vector<bool> m_have_piece;
+
+		// the number of pieces this peer
+		// has. Must be the same as
+		// std::count(m_have_piece.begin(),
+		// m_have_piece.end(), true)
+		int m_num_pieces;
 
 		// the queue of requests we have got
 		// from this peer
