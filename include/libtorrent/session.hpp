@@ -61,7 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/policy.hpp"
-#include "libtorrent/url_handler.hpp"
+#include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/fingerprint.hpp"

@@ -1754,6 +1754,6 @@ namespace libtorrent
 
 	bool peer_connection::is_seed() const
 	{
-		return m_num_pieces == m_have_piece.size();
+		return m_num_pieces == (int)m_have_piece.size();
 	}
 }
