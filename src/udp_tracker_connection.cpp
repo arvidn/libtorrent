@@ -73,9 +73,6 @@ namespace libtorrent
 		, m_settings(stn)
 		, m_attempts(0)
 	{
-		// only announce is suppoerted at this time
-		assert(req.kind == tracker_request::announce_request);
-
 		// TODO: this is a problem. DNS-lookup is blocking!
 		// (may block up to 5 seconds)
 		address a(hostname.c_str(), port);
@@ -124,7 +121,10 @@ namespace libtorrent
 				return true;
 			}
 
-			send_udp_announce();
+			if (m_request.kind == tracker_request::announce_request)
+				send_udp_announce();
+			else if (m_request.kind == tracker_request::scrape_request)
+				send_udp_scrape();
 			return false;
 		}
 
@@ -151,10 +151,17 @@ namespace libtorrent
 		{
 			return parse_connect_response(buf, ret);
 		}
-		else
+		else if (m_request.kind == tracker_request::announce_request)
 		{
 			return parse_announce_response(buf, ret);
 		}
+		else if (m_request.kind == tracker_request::scrape_request)
+		{
+			return parse_scrape_response(buf, ret);
+		}
+
+		assert(false);
+		return false;
 	}
 
 	void udp_tracker_connection::send_udp_announce()
@@ -191,6 +198,28 @@ namespace libtorrent
 		detail::write_int32(m_request.num_want, out);
 		// port
 		detail::write_uint16(m_request.listen_port, out);
+
+		m_socket->send(&buf[0], buf.size());
+		m_request_time = second_clock::universal_time();
+		++m_attempts;
+	}
+
+	void udp_tracker_connection::send_udp_scrape()
+	{
+		if (m_transaction_id == 0)
+			m_transaction_id = rand() | (rand() << 16);
+
+		std::vector<char> buf;
+		std::back_insert_iterator<std::vector<char> > out(buf);
+
+		// connection_id
+		detail::write_int64(m_connection_id, out);
+		// action (scrape)
+		detail::write_int32(scrape, out);
+		// transaction_id
+		detail::write_int32(m_transaction_id, out);
+		// info_hash
+		std::copy(m_request.info_hash.begin(), m_request.info_hash.end(), out);
 
 		m_socket->send(&buf[0], buf.size());
 		m_request_time = second_clock::universal_time();
@@ -248,12 +277,12 @@ namespace libtorrent
 		}
 		if (action != announce) return false;
 
-		if (len < 24)
+		if (len < 20)
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
 			if (has_requester())
 				requester().debug_log("udp_tracker_connection: "
-				"got a message with size < 24, ignoring");
+				"got a message with size < 20, ignoring");
 #endif
 			return false;
 		}
@@ -290,6 +319,59 @@ namespace libtorrent
 			, complete, incomplete);
 		return true;
 	}
+
+	bool udp_tracker_connection::parse_scrape_response(const char* buf, int len)
+	{
+		assert(buf != 0);
+		assert(len > 0);
+
+		if (len < 8)
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			if (has_requester())
+				requester().debug_log("udp_tracker_connection: "
+				"got a message with size < 8, ignoring");
+#endif
+			return false;
+		}
+
+		int action = detail::read_int32(buf);
+		int transaction = detail::read_int32(buf);
+		if (transaction != m_transaction_id)
+		{
+			return false;
+		}
+
+		if (action == error)
+		{
+			if (has_requester())
+				requester().tracker_request_error(
+					m_request, -1, std::string(buf, buf + len - 8));
+			return true;
+		}
+		if (action != scrape) return false;
+
+		if (len < 20)
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			if (has_requester())
+				requester().debug_log("udp_tracker_connection: "
+				"got a message with size < 20, ignoring");
+#endif
+			return false;
+		}
+		int complete = detail::read_int32(buf);
+		int completed = detail::read_int32(buf);
+		int incomplete = detail::read_int32(buf);
+
+		if (!has_requester()) return true;
+
+		std::vector<peer_entry> peer_list;
+		requester().tracker_response(m_request, peer_list, 0
+			, complete, incomplete);
+		return true;
+	}
+
 
 	bool udp_tracker_connection::parse_connect_response(const char* buf, int len)
 	{
@@ -341,7 +423,11 @@ namespace libtorrent
 		m_attempts = 0;
 		m_connection_id = detail::read_int64(ptr);
 
-		send_udp_announce();
+		if (m_request.kind == tracker_request::announce_request)
+			send_udp_announce();
+		else if (m_request.kind == tracker_request::scrape_request)
+			send_udp_scrape();
+
 		return false;
 	}
 

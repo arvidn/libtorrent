@@ -88,8 +88,10 @@ namespace libtorrent
 
 		void send_udp_connect();
 		void send_udp_announce();
+		void send_udp_scrape();
 		bool parse_connect_response(const char* buf, int ret);
 		bool parse_announce_response(const char* buf, int ret);
+		bool parse_scrape_response(const char* buf, int ret);
 
 		boost::shared_ptr<socket> m_socket;
 
