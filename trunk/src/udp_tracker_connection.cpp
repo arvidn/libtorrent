@@ -167,7 +167,7 @@ namespace libtorrent
 	void udp_tracker_connection::send_udp_announce()
 	{
 		if (m_transaction_id == 0)
-			m_transaction_id = rand() | (rand() << 16);
+			m_transaction_id = rand() ^ (rand() << 16);
 
 		std::vector<char> buf;
 		std::back_insert_iterator<std::vector<char> > out(buf);
@@ -207,7 +207,7 @@ namespace libtorrent
 	void udp_tracker_connection::send_udp_scrape()
 	{
 		if (m_transaction_id == 0)
-			m_transaction_id = rand() | (rand() << 16);
+			m_transaction_id = rand() ^ (rand() << 16);
 
 		std::vector<char> buf;
 		std::back_insert_iterator<std::vector<char> > out(buf);
@@ -232,10 +232,10 @@ namespace libtorrent
 		char* ptr = send_buf;
 
 		if (m_transaction_id == 0)
-			m_transaction_id = rand() | (rand() << 16);
+			m_transaction_id = rand() ^ (rand() << 16);
 
 		// connection_id
-		detail::write_int64(0, ptr);
+		detail::write_int64(0x41727101980, ptr);
 		// action (connect)
 		detail::write_int32(connect, ptr);
 		// transaction_id
