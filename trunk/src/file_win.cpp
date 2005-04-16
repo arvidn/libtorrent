@@ -59,24 +59,25 @@ namespace
 	{
 		int err = GetLastError();
 
-		#ifdef UNICODE
-			wchar_t *wbuffer = 0;
-			FormatMessage(
-				FORMAT_MESSAGE_FROM_SYSTEM
-				|FORMAT_MESSAGE_ALLOCATE_BUFFER
-				, 0, err, 0, (LPWCSTR)&wbuffer, 0, 0);
-			std::string tmp_utf8;
-			wchar_utf8(wbuffer, tmp_utf8);
-			char* buffer = tmp_utf8.c_str();
-		#else
-			char* buffer = 0;
-			FormatMessage(
-				FORMAT_MESSAGE_FROM_SYSTEM
-				|FORMAT_MESSAGE_ALLOCATE_BUFFER
-				, 0, err, 0, (LPSTR)&buffer, 0, 0);
-		#endif
+#ifdef UNICODE
+		wchar_t *wbuffer = 0;
+		FormatMessage(
+			FORMAT_MESSAGE_FROM_SYSTEM
+			|FORMAT_MESSAGE_ALLOCATE_BUFFER
+			, 0, err, 0, (LPWCSTR)&wbuffer, 0, 0);
+		auto_localfree auto_free(wbuffer);
+		std::string tmp_utf8;
+		wchar_utf8(wbuffer, tmp_utf8);
+		char* buffer = tmp_utf8.c_str();
+#else
+		char* buffer = 0;
+		FormatMessage(
+			FORMAT_MESSAGE_FROM_SYSTEM
+			|FORMAT_MESSAGE_ALLOCATE_BUFFER
+			, 0, err, 0, (LPSTR)&buffer, 0, 0);
+		auto_localfree auto_free(buffer);
+#endif
 
-		auto_localfree auto_free(buffer); // needed for exception safety
 		std::stringstream s;
 		s << (thrower ? thrower : "NULL") << ": " << (buffer ? buffer : "NULL");
 
