@@ -183,7 +183,7 @@ Client sends packet:
 | int16_t     | num_info_hashes     | The number of info-hashes that will    |
 |             |                     | follow.                                |
 +-------------+---------------------+----------------------------------------+
-| uint16_t    | extensions          | See extensions_.                       |
+| uint16_t    | extensions          | Optional field. See extensions_.       |
 +-------------+---------------------+----------------------------------------+
 
 The following structure is repeated ``num_info_hashes`` times:
