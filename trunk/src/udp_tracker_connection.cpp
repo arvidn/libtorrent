@@ -363,7 +363,7 @@ namespace libtorrent
 			return false;
 		}
 		int complete = detail::read_int32(buf);
-		int completed = detail::read_int32(buf);
+		/*int downloaded = */detail::read_int32(buf);
 		int incomplete = detail::read_int32(buf);
 
 		if (!has_requester()) return true;
