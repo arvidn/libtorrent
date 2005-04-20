@@ -1768,17 +1768,21 @@ a HTTP response other than "200 OK". From the alert you can get the handle to th
 the tracker belongs to. This alert is generated as severity level ``warning``.
 
 The ``times_in_row`` member says how many times in a row this tracker has failed.
+``status_code`` is the code returned from the HTTP server. 401 means the tracker needs
+authentication, 404 means not found etc. If the tracker timed out, the code will be set
+to 0.
 
 ::
 
 	struct tracker_alert: alert
 	{
-		tracker_alert(const torrent_handle& h, int times
+		tracker_alert(const torrent_handle& h, int times, int status
 			, const std::string& msg);
 		virtual std::auto_ptr<alert> clone() const;
 
 		torrent_handle handle;
 		int times_in_row;
+		int status_code;
 	};
 
 
