@@ -1758,16 +1758,20 @@ struct file_error_alert: alert
 <p>This alert is generated on tracker time outs, premature disconnects, invalid response or
 a HTTP response other than &quot;200 OK&quot;. From the alert you can get the handle to the torrent
 the tracker belongs to. This alert is generated as severity level <tt class="docutils literal"><span class="pre">warning</span></tt>.</p>
-<p>The <tt class="docutils literal"><span class="pre">times_in_row</span></tt> member says how many times in a row this tracker has failed.</p>
+<p>The <tt class="docutils literal"><span class="pre">times_in_row</span></tt> member says how many times in a row this tracker has failed.
+<tt class="docutils literal"><span class="pre">status_code</span></tt> is the code returned from the HTTP server. 401 means the tracker needs
+authentication, 404 means not found etc. If the tracker timed out, the code will be set
+to 0.</p>
 <pre class="literal-block">
 struct tracker_alert: alert
 {
-        tracker_alert(const torrent_handle&amp; h, int times
+        tracker_alert(const torrent_handle&amp; h, int times, int status
                 , const std::string&amp; msg);
         virtual std::auto_ptr&lt;alert&gt; clone() const;
 
         torrent_handle handle;
         int times_in_row;
+        int status_code;
 };
 </pre>
 </div>

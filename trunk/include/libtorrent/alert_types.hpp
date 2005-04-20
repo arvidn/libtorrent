@@ -44,10 +44,12 @@ namespace libtorrent
 	{
 		tracker_alert(const torrent_handle& h
 			, int times
+			, int status
 			, const std::string& msg)
 			: alert(alert::warning, msg)
 			, handle(h)
 			, times_in_row(times)
+			, status_code(status)
 			{}
 
 		virtual std::auto_ptr<alert> clone() const
@@ -55,6 +57,7 @@ namespace libtorrent
 
 		torrent_handle handle;
 		int times_in_row;
+		int status_code;
 	};
 
 	struct tracker_reply_alert: alert

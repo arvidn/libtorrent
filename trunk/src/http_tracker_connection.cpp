@@ -503,8 +503,17 @@ namespace libtorrent
 				}
 
 				// handle tracker response
-				entry e = bdecode(m_buffer.begin(), m_buffer.end());
-				parse(e);
+				try
+				{
+					entry e = bdecode(m_buffer.begin(), m_buffer.end());
+					parse(e);
+				}
+				catch (std::exception&)
+				{
+					std::string error_str(m_buffer.begin(), m_buffer.end());
+					if (has_requester()) requester().tracker_request_error(m_req, m_code, error_str);	
+				}
+				
 				return true;
 			}
 			return false;
@@ -641,11 +650,11 @@ namespace libtorrent
 		}
 		catch(type_error& e)
 		{
-			requester().tracker_request_error(m_req, -1, e.what());
+			requester().tracker_request_error(m_req, m_code, e.what());
 		}
 		catch(std::runtime_error& e)
 		{
-			requester().tracker_request_error(m_req, -1, e.what());
+			requester().tracker_request_error(m_req, m_code, e.what());
 		}
 	}
 
