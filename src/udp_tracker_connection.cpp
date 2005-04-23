@@ -237,7 +237,8 @@ namespace libtorrent
 			m_transaction_id = rand() ^ (rand() << 16);
 
 		// connection_id
-		detail::write_int64(0x41727101980, ptr);
+		detail::write_uint32(0x417, ptr);
+		detail::write_uint32(0x27101980, ptr);
 		// action (connect)
 		detail::write_int32(connect, ptr);
 		// transaction_id
