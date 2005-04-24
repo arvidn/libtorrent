@@ -921,7 +921,7 @@ namespace libtorrent
 	// this is called when we are choked by a peer
 	// i.e. a peer lets us know that we will not receive
 	// anything for a while
-	void policy::choked(peer_connection& c)
+	void policy::choked(peer_connection&)
 	{
 	}
 
@@ -963,7 +963,7 @@ namespace libtorrent
 	// TODO: we must be able to get interested
 	// in a peer again, if a piece fails that
 	// this peer has.
-	void policy::block_finished(peer_connection& c, piece_block b)
+	void policy::block_finished(peer_connection& c, piece_block)
 	{
 		// if the peer hasn't choked us, ask for another piece
 		if (!c.has_peer_choked())
@@ -982,7 +982,7 @@ namespace libtorrent
 	}
 
 	// called when a peer is interested in us
-	void policy::interested(peer_connection& c)
+	void policy::interested(peer_connection&)
 	{
 	}
 
