@@ -985,8 +985,9 @@ namespace libtorrent
 		char const* tracker_url
 		, sha1_hash const& info_hash
 		, boost::filesystem::path const& save_path
-		, entry const& resume_data)
+		, entry const&)
 	{
+		// TODO: support resume data in this case
 		assert(!save_path.empty());
 		{
 			// lock the checker_thread

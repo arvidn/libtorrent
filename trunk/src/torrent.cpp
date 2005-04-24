@@ -280,7 +280,7 @@ namespace libtorrent
 	}
 
 	void torrent::tracker_response(
-		tracker_request const& r
+		tracker_request const&
 		, std::vector<peer_entry>& peer_list
 		, int interval
 		, int complete
@@ -1286,7 +1286,7 @@ namespace libtorrent
 	// TODO: with some response codes, we should just consider
 	// the tracker as a failure and not retry
 	// it anymore
-	void torrent::tracker_request_error(tracker_request const& r
+	void torrent::tracker_request_error(tracker_request const&
 		, int response_code, const std::string& str)
 	{
 #ifdef TORRENT_VERBOSE_LOGGING

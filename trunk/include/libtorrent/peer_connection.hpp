@@ -328,7 +328,7 @@ namespace libtorrent
 			num_supported_messages
 		};
 
-		const static message_handler m_message_handler[num_supported_messages];
+		static const message_handler m_message_handler[num_supported_messages];
 
 		int m_packet_size;
 		int m_recv_pos;

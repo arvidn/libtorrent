@@ -69,8 +69,8 @@ namespace libtorrent
 			int m_val;
 		};
 
-		const static seek_mode begin;
-		const static seek_mode end;
+		static const seek_mode begin;
+		static const seek_mode end;
 
 		class open_mode
 		{
@@ -100,8 +100,8 @@ namespace libtorrent
 			int m_mask;
 		};
 
-		const static open_mode in;
-		const static open_mode out;
+		static const open_mode in;
+		static const open_mode out;
 
 		file();
 		file(boost::filesystem::path const& p, open_mode m);
