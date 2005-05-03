@@ -2,6 +2,8 @@
 libtorrent manual
 =================
 
+:Author: Arvid Norberg, c99ang@cs.umu.se
+
 .. contents::
 
 introduction

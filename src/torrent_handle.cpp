@@ -510,6 +510,22 @@ namespace libtorrent
 		t->get_policy().peer_from_tracker(adr, id);
 	}
 
+	void torrent_handle::force_reannounce(
+		boost::posix_time::time_duration duration) const
+	{
+		INVARIANT_CHECK;
+
+		if (m_ses == 0) throw invalid_handle();
+	
+		boost::mutex::scoped_lock l(m_ses->m_mutex);
+		torrent* t = m_ses->find_torrent(m_info_hash);
+		if (t == 0) throw invalid_handle();
+
+		using boost::posix_time::second_clock;
+		t->force_tracker_request(second_clock::universal_time()
+			+ duration);
+	}
+
 	void torrent_handle::force_reannounce() const
 	{
 		INVARIANT_CHECK;

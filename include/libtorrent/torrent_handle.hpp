@@ -225,6 +225,12 @@ namespace libtorrent
 		// (make a rerequest from the tracker)
 		void force_reannounce() const;
 
+		// forces a reannounce in the specified amount of time.
+		// This overrides the default announce interval, and no
+		// announce will take place until the given time has
+		// timed out.
+		void force_reannounce(boost::posix_time::time_duration) const;
+
 		// TODO: add a feature where the user can tell the torrent
 		// to finish all pieces currently in the pipeline, and then
 		// abort the torrent.
