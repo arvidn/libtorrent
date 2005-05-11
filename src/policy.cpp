@@ -1145,7 +1145,7 @@ namespace libtorrent
 
 	void policy::check_invariant() const
 	{
-		assert(m_torrent->m_uploads_quota.given >= 2);
+//		assert(m_torrent->m_uploads_quota.given >= 2);
 		int actual_unchoked = 0;
 		for (std::vector<peer>::const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
