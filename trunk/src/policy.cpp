@@ -611,8 +611,7 @@ namespace libtorrent
 		int num_connected_peers = 0;
 
 		for (std::vector<peer>::iterator i = m_peers.begin();
-					i != m_peers.end();
-					++i)
+					i != m_peers.end(); ++i)
 		{
 			if (i->connection && !i->connection->is_disconnecting())
 				++num_connected_peers;
@@ -1145,6 +1144,7 @@ namespace libtorrent
 
 	void policy::check_invariant() const
 	{
+		if (m_torrent->is_aborted()) return;
 //		assert(m_torrent->m_uploads_quota.given >= 2);
 		int actual_unchoked = 0;
 		for (std::vector<peer>::const_iterator i = m_peers.begin();
