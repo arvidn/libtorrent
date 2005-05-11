@@ -81,8 +81,7 @@ int main(int argc, char* argv[])
 		std::cout << "info hash: " << t.info_hash() << "\n";
 		std::cout << "files:\n";
 		for (torrent_info::file_iterator i = t.begin_files();
-			i != t.end_files();
-			++i)
+			i != t.end_files(); ++i)
 		{
 			std::cout << "  " << std::setw(11) << i->size
 			<< " " << i->path.string() << "\n";

@@ -98,17 +98,6 @@ namespace
 		log.flush();
 	}
 
-	path get_filename(
-		libtorrent::torrent_info const& t
-		, path const& p)
-	{
-		assert(t.num_files() > 0);
-		if (t.num_files() == 1)
-			return p;
-		else
-			return t.name() / p;
-	}
-
 	struct file_entry
 	{
 		file_entry(boost::shared_ptr<file> const& f_)
@@ -183,7 +172,7 @@ namespace libtorrent
 			std::time_t time = 0;
 			try
 			{
-				path f = p / get_filename(t, i->path);
+				path f = p / i->path;
 				size = file_size(f);
 				time = last_write_time(f);
 			}
@@ -211,7 +200,7 @@ namespace libtorrent
 			std::time_t time = 0;
 			try
 			{
-				path f = p / get_filename(t, i->path);
+				path f = p / i->path;
 				size = file_size(f);
 				time = last_write_time(f);
 			}
@@ -399,7 +388,7 @@ namespace libtorrent
 		}
 
 		boost::shared_ptr<file> in(m_pimpl->files.open_file(
-			m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path)
+			m_pimpl->save_path / file_iter->path
 			, file::in));
 
 		assert(file_offset < file_iter->size);
@@ -449,7 +438,7 @@ namespace libtorrent
 			if (left_to_read > 0)
 			{
 				++file_iter;
-				path path = m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path);
+				path path = m_pimpl->save_path / file_iter->path;
 
 				file_offset = 0;
 				in = m_pimpl->files.open_file(path, file::in);
@@ -491,7 +480,7 @@ namespace libtorrent
 			assert(file_iter != m_pimpl->info.end_files());
 		}
 
-		path p(m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path));
+		path p(m_pimpl->save_path / file_iter->path);
 		boost::shared_ptr<file> out = m_pimpl->files.open_file(p, file::out | file::in);
 
 		assert(file_offset < file_iter->size);
@@ -547,7 +536,7 @@ namespace libtorrent
 				++file_iter;
 
 				assert(file_iter != m_pimpl->info.end_files());
- 				path p = m_pimpl->save_path / get_filename(m_pimpl->info, file_iter->path);
+ 				path p = m_pimpl->save_path / file_iter->path;
 				file_offset = 0;
 				out = m_pimpl->files.open_file(p, file::out | file::in);
 				out->seek(0);
@@ -1080,7 +1069,7 @@ namespace libtorrent
 		for (torrent_info::file_iterator file_iter = m_info.begin_files(),
 			end_iter = m_info.end_files();  file_iter != end_iter; ++file_iter)
 		{
-			path dir = m_save_path / get_filename(m_info, file_iter->path);
+			path dir = m_save_path / file_iter->path;
 			if (!exists(dir.branch_path()))
 				create_directories(dir.branch_path());
 		}

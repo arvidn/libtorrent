@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/invariant_check.hpp"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 #	define for if (false) {} else for
@@ -339,6 +340,8 @@ namespace libtorrent
 	// choked.
 	policy::peer* policy::find_choke_candidate()
 	{
+		INVARIANT_CHECK;
+
 		peer* worst_peer = 0;
 		size_type min_weight = std::numeric_limits<int>::min();
 
@@ -381,6 +384,8 @@ namespace libtorrent
 
 	policy::peer* policy::find_unchoke_candidate()
 	{
+		INVARIANT_CHECK;
+
 		// if all of our peers are unchoked, there's
 		// no left to unchoke
 		if (m_num_unchoked == m_torrent->num_peers())
@@ -463,8 +468,7 @@ namespace libtorrent
 		policy::peer* candidate  =0;
 
 		for (std::vector<peer>::iterator i = m_peers.begin();
-			i != m_peers.end();
-			++i)
+			i != m_peers.end(); ++i)
 		{
 			if(i->connection) continue;
 			if(i->banned) continue;
@@ -488,6 +492,8 @@ namespace libtorrent
 
 	policy::peer* policy::find_seed_choke_candidate()
 	{
+		INVARIANT_CHECK;
+
 		// first choice candidate.
 		// it is a candidate we owe nothing to and which has been unchoked
 		// the longest.
@@ -506,8 +512,7 @@ namespace libtorrent
 		size_type lowest_share_diff = 0; // not valid when secondCandidate==0
 
 		for (std::vector<peer>::iterator i = m_peers.begin();
-			i != m_peers.end();
-			++i)
+			i != m_peers.end(); ++i)
 		{
 			peer_connection* c = i->connection;
             // ignore peers that are choked or
@@ -520,13 +525,13 @@ namespace libtorrent
 
 			// select as second candidate the one that we owe the least
 			// to
-			if(!second_candidate || share_diff <= lowest_share_diff)
+			if (!second_candidate || share_diff <= lowest_share_diff)
 			{
 				lowest_share_diff = share_diff;
 				second_candidate = &(*i);
 			}
 			
-            // select as first candidate the one that we don't owe anything to
+			// select as first candidate the one that we don't owe anything to
 			// and has been waiting for an unchoke the longest
 			if (share_diff > 0) continue;
 			if (!candidate || last_unchoke > i->last_optimistically_unchoked)
@@ -543,13 +548,14 @@ namespace libtorrent
 
 	policy::peer* policy::find_seed_unchoke_candidate()
 	{
+		INVARIANT_CHECK;
+
 		peer* candidate = 0;
 		boost::posix_time::ptime last_unchoke
 			= second_clock::universal_time();
 
 		for (std::vector<peer>::iterator i = m_peers.begin();
-			i != m_peers.end();
-			++i)
+			i != m_peers.end(); ++i)
 		{
 			peer_connection* c = i->connection;
 			if (c == 0) continue;
@@ -568,6 +574,7 @@ namespace libtorrent
 		peer* p = find_seed_unchoke_candidate();
 		if (p != 0)
 		{
+			assert(p->connection->is_choked());
 			p->connection->send_unchoke();
 			p->last_optimistically_unchoked
 				= second_clock::universal_time();
@@ -578,6 +585,8 @@ namespace libtorrent
 
 	void policy::pulse()
 	{
+		INVARIANT_CHECK;
+
 		if (m_torrent->is_paused()) return;
 
 		using namespace boost::posix_time;
@@ -697,6 +706,7 @@ namespace libtorrent
 				peer* p = find_seed_choke_candidate();
 				assert(p != 0);
 
+				assert(!p->connection->is_choked());
 				p->connection->send_choke();
 				--m_num_unchoked;
 			}
@@ -749,6 +759,7 @@ namespace libtorrent
 					peer* p = find_choke_candidate();
 					if (!p) break;
 					assert(p);
+					assert(!p->connection->is_choked());
 					p->connection->send_choke();
 					--m_num_unchoked;
 				}
@@ -759,6 +770,7 @@ namespace libtorrent
 				peer* p = find_choke_candidate();
 				if (p)
 				{
+					assert(!p->connection->is_choked());
 					p->connection->send_choke();
 					--m_num_unchoked;
 					unchoke_one_peer();
@@ -770,9 +782,6 @@ namespace libtorrent
 			while (m_num_unchoked < m_torrent->m_uploads_quota.given
 				&& unchoke_one_peer());
 		}
-#ifndef NDEBUG
-		check_invariant();
-#endif
 	}
 
 	void policy::ban_peer(const peer_connection& c)
@@ -1016,6 +1025,7 @@ namespace libtorrent
 		assert(p->connection);
 		assert(!p->connection->is_disconnecting());
 
+		assert(p->connection->is_choked());
 		p->connection->send_unchoke();
 		p->last_optimistically_unchoked = second_clock::universal_time();
 		++m_num_unchoked;
@@ -1068,6 +1078,10 @@ namespace libtorrent
 	// this is called whenever a peer connection is closed
 	void policy::connection_closed(const peer_connection& c)
 	{
+		INVARIANT_CHECK;
+
+		bool unchoked = false;
+
 		std::vector<peer>::iterator i = std::find_if(
 			m_peers.begin()
 			, m_peers.end()
@@ -1080,11 +1094,7 @@ namespace libtorrent
 		i->connected = second_clock::universal_time();
 		if (!i->connection->is_choked() && !m_torrent->is_aborted())
 		{
-			// if the peer that is diconnecting is unchoked
-			// then unchoke another peer in order to maintain
-			// the total number of unchoked peers
-			--m_num_unchoked;
-			unchoke_one_peer();
+			unchoked = true;
 		}
 
 		if (c.failed())
@@ -1105,6 +1115,15 @@ namespace libtorrent
 		i->prev_amount_download += c.statistics().total_payload_download();
 		i->prev_amount_upload += c.statistics().total_payload_upload();
 		i->connection = 0;
+
+		if (unchoked)
+		{
+			// if the peer that is diconnecting is unchoked
+			// then unchoke another peer in order to maintain
+			// the total number of unchoked peers
+			--m_num_unchoked;
+			unchoke_one_peer();
+		}
 	}
 
 	void policy::peer_is_interesting(peer_connection& c)
@@ -1129,13 +1148,13 @@ namespace libtorrent
 		assert(m_torrent->m_uploads_quota.given >= 2);
 		int actual_unchoked = 0;
 		for (std::vector<peer>::const_iterator i = m_peers.begin();
-			i != m_peers.end();
-			++i)
+			i != m_peers.end(); ++i)
 		{
 			if (!i->connection) continue;
 			if (!i->connection->is_choked()) actual_unchoked++;
 		}
-		assert(actual_unchoked <= m_torrent->m_uploads_quota.given);
+//		assert(actual_unchoked <= m_torrent->m_uploads_quota.given);
+		assert(actual_unchoked == m_num_unchoked);
 	}
 #endif
 
