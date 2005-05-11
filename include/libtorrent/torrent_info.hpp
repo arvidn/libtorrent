@@ -181,6 +181,13 @@ namespace libtorrent
 		// an optional string naming the software used
 		// to create the torrent file
 		std::string m_created_by;
+
+		// this is used when creating a torrent. If there's
+		// only one file there are cases where it's impossible
+		// to know if it should be written as a multifile torrent
+		// or not. e.g. test/test  there's one file and one directory
+		// and they have the same name.
+		bool m_multifile;
 	};
 
 }

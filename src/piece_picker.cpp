@@ -386,6 +386,7 @@ namespace libtorrent
 
 		assert(peer_count < 2048);
 		m_piece_map[i].peer_count++;
+		assert(m_piece_map[i].peer_count != 0);	
 
 		// if we have the piece, we don't have to move
 		// any entries in the piece_info vector

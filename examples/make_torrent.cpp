@@ -62,6 +62,7 @@ void add_files(
 	}
 	else
 	{
+		std::cerr << "adding \"" << l.string() << "\"\n";
 		file fi(f, file::in);
 		fi.seek(0, file::end);
 		libtorrent::size_type size = fi.tell();

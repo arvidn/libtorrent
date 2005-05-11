@@ -655,6 +655,9 @@ in the torrent, you can use ``begin_files()``, ``end_files()``,
 ``rbegin_files()`` and ``rend_files()``. These will give you standard vector
 iterators with the type ``file_entry``.
 
+The ``path`` is the full (relative) path of each file. i.e. if it is a multi-file
+torrent, all the files starts with a directory with the same name as ``torrent_info::name()``.
+
 ::
 
 	struct file_entry

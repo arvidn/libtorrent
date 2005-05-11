@@ -62,27 +62,30 @@ using namespace boost::filesystem;
 
 namespace
 {
-	void extract_single_file(const entry& dict, file_entry& target)
+	void extract_single_file(const entry& dict, file_entry& target
+		, std::string const& root_dir)
 	{
 		target.size = dict["length"].integer();
+		target.path = root_dir;
 		const entry::list_type& list = dict["path"].list();
 		for (entry::list_type::const_iterator i = list.begin();
-			i != list.end();
-			++i)
+			i != list.end(); ++i)
 		{
-			target.path /= i->string();
+			if (i->string() != "..")
+				target.path /= i->string();
 		}
 		if (target.path.is_complete()) throw std::runtime_error("torrent contains "
 			"a file with an absolute path: '"
 			+ target.path.native_file_string() + "'");
 	}
 
-	void extract_files(const entry::list_type& list, std::vector<file_entry>& target)
+	void extract_files(const entry::list_type& list, std::vector<file_entry>& target
+		, std::string const& root_dir)
 	{
 		for (entry::list_type::const_iterator i = list.begin(); i != list.end(); ++i)
 		{
 			target.push_back(file_entry());
-			extract_single_file(*i, target.back());
+			extract_single_file(*i, target.back(), root_dir);
 		}
 	}
 
@@ -105,6 +108,7 @@ namespace libtorrent
 	// standard constructor that parses a torrent file
 	torrent_info::torrent_info(const entry& torrent_file)
 		: m_creation_date(date(not_a_date_time))
+		, m_multifile(false)
 	{
 		try
 		{
@@ -125,6 +129,7 @@ namespace libtorrent
 		, m_info_hash(info_hash)
 		, m_name()
 		, m_creation_date(second_clock::universal_time())
+		, m_multifile(false)
 	{
 	}
 
@@ -134,6 +139,7 @@ namespace libtorrent
 		, m_info_hash(0)
 		, m_name()
 		, m_creation_date(second_clock::universal_time())
+		, m_multifile(false)
 	{
 	}
 
@@ -181,7 +187,12 @@ namespace libtorrent
 
 		// extract file name (or the directory name if it's a multifile libtorrent)
 		m_name = info["name"].string();
-
+		path tmp = m_name;
+		if (tmp.is_complete()) throw std::runtime_error("torrent contains "
+			"a file with an absolute path: '" + m_name + "'");
+		if (tmp.has_branch_path()) throw std::runtime_error(
+			"torrent contains name with directories: '" + m_name + "'");
+	
 		// extract file list
 		entry const* i = info.find_key("files");
 		if (i == 0)
@@ -190,14 +201,13 @@ namespace libtorrent
 			// field.
 			file_entry e;
 			e.path = m_name;
-			if (e.path.is_complete()) throw std::runtime_error("torrent contains "
-				"a file with an absolute path: '" + e.path.native_file_string() + "'");
 			e.size = info["length"].integer();
 			m_files.push_back(e);
 		}
 		else
 		{
-			extract_files(i->list(), m_files);
+			extract_files(i->list(), m_files, m_name);
+			m_multifile = true;
 		}
 
 		// calculate total size of all pieces
@@ -321,22 +331,24 @@ namespace libtorrent
 	{
 		assert(file.begin() != file.end());
 
-		if (m_files.empty())
+		if (!file.has_branch_path())
 		{
+			// you have already added at least one file with a
+			// path to the file (branch_path), which means that
+			// all the other files need to be in the same top
+			// directory as the first file.
+			assert(m_files.empty());
+			assert(!m_multifile);
 			m_name = file.string();
 		}
 		else
 		{
 #ifndef NDEBUG
-			if (m_files.size() == 1)
-				assert(*m_files.front().path.begin() == *file.begin());
-			else
+			if (!m_files.empty())
 				assert(m_name == *file.begin());
 #endif
+			m_multifile = true;
 			m_name = *file.begin();
-			if (m_files.size() == 1)
-				remove_dir(m_files.front().path);
-			remove_dir(file);
 		}
 
 		file_entry e;
@@ -352,8 +364,7 @@ namespace libtorrent
 
 		m_piece_hash.resize(num_pieces);
 		for (std::vector<sha1_hash>::iterator i = m_piece_hash.begin() + old_num_pieces;
-			i != m_piece_hash.end();
-			++i)
+			i != m_piece_hash.end(); ++i)
 		{
 			i->clear();
 		}
@@ -374,28 +385,23 @@ namespace libtorrent
 	{
 		namespace fs = boost::filesystem;
 
+		// you have to add files to the torrent first
+		assert(!m_files.empty());
+	
 		entry info(entry::dictionary_t);
 
-		assert(!m_files.empty());
-
-		if (m_files.size() == 1)
+		info["name"] = m_name;
+		if (!m_multifile)
 		{
-			info["name"] = m_name;
 			info["length"] = m_files.front().size;
 		}
 		else
-		{
-			info["name"] = m_name;
-		}
-
-		if (m_files.size() > 1)
 		{
 			entry& files = info["files"];
 			files = entry(entry::list_t);
 
 			for (std::vector<file_entry>::const_iterator i = m_files.begin();
-				i != m_files.end();
-				++i)
+				i != m_files.end(); ++i)
 			{
 				files.list().push_back(entry(entry::dictionary_t));
 				entry& file_e = files.list().back();
@@ -403,11 +409,12 @@ namespace libtorrent
 				entry& path_e = file_e["path"];
 				path_e = entry(entry::list_t);
 
-				fs::path file_path(i->path);
+				fs::path const& file_path(i->path);
+				assert(file_path.has_branch_path());
+				assert(*file_path.begin() == m_name);
 
-				for (fs::path::iterator j = file_path.begin();
-					j != file_path.end();
-					++j)
+				for (fs::path::iterator j = boost::next(file_path.begin());
+					j != file_path.end(); ++j)
 				{
 					path_e.list().push_back(*j);
 				}

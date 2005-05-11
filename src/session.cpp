@@ -343,10 +343,6 @@ namespace libtorrent { namespace detail
 	void session_impl::operator()()
 	{
 		eh_initializer();
-#ifndef NDEBUG
-		try
-		{
-#endif
 
 		if (m_listen_port_range.first != 0 && m_listen_port_range.second != 0)
 		{
@@ -363,6 +359,8 @@ namespace libtorrent { namespace detail
 		int loops_per_second = 0;
 #endif
 		for(;;)
+		{
+		try
 		{
 
 #ifndef NDEBUG
@@ -747,6 +745,23 @@ namespace libtorrent { namespace detail
 			}
 
 			m_tracker_manager.tick();
+
+			}
+			catch (std::bad_cast& e)
+			{
+				std::cerr << e.what() << "\n";
+				assert(false);
+			}
+			catch (std::exception& e)
+			{
+				std::cerr << e.what() << "\n";
+				assert(false);
+			}
+			catch (...)
+			{
+				std::cerr << "error!\n";
+				assert(false);
+			}
 		}
 
 		while (!m_tracker_manager.send_finished())
@@ -758,24 +773,6 @@ namespace libtorrent { namespace detail
 			boost::thread::sleep(t);
 		}
 
-#ifndef NDEBUG
-		}
-		catch (std::bad_cast& e)
-		{
-			std::cerr << e.what() << "\n";
-			assert(false);
-		}
-		catch (std::exception& e)
-		{
-			std::cerr << e.what() << "\n";
-			assert(false);
-		}
-		catch (...)
-		{
-			std::cerr << "error!\n";
-			assert(false);
-		}
-#endif
 	}
 
 
@@ -915,6 +912,7 @@ namespace libtorrent
 			= m_checker_impl.m_torrents.begin()
 			, end(m_checker_impl.m_torrents.end()); i != end; ++i)
 		{
+			if (i->abort) continue;
 			ret.push_back(torrent_handle(&m_impl, &m_checker_impl
 				, i->info_hash));
 		}
