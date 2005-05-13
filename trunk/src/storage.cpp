@@ -557,12 +557,13 @@ namespace libtorrent
 
 		impl(
 			const torrent_info& info
-		  , const path& path);
+			, const path& path);
 
 		void check_pieces(
 			boost::mutex& mutex
-		  , detail::piece_checker_data& data
-		  , std::vector<bool>& pieces);
+			, detail::piece_checker_data& data
+			, std::vector<bool>& pieces
+			, bool compact_mode);
 
 		void release_files();
 
@@ -603,9 +604,13 @@ namespace libtorrent
 		void export_piece_map(std::vector<int>& p) const;
 		
 	private:
+
+		void post_check(boost::mutex& mutex
+			, detail::piece_checker_data& data);
+		
 		// returns the slot currently associated with the given
 		// piece or assigns the given piece_index to a free slot
-
+		
 		int identify_data(
 			const std::vector<char>& piece_data
 			, int current_slot
@@ -620,6 +625,17 @@ namespace libtorrent
 #endif
 #endif
 		storage m_storage;
+
+		// if this is true, pieces are always allocated at the
+		// lowest possible slot index. If it is false, pieces
+		// are always written to their final place immediately
+		bool m_compact_mode;
+
+		// if this is true, pieces that haven't been downloaded
+		// will be filled with zeroes. Not filling with zeroes
+		// will not work in some cases (where a seek cannot pass
+		// the end of the file).
+		bool m_fill_mode;
 
 		// a bitmask representing the pieces we have
 		std::vector<bool> m_have_piece;
@@ -663,6 +679,8 @@ namespace libtorrent
 		const torrent_info& info
 		, const path& save_path)
 		: m_storage(info, save_path)
+		, m_compact_mode(false)
+		, m_fill_mode(true)
 		, m_info(info)
 		, m_save_path(complete(save_path))
 		, m_allocating(false)
@@ -703,16 +721,14 @@ namespace libtorrent
 		p.clear();
 		std::vector<int>::const_reverse_iterator last; 
 		for (last = m_slot_to_piece.rbegin();
-			last != m_slot_to_piece.rend();
-			++last)
+			last != m_slot_to_piece.rend(); ++last)
 		{
 			if (*last != unallocated) break;
 		}
 
 		for (std::vector<int>::const_iterator i =
 			m_slot_to_piece.begin();
-			i != last.base();
-			++i)
+			i != last.base(); ++i)
 		{
 			p.push_back(*i);
 		}
@@ -970,8 +986,7 @@ namespace libtorrent
 		// already been assigned
 		int free_piece = unassigned;
 		for (std::vector<int>::iterator i = matching_pieces.begin();
-			i != matching_pieces.end();
-			++i)
+			i != matching_pieces.end(); ++i)
 		{
 			if (have_pieces[*i]) continue;
 			free_piece = *i;
@@ -993,10 +1008,33 @@ namespace libtorrent
 		}
 	}
 
+	void piece_manager::impl::post_check(boost::mutex& mutex
+		, detail::piece_checker_data& data)
+	{
+		if (!m_compact_mode)
+		{
+			// if we're not in compact mode, make sure the
+			// pieces are spread out and placed at their
+			// final position.
+			int num_slots = (int)m_unallocated_slots.size();
+
+			for (int i = 0; i < num_slots; ++i)
+			{
+				allocate_slots(1);
+
+				boost::mutex::scoped_lock lock(mutex);
+				data.progress = (float)i / num_slots;
+				if (data.abort || (data.torrent_ptr && data.torrent_ptr->is_aborted()))
+					return;
+			}
+		}
+	}
+	
 	void piece_manager::impl::check_pieces(
 		boost::mutex& mutex
-	  , detail::piece_checker_data& data
-	  , std::vector<bool>& pieces)
+		, detail::piece_checker_data& data
+		, std::vector<bool>& pieces
+		, bool compact_mode)
 	{
 		assert(m_info.piece_length() > 0);
 		// synchronization ------------------------------------------------------
@@ -1004,6 +1042,8 @@ namespace libtorrent
 		// ----------------------------------------------------------------------
 
 		INVARIANT_CHECK;
+
+		m_compact_mode = compact_mode;
 
 		// This will corrupt the storage
 		// use while debugging to find
@@ -1058,6 +1098,9 @@ namespace libtorrent
 			{
 				m_unallocated_slots.push_back(i);
 			}
+
+			post_check(mutex, data);
+
 			return;
 		}
 
@@ -1309,15 +1352,19 @@ namespace libtorrent
 					return;
 			}
 		}
+
+		post_check(mutex, data);
+		
 		// TODO: sort m_free_slots and m_unallocated_slots?
 	}
 
 	void piece_manager::check_pieces(
 		boost::mutex& mutex
-	  , detail::piece_checker_data& data
-	  , std::vector<bool>& pieces)
+		, detail::piece_checker_data& data
+		, std::vector<bool>& pieces
+		, bool compact_mode)
 	{
-		m_pimpl->check_pieces(mutex, data, pieces);
+		m_pimpl->check_pieces(mutex, data, pieces, compact_mode);
 	}
 	
 	int piece_manager::impl::allocate_slot_for_piece(int piece_index)
@@ -1491,29 +1538,30 @@ namespace libtorrent
 		
 		const int piece_size = static_cast<int>(m_info.piece_length());
 
-		std::vector<char> zeros(piece_size, 0);
+		std::vector<char> buffer(piece_size, 0);
 
-		for (int i = 0;
-			i < num_slots && !m_unallocated_slots.empty();
-			++i)
+		for (int i = 0; i < num_slots && !m_unallocated_slots.empty(); ++i)
 		{
 			int pos = m_unallocated_slots.front();
 //			int piece_pos = pos;
+			bool write_back = false;
 
 			int new_free_slot = pos;
 			if (m_piece_to_slot[pos] != has_no_slot)
 			{
 				assert(m_piece_to_slot[pos] >= 0);
-				m_storage.read(&zeros[0], m_piece_to_slot[pos], 0, static_cast<int>(m_info.piece_size(pos)));
+				m_storage.read(&buffer[0], m_piece_to_slot[pos], 0, static_cast<int>(m_info.piece_size(pos)));
 				new_free_slot = m_piece_to_slot[pos];
 				m_slot_to_piece[pos] = pos;
 				m_piece_to_slot[pos] = pos;
+				write_back = true;
 			}
 			m_unallocated_slots.erase(m_unallocated_slots.begin());
 			m_slot_to_piece[new_free_slot] = unassigned;
 			m_free_slots.push_back(new_free_slot);
 
-			m_storage.write(&zeros[0], pos, 0, static_cast<int>(m_info.piece_size(pos)));
+			if (write_back || m_fill_mode)
+				m_storage.write(&buffer[0], pos, 0, static_cast<int>(m_info.piece_size(pos)));
 		}
 
 		assert(m_free_slots.size() > 0);
@@ -1546,8 +1594,7 @@ namespace libtorrent
 		assert((int)m_slot_to_piece.size() == m_info.num_pieces());
 
 		for (std::vector<int>::const_iterator i = m_free_slots.begin();
-			i != m_free_slots.end();
-			++i)
+			i != m_free_slots.end(); ++i)
 		{
 			assert(*i < (int)m_slot_to_piece.size());
 			assert(*i >= 0);
@@ -1555,8 +1602,7 @@ namespace libtorrent
 		}
 
 		for (std::vector<int>::const_iterator i = m_unallocated_slots.begin();
-			i != m_unallocated_slots.end();
-			++i)
+			i != m_unallocated_slots.end(); ++i)
 		{
 			assert(*i < (int)m_slot_to_piece.size());
 			assert(*i >= 0);

@@ -150,7 +150,8 @@ namespace libtorrent
 		detail::session_impl& ses
 		, entry const& metadata
 		, boost::filesystem::path const& save_path
-		, address const& net_interface)
+		, address const& net_interface
+		, bool compact_mode)
 		: m_torrent_file(metadata)
 		, m_abort(false)
 		, m_paused(false)
@@ -179,6 +180,7 @@ namespace libtorrent
 		, m_upload_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_save_path(complete(save_path))
+		, m_compact_mode(compact_mode)
 	{
 		m_uploads_quota.min = 2;
 		m_connections_quota.min = 2;
@@ -198,7 +200,8 @@ namespace libtorrent
 		, char const* tracker_url
 		, sha1_hash const& info_hash
 		, boost::filesystem::path const& save_path
-		, address const& net_interface)
+		, address const& net_interface
+		, bool compact_mode)
 		: m_torrent_file(info_hash)
 		, m_abort(false)
 		, m_paused(false)
@@ -226,6 +229,7 @@ namespace libtorrent
 		, m_upload_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_save_path(complete(save_path))
+		, m_compact_mode(compact_mode)
 	{
 		m_uploads_quota.min = 2;
 		m_connections_quota.min = 2;
@@ -760,7 +764,7 @@ namespace libtorrent
 		boost::mutex& mutex)
 	{
 		assert(m_storage.get());
- 		m_storage->check_pieces(mutex, data, m_have_pieces);
+ 		m_storage->check_pieces(mutex, data, m_have_pieces, m_compact_mode);
 		m_num_pieces = std::accumulate(
 			m_have_pieces.begin()
 		  , m_have_pieces.end()

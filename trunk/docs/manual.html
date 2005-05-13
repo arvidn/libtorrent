@@ -333,13 +333,15 @@ class session: public boost::noncopyable
         torrent_handle add_torrent(
                 entry const&amp; e
                 , boost::filesystem::path const&amp; save_path
-                , entry const&amp; resume_data = entry());
+                , entry const&amp; resume_data = entry()
+ , bool compact_mode = true);
 
         torrent_handle add_torrent(
                 char const* tracker_url
                 , sha1_hash const&amp; info_hash
                 , boost::filesystem::path const&amp; save_path
-                , entry const&amp; resume_data = entry());
+                , entry const&amp; resume_data = entry()
+ , bool compact_mode = true);
 
         void remove_torrent(torrent_handle const&amp; h);
 
@@ -403,12 +405,14 @@ timeout can be set with <tt class="docutils literal"><span class="pre">set_http_
 torrent_handle add_torrent(
         entry const&amp; e
         , boost::filesystem::path const&amp; save_path
-        , entry const&amp; resume_data = entry());
+        , entry const&amp; resume_data = entry()
+        , bool compact_mode = true);
 torrent_handle add_torrent(
         char const* tracker_url
         , sha1_hash const&amp; info_hash
         , boost::filesystem::path const&amp; save_path
-        , entry const&amp; resume_data = entry());
+        , entry const&amp; resume_data = entry()
+        , bool compact_mode = true);
 </pre>
 </blockquote>
 <p>You add torrents through the <tt class="docutils literal"><span class="pre">add_torrent()</span></tt> function where you give an
@@ -418,9 +422,15 @@ structure in the torrent-file.</p>
 <p>If the torrent you are trying to add already exists in the session (is either queued
 for checking, being checked or downloading) <tt class="docutils literal"><span class="pre">add_torrent()</span></tt> will throw
 <a class="reference" href="#duplicate-torrent">duplicate_torrent</a> which derives from <tt class="docutils literal"><span class="pre">std::exception</span></tt>.</p>
-<p>The optional last parameter, <tt class="docutils literal"><span class="pre">resume_data</span></tt> can be given if up to date fast-resume data
+<p>The optional parameter, <tt class="docutils literal"><span class="pre">resume_data</span></tt> can be given if up to date fast-resume data
 is available. The fast-resume data can be acquired from a running torrent by calling
 <tt class="docutils literal"><span class="pre">torrent_handle::write_resume_data()</span></tt>. See <a class="reference" href="#fast-resume">fast resume</a>.</p>
+<p>The <tt class="docutils literal"><span class="pre">compact_mode</span></tt> paramater refers to the layout of the storage for this torrent. If
+set to true (default), the storage will grow as more pieces are downloaded, and pieces
+are rearranged to finally be in their correct places once the entire torrent has been
+downloaded. If it is false, the entire storage is allocated before download begins. I.e.
+the files contained in the torrent are filled with zeroes, and each downloaded piece
+is put in its final place directly when downloaded.</p>
 <p>The <a class="reference" href="#torrent-handle">torrent_handle</a> returned by <tt class="docutils literal"><span class="pre">add_torrent()</span></tt> can be used to retrieve information
 about the torrent's progress, its peers etc. It is also used to abort a torrent.</p>
 <p>The second overload that takes a tracker url and an info-hash instead of metadata (<tt class="docutils literal"><span class="pre">entry</span></tt>)
@@ -742,6 +752,8 @@ reverse_file_iterator rend_files() const;
 in the torrent, you can use <tt class="docutils literal"><span class="pre">begin_files()</span></tt>, <tt class="docutils literal"><span class="pre">end_files()</span></tt>,
 <tt class="docutils literal"><span class="pre">rbegin_files()</span></tt> and <tt class="docutils literal"><span class="pre">rend_files()</span></tt>. These will give you standard vector
 iterators with the type <tt class="docutils literal"><span class="pre">file_entry</span></tt>.</p>
+<p>The <tt class="docutils literal"><span class="pre">path</span></tt> is the full (relative) path of each file. i.e. if it is a multi-file
+torrent, all the files starts with a directory with the same name as <tt class="docutils literal"><span class="pre">torrent_info::name()</span></tt>.</p>
 <pre class="literal-block">
 struct file_entry
 {
