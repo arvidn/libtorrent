@@ -311,13 +311,15 @@ namespace libtorrent
 		torrent_handle add_torrent(
 			entry const& metadata
 			, boost::filesystem::path const& save_path
-			, entry const& resume_data = entry());
+			, entry const& resume_data = entry()
+			, bool compact_mode = true);
 
 		torrent_handle add_torrent(
 			char const* tracker_url
 			, sha1_hash const& info_hash
 			, boost::filesystem::path const& save_path
-			, entry const& resume_data = entry());
+			, entry const& resume_data = entry()
+			, bool compact_mode = true);
 
 		session_status status() const;
 

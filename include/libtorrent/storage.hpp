@@ -117,14 +117,15 @@ namespace libtorrent
 
 		piece_manager(
 			const torrent_info& info
-		  , const boost::filesystem::path& path);
+			, const boost::filesystem::path& path);
 
 		~piece_manager();
 
 		void check_pieces(
 			boost::mutex& mutex
-		  , detail::piece_checker_data& data
-		  , std::vector<bool>& pieces);
+			, detail::piece_checker_data& data
+			, std::vector<bool>& pieces
+			, bool compact_mode);
 
 		void release_files();
 

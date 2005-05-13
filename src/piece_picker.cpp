@@ -90,8 +90,7 @@ namespace libtorrent
 			- std::accumulate(pieces.begin(), pieces.end(), 0));
 
 		for (std::vector<bool>::const_iterator i = pieces.begin();
-			i != pieces.end();
-			++i)
+			i != pieces.end(); ++i)
 		{
 			if (*i) continue;
 			int index = static_cast<int>(i - pieces.begin());
@@ -103,8 +102,7 @@ namespace libtorrent
 
 		// add the pieces to the piece_picker
 		for (std::vector<int>::iterator i = piece_list.begin();
-			i != piece_list.end();
-			++i)
+			i != piece_list.end(); ++i)
 		{
 			int index = *i;
 			assert(index >= 0);
@@ -124,9 +122,7 @@ namespace libtorrent
 		if (!unfinished.empty())
 		{
 			for (std::vector<downloading_piece>::const_iterator i
-				= unfinished.begin();
-				i != unfinished.end();
-				++i)
+				= unfinished.begin(); i != unfinished.end(); ++i)
 			{
 				address peer;
 				for (int j = 0; j < m_blocks_per_piece; ++j)
@@ -151,8 +147,7 @@ namespace libtorrent
 			assert((int)m_piece_map.size() == t->torrent_file().num_pieces());
 
 		for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin();
-			i != m_piece_map.end();
-			++i)
+			i != m_piece_map.end(); ++i)
 		{
 			int index = static_cast<int>(i - m_piece_map.begin());
 
@@ -160,8 +155,7 @@ namespace libtorrent
 			{
 				int actual_peer_count = 0;
 				for (torrent::const_peer_iterator peer = t->begin();
-					peer != t->end();
-					++peer)
+					peer != t->end(); ++peer)
 				{
 					if (peer->second->has_piece(index)) actual_peer_count++;
 				}
@@ -199,12 +193,10 @@ namespace libtorrent
 				// with this index. (there shouldn't
 				// be since the piece_map is 0xfffff)
 				for (std::vector<std::vector<int> >::const_iterator i = m_piece_info.begin();
-					i != m_piece_info.end();
-					++i)
+					i != m_piece_info.end(); ++i)
 				{
 					for (std::vector<int>::const_iterator j= i->begin();
-						j != i->end();
-						++j)
+						j != i->end(); ++j)
 					{
 						assert(*j != index);
 					}
@@ -215,8 +207,7 @@ namespace libtorrent
 					++i)
 				{
 					for (std::vector<int>::const_iterator j = i->begin();
-						j != i->end();
-						++j)
+						j != i->end(); ++j)
 					{
 						assert(*j != index);
 					}
@@ -489,8 +480,7 @@ namespace libtorrent
 		assert(num_blocks > 0);
 
 		for (std::vector<int>::const_iterator i = piece_list.begin();
-			i != piece_list.end();
-			++i)
+			i != piece_list.end(); ++i)
 		{
 			assert(*i >= 0);
 			assert(*i < (int)m_piece_map.size());
@@ -771,8 +761,7 @@ namespace libtorrent
 	{
 		int counter = 0;
 		for (std::vector<downloading_piece>::const_iterator i = m_downloads.begin();
-			i != m_downloads.end();
-			++i)
+			i != m_downloads.end(); ++i)
 		{
 			counter += (int)i->finished_blocks.count();
 		}
@@ -780,3 +769,4 @@ namespace libtorrent
 	}
 
 }
+

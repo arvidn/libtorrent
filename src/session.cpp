@@ -934,7 +934,8 @@ namespace libtorrent
 	torrent_handle session::add_torrent(
 		entry const& metadata
 		, boost::filesystem::path const& save_path
-		, entry const& resume_data)
+		, entry const& resume_data
+		, bool compact_mode)
 	{
 		assert(!save_path.empty());
 		torrent_info ti(metadata);
@@ -962,7 +963,8 @@ namespace libtorrent
 		// the checker thread and store it before starting
 		// the thread
 		boost::shared_ptr<torrent> torrent_ptr(
-			new torrent(m_impl, metadata, save_path, m_impl.m_listen_interface));
+			new torrent(m_impl, metadata, save_path, m_impl.m_listen_interface
+				, compact_mode));
 
 		detail::piece_checker_data d;
 		d.torrent_ptr = torrent_ptr;
@@ -983,7 +985,8 @@ namespace libtorrent
 		char const* tracker_url
 		, sha1_hash const& info_hash
 		, boost::filesystem::path const& save_path
-		, entry const&)
+		, entry const&
+		, bool compact_mode)
 	{
 		// TODO: support resume data in this case
 		assert(!save_path.empty());
@@ -1012,7 +1015,7 @@ namespace libtorrent
 		// the thread
 		boost::shared_ptr<torrent> torrent_ptr(
 			new torrent(m_impl, tracker_url, info_hash, save_path
-			, m_impl.m_listen_interface));
+			, m_impl.m_listen_interface, compact_mode));
 
 		m_impl.m_torrents.insert(
 			std::make_pair(info_hash, torrent_ptr)).first;

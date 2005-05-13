@@ -217,13 +217,15 @@ The ``session`` class has the following synopsis::
 		torrent_handle add_torrent(
 			entry const& e
 			, boost::filesystem::path const& save_path
-			, entry const& resume_data = entry());
+			, entry const& resume_data = entry()
+         , bool compact_mode = true);
 
 		torrent_handle add_torrent(
 			char const* tracker_url
 			, sha1_hash const& info_hash
 			, boost::filesystem::path const& save_path
-			, entry const& resume_data = entry());
+			, entry const& resume_data = entry()
+         , bool compact_mode = true);
 
 		void remove_torrent(torrent_handle const& h);
 
@@ -291,12 +293,14 @@ add_torrent()
 		torrent_handle add_torrent(
 			entry const& e
 			, boost::filesystem::path const& save_path
-			, entry const& resume_data = entry());
+			, entry const& resume_data = entry()
+			, bool compact_mode = true);
 		torrent_handle add_torrent(
 			char const* tracker_url
 			, sha1_hash const& info_hash
 			, boost::filesystem::path const& save_path
-			, entry const& resume_data = entry());
+			, entry const& resume_data = entry()
+			, bool compact_mode = true);
 
 You add torrents through the ``add_torrent()`` function where you give an
 object representing the information found in the torrent file and the path where you
@@ -307,9 +311,16 @@ If the torrent you are trying to add already exists in the session (is either qu
 for checking, being checked or downloading) ``add_torrent()`` will throw
 duplicate_torrent_ which derives from ``std::exception``.
 
-The optional last parameter, ``resume_data`` can be given if up to date fast-resume data
+The optional parameter, ``resume_data`` can be given if up to date fast-resume data
 is available. The fast-resume data can be acquired from a running torrent by calling
 ``torrent_handle::write_resume_data()``. See `fast resume`_.
+
+The ``compact_mode`` paramater refers to the layout of the storage for this torrent. If
+set to true (default), the storage will grow as more pieces are downloaded, and pieces
+are rearranged to finally be in their correct places once the entire torrent has been
+downloaded. If it is false, the entire storage is allocated before download begins. I.e.
+the files contained in the torrent are filled with zeroes, and each downloaded piece
+is put in its final place directly when downloaded.
 
 The torrent_handle_ returned by ``add_torrent()`` can be used to retrieve information
 about the torrent's progress, its peers etc. It is also used to abort a torrent.

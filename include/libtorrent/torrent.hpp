@@ -94,7 +94,8 @@ namespace libtorrent
 			detail::session_impl& ses
 			, entry const& metadata
 			, boost::filesystem::path const& save_path
-			, address const& net_interface);
+			, address const& net_interface
+			, bool compact_mode);
 
 		// used with metadata-less torrents
 		// (the metadata is downloaded from the peers)
@@ -103,7 +104,8 @@ namespace libtorrent
 			, char const* tracker_url
 			, sha1_hash const& info_hash
 			, boost::filesystem::path const& save_path
-			, address const& net_interface);
+			, address const& net_interface
+			, bool compact_mode);
 
 		~torrent();
 
@@ -493,6 +495,9 @@ namespace libtorrent
 		std::vector<int> m_requested_metadata;
 
 		boost::filesystem::path m_save_path;
+
+		// determines the storage state for this torrent.
+		const bool m_compact_mode;
 	};
 
 	inline boost::posix_time::ptime torrent::next_announce() const
