@@ -147,10 +147,10 @@ void clear()
 
 #endif
 
-std::string to_string(float v, int width)
+std::string to_string(float v, int width, int precision = 4)
 {
 	std::stringstream s;
-	s.precision(width-2);
+	s.precision(precision);
 	s.flags(std::ios_base::right);
 	s.width(width);
 	s.fill(' ');
@@ -158,10 +158,10 @@ std::string to_string(float v, int width)
 	return s.str();
 }
 
-std::string pos_to_string(float v, int width)
+std::string pos_to_string(float v, int width, int precision = 4)
 {
 	std::stringstream s;
-	s.precision(width-1);
+	s.precision(precision);
 	s.flags(std::ios_base::right);
 	s.width(width);
 	s.fill(' ');
@@ -194,12 +194,11 @@ std::string add_suffix(float val)
 {
 	const char* prefix[] = {"B", "kB", "MB", "GB", "TB"};
 	const int num_prefix = sizeof(prefix) / sizeof(const char*);
-	int i;
-	for (i = 0; i < num_prefix; ++i)
+	for (int i = 0; i < num_prefix; ++i)
 	{
 		if (fabs(val) < 1000.f)
 			return to_string(val, i==0?7:6) + prefix[i];
-		val /= 1024.f;
+		val /= 1000.f;
 	}
 	return to_string(val, 6) + "PB";
 }
@@ -221,8 +220,7 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 	out << " down       up         q  r flags  client   block\n";
 
 	for (std::vector<peer_info>::const_iterator i = peers.begin();
-		i != peers.end();
-		++i)
+		i != peers.end(); ++i)
 	{
 		out.fill(' ');
 		out.width(2);
@@ -233,8 +231,8 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 //						<< "ul:" << add_suffix(i->upload_limit) << "/s "
 //						<< "uc:" << add_suffix(i->upload_ceiling) << "/s "
 //						<< "df:" << ratio(i->total_download, i->total_upload) << " "
-			<< to_string(i->download_queue_length, 2) << " "
-			<< to_string(i->upload_queue_length, 2) << " "
+			<< to_string(i->download_queue_length, 2, 2) << " "
+			<< to_string(i->upload_queue_length, 2, 2) << " "
 			<< static_cast<const char*>((i->flags & peer_info::interesting)?"I":"_")
 			<< static_cast<const char*>((i->flags & peer_info::choked)?"C":"_")
 			<< static_cast<const char*>((i->flags & peer_info::remote_interested)?"i":"_")
@@ -354,8 +352,7 @@ int main(int argc, char* argv[])
 				if (c == 'q')
 				{
 					for (std::vector<torrent_handle>::iterator i = handles.begin();
-						i != handles.end();
-						++i)
+						i != handles.end(); ++i)
 					{
 						torrent_handle h = *i;
 						if (!h.get_torrent_info().is_valid()) continue;
@@ -441,8 +438,7 @@ int main(int argc, char* argv[])
 
 			std::stringstream out;
 			for (std::vector<torrent_handle>::iterator i = handles.begin();
-				i != handles.end();
-				++i)
+				i != handles.end(); ++i)
 			{
 				if (!i->is_valid())
 				{
@@ -515,14 +511,14 @@ int main(int argc, char* argv[])
 					{
 						out.width(4);
 						out.fill(' ');
-						out << i->piece_index << ": |";
+						out << i->piece_index << ": [";
 						for (int j = 0; j < i->blocks_in_piece; ++j)
 						{
 							if (i->finished_blocks[j]) out << "#";
 							else if (i->requested_blocks[j]) out << "+";
-							else out << ".";
+							else out << "-";
 						}
-						out << "|\n";
+						out << "]\n";
 					}
 
 					out << "___________________________________\n";

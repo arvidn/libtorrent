@@ -1119,13 +1119,11 @@ namespace libtorrent
 
 		std::vector<char> piece_data(static_cast<int>(m_info.piece_length()));
 
+		// this maps a piece hash to piece index. It will be
+		// build the first time it is used (to save time if it
+		// isn't needed) 				
 		std::multimap<sha1_hash, int> hash_to_piece;
 		// build the hash-map, that maps hashes to pieces
-		for (int i = 0; i < m_info.num_pieces(); ++i)
-		{
-			hash_to_piece.insert(std::make_pair(m_info.hash_for_piece(i), i));
-		}
-
 		for (int current_slot = 0; current_slot <  m_info.num_pieces(); ++current_slot)
 		{
 			try
@@ -1136,6 +1134,14 @@ namespace libtorrent
 					, current_slot
 					, 0
 					, static_cast<int>(m_info.piece_size(current_slot)));
+
+				if (hash_to_piece.empty())
+				{
+					for (int i = 0; i < m_info.num_pieces(); ++i)
+					{
+						hash_to_piece.insert(std::make_pair(m_info.hash_for_piece(i), i));
+					}
+				}
 
 				int piece_index = identify_data(
 					piece_data

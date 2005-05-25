@@ -56,6 +56,8 @@ namespace libtorrent
 		address ip;
 		float up_speed;
 		float down_speed;
+		float payload_up_speed;
+		float payload_down_speed;
 		size_type total_download;
 		size_type total_upload;
 		peer_id id;

@@ -555,6 +555,34 @@ namespace libtorrent
 		return m_username + ":" + m_password;
 	}
 
+	void torrent::filter_piece(int index, bool filter)
+	{
+		// this call is only valid on torrents with metadata
+		assert(m_picker.get());
+		assert(index >= 0);
+		assert(index < m_torrent_file.num_pieces());
+
+		if (filter) m_picker->mark_as_filtered(index);
+		else m_picker->mark_as_unfiltered(index);
+	}
+
+	bool torrent::is_piece_filtered(int index) const
+	{
+		// this call is only valid on torrents with metadata
+		assert(m_picker.get());
+		assert(index >= 0);
+		assert(index < m_torrent_file.num_pieces());
+
+		return m_picker->is_filtered(index);
+	}
+
+	void torrent::filtered_pieces(std::vector<bool>& bitmask) const
+	{
+		// this call is only valid on torrents with metadata
+		assert(m_picker.get());
+		m_picker->filtered_pieces(bitmask);
+	}
+
 	void torrent::replace_trackers(std::vector<announce_entry> const& urls)
 	{
 		assert(!urls.empty());

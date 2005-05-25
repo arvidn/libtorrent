@@ -124,8 +124,7 @@ namespace
 		busy_pieces.reserve(10);
 
 		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
-			i != interesting_pieces.end();
-			++i)
+			i != interesting_pieces.end(); ++i)
 		{
 			if (p.is_downloading(*i))
 			{

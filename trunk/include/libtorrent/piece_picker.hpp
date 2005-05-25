@@ -134,6 +134,23 @@ namespace libtorrent
 		// (i.e. we don't have to maintain a refcount)
 		void we_have(int index);
 
+		// This will mark a piece as unfiltered, and if it was
+		// previously marked as filtered, it will be considered
+		// interesting again and be placed in the piece list available
+		// for downloading.
+		void mark_as_unfiltered(int index);
+
+		// This will mark a piece as filtered. The piece will be
+		// removed from the list of pieces avalable for downloading
+		// and hence, will not be downloaded.
+		void mark_as_filtered(int index);
+
+		// returns true if the pieces at 'index' is marked as filtered
+		bool is_filtered(int index) const;
+
+		// fills the bitmask with 1's for pieces that are filtered
+		void filtered_pieces(std::vector<bool>& mask) const;
+
 		// pieces should be the vector that represents the pieces a
 		// client has. It returns a list of all pieces that this client
 		// has and that are interesting to download. It returns them in
@@ -209,6 +226,7 @@ namespace libtorrent
 			piece_pos(int peer_count_, int index_)
 				: peer_count(peer_count_)
 				, downloading(0)
+				, filtered(0)
 				, index(index_)
 			{
 				assert(peer_count_ >= 0);
@@ -219,9 +237,13 @@ namespace libtorrent
 			unsigned peer_count : 11;
 			// is 1 if the piece is marked as being downloaded
 			unsigned downloading : 1;
+			// is 1 if the piece is filtered (not to be downloaded)
+			unsigned filtered : 1;
 			// index in to the piece_info vector
-			unsigned index : 20;
+			unsigned index : 19;
 
+			enum { we_have_index = 0x3ffff };
+			
 			bool operator!=(piece_pos p)
 			{ return index != p.index || peer_count != p.peer_count; }
 
@@ -231,8 +253,13 @@ namespace libtorrent
 		};
 
 
-		void move(bool downloading, int vec_index, int elem_index);
-		void remove(bool downloading, int vec_index, int elem_index);
+		void move(bool downloading, bool filtered, int vec_index, int elem_index);
+		void remove(bool downloading, bool filtered, int vec_index, int elem_index);
+		std::vector<std::vector<int> >& pick_piece_info_vector(bool downloading
+			, bool filtered);
+
+		std::vector<std::vector<int> > const& pick_piece_info_vector(
+			bool downloading, bool filtered) const;
 
 		int add_interesting_blocks(const std::vector<int>& piece_list,
 				const std::vector<bool>& pieces,
@@ -252,10 +279,14 @@ namespace libtorrent
 		// during piece picking
 		std::vector<std::vector<int> > m_downloading_piece_info;
 
+		// this vector has the same structure as m_piece_info
+		// but only contains pieces we aren't interested in (filtered)
+		std::vector<std::vector<int> > m_filtered_piece_info;
+
 		// this maps indices to number of peers that has this piece and
 		// index into the m_piece_info vectors.
-		// 0xfffff means that we have the piece, so it doesn't
-		// exist in the piece_info buckets
+		// piece_pos::we_have_index means that we have the piece, so it
+		// doesn't exist in the piece_info buckets
 		std::vector<piece_pos> m_piece_map;
 
 		// each piece that's currently being downloaded

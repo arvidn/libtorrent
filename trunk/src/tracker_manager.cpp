@@ -501,9 +501,7 @@ namespace libtorrent
 		tracker_connections_t keep_connections;
 
 		for (tracker_connections_t::const_iterator i =
-				m_connections.begin();
-			i != m_connections.end();
-			++i)
+				m_connections.begin(); i != m_connections.end(); ++i)
 		{
 			if (!(*i)->has_requester()) keep_connections.push_back(*i);
 		}
