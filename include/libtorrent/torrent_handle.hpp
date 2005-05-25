@@ -208,6 +208,13 @@ namespace libtorrent
 		void pause();
 		void resume();
 
+
+		// marks the piece with the given index as filtered
+		// it will not be downloaded
+		void filter_piece(int index, bool filter);
+		bool is_piece_filtered(int index) const;
+		std::vector<bool> filtered_pieces() const;
+		
 		// set the interface to bind outgoing connections
 		// to.
 		void use_interface(const char* net_interface);

@@ -193,7 +193,7 @@ Boost.Filesystem, Boost.Date_time and various other boost libraries as well as z
 <ul class="simple">
 <li>Windows 2000 vc7.1</li>
 <li>Linux x86 GCC 3.0.4, GCC 3.2.3, GCC 3.4.2</li>
-<li>MacOS X, GCC 3.3</li>
+<li>MacOS X, (Apple's) GCC 3.3, (Apple's) GCC 4.0</li>
 <li>SunOS 5.8 GCC 3.1</li>
 <li>Cygwin GCC 3.3.3</li>
 </ul>
@@ -887,6 +887,10 @@ struct torrent_handle
         bool is_paused() const;
         bool is_seed() const;
 
+        void filter_piece(int index, bool filter);
+        bool is_piece_filtered(int index) const;
+        std::vector&lt;bool&gt; filtered_pieces() const;
+
         int num_complete() const;
         int num_incomplete() const;
 
@@ -905,8 +909,9 @@ struct torrent_handle
 <p>The default constructor will initialize the handle to an invalid state. Which means you cannot
 perform any operation on it, unless you first assign it a valid handle. If you try to perform
 any operation on an uninitialized handle, it will throw <tt class="docutils literal"><span class="pre">invalid_handle</span></tt>.</p>
-<p><strong>TODO: document trackers() and replace_trackers()</strong>
-<strong>TODO: document how to create a .torrent</strong></p>
+<p><strong>TODO: document trackers() and replace_trackers()</strong></p>
+<p><strong>TODO: document how to create a .torrent</strong></p>
+<p><strong>TODO: document filter_piece(), is_piece_filtered() and filtered_pieces()</strong></p>
 <div class="section" id="save-path">
 <h2><a name="save-path">save_path()</a></h2>
 <blockquote>
@@ -1340,6 +1345,8 @@ struct peer_info
         address ip;
         float up_speed;
         float down_speed;
+        float payload_up_speed;
+        float payload_down_speed;
         size_type total_download;
         size_type total_upload;
         peer_id id;
@@ -1393,8 +1400,10 @@ us.</td>
 </table>
 <p>The <tt class="docutils literal"><span class="pre">ip</span></tt> field is the IP-address to this peer. Its type is a wrapper around the
 actual address and the port number. See <a class="reference" href="#address">address</a> class.</p>
-<p><tt class="docutils literal"><span class="pre">up_speed</span></tt> and <tt class="docutils literal"><span class="pre">down_speed</span></tt> is the current upload and download speed
-we have to and from this peer. These figures are updated aproximately once every second.</p>
+<p><tt class="docutils literal"><span class="pre">up_speed</span></tt> and <tt class="docutils literal"><span class="pre">down_speed</span></tt> contains the current upload and download speed
+we have to and from this peer (including any protocol messages). The transfer rates
+of payload data only are found in <tt class="docutils literal"><span class="pre">payload_up_speed</span></tt> and <tt class="docutils literal"><span class="pre">payload_down_speed</span></tt>.
+These figures are updated aproximately once every second.</p>
 <p><tt class="docutils literal"><span class="pre">total_download</span></tt> and <tt class="docutils literal"><span class="pre">total_upload</span></tt> are the total number of bytes downloaded
 from and uploaded to this peer. These numbers do not include the protocol chatter, but only
 the payload data.</p>

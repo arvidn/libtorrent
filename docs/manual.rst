@@ -70,7 +70,7 @@ libtorrent has been successfully compiled and tested on:
 
 	* Windows 2000 vc7.1
 	* Linux x86 GCC 3.0.4, GCC 3.2.3, GCC 3.4.2
-	* MacOS X, GCC 3.3
+	* MacOS X, (Apple's) GCC 3.3, (Apple's) GCC 4.0
 	* SunOS 5.8 GCC 3.1
 	* Cygwin GCC 3.3.3
 
@@ -816,6 +816,10 @@ Its declaration looks like this::
 		bool is_paused() const;
 		bool is_seed() const;
 
+		void filter_piece(int index, bool filter);
+		bool is_piece_filtered(int index) const;
+		std::vector<bool> filtered_pieces() const;
+
 		int num_complete() const;
 		int num_incomplete() const;
 
@@ -836,7 +840,10 @@ perform any operation on it, unless you first assign it a valid handle. If you t
 any operation on an uninitialized handle, it will throw ``invalid_handle``.
 
 **TODO: document trackers() and replace_trackers()**
+
 **TODO: document how to create a .torrent**
+
+**TODO: document filter_piece(), is_piece_filtered() and filtered_pieces()**
 
 save_path()
 -----------
@@ -1301,6 +1308,8 @@ It contains the following fields::
 		address ip;
 		float up_speed;
 		float down_speed;
+		float payload_up_speed;
+		float payload_down_speed;
 		size_type total_download;
 		size_type total_upload;
 		peer_id id;
@@ -1346,8 +1355,10 @@ __ http://nolar.com/azureus/extended.htm
 The ``ip`` field is the IP-address to this peer. Its type is a wrapper around the
 actual address and the port number. See address_ class.
 
-``up_speed`` and ``down_speed`` is the current upload and download speed
-we have to and from this peer. These figures are updated aproximately once every second.
+``up_speed`` and ``down_speed`` contains the current upload and download speed
+we have to and from this peer (including any protocol messages). The transfer rates
+of payload data only are found in ``payload_up_speed`` and ``payload_down_speed``.
+These figures are updated aproximately once every second.
 
 ``total_download`` and ``total_upload`` are the total number of bytes downloaded
 from and uploaded to this peer. These numbers do not include the protocol chatter, but only

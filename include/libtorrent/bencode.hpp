@@ -101,18 +101,21 @@ namespace libtorrent
 		template <class OutIt>
 		void write_string(OutIt& out, const std::string& val)
 		{
-			std::string::const_iterator end = val.begin()+val.length();
-			for (std::string::const_iterator i = val.begin(); i != end; ++i)
-			{
-				*out = *i;
-				++out;
-			}
+			std::string::const_iterator end = val.begin() + val.length();
+			std::copy(val.begin(), end, out);
 		}
 
 		template <class OutIt>
 		void write_integer(OutIt& out, entry::integer_type val)
 		{
 			write_string(out, boost::lexical_cast<std::string>(val));
+		}
+
+		template <class OutIt>
+		void write_char(OutIt& out, char c)
+		{
+			*out = c;
+			++out;
 		}
 
 		template <class InIt>
@@ -130,7 +133,7 @@ namespace libtorrent
 		}
 
 		template<class InIt>
-		std::string read_string(InIt& in, InIt end,  int len)
+		std::string read_string(InIt& in, InIt end, int len)
 		{
 			assert(len >= 0);
 			std::string ret;
@@ -149,35 +152,34 @@ namespace libtorrent
 			switch(e.type())
 			{
 			case entry::int_t:
-				*out = 'i'; ++out;
+				write_char(out, 'i');
 				write_integer(out, e.integer());
-				*out = 'e'; ++out;
+				write_char(out, 'e');
 				break;
 			case entry::string_t:
 				write_integer(out, e.string().length());
-				*out = ':'; ++out;
+				write_char(out, ':');
 				write_string(out, e.string());
 				break;
 			case entry::list_t:
-				*out = 'l'; ++out;
+				write_char(out, 'l');
 				for (entry::list_type::const_iterator i = e.list().begin(); i != e.list().end(); ++i)
 					bencode_recursive(out, *i);
-				*out = 'e'; ++out;
+				write_char(out, 'e');
 				break;
 			case entry::dictionary_t:
-				*out = 'd'; ++out;
+				write_char(out, 'd');
 				for (entry::dictionary_type::const_iterator i = e.dict().begin();
-					i != e.dict().end();
-					++i)
+					i != e.dict().end(); ++i)
 				{
 					// write key
 					write_integer(out, i->first.length());
-					*out = ':'; ++out;
+					write_char(out, ':');
 					write_string(out, i->first);
 					// write value
 					bencode_recursive(out, i->second);
 				}
-				*out = 'e'; ++out;
+				write_char(out, 'e');
 				break;
 			default:
 				throw invalid_encoding();

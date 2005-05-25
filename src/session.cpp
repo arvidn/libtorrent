@@ -136,26 +136,28 @@ namespace libtorrent { namespace detail
 				// lock the session to add the new torrent
 
 				boost::mutex::scoped_lock l(m_mutex);
-				if (!t->abort)
+				if (t->abort)
 				{
-					boost::mutex::scoped_lock l(m_ses.m_mutex);
-					m_ses.m_torrents.insert(std::make_pair(t->info_hash, t->torrent_ptr));
 					m_torrents.pop_front();
-					if (t->torrent_ptr->is_seed() && m_ses.m_alerts.should_post(alert::info))
-					{
-						m_ses.m_alerts.post_alert(torrent_finished_alert(
-							t->torrent_ptr->get_handle()
-							, "torrent is complete"));
-					}
-
-					peer_id id;
-					std::fill(id.begin(), id.end(), 0);
-					for (std::vector<address>::const_iterator i = t->peers.begin();
-						i != t->peers.end(); ++i)
-					{
-						t->torrent_ptr->get_policy().peer_from_tracker(*i, id);
-					}
+					continue;
 				}
+				boost::mutex::scoped_lock l2(m_ses.m_mutex);
+				m_ses.m_torrents.insert(std::make_pair(t->info_hash, t->torrent_ptr));
+				if (t->torrent_ptr->is_seed() && m_ses.m_alerts.should_post(alert::info))
+				{
+					m_ses.m_alerts.post_alert(torrent_finished_alert(
+						t->torrent_ptr->get_handle()
+						, "torrent is complete"));
+				}
+
+				peer_id id;
+				std::fill(id.begin(), id.end(), 0);
+				for (std::vector<address>::const_iterator i = t->peers.begin();
+					i != t->peers.end(); ++i)
+				{
+					t->torrent_ptr->get_policy().peer_from_tracker(*i, id);
+				}
+				m_torrents.pop_front();
 			}
 			catch(const std::exception& e)
 			{
