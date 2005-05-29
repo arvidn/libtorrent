@@ -86,9 +86,7 @@ namespace libtorrent
 	{
 		// build a vector of all the pieces we don't have
 		std::vector<int> piece_list;
-		piece_list.reserve(
-			pieces.size()
-			- std::accumulate(pieces.begin(), pieces.end(), 0));
+		piece_list.reserve(std::count(pieces.begin(), pieces.end(), false));
 
 		for (std::vector<bool>::const_iterator i = pieces.begin();
 			i != pieces.end(); ++i)
@@ -115,8 +113,8 @@ namespace libtorrent
 			assert(m_piece_info.size() == 2);
 
 			piece_pos& p = m_piece_map[index];
-			std::vector<std::vector<int> >& dst_vec = pick_piece_info_vector(p.downloading
-				, p.filtered);
+			std::vector<std::vector<int> >& dst_vec = pick_piece_info_vector(
+				p.downloading, p.filtered);
 			assert((int)dst_vec.size() > peer_count);
 			p.index = (int)dst_vec[peer_count].size();
 			dst_vec[peer_count].push_back(index);
@@ -138,7 +136,7 @@ namespace libtorrent
 			}
 		}
 #ifndef NDEBUG
-//		integrity_check();
+		integrity_check();
 #endif
 	}
 
@@ -456,7 +454,7 @@ namespace libtorrent
 		piece_pos& p = m_piece_map[index];
 		remove(p.downloading, p.filtered, peer_count, info_index);
 #ifndef NDEBUG
-//		integrity_check();
+		integrity_check();
 #endif
 	}
 
@@ -466,6 +464,10 @@ namespace libtorrent
 		assert(index >= 0);
 		assert(index < (int)m_piece_map.size());
 
+#ifndef NDEBUG
+		integrity_check();
+#endif
+		
 		piece_pos& p = m_piece_map[index];
 		if (p.filtered == 1) return;	
 		p.filtered = 1;
