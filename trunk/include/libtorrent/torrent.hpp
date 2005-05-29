@@ -131,7 +131,7 @@ namespace libtorrent
 
 		void check_files(
 			detail::piece_checker_data& data
-			, boost::mutex& mutex);
+			, boost::mutex& mutex, bool lock_session = true);
 
 		stat statistics() const { return m_stat; }
 		size_type bytes_left() const;

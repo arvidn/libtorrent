@@ -789,14 +789,25 @@ namespace libtorrent
 	}
 
 	void torrent::check_files(detail::piece_checker_data& data,
-		boost::mutex& mutex)
+		boost::mutex& mutex, bool lock_session)
 	{
 		assert(m_storage.get());
  		m_storage->check_pieces(mutex, data, m_have_pieces, m_compact_mode);
-		m_num_pieces = std::accumulate(
+
+		// TODO: temporary solution. This function should only
+		// be called from the checker thread, and then this
+		// hack can be removed (because the session should always
+		// be locked then)
+		boost::mutex temp;
+		boost::mutex* m = &temp;
+		if (lock_session) m = &m_ses.m_mutex;
+		
+		boost::mutex::scoped_lock l(mutex);
+		boost::mutex::scoped_lock l2(*m);
+		m_num_pieces = std::count(
 			m_have_pieces.begin()
 		  , m_have_pieces.end()
-		  , 0);
+		  , true);
 
 		m_picker->files_checked(m_have_pieces, data.unfinished_pieces);
 	}
@@ -1209,7 +1220,7 @@ namespace libtorrent
 		// TODO: this check should be moved to the checker thread
 		// not really a high priority, since no files would usually
 		// be available if the metadata wasn't available.
-		check_files(d, m);
+		check_files(d, m, false);
 
 		if (m_ses.m_alerts.should_post(alert::info))
 		{
