@@ -297,7 +297,9 @@ namespace libtorrent
 		// update the piece_map
 		piece_pos& p = m_piece_map[index];
 
-		assert(p.downloading != downloading || (int)p.peer_count != peer_count);
+		assert(p.downloading != downloading
+			|| p.filtered != filtered
+			|| (int)p.peer_count != peer_count);
 
 		std::vector<std::vector<int> >& dst_vec(pick_piece_info_vector(p.downloading, p.filtered));
 
