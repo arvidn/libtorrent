@@ -1237,6 +1237,8 @@ struct torrent_status
 
         const std::vector&lt;bool&gt;* pieces;
         size_type total_done;
+        size_type total_wanted_done;
+        size_type total_wanted;
 
         int num_seeds;
         float distributed_copies;
@@ -1278,6 +1280,7 @@ is a pure seeder.</td>
 </tr>
 </tbody>
 </table>
+<p>When downloading, the progress is <tt class="docutils literal"><span class="pre">total_wanted_done</span></tt> / <tt class="docutils literal"><span class="pre">total_wanted</span></tt>.</p>
 <p><tt class="docutils literal"><span class="pre">paused</span></tt> is set to true if the torrent is paused and false otherwise.</p>
 <p><tt class="docutils literal"><span class="pre">next_announce</span></tt> is the time until the torrent will announce itself to the tracker. And
 <tt class="docutils literal"><span class="pre">announce_interval</span></tt> is the time the tracker want us to wait until we announce ourself
@@ -1311,6 +1314,11 @@ that are still downloading (incomplete) this torrent.</p>
 <p><tt class="docutils literal"><span class="pre">total_done</span></tt> is the total number of bytes of the file(s) that we have. All
 this does not necessarily has to be downloaded during this session (that's
 <tt class="docutils literal"><span class="pre">total_download_payload</span></tt>).</p>
+<p><tt class="docutils literal"><span class="pre">total_wanted_done</span></tt> is the number of bytes we have downloadd, only counting the
+pieces that we actually want to download. i.e. excluding any pieces that we have but
+are filtered as not wanted.</p>
+<p><tt class="docutils literal"><span class="pre">total_wanted</span></tt> is the total number of bytes we want to download. This is also
+excluding pieces that have been filtered.</p>
 <p><tt class="docutils literal"><span class="pre">num_seeds</span></tt> is the number of peers that are seeding that this client is
 currently connected to.</p>
 <p><tt class="docutils literal"><span class="pre">distributed_copies</span></tt> is the number of distributed copies of the torrent.
@@ -1375,15 +1383,16 @@ any combination of the enums above. The following table describes each flag:</p>
 </colgroup>
 <tbody valign="top">
 <tr><td><tt class="docutils literal"><span class="pre">interesting</span></tt></td>
-<td>we are interested in pieces from this peer.</td>
+<td><strong>we</strong> are interested in pieces from this peer.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">choked</span></tt></td>
 <td><strong>we</strong> have choked this peer.</td>
 </tr>
-<tr><td><tt class="docutils literal"><span class="pre">remote_interested</span></tt>
-<tt class="docutils literal"><span class="pre">remote_choked</span></tt></td>
-<td>means the same thing but that the peer is interested
-in pieces from us and the peer has choked <strong>us</strong>.</td>
+<tr><td><tt class="docutils literal"><span class="pre">remote_interested</span></tt></td>
+<td>the peer is interested in <strong>us</strong></td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">remote_choked</span></tt></td>
+<td>the peer has choked <strong>us</strong>.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">support_extensions</span></tt></td>
 <td>means that this peer supports the
@@ -1391,7 +1400,7 @@ in pieces from us and the peer has choked <strong>us</strong>.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">local_connection</span></tt></td>
 <td>The connection was initiated by us, the peer has a
-listen port open, and that port is the same is in the
+listen port open, and that port is the same as in the
 <a class="reference" href="#address">address</a> of this peer. If this flag is not set, this
 peer connection was opened by this peer connecting to
 us.</td>

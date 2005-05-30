@@ -188,9 +188,7 @@ namespace libtorrent { namespace detail
 	detail::piece_checker_data* checker_impl::find_torrent(sha1_hash const& info_hash)
 	{
 		for (std::deque<piece_checker_data>::iterator i
-			= m_torrents.begin();
-			i != m_torrents.end();
-			++i)
+			= m_torrents.begin(); i != m_torrents.end(); ++i)
 		{
 			if (i->info_hash == info_hash) return &(*i);
 		}
@@ -200,9 +198,7 @@ namespace libtorrent { namespace detail
 	void checker_impl::remove_torrent(sha1_hash const& info_hash)
 	{
 		for (std::deque<piece_checker_data>::iterator i
-			= m_torrents.begin();
-			i != m_torrents.end();
-			++i)
+			= m_torrents.begin(); i != m_torrents.end(); ++i)
 		{
 			if (i->info_hash == info_hash)
 			{

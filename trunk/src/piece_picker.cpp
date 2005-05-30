@@ -59,6 +59,8 @@ namespace libtorrent
 		, m_downloading_piece_info(2)
 		, m_filtered_piece_info(2)
 		, m_piece_map((total_num_blocks + blocks_per_piece-1) / blocks_per_piece)
+		, m_num_filtered(0)
+		, m_num_have_filtered(0)
 	{
 		assert(blocks_per_piece > 0);
 		assert(total_num_blocks > 0);
@@ -80,6 +82,7 @@ namespace libtorrent
 		std::fill(m_piece_map.begin(), m_piece_map.end(), piece_pos(0, piece_pos::we_have_index));
 	}
 
+	// pieces is a bitmask with the pieces we have
 	void piece_picker::files_checked(
 		const std::vector<bool>& pieces
 		, const std::vector<downloading_piece>& unfinished)
@@ -93,6 +96,11 @@ namespace libtorrent
 		{
 			if (*i) continue;
 			int index = static_cast<int>(i - pieces.begin());
+			if (m_piece_map[index].filtered)
+			{
+				++m_num_filtered;
+				--m_num_have_filtered;
+			}
 			piece_list.push_back(index);
 		}
 	
@@ -149,11 +157,19 @@ namespace libtorrent
 		if (t != 0)
 			assert((int)m_piece_map.size() == t->torrent_file().num_pieces());
 
+		int num_filtered = 0;
+		int num_have_filtered = 0;
 		for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin();
 			i != m_piece_map.end(); ++i)
 		{
 			int index = static_cast<int>(i - m_piece_map.begin());
-
+			if (i->filtered)
+			{
+				if (i->index != piece_pos::we_have_index)
+					++num_filtered;
+				else
+					++num_have_filtered;
+			}
 			if (t != 0)
 			{
 				int actual_peer_count = 0;
@@ -241,7 +257,8 @@ namespace libtorrent
 				assert(down == m_downloads.end());
 			}
 		}
-
+		assert(num_filtered == m_num_filtered);
+		assert(num_have_filtered == m_num_have_filtered);
 	}
 #endif
 
@@ -452,6 +469,11 @@ namespace libtorrent
 
 		assert(info_index != piece_pos::we_have_index);
 		piece_pos& p = m_piece_map[index];
+		if (p.filtered)
+		{
+			--m_num_filtered;
+			++m_num_have_filtered;
+		}
 		remove(p.downloading, p.filtered, peer_count, info_index);
 #ifndef NDEBUG
 		integrity_check();
@@ -472,7 +494,14 @@ namespace libtorrent
 		if (p.filtered == 1) return;	
 		p.filtered = 1;
 		if (p.index != piece_pos::we_have_index)
+		{
+			++m_num_filtered;
 			move(p.downloading, false, p.peer_count, p.index);
+		}
+		else
+		{
+			++m_num_have_filtered;
+		}
 
 #ifndef NDEBUG
 		integrity_check();
@@ -493,7 +522,16 @@ namespace libtorrent
 		if (p.filtered == 0) return;	
 		p.filtered = 0;
 		if (p.index != piece_pos::we_have_index)
+		{
+			--m_num_filtered;
+			assert(m_num_filtered >= 0);
 			move(p.downloading, true, p.peer_count, p.index);
+		}
+		else
+		{
+			--m_num_have_filtered;
+			assert(m_num_have_filtered >= 0);
+		}
 
 #ifndef NDEBUG
 		integrity_check();
