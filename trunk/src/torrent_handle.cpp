@@ -93,7 +93,6 @@ namespace libtorrent
 			if (chk)
 			{
 				boost::mutex::scoped_lock l(chk->m_mutex);
-
 				detail::piece_checker_data* d = chk->find_torrent(hash);
 				if (d != 0) return f(*d->torrent_ptr);
 			}
@@ -104,7 +103,7 @@ namespace libtorrent
 				if (t != 0) return f(*t);
 			}
 
-			throw_invalid_handle();
+			throw invalid_handle();
 		}
 	}
 
@@ -254,6 +253,7 @@ namespace libtorrent
 		}
 
 		throw_invalid_handle();
+		return torrent_status();
 	}
 
 	void torrent_handle::filter_piece(int index, bool filter)

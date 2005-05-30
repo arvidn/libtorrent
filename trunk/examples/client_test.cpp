@@ -208,7 +208,7 @@ std::string progress_bar(float progress, int width)
 	std::vector<char> bar;
 	bar.reserve(width);
 
-	int progress_chars = progress * width + .5f;
+	int progress_chars = static_cast<int>(progress * width + .5f);
 	std::fill_n(std::back_inserter(bar), progress_chars, '#');
 	std::fill_n(std::back_inserter(bar), width - progress_chars, '-');
 	return std::string(bar.begin(), bar.end());
