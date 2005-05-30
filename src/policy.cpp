@@ -641,6 +641,7 @@ namespace libtorrent
 			while (num_connected_peers > max_connections)
 			{
 				bool ret = disconnect_one_peer();
+				(void)ret;
 				assert(ret);
 				--num_connected_peers;
 			}
