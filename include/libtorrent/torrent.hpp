@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/limits.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/tuple/tuple.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -135,7 +136,7 @@ namespace libtorrent
 
 		stat statistics() const { return m_stat; }
 		size_type bytes_left() const;
-		size_type bytes_done() const;
+		boost::tuple<size_type, size_type> bytes_done() const;
 
 		void pause();
 		void resume();

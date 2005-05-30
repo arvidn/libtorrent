@@ -268,13 +268,12 @@ namespace libtorrent
 		// peer has, in a shuffled order
 		bool interesting = false;
 		for (std::vector<int>::iterator i = piece_list.begin();
-			i != piece_list.end();
-			++i)
+			i != piece_list.end(); ++i)
 		{
 			int index = *i;
 			m_torrent->peer_has(index);
 			if (!m_torrent->have_piece(index)
-				&& m_torrent->picker().is_filtered(index))
+				&& !m_torrent->picker().is_filtered(index))
 				interesting = true;
 		}
 

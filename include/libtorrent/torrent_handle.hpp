@@ -89,6 +89,8 @@ namespace libtorrent
 			, num_incomplete(-1)
 			, pieces(0)
 			, total_done(0)
+			, total_wanted_done(0)
+			, total_wanted(0)
 			, num_seeds(0)
 			, distributed_copies(0.f)
 			, block_size(0)
@@ -101,6 +103,7 @@ namespace libtorrent
 			connecting_to_tracker,
 			downloading_metadata,
 			downloading,
+			finished,
 			seeding
 		};
 		
@@ -150,7 +153,19 @@ namespace libtorrent
 		const std::vector<bool>* pieces;
 
 		// the number of bytes of the file we have
+		// including pieces that may have been filtered
+		// after we downloaded them
 		size_type total_done;
+
+		// the number of bytes we have of those that we
+		// want. i.e. not counting bytes from pieces that
+		// are filtered as not wanted.
+		size_type total_wanted_done;
+
+		// the total number of bytes we want to download
+		// this may be smaller than the total torrent size
+		// in case any pieces are filtered as not wanted
+		size_type total_wanted;
 
 		// the number of peers this torrent is connected to
 		// that are seeding.

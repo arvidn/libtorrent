@@ -364,16 +364,22 @@ namespace libtorrent
 		// if we don't have the metadata yet, we
 		// cannot tell how big the torrent is.
 		if (!valid_metadata()) return -1;
-		return m_torrent_file.total_size() - bytes_done();
+		return m_torrent_file.total_size() - boost::get<0>(bytes_done());
 	}
 
-	size_type torrent::bytes_done() const
+	// the first value is the total number of bytes downloaded
+	// the second value is the number of bytes of those that haven't
+	// been filtered as not wanted we have downloaded
+	boost::tuple<size_type, size_type> torrent::bytes_done() const
 	{
 		if (!valid_metadata()) return 0;
 
 		assert(m_picker.get());
-		const int last_piece = m_torrent_file.num_pieces()-1;
+		const int last_piece = m_torrent_file.num_pieces() - 1;
 
+		size_type wanted_done = (m_num_pieces - m_picker->num_have_filtered())
+			* m_torrent_file.piece_length();
+		
 		size_type total_done
 			= m_num_pieces * m_torrent_file.piece_length();
 
@@ -382,25 +388,28 @@ namespace libtorrent
 		// assumed all pieces were of equal size
 		if (m_have_pieces[last_piece])
 		{
-			total_done -= m_torrent_file.piece_length();
-			total_done += m_torrent_file.piece_size(last_piece);
+			int corr = m_torrent_file.piece_size(last_piece)
+				- m_torrent_file.piece_length();
+			total_done += corr;
+			if (!m_picker->is_filtered(last_piece))
+				wanted_done += corr;
 		}
 
 		const std::vector<piece_picker::downloading_piece>& dl_queue
 			= m_picker->get_download_queue();
 
-		const int blocks_per_piece = static_cast<int>(m_torrent_file.piece_length() / m_block_size);
+		const int blocks_per_piece = static_cast<int>(
+			m_torrent_file.piece_length() / m_block_size);
 
 		for (std::vector<piece_picker::downloading_piece>::const_iterator i =
-			dl_queue.begin();
-			i != dl_queue.end();
-			++i)
+			dl_queue.begin(); i != dl_queue.end(); ++i)
 		{
+			int corr = 0;
 			assert(!m_have_pieces[i->index]);
 
 			for (int j = 0; j < blocks_per_piece; ++j)
 			{
-				total_done += (i->finished_blocks[j]) * m_block_size;
+				corr += (i->finished_blocks[j]) * m_block_size;
 			}
 
 			// correction if this was the last piece
@@ -408,9 +417,12 @@ namespace libtorrent
 			if (i->index == last_piece
 				&& i->finished_blocks[m_picker->blocks_in_last_piece()-1])
 			{
-				total_done -= m_block_size;
-				total_done += m_torrent_file.piece_size(last_piece) % m_block_size;
+				corr -= m_block_size;
+				corr += m_torrent_file.piece_size(last_piece) % m_block_size;
 			}
+			total_done += corr;
+			if (!m_picker->is_filtered(i->index))
+				wanted_done += corr;
 		}
 
 		std::map<piece_block, int> downloading_piece;
@@ -443,8 +455,12 @@ namespace libtorrent
 		}
 		for (std::map<piece_block, int>::iterator i = downloading_piece.begin();
 			i != downloading_piece.end(); ++i)
+		{
 			total_done += i->second;
-		return total_done;
+			if (!m_picker->is_filtered(i->first.piece_index))
+				wanted_done += i->second;
+		}
+		return boost::make_tuple(total_done, wanted_done);
 	}
 
 	void torrent::piece_failed(int index)
@@ -562,10 +578,14 @@ namespace libtorrent
 		assert(index >= 0);
 		assert(index < m_torrent_file.num_pieces());
 
+		// TODO: update peer's interesting-bit
+		
 		if (filter) m_picker->mark_as_filtered(index);
 		else m_picker->mark_as_unfiltered(index);
 	}
 
+	// TODO: add a function to set the filter with one call
+	
 	bool torrent::is_piece_filtered(int index) const
 	{
 		// this call is only valid on torrents with metadata
@@ -1050,7 +1070,7 @@ namespace libtorrent
 		st.num_complete = m_complete;
 		st.num_incomplete = m_incomplete;
 		st.paused = m_paused;
-		st.total_done = bytes_done();
+		boost::tie(st.total_done, st.total_wanted_done) = bytes_done();
 
 		// payload transfer
 		st.total_payload_download = m_stat.total_payload_download();
@@ -1102,8 +1122,27 @@ namespace libtorrent
 
 		// fill in status that depends on metadata
 
-		st.progress = st.total_done
-			/ static_cast<float>(m_torrent_file.total_size());
+		st.total_wanted = m_torrent_file.total_size();
+
+		if (m_picker.get() && (m_picker->num_filtered() > 0
+			|| m_picker->num_have_filtered() > 0))
+		{
+			int filtered_pieces = m_picker->num_filtered()
+				+ m_picker->num_have_filtered();
+			int last_piece_index = m_torrent_file.num_pieces() - 1;
+			if (m_picker->is_filtered(last_piece_index))
+			{
+				st.total_wanted -= m_torrent_file.piece_size(last_piece_index);
+				--filtered_pieces;
+			}
+			
+			st.total_wanted -= filtered_pieces * m_torrent_file.piece_length();
+		}
+
+		assert(st.total_wanted >= st.total_wanted_done);
+			
+		st.progress = st.total_wanted_done
+			/ static_cast<float>(st.total_wanted);
 
 		st.pieces = &m_have_pieces;
 
@@ -1111,6 +1150,8 @@ namespace libtorrent
 			st.state = torrent_status::connecting_to_tracker;
 		else if (m_num_pieces == (int)m_have_pieces.size())
 			st.state = torrent_status::seeding;
+		else if (st.total_wanted_done == st.total_wanted)
+			st.state = torrent_status::finished;
 		else
 			st.state = torrent_status::downloading;
 

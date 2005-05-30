@@ -1159,6 +1159,7 @@ It contains the following fields::
 			checking_files,
 			connecting_to_tracker,
 			downloading,
+         finished,
 			seeding
 		};
 	
@@ -1191,6 +1192,8 @@ It contains the following fields::
 
 		const std::vector<bool>* pieces;
 		size_type total_done;
+		size_type total_wanted_done;
+		size_type total_wanted;
 
 		int num_seeds;
 		float distributed_copies;
@@ -1220,12 +1223,17 @@ current task is in the ``state`` member, it will be one of the following:
 |                          |most torrents will be in most of the time. The progress   |
 |                          |meter will tell how much of the files that has been       |
 |                          |downloaded.                                               |
-|                          |                                                          |
++--------------------------+----------------------------------------------------------+
+|``finished``              |In this state the torrent has finished downloading but    |
+|                          |still doesn't have the entire torrent. i.e. some pieces   |
+|                          |are filtered and won't get downloaded.                    |
 +--------------------------+----------------------------------------------------------+
 |``seeding``               |In this state the torrent has finished downloading and    |
 |                          |is a pure seeder.                                         |
 |                          |                                                          |
 +--------------------------+----------------------------------------------------------+
+
+When downloading, the progress is ``total_wanted_done`` / ``total_wanted``.
 
 ``paused`` is set to true if the torrent is paused and false otherwise.
 
@@ -1270,6 +1278,13 @@ that are still downloading (incomplete) this torrent.
 ``total_done`` is the total number of bytes of the file(s) that we have. All
 this does not necessarily has to be downloaded during this session (that's
 ``total_download_payload``).
+
+``total_wanted_done`` is the number of bytes we have downloadd, only counting the
+pieces that we actually want to download. i.e. excluding any pieces that we have but
+are filtered as not wanted.
+
+``total_wanted`` is the total number of bytes we want to download. This is also
+excluding pieces that have been filtered.
 
 ``num_seeds`` is the number of peers that are seeding that this client is
 currently connected to.
@@ -1333,18 +1348,19 @@ The ``flags`` attribute tells you in which state the peer is. It is set to
 any combination of the enums above. The following table describes each flag:
 
 +-------------------------+-------------------------------------------------------+
-| ``interesting``         | we are interested in pieces from this peer.           |
+| ``interesting``         | **we** are interested in pieces from this peer.       |
 +-------------------------+-------------------------------------------------------+
 | ``choked``              | **we** have choked this peer.                         |
 +-------------------------+-------------------------------------------------------+
-| ``remote_interested``   | means the same thing but that the peer is interested  |
-| ``remote_choked``       | in pieces from us and the peer has choked **us**.     |
+| ``remote_interested``   | the peer is interested in **us**                      |
++-------------------------+-------------------------------------------------------+
+| ``remote_choked``       | the peer has choked **us**.                           |
 +-------------------------+-------------------------------------------------------+
 | ``support_extensions``  | means that this peer supports the                     |
 |                         | `extension protocol`__.                               |
 +-------------------------+-------------------------------------------------------+
 | ``local_connection``    | The connection was initiated by us, the peer has a    |
-|                         | listen port open, and that port is the same is in the |
+|                         | listen port open, and that port is the same as in the |
 |                         | address_ of this peer. If this flag is not set, this  |
 |                         | peer connection was opened by this peer connecting to |
 |                         | us.                                                   |

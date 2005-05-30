@@ -199,6 +199,11 @@ namespace libtorrent
 
 		boost::optional<address> get_downloader(piece_block block) const;
 
+		// the number of filtered pieces we don't have
+		int num_filtered() const { return m_num_filtered; }
+
+		// the number of filtered pieces we already have
+		int num_have_filtered() const { return m_num_have_filtered; }
 #ifndef NDEBUG
 		// used in debug mode
 		void integrity_check(const torrent* t = 0) const;
@@ -298,6 +303,14 @@ namespace libtorrent
 		int m_blocks_per_piece;
 		int m_blocks_in_last_piece;
 
+		// the number of filtered pieces that we don't already
+		// have. total_number_of_pieces - number_of_pieces_we_have
+		// - num_filtered is supposed to the number of pieces
+		// we still want to download
+		int m_num_filtered;
+
+		// the number of pieces we have that also are filtered
+		int m_num_have_filtered;
 	};
 
 	inline int piece_picker::blocks_in_piece(int index) const

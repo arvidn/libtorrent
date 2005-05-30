@@ -147,7 +147,7 @@ void clear()
 
 #endif
 
-std::string to_string(float v, int width, int precision = 4)
+std::string to_string(float v, int width, int precision = 3)
 {
 	std::stringstream s;
 	s.precision(precision);
@@ -197,7 +197,7 @@ std::string add_suffix(float val)
 	for (int i = 0; i < num_prefix; ++i)
 	{
 		if (fabs(val) < 1000.f)
-			return to_string(val, i==0?7:6) + prefix[i];
+			return to_string(val, i==0?5:4) + prefix[i];
 		val /= 1000.f;
 	}
 	return to_string(val, 6) + "PB";
@@ -208,8 +208,9 @@ std::string progress_bar(float progress, int width)
 	std::vector<char> bar;
 	bar.reserve(width);
 
-	std::fill_n(std::back_inserter(bar), progress * width, '#');
-	std::fill_n(std::back_inserter(bar), width - (progress * width), '-');
+	int progress_chars = progress * width + .5f;
+	std::fill_n(std::back_inserter(bar), progress_chars, '#');
+	std::fill_n(std::back_inserter(bar), width - progress_chars, '-');
 	return std::string(bar.begin(), bar.end());
 }
 
@@ -217,7 +218,7 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 {
 	using namespace libtorrent;
 
-	out << " down       up         q  r flags  client   block\n";
+	out << " down     up       q  r flags  block progress  client \n";
 
 	for (std::vector<peer_info>::const_iterator i = peers.begin();
 		i != peers.end(); ++i)
@@ -238,17 +239,20 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			<< static_cast<const char*>((i->flags & peer_info::remote_interested)?"i":"_")
 			<< static_cast<const char*>((i->flags & peer_info::remote_choked)?"c":"_")
 			<< static_cast<const char*>((i->flags & peer_info::supports_extensions)?"e":"_")
-			<< static_cast<const char*>((i->flags & peer_info::local_connection)?"l":"r") << " "
-			<< identify_client(i->id);
+			<< static_cast<const char*>((i->flags & peer_info::local_connection)?"l":"r") << " ";
 
 		if (i->downloading_piece_index >= 0)
 		{
-			out << "  " << progress_bar(
+			out << progress_bar(
 				i->downloading_progress / static_cast<float>(i->downloading_total)
 				, 15);
 		}
+		else
+		{
+			out << progress_bar(0.f, 15);
+		}
 
-		out << "\n";
+		out << " " << identify_client(i->id) << "\n";
 	}
 }
 
@@ -328,6 +332,12 @@ int main(int argc, char* argv[])
 				handles.back().set_max_connections(100);
 				handles.back().set_max_uploads(-1);
 				handles.back().set_ratio(1.02f);
+/*
+				for (int i = 0; i < t.num_pieces(); ++i)
+				{
+					handles.back().filter_piece(i, i % 2 == 0);
+				}
+*/
 			}
 			catch (std::exception& e)
 			{
@@ -446,6 +456,10 @@ int main(int argc, char* argv[])
 					--i;
 					continue;
 				}
+				out << "name: ";
+				if (i->has_metadata()) out << i->get_torrent_info().name();
+				else out << "-";
+				out << "\n";
 				torrent_status s = i->status();
 
 				switch(s.state)
@@ -465,6 +479,9 @@ int main(int argc, char* argv[])
 					case torrent_status::downloading:
 						out << "downloading ";
 						break;
+					case torrent_status::finished:
+						out << "finished ";
+						break;
 					case torrent_status::seeding:
 						out << "seeding ";
 						break;
@@ -483,9 +500,9 @@ int main(int argc, char* argv[])
 				out	<< "peers: " << s.num_peers << " "
 				    << "seeds: " << s.num_seeds << " "
 				    << "distributed copies: " << s.distributed_copies << "\n";
-				out << "download:" << add_suffix(s.download_rate) << "/s "
+				out << "download: " << add_suffix(s.download_rate) << "/s "
 					<< "(" << add_suffix(s.total_download) << ") "
-					<< "upload:" << add_suffix(s.upload_rate) << "/s "
+					<< "upload: " << add_suffix(s.upload_rate) << "/s "
 					<< "(" << add_suffix(s.total_upload) << ") "
 					<< "ratio: " << ratio(s.total_payload_download, s.total_payload_upload) << "\n";
 				out << "info-hash: " << i->info_hash() << "\n";

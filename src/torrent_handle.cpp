@@ -78,7 +78,7 @@ namespace libtorrent
 	{
 		void throw_invalid_handle()
 		{
-			throw_invalid_handle();
+			throw invalid_handle();
 		}
 			  
 		template<class Ret, class F>
