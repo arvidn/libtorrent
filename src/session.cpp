@@ -381,17 +381,14 @@ namespace libtorrent { namespace detail
 			}
 
 			for (std::vector<boost::shared_ptr<libtorrent::socket> >::iterator i =
-				writable_clients.begin();
-				i != writable_clients.end();
+				writable_clients.begin(); i != writable_clients.end();
 				++i)
 			{
 				assert((*i)->is_writable());
 			}
 
 			for (std::vector<boost::shared_ptr<libtorrent::socket> >::iterator i =
-				readable_clients.begin();
-				i != readable_clients.end();
-				++i)
+				readable_clients.begin(); i != readable_clients.end(); ++i)
 			{
 				assert((*i)->is_readable());
 			}
@@ -429,9 +426,7 @@ namespace libtorrent { namespace detail
 
 			// let the writable connections send data
 			for (std::vector<boost::shared_ptr<socket> >::iterator i
-				= writable_clients.begin();
-				i != writable_clients.end();
-				++i)
+				= writable_clients.begin(); i != writable_clients.end(); ++i)
 			{
 				assert((*i)->is_writable());
 				connection_map::iterator p = m_connections.find(*i);
@@ -687,6 +682,14 @@ namespace libtorrent { namespace detail
 					req.listen_port = m_listen_interface.port;
 					req.key = m_key;
 					m_tracker_manager.queue_request(req, t.tracker_login());
+
+					if (m_alerts.should_post(alert::info))
+					{
+						m_alerts.post_alert(
+							tracker_announce_alert(
+								t.get_handle(), "tracker announce, event=stopped"));
+					}
+	
 #ifndef NDEBUG
 					sha1_hash i_hash = t.torrent_file().info_hash();
 #endif
@@ -700,6 +703,13 @@ namespace libtorrent { namespace detail
 					req.listen_port = m_listen_interface.port;
 					req.key = m_key;
 					m_tracker_manager.queue_request(req, t.tracker_login(), i->second);
+
+					if (m_alerts.should_post(alert::info))
+					{
+						m_alerts.post_alert(
+							tracker_announce_alert(
+								t.get_handle(), "tracker announce"));
+					}
 				}
 
 				// tick() will set the used upload quota

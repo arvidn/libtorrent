@@ -1802,6 +1802,25 @@ generated and the torrent is paused. It is generated as severity level ``fatal``
 	};
 
 
+tracker_announce_alert
+----------------------
+
+This alert is generated each time a tracker announce is sent (or attempted to be sent).
+It is generated at severity level ``info``.
+
+::
+
+	struct tracker_announce_alert: alert
+	{
+		tracker_announce_alert(
+			const torrent_handle& h
+			, const std::string& msg);
+			
+		virtual std::auto_ptr<alert> clone() const;
+
+		torrent_handle handle;
+	};
+
 
 tracker_alert
 -------------
