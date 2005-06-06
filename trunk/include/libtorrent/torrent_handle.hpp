@@ -261,7 +261,7 @@ namespace libtorrent
 		void set_download_limit(int limit);
 
 		// manually connect a peer
-		void connect_peer(const address& adr) const;
+		void connect_peer(address const& adr) const;
 
 		// valid ratios are 0 (infinite ratio) or [ 1.0 , inf )
 		// the ratio is uploaded / downloaded. less than 1 is not allowed

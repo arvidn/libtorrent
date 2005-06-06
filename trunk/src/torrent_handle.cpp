@@ -463,7 +463,7 @@ namespace libtorrent
 			, bind(&torrent::metadata, _1));
 	}
 
-	void torrent_handle::connect_peer(const address& adr) const
+	void torrent_handle::connect_peer(address const& adr) const
 	{
 		INVARIANT_CHECK;
 

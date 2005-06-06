@@ -42,10 +42,10 @@ namespace libtorrent
 {
 	struct tracker_alert: alert
 	{
-		tracker_alert(const torrent_handle& h
+		tracker_alert(torrent_handle const& h
 			, int times
 			, int status
-			, const std::string& msg)
+			, std::string const& msg)
 			: alert(alert::warning, msg)
 			, handle(h)
 			, times_in_row(times)
@@ -62,8 +62,8 @@ namespace libtorrent
 
 	struct tracker_reply_alert: alert
 	{
-		tracker_reply_alert(const torrent_handle& h
-			, const std::string& msg)
+		tracker_reply_alert(torrent_handle const& h
+			, std::string const& msg)
 			: alert(alert::info, msg)
 			, handle(h)
 			{}
@@ -73,13 +73,26 @@ namespace libtorrent
 
 		torrent_handle handle;
 	};
+
+	struct tracker_announce_alert: alert
+	{
+		tracker_announce_alert(torrent_handle const& h, std::string const& msg)
+			: alert(alert::info, msg)
+			, handle(h)
+			{}
+	
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new tracker_announce_alert(*this)); }
+		
+		torrent_handle handle;
+	};
 	
 	struct hash_failed_alert: alert
 	{
 		hash_failed_alert(
-			const torrent_handle& h
+			torrent_handle const& h
 			, int index
-			, const std::string& msg)
+			, std::string const& msg)
 			: alert(alert::info, msg)
 			, handle(h)
 			, piece_index(index)
@@ -94,7 +107,7 @@ namespace libtorrent
 
 	struct peer_ban_alert: alert
 	{
-		peer_ban_alert(const address& pip, torrent_handle h, const std::string& msg)
+		peer_ban_alert(address const& pip, torrent_handle h, std::string const& msg)
 			: alert(alert::info, msg)
 			, ip(pip)
 			, handle(h)
@@ -109,7 +122,7 @@ namespace libtorrent
 
 	struct peer_error_alert: alert
 	{
-		peer_error_alert(address const& pip, peer_id const& pid, const std::string& msg)
+		peer_error_alert(address const& pip, peer_id const& pid, std::string const& msg)
 			: alert(alert::debug, msg)
 			, ip(pip)
 			, id(pid)
