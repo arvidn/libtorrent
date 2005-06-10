@@ -739,7 +739,8 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::completed()
+	// called when torrent is finished (all interested pieces downloaded)
+	void torrent::finished()
 	{
 		if (alerts().should_post(alert::info))
 		{
@@ -748,11 +749,9 @@ namespace libtorrent
 				, "torrent has finished downloading"));
 		}
 
-
 	// disconnect all seeds
 		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end();
-			++i)
+			i != m_connections.end(); ++i)
 		{
 			assert(i->second->associated_torrent() == this);
 			if (i->second->is_seed())
@@ -760,7 +759,19 @@ namespace libtorrent
 		}
 
 		m_storage->release_files();
-
+	}
+	
+	// called when torrent is complete (all pieces downloaded)
+	void torrent::completed()
+	{
+/*
+		if (alerts().should_post(alert::info))
+		{
+			alerts().post_alert(torrent_complete_alert(
+				get_handle()
+				, "torrent is complete"));
+		}
+*/
 		// make the next tracker request
 		// be a completed-event
 		m_event = tracker_request::completed;
