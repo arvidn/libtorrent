@@ -992,7 +992,9 @@ namespace libtorrent
 		m_torrent->filesystem().write(&m_recv_buffer[9], p.piece, p.start, p.length);
 
 		bool was_seed = m_torrent->is_seed();
-
+		bool was_finished = picker.num_filtered() + m_torrent->num_pieces()
+					== m_torrent->torrent_file().num_pieces();
+		
 		picker.mark_as_finished(block_finished, m_socket->sender());
 
 		m_torrent->get_policy().block_finished(*this, block_finished);
@@ -1004,6 +1006,17 @@ namespace libtorrent
 			if (verified)
 			{
 				m_torrent->announce_piece(p.piece);
+				assert(m_torrent->valid_metadata());
+				if (!was_finished
+					&& picker.num_filtered() + m_torrent->num_pieces()
+						== m_torrent->torrent_file().num_pieces())  
+				{
+					// torrent finished
+					// i.e. all the pieces we're interested in have
+					// been downloaded. Release the files (they will open
+					// in read only mode if needed)
+					m_torrent->finished();
+				}
 			}
 			else
 			{

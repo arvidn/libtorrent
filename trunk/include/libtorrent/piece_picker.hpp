@@ -168,7 +168,6 @@ namespace libtorrent
 		// piece-block, or if it's queued for downloading by some client
 		// or if it already has been successfully downlloaded
 		bool is_downloading(piece_block block) const;
-
 		bool is_finished(piece_block block) const;
 
 		// marks this piece-block as queued for downloading

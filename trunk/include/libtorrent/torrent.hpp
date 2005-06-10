@@ -285,6 +285,12 @@ namespace libtorrent
 		// all seeds and let the tracker know we're finished.
 		void completed();
 
+		// this is called when the torrent has finished. i.e.
+		// all the pieces we have not filtered have been downloaded.
+		// If no pieces are filtered, this is called first and then
+		// completed() is called immediately after it.
+		void finished();
+
 		bool verify_piece(int piece_index);
 
 		// this is called from the peer_connection

@@ -640,10 +640,10 @@ namespace libtorrent
 			int incomplete = -1;
 
 			try { complete = e["complete"].integer(); }
-			catch(type_error& e) {}
+			catch(type_error&) {}
 
 			try { incomplete = e["incomplete"].integer(); }
-			catch(type_error& e) {}
+			catch(type_error&) {}
 			
 			requester().tracker_response(m_req, peer_list, interval, complete
 				, incomplete);
