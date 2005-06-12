@@ -50,6 +50,8 @@ The current state includes the following features:
 	  means it can resume a torrent downloaded by any client.
 	* adjusts the length of the request queue depending on download rate.
 	* supports the ``compact=1`` tracker parameter.
+	* selective downloading. The ability to select which parts of a torrent you
+	  want to download.
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
 .. _Azureus: http://azureus.sourceforge.net
@@ -57,13 +59,7 @@ __ http://nolar.com/azureus/extended.htm
 __ udp_tracker_protocol.html
 
 
-Functions that are yet to be implemented:
-
-	* better identification of peers that send bad data
-	* ip-filters
-	* file-level priority
-
-libtorrent is portable at least among windows, macosx, and other UNIX-systems. It uses Boost.Thread,
+libtorrent is portable at least among Windows, MacOSX and other UNIX-systems. It uses Boost.Thread,
 Boost.Filesystem, Boost.Date_time and various other boost libraries as well as zlib.
 
 libtorrent has been successfully compiled and tested on:

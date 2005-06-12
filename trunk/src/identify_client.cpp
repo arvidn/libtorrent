@@ -64,7 +64,7 @@ namespace
 	int decode_digit(char c)
 	{
 		if (std::isdigit(c)) return c - '0';
-		return std::toupper(c) - 'A' + 10;
+		return unsigned(c) - 'A' + 10;
 	}
 
 	// takes a peer id and returns a valid boost::optional
@@ -75,9 +75,9 @@ namespace
 	{
 		fingerprint ret("..", 0, 0, 0, 0);
 
-		if (id[0] != '-' || !std::isprint(id[1]) || !std::isprint(id[2])
-			|| !std::isalnum(id[3]) || !std::isalnum(id[4])
-			|| !std::isalnum(id[5]) || !std::isalnum(id[6])
+		if (id[0] != '-' || !std::isprint(id[1]) || (id[2] < '0')
+			|| (id[3] < '0') || (id[4] < '0')
+			|| (id[5] < '0') || (id[6] < '0')
 			|| id[7] != '-')
 			return boost::optional<fingerprint>();
 
@@ -102,8 +102,8 @@ namespace
 
 		if (std::equal(id.begin()+4, id.begin()+8, "----"))
 		{
-			if (!std::isalnum(id[1]) || !std::isalnum(id[2])
-				|| !std::isalnum(id[3]))
+			if (!std::isalnum(id[1]) || (id[2] < '0')
+				|| (id[3] < '0'))
 				return boost::optional<fingerprint>();
 			ret.major_version = decode_digit(id[1]);
 			ret.minor_version = decode_digit(id[2]);

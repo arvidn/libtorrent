@@ -2081,6 +2081,7 @@ namespace libtorrent
 					m_statistics.received_bytes(0, received);
 					if (m_recv_pos < m_packet_size) break;
 					assert(m_recv_pos == m_packet_size);
+					assert(m_packet_size == 20);
 
 #ifdef TORRENT_VERBOSE_LOGGING
 					{
