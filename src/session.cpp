@@ -792,9 +792,7 @@ namespace libtorrent { namespace detail
 			= m_torrents.find(info_hash);
 #ifndef NDEBUG
 		for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator j
-			= m_torrents.begin();
-			j != m_torrents.end();
-			++j)
+			= m_torrents.begin(); j != m_torrents.end(); ++j)
 		{
 			torrent* p = boost::get_pointer(j->second);
 			assert(p);
@@ -818,8 +816,7 @@ namespace libtorrent { namespace detail
 		assert(place);
 
 		for (connection_map::iterator i = m_connections.begin();
-			i != m_connections.end();
-			++i)
+			i != m_connections.end(); ++i)
 		{
 			if (i->second->can_write() != m_selector.is_writability_monitored(i->first)
 				|| i->second->can_read() != m_selector.is_readability_monitored(i->first))

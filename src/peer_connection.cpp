@@ -2020,6 +2020,7 @@ namespace libtorrent
 						std::copy(m_recv_buffer.begin()+8, m_recv_buffer.begin() + 28, (char*)info_hash.begin());
 						
 						m_torrent = m_ses.find_torrent(info_hash);
+						if (m_torrent && m_torrent->is_aborted()) m_torrent = 0;
 						if (m_torrent == 0)
 						{
 							// we couldn't find the torrent!
