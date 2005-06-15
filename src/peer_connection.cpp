@@ -124,6 +124,7 @@ namespace libtorrent
 			, boost::posix_time::seconds(0))
 		, m_waiting_metadata_request(false)
 		, m_connecting(false)
+		, m_metadata_progress(0)
 	{
 		INVARIANT_CHECK;
 
@@ -203,6 +204,7 @@ namespace libtorrent
 			, boost::posix_time::seconds(0))
 		, m_waiting_metadata_request(false)
 		, m_connecting(true)
+		, m_metadata_progress(0)
 	{
 		INVARIANT_CHECK;
 
@@ -1151,7 +1153,8 @@ namespace libtorrent
 		const char* ptr = &m_recv_buffer[1];
 		int extended_id = detail::read_int32(ptr);
 
-		if (!m_ses.m_extension_enabled[extended_id])
+		if (extended_id >= 0 && extended_id < num_supported_extensions
+			&& !m_ses.m_extension_enabled[extended_id])
 			throw protocol_error("'extended' message using disabled extension");
 
 		switch (extended_id)
@@ -1165,7 +1168,8 @@ namespace libtorrent
 		case extended_listen_port_message:
 			on_listen_port(); break;
 		default:
-			throw protocol_error("unknown extended message id");
+			throw protocol_error("unknown extended message id: "
+				+ boost::lexical_cast<std::string>(extended_id));
 		};
 	}
 
@@ -1218,15 +1222,17 @@ namespace libtorrent
 		if (m_packet_size > 500 * 1024)
 			throw protocol_error("metadata message larger than 500 kB");
 
-		if (m_recv_pos < m_packet_size) return;
+		if (m_recv_pos < 6) return;
 
-		std::vector<char>::iterator ptr = m_recv_buffer.begin()+5;
+		std::vector<char>::iterator ptr = m_recv_buffer.begin() + 5;
 		int type = detail::read_uint8(ptr);
 
 		switch (type)
 		{
 		case 0: // request
 			{
+				if (m_recv_pos < m_packet_size) return;
+
 				int start = detail::read_uint8(ptr);
 				int size = detail::read_uint8(ptr) + 1;
 
@@ -1241,6 +1247,7 @@ namespace libtorrent
 			break;
 		case 1: // data
 			{
+				if (m_recv_pos < 14) return;
 				int total_size = detail::read_int32(ptr);
 				int offset = detail::read_int32(ptr);
 				int data_size = m_packet_size - 5 - 9;
@@ -1252,6 +1259,11 @@ namespace libtorrent
 				if (offset + data_size > total_size)
 					throw protocol_error("invalid metadata message");
 
+				m_torrent->metadata_progress(total_size, m_recv_pos - 14
+					- m_metadata_progress);
+				m_metadata_progress = m_recv_pos - 14;
+				if (m_recv_pos < m_packet_size) return;
+
 #ifdef TORRENT_VERBOSE_LOGGING
 				using namespace boost::posix_time;
 				(*m_logger) << to_simple_string(second_clock::universal_time())
@@ -1259,17 +1271,22 @@ namespace libtorrent
 					<< offset << " size: " << data_size << " ]\n";
 #endif
 
-
 				m_waiting_metadata_request = false;
 				m_torrent->received_metadata(&m_recv_buffer[5+9], data_size, offset, total_size);
+				m_metadata_progress = 0;
 			}
 			break;
 		case 2: // have no data
+			if (m_recv_pos < m_packet_size) return;
+
 			m_no_metadata = second_clock::universal_time();
 			if (m_waiting_metadata_request)
 				m_torrent->cancel_metadata_request(m_last_metadata_request);
 			m_waiting_metadata_request = false;
 			break;
+		default:
+			throw protocol_error("unknown metadata extension message: "
+				+ boost::lexical_cast<std::string>(type));
 		}
 		
 	}

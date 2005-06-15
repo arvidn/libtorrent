@@ -130,6 +130,10 @@ namespace libtorrent
 		// debug purpose only
 		void print(std::ostream& os) const;
 
+		// this is called from the peer_connection for
+		// each piece of metadata it receives
+		void metadata_progress(int total_size, int received);
+		
 		void check_files(
 			detail::piece_checker_data& data
 			, boost::mutex& mutex, bool lock_session = true);
@@ -509,6 +513,9 @@ namespace libtorrent
 
 		// determines the storage state for this torrent.
 		const bool m_compact_mode;
+
+		int m_metadata_progress;
+		int m_metadata_size;
 	};
 
 	inline boost::posix_time::ptime torrent::next_announce() const
