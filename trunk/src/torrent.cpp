@@ -181,6 +181,8 @@ namespace libtorrent
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_save_path(complete(save_path))
 		, m_compact_mode(compact_mode)
+		, m_metadata_progress(0)
+		, m_metadata_size(0)
 	{
 		m_uploads_quota.min = 2;
 		m_connections_quota.min = 2;
@@ -230,6 +232,8 @@ namespace libtorrent
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_save_path(complete(save_path))
 		, m_compact_mode(compact_mode)
+		, m_metadata_progress(0)
+		, m_metadata_size(0)
 	{
 		m_uploads_quota.min = 2;
 		m_connections_quota.min = 2;
@@ -834,6 +838,8 @@ namespace libtorrent
 		if (lock_session) m = &m_ses.m_mutex;
 		
 		boost::mutex::scoped_lock l(mutex);
+		if (data.abort) return;
+		
 		boost::mutex::scoped_lock l2(*m);
 		m_num_pieces = std::count(
 			m_have_pieces.begin()
@@ -1123,10 +1129,8 @@ namespace libtorrent
 			else
 				st.state = torrent_status::downloading_metadata;
 
-			st.progress = std::count(
-				m_have_metadata.begin()
-				, m_have_metadata.end()
-				, true) / 256.f;
+			if (m_metadata_size == 0) st.progress = 0.f;
+			else st.progress = std::min(1.f, m_metadata_progress / (float)m_metadata_size);
 
 			return st;
 		}
@@ -1259,6 +1263,8 @@ namespace libtorrent
 				m_have_metadata.begin()
 				, m_have_metadata.begin() + req.first + req.second
 				, false);
+			m_metadata_progress = 0;
+			m_metadata_size = 0;
 			return false;
 		}
 
@@ -1409,5 +1415,11 @@ namespace libtorrent
 	}
 #endif
 
+}
+
+void torrent::metadata_progress(int total_size, int received)
+{
+	m_metadata_progress += received;
+	m_metadata_size = total_size;
 }
 

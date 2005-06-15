@@ -524,6 +524,13 @@ namespace libtorrent
 		// may not even have been attempted when the
 		// time out is reached.
 		bool m_connecting;
+
+		// the number of bytes of metadata we have received
+		// so far from this per, only counting the current
+		// request. Any previously finished requests
+		// that have been forwarded to the torrent object
+		// do not count.
+		int m_metadata_progress;
 	};
 }
 

@@ -159,6 +159,7 @@ namespace
 		, map_entry("AR", "Arctic Torrent")
 		, map_entry("AZ", "Azureus")
 		, map_entry("BB", "BitBuddy")
+		, map_entry("BC", "BitComet")
 		, map_entry("BS", "BTSlave")
 		, map_entry("BX", "BittorrentX")
 		, map_entry("CT", "CTorrent")
