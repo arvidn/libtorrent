@@ -127,7 +127,8 @@ namespace libtorrent { namespace detail
 			try
 			{
 				assert(t != 0);
-				t->parse_resume_data(t->resume_data, t->torrent_ptr->torrent_file());
+				std::string error_msg;
+				t->parse_resume_data(t->resume_data, t->torrent_ptr->torrent_file(), error_msg);
 
 				// clear the resume data now that it has been used
 				// (the fast resume data is now parsed and stored in t)
@@ -142,6 +143,15 @@ namespace libtorrent { namespace detail
 					continue;
 				}
 				boost::mutex::scoped_lock l2(m_ses.m_mutex);
+
+				if (!error_msg.empty() && m_ses.m_alerts.should_post(alert::warning))
+				{
+					m_ses.m_alerts.post_alert(fastresume_rejected_alert(
+						t->torrent_ptr->get_handle()
+						, error_msg));
+					
+				}
+				
 				m_ses.m_torrents.insert(std::make_pair(t->info_hash, t->torrent_ptr));
 				if (t->torrent_ptr->is_seed() && m_ses.m_alerts.should_post(alert::info))
 				{
@@ -1188,7 +1198,8 @@ namespace libtorrent
 
 	void detail::piece_checker_data::parse_resume_data(
 		const entry& resume_data
-		, const torrent_info& info)
+		, const torrent_info& info
+		, std::string& error)
 	{
 		// if we don't have any resume data, return
 		if (resume_data.type() == entry::undefined_t) return;
@@ -1198,16 +1209,26 @@ namespace libtorrent
 		try
 		{
 			if (rd["file-format"].string() != "libtorrent resume file")
+			{
+				error = "missing file format tag";
 				return;
+			}
 
-			if (rd["file-version"].integer() != 1)
+			if (rd["file-version"].integer() > 1)
+			{
+				error = "incompatible file version "
+					+ boost::lexical_cast<std::string>(rd["file-version"].integer());
 				return;
+			}
 
 			// verify info_hash
 			const std::string &hash = rd["info-hash"].string();
 			std::string real_hash((char*)info.info_hash().begin(), (char*)info.info_hash().end());
 			if (hash != real_hash)
+			{
+				error = "mismatching info-hash: " + hash;
 				return;
+			}
 
 			// the peers
 
@@ -1218,8 +1239,7 @@ namespace libtorrent
 				std::vector<address> tmp_peers;
 				tmp_peers.reserve(peer_list.size());
 				for (entry::list_type::iterator i = peer_list.begin();
-					i != peer_list.end();
-					++i)
+					i != peer_list.end(); ++i)
 				{
 					address a(
 						(*i)["ip"].string().c_str()
@@ -1233,24 +1253,32 @@ namespace libtorrent
 			// read piece map
 			const entry::list_type& slots = rd["slots"].list();
 			if ((int)slots.size() > info.num_pieces())
+			{
+				error = "file has more slots than torrent (" + boost::lexical_cast<std::string>(slots.size()) + ")";
 				return;
+			}
 
 			std::vector<int> tmp_pieces;
 			tmp_pieces.reserve(slots.size());
 			for (entry::list_type::const_iterator i = slots.begin();
-				i != slots.end();
-				++i)
+				i != slots.end(); ++i)
 			{
 				int index = (int)i->integer();
 				if (index >= info.num_pieces() || index < -2)
+				{
+					error = "too high index number in slot map (" + boost::lexical_cast<std::string>(index) + ")";
 					return;
+				}
 				tmp_pieces.push_back(index);
 			}
 
 
 			int num_blocks_per_piece = (int)rd["blocks per piece"].integer();
 			if (num_blocks_per_piece != info.piece_length() / torrent_ptr->block_size())
+			{
+				error = "invalid number of blocks per piece (" + boost::lexical_cast<std::string>(num_blocks_per_piece) + ")";
 				return;
+			}
 
 			// the unfinished pieces
 
@@ -1259,19 +1287,25 @@ namespace libtorrent
 			std::vector<piece_picker::downloading_piece> tmp_unfinished;
 			tmp_unfinished.reserve(unfinished.size());
 			for (entry::list_type::iterator i = unfinished.begin();
-				i != unfinished.end();
-				++i)
+				i != unfinished.end(); ++i)
 			{
 				piece_picker::downloading_piece p;
 
 				p.index = (int)(*i)["piece"].integer();
 				if (p.index < 0 || p.index >= info.num_pieces())
+				{
+					error = "invalid piece index in unfinished piece list (" + boost::lexical_cast<std::string>(p.index) + ")";
 					return;
+				}
 
 				const std::string& bitmask = (*i)["bitmask"].string();
 
 				const int num_bitmask_bytes = std::max(num_blocks_per_piece / 8, 1);
-				if ((int)bitmask.size() != num_bitmask_bytes) return;
+				if ((int)bitmask.size() != num_bitmask_bytes)
+				{
+					error = "invalid size of bitmask (" + boost::lexical_cast<std::string>(bitmask.size()) + ")";
+					return;
+				}
 				for (int j = 0; j < num_bitmask_bytes; ++j)
 				{
 					unsigned char bits = bitmask[j];
@@ -1291,6 +1325,8 @@ namespace libtorrent
 				{
 					// this piece is marked as unfinished
 					// but doesn't have any storage
+					error = "piece " + boost::lexical_cast<std::string>(p.index) + " is "
+						"marked as unfinished, but doesn't have any storage";
 					return;
 				}
 
@@ -1306,7 +1342,10 @@ namespace libtorrent
 
 				// crc's didn't match, don't use the resume data
 				if (ad.integer() != adler)
+				{
+					error = "checksum mismatch on piece " + boost::lexical_cast<std::string>(p.index);
 					return;
+				}
 
 				tmp_unfinished.push_back(p);
 			}
@@ -1329,7 +1368,11 @@ namespace libtorrent
 				, boost::bind(std::less<int>(), _1, 0)) == tmp_pieces.end())
 			{
 				if (info.num_files() != (int)file_sizes.size())
+				{
+					error = "the number of files does not match the torrent ("
+						+ boost::lexical_cast<std::string>(file_sizes.size()) + ")";
 					return;
+				}
 
 				std::vector<std::pair<size_type, std::time_t> >::iterator
 					fs = file_sizes.begin();
@@ -1338,12 +1381,17 @@ namespace libtorrent
 				for (torrent_info::file_iterator i = info.begin_files()
 					, end(info.end_files()); i != end; ++i, ++fs)
 				{
-					if (i->size != fs->first) return;
+					if (i->size != fs->first)
+					{
+						error = "file size for '" + i->path.native_file_string() + "' was expected to be "
+							+ boost::lexical_cast<std::string>(i->size) + " bytes";
+						return;
+					}
 				}
 			}
 
 
-			if (!match_filesizes(info, save_path, file_sizes))
+			if (!match_filesizes(info, save_path, file_sizes, &error))
 				return;
 
 			piece_map.swap(tmp_pieces);

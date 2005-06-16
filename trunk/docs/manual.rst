@@ -816,9 +816,6 @@ Its declaration looks like this::
 		bool is_piece_filtered(int index) const;
 		std::vector<bool> filtered_pieces() const;
 
-		int num_complete() const;
-		int num_incomplete() const;
-
 		bool has_metadata() const;
 
 		boost::filsystem::path save_path() const;
@@ -2008,6 +2005,26 @@ It is generated at severity level ``info``.
 			const torrent_handle& h
 			, const std::string& msg);
 			
+		virtual std::auto_ptr<alert> clone() const;
+
+		torrent_handle handle;
+	};
+
+
+fastresume_rejected_alert
+-------------------------
+
+This alert is generated when a fastresume file has been passed to ``add_torrent`` but the
+files on disk did not match the fastresume file. The string explaints the reason why the
+resume file was rejected. It is generated at severity level ``warning``.
+
+::
+
+	struct fastresume_rejected_alert: alert
+	{
+		fastresume_rejected_alert(torrent_handle const& h
+			, std::string const& msg);
+
 		virtual std::auto_ptr<alert> clone() const;
 
 		torrent_handle handle;

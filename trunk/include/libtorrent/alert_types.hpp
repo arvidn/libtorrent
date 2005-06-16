@@ -232,6 +232,21 @@ namespace libtorrent
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new listen_failed_alert(*this)); }
 	};
+
+	struct fastresume_rejected_alert: alert
+	{
+		fastresume_rejected_alert(torrent_handle const& h
+			, std::string const& msg)
+			: alert(alert::warning, msg)
+			, handle(h)
+			{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new fastresume_rejected_alert(*this)); }
+
+		torrent_handle handle;
+	};
+
 }
 
 

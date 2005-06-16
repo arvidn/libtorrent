@@ -115,7 +115,8 @@ namespace libtorrent
 
 			void parse_resume_data(
 				const entry& rd
-				, const torrent_info& info);
+				, const torrent_info& info
+				, std::string& error);
 
 			std::vector<int> piece_map;
 			std::vector<piece_picker::downloading_piece> unfinished_pieces;

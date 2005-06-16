@@ -185,16 +185,20 @@ namespace libtorrent
 	bool match_filesizes(
 		torrent_info const& t
 		, path p
-		, std::vector<std::pair<size_type, std::time_t> > const& sizes)
+		, std::vector<std::pair<size_type, std::time_t> > const& sizes
+		, std::string* error)
 	{
-		if ((int)sizes.size() != t.num_files()) return false;
+		if ((int)sizes.size() != t.num_files())
+		{
+			if (error) *error = "mismatching number of files";
+			return false;
+		}
 		p = complete(p);
 
 		std::vector<std::pair<size_type, std::time_t> >::const_iterator s
 			= sizes.begin();
 		for (torrent_info::file_iterator i = t.begin_files();
-			i != t.end_files();
-			++i, ++s)
+			i != t.end_files(); ++i, ++s)
 		{
 			size_type size = 0;
 			std::time_t time = 0;
@@ -205,8 +209,22 @@ namespace libtorrent
 				time = last_write_time(f);
 			}
 			catch (std::exception&) {}
-			if (size != s->first || time != s->second)
+			if (size != s->first)
+			{
+				if (error) *error = "filesize mismatch for file '"
+					+ i->path.native_file_string()
+					+ "', expected to be " + boost::lexical_cast<std::string>(s->first)
+					+ " bytes";
 				return false;
+			}
+			if (time != s->second)
+			{
+				if (error) *error = "timestamp mismatch for file '"
+					+ i->path.native_file_string()
+					+ "', expected to have modification date "
+					+ boost::lexical_cast<std::string>(s->second);
+				return false;
+			}
 		}
 		return true;
 	}
