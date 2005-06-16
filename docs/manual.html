@@ -103,33 +103,34 @@
 <li><a class="reference" href="#invalid-request-alert" id="id83" name="id83">invalid_request_alert</a></li>
 <li><a class="reference" href="#torrent-finished-alert" id="id84" name="id84">torrent_finished_alert</a></li>
 <li><a class="reference" href="#metadata-received-alert" id="id85" name="id85">metadata_received_alert</a></li>
-<li><a class="reference" href="#dispatcher" id="id86" name="id86">dispatcher</a></li>
+<li><a class="reference" href="#fastresume-rejected-alert" id="id86" name="id86">fastresume_rejected_alert</a></li>
+<li><a class="reference" href="#dispatcher" id="id87" name="id87">dispatcher</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#exceptions" id="id87" name="id87">exceptions</a><ul>
-<li><a class="reference" href="#invalid-handle" id="id88" name="id88">invalid_handle</a></li>
-<li><a class="reference" href="#duplicate-torrent" id="id89" name="id89">duplicate_torrent</a></li>
-<li><a class="reference" href="#invalid-encoding" id="id90" name="id90">invalid_encoding</a></li>
-<li><a class="reference" href="#type-error" id="id91" name="id91">type_error</a></li>
-<li><a class="reference" href="#invalid-torrent-file" id="id92" name="id92">invalid_torrent_file</a></li>
+<li><a class="reference" href="#exceptions" id="id88" name="id88">exceptions</a><ul>
+<li><a class="reference" href="#invalid-handle" id="id89" name="id89">invalid_handle</a></li>
+<li><a class="reference" href="#duplicate-torrent" id="id90" name="id90">duplicate_torrent</a></li>
+<li><a class="reference" href="#invalid-encoding" id="id91" name="id91">invalid_encoding</a></li>
+<li><a class="reference" href="#type-error" id="id92" name="id92">type_error</a></li>
+<li><a class="reference" href="#invalid-torrent-file" id="id93" name="id93">invalid_torrent_file</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#examples" id="id93" name="id93">examples</a><ul>
-<li><a class="reference" href="#dump-torrent" id="id94" name="id94">dump_torrent</a></li>
-<li><a class="reference" href="#simple-client" id="id95" name="id95">simple client</a></li>
+<li><a class="reference" href="#examples" id="id94" name="id94">examples</a><ul>
+<li><a class="reference" href="#dump-torrent" id="id95" name="id95">dump_torrent</a></li>
+<li><a class="reference" href="#simple-client" id="id96" name="id96">simple client</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#fast-resume" id="id96" name="id96">fast resume</a><ul>
-<li><a class="reference" href="#file-format" id="id97" name="id97">file format</a></li>
+<li><a class="reference" href="#fast-resume" id="id97" name="id97">fast resume</a><ul>
+<li><a class="reference" href="#file-format" id="id98" name="id98">file format</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#extensions" id="id98" name="id98">extensions</a><ul>
-<li><a class="reference" href="#chat-messages" id="id99" name="id99">chat messages</a></li>
-<li><a class="reference" href="#metadata-from-peers" id="id100" name="id100">metadata from peers</a></li>
+<li><a class="reference" href="#extensions" id="id99" name="id99">extensions</a><ul>
+<li><a class="reference" href="#chat-messages" id="id100" name="id100">chat messages</a></li>
+<li><a class="reference" href="#metadata-from-peers" id="id101" name="id101">metadata from peers</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#filename-checks" id="id101" name="id101">filename checks</a></li>
-<li><a class="reference" href="#acknowledgements" id="id102" name="id102">acknowledgements</a></li>
+<li><a class="reference" href="#filename-checks" id="id102" name="id102">filename checks</a></li>
+<li><a class="reference" href="#acknowledgements" id="id103" name="id103">acknowledgements</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
@@ -885,9 +886,6 @@ struct torrent_handle
         void filter_piece(int index, bool filter);
         bool is_piece_filtered(int index) const;
         std::vector&lt;bool&gt; filtered_pieces() const;
-
-        int num_complete() const;
-        int num_incomplete() const;
 
         bool has_metadata() const;
 
@@ -1975,6 +1973,23 @@ struct metadata_received_alert: alert
                 const torrent_handle&amp; h
                 , const std::string&amp; msg);
                 
+        virtual std::auto_ptr&lt;alert&gt; clone() const;
+
+        torrent_handle handle;
+};
+</pre>
+</div>
+<div class="section" id="fastresume-rejected-alert">
+<h2><a name="fastresume-rejected-alert">fastresume_rejected_alert</a></h2>
+<p>This alert is generated when a fastresume file has been passed to <tt class="docutils literal"><span class="pre">add_torrent</span></tt> but the
+files on disk did not match the fastresume file. The string explaints the reason why the
+resume file was rejected. It is generated at severity level <tt class="docutils literal"><span class="pre">warning</span></tt>.</p>
+<pre class="literal-block">
+struct fastresume_rejected_alert: alert
+{
+        fastresume_rejected_alert(torrent_handle const&amp; h
+                , std::string const&amp; msg);
+
         virtual std::auto_ptr&lt;alert&gt; clone() const;
 
         torrent_handle handle;

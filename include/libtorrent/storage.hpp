@@ -68,7 +68,8 @@ namespace libtorrent
 	bool match_filesizes(
 		torrent_info const& t
 		, boost::filesystem::path p
-		, std::vector<std::pair<size_type, std::time_t> > const& sizes);
+		, std::vector<std::pair<size_type, std::time_t> > const& sizes
+		, std::string* error = 0);
 
 	struct file_allocation_failed: std::exception
 	{

@@ -523,8 +523,7 @@ int main(int argc, char* argv[])
 				{
 					i->get_download_queue(queue);
 					for (std::vector<partial_piece_info>::iterator i = queue.begin();
-						i != queue.end();
-						++i)
+						i != queue.end(); ++i)
 					{
 						out.width(4);
 						out.fill(' ');
