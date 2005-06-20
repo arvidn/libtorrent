@@ -130,7 +130,7 @@ static std::wstring utf8_wchar(const std::string &str) {
 	return ret;
 }
 
-static std::string wchar_utf8(const std::wstring &wide, std::string &utf8) {
+static void wchar_utf8(const std::wstring &wide, std::string &utf8) {
 	utf8.clear();
 	detail::wchar_utf8(wide.begin(), wide.end(), std::insert_iterator<std::string>(utf8, utf8.end()));
 }
