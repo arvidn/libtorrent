@@ -157,13 +157,13 @@ namespace libtorrent
 		int m_download_payload_rate_history[history];
 		int m_upload_payload_rate_history[history];
 
-		// the accumulators we are adding the downloads/upploads
+		// the accumulators we are adding the downloads/uploads
 		// to this second. This only counts the actual payload
 		// and ignores the bytes sent as protocol chatter.
 		int m_downloaded_payload;
 		int m_uploaded_payload;
 
-		// the accumulators we are adding the downloads/upploads
+		// the accumulators we are adding the downloads/uploads
 		// to this second. This only counts the protocol
 		// chatter and ignores the actual payload
 		int m_downloaded_protocol;
