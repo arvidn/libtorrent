@@ -1300,7 +1300,7 @@ namespace libtorrent
 				if (p.index < 0 || p.index >= info.num_pieces())
 				{
 					error = "invalid piece index in unfinished piece list (index: "
-						+ boost::lexical_cast<std::string>(p.index) + " size: ";
+						+ boost::lexical_cast<std::string>(p.index) + " size: "
 						+ boost::lexical_cast<std::string>(info.num_pieces()) + ")";
 					return;
 				}
