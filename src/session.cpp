@@ -1254,7 +1254,9 @@ namespace libtorrent
 			const entry::list_type& slots = rd["slots"].list();
 			if ((int)slots.size() > info.num_pieces())
 			{
-				error = "file has more slots than torrent (" + boost::lexical_cast<std::string>(slots.size()) + ")";
+				error = "file has more slots than torrent (slots: "
+					+ boost::lexical_cast<std::string>(slots.size()) + " size: "
+					+ boost::lexical_cast<std::string>(info.num_pieces()) + " )";
 				return;
 			}
 
@@ -1266,7 +1268,9 @@ namespace libtorrent
 				int index = (int)i->integer();
 				if (index >= info.num_pieces() || index < -2)
 				{
-					error = "too high index number in slot map (" + boost::lexical_cast<std::string>(index) + ")";
+					error = "too high index number in slot map (index: "
+						+ boost::lexical_cast<std::string>(index) + " size: "
+						+ boost::lexical_cast<std::string>(info.num_pieces()) + ")";
 					return;
 				}
 				tmp_pieces.push_back(index);
@@ -1276,7 +1280,8 @@ namespace libtorrent
 			int num_blocks_per_piece = (int)rd["blocks per piece"].integer();
 			if (num_blocks_per_piece != info.piece_length() / torrent_ptr->block_size())
 			{
-				error = "invalid number of blocks per piece (" + boost::lexical_cast<std::string>(num_blocks_per_piece) + ")";
+				error = "invalid number of blocks per piece ("
+					+ boost::lexical_cast<std::string>(num_blocks_per_piece) + ")";
 				return;
 			}
 
@@ -1294,7 +1299,9 @@ namespace libtorrent
 				p.index = (int)(*i)["piece"].integer();
 				if (p.index < 0 || p.index >= info.num_pieces())
 				{
-					error = "invalid piece index in unfinished piece list (" + boost::lexical_cast<std::string>(p.index) + ")";
+					error = "invalid piece index in unfinished piece list (index: "
+						+ boost::lexical_cast<std::string>(p.index) + " size: ";
+						+ boost::lexical_cast<std::string>(info.num_pieces()) + ")";
 					return;
 				}
 
@@ -1369,8 +1376,9 @@ namespace libtorrent
 			{
 				if (info.num_files() != (int)file_sizes.size())
 				{
-					error = "the number of files does not match the torrent ("
-						+ boost::lexical_cast<std::string>(file_sizes.size()) + ")";
+					error = "the number of files does not match the torrent (num: "
+						+ boost::lexical_cast<std::string>(file_sizes.size()) + " actual: "
+						+ boost::lexical_cast<std::string>(info.num_files()) + ")";
 					return;
 				}
 
