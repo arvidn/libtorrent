@@ -2483,7 +2483,7 @@ acknowledgements
 
 Written by Arvid Norberg. Copyright (c) 2003
 
-Contributions by Magnus Jonsson and Daniel Wallin
+Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson
 
 Thanks to Reimond Retz for bugfixes, suggestions and testing
 

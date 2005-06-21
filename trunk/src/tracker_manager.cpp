@@ -85,13 +85,15 @@ namespace libtorrent
 		std::string::const_iterator end
 			= std::find(url.begin(), url.end(), ':');
 
-		if (end == url.end()) throw std::runtime_error("invalid url");
+		while ((*start == ' ' || *start == '\t') && start != end) ++start;
+		
+		if (end == url.end()) throw std::runtime_error("invalid url: \"" + url + "\"");
 		++end;
-		if (end == url.end()) throw std::runtime_error("invalid url");
-		if (*end != '/') throw std::runtime_error("invalid url");
+		if (end == url.end()) throw std::runtime_error("invalid url: \"" + url + "\"");
+		if (*end != '/') throw std::runtime_error("invalid url: \"" + url + "\"");
 		++end;
-		if (end == url.end()) throw std::runtime_error("invalid url");
-		if (*end != '/') throw std::runtime_error("invalid url");
+		if (end == url.end()) throw std::runtime_error("invalid url: \"" + url + "\"");
+		if (*end != '/') throw std::runtime_error("invalid url: \"" + url + "\"");
 		++end;
 		start = end;
 
