@@ -227,6 +227,7 @@ namespace libtorrent
 		// marks the piece with the given index as filtered
 		// it will not be downloaded
 		void filter_piece(int index, bool filter);
+		void filter_pieces(std::vector<bool> const& pieces);
 		bool is_piece_filtered(int index) const;
 		std::vector<bool> filtered_pieces() const;
 		

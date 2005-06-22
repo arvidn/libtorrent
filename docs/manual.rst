@@ -813,6 +813,7 @@ Its declaration looks like this::
 		bool is_seed() const;
 
 		void filter_piece(int index, bool filter);
+		void filter_pieces(std::vector<bool> const& bitmask);
 		bool is_piece_filtered(int index) const;
 		std::vector<bool> filtered_pieces() const;
 
@@ -836,7 +837,7 @@ any operation on an uninitialized handle, it will throw ``invalid_handle``.
 
 **TODO: document how to create a .torrent**
 
-**TODO: document filter_piece(), is_piece_filtered() and filtered_pieces()**
+**TODO: document filter_piece(), filter_pieces(), is_piece_filtered() and filtered_pieces()**
 
 save_path()
 -----------

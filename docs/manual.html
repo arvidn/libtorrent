@@ -884,6 +884,7 @@ struct torrent_handle
         bool is_seed() const;
 
         void filter_piece(int index, bool filter);
+        void filter_pieces(std::vector&lt;bool&gt; const&amp; bitmask);
         bool is_piece_filtered(int index) const;
         std::vector&lt;bool&gt; filtered_pieces() const;
 
@@ -904,7 +905,7 @@ perform any operation on it, unless you first assign it a valid handle. If you t
 any operation on an uninitialized handle, it will throw <tt class="docutils literal"><span class="pre">invalid_handle</span></tt>.</p>
 <p><strong>TODO: document trackers() and replace_trackers()</strong></p>
 <p><strong>TODO: document how to create a .torrent</strong></p>
-<p><strong>TODO: document filter_piece(), is_piece_filtered() and filtered_pieces()</strong></p>
+<p><strong>TODO: document filter_piece(), filter_pieces(), is_piece_filtered() and filtered_pieces()</strong></p>
 <div class="section" id="save-path">
 <h2><a name="save-path">save_path()</a></h2>
 <blockquote>

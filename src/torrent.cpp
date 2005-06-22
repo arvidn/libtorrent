@@ -588,6 +588,33 @@ namespace libtorrent
 		else m_picker->mark_as_unfiltered(index);
 	}
 
+	void torrent::filter_pieces(std::vector<bool> const& bitmask)
+	{
+		// this call is only valid on torrents with metadata
+		assert(m_picker.get());
+		assert(index >= 0);
+		assert(index < m_torrent_file.num_pieces());
+
+		// TODO: update peer's interesting-bit
+		
+		std::vector<std::pair<int, bool> > state;
+		state.reserve(100);
+		int index = 0;
+		for (std::vector<bool>::const_iterator i = bitmask.begin()
+			, end(bitmask.end()); i != end; ++i, ++index)
+		{
+			if (m_picker->is_filtered(index) == *i) continue;
+			state.push_back(std::make_pair(index, *i));
+		}
+		std::random_shuffle(state.begin(), state.end());
+		for (std::vector<std::pair<int, bool> >::iterator i = state.begin();
+			i != state.end(); ++i)
+		{
+			if (i->second) m_picker->mark_as_filtered(i->first);
+			else m_picker->mark_as_unfiltered(i->first);
+		}
+	}
+
 	// TODO: add a function to set the filter with one call
 	
 	bool torrent::is_piece_filtered(int index) const
