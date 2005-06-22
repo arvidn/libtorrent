@@ -100,9 +100,9 @@ namespace
 		if (!std::isalnum(id[0]))
 			return boost::optional<fingerprint>();
 
-		if (std::equal(id.begin()+4, id.begin()+8, "----"))
+		if (std::equal(id.begin()+4, id.begin()+6, "--"))
 		{
-			if (!std::isalnum(id[1]) || (id[2] < '0')
+			if ((id[1] < '0') || (id[2] < '0')
 				|| (id[3] < '0'))
 				return boost::optional<fingerprint>();
 			ret.major_version = decode_digit(id[1]);

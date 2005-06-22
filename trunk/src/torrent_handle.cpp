@@ -263,6 +263,13 @@ namespace libtorrent
 			, bind(&torrent::filter_piece, _1, index, filter));
 	}
 
+	void torrent_handle::filter_pieces(std::vector<bool> const& pieces)
+	{
+		INVARIANT_CHECK;
+		call_member<void>(m_ses, m_chk, m_info_hash
+			, bind(&torrent::filter_pieces, _1, pieces));
+	}
+
 	bool torrent_handle::is_piece_filtered(int index) const
 	{
 		INVARIANT_CHECK;

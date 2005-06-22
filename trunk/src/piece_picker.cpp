@@ -572,7 +572,7 @@ namespace libtorrent
 		// is downloading them.
 		// partial is pieces that are partially being downloaded, and
 		// parts of them may be free for download as well, the
-		// partially donloaded pieces will be prioritized
+		// partially downloaded pieces will be prioritized
 		assert(m_piece_info.begin() != m_piece_info.end());
 		// +1 is to ignore pieces that no peer has. The bucket with index 0 contains
 		// pieces that 0 other peers has.

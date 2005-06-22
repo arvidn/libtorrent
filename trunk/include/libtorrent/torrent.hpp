@@ -146,7 +146,8 @@ namespace libtorrent
 		void resume();
 		bool is_paused() const { return m_paused; }
 
-		void filter_piece(int index, bool download);
+		void filter_piece(int index, bool filter);
+		void filter_pieces(std::vector<bool> const& bitmask);
 		bool is_piece_filtered(int index) const;
 		void filtered_pieces(std::vector<bool>& bitmask) const;
 		
