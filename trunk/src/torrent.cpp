@@ -592,8 +592,6 @@ namespace libtorrent
 	{
 		// this call is only valid on torrents with metadata
 		assert(m_picker.get());
-		assert(index >= 0);
-		assert(index < m_torrent_file.num_pieces());
 
 		// TODO: update peer's interesting-bit
 		
