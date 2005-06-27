@@ -162,7 +162,11 @@ namespace
 				lru_view& lt = m_files.get<1>();
 				lru_view::iterator i = lt.begin();
 				// the first entry in this view is the least recently used
-				assert(lt.size() == 1 || boost::next(i)->last_use > i->last_use);
+/*				for (lru_view::iterator i = lt.begin(); i != lt.end(); ++i)
+				{
+					std::cerr << i->last_use << "\n";
+				}
+*/				assert(lt.size() == 1 || (i->last_use <= boost::next(i)->last_use));
 				lt.erase(i);
 			}
 			file_entry e(boost::shared_ptr<file>(new file(p, m)));
@@ -334,7 +338,7 @@ namespace libtorrent
 		static file_pool files;
 	};
 
-	file_pool storage::impl::files(100);
+	file_pool storage::impl::files(40);
 
 	storage::storage(const torrent_info& info, const path& path)
 		: m_pimpl(new impl(info, path))
