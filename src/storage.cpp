@@ -146,6 +146,8 @@ namespace
 				{
 					// close the file before we open it with
 					// the new read/write privilages
+					i->file_ptr.reset();
+					assert(e.file_ptr.unique());
 					e.file_ptr.reset();
 					e.file_ptr.reset(new file(p, m));
 					e.mode = m;
