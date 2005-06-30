@@ -189,7 +189,21 @@ namespace
 			upper_key.info_hash[19] += 1;
 			std::pair<path_view::iterator, path_view::iterator> r
 				= pt.range(!(_1 < lower_key), _1 < upper_key);
+/*
+			std::cerr << "releasing files!\n";
+			for (path_view::iterator i = r.first; i != r.second; ++i)
+			{
+				std::cerr << i->key.file_path.native_file_string() << "\n";
+			}
+*/
 			pt.erase(r.first, r.second);
+/*
+			std::cerr << "files left: " << pt.size() << "\n";
+			for (path_view::iterator i = pt.begin(); i != pt.end(); ++i)
+			{
+				std::cerr << i->key.file_path.native_file_string() << "\n";
+			}
+*/
 		}
 
 	private:
@@ -211,14 +225,12 @@ namespace libtorrent
 {
 
 	std::vector<std::pair<size_type, std::time_t> > get_filesizes(
-		const torrent_info& t
-		, path p)
+		const torrent_info& t, path p)
 	{
 		p = complete(p);
 		std::vector<std::pair<size_type, std::time_t> > sizes;
 		for (torrent_info::file_iterator i = t.begin_files();
-			i != t.end_files();
-			++i)
+			i != t.end_files(); ++i)
 		{
 			size_type size = 0;
 			std::time_t time = 0;
@@ -332,6 +344,11 @@ namespace libtorrent
 			, info(x.info)
 			, save_path(x.save_path)
 		{}
+
+		~impl()
+		{
+			files.release(info.info_hash());
+		}
 
 		torrent_info const& info;
 		path save_path;
