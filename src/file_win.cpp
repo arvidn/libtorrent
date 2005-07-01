@@ -61,9 +61,10 @@ namespace
 		libtorrent::utf8_wchar(s, ws);
 		std::size_t size = wcstombs(0, ws.c_str(), 0);
 		if (size == std::size_t(-1)) return s;
-		std::string ret(size + 1);
+		std::string ret;
+		ret.resize(size);
 		size = wcstombs(&ret[0], ws.c_str(), size + 1);
-		ret.resize(size - 1);
+		ret.resize(size);
 		return ret;
 	}
 	
