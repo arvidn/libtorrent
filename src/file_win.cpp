@@ -55,20 +55,32 @@ namespace
 		HLOCAL m_memory;
 	};
 
+	std::string utf8_native(std::string const& s)
+	{
+		std::wstring ws;
+		libtorrent::utf8_wchar(s, ws);
+		std::size_t size = wcstombs(0, ws.c_str(), 0);
+		if (size == std::size_t(-1)) return s;
+		std::string ret(size + 1);
+		size = wcstombs(&ret[0], ws.c_str(), size + 1);
+		ret.resize(size - 1);
+		return ret;
+	}
+	
 	void throw_exception(const char* thrower)
 	{
-		int err = GetLastError();
+		DWORD err = GetLastError();
 
 #ifdef UNICODE
 		wchar_t *wbuffer = 0;
 		FormatMessage(
 			FORMAT_MESSAGE_FROM_SYSTEM
 			|FORMAT_MESSAGE_ALLOCATE_BUFFER
-			, 0, err, 0, (LPWCSTR)&wbuffer, 0, 0);
+			, 0, err, 0, (LPWSTR)&wbuffer, 0, 0);
 		auto_localfree auto_free(wbuffer);
 		std::string tmp_utf8;
-		wchar_utf8(wbuffer, tmp_utf8);
-		char* buffer = tmp_utf8.c_str();
+		libtorrent::wchar_utf8(wbuffer, tmp_utf8);
+		char const* buffer = tmp_utf8.c_str();
 #else
 		char* buffer = 0;
 		FormatMessage(
@@ -133,7 +145,7 @@ namespace libtorrent
 				, 0);
 		#else
 			HANDLE new_handle = CreateFile(
-				file_name
+				utf8_native(file_name).c_str()
 				, access_mask
 				, FILE_SHARE_READ
 				, 0
