@@ -150,7 +150,11 @@ namespace libtorrent
 		void filter_pieces(std::vector<bool> const& bitmask);
 		bool is_piece_filtered(int index) const;
 		void filtered_pieces(std::vector<bool>& bitmask) const;
-		
+	
+		//idea from Arvid and MooPolice
+		//todo refactoring and improving the function body
+		void filter_file(int index, bool filter);
+
 		torrent_status status() const;
 
 		void use_interface(const char* net_interface);
