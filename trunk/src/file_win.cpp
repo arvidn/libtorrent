@@ -55,17 +55,46 @@ namespace
 		HLOCAL m_memory;
 	};
 
+
+	std::wstring safe_convert(std::string const& s)
+	{
+		try
+		{
+			return libtorrent::utf8_wchar(s);
+		}
+		catch (std::exception)
+		{
+			std::wstring ret;
+			for (const char* i = &*s.begin(); i < &*s.end(); ++i)
+			{
+				wchar_t c;
+				c = '.';
+				std::mbtowc(&c, i, 1);
+				ret += c;
+			}
+			return ret;
+		}
+	}
+
+	
 	std::string utf8_native(std::string const& s)
 	{
-		std::wstring ws;
-		libtorrent::utf8_wchar(s, ws);
-		std::size_t size = wcstombs(0, ws.c_str(), 0);
-		if (size == std::size_t(-1)) return s;
-		std::string ret;
-		ret.resize(size);
-		size = wcstombs(&ret[0], ws.c_str(), size + 1);
-		ret.resize(size-1);
-		return ret;
+		try
+		{
+			std::wstring ws;
+			libtorrent::utf8_wchar(s, ws);
+			std::size_t size = wcstombs(0, ws.c_str(), 0);
+			if (size == std::size_t(-1)) return s;
+			std::string ret;
+			ret.resize(size);
+			size = wcstombs(&ret[0], ws.c_str(), size + 1);
+			ret.resize(size-1);
+			return ret;
+		}
+		catch(std::exception)
+		{
+			return s;
+		}
 	}
 	
 	void throw_exception(const char* thrower)
@@ -135,7 +164,7 @@ namespace libtorrent
 			assert(access_mask & (GENERIC_READ | GENERIC_WRITE));
 
 		#ifdef UNICODE
-			std::wstring wfile_name(utf8_wchar(file_name));
+			std::wstring wfile_name(safe_convert(file_name));
 			HANDLE new_handle = CreateFile(
 				(LPCWSTR)wfile_name.c_str()
 				, access_mask
