@@ -211,7 +211,7 @@ on how to do this <a class="reference" href="http://sourceforge.net/cvs/?group_i
 correctly by setting the environment variable <tt class="docutils literal"><span class="pre">BOOST_BUILD_PATH</span></tt> to point to your boost build
 installation. Also you have to modify the <tt class="docutils literal"><span class="pre">user_config.jam</span></tt> to reflect the toolsets you have installed.
 (if you're building with gcc, uncomment the line &quot;using gcc ;&quot;)</p>
-<p>You also need to install <a class="reference" href="http://sourceforge.net/project/showfiles.php?group_id=7586&amp;package_id=8041&amp;release_id=284047">boost</a> (at least version 1.31.0).</p>
+<p>You also need to install <a class="reference" href="http://sourceforge.net/project/showfiles.php?group_id=7586&amp;package_id=8041&amp;release_id=284047">boost</a> (at least version 1.32.0).</p>
 <p>Before you invoke <tt class="docutils literal"><span class="pre">bjam</span></tt> you have to set the environment variable <tt class="docutils literal"><span class="pre">BOOST_ROOT</span></tt> to the
 path where you installed boost. This will be used to build and link against the required
 boost libraries as well as be used as include path for boost headers.</p>
@@ -228,9 +228,7 @@ abstraction. There's one <tt class="docutils literal"><span class="pre">file_win
 files larger than 2 Gigabytes. This does not work in vc6 for some reason, possibly because
 it may require windows NT and above. The other file, <tt class="docutils literal"><span class="pre">file.cpp</span></tt> is the default
 implementation that simply relies on the standard low level io routines (read, write etc.),
-this is the preferred implementation that should be used in all cases. The <tt class="docutils literal"><span class="pre">file_win.cpp</span></tt>
-have had some problems with failing seeks (I don't know why), so I advise everyone to use
-the other file.</p>
+this is the preferred implementation that should be used in all cases.</p>
 <div class="section" id="cygwin-and-msvc">
 <h2><a name="cygwin-and-msvc">cygwin and msvc</a></h2>
 <p>Note that if you're building on windows using the <tt class="docutils literal"><span class="pre">msvc</span></tt> toolset, you cannot run it

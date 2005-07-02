@@ -95,7 +95,7 @@ installation. Also you have to modify the ``user_config.jam`` to reflect the too
 
 .. _`boost-build`: http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=80982&release_id=278763
 
-You also need to install boost__ (at least version 1.31.0).
+You also need to install boost__ (at least version 1.32.0).
 
 __ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&release_id=284047
 
@@ -121,9 +121,7 @@ abstraction. There's one ``file_win.cpp`` which relies on windows file API that 
 files larger than 2 Gigabytes. This does not work in vc6 for some reason, possibly because
 it may require windows NT and above. The other file, ``file.cpp`` is the default
 implementation that simply relies on the standard low level io routines (read, write etc.),
-this is the preferred implementation that should be used in all cases. The ``file_win.cpp``
-have had some problems with failing seeks (I don't know why), so I advise everyone to use
-the other file.
+this is the preferred implementation that should be used in all cases.
 
 
 cygwin and msvc
