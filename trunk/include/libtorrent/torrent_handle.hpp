@@ -230,7 +230,11 @@ namespace libtorrent
 		void filter_pieces(std::vector<bool> const& pieces);
 		bool is_piece_filtered(int index) const;
 		std::vector<bool> filtered_pieces() const;
-		
+
+		//idea from Arvid and MooPolice
+		//todo refactoring and improving the function body
+		void filter_file(int index, bool filter);
+
 		// set the interface to bind outgoing connections
 		// to.
 		void use_interface(const char* net_interface);

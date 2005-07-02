@@ -113,7 +113,7 @@ namespace libtorrent
 		{ assert(m_piece_length > 0); return (int)m_files.size(); }
 		const file_entry& file_at(int index) const
 		{ assert(index >= 0 && index < (int)m_files.size()); return m_files[index]; }
-
+		
 		const std::vector<announce_entry>& trackers() const { return m_urls; }
 
 		size_type total_size() const { assert(m_piece_length > 0); return m_total_size; }
