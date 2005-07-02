@@ -632,6 +632,29 @@ namespace libtorrent
 		m_picker->filtered_pieces(bitmask);
 	}
 
+	//idea from Arvid and MooPolice
+	//todo refactoring and improving the function body
+	void torrent::filter_file(int index, bool filter)
+	{
+		__int64 start_position = 0;
+		int start_piece_index = 0;
+		int end_piece_index = 0;
+
+		for(int i=0;i<index;i++)
+		{
+			start_position += m_torrent_file.file_at(i).size;
+		}
+		start_position = start_position+1;
+
+		start_piece_index = start_position/(m_torrent_file.piece_length());
+		end_piece_index = start_piece_index + m_torrent_file.file_at(index).size/(m_torrent_file.piece_length());
+
+		for(int filter_piece_index= start_piece_index;filter_piece_index<end_piece_index;filter_piece_index++)
+		{
+			filter_piece(filter_piece_index, filter);
+		}
+	}
+
 	void torrent::replace_trackers(std::vector<announce_entry> const& urls)
 	{
 		assert(!urls.empty());
