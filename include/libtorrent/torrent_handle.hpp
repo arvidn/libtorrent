@@ -233,7 +233,10 @@ namespace libtorrent
 
 		//idea from Arvid and MooPolice
 		//todo refactoring and improving the function body
+		// marks the file with the given index as filtered
+		// it will not be downloaded
 		void filter_file(int index, bool filter);
+		void filter_files(std::vector<bool> const& files);
 
 		// set the interface to bind outgoing connections
 		// to.
