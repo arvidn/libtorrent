@@ -286,13 +286,18 @@ namespace libtorrent
 		return ret;
 	}
 
-	//idea from Arvid and MooPolice
-	//todo refactoring and improving the function body
 	void torrent_handle::filter_file(int index, bool filter)
 	{
 		INVARIANT_CHECK;
 		call_member<void>(m_ses, m_chk, m_info_hash
 			, bind(&torrent::filter_file, _1, index, filter));
+	}
+
+	void torrent_handle::filter_files(std::vector<bool> const& files)
+	{
+		INVARIANT_CHECK;
+		call_member<void>(m_ses, m_chk, m_info_hash
+			, bind(&torrent::filter_files, _1, files));
 	}
 
 	std::vector<announce_entry> const& torrent_handle::trackers() const

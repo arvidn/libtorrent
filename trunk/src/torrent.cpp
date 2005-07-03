@@ -655,6 +655,45 @@ namespace libtorrent
 		}
 	}
 
+	void torrent::filter_files(std::vector<bool> const& bitmask)
+	{
+		// this call is only valid on torrents with metadata
+		if (!valid_metadata()) return;
+        try
+        {
+            __int64 position = 0, start, piece_length;
+            int start_piece, end_piece;
+
+            if (m_torrent_file.num_pieces())
+            {
+				piece_length = m_torrent_file.piece_length();
+                std::vector<bool> vector_filter_files(m_torrent_file.num_pieces(), false);
+				for (int i=0;i<bitmask.size();i++)
+                {
+					start = position;
+                    position += m_torrent_file.file_at(i).size;
+                    // is the file selected for undownload?
+					if (true == bitmask[i])
+                    {           
+						// mark all pieces of the file as filtered
+                        start_piece = (int)(start / piece_length);
+                        end_piece = (int)(position / piece_length);
+                        // if one piece spawns several files, we might
+                        // come here several times with the same start_piece, end_piece
+                        for (int index = start_piece;index<=end_piece;index++)
+                        {
+							vector_filter_files[index] = true;
+                        }
+	                }
+                }
+                filter_pieces(vector_filter_files);
+            }
+        }
+        catch (...)
+        {
+        }
+	}
+
 	void torrent::replace_trackers(std::vector<announce_entry> const& urls)
 	{
 		assert(!urls.empty());
