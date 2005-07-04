@@ -632,81 +632,70 @@ namespace libtorrent
 		m_picker->filtered_pieces(bitmask);
 	}
 
-	//suggest using this function on filter single file after the downloading progress
-	//that is after called filter_files function
-	//or tmp to change a single file filter policy
+	//idea from Arvid and MooPolice
+	//todo refactoring and improving the function body
 	void torrent::filter_file(int index, bool filter)
 	{
 		// this call is only valid on torrents with metadata
 		if (!valid_metadata()) return;
-        try
-        {
-            __int64 position = 0, start, piece_length;
-            int start_piece, end_piece;
 
-            if (0 < m_torrent_file.num_pieces())
-            {
-				piece_length = m_torrent_file.piece_length();
+		assert(index < m_torrent_file.num_files());
+		assert(index >= 0);
 
-				for (int i = 0;i < index;++i)
-                {
-					start = position;
-                    position += m_torrent_file.file_at(i).size;
-				}
+		entry::integer_type start_position = 0;
+		int start_piece_index = 0;
+		int end_piece_index = 0;
 
-                start_piece = (int)(start / piece_length);
-                end_piece = (int)(position / piece_length);
+		// TODO: just skipping the first and last piece is not a good idea.
+		// they should only be skipped if there are files that are wanted
+		// that span those pieces. Maybe this function should be removed.
+		for (int i = 0; i < index; ++i)
+			start_position += m_torrent_file.file_at(i).size;
 
-				for (int filter_index = start_piece;filter_index <= end_piece;++filter_index)
-                {
-					filter_piece(filter_index, filter);
-                }
-            }
-        }
-        catch (...)
-        {
-        }
+		start_position = start_position + 1;
+
+		start_piece_index = start_position / m_torrent_file.piece_length();
+		end_piece_index = start_piece_index + m_torrent_file.file_at(index).size/(m_torrent_file.piece_length());
+
+		for(int i = start_piece_index; i < end_piece_index; ++i)
+			filter_piece(i, filter);
 	}
 
-	//suggest using this function on filter all files of a torrent file
-	//suggest using this functon as the global static filter policy of a torrent file
 	void torrent::filter_files(std::vector<bool> const& bitmask)
 	{
 		// this call is only valid on torrents with metadata
 		if (!valid_metadata()) return;
-        try
-        {
-            __int64 position = 0, start, piece_length;
-            int start_piece, end_piece;
 
-            if (0 < m_torrent_file.num_pieces())
-            {
-				piece_length = m_torrent_file.piece_length();
-                std::vector<bool> vector_filter_files(m_torrent_file.num_pieces(), false);
-				for (int i=0;i<bitmask.size();i++)
-                {
-					start = position;
-                    position += m_torrent_file.file_at(i).size;
-                    // is the file selected for undownload?
-					if (true == bitmask[i])
-                    {           
-						// mark all pieces of the file as filtered
-                        start_piece = (int)(start / piece_length);
-                        end_piece = (int)(position / piece_length);
-                        // if one piece spawns several files, we might
-                        // come here several times with the same start_piece, end_piece
-                        for (int index = start_piece;index<=end_piece;index++)
-                        {
-							vector_filter_files[index] = true;
-                        }
-	                }
-                }
-                filter_pieces(vector_filter_files);
-            }
-        }
-        catch (...)
-        {
-        }
+		try
+		{
+			entry::integer_type position = 0;
+
+			if (m_torrent_file.num_pieces())
+			{
+				int piece_length = m_torrent_file.piece_length();
+				// mark all pieces as filtered, then clear the bits for files
+				// that should be downloaded
+				std::vector<bool> piece_filter(m_torrent_file.num_pieces(), true);
+				for (int i = 0; i < bitmask.size(); ++i)
+				{
+					entry::integer_type start = position;
+					position += m_torrent_file.file_at(i).size;
+					// is the file selected for download?
+					if (!bitmask[i])
+					{           
+						// mark all pieces of the file as downloadable
+						int start_piece = int(start / piece_length);
+						int last_piece = int(position / piece_length);
+						// if one piece spans several files, we might
+						// come here several times with the same start_piece, end_piece
+						std::fill(piece_filter.begin() + start_piece, piece_filter.begin()
+							+ last_piece + 1, false);
+					}
+				}
+				filter_pieces(piece_filter);
+			}
+		}
+		catch (std::exception) {}
 	}
 
 	void torrent::replace_trackers(std::vector<announce_entry> const& urls)

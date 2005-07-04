@@ -500,8 +500,7 @@ namespace libtorrent { namespace detail
 
 			// let the readable clients receive data
 			for (std::vector<boost::shared_ptr<socket> >::iterator i = readable_clients.begin();
-				i != readable_clients.end();
-				++i)
+				i != readable_clients.end(); ++i)
 			{
 				// special case for m_listen_socket socket
 				if (*i == m_listen_socket)
