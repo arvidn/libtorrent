@@ -666,36 +666,36 @@ namespace libtorrent
 		// this call is only valid on torrents with metadata
 		if (!valid_metadata()) return;
 
-		try
-		{
-			entry::integer_type position = 0;
+		// the bitmask need to have exactly one bit for every file
+		// in the torrent
+		assert(bitmask.size() == m_torrent_file.num_files());
+		
+		entry::integer_type position = 0;
 
-			if (m_torrent_file.num_pieces())
+		if (m_torrent_file.num_pieces())
+		{
+			int piece_length = m_torrent_file.piece_length();
+			// mark all pieces as filtered, then clear the bits for files
+			// that should be downloaded
+			std::vector<bool> piece_filter(m_torrent_file.num_pieces(), true);
+			for (int i = 0; i < bitmask.size(); ++i)
 			{
-				int piece_length = m_torrent_file.piece_length();
-				// mark all pieces as filtered, then clear the bits for files
-				// that should be downloaded
-				std::vector<bool> piece_filter(m_torrent_file.num_pieces(), true);
-				for (int i = 0; i < bitmask.size(); ++i)
-				{
-					entry::integer_type start = position;
-					position += m_torrent_file.file_at(i).size;
-					// is the file selected for download?
-					if (!bitmask[i])
-					{           
-						// mark all pieces of the file as downloadable
-						int start_piece = int(start / piece_length);
-						int last_piece = int(position / piece_length);
-						// if one piece spans several files, we might
-						// come here several times with the same start_piece, end_piece
-						std::fill(piece_filter.begin() + start_piece, piece_filter.begin()
-							+ last_piece + 1, false);
-					}
+				entry::integer_type start = position;
+				position += m_torrent_file.file_at(i).size;
+				// is the file selected for download?
+				if (!bitmask[i])
+				{           
+					// mark all pieces of the file as downloadable
+					int start_piece = int(start / piece_length);
+					int last_piece = int(position / piece_length);
+					// if one piece spans several files, we might
+					// come here several times with the same start_piece, end_piece
+					std::fill(piece_filter.begin() + start_piece, piece_filter.begin()
+						+ last_piece + 1, false);
 				}
-				filter_pieces(piece_filter);
 			}
+			filter_pieces(piece_filter);
 		}
-		catch (std::exception) {}
 	}
 
 	void torrent::replace_trackers(std::vector<announce_entry> const& urls)
