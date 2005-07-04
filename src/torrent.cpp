@@ -632,29 +632,44 @@ namespace libtorrent
 		m_picker->filtered_pieces(bitmask);
 	}
 
-	//idea from Arvid and MooPolice
-	//todo refactoring and improving the function body
+	//suggest using this function on filter single file after the downloading progress
+	//that is after called filter_files function
+	//or tmp to change a single file filter policy
 	void torrent::filter_file(int index, bool filter)
 	{
-		__int64 start_position = 0;
-		int start_piece_index = 0;
-		int end_piece_index = 0;
+		// this call is only valid on torrents with metadata
+		if (!valid_metadata()) return;
+        try
+        {
+            __int64 position = 0, start, piece_length;
+            int start_piece, end_piece;
 
-		for(int i=0;i<index;i++)
-		{
-			start_position += m_torrent_file.file_at(i).size;
-		}
-		start_position = start_position+1;
+            if (0 < m_torrent_file.num_pieces())
+            {
+				piece_length = m_torrent_file.piece_length();
 
-		start_piece_index = start_position/(m_torrent_file.piece_length());
-		end_piece_index = start_piece_index + m_torrent_file.file_at(index).size/(m_torrent_file.piece_length());
+				for (int i = 0;i < index;++i)
+                {
+					start = position;
+                    position += m_torrent_file.file_at(i).size;
+				}
 
-		for(int filter_piece_index= start_piece_index;filter_piece_index<end_piece_index;filter_piece_index++)
-		{
-			filter_piece(filter_piece_index, filter);
-		}
+                start_piece = (int)(start / piece_length);
+                end_piece = (int)(position / piece_length);
+
+				for (int filter_index = start_piece;filter_index <= end_piece;++filter_index)
+                {
+					filter_piece(filter_index, filter);
+                }
+            }
+        }
+        catch (...)
+        {
+        }
 	}
 
+	//suggest using this function on filter all files of a torrent file
+	//suggest using this functon as the global static filter policy of a torrent file
 	void torrent::filter_files(std::vector<bool> const& bitmask)
 	{
 		// this call is only valid on torrents with metadata
@@ -664,7 +679,7 @@ namespace libtorrent
             __int64 position = 0, start, piece_length;
             int start_piece, end_piece;
 
-            if (m_torrent_file.num_pieces())
+            if (0 < m_torrent_file.num_pieces())
             {
 				piece_length = m_torrent_file.piece_length();
                 std::vector<bool> vector_filter_files(m_torrent_file.num_pieces(), false);
