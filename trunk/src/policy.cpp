@@ -65,7 +65,7 @@ namespace
 	enum
 	{
 		// the limits of the download queue size
-		max_request_queue = 100,
+		max_request_queue = 48,
 		min_request_queue = 2,
 
 		// the amount of free upload allowed before
@@ -90,7 +90,7 @@ namespace
 		const int queue_time = 5; // seconds
 		// (if the latency is more than this, the download will stall)
 		// so, the queue size is 5 * down_rate / 16 kiB (16 kB is the size of each request)
-		// the minimum request size is 2 and the maximum is 100
+		// the minimum request size is 2 and the maximum is 48
 
 		int desired_queue_size = static_cast<int>(queue_time * c.statistics().download_rate() / (16 * 1024));
 		if (desired_queue_size > max_request_queue) desired_queue_size = max_request_queue;
