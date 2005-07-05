@@ -632,8 +632,9 @@ namespace libtorrent
 		m_picker->filtered_pieces(bitmask);
 	}
 
-	//idea from Arvid and MooPolice
-	//todo refactoring and improving the function body
+	//suggest using this function on single file in a torrent file
+	//suggest using this function after filter_files() function
+	//or change selective download policy casually during downloading progress
 	void torrent::filter_file(int index, bool filter)
 	{
 		// this call is only valid on torrents with metadata
@@ -641,26 +642,32 @@ namespace libtorrent
 
 		assert(index < m_torrent_file.num_files());
 		assert(index >= 0);
+		
+		entry::integer_type position = 0;
 
-		entry::integer_type start_position = 0;
-		int start_piece_index = 0;
-		int end_piece_index = 0;
+		if (m_torrent_file.num_pieces())
+		{
+			int piece_length = m_torrent_file.piece_length();
+			entry::integer_type start = position;
 
-		// TODO: just skipping the first and last piece is not a good idea.
-		// they should only be skipped if there are files that are wanted
-		// that span those pieces. Maybe this function should be removed.
-		for (int i = 0; i < index; ++i)
-			start_position += m_torrent_file.file_at(i).size;
-
-		start_position = start_position + 1;
-
-		start_piece_index = start_position / m_torrent_file.piece_length();
-		end_piece_index = start_piece_index + m_torrent_file.file_at(index).size/(m_torrent_file.piece_length());
-
-		for(int i = start_piece_index; i < end_piece_index; ++i)
-			filter_piece(i, filter);
+			for (int i = 0; i < index; ++i)
+			{
+				start = position;
+				position += m_torrent_file.file_at(i).size;
+			}
+			int start_piece = int(start / piece_length);
+			int last_piece = int(position / piece_length);
+			
+			for (int filter_index = start_piece ; filter_index < last_piece ; ++filter_index)
+			{
+				 filter_piece(filter_index, filter);
+			}
+		}
 	}
 
+	//suggest using this function on a torrent file.
+	//suggest using this function as a static globle selective download policy 
+	//"before" downloading progress
 	void torrent::filter_files(std::vector<bool> const& bitmask)
 	{
 		// this call is only valid on torrents with metadata
