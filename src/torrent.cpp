@@ -640,8 +640,8 @@ namespace libtorrent
 		// this call is only valid on torrents with metadata
 		if (!valid_metadata()) return;
 
-		assert(index < m_torrent_file.num_files());
 		assert(index >= 0);
+		assert(index < m_torrent_file.num_files());
 		
 		entry::integer_type position = 0;
 
