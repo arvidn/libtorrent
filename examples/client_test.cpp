@@ -507,64 +507,72 @@ int main(int argc, char* argv[])
 				out << "\n";
 				torrent_status s = i->status();
 
-				switch(s.state)
+				if (s.state != torrent_status::seeding)
 				{
-					case torrent_status::queued_for_checking:
-						out << "queued ";
-						break;
-					case torrent_status::checking_files:
-						out << "checking ";
-						break;
-					case torrent_status::connecting_to_tracker:
-						out << "connecting to tracker ";
-						break;
-					case torrent_status::downloading_metadata:
-						out << "downloading metadata ";
-						break;
-					case torrent_status::downloading:
-						out << "downloading ";
-						break;
-					case torrent_status::finished:
-						out << "finished ";
-						break;
-					case torrent_status::seeding:
-						out << "seeding ";
-						break;
-				};
-
+					switch(s.state)
+					{
+						case torrent_status::queued_for_checking:
+							out << "queued ";
+							break;
+						case torrent_status::checking_files:
+							out << "checking ";
+							break;
+						case torrent_status::connecting_to_tracker:
+							out << "connecting to tracker ";
+							break;
+						case torrent_status::downloading_metadata:
+							out << "downloading metadata ";
+							break;
+						case torrent_status::downloading:
+							out << "downloading ";
+							break;
+						case torrent_status::finished:
+							out << "finished ";
+							break;
+						case torrent_status::seeding:
+							out << "seeding ";
+							break;
+					};
+				}
 
 				i->get_peer_info(peers);
 
-				out.precision(4);
-				out.width(5);
-				out.fill(' ');
-				out << (s.progress*100) << "% ";
-				out << progress_bar(s.progress, 49);
-				out << "\n";
-				out << "total downloaded: " << s.total_done << " Bytes\n";
-				out	<< "peers: " << s.num_peers << " "
-				    << "seeds: " << s.num_seeds << " "
-				    << "distributed copies: " << s.distributed_copies << "\n";
+				if (s.state != torrent_status::seeding)
+				{
+					out.precision(4);
+					out.width(5);
+					out.fill(' ');
+					out << (s.progress*100) << "% ";
+					out << progress_bar(s.progress, 49);
+					out << "\n";
+					out << "total downloaded: " << s.total_done << " Bytes\n";
+					out	<< "peers: " << s.num_peers << " "
+						<< "seeds: " << s.num_seeds << " "
+						<< "distributed copies: " << s.distributed_copies << "\n";
+				}
 				out << "download: " << add_suffix(s.download_rate) << "/s "
 					<< "(" << add_suffix(s.total_download) << ") "
 					<< "upload: " << add_suffix(s.upload_rate) << "/s "
 					<< "(" << add_suffix(s.total_upload) << ") "
 					<< "ratio: " << ratio(s.total_payload_download, s.total_payload_upload) << "\n";
-				out << "info-hash: " << i->info_hash() << "\n";
+				if (s.state != torrent_status::seeding)
+				{
+					out << "info-hash: " << i->info_hash() << "\n";
 
-				boost::posix_time::time_duration t = s.next_announce;
-				out << "next announce: " << boost::posix_time::to_simple_string(t) << "\n";
-				out << "tracker: " << s.current_tracker << "\n";
+					boost::posix_time::time_duration t = s.next_announce;
+					out << "next announce: " << boost::posix_time::to_simple_string(t) << "\n";
+					out << "tracker: " << s.current_tracker << "\n";
+				}
 
 				out << "___________________________________\n";
 
-				if (print_peers)
+				if (print_peers && !peers.empty())
 				{
 					print_peer_info(out, peers);
 					out << "___________________________________\n";
 				}
 
-				if (print_downloads)
+				if (print_downloads && s.state != torrent_status::seeding)
 				{
 					i->get_download_queue(queue);
 					for (std::vector<partial_piece_info>::iterator i = queue.begin();
