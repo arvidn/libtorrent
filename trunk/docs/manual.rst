@@ -1260,7 +1260,7 @@ It contains the following fields::
 			checking_files,
 			connecting_to_tracker,
 			downloading,
-         finished,
+			finished,
 			seeding
 		};
 	
