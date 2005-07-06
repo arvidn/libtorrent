@@ -52,6 +52,7 @@ The current state includes the following features:
 	* supports the ``compact=1`` tracker parameter.
 	* selective downloading. The ability to select which parts of a torrent you
 	  want to download.
+	* ip filter
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
 .. _Azureus: http://azureus.sourceforge.net
@@ -714,7 +715,7 @@ the comment that belongs to this torrent. The comment can be retrieved with the
 ``comment()`` member.
 
 ``set_piece_size()`` will set the size of each piece in this torrent. The piece size must
-be an even multiple of 2. i.e. usually something like 256 kB, 512 kB, 1024 kB etc. The
+be an even multiple of 2. i.e. usually something like 256 kiB, 512 kiB, 1024 kiB etc. The
 size is given in number of bytes.
 
 ``set_creator()`` is an optional attribute that can be used to identify your application
@@ -2482,7 +2483,8 @@ Shows how to create a torrent from a directory tree::
 
 		if (argc != 4)
 		{
-			std::cerr << "usage: make_torrent <output torrent-file> <announce url> <file or directory to create torrent from>\n";
+			std::cerr << "usage: make_torrent <output torrent-file> <announce url> "
+				"<file or directory to create torrent from>\n";
 			return 1;
 		}
 

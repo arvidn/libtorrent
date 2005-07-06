@@ -125,7 +125,7 @@ namespace libtorrent
 
 		address m_tracker_address;
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		virtual void debug_log(const std::string& line) = 0;
 #endif
 	private:

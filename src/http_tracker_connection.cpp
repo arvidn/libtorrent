@@ -215,7 +215,7 @@ namespace libtorrent
 			m_send_buffer += base64encode(auth);
 		}
 		m_send_buffer += "\r\n\r\n";
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (has_requester())
 		{
 			requester().debug_log("==> TRACKER_REQUEST [ str: " + m_send_buffer + " ]");
@@ -231,7 +231,7 @@ namespace libtorrent
 	// the connections list.
 	bool http_tracker_connection::tick()
 	{
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		try
 		{
 #endif
@@ -246,7 +246,7 @@ namespace libtorrent
 			return true;
 		}
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (has_requester()) requester().debug_log("tracker connection tick");
 #endif
 
@@ -287,7 +287,7 @@ namespace libtorrent
 		if (!m_socket->is_readable()) return false;
 		m_request_time = second_clock::universal_time();
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (has_requester()) requester().debug_log("tracker connection socket readable");
 #endif
 
@@ -316,7 +316,7 @@ namespace libtorrent
 
 		if (received > 0) m_recv_pos += received;
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (has_requester()) requester().debug_log("received: " + boost::lexical_cast<std::string>(m_recv_pos));
 #endif
 
@@ -337,7 +337,7 @@ namespace libtorrent
 			// if we don't have a full line yet, wait.
 			if (newline == end) return false;
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			if (has_requester()) requester().debug_log(std::string(m_buffer.begin(), newline));
 #endif
 
@@ -379,7 +379,7 @@ namespace libtorrent
 			{
 				line.assign(m_buffer.begin(), newline);
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 				if (has_requester()) requester().debug_log(line);
 #endif
 
@@ -447,7 +447,7 @@ namespace libtorrent
 				else if (line.size() < 3)
 				{
 					m_state = read_body;
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 					if (has_requester()) requester().debug_log("end of http header");
 #endif
 					if (m_code >= 300 && m_code < 400)
@@ -463,7 +463,7 @@ namespace libtorrent
 							return true;
 						}
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 						if (has_requester()) requester().debug_log("Redirecting to \"" + m_location + "\"");
 #endif
 						std::string::size_type i = m_location.find('?');
@@ -529,7 +529,7 @@ namespace libtorrent
 		}
 
 		return false;
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		}
 		catch (std::exception&)
 		{

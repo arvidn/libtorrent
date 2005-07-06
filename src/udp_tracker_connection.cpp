@@ -256,7 +256,7 @@ namespace libtorrent
 
 		if (len < 8)
 		{
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			if (has_requester())
 				requester().debug_log("udp_tracker_connection: "
 				"got a message with size < 8, ignoring");
@@ -282,7 +282,7 @@ namespace libtorrent
 
 		if (len < 20)
 		{
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			if (has_requester())
 				requester().debug_log("udp_tracker_connection: "
 				"got a message with size < 20, ignoring");
@@ -330,7 +330,7 @@ namespace libtorrent
 
 		if (len < 8)
 		{
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			if (has_requester())
 				requester().debug_log("udp_tracker_connection: "
 				"got a message with size < 8, ignoring");
@@ -356,7 +356,7 @@ namespace libtorrent
 
 		if (len < 20)
 		{
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			if (has_requester())
 				requester().debug_log("udp_tracker_connection: "
 				"got a message with size < 20, ignoring");
@@ -383,7 +383,7 @@ namespace libtorrent
 
 		if (len < 8)
 		{
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			if (has_requester())
 				requester().debug_log("udp_tracker_connection: "
 				"got a message with size < 8, ignoring");
@@ -404,7 +404,7 @@ namespace libtorrent
 		if (action != connect) return false;
 		if (m_transaction_id != transaction)
 		{
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			if (has_requester())
 				requester().debug_log("udp_tracker_connection: "
 				"got a message with incorrect transaction id, ignoring");
@@ -414,7 +414,7 @@ namespace libtorrent
 
 		if (len < 16)
 		{
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			if (has_requester())
 				requester().debug_log("udp_tracker_connection: "
 				"got a connection message size < 16, ignoring");
