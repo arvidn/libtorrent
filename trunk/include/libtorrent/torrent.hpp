@@ -64,7 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 	struct logger;
 #endif
 
@@ -345,7 +345,7 @@ namespace libtorrent
 		torrent_handle get_handle() const;
 
 		// LOGGING
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		logger* spawn_logger(const char* title);
 
 		virtual void debug_log(const std::string& line);

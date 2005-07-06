@@ -191,6 +191,7 @@ means it can resume a torrent downloaded by any client.</li>
 <li>supports the <tt class="docutils literal"><span class="pre">compact=1</span></tt> tracker parameter.</li>
 <li>selective downloading. The ability to select which parts of a torrent you
 want to download.</li>
+<li>ip filter</li>
 </ul>
 </blockquote>
 <p>libtorrent is portable at least among Windows, MacOSX and other UNIX-systems. It uses Boost.Thread,
@@ -813,7 +814,7 @@ void add_file(boost::filesystem::path file, size_type size);
 the comment that belongs to this torrent. The comment can be retrieved with the
 <tt class="docutils literal"><span class="pre">comment()</span></tt> member.</p>
 <p><tt class="docutils literal"><span class="pre">set_piece_size()</span></tt> will set the size of each piece in this torrent. The piece size must
-be an even multiple of 2. i.e. usually something like 256 kB, 512 kB, 1024 kB etc. The
+be an even multiple of 2. i.e. usually something like 256 kiB, 512 kiB, 1024 kiB etc. The
 size is given in number of bytes.</p>
 <p><tt class="docutils literal"><span class="pre">set_creator()</span></tt> is an optional attribute that can be used to identify your application
 that was used to create the torrent file.</p>
@@ -2420,7 +2421,8 @@ int main(int argc, char* argv[])
 
         if (argc != 4)
         {
-                std::cerr &lt;&lt; &quot;usage: make_torrent &lt;output torrent-file&gt; &lt;announce url&gt; &lt;file or directory to create torrent from&gt;\n&quot;;
+                std::cerr &lt;&lt; &quot;usage: make_torrent &lt;output torrent-file&gt; &lt;announce url&gt; &quot;
+                        &quot;&lt;file or directory to create torrent from&gt;\n&quot;;
                 return 1;
         }
 
