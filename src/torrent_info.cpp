@@ -123,6 +123,7 @@ namespace libtorrent
 	// constructor used for creating new torrents
 	// will not contain any hashes, comments, creation date
 	// just the necessary to use it with piece manager
+	// used for torrents with no metadata
 	torrent_info::torrent_info(sha1_hash const& info_hash)
 		: m_piece_length(256 * 1024)
 		, m_total_size(0)
@@ -440,7 +441,7 @@ namespace libtorrent
 		return info;
 	}
 
-	entry torrent_info::create_torrent() const
+	entry torrent_info::create_torrent()
 	{
 		assert(m_piece_length > 0);
 
@@ -490,8 +491,12 @@ namespace libtorrent
 			dict["created by"] = m_created_by;
 
 		dict["info"] = create_info_metadata();
-
 		dict.sort();
+
+		entry const& info_section = dict["info"];
+		std::vector<char> buf;
+		bencode(std::back_inserter(buf), info_section);
+		m_info_hash = hasher(&buf[0], buf.size()).final();
 
 		return dict;
 	}

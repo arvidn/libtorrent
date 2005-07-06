@@ -68,6 +68,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
+#include "libtorrent/ip_filter.hpp"
 
 #if !defined(NDEBUG) && defined(_MSC_VER)
 #	include <float.h>
@@ -200,6 +201,9 @@ namespace libtorrent
 			// in loops that iterate over them.
 			std::vector<connection_map::iterator> m_disconnect_peer;
 
+			// filters incomming connections
+			ip_filter m_ip_filter;
+			
 			// the peer id that is generated at the start of the session
 			peer_id m_peer_id;
 
@@ -266,7 +270,7 @@ namespace libtorrent
 #ifndef NDEBUG
 			void check_invariant(const char *place = 0);
 #endif
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			boost::shared_ptr<logger> create_log(std::string const& name);
 			boost::shared_ptr<logger> m_logger;
 #endif
@@ -327,6 +331,7 @@ namespace libtorrent
 		void enable_extension(peer_connection::extension_index i);
 		void disable_extensions();
 
+		void set_ip_filter(ip_filter const& f);
 		void set_peer_id(peer_id const& id);
 		void set_key(int key);
 

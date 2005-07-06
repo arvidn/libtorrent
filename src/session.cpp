@@ -68,6 +68,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/allocate_resources.hpp"
 #include "libtorrent/peer_connection.hpp"
+#include "libtorrent/ip_filter.hpp"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 namespace std
@@ -232,7 +233,7 @@ namespace libtorrent { namespace detail
 		, m_max_connections(-1)
 		, m_incoming_connection(false)
 	{
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		m_logger = create_log("main_session");
 #endif
 		std::fill(m_extension_enabled, m_extension_enabled
@@ -303,7 +304,7 @@ namespace libtorrent { namespace detail
 							std::string msg = "cannot listen on the given interface '" + m_listen_interface.as_string() + "'";
 							m_alerts.post_alert(listen_failed_alert(msg));
 						}
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 						std::string msg = "cannot listen on the given interface '" + m_listen_interface.as_string() + "'";
 						(*m_logger) << msg << "\n";
 #endif
@@ -320,7 +321,7 @@ namespace libtorrent { namespace detail
 							<< ", " << m_listen_port_range.second
 							<< "] could be opened for listening";
 						m_alerts.post_alert(listen_failed_alert(msg.str()));
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 						(*m_logger) << msg.str() << "\n";
 #endif
 						m_listen_socket.reset();
@@ -334,7 +335,7 @@ namespace libtorrent { namespace detail
 			m_alerts.post_alert(listen_failed_alert(e.what()));
 		}
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (m_listen_socket)
 		{
 			(*m_logger) << "listening on port: " << m_listen_interface.port << "\n";
@@ -513,7 +514,7 @@ namespace libtorrent { namespace detail
 					}
 					catch(std::exception& e)
 					{
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 						(*m_logger) << "accept failed: " << e.what() << "\n";
 #endif
 					}
@@ -522,10 +523,17 @@ namespace libtorrent { namespace detail
 						s->set_blocking(false);
 						// we got a connection request!
 						m_incoming_connection = true;
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 						(*m_logger) << s->sender().as_string() << " <== INCOMING CONNECTION\n";
 #endif
-						// TODO: filter ip:s
+						if (m_ip_filter.access(s->sender()) & ip_filter::blocked)
+						{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+							(*m_logger) << "filtered blocked ip\n";
+#endif
+							// TODO: issue an info-alert when an ip is blocked
+							continue;
+						}
 
 						boost::shared_ptr<peer_connection> c(
 							new peer_connection(*this, m_selector, s));
@@ -622,7 +630,7 @@ namespace libtorrent { namespace detail
 						std::string msg = "cannot listen on the given interface '" + m_listen_interface.as_string() + "'";
 						m_alerts.post_alert(listen_failed_alert(msg));
 					}
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 					std::string msg = "cannot listen on the given interface '" + m_listen_interface.as_string() + "'";
 					(*m_logger) << msg << "\n";
 #endif
@@ -811,7 +819,7 @@ namespace libtorrent { namespace detail
 		return 0;
 	}
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 	boost::shared_ptr<logger> session_impl::create_log(std::string const& name)
 	{
 		// current options are file_logger, cout_logger and null_logger
@@ -895,6 +903,12 @@ namespace libtorrent
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
 		std::fill(m_impl.m_extension_enabled, m_impl.m_extension_enabled
 			+ peer_connection::num_supported_extensions, false);
+	}
+
+	void session::set_ip_filter(ip_filter const& f)
+	{
+		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		m_impl.m_ip_filter = f;
 	}
 
 	void session::set_peer_id(peer_id const& id)

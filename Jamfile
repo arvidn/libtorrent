@@ -52,6 +52,7 @@ SOURCES =
 	escape_string.cpp
 	file.cpp
 	identify_client.cpp
+	ip_filter.cpp
 	peer_connection.cpp
 	piece_picker.cpp
 	policy.cpp
@@ -93,8 +94,10 @@ LIBS = ;
 		LIBS += wsock32 ;
 	}
 
-variant release_log : release : <define>TORRENT_VERBOSE_LOGGING ;
-variant debug_log : debug : <define>TORRENT_VERBOSE_LOGGING ;
+variant release_vlog : release : <define>TORRENT_VERBOSE_LOGGING ;
+variant release_log : release : <define>TORRENT_LOGGING ;
+variant debug_vlog : debug : <define>TORRENT_VERBOSE_LOGGING ;
+variant debug_log : debug : <define>TORRENT_LOGGING ;
 
 
 lib torrent

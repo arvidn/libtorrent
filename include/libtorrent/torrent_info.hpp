@@ -91,12 +91,12 @@ namespace libtorrent
 		torrent_info(entry const& torrent_file);
 		~torrent_info();
 
-		entry create_torrent() const;
+		entry create_torrent();
 		entry create_info_metadata() const;
 		void set_comment(char const* str);
 		void set_creator(char const* str);
 		void set_piece_size(int size);
-		void set_hash(int index, const sha1_hash& h);
+		void set_hash(int index, sha1_hash const& h);
 		void add_tracker(std::string const& url, int tier = 0);
 		void add_file(boost::filesystem::path file, size_type size);
 

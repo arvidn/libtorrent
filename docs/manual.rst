@@ -159,8 +159,13 @@ debug and release variants respectively, but adds extra logging (``TORRENT_VERBO
 |                                | removed. This option takes precedence over      |
 |                                | other debug settings.                           |
 +--------------------------------+-------------------------------------------------+
+| ``TORRENT_LOGGING``            | This macro will enable logging of the session   |
+|                                | events, such as tracker announces and incoming  |
+|                                | connections (as well as blocked connections).   |
++--------------------------------+-------------------------------------------------+
 | ``TORRENT_VERBOSE_LOGGING``    | If you define this macro, every peer connection |
-|                                | will log its traffic to a log file.             |
+|                                | will log its traffic to a log file as well as   |
+|                                | the session log.                                |
 +--------------------------------+-------------------------------------------------+
 | ``TORRENT_STORAGE_DEBUG``      | This will enable extra expensive invariant      |
 |                                | checks in the storage, including logging of     |
@@ -171,6 +176,14 @@ debug and release variants respectively, but adds extra logging (``TORRENT_VERBO
 If you experience that libtorrent uses unreasonable amounts of cpu, it will definately help to
 define ``NDEBUG``, since it will remove the invariant checks within the library.
 
+The ``Jamfile`` has the following build variants:
+
+ * ``release`` - release version without any logging
+ * ``release_log`` - release version with standard logging
+ * ``release_vlog`` - release version with verbose logging (all peer connections are logged)
+ * ``debug`` - debug version without any logging
+ * ``debug_log`` - debug version with standard logging
+ * ``debug_vlog`` - debug version with verbose logging
 
 using
 =====
@@ -212,14 +225,14 @@ The ``session`` class has the following synopsis::
 			entry const& e
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
-         , bool compact_mode = true);
+			, bool compact_mode = true);
 
 		torrent_handle add_torrent(
 			char const* tracker_url
 			, sha1_hash const& info_hash
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
-         , bool compact_mode = true);
+			, bool compact_mode = true);
 
 		void remove_torrent(torrent_handle const& h);
 
@@ -233,6 +246,8 @@ The ``session`` class has the following synopsis::
 		void set_max_uploads(int limit);
 		void set_max_connections(int limit);
 
+      void set_ip_filter(ip_filter const& f);
+      
 		session_status status() const;
 
 		bool is_listening() const;
@@ -254,11 +269,10 @@ session()
 
 	::
 
-		session(const fingerprint& print = libtorrent::fingerprint("LT", 0, 1, 0, 0));
-		session(
-			const fingerprint& print
+		session(fingerprint const& print = libtorrent::fingerprint("LT", 0, 1, 0, 0));
+		session(fingerprint const& print
 			, std::pair<int, int> listen_port_range
-			, const char* listen_interface = 0);
+			, char const* listen_interface = 0);
 
 If the fingerprint in the first overload is ommited, the client will get a default
 fingerprint stating the version of libtorrent. The fingerprint is a short string that will be
@@ -391,6 +405,19 @@ connections limit, and open too many torrents, the limit will not be met. The
 number of uploads is at least one per torrent.
 
 
+set_ip_filter()
+---------------
+
+	::
+
+		void set_ip_filter(ip_filter const& filter);
+
+Sets a filter that will be used to reject and accept incoming as well as outgoing
+connections based on their originating ip address. The default filter will allow
+connections to any ip address. To build a set of rules for which addresses are
+accepted and not, see ip_filter_.
+
+
 status()
 --------
 
@@ -509,21 +536,21 @@ or a string. This is its synopsis::
 
 		data_type type() const;
 
-		entry(const dictionary_type&);
-		entry(const string_type&);
-		entry(const list_type&);
-		entry(const integer_type&);
+		entry(dictionary_type const&);
+		entry(string_type const&);
+		entry(list_type const&);
+		entry(integer_type const&);
 
 		entry();
 		entry(data_type t);
-		entry(const entry& e);
+		entry(entry const& e);
 		~entry();
 
-		void operator=(const entry& e);
-		void operator=(const dictionary_type&);
-		void operator=(const string_type&);
-		void operator=(const list_type&);
-		void operator=(const integer_type&);
+		void operator=(entry const& e);
+		void operator=(dictionary_type const&);
+		void operator=(string_type const&);
+		void operator=(list_type const&);
+		void operator=(integer_type const&);
 
 		integer_type& integer();
 		integer_type const& integer() const;
@@ -538,8 +565,8 @@ or a string. This is its synopsis::
 		// is a dictionary, otherwise they will throw	
 		entry& operator[](char const* key);
 		entry& operator[](std::string const& key);
-		const entry& operator[](char const* key) const;
-		const entry& operator[](std::string const& key) const;
+		entry const& operator[](char const* key) const;
+		entry const& operator[](std::string const& key) const;
 		entry* find_key(char const* key);
 		entry const* find_key(char const* key) const;
 		
@@ -579,7 +606,7 @@ The typical code to get info from a torrent file will then look like this::
 	entry torrent_file;
 	// ...
 
-	const entry::dictionary_type& dict = torrent_file.dict();
+	entry::dictionary_type const& dict = torrent_file.dict();
 	entry::dictionary_type::const_iterator i;
 	i = dict.find("announce");
 	if (i != dict.end())
@@ -610,7 +637,7 @@ The ``torrent_info`` has the following synopsis::
 		void set_comment(char const* str);
 		void set_piece_size(int size);
 		void set_creator(char const* str);
-		void set_hash(int index, const sha1_hash& h);
+		void set_hash(int index, sha1_hash const& h);
 		void add_tracker(std::string const& url, int tier = 0);
 		void add_file(boost::filesystem::path file, size_type size);
 
@@ -630,9 +657,9 @@ The ``torrent_info`` has the following synopsis::
 		size_type total_size() const;
 		size_type piece_length() const;
 		int num_pieces() const;
-		const sha1_hash& info_hash() const;
-		const std::stirng& name() const;
-		const std::string& comment() const;
+		sha1_hash const& info_hash() const;
+		std::stirng const& name() const;
+		std::string const& comment() const;
 
 		boost::optional<boost::posix_time::ptime>
 		creation_date() const;
@@ -641,8 +668,89 @@ The ``torrent_info`` has the following synopsis::
 		void print(std::ostream& os) const;
 	
 		size_type piece_size(unsigned int index) const;
-		const sha1_hash& hash_for_piece(unsigned int index) const;
+		sha1_hash const& hash_for_piece(unsigned int index) const;
 	};
+
+torrent_info()
+--------------
+   
+	::
+
+		torrent_info();
+		torrent_info(sha1_hash const& info_hash);
+		torrent_info(entry const& torrent_file);
+
+The default constructor of ``torrent_info`` is used when creating torrent files. It will
+initialize the object to an empty torrent, containing no files. The info hash will be set
+to 0 when this constructor is used. To use the empty ``torrent_info`` object, add files
+and piece hashes, announce URLs and optionally a creator tag and comment. To do this you
+use the members ``set_comment()``, ``set_piece_size()``, ``set_creator()``, ``set_hash()``
+etc.
+
+The contructor that takes an info-hash is identical to the default constructor with the
+exception that it will initialize the info-hash to the given value. This is used internally
+when downloading torrents without the metadata. The metadata will be created by libtorrent
+as soon as it has been downloaded from the swarm.
+
+The last constructor is the one that is used in most cases. It will create a ``torrent_info``
+object from the information found in the given torrent_file. The ``entry`` represents a tree
+node in an bencoded file. To load an ordinary .torrent file into an ``entry``, use bdecode(),
+see `bdecode() bencode()`_.
+
+set_comment() set_piece_size() set_creator() set_hash() add_tracker() add_file()
+--------------------------------------------------------------------------------
+
+	::
+
+		void set_comment(char const* str);
+		void set_piece_size(int size);
+		void set_creator(char const* str);
+		void set_hash(int index, sha1_hash const& h);
+		void add_tracker(std::string const& url, int tier = 0);
+		void add_file(boost::filesystem::path file, size_type size);
+
+These files are used when creating a torrent file. ``set_comment()`` will simply set
+the comment that belongs to this torrent. The comment can be retrieved with the
+``comment()`` member.
+
+``set_piece_size()`` will set the size of each piece in this torrent. The piece size must
+be an even multiple of 2. i.e. usually something like 256 kB, 512 kB, 1024 kB etc. The
+size is given in number of bytes.
+
+``set_creator()`` is an optional attribute that can be used to identify your application
+that was used to create the torrent file.
+
+``set_hash()`` writes the hash for the piece with the given piece-index. You have to call
+this function for every piece in the torrent. Usually the hasher_ is used to calculate
+the sha1-hash for a piece.
+
+``add_tracker()`` adds a tracker to the announce-list. The ``tier`` determines the order in
+which the trackers are to be tried. For more iformation see `trackers()`_.
+
+``add_file()`` adds a file to the torrent. The order in which you add files will determine
+the order in which they are placed in the torrent file. You have to add at least one file
+to the torrent. The ``path`` you give has to be a relative path from the root directory
+of the torrent. The ``size`` is given in bytes.
+
+When you have added all the files and hashes to your torrent, you can generate an ``entry``
+which then can be encoded as a .torrent file. You do this by calling `create_torrent()`_.
+
+For a complete example of how to create a torrent from a file structure, see make_torrent_.
+      
+
+create_torrent()
+----------------
+
+	::
+
+		entry create_torrent();
+
+Returns an ``entry`` representing the bencoded tree of data that makes up a .torrent file.
+You can save this data as a torrent file with bencode() (see `bdecode() bencode()`_), for a
+complete example, see make_torrent_.
+
+This function is not const because it will also set the info-hash of the ``torrent_info``
+object.
 
 
 begin_files() end_files() rbegin_files() rend_files()
@@ -678,7 +786,7 @@ num_files() file_at()
 	::
 	
 		int num_files() const;
-		const file_entry& file_at(int index) const;
+		file_entry const& file_at(int index) const;
 
 If you need index-access to files you can use the ``num_files()`` and ``file_at()``
 to access files using indices.
@@ -700,7 +808,7 @@ trackers()
 
 	::
 
-		const std::vector<announce_entry>& trackers() const;
+		std::vector<announce_entry> const& trackers() const;
 
 The ``trackers()`` function will return a sorted vector of ``announce_entry``.
 Each announce entry contains a string, which is the tracker url, and a tier index. The
@@ -743,7 +851,7 @@ hash_for_piece() info_hash()
 	::
 	
 		size_type piece_size(unsigned int index) const;
-		const sha1_hash& hash_for_piece(unsigned int index) const;
+		sha1_hash const& hash_for_piece(unsigned int index) const;
 
 ``hash_for_piece()`` takes a piece-index and returns the 20-bytes sha1-hash for that
 piece and ``info_hash()`` returns the 20-bytes sha1-hash for the info-section of the
@@ -755,8 +863,8 @@ name() comment() creation_date()
 
 	::
 
-		const std::stirng& name() const;
-		const std::string& comment() const;
+		std::string const& name() const;
+		std::string const& comment() const;
 		boost::optional<boost::posix_time::ptime> creation_date() const;
 
 ``name()`` returns the name of the torrent.
@@ -815,6 +923,8 @@ Its declaration looks like this::
 		bool is_piece_filtered(int index) const;
 		std::vector<bool> filtered_pieces() const;
 
+		void filter_files(std::vector<bool> const& files);
+      
 		bool has_metadata() const;
 
 		boost::filsystem::path save_path() const;
@@ -822,9 +932,9 @@ Its declaration looks like this::
 
 		sha1_hash info_hash() const;
 
-		bool operator==(const torrent_handle&) const;
-		bool operator!=(const torrent_handle&) const;
-		bool operator<(const torrent_handle&) const;
+		bool operator==(torrent_handle const&) const;
+		bool operator!=(torrent_handle const&) const;
+		bool operator<(torrent_handle const&) const;
 	};
 
 The default constructor will initialize the handle to an invalid state. Which means you cannot
@@ -833,9 +943,7 @@ any operation on an uninitialized handle, it will throw ``invalid_handle``.
 
 **TODO: document trackers() and replace_trackers()**
 
-**TODO: document how to create a .torrent**
-
-**TODO: document filter_piece(), filter_pieces(), is_piece_filtered() and filtered_pieces()**
+**TODO: document filter_piece(), filter_pieces(), is_piece_filtered(), filtered_pieces() and filter_files()**
 
 save_path()
 -----------
@@ -1499,6 +1607,70 @@ expand to 2 megs, it will be interrupted before the entire response has been
 uncompressed (given your limit is lower than 2 megs). Default limit is
 1 megabyte.
 
+
+ip_filter
+=========
+
+The ``ip_filter`` class is a set of rules that uniquely categorizes all
+ip addresses as allowed or disallowed. The default constructor creates
+a single rule that allowes all addresses (0.0.0.0 - 255.255.255.255).
+
+	::
+
+		class ip_filter
+		{
+		public:
+			enum access_flags { blocked = 1 };
+
+			ip_filter();
+			void add_rule(address first, address last, int flags);
+			int access(address const& addr) const;
+		};
+
+
+ip_filter()
+-----------
+
+	::
+
+		ip_filter()
+
+Creates a default filter that doesn't filter any address.
+
+postcondition:
+``access(x) == 0`` for every ``x``
+
+
+add_rule()
+----------
+
+	::
+
+		void add_rule(address first, address last, int flags);
+
+Adds a rule to the filter. ``first`` and ``last`` defines a range of
+ip addresses that will be marked with the given flags. The ``flags``
+can currenly be 0, which means allowed, or ``ip_filter::blocked``, which
+means disallowed.
+
+postcondition:
+``access(x) == flags`` for every ``x`` in the range [``first``, ``last``]
+
+This means that in a case of overlapping ranges, the last one applied takes
+precedence.
+
+
+access()
+--------
+
+	::
+
+		int access(address const& addr) const;
+
+Returns the access permissions for the given address (``addr``). The permission
+can currently be 0 or ``ip_filter::blocked``. The complexity of this operation
+is O(``log`` n), where n is the minimum number of non-overlapping ranges to describe
+the current filter.
 
 
 big_number
@@ -2255,6 +2427,104 @@ This is a simple client. It doesn't have much output to keep it simple::
 		{
 	  		std::cout << e.what() << "\n";
 		}
+		return 0;
+	}
+
+make_torrent
+------------
+
+Shows how to create a torrent from a directory tree::
+
+	#include <iostream>
+	#include <fstream>
+	#include <iterator>
+	#include <iomanip>
+
+	#include "libtorrent/entry.hpp"
+	#include "libtorrent/bencode.hpp"
+	#include "libtorrent/torrent_info.hpp"
+	#include "libtorrent/file.hpp"
+	#include "libtorrent/storage.hpp"
+	#include "libtorrent/hasher.hpp"
+
+	#include <boost/filesystem/operations.hpp>
+	#include <boost/filesystem/path.hpp>
+	#include <boost/filesystem/fstream.hpp>
+
+	using namespace boost::filesystem;
+	using namespace libtorrent;
+
+	void add_files(
+		torrent_info& t
+		, path const& p
+		, path const& l)
+	{
+		path f(p / l);
+		if (is_directory(f))
+		{
+			for (directory_iterator i(f), end; i != end; ++i)
+				add_files(t, p, l / i->leaf());
+		}
+		else
+		{
+			std::cerr << "adding \"" << l.string() << "\"\n";
+			file fi(f, file::in);
+			fi.seek(0, file::end);
+			libtorrent::size_type size = fi.tell();
+			t.add_file(l, size);
+		}
+	}
+
+	int main(int argc, char* argv[])
+	{
+		using namespace libtorrent;
+		using namespace boost::filesystem;
+
+		if (argc != 4)
+		{
+			std::cerr << "usage: make_torrent <output torrent-file> <announce url> <file or directory to create torrent from>\n";
+			return 1;
+		}
+
+		boost::filesystem::path::default_name_check(native);
+
+		try
+		{
+			torrent_info t;
+			path full_path = initial_path() / path(argv[3]);
+			ofstream out(initial_path() / path(argv[1]), std::ios_base::binary);
+
+			int piece_size = 256 * 1024;
+			char const* creator_str = "libtorrent";
+
+			add_files(t, full_path.branch_path(), full_path.leaf());
+			t.set_piece_size(piece_size);
+
+			storage st(t, full_path.branch_path());
+			t.add_tracker(argv[2]);
+
+			// calculate the hash for all pieces
+			int num = t.num_pieces();
+			std::vector<char> buf(piece_size);
+			for (int i = 0; i < num; ++i)
+			{
+				st.read(&buf[0], i, 0, t.piece_size(i));
+				hasher h(&buf[0], t.piece_size(i));
+				t.set_hash(i, h.final());
+				std::cerr << (i+1) << "/" << num << "\r";
+			}
+
+			t.set_creator(creator_str);
+
+			// create the torrent and print it to out
+			entry e = t.create_torrent();
+			libtorrent::bencode(std::ostream_iterator<char>(out), e);
+		}
+		catch (std::exception& e)
+		{
+			std::cerr << e.what() << "\n";
+		}
+
 		return 0;
 	}
 
