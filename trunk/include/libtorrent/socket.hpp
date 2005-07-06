@@ -90,6 +90,8 @@ namespace libtorrent
 		std::string as_string() const;
 		unsigned int ip() const { return m_ip; }
 
+		bool operator<=(const address& a) const
+		{ if (ip() == a.ip()) return port <= a.port; else return ip() <= a.ip(); }
 		bool operator<(const address& a) const
 		{ if (ip() == a.ip()) return port < a.port; else return ip() < a.ip(); }
 		bool operator!=(const address& a) const

@@ -290,6 +290,50 @@ int main(int argc, char* argv[])
 		ses.set_severity_level(alert::debug);
 //		ses.set_severity_level(alert::info);
 
+		// look for ipfilter.dat
+		// poor man's parser
+		// reads emule ipfilter files.
+		// with the following format:
+		// 
+		// <first-ip> - <last-ip> , <access> , <comment>
+		// 
+		// first-ip is an ip address that defines the first
+		// address of the range
+		// last-ip is the last ip address in the range
+		// access is a number specifying the access control
+		// for this ip-range. Right now values > 127 = allowed
+		// and numbers <= 127 = blocked
+		// the rest of the line is ignored
+		//
+		// In the original spec ranges may not overlap, but
+		// here ranges may overlap, and it is the last added
+		// rule that has precedence for addresses that may fall
+		// into more than one range.
+		std::ifstream in("ipfilter.dat");
+		ip_filter filter;
+		while (in.good())
+		{
+			char line[300];
+			in.getline(line, 300);
+			int len = in.gcount();
+			if (len <= 0) continue;
+			if (line[0] == '#') continue;
+			int a, b, c, d;
+			char dummy;
+			in >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
+			address start(a, b, c, d, 0);
+			in >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
+			address last(a, b, c, d, 0);
+			int flags;
+			in >> flags;
+			if (flags <= 127) flags = ip_filter::blocked;
+			else flags = 0;
+			if (in.fail()) break;
+			filter.add_rule(start, last, flags);
+		}
+	
+		ses.set_ip_filter(filter);
+	
 		for (int i = 0; i < argc-1; ++i)
 		{
 			try
@@ -367,6 +411,7 @@ int main(int argc, char* argv[])
 						torrent_handle h = *i;
 						if (!h.get_torrent_info().is_valid()) continue;
 
+						h.pause();
 						entry data = h.write_resume_data();
 						std::stringstream s;
 						s << h.get_torrent_info().name() << ".fastresume";
@@ -420,12 +465,12 @@ int main(int argc, char* argv[])
 				{
 					// limit the bandwidth for all seeding torrents
 					p->handle.set_max_connections(10);
-					p->handle.set_max_uploads(5);
-					p->handle.set_upload_limit(10000);
+					//p->handle.set_max_uploads(5);
+					//p->handle.set_upload_limit(10000);
 
 					// all finished downloades are
 					// moved into this directory
-					p->handle.move_storage("finished");
+					//p->handle.move_storage("finished");
 					events.push_back(
 						p->handle.get_torrent_info().name() + ": " + a->msg());
 				}

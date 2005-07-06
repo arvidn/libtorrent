@@ -321,15 +321,13 @@ namespace libtorrent
 		// connect to random peers from the list
 		std::random_shuffle(peer_list.begin(), peer_list.end());
 
-
 #ifdef TORRENT_VERBOSE_LOGGING
 		std::stringstream s;
 		s << "TRACKER RESPONSE:\n"
 			"interval: " << m_duration << "\n"
 			"peers:\n";
 		for (std::vector<peer_entry>::const_iterator i = peer_list.begin();
-			i != peer_list.end();
-			++i)
+			i != peer_list.end(); ++i)
 		{
 			s << "  " << std::setfill(' ') << std::setw(16) << i->ip
 				<< " " << std::setw(5) << std::dec << i->port << "  ";
@@ -340,8 +338,7 @@ namespace libtorrent
 #endif
 		// for each of the peers we got from the tracker
 		for (std::vector<peer_entry>::iterator i = peer_list.begin();
-			i != peer_list.end();
-			++i)
+			i != peer_list.end(); ++i)
 		{
 			// don't make connections to ourself
 			if (i->id == m_ses.get_peer_id())
@@ -349,6 +346,14 @@ namespace libtorrent
 
 			address a(i->ip.c_str(), i->port);
 
+			if (m_ses.m_ip_filter.access(a) == ip_filter::blocked)
+			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				debug_log("blocked ip from tracker: " + i->ip);
+#endif
+				continue;
+			}
+			
 			m_policy->peer_from_tracker(a, i->id);
 		}
 
@@ -632,42 +637,35 @@ namespace libtorrent
 		m_picker->filtered_pieces(bitmask);
 	}
 
-	//suggest using this function on single file in a torrent file
-	//suggest using this function after filter_files() function
-	//or change selective download policy casually during downloading progress
+	//idea from Arvid and MooPolice
+	//todo refactoring and improving the function body
 	void torrent::filter_file(int index, bool filter)
 	{
 		// this call is only valid on torrents with metadata
 		if (!valid_metadata()) return;
 
-		assert(index >= 0);
 		assert(index < m_torrent_file.num_files());
-		
-		entry::integer_type position = 0;
+		assert(index >= 0);
 
-		if (m_torrent_file.num_pieces())
-		{
-			int piece_length = m_torrent_file.piece_length();
-			entry::integer_type start = position;
+		entry::integer_type start_position = 0;
+		int start_piece_index = 0;
+		int end_piece_index = 0;
 
-			for (int i = 0; i < index; ++i)
-			{
-				start = position;
-				position += m_torrent_file.file_at(i).size;
-			}
-			int start_piece = int(start / piece_length);
-			int last_piece = int(position / piece_length);
-			
-			for (int filter_index = start_piece ; filter_index < last_piece ; ++filter_index)
-			{
-				 filter_piece(filter_index, filter);
-			}
-		}
+		// TODO: just skipping the first and last piece is not a good idea.
+		// they should only be skipped if there are files that are wanted
+		// that span those pieces. Maybe this function should be removed.
+		for (int i = 0; i < index; ++i)
+			start_position += m_torrent_file.file_at(i).size;
+
+		start_position = start_position + 1;
+
+		start_piece_index = start_position / m_torrent_file.piece_length();
+		end_piece_index = start_piece_index + m_torrent_file.file_at(index).size/(m_torrent_file.piece_length());
+
+		for(int i = start_piece_index; i < end_piece_index; ++i)
+			filter_piece(i, filter);
 	}
 
-	//suggest using this function on a torrent file.
-	//suggest using this function as a static globle selective download policy 
-	//"before" downloading progress
 	void torrent::filter_files(std::vector<bool> const& bitmask)
 	{
 		// this call is only valid on torrents with metadata
@@ -685,7 +683,7 @@ namespace libtorrent
 			// mark all pieces as filtered, then clear the bits for files
 			// that should be downloaded
 			std::vector<bool> piece_filter(m_torrent_file.num_pieces(), true);
-			for (int i = 0; i < bitmask.size(); ++i)
+			for (int i = 0; i < (int)bitmask.size(); ++i)
 			{
 				entry::integer_type start = position;
 				position += m_torrent_file.file_at(i).size;
