@@ -652,19 +652,17 @@ namespace libtorrent
 		size_type start_position = 0;
 		int start_piece_index = 0;
 		int end_piece_index = 0;
+		int piece_length = m_torrent_file.piece_length();
 
-		// TODO: just skipping the first and last piece is not a good idea.
-		// they should only be skipped if there are files that are wanted
-		// that span those pieces. Maybe this function should be removed.
 		for (int i = 0; i < index; ++i)
 			start_position += m_torrent_file.file_at(i).size;
 
-		start_position = start_position + 1;
+		start_piece_index = start_position / piece_length;
+		// make the end piece index be rounded upwards
+		end_piece_index = (start_position + m_torrent_file.file_at(index).size
+			+ piece_length - 1) / piece_length;
 
-		start_piece_index = start_position / m_torrent_file.piece_length();
-		end_piece_index = start_piece_index + m_torrent_file.file_at(index).size/(m_torrent_file.piece_length());
-
-		for(int i = start_piece_index; i < end_piece_index; ++i)
+		for(int i = start_piece_index; i <= end_piece_index; ++i)
 			filter_piece(i, filter);
 	}
 
