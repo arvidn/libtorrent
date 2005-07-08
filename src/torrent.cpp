@@ -637,6 +637,8 @@ namespace libtorrent
 		m_picker->filtered_pieces(bitmask);
 	}
 
+
+	
 	//idea from Arvid and MooPolice
 	//todo refactoring and improving the function body
 	void torrent::filter_file(int index, bool filter)
@@ -647,7 +649,7 @@ namespace libtorrent
 		assert(index < m_torrent_file.num_files());
 		assert(index >= 0);
 
-		entry::integer_type start_position = 0;
+		size_type start_position = 0;
 		int start_piece_index = 0;
 		int end_piece_index = 0;
 
@@ -675,7 +677,7 @@ namespace libtorrent
 		// in the torrent
 		assert(bitmask.size() == m_torrent_file.num_files());
 		
-		entry::integer_type position = 0;
+		size_type position = 0;
 
 		if (m_torrent_file.num_pieces())
 		{
@@ -685,7 +687,7 @@ namespace libtorrent
 			std::vector<bool> piece_filter(m_torrent_file.num_pieces(), true);
 			for (int i = 0; i < (int)bitmask.size(); ++i)
 			{
-				entry::integer_type start = position;
+				size_type start = position;
 				position += m_torrent_file.file_at(i).size;
 				// is the file selected for download?
 				if (!bitmask[i])
