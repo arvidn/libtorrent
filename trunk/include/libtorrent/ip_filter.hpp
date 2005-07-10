@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socket.hpp"
 #include <set>
+#include <iostream>
 
 namespace libtorrent
 {
@@ -51,7 +52,7 @@ public:
 	ip_filter();
 	void add_rule(address first, address last, int flags);
 	int access(address const& addr) const;
-	//void print() const;
+	void print() const;
 	
 private:
 	struct range

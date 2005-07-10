@@ -357,14 +357,16 @@ the <tt class="docutils literal"><span class="pre">session</span></tt>, it conta
                   entry const&amp; e
                   , boost::filesystem::path const&amp; save_path
                   , entry const&amp; resume_data = entry()
-                  , bool compact_mode = true);
+                  , bool compact_mode = true
+                  , int block_size = 16 * 1024);
 
           torrent_handle add_torrent(
                   char const* tracker_url
                   , sha1_hash const&amp; info_hash
                   , boost::filesystem::path const&amp; save_path
                   , entry const&amp; resume_data = entry()
-                  , bool compact_mode = true);
+                  , bool compact_mode = true
+                  , int block_size = 16 * 1024);
 
           void remove_torrent(torrent_handle const&amp; h);
 
@@ -430,13 +432,16 @@ torrent_handle add_torrent(
         entry const&amp; e
         , boost::filesystem::path const&amp; save_path
         , entry const&amp; resume_data = entry()
-        , bool compact_mode = true);
+        , bool compact_mode = true
+        , int block_size = 16 * 1024);
+
 torrent_handle add_torrent(
         char const* tracker_url
         , sha1_hash const&amp; info_hash
         , boost::filesystem::path const&amp; save_path
         , entry const&amp; resume_data = entry()
-        , bool compact_mode = true);
+        , bool compact_mode = true
+        , int block_size = 16 * 1024);
 </pre>
 </blockquote>
 <p>You add torrents through the <tt class="docutils literal"><span class="pre">add_torrent()</span></tt> function where you give an
@@ -455,6 +460,10 @@ are rearranged to finally be in their correct places once the entire torrent has
 downloaded. If it is false, the entire storage is allocated before download begins. I.e.
 the files contained in the torrent are filled with zeroes, and each downloaded piece
 is put in its final place directly when downloaded.</p>
+<p><tt class="docutils literal"><span class="pre">block_size</span></tt> sets the preferred request size, i.e. the number of bytes to request from
+a peer at a time. This block size must be a divisor of the piece size, and since the piece
+size is an even power of 2, so must the block size be. If the block size given here turns
+out to be greater than the piece size, it will simply be clamped to the piece size.</p>
 <p>The <a class="reference" href="#torrent-handle">torrent_handle</a> returned by <tt class="docutils literal"><span class="pre">add_torrent()</span></tt> can be used to retrieve information
 about the torrent's progress, its peers etc. It is also used to abort a torrent.</p>
 <p>The second overload that takes a tracker url and an info-hash instead of metadata (<tt class="docutils literal"><span class="pre">entry</span></tt>)

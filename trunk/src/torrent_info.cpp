@@ -149,7 +149,7 @@ namespace libtorrent
 
 	void torrent_info::set_piece_size(int size)
 	{
-		// make sure the size is an even 2 exponential
+		// make sure the size is an even power of 2
 #ifndef NDEBUG
 		for (int i = 0; i < 32; ++i)
 		{

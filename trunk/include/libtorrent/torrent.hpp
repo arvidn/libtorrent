@@ -96,7 +96,8 @@ namespace libtorrent
 			, entry const& metadata
 			, boost::filesystem::path const& save_path
 			, address const& net_interface
-			, bool compact_mode);
+			, bool compact_mode
+			, int block_size);
 
 		// used with metadata-less torrents
 		// (the metadata is downloaded from the peers)
@@ -106,7 +107,8 @@ namespace libtorrent
 			, sha1_hash const& info_hash
 			, boost::filesystem::path const& save_path
 			, address const& net_interface
-			, bool compact_mode);
+			, bool compact_mode
+			, int block_size);
 
 		~torrent();
 
@@ -525,6 +527,10 @@ namespace libtorrent
 
 		int m_metadata_progress;
 		int m_metadata_size;
+
+		// defaults to 16 kiB, but can be set by the user
+		// when creating the torrent
+		const int m_default_block_size;
 	};
 
 	inline boost::posix_time::ptime torrent::next_announce() const
