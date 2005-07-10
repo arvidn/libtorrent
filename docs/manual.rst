@@ -226,14 +226,16 @@ The ``session`` class has the following synopsis::
 			entry const& e
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
-			, bool compact_mode = true);
+			, bool compact_mode = true
+			, int block_size = 16 * 1024);
 
 		torrent_handle add_torrent(
 			char const* tracker_url
 			, sha1_hash const& info_hash
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
-			, bool compact_mode = true);
+			, bool compact_mode = true
+			, int block_size = 16 * 1024);
 
 		void remove_torrent(torrent_handle const& h);
 
@@ -303,13 +305,16 @@ add_torrent()
 			entry const& e
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
-			, bool compact_mode = true);
+			, bool compact_mode = true
+			, int block_size = 16 * 1024);
+
 		torrent_handle add_torrent(
 			char const* tracker_url
 			, sha1_hash const& info_hash
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
-			, bool compact_mode = true);
+			, bool compact_mode = true
+			, int block_size = 16 * 1024);
 
 You add torrents through the ``add_torrent()`` function where you give an
 object representing the information found in the torrent file and the path where you
@@ -330,6 +335,11 @@ are rearranged to finally be in their correct places once the entire torrent has
 downloaded. If it is false, the entire storage is allocated before download begins. I.e.
 the files contained in the torrent are filled with zeroes, and each downloaded piece
 is put in its final place directly when downloaded.
+
+``block_size`` sets the preferred request size, i.e. the number of bytes to request from
+a peer at a time. This block size must be a divisor of the piece size, and since the piece
+size is an even power of 2, so must the block size be. If the block size given here turns
+out to be greater than the piece size, it will simply be clamped to the piece size.
 
 The torrent_handle_ returned by ``add_torrent()`` can be used to retrieve information
 about the torrent's progress, its peers etc. It is also used to abort a torrent.

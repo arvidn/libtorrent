@@ -317,14 +317,16 @@ namespace libtorrent
 			entry const& metadata
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
-			, bool compact_mode = true);
+			, bool compact_mode = true
+			, int block_size = 16 * 1024);
 
 		torrent_handle add_torrent(
 			char const* tracker_url
 			, sha1_hash const& info_hash
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
-			, bool compact_mode = true);
+			, bool compact_mode = true
+			, int block_size = 16 * 1024);
 
 		session_status status() const;
 

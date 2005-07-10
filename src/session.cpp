@@ -963,8 +963,22 @@ namespace libtorrent
 		entry const& metadata
 		, boost::filesystem::path const& save_path
 		, entry const& resume_data
-		, bool compact_mode)
+		, bool compact_mode
+		, int block_size)
 	{
+		// make sure the block_size is an even power of 2
+#ifndef NDEBUG
+		for (int i = 0; i < 32; ++i)
+		{
+			if (block_size & (1 << i))
+			{
+				assert((block_size & ~(1 << i)) == 0);
+				break;
+			}
+		}
+#endif
+	
+			  
 		assert(!save_path.empty());
 		torrent_info ti(metadata);
 
@@ -992,7 +1006,7 @@ namespace libtorrent
 		// the thread
 		boost::shared_ptr<torrent> torrent_ptr(
 			new torrent(m_impl, metadata, save_path, m_impl.m_listen_interface
-				, compact_mode));
+				, compact_mode, block_size));
 
 		detail::piece_checker_data d;
 		d.torrent_ptr = torrent_ptr;
@@ -1014,8 +1028,21 @@ namespace libtorrent
 		, sha1_hash const& info_hash
 		, boost::filesystem::path const& save_path
 		, entry const&
-		, bool compact_mode)
+		, bool compact_mode
+		, int block_size)
 	{
+		// make sure the block_size is an even power of 2
+#ifndef NDEBUG
+		for (int i = 0; i < 32; ++i)
+		{
+			if (block_size & (1 << i))
+			{
+				assert((block_size & ~(1 << i)) == 0);
+				break;
+			}
+		}
+#endif
+	
 		// TODO: support resume data in this case
 		assert(!save_path.empty());
 		{
@@ -1043,7 +1070,7 @@ namespace libtorrent
 		// the thread
 		boost::shared_ptr<torrent> torrent_ptr(
 			new torrent(m_impl, tracker_url, info_hash, save_path
-			, m_impl.m_listen_interface, compact_mode));
+			, m_impl.m_listen_interface, compact_mode, block_size));
 
 		m_impl.m_torrents.insert(
 			std::make_pair(info_hash, torrent_ptr)).first;
@@ -1289,85 +1316,83 @@ namespace libtorrent
 				tmp_pieces.push_back(index);
 			}
 
-
-			int num_blocks_per_piece = (int)rd["blocks per piece"].integer();
-			if (num_blocks_per_piece != info.piece_length() / torrent_ptr->block_size())
-			{
-				error = "invalid number of blocks per piece ("
-					+ boost::lexical_cast<std::string>(num_blocks_per_piece) + ")";
-				return;
-			}
-
-			// the unfinished pieces
-
-			entry::list_type& unfinished = rd["unfinished"].list();
-
+			// only bother to check the partial pieces if we have the same block size
+			// as in the fast resume data. If the blocksize has changed, then throw
+			// away all partial pieces.
 			std::vector<piece_picker::downloading_piece> tmp_unfinished;
-			tmp_unfinished.reserve(unfinished.size());
-			for (entry::list_type::iterator i = unfinished.begin();
-				i != unfinished.end(); ++i)
+			int num_blocks_per_piece = (int)rd["blocks per piece"].integer();
+			if (num_blocks_per_piece == info.piece_length() / torrent_ptr->block_size())
 			{
-				piece_picker::downloading_piece p;
+				// the unfinished pieces
 
-				p.index = (int)(*i)["piece"].integer();
-				if (p.index < 0 || p.index >= info.num_pieces())
-				{
-					error = "invalid piece index in unfinished piece list (index: "
-						+ boost::lexical_cast<std::string>(p.index) + " size: "
-						+ boost::lexical_cast<std::string>(info.num_pieces()) + ")";
-					return;
-				}
+				entry::list_type& unfinished = rd["unfinished"].list();
 
-				const std::string& bitmask = (*i)["bitmask"].string();
-
-				const int num_bitmask_bytes = std::max(num_blocks_per_piece / 8, 1);
-				if ((int)bitmask.size() != num_bitmask_bytes)
+				tmp_unfinished.reserve(unfinished.size());
+				for (entry::list_type::iterator i = unfinished.begin();
+					i != unfinished.end(); ++i)
 				{
-					error = "invalid size of bitmask (" + boost::lexical_cast<std::string>(bitmask.size()) + ")";
-					return;
-				}
-				for (int j = 0; j < num_bitmask_bytes; ++j)
-				{
-					unsigned char bits = bitmask[j];
-					for (int k = 0; k < 8; ++k)
+					piece_picker::downloading_piece p;
+	
+					p.index = (int)(*i)["piece"].integer();
+					if (p.index < 0 || p.index >= info.num_pieces())
 					{
-						const int bit = j * 8 + k;
-						if (bits & (1 << k))
-							p.finished_blocks[bit] = true;
+						error = "invalid piece index in unfinished piece list (index: "
+							+ boost::lexical_cast<std::string>(p.index) + " size: "
+							+ boost::lexical_cast<std::string>(info.num_pieces()) + ")";
+						return;
 					}
+
+					const std::string& bitmask = (*i)["bitmask"].string();
+
+					const int num_bitmask_bytes = std::max(num_blocks_per_piece / 8, 1);
+					if ((int)bitmask.size() != num_bitmask_bytes)
+					{
+						error = "invalid size of bitmask (" + boost::lexical_cast<std::string>(bitmask.size()) + ")";
+						return;
+					}
+					for (int j = 0; j < num_bitmask_bytes; ++j)
+					{
+						unsigned char bits = bitmask[j];
+						for (int k = 0; k < 8; ++k)
+						{
+							const int bit = j * 8 + k;
+							if (bits & (1 << k))
+								p.finished_blocks[bit] = true;
+						}
+					}
+
+					if (p.finished_blocks.count() == 0) continue;
+	
+					std::vector<int>::iterator slot_iter
+						= std::find(tmp_pieces.begin(), tmp_pieces.end(), p.index);
+					if (slot_iter == tmp_pieces.end())
+					{
+						// this piece is marked as unfinished
+						// but doesn't have any storage
+						error = "piece " + boost::lexical_cast<std::string>(p.index) + " is "
+							"marked as unfinished, but doesn't have any storage";
+						return;
+					}
+
+					assert(*slot_iter == p.index);
+					int slot_index = static_cast<int>(slot_iter - tmp_pieces.begin());
+					unsigned long adler
+						= torrent_ptr->filesystem().piece_crc(
+							slot_index
+							, torrent_ptr->block_size()
+							, p.finished_blocks);
+
+					const entry& ad = (*i)["adler32"];
+	
+					// crc's didn't match, don't use the resume data
+					if (ad.integer() != adler)
+					{
+						error = "checksum mismatch on piece " + boost::lexical_cast<std::string>(p.index);
+						return;
+					}
+
+					tmp_unfinished.push_back(p);
 				}
-
-				if (p.finished_blocks.count() == 0) continue;
-
-				std::vector<int>::iterator slot_iter
-					= std::find(tmp_pieces.begin(), tmp_pieces.end(), p.index);
-				if (slot_iter == tmp_pieces.end())
-				{
-					// this piece is marked as unfinished
-					// but doesn't have any storage
-					error = "piece " + boost::lexical_cast<std::string>(p.index) + " is "
-						"marked as unfinished, but doesn't have any storage";
-					return;
-				}
-
-				assert(*slot_iter == p.index);
-				int slot_index = static_cast<int>(slot_iter - tmp_pieces.begin());
-				unsigned long adler
-					= torrent_ptr->filesystem().piece_crc(
-						slot_index
-						, torrent_ptr->block_size()
-						, p.finished_blocks);
-
-				const entry& ad = (*i)["adler32"];
-
-				// crc's didn't match, don't use the resume data
-				if (ad.integer() != adler)
-				{
-					error = "checksum mismatch on piece " + boost::lexical_cast<std::string>(p.index);
-					return;
-				}
-
-				tmp_unfinished.push_back(p);
 			}
 
 			// verify file sizes

@@ -88,9 +88,9 @@ namespace
 		, tracker_failed_max = 5
 	};
 
-	int calculate_block_size(const torrent_info& i)
+	int calculate_block_size(const torrent_info& i, int default_block_size)
 	{
-		const int default_block_size = 16 * 1024;
+		if (default_block_size < 1024) default_block_size = 1024;
 
 		// if pieces are too small, adjust the block size
 		if (i.piece_length() < default_block_size)
@@ -151,7 +151,8 @@ namespace libtorrent
 		, entry const& metadata
 		, boost::filesystem::path const& save_path
 		, address const& net_interface
-		, bool compact_mode)
+		, bool compact_mode
+		, int block_size)
 		: m_torrent_file(metadata)
 		, m_abort(false)
 		, m_paused(false)
@@ -183,6 +184,7 @@ namespace libtorrent
 		, m_compact_mode(compact_mode)
 		, m_metadata_progress(0)
 		, m_metadata_size(0)
+		, m_default_block_size(block_size)
 	{
 		m_uploads_quota.min = 2;
 		m_connections_quota.min = 2;
@@ -203,7 +205,8 @@ namespace libtorrent
 		, sha1_hash const& info_hash
 		, boost::filesystem::path const& save_path
 		, address const& net_interface
-		, bool compact_mode)
+		, bool compact_mode
+		, int block_size)
 		: m_torrent_file(info_hash)
 		, m_abort(false)
 		, m_paused(false)
@@ -234,6 +237,7 @@ namespace libtorrent
 		, m_compact_mode(compact_mode)
 		, m_metadata_progress(0)
 		, m_metadata_size(0)
+		, m_default_block_size(block_size)
 	{
 		m_uploads_quota.min = 2;
 		m_connections_quota.min = 2;
@@ -263,7 +267,7 @@ namespace libtorrent
 
 		m_have_pieces.resize(m_torrent_file.num_pieces(), false);
 		m_storage = std::auto_ptr<piece_manager>(new piece_manager(m_torrent_file, m_save_path));
-		m_block_size = calculate_block_size(m_torrent_file);
+		m_block_size = calculate_block_size(m_torrent_file, m_default_block_size);
 		m_picker = std::auto_ptr<piece_picker>(new piece_picker(
 				static_cast<int>(m_torrent_file.piece_length() / m_block_size)
 				, static_cast<int>((m_torrent_file.total_size()+m_block_size-1)/m_block_size)));
