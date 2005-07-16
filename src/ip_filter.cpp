@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Arvid Norberg
+Copyright (c) 2005, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -59,14 +59,14 @@ namespace libtorrent
 		assert(j != i);
 		
 		int first_access = i->access;
-
+/*
 		std::cout << "flags: " << flags << "\n";
 		std::cout << "first_access: " << first_access << "\n";
 		std::cout << "i->start: " << i->start.as_string() << "\n";
 		std::cout << "first: " << first.as_string() << "\n";
-
+*/
 		int last_access = last_access = prior(j)->access;
-		std::cout << "last_access: " << last_access << "\n";
+//		std::cout << "last_access: " << last_access << "\n";
 
 		if (i->start != first && first_access != flags)
 		{
@@ -77,20 +77,20 @@ namespace libtorrent
 			--i;
 			first_access = i->access;
 		}
-
+/*
 		std::cout << "distance(i, j): " << std::distance(i, j) << "\n";
 		std::cout << "size(): " << m_access_list.size() << "\n";
-		
+*/		
 		assert(!m_access_list.empty());
 		assert(i != m_access_list.end());
 
 		if (i != j)
 			m_access_list.erase(next(i), j);
-
+/*
 		std::cout << "size(): " << m_access_list.size() << "\n";
 		std::cout << "last: " << last.as_string() << "\n";
 		std::cout << "last.ip(): " << last.ip() << " " << 0xffffffff << "\n";
-
+*/
 		if (i->start == first)
 		{
 			// we can do this const-cast because we know that the new
@@ -107,7 +107,7 @@ namespace libtorrent
 			|| (j == m_access_list.end() && last.ip() != 0xffffffff))
 		{
 			assert(j == m_access_list.end() || last.ip() < j->start.ip() - 1);
-			std::cout << " -- last_access: " << last_access << "\n";
+//			std::cout << " -- last_access: " << last_access << "\n";
 			if (last_access != flags)
 				j = m_access_list.insert(j, range(address(last.ip() + 1, 0), last_access));
 		}
@@ -127,6 +127,32 @@ namespace libtorrent
 		return i->access;
 	}
 
+
+	std::vector<ip_filter::ip_range> ip_filter::export_filter() const
+	{
+		std::vector<ip_range> ret;
+		ret.reserve(m_access_list.size());
+
+		for (range_t::const_iterator i = m_access_list.begin()
+			, end(m_access_list.end()); i != end;)
+		{
+			ip_range r;
+			r.first = i->start;
+			assert(r.first.port == 0);
+			r.flags = i->access;
+
+			++i;
+			if (i == end)
+				r.last = address(0xffffffff, 0);
+			else
+				r.last = address(i->start.ip() - 1, 0);
+		
+			ret.push_back(r);
+		}
+		return ret;
+	}	
+	
+/*
 	void ip_filter::print() const
 	{
 		for (range_t::iterator i =  m_access_list.begin(); i != m_access_list.end(); ++i)
@@ -134,6 +160,6 @@ namespace libtorrent
 			std::cout << i->start.as_string() << " " << i->access << "\n";
 		}
 	}
-
+*/
 }
 

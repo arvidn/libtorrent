@@ -600,8 +600,7 @@ namespace libtorrent { namespace detail
 
 			// disconnect the one we couldn't connect to
 			for (std::vector<boost::shared_ptr<socket> >::iterator i = error_clients.begin();
-				i != error_clients.end();
-				++i)
+				i != error_clients.end(); ++i)
 			{
 				connection_map::iterator p = m_connections.find(*i);
 				if (p != m_connections.end())
@@ -909,6 +908,19 @@ namespace libtorrent
 	{
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_ip_filter = f;
+
+		// Close connections whose endpoint is filtered
+		// by the new ip-filter
+		for (detail::session_impl::connection_map::iterator i
+			= m_impl.m_connections.begin(); i != m_impl.m_connections.end();)
+		{
+			if (m_impl.m_ip_filter.access(i->first->sender())
+				& ip_filter::blocked)
+			{
+				m_impl.m_connections.erase(i++);
+			}
+			else ++i;
+		}
 	}
 
 	void session::set_peer_id(peer_id const& id)
