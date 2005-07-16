@@ -677,7 +677,7 @@ namespace libtorrent
 
 		// the bitmask need to have exactly one bit for every file
 		// in the torrent
-		assert(bitmask.size() == m_torrent_file.num_files());
+		assert((int)bitmask.size() == m_torrent_file.num_files());
 		
 		size_type position = 0;
 

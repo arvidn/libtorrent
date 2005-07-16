@@ -926,8 +926,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
 		for (std::deque<piece_block>::iterator i = m_download_queue.begin();
-			i != m_download_queue.end();
-			++i)
+			i != m_download_queue.end(); ++i)
 		{
 			if (i->piece_index == p.piece
 				&& i->block_index == p.start / m_torrent->block_size())

@@ -1636,6 +1636,15 @@ a single rule that allowes all addresses (0.0.0.0 - 255.255.255.255).
 			ip_filter();
 			void add_rule(address first, address last, int flags);
 			int access(address const& addr) const;
+
+			struct ip_range
+			{
+				address first;
+				address last;
+				int flags;
+			};
+
+			std::vector<ip_range> export_filter() const;
 		};
 
 
@@ -1684,6 +1693,19 @@ is O(``log`` n), where n is the minimum number of non-overlapping ranges to desc
 the current filter.
 
 
+export_filter()
+---------------
+
+	::
+
+		std::vector<ip_range> export_filter() const;
+
+This function will return the current state of the filter in the minimum number of
+ranges possible. They are sorted from ranges in low addresses to high addresses. Each
+entry in the returned vector is a range with the access control specified in its
+``flags`` field.
+
+      
 big_number
 ==========
 

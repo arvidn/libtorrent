@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Arvid Norberg
+Copyright (c) 2005, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,17 @@ public:
 	ip_filter();
 	void add_rule(address first, address last, int flags);
 	int access(address const& addr) const;
-	void print() const;
+
+	struct ip_range
+	{
+		address first;
+		address last;
+		int flags;
+	};
+			  
+	std::vector<ip_range> export_filter() const;
+
+//	void print() const;
 	
 private:
 	struct range

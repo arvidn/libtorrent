@@ -372,7 +372,7 @@ int main(int argc, char* argv[])
 				catch (invalid_encoding&) {}
 				catch (boost::filesystem::filesystem_error&) {}
 
-				handles.push_back(ses.add_torrent(e, save_path, resume_data, true, 128 * 1024));
+				handles.push_back(ses.add_torrent(e, save_path, resume_data, true, 64 * 1024));
 				handles.back().set_max_connections(100);
 				handles.back().set_max_uploads(-1);
 				handles.back().set_ratio(1.02f);
