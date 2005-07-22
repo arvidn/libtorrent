@@ -2118,6 +2118,11 @@ namespace libtorrent
 #endif
 					std::copy(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (char*)m_peer_id.begin());
 
+					// disconnect if the peer has the same peer-id as ourself
+					// since it most likely is ourself then
+					if (m_peer_id == m_ses.get_peer_id())
+						throw protocol_error("closing connection to ourself");
+					
 					if (!m_active)
 					{
 						// check to make sure we don't have another connection with the same
