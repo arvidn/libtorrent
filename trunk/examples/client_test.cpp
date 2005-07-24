@@ -376,12 +376,7 @@ int main(int argc, char* argv[])
 				handles.back().set_max_connections(100);
 				handles.back().set_max_uploads(-1);
 				handles.back().set_ratio(1.02f);
-/*
-				for (int i = 0; i < t.num_pieces(); ++i)
-				{
-					handles.back().filter_piece(i, i % 2 == 0);
-				}
-*/
+
 			}
 			catch (std::exception& e)
 			{
