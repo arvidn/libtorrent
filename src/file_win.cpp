@@ -88,7 +88,7 @@ namespace
 			std::string ret;
 			ret.resize(size);
 			size = wcstombs(&ret[0], ws.c_str(), size + 1);
-			ret.resize(size-1);
+			ret.resize(size);
 			return ret;
 		}
 		catch(std::exception)
