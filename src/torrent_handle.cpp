@@ -503,6 +503,7 @@ namespace libtorrent
 	void torrent_handle::force_reannounce_on_loop(
 		boost::posix_time::time_duration duration) const
 	{
+		/*
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
@@ -511,6 +512,7 @@ namespace libtorrent
 
 		force_reannounce(duration);
 		force_reannounce_on_loop(duration);
+		*/
 	}
 
 	void torrent_handle::force_reannounce(
