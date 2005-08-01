@@ -499,6 +499,20 @@ namespace libtorrent
 		t->get_policy().peer_from_tracker(adr, id);
 	}
 
+	//todo test the function body
+	void torrent_handle::force_reannounce_on_loop(
+		boost::posix_time::time_duration duration) const
+	{
+		INVARIANT_CHECK;
+
+		if (m_ses == 0) throw_invalid_handle();
+		
+		//if (m_ses == 0) return;
+
+		force_reannounce(duration);
+		force_reannounce_on_loop(duration);
+	}
+
 	void torrent_handle::force_reannounce(
 		boost::posix_time::time_duration duration) const
 	{
