@@ -261,8 +261,6 @@ namespace libtorrent
 		// timed out.
 		void force_reannounce(boost::posix_time::time_duration) const;
 
-		void force_reannounce_on_loop(boost::posix_time::time_duration) const;
-
 		// TODO: add a feature where the user can tell the torrent
 		// to finish all pieces currently in the pipeline, and then
 		// abort the torrent.
