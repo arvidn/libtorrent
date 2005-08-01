@@ -245,7 +245,7 @@ namespace libtorrent
 		// forcefully sets next_announce to the current time
 		void force_tracker_request();
 		void force_tracker_request(boost::posix_time::ptime);
-
+		void force_tracker_request_on_loop(boost::posix_time::ptime);
 		// sets the username and password that will be sent to
 		// the tracker
 		void set_tracker_login(std::string const& name, std::string const& pw);
@@ -550,6 +550,11 @@ namespace libtorrent
 		m_next_request = t;
 	}
 
+	inline void torrent::force_tracker_request_on_loop(boost::posix_time::ptime t)
+	{
+		namespace time = boost::posix_time;
+		m_next_request = t;
+	}
 
 	inline void torrent::set_tracker_login(
 		std::string const& name
