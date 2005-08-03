@@ -923,43 +923,48 @@ namespace libtorrent
 			throw protocol_error("invalid piece packet");
 		}
 
-#ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
-		for (std::deque<piece_block>::iterator i = m_download_queue.begin();
-			i != m_download_queue.end(); ++i)
-		{
-			if (i->piece_index == p.piece
-				&& i->block_index == p.start / m_torrent->block_size())
-				break;
-
-			(*m_logger) << to_simple_string(second_clock::universal_time())
-				<< " *** SKIPPED_PIECE [ piece: " << i->piece_index << " | "
-				"b: " << i->block_index << " ] ***\n";
-		}
-		(*m_logger) << to_simple_string(second_clock::universal_time())
-			<< " <== PIECE   [ piece: " << p.piece << " | "
-			"b: " << p.start / m_torrent->block_size() << " | "
-			"s: " << p.start << " | "
-			"l: " << p.length << " ]\n";
-#endif
 
 		piece_picker& picker = m_torrent->picker();
+
 		piece_block block_finished(p.piece, p.start / m_torrent->block_size());
-
-		// if the block we got is already finished, then ignore it
-		if (picker.is_finished(block_finished)) return;
-
 		std::deque<piece_block>::iterator b
 			= std::find(
 				m_download_queue.begin()
 				, m_download_queue.end()
 				, block_finished);
 
+
+		std::deque<piece_block>::iterator i;
+
 		if (b != m_download_queue.end())
 		{
-			// pop the request that just finished
-			// from the download queue
-			m_download_queue.erase(b);
+			for (i = m_download_queue.begin();
+				i != b; ++i)
+			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << to_simple_string(second_clock::universal_time())
+					<< " *** SKIPPED_PIECE [ piece: " << i->piece_index << " | "
+					"b: " << i->block_index << " ] ***\n";
+#endif
+				// since this piece was skipped, clear it and allow it to
+				// be requested from other peers
+				picker.abort_download(*i);
+			}
+		
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << to_simple_string(second_clock::universal_time())
+				<< " <== PIECE   [ piece: " << p.piece << " | "
+				"b: " << p.start / m_torrent->block_size() << " | "
+				"s: " << p.start << " | "
+				"l: " << p.length << " ]\n";
+#endif
+
+			// remove the request that just finished
+			// from the download queue plus the
+			// skipped blocks.
+			m_download_queue.erase(m_download_queue.begin()
+				, boost::next(b));
 		}
 		else
 		{
@@ -989,6 +994,9 @@ namespace libtorrent
 #endif
 			}
 		}
+
+		// if the block we got is already finished, then ignore it
+		if (picker.is_finished(block_finished)) return;
 
 		m_torrent->filesystem().write(&m_recv_buffer[9], p.piece, p.start, p.length);
 

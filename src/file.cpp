@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/filesystem/operations.hpp>
 #include "libtorrent/file.hpp"
+#include "libtorrent/utf8.hpp"
 #include <sstream>
 
 #ifdef _WIN32
@@ -79,6 +80,34 @@ namespace
 		assert(false);
 		return 0;
 	}
+
+#ifdef WIN32
+	std::string utf8_native(std::string const& s)
+	{
+		try
+		{
+			std::wstring ws;
+			libtorrent::utf8_wchar(s, ws);
+			std::size_t size = wcstombs(0, ws.c_str(), 0);
+			if (size == std::size_t(-1)) return s;
+			std::string ret;
+			ret.resize(size);
+			size = wcstombs(&ret[0], ws.c_str(), size + 1);
+			ret.resize(size);
+			return ret;
+		}
+		catch(std::exception)
+		{
+			return s;
+		}
+	}
+#else
+	std::string utf8_native(std::string const& s)
+	{
+		return s;
+	}
+#endif
+
 }
 
 namespace libtorrent
@@ -114,7 +143,7 @@ namespace libtorrent
 			assert(path.is_complete());
 			close();
 			m_fd = ::open(
-				path.native_file_string().c_str()
+				utf8_native(path.native_file_string()).c_str()
 				, map_open_mode(mode)
 				, S_IREAD | S_IWRITE);
 			if (m_fd == -1)
