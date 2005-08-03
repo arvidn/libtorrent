@@ -31,7 +31,8 @@ namespace libtorrent {
 namespace detail {
 
 template<typename InputIterator>
-static wchar_t decode_utf8_mb(InputIterator &iter, InputIterator last) {
+wchar_t decode_utf8_mb(InputIterator &iter, InputIterator last)
+{
 	if(iter==last) throw std::runtime_error("incomplete UTF-8 sequence");
 	if(((*iter)&0xC0)!=0x80) throw std::runtime_error("invalid UTF-8 sequence");
 
@@ -39,7 +40,8 @@ static wchar_t decode_utf8_mb(InputIterator &iter, InputIterator last) {
 }
 
 template<typename InputIterator>
-static wchar_t decode_utf8(InputIterator &iter, InputIterator last) {
+wchar_t decode_utf8(InputIterator &iter, InputIterator last)
+{
 	wchar_t ret;
 
 	if(((*iter)&0x80) == 0) {
@@ -64,19 +66,23 @@ static wchar_t decode_utf8(InputIterator &iter, InputIterator last) {
 }
 
 template<typename InputIterator, typename OutputIterator>
-static OutputIterator utf8_wchar(InputIterator first, InputIterator last, OutputIterator dest) {
+OutputIterator utf8_wchar(InputIterator first, InputIterator last, OutputIterator dest)
+{
 	for(; first!=last; ++dest)
 		*dest=decode_utf8(first, last);
 	return dest;
 }
 
 template<typename InputIterator, typename OutputIterator>
-static void encode_wchar(InputIterator iter, OutputIterator &dest) {
-	if(*iter <= 0x007F) {
+void encode_wchar(InputIterator iter, OutputIterator &dest)
+{
+	if(*iter <= 0x007F)
+	{
 		*dest=(char)*iter;
 		++dest;
 	}
-	else if(*iter <= 0x07FF) {
+	else if(*iter <= 0x07FF)
+	{
 		*dest = (char)(
 			0xC0 |
 			((*iter & 0x07C0) >> 6)
@@ -89,7 +95,8 @@ static void encode_wchar(InputIterator iter, OutputIterator &dest) {
 		);
 		++dest;
 	}
-	else if(*iter <= 0xFFFF) {
+	else if(*iter <= 0xFFFF)
+	{
 		*dest = (char)(
 			0xE0 |
 			((*iter & 0xF000) >> 12)
@@ -111,7 +118,8 @@ static void encode_wchar(InputIterator iter, OutputIterator &dest) {
 }
 
 template<typename InputIterator, typename OutputIterator>
-static OutputIterator wchar_utf8(InputIterator first, InputIterator last, OutputIterator dest) {
+OutputIterator wchar_utf8(InputIterator first, InputIterator last, OutputIterator dest)
+{
 	for(; first!=last; ++first)
 		encode_wchar(first, dest);
 	return dest;
@@ -119,23 +127,27 @@ static OutputIterator wchar_utf8(InputIterator first, InputIterator last, Output
 
 }
 
-static void utf8_wchar(const std::string &utf8, std::wstring &wide) {
+void utf8_wchar(const std::string &utf8, std::wstring &wide)
+{
 	wide.clear();
 	detail::utf8_wchar(utf8.begin(), utf8.end(), std::insert_iterator<std::wstring>(wide, wide.end()));
 }
 
-static std::wstring utf8_wchar(const std::string &str) {
+std::wstring utf8_wchar(const std::string &str)
+{
 	std::wstring ret;
 	utf8_wchar(str, ret);
 	return ret;
 }
 
-static void wchar_utf8(const std::wstring &wide, std::string &utf8) {
+void wchar_utf8(const std::wstring &wide, std::string &utf8)
+{
 	utf8.clear();
 	detail::wchar_utf8(wide.begin(), wide.end(), std::insert_iterator<std::string>(utf8, utf8.end()));
 }
 
-static std::string wchar_utf8(const std::wstring &str) {
+std::string wchar_utf8(const std::wstring &str)
+{
 	std::string ret;
 	wchar_utf8(str, ret);
 	return ret;
