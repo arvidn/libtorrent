@@ -127,26 +127,26 @@ OutputIterator wchar_utf8(InputIterator first, InputIterator last, OutputIterato
 
 }
 
-void utf8_wchar(const std::string &utf8, std::wstring &wide)
+inline void utf8_wchar(const std::string &utf8, std::wstring &wide)
 {
 	wide.clear();
 	detail::utf8_wchar(utf8.begin(), utf8.end(), std::insert_iterator<std::wstring>(wide, wide.end()));
 }
 
-std::wstring utf8_wchar(const std::string &str)
+inline std::wstring utf8_wchar(const std::string &str)
 {
 	std::wstring ret;
 	utf8_wchar(str, ret);
 	return ret;
 }
 
-void wchar_utf8(const std::wstring &wide, std::string &utf8)
+inline void wchar_utf8(const std::wstring &wide, std::string &utf8)
 {
 	utf8.clear();
 	detail::wchar_utf8(wide.begin(), wide.end(), std::insert_iterator<std::string>(utf8, utf8.end()));
 }
 
-std::string wchar_utf8(const std::wstring &str)
+inline std::string wchar_utf8(const std::wstring &str)
 {
 	std::string ret;
 	wchar_utf8(str, ret);
