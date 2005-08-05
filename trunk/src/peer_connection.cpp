@@ -128,9 +128,12 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		// these numbers are used the first second of connection.
+		// then the given upload limits will be applied by running
+		// allocate_resources().
 		m_ul_bandwidth_quota.min = 10;
-		m_ul_bandwidth_quota.max = 400;
-		m_ul_bandwidth_quota.given = 400;
+		m_ul_bandwidth_quota.max = std::numeric_limits<int>::max();
+		m_ul_bandwidth_quota.given = std::numeric_limits<int>::max();
 		m_dl_bandwidth_quota.min = 10;
 		m_dl_bandwidth_quota.max = std::numeric_limits<int>::max();
 		m_dl_bandwidth_quota.given = 400;
@@ -211,10 +214,13 @@ namespace libtorrent
 		// upload bandwidth will only be given to connections
 		// that are part of a torrent. Since this is an incoming
 		// connection, we have to give it some initial bandwidth
-		// to send the handshake
+		// to send the handshake.
+		// after one second, allocate_resources() will be called
+		// and the correct bandwidth limits will be set on all
+		// connections.
 		m_ul_bandwidth_quota.min = 10;
-		m_ul_bandwidth_quota.max = 400;
-		m_ul_bandwidth_quota.given = 400;
+		m_ul_bandwidth_quota.max = std::numeric_limits<int>::max();
+		m_ul_bandwidth_quota.given = std::numeric_limits<int>::max();
 
 		m_dl_bandwidth_quota.min = 10;
 		m_dl_bandwidth_quota.max = std::numeric_limits<int>::max();

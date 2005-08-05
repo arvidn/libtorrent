@@ -697,6 +697,8 @@ namespace libtorrent
 				// rotate, unchoke one peer here
 				// and let the next condiional block
 				// make sure another peer is choked.
+				// TODO: This rotation should happen
+				// far less frequent than this!
 				seed_unchoke_one_peer();
 			}
 
@@ -990,8 +992,27 @@ namespace libtorrent
 	}
 
 	// called when a peer is interested in us
-	void policy::interested(peer_connection&)
+	void policy::interested(peer_connection& c)
 	{
+		// if the peer is choked and we have upload slots left,
+		// then unchoke it. Another condition that has to be met
+		// is that the torrent doesn't keep track of the individual
+		// up/down ratio for each peer (ratio == 0) or (if it does
+		// keep track) this particular connection isn't a leecher.
+		// If the peer was choked because it was leeching, don't
+		// unchoke it again.
+		// The exception to this last condition is if we're a seed.
+		// In that case we don't care if people are leeching, they
+		// can't pay for their downloads anyway.
+		if (c.is_choked()
+			&& m_num_unchoked < m_torrent->m_uploads_quota.given
+			&& (m_torrent->ratio() == 0)
+				|| (c.share_diff() >= -free_upload_amount
+				|| m_torrent->is_seed()))
+		{
+			c.send_unchoke();
+			++m_num_unchoked;
+		}
 	}
 
 	// called when a peer is no longer interested in us
