@@ -346,8 +346,8 @@ int main(int argc, char* argv[])
 
 					handles.push_back(ses.add_torrent(argv[i+1], info_hash, save_path));
 					handles.back().set_max_connections(60);
-					handles.back().set_max_uploads(7);
-					handles.back().set_ratio(1.1f);
+					handles.back().set_max_uploads(-1);
+//					handles.back().set_ratio(1.1f);
 					++i;
 
 					continue;
@@ -373,9 +373,9 @@ int main(int argc, char* argv[])
 				catch (boost::filesystem::filesystem_error&) {}
 
 				handles.push_back(ses.add_torrent(e, save_path, resume_data, true, 64 * 1024));
-				handles.back().set_max_connections(100);
+				handles.back().set_max_connections(60);
 				handles.back().set_max_uploads(-1);
-				handles.back().set_ratio(1.02f);
+//				handles.back().set_ratio(1.02f);
 
 			}
 			catch (std::exception& e)
