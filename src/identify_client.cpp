@@ -167,6 +167,7 @@ namespace
 		, map_entry("M",  "Mainline")
 		, map_entry("MP", "MooPolice")
 		, map_entry("MT", "Moonlight Torrent")
+		, map_entry("O",  "Osprey Permaseed")
 		, map_entry("S",  "Shadow")
 		, map_entry("SN", "ShareNet")
 		, map_entry("SS", "SwarmScope")
@@ -176,6 +177,7 @@ namespace
 		, map_entry("U",  "UPnP")
 		, map_entry("XT", "XanTorrent")
 		, map_entry("ZT", "ZipTorrent")
+		, map_entry("lt", "libTorrent (libtorrent.rakshasa.no/)")
 		, map_entry("pX", "pHoeniX")
 	};
 
@@ -256,11 +258,13 @@ namespace libtorrent
 		if (find_string(PID, "Plus")) return "Plus!";
 		if (find_string(PID, "exbc")) return "BitComet";
 		if (find_string(PID, "-G3")) return "G3 Torrent";
+		if (find_string(PID, "OP")) return "Opera";
 		if (find_string(PID, "XBT")) return "XBT";
 
 		if (find_string(PID, "-BOW") && PID[7] == '-')
 			return "Bits on Wheels " + std::string(PID + 4, PID + 7);
 		
+
 		if (find_string(PID, "eX"))
 		{
 			std::string user(PID + 2, PID + 14);

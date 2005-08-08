@@ -48,6 +48,7 @@ project torrent
 SOURCES =
 	allocate_resources.cpp
 	alert.cpp
+	async_gethostbyname.cpp
 	entry.cpp
 	escape_string.cpp
 	file.cpp

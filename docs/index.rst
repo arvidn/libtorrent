@@ -54,7 +54,7 @@ There's a `mailing list`__, general libtorrent discussion.
 
 __ http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 
-You can usually find me as hydri in ``#btports @ irc.freenode.net``.
+You can usually find me as hydri in ``#libtorrent`` on ``irc.freenode.net``.
 
 
 Acknowledgements
