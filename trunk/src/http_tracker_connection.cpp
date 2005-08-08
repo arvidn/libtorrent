@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/io.hpp"
+#include "libtorrent/async_gethostbyname.hpp"
 
 using namespace libtorrent;
 
@@ -112,13 +113,6 @@ namespace libtorrent
 		{
 			connect_to_host = &hostname;
 		}
-
-		// TODO: this is a problem. DNS-lookup is blocking!
-		// (may block up to 5 seconds)
-		address a(connect_to_host->c_str(), port);
-		if (has_requester()) requester().m_tracker_address = a;
-		boost::shared_ptr<socket> s(new socket(socket::tcp, false));
-		s->connect(a);
 
 		m_send_buffer.assign("GET ");
 		if (using_proxy)
@@ -224,7 +218,9 @@ namespace libtorrent
 			requester().debug_log("info_hash: " + info_hash_str.str() + "\n");
 		}
 #endif
-		m_socket = s;
+
+		m_name_lookup = dns_lookup(connect_to_host->c_str(), port);
+		m_socket.reset(new socket(socket::tcp, false));
 	}
 
 	// returns true if this connection is finished and should be removed from
@@ -235,7 +231,31 @@ namespace libtorrent
 		try
 		{
 #endif
-	
+
+		if (m_name_lookup.running())
+		{
+			if (!m_name_lookup.finished()) return false;
+
+			if (m_name_lookup.failed())
+			{
+				if (has_requester()) requester().tracker_request_error(
+					m_req, -1, "hostname not found: " + m_name_lookup.error());
+				return true;
+			}
+			address a(m_name_lookup.ip());
+			if (has_requester()) requester().m_tracker_address = a;
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		if (has_requester()) requester().debug_log("name lookup successful");
+#endif
+
+			m_socket->connect(a);
+		
+			// clear the lookup entry so it will not be
+			// marked as running anymore
+			m_name_lookup = dns_lookup();
+		}
+
 		using namespace boost::posix_time;
 
 		time_duration d = second_clock::universal_time() - m_request_time;

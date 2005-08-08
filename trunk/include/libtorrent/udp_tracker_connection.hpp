@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer.hpp"
 #include "libtorrent/tracker_manager.hpp"
+#include "libtorrent/async_gethostbyname.hpp"
 
 namespace libtorrent
 {
@@ -93,6 +94,7 @@ namespace libtorrent
 		bool parse_announce_response(const char* buf, int ret);
 		bool parse_scrape_response(const char* buf, int ret);
 
+		dns_lookup m_name_lookup;
 		boost::shared_ptr<socket> m_socket;
 
 		// used for time outs

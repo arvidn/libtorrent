@@ -73,14 +73,9 @@ namespace libtorrent
 		, m_settings(stn)
 		, m_attempts(0)
 	{
-		// TODO: this is a problem. DNS-lookup is blocking!
-		// (may block up to 5 seconds)
-		address a(hostname.c_str(), port);
-		if (has_requester()) requester().m_tracker_address = a;
+		m_name_lookup = dns_lookup(hostname.c_str(), port);
 		m_socket.reset(new socket(socket::udp, false));
-		m_socket->connect(a);
 
-		send_udp_connect();
 	}
 
 	bool udp_tracker_connection::send_finished() const
@@ -96,6 +91,31 @@ namespace libtorrent
 	bool udp_tracker_connection::tick()
 	{
 		using namespace boost::posix_time;
+
+		if (m_name_lookup.running())
+		{
+			if (!m_name_lookup.finished()) return false;
+
+			if (m_name_lookup.failed())
+			{
+				if (has_requester()) requester().tracker_request_error(
+					m_request, -1, "hostname not found: " + m_name_lookup.error());
+				return true;
+			}
+			address a(m_name_lookup.ip());
+			if (has_requester()) requester().m_tracker_address = a;
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		if (has_requester()) requester().debug_log("name lookup successful");
+#endif
+
+			m_socket->connect(a);
+			send_udp_connect();
+		
+			// clear the lookup entry so it will not be
+			// marked as running anymore
+			m_name_lookup = dns_lookup();
+		}
 
 		time_duration d = second_clock::universal_time() - m_request_time;
 		if (m_connection_id == 0

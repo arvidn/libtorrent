@@ -74,7 +74,7 @@ namespace
 
 namespace libtorrent
 {
-
+/*
 	address parse_url(std::string const& url)
 	{
 		std::string hostname; // hostname only
@@ -121,7 +121,7 @@ namespace libtorrent
 
 		return address(hostname.c_str(), port);
 	}
-
+*/
 	// returns -1 if gzip header is invalid or the header size in bytes
 	int gzip_header(const char* buf, int size)
 	{

@@ -62,7 +62,7 @@ namespace libtorrent
 	struct request_callback;
 	class tracker_manager;
 
-	address parse_url(std::string const& url);
+//	address parse_url(std::string const& url);
 
 	// encodes a string using the base64 scheme
 	std::string base64encode(const std::string& s);
