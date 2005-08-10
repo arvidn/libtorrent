@@ -136,13 +136,19 @@
 <li><a class="reference" href="#file-format" id="id110" name="id110">file format</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#extensions" id="id111" name="id111">extensions</a><ul>
-<li><a class="reference" href="#chat-messages" id="id112" name="id112">chat messages</a></li>
-<li><a class="reference" href="#metadata-from-peers" id="id113" name="id113">metadata from peers</a></li>
+<li><a class="reference" href="#threads" id="id111" name="id111">threads</a></li>
+<li><a class="reference" href="#storage-allocation" id="id112" name="id112">storage allocation</a><ul>
+<li><a class="reference" href="#full-allocation" id="id113" name="id113">full allocation</a></li>
+<li><a class="reference" href="#compact-allocation" id="id114" name="id114">compact allocation</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#filename-checks" id="id114" name="id114">filename checks</a></li>
-<li><a class="reference" href="#acknowledgements" id="id115" name="id115">acknowledgements</a></li>
+<li><a class="reference" href="#extensions" id="id115" name="id115">extensions</a><ul>
+<li><a class="reference" href="#chat-messages" id="id116" name="id116">chat messages</a></li>
+<li><a class="reference" href="#metadata-from-peers" id="id117" name="id117">metadata from peers</a></li>
+</ul>
+</li>
+<li><a class="reference" href="#filename-checks" id="id118" name="id118">filename checks</a></li>
+<li><a class="reference" href="#acknowledgements" id="id119" name="id119">acknowledgements</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
@@ -344,57 +350,57 @@ the <tt class="docutils literal"><span class="pre">session</span></tt>, it conta
 <h1><a name="session">session</a></h1>
 <p>The <tt class="docutils literal"><span class="pre">session</span></tt> class has the following synopsis:</p>
 <pre class="literal-block">
-  class session: public boost::noncopyable
-  {
+class session: public boost::noncopyable
+{
 
-          session(const fingerprint&amp; print = libtorrent::fingerprint(&quot;LT&quot;, 0, 1, 0, 0));
+        session(const fingerprint&amp; print = libtorrent::fingerprint(&quot;LT&quot;, 0, 1, 0, 0));
 
-          session(
-                  const fingerprint&amp; print
-                  , std::pair&lt;int, int&gt; listen_port_range
-                  , const char* listen_interface = 0);
+        session(
+                const fingerprint&amp; print
+                , std::pair&lt;int, int&gt; listen_port_range
+                , const char* listen_interface = 0);
 
-          torrent_handle add_torrent(
-                  entry const&amp; e
-                  , boost::filesystem::path const&amp; save_path
-                  , entry const&amp; resume_data = entry()
-                  , bool compact_mode = true
-                  , int block_size = 16 * 1024);
+        torrent_handle add_torrent(
+                entry const&amp; e
+                , boost::filesystem::path const&amp; save_path
+                , entry const&amp; resume_data = entry()
+                , bool compact_mode = true
+                , int block_size = 16 * 1024);
 
-          torrent_handle add_torrent(
-                  char const* tracker_url
-                  , sha1_hash const&amp; info_hash
-                  , boost::filesystem::path const&amp; save_path
-                  , entry const&amp; resume_data = entry()
-                  , bool compact_mode = true
-                  , int block_size = 16 * 1024);
+        torrent_handle add_torrent(
+                char const* tracker_url
+                , sha1_hash const&amp; info_hash
+                , boost::filesystem::path const&amp; save_path
+                , entry const&amp; resume_data = entry()
+                , bool compact_mode = true
+                , int block_size = 16 * 1024);
 
-          void remove_torrent(torrent_handle const&amp; h);
+        void remove_torrent(torrent_handle const&amp; h);
 
-          void disable_extensions();
-          void enable_extension(peer_connection::extension_index);
+        void disable_extensions();
+        void enable_extension(peer_connection::extension_index);
 
-          void set_http_settings(const http_settings&amp; settings);
+        void set_http_settings(const http_settings&amp; settings);
 
-          void set_upload_rate_limit(int bytes_per_second);
-          void set_download_rate_limit(int bytes_per_second);
-          void set_max_uploads(int limit);
-          void set_max_connections(int limit);
+        void set_upload_rate_limit(int bytes_per_second);
+        void set_download_rate_limit(int bytes_per_second);
+        void set_max_uploads(int limit);
+        void set_max_connections(int limit);
 
-void set_ip_filter(ip_filter const&amp; f);
+        void set_ip_filter(ip_filter const&amp; f);
 
-          session_status status() const;
+        session_status status() const;
 
-          bool is_listening() const;
-          unsigned short listen_port() const;
-          bool listen_on(
-                  std::pair&lt;int, int&gt; const&amp; port_range
-                  , char const* interface = 0);
+        bool is_listening() const;
+        unsigned short listen_port() const;
+        bool listen_on(
+                std::pair&lt;int, int&gt; const&amp; port_range
+                , char const* interface = 0);
 
 
-          std::auto_ptr&lt;alert&gt; pop_alert();
-          void set_severity_level(alert::severity_t s);
-  };
+        std::auto_ptr&lt;alert&gt; pop_alert();
+        void set_severity_level(alert::severity_t s);
+};
 </pre>
 <p>Once it's created, the session object will spawn the main thread that will do all the work.
 The main thread will be idle as long it doesn't have any torrents to participate in.</p>
@@ -460,7 +466,7 @@ set to true (default), the storage will grow as more pieces are downloaded, and 
 are rearranged to finally be in their correct places once the entire torrent has been
 downloaded. If it is false, the entire storage is allocated before download begins. I.e.
 the files contained in the torrent are filled with zeroes, and each downloaded piece
-is put in its final place directly when downloaded.</p>
+is put in its final place directly when downloaded. For more info, see <a class="reference" href="#storage-allocation">storage allocation</a>.</p>
 <p><tt class="docutils literal"><span class="pre">block_size</span></tt> sets the preferred request size, i.e. the number of bytes to request from
 a peer at a time. This block size must be a divisor of the piece size, and since the piece
 size is an even power of 2, so must the block size be. If the block size given here turns
@@ -2323,8 +2329,7 @@ int main(int argc, char* argv[])
                 std::cout &lt;&lt; &quot;\n\n----- torrent file info -----\n\n&quot;;
                 std::cout &lt;&lt; &quot;trackers:\n&quot;;
                 for (std::vector&lt;announce_entry&gt;::const_iterator i = t.trackers().begin();
-                        i != t.trackers().end();
-                        ++i)
+                        i != t.trackers().end(); ++i)
                 {
                         std::cout &lt;&lt; i-&gt;tier &lt;&lt; &quot;: &quot; &lt;&lt; i-&gt;url &lt;&lt; &quot;\n&quot;;
                 }
@@ -2610,6 +2615,109 @@ re-check is issued.</td>
 </table>
 </div>
 </div>
+<div class="section" id="threads">
+<h1><a name="threads">threads</a></h1>
+<p>libtorrent starts 3 threads.</p>
+<blockquote>
+<ul class="simple">
+<li>The first thread is the main thread that will sit
+idle in a <tt class="docutils literal"><span class="pre">select()</span></tt> call most of the time. This thread runs the main loop
+that will send and receive data on all connections.</li>
+<li>The second thread is a hash-check thread. Whenever a torrent is added it will
+first be passed to this thread for checking the files that may already have been
+downloaded. If there is any resume data this thread will make sure it is valid
+and matches the files. Once the torrent has been checked, it is passed on to the
+main thread that will start it. The hash-check thread has a queue of torrents,
+it will only check one torrent at a time.</li>
+<li>The third thread is spawned the first time a tracker is contacted. It is used
+for doing calls to <tt class="docutils literal"><span class="pre">gethostbyname()</span></tt>. Since this call is blocking (and may block
+for several seconds if the dns server is down or slow) it is necessary to run this
+in its own thread to avoid stalling the main thread.</li>
+</ul>
+</blockquote>
+</div>
+<div class="section" id="storage-allocation">
+<h1><a name="storage-allocation">storage allocation</a></h1>
+<p>There are two modes in which storage (files on disk) are allocated in libtorrent.</p>
+<blockquote>
+<ul class="simple">
+<li>The traditional <em>full allocation</em> mode, where the entire files are filled up with
+zeroes before anything is downloaded.</li>
+<li>And the <em>compact allocation</em> mode, where only files are allocated for actual
+pieces that have been downloaded. This is the default allocation mode in libtorrent.</li>
+</ul>
+</blockquote>
+<p>The allocation mode is selected when a torrent is started. It is passed as a boolean
+argument to <tt class="docutils literal"><span class="pre">session::add_torrent()</span></tt> (see <a class="reference" href="#add-torrent">add_torrent()</a>). These two modes have
+different drawbacks and benefits.</p>
+<div class="section" id="full-allocation">
+<h2><a name="full-allocation">full allocation</a></h2>
+<p>When a torrent is started in full allocation mode, the checker thread (see <a class="reference" href="#threads">threads</a>)
+will make sure that the entire storage is allocated, and fill any gaps with zeroes.
+It will of course still check for existing pieces and fast resume data. The main
+drawbacks of this mode are:</p>
+<blockquote>
+<ul class="simple">
+<li>It will take longer to start the torrent, since it will need to fill the files
+with zeroes. This delay is linearly dependent on the size of the download.</li>
+<li>The download will occupy unnecessary disk space between download sessions.</li>
+</ul>
+</blockquote>
+<p>The benefit of thise mode are:</p>
+<blockquote>
+<ul class="simple">
+<li>Downloaded pieces are written directly to their final place in the files and the
+total number of disk operations will be fewer and may also play nicer to
+filesystems' file allocation, and reduce fragmentation.</li>
+<li>No risk of a download failing because of a full disk during download.</li>
+</ul>
+</blockquote>
+</div>
+<div class="section" id="compact-allocation">
+<h2><a name="compact-allocation">compact allocation</a></h2>
+<p>The compact allocation will only allocate as much storage as it needs to keep the
+pieces downloaded so far. This means that pieces will be moved around to be placed
+at their final position in the files while downloading (to make sure the completed
+download has all its pieces in the correct place). So, the main drawbacks are:</p>
+<blockquote>
+<ul class="simple">
+<li>More disk operations while downloading since pieces are moved around.</li>
+<li>Potentially more fragmentation in the filesystem.</li>
+</ul>
+</blockquote>
+<p>The benefits though, are:</p>
+<blockquote>
+<ul class="simple">
+<li>No startup delay, since the files doesn't need allocating.</li>
+<li>The download will not use unnecessary disk space.</li>
+</ul>
+</blockquote>
+<p>The algorithm that is used when allocating pieces and slots isn't very complicated.
+For the interested, a description follows.</p>
+<p>storing a piece:</p>
+<ol class="arabic simple">
+<li>let <strong>A</strong> be a newly downloaded piece, with index <strong>n</strong>.</li>
+<li>let <strong>s</strong> be the number of slots allocated in the file we're
+downloading to. (the number of pieces it has room for).</li>
+<li>if <strong>n</strong> &gt;= <strong>s</strong> then allocate a new slot and put the piece there.</li>
+<li>if <strong>n</strong> &lt; <strong>s</strong> then allocate a new slot, move the data at
+slot <strong>n</strong> to the new slot and put <strong>A</strong> in slot <strong>n</strong>.</li>
+</ol>
+<p>allocating a new slot:</p>
+<ol class="arabic simple">
+<li>if there's an unassigned slot (a slot that doesn't
+contain any piece), return that slot index.</li>
+<li>append the new slot at the end of the file (or find an unused slot).</li>
+<li>let <strong>i</strong> be the index of newly allocated slot</li>
+<li>if we have downloaded piece index <strong>i</strong> already (to slot <strong>j</strong>) then<ol class="arabic">
+<li>move the data at slot <strong>j</strong> to slot <strong>i</strong>.</li>
+<li>return slot index <strong>j</strong> as the newly allocated free slot.</li>
+</ol>
+</li>
+<li>return <strong>i</strong> as the newly allocated slot.</li>
+</ol>
+</div>
+</div>
 <div class="section" id="extensions">
 <h1><a name="extensions">extensions</a></h1>
 <p>These extensions all operates within the <a class="reference" href="http://nolar.com/azureus/extended.html">extension protocol</a>. The
@@ -2789,7 +2897,7 @@ boost::filesystem::path::default_name_check(boost::filesystem::native);
 </div>
 <div class="section" id="acknowledgements">
 <h1><a name="acknowledgements">acknowledgements</a></h1>
-<p>Written by Arvid Norberg. Copyright (c) 2003</p>
+<p>Written by Arvid Norberg. Copyright (c) 2003-2005</p>
 <p>Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson</p>
 <p>Thanks to Reimond Retz for bugfixes, suggestions and testing</p>
 <p>Thanks to <a class="reference" href="http://www.cs.umu.se">University of Umeå</a> for providing development and
