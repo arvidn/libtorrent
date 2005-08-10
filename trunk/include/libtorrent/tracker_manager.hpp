@@ -110,6 +110,7 @@ namespace libtorrent
 		friend class tracker_manager;
 		request_callback(): m_manager(0) {}
 		virtual ~request_callback() {}
+		virtual void tracker_warning(std::string const& msg) = 0;
 		virtual void tracker_response(
 			tracker_request const&
 			, std::vector<peer_entry>& peers

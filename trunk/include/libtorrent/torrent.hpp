@@ -222,6 +222,7 @@ namespace libtorrent
 			tracker_request const& r);
 		virtual void tracker_request_error(tracker_request const& r
 			, int response_code, const std::string& str);
+		virtual void tracker_warning(std::string const& msg);
 
 		// generates a request string for sending
 		// to the tracker

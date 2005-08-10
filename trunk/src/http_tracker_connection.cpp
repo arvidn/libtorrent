@@ -608,6 +608,14 @@ namespace libtorrent
 			}
 			catch (type_error const&) {}
 
+			try
+			{
+				entry const& warning = e["warning message"];
+				if (has_requester())
+					requester().tracker_warning(warning.string());
+			}
+			catch(type_error const&) {}
+			
 			std::vector<peer_entry> peer_list;
 
 			if (m_req.kind == tracker_request::scrape_request)
