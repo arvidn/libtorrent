@@ -50,7 +50,7 @@ namespace libtorrent
 			, handle(h)
 			, times_in_row(times)
 			, status_code(status)
-			{}
+		{}
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new tracker_alert(*this)); }
@@ -60,13 +60,29 @@ namespace libtorrent
 		int status_code;
 	};
 
+	struct tracker_warning_alert: alert
+	{
+		tracker_warning_alert(torrent_handle const& h
+			, std::string const& msg)
+			: alert(alert::warning, msg)
+			, handle(h)
+		{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new tracker_warning_alert(*this)); }
+
+		torrent_handle handle;
+	};
+
+
+	
 	struct tracker_reply_alert: alert
 	{
 		tracker_reply_alert(torrent_handle const& h
 			, std::string const& msg)
 			: alert(alert::info, msg)
 			, handle(h)
-			{}
+		{}
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new tracker_reply_alert(*this)); }
@@ -79,7 +95,7 @@ namespace libtorrent
 		tracker_announce_alert(torrent_handle const& h, std::string const& msg)
 			: alert(alert::info, msg)
 			, handle(h)
-			{}
+		{}
 	
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new tracker_announce_alert(*this)); }
@@ -96,7 +112,7 @@ namespace libtorrent
 			: alert(alert::info, msg)
 			, handle(h)
 			, piece_index(index)
-			{ assert(index >= 0);}
+		{ assert(index >= 0);}
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new hash_failed_alert(*this)); }
@@ -239,7 +255,7 @@ namespace libtorrent
 			, std::string const& msg)
 			: alert(alert::warning, msg)
 			, handle(h)
-			{}
+		{}
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new fastresume_rejected_alert(*this)); }

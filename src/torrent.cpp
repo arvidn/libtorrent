@@ -291,6 +291,14 @@ namespace libtorrent
 			m_next_request < second_clock::universal_time();
 	}
 
+	void torrent::tracker_warning(std::string const& msg)
+	{
+		if (m_ses.m_alerts.should_post(alert::warning))
+		{
+			m_ses.m_alerts.post_alert(tracker_warning_alert(get_handle(), msg));
+		}
+	}
+	
 	void torrent::tracker_response(
 		tracker_request const&
 		, std::vector<peer_entry>& peer_list

@@ -1995,7 +1995,6 @@ generated and the torrent is paused. It is generated as severity level ``fatal``
 			, const std::string& msg);
 			
 		virtual std::auto_ptr<alert> clone() const;
-
 		torrent_handle handle;
 	};
 
@@ -2015,7 +2014,6 @@ It is generated at severity level ``info``.
 			, const std::string& msg);
 			
 		virtual std::auto_ptr<alert> clone() const;
-
 		torrent_handle handle;
 	};
 
@@ -2063,7 +2061,27 @@ succeeds. It is generated with severity level ``info``.
 		torrent_handle handle;
 	};
 	
+tracker_warning_alert
+---------------------
 
+This alert is triggered if the tracker reply contains a warning field. Usually this
+means that the tracker announce was successful, but the tracker has a message to
+the client. The message string in the alert will contain the warning message from
+the tracker. It is generated with severity level ``warning``.
+
+::
+
+	struct tracker_warning_alert: alert
+	{
+		tracker_warning_alert(torrent_handle const& h
+			, std::string const& msg);
+
+		virtual std::auto_ptr<alert> clone() const;
+		torrent_handle handle;
+	};
+
+
+   
 hash_failed_alert
 -----------------
 
@@ -2081,7 +2099,6 @@ This alert is generated as severity level ``info``.
 			, const std::string& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
-
 		torrent_handle handle;
 		int piece_index;
 	};
@@ -2104,7 +2121,6 @@ to the torrent that this peer was a member of.
 			, const std::string& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
-
 		address ip;
 		torrent_handle handle;
 	};
@@ -2127,7 +2143,6 @@ is generated as severity level ``debug``.
 			, const std::string& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
-
 		address ip;
 		peer_id id;
 	};
@@ -2153,7 +2168,6 @@ is a handle to the torrent the peer is a member of. ``ìp`` is the address of the
 			, std::string const& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
-
 		torrent_handle handle;
 		address ip;
 		peer_request request;
@@ -2190,7 +2204,6 @@ torrent in question. This alert is generated as severity level ``info``.
 			, const std::string& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
-
 		torrent_handle handle;
 	};
 
@@ -2211,7 +2224,6 @@ It is generated at severity level ``info``.
 			, const std::string& msg);
 			
 		virtual std::auto_ptr<alert> clone() const;
-
 		torrent_handle handle;
 	};
 
@@ -2231,7 +2243,6 @@ resume file was rejected. It is generated at severity level ``warning``.
 			, std::string const& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
-
 		torrent_handle handle;
 	};
 
