@@ -5,6 +5,7 @@ libtorrent manual
 :Author: Arvid Norberg, c99ang@cs.umu.se
 
 .. contents::
+  :depth: 2
 
 introduction
 ============
@@ -249,7 +250,7 @@ The ``session`` class has the following synopsis::
 		void set_max_uploads(int limit);
 		void set_max_connections(int limit);
 
-      void set_ip_filter(ip_filter const& f);
+		void set_ip_filter(ip_filter const& f);
       
 		session_status status() const;
 
@@ -334,7 +335,7 @@ set to true (default), the storage will grow as more pieces are downloaded, and 
 are rearranged to finally be in their correct places once the entire torrent has been
 downloaded. If it is false, the entire storage is allocated before download begins. I.e.
 the files contained in the torrent are filled with zeroes, and each downloaded piece
-is put in its final place directly when downloaded.
+is put in its final place directly when downloaded. For more info, see `storage allocation`_.
 
 ``block_size`` sets the preferred request size, i.e. the number of bytes to request from
 a peer at a time. This block size must be a divisor of the piece size, and since the piece
@@ -2385,8 +2386,7 @@ print information about it to std out::
 			std::cout << "\n\n----- torrent file info -----\n\n";
 			std::cout << "trackers:\n";
 			for (std::vector<announce_entry>::const_iterator i = t.trackers().begin();
-				i != t.trackers().end();
-				++i)
+				i != t.trackers().end(); ++i)
 			{
 				std::cout << i->tier << ": " << i->url << "\n";
 			}
@@ -2651,7 +2651,109 @@ The file format is a bencoded dictionary containing the following fields:
 |                      | re-check is issued.                                          |
 +----------------------+--------------------------------------------------------------+
 
+threads
+=======
 
+libtorrent starts 3 threads.
+
+ * The first thread is the main thread that will sit
+   idle in a ``select()`` call most of the time. This thread runs the main loop
+   that will send and receive data on all connections.
+   
+ * The second thread is a hash-check thread. Whenever a torrent is added it will
+   first be passed to this thread for checking the files that may already have been
+   downloaded. If there is any resume data this thread will make sure it is valid
+   and matches the files. Once the torrent has been checked, it is passed on to the
+   main thread that will start it. The hash-check thread has a queue of torrents,
+   it will only check one torrent at a time.
+
+ * The third thread is spawned the first time a tracker is contacted. It is used
+   for doing calls to ``gethostbyname()``. Since this call is blocking (and may block
+   for several seconds if the dns server is down or slow) it is necessary to run this
+   in its own thread to avoid stalling the main thread.
+
+
+storage allocation
+==================
+
+There are two modes in which storage (files on disk) are allocated in libtorrent.
+
+ * The traditional *full allocation* mode, where the entire files are filled up with
+   zeroes before anything is downloaded.
+
+ * And the *compact allocation* mode, where only files are allocated for actual
+   pieces that have been downloaded. This is the default allocation mode in libtorrent.
+
+The allocation mode is selected when a torrent is started. It is passed as a boolean
+argument to ``session::add_torrent()`` (see `add_torrent()`_). These two modes have
+different drawbacks and benefits.
+
+full allocation
+---------------
+
+When a torrent is started in full allocation mode, the checker thread (see threads_)
+will make sure that the entire storage is allocated, and fill any gaps with zeroes.
+It will of course still check for existing pieces and fast resume data. The main
+drawbacks of this mode are:
+
+ * It will take longer to start the torrent, since it will need to fill the files
+   with zeroes. This delay is linearly dependent on the size of the download.
+
+ * The download will occupy unnecessary disk space between download sessions.
+
+The benefit of thise mode are:
+
+ * Downloaded pieces are written directly to their final place in the files and the
+   total number of disk operations will be fewer and may also play nicer to
+   filesystems' file allocation, and reduce fragmentation.
+
+ * No risk of a download failing because of a full disk during download.
+
+
+compact allocation
+------------------
+
+The compact allocation will only allocate as much storage as it needs to keep the
+pieces downloaded so far. This means that pieces will be moved around to be placed
+at their final position in the files while downloading (to make sure the completed
+download has all its pieces in the correct place). So, the main drawbacks are:
+
+ * More disk operations while downloading since pieces are moved around.
+
+ * Potentially more fragmentation in the filesystem.
+
+The benefits though, are:
+
+ * No startup delay, since the files doesn't need allocating.
+
+ * The download will not use unnecessary disk space.
+
+The algorithm that is used when allocating pieces and slots isn't very complicated.
+For the interested, a description follows.
+
+storing a piece:
+
+1. let **A** be a newly downloaded piece, with index **n**.
+2. let **s** be the number of slots allocated in the file we're
+   downloading to. (the number of pieces it has room for).
+3. if **n** >= **s** then allocate a new slot and put the piece there.
+4. if **n** < **s** then allocate a new slot, move the data at
+   slot **n** to the new slot and put **A** in slot **n**.
+
+allocating a new slot:
+
+1. if there's an unassigned slot (a slot that doesn't
+   contain any piece), return that slot index.
+2. append the new slot at the end of the file (or find an unused slot).
+3. let **i** be the index of newly allocated slot
+4. if we have downloaded piece index **i** already (to slot **j**) then
+
+   1. move the data at slot **j** to slot **i**.
+   2. return slot index **j** as the newly allocated free slot.
+
+5. return **i** as the newly allocated slot.
+                              
+ 
 extensions
 ==========
 
@@ -2784,7 +2886,7 @@ __ http://www.boost.org/libs/filesystem/doc/index.htm
 acknowledgements
 ================
 
-Written by Arvid Norberg. Copyright (c) 2003
+Written by Arvid Norberg. Copyright (c) 2003-2005
 
 Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson
 

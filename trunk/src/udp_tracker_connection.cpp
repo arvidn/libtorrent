@@ -99,7 +99,7 @@ namespace libtorrent
 			if (m_name_lookup.failed())
 			{
 				if (has_requester()) requester().tracker_request_error(
-					m_request, -1, "hostname not found: " + m_name_lookup.error());
+					m_request, -1, m_name_lookup.error());
 				return true;
 			}
 			address a(m_name_lookup.ip());
