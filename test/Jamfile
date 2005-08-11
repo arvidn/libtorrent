@@ -1,0 +1,18 @@
+use-project /torrent : .. ;
+
+project 
+   :
+	requirements <threading>multi
+	<library>/torrent
+	<source>main.cpp
+   ;  
+
+test-suite libtorrent : 
+#	[ run test_storage.cpp ]
+#	[ run test_piece_picker.cpp ]
+#	[ run test_entry.cpp ]
+	[ run test_bencoding.cpp ]
+	[ run test_ip_filter.cpp ]
+	[ run test_hasher.cpp ]
+	; 
+
