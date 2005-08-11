@@ -198,6 +198,25 @@ namespace libtorrent
 		m_type = int_t;
 	}
 
+	bool entry::operator==(entry const& e) const
+	{
+		if (m_type != e.m_type) return false;
+
+		switch(m_type)
+		{
+		case int_t:
+			return integer() == e.integer();
+		case string_t:
+			return string() == e.string();
+		case list_t:
+			return list() == e.list();
+		case dictionary_t:
+			return dict() == e.dict();
+		default:
+			assert(m_type == undefined_t);
+			return true;
+		}
+	}
 
 	void entry::construct(data_type t)
 	{

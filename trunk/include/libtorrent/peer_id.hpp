@@ -112,8 +112,7 @@ namespace libtorrent
 	inline std::ostream& operator<<(std::ostream& os, big_number const& peer)
 	{
 		for (big_number::const_iterator i = peer.begin();
-			i != peer.end();
-			++i)
+			i != peer.end(); ++i)
 		{
 			os << std::hex << std::setw(2) << std::setfill('0')
 				<< static_cast<unsigned int>(*i);
@@ -131,8 +130,12 @@ namespace libtorrent
 		{
 			char c[2];
 			is >> c[0] >> c[1];
-			if (c[0] < 0 || c[1] < 0
-				|| c[0] > 'f' || c[1] > 'f'
+			c[0] = tolower(c[0]);
+			c[1] = tolower(c[1]);
+			std::cerr << c[0] << " " << c[1] << "\n";
+			if (
+				((c[0] < '0' || c[0] > '9') && (c[0] < 'a' || c[0] > 'f'))
+				|| ((c[1] < '0' || c[1] > '9') && (c[1] < 'a' || c[1] > 'f'))
 				|| is.fail())
 			{
 				is.setstate(ios_base::failbit);
@@ -147,3 +150,4 @@ namespace libtorrent
 }
 
 #endif // TORRENT_PEER_ID_HPP_INCLUDED
+
