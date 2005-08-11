@@ -254,7 +254,13 @@ namespace libtorrent
 				}
 			}
 
-			if (m_urls.size() == 0) throw invalid_torrent_file();
+			if (m_urls.size() == 0)
+			{
+				// the announce-list is empty
+				// fall back to look for announce
+				m_urls.push_back(announce_entry(
+					torrent_file["announce"].string()));
+			}
 			// shuffle each tier
 			std::vector<announce_entry>::iterator i = m_urls.begin();
 			std::vector<announce_entry>::iterator j;
@@ -272,39 +278,33 @@ namespace libtorrent
 		}
 		else
 		{
-			i = torrent_file.find_key("announce");
-			if (i == 0) throw invalid_torrent_file();
-			m_urls.push_back(announce_entry(i->string()));
+			m_urls.push_back(announce_entry(
+				torrent_file["announce"].string()));
 		}
 
 		// extract creation date
-		i = torrent_file.find_key("creation date");
-		if (i != 0 && i->type() == entry::int_t)
+		try
 		{
-			m_creation_date
-				= ptime(date(1970, Jan, 1))
-				+ seconds((long)i->integer());
+			m_creation_date = ptime(date(1970, Jan, 1))
+				+ seconds(torrent_file["creation date"].integer());
 		}
+		catch (type_error) {}
 
 		// extract comment
-		i = torrent_file.find_key("comment");
-		if (i != 0 && i->type() == entry::string_t)
+		try
 		{
-			m_comment = i->string();
+			m_comment = torrent_file["comment"].string();
 		}
-
+		catch (type_error) {}
+		
 		// extract comment
-		i = torrent_file.find_key("created by");
-		if (i != 0 && i->type() == entry::string_t)
+		try
 		{
-			m_created_by = i->string();
+			m_created_by = torrent_file["created by"].string();
 		}
-
-		i = torrent_file.find_key("info");
-		if (i == 0) throw invalid_torrent_file();
-		entry const& info = *i;
-
-		parse_info_section(info);
+		catch (type_error) {}
+	
+		parse_info_section(torrent_file["info"]);
 	}
 
 	boost::optional<ptime>
