@@ -67,7 +67,8 @@ namespace libtorrent
 
 		// the piece index is stored in 20 bits, which limits the allowed
 		// number of pieces somewhat
-		if (m_piece_map.size() >= piece_pos::we_have_index) throw std::runtime_error("too many pieces in torrent");
+		if (m_piece_map.size() >= piece_pos::we_have_index)
+			throw std::runtime_error("too many pieces in torrent");
 		
 		m_blocks_per_piece = blocks_per_piece;
 		m_blocks_in_last_piece = total_num_blocks % blocks_per_piece;
@@ -79,7 +80,8 @@ namespace libtorrent
 
 		// allocate the piece_map to cover all pieces
 		// and make them invalid (as if though we already had every piece)
-		std::fill(m_piece_map.begin(), m_piece_map.end(), piece_pos(0, piece_pos::we_have_index));
+		std::fill(m_piece_map.begin(), m_piece_map.end()
+			, piece_pos(0, piece_pos::we_have_index));
 	}
 
 	// pieces is a bitmask with the pieces we have
@@ -588,6 +590,7 @@ namespace libtorrent
 				{
 					num_blocks = add_interesting_blocks(*partial, pieces
 						, interesting_pieces, num_blocks);
+					assert(num_blocks >= 0);
 					if (num_blocks == 0) return;
 					++partial;
 					if (partial == m_downloading_piece_info.end()) break;
@@ -597,6 +600,7 @@ namespace libtorrent
 			if (free != m_piece_info.end())
 			{
 				num_blocks = add_interesting_blocks(*free, pieces, interesting_pieces, num_blocks);
+				assert(num_blocks >= 0);
 				if (num_blocks == 0) return;
 				++free;
 			}
@@ -631,6 +635,7 @@ namespace libtorrent
 					interesting_blocks.push_back(piece_block(*i, j));
 				}
 				num_blocks -= piece_blocks;
+				assert(num_blocks >= 0);
 				if (num_blocks == 0) return num_blocks;
 				continue;
 			}
@@ -648,15 +653,26 @@ namespace libtorrent
 			{
 				if (p->finished_blocks[j] == 1) continue;
 
+				// this block is interesting (we don't have it
+				// yet). But it may already have been requested
+				// from another peer. We have to add it anyway
+				// to allow the requester to determine if the
+				// block should be requested from more than one
+				// peer. If it is being downloaded, we continue
+				// to look for blocks until we have num_blocks
+				// blocks that have not been requested from any
+				// other peer.
 				interesting_blocks.push_back(piece_block(*i, j));
 				if (p->requested_blocks[j] == 0)
 				{
 					// we have found a piece that's free to download
 					num_blocks--;
+					assert(num_blocks >= 0);
 					if (num_blocks == 0) return num_blocks;
 				}
 			}
 		}
+		assert(num_blocks >= 0);
 		return num_blocks;
 	}
 
