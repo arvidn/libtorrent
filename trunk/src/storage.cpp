@@ -739,9 +739,9 @@ namespace libtorrent
 
 		const torrent_info& m_info;
 
-		// slots that hasn't had any file storage allocated
+		// slots that haven't had any file storage allocated
 		std::vector<int> m_unallocated_slots;
-		// slots that has file storage, but isn't assigned to a piece
+		// slots that have file storage, but isn't assigned to a piece
 		std::vector<int> m_free_slots;
 
 		enum
@@ -1702,6 +1702,8 @@ namespace libtorrent
 			assert(*i < (int)m_slot_to_piece.size());
 			assert(*i >= 0);
 			assert(m_slot_to_piece[*i] == unassigned);
+			assert(std::find(i+1, m_free_slots.end(), *i)
+				== m_free_slots.end());
 		}
 
 		for (std::vector<int>::const_iterator i = m_unallocated_slots.begin();
@@ -1710,6 +1712,8 @@ namespace libtorrent
 			assert(*i < (int)m_slot_to_piece.size());
 			assert(*i >= 0);
 			assert(m_slot_to_piece[*i] == unallocated);
+			assert(std::find(i+1, m_unallocated_slots.end(), *i)
+				== m_unallocated_slots.end());
 		}
 
 		for (int i = 0; i < m_info.num_pieces(); ++i)

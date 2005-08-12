@@ -9,7 +9,7 @@ project
 
 test-suite libtorrent : 
 #	[ run test_storage.cpp ]
-#	[ run test_piece_picker.cpp ]
+	[ run test_piece_picker.cpp ]
 #	[ run test_entry.cpp ]
 	[ run test_bencoding.cpp ]
 	[ run test_ip_filter.cpp ]

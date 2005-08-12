@@ -70,6 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/lexical_cast.hpp>
+#include <boost/static_assert.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -105,12 +106,24 @@ namespace libtorrent
 			std::copy(val.begin(), end, out);
 		}
 
+		char const*	integer_to_str(char* buf, int size, entry::integer_type val);
+
 		template <class OutIt>
 		void write_integer(OutIt& out, entry::integer_type val)
 		{
-			write_string(out, boost::lexical_cast<std::string>(val));
-		}
-
+			// the stack allocated buffer for keeping the
+			// decimal representation of the number can
+			// not hold number bigger than this:
+			BOOST_STATIC_ASSERT(sizeof(entry::integer_type) <= 8);
+			char buf[21];
+			for (char const* str = integer_to_str(buf, 21, val);
+				*str != 0; ++str)
+			{
+				*out = *str;
+				++out;
+			}
+		}	
+		
 		template <class OutIt>
 		void write_char(OutIt& out, char c)
 		{
