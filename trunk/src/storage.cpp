@@ -1476,7 +1476,7 @@ namespace libtorrent
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		// ----------------------------------------------------------------------
 
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		assert(piece_index >= 0);
 	  	assert(piece_index < (int)m_piece_to_slot.size());
@@ -1635,7 +1635,7 @@ namespace libtorrent
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		// ----------------------------------------------------------------------
 
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		assert(!m_unallocated_slots.empty());
 		

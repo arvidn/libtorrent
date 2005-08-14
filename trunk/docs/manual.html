@@ -1255,7 +1255,7 @@ struct partial_piece_info
         int blocks_in_piece;
         std::bitset&lt;max_blocks_per_piece&gt; requested_blocks;
         std::bitset&lt;max_blocks_per_piece&gt; finished_blocks;
-        peer_id peer[max_blocks_per_piece];
+        address peer[max_blocks_per_piece];
         int num_downloads[max_blocks_per_piece];
 };
 </pre>
@@ -1266,7 +1266,7 @@ the last piece may have fewer blocks than the standard pieces.</p>
 means that that block has been requested, but not necessarily fully downloaded yet. To know
 from whom the block has been requested, have a look in the <tt class="docutils literal"><span class="pre">peer</span></tt> array. The bit-index
 in the <tt class="docutils literal"><span class="pre">requested_blocks</span></tt> and <tt class="docutils literal"><span class="pre">finished_blocks</span></tt> correspons to the array-index into
-<tt class="docutils literal"><span class="pre">peers</span></tt> and <tt class="docutils literal"><span class="pre">num_downloads</span></tt>. The array of peers is contains the id of the
+<tt class="docutils literal"><span class="pre">peers</span></tt> and <tt class="docutils literal"><span class="pre">num_downloads</span></tt>. The array of peers is contains the address of the
 peer the piece was requested from. If a piece hasn't been requested (the bit in
 <tt class="docutils literal"><span class="pre">requested_blocks</span></tt> is not set) the peer array entry will be undefined.</p>
 <p>The <tt class="docutils literal"><span class="pre">finished_blocks</span></tt> is a bitset where each bit says if the block is fully downloaded

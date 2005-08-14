@@ -55,6 +55,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/alert_types.hpp"
 
+using boost::bind;
+
 #ifdef _WIN32
 
 #if defined(_MSC_VER)
@@ -99,6 +101,8 @@ void clear()
 
 #include <termios.h>
 #include <string.h>
+
+#define ANSI_TERMINAL_COLORS
 
 struct set_keypress
 {
@@ -146,6 +150,20 @@ void clear()
 }
 
 #endif
+
+std::string esc(char const* code)
+{
+#ifdef ANSI_TERMINAL_COLORS
+	std::string ret;
+	ret += char(0x1b);
+	ret += "[";
+	ret += code;
+	ret += "m";
+	return ret;
+#else
+	return std::string();
+#endif
+}
 
 std::string to_string(float v, int width, int precision = 3)
 {
@@ -203,15 +221,30 @@ std::string add_suffix(float val)
 	return to_string(val, 6) + "PB";
 }
 
-std::string progress_bar(float progress, int width)
+std::string progress_bar(float progress, int width, char const* code = "33")
 {
-	std::vector<char> bar;
+	std::string bar;
 	bar.reserve(width);
 
 	int progress_chars = static_cast<int>(progress * width + .5f);
+	bar = esc(code);
 	std::fill_n(std::back_inserter(bar), progress_chars, '#');
+	bar += esc("0");
 	std::fill_n(std::back_inserter(bar), width - progress_chars, '-');
 	return std::string(bar.begin(), bar.end());
+}
+
+char const* peer_index(libtorrent::address addr, std::vector<libtorrent::peer_info> const& peers)
+{
+	using namespace libtorrent;
+	std::vector<peer_info>::const_iterator i = std::find_if(peers.begin()
+		, peers.end(), bind(std::equal_to<address>(), bind(&peer_info::ip, _1), addr));
+	if (i == peers.end()) return "+";
+
+	static char str[] = " ";
+	int index = i - peers.begin();
+	str[0] = (index < 10)?'0' + index:'A' + index - 10;
+	return str;
 }
 
 void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const& peers)
@@ -225,9 +258,9 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 	{
 		out.fill(' ');
 		out.width(2);
-		out << add_suffix(i->down_speed) << "/s "
+		out << esc("32") << add_suffix(i->down_speed) << "/s " << esc("0")
 //						<< "(" << add_suffix(i->total_download) << ") "
-			<< add_suffix(i->up_speed) << "/s "
+			<< esc("31") << add_suffix(i->up_speed) << "/s " << esc("0")
 //						<< "(" << add_suffix(i->total_upload) << ") "
 //						<< "ul:" << add_suffix(i->upload_limit) << "/s "
 //						<< "uc:" << add_suffix(i->upload_ceiling) << "/s "
@@ -486,6 +519,8 @@ int main(int argc, char* argv[])
 				a = ses.pop_alert();
 			}
 
+			session_status sess_stat = ses.status();
+			
 			std::stringstream out;
 			for (std::vector<torrent_handle>::iterator i = handles.begin();
 				i != handles.end(); ++i)
@@ -496,10 +531,10 @@ int main(int argc, char* argv[])
 					--i;
 					continue;
 				}
-				out << "name: ";
+				out << "name: " << esc("37");
 				if (i->has_metadata()) out << i->get_torrent_info().name();
 				else out << "-";
-				out << "\n";
+				out << esc("0") << "\n";
 				torrent_status s = i->status();
 
 				if (s.state != torrent_status::seeding)
@@ -534,28 +569,42 @@ int main(int argc, char* argv[])
 
 				if (s.state != torrent_status::seeding)
 				{
+					char const* progress_bar_color = "33"; // yellow
+					if (s.state == torrent_status::checking_files
+						|| s.state == torrent_status::downloading_metadata)
+					{
+						progress_bar_color = "35"; // magenta
+					}
+					else if (s.current_tracker.empty())
+					{
+						progress_bar_color = "31"; // red
+					}
+					else if (sess_stat.has_incoming_connections)
+					{
+						progress_bar_color = "32"; // green
+					}
 					out.precision(4);
 					out.width(5);
 					out.fill(' ');
 					out << (s.progress*100) << "% ";
-					out << progress_bar(s.progress, 49);
+					out << progress_bar(s.progress, 49, progress_bar_color);
 					out << "\n";
-					out << "total downloaded: " << s.total_done << " Bytes\n";
+					out << "total downloaded: " << esc("32") << s.total_done << esc("0") << " Bytes\n";
 					out	<< "peers: " << s.num_peers << " "
 						<< "seeds: " << s.num_seeds << " "
 						<< "distributed copies: " << s.distributed_copies << "\n";
 				}
-				out << "download: " << add_suffix(s.download_rate) << "/s "
-					<< "(" << add_suffix(s.total_download) << ") "
-					<< "upload: " << add_suffix(s.upload_rate) << "/s "
-					<< "(" << add_suffix(s.total_upload) << ") "
+				out << "download: " << esc("32") << add_suffix(s.download_rate) << "/s " << esc("0")
+					<< "(" << esc("32") << add_suffix(s.total_download) << esc("0") << ") "
+					<< "upload: " << esc("31") << add_suffix(s.upload_rate) << "/s " << esc("0")
+					<< "(" << esc("31") << add_suffix(s.total_upload) << esc("0") << ") "
 					<< "ratio: " << ratio(s.total_payload_download, s.total_payload_upload) << "\n";
 				if (s.state != torrent_status::seeding)
 				{
 					out << "info-hash: " << i->info_hash() << "\n";
 
 					boost::posix_time::time_duration t = s.next_announce;
-					out << "next announce: " << boost::posix_time::to_simple_string(t) << "\n";
+					out << "next announce: " << esc("37") << boost::posix_time::to_simple_string(t) << esc("0") << "\n";
 					out << "tracker: " << s.current_tracker << "\n";
 				}
 
@@ -578,9 +627,16 @@ int main(int argc, char* argv[])
 						out << i->piece_index << ": [";
 						for (int j = 0; j < i->blocks_in_piece; ++j)
 						{
-							if (i->finished_blocks[j]) out << "#";
-							else if (i->requested_blocks[j]) out << "+";
+							char const* peer_str = peer_index(i->peer[j], peers);
+#ifdef ANSI_TERMINAL_COLORS
+							if (i->finished_blocks[j]) out << esc("32;7") << peer_str << esc("0");
+							else if (i->requested_blocks[j]) out << peer_str;
 							else out << "-";
+#else
+							if (i->finished_blocks[j]) out << "#";
+							else if (i->requested_blocks[j]) out << peer_str;
+							else out << "-";
+#endif
 						}
 						out << "]\n";
 					}
@@ -592,8 +648,7 @@ int main(int argc, char* argv[])
 			if (print_log)
 			{
 				for (std::deque<std::string>::iterator i = events.begin();
-					i != events.end();
-					++i)
+					i != events.end(); ++i)
 				{
 					out << *i << "\n";
 				}

@@ -263,7 +263,7 @@ namespace libtorrent
 	{
 		assert(m_torrent_file.is_valid());
 		assert(m_torrent_file.num_files() > 0);
-		assert(m_torrent_file.total_size() > 0);
+		assert(m_torrent_file.total_size() >= 0);
 
 		m_have_pieces.resize(m_torrent_file.num_pieces(), false);
 		m_storage = std::auto_ptr<piece_manager>(new piece_manager(m_torrent_file, m_save_path));
@@ -396,6 +396,9 @@ namespace libtorrent
 		if (!valid_metadata()) return 0;
 
 		assert(m_picker.get());
+
+		if (m_torrent_file.num_pieces() == 0)
+			return boost::tuple<size_type, size_type>(0,0);
 		const int last_piece = m_torrent_file.num_pieces() - 1;
 
 		size_type wanted_done = (m_num_pieces - m_picker->num_have_filtered())
@@ -554,7 +557,7 @@ namespace libtorrent
 		m_abort = true;
 		m_event = tracker_request::stopped;
 		// disconnect all peers and close all
-		// files belonging to the torrent
+		// files belonging to the torrents
 		disconnect_all();
 		if (m_storage.get()) m_storage->release_files();
 	}
@@ -1263,8 +1266,9 @@ namespace libtorrent
 		}
 
 		assert(st.total_wanted >= st.total_wanted_done);
-			
-		st.progress = st.total_wanted_done
+
+		if (st.total_wanted == 0) st.progress = 1.f;
+		else st.progress = st.total_wanted_done
 			/ static_cast<float>(st.total_wanted);
 
 		st.pieces = &m_have_pieces;

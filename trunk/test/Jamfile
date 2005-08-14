@@ -5,7 +5,7 @@ project
 	requirements <threading>multi
 	<library>/torrent
 	<source>main.cpp
-   ;  
+   ;
 
 test-suite libtorrent : 
 #	[ run test_storage.cpp ]

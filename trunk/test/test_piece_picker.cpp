@@ -86,21 +86,21 @@ int test_main()
 
 		std::vector<piece_block> picked;
 		picked.clear();
-		p.pick_pieces(peer1, picked, 1);
+		p.pick_pieces(peer1, picked, 1, false, address());
 		TEST_CHECK(picked.size() == 1);
 		TEST_CHECK(picked.front().piece_index == 2);
 
 		// now pick a piece from peer2. The block is supposed to be
 		// from piece 3, since it is the rarest piece that peer has.
 		picked.clear();
-		p.pick_pieces(peer2, picked, 1);
+		p.pick_pieces(peer2, picked, 1, false, address());
 		TEST_CHECK(picked.size() == 1);
 		TEST_CHECK(picked.front().piece_index == 3);
 
 		// same thing for peer3.
 
 		picked.clear();
-		p.pick_pieces(peer3, picked, 1);
+		p.pick_pieces(peer3, picked, 1, false, address());
 		TEST_CHECK(picked.size() == 1);
 		TEST_CHECK(picked.front().piece_index == 5);
 
@@ -114,7 +114,7 @@ int test_main()
 		p.inc_refcount(1);
 		
 		picked.clear();
-		p.pick_pieces(peer3, picked, 1);
+		p.pick_pieces(peer3, picked, 1, false, address());
 		TEST_CHECK(picked.size() == 1);
 		TEST_CHECK(picked.front().piece_index == 1);
 		// and the block picked should not be 0 or 2
@@ -138,9 +138,9 @@ int test_main()
 
 		// we have block 0 and 2 already, so we can't mark
 		// them as begin downloaded. 
-		p.mark_as_downloading(piece_block(1, 1), address());
-		p.mark_as_downloading(piece_block(1, 3), address());
-		p.mark_as_downloading(piece_block(2, 0), address());
+		p.mark_as_downloading(piece_block(1, 1), address(1,1,1,1,0));
+		p.mark_as_downloading(piece_block(1, 3), address(1,1,1,1,0));
+		p.mark_as_downloading(piece_block(2, 0), address(1,1,1,1,0));
 
 		std::vector<piece_picker::downloading_piece> const& downloads = p.get_download_queue();
 		TEST_CHECK(downloads.size() == 2);
@@ -168,13 +168,84 @@ int test_main()
 		TEST_CHECK(!p.is_downloading(piece_block(2, 1)));
 
 		picked.clear();
-		p.pick_pieces(peer1, picked, 1);
+		p.pick_pieces(peer1, picked, 1, false, address());
 		TEST_CHECK(picked.size() == 2);
 
 		piece_block expected3[] = { piece_block(2, 0), piece_block(2, 1) };
 		TEST_CHECK(std::equal(picked.begin()
 			, picked.end(), expected3));
 
+		// now, if we assume we're downloading at such a speed that
+		// we might prefer to download whole pieces at a time from
+		// this peer. It should not pick piece 1 or 2 (since those are
+		// partially selected)
+
+		picked.clear();
+		p.pick_pieces(peer1, picked, 1, true, address());
+
+		// it will pick 4 blocks, since we said we
+		// wanted whole pieces.
+		TEST_CHECK(picked.size() == 4);
+	
+		piece_block expected4[] =
+		{
+			piece_block(3, 0), piece_block(3, 1)
+			, piece_block(3, 2), piece_block(3, 3)
+		};
+		TEST_CHECK(std::equal(picked.begin()
+			, picked.end(), expected4));
+
+		// now, try the same thing, but pick as many pieces as possible
+		// to make sure it can still fall back on partial pieces
+
+		picked.clear();
+		p.pick_pieces(peer1, picked, 100, true, address());
+
+		TEST_CHECK(picked.size() == 14);
+	
+		piece_block expected5[] =
+		{
+			piece_block(3, 0), piece_block(3, 1)
+			, piece_block(3, 2), piece_block(3, 3)
+			, piece_block(5, 0), piece_block(5, 1)
+			, piece_block(5, 2), piece_block(5, 3)
+			, piece_block(2, 0), piece_block(2, 1)
+			, piece_block(2, 2), piece_block(2, 3)
+			, piece_block(1, 1), piece_block(1, 3)
+		};
+	
+		TEST_CHECK(std::equal(picked.begin()
+			, picked.end(), expected5));
+
+		// now, try the same thing, but pick as many pieces as possible
+		// to make sure it can still fall back on partial pieces
+
+		picked.clear();
+		p.pick_pieces(peer1, picked, 100, true, address(1,1,1,1,0));
+
+		for (std::vector<piece_block>::iterator i = picked.begin(); i != picked.end(); ++i)
+		{
+			std::cerr << "(" << i->piece_index << "," << i->block_index << ")\n";
+		}
+	
+		TEST_CHECK(picked.size() == 11);
+	
+		piece_block expected6[] =
+		{
+			piece_block(2, 1), piece_block(2, 2)
+			, piece_block(2, 3)
+			, piece_block(3, 0), piece_block(3, 1)
+			, piece_block(3, 2), piece_block(3, 3)
+			, piece_block(5, 0), piece_block(5, 1)
+			, piece_block(5, 2), piece_block(5, 3)
+		};
+	
+		TEST_CHECK(std::equal(picked.begin()
+			, picked.end(), expected6));
+
+
+		// TODO: make sure there are no duplicates
+		// in the picked blocks!
 	}
 	
 	return 0;
