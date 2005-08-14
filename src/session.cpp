@@ -364,9 +364,6 @@ namespace libtorrent { namespace detail
 		std::vector<boost::shared_ptr<socket> > error_clients;
 		boost::posix_time::ptime timer = second_clock::universal_time();
 
-#ifndef NDEBUG
-		int loops_per_second = 0;
-#endif
 		for(;;)
 		{
 		try
@@ -377,7 +374,6 @@ namespace libtorrent { namespace detail
 				boost::mutex::scoped_lock l(m_mutex);
 				check_invariant("before SELECT");
 			}
-			loops_per_second++;
 #endif
 
 
@@ -649,11 +645,6 @@ namespace libtorrent { namespace detail
 			// ************************
 			// THE SECTION BELOW IS EXECUTED ONCE EVERY SECOND
 			// ************************
-
-#ifndef NDEBUG
-			if (loops_per_second > 800) std::cout << "\n\nloops: " << loops_per_second << "\n";
-			loops_per_second = 0;
-#endif
 
 			// do the second_tick() on each connection
 			// this will update their statistics (download and upload speeds)

@@ -1192,7 +1192,7 @@ requested. The entry in the vector (``partial_piece_info``) looks like this::
 		int blocks_in_piece;
 		std::bitset<max_blocks_per_piece> requested_blocks;
 		std::bitset<max_blocks_per_piece> finished_blocks;
-		peer_id peer[max_blocks_per_piece];
+		address peer[max_blocks_per_piece];
 		int num_downloads[max_blocks_per_piece];
 	};
 
@@ -1204,7 +1204,7 @@ the last piece may have fewer blocks than the standard pieces.
 means that that block has been requested, but not necessarily fully downloaded yet. To know
 from whom the block has been requested, have a look in the ``peer`` array. The bit-index
 in the ``requested_blocks`` and ``finished_blocks`` correspons to the array-index into
-``peers`` and ``num_downloads``. The array of peers is contains the id of the
+``peers`` and ``num_downloads``. The array of peers is contains the address of the
 peer the piece was requested from. If a piece hasn't been requested (the bit in
 ``requested_blocks`` is not set) the peer array entry will be undefined.
 

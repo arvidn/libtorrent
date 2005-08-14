@@ -1,13 +1,13 @@
 use-project /torrent : .. ;
 
-project 
+project client_test
    : requirements <threading>multi <library>/torrent
    ;  
 
-exe client_test	: client_test.cpp ;
+exe client_test : client_test.cpp ;
 exe simple_client : simple_client.cpp ;
 exe dump_torrent : dump_torrent.cpp ;
 exe make_torrent : make_torrent.cpp ;
 
-stage . : dump_torrent make_torrent simple_client client_test ;
+#stage . : dump_torrent make_torrent simple_client client_test ;
 

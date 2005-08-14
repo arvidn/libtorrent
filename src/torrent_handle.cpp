@@ -673,9 +673,7 @@ namespace libtorrent
 			= p.get_download_queue();
 
 		for (std::vector<piece_picker::downloading_piece>::const_iterator i
-			= q.begin();
-			i != q.end();
-			++i)
+			= q.begin(); i != q.end(); ++i)
 		{
 			partial_piece_info pi;
 			pi.finished_blocks = i->finished_blocks;

@@ -160,13 +160,16 @@ namespace libtorrent
 		// decides to download a piece, it must mark it as being downloaded
 		// itself, by using the mark_as_downloading() member function.
 		// THIS IS DONE BY THE peer_connection::send_request() MEMBER FUNCTION!
-		void pick_pieces(const std::vector<bool>& pieces,
-			std::vector<piece_block>& interesting_blocks,
-			int num_pieces) const;
+		// The last argument is the address of the peer that we'll download
+		// from.
+		void pick_pieces(const std::vector<bool>& pieces
+			, std::vector<piece_block>& interesting_blocks
+			, int num_pieces, bool prefer_whole_pieces
+			, address peer) const;
 
 		// returns true if any client is currently downloading this
 		// piece-block, or if it's queued for downloading by some client
-		// or if it already has been successfully downlloaded
+		// or if it already has been successfully downloaded
 		bool is_downloading(piece_block block) const;
 		bool is_finished(piece_block block) const;
 
@@ -265,10 +268,18 @@ namespace libtorrent
 		std::vector<std::vector<int> > const& pick_piece_info_vector(
 			bool downloading, bool filtered) const;
 
-		int add_interesting_blocks(const std::vector<int>& piece_list,
-				const std::vector<bool>& pieces,
-				std::vector<piece_block>& interesting_pieces,
-				int num_blocks) const;
+		int add_interesting_blocks_free(const std::vector<int>& piece_list
+				, const std::vector<bool>& pieces
+				, std::vector<piece_block>& interesting_blocks
+				, int num_blocks, bool prefer_whole_pieces) const;
+
+		int add_interesting_blocks_partial(const std::vector<int>& piece_list
+				, const std::vector<bool>& pieces
+				, std::vector<piece_block>& interesting_blocks
+				, std::vector<piece_block>& backup_blocks
+				, int num_blocks, bool prefer_whole_pieces
+				, address peer) const;
+
 
 		// this vector contains all pieces we don't have.
 		// in the first entry (index 0) is a vector of all pieces

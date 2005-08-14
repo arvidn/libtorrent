@@ -408,7 +408,7 @@ namespace libtorrent
 					try
 					{
 						m_content_length = boost::lexical_cast<int>(
-							line.substr(16));
+							line.substr(16, line.length() - 17));
 					}
 					catch(boost::bad_lexical_cast&)
 					{

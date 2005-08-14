@@ -78,7 +78,7 @@ namespace
 	// the case where ignore_peer is motivated is if two peers
 	// have only one piece that we don't have, and it's the
 	// same piece for both peers. Then they might get into an
-	// infinite recursion, fighting to request the same blocks.
+	// infinite loop, fighting to request the same blocks.
 	void request_a_block(
 		torrent& t
 		, peer_connection& c
@@ -91,8 +91,12 @@ namespace
 		// (if the latency is more than this, the download will stall)
 		// so, the queue size is 5 * down_rate / 16 kiB (16 kB is the size of each request)
 		// the minimum request size is 2 and the maximum is 48
-
-		int desired_queue_size = static_cast<int>(queue_time * c.statistics().download_rate() / (16 * 1024));
+		// the block size doesn't have to be 16. So we first query the torrent for it
+		const int block_size = t.block_size();
+		assert(block_size > 0);
+		
+		int desired_queue_size = static_cast<int>(queue_time
+			* c.statistics().download_rate() / block_size);
 		if (desired_queue_size > max_request_queue) desired_queue_size = max_request_queue;
 		if (desired_queue_size < min_request_queue) desired_queue_size = min_request_queue;
 
@@ -113,7 +117,18 @@ namespace
 		// should be guaranteed to be available for download
 		// (if num_requests is too big, too many pieces are
 		// picked and cpu-time is wasted)
-		p.pick_pieces(c.get_bitfield(), interesting_pieces, num_requests);
+		// the last argument is if we should prefer whole pieces
+		// for this peer. If we're downloading one piece in 20 seconds
+		// then use this mode.
+		bool prefer_whole_pieces = c.statistics().download_payload_rate() * 20.f
+			> t.torrent_file().piece_length();
+	
+		// if we prefer whole pieces, the piece picker will pick at least
+		// the number of blocks we want, but it will try to make the picked
+		// blocks be from whole pieces, possibly by returning more blocks
+		// than we requested.
+		p.pick_pieces(c.get_bitfield(), interesting_pieces
+			, num_requests, prefer_whole_pieces, c.get_socket()->sender());
 
 		// this vector is filled with the interesting pieces
 		// that some other peer is currently downloading
@@ -137,7 +152,6 @@ namespace
 			// and return
 			c.send_request(*i);
 			num_requests--;
-			if (num_requests <= 0) return;
 		}
 
 		// in this case, we could not find any blocks
@@ -155,13 +169,18 @@ namespace
 		while (num_requests > 0)
 		{
 			peer_connection* peer = 0;
-			float min_weight = std::numeric_limits<float>::max();
+
+			// This peer's weight will be the minimum, to prevent
+			// cancelling requests from a faster peer.
+			float min_weight = (int)c.download_queue().size() == 0
+				? std::numeric_limits<float>::max()
+				: c.statistics().download_payload_rate() / (int)c.download_queue().size();
+
 			// find the peer with the lowest download
 			// speed that also has a piece that this
 			// peer could send us
 			for (torrent::peer_iterator i = t.begin();
-				i != t.end();
-				++i)
+				i != t.end(); ++i)
 			{
 				// don't try to take over blocks from ourself
 				if (i->second == &c)
