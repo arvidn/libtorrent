@@ -125,6 +125,7 @@ it may require windows NT and above. The other file, ``file.cpp`` is the default
 implementation that simply relies on the standard low level io routines (read, write etc.),
 this is the preferred implementation that should be used in all cases.
 
+If you're having problems building, see `detailed build instructions`_.
 
 cygwin and msvc
 ---------------
@@ -2573,7 +2574,112 @@ Shows how to create a torrent from a directory tree::
 		return 0;
 	}
 
+detailed build instructions
+===========================
 
+The build systems supported "out of the box" in libtorrent are boost-build v2 (BBv2) and
+autotools (for unix-like systems).
+
+
+building with BBv2
+------------------
+
+The primary reason to use boost-build is that it will automatically build the dependent
+boost libraries with the correct compiler settings, in order to ensure that the build
+targets are link compatible (see `boost guidelines`__ for some details on this issue).
+
+__ http://boost.org/more/separate_compilation.html
+
+Since BBv2 will build the boost libraries for you, you need the full boost source package.
+Having boost installed via some package system is usually not enough (and even if it is
+enough, the necessary environment variables are usually not set by the package installer).
+
+
+Step 1: Download boost
+~~~~~~~~~~~~~~~~~~~~~~
+
+You'll find boost here__.
+
+__ http://sourceforge.net/project/showfiles.php?group_id=7586
+
+Extract the archive to some directory where you want it. For the sake of this guide,
+let's assume you extract the package to ``c:\boost_1_33_0`` (I'm using a windows path in this
+example since if you're on linux/unix you're more likely to use the autotools). You'll
+need at least version 1.32 of the boost library in order to build libtorrent.
+
+If you use 1.32, you need to download BBv2 separately, so for now, let's assume you will
+use version 1.33.
+
+
+Step 2: Setup BBv2
+~~~~~~~~~~~~~~~~~~
+
+First you need to build ``bjam``. You do this by opening a terminal (In windows, run ``cmd``).
+Change directory to ``c:\boost_1_33_0\tools\build\jam_src``. Then run the script called
+``build.bat`` or «build.sh« on a unix system. This will build ``bjam`` and place it in a directory
+starting with ``bin.`` and then have the name of your platform. Copy the ``bjam.exe`` (or ``bjam``
+on a unix system) to a place that's in you shell's ``PATH``. On linux systems a place commonly used
+may be ``/usr/local/bin`` or on windows ``c:\windows`` (you can also add paths by modifying the
+environment variable called ``PATH``).
+
+Now you have ``bjam`` installed. ``bjam`` can be considered an interpreter that the boost-build
+system is implemented on. So boost-build uses ``bjam``. So, to complete the installation you need
+to make two more things. You need to set the environment variable ``BOOST_BUILD_PATH``. This is
+the path that tells ``bjam`` where it can find boost-build, your configuration file and all the
+toolsets (descriptions used by boost-build to know how to use different compilers on different
+platforms). Assuming the boost install path above, set it to ``c:\boost_1_33_0\tools\build\v2``.
+
+The last thing to do to complete the setup of BBv2 is to modify your ``user-config.jam`` file. It
+is located in ``c:\boost_1_33\tools\build\v2``. Depending on your platform and which compiler
+you're using, you should add a line for each compiler and compiler version you have installed on
+your system that you want to be able to use with BBv2. For example, if you're using Microsoft
+Visual Studio 7.1 (2003), just add a line::
+
+  using msvc : 7.1 ;
+
+If you use GCC, add the line::
+
+  using gcc ;
+
+If you have more than one version of GCC installed, you can add the commandline used to invoke
+g++ after the version number, like this::
+
+  using gcc : 3.3 : g++-3.3 ;
+  using gcc : 4.0 : g++-4.0 ;
+
+Another toolset worth mentioning is the ``darwin`` toolset (For MacOS X). From Tiger (10.4) MacOS X
+comes with both GCC 3.3 and GCC 4.0. Then you can use the following toolsets::
+
+  using darwin : 3.3 : g++-3.3 ;
+  using darwin : 4.0 : g++-4.0 ;
+
+Note that the spaces between the semi-colons and colons are important!
+
+
+Step 3: Building libtorrent
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When building libtorrent, the ``Jamfile`` expects the environment variable ``BOOST_ROOT`` to be set
+to the boost installation directory. It uses this to find the boost libraries it depends on, so
+they can be built and their headers files found. So, set this to ``c:\boost_1_33_0``.
+
+Then the only thing left is simply to invoke ``bjam``. If you want to specify a specific toolset to
+use (compiler) you can just add that to the commandline. For example::
+
+  bjam msvc-7.1
+  bjam gcc-3.3
+
+to build different versions you can also just add the name of the build variant. Some default build
+variants in BBv2 are ``release``, ``debug``, ``profile``.
+
+The build targets are put in a directory called bin, and under it they are sorted in directories
+depending on the toolset and build variant used.
+
+building with autotools
+-----------------------
+
+*TODO*
+   
 fast resume
 ===========
 

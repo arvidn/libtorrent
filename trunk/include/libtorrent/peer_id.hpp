@@ -132,7 +132,6 @@ namespace libtorrent
 			is >> c[0] >> c[1];
 			c[0] = tolower(c[0]);
 			c[1] = tolower(c[1]);
-			std::cerr << c[0] << " " << c[1] << "\n";
 			if (
 				((c[0] < '0' || c[0] > '9') && (c[0] < 'a' || c[0] > 'f'))
 				|| ((c[1] < '0' || c[1] > '9') && (c[1] < 'a' || c[1] > 'f'))
