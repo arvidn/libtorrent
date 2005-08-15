@@ -45,17 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/version.hpp"
 
-#if defined(_MSC_VER) && _MSC_VER < 1300
-#define for if (false) {} else for
-namespace std
-{
-	using ::isprint;
-}
-
-#endif
-
-#define VERBOSE
-
 using namespace boost::posix_time;
 
 namespace libtorrent

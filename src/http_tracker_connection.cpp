@@ -278,11 +278,7 @@ namespace libtorrent
 
 			if (sent == (int)m_send_buffer.size())
 			{
-#if defined(_MSC_VER) && _MSC_VER < 1300
-				m_send_buffer.erase(m_send_buffer.begin(), m_send_buffer.end());
-#else
 				m_send_buffer.clear();
-#endif
 			}
 			else if (sent > 0)
 			{

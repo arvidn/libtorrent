@@ -49,10 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
 
-#if defined(_MSC_VER) && _MSC_VER < 1300
-#	define for if (false) {} else for
-#endif
-
 namespace libtorrent
 {
 	class peer_connection;

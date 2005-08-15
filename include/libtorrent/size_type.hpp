@@ -45,11 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-#if defined(_MSC_VER) && _MSC_VER < 1300
-	typedef int size_type;
-#else
 	typedef boost::int64_t size_type;
-#endif
 }
 
 

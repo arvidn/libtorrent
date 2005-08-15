@@ -19,10 +19,6 @@ changelog at the end of the file.
 
 #include <boost/cstdint.hpp>
 
-#if defined _MSC_VER && _MSC_VER < 1300
-#define for if (false) {} else for
-#endif
-
 struct SHA1_CTX
 {
 	boost::uint32_t state[5];

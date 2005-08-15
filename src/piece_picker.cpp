@@ -42,15 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp"
 #endif
 
-#if defined(_MSC_VER) && _MSC_VER < 1300
-#define for if (false) {} else for
-namespace std
-{
-	template<class T>
-	inline T min(T a, T b) { return a<b?a:b; }
-}
-#endif
-
 namespace libtorrent
 {
 
