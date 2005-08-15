@@ -64,13 +64,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/alert_types.hpp"
 
-#if defined(_MSC_VER) && _MSC_VER < 1300
-namespace std
-{
-	using ::isalnum;
-};
-#endif
-
 using namespace libtorrent;
 using namespace boost::posix_time;
 

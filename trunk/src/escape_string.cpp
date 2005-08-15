@@ -38,13 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cctype>
 #include <algorithm>
 
-#if defined(_MSC_VER) && _MSC_VER < 1300
-namespace std
-{
-	using ::isalnum;
-}
-#endif
-
 namespace libtorrent
 {
 	std::string unescape_string(std::string const& s)

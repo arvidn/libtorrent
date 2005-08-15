@@ -70,15 +70,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/invariant_check.hpp"
 
-#if defined(_MSC_VER) && _MSC_VER < 1300
-#define for if (false) {} else for
-namespace std
-{
-	using ::srand;
-	using ::rename;
-}
-#endif
-
 #if BOOST_VERSION < 103200
 bool operator<(boost::filesystem::path const& lhs
 	, boost::filesystem::path const& rhs)

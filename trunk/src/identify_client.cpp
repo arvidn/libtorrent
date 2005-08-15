@@ -46,16 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/fingerprint.hpp"
 
-#if defined(_MSC_VER) && _MSC_VER < 1300
-namespace std
-{
-	using ::isprint;
-	using ::isdigit;
-	using ::toupper;
-	using ::isalnum;
-}
-#endif
-
 namespace
 {
 

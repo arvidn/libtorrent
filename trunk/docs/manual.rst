@@ -21,34 +21,41 @@ The main goals of libtorrent are:
 	* to be memory efficient
 	* to be very easy to use
 
-libtorrent is not finished. It is an ongoing project (including this documentation).
-The current state includes the following features:
+libtorrent is still being developed, however it is stable. It is an ongoing
+project (including this documentation). The current state includes the
+following features:
 
-	* multitracker extension support (as `described by John Hoffman`__)
+	* multitracker extension support (as `specified by John Hoffman`__)
 	* serves multiple torrents on a single port and a single thread
 	* supports http proxies and proxy authentication
 	* gzipped tracker-responses
 	* piece picking on block-level like in Azureus_ (as opposed to piece-level).
+	  This means it can download parts of the same piece from different peers.
+	  It will also prefer to download whole pieces from single peers if the
+	  download speed is high enough from that particular peer.
 	* queues torrents for file check, instead of checking all of them in parallel.
-	* uses separate threads for checking files and for main downloader, with a fool-proof
-	  thread-safe library interface. (i.e. There's no way for the user to cause a deadlock).
-	* can limit the upload and download bandwidth usage and the maximum number of unchoked peers
-	* piece-wise, unordered, file allocation
+	* uses separate threads for checking files and for main downloader, with a
+	  fool-proof thread-safe library interface. (i.e. There's no way for the
+	  user to cause a deadlock). (see threads_)
+	* can limit the upload and download bandwidth usage and the maximum number of
+	  unchoked peers
+	* piece-wise, unordered, incremental file allocation
 	* implements fair trade. User settable trade-ratio, must at least be 1:1,
-	  but one can choose to trade 1 for 2 or any other ratio that isn't unfair to the other
-	  party. (i.e. real tit for tat)
-	* fast resume support, a way to get rid of the costly piece check at the start
-	  of a resumed torrent. Saves the storage state, piece_picker state as well as all local
-	  peers in a separate fast-resume file.
-	* supports the extension protocol `described by Nolar`__. See extensions_.
+	  but one can choose to trade 1 for 2 or any other ratio that isn't unfair
+	  to the other party.
+	* fast resume support, a way to get rid of the costly piece check at the
+	  start of a resumed torrent. Saves the storage state, piece_picker state
+	  as well as all local peers in a separate fast-resume file.
+	* supports the extension protocol `specified by Nolar`__. See extensions_.
 	* supports files > 2 gigabytes.
 	* supports the ``no_peer_id=1`` extension that will ease the load off trackers.
 	* supports the `udp-tracker protocol`__ by Olaf van der Spek.
 	* possibility to limit the number of connections.
-	* delays have messages if there's no other outgoing traffic to the peer, and doesn't
-	  send have messages to peers that already has the piece. This saves bandwidth.
-	* does not have any requirements on the piece order in a torrent that it resumes. This
-	  means it can resume a torrent downloaded by any client.
+	* delays have messages if there's no other outgoing traffic to the peer, and
+	  doesn't send have messages to peers that already has the piece. This saves
+	  bandwidth.
+	* does not have any requirements on the piece order in a torrent that it
+	  resumes. This means it can resume a torrent downloaded by any client.
 	* adjusts the length of the request queue depending on download rate.
 	* supports the ``compact=1`` tracker parameter.
 	* selective downloading. The ability to select which parts of a torrent you
@@ -61,14 +68,14 @@ __ http://nolar.com/azureus/extended.htm
 __ udp_tracker_protocol.html
 
 
-libtorrent is portable at least among Windows, MacOSX and other UNIX-systems. It uses Boost.Thread,
+libtorrent is portable at least among Windows, MacOS X and other UNIX-systems. It uses Boost.Thread,
 Boost.Filesystem, Boost.Date_time and various other boost libraries as well as zlib.
 
 libtorrent has been successfully compiled and tested on:
 
 	* Windows 2000 vc7.1
 	* Linux x86 GCC 3.0.4, GCC 3.2.3, GCC 3.4.2
-	* MacOS X, (Apple's) GCC 3.3, (Apple's) GCC 4.0
+	* MacOS X (darwin), (Apple's) GCC 3.3, (Apple's) GCC 4.0
 	* SunOS 5.8 GCC 3.1
 	* Cygwin GCC 3.3.3
 
@@ -85,74 +92,238 @@ libtorrent is released under the BSD-license_.
 downloading and building
 ========================
 
-To acquire the latest version of libtorrent, you'll have to grab it from CVS. You'll find instructions
-on how to do this here__ (see Anonymous CVS access).
+To acquire the latest version of libtorrent, you'll have to grab it from CVS.
+You'll find instructions on how to do this here__ (see Anonymous CVS access).
 
 __ http://sourceforge.net/cvs/?group_id=79942
 
-The easiest way to build libtorrent is probably to use `boost-build`_. Make sure you install it
-correctly by setting the environment variable ``BOOST_BUILD_PATH`` to point to your boost build
-installation. Also you have to modify the ``user_config.jam`` to reflect the toolsets you have installed.
-(if you're building with gcc, uncomment the line "using gcc ;")
+The build systems supported "out of the box" in libtorrent are boost-build v2
+(BBv2) and autotools (for unix-like systems). If you still can't build after
+following these instructions, you can usually get help in the ``#libtorrent``
+IRC channel on ``irc.freenode.net``.
 
-.. _`boost-build`: http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=80982&release_id=278763
 
-You also need to install boost__ (at least version 1.32.0).
+building with BBv2
+------------------
 
-__ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&release_id=284047
+The primary reason to use boost-build is that it will automatically build the
+dependent boost libraries with the correct compiler settings, in order to
+ensure that the build targets are link compatible (see `boost guidelines`__
+for some details on this issue).
 
-Before you invoke ``bjam`` you have to set the environment variable ``BOOST_ROOT`` to the
-path where you installed boost. This will be used to build and link against the required
-boost libraries as well as be used as include path for boost headers.
+__ http://boost.org/more/separate_compilation.html
 
-To build you just have to run::
+Since BBv2 will build the boost libraries for you, you need the full boost
+source package. Having boost installed via some package system is usually not
+enough (and even if it is enough, the necessary environment variables are
+usually not set by the package installer).
 
-	bjam <toolset> link=static
 
-in the libtorrent directory.
+Step 1: Download boost
+~~~~~~~~~~~~~~~~~~~~~~
 
-If you're building on a platform where dlls share the same heap, you can build libtorrent
-as a dll too, by typing ``link=shared`` instead of ``link=static``.
+You'll find boost here__.
 
-To build on MacOS X, you need the latest version of boost-build, from the `boost cvs`__.
+__ http://sourceforge.net/project/showfiles.php?group_id=7586
 
-__ http://sourceforge.net/cvs/?group_id=7586
+Extract the archive to some directory where you want it. For the sake of this
+guide, let's assume you extract the package to ``c:\boost_1_33_0`` (I'm using
+a windows path in this example since if you're on linux/unix you're more likely
+to use the autotools). You'll need at least version 1.32 of the boost library
+in order to build libtorrent.
 
-If you're making your own project file, note that there are two versions of the file
-abstraction. There's one ``file_win.cpp`` which relies on windows file API that supports
-files larger than 2 Gigabytes. This does not work in vc6 for some reason, possibly because
-it may require windows NT and above. The other file, ``file.cpp`` is the default
-implementation that simply relies on the standard low level io routines (read, write etc.),
-this is the preferred implementation that should be used in all cases.
+If you use 1.32, you need to download BBv2 separately, so for now, let's
+assume you will use version 1.33.
 
-If you're having problems building, see `detailed build instructions`_.
 
-cygwin and msvc
----------------
+Step 2: Setup BBv2
+~~~~~~~~~~~~~~~~~~
+
+First you need to build ``bjam``. You do this by opening a terminal (In
+windows, run ``cmd``). Change directory to
+``c:\boost_1_33_0\tools\build\jam_src``. Then run the script called
+``build.bat`` or ``build.sh`` on a unix system. This will build ``bjam`` and
+place it in a directory starting with ``bin.`` and then have the name of your
+platform. Copy the ``bjam.exe`` (or ``bjam`` on a unix system) to a place
+that's in you shell's ``PATH``. On linux systems a place commonly used may be
+``/usr/local/bin`` or on windows ``c:\windows`` (you can also add directories
+to the search paths by modifying the environment variable called ``PATH``).
+
+Now you have ``bjam`` installed. ``bjam`` can be considered an interpreter
+that the boost-build system is implemented on. So boost-build uses ``bjam``.
+So, to complete the installation you need to make two more things. You need to
+set the environment variable ``BOOST_BUILD_PATH``. This is the path that tells
+``bjam`` where it can find boost-build, your configuration file and all the
+toolsets (descriptions used by boost-build to know how to use different
+compilers on different platforms). Assuming the boost install path above, set
+it to ``c:\boost_1_33_0\tools\build\v2``.
+
+The last thing to do to complete the setup of BBv2 is to modify your
+``user-config.jam`` file. It is located in ``c:\boost_1_33\tools\build\v2``.
+Depending on your platform and which compiler you're using, you should add a
+line for each compiler and compiler version you have installed on your system
+that you want to be able to use with BBv2. For example, if you're using
+Microsoft Visual Studio 7.1 (2003), just add a line::
+
+  using msvc : 7.1 ;
+
+If you use GCC, add the line::
+
+  using gcc ;
+
+If you have more than one version of GCC installed, you can add the
+commandline used to invoke g++ after the version number, like this::
+
+  using gcc : 3.3 : g++-3.3 ;
+  using gcc : 4.0 : g++-4.0 ;
+
+Another toolset worth mentioning is the ``darwin`` toolset (For MacOS X).
+From Tiger (10.4) MacOS X comes with both GCC 3.3 and GCC 4.0. Then you can
+use the following toolsets::
+
+  using darwin : 3.3 : g++-3.3 ;
+  using darwin : 4.0 : g++-4.0 ;
+
+Note that the spaces around the semi-colons and colons are important!
+
+
+Step 3: Building libtorrent
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When building libtorrent, the ``Jamfile`` expects the environment variable
+``BOOST_ROOT`` to be set to the boost installation directory. It uses this to
+find the boost libraries it depends on, so they can be built and their headers
+files found. So, set this to ``c:\boost_1_33_0``.
+
+Then the only thing left is simply to invoke ``bjam``. If you want to specify
+a specific toolset to use (compiler) you can just add that to the commandline.
+For example::
+
+  bjam msvc-7.1
+  bjam gcc-3.3
+
+To build different versions you can also just add the name of the build
+variant. Some default build variants in BBv2 are ``release``, ``debug``,
+``profile``.
+
+If you're building on a platform where dlls share the same heap, you can build
+libtorrent as a dll too, by typing ``link=shared``, or ``link=static`` to
+explicitly build a static library.
+
+The build targets are put in a directory called bin, and under it they are
+sorted in directories depending on the toolset and build variant used.
 
 Note that if you're building on windows using the ``msvc`` toolset, you cannot run it
 from a cygwin terminal, you'll have to run it from a ``cmd`` terminal. The same goes for
-cygwin, if you're building with gcc (mingw) you'll have to run it from a cygwin terminal.
+cygwin, if you're building with gcc in cygwin you'll have to run it from a cygwin terminal.
 Also, make sure the paths are correct in the different environments. In cygwin, the paths
 (``BOOST_BUILD_PATH`` and ``BOOST_ROOT``) should be in the typical unix-format (e.g.
-``/cygdrive/c/boost_1_32_0``). In the windows environment, they should have the typical
-windows format (``c:/boost_1_32_0``).
+``/cygdrive/c/boost_1_33_0``). In the windows environment, they should have the typical
+windows format (``c:/boost_1_33_0``).
 
-If you're building in developer studio, you may have to set the compiler options
-"force conformance in for loop scope", "treat wchar_t as built-in type" and
-"Enable Run-Time Type Info" to Yes.
+The ``Jamfile`` will define ``NDEBUG`` when it's building a release build.
+There are two other build variants available in the ``Jamfile``. debug_log
+and release_log, these two variants inherits from the debug and release
+variants respectively, but adds extra logging (``TORRENT_VERBOSE_LOGGIN``).
+For more build configuration flags see `Build configurations`_.
+
+The ``Jamfile`` has the following build variants:
+
+ * ``release`` - release version without any logging
+ * ``release_log`` - release version with standard logging
+ * ``release_vlog`` - release version with verbose logging (all peer connections are logged)
+ * ``debug`` - debug version without any logging
+ * ``debug_log`` - debug version with standard logging
+ * ``debug_vlog`` - debug version with verbose logging
 
 
-release and debug builds
-------------------------
+building with autotools
+-----------------------
 
-The ``Jamfile`` can build both a release and debug version of libtorrent. In debug mode,
-libtorrent will have pretty expensive invariant checks and asserts built into it. If you
-want to disable such checks (you want to do that in a release build) you can see the
-table below for which defines you can use to control the build. The ``Jamfile`` will define
-``NDEBUG`` when it's building a release build. There are two other build variants available
-in the ``Jamfile``. debug_log and release_log, these two variants inherits from the
-debug and release variants respectively, but adds extra logging (``TORRENT_VERBOSE_LOGGIN``).
+First of all, you need to install ``automake`` and ``autoconf``. Many
+unix/linux systems comes with these preinstalled.
+
+Step 1: Running configure
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In your shell, change directory to the libtorrent directory and run
+``./configure``. This will look for libraries and C++ features that libtorrent
+is dependent on. If something is missing or can't be found it will print an
+error telling you what failed.
+
+The most likely problem you may encounter is that the configure script won't
+find the boost libraries. Make sure you have boost installed on your system.
+The easiest way to install boost is usually to use the preferred package
+system on your platform. Usually libraries and headers are installed in
+standard directories where the compiler will find them, but in some cases that
+may not be the case. For example when installing boost on darwin using
+darwinports (the package system based on BSD ports) all libraries are
+installed to ``/opt/local/lib`` and headers are installed to
+``/opt/local/include``. By default the compiler will not look in these
+directories. You have to set the enviornment variables ``LDFLAGS`` and
+``CXXFLAGS`` in order to make the compiler find those libs. In this example
+you'd set them like this::
+
+  export LDFLAGS=-L/opt/local/lib
+  export CXXFLAGS=-I/opt/local/include
+
+If you need to set these variables, it may be a good idea to add those lines
+to your ``~/.profile`` or ``~/.tcshrc`` depending on your shell.
+
+You know that the boost libraries were found if you see the following output
+from the configure script::
+
+  checking whether the Boost::DateTime library is available... yes
+  checking for main in -lboost_date_time... yes
+  checking whether the Boost::Filesystem library is available... yes
+  checking for main in -lboost_filesystem... yes
+  checking whether the Boost::Thread library is available... yes
+  checking for main in -lboost_thread... yes
+
+Another possible source of problems may be if the path to your libtorrent
+directory contains spaces. Make sure you either rename the directories with
+spaces in their names to remove the spaces or move the libtorrent directory.
+
+
+Step 2: Building libtorrent
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Once the configure script is run successfully, you just type ``make`` and
+libtorrent, the examples and the tests will be built.
+
+If you want to build a release version (without debug info, asserts and
+invariant checks), you have to rerun the configure script and rebuild, like this::
+
+  ./configure --disable-debug
+  make clean
+  make
+
+
+Building with other build systems
+---------------------------------
+  
+If you're making your own project file, note that there are two versions of
+the file abstraction. There's one ``file_win.cpp`` which relies on windows
+file API that supports files larger than 2 Gigabytes. This does not work in
+vc6 for some reason, possibly because it may require windows NT and above.
+The other file, ``file.cpp`` is the default implementation that simply relies
+on the standard low level io routines (``read()``, ``write()``, ``open()``
+etc.), this implementation doesn't do anything special to support unicode
+filenames, so if your target is Windows 2000 and up, you may want to use
+``file_win.cpp`` which supports unicode filenames.
+
+If you're building in MS Visual Studio, you may have to set the compiler
+options "force conformance in for loop scope", "treat wchar_t as built-in
+type" and "Enable Run-Time Type Info" to Yes.
+
+
+Build configurations
+--------------------
+
+By default libtorrent is built In debug mode, and will have pretty expensive
+invariant checks and asserts built into it. If you want to disable such checks
+(you want to do that in a release build) you can see the table below for which
+defines you can use to control the build.
 
 +--------------------------------+-------------------------------------------------+
 | macro                          | description                                     |
@@ -178,15 +349,6 @@ debug and release variants respectively, but adds extra logging (``TORRENT_VERBO
 
 If you experience that libtorrent uses unreasonable amounts of cpu, it will definately help to
 define ``NDEBUG``, since it will remove the invariant checks within the library.
-
-The ``Jamfile`` has the following build variants:
-
- * ``release`` - release version without any logging
- * ``release_log`` - release version with standard logging
- * ``release_vlog`` - release version with verbose logging (all peer connections are logged)
- * ``debug`` - debug version without any logging
- * ``debug_log`` - debug version with standard logging
- * ``debug_vlog`` - debug version with verbose logging
 
 using
 =====
@@ -2574,127 +2736,23 @@ Shows how to create a torrent from a directory tree::
 		return 0;
 	}
 
-detailed build instructions
-===========================
 
-The build systems supported "out of the box" in libtorrent are boost-build v2 (BBv2) and
-autotools (for unix-like systems).
-
-
-building with BBv2
-------------------
-
-The primary reason to use boost-build is that it will automatically build the dependent
-boost libraries with the correct compiler settings, in order to ensure that the build
-targets are link compatible (see `boost guidelines`__ for some details on this issue).
-
-__ http://boost.org/more/separate_compilation.html
-
-Since BBv2 will build the boost libraries for you, you need the full boost source package.
-Having boost installed via some package system is usually not enough (and even if it is
-enough, the necessary environment variables are usually not set by the package installer).
-
-
-Step 1: Download boost
-~~~~~~~~~~~~~~~~~~~~~~
-
-You'll find boost here__.
-
-__ http://sourceforge.net/project/showfiles.php?group_id=7586
-
-Extract the archive to some directory where you want it. For the sake of this guide,
-let's assume you extract the package to ``c:\boost_1_33_0`` (I'm using a windows path in this
-example since if you're on linux/unix you're more likely to use the autotools). You'll
-need at least version 1.32 of the boost library in order to build libtorrent.
-
-If you use 1.32, you need to download BBv2 separately, so for now, let's assume you will
-use version 1.33.
-
-
-Step 2: Setup BBv2
-~~~~~~~~~~~~~~~~~~
-
-First you need to build ``bjam``. You do this by opening a terminal (In windows, run ``cmd``).
-Change directory to ``c:\boost_1_33_0\tools\build\jam_src``. Then run the script called
-``build.bat`` or «build.sh« on a unix system. This will build ``bjam`` and place it in a directory
-starting with ``bin.`` and then have the name of your platform. Copy the ``bjam.exe`` (or ``bjam``
-on a unix system) to a place that's in you shell's ``PATH``. On linux systems a place commonly used
-may be ``/usr/local/bin`` or on windows ``c:\windows`` (you can also add paths by modifying the
-environment variable called ``PATH``).
-
-Now you have ``bjam`` installed. ``bjam`` can be considered an interpreter that the boost-build
-system is implemented on. So boost-build uses ``bjam``. So, to complete the installation you need
-to make two more things. You need to set the environment variable ``BOOST_BUILD_PATH``. This is
-the path that tells ``bjam`` where it can find boost-build, your configuration file and all the
-toolsets (descriptions used by boost-build to know how to use different compilers on different
-platforms). Assuming the boost install path above, set it to ``c:\boost_1_33_0\tools\build\v2``.
-
-The last thing to do to complete the setup of BBv2 is to modify your ``user-config.jam`` file. It
-is located in ``c:\boost_1_33\tools\build\v2``. Depending on your platform and which compiler
-you're using, you should add a line for each compiler and compiler version you have installed on
-your system that you want to be able to use with BBv2. For example, if you're using Microsoft
-Visual Studio 7.1 (2003), just add a line::
-
-  using msvc : 7.1 ;
-
-If you use GCC, add the line::
-
-  using gcc ;
-
-If you have more than one version of GCC installed, you can add the commandline used to invoke
-g++ after the version number, like this::
-
-  using gcc : 3.3 : g++-3.3 ;
-  using gcc : 4.0 : g++-4.0 ;
-
-Another toolset worth mentioning is the ``darwin`` toolset (For MacOS X). From Tiger (10.4) MacOS X
-comes with both GCC 3.3 and GCC 4.0. Then you can use the following toolsets::
-
-  using darwin : 3.3 : g++-3.3 ;
-  using darwin : 4.0 : g++-4.0 ;
-
-Note that the spaces between the semi-colons and colons are important!
-
-
-Step 3: Building libtorrent
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-When building libtorrent, the ``Jamfile`` expects the environment variable ``BOOST_ROOT`` to be set
-to the boost installation directory. It uses this to find the boost libraries it depends on, so
-they can be built and their headers files found. So, set this to ``c:\boost_1_33_0``.
-
-Then the only thing left is simply to invoke ``bjam``. If you want to specify a specific toolset to
-use (compiler) you can just add that to the commandline. For example::
-
-  bjam msvc-7.1
-  bjam gcc-3.3
-
-to build different versions you can also just add the name of the build variant. Some default build
-variants in BBv2 are ``release``, ``debug``, ``profile``.
-
-The build targets are put in a directory called bin, and under it they are sorted in directories
-depending on the toolset and build variant used.
-
-building with autotools
------------------------
-
-*TODO*
-   
 fast resume
 ===========
 
-The fast resume mechanism is a way to remember which pieces are downloaded and where they
-are put between sessions. You can generate fast resume data by calling
-``torrent_handle::write_resume_data()`` on torrent_handle_. You can then save this data
-to disk and use it when resuming the torrent. libtorrent will not check the piece hashes
-then, and rely on the information given in the fast-resume data. The fast-resume data
-also contains information about which blocks, in the unfinished pieces, were downloaded,
-so it will not have to start from scratch on the partially downloaded pieces.
+The fast resume mechanism is a way to remember which pieces are downloaded
+and where they are put between sessions. You can generate fast resume data by
+calling ``torrent_handle::write_resume_data()`` on torrent_handle_. You can
+then save this data to disk and use it when resuming the torrent. libtorrent
+will not check the piece hashes then, and rely on the information given in the
+fast-resume data. The fast-resume data also contains information about which
+blocks, in the unfinished pieces, were downloaded, so it will not have to
+start from scratch on the partially downloaded pieces.
 
 To use the fast-resume data you simply give it to `add_torrent()`_, and it
-will skip the time consuming checks. It may have to do the checking anyway, if the
-fast-resume data is corrupt or doesn't fit the storage for that torrent, then it will
-not trust the fast-resume data and just do the checking.
+will skip the time consuming checks. It may have to do the checking anyway, if
+the fast-resume data is corrupt or doesn't fit the storage for that torrent,
+then it will not trust the fast-resume data and just do the checking.
 
 file format
 -----------
