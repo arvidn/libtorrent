@@ -1327,7 +1327,28 @@ namespace libtorrent
 		//    DO THE FULL CHECK
 		// ------------------------
 
+
+
 		// first, create all missing directories
+		path last_path;
+		for (torrent_info::file_iterator file_iter = m_info.begin_files(),
+			end_iter = m_info.end_files();  file_iter != end_iter; ++file_iter)
+		{
+			path dir = (m_save_path / file_iter->path).branch_path();
+			if (dir == last_path) continue;
+			last_path = dir;
+
+#if defined(WIN32) && defined(UNICODE)
+			if (!exists_win(last_path))
+				create_directories_win(last_path);
+#else
+			if (!exists(last_path))
+				create_directories(last_path);
+#endif
+		}
+/*		
+		// first, create all missing directories
+
 		for (torrent_info::file_iterator file_iter = m_info.begin_files(),
 			end_iter = m_info.end_files();  file_iter != end_iter; ++file_iter)
 		{
@@ -1341,7 +1362,7 @@ namespace libtorrent
 				create_directories(dir.branch_path());
 #endif
 		}
-
+*/
 		std::vector<char> piece_data(static_cast<int>(m_info.piece_length()));
 
 		// this maps a piece hash to piece index. It will be
