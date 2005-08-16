@@ -73,6 +73,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #if defined(WIN32) && defined(UNICODE)
 
 #include <windows.h>
+#include <boost/filesystem/exception.hpp>
+#include "libtorrent/utf8.hpp"
 
 namespace
 {
@@ -120,12 +122,12 @@ namespace
 	std::time_t last_write_time_win( const path & ph )
 	{
       // Works for both Windows and POSIX
-      struct stat path_stat;
+      struct _stat path_stat;
 		std::wstring wph(safe_convert(ph.native_file_string()));
-		if ( ::wstat( wph.c_str(), &path_stat ) != 0 )
+		if ( ::_wstat( wph.c_str(), &path_stat ) != 0 )
 			boost::throw_exception( filesystem_error(
 			"boost::filesystem::last_write_time",
-			ph, fs::detail::system_error_code() ) );
+			ph, detail::system_error_code() ) );
 		return path_stat.st_mtime;
 	}
 
@@ -137,7 +139,7 @@ namespace
 		if ( !::MoveFile( wold_path.c_str(), wnew_path.c_str() ) )
 		boost::throw_exception( filesystem_error(
 			"boost::filesystem::rename",
-			old_path, new_path, fs::detail::system_error_code() ) );
+			old_path, new_path, detail::system_error_code() ) );
 	}
 
 } // anonymous namespace
@@ -462,7 +464,7 @@ namespace libtorrent
 		{
 			CreateDirectory(wsave_path.c_str(), 0);
 		}
-		else if ((GetFileAttributes(wsave_path) & FILE_ATTRIBUTE_DIRECTORY) == 0)
+		else if ((GetFileAttributes(wsave_path.c_str()) & FILE_ATTRIBUTE_DIRECTORY) == 0)
 		{
 			return false;
 		}
@@ -523,7 +525,7 @@ namespace libtorrent
 		std::random_shuffle(pieces.begin(), pieces.end());
 		std::random_shuffle(targets.begin(), targets.end());
 
-		for (int i = 0; i < std::max(num_pieces / 50, 1); ++i)
+		for (int i = 0; i < (std::max)(num_pieces / 50, 1); ++i)
 		{
 			const int slot_index = targets[i];
 			const int piece_index = pieces[i];
