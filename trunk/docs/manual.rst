@@ -352,6 +352,11 @@ defines you can use to control the build.
 |                                | checks in the storage, including logging of     |
 |                                | piece sorting.                                  |
 +--------------------------------+-------------------------------------------------+
+| ``UNICODE``                    | If building on windows this will make sure the  |
+|                                | UTF-8 strings in pathnames are converted into   |
+|                                | UTF-16 before they are passed to the file       |
+|                                | operations.                                     |
++--------------------------------+-------------------------------------------------+
 
 
 If you experience that libtorrent uses unreasonable amounts of cpu, it will definately help to
