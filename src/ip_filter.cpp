@@ -65,7 +65,7 @@ namespace libtorrent
 		std::cout << "i->start: " << i->start.as_string() << "\n";
 		std::cout << "first: " << first.as_string() << "\n";
 */
-		int last_access = last_access = prior(j)->access;
+		int last_access = prior(j)->access;
 //		std::cout << "last_access: " << last_access << "\n";
 
 		if (i->start != first && first_access != flags)

@@ -70,6 +70,80 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/invariant_check.hpp"
 
+#if defined(WIN32) && defined(UNICODE)
+
+#include <windows.h>
+
+namespace
+{
+	std::wstring safe_convert(std::string const& s)
+	{
+		try
+		{
+			return libtorrent::utf8_wchar(s);
+		}
+		catch (std::exception)
+		{
+			std::wstring ret;
+			for (const char* i = &*s.begin(); i < &*s.end(); ++i)
+			{
+				wchar_t c;
+				c = '.';
+				std::mbtowc(&c, i, 1);
+				ret += c;
+			}
+			return ret;
+		}
+	}
+
+	// based on code from Boost.Fileystem
+	bool create_directories_win(const path& ph)
+	{
+		if (ph.empty() || exists(ph))
+		{
+			if ( !ph.empty() && !is_directory(ph) )
+				boost::throw_exception( filesystem_error(
+					"boost::filesystem::create_directories",
+					ph, "path exists and is not a directory",
+					not_directory_error ) );
+			return false;
+		}
+
+		// First create branch, by calling ourself recursively
+		create_directories_win(ph.branch_path());
+		// Now that parent's path exists, create the directory
+		std::wstring wph(safe_convert(ph.native_directory_string()));
+		CreateDirectory(wph.c_str(), 0);
+		return true;
+	}
+
+	std::time_t last_write_time_win( const path & ph )
+	{
+      // Works for both Windows and POSIX
+      struct stat path_stat;
+		std::wstring wph(safe_convert(ph.native_file_string()));
+		if ( ::wstat( wph.c_str(), &path_stat ) != 0 )
+			boost::throw_exception( filesystem_error(
+			"boost::filesystem::last_write_time",
+			ph, fs::detail::system_error_code() ) );
+		return path_stat.st_mtime;
+	}
+
+	void rename_win( const path & old_path,
+		const path & new_path )
+	{
+		std::wstring wold_path(safe_convert(old_path.string()));
+		std::wstring wnew_path(safe_convert(new_path.string()));
+		if ( !::MoveFile( wold_path.c_str(), wnew_path.c_str() ) )
+		boost::throw_exception( filesystem_error(
+			"boost::filesystem::rename",
+			old_path, new_path, fs::detail::system_error_code() ) );
+	}
+
+} // anonymous namespace
+
+#endif
+
 #if BOOST_VERSION < 103200
 bool operator<(boost::filesystem::path const& lhs
 	, boost::filesystem::path const& rhs)
@@ -231,7 +305,11 @@ namespace libtorrent
 			{
 				path f = p / i->path;
 				size = file_size(f);
+#if defined(WIN32) && defined(UNICODE)
+				time = last_write_time_win(f);
+#else
 				time = last_write_time(f);
+#endif
 			}
 			catch (std::exception&) {}
 			sizes.push_back(std::make_pair(size, time));
@@ -263,7 +341,11 @@ namespace libtorrent
 			{
 				path f = p / i->path;
 				size = file_size(f);
+#if defined(WIN32) && defined(UNICODE)
+				time = last_write_time_win(f);
+#else
 				time = last_write_time(f);
+#endif
 			}
 			catch (std::exception&) {}
 			if (size != s->first)
@@ -374,10 +456,22 @@ namespace libtorrent
 
 		save_path = complete(save_path);
 
+#if defined(WIN32) && defined(UNICODE)
+		std::wstring wsave_path(safe_convert(save_path.native_file_string()));
+		if (GetFileAttributes(wsave_path.c_str()) == INVALID_FILE_ATTRIBUTES)
+		{
+			CreateDirectory(wsave_path.c_str(), 0);
+		}
+		else if ((GetFileAttributes(wsave_path) & FILE_ATTRIBUTE_DIRECTORY) == 0)
+		{
+			return false;
+		}
+#else
 		if(!exists(save_path))
 			create_directory(save_path);
 		else if(!is_directory(save_path))
 			return false;
+#endif
 
 		m_pimpl->files.release(m_pimpl->info.info_hash());
 
@@ -399,7 +493,11 @@ namespace libtorrent
 
 		try
 		{
+#if defined(WIN32) && defined(UNICODE)
+			rename_win(old_path, new_path);
+#else
 			rename(old_path, new_path);
+#endif
 			m_pimpl->save_path = save_path;
 			return true;
 		}
@@ -1201,8 +1299,17 @@ namespace libtorrent
 			end_iter = m_info.end_files();  file_iter != end_iter; ++file_iter)
 		{
 			path dir = m_save_path / file_iter->path;
+
+#if defined(WIN32) && defined(UNICODE)
+			std::wstring wdir(safe_convert(dir.branch_path().native_directory_string()));
+			if (GetFileAttributes(wdir.c_str()) != INVALID_FILE_ATTRIBUTES)
+			{
+				create_directories_win(dir.branch_path());
+			}
+#else
 			if (!exists(dir.branch_path()))
 				create_directories(dir.branch_path());
+#endif
 		}
 
 		std::vector<char> piece_data(static_cast<int>(m_info.piece_length()));
