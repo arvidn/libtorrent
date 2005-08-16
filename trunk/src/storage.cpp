@@ -482,9 +482,9 @@ namespace libtorrent
 		save_path = complete(save_path);
 
 #if defined(WIN32) && defined(UNICODE)
+		std::wstring wsave_path(safe_convert(save_path.native_file_string()));
 		if (!exists_win(save_path))
 		{
-			std::wstring wsave_path(safe_convert(save_path.native_file_string()));
 			CreateDirectory(wsave_path.c_str(), 0);
 		}
 		else if ((GetFileAttributes(wsave_path.c_str()) & FILE_ATTRIBUTE_DIRECTORY) == 0)
@@ -506,8 +506,8 @@ namespace libtorrent
 			if (single_file.has_branch_path())
 			{
 #if defined(WIN32) && defined(UNICODE)
-				std::wstring wsave_path(safe_convert((save_path / single_file.branch_path()))
-					.native_directory_string());
+				std::wstring wsave_path(safe_convert((save_path / single_file.branch_path())
+					.native_directory_string()));
 				CreateDirectory(wsave_path.c_str(), 0);
 #else
 				create_directory(save_path / single_file.branch_path());
