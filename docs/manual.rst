@@ -213,6 +213,10 @@ explicitly build a static library.
 The build targets are put in a directory called bin, and under it they are
 sorted in directories depending on the toolset and build variant used.
 
+To build the examples, just change directory to the examples directory and
+invoke ``bjam`` from there. To build and run the tests, go to the test
+directory and run ``bjam``.
+
 Note that if you're building on windows using the ``msvc`` toolset, you cannot run it
 from a cygwin terminal, you'll have to run it from a ``cmd`` terminal. The same goes for
 cygwin, if you're building with gcc in cygwin you'll have to run it from a cygwin terminal.
@@ -255,7 +259,7 @@ The most likely problem you may encounter is that the configure script won't
 find the boost libraries. Make sure you have boost installed on your system.
 The easiest way to install boost is usually to use the preferred package
 system on your platform. Usually libraries and headers are installed in
-standard directories where the compiler will find them, but in some cases that
+standard directories where the compiler will find them, but sometimes that
 may not be the case. For example when installing boost on darwin using
 darwinports (the package system based on BSD ports) all libraries are
 installed to ``/opt/local/lib`` and headers are installed to
@@ -290,6 +294,9 @@ Step 2: Building libtorrent
 
 Once the configure script is run successfully, you just type ``make`` and
 libtorrent, the examples and the tests will be built.
+
+When libtorrent is built it may be a good idea to run the test, you do this
+my running ``make check``.
 
 If you want to build a release version (without debug info, asserts and
 invariant checks), you have to rerun the configure script and rebuild, like this::
@@ -1116,8 +1123,6 @@ The default constructor will initialize the handle to an invalid state. Which me
 perform any operation on it, unless you first assign it a valid handle. If you try to perform
 any operation on an uninitialized handle, it will throw ``invalid_handle``.
 
-**TODO: document trackers() and replace_trackers()**
-
 **TODO: document filter_piece(), filter_pieces(), is_piece_filtered(), filtered_pieces() and filter_files()**
 
 save_path()
@@ -1249,6 +1254,24 @@ set_tracker_login()
 
 ``set_tracker_login()`` sets a username and password that will be sent along in the HTTP-request
 of the tracker announce. Set this if the tracker requires authorization.
+
+
+trackers() replace_trackers()
+-----------------------------
+
+  ::
+
+		std::vector<announce_entry> const& trackers() const;
+		void replace_trackers(std::vector<announce_entry> const&);
+
+``trackers()`` will return the list of trackers for this torrent. The
+announce entry contains both a string ``url`` which specifu the announce url
+for the tracker as well as an int ``tier``, which is specifies the order in
+which this tracker is tried. If you want libtorrent to use another list of
+trackers for this torrent, you can use ``replace_trackers()`` which takes
+a list of the same form as the one returned from ``trackers()`` and will
+replace it. If you want an immediate effect, you have to call
+`force_reannounce()`_.
 
 
 use_interface()
@@ -1419,6 +1442,7 @@ somehow invalid or if the filenames are not allowed (and hence cannot be opened/
 your filesystem. If such an error occurs, a file_error_alert_ is generated and all handles
 that refers to that torrent will become invalid.
 
+**TODO: document storage**
 
 
 torrent_status
@@ -3039,9 +3063,6 @@ Don't have metadata:
 	|           |               | doesn't have any metadata.             |
 	+-----------+---------------+----------------------------------------+
 
-The current implementation of this extension in libtorrent is experimental,
-and not optimal in any way.
-
 
 filename checks
 ===============
@@ -3065,10 +3086,12 @@ Written by Arvid Norberg. Copyright (c) 2003-2005
 
 Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson
 
+Big thanks to Michael Wojciechowski and Peter Koeleman for making the autotools
+scripts.
+
 Thanks to Reimond Retz for bugfixes, suggestions and testing
 
-Thanks to `University of Umeå`__ for providing development and
-test hardware.
+Thanks to `University of Umeå`__ for providing development and test hardware.
 
 Project is hosted by sourceforge.
 
