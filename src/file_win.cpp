@@ -166,7 +166,7 @@ namespace libtorrent
 		#ifdef UNICODE
 			std::wstring wfile_name(safe_convert(file_name));
 			HANDLE new_handle = CreateFile(
-				(LPCWSTR)wfile_name.c_str()
+				wfile_name.c_str()
 				, access_mask
 				, FILE_SHARE_READ
 				, 0
