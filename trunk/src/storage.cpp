@@ -98,6 +98,8 @@ namespace
 		}
 	}
 
+	using namespace boost::filesystem;
+	
 	// based on code from Boost.Fileystem
 	bool create_directories_win(const path& ph)
 	{
