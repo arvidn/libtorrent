@@ -19,140 +19,140 @@
 <td>Arvid Norberg, <a class="last reference" href="mailto:c99ang&#64;cs.umu.se">c99ang&#64;cs.umu.se</a></td></tr>
 </tbody>
 </table>
-<div class="contents topic" id="contents">
-<p class="topic-title first"><a name="contents">Contents</a></p>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first"><a name="table-of-contents">Table of contents</a></p>
 <ul class="simple">
-<li><a class="reference" href="#introduction" id="id19" name="id19">introduction</a></li>
-<li><a class="reference" href="#downloading-and-building" id="id20" name="id20">downloading and building</a><ul>
-<li><a class="reference" href="#building-with-bbv2" id="id21" name="id21">building with BBv2</a></li>
-<li><a class="reference" href="#building-with-autotools" id="id22" name="id22">building with autotools</a></li>
-<li><a class="reference" href="#building-with-other-build-systems" id="id23" name="id23">Building with other build systems</a></li>
-<li><a class="reference" href="#build-configurations" id="id24" name="id24">Build configurations</a></li>
+<li><a class="reference" href="#introduction" id="id20" name="id20">introduction</a></li>
+<li><a class="reference" href="#downloading-and-building" id="id21" name="id21">downloading and building</a><ul>
+<li><a class="reference" href="#building-with-bbv2" id="id22" name="id22">building with BBv2</a></li>
+<li><a class="reference" href="#building-with-autotools" id="id23" name="id23">building with autotools</a></li>
+<li><a class="reference" href="#building-with-other-build-systems" id="id24" name="id24">Building with other build systems</a></li>
+<li><a class="reference" href="#build-configurations" id="id25" name="id25">Build configurations</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#using" id="id25" name="id25">using</a></li>
-<li><a class="reference" href="#session" id="id26" name="id26">session</a><ul>
-<li><a class="reference" href="#id7" id="id27" name="id27">session()</a></li>
-<li><a class="reference" href="#id8" id="id28" name="id28">~session()</a></li>
-<li><a class="reference" href="#add-torrent" id="id29" name="id29">add_torrent()</a></li>
-<li><a class="reference" href="#remove-torrent" id="id30" name="id30">remove_torrent()</a></li>
-<li><a class="reference" href="#disable-extensions-enable-extension" id="id31" name="id31">disable_extensions() enable_extension()</a></li>
-<li><a class="reference" href="#set-upload-rate-limit-set-download-rate-limit" id="id32" name="id32">set_upload_rate_limit() set_download_rate_limit()</a></li>
-<li><a class="reference" href="#set-max-uploads-set-max-connections" id="id33" name="id33">set_max_uploads() set_max_connections()</a></li>
-<li><a class="reference" href="#set-ip-filter" id="id34" name="id34">set_ip_filter()</a></li>
-<li><a class="reference" href="#status" id="id35" name="id35">status()</a></li>
-<li><a class="reference" href="#is-listening-listen-port-listen-on" id="id36" name="id36">is_listening() listen_port() listen_on()</a></li>
-<li><a class="reference" href="#pop-alert-set-severity-level" id="id37" name="id37">pop_alert() set_severity_level()</a></li>
+<li><a class="reference" href="#overview" id="id26" name="id26">overview</a></li>
+<li><a class="reference" href="#session" id="id27" name="id27">session</a><ul>
+<li><a class="reference" href="#id7" id="id28" name="id28">session()</a></li>
+<li><a class="reference" href="#id8" id="id29" name="id29">~session()</a></li>
+<li><a class="reference" href="#add-torrent" id="id30" name="id30">add_torrent()</a></li>
+<li><a class="reference" href="#remove-torrent" id="id31" name="id31">remove_torrent()</a></li>
+<li><a class="reference" href="#disable-extensions-enable-extension" id="id32" name="id32">disable_extensions() enable_extension()</a></li>
+<li><a class="reference" href="#set-upload-rate-limit-set-download-rate-limit" id="id33" name="id33">set_upload_rate_limit() set_download_rate_limit()</a></li>
+<li><a class="reference" href="#set-max-uploads-set-max-connections" id="id34" name="id34">set_max_uploads() set_max_connections()</a></li>
+<li><a class="reference" href="#set-ip-filter" id="id35" name="id35">set_ip_filter()</a></li>
+<li><a class="reference" href="#status" id="id36" name="id36">status()</a></li>
+<li><a class="reference" href="#is-listening-listen-port-listen-on" id="id37" name="id37">is_listening() listen_port() listen_on()</a></li>
+<li><a class="reference" href="#pop-alert-set-severity-level" id="id38" name="id38">pop_alert() set_severity_level()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#entry" id="id38" name="id38">entry</a><ul>
-<li><a class="reference" href="#integer-string-list-dict-type" id="id39" name="id39">integer() string() list() dict() type()</a></li>
+<li><a class="reference" href="#entry" id="id39" name="id39">entry</a><ul>
+<li><a class="reference" href="#integer-string-list-dict-type" id="id40" name="id40">integer() string() list() dict() type()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#torrent-info" id="id40" name="id40">torrent_info</a><ul>
-<li><a class="reference" href="#id9" id="id41" name="id41">torrent_info()</a></li>
-<li><a class="reference" href="#set-comment-set-piece-size-set-creator-set-hash-add-tracker-add-file" id="id42" name="id42">set_comment() set_piece_size() set_creator() set_hash() add_tracker() add_file()</a></li>
-<li><a class="reference" href="#create-torrent" id="id43" name="id43">create_torrent()</a></li>
-<li><a class="reference" href="#begin-files-end-files-rbegin-files-rend-files" id="id44" name="id44">begin_files() end_files() rbegin_files() rend_files()</a></li>
-<li><a class="reference" href="#num-files-file-at" id="id45" name="id45">num_files() file_at()</a></li>
-<li><a class="reference" href="#print" id="id46" name="id46">print()</a></li>
-<li><a class="reference" href="#trackers" id="id47" name="id47">trackers()</a></li>
-<li><a class="reference" href="#total-size-piece-length-piece-size-num-pieces" id="id48" name="id48">total_size() piece_length() piece_size() num_pieces()</a></li>
-<li><a class="reference" href="#hash-for-piece-info-hash" id="id49" name="id49">hash_for_piece() info_hash()</a></li>
-<li><a class="reference" href="#name-comment-creation-date" id="id50" name="id50">name() comment() creation_date()</a></li>
+<li><a class="reference" href="#torrent-info" id="id41" name="id41">torrent_info</a><ul>
+<li><a class="reference" href="#id9" id="id42" name="id42">torrent_info()</a></li>
+<li><a class="reference" href="#set-comment-set-piece-size-set-creator-set-hash-add-tracker-add-file" id="id43" name="id43">set_comment() set_piece_size() set_creator() set_hash() add_tracker() add_file()</a></li>
+<li><a class="reference" href="#create-torrent" id="id44" name="id44">create_torrent()</a></li>
+<li><a class="reference" href="#begin-files-end-files-rbegin-files-rend-files" id="id45" name="id45">begin_files() end_files() rbegin_files() rend_files()</a></li>
+<li><a class="reference" href="#num-files-file-at" id="id46" name="id46">num_files() file_at()</a></li>
+<li><a class="reference" href="#print" id="id47" name="id47">print()</a></li>
+<li><a class="reference" href="#trackers" id="id48" name="id48">trackers()</a></li>
+<li><a class="reference" href="#total-size-piece-length-piece-size-num-pieces" id="id49" name="id49">total_size() piece_length() piece_size() num_pieces()</a></li>
+<li><a class="reference" href="#hash-for-piece-info-hash" id="id50" name="id50">hash_for_piece() info_hash()</a></li>
+<li><a class="reference" href="#name-comment-creation-date" id="id51" name="id51">name() comment() creation_date()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#torrent-handle" id="id51" name="id51">torrent_handle</a><ul>
-<li><a class="reference" href="#save-path" id="id52" name="id52">save_path()</a></li>
-<li><a class="reference" href="#move-storage" id="id53" name="id53">move_storage()</a></li>
-<li><a class="reference" href="#force-reannounce" id="id54" name="id54">force_reannounce()</a></li>
-<li><a class="reference" href="#connect-peer" id="id55" name="id55">connect_peer()</a></li>
-<li><a class="reference" href="#set-ratio" id="id56" name="id56">set_ratio()</a></li>
-<li><a class="reference" href="#set-upload-limit-set-download-limit" id="id57" name="id57">set_upload_limit() set_download_limit()</a></li>
-<li><a class="reference" href="#pause-resume-is-paused" id="id58" name="id58">pause() resume() is_paused()</a></li>
-<li><a class="reference" href="#is-seed" id="id59" name="id59">is_seed()</a></li>
-<li><a class="reference" href="#has-metadata" id="id60" name="id60">has_metadata()</a></li>
-<li><a class="reference" href="#set-tracker-login" id="id61" name="id61">set_tracker_login()</a></li>
-<li><a class="reference" href="#trackers-replace-trackers" id="id62" name="id62">trackers() replace_trackers()</a></li>
-<li><a class="reference" href="#use-interface" id="id63" name="id63">use_interface()</a></li>
-<li><a class="reference" href="#info-hash" id="id64" name="id64">info_hash()</a></li>
-<li><a class="reference" href="#id11" id="id65" name="id65">set_max_uploads() set_max_connections()</a></li>
-<li><a class="reference" href="#write-resume-data" id="id66" name="id66">write_resume_data()</a></li>
-<li><a class="reference" href="#metadata" id="id67" name="id67">metadata()</a></li>
-<li><a class="reference" href="#id12" id="id68" name="id68">status()</a></li>
-<li><a class="reference" href="#get-download-queue" id="id69" name="id69">get_download_queue()</a></li>
-<li><a class="reference" href="#get-peer-info" id="id70" name="id70">get_peer_info()</a></li>
-<li><a class="reference" href="#get-torrent-info" id="id71" name="id71">get_torrent_info()</a></li>
-<li><a class="reference" href="#is-valid" id="id72" name="id72">is_valid()</a></li>
+<li><a class="reference" href="#torrent-handle" id="id52" name="id52">torrent_handle</a><ul>
+<li><a class="reference" href="#save-path" id="id53" name="id53">save_path()</a></li>
+<li><a class="reference" href="#move-storage" id="id54" name="id54">move_storage()</a></li>
+<li><a class="reference" href="#force-reannounce" id="id55" name="id55">force_reannounce()</a></li>
+<li><a class="reference" href="#connect-peer" id="id56" name="id56">connect_peer()</a></li>
+<li><a class="reference" href="#set-ratio" id="id57" name="id57">set_ratio()</a></li>
+<li><a class="reference" href="#set-upload-limit-set-download-limit" id="id58" name="id58">set_upload_limit() set_download_limit()</a></li>
+<li><a class="reference" href="#pause-resume-is-paused" id="id59" name="id59">pause() resume() is_paused()</a></li>
+<li><a class="reference" href="#is-seed" id="id60" name="id60">is_seed()</a></li>
+<li><a class="reference" href="#has-metadata" id="id61" name="id61">has_metadata()</a></li>
+<li><a class="reference" href="#set-tracker-login" id="id62" name="id62">set_tracker_login()</a></li>
+<li><a class="reference" href="#trackers-replace-trackers" id="id63" name="id63">trackers() replace_trackers()</a></li>
+<li><a class="reference" href="#use-interface" id="id64" name="id64">use_interface()</a></li>
+<li><a class="reference" href="#info-hash" id="id65" name="id65">info_hash()</a></li>
+<li><a class="reference" href="#id11" id="id66" name="id66">set_max_uploads() set_max_connections()</a></li>
+<li><a class="reference" href="#write-resume-data" id="id67" name="id67">write_resume_data()</a></li>
+<li><a class="reference" href="#metadata" id="id68" name="id68">metadata()</a></li>
+<li><a class="reference" href="#id12" id="id69" name="id69">status()</a></li>
+<li><a class="reference" href="#get-download-queue" id="id70" name="id70">get_download_queue()</a></li>
+<li><a class="reference" href="#get-peer-info" id="id71" name="id71">get_peer_info()</a></li>
+<li><a class="reference" href="#get-torrent-info" id="id72" name="id72">get_torrent_info()</a></li>
+<li><a class="reference" href="#is-valid" id="id73" name="id73">is_valid()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#torrent-status" id="id73" name="id73">torrent_status</a></li>
-<li><a class="reference" href="#peer-info" id="id74" name="id74">peer_info</a></li>
-<li><a class="reference" href="#address" id="id75" name="id75">address</a></li>
-<li><a class="reference" href="#http-settings" id="id76" name="id76">http_settings</a></li>
-<li><a class="reference" href="#ip-filter" id="id77" name="id77">ip_filter</a><ul>
-<li><a class="reference" href="#id14" id="id78" name="id78">ip_filter()</a></li>
-<li><a class="reference" href="#add-rule" id="id79" name="id79">add_rule()</a></li>
-<li><a class="reference" href="#access" id="id80" name="id80">access()</a></li>
-<li><a class="reference" href="#export-filter" id="id81" name="id81">export_filter()</a></li>
+<li><a class="reference" href="#torrent-status" id="id74" name="id74">torrent_status</a></li>
+<li><a class="reference" href="#peer-info" id="id75" name="id75">peer_info</a></li>
+<li><a class="reference" href="#address" id="id76" name="id76">address</a></li>
+<li><a class="reference" href="#http-settings" id="id77" name="id77">http_settings</a></li>
+<li><a class="reference" href="#ip-filter" id="id78" name="id78">ip_filter</a><ul>
+<li><a class="reference" href="#id14" id="id79" name="id79">ip_filter()</a></li>
+<li><a class="reference" href="#add-rule" id="id80" name="id80">add_rule()</a></li>
+<li><a class="reference" href="#access" id="id81" name="id81">access()</a></li>
+<li><a class="reference" href="#export-filter" id="id82" name="id82">export_filter()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#big-number" id="id82" name="id82">big_number</a></li>
-<li><a class="reference" href="#hasher" id="id83" name="id83">hasher</a></li>
-<li><a class="reference" href="#fingerprint" id="id84" name="id84">fingerprint</a></li>
-<li><a class="reference" href="#free-functions" id="id85" name="id85">free functions</a><ul>
-<li><a class="reference" href="#identify-client" id="id86" name="id86">identify_client()</a></li>
-<li><a class="reference" href="#bdecode-bencode" id="id87" name="id87">bdecode() bencode()</a></li>
+<li><a class="reference" href="#big-number" id="id83" name="id83">big_number</a></li>
+<li><a class="reference" href="#hasher" id="id84" name="id84">hasher</a></li>
+<li><a class="reference" href="#fingerprint" id="id85" name="id85">fingerprint</a></li>
+<li><a class="reference" href="#free-functions" id="id86" name="id86">free functions</a><ul>
+<li><a class="reference" href="#identify-client" id="id87" name="id87">identify_client()</a></li>
+<li><a class="reference" href="#bdecode-bencode" id="id88" name="id88">bdecode() bencode()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#alerts" id="id88" name="id88">alerts</a><ul>
-<li><a class="reference" href="#listen-failed-alert" id="id89" name="id89">listen_failed_alert</a></li>
-<li><a class="reference" href="#file-error-alert" id="id90" name="id90">file_error_alert</a></li>
-<li><a class="reference" href="#tracker-announce-alert" id="id91" name="id91">tracker_announce_alert</a></li>
-<li><a class="reference" href="#tracker-alert" id="id92" name="id92">tracker_alert</a></li>
-<li><a class="reference" href="#tracker-reply-alert" id="id93" name="id93">tracker_reply_alert</a></li>
-<li><a class="reference" href="#tracker-warning-alert" id="id94" name="id94">tracker_warning_alert</a></li>
-<li><a class="reference" href="#hash-failed-alert" id="id95" name="id95">hash_failed_alert</a></li>
-<li><a class="reference" href="#peer-ban-alert" id="id96" name="id96">peer_ban_alert</a></li>
-<li><a class="reference" href="#peer-error-alert" id="id97" name="id97">peer_error_alert</a></li>
-<li><a class="reference" href="#invalid-request-alert" id="id98" name="id98">invalid_request_alert</a></li>
-<li><a class="reference" href="#torrent-finished-alert" id="id99" name="id99">torrent_finished_alert</a></li>
-<li><a class="reference" href="#metadata-received-alert" id="id100" name="id100">metadata_received_alert</a></li>
-<li><a class="reference" href="#fastresume-rejected-alert" id="id101" name="id101">fastresume_rejected_alert</a></li>
-<li><a class="reference" href="#dispatcher" id="id102" name="id102">dispatcher</a></li>
+<li><a class="reference" href="#alerts" id="id89" name="id89">alerts</a><ul>
+<li><a class="reference" href="#listen-failed-alert" id="id90" name="id90">listen_failed_alert</a></li>
+<li><a class="reference" href="#file-error-alert" id="id91" name="id91">file_error_alert</a></li>
+<li><a class="reference" href="#tracker-announce-alert" id="id92" name="id92">tracker_announce_alert</a></li>
+<li><a class="reference" href="#tracker-alert" id="id93" name="id93">tracker_alert</a></li>
+<li><a class="reference" href="#tracker-reply-alert" id="id94" name="id94">tracker_reply_alert</a></li>
+<li><a class="reference" href="#tracker-warning-alert" id="id95" name="id95">tracker_warning_alert</a></li>
+<li><a class="reference" href="#hash-failed-alert" id="id96" name="id96">hash_failed_alert</a></li>
+<li><a class="reference" href="#peer-ban-alert" id="id97" name="id97">peer_ban_alert</a></li>
+<li><a class="reference" href="#peer-error-alert" id="id98" name="id98">peer_error_alert</a></li>
+<li><a class="reference" href="#invalid-request-alert" id="id99" name="id99">invalid_request_alert</a></li>
+<li><a class="reference" href="#torrent-finished-alert" id="id100" name="id100">torrent_finished_alert</a></li>
+<li><a class="reference" href="#metadata-received-alert" id="id101" name="id101">metadata_received_alert</a></li>
+<li><a class="reference" href="#fastresume-rejected-alert" id="id102" name="id102">fastresume_rejected_alert</a></li>
+<li><a class="reference" href="#dispatcher" id="id103" name="id103">dispatcher</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#exceptions" id="id103" name="id103">exceptions</a><ul>
-<li><a class="reference" href="#invalid-handle" id="id104" name="id104">invalid_handle</a></li>
-<li><a class="reference" href="#duplicate-torrent" id="id105" name="id105">duplicate_torrent</a></li>
-<li><a class="reference" href="#invalid-encoding" id="id106" name="id106">invalid_encoding</a></li>
-<li><a class="reference" href="#type-error" id="id107" name="id107">type_error</a></li>
-<li><a class="reference" href="#invalid-torrent-file" id="id108" name="id108">invalid_torrent_file</a></li>
+<li><a class="reference" href="#exceptions" id="id104" name="id104">exceptions</a><ul>
+<li><a class="reference" href="#invalid-handle" id="id105" name="id105">invalid_handle</a></li>
+<li><a class="reference" href="#duplicate-torrent" id="id106" name="id106">duplicate_torrent</a></li>
+<li><a class="reference" href="#invalid-encoding" id="id107" name="id107">invalid_encoding</a></li>
+<li><a class="reference" href="#type-error" id="id108" name="id108">type_error</a></li>
+<li><a class="reference" href="#invalid-torrent-file" id="id109" name="id109">invalid_torrent_file</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#examples" id="id109" name="id109">examples</a><ul>
-<li><a class="reference" href="#dump-torrent" id="id110" name="id110">dump_torrent</a></li>
-<li><a class="reference" href="#simple-client" id="id111" name="id111">simple client</a></li>
-<li><a class="reference" href="#make-torrent" id="id112" name="id112">make_torrent</a></li>
+<li><a class="reference" href="#examples" id="id110" name="id110">examples</a><ul>
+<li><a class="reference" href="#dump-torrent" id="id111" name="id111">dump_torrent</a></li>
+<li><a class="reference" href="#simple-client" id="id112" name="id112">simple client</a></li>
+<li><a class="reference" href="#make-torrent" id="id113" name="id113">make_torrent</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#fast-resume" id="id113" name="id113">fast resume</a><ul>
-<li><a class="reference" href="#file-format" id="id114" name="id114">file format</a></li>
+<li><a class="reference" href="#fast-resume" id="id114" name="id114">fast resume</a><ul>
+<li><a class="reference" href="#file-format" id="id115" name="id115">file format</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#threads" id="id115" name="id115">threads</a></li>
-<li><a class="reference" href="#storage-allocation" id="id116" name="id116">storage allocation</a><ul>
-<li><a class="reference" href="#full-allocation" id="id117" name="id117">full allocation</a></li>
-<li><a class="reference" href="#compact-allocation" id="id118" name="id118">compact allocation</a></li>
+<li><a class="reference" href="#threads" id="id116" name="id116">threads</a></li>
+<li><a class="reference" href="#storage-allocation" id="id117" name="id117">storage allocation</a><ul>
+<li><a class="reference" href="#full-allocation" id="id118" name="id118">full allocation</a></li>
+<li><a class="reference" href="#compact-allocation" id="id119" name="id119">compact allocation</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#extensions" id="id119" name="id119">extensions</a><ul>
-<li><a class="reference" href="#chat-messages" id="id120" name="id120">chat messages</a></li>
-<li><a class="reference" href="#metadata-from-peers" id="id121" name="id121">metadata from peers</a></li>
+<li><a class="reference" href="#extensions" id="id120" name="id120">extensions</a><ul>
+<li><a class="reference" href="#chat-messages" id="id121" name="id121">chat messages</a></li>
+<li><a class="reference" href="#metadata-from-peers" id="id122" name="id122">metadata from peers</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#filename-checks" id="id122" name="id122">filename checks</a></li>
-<li><a class="reference" href="#acknowledgements" id="id123" name="id123">acknowledgements</a></li>
+<li><a class="reference" href="#filename-checks" id="id123" name="id123">filename checks</a></li>
+<li><a class="reference" href="#acknowledgements" id="id124" name="id124">acknowledgements</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
@@ -361,7 +361,7 @@ For more build configuration flags see <a class="reference" href="#build-configu
 <div class="section" id="building-with-autotools">
 <h2><a name="building-with-autotools">building with autotools</a></h2>
 <p>First of all, you need to install <tt class="docutils literal"><span class="pre">automake</span></tt> and <tt class="docutils literal"><span class="pre">autoconf</span></tt>. Many
-unix/linux systems come with these preinstalled.</p>
+unix/linux systems comes with these preinstalled.</p>
 <div class="section" id="step-1-running-configure">
 <h3><a name="step-1-running-configure">Step 1: Running configure</a></h3>
 <p>In your shell, change directory to the libtorrent directory and run
@@ -468,14 +468,20 @@ the session log.</td>
 checks in the storage, including logging of
 piece sorting.</td>
 </tr>
+<tr><td><tt class="docutils literal"><span class="pre">UNICODE</span></tt></td>
+<td>If building on windows this will make sure the
+UTF-8 strings in pathnames are converted into
+UTF-16 before they are passed to the file
+operations.</td>
+</tr>
 </tbody>
 </table>
 <p>If you experience that libtorrent uses unreasonable amounts of cpu, it will definately help to
 define <tt class="docutils literal"><span class="pre">NDEBUG</span></tt>, since it will remove the invariant checks within the library.</p>
 </div>
 </div>
-<div class="section" id="using">
-<h1><a name="using">using</a></h1>
+<div class="section" id="overview">
+<h1><a name="overview">overview</a></h1>
 <p>The interface of libtorrent consists of a few classes. The main class is
 the <tt class="docutils literal"><span class="pre">session</span></tt>, it contains the main loop that serves all torrents.</p>
 <p>The basic usage is as follows:</p>
@@ -494,7 +500,8 @@ the <tt class="docutils literal"><span class="pre">session</span></tt>, it conta
 </dd>
 </dl>
 </li>
-<li><p class="first">save resume data for all torrent_handles (optional)</p>
+<li><p class="first">save resume data for all torrent_handles (optional, see
+<a class="reference" href="#write-resume-data">write_resume_data()</a>)</p>
 </li>
 <li><p class="first">destruct session object</p>
 </li>
@@ -1186,7 +1193,7 @@ struct torrent_handle
 <p>The default constructor will initialize the handle to an invalid state. Which means you cannot
 perform any operation on it, unless you first assign it a valid handle. If you try to perform
 any operation on an uninitialized handle, it will throw <tt class="docutils literal"><span class="pre">invalid_handle</span></tt>.</p>
-<p><strong>TODO: document filter_piece(), filter_pieces(), is_piece_filtered(), filtered_pieces() and filter_files()</strong></p>
+<p><em>TODO: document filter_piece(), filter_pieces(), is_piece_filtered(), filtered_pieces() and filter_files()</em></p>
 <div class="section" id="save-path">
 <h2><a name="save-path">save_path()</a></h2>
 <blockquote>
@@ -1483,7 +1490,7 @@ it has been added to the session. Usually this is because the storage for the to
 somehow invalid or if the filenames are not allowed (and hence cannot be opened/created) on
 your filesystem. If such an error occurs, a <a class="reference" href="#file-error-alert">file_error_alert</a> is generated and all handles
 that refers to that torrent will become invalid.</p>
-<p><strong>TODO: document storage</strong></p>
+<p><em>TODO: document storage</em></p>
 </div>
 </div>
 <div class="section" id="torrent-status">
@@ -2472,6 +2479,9 @@ struct invalid_torrent_file: std::exception
 </div>
 <div class="section" id="examples">
 <h1><a name="examples">examples</a></h1>
+<p>Except for the example programs in this manual, there's also a bigger example
+of a (little bit) more complete client, <tt class="docutils literal"><span class="pre">client_test</span></tt>. There are separate
+instructions for how to use it <a class="reference" href="client_test.html">here</a> if you'd like to try it.</p>
 <div class="section" id="dump-torrent">
 <h2><a name="dump-torrent">dump_torrent</a></h2>
 <p>This is an example of a program that will take a torrent-file as a parameter and
@@ -3076,7 +3086,7 @@ boost::filesystem::path::default_name_check(boost::filesystem::native);
 </div>
 <div class="section" id="acknowledgements">
 <h1><a name="acknowledgements">acknowledgements</a></h1>
-<p>Written by Arvid Norberg. Copyright (c) 2003-2005</p>
+<p>Written by Arvid Norberg. Copyright © 2003-2005</p>
 <p>Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson</p>
 <p>Big thanks to Michael Wojciechowski and Peter Koeleman for making the autotools
 scripts.</p>

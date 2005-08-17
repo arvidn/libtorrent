@@ -4,8 +4,9 @@ libtorrent manual
 
 :Author: Arvid Norberg, c99ang@cs.umu.se
 
-.. contents::
+.. contents:: Table of contents
   :depth: 2
+  :backlinks: none
 
 introduction
 ============
@@ -362,8 +363,8 @@ defines you can use to control the build.
 If you experience that libtorrent uses unreasonable amounts of cpu, it will definately help to
 define ``NDEBUG``, since it will remove the invariant checks within the library.
 
-using
-=====
+overview
+========
 
 The interface of libtorrent consists of a few classes. The main class is
 the ``session``, it contains the main loop that serves all torrents.
@@ -376,7 +377,8 @@ The basic usage is as follows:
 	* query the torrent_handles for progress (see torrent_handle_)
 	* query the session for information
 	* add and remove torrents from the session at run-time
-* save resume data for all torrent_handles (optional)
+* save resume data for all torrent_handles (optional, see
+  `write_resume_data()`_)
 * destruct session object
 
 Each class and function is described in this manual.
@@ -1128,7 +1130,7 @@ The default constructor will initialize the handle to an invalid state. Which me
 perform any operation on it, unless you first assign it a valid handle. If you try to perform
 any operation on an uninitialized handle, it will throw ``invalid_handle``.
 
-**TODO: document filter_piece(), filter_pieces(), is_piece_filtered(), filtered_pieces() and filter_files()**
+*TODO: document filter_piece(), filter_pieces(), is_piece_filtered(), filtered_pieces() and filter_files()*
 
 save_path()
 -----------
@@ -1447,7 +1449,7 @@ somehow invalid or if the filenames are not allowed (and hence cannot be opened/
 your filesystem. If such an error occurs, a file_error_alert_ is generated and all handles
 that refers to that torrent will become invalid.
 
-**TODO: document storage**
+*TODO: document storage*
 
 
 torrent_status
@@ -2551,6 +2553,12 @@ doesn't meet the requirements on what information has to be present in a torrent
 examples
 ========
 
+Except for the example programs in this manual, there's also a bigger example
+of a (little bit) more complete client, ``client_test``. There are separate
+instructions for how to use it here__ if you'd like to try it.
+
+__ client_test.html
+
 dump_torrent
 ------------
 
@@ -3087,7 +3095,7 @@ __ http://www.boost.org/libs/filesystem/doc/index.htm
 acknowledgements
 ================
 
-Written by Arvid Norberg. Copyright (c) 2003-2005
+Written by Arvid Norberg. Copyright |copy| 2003-2005
 
 Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson
 
@@ -3102,6 +3110,7 @@ Project is hosted by sourceforge.
 
 |sf_logo|__
 
+.. |copy| unicode:: 0xA9 .. copyright sign
 __ http://www.cs.umu.se
 .. |sf_logo| image:: http://sourceforge.net/sflogo.php?group_id=7994
 __ http://sourceforge.net

@@ -12,13 +12,15 @@ libtorrent
 .. _sourceforge page: http://www.sourceforge.net/projects/libtorrent
 .. _documentation: manual.html
 .. _`report bugs`: http://sourceforge.net/tracker/?group_id=79942&atid=558250
-.. _screenshot: libtorrent_screen.png
+.. _screenshot: client_test.png
 .. _mailing list: http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 
 libtorrent is a C++ library that aims to be a good alternative to all the
 other bittorrent implementations around. It is a
 library and not a full featured client, although it comes with a working
-example client.
+`example client`__.
+
+__ client_test.html
 
 The main goals of libtorrent are:
 
