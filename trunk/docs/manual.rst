@@ -849,6 +849,7 @@ The ``torrent_info`` has the following synopsis::
 		sha1_hash const& info_hash() const;
 		std::stirng const& name() const;
 		std::string const& comment() const;
+		std::string const& creator() const;
 
 		boost::optional<boost::posix_time::ptime>
 		creation_date() const;
@@ -1047,8 +1048,8 @@ piece and ``info_hash()`` returns the 20-bytes sha1-hash for the info-section of
 torrent file. For more information on the ``sha1_hash``, see the big_number_ class.
 
 
-name() comment() creation_date()
---------------------------------
+name() comment() creation_date() creator()
+------------------------------------------
 
 	::
 
@@ -1062,6 +1063,9 @@ name() comment() creation_date()
 it will return an empty string. ``creation_date()`` returns a `boost::posix_time::ptime`__
 object, representing the time when this torrent file was created. If there's no timestamp
 in the torrent file, this will return a date of january 1:st 1970.
+
+``cretor()`` returns the creator string in the torrent. If there is no creator string
+it will return an empty string.
 
 __ http://www.boost.org/libs/date_time/doc/class_ptime.html
 

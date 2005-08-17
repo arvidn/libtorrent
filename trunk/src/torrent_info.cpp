@@ -203,13 +203,9 @@ namespace libtorrent
 
 		// extract file name (or the directory name if it's a multifile libtorrent)
 		if (entry const* e = info.find_key("name.utf-8"))
-		{
-			m_name = e->string();
-		}
+		{ m_name = e->string(); }
 		else
-		{
-			m_name = info["name"].string();
-		}
+		{ m_name = info["name"].string(); }
 		
 		path tmp = m_name;
 		if (tmp.is_complete()) throw std::runtime_error("torrent contains "
@@ -314,19 +310,16 @@ namespace libtorrent
 		catch (type_error) {}
 
 		// extract comment
-		try
-		{
-			m_comment = torrent_file["comment"].string();
-		}
-		catch (type_error) {}
-		
-		// extract comment
-		try
-		{
-			m_created_by = torrent_file["created by"].string();
-		}
-		catch (type_error) {}
+		if (entry const* e = torrent_file.find_key("comment.utf-8"))
+		{ m_comment = e->string(); }
+		else if (entry const* e = torrent_file.find_key("comment"))
+		{ m_comment = e->string(); }
 	
+		if (entry const* e = torrent_file.find_key("created by.utf-8"))
+		{ m_created_by = e->string(); }
+		else if (entry const* e = torrent_file.find_key("created by"))
+		{ m_created_by = e->string(); }
+
 		parse_info_section(torrent_file["info"]);
 	}
 
