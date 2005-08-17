@@ -47,6 +47,9 @@ int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
 
+	namespace fs = boost::filesystem;
+	fs::path::default_name_check(fs::no_check);
+
 	if (argc != 2)
 	{
 		std::cerr << "usage: ./simple_client torrent-file\n"
