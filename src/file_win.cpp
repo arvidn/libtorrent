@@ -55,28 +55,6 @@ namespace
 		HLOCAL m_memory;
 	};
 
-
-	std::wstring safe_convert(std::string const& s)
-	{
-		try
-		{
-			return libtorrent::utf8_wchar(s);
-		}
-		catch (std::exception)
-		{
-			std::wstring ret;
-			for (const char* i = &*s.begin(); i < &*s.end(); ++i)
-			{
-				wchar_t c;
-				c = '.';
-				std::mbtowc(&c, i, 1);
-				ret += c;
-			}
-			return ret;
-		}
-	}
-
-	
 	std::string utf8_native(std::string const& s)
 	{
 		try
@@ -88,6 +66,7 @@ namespace
 			std::string ret;
 			ret.resize(size);
 			size = wcstombs(&ret[0], ws.c_str(), size + 1);
+			if (ret == wchar_t(-1)) return s;
 			ret.resize(size);
 			return ret;
 		}
