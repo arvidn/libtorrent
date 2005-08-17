@@ -93,6 +93,7 @@ namespace
 			std::string ret;
 			ret.resize(size);
 			size = wcstombs(&ret[0], ws.c_str(), size + 1);
+			if (size == -1) return s;
 			ret.resize(size);
 			return ret;
 		}
@@ -142,10 +143,18 @@ namespace libtorrent
 		{
 			assert(path.is_complete());
 			close();
+#if defined(WIN32) && defined(UNICODE)
+			std::wstring wpath(safe_convert(path.native_file_string()));
+			m_fd = ::_wopen(
+				wpath.c_str()
+				, map_open_mode(mode)
+				, S_IREAD | S_IWRITE);
+#else
 			m_fd = ::open(
 				utf8_native(path.native_file_string()).c_str()
 				, map_open_mode(mode)
 				, S_IREAD | S_IWRITE);
+#endif
 			if (m_fd == -1)
 			{
 				std::stringstream msg;
