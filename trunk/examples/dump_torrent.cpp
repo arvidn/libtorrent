@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 		std::cout << "piece length: " << t.piece_length() << "\n";
 		std::cout << "info hash: " << t.info_hash() << "\n";
 		std::cout << "comment: " << t.comment() << "\n";
-		std::cout << "created_by: " << t.creator() << "\n";
+		std::cout << "created by: " << t.creator() << "\n";
 		std::cout << "files:\n";
 		for (torrent_info::file_iterator i = t.begin_files();
 			i != t.end_files(); ++i)

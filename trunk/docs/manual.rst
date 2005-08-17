@@ -1064,7 +1064,7 @@ it will return an empty string. ``creation_date()`` returns a `boost::posix_time
 object, representing the time when this torrent file was created. If there's no timestamp
 in the torrent file, this will return a date of january 1:st 1970.
 
-``cretor()`` returns the creator string in the torrent. If there is no creator string
+``creator()`` returns the creator string in the torrent. If there is no creator string
 it will return an empty string.
 
 __ http://www.boost.org/libs/date_time/doc/class_ptime.html
