@@ -33,10 +33,10 @@ namespace detail {
 template<typename InputIterator>
 wchar_t decode_utf8_mb(InputIterator &iter, InputIterator last)
 {
-	if(iter==last) throw std::runtime_error("incomplete UTF-8 sequence");
-	if(((*iter)&0xC0)!=0x80) throw std::runtime_error("invalid UTF-8 sequence");
+	if (iter == last) throw std::runtime_error("incomplete UTF-8 sequence");
+	if (((*iter) & 0xc0) != 0x80) throw std::runtime_error("invalid UTF-8 sequence");
 
-	return (wchar_t)((*iter++)&0x3F);
+	return (wchar_t)((*iter++) & 0x3f);
 }
 
 template<typename InputIterator>
@@ -44,7 +44,7 @@ wchar_t decode_utf8(InputIterator &iter, InputIterator last)
 {
 	wchar_t ret;
 
-	if (((*iter)&0x80) == 0) // one byte
+	if (((*iter) & 0x80) == 0) // one byte
 	{
 		ret = *iter++;
 	}
@@ -56,7 +56,7 @@ wchar_t decode_utf8(InputIterator &iter, InputIterator last)
 	}
 	else if (((*iter) & 0xf0) == 0xe0) // three bytes
 	{
-		wchar_t byte1 = (*iter++) & 0x1f;
+		wchar_t byte1 = (*iter++) & 0x0f;
 		wchar_t byte2 = decode_utf8_mb(iter, last);
 		wchar_t byte3 = decode_utf8_mb(iter, last);
 		ret = (byte1 << 12) | (byte2 << 6) | byte3;
@@ -71,7 +71,7 @@ template<typename InputIterator, typename OutputIterator>
 OutputIterator utf8_wchar(InputIterator first, InputIterator last, OutputIterator dest)
 {
 	for(; first!=last; ++dest)
-		*dest=decode_utf8(first, last);
+		*dest = decode_utf8(first, last);
 	return dest;
 }
 
@@ -153,6 +153,21 @@ inline std::string wchar_utf8(const std::wstring &str)
 	std::string ret;
 	wchar_utf8(str, ret);
 	return ret;
+}
+
+inline std::wstring safe_convert(std::string const& s)
+{
+	try
+	{
+		return utf8_wchar(s);
+	}
+	catch (std::exception)
+	{
+		std::wstring ret;
+		for (const char* i = &*s.begin(); i < &*s.end(); ++i)
+			ret += *i;
+		return ret;
+	}
 }
 
 }
