@@ -44,22 +44,24 @@ wchar_t decode_utf8(InputIterator &iter, InputIterator last)
 {
 	wchar_t ret;
 
-	if(((*iter)&0x80) == 0) {
-		ret=*iter++;
+	if (((*iter)&0x80) == 0) // one byte
+	{
+		ret = *iter++;
 	}
-	else if(((*iter)&0x20) == 0) {
-		ret=(
-			(((wchar_t)((*iter++)&0x1F)) << 6) |
-			decode_utf8_mb(iter, last)
-		);
+	else if (((*iter) & 0xe0) == 0xc0) // two bytes
+	{
+		wchar_t byte1 = (*iter++) & 0x1f;
+		wchar_t byte2 = decode_utf8_mb(iter, last);
+		ret = (byte1 << 6) | byte2;
 	}
-	else if(((*iter)&0x10) == 0) {
-		ret=(
-			(((wchar_t)((*iter++)&0x0F)) << 12) |
-			(decode_utf8_mb(iter, last) << 6) |
-			decode_utf8_mb(iter, last)
-		);
+	else if (((*iter) & 0xf0) == 0xe0) // three bytes
+	{
+		wchar_t byte1 = (*iter++) & 0x1f;
+		wchar_t byte2 = decode_utf8_mb(iter, last);
+		wchar_t byte3 = decode_utf8_mb(iter, last);
+		ret = (byte1 << 12) | (byte2 << 6) | byte3;
 	}
+	// TODO: support surrogate pairs
 	else throw std::runtime_error("UTF-8 not convertable to UTF-16");
 
 	return ret;
