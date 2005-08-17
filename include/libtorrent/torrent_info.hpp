@@ -138,6 +138,9 @@ namespace libtorrent
 		boost::optional<boost::posix_time::ptime>
 		creation_date() const;
 
+		const std::string& creator() const
+		{ return m_created_by; }
+
 		const std::string& comment() const
 		{ return m_comment; }
 
