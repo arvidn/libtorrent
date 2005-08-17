@@ -67,12 +67,27 @@ namespace
 	{
 		target.size = dict["length"].integer();
 		target.path = root_dir;
-		const entry::list_type& list = dict["path"].list();
-		for (entry::list_type::const_iterator i = list.begin();
-			i != list.end(); ++i)
+
+
+		// prefer the name.utf-8
+		// because if it exists, it is more
+		// likely to be correctly encoded
+
+		const entry::list_type* list = 0;
+		if (entry const* p = dict.find_key("path.utf-8"))
+		{
+			list = &p->list();
+		}
+		else
+		{
+			list = &dict["path"].list();
+		}
+
+		for (entry::list_type::const_iterator i = list->begin();
+			i != list->end(); ++i)
 		{
 			if (i->string() != "..")
-				target.path /= i->string();
+			target.path /= i->string();
 		}
 		if (target.path.is_complete()) throw std::runtime_error("torrent contains "
 			"a file with an absolute path: '"
@@ -187,7 +202,15 @@ namespace libtorrent
 		m_piece_length = (int)info["piece length"].integer();
 
 		// extract file name (or the directory name if it's a multifile libtorrent)
-		m_name = info["name"].string();
+		if (entry const* e = info.find_key("name.utf-8"))
+		{
+			m_name = e->string();
+		}
+		else
+		{
+			m_name = info["name"].string();
+		}
+		
 		path tmp = m_name;
 		if (tmp.is_complete()) throw std::runtime_error("torrent contains "
 			"a file with an absolute path: '" + m_name + "'");
