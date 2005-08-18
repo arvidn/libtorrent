@@ -426,10 +426,6 @@ namespace libtorrent
 				&& m_torrent->ratio() != 0) continue;
 			if (c->statistics().download_rate() < max_down_speed) continue;
 //			if (i->last_optimistically_unchoked > min_time) continue;
-#ifndef NDEBUG
-			using namespace boost::posix_time;
-			assert(second_clock::universal_time() - c->m_last_choke > seconds(9));
-#endif
 
 			min_time = i->last_optimistically_unchoked;
 			max_down_speed = c->statistics().download_rate();
