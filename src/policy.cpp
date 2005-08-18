@@ -426,6 +426,10 @@ namespace libtorrent
 				&& m_torrent->ratio() != 0) continue;
 			if (c->statistics().download_rate() < max_down_speed) continue;
 //			if (i->last_optimistically_unchoked > min_time) continue;
+#ifndef NDEBUG
+			using namespace boost::posix_time;
+			assert(second_clock::universal_time() - c->m_last_choke > seconds(9));
+#endif
 
 			min_time = i->last_optimistically_unchoked;
 			max_down_speed = c->statistics().download_rate();
@@ -443,8 +447,7 @@ namespace libtorrent
 			= second_clock::universal_time();
 
 		for (std::vector<peer>::iterator i = m_peers.begin();
-			i != m_peers.end();
-			++i)
+			i != m_peers.end(); ++i)
 		{
 			peer_connection* c = i->connection;
 			if(c == 0)
@@ -508,6 +511,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		assert(m_num_unchoked > 0);
 		// first choice candidate.
 		// it is a candidate we owe nothing to and which has been unchoked
 		// the longest.
@@ -585,6 +589,8 @@ namespace libtorrent
 
 	bool policy::seed_unchoke_one_peer()
 	{
+		INVARIANT_CHECK;
+
 		peer* p = find_seed_unchoke_candidate();
 		if (p != 0)
 		{
@@ -595,6 +601,19 @@ namespace libtorrent
 			++m_num_unchoked;
 		}
 		return p != 0;
+	}
+
+	void policy::seed_choke_one_peer()
+	{
+		INVARIANT_CHECK;
+
+		peer* p = find_seed_choke_candidate();
+		if (p != 0)
+		{
+			assert(!p->connection->is_choked());
+			p->connection->send_choke();
+			--m_num_unchoked;
+		}
 	}
 
 	void policy::pulse()
@@ -705,26 +724,35 @@ namespace libtorrent
 		// ------------------------
 		if (m_torrent->is_seed())
 		{
-			if (num_connected_peers > m_torrent->m_uploads_quota.given)
+			if (m_num_unchoked > m_torrent->m_uploads_quota.given)
 			{
-				// this means there are some peers that
-				// are choked. To have the choked peers
-				// rotate, unchoke one peer here
-				// and let the next condiional block
-				// make sure another peer is choked.
+				do
+				{
+					peer* p = find_seed_choke_candidate();
+					--m_num_unchoked;
+					assert(p != 0);
+					if (p == 0) break;
+
+					assert(!p->connection->is_choked());
+					p->connection->send_choke();
+				} while (m_num_unchoked > m_torrent->m_uploads_quota.given);
+			}
+			else
+			{
+				// optimistic unchoke. trade the 'worst'
+				// unchoked peer with one of the choked
 				// TODO: This rotation should happen
 				// far less frequent than this!
-				seed_unchoke_one_peer();
-			}
-
-			while (m_num_unchoked > m_torrent->m_uploads_quota.given)
-			{
-				peer* p = find_seed_choke_candidate();
-				assert(p != 0);
-
-				assert(!p->connection->is_choked());
-				p->connection->send_choke();
-				--m_num_unchoked;
+				assert(m_num_unchoked <= m_torrent->num_peers());
+				peer* p = find_seed_unchoke_candidate();
+				if (p)
+				{
+					assert(p->connection->is_choked());
+					seed_choke_one_peer();
+					p->connection->send_unchoke();
+					++m_num_unchoked;
+				}
+			
 			}
 
 			// make sure we have enough
@@ -770,26 +798,33 @@ namespace libtorrent
 
 				// make sure we don't have too many
 				// unchoked peers
-				while (m_num_unchoked > m_torrent->m_uploads_quota.given)
+				if (m_num_unchoked > m_torrent->m_uploads_quota.given)
 				{
-					peer* p = find_choke_candidate();
-					if (!p) break;
-					assert(p);
-					assert(!p->connection->is_choked());
-					p->connection->send_choke();
-					--m_num_unchoked;
+					do
+					{
+						peer* p = find_choke_candidate();
+						if (!p) break;
+						assert(p);
+						assert(!p->connection->is_choked());
+						p->connection->send_choke();
+						--m_num_unchoked;
+					} while (m_num_unchoked > m_torrent->m_uploads_quota.given);
 				}
-
-				// optimistic unchoke. trade the 'worst'
-				// unchoked peer with one of the choked
-				assert(m_num_unchoked <= m_torrent->num_peers());
-				peer* p = find_choke_candidate();
-				if (p)
+				else
 				{
-					assert(!p->connection->is_choked());
-					p->connection->send_choke();
-					--m_num_unchoked;
-					unchoke_one_peer();
+					// optimistic unchoke. trade the 'worst'
+					// unchoked peer with one of the choked
+					// TODO: This rotation should happen
+					// far less frequent than this!
+					assert(m_num_unchoked <= m_torrent->num_peers());
+					peer* p = find_unchoke_candidate();
+					if (p)
+					{
+						assert(p->connection->is_choked());
+						choke_one_peer();
+						p->connection->send_unchoke();
+						++m_num_unchoked;
+					}
 				}
 			}
 
@@ -958,8 +993,7 @@ namespace libtorrent
 		{
 			// have all peers update their interested-flag
 			for (std::vector<peer>::iterator i = m_peers.begin();
-				i != m_peers.end();
-				++i)
+				i != m_peers.end(); ++i)
 			{
 				if (i->connection == 0) continue;
 				// if we're not interested, we will not become interested
@@ -1067,6 +1101,17 @@ namespace libtorrent
 		return true;
 	}
 
+	void policy::choke_one_peer()
+	{
+		peer* p = find_choke_candidate();
+		if (p == 0) return;
+		assert(p->connection);
+		assert(!p->connection->is_disconnecting());
+		assert(!p->connection->is_choked());
+		p->connection->send_choke();
+		--m_num_unchoked;
+	}
+
 	bool policy::connect_one_peer()
 	{
 		if(m_torrent->num_peers() >= m_torrent->m_connections_quota.given)
@@ -1113,8 +1158,6 @@ namespace libtorrent
 	// this is called whenever a peer connection is closed
 	void policy::connection_closed(const peer_connection& c)
 	{
-		INVARIANT_CHECK;
-
 		bool unchoked = false;
 
 		std::vector<peer>::iterator i = std::find_if(
@@ -1181,7 +1224,6 @@ namespace libtorrent
 	void policy::check_invariant() const
 	{
 		if (m_torrent->is_aborted()) return;
-//		assert(m_torrent->m_uploads_quota.given >= 2);
 		int actual_unchoked = 0;
 		for (std::vector<peer>::const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
@@ -1234,3 +1276,4 @@ namespace libtorrent
 		}
 	}
 }
+

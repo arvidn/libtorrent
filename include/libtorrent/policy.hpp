@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/size_type.hpp"
+#include "libtorrent/invariant_check.hpp"
 
 namespace libtorrent
 {
@@ -170,12 +171,14 @@ namespace libtorrent
 	private:
 
 		bool unchoke_one_peer();
+		void choke_one_peer();
 		peer* find_choke_candidate();
 		peer* find_unchoke_candidate();
 
 		// the seed prefix means that the
 		// function is used while seeding.
 		bool seed_unchoke_one_peer();
+		void seed_choke_one_peer();
 		peer* find_seed_choke_candidate();
 		peer* find_seed_unchoke_candidate();
 
