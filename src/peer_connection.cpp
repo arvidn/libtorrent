@@ -77,7 +77,13 @@ namespace libtorrent
 		, selector& sel
 		, torrent* t
 		, boost::shared_ptr<libtorrent::socket> s)
-		: m_state(read_protocol_length)
+		:
+#ifndef NDEBUG
+		m_last_choke(boost::posix_time::second_clock::universal_time()
+			- hours(1))
+		, 
+#endif
+		  m_state(read_protocol_length)
 		, m_timeout(120)
 		, m_packet_size(1)
 		, m_recv_pos(0)
@@ -159,7 +165,13 @@ namespace libtorrent
 		detail::session_impl& ses
 		, selector& sel
 		, boost::shared_ptr<libtorrent::socket> s)
-		: m_state(read_protocol_length)
+		:
+#ifndef NDEBUG
+		m_last_choke(boost::posix_time::second_clock::universal_time()
+			- hours(1))
+		, 
+#endif
+		  m_state(read_protocol_length)
 		, m_timeout(120)
 		, m_packet_size(1)
 		, m_recv_pos(0)
@@ -522,8 +534,7 @@ namespace libtorrent
 		// remove all pieces from this peers download queue and
 		// remove the 'downloading' flag from piece_picker.
 		for (std::deque<piece_block>::iterator i = m_download_queue.begin();
-			i != m_download_queue.end();
-			++i)
+			i != m_download_queue.end(); ++i)
 		{
 			m_torrent->picker().abort_download(*i);
 		}
@@ -1681,6 +1692,10 @@ namespace libtorrent
 		(*m_logger) << to_simple_string(second_clock::universal_time())
 			<< " ==> CHOKE\n";
 #endif
+#ifndef NDEBUG
+		using namespace boost::posix_time;
+		m_last_choke = second_clock::universal_time();
+#endif
 		m_num_invalid_requests = 0;
 		m_requests.clear();
 		send_buffer_updated();
@@ -1689,6 +1704,15 @@ namespace libtorrent
 	void peer_connection::send_unchoke()
 	{
 		INVARIANT_CHECK;
+
+#ifndef NDEBUG
+		// TODO: once the policy lowers the interval for optimistic
+		// unchoke, increase this value that interval
+		// this condition cannot be guaranteed since if peers disconnect
+		// a new one will be unchoked ignoring when it was last choked
+		using namespace boost::posix_time;
+		//assert(second_clock::universal_time() - m_last_choke > seconds(9));
+#endif
 
 		if (!m_choked) return;
 		char msg[] = {0,0,0,1,msg_unchoke};
