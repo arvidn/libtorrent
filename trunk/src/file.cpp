@@ -32,11 +32,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/filesystem/operations.hpp>
 #include "libtorrent/file.hpp"
-#include "libtorrent/utf8.hpp"
 #include <sstream>
 
 #ifdef _WIN32
 // windows part
+#include "libtorrent/utf8.hpp"
+
 #include <io.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -143,7 +144,7 @@ namespace libtorrent
 		{
 			assert(path.is_complete());
 			close();
-#if defined(WIN32) && defined(UNICODE)
+#if defined(_WIN32) && defined(UNICODE)
 			std::wstring wpath(safe_convert(path.native_file_string()));
 			m_fd = ::_wopen(
 				wpath.c_str()

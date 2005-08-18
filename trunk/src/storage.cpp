@@ -70,7 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/invariant_check.hpp"
 
-#if defined(WIN32) && defined(UNICODE)
+#if defined(_WIN32) && defined(UNICODE)
 
 #include <windows.h>
 #include <boost/filesystem/exception.hpp>
@@ -330,7 +330,7 @@ namespace libtorrent
 			{
 				path f = p / i->path;
 				size = file_size(f);
-#if defined(WIN32) && defined(UNICODE)
+#if defined(_WIN32) && defined(UNICODE)
 				time = last_write_time_win(f);
 #else
 				time = last_write_time(f);
@@ -366,7 +366,7 @@ namespace libtorrent
 			{
 				path f = p / i->path;
 				size = file_size(f);
-#if defined(WIN32) && defined(UNICODE)
+#if defined(_WIN32) && defined(UNICODE)
 				time = last_write_time_win(f);
 #else
 				time = last_write_time(f);
@@ -481,7 +481,7 @@ namespace libtorrent
 
 		save_path = complete(save_path);
 
-#if defined(WIN32) && defined(UNICODE)
+#if defined(_WIN32) && defined(UNICODE)
 		std::wstring wsave_path(safe_convert(save_path.native_file_string()));
 		if (!exists_win(save_path))
 		{
@@ -505,7 +505,7 @@ namespace libtorrent
 			path single_file = m_pimpl->info.begin_files()->path;
 			if (single_file.has_branch_path())
 			{
-#if defined(WIN32) && defined(UNICODE)
+#if defined(_WIN32) && defined(UNICODE)
 				std::wstring wsave_path(safe_convert((save_path / single_file.branch_path())
 					.native_directory_string()));
 				CreateDirectory(wsave_path.c_str(), 0);
@@ -526,7 +526,7 @@ namespace libtorrent
 
 		try
 		{
-#if defined(WIN32) && defined(UNICODE)
+#if defined(_WIN32) && defined(UNICODE)
 			rename_win(old_path, new_path);
 #else
 			rename(old_path, new_path);
@@ -1338,7 +1338,7 @@ namespace libtorrent
 			if (dir == last_path) continue;
 			last_path = dir;
 
-#if defined(WIN32) && defined(UNICODE)
+#if defined(_WIN32) && defined(UNICODE)
 			if (!exists_win(last_path))
 				create_directories_win(last_path);
 #else
@@ -1346,23 +1346,6 @@ namespace libtorrent
 				create_directories(last_path);
 #endif
 		}
-/*		
-		// first, create all missing directories
-
-		for (torrent_info::file_iterator file_iter = m_info.begin_files(),
-			end_iter = m_info.end_files();  file_iter != end_iter; ++file_iter)
-		{
-			path dir = m_save_path / file_iter->path;
-
-#if defined(WIN32) && defined(UNICODE)
-			if (!exists_win(dir.branch_path()))
-				create_directories_win(dir.branch_path());
-#else
-			if (!exists(dir.branch_path()))
-				create_directories(dir.branch_path());
-#endif
-		}
-*/
 		std::vector<char> piece_data(static_cast<int>(m_info.piece_length()));
 
 		// this maps a piece hash to piece index. It will be
