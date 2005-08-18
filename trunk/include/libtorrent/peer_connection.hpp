@@ -273,11 +273,12 @@ namespace libtorrent
 		resource_request m_ul_bandwidth_quota;
 		resource_request m_dl_bandwidth_quota;
 
-	private:
-
 #ifndef NDEBUG
 		void check_invariant() const;
+		boost::posix_time::ptime m_last_choke;
 #endif
+
+	private:
 
 		bool dispatch_message(int received);
 
