@@ -126,12 +126,32 @@ namespace libtorrent
 		// these numbers are used the first second of connection.
 		// then the given upload limits will be applied by running
 		// allocate_resources().
+
 		m_ul_bandwidth_quota.min = 10;
-		m_ul_bandwidth_quota.max = std::numeric_limits<int>::max();
-		m_ul_bandwidth_quota.given = std::numeric_limits<int>::max();
+		m_ul_bandwidth_quota.max = resource_request::inf;
+
+		if (m_torrent->m_ul_bandwidth_quota.given == resource_request::inf)
+		{
+			m_ul_bandwidth_quota.given = resource_request::inf;
+		}
+		else
+		{
+			// just enough to get started with the handshake and bitmask
+			m_ul_bandwidth_quota.given = 400;
+		}
+
 		m_dl_bandwidth_quota.min = 10;
-		m_dl_bandwidth_quota.max = std::numeric_limits<int>::max();
-		m_dl_bandwidth_quota.given = 400;
+		m_dl_bandwidth_quota.max = resource_request::inf;
+	
+		if (m_torrent->m_dl_bandwidth_quota.given == resource_request::inf)
+		{
+			m_dl_bandwidth_quota.given = resource_request::inf;
+		}
+		else
+		{
+			// just enough to get started with the handshake and bitmask
+			m_dl_bandwidth_quota.given = 400;
+		}
 
 		assert(!m_socket->is_blocking());
 		assert(m_torrent != 0);
@@ -219,13 +239,32 @@ namespace libtorrent
 		// after one second, allocate_resources() will be called
 		// and the correct bandwidth limits will be set on all
 		// connections.
+
 		m_ul_bandwidth_quota.min = 10;
-		m_ul_bandwidth_quota.max = std::numeric_limits<int>::max();
-		m_ul_bandwidth_quota.given = std::numeric_limits<int>::max();
+		m_ul_bandwidth_quota.max = resource_request::inf;
+
+		if (m_ses.m_upload_rate == -1)
+		{
+			m_ul_bandwidth_quota.given = resource_request::inf;
+		}
+		else
+		{
+			// just enough to get started with the handshake and bitmask
+			m_ul_bandwidth_quota.given = 400;
+		}
 
 		m_dl_bandwidth_quota.min = 10;
-		m_dl_bandwidth_quota.max = std::numeric_limits<int>::max();
-		m_dl_bandwidth_quota.given = 400;
+		m_dl_bandwidth_quota.max = resource_request::inf;
+	
+		if (m_ses.m_download_rate == -1)
+		{
+			m_dl_bandwidth_quota.given = resource_request::inf;
+		}
+		else
+		{
+			// just enough to get started with the handshake and bitmask
+			m_dl_bandwidth_quota.given = 400;
+		}
 
 		assert(!m_socket->is_blocking());
 
@@ -1840,7 +1879,7 @@ namespace libtorrent
 			// than we have uploaded OR if we are a seed
 			// have an unlimited upload rate
 			if(!m_send_buffer.empty() || (!m_requests.empty() && !is_choked()))
-				m_ul_bandwidth_quota.max = std::numeric_limits<int>::max();
+				m_ul_bandwidth_quota.max = resource_request::inf;
 			else
 				m_ul_bandwidth_quota.max = m_ul_bandwidth_quota.min;
 		}
