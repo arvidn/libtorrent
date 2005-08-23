@@ -1,0 +1,24 @@
+
+Initial release 0.9
+
+	* multitracker support
+	* serves multiple torrents on a single port and a single thread
+	* supports http proxies and proxy authentication
+	* gzipped tracker-responses
+	* block level piece picker
+	* queues torrents for file check, instead of checking all of them in parallel
+	* uses separate threads for checking files and for main downloader
+	* upload and download rate limits
+	* piece-wise, unordered, incremental file allocation
+	* fast resume support
+	* supports files > 2 gigabytes
+	* supports the no_peer_id=1 extension
+	* support for udp-tracker protocol
+	* number of connections limit
+	* delays sending have messages
+	* can resume pieces downloaded in any order
+	* adjusts the length of the request queue depending on download rate
+	* supports compact=1
+	* selective downloading
+	* ip filter
+
