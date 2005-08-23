@@ -187,6 +187,32 @@ namespace libtorrent
 		m_uploads_quota.max = std::numeric_limits<int>::max();
 		m_connections_quota.max = std::numeric_limits<int>::max();
 
+		m_dl_bandwidth_quota.min = 100;
+		m_dl_bandwidth_quota.max = resource_request::inf;
+
+		if (m_ses.m_download_rate == -1)
+		{
+			m_dl_bandwidth_quota.given = resource_request::inf;
+		}
+		else
+		{
+			m_dl_bandwidth_quota.given = 400;
+		}
+
+		m_ul_bandwidth_quota.min = 100;
+		m_ul_bandwidth_quota.max = resource_request::inf;
+
+
+		if (m_ses.m_upload_rate == -1)
+		{
+			m_ul_bandwidth_quota.given = resource_request::inf;
+		}
+		else
+		{
+			m_ul_bandwidth_quota.given = 400;
+		}
+
+
 		m_policy.reset(new policy(this));
 		bencode(std::back_inserter(m_metadata), metadata["info"]);
 		init();
@@ -240,6 +266,33 @@ namespace libtorrent
 		m_uploads_quota.max = std::numeric_limits<int>::max();
 		m_connections_quota.max = std::numeric_limits<int>::max();
 
+		m_dl_bandwidth_quota.min = 100;
+		m_dl_bandwidth_quota.max = resource_request::inf;
+
+		if (m_ses.m_download_rate == -1)
+		{
+			m_dl_bandwidth_quota.given = resource_request::inf;
+		}
+		else
+		{
+			m_dl_bandwidth_quota.given = 400;
+		}
+
+		m_ul_bandwidth_quota.min = 100;
+		m_ul_bandwidth_quota.max = resource_request::inf;
+
+
+		if (m_ses.m_upload_rate == -1)
+		{
+			m_ul_bandwidth_quota.given = resource_request::inf;
+		}
+		else
+		{
+			m_ul_bandwidth_quota.given = 400;
+		}
+
+
+		
 		m_trackers.push_back(announce_entry(tracker_url));
 		m_requested_metadata.resize(256, 0);
 		m_policy.reset(new policy(this));
@@ -1106,8 +1159,14 @@ namespace libtorrent
 		m_ul_bandwidth_quota.max
 			= std::min(m_ul_bandwidth_quota.max, m_upload_bandwidth_limit);
 
+		if (m_upload_bandwidth_limit == resource_request::inf)
+			m_ul_bandwidth_quota.max = resource_request::inf;
+
 		m_dl_bandwidth_quota.max
 			= std::min(m_dl_bandwidth_quota.max, m_download_bandwidth_limit);
+
+		if (m_download_bandwidth_limit == resource_request::inf)
+			m_dl_bandwidth_quota.max = resource_request::inf;
 
 		accumulator += m_stat;
 		m_stat.second_tick();
@@ -1131,7 +1190,7 @@ namespace libtorrent
 		allocate_resources(m_dl_bandwidth_quota.given
 			, m_connections
 			, &peer_connection::m_dl_bandwidth_quota);
-
+	
 		using boost::bind;
 
 		// tell all peers to reset their used quota. This is

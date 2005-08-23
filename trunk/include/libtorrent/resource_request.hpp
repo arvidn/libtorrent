@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_RESOURCE_REQUEST_HPP_INCLUDED
 #define TORRENT_RESOURCE_REQUEST_HPP_INCLUDED
 
+#include <boost/integer_traits.hpp>
+
 #ifdef min
 #undef min
 #endif
@@ -60,6 +62,7 @@ namespace libtorrent
 			return given - used;
 		}
 
+		static const int inf = boost::integer_traits<int>::const_max;
 
 		// I'm right now actively using:
 		int used;

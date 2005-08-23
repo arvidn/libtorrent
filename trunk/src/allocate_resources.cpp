@@ -69,11 +69,11 @@ namespace libtorrent
 	{
 		assert(a >= 0);
 		assert(b >= 0);
-		assert(std::numeric_limits<int>::max() + std::numeric_limits<int>::max() < 0);
+		assert(resource_request::inf + resource_request::inf < 0);
 
 		int sum = a + b;
 		if(sum < 0)
-			sum = std::numeric_limits<int>::max();
+			sum = resource_request::inf;
 
 		assert(sum >= a && sum >= b);
 		return sum;
@@ -165,7 +165,7 @@ namespace libtorrent
 				, res);
 	#endif
 
-			if(resources == std::numeric_limits<int>::max())
+			if(resources == resource_request::inf)
 			{
 				// No competition for resources.
 				// Just give everyone what they want.
@@ -183,7 +183,7 @@ namespace libtorrent
 			for (It i = start; i != end; ++i)
 			{
 				sum_max = saturated_add(sum_max, ((*i).*res).max);
-				assert(((*i).*res).min < std::numeric_limits<int>::max());
+				assert(((*i).*res).min < resource_request::inf);
 				assert(((*i).*res).min >= 0);
 				assert(((*i).*res).min <= ((*i).*res).max);
 				sum_min += ((*i).*res).min;
@@ -229,10 +229,10 @@ namespace libtorrent
 					assert(r.given < r.max);
 
 					size_type used = (size_type)r.used + 1;
-					size_type toGive = used * kNumer / kDenom;
-					if(toGive > std::numeric_limits<int>::max())
-						toGive = std::numeric_limits<int>::max();
-					resources_to_distribute -= give(r, (int)toGive);
+					size_type to_give = used * kNumer / kDenom;
+					if(to_give > resource_request::inf)
+						to_give = resource_request::inf;
+					resources_to_distribute -= give(r, (int)to_give);
 				}
 
 				assert(resources_to_distribute >= 0);

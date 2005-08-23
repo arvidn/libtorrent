@@ -30,10 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <boost/filesystem/operations.hpp>
-#include "libtorrent/file.hpp"
-#include <sstream>
-
 #ifdef _WIN32
 // windows part
 #include "libtorrent/utf8.hpp"
@@ -56,7 +52,16 @@ typedef int mode_t;
 #include <sys/types.h>
 #include <errno.h>
 
+#include <boost/static_assert.hpp>
+// make sure the _FILE_OFFSET_BITS define worked
+// on this platform
+BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
+
 #endif
+
+#include <boost/filesystem/operations.hpp>
+#include "libtorrent/file.hpp"
+#include <sstream>
 
 #ifndef O_BINARY
 #define O_BINARY 0
