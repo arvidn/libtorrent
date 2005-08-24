@@ -420,7 +420,7 @@ The ``session`` class has the following synopsis::
 		void disable_extensions();
 		void enable_extension(peer_connection::extension_index);
 
-		void set_http_proxy(const http_proxy& settings);
+		void set_http_proxy(const http_proxy& http_proxy);
 
 		void set_upload_rate_limit(int bytes_per_second);
 		void set_download_rate_limit(int bytes_per_second);
