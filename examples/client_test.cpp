@@ -108,17 +108,17 @@ struct set_keypress
 {
 	set_keypress()
 	{
-		termios new_settings;
-		tcgetattr(0,&stored_settings);
-		new_settings = stored_settings;
+		termios new_http_proxy;
+		tcgetattr(0,&stored_http_proxy);
+		new_http_proxy = stored_http_proxy;
 		// Disable canonical mode, and set buffer size to 1 byte
-		new_settings.c_lflag &= (~ICANON);
-		new_settings.c_cc[VTIME] = 0;
-		new_settings.c_cc[VMIN] = 1;
-		tcsetattr(0,TCSANOW,&new_settings);
+		new_http_proxy.c_lflag &= (~ICANON);
+		new_http_proxy.c_cc[VTIME] = 0;
+		new_http_proxy.c_cc[VMIN] = 1;
+		tcsetattr(0,TCSANOW,&new_http_proxy);
 	}
-	~set_keypress() { tcsetattr(0,TCSANOW,&stored_settings); }
-	termios stored_settings;
+	~set_keypress() { tcsetattr(0,TCSANOW,&stored_http_proxy); }
+	termios stored_http_proxy;
 };
 
 bool sleep_and_input(char* c)
@@ -303,12 +303,12 @@ int main(int argc, char* argv[])
 	namespace fs = boost::filesystem;
 	fs::path::default_name_check(fs::no_check);
 	
-	http_proxy settings;
-//	settings.proxy_ip = "192.168.0.1";
-//	settings.proxy_port = 80;
-//	settings.proxy_login = "hyd";
-//	settings.proxy_password = "foobar";
-	settings.user_agent = "client_test";
+	http_proxy http_proxy;
+//	http_proxy.proxy_ip = "192.168.0.1";
+//	http_proxy.proxy_port = 80;
+//	http_proxy.proxy_login = "hyd";
+//	http_proxy.proxy_password = "foobar";
+	http_proxy.user_agent = "client_test";
 
 	std::deque<std::string> events;
 
@@ -319,7 +319,7 @@ int main(int argc, char* argv[])
 
 		ses.listen_on(std::make_pair(6880, 6889));
 		//ses.set_upload_rate_limit(512 * 1024);
-		ses.set_http_proxy(settings);
+		ses.set_http_proxy(http_proxy);
 		ses.set_severity_level(alert::debug);
 //		ses.set_severity_level(alert::info);
 

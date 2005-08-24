@@ -1,4 +1,5 @@
-
+modified release 0.901
+	* rename http_settings class as http_proxy class for compatible socks4/5 proxy later.(by spyhole)
 Initial release 0.9
 
 	* multitracker support
