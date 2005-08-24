@@ -53,7 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/http_settings.hpp"
+#include "libtorrent/http_proxy.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer.hpp"
 
@@ -162,8 +162,8 @@ namespace libtorrent
 	{
 	public:
 
-		tracker_manager(const http_settings& s)
-			: m_settings(s) {}
+		tracker_manager(const http_proxy& http_proxy)
+			: m_http_proxy(http_proxy) {}
 		
 		void tick();
 		void queue_request(
@@ -179,7 +179,7 @@ namespace libtorrent
 		typedef std::list<boost::shared_ptr<tracker_connection> >
 			tracker_connections_t;
 		tracker_connections_t m_connections;
-		const http_settings& m_settings;
+		const http_proxy& m_http_proxy;
 	};
 }
 

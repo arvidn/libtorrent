@@ -448,7 +448,7 @@ namespace libtorrent
 					, port
 					, request_string
 					, c
-					, m_settings
+					, m_http_proxy
 					, auth));
 			}
 			else if (protocol == "udp")
@@ -458,7 +458,7 @@ namespace libtorrent
 					, hostname
 					, port
 					, c
-					, m_settings));
+					, m_http_proxy));
 			}
 			else
 			{

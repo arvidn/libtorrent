@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
-#include "libtorrent/http_settings.hpp"
+#include "libtorrent/http_proxy.hpp"
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/alert_types.hpp"
 
@@ -303,7 +303,7 @@ int main(int argc, char* argv[])
 	namespace fs = boost::filesystem;
 	fs::path::default_name_check(fs::no_check);
 	
-	http_settings settings;
+	http_proxy settings;
 //	settings.proxy_ip = "192.168.0.1";
 //	settings.proxy_port = 80;
 //	settings.proxy_login = "hyd";
@@ -319,7 +319,7 @@ int main(int argc, char* argv[])
 
 		ses.listen_on(std::make_pair(6880, 6889));
 		//ses.set_upload_rate_limit(512 * 1024);
-		ses.set_http_settings(settings);
+		ses.set_http_proxy(settings);
 		ses.set_severity_level(alert::debug);
 //		ses.set_severity_level(alert::info);
 

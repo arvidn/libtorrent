@@ -21,7 +21,7 @@ $(top_srcdir)/include/libtorrent/escape_string.hpp \
 $(top_srcdir)/include/libtorrent/file.hpp \
 $(top_srcdir)/include/libtorrent/fingerprint.hpp \
 $(top_srcdir)/include/libtorrent/hasher.hpp \
-$(top_srcdir)/include/libtorrent/http_settings.hpp \
+$(top_srcdir)/include/libtorrent/http_proxy.hpp \
 $(top_srcdir)/include/libtorrent/http_tracker_connection.hpp \
 $(top_srcdir)/include/libtorrent/identify_client.hpp \
 $(top_srcdir)/include/libtorrent/invariant_check.hpp \

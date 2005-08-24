@@ -52,7 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/http_settings.hpp"
+#include "libtorrent/http_proxy.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer.hpp"
 #include "libtorrent/tracker_manager.hpp"
@@ -73,7 +73,7 @@ namespace libtorrent
 			, unsigned short port
 			, std::string request
 			, boost::weak_ptr<request_callback> c
-			, const http_settings& stn
+			, const http_proxy& http_proxy
 			, std::string const& password = "");
 		virtual bool tick();
 		virtual bool send_finished() const
@@ -109,7 +109,7 @@ namespace libtorrent
 		std::string m_server_message;
 		std::string m_server_protocol;
 
-		const http_settings& m_settings;
+		const http_proxy& m_http_proxy;
 		tracker_request m_req;
 		std::string m_password;
 		int m_code;

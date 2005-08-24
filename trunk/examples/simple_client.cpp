@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
-#include "libtorrent/http_settings.hpp"
+#include "libtorrent/http_proxy.hpp"
 
 int main(int argc, char* argv[])
 {

@@ -89,7 +89,7 @@
 <li><a class="reference" href="#torrent-status" id="id74" name="id74">torrent_status</a></li>
 <li><a class="reference" href="#peer-info" id="id75" name="id75">peer_info</a></li>
 <li><a class="reference" href="#address" id="id76" name="id76">address</a></li>
-<li><a class="reference" href="#http-settings" id="id77" name="id77">http_settings</a></li>
+<li><a class="reference" href="#http-settings" id="id77" name="id77">http_proxy</a></li>
 <li><a class="reference" href="#ip-filter" id="id78" name="id78">ip_filter</a><ul>
 <li><a class="reference" href="#id14" id="id79" name="id79">ip_filter()</a></li>
 <li><a class="reference" href="#add-rule" id="id80" name="id80">add_rule()</a></li>
@@ -542,7 +542,7 @@ class session: public boost::noncopyable
         void disable_extensions();
         void enable_extension(peer_connection::extension_index);
 
-        void set_http_settings(const http_settings&amp; settings);
+        void set_http_proxy(const http_proxy&amp; settings);
 
         void set_upload_rate_limit(int bytes_per_second);
         void set_download_rate_limit(int bytes_per_second);
@@ -591,7 +591,7 @@ the parameters, see <tt class="docutils literal"><span class="pre">listen_on()</
 If some trackers are down, they will time out. All this before the destructor of session
 returns. So, it's adviced that any kind of interface (such as windows) are closed before
 destructing the sessoin object. Because it can take a few second for it to finish. The
-timeout can be set with <tt class="docutils literal"><span class="pre">set_http_settings()</span></tt>.</p>
+timeout can be set with <tt class="docutils literal"><span class="pre">set_http_proxy()</span></tt>.</p>
 </div>
 <div class="section" id="add-torrent">
 <h2><a name="add-torrent">add_torrent()</a></h2>
@@ -1790,15 +1790,15 @@ while it does the DNS lookup, it returns a string that points to the address rep
 <p><tt class="docutils literal"><span class="pre">ip()</span></tt> will return the 32-bit ip-address as an integer. <tt class="docutils literal"><span class="pre">port()</span></tt> returns the port number.</p>
 </div>
 <div class="section" id="http-settings">
-<h1><a name="http-settings">http_settings</a></h1>
-<p>You have some control over tracker requests through the <tt class="docutils literal"><span class="pre">http_settings</span></tt> object. You
-create it and fill it with your settings and then use <tt class="docutils literal"><span class="pre">session::set_http_settings()</span></tt>
+<h1><a name="http-settings">http_proxy</a></h1>
+<p>You have some control over tracker requests through the <tt class="docutils literal"><span class="pre">http_proxy</span></tt> object. You
+create it and fill it with your settings and then use <tt class="docutils literal"><span class="pre">session::set_http_proxy()</span></tt>
 to apply them. You have control over proxy and authorization settings and also the user-agent
 that will be sent to the tracker. The user-agent is a good way to identify your client.</p>
 <pre class="literal-block">
-struct http_settings
+struct http_proxy
 {
-        http_settings();
+        http_proxy();
         std::string proxy_ip;
         int proxy_port;
         std::string proxy_login;
@@ -2563,7 +2563,7 @@ int main(int argc, char* argv[])
 #include &quot;libtorrent/entry.hpp&quot;
 #include &quot;libtorrent/bencode.hpp&quot;
 #include &quot;libtorrent/session.hpp&quot;
-#include &quot;libtorrent/http_settings.hpp&quot;
+#include &quot;libtorrent/http_proxy.hpp&quot;
 
 int main(int argc, char* argv[])
 {

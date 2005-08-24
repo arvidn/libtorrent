@@ -9,7 +9,7 @@ libtorrent/escape_string.hpp \
 libtorrent/file.hpp \
 libtorrent/fingerprint.hpp \
 libtorrent/hasher.hpp \
-libtorrent/http_settings.hpp \
+libtorrent/http_proxy.hpp \
 libtorrent/http_tracker_connection.hpp \
 libtorrent/identify_client.hpp \
 libtorrent/invariant_check.hpp \
