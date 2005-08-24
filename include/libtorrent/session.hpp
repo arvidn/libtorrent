@@ -236,7 +236,7 @@ namespace libtorrent
 			bool extensions_enabled() const;
 
 			// the settings for the client
-			http_settings m_settings;
+			http_proxy m_http_proxy;
 
 			// set to true when the session object
 			// is being destructed and the thread
@@ -277,7 +277,7 @@ namespace libtorrent
 		};
 	}
 
-	struct http_settings;
+	struct http_proxy;
 
 	struct session_status
 	{
@@ -359,7 +359,7 @@ namespace libtorrent
 
 		void remove_torrent(const torrent_handle& h);
 
-		void set_http_settings(const http_settings& s);
+		void set_http_proxy(const http_proxy& http_proxy);
 		void set_upload_rate_limit(int bytes_per_second);
 		void set_download_rate_limit(int bytes_per_second);
 		void set_max_uploads(int limit);

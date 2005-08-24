@@ -64,13 +64,13 @@ namespace libtorrent
 		, std::string const& hostname
 		, unsigned short port
 		, boost::weak_ptr<request_callback> c
-		, const http_settings& stn)
+		, const http_proxy& http_proxy)
 		: tracker_connection(c)
 		, m_request_time(second_clock::universal_time())
 		, m_request(req)
 		, m_transaction_id(0)
 		, m_connection_id(0)
-		, m_settings(stn)
+		, m_http_proxy(http_proxy)
 		, m_attempts(0)
 	{
 		m_name_lookup = dns_lookup(hostname.c_str(), port);
@@ -85,7 +85,7 @@ namespace libtorrent
 		time_duration d = second_clock::universal_time() - m_request_time;
 		return (m_transaction_id != 0
 			&& m_connection_id != 0)
-			|| d > seconds(m_settings.tracker_timeout);
+			|| d > seconds(m_http_proxy.tracker_timeout);
 	}
 
 	bool udp_tracker_connection::tick()
