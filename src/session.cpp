@@ -223,7 +223,7 @@ namespace libtorrent { namespace detail
 		std::pair<int, int> listen_port_range
 		, const fingerprint& cl_fprint
 		, const char* listen_interface = 0)
-		: m_tracker_manager(m_http_proxy)
+		: m_tracker_manager(m_settings)
 		, m_listen_port_range(listen_port_range)
 		, m_listen_interface(listen_interface, listen_port_range.first)
 		, m_abort(false)
@@ -1167,10 +1167,10 @@ namespace libtorrent
 		return m_impl.m_listen_socket;
 	}
 
-	void session::set_http_proxy(const http_proxy& http_proxy)
+	void session::set_http_settings(const http_settings& s)
 	{
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
-		m_impl.m_http_proxy = http_proxy;
+		m_impl.m_settings = s;
 	}
 
 	session::~session()

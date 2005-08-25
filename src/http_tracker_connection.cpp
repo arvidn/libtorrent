@@ -85,7 +85,7 @@ namespace libtorrent
 		, unsigned short port
 		, std::string request
 		, boost::weak_ptr<request_callback> c
-		, const http_proxy& http_proxy
+		, const http_settings& stn
 		, std::string const& auth)
 		: tracker_connection(c)
 		, m_man(man)
@@ -94,7 +94,7 @@ namespace libtorrent
 		, m_content_length(0)
 		, m_recv_pos(0)
 		, m_request_time(second_clock::universal_time())
-		, m_http_proxy(http_proxy)
+		, m_settings(stn)
 		, m_req(req)
 		, m_password(auth)
 		, m_code(0)
@@ -103,10 +103,10 @@ namespace libtorrent
 		bool using_proxy = false;
 
 		// should we use the proxy?
-		if (!m_http_proxy.proxy_ip.empty())
+		if (!m_settings.proxy_ip.empty())
 		{
-			connect_to_host = &m_http_proxy.proxy_ip;
-			if (m_http_proxy.proxy_port != 0) port = m_http_proxy.proxy_port;
+			connect_to_host = &m_settings.proxy_ip;
+			if (m_settings.proxy_port != 0) port = m_settings.proxy_port;
 			using_proxy = true;
 		}
 		else
@@ -189,7 +189,7 @@ namespace libtorrent
 
 		m_send_buffer += " HTTP/1.0\r\nAccept-Encoding: gzip\r\n"
 			"User-Agent: ";
-		m_send_buffer += m_http_proxy.user_agent;
+		m_send_buffer += m_settings.user_agent;
 		m_send_buffer += " (libtorrent)\r\n"
 			"Host: ";
 		m_send_buffer += hostname;
@@ -198,10 +198,10 @@ namespace libtorrent
 			m_send_buffer += ':';
 			m_send_buffer += boost::lexical_cast<std::string>(port);
 		}
-		if (using_proxy && !m_http_proxy.proxy_login.empty())
+		if (using_proxy && !m_settings.proxy_login.empty())
 		{
 			m_send_buffer += "\r\nProxy-Authorization: Basic ";
-			m_send_buffer += base64encode(m_http_proxy.proxy_login + ":" + m_http_proxy.proxy_password);
+			m_send_buffer += base64encode(m_settings.proxy_login + ":" + m_settings.proxy_password);
 		}
 		if (auth != "")
 		{
@@ -259,8 +259,8 @@ namespace libtorrent
 		using namespace boost::posix_time;
 
 		time_duration d = second_clock::universal_time() - m_request_time;
-		if (d > seconds(m_http_proxy.tracker_timeout) ||
-			(!has_requester() && d > seconds(m_http_proxy.stop_tracker_timeout)))
+		if (d > seconds(m_settings.tracker_timeout) ||
+			(!has_requester() && d > seconds(m_settings.stop_tracker_timeout)))
 		{
 			if (has_requester()) requester().tracker_request_timed_out(m_req);
 			return true;
@@ -310,7 +310,7 @@ namespace libtorrent
 		// if the receive buffer is full, expand it with http_buffer_size
 		if ((int)m_buffer.size() == m_recv_pos)
 		{
-			if ((int)m_buffer.size() > m_http_proxy.tracker_maximum_response_length)
+			if ((int)m_buffer.size() > m_settings.tracker_maximum_response_length)
 			{
 				if (has_requester())
 				{
@@ -415,7 +415,7 @@ namespace libtorrent
 						}
 						return true;
 					}
-					if (m_content_length > m_http_proxy.tracker_maximum_response_length)
+					if (m_content_length > m_settings.tracker_maximum_response_length)
 					{
 						if (has_requester())
 						{
@@ -514,7 +514,7 @@ namespace libtorrent
 					boost::shared_ptr<request_callback> r = m_requester.lock();
 					if (!r) return true;
 					if (inflate_gzip(m_buffer, m_req, r.get(),
-						m_http_proxy.tracker_maximum_response_length))
+						m_settings.tracker_maximum_response_length))
 						return true;
 				}
 

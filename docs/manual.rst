@@ -420,7 +420,7 @@ The ``session`` class has the following synopsis::
 		void disable_extensions();
 		void enable_extension(peer_connection::extension_index);
 
-		void set_http_proxy(const http_proxy& http_proxy);
+		void set_http_settings(const http_settings& settings);
 
 		void set_upload_rate_limit(int bytes_per_second);
 		void set_download_rate_limit(int bytes_per_second);
@@ -471,7 +471,7 @@ The destructor of session will notify all trackers that our torrents have been s
 If some trackers are down, they will time out. All this before the destructor of session
 returns. So, it's adviced that any kind of interface (such as windows) are closed before
 destructing the sessoin object. Because it can take a few second for it to finish. The
-timeout can be set with ``set_http_proxy()``.
+timeout can be set with ``set_http_settings()``.
 
 
 add_torrent()
@@ -1768,19 +1768,19 @@ while it does the DNS lookup, it returns a string that points to the address rep
 
 
 
-http_proxy
+http_settings
 =============
 
-You have some control over tracker requests through the ``http_proxy`` object. You
-create it and fill it with your settings and then use ``session::set_http_proxy()``
+You have some control over tracker requests through the ``http_settings`` object. You
+create it and fill it with your settings and then use ``session::set_http_settings()``
 to apply them. You have control over proxy and authorization settings and also the user-agent
 that will be sent to the tracker. The user-agent is a good way to identify your client.
 
 ::
 
-	struct http_proxy
+	struct http_settings
 	{
-		http_proxy();
+		http_settings();
 		std::string proxy_ip;
 		int proxy_port;
 		std::string proxy_login;
@@ -2643,7 +2643,7 @@ This is a simple client. It doesn't have much output to keep it simple::
 	#include "libtorrent/entry.hpp"
 	#include "libtorrent/bencode.hpp"
 	#include "libtorrent/session.hpp"
-	#include "libtorrent/http_proxy.hpp"
+	#include "libtorrent/http_settings.hpp"
 
 	int main(int argc, char* argv[])
 	{
