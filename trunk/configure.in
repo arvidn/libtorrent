@@ -83,7 +83,7 @@ esac
 if [[ "$zlib" = "shipped" ]]; then
 	ZLIB="\$(top_builddir)/zlib/libzlib.la"
 	ZLIBDIR="zlib"
-	ZLIBINCL="-I\$(top_builddir)/zlib"
+	ZLIBINCL="-I\$(top_srcdir)/zlib"
 	AC_CONFIG_FILES(zlib/Makefile)
 elif [[ "$zlib" = "system" ]]; then
 	ZLIB="-lz"
