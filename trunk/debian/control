@@ -2,10 +2,10 @@ Source: libtorrent
 Priority: optional
 Section: libs
 Maintainer: Michael Wojciechowski <wojci@wojci.dk>
-Build-Depends: debhelper (>= 4.0.0), autotools-dev, 
-               libboost-thread1.31.0, libboost-thread-dev,
-               libboost-date-time1.31.0, libboost-date-time-dev,
-               libboost-filesystem1.31.0, libboost-filesystem-dev
+Build-Depends: debhelper (>= 4.0.0), autotools-dev (>= 20050422.1), 
+               libboost-thread1.32.0 (>= 1.32.0), libboost-thread-dev (>=1.32.0),
+               libboost-date-time1.32.0 (>= 1.32.0), libboost-date-time-dev (>= 1.32.0),
+               libboost-filesystem1.32.0 (>= 1.32.0), libboost-filesystem-dev (>= 1.32.0)
 Standards-Version: 3.6.2
 
 Package: libtorrent0-dev
@@ -22,7 +22,7 @@ Description: Torrent library, headers.
 Package: libtorrent0
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends} libboost-thread1.31.0, libboost-date-time1.31.0, libboost-filesystem1.31.0
+Depends: ${shlibs:Depends} libboost-thread1.32.0 (>= 1.32.0), libboost-date-time1.32.0 (>= 1.32.0), libboost-filesystem1.32.0 (>= 1.32.0)
 Description: Torrent library, libs.
  libtorrent is a C++ library that aims to be a good alternative to all
  the other bittorrent implementations around. It is a library and not a
