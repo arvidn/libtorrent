@@ -243,9 +243,9 @@ int test_main()
 		TEST_CHECK(std::equal(picked.begin()
 			, picked.end(), expected6));
 
-
-		// TODO: make sure there are no duplicates
-		// in the picked blocks!
+		// make sure the piece picker allows filtered pieces
+		// to become available
+		p.mark_as_finished(piece_block(4, 2), address());
 	}
 	
 	return 0;

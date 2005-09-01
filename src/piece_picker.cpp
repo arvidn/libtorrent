@@ -48,7 +48,6 @@ namespace libtorrent
 	piece_picker::piece_picker(int blocks_per_piece, int total_num_blocks)
 		: m_piece_info(2)
 		, m_downloading_piece_info(2)
-		, m_filtered_piece_info(2)
 		, m_piece_map((total_num_blocks + blocks_per_piece-1) / blocks_per_piece)
 		, m_num_filtered(0)
 		, m_num_have_filtered(0)
@@ -84,6 +83,10 @@ namespace libtorrent
 		std::vector<int> piece_list;
 		piece_list.reserve(std::count(pieces.begin(), pieces.end(), false));
 
+#ifndef NDEBUG
+		integrity_check();
+#endif
+
 		for (std::vector<bool>::const_iterator i = pieces.begin();
 			i != pieces.end(); ++i)
 		{
@@ -93,10 +96,14 @@ namespace libtorrent
 			{
 				++m_num_filtered;
 				--m_num_have_filtered;
+				m_piece_map[index].index = 0;
 			}
-			piece_list.push_back(index);
+			else
+			{
+				piece_list.push_back(index);
+			}
 		}
-	
+
 		// random shuffle the list
 		std::random_shuffle(piece_list.begin(), piece_list.end());
 
@@ -107,19 +114,17 @@ namespace libtorrent
 			int index = *i;
 			assert(index >= 0);
 			assert(index < (int)m_piece_map.size());
-			assert(m_piece_map[index].index  == piece_pos::we_have_index);
-
-			int peer_count = m_piece_map[index].peer_count;
-			assert(peer_count == 0);
+			assert(m_piece_map[index].index == piece_pos::we_have_index);
+			assert(m_piece_map[index].peer_count == 0);
 			assert(m_piece_info.size() == 2);
 
-			piece_pos& p = m_piece_map[index];
-			std::vector<std::vector<int> >& dst_vec = pick_piece_info_vector(
-				p.downloading, p.filtered);
-			assert((int)dst_vec.size() > peer_count);
-			p.index = (int)dst_vec[peer_count].size();
-			dst_vec[peer_count].push_back(index);
+			add(index);
+			assert(m_piece_map[index].index != piece_pos::we_have_index);
 		}
+
+#ifndef NDEBUG
+		integrity_check();
+#endif
 
 		// if we have fast resume info
 		// use it
@@ -225,7 +230,7 @@ namespace libtorrent
 				}
 
 			}
-			else
+			else if (!i->filtered)
 			{
 				if (t != 0)
 					assert(!t->have_piece(index));
@@ -276,24 +281,40 @@ namespace libtorrent
 	std::vector<std::vector<int> >& piece_picker::pick_piece_info_vector(
 		bool downloading, bool filtered)
 	{
-		return filtered
-			?m_filtered_piece_info
-			:(downloading?m_downloading_piece_info:m_piece_info);
+		assert(!filtered);
+		return downloading?m_downloading_piece_info:m_piece_info;
 	}
 
 	std::vector<std::vector<int> > const& piece_picker::pick_piece_info_vector(
 		bool downloading, bool filtered) const
 	{
-		return filtered
-			?m_filtered_piece_info
-			:(downloading?m_downloading_piece_info:m_piece_info);
+		assert(!filtered);
+		return downloading?m_downloading_piece_info:m_piece_info;
 	}
 
+	void piece_picker::add(int index)
+	{
+		assert(index >= 0);
+		assert(index < (int)m_piece_map.size());
+		piece_pos& p = m_piece_map[index];
+		assert(!p.filtered);
+
+		std::vector<std::vector<int> >& dst_vec = pick_piece_info_vector(
+			p.downloading, p.filtered);
+
+		if (dst_vec.size() <= p.peer_count)
+			dst_vec.resize(p.peer_count + 1);
+
+		assert(dst_vec.size() > p.peer_count);
+		p.index = (int)dst_vec[p.peer_count].size();
+		dst_vec[p.peer_count].push_back(index);
+	}
 
 	// will update the piece with the given properties (downloading, filtered, peer_count, elem_index)
 	// to place it at the correct position in the vectors.
 	void piece_picker::move(bool downloading, bool filtered, int peer_count, int elem_index)
 	{
+		assert(!filtered);
 		assert(peer_count >= 0);
 		assert(elem_index >= 0);
 		std::vector<std::vector<int> >& src_vec(pick_piece_info_vector(downloading, filtered));
@@ -345,6 +366,7 @@ namespace libtorrent
 
 	void piece_picker::remove(bool downloading, bool filtered, int peer_count, int elem_index)
 	{
+		assert(!filtered);
 		assert(peer_count >= 0);
 		assert(elem_index >= 0);
 
@@ -354,7 +376,6 @@ namespace libtorrent
 		assert((int)src_vec[peer_count].size() > elem_index);
 
 		int index = src_vec[peer_count][elem_index];
-		m_piece_map[index].index = piece_pos::we_have_index;
 
 		if (downloading)
 		{
@@ -393,6 +414,7 @@ namespace libtorrent
 
 		m_piece_map[index].downloading = 0;
 		piece_pos& p = m_piece_map[index];
+		if (p.filtered) return;
 		move(true, p.filtered, p.peer_count, p.index);
 
 #ifndef NDEBUG
@@ -412,11 +434,12 @@ namespace libtorrent
 		m_piece_map[i].peer_count++;
 		assert(m_piece_map[i].peer_count != 0);	
 
-		// if we have the piece, we don't have to move
-		// any entries in the piece_info vector
-		if (index == piece_pos::we_have_index) return;
-
 		piece_pos& p = m_piece_map[i];
+
+		// if we have the piece or if it's filtered
+		// we don't have to move any entries in the piece_info vector
+		if (index == piece_pos::we_have_index || p.filtered) return;
+
 		move(p.downloading, p.filtered, peer_count, index);
 
 #ifndef NDEBUG
@@ -441,8 +464,10 @@ namespace libtorrent
 		if (m_piece_map[i].peer_count > 0)
 			m_piece_map[i].peer_count--;
 
-		if (index == piece_pos::we_have_index) return;
 		piece_pos& p = m_piece_map[i];
+
+		if (index == piece_pos::we_have_index || p.filtered) return;
+
 		move(p.downloading, p.filtered, peer_count, index);
 	}
 
@@ -466,8 +491,11 @@ namespace libtorrent
 		{
 			--m_num_filtered;
 			++m_num_have_filtered;
+			return;
 		}
+		if (info_index == piece_pos::we_have_index) return;
 		remove(p.downloading, p.filtered, peer_count, info_index);
+		p.index = piece_pos::we_have_index;
 #ifndef NDEBUG
 		integrity_check();
 #endif
@@ -480,7 +508,7 @@ namespace libtorrent
 		assert(index < (int)m_piece_map.size());
 
 #ifndef NDEBUG
-		integrity_check();
+//		integrity_check();
 #endif
 		
 		piece_pos& p = m_piece_map[index];
@@ -489,7 +517,8 @@ namespace libtorrent
 		if (p.index != piece_pos::we_have_index)
 		{
 			++m_num_filtered;
-			move(p.downloading, false, p.peer_count, p.index);
+			remove(p.downloading, false, p.peer_count, p.index);
+			assert(p.filtered == 1);
 		}
 		else
 		{
@@ -518,7 +547,7 @@ namespace libtorrent
 		{
 			--m_num_filtered;
 			assert(m_num_filtered >= 0);
-			move(p.downloading, true, p.peer_count, p.index);
+			add(index);
 		}
 		else
 		{
@@ -854,7 +883,7 @@ namespace libtorrent
 		assert(block.block_index < blocks_in_piece(block.piece_index));
 
 		piece_pos& p = m_piece_map[block.piece_index];
-		if (p.index == piece_pos::we_have_index) return;
+		if (p.index == piece_pos::we_have_index || p.filtered) return;
 
 		if (p.downloading == 0)
 		{

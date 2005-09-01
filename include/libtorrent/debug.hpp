@@ -103,12 +103,13 @@ namespace libtorrent
 	struct file_logger: libtorrent::logger
 	{
 	public:
-		file_logger(boost::filesystem::path const& filename)
+		file_logger(boost::filesystem::path const& filename, bool append = true)
 		{
 			using namespace boost::filesystem;
 			path dir(complete("libtorrent_logs"));
 			if (!exists(dir)) create_directories(dir);
-			m_file.open(dir / filename);
+			m_file.open(dir / filename, std::ios_base::out | (append ? std::ios_base::app : std::ios_base::out));
+			log("\n\n\n*** starting log ***\n");
 		}
 		virtual void log(const char* text) { assert(text); m_file << text; }
 

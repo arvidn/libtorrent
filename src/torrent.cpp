@@ -579,6 +579,10 @@ namespace libtorrent
 						, "banning peer because of too many corrupt pieces"));
 				}
 				m_policy->ban_peer(*p->second);
+
+#if defined(TORRENT_VERBOSE_LOGGING)
+				(*p->second->m_logger) << "*** BANNING PEER 'too many corrupt pieces'\n";
+#endif
 				p->second->disconnect();
 			}
 		}
@@ -661,21 +665,23 @@ namespace libtorrent
 
 		// TODO: update peer's interesting-bit
 		
-		std::vector<std::pair<int, bool> > state;
+		std::vector<int> state;
 		state.reserve(100);
 		int index = 0;
 		for (std::vector<bool>::const_iterator i = bitmask.begin()
 			, end(bitmask.end()); i != end; ++i, ++index)
 		{
 			if (m_picker->is_filtered(index) == *i) continue;
-			state.push_back(std::make_pair(index, *i));
+			if (*i)
+				m_picker->mark_as_filtered(index);
+			else
+				state.push_back(index);
 		}
 		std::random_shuffle(state.begin(), state.end());
-		for (std::vector<std::pair<int, bool> >::iterator i = state.begin();
+		for (std::vector<int>::iterator i = state.begin();
 			i != state.end(); ++i)
 		{
-			if (i->second) m_picker->mark_as_filtered(i->first);
-			else m_picker->mark_as_unfiltered(i->first);
+			m_picker->mark_as_unfiltered(*i);
 		}
 	}
 
@@ -892,10 +898,16 @@ namespace libtorrent
 	void torrent::disconnect_all()
 	{
 		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end();
-			++i)
+			i != m_connections.end(); ++i)
 		{
 			assert(i->second->associated_torrent() == this);
+
+#if defined(TORRENT_VERBOSE_LOGGING)
+		if (m_abort)
+			(*i->second->m_logger) << "*** CLOSING CONNECTION 'aborting'\n";
+		else
+			(*i->second->m_logger) << "*** CLOSING CONNECTION 'pausing'\n";
+#endif
 			i->second->disconnect();
 		}
 	}
@@ -916,7 +928,12 @@ namespace libtorrent
 		{
 			assert(i->second->associated_torrent() == this);
 			if (i->second->is_seed())
+			{
+#if defined(TORRENT_VERBOSE_LOGGING)
+				(*i->second->m_logger) << "*** SEED, CLOSING CONNECTION\n";
+#endif
 				i->second->disconnect();
+			}
 		}
 
 		m_storage->release_files();
