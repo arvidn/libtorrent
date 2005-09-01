@@ -30,11 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <ios>
 #include <ctime>
-#include <cstdio>
-#include <iostream>
-#include <iomanip>
 #include <iterator>
 #include <algorithm>
 #include <set>
@@ -69,6 +65,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/invariant_check.hpp"
+
+#ifndef NDEBUG
+#include <ios>
+#include <iostream>
+#include <iomanip>
+#include <cstdio>
+#endif
 
 #if defined(_WIN32) && defined(UNICODE)
 

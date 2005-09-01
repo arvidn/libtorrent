@@ -409,6 +409,10 @@ int main(int argc, char* argv[])
 				handles.back().set_max_connections(60);
 				handles.back().set_max_uploads(-1);
 //				handles.back().set_ratio(1.02f);
+				
+//				std::vector<bool> ffilter(t.num_files(), true);
+//				ffilter[0] = false;
+//				handles.back().filter_files(ffilter);
 
 			}
 			catch (std::exception& e)

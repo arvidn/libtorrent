@@ -158,6 +158,7 @@ namespace libtorrent
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		m_logger = m_ses.create_log(s->sender().as_string().c_str());
+		(*m_logger) << "*** OUTGOING CONNECTION\n";
 #endif
 
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
@@ -272,6 +273,7 @@ namespace libtorrent
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		m_logger = m_ses.create_log(s->sender().as_string().c_str());
+		(*m_logger) << "*** INCOMING CONNECTION\n";
 #endif
 
 		// initialize the extension list to zero, since
@@ -795,9 +797,6 @@ namespace libtorrent
 			// if we're a seed too, disconnect
 			if (m_torrent->is_seed())
 			{
-#ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << " we're also a seed, disconnecting\n";
-#endif
 				throw protocol_error("seed to seed connection redundant, disconnecting");
 			}
 		}

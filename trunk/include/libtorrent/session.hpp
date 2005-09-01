@@ -271,7 +271,7 @@ namespace libtorrent
 			void check_invariant(const char *place = 0);
 #endif
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			boost::shared_ptr<logger> create_log(std::string const& name);
+			boost::shared_ptr<logger> create_log(std::string const& name, bool append = true);
 			boost::shared_ptr<logger> m_logger;
 #endif
 		};

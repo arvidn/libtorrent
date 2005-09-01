@@ -260,6 +260,7 @@ namespace libtorrent
 		};
 
 
+		void add(int index);
 		void move(bool downloading, bool filtered, int vec_index, int elem_index);
 		void remove(bool downloading, bool filtered, int vec_index, int elem_index);
 		std::vector<std::vector<int> >& pick_piece_info_vector(bool downloading
@@ -294,14 +295,12 @@ namespace libtorrent
 		// during piece picking
 		std::vector<std::vector<int> > m_downloading_piece_info;
 
-		// this vector has the same structure as m_piece_info
-		// but only contains pieces we aren't interested in (filtered)
-		std::vector<std::vector<int> > m_filtered_piece_info;
-
 		// this maps indices to number of peers that has this piece and
 		// index into the m_piece_info vectors.
 		// piece_pos::we_have_index means that we have the piece, so it
 		// doesn't exist in the piece_info buckets
+		// pieces with the filtered flag set doesn't have entries in
+		// the m_piece_info buckets either
 		std::vector<piece_pos> m_piece_map;
 
 		// each piece that's currently being downloaded

@@ -1147,6 +1147,10 @@ namespace libtorrent
 		peer *p = find_disconnect_candidate();
 		if(!p)
 			return false;
+#if defined(TORRENT_VERBOSE_LOGGING)
+		(*p->connection->m_logger) << "*** CLOSING CONNECTION 'too many connections'\n";
+#endif
+
 		p->connection->disconnect();
 		return true;
 	}

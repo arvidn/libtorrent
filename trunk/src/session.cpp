@@ -234,7 +234,7 @@ namespace libtorrent { namespace detail
 		, m_incoming_connection(false)
 	{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		m_logger = create_log("main_session");
+		m_logger = create_log("main_session", false);
 #endif
 		std::fill(m_extension_enabled, m_extension_enabled
 			+ peer_connection::num_supported_extensions, true);
@@ -257,8 +257,7 @@ namespace libtorrent { namespace detail
 
 		// the random number
 		for (unsigned char* i = m_peer_id.begin() + print.length();
-			i != m_peer_id.end();
-			++i)
+			i != m_peer_id.end(); ++i)
 		{
 			*i = printable[rand() % (sizeof(printable)-1)];
 		}
@@ -480,6 +479,10 @@ namespace libtorrent { namespace detail
 									, e.what()));
 						}
 
+#if defined(TORRENT_VERBOSE_LOGGING)
+						(*p->second->m_logger) << "*** CLOSING CONNECTION '" << e.what() << "'\n";
+#endif
+
 						p->second->set_failed();
 						m_selector.remove(*i);
 						m_connections.erase(p);
@@ -576,6 +579,11 @@ namespace libtorrent { namespace detail
 									, p->second->id()
 									, e.what()));
 						}
+
+#if defined(TORRENT_VERBOSE_LOGGING)
+						(*p->second->m_logger) << "*** CLOSING CONNECTION '" << e.what() << "'\n";
+#endif
+
 						// the connection wants to disconnect for some reason, remove it
 						// from the connection-list
 						p->second->set_failed();
@@ -615,6 +623,9 @@ namespace libtorrent { namespace detail
 				// the connection may have been disconnected in the receive or send phase
 				if (p != m_connections.end())
 				{
+#if defined(TORRENT_VERBOSE_LOGGING)
+					(*p->second->m_logger) << "*** CONNECTION EXCEPTION\n";
+#endif
 					p->second->set_failed();
 					m_connections.erase(p);
 				}
@@ -667,6 +678,10 @@ namespace libtorrent { namespace detail
 								, j->second->id()
 								, "connection timed out"));
 					}
+#if defined(TORRENT_VERBOSE_LOGGING)
+					(*j->second->m_logger) << "*** CONNECTION TIMED OUT\n";
+#endif
+
 					j->second->set_failed();
 					m_selector.remove(j->first);
 					m_connections.erase(j);
@@ -810,10 +825,10 @@ namespace libtorrent { namespace detail
 	}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-	boost::shared_ptr<logger> session_impl::create_log(std::string const& name)
+	boost::shared_ptr<logger> session_impl::create_log(std::string const& name, bool append)
 	{
 		// current options are file_logger, cout_logger and null_logger
-		return boost::shared_ptr<logger>(new file_logger(name + ".log"));
+		return boost::shared_ptr<logger>(new file_logger(name + ".log", append));
 	}
 #endif
 
@@ -908,6 +923,9 @@ namespace libtorrent
 			if (m_impl.m_ip_filter.access(i->first->sender())
 				& ip_filter::blocked)
 			{
+#if defined(TORRENT_VERBOSE_LOGGING)
+				(*i->second->m_logger) << "*** CONNECTION FILTERED'\n";
+#endif
 				m_impl.m_connections.erase(i++);
 			}
 			else ++i;
