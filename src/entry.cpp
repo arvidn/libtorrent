@@ -64,27 +64,6 @@ namespace
 		}
 		char const* m_str;
 	};
-
-	template <class It, class Pred>
-	void bubble_sort(It start, It end, Pred p)
-	{
-		if (start == end) return;
-		--end;
-		for (It i = start; i != end; ++i)
-		{
-			bool unsorted = false;
-			for (It j = i; j != end; ++j)
-			{
-				It next = boost::next(j);
-				if (!p(*j, *next))
-				{
-					swap(*j, *next);
-					unsorted = true;
-				}
-			}
-			if (!unsorted) return;
-		}
-	}
 }
 
 namespace libtorrent
@@ -304,18 +283,6 @@ namespace libtorrent
 		default:
 			assert(m_type == undefined_t);
 			break;
-		}
-	}
-
-	void entry::sort()
-	{
-		using boost::bind;
-		if (type() == dictionary_t)
-		{
-			bubble_sort(dict().begin(), dict().end()
-				, bind(std::less<std::string>()
-					, bind(&entry::dictionary_type::value_type::first, _1)
-					, bind(&entry::dictionary_type::value_type::first, _2)));
 		}
 	}
 

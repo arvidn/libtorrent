@@ -111,7 +111,7 @@ namespace libtorrent
 		// the key is always a string. If a generic entry would be allowed
 		// as a key, sorting would become a problem (e.g. to compare a string
 		// to a list). The definition doesn't mention such a limit though.
-		typedef std::list<std::pair<std::string, entry> > dictionary_type;
+		typedef std::map<std::string, entry> dictionary_type;
 		typedef std::string string_type;
 		typedef std::list<entry> list_type;
 		typedef size_type integer_type;
@@ -144,8 +144,6 @@ namespace libtorrent
 		void operator=(string_type const&);
 		void operator=(list_type const&);
 		void operator=(integer_type const&);
-
-		void sort();
 
 		integer_type& integer();
 		const integer_type& integer() const;

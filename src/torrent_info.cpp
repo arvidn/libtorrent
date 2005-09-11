@@ -435,7 +435,6 @@ namespace libtorrent
 				{
 					path_e.list().push_back(*j);
 				}
-				file_e.sort();
 			}
 		}
 
@@ -451,8 +450,6 @@ namespace libtorrent
 		{
 			p.append((char*)i->begin(), (char*)i->end());
 		}
-
-		info.sort();
 
 		return info;
 	}
@@ -507,7 +504,6 @@ namespace libtorrent
 			dict["created by"] = m_created_by;
 
 		dict["info"] = create_info_metadata();
-		dict.sort();
 
 		entry const& info_section = dict["info"];
 		std::vector<char> buf;
