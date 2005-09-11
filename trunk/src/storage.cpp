@@ -147,7 +147,6 @@ namespace
 	
 	std::time_t last_write_time_win( const path & ph )
 	{
-      // Works for both Windows and POSIX
 		struct _stat path_stat;
 		std::wstring wph(safe_convert(ph.native_file_string()));
 		if ( ::_wstat( wph.c_str(), &path_stat ) != 0 )
@@ -1495,6 +1494,44 @@ namespace libtorrent
 					assert(slot1 >= 0);
 					assert(slot2 >= 0);
 					assert(piece2 >= 0);
+					
+					if (slot1 == slot2)
+					{
+						// this means there are only two pieces involved in the swap
+						assert(piece1 >= 0);
+
+						// movement diagram:
+						// +-----------------------------+
+						// |                             |
+						// +--> slot1 --> current_slot --+
+
+						m_slot_to_piece[slot1] = piece_index;
+						m_slot_to_piece[current_slot] = piece1;
+
+						m_piece_to_slot[piece_index] = slot1;
+						m_piece_to_slot[piece1] = current_slot;
+						
+						assert(piece1 == current_slot);
+						assert(piece_index == slot1);
+
+						const int slot1_size = static_cast<int>(m_info.piece_size(piece1));
+						const int slot3_size = static_cast<int>(m_info.piece_size(piece_index));
+						std::vector<char> buf1(static_cast<int>(slot1_size));
+						std::vector<char> buf2(static_cast<int>(slot3_size));
+
+						m_storage.read(&buf2[0], current_slot, 0, slot3_size);
+						m_storage.read(&buf1[0], slot1, 0, slot1_size);
+						m_storage.write(&buf1[0], current_slot, 0, slot1_size);
+						m_storage.write(&buf2[0], slot1, 0, slot3_size);
+
+						assert(m_slot_to_piece[current_slot] == unassigned
+							|| m_piece_to_slot[m_slot_to_piece[current_slot]] == current_slot);
+
+						continue;
+					}
+					
+					assert(slot1 != slot2);
+					assert(piece1 != piece2);
 
 					// movement diagram:
 					// +---------------------------------------+
