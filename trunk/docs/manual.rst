@@ -709,7 +709,7 @@ or a string. This is its synopsis::
 	{
 	public:
 
-		typedef std::list<std::pair<std::string, entry> > dictionary_type;
+		typedef std::map<std::string, entry> dictionary_type;
 		typedef std::string string_type;
 		typedef std::list<entry> list_type;
 		typedef size_type integer_type;
