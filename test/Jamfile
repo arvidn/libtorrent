@@ -8,6 +8,7 @@ project
    ;
 
 test-suite libtorrent : 
+	[ run test_buffer.cpp ]
 	[ run test_storage.cpp ]
 	[ run test_piece_picker.cpp ]
 #	[ run test_entry.cpp ]
