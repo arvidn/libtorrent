@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
+#include "libtorrent/buffer.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/storage.hpp"
@@ -337,7 +338,8 @@ namespace libtorrent
 		// this is the buffer where data that is
 		// to be sent is stored until it gets
 		// consumed by send()
-		std::vector<char> m_send_buffer;
+//		std::vector<char> m_send_buffer;
+		buffer m_send_buffer;
 
 		// this is a queue of ranges that describes
 		// where in the send buffer actual payload

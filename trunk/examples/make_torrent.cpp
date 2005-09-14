@@ -87,8 +87,8 @@ int main(int argc, char* argv[])
 	try
 	{
 		torrent_info t;
-		path full_path = initial_path() / path(argv[3]);
-		ofstream out(initial_path() / path(argv[1]), std::ios_base::binary);
+		path full_path = complete(path(argv[3]));
+		ofstream out(complete(path(argv[1])), std::ios_base::binary);
 
 		int piece_size = 256 * 1024;
 		char const* creator_str = "libtorrent";

@@ -28,6 +28,7 @@ project torrent
 	<variant>release:<define>NDEBUG
 	<define>BOOST_ALL_NO_LIB
 	<define>_FILE_OFFSET_BITS=64
+	<define>BOOST_THREAD_USE_LIB
 	<library>/boost/thread//boost_thread/<link>static
 	<library>/boost/filesystem//boost_filesystem/<link>static
 	<library>/boost/date_time//boost_date_time/<link>static

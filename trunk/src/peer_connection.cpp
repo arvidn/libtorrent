@@ -454,43 +454,46 @@ namespace libtorrent
 		// add handshake to the send buffer
 		const char version_string[] = "BitTorrent protocol";
 		const int string_len = sizeof(version_string)-1;
-		int pos = 1;
 
-		m_send_buffer.resize(1 + string_len + 8 + 20 + 20);
+		m_send_buffer.reserve(1 + string_len + 8 + 20 + 20);
 
+		buffer::interval i = m_send_buffer.allocate(1 + string_len + 8 + 20 + 20);
 		// length of version string
-		m_send_buffer[0] = string_len;
+		*i.begin = string_len;
+		++i.begin;
 
 		// version string itself
 		std::copy(
 			version_string
-			, version_string+string_len
-			, m_send_buffer.begin()+pos);
-		pos += string_len;
+			, version_string + string_len
+			, i.begin);
+		i.begin += string_len;
 
 		// 8 zeroes
 		std::fill(
-			m_send_buffer.begin() + pos
-			, m_send_buffer.begin() + pos + 8
+			i.begin
+			, i.begin + 8
 			, 0);
 		// indicate that we support the extension protocol
 
 		if (m_ses.extensions_enabled())
-			m_send_buffer[pos+7] = 0x01;
-		pos += 8;
+			*(i.begin + 7) = 0x01;
+		i.begin += 8;
 
 		// info hash
 		std::copy(
 			m_torrent->torrent_file().info_hash().begin()
 			, m_torrent->torrent_file().info_hash().end()
-			, m_send_buffer.begin() + pos);
-		pos += 20;
+			, i.begin);
+		i.begin += 20;
 
 		// peer id
 		std::copy(
 			m_ses.get_peer_id().begin()
 			, m_ses.get_peer_id().end()
-			, m_send_buffer.begin() + pos);
+			, i.begin);
+		i.begin += 20;
+		assert(i.begin == i.end);
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
@@ -1447,11 +1450,11 @@ namespace libtorrent
 
 		m_torrent->picker().abort_download(block);
 
-		std::deque<piece_block>::iterator i
+		std::deque<piece_block>::iterator it
 			= std::find(m_download_queue.begin(), m_download_queue.end(), block);
-		assert(i != m_download_queue.end());
+		assert(it != m_download_queue.end());
 
-		m_download_queue.erase(i);
+		m_download_queue.erase(it);
 
 
 		int block_offset = block.block_index * m_torrent->block_size();
@@ -1463,20 +1466,19 @@ namespace libtorrent
 
 		char buf[] = {0,0,0,13, msg_cancel};
 
-		std::size_t start_offset = m_send_buffer.size();
-		m_send_buffer.resize(start_offset + 17);
+		buffer::interval i = m_send_buffer.allocate(17);
 
-		std::copy(buf, buf + 5, m_send_buffer.begin()+start_offset);
-		start_offset += 5;
-
-		char* ptr = &m_send_buffer[start_offset];
+		std::copy(buf, buf + 5, i.begin);
+		i.begin += 5;
 
 		// index
-		detail::write_int32(block.piece_index, ptr);
+		detail::write_int32(block.piece_index, i.begin);
 		// begin
-		detail::write_int32(block_offset, ptr);
+		detail::write_int32(block_offset, i.begin);
 		// length
-		detail::write_int32(block_size, ptr);
+		detail::write_int32(block_size, i.begin);
+
+		assert(i.begin == i.end);
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
@@ -1512,21 +1514,20 @@ namespace libtorrent
 
 		char buf[] = {0,0,0,13, msg_request};
 
-		std::size_t start_offset = m_send_buffer.size();
-		m_send_buffer.resize(start_offset + 17);
+		buffer::interval i = m_send_buffer.allocate(17);
 
-		std::copy(buf, buf + 5, m_send_buffer.begin()+start_offset);
+		std::copy(buf, buf + 5, i.begin);
+		i.begin += 5;
 
-		char* ptr = &m_send_buffer[start_offset+5];
 		// index
-		detail::write_int32(block.piece_index, ptr);
-
+		detail::write_int32(block.piece_index, i.begin);
 		// begin
-		detail::write_int32(block_offset, ptr);
-
+		detail::write_int32(block_offset, i.begin);
 		// length
-		detail::write_int32(block_size, ptr);
+		detail::write_int32(block_size, i.begin);
 
+		assert(i.begin == i.end);
+		
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
 		(*m_logger) << to_simple_string(second_clock::universal_time())
@@ -1558,34 +1559,38 @@ namespace libtorrent
 		// abort if the peer doesn't support the metadata extension
 		if (!supports_extension(extended_metadata_message)) return;
 
-		std::back_insert_iterator<std::vector<char> > ptr(m_send_buffer);
-
 		if (m_torrent->valid_metadata())
 		{
 			std::pair<int, int> offset
 				= req_to_offset(req, (int)m_torrent->metadata().size());
 
+			buffer::interval i = m_send_buffer.allocate(18 + offset.second);
+
 			// yes, we have metadata, send it
-			detail::write_uint32(5 + 9 + offset.second, ptr);
-			detail::write_uint8(msg_extended, ptr);
-			detail::write_int32(m_extension_messages[extended_metadata_message], ptr);
+			detail::write_uint32(5 + 9 + offset.second, i.begin);
+			detail::write_uint8(msg_extended, i.begin);
+			detail::write_int32(m_extension_messages[extended_metadata_message], i.begin);
 			// means 'data packet'
-			detail::write_uint8(1, ptr);
-			detail::write_uint32((int)m_torrent->metadata().size(), ptr);
-			detail::write_uint32(offset.first, ptr);
+			detail::write_uint8(1, i.begin);
+			detail::write_uint32((int)m_torrent->metadata().size(), i.begin);
+			detail::write_uint32(offset.first, i.begin);
 			std::vector<char> const& metadata = m_torrent->metadata();
 			std::copy(metadata.begin() + offset.first
-				, metadata.begin() + offset.first + offset.second, ptr);
+				, metadata.begin() + offset.first + offset.second, i.begin);
+			i.begin += offset.second;
+			assert(i.begin == i.end);
 		}
 		else
 		{
+			buffer::interval i = m_send_buffer.allocate(10);
 			// we don't have the metadata, reply with
 			// don't have-message
-			detail::write_uint32(1 + 4 + 1, ptr);
-			detail::write_uint8(msg_extended, ptr);
-			detail::write_int32(m_extension_messages[extended_metadata_message], ptr);
+			detail::write_uint32(1 + 4 + 1, i.begin);
+			detail::write_uint8(msg_extended, i.begin);
+			detail::write_int32(m_extension_messages[extended_metadata_message], i.begin);
 			// means 'have no data'
-			detail::write_uint8(2, ptr);
+			detail::write_uint8(2, i.begin);
+			assert(i.begin == i.end);
 		}
 		send_buffer_updated();
 	}
@@ -1612,15 +1617,16 @@ namespace libtorrent
 			<< " size: " << req.second << " ]\n";
 #endif
 
-		std::back_insert_iterator<std::vector<char> > ptr(m_send_buffer);
+		buffer::interval i = m_send_buffer.allocate(12);
 
-		detail::write_uint32(1 + 4 + 3, ptr);
-		detail::write_uint8(msg_extended, ptr);
-		detail::write_int32(m_extension_messages[extended_metadata_message], ptr);
+		detail::write_uint32(1 + 4 + 3, i.begin);
+		detail::write_uint8(msg_extended, i.begin);
+		detail::write_int32(m_extension_messages[extended_metadata_message], i.begin);
 		// means 'request data'
-		detail::write_uint8(0, ptr);
-		detail::write_uint8(start, ptr);
-		detail::write_uint8(size - 1, ptr);
+		detail::write_uint8(0, i.begin);
+		detail::write_uint8(start, i.begin);
+		detail::write_uint8(size - 1, i.begin);
+		assert(i.begin == i.end);
 		send_buffer_updated();
 	}
 
@@ -1636,12 +1642,15 @@ namespace libtorrent
 
 		std::vector<char> message;
 		bencode(std::back_inserter(message), e);
-		std::back_insert_iterator<std::vector<char> > ptr(m_send_buffer);
 
-		detail::write_uint32(1 + 4 + (int)message.size(), ptr);
-		detail::write_uint8(msg_extended, ptr);
-		detail::write_int32(m_extension_messages[extended_chat_message], ptr);
-		std::copy(message.begin(), message.end(), ptr);
+		buffer::interval i = m_send_buffer.allocate(message.size() + 9);
+
+		detail::write_uint32(1 + 4 + (int)message.size(), i.begin);
+		detail::write_uint8(msg_extended, i.begin);
+		detail::write_int32(m_extension_messages[extended_chat_message], i.begin);
+		std::copy(message.begin(), message.end(), i.begin);
+		i.begin += message.size();
+		assert(i.begin == i.end);
 		send_buffer_updated();
 	}
 
@@ -1664,19 +1673,19 @@ namespace libtorrent
 		(*m_logger) << "\n";
 #endif
 		const int packet_size = ((int)m_have_piece.size() + 7) / 8 + 5;
-		const int old_size = (int)m_send_buffer.size();
-		m_send_buffer.resize(old_size + packet_size);
+	
+		buffer::interval i = m_send_buffer.allocate(packet_size);	
 
-		char* ptr = &m_send_buffer[old_size];
-		detail::write_int32(packet_size - 4, ptr);
-		detail::write_uint8(msg_bitfield, ptr);
+		detail::write_int32(packet_size - 4, i.begin);
+		detail::write_uint8(msg_bitfield, i.begin);
 
-		std::fill(m_send_buffer.begin() + old_size + 5, m_send_buffer.end(), 0);
-		for (int i = 0; i < (int)m_have_piece.size(); ++i)
+		std::fill(i.begin, i.end, 0);
+		for (int c = 0; c < (int)m_have_piece.size(); ++c)
 		{
-			if (m_torrent->have_piece(i))
-				m_send_buffer[old_size + 5 + (i>>3)] |= 1 << (7 - (i&7));
+			if (m_torrent->have_piece(c))
+				i.begin[c >> 3] |= 1 << (7 - (c & 7));
 		}
+		assert(i.end - i.begin == ((int)m_have_piece.size() + 7) / 8);
 		send_buffer_updated();
 	}
 
@@ -1701,17 +1710,20 @@ namespace libtorrent
 			extension_list[extension_names[i]] = i;
 		}
 
-		// make room for message size
-		const int msg_size_pos = (int)m_send_buffer.size();
-		m_send_buffer.resize(msg_size_pos + 4);
+		std::vector<char> msg;
+		bencode(std::back_inserter(msg), extension_list);
 
-		m_send_buffer.push_back(msg_extension_list);
-
-		bencode(std::back_inserter(m_send_buffer), extension_list);
+		// make room for message
+		buffer::interval i = m_send_buffer.allocate(5 + msg.size());
 
 		// write the length of the message
-		char* ptr = &m_send_buffer[msg_size_pos];
-		detail::write_int32((int)m_send_buffer.size() - msg_size_pos - 4, ptr);
+		detail::write_int32((int)msg.size() + 1, i.begin);
+
+		detail::write_uint8(msg_extension_list, i.begin);
+
+		std::copy(msg.begin(), msg.end(), i.begin);
+		i.begin += msg.size();
+		assert(i.begin == i.end);
 
 		send_buffer_updated();
 	}
@@ -1722,7 +1734,7 @@ namespace libtorrent
 
 		if (m_choked) return;
 		char msg[] = {0,0,0,1,msg_choke};
-		m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
+		m_send_buffer.insert(msg, msg + sizeof(msg));
 		m_choked = true;
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -1754,7 +1766,7 @@ namespace libtorrent
 
 		if (!m_choked) return;
 		char msg[] = {0,0,0,1,msg_unchoke};
-		m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
+		m_send_buffer.insert(msg, msg + sizeof(msg));
 		m_choked = false;
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -1771,7 +1783,7 @@ namespace libtorrent
 
 		if (m_interesting) return;
 		char msg[] = {0,0,0,1,msg_interested};
-		m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
+		m_send_buffer.insert(msg, msg + sizeof(msg));
 		m_interesting = true;
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -1788,7 +1800,7 @@ namespace libtorrent
 
 		if (!m_interesting) return;
 		char msg[] = {0,0,0,1,msg_not_interested};
-		m_send_buffer.insert(m_send_buffer.end(), msg, msg+sizeof(msg));
+		m_send_buffer.insert(msg, msg + sizeof(msg));
 		m_interesting = false;
 
 		m_became_uninteresting = second_clock::universal_time();
@@ -1814,9 +1826,9 @@ namespace libtorrent
 
 		const int packet_size = 9;
 		char msg[packet_size] = {0,0,0,5,msg_have};
-		char* ptr = msg+5;
+		char* ptr = msg + 5;
 		detail::write_int32(index, ptr);
-		m_send_buffer.insert(m_send_buffer.end(), msg, msg + packet_size);
+		m_send_buffer.insert(msg, msg + packet_size);
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
@@ -2306,30 +2318,28 @@ namespace libtorrent
 			assert(r.start + r.length <= m_torrent->torrent_file().piece_size(r.piece));
 			assert(r.length > 0 && r.start >= 0);
 
-#ifndef NDEBUG
-//			assert(m_torrent->verify_piece(r.piece) && "internal error");
-#endif
-			const int send_buffer_offset = (int)m_send_buffer.size();
 			const int packet_size = 4 + 5 + 4 + r.length;
-			m_send_buffer.resize(send_buffer_offset + packet_size);
-			char* ptr = &m_send_buffer[send_buffer_offset];
-			detail::write_int32(packet_size-4, ptr);
-			*ptr = msg_piece; ++ptr;
-			detail::write_int32(r.piece, ptr);
-			detail::write_int32(r.start, ptr);
+
+			buffer::interval i = m_send_buffer.allocate(packet_size);
+			
+			detail::write_int32(packet_size-4, i.begin);
+			detail::write_uint8(msg_piece, i.begin);
+			detail::write_int32(r.piece, i.begin);
+			detail::write_int32(r.start, i.begin);
 
 			m_torrent->filesystem().read(
-				&m_send_buffer[send_buffer_offset+13]
+				i.begin
 				, r.piece
 				, r.start
 				, r.length);
+			assert(i.begin + r.length == i.end);
 #ifdef TORRENT_VERBOSE_LOGGING
 			using namespace boost::posix_time;
 			(*m_logger) << to_simple_string(second_clock::universal_time())
 				<< " ==> PIECE   [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
 #endif
 
-			m_payloads.push_back(range(send_buffer_offset+13, r.length));
+			m_payloads.push_back(range(m_send_buffer.size() - r.length, r.length));
 			m_requests.erase(m_requests.begin());
 
 			if (m_requests.empty()
@@ -2350,8 +2360,7 @@ namespace libtorrent
 		{
 			assert(m_torrent->valid_metadata());
 			for (std::vector<int>::iterator i = m_announce_queue.begin();
-				i != m_announce_queue.end();
-				++i)
+				i != m_announce_queue.end(); ++i)
 			{
 				send_have(*i);
 			}
@@ -2368,22 +2377,34 @@ namespace libtorrent
 
 			assert(amount_to_send > 0);
 
+			buffer::interval_type send_buffer = m_send_buffer.data();
 			// we have data that's scheduled for sending
-			int sent = m_socket->send(
-				&m_send_buffer[0]
-				, amount_to_send);
+			int to_send = std::min(send_buffer.first.end - send_buffer.first.begin
+				, m_ul_bandwidth_quota.left());
+			int sent = m_socket->send(send_buffer.first.begin, to_send);
 
+			if (sent == send_buffer.first.end - send_buffer.first.end
+				&& send_buffer.second.begin != send_buffer.second.end
+				&& to_send > sent)
+			{
+				to_send -= sent;
+				to_send = std::min(to_send, send_buffer.second.end
+					- send_buffer.second.begin);
+				int ret = m_socket->send(send_buffer.second.begin, to_send);
+				if (ret > 0) sent += ret;
+			}
+			
 			if (sent > 0)
 			{
 				m_ul_bandwidth_quota.used += sent;
+				m_send_buffer.erase(sent);
 
 				// manage the payload markers
 				int amount_payload = 0;
 				if (!m_payloads.empty())
 				{
 					for (std::deque<range>::iterator i = m_payloads.begin();
-						i != m_payloads.end();
-						++i)
+						i != m_payloads.end(); ++i)
 					{
 						i->start -= sent;
 						if (i->start < 0)
@@ -2401,6 +2422,7 @@ namespace libtorrent
 						}
 					}
 				}
+				// TODO: move the erasing into the loop above
 				// remove all payload ranges that has been sent
 				m_payloads.erase(
 					std::remove_if(m_payloads.begin(), m_payloads.end(), range_below_zero)
@@ -2408,20 +2430,6 @@ namespace libtorrent
 
 				assert(amount_payload <= sent);
 				m_statistics.sent_bytes(amount_payload, sent - amount_payload);
-
-				// empty the entire buffer at once or if
-				// only a part of the buffer could be sent
-				// remove the part that was sent from the buffer
-				if (sent == (int)m_send_buffer.size())
-				{
-					m_send_buffer.clear();
-				}
-				else
-				{
-					m_send_buffer.erase(
-						m_send_buffer.begin()
-						, m_send_buffer.begin() + sent);
-				}
 			}
 			else
 			{
@@ -2496,7 +2504,7 @@ namespace libtorrent
 		if (m_announce_queue.empty())
 		{
 			char noop[] = {0,0,0,0};
-			m_send_buffer.insert(m_send_buffer.end(), noop, noop+4);
+			m_send_buffer.insert(noop, noop + 4);
 			m_last_sent = second_clock::universal_time();
 #ifdef TORRENT_VERBOSE_LOGGING
 			using namespace boost::posix_time;
@@ -2507,8 +2515,7 @@ namespace libtorrent
 		else
 		{
 			for (std::vector<int>::iterator i = m_announce_queue.begin();
-				i != m_announce_queue.end();
-				++i)
+				i != m_announce_queue.end(); ++i)
 			{
 				send_have(*i);
 			}

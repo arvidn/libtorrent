@@ -9,15 +9,6 @@
 
 #include "test.hpp"
 
-#define _FILE_OFFSET_BITS 64
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <errno.h>
-
-
-
 using namespace libtorrent;
 using namespace boost::filesystem;
 
