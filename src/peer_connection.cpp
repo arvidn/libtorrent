@@ -66,7 +66,8 @@ namespace libtorrent
 		&peer_connection::on_request,
 		&peer_connection::on_piece,
 		&peer_connection::on_cancel,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		&peer_connection::on_dht_port,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		&peer_connection::on_extension_list,
 		&peer_connection::on_extended
 	};
@@ -1130,6 +1131,30 @@ namespace libtorrent
 	}
 
 	// -----------------------------
+	// --------- DHT PORT ----------
+	// -----------------------------
+
+	void peer_connection::on_dht_port(int received)
+	{
+		INVARIANT_CHECK;
+
+		assert(received > 0);
+		if (m_packet_size != 3)
+			throw protocol_error("'dht_port' message size != 3");
+		m_statistics.received_bytes(0, received);
+		if (m_recv_pos < m_packet_size) return;
+
+		const char* ptr = &m_recv_buffer[1];
+		int listen_port = detail::read_uint16(ptr);
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::universal_time())
+			<< " <== DHT_PORT [ p: " << listen_port << " ]\n";
+#endif
+	}
+
+	// -----------------------------
 	// ------ EXTENSION LIST -------
 	// -----------------------------
 
@@ -1422,7 +1447,9 @@ namespace libtorrent
 			|| packet_type >= num_supported_messages
 			|| m_message_handler[packet_type] == 0)
 		{
-			throw protocol_error("unknown message id");
+			throw protocol_error("unknown message id: "
+				+ boost::lexical_cast<std::string>(packet_type)
+				+ " size: " + boost::lexical_cast<std::string>(m_packet_size));
 		}
 
 		assert(m_message_handler[packet_type] != 0);
