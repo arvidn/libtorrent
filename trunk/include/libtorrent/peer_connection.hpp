@@ -243,6 +243,8 @@ namespace libtorrent
 		void on_request(int received);
 		void on_piece(int received);
 		void on_cancel(int received);
+		void on_dht_port(int received);
+
 		void on_extension_list(int received);
 		void on_extended(int received);
 
