@@ -942,6 +942,12 @@ namespace libtorrent
 					// this means we're already connected
 					// to this peer. don't connect to
 					// it again.
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+					m_torrent->debug_log("already connected to peer: " + remote.as_string() + ":"
+						+ boost::lexical_cast<std::string>(remote.port));
+#endif
+
 					assert(i->connection->associated_torrent() == m_torrent);
 					return;
 				}

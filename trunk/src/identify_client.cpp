@@ -159,6 +159,7 @@ namespace
 		, map_entry("MT", "Moonlight Torrent")
 		, map_entry("O",  "Osprey Permaseed")
 		, map_entry("S",  "Shadow")
+		, map_entry("SB", "Swiftbit")
 		, map_entry("SN", "ShareNet")
 		, map_entry("SS", "SwarmScope")
 		, map_entry("T",  "BitTornado")

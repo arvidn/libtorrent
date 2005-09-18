@@ -261,6 +261,8 @@ namespace libtorrent { namespace detail
 		{
 			*i = printable[rand() % (sizeof(printable)-1)];
 		}
+		// this says that we support the extensions
+		std::memcpy(&m_peer_id[17], "ext", 3);
 	}
 
 	bool session_impl::extensions_enabled() const
@@ -908,6 +910,16 @@ namespace libtorrent
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
 		std::fill(m_impl.m_extension_enabled, m_impl.m_extension_enabled
 			+ peer_connection::num_supported_extensions, false);
+
+		static char const printable[]
+			= "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_.!~*'()";
+
+		// remove the 'ext' sufix in the peer_id
+		for (unsigned char* i = m_impl.m_peer_id.begin() + 17;
+			i != m_impl.m_peer_id.end(); ++i)
+		{
+			*i = printable[rand() % (sizeof(printable)-1)];
+		}
 	}
 
 	void session::set_ip_filter(ip_filter const& f)
@@ -950,6 +962,9 @@ namespace libtorrent
 		assert(i < peer_connection::num_supported_extensions);
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_extension_enabled[i] = true;
+
+		// this says that we support the extensions
+		std::memcpy(&m_impl.m_peer_id[17], "ext", 3);
 	}
 
 	std::vector<torrent_handle> session::get_torrents()
