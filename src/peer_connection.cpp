@@ -158,7 +158,8 @@ namespace libtorrent
 		assert(m_torrent != 0);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		m_logger = m_ses.create_log(s->sender().as_string().c_str());
+		m_logger = m_ses.create_log(s->sender().as_string() + "_"
+			+ boost::lexical_cast<std::string>(s->sender().port));
 		(*m_logger) << "*** OUTGOING CONNECTION\n";
 #endif
 
@@ -273,7 +274,8 @@ namespace libtorrent
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		m_logger = m_ses.create_log(s->sender().as_string().c_str());
+		m_logger = m_ses.create_log(s->sender().as_string() + "_"
+			+ boost::lexical_cast<std::string>(s->sender().port));
 		(*m_logger) << "*** INCOMING CONNECTION\n";
 #endif
 
@@ -475,10 +477,9 @@ namespace libtorrent
 			i.begin
 			, i.begin + 8
 			, 0);
-		// indicate that we support the extension protocol
 
-		if (m_ses.extensions_enabled())
-			*(i.begin + 7) = 0x01;
+		// indicate that we support the DHT messages
+		*(i.begin + 7) = 0x01;
 		i.begin += 8;
 
 		// info hash
@@ -2128,8 +2129,11 @@ namespace libtorrent
 					// ok, now we have got enough of the handshake. Is this connection
 					// attached to a torrent?
 
-					if ((m_recv_buffer[7] & 0x01) && m_ses.extensions_enabled())
-						m_supports_extensions = true;
+					// the use of this bit collides with Mainline
+					// the new way of identifying support for the extensions
+					// is in the peer_id
+//					if ((m_recv_buffer[7] & 0x01) && m_ses.extensions_enabled())
+//						m_supports_extensions = true;
 
 					if (m_torrent == 0)
 					{
@@ -2184,8 +2188,6 @@ namespace libtorrent
 						}
 					}
 
-					if (m_supports_extensions) send_extensions();
-
 					m_state = read_peer_id;
 					m_packet_size = 20;
 					m_recv_pos = 0;
@@ -2219,14 +2221,21 @@ namespace libtorrent
 						s << "\n";
 						(*m_logger) << s.str();
 					}
+					
+					(*m_logger) << "ext: " << m_peer_id[17] << " " << m_peer_id[18] << " " << m_peer_id[19] << "\n";
 #endif
 					std::copy(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (char*)m_peer_id.begin());
+
+					if (std::memcmp(&m_peer_id[17], "ext", 3) == 0)
+						m_supports_extensions = true;
 
 					// disconnect if the peer has the same peer-id as ourself
 					// since it most likely is ourself then
 					if (m_peer_id == m_ses.get_peer_id())
 						throw protocol_error("closing connection to ourself");
 					
+					if (m_supports_extensions) send_extensions();
+
 					if (!m_active)
 					{
 						// check to make sure we don't have another connection with the same

@@ -490,15 +490,14 @@ the <tt class="docutils literal"><span class="pre">session</span></tt>, it conta
 </li>
 <li><p class="first">parse .torrent-files and add them to the session (see <a class="reference" href="#bdecode-bencode">bdecode() bencode()</a>)</p>
 </li>
-<li><dl class="first docutils">
-<dt>main loop (see <a class="reference" href="#session">session</a>)</dt>
-<dd><ul class="first last simple">
+<li><p class="first">main loop (see <a class="reference" href="#session">session</a>)</p>
+<blockquote>
+<ul class="simple">
 <li>query the torrent_handles for progress (see <a class="reference" href="#torrent-handle">torrent_handle</a>)</li>
 <li>query the session for information</li>
 <li>add and remove torrents from the session at run-time</li>
 </ul>
-</dd>
-</dl>
+</blockquote>
 </li>
 <li><p class="first">save resume data for all torrent_handles (optional, see
 <a class="reference" href="#write-resume-data">write_resume_data()</a>)</p>
@@ -807,7 +806,7 @@ class entry
 {
 public:
 
-        typedef std::list&lt;std::pair&lt;std::string, entry&gt; &gt; dictionary_type;
+        typedef std::map&lt;std::string, entry&gt; dictionary_type;
         typedef std::string string_type;
         typedef std::list&lt;entry&gt; list_type;
         typedef size_type integer_type;

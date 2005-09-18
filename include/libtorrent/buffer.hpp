@@ -32,6 +32,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef LIBTORRENT_BUFFER_HPP
 #define LIBTORRENT_BUFFER_HPP
 
+//#define TORRENT_BUFFER_DEBUG
+
+#include "libtorrent/invariant_check.hpp"
 #include <memory>
 
 namespace libtorrent {
@@ -82,6 +85,10 @@ public:
         return m_first;
     }
 
+#ifndef NDEBUG
+    void check_invariant() const;
+#endif
+	 
 private:
     char* m_first;
     char* m_last;
@@ -89,6 +96,10 @@ private:
     char* m_read_cursor;
 	 char* m_read_end;
     bool m_empty;
+#ifdef TORRENT_BUFFER_DEBUG
+    mutable std::vector<char> m_debug;
+    mutable int m_pending_copy;
+#endif
 };
 
 inline buffer::buffer(std::size_t n)
@@ -98,7 +109,11 @@ inline buffer::buffer(std::size_t n)
 	, m_read_cursor(m_first)
 	, m_read_end(m_last)
 	, m_empty(true)
-{}
+{
+#ifdef TORRENT_BUFFER_DEBUG
+	m_pending_copy = 0;
+#endif
+}
 
 inline buffer::~buffer()
 {
@@ -107,8 +122,20 @@ inline buffer::~buffer()
 
 inline buffer::interval buffer::allocate(std::size_t n)
 {
-   assert(m_read_cursor <= m_read_end || m_empty);
+	assert(m_read_cursor <= m_read_end || m_empty);
 
+	INVARIANT_CHECK;
+	
+#ifdef TORRENT_BUFFER_DEBUG
+	if (m_pending_copy)
+	{
+		std::copy(m_write_cursor - m_pending_copy, m_write_cursor
+			, m_debug.end() - m_pending_copy);
+		m_pending_copy = 0;
+	}
+	m_debug.resize(m_debug.size() + n);
+	m_pending_copy = n;
+#endif
 	if (m_read_cursor < m_write_cursor || m_empty)
 	{
 	// ..R***W..
@@ -160,7 +187,19 @@ inline buffer::interval buffer::allocate(std::size_t n)
 
 inline void buffer::insert(char const* first, char const* last)
 {
+    INVARIANT_CHECK;
+
     std::size_t n = last - first;
+
+#ifdef TORRENT_BUFFER_DEBUG
+	if (m_pending_copy)
+	{
+		std::copy(m_write_cursor - m_pending_copy, m_write_cursor
+			, m_debug.end() - m_pending_copy);
+		m_pending_copy = 0;
+	}
+	m_debug.insert(m_debug.end(), first, last);
+#endif
 
     if (space_left() < n)
     {
@@ -182,7 +221,8 @@ inline void buffer::insert(char const* first, char const* last)
 
     if (n == 0) return;
 
-    if (m_write_cursor == m_last) m_write_cursor = m_first;
+	 assert(m_write_cursor == m_last);
+    m_write_cursor = m_first;
 
     memcpy(m_write_cursor, first, n);
     m_write_cursor += n;
@@ -191,6 +231,9 @@ inline void buffer::insert(char const* first, char const* last)
 inline void buffer::erase(std::size_t n)
 {
     assert(!m_empty);
+
+    INVARIANT_CHECK;
+	 
 #ifndef NDEBUG
 	int prev_size = size();
 #endif
@@ -205,6 +248,10 @@ inline void buffer::erase(std::size_t n)
     m_empty = m_read_cursor == m_write_cursor;
 
 	 assert(prev_size - n == size());
+
+#ifdef TORRENT_BUFFER_DEBUG
+	 m_debug.erase(m_debug.begin(), m_debug.begin() + n);
+#endif
 }
 
 inline std::size_t buffer::size() const
@@ -246,7 +293,7 @@ inline void buffer::reserve(std::size_t size)
 
         m_write_cursor = buf + (m_write_cursor - m_first);
         m_read_cursor = buf + (m_read_cursor - m_first);
-		  m_read_end = 0;
+		  m_read_end = m_write_cursor;
         m_first = buf;
         m_last = buf + n;
     }
@@ -282,11 +329,45 @@ inline void buffer::reserve(std::size_t size)
     ::operator delete (old);
 }
 
+#ifndef NDEBUG
+inline void buffer::check_invariant() const
+{
+	assert(m_read_end >= m_read_cursor);
+	assert(m_last >= m_read_cursor);
+	assert(m_last >= m_write_cursor);
+	assert(m_last >= m_first);
+	assert(m_first <= m_read_cursor);
+	assert(m_first <= m_write_cursor);
+#ifdef TORRENT_BUFFER_DEBUG
+	int a = m_debug.size();
+	int b = size();
+	(void)a;
+	(void)b;
+	assert(m_debug.size() == size());
+#endif
+}
+#endif
+
 inline buffer::interval_type buffer::data() const
 {
+	INVARIANT_CHECK;
+
+#ifdef TORRENT_BUFFER_DEBUG
+	if (m_pending_copy)
+	{
+		std::copy(m_write_cursor - m_pending_copy, m_write_cursor
+			, m_debug.end() - m_pending_copy);
+		m_pending_copy = 0;
+	}
+#endif
+
     // ...R***W.
     if (m_read_cursor < m_write_cursor)
     {
+#ifdef TORRENT_BUFFER_DEBUG
+        assert(m_debug.size() == size());
+        assert(std::equal(m_debug.begin(), m_debug.end(), m_read_cursor));
+#endif
         return interval_type(
             const_interval(m_read_cursor, m_write_cursor)
           , const_interval(m_last, m_last)
@@ -297,10 +378,23 @@ inline buffer::interval_type buffer::data() const
     {
         if (m_read_cursor == m_read_end)
 		  {
+#ifdef TORRENT_BUFFER_DEBUG
+	        assert(m_debug.size() == size());
+	        assert(std::equal(m_debug.begin(), m_debug.end(), m_first));
+#endif
+
             return interval_type(
                 const_interval(m_first, m_write_cursor)
                 , const_interval(m_last, m_last));
 		  }
+#ifdef TORRENT_BUFFER_DEBUG
+        assert(m_debug.size() == size());
+        assert(std::equal(m_debug.begin(), m_debug.begin() + (m_read_end
+            - m_read_cursor), m_read_cursor));
+        assert(std::equal(m_debug.begin() + (m_read_end - m_read_cursor), m_debug.end()
+            , m_first));
+#endif
+
         assert(m_read_cursor <= m_read_end || m_empty);
         return interval_type(
             const_interval(m_read_cursor, m_read_end)

@@ -374,9 +374,11 @@ The basic usage is as follows:
 * conststruct a session
 * parse .torrent-files and add them to the session (see `bdecode() bencode()`_)
 * main loop (see session_)
+
 	* query the torrent_handles for progress (see torrent_handle_)
 	* query the session for information
 	* add and remove torrents from the session at run-time
+
 * save resume data for all torrent_handles (optional, see
   `write_resume_data()`_)
 * destruct session object
