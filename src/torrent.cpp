@@ -1149,7 +1149,6 @@ namespace libtorrent
 			return;
 		}
 
-
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
 		{

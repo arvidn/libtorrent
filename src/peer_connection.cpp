@@ -929,10 +929,6 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		assert(received > 0);
-		if (m_recv_pos - received <= 9)
-		{
-			m_last_piece = second_clock::universal_time();
-		}
 		// classify the received data as protocol chatter
 		// or data payload for the statistics
 		if (m_recv_pos <= 9)
@@ -952,6 +948,7 @@ namespace libtorrent
 				, 9 - (m_recv_pos - received));
 		}
 
+		m_last_piece = second_clock::universal_time();
 		if (m_recv_pos < m_packet_size) return;
 
 		const char* ptr = &m_recv_buffer[1];
@@ -1555,9 +1552,9 @@ namespace libtorrent
 		detail::write_int32(block_size, i.begin);
 
 		assert(i.begin == i.end);
-		
-#ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
+
+#ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << to_simple_string(second_clock::universal_time())
 			<< " ==> REQUEST [ "
 			"piece: " << block.piece_index << " | "
@@ -1572,6 +1569,7 @@ namespace libtorrent
 		assert(verify_piece(r));
 #endif
 
+		m_last_piece = second_clock::universal_time();
 		send_buffer_updated();
 	}
 
@@ -1884,6 +1882,34 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		ptime now(second_clock::universal_time());
+		
+		if (!m_download_queue.empty()
+			&& now - m_last_piece > seconds(30))
+		{
+			// this peer isn't sending the pieces we've
+			// requested (this has been observed by BitComet)
+			// in this case we'll clear our download queue and
+			// re-request the blocks.
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << to_simple_string(now)
+				<< " *** IGNORED_REQUESTS [ " << (int)m_download_queue.size() << " ] ***\n";
+#endif
+
+			piece_picker& picker = m_torrent->picker();
+			for (std::deque<piece_block>::const_iterator i = m_download_queue.begin()
+				, end(m_download_queue.end()); i != end; ++i)
+			{
+				// since this piece was skipped, clear it and allow it to
+				// be requested from other peers
+				picker.abort_download(*i);
+			}
+			m_download_queue.clear();
+
+			// this will trigger new picking of pieces
+			m_torrent->get_policy().unchoked(*this);
+		}
+	
 		// if we don't have any metadata, and this peer
 		// supports the request metadata extension
 		// and we aren't currently waiting for a request
@@ -1897,7 +1923,7 @@ namespace libtorrent
 			m_last_metadata_request = m_torrent->metadata_request();
 			send_metadata_request(m_last_metadata_request);
 			m_waiting_metadata_request = true;
-			m_metadata_request = second_clock::universal_time();
+			m_metadata_request = now;
 		}
 
 		m_statistics.second_tick();
@@ -2497,6 +2523,8 @@ namespace libtorrent
 	{
 		using namespace boost::posix_time;
 
+		ptime now(second_clock::universal_time());
+		
 		// if the socket is still connecting, don't
 		// consider it timed out. Because Windows XP SP2
 		// may delay connection attempts.
@@ -2507,22 +2535,22 @@ namespace libtorrent
 		time_duration d;
 		d = second_clock::universal_time() - m_last_receive;
 		if (d > seconds(m_timeout)) return true;
-/*
+
 		// if the peer hasn't become interested and we haven't
-		// become interested in the peer for 60 seconds, it
+		// become interested in the peer for 10 minutes, it
 		// has also timed out.
 		time_duration d1;
 		time_duration d2;
-		d1 = second_clock::universal_time() - m_became_uninterested;
-		d2 = second_clock::universal_time() - m_became_uninteresting;
+		d1 = now - m_became_uninterested;
+		d2 = now - m_became_uninteresting;
 		if (!m_interesting
 			&& !m_peer_interested
-			&& d1 > seconds(60 * 3)
-			&& d2 > seconds(60 * 3))
+			&& d1 > minutes(10)
+			&& d2 > minutes(10))
 		{
 			return true;
 		}
-*/
+
 		return false;
 	}
 
