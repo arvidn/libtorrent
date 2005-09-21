@@ -247,6 +247,7 @@ namespace libtorrent
 		if (find_string(PID, "oernu")) return "BTugaXP";
 		if (find_string(PID, "Mbrst")) return "Burst!";
 		if (find_string(PID, "Plus")) return "Plus!";
+		if (find_string(PID, "-Qt-")) return "Qt";
 		if (find_string(PID, "exbc")) return "BitComet";
 		if (find_string(PID, "-G3")) return "G3 Torrent";
 		if (find_string(PID, "OP")) return "Opera";

@@ -488,8 +488,8 @@ namespace libtorrent
 		// by sending choke, unchoke.
 		int m_num_invalid_requests;
 
-		// the time at which we started to get the last piece
-		// message from this peer
+		// the time when we last got a part of a
+		// piece packet from this peer
 		boost::posix_time::ptime m_last_piece;
 
 		// this is true if this connection has been added
