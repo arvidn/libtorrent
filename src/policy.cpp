@@ -58,17 +58,6 @@ using namespace boost::posix_time;
 
 namespace
 {
-	enum
-	{
-		// the limits of the download queue size
-		max_request_queue = 48,
-		min_request_queue = 2,
-
-		// the amount of free upload allowed before
-		// the peer is choked
-		free_upload_amount = 4 * 16 * 1024
-	};
-
 	using namespace libtorrent;
 
 	// the case where ignore_peer is motivated is if two peers
@@ -83,7 +72,8 @@ namespace
 		// this will make the number of requests linearly dependent
 		// on the rate in which we download from the peer.
 		// we want the queue to represent:
-		const int queue_time = 5; // seconds
+		// TODO: make this constant user-settable
+		const int queue_time = 3; // seconds
 		// (if the latency is more than this, the download will stall)
 		// so, the queue size is 5 * down_rate / 16 kiB (16 kB is the size of each request)
 		// the minimum request size is 2 and the maximum is 48
@@ -98,7 +88,8 @@ namespace
 
 		assert(desired_queue_size >= min_request_queue);
 
-		int num_requests = desired_queue_size - (int)c.download_queue().size();
+		int num_requests = desired_queue_size - (int)c.download_queue().size()
+			- (int)c.request_queue().size();
 
 		// if our request queue is already full, we
 		// don't have to make any new requests yet
