@@ -100,27 +100,29 @@ namespace libtorrent
 		, m_code(0)
 	{
 		const std::string* connect_to_host;
+		int connect_to_port = port;
 		bool using_proxy = false;
+
+		m_send_buffer.assign("GET ");
 
 		// should we use the proxy?
 		if (!m_settings.proxy_ip.empty())
 		{
 			connect_to_host = &m_settings.proxy_ip;
-			if (m_settings.proxy_port != 0) port = m_settings.proxy_port;
 			using_proxy = true;
+			m_send_buffer += "http://";
+			m_send_buffer += hostname;
+			if (port != 80)
+			{
+				m_send_buffer += ":";
+				m_send_buffer += boost::lexical_cast<std::string>(port);
+			}
+			connect_to_port = m_settings.proxy_port != 0
+				? m_settings.proxy_port : 80 ;
 		}
 		else
 		{
 			connect_to_host = &hostname;
-		}
-
-		m_send_buffer.assign("GET ");
-		if (using_proxy)
-		{
-			m_send_buffer += "http://";
-			m_send_buffer += hostname;
-			if (port != 80)
-				m_send_buffer += boost::lexical_cast<std::string>(port);
 		}
 
 		if (m_req.kind == tracker_request::scrape_request)
@@ -219,7 +221,7 @@ namespace libtorrent
 		}
 #endif
 
-		m_name_lookup = dns_lookup(connect_to_host->c_str(), port);
+		m_name_lookup = dns_lookup(connect_to_host->c_str(), connect_to_port);
 		m_socket.reset(new socket(socket::tcp, false));
 	}
 
