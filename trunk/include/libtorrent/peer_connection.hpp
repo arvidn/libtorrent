@@ -139,6 +139,7 @@ namespace libtorrent
 		bool has_piece(int i) const;
 
 		const std::deque<piece_block>& download_queue() const;
+		const std::deque<piece_block>& request_queue() const;
 		const std::deque<peer_request>& upload_queue() const;
 
 		// returns the block currently being
@@ -283,6 +284,7 @@ namespace libtorrent
 
 	private:
 
+		void send_block_requests();
 		bool dispatch_message(int received);
 
 		// if we don't have all metadata
@@ -324,6 +326,7 @@ namespace libtorrent
 			msg_request,
 			msg_piece,
 			msg_cancel,
+			msg_dht_port,
 	// extension protocol message
 			msg_extension_list = 20,
 			msg_extended,
@@ -451,6 +454,10 @@ namespace libtorrent
 		// the peer
 		std::vector<int> m_announce_queue;
 
+		// the blocks we have reserved in the piece
+		// picker and will send to this peer.
+		std::deque<piece_block> m_request_queue;
+		
 		// the queue of blocks we have requested
 		// from this peer
 		std::deque<piece_block> m_download_queue;

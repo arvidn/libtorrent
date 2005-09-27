@@ -386,12 +386,17 @@ namespace libtorrent
 		return m_have_piece[i];
 	}
 
-	const std::deque<piece_block>& peer_connection::download_queue() const
+	std::deque<piece_block> const& peer_connection::request_queue() const
+	{
+		return m_request_queue;
+	}
+	
+	std::deque<piece_block> const& peer_connection::download_queue() const
 	{
 		return m_download_queue;
 	}
 	
-	const std::deque<peer_request>& peer_connection::upload_queue() const
+	std::deque<peer_request> const& peer_connection::upload_queue() const
 	{
 		return m_requests;
 	}
@@ -401,7 +406,7 @@ namespace libtorrent
 		m_statistics.add_stat(downloaded, uploaded);
 	}
 
-	const std::vector<bool>& peer_connection::get_bitfield() const
+	std::vector<bool> const& peer_connection::get_bitfield() const
 	{
 		return m_have_piece;
 	}
@@ -584,7 +589,16 @@ namespace libtorrent
 		{
 			m_torrent->picker().abort_download(*i);
 		}
+		for (std::deque<piece_block>::const_iterator i = m_request_queue.begin()
+			, end(m_request_queue.end()); i != end; ++i)
+		{
+			// since this piece was skipped, clear it and allow it to
+			// be requested from other peers
+			m_torrent->picker().abort_download(*i);
+		}
 		m_download_queue.clear();
+		m_request_queue.clear();
+
 #ifndef NDEBUG
 //		m_torrent->picker().integrity_check(m_torrent);
 #endif
@@ -1011,6 +1025,7 @@ namespace libtorrent
 			// skipped blocks.
 			m_download_queue.erase(m_download_queue.begin()
 				, boost::next(b));
+			send_block_requests();
 		}
 		else
 		{
@@ -1480,7 +1495,7 @@ namespace libtorrent
 		assert(it != m_download_queue.end());
 
 		m_download_queue.erase(it);
-
+		send_block_requests();
 
 		int block_offset = block.block_index * m_torrent->block_size();
 		int block_size
@@ -1515,6 +1530,76 @@ namespace libtorrent
 		send_buffer_updated();
 	}
 
+	void peer_connection::send_block_requests()
+	{
+		// TODO: calculate the desired request queue each tick instead.
+		// TODO: make this constant user-settable
+		const int queue_time = 3; // seconds
+		// (if the latency is more than this, the download will stall)
+		// so, the queue size is 5 * down_rate / 16 kiB (16 kB is the size of each request)
+		// the minimum request size is 2 and the maximum is 48
+		// the block size doesn't have to be 16. So we first query the torrent for it
+		const int block_size = m_torrent->block_size();
+		assert(block_size > 0);
+		
+		int desired_queue_size = static_cast<int>(queue_time
+			* statistics().download_rate() / block_size);
+		if (desired_queue_size > max_request_queue) desired_queue_size = max_request_queue;
+		if (desired_queue_size < min_request_queue) desired_queue_size = min_request_queue;
+
+		if ((int)m_download_queue.size() >= desired_queue_size) return;
+
+		while (!m_request_queue.empty()
+			&& (int)m_download_queue.size() < desired_queue_size)
+		{
+			piece_block block = m_request_queue.front();
+			m_request_queue.pop_front();
+			m_download_queue.push_back(block);
+
+			int block_offset = block.block_index * m_torrent->block_size();
+			int block_size
+				= std::min((int)m_torrent->torrent_file().piece_size(block.piece_index)-block_offset,
+						m_torrent->block_size());
+			assert(block_size > 0);
+			assert(block_size <= m_torrent->block_size());
+
+			char buf[] = {0,0,0,13, msg_request};
+
+			buffer::interval i = m_send_buffer.allocate(17);
+
+			std::copy(buf, buf + 5, i.begin);
+			i.begin += 5;
+
+			// index
+			detail::write_int32(block.piece_index, i.begin);
+			// begin
+			detail::write_int32(block_offset, i.begin);
+			// length
+			detail::write_int32(block_size, i.begin);
+
+			assert(i.begin == i.end);
+			using namespace boost::posix_time;
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << to_simple_string(second_clock::universal_time())
+				<< " ==> REQUEST [ "
+				"piece: " << block.piece_index << " | "
+			"b: " << block.block_index << " | "
+			"s: " << block_offset << " | "
+			"l: " << block_size << " ]\n";
+
+		peer_request r;
+		r.piece = block.piece_index;
+		r.start = block_offset;
+		r.length = block_size;
+		assert(verify_piece(r));
+#endif
+		}
+		m_last_piece = second_clock::universal_time();
+		send_buffer_updated();
+
+	}
+	
 	void peer_connection::send_request(piece_block block)
 	{
 		INVARIANT_CHECK;
@@ -1527,50 +1612,8 @@ namespace libtorrent
 		assert(!m_torrent->picker().is_downloading(block));
 
 		m_torrent->picker().mark_as_downloading(block, m_socket->sender());
-
-		m_download_queue.push_back(block);
-
-		int block_offset = block.block_index * m_torrent->block_size();
-		int block_size
-			= std::min((int)m_torrent->torrent_file().piece_size(block.piece_index)-block_offset,
-			m_torrent->block_size());
-		assert(block_size > 0);
-		assert(block_size <= m_torrent->block_size());
-
-		char buf[] = {0,0,0,13, msg_request};
-
-		buffer::interval i = m_send_buffer.allocate(17);
-
-		std::copy(buf, buf + 5, i.begin);
-		i.begin += 5;
-
-		// index
-		detail::write_int32(block.piece_index, i.begin);
-		// begin
-		detail::write_int32(block_offset, i.begin);
-		// length
-		detail::write_int32(block_size, i.begin);
-
-		assert(i.begin == i.end);
-		using namespace boost::posix_time;
-
-#ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << to_simple_string(second_clock::universal_time())
-			<< " ==> REQUEST [ "
-			"piece: " << block.piece_index << " | "
-			"b: " << block.block_index << " | "
-			"s: " << block_offset << " | "
-			"l: " << block_size << " ]\n";
-
-		peer_request r;
-		r.piece = block.piece_index;
-		r.start = block_offset;
-		r.length = block_size;
-		assert(verify_piece(r));
-#endif
-
-		m_last_piece = second_clock::universal_time();
-		send_buffer_updated();
+		m_request_queue.push_back(block);
+		send_block_requests();
 	}
 
 	void peer_connection::send_metadata(std::pair<int, int> req)
@@ -1884,8 +1927,9 @@ namespace libtorrent
 
 		ptime now(second_clock::universal_time());
 		
+		// TODO: the timeout should be user-settable
 		if (!m_download_queue.empty()
-			&& now - m_last_piece > seconds(30))
+			&& now - m_last_piece > seconds(15))
 		{
 			// this peer isn't sending the pieces we've
 			// requested (this has been observed by BitComet)
@@ -1904,7 +1948,16 @@ namespace libtorrent
 				// be requested from other peers
 				picker.abort_download(*i);
 			}
+			for (std::deque<piece_block>::const_iterator i = m_request_queue.begin()
+				, end(m_request_queue.end()); i != end; ++i)
+			{
+				// since this piece was skipped, clear it and allow it to
+				// be requested from other peers
+				picker.abort_download(*i);
+			}
+
 			m_download_queue.clear();
+			m_request_queue.clear();
 
 			// this will trigger new picking of pieces
 			m_torrent->get_policy().unchoked(*this);

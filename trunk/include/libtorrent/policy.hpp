@@ -59,6 +59,18 @@ namespace libtorrent
 	class address;
 	class peer_connection;
 
+	enum
+	{
+		// the limits of the download queue size
+		max_request_queue = 48,
+		min_request_queue = 2,
+
+		// the amount of free upload allowed before
+		// the peer is choked
+		free_upload_amount = 4 * 16 * 1024
+	};
+
+
 	class policy
 	{
 	public:
