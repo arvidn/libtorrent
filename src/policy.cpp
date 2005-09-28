@@ -1060,8 +1060,8 @@ namespace libtorrent
 		// can't pay for their downloads anyway.
 		if (c.is_choked()
 			&& m_num_unchoked < m_torrent->m_uploads_quota.given
-			&& (m_torrent->ratio() == 0)
-				|| (c.share_diff() >= -free_upload_amount
+			&& (m_torrent->ratio() == 0
+				|| c.share_diff() >= -free_upload_amount
 				|| m_torrent->is_seed()))
 		{
 			c.send_unchoke();
