@@ -305,7 +305,7 @@ namespace libtorrent
 		try
 		{
 			m_creation_date = ptime(date(1970, Jan, 1))
-				+ seconds(torrent_file["creation date"].integer());
+				+ seconds(long(torrent_file["creation date"].integer()));
 		}
 		catch (type_error) {}
 
