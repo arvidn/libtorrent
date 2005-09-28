@@ -43,7 +43,10 @@ int test_main()
 
 	int num_pieces = (613 + 17 + piece_size - 1) / piece_size;
 	TEST_CHECK(info.num_pieces() == num_pieces);
-	
+
+	char piece[piece_size];
+
+	{ // avoid having two storages use the same files	
 	storage s(info, initial_path());
 
 	// write piece 1 (in slot 0)
@@ -51,7 +54,6 @@ int test_main()
 	s.write(piece1 + half, 0, half, half);
 
 	// verify piece 1
-	char piece[piece_size];
 	s.read(piece, 0, 0, piece_size);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece1));
 	
@@ -69,6 +71,7 @@ int test_main()
 	// make sure the files have the correct size
 	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test1.tmp") == 17);
 	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test2.tmp") == 31);
+	}
 
 	// make sure the piece_manager can identify the pieces
 	piece_manager pm(info, initial_path());

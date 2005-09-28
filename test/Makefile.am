@@ -13,6 +13,9 @@ test_ip_filter_LDADD = $(top_builddir)/src/libtorrent.la
 test_piece_picker_SOURCES = main.cpp test_piece_picker.cpp
 test_piece_picker_LDADD = $(top_builddir)/src/libtorrent.la
 
+test_storage_SOURCES = main.cpp test_storage.cpp
+test_storage_LDADD = $(top_builddir)/src/libtorrent.la
+
 noinst_HEADERS = test.hpp
 
 AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@ @PTHREAD_CFLAGS@

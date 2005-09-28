@@ -1,7 +1,7 @@
 lib_LTLIBRARIES = libtorrent.la
 
 libtorrent_la_SOURCES = allocate_resources.cpp async_gethostbyname.cpp \
-entry.cpp escape_string.cpp \
+buffer.cpp entry.cpp escape_string.cpp \
 peer_connection.cpp piece_picker.cpp policy.cpp \
 session.cpp sha1.cpp socket.cpp stat.cpp \
 storage.cpp torrent.cpp torrent_handle.cpp \
@@ -15,6 +15,7 @@ $(top_srcdir)/include/libtorrent/alert_types.hpp \
 $(top_srcdir)/include/libtorrent/allocate_resources.hpp \
 $(top_srcdir)/include/libtorrent/async_gethostbyname.hpp \
 $(top_srcdir)/include/libtorrent/bencode.hpp \
+$(top_srcdir)/include/libtorrent/buffer.hpp \
 $(top_srcdir)/include/libtorrent/debug.hpp \
 $(top_srcdir)/include/libtorrent/entry.hpp \
 $(top_srcdir)/include/libtorrent/escape_string.hpp \
