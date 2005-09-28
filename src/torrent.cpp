@@ -821,8 +821,7 @@ namespace libtorrent
 		// if the peer_connection was downloading any pieces
 		// abort them
 		for (std::deque<piece_block>::const_iterator i = p->download_queue().begin();
-			i != p->download_queue().end();
-			++i)
+			i != p->download_queue().end(); ++i)
 		{
 			m_picker->abort_download(*i);
 		}
@@ -833,8 +832,7 @@ namespace libtorrent
 			const std::vector<bool>& pieces = p->get_bitfield();
 
 			for (std::vector<bool>::const_iterator i = pieces.begin();
-				i != pieces.end();
-				++i)
+				i != pieces.end(); ++i)
 			{
 				if (*i) piece_list.push_back(static_cast<int>(i - pieces.begin()));
 			}
@@ -842,8 +840,7 @@ namespace libtorrent
 			std::random_shuffle(piece_list.begin(), piece_list.end());
 
 			for (std::vector<int>::iterator i = piece_list.begin();
-				i != piece_list.end();
-				++i)
+				i != piece_list.end(); ++i)
 			{
 				peer_lost(*i);
 			}
