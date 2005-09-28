@@ -843,8 +843,21 @@ namespace libtorrent
 	void policy::new_connection(peer_connection& c)
 	{
 		assert(!c.is_local());
+/*
+#ifndef NDEBUG
+		// avoid the invariant check to fail
+		peer p(address("0.0.0.0", 0), peer::not_connectable);
+		p.connection = &c;
+		m_peers.push_back(p);
+#endif
+*/
 		INVARIANT_CHECK;
-
+/*
+#ifndef NDEBUG
+		// avoid the invariant check to fail
+		m_peers.erase(m_peers.end() - 1);
+#endif
+*/
 		// if the connection comes from the tracker,
 		// it's probably just a NAT-check. Ignore the
 		// num connections constraint then.
@@ -1177,6 +1190,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		assert(c.is_disconnecting());
 		bool unchoked = false;
 
 		std::vector<peer>::iterator i = std::find_if(
@@ -1219,7 +1233,8 @@ namespace libtorrent
 			// then unchoke another peer in order to maintain
 			// the total number of unchoked peers
 			--m_num_unchoked;
-			unchoke_one_peer();
+			if (m_torrent->is_seed()) seed_unchoke_one_peer();
+			else unchoke_one_peer();
 		}
 	}
 
@@ -1251,15 +1266,28 @@ namespace libtorrent
 			i != m_peers.end(); ++i)
 		{
 			if (!i->connection) continue;
-			++connected_peers;
+			if (!i->connection->is_disconnecting())
+				++connected_peers;
 			if (!i->connection->is_choked()) ++actual_unchoked;
 		}
 //		assert(actual_unchoked <= m_torrent->m_uploads_quota.given);
 		assert(actual_unchoked == m_num_unchoked);
 
-		int num_torrent_peers = (int)m_torrent->num_peers();
+		int num_torrent_peers = 0;
+		for (torrent::const_peer_iterator i = m_torrent->begin();
+			i != m_torrent->end(); ++i)
+		{
+			if (i->second->is_disconnecting()) continue;
+			++num_torrent_peers;
+		}
 
-		assert(connected_peers == num_torrent_peers);
+		// the second case is for when new connections
+		// are attached to the torrent, they are first
+		// added to the policy and then to the torrent.
+		// so in the destructor of new_connection this
+		// case will be used.
+		assert(connected_peers == num_torrent_peers
+			|| connected_peers - 1 == num_torrent_peers);
 		
 		// TODO: Make sure the number of peers in m_torrent is equal
 		// to the number of connected peers in m_peers.

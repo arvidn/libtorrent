@@ -650,6 +650,12 @@ namespace libtorrent
 		if (!prefer_whole_pieces) return;
 		assert(num_blocks > 0);
 
+#ifdef TORRENT_VERBOSE_LOGGING
+		std::ofstream f("piece_picker.log", std::ios_base::app);
+		f << "backup_blocks: " << backup_blocks.size() << "\n"
+			<< "used: " << std::min(num_blocks, (int)backup_blocks.size()) << "\n----\n";
+#endif
+		
 		interesting_blocks.insert(interesting_blocks.end()
 			, backup_blocks.begin(), backup_blocks.begin()
 			+ std::min(num_blocks, (int)backup_blocks.size()));

@@ -825,6 +825,11 @@ namespace libtorrent
 		{
 			m_picker->abort_download(*i);
 		}
+		for (std::deque<piece_block>::const_iterator i = p->request_queue().begin();
+			i != p->request_queue().end(); ++i)
+		{
+			m_picker->abort_download(*i);
+		}
 
 		if (valid_metadata())
 		{
@@ -883,13 +888,13 @@ namespace libtorrent
 		assert(m_connections.find(p->get_socket()->sender()) == m_connections.end());
 		assert(!p->is_local());
 
-		m_connections.insert(std::make_pair(p->get_socket()->sender(), p));
-
 		detail::session_impl::connection_map::iterator i
 			= m_ses.m_connections.find(p->get_socket());
 		assert(i != m_ses.m_connections.end());
 
 		m_policy->new_connection(*i->second);
+
+		m_connections.insert(std::make_pair(p->get_socket()->sender(), p));
 	}
 
 	void torrent::disconnect_all()

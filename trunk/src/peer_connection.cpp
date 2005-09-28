@@ -203,7 +203,7 @@ namespace libtorrent
 		, m_selector(sel)
 		, m_socket(s)
 		, m_torrent(0)
-		, m_attached_to_torrent(0)
+		, m_attached_to_torrent(false)
 		, m_ses(ses)
 		, m_active(false)
 		, m_writability_monitored(false)
@@ -360,7 +360,7 @@ namespace libtorrent
 				<< " *** CONNECTION CLOSED\n";
 		}
 #endif
-
+		m_disconnecting = true;
 		m_selector.remove(m_socket);
 		if (m_attached_to_torrent)
 		{
@@ -2319,8 +2319,8 @@ namespace libtorrent
 					{
 						// check to make sure we don't have another connection with the same
 						// info_hash and peer_id. If we do. close this connection.
-						m_attached_to_torrent = true;
 						m_torrent->attach_peer(this);
+						m_attached_to_torrent = true;
 						assert(m_torrent->get_policy().has_connection(this));
 					}
 
