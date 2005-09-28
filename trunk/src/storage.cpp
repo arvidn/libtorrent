@@ -194,7 +194,7 @@ namespace
 		log << s;
 		log.flush();
 	}
-
+/*
 	struct file_key
 	{
 		file_key(sha1_hash ih, path f): info_hash(ih), file_path(f) {}
@@ -208,14 +208,15 @@ namespace
 			return file_path < fk.file_path;
 		}
 	};
-	
+*/	
 	struct file_entry
 	{
 		file_entry(boost::shared_ptr<file> const& f)
 			: file_ptr(f)
 			, last_use(pt::second_clock::universal_time()) {}
 		mutable boost::shared_ptr<file> file_ptr;
-		file_key key;
+		path file_path;
+		void* key;
 		pt::ptime last_use;
 		file::open_mode mode;
 	};
@@ -224,16 +225,23 @@ namespace
 	{
 		file_pool(int size): m_size(size) {}
 
-		boost::shared_ptr<file> open_file(sha1_hash const& info_hash, path const& p, file::open_mode m)
+		boost::shared_ptr<file> open_file(void* st, path const& p, file::open_mode m)
 		{
+			assert(st != 0);
 			assert(p.is_complete());
 			typedef file_set::nth_index<0>::type path_view;
 			path_view& pt = m_files.get<0>();
-			path_view::iterator i = pt.find(file_key(info_hash, p));
+			path_view::iterator i = pt.find(p);
 			if (i != pt.end())
 			{
 				file_entry e = *i;
 				e.last_use = pt::second_clock::universal_time();
+
+				// if you hit this assert, you probably have more than one
+				// storage/torrent using the same file at the same time!
+				assert(e.key == st);
+
+				e.key = st;
 				if ((e.mode & m) != m)
 				{
 					// close the file before we open it with
@@ -265,24 +273,23 @@ namespace
 			}
 			file_entry e(boost::shared_ptr<file>(new file(p, m)));
 			e.mode = m;
-			e.key.info_hash = info_hash;
-			e.key.file_path = p;
+			e.key = st;
+			e.file_path = p;
 			pt.insert(e);
 			return e.file_ptr;
 		}
 
-		void release(sha1_hash const& info_hash)
+		void release(void* st)
 		{
-			using namespace boost::lambda;
-			using boost::lambda::_1;
+			assert(st != 0);
+			using boost::tie;
 
-			typedef file_set::nth_index<0>::type path_view;
-			path_view& pt = m_files.get<0>();
-			file_key lower_key(info_hash, path());
-			file_key upper_key(info_hash, path());
-			upper_key.info_hash[19] += 1;
-			std::pair<path_view::iterator, path_view::iterator> r
-				= pt.range(!(_1 < lower_key), _1 < upper_key);
+			typedef file_set::nth_index<2>::type key_view;
+			key_view& kt = m_files.get<2>();
+
+			key_view::iterator start, end;
+			tie(start, end) = kt.equal_range(st);
+
 /*
 			std::cerr << "releasing files!\n";
 			for (path_view::iterator i = r.first; i != r.second; ++i)
@@ -290,7 +297,7 @@ namespace
 				std::cerr << i->key.file_path.native_file_string() << "\n";
 			}
 */
-			pt.erase(r.first, r.second);
+			kt.erase(start, end);
 /*
 			std::cerr << "files left: " << pt.size() << "\n";
 			for (path_view::iterator i = pt.begin(); i != pt.end(); ++i)
@@ -305,9 +312,12 @@ namespace
 
 		typedef boost::multi_index_container<
 			file_entry, indexed_by<
-				ordered_unique<member<file_entry, file_key, &file_entry::key> >
+				ordered_unique<member<file_entry, path
+					, &file_entry::file_path> >
 				, ordered_non_unique<member<file_entry, pt::ptime
 					, &file_entry::last_use> >
+				, ordered_non_unique<member<file_entry, void*
+					, &file_entry::key> >
 				> 
 			> file_set;
 		
@@ -430,7 +440,7 @@ namespace libtorrent
 		int slot;
 	};
 
-	class storage::impl : public thread_safe_storage
+	class storage::impl : public thread_safe_storage, boost::noncopyable
 	{
 	public:
 		impl(torrent_info const& info, path const& path)
@@ -449,7 +459,7 @@ namespace libtorrent
 
 		~impl()
 		{
-			files.release(info.info_hash());
+			files.release(this);
 		}
 
 		torrent_info const& info;
@@ -467,7 +477,7 @@ namespace libtorrent
 
 	void storage::release_files()
 	{
-		m_pimpl->files.release(m_pimpl->info.info_hash());
+		m_pimpl->files.release(m_pimpl.get());
 	}
 
 	void storage::swap(storage& other)
@@ -500,7 +510,7 @@ namespace libtorrent
 			return false;
 #endif
 
-		m_pimpl->files.release(m_pimpl->info.info_hash());
+		m_pimpl->files.release(m_pimpl.get());
 
 		if (m_pimpl->info.num_files() == 1)
 		{
@@ -601,7 +611,7 @@ namespace libtorrent
 		}
 
 		boost::shared_ptr<file> in(m_pimpl->files.open_file(
-			m_pimpl->info.info_hash()
+			m_pimpl.get()
 			, m_pimpl->save_path / file_iter->path
 			, file::in));
 
@@ -656,7 +666,7 @@ namespace libtorrent
 
 				file_offset = 0;
 				in = m_pimpl->files.open_file(
-					m_pimpl->info.info_hash()
+					m_pimpl.get()
 					, path, file::in);
 				in->seek(0);
 			}
@@ -698,7 +708,7 @@ namespace libtorrent
 
 		path p(m_pimpl->save_path / file_iter->path);
 		boost::shared_ptr<file> out = m_pimpl->files.open_file(
-			m_pimpl->info.info_hash()
+			m_pimpl.get()
 			, p, file::out | file::in);
 
 		assert(file_offset < file_iter->size);
@@ -757,7 +767,7 @@ namespace libtorrent
  				path p = m_pimpl->save_path / file_iter->path;
 				file_offset = 0;
 				out = m_pimpl->files.open_file(
-					m_pimpl->info.info_hash()
+					m_pimpl.get()
 					, p, file::out | file::in);
 
 				out->seek(0);

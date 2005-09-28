@@ -3,6 +3,7 @@ libtorrent/alert_types.hpp \
 libtorrent/allocate_resources.hpp \
 libtorrent/async_gethostbyname.hpp \
 libtorrent/bencode.hpp \
+libtorrent/buffer.hpp \
 libtorrent/debug.hpp \
 libtorrent/entry.hpp \
 libtorrent/escape_string.hpp \
