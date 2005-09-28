@@ -1246,14 +1246,23 @@ namespace libtorrent
 	{
 		if (m_torrent->is_aborted()) return;
 		int actual_unchoked = 0;
+		int connected_peers = 0;
 		for (std::vector<peer>::const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
 			if (!i->connection) continue;
-			if (!i->connection->is_choked()) actual_unchoked++;
+			++connected_peers;
+			if (!i->connection->is_choked()) ++actual_unchoked;
 		}
 //		assert(actual_unchoked <= m_torrent->m_uploads_quota.given);
 		assert(actual_unchoked == m_num_unchoked);
+
+		int num_torrent_peers = (int)m_torrent->num_peers();
+
+		assert(connected_peers == num_torrent_peers);
+		
+		// TODO: Make sure the number of peers in m_torrent is equal
+		// to the number of connected peers in m_peers.
 	}
 #endif
 
