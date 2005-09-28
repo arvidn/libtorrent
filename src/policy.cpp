@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/bind.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -55,6 +56,7 @@ namespace libtorrent
 }
 
 using namespace boost::posix_time;
+using boost::bind;
 
 namespace
 {
@@ -1048,6 +1050,10 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		assert(std::find_if(m_peers.begin(), m_peers.end()
+			, bind(std::equal_to<peer_connection*>(), bind(&peer::connection, _1)
+				, &c)) != m_peers.end());
+		
 		// if the peer is choked and we have upload slots left,
 		// then unchoke it. Another condition that has to be met
 		// is that the torrent doesn't keep track of the individual
