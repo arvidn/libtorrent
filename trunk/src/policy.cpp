@@ -824,6 +824,8 @@ namespace libtorrent
 
 	void policy::ban_peer(const peer_connection& c)
 	{
+		INVARIANT_CHECK;
+
 		std::vector<peer>::iterator i = std::find_if(
 			m_peers.begin()
 			, m_peers.end()
@@ -839,6 +841,7 @@ namespace libtorrent
 	void policy::new_connection(peer_connection& c)
 	{
 		assert(!c.is_local());
+		INVARIANT_CHECK;
 
 		// if the connection comes from the tracker,
 		// it's probably just a NAT-check. Ignore the
@@ -895,6 +898,8 @@ namespace libtorrent
 
 	void policy::peer_from_tracker(const address& remote, const peer_id& id)
 	{
+		INVARIANT_CHECK;
+
 		// just ignore the obviously invalid entries from the tracker
 		if(remote.ip() == 0 || remote.port == 0)
 			return;
@@ -980,6 +985,8 @@ namespace libtorrent
 
 	void policy::piece_finished(int index, bool successfully_verified)
 	{
+		INVARIANT_CHECK;
+
 		assert(index >= 0 && index < m_torrent->torrent_file().num_pieces());
 
 		if (successfully_verified)
@@ -1017,6 +1024,8 @@ namespace libtorrent
 	// this peer has.
 	void policy::block_finished(peer_connection& c, piece_block)
 	{
+		INVARIANT_CHECK;
+
 		// if the peer hasn't choked us, ask for another piece
 		if (!c.has_peer_choked())
 			request_a_block(*m_torrent, c);
@@ -1027,6 +1036,7 @@ namespace libtorrent
 	// data from now on
 	void policy::unchoked(peer_connection& c)
 	{
+		INVARIANT_CHECK;
 		if (c.is_interesting())
 		{
 			request_a_block(*m_torrent, c);
@@ -1036,6 +1046,8 @@ namespace libtorrent
 	// called when a peer is interested in us
 	void policy::interested(peer_connection& c)
 	{
+		INVARIANT_CHECK;
+
 		// if the peer is choked and we have upload slots left,
 		// then unchoke it. Another condition that has to be met
 		// is that the torrent doesn't keep track of the individual
@@ -1060,6 +1072,8 @@ namespace libtorrent
 	// called when a peer is no longer interested in us
 	void policy::not_interested(peer_connection& c)
 	{
+		INVARIANT_CHECK;
+
 		if (m_torrent->ratio() != 0.f)
 		{
 			assert(c.share_diff() < std::numeric_limits<size_type>::max());
@@ -1155,6 +1169,8 @@ namespace libtorrent
 	// this is called whenever a peer connection is closed
 	void policy::connection_closed(const peer_connection& c)
 	{
+		INVARIANT_CHECK;
+
 		bool unchoked = false;
 
 		std::vector<peer>::iterator i = std::find_if(
@@ -1203,6 +1219,8 @@ namespace libtorrent
 
 	void policy::peer_is_interesting(peer_connection& c)
 	{
+		INVARIANT_CHECK;
+
 		c.send_interested();
 		if (c.has_peer_choked()) return;
 		request_a_block(*m_torrent, c);
