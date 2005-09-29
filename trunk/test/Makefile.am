@@ -1,4 +1,4 @@
-bin_PROGRAMS = test_hasher test_bencoding test_ip_filter test_piece_picker
+bin_PROGRAMS = test_hasher test_bencoding test_ip_filter test_piece_picker test_storage
 EXTRA_DIST = Jamfile
 
 test_hasher_SOURCES = main.cpp test_hasher.cpp
