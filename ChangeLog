@@ -1,4 +1,14 @@
 
+	* changed the way libtorrent identifies support for its excentions
+	  to look for 'ext' at the end of the peer-id.
+	* improved performance by adding a circle buffer for the send buffer
+	* fixed bugs in the http tracker connection when using an http proxy.
+	* fixed problem with storage's file pool when creating torrents and then
+	  starting to seed them.
+	* hard limit on remote request queue and timeout on requests (a timeout
+	  triggers rerequests). This makes libtorrent work much better with
+	  "broken" clients like BitComet which may ignore requests.
+
 Initial release 0.9
 
 	* multitracker support
