@@ -365,6 +365,7 @@ namespace libtorrent
 
 			if (c == 0) continue;
 			if (c->is_choked()) continue;
+			if (c->is_disconnecting()) continue;
 #ifndef NDEBUG
 			unchoked_counter--;
 #endif
@@ -527,6 +528,7 @@ namespace libtorrent
 			if (c == 0) continue;
 
 			if (c->is_choked()) continue;
+			if (c->is_disconnecting()) continue;
 
 			size_type share_diff = c->share_diff();
 
