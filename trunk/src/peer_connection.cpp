@@ -1492,9 +1492,18 @@ namespace libtorrent
 
 		std::deque<piece_block>::iterator it
 			= std::find(m_download_queue.begin(), m_download_queue.end(), block);
-		assert(it != m_download_queue.end());
+		if (it == m_download_queue.end())
+		{
+			it = std::find(m_request_queue.begin(), m_request_queue.end(), block);
+			assert(it != m_request_queue.end());
+			if (it == m_request_queue.end()) return;
+			m_request_queue.erase(it);
+		}
+		else
+		{	
+			m_download_queue.erase(it);
+		}
 
-		m_download_queue.erase(it);
 		send_block_requests();
 
 		int block_offset = block.block_index * m_torrent->block_size();
