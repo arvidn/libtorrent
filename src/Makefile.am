@@ -1,7 +1,7 @@
 lib_LTLIBRARIES = libtorrent.la
 
 libtorrent_la_SOURCES = allocate_resources.cpp async_gethostbyname.cpp \
-buffer.cpp entry.cpp escape_string.cpp \
+entry.cpp escape_string.cpp \
 peer_connection.cpp piece_picker.cpp policy.cpp \
 session.cpp sha1.cpp socket.cpp stat.cpp \
 storage.cpp torrent.cpp torrent_handle.cpp \
