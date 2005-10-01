@@ -367,6 +367,17 @@ namespace libtorrent
 			assert(m_torrent != 0);
 			m_torrent->remove_peer(this);
 		}
+#ifndef NDEBUG
+		else
+		{
+			if (m_torrent)
+			{
+				torrent::peer_iterator i = m_torrent->m_connections.find(
+					get_socket()->sender());
+				assert(i != m_torrent->m_connections.end());
+			}
+		}
+#endif
 	}
 
 	void peer_connection::announce_piece(int index)
