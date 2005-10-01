@@ -860,10 +860,7 @@ namespace libtorrent
 		boost::shared_ptr<socket> s(new socket(socket::tcp, false));
 		s->connect(a, m_net_interface);
 		boost::shared_ptr<peer_connection> c(new peer_connection(
-			m_ses
-			, m_ses.m_selector
-			, this
-			, s));
+			m_ses, m_ses.m_selector, this, s));
 
 		detail::session_impl::connection_map::iterator p =
 			m_ses.m_connections.insert(std::make_pair(s, c)).first;
