@@ -853,6 +853,9 @@ namespace libtorrent
 
 		m_policy->connection_closed(*p);
 		m_connections.erase(i);
+#ifndef NDEBUG
+		m_policy->check_invariant();
+#endif
 	}
 
 	peer_connection& torrent::connect_to_peer(const address& a)
@@ -868,11 +871,19 @@ namespace libtorrent
 		// add the newly connected peer to this torrent's peer list
 		assert(m_connections.find(p->second->get_socket()->sender())
 			== m_connections.end());
-		
+
+#ifndef NDEBUG
+		m_policy->check_invariant();
+#endif
+	
 		m_connections.insert(
 			std::make_pair(
 				p->second->get_socket()->sender()
 				, boost::get_pointer(p->second)));
+
+#ifndef NDEBUG
+		m_policy->check_invariant();
+#endif
 
 		m_ses.m_selector.monitor_readability(s);
 		m_ses.m_selector.monitor_errors(s);
@@ -889,9 +900,13 @@ namespace libtorrent
 			= m_ses.m_connections.find(p->get_socket());
 		assert(i != m_ses.m_connections.end());
 
-		m_policy->new_connection(*i->second);
+#ifndef NDEBUG
+		m_policy->check_invariant();
+#endif
 
 		m_connections.insert(std::make_pair(p->get_socket()->sender(), p));
+
+		m_policy->new_connection(*i->second);
 	}
 
 	void torrent::disconnect_all()

@@ -1289,7 +1289,7 @@ namespace libtorrent
 		// so in the destructor of new_connection this
 		// case will be used.
 		assert(connected_peers == num_torrent_peers
-			|| connected_peers - 1 == num_torrent_peers);
+			|| connected_peers == num_torrent_peers - 1);
 		
 		// TODO: Make sure the number of peers in m_torrent is equal
 		// to the number of connected peers in m_peers.
