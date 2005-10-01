@@ -900,13 +900,20 @@ namespace libtorrent
 			= m_ses.m_connections.find(p->get_socket());
 		assert(i != m_ses.m_connections.end());
 
+		// it's important that we call new_connection before
+		// the connection is added to the torrent's list.
+		// because if this fails, it will throw, and if this throws
+		// m_attatched_to_torrent won't be set in the peer_connections
+		// and the destructor won't remove the entry from the torrent's
+		// connection list.
+		m_policy->new_connection(*i->second);
+
+		m_connections.insert(std::make_pair(p->get_socket()->sender(), p));
+
 #ifndef NDEBUG
 		m_policy->check_invariant();
 #endif
 
-		m_connections.insert(std::make_pair(p->get_socket()->sender(), p));
-
-		m_policy->new_connection(*i->second);
 	}
 
 	void torrent::disconnect_all()

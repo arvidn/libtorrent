@@ -1283,13 +1283,19 @@ namespace libtorrent
 			++num_torrent_peers;
 		}
 
-		// the second case is for when new connections
-		// are attached to the torrent, they are first
-		// added to the policy and then to the torrent.
-		// so in the destructor of new_connection this
-		// case will be used.
+		// this invariant is a bit complicated.
+		// the usual case should be that connected_peers
+		// == num_torrent_peers. But when there's an incoming
+		// connection, it will first be added to the policy
+		// and then be added to the torrent.
+		// When there's an outgoing connection, it will first
+		// be added to the torrent and then to the policy.
+		// that's why the two second cases are in there.
 		assert(connected_peers == num_torrent_peers
-			|| connected_peers == num_torrent_peers - 1);
+			|| (connected_peers == num_torrent_peers + 1
+				&& connected_peers > 0)
+			|| (connected_peers + 1 == num_torrent_peers
+				&& num_torrent_peers > 0));
 		
 		// TODO: Make sure the number of peers in m_torrent is equal
 		// to the number of connected peers in m_peers.

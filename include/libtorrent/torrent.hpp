@@ -437,7 +437,13 @@ namespace libtorrent
 		int m_complete;
 		int m_incomplete;
 		
+#ifndef NDEBUG
+	public:
+#endif
 		std::map<address, peer_connection*> m_connections;
+#ifndef NDEBUG
+	private:
+#endif
 
 		// this is the upload and download statistics for the whole torrent.
 		// it's updated from all its peers once every second.
