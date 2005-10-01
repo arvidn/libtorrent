@@ -374,7 +374,7 @@ namespace libtorrent
 			{
 				torrent::peer_iterator i = m_torrent->m_connections.find(
 					get_socket()->sender());
-				assert(i != m_torrent->m_connections.end());
+				assert(i == m_torrent->m_connections.end());
 			}
 		}
 #endif
