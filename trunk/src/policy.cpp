@@ -365,10 +365,10 @@ namespace libtorrent
 
 			if (c == 0) continue;
 			if (c->is_choked()) continue;
-			if (c->is_disconnecting()) continue;
 #ifndef NDEBUG
 			unchoked_counter--;
 #endif
+			if (c->is_disconnecting()) continue;
 			// if the peer isn't interested, just choke it
 			if (!c->is_peer_interested())
 				return &(*i);
