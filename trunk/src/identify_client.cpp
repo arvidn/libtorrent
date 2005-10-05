@@ -153,6 +153,7 @@ namespace
 		, map_entry("BS", "BTSlave")
 		, map_entry("BX", "BittorrentX")
 		, map_entry("CT", "CTorrent")
+		, map_entry("KT", "KTorrent")
 		, map_entry("LT", "libtorrent")
 		, map_entry("M",  "Mainline")
 		, map_entry("MP", "MooPolice")
@@ -162,10 +163,12 @@ namespace
 		, map_entry("SB", "Swiftbit")
 		, map_entry("SN", "ShareNet")
 		, map_entry("SS", "SwarmScope")
+		, map_entry("SZ", "Shareaza")
 		, map_entry("T",  "BitTornado")
 		, map_entry("TN", "Torrent.NET")
 		, map_entry("TS", "TorrentStorm")
 		, map_entry("U",  "UPnP")
+		, map_entry("UT", "MicroTorrent")
 		, map_entry("XT", "XanTorrent")
 		, map_entry("ZT", "ZipTorrent")
 		, map_entry("lt", "libTorrent (libtorrent.rakshasa.no/)")
@@ -250,8 +253,8 @@ namespace libtorrent
 		if (find_string(PID, "-Qt-")) return "Qt";
 		if (find_string(PID, "exbc")) return "BitComet";
 		if (find_string(PID, "-G3")) return "G3 Torrent";
-		if (find_string(PID, "OP")) return "Opera";
 		if (find_string(PID, "XBT")) return "XBT";
+		if (find_string(PID, "OP")) return "Opera";
 
 		if (find_string(PID, "-BOW") && PID[7] == '-')
 			return "Bits on Wheels " + std::string(PID + 4, PID + 7);
