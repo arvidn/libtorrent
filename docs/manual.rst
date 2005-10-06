@@ -289,6 +289,25 @@ Another possible source of problems may be if the path to your libtorrent
 directory contains spaces. Make sure you either rename the directories with
 spaces in their names to remove the spaces or move the libtorrent directory.
 
+Creating a debug build
+~~~~~~~~~~~~~~~~~~~~~~
+
+To tell configure to build a debug version (with debug info, asserts
+and invariant checks enabled), you have to run the configure script
+with the following option::
+
+  ./configure --enable-debug=yes
+
+Creating a release build
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+To tell the configure to build a release version (without debug info,
+asserts and invariant checks), you have to run the configure script
+with the following option::
+
+  ./configure --enable-debug=no
+
+The above option make use of -DNDEBUG, which is used throughout libtorrent.
 
 Step 2: Building libtorrent
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -296,16 +315,8 @@ Step 2: Building libtorrent
 Once the configure script is run successfully, you just type ``make`` and
 libtorrent, the examples and the tests will be built.
 
-When libtorrent is built it may be a good idea to run the test, you do this
+When libtorrent is built it may be a good idea to run the tests, you do this
 my running ``make check``.
-
-If you want to build a release version (without debug info, asserts and
-invariant checks), you have to rerun the configure script and rebuild, like this::
-
-  ./configure --disable-debug
-  make clean
-  make
-
 
 Building with other build systems
 ---------------------------------
