@@ -92,13 +92,10 @@ namespace libtorrent
 
 	entry& entry::operator[](char const* key)
 	{
-		dictionary_type::iterator i = std::find_if(
-			dict().begin()
-			, dict().end()
-			, compare_string(key));
+		dictionary_type::iterator i = dict().find(key);
 		if (i != dict().end()) return i->second;
 		dictionary_type::iterator ret = dict().insert(
-			dict().end()
+			dict().begin()
 			, std::make_pair(std::string(key), entry()));
 		return ret->second;
 	}
@@ -122,23 +119,16 @@ namespace libtorrent
 
 	entry const* entry::find_key(char const* key) const
 	{
-		dictionary_type::const_iterator i = std::find_if(
-			dict().begin()
-			, dict().end()
-			, compare_string(key));
+		dictionary_type::const_iterator i = dict().find(key);
 		if (i == dict().end()) return 0;
 		return &i->second;
-	
 	}
-	
 	
 	const entry& entry::operator[](char const* key) const
 	{
-		dictionary_type::const_iterator i = std::find_if(
-			dict().begin()
-			, dict().end()
-			, compare_string(key));
-		if (i == dict().end()) throw type_error("key not found");
+		dictionary_type::const_iterator i = dict().find(key);
+		if (i == dict().end()) throw type_error(
+			(std::string("key not found: ") + key).c_str());
 		return i->second;
 	}
 
@@ -346,3 +336,4 @@ namespace libtorrent
 		}
 	}
 }
+
