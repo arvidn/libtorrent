@@ -201,12 +201,17 @@ namespace
 		if (i < name_map + size && std::equal(f.id, f.id + 2, i->first))
 			identity << i->second;
 		else
-			identity << std::string(f.id, f.id + 2);
+		{
+			identity << f.id[0];
+			if (f.id[1] != 0) identity << f.id[1];
+		}
 
 		identity << " " << (int)f.major_version
 			<< "." << (int)f.minor_version
-			<< "." << (int)f.revision_version
-			<< "." << (int)f.tag_version;
+			<< "." << (int)f.revision_version;
+
+		if (f.id[1] != 0)
+			identity << "." << (int)f.tag_version;
 
 		return identity.str();
 	}
