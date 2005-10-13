@@ -2320,8 +2320,6 @@ namespace libtorrent
 						s << "\n";
 						(*m_logger) << s.str();
 					}
-					
-					(*m_logger) << "ext: " << m_peer_id[17] << " " << m_peer_id[18] << " " << m_peer_id[19] << "\n";
 #endif
 					std::copy(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (char*)m_peer_id.begin());
 
