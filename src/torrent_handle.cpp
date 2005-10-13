@@ -236,8 +236,11 @@ namespace libtorrent
 			{
 				torrent_status st;
 
-				if (d == &m_chk->m_torrents.front())
+				if (d->processing)
+				{
+					// TODO: this could be both checking or allocating
 					st.state = torrent_status::checking_files;
+				}
 				else
 					st.state = torrent_status::queued_for_checking;
 				st.progress = d->progress;

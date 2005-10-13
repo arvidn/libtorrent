@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/torrent_handle.hpp"
-#include "libtorrent/torrent.hpp"
+//#include "libtorrent/torrent.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/socket.hpp"
@@ -77,6 +77,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+
+	class torrent;
 
 	namespace detail
 	{
@@ -128,17 +130,17 @@ namespace libtorrent
 			// if it is not being processed, then it can be removed from
 			// the queue without problems, otherwise the abort flag has
 			// to be set.
-			volatile bool processing;
+			bool processing;
 
 			// is filled in by storage::initialize_pieces()
 			// and represents the progress. It should be a
 			// value in the range [0, 1]
-			volatile float progress;
+			float progress;
 
 			// abort defaults to false and is typically
 			// filled in by torrent_handle when the user
 			// aborts the torrent
-			volatile bool abort;
+			bool abort;
 		};
 
 		struct checker_impl: boost::noncopyable
@@ -157,7 +159,8 @@ namespace libtorrent
 
 			// a list of all torrents that are currently in queue
 			// or checking their files
-			std::deque<piece_checker_data> m_torrents;
+			std::deque<boost::shared_ptr<piece_checker_data> > m_torrents;
+			std::deque<boost::shared_ptr<piece_checker_data> > m_processing;
 
 			bool m_abort;
 		};

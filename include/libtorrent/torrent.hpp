@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/path.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -61,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/stat.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/resource_request.hpp"
+#include "libtorrent/piece_picker.hpp"
 
 namespace libtorrent
 {
@@ -88,11 +90,13 @@ namespace libtorrent
 	// for a specific download. It updates itself against
 	// the tracker
 	class torrent: public request_callback
+		, public boost::enable_shared_from_this<torrent>
 	{
 	public:
 
 		torrent(
 			detail::session_impl& ses
+			, detail::checker_impl& checker
 			, entry const& metadata
 			, boost::filesystem::path const& save_path
 			, address const& net_interface
@@ -103,6 +107,7 @@ namespace libtorrent
 		// (the metadata is downloaded from the peers)
 		torrent(
 			detail::session_impl& ses
+			, detail::checker_impl& checker
 			, char const* tracker_url
 			, sha1_hash const& info_hash
 			, boost::filesystem::path const& save_path
@@ -135,10 +140,11 @@ namespace libtorrent
 		// this is called from the peer_connection for
 		// each piece of metadata it receives
 		void metadata_progress(int total_size, int received);
-		
-		void check_files(
-			detail::piece_checker_data& data
-			, boost::mutex& mutex, bool lock_session = true);
+	
+		bool check_fastresume(detail::piece_checker_data&);
+		std::pair<bool, float> check_files();
+		void files_checked(std::vector<piece_picker::downloading_piece> const&
+			unfinished_pieces);
 
 		stat statistics() const { return m_stat; }
 		size_type bytes_left() const;
@@ -153,8 +159,8 @@ namespace libtorrent
 		bool is_piece_filtered(int index) const;
 		void filtered_pieces(std::vector<bool>& bitmask) const;
 	
-		//idea from Arvid and MooPolice
-		//todo refactoring and improving the function body
+		// idea from Arvid and MooPolice
+		// todo refactoring and improving the function body
 		// marks the file with the given index as filtered
 		// it will not be downloaded
 		void filter_file(int index, bool filter);
@@ -456,6 +462,7 @@ namespace libtorrent
 		// a back reference to the session
 		// this torrent belongs to.
 		detail::session_impl& m_ses;
+		detail::checker_impl& m_checker;
 
 		std::auto_ptr<piece_picker> m_picker;
 

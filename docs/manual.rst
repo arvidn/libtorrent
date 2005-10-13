@@ -2,7 +2,7 @@
 libtorrent manual
 =================
 
-:Author: Arvid Norberg, c99ang@cs.umu.se
+:Author: Arvid Norberg, arvid@rasterbar.com
 
 .. contents:: Table of contents
   :depth: 2
@@ -82,7 +82,7 @@ libtorrent has been successfully compiled and tested on:
 
 Fails on:
 
-	* GCC 2.95.4 (``std::ios_base`` is missing)
+	* GCC 2.95.4
 	* msvc6 sp5
 
 libtorrent is released under the BSD-license_.
@@ -318,7 +318,15 @@ libtorrent, the examples and the tests will be built.
 When libtorrent is built it may be a good idea to run the tests, you do this
 my running ``make check``.
 
-Building with other build systems
+If you want to build a release version (without debug info, asserts and
+invariant checks), you have to rerun the configure script and rebuild, like this::
+
+  ./configure --disable-debug
+  make clean
+  make
+
+
+building with other build systems
 ---------------------------------
   
 If you're making your own project file, note that there are two versions of
@@ -336,7 +344,7 @@ options "force conformance in for loop scope", "treat wchar_t as built-in
 type" and "Enable Run-Time Type Info" to Yes.
 
 
-Build configurations
+build configurations
 --------------------
 
 By default libtorrent is built In debug mode, and will have pretty expensive
@@ -369,10 +377,20 @@ defines you can use to control the build.
 |                                | UTF-16 before they are passed to the file       |
 |                                | operations.                                     |
 +--------------------------------+-------------------------------------------------+
+| ``LITTLE_ENDIAN``              | This will use the little endian version of the  |
+|                                | sha-1 code. If defined on a big-endian system   |
+|                                | the sha-1 hashes will be incorrect and fail.    |
+|                                | If it is not defined and ``__BIG_ENDIAN__``     |
+|                                | isn't defined either (it is defined by Apple's  |
+|                                | GCC) both little-endian and big-endian versions |
+|                                | will be built and the correct code will be      |
+|                                | chosen at run-time.                             |
++--------------------------------+-------------------------------------------------+
 
 
-If you experience that libtorrent uses unreasonable amounts of cpu, it will definately help to
-define ``NDEBUG``, since it will remove the invariant checks within the library.
+If you experience that libtorrent uses unreasonable amounts of cpu, it will
+definately help to define ``NDEBUG``, since it will remove the invariant checks
+within the library.
 
 overview
 ========
@@ -406,7 +424,8 @@ The ``session`` class has the following synopsis::
 	class session: public boost::noncopyable
 	{
 
-		session(const fingerprint& print = libtorrent::fingerprint("LT", 0, 1, 0, 0));
+		session(const fingerprint& print
+			= libtorrent::fingerprint("LT", 0, 1, 0, 0));
 
 		session(
 			const fingerprint& print
@@ -808,18 +827,70 @@ The typical code to get info from a torrent file will then look like this::
 	entry torrent_file;
 	// ...
 
+	// throws if this is not a dictionary
 	entry::dictionary_type const& dict = torrent_file.dict();
 	entry::dictionary_type::const_iterator i;
 	i = dict.find("announce");
 	if (i != dict.end())
 	{
-		std::string tracker_url= i->second.string();
+		std::string tracker_url = i->second.string();
 		std::cout << tracker_url << "\n";
 	}
 
-To make it easier to extract information from a torren file, the class ``torrent_info``
+
+The following code is equivalent, but a little bit shorter::
+
+	entry torrent_file;
+	// ...
+
+	// throws if this is not a dictionary
+	if (entry* i = torrent_file.find_key("announce"))
+	{
+		std::string tracker_url = i->string();
+		std::cout << tracker_url << "\n";
+	}
+
+
+To make it easier to extract information from a torrent file, the class torrent_info_
 exists.
 
+
+operator[]
+----------
+
+	::
+
+		entry& operator[](char const* key);
+		entry& operator[](std::string const& key);
+		entry const& operator[](char const* key) const;
+		entry const& operator[](std::string const& key) const;
+
+All of these functions requires the entry to be a dictionary, if it isn't they
+will throw ``libtorrent::type_error``.
+
+The non-const versions of the ``operator[]`` will return a reference to either
+the existing element at the given key or, if there is no element with the
+given key, a reference to a newly inserted element at that key.
+
+The const version of ``operator[]`` will only return a reference to an
+existing element at the given key. If the key is not found, it will throw
+``libtorrent::type_error``.
+
+
+find_key()
+----------
+
+	::
+
+		entry* find_key(char const* key);
+		entry const* find_key(char const* key) const;
+
+These functions requires the entry to be a dictionary, if it isn't they
+will throw ``libtorrent::type_error``.
+
+They will look for an element at the given key in the dictionary, if the
+element cannot be found, they will return 0. If an element with the given
+key is found, the return a pointer to it.
 
 
 torrent_info
@@ -844,7 +915,8 @@ The ``torrent_info`` has the following synopsis::
 		void add_file(boost::filesystem::path file, size_type size);
 
 		typedef std::vector<file_entry>::const_iterator file_iterator;
-		typedef std::vector<file_entry>::const_reverse_iterator reverse_file_iterator;
+		typedef std::vector<file_entry>::const_reverse_iterator
+			reverse_file_iterator;
 
 		file_iterator begin_files() const;
 		file_iterator end_files() const;
@@ -914,14 +986,14 @@ set_comment() set_piece_size() set_creator() set_hash() add_tracker() add_file()
 
 These files are used when creating a torrent file. ``set_comment()`` will simply set
 the comment that belongs to this torrent. The comment can be retrieved with the
-``comment()`` member.
+``comment()`` member. The string should be UTF-8 encoded.
 
 ``set_piece_size()`` will set the size of each piece in this torrent. The piece size must
 be an even multiple of 2. i.e. usually something like 256 kiB, 512 kiB, 1024 kiB etc. The
 size is given in number of bytes.
 
 ``set_creator()`` is an optional attribute that can be used to identify your application
-that was used to create the torrent file.
+that was used to create the torrent file. The string should be UTF-8 encoded.
 
 ``set_hash()`` writes the hash for the piece with the given piece-index. You have to call
 this function for every piece in the torrent. Usually the hasher_ is used to calculate
@@ -973,6 +1045,7 @@ iterators with the type ``file_entry``.
 
 The ``path`` is the full (relative) path of each file. i.e. if it is a multi-file
 torrent, all the files starts with a directory with the same name as ``torrent_info::name()``.
+The filenames are encoded with UTF-8.
 
 ::
 
@@ -1077,6 +1150,8 @@ it will return an empty string. ``creation_date()`` returns a `boost::posix_time
 object, representing the time when this torrent file was created. If there's no timestamp
 in the torrent file, this will return a date of january 1:st 1970.
 
+Both the name and the comment is UTF-8 encoded strings.
+
 ``creator()`` returns the creator string in the torrent. If there is no creator string
 it will return an empty string.
 
@@ -1107,7 +1182,8 @@ Its declaration looks like this::
 		void force_reannounce();
 		void connect_peer(address const& adr) const;
 
-		void set_tracker_login(std::string const& username, std::string const& password);
+		void set_tracker_login(std::string const& username
+			, std::string const& password);
 
 		std::vector<announce_entry> const& trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&);
@@ -1981,7 +2057,8 @@ This is the class declaration::
 
 	struct fingerprint
 	{
-		fingerprint(const char* id_string, int major, int minor, int revision, int tag);
+		fingerprint(const char* id_string, int major, int minor
+			, int revision, int tag);
 
 		std::string to_string() const;
 
@@ -2014,6 +2091,10 @@ sure not to clash with anybody else. Here are some taken id's:
 +----------+-----------------------+
 | 'XT'     | Xan Torrent           |
 +----------+-----------------------+
+
+There's currently an informal directory of client id's here__.
+
+__ http://wiki.theory.org/BitTorrentSpecification#peer_id
 
 
 The ``major``, ``minor``, ``revision`` and ``tag`` parameters are used to identify the
@@ -2607,14 +2688,15 @@ print information about it to std out::
 		{
 			std::ifstream in(argv[1], std::ios_base::binary);
 			in.unsetf(std::ios_base::skipws);
-			entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
+			entry e = bdecode(std::istream_iterator<char>(in)
+				, std::istream_iterator<char>());
 			torrent_info t(e);
 
 			// print info about torrent
 			std::cout << "\n\n----- torrent file info -----\n\n";
 			std::cout << "trackers:\n";
-			for (std::vector<announce_entry>::const_iterator i = t.trackers().begin();
-				i != t.trackers().end(); ++i)
+			for (std::vector<announce_entry>::const_iterator i
+				= t.trackers().begin(), end(t.trackers().end); i != end; ++i)
 			{
 				std::cout << i->tier << ": " << i->url << "\n";
 			}
@@ -2623,8 +2705,7 @@ print information about it to std out::
 			std::cout << "piece length: " << t.piece_length() << "\n";
 			std::cout << "files:\n";
 			for (torrent_info::file_iterator i = t.begin_files();
-				i != t.end_files();
-				++i)
+				i != t.end_files(); ++i)
 			{
 				std::cout << "  " << std::setw(11) << i->size
 				<< "  " << i->path << " " << i->filename << "\n";
@@ -2676,7 +2757,8 @@ This is a simple client. It doesn't have much output to keep it simple::
 	
 			std::ifstream in(argv[1], std::ios_base::binary);
 			in.unsetf(std::ios_base::skipws);
-			entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
+			entry e = bdecode(std::istream_iterator<char>(in)
+				, std::istream_iterator<char>());
 			s.add_torrent(e, "");
 				
 			// wait for the user to end
@@ -2715,10 +2797,7 @@ Shows how to create a torrent from a directory tree::
 	using namespace boost::filesystem;
 	using namespace libtorrent;
 
-	void add_files(
-		torrent_info& t
-		, path const& p
-		, path const& l)
+	void add_files(torrent_info& t, path const& p, path const& l)
 	{
 		path f(p / l);
 		if (is_directory(f))
@@ -2743,8 +2822,8 @@ Shows how to create a torrent from a directory tree::
 
 		if (argc != 4)
 		{
-			std::cerr << "usage: make_torrent <output torrent-file> <announce url> "
-				"<file or directory to create torrent from>\n";
+			std::cerr << "usage: make_torrent <output torrent-file> "
+				"<announce url> <file or directory to create torrent from>\n";
 			return 1;
 		}
 
