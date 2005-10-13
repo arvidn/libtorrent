@@ -141,6 +141,7 @@ namespace libtorrent
 {
 	torrent::torrent(
 		detail::session_impl& ses
+		, detail::checker_impl& checker
 		, entry const& metadata
 		, boost::filesystem::path const& save_path
 		, address const& net_interface
@@ -159,6 +160,7 @@ namespace libtorrent
 		, m_incomplete(-1)
 		, m_policy()
 		, m_ses(ses)
+		, m_checker(checker)
 		, m_picker(0)
 		, m_trackers(m_torrent_file.trackers())
 		, m_last_working_tracker(-1)
@@ -220,6 +222,7 @@ namespace libtorrent
 
 	torrent::torrent(
 		detail::session_impl& ses
+		, detail::checker_impl& checker
 		, char const* tracker_url
 		, sha1_hash const& info_hash
 		, boost::filesystem::path const& save_path
@@ -239,6 +242,7 @@ namespace libtorrent
 		, m_incomplete(-1)
 		, m_policy()
 		, m_ses(ses)
+		, m_checker(checker)
 		, m_picker(0)
 		, m_last_working_tracker(-1)
 		, m_currently_trying_tracker(0)
@@ -1018,30 +1022,27 @@ namespace libtorrent
 
 	}
 
-	void torrent::check_files(detail::piece_checker_data& data,
-		boost::mutex& mutex, bool lock_session)
+	bool torrent::check_fastresume(detail::piece_checker_data& data)
+	{	
+		assert(m_storage.get());
+		return m_storage->check_fastresume(data, m_have_pieces, m_compact_mode);
+	}
+	
+	std::pair<bool, float> torrent::check_files()
 	{
 		assert(m_storage.get());
- 		m_storage->check_pieces(mutex, data, m_have_pieces, m_compact_mode);
+		return m_storage->check_files(m_have_pieces);
+	}
 
-		// TODO: temporary solution. This function should only
-		// be called from the checker thread, and then this
-		// hack can be removed (because the session should always
-		// be locked then)
-		boost::mutex temp;
-		boost::mutex* m = &temp;
-		if (lock_session) m = &m_ses.m_mutex;
-		
-		boost::mutex::scoped_lock l(mutex);
-		if (data.abort) return;
-		
-		boost::mutex::scoped_lock l2(*m);
+	void torrent::files_checked(std::vector<piece_picker::downloading_piece> const&
+		unfinished_pieces)
+	{
 		m_num_pieces = std::count(
 			m_have_pieces.begin()
 		  , m_have_pieces.end()
 		  , true);
 
-		m_picker->files_checked(m_have_pieces, data.unfinished_pieces);
+		m_picker->files_checked(m_have_pieces, unfinished_pieces);
 	}
 
 	alert_manager& torrent::alerts() const
@@ -1469,18 +1470,29 @@ namespace libtorrent
 			return false;
 		}
 
-		m_torrent_file.parse_info_section(bdecode(m_metadata.begin(), m_metadata.end()));
+		entry metadata = bdecode(m_metadata.begin(), m_metadata.end());
+		m_torrent_file.parse_info_section(metadata);
 
-		init();
+		{
+			boost::mutex::scoped_lock(m_checker.m_mutex);
 
-		boost::mutex m;
-		detail::piece_checker_data d;
-		d.abort = false;
-		// TODO: this check should be moved to the checker thread
-		// not really a high priority, since no files would usually
-		// be available if the metadata wasn't available.
-		check_files(d, m, false);
+			boost::shared_ptr<detail::piece_checker_data> d(
+					new detail::piece_checker_data);
+			d->torrent_ptr = shared_from_this();
+			d->save_path = m_save_path;
+			d->info_hash = m_torrent_file.info_hash();
 
+			// add the torrent to the queue to be checked
+			m_checker.m_torrents.push_back(d);
+			typedef detail::session_impl::torrent_map torrent_map;
+			torrent_map::iterator i = m_ses.m_torrents.find(
+				m_torrent_file.info_hash());
+			assert(i != m_ses.m_torrents.end());
+			m_ses.m_torrents.erase(i);
+			// and notify the thread that it got another
+			// job in its queue
+			m_checker.m_cond.notify_one();
+		}
 		if (m_ses.m_alerts.should_post(alert::info))
 		{
 			m_ses.m_alerts.post_alert(metadata_received_alert(
@@ -1489,6 +1501,7 @@ namespace libtorrent
 
 		// all peer connections have to initialize themselves now that the metadata
 		// is available
+		// TODO: is it ok to initialize the connections before the file check?
 		typedef std::map<address, peer_connection*> conn_map;
 		for (conn_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)

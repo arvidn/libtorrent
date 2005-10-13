@@ -728,7 +728,7 @@ namespace libtorrent
 					p->connection->send_choke();
 				} while (m_num_unchoked > m_torrent->m_uploads_quota.given);
 			}
-			else
+			else if (m_num_unchoked > 0)
 			{
 				// optimistic unchoke. trade the 'worst'
 				// unchoked peer with one of the choked
