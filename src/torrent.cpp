@@ -67,6 +67,46 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 using namespace boost::posix_time;
 
+// PROFILING CODE
+
+#ifdef TORRENT_PROFILE
+#include <boost/date_time/posix_time/ptime.hpp>
+
+namespace libtorrent
+{
+	namespace
+	{
+		using boost::posix_time::ptime;
+		using boost::posix_time::time_duration;
+		using boost::posix_time::microsec_clock;
+		std::vector<std::pair<ptime, std::string> > checkpoints;
+	}
+
+	void add_checkpoint(std::string const& str)
+	{
+		checkpoints.push_back(std::make_pair(microsec_clock::universal_time(), str));
+	}
+
+	void print_checkpoints()
+	{
+		for (std::vector<std::pair<ptime, std::string> >::iterator i
+			= checkpoints.begin(); i != checkpoints.end(); ++i)
+		{
+			ptime cur = i->first;
+			if (i + 1 != checkpoints.end())
+			{
+				time_duration diff = (i + 1)->first - cur;
+				std::cout << diff.total_microseconds() << " " << i->second << "\n";
+			}
+			else
+			{
+				std::cout << "    " << i->second << "\n";
+			}
+		}
+	}
+}
+
+#endif
 
 namespace
 {
@@ -143,11 +183,12 @@ namespace libtorrent
 		detail::session_impl& ses
 		, detail::checker_impl& checker
 		, entry const& metadata
+		, torrent_info const& tf
 		, boost::filesystem::path const& save_path
 		, address const& net_interface
 		, bool compact_mode
 		, int block_size)
-		: m_torrent_file(metadata)
+		: m_torrent_file(tf)
 		, m_abort(false)
 		, m_paused(false)
 		, m_just_paused(false)
@@ -216,6 +257,10 @@ namespace libtorrent
 
 
 		m_policy.reset(new policy(this));
+		// if anything should be optimized in this constructor
+		// this encoding should be made on demand. But that would
+		// require the copying of the entry-tree instead, which
+		// probably is more expensive
 		bencode(std::back_inserter(m_metadata), metadata["info"]);
 		init();
 	}
@@ -295,10 +340,9 @@ namespace libtorrent
 			m_ul_bandwidth_quota.given = 400;
 		}
 
-
-		
 		m_trackers.push_back(announce_entry(tracker_url));
 		m_requested_metadata.resize(256, 0);
+
 		m_policy.reset(new policy(this));
 		m_torrent_file.add_tracker(tracker_url);
 	}
@@ -1472,6 +1516,7 @@ namespace libtorrent
 
 		entry metadata = bdecode(m_metadata.begin(), m_metadata.end());
 		m_torrent_file.parse_info_section(metadata);
+		init();
 
 		{
 			boost::mutex::scoped_lock(m_checker.m_mutex);
@@ -1481,7 +1526,6 @@ namespace libtorrent
 			d->torrent_ptr = shared_from_this();
 			d->save_path = m_save_path;
 			d->info_hash = m_torrent_file.info_hash();
-
 			// add the torrent to the queue to be checked
 			m_checker.m_torrents.push_back(d);
 			typedef detail::session_impl::torrent_map torrent_map;
