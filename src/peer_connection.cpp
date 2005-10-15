@@ -2513,7 +2513,7 @@ namespace libtorrent
 			buffer::interval_type send_buffer = m_send_buffer.data();
 			// we have data that's scheduled for sending
 			int to_send = std::min(send_buffer.first.end - send_buffer.first.begin
-				, m_ul_bandwidth_quota.left());
+				, amount_to_send);
 			int sent = m_socket->send(send_buffer.first.begin, to_send);
 
 			if (sent == send_buffer.first.end - send_buffer.first.end
