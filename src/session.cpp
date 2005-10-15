@@ -1133,6 +1133,7 @@ namespace libtorrent
 		, bool compact_mode
 		, int block_size)
 	{
+		TORRENT_CHECKPOINT("++ session::add_torrent()");
 		// make sure the block_size is an even power of 2
 #ifndef NDEBUG
 		for (int i = 0; i < 32; ++i)
@@ -1152,17 +1153,13 @@ namespace libtorrent
 		if (ti.begin_files() == ti.end_files())
 			throw std::runtime_error("no files in torrent");
 
-		{
-			// lock the session
-			boost::mutex::scoped_lock l(m_impl.m_mutex);
+		// lock the session and the checker thread (the order is important!)
+		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		boost::mutex::scoped_lock l2(m_checker_impl.m_mutex);
 
-			// is the torrent already active?
-			if (m_impl.find_torrent(ti.info_hash()))
-				throw duplicate_torrent();
-		}
-
-		// lock the checker_thread
-		boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
+		// is the torrent already active?
+		if (m_impl.find_torrent(ti.info_hash()))
+			throw duplicate_torrent();
 
 		// is the torrent currently being checked?
 		if (m_checker_impl.find_torrent(ti.info_hash()))
@@ -1172,7 +1169,7 @@ namespace libtorrent
 		// the checker thread and store it before starting
 		// the thread
 		boost::shared_ptr<torrent> torrent_ptr(
-			new torrent(m_impl, m_checker_impl, metadata, save_path
+			new torrent(m_impl, m_checker_impl, metadata, ti, save_path
 				, m_impl.m_listen_interface, compact_mode, block_size));
 
 		boost::shared_ptr<detail::piece_checker_data> d(
@@ -1188,6 +1185,7 @@ namespace libtorrent
 		// job in its queue
 		m_checker_impl.m_cond.notify_one();
 
+		TORRENT_CHECKPOINT("-- session::add_torrent()");
 		return torrent_handle(&m_impl, &m_checker_impl, ti.info_hash());
 	}
 

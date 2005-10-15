@@ -48,8 +48,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
+
 namespace libtorrent
 {
+
+	// PROFILING CODE
+#ifdef TORRENT_PROFILE
+
+	void add_checkpoint(std::string const& str);
+	void print_checkpoints();
+#define TORRENT_CHECKPOINT(str) libtorrent::add_checkpoint(str)
+#else
+#define TORRENT_CHECKPOINT(str) void(0)
+#endif
 
 	// DEBUG API
 

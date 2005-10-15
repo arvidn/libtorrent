@@ -98,6 +98,7 @@ namespace libtorrent
 			detail::session_impl& ses
 			, detail::checker_impl& checker
 			, entry const& metadata
+			, torrent_info const& tf
 			, boost::filesystem::path const& save_path
 			, address const& net_interface
 			, bool compact_mode
