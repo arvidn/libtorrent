@@ -37,6 +37,25 @@ if test -z "$BOOST_THREAD_LIB"; then
    AC_MSG_ERROR([unable to find Boost.Thread library, currently this is required.])
 fi
 
+AX_BOOST_REGEX
+dnl check that Boost.Regex was found:
+if test -z "$BOOST_REGEX_LIB"; then
+   AC_MSG_RESULT([unable to find Boost.Regex library, example test_client will not be build.])
+   BUILD_TESTCLIENT=no;
+fi
+
+AX_BOOST_PROGRAM_OPTIONS
+dnl check that Boost.Program_options was found:
+if test -z "$BOOST_PROGRAM_OPTIONS_LIB"; then
+   AC_MSG_RESULT([unable to find Boost.Program_options library, example test_client will not be build.])
+   BUILD_TESTCLIENT=no;
+fi
+
+if [[ "x$BUILD_TESTCLIENT" != "xno" ]]; then
+	CLIENT_TEST_BIN=client_test;
+	AC_SUBST(CLIENT_TEST_BIN)
+fi
+
 dnl try different ways of resolving gethostbyname
 AC_CHECK_FUNC(gethostbyname, ,
 	AC_CHECK_LIB(resolv, gethostbyname, ,
