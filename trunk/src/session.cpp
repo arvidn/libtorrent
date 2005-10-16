@@ -199,6 +199,13 @@ namespace libtorrent { namespace detail
 							t->torrent_ptr->get_handle()
 							, e.what()));
 				}
+				if (t->torrent_ptr->num_peers())
+				{
+					m_ses.m_torrents.insert(std::make_pair(
+						t->info_hash, t->torrent_ptr));
+					t->torrent_ptr->abort();
+				}
+
 				assert(!m_torrents.empty());
 				m_torrents.pop_front();
 			}
@@ -282,6 +289,7 @@ namespace libtorrent { namespace detail
 				// This will happen if the storage fails to initialize
 				boost::mutex::scoped_lock l(m_ses.m_mutex);
 				boost::mutex::scoped_lock l2(m_mutex);
+
 				if (m_ses.m_alerts.should_post(alert::fatal))
 				{
 					m_ses.m_alerts.post_alert(
@@ -290,6 +298,13 @@ namespace libtorrent { namespace detail
 							, e.what()));
 				}
 				assert(!m_processing.empty());
+
+				if (processing->torrent_ptr->num_peers())
+				{
+					m_ses.m_torrents.insert(std::make_pair(
+						processing->info_hash, processing->torrent_ptr));
+					processing->torrent_ptr->abort();
+				}
 
 				processing.reset();
 				m_processing.pop_front();

@@ -305,7 +305,7 @@ namespace libtorrent
 	{
 	public:
 
-		session(fingerprint const& print = fingerprint("LT", 0, 1, 0, 0));
+		session(fingerprint const& print = fingerprint("LT", 0, 9, 1, 0));
 		session(
 			fingerprint const& print
 			, std::pair<int, int> listen_port_range

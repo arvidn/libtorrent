@@ -329,7 +329,7 @@ namespace libtorrent
 {
 
 	std::vector<std::pair<size_type, std::time_t> > get_filesizes(
-		const torrent_info& t, path p)
+		torrent_info const& t, path p)
 	{
 		p = complete(p);
 		std::vector<std::pair<size_type, std::time_t> > sizes;
@@ -469,7 +469,7 @@ namespace libtorrent
 
 	file_pool storage::impl::files(40);
 
-	storage::storage(const torrent_info& info, const path& path)
+	storage::storage(torrent_info const& info, path const& path)
 		: m_pimpl(new impl(info, path))
 	{
 		assert(info.begin_files() != info.end_files());
@@ -787,8 +787,8 @@ namespace libtorrent
 	public:
 
 		impl(
-			const torrent_info& info
-			, const path& path);
+			torrent_info const& info
+			, path const& path);
 
 		bool check_fastresume(
 			detail::piece_checker_data& d
@@ -870,7 +870,7 @@ namespace libtorrent
 		// a bitmask representing the pieces we have
 		std::vector<bool> m_have_piece;
 
-		const torrent_info& m_info;
+		torrent_info const& m_info;
 
 		// slots that haven't had any file storage allocated
 		std::vector<int> m_unallocated_slots;
@@ -929,8 +929,8 @@ namespace libtorrent
 	};
 
 	piece_manager::impl::impl(
-		const torrent_info& info
-		, const path& save_path)
+		torrent_info const& info
+		, path const& save_path)
 		: m_storage(info, save_path)
 		, m_compact_mode(false)
 		, m_fill_mode(true)
@@ -942,8 +942,8 @@ namespace libtorrent
 	}
 
 	piece_manager::piece_manager(
-		const torrent_info& info
-	  , const path& save_path)
+		torrent_info const& info
+		, path const& save_path)
 		: m_pimpl(new impl(info, save_path))
 	{
 	}
