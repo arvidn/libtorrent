@@ -382,6 +382,9 @@ namespace libtorrent { namespace detail
 	{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		m_logger = create_log("main_session", false);
+		using boost::posix_time::second_clock;
+		using boost::posix_time::to_simple_string;
+		(*m_logger) << to_simple_string(second_clock::universal_time()) << "\n";
 #endif
 		std::fill(m_extension_enabled, m_extension_enabled
 			+ peer_connection::num_supported_extensions, true);
@@ -1142,13 +1145,12 @@ namespace libtorrent
 	// current platform.
 	// if the torrent already exists, this will throw duplicate_torrent
 	torrent_handle session::add_torrent(
-		entry const& metadata
+		torrent_info const& ti
 		, boost::filesystem::path const& save_path
 		, entry const& resume_data
 		, bool compact_mode
 		, int block_size)
 	{
-		TORRENT_CHECKPOINT("++ session::add_torrent()");
 		// make sure the block_size is an even power of 2
 #ifndef NDEBUG
 		for (int i = 0; i < 32; ++i)
@@ -1163,7 +1165,6 @@ namespace libtorrent
 	
 			  
 		assert(!save_path.empty());
-		torrent_info ti(metadata);
 
 		if (ti.begin_files() == ti.end_files())
 			throw std::runtime_error("no files in torrent");
@@ -1184,7 +1185,7 @@ namespace libtorrent
 		// the checker thread and store it before starting
 		// the thread
 		boost::shared_ptr<torrent> torrent_ptr(
-			new torrent(m_impl, m_checker_impl, metadata, ti, save_path
+			new torrent(m_impl, m_checker_impl, ti, save_path
 				, m_impl.m_listen_interface, compact_mode, block_size));
 
 		boost::shared_ptr<detail::piece_checker_data> d(
@@ -1200,7 +1201,6 @@ namespace libtorrent
 		// job in its queue
 		m_checker_impl.m_cond.notify_one();
 
-		TORRENT_CHECKPOINT("-- session::add_torrent()");
 		return torrent_handle(&m_impl, &m_checker_impl, ti.info_hash());
 	}
 

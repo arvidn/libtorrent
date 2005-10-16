@@ -36,7 +36,6 @@ project torrent
 	<threading>multi
 	<toolset>msvc:<cxxflags>/Zc:wchar_t
 	<toolset>msvc:<cxxflags>/Zc:forScope
-	<define>TORRENT_PROFILE
 
 	: usage-requirements 
 
@@ -44,7 +43,6 @@ project torrent
 	<include>$(BOOST_ROOT)
 	<variant>release:<define>NDEBUG
 	<define>BOOST_ALL_NO_LIB
-	<define>TORRENT_PROFILE
 
 	;
 

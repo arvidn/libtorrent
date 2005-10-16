@@ -1,10 +1,11 @@
-	* greatly improved the command line control of the example client_test
-	* fixed bug where upload rate limit was not being applied
+	* changed the interface to session::add_torrent for soem speed optimizations.
+	* greatly improved the command line control of the example client_test.
+	* fixed bug where upload rate limit was not being applied.
 	* files that are being checked will no longer stall files that don't need
 	  checking.
 	* changed the way libtorrent identifies support for its excentions
 	  to look for 'ext' at the end of the peer-id.
-	* improved performance by adding a circle buffer for the send buffer
+	* improved performance by adding a circle buffer for the send buffer.
 	* fixed bugs in the http tracker connection when using an http proxy.
 	* fixed problem with storage's file pool when creating torrents and then
 	  starting to seed them.

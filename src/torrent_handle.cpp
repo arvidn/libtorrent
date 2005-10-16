@@ -436,8 +436,7 @@ namespace libtorrent
 		entry::list_type& peer_list = ret["peers"].list();
 
 		for (torrent::const_peer_iterator i = t->begin();
-			i != t->end();
-			++i)
+			i != t->end(); ++i)
 		{
 			// we cannot save remote connection
 			// since we don't know their listen port

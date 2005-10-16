@@ -97,7 +97,6 @@ namespace libtorrent
 		torrent(
 			detail::session_impl& ses
 			, detail::checker_impl& checker
-			, entry const& metadata
 			, torrent_info const& tf
 			, boost::filesystem::path const& save_path
 			, address const& net_interface
@@ -386,7 +385,7 @@ namespace libtorrent
 
 		bool valid_metadata() const
 		{ return m_storage.get() != 0 && m_connections_initialized; }
-		std::vector<char> const& metadata() const { return m_metadata; }
+		std::vector<char> const& metadata() const;
 
 		bool received_metadata(
 			char const* buf
@@ -524,7 +523,8 @@ namespace libtorrent
 		// this buffer is filled with the info-section of
 		// the metadata file while downloading it from
 		// peers, and while sending it.
-		std::vector<char> m_metadata;
+		// it is mutable because it's generated lazily
+		mutable std::vector<char> m_metadata;
 
 		// this is a bitfield of size 256, each bit represents
 		// a piece of the metadata. It is set to one if we
