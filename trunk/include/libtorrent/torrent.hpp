@@ -383,8 +383,12 @@ namespace libtorrent
 		void set_max_connections(int limit);
 		bool move_storage(boost::filesystem::path const& save_path);
 
+		// unless this returns true, new connections must wait
+		// with their initialization.
+		bool ready_for_connections() const
+		{ return m_connections_initialized; }
 		bool valid_metadata() const
-		{ return m_storage.get() != 0 && m_connections_initialized; }
+		{ return m_storage.get() != 0; }
 		std::vector<char> const& metadata() const;
 
 		bool received_metadata(
