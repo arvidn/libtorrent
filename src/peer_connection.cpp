@@ -177,7 +177,7 @@ namespace libtorrent
 		m_recv_buffer.resize(1);
 
 		// assume the other end has no pieces
-		if (m_torrent->valid_metadata())
+		if (m_torrent->ready_for_connections())
 		{
 			init();
 			send_bitfield();
@@ -297,6 +297,7 @@ namespace libtorrent
 	{
 		assert(m_torrent);
 		assert(m_torrent->valid_metadata());
+		assert(m_torrent->ready_for_connections());
 
 		m_have_piece.resize(m_torrent->torrent_file().num_pieces(), false);
 
@@ -2263,7 +2264,10 @@ namespace libtorrent
 							throw protocol_error("connection rejected by paused torrent");
 						}
 
-						if (m_torrent->valid_metadata()) init();
+						// if the torrent's isn't ready to accept
+						// connections yet, we'll have to wait with
+						// our initialization
+						if (m_torrent->ready_for_connections()) init();
 
 						// assume the other end has no pieces
 						// if we don't have valid metadata yet,

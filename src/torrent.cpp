@@ -1335,7 +1335,12 @@ namespace libtorrent
 	std::vector<char> const& torrent::metadata() const
 	{
 		if (m_metadata.empty())
-			bencode(std::back_inserter(m_metadata), m_torrent_file.create_torrent());
+		{
+			bencode(std::back_inserter(m_metadata)
+				, m_torrent_file.create_info_metadata());
+			assert(hasher(&m_metadata[0], m_metadata.size()).final()
+				== m_torrent_file.info_hash());
+		}
 		assert(!m_metadata.empty());
 		return m_metadata;
 	}
