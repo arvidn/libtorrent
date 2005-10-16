@@ -1,4 +1,5 @@
-
+	* greatly improved the command line control of the example client_test
+	* fixed bug where upload rate limit was not being applied
 	* files that are being checked will no longer stall files that don't need
 	  checking.
 	* changed the way libtorrent identifies support for its excentions

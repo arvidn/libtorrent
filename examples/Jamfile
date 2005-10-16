@@ -1,10 +1,15 @@
+import modules ;
+
+BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
+
 use-project /torrent : .. ;
+use-project /boost : $(BOOST_ROOT) ;
 
 project client_test
    : requirements <threading>multi <library>/torrent
    ;  
 
-exe client_test : client_test.cpp ;
+exe client_test : client_test.cpp /boost/program_options /boost/regex ;
 exe simple_client : simple_client.cpp ;
 exe dump_torrent : dump_torrent.cpp ;
 exe make_torrent : make_torrent.cpp ;

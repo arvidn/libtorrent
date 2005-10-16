@@ -384,7 +384,8 @@ namespace libtorrent
 		void set_max_connections(int limit);
 		bool move_storage(boost::filesystem::path const& save_path);
 
-		bool valid_metadata() const { return m_storage.get() != 0; }
+		bool valid_metadata() const
+		{ return m_storage.get() != 0 && m_connections_initialized; }
 		std::vector<char> const& metadata() const { return m_metadata; }
 
 		bool received_metadata(
@@ -546,6 +547,17 @@ namespace libtorrent
 		// defaults to 16 kiB, but can be set by the user
 		// when creating the torrent
 		const int m_default_block_size;
+
+		// this is set to false as long as the connections
+		// of this torrent hasn't been initialized. If we
+		// have metadata from the start, connections are
+		// initialized immediately, if we didn't have metadata,
+		// they are initialized right after files_checked().
+		// valid_resume_data() will return false as long as
+		// the connections aren't initialized, to avoid
+		// them from altering the piece-picker before it
+		// has been initialized with files_checked().
+		bool m_connections_initialized;
 	};
 
 	inline boost::posix_time::ptime torrent::next_announce() const

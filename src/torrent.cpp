@@ -221,6 +221,7 @@ namespace libtorrent
 		, m_metadata_progress(0)
 		, m_metadata_size(0)
 		, m_default_block_size(block_size)
+		, m_connections_initialized(true)
 	{
 		m_uploads_quota.min = 2;
 		m_connections_quota.min = 2;
@@ -306,6 +307,7 @@ namespace libtorrent
 		, m_metadata_progress(0)
 		, m_metadata_size(0)
 		, m_default_block_size(block_size)
+		, m_connections_initialized(false)
 	{
 		m_uploads_quota.min = 2;
 		m_connections_quota.min = 2;
@@ -1067,7 +1069,13 @@ namespace libtorrent
 	}
 
 	bool torrent::check_fastresume(detail::piece_checker_data& data)
-	{	
+	{
+		if (!m_storage.get())
+		{
+			// this means we have received the metadata through the
+			// metadata extension, and we have to initialize
+			init();
+		}
 		assert(m_storage.get());
 		return m_storage->check_fastresume(data, m_have_pieces, m_compact_mode);
 	}
@@ -1087,6 +1095,20 @@ namespace libtorrent
 		  , true);
 
 		m_picker->files_checked(m_have_pieces, unfinished_pieces);
+		if (!m_connections_initialized)
+		{
+			m_connections_initialized = true;
+			// all peer connections have to initialize themselves now that the metadata
+			// is available
+			typedef std::map<address, peer_connection*> conn_map;
+			for (conn_map::iterator i = m_connections.begin()
+					, end(m_connections.end()); i != end; ++i)
+			{
+				try { i->second->init(); }
+				catch (std::exception&e) {}
+				// TODO: in case of an exception, close the connection
+			}
+		}
 	}
 
 	alert_manager& torrent::alerts() const
@@ -1516,7 +1538,6 @@ namespace libtorrent
 
 		entry metadata = bdecode(m_metadata.begin(), m_metadata.end());
 		m_torrent_file.parse_info_section(metadata);
-		init();
 
 		{
 			boost::mutex::scoped_lock(m_checker.m_mutex);
@@ -1542,20 +1563,6 @@ namespace libtorrent
 			m_ses.m_alerts.post_alert(metadata_received_alert(
 				get_handle(), "metadata successfully received from swarm"));
 		}
-
-		// all peer connections have to initialize themselves now that the metadata
-		// is available
-		// TODO: is it ok to initialize the connections before the file check?
-		typedef std::map<address, peer_connection*> conn_map;
-		for (conn_map::iterator i = m_connections.begin()
-			, end(m_connections.end()); i != end; ++i)
-		{
-			i->second->init();
-		}
-
-#ifndef NDEBUG
-		m_picker->integrity_check(this);
-#endif
 
 		// clear the storage for the bitfield
 		std::vector<bool>().swap(m_have_metadata);
