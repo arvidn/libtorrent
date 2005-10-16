@@ -433,7 +433,7 @@ The ``session`` class has the following synopsis::
 			, const char* listen_interface = 0);
 
 		torrent_handle add_torrent(
-			entry const& e
+			torrent_info const& ti
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
@@ -512,7 +512,7 @@ add_torrent()
 	::
 
 		torrent_handle add_torrent(
-			entry const& e
+			torrent_info const& ti
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
@@ -554,10 +554,10 @@ out to be greater than the piece size, it will simply be clamped to the piece si
 The torrent_handle_ returned by ``add_torrent()`` can be used to retrieve information
 about the torrent's progress, its peers etc. It is also used to abort a torrent.
 
-The second overload that takes a tracker url and an info-hash instead of metadata (``entry``)
-can be used with torrents where (at least some) peers support the metadata extension. For
-the overload to be available, libtorrent must be built with extensions enabled
-(``TORRENT_ENABLE_EXTENSIONS`` defined).
+The second overload that takes a tracker url and an info-hash instead of metadata
+(``torrent_info``) can be used with torrents where (at least some) peers support
+the metadata extension. For the overload to be available, libtorrent must be built
+with extensions enabled (``TORRENT_ENABLE_EXTENSIONS`` defined).
 
 remove_torrent()
 ----------------

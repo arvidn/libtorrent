@@ -242,7 +242,7 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 {
 	using namespace libtorrent;
 
-	out << " down     up       q  r flags  block progress  client \n";
+	out << " down    (total)   up      (total)  q  r  flags  block progress  client \n";
 
 	for (std::vector<peer_info>::const_iterator i = peers.begin();
 		i != peers.end(); ++i)
@@ -289,7 +289,7 @@ void add_torrent(libtorrent::session& ses
 	in.unsetf(std::ios_base::skipws);
 	entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
 	torrent_info t(e);
-	TORRENT_CHECKPOINT("-- load torrent");
+
 	std::cout << t.name() << "\n";
 
 	TORRENT_CHECKPOINT("++ load resumedata");
@@ -306,12 +306,17 @@ void add_torrent(libtorrent::session& ses
 	}
 	catch (invalid_encoding&) {}
 	catch (boost::filesystem::filesystem_error&) {}
-	TORRENT_CHECKPOINT("-- load resumedata");
 
-	handles.push_back(ses.add_torrent(e, save_path, resume_data, true, 16 * 1024));
+	TORRENT_CHECKPOINT("++ ses::add_torrent");
+
+	handles.push_back(ses.add_torrent(t, save_path, resume_data, true, 16 * 1024));
+	TORRENT_CHECKPOINT("-- ses::add_torrent");
+
 	handles.back().set_max_connections(60);
 	handles.back().set_max_uploads(-1);
 	handles.back().set_ratio(preferred_ratio);
+
+	TORRENT_CHECKPOINT("-- add_torrent");
 }
 
 int main(int ac, char* av[])

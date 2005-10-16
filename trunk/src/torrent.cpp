@@ -182,7 +182,6 @@ namespace libtorrent
 	torrent::torrent(
 		detail::session_impl& ses
 		, detail::checker_impl& checker
-		, entry const& metadata
 		, torrent_info const& tf
 		, boost::filesystem::path const& save_path
 		, address const& net_interface
@@ -246,7 +245,6 @@ namespace libtorrent
 		m_ul_bandwidth_quota.min = 100;
 		m_ul_bandwidth_quota.max = resource_request::inf;
 
-
 		if (m_ses.m_upload_rate == -1)
 		{
 			m_ul_bandwidth_quota.given = resource_request::inf;
@@ -256,13 +254,7 @@ namespace libtorrent
 			m_ul_bandwidth_quota.given = 400;
 		}
 
-
 		m_policy.reset(new policy(this));
-		// if anything should be optimized in this constructor
-		// this encoding should be made on demand. But that would
-		// require the copying of the entry-tree instead, which
-		// probably is more expensive
-		bencode(std::back_inserter(m_metadata), metadata["info"]);
 		init();
 	}
 
@@ -1340,6 +1332,14 @@ namespace libtorrent
 		return m_tracker_address;
 	}
 
+	std::vector<char> const& torrent::metadata() const
+	{
+		if (m_metadata.empty())
+			bencode(std::back_inserter(m_metadata), m_torrent_file.create_torrent());
+		assert(!m_metadata.empty());
+		return m_metadata;
+	}
+	
 	torrent_status torrent::status() const
 	{
 		assert(std::accumulate(

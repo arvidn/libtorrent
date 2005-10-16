@@ -54,7 +54,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/torrent_handle.hpp"
-//#include "libtorrent/torrent.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/socket.hpp"
@@ -317,11 +316,23 @@ namespace libtorrent
 
 		// all torrent_handles must be destructed before the session is destructed!
 		torrent_handle add_torrent(
-			entry const& metadata
+			torrent_info const& ti
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
 			, int block_size = 16 * 1024);
+
+		// TODO: depricated, this is for backwards compatibility only
+		torrent_handle add_torrent(
+			entry const& e
+			, boost::filesystem::path const& save_path
+			, entry const& resume_data = entry()
+			, bool compact_mode = true
+			, int block_size = 16 * 1024)
+		{
+			return add_torrent(torrent_info(e), save_path, resume_data
+				, compact_mode, block_size);
+		}
 
 		torrent_handle add_torrent(
 			char const* tracker_url

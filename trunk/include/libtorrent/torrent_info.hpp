@@ -91,7 +91,7 @@ namespace libtorrent
 		torrent_info(entry const& torrent_file);
 		~torrent_info();
 
-		entry create_torrent();
+		entry create_torrent() const;
 		entry create_info_metadata() const;
 		void set_comment(char const* str);
 		void set_creator(char const* str);
@@ -168,7 +168,9 @@ namespace libtorrent
 		size_type m_total_size;
 
 		// the hash that identifies this torrent
-		sha1_hash m_info_hash;
+		// it is mutable because it's calculated
+		// lazily
+		mutable sha1_hash m_info_hash;
 
 		std::string m_name;
 		
@@ -191,6 +193,12 @@ namespace libtorrent
 		// or not. e.g. test/test  there's one file and one directory
 		// and they have the same name.
 		bool m_multifile;
+
+		// contains any non-parsed entries from the info-section
+		// these are kept in order to be able to accurately
+		// reproduce the info-section when sending the metadata
+		// to peers.
+		entry m_extra_info;
 	};
 
 }

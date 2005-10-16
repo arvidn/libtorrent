@@ -58,11 +58,8 @@ int main(int argc, char* argv[])
 		in.unsetf(std::ios_base::skipws);
 		entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
 
-
-
 		std::cout << "\n\n----- raw info -----\n\n";
 		e.print(std::cout);
-
 
 		torrent_info t(e);
 	
@@ -70,8 +67,7 @@ int main(int argc, char* argv[])
 		std::cout << "\n\n----- torrent file info -----\n\n";
 		std::cout << "trackers:\n";
 		for (std::vector<announce_entry>::const_iterator i = t.trackers().begin();
-			i != t.trackers().end();
-			++i)
+			i != t.trackers().end(); ++i)
 		{
 			std::cout << i->tier << ": " << i->url << "\n";
 		}

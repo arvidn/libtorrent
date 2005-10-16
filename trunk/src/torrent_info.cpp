@@ -124,6 +124,7 @@ namespace libtorrent
 	torrent_info::torrent_info(const entry& torrent_file)
 		: m_creation_date(date(not_a_date_time))
 		, m_multifile(false)
+		, m_extra_info(entry::dictionary_t)
 	{
 		try
 		{
@@ -146,6 +147,7 @@ namespace libtorrent
 		, m_name()
 		, m_creation_date(second_clock::universal_time())
 		, m_multifile(false)
+		, m_extra_info(entry::dictionary_t)
 	{
 	}
 
@@ -156,6 +158,7 @@ namespace libtorrent
 		, m_name()
 		, m_creation_date(second_clock::universal_time())
 		, m_multifile(false)
+		, m_extra_info(entry::dictionary_t)
 	{
 	}
 
@@ -251,6 +254,24 @@ namespace libtorrent
 				hash_string.begin() + i*20
 				, hash_string.begin() + (i+1)*20
 				, m_piece_hash[i].begin());
+
+		for (entry::dictionary_type::const_iterator i = info.dict().begin()
+			, end(info.dict().end()); i != end; ++i)
+		{
+			if (i->first == "pieces"
+				|| i->first == "piece length"
+				|| i->first == "length")
+				continue;
+			m_extra_info[i->first] = i->second;
+		}
+
+#ifndef NDEBUG
+		std::vector<char> info_section_buf;
+		entry gen_info_section = create_info_metadata();
+		bencode(std::back_inserter(info_section_buf), gen_info_section);
+		assert(hasher(&info_section_buf[0], info_section_buf.size()).final()
+			== m_info_hash);
+#endif
 	}
 
 	// extracts information from a libtorrent file and fills in the structures in
@@ -405,35 +426,40 @@ namespace libtorrent
 		// you have to add files to the torrent first
 		assert(!m_files.empty());
 	
-		entry info(entry::dictionary_t);
+		entry info(m_extra_info);
 
-		info["name"] = m_name;
+		if (!info.find_key("name"))
+			info["name"] = m_name;
+
 		if (!m_multifile)
 		{
 			info["length"] = m_files.front().size;
 		}
 		else
 		{
-			entry& files = info["files"];
-			files = entry(entry::list_t);
-
-			for (std::vector<file_entry>::const_iterator i = m_files.begin();
-				i != m_files.end(); ++i)
+			if (!info.find_key("files"))
 			{
-				files.list().push_back(entry(entry::dictionary_t));
-				entry& file_e = files.list().back();
-				file_e["length"] = i->size;
-				entry& path_e = file_e["path"];
-				path_e = entry(entry::list_t);
+				entry& files = info["files"];
+				files = entry(entry::list_t);
 
-				fs::path const& file_path(i->path);
-				assert(file_path.has_branch_path());
-				assert(*file_path.begin() == m_name);
-
-				for (fs::path::iterator j = boost::next(file_path.begin());
-					j != file_path.end(); ++j)
+				for (std::vector<file_entry>::const_iterator i = m_files.begin();
+						i != m_files.end(); ++i)
 				{
-					path_e.list().push_back(*j);
+					files.list().push_back(entry(entry::dictionary_t));
+					entry& file_e = files.list().back();
+					file_e["length"] = i->size;
+					entry& path_e = file_e["path"];
+					path_e = entry(entry::list_t);
+
+					fs::path const& file_path(i->path);
+					assert(file_path.has_branch_path());
+					assert(*file_path.begin() == m_name);
+
+					for (fs::path::iterator j = boost::next(file_path.begin());
+							j != file_path.end(); ++j)
+					{
+						path_e.list().push_back(*j);
+					}
 				}
 			}
 		}
@@ -445,8 +471,7 @@ namespace libtorrent
 		std::string& p = pieces.string();
 
 		for (std::vector<sha1_hash>::const_iterator i = m_piece_hash.begin();
-			i != m_piece_hash.end();
-			++i)
+			i != m_piece_hash.end(); ++i)
 		{
 			p.append((char*)i->begin(), (char*)i->end());
 		}
@@ -454,7 +479,7 @@ namespace libtorrent
 		return info;
 	}
 
-	entry torrent_info::create_torrent()
+	entry torrent_info::create_torrent() const
 	{
 		assert(m_piece_length > 0);
 

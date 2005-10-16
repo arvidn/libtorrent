@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
 		std::ifstream in(argv[1], std::ios_base::binary);
 		in.unsetf(std::ios_base::skipws);
 		entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
-		s.add_torrent(e, "./");
+		s.add_torrent(torrent_info(e), "./");
 				
 		// wait for the user to end
 		char a;
