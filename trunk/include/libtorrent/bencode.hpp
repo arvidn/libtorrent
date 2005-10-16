@@ -195,7 +195,8 @@ namespace libtorrent
 				write_char(out, 'e');
 				break;
 			default:
-				throw invalid_encoding();
+				// do nothing
+				break;
 			}
 		}
 

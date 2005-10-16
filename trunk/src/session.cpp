@@ -118,6 +118,14 @@ namespace libtorrent { namespace detail
 						t = m_torrents.front();
 						if (t->abort)
 						{
+							if (processing->torrent_ptr->num_peers())
+							{
+								m_ses.m_torrents.insert(std::make_pair(
+									t->info_hash, t->torrent_ptr));
+								t->torrent_ptr->abort();
+							}
+
+
 							m_torrents.pop_front();
 							continue;
 						}
@@ -237,6 +245,13 @@ namespace libtorrent { namespace detail
 					{
 						assert(!m_processing.empty());
 						assert(m_processing.front() == processing);
+
+						if (processing->torrent_ptr->num_peers())
+						{
+							m_ses.m_torrents.insert(std::make_pair(
+								processing->info_hash, processing->torrent_ptr));
+							processing->torrent_ptr->abort();
+						}
 
 						processing.reset();
 						m_processing.pop_front();

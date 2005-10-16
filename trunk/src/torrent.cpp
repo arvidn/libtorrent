@@ -860,21 +860,21 @@ namespace libtorrent
 		peer_iterator i = m_connections.find(p->get_socket()->sender());
 		assert(i != m_connections.end());
 
-		// if the peer_connection was downloading any pieces
-		// abort them
-		for (std::deque<piece_block>::const_iterator i = p->download_queue().begin();
-			i != p->download_queue().end(); ++i)
+		if (ready_for_connections())
 		{
-			m_picker->abort_download(*i);
-		}
-		for (std::deque<piece_block>::const_iterator i = p->request_queue().begin();
-			i != p->request_queue().end(); ++i)
-		{
-			m_picker->abort_download(*i);
-		}
+			// if the peer_connection was downloading any pieces
+			// abort them
+			for (std::deque<piece_block>::const_iterator i = p->download_queue().begin();
+				i != p->download_queue().end(); ++i)
+			{
+				m_picker->abort_download(*i);
+			}
+			for (std::deque<piece_block>::const_iterator i = p->request_queue().begin();
+				i != p->request_queue().end(); ++i)
+			{
+				m_picker->abort_download(*i);
+			}
 
-		if (valid_metadata())
-		{
 			std::vector<int> piece_list;
 			const std::vector<bool>& pieces = p->get_bitfield();
 
