@@ -1,3 +1,4 @@
+	* fixed problem with file_size() when building on windows with unicode support
 	* added a new torrent state, allocating
 	* added a new alert, metadata_failed_alert
 	* changed the interface to session::add_torrent for soem speed optimizations.
