@@ -126,8 +126,8 @@ namespace
 
 	bool exists_win( const path & ph )
 	{
-		std::wstring wsave_path(safe_convert(ph.string()));
-		if(::GetFileAttributes( wsave_path.c_str() ) == 0xFFFFFFFF)
+		std::wstring wpath(safe_convert(ph.string()));
+		if(::GetFileAttributes( wpath.c_str() ) == 0xFFFFFFFF)
 		{
 			UINT err = ::GetLastError();
 			if((err == ERROR_FILE_NOT_FOUND)
@@ -144,6 +144,25 @@ namespace
 		return true;
 	}
 
+	BOOST_FILESYSTEM_DECL boost::intmax_t file_size( const path & ph )
+	{
+		std::wstring wpath(safe_convert(ph.string()));
+		// by now, intmax_t is 64-bits on all Windows compilers
+		WIN32_FILE_ATTRIBUTE_DATA fad;
+		if ( !::GetFileAttributesExW( wpath.c_str(),
+					::GetFileExInfoStandard, &fad ) )
+			boost::throw_exception( filesystem_error(
+				"boost::filesystem::file_size",
+				ph, fs::detail::system_error_code() ) );
+		if ( (fad.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) !=0 )
+			boost::throw_exception( filesystem_error(
+				"boost::filesystem::file_size",
+				ph, "invalid: is a directory",
+				is_directory_error ) ); 
+		return (static_cast<boost::intmax_t>(fad.nFileSizeHigh)
+			<< (sizeof(fad.nFileSizeLow)*8))
+			+ fad.nFileSizeLow;
+	}
 	
 	std::time_t last_write_time_win( const path & ph )
 	{
@@ -341,10 +360,11 @@ namespace libtorrent
 			try
 			{
 				path f = p / i->path;
-				size = file_size(f);
 #if defined(_WIN32) && defined(UNICODE)
+				size = file_size_win(f);
 				time = last_write_time_win(f);
 #else
+				size = file_size(f);
 				time = last_write_time(f);
 #endif
 			}
@@ -377,10 +397,11 @@ namespace libtorrent
 			try
 			{
 				path f = p / i->path;
-				size = file_size(f);
 #if defined(_WIN32) && defined(UNICODE)
+				size = file_size_win(f);
 				time = last_write_time_win(f);
 #else
+				size = file_size(f);
 				time = last_write_time(f);
 #endif
 			}

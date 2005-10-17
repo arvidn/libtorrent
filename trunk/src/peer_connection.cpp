@@ -2226,22 +2226,21 @@ namespace libtorrent
 					m_statistics.received_bytes(0, received);
 					if (m_recv_pos < m_packet_size) break;
 					assert(m_recv_pos == m_packet_size);
-					// ok, now we have got enough of the handshake. Is this connection
-					// attached to a torrent?
-
 					// the use of this bit collides with Mainline
 					// the new way of identifying support for the extensions
 					// is in the peer_id
 //					if ((m_recv_buffer[7] & 0x01) && m_ses.extensions_enabled())
 //						m_supports_extensions = true;
 
+					// ok, now we have got enough of the handshake. Is this connection
+					// attached to a torrent?
 					if (m_torrent == 0)
 					{
 
 						// now, we have to see if there's a torrent with the
 						// info_hash we got from the peer
 						sha1_hash info_hash;
-						std::copy(m_recv_buffer.begin()+8, m_recv_buffer.begin() + 28, (char*)info_hash.begin());
+						std::copy(m_recv_buffer.begin() + 8, m_recv_buffer.begin() + 28, (char*)info_hash.begin());
 						
 						m_torrent = m_ses.find_torrent(info_hash);
 						if (m_torrent && m_torrent->is_aborted()) m_torrent = 0;
@@ -2264,7 +2263,7 @@ namespace libtorrent
 							throw protocol_error("connection rejected by paused torrent");
 						}
 
-						// if the torrent's isn't ready to accept
+						// if the torrent isn't ready to accept
 						// connections yet, we'll have to wait with
 						// our initialization
 						if (m_torrent->ready_for_connections()) init();
