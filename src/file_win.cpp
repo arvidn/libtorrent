@@ -211,7 +211,7 @@ namespace libtorrent
 		size_type read(char* buffer, size_type num_bytes)
 		{
 			assert(buffer);
-			assert(num_bytes > 0);
+			assert(num_bytes >= 0);
 			assert((DWORD)num_bytes == num_bytes);
 
 			DWORD bytes_read = 0;
