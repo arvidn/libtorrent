@@ -153,7 +153,7 @@ namespace
 					::GetFileExInfoStandard, &fad ) )
 			boost::throw_exception( filesystem_error(
 				"boost::filesystem::file_size",
-				ph, fs::detail::system_error_code() ) );
+				ph, detail::system_error_code() ) );
 		if ( (fad.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) !=0 )
 			boost::throw_exception( filesystem_error(
 				"boost::filesystem::file_size",
