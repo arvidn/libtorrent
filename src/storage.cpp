@@ -144,7 +144,7 @@ namespace
 		return true;
 	}
 
-	BOOST_FILESYSTEM_DECL boost::intmax_t file_size( const path & ph )
+	BOOST_FILESYSTEM_DECL boost::intmax_t file_size_win( const path & ph )
 	{
 		std::wstring wpath(safe_convert(ph.string()));
 		// by now, intmax_t is 64-bits on all Windows compilers
