@@ -1332,6 +1332,9 @@ namespace libtorrent
 		return m_tracker_address;
 	}
 
+	bool torrent::is_allocating() const
+	{ return m_storage.get() && m_storage->is_allocating(); }
+	
 	std::vector<char> const& torrent::metadata() const
 	{
 		if (m_metadata.empty())
@@ -1538,6 +1541,12 @@ namespace libtorrent
 				, false);
 			m_metadata_progress = 0;
 			m_metadata_size = 0;
+			if (m_ses.m_alerts.should_post(alert::info))
+			{
+				m_ses.m_alerts.post_alert(metadata_failed_alert(
+					get_handle(), "invalid metadata received from swarm"));
+			}
+
 			return false;
 		}
 

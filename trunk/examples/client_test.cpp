@@ -280,6 +280,7 @@ void add_torrent(libtorrent::session& ses
 	, std::vector<libtorrent::torrent_handle>& handles
 	, char const* torrent
 	, float preferred_ratio
+	, bool compact_mode
 	, boost::filesystem::path const& save_path)
 {
 	using namespace libtorrent;
@@ -309,7 +310,7 @@ void add_torrent(libtorrent::session& ses
 
 	TORRENT_CHECKPOINT("++ ses::add_torrent");
 
-	handles.push_back(ses.add_torrent(t, save_path, resume_data, true, 16 * 1024));
+	handles.push_back(ses.add_torrent(t, save_path, resume_data, compact_mode, 16 * 1024));
 	TORRENT_CHECKPOINT("-- ses::add_torrent");
 
 	handles.back().set_max_connections(60);
@@ -328,6 +329,7 @@ int main(int ac, char* av[])
 	std::string save_path_str;
 	std::string log_level;
 	std::string ip_filter_file;
+	std::string allocation_mode;
 
 	namespace po = boost::program_options;
 
@@ -350,6 +352,9 @@ int main(int ac, char* av[])
 		("ip-filter,f", po::value<std::string>(&ip_filter_file)->default_value("")
 			, "sets the path to the ip-filter file used to block access from certain "
 			"ips. ")
+		("allocation-mode,a", po::value<std::string>(&allocation_mode)->default_value("compact")
+			, "sets mode used for allocating the downloaded files on disk. "
+			"Possible options are [full | compact]")
 		("input-file,i", po::value< std::vector<std::string> >()
 			, "adds an input .torrent file. At least one is required. arguments "
 			"without any flag are implicitly an input file. To start a torrentless "
@@ -377,6 +382,8 @@ int main(int ac, char* av[])
 	download_limit *= 1000;
 	if (download_limit <= 0) download_limit = -1;
 	if (upload_limit <= 0) upload_limit = -1;
+	
+	bool compact_allocation_mode = (allocation_mode == "compact");
 	
 	using namespace libtorrent;
 
@@ -468,14 +475,16 @@ int main(int ac, char* av[])
 				{
 					sha1_hash info_hash = boost::lexical_cast<sha1_hash>(what[1]);
 
-					handles.push_back(ses.add_torrent(std::string(what[2]).c_str(), info_hash, save_path));
+					handles.push_back(ses.add_torrent(std::string(what[2]).c_str()
+						, info_hash, save_path, entry(), compact_allocation_mode));
 					handles.back().set_max_connections(60);
 					handles.back().set_max_uploads(-1);
 					handles.back().set_ratio(preferred_ratio);
 					continue;
 				}
 				// if it's a torrent file, open it as usual
-				add_torrent(ses, handles, i->c_str(), preferred_ratio, save_path);
+				add_torrent(ses, handles, i->c_str(), preferred_ratio
+					, compact_allocation_mode, save_path);
 			}
 			catch (std::exception& e)
 			{
@@ -602,7 +611,7 @@ int main(int ac, char* av[])
 				{
 					static char const* state_str[] =
 						{"queued", "checking", "connecting", "downloading metadata"
-						, "downloading", "finished", "seeding"};
+						, "downloading", "finished", "seeding", "allocating"};
 					out << state_str[s.state] << " ";
 				}
 

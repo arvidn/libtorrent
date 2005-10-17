@@ -104,7 +104,8 @@ namespace libtorrent
 			downloading_metadata,
 			downloading,
 			finished,
-			seeding
+			seeding,
+			allocating
 		};
 		
 		state_t state;

@@ -1559,7 +1559,8 @@ It contains the following fields::
 			connecting_to_tracker,
 			downloading,
 			finished,
-			seeding
+			seeding,
+			allocating
 		};
 	
 		state_t state;
@@ -1608,15 +1609,12 @@ current task is in the ``state`` member, it will be one of the following:
 |``queued_for_checking``   |The torrent is in the queue for being checked. But there  |
 |                          |currently is another torrent that are being checked.      |
 |                          |This torrent will wait for its turn.                      |
-|                          |                                                          |
 +--------------------------+----------------------------------------------------------+
 |``checking_files``        |The torrent has not started its download yet, and is      |
 |                          |currently checking existing files.                        |
-|                          |                                                          |
 +--------------------------+----------------------------------------------------------+
 |``connecting_to_tracker`` |The torrent has sent a request to the tracker and is      |
 |                          |currently waiting for a response                          |
-|                          |                                                          |
 +--------------------------+----------------------------------------------------------+
 |``downloading``           |The torrent is being downloaded. This is the state        |
 |                          |most torrents will be in most of the time. The progress   |
@@ -1629,8 +1627,12 @@ current task is in the ``state`` member, it will be one of the following:
 +--------------------------+----------------------------------------------------------+
 |``seeding``               |In this state the torrent has finished downloading and    |
 |                          |is a pure seeder.                                         |
-|                          |                                                          |
 +--------------------------+----------------------------------------------------------+
+|``allocating``            |If the torrent was started in full allocation mode, this  |
+|                          |indicates that the (disk) storage for the torrent is      |
+|                          |allocated.                                                |
++--------------------------+----------------------------------------------------------+
+
 
 When downloading, the progress is ``total_wanted_done`` / ``total_wanted``.
 
@@ -2498,6 +2500,29 @@ torrent in question. This alert is generated as severity level ``info``.
 		virtual std::auto_ptr<alert> clone() const;
 		torrent_handle handle;
 	};
+
+
+metadata_failed_alert
+---------------------
+
+This alert is generated when the metadata has been completely received and the info-hash
+failed to match it. i.e. the metadata that was received was corrupt. libtorrent will
+automatically retry to fetch it in this case. This is only relevant when running a
+torrent-less download, with the metadata extension provided by libtorrent.
+It is generated at severity level ``info``.
+
+::
+
+	struct metadata_received_alert: alert
+	{
+		metadata_received_alert(
+			const torrent_handle& h
+			, const std::string& msg);
+			
+		virtual std::auto_ptr<alert> clone() const;
+		torrent_handle handle;
+	};
+
 
 metadata_received_alert
 -----------------------

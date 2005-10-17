@@ -1,3 +1,5 @@
+	* added a new torrent state, allocating
+	* added a new alert, metadata_failed_alert
 	* changed the interface to session::add_torrent for soem speed optimizations.
 	* greatly improved the command line control of the example client_test.
 	* fixed bug where upload rate limit was not being applied.
