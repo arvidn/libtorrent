@@ -128,6 +128,10 @@ namespace libtorrent
 		void abort();
 		bool is_aborted() const { return m_abort; }
 
+		// returns true if this torrent is being allocated
+		// by the checker thread.
+		bool is_allocating() const;
+		
 		// is called every second by session. This will
 		// caclulate the upload/download and number
 		// of connections this torrent needs. And prepare

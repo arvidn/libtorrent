@@ -836,8 +836,6 @@ namespace libtorrent
 
 		void export_piece_map(std::vector<int>& p) const;
 		
-	private:
-
 		// returns the slot currently associated with the given
 		// piece or assigns the given piece_index to a free slot
 		
@@ -1018,6 +1016,12 @@ namespace libtorrent
 		m_pimpl->mark_failed(index);
 	}
 
+	bool piece_manager::is_allocating() const
+	{
+		return m_pimpl->m_state
+			== impl::state_allocating;
+	}
+	
 	int piece_manager::slot_for_piece(int piece_index) const
 	{
 		return m_pimpl->slot_for_piece(piece_index);

@@ -128,6 +128,7 @@ namespace libtorrent
 
 		void release_files();
 
+		bool is_allocating() const;
 		void allocate_slots(int num_slots);
 		void mark_failed(int index);
 
