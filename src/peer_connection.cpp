@@ -1358,7 +1358,9 @@ namespace libtorrent
 
 				if (total_size > 500 * 1024)
 					throw protocol_error("metadata size larger than 500 kB");
-				if (offset > total_size)
+				if (total_size <= 0)
+					throw protocol_error("invalid metadata size");
+				if (offset > total_size || offset < 0)
 					throw protocol_error("invalid metadata offset");
 				if (offset + data_size > total_size)
 					throw protocol_error("invalid metadata message");
