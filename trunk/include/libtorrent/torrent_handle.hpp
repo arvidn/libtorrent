@@ -213,7 +213,7 @@ namespace libtorrent
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 
 		std::vector<announce_entry> const& trackers() const;
-		void replace_trackers(std::vector<announce_entry> const&);
+		void replace_trackers(std::vector<announce_entry> const&) const;
 
 		bool has_metadata() const;
 		const torrent_info& get_torrent_info() const;
@@ -221,14 +221,14 @@ namespace libtorrent
 
 		bool is_seed() const;
 		bool is_paused() const;
-		void pause();
-		void resume();
+		void pause() const;
+		void resume() const;
 
 
 		// marks the piece with the given index as filtered
 		// it will not be downloaded
-		void filter_piece(int index, bool filter);
-		void filter_pieces(std::vector<bool> const& pieces);
+		void filter_piece(int index, bool filter) const;
+		void filter_pieces(std::vector<bool> const& pieces) const;
 		bool is_piece_filtered(int index) const;
 		std::vector<bool> filtered_pieces() const;
 
@@ -236,12 +236,12 @@ namespace libtorrent
 		//todo refactoring and improving the function body
 		// marks the file with the given index as filtered
 		// it will not be downloaded
-		void filter_file(int index, bool filter);
-		void filter_files(std::vector<bool> const& files);
+		void filter_file(int index, bool filter) const;
+		void filter_files(std::vector<bool> const& files) const;
 
 		// set the interface to bind outgoing connections
 		// to.
-		void use_interface(const char* net_interface);
+		void use_interface(const char* net_interface) const;
 
 		entry write_resume_data() const;
 
@@ -266,15 +266,15 @@ namespace libtorrent
 		// to finish all pieces currently in the pipeline, and then
 		// abort the torrent.
 
-		void set_upload_limit(int limit);
-		void set_download_limit(int limit);
+		void set_upload_limit(int limit) const;
+		void set_download_limit(int limit) const;
 
 		// manually connect a peer
 		void connect_peer(address const& adr) const;
 
 		// valid ratios are 0 (infinite ratio) or [ 1.0 , inf )
 		// the ratio is uploaded / downloaded. less than 1 is not allowed
-		void set_ratio(float up_down_ratio);
+		void set_ratio(float up_down_ratio) const;
 
 		// TODO: add finish_file_allocation, which will force the
 		// torrent to allocate storage for all pieces.
@@ -282,15 +282,16 @@ namespace libtorrent
 		boost::filesystem::path save_path() const;
 
 		// -1 means unlimited unchokes
-		void set_max_uploads(int max_uploads);
+		void set_max_uploads(int max_uploads) const;
 
 		// -1 means unlimited connections
-		void set_max_connections(int max_connections);
+		void set_max_connections(int max_connections) const;
 
-		void set_tracker_login(std::string const& name, std::string const& password);
+		void set_tracker_login(std::string const& name
+			, std::string const& password) const;
 
 		// post condition: save_path() == save_path if true is returned
-		bool move_storage(boost::filesystem::path const& save_path);
+		bool move_storage(boost::filesystem::path const& save_path) const;
 
 		const sha1_hash& info_hash() const
 		{ return m_info_hash; }

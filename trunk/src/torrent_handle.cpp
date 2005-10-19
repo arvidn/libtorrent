@@ -116,7 +116,7 @@ namespace libtorrent
 
 #endif
 
-	void torrent_handle::set_max_uploads(int max_uploads)
+	void torrent_handle::set_max_uploads(int max_uploads) const
 	{
 		INVARIANT_CHECK;
 
@@ -126,7 +126,7 @@ namespace libtorrent
 			, bind(&torrent::set_max_uploads, _1, max_uploads));
 	}
 
-	void torrent_handle::use_interface(const char* net_interface)
+	void torrent_handle::use_interface(const char* net_interface) const
 	{
 		INVARIANT_CHECK;
 
@@ -134,7 +134,7 @@ namespace libtorrent
 			, bind(&torrent::use_interface, _1, net_interface));
 	}
 
-	void torrent_handle::set_max_connections(int max_connections)
+	void torrent_handle::set_max_connections(int max_connections) const
 	{
 		INVARIANT_CHECK;
 
@@ -144,7 +144,7 @@ namespace libtorrent
 			, bind(&torrent::set_max_connections, _1, max_connections));
 	}
 
-	void torrent_handle::set_upload_limit(int limit)
+	void torrent_handle::set_upload_limit(int limit) const
 	{
 		INVARIANT_CHECK;
 
@@ -154,7 +154,7 @@ namespace libtorrent
 			, bind(&torrent::set_upload_limit, _1, limit));
 	}
 
-	void torrent_handle::set_download_limit(int limit)
+	void torrent_handle::set_download_limit(int limit) const
 	{
 		INVARIANT_CHECK;
 
@@ -164,7 +164,8 @@ namespace libtorrent
 			, bind(&torrent::set_download_limit, _1, limit));
 	}
 
-	bool torrent_handle::move_storage(boost::filesystem::path const& save_path)
+	bool torrent_handle::move_storage(
+		boost::filesystem::path const& save_path) const
 	{
 		INVARIANT_CHECK;
 
@@ -196,7 +197,7 @@ namespace libtorrent
 			, bind(&torrent::is_paused, _1));
 	}
 
-	void torrent_handle::pause()
+	void torrent_handle::pause() const
 	{
 		INVARIANT_CHECK;
 
@@ -204,7 +205,7 @@ namespace libtorrent
 			, bind(&torrent::pause, _1));
 	}
 
-	void torrent_handle::resume()
+	void torrent_handle::resume() const
 	{
 		INVARIANT_CHECK;
 
@@ -212,7 +213,8 @@ namespace libtorrent
 			, bind(&torrent::resume, _1));
 	}
 
-	void torrent_handle::set_tracker_login(std::string const& name, std::string const& password)
+	void torrent_handle::set_tracker_login(std::string const& name
+		, std::string const& password) const
 	{
 		INVARIANT_CHECK;
 
@@ -261,14 +263,14 @@ namespace libtorrent
 		return torrent_status();
 	}
 
-	void torrent_handle::filter_piece(int index, bool filter)
+	void torrent_handle::filter_piece(int index, bool filter) const
 	{
 		INVARIANT_CHECK;
 		call_member<void>(m_ses, m_chk, m_info_hash
 			, bind(&torrent::filter_piece, _1, index, filter));
 	}
 
-	void torrent_handle::filter_pieces(std::vector<bool> const& pieces)
+	void torrent_handle::filter_pieces(std::vector<bool> const& pieces) const
 	{
 		INVARIANT_CHECK;
 		call_member<void>(m_ses, m_chk, m_info_hash
@@ -291,14 +293,14 @@ namespace libtorrent
 		return ret;
 	}
 
-	void torrent_handle::filter_file(int index, bool filter)
+	void torrent_handle::filter_file(int index, bool filter) const
 	{
 		INVARIANT_CHECK;
 		call_member<void>(m_ses, m_chk, m_info_hash
 			, bind(&torrent::filter_file, _1, index, filter));
 	}
 
-	void torrent_handle::filter_files(std::vector<bool> const& files)
+	void torrent_handle::filter_files(std::vector<bool> const& files) const
 	{
 		INVARIANT_CHECK;
 		call_member<void>(m_ses, m_chk, m_info_hash
@@ -313,7 +315,8 @@ namespace libtorrent
 			, m_chk, m_info_hash, bind(&torrent::trackers, _1));
 	}
 
-	void torrent_handle::replace_trackers(std::vector<announce_entry> const& urls)
+	void torrent_handle::replace_trackers(
+		std::vector<announce_entry> const& urls) const
 	{
 		INVARIANT_CHECK;
 
@@ -532,7 +535,7 @@ namespace libtorrent
 		t->force_tracker_request();
 	}
 
-	void torrent_handle::set_ratio(float ratio)
+	void torrent_handle::set_ratio(float ratio) const
 	{
 		INVARIANT_CHECK;
 
@@ -694,3 +697,4 @@ namespace libtorrent
 	}
 
 }
+
