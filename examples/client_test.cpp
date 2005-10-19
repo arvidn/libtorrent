@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/exception.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/bind.hpp>
 #include <boost/program_options.hpp>
 #include <boost/regex.hpp>
@@ -276,24 +277,40 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 	}
 }
 
+typedef std::multimap<std::string, libtorrent::torrent_handle> handles_t;
+
+using boost::posix_time::ptime;
+using boost::posix_time::second_clock;
+using boost::posix_time::seconds;
+using boost::bind;
+using boost::filesystem::path;
+using boost::filesystem::exists;
+using boost::filesystem::no_check;
+using boost::filesystem::directory_iterator;
+using boost::filesystem::extension;
+
+
+// monitored_dir is true if this torrent is added because
+// it was found in the directory that is monitored. If it
+// is, it should be remembered so that it can be removed
+// if it's no longer in that directory.
 void add_torrent(libtorrent::session& ses
-	, std::vector<libtorrent::torrent_handle>& handles
-	, char const* torrent
+	, handles_t& handles
+	, std::string const& torrent
 	, float preferred_ratio
 	, bool compact_mode
-	, boost::filesystem::path const& save_path)
+	, path const& save_path
+	, bool monitored_dir)
 {
 	using namespace libtorrent;
 
-	TORRENT_CHECKPOINT("++ load torrent");
-	std::ifstream in(torrent, std::ios_base::binary);
+	std::ifstream in(torrent.c_str(), std::ios_base::binary);
 	in.unsetf(std::ios_base::skipws);
 	entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
 	torrent_info t(e);
 
 	std::cout << t.name() << "\n";
 
-	TORRENT_CHECKPOINT("++ load resumedata");
 	entry resume_data;
 	try
 	{
@@ -302,26 +319,86 @@ void add_torrent(libtorrent::session& ses
 		boost::filesystem::ifstream resume_file(save_path / s.str(), std::ios_base::binary);
 		resume_file.unsetf(std::ios_base::skipws);
 		resume_data = bdecode(
-				std::istream_iterator<char>(resume_file)
-				, std::istream_iterator<char>());
+			std::istream_iterator<char>(resume_file)
+			, std::istream_iterator<char>());
 	}
 	catch (invalid_encoding&) {}
 	catch (boost::filesystem::filesystem_error&) {}
 
-	TORRENT_CHECKPOINT("++ ses::add_torrent");
+	torrent_handle h = ses.add_torrent(t, save_path, resume_data
+		, compact_mode, 16 * 1024);
+	handles.insert(std::make_pair(
+		monitored_dir?std::string(torrent):std::string(), h));
 
-	handles.push_back(ses.add_torrent(t, save_path, resume_data, compact_mode, 16 * 1024));
-	TORRENT_CHECKPOINT("-- ses::add_torrent");
+	h.set_max_connections(60);
+	h.set_max_uploads(-1);
+	h.set_ratio(preferred_ratio);
+}
 
-	handles.back().set_max_connections(60);
-	handles.back().set_max_uploads(-1);
-	handles.back().set_ratio(preferred_ratio);
+void scan_dir(path const& dir_path
+	, libtorrent::session& ses
+	, handles_t& handles
+	, float preferred_ratio
+	, bool compact_mode
+	, path const& save_path)
+{
+	std::set<std::string> valid;
 
-	TORRENT_CHECKPOINT("-- add_torrent");
+	using namespace libtorrent;
+
+	for (directory_iterator i(dir_path), end; i != end; ++i)
+	{
+		if (extension(*i) != ".torrent") continue;
+		std::string file = i->string();
+
+		handles_t::iterator k = handles.find(file);
+		if (k != handles.end())
+		{
+			valid.insert(file);
+			continue;
+		}
+
+		// the file has been added to the dir, start
+		// downloading it.
+		add_torrent(ses, handles, file, preferred_ratio, compact_mode
+			, save_path, true);
+		valid.insert(file);
+	}
+
+	// remove the torrents that are no longer in the directory
+
+	for (handles_t::iterator i = handles.begin()
+		, end(handles.end()); i != end; ++i)
+	{
+		if (i->first.empty()) continue;
+		if (valid.find(i->first) != valid.end()) continue;
+
+		torrent_handle& h = i->second;
+		if (!h.is_valid())
+		{
+			handles.erase(i--);
+			continue;
+		}
+		
+		h.pause();
+		if (h.has_metadata())
+		{
+			entry data = h.write_resume_data();
+			std::stringstream s;
+			s << h.get_torrent_info().name() << ".fastresume";
+			boost::filesystem::ofstream out(h.save_path() / s.str(), std::ios_base::binary);
+			out.unsetf(std::ios_base::skipws);
+			bencode(std::ostream_iterator<char>(out), data);
+		}
+		ses.remove_torrent(h);
+		handles.erase(i--);
+	}
 }
 
 int main(int ac, char* av[])
 {
+	path::default_name_check(no_check);
+
 	int listen_port;
 	float preferred_ratio;
 	int download_limit;
@@ -330,17 +407,21 @@ int main(int ac, char* av[])
 	std::string log_level;
 	std::string ip_filter_file;
 	std::string allocation_mode;
+	std::string in_monitor_dir;
+	int poll_interval;
 
 	namespace po = boost::program_options;
+	try
+	{
 
-	po::options_description desc("supported options");
-	desc.add_options()
+		po::options_description desc("supported options");
+		desc.add_options()
 		("help,h", "display this help message")
 		("port,p", po::value<int>(&listen_port)->default_value(6881)
 			, "set listening port")
 		("ratio,r", po::value<float>(&preferred_ratio)->default_value(0)
 			, "set the preferred upload/download ratio. 0 means infinite. Values "
-		 	"smaller than 1 are clamped to 1.")
+			"smaller than 1 are clamped to 1.")
 		("max-download-rate,d", po::value<int>(&download_limit)->default_value(0)
 			, "the maximum download rate given in kB/s. 0 means infinite.")
 		("max-upload-rate,u", po::value<int>(&upload_limit)->default_value(0)
@@ -355,55 +436,69 @@ int main(int ac, char* av[])
 		("allocation-mode,a", po::value<std::string>(&allocation_mode)->default_value("compact")
 			, "sets mode used for allocating the downloaded files on disk. "
 			"Possible options are [full | compact]")
-		("input-file,i", po::value< std::vector<std::string> >()
+		("input-file,i", po::value<std::vector<std::string> >()
 			, "adds an input .torrent file. At least one is required. arguments "
 			"without any flag are implicitly an input file. To start a torrentless "
 			"download, use <info-hash>@<tracker-url> instead of specifying a file.")
-		;
+		("monitor-dir,m", po::value<std::string>(&in_monitor_dir)
+			, "monitors the given directory, looking for .torrent files and "
+			"automatically starts downloading them. It will stop downloading "
+			"torrent files that are removed from the directory")
+		("poll-interval,t", po::value<int>(&poll_interval)->default_value(2)
+			, "if a directory is being monitored, this is the interval (given "
+			"in seconds) between two refreshes of the directory listing")
+			;
 
-	po::positional_options_description p;
-	p.add("input-file", -1);
+		po::positional_options_description p;
+		p.add("input-file", -1);
 
-	po::variables_map vm;
-	po::store(po::command_line_parser(ac, av).
-		options(desc).positional(p).run(), vm);
-	po::notify(vm);    
-	
-	if (vm.count("help") || vm.count("input-file") == 0)
-	{
-		std::cout << desc << "\n";
-		return 1;
-	}
+		po::variables_map vm;
+		po::store(po::command_line_parser(ac, av).
+			options(desc).positional(p).run(), vm);
+		po::notify(vm);    
 
-	// make sure the arguments stays within the usable limits
-	if (listen_port < 0 || listen_port > 65525) listen_port = 6881;
-	if (preferred_ratio != 0 && preferred_ratio < 1.f) preferred_ratio = 1.f;
-	upload_limit *= 1000;
-	download_limit *= 1000;
-	if (download_limit <= 0) download_limit = -1;
-	if (upload_limit <= 0) upload_limit = -1;
-	
-	bool compact_allocation_mode = (allocation_mode == "compact");
-	
-	using namespace libtorrent;
+		// make sure the arguments stays within the usable limits
+		path monitor_dir(in_monitor_dir);
+		if (listen_port < 0 || listen_port > 65525) listen_port = 6881;
+		if (preferred_ratio != 0 && preferred_ratio < 1.f) preferred_ratio = 1.f;
+		upload_limit *= 1000;
+		download_limit *= 1000;
+		if (download_limit <= 0) download_limit = -1;
+		if (upload_limit <= 0) upload_limit = -1;
+		if (poll_interval < 2) poll_interval = 2;
+		if (!monitor_dir.empty() && !exists(monitor_dir))
+		{
+			std::cerr << "The monitor directory doesn't exist: " << monitor_dir.string() << std::endl;
+			return 1;
+		}
 
-	std::vector<std::string> const& input = vm["input-file"].as< std::vector<std::string> >();
+		if (vm.count("help")
+			|| vm.count("input-file") + vm.count("monitor-dir") == 0)
+		{
+			std::cout << desc << "\n";
+			return 1;
+		}
 
-	namespace fs = boost::filesystem;
-	fs::path::default_name_check(fs::no_check);
-	
-	http_settings settings;
-//	settings.proxy_ip = "192.168.0.1";
-//	settings.proxy_port = 80;
-//	settings.proxy_login = "hyd";
-//	settings.proxy_password = "foobar";
-	settings.user_agent = "client_test";
+		bool compact_allocation_mode = (allocation_mode == "compact");
 
-	std::deque<std::string> events;
+		using namespace libtorrent;
 
-	try
-	{
-		std::vector<torrent_handle> handles;
+		std::vector<std::string> input;
+		if (vm.count("input-file") > 0)
+			input = vm["input-file"].as< std::vector<std::string> >();
+
+		http_settings settings;
+		settings.user_agent = "client_test";
+
+		std::deque<std::string> events;
+
+		ptime next_dir_scan = second_clock::universal_time();
+
+		// the string is the filename of the .torrent file, but only if
+		// it was added through the directory monitor. It is used to
+		// be able to remove torrents that were added via the directory
+		// monitor when they're not in the directory anymore.
+		handles_t handles;
 		session ses;
 
 		ses.set_download_rate_limit(download_limit);
@@ -475,24 +570,24 @@ int main(int ac, char* av[])
 				{
 					sha1_hash info_hash = boost::lexical_cast<sha1_hash>(what[1]);
 
-					handles.push_back(ses.add_torrent(std::string(what[2]).c_str()
-						, info_hash, save_path, entry(), compact_allocation_mode));
-					handles.back().set_max_connections(60);
-					handles.back().set_max_uploads(-1);
-					handles.back().set_ratio(preferred_ratio);
+					torrent_handle h = ses.add_torrent(std::string(what[2]).c_str()
+						, info_hash, save_path, entry(), compact_allocation_mode);
+					handles.insert(std::make_pair(std::string(), h));
+
+					h.set_max_connections(60);
+					h.set_max_uploads(-1);
+					h.set_ratio(preferred_ratio);
 					continue;
 				}
 				// if it's a torrent file, open it as usual
 				add_torrent(ses, handles, i->c_str(), preferred_ratio
-					, compact_allocation_mode, save_path);
+					, compact_allocation_mode, save_path, false);
 			}
 			catch (std::exception& e)
 			{
 				std::cout << e.what() << "\n";
 			}
 		}
-
-		if (handles.empty()) return 1;
 
 		// main loop
 		std::vector<peer_info> peers;
@@ -509,10 +604,10 @@ int main(int ac, char* av[])
 			{
 				if (c == 'q')
 				{
-					for (std::vector<torrent_handle>::iterator i = handles.begin();
+					for (handles_t::iterator i = handles.begin();
 						i != handles.end(); ++i)
 					{
-						torrent_handle h = *i;
+						torrent_handle& h = i->second;
 						if (!h.is_valid() || !h.has_metadata()) continue;
 
 						h.pause();
@@ -523,31 +618,34 @@ int main(int ac, char* av[])
 						boost::filesystem::ofstream out(h.save_path() / s.str(), std::ios_base::binary);
 						out.unsetf(std::ios_base::skipws);
 						bencode(std::ostream_iterator<char>(out), data);
-						ses.remove_torrent(*i);
+						ses.remove_torrent(h);
 					}
 					break;
 				}
 
 				if(c == 'r')
 				{
-					// force reannounce on all torrents
+/*					// force reannounce on all torrents
 					std::for_each(handles.begin(), handles.end()
-						, boost::bind(&torrent_handle::force_reannounce, _1));
-				}
+						, bind(&torrent_handle::force_reannounce
+						, bind(&handles_t::value_type::first, _1)));
+*/				}
 
 				if(c == 'p')
 				{
-					// pause all torrents
+/*					// pause all torrents
 					std::for_each(handles.begin(), handles.end()
-						, boost::bind(&torrent_handle::pause, _1));
-				}
+						, bind(&torrent_handle::pause
+						, bind(&handles_t::value_type::first, _1)));
+*/				}
 
 				if(c == 'u')
 				{
-					// unpause all torrents
+/*					// unpause all torrents
 					std::for_each(handles.begin(), handles.end()
-						, boost::bind(&torrent_handle::resume, _1));
-				}
+						, bind(&torrent_handle::resume
+						, bind(&handles_t::value_type::first, _1)));
+*/				}
 
 				if (c == 'i') print_peers = !print_peers;
 				if (c == 'l') print_log = !print_log;
@@ -592,20 +690,21 @@ int main(int ac, char* av[])
 			session_status sess_stat = ses.status();
 			
 			std::stringstream out;
-			for (std::vector<torrent_handle>::iterator i = handles.begin();
+			for (handles_t::iterator i = handles.begin();
 				i != handles.end(); ++i)
 			{
-				if (!i->is_valid())
+				torrent_handle& h = i->second;
+				if (!h.is_valid())
 				{
 					handles.erase(i);
 					--i;
 					continue;
 				}
 				out << "name: " << esc("37");
-				if (i->has_metadata()) out << i->get_torrent_info().name();
+				if (h.has_metadata()) out << h.get_torrent_info().name();
 				else out << "-";
 				out << esc("0") << "\n";
-				torrent_status s = i->status();
+				torrent_status s = h.status();
 
 				if (s.state != torrent_status::seeding)
 				{
@@ -615,7 +714,7 @@ int main(int ac, char* av[])
 					out << state_str[s.state] << " ";
 				}
 
-				i->get_peer_info(peers);
+				h.get_peer_info(peers);
 
 				if (s.state != torrent_status::seeding)
 				{
@@ -651,7 +750,7 @@ int main(int ac, char* av[])
 					<< "ratio: " << ratio(s.total_payload_download, s.total_payload_upload) << "\n";
 				if (s.state != torrent_status::seeding)
 				{
-					out << "info-hash: " << i->info_hash() << "\n";
+					out << "info-hash: " << h.info_hash() << "\n";
 
 					boost::posix_time::time_duration t = s.next_announce;
 					out << "next announce: " << esc("37") << boost::posix_time::to_simple_string(t) << esc("0") << "\n";
@@ -668,7 +767,7 @@ int main(int ac, char* av[])
 
 				if (print_downloads && s.state != torrent_status::seeding)
 				{
-					i->get_download_queue(queue);
+					h.get_download_queue(queue);
 					for (std::vector<partial_piece_info>::iterator i = queue.begin();
 						i != queue.end(); ++i)
 					{
@@ -706,6 +805,14 @@ int main(int ac, char* av[])
 
 			clear_home();
 			puts(out.str().c_str());
+
+			if (!monitor_dir.empty()
+				&& next_dir_scan < second_clock::universal_time())
+			{
+				scan_dir(monitor_dir, ses, handles, preferred_ratio
+					, compact_allocation_mode, save_path);
+				next_dir_scan = second_clock::universal_time() + seconds(poll_interval);
+			}
 		}
 	}
 	catch (std::exception& e)

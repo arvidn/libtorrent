@@ -1,3 +1,5 @@
+	* client_test can now monitor a directory for torrent files and automatically
+	  start and stop downloads while running
 	* fixed problem with file_size() when building on windows with unicode support
 	* added a new torrent state, allocating
 	* added a new alert, metadata_failed_alert
