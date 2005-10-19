@@ -531,30 +531,32 @@ int main(int ac, char* av[])
 		// here ranges may overlap, and it is the last added
 		// rule that has precedence for addresses that may fall
 		// into more than one range.
-		std::ifstream in(ip_filter_file.c_str());
-		ip_filter filter;
-		while (in.good())
+		if (!ip_filter_file.empty())
 		{
-			char line[300];
-			in.getline(line, 300);
-			int len = in.gcount();
-			if (len <= 0) continue;
-			if (line[0] == '#') continue;
-			int a, b, c, d;
-			char dummy;
-			in >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
-			address start(a, b, c, d, 0);
-			in >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
-			address last(a, b, c, d, 0);
-			int flags;
-			in >> flags;
-			if (flags <= 127) flags = ip_filter::blocked;
-			else flags = 0;
-			if (in.fail()) break;
-			filter.add_rule(start, last, flags);
+			std::ifstream in(ip_filter_file.c_str());
+			ip_filter filter;
+			while (in.good())
+			{
+				char line[300];
+				in.getline(line, 300);
+				int len = in.gcount();
+				if (len <= 0) continue;
+				if (line[0] == '#') continue;
+				int a, b, c, d;
+				char dummy;
+				in >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
+				address start(a, b, c, d, 0);
+				in >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
+				address last(a, b, c, d, 0);
+				int flags;
+				in >> flags;
+				if (flags <= 127) flags = ip_filter::blocked;
+				else flags = 0;
+				if (in.fail()) break;
+				filter.add_rule(start, last, flags);
+			}
+			ses.set_ip_filter(filter);
 		}
-	
-		ses.set_ip_filter(filter);
 		boost::filesystem::path save_path(save_path_str);
 
 		// load the torrents given on the commandline
