@@ -625,27 +625,27 @@ int main(int ac, char* av[])
 
 				if(c == 'r')
 				{
-/*					// force reannounce on all torrents
+					// force reannounce on all torrents
 					std::for_each(handles.begin(), handles.end()
 						, bind(&torrent_handle::force_reannounce
-						, bind(&handles_t::value_type::first, _1)));
-*/				}
+						, bind(&handles_t::value_type::second, _1)));
+				}
 
 				if(c == 'p')
 				{
-/*					// pause all torrents
+					// pause all torrents
 					std::for_each(handles.begin(), handles.end()
 						, bind(&torrent_handle::pause
-						, bind(&handles_t::value_type::first, _1)));
-*/				}
+						, bind(&handles_t::value_type::second, _1)));
+				}
 
 				if(c == 'u')
 				{
-/*					// unpause all torrents
+					// unpause all torrents
 					std::for_each(handles.begin(), handles.end()
 						, bind(&torrent_handle::resume
-						, bind(&handles_t::value_type::first, _1)));
-*/				}
+						, bind(&handles_t::value_type::second, _1)));
+				}
 
 				if (c == 'i') print_peers = !print_peers;
 				if (c == 'l') print_log = !print_log;
