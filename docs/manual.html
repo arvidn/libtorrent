@@ -119,42 +119,43 @@
 <li><a class="reference" href="#peer-error-alert" id="id101" name="id101">peer_error_alert</a></li>
 <li><a class="reference" href="#invalid-request-alert" id="id102" name="id102">invalid_request_alert</a></li>
 <li><a class="reference" href="#torrent-finished-alert" id="id103" name="id103">torrent_finished_alert</a></li>
-<li><a class="reference" href="#metadata-received-alert" id="id104" name="id104">metadata_received_alert</a></li>
-<li><a class="reference" href="#fastresume-rejected-alert" id="id105" name="id105">fastresume_rejected_alert</a></li>
-<li><a class="reference" href="#dispatcher" id="id106" name="id106">dispatcher</a></li>
+<li><a class="reference" href="#metadata-failed-alert" id="id104" name="id104">metadata_failed_alert</a></li>
+<li><a class="reference" href="#metadata-received-alert" id="id105" name="id105">metadata_received_alert</a></li>
+<li><a class="reference" href="#fastresume-rejected-alert" id="id106" name="id106">fastresume_rejected_alert</a></li>
+<li><a class="reference" href="#dispatcher" id="id107" name="id107">dispatcher</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#exceptions" id="id107" name="id107">exceptions</a><ul>
-<li><a class="reference" href="#invalid-handle" id="id108" name="id108">invalid_handle</a></li>
-<li><a class="reference" href="#duplicate-torrent" id="id109" name="id109">duplicate_torrent</a></li>
-<li><a class="reference" href="#invalid-encoding" id="id110" name="id110">invalid_encoding</a></li>
-<li><a class="reference" href="#type-error" id="id111" name="id111">type_error</a></li>
-<li><a class="reference" href="#invalid-torrent-file" id="id112" name="id112">invalid_torrent_file</a></li>
+<li><a class="reference" href="#exceptions" id="id108" name="id108">exceptions</a><ul>
+<li><a class="reference" href="#invalid-handle" id="id109" name="id109">invalid_handle</a></li>
+<li><a class="reference" href="#duplicate-torrent" id="id110" name="id110">duplicate_torrent</a></li>
+<li><a class="reference" href="#invalid-encoding" id="id111" name="id111">invalid_encoding</a></li>
+<li><a class="reference" href="#type-error" id="id112" name="id112">type_error</a></li>
+<li><a class="reference" href="#invalid-torrent-file" id="id113" name="id113">invalid_torrent_file</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#examples" id="id113" name="id113">examples</a><ul>
-<li><a class="reference" href="#dump-torrent" id="id114" name="id114">dump_torrent</a></li>
-<li><a class="reference" href="#simple-client" id="id115" name="id115">simple client</a></li>
-<li><a class="reference" href="#make-torrent" id="id116" name="id116">make_torrent</a></li>
+<li><a class="reference" href="#examples" id="id114" name="id114">examples</a><ul>
+<li><a class="reference" href="#dump-torrent" id="id115" name="id115">dump_torrent</a></li>
+<li><a class="reference" href="#simple-client" id="id116" name="id116">simple client</a></li>
+<li><a class="reference" href="#make-torrent" id="id117" name="id117">make_torrent</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#fast-resume" id="id117" name="id117">fast resume</a><ul>
-<li><a class="reference" href="#file-format" id="id118" name="id118">file format</a></li>
+<li><a class="reference" href="#fast-resume" id="id118" name="id118">fast resume</a><ul>
+<li><a class="reference" href="#file-format" id="id119" name="id119">file format</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#threads" id="id119" name="id119">threads</a></li>
-<li><a class="reference" href="#storage-allocation" id="id120" name="id120">storage allocation</a><ul>
-<li><a class="reference" href="#full-allocation" id="id121" name="id121">full allocation</a></li>
-<li><a class="reference" href="#compact-allocation" id="id122" name="id122">compact allocation</a></li>
+<li><a class="reference" href="#threads" id="id120" name="id120">threads</a></li>
+<li><a class="reference" href="#storage-allocation" id="id121" name="id121">storage allocation</a><ul>
+<li><a class="reference" href="#full-allocation" id="id122" name="id122">full allocation</a></li>
+<li><a class="reference" href="#compact-allocation" id="id123" name="id123">compact allocation</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#extensions" id="id123" name="id123">extensions</a><ul>
-<li><a class="reference" href="#chat-messages" id="id124" name="id124">chat messages</a></li>
-<li><a class="reference" href="#metadata-from-peers" id="id125" name="id125">metadata from peers</a></li>
+<li><a class="reference" href="#extensions" id="id124" name="id124">extensions</a><ul>
+<li><a class="reference" href="#chat-messages" id="id125" name="id125">chat messages</a></li>
+<li><a class="reference" href="#metadata-from-peers" id="id126" name="id126">metadata from peers</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#filename-checks" id="id126" name="id126">filename checks</a></li>
-<li><a class="reference" href="#acknowledgements" id="id127" name="id127">acknowledgements</a></li>
+<li><a class="reference" href="#filename-checks" id="id127" name="id127">filename checks</a></li>
+<li><a class="reference" href="#acknowledgements" id="id128" name="id128">acknowledgements</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
@@ -1228,45 +1229,45 @@ struct torrent_handle
         torrent_handle();
 
         torrent_status status();
-        void get_download_queue(std::vector&lt;partial_piece_info&gt;&amp; queue);
-        void get_peer_info(std::vector&lt;peer_info&gt;&amp; v);
-        torrent_info const&amp; get_torrent_info();
-        bool is_valid();
+        void get_download_queue(std::vector&lt;partial_piece_info&gt;&amp; queue) const;
+        void get_peer_info(std::vector&lt;peer_info&gt;&amp; v) const;
+        torrent_info const&amp; get_torrent_info() const;
+        bool is_valid() const;
 
-        entry write_resume_data();
+        entry write_resume_data() const;
         std::vector&lt;char&gt; const&amp; metadata() const;
-        void force_reannounce();
+        void force_reannounce() const;
         void connect_peer(address const&amp; adr) const;
 
         void set_tracker_login(std::string const&amp; username
-                , std::string const&amp; password);
+                , std::string const&amp; password) const;
 
         std::vector&lt;announce_entry&gt; const&amp; trackers() const;
         void replace_trackers(std::vector&lt;announce_entry&gt; const&amp;);
 
-        void set_ratio(float ratio);
-        void set_max_uploads(int max_uploads);
-        void set_max_connections(int max_connections);
-        void set_upload_limit(int limit);
-        void set_download_limit(int limit);
-        void use_interface(char const* net_interface);
+        void set_ratio(float ratio) const;
+        void set_max_uploads(int max_uploads) const;
+        void set_max_connections(int max_connections) const;
+        void set_upload_limit(int limit) const;
+        void set_download_limit(int limit) const;
+        void use_interface(char const* net_interface) const;
 
-        void pause();
-        void resume();
+        void pause() const;
+        void resume() const;
         bool is_paused() const;
         bool is_seed() const;
 
-        void filter_piece(int index, bool filter);
-        void filter_pieces(std::vector&lt;bool&gt; const&amp; bitmask);
+        void filter_piece(int index, bool filter) const;
+        void filter_pieces(std::vector&lt;bool&gt; const&amp; bitmask) const;
         bool is_piece_filtered(int index) const;
         std::vector&lt;bool&gt; filtered_pieces() const;
 
-        void filter_files(std::vector&lt;bool&gt; const&amp; files);
+        void filter_files(std::vector&lt;bool&gt; const&amp; files) const;
 
         bool has_metadata() const;
 
         boost::filsystem::path save_path() const;
-        bool move_storage(boost::filesystem::path const&amp; save_path);
+        bool move_storage(boost::filesystem::path const&amp; save_path) const;
 
         sha1_hash info_hash() const;
 
@@ -1293,7 +1294,7 @@ was started.</p>
 <h2><a name="move-storage">move_storage()</a></h2>
 <blockquote>
 <pre class="literal-block">
-bool move_storage(boost::filsystem::path const&amp; save_path);
+bool move_storage(boost::filsystem::path const&amp; save_path) const;
 </pre>
 </blockquote>
 <p>Moves the file(s) that this torrent are currently seeding from or downloading to. This
@@ -1306,7 +1307,7 @@ returns false, otherwise true. Post condition for successful operation is:
 <h2><a name="force-reannounce">force_reannounce()</a></h2>
 <blockquote>
 <pre class="literal-block">
-void force_reannounce();
+void force_reannounce() const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">force_reannounce()</span></tt> will force this torrent to do another tracker request, to receive new
@@ -1330,7 +1331,7 @@ will throw <a class="reference" href="#invalid-handle">invalid_handle</a>.</p>
 <h2><a name="set-ratio">set_ratio()</a></h2>
 <blockquote>
 <pre class="literal-block">
-void set_ratio(float ratio);
+void set_ratio(float ratio) const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">set_ratio()</span></tt> sets the desired download / upload ratio. If set to 0, it is considered being
@@ -1345,8 +1346,8 @@ as a standard client.</p>
 <h2><a name="set-upload-limit-set-download-limit">set_upload_limit() set_download_limit()</a></h2>
 <blockquote>
 <pre class="literal-block">
-void set_upload_limit(int limit);
-void set_download_limit(int limit);
+void set_upload_limit(int limit) const;
+void set_download_limit(int limit) const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">set_upload_limit</span></tt> will limit the upload bandwidth used by this particular torrent to the
@@ -1360,8 +1361,8 @@ limit.</p>
 <h2><a name="pause-resume-is-paused">pause() resume() is_paused()</a></h2>
 <blockquote>
 <pre class="literal-block">
-void pause();
-void resume();
+void pause() const;
+void resume() const;
 bool is_paused() const;
 </pre>
 </blockquote>
@@ -1396,7 +1397,8 @@ doesn't have metadata, the member <a class="reference" href="#get-torrent-info">
 <h2><a name="set-tracker-login">set_tracker_login()</a></h2>
 <blockquote>
 <pre class="literal-block">
-void set_tracker_login(std::string const&amp; username, std::string const&amp; password);
+void set_tracker_login(std::string const&amp; username
+        , std::string const&amp; password) const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">set_tracker_login()</span></tt> sets a username and password that will be sent along in the HTTP-request
@@ -1407,7 +1409,7 @@ of the tracker announce. Set this if the tracker requires authorization.</p>
 <blockquote>
 <pre class="literal-block">
 std::vector&lt;announce_entry&gt; const&amp; trackers() const;
-void replace_trackers(std::vector&lt;announce_entry&gt; const&amp;);
+void replace_trackers(std::vector&lt;announce_entry&gt; const&amp;) const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">trackers()</span></tt> will return the list of trackers for this torrent. The
@@ -1423,7 +1425,7 @@ replace it. If you want an immediate effect, you have to call
 <h2><a name="use-interface">use_interface()</a></h2>
 <blockquote>
 <pre class="literal-block">
-void use_interface(char const* net_interface);
+void use_interface(char const* net_interface) const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">use_interface()</span></tt> sets the network interface this torrent will use when it opens outgoing
@@ -1443,8 +1445,8 @@ sha1_hash info_hash() const;
 <h2><a name="id11">set_max_uploads() set_max_connections()</a></h2>
 <blockquote>
 <pre class="literal-block">
-void set_max_uploads(int max_uploads);
-void set_max_connections(int max_connections);
+void set_max_uploads(int max_uploads) const;
+void set_max_connections(int max_connections) const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">set_max_uploads()</span></tt> sets the maximum number of peers that's unchoked at the same time on this
@@ -1458,7 +1460,7 @@ function, it means unlimited.</p>
 <h2><a name="write-resume-data">write_resume_data()</a></h2>
 <blockquote>
 <pre class="literal-block">
-entry write_resume_data();
+entry write_resume_data() const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">write_resume_data()</span></tt> generates fast-resume data and returns it as an <a class="reference" href="#entry">entry</a>. This <a class="reference" href="#entry">entry</a>
@@ -1492,7 +1494,7 @@ it will produce the same hash as the info-hash.</p>
 <h2><a name="id12">status()</a></h2>
 <blockquote>
 <pre class="literal-block">
-torrent_status status();
+torrent_status status() const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">status()</span></tt> will return a structure with information about the status of this
@@ -1503,7 +1505,7 @@ See <a class="reference" href="#torrent-status">torrent_status</a>.</p>
 <h2><a name="get-download-queue">get_download_queue()</a></h2>
 <blockquote>
 <pre class="literal-block">
-void get_download_queue(std::vector&lt;partial_piece_info&gt;&amp; queue);
+void get_download_queue(std::vector&lt;partial_piece_info&gt;&amp; queue) const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">get_download_queue()</span></tt> takes a non-const reference to a vector which it will fill with
@@ -1540,7 +1542,7 @@ may pass then.</p>
 <h2><a name="get-peer-info">get_peer_info()</a></h2>
 <blockquote>
 <pre class="literal-block">
-void get_peer_info(std::vector&lt;peer_info&gt;&amp;);
+void get_peer_info(std::vector&lt;peer_info&gt;&amp;) const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">get_peer_info()</span></tt> takes a reference to a vector that will be cleared and filled
@@ -1552,7 +1554,7 @@ the vector contains information about that particular peer. See <a class="refere
 <h2><a name="get-torrent-info">get_torrent_info()</a></h2>
 <blockquote>
 <pre class="literal-block">
-torrent_info const&amp; get_torrent_info();
+torrent_info const&amp; get_torrent_info() const;
 </pre>
 </blockquote>
 <p>Returns a const reference to the <a class="reference" href="#torrent-info">torrent_info</a> object associated with this torrent.
@@ -1591,7 +1593,8 @@ struct torrent_status
                 connecting_to_tracker,
                 downloading,
                 finished,
-                seeding
+                seeding,
+                allocating
         };
 
         state_t state;
@@ -1668,6 +1671,11 @@ are filtered and won't get downloaded.</td>
 <tr><td><tt class="docutils literal"><span class="pre">seeding</span></tt></td>
 <td>In this state the torrent has finished downloading and
 is a pure seeder.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">allocating</span></tt></td>
+<td>If the torrent was started in full allocation mode, this
+indicates that the (disk) storage for the torrent is
+allocated.</td>
 </tr>
 </tbody>
 </table>
@@ -2443,6 +2451,25 @@ struct torrent_finished_alert: alert
 };
 </pre>
 </div>
+<div class="section" id="metadata-failed-alert">
+<h2><a name="metadata-failed-alert">metadata_failed_alert</a></h2>
+<p>This alert is generated when the metadata has been completely received and the info-hash
+failed to match it. i.e. the metadata that was received was corrupt. libtorrent will
+automatically retry to fetch it in this case. This is only relevant when running a
+torrent-less download, with the metadata extension provided by libtorrent.
+It is generated at severity level <tt class="docutils literal"><span class="pre">info</span></tt>.</p>
+<pre class="literal-block">
+struct metadata_received_alert: alert
+{
+        metadata_received_alert(
+                const torrent_handle&amp; h
+                , const std::string&amp; msg);
+                
+        virtual std::auto_ptr&lt;alert&gt; clone() const;
+        torrent_handle handle;
+};
+</pre>
+</div>
 <div class="section" id="metadata-received-alert">
 <h2><a name="metadata-received-alert">metadata_received_alert</a></h2>
 <p>This alert is generated when the metadata has been completely received and the torrent
@@ -2669,7 +2696,7 @@ int main(int argc, char* argv[])
                 in.unsetf(std::ios_base::skipws);
                 entry e = bdecode(std::istream_iterator&lt;char&gt;(in)
                         , std::istream_iterator&lt;char&gt;());
-                s.add_torrent(e, &quot;&quot;);
+                s.add_torrent(torrent_info(e), &quot;&quot;);
                         
                 // wait for the user to end
                 char a;

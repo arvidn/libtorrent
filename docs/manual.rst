@@ -1172,45 +1172,45 @@ Its declaration looks like this::
 		torrent_handle();
 
 		torrent_status status();
-		void get_download_queue(std::vector<partial_piece_info>& queue);
-		void get_peer_info(std::vector<peer_info>& v);
-		torrent_info const& get_torrent_info();
-		bool is_valid();
+		void get_download_queue(std::vector<partial_piece_info>& queue) const;
+		void get_peer_info(std::vector<peer_info>& v) const;
+		torrent_info const& get_torrent_info() const;
+		bool is_valid() const;
 
-		entry write_resume_data();
+		entry write_resume_data() const;
 		std::vector<char> const& metadata() const;
-		void force_reannounce();
+		void force_reannounce() const;
 		void connect_peer(address const& adr) const;
 
 		void set_tracker_login(std::string const& username
-			, std::string const& password);
+			, std::string const& password) const;
 
 		std::vector<announce_entry> const& trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&);
 
-		void set_ratio(float ratio);
-		void set_max_uploads(int max_uploads);
-		void set_max_connections(int max_connections);
-		void set_upload_limit(int limit);
-		void set_download_limit(int limit);
-		void use_interface(char const* net_interface);
+		void set_ratio(float ratio) const;
+		void set_max_uploads(int max_uploads) const;
+		void set_max_connections(int max_connections) const;
+		void set_upload_limit(int limit) const;
+		void set_download_limit(int limit) const;
+		void use_interface(char const* net_interface) const;
 
-		void pause();
-		void resume();
+		void pause() const;
+		void resume() const;
 		bool is_paused() const;
 		bool is_seed() const;
 
-		void filter_piece(int index, bool filter);
-		void filter_pieces(std::vector<bool> const& bitmask);
+		void filter_piece(int index, bool filter) const;
+		void filter_pieces(std::vector<bool> const& bitmask) const;
 		bool is_piece_filtered(int index) const;
 		std::vector<bool> filtered_pieces() const;
 
-		void filter_files(std::vector<bool> const& files);
+		void filter_files(std::vector<bool> const& files) const;
       
 		bool has_metadata() const;
 
 		boost::filsystem::path save_path() const;
-		bool move_storage(boost::filesystem::path const& save_path);
+		bool move_storage(boost::filesystem::path const& save_path) const;
 
 		sha1_hash info_hash() const;
 
@@ -1240,7 +1240,7 @@ move_storage()
 
 	::
 
-		bool move_storage(boost::filsystem::path const& save_path);
+		bool move_storage(boost::filsystem::path const& save_path) const;
 
 Moves the file(s) that this torrent are currently seeding from or downloading to. This
 operation will only have the desired effect if the given ``save_path`` is located on
@@ -1254,7 +1254,7 @@ force_reannounce()
 
 	::
 
-		void force_reannounce();
+		void force_reannounce() const;
 
 ``force_reannounce()`` will force this torrent to do another tracker request, to receive new
 peers. If the torrent is invalid, queued or in checking mode, this functions will throw
@@ -1280,7 +1280,7 @@ set_ratio()
 
 	::
 
-		void set_ratio(float ratio);
+		void set_ratio(float ratio) const;
 
 ``set_ratio()`` sets the desired download / upload ratio. If set to 0, it is considered being
 infinite. i.e. the client will always upload as much as it can, no matter how much it gets back
@@ -1297,8 +1297,8 @@ set_upload_limit() set_download_limit()
 
 	::
 
-		void set_upload_limit(int limit);
-		void set_download_limit(int limit);
+		void set_upload_limit(int limit) const;
+		void set_download_limit(int limit) const;
 
 ``set_upload_limit`` will limit the upload bandwidth used by this particular torrent to the
 limit you set. It is given as the number of bytes per second the torrent is allowed to upload.
@@ -1313,8 +1313,8 @@ pause() resume() is_paused()
 
 	::
 
-		void pause();
-		void resume();
+		void pause() const;
+		void resume() const;
 		bool is_paused() const;
 
 ``pause()``, and ``resume()`` will disconnect all peers and reconnect all peers respectively.
@@ -1350,7 +1350,8 @@ set_tracker_login()
 
 	::
 
-		void set_tracker_login(std::string const& username, std::string const& password);
+		void set_tracker_login(std::string const& username
+			, std::string const& password) const;
 
 ``set_tracker_login()`` sets a username and password that will be sent along in the HTTP-request
 of the tracker announce. Set this if the tracker requires authorization.
@@ -1362,7 +1363,7 @@ trackers() replace_trackers()
   ::
 
 		std::vector<announce_entry> const& trackers() const;
-		void replace_trackers(std::vector<announce_entry> const&);
+		void replace_trackers(std::vector<announce_entry> const&) const;
 
 ``trackers()`` will return the list of trackers for this torrent. The
 announce entry contains both a string ``url`` which specifu the announce url
@@ -1379,7 +1380,7 @@ use_interface()
 
 	::
 
-		void use_interface(char const* net_interface);
+		void use_interface(char const* net_interface) const;
 
 ``use_interface()`` sets the network interface this torrent will use when it opens outgoing
 connections. By default, it uses the same interface as the session_ uses to listen on. The
@@ -1401,8 +1402,8 @@ set_max_uploads() set_max_connections()
 
 	::
 
-		void set_max_uploads(int max_uploads);
-		void set_max_connections(int max_connections);
+		void set_max_uploads(int max_uploads) const;
+		void set_max_connections(int max_connections) const;
 
 ``set_max_uploads()`` sets the maximum number of peers that's unchoked at the same time on this
 torrent. If you set this to -1, there will be no limit.
@@ -1418,7 +1419,7 @@ write_resume_data()
 
 	::
 
-		entry write_resume_data();
+		entry write_resume_data() const;
 
 ``write_resume_data()`` generates fast-resume data and returns it as an entry_. This entry_
 is suitable for being bencoded. For more information about how fast-resume works, see `fast resume`_.
@@ -1453,7 +1454,7 @@ status()
 
 	::
 
-		torrent_status status();
+		torrent_status status() const;
 
 ``status()`` will return a structure with information about the status of this
 torrent. If the torrent_handle_ is invalid, it will throw invalid_handle_ exception.
@@ -1465,7 +1466,7 @@ get_download_queue()
 
 	::
 
-		void get_download_queue(std::vector<partial_piece_info>& queue);
+		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 
 ``get_download_queue()`` takes a non-const reference to a vector which it will fill with
 information about pieces that are partially downloaded or not downloaded at all but partially
@@ -1505,7 +1506,7 @@ get_peer_info()
 
 	::
 
-		void get_peer_info(std::vector<peer_info>&);
+		void get_peer_info(std::vector<peer_info>&) const;
 
 ``get_peer_info()`` takes a reference to a vector that will be cleared and filled
 with one entry for each peer connected to this torrent, given the handle is valid. If the
@@ -1518,7 +1519,7 @@ get_torrent_info()
 
 	::
 
-		torrent_info const& get_torrent_info();
+		torrent_info const& get_torrent_info() const;
 
 Returns a const reference to the torrent_info_ object associated with this torrent.
 This reference is valid as long as the torrent_handle_ is valid, no longer. If the
@@ -2784,7 +2785,7 @@ This is a simple client. It doesn't have much output to keep it simple::
 			in.unsetf(std::ios_base::skipws);
 			entry e = bdecode(std::istream_iterator<char>(in)
 				, std::istream_iterator<char>());
-			s.add_torrent(e, "");
+			s.add_torrent(torrent_info(e), "");
 				
 			// wait for the user to end
 			char a;
