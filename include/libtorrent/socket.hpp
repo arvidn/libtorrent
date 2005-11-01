@@ -51,12 +51,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <exception>
 #include <string>
 
-// TODO: support ToS
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
 
-	class network_error : public std::exception
+	class TORRENT_EXPORT network_error : public std::exception
 	{
 	public:
 		network_error(int error_code): m_error_code(error_code) {}
@@ -69,7 +69,7 @@ namespace libtorrent
 
 	class socket;
 
-	class address
+	class TORRENT_EXPORT address
 	{
 	friend class socket;
 	public:
@@ -109,7 +109,7 @@ namespace libtorrent
 		unsigned int m_ip;
 	};
 
-	class socket: public boost::noncopyable
+	class TORRENT_EXPORT socket: public boost::noncopyable
 	{
 	friend class address;
 	friend class selector;
@@ -228,7 +228,7 @@ namespace libtorrent
 	
 
 
-	class selector
+	class TORRENT_EXPORT selector
 	{
 	public:
 

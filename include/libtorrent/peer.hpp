@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	struct peer_entry
+	struct TORRENT_EXPORT peer_entry
 	{
 		std::string ip;
 		int port;

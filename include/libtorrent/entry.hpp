@@ -67,11 +67,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cassert>
 
 #include "libtorrent/size_type.hpp"
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
 
-	struct type_error: std::runtime_error
+	struct TORRENT_EXPORT type_error: std::runtime_error
 	{
 		type_error(const char* error): std::runtime_error(error) {}
 	};
@@ -104,7 +105,7 @@ namespace libtorrent
 
 	class entry;
 
-	class entry
+	class TORRENT_EXPORT entry
 	{
 	public:
 

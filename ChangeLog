@@ -1,9 +1,12 @@
+	* strings that are invalid utf-8 strings are now decoded with the
+	  local codepage on windows
+	* added the ability to build libtorrent both as a shared library
 	* client_test can now monitor a directory for torrent files and automatically
 	  start and stop downloads while running
 	* fixed problem with file_size() when building on windows with unicode support
 	* added a new torrent state, allocating
 	* added a new alert, metadata_failed_alert
-	* changed the interface to session::add_torrent for soem speed optimizations.
+	* changed the interface to session::add_torrent for some speed optimizations.
 	* greatly improved the command line control of the example client_test.
 	* fixed bug where upload rate limit was not being applied.
 	* files that are being checked will no longer stall files that don't need

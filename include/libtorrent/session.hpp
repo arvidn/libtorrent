@@ -68,6 +68,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/ip_filter.hpp"
+#include "libtorrent/config.hpp"
 
 #if !defined(NDEBUG) && defined(_MSC_VER)
 #	include <float.h>
@@ -281,7 +282,7 @@ namespace libtorrent
 
 	struct http_settings;
 
-	struct session_status
+	struct TORRENT_EXPORT session_status
 	{
 		bool has_incoming_connections;
 
@@ -300,7 +301,7 @@ namespace libtorrent
 		int num_peers;
 	};
 
-	class session: public boost::noncopyable, detail::eh_initializer
+	class TORRENT_EXPORT session: public boost::noncopyable, detail::eh_initializer
 	{
 	public:
 
@@ -403,3 +404,4 @@ namespace libtorrent
 }
 
 #endif // TORRENT_SESSION_HPP_INCLUDED
+

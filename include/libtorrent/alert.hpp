@@ -55,10 +55,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
+#include "libtorrent/config.hpp"
 
 namespace libtorrent {
 
-	class alert
+	class TORRENT_EXPORT alert
 	{
 	public:
 		enum severity_t { debug, info, warning, critical, fatal, none };
@@ -81,7 +82,7 @@ namespace libtorrent {
 		boost::posix_time::ptime m_timestamp;
 	};
 
-	class alert_manager
+	class TORRENT_EXPORT alert_manager
 	{
 	public:
 		alert_manager();
@@ -100,7 +101,7 @@ namespace libtorrent {
 		mutable boost::mutex m_mutex;
 	};
 
-	struct unhandled_alert : std::exception
+	struct TORRENT_EXPORT unhandled_alert : std::exception
 	{
 		unhandled_alert() {}
 	};
@@ -145,7 +146,7 @@ namespace libtorrent {
 	template<
 	  	BOOST_PP_ENUM_PARAMS_WITH_A_DEFAULT(5, class T, detail::void_)
 	  >
-	struct handle_alert
+	struct TORRENT_EXPORT handle_alert
 	{
 		template<class Handler>
 		handle_alert(

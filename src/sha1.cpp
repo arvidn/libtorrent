@@ -21,16 +21,18 @@ changelog at the end of the file.
 using boost::uint32_t;
 using boost::uint8_t;
 
-struct SHA1_CTX
+#include "libtorrent/config.hpp"
+
+struct TORRENT_EXPORT SHA1_CTX
 {
 	uint32_t state[5];
 	uint32_t count[2];
 	uint8_t buffer[64];
 };
 
-void SHA1Init(SHA1_CTX* context);
-void SHA1Update(SHA1_CTX* context, uint8_t const* data, uint32_t len);
-void SHA1Final(SHA1_CTX* context, uint8_t* digest);
+TORRENT_EXPORT void SHA1Init(SHA1_CTX* context);
+TORRENT_EXPORT void SHA1Update(SHA1_CTX* context, uint8_t const* data, uint32_t len);
+TORRENT_EXPORT void SHA1Final(SHA1_CTX* context, uint8_t* digest);
 
 namespace
 {

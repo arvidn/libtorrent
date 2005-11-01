@@ -48,16 +48,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/size_type.hpp"
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
 
-	struct file_error: std::runtime_error
+	struct TORRENT_EXPORT file_error: std::runtime_error
 	{
 		file_error(std::string const& msg): std::runtime_error(msg) {}
 	};
 
-	class file: public boost::noncopyable
+	class TORRENT_EXPORT file: public boost::noncopyable
 	{
 	public:
 

@@ -1,14 +1,41 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!DOCTYPE html PUBLIC
+    "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html>
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.3.8: http://docutils.sourceforge.net/" />
-<title>libtorrent manual</title>
-<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
-<link rel="stylesheet" href="style.css" type="text/css" />
+<title>Rasterbar Software | Products | libtorrent</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/> 
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+
 </head>
+
 <body>
+    <div id="container">
+    <div id="headerNav">
+        <ul>
+            <li class="first"><a href="/">Home</a></li>
+            <li><a href="../../products.html">Products</a></li>
+            <li><a href="../../contact.html">Contact</a></li>
+<!--            <li><a href="/about.html">About</a></li> -->
+        </ul>
+    </div>
+    <div id="header">
+        <h1><span>Rasterbar Software</span></h1>
+        <h2><span>Software developement and consulting</span></h2>
+        <span>
+        </span>
+    </div>
+
+    <div id="main">
+
 <div class="document" id="libtorrent-manual">
 <h1 class="title">libtorrent manual</h1>
 <table class="docinfo" frame="void" rules="none">
@@ -198,7 +225,7 @@ to the other party.</li>
 <li>fast resume support, a way to get rid of the costly piece check at the
 start of a resumed torrent. Saves the storage state, piece_picker state
 as well as all local peers in a separate fast-resume file.</li>
-<li>supports the extension protocol <a class="reference" href="http://nolar.com/azureus/extended.htm">specified by Nolar</a>. See <a class="reference" href="#extensions">extensions</a>.</li>
+<li>supports an <a class="reference" href="extension_protocol.html">extension protocol</a>. See <a class="reference" href="#extensions">extensions</a>.</li>
 <li>supports files &gt; 2 gigabytes.</li>
 <li>supports the <tt class="docutils literal"><span class="pre">no_peer_id=1</span></tt> extension that will ease the load off trackers.</li>
 <li>supports the <a class="reference" href="udp_tracker_protocol.html">udp-tracker protocol</a> by Olaf van der Spek.</li>
@@ -322,8 +349,9 @@ files found. So, set this to <tt class="docutils literal"><span class="pre">c:\b
 a specific toolset to use (compiler) you can just add that to the commandline.
 For example:</p>
 <pre class="literal-block">
-bjam msvc-7.1
-bjam gcc-3.3
+bjam msvc-7.1 link=static
+bjam gcc-3.3 link=static
+bjam darwin-4.0 link=static
 </pre>
 <p>To build different versions you can also just add the name of the build
 variant. Some default build variants in BBv2 are <tt class="docutils literal"><span class="pre">release</span></tt>, <tt class="docutils literal"><span class="pre">debug</span></tt>,
@@ -331,6 +359,13 @@ variant. Some default build variants in BBv2 are <tt class="docutils literal"><s
 <p>If you're building on a platform where dlls share the same heap, you can build
 libtorrent as a dll too, by typing <tt class="docutils literal"><span class="pre">link=shared</span></tt>, or <tt class="docutils literal"><span class="pre">link=static</span></tt> to
 explicitly build a static library.</p>
+<p>If you want to explicitly say how to link against the runtime library, you
+can set the <tt class="docutils literal"><span class="pre">runtime-link</span></tt> feature on the commandline, either to <tt class="docutils literal"><span class="pre">shared</span></tt>
+or <tt class="docutils literal"><span class="pre">static</span></tt>. Most operating systems will only allow linking shared against
+the runtime, but on windows you can do both. Example:</p>
+<pre class="literal-block">
+bjam msvc-7.1 link=static runtime-link=staitc
+</pre>
 <p>The build targets are put in a directory called bin, and under it they are
 sorted in directories depending on the toolset and build variant used.</p>
 <p>To build the examples, just change directory to the examples directory and
@@ -346,7 +381,7 @@ windows format (<tt class="docutils literal"><span class="pre">c:/boost_1_33_0</
 <p>The <tt class="docutils literal"><span class="pre">Jamfile</span></tt> will define <tt class="docutils literal"><span class="pre">NDEBUG</span></tt> when it's building a release build.
 There are two other build variants available in the <tt class="docutils literal"><span class="pre">Jamfile</span></tt>. debug_log
 and release_log, these two variants inherits from the debug and release
-variants respectively, but adds extra logging (<tt class="docutils literal"><span class="pre">TORRENT_VERBOSE_LOGGIN</span></tt>).
+variants respectively, but adds extra logging (<tt class="docutils literal"><span class="pre">TORRENT_VERBOSE_LOGGING</span></tt>).
 For more build configuration flags see <a class="reference" href="#build-configurations">Build configurations</a>.</p>
 <p>The <tt class="docutils literal"><span class="pre">Jamfile</span></tt> has the following build variants:</p>
 <blockquote>
@@ -505,6 +540,25 @@ isn't defined either (it is defined by Apple's
 GCC) both little-endian and big-endian versions
 will be built and the correct code will be
 chosen at run-time.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">TORRENT_LINKING_SHARED</span></tt></td>
+<td>If this is defined when including the
+libtorrent headers, the classes and functions
+will be tagged with <tt class="docutils literal"><span class="pre">__declspec(dllimport)</span></tt>
+on msvc and default visibility on GCC 4 and
+later. Set this in your project if you're
+linking against libtorrent as a shared library.
+(This is set by the Jamfile when
+<tt class="docutils literal"><span class="pre">link=shared</span></tt> is set).</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">TORRENT_BUILDING_SHARED</span></tt></td>
+<td>If this is defined, the functions and classes
+in libtorrent are marked with
+<tt class="docutils literal"><span class="pre">__declspec(dllexport)</span></tt> on msvc, or with
+default visibility on GCC 4 and later. This
+should be defined when building libtorrent as
+a shared library. (This is set by the Jamfile
+when <tt class="docutils literal"><span class="pre">link=shared</span></tt> is set).</td>
 </tr>
 </tbody>
 </table>
@@ -1795,7 +1849,7 @@ any combination of the enums above. The following table describes each flag:</p>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">support_extensions</span></tt></td>
 <td>means that this peer supports the
-<a class="reference" href="http://nolar.com/azureus/extended.htm">extension protocol</a>.</td>
+<a class="reference" href="extension_protocol.html">extension protocol</a>.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">local_connection</span></tt></td>
 <td>The connection was initiated by us, the peer has a
@@ -2964,6 +3018,8 @@ drawbacks of this mode are:</p>
 <li>It will take longer to start the torrent, since it will need to fill the files
 with zeroes. This delay is linearly dependent on the size of the download.</li>
 <li>The download will occupy unnecessary disk space between download sessions.</li>
+<li>Disk caches usually perform extremely poorly with random access to large files
+and may slow down a download considerably.</li>
 </ul>
 </blockquote>
 <p>The benefit of thise mode are:</p>
@@ -2993,6 +3049,8 @@ download has all its pieces in the correct place). So, the main drawbacks are:</
 <ul class="simple">
 <li>No startup delay, since the files doesn't need allocating.</li>
 <li>The download will not use unnecessary disk space.</li>
+<li>Disk caches perform much better than in full allocation and raises the download
+speed limit imposed by the disk.</li>
 </ul>
 </blockquote>
 <p>The algorithm that is used when allocating pieces and slots isn't very complicated.
@@ -3023,7 +3081,7 @@ contain any piece), return that slot index.</li>
 </div>
 <div class="section" id="extensions">
 <h1><a name="extensions">extensions</a></h1>
-<p>These extensions all operates within the <a class="reference" href="http://nolar.com/azureus/extended.html">extension protocol</a>. The
+<p>These extensions all operates within the <a class="reference" href="extension_protocol.html">extension protocol</a>. The
 name of the extension is the name used in the extension-list packets,
 and the payload is the data in the extended message (not counting the
 length-prefix, message-id nor extension-id).</p>
@@ -3208,5 +3266,13 @@ scripts.</p>
 <p><a class="reference" href="http://sourceforge.net"><img alt="sf_logo" src="http://sourceforge.net/sflogo.php?group_id=7994" /></a></p>
 </div>
 </div>
+    </div>
+
+    <div id="footer">
+        <span>Copyright &copy; 2005 Rasterbar Software.</span>
+    </div>
+    </div>
+
 </body>
+
 </html>

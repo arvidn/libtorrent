@@ -38,10 +38,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/size_type.hpp"
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
-	struct peer_info
+	struct TORRENT_EXPORT peer_info
 	{
 		enum
 		{

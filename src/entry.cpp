@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include "libtorrent/entry.hpp"
+#include "libtorrent/config.hpp"
 #include <boost/bind.hpp>
 #include <boost/next_prior.hpp>
 
@@ -70,7 +71,7 @@ namespace libtorrent
 {
 	namespace detail
 	{
-		char const*	integer_to_str(char* buf, int size, entry::integer_type val)
+		TORRENT_EXPORT char const* integer_to_str(char* buf, int size, entry::integer_type val)
 		{
 			int sign = 0;
 			if (val < 0)

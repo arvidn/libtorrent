@@ -37,10 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_connection.hpp"
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
-	struct tracker_alert: alert
+	struct TORRENT_EXPORT tracker_alert: alert
 	{
 		tracker_alert(torrent_handle const& h
 			, int times
@@ -60,7 +61,7 @@ namespace libtorrent
 		int status_code;
 	};
 
-	struct tracker_warning_alert: alert
+	struct TORRENT_EXPORT tracker_warning_alert: alert
 	{
 		tracker_warning_alert(torrent_handle const& h
 			, std::string const& msg)
@@ -76,7 +77,7 @@ namespace libtorrent
 
 
 	
-	struct tracker_reply_alert: alert
+	struct TORRENT_EXPORT tracker_reply_alert: alert
 	{
 		tracker_reply_alert(torrent_handle const& h
 			, std::string const& msg)
@@ -90,7 +91,7 @@ namespace libtorrent
 		torrent_handle handle;
 	};
 
-	struct tracker_announce_alert: alert
+	struct TORRENT_EXPORT tracker_announce_alert: alert
 	{
 		tracker_announce_alert(torrent_handle const& h, std::string const& msg)
 			: alert(alert::info, msg)
@@ -103,7 +104,7 @@ namespace libtorrent
 		torrent_handle handle;
 	};
 	
-	struct hash_failed_alert: alert
+	struct TORRENT_EXPORT hash_failed_alert: alert
 	{
 		hash_failed_alert(
 			torrent_handle const& h
@@ -121,7 +122,7 @@ namespace libtorrent
 		int piece_index;
 	};
 
-	struct peer_ban_alert: alert
+	struct TORRENT_EXPORT peer_ban_alert: alert
 	{
 		peer_ban_alert(address const& pip, torrent_handle h, std::string const& msg)
 			: alert(alert::info, msg)
@@ -136,7 +137,7 @@ namespace libtorrent
 		torrent_handle handle;
 	};
 
-	struct peer_error_alert: alert
+	struct TORRENT_EXPORT peer_error_alert: alert
 	{
 		peer_error_alert(address const& pip, peer_id const& pid, std::string const& msg)
 			: alert(alert::debug, msg)
@@ -151,7 +152,7 @@ namespace libtorrent
 		peer_id id;
 	};
 
-	struct chat_message_alert: alert
+	struct TORRENT_EXPORT chat_message_alert: alert
 	{
 		chat_message_alert(
 			const torrent_handle& h
@@ -169,7 +170,7 @@ namespace libtorrent
 		address ip;
 	};
 
-	struct invalid_request_alert: alert
+	struct TORRENT_EXPORT invalid_request_alert: alert
 	{
 		invalid_request_alert(
 			peer_request const& r
@@ -193,7 +194,7 @@ namespace libtorrent
 		peer_id id;
 	};
 
-	struct torrent_finished_alert: alert
+	struct TORRENT_EXPORT torrent_finished_alert: alert
 	{
 		torrent_finished_alert(
 			const torrent_handle& h
@@ -208,7 +209,7 @@ namespace libtorrent
 		torrent_handle handle;
 	};
 
-	struct file_error_alert: alert
+	struct TORRENT_EXPORT file_error_alert: alert
 	{
 		file_error_alert(
 			const torrent_handle& h
@@ -223,7 +224,7 @@ namespace libtorrent
 		torrent_handle handle;
 	};
 
-	struct metadata_failed_alert: alert
+	struct TORRENT_EXPORT metadata_failed_alert: alert
 	{
 		metadata_failed_alert(
 			const torrent_handle& h
@@ -238,7 +239,7 @@ namespace libtorrent
 		torrent_handle handle;
 	};
 	
-	struct metadata_received_alert: alert
+	struct TORRENT_EXPORT metadata_received_alert: alert
 	{
 		metadata_received_alert(
 			const torrent_handle& h
@@ -253,7 +254,7 @@ namespace libtorrent
 		torrent_handle handle;
 	};
 
-	struct listen_failed_alert: alert
+	struct TORRENT_EXPORT listen_failed_alert: alert
 	{
 		listen_failed_alert(
 			const std::string& msg)
@@ -264,7 +265,7 @@ namespace libtorrent
 		{ return std::auto_ptr<alert>(new listen_failed_alert(*this)); }
 	};
 
-	struct fastresume_rejected_alert: alert
+	struct TORRENT_EXPORT fastresume_rejected_alert: alert
 	{
 		fastresume_rejected_alert(torrent_handle const& h
 			, std::string const& msg)

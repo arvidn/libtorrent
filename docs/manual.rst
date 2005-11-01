@@ -47,7 +47,7 @@ following features:
 	* fast resume support, a way to get rid of the costly piece check at the
 	  start of a resumed torrent. Saves the storage state, piece_picker state
 	  as well as all local peers in a separate fast-resume file.
-	* supports the extension protocol `specified by Nolar`__. See extensions_.
+	* supports an `extension protocol`__. See extensions_.
 	* supports files > 2 gigabytes.
 	* supports the ``no_peer_id=1`` extension that will ease the load off trackers.
 	* supports the `udp-tracker protocol`__ by Olaf van der Spek.
@@ -65,7 +65,7 @@ following features:
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
 .. _Azureus: http://azureus.sourceforge.net
-__ http://nolar.com/azureus/extended.htm
+__ extension_protocol.html
 __ udp_tracker_protocol.html
 
 
@@ -200,8 +200,9 @@ Then the only thing left is simply to invoke ``bjam``. If you want to specify
 a specific toolset to use (compiler) you can just add that to the commandline.
 For example::
 
-  bjam msvc-7.1
-  bjam gcc-3.3
+  bjam msvc-7.1 link=static
+  bjam gcc-3.3 link=static
+  bjam darwin-4.0 link=static
 
 To build different versions you can also just add the name of the build
 variant. Some default build variants in BBv2 are ``release``, ``debug``,
@@ -210,6 +211,13 @@ variant. Some default build variants in BBv2 are ``release``, ``debug``,
 If you're building on a platform where dlls share the same heap, you can build
 libtorrent as a dll too, by typing ``link=shared``, or ``link=static`` to
 explicitly build a static library.
+
+If you want to explicitly say how to link against the runtime library, you
+can set the ``runtime-link`` feature on the commandline, either to ``shared``
+or ``static``. Most operating systems will only allow linking shared against
+the runtime, but on windows you can do both. Example::
+
+  bjam msvc-7.1 link=static runtime-link=staitc
 
 The build targets are put in a directory called bin, and under it they are
 sorted in directories depending on the toolset and build variant used.
@@ -229,7 +237,7 @@ windows format (``c:/boost_1_33_0``).
 The ``Jamfile`` will define ``NDEBUG`` when it's building a release build.
 There are two other build variants available in the ``Jamfile``. debug_log
 and release_log, these two variants inherits from the debug and release
-variants respectively, but adds extra logging (``TORRENT_VERBOSE_LOGGIN``).
+variants respectively, but adds extra logging (``TORRENT_VERBOSE_LOGGING``).
 For more build configuration flags see `Build configurations`_.
 
 The ``Jamfile`` has the following build variants:
@@ -385,6 +393,23 @@ defines you can use to control the build.
 |                                | GCC) both little-endian and big-endian versions |
 |                                | will be built and the correct code will be      |
 |                                | chosen at run-time.                             |
++--------------------------------+-------------------------------------------------+
+| ``TORRENT_LINKING_SHARED``     | If this is defined when including the           |
+|                                | libtorrent headers, the classes and functions   |
+|                                | will be tagged with ``__declspec(dllimport)``   |
+|                                | on msvc and default visibility on GCC 4 and     |
+|                                | later. Set this in your project if you're       |
+|                                | linking against libtorrent as a shared library. |
+|                                | (This is set by the Jamfile when                |
+|                                | ``link=shared`` is set).                        |
++--------------------------------+-------------------------------------------------+
+| ``TORRENT_BUILDING_SHARED``    | If this is defined, the functions and classes   |
+|                                | in libtorrent are marked with                   |
+|                                | ``__declspec(dllexport)`` on msvc, or with      |
+|                                | default visibility on GCC 4 and later. This     |
+|                                | should be defined when building libtorrent as   |
+|                                | a shared library. (This is set by the Jamfile   |
+|                                | when ``link=shared`` is set).                   |
 +--------------------------------+-------------------------------------------------+
 
 
@@ -1768,7 +1793,7 @@ any combination of the enums above. The following table describes each flag:
 |                         | us.                                                   |
 +-------------------------+-------------------------------------------------------+
 
-__ http://nolar.com/azureus/extended.htm
+__ extension_protocol.html
 
 The ``ip`` field is the IP-address to this peer. Its type is a wrapper around the
 actual address and the port number. See address_ class.
@@ -3035,6 +3060,9 @@ drawbacks of this mode are:
 
  * The download will occupy unnecessary disk space between download sessions.
 
+ * Disk caches usually perform extremely poorly with random access to large files
+   and may slow down a download considerably.
+
 The benefit of thise mode are:
 
  * Downloaded pieces are written directly to their final place in the files and the
@@ -3061,6 +3089,9 @@ The benefits though, are:
  * No startup delay, since the files doesn't need allocating.
 
  * The download will not use unnecessary disk space.
+
+ * Disk caches perform much better than in full allocation and raises the download
+   speed limit imposed by the disk.
 
 The algorithm that is used when allocating pieces and slots isn't very complicated.
 For the interested, a description follows.
@@ -3096,7 +3127,7 @@ name of the extension is the name used in the extension-list packets,
 and the payload is the data in the extended message (not counting the
 length-prefix, message-id nor extension-id).
 
-__ http://nolar.com/azureus/extended.html
+__ extension_protocol.html
 
 Note that since this protocol relies on one of the reserved bits in the
 handshake, it may be incompatible with future versions of the mainline

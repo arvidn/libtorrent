@@ -39,10 +39,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cctype>
 #include <algorithm>
 
+#include "libtorrent/config.hpp"
+
 namespace libtorrent
 {
 
-	class big_number
+	class TORRENT_EXPORT big_number
 	{
 		// private type
 		struct private_pointer {};

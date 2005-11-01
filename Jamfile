@@ -32,10 +32,10 @@ project torrent
 	<library>/boost/thread//boost_thread/<link>static
 	<library>/boost/filesystem//boost_filesystem/<link>static
 	<library>/boost/date_time//boost_date_time/<link>static
-	<link>static
 	<threading>multi
 	<toolset>msvc:<cxxflags>/Zc:wchar_t
 	<toolset>msvc:<cxxflags>/Zc:forScope
+	<link>shared:<define>TORRENT_BUILDING_SHARED
 
 	: usage-requirements 
 
@@ -43,6 +43,7 @@ project torrent
 	<include>$(BOOST_ROOT)
 	<variant>release:<define>NDEBUG
 	<define>BOOST_ALL_NO_LIB
+	<link>shared:<define>TORRENT_LINKING_SHARED
 
 	;
 

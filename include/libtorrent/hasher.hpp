@@ -37,18 +37,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/config.hpp"
 
 // from sha1.cpp
-struct SHA1_CTX
+struct TORRENT_EXPORT SHA1_CTX
 {
 	boost::uint32_t state[5];
 	boost::uint32_t count[2];
 	boost::uint8_t buffer[64];
 };
 
-void SHA1Init(SHA1_CTX* context);
-void SHA1Update(SHA1_CTX* context, boost::uint8_t const* data, boost::uint32_t len);
-void SHA1Final(SHA1_CTX* context, boost::uint8_t* digest);
+TORRENT_EXPORT void SHA1Init(SHA1_CTX* context);
+TORRENT_EXPORT void SHA1Update(SHA1_CTX* context, boost::uint8_t const* data, boost::uint32_t len);
+TORRENT_EXPORT void SHA1Final(SHA1_CTX* context, boost::uint8_t* digest);
 
 extern "C"
 {
