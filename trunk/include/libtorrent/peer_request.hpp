@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	struct peer_request
+	struct TORRENT_EXPORT peer_request
 	{
 		int piece;
 		int start;

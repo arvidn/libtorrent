@@ -33,9 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PIECE_BLOCK_PROGRESS_HPP_INCLUDED
 #define TORRENT_PIECE_BLOCK_PROGRESS_HPP_INCLUDED
 
+#include "libtorrent/config.hpp"
+
 namespace libtorrent
 {
-	struct piece_block_progress
+	struct TORRENT_EXPORT piece_block_progress
 	{
 		// the piece and block index
 		// determines exactly which

@@ -30,60 +30,33 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef IP_FILTER_HPP
-#define IP_FILTER_HPP
+#ifndef TORRENT_CONFIG_HPP_INCLUDED
+#define TORRENT_CONFIG_HPP_INCLUDED
 
-#include "libtorrent/socket.hpp"
-#include "libtorrent/config.hpp"
-#include <set>
-#include <iostream>
+#include <boost/config.hpp>
 
-namespace libtorrent
-{
+#if defined(__GNUC__) && __GNUC__ >= 4
 
-class TORRENT_EXPORT ip_filter
-{
-public:
+# if defined(TORRENT_BUILDING_SHARED) || defined(TORRENT_LINKING_SHARED)
+#  define TORRENT_EXPORT __attribute__ ((visibility("default")))
+# else
+#  define TORRENT_EXPORT
+# endif
 
-	enum access_flags
-	{
-		blocked = 1
-	};
-		 
-	ip_filter();
-	void add_rule(address first, address last, int flags);
-	int access(address const& addr) const;
+#elif defined(BOOST_MSVC)
 
-	struct ip_range
-	{
-		address first;
-		address last;
-		int flags;
-	};
-			  
-	std::vector<ip_range> export_filter() const;
+# if defined(TORRENT_BUILDING_SHARED)
+#  define TORRENT_EXPORT __declspec(dllexport)
+# elif defined(TORRENT_LINKING_SHARED)
+#  define TORRENT_EXPORT __declspec(dllimport)
+# else
+#  define TORRENT_EXPORT
+# endif
 
-//	void print() const;
-	
-private:
-	struct range
-	{
-		range(address addr, int access = 0): start(addr), access(access) {}
-		bool operator<(range const& r) const
-		{ return start < r.start; }
-		bool operator<(address const& a) const
-		{ return start < a; }
-		address start;
-		// the end of the range is implicit
-		// and given by the next entry in the set
-		int access;
-	};
-
-	typedef std::set<range> range_t;
-	range_t m_access_list;
-};
-
-}
-
+#else
+# define TORRENT_EXPORT
 #endif
+
+
+#endif // TORRENT_CONFIG_HPP_INCLUDED
 

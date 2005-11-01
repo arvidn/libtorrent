@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/invariant_check.hpp"
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
@@ -71,7 +72,7 @@ namespace libtorrent
 	};
 
 
-	class policy
+	class TORRENT_EXPORT policy
 	{
 	public:
 
@@ -239,3 +240,4 @@ namespace libtorrent
 }
 
 #endif // TORRENT_POLICY_HPP_INCLUDED
+

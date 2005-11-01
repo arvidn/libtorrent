@@ -79,7 +79,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/exception.hpp>
 #include "libtorrent/utf8.hpp"
 
-namespace
+namespace libtorrent
 {
 	std::wstring safe_convert(std::string const& s)
 	{
@@ -100,7 +100,11 @@ namespace
 			return ret;
 		}
 	}
+}
 
+namespace
+{
+	using libtorrent::safe_convert;
 	using namespace boost::filesystem;
 	
 	// based on code from Boost.Fileystem
@@ -1223,8 +1227,7 @@ namespace libtorrent
 				// that hasn't already been assigned
 				int other_piece = -1;
 				for (std::vector<int>::iterator i = matching_pieces.begin();
-					i != matching_pieces.end();
-					++i)
+					i != matching_pieces.end(); ++i)
 				{
 					if (have_pieces[*i] || *i == piece_index) continue;
 					other_piece = *i;
@@ -1412,7 +1415,7 @@ namespace libtorrent
 			// first, create all missing directories
 			path last_path;
 			for (torrent_info::file_iterator file_iter = m_info.begin_files(),
-					end_iter = m_info.end_files();  file_iter != end_iter; ++file_iter)
+				end_iter = m_info.end_files();  file_iter != end_iter; ++file_iter)
 			{
 				path dir = (m_save_path / file_iter->path).branch_path();
 				if (dir == last_path) continue;

@@ -57,11 +57,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/async_gethostbyname.hpp"
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
 
-	class http_tracker_connection: public tracker_connection
+	class TORRENT_EXPORT http_tracker_connection: public tracker_connection
 	{
 	friend class tracker_manager;
 	public:

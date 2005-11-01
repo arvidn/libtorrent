@@ -54,25 +54,25 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/size_type.hpp"
-
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
 
-	struct file_entry
+	struct TORRENT_EXPORT file_entry
 	{
 		boost::filesystem::path path;
 		size_type size;
 	};
 
-	struct announce_entry
+	struct TORRENT_EXPORT announce_entry
 	{
 		announce_entry(std::string const& u): url(u), tier(0) {}
 		std::string url;
 		int tier;
 	};
 
-	struct invalid_torrent_file: std::exception
+	struct TORRENT_EXPORT invalid_torrent_file: std::exception
 	{
 		virtual const char* what() const throw() { return "invalid torrent file"; }
 	};
@@ -82,7 +82,7 @@ namespace libtorrent
 	// also add a filename converter function that will transform
 	// invalid filenames to valid filenames on the current platform
 
-	class torrent_info
+	class TORRENT_EXPORT torrent_info
 	{
 	public:
 

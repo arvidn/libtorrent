@@ -66,6 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/allocate_resources.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
+#include "libtorrent/config.hpp"
 
 // TODO: each time a block is 'taken over'
 // from another peer. That peer must be given
@@ -80,12 +81,12 @@ namespace libtorrent
 		struct session_impl;
 	}
 
-	struct protocol_error: std::runtime_error
+	struct TORRENT_EXPORT protocol_error: std::runtime_error
 	{
 		protocol_error(const std::string& msg): std::runtime_error(msg) {};
 	};
 
-	class peer_connection: public boost::noncopyable
+	class TORRENT_EXPORT peer_connection: public boost::noncopyable
 	{
 	friend class invariant_access;
 	public:

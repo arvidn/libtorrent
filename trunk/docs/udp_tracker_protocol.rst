@@ -1,12 +1,15 @@
-=========================================
 Bittorrent udp-tracker protocol extension
 =========================================
 
-.. contents::
+:Author: Arvid Norberg, arvid@rasterbar.com
+
+.. contents:: Table of contents
+	:depth: 2
+	:backlinks: none
 
 
 introduction
-++++++++++++
+------------
 
 A tracker with the protocol "udp://" in its URI
 is supposed to be contacted using this protocol.
@@ -32,10 +35,9 @@ retrying.
 
 
 connecting
-++++++++++
+----------
 
 Client sends packet:
---------------------
 
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
@@ -50,7 +52,6 @@ Client sends packet:
 +-------------+---------------------+----------------------------------------+
 
 Server replies with packet:
----------------------------
 
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
@@ -73,10 +74,9 @@ Server replies with packet:
 
 
 announcing
-++++++++++
+----------
 
 Client sends packet:
---------------------
 
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
@@ -127,7 +127,6 @@ Client sends packet:
 
 
 Server replies with packet:
----------------------------
 
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
@@ -163,11 +162,9 @@ The rest of the server reply is a variable number of the following structure:
 
 
 scraping
-++++++++
-
+--------
 
 Client sends packet:
---------------------
 
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
@@ -196,7 +193,6 @@ The following structure is repeated ``num_info_hashes`` times:
 
 
 Server replies with packet:
----------------------------
 
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
@@ -225,12 +221,11 @@ you asked in the scrape request.
 
 
 errors
-++++++
+------
 
 In case of a tracker error,
 
 server replies packet:
-----------------------
 
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
@@ -247,7 +242,7 @@ server replies packet:
 
 
 actions
-+++++++
+-------
 
 The action fields has the following encoding:
 
@@ -258,7 +253,7 @@ The action fields has the following encoding:
 
 
 extensions
-++++++++++
+----------
 
 The extensions field is a bitmask. The following
 bits are assigned:
@@ -268,7 +263,7 @@ bits are assigned:
 
 
 authentication
---------------
+~~~~~~~~~~~~~~
 
 The packet will have an authentication part
 appended to it. It has the following format:
@@ -292,7 +287,7 @@ appended to it. It has the following format:
 
 
 credits
-+++++++
+-------
 
 Protocol designed by Olaf van der Spek
 

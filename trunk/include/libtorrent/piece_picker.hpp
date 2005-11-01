@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
@@ -57,7 +58,7 @@ namespace libtorrent
 	class address;
 	class peer_connection;
 
-	struct piece_block
+	struct TORRENT_EXPORT piece_block
 	{
 		piece_block(int p_index, int b_index)
 			: piece_index(p_index)
@@ -81,7 +82,7 @@ namespace libtorrent
 
 	};
 
-	class piece_picker
+	class TORRENT_EXPORT piece_picker
 	{
 	public:
 
@@ -335,3 +336,4 @@ namespace libtorrent
 }
 
 #endif // TORRENT_PIECE_PICKER_HPP_INCLUDED
+

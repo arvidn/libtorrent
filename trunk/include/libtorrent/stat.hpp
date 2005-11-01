@@ -39,11 +39,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/invariant_check.hpp"
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
 
-	class stat
+	class TORRENT_EXPORT stat
 	{
 	friend class invariant_access;
 	enum { history = 10 };

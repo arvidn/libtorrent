@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
@@ -61,17 +62,20 @@ namespace libtorrent
 
 	class session;
 
-	std::vector<std::pair<size_type, std::time_t> > get_filesizes(
+
+	TORRENT_EXPORT std::wstring safe_convert(std::string const& s);
+	
+	TORRENT_EXPORT std::vector<std::pair<size_type, std::time_t> > get_filesizes(
 		torrent_info const& t
 		, boost::filesystem::path p);
 
-	bool match_filesizes(
+	TORRENT_EXPORT bool match_filesizes(
 		torrent_info const& t
 		, boost::filesystem::path p
 		, std::vector<std::pair<size_type, std::time_t> > const& sizes
 		, std::string* error = 0);
 
-	struct file_allocation_failed: std::exception
+	struct TORRENT_EXPORT file_allocation_failed: std::exception
 	{
 		file_allocation_failed(const char* error_msg): m_msg(error_msg) {}
 		virtual const char* what() const throw() { return m_msg.c_str(); }
@@ -79,7 +83,7 @@ namespace libtorrent
 		std::string m_msg;
 	};
 
-	class storage
+	class TORRENT_EXPORT storage
 	{
 	public:
 		storage(
@@ -112,7 +116,7 @@ namespace libtorrent
 		boost::shared_ptr<impl> m_pimpl;
 	};
 
-	class piece_manager : boost::noncopyable
+	class TORRENT_EXPORT piece_manager : boost::noncopyable
 	{
 	public:
 

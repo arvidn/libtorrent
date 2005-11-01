@@ -77,6 +77,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/entry.hpp"
+#include "libtorrent/config.hpp"
 
 #if defined(_MSC_VER)
 namespace std
@@ -92,7 +93,7 @@ namespace std
 namespace libtorrent
 {
 
-	struct invalid_encoding: std::exception
+	struct TORRENT_EXPORT invalid_encoding: std::exception
 	{
 		virtual const char* what() const throw() { return "invalid bencoding"; }
 	};
@@ -106,7 +107,7 @@ namespace libtorrent
 			std::copy(val.begin(), end, out);
 		}
 
-		char const*	integer_to_str(char* buf, int size, entry::integer_type val);
+		TORRENT_EXPORT char const* integer_to_str(char* buf, int size, entry::integer_type val);
 
 		template <class OutIt>
 		void write_integer(OutIt& out, entry::integer_type val)

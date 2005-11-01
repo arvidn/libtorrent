@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include <boost/scoped_ptr.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -63,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/resource_request.hpp"
 #include "libtorrent/piece_picker.hpp"
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
@@ -89,7 +91,7 @@ namespace libtorrent
 	// a torrent is a class that holds information
 	// for a specific download. It updates itself against
 	// the tracker
-	class torrent: public request_callback
+	class TORRENT_EXPORT torrent: public request_callback
 		, public boost::enable_shared_from_this<torrent>
 	{
 	public:
@@ -435,7 +437,7 @@ namespace libtorrent
 		// if this pointer is 0, the torrent is in
 		// a state where the metadata hasn't been
 		// received yet.
-		std::auto_ptr<piece_manager> m_storage;
+		boost::scoped_ptr<piece_manager> m_storage;
 
 		// the time of next tracker request
 		boost::posix_time::ptime m_next_request;
@@ -473,7 +475,7 @@ namespace libtorrent
 		detail::session_impl& m_ses;
 		detail::checker_impl& m_checker;
 
-		std::auto_ptr<piece_picker> m_picker;
+		boost::scoped_ptr<piece_picker> m_picker;
 
 		std::vector<announce_entry> m_trackers;
 		// this is an index into m_torrent_file.trackers()

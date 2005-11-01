@@ -43,9 +43,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #undef max
 #endif
 
+#include "libtorrent/config.hpp"
+
 namespace libtorrent
 {
-	struct resource_request
+	struct TORRENT_EXPORT resource_request
 	{
 		resource_request()
 			: used(0)

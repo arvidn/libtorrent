@@ -354,9 +354,9 @@ namespace libtorrent
 		assert(m_torrent_file.total_size() >= 0);
 
 		m_have_pieces.resize(m_torrent_file.num_pieces(), false);
-		m_storage = std::auto_ptr<piece_manager>(new piece_manager(m_torrent_file, m_save_path));
+		m_storage.reset(new piece_manager(m_torrent_file, m_save_path));
 		m_block_size = calculate_block_size(m_torrent_file, m_default_block_size);
-		m_picker = std::auto_ptr<piece_picker>(new piece_picker(
+		m_picker.reset(new piece_picker(
 				static_cast<int>(m_torrent_file.piece_length() / m_block_size)
 				, static_cast<int>((m_torrent_file.total_size()+m_block_size-1)/m_block_size)));
 	}

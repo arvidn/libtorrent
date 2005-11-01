@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_settings.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer.hpp"
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
@@ -65,12 +66,12 @@ namespace libtorrent
 //	address parse_url(std::string const& url);
 
 	// encodes a string using the base64 scheme
-	std::string base64encode(const std::string& s);
+	TORRENT_EXPORT std::string base64encode(const std::string& s);
 
 	// returns -1 if gzip header is invalid or the header size in bytes
-	int gzip_header(const char* buf, int size);
+	TORRENT_EXPORT int gzip_header(const char* buf, int size);
 
-	struct tracker_request
+	struct TORRENT_EXPORT tracker_request
 	{
 		tracker_request()
 			: kind(announce_request)
@@ -105,7 +106,7 @@ namespace libtorrent
 		int num_want;
 	};
 
-	struct request_callback
+	struct TORRENT_EXPORT request_callback
 	{
 		friend class tracker_manager;
 		request_callback(): m_manager(0) {}
@@ -133,13 +134,13 @@ namespace libtorrent
 		tracker_manager* m_manager;
 	};
 
-	bool inflate_gzip(
+	TORRENT_EXPORT bool inflate_gzip(
 		std::vector<char>& buffer
 		, tracker_request const& req
 		, request_callback* requester
 		, int maximum_tracker_response_length);
 
-	struct tracker_connection: boost::noncopyable
+	struct TORRENT_EXPORT tracker_connection: boost::noncopyable
 	{
 		tracker_connection(boost::weak_ptr<request_callback> r)
 			: m_requester(r)
@@ -158,7 +159,7 @@ namespace libtorrent
 
 	};
 
-	class tracker_manager: boost::noncopyable
+	class TORRENT_EXPORT tracker_manager: boost::noncopyable
 	{
 	public:
 

@@ -34,11 +34,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ESCAPE_STRING_HPP_INCLUDED
 
 #include <string>
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
-	std::string unescape_string(std::string const& s);
-	std::string escape_string(const char* str, int len);
+	std::string TORRENT_EXPORT unescape_string(std::string const& s);
+	std::string TORRENT_EXPORT escape_string(const char* str, int len);
 }
 
 #endif // TORRENT_ESCAPE_STRING_HPP_INCLUDED

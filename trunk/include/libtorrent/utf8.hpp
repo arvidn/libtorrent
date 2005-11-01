@@ -155,21 +155,6 @@ inline std::string wchar_utf8(const std::wstring &str)
 	return ret;
 }
 
-inline std::wstring safe_convert(std::string const& s)
-{
-	try
-	{
-		return utf8_wchar(s);
-	}
-	catch (std::exception)
-	{
-		std::wstring ret;
-		for (const char* i = &*s.begin(); i < &*s.end(); ++i)
-			ret += *i;
-		return ret;
-	}
-}
-
 }
 
 #endif

@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
@@ -58,19 +59,19 @@ namespace libtorrent
 		struct checker_impl;
 	}
 
-	struct duplicate_torrent: std::exception
+	struct TORRENT_EXPORT duplicate_torrent: std::exception
 	{
 		virtual const char* what() const throw()
 		{ return "torrent already exists in session"; }
 	};
 
-	struct invalid_handle: std::exception
+	struct TORRENT_EXPORT invalid_handle: std::exception
 	{
 		virtual const char* what() const throw()
 		{ return "invalid torrent handle used"; }
 	};
 
-	struct torrent_status
+	struct TORRENT_EXPORT torrent_status
 	{
 		torrent_status()
 			: state(queued_for_checking)
@@ -188,7 +189,7 @@ namespace libtorrent
 		int block_size;
 	};
 
-	struct partial_piece_info
+	struct TORRENT_EXPORT partial_piece_info
 	{
 		enum { max_blocks_per_piece = piece_picker::max_blocks_per_piece };
 		int piece_index;
@@ -199,7 +200,7 @@ namespace libtorrent
 		int num_downloads[max_blocks_per_piece];
 	};
 
-	struct torrent_handle
+	struct TORRENT_EXPORT torrent_handle
 	{
 		friend class invariant_access;
 		friend class session;
