@@ -43,6 +43,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #  define TORRENT_EXPORT
 # endif
 
+#elif defined(__GNUC__)
+
+# define TORRENT_EXPORT
+
 #elif defined(BOOST_MSVC)
 
 # if defined(TORRENT_BUILDING_SHARED)
