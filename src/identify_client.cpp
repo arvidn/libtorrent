@@ -175,10 +175,10 @@ namespace
 		, map_entry("pX", "pHoeniX")
 	};
 
-	bool compare_first_string(map_entry const& e, char const* str)
+	bool compare_first_string(map_entry const& lhs, map_entry const& rhs)
 	{
-		return e.first[0] < str[0]
-			|| ((e.first[0] == str[0]) && (e.first[1] < str[1]));
+		return lhs.first[0] < rhs.first[0]
+			|| ((lhs.first[0] == rhs.first[0]) && (lhs.first[1] < rhs.first[1]));
 	}
 
 	std::string lookup(fingerprint const& f)
@@ -188,13 +188,13 @@ namespace
 		const int size = sizeof(name_map)/sizeof(name_map[0]);
 		map_entry* i =
 			std::lower_bound(name_map, name_map + size
-				, f.id, &compare_first_string);
+				, map_entry(f.id, ""), &compare_first_string);
 
 #ifndef NDEBUG
 		for (int i = 1; i < size; ++i)
 		{
 			assert(compare_first_string(name_map[i-1]
-				, name_map[i].first));
+				, name_map[i]));
 		}
 #endif
 
