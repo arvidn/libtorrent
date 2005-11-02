@@ -176,6 +176,7 @@ namespace libtorrent
 		torrent_status status() const;
 
 		void use_interface(const char* net_interface);
+		address const& interface() const { return m_net_interface; }
 		peer_connection& connect_to_peer(const address& a);
 
 		void set_ratio(float ratio)

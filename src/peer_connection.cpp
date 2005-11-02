@@ -77,7 +77,8 @@ namespace libtorrent
 		detail::session_impl& ses
 		, selector& sel
 		, torrent* t
-		, boost::shared_ptr<libtorrent::socket> s)
+		, boost::shared_ptr<libtorrent::socket> s
+		, address const& remote)
 		:
 #ifndef NDEBUG
 		m_last_choke(boost::posix_time::second_clock::universal_time()
@@ -92,11 +93,12 @@ namespace libtorrent
 		, m_last_sent(second_clock::universal_time())
 		, m_selector(sel)
 		, m_socket(s)
+		, m_remote(remote)
 		, m_torrent(t)
 		, m_attached_to_torrent(true)
 		, m_ses(ses)
 		, m_active(true)
-		, m_writability_monitored(false)
+		, m_writability_monitored(true)
 		, m_readability_monitored(true)
 		, m_peer_interested(false)
 		, m_peer_choked(true)
@@ -119,9 +121,11 @@ namespace libtorrent
 			boost::gregorian::date(1970, boost::date_time::Jan, 1)
 			, boost::posix_time::seconds(0))
 		, m_waiting_metadata_request(false)
-		, m_connecting(false)
+		, m_connecting(true)
+		, m_queued(true)
 		, m_metadata_progress(0)
 	{
+		m_selector.monitor_writability(m_socket);
 		INVARIANT_CHECK;
 
 		// these numbers are used the first second of connection.
@@ -158,8 +162,8 @@ namespace libtorrent
 		assert(m_torrent != 0);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		m_logger = m_ses.create_log(s->sender().as_string() + "_"
-			+ boost::lexical_cast<std::string>(s->sender().port));
+		m_logger = m_ses.create_log(m_remote.as_string() + "_"
+			+ boost::lexical_cast<std::string>(m_remote.port));
 		(*m_logger) << "*** OUTGOING CONNECTION\n";
 #endif
 
@@ -202,6 +206,7 @@ namespace libtorrent
 		, m_last_sent(second_clock::universal_time())
 		, m_selector(sel)
 		, m_socket(s)
+		, m_remote(s->sender())
 		, m_torrent(0)
 		, m_attached_to_torrent(false)
 		, m_ses(ses)
@@ -230,7 +235,8 @@ namespace libtorrent
 			boost::gregorian::date(1970, boost::date_time::Jan, 1)
 			, boost::posix_time::seconds(0))
 		, m_waiting_metadata_request(false)
-		, m_connecting(true)
+		, m_connecting(false)
+		, m_queued(false)
 		, m_metadata_progress(0)
 	{
 		INVARIANT_CHECK;
@@ -274,8 +280,9 @@ namespace libtorrent
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		m_logger = m_ses.create_log(s->sender().as_string() + "_"
-			+ boost::lexical_cast<std::string>(s->sender().port));
+		assert(m_socket->sender() == remote());
+		m_logger = m_ses.create_log(remote().as_string() + "_"
+			+ boost::lexical_cast<std::string>(remote().port));
 		(*m_logger) << "*** INCOMING CONNECTION\n";
 #endif
 
@@ -374,7 +381,7 @@ namespace libtorrent
 			if (m_torrent)
 			{
 				torrent::peer_iterator i = m_torrent->m_connections.find(
-					get_socket()->sender());
+					remote());
 				assert(i == m_torrent->m_connections.end());
 			}
 		}
@@ -939,7 +946,7 @@ namespace libtorrent
 				m_torrent->alerts().post_alert(invalid_request_alert(
 					r
 					, m_torrent->get_handle()
-					, m_socket->sender()
+					, m_remote
 					, m_peer_id
 					, "peer sent an illegal request, ignoring"));
 			}
@@ -1058,7 +1065,7 @@ namespace libtorrent
 				{
 					m_torrent->alerts().post_alert(
 						peer_error_alert(
-							m_socket->sender()
+							m_remote
 							, m_peer_id
 							, "got a block that was not requested"));
 				}
@@ -1077,7 +1084,7 @@ namespace libtorrent
 		bool was_finished = picker.num_filtered() + m_torrent->num_pieces()
 					== m_torrent->torrent_file().num_pieces();
 		
-		picker.mark_as_finished(block_finished, m_socket->sender());
+		picker.mark_as_finished(block_finished, m_remote);
 
 		m_torrent->get_policy().block_finished(*this, block_finished);
 
@@ -1297,7 +1304,7 @@ namespace libtorrent
 				m_torrent->alerts().post_alert(
 					chat_message_alert(
 						m_torrent->get_handle()
-						, m_socket->sender(), str));
+						, m_remote, str));
 			}
 
 		}
@@ -1435,7 +1442,7 @@ namespace libtorrent
 				<< "<== LISTEN_PORT [ port: " << port << " ]\n";
 #endif
 
-		address adr = m_socket->sender();
+		address adr = m_remote;
 		adr.port = port;
 		m_torrent->get_policy().peer_from_tracker(adr, m_peer_id);
 	}
@@ -1450,14 +1457,17 @@ namespace libtorrent
 	void peer_connection::disconnect()
 	{
 		if (m_disconnecting) return;
-		detail::session_impl::connection_map::iterator i
-			= m_ses.m_connections.find(m_socket);
+
+		assert((m_ses.m_connections.find(m_socket) != m_ses.m_connections.end())
+			== !m_connecting);
+	
 		m_disconnecting = true;
-		assert(i != m_ses.m_connections.end());
+		
 		assert(std::find(m_ses.m_disconnect_peer.begin()
-			, m_ses.m_disconnect_peer.end(), i)
+			, m_ses.m_disconnect_peer.end(), shared_from_this())
 			== m_ses.m_disconnect_peer.end());
-		m_ses.m_disconnect_peer.push_back(i);
+
+		m_ses.m_disconnect_peer.push_back(shared_from_this());
 	}
 
 	bool peer_connection::dispatch_message(int received)
@@ -1634,7 +1644,7 @@ namespace libtorrent
 		assert(block.block_index < m_torrent->torrent_file().piece_size(block.piece_index));
 		assert(!m_torrent->picker().is_downloading(block));
 
-		m_torrent->picker().mark_as_downloading(block, m_socket->sender());
+		m_torrent->picker().mark_as_downloading(block, m_remote);
 		m_request_queue.push_back(block);
 		send_block_requests();
 	}
@@ -2141,7 +2151,6 @@ namespace libtorrent
 
 			if (received > 0)
 			{
-				m_connecting = false;
 				m_last_receive = second_clock::universal_time();
 
 				m_recv_pos += received;
@@ -2426,6 +2435,46 @@ namespace libtorrent
 		return m_dl_bandwidth_quota.left() > 0;
 	}
 
+	void peer_connection::connect()
+	{
+		INVARIANT_CHECK;
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_ses.m_logger) << "CONNECT: " << m_remote.as_string() << "\n";
+#endif
+
+		m_queued = false;
+		assert(m_connecting);
+		assert(associated_torrent());
+		m_socket->connect(m_remote, associated_torrent()->interface());
+
+		if (m_torrent->alerts().should_post(alert::debug))
+		{
+			m_torrent->alerts().post_alert(peer_error_alert(
+				m_remote, m_peer_id, "connecting to peer"));
+		}
+	}
+	
+	void peer_connection::connection_complete()
+	{
+		INVARIANT_CHECK;
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_ses.m_logger) << "COMPLETED: " << m_remote.as_string() << "\n";
+#endif
+
+		m_connecting = false;
+		// this means the connection just succeeded
+
+//		assert(!can_write());
+//		assert(m_writability_monitored);
+		if (!can_write() && m_writability_monitored)
+		{
+			m_writability_monitored = false;
+			m_selector.remove_writable(m_socket);
+		}
+	}
+	
 	// --------------------------
 	// SEND DATA
 	// --------------------------
@@ -2435,6 +2484,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		assert(!m_connecting);
 		assert(!m_disconnecting);
 		assert(m_socket->is_writable());
 		assert(can_write());
@@ -2585,7 +2635,7 @@ namespace libtorrent
 #ifndef NDEBUG
 	void peer_connection::check_invariant() const
 	{
-		assert(can_write() == m_selector.is_writability_monitored(m_socket));
+		assert((can_write() || m_connecting) == m_selector.is_writability_monitored(m_socket));
 
 /*
 		assert(m_num_pieces == std::count(

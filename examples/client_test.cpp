@@ -273,7 +273,18 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			out << progress_bar(0.f, 15);
 		}
 
-		out << " " << identify_client(i->id) << "\n";
+		if (i->flags & peer_info::connecting)
+		{
+			out << esc("31") << " connecting to peer" << esc("0") << "\n";
+		}
+		else if (i->flags & peer_info::queued)
+		{
+			out << esc("33") << " queued" << esc("0") << "\n";
+		}
+		else
+		{
+			out << " " << identify_client(i->id) << "\n";
+		}
 	}
 }
 
@@ -403,6 +414,7 @@ int main(int ac, char* av[])
 	float preferred_ratio;
 	int download_limit;
 	int upload_limit;
+	int half_open_limit;
 	std::string save_path_str;
 	std::string log_level;
 	std::string ip_filter_file;
@@ -447,6 +459,8 @@ int main(int ac, char* av[])
 		("poll-interval,t", po::value<int>(&poll_interval)->default_value(2)
 			, "if a directory is being monitored, this is the interval (given "
 			"in seconds) between two refreshes of the directory listing")
+		("half-open-limit,a", po::value<int>(&half_open_limit)->default_value(-1)
+			, "Sets the maximum number of simultaneous half-open tcp connections")
 			;
 
 		po::positional_options_description p;
@@ -466,6 +480,7 @@ int main(int ac, char* av[])
 		if (download_limit <= 0) download_limit = -1;
 		if (upload_limit <= 0) upload_limit = -1;
 		if (poll_interval < 2) poll_interval = 2;
+		if (half_open_limit < 1) half_open_limit = -1;
 		if (!monitor_dir.empty() && !exists(monitor_dir))
 		{
 			std::cerr << "The monitor directory doesn't exist: " << monitor_dir.string() << std::endl;
@@ -501,6 +516,7 @@ int main(int ac, char* av[])
 		handles_t handles;
 		session ses;
 
+		ses.set_max_half_open_connections(half_open_limit);
 		ses.set_download_rate_limit(download_limit);
 		ses.set_upload_rate_limit(upload_limit);
 		ses.listen_on(std::make_pair(listen_port, listen_port + 10));
@@ -662,7 +678,7 @@ int main(int ac, char* av[])
 				if (torrent_finished_alert* p = dynamic_cast<torrent_finished_alert*>(a.get()))
 				{
 					// limit the bandwidth for all seeding torrents
-					p->handle.set_max_connections(10);
+					p->handle.set_max_connections(60);
 					//p->handle.set_max_uploads(5);
 					//p->handle.set_upload_limit(10000);
 
@@ -755,7 +771,8 @@ int main(int ac, char* av[])
 					out << "info-hash: " << h.info_hash() << "\n";
 
 					boost::posix_time::time_duration t = s.next_announce;
-					out << "next announce: " << esc("37") << boost::posix_time::to_simple_string(t) << esc("0") << "\n";
+					out << "next announce: " << esc("37") <<
+						boost::posix_time::to_simple_string(t) << esc("0") << "\n";
 					out << "tracker: " << s.current_tracker << "\n";
 				}
 

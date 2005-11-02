@@ -86,7 +86,9 @@ namespace libtorrent
 		protocol_error(const std::string& msg): std::runtime_error(msg) {};
 	};
 
-	class TORRENT_EXPORT peer_connection: public boost::noncopyable
+	class TORRENT_EXPORT peer_connection
+		: public boost::noncopyable
+		, public boost::enable_shared_from_this<peer_connection>
 	{
 	friend class invariant_access;
 	public:
@@ -98,7 +100,8 @@ namespace libtorrent
 			detail::session_impl& ses
 			, selector& sel
 			, torrent* t
-			, boost::shared_ptr<libtorrent::socket> s);
+			, boost::shared_ptr<libtorrent::socket> s
+			, address const& remote);
 
 		// with this constructor we have been contacted and we still don't
 		// know which torrent the connection belongs to
@@ -123,7 +126,7 @@ namespace libtorrent
 		// work to do.
 		void send_data();
 		void receive_data();
-
+		
 		// tells if this connection has data it want to send
 		// and has enough upload bandwidth quota left to send it.
 		bool can_write() const;
@@ -171,6 +174,7 @@ namespace libtorrent
 		void second_tick();
 
 		boost::shared_ptr<libtorrent::socket> get_socket() const { return m_socket; }
+		address const& remote() const { return m_remote; }
 
 		const peer_id& get_peer_id() const { return m_peer_id; }
 		const std::vector<bool>& get_bitfield() const;
@@ -182,6 +186,27 @@ namespace libtorrent
 		void disconnect();
 		bool is_disconnecting() const { return m_disconnecting; }
 
+		// this is called when the connection attempt has succeeded
+		// and the peer_connection is supposed to set m_connecting
+		// to false, and stop monitor writability
+		void connection_complete();
+
+		// returns true if this connection is still waiting to
+		// finish the connection attempt
+		bool is_connecting() const { return m_connecting; }
+
+		// returns true if the socket of this peer hasn't been
+		// attempted to connect yet (i.e. it's queued for
+		// connection attempt).
+		bool is_queued() const { return m_queued; }
+	
+		// called when it's time for this peer_conncetion to actually
+		// initiate the tcp connection. This may be postponed until
+		// the library isn't using up the limitation of half-open
+		// tcp connections.	
+		void connect();
+
+		
 		// This is called for every peer right after the upload
 		// bandwidth has been distributed among them
 		// It will reset the used bandwidth to 0 and
@@ -376,6 +401,7 @@ namespace libtorrent
 		// peer's socket from the writability monitor list.
 		selector& m_selector;
 		boost::shared_ptr<libtorrent::socket> m_socket;
+		address m_remote;
 		
 		// this is the torrent this connection is
 		// associated with. If the connection is an
@@ -529,14 +555,20 @@ namespace libtorrent
 		// this was the request we sent
 		std::pair<int, int> m_last_metadata_request;
 
-		// this is true until this socket has received
-		// data for the first time. While connecting
+		// this is true until this socket has become
+		// writable for the first time (i.e. the
+		// connection completed). While connecting
 		// the timeout will not be triggered. This is
 		// because windows XP SP2 may delay connection
 		// attempts, which means that the connection
 		// may not even have been attempted when the
 		// time out is reached.
 		bool m_connecting;
+
+		// This is true until connect is called on the
+		// peer_connection's socket. It is false on incoming
+		// connections.
+		bool m_queued;
 
 		// the number of bytes of metadata we have received
 		// so far from this per, only counting the current

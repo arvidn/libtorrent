@@ -1,3 +1,8 @@
+	* added the ability to limit the number of simultaneous half-open
+	  TCP connections. Flags in peer_info has been added.
+
+release 0.9.1	
+
 	* strings that are invalid utf-8 strings are now decoded with the
 	  local codepage on windows
 	* added the ability to build libtorrent both as a shared library

@@ -133,7 +133,7 @@ namespace libtorrent
 		void set_blocking(bool blocking);
 		bool is_blocking() { return m_blocking; }
 
-		const address& sender() const { return m_sender; }
+		const address& sender() const { assert(m_sender != address()); return m_sender; }
 		address name() const;
 
 		void listen(libtorrent::address const& iface, int queue);
