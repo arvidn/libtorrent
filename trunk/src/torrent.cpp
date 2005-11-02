@@ -857,7 +857,7 @@ namespace libtorrent
 	{
 		assert(p != 0);
 
-		peer_iterator i = m_connections.find(p->get_socket()->sender());
+		peer_iterator i = m_connections.find(p->remote());
 		assert(i != m_connections.end());
 
 		if (ready_for_connections())
@@ -903,25 +903,20 @@ namespace libtorrent
 	peer_connection& torrent::connect_to_peer(const address& a)
 	{
 		boost::shared_ptr<socket> s(new socket(socket::tcp, false));
-		s->connect(a, m_net_interface);
 		boost::shared_ptr<peer_connection> c(new peer_connection(
-			m_ses, m_ses.m_selector, this, s));
+			m_ses, m_ses.m_selector, this, s, a));
 
-		detail::session_impl::connection_map::iterator p =
-			m_ses.m_connections.insert(std::make_pair(s, c)).first;
+		m_ses.m_connection_queue.push_back(c);
 
-		// add the newly connected peer to this torrent's peer list
-		assert(m_connections.find(p->second->get_socket()->sender())
-			== m_connections.end());
+		assert(m_connections.find(a) == m_connections.end());
 
 #ifndef NDEBUG
 		m_policy->check_invariant();
 #endif
 	
+		// add the newly connected peer to this torrent's peer list
 		m_connections.insert(
-			std::make_pair(
-				p->second->get_socket()->sender()
-				, boost::get_pointer(p->second)));
+			std::make_pair(a, boost::get_pointer(c)));
 
 #ifndef NDEBUG
 		m_policy->check_invariant();
@@ -929,13 +924,14 @@ namespace libtorrent
 
 		m_ses.m_selector.monitor_readability(s);
 		m_ses.m_selector.monitor_errors(s);
+		m_ses.process_connection_queue();
 		return *c;
 	}
 
 	void torrent::attach_peer(peer_connection* p)
 	{
 		assert(p != 0);
-		assert(m_connections.find(p->get_socket()->sender()) == m_connections.end());
+		assert(m_connections.find(p->remote()) == m_connections.end());
 		assert(!p->is_local());
 
 		detail::session_impl::connection_map::iterator i
@@ -950,7 +946,8 @@ namespace libtorrent
 		// connection list.
 		m_policy->new_connection(*i->second);
 
-		m_connections.insert(std::make_pair(p->get_socket()->sender(), p));
+		assert(p->remote() == p->get_socket()->sender());
+		m_connections.insert(std::make_pair(p->remote(), p));
 
 #ifndef NDEBUG
 		m_policy->check_invariant();

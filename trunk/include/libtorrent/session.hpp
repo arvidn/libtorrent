@@ -172,8 +172,11 @@ namespace libtorrent
 			friend class invariant_access;
 			// TODO: maybe this should be changed to a sorted vector
 			// using lower_bound?
-			typedef std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> > connection_map;
+			typedef std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> >
+				connection_map;
 			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
+			typedef std::deque<boost::shared_ptr<peer_connection> >
+				connection_queue;
 
 			session_impl(
 				std::pair<int, int> listen_port_range
@@ -193,16 +196,31 @@ namespace libtorrent
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
 
+			// this will see if there are any pending connection attempts
+			// and in that case initiate new connections until the limit
+			// is reached.
+			void process_connection_queue();
+
 			// this maps sockets to their peer_connection
 			// object. It is the complete list of all connected
 			// peers.
 			connection_map m_connections;
+			
+			// this is a list of half-open tcp connections
+			// (only outgoing connections)
+			connection_map m_half_open;
+
+			// this is a queue of pending outgoing connections. If the
+			// list of half-open connections is full (given the global
+			// limit), new outgoing connections are put on this queue,
+			// waiting for one slot in the half-open queue to open up.
+			connection_queue m_connection_queue;
 
 			// this is a list of iterators into the m_connections map
 			// that should be disconnected as soon as possible.
 			// It is used to delay disconnections to avoid troubles
 			// in loops that iterate over them.
-			std::vector<connection_map::iterator> m_disconnect_peer;
+			std::vector<boost::shared_ptr<peer_connection> > m_disconnect_peer;
 
 			// filters incomming connections
 			ip_filter m_ip_filter;
@@ -253,6 +271,9 @@ namespace libtorrent
 			int m_download_rate;
 			int m_max_uploads;
 			int m_max_connections;
+			// the number of simultaneous half-open tcp
+			// connections libtorrent will have.
+			int m_half_open_limit;
 
 			// statistics gathered from all torrents.
 			stat m_stat;
@@ -379,6 +400,7 @@ namespace libtorrent
 		void set_download_rate_limit(int bytes_per_second);
 		void set_max_uploads(int limit);
 		void set_max_connections(int limit);
+		void set_max_half_open_connections(int limit);
 
 		std::auto_ptr<alert> pop_alert();
 		void set_severity_level(alert::severity_t s);

@@ -393,6 +393,7 @@ namespace libtorrent { namespace detail
 		, m_download_rate(-1)
 		, m_max_uploads(-1)
 		, m_max_connections(-1)
+		, m_half_open_limit(-1)
 		, m_incoming_connection(false)
 	{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -441,7 +442,34 @@ namespace libtorrent { namespace detail
 	{
 		while (!m_disconnect_peer.empty())
 		{
-			m_connections.erase(m_disconnect_peer.back());
+			boost::shared_ptr<peer_connection>& p = m_disconnect_peer.back();
+			assert(p->is_disconnecting());
+			if (p->is_connecting())
+			{
+				// Since this peer is still connecting, will not be
+				// in the list of completed connections.
+				connection_map::iterator i = m_half_open.find(p->get_socket());
+				if (i == m_half_open.end())
+				{
+					// this connection is not in the half-open list, so it
+					// has to be in the queue, waiting to be connected.
+					connection_queue::iterator j = std::find(
+						m_connection_queue.begin(), m_connection_queue.end(), p);
+						
+					assert(j != m_connection_queue.end());
+					if (j != m_connection_queue.end()) m_connection_queue.erase(j);
+				}
+				else
+				{
+					m_half_open.erase(i);
+				}
+			}
+			else
+			{
+				connection_map::iterator i = m_connections.find(p->get_socket());
+				assert(i != m_connections.end());
+				if (i != m_connections.end()) m_connections.erase(i);
+			}
 			m_disconnect_peer.pop_back();
 		}
 	}
@@ -514,6 +542,21 @@ namespace libtorrent { namespace detail
 		}
 	}
 
+	void session_impl::process_connection_queue()
+	{
+		while (!m_connection_queue.empty())
+		{
+			if ((int)m_half_open.size() >= m_half_open_limit
+				&& m_half_open_limit > 0)
+				return;
+
+			connection_queue::value_type& c = m_connection_queue.front();
+			m_half_open.insert(std::make_pair(c->get_socket(), c));
+			assert(c->associated_torrent());
+			c->connect();
+			m_connection_queue.pop_front();
+		}
+	}
 
 	void session_impl::operator()()
 	{
@@ -605,7 +648,24 @@ namespace libtorrent { namespace detail
 				// the connection may have been disconnected in the receive phase
 				if (p == m_connections.end())
 				{
-					m_selector.remove(*i);
+					// if we didn't find the socket among the
+					// connected connections, look among the
+					// half-open connections to see if some of
+					// them have finished.
+					p = m_half_open.find(*i);
+
+					if (p == m_half_open.end())
+					{
+						m_selector.remove(*i);
+					}
+					else
+					{
+						p->second->connection_complete();
+						assert(!p->second->is_connecting());
+						m_connections.insert(*p);
+						m_half_open.erase(p);
+						process_connection_queue();
+					}
 				}
 				else
 				{
@@ -703,6 +763,7 @@ namespace libtorrent { namespace detail
 						boost::shared_ptr<peer_connection> c(
 							new peer_connection(*this, m_selector, s));
 
+						assert(!c->is_connecting());
 						m_connections.insert(std::make_pair(s, c));
 						m_selector.monitor_readability(s);
 						m_selector.monitor_errors(s);
@@ -773,6 +834,9 @@ namespace libtorrent { namespace detail
 				i != error_clients.end(); ++i)
 			{
 				connection_map::iterator p = m_connections.find(*i);
+
+				m_selector.remove(*i);
+				// the connection may have been disconnected in the receive or send phase
 				if (p != m_connections.end())
 				{
 					if (m_alerts.should_post(alert::debug))
@@ -783,12 +847,7 @@ namespace libtorrent { namespace detail
 								, p->second->id()
 								, "connection closed"));
 					}
-				}
 
-				m_selector.remove(*i);
-				// the connection may have been disconnected in the receive or send phase
-				if (p != m_connections.end())
-				{
 #if defined(TORRENT_VERBOSE_LOGGING)
 					(*p->second->m_logger) << "*** CONNECTION EXCEPTION\n";
 #endif
@@ -808,6 +867,32 @@ namespace libtorrent { namespace detail
 #endif
 					assert(m_listen_socket.unique());
 					m_listen_socket.reset();
+				}
+				else
+				{
+					// the error was not in one of the connected
+					// conenctions. Look among the half-open ones.
+					p = m_half_open.find(*i);
+					if (p != m_half_open.end())
+					{
+						if (m_alerts.should_post(alert::debug))
+						{
+							m_alerts.post_alert(
+								peer_error_alert(
+									p->first->sender()
+									, p->second->id()
+									, "connection attempt failed"));
+		// TODO: TEMP!
+		#warning TEMP!
+		std::ofstream log("connect.log", std::ios::app);
+		log << boost::posix_time::microsec_clock::universal_time() << " FAILED: "
+			<< (*i)->sender().as_string() << std::endl;
+
+
+							p->second->set_failed();
+							m_half_open.erase(p);
+						}
+					}
 				}
 			}
 
@@ -1003,17 +1088,25 @@ namespace libtorrent { namespace detail
 	{
 		assert(place);
 
+		for (connection_map::iterator i = m_half_open.begin();
+			i != m_half_open.end(); ++i)
+		{
+			assert(i->second->is_connecting());
+		}
+
 		for (connection_map::iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
 		{
 			assert(i->second);
-			if (i->second->can_write() != m_selector.is_writability_monitored(i->first)
+			if (i->second->is_connecting()
+				|| i->second->can_write() != m_selector.is_writability_monitored(i->first)
 				|| i->second->can_read() != m_selector.is_readability_monitored(i->first))
 			{
 				std::ofstream error_log("error.log", std::ios_base::app);
 				boost::shared_ptr<peer_connection> p = i->second;
 				error_log << "selector::is_writability_monitored() " << m_selector.is_writability_monitored(i->first) << "\n";
 				error_log << "selector::is_readability_monitored() " << m_selector.is_readability_monitored(i->first) << "\n";
+				error_log << "peer_connection::is_connecting() " << p->is_connecting() << "\n";
 				error_log << "peer_connection::can_write() " << p->can_write() << "\n";
 				error_log << "peer_connection::can_read() " << p->can_read() << "\n";
 				error_log << "peer_connection::ul_quota_left " << p->m_ul_bandwidth_quota.left() << "\n";
@@ -1404,6 +1497,13 @@ namespace libtorrent
 		assert(limit > 0 || limit == -1);
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_max_connections = limit;
+	}
+
+	void session::set_max_half_open_connections(int limit)
+	{
+		assert(limit > 0 || limit == -1);
+		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		m_impl.m_half_open_limit = limit;
 	}
 
 	void session::set_upload_rate_limit(int bytes_per_second)

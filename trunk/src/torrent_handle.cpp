@@ -450,7 +450,7 @@ namespace libtorrent
 			// but still connectable
 			if (!i->second->is_local()) continue;
 
-			address ip = i->second->get_socket()->sender();
+			address ip = i->second->remote();
 			entry peer(entry::dictionary_t);
 			peer["ip"] = ip.as_string();
 			peer["port"] = ip.port;
@@ -578,7 +578,7 @@ namespace libtorrent
 			p.payload_down_speed = statistics.download_payload_rate();
 			p.payload_up_speed = statistics.upload_payload_rate();
 			p.id = peer->get_peer_id();
-			p.ip = peer->get_socket()->sender();
+			p.ip = peer->remote();
 
 			p.total_download = statistics.total_payload_download();
 			p.total_upload = statistics.total_payload_upload();
@@ -621,7 +621,9 @@ namespace libtorrent
 			if (peer->has_peer_choked()) p.flags |= peer_info::remote_choked;
 			if (peer->support_extensions()) p.flags |= peer_info::supports_extensions;
 			if (peer->is_local()) p.flags |= peer_info::local_connection;
-
+			if (peer->is_connecting() && !peer->is_queued()) p.flags |= peer_info::connecting;
+			if (peer->is_queued()) p.flags |= peer_info::queued;
+			
 			p.pieces = peer->get_bitfield();
 			p.seed = peer->is_seed();
 		}

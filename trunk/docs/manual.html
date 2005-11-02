@@ -1,41 +1,14 @@
-<!DOCTYPE html PUBLIC
-    "-//W3C//DTD XHTML 1.0 Strict//EN"
-    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-
-<html>
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-<title>Rasterbar Software | Products | libtorrent</title>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/> 
-<link rel="stylesheet" type="text/css" href="../../css/base.css" />
-<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
-
-<style type="text/css">
-/* Hides from IE-mac \*/
-* html pre { height: 1%; }
-/* End hide from IE-mac */
-</style>
-
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.8: http://docutils.sourceforge.net/" />
+<title>libtorrent manual</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" href="style.css" type="text/css" />
 </head>
-
 <body>
-    <div id="container">
-    <div id="headerNav">
-        <ul>
-            <li class="first"><a href="/">Home</a></li>
-            <li><a href="../../products.html">Products</a></li>
-            <li><a href="../../contact.html">Contact</a></li>
-<!--            <li><a href="/about.html">About</a></li> -->
-        </ul>
-    </div>
-    <div id="header">
-        <h1><span>Rasterbar Software</span></h1>
-        <h2><span>Software developement and consulting</span></h2>
-        <span>
-        </span>
-    </div>
-
-    <div id="main">
-
 <div class="document" id="libtorrent-manual">
 <h1 class="title">libtorrent manual</h1>
 <table class="docinfo" frame="void" rules="none">
@@ -1800,7 +1773,9 @@ struct peer_info
                 remote_interested = 0x4,
                 remote_choked = 0x8,
                 supports_extensions = 0x10,
-                local_connection = 0x20
+                local_connection = 0x20,
+                connecting = 0x40,
+                queued = 0x80
         };
         unsigned int flags;
         address ip;
@@ -1857,6 +1832,15 @@ listen port open, and that port is the same as in the
 <a class="reference" href="#address">address</a> of this peer. If this flag is not set, this
 peer connection was opened by this peer connecting to
 us.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">connecting</span></tt></td>
+<td>The connection is in a half-open state (i.e. it is
+being connected).</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">queued</span></tt></td>
+<td>The connection is currently queued for a connection
+attempt. This may happen if there is a limit set on
+the number of half-open TCP connections.</td>
 </tr>
 </tbody>
 </table>
@@ -3266,13 +3250,5 @@ scripts.</p>
 <p><a class="reference" href="http://sourceforge.net"><img alt="sf_logo" src="http://sourceforge.net/sflogo.php?group_id=7994" /></a></p>
 </div>
 </div>
-    </div>
-
-    <div id="footer">
-        <span>Copyright &copy; 2005 Rasterbar Software.</span>
-    </div>
-    </div>
-
 </body>
-
 </html>

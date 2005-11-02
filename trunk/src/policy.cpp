@@ -116,8 +116,9 @@ namespace
 		// the number of blocks we want, but it will try to make the picked
 		// blocks be from whole pieces, possibly by returning more blocks
 		// than we requested.
+		assert(c.remote() == c.get_socket()->sender());
 		p.pick_pieces(c.get_bitfield(), interesting_pieces
-			, num_requests, prefer_whole_pieces, c.get_socket()->sender());
+			, num_requests, prefer_whole_pieces, c.remote());
 
 		// this vector is filled with the interesting pieces
 		// that some other peer is currently downloading
@@ -866,14 +867,15 @@ namespace libtorrent
 
 		// TODO: only allow _one_ connection to use this
 		// override at a time
+		assert(c.remote() == c.get_socket()->sender());
 		if (m_torrent->num_peers() >= m_torrent->m_connections_quota.given
-			&& c.get_socket()->sender().ip() != m_torrent->current_tracker().ip())
+			&& c.remote().ip() != m_torrent->current_tracker().ip())
 		{
 			throw protocol_error("too many connections, refusing incoming connection"); // cause a disconnect
 		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		if (c.get_socket()->sender().ip() == m_torrent->current_tracker().ip())
+		if (c.remote().ip() == m_torrent->current_tracker().ip())
 		{
 			m_torrent->debug_log("overriding connection limit for tracker NAT-check");
 		}
@@ -882,7 +884,7 @@ namespace libtorrent
 		std::vector<peer>::iterator i = std::find_if(
 			m_peers.begin()
 			, m_peers.end()
-			, match_peer_ip(c.get_socket()->sender()));
+			, match_peer_ip(c.remote()));
 
 		if (i == m_peers.end())
 		{
@@ -892,8 +894,10 @@ namespace libtorrent
 			// we don't have ny info about this peer.
 			// add a new entry
 			
-			peer p(c.get_socket()->sender(), peer::not_connectable);
+			assert(c.remote() == c.get_socket()->sender());
+			peer p(c.remote(), peer::not_connectable);
 			m_peers.push_back(p);
+			check_invariant();
 			i = m_peers.end()-1;
 		}
 		else
@@ -909,6 +913,7 @@ namespace libtorrent
 		i->prev_amount_download = 0;
 		i->prev_amount_upload = 0;
 		i->connection = &c;
+		assert(i->connection);
 		i->connected = second_clock::universal_time();
 		m_last_optimistic_disconnect = second_clock::universal_time();
 	}
@@ -939,7 +944,7 @@ namespace libtorrent
 				m_peers.push_back(p);
 				// the iterator is invalid
 				// because of the push_back()
-				i = m_peers.end()-1;
+				i = m_peers.end() - 1;
 			}
 			else
 			{
@@ -1157,7 +1162,9 @@ namespace libtorrent
 	{
 		try
 		{
+			assert(!p->connection);
 			p->connection = &m_torrent->connect_to_peer(p->id);
+			assert(p->connection);
 			p->connection->add_stat(p->prev_amount_download, p->prev_amount_upload);
 			p->prev_amount_download = 0;
 			p->prev_amount_upload = 0;
@@ -1166,8 +1173,11 @@ namespace libtorrent
 					second_clock::universal_time();
 			return true;
 		}
-		catch (network_error&)
+		catch (network_error& e)
 		{
+			// TODO: This path needs testing!
+			std::string msg = e.what();
+			assert(false);
 			// TODO: remove the peer
 //			m_peers.erase(std::find(m_peers.begin(), m_peers.end(), p));
 		}
@@ -1253,10 +1263,11 @@ namespace libtorrent
 	bool policy::has_connection(const peer_connection* c)
 	{
 		assert(c);
+		assert(c->remote() == c->get_socket()->sender());
 		return std::find_if(
 			m_peers.begin()
 			, m_peers.end()
-			, match_peer_ip(c->get_socket()->sender())) != m_peers.end();
+			, match_peer_ip(c->remote())) != m_peers.end();
 	}
 
 	void policy::check_invariant() const
@@ -1264,10 +1275,17 @@ namespace libtorrent
 		if (m_torrent->is_aborted()) return;
 		int actual_unchoked = 0;
 		int connected_peers = 0;
+
+		int total_connections = 0;
+		int nonempty_connections = 0;
+		
+		
 		for (std::vector<peer>::const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
+			++total_connections;
 			if (!i->connection) continue;
+			++nonempty_connections;
 			if (!i->connection->is_disconnecting())
 				++connected_peers;
 			if (!i->connection->is_choked()) ++actual_unchoked;
@@ -1291,6 +1309,7 @@ namespace libtorrent
 		// When there's an outgoing connection, it will first
 		// be added to the torrent and then to the policy.
 		// that's why the two second cases are in there.
+
 		assert(connected_peers == num_torrent_peers
 			|| (connected_peers == num_torrent_peers + 1
 				&& connected_peers > 0)

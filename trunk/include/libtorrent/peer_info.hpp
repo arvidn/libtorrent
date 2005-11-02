@@ -51,7 +51,9 @@ namespace libtorrent
 			remote_interested = 0x4,
 			remote_choked = 0x8,
 			supports_extensions = 0x10,
-			local_connection = 0x20
+			local_connection = 0x20,
+			connecting = 0x40,
+			queued = 0x80
 		};
 		unsigned int flags;
 		address ip;
