@@ -329,16 +329,21 @@ bjam darwin-4.0 link=static
 <p>To build different versions you can also just add the name of the build
 variant. Some default build variants in BBv2 are <tt class="docutils literal"><span class="pre">release</span></tt>, <tt class="docutils literal"><span class="pre">debug</span></tt>,
 <tt class="docutils literal"><span class="pre">profile</span></tt>.</p>
-<p>If you're building on a platform where dlls share the same heap, you can build
-libtorrent as a dll too, by typing <tt class="docutils literal"><span class="pre">link=shared</span></tt>, or <tt class="docutils literal"><span class="pre">link=static</span></tt> to
-explicitly build a static library.</p>
+<p>You can build libtorrent as a dll too, by typing <tt class="docutils literal"><span class="pre">link=shared</span></tt>, or
+<tt class="docutils literal"><span class="pre">link=static</span></tt> to build a static library. <tt class="docutils literal"><span class="pre">link=shared</span></tt> is the default.</p>
 <p>If you want to explicitly say how to link against the runtime library, you
 can set the <tt class="docutils literal"><span class="pre">runtime-link</span></tt> feature on the commandline, either to <tt class="docutils literal"><span class="pre">shared</span></tt>
 or <tt class="docutils literal"><span class="pre">static</span></tt>. Most operating systems will only allow linking shared against
 the runtime, but on windows you can do both. Example:</p>
 <pre class="literal-block">
-bjam msvc-7.1 link=static runtime-link=staitc
+bjam msvc-7.1 link=static runtime-link=static
 </pre>
+<div class="warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">If you link statically to the runtime library, you cannot build libtorrent
+as a shared library (DLL), since you will get separate heaps in the library
+and in the client application. It will result in crashes.</p>
+</div>
 <p>The build targets are put in a directory called bin, and under it they are
 sorted in directories depending on the toolset and build variant used.</p>
 <p>To build the examples, just change directory to the examples directory and

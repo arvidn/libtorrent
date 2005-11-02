@@ -208,16 +208,22 @@ To build different versions you can also just add the name of the build
 variant. Some default build variants in BBv2 are ``release``, ``debug``,
 ``profile``.
 
-If you're building on a platform where dlls share the same heap, you can build
-libtorrent as a dll too, by typing ``link=shared``, or ``link=static`` to
-explicitly build a static library.
+You can build libtorrent as a dll too, by typing ``link=shared``, or
+``link=static`` to build a static library. ``link=shared`` is the default.
 
 If you want to explicitly say how to link against the runtime library, you
 can set the ``runtime-link`` feature on the commandline, either to ``shared``
 or ``static``. Most operating systems will only allow linking shared against
 the runtime, but on windows you can do both. Example::
 
-  bjam msvc-7.1 link=static runtime-link=staitc
+  bjam msvc-7.1 link=static runtime-link=static
+
+.. warning::
+
+  If you link statically to the runtime library, you cannot build libtorrent
+  as a shared library (DLL), since you will get separate heaps in the library
+  and in the client application. It will result in crashes.
+
 
 The build targets are put in a directory called bin, and under it they are
 sorted in directories depending on the toolset and build variant used.
