@@ -33,6 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/utf8.hpp"
 
+#ifdef UNICODE
+#include "libtorrent/storage.hpp"
+#endif
+
 #include <sstream>
 #include <windows.h>
 
