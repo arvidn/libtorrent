@@ -897,7 +897,6 @@ namespace libtorrent
 			assert(c.remote() == c.get_socket()->sender());
 			peer p(c.remote(), peer::not_connectable);
 			m_peers.push_back(p);
-			check_invariant();
 			i = m_peers.end()-1;
 		}
 		else
