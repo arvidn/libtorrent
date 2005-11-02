@@ -884,8 +884,7 @@ namespace libtorrent { namespace detail
 									, "connection attempt failed"));
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-							(*m_logger) << boost::posix_time::microsec_clock::universal_time() << " FAILED: "
-								<< (*i)->sender().as_string() << std::endl;
+							(*m_logger) << "FAILED: " << (*i)->sender().as_string() << "\n";
 #endif
 							p->second->set_failed();
 							m_half_open.erase(p);
