@@ -882,13 +882,11 @@ namespace libtorrent { namespace detail
 									p->first->sender()
 									, p->second->id()
 									, "connection attempt failed"));
-		// TODO: TEMP!
-		#warning TEMP!
-		std::ofstream log("connect.log", std::ios::app);
-		log << boost::posix_time::microsec_clock::universal_time() << " FAILED: "
-			<< (*i)->sender().as_string() << std::endl;
 
-
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+							(*m_logger) << boost::posix_time::microsec_clock::universal_time() << " FAILED: "
+								<< (*i)->sender().as_string() << std::endl;
+#endif
 							p->second->set_failed();
 							m_half_open.erase(p);
 						}
