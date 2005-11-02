@@ -2446,7 +2446,7 @@ namespace libtorrent
 		m_queued = false;
 		assert(m_connecting);
 		assert(associated_torrent());
-		m_socket->connect(m_remote, associated_torrent()->interface());
+		m_socket->connect(m_remote, associated_torrent()->get_interface());
 
 		if (m_torrent->alerts().should_post(alert::debug))
 		{
