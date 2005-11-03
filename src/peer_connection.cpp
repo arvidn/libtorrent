@@ -2635,7 +2635,10 @@ namespace libtorrent
 #ifndef NDEBUG
 	void peer_connection::check_invariant() const
 	{
-		assert((can_write() || m_connecting) == m_selector.is_writability_monitored(m_socket));
+		assert((can_write() == m_selector.is_writability_monitored(m_socket))
+			|| m_connecting);
+
+		assert(m_writability_monitored == m_selector.is_writability_monitored(m_socket));
 
 /*
 		assert(m_num_pieces == std::count(
