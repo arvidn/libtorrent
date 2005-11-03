@@ -489,6 +489,7 @@ The ``session`` class has the following synopsis::
 		void set_download_rate_limit(int bytes_per_second);
 		void set_max_uploads(int limit);
 		void set_max_connections(int limit);
+		void set_max_half_open_connections(int limit);
 
 		void set_ip_filter(ip_filter const& f);
       
@@ -655,6 +656,24 @@ and the number of connections opened. The number of connections is set to a hard
 minimum of at least two connections per torrent, so if you set a too low
 connections limit, and open too many torrents, the limit will not be met. The
 number of uploads is at least one per torrent.
+
+
+set_max_half_open_connections()
+-------------------------------
+
+	::
+		
+		void set_max_half_open_connections(int limit);
+
+Sets the maximum number of half-open connections libtorrent will have when
+connecting to peers. A half-open connection is one where connect() has been
+called, but the connection still hasn't been established (nor filed). Windows
+XP Service Pack 2 sets a defaul, system wide, limit of the number of half-open
+connections to 10. So, this limit can be used to work nicer together with
+other network applications on that system. The default is to have no limit,
+and passing -1 as the limit, means to have no limit. When limiting the number
+of simultaneous connection attempts, peers will be put in a queue waiting for
+their turn to get connected.
 
 
 set_ip_filter()
