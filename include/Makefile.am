@@ -4,6 +4,7 @@ libtorrent/allocate_resources.hpp \
 libtorrent/async_gethostbyname.hpp \
 libtorrent/bencode.hpp \
 libtorrent/buffer.hpp \
+libtorrent/config.hpp \
 libtorrent/debug.hpp \
 libtorrent/entry.hpp \
 libtorrent/escape_string.hpp \
