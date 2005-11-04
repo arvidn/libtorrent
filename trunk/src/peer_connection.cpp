@@ -126,6 +126,7 @@ namespace libtorrent
 		, m_metadata_progress(0)
 	{
 		m_selector.monitor_writability(m_socket);
+		m_selector.monitor_readability(m_socket);
 		INVARIANT_CHECK;
 
 		// these numbers are used the first second of connection.
@@ -239,6 +240,7 @@ namespace libtorrent
 		, m_queued(false)
 		, m_metadata_progress(0)
 	{
+		m_selector.monitor_readability(m_socket);
 		INVARIANT_CHECK;
 
 		// upload bandwidth will only be given to connections
@@ -2639,6 +2641,7 @@ namespace libtorrent
 			|| m_connecting);
 
 		assert(m_writability_monitored == m_selector.is_writability_monitored(m_socket));
+		assert(m_readability_monitored == m_selector.is_readability_monitored(m_socket));
 
 /*
 		assert(m_num_pieces == std::count(

@@ -765,7 +765,6 @@ namespace libtorrent { namespace detail
 
 						assert(!c->is_connecting());
 						m_connections.insert(std::make_pair(s, c));
-						m_selector.monitor_readability(s);
 						m_selector.monitor_errors(s);
 					}
 					continue;
