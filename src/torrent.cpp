@@ -922,7 +922,6 @@ namespace libtorrent
 		m_policy->check_invariant();
 #endif
 
-		m_ses.m_selector.monitor_readability(s);
 		m_ses.m_selector.monitor_errors(s);
 		m_ses.process_connection_queue();
 		return *c;
