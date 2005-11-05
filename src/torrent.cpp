@@ -1354,7 +1354,12 @@ namespace libtorrent
 		torrent_status st;
 
 		st.block_size = block_size();
-		st.num_peers = num_peers();
+
+		
+		st.num_peers = (int)std::count_if(m_connections.begin(),	m_connections.end(),
+			bind(std::logical_not<bool>(), boost::bind(&peer_connection::is_connecting,
+				boost::bind(&std::map<address,peer_connection*>::value_type::second, _1))));
+
 		st.num_complete = m_complete;
 		st.num_incomplete = m_incomplete;
 		st.paused = m_paused;
