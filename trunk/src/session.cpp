@@ -462,6 +462,7 @@ namespace libtorrent { namespace detail
 				else
 				{
 					m_half_open.erase(i);
+					process_connection_queue();
 				}
 			}
 			else
@@ -888,6 +889,7 @@ namespace libtorrent { namespace detail
 #endif
 						p->second->set_failed();
 						m_half_open.erase(p);
+						process_connection_queue();
 					}
 				}
 			}
