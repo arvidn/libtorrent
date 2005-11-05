@@ -1755,7 +1755,10 @@ all peers. The rates are given as the number of bytes per second. The
 total transfer rate of payload only, not counting protocol chatter. This might
 be slightly smaller than the other rates, but if projected over a long time
 (e.g. when calculating ETA:s) the difference may be noticable.</p>
-<p><tt class="docutils literal"><span class="pre">num_peers</span></tt> is the number of peers this torrent currently is connected to.</p>
+<p><tt class="docutils literal"><span class="pre">num_peers</span></tt> is the number of peers this torrent currently is connected to.
+Peer connections that are in the half-open state (is attempting to connect)
+or are queued for later connection attempt do not count. Although they are
+visible in the peer list when you call <a class="reference" href="#get-peer-info">get_peer_info()</a>.</p>
 <p><tt class="docutils literal"><span class="pre">num_complete</span></tt> and <tt class="docutils literal"><span class="pre">num_incomplete</span></tt> are set to -1 if the tracker did not
 send any scrape data in its announce reply. This data is optional and may
 not be available from all trackers. If these are not -1, they are the total

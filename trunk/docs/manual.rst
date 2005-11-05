@@ -1720,6 +1720,9 @@ be slightly smaller than the other rates, but if projected over a long time
 (e.g. when calculating ETA:s) the difference may be noticable.
 
 ``num_peers`` is the number of peers this torrent currently is connected to.
+Peer connections that are in the half-open state (is attempting to connect)
+or are queued for later connection attempt do not count. Although they are
+visible in the peer list when you call `get_peer_info()`_.
 
 ``num_complete`` and ``num_incomplete`` are set to -1 if the tracker did not
 send any scrape data in its announce reply. This data is optional and may

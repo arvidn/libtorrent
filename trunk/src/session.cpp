@@ -710,7 +710,7 @@ namespace libtorrent { namespace detail
 #endif
 
 						p->second->set_failed();
-						m_selector.remove(*i);
+//						m_selector.remove(*i);
 						m_connections.erase(p);
 					}
 				}
@@ -772,6 +772,7 @@ namespace libtorrent { namespace detail
 				connection_map::iterator p = m_connections.find(*i);
 				if(p == m_connections.end())
 				{
+					assert(m_half_open.find(*i) == m_half_open.end());
 					m_selector.remove(*i);
 				}
 				else
@@ -813,7 +814,7 @@ namespace libtorrent { namespace detail
 						// the connection wants to disconnect for some reason, remove it
 						// from the connection-list
 						p->second->set_failed();
-						m_selector.remove(*i);
+//						m_selector.remove(*i);
 						m_connections.erase(p);
 					}
 				}
@@ -834,7 +835,7 @@ namespace libtorrent { namespace detail
 			{
 				connection_map::iterator p = m_connections.find(*i);
 
-				m_selector.remove(*i);
+//				m_selector.remove(*i);
 				// the connection may have been disconnected in the receive or send phase
 				if (p != m_connections.end())
 				{
@@ -930,7 +931,7 @@ namespace libtorrent { namespace detail
 #endif
 
 					j->second->set_failed();
-					m_selector.remove(j->first);
+//					m_selector.remove(j->first);
 					m_connections.erase(j);
 					continue;
 				}
