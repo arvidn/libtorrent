@@ -882,13 +882,12 @@ namespace libtorrent { namespace detail
 									p->first->sender()
 									, p->second->id()
 									, "connection attempt failed"));
-
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-							(*m_logger) << "FAILED: " << (*i)->sender().as_string() << "\n";
-#endif
-							p->second->set_failed();
-							m_half_open.erase(p);
 						}
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+						(*m_logger) << "FAILED: " << (*i)->sender().as_string() << "\n";
+#endif
+						p->second->set_failed();
+						m_half_open.erase(p);
 					}
 				}
 			}
