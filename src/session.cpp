@@ -1090,12 +1090,14 @@ namespace libtorrent { namespace detail
 			i != m_half_open.end(); ++i)
 		{
 			assert(i->second->is_connecting());
+			assert(m_selector.is_writability_monitored(i->second->get_socket()));
 		}
 
 		for (connection_map::iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
 		{
 			assert(i->second);
+			assert(!i->second->is_connecting());
 			if (i->second->is_connecting()
 				|| i->second->can_write() != m_selector.is_writability_monitored(i->first)
 				|| i->second->can_read() != m_selector.is_readability_monitored(i->first))

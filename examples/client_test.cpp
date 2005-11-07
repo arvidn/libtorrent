@@ -441,7 +441,7 @@ int main(int ac, char* av[])
 		("save-path,s", po::value<std::string>(&save_path_str)->default_value("./")
 			, "the path where the downloaded file/folder should be placed.")
 		("log-level,l", po::value<std::string>(&log_level)->default_value("info")
-			, "sets the level at which events are logged [debug | info | warning].")
+			, "sets the level at which events are logged [debug | info | warning | fatal].")
 		("ip-filter,f", po::value<std::string>(&ip_filter_file)->default_value("")
 			, "sets the path to the ip-filter file used to block access from certain "
 			"ips. ")
@@ -525,6 +525,8 @@ int main(int ac, char* av[])
 			ses.set_severity_level(alert::debug);
 		else if (log_level == "warning")
 			ses.set_severity_level(alert::warning);
+		else if (log_level == "fatal")
+			ses.set_severity_level(alert::fatal);
 		else
 			ses.set_severity_level(alert::info);
 

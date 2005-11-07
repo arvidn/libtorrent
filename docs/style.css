@@ -106,3 +106,12 @@ td
 	border: 1px solid black
 }
 
+div.warning, div.note, div.important {
+    width: 80%;
+    margin: 1.5em auto;
+    background: #C1E5F6;
+    background: #F1FFF5;
+    border: solid 1px #D1DFD5;
+    padding: 5px 10px 5px 10px;
+}
+
