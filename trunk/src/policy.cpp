@@ -932,6 +932,8 @@ namespace libtorrent
 				, m_peers.end()
 				, match_peer_ip(remote));
 			
+			bool just_added = false;
+			
 			if (i == m_peers.end())
 			{
 				using namespace boost::posix_time;
@@ -944,6 +946,7 @@ namespace libtorrent
 				// the iterator is invalid
 				// because of the push_back()
 				i = m_peers.end() - 1;
+				just_added = true;
 			}
 			else
 			{
@@ -975,7 +978,14 @@ namespace libtorrent
 			if (m_torrent->num_peers() < m_torrent->m_connections_quota.given
 				&& !m_torrent->is_paused())
 			{
-				connect_peer(&*i);
+				if (!connect_peer(&*i) && just_added)
+				{
+					// if this peer was just added, and it
+					// failed to connect. Remove it from the list
+					// (to keep it in sync with the session's list)
+					assert(i == m_peers.end() - 1);
+					m_peers.erase(i);
+				}
 			}
 			return;
 		}
@@ -1175,10 +1185,10 @@ namespace libtorrent
 		catch (network_error& e)
 		{
 			// TODO: This path needs testing!
-			std::string msg = e.what();
-			assert(false);
-			// TODO: remove the peer
-//			m_peers.erase(std::find(m_peers.begin(), m_peers.end(), p));
+#if defined(TORRENT_VERBOSE_LOGGING)
+		std::string msg = e.what();
+		(*p->connection->m_logger) << "*** CONNECTION FAILED '" << msg << "'\n";
+#endif
 		}
 		return false;
 	}
