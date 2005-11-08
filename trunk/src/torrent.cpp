@@ -344,6 +344,11 @@ namespace libtorrent
 	torrent::~torrent()
 	{
 		assert(m_connections.empty());
+		if (!m_connections.empty())
+		{
+			disconnect_all();
+			m_ses.purge_connections();
+		}
 		if (m_ses.m_abort) m_abort = true;
 	}
 
