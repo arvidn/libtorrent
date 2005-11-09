@@ -816,7 +816,6 @@ namespace libtorrent { namespace detail
 						// the connection wants to disconnect for some reason, remove it
 						// from the connection-list
 						p->second->set_failed();
-//						m_selector.remove(*i);
 						m_connections.erase(p);
 					}
 				}
@@ -837,7 +836,6 @@ namespace libtorrent { namespace detail
 			{
 				connection_map::iterator p = m_connections.find(*i);
 
-//				m_selector.remove(*i);
 				// the connection may have been disconnected in the receive or send phase
 				if (p != m_connections.end())
 				{
@@ -933,7 +931,6 @@ namespace libtorrent { namespace detail
 #endif
 
 					j->second->set_failed();
-//					m_selector.remove(j->first);
 					m_connections.erase(j);
 					continue;
 				}
@@ -1043,6 +1040,8 @@ namespace libtorrent { namespace detail
 				assert(false);
 			}
 		}
+		assert(m_torrents.empty());
+		assert(m_connections.empty());
 
 		while (!m_tracker_manager.send_finished())
 		{
@@ -1053,6 +1052,8 @@ namespace libtorrent { namespace detail
 			boost::thread::sleep(t);
 		}
 
+		assert(m_torrents.empty());
+		assert(m_connections.empty());
 	}
 
 
@@ -1283,6 +1284,9 @@ namespace libtorrent
 		boost::mutex::scoped_lock l(m_impl.m_mutex);
 		boost::mutex::scoped_lock l2(m_checker_impl.m_mutex);
 
+		if (m_impl.m_abort)
+			throw std::runtime_error("session is closing");
+		
 		// is the torrent already active?
 		if (m_impl.find_torrent(ti.info_hash()))
 			throw duplicate_torrent();

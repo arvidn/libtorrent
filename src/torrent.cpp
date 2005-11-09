@@ -346,6 +346,7 @@ namespace libtorrent
 		assert(m_connections.empty());
 		if (!m_connections.empty())
 		{
+			boost::mutex::scoped_lock l(m_ses.m_mutex);
 			disconnect_all();
 			m_ses.purge_connections();
 		}
