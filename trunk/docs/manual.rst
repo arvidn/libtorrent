@@ -339,6 +339,22 @@ invariant checks), you have to rerun the configure script and rebuild, like this
   make clean
   make
 
+generating the build system
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+No build system is present if libtorrent is checked out from CVS - it
+needs to be generated first.
+
+Execute the following commands to generate the build system:
+
+*  autoheader
+*  aclocal -I m4
+*  libtoolize --copy --force
+*  automake --add-missing --copy --gnu
+*  autoconf
+
+After generating the build system, run configure and build
+libtorrent. This was described earlier.
 
 building with other build systems
 ---------------------------------
