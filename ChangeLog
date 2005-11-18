@@ -1,5 +1,7 @@
 release 0.9.1
 
+	* made the session disable file name checks within the boost.filsystem library
+	* fixed race condition in the sockets
 	* strings that are invalid utf-8 strings are now decoded with the
 	  local codepage on windows
 	* added the ability to build libtorrent both as a shared library
