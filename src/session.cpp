@@ -1142,6 +1142,9 @@ namespace libtorrent
 		, m_thread(boost::ref(m_impl))
 		, m_checker_thread(boost::ref(m_checker_impl))
 	{
+		// turn off the filename checking in boost.filesystem
+		using namespace boost::filesystem;
+		path::default_name_check(native);
 		assert(listen_port_range.first > 0);
 		assert(listen_port_range.first < listen_port_range.second);
 #ifndef NDEBUG
