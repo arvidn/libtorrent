@@ -63,10 +63,7 @@ void add_files(
 	else
 	{
 		std::cerr << "adding \"" << l.string() << "\"\n";
-		file fi(f, file::in);
-		fi.seek(0, file::end);
-		libtorrent::size_type size = fi.tell();
-		t.add_file(l, size);
+		t.add_file(l, file_size(f));
 	}
 }
 
@@ -81,8 +78,6 @@ int main(int argc, char* argv[])
 		std::cerr << "usage: make_torrent <output torrent-file> <announce url> <file or directory to create torrent from>\n";
 		return 1;
 	}
-
-	path::default_name_check(no_check);
 
 	try
 	{

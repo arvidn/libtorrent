@@ -330,7 +330,7 @@ Once the configure script is run successfully, you just type ``make`` and
 libtorrent, the examples and the tests will be built.
 
 When libtorrent is built it may be a good idea to run the tests, you do this
-my running ``make check``.
+by running ``make check``.
 
 If you want to build a release version (without debug info, asserts and
 invariant checks), you have to rerun the configure script and rebuild, like this::
