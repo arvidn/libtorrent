@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/cstdint.hpp>
+#include <boost/thread/thread.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -234,16 +235,19 @@ namespace libtorrent
 
 		void monitor_readability(boost::shared_ptr<socket> s)
 		{
+			boost::mutex::scoped_lock l(m_mutex);
 			assert(std::find(m_readable.begin(), m_readable.end(), s) == m_readable.end());
 			m_readable.push_back(s);
 		}
 		void monitor_writability(boost::shared_ptr<socket> s)
 		{
+			boost::mutex::scoped_lock l(m_mutex);
 			assert(std::find(m_writable.begin(), m_writable.end(), s) == m_writable.end());
 			m_writable.push_back(s);
 		}
 		void monitor_errors(boost::shared_ptr<socket> s)
 		{
+			boost::mutex::scoped_lock l(m_mutex);
 			assert(std::find(m_error.begin(), m_error.end(), s) == m_error.end());
 			m_error.push_back(s);
 		}
@@ -251,19 +255,27 @@ namespace libtorrent
 		void remove(boost::shared_ptr<socket> s);
 
 		void remove_writable(boost::shared_ptr<socket> s)
-		{ m_writable.erase(std::find(m_writable.begin(), m_writable.end(), s)); }
+		{
+			boost::mutex::scoped_lock l(m_mutex);
+			m_writable.erase(std::find(m_writable.begin(), m_writable.end(), s));
+		}
 
 		void remove_readable(boost::shared_ptr<socket> s)
-		{ m_readable.erase(std::find(m_readable.begin(), m_readable.end(), s)); }
+		{
+			boost::mutex::scoped_lock l(m_mutex);
+			m_readable.erase(std::find(m_readable.begin(), m_readable.end(), s));
+		}
 
 		bool is_writability_monitored(boost::shared_ptr<socket> s)
 		{
+			boost::mutex::scoped_lock l(m_mutex);
 			return std::find(m_writable.begin(), m_writable.end(), s)
 				!= m_writable.end();
 		}
 
 		bool is_readability_monitored(boost::shared_ptr<socket> s)
 		{
+			boost::mutex::scoped_lock l(m_mutex);
 			return std::find(m_readable.begin(), m_readable.end(), s)
 				!= m_readable.end();
 		}
@@ -273,10 +285,15 @@ namespace libtorrent
 			, std::vector<boost::shared_ptr<socket> >& writable
 			, std::vector<boost::shared_ptr<socket> >& error);
 
-		int count_read_monitors() const { return (int)m_readable.size(); }
+		int count_read_monitors() const
+		{
+			boost::mutex::scoped_lock l(m_mutex);
+			return (int)m_readable.size();
+		}
 
 	private:
 
+		mutable boost::mutex m_mutex;
 		std::vector<boost::shared_ptr<socket> > m_readable;
 		std::vector<boost::shared_ptr<socket> > m_writable;
 		std::vector<boost::shared_ptr<socket> > m_error;
