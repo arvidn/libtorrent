@@ -401,6 +401,9 @@ you'd set them like this:</p>
 export LDFLAGS=-L/opt/local/lib
 export CXXFLAGS=-I/opt/local/include
 </pre>
+<p>It was observed on FreeBSD (release 6.0) that one needs to add '-lpthread' to
+LDFLAGS, as Boost::Thread detection will fail without it, even if
+Boost::Thread is installed.</p>
 <p>If you need to set these variables, it may be a good idea to add those lines
 to your <tt class="docutils literal"><span class="pre">~/.profile</span></tt> or <tt class="docutils literal"><span class="pre">~/.tcshrc</span></tt> depending on your shell.</p>
 <p>You know that the boost libraries were found if you see the following output
@@ -449,6 +452,21 @@ invariant checks), you have to rerun the configure script and rebuild, like this
 make clean
 make
 </pre>
+</div>
+<div class="section" id="generating-the-build-system">
+<h3><a name="generating-the-build-system">generating the build system</a></h3>
+<p>No build system is present if libtorrent is checked out from CVS - it
+needs to be generated first.</p>
+<p>Execute the following commands to generate the build system:</p>
+<ul class="simple">
+<li>autoheader</li>
+<li>aclocal -I m4</li>
+<li>libtoolize --copy --force</li>
+<li>automake --add-missing --copy --gnu</li>
+<li>autoconf</li>
+</ul>
+<p>After generating the build system, run configure and build
+libtorrent. This was described earlier.</p>
 </div>
 </div>
 <div class="section" id="building-with-other-build-systems">
@@ -2699,7 +2717,7 @@ int main(int argc, char* argv[])
                 std::cout &lt;&lt; &quot;\n\n----- torrent file info -----\n\n&quot;;
                 std::cout &lt;&lt; &quot;trackers:\n&quot;;
                 for (std::vector&lt;announce_entry&gt;::const_iterator i
-                        = t.trackers().begin(), end(t.trackers().end); i != end; ++i)
+                        = t.trackers().begin(), end(t.trackers().end()); i != end; ++i)
                 {
                         std::cout &lt;&lt; i-&gt;tier &lt;&lt; &quot;: &quot; &lt;&lt; i-&gt;url &lt;&lt; &quot;\n&quot;;
                 }

@@ -2804,7 +2804,7 @@ print information about it to std out::
 			std::cout << "\n\n----- torrent file info -----\n\n";
 			std::cout << "trackers:\n";
 			for (std::vector<announce_entry>::const_iterator i
-				= t.trackers().begin(), end(t.trackers().end); i != end; ++i)
+				= t.trackers().begin(), end(t.trackers().end()); i != end; ++i)
 			{
 				std::cout << i->tier << ": " << i->url << "\n";
 			}
