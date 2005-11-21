@@ -2687,7 +2687,6 @@ print information about it to std out:</p>
 #include &lt;iostream&gt;
 #include &lt;fstream&gt;
 #include &lt;iterator&gt;
-#include &lt;exception&gt;
 #include &lt;iomanip&gt;
 
 #include &quot;libtorrent/entry.hpp&quot;
@@ -2709,27 +2708,33 @@ int main(int argc, char* argv[])
         {
                 std::ifstream in(argv[1], std::ios_base::binary);
                 in.unsetf(std::ios_base::skipws);
-                entry e = bdecode(std::istream_iterator&lt;char&gt;(in)
-                        , std::istream_iterator&lt;char&gt;());
+                entry e = bdecode(std::istream_iterator&lt;char&gt;(in), std::istream_iterator&lt;char&gt;());
+
+                std::cout &lt;&lt; &quot;\n\n----- raw info -----\n\n&quot;;
+                e.print(std::cout);
+
                 torrent_info t(e);
 
                 // print info about torrent
                 std::cout &lt;&lt; &quot;\n\n----- torrent file info -----\n\n&quot;;
                 std::cout &lt;&lt; &quot;trackers:\n&quot;;
-                for (std::vector&lt;announce_entry&gt;::const_iterator i
-                        = t.trackers().begin(), end(t.trackers().end()); i != end; ++i)
+                for (std::vector&lt;announce_entry&gt;::const_iterator i = t.trackers().begin();
+                        i != t.trackers().end(); ++i)
                 {
                         std::cout &lt;&lt; i-&gt;tier &lt;&lt; &quot;: &quot; &lt;&lt; i-&gt;url &lt;&lt; &quot;\n&quot;;
                 }
 
                 std::cout &lt;&lt; &quot;number of pieces: &quot; &lt;&lt; t.num_pieces() &lt;&lt; &quot;\n&quot;;
                 std::cout &lt;&lt; &quot;piece length: &quot; &lt;&lt; t.piece_length() &lt;&lt; &quot;\n&quot;;
+                std::cout &lt;&lt; &quot;info hash: &quot; &lt;&lt; t.info_hash() &lt;&lt; &quot;\n&quot;;
+                std::cout &lt;&lt; &quot;comment: &quot; &lt;&lt; t.comment() &lt;&lt; &quot;\n&quot;;
+                std::cout &lt;&lt; &quot;created by: &quot; &lt;&lt; t.creator() &lt;&lt; &quot;\n&quot;;
                 std::cout &lt;&lt; &quot;files:\n&quot;;
                 for (torrent_info::file_iterator i = t.begin_files();
                         i != t.end_files(); ++i)
                 {
                         std::cout &lt;&lt; &quot;  &quot; &lt;&lt; std::setw(11) &lt;&lt; i-&gt;size
-                        &lt;&lt; &quot;  &quot; &lt;&lt; i-&gt;path &lt;&lt; &quot; &quot; &lt;&lt; i-&gt;filename &lt;&lt; &quot;\n&quot;;
+                                &lt;&lt; &quot; &quot; &lt;&lt; i-&gt;path.string() &lt;&lt; &quot;\n&quot;;
                 }
                 
         }

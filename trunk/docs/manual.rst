@@ -2771,10 +2771,10 @@ dump_torrent
 This is an example of a program that will take a torrent-file as a parameter and
 print information about it to std out::
 
+
 	#include <iostream>
 	#include <fstream>
 	#include <iterator>
-	#include <exception>
 	#include <iomanip>
 
 	#include "libtorrent/entry.hpp"
@@ -2785,7 +2785,7 @@ print information about it to std out::
 	int main(int argc, char* argv[])
 	{
 		using namespace libtorrent;
-	
+
 		if (argc != 2)
 		{
 			std::cerr << "usage: dump_torrent torrent-file\n";
@@ -2796,27 +2796,33 @@ print information about it to std out::
 		{
 			std::ifstream in(argv[1], std::ios_base::binary);
 			in.unsetf(std::ios_base::skipws);
-			entry e = bdecode(std::istream_iterator<char>(in)
-				, std::istream_iterator<char>());
-			torrent_info t(e);
+			entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
 
+			std::cout << "\n\n----- raw info -----\n\n";
+			e.print(std::cout);
+
+			torrent_info t(e);
+	
 			// print info about torrent
 			std::cout << "\n\n----- torrent file info -----\n\n";
 			std::cout << "trackers:\n";
-			for (std::vector<announce_entry>::const_iterator i
-				= t.trackers().begin(), end(t.trackers().end()); i != end; ++i)
+			for (std::vector<announce_entry>::const_iterator i = t.trackers().begin();
+				i != t.trackers().end(); ++i)
 			{
 				std::cout << i->tier << ": " << i->url << "\n";
 			}
 
 			std::cout << "number of pieces: " << t.num_pieces() << "\n";
 			std::cout << "piece length: " << t.piece_length() << "\n";
+			std::cout << "info hash: " << t.info_hash() << "\n";
+			std::cout << "comment: " << t.comment() << "\n";
+			std::cout << "created by: " << t.creator() << "\n";
 			std::cout << "files:\n";
 			for (torrent_info::file_iterator i = t.begin_files();
 				i != t.end_files(); ++i)
 			{
 				std::cout << "  " << std::setw(11) << i->size
-				<< "  " << i->path << " " << i->filename << "\n";
+					<< " " << i->path.string() << "\n";
 			}
 			
 		}
