@@ -286,6 +286,10 @@ you'd set them like this::
   export LDFLAGS=-L/opt/local/lib
   export CXXFLAGS=-I/opt/local/include
 
+It was observed on FreeBSD (release 6.0) that one needs to add '-lpthread' to
+LDFLAGS, as Boost::Thread detection will fail without it, even if
+Boost::Thread is installed.
+
 If you need to set these variables, it may be a good idea to add those lines
 to your ``~/.profile`` or ``~/.tcshrc`` depending on your shell.
 
