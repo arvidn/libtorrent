@@ -2517,7 +2517,7 @@ namespace libtorrent
 
 			buffer::interval_type send_buffer = m_send_buffer.data();
 			// we have data that's scheduled for sending
-			int to_send = std::min(send_buffer.first.end - send_buffer.first.begin
+			int to_send = std::min(int(send_buffer.first.end - send_buffer.first.begin)
 				, amount_to_send);
 			int sent = m_socket->send(send_buffer.first.begin, to_send);
 
@@ -2526,8 +2526,8 @@ namespace libtorrent
 				&& to_send > sent)
 			{
 				to_send -= sent;
-				to_send = std::min(to_send, send_buffer.second.end
-					- send_buffer.second.begin);
+				to_send = std::min(to_send, int(send_buffer.second.end
+					- send_buffer.second.begin));
 				int ret = m_socket->send(send_buffer.second.begin, to_send);
 				if (ret > 0) sent += ret;
 			}
