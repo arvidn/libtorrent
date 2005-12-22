@@ -1583,6 +1583,7 @@ It contains the following fields::
 			queued_for_checking,
 			checking_files,
 			connecting_to_tracker,
+			downloading_metadata,
 			downloading,
 			finished,
 			seeding,
@@ -1641,6 +1642,11 @@ current task is in the ``state`` member, it will be one of the following:
 +--------------------------+----------------------------------------------------------+
 |``connecting_to_tracker`` |The torrent has sent a request to the tracker and is      |
 |                          |currently waiting for a response                          |
++--------------------------+----------------------------------------------------------+
+|``downloading_metadata``  |The torrent is currently trying to find peers with        |
+|                          |metadata or it's currently downloading it from some peers.|
+|                          |The progress meter will show how much of the metadata has |
+|                          |been downloaded.                                          |
 +--------------------------+----------------------------------------------------------+
 |``downloading``           |The torrent is being downloaded. This is the state        |
 |                          |most torrents will be in most of the time. The progress   |

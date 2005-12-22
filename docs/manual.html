@@ -1618,6 +1618,7 @@ struct torrent_status
                 queued_for_checking,
                 checking_files,
                 connecting_to_tracker,
+                downloading_metadata,
                 downloading,
                 finished,
                 seeding,
@@ -1683,6 +1684,12 @@ currently checking existing files.</td>
 <tr><td><tt class="docutils literal"><span class="pre">connecting_to_tracker</span></tt></td>
 <td>The torrent has sent a request to the tracker and is
 currently waiting for a response</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">downloading_metadata</span></tt></td>
+<td>The torrent is currently trying to find peers with
+metadata or it's currently downloading it from some peers.
+The progress meter will show how much of the metadata has
+been downloaded.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">downloading</span></tt></td>
 <td>The torrent is being downloaded. This is the state
