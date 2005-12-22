@@ -71,6 +71,10 @@ BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 #define O_RANDOM 0
 #endif
 
+#ifdef UNICODE
+#include "libtorrent/storage.hpp"
+#endif
+
 
 namespace fs = boost::filesystem;
 
