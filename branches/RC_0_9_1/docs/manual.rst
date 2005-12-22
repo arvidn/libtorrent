@@ -740,6 +740,8 @@ generate an appropriate alert (listen_failed_alert_).
 The interface parameter can also be a hostname that will resolve to the device you
 want to listen on.
 
+All outbound connections to peers will be bound to the interface you give here.
+
 
 pop_alert() set_severity_level()
 --------------------------------
