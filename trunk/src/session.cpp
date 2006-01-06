@@ -1722,7 +1722,7 @@ namespace libtorrent
 
 			if ((int)tmp_pieces.size() == info.num_pieces()
 				&& std::find_if(tmp_pieces.begin(), tmp_pieces.end()
-				, boost::bind(std::less<int>(), _1, 0)) == tmp_pieces.end())
+				, boost::bind<bool>(std::less<int>(), _1, 0)) == tmp_pieces.end())
 			{
 				if (info.num_files() != (int)file_sizes.size())
 				{
