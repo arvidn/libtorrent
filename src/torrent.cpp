@@ -864,7 +864,7 @@ namespace libtorrent
 		assert(p != 0);
 
 		peer_iterator i = m_connections.find(p->remote());
-		assert(i != m_connections.end());
+		if (i == m_connections.end()) return;
 
 		if (ready_for_connections())
 		{
@@ -920,16 +920,27 @@ namespace libtorrent
 		m_policy->check_invariant();
 #endif
 	
-		// add the newly connected peer to this torrent's peer list
-		m_connections.insert(
-			std::make_pair(a, boost::get_pointer(c)));
+		try
+		{
+			// add the newly connected peer to this torrent's peer list
+			m_connections.insert(
+				std::make_pair(a, boost::get_pointer(c)));
 
 #ifndef NDEBUG
-		m_policy->check_invariant();
+			m_policy->check_invariant();
 #endif
 
-		m_ses.m_selector.monitor_errors(s);
-		m_ses.process_connection_queue();
+			m_ses.m_selector.monitor_errors(s);
+			m_ses.process_connection_queue();
+		}
+		catch (std::exception& e)
+		{
+			// TODO: post an error alert!
+			std::map<address, peer_connection*>::iterator i = m_connections.find(a);
+			if (i != m_connections.end()) m_connections.erase(i);
+			m_ses.connection_failed(s, a, e.what());
+			throw;
+		}
 		return *c;
 	}
 

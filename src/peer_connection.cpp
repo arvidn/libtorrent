@@ -1180,6 +1180,7 @@ namespace libtorrent
 
 		const char* ptr = &m_recv_buffer[1];
 		int listen_port = detail::read_uint16(ptr);
+		(void)listen_port;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;

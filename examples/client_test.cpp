@@ -420,6 +420,7 @@ int main(int ac, char* av[])
 	std::string ip_filter_file;
 	std::string allocation_mode;
 	std::string in_monitor_dir;
+	std::string bind_to_interface;
 	int poll_interval;
 
 	namespace po = boost::program_options;
@@ -461,6 +462,9 @@ int main(int ac, char* av[])
 			"in seconds) between two refreshes of the directory listing")
 		("half-open-limit,a", po::value<int>(&half_open_limit)->default_value(-1)
 			, "Sets the maximum number of simultaneous half-open tcp connections")
+		("bind,b", po::value<std::string>(&bind_to_interface)->default_value("")
+			, "Sets the local interface to bind outbound and the listen "
+			"socket to")
 			;
 
 		po::positional_options_description p;
@@ -519,7 +523,8 @@ int main(int ac, char* av[])
 		ses.set_max_half_open_connections(half_open_limit);
 		ses.set_download_rate_limit(download_limit);
 		ses.set_upload_rate_limit(upload_limit);
-		ses.listen_on(std::make_pair(listen_port, listen_port + 10));
+		ses.listen_on(std::make_pair(listen_port, listen_port + 10)
+			, bind_to_interface.c_str());
 		ses.set_http_settings(settings);
 		if (log_level == "debug")
 			ses.set_severity_level(alert::debug);

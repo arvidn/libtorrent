@@ -560,6 +560,69 @@ namespace libtorrent { namespace detail
 		}
 	}
 
+	void session_impl::connection_failed(boost::shared_ptr<socket> const& s
+		, address const& a, char const* message)
+	{
+		connection_map::iterator p = m_connections.find(s);
+
+		// the connection may have been disconnected in the receive or send phase
+		if (p != m_connections.end())
+		{
+			if (m_alerts.should_post(alert::debug))
+			{
+				m_alerts.post_alert(
+					peer_error_alert(
+						a
+						, p->second->id()
+						, message));
+			}
+
+#if defined(TORRENT_VERBOSE_LOGGING)
+			(*p->second->m_logger) << "*** CONNECTION EXCEPTION\n";
+#endif
+			p->second->set_failed();
+			m_connections.erase(p);
+		}
+		else if (s == m_listen_socket)
+		{
+			if (m_alerts.should_post(alert::fatal))
+			{
+				std::string msg = "cannot listen on the given interface '" + m_listen_interface.as_string() + "'";
+				m_alerts.post_alert(listen_failed_alert(msg));
+			}
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			std::string msg = "cannot listen on the given interface '" + m_listen_interface.as_string() + "'";
+			(*m_logger) << msg << "\n";
+#endif
+			assert(m_listen_socket.unique());
+			m_listen_socket.reset();
+		}
+		else
+		{
+			// the error was not in one of the connected
+			// conenctions. Look among the half-open ones.
+			p = m_half_open.find(s);
+			if (p != m_half_open.end())
+			{
+				if (m_alerts.should_post(alert::debug))
+				{
+					m_alerts.post_alert(
+						peer_error_alert(
+							a
+							, p->second->id()
+							, message));
+				}
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+				(*m_logger) << "FAILED: " << a.as_string() << "\n";
+#endif
+				p->second->set_failed();
+				m_half_open.erase(p);
+				process_connection_queue();
+			}
+		}
+	}
+
+	
 	void session_impl::operator()()
 	{
 		eh_initializer();
@@ -834,63 +897,7 @@ namespace libtorrent { namespace detail
 			for (std::vector<boost::shared_ptr<socket> >::iterator i = error_clients.begin();
 				i != error_clients.end(); ++i)
 			{
-				connection_map::iterator p = m_connections.find(*i);
-
-				// the connection may have been disconnected in the receive or send phase
-				if (p != m_connections.end())
-				{
-					if (m_alerts.should_post(alert::debug))
-					{
-						m_alerts.post_alert(
-							peer_error_alert(
-								p->first->sender()
-								, p->second->id()
-								, "connection closed"));
-					}
-
-#if defined(TORRENT_VERBOSE_LOGGING)
-					(*p->second->m_logger) << "*** CONNECTION EXCEPTION\n";
-#endif
-					p->second->set_failed();
-					m_connections.erase(p);
-				}
-				else if (*i == m_listen_socket)
-				{
-					if (m_alerts.should_post(alert::fatal))
-					{
-						std::string msg = "cannot listen on the given interface '" + m_listen_interface.as_string() + "'";
-						m_alerts.post_alert(listen_failed_alert(msg));
-					}
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-					std::string msg = "cannot listen on the given interface '" + m_listen_interface.as_string() + "'";
-					(*m_logger) << msg << "\n";
-#endif
-					assert(m_listen_socket.unique());
-					m_listen_socket.reset();
-				}
-				else
-				{
-					// the error was not in one of the connected
-					// conenctions. Look among the half-open ones.
-					p = m_half_open.find(*i);
-					if (p != m_half_open.end())
-					{
-						if (m_alerts.should_post(alert::debug))
-						{
-							m_alerts.post_alert(
-								peer_error_alert(
-									p->first->sender()
-									, p->second->id()
-									, "connection attempt failed"));
-						}
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-						(*m_logger) << "FAILED: " << (*i)->sender().as_string() << "\n";
-#endif
-						p->second->set_failed();
-						m_half_open.erase(p);
-						process_connection_queue();
-					}
-				}
+				connection_failed(*i, (*i)->sender(), "connection exception");
 			}
 
 #ifndef NDEBUG
