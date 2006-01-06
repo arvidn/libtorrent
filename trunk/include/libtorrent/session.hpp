@@ -201,6 +201,15 @@ namespace libtorrent
 			// is reached.
 			void process_connection_queue();
 
+			void connection_failed(boost::shared_ptr<socket> const& s
+				, address const& a, char const* message);
+
+			// this is where all active sockets are stored.
+			// the selector can sleep while there's no activity on
+			// them
+			selector m_selector;
+
+			
 			// this maps sockets to their peer_connection
 			// object. It is the complete list of all connected
 			// peers.
@@ -242,11 +251,6 @@ namespace libtorrent
 			// that we should let the os decide which
 			// interface to listen on
 			address m_listen_interface;
-
-			// this is where all active sockets are stored.
-			// the selector can sleep while there's no activity on
-			// them
-			selector m_selector;
 
 			boost::shared_ptr<socket> m_listen_socket;
 

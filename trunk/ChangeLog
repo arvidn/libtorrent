@@ -1,3 +1,4 @@
+	* fixed bug caused when binding outgoing connections to a non-local interface.
 	* add_torrent() will now throw if called while the session object is
 	  being closed.
 	* added the ability to limit the number of simultaneous half-open

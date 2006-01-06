@@ -1169,6 +1169,7 @@ namespace libtorrent
 
 	bool policy::connect_peer(peer *p)
 	{
+		INVARIANT_CHECK;
 		try
 		{
 			assert(!p->connection);
