@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <algorithm>
+#include <iomanip>
 #include "libtorrent/entry.hpp"
 #include "libtorrent/config.hpp"
 #include <boost/bind.hpp>
@@ -302,7 +303,8 @@ namespace libtorrent
 					os.unsetf(std::ios_base::dec);
 					os.setf(std::ios_base::hex);
 					for (std::string::const_iterator i = string().begin(); i != string().end(); ++i)
-						os << static_cast<unsigned int>((unsigned char)*i);
+						os << std::setfill('0') << std::setw(2)
+							<< static_cast<unsigned int>((unsigned char)*i);
 					os.unsetf(std::ios_base::hex);
 					os.setf(std::ios_base::dec);
 					os << "\n";
