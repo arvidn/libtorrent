@@ -66,6 +66,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 using namespace boost::posix_time;
+using boost::tuples::tuple;
+using boost::tuples::get;
+using boost::tuples::make_tuple;
 
 // PROFILING CODE
 
@@ -479,20 +482,20 @@ namespace libtorrent
 		// if we don't have the metadata yet, we
 		// cannot tell how big the torrent is.
 		if (!valid_metadata()) return -1;
-		return m_torrent_file.total_size() - boost::get<0>(bytes_done());
+		return m_torrent_file.total_size() - get<0>(bytes_done());
 	}
 
 	// the first value is the total number of bytes downloaded
 	// the second value is the number of bytes of those that haven't
 	// been filtered as not wanted we have downloaded
-	boost::tuple<size_type, size_type> torrent::bytes_done() const
+	tuple<size_type, size_type> torrent::bytes_done() const
 	{
-		if (!valid_metadata()) return 0;
+		if (!valid_metadata()) return tuple<size_type, size_type>(0,0);
 
 		assert(m_picker.get());
 
 		if (m_torrent_file.num_pieces() == 0)
-			return boost::tuple<size_type, size_type>(0,0);
+			return tuple<size_type, size_type>(0,0);
 		const int last_piece = m_torrent_file.num_pieces() - 1;
 
 		size_type wanted_done = (m_num_pieces - m_picker->num_have_filtered())
@@ -578,7 +581,7 @@ namespace libtorrent
 			if (!m_picker->is_filtered(i->first.piece_index))
 				wanted_done += i->second;
 		}
-		return boost::make_tuple(total_done, wanted_done);
+		return make_tuple(total_done, wanted_done);
 	}
 
 	void torrent::piece_failed(int index)
