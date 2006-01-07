@@ -154,7 +154,7 @@ namespace libtorrent
 
 		stat statistics() const { return m_stat; }
 		size_type bytes_left() const;
-		boost::tuple<size_type, size_type> bytes_done() const;
+		boost::tuples::tuple<size_type, size_type> bytes_done() const;
 
 		void pause();
 		void resume();

@@ -47,6 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 
 using namespace libtorrent;
+using boost::tuples::make_tuple;
+using boost::tuples::tuple;
 
 namespace
 {
@@ -366,7 +368,7 @@ namespace libtorrent
 	namespace
 	{
 
-		boost::tuple<std::string, std::string, int, std::string>
+		tuple<std::string, std::string, int, std::string>
 			parse_url_components(std::string url)
 		{
 			std::string hostname; // hostname only
@@ -413,7 +415,7 @@ namespace libtorrent
 			}
 
 			start = end;
-			return boost::make_tuple(protocol, hostname, port
+			return make_tuple(protocol, hostname, port
 				, std::string(start, url.end()));
 		}
 	}
