@@ -69,6 +69,7 @@ using namespace boost::posix_time;
 using boost::tuples::tuple;
 using boost::tuples::get;
 using boost::tuples::make_tuple;
+using boost::filesystem::complete;
 
 // PROFILING CODE
 
