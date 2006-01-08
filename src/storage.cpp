@@ -205,6 +205,7 @@ using namespace boost::filesystem;
 namespace pt = boost::posix_time;
 using boost::bind;
 using namespace ::boost::multi_index;
+using boost::multi_index::multi_index_container;
 
 namespace
 {
@@ -251,8 +252,8 @@ namespace
 		{
 			assert(st != 0);
 			assert(p.is_complete());
-			typedef file_set::nth_index<0>::type path_view;
-			path_view& pt = m_files.get<0>();
+			typedef nth_index<file_set, 0>::type path_view;
+			path_view& pt = get<0>(m_files);
 			path_view::iterator i = pt.find(p);
 			if (i != pt.end())
 			{
@@ -282,8 +283,8 @@ namespace
 			{
 				// the file cache is at its maximum size, close
 				// the least recently used (lru) file from it
-				typedef file_set::nth_index<1>::type lru_view;
-				lru_view& lt = m_files.get<1>();
+				typedef nth_index<file_set, 1>::type lru_view;
+				lru_view& lt = get<1>(m_files);
 				lru_view::iterator i = lt.begin();
 				// the first entry in this view is the least recently used
 /*				for (lru_view::iterator i = lt.begin(); i != lt.end(); ++i)
@@ -306,8 +307,8 @@ namespace
 			assert(st != 0);
 			using boost::tie;
 
-			typedef file_set::nth_index<2>::type key_view;
-			key_view& kt = m_files.get<2>();
+			typedef nth_index<file_set, 2>::type key_view;
+			key_view& kt = get<2>(m_files);
 
 			key_view::iterator start, end;
 			tie(start, end) = kt.equal_range(st);
@@ -332,7 +333,7 @@ namespace
 	private:
 		int m_size;
 
-		typedef boost::multi_index_container<
+		typedef multi_index_container<
 			file_entry, indexed_by<
 				ordered_unique<member<file_entry, path
 					, &file_entry::file_path> >

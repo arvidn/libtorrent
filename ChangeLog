@@ -1,3 +1,4 @@
+	* made libtorrent build in vc7 (patches from Allen Zhao)
 	* fixed bug caused when binding outgoing connections to a non-local interface.
 	* add_torrent() will now throw if called while the session object is
 	  being closed.
