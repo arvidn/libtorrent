@@ -43,6 +43,10 @@ POSSIBILITY OF SUCH DAMAGE.
 typedef int mode_t;
 #endif
 
+#ifdef UNICODE
+#include "libtorrent/storage.hpp"
+#endif
+
 #else
 // unix part
 #define _FILE_OFFSET_BITS 64
@@ -69,6 +73,10 @@ BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 
 #ifndef O_RANDOM
 #define O_RANDOM 0
+#endif
+
+#ifdef UNICODE
+#include "libtorrent/storage.hpp"
 #endif
 
 
