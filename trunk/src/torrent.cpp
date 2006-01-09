@@ -70,6 +70,7 @@ using boost::tuples::tuple;
 using boost::tuples::get;
 using boost::tuples::make_tuple;
 using boost::filesystem::complete;
+using boost::bind;
 
 // PROFILING CODE
 
@@ -1378,7 +1379,7 @@ namespace libtorrent
 
 		
 		st.num_peers = (int)std::count_if(m_connections.begin(),	m_connections.end(),
-			bind(std::logical_not<bool>(), boost::bind(&peer_connection::is_connecting,
+			bind<bool>(std::logical_not<bool>(), boost::bind(&peer_connection::is_connecting,
 				boost::bind(&std::map<address,peer_connection*>::value_type::second, _1))));
 
 		st.num_complete = m_complete;
