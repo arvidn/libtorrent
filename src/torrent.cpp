@@ -484,7 +484,8 @@ namespace libtorrent
 		// if we don't have the metadata yet, we
 		// cannot tell how big the torrent is.
 		if (!valid_metadata()) return -1;
-		return m_torrent_file.total_size() - get<0>(bytes_done());
+		return m_torrent_file.total_size()
+			- boost::tuples::get<0>(bytes_done());
 	}
 
 	// the first value is the total number of bytes downloaded
@@ -1379,8 +1380,10 @@ namespace libtorrent
 
 		
 		st.num_peers = (int)std::count_if(m_connections.begin(),	m_connections.end(),
-			bind<bool>(std::logical_not<bool>(), boost::bind(&peer_connection::is_connecting,
-				boost::bind(&std::map<address,peer_connection*>::value_type::second, _1))));
+			boost::bind<bool>(std::logical_not<bool>(), boost::bind(
+			&peer_connection::is_connecting
+			, boost::bind(&std::map<address
+			, peer_connection*>::value_type::second, _1))));
 
 		st.num_complete = m_complete;
 		st.num_incomplete = m_incomplete;

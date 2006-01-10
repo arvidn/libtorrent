@@ -361,7 +361,7 @@ namespace libtorrent
 		m_urls.push_back(e);
 
 		using boost::bind;
-		std::sort(m_urls.begin(), m_urls.end(), bind<bool>(std::less<int>()
+		std::sort(m_urls.begin(), m_urls.end(), boost::bind<bool>(std::less<int>()
 			, bind(&announce_entry::tier, _1), bind(&announce_entry::tier, _2)));
 	}
 

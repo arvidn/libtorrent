@@ -1080,8 +1080,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		assert(std::find_if(m_peers.begin(), m_peers.end()
-			, bind<bool>(std::equal_to<peer_connection*>(), bind(&peer::connection, _1)
-				, &c)) != m_peers.end());
+			, boost::bind<bool>(std::equal_to<peer_connection*>(), bind(&peer::connection, _1)
+			, &c)) != m_peers.end());
 		
 		// if the peer is choked and we have upload slots left,
 		// then unchoke it. Another condition that has to be met
