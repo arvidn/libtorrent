@@ -230,7 +230,8 @@ char const* peer_index(libtorrent::address addr, std::vector<libtorrent::peer_in
 {
 	using namespace libtorrent;
 	std::vector<peer_info>::const_iterator i = std::find_if(peers.begin()
-		, peers.end(), bind(std::equal_to<address>(), bind(&peer_info::ip, _1), addr));
+		, peers.end(), boost::bind(std::equal_to<address>()
+		, bind(&peer_info::ip, _1), addr));
 	if (i == peers.end()) return "+";
 
 	static char str[] = " ";
