@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <deque>
 #include <string>
 
+#include "libtorrent/debug.hpp"
+
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -59,7 +61,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/stat.hpp"
-#include "libtorrent/debug.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent.hpp"

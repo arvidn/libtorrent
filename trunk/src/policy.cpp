@@ -32,6 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
+#include "libtorrent/peer_connection.hpp"
+
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -46,7 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/policy.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/peer_connection.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
 
