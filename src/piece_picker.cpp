@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_picker.hpp"
 
 #ifndef NDEBUG
-#include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_connection.hpp"
+#include "libtorrent/torrent.hpp"
 #endif
 
 namespace libtorrent
