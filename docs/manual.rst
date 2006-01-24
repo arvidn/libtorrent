@@ -451,7 +451,7 @@ the ``session``, it contains the main loop that serves all torrents.
 
 The basic usage is as follows:
 
-* conststruct a session
+* construct a session
 * parse .torrent-files and add them to the session (see `bdecode() bencode()`_)
 * main loop (see session_)
 
