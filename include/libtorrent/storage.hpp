@@ -108,7 +108,7 @@ namespace libtorrent
 #ifndef NDEBUG
 		// overwrites some slots with the
 		// contents of others
-		void storage::shuffle();
+		void shuffle();
 #endif
 
 	private:
