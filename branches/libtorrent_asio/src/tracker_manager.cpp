@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
-#include "libtorrent/udp_tracker_connection.hpp"
+//#include "libtorrent/udp_tracker_connection.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"

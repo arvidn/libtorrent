@@ -56,7 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer.hpp"
 #include "libtorrent/tracker_manager.hpp"
-#include "libtorrent/async_gethostbyname.hpp"
 #include "libtorrent/config.hpp"
 
 namespace libtorrent

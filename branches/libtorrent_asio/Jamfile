@@ -23,6 +23,8 @@ project torrent
 	: requirements
 
 	<include>./include
+# for now, asio is supposed to be put next to the libtorrent dir
+	<include>../asio/include
 	<include>./zlib
 	<include>$(BOOST_ROOT)
 	<variant>release:<define>NDEBUG

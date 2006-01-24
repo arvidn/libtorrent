@@ -42,12 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
-#include "libtorrent/udp_tracker_connection.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/io.hpp"
-#include "libtorrent/async_gethostbyname.hpp"
 
 using namespace libtorrent;
 using boost::bind;
