@@ -194,7 +194,6 @@ namespace libtorrent
 		size_type write(const char* buffer, size_type num_bytes)
 		{
 			assert(buffer);
-			assert(num_bytes > 0);
 			assert((DWORD)num_bytes == num_bytes);
 			DWORD bytes_written = 0;
 			if (num_bytes != 0)
