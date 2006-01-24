@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	class socket;
 	class peer_connection;
 	class torrent;
 
@@ -69,7 +68,7 @@ namespace libtorrent
 
 	void allocate_resources(
 		int resources
-		, std::map<address, peer_connection*>& connections
+		, std::map<tcp::endpoint, peer_connection*>& connections
 		, resource_request peer_connection::* res);
 
 }

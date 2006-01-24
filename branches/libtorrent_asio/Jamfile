@@ -50,7 +50,6 @@ project torrent
 SOURCES =
 	allocate_resources.cpp
 	alert.cpp
-	async_gethostbyname.cpp
 	entry.cpp
 	escape_string.cpp
 	file.cpp
@@ -60,7 +59,6 @@ SOURCES =
 	piece_picker.cpp
 	policy.cpp
 	session.cpp
-	socket.cpp
 	stat.cpp
 	storage.cpp
 	torrent.cpp
@@ -68,7 +66,7 @@ SOURCES =
 	torrent_info.cpp
 	tracker_manager.cpp
 	http_tracker_connection.cpp
-	udp_tracker_connection.cpp
+#	udp_tracker_connection.cpp
 	sha1.cpp
 	;
 

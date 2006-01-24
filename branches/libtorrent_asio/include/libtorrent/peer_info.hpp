@@ -56,7 +56,7 @@ namespace libtorrent
 			queued = 0x80
 		};
 		unsigned int flags;
-		address ip;
+		tcp::endpoint ip;
 		float up_speed;
 		float down_speed;
 		float payload_up_speed;

@@ -240,13 +240,14 @@ namespace libtorrent
 		}
 
 		peer_connection& pick_peer(
-			std::pair<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> > const& p)
+			std::pair<boost::shared_ptr<stream_socket>
+			, boost::shared_ptr<peer_connection> > const& p)
 		{
 			return *p.second;
 		}
 
 		peer_connection& pick_peer2(
-			std::pair<address, peer_connection*> const& p)
+			std::pair<tcp::endpoint, peer_connection*> const& p)
 		{
 			return *p.second;
 		}
@@ -297,7 +298,7 @@ namespace libtorrent
 
 		struct iterator_wrapper2
 		{
-			typedef std::map<address, peer_connection*>::iterator orig_iter;
+			typedef std::map<tcp::endpoint, peer_connection*>::iterator orig_iter;
 
 			orig_iter iter;
 
@@ -326,7 +327,7 @@ namespace libtorrent
 
 	void allocate_resources(
 		int resources
-		, std::map<address, peer_connection*>& c
+		, std::map<tcp::endpoint, peer_connection*>& c
 		, resource_request peer_connection::* res)
 	{
 		allocate_resources_impl(
@@ -356,11 +357,11 @@ namespace libtorrent
 
 	void allocate_resources(
 		int resources
-		, std::map<address, peer_connection*>& c
+		, std::map<tcp::endpoint, peer_connection*>& c
 		, resource_request peer_connection::* res)
 	{
-		typedef std::map<address, peer_connection*>::iterator orig_iter;
-		typedef std::pair<address, peer_connection*> in_param;
+		typedef std::map<tcp::endpoint, peer_connection*>::iterator orig_iter;
+		typedef std::pair<tcp::endpoint, peer_connection*> in_param;
 		typedef boost::transform_iterator<peer_connection& (*)(in_param const&), orig_iter> new_iter;
 
 		allocate_resources_impl(

@@ -450,10 +450,10 @@ namespace libtorrent
 			// but still connectable
 			if (!i->second->is_local()) continue;
 
-			address ip = i->second->remote();
+			tcp::endpoint ip = i->second->remote();
 			entry peer(entry::dictionary_t);
-			peer["ip"] = ip.as_string();
-			peer["port"] = ip.port;
+			peer["ip"] = ip.address().to_string();
+			peer["port"] = ip.port();
 			peer_list.push_back(peer);
 		}
 
@@ -491,7 +491,7 @@ namespace libtorrent
 			, bind(&torrent::metadata, _1));
 	}
 
-	void torrent_handle::connect_peer(address const& adr) const
+	void torrent_handle::connect_peer(tcp::endpoint const& adr) const
 	{
 		INVARIANT_CHECK;
 
@@ -629,7 +629,7 @@ namespace libtorrent
 		}
 	}
   
-	bool torrent_handle::send_chat_message(address ip, std::string message) const
+	bool torrent_handle::send_chat_message(tcp::endpoint ip, std::string message) const
 	{
 		if (m_ses == 0) throw_invalid_handle();
 
@@ -652,8 +652,10 @@ namespace libtorrent
 				peer_connection::extended_chat_message))
 				continue;
 
-			// loop until we find the required ip address
-			if (ip == peer->get_socket()->sender())
+			tcp::endpoint sender;
+			peer->get_socket()->get_remote_endpoint(sender);
+			// loop until we find the required ip tcp::endpoint
+			if (ip == sender)
 			{
 				// send the message 
 				peer->send_chat_message(message);

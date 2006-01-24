@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/weak_ptr.hpp>
+#include <boost/intrusive_ptr.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -62,8 +63,9 @@ namespace libtorrent
 {
 	struct request_callback;
 	class tracker_manager;
+	struct tracker_connection;
 
-//	address parse_url(std::string const& url);
+//	tcp::endpoint parse_url(std::string const& url);
 
 	// encodes a string using the base64 scheme
 	TORRENT_EXPORT std::string base64encode(const std::string& s);
@@ -125,7 +127,7 @@ namespace libtorrent
 			, int response_code
 			, const std::string& description) = 0;
 
-		address m_tracker_address;
+		tcp::endpoint m_tracker_address;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		virtual void debug_log(const std::string& line) = 0;
@@ -140,23 +142,29 @@ namespace libtorrent
 		, request_callback* requester
 		, int maximum_tracker_response_length);
 
-	struct TORRENT_EXPORT tracker_connection: boost::noncopyable
+	void intrusive_ptr_add_ref(tracker_connection const*);
+	void intrusive_ptr_release(tracker_connection const*);
+
+	struct TORRENT_EXPORT tracker_connection
+		: boost::noncopyable
 	{
+		friend void intrusive_ptr_add_ref(tracker_connection const*);
+		friend void intrusive_ptr_release(tracker_connection const*);
+
 		tracker_connection(boost::weak_ptr<request_callback> r)
 			: m_requester(r)
+			, m_refs(0)
 		{}
 
-		virtual bool tick() = 0;
 		virtual bool send_finished() const = 0;
 		bool has_requester() const { return !m_requester.expired(); }
 		request_callback& requester();
 		virtual ~tracker_connection() {}
 		virtual tracker_request const& tracker_req() const = 0;
-
 	protected:
-
 		boost::weak_ptr<request_callback> m_requester;
-
+	private:
+		mutable int m_refs;
 	};
 
 	class TORRENT_EXPORT tracker_manager: boost::noncopyable
@@ -165,19 +173,21 @@ namespace libtorrent
 
 		tracker_manager(const http_settings& s)
 			: m_settings(s) {}
-		
-		void tick();
+
 		void queue_request(
-			tracker_request r
+			demuxer& d
+			, tracker_request r
 			, std::string const& auth
 			, boost::weak_ptr<request_callback> c
 				= boost::weak_ptr<request_callback>());
 		void abort_all_requests();
 		bool send_finished() const;
 
+		void remove_request(tracker_connection const*);
+		
 	private:
 
-		typedef std::list<boost::shared_ptr<tracker_connection> >
+		typedef std::list<boost::intrusive_ptr<tracker_connection> >
 			tracker_connections_t;
 		tracker_connections_t m_connections;
 		const http_settings& m_settings;

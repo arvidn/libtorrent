@@ -101,7 +101,7 @@ namespace libtorrent
 			, detail::checker_impl& checker
 			, torrent_info const& tf
 			, boost::filesystem::path const& save_path
-			, address const& net_interface
+			, tcp::endpoint const& net_interface
 			, bool compact_mode
 			, int block_size);
 
@@ -113,7 +113,7 @@ namespace libtorrent
 			, char const* tracker_url
 			, sha1_hash const& info_hash
 			, boost::filesystem::path const& save_path
-			, address const& net_interface
+			, tcp::endpoint const& net_interface
 			, bool compact_mode
 			, int block_size);
 
@@ -176,8 +176,8 @@ namespace libtorrent
 		torrent_status status() const;
 
 		void use_interface(const char* net_interface);
-		address const& get_interface() const { return m_net_interface; }
-		peer_connection& connect_to_peer(const address& a);
+		tcp::endpoint const& get_interface() const { return m_net_interface; }
+		peer_connection& connect_to_peer(const tcp::endpoint& a);
 
 		void set_ratio(float ratio)
 		{ assert(ratio >= 0.0f); m_ratio = ratio; }
@@ -199,7 +199,7 @@ namespace libtorrent
 		// called from the peer_connection destructor
 		void remove_peer(peer_connection* p);
 
-		peer_connection* connection_for(const address& a)
+		peer_connection* connection_for(const tcp::endpoint& a)
 		{
 			peer_iterator i = m_connections.find(a);
 			if (i == m_connections.end()) return 0;
@@ -210,8 +210,8 @@ namespace libtorrent
 		int num_peers() const { return (int)m_connections.size(); }
 		int num_seeds() const;
 
-		typedef std::map<address, peer_connection*>::iterator peer_iterator;
-		typedef std::map<address, peer_connection*>::const_iterator const_peer_iterator;
+		typedef std::map<tcp::endpoint, peer_connection*>::iterator peer_iterator;
+		typedef std::map<tcp::endpoint, peer_connection*>::const_iterator const_peer_iterator;
 
 		const_peer_iterator begin() const { return m_connections.begin(); }
 		const_peer_iterator end() const { return m_connections.end(); }
@@ -264,9 +264,9 @@ namespace libtorrent
 		// the tracker
 		void set_tracker_login(std::string const& name, std::string const& pw);
 
-		// the address of the tracker that we managed to
+		// the tcp::endpoint of the tracker that we managed to
 		// announce ourself at the last time we tried to announce
-		const address& current_tracker() const;
+		const tcp::endpoint& current_tracker() const;
 
 // --------------------------------------------
 		// PIECE MANAGEMENT
@@ -458,7 +458,7 @@ namespace libtorrent
 #ifndef NDEBUG
 	public:
 #endif
-		std::map<address, peer_connection*> m_connections;
+		std::map<tcp::endpoint, peer_connection*> m_connections;
 #ifndef NDEBUG
 	private:
 #endif
@@ -524,7 +524,7 @@ namespace libtorrent
 
 		// the network interface all outgoing connections
 		// are opened through
-		address m_net_interface;
+		tcp::endpoint m_net_interface;
 
 		// the max number of bytes this torrent
 		// can upload per second

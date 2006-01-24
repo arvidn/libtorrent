@@ -67,7 +67,8 @@ namespace libtorrent
 	public:
 
 		udp_tracker_connection(
-			tracker_request const& req
+			demuxer& d
+			, tracker_request const& req
 			, std::string const& hostname
 			, unsigned short port
 			, boost::weak_ptr<request_callback> c
@@ -96,7 +97,7 @@ namespace libtorrent
 		bool parse_scrape_response(const char* buf, int ret);
 
 		dns_lookup m_name_lookup;
-		boost::shared_ptr<socket> m_socket;
+		boost::shared_ptr<datagram_socket> m_socket;
 
 		// used for time outs
 		boost::posix_time::ptime m_request_time;

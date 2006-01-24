@@ -230,27 +230,28 @@ inline void buffer::insert(char const* first, char const* last)
 
 inline void buffer::erase(std::size_t n)
 {
-    assert(!m_empty);
+	INVARIANT_CHECK;
 
-    INVARIANT_CHECK;
+	if (n == 0) return;
+	assert(!m_empty);
 	 
 #ifndef NDEBUG
 	int prev_size = size();
 #endif
 	assert(m_read_cursor <= m_read_end);
-    m_read_cursor += n;
-    if (m_read_cursor > m_read_end)
-	 {
-        m_read_cursor = m_first + (m_read_cursor - m_read_end);
-		  assert(m_read_cursor <= m_write_cursor);
-	 }
+	m_read_cursor += n;
+	if (m_read_cursor > m_read_end)
+	{
+		m_read_cursor = m_first + (m_read_cursor - m_read_end);
+		assert(m_read_cursor <= m_write_cursor);
+	}
 
-    m_empty = m_read_cursor == m_write_cursor;
+	m_empty = m_read_cursor == m_write_cursor;
 
-	 assert(prev_size - n == size());
+	assert(prev_size - n == size());
 
 #ifdef TORRENT_BUFFER_DEBUG
-	 m_debug.erase(m_debug.begin(), m_debug.begin() + n);
+	m_debug.erase(m_debug.begin(), m_debug.begin() + n);
 #endif
 }
 

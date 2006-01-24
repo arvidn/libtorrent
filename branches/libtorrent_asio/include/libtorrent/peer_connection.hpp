@@ -94,22 +94,20 @@ namespace libtorrent
 	friend class invariant_access;
 	public:
 
-		// this is the constructor where the we are teh active part.
+		// this is the constructor where the we are the active part.
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
 		peer_connection(
 			detail::session_impl& ses
-			, selector& sel
 			, torrent* t
-			, boost::shared_ptr<libtorrent::socket> s
-			, address const& remote);
+			, boost::shared_ptr<stream_socket> s
+			, tcp::endpoint const& remote);
 
 		// with this constructor we have been contacted and we still don't
 		// know which torrent the connection belongs to
 		peer_connection(
 			detail::session_impl& ses
-			, selector& sel
-			, boost::shared_ptr<libtorrent::socket> s);
+			, boost::shared_ptr<stream_socket> s);
 
 		// this function is called once the torrent associated
 		// with this peer connection has retrieved the meta-
@@ -123,10 +121,17 @@ namespace libtorrent
 		// it will let the peer know that we have the given piece
 		void announce_piece(int index);
 
+		void setup_send();
+		void setup_receive();
+		
+		void fill_send_buffer();
+		
 		// called from the main loop when this connection has any
 		// work to do.
-		void send_data();
-		void receive_data();
+		void on_send_data(asio::error const& error
+			, std::size_t bytes_transferred);
+		void on_receive_data(asio::error const& error
+			, std::size_t bytes_transferred);
 		
 		// tells if this connection has data it want to send
 		// and has enough upload bandwidth quota left to send it.
@@ -174,8 +179,8 @@ namespace libtorrent
 		// is called once every second by the main loop
 		void second_tick();
 
-		boost::shared_ptr<libtorrent::socket> get_socket() const { return m_socket; }
-		address const& remote() const { return m_remote; }
+		boost::shared_ptr<stream_socket> get_socket() const { return m_socket; }
+		tcp::endpoint const& remote() const { return m_remote; }
 
 		const peer_id& get_peer_id() const { return m_peer_id; }
 		const std::vector<bool>& get_bitfield() const;
@@ -190,7 +195,7 @@ namespace libtorrent
 		// this is called when the connection attempt has succeeded
 		// and the peer_connection is supposed to set m_connecting
 		// to false, and stop monitor writability
-		void connection_complete();
+		void on_connection_complete(asio::error const& e);
 
 		// returns true if this connection is still waiting to
 		// finish the connection attempt
@@ -262,6 +267,7 @@ namespace libtorrent
 		// be called. i.e. most handlers need
 		// to check how much of the packet they
 		// have received before any processing
+		void on_keepalive();
 		void on_choke(int received);
 		void on_unchoke(int received);
 		void on_interested(int received);
@@ -320,8 +326,8 @@ namespace libtorrent
 		void request_metadata();
 
 		// this is called each time this peer generates some
-		// data to be sent. It will add this socket to
-		// the writibility monitor in the selector.
+		// data to be sent. It will make sure the data is sent
+		// through the socket.
 		void send_buffer_updated();
 
 		// is used during handshake
@@ -370,7 +376,6 @@ namespace libtorrent
 		// this is the buffer where data that is
 		// to be sent is stored until it gets
 		// consumed by send()
-//		std::vector<char> m_send_buffer;
 		buffer m_send_buffer;
 
 		// this is a queue of ranges that describes
@@ -398,11 +403,8 @@ namespace libtorrent
 		boost::posix_time::ptime m_last_receive;
 		boost::posix_time::ptime m_last_sent;
 
-		// the selector is used to add and remove this
-		// peer's socket from the writability monitor list.
-		selector& m_selector;
-		boost::shared_ptr<libtorrent::socket> m_socket;
-		address m_remote;
+		boost::shared_ptr<stream_socket> m_socket;
+		tcp::endpoint m_remote;
 		
 		// this is the torrent this connection is
 		// associated with. If the connection is an
@@ -425,16 +427,6 @@ namespace libtorrent
 		// and false if we got an incomming connection
 		// could be considered: true = local, false = remote
 		bool m_active;
-
-		// this is true as long as this peer's
-		// socket is added to the selector to
-		// monitor writability. Each time we do
-		// something that generates data to be 
-		// sent to this peer, we check this and
-		// if it's not added to the selector we
-		// add it. (this is done in send_buffer_updated())
-		bool m_writability_monitored;
-		bool m_readability_monitored;
 
 		// remote peer's id
 		peer_id m_peer_id;
@@ -577,6 +569,10 @@ namespace libtorrent
 		// that have been forwarded to the torrent object
 		// do not count.
 		int m_metadata_progress;
+
+		// these are true when there's a asynchronous write
+		// or read operation running.
+		bool m_writing;
 	};
 }
 

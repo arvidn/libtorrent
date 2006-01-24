@@ -68,7 +68,8 @@ namespace libtorrent
 	public:
 
 		http_tracker_connection(
-			tracker_manager& man
+			demuxer& d
+			, tracker_manager& man
 			, tracker_request const& req
 			, std::string const& hostname
 			, unsigned short port
@@ -76,7 +77,6 @@ namespace libtorrent
 			, boost::weak_ptr<request_callback> c
 			, const http_settings& stn
 			, std::string const& password = "");
-		virtual bool tick();
 		virtual bool send_finished() const
 		{ return m_send_buffer.empty(); }
 		virtual tracker_request const& tracker_req() const
@@ -84,9 +84,20 @@ namespace libtorrent
 
 	private:
 
+		boost::intrusive_ptr<http_tracker_connection> self()
+		{ return boost::intrusive_ptr<http_tracker_connection>(this); }
+
+		void fail(int code, char const* msg);
+		
 		void init_send_buffer(
 			std::string const& hostname
 			, std::string const& request);
+
+		void name_lookup(asio::error const& error);
+		void connected(asio::error const& error);
+		void sent(asio::error const& error);
+		void receive(asio::error const& error
+			, std::size_t bytes_transferred);
 
 		void parse(const entry& e);
 		peer_entry extract_peer_info(const entry& e);
@@ -98,8 +109,10 @@ namespace libtorrent
 		int m_content_length;
 		std::string m_location;
 
-		dns_lookup m_name_lookup;
-		boost::shared_ptr<socket> m_socket;
+		host_resolver m_name_lookup;
+		host m_host;
+		int m_port;
+		boost::shared_ptr<stream_socket> m_socket;
 		int m_recv_pos;
 		std::vector<char> m_buffer;
 		std::string m_send_buffer;
@@ -122,3 +135,4 @@ namespace libtorrent
 }
 
 #endif // TORRENT_HTTP_TRACKER_CONNECTION_HPP_INCLUDED
+

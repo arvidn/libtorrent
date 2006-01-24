@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <iomanip>
 #include <limits>
+#include <boost/bind.hpp>
 
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/session.hpp"
@@ -46,6 +47,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/version.hpp"
 
 using namespace boost::posix_time;
+using boost::bind;
+using boost::shared_ptr;
+using boost::mutex;
 
 namespace libtorrent
 {
@@ -75,10 +79,9 @@ namespace libtorrent
 
 	peer_connection::peer_connection(
 		detail::session_impl& ses
-		, selector& sel
 		, torrent* t
-		, boost::shared_ptr<libtorrent::socket> s
-		, address const& remote)
+		, shared_ptr<stream_socket> s
+		, tcp::endpoint const& remote)
 		:
 #ifndef NDEBUG
 		m_last_choke(boost::posix_time::second_clock::universal_time()
@@ -91,15 +94,12 @@ namespace libtorrent
 		, m_recv_pos(0)
 		, m_last_receive(second_clock::universal_time())
 		, m_last_sent(second_clock::universal_time())
-		, m_selector(sel)
 		, m_socket(s)
 		, m_remote(remote)
 		, m_torrent(t)
 		, m_attached_to_torrent(true)
 		, m_ses(ses)
 		, m_active(true)
-		, m_writability_monitored(true)
-		, m_readability_monitored(true)
 		, m_peer_interested(false)
 		, m_peer_choked(true)
 		, m_interesting(false)
@@ -124,15 +124,20 @@ namespace libtorrent
 		, m_connecting(true)
 		, m_queued(true)
 		, m_metadata_progress(0)
+		, m_writing(false)
 	{
-		m_selector.monitor_writability(m_socket);
-		m_selector.monitor_readability(m_socket);
 		INVARIANT_CHECK;
 
+#ifdef TORRENT_VERBOSE_LOGGING
+		m_logger = m_ses.create_log(m_remote.address().to_string() + "_"
+			+ boost::lexical_cast<std::string>(m_remote.port()));
+		(*m_logger) << "*** OUTGOING CONNECTION\n";
+#endif
+
+		
 		// these numbers are used the first second of connection.
 		// then the given upload limits will be applied by running
 		// allocate_resources().
-
 		m_ul_bandwidth_quota.min = 10;
 		m_ul_bandwidth_quota.max = resource_request::inf;
 
@@ -159,14 +164,7 @@ namespace libtorrent
 			m_dl_bandwidth_quota.given = 400;
 		}
 
-		assert(!m_socket->is_blocking());
 		assert(m_torrent != 0);
-
-#ifdef TORRENT_VERBOSE_LOGGING
-		m_logger = m_ses.create_log(m_remote.as_string() + "_"
-			+ boost::lexical_cast<std::string>(m_remote.port));
-		(*m_logger) << "*** OUTGOING CONNECTION\n";
-#endif
 
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
 
@@ -187,12 +185,12 @@ namespace libtorrent
 			init();
 			send_bitfield();
 		}
+		setup_receive();	
 	}
 
 	peer_connection::peer_connection(
 		detail::session_impl& ses
-		, selector& sel
-		, boost::shared_ptr<libtorrent::socket> s)
+		, boost::shared_ptr<stream_socket> s)
 		:
 #ifndef NDEBUG
 		m_last_choke(boost::posix_time::second_clock::universal_time()
@@ -205,15 +203,11 @@ namespace libtorrent
 		, m_recv_pos(0)
 		, m_last_receive(second_clock::universal_time())
 		, m_last_sent(second_clock::universal_time())
-		, m_selector(sel)
 		, m_socket(s)
-		, m_remote(s->sender())
 		, m_torrent(0)
 		, m_attached_to_torrent(false)
 		, m_ses(ses)
 		, m_active(false)
-		, m_writability_monitored(false)
-		, m_readability_monitored(true)
 		, m_peer_id()
 		, m_peer_interested(false)
 		, m_peer_choked(true)
@@ -239,9 +233,21 @@ namespace libtorrent
 		, m_connecting(false)
 		, m_queued(false)
 		, m_metadata_progress(0)
+		, m_writing(false)
 	{
-		m_selector.monitor_readability(m_socket);
 		INVARIANT_CHECK;
+
+		m_socket->get_remote_endpoint(m_remote);
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		tcp::endpoint sender;
+		m_socket->get_remote_endpoint(sender);
+		assert(sender == remote());
+		m_logger = m_ses.create_log(remote().address().to_string() + "_"
+			+ boost::lexical_cast<std::string>(remote().port()));
+		(*m_logger) << "*** INCOMING CONNECTION\n";
+#endif
+
 
 		// upload bandwidth will only be given to connections
 		// that are part of a torrent. Since this is an incoming
@@ -277,16 +283,7 @@ namespace libtorrent
 			m_dl_bandwidth_quota.given = 400;
 		}
 
-		assert(!m_socket->is_blocking());
-
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
-
-#ifdef TORRENT_VERBOSE_LOGGING
-		assert(m_socket->sender() == remote());
-		m_logger = m_ses.create_log(remote().as_string() + "_"
-			+ boost::lexical_cast<std::string>(remote().port));
-		(*m_logger) << "*** INCOMING CONNECTION\n";
-#endif
 
 		// initialize the extension list to zero, since
 		// we don't know which extensions the other
@@ -351,7 +348,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 				(*m_logger) << " we're also a seed, disconnecting\n";
 #endif
-				throw protocol_error("seed to seed connection redundant, disconnecting");
+				throw std::runtime_error("seed to seed connection redundant, disconnecting");
 			}
 		}
 
@@ -370,24 +367,23 @@ namespace libtorrent
 				<< " *** CONNECTION CLOSED\n";
 		}
 #endif
-		m_disconnecting = true;
-		m_selector.remove(m_socket);
-		if (m_attached_to_torrent)
 		{
-			assert(m_torrent != 0);
-			m_torrent->remove_peer(this);
-		}
-#ifndef NDEBUG
-		else
-		{
-			if (m_torrent)
+			boost::mutex::scoped_lock l(m_ses.m_mutex);
+
+			m_disconnecting = true;
+			if (m_attached_to_torrent)
 			{
-				torrent::peer_iterator i = m_torrent->m_connections.find(
-					remote());
+				assert(m_torrent != 0);
+				m_torrent->remove_peer(this);
+			}
+#ifndef NDEBUG
+			else if (m_torrent)
+			{
+				torrent::peer_iterator i = m_torrent->m_connections.find(remote());
 				assert(i == m_torrent->m_connections.end());
 			}
-		}
 #endif
+		}
 	}
 
 	void peer_connection::announce_piece(int index)
@@ -465,12 +461,13 @@ namespace libtorrent
 	{
 		m_ul_bandwidth_quota.used = 0;
 		m_dl_bandwidth_quota.used = 0;
-		if (!m_readability_monitored)
+/*		if (!m_readability_monitored)
 		{
 			assert(!m_selector.is_readability_monitored(m_socket));
 			m_selector.monitor_readability(m_socket);
 			m_readability_monitored = true;
 		}
+*/
 		send_buffer_updated();
 	}
 
@@ -580,6 +577,22 @@ namespace libtorrent
 
 
 	// message handlers
+
+	// -----------------------------
+	// --------- KEEPALIVE ---------
+	// -----------------------------
+
+	void peer_connection::on_keepalive()
+	{
+		INVARIANT_CHECK;
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::universal_time())
+			<< " <== KEEPALIVE\n";
+#endif
+
+	}
 
 	// -----------------------------
 	// ----------- CHOKE -----------
@@ -1052,7 +1065,7 @@ namespace libtorrent
 		{
 			// cancel the block from the
 			// peer that has taken over it.
-			boost::optional<address> peer = m_torrent->picker().get_downloader(block_finished);
+			boost::optional<tcp::endpoint> peer = m_torrent->picker().get_downloader(block_finished);
 			if (peer)
 			{
 				peer_connection* pc = m_torrent->connection_for(*peer);
@@ -1150,13 +1163,13 @@ namespace libtorrent
 		{
 			m_requests.erase(i);
 		}
-
+/*
 		if (!can_write() && m_writability_monitored)
 		{
 			m_writability_monitored = false;
 			m_selector.remove_writable(m_socket);
 		}
-
+*/
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
 		(*m_logger) << to_simple_string(second_clock::universal_time())
@@ -1445,8 +1458,8 @@ namespace libtorrent
 				<< "<== LISTEN_PORT [ port: " << port << " ]\n";
 #endif
 
-		address adr = m_remote;
-		adr.port = port;
+		tcp::endpoint adr = m_remote;
+		adr.port(port);
 		m_torrent->get_policy().peer_from_tracker(adr, m_peer_id);
 	}
 
@@ -1456,6 +1469,10 @@ namespace libtorrent
 		return second_clock::universal_time() - m_no_metadata > minutes(5);
 	}
 
+	void close_socket(boost::shared_ptr<stream_socket> s)
+	{
+		s->close(asio::ignore_error());
+	}
 
 	void peer_connection::disconnect()
 	{
@@ -1463,14 +1480,11 @@ namespace libtorrent
 
 		assert((m_ses.m_connections.find(m_socket) != m_ses.m_connections.end())
 			== !m_connecting);
-	
-		m_disconnecting = true;
-		
-		assert(std::find(m_ses.m_disconnect_peer.begin()
-			, m_ses.m_disconnect_peer.end(), shared_from_this())
-			== m_ses.m_disconnect_peer.end());
 
-		m_ses.m_disconnect_peer.push_back(shared_from_this());
+		m_disconnecting = true;
+		m_ses.m_selector.post(boost::bind(&close_socket, m_socket));
+
+		m_ses.close_connection(shared_from_this());
 	}
 
 	bool peer_connection::dispatch_message(int received)
@@ -2067,7 +2081,7 @@ namespace libtorrent
 		if (m_ul_bandwidth_quota.used > m_ul_bandwidth_quota.given)
 			m_ul_bandwidth_quota.used = m_ul_bandwidth_quota.given;
 
-		send_buffer_updated();
+		fill_send_buffer();
 
 /*
 		size_type diff = share_diff();
@@ -2107,390 +2121,10 @@ namespace libtorrent
 		}
 */
 	}
-
-	// --------------------------
-	// RECEIVE DATA
-	// --------------------------
-
-	// throws exception when the client should be disconnected
-	void peer_connection::receive_data()
-	{
-		INVARIANT_CHECK;
-
-		assert(!m_socket->is_blocking());
-		assert(m_packet_size > 0);
-		assert(m_socket->is_readable());
-		assert(can_read());
-		assert(m_selector.is_readability_monitored(m_socket));
-
-		if (m_disconnecting) return;
-
-		for(;;)
-		{
-			assert(m_packet_size > 0);
-			int max_receive = std::min(
-				m_dl_bandwidth_quota.left()
-				, m_packet_size - m_recv_pos);
-			int received = m_socket->receive(
-				&m_recv_buffer[m_recv_pos], max_receive);
-
-			// connection closed
-			if (received == 0)
-			{
-				throw protocol_error("connection closed by remote host");
-			}
-
-			// an error
-			if (received < 0)
-			{
-				// would_block means that no data was ready to be received
-				// returns to exit the loop
-				if (m_socket->last_error() == socket::would_block)
-					return;
-
-				// the connection was closed
-				throw network_error(m_socket->last_error());
-			}
-
-			if (received > 0)
-			{
-				m_last_receive = second_clock::universal_time();
-
-				m_recv_pos += received;
-				m_dl_bandwidth_quota.used += received;
-				if (!can_read())
-				{
-					assert(m_readability_monitored);
-					assert(m_selector.is_readability_monitored(m_socket));
-					m_selector.remove_readable(m_socket);
-					m_readability_monitored = false;
-				}
-
-				switch(m_state)
-				{
-				case read_protocol_length:
-
-					m_statistics.received_bytes(0, received);
-					if (m_recv_pos < m_packet_size) break;
-					assert(m_recv_pos == m_packet_size);
-
-					m_packet_size = reinterpret_cast<unsigned char&>(m_recv_buffer[0]);
-
-#ifdef TORRENT_VERBOSE_LOGGING
-					(*m_logger) << " protocol length: " << m_packet_size << "\n";
-#endif
-					if (m_packet_size > 100 || m_packet_size <= 0)
-					{
-							std::stringstream s;
-							s << "incorrect protocol length ("
-								<< m_packet_size
-								<< ") should be 19.";
-							throw protocol_error(s.str());
-					}
-
-					m_state = read_protocol_string;
-					m_recv_buffer.resize(m_packet_size);
-					m_recv_pos = 0;
-
-					break;
-
-
-				case read_protocol_string:
-					{
-						m_statistics.received_bytes(0, received);
-						if (m_recv_pos < m_packet_size) break;
-						assert(m_recv_pos == m_packet_size);
-#ifdef TORRENT_VERBOSE_LOGGING
-						(*m_logger) << " protocol: '" << std::string(m_recv_buffer.begin()
-							, m_recv_buffer.end()) << "'\n";
-#endif
-						const char protocol_string[] = "BitTorrent protocol";
-						if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.end()
-							, protocol_string))
-						{
-							const char cmd[] = "version";
-							if (m_recv_buffer.size() == 7 && std::equal(m_recv_buffer.begin(), m_recv_buffer.end(), cmd))
-							{
-#ifdef TORRENT_VERBOSE_LOGGING
-								(*m_logger) << "sending libtorrent version\n";
-#endif
-								m_socket->send("libtorrent version " LIBTORRENT_VERSION "\n", 27);
-								throw protocol_error("closing");
-							}
-#ifdef TORRENT_VERBOSE_LOGGING
-							(*m_logger) << "incorrect protocol name\n";
-#endif
-							std::stringstream s;
-							s << "got invalid protocol name: '"
-								<< std::string(m_recv_buffer.begin(), m_recv_buffer.end())
-								<< "'";
-							throw protocol_error(s.str());
-						}
-
-						m_state = read_info_hash;
-						m_packet_size = 28;
-						m_recv_pos = 0;
-						m_recv_buffer.resize(28);
-					}
-					break;
-
-
-				case read_info_hash:
-				{
-					m_statistics.received_bytes(0, received);
-					if (m_recv_pos < m_packet_size) break;
-					assert(m_recv_pos == m_packet_size);
-					// the use of this bit collides with Mainline
-					// the new way of identifying support for the extensions
-					// is in the peer_id
-//					if ((m_recv_buffer[7] & 0x01) && m_ses.extensions_enabled())
-//						m_supports_extensions = true;
-
-					// ok, now we have got enough of the handshake. Is this connection
-					// attached to a torrent?
-					if (m_torrent == 0)
-					{
-
-						// now, we have to see if there's a torrent with the
-						// info_hash we got from the peer
-						sha1_hash info_hash;
-						std::copy(m_recv_buffer.begin() + 8, m_recv_buffer.begin() + 28, (char*)info_hash.begin());
-						
-						m_torrent = m_ses.find_torrent(info_hash);
-						if (m_torrent && m_torrent->is_aborted()) m_torrent = 0;
-						if (m_torrent == 0)
-						{
-							// we couldn't find the torrent!
-#ifdef TORRENT_VERBOSE_LOGGING
-							(*m_logger) << " couldn't find a torrent with the given info_hash\n";
-#endif
-							throw protocol_error("got info-hash that is not in our session");
-						}
-
-						if (m_torrent->is_paused())
-						{
-							// paused torrents will not accept
-							// incoming connections
-#ifdef TORRENT_VERBOSE_LOGGING
-							(*m_logger) << " rejected connection to paused torrent\n";
-#endif
-							throw protocol_error("connection rejected by paused torrent");
-						}
-
-						// if the torrent isn't ready to accept
-						// connections yet, we'll have to wait with
-						// our initialization
-						if (m_torrent->ready_for_connections()) init();
-
-						// assume the other end has no pieces
-						// if we don't have valid metadata yet,
-						// leave the vector unallocated
-						std::fill(m_have_piece.begin(), m_have_piece.end(), false);
-
-						// yes, we found the torrent
-						// reply with our handshake
-						send_handshake();
-						send_bitfield();
-					}
-					else
-					{
-						// verify info hash
-						if (!std::equal(m_recv_buffer.begin()+8, m_recv_buffer.begin() + 28, (const char*)m_torrent->torrent_file().info_hash().begin()))
-						{
-#ifdef TORRENT_VERBOSE_LOGGING
-							(*m_logger) << " received invalid info_hash\n";
-#endif
-							throw protocol_error("invalid info-hash in handshake");
-						}
-					}
-
-					m_state = read_peer_id;
-					m_packet_size = 20;
-					m_recv_pos = 0;
-					m_recv_buffer.resize(20);
-#ifdef TORRENT_VERBOSE_LOGGING
-					(*m_logger) << " info_hash received\n";
-#endif
-					break;
-				}
-
-
-				case read_peer_id:
-				{
-					m_statistics.received_bytes(0, received);
-					if (m_recv_pos < m_packet_size) break;
-					assert(m_recv_pos == m_packet_size);
-					assert(m_packet_size == 20);
-
-#ifdef TORRENT_VERBOSE_LOGGING
-					{
-						peer_id tmp;
-						std::copy(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (char*)tmp.begin());
-						std::stringstream s;
-						s << "received peer_id: " << tmp << " client: " << identify_client(tmp) << "\n";
-						s << "as ascii: ";
-						for (peer_id::iterator i = tmp.begin(); i != tmp.end(); ++i)
-						{
-							if (std::isprint(*i)) s << *i;
-							else s << ".";
-						}
-						s << "\n";
-						(*m_logger) << s.str();
-					}
-#endif
-					std::copy(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (char*)m_peer_id.begin());
-
-					if (std::memcmp(&m_peer_id[17], "ext", 3) == 0)
-						m_supports_extensions = true;
-
-					// disconnect if the peer has the same peer-id as ourself
-					// since it most likely is ourself then
-					if (m_peer_id == m_ses.get_peer_id())
-						throw protocol_error("closing connection to ourself");
-					
-					if (m_supports_extensions) send_extensions();
-
-					if (!m_active)
-					{
-						// check to make sure we don't have another connection with the same
-						// info_hash and peer_id. If we do. close this connection.
-						m_torrent->attach_peer(this);
-						m_attached_to_torrent = true;
-						assert(m_torrent->get_policy().has_connection(this));
-					}
-
-					m_state = read_packet_size;
-					m_packet_size = 4;
-					m_recv_pos = 0;
-					m_recv_buffer.resize(4);
-
-					break;
-				}
-
-
-				case read_packet_size:
-				{
-					m_statistics.received_bytes(0, received);
-					if (m_recv_pos < m_packet_size) break;
-					assert(m_recv_pos == m_packet_size);
-
-					// convert from big endian to native byte order
-					const char* ptr = &m_recv_buffer[0];
-					m_packet_size = detail::read_int32(ptr);
-					// don't accept packets larger than 1 MB
-					if (m_packet_size > 1024*1024 || m_packet_size < 0)
-					{
-#ifdef TORRENT_VERBOSE_LOGGING
-						(*m_logger) << " packet too large (packet_size > 1 Megabyte), abort\n";
-#endif
-						// packet too large
-						throw protocol_error("packet > 1 MB");
-					}
-					
-					if (m_packet_size == 0)
-					{
-						// keepalive message
-						m_state = read_packet_size;
-						m_packet_size = 4;
-					}
-					else
-					{
-						m_state = read_packet;
-						m_recv_buffer.resize(m_packet_size);
-					}
-					m_recv_pos = 0;
-					assert(m_packet_size > 0);
-					break;
-				}
-				case read_packet:
-
-					if (dispatch_message(received))
-					{
-						m_state = read_packet_size;
-						m_packet_size = 4;
-						m_recv_buffer.resize(4);
-						m_recv_pos = 0;
-						assert(m_packet_size > 0);
-					}
-					break;
-				}
-
-				// if we have used all our download quota,
-				// break the receive loop
-				if (!can_read()) break;
-			}
-		}
-		assert(m_packet_size > 0);
-	}
-
-
-	bool peer_connection::can_write() const
-	{
-		// if we have requests or pending data to be sent or announcements to be made
-		// we want to send data
-		return ((!m_requests.empty() && !m_choked)
-			|| !m_send_buffer.empty())
-			&& m_ul_bandwidth_quota.left() > 0;
-	}
-
-	bool peer_connection::can_read() const
-	{
-		return m_dl_bandwidth_quota.left() > 0;
-	}
-
-	void peer_connection::connect()
-	{
-		INVARIANT_CHECK;
-
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_ses.m_logger) << "CONNECT: " << m_remote.as_string() << "\n";
-#endif
-
-		m_queued = false;
-		assert(m_connecting);
-		assert(associated_torrent());
-		m_socket->connect(m_remote, associated_torrent()->get_interface());
-
-		if (m_torrent->alerts().should_post(alert::debug))
-		{
-			m_torrent->alerts().post_alert(peer_error_alert(
-				m_remote, m_peer_id, "connecting to peer"));
-		}
-	}
 	
-	void peer_connection::connection_complete()
+	void peer_connection::fill_send_buffer()
 	{
-		INVARIANT_CHECK;
-
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_ses.m_logger) << "COMPLETED: " << m_remote.as_string() << "\n";
-#endif
-
-		m_connecting = false;
-		// this means the connection just succeeded
-
-//		assert(!can_write());
-//		assert(m_writability_monitored);
-		if (!can_write() && m_writability_monitored)
-		{
-			m_writability_monitored = false;
-			m_selector.remove_writable(m_socket);
-		}
-	}
-	
-	// --------------------------
-	// SEND DATA
-	// --------------------------
-
-	// throws exception when the client should be disconnected
-	void peer_connection::send_data()
-	{
-		INVARIANT_CHECK;
-
-		assert(!m_connecting);
-		assert(!m_disconnecting);
-		assert(m_socket->is_writable());
-		assert(can_write());
+		if (!can_write()) return;
 
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
@@ -2557,8 +2191,12 @@ namespace libtorrent
 			}
 			m_announce_queue.clear();
 		}
+		send_buffer_updated();
+	}
 
-		assert(m_ul_bandwidth_quota.used <= m_ul_bandwidth_quota.given);
+	void peer_connection::setup_send()
+	{
+		assert(!m_writing);
 
 		// send the actual buffer
 		if (!m_send_buffer.empty())
@@ -2572,78 +2210,489 @@ namespace libtorrent
 			// we have data that's scheduled for sending
 			int to_send = std::min(int(send_buffer.first.end - send_buffer.first.begin)
 				, amount_to_send);
-			int sent = m_socket->send(send_buffer.first.begin, to_send);
 
-			if (sent == send_buffer.first.end - send_buffer.first.end
-				&& send_buffer.second.begin != send_buffer.second.end
-				&& to_send > sent)
+			boost::array<asio::const_buffer, 2> bufs;
+			assert(to_send >= 0);
+			bufs[0] = asio::buffer(send_buffer.first.begin, to_send);
+
+			to_send = std::min(int(send_buffer.second.end - send_buffer.second.begin)
+				, amount_to_send - to_send);
+			assert(to_send >= 0);
+			bufs[1] = asio::buffer(send_buffer.second.begin, to_send);
+
+			assert(can_write());
+			m_socket->async_write_some(bufs, bind(&peer_connection::on_send_data
+				, shared_from_this(), _1, _2));
+			m_writing = true;
+		}
+	}
+
+	void peer_connection::setup_receive()
+	{
+		if (!can_read()) return;
+
+		assert(m_packet_size > 0);
+		int max_receive = std::min(
+			m_dl_bandwidth_quota.left()
+			, m_packet_size - m_recv_pos);
+
+		assert(max_receive > 0);
+
+		assert(can_read());
+		m_socket->async_read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
+			, max_receive), bind(&peer_connection::on_receive_data, shared_from_this(), _1, _2));
+	}
+	
+	// --------------------------
+	// RECEIVE DATA
+	// --------------------------
+
+	// throws exception when the client should be disconnected
+	void peer_connection::on_receive_data(const asio::error& error
+		, std::size_t bytes_transferred) try
+	{
+		INVARIANT_CHECK;
+
+		if (error)
+			throw std::runtime_error(error.what());
+		if (m_disconnecting) return;
+	
+		assert(m_packet_size > 0);
+		assert(can_read());
+
+		assert(bytes_transferred > 0);
+
+		mutex::scoped_lock l(m_ses.m_mutex);
+
+		m_last_receive = second_clock::universal_time();
+
+		m_recv_pos += bytes_transferred;
+		m_dl_bandwidth_quota.used += bytes_transferred;
+
+		switch(m_state)
+		{
+		case read_protocol_length:
+		{
+			m_statistics.received_bytes(0, bytes_transferred);
+			if (m_recv_pos < m_packet_size) break;
+
+			assert(m_recv_pos == m_packet_size);
+			m_packet_size = reinterpret_cast<unsigned char&>(m_recv_buffer[0]);
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << " protocol length: " << m_packet_size << "\n";
+#endif
+			if (m_packet_size > 100 || m_packet_size <= 0)
 			{
-				to_send -= sent;
-				to_send = std::min(to_send, int(send_buffer.second.end
-					- send_buffer.second.begin));
-				int ret = m_socket->send(send_buffer.second.begin, to_send);
-				if (ret > 0) sent += ret;
+				std::stringstream s;
+				s << "incorrect protocol length ("
+					<< m_packet_size
+					<< ") should be 19.";
+				throw std::runtime_error(s.str());
 			}
-			
-			if (sent > 0)
+			m_state = read_protocol_string;
+			m_recv_buffer.resize(m_packet_size);
+			m_recv_pos = 0;
+		}
+		break;
+
+		case read_protocol_string:
+		{
+			m_statistics.received_bytes(0, bytes_transferred);
+			if (m_recv_pos < m_packet_size) break;
+			assert(m_recv_pos == m_packet_size);
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << " protocol: '" << std::string(m_recv_buffer.begin()
+				, m_recv_buffer.end()) << "'\n";
+#endif
+			const char protocol_string[] = "BitTorrent protocol";
+			if (!std::equal(m_recv_buffer.begin(), m_recv_buffer.end()
+				, protocol_string))
 			{
-				m_ul_bandwidth_quota.used += sent;
-				m_send_buffer.erase(sent);
-
-				// manage the payload markers
-				int amount_payload = 0;
-				if (!m_payloads.empty())
+				const char cmd[] = "version";
+				if (m_recv_buffer.size() == 7 && std::equal(m_recv_buffer.begin(), m_recv_buffer.end(), cmd))
 				{
-					for (std::deque<range>::iterator i = m_payloads.begin();
-						i != m_payloads.end(); ++i)
-					{
-						i->start -= sent;
-						if (i->start < 0)
-						{
-							if (i->start + i->length <= 0)
-							{
-								amount_payload += i->length;
-							}
-							else
-							{
-								amount_payload += -i->start;
-								i->length -= -i->start;
-								i->start = 0;
-							}
-						}
-					}
+#ifdef TORRENT_VERBOSE_LOGGING
+					(*m_logger) << "sending libtorrent version\n";
+#endif
+					asio::write(*m_socket, asio::buffer("libtorrent version " LIBTORRENT_VERSION "\n", 27));
+					throw std::runtime_error("closing");
 				}
-				// TODO: move the erasing into the loop above
-				// remove all payload ranges that has been sent
-				m_payloads.erase(
-					std::remove_if(m_payloads.begin(), m_payloads.end(), range_below_zero)
-					, m_payloads.end());
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << "incorrect protocol name\n";
+#endif
+				std::stringstream s;
+				s << "got invalid protocol name: '"
+					<< std::string(m_recv_buffer.begin(), m_recv_buffer.end())
+					<< "'";
+				throw std::runtime_error(s.str());
+			}
 
-				assert(amount_payload <= sent);
-				m_statistics.sent_bytes(amount_payload, sent - amount_payload);
+			m_state = read_info_hash;
+			m_packet_size = 28;
+			m_recv_pos = 0;
+			m_recv_buffer.resize(28);
+		}
+		break;
+
+		case read_info_hash:
+		{
+			m_statistics.received_bytes(0, bytes_transferred);
+			if (m_recv_pos < m_packet_size) break;
+			assert(m_recv_pos == m_packet_size);
+			// the use of this bit collides with Mainline
+			// the new way of identifying support for the extensions
+			// is in the peer_id
+//			if ((m_recv_buffer[7] & 0x01) && m_ses.extensions_enabled())
+//				m_supports_extensions = true;
+
+			// ok, now we have got enough of the handshake. Is this connection
+			// attached to a torrent?
+			if (m_torrent == 0)
+			{
+				// now, we have to see if there's a torrent with the
+				// info_hash we got from the peer
+				sha1_hash info_hash;
+				std::copy(m_recv_buffer.begin() + 8, m_recv_buffer.begin() + 28, (char*)info_hash.begin());
+						
+				m_torrent = m_ses.find_torrent(info_hash);
+				if (m_torrent && m_torrent->is_aborted()) m_torrent = 0;
+				if (m_torrent == 0)
+				{
+					// we couldn't find the torrent!
+#ifdef TORRENT_VERBOSE_LOGGING
+					(*m_logger) << " couldn't find a torrent with the given info_hash\n";
+#endif
+					throw std::runtime_error("got info-hash that is not in our session");
+				}
+
+				if (m_torrent->is_paused())
+				{
+					// paused torrents will not accept
+					// incoming connections
+#ifdef TORRENT_VERBOSE_LOGGING
+					(*m_logger) << " rejected connection to paused torrent\n";
+#endif
+					throw std::runtime_error("connection rejected by paused torrent");
+				}
+
+				// if the torrent isn't ready to accept
+				// connections yet, we'll have to wait with
+				// our initialization
+				if (m_torrent->ready_for_connections()) init();
+
+				// assume the other end has no pieces
+				// if we don't have valid metadata yet,
+				// leave the vector unallocated
+				std::fill(m_have_piece.begin(), m_have_piece.end(), false);
+
+				// yes, we found the torrent
+				// reply with our handshake
+				send_handshake();
+				send_bitfield();
 			}
 			else
 			{
-				assert(sent == -1);
-				throw network_error(m_socket->last_error());
+				// verify info hash
+				if (!std::equal(m_recv_buffer.begin()+8, m_recv_buffer.begin() + 28
+					, (const char*)m_torrent->torrent_file().info_hash().begin()))
+				{
+#ifdef TORRENT_VERBOSE_LOGGING
+					(*m_logger) << " received invalid info_hash\n";
+#endif
+					throw std::runtime_error("invalid info-hash in handshake");
+				}
 			}
 
-			m_last_sent = second_clock::universal_time();
+			m_state = read_peer_id;
+			m_packet_size = 20;
+			m_recv_pos = 0;
+			m_recv_buffer.resize(20);
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << " info_hash received\n";
+#endif
+		}
+		break;
+
+		case read_peer_id:
+		{
+			m_statistics.received_bytes(0, bytes_transferred);
+			if (m_recv_pos < m_packet_size) break;
+			assert(m_recv_pos == m_packet_size);
+			assert(m_packet_size == 20);
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			{
+				peer_id tmp;
+				std::copy(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (char*)tmp.begin());
+				std::stringstream s;
+				s << "received peer_id: " << tmp << " client: " << identify_client(tmp) << "\n";
+				s << "as ascii: ";
+				for (peer_id::iterator i = tmp.begin(); i != tmp.end(); ++i)
+				{
+					if (std::isprint(*i)) s << *i;
+					else s << ".";
+				}
+				s << "\n";
+				(*m_logger) << s.str();
+			}
+#endif
+			std::copy(m_recv_buffer.begin(), m_recv_buffer.begin() + 20, (char*)m_peer_id.begin());
+
+			if (std::memcmp(&m_peer_id[17], "ext", 3) == 0)
+				m_supports_extensions = true;
+
+			// disconnect if the peer has the same peer-id as ourself
+			// since it most likely is ourself then
+			if (m_peer_id == m_ses.get_peer_id())
+				throw std::runtime_error("closing connection to ourself");
+					
+			if (m_supports_extensions) send_extensions();
+
+			if (!m_active)
+			{
+				// check to make sure we don't have another connection with the same
+				// info_hash and peer_id. If we do. close this connection.
+				m_torrent->attach_peer(this);
+				m_attached_to_torrent = true;
+				assert(m_torrent->get_policy().has_connection(this));
+			}
+
+			m_state = read_packet_size;
+			m_packet_size = 4;
+			m_recv_pos = 0;
+			m_recv_buffer.resize(4);
+		}
+		break;
+
+		case read_packet_size:
+		{
+			m_statistics.received_bytes(0, bytes_transferred);
+			if (m_recv_pos < m_packet_size) break;
+			assert(m_recv_pos == m_packet_size);
+
+			// convert from big endian to native byte order
+			const char* ptr = &m_recv_buffer[0];
+			m_packet_size = detail::read_int32(ptr);
+			// don't accept packets larger than 1 MB
+			if (m_packet_size > 1024*1024 || m_packet_size < 0)
+			{
+				// packet too large
+				throw std::runtime_error("packet > 1 MB");
+			}
+					
+			if (m_packet_size == 0)
+			{
+				on_keepalive();
+				// keepalive message
+				m_state = read_packet_size;
+				m_packet_size = 4;
+			}
+			else
+			{
+				m_state = read_packet;
+				m_recv_buffer.resize(m_packet_size);
+			}
+			m_recv_pos = 0;
+			assert(m_packet_size > 0);
+		}
+		break;
+
+		case read_packet:
+		{
+			if (dispatch_message(bytes_transferred))
+			{
+				m_state = read_packet_size;
+				m_packet_size = 4;
+				m_recv_buffer.resize(4);
+				m_recv_pos = 0;
+				assert(m_packet_size > 0);
+			}
+		}
+		break;
+
+		}
+		assert(m_packet_size > 0);
+
+		setup_receive();	
+	}
+	catch (std::exception& e)
+	{
+		mutex::scoped_lock l(m_ses.m_mutex);
+//		tcp::endpoint sender;
+//		m_socket->get_remote_endpoint(sender);
+		m_disconnecting = true;
+		m_ses.connection_failed(m_socket, remote(), e.what());
+	}
+	catch (...)
+	{
+		// all exceptions should derive from std::exception
+		assert(false);
+		mutex::scoped_lock l(m_ses.m_mutex);
+//		tcp::endpoint sender;
+//		m_socket->get_remote_endpoint(sender);
+		m_disconnecting = true;
+		m_ses.connection_failed(m_socket, remote(), "connection failed for unkown reason");
+	}
+
+
+	bool peer_connection::can_write() const
+	{
+		// if we have requests or pending data to be sent or announcements to be made
+		// we want to send data
+		return ((!m_requests.empty() && !m_choked)
+			|| !m_send_buffer.empty())
+			&& m_ul_bandwidth_quota.left() > 0
+			&& !m_connecting;
+	}
+
+	bool peer_connection::can_read() const
+	{
+		return m_dl_bandwidth_quota.left() > 0 && !m_connecting;
+	}
+
+	void peer_connection::connect()
+	{
+		INVARIANT_CHECK;
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_ses.m_logger) << "CONNECTING: " << m_remote.address().to_string() << "\n";
+#endif
+
+		m_queued = false;
+		assert(m_connecting);
+		assert(associated_torrent());
+		m_socket->open(asio::ipv4::tcp());
+		m_socket->bind(associated_torrent()->get_interface());
+		m_socket->async_connect(m_remote
+			, bind(&peer_connection::on_connection_complete, shared_from_this(), _1));
+
+		if (m_torrent->alerts().should_post(alert::debug))
+		{
+			m_torrent->alerts().post_alert(peer_error_alert(
+				m_remote, m_peer_id, "connecting to peer"));
+		}
+	}
+	
+	void peer_connection::on_connection_complete(asio::error const& e)
+	{
+		INVARIANT_CHECK;
+		
+		if (e == asio::error::operation_aborted) return;
+
+		mutex::scoped_lock l(m_ses.m_mutex);
+		if (e)
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			(*m_ses.m_logger) << "CONNECTION FAILED: " << m_remote.address().to_string() << "\n";
+#endif
+			m_disconnecting = true;
+			m_ses.connection_failed(m_socket, m_remote, e.what());
+			return;
 		}
 
-		assert(m_writability_monitored);
-		send_buffer_updated();
+		// this means the connection just succeeded
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_ses.m_logger) << "COMPLETED: " << m_remote.address().to_string() << "\n";
+#endif
+
+		m_connecting = false;
+		setup_receive();
+		m_ses.connection_completed(shared_from_this());
 	}
+	
+	// --------------------------
+	// SEND DATA
+	// --------------------------
+
+	// throws exception when the client should be disconnected
+	void peer_connection::on_send_data(asio::error const& error
+		, std::size_t bytes_transferred) try
+	{
+		INVARIANT_CHECK;
+
+		m_writing = false;
+		if (error)
+			throw std::runtime_error(error.what());
+		if (m_disconnecting) return;
+
+		assert(!m_connecting);
+		assert(can_write());
+//		assert(bytes_transferred > 0);
+
+		mutex::scoped_lock l(m_ses.m_mutex);
+
+		m_ul_bandwidth_quota.used += bytes_transferred;
+		m_send_buffer.erase(bytes_transferred);
+
+		// manage the payload markers
+		int amount_payload = 0;
+		if (!m_payloads.empty())
+		{
+			for (std::deque<range>::iterator i = m_payloads.begin();
+				i != m_payloads.end(); ++i)
+			{
+				i->start -= bytes_transferred;
+				if (i->start < 0)
+				{
+					if (i->start + i->length <= 0)
+					{
+						amount_payload += i->length;
+					}
+					else
+					{
+						amount_payload += -i->start;
+						i->length -= -i->start;
+						i->start = 0;
+					}
+				}
+			}
+		}
+
+		// TODO: move the erasing into the loop above
+		// remove all payload ranges that has been sent
+		m_payloads.erase(
+			std::remove_if(m_payloads.begin(), m_payloads.end(), range_below_zero)
+			, m_payloads.end());
+
+		assert(amount_payload <= (int)bytes_transferred);
+		m_statistics.sent_bytes(amount_payload, bytes_transferred - amount_payload);
+
+		m_last_sent = second_clock::universal_time();
+
+		fill_send_buffer();
+	}
+	catch (std::exception& e)
+	{
+		mutex::scoped_lock l(m_ses.m_mutex);
+//		tcp::endpoint sender;
+//		m_socket->get_remote_endpoint(sender, asio::ignore_error());
+		m_disconnecting = true;
+		m_ses.connection_failed(m_socket, remote(), e.what());
+	}
+	catch (...)
+	{
+		// all exceptions should derive from std::exception
+		assert(false);
+		mutex::scoped_lock l(m_ses.m_mutex);
+//		tcp::endpoint sender;
+//		m_socket->get_remote_endpoint(sender, asio::ignore_error());
+		m_disconnecting = true;
+		m_ses.connection_failed(m_socket, remote(), "connection failed for unkown reason");
+	}
+
 
 #ifndef NDEBUG
 	void peer_connection::check_invariant() const
 	{
-		assert((can_write() == m_selector.is_writability_monitored(m_socket))
+/*		assert((can_write() == m_selector.is_writability_monitored(m_socket))
 			|| m_connecting);
 
 		assert(m_writability_monitored == m_selector.is_writability_monitored(m_socket));
 		assert(m_readability_monitored == m_selector.is_readability_monitored(m_socket));
-
+*/
 /*
 		assert(m_num_pieces == std::count(
 			m_have_piece.begin()
@@ -2730,26 +2779,13 @@ namespace libtorrent
 
 	void peer_connection::send_buffer_updated()
 	{
-		if (!can_write())
-		{
-			if (m_writability_monitored)
-			{
-				m_selector.remove_writable(m_socket);
-				m_writability_monitored = false;
-			}
-			assert(!m_selector.is_writability_monitored(m_socket));
-			return;
-		}
+		if (!can_write()) return;
+		if (m_writing) return;
+
+		setup_send();
 
 		assert(m_ul_bandwidth_quota.left() > 0);
 		assert(can_write());
-		if (!m_writability_monitored)
-		{
-			m_selector.monitor_writability(m_socket);
-			m_writability_monitored = true;
-		}
-		assert(m_writability_monitored);
-		assert(m_selector.is_writability_monitored(m_socket));
 	}
 }
 

@@ -57,7 +57,7 @@ namespace libtorrent
 {
 
 	class torrent;
-	class address;
+	class tcp::endpoint;
 	class peer_connection;
 
 	enum
@@ -84,7 +84,7 @@ namespace libtorrent
 
 		// this is called once for every peer we get from
 		// the tracker
-		void peer_from_tracker(const address& remote, const peer_id& id);
+		void peer_from_tracker(const tcp::endpoint& remote, const peer_id& id);
 
 		// called when an incoming connection is accepted
 		// return false if the connection closed
@@ -131,7 +131,7 @@ namespace libtorrent
 		{
 			enum connection_type { not_connectable,connectable };
 
-			peer(const address& ip, connection_type t);
+			peer(const tcp::endpoint& ip, connection_type t);
 
 			size_type total_download() const;
 			size_type total_upload() const;
@@ -140,7 +140,7 @@ namespace libtorrent
 			// if it was a remote (incoming) connection, type is
 			// set thereafter. If it was a peer we got from the
 			// tracker, type is set to local_connection.
-			address id;
+			tcp::endpoint id;
 			connection_type type;
 
 			// the time when this peer was optimistically unchoked

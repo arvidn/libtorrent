@@ -226,11 +226,11 @@ std::string progress_bar(float progress, int width, char const* code = "33")
 	return std::string(bar.begin(), bar.end());
 }
 
-char const* peer_index(libtorrent::address addr, std::vector<libtorrent::peer_info> const& peers)
+char const* peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
 	std::vector<peer_info>::const_iterator i = std::find_if(peers.begin()
-		, peers.end(), boost::bind(std::equal_to<address>()
+		, peers.end(), boost::bind(std::equal_to<libtorrent::tcp::endpoint>()
 		, bind(&peer_info::ip, _1), addr));
 	if (i == peers.end()) return "+";
 
@@ -569,9 +569,9 @@ int main(int ac, char* av[])
 				int a, b, c, d;
 				char dummy;
 				in >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
-				address start(a, b, c, d, 0);
+				address start((a << 24) + (b << 16) + (c << 8) + d);
 				in >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
-				address last(a, b, c, d, 0);
+				address last((a << 24) + (b << 16) + (c << 8) + d);
 				int flags;
 				in >> flags;
 				if (flags <= 127) flags = ip_filter::blocked;

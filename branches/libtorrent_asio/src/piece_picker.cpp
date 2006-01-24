@@ -133,7 +133,7 @@ namespace libtorrent
 			for (std::vector<downloading_piece>::const_iterator i
 				= unfinished.begin(); i != unfinished.end(); ++i)
 			{
-				address peer;
+				tcp::endpoint peer;
 				for (int j = 0; j < m_blocks_per_piece; ++j)
 				{
 					if (i->finished_blocks[j])
@@ -582,7 +582,7 @@ namespace libtorrent
 	void piece_picker::pick_pieces(const std::vector<bool>& pieces
 		, std::vector<piece_block>& interesting_blocks
 		, int num_blocks, bool prefer_whole_pieces
-		, address peer) const
+		, tcp::endpoint peer) const
 	{
 		assert(num_blocks > 0);
 		assert(pieces.size() == m_piece_map.size());
@@ -664,14 +664,14 @@ namespace libtorrent
 	namespace
 	{
 		bool exclusively_requested_from(piece_picker::downloading_piece const& p
-			, int num_blocks_in_piece, address peer)
+			, int num_blocks_in_piece, tcp::endpoint peer)
 		{
 			for (int j = 0; j < num_blocks_in_piece; ++j)
 			{
 				if ((p.finished_blocks[j] == 1
 					|| p.requested_blocks[j] == 1)
 					&& p.info[j].peer != peer
-					&& p.info[j].peer != address())
+					&& p.info[j].peer != tcp::endpoint())
 				{
 					return false;
 				}
@@ -715,7 +715,7 @@ namespace libtorrent
 		, std::vector<piece_block>& interesting_blocks
 		, std::vector<piece_block>& backup_blocks
 		, int num_blocks, bool prefer_whole_pieces
-		, address peer) const
+		, tcp::endpoint peer) const
 	{
 		assert(num_blocks > 0);
 
@@ -842,7 +842,7 @@ namespace libtorrent
 	}
 
 
-	void piece_picker::mark_as_downloading(piece_block block, const address& peer)
+	void piece_picker::mark_as_downloading(piece_block block, const tcp::endpoint& peer)
 	{
 #ifndef NDEBUG
 //		integrity_check();
@@ -878,7 +878,7 @@ namespace libtorrent
 #endif
 	}
 
-	void piece_picker::mark_as_finished(piece_block block, const address& peer)
+	void piece_picker::mark_as_finished(piece_block block, const tcp::endpoint& peer)
 	{
 #ifndef NDEBUG
 //		integrity_check();
@@ -945,7 +945,7 @@ namespace libtorrent
 #endif
 	}
 */
-	void piece_picker::get_downloaders(std::vector<address>& d, int index) const
+	void piece_picker::get_downloaders(std::vector<tcp::endpoint>& d, int index) const
 	{
 		assert(index >= 0 && index <= (int)m_piece_map.size());
 		std::vector<downloading_piece>::const_iterator i
@@ -959,7 +959,7 @@ namespace libtorrent
 		}
 	}
 
-	boost::optional<address> piece_picker::get_downloader(piece_block block) const
+	boost::optional<tcp::endpoint> piece_picker::get_downloader(piece_block block) const
 	{
 		std::vector<downloading_piece>::const_iterator i = std::find_if(
 			m_downloads.begin()
@@ -967,16 +967,16 @@ namespace libtorrent
 			, has_index(block.piece_index));
 
 		if (i == m_downloads.end())
-			return boost::optional<address>();
+			return boost::optional<tcp::endpoint>();
 
 		assert(block.block_index < max_blocks_per_piece);
 		assert(block.block_index >= 0);
 
 		if (i->requested_blocks[block.block_index] == false
 			|| i->finished_blocks[block.block_index] == true)
-			return boost::optional<address>();
+			return boost::optional<tcp::endpoint>();
 
-		return boost::optional<address>(i->info[block.block_index].peer);
+		return boost::optional<tcp::endpoint>(i->info[block.block_index].peer);
 	}
 
 	void piece_picker::abort_download(piece_block block)

@@ -37,17 +37,44 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/shared_ptr.hpp>
-#include <boost/function.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/cstdint.hpp>
-#include <boost/thread/thread.hpp>
+#include <boost/asio.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
+namespace libtorrent
+{
+/*
+	namespace asio = boost::asio;
 
+	using boost::asio::ipv4::tcp;
+	using boost::asio::ipv4::address;
+	using boost::asio::stream_socket;
+	using boost::asio::datagram_socket;
+	using boost::asio::socket_acceptor;
+	using boost::asio::demuxer;
+	using boost::asio::ipv4::host_resolver;
+	using boost::asio::async_write;
+	using boost::asio::ipv4::host;
+	using boost::asio::deadline_timer;
+*/
+	namespace asio = ::asio;
+
+	using asio::ipv4::tcp;
+	typedef asio::ipv4::tcp::socket stream_socket;
+	using asio::ipv4::address;
+	typedef asio::ipv4::udp::socket datagram_socket;
+	typedef asio::ipv4::tcp::acceptor socket_acceptor;
+	typedef asio::io_service demuxer;
+	using asio::ipv4::host_resolver;
+	using asio::ipv4::host;
+
+	using asio::async_write;
+	using asio::deadline_timer;
+}
+
+/*
 #include <vector>
 #include <exception>
 #include <string>
@@ -300,6 +327,7 @@ namespace libtorrent
 	};
 
 }
+*/
 
 #endif // TORRENT_SOCKET_HPP_INCLUDED
 

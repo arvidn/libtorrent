@@ -77,7 +77,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
 	class torrent;
 
 	namespace detail
@@ -123,7 +122,7 @@ namespace libtorrent
 
 			std::vector<int> piece_map;
 			std::vector<piece_picker::downloading_piece> unfinished_pieces;
-			std::vector<address> peers;
+			std::vector<tcp::endpoint> peers;
 			entry resume_data;
 
 			// this is true if this torrent is being processed (checked)
@@ -170,9 +169,8 @@ namespace libtorrent
 		struct session_impl: boost::noncopyable
 		{
 			friend class invariant_access;
-			// TODO: maybe this should be changed to a sorted vector
-			// using lower_bound?
-			typedef std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> >
+			// TODO: maybe this should be changed to a map
+			typedef std::map<boost::shared_ptr<stream_socket>, boost::shared_ptr<peer_connection> >
 				connection_map;
 			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
 			typedef std::deque<boost::shared_ptr<peer_connection> >
@@ -187,6 +185,10 @@ namespace libtorrent
 
 			void open_listen_port();
 
+			void async_accept();
+			void on_incoming_connection(boost::shared_ptr<stream_socket> const& s
+				, asio::error const& e);
+		
 			// must be locked to access the data
 			// in this struct
 			mutable boost::mutex m_mutex;
@@ -201,15 +203,11 @@ namespace libtorrent
 			// is reached.
 			void process_connection_queue();
 
-			void connection_failed(boost::shared_ptr<socket> const& s
-				, address const& a, char const* message);
+			void close_connection(boost::shared_ptr<peer_connection> const& p);
+			void connection_completed(boost::shared_ptr<peer_connection> const& p);
+			void connection_failed(boost::shared_ptr<stream_socket> const& s
+				, tcp::endpoint const& a, char const* message);
 
-			// this is where all active sockets are stored.
-			// the selector can sleep while there's no activity on
-			// them
-			selector m_selector;
-
-			
 			// this maps sockets to their peer_connection
 			// object. It is the complete list of all connected
 			// peers.
@@ -250,9 +248,14 @@ namespace libtorrent
 			// if the ip is set to zero, it means
 			// that we should let the os decide which
 			// interface to listen on
-			address m_listen_interface;
+			tcp::endpoint m_listen_interface;
 
-			boost::shared_ptr<socket> m_listen_socket;
+			// this is where all active sockets are stored.
+			// the selector can sleep while there's no activity on
+			// them
+			demuxer m_selector;
+
+			boost::shared_ptr<socket_acceptor> m_listen_socket;
 
 			// the entries in this array maps the
 			// extension index (as specified in peer_connection)
@@ -293,8 +296,11 @@ namespace libtorrent
 
 			// does the actual disconnections
 			// that are queued up in m_disconnect_peer
-			void purge_connections();
+//			void purge_connections();
+			void second_tick(asio::error const& e);
 
+			// the timer used to fire the second_tick
+			deadline_timer m_timer;
 #ifndef NDEBUG
 			void check_invariant(const char *place = 0);
 #endif

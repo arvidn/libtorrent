@@ -196,7 +196,7 @@ namespace libtorrent
 		int blocks_in_piece;
 		std::bitset<max_blocks_per_piece> requested_blocks;
 		std::bitset<max_blocks_per_piece> finished_blocks;
-		address peer[max_blocks_per_piece];
+		tcp::endpoint peer[max_blocks_per_piece];
 		int num_downloads[max_blocks_per_piece];
 	};
 
@@ -209,7 +209,7 @@ namespace libtorrent
 		torrent_handle(): m_ses(0), m_chk(0) {}
 
 		void get_peer_info(std::vector<peer_info>& v) const;
-		bool send_chat_message(address ip, std::string message) const;
+		bool send_chat_message(tcp::endpoint ip, std::string message) const;
 		torrent_status status() const;
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 
@@ -271,7 +271,7 @@ namespace libtorrent
 		void set_download_limit(int limit) const;
 
 		// manually connect a peer
-		void connect_peer(address const& adr) const;
+		void connect_peer(tcp::endpoint const& adr) const;
 
 		// valid ratios are 0 (infinite ratio) or [ 1.0 , inf )
 		// the ratio is uploaded / downloaded. less than 1 is not allowed

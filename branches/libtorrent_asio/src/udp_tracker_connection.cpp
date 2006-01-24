@@ -60,7 +60,8 @@ namespace libtorrent
 {
 
 	udp_tracker_connection::udp_tracker_connection(
-		tracker_request const& req
+		demuxer& d
+		, tracker_request const& req
 		, std::string const& hostname
 		, unsigned short port
 		, boost::weak_ptr<request_callback> c
@@ -74,7 +75,7 @@ namespace libtorrent
 		, m_attempts(0)
 	{
 		m_name_lookup = dns_lookup(hostname.c_str(), port);
-		m_socket.reset(new socket(socket::udp, false));
+		m_socket.reset(new datagram_socket(d));
 
 	}
 
@@ -102,7 +103,7 @@ namespace libtorrent
 					m_request, -1, m_name_lookup.error());
 				return true;
 			}
-			address a(m_name_lookup.ip());
+			tcp::endpoint a(m_name_lookup.ip());
 			if (has_requester()) requester().m_tracker_address = a;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)

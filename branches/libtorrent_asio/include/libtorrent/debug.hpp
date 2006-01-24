@@ -123,7 +123,7 @@ namespace libtorrent
 			m_file.open(dir / filename, std::ios_base::out | (append ? std::ios_base::app : std::ios_base::out));
 			log("\n\n\n*** starting log ***\n");
 		}
-		virtual void log(const char* text) { assert(text); m_file << text; }
+		virtual void log(const char* text) { assert(text); m_file << text; m_file.flush(); }
 
 		boost::filesystem::ofstream m_file;
 	};

@@ -77,7 +77,7 @@ namespace
 namespace libtorrent
 {
 /*
-	address parse_url(std::string const& url)
+	tcp::endpoint parse_url(std::string const& url)
 	{
 		std::string hostname; // hostname only
 		int port = 80;
@@ -121,7 +121,7 @@ namespace libtorrent
 			hostname.assign(start, end);
 		}
 
-		return address(hostname.c_str(), port);
+		return tcp::endpoint(hostname.c_str(), port);
 	}
 */
 	// returns -1 if gzip header is invalid or the header size in bytes
@@ -332,6 +332,20 @@ namespace libtorrent
 		return ret;
 	}
 
+	void intrusive_ptr_add_ref(tracker_connection const* c)
+	{
+		assert(c->m_refs >= 0);
+		++c->m_refs;
+	}
+
+	void intrusive_ptr_release(tracker_connection const* c)
+	{
+		assert(c->m_refs > 0);
+		--c->m_refs;
+		if (c->m_refs == 0)
+			delete c;
+	}
+
 	request_callback& tracker_connection::requester()
 	{
 		boost::shared_ptr<request_callback> r = m_requester.lock();
@@ -339,7 +353,17 @@ namespace libtorrent
 		return *r;
 	}
 
+	void tracker_manager::remove_request(tracker_connection const* c)
+	{
+		tracker_connections_t::iterator i = std::find(m_connections.begin()
+			, m_connections.end(), boost::intrusive_ptr<const tracker_connection>(c));
+		assert(i != m_connections.end());
+		if (i == m_connections.end()) return;
 
+		m_connections.erase(i);
+	}
+	
+/*
 	void tracker_manager::tick()
 	{
 		tracker_connections_t::iterator i;
@@ -364,7 +388,7 @@ namespace libtorrent
 			i = m_connections.erase(i);
 		}
 	}
-
+*/
 	namespace
 	{
 
@@ -421,7 +445,8 @@ namespace libtorrent
 	}
 
 	void tracker_manager::queue_request(
-		tracker_request req
+		demuxer& d
+		, tracker_request req
 		, std::string const& auth
 		, boost::weak_ptr<request_callback> c)
 	{
@@ -439,29 +464,33 @@ namespace libtorrent
 			boost::tie(protocol, hostname, port, request_string)
 				= parse_url_components(req.url);
 
-			boost::shared_ptr<tracker_connection> con;
+			boost::intrusive_ptr<tracker_connection> con;
 
 			if (protocol == "http")
 			{
-				con.reset(new http_tracker_connection(
-					*this
+				con = new http_tracker_connection(
+					d
+					, *this
 					, req
 					, hostname
 					, port
 					, request_string
 					, c
 					, m_settings
-					, auth));
+					, auth);
 			}
+/*
 			else if (protocol == "udp")
 			{
-				con.reset(new udp_tracker_connection(
-					req
+				con = new udp_tracker_connection(
+					d
+					, req
 					, hostname
 					, port
 					, c
-					, m_settings));
+					, m_settings);
 			}
+*/
 			else
 			{
 				throw std::runtime_error("unkown protocol in tracker url");
