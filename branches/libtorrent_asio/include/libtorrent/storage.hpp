@@ -62,8 +62,11 @@ namespace libtorrent
 
 	class session;
 
+#if defined(_WIN32) && defined(UNICODE)
 
 	TORRENT_EXPORT std::wstring safe_convert(std::string const& s);
+
+#endif
 	
 	TORRENT_EXPORT std::vector<std::pair<size_type, std::time_t> > get_filesizes(
 		torrent_info const& t
