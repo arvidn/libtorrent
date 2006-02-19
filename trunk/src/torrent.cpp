@@ -415,16 +415,7 @@ namespace libtorrent
 		m_currently_trying_tracker = 0;
 
 		m_duration = interval;
-		if (peer_list.empty() && !is_seed())
-		{
-			// if the peer list is empty, we should contact the
-			// tracker soon again to see if there are any peers
-			m_next_request = second_clock::universal_time() + boost::posix_time::minutes(2);
-		}
-		else
-		{
-			m_next_request = second_clock::universal_time() + boost::posix_time::seconds(m_duration);
-		}
+		m_next_request = second_clock::universal_time() + boost::posix_time::seconds(m_duration);
 
 		if (complete >= 0) m_complete = complete;
 		if (incomplete >= 0) m_incomplete = incomplete;
