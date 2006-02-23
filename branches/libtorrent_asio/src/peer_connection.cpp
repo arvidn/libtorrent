@@ -109,6 +109,7 @@ namespace libtorrent
 		, m_num_pieces(0)
 		, m_free_upload(0)
 		, m_trust_points(0)
+		, m_assume_fifo(false)
 		, m_num_invalid_requests(0)
 		, m_last_piece(second_clock::universal_time())
 		, m_disconnecting(false)
@@ -125,6 +126,8 @@ namespace libtorrent
 		, m_queued(true)
 		, m_metadata_progress(0)
 		, m_writing(false)
+		, m_last_write_size(0)
+		, m_reading(false)
 	{
 		INVARIANT_CHECK;
 
@@ -218,6 +221,7 @@ namespace libtorrent
 		, m_num_pieces(0)
 		, m_free_upload(0)
 		, m_trust_points(0)
+		, m_assume_fifo(false)
 		, m_num_invalid_requests(0)
 		, m_last_piece(second_clock::universal_time())
 		, m_disconnecting(false)
@@ -234,15 +238,15 @@ namespace libtorrent
 		, m_queued(false)
 		, m_metadata_progress(0)
 		, m_writing(false)
+		, m_last_write_size(0)
+		, m_reading(false)
 	{
 		INVARIANT_CHECK;
 
-		m_socket->get_remote_endpoint(m_remote);
+		m_remote = m_socket->remote_endpoint();
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		tcp::endpoint sender;
-		m_socket->get_remote_endpoint(sender);
-		assert(sender == remote());
+		assert(m_socket->remote_endpoint() == remote());
 		m_logger = m_ses.create_log(remote().address().to_string() + "_"
 			+ boost::lexical_cast<std::string>(remote().port()));
 		(*m_logger) << "*** INCOMING CONNECTION\n";
@@ -368,8 +372,6 @@ namespace libtorrent
 		}
 #endif
 		{
-			boost::mutex::scoped_lock l(m_ses.m_mutex);
-
 			m_disconnecting = true;
 			if (m_attached_to_torrent)
 			{
@@ -461,14 +463,8 @@ namespace libtorrent
 	{
 		m_ul_bandwidth_quota.used = 0;
 		m_dl_bandwidth_quota.used = 0;
-/*		if (!m_readability_monitored)
-		{
-			assert(!m_selector.is_readability_monitored(m_socket));
-			m_selector.monitor_readability(m_socket);
-			m_readability_monitored = true;
-		}
-*/
 		send_buffer_updated();
+		setup_receive();
 	}
 
 	void peer_connection::send_handshake()
@@ -742,7 +738,7 @@ namespace libtorrent
 		if (m_have_piece[index])
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << " got redundant HAVE message for index: " << index << "\n";
+			(*m_logger) << "   got redundant HAVE message for index: " << index << "\n";
 #endif
 		}
 		else
@@ -1005,6 +1001,15 @@ namespace libtorrent
 		p.start = detail::read_int32(ptr);
 		p.length = m_packet_size - 9;
 
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << to_simple_string(second_clock::universal_time())
+			<< " <== PIECE   [ piece: " << p.piece << " | "
+			"b: " << p.start / m_torrent->block_size() << " | "
+			"s: " << p.start << " | "
+			"l: " << p.length << " ]\n";
+#endif
+
+
 		if (!verify_piece(p))
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -1033,39 +1038,39 @@ namespace libtorrent
 
 		if (b != m_download_queue.end())
 		{
-			for (i = m_download_queue.begin();
-				i != b; ++i)
+			if (m_assume_fifo)
 			{
+				for (i = m_download_queue.begin();
+					i != b; ++i)
+				{
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << to_simple_string(second_clock::universal_time())
-					<< " *** SKIPPED_PIECE [ piece: " << i->piece_index << " | "
-					"b: " << i->block_index << " ] ***\n";
+					(*m_logger) << to_simple_string(second_clock::universal_time())
+						<< " *** SKIPPED_PIECE [ piece: " << i->piece_index << " | "
+						"b: " << i->block_index << " ] ***\n";
 #endif
-				// since this piece was skipped, clear it and allow it to
-				// be requested from other peers
-				picker.abort_download(*i);
+					// since this piece was skipped, clear it and allow it to
+					// be requested from other peers
+					picker.abort_download(*i);
+				}
+			
+				// remove the request that just finished
+				// from the download queue plus the
+				// skipped blocks.
+				m_download_queue.erase(m_download_queue.begin()
+					, boost::next(b));
 			}
-		
-#ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << to_simple_string(second_clock::universal_time())
-				<< " <== PIECE   [ piece: " << p.piece << " | "
-				"b: " << p.start / m_torrent->block_size() << " | "
-				"s: " << p.start << " | "
-				"l: " << p.length << " ]\n";
-#endif
-
-			// remove the request that just finished
-			// from the download queue plus the
-			// skipped blocks.
-			m_download_queue.erase(m_download_queue.begin()
-				, boost::next(b));
+			else
+			{
+				m_download_queue.erase(b);
+			}
 			send_block_requests();
 		}
 		else
 		{
 			// cancel the block from the
 			// peer that has taken over it.
-			boost::optional<tcp::endpoint> peer = m_torrent->picker().get_downloader(block_finished);
+			boost::optional<tcp::endpoint> peer
+				= m_torrent->picker().get_downloader(block_finished);
 			if (peer)
 			{
 				peer_connection* pc = m_torrent->connection_for(*peer);
@@ -1091,7 +1096,11 @@ namespace libtorrent
 		}
 
 		// if the block we got is already finished, then ignore it
-		if (picker.is_finished(block_finished)) return;
+		if (picker.is_finished(block_finished))
+		{
+			m_torrent->received_redundant_data(p.length);
+			return;
+		}
 
 		m_torrent->filesystem().write(&m_recv_buffer[9], p.piece, p.start, p.length);
 
@@ -1103,37 +1112,41 @@ namespace libtorrent
 
 		m_torrent->get_policy().block_finished(*this, block_finished);
 
+		// if the piece failed, this connection may be closed, and
+		// detached from the torrent. In that case m_torrent will
+		// be set to 0. So, we need to temporarily save it in this function
+		torrent* t = m_torrent;
+		assert(t);
 		// did we just finish the piece?
 		if (picker.is_piece_finished(p.piece))
 		{
-			bool verified = m_torrent->verify_piece(p.piece);
+			bool verified = t->verify_piece(p.piece);
 			if (verified)
 			{
-				m_torrent->announce_piece(p.piece);
-				assert(m_torrent->valid_metadata());
+				t->announce_piece(p.piece);
+				assert(t->valid_metadata());
 				if (!was_finished
-					&& picker.num_filtered() + m_torrent->num_pieces()
-						== m_torrent->torrent_file().num_pieces())  
+					&& picker.num_filtered() + t->num_pieces()
+						== t->torrent_file().num_pieces())  
 				{
 					// torrent finished
 					// i.e. all the pieces we're interested in have
 					// been downloaded. Release the files (they will open
 					// in read only mode if needed)
-					m_torrent->finished();
+					t->finished();
 				}
 			}
 			else
 			{
-				m_torrent->piece_failed(p.piece);
+				t->piece_failed(p.piece);
 			}
-			m_torrent->get_policy().piece_finished(p.piece, verified);
+			t->get_policy().piece_finished(p.piece, verified);
 
-			if (!was_seed && m_torrent->is_seed())
+			if (!was_seed && t->is_seed())
 			{
 				assert(verified);
-				m_torrent->completed();
+				t->completed();
 			}
-
 		}
 	}
 
@@ -1477,13 +1490,21 @@ namespace libtorrent
 	void peer_connection::disconnect()
 	{
 		if (m_disconnecting) return;
-
+/*
 		assert((m_ses.m_connections.find(m_socket) != m_ses.m_connections.end())
 			== !m_connecting);
-
+*/
 		m_disconnecting = true;
 		m_ses.m_selector.post(boost::bind(&close_socket, m_socket));
 
+		if (m_attached_to_torrent)
+		{
+			assert(m_torrent != 0);
+			m_torrent->remove_peer(this);
+			m_torrent = 0;
+			m_attached_to_torrent = false;
+		}
+		assert(m_torrent == 0);
 		m_ses.close_connection(shared_from_this());
 	}
 
@@ -1494,7 +1515,8 @@ namespace libtorrent
 		assert(received > 0);
 		assert(m_recv_pos >= received);
 		assert(m_recv_pos > 0);
-		assert(m_torrent != 0);
+		// this means the connection has been closed already
+		if (m_torrent == 0) return false;
 
 		int packet_type = m_recv_buffer[0];
 		if (packet_type < 0
@@ -1979,7 +2001,7 @@ namespace libtorrent
 		
 		// TODO: the timeout should be user-settable
 		if (!m_download_queue.empty()
-			&& now - m_last_piece > seconds(15))
+			&& now - m_last_piece > seconds(m_ses.m_settings.piece_timeout))
 		{
 			// this peer isn't sending the pieces we've
 			// requested (this has been observed by BitComet)
@@ -1987,7 +2009,8 @@ namespace libtorrent
 			// re-request the blocks.
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << to_simple_string(now)
-				<< " *** IGNORED_REQUESTS [ " << (int)m_download_queue.size() << " ] ***\n";
+				<< " *** PIECE_REQUESTS TIMED OUT [ " << (int)m_download_queue.size()
+				<< " " << to_simple_string(now - m_last_piece) << "] ***\n";
 #endif
 
 			piece_picker& picker = m_torrent->picker();
@@ -2008,6 +2031,8 @@ namespace libtorrent
 
 			m_download_queue.clear();
 			m_request_queue.clear();
+			
+			m_assume_fifo = true;
 
 			// this will trigger new picking of pieces
 			m_torrent->get_policy().unchoked(*this);
@@ -2220,15 +2245,18 @@ namespace libtorrent
 			assert(to_send >= 0);
 			bufs[1] = asio::buffer(send_buffer.second.begin, to_send);
 
+			assert(m_ul_bandwidth_quota.left() >= int(buffer_size(bufs[0]) + buffer_size(bufs[1])));
 			assert(can_write());
 			m_socket->async_write_some(bufs, bind(&peer_connection::on_send_data
 				, shared_from_this(), _1, _2));
 			m_writing = true;
+			m_last_write_size = amount_to_send;
 		}
 	}
 
 	void peer_connection::setup_receive()
 	{
+		if (m_reading) return;
 		if (!can_read()) return;
 
 		assert(m_packet_size > 0);
@@ -2241,6 +2269,7 @@ namespace libtorrent
 		assert(can_read());
 		m_socket->async_read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
 			, max_receive), bind(&peer_connection::on_receive_data, shared_from_this(), _1, _2));
+		m_reading = true;
 	}
 	
 	// --------------------------
@@ -2252,9 +2281,11 @@ namespace libtorrent
 		, std::size_t bytes_transferred) try
 	{
 		INVARIANT_CHECK;
-
+		assert(m_reading);
+		m_reading = false;
 		if (error)
 			throw std::runtime_error(error.what());
+
 		if (m_disconnecting) return;
 	
 		assert(m_packet_size > 0);
@@ -2520,20 +2551,16 @@ namespace libtorrent
 	catch (std::exception& e)
 	{
 		mutex::scoped_lock l(m_ses.m_mutex);
-//		tcp::endpoint sender;
-//		m_socket->get_remote_endpoint(sender);
-		m_disconnecting = true;
 		m_ses.connection_failed(m_socket, remote(), e.what());
+//		disconnect();
 	}
 	catch (...)
 	{
 		// all exceptions should derive from std::exception
 		assert(false);
 		mutex::scoped_lock l(m_ses.m_mutex);
-//		tcp::endpoint sender;
-//		m_socket->get_remote_endpoint(sender);
-		m_disconnecting = true;
 		m_ses.connection_failed(m_socket, remote(), "connection failed for unkown reason");
+//		disconnect();
 	}
 
 
@@ -2587,8 +2614,8 @@ namespace libtorrent
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			(*m_ses.m_logger) << "CONNECTION FAILED: " << m_remote.address().to_string() << "\n";
 #endif
-			m_disconnecting = true;
 			m_ses.connection_failed(m_socket, m_remote, e.what());
+//			disconnect();
 			return;
 		}
 
@@ -2613,7 +2640,13 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		assert(m_writing);
+		assert(m_last_write_size > 0);
 		m_writing = false;
+		// correct the ul quota usage, if not all of the buffer was sent
+		m_ul_bandwidth_quota.used -= m_last_write_size - bytes_transferred;
+		m_last_write_size = 0;
+
 		if (error)
 			throw std::runtime_error(error.what());
 		if (m_disconnecting) return;
@@ -2667,20 +2700,16 @@ namespace libtorrent
 	catch (std::exception& e)
 	{
 		mutex::scoped_lock l(m_ses.m_mutex);
-//		tcp::endpoint sender;
-//		m_socket->get_remote_endpoint(sender, asio::ignore_error());
-		m_disconnecting = true;
 		m_ses.connection_failed(m_socket, remote(), e.what());
+//		disconnect();
 	}
 	catch (...)
 	{
 		// all exceptions should derive from std::exception
 		assert(false);
 		mutex::scoped_lock l(m_ses.m_mutex);
-//		tcp::endpoint sender;
-//		m_socket->get_remote_endpoint(sender, asio::ignore_error());
-		m_disconnecting = true;
 		m_ses.connection_failed(m_socket, remote(), "connection failed for unkown reason");
+//		disconnect();
 	}
 
 

@@ -164,12 +164,17 @@ namespace libtorrent
 			bool m_abort;
 		};
 
+		struct TORRENT_EXPORT session_settings
+		{
+			session_settings(): piece_timeout(60) {}
+			int piece_timeout;
+		};
+
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
 		struct session_impl: boost::noncopyable
 		{
 			friend class invariant_access;
-			// TODO: maybe this should be changed to a map
 			typedef std::map<boost::shared_ptr<stream_socket>, boost::shared_ptr<peer_connection> >
 				connection_map;
 			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
@@ -223,13 +228,7 @@ namespace libtorrent
 			// waiting for one slot in the half-open queue to open up.
 			connection_queue m_connection_queue;
 
-			// this is a list of iterators into the m_connections map
-			// that should be disconnected as soon as possible.
-			// It is used to delay disconnections to avoid troubles
-			// in loops that iterate over them.
-			std::vector<boost::shared_ptr<peer_connection> > m_disconnect_peer;
-
-			// filters incomming connections
+			// filters incoming connections
 			ip_filter m_ip_filter;
 			
 			// the peer id that is generated at the start of the session
@@ -264,7 +263,8 @@ namespace libtorrent
 			bool extensions_enabled() const;
 
 			// the settings for the client
-			http_settings m_settings;
+			session_settings m_settings;
+			http_settings m_http_settings;
 
 			// set to true when the session object
 			// is being destructed and the thread
@@ -354,7 +354,7 @@ namespace libtorrent
 			, bool compact_mode = true
 			, int block_size = 16 * 1024);
 
-		// TODO: depricated, this is for backwards compatibility only
+		// TODO: deprecated, this is for backwards compatibility only
 		torrent_handle add_torrent(
 			entry const& e
 			, boost::filesystem::path const& save_path

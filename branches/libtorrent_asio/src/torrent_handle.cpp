@@ -652,8 +652,7 @@ namespace libtorrent
 				peer_connection::extended_chat_message))
 				continue;
 
-			tcp::endpoint sender;
-			peer->get_socket()->get_remote_endpoint(sender);
+			tcp::endpoint sender = peer->get_socket()->remote_endpoint();
 			// loop until we find the required ip tcp::endpoint
 			if (ip == sender)
 			{

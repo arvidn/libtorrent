@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
-//#include "libtorrent/udp_tracker_connection.hpp"
+#include "libtorrent/udp_tracker_connection.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
@@ -357,7 +357,6 @@ namespace libtorrent
 	{
 		tracker_connections_t::iterator i = std::find(m_connections.begin()
 			, m_connections.end(), boost::intrusive_ptr<const tracker_connection>(c));
-		assert(i != m_connections.end());
 		if (i == m_connections.end()) return;
 
 		m_connections.erase(i);
@@ -479,18 +478,18 @@ namespace libtorrent
 					, m_settings
 					, auth);
 			}
-/*
 			else if (protocol == "udp")
 			{
 				con = new udp_tracker_connection(
 					d
+					, *this
 					, req
 					, hostname
 					, port
 					, c
 					, m_settings);
 			}
-*/
+
 			else
 			{
 				throw std::runtime_error("unkown protocol in tracker url");
@@ -536,7 +535,9 @@ namespace libtorrent
 		for (tracker_connections_t::const_iterator i =
 				m_connections.begin(); i != m_connections.end(); ++i)
 		{
-			if (!(*i)->has_requester()) keep_connections.push_back(*i);
+			tracker_request const& req = (*i)->tracker_req();
+			if (req.event == tracker_request::stopped)
+				keep_connections.push_back(*i);
 		}
 
 		std::swap(m_connections, keep_connections);

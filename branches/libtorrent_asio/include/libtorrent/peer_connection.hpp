@@ -503,6 +503,13 @@ namespace libtorrent
 		// considered a bad peer and will be banned.
 		int m_trust_points;
 
+		// if this is true, this peer is assumed to handle all piece
+		// requests in fifo order. All skipped blocks are re-requested
+		// immediately instead of having a looser requirement
+		// where blocks can be sent out of order. The default is to
+		// allow non-fifo order.
+		bool m_assume_fifo;
+
 		static const char* extension_names[num_supported_extensions];
 		int m_extension_messages[num_supported_extensions];
 
@@ -573,6 +580,13 @@ namespace libtorrent
 		// these are true when there's a asynchronous write
 		// or read operation running.
 		bool m_writing;
+		// this is the number of bytes sent to the socket last
+		// time it was invoked. This is compared against the
+		// bytes_transferred in the callback function that tells
+		// how much actually was sent. Then the quota can be
+		// corrected according to the actual number of bytes sent
+		int m_last_write_size;
+		bool m_reading;
 	};
 }
 

@@ -38,7 +38,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "zlib.h"
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/bind.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
@@ -225,7 +233,7 @@ namespace libtorrent
 		}
 #endif
 
-		m_name_lookup.async_get_host_by_name(m_host, *connect_to_host
+		m_name_lookup.async_by_name(m_host, *connect_to_host
 			, bind(&http_tracker_connection::name_lookup, self(), _1));
 	}
 

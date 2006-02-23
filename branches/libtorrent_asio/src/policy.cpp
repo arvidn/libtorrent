@@ -118,9 +118,7 @@ namespace
 		// blocks be from whole pieces, possibly by returning more blocks
 		// than we requested.
 #ifndef NDEBUG
-		tcp::endpoint r;
-		c.get_socket()->get_remote_endpoint(r);
-		assert(c.remote() == r);
+		assert(c.remote() == c.get_socket()->remote_endpoint());
 #endif
 		p.pick_pieces(c.get_bitfield(), interesting_pieces
 			, num_requests, prefer_whole_pieces, c.remote());
@@ -873,9 +871,7 @@ namespace libtorrent
 		// TODO: only allow _one_ connection to use this
 		// override at a time
 #ifndef NDEBUG
-		tcp::endpoint r;
-		c.get_socket()->get_remote_endpoint(r);
-		assert(c.remote() == r);
+		assert(c.remote() == c.get_socket()->remote_endpoint());
 #endif
 		if (m_torrent->num_peers() >= m_torrent->m_connections_quota.given
 			&& c.remote().address() != m_torrent->current_tracker().address())
@@ -903,9 +899,7 @@ namespace libtorrent
 			// we don't have ny info about this peer.
 			// add a new entry
 #ifndef NDEBUG
-			tcp::endpoint r;
-			c.get_socket()->get_remote_endpoint(r);
-			assert(c.remote() == r);
+			assert(c.remote() == c.get_socket()->remote_endpoint());
 #endif
 			peer p(c.remote(), peer::not_connectable);
 			m_peers.push_back(p);
@@ -1272,9 +1266,7 @@ namespace libtorrent
 	{
 		assert(c);
 #ifndef NDEBUG
-		tcp::endpoint r;
-		c->get_socket()->get_remote_endpoint(r);
-		assert(c->remote() == r);
+		assert(c->remote() == c->get_socket()->remote_endpoint());
 #endif
 		return std::find_if(
 			m_peers.begin()

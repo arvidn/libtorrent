@@ -81,6 +81,8 @@ namespace libtorrent
 			, total_upload(0)
 			, total_payload_download(0)
 			, total_payload_upload(0)
+			, total_failed_bytes(0)
+			, total_redundant_bytes(0)
 			, download_rate(0)
 			, upload_rate(0)
 			, download_payload_rate(0)
@@ -129,6 +131,10 @@ namespace libtorrent
 		// the amount of payload bytes that
 		// has failed their hash test
 		size_type total_failed_bytes;
+
+		// the number of payload bytes that
+		// has been received redundantly.
+		size_type total_redundant_bytes;
 
 		// current transfer rate
 		// payload plus protocol

@@ -155,8 +155,7 @@ namespace
 		
 		bool operator()(const detail::session_impl::connection_map::value_type& c) const
 		{
-			tcp::endpoint sender;
-			c.first->get_remote_endpoint(sender);
+			tcp::endpoint sender = c.first->remote_endpoint();
 			if (sender.address() != ip.address()) return false;
 			if (tor != c.second->associated_torrent()) return false;
 			return true;
@@ -219,6 +218,7 @@ namespace libtorrent
 		, m_got_tracker_response(false)
 		, m_ratio(0.f)
 		, m_total_failed_bytes(0)
+		, m_total_redundant_bytes(0)
 		, m_net_interface(0, net_interface.address())
 		, m_upload_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
@@ -298,6 +298,7 @@ namespace libtorrent
 		, m_got_tracker_response(false)
 		, m_ratio(0.f)
 		, m_total_failed_bytes(0)
+		, m_total_redundant_bytes(0)
 		, m_net_interface(0, net_interface.address())
 		, m_upload_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
@@ -351,10 +352,7 @@ namespace libtorrent
 	torrent::~torrent()
 	{
 		if (m_ses.m_abort)
-		{
 			m_abort = true;
-			m_event = tracker_request::stopped;
-		}
 		if (!m_connections.empty())
 			disconnect_all();
 	}
@@ -416,16 +414,7 @@ namespace libtorrent
 		m_currently_trying_tracker = 0;
 
 		m_duration = interval;
-		if (peer_list.empty() && !is_seed())
-		{
-			// if the peer list is empty, we should contact the
-			// tracker soon again to see if there are any peers
-			m_next_request = second_clock::universal_time() + boost::posix_time::minutes(2);
-		}
-		else
-		{
-			m_next_request = second_clock::universal_time() + boost::posix_time::seconds(m_duration);
-		}
+		m_next_request = second_clock::universal_time() + boost::posix_time::seconds(m_duration);
 
 		if (complete >= 0) m_complete = complete;
 		if (incomplete >= 0) m_incomplete = incomplete;
@@ -622,6 +611,7 @@ namespace libtorrent
 
 			// either, we have received too many failed hashes
 			// or this was the only peer that sent us this piece.
+			// TODO: make this a changable setting
 			if (p->second->trust_points() <= -7 || peers.size() == 1)
 			{
 				// we don't trust this peer anymore
@@ -660,7 +650,10 @@ namespace libtorrent
 	void torrent::abort()
 	{
 		m_abort = true;
-		m_event = tracker_request::stopped;
+		// if the torrent is paused, it doesn't need
+		// to announce with even=stopped again.
+		if (!m_paused)
+			m_event = tracker_request::stopped;
 		// disconnect all peers and close all
 		// files belonging to the torrents
 		disconnect_all();
@@ -740,8 +733,6 @@ namespace libtorrent
 		}
 	}
 
-	// TODO: add a function to set the filter with one call
-	
 	bool torrent::is_piece_filtered(int index) const
 	{
 		// this call is only valid on torrents with metadata
@@ -947,6 +938,7 @@ namespace libtorrent
 			std::map<tcp::endpoint, peer_connection*>::iterator i = m_connections.find(a);
 			if (i != m_connections.end()) m_connections.erase(i);
 			m_ses.connection_failed(s, a, e.what());
+			c->disconnect();
 			throw;
 		}
 		return *c;
@@ -971,9 +963,7 @@ namespace libtorrent
 		m_policy->new_connection(*i->second);
 
 #ifndef NDEBUG
-		tcp::endpoint remote;
-		p->get_socket()->get_remote_endpoint(remote);
-		assert(p->remote() == remote);
+		assert(p->remote() == p->get_socket()->remote_endpoint());
 #endif
 		m_connections.insert(std::make_pair(p->remote(), p));
 
@@ -985,18 +975,22 @@ namespace libtorrent
 
 	void torrent::disconnect_all()
 	{
-		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
+		while (!m_connections.empty())
 		{
-			assert(i->second->associated_torrent() == this);
+			peer_connection& p = *m_connections.begin()->second;
+			assert(p.associated_torrent() == this);
 
 #if defined(TORRENT_VERBOSE_LOGGING)
-		if (m_abort)
-			(*i->second->m_logger) << "*** CLOSING CONNECTION 'aborting'\n";
-		else
-			(*i->second->m_logger) << "*** CLOSING CONNECTION 'pausing'\n";
+			if (m_abort)
+				(*p.m_logger) << "*** CLOSING CONNECTION 'aborting'\n";
+			else
+				(*p.m_logger) << "*** CLOSING CONNECTION 'pausing'\n";
 #endif
-			i->second->disconnect();
+#ifndef NDEBUG
+			std::size_t size = m_connections.size();
+#endif
+			p.disconnect();
+			assert(m_connections.size() < size);
 		}
 	}
 
@@ -1011,6 +1005,7 @@ namespace libtorrent
 		}
 
 	// disconnect all seeds
+		std::vector<peer_connection*> seeds;
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
 		{
@@ -1020,9 +1015,11 @@ namespace libtorrent
 #if defined(TORRENT_VERBOSE_LOGGING)
 				(*i->second->m_logger) << "*** SEED, CLOSING CONNECTION\n";
 #endif
-				i->second->disconnect();
+				seeds.push_back(i->second);
 			}
 		}
+		std::for_each(seeds.begin(), seeds.end()
+			, bind(&peer_connection::disconnect, _1));
 
 		m_storage->release_files();
 	}
@@ -1122,8 +1119,11 @@ namespace libtorrent
 					, end(m_connections.end()); i != end; ++i)
 			{
 				try { i->second->init(); }
-				catch (std::exception&e) {}
-				// TODO: in case of an exception, close the connection
+				catch (std::exception&e)
+				{
+					// TODO: close the connection
+					assert(false);
+				}
 			}
 		}
 	}
@@ -1406,6 +1406,7 @@ namespace libtorrent
 
 		// failed bytes
 		st.total_failed_bytes = m_total_failed_bytes;
+		st.total_redundant_bytes = m_total_redundant_bytes;
 
 		// transfer rate
 		st.download_rate = m_stat.download_rate();
@@ -1463,7 +1464,7 @@ namespace libtorrent
 
 		if (st.total_wanted == 0) st.progress = 1.f;
 		else st.progress = st.total_wanted_done
-			/ static_cast<float>(st.total_wanted);
+			/ static_cast<double>(st.total_wanted);
 
 		st.pieces = &m_have_pieces;
 

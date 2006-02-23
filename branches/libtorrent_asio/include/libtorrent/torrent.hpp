@@ -326,6 +326,8 @@ namespace libtorrent
 		// each time a piece has failed the hash
 		// test
 		void piece_failed(int index);
+		void received_redundant_data(int num_bytes)
+		{ assert(num_bytes > 0); m_total_redundant_bytes += num_bytes; }
 
 		float priority() const
 		{ return m_priority; }
@@ -518,6 +520,7 @@ namespace libtorrent
 		// the number of bytes that has been
 		// downloaded that failed the hash-test
 		size_type m_total_failed_bytes;
+		size_type m_total_redundant_bytes;
 
 		std::string m_username;
 		std::string m_password;

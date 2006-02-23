@@ -166,6 +166,7 @@ namespace
 		, map_entry("SZ", "Shareaza")
 		, map_entry("T",  "BitTornado")
 		, map_entry("TN", "Torrent.NET")
+		, map_entry("TR", "Transmission")
 		, map_entry("TS", "TorrentStorm")
 		, map_entry("U",  "UPnP")
 		, map_entry("UT", "MicroTorrent")

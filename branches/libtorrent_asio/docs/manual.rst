@@ -1649,6 +1649,7 @@ It contains the following fields::
 		size_type total_payload_upload;
 
 		size_type total_failed_bytes;
+		size_type total_redundant_bytes;
 
 		float download_rate;
 		float upload_rate;
@@ -1726,6 +1727,15 @@ data), these counters ignore any protocol overhead.
 ``total_failed_bytes`` is the number of bytes that has been downloaded and that
 has failed the piece hash test. In other words, this is just how much crap that
 has been downloaded.
+
+``total_redundant_bytes`` is the number of bytes that has been downloaded even
+though that data already was downloaded. The reason for this is that in some
+situations the same data can be downloaded by mistake. When libtorrent sends
+requests to a peer, and the peer doesn't send a response within a certain
+timeout, libtorrent will re-request that block. Another situation when
+libtorrent will re-request blocks is when the requests it sends out are not
+replyed in FIFO-order (it will re-request blocks that are skipped by an out of
+order block). This is supposed to be as low as possible.
 
 ``pieces`` is the bitmask that represents which pieces we have (set to true) and
 the pieces we don't have. It's a pointer and may be set to 0 if the torrent isn't
