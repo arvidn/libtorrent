@@ -1020,6 +1020,7 @@ namespace libtorrent
 
 		if (b != m_download_queue.end())
 		{
+/*
 			for (i = m_download_queue.begin();
 				i != b; ++i)
 			{
@@ -1032,7 +1033,7 @@ namespace libtorrent
 				// be requested from other peers
 				picker.abort_download(*i);
 			}
-		
+*/		
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << to_simple_string(second_clock::universal_time())
 				<< " <== PIECE   [ piece: " << p.piece << " | "
@@ -1040,12 +1041,14 @@ namespace libtorrent
 				"s: " << p.start << " | "
 				"l: " << p.length << " ]\n";
 #endif
-
+/*
 			// remove the request that just finished
 			// from the download queue plus the
 			// skipped blocks.
 			m_download_queue.erase(m_download_queue.begin()
 				, boost::next(b));
+*/
+			m_download_queue.erase(b);
 			send_block_requests();
 		}
 		else
