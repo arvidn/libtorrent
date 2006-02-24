@@ -121,7 +121,6 @@ namespace libtorrent
 				assert(m_resources >= 0);
 				for (It i = m_start, end(m_end); i != end; ++i)
 				{
-					assert(((*i).*m_res).used >= 0);
 					assert(((*i).*m_res).max >= 0);
 					assert(((*i).*m_res).given >= 0);
 				}

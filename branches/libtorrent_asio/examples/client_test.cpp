@@ -99,7 +99,7 @@ void clear_home()
 #include <termios.h>
 #include <string.h>
 
-#define ANSI_TERMINAL_COLORS
+//#define ANSI_TERMINAL_COLORS
 
 struct set_keypress
 {

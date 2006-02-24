@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
+#include <boost/thread/mutex.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -156,7 +157,7 @@ namespace libtorrent
 			, m_refs(0)
 		{}
 
-		virtual bool send_finished() const = 0;
+//		virtual bool send_finished() const = 0;
 		bool has_requester() const { return !m_requester.expired(); }
 		request_callback& requester();
 		virtual ~tracker_connection() {}
@@ -181,7 +182,7 @@ namespace libtorrent
 			, boost::weak_ptr<request_callback> c
 				= boost::weak_ptr<request_callback>());
 		void abort_all_requests();
-		bool send_finished() const;
+//		bool send_finished() const;
 
 		void remove_request(tracker_connection const*);
 		
@@ -191,6 +192,7 @@ namespace libtorrent
 			tracker_connections_t;
 		tracker_connections_t m_connections;
 		const http_settings& m_settings;
+		boost::mutex m_mutex;
 	};
 }
 

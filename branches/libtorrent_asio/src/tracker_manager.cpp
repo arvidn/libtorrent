@@ -355,6 +355,8 @@ namespace libtorrent
 
 	void tracker_manager::remove_request(tracker_connection const* c)
 	{
+		boost::mutex::scoped_lock l(m_mutex);
+
 		tracker_connections_t::iterator i = std::find(m_connections.begin()
 			, m_connections.end(), boost::intrusive_ptr<const tracker_connection>(c));
 		if (i == m_connections.end()) return;
@@ -449,6 +451,7 @@ namespace libtorrent
 		, std::string const& auth
 		, boost::weak_ptr<request_callback> c)
 	{
+		boost::mutex::scoped_lock l(m_mutex);
 		assert(req.num_want >= 0);
 		if (req.event == tracker_request::stopped)
 			req.num_want = 0;
@@ -489,7 +492,6 @@ namespace libtorrent
 					, c
 					, m_settings);
 			}
-
 			else
 			{
 				throw std::runtime_error("unkown protocol in tracker url");
@@ -501,11 +503,8 @@ namespace libtorrent
 		}
 		catch (std::exception& e)
 		{
-			if (!c.expired())
-			{
-				boost::shared_ptr<request_callback> r = c.lock();
+			if (boost::shared_ptr<request_callback> r = c.lock())
 				r->tracker_request_error(req, -1, e.what());
-			}
 		}
 	}
 
@@ -529,11 +528,12 @@ namespace libtorrent
 		// removes all connections from m_connections
 		// except those with a requester == 0 (since those are
 		// 'event=stopped'-requests)
+		boost::mutex::scoped_lock l(m_mutex);
 
 		tracker_connections_t keep_connections;
 
 		for (tracker_connections_t::const_iterator i =
-				m_connections.begin(); i != m_connections.end(); ++i)
+			m_connections.begin(); i != m_connections.end(); ++i)
 		{
 			tracker_request const& req = (*i)->tracker_req();
 			if (req.event == tracker_request::stopped)
@@ -542,7 +542,7 @@ namespace libtorrent
 
 		std::swap(m_connections, keep_connections);
 	}
-
+/*
 	bool tracker_manager::send_finished() const
 	{
 		for (tracker_connections_t::const_iterator i =
@@ -552,5 +552,5 @@ namespace libtorrent
 		}
 		return true;
 	}
-
+*/
 }

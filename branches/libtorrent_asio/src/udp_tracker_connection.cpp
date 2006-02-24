@@ -121,7 +121,7 @@ namespace libtorrent
 		m_man.remove_request(this);
 	}
 	
-	bool udp_tracker_connection::send_finished() const
+/*	bool udp_tracker_connection::send_finished() const
 	{
 		using namespace boost::posix_time;
 
@@ -130,7 +130,7 @@ namespace libtorrent
 			&& m_connection_id != 0)
 			|| d > seconds(m_settings.tracker_timeout);
 	}
-
+*/
 	void udp_tracker_connection::send_udp_connect()
 	{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)

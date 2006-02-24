@@ -128,6 +128,7 @@ namespace libtorrent
 		, m_writing(false)
 		, m_last_write_size(0)
 		, m_reading(false)
+		, m_last_read_size(0)
 	{
 		INVARIANT_CHECK;
 
@@ -240,6 +241,7 @@ namespace libtorrent
 		, m_writing(false)
 		, m_last_write_size(0)
 		, m_reading(false)
+		, m_last_read_size(0)
 	{
 		INVARIANT_CHECK;
 
@@ -463,6 +465,8 @@ namespace libtorrent
 	{
 		m_ul_bandwidth_quota.used = 0;
 		m_dl_bandwidth_quota.used = 0;
+		assert(m_ul_bandwidth_quota.left() >= 0);
+		assert(m_dl_bandwidth_quota.left() >= 0);
 		send_buffer_updated();
 		setup_receive();
 	}
@@ -2270,6 +2274,9 @@ namespace libtorrent
 		m_socket->async_read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
 			, max_receive), bind(&peer_connection::on_receive_data, shared_from_this(), _1, _2));
 		m_reading = true;
+		m_last_read_size = max_receive;
+		m_dl_bandwidth_quota.used += max_receive;
+		assert(m_dl_bandwidth_quota.used <= m_dl_bandwidth_quota.given);
 	}
 	
 	// --------------------------
@@ -2281,15 +2288,20 @@ namespace libtorrent
 		, std::size_t bytes_transferred) try
 	{
 		INVARIANT_CHECK;
+
 		assert(m_reading);
+		assert(m_last_read_size > 0);
 		m_reading = false;
+		// correct the dl quota usage, if not all of the buffer was actually read
+		m_dl_bandwidth_quota.used -= m_last_read_size - bytes_transferred;
+		m_last_read_size = 0;
+
 		if (error)
 			throw std::runtime_error(error.what());
 
 		if (m_disconnecting) return;
 	
 		assert(m_packet_size > 0);
-		assert(can_read());
 
 		assert(bytes_transferred > 0);
 

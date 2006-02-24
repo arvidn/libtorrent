@@ -74,7 +74,7 @@ namespace libtorrent
 			, boost::weak_ptr<request_callback> c
 			, const http_settings& stn);
 
-		virtual bool send_finished() const;
+//		virtual bool send_finished() const;
 		virtual tracker_request const& tracker_req() const
 		{ return m_req; }
 

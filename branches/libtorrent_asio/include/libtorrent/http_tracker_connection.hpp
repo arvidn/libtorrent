@@ -77,8 +77,8 @@ namespace libtorrent
 			, const http_settings& stn
 			, std::string const& password = "");
 
-		virtual bool send_finished() const
-		{ return m_send_buffer.empty(); }
+//		virtual bool send_finished() const
+//		{ return m_send_buffer.empty(); }
 		virtual tracker_request const& tracker_req() const
 		{ return m_req; }
 

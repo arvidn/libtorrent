@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/bind.hpp>
+#include <boost/thread/mutex.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -404,6 +405,8 @@ namespace libtorrent
 		, int complete
 		, int incomplete)
 	{
+		boost::mutex::scoped_lock l(m_ses.m_mutex);
+
 		m_failed_trackers = 0;
 		// less than 5 minutes announce intervals
 		// are insane.
@@ -1321,6 +1324,8 @@ namespace libtorrent
 			= m_connections.begin(); i != m_connections.end(); ++i)
 		{
 			i->second->reset_upload_quota();
+			assert(i->second->m_dl_bandwidth_quota.used
+				<= i->second->m_dl_bandwidth_quota.given);
 		}
 	}
 
@@ -1679,6 +1684,7 @@ namespace libtorrent
 	void torrent::tracker_request_timed_out(
 		tracker_request const&)
 	{
+		boost::mutex::scoped_lock l(m_ses.m_mutex);
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		debug_log("*** tracker timed out");
 #endif
@@ -1700,6 +1706,7 @@ namespace libtorrent
 	void torrent::tracker_request_error(tracker_request const&
 		, int response_code, const std::string& str)
 	{
+		boost::mutex::scoped_lock l(m_ses.m_mutex);
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		debug_log(std::string("*** tracker error: ") + str);
 #endif

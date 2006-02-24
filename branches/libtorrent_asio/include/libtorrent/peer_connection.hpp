@@ -587,6 +587,7 @@ namespace libtorrent
 		// corrected according to the actual number of bytes sent
 		int m_last_write_size;
 		bool m_reading;
+		int m_last_read_size;
 	};
 }
 
