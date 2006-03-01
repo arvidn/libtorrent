@@ -228,9 +228,11 @@ namespace libtorrent
 					assert(r.given < r.max);
 
 					size_type used = (size_type)r.used + 1;
+					if (used < 1) used = 1;
 					size_type to_give = used * kNumer / kDenom;
 					if(to_give > resource_request::inf)
 						to_give = resource_request::inf;
+					assert(to_give >= 0);
 					resources_to_distribute -= give(r, (int)to_give);
 				}
 

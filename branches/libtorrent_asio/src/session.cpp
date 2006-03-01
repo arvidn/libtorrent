@@ -74,6 +74,8 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::posix_time;
 using boost::shared_ptr;
 using boost::bind;
+using boost::mutex;
+using libtorrent::detail::session_impl;
 
 namespace libtorrent { namespace detail
 {
@@ -142,7 +144,7 @@ namespace libtorrent { namespace detail
 
 					if (!error_msg.empty() && m_ses.m_alerts.should_post(alert::warning))
 					{
-						boost::mutex::scoped_lock l2(m_ses.m_mutex);
+						session_impl::mutex_t::scoped_lock l2(m_ses.m_mutex);
 						m_ses.m_alerts.post_alert(fastresume_rejected_alert(
 							t->torrent_ptr->get_handle()
 							, error_msg));
@@ -156,8 +158,8 @@ namespace libtorrent { namespace detail
 					if (up_to_date)
 					{
 						// lock the session to add the new torrent
-						boost::mutex::scoped_lock l(m_ses.m_mutex);
-						boost::mutex::scoped_lock l2(m_mutex);
+						session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+						mutex::scoped_lock l2(m_mutex);
 
 						assert(m_torrents.front() == t);
 
@@ -184,7 +186,7 @@ namespace libtorrent { namespace detail
 					// lock the checker while we move the torrent from
 					// m_torrents to m_processing
 					{
-						boost::mutex::scoped_lock l(m_mutex);
+						mutex::scoped_lock l(m_mutex);
 						assert(m_torrents.front() == t);
 
 						m_torrents.pop_front();
@@ -200,8 +202,8 @@ namespace libtorrent { namespace detail
 			catch(const std::exception& e)
 			{
 				// This will happen if the storage fails to initialize
-				boost::mutex::scoped_lock l(m_ses.m_mutex);
-				boost::mutex::scoped_lock l2(m_mutex);
+				session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+				mutex::scoped_lock l2(m_mutex);
 
 				if (m_ses.m_alerts.should_post(alert::fatal))
 				{
@@ -225,7 +227,7 @@ namespace libtorrent { namespace detail
 #ifndef NDEBUG
 				std::cerr << "error while checking resume data\n";
 #endif
-				boost::mutex::scoped_lock l(m_mutex);
+				mutex::scoped_lock l(m_mutex);
 				assert(!m_torrents.empty());
 				m_torrents.pop_front();
 				assert(false);
@@ -242,7 +244,7 @@ namespace libtorrent { namespace detail
 				boost::tie(finished, progress) = processing->torrent_ptr->check_files();
 
 				{
-					boost::mutex::scoped_lock l(m_mutex);
+					mutex::scoped_lock l(m_mutex);
 					processing->progress = progress;
 					if (processing->abort)
 					{
@@ -269,8 +271,8 @@ namespace libtorrent { namespace detail
 				if (finished)
 				{
 					// lock the session to add the new torrent
-					boost::mutex::scoped_lock l(m_ses.m_mutex);
-					boost::mutex::scoped_lock l2(m_mutex);
+					session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+					mutex::scoped_lock l2(m_mutex);
 				
 					assert(!m_processing.empty());
 					assert(m_processing.front() == processing);
@@ -305,8 +307,8 @@ namespace libtorrent { namespace detail
 			catch(const std::exception& e)
 			{
 				// This will happen if the storage fails to initialize
-				boost::mutex::scoped_lock l(m_ses.m_mutex);
-				boost::mutex::scoped_lock l2(m_mutex);
+				session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+				mutex::scoped_lock l2(m_mutex);
 
 				if (m_ses.m_alerts.should_post(alert::fatal))
 				{
@@ -337,7 +339,7 @@ namespace libtorrent { namespace detail
 #ifndef NDEBUG
 				std::cerr << "error while checking files\n";
 #endif
-				boost::mutex::scoped_lock l(m_mutex);
+				mutex::scoped_lock l(m_mutex);
 				assert(!m_processing.empty());
 
 				processing.reset();
@@ -603,7 +605,7 @@ namespace libtorrent { namespace detail
 			return;
 		}
 
-		boost::mutex::scoped_lock l(m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_mutex);
 
 		// we got a connection request!
 		m_incoming_connection = true;
@@ -723,7 +725,7 @@ namespace libtorrent { namespace detail
 		m_timer.expires_from_now(boost::posix_time::seconds(1));
 		m_timer.async_wait(bind(&session_impl::second_tick, this, _1));
 		
-		boost::mutex::scoped_lock l(m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_mutex);
 /*
 		if (m_abort)
 		{
@@ -846,7 +848,7 @@ namespace libtorrent { namespace detail
 
 		if (m_listen_port_range.first != 0 && m_listen_port_range.second != 0)
 		{
-			boost::mutex::scoped_lock l(m_mutex);
+			session_impl::mutex_t::scoped_lock l(m_mutex);
 			open_listen_port();
 		}
 
@@ -866,7 +868,7 @@ namespace libtorrent { namespace detail
 		}
 
 		{
-		boost::mutex::scoped_lock l(m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_mutex);
 
 		m_connections.clear();
 		
@@ -1012,7 +1014,7 @@ namespace libtorrent
 
 	void session::disable_extensions()
 	{
-		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 		std::fill(m_impl.m_extension_enabled, m_impl.m_extension_enabled
 			+ peer_connection::num_supported_extensions, false);
 
@@ -1029,7 +1031,7 @@ namespace libtorrent
 
 	void session::set_ip_filter(ip_filter const& f)
 	{
-		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_ip_filter = f;
 
 		// Close connections whose endpoint is filtered
@@ -1052,13 +1054,13 @@ namespace libtorrent
 
 	void session::set_peer_id(peer_id const& id)
 	{
-		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_peer_id = id;
 	}
 
 	void session::set_key(int key)
 	{
-		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_key = key;
 	}
 
@@ -1066,7 +1068,7 @@ namespace libtorrent
 	{
 		assert(i >= 0);
 		assert(i < peer_connection::num_supported_extensions);
-		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_extension_enabled[i] = true;
 
 		// this says that we support the extensions
@@ -1075,8 +1077,8 @@ namespace libtorrent
 
 	std::vector<torrent_handle> session::get_torrents()
 	{
-		boost::mutex::scoped_lock l(m_impl.m_mutex);
-		boost::mutex::scoped_lock l2(m_checker_impl.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
+		mutex::scoped_lock l2(m_checker_impl.m_mutex);
 		std::vector<torrent_handle> ret;
 		for (std::deque<boost::shared_ptr<detail::piece_checker_data> >::iterator i
 			= m_checker_impl.m_torrents.begin()
@@ -1127,8 +1129,8 @@ namespace libtorrent
 			throw std::runtime_error("no files in torrent");
 
 		// lock the session and the checker thread (the order is important!)
-		boost::mutex::scoped_lock l(m_impl.m_mutex);
-		boost::mutex::scoped_lock l2(m_checker_impl.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
+		mutex::scoped_lock l2(m_checker_impl.m_mutex);
 
 		if (m_impl.m_abort)
 			throw std::runtime_error("session is closing");
@@ -1188,7 +1190,7 @@ namespace libtorrent
 		assert(!save_path.empty());
 		{
 			// lock the checker_thread
-			boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
+			mutex::scoped_lock l(m_checker_impl.m_mutex);
 
 			// is the torrent currently being checked?
 			if (m_checker_impl.find_torrent(info_hash))
@@ -1196,7 +1198,7 @@ namespace libtorrent
 		}
 
 		// lock the session
-		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 
 		// the metadata extension has to be enabled for this to work
 		assert(m_impl.m_extension_enabled
@@ -1226,7 +1228,7 @@ namespace libtorrent
 		assert(h.m_ses != 0);
 
 		{
-			boost::mutex::scoped_lock l(m_impl.m_mutex);
+			session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 			detail::session_impl::torrent_map::iterator i =
 				m_impl.m_torrents.find(h.m_info_hash);
 			if (i != m_impl.m_torrents.end())
@@ -1261,7 +1263,7 @@ namespace libtorrent
 
 		if (h.m_chk)
 		{
-			boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
+			mutex::scoped_lock l(m_checker_impl.m_mutex);
 
 			detail::piece_checker_data* d = m_checker_impl.find_torrent(h.m_info_hash);
 			if (d != 0)
@@ -1277,7 +1279,7 @@ namespace libtorrent
 		std::pair<int, int> const& port_range
 		, const char* net_interface)
 	{
-		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 
 		if (m_impl.m_listen_socket)
 			m_impl.m_listen_socket.reset();
@@ -1296,7 +1298,7 @@ namespace libtorrent
 
 	unsigned short session::listen_port() const
 	{
-		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 		return m_impl.m_listen_interface.port();
 	}
 
@@ -1326,13 +1328,13 @@ namespace libtorrent
 
 	bool session::is_listening() const
 	{
-		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 		return m_impl.m_listen_socket;
 	}
 
 	void session::set_http_settings(const http_settings& s)
 	{
-		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_http_settings = s;
 	}
 
@@ -1340,13 +1342,13 @@ namespace libtorrent
 	{
 		{
 			// lock the main thread and abort it
-			boost::mutex::scoped_lock l(m_impl.m_mutex);
+			session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 			m_impl.m_abort = true;
 			m_impl.m_selector.interrupt();
 		}
 
 		{
-			boost::mutex::scoped_lock l(m_checker_impl.m_mutex);
+			mutex::scoped_lock l(m_checker_impl.m_mutex);
 			// abort the checker thread
 			m_checker_impl.m_abort = true;
 
@@ -1365,35 +1367,35 @@ namespace libtorrent
 	void session::set_max_uploads(int limit)
 	{
 		assert(limit > 0 || limit == -1);
-		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_max_uploads = limit;
 	}
 
 	void session::set_max_connections(int limit)
 	{
 		assert(limit > 0 || limit == -1);
-		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_max_connections = limit;
 	}
 
 	void session::set_max_half_open_connections(int limit)
 	{
 		assert(limit > 0 || limit == -1);
-		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_half_open_limit = limit;
 	}
 
 	void session::set_upload_rate_limit(int bytes_per_second)
 	{
 		assert(bytes_per_second > 0 || bytes_per_second == -1);
-		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_upload_rate = bytes_per_second;
 	}
 
 	void session::set_download_rate_limit(int bytes_per_second)
 	{
 		assert(bytes_per_second > 0 || bytes_per_second == -1);
-		boost::mutex::scoped_lock l(m_impl.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_download_rate = bytes_per_second;
 	}
 

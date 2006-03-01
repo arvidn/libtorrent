@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::posix_time;
 using boost::bind;
 using boost::shared_ptr;
-using boost::mutex;
+using libtorrent::detail::session_impl;
 
 namespace libtorrent
 {
@@ -2268,6 +2268,13 @@ namespace libtorrent
 			m_dl_bandwidth_quota.left()
 			, m_packet_size - m_recv_pos);
 
+		if (m_recv_pos >= m_packet_size)
+		{
+			int a = 0;
+		}
+		assert(m_recv_pos >= 0);
+		assert(m_packet_size > 0);
+		assert(m_dl_bandwidth_quota.left() > 0);
 		assert(max_receive > 0);
 
 		assert(can_read());
@@ -2305,7 +2312,7 @@ namespace libtorrent
 
 		assert(bytes_transferred > 0);
 
-		mutex::scoped_lock l(m_ses.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
 		m_last_receive = second_clock::universal_time();
 
@@ -2552,6 +2559,7 @@ namespace libtorrent
 				m_recv_pos = 0;
 				assert(m_packet_size > 0);
 			}
+			assert(m_recv_pos < m_packet_size);
 		}
 		break;
 
@@ -2562,7 +2570,7 @@ namespace libtorrent
 	}
 	catch (std::exception& e)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		m_ses.connection_failed(m_socket, remote(), e.what());
 //		disconnect();
 	}
@@ -2570,7 +2578,7 @@ namespace libtorrent
 	{
 		// all exceptions should derive from std::exception
 		assert(false);
-		mutex::scoped_lock l(m_ses.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		m_ses.connection_failed(m_socket, remote(), "connection failed for unkown reason");
 //		disconnect();
 	}
@@ -2620,7 +2628,7 @@ namespace libtorrent
 		
 		if (e == asio::error::operation_aborted) return;
 
-		mutex::scoped_lock l(m_ses.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		if (e)
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -2667,7 +2675,7 @@ namespace libtorrent
 		assert(can_write());
 //		assert(bytes_transferred > 0);
 
-		mutex::scoped_lock l(m_ses.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
 		m_ul_bandwidth_quota.used += bytes_transferred;
 		m_send_buffer.erase(bytes_transferred);
@@ -2711,7 +2719,7 @@ namespace libtorrent
 	}
 	catch (std::exception& e)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		m_ses.connection_failed(m_socket, remote(), e.what());
 //		disconnect();
 	}
@@ -2719,7 +2727,7 @@ namespace libtorrent
 	{
 		// all exceptions should derive from std::exception
 		assert(false);
-		mutex::scoped_lock l(m_ses.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		m_ses.connection_failed(m_socket, remote(), "connection failed for unkown reason");
 //		disconnect();
 	}

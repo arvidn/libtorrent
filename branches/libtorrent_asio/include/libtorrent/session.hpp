@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/tuple/tuple.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -196,7 +197,9 @@ namespace libtorrent
 		
 			// must be locked to access the data
 			// in this struct
-			mutable boost::mutex m_mutex;
+			typedef boost::recursive_mutex mutex_t;
+			mutable mutex_t m_mutex;
+
 			torrent* find_torrent(const sha1_hash& info_hash);
 			peer_id const& get_peer_id() const { return m_peer_id; }
 

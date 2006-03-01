@@ -55,7 +55,6 @@ namespace libtorrent
 {
 
 	class torrent;
-	class tcp::endpoint;
 	class peer_connection;
 
 	struct TORRENT_EXPORT piece_block

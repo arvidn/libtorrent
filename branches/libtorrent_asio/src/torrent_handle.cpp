@@ -71,6 +71,8 @@ namespace std
 #endif
 
 using boost::bind;
+using boost::mutex;
+using libtorrent::detail::session_impl;
 
 namespace libtorrent
 {
@@ -92,13 +94,13 @@ namespace libtorrent
 
 			if (chk)
 			{
-				boost::mutex::scoped_lock l(chk->m_mutex);
+				mutex::scoped_lock l(chk->m_mutex);
 				detail::piece_checker_data* d = chk->find_torrent(hash);
 				if (d != 0) return f(*d->torrent_ptr);
 			}
 
 			{
-				boost::mutex::scoped_lock l(ses->m_mutex);
+				session_impl::mutex_t::scoped_lock l(ses->m_mutex);
 				torrent* t = ses->find_torrent(hash);
 				if (t != 0) return f(*t);
 			}
@@ -231,7 +233,7 @@ namespace libtorrent
 
 		if (m_chk)
 		{
-			boost::mutex::scoped_lock l(m_chk->m_mutex);
+			mutex::scoped_lock l(m_chk->m_mutex);
 
 			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
 			if (d != 0)
@@ -254,7 +256,7 @@ namespace libtorrent
 		}
 
 		{
-			boost::mutex::scoped_lock l(m_ses->m_mutex);
+			session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 			torrent* t = m_ses->find_torrent(m_info_hash);
 			if (t != 0) return t->status();
 		}
@@ -341,13 +343,13 @@ namespace libtorrent
 
 		if (m_chk)
 		{
-			boost::mutex::scoped_lock l(m_chk->m_mutex);
+			mutex::scoped_lock l(m_chk->m_mutex);
 			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
 			if (d != 0) return true;
 		}
 
 		{
-			boost::mutex::scoped_lock l(m_ses->m_mutex);
+			session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 			torrent* t = m_ses->find_torrent(m_info_hash);
 			if (t != 0) return true;
 		}
@@ -362,7 +364,7 @@ namespace libtorrent
 		std::vector<int> piece_index;
 		if (m_ses == 0) return entry();
 
-		boost::mutex::scoped_lock l(m_ses->m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 		torrent* t = m_ses->find_torrent(m_info_hash);
 		if (t == 0) return entry();
 
@@ -497,7 +499,7 @@ namespace libtorrent
 
 		if (m_ses == 0) throw_invalid_handle();
 	
-		boost::mutex::scoped_lock l(m_ses->m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 		torrent* t = m_ses->find_torrent(m_info_hash);
 		if (t == 0) throw_invalid_handle();
 
@@ -513,7 +515,7 @@ namespace libtorrent
 
 		if (m_ses == 0) throw_invalid_handle();
 	
-		boost::mutex::scoped_lock l(m_ses->m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 		torrent* t = m_ses->find_torrent(m_info_hash);
 		if (t == 0) throw_invalid_handle();
 
@@ -528,7 +530,7 @@ namespace libtorrent
 
 		if (m_ses == 0) throw_invalid_handle();
 	
-		boost::mutex::scoped_lock l(m_ses->m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 		torrent* t = m_ses->find_torrent(m_info_hash);
 		if (t == 0) throw_invalid_handle();
 
@@ -555,7 +557,7 @@ namespace libtorrent
 		v.clear();
 		if (m_ses == 0) throw_invalid_handle();
 
-		boost::mutex::scoped_lock l(m_ses->m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 		
 		const torrent* t = m_ses->find_torrent(m_info_hash);
 		if (t == 0) return;
@@ -633,7 +635,7 @@ namespace libtorrent
 	{
 		if (m_ses == 0) throw_invalid_handle();
 
-		boost::mutex::scoped_lock l(m_ses->m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 		const torrent* t = m_ses->find_torrent(m_info_hash);
 		if (t == 0) return false;
 
@@ -670,7 +672,7 @@ namespace libtorrent
 
 		if (m_ses == 0) throw_invalid_handle();
 	
-		boost::mutex::scoped_lock l(m_ses->m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 		torrent* t = m_ses->find_torrent(m_info_hash);
 
 		queue.clear();

@@ -57,7 +57,6 @@ namespace libtorrent
 {
 
 	class torrent;
-	class tcp::endpoint;
 	class peer_connection;
 
 	enum

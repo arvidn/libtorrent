@@ -72,6 +72,8 @@ using boost::tuples::get;
 using boost::tuples::make_tuple;
 using boost::filesystem::complete;
 using boost::bind;
+using boost::mutex;
+using libtorrent::detail::session_impl;
 
 // PROFILING CODE
 
@@ -405,7 +407,7 @@ namespace libtorrent
 		, int complete
 		, int incomplete)
 	{
-		boost::mutex::scoped_lock l(m_ses.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
 		m_failed_trackers = 0;
 		// less than 5 minutes announce intervals
@@ -1684,7 +1686,7 @@ namespace libtorrent
 	void torrent::tracker_request_timed_out(
 		tracker_request const&)
 	{
-		boost::mutex::scoped_lock l(m_ses.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		debug_log("*** tracker timed out");
 #endif
@@ -1706,7 +1708,7 @@ namespace libtorrent
 	void torrent::tracker_request_error(tracker_request const&
 		, int response_code, const std::string& str)
 	{
-		boost::mutex::scoped_lock l(m_ses.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		debug_log(std::string("*** tracker error: ") + str);
 #endif
