@@ -193,7 +193,7 @@ namespace libtorrent
 
 			void async_accept();
 			void on_incoming_connection(boost::shared_ptr<stream_socket> const& s
-				, asio::error const& e);
+				, boost::weak_ptr<socket_acceptor> const& s, asio::error const& e);
 		
 			// must be locked to access the data
 			// in this struct

@@ -77,11 +77,8 @@ namespace libtorrent
 			, const http_settings& stn
 			, std::string const& password = "");
 
-//		virtual bool send_finished() const
-//		{ return m_send_buffer.empty(); }
 		virtual tracker_request const& tracker_req() const
 		{ return m_req; }
-
 
 	private:
 
@@ -89,6 +86,7 @@ namespace libtorrent
 		{ return boost::intrusive_ptr<http_tracker_connection>(this); }
 
 		void fail(int code, char const* msg);
+		void on_response();
 		
 		void init_send_buffer(
 			std::string const& hostname

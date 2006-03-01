@@ -73,6 +73,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace boost::posix_time;
 using boost::shared_ptr;
+using boost::weak_ptr;
 using boost::bind;
 using boost::mutex;
 using libtorrent::detail::session_impl;
@@ -492,7 +493,6 @@ namespace libtorrent { namespace detail
 		try
 		{
 			// create listener socket
-//			m_selector.remove(m_listen_socket);
 			m_listen_socket = boost::shared_ptr<socket_acceptor>(new socket_acceptor(m_selector));
 
 			for(;;)
@@ -553,12 +553,8 @@ namespace libtorrent { namespace detail
 			(*m_logger) << "listening on port: " << m_listen_interface.port() << "\n";
 		}
 #endif
-/*		if (m_listen_socket)
-		{
-			m_selector.monitor_readability(m_listen_socket);
-			m_selector.monitor_errors(m_listen_socket);
-		}
-*/	}
+		if (m_listen_socket) async_accept();
+	}
 
 	void session_impl::process_connection_queue()
 	{
@@ -580,13 +576,17 @@ namespace libtorrent { namespace detail
 	{
 		shared_ptr<stream_socket> c(new stream_socket(m_selector));
 		m_listen_socket->async_accept(*c
-			, bind(&session_impl::on_incoming_connection, this, c, _1));
+			, bind(&session_impl::on_incoming_connection, this, c
+			, weak_ptr<socket_acceptor>(m_listen_socket), _1));
 	}
 
 	void session_impl::on_incoming_connection(shared_ptr<stream_socket> const& s
-		, asio::error const& e)
+		, weak_ptr<socket_acceptor> const& listen_socket, asio::error const& e)
 	{
 		async_accept();
+		mutex_t::scoped_lock l(m_mutex);
+		if (listen_socket.expired()) return;
+		assert(listen_socket.lock() == m_listen_socket);
 		if (e)
 		{
 			if (m_alerts.should_post(alert::fatal))
@@ -604,8 +604,6 @@ namespace libtorrent { namespace detail
 			m_listen_socket.reset();
 			return;
 		}
-
-		session_impl::mutex_t::scoped_lock l(m_mutex);
 
 		// we got a connection request!
 		m_incoming_connection = true;

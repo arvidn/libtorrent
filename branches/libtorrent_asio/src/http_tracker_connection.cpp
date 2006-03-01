@@ -304,6 +304,13 @@ namespace libtorrent
 
 		if (error)
 		{
+			if (error == asio::error::eof)
+			{
+				on_response();
+				m_man.remove_request(this);
+				return;
+			}
+
 			fail(-1, error.what());
 			return;
 		}
@@ -475,36 +482,7 @@ namespace libtorrent
 		{
 			if (m_recv_pos == m_content_length)
 			{
-				// GZIP
-				if (m_content_encoding == gzip)
-				{
-					boost::shared_ptr<request_callback> r = m_requester.lock();
-					
-					if (!r)
-					{
-						m_man.remove_request(this);
-						return;
-					}
-					if (inflate_gzip(m_buffer, m_req, r.get(),
-						m_settings.tracker_maximum_response_length))
-					{
-						m_man.remove_request(this);
-						return;
-					}
-				}
-
-				// handle tracker response
-				try
-				{
-					entry e = bdecode(m_buffer.begin(), m_buffer.end());
-					parse(e);
-				}
-				catch (std::exception&)
-				{
-					std::string error_str(m_buffer.begin(), m_buffer.end());
-					fail(m_code, error_str.c_str());
-				}
-
+				on_response();
 				m_man.remove_request(this);
 				return;
 			}
@@ -519,6 +497,45 @@ namespace libtorrent
 		m_socket->async_read_some(asio::buffer(&m_buffer[m_recv_pos]
 			, m_buffer.size() - m_recv_pos), bind(&http_tracker_connection::receive
 			, self(), _1, _2));
+	}
+	
+	void http_tracker_connection::on_response()
+	{
+		// GZIP
+		if (m_content_encoding == gzip)
+		{
+			boost::shared_ptr<request_callback> r = m_requester.lock();
+			
+			if (!r)
+			{
+				m_man.remove_request(this);
+				return;
+			}
+			if (inflate_gzip(m_buffer, m_req, r.get(),
+				m_settings.tracker_maximum_response_length))
+			{
+				m_man.remove_request(this);
+				return;
+			}
+		}
+
+		// handle tracker response
+		try
+		{
+			entry e = bdecode(m_buffer.begin(), m_buffer.end());
+			parse(e);
+		}
+		catch (std::exception&)
+		{
+			std::string error_str(m_buffer.begin(), m_buffer.end());
+			fail(m_code, error_str.c_str());
+		}
+		#ifndef NDEBUG
+		catch (...)
+		{
+			assert(false);
+		}
+		#endif
 	}
 
 	peer_entry http_tracker_connection::extract_peer_info(const entry& info)
