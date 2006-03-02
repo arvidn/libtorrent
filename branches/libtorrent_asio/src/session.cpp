@@ -455,7 +455,7 @@ namespace libtorrent { namespace detail
 	{
 		while (!m_disconnect_peer.empty())
 		{
-			boost::shared_ptr<peer_connection>& p = m_disconnect_peer.back();
+			boost::intrusive_ptr<peer_connection>& p = m_disconnect_peer.back();
 			assert(p->is_disconnecting());
 			if (p->is_connecting())
 			{
@@ -621,7 +621,7 @@ namespace libtorrent { namespace detail
 			return;
 		}
 
-		boost::shared_ptr<peer_connection> c(
+		boost::intrusive_ptr<peer_connection> c(
 			new peer_connection(*this, s));
 
 		m_connections.insert(std::make_pair(s, c));
@@ -676,7 +676,7 @@ namespace libtorrent { namespace detail
 		}
 	}
 
-	void session_impl::close_connection(boost::shared_ptr<peer_connection> const& p)
+	void session_impl::close_connection(boost::intrusive_ptr<peer_connection> const& p)
 	{
 		assert(p->is_disconnecting());
 		if (p->is_connecting())
@@ -724,14 +724,7 @@ namespace libtorrent { namespace detail
 		m_timer.async_wait(bind(&session_impl::second_tick, this, _1));
 		
 		session_impl::mutex_t::scoped_lock l(m_mutex);
-/*
-		if (m_abort)
-		{
-		#error THIS WILL INTERRUPT THE SECOND CALL TO RUN
-			m_selector.interrupt();
-			return;
-		}
-*/
+
 		// do the second_tick() on each connection
 		// this will update their statistics (download and upload speeds)
 		// also purge sockets that have timed out
@@ -745,7 +738,9 @@ namespace libtorrent { namespace detail
 			// close it.
 			if (j->second->has_timed_out())
 			{
-				tcp::endpoint sender = j->first->remote_endpoint();
+				tcp::endpoint sender;
+				sender = j->first->remote_endpoint(asio::assign_error(e));
+				// TODO: DO something with the error! Why is the socket not connected?!
 				if (m_alerts.should_post(alert::debug))
 				{
 					m_alerts.post_alert(
@@ -763,6 +758,10 @@ namespace libtorrent { namespace detail
 				continue;
 			}
 
+#ifndef NDEBUG
+//			j->first->remote_endpoint(asio::assign_error(e));
+//			assert(e == asio::error::success);
+#endif
 			j->second->keep_alive();
 		}
 
@@ -828,7 +827,7 @@ namespace libtorrent { namespace detail
 		}
 	}
 
-	void session_impl::connection_completed(boost::shared_ptr<peer_connection> const& p)
+	void session_impl::connection_completed(boost::intrusive_ptr<peer_connection> const& p)
 	{
 		if (m_abort) return;
 
@@ -947,7 +946,7 @@ namespace libtorrent { namespace detail
 				|| i->second->can_read() != m_selector.is_readability_monitored(i->first)*/)
 			{
 				std::ofstream error_log("error.log", std::ios_base::app);
-				boost::shared_ptr<peer_connection> p = i->second;
+				boost::intrusive_ptr<peer_connection> p = i->second;
 //				error_log << "selector::is_writability_monitored() " << m_selector.is_writability_monitored(i->first) << "\n";
 //				error_log << "selector::is_readability_monitored() " << m_selector.is_readability_monitored(i->first) << "\n";
 				error_log << "peer_connection::is_connecting() " << p->is_connecting() << "\n";

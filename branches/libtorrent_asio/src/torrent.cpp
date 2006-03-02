@@ -914,7 +914,7 @@ namespace libtorrent
 	peer_connection& torrent::connect_to_peer(const tcp::endpoint& a)
 	{
 		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_selector));
-		boost::shared_ptr<peer_connection> c(new peer_connection(
+		boost::intrusive_ptr<peer_connection> c(new peer_connection(
 			m_ses, this, s, a));
 
 		m_ses.m_connection_queue.push_back(c);

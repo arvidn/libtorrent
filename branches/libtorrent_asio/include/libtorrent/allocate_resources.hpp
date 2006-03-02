@@ -58,7 +58,7 @@ namespace libtorrent
 /*
 	void allocate_resources(
 		int resources
-		, std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> >& connections
+		, std::map<boost::shared_ptr<socket>, boost::intrusive_ptr<peer_connection> >& connections
 		, resource_request peer_connection::* res);
 */
 	void allocate_resources(

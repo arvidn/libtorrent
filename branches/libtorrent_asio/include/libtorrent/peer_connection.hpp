@@ -82,6 +82,9 @@ namespace libtorrent
 		struct session_impl;
 	}
 
+	void intrusive_ptr_add_ref(peer_connection const*);
+	void intrusive_ptr_release(peer_connection const*);	
+
 	struct TORRENT_EXPORT protocol_error: std::runtime_error
 	{
 		protocol_error(const std::string& msg): std::runtime_error(msg) {};
@@ -89,9 +92,10 @@ namespace libtorrent
 
 	class TORRENT_EXPORT peer_connection
 		: public boost::noncopyable
-		, public boost::enable_shared_from_this<peer_connection>
 	{
 	friend class invariant_access;
+	friend void intrusive_ptr_add_ref(peer_connection const*);
+	friend void intrusive_ptr_release(peer_connection const*);
 	public:
 
 		// this is the constructor where the we are the active part.
@@ -316,6 +320,9 @@ namespace libtorrent
 #endif
 
 	private:
+
+		boost::intrusive_ptr<peer_connection> self()
+		{ return boost::intrusive_ptr<peer_connection>(this); }
 
 		void send_block_requests();
 		bool dispatch_message(int received);
@@ -588,6 +595,9 @@ namespace libtorrent
 		int m_last_write_size;
 		bool m_reading;
 		int m_last_read_size;
+		
+		// reference counter for intrusive_ptr
+		mutable int m_refs;
 	};
 }
 

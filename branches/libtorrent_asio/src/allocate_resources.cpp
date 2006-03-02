@@ -242,7 +242,7 @@ namespace libtorrent
 
 		peer_connection& pick_peer(
 			std::pair<boost::shared_ptr<stream_socket>
-			, boost::shared_ptr<peer_connection> > const& p)
+			, boost::intrusive_ptr<peer_connection> > const& p)
 		{
 			return *p.second;
 		}
@@ -264,11 +264,11 @@ namespace libtorrent
 /*
 	void allocate_resources(
 		int resources
-		, std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> >& c
+		, std::map<boost::shared_ptr<socket>, boost::intrusive_ptr<peer_connection> >& c
 		, resource_request peer_connection::* res)
 	{
-		typedef std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> >::iterator orig_iter;
-		typedef std::pair<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> > in_param;
+		typedef std::map<boost::shared_ptr<socket>, boost::intrusive_ptr<peer_connection> >::iterator orig_iter;
+		typedef std::pair<boost::shared_ptr<socket>, boost::intrusive_ptr<peer_connection> > in_param;
 		typedef boost::transform_iterator<peer_connection& (*)(in_param const&), orig_iter> new_iter;
 
 		allocate_resources_impl(

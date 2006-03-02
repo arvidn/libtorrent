@@ -525,9 +525,11 @@ namespace libtorrent
 			entry e = bdecode(m_buffer.begin(), m_buffer.end());
 			parse(e);
 		}
-		catch (std::exception&)
+		catch (std::exception& e)
 		{
-			std::string error_str(m_buffer.begin(), m_buffer.end());
+			std::string error_str(e.what());
+			error_str += ": ";
+			error_str.append(m_buffer.begin(), m_buffer.end());
 			fail(m_code, error_str.c_str());
 		}
 		#ifndef NDEBUG

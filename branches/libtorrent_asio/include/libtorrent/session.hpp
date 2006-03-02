@@ -176,10 +176,10 @@ namespace libtorrent
 		struct session_impl: boost::noncopyable
 		{
 			friend class invariant_access;
-			typedef std::map<boost::shared_ptr<stream_socket>, boost::shared_ptr<peer_connection> >
+			typedef std::map<boost::shared_ptr<stream_socket>, boost::intrusive_ptr<peer_connection> >
 				connection_map;
 			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
-			typedef std::deque<boost::shared_ptr<peer_connection> >
+			typedef std::deque<boost::intrusive_ptr<peer_connection> >
 				connection_queue;
 
 			session_impl(
@@ -211,8 +211,8 @@ namespace libtorrent
 			// is reached.
 			void process_connection_queue();
 
-			void close_connection(boost::shared_ptr<peer_connection> const& p);
-			void connection_completed(boost::shared_ptr<peer_connection> const& p);
+			void close_connection(boost::intrusive_ptr<peer_connection> const& p);
+			void connection_completed(boost::intrusive_ptr<peer_connection> const& p);
 			void connection_failed(boost::shared_ptr<stream_socket> const& s
 				, tcp::endpoint const& a, char const* message);
 

@@ -54,6 +54,20 @@ using libtorrent::detail::session_impl;
 namespace libtorrent
 {
 
+	void intrusive_ptr_add_ref(peer_connection const* c)
+	{
+		assert(c->m_refs >= 0);
+		++c->m_refs;
+	}
+
+	void intrusive_ptr_release(peer_connection const* c)
+	{
+		assert(c->m_refs > 0);
+		--c->m_refs;
+		if (c->m_refs == 0)
+			delete c;
+	}
+
 	// the names of the extensions to look for in
 	// the extensions-message
 	const char* peer_connection::extension_names[] =
@@ -129,6 +143,7 @@ namespace libtorrent
 		, m_last_write_size(0)
 		, m_reading(false)
 		, m_last_read_size(0)
+		, m_refs(0)
 	{
 		INVARIANT_CHECK;
 
@@ -189,7 +204,6 @@ namespace libtorrent
 			init();
 			send_bitfield();
 		}
-		setup_receive();	
 	}
 
 	peer_connection::peer_connection(
@@ -242,6 +256,7 @@ namespace libtorrent
 		, m_last_write_size(0)
 		, m_reading(false)
 		, m_last_read_size(0)
+		, m_refs(0)
 	{
 		INVARIANT_CHECK;
 
@@ -303,6 +318,7 @@ namespace libtorrent
 		// start in the state where we are trying to read the
 		// handshake from the other side
 		m_recv_buffer.resize(1);
+		setup_receive();
 	}
 
 	void peer_connection::init()
@@ -1509,7 +1525,7 @@ namespace libtorrent
 			m_attached_to_torrent = false;
 		}
 		assert(m_torrent == 0);
-		m_ses.close_connection(shared_from_this());
+		m_ses.close_connection(self());
 	}
 
 	bool peer_connection::dispatch_message(int received)
@@ -2252,7 +2268,7 @@ namespace libtorrent
 			assert(m_ul_bandwidth_quota.left() >= int(buffer_size(bufs[0]) + buffer_size(bufs[1])));
 			assert(can_write());
 			m_socket->async_write_some(bufs, bind(&peer_connection::on_send_data
-				, shared_from_this(), _1, _2));
+				, self(), _1, _2));
 			m_writing = true;
 			m_last_write_size = amount_to_send;
 		}
@@ -2268,10 +2284,6 @@ namespace libtorrent
 			m_dl_bandwidth_quota.left()
 			, m_packet_size - m_recv_pos);
 
-		if (m_recv_pos >= m_packet_size)
-		{
-			int a = 0;
-		}
 		assert(m_recv_pos >= 0);
 		assert(m_packet_size > 0);
 		assert(m_dl_bandwidth_quota.left() > 0);
@@ -2279,7 +2291,7 @@ namespace libtorrent
 
 		assert(can_read());
 		m_socket->async_read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
-			, max_receive), bind(&peer_connection::on_receive_data, shared_from_this(), _1, _2));
+			, max_receive), bind(&peer_connection::on_receive_data, self(), _1, _2));
 		m_reading = true;
 		m_last_read_size = max_receive;
 		m_dl_bandwidth_quota.used += max_receive;
@@ -2304,7 +2316,12 @@ namespace libtorrent
 		m_last_read_size = 0;
 
 		if (error)
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << "**ERROR**: " << error.what() << "\n";
+#endif
 			throw std::runtime_error(error.what());
+		}
 
 		if (m_disconnecting) return;
 	
@@ -2613,7 +2630,7 @@ namespace libtorrent
 		m_socket->open(asio::ipv4::tcp());
 		m_socket->bind(associated_torrent()->get_interface());
 		m_socket->async_connect(m_remote
-			, bind(&peer_connection::on_connection_complete, shared_from_this(), _1));
+			, bind(&peer_connection::on_connection_complete, self(), _1));
 
 		if (m_torrent->alerts().should_post(alert::debug))
 		{
@@ -2647,7 +2664,7 @@ namespace libtorrent
 
 		m_connecting = false;
 		setup_receive();
-		m_ses.connection_completed(shared_from_this());
+		m_ses.connection_completed(self());
 	}
 	
 	// --------------------------
