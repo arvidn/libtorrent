@@ -2297,6 +2297,17 @@ namespace libtorrent
 		m_dl_bandwidth_quota.used += max_receive;
 		assert(m_dl_bandwidth_quota.used <= m_dl_bandwidth_quota.given);
 	}
+
+	template<class T>
+	struct set_to_zero
+	{
+		set_to_zero(T& v, bool cond): m_val(v), m_cond(cond) {}
+		void fire() { if (!m_cond) return; m_cond = false; m_val = 0; }
+		~set_to_zero() { if (m_cond) m_val = 0; }
+	private:
+		T& m_val;
+		bool m_cond;
+	};
 	
 	// --------------------------
 	// RECEIVE DATA
@@ -2336,6 +2347,14 @@ namespace libtorrent
 		m_recv_pos += bytes_transferred;
 		m_dl_bandwidth_quota.used += bytes_transferred;
 
+		// this will reset the m_recv_pos to 0 if the
+		// entire packet was received
+		// it is important that this is done before
+		// setup_receive() is called. Therefore, fire() is
+		// called before setup_receive().
+		assert(m_recv_pos <= m_packet_size);
+		set_to_zero<int> reset(m_recv_pos, m_recv_pos == m_packet_size);
+
 		switch(m_state)
 		{
 		case read_protocol_length:
@@ -2359,7 +2378,6 @@ namespace libtorrent
 			}
 			m_state = read_protocol_string;
 			m_recv_buffer.resize(m_packet_size);
-			m_recv_pos = 0;
 		}
 		break;
 
@@ -2398,7 +2416,6 @@ namespace libtorrent
 
 			m_state = read_info_hash;
 			m_packet_size = 28;
-			m_recv_pos = 0;
 			m_recv_buffer.resize(28);
 		}
 		break;
@@ -2474,7 +2491,6 @@ namespace libtorrent
 
 			m_state = read_peer_id;
 			m_packet_size = 20;
-			m_recv_pos = 0;
 			m_recv_buffer.resize(20);
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << " info_hash received\n";
@@ -2528,7 +2544,6 @@ namespace libtorrent
 
 			m_state = read_packet_size;
 			m_packet_size = 4;
-			m_recv_pos = 0;
 			m_recv_buffer.resize(4);
 		}
 		break;
@@ -2561,7 +2576,6 @@ namespace libtorrent
 				m_state = read_packet;
 				m_recv_buffer.resize(m_packet_size);
 			}
-			m_recv_pos = 0;
 			assert(m_packet_size > 0);
 		}
 		break;
@@ -2573,15 +2587,16 @@ namespace libtorrent
 				m_state = read_packet_size;
 				m_packet_size = 4;
 				m_recv_buffer.resize(4);
-				m_recv_pos = 0;
 				assert(m_packet_size > 0);
 			}
-			assert(m_recv_pos < m_packet_size);
 		}
 		break;
 
 		}
 		assert(m_packet_size > 0);
+
+		// do the reset immediately
+		reset.fire();
 
 		setup_receive();	
 	}

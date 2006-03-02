@@ -739,7 +739,8 @@ namespace libtorrent { namespace detail
 			if (j->second->has_timed_out())
 			{
 				tcp::endpoint sender;
-				sender = j->first->remote_endpoint(asio::assign_error(e));
+				asio::error e2;
+				sender = j->first->remote_endpoint(asio::assign_error(e2));
 				// TODO: DO something with the error! Why is the socket not connected?!
 				if (m_alerts.should_post(alert::debug))
 				{
@@ -758,10 +759,6 @@ namespace libtorrent { namespace detail
 				continue;
 			}
 
-#ifndef NDEBUG
-//			j->first->remote_endpoint(asio::assign_error(e));
-//			assert(e == asio::error::success);
-#endif
 			j->second->keep_alive();
 		}
 
