@@ -67,7 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/allocate_resources.hpp"
-#include "libtorrent/peer_connection.hpp"
+#include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/socket.hpp"
 
@@ -413,7 +413,7 @@ namespace libtorrent { namespace detail
 		(*m_logger) << to_simple_string(second_clock::universal_time()) << "\n";
 #endif
 		std::fill(m_extension_enabled, m_extension_enabled
-			+ peer_connection::num_supported_extensions, true);
+			+ num_supported_extensions, true);
 		// ---- generate a peer id ----
 
 		std::srand((unsigned int)std::time(0));
@@ -446,7 +446,7 @@ namespace libtorrent { namespace detail
 
 	bool session_impl::extensions_enabled() const
 	{
-		const int n = peer_connection::num_supported_extensions;
+		const int n = num_supported_extensions;
 		return std::find(m_extension_enabled
 			, m_extension_enabled + n, true) != m_extension_enabled + n;
 	}
@@ -622,7 +622,7 @@ namespace libtorrent { namespace detail
 		}
 
 		boost::intrusive_ptr<peer_connection> c(
-			new peer_connection(*this, s));
+			new bt_peer_connection(*this, s));
 
 		m_connections.insert(std::make_pair(s, c));
 	}
@@ -738,10 +738,7 @@ namespace libtorrent { namespace detail
 			// close it.
 			if (j->second->has_timed_out())
 			{
-				tcp::endpoint sender;
-				asio::error e2;
-				sender = j->first->remote_endpoint(asio::assign_error(e2));
-				// TODO: DO something with the error! Why is the socket not connected?!
+				tcp::endpoint sender = j->first->remote_endpoint(asio::ignore_error());
 				if (m_alerts.should_post(alert::debug))
 				{
 					m_alerts.post_alert(
@@ -763,6 +760,7 @@ namespace libtorrent { namespace detail
 		}
 
 		// check each torrent for tracker updates
+		// TODO: do this in a timer-event in each torrent instead
 		for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
 			= m_torrents.begin(); i != m_torrents.end();)
 		{
@@ -858,6 +856,9 @@ namespace libtorrent { namespace detail
 		catch (std::exception& e)
 		{
 			std::cerr << e.what() << "\n";
+			#ifndef NDEBUG
+			std::string err = e.what();
+			#endif
 			assert(false);
 		}
 
@@ -952,7 +953,7 @@ namespace libtorrent { namespace detail
 				error_log << "peer_connection::ul_quota_left " << p->m_ul_bandwidth_quota.left() << "\n";
 				error_log << "peer_connection::dl_quota_left " << p->m_dl_bandwidth_quota.left() << "\n";
 				error_log << "peer_connection::m_ul_bandwidth_quota.given " << p->m_ul_bandwidth_quota.given << "\n";
-				error_log << "peer_connection::get_peer_id " << p->get_peer_id() << "\n";
+				error_log << "peer_connection::get_peer_id " << p->id() << "\n";
 				error_log << "place: " << place << "\n";
 				error_log.flush();
 				assert(false);
@@ -1010,7 +1011,7 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 		std::fill(m_impl.m_extension_enabled, m_impl.m_extension_enabled
-			+ peer_connection::num_supported_extensions, false);
+			+ num_supported_extensions, false);
 
 		static char const printable[]
 			= "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_.!~*'()";
@@ -1058,10 +1059,10 @@ namespace libtorrent
 		m_impl.m_key = key;
 	}
 
-	void session::enable_extension(peer_connection::extension_index i)
+	void session::enable_extension(extension_index i)
 	{
 		assert(i >= 0);
-		assert(i < peer_connection::num_supported_extensions);
+		assert(i < num_supported_extensions);
 		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_extension_enabled[i] = true;
 
@@ -1196,7 +1197,7 @@ namespace libtorrent
 
 		// the metadata extension has to be enabled for this to work
 		assert(m_impl.m_extension_enabled
-			[peer_connection::extended_metadata_message]);
+			[extended_metadata_message]);
 
 		// is the torrent already active?
 		if (m_impl.find_torrent(info_hash))

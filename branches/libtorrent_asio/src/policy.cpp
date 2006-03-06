@@ -143,7 +143,7 @@ namespace
 			// ok, we found a piece that's not being downloaded
 			// by somebody else. request it from this peer
 			// and return
-			c.send_request(*i);
+			c.add_request(*i);
 			num_requests--;
 		}
 
@@ -219,8 +219,8 @@ namespace
 
 			assert(common_block != peer->download_queue().rend());
 			piece_block block = *common_block;
-			peer->send_cancel(block);
-			c.send_request(block);
+			peer->cancel_request(block);
+			c.add_request(block);
 
 			// the one we interrupted may need to request a new piece
 			// make sure it doesn't take over a block from the peer

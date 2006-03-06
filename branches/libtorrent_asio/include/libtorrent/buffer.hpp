@@ -49,6 +49,12 @@ public:
           , end(end)
         {}
 
+        char operator[](int index) const
+        {
+            assert(begin + index < end);
+            return begin[index];
+        }
+
         char* begin;
         char* end;
     };
@@ -59,6 +65,12 @@ public:
           : begin(begin)
           , end(end)
         {}
+
+        char operator[](int index) const
+        {
+            assert(begin + index < end);
+            return begin[index];
+        }
 
         char const* begin;
         char const* end;

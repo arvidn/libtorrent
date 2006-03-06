@@ -60,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/peer.hpp"
+#include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/identify_client.hpp"
@@ -174,7 +175,7 @@ namespace
 		
 		bool operator()(const std::pair<tcp::endpoint, peer_connection*>& p) const
 		{
-			if (p.second->get_peer_id() != id) return false;
+			if (p.second->id() != id) return false;
 			// have a special case for all zeros. We can have any number
 			// of peers with that id, since it's used to indicate no id.
 			if (std::count(id.begin(), id.end(), 0) == 20) return false;
@@ -547,8 +548,9 @@ namespace libtorrent
 		std::map<piece_block, int> downloading_piece;
 		for (const_peer_iterator i = begin(); i != end(); ++i)
 		{
+			peer_connection* pc = i->second;
 			boost::optional<piece_block_progress> p
-				= i->second->downloading_piece();
+				= pc->downloading_piece_progress();
 			if (p)
 			{
 				if (m_have_pieces[p->piece_index])
@@ -914,19 +916,18 @@ namespace libtorrent
 	peer_connection& torrent::connect_to_peer(const tcp::endpoint& a)
 	{
 		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_selector));
-		boost::intrusive_ptr<peer_connection> c(new peer_connection(
+		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
 			m_ses, this, s, a));
 
-		m_ses.m_connection_queue.push_back(c);
-
-		assert(m_connections.find(a) == m_connections.end());
-
-#ifndef NDEBUG
-		m_policy->check_invariant();
-#endif
-	
 		try
 		{
+			m_ses.m_connection_queue.push_back(c);
+
+			assert(m_connections.find(a) == m_connections.end());
+
+#ifndef NDEBUG
+			m_policy->check_invariant();
+#endif
 			// add the newly connected peer to this torrent's peer list
 			m_connections.insert(
 				std::make_pair(a, boost::get_pointer(c)));
@@ -1095,6 +1096,7 @@ namespace libtorrent
 			// metadata extension, and we have to initialize
 			init();
 		}
+
 		assert(m_storage.get());
 		return m_storage->check_fastresume(data, m_have_pieces, m_compact_mode);
 	}
@@ -1175,6 +1177,9 @@ namespace libtorrent
 #ifndef NDEBUG
 	void torrent::check_invariant() const
 	{
+		for (const_peer_iterator i = begin(); i != end(); ++i)
+			assert(i->second->associated_torrent() == this);
+
 		assert(m_num_pieces
 			== std::count(m_have_pieces.begin(), m_have_pieces.end(), true));
 		assert(m_priority >= 0.f && m_priority < 1.f);
@@ -1632,10 +1637,12 @@ namespace libtorrent
 		for (conn_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
-			if (!i->second->supports_extension(
-				peer_connection::extended_metadata_message))
+			bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(i->second);
+			if (c == 0) continue;
+			if (!c->supports_extension(
+				extended_metadata_message))
 				continue;
-			if (!i->second->has_metadata())
+			if (!c->has_metadata())
 				continue;
 			++peers;
 		}

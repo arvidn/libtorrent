@@ -30,8 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_PEER_CONNECTION_HPP_INCLUDED
-#define TORRENT_PEER_CONNECTION_HPP_INCLUDED
+#ifndef TORRENT_BT_PEER_CONNECTION_HPP_INCLUDED
+#define TORRENT_BT_PEER_CONNECTION_HPP_INCLUDED
 
 #include <ctime>
 #include <algorithm>
@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/buffer.hpp"
+#include "libtorrent/peer_connection.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/storage.hpp"
@@ -68,11 +69,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/session.hpp"
-
-// TODO: each time a block is 'taken over'
-// from another peer. That peer must be given
-// a chance to become not-interested.
 
 namespace libtorrent
 {
@@ -83,26 +79,16 @@ namespace libtorrent
 		struct session_impl;
 	}
 
-	void intrusive_ptr_add_ref(peer_connection const*);
-	void intrusive_ptr_release(peer_connection const*);	
-
-	struct TORRENT_EXPORT protocol_error: std::runtime_error
-	{
-		protocol_error(const std::string& msg): std::runtime_error(msg) {};
-	};
-
-	class TORRENT_EXPORT peer_connection
-		: public boost::noncopyable
+	class TORRENT_EXPORT bt_peer_connection
+		: public peer_connection
 	{
 	friend class invariant_access;
-	friend void intrusive_ptr_add_ref(peer_connection const*);
-	friend void intrusive_ptr_release(peer_connection const*);
 	public:
 
 		// this is the constructor where the we are the active part.
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
-		peer_connection(
+		bt_peer_connection(
 			detail::session_impl& ses
 			, torrent* t
 			, boost::shared_ptr<stream_socket> s
@@ -110,7 +96,7 @@ namespace libtorrent
 
 		// with this constructor we have been contacted and we still don't
 		// know which torrent the connection belongs to
-		peer_connection(
+		bt_peer_connection(
 			detail::session_impl& ses
 			, boost::shared_ptr<stream_socket> s);
 
@@ -118,34 +104,51 @@ namespace libtorrent
 		// with this peer connection has retrieved the meta-
 		// data. If the torrent was spawned with metadata
 		// this is called from the constructor.
-		void init();
+//		void init();
 
-		virtual ~peer_connection();
-
+		~bt_peer_connection();
+/*
 		// this adds an announcement in the announcement queue
 		// it will let the peer know that we have the given piece
 		void announce_piece(int index);
 
+		void setup_send();
+		void setup_receive();
+		
+		void fill_send_buffer();
+*/		
+		// called from the main loop when this connection has any
+		// work to do.
+
+		void on_sent(asio::error const& error
+			, std::size_t bytes_transferred);
+		void on_receive(asio::error const& error
+			, std::size_t bytes_transferred);
+		
 		// tells if this connection has data it want to send
 		// and has enough upload bandwidth quota left to send it.
-		bool can_write() const;
-		bool can_read() const;
+//		bool can_write() const;
+//		bool can_read() const;
 
-		bool is_seed() const;
+//		bool is_seed() const;
 
-		bool has_timed_out() const;
+//		bool has_timed_out() const;
 
-		// will send a keep-alive message to the peer
-		void keep_alive();
-
+/*
 		const peer_id& id() const { return m_peer_id; }
-		void set_id(const peer_id& id) { m_peer_id = id; }
 		bool has_piece(int i) const;
 
 		const std::deque<piece_block>& download_queue() const;
 		const std::deque<piece_block>& request_queue() const;
 		const std::deque<peer_request>& upload_queue() const;
-
+*/
+		// returns the block currently being
+		// downloaded. And the progress of that
+		// block. If the peer isn't downloading
+		// a piece for the moment, the boost::optional
+		// will be invalid.
+		virtual boost::optional<piece_block_progress> downloading_piece_progress() const;
+/*
 		bool is_interesting() const { return m_interesting; }
 		bool is_choked() const { return m_choked; }
 
@@ -156,7 +159,9 @@ namespace libtorrent
 		// may be zero if the connection is an incoming connection
 		// and it hasn't received enough information to determine
 		// which torrent it should be associated with
-		torrent* associated_torrent() const { return m_torrent; }
+		torrent* associated_torrent() const { return m_attached_to_torrent?m_torrent:0; }
+
+		bool verify_piece(const peer_request& p) const;
 
 		const stat& statistics() const { return m_statistics; }
 		void add_stat(size_type downloaded, size_type uploaded);
@@ -167,7 +172,8 @@ namespace libtorrent
 		boost::shared_ptr<stream_socket> get_socket() const { return m_socket; }
 		tcp::endpoint const& remote() const { return m_remote; }
 
-		std::vector<bool> const& get_bitfield() const;
+		const peer_id& get_peer_id() const { return m_peer_id; }
+		const std::vector<bool>& get_bitfield() const;
 
 		// this will cause this peer_connection to be disconnected.
 		// what it does is that it puts a reference to it in
@@ -195,15 +201,19 @@ namespace libtorrent
 		// the library isn't using up the limitation of half-open
 		// tcp connections.	
 		void connect();
+
 		
 		// This is called for every peer right after the upload
 		// bandwidth has been distributed among them
-		// It will reset the used bandwidth to 0.
+		// It will reset the used bandwidth to 0 and
+		// possibly add or remove the peer's socket
+		// from the socket monitor
 		void reset_upload_quota();
 
 		// free upload.
 		size_type total_free_upload() const;
 		void add_free_upload(size_type free_upload);
+
 
 		// trust management.
 		void received_valid_data();
@@ -212,7 +222,7 @@ namespace libtorrent
 
 		size_type share_diff() const;
 
-//		bool support_extensions() const { return m_supports_extensions; }
+		bool support_extensions() const { return m_supports_extensions; }
 
 		// a connection is local if it was initiated by us.
 		// if it was an incoming connection, it is remote
@@ -224,21 +234,12 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		boost::shared_ptr<logger> m_logger;
 #endif
-/*
-		enum extension_index
-		{
-			extended_chat_message,
-			extended_metadata_message,
-			extended_peer_exchange_message,
-			extended_listen_port_message,
-			num_supported_extensions
-		};
-
+*/
 		bool supports_extension(extension_index ex) const
 		{ return m_extension_messages[ex] != -1; }
 
 		bool has_metadata() const;
-*/
+
 		// the message handlers are called
 		// each time a recv() returns some new
 		// data, the last time it will be called
@@ -247,18 +248,18 @@ namespace libtorrent
 		// be called. i.e. most handlers need
 		// to check how much of the packet they
 		// have received before any processing
-		void incoming_keepalive();
-		void incoming_choke();
-		void incoming_unchoke();
-		void incoming_interested();
-		void incoming_not_interested();
-		void incoming_have(int piece_index);
-		void incoming_bitfield(std::vector<bool> const& bitfield);
-		void incoming_request(peer_request const& r);
-		void incoming_piece(peer_request const& p, char const* data);
-		void incoming_cancel(peer_request const& r);
-		void incoming_dht_port(int listen_port);
-/*
+		void on_keepalive();
+		void on_choke(int received);
+		void on_unchoke(int received);
+		void on_interested(int received);
+		void on_not_interested(int received);
+		void on_have(int received);
+		void on_bitfield(int received);
+		void on_request(int received);
+		void on_piece(int received);
+		void on_cancel(int received);
+		void on_dht_port(int received);
+
 		void on_extension_list(int received);
 		void on_extended(int received);
 
@@ -267,127 +268,52 @@ namespace libtorrent
 		void on_peer_exchange();
 		void on_listen_port();
 
-		typedef void (peer_connection::*message_handler)(int received);
-*/
+		typedef void (bt_peer_connection::*message_handler)(int received);
+
 		// the following functions appends messages
 		// to the send buffer
-		void send_choke();
-		void send_unchoke();
-		void send_interested();
-		void send_not_interested();
-/*
-		void send_handshake();
-		void send_extensions();
-		void send_chat_message(const std::string& msg);
-		void send_metadata(std::pair<int, int> req);
-		void send_metadata_request(std::pair<int, int> req);
-*/
-		// adds a block to the request queue
-		void add_request(piece_block const& b);
-		void cancel_request(piece_block const& b);
+		void write_choke();
+		void write_unchoke();
+		void write_interested();
+		void write_not_interested();
+		void write_request(peer_request const& r);
+		void write_cancel(peer_request const& r);
+		void write_bitfield(std::vector<bool> const& bitfield);
+		void write_have(int index);
+		void write_piece(peer_request const& r);
+		void write_handshake();
+//		void write_extensions();
+//		void write_chat_message(const std::string& msg);
+//		void write_metadata(std::pair<int, int> req);
+//		void write_metadata_request(std::pair<int, int> req);
+		void write_keepalive();
 
+/*
 		// how much bandwidth we're using, how much we want,
 		// and how much we are allowed to use.
 		resource_request m_ul_bandwidth_quota;
 		resource_request m_dl_bandwidth_quota;
-
+*/
 #ifndef NDEBUG
 		void check_invariant() const;
 		boost::posix_time::ptime m_last_choke;
 #endif
 
-		// returns the block currently being
-		// downloaded. And the progress of that
-		// block. If the peer isn't downloading
-		// a piece for the moment, the boost::optional
-		// will be invalid.
-		virtual boost::optional<piece_block_progress> downloading_piece_progress() const
-		{
-			#ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << "downloading_piece_progress() dispatched to the base class!\n";
-			#endif
-			return boost::optional<piece_block_progress>();
-		}
-
-	protected:
-
-		virtual void write_choke() = 0;
-		virtual void write_unchoke() = 0;
-		virtual void write_interested() = 0;
-		virtual void write_not_interested() = 0;
-		virtual void write_request(peer_request const& r) = 0;
-		virtual void write_cancel(peer_request const& r) = 0;
-		virtual void write_have(int index) = 0;
-		virtual void write_keepalive() = 0;
-		virtual void write_piece(peer_request const& r) = 0;
-	
-		virtual void on_receive(asio::error const& error
-			, std::size_t bytes_transferred) = 0;
-		virtual void on_sent(asio::error const& error
-			, std::size_t bytes_transferred) = 0;
-
-		void send_buffer(char const* begin, char const* end);
-		buffer::interval allocate_send_buffer(int size);
-		int send_buffer_size() const { return (int)m_send_buffer.size(); }
-
-		buffer::const_interval receive_buffer() const
-		{
-			return buffer::const_interval(&m_recv_buffer[0]
-				, &m_recv_buffer[0] + m_recv_pos);
-		}
-
-		void reset_recv_buffer(int packet_size);
-		int packet_size() const { return m_packet_size; }
-
-		bool packet_finished() const
-		{
-			assert(m_recv_pos <= m_packet_size);
-			return m_packet_size == m_recv_pos;
-		}
-
-		void setup_send();
-		void setup_receive();
-
-		void attach_to_torrent(sha1_hash const& ih);
-
-		bool verify_piece(peer_request const& p) const;
-
-		// statistics about upload and download speeds
-		// and total amount of uploads and downloads for
-		// this peer
-		stat m_statistics;
-
-		// the time when we last got a part of a
-		// piece packet from this peer
-		boost::posix_time::ptime m_last_piece;
-
-		// a back reference to the session
-		// the peer belongs to.
-		detail::session_impl& m_ses;
-
-		boost::intrusive_ptr<peer_connection> self()
-		{ return boost::intrusive_ptr<peer_connection>(this); }
-		
-		// called from the main loop when this connection has any
-		// work to do.
-		void on_send_data(asio::error const& error
-			, std::size_t bytes_transferred);
-		void on_receive_data(asio::error const& error
-			, std::size_t bytes_transferred);
-
 	private:
 
-		void fill_send_buffer();
-		void send_block_requests();
-/*
+//		void send_block_requests();
 		bool dispatch_message(int received);
 
 		// if we don't have all metadata
 		// this function will request a part of it
 		// from this peer
 		void request_metadata();
-*/
-/*
+
+		// this is called each time this peer generates some
+		// data to be sent. It will make sure the data is sent
+		// through the socket.
+//		void send_buffer_updated();
+
 		// is used during handshake
 		enum state
 		{
@@ -401,10 +327,10 @@ namespace libtorrent
 		};
 
 		state m_state;
-*/
+
 		// the timeout in seconds
 		int m_timeout;
-/*
+
 		enum message_type
 		{
 	// standard messages
@@ -426,7 +352,7 @@ namespace libtorrent
 		};
 
 		static const message_handler m_message_handler[num_supported_messages];
-*/
+/*
 		int m_packet_size;
 		int m_recv_pos;
 		std::vector<char> m_recv_buffer;
@@ -435,7 +361,7 @@ namespace libtorrent
 		// to be sent is stored until it gets
 		// consumed by send()
 		buffer m_send_buffer;
-/*
+*/
 		// this is a queue of ranges that describes
 		// where in the send buffer actual payload
 		// data is located. This is currently
@@ -456,7 +382,7 @@ namespace libtorrent
 		static bool range_below_zero(const range& r)
 		{ return r.start < 0; }
 		std::deque<range> m_payloads;
-*/
+/*
 		// timeouts
 		boost::posix_time::ptime m_last_receive;
 		boost::posix_time::ptime m_last_sent;
@@ -470,13 +396,17 @@ namespace libtorrent
 		// until the info_hash is received. Then it's
 		// set to the torrent it belongs to.
 		torrent* m_torrent;
-/*
+
 		// this is set to false until the peer_id
 		// is received from the other end. Or it is
 		// true from the start if the conenction
 		// was actively opened from our side.
 		bool m_attached_to_torrent;
-*/
+
+		// a back reference to the session
+		// the peer belongs to.
+		detail::session_impl& m_ses;
+
 		// is true if it was we that connected to the peer
 		// and false if we got an incomming connection
 		// could be considered: true = local, false = remote
@@ -504,12 +434,12 @@ namespace libtorrent
 		// case we will not try to reconnect to
 		// this peer
 		bool m_failed;
-/*
+*/
 		// this is set to true if the handshake from
 		// the peer indicated that it supports the
 		// extension protocol
 		bool m_supports_extensions;
-*/
+/*
 		// the pieces the other end have
 		std::vector<bool> m_have_piece;
 
@@ -523,6 +453,11 @@ namespace libtorrent
 		// from this peer
 		std::deque<peer_request> m_requests;
 
+		// a list of pieces that have become available
+		// and should be announced as available to
+		// the peer
+		std::vector<int> m_announce_queue;
+
 		// the blocks we have reserved in the piece
 		// picker and will send to this peer.
 		std::deque<piece_block> m_request_queue;
@@ -530,6 +465,11 @@ namespace libtorrent
 		// the queue of blocks we have requested
 		// from this peer
 		std::deque<piece_block> m_download_queue;
+
+		// statistics about upload and download speeds
+		// and total amount of uploads and downloads for
+		// this peer
+		stat m_statistics;
 
 		// the amount of data this peer has been given
 		// as free upload. This is distributed from
@@ -553,10 +493,10 @@ namespace libtorrent
 		// where blocks can be sent out of order. The default is to
 		// allow non-fifo order.
 		bool m_assume_fifo;
-/*
+*/
 		static const char* extension_names[num_supported_extensions];
 		int m_extension_messages[num_supported_extensions];
-*/
+/*
 		// the number of invalid piece-requests
 		// we have got from this peer. If the request
 		// queue gets empty, and there have been
@@ -565,6 +505,10 @@ namespace libtorrent
 		// we can then clear its download queue
 		// by sending choke, unchoke.
 		int m_num_invalid_requests;
+
+		// the time when we last got a part of a
+		// piece packet from this peer
+		boost::posix_time::ptime m_last_piece;
 
 		// this is true if this connection has been added
 		// to the list of connections that will be closed.
@@ -577,7 +521,7 @@ namespace libtorrent
 		// the time when we sent a not_interested message to
 		// this peer the last time.
 		boost::posix_time::ptime m_became_uninteresting;
-/*
+*/
 		// this is set to the current time each time we get a
 		// "I don't have metadata" message.
 		boost::posix_time::ptime m_no_metadata;
@@ -594,7 +538,7 @@ namespace libtorrent
 		// if we're waiting for a metadata request
 		// this was the request we sent
 		std::pair<int, int> m_last_metadata_request;
-*/
+/*
 		// this is true until this socket has become
 		// writable for the first time (i.e. the
 		// connection completed). While connecting
@@ -609,14 +553,14 @@ namespace libtorrent
 		// peer_connection's socket. It is false on incoming
 		// connections.
 		bool m_queued;
-/*
+*/
 		// the number of bytes of metadata we have received
 		// so far from this per, only counting the current
 		// request. Any previously finished requests
 		// that have been forwarded to the torrent object
 		// do not count.
 		int m_metadata_progress;
-*/
+/*
 		// these are true when there's a asynchronous write
 		// or read operation running.
 		bool m_writing;
@@ -627,9 +571,11 @@ namespace libtorrent
 		// corrected according to the actual number of bytes sent
 		int m_last_write_size;
 		bool m_reading;
-		int m_last_read_size;		
+		int m_last_read_size;
+		
 		// reference counter for intrusive_ptr
 		mutable int m_refs;
+*/
 	};
 }
 

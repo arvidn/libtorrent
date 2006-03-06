@@ -80,6 +80,15 @@ namespace libtorrent
 {
 	class torrent;
 
+	enum extension_index
+	{
+		extended_chat_message,
+		extended_metadata_message,
+		extended_peer_exchange_message,
+		extended_listen_port_message,
+		num_supported_extensions
+	};
+
 	namespace detail
 	{
 		// workaround for microsofts
@@ -261,7 +270,7 @@ namespace libtorrent
 
 			// the entries in this array maps the
 			// extension index (as specified in peer_connection)
-			bool m_extension_enabled[peer_connection::num_supported_extensions];
+			bool m_extension_enabled[num_supported_extensions];
 
 			bool extensions_enabled() const;
 
@@ -379,7 +388,7 @@ namespace libtorrent
 
 		session_status status() const;
 
-		void enable_extension(peer_connection::extension_index i);
+		void enable_extension(extension_index i);
 		void disable_extensions();
 
 		void set_ip_filter(ip_filter const& f);
