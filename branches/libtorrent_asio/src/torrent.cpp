@@ -374,6 +374,10 @@ namespace libtorrent
 		m_picker.reset(new piece_picker(
 			static_cast<int>(m_torrent_file.piece_length() / m_block_size)
 			, static_cast<int>((m_torrent_file.total_size()+m_block_size-1)/m_block_size)));
+
+		std::vector<std::string> const& url_seeds = m_torrent_file.url_seeds();
+		std::copy(url_seeds.begin(), url_seeds.end(), std::inserter(m_web_seeds
+			, m_web_seeds.begin()));
 	}
 
 	void torrent::use_interface(const char* net_interface)
@@ -1324,28 +1328,33 @@ namespace libtorrent
 			return;
 		}
 
+		// ---- WEB SEEDS ----
 
-		// keep trying web-seeds if there are any
-		// TODO: temporary implementation
-		std::set<std::string> web_seeds;
-		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
+		// if we're a seed, we don't need to connect to any web-seed
+		if (!is_seed())
 		{
-			if (web_peer_connection* p
-				= dynamic_cast<web_peer_connection*>(i->second))
+			// keep trying web-seeds if there are any
+			// first find out which web seeds we are connected to
+			std::set<std::string> web_seeds;
+			for (peer_iterator i = m_connections.begin();
+				i != m_connections.end(); ++i)
 			{
+				web_peer_connection* p
+					= dynamic_cast<web_peer_connection*>(i->second);
+				if (!p) continue;
 				web_seeds.insert(p->url());
 			}
-		}
 
-		std::vector<std::string> const& url_seeds = m_torrent_file.url_seeds();
-		for (std::vector<std::string>::const_iterator i = url_seeds.begin();
-			i != url_seeds.end(); ++i)
-		{
-			if (web_seeds.find(*i) != web_seeds.end()) continue;
-			connect_to_url_seed(*i);
+			// from the list of available web seeds, subtract the ones we are
+			// already connected to.
+			std::vector<std::string> not_connected_web_seeds;
+			std::set_difference(m_web_seeds.begin(), m_web_seeds.end(), web_seeds.begin()
+				, web_seeds.end(), std::back_inserter(not_connected_web_seeds));
+
+			// connect to all of those that we aren't connected to
+			std::for_each(not_connected_web_seeds.begin(), not_connected_web_seeds.end()
+				, bind(&torrent::connect_to_url_seed, this, _1));
 		}
-		
 		
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)

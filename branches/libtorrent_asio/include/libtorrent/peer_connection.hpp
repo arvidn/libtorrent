@@ -383,54 +383,10 @@ namespace libtorrent
 
 		void fill_send_buffer();
 		void send_block_requests();
-/*
-		bool dispatch_message(int received);
 
-		// if we don't have all metadata
-		// this function will request a part of it
-		// from this peer
-		void request_metadata();
-*/
-/*
-		// is used during handshake
-		enum state
-		{
-			read_protocol_length = 0,
-			read_protocol_string,
-			read_info_hash,
-			read_peer_id,
-
-			read_packet_size,
-			read_packet
-		};
-
-		state m_state;
-*/
 		// the timeout in seconds
 		int m_timeout;
-/*
-		enum message_type
-		{
-	// standard messages
-			msg_choke = 0,
-			msg_unchoke,
-			msg_interested,
-			msg_not_interested,
-			msg_have,
-			msg_bitfield,
-			msg_request,
-			msg_piece,
-			msg_cancel,
-			msg_dht_port,
-	// extension protocol message
-			msg_extension_list = 20,
-			msg_extended,
 
-			num_supported_messages
-		};
-
-		static const message_handler m_message_handler[num_supported_messages];
-*/
 		int m_packet_size;
 		int m_recv_pos;
 		std::vector<char> m_recv_buffer;
@@ -439,28 +395,6 @@ namespace libtorrent
 		// to be sent is stored until it gets
 		// consumed by send()
 		buffer m_send_buffer;
-/*
-		// this is a queue of ranges that describes
-		// where in the send buffer actual payload
-		// data is located. This is currently
-		// only used to be able to gather statistics
-		// seperately on payload and protocol data.
-		struct range
-		{
-			range(int s, int l)
-				: start(s)
-				, length(l)
-			{
-				assert(s >= 0);
-				assert(l > 0);
-			}
-			int start;
-			int length;
-		};
-		static bool range_below_zero(const range& r)
-		{ return r.start < 0; }
-		std::deque<range> m_payloads;
-*/
 		// timeouts
 		boost::posix_time::ptime m_last_receive;
 		boost::posix_time::ptime m_last_sent;
@@ -474,13 +408,6 @@ namespace libtorrent
 		// until the info_hash is received. Then it's
 		// set to the torrent it belongs to.
 		torrent* m_torrent;
-/*
-		// this is set to false until the peer_id
-		// is received from the other end. Or it is
-		// true from the start if the conenction
-		// was actively opened from our side.
-		bool m_attached_to_torrent;
-*/
 		// is true if it was we that connected to the peer
 		// and false if we got an incomming connection
 		// could be considered: true = local, false = remote
@@ -508,12 +435,7 @@ namespace libtorrent
 		// case we will not try to reconnect to
 		// this peer
 		bool m_failed;
-/*
-		// this is set to true if the handshake from
-		// the peer indicated that it supports the
-		// extension protocol
-		bool m_supports_extensions;
-*/
+
 		// the pieces the other end have
 		std::vector<bool> m_have_piece;
 
@@ -557,10 +479,7 @@ namespace libtorrent
 		// where blocks can be sent out of order. The default is to
 		// allow non-fifo order.
 		bool m_assume_fifo;
-/*
-		static const char* extension_names[num_supported_extensions];
-		int m_extension_messages[num_supported_extensions];
-*/
+
 		// the number of invalid piece-requests
 		// we have got from this peer. If the request
 		// queue gets empty, and there have been
@@ -581,24 +500,7 @@ namespace libtorrent
 		// the time when we sent a not_interested message to
 		// this peer the last time.
 		boost::posix_time::ptime m_became_uninteresting;
-/*
-		// this is set to the current time each time we get a
-		// "I don't have metadata" message.
-		boost::posix_time::ptime m_no_metadata;
 
-		// this is set to the time when we last sent
-		// a request for metadata to this peer
-		boost::posix_time::ptime m_metadata_request;
-
-		// this is set to true when we send a metadata
-		// request to this peer, and reset to false when
-		// we receive a reply to our request.
-		bool m_waiting_metadata_request;
-
-		// if we're waiting for a metadata request
-		// this was the request we sent
-		std::pair<int, int> m_last_metadata_request;
-*/
 		// this is true until this socket has become
 		// writable for the first time (i.e. the
 		// connection completed). While connecting
@@ -613,14 +515,7 @@ namespace libtorrent
 		// peer_connection's socket. It is false on incoming
 		// connections.
 		bool m_queued;
-/*
-		// the number of bytes of metadata we have received
-		// so far from this per, only counting the current
-		// request. Any previously finished requests
-		// that have been forwarded to the torrent object
-		// do not count.
-		int m_metadata_progress;
-*/
+
 		// these are true when there's a asynchronous write
 		// or read operation running.
 		bool m_writing;

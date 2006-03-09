@@ -983,6 +983,7 @@ The ``torrent_info`` has the following synopsis::
 		void set_hash(int index, sha1_hash const& h);
 		void add_tracker(std::string const& url, int tier = 0);
 		void add_file(boost::filesystem::path file, size_type size);
+		void add_url_seed(std::string const& url);
 
 		typedef std::vector<file_entry>::const_iterator file_iterator;
 		typedef std::vector<file_entry>::const_reverse_iterator
@@ -996,7 +997,12 @@ The ``torrent_info`` has the following synopsis::
 		int num_files() const;
 		file_entry const& file_at(int index) const;
 
+		std::vector<file_slice> map_block(int piece, int offset
+			, int size) const;
+
 		std::vector<announce_entry> const& trackers() const;
+
+		std::vector<std::string> const& url_seeds() const;
 
 		size_type total_size() const;
 		size_type piece_length() const;
@@ -1138,6 +1144,35 @@ If you need index-access to files you can use the ``num_files()`` and ``file_at(
 to access files using indices.
 
 
+map_block()
+-----------
+
+	::
+
+		std::vector<file_slice> map_block(int piece, int offset
+			, int size) const;
+
+This function will map a piece index, a byte offset within that piece and
+a size (in bytes) into the corresponding files with offsets where that data
+for that piece is supposed to be stored.
+
+
+url_seeds()
+-----------
+
+	::
+
+		std::vector<std::string> const& url_seeds() const;
+		void add_url_seed(std::string const& url);
+
+If there are any url-seeds in this torrent, ``url_seeds()`` will return a
+vector of those urls. If you're creating a torrent file, ``add_url_seed()``
+adds one url to the list of url-seeds. Currently, the only transport protocol
+supported for the url is http.
+
+See `url seeds`_ for more information.
+
+
 print()
 -------
 
@@ -1257,6 +1292,8 @@ Its declaration looks like this::
 
 		std::vector<announce_entry> const& trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&);
+
+		void add_url_seed(std::string const& url);
 
 		void set_ratio(float ratio) const;
 		void set_max_uploads(int max_uploads) const;
@@ -1443,6 +1480,19 @@ trackers for this torrent, you can use ``replace_trackers()`` which takes
 a list of the same form as the one returned from ``trackers()`` and will
 replace it. If you want an immediate effect, you have to call
 `force_reannounce()`_.
+
+
+add_url_seed()
+--------------
+
+	::
+
+		void add_url_seed(std::string const& url);
+
+``add_url_seed()`` adds another url to the torrent's list of url seeds. If the
+given url already exists in that list, the call has no effect. The torrent
+will connect to the server and try to download pieces from it, unless it's
+paused, queued, checking or seeding.
 
 
 use_interface()
@@ -3301,6 +3351,22 @@ Don't have metadata:
 	|           |               | metadata request if the the client     |
 	|           |               | doesn't have any metadata.             |
 	+-----------+---------------+----------------------------------------+
+
+url seeds
+---------
+
+The url seed extension implements `this specification`__. With the intention
+of supporting multi-file torrents as well. The original specification states
+that the url should point to a specific file, which is then downloaded in
+small pieces. The libtorrent implementation assumes that, if the url ends
+with a slash ('/'), the filename should be appended to it in order to request
+pieces from that file. The way this works is that if the torrent is a single-
+file torrent, only that filename is appended. If the torrent is a multi-file
+torrent, the torrent's name '/' the file name is appended. This is the same
+directory structure that libtorrent will download torrents into.
+
+
+__ http://www.getright.com/seedtorrent.html
 
 
 filename checks

@@ -162,12 +162,12 @@ namespace libtorrent
 			m_fd = ::_wopen(
 				wpath.c_str()
 				, map_open_mode(mode)
-				, S_IREAD | S_IWRITE);
+				, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 #else
 			m_fd = ::open(
 				utf8_native(path.native_file_string()).c_str()
 				, map_open_mode(mode)
-				, S_IREAD | S_IWRITE);
+				, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 #endif
 			if (m_fd == -1)
 			{

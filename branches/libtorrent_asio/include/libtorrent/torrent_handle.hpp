@@ -222,6 +222,8 @@ namespace libtorrent
 		std::vector<announce_entry> const& trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&) const;
 
+		void add_url_seed(std::string const& url);
+
 		bool has_metadata() const;
 		const torrent_info& get_torrent_info() const;
 		bool is_valid() const;
@@ -239,8 +241,6 @@ namespace libtorrent
 		bool is_piece_filtered(int index) const;
 		std::vector<bool> filtered_pieces() const;
 
-		//idea from Arvid and MooPolice
-		//todo refactoring and improving the function body
 		// marks the file with the given index as filtered
 		// it will not be downloaded
 		void filter_file(int index, bool filter) const;
@@ -253,7 +253,7 @@ namespace libtorrent
 		entry write_resume_data() const;
 
 		// kind of similar to get_torrent_info() but this
-		// is low level, returning the exact info-part of
+		// is lower level, returning the exact info-part of
 		// the .torrent file. When hashed, this buffer
 		// will produce the info hash. The reference is valid
 		// only as long as the torrent is running.

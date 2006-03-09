@@ -107,6 +107,7 @@ namespace libtorrent
 		void set_hash(int index, sha1_hash const& h);
 		void add_tracker(std::string const& url, int tier = 0);
 		void add_file(boost::filesystem::path file, size_type size);
+		void add_url_seed(std::string const& url);
 
 		std::vector<file_slice> map_block(int piece, int offset, int size) const;
 		

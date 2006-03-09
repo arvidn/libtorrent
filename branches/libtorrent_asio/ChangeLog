@@ -1,4 +1,8 @@
-	* Converted the network code to use asio
+	* changed the extensions protocol to use the new one, which is also implemented
+	  by uTorrent.
+	* factorized the peer_connection and added web_peer_connection which is
+	  able to download from http-sources. (currently only for single file torrents).
+	* converted the network code to use asio
 	* made libtorrent build in vc7 (patches from Allen Zhao)
 	* fixed bug caused when binding outgoing connections to a non-local interface.
 	* add_torrent() will now throw if called while the session object is

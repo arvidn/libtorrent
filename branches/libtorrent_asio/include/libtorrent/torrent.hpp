@@ -189,6 +189,14 @@ namespace libtorrent
 
 // --------------------------------------------
 		// PEER MANAGEMENT
+		
+		// add or remove a url that will be attempted for
+		// finding the file(s) in this torrent.
+		void add_url_seed(std::string const& url)
+		{ m_web_seeds.insert(url); }
+	
+		void remove_url_seed(std::string const& url)
+		{ m_web_seeds.erase(url); }
 
 		// used by peer_connection to attach itself to a torrent
 		// since incoming connections don't know what torrent
@@ -458,7 +466,7 @@ namespace libtorrent
 		// is optional and may be -1.
 		int m_complete;
 		int m_incomplete;
-		
+
 #ifndef NDEBUG
 	public:
 #endif
@@ -466,6 +474,8 @@ namespace libtorrent
 #ifndef NDEBUG
 	private:
 #endif
+
+		std::set<std::string> m_web_seeds;
 
 		// this is the upload and download statistics for the whole torrent.
 		// it's updated from all its peers once every second.

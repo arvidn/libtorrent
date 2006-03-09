@@ -428,6 +428,11 @@ namespace libtorrent
 
 	}
 
+	void torrent_info::add_url_seed(std::string const& url)
+	{
+		m_url_seeds.push_back(url);
+	}
+
 	void torrent_info::set_comment(char const* str)
 	{
 		m_comment = str;
@@ -546,6 +551,24 @@ namespace libtorrent
 
 		if (!m_created_by.empty())
 			dict["created by"] = m_created_by;
+			
+		if (!m_url_seeds.empty())
+		{
+			if (m_url_seeds.size() == 1)
+			{
+				dict["url-list"] = m_url_seeds.front();
+			}
+			else
+			{
+				entry& list = dict["url-list"];
+				list = entry(entry::list_t);
+				for (std::vector<std::string>::const_iterator i
+					= m_url_seeds.begin(); i != m_url_seeds.end(); ++i)
+				{
+					list.list().push_back(entry(*i));
+				}
+			}
+		}
 
 		dict["info"] = create_info_metadata();
 

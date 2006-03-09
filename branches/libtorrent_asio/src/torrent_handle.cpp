@@ -318,6 +318,14 @@ namespace libtorrent
 			, m_chk, m_info_hash, bind(&torrent::trackers, _1));
 	}
 
+	void torrent_handle::add_url_seed(std::string const& url)
+	{
+		INVARIANT_CHECK;
+
+		return call_member<void>(m_ses, m_chk, m_info_hash
+			, bind(&torrent::add_url_seed, _1, url));
+	}
+
 	void torrent_handle::replace_trackers(
 		std::vector<announce_entry> const& urls) const
 	{

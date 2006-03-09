@@ -260,11 +260,10 @@ namespace libtorrent
 		void on_cancel(int received);
 		void on_dht_port(int received);
 
-//		void on_extension_list(int received);
 		void on_extended(int received);
 
 		void on_extended_handshake();
-//		void on_chat();
+		void on_chat();
 		void on_metadata();
 		void on_peer_exchange();
 
@@ -283,18 +282,13 @@ namespace libtorrent
 		void write_piece(peer_request const& r);
 		void write_handshake();
 		void write_extensions();
-//		void write_chat_message(const std::string& msg);
+		void write_chat_message(const std::string& msg);
 		void write_metadata(std::pair<int, int> req);
 		void write_metadata_request(std::pair<int, int> req);
 		void write_keepalive();
+		void write_dht_port(int listen_port);
 		void on_connected() {}
 
-/*
-		// how much bandwidth we're using, how much we want,
-		// and how much we are allowed to use.
-		resource_request m_ul_bandwidth_quota;
-		resource_request m_dl_bandwidth_quota;
-*/
 #ifndef NDEBUG
 		void check_invariant() const;
 		boost::posix_time::ptime m_last_choke;
@@ -302,7 +296,6 @@ namespace libtorrent
 
 	private:
 
-//		void send_block_requests();
 		bool dispatch_message(int received);
 
 		// if we don't have all metadata
@@ -310,12 +303,6 @@ namespace libtorrent
 		// from this peer
 		void request_metadata();
 
-		// this is called each time this peer generates some
-		// data to be sent. It will make sure the data is sent
-		// through the socket.
-//		void send_buffer_updated();
-
-		// is used during handshake
 		enum state
 		{
 			read_protocol_length = 0,
@@ -348,23 +335,13 @@ namespace libtorrent
 			msg_cancel,
 			msg_dht_port,
 	// extension protocol message
-//			msg_extension_list = 20,
 			msg_extended = 20,
 
 			num_supported_messages
 		};
 
 		static const message_handler m_message_handler[num_supported_messages];
-/*
-		int m_packet_size;
-		int m_recv_pos;
-		std::vector<char> m_recv_buffer;
 
-		// this is the buffer where data that is
-		// to be sent is stored until it gets
-		// consumed by send()
-		buffer m_send_buffer;
-*/
 		// this is a queue of ranges that describes
 		// where in the send buffer actual payload
 		// data is located. This is currently
@@ -385,149 +362,19 @@ namespace libtorrent
 		static bool range_below_zero(const range& r)
 		{ return r.start < 0; }
 		std::deque<range> m_payloads;
-/*
-		// timeouts
-		boost::posix_time::ptime m_last_receive;
-		boost::posix_time::ptime m_last_sent;
 
-		boost::shared_ptr<stream_socket> m_socket;
-		tcp::endpoint m_remote;
-		
-		// this is the torrent this connection is
-		// associated with. If the connection is an
-		// incoming conncetion, this is set to zero
-		// until the info_hash is received. Then it's
-		// set to the torrent it belongs to.
-		torrent* m_torrent;
-
-		// this is set to false until the peer_id
-		// is received from the other end. Or it is
-		// true from the start if the conenction
-		// was actively opened from our side.
-		bool m_attached_to_torrent;
-
-		// a back reference to the session
-		// the peer belongs to.
-		detail::session_impl& m_ses;
-
-		// is true if it was we that connected to the peer
-		// and false if we got an incomming connection
-		// could be considered: true = local, false = remote
-		bool m_active;
-
-		// remote peer's id
-		peer_id m_peer_id;
-
-		// other side says that it's interested in downloading
-		// from us.
-		bool m_peer_interested;
-
-		// the other side has told us that it won't send anymore
-		// data to us for a while
-		bool m_peer_choked;
-
-		// the peer has pieces we are interested in
-		bool m_interesting;
-
-		// we have choked the upload to the peer
-		bool m_choked;
-
-		// this is set to true if the connection timed
-		// out or closed the connection. In that
-		// case we will not try to reconnect to
-		// this peer
-		bool m_failed;
-*/
 		// this is set to true if the handshake from
 		// the peer indicated that it supports the
 		// extension protocol
 		bool m_supports_extensions;
-/*
-		// the pieces the other end have
-		std::vector<bool> m_have_piece;
+		bool m_supports_dht_port;
 
-		// the number of pieces this peer
-		// has. Must be the same as
-		// std::count(m_have_piece.begin(),
-		// m_have_piece.end(), true)
-		int m_num_pieces;
-
-		// the queue of requests we have got
-		// from this peer
-		std::deque<peer_request> m_requests;
-
-		// a list of pieces that have become available
-		// and should be announced as available to
-		// the peer
-		std::vector<int> m_announce_queue;
-
-		// the blocks we have reserved in the piece
-		// picker and will send to this peer.
-		std::deque<piece_block> m_request_queue;
-		
-		// the queue of blocks we have requested
-		// from this peer
-		std::deque<piece_block> m_download_queue;
-
-		// statistics about upload and download speeds
-		// and total amount of uploads and downloads for
-		// this peer
-		stat m_statistics;
-
-		// the amount of data this peer has been given
-		// as free upload. This is distributed from
-		// peers from which we get free download
-		// this will be negative on a peer from which
-		// we get free download, and positive on peers
-		// that we give the free upload, to keep the balance.
-		size_type m_free_upload;
-
-		// for every valid piece we receive where this
-		// peer was one of the participants, we increase
-		// this value. For every invalid piece we receive
-		// where this peer was a participant, we decrease
-		// this value. If it sinks below a threshold, its
-		// considered a bad peer and will be banned.
-		int m_trust_points;
-
-		// if this is true, this peer is assumed to handle all piece
-		// requests in fifo order. All skipped blocks are re-requested
-		// immediately instead of having a looser requirement
-		// where blocks can be sent out of order. The default is to
-		// allow non-fifo order.
-		bool m_assume_fifo;
-*/
 		static const char* extension_names[num_supported_extensions];
 		// contains the indices of the extension messages for each extension
 		// supported by the other end. A value of <= 0 means that the extension
 		// is not supported.
 		int m_extension_messages[num_supported_extensions];
-/*
-		// the number of invalid piece-requests
-		// we have got from this peer. If the request
-		// queue gets empty, and there have been
-		// invalid requests, we can assume the
-		// peer is waiting for those pieces.
-		// we can then clear its download queue
-		// by sending choke, unchoke.
-		int m_num_invalid_requests;
 
-		// the time when we last got a part of a
-		// piece packet from this peer
-		boost::posix_time::ptime m_last_piece;
-
-		// this is true if this connection has been added
-		// to the list of connections that will be closed.
-		bool m_disconnecting;
-
-		// the time when this peer sent us a not_interested message
-		// the last time.
-		boost::posix_time::ptime m_became_uninterested;
-
-		// the time when we sent a not_interested message to
-		// this peer the last time.
-		boost::posix_time::ptime m_became_uninteresting;
-*/
 		// this is set to the current time each time we get a
 		// "I don't have metadata" message.
 		boost::posix_time::ptime m_no_metadata;
@@ -544,44 +391,13 @@ namespace libtorrent
 		// if we're waiting for a metadata request
 		// this was the request we sent
 		std::pair<int, int> m_last_metadata_request;
-/*
-		// this is true until this socket has become
-		// writable for the first time (i.e. the
-		// connection completed). While connecting
-		// the timeout will not be triggered. This is
-		// because windows XP SP2 may delay connection
-		// attempts, which means that the connection
-		// may not even have been attempted when the
-		// time out is reached.
-		bool m_connecting;
 
-		// This is true until connect is called on the
-		// peer_connection's socket. It is false on incoming
-		// connections.
-		bool m_queued;
-*/
 		// the number of bytes of metadata we have received
 		// so far from this per, only counting the current
 		// request. Any previously finished requests
 		// that have been forwarded to the torrent object
 		// do not count.
 		int m_metadata_progress;
-/*
-		// these are true when there's a asynchronous write
-		// or read operation running.
-		bool m_writing;
-		// this is the number of bytes sent to the socket last
-		// time it was invoked. This is compared against the
-		// bytes_transferred in the callback function that tells
-		// how much actually was sent. Then the quota can be
-		// corrected according to the actual number of bytes sent
-		int m_last_write_size;
-		bool m_reading;
-		int m_last_read_size;
-		
-		// reference counter for intrusive_ptr
-		mutable int m_refs;
-*/
 	};
 }
 
