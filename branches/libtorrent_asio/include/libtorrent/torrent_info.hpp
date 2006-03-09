@@ -65,6 +65,14 @@ namespace libtorrent
 		size_type size;
 	};
 
+
+	struct TORRENT_EXPORT file_slice
+	{
+		int file_index;
+		size_type offset;
+		size_type size;
+	};
+
 	struct TORRENT_EXPORT announce_entry
 	{
 		announce_entry(std::string const& u): url(u), tier(0) {}
@@ -99,6 +107,10 @@ namespace libtorrent
 		void set_hash(int index, sha1_hash const& h);
 		void add_tracker(std::string const& url, int tier = 0);
 		void add_file(boost::filesystem::path file, size_type size);
+
+		std::vector<file_slice> map_block(int piece, int offset, int size) const;
+		
+		std::vector<std::string> const& url_seeds() const { return m_url_seeds; }
 
 		typedef std::vector<file_entry>::const_iterator file_iterator;
 		typedef std::vector<file_entry>::const_reverse_iterator reverse_file_iterator;
@@ -152,6 +164,8 @@ namespace libtorrent
 
 		// the urls to the trackers
 		std::vector<announce_entry> m_urls;
+
+		std::vector<std::string> m_url_seeds;
 
 		// the length of one piece
 		// if this is 0, the torrent_info is

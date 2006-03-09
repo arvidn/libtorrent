@@ -279,8 +279,7 @@ namespace libtorrent
 	void torrent_info::read_torrent_info(const entry& torrent_file)
 	{
 		// extract the url of the tracker
-		entry const* i = torrent_file.find_key("announce-list");
-		if (i)
+		if (entry const* i = torrent_file.find_key("announce-list"))
 		{
 			const entry::list_type& l = i->list();
 			for (entry::list_type::const_iterator j = l.begin(); j != l.end(); ++j)
@@ -329,6 +328,26 @@ namespace libtorrent
 				+ seconds(long(torrent_file["creation date"].integer()));
 		}
 		catch (type_error) {}
+
+		// if there are any url-seeds, extract them
+		try
+		{
+			entry const& url_seeds = torrent_file["url-list"];
+			if (url_seeds.type() == entry::string_t)
+			{
+				m_url_seeds.push_back(url_seeds.string());
+			}
+			else if (url_seeds.type() == entry::list_t)
+			{
+				entry::list_type const& l = url_seeds.list();
+				for (entry::list_type::const_iterator i = l.begin();
+					i != l.end(); ++i)
+				{
+					m_url_seeds.push_back(i->string());
+				}
+			}
+		}
+		catch (type_error&) {}
 
 		// extract comment
 		if (entry const* e = torrent_file.find_key("comment.utf-8"))
@@ -583,5 +602,40 @@ namespace libtorrent
 		}
 		else
 			return piece_length();
+	}
+	
+	std::vector<file_slice> torrent_info::map_block(int piece, int offset, int size) const
+	{
+		assert(num_files() > 0);
+		std::vector<file_slice> ret;
+
+		size_type start = piece * (size_type)m_piece_length + offset;
+
+		// find the file iterator and file offset
+		// TODO: make a vector that can map piece -> file index in O(1)
+		size_type file_offset = start;
+		std::vector<file_entry>::const_iterator file_iter;
+
+		int counter = 0;
+		for (file_iter = begin_files();; ++counter, ++file_iter)
+		{
+			assert(file_iter != end_files());
+			if (file_offset < file_iter->size)
+			{
+				file_slice f;
+				f.file_index = counter;
+				f.offset = file_offset;
+				f.size = std::min(file_iter->size - file_offset, (size_type)size);
+				size -= f.size;
+				file_offset += f.size;
+				ret.push_back(f);
+			}
+			
+			assert(size >= 0);
+			if (size <= 0) break;
+
+			file_offset -= file_iter->size;
+		}
+		return ret;
 	}
 }

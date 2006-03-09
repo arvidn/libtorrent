@@ -232,9 +232,9 @@ namespace
 		}
 	};
 */	
-	struct file_entry
+	struct lru_file_entry
 	{
-		file_entry(boost::shared_ptr<file> const& f)
+		lru_file_entry(boost::shared_ptr<file> const& f)
 			: file_ptr(f)
 			, last_use(pt::second_clock::universal_time()) {}
 		mutable boost::shared_ptr<file> file_ptr;
@@ -257,7 +257,7 @@ namespace
 			path_view::iterator i = pt.find(p);
 			if (i != pt.end())
 			{
-				file_entry e = *i;
+				lru_file_entry e = *i;
 				e.last_use = pt::second_clock::universal_time();
 
 				// if you hit this assert, you probably have more than one
@@ -294,7 +294,7 @@ namespace
 */				assert(lt.size() == 1 || (i->last_use <= boost::next(i)->last_use));
 				lt.erase(i);
 			}
-			file_entry e(boost::shared_ptr<file>(new file(p, m)));
+			lru_file_entry e(boost::shared_ptr<file>(new file(p, m)));
 			e.mode = m;
 			e.key = st;
 			e.file_path = p;
@@ -334,13 +334,13 @@ namespace
 		int m_size;
 
 		typedef multi_index_container<
-			file_entry, indexed_by<
-				ordered_unique<member<file_entry, path
-					, &file_entry::file_path> >
-				, ordered_non_unique<member<file_entry, pt::ptime
-					, &file_entry::last_use> >
-				, ordered_non_unique<member<file_entry, void*
-					, &file_entry::key> >
+			lru_file_entry, indexed_by<
+				ordered_unique<member<lru_file_entry, path
+					, &lru_file_entry::file_path> >
+				, ordered_non_unique<member<lru_file_entry, pt::ptime
+					, &lru_file_entry::last_use> >
+				, ordered_non_unique<member<lru_file_entry, void*
+					, &lru_file_entry::key> >
 				> 
 			> file_set;
 		
@@ -620,6 +620,12 @@ namespace libtorrent
 
 		slot_lock lock(*m_pimpl, slot);
 
+#ifndef NDEBUG
+		std::vector<file_slice> slices
+			= m_pimpl->info.map_block(slot, offset, size);
+		assert(!slices.empty());
+#endif
+
 		size_type start = slot * (size_type)m_pimpl->info.piece_length() + offset;
 
 		// find the file iterator and file offset
@@ -641,6 +647,8 @@ namespace libtorrent
 			, file::in));
 
 		assert(file_offset < file_iter->size);
+
+		assert(slices[0].offset == file_offset);
 
 		in->seek(file_offset);
 		if (in->tell() != file_offset)
@@ -665,11 +673,23 @@ namespace libtorrent
 		size_type result = left_to_read;
 		int buf_pos = 0;
 
+#ifndef NDEBUG
+		int counter = 0;
+#endif
+
 		while (left_to_read > 0)
 		{
 			int read_bytes = left_to_read;
 			if (file_offset + read_bytes > file_iter->size)
 				read_bytes = static_cast<int>(file_iter->size - file_offset);
+
+#ifndef NDEBUG
+			assert(slices.size() > counter);
+			size_type slice_size = slices[counter].size;
+			assert(slice_size == read_bytes);
+			assert(m_pimpl->info.file_at(slices[counter].file_index).path
+				== file_iter->path);
+#endif
 
 			size_type actual_read = in->read(buf + buf_pos, read_bytes);
 
@@ -687,6 +707,9 @@ namespace libtorrent
 			if (left_to_read > 0)
 			{
 				++file_iter;
+#ifndef NDEBUG
+				++counter;
+#endif
 				path path = m_pimpl->save_path / file_iter->path;
 
 				file_offset = 0;
@@ -714,6 +737,12 @@ namespace libtorrent
 		assert(size > 0);
 
 		slot_lock lock(*m_pimpl, slot);
+		
+#ifndef NDEBUG
+		std::vector<file_slice> slices
+			= m_pimpl->info.map_block(slot, offset, size);
+		assert(!slices.empty());
+#endif
 
 		size_type start = slot * (size_type)m_pimpl->info.piece_length() + offset;
 
@@ -737,6 +766,7 @@ namespace libtorrent
 			, p, file::out | file::in);
 
 		assert(file_offset < file_iter->size);
+		assert(slices[0].offset == file_offset);
 
 		out->seek(file_offset);
 		size_type pos = out->tell();
@@ -757,7 +787,9 @@ namespace libtorrent
 		assert(left_to_write >= 0);
 
 		int buf_pos = 0;
-
+#ifndef NDEBUG
+		int counter = 0;
+#endif
 		while (left_to_write > 0)
 		{
 			int write_bytes = left_to_write;
@@ -766,6 +798,11 @@ namespace libtorrent
 				assert(file_iter->size >= file_offset);
 				write_bytes = static_cast<int>(file_iter->size - file_offset);
 			}
+
+			assert(slices.size() > counter);
+			assert(slices[counter].size == write_bytes);
+			assert(m_pimpl->info.file_at(slices[counter].file_index).path
+				== file_iter->path);
 
 			assert(buf_pos >= 0);
 			assert(write_bytes >= 0);
@@ -786,6 +823,9 @@ namespace libtorrent
 
 			if (left_to_write > 0)
 			{
+			#ifndef NDEBUG
+				++counter;
+			#endif
 				++file_iter;
 
 				assert(file_iter != m_pimpl->info.end_files());

@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cctype>
 #include <iomanip>
 #include <sstream>
-#include <boost/tuple/tuple.hpp>
 
 #include "zlib.h"
 
@@ -390,62 +389,58 @@ namespace libtorrent
 		}
 	}
 */
-	namespace
+	tuple<std::string, std::string, int, std::string>
+		parse_url_components(std::string url)
 	{
+		std::string hostname; // hostname only
+		std::string protocol; // should be http
+		int port = 80;
 
-		tuple<std::string, std::string, int, std::string>
-			parse_url_components(std::string url)
+		// PARSE URL
+		std::string::iterator start = url.begin();
+		// remove white spaces in front of the url
+		while (start != url.end() && (*start == ' ' || *start == '\t'))
+			++start;
+		std::string::iterator end
+			= std::find(url.begin(), url.end(), ':');
+		protocol = std::string(start, end);
+
+		if (end == url.end()) throw std::runtime_error("invalid url");
+		++end;
+		if (end == url.end()) throw std::runtime_error("invalid url");
+		if (*end != '/') throw std::runtime_error("invalid url");
+		++end;
+		if (end == url.end()) throw std::runtime_error("invalid url");
+		if (*end != '/') throw std::runtime_error("invalid url");
+		++end;
+		start = end;
+
+		end = std::find(start, url.end(), '/');
+		std::string::iterator port_pos
+			= std::find(start, url.end(), ':');
+
+		if (port_pos < end)
 		{
-			std::string hostname; // hostname only
-			std::string protocol; // should be http
-			int port = 80;
-
-			// PARSE URL
-			std::string::iterator start = url.begin();
-			// remove white spaces in front of the url
-			while (start != url.end() && (*start == ' ' || *start == '\t'))
-				++start;
-			std::string::iterator end
-				= std::find(url.begin(), url.end(), ':');
-			protocol = std::string(start, end);
-
-			if (end == url.end()) throw std::runtime_error("invalid url");
-			++end;
-			if (end == url.end()) throw std::runtime_error("invalid url");
-			if (*end != '/') throw std::runtime_error("invalid url");
-			++end;
-			if (end == url.end()) throw std::runtime_error("invalid url");
-			if (*end != '/') throw std::runtime_error("invalid url");
-			++end;
-			start = end;
-
-			end = std::find(start, url.end(), '/');
-			std::string::iterator port_pos
-				= std::find(start, url.end(), ':');
-
-			if (port_pos < end)
+			hostname.assign(start, port_pos);
+			++port_pos;
+			try
 			{
-				hostname.assign(start, port_pos);
-				++port_pos;
-				try
-				{
-					port = boost::lexical_cast<int>(std::string(port_pos, end));
-				}
-				catch(boost::bad_lexical_cast&)
-				{
-					throw std::runtime_error("invalid url: \"" + url
-						+ "\", port number expected");
-				}
+				port = boost::lexical_cast<int>(std::string(port_pos, end));
 			}
-			else
+			catch(boost::bad_lexical_cast&)
 			{
-				hostname.assign(start, end);
+				throw std::runtime_error("invalid url: \"" + url
+					+ "\", port number expected");
 			}
-
-			start = end;
-			return make_tuple(protocol, hostname, port
-				, std::string(start, url.end()));
 		}
+		else
+		{
+			hostname.assign(start, end);
+		}
+
+		start = end;
+		return make_tuple(protocol, hostname, port
+			, std::string(start, url.end()));
 	}
 
 	void tracker_manager::queue_request(

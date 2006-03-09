@@ -82,10 +82,10 @@ namespace libtorrent
 
 	enum extension_index
 	{
+		extended_handshake,
 		extended_chat_message,
 		extended_metadata_message,
 		extended_peer_exchange_message,
-		extended_listen_port_message,
 		num_supported_extensions
 	};
 

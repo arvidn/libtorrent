@@ -61,6 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/peer.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
+#include "libtorrent/web_peer_connection.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/identify_client.hpp"
@@ -913,8 +914,62 @@ namespace libtorrent
 #endif
 	}
 
+	peer_connection& torrent::connect_to_url_seed(std::string const& url)
+	{
+		// TODO: should be non-blocking!
+		host_resolver resolver(m_ses.m_selector);
+		host h;
+		
+		std::string protocol;
+		std::string hostname;
+		int port;
+		std::string path;
+		boost::tie(protocol, hostname, port, path)
+			= parse_url_components(url);
+
+		resolver.by_name(h, hostname);
+		tcp::endpoint a(port, h.address(0));
+
+		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_selector));
+		boost::intrusive_ptr<peer_connection> c(new web_peer_connection(
+			m_ses, this, s, a, url));
+
+		try
+		{
+			m_ses.m_connection_queue.push_back(c);
+
+			assert(m_connections.find(a) == m_connections.end());
+
+#ifndef NDEBUG
+			m_policy->check_invariant();
+#endif
+			// add the newly connected peer to this torrent's peer list
+			m_connections.insert(
+				std::make_pair(a, boost::get_pointer(c)));
+
+#ifndef NDEBUG
+			m_policy->check_invariant();
+#endif
+
+			m_ses.process_connection_queue();
+		}
+		catch (std::exception& e)
+		{
+			// TODO: post an error alert!
+			std::map<tcp::endpoint, peer_connection*>::iterator i = m_connections.find(a);
+			if (i != m_connections.end()) m_connections.erase(i);
+			m_ses.connection_failed(s, a, e.what());
+			c->disconnect();
+			throw;
+		}
+		return *c;
+	}
+
 	peer_connection& torrent::connect_to_peer(const tcp::endpoint& a)
 	{
+		if (m_connections.find(a) != m_connections.end())
+			throw protocol_error("already connected to peer");
+
 		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_selector));
 		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
 			m_ses, this, s, a));
@@ -953,12 +1008,17 @@ namespace libtorrent
 	void torrent::attach_peer(peer_connection* p)
 	{
 		assert(p != 0);
-		assert(m_connections.find(p->remote()) == m_connections.end());
 		assert(!p->is_local());
+
+		if (m_connections.find(p->remote()) != m_connections.end())
+			throw protocol_error("already connected to peer");
 
 		detail::session_impl::connection_map::iterator i
 			= m_ses.m_connections.find(p->get_socket());
-		assert(i != m_ses.m_connections.end());
+		if (i == m_ses.m_connections.end())
+		{
+			throw protocol_error("peer is not properly constructed");
+		}
 
 		// it's important that we call new_connection before
 		// the connection is added to the torrent's list.
@@ -1264,6 +1324,29 @@ namespace libtorrent
 			return;
 		}
 
+
+		// keep trying web-seeds if there are any
+		// TODO: temporary implementation
+		std::set<std::string> web_seeds;
+		for (peer_iterator i = m_connections.begin();
+			i != m_connections.end(); ++i)
+		{
+			if (web_peer_connection* p
+				= dynamic_cast<web_peer_connection*>(i->second))
+			{
+				web_seeds.insert(p->url());
+			}
+		}
+
+		std::vector<std::string> const& url_seeds = m_torrent_file.url_seeds();
+		for (std::vector<std::string>::const_iterator i = url_seeds.begin();
+			i != url_seeds.end(); ++i)
+		{
+			if (web_seeds.find(*i) != web_seeds.end()) continue;
+			connect_to_url_seed(*i);
+		}
+		
+		
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
 		{

@@ -575,6 +575,10 @@ namespace libtorrent
 			v.push_back(peer_info());
 			peer_info& p = v.back();
 
+			// TODO: make a virtual function that will let the peer_connection
+			// fill in its own info. This should also fill in a client name for the
+			// peer, so it can use the information form the extended handshake.
+
 			const stat& statistics = peer->statistics();
 			p.down_speed = statistics.download_rate();
 			p.up_speed = statistics.upload_rate();
@@ -591,6 +595,7 @@ namespace libtorrent
 			else
 				p.upload_limit = peer->m_ul_bandwidth_quota.given;
 
+			// TODO: replace upload_ceiling with download_limit!
 			if (peer->m_ul_bandwidth_quota.max == std::numeric_limits<int>::max())
 				p.upload_ceiling = -1;
 			else
@@ -617,7 +622,6 @@ namespace libtorrent
 				p.downloading_total = 0;
 			}
 
-			// TODO: make a virtual function that will let the peer_connection fill in its own info
 			p.flags = 0;
 			if (peer->is_interesting()) p.flags |= peer_info::interesting;
 			if (peer->is_choked()) p.flags |= peer_info::choked;

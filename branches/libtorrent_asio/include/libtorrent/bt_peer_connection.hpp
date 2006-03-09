@@ -221,9 +221,9 @@ namespace libtorrent
 		int trust_points() const;
 
 		size_type share_diff() const;
-
+*/
 		bool support_extensions() const { return m_supports_extensions; }
-
+/*
 		// a connection is local if it was initiated by us.
 		// if it was an incoming connection, it is remote
 		bool is_local() const { return m_active; }
@@ -236,7 +236,7 @@ namespace libtorrent
 #endif
 */
 		bool supports_extension(extension_index ex) const
-		{ return m_extension_messages[ex] != -1; }
+		{ return m_extension_messages[ex] > 0; }
 
 		bool has_metadata() const;
 
@@ -260,13 +260,13 @@ namespace libtorrent
 		void on_cancel(int received);
 		void on_dht_port(int received);
 
-		void on_extension_list(int received);
+//		void on_extension_list(int received);
 		void on_extended(int received);
 
-		void on_chat();
+		void on_extended_handshake();
+//		void on_chat();
 		void on_metadata();
 		void on_peer_exchange();
-		void on_listen_port();
 
 		typedef void (bt_peer_connection::*message_handler)(int received);
 
@@ -282,11 +282,12 @@ namespace libtorrent
 		void write_have(int index);
 		void write_piece(peer_request const& r);
 		void write_handshake();
-//		void write_extensions();
+		void write_extensions();
 //		void write_chat_message(const std::string& msg);
-//		void write_metadata(std::pair<int, int> req);
-//		void write_metadata_request(std::pair<int, int> req);
+		void write_metadata(std::pair<int, int> req);
+		void write_metadata_request(std::pair<int, int> req);
 		void write_keepalive();
+		void on_connected() {}
 
 /*
 		// how much bandwidth we're using, how much we want,
@@ -325,6 +326,8 @@ namespace libtorrent
 			read_packet_size,
 			read_packet
 		};
+		
+		std::string m_client_version;
 
 		state m_state;
 
@@ -345,8 +348,8 @@ namespace libtorrent
 			msg_cancel,
 			msg_dht_port,
 	// extension protocol message
-			msg_extension_list = 20,
-			msg_extended,
+//			msg_extension_list = 20,
+			msg_extended = 20,
 
 			num_supported_messages
 		};
@@ -495,6 +498,9 @@ namespace libtorrent
 		bool m_assume_fifo;
 */
 		static const char* extension_names[num_supported_extensions];
+		// contains the indices of the extension messages for each extension
+		// supported by the other end. A value of <= 0 means that the extension
+		// is not supported.
 		int m_extension_messages[num_supported_extensions];
 /*
 		// the number of invalid piece-requests
@@ -579,5 +585,5 @@ namespace libtorrent
 	};
 }
 
-#endif // TORRENT_PEER_CONNECTION_HPP_INCLUDED
+#endif // TORRENT_BT_PEER_CONNECTION_HPP_INCLUDED
 

@@ -162,6 +162,9 @@ namespace libtorrent
 		assert(m_torrent != 0);
 
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
+
+		if (m_torrent->ready_for_connections())
+			init();
 /*
 		// initialize the extension list to zero, since
 		// we don't know which extensions the other
@@ -1662,6 +1665,26 @@ namespace libtorrent
 			- m_statistics.total_payload_upload();
 	}
 
+	void peer_connection::cut_receive_buffer(int size, int packet_size)
+	{
+#ifndef NDEBUG
+		int prev_size = m_recv_buffer.size();
+#endif
+		assert(m_recv_buffer.size() >= size);
+
+		std::copy(m_recv_buffer.begin() + size, m_recv_buffer.begin() + m_recv_pos, m_recv_buffer.begin());
+
+		assert(m_recv_pos >= size);
+		m_recv_pos -= size;
+
+#ifndef NDEBUG
+		std::fill(m_recv_buffer.begin() + m_recv_pos, m_recv_buffer.end(), 0);
+#endif
+
+		m_packet_size = packet_size;
+		m_recv_buffer.resize(m_packet_size);
+	}
+
 	void peer_connection::second_tick()
 	{
 		INVARIANT_CHECK;
@@ -2078,7 +2101,7 @@ namespace libtorrent
 		}
 	}
 	
-	void peer_connection::on_connection_complete(asio::error const& e)
+	void peer_connection::on_connection_complete(asio::error const& e) try
 	{
 		INVARIANT_CHECK;
 		
@@ -2102,8 +2125,20 @@ namespace libtorrent
 #endif
 
 		m_connecting = false;
-		setup_receive();
 		m_ses.connection_completed(self());
+		on_connected();
+	}
+	catch (std::exception& ex)
+	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		m_ses.connection_failed(m_socket, remote(), ex.what());
+	}
+	catch (...)
+	{
+		// all exceptions should derive from std::exception
+		assert(false);
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		m_ses.connection_failed(m_socket, remote(), "connection failed for unkown reason");
 	}
 	
 	// --------------------------
@@ -2132,7 +2167,6 @@ namespace libtorrent
 
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
-//		m_ul_bandwidth_quota.used += bytes_transferred;
 		m_send_buffer.erase(bytes_transferred);
 
 		m_last_sent = second_clock::universal_time();
@@ -2145,7 +2179,6 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		m_ses.connection_failed(m_socket, remote(), e.what());
-//		disconnect();
 	}
 	catch (...)
 	{
@@ -2153,7 +2186,6 @@ namespace libtorrent
 		assert(false);
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		m_ses.connection_failed(m_socket, remote(), "connection failed for unkown reason");
-//		disconnect();
 	}
 
 

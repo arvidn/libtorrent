@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/cstdint.hpp>
+#include <boost/tuple/tuple.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -57,9 +58,51 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/buffer.hpp"
 
 namespace libtorrent
 {
+	
+	class http_parser
+	{
+	public:
+		http_parser();
+		template <class T>
+		T header(char const* key) const;
+		std::string const& protocol() const { return m_protocol; }
+		int status_code() const { return m_status_code; }
+		std::string message() const { return m_server_message; }
+		buffer::const_interval get_body();
+		bool header_finished() const { return m_state == read_body; }
+		bool finished() const { return m_finished; }
+		boost::tuple<int, int> incoming(buffer::const_interval recv_buffer);
+		int body_start() const { return m_body_start_pos; }
+	private:
+		int m_recv_pos;
+		int m_status_code;
+		std::string m_protocol;
+		std::string m_server_message;
+
+		int m_content_length;
+		enum { plain, gzip } m_content_encoding;
+
+		enum { read_status, read_header, read_body } m_state;
+
+		std::map<std::string, std::string> m_header;
+		buffer::const_interval m_recv_buffer;
+		int m_body_start_pos;
+
+		bool m_finished;
+	};
+
+	template <class T>
+	T http_parser::header(char const* key) const
+	{
+		std::map<std::string, std::string>::const_iterator i
+			= m_header.find(key);
+		if (i == m_header.end()) return T();
+		return boost::lexical_cast<T>(i->second);
+	}
 
 	class TORRENT_EXPORT http_tracker_connection: public tracker_connection
 	{

@@ -177,7 +177,9 @@ namespace libtorrent
 
 		void use_interface(const char* net_interface);
 		tcp::endpoint const& get_interface() const { return m_net_interface; }
-		peer_connection& connect_to_peer(const tcp::endpoint& a);
+		
+		peer_connection& connect_to_url_seed(std::string const& url);
+		peer_connection& connect_to_peer(tcp::endpoint const& a);
 
 		void set_ratio(float ratio)
 		{ assert(ratio >= 0.0f); m_ratio = ratio; }
@@ -199,7 +201,7 @@ namespace libtorrent
 		// called from the peer_connection destructor
 		void remove_peer(peer_connection* p);
 
-		peer_connection* connection_for(const tcp::endpoint& a)
+		peer_connection* connection_for(tcp::endpoint const& a)
 		{
 			peer_iterator i = m_connections.find(a);
 			if (i == m_connections.end()) return 0;

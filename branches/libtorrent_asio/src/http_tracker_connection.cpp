@@ -86,6 +86,148 @@ using namespace boost::posix_time;
 
 namespace libtorrent
 {
+	http_parser::http_parser()
+		: m_recv_pos(0)
+		, m_status_code(-1)
+		, m_content_length(-1)
+		, m_content_encoding(plain)
+		, m_state(read_status)
+		, m_recv_buffer(0, 0)
+		, m_finished(false)
+		, m_body_start_pos(0)
+	{}
+
+	boost::tuple<int, int> http_parser::incoming(buffer::const_interval recv_buffer)
+	{
+		m_recv_buffer = recv_buffer;
+		boost::tuple<int, int> ret(0, 0);
+
+		char const* pos = recv_buffer.begin + m_recv_pos;
+		if (m_state == read_status)
+		{
+			assert(!m_finished);
+			char const* newline = std::find(pos, recv_buffer.end, '\n');
+			// if we don't have a full line yet, wait.
+			if (newline == recv_buffer.end) return ret;
+
+			if (newline == pos)
+				throw std::runtime_error("unexpected newline in HTTP response");
+
+			std::istringstream line(std::string(pos, newline - 1));
+			++newline;
+			int incoming = (int)std::distance(pos, newline);
+			m_recv_pos += incoming;
+			boost::get<1>(ret) += incoming;
+			pos = newline;
+
+			line >> m_protocol;
+			if (m_protocol.substr(0, 5) != "HTTP/")
+			{
+				throw std::runtime_error("unknown protocol in HTTP response: "
+					+ m_protocol);
+			}
+			line >> m_status_code;
+			std::getline(line, m_server_message);
+			m_state = read_header;
+		}
+
+		if (m_state == read_header)
+		{
+			assert(!m_finished);
+			char const* newline = std::find(pos, recv_buffer.end, '\n');
+			std::string line;
+
+			while (newline != recv_buffer.end && m_state == read_header)
+			{
+				if (newline == pos)
+					throw std::runtime_error("unexpected newline in HTTP response");
+			
+				line.assign(pos, newline - 1);
+				m_recv_pos += newline - pos;
+				boost::get<1>(ret) += newline - pos;
+				pos = newline;
+
+				int separator = line.find(": ");
+				if (separator == std::string::npos)
+				{
+					++pos;
+					++m_recv_pos;
+					boost::get<1>(ret) += 1;
+					
+					m_state = read_body;
+					m_body_start_pos = m_recv_pos;
+					break;
+				}
+
+				std::string name = line.substr(0, separator);
+				std::string value = line.substr(separator + 2, std::string::npos);
+				m_header.insert(std::make_pair(name, value));
+
+				if (name == "Content-Length")
+				{
+					try
+					{
+						m_content_length = boost::lexical_cast<int>(value);
+					}
+					catch(boost::bad_lexical_cast&) {}
+				}
+				else if (name == "Content-Encoding")
+				{
+					if (value == "gzip" || value == "x-gzip")
+					{
+						m_content_encoding = gzip;
+					}
+					else
+					{
+						std::string error_str = "unknown content encoding in response: \"";
+						error_str += value;
+						error_str += "\"";
+						throw std::runtime_error(error_str);
+					}
+				}
+				// TODO: make sure we don't step outside of the buffer
+				++pos;
+				++m_recv_pos;
+				assert(m_recv_pos <= (int)recv_buffer.left());
+				newline = std::find(pos, recv_buffer.end, '\n');
+			}
+		}
+
+		if (m_state == read_body)
+		{
+			int incoming = recv_buffer.end - pos;
+			if (m_recv_pos - m_body_start_pos + incoming > m_content_length
+				&& m_content_length >= 0)
+				incoming = m_content_length - m_recv_pos + m_body_start_pos;
+
+			assert(incoming >= 0);
+			m_recv_pos += incoming;
+			boost::get<0>(ret) += incoming;
+
+			if (m_content_length >= 0
+				&& m_recv_pos - m_body_start_pos >= m_content_length)
+			{
+				m_finished = true;
+			}
+		}
+		return ret;
+	}
+	
+	buffer::const_interval http_parser::get_body()
+	{
+		char const* body_begin = m_recv_buffer.begin + m_body_start_pos;
+		char const* body_end = m_recv_buffer.begin + m_recv_pos;
+
+		m_recv_pos = 0;
+		m_body_start_pos = 0;
+		m_status_code = -1;
+		m_content_length = -1;
+		m_finished = false;
+		m_state = read_status;
+		m_header.clear();
+		
+		return buffer::const_interval(body_begin, body_end);
+	}
 
 	http_tracker_connection::http_tracker_connection(
 		demuxer& d

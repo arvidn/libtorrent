@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/weak_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/tuple/tuple.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -66,13 +67,14 @@ namespace libtorrent
 	class tracker_manager;
 	struct tracker_connection;
 
-//	tcp::endpoint parse_url(std::string const& url);
-
 	// encodes a string using the base64 scheme
 	TORRENT_EXPORT std::string base64encode(const std::string& s);
 
 	// returns -1 if gzip header is invalid or the header size in bytes
 	TORRENT_EXPORT int gzip_header(const char* buf, int size);
+
+	TORRENT_EXPORT boost::tuple<std::string, std::string, int, std::string>
+		parse_url_components(std::string url);
 
 	struct TORRENT_EXPORT tracker_request
 	{

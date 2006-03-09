@@ -35,8 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #include <limits>
 #include <boost/bind.hpp>
+#include <sstream>
 
-#include "libtorrent/bt_peer_connection.hpp"
+#include "libtorrent/web_peer_connection.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/entry.hpp"
@@ -53,52 +54,24 @@ using libtorrent::detail::session_impl;
 
 namespace libtorrent
 {
-
-	// the names of the extensions to look for in
-	// the extensions-message
-	const char* bt_peer_connection::extension_names[] =
-	{ "", "LT_chat", "LT_metadata", "LT_peer_exchange" };
-
-	const bt_peer_connection::message_handler
-	bt_peer_connection::m_message_handler[] =
-	{
-		&bt_peer_connection::on_choke,
-		&bt_peer_connection::on_unchoke,
-		&bt_peer_connection::on_interested,
-		&bt_peer_connection::on_not_interested,
-		&bt_peer_connection::on_have,
-		&bt_peer_connection::on_bitfield,
-		&bt_peer_connection::on_request,
-		&bt_peer_connection::on_piece,
-		&bt_peer_connection::on_cancel,
-		&bt_peer_connection::on_dht_port,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		&bt_peer_connection::on_extended
-	};
-
-
-	bt_peer_connection::bt_peer_connection(
+	web_peer_connection::web_peer_connection(
 		detail::session_impl& ses
 		, torrent* t
 		, shared_ptr<stream_socket> s
-		, tcp::endpoint const& remote)
+		, tcp::endpoint const& remote
+		, std::string const& url)
 		: peer_connection(ses, t, s, remote)
-		, m_state(read_protocol_length)
-		, m_supports_extensions(false)
-		, m_no_metadata(
-			boost::gregorian::date(1970, boost::date_time::Jan, 1)
-			, boost::posix_time::seconds(0))
-		, m_metadata_request(
-			boost::gregorian::date(1970, boost::date_time::Jan, 1)
-			, boost::posix_time::seconds(0))
-		, m_waiting_metadata_request(false)
-		, m_metadata_progress(0)
+		, m_url(url)
 	{
 		INVARIANT_CHECK;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << "*** bt_peer_connection\n";
+		(*m_logger) << "*** web_peer_connection\n";
 #endif
+
+		std::string protocol;
+		boost::tie(protocol, m_host, m_port, m_path)
+			= parse_url_components(url);
 /*		
 		// these numbers are used the first second of connection.
 		// then the given upload limits will be applied by running
@@ -132,7 +105,7 @@ namespace libtorrent
 		assert(m_torrent != 0);
 
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
-*/
+
 		// initialize the extension list to zero, since
 		// we don't know which extensions the other
 		// end supports yet
@@ -146,13 +119,16 @@ namespace libtorrent
 
 		// assume the other end has no pieces
 		if (associated_torrent()->ready_for_connections())
+		{
+			init();
 			write_bitfield(associated_torrent()->pieces());
-
+		}
 		setup_send();
 		setup_receive();
+*/
 	}
-
-	bt_peer_connection::bt_peer_connection(
+/*
+	web_peer_connection::web_peer_connection(
 		detail::session_impl& ses
 		, boost::shared_ptr<stream_socket> s)
 		: peer_connection(ses, s)
@@ -168,53 +144,7 @@ namespace libtorrent
 		, m_metadata_progress(0)
 	{
 		INVARIANT_CHECK;
-/*
-		m_remote = m_socket->remote_endpoint();
 
-#ifdef TORRENT_VERBOSE_LOGGING
-		assert(m_socket->remote_endpoint() == remote());
-		m_logger = m_ses.create_log(remote().address().to_string() + "_"
-			+ boost::lexical_cast<std::string>(remote().port()));
-		(*m_logger) << "*** INCOMING CONNECTION\n";
-#endif
-
-
-		// upload bandwidth will only be given to connections
-		// that are part of a torrent. Since this is an incoming
-		// connection, we have to give it some initial bandwidth
-		// to send the handshake.
-		// after one second, allocate_resources() will be called
-		// and the correct bandwidth limits will be set on all
-		// connections.
-
-		m_ul_bandwidth_quota.min = 10;
-		m_ul_bandwidth_quota.max = resource_request::inf;
-
-		if (m_ses.m_upload_rate == -1)
-		{
-			m_ul_bandwidth_quota.given = resource_request::inf;
-		}
-		else
-		{
-			// just enough to get started with the handshake and bitmask
-			m_ul_bandwidth_quota.given = 400;
-		}
-
-		m_dl_bandwidth_quota.min = 10;
-		m_dl_bandwidth_quota.max = resource_request::inf;
-	
-		if (m_ses.m_download_rate == -1)
-		{
-			m_dl_bandwidth_quota.given = resource_request::inf;
-		}
-		else
-		{
-			// just enough to get started with the handshake and bitmask
-			m_dl_bandwidth_quota.given = 400;
-		}
-
-		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
-*/
 		// initialize the extension list to zero, since
 		// we don't know which extensions the other
 		// end supports yet
@@ -229,12 +159,13 @@ namespace libtorrent
 		reset_recv_buffer(1);
 		setup_receive();
 	}
-
-	bt_peer_connection::~bt_peer_connection()
+*/
+	web_peer_connection::~web_peer_connection()
 	{
 	}
-
-	void bt_peer_connection::write_handshake()
+	
+/*
+	void web_peer_connection::write_handshake()
 	{
 		INVARIANT_CHECK;
 
@@ -288,9 +219,14 @@ namespace libtorrent
 #endif
 		setup_send();
 	}
-
-	boost::optional<piece_block_progress> bt_peer_connection::downloading_piece_progress() const
+*/
+	boost::optional<piece_block_progress>
+	web_peer_connection::downloading_piece_progress() const
 	{
+		// TODO: temporary implementation
+		return boost::optional<piece_block_progress>();
+/*
+
 		buffer::const_interval recv_buffer = receive_buffer();
 		// are we currently receiving a 'piece' message?
 		if (m_state != read_packet
@@ -306,7 +242,6 @@ namespace libtorrent
 
 		// is any of the piece message header data invalid?
 		if (!verify_piece(r))
-			return boost::optional<piece_block_progress>();
 
 		piece_block_progress p;
 
@@ -316,6 +251,7 @@ namespace libtorrent
 		p.full_block_bytes = r.length;
 
 		return boost::optional<piece_block_progress>(p);
+*/
 	}
 
 
@@ -324,8 +260,8 @@ namespace libtorrent
 	// -----------------------------
 	// --------- KEEPALIVE ---------
 	// -----------------------------
-
-	void bt_peer_connection::on_keepalive()
+/*
+	void web_peer_connection::on_keepalive()
 	{
 		INVARIANT_CHECK;
 
@@ -341,7 +277,7 @@ namespace libtorrent
 	// ----------- CHOKE -----------
 	// -----------------------------
 
-	void bt_peer_connection::on_choke(int received)
+	void web_peer_connection::on_choke(int received)
 	{
 		INVARIANT_CHECK;
 
@@ -358,7 +294,7 @@ namespace libtorrent
 	// ---------- UNCHOKE ----------
 	// -----------------------------
 
-	void bt_peer_connection::on_unchoke(int received)
+	void web_peer_connection::on_unchoke(int received)
 	{
 		INVARIANT_CHECK;
 
@@ -375,7 +311,7 @@ namespace libtorrent
 	// -------- INTERESTED ---------
 	// -----------------------------
 
-	void bt_peer_connection::on_interested(int received)
+	void web_peer_connection::on_interested(int received)
 	{
 		INVARIANT_CHECK;
 
@@ -392,7 +328,7 @@ namespace libtorrent
 	// ------ NOT INTERESTED -------
 	// -----------------------------
 
-	void bt_peer_connection::on_not_interested(int received)
+	void web_peer_connection::on_not_interested(int received)
 	{
 		INVARIANT_CHECK;
 
@@ -409,7 +345,7 @@ namespace libtorrent
 	// ----------- HAVE ------------
 	// -----------------------------
 
-	void bt_peer_connection::on_have(int received)
+	void web_peer_connection::on_have(int received)
 	{
 		INVARIANT_CHECK;
 
@@ -431,7 +367,7 @@ namespace libtorrent
 	// --------- BITFIELD ----------
 	// -----------------------------
 
-	void bt_peer_connection::on_bitfield(int received)
+	void web_peer_connection::on_bitfield(int received)
 	{
 		INVARIANT_CHECK;
 
@@ -468,7 +404,7 @@ namespace libtorrent
 	// ---------- REQUEST ----------
 	// -----------------------------
 
-	void bt_peer_connection::on_request(int received)
+	void web_peer_connection::on_request(int received)
 	{
 		INVARIANT_CHECK;
 
@@ -493,7 +429,7 @@ namespace libtorrent
 	// ----------- PIECE -----------
 	// -----------------------------
 
-	void bt_peer_connection::on_piece(int received)
+	void web_peer_connection::on_piece(int received)
 	{
 		INVARIANT_CHECK;
 
@@ -537,7 +473,7 @@ namespace libtorrent
 	// ---------- CANCEL -----------
 	// -----------------------------
 
-	void bt_peer_connection::on_cancel(int received)
+	void web_peer_connection::on_cancel(int received)
 	{
 		INVARIANT_CHECK;
 
@@ -562,7 +498,7 @@ namespace libtorrent
 	// --------- DHT PORT ----------
 	// -----------------------------
 
-	void bt_peer_connection::on_dht_port(int received)
+	void web_peer_connection::on_dht_port(int received)
 	{
 		INVARIANT_CHECK;
 
@@ -583,8 +519,9 @@ namespace libtorrent
 	// -----------------------------
 	// ------ EXTENSION LIST -------
 	// -----------------------------
+*/
 /*
-	void bt_peer_connection::on_extension_list(int received)
+	void web_peer_connection::on_extension_list(int received)
 	{
 		INVARIANT_CHECK;
 
@@ -639,8 +576,8 @@ namespace libtorrent
 	// -----------------------------
 	// --------- EXTENDED ----------
 	// -----------------------------
-
-	void bt_peer_connection::on_extended(int received)
+/*
+	void web_peer_connection::on_extended(int received)
 	{
 		INVARIANT_CHECK;
 
@@ -680,7 +617,7 @@ namespace libtorrent
 		};
 	}
 
-	void bt_peer_connection::on_extended_handshake() try
+	void web_peer_connection::on_extended_handshake() try
 	{
 		if (!packet_finished()) return;
 
@@ -744,8 +681,8 @@ namespace libtorrent
 	// -----------------------------
 	// ----------- CHAT ------------
 	// -----------------------------
-/*
-	void bt_peer_connection::on_chat()
+
+	void web_peer_connection::on_chat()
 	{
 		if (m_packet_size > 2 * 1024)
 			throw protocol_error("CHAT message larger than 2 kB");
@@ -778,12 +715,12 @@ namespace libtorrent
 		}
 		return;
 	}
-*/
+
 	// -----------------------------
 	// --------- METADATA ----------
 	// -----------------------------
 
-	void bt_peer_connection::on_metadata()
+	void web_peer_connection::on_metadata()
 	{
 		assert(associated_torrent());
 
@@ -865,7 +802,7 @@ namespace libtorrent
 	// ------ PEER EXCHANGE --------
 	// -----------------------------
 
-	void bt_peer_connection::on_peer_exchange()
+	void web_peer_connection::on_peer_exchange()
 	{
 		
 	}
@@ -874,8 +811,8 @@ namespace libtorrent
 	// ------- LISTEN PORT ---------
 	// -----------------------------
 	// LISTEN PORT extension is deprecated by the new extension handshake
-/*
-	void bt_peer_connection::on_listen_port()
+
+	void web_peer_connection::on_listen_port()
 	{
 		using namespace boost::posix_time;
 		assert(m_torrent);
@@ -904,19 +841,19 @@ namespace libtorrent
 		adr.port(port);
 		m_torrent->get_policy().peer_from_tracker(adr, m_peer_id);
 	}
-*/
-	bool bt_peer_connection::has_metadata() const
+
+	bool web_peer_connection::has_metadata() const
 	{
 		using namespace boost::posix_time;
 		return second_clock::universal_time() - m_no_metadata > minutes(5);
 	}
-/*
+
 	void close_socket(boost::shared_ptr<stream_socket> s)
 	{
 		s->close(asio::ignore_error());
 	}
 
-	void bt_peer_connection::disconnect()
+	void web_peer_connection::disconnect()
 	{
 		if (m_disconnecting) return;
 
@@ -936,8 +873,8 @@ namespace libtorrent
 		assert(m_torrent == 0);
 		m_ses.close_connection(self());
 	}
-*/
-	bool bt_peer_connection::dispatch_message(int received)
+
+	bool web_peer_connection::dispatch_message(int received)
 	{
 		INVARIANT_CHECK;
 
@@ -968,7 +905,7 @@ namespace libtorrent
 		return true;
 	}
 
-	void bt_peer_connection::write_keepalive()
+	void web_peer_connection::write_keepalive()
 	{
 		INVARIANT_CHECK;
 
@@ -976,7 +913,7 @@ namespace libtorrent
 		send_buffer(buf, buf + sizeof(buf));
 	}
 
-	void bt_peer_connection::write_cancel(peer_request const& r)
+	void web_peer_connection::write_cancel(peer_request const& r)
 	{
 		INVARIANT_CHECK;
 
@@ -999,8 +936,8 @@ namespace libtorrent
 
 		setup_send();
 	}
-/*
-	void bt_peer_connection::send_block_requests()
+
+	void web_peer_connection::send_block_requests()
 	{
 		// TODO: calculate the desired request queue each tick instead.
 		// TODO: make this constant user-settable
@@ -1069,32 +1006,86 @@ namespace libtorrent
 		send_buffer_updated();
 
 	}
-*/	
-	void bt_peer_connection::write_request(peer_request const& r)
+*/
+	void web_peer_connection::on_connected()
+	{
+		// this is always a seed
+		incoming_bitfield(std::vector<bool>(
+			associated_torrent()->torrent_file().num_pieces(), true));
+		// it is always possible to request pieces
+		incoming_unchoke();
+		
+		reset_recv_buffer(512*1024+1024);
+	}
+
+	void web_peer_connection::write_request(peer_request const& r)
 	{
 		INVARIANT_CHECK;
 
 		assert(associated_torrent()->valid_metadata());
 
-		char buf[] = {0,0,0,13, msg_request};
+		bool single_file_request = false;
+		if (!m_path.empty() && m_path[m_path.size() - 1] != '/')
+			single_file_request = true;
 
-		buffer::interval i = allocate_send_buffer(17);
+		torrent_info const& info = associated_torrent()->torrent_file();
+		
+		// TODO: for now there's only support for single file torrents.
+		// the receive function need to be able to put responses together
+		// to form a single block in order to support multi-file torrents
+		assert(info.num_files() == 1);
 
-		std::copy(buf, buf + 5, i.begin);
-		i.begin += 5;
+		std::string request;
 
-		// index
-		detail::write_int32(r.piece, i.begin);
-		// begin
-		detail::write_int32(r.start, i.begin);
-		// length
-		detail::write_int32(r.length, i.begin);
-		assert(i.begin == i.end);
+		if (single_file_request)
+		{
+			request += "GET ";
+			request += m_path;
+			request += " HTTP/1.1\r\n";
+			request += "Accept-Encoding: gzip\r\n";
+			request += "Host: ";
+			request += m_host;
+			request += "\r\nUser-Agent: ";
+			request += m_ses.m_http_settings.user_agent;
+			request += "\r\nRange: bytes=";
+			request += boost::lexical_cast<std::string>(r.piece
+				* info.piece_length() + r.start);
+			request += "-";
+			request += boost::lexical_cast<std::string>(r.piece
+				* info.piece_length() + r.start + r.length - 1);
+			request += "\r\nConnection: keep-alive\r\n\r\n";
+		}
+		else
+		{
+			std::vector<file_slice> files = info.map_block(r.piece, r.start
+				, r.length);
 
-		setup_send();
+			for (std::vector<file_slice>::iterator i = files.begin();
+				i != files.end(); ++i)
+			{
+				file_slice const& f = *i;
+
+				request += "GET ";
+				request += m_path;
+				request += info.file_at(f.file_index).path.string();
+				request += " HTTP/1.1\r\n";
+				request += "Accept-Encoding: gzip\r\n";
+				request += "Host: ";
+				request += m_host;
+				request += "\r\nUser-Agent: ";
+				request += m_ses.m_http_settings.user_agent;
+				request += "\r\nRange: bytes=";
+				request += boost::lexical_cast<std::string>(f.offset);
+				request += "-";
+				request += boost::lexical_cast<std::string>(f.offset + f.size - 1);
+				request += "\r\nConnection: keep-alive\r\n\r\n";
+			}
+		}
+
+		send_buffer(request.c_str(), request.c_str() + request.size());
 	}
-
-	void bt_peer_connection::write_metadata(std::pair<int, int> req)
+/*
+	void web_peer_connection::write_metadata(std::pair<int, int> req)
 	{
 		assert(req.first >= 0);
 		assert(req.second > 0);
@@ -1144,7 +1135,7 @@ namespace libtorrent
 		setup_send();
 	}
 
-	void bt_peer_connection::write_metadata_request(std::pair<int, int> req)
+	void web_peer_connection::write_metadata_request(std::pair<int, int> req)
 	{
 		assert(req.first >= 0);
 		assert(req.second > 0);
@@ -1179,8 +1170,8 @@ namespace libtorrent
 		assert(i.begin == i.end);
 		setup_send();
 	}
-/*
-	void bt_peer_connection::write_chat_message(const std::string& msg)
+
+	void web_peer_connection::write_chat_message(const std::string& msg)
 	{
 		INVARIANT_CHECK;
 
@@ -1203,8 +1194,8 @@ namespace libtorrent
 		assert(i.begin == i.end);
 		send_buffer_updated();
 	}
-*/
-	void bt_peer_connection::write_bitfield(std::vector<bool> const& bitfield)
+
+	void web_peer_connection::write_bitfield(std::vector<bool> const& bitfield)
 	{
 		INVARIANT_CHECK;
 
@@ -1239,7 +1230,7 @@ namespace libtorrent
 		setup_send();
 	}
 
-	void bt_peer_connection::write_extensions()
+	void web_peer_connection::write_extensions()
 	{
 		INVARIANT_CHECK;
 
@@ -1284,8 +1275,8 @@ namespace libtorrent
 		setup_send();
 	}
 
-/*
-	void bt_peer_connection::write_extensions()
+
+	void web_peer_connection::write_extensions()
 	{
 		INVARIANT_CHECK;
 
@@ -1323,8 +1314,8 @@ namespace libtorrent
 
 		setup_send();
 	}
-*/
-	void bt_peer_connection::write_choke()
+
+	void web_peer_connection::write_choke()
 	{
 		INVARIANT_CHECK;
 
@@ -1333,7 +1324,7 @@ namespace libtorrent
 		send_buffer(msg, msg + sizeof(msg));
 	}
 
-	void bt_peer_connection::write_unchoke()
+	void web_peer_connection::write_unchoke()
 	{
 		INVARIANT_CHECK;
 
@@ -1341,7 +1332,7 @@ namespace libtorrent
 		send_buffer(msg, msg + sizeof(msg));
 	}
 
-	void bt_peer_connection::write_interested()
+	void web_peer_connection::write_interested()
 	{
 		INVARIANT_CHECK;
 
@@ -1349,7 +1340,7 @@ namespace libtorrent
 		send_buffer(msg, msg + sizeof(msg));
 	}
 
-	void bt_peer_connection::write_not_interested()
+	void web_peer_connection::write_not_interested()
 	{
 		INVARIANT_CHECK;
 
@@ -1357,7 +1348,7 @@ namespace libtorrent
 		send_buffer(msg, msg + sizeof(msg));
 	}
 
-	void bt_peer_connection::write_have(int index)
+	void web_peer_connection::write_have(int index)
 	{
 		assert(associated_torrent()->valid_metadata());
 		assert(index >= 0);
@@ -1370,8 +1361,8 @@ namespace libtorrent
 		detail::write_int32(index, ptr);
 		send_buffer(msg, msg + packet_size);
 	}
-/*
-	size_type bt_peer_connection::share_diff() const
+
+	size_type web_peer_connection::share_diff() const
 	{
 		float ratio = associated_torrent()->ratio();
 
@@ -1385,7 +1376,7 @@ namespace libtorrent
 			- m_statistics.total_payload_upload();
 	}
 
-	void bt_peer_connection::second_tick()
+	void web_peer_connection::second_tick()
 	{
 		INVARIANT_CHECK;
 
@@ -1539,7 +1530,7 @@ namespace libtorrent
 
 	}
 
-	void bt_peer_connection::fill_send_buffer()
+	void web_peer_connection::fill_send_buffer()
 	{
 		if (!can_write()) return;
 
@@ -1598,8 +1589,8 @@ namespace libtorrent
 			}
 		}
 	}
-*/
-	void bt_peer_connection::write_piece(peer_request const& r)
+
+	void web_peer_connection::write_piece(peer_request const& r)
 	{
 		const int packet_size = 4 + 5 + 4 + r.length;
 
@@ -1618,8 +1609,8 @@ namespace libtorrent
 		m_payloads.push_back(range(send_buffer_size() - r.length, r.length));
 		setup_send();
 	}
-/*
-	void bt_peer_connection::setup_send()
+
+	void web_peer_connection::setup_send()
 	{
 		assert(!m_writing);
 
@@ -1647,14 +1638,14 @@ namespace libtorrent
 
 			assert(m_ul_bandwidth_quota.left() >= int(buffer_size(bufs[0]) + buffer_size(bufs[1])));
 			assert(can_write());
-			m_socket->async_write_some(bufs, bind(&bt_peer_connection::on_send_data
+			m_socket->async_write_some(bufs, bind(&web_peer_connection::on_send_data
 				, self(), _1, _2));
 			m_writing = true;
 			m_last_write_size = amount_to_send;
 		}
 	}
 
-	void bt_peer_connection::setup_receive()
+	void web_peer_connection::setup_receive()
 	{
 		if (m_reading) return;
 		if (!can_read()) return;
@@ -1671,7 +1662,7 @@ namespace libtorrent
 
 		assert(can_read());
 		m_socket->async_read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
-			, max_receive), bind(&bt_peer_connection::on_receive_data, self(), _1, _2));
+			, max_receive), bind(&web_peer_connection::on_receive_data, self(), _1, _2));
 		m_reading = true;
 		m_last_read_size = max_receive;
 		m_dl_bandwidth_quota.used += max_receive;
@@ -1684,15 +1675,52 @@ namespace libtorrent
 	// --------------------------
 
 	// throws exception when the client should be disconnected
-	void bt_peer_connection::on_receive(const asio::error& error
+	void web_peer_connection::on_receive(const asio::error& error
 		, std::size_t bytes_transferred)
 	{
 		INVARIANT_CHECK;
 
-		if (error) return;
-	
-		buffer::const_interval recv_buffer = receive_buffer();
-	
+		if (error)
+		{
+			return;
+		}
+
+		m_last_piece = boost::posix_time::second_clock::universal_time();
+
+		for (;;)
+		{
+			buffer::const_interval recv_buffer = receive_buffer();
+			int payload;
+			int protocol;
+			boost::tie(payload, protocol) = m_parser.incoming(recv_buffer);
+			m_statistics.received_bytes(payload, protocol);
+
+			if (m_parser.status_code() != 206 && m_parser.status_code() != -1)
+				throw std::runtime_error("HTTP server does not support byte range requests");
+
+			if (!m_parser.finished()) break;
+
+			peer_request r;
+//			std::string debug = m_parser.header<std::string>("Content-Range");
+			std::stringstream range_str(m_parser.header<std::string>("Content-Range"));
+			size_type range_start;
+			size_type range_end;
+			char dummy;
+			std::string bytes;
+			range_str >> bytes >> range_start >> dummy >> range_end;
+			if (!range_str)
+				throw std::runtime_error("invalid range in HTTP response: " + range_str.str());
+
+			torrent_info const& info = associated_torrent()->torrent_file();
+
+			r.piece = range_start / info.piece_length();
+			r.start = range_start - r.piece * info.piece_length();
+			r.length = range_end - range_start + 1;
+			buffer::const_interval http_body = m_parser.get_body();
+			incoming_piece(r, http_body.begin);
+			cut_receive_buffer(http_body.end - recv_buffer.begin, 512*1024+1024);
+		}
+/*
 		switch(m_state)
 		{
 		case read_protocol_length:
@@ -1861,13 +1889,7 @@ namespace libtorrent
 					
 			// TODO: support extension
 //			if (m_supports_extensions) write_extensions();
-/*
-			if (!m_active)
-			{
-				m_attached_to_torrent = true;
-				assert(m_torrent->get_policy().has_connection(this));
-			}
-*/
+
 			m_state = read_packet_size;
 			reset_recv_buffer(4);
 		}
@@ -1914,10 +1936,11 @@ namespace libtorrent
 		break;
 
 		}
+*/
 	}
 
 /*
-	bool bt_peer_connection::can_write() const
+	bool web_peer_connection::can_write() const
 	{
 		// if we have requests or pending data to be sent or announcements to be made
 		// we want to send data
@@ -1927,12 +1950,12 @@ namespace libtorrent
 			&& !m_connecting;
 	}
 
-	bool bt_peer_connection::can_read() const
+	bool web_peer_connection::can_read() const
 	{
 		return m_dl_bandwidth_quota.left() > 0 && !m_connecting;
 	}
 
-	void bt_peer_connection::connect()
+	void web_peer_connection::connect()
 	{
 		INVARIANT_CHECK;
 
@@ -1946,7 +1969,7 @@ namespace libtorrent
 		m_socket->open(asio::ipv4::tcp());
 		m_socket->bind(associated_torrent()->get_interface());
 		m_socket->async_connect(m_remote
-			, bind(&bt_peer_connection::on_connection_complete, self(), _1));
+			, bind(&web_peer_connection::on_connection_complete, self(), _1));
 
 		if (m_torrent->alerts().should_post(alert::debug))
 		{
@@ -1955,7 +1978,7 @@ namespace libtorrent
 		}
 	}
 	
-	void bt_peer_connection::on_connection_complete(asio::error const& e)
+	void web_peer_connection::on_connection_complete(asio::error const& e)
 	{
 		INVARIANT_CHECK;
 		
@@ -1988,13 +2011,13 @@ namespace libtorrent
 	// --------------------------
 
 	// throws exception when the client should be disconnected
-	void bt_peer_connection::on_sent(asio::error const& error
+	void web_peer_connection::on_sent(asio::error const& error
 		, std::size_t bytes_transferred)
 	{
 		INVARIANT_CHECK;
 
 		if (error) return;
-
+/*
 		// manage the payload markers
 		int amount_payload = 0;
 		if (!m_payloads.empty())
@@ -2026,12 +2049,13 @@ namespace libtorrent
 			, m_payloads.end());
 
 		assert(amount_payload <= (int)bytes_transferred);
-		m_statistics.sent_bytes(amount_payload, bytes_transferred - amount_payload);
+*/
+		m_statistics.sent_bytes(0, bytes_transferred);
 	}
 
 
 #ifndef NDEBUG
-	void bt_peer_connection::check_invariant() const
+	void web_peer_connection::check_invariant() const
 	{
 /*
 		assert(m_num_pieces == std::count(
@@ -2041,7 +2065,7 @@ namespace libtorrent
 */	}
 #endif
 /*
-	bool bt_peer_connection::has_timed_out() const
+	bool web_peer_connection::has_timed_out() const
 	{
 		using namespace boost::posix_time;
 
@@ -2078,7 +2102,7 @@ namespace libtorrent
 	}
 
 
-	void bt_peer_connection::keep_alive()
+	void web_peer_connection::keep_alive()
 	{
 		INVARIANT_CHECK;
 
@@ -2111,7 +2135,7 @@ namespace libtorrent
 		send_buffer_updated();
 	}
 
-	bool bt_peer_connection::is_seed() const
+	bool web_peer_connection::is_seed() const
 	{
 		// if m_num_pieces == 0, we probably doesn't have the
 		// metadata yet.

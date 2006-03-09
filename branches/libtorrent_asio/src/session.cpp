@@ -177,7 +177,7 @@ namespace libtorrent { namespace detail
 						peer_id id;
 						std::fill(id.begin(), id.end(), 0);
 						for (std::vector<tcp::endpoint>::const_iterator i = t->peers.begin();
-								i != t->peers.end(); ++i)
+							i != t->peers.end(); ++i)
 						{
 							t->torrent_ptr->get_policy().peer_from_tracker(*i, id);
 						}
@@ -200,7 +200,7 @@ namespace libtorrent { namespace detail
 					}
 				}
 			}
-			catch(const std::exception& e)
+			catch (const std::exception& e)
 			{
 				// This will happen if the storage fails to initialize
 				session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
@@ -439,7 +439,7 @@ namespace libtorrent { namespace detail
 			*i = printable[rand() % (sizeof(printable)-1)];
 		}
 		// this says that we support the extensions
-		std::memcpy(&m_peer_id[17], "ext", 3);
+//		std::memcpy(&m_peer_id[17], "ext", 3);
 		m_timer.expires_from_now(boost::posix_time::seconds(1));
 		m_timer.async_wait(bind(&session_impl::second_tick, this, _1));
 	}
@@ -564,11 +564,22 @@ namespace libtorrent { namespace detail
 				&& m_half_open_limit > 0)
 				return;
 
-			connection_queue::value_type& c = m_connection_queue.front();
-			m_half_open.insert(std::make_pair(c->get_socket(), c));
-			assert(c->associated_torrent());
-			c->connect();
-			m_connection_queue.pop_front();
+			connection_queue::value_type c = m_connection_queue.front();
+
+			try
+			{
+				m_connection_queue.pop_front();
+				assert(c->associated_torrent());
+				c->connect();
+				m_half_open.insert(std::make_pair(c->get_socket(), c));
+			}
+			catch (std::exception& e)
+			{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+				(*m_logger) << "connect failed [" << c->remote() << "]: "
+					<< e.what() << "\n";
+#endif
+			}
 		}
 	}
 
@@ -581,7 +592,7 @@ namespace libtorrent { namespace detail
 	}
 
 	void session_impl::on_incoming_connection(shared_ptr<stream_socket> const& s
-		, weak_ptr<socket_acceptor> const& listen_socket, asio::error const& e)
+		, weak_ptr<socket_acceptor> const& listen_socket, asio::error const& e) try
 	{
 		async_accept();
 		mutex_t::scoped_lock l(m_mutex);
@@ -626,10 +637,21 @@ namespace libtorrent { namespace detail
 
 		m_connections.insert(std::make_pair(s, c));
 	}
+	catch (std::exception& exc)
+	{
+#ifndef NDEBUG
+		std::string err = exc.what();
+#endif
+	}
 	
 	void session_impl::connection_failed(boost::shared_ptr<stream_socket> const& s
 		, tcp::endpoint const& a, char const* message)
+#ifndef NDEBUG
+		try
+#endif
 	{
+		mutex_t::scoped_lock l(m_mutex);
+
 		connection_map::iterator p = m_connections.find(s);
 
 		// the connection may have been disconnected in the receive or send phase
@@ -675,9 +697,17 @@ namespace libtorrent { namespace detail
 			}
 		}
 	}
+#ifndef NDEBUG
+	catch (...)
+	{
+		assert(false);
+	}
+#endif
 
 	void session_impl::close_connection(boost::intrusive_ptr<peer_connection> const& p)
 	{
+		mutex_t::scoped_lock l(m_mutex);
+
 		assert(p->is_disconnecting());
 		if (p->is_connecting())
 		{
@@ -822,7 +852,11 @@ namespace libtorrent { namespace detail
 		}
 	}
 
-	void session_impl::connection_completed(boost::intrusive_ptr<peer_connection> const& p)
+	void session_impl::connection_completed(
+		boost::intrusive_ptr<peer_connection> const& p)
+#ifndef NDEBUG
+		try
+#endif
 	{
 		if (m_abort) return;
 
@@ -833,6 +867,12 @@ namespace libtorrent { namespace detail
 		m_half_open.erase(i);
 		process_connection_queue();
 	}
+#ifndef NDEBUG
+	catch (std::exception& e)
+	{
+		assert(false);
+	}
+#endif
 
 	void session_impl::operator()()
 	{
@@ -1066,8 +1106,8 @@ namespace libtorrent
 		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_extension_enabled[i] = true;
 
-		// this says that we support the extensions
-		std::memcpy(&m_impl.m_peer_id[17], "ext", 3);
+//		// this says that we support the extensions
+//		std::memcpy(&m_impl.m_peer_id[17], "ext", 3);
 	}
 
 	std::vector<torrent_handle> session::get_torrents()
