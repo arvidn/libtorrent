@@ -128,7 +128,12 @@ asio/include/asio/ipv4/tcp.hpp \
 asio/include/asio/ipv4/udp.hpp \
 asio/include/asio/ipv4/detail/host_resolver_service.hpp \
 asio/include/asio/ipv4/detail/socket_option.hpp \
-asio/include/asio/ipv6/socket_option.hpp \
+asio/include/asio/ipv6/address.hpp \
+asio/include/asio/ipv6/basic_endpoint.hpp \
+asio/include/asio/ipv6/multicast.hpp \
+asio/include/asio/ipv6/tcp.hpp \
+asio/include/asio/ipv6/udp.hpp \
+asio/include/asio/ipv6/detail/socket_option.hpp \
 asio/include/asio/ssl/basic_context.hpp \
 asio/include/asio/ssl/context.hpp \
 asio/include/asio/ssl/context_base.hpp \

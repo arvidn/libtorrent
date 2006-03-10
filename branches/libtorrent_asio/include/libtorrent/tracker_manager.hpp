@@ -193,13 +193,13 @@ namespace libtorrent
 		
 	private:
 
+		typedef boost::recursive_mutex mutex_t;
+		mutex_t m_mutex;
+
 		typedef std::list<boost::intrusive_ptr<tracker_connection> >
 			tracker_connections_t;
 		tracker_connections_t m_connections;
 		const http_settings& m_settings;
-		
-		typedef boost::recursive_mutex mutex_t;
-		mutex_t m_mutex;
 	};
 }
 
