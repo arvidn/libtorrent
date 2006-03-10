@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/asio.hpp>
+#include <asio.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)

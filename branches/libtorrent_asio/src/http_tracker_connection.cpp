@@ -239,7 +239,7 @@ namespace libtorrent
 		, boost::weak_ptr<request_callback> c
 		, const http_settings& stn
 		, std::string const& auth)
-		: tracker_connection(c)
+		: tracker_connection(man, c)
 		, m_man(man)
 		, m_state(read_status)
 		, m_content_encoding(plain)

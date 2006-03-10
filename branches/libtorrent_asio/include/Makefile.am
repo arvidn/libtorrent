@@ -1,7 +1,6 @@
 pkginclude_HEADERS = libtorrent/alert.hpp \
 libtorrent/alert_types.hpp \
 libtorrent/allocate_resources.hpp \
-libtorrent/async_gethostbyname.hpp \
 libtorrent/bencode.hpp \
 libtorrent/buffer.hpp \
 libtorrent/config.hpp \
@@ -19,6 +18,8 @@ libtorrent/io.hpp \
 libtorrent/ip_filter.hpp \
 libtorrent/peer.hpp \
 libtorrent/peer_connection.hpp \
+libtorrent/bt_peer_connection.hpp \
+libtorrent/web_peer_connection.hpp \
 libtorrent/peer_id.hpp \
 libtorrent/peer_info.hpp \
 libtorrent/peer_request.hpp \

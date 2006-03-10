@@ -57,12 +57,16 @@ namespace libtorrent
 	void intrusive_ptr_add_ref(peer_connection const* c)
 	{
 		assert(c->m_refs >= 0);
+		assert(c != 0);
+		detail::session_impl::mutex_t::scoped_lock l(c->m_ses.m_mutex);
 		++c->m_refs;
 	}
 
 	void intrusive_ptr_release(peer_connection const* c)
 	{
 		assert(c->m_refs > 0);
+		assert(c != 0);
+		detail::session_impl::mutex_t::scoped_lock l(c->m_ses.m_mutex);
 		--c->m_refs;
 		if (c->m_refs == 0)
 			delete c;
@@ -312,7 +316,6 @@ namespace libtorrent
 		}
 #endif
 		{
-			session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 			m_disconnecting = true;
 			if (m_torrent)
 			{

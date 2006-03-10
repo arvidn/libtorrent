@@ -18,5 +18,5 @@ test_storage_LDADD = $(top_builddir)/src/libtorrent.la
 
 noinst_HEADERS = test.hpp
 
-AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@ @PTHREAD_CFLAGS@
+AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/asio/include @DEBUGFLAGS@ @PTHREAD_CFLAGS@
 AM_LDFLAGS= -L./ -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -l@BOOST_THREAD_LIB@ @PTHREAD_LIBS@ 

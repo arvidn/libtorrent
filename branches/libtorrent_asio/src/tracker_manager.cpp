@@ -75,54 +75,6 @@ namespace
 
 namespace libtorrent
 {
-/*
-	tcp::endpoint parse_url(std::string const& url)
-	{
-		std::string hostname; // hostname only
-		int port = 80;
-
-		// PARSE URL
-		std::string::const_iterator start = url.begin();
-		std::string::const_iterator end
-			= std::find(url.begin(), url.end(), ':');
-
-		while ((*start == ' ' || *start == '\t') && start != end) ++start;
-		
-		if (end == url.end()) throw std::runtime_error("invalid url: \"" + url + "\"");
-		++end;
-		if (end == url.end()) throw std::runtime_error("invalid url: \"" + url + "\"");
-		if (*end != '/') throw std::runtime_error("invalid url: \"" + url + "\"");
-		++end;
-		if (end == url.end()) throw std::runtime_error("invalid url: \"" + url + "\"");
-		if (*end != '/') throw std::runtime_error("invalid url: \"" + url + "\"");
-		++end;
-		start = end;
-
-		end = std::find(start, url.end(), '/');
-		std::string::const_iterator port_pos
-			= std::find(start, url.end(), ':');
-
-		if (port_pos < end)
-		{
-			hostname.assign(start, port_pos);
-			++port_pos;
-			try
-			{
-				port = boost::lexical_cast<int>(std::string(port_pos, end));
-			}
-			catch(boost::bad_lexical_cast&)
-			{
-				throw std::runtime_error("invalid url: \"" + url + "\"");
-			}
-		}
-		else
-		{
-			hostname.assign(start, end);
-		}
-
-		return tcp::endpoint(hostname.c_str(), port);
-	}
-*/
 	// returns -1 if gzip header is invalid or the header size in bytes
 	int gzip_header(const char* buf, int size)
 	{
@@ -333,13 +285,17 @@ namespace libtorrent
 
 	void intrusive_ptr_add_ref(tracker_connection const* c)
 	{
+		assert(c != 0);
 		assert(c->m_refs >= 0);
+		tracker_manager::mutex_t::scoped_lock l(c->m_manager.m_mutex);
 		++c->m_refs;
 	}
 
 	void intrusive_ptr_release(tracker_connection const* c)
 	{
+		assert(c != 0);
 		assert(c->m_refs > 0);
+		tracker_manager::mutex_t::scoped_lock l(c->m_manager.m_mutex);
 		--c->m_refs;
 		if (c->m_refs == 0)
 			delete c;
@@ -354,7 +310,7 @@ namespace libtorrent
 
 	void tracker_manager::remove_request(tracker_connection const* c)
 	{
-		boost::mutex::scoped_lock l(m_mutex);
+		mutex_t::scoped_lock l(m_mutex);
 
 		tracker_connections_t::iterator i = std::find(m_connections.begin()
 			, m_connections.end(), boost::intrusive_ptr<const tracker_connection>(c));
@@ -363,32 +319,6 @@ namespace libtorrent
 		m_connections.erase(i);
 	}
 	
-/*
-	void tracker_manager::tick()
-	{
-		tracker_connections_t::iterator i;
-		for (i = m_connections.begin(); i != m_connections.end();)
-		{
-			boost::shared_ptr<tracker_connection>& c = *i;
-			try
-			{
-				if (!c->tick())
-				{
-					++i;
-					continue;
-				}
-			}
-			catch (const std::exception& e)
-			{
-				if (c->has_requester())
-					c->requester().tracker_request_error(c->tracker_req()
-						, -1, e.what());
-			}
-			if (c->has_requester()) c->requester().m_manager = 0;
-			i = m_connections.erase(i);
-		}
-	}
-*/
 	tuple<std::string, std::string, int, std::string>
 		parse_url_components(std::string url)
 	{
@@ -449,7 +379,7 @@ namespace libtorrent
 		, std::string const& auth
 		, boost::weak_ptr<request_callback> c)
 	{
-		boost::mutex::scoped_lock l(m_mutex);
+		mutex_t::scoped_lock l(m_mutex);
 		assert(req.num_want >= 0);
 		if (req.event == tracker_request::stopped)
 			req.num_want = 0;
@@ -506,27 +436,12 @@ namespace libtorrent
 		}
 	}
 
-/*
-	void tracker_manager::abort_request(request_callback* c)
-	{
-		assert(c != 0);
-		tracker_connections_t::iterator i;
-		for (i = m_connections.begin(); i != m_connections.end(); ++i)
-		{
-			if ((*i)->requester() == c)
-			{
-				m_connections.erase(i);
-				break;
-			}
-		}
-	}
-*/
 	void tracker_manager::abort_all_requests()
 	{
 		// removes all connections from m_connections
 		// except those with a requester == 0 (since those are
 		// 'event=stopped'-requests)
-		boost::mutex::scoped_lock l(m_mutex);
+		mutex_t::scoped_lock l(m_mutex);
 
 		tracker_connections_t keep_connections;
 
@@ -540,15 +455,4 @@ namespace libtorrent
 
 		std::swap(m_connections, keep_connections);
 	}
-/*
-	bool tracker_manager::send_finished() const
-	{
-		for (tracker_connections_t::const_iterator i =
-				m_connections.begin(); i != m_connections.end(); ++i)
-		{
-			if (!(*i)->send_finished()) return false;
-		}
-		return true;
-	}
-*/
 }

@@ -80,7 +80,7 @@ namespace libtorrent
 		, unsigned short port
 		, boost::weak_ptr<request_callback> c
 		, const http_settings& stn)
-		: tracker_connection(c)
+		: tracker_connection(man, c)
 		, m_man(man)
 		, m_name_lookup(d)
 		, m_port(port)

@@ -69,8 +69,13 @@ __ extension_protocol.html
 __ udp_tracker_protocol.html
 
 
-libtorrent is portable at least among Windows, MacOS X and other UNIX-systems. It uses Boost.Thread,
-Boost.Filesystem, Boost.Date_time and various other boost libraries as well as zlib.
+libtorrent is portable at least among Windows, MacOS X and other UNIX-systems.
+It uses Boost.Thread, Boost.Filesystem, Boost.Date_time and various other
+boost libraries as well as zlib_ (shipped) and asio_ (shipped). At least version
+1.33.1 of boost is required.
+
+.. _zlib: http://www.zlib.org
+.. _asio: http://asio.sf.net
 
 libtorrent has been successfully compiled and tested on:
 
@@ -3345,15 +3350,13 @@ url seeds
 ---------
 
 The url seed extension implements `this specification`__. With the intention
-of supporting multi-file torrents as well. The original specification states
-that the url should point to a specific file, which is then downloaded in
-small pieces. The libtorrent implementation assumes that, if the url ends
-with a slash ('/'), the filename should be appended to it in order to request
-pieces from that file. The way this works is that if the torrent is a single-
-file torrent, only that filename is appended. If the torrent is a multi-file
-torrent, the torrent's name '/' the file name is appended. This is the same
-directory structure that libtorrent will download torrents into.
-
+of supporting multi-file torrents as well (not fully implemented yet).
+The libtorrent implementation assumes that, if the url ends with a slash
+('/'), the filename should be appended to it in order to request pieces from
+that file. The way this works is that if the torrent is a single-file torrent,
+only that filename is appended. If the torrent is a multi-file torrent, the
+torrent's name '/' the file name is appended. This is the same directory
+structure that libtorrent will download torrents into.
 
 __ http://www.getright.com/seedtorrent.html
 

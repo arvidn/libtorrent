@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
-#include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 #include <boost/tuple/tuple.hpp>
 
 #ifdef _MSC_VER
@@ -154,12 +154,13 @@ namespace libtorrent
 		friend void intrusive_ptr_add_ref(tracker_connection const*);
 		friend void intrusive_ptr_release(tracker_connection const*);
 
-		tracker_connection(boost::weak_ptr<request_callback> r)
+		tracker_connection(tracker_manager& man
+			, boost::weak_ptr<request_callback> r)
 			: m_requester(r)
 			, m_refs(0)
+			, m_manager(man)
 		{}
 
-//		virtual bool send_finished() const = 0;
 		bool has_requester() const { return !m_requester.expired(); }
 		request_callback& requester();
 		virtual ~tracker_connection() {}
@@ -168,10 +169,13 @@ namespace libtorrent
 		boost::weak_ptr<request_callback> m_requester;
 	private:
 		mutable int m_refs;
+		tracker_manager& m_manager;
 	};
 
 	class TORRENT_EXPORT tracker_manager: boost::noncopyable
 	{
+		friend void intrusive_ptr_add_ref(tracker_connection const*);
+		friend void intrusive_ptr_release(tracker_connection const*);
 	public:
 
 		tracker_manager(const http_settings& s)
@@ -184,7 +188,6 @@ namespace libtorrent
 			, boost::weak_ptr<request_callback> c
 				= boost::weak_ptr<request_callback>());
 		void abort_all_requests();
-//		bool send_finished() const;
 
 		void remove_request(tracker_connection const*);
 		
@@ -194,7 +197,9 @@ namespace libtorrent
 			tracker_connections_t;
 		tracker_connections_t m_connections;
 		const http_settings& m_settings;
-		boost::mutex m_mutex;
+		
+		typedef boost::recursive_mutex mutex_t;
+		mutex_t m_mutex;
 	};
 }
 
