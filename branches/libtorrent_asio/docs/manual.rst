@@ -1156,6 +1156,22 @@ This function will map a piece index, a byte offset within that piece and
 a size (in bytes) into the corresponding files with offsets where that data
 for that piece is supposed to be stored.
 
+The file slice struct looks like this::
+
+	struct file_slice
+	{
+		int file_index;
+		size_type offset;
+		size_type size;
+	};
+
+
+The ``file_index`` refers to the index of the file (in the torrent_info).
+To get the path and filename, use ``file_at()`` and give the ``file_index``
+as argument. The ``offset`` is the byte offset in the file where the range
+starts, and ``size`` is the number of bytes this range is. The size + offset
+will never be greater than the file size.
+
 
 url_seeds()
 -----------
@@ -1857,7 +1873,7 @@ It contains the following fields::
 			queued = 0x80
 		};
 		unsigned int flags;
-		address ip;
+		asio::ipv4::tcp::endpoint ip;
 		float up_speed;
 		float down_speed;
 		float payload_up_speed;
@@ -1868,7 +1884,7 @@ It contains the following fields::
 		std::vector<bool> pieces;
 		bool seed;
 		int upload_limit;
-		int upload_ceiling;
+		int download_limit;
 
 		size_type load_balancing;
 
@@ -1879,6 +1895,8 @@ It contains the following fields::
 		int downloading_block_index;
 		int downloading_progress;
 		int downloading_total;
+
+		std::string client;
 	};
 
 The ``flags`` attribute tells you in which state the peer is. It is set to
@@ -1898,7 +1916,7 @@ any combination of the enums above. The following table describes each flag:
 +-------------------------+-------------------------------------------------------+
 | ``local_connection``    | The connection was initiated by us, the peer has a    |
 |                         | listen port open, and that port is the same as in the |
-|                         | address_ of this peer. If this flag is not set, this  |
+|                         | address of this peer. If this flag is not set, this   |
 |                         | peer connection was opened by this peer connecting to |
 |                         | us.                                                   |
 +-------------------------+-------------------------------------------------------+
@@ -1912,8 +1930,10 @@ any combination of the enums above. The following table describes each flag:
 
 __ extension_protocol.html
 
-The ``ip`` field is the IP-address to this peer. Its type is a wrapper around the
-actual address and the port number. See address_ class.
+The ``ip`` field is the IP-address to this peer. The type is an asio endpoint. For
+more info, see the asio_ documentation.
+
+.. _asio: http://asio.sf.net
 
 ``up_speed`` and ``down_speed`` contains the current upload and download speed
 we have to and from this peer (including any protocol messages). The transfer rates
@@ -1938,9 +1958,8 @@ or if the peer miss that piece (set to false).
 peer every second. It may be -1 if there's no limit. The upload limits of all peers
 should sum up to the upload limit set by ``session::set_upload_limit``.
 
-``upload_ceiling`` is the current maximum allowed upload rate given the cownload
-rate and share ratio. If the global upload rate is inlimited, the ``upload_limit``
-for every peer will be the same as their ``upload_ceiling``.
+``download_limit`` is the number of bytes per second this peer is allowed to
+receive. -1 means it's unlimited.
 
 ``load_balancing`` is a measurment of the balancing of free download (that we get)
 and free upload that we give. Every peer gets a certain amount of free upload, but
@@ -1963,43 +1982,11 @@ block (or sub-piece) that is being downloaded. ``downloading_progress`` is the n
 of bytes of this block we have received from the peer, and ``downloading_total`` is
 the total number of bytes in this block.
 
-
-
-address
-=======
-
-The ``address`` class represents a name of a network endpoint (usually referred to as
-IP-address) and a port number. This is the same thing as a ``sockaddr_in`` would contain.
-Its declaration looks like this::
-
-	class address
-	{
-	public:
-		address();
-		address(unsigned char a
-			, unsigned char b
-			, unsigned char c
-			, unsigned char d
-			, unsigned short  port);
-		address(unsigned int addr, unsigned short port);
-		address(const std::string& addr, unsigned short port);
-		address(const address& a);
-		~address();
-
-		std::string as_string() const;
-		unsigned int ip() const;
-		unsigned short port() const;
-
-		bool operator<(const address& a) const;
-		bool operator!=(const address& a) const;
-		bool operator==(const address& a) const;
-	};
-
-It is less-than comparable to make it possible to use it as a key in a map. ``as_string()`` may block
-while it does the DNS lookup, it returns a string that points to the address represented by the object.
-
-``ip()`` will return the 32-bit ip-address as an integer. ``port()`` returns the port number.
-
+``client`` is a string describing the software at the other end of the connection.
+In some cases this information is not available, then it will contain a string
+that may give away something about which software is running in the other end.
+In the case of a web seed, the server type and version will be a part of this
+string.
 
 
 http_settings
@@ -2058,6 +2045,8 @@ ip_filter
 The ``ip_filter`` class is a set of rules that uniquely categorizes all
 ip addresses as allowed or disallowed. The default constructor creates
 a single rule that allowes all addresses (0.0.0.0 - 255.255.255.255).
+The ``address`` type here is ``asio::ipv4::address``. It can also be
+accessed as ``libtorrent::address``.
 
 	::
 
@@ -2553,12 +2542,12 @@ to the torrent that this peer was a member of.
 	struct peer_ban_alert: alert
 	{
 		peer_ban_alert(
-			address const& pip
+			asio::ipv4::tcp::endpoint const& pip
 			, torrent_handle h
 			, const std::string& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
-		address ip;
+		asio::ipv4::tcp::endpoint ip;
 		torrent_handle handle;
 	};
 
@@ -2575,12 +2564,12 @@ is generated as severity level ``debug``.
 	struct peer_error_alert: alert
 	{
 		peer_error_alert(
-			address const& pip
+			asio::ipv4::tcp::endpoint const& pip
 			, peer_id const& pid
 			, const std::string& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
-		address ip;
+		asio::ipv4::tcp::endpoint ip;
 		peer_id id;
 	};
 
@@ -2600,13 +2589,13 @@ is a handle to the torrent the peer is a member of. ``ìp`` is the address of the
 		invalid_request_alert(
 			peer_request const& r
 			, torrent_handle const& h
-			, address const& send
+			, asio::ipv4::tcp::endpoint const& send
 			, peer_id const& pid
 			, std::string const& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
 		torrent_handle handle;
-		address ip;
+		asio::ipv4::tcp::endpoint ip;
 		peer_request request;
 		peer_id id;
 	};

@@ -169,6 +169,66 @@ namespace libtorrent
 		setup_send();
 	}
 
+	void bt_peer_connection::get_peer_info(peer_info& p) const
+	{
+		assert(associated_torrent() != 0);
+
+		p.down_speed = statistics().download_rate();
+		p.up_speed = statistics().upload_rate();
+		p.payload_down_speed = statistics().download_payload_rate();
+		p.payload_up_speed = statistics().upload_payload_rate();
+		p.id = id();
+		p.ip = remote();
+
+		p.total_download = statistics().total_payload_download();
+		p.total_upload = statistics().total_payload_upload();
+
+		if (m_ul_bandwidth_quota.given == std::numeric_limits<int>::max())
+			p.upload_limit = -1;
+		else
+			p.upload_limit = m_ul_bandwidth_quota.given;
+
+		if (m_dl_bandwidth_quota.given == std::numeric_limits<int>::max())
+			p.download_limit = -1;
+		else
+			p.download_limit = m_dl_bandwidth_quota.given;
+
+		p.load_balancing = total_free_upload();
+
+		p.download_queue_length = (int)download_queue().size();
+		p.upload_queue_length = (int)upload_queue().size();
+
+		if (boost::optional<piece_block_progress> ret = downloading_piece_progress())
+		{
+			p.downloading_piece_index = ret->piece_index;
+			p.downloading_block_index = ret->block_index;
+			p.downloading_progress = ret->bytes_downloaded;
+			p.downloading_total = ret->full_block_bytes;
+		}
+		else
+		{
+			p.downloading_piece_index = -1;
+			p.downloading_block_index = -1;
+			p.downloading_progress = 0;
+			p.downloading_total = 0;
+		}
+
+		p.flags = 0;
+		if (is_interesting()) p.flags |= peer_info::interesting;
+		if (is_choked()) p.flags |= peer_info::choked;
+		if (is_peer_interested()) p.flags |= peer_info::remote_interested;
+		if (has_peer_choked()) p.flags |= peer_info::remote_choked;
+		if (support_extensions()) p.flags |= peer_info::supports_extensions;
+		if (is_local()) p.flags |= peer_info::local_connection;
+		if (is_connecting() && !is_queued()) p.flags |= peer_info::connecting;
+		if (is_queued()) p.flags |= peer_info::queued;
+		
+		p.pieces = get_bitfield();
+		p.seed = is_seed();
+		
+		p.client = m_client_version;
+	}
+
 	void bt_peer_connection::write_handshake()
 	{
 		INVARIANT_CHECK;
@@ -1279,6 +1339,8 @@ namespace libtorrent
 			peer_id pid;
 			std::copy(recv_buffer.begin, recv_buffer.begin + 20, (char*)pid.begin());
 			set_id(pid);
+			
+			m_client_version = identify_client(pid);
 
 			// disconnect if the peer has the same peer-id as ourself
 			// since it most likely is ourself then

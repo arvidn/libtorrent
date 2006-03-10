@@ -100,23 +100,8 @@ namespace libtorrent
 			detail::session_impl& ses
 			, boost::shared_ptr<stream_socket> s);
 
-		// this function is called once the torrent associated
-		// with this peer connection has retrieved the meta-
-		// data. If the torrent was spawned with metadata
-		// this is called from the constructor.
-//		void init();
-
 		~bt_peer_connection();
-/*
-		// this adds an announcement in the announcement queue
-		// it will let the peer know that we have the given piece
-		void announce_piece(int index);
 
-		void setup_send();
-		void setup_receive();
-		
-		void fill_send_buffer();
-*/		
 		// called from the main loop when this connection has any
 		// work to do.
 
@@ -125,116 +110,10 @@ namespace libtorrent
 		void on_receive(asio::error const& error
 			, std::size_t bytes_transferred);
 		
-		// tells if this connection has data it want to send
-		// and has enough upload bandwidth quota left to send it.
-//		bool can_write() const;
-//		bool can_read() const;
+		virtual void get_peer_info(peer_info& p) const;
 
-//		bool is_seed() const;
-
-//		bool has_timed_out() const;
-
-/*
-		const peer_id& id() const { return m_peer_id; }
-		bool has_piece(int i) const;
-
-		const std::deque<piece_block>& download_queue() const;
-		const std::deque<piece_block>& request_queue() const;
-		const std::deque<peer_request>& upload_queue() const;
-*/
-		// returns the block currently being
-		// downloaded. And the progress of that
-		// block. If the peer isn't downloading
-		// a piece for the moment, the boost::optional
-		// will be invalid.
-		virtual boost::optional<piece_block_progress> downloading_piece_progress() const;
-/*
-		bool is_interesting() const { return m_interesting; }
-		bool is_choked() const { return m_choked; }
-
-		bool is_peer_interested() const { return m_peer_interested; }
-		bool has_peer_choked() const { return m_peer_choked; }
-
-		// returns the torrent this connection is a part of
-		// may be zero if the connection is an incoming connection
-		// and it hasn't received enough information to determine
-		// which torrent it should be associated with
-		torrent* associated_torrent() const { return m_attached_to_torrent?m_torrent:0; }
-
-		bool verify_piece(const peer_request& p) const;
-
-		const stat& statistics() const { return m_statistics; }
-		void add_stat(size_type downloaded, size_type uploaded);
-
-		// is called once every second by the main loop
-		void second_tick();
-
-		boost::shared_ptr<stream_socket> get_socket() const { return m_socket; }
-		tcp::endpoint const& remote() const { return m_remote; }
-
-		const peer_id& get_peer_id() const { return m_peer_id; }
-		const std::vector<bool>& get_bitfield() const;
-
-		// this will cause this peer_connection to be disconnected.
-		// what it does is that it puts a reference to it in
-		// m_ses.m_disconnect_peer list, which will be scanned in the
-		// mainloop to disconnect peers.
-		void disconnect();
-		bool is_disconnecting() const { return m_disconnecting; }
-
-		// this is called when the connection attempt has succeeded
-		// and the peer_connection is supposed to set m_connecting
-		// to false, and stop monitor writability
-		void on_connection_complete(asio::error const& e);
-
-		// returns true if this connection is still waiting to
-		// finish the connection attempt
-		bool is_connecting() const { return m_connecting; }
-
-		// returns true if the socket of this peer hasn't been
-		// attempted to connect yet (i.e. it's queued for
-		// connection attempt).
-		bool is_queued() const { return m_queued; }
-	
-		// called when it's time for this peer_conncetion to actually
-		// initiate the tcp connection. This may be postponed until
-		// the library isn't using up the limitation of half-open
-		// tcp connections.	
-		void connect();
-
-		
-		// This is called for every peer right after the upload
-		// bandwidth has been distributed among them
-		// It will reset the used bandwidth to 0 and
-		// possibly add or remove the peer's socket
-		// from the socket monitor
-		void reset_upload_quota();
-
-		// free upload.
-		size_type total_free_upload() const;
-		void add_free_upload(size_type free_upload);
-
-
-		// trust management.
-		void received_valid_data();
-		void received_invalid_data();
-		int trust_points() const;
-
-		size_type share_diff() const;
-*/
 		bool support_extensions() const { return m_supports_extensions; }
-/*
-		// a connection is local if it was initiated by us.
-		// if it was an incoming connection, it is remote
-		bool is_local() const { return m_active; }
 
-		void set_failed() { m_failed = true; }
-		bool failed() const { return m_failed; }
-
-#ifdef TORRENT_VERBOSE_LOGGING
-		boost::shared_ptr<logger> m_logger;
-#endif
-*/
 		bool supports_extension(extension_index ex) const
 		{ return m_extension_messages[ex] > 0; }
 
@@ -297,6 +176,12 @@ namespace libtorrent
 	private:
 
 		bool dispatch_message(int received);
+		// returns the block currently being
+		// downloaded. And the progress of that
+		// block. If the peer isn't downloading
+		// a piece for the moment, the boost::optional
+		// will be invalid.
+		boost::optional<piece_block_progress> downloading_piece_progress() const;
 
 		// if we don't have all metadata
 		// this function will request a part of it

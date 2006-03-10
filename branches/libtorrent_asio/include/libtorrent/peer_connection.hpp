@@ -296,12 +296,15 @@ namespace libtorrent
 		boost::posix_time::ptime m_last_choke;
 #endif
 
+		virtual void get_peer_info(peer_info& p) const = 0;
+
 		// returns the block currently being
 		// downloaded. And the progress of that
 		// block. If the peer isn't downloading
 		// a piece for the moment, the boost::optional
 		// will be invalid.
-		virtual boost::optional<piece_block_progress> downloading_piece_progress() const
+		virtual boost::optional<piece_block_progress>
+		downloading_piece_progress() const
 		{
 			#ifdef TORRENT_VERBOSE_LOGGING
 				(*m_logger) << "downloading_piece_progress() dispatched to the base class!\n";

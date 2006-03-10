@@ -284,7 +284,7 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 		}
 		else
 		{
-			out << " " << identify_client(i->id) << "\n";
+			out << " " << i->client << "\n";
 		}
 	}
 }

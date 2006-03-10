@@ -582,66 +582,8 @@ namespace libtorrent
 
 			v.push_back(peer_info());
 			peer_info& p = v.back();
-
-			// TODO: make a virtual function that will let the peer_connection
-			// fill in its own info. This should also fill in a client name for the
-			// peer, so it can use the information form the extended handshake.
-
-			const stat& statistics = peer->statistics();
-			p.down_speed = statistics.download_rate();
-			p.up_speed = statistics.upload_rate();
-			p.payload_down_speed = statistics.download_payload_rate();
-			p.payload_up_speed = statistics.upload_payload_rate();
-			p.id = peer->id();
-			p.ip = peer->remote();
-
-			p.total_download = statistics.total_payload_download();
-			p.total_upload = statistics.total_payload_upload();
-
-			if (peer->m_ul_bandwidth_quota.given == std::numeric_limits<int>::max())
-				p.upload_limit = -1;
-			else
-				p.upload_limit = peer->m_ul_bandwidth_quota.given;
-
-			// TODO: replace upload_ceiling with download_limit!
-			if (peer->m_ul_bandwidth_quota.max == std::numeric_limits<int>::max())
-				p.upload_ceiling = -1;
-			else
-				p.upload_ceiling = peer->m_ul_bandwidth_quota.given;
-
-			p.load_balancing = peer->total_free_upload();
-
-			p.download_queue_length = (int)peer->download_queue().size();
-			p.upload_queue_length = (int)peer->upload_queue().size();
-
-			boost::optional<piece_block_progress> ret = peer->downloading_piece_progress();
-			if (ret)
-			{
-				p.downloading_piece_index = ret->piece_index;
-				p.downloading_block_index = ret->block_index;
-				p.downloading_progress = ret->bytes_downloaded;
-				p.downloading_total = ret->full_block_bytes;
-			}
-			else
-			{
-				p.downloading_piece_index = -1;
-				p.downloading_block_index = -1;
-				p.downloading_progress = 0;
-				p.downloading_total = 0;
-			}
-
-			p.flags = 0;
-			if (peer->is_interesting()) p.flags |= peer_info::interesting;
-			if (peer->is_choked()) p.flags |= peer_info::choked;
-			if (peer->is_peer_interested()) p.flags |= peer_info::remote_interested;
-			if (peer->has_peer_choked()) p.flags |= peer_info::remote_choked;
-//			if (peer->support_extensions()) p.flags |= peer_info::supports_extensions;
-			if (peer->is_local()) p.flags |= peer_info::local_connection;
-			if (peer->is_connecting() && !peer->is_queued()) p.flags |= peer_info::connecting;
-			if (peer->is_queued()) p.flags |= peer_info::queued;
 			
-			p.pieces = peer->get_bitfield();
-			p.seed = peer->is_seed();
+			peer->get_peer_info(p);
 		}
 	}
   

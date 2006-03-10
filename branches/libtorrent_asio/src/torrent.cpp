@@ -920,7 +920,7 @@ namespace libtorrent
 
 	peer_connection& torrent::connect_to_url_seed(std::string const& url)
 	{
-		// TODO: should be non-blocking!
+		// TODO: should be non-blocking!!
 		host_resolver resolver(m_ses.m_selector);
 		host h;
 		

@@ -66,8 +66,8 @@ namespace libtorrent
 		peer_id id;
 		std::vector<bool> pieces;
 		bool seed; // true if this is a seed
-		int upload_limit; // from peer_connection
-		int upload_ceiling; // from the global upload limiter
+		int upload_limit;
+		int download_limit;
 
 		size_type load_balancing;
 
@@ -89,6 +89,8 @@ namespace libtorrent
 		int downloading_block_index;
 		int downloading_progress;
 		int downloading_total;
+		
+		std::string client;
 	};
 
 }

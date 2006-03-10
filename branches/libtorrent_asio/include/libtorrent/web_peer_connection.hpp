@@ -110,13 +110,8 @@ namespace libtorrent
 			
 		std::string const& url() const { return m_url; }
 		
-		// returns the block currently being
-		// downloaded. And the progress of that
-		// block. If the peer isn't downloading
-		// a piece for the moment, the boost::optional
-		// will be invalid.
-		virtual boost::optional<piece_block_progress> downloading_piece_progress() const;
-
+		virtual void get_peer_info(peer_info& p) const;
+		
 		// the following functions appends messages
 		// to the send buffer
 		void write_choke() {}
@@ -137,6 +132,14 @@ namespace libtorrent
 
 	private:
 
+		// returns the block currently being
+		// downloaded. And the progress of that
+		// block. If the peer isn't downloading
+		// a piece for the moment, the boost::optional
+		// will be invalid.
+		boost::optional<piece_block_progress> downloading_piece_progress() const;
+
+		std::string m_server_string;
 		http_parser m_parser;
 		std::string m_host;
 		int m_port;
