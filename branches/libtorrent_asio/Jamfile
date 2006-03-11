@@ -34,8 +34,18 @@ project torrent
 	<library>/boost/filesystem//boost_filesystem/<link>static
 	<library>/boost/date_time//boost_date_time/<link>static
 	<threading>multi
+	<toolset>msvc:<define>_WIN32_WINNT=0x0500
+# this define makes sure the win32 socket api is used
+# instead of win16
+	<toolset>msvc:<define>WIN32
+# without this define there will be conflicts between
+# winsock.h and winsock2.h
+	<toolset>msvc:<define>WIN32_LEAN_AND_MEAN
 	<toolset>msvc:<cxxflags>/Zc:wchar_t
 	<toolset>msvc:<cxxflags>/Zc:forScope
+# this should be defined when libtorrent is built as
+# a dll. It will make sure the functions and classes
+# are exported (GCC 4 and msvc)
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 
 	: usage-requirements 
