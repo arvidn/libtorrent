@@ -145,8 +145,8 @@ namespace libtorrent
 		, request_callback* requester
 		, int maximum_tracker_response_length);
 
-	void intrusive_ptr_add_ref(tracker_connection const*);
-	void intrusive_ptr_release(tracker_connection const*);
+	TORRENT_EXPORT void intrusive_ptr_add_ref(tracker_connection const*);
+	TORRENT_EXPORT void intrusive_ptr_release(tracker_connection const*);
 
 	struct TORRENT_EXPORT tracker_connection
 		: boost::noncopyable

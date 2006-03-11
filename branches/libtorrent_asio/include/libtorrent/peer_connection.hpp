@@ -83,8 +83,8 @@ namespace libtorrent
 		struct session_impl;
 	}
 
-	void intrusive_ptr_add_ref(peer_connection const*);
-	void intrusive_ptr_release(peer_connection const*);	
+	TORRENT_EXPORT void intrusive_ptr_add_ref(peer_connection const*);
+	TORRENT_EXPORT void intrusive_ptr_release(peer_connection const*);	
 
 	struct TORRENT_EXPORT protocol_error: std::runtime_error
 	{

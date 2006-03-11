@@ -648,7 +648,7 @@ namespace libtorrent
 				file_slice f;
 				f.file_index = counter;
 				f.offset = file_offset;
-				f.size = std::min(file_iter->size - file_offset, (size_type)size);
+				f.size = (std::min)(file_iter->size - file_offset, (size_type)size);
 				size -= f.size;
 				file_offset += f.size;
 				ret.push_back(f);
