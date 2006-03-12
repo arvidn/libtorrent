@@ -1204,7 +1204,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		assert(c.is_disconnecting());
+//		assert(c.is_disconnecting());
 		bool unchoked = false;
 
 		std::vector<peer>::iterator i = std::find_if(

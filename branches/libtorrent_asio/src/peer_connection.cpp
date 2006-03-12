@@ -58,7 +58,6 @@ namespace libtorrent
 	{
 		assert(c->m_refs >= 0);
 		assert(c != 0);
-		detail::session_impl::mutex_t::scoped_lock l(c->m_ses.m_mutex);
 		++c->m_refs;
 	}
 
@@ -66,7 +65,6 @@ namespace libtorrent
 	{
 		assert(c->m_refs > 0);
 		assert(c != 0);
-		detail::session_impl::mutex_t::scoped_lock l(c->m_ses.m_mutex);
 		--c->m_refs;
 		if (c->m_refs == 0)
 			delete c;
@@ -315,14 +313,9 @@ namespace libtorrent
 				<< " *** CONNECTION CLOSED\n";
 		}
 #endif
-		{
-			m_disconnecting = true;
-			if (m_torrent)
-			{
-				m_torrent->remove_peer(this);
-				m_torrent = 0;
-			}
-		}
+#ifndef NDEBUG
+		if (m_torrent) assert(m_torrent->connection_for(remote()) != this);
+#endif
 	}
 
 	void peer_connection::announce_piece(int index)

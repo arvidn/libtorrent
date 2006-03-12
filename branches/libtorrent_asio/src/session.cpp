@@ -450,44 +450,7 @@ namespace libtorrent { namespace detail
 		return std::find(m_extension_enabled
 			, m_extension_enabled + n, true) != m_extension_enabled + n;
 	}
-/*
-	void session_impl::purge_connections()
-	{
-		while (!m_disconnect_peer.empty())
-		{
-			boost::intrusive_ptr<peer_connection>& p = m_disconnect_peer.back();
-			assert(p->is_disconnecting());
-			if (p->is_connecting())
-			{
-				// Since this peer is still connecting, will not be
-				// in the list of completed connections.
-				connection_map::iterator i = m_half_open.find(p->get_socket());
-				if (i == m_half_open.end())
-				{
-					// this connection is not in the half-open list, so it
-					// has to be in the queue, waiting to be connected.
-					connection_queue::iterator j = std::find(
-						m_connection_queue.begin(), m_connection_queue.end(), p);
-						
-					assert(j != m_connection_queue.end());
-					if (j != m_connection_queue.end()) m_connection_queue.erase(j);
-				}
-				else
-				{
-					m_half_open.erase(i);
-					process_connection_queue();
-				}
-			}
-			else
-			{
-				connection_map::iterator i = m_connections.find(p->get_socket());
-				assert(i != m_connections.end());
-				if (i != m_connections.end()) m_connections.erase(i);
-			}
-			m_disconnect_peer.pop_back();
-		}
-	}
-*/
+
 	void session_impl::open_listen_port()
 	{
 		try
@@ -670,6 +633,8 @@ namespace libtorrent { namespace detail
 			(*p->second->m_logger) << "*** CONNECTION FAILED " << message << "\n";
 #endif
 			p->second->set_failed();
+			if (p->second->associated_torrent())
+				p->second->associated_torrent()->remove_peer(p->second.get());
 			m_connections.erase(p);
 		}
 		else
@@ -692,6 +657,8 @@ namespace libtorrent { namespace detail
 					<< " " << message << "\n";
 #endif
 				p->second->set_failed();
+				if (p->second->associated_torrent())
+					p->second->associated_torrent()->remove_peer(p->second.get());
 				m_half_open.erase(p);
 				process_connection_queue();
 			}
@@ -709,8 +676,13 @@ namespace libtorrent { namespace detail
 		mutex_t::scoped_lock l(m_mutex);
 
 		assert(p->is_disconnecting());
+
+		if (p->associated_torrent())
+			p->associated_torrent()->remove_peer(p.get());
+
 		if (p->is_connecting())
 		{
+			assert(p->is_local());
 			// Since this peer is still connecting, will not be
 			// in the list of completed connections.
 			connection_map::iterator i = m_half_open.find(p->get_socket());
@@ -721,7 +693,8 @@ namespace libtorrent { namespace detail
 				connection_queue::iterator j = std::find(
 					m_connection_queue.begin(), m_connection_queue.end(), p);
 					
-				if (j != m_connection_queue.end()) m_connection_queue.erase(j);
+				if (j != m_connection_queue.end())
+					m_connection_queue.erase(j);
 			}
 			else
 			{
@@ -732,7 +705,8 @@ namespace libtorrent { namespace detail
 		else
 		{
 			connection_map::iterator i = m_connections.find(p->get_socket());
-			if (i != m_connections.end()) m_connections.erase(i);
+			if (i != m_connections.end())
+				m_connections.erase(i);
 		}
 	}
 
@@ -782,6 +756,8 @@ namespace libtorrent { namespace detail
 #endif
 
 				j->second->set_failed();
+				if (j->second->associated_torrent())
+					j->second->associated_torrent()->remove_peer(i->second.get());
 				m_connections.erase(j);
 				continue;
 			}
@@ -1081,6 +1057,8 @@ namespace libtorrent
 #if defined(TORRENT_VERBOSE_LOGGING)
 				(*i->second->m_logger) << "*** CONNECTION FILTERED'\n";
 #endif
+				if (i->second->associated_torrent())
+					i->second->associated_torrent()->remove_peer(i->second.get());
 				m_impl.m_connections.erase(i++);
 			}
 			else ++i;
