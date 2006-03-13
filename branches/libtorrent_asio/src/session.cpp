@@ -78,6 +78,16 @@ using boost::bind;
 using boost::mutex;
 using libtorrent::detail::session_impl;
 
+namespace
+{
+	void disconnect_from_torrent(libtorrent::peer_connection const& p)
+	{
+		boost::shared_ptr<libtorrent::torrent> t = p.associated_torrent().lock();
+		if (!t) return;
+		t->remove_peer(&p);
+	}
+}
+
 namespace libtorrent { namespace detail
 {
 
@@ -532,7 +542,7 @@ namespace libtorrent { namespace detail
 			try
 			{
 				m_connection_queue.pop_front();
-				assert(c->associated_torrent());
+				assert(c->associated_torrent().lock().get());
 				c->connect();
 				m_half_open.insert(std::make_pair(c->get_socket(), c));
 			}
@@ -633,8 +643,7 @@ namespace libtorrent { namespace detail
 			(*p->second->m_logger) << "*** CONNECTION FAILED " << message << "\n";
 #endif
 			p->second->set_failed();
-			if (p->second->associated_torrent())
-				p->second->associated_torrent()->remove_peer(p->second.get());
+			disconnect_from_torrent(*p->second);
 			m_connections.erase(p);
 		}
 		else
@@ -657,8 +666,7 @@ namespace libtorrent { namespace detail
 					<< " " << message << "\n";
 #endif
 				p->second->set_failed();
-				if (p->second->associated_torrent())
-					p->second->associated_torrent()->remove_peer(p->second.get());
+				disconnect_from_torrent(*p->second);
 				m_half_open.erase(p);
 				process_connection_queue();
 			}
@@ -677,9 +685,7 @@ namespace libtorrent { namespace detail
 
 		assert(p->is_disconnecting());
 
-		if (p->associated_torrent())
-			p->associated_torrent()->remove_peer(p.get());
-
+		disconnect_from_torrent(*p);
 		if (p->is_connecting())
 		{
 			assert(p->is_local());
@@ -756,8 +762,7 @@ namespace libtorrent { namespace detail
 #endif
 
 				j->second->set_failed();
-				if (j->second->associated_torrent())
-					j->second->associated_torrent()->remove_peer(i->second.get());
+				disconnect_from_torrent(*j->second);
 				m_connections.erase(j);
 				continue;
 			}
@@ -914,7 +919,7 @@ namespace libtorrent { namespace detail
 
 	// the return value from this function is valid only as long as the
 	// session is locked!
-	torrent* session_impl::find_torrent(const sha1_hash& info_hash)
+	boost::weak_ptr<torrent> session_impl::find_torrent(sha1_hash const& info_hash)
 	{
 		std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
 			= m_torrents.find(info_hash);
@@ -926,8 +931,8 @@ namespace libtorrent { namespace detail
 			assert(p);
 		}
 #endif
-		if (i != m_torrents.end()) return boost::get_pointer(i->second);
-		return 0;
+		if (i != m_torrents.end()) return i->second;
+		return boost::weak_ptr<torrent>();
 	}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -974,10 +979,12 @@ namespace libtorrent { namespace detail
 				error_log.flush();
 				assert(false);
 			}
-			if (i->second->associated_torrent())
+
+			boost::shared_ptr<torrent> t = i->second->associated_torrent().lock();
+
+			if (t)
 			{
-				assert(i->second->associated_torrent()
-					->get_policy().has_connection(boost::get_pointer(i->second)));
+				assert(t->get_policy().has_connection(boost::get_pointer(i->second)));
 			}
 		}
 	}
@@ -1057,8 +1064,7 @@ namespace libtorrent
 #if defined(TORRENT_VERBOSE_LOGGING)
 				(*i->second->m_logger) << "*** CONNECTION FILTERED'\n";
 #endif
-				if (i->second->associated_torrent())
-					i->second->associated_torrent()->remove_peer(i->second.get());
+				disconnect_from_torrent(*i->second);
 				m_impl.m_connections.erase(i++);
 			}
 			else ++i;
@@ -1147,7 +1153,7 @@ namespace libtorrent
 			throw std::runtime_error("session is closing");
 		
 		// is the torrent already active?
-		if (m_impl.find_torrent(ti.info_hash()))
+		if (!m_impl.find_torrent(ti.info_hash()).expired())
 			throw duplicate_torrent();
 
 		// is the torrent currently being checked?
@@ -1216,7 +1222,7 @@ namespace libtorrent
 			[extended_metadata_message]);
 
 		// is the torrent already active?
-		if (m_impl.find_torrent(info_hash))
+		if (!m_impl.find_torrent(info_hash).expired())
 			throw duplicate_torrent();
 
 		// create the torrent and the data associated with

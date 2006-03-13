@@ -209,7 +209,7 @@ namespace libtorrent
 			typedef boost::recursive_mutex mutex_t;
 			mutable mutex_t m_mutex;
 
-			torrent* find_torrent(const sha1_hash& info_hash);
+			boost::weak_ptr<torrent> find_torrent(const sha1_hash& info_hash);
 			peer_id const& get_peer_id() const { return m_peer_id; }
 
 			tracker_manager m_tracker_manager;

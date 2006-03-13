@@ -56,8 +56,8 @@ namespace libtorrent
 {
 	web_peer_connection::web_peer_connection(
 		detail::session_impl& ses
-		, torrent* t
-		, shared_ptr<stream_socket> s
+		, boost::weak_ptr<torrent> t
+		, boost::shared_ptr<stream_socket> s
 		, tcp::endpoint const& remote
 		, std::string const& url)
 		: peer_connection(ses, t, s, remote)
@@ -90,9 +90,12 @@ namespace libtorrent
 
 	void web_peer_connection::on_connected()
 	{
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		assert(t);
+	
 		// this is always a seed
 		incoming_bitfield(std::vector<bool>(
-			associated_torrent()->torrent_file().num_pieces(), true));
+			t->torrent_file().num_pieces(), true));
 		// it is always possible to request pieces
 		incoming_unchoke();
 		
@@ -103,13 +106,16 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		assert(associated_torrent()->valid_metadata());
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		assert(t);
+
+		assert(t->valid_metadata());
 
 		bool single_file_request = false;
 		if (!m_path.empty() && m_path[m_path.size() - 1] != '/')
 			single_file_request = true;
 
-		torrent_info const& info = associated_torrent()->torrent_file();
+		torrent_info const& info = t->torrent_file();
 		
 		// TODO: for now there's only support for single file torrents.
 		// the receive function need to be able to put responses together
@@ -185,6 +191,9 @@ namespace libtorrent
 			return;
 		}
 
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		assert(t);
+
 		m_last_piece = boost::posix_time::second_clock::universal_time();
 
 		for (;;)
@@ -198,7 +207,7 @@ namespace libtorrent
 			if (m_parser.status_code() != 206 && m_parser.status_code() != -1)
 			{
 				// we should not try this server again.
-				associated_torrent()->remove_url_seed(m_url);
+				t->remove_url_seed(m_url);
 				throw std::runtime_error("HTTP server does not support byte range requests");
 			}
 
@@ -225,11 +234,11 @@ namespace libtorrent
 			if (!range_str)
 			{
 				// we should not try this server again.
-				associated_torrent()->remove_url_seed(m_url);
+				t->remove_url_seed(m_url);
 				throw std::runtime_error("invalid range in HTTP response: " + range_str.str());
 			}
 
-			torrent_info const& info = associated_torrent()->torrent_file();
+			torrent_info const& info = t->torrent_file();
 
 			r.piece = range_start / info.piece_length();
 			r.start = range_start - r.piece * info.piece_length();
@@ -246,7 +255,7 @@ namespace libtorrent
 
 	void web_peer_connection::get_peer_info(peer_info& p) const
 	{
-		assert(associated_torrent() != 0);
+		assert(!associated_torrent().expired());
 
 		p.down_speed = statistics().download_rate();
 		p.up_speed = statistics().upload_rate();

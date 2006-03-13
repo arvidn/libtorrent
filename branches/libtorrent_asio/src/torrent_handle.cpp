@@ -102,8 +102,8 @@ namespace libtorrent
 
 			{
 				session_impl::mutex_t::scoped_lock l(ses->m_mutex);
-				torrent* t = ses->find_torrent(hash);
-				if (t != 0) return f(*t);
+				boost::shared_ptr<torrent> t = ses->find_torrent(hash).lock();
+				if (t) return f(*t);
 			}
 
 			throw invalid_handle();
@@ -258,8 +258,8 @@ namespace libtorrent
 
 		{
 			session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
-			torrent* t = m_ses->find_torrent(m_info_hash);
-			if (t != 0) return t->status();
+			boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
+			if (t) return t->status();
 		}
 
 		throw_invalid_handle();
@@ -359,8 +359,8 @@ namespace libtorrent
 
 		{
 			session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
-			torrent* t = m_ses->find_torrent(m_info_hash);
-			if (t != 0) return true;
+			boost::weak_ptr<torrent> t = m_ses->find_torrent(m_info_hash);
+			if (!t.expired()) return true;
 		}
 
 		return false;
@@ -374,8 +374,8 @@ namespace libtorrent
 		if (m_ses == 0) return entry();
 
 		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
-		torrent* t = m_ses->find_torrent(m_info_hash);
-		if (t == 0) return entry();
+		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
+		if (!t) return entry();
 
 		if (!t->valid_metadata()) return entry();
 
@@ -509,8 +509,8 @@ namespace libtorrent
 		if (m_ses == 0) throw_invalid_handle();
 	
 		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
-		torrent* t = m_ses->find_torrent(m_info_hash);
-		if (t == 0) throw_invalid_handle();
+		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
+		if (!t) throw_invalid_handle();
 
 		peer_id id;
 		std::fill(id.begin(), id.end(), 0);
@@ -525,8 +525,8 @@ namespace libtorrent
 		if (m_ses == 0) throw_invalid_handle();
 	
 		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
-		torrent* t = m_ses->find_torrent(m_info_hash);
-		if (t == 0) throw_invalid_handle();
+		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
+		if (!t) throw_invalid_handle();
 
 		using boost::posix_time::second_clock;
 		t->force_tracker_request(second_clock::universal_time()
@@ -540,8 +540,8 @@ namespace libtorrent
 		if (m_ses == 0) throw_invalid_handle();
 	
 		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
-		torrent* t = m_ses->find_torrent(m_info_hash);
-		if (t == 0) throw_invalid_handle();
+		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
+		if (!t) throw_invalid_handle();
 
 		t->force_tracker_request();
 	}
@@ -568,8 +568,8 @@ namespace libtorrent
 
 		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 		
-		const torrent* t = m_ses->find_torrent(m_info_hash);
-		if (t == 0) return;
+		boost::shared_ptr<const torrent> t = m_ses->find_torrent(m_info_hash).lock();
+		if (!t) return;
 
 		for (torrent::const_peer_iterator i = t->begin();
 			i != t->end(); ++i)
@@ -578,7 +578,7 @@ namespace libtorrent
 
 			// peers that haven't finished the handshake should
 			// not be included in this list
-			if (peer->associated_torrent() == 0) continue;
+			if (peer->associated_torrent().expired()) continue;
 
 			v.push_back(peer_info());
 			peer_info& p = v.back();
@@ -592,8 +592,8 @@ namespace libtorrent
 		if (m_ses == 0) throw_invalid_handle();
 
 		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
-		const torrent* t = m_ses->find_torrent(m_info_hash);
-		if (t == 0) return false;
+		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
+		if (!t) return false;
 
 		for (torrent::const_peer_iterator i = t->begin();
 			i != t->end(); ++i)
@@ -602,7 +602,7 @@ namespace libtorrent
 
 			// peers that haven't finished the handshake should
 			// not be included in this list
-			if (peer->associated_torrent() == 0) continue;
+			if (peer->associated_torrent().expired()) continue;
 
 			tcp::endpoint sender = peer->get_socket()->remote_endpoint();
 			// loop until we find the required ip tcp::endpoint
@@ -631,10 +631,10 @@ namespace libtorrent
 		if (m_ses == 0) throw_invalid_handle();
 	
 		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
-		torrent* t = m_ses->find_torrent(m_info_hash);
+		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
 
 		queue.clear();
-		if (t == 0) return;
+		if (!t) return;
 		if (!t->valid_metadata()) return;
 
 		const piece_picker& p = t->picker();

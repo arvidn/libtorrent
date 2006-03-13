@@ -162,7 +162,7 @@ namespace
 		{
 			tcp::endpoint sender = c.first->remote_endpoint();
 			if (sender.address() != ip.address()) return false;
-			if (tor != c.second->associated_torrent()) return false;
+			if (tor != c.second->associated_torrent().lock().get()) return false;
 			return true;
 		}
 
@@ -871,7 +871,7 @@ namespace libtorrent
 		return req;
 	}
 
-	void torrent::remove_peer(peer_connection* p)
+	void torrent::remove_peer(peer_connection const* p)
 	{
 		assert(p != 0);
 
@@ -936,7 +936,7 @@ namespace libtorrent
 
 		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_selector));
 		boost::intrusive_ptr<peer_connection> c(new web_peer_connection(
-			m_ses, this, s, a, url));
+			m_ses, shared_from_this(), s, a, url));
 
 		try
 		{
@@ -976,7 +976,7 @@ namespace libtorrent
 
 		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_selector));
 		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
-			m_ses, this, s, a));
+			m_ses, shared_from_this(), s, a));
 
 		try
 		{
@@ -1048,7 +1048,7 @@ namespace libtorrent
 		while (!m_connections.empty())
 		{
 			peer_connection& p = *m_connections.begin()->second;
-			assert(p.associated_torrent() == this);
+			assert(p.associated_torrent().lock().get() == this);
 
 #if defined(TORRENT_VERBOSE_LOGGING)
 			if (m_abort)
@@ -1079,7 +1079,7 @@ namespace libtorrent
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
 		{
-			assert(i->second->associated_torrent() == this);
+			assert(i->second->associated_torrent().lock().get() == this);
 			if (i->second->is_seed())
 			{
 #if defined(TORRENT_VERBOSE_LOGGING)
@@ -1242,7 +1242,7 @@ namespace libtorrent
 	void torrent::check_invariant() const
 	{
 		for (const_peer_iterator i = begin(); i != end(); ++i)
-			assert(i->second->associated_torrent() == this);
+			assert(i->second->associated_torrent().lock().get() == this);
 
 		assert(m_num_pieces
 			== std::count(m_have_pieces.begin(), m_have_pieces.end(), true));

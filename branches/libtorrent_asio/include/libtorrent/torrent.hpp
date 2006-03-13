@@ -206,7 +206,7 @@ namespace libtorrent
 		// this will remove the peer and make sure all
 		// the pieces it had have their reference counter
 		// decreased in the piece_picker
-		void remove_peer(peer_connection* p);
+		void remove_peer(peer_connection const* p);
 
 		peer_connection* connection_for(tcp::endpoint const& a)
 		{

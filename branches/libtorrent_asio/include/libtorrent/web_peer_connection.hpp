@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/smart_ptr.hpp>
+#include <boost/weak_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/array.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -94,7 +95,7 @@ namespace libtorrent
 		// other end has the correct id
 		web_peer_connection(
 			detail::session_impl& ses
-			, torrent* t
+			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<stream_socket> s
 			, tcp::endpoint const& remote
 			, std::string const& url);

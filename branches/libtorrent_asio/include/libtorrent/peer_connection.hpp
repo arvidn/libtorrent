@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/smart_ptr.hpp>
+#include <boost/weak_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/array.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -104,7 +105,7 @@ namespace libtorrent
 		// other end has the correct id
 		peer_connection(
 			detail::session_impl& ses
-			, torrent* t
+			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<stream_socket> s
 			, tcp::endpoint const& remote);
 
@@ -156,7 +157,8 @@ namespace libtorrent
 		// may be zero if the connection is an incoming connection
 		// and it hasn't received enough information to determine
 		// which torrent it should be associated with
-		torrent* associated_torrent() const { return m_torrent; }
+		boost::weak_ptr<torrent> associated_torrent() const
+		{ return m_torrent; }
 
 		const stat& statistics() const { return m_statistics; }
 		void add_stat(size_type downloaded, size_type uploaded);
@@ -410,7 +412,7 @@ namespace libtorrent
 		// incoming conncetion, this is set to zero
 		// until the info_hash is received. Then it's
 		// set to the torrent it belongs to.
-		torrent* m_torrent;
+		boost::weak_ptr<torrent> m_torrent;
 		// is true if it was we that connected to the peer
 		// and false if we got an incomming connection
 		// could be considered: true = local, false = remote

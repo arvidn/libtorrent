@@ -90,7 +90,7 @@ namespace libtorrent
 		// other end has the correct id
 		bt_peer_connection(
 			detail::session_impl& ses
-			, torrent* t
+			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<stream_socket> s
 			, tcp::endpoint const& remote);
 

@@ -974,7 +974,7 @@ namespace libtorrent
 						+ boost::lexical_cast<std::string>(remote.port()));
 #endif
 
-					assert(i->connection->associated_torrent() == m_torrent);
+					assert(i->connection->associated_torrent().lock().get() == m_torrent);
 					return;
 				}
 			}
@@ -1233,7 +1233,7 @@ namespace libtorrent
 		// because it isn't necessary.
 		if (m_torrent->ratio() != 0.f)
 		{
-			assert(i->connection->associated_torrent() == m_torrent);
+			assert(i->connection->associated_torrent().lock().get() == m_torrent);
 			assert(i->connection->share_diff() < std::numeric_limits<size_type>::max());
 			m_available_free_upload += i->connection->share_diff();
 		}

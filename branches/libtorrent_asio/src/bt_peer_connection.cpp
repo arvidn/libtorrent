@@ -79,10 +79,10 @@ namespace libtorrent
 
 	bt_peer_connection::bt_peer_connection(
 		detail::session_impl& ses
-		, torrent* t
+		, boost::weak_ptr<torrent> tor
 		, shared_ptr<stream_socket> s
 		, tcp::endpoint const& remote)
-		: peer_connection(ses, t, s, remote)
+		: peer_connection(ses, tor, s, remote)
 		, m_state(read_protocol_length)
 		, m_supports_extensions(false)
 		, m_supports_dht_port(false)
@@ -113,8 +113,11 @@ namespace libtorrent
 		reset_recv_buffer(1);
 
 		// assume the other end has no pieces
-		if (associated_torrent()->ready_for_connections())
-			write_bitfield(associated_torrent()->pieces());
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		assert(t);
+		
+		if (t->ready_for_connections())
+			write_bitfield(t->pieces());
 
 		setup_send();
 		setup_receive();
@@ -171,7 +174,7 @@ namespace libtorrent
 
 	void bt_peer_connection::get_peer_info(peer_info& p) const
 	{
-		assert(associated_torrent() != 0);
+		assert(!associated_torrent().expired());
 
 		p.down_speed = statistics().download_rate();
 		p.up_speed = statistics().upload_rate();
@@ -233,6 +236,9 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		assert(t);
+
 		// add handshake to the send buffer
 		const char version_string[] = "BitTorrent protocol";
 		const int string_len = sizeof(version_string)-1;
@@ -264,7 +270,7 @@ namespace libtorrent
 		i.begin += 8;
 
 		// info hash
-		sha1_hash const& ih = associated_torrent()->torrent_file().info_hash();
+		sha1_hash const& ih = t->torrent_file().info_hash();
 		std::copy(ih.begin(), ih.end(), i.begin);
 		i.begin += 20;
 
@@ -286,6 +292,9 @@ namespace libtorrent
 
 	boost::optional<piece_block_progress> bt_peer_connection::downloading_piece_progress() const
 	{
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		assert(t);
+
 		buffer::const_interval recv_buffer = receive_buffer();
 		// are we currently receiving a 'piece' message?
 		if (m_state != read_packet
@@ -306,7 +315,7 @@ namespace libtorrent
 		piece_block_progress p;
 
 		p.piece_index = r.piece;
-		p.block_index = r.start / associated_torrent()->block_size();
+		p.block_index = r.start / t->block_size();
 		p.bytes_downloaded = recv_buffer.end - recv_buffer.begin - 9;
 		p.full_block_bytes = r.length;
 
@@ -431,10 +440,13 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		assert(received > 0);
-		assert(associated_torrent());
+
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		assert(t);
+
 		// if we don't have the metedata, we cannot
 		// verify the bitfield size
-		if (associated_torrent()->valid_metadata()
+		if (t->valid_metadata()
 			&& packet_size() - 1 != ((int)get_bitfield().size() + 7) / 8)
 			throw protocol_error("bitfield with invalid size");
 
@@ -445,7 +457,7 @@ namespace libtorrent
 
 		std::vector<bool> bitfield;
 		
-		if (!associated_torrent()->valid_metadata())
+		if (!t->valid_metadata())
 			bitfield.resize((packet_size() - 1) * 8);
 		else
 			bitfield.resize(get_bitfield().size());
@@ -588,7 +600,7 @@ namespace libtorrent
 		if (packet_size() < 2)
 			throw protocol_error("'extended' message smaller than 2 bytes");
 
-		if (associated_torrent() == 0)
+		if (associated_torrent().expired())
 			throw protocol_error("'extended' message sent before proper handshake");
 
 		buffer::const_interval recv_buffer = receive_buffer();
@@ -649,6 +661,9 @@ namespace libtorrent
 	{
 		if (!packet_finished()) return;
 
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		assert(t);
+
 		buffer::const_interval recv_buffer = receive_buffer();
 	
 		entry root = bdecode(recv_buffer.begin + 2, recv_buffer.end);
@@ -687,7 +702,7 @@ namespace libtorrent
 			{
 				tcp::endpoint adr((unsigned short)listen_port->integer()
 					, remote().address());
-				associated_torrent()->get_policy().peer_from_tracker(adr, id());
+				t->get_policy().peer_from_tracker(adr, id());
 			}
 		}
 		// there should be a version too
@@ -719,15 +734,18 @@ namespace libtorrent
 
 		try
 		{
+			boost::shared_ptr<torrent> t = associated_torrent().lock();
+			assert(t);
+		
 			buffer::const_interval recv_buffer = receive_buffer();
 			entry d = bdecode(recv_buffer.begin + 5, recv_buffer.end);
 			const std::string& str = d["msg"].string();
 
-			if (associated_torrent()->alerts().should_post(alert::critical))
+			if (t->alerts().should_post(alert::critical))
 			{
-				associated_torrent()->alerts().post_alert(
+				t->alerts().post_alert(
 					chat_message_alert(
-						associated_torrent()->get_handle()
+						t->get_handle()
 						, remote(), str));
 			}
 
@@ -753,7 +771,8 @@ namespace libtorrent
 
 	void bt_peer_connection::on_metadata()
 	{
-		assert(associated_torrent());
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		assert(t);
 
 		if (packet_size() > 500 * 1024)
 			throw protocol_error("metadata message larger than 500 kB");
@@ -796,7 +815,7 @@ namespace libtorrent
 				if (offset + data_size > total_size)
 					throw protocol_error("invalid metadata message");
 
-				associated_torrent()->metadata_progress(total_size
+				t->metadata_progress(total_size
 					, recv_buffer.left() - m_metadata_progress);
 				m_metadata_progress = recv_buffer.left();
 				if (!packet_finished()) return;
@@ -809,7 +828,7 @@ namespace libtorrent
 #endif
 
 				m_waiting_metadata_request = false;
-				associated_torrent()->received_metadata(recv_buffer.begin, data_size
+				t->received_metadata(recv_buffer.begin, data_size
 					, offset, total_size);
 				m_metadata_progress = 0;
 			}
@@ -819,7 +838,7 @@ namespace libtorrent
 
 			m_no_metadata = second_clock::universal_time();
 			if (m_waiting_metadata_request)
-				associated_torrent()->cancel_metadata_request(m_last_metadata_request);
+				t->cancel_metadata_request(m_last_metadata_request);
 			m_waiting_metadata_request = false;
 			break;
 		default:
@@ -851,7 +870,7 @@ namespace libtorrent
 		assert(received > 0);
 
 		// this means the connection has been closed already
-		if (associated_torrent() == 0) return false;
+		if (associated_torrent().expired()) return false;
 
 		buffer::const_interval recv_buffer = receive_buffer();
 
@@ -887,7 +906,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		assert(associated_torrent()->valid_metadata());
+		assert(associated_torrent().lock()->valid_metadata());
 
 		char buf[] = {0,0,0,13, msg_cancel};
 
@@ -911,7 +930,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		assert(associated_torrent()->valid_metadata());
+		assert(associated_torrent().lock()->valid_metadata());
 
 		char buf[] = {0,0,0,13, msg_request};
 
@@ -937,16 +956,19 @@ namespace libtorrent
 		assert(req.second > 0);
 		assert(req.second <= 256);
 		assert(req.first + req.second <= 256);
-		assert(associated_torrent());
+		assert(!associated_torrent().expired());
 		INVARIANT_CHECK;
 
 		// abort if the peer doesn't support the metadata extension
 		if (!supports_extension(extended_metadata_message)) return;
 
-		if (associated_torrent()->valid_metadata())
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		assert(t);
+
+		if (t->valid_metadata())
 		{
 			std::pair<int, int> offset
-				= req_to_offset(req, (int)associated_torrent()->metadata().size());
+				= req_to_offset(req, (int)t->metadata().size());
 
 			buffer::interval i = allocate_send_buffer(15 + offset.second);
 
@@ -957,9 +979,9 @@ namespace libtorrent
 				, i.begin);
 			// means 'data packet'
 			detail::write_uint8(1, i.begin);
-			detail::write_uint32((int)associated_torrent()->metadata().size(), i.begin);
+			detail::write_uint32((int)t->metadata().size(), i.begin);
 			detail::write_uint32(offset.first, i.begin);
-			std::vector<char> const& metadata = associated_torrent()->metadata();
+			std::vector<char> const& metadata = t->metadata();
 			std::copy(metadata.begin() + offset.first
 				, metadata.begin() + offset.first + offset.second, i.begin);
 			i.begin += offset.second;
@@ -986,8 +1008,8 @@ namespace libtorrent
 		assert(req.first >= 0);
 		assert(req.second > 0);
 		assert(req.first + req.second <= 256);
-		assert(associated_torrent());
-		assert(!associated_torrent()->valid_metadata());
+		assert(!associated_torrent().expired());
+		assert(!associated_torrent().lock()->valid_metadata());
 		INVARIANT_CHECK;
 
 		int start = req.first;
@@ -1021,7 +1043,10 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (associated_torrent()->num_pieces() == 0) return;
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		assert(t);
+
+		if (t->num_pieces() == 0) return;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
@@ -1132,9 +1157,9 @@ namespace libtorrent
 
 	void bt_peer_connection::write_have(int index)
 	{
-		assert(associated_torrent()->valid_metadata());
+		assert(associated_torrent().lock()->valid_metadata());
 		assert(index >= 0);
-		assert(index < associated_torrent()->torrent_file().num_pieces());
+		assert(index < associated_torrent().lock()->torrent_file().num_pieces());
 		INVARIANT_CHECK;
 
 		const int packet_size = 9;
@@ -1148,6 +1173,9 @@ namespace libtorrent
 	{
 		const int packet_size = 4 + 5 + 4 + r.length;
 
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		assert(t);
+
 		buffer::interval i = allocate_send_buffer(packet_size);
 		
 		detail::write_int32(packet_size-4, i.begin);
@@ -1155,7 +1183,7 @@ namespace libtorrent
 		detail::write_int32(r.piece, i.begin);
 		detail::write_int32(r.start, i.begin);
 
-		associated_torrent()->filesystem().read(
+		t->filesystem().read(
 			i.begin, r.piece, r.start, r.length);
 
 		assert(i.begin + r.length == i.end);
@@ -1177,6 +1205,9 @@ namespace libtorrent
 		if (error) return;
 	
 		buffer::const_interval recv_buffer = receive_buffer();
+	
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		if (!t) return;
 	
 		switch(m_state)
 		{
@@ -1276,7 +1307,7 @@ namespace libtorrent
 
 			// ok, now we have got enough of the handshake. Is this connection
 			// attached to a torrent?
-			if (associated_torrent() == 0)
+			if (!t)
 			{
 				// now, we have to see if there's a torrent with the
 				// info_hash we got from the peer
@@ -1285,19 +1316,22 @@ namespace libtorrent
 					, (char*)info_hash.begin());
 
 				attach_to_torrent(info_hash);
-				assert(associated_torrent()->get_policy().has_connection(this));
+				t = associated_torrent().lock();
+				assert(t);
+
+				assert(t->get_policy().has_connection(this));
 
 				// yes, we found the torrent
 				// reply with our handshake
 				write_handshake();
-				write_bitfield(associated_torrent()->pieces());
+				write_bitfield(t->pieces());
 //				write_dht_port(m_ses.dht_port());
 			}
 			else
 			{
 				// verify info hash
 				if (!std::equal(recv_buffer.begin + 8, recv_buffer.begin + 28
-					, (const char*)associated_torrent()->torrent_file().info_hash().begin()))
+					, (const char*)t->torrent_file().info_hash().begin()))
 				{
 #ifdef TORRENT_VERBOSE_LOGGING
 					(*m_logger) << " received invalid info_hash\n";
