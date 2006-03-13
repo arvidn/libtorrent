@@ -78,16 +78,6 @@ using boost::bind;
 using boost::mutex;
 using libtorrent::detail::session_impl;
 
-namespace
-{
-	void disconnect_from_torrent(libtorrent::peer_connection& p)
-	{
-		boost::shared_ptr<libtorrent::torrent> t = p.associated_torrent().lock();
-		if (!t) return;
-		t->remove_peer(&p);
-	}
-}
-
 namespace libtorrent { namespace detail
 {
 
@@ -624,7 +614,7 @@ namespace libtorrent { namespace detail
 #endif
 	{
 		mutex_t::scoped_lock l(m_mutex);
-
+		
 		connection_map::iterator p = m_connections.find(s);
 
 		// the connection may have been disconnected in the receive or send phase
@@ -643,8 +633,7 @@ namespace libtorrent { namespace detail
 			(*p->second->m_logger) << "*** CONNECTION FAILED " << message << "\n";
 #endif
 			p->second->set_failed();
-			disconnect_from_torrent(*p->second);
-			m_connections.erase(p);
+			p->second->disconnect();
 		}
 		else
 		{
@@ -666,9 +655,7 @@ namespace libtorrent { namespace detail
 					<< " " << message << "\n";
 #endif
 				p->second->set_failed();
-				disconnect_from_torrent(*p->second);
-				m_half_open.erase(p);
-				process_connection_queue();
+				p->second->disconnect();
 			}
 		}
 	}
@@ -685,7 +672,6 @@ namespace libtorrent { namespace detail
 
 		assert(p->is_disconnecting());
 
-		disconnect_from_torrent(*p);
 		if (p->is_connecting())
 		{
 			assert(p->is_local());
@@ -742,6 +728,8 @@ namespace libtorrent { namespace detail
 		for (connection_map::iterator i = m_connections.begin();
 			i != m_connections.end();)
 		{
+			// we need to do like this because j->second->disconnect() will
+			// erase the connection from the map we're iterating
 			connection_map::iterator j = i;
 			++i;
 			// if this socket has timed out
@@ -762,8 +750,7 @@ namespace libtorrent { namespace detail
 #endif
 
 				j->second->set_failed();
-				disconnect_from_torrent(*j->second);
-				m_connections.erase(j);
+				j->second->disconnect();
 				continue;
 			}
 
@@ -1064,8 +1051,9 @@ namespace libtorrent
 #if defined(TORRENT_VERBOSE_LOGGING)
 				(*i->second->m_logger) << "*** CONNECTION FILTERED'\n";
 #endif
-				disconnect_from_torrent(*i->second);
-				m_impl.m_connections.erase(i++);
+				detail::session_impl::connection_map::iterator j = i;
+				++i;
+				j->second->disconnect();
 			}
 			else ++i;
 		}

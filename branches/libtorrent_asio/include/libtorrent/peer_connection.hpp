@@ -147,8 +147,6 @@ namespace libtorrent
 		const std::deque<piece_block>& request_queue() const;
 		const std::deque<peer_request>& upload_queue() const;
 
-		void cancel_all_downloads();
-
 		bool is_interesting() const { return m_interesting; }
 		bool is_choked() const { return m_choked; }
 

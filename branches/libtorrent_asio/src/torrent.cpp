@@ -881,9 +881,6 @@ namespace libtorrent
 		if (ready_for_connections())
 		{
 			assert(p->associated_torrent().lock().get() == this);
-			// if the peer_connection was downloading any pieces
-			// abort them
-			p->cancel_all_downloads();
 
 			std::vector<int> piece_list;
 			const std::vector<bool>& pieces = p->get_bitfield();

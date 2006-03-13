@@ -471,27 +471,6 @@ namespace libtorrent
 		std::fill(m_have_piece.begin(), m_have_piece.end(), false);
 	}
 
-	void peer_connection::cancel_all_downloads()
-	{
-		INVARIANT_CHECK;
-
-		boost::shared_ptr<torrent> t = m_torrent.lock();
-		assert(t);
-		
-		piece_picker& picker = t->picker();
-		
-		while (!m_download_queue.empty())
-		{
-			picker.abort_download(m_download_queue.back());
-			m_download_queue.pop_back();
-		}
-		while (!m_request_queue.empty())
-		{
-			picker.abort_download(m_request_queue.back());
-			m_request_queue.pop_back();
-		}
-	}
-
 	// message handlers
 
 	// -----------------------------
@@ -1282,7 +1261,23 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
-		if (t) t->remove_peer(this);
+		if (t)
+		{
+			piece_picker& picker = t->picker();
+			
+			while (!m_download_queue.empty())
+			{
+				picker.abort_download(m_download_queue.back());
+				m_download_queue.pop_back();
+			}
+			while (!m_request_queue.empty())
+			{
+				picker.abort_download(m_request_queue.back());
+				m_request_queue.pop_back();
+			}
+
+			t->remove_peer(this);
+		}
 
 		m_ses.close_connection(self());
 	}
