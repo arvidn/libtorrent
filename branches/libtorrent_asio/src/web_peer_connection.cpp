@@ -78,8 +78,7 @@ namespace libtorrent
 	}
 
 	web_peer_connection::~web_peer_connection()
-	{
-	}
+	{}
 	
 	boost::optional<piece_block_progress>
 	web_peer_connection::downloading_piece_progress() const

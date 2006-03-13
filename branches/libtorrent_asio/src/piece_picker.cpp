@@ -1003,7 +1003,12 @@ namespace libtorrent
 		if (i->finished_blocks[block.block_index]) return;
 
 		assert(block.block_index < blocks_in_piece(block.piece_index));
-		assert(i->requested_blocks[block.block_index] == 1);
+#ifndef NDEBUG
+		if (i->requested_blocks[block.block_index] != 1)
+		{
+			assert(false);
+		}
+#endif
 
 		// clear this block as being downloaded
 		i->requested_blocks[block.block_index] = 0;

@@ -85,7 +85,7 @@ public:
     buffer(std::size_t n = 0);
     ~buffer();
 
-	 interval allocate(std::size_t n);
+    interval allocate(std::size_t n);
     void insert(char const* first, char const* last);
     void erase(std::size_t n);
     std::size_t size() const;

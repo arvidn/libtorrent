@@ -113,6 +113,9 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		// TODO: TEMPORARY!!
+		m_send_buffer.reserve(20000);
+
 #ifdef TORRENT_VERBOSE_LOGGING
 		m_logger = m_ses.create_log(m_remote.address().to_string() + "_"
 			+ boost::lexical_cast<std::string>(m_remote.port()));
@@ -196,6 +199,9 @@ namespace libtorrent
 		, m_refs(0)
 	{
 		INVARIANT_CHECK;
+
+		// TODO: TEMPORARY!!
+		m_send_buffer.reserve(20000);
 
 		m_remote = m_socket->remote_endpoint();
 
@@ -463,6 +469,27 @@ namespace libtorrent
 		// if we don't have valid metadata yet,
 		// leave the vector unallocated
 		std::fill(m_have_piece.begin(), m_have_piece.end(), false);
+	}
+
+	void peer_connection::cancel_all_downloads()
+	{
+		INVARIANT_CHECK;
+
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		assert(t);
+		
+		piece_picker& picker = t->picker();
+		
+		while (!m_download_queue.empty())
+		{
+			picker.abort_download(m_download_queue.back());
+			m_download_queue.pop_back();
+		}
+		while (!m_request_queue.empty())
+		{
+			picker.abort_download(m_request_queue.back());
+			m_request_queue.pop_back();
+		}
 	}
 
 	// message handlers
@@ -1239,7 +1266,6 @@ namespace libtorrent
 #endif
 		}
 		m_last_piece = second_clock::universal_time();
-		setup_send();
 	}
 
 
@@ -1709,8 +1735,6 @@ namespace libtorrent
 	void peer_connection::on_connection_complete(asio::error const& e) try
 	{
 		INVARIANT_CHECK;
-		
-		if (e == asio::error::operation_aborted) return;
 
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		if (e)

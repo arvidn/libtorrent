@@ -1207,7 +1207,6 @@ namespace libtorrent
 		buffer::const_interval recv_buffer = receive_buffer();
 	
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		if (!t) return;
 	
 		switch(m_state)
 		{
@@ -1350,6 +1349,7 @@ namespace libtorrent
 
 		case read_peer_id:
 		{
+			if (!t) return;
 			m_statistics.received_bytes(0, bytes_transferred);
 			if (!packet_finished()) break;
 			assert(packet_size() == 20);
@@ -1396,6 +1396,7 @@ namespace libtorrent
 
 		case read_packet_size:
 		{
+			if (!t) return;
 			m_statistics.received_bytes(0, bytes_transferred);
 			if (!packet_finished()) break;
 
@@ -1426,6 +1427,7 @@ namespace libtorrent
 
 		case read_packet:
 		{
+			if (!t) return;
 			if (dispatch_message(bytes_transferred))
 			{
 				m_state = read_packet_size;

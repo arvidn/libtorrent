@@ -871,7 +871,7 @@ namespace libtorrent
 		return req;
 	}
 
-	void torrent::remove_peer(peer_connection const* p)
+	void torrent::remove_peer(peer_connection* p)
 	{
 		assert(p != 0);
 
@@ -880,18 +880,10 @@ namespace libtorrent
 
 		if (ready_for_connections())
 		{
+			assert(p->associated_torrent().lock().get() == this);
 			// if the peer_connection was downloading any pieces
 			// abort them
-			for (std::deque<piece_block>::const_iterator i = p->download_queue().begin();
-				i != p->download_queue().end(); ++i)
-			{
-				m_picker->abort_download(*i);
-			}
-			for (std::deque<piece_block>::const_iterator i = p->request_queue().begin();
-				i != p->request_queue().end(); ++i)
-			{
-				m_picker->abort_download(*i);
-			}
+			p->cancel_all_downloads();
 
 			std::vector<int> piece_list;
 			const std::vector<bool>& pieces = p->get_bitfield();

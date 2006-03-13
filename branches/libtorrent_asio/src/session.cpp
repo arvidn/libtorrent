@@ -80,7 +80,7 @@ using libtorrent::detail::session_impl;
 
 namespace
 {
-	void disconnect_from_torrent(libtorrent::peer_connection const& p)
+	void disconnect_from_torrent(libtorrent::peer_connection& p)
 	{
 		boost::shared_ptr<libtorrent::torrent> t = p.associated_torrent().lock();
 		if (!t) return;
