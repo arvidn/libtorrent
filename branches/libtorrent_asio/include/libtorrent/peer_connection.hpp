@@ -335,7 +335,11 @@ namespace libtorrent
 
 		void send_buffer(char const* begin, char const* end);
 		buffer::interval allocate_send_buffer(int size);
-		int send_buffer_size() const { return (int)m_send_buffer.size(); }
+		int send_buffer_size() const
+		{
+			return (int)m_send_buffer[0].size()
+				+ (int)m_send_buffer[1].size();
+		}
 
 		buffer::const_interval receive_buffer() const
 		{
@@ -398,8 +402,19 @@ namespace libtorrent
 
 		// this is the buffer where data that is
 		// to be sent is stored until it gets
-		// consumed by send()
-		buffer m_send_buffer;
+		// consumed by send(). Since asio requires
+		// the memory buffer that is given to async.
+		// operations to remain valid until the operation
+		// finishes, there has to be two buffers. While
+		// waiting for a async_write operation on one
+		// buffer, the other is used to write data to
+		// be queued up.
+		buffer m_send_buffer[2];
+		// the current send buffer is the one to write to.
+		// (m_current_send_buffer + 1) % 2 is the
+		// buffer we're currently waiting for.
+		int m_current_send_buffer;
+
 		// timeouts
 		boost::posix_time::ptime m_last_receive;
 		boost::posix_time::ptime m_last_sent;

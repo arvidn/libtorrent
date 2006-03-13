@@ -110,7 +110,7 @@ private:
     char* m_last;
     char* m_write_cursor;
     char* m_read_cursor;
-	 char* m_read_end;
+    char* m_read_end;
     bool m_empty;
 #ifdef TORRENT_BUFFER_DEBUG
     mutable std::vector<char> m_debug;

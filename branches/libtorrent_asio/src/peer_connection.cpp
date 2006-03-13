@@ -86,6 +86,7 @@ namespace libtorrent
 		, m_timeout(120)
 		, m_packet_size(0)
 		, m_recv_pos(0)
+		, m_current_send_buffer(0)
 		, m_last_receive(second_clock::universal_time())
 		, m_last_sent(second_clock::universal_time())
 		, m_socket(s)
@@ -112,9 +113,6 @@ namespace libtorrent
 		, m_refs(0)
 	{
 		INVARIANT_CHECK;
-
-		// TODO: TEMPORARY!!
-		m_send_buffer.reserve(20000);
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		m_logger = m_ses.create_log(m_remote.address().to_string() + "_"
@@ -168,12 +166,12 @@ namespace libtorrent
 			- hours(1))
 		,
 #endif
-
-		m_last_piece(second_clock::universal_time())
+		  m_last_piece(second_clock::universal_time())
 		, m_ses(ses)
 		, m_timeout(120)
 		, m_packet_size(0)
 		, m_recv_pos(0)
+		, m_current_send_buffer(0)
 		, m_last_receive(second_clock::universal_time())
 		, m_last_sent(second_clock::universal_time())
 		, m_socket(s)
@@ -199,9 +197,6 @@ namespace libtorrent
 		, m_refs(0)
 	{
 		INVARIANT_CHECK;
-
-		// TODO: TEMPORARY!!
-		m_send_buffer.reserve(20000);
 
 		m_remote = m_socket->remote_endpoint();
 
@@ -892,6 +887,7 @@ namespace libtorrent
 #endif
 					// since this piece was skipped, clear it and allow it to
 					// be requested from other peers
+					// TODO: send cancel?
 					picker.abort_download(*i);
 				}
 			
@@ -949,7 +945,7 @@ namespace libtorrent
 
 		bool was_seed = t->is_seed();
 		bool was_finished = picker.num_filtered() + t->num_pieces()
-					== t->torrent_file().num_pieces();
+			== t->torrent_file().num_pieces();
 		
 		picker.mark_as_finished(block_finished, m_remote);
 
@@ -1399,7 +1395,8 @@ namespace libtorrent
 			// if we have downloaded more than one piece more
 			// than we have uploaded OR if we are a seed
 			// have an unlimited upload rate
-			if(!m_send_buffer.empty() || (!m_requests.empty() && !is_choked()))
+			if(!m_send_buffer[m_current_send_buffer].empty()
+				|| (!m_requests.empty() && !is_choked()))
 				m_ul_bandwidth_quota.max = resource_request::inf;
 			else
 				m_ul_bandwidth_quota.max = m_ul_bandwidth_quota.min;
@@ -1485,7 +1482,7 @@ namespace libtorrent
 		// otherwise there will be no end to how large it will be!
 		// TODO: the buffer size should probably be dependent on the transfer speed
 		while (!m_requests.empty()
-			&& ((int)m_send_buffer.size() < t->block_size() * 6)
+			&& (send_buffer_size() < t->block_size() * 6)
 			&& !m_choked)
 		{
 			assert(t->valid_metadata());
@@ -1531,14 +1528,19 @@ namespace libtorrent
 		assert(!m_writing);
 
 		// send the actual buffer
-		if (!m_send_buffer.empty())
+		if (!m_send_buffer[m_current_send_buffer].empty())
 		{
 			int amount_to_send
-				= std::min(m_ul_bandwidth_quota.left(), (int)m_send_buffer.size());
+				= std::min(m_ul_bandwidth_quota.left()
+				, (int)m_send_buffer[m_current_send_buffer].size());
 
 			assert(amount_to_send > 0);
 
-			buffer::interval_type send_buffer = m_send_buffer.data();
+			buffer::interval_type send_buffer
+				= m_send_buffer[m_current_send_buffer].data();
+			// swap the send buffer for the double buffered effect
+			m_current_send_buffer = (m_current_send_buffer + 1) & 1;
+
 			// we have data that's scheduled for sending
 			int to_send = std::min(int(send_buffer.first.end - send_buffer.first.begin)
 				, amount_to_send);
@@ -1553,7 +1555,6 @@ namespace libtorrent
 			bufs[1] = asio::buffer(send_buffer.second.begin, to_send);
 
 			assert(m_ul_bandwidth_quota.left() >= int(buffer_size(bufs[0]) + buffer_size(bufs[1])));
-			assert(can_write());
 			m_socket->async_write_some(bufs, bind(&peer_connection::on_send_data
 				, self(), _1, _2));
 			m_writing = true;
@@ -1596,7 +1597,7 @@ namespace libtorrent
 	
 	void peer_connection::send_buffer(char const* begin, char const* end)
 	{
-		m_send_buffer.insert(begin, end);
+		m_send_buffer[m_current_send_buffer].insert(begin, end);
 		setup_send();
 	}
 
@@ -1604,7 +1605,7 @@ namespace libtorrent
 // return value is destructed
 	buffer::interval peer_connection::allocate_send_buffer(int size)
 	{
-		return m_send_buffer.allocate(size);
+		return m_send_buffer[m_current_send_buffer].allocate(size);
 	}
 
 	template<class T>
@@ -1692,7 +1693,7 @@ namespace libtorrent
 		// if we have requests or pending data to be sent or announcements to be made
 		// we want to send data
 		return ((!m_requests.empty() && !m_choked)
-			|| !m_send_buffer.empty())
+			|| !m_send_buffer[m_current_send_buffer].empty())
 			&& m_ul_bandwidth_quota.left() > 0
 			&& !m_connecting;
 	}
@@ -1791,12 +1792,19 @@ namespace libtorrent
 
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
-		m_send_buffer.erase(bytes_transferred);
+		int sending_buffer = (m_current_send_buffer + 1) & 1;
+		m_send_buffer[sending_buffer].erase(bytes_transferred);
 
 		m_last_sent = second_clock::universal_time();
 
 		on_sent(error, bytes_transferred);
 		fill_send_buffer();
+		if (!m_send_buffer[sending_buffer].empty())
+		{
+			// if the send operation didn't send all of the data in the buffer.
+			// send it again.
+			m_current_send_buffer = sending_buffer;
+		}
 		setup_send();
 	}
 	catch (std::exception& e)
