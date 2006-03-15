@@ -193,7 +193,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		assert(t);
 
-		m_last_piece = boost::posix_time::second_clock::universal_time();
+		incoming_piece_fragment();
 
 		for (;;)
 		{

@@ -829,10 +829,9 @@ namespace libtorrent { namespace detail
 		if (m_abort) return;
 
 		connection_map::iterator i = m_half_open.find(p->get_socket());
-		assert(i != m_half_open.end());
 
 		m_connections.insert(std::make_pair(p->get_socket(), p));
-		m_half_open.erase(i);
+		if (i != m_half_open.end()) m_half_open.erase(i);
 		process_connection_queue();
 	}
 #ifndef NDEBUG

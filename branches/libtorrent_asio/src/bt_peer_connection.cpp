@@ -530,7 +530,7 @@ namespace libtorrent
 				, 9 - (recv_pos - received));
 		}
 
-		m_last_piece = second_clock::universal_time();
+		incoming_piece_fragment();
 		if (!packet_finished()) return;
 
 		const char* ptr = recv_buffer.begin + 1;

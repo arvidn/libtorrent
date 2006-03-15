@@ -177,7 +177,7 @@ namespace libtorrent
 		struct TORRENT_EXPORT session_settings
 		{
 			session_settings()
-				: piece_timeout(60)
+				: piece_timeout(120)
 				, request_queue_time(3.f)
 			{}
 

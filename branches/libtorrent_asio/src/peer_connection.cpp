@@ -81,9 +81,9 @@ namespace libtorrent
 			- hours(1))
 		,
 #endif
-		  m_last_piece(second_clock::universal_time())
-		, m_ses(ses)
+		  m_ses(ses)
 		, m_timeout(120)
+		, m_last_piece(second_clock::universal_time())
 		, m_packet_size(0)
 		, m_recv_pos(0)
 		, m_current_send_buffer(0)
@@ -101,6 +101,7 @@ namespace libtorrent
 		, m_num_pieces(0)
 		, m_free_upload(0)
 		, m_trust_points(0)
+		, m_assume_fifo(false)
 		, m_disconnecting(false)
 		, m_became_uninterested(second_clock::universal_time())
 		, m_became_uninteresting(second_clock::universal_time())
@@ -166,9 +167,9 @@ namespace libtorrent
 			- hours(1))
 		,
 #endif
-		  m_last_piece(second_clock::universal_time())
-		, m_ses(ses)
+		  m_ses(ses)
 		, m_timeout(120)
+		, m_last_piece(second_clock::universal_time())
 		, m_packet_size(0)
 		, m_recv_pos(0)
 		, m_current_send_buffer(0)
@@ -185,6 +186,7 @@ namespace libtorrent
 		, m_num_pieces(0)
 		, m_free_upload(0)
 		, m_trust_points(0)
+		, m_assume_fifo(false)
 		, m_disconnecting(false)
 		, m_became_uninterested(second_clock::universal_time())
 		, m_became_uninteresting(second_clock::universal_time())
@@ -829,6 +831,11 @@ namespace libtorrent
 		}
 	}
 
+	void peer_connection::incoming_piece_fragment()
+	{
+		m_last_piece = second_clock::universal_time();
+	}
+	
 	// -----------------------------
 	// ----------- PIECE -----------
 	// -----------------------------
@@ -1356,7 +1363,7 @@ namespace libtorrent
 			m_download_queue.clear();
 			m_request_queue.clear();
 			
-			m_assume_fifo = true;
+//			m_assume_fifo = true;
 
 			// this will trigger new picking of pieces
 			t->get_policy().unchoked(*this);

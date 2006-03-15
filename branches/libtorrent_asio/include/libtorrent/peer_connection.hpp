@@ -242,6 +242,7 @@ namespace libtorrent
 		void incoming_bitfield(std::vector<bool> const& bitfield);
 		void incoming_request(peer_request const& r);
 		void incoming_piece(peer_request const& p, char const* data);
+		void incoming_piece_fragment();
 		void incoming_cancel(peer_request const& r);
 		void incoming_dht_port(int listen_port);
 
@@ -339,10 +340,6 @@ namespace libtorrent
 		// this peer
 		stat m_statistics;
 
-		// the time when we last got a part of a
-		// piece packet from this peer
-		boost::posix_time::ptime m_last_piece;
-
 		// a back reference to the session
 		// the peer belongs to.
 		detail::session_impl& m_ses;
@@ -364,6 +361,10 @@ namespace libtorrent
 
 		// the timeout in seconds
 		int m_timeout;
+
+		// the time when we last got a part of a
+		// piece packet from this peer
+		boost::posix_time::ptime m_last_piece;
 
 		int m_packet_size;
 		int m_recv_pos;
