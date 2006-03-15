@@ -1874,8 +1874,9 @@ It contains the following fields::
 			remote_choked = 0x8,
 			supports_extensions = 0x10,
 			local_connection = 0x20,
-			connecting = 0x40,
-			queued = 0x80
+			handshake = 0x40,
+			connecting = 0x80,
+			queued = 0x100
 		};
 		unsigned int flags;
 		asio::ipv4::tcp::endpoint ip;
@@ -1924,6 +1925,10 @@ any combination of the enums above. The following table describes each flag:
 |                         | address of this peer. If this flag is not set, this   |
 |                         | peer connection was opened by this peer connecting to |
 |                         | us.                                                   |
++-------------------------+-------------------------------------------------------+
+| ``handshake``           | The connection is opened, and waiting for the         |
+|                         | handshake. Until the handshake is done, the peer      |
+|                         | cannot be identified.                                 |
 +-------------------------+-------------------------------------------------------+
 | ``connecting``          | The connection is in a half-open state (i.e. it is    |
 |                         | being connected).                                     |

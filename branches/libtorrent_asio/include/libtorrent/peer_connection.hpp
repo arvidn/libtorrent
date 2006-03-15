@@ -214,8 +214,6 @@ namespace libtorrent
 
 		size_type share_diff() const;
 
-//		bool support_extensions() const { return m_supports_extensions; }
-
 		// a connection is local if it was initiated by us.
 		// if it was an incoming connection, it is remote
 		bool is_local() const { return m_active; }
@@ -226,21 +224,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		boost::shared_ptr<logger> m_logger;
 #endif
-/*
-		enum extension_index
-		{
-			extended_chat_message,
-			extended_metadata_message,
-			extended_peer_exchange_message,
-			extended_listen_port_message,
-			num_supported_extensions
-		};
 
-		bool supports_extension(extension_index ex) const
-		{ return m_extension_messages[ex] != -1; }
-
-		bool has_metadata() const;
-*/
 		// the message handlers are called
 		// each time a recv() returns some new
 		// data, the last time it will be called
@@ -260,30 +244,14 @@ namespace libtorrent
 		void incoming_piece(peer_request const& p, char const* data);
 		void incoming_cancel(peer_request const& r);
 		void incoming_dht_port(int listen_port);
-/*
-		void on_extension_list(int received);
-		void on_extended(int received);
 
-		void on_chat();
-		void on_metadata();
-		void on_peer_exchange();
-		void on_listen_port();
-
-		typedef void (peer_connection::*message_handler)(int received);
-*/
 		// the following functions appends messages
 		// to the send buffer
 		void send_choke();
 		void send_unchoke();
 		void send_interested();
 		void send_not_interested();
-/*
-		void send_handshake();
-		void send_extensions();
-		void send_chat_message(const std::string& msg);
-		void send_metadata(std::pair<int, int> req);
-		void send_metadata_request(std::pair<int, int> req);
-*/
+
 		// adds a block to the request queue
 		void add_request(piece_block const& b);
 		void cancel_request(piece_block const& b);
@@ -327,6 +295,7 @@ namespace libtorrent
 		virtual void write_piece(peer_request const& r) = 0;
 		
 		virtual void on_connected() = 0;
+		virtual void on_tick() {}
 	
 		virtual void on_receive(asio::error const& error
 			, std::size_t bytes_transferred) = 0;

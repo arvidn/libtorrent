@@ -302,6 +302,8 @@ namespace libtorrent
 		if (is_peer_interested()) p.flags |= peer_info::remote_interested;
 		if (has_peer_choked()) p.flags |= peer_info::remote_choked;
 		if (is_local()) p.flags |= peer_info::local_connection;
+		if (!is_connecting() && !m_server_string.empty())
+			p.flags |= peer_info::handshake;
 		if (is_connecting() && !is_queued()) p.flags |= peer_info::connecting;
 		if (is_queued()) p.flags |= peer_info::queued;
 		

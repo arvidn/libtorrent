@@ -1192,11 +1192,13 @@ namespace libtorrent
 
 		// TODO: calculate the desired request queue each tick instead.
 		// TODO: make this constant user-settable
-		const int queue_time = 3; // seconds
+		const float queue_time = m_ses.m_settings.request_queue_time;
 		// (if the latency is more than this, the download will stall)
-		// so, the queue size is 5 * down_rate / 16 kiB (16 kB is the size of each request)
-		// the minimum request size is 2 and the maximum is 48
-		// the block size doesn't have to be 16. So we first query the torrent for it
+		// so, the queue size is queue_time * down_rate / 16 kiB
+		// (16 kB is the size of each request)
+		// the minimum number of requests is 2 and the maximum is 48
+		// the block size doesn't have to be 16. So we first query the
+		// torrent for it
 		const int block_size = t->block_size();
 		assert(block_size > 0);
 		
@@ -1360,24 +1362,8 @@ namespace libtorrent
 			t->get_policy().unchoked(*this);
 		}
 	
-		// if we don't have any metadata, and this peer
-		// supports the request metadata extension
-		// and we aren't currently waiting for a request
-		// reply. Then, send a request for some metadata.
-// TODO: Move this into bt_peer_connection!!
-/*
-		if (!m_torrent->valid_metadata()
-			&& supports_extension(extended_metadata_message)
-			&& !m_waiting_metadata_request
-			&& has_metadata())
-		{
-			assert(m_torrent);
-			m_last_metadata_request = m_torrent->metadata_request();
-			write_metadata_request(m_last_metadata_request);
-			m_waiting_metadata_request = true;
-			m_metadata_request = now;
-		}
-*/
+		on_tick();
+		
 		m_statistics.second_tick();
 		m_ul_bandwidth_quota.used = std::min(
 			(int)ceil(statistics().upload_rate())

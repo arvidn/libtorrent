@@ -223,7 +223,7 @@ namespace libtorrent
 				for (It i = start; i != end && resources_to_distribute > 0; ++i)
 				{
 					resource_request& r = (*i).*res;
-					if(r.given == r.max) continue;
+					if (r.given == r.max) continue;
 
 					assert(r.given < r.max);
 
@@ -234,6 +234,7 @@ namespace libtorrent
 						to_give = resource_request::inf;
 					assert(to_give >= 0);
 					resources_to_distribute -= give(r, (int)to_give);
+					assert(resources_to_distribute >= 0);
 				}
 
 				assert(resources_to_distribute >= 0);

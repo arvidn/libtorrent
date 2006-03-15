@@ -99,7 +99,7 @@ void clear_home()
 #include <termios.h>
 #include <string.h>
 
-//#define ANSI_TERMINAL_COLORS
+#define ANSI_TERMINAL_COLORS
 
 struct set_keypress
 {
@@ -274,7 +274,11 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			out << progress_bar(0.f, 15);
 		}
 
-		if (i->flags & peer_info::connecting)
+		if (i->flags & peer_info::handshake)
+		{
+			out << esc("31") << " waiting for handshake" << esc("0") << "\n";
+		}
+		else if (i->flags & peer_info::connecting)
 		{
 			out << esc("31") << " connecting to peer" << esc("0") << "\n";
 		}

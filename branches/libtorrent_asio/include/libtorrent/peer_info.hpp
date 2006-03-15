@@ -52,8 +52,9 @@ namespace libtorrent
 			remote_choked = 0x8,
 			supports_extensions = 0x10,
 			local_connection = 0x20,
-			connecting = 0x40,
-			queued = 0x80
+			handshake = 0x40,
+			connecting = 0x80,
+			queued = 0x100
 		};
 		unsigned int flags;
 		tcp::endpoint ip;

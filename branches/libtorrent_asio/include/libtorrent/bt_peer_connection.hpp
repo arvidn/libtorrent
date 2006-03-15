@@ -167,6 +167,7 @@ namespace libtorrent
 		void write_keepalive();
 		void write_dht_port(int listen_port);
 		void on_connected() {}
+		void on_tick();
 
 #ifndef NDEBUG
 		void check_invariant() const;

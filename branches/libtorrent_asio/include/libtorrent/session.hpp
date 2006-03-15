@@ -176,8 +176,20 @@ namespace libtorrent
 
 		struct TORRENT_EXPORT session_settings
 		{
-			session_settings(): piece_timeout(60) {}
+			session_settings()
+				: piece_timeout(60)
+				, request_queue_time(3.f)
+			{}
+
+			// the number of seconds from a request is sent until
+			// it times out if no piece response is returned.
 			int piece_timeout;
+
+			// the length of the request queue given in the number
+			// of seconds it should take for the other end to send
+			// all the pieces. i.e. the actual number of requests
+			// depends on the download rate and this number.
+			float request_queue_time;
 		};
 
 		// this is the link between the main thread and the
