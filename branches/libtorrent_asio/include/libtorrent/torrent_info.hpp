@@ -65,7 +65,6 @@ namespace libtorrent
 		size_type size;
 	};
 
-
 	struct TORRENT_EXPORT file_slice
 	{
 		int file_index;

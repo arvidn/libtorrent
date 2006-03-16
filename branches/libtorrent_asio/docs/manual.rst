@@ -1886,7 +1886,7 @@ It contains the following fields::
 		float payload_down_speed;
 		size_type total_download;
 		size_type total_upload;
-		peer_id id;
+		peer_id pid;
 		std::vector<bool> pieces;
 		bool seed;
 		int upload_limit;
@@ -1954,7 +1954,7 @@ These figures are updated aproximately once every second.
 from and uploaded to this peer. These numbers do not include the protocol chatter, but only
 the payload data.
 
-``id`` is the peer's id as used in the bit torrent protocol. This id can be used to
+``pid`` is the peer's id as used in the bit torrent protocol. This id can be used to
 extract 'fingerprints' from the peer. Sometimes it can tell you which client the peer
 is using. See identify_client()_
 
@@ -2017,7 +2017,8 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		std::string proxy_login;
 		std::string proxy_password;
 		std::string user_agent;
-		int tracker_timeout;
+		int tracker_completion_timeout;
+		int tracker_receive_timeout;
 		int tracker_maximum_response_length;
 	};
 
@@ -2035,10 +2036,18 @@ empty, the http proxy will be tried to be used without authentication.
 ``user_agent`` this is the client identification to the tracker. It will
 be followed by the string "(libtorrent)" to identify that this library
 is being used. This should be set to your client's name and version number.
+This name will not only be used when making HTTP requests, but also when
+sending extended headers to peers that support that extension.
 
-``tracker_timeout`` is the number of seconds the tracker connection will
-wait until it considers the tracker to have timed-out. Default value is 10
-seconds.
+``tracker_completion_timeout`` is the number of seconds the tracker
+connection will wait from when it sent the request until it considers the
+tracker to have timed-out. Default value is 60 seconds.
+
+``tracker_receive_timeout`` is the number of seconds to wait to receive
+any data from the tracker. If no data is received for this number of
+seconds, the tracker will be considered as having timed out. If a tracker
+is down, this is the kind of timeout that will occur. The default value
+is 20 seconds.
 
 ``tracker_maximum_response_length`` is the maximum number of bytes in a
 tracker response. If a response size passes this number it will be rejected
@@ -2206,7 +2215,7 @@ This is the class declaration::
 
 		std::string to_string() const;
 
-		char id[2];
+		char name[2];
 		char major_version;
 		char minor_version;
 		char revision_version;

@@ -260,7 +260,7 @@ namespace libtorrent
 		p.up_speed = statistics().upload_rate();
 		p.payload_down_speed = statistics().download_payload_rate();
 		p.payload_up_speed = statistics().upload_payload_rate();
-		p.id = id();
+		p.pid = pid();
 		p.ip = remote();
 
 		p.total_download = statistics().total_payload_download();

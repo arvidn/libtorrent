@@ -404,7 +404,7 @@ namespace libtorrent
 		void disable_extensions();
 
 		void set_ip_filter(ip_filter const& f);
-		void set_peer_id(peer_id const& id);
+		void set_peer_id(peer_id const& pid);
 		void set_key(int key);
 
 		bool is_listening() const;

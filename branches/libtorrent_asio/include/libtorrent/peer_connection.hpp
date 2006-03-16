@@ -139,8 +139,8 @@ namespace libtorrent
 		// will send a keep-alive message to the peer
 		void keep_alive();
 
-		const peer_id& id() const { return m_peer_id; }
-		void set_id(const peer_id& id) { m_peer_id = id; }
+		peer_id const& pid() const { return m_peer_id; }
+		void set_pid(const peer_id& pid) { m_peer_id = pid; }
 		bool has_piece(int i) const;
 
 		const std::deque<piece_block>& download_queue() const;
@@ -220,6 +220,8 @@ namespace libtorrent
 
 		void set_failed() { m_failed = true; }
 		bool failed() const { return m_failed; }
+
+		int desired_queue_size() const { return m_desired_queue_size; }
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		boost::shared_ptr<logger> m_logger;
@@ -446,6 +448,10 @@ namespace libtorrent
 		// the queue of blocks we have requested
 		// from this peer
 		std::deque<piece_block> m_download_queue;
+		
+		// the number of request we should queue up
+		// at the remote end.
+		int m_desired_queue_size;
 
 		// the amount of data this peer has been given
 		// as free upload. This is distributed from

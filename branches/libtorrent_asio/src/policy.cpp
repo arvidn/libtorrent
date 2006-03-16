@@ -72,26 +72,8 @@ namespace
 		, peer_connection& c
 		, std::vector<peer_connection*> ignore = std::vector<peer_connection*>())
 	{
-		// this will make the number of requests linearly dependent
-		// on the rate in which we download from the peer.
-		// we want the queue to represent:
-		// TODO: make this constant user-settable
-		const int queue_time = 3; // seconds
-		// (if the latency is more than this, the download will stall)
-		// so, the queue size is 5 * down_rate / 16 kiB (16 kB is the size of each request)
-		// the minimum request size is 2 and the maximum is 48
-		// the block size doesn't have to be 16. So we first query the torrent for it
-		const int block_size = t.block_size();
-		assert(block_size > 0);
-		
-		int desired_queue_size = static_cast<int>(queue_time
-			* c.statistics().download_rate() / block_size);
-		if (desired_queue_size > max_request_queue) desired_queue_size = max_request_queue;
-		if (desired_queue_size < min_request_queue) desired_queue_size = min_request_queue;
-
-		assert(desired_queue_size >= min_request_queue);
-
-		int num_requests = desired_queue_size - (int)c.download_queue().size()
+		int num_requests = c.desired_queue_size()
+			- (int)c.download_queue().size()
 			- (int)c.request_queue().size();
 
 		// if our request queue is already full, we
@@ -310,14 +292,14 @@ namespace
 
 	struct match_peer_ip
 	{
-		match_peer_ip(const tcp::endpoint& id)
-			: m_id(id)
+		match_peer_ip(const tcp::endpoint& ip)
+			: m_ip(ip)
 		{}
 
 		bool operator()(const policy::peer& p) const
-		{ return p.id.address() == m_id.address(); }
+		{ return p.ip.address() == m_ip.address(); }
 
-		tcp::endpoint m_id;
+		tcp::endpoint m_ip;
 	};
 
 	struct match_peer_connection
@@ -842,7 +824,7 @@ namespace libtorrent
 		assert(i != m_peers.end());
 
 		i->type = peer::not_connectable;
-		i->id.port(0);
+		i->ip.port(0);
 		i->banned = true;
 	}
 
@@ -923,7 +905,7 @@ namespace libtorrent
 		m_last_optimistic_disconnect = second_clock::universal_time();
 	}
 
-	void policy::peer_from_tracker(const tcp::endpoint& remote, const peer_id& id)
+	void policy::peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid)
 	{
 		INVARIANT_CHECK;
 
@@ -961,7 +943,7 @@ namespace libtorrent
 				// in case we got the ip from a remote connection, port is
 				// not known, so save it. Client may also have changed port
 				// for some reason.
-				i->id = remote;
+				i->ip = remote;
 
 				if (i->connection)
 				{
@@ -1000,7 +982,7 @@ namespace libtorrent
 			if (m_torrent->alerts().should_post(alert::debug))
 			{
 				m_torrent->alerts().post_alert(
-					peer_error_alert(remote, id, e.what()));
+					peer_error_alert(remote, pid, e.what()));
 			}
 		}
 	}
@@ -1171,7 +1153,7 @@ namespace libtorrent
 		try
 		{
 			assert(!p->connection);
-			p->connection = &m_torrent->connect_to_peer(p->id);
+			p->connection = &m_torrent->connect_to_peer(p->ip);
 			assert(p->connection);
 			p->connection->add_stat(p->prev_amount_download, p->prev_amount_upload);
 			p->prev_amount_download = 0;
@@ -1225,7 +1207,7 @@ namespace libtorrent
 		if (c.failed())
 		{
 			i->type = peer::not_connectable;
-			i->id.port(0);
+			i->ip.port(0);
 		}
 
 		// if the share ratio is 0 (infinite), the
@@ -1325,8 +1307,8 @@ namespace libtorrent
 	}
 #endif
 
-	policy::peer::peer(const tcp::endpoint& pid, peer::connection_type t)
-		: id(pid)
+	policy::peer::peer(const tcp::endpoint& ip_, peer::connection_type t)
+		: ip(ip_)
 		, type(t)
 		, last_optimistically_unchoked(
 			boost::gregorian::date(1970,boost::gregorian::Jan,1))

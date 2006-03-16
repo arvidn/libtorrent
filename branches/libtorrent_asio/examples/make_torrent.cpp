@@ -73,6 +73,8 @@ int main(int argc, char* argv[])
 	using namespace libtorrent;
 	using namespace boost::filesystem;
 
+	path::default_name_check(no_check);
+
 	if (argc != 4)
 	{
 		std::cerr << "usage: make_torrent <output torrent-file> <announce url> <file or directory to create torrent from>\n";

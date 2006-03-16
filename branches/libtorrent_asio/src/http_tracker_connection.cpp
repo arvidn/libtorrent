@@ -249,6 +249,8 @@ namespace libtorrent
 		, m_recv_pos(0)
 		, m_buffer(http_buffer_size)
 		, m_request_time(second_clock::universal_time())
+		, m_last_receive_time(second_clock::universal_time())
+		, m_timeout(d)
 		, m_settings(stn)
 		, m_req(req)
 		, m_password(auth)
@@ -309,7 +311,7 @@ namespace libtorrent
 		{
 			m_send_buffer += "&peer_id=";
 			m_send_buffer += escape_string(
-				reinterpret_cast<const char*>(req.id.begin()), 20);
+				reinterpret_cast<const char*>(req.pid.begin()), 20);
 
 			m_send_buffer += "&port=";
 			m_send_buffer += boost::lexical_cast<std::string>(req.listen_port);
@@ -377,9 +379,13 @@ namespace libtorrent
 
 		m_name_lookup.async_by_name(m_host, *connect_to_host
 			, bind(&http_tracker_connection::name_lookup, self(), _1));
+		m_timeout.expires_at(std::min(
+			m_last_receive_time + seconds(m_settings.tracker_receive_timeout)
+			, m_request_time + seconds(m_settings.tracker_completion_timeout)));
+		m_timeout.async_wait(bind(&http_tracker_connection::timeout, self(), _1));
 	}
 
-	void http_tracker_connection::name_lookup(asio::error const& error)
+	void http_tracker_connection::name_lookup(asio::error const& error) try
 	{
 		if (error)
 		{
@@ -390,11 +396,16 @@ namespace libtorrent
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (has_requester()) requester().debug_log("tracker name lookup successful");
 #endif
-
+		m_last_receive_time = second_clock::universal_time();
 		m_socket.reset(new stream_socket(m_name_lookup.io_service()));
 		tcp::endpoint a(m_port, m_host.address(0));
 		if (has_requester()) requester().m_tracker_address = a;
 		m_socket->async_connect(a, bind(&http_tracker_connection::connected, self(), _1));
+	}
+	catch (std::exception& e)
+	{
+		assert(false);
+		fail(-1, e.what());
 	}
 
 	void http_tracker_connection::fail(int code, char const* msg)
@@ -404,7 +415,7 @@ namespace libtorrent
 		m_man.remove_request(this);
 	}
 	
-	void http_tracker_connection::connected(asio::error const& error)
+	void http_tracker_connection::connected(asio::error const& error) try
 	{
 		if (error)
 		{
@@ -416,12 +427,18 @@ namespace libtorrent
 		if (has_requester()) requester().debug_log("tracker connection successful");
 #endif
 
+		m_last_receive_time = second_clock::universal_time();
 		async_write(*m_socket, asio::buffer(m_send_buffer.c_str()
 			, m_send_buffer.size()), bind(&http_tracker_connection::sent
 			, self(), _1));
 	}
+	catch (std::exception& e)
+	{
+		assert(false);
+		fail(-1, e.what());
+	}
 
-	void http_tracker_connection::sent(asio::error const& error)
+	void http_tracker_connection::sent(asio::error const& error) try
 	{
 		if (error)
 		{
@@ -432,15 +449,21 @@ namespace libtorrent
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (has_requester()) requester().debug_log("tracker send data completed");
 #endif
-
+		m_request_time = second_clock::universal_time();
 		assert(m_buffer.size() - m_recv_pos > 0);
 		m_socket->async_read_some(asio::buffer(&m_buffer[m_recv_pos]
 			, m_buffer.size() - m_recv_pos), bind(&http_tracker_connection::receive
 			, self(), _1, _2));
 	}
+	catch (std::exception& e)
+	{
+		assert(false);
+		fail(-1, e.what());
+	}
+
 	
 	void http_tracker_connection::receive(asio::error const& error
-		, std::size_t bytes_transferred)
+		, std::size_t bytes_transferred) try
 	{
 		if (error == asio::error::operation_aborted) return;
 
@@ -457,6 +480,7 @@ namespace libtorrent
 			return;
 		}
 
+		m_last_receive_time = second_clock::universal_time();
 		assert(bytes_transferred > 0);
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (has_requester()) requester().debug_log("tracker connection reading "
@@ -640,7 +664,39 @@ namespace libtorrent
 			, m_buffer.size() - m_recv_pos), bind(&http_tracker_connection::receive
 			, self(), _1, _2));
 	}
+	catch (std::exception& e)
+	{
+		assert(false);
+		fail(-1, e.what());
+	}
 	
+	void http_tracker_connection::timeout(asio::error const& error) try
+	{
+		if (error) return;
+	
+		ptime now(second_clock::universal_time());
+		time_duration receive_timeout = now - m_last_receive_time;
+		time_duration completion_timeout = now - m_request_time;
+		
+		if (m_settings.tracker_receive_timeout
+			< receive_timeout.total_seconds()
+			|| m_settings.tracker_completion_timeout
+			< completion_timeout.total_seconds())
+		{
+			fail(-1, "tracker timed out");
+			return;
+		}
+		
+		m_timeout.expires_at(std::min(
+			m_last_receive_time + seconds(m_settings.tracker_receive_timeout)
+			, m_request_time + seconds(m_settings.tracker_completion_timeout)));
+		m_timeout.async_wait(bind(&http_tracker_connection::timeout, self(), _1));
+	}
+	catch (std::exception& e)
+	{
+		assert(false);
+	}
+
 	void http_tracker_connection::on_response()
 	{
 		// GZIP
@@ -692,12 +748,12 @@ namespace libtorrent
 		{
 			if (i->string().length() != 20)
 				throw std::runtime_error("invalid response from tracker");
-			std::copy(i->string().begin(), i->string().end(), ret.id.begin());
+			std::copy(i->string().begin(), i->string().end(), ret.pid.begin());
 		}
 		else
 		{
 			// if there's no peer_id, just initialize it to a bunch of zeroes
-			std::fill_n(ret.id.begin(), 20, 0);
+			std::fill_n(ret.pid.begin(), 20, 0);
 		}
 
 		// extract ip
@@ -764,7 +820,7 @@ namespace libtorrent
 					if (std::distance(i, peers.end()) < 6) break;
 
 					peer_entry p;
-					p.id.clear();
+					p.pid.clear();
 					std::stringstream ip_str;
 					ip_str << (int)detail::read_uint8(i) << ".";
 					ip_str << (int)detail::read_uint8(i) << ".";

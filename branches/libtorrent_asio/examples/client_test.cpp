@@ -702,11 +702,11 @@ int main(int ac, char* av[])
 				}
 				else if (peer_error_alert* p = dynamic_cast<peer_error_alert*>(a.get()))
 				{
-					events.push_back(identify_client(p->id) + ": " + a->msg());
+					events.push_back(identify_client(p->pid) + ": " + a->msg());
 				}
 				else if (invalid_request_alert* p = dynamic_cast<invalid_request_alert*>(a.get()))
 				{
-					events.push_back(identify_client(p->id) + ": " + a->msg());
+					events.push_back(identify_client(p->pid) + ": " + a->msg());
 				}
 				else
 				{

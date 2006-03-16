@@ -64,7 +64,7 @@ namespace libtorrent
 		float payload_down_speed;
 		size_type total_download;
 		size_type total_upload;
-		peer_id id;
+		peer_id pid;
 		std::vector<bool> pieces;
 		bool seed; // true if this is a seed
 		int upload_limit;

@@ -287,7 +287,7 @@ namespace libtorrent
 	{
 		assert(c != 0);
 		assert(c->m_refs >= 0);
-		tracker_manager::mutex_t::scoped_lock l(c->m_manager.m_mutex);
+		tracker_connection::mutex_t::scoped_lock l(c->m_mutex);
 		++c->m_refs;
 	}
 
@@ -295,10 +295,15 @@ namespace libtorrent
 	{
 		assert(c != 0);
 		assert(c->m_refs > 0);
-		tracker_manager::mutex_t::scoped_lock l(c->m_manager.m_mutex);
-		--c->m_refs;
-		if (c->m_refs == 0)
-			delete c;
+		bool destroy = false;
+		{
+			// the lock has to be released before we destroy the tracker
+			// connection, since the mutex is a member of it.
+			tracker_connection::mutex_t::scoped_lock l(c->m_mutex);
+			--c->m_refs;
+			destroy = c->m_refs == 0;
+		}
+		if (destroy) delete c;
 	}
 
 	request_callback& tracker_connection::requester()

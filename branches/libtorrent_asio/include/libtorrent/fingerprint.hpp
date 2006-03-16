@@ -55,14 +55,14 @@ namespace libtorrent
 			assert(revision >= 0);
 			assert(tag >= 0);
 			assert(std::strlen(id_string) == 2);
-			id[0] = id_string[0];
-			id[1] = id_string[1];
+			name[0] = id_string[0];
+			name[1] = id_string[1];
 		}
 
 		std::string to_string() const
 		{
 			std::stringstream s;
-			s << "-" << id[0] << id[1]
+			s << "-" << name[0] << name[1]
 				<< version_to_char(major_version)
 				<< version_to_char(minor_version)
 				<< version_to_char(revision_version)
@@ -70,7 +70,7 @@ namespace libtorrent
 			return s.str();
 		}
 
-		char id[2];
+		char name[2];
 		char major_version;
 		char minor_version;
 		char revision_version;

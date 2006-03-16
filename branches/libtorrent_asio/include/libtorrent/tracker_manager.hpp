@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
+#include <boost/thread/mutex.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/tuple/tuple.hpp>
 
@@ -100,7 +101,7 @@ namespace libtorrent
 		};
 
 		sha1_hash info_hash;
-		peer_id id;
+		peer_id pid;
 		size_type downloaded;
 		size_type uploaded;
 		size_type left;
@@ -168,6 +169,8 @@ namespace libtorrent
 	protected:
 		boost::weak_ptr<request_callback> m_requester;
 	private:
+		typedef boost::mutex mutex_t;
+		mutable mutex_t m_mutex;
 		mutable int m_refs;
 		tracker_manager& m_manager;
 	};

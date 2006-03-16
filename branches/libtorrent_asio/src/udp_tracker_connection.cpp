@@ -84,6 +84,9 @@ namespace libtorrent
 		, m_man(man)
 		, m_name_lookup(d)
 		, m_port(port)
+		, m_request_time(second_clock::universal_time())
+		, m_last_receive_time(second_clock::universal_time())
+		, m_timeout(d)
 		, m_req(req)
 		, m_transaction_id(0)
 		, m_connection_id(0)
@@ -93,9 +96,13 @@ namespace libtorrent
 		m_socket.reset(new datagram_socket(d));
 		m_name_lookup.async_by_name(m_host, hostname.c_str()
 			, bind(&udp_tracker_connection::name_lookup, self(), _1));
+		m_timeout.expires_at(std::min(
+			m_last_receive_time + seconds(m_settings.tracker_receive_timeout)
+			, m_request_time + seconds(m_settings.tracker_completion_timeout)));
+		m_timeout.async_wait(bind(&udp_tracker_connection::timeout, self(), _1));
 	}
 
-	void udp_tracker_connection::name_lookup(asio::error const& error)
+	void udp_tracker_connection::name_lookup(asio::error const& error) try
 	{
 		if (error)
 		{
@@ -106,12 +113,17 @@ namespace libtorrent
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (has_requester()) requester().debug_log("udp tracker name lookup successful");
 #endif
-
+		m_last_receive_time = second_clock::universal_time();
 		m_target = udp::endpoint(m_port, m_host.address(0));
 		if (has_requester()) requester().m_tracker_address
 			= tcp::endpoint(m_port, m_host.address(0));
 		m_socket->connect(m_target);
 		send_udp_connect();
+	}
+	catch (std::exception& e)
+	{
+		fail(-1, e.what());
+		assert(false);
 	}
 
 	void udp_tracker_connection::fail(int code, char const* msg)
@@ -121,16 +133,33 @@ namespace libtorrent
 		m_man.remove_request(this);
 	}
 	
-/*	bool udp_tracker_connection::send_finished() const
+	void udp_tracker_connection::timeout(asio::error const& error) try
 	{
-		using namespace boost::posix_time;
-
-		time_duration d = second_clock::universal_time() - m_request_time;
-		return (m_transaction_id != 0
-			&& m_connection_id != 0)
-			|| d > seconds(m_settings.tracker_timeout);
+		if (error) return;
+	
+		ptime now(second_clock::universal_time());
+		time_duration receive_timeout = now - m_last_receive_time;
+		time_duration completion_timeout = now - m_request_time;
+		
+		if (m_settings.tracker_receive_timeout
+			< receive_timeout.total_seconds()
+			|| m_settings.tracker_completion_timeout
+			< completion_timeout.total_seconds())
+		{
+			fail(-1, "tracker timed out");
+			return;
+		}
+		
+		m_timeout.expires_at(std::min(
+			m_last_receive_time + seconds(m_settings.tracker_receive_timeout)
+			, m_request_time + seconds(m_settings.tracker_completion_timeout)));
+		m_timeout.async_wait(bind(&udp_tracker_connection::timeout, self(), _1));
 	}
-*/
+	catch (std::exception& e)
+	{
+		assert(false);
+	}
+	
 	void udp_tracker_connection::send_udp_connect()
 	{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -164,7 +193,7 @@ namespace libtorrent
 	}
 
 	void udp_tracker_connection::connect_response(asio::error const& error
-		, std::size_t bytes_transferred)
+		, std::size_t bytes_transferred) try
 	{
 		if (error)
 		{
@@ -191,6 +220,8 @@ namespace libtorrent
 			fail(-1, "got a message with size < 8");
 			return;
 		}
+
+		m_last_receive_time = second_clock::universal_time();
 
 		const char* ptr = &m_buffer[0];
 		int action = detail::read_int32(ptr);
@@ -238,81 +269,12 @@ namespace libtorrent
 		else if (m_req.kind == tracker_request::scrape_request)
 			send_udp_scrape();
 	}
-	
-
-	
-/*
-	bool udp_tracker_connection::tick()
+	catch (std::exception& e)
 	{
-		using namespace boost::posix_time;
-
-		time_duration d = second_clock::universal_time() - m_request_time;
-		if (m_connection_id == 0
-			&& d > seconds(udp_connect_timeout))
-		{
-			if (m_attempts >= udp_connection_retries)
-			{
-				if (has_requester())
-					requester().tracker_request_timed_out(m_request);
-				return true;
-			}
-			send_udp_connect();
-			return false;
-		}
-
-		if (m_connection_id != 0
-			&& d > seconds(udp_announce_timeout))
-		{
-			if (m_attempts >= udp_announce_retries)
-			{
-				if (has_requester())
-					requester().tracker_request_timed_out(m_request);
-				return true;
-			}
-
-			if (m_request.kind == tracker_request::announce_request)
-				send_udp_announce();
-			else if (m_request.kind == tracker_request::scrape_request)
-				send_udp_scrape();
-			return false;
-		}
-
-		char buf[udp_buffer_size];
-		int ret = m_socket->receive(buf, udp_buffer_size);
-
-		// if there was nothing to receive, return
-		if (ret == 0) return false;
-		if (ret < 0)
-		{
-			socket::error_code err = m_socket->last_error();
-			if (err == socket::would_block) return false;
-			throw network_error(m_socket->last_error());
-		}
-		if (ret == udp_buffer_size)
-		{
-			if (has_requester())
-				requester().tracker_request_error(
-					m_request, -1, "tracker reply too big");
-			return true;
-		}
-
-		if (m_connection_id == 0)
-		{
-			return parse_connect_response(buf, ret);
-		}
-		else if (m_request.kind == tracker_request::announce_request)
-		{
-			return parse_announce_response(buf, ret);
-		}
-		else if (m_request.kind == tracker_request::scrape_request)
-		{
-			return parse_scrape_response(buf, ret);
-		}
-
+		fail(-1, e.what());
 		assert(false);
-		return false;
 	}
-*/
+	
 	void udp_tracker_connection::send_udp_announce()
 	{
 		if (m_transaction_id == 0)
@@ -330,7 +292,7 @@ namespace libtorrent
 		// info_hash
 		std::copy(m_req.info_hash.begin(), m_req.info_hash.end(), out);
 		// peer_id
-		std::copy(m_req.id.begin(), m_req.id.end(), out);
+		std::copy(m_req.pid.begin(), m_req.pid.end(), out);
 		// downloaded
 		detail::write_int64(m_req.downloaded, out);
 		// left
@@ -392,7 +354,7 @@ namespace libtorrent
 	}
 
 	void udp_tracker_connection::announce_response(asio::error const& error
-		, std::size_t bytes_transferred)
+		, std::size_t bytes_transferred) try
 	{
 		if (error)
 		{
@@ -420,6 +382,7 @@ namespace libtorrent
 			return;
 		}
 
+		m_last_receive_time = second_clock::universal_time();
 		char* buf = &m_buffer[0];
 		int action = detail::read_int32(buf);
 		int transaction = detail::read_int32(buf);
@@ -482,7 +445,7 @@ namespace libtorrent
 			s << (int)detail::read_uint8(buf);
 			e.ip = s.str();
 			e.port = detail::read_uint16(buf);
-			e.id.clear();
+			e.pid.clear();
 			peer_list.push_back(e);
 		}
 
@@ -492,9 +455,14 @@ namespace libtorrent
 		m_man.remove_request(this);
 		return;
 	}
+	catch (std::exception& e)
+	{
+		fail(-1, e.what());
+		assert(false);
+	}
 
 	void udp_tracker_connection::scrape_response(asio::error const& error
-		, std::size_t bytes_transferred)
+		, std::size_t bytes_transferred) try
 	{
 		if (error)
 		{
@@ -522,6 +490,7 @@ namespace libtorrent
 			return;
 		}
 
+		m_last_receive_time = second_clock::universal_time();
 		char* buf = &m_buffer[0];
 		int action = detail::read_int32(buf);
 		int transaction = detail::read_int32(buf);
@@ -565,6 +534,11 @@ namespace libtorrent
 			, complete, incomplete);
 
 		m_man.remove_request(this);
+	}
+	catch (std::exception& e)
+	{
+		fail(-1, e.what());
+		assert(false);
 	}
 
 }

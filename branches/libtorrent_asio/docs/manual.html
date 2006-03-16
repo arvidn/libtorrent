@@ -1905,7 +1905,7 @@ struct peer_info
         float payload_down_speed;
         size_type total_download;
         size_type total_upload;
-        peer_id id;
+        peer_id pid;
         std::vector&lt;bool&gt; pieces;
         bool seed;
         int upload_limit;
@@ -1980,7 +1980,7 @@ These figures are updated aproximately once every second.</p>
 <p><tt class="docutils literal"><span class="pre">total_download</span></tt> and <tt class="docutils literal"><span class="pre">total_upload</span></tt> are the total number of bytes downloaded
 from and uploaded to this peer. These numbers do not include the protocol chatter, but only
 the payload data.</p>
-<p><tt class="docutils literal"><span class="pre">id</span></tt> is the peer's id as used in the bit torrent protocol. This id can be used to
+<p><tt class="docutils literal"><span class="pre">pid</span></tt> is the peer's id as used in the bit torrent protocol. This id can be used to
 extract 'fingerprints' from the peer. Sometimes it can tell you which client the peer
 is using. See identify_client()_</p>
 <p><tt class="docutils literal"><span class="pre">pieces</span></tt> is a vector of booleans that has as many entries as there are pieces
@@ -2030,7 +2030,8 @@ struct http_settings
         std::string proxy_login;
         std::string proxy_password;
         std::string user_agent;
-        int tracker_timeout;
+        int tracker_completion_timeout;
+        int tracker_receive_timeout;
         int tracker_maximum_response_length;
 };
 </pre>
@@ -2043,10 +2044,17 @@ empty, the http proxy will be tried to be used without authentication.</p>
 <p><tt class="docutils literal"><span class="pre">proxy_password</span></tt> the password string for the http proxy.</p>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker. It will
 be followed by the string &quot;(libtorrent)&quot; to identify that this library
-is being used. This should be set to your client's name and version number.</p>
-<p><tt class="docutils literal"><span class="pre">tracker_timeout</span></tt> is the number of seconds the tracker connection will
-wait until it considers the tracker to have timed-out. Default value is 10
-seconds.</p>
+is being used. This should be set to your client's name and version number.
+This name will not only be used when making HTTP requests, but also when
+sending extended headers to peers that support that extension.</p>
+<p><tt class="docutils literal"><span class="pre">tracker_completion_timeout</span></tt> is the number of seconds the tracker
+connection will wait from when it sent the request until it considers the
+tracker to have timed-out. Default value is 60 seconds.</p>
+<p><tt class="docutils literal"><span class="pre">tracker_receive_timeout</span></tt> is the number of seconds to wait to receive
+any data from the tracker. If no data is received for this number of
+seconds, the tracker will be considered as having timed out. If a tracker
+is down, this is the kind of timeout that will occur. The default value
+is 20 seconds.</p>
 <p><tt class="docutils literal"><span class="pre">tracker_maximum_response_length</span></tt> is the maximum number of bytes in a
 tracker response. If a response size passes this number it will be rejected
 and the connection will be closed. On gzipped responses this size is measured
@@ -2194,7 +2202,7 @@ struct fingerprint
 
         std::string to_string() const;
 
-        char id[2];
+        char name[2];
         char major_version;
         char minor_version;
         char revision_version;

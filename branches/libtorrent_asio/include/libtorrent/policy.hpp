@@ -83,7 +83,7 @@ namespace libtorrent
 
 		// this is called once for every peer we get from
 		// the tracker
-		void peer_from_tracker(const tcp::endpoint& remote, const peer_id& id);
+		void peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid);
 
 		// called when an incoming connection is accepted
 		// return false if the connection closed
@@ -139,7 +139,7 @@ namespace libtorrent
 			// if it was a remote (incoming) connection, type is
 			// set thereafter. If it was a peer we got from the
 			// tracker, type is set to local_connection.
-			tcp::endpoint id;
+			tcp::endpoint ip;
 			connection_type type;
 
 			// the time when this peer was optimistically unchoked

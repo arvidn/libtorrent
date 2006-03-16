@@ -599,9 +599,13 @@ namespace libtorrent
 		assert(m_piece_info.begin() != m_piece_info.end());
 		// +1 is to ignore pieces that no peer has. The bucket with index 0 contains
 		// pieces that 0 other peers has.
-		std::vector<std::vector<int> >::const_iterator free = m_piece_info.begin()+1;
-		assert(m_downloading_piece_info.begin() != m_downloading_piece_info.end());
-		std::vector<std::vector<int> >::const_iterator partial = m_downloading_piece_info.begin()+1;
+		std::vector<std::vector<int> >::const_iterator free
+			= m_piece_info.begin() + 1;
+		assert(m_downloading_piece_info.begin()
+			!= m_downloading_piece_info.end());
+
+		std::vector<std::vector<int> >::const_iterator partial
+			= m_downloading_piece_info.begin() + 1;
 
 		std::vector<piece_block> backup_blocks;
 		
@@ -610,15 +614,18 @@ namespace libtorrent
 		// has filled the interesting_blocks with num_blocks
 		// blocks.
 	
-		// it iterates over two ranges simultaneously. The pieces that are partially downloaded
-		// or partially requested, and the pieces that hasn't been requested at all.
-		// The default is to prioritize pieces that are partially requested/downloaded, so the
-		// loop will first look for blocks among those pieces. And it will also take two steps
-		// in that range when iterating. This has the effect that partial pieces doesn't have to
-		// be as rare as non-requested pieces in order to be prefered.
-
-		// When prefer_whole_pieces is set (usually set when downloading from fast peers) the
-		// partial pieces will not be prioritized, but actually ignored as long as possible.
+		// it iterates over two ranges simultaneously. The pieces that are
+		// partially downloaded or partially requested, and the pieces that
+		// hasn't been requested at all. The default is to prioritize pieces
+		// that are partially requested/downloaded, so the loop will first
+		// look for blocks among those pieces. And it will also take two steps
+		// in that range when iterating. This has the effect that partial pieces
+		// doesn't have to be as rare as non-requested pieces in order to be
+		// prefered.
+		
+		// When prefer_whole_pieces is set (usually set when downloading from
+		// fast peers) the partial pieces will not be prioritized, but actually
+		// ignored as long as possible.
 
 		while((free != m_piece_info.end())
 			|| (partial != m_downloading_piece_info.end()))

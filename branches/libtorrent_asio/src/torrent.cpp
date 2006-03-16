@@ -172,18 +172,18 @@ namespace
 
 	struct peer_by_id
 	{
-		peer_by_id(const peer_id& i): id(i) {}
+		peer_by_id(const peer_id& i): pid(i) {}
 		
 		bool operator()(const std::pair<tcp::endpoint, peer_connection*>& p) const
 		{
-			if (p.second->id() != id) return false;
+			if (p.second->pid() != pid) return false;
 			// have a special case for all zeros. We can have any number
-			// of peers with that id, since it's used to indicate no id.
-			if (std::count(id.begin(), id.end(), 0) == 20) return false;
+			// of peers with that pid, since it's used to indicate no pid.
+			if (std::count(pid.begin(), pid.end(), 0) == 20) return false;
 			return true;
 		}
 
-		const peer_id& id;
+		peer_id const& pid;
 	};
 
 }
@@ -443,7 +443,7 @@ namespace libtorrent
 		{
 			s << "  " << std::setfill(' ') << std::setw(16) << i->ip
 				<< " " << std::setw(5) << std::dec << i->port << "  ";
-			if (!i->id.is_all_zeros()) s << " " << i->id << " " << identify_client(i->id);
+			if (!i->pid.is_all_zeros()) s << " " << i->pid << " " << identify_client(i->pid);
 			s << "\n";
 		}
 		debug_log(s.str());
@@ -453,7 +453,7 @@ namespace libtorrent
 			i != peer_list.end(); ++i)
 		{
 			// don't make connections to ourself
-			if (i->id == m_ses.get_peer_id())
+			if (i->pid == m_ses.get_peer_id())
 				continue;
 
 			tcp::endpoint a(i->port, i->ip.c_str());
@@ -466,7 +466,7 @@ namespace libtorrent
 				continue;
 			}
 			
-			m_policy->peer_from_tracker(a, i->id);
+			m_policy->peer_from_tracker(a, i->pid);
 		}
 
 		if (m_ses.m_alerts.should_post(alert::info))
@@ -845,7 +845,7 @@ namespace libtorrent
 
 		tracker_request req;
 		req.info_hash = m_torrent_file.info_hash();
-		req.id = m_ses.get_peer_id();
+		req.pid = m_ses.get_peer_id();
 		req.downloaded = m_stat.total_payload_download();
 		req.uploaded = m_stat.total_payload_upload();
 		req.left = bytes_left();

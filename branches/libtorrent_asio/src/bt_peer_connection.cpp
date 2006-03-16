@@ -180,7 +180,7 @@ namespace libtorrent
 		p.up_speed = statistics().upload_rate();
 		p.payload_down_speed = statistics().download_payload_rate();
 		p.payload_up_speed = statistics().upload_payload_rate();
-		p.id = id();
+		p.pid = pid();
 		p.ip = remote();
 
 		p.total_download = statistics().total_payload_download();
@@ -704,7 +704,7 @@ namespace libtorrent
 			{
 				tcp::endpoint adr((unsigned short)listen_port->integer()
 					, remote().address());
-				t->get_policy().peer_from_tracker(adr, id());
+				t->get_policy().peer_from_tracker(adr, pid());
 			}
 		}
 		// there should be a version too
@@ -1374,13 +1374,13 @@ namespace libtorrent
 #endif
 			peer_id pid;
 			std::copy(recv_buffer.begin, recv_buffer.begin + 20, (char*)pid.begin());
-			set_id(pid);
+			set_pid(pid);
 			
 			m_client_version = identify_client(pid);
 
 			// disconnect if the peer has the same peer-id as ourself
 			// since it most likely is ourself then
-			if (id() == m_ses.get_peer_id())
+			if (pid == m_ses.get_peer_id())
 				throw std::runtime_error("closing connection to ourself");
 					
 			if (m_supports_extensions) write_extensions();

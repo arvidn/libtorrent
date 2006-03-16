@@ -625,7 +625,7 @@ namespace libtorrent { namespace detail
 				m_alerts.post_alert(
 					peer_error_alert(
 						a
-						, p->second->id()
+						, p->second->pid()
 						, message));
 			}
 
@@ -647,7 +647,7 @@ namespace libtorrent { namespace detail
 					m_alerts.post_alert(
 						peer_error_alert(
 							a
-							, p->second->id()
+							, p->second->pid()
 							, message));
 				}
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -702,7 +702,7 @@ namespace libtorrent { namespace detail
 		}
 	}
 
-	void session_impl::second_tick(asio::error const& e)
+	void session_impl::second_tick(asio::error const& e) try
 	{
 		if (e)
 		{
@@ -742,7 +742,7 @@ namespace libtorrent { namespace detail
 					m_alerts.post_alert(
 						peer_error_alert(
 							sender
-							, j->second->id()
+							, j->second->pid()
 							, "connection timed out"));
 				}
 #if defined(TORRENT_VERBOSE_LOGGING)
@@ -818,6 +818,10 @@ namespace libtorrent { namespace detail
 		{
 			i->second->distribute_resources();
 		}
+	}
+	catch (std::exception& exc)
+	{
+		assert(false);
 	}
 
 	void session_impl::connection_completed(
@@ -960,7 +964,7 @@ namespace libtorrent { namespace detail
 				error_log << "peer_connection::ul_quota_left " << p->m_ul_bandwidth_quota.left() << "\n";
 				error_log << "peer_connection::dl_quota_left " << p->m_dl_bandwidth_quota.left() << "\n";
 				error_log << "peer_connection::m_ul_bandwidth_quota.given " << p->m_ul_bandwidth_quota.given << "\n";
-				error_log << "peer_connection::get_peer_id " << p->id() << "\n";
+				error_log << "peer_connection::get_peer_id " << p->pid() << "\n";
 				error_log << "place: " << place << "\n";
 				error_log.flush();
 				assert(false);
@@ -992,7 +996,7 @@ namespace libtorrent
 	{
 		// turn off the filename checking in boost.filesystem
 		using namespace boost::filesystem;
-		path::default_name_check(native);
+		path::default_name_check(no_check);
 		assert(listen_port_range.first > 0);
 		assert(listen_port_range.first < listen_port_range.second);
 #ifndef NDEBUG
@@ -1126,7 +1130,6 @@ namespace libtorrent
 		}
 #endif
 	
-			  
 		assert(!save_path.empty());
 
 		if (ti.begin_files() == ti.end_files())

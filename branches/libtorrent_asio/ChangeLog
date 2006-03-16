@@ -1,5 +1,7 @@
-	* changed the extensions protocol to use the new one, which is also implemented
-	  by uTorrent.
+	* renamed identifiers called 'id' in the public interface to support linking
+	  with Objective.C++
+	* changed the extensions protocol to use the new one, which is also
+	  implemented by uTorrent.
 	* factorized the peer_connection and added web_peer_connection which is
 	  able to download from http-sources. (currently only for single file torrents).
 	* converted the network code to use asio

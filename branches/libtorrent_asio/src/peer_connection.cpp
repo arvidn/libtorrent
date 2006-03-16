@@ -99,6 +99,7 @@ namespace libtorrent
 		, m_choked(true)
 		, m_failed(false)
 		, m_num_pieces(0)
+		, m_desired_queue_size(2)
 		, m_free_upload(0)
 		, m_trust_points(0)
 		, m_assume_fifo(false)
@@ -184,6 +185,7 @@ namespace libtorrent
 		, m_choked(true)
 		, m_failed(false)
 		, m_num_pieces(0)
+		, m_desired_queue_size(2)
 		, m_free_upload(0)
 		, m_trust_points(0)
 		, m_assume_fifo(false)
@@ -852,7 +854,9 @@ namespace libtorrent
 			<< " <== PIECE   [ piece: " << p.piece << " | "
 			"b: " << p.start / t->block_size() << " | "
 			"s: " << p.start << " | "
-			"l: " << p.length << " ]\n";
+			"l: " << p.length << " | "
+			"ds: " << statistics().download_rate() << " | "
+			"qs: " << m_desired_queue_size << " ]\n";
 #endif
 
 		if (!verify_piece(p))
@@ -1085,6 +1089,9 @@ namespace libtorrent
 			assert(it != m_request_queue.end());
 			if (it == m_request_queue.end()) return;
 			m_request_queue.erase(it);
+			// since we found it in the request queue, it means it hasn't been
+			// sent yet, so we don't have to send a cancel.
+			return;
 		}
 		else
 		{	
@@ -1196,37 +1203,21 @@ namespace libtorrent
 	{
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		assert(t);
-
-		// TODO: calculate the desired request queue each tick instead.
-		// TODO: make this constant user-settable
-		const float queue_time = m_ses.m_settings.request_queue_time;
-		// (if the latency is more than this, the download will stall)
-		// so, the queue size is queue_time * down_rate / 16 kiB
-		// (16 kB is the size of each request)
-		// the minimum number of requests is 2 and the maximum is 48
-		// the block size doesn't have to be 16. So we first query the
-		// torrent for it
-		const int block_size = t->block_size();
-		assert(block_size > 0);
 		
-		int desired_queue_size = static_cast<int>(queue_time
-			* statistics().download_rate() / block_size);
-		if (desired_queue_size > max_request_queue) desired_queue_size = max_request_queue;
-		if (desired_queue_size < min_request_queue) desired_queue_size = min_request_queue;
+		assert(!has_peer_choked());
 
-		if ((int)m_download_queue.size() >= desired_queue_size) return;
+		if ((int)m_download_queue.size() >= m_desired_queue_size) return;
 
 		while (!m_request_queue.empty()
-			&& (int)m_download_queue.size() < desired_queue_size)
+			&& (int)m_download_queue.size() < m_desired_queue_size)
 		{
 			piece_block block = m_request_queue.front();
 			m_request_queue.pop_front();
 			m_download_queue.push_back(block);
 
 			int block_offset = block.block_index * t->block_size();
-			int block_size
-				= std::min((int)t->torrent_file().piece_size(block.piece_index)-block_offset,
-						t->block_size());
+			int block_size	= std::min((int)t->torrent_file().piece_size(
+				block.piece_index) - block_offset, t->block_size());
 			assert(block_size > 0);
 			assert(block_size <= t->block_size());
 
@@ -1244,9 +1235,11 @@ namespace libtorrent
 			(*m_logger) << to_simple_string(second_clock::universal_time())
 				<< " ==> REQUEST [ "
 				"piece: " << block.piece_index << " | "
-			"b: " << block.block_index << " | "
-			"s: " << block_offset << " | "
-			"l: " << block_size << " ]\n";
+				"b: " << block.block_index << " | "
+				"s: " << block_offset << " | "
+				"l: " << block_size << " | "
+				"ds: " << statistics().download_rate() << " | "
+				"qs: " << m_desired_queue_size << " ]\n";
 #endif
 		}
 		m_last_piece = second_clock::universal_time();
@@ -1329,6 +1322,25 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		assert(t);
+		
+		// calculate the desired download queue size
+		const float queue_time = m_ses.m_settings.request_queue_time;
+		// (if the latency is more than this, the download will stall)
+		// so, the queue size is queue_time * down_rate / 16 kiB
+		// (16 kB is the size of each request)
+		// the minimum number of requests is 2 and the maximum is 48
+		// the block size doesn't have to be 16. So we first query the
+		// torrent for it
+		const int block_size = t->block_size();
+		assert(block_size > 0);
+		
+		int m_desired_queue_size = static_cast<int>(queue_time
+			* statistics().download_rate() / block_size);
+		if (m_desired_queue_size > max_request_queue) m_desired_queue_size
+			= max_request_queue;
+		if (m_desired_queue_size < min_request_queue) m_desired_queue_size
+			= min_request_queue;
+
 		
 		// TODO: the timeout should be user-settable
 		if (!m_download_queue.empty()
