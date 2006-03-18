@@ -140,13 +140,29 @@ namespace libtorrent
 		// will be invalid.
 		boost::optional<piece_block_progress> downloading_piece_progress() const;
 
+		// this has one entry per bittorrent request
+		std::deque<peer_request> m_requests;
+		// this has one entry per http-request
+		// (might be more than the bt requests)
+		std::deque<int> m_file_requests;
+
 		std::string m_server_string;
 		http_parser m_parser;
 		std::string m_host;
 		int m_port;
 		std::string m_path;
 		std::string m_url;
-
+			
+		// the first request will contain a little bit more data
+		// than subsequent ones, things that aren't critical are left
+		// out to save bandwidth.
+		bool m_first_request;
+		
+		// this is used for intermediate storage of pieces
+		// that is received in more than on HTTP responses
+		std::vector<char> m_piece;
+		// the mapping of the data in the m_piece buffer
+		peer_request m_intermediate_piece;
 	};
 }
 

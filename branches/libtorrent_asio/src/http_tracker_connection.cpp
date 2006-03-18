@@ -93,8 +93,8 @@ namespace libtorrent
 		, m_content_encoding(plain)
 		, m_state(read_status)
 		, m_recv_buffer(0, 0)
-		, m_finished(false)
 		, m_body_start_pos(0)
+		, m_finished(false)
 	{}
 
 	boost::tuple<int, int> http_parser::incoming(buffer::const_interval recv_buffer)
@@ -344,7 +344,8 @@ namespace libtorrent
 
 		m_send_buffer += " HTTP/1.0\r\nAccept-Encoding: gzip\r\n"
 			"User-Agent: ";
-		m_send_buffer += m_settings.user_agent;
+		m_send_buffer += escape_string(m_settings.user_agent.c_str()
+			, m_settings.user_agent.length());
 		m_send_buffer += " (libtorrent)\r\n"
 			"Host: ";
 		m_send_buffer += hostname;

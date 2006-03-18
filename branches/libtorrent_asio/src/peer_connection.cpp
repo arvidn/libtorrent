@@ -103,6 +103,7 @@ namespace libtorrent
 		, m_free_upload(0)
 		, m_trust_points(0)
 		, m_assume_fifo(false)
+		, m_num_invalid_requests(0)
 		, m_disconnecting(false)
 		, m_became_uninterested(second_clock::universal_time())
 		, m_became_uninteresting(second_clock::universal_time())

@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
+#include "libtorrent/web_peer_connection.hpp"
 #include "libtorrent/policy.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/socket.hpp"
@@ -821,7 +822,15 @@ namespace libtorrent
 			, m_peers.end()
 			, match_peer_connection(c));
 
-		assert(i != m_peers.end());
+		if (i == m_peers.end())
+		{
+			// this is probably a http seed
+			if (web_peer_connection const* p = dynamic_cast<web_peer_connection const*>(&c))
+			{
+				m_torrent->remove_url_seed(p->url());
+			}
+			return;
+		}
 
 		i->type = peer::not_connectable;
 		i->ip.port(0);

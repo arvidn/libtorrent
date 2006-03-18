@@ -66,6 +66,7 @@ namespace libtorrent
 {
 	struct request_callback;
 	class tracker_manager;
+	struct timeout_handler;
 	struct tracker_connection;
 
 	// encodes a string using the base64 scheme
@@ -146,12 +147,15 @@ namespace libtorrent
 		, request_callback* requester
 		, int maximum_tracker_response_length);
 
-	TORRENT_EXPORT void intrusive_ptr_add_ref(tracker_connection const*);
-	TORRENT_EXPORT void intrusive_ptr_release(tracker_connection const*);
+	TORRENT_EXPORT void intrusive_ptr_add_ref(timeout_handler const*);
+	TORRENT_EXPORT void intrusive_ptr_release(timeout_handler const*);
 
 	struct TORRENT_EXPORT timeout_handler
 		: boost::noncopyable
 	{
+		friend void intrusive_ptr_add_ref(timeout_handler const*);
+		friend void intrusive_ptr_release(timeout_handler const*);
+
 		timeout_handler(demuxer& d);
 
 		void set_timeout(int completion_timeout, int read_timeout);
@@ -165,6 +169,9 @@ namespace libtorrent
 	
 		void timeout_callback(asio::error const&);
 
+		boost::intrusive_ptr<timeout_handler> self()
+		{ return boost::intrusive_ptr<timeout_handler>(this); }
+
 		demuxer& m_demuxer;
 		// used for timeouts
 		// this is set when the request has been sent
@@ -176,14 +183,15 @@ namespace libtorrent
 		
 		int m_completion_timeout;
 		int m_read_timeout;
+
+		typedef boost::mutex mutex_t;
+		mutable mutex_t m_mutex;
+		mutable int m_refs;
 	};
 
 	struct TORRENT_EXPORT tracker_connection
 		: timeout_handler
 	{
-		friend void intrusive_ptr_add_ref(tracker_connection const*);
-		friend void intrusive_ptr_release(tracker_connection const*);
-
 		tracker_connection(tracker_manager& man
 			, tracker_request req
 			, demuxer& d
@@ -202,17 +210,12 @@ namespace libtorrent
 	protected:
 		boost::weak_ptr<request_callback> m_requester;
 	private:
-		typedef boost::mutex mutex_t;
-		mutable mutex_t m_mutex;
-		mutable int m_refs;
 		tracker_manager& m_man;
 		const tracker_request m_req;
 	};
 
 	class TORRENT_EXPORT tracker_manager: boost::noncopyable
 	{
-		friend void intrusive_ptr_add_ref(tracker_connection const*);
-		friend void intrusive_ptr_release(tracker_connection const*);
 	public:
 
 		tracker_manager(const http_settings& s)

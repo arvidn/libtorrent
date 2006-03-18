@@ -291,15 +291,15 @@ namespace libtorrent
 		return ret;
 	}
 
-	void intrusive_ptr_add_ref(tracker_connection const* c)
+	void intrusive_ptr_add_ref(timeout_handler const* c)
 	{
 		assert(c != 0);
 		assert(c->m_refs >= 0);
-		tracker_connection::mutex_t::scoped_lock l(c->m_mutex);
+		timeout_handler::mutex_t::scoped_lock l(c->m_mutex);
 		++c->m_refs;
 	}
 
-	void intrusive_ptr_release(tracker_connection const* c)
+	void intrusive_ptr_release(timeout_handler const* c)
 	{
 		assert(c != 0);
 		assert(c->m_refs > 0);
@@ -307,7 +307,7 @@ namespace libtorrent
 		{
 			// the lock has to be released before we destroy the tracker
 			// connection, since the mutex is a member of it.
-			tracker_connection::mutex_t::scoped_lock l(c->m_mutex);
+			timeout_handler::mutex_t::scoped_lock l(c->m_mutex);
 			--c->m_refs;
 			destroy = c->m_refs == 0;
 		}
@@ -322,6 +322,7 @@ namespace libtorrent
 		, m_timeout(d)
 		, m_completion_timeout(0)
 		, m_read_timeout(0)
+		, m_refs(0)
 	{}
 
 	void timeout_handler::set_timeout(int completion_timeout, int read_timeout)
@@ -334,7 +335,7 @@ namespace libtorrent
 		m_timeout.expires_at(std::min(
 			m_read_time + seconds(m_read_timeout)
 			, m_start_time + seconds(m_completion_timeout)));
-		m_timeout.async_wait(bind(&timeout_handler::timeout_callback, this, _1));
+		m_timeout.async_wait(bind(&timeout_handler::timeout_callback, self(), _1));
 	}
 
 	void timeout_handler::restart_read_timeout()
@@ -369,7 +370,7 @@ namespace libtorrent
 		m_timeout.expires_at(std::min(
 			m_read_time + seconds(m_read_timeout)
 			, m_start_time + seconds(m_completion_timeout)));
-		m_timeout.async_wait(bind(&timeout_handler::timeout_callback, this, _1));
+		m_timeout.async_wait(bind(&timeout_handler::timeout_callback, self(), _1));
 	}
 	catch (std::exception& e)
 	{
@@ -383,7 +384,6 @@ namespace libtorrent
 		, boost::weak_ptr<request_callback> r)
 		: timeout_handler(d)
 		, m_requester(r)
-		, m_refs(0)
 		, m_man(man)
 		, m_req(req)
 	{}

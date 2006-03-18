@@ -1,3 +1,5 @@
+
+	* added support for http seeding (the GetRight protocol)
 	* renamed identifiers called 'id' in the public interface to support linking
 	  with Objective.C++
 	* changed the extensions protocol to use the new one, which is also

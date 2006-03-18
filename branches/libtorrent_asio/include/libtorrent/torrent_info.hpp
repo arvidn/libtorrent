@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/size_type.hpp"
+#include "libtorrent/peer_request.hpp"
 #include "libtorrent/config.hpp"
 
 namespace libtorrent
@@ -103,7 +104,8 @@ namespace libtorrent
 		void add_file(boost::filesystem::path file, size_type size);
 		void add_url_seed(std::string const& url);
 
-		std::vector<file_slice> map_block(int piece, int offset, int size) const;
+		std::vector<file_slice> map_block(int piece, size_type offset, int size) const;
+		peer_request map_file(int file, size_type offset, int size) const;
 		
 		std::vector<std::string> const& url_seeds() const { return m_url_seeds; }
 
@@ -177,7 +179,7 @@ namespace libtorrent
 		size_type m_total_size;
 
 		// the hash that identifies this torrent
-		// it is mutable because it's calculated
+		// is mutable because it's calculated
 		// lazily
 		mutable sha1_hash m_info_hash;
 

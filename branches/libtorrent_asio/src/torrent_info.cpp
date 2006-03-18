@@ -627,7 +627,8 @@ namespace libtorrent
 			return piece_length();
 	}
 	
-	std::vector<file_slice> torrent_info::map_block(int piece, int offset, int size) const
+	std::vector<file_slice> torrent_info::map_block(int piece, size_type offset
+		, int size) const
 	{
 		assert(num_files() > 0);
 		std::vector<file_slice> ret;
@@ -661,4 +662,19 @@ namespace libtorrent
 		}
 		return ret;
 	}
+	
+	peer_request torrent_info::map_file(int file_index, size_type file_offset
+		, int size) const
+	{
+		size_type offset = file_offset;
+		for (int i = 0; i < file_index; ++i)
+			offset += file_at(i).size;
+
+		peer_request ret;
+		ret.piece = offset / piece_length();
+		ret.start = offset - ret.piece * piece_length();
+		ret.length = size;
+		return ret;
+	}
+
 }

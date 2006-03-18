@@ -30,6 +30,7 @@ following features:
 	* serves multiple torrents on a single port and a single thread
 	* supports http proxies and proxy authentication
 	* gzipped tracker-responses
+	* `HTTP seeding`_, as `specified by Michael Burford of GetRight`__.
 	* piece picking on block-level like in Azureus_ (as opposed to piece-level).
 	  This means it can download parts of the same piece from different peers.
 	  It will also prefer to download whole pieces from single peers if the
@@ -64,6 +65,7 @@ following features:
 	* ip filter
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
+__ http://www.getright.com/seedtorrent.html
 .. _Azureus: http://azureus.sourceforge.net
 __ extension_protocol.html
 __ udp_tracker_protocol.html
@@ -1002,7 +1004,9 @@ The ``torrent_info`` has the following synopsis::
 		int num_files() const;
 		file_entry const& file_at(int index) const;
 
-		std::vector<file_slice> map_block(int piece, int offset
+		std::vector<file_slice> map_block(int piece, size_type offset
+			, int size) const;
+		peer_request map_file(int file_index, size_type file_offset
 			, int size) const;
 
 		std::vector<announce_entry> const& trackers() const;
@@ -1154,7 +1158,7 @@ map_block()
 
 	::
 
-		std::vector<file_slice> map_block(int piece, int offset
+		std::vector<file_slice> map_block(int piece, size_type offset
 			, int size) const;
 
 This function will map a piece index, a byte offset within that piece and
@@ -1176,6 +1180,36 @@ To get the path and filename, use ``file_at()`` and give the ``file_index``
 as argument. The ``offset`` is the byte offset in the file where the range
 starts, and ``size`` is the number of bytes this range is. The size + offset
 will never be greater than the file size.
+
+
+map_file()
+----------
+
+	::
+
+		peer_request map_file(int file_index, size_type file_offset
+			, int size) const;
+
+This function will map a range in a specific file into a range in the torrent.
+The ``file_offset`` parameter is the offset in the file, given in bytes, where
+0 is the start of the file.
+The ``peer_request`` structure looks like this::
+
+	struct peer_request
+	{
+		int piece;
+		int start;
+		int length;
+		bool operator==(peer_request const& r) const;
+	};
+
+``piece`` is the index of the piece in which the range starts.
+``start`` is the offset within that piece where the range starts.
+``length`` is the size of the range, in bytes.
+
+The input range is assumed to be valid within the torrent. ``file_offset``
++ ``size`` is not allowed to be greater than the file size. ``file_index``
+must refer to a valid file, i.e. it cannot be >= ``num_files()``.
 
 
 url_seeds()
@@ -3360,12 +3394,12 @@ Don't have metadata:
 	|           |               | doesn't have any metadata.             |
 	+-----------+---------------+----------------------------------------+
 
-url seeds
----------
+HTTP seeding
+------------
 
-The url seed extension implements `this specification`__. With the intention
-of supporting multi-file torrents as well (not fully implemented yet).
-The libtorrent implementation assumes that, if the url ends with a slash
+The HTTP seed extension implements `this specification`__.
+
+The libtorrent implementation assumes that, if the URL ends with a slash
 ('/'), the filename should be appended to it in order to request pieces from
 that file. The way this works is that if the torrent is a single-file torrent,
 only that filename is appended. If the torrent is a multi-file torrent, the

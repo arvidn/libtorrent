@@ -65,6 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resource_request.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/escape_string.hpp"
 
 namespace libtorrent
 {
@@ -73,10 +74,6 @@ namespace libtorrent
 #endif
 
 	class piece_manager;
-
-	std::string escape_string(const char* str, int len);
-	std::string unescape_string(std::string const& s);
-
 
 	namespace detail
 	{
