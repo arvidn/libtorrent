@@ -1182,7 +1182,7 @@ namespace libtorrent
 	}
 
 	// this is called whenever a peer connection is closed
-	void policy::connection_closed(const peer_connection& c)
+	void policy::connection_closed(const peer_connection& c) try
 	{
 		INVARIANT_CHECK;
 
@@ -1232,6 +1232,13 @@ namespace libtorrent
 			if (m_torrent->is_seed()) seed_unchoke_one_peer();
 			else unchoke_one_peer();
 		}
+	}
+	catch (std::exception& e)
+	{
+#ifndef NDEBUG
+		std::string err = e.what();
+#endif
+		assert(false);
 	}
 
 	void policy::peer_is_interesting(peer_connection& c)

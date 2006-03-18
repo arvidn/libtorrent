@@ -685,6 +685,7 @@ int main(int ac, char* av[])
 			// loop through the alert queue to see if anything has happened.
 			std::auto_ptr<alert> a;
 			a = ses.pop_alert();
+			std::string now = to_simple_string(second_clock::universal_time());
 			while (a.get())
 			{
 				if (torrent_finished_alert* p = dynamic_cast<torrent_finished_alert*>(a.get()))
@@ -697,20 +698,22 @@ int main(int ac, char* av[])
 					// all finished downloades are
 					// moved into this directory
 					//p->handle.move_storage("finished");
-					events.push_back(
-						p->handle.get_torrent_info().name() + ": " + a->msg());
+					events.push_back(now + ": "
+						+ p->handle.get_torrent_info().name() + ": " + a->msg());
 				}
 				else if (peer_error_alert* p = dynamic_cast<peer_error_alert*>(a.get()))
 				{
-					events.push_back(identify_client(p->pid) + ": " + a->msg());
+					events.push_back(now + ": " + identify_client(p->pid)
+						+ ": " + a->msg());
 				}
 				else if (invalid_request_alert* p = dynamic_cast<invalid_request_alert*>(a.get()))
 				{
-					events.push_back(identify_client(p->pid) + ": " + a->msg());
+					events.push_back(now + ": " + identify_client(p->pid)
+						+ ": " + a->msg());
 				}
 				else
 				{
-					events.push_back(a->msg());
+					events.push_back(now + ": " + a->msg());
 				}
 
 				if (events.size() >= 10) events.pop_front();

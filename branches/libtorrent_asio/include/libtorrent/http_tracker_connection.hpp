@@ -104,7 +104,8 @@ namespace libtorrent
 		return boost::lexical_cast<T>(i->second);
 	}
 
-	class TORRENT_EXPORT http_tracker_connection: public tracker_connection
+	class TORRENT_EXPORT http_tracker_connection
+		: public tracker_connection
 	{
 	friend class tracker_manager;
 	public:
@@ -128,7 +129,6 @@ namespace libtorrent
 		boost::intrusive_ptr<http_tracker_connection> self()
 		{ return boost::intrusive_ptr<http_tracker_connection>(this); }
 
-		void fail(int code, char const* msg);
 		void on_response();
 		
 		void init_send_buffer(
@@ -140,7 +140,8 @@ namespace libtorrent
 		void sent(asio::error const& error);
 		void receive(asio::error const& error
 			, std::size_t bytes_transferred);
-		void timeout(asio::error const& error);
+
+		virtual void on_timeout();
 
 		void parse(const entry& e);
 		peer_entry extract_peer_info(const entry& e);
@@ -160,14 +161,6 @@ namespace libtorrent
 		std::vector<char> m_buffer;
 		std::string m_send_buffer;
 
-		// used for timeouts
-		// this is set when the request has been sent
-		boost::posix_time::ptime m_request_time;
-		// this is set every time something is received
-		boost::posix_time::ptime m_last_receive_time;
-		
-		asio::deadline_timer m_timeout;
-
 		std::string m_server_message;
 		std::string m_server_protocol;
 
@@ -178,6 +171,8 @@ namespace libtorrent
 
 		// server string in http-reply
 		std::string m_server;
+		
+		bool m_timed_out;
 	};
 
 }

@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "zlib.h"
 
+#include <boost/bind.hpp>
+
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/udp_tracker_connection.hpp"
@@ -48,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 using boost::tuples::make_tuple;
 using boost::tuples::tuple;
+using boost::bind;
 
 namespace
 {
@@ -75,6 +78,11 @@ namespace
 
 namespace libtorrent
 {
+	using boost::posix_time::second_clock;
+	using boost::posix_time::seconds;
+	using boost::posix_time::ptime;
+	using boost::posix_time::time_duration;
+
 	// returns -1 if gzip header is invalid or the header size in bytes
 	int gzip_header(const char* buf, int size)
 	{
@@ -306,11 +314,104 @@ namespace libtorrent
 		if (destroy) delete c;
 	}
 
+
+	timeout_handler::timeout_handler(demuxer& d)
+		: m_demuxer(d)
+		, m_start_time(second_clock::universal_time())
+		, m_read_time(second_clock::universal_time())
+		, m_timeout(d)
+		, m_completion_timeout(0)
+		, m_read_timeout(0)
+	{}
+
+	void timeout_handler::set_timeout(int completion_timeout, int read_timeout)
+	{
+		m_completion_timeout = completion_timeout;
+		m_read_timeout = read_timeout;
+		m_start_time = second_clock::universal_time();
+		m_read_time = second_clock::universal_time();
+
+		m_timeout.expires_at(std::min(
+			m_read_time + seconds(m_read_timeout)
+			, m_start_time + seconds(m_completion_timeout)));
+		m_timeout.async_wait(bind(&timeout_handler::timeout_callback, this, _1));
+	}
+
+	void timeout_handler::restart_read_timeout()
+	{
+		m_read_time = second_clock::universal_time();
+	}
+
+	void timeout_handler::cancel()
+	{
+		m_timeout.cancel();
+		m_completion_timeout = 0;
+	}
+
+	void timeout_handler::timeout_callback(asio::error const& error) try
+	{
+		if (error) return;
+		if (m_completion_timeout == 0) return;
+		
+		ptime now(second_clock::universal_time());
+		time_duration receive_timeout = now - m_read_time;
+		time_duration completion_timeout = now - m_start_time;
+		
+		if (m_read_timeout
+			< receive_timeout.total_seconds()
+			|| m_completion_timeout
+			< completion_timeout.total_seconds())
+		{
+			on_timeout();
+			return;
+		}
+
+		m_timeout.expires_at(std::min(
+			m_read_time + seconds(m_read_timeout)
+			, m_start_time + seconds(m_completion_timeout)));
+		m_timeout.async_wait(bind(&timeout_handler::timeout_callback, this, _1));
+	}
+	catch (std::exception& e)
+	{
+		assert(false);
+	}
+
+	tracker_connection::tracker_connection(
+		tracker_manager& man
+		, tracker_request req
+		, demuxer& d
+		, boost::weak_ptr<request_callback> r)
+		: timeout_handler(d)
+		, m_requester(r)
+		, m_refs(0)
+		, m_man(man)
+		, m_req(req)
+	{}
+
 	request_callback& tracker_connection::requester()
 	{
 		boost::shared_ptr<request_callback> r = m_requester.lock();
 		assert(r);
 		return *r;
+	}
+
+	void tracker_connection::fail(int code, char const* msg)
+	{
+		if (has_requester()) requester().tracker_request_error(
+			m_req, code, msg);
+		close();
+	}
+
+	void tracker_connection::fail_timeout()
+	{
+		if (has_requester()) requester().tracker_request_timed_out(m_req);
+		close();
+	}
+	
+	void tracker_connection::close()
+	{
+		m_man.remove_request(this);
+		cancel();
 	}
 
 	void tracker_manager::remove_request(tracker_connection const* c)

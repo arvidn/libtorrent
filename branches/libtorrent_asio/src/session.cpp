@@ -557,12 +557,16 @@ namespace libtorrent { namespace detail
 	void session_impl::on_incoming_connection(shared_ptr<stream_socket> const& s
 		, weak_ptr<socket_acceptor> const& listen_socket, asio::error const& e) try
 	{
-		async_accept();
 		mutex_t::scoped_lock l(m_mutex);
-		if (listen_socket.expired()) return;
+		if (listen_socket.expired())
+			return;
+
 		assert(listen_socket.lock() == m_listen_socket);
 		if (e)
 		{
+			if (e == asio::error::operation_aborted)
+				return;
+
 			if (m_alerts.should_post(alert::fatal))
 			{
 				std::string msg = "cannot listen on the given interface '"
@@ -578,6 +582,8 @@ namespace libtorrent { namespace detail
 			m_listen_socket.reset();
 			return;
 		}
+
+		async_accept();
 
 		// we got a connection request!
 		m_incoming_connection = true;
@@ -736,12 +742,11 @@ namespace libtorrent { namespace detail
 			// close it.
 			if (j->second->has_timed_out())
 			{
-				tcp::endpoint sender = j->first->remote_endpoint(asio::ignore_error());
 				if (m_alerts.should_post(alert::debug))
 				{
 					m_alerts.post_alert(
 						peer_error_alert(
-							sender
+							j->second->remote()
 							, j->second->pid()
 							, "connection timed out"));
 				}
@@ -821,7 +826,9 @@ namespace libtorrent { namespace detail
 	}
 	catch (std::exception& exc)
 	{
-		assert(false);
+#ifndef NDEBUG
+		std::string err = exc.what();
+#endif
 	}
 
 	void session_impl::connection_completed(

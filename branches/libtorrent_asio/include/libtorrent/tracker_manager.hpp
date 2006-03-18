@@ -149,30 +149,64 @@ namespace libtorrent
 	TORRENT_EXPORT void intrusive_ptr_add_ref(tracker_connection const*);
 	TORRENT_EXPORT void intrusive_ptr_release(tracker_connection const*);
 
-	struct TORRENT_EXPORT tracker_connection
+	struct TORRENT_EXPORT timeout_handler
 		: boost::noncopyable
+	{
+		timeout_handler(demuxer& d);
+
+		void set_timeout(int completion_timeout, int read_timeout);
+		void restart_read_timeout();
+		void cancel();
+
+		virtual void on_timeout() = 0;
+		virtual ~timeout_handler() {}
+
+	private:
+	
+		void timeout_callback(asio::error const&);
+
+		demuxer& m_demuxer;
+		// used for timeouts
+		// this is set when the request has been sent
+		boost::posix_time::ptime m_start_time;
+		// this is set every time something is received
+		boost::posix_time::ptime m_read_time;
+		// the asio async operation
+		asio::deadline_timer m_timeout;
+		
+		int m_completion_timeout;
+		int m_read_timeout;
+	};
+
+	struct TORRENT_EXPORT tracker_connection
+		: timeout_handler
 	{
 		friend void intrusive_ptr_add_ref(tracker_connection const*);
 		friend void intrusive_ptr_release(tracker_connection const*);
 
 		tracker_connection(tracker_manager& man
-			, boost::weak_ptr<request_callback> r)
-			: m_requester(r)
-			, m_refs(0)
-			, m_manager(man)
-		{}
+			, tracker_request req
+			, demuxer& d
+			, boost::weak_ptr<request_callback> r);
 
-		bool has_requester() const { return !m_requester.expired(); }
 		request_callback& requester();
 		virtual ~tracker_connection() {}
-		virtual tracker_request const& tracker_req() const = 0;
+
+		tracker_request const& tracker_req() const { return m_req; }
+		bool has_requester() const { return !m_requester.expired(); }
+
+		void fail(int code, char const* msg);
+		void fail_timeout();
+		void close();
+
 	protected:
 		boost::weak_ptr<request_callback> m_requester;
 	private:
 		typedef boost::mutex mutex_t;
 		mutable mutex_t m_mutex;
 		mutable int m_refs;
-		tracker_manager& m_manager;
+		tracker_manager& m_man;
+		const tracker_request m_req;
 	};
 
 	class TORRENT_EXPORT tracker_manager: boost::noncopyable

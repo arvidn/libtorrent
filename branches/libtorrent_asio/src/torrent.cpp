@@ -871,7 +871,7 @@ namespace libtorrent
 		return req;
 	}
 
-	void torrent::remove_peer(peer_connection* p)
+	void torrent::remove_peer(peer_connection* p) try
 	{
 		assert(p != 0);
 
@@ -905,6 +905,13 @@ namespace libtorrent
 #ifndef NDEBUG
 		m_policy->check_invariant();
 #endif
+	}
+	catch (std::exception& e)
+	{
+#ifndef NDEBUG
+		std::string err = e.what();
+#endif
+		assert(false);
 	}
 
 	peer_connection& torrent::connect_to_url_seed(std::string const& url)

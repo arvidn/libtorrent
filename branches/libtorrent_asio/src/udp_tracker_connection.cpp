@@ -80,14 +80,10 @@ namespace libtorrent
 		, unsigned short port
 		, boost::weak_ptr<request_callback> c
 		, const http_settings& stn)
-		: tracker_connection(man, c)
+		: tracker_connection(man, req, d, c)
 		, m_man(man)
 		, m_name_lookup(d)
 		, m_port(port)
-		, m_request_time(second_clock::universal_time())
-		, m_last_receive_time(second_clock::universal_time())
-		, m_timeout(d)
-		, m_req(req)
 		, m_transaction_id(0)
 		, m_connection_id(0)
 		, m_settings(stn)
@@ -96,14 +92,13 @@ namespace libtorrent
 		m_socket.reset(new datagram_socket(d));
 		m_name_lookup.async_by_name(m_host, hostname.c_str()
 			, bind(&udp_tracker_connection::name_lookup, self(), _1));
-		m_timeout.expires_at(std::min(
-			m_last_receive_time + seconds(m_settings.tracker_receive_timeout)
-			, m_request_time + seconds(m_settings.tracker_completion_timeout)));
-		m_timeout.async_wait(bind(&udp_tracker_connection::timeout, self(), _1));
+		set_timeout(m_settings.tracker_completion_timeout
+			, m_settings.tracker_receive_timeout);
 	}
 
 	void udp_tracker_connection::name_lookup(asio::error const& error) try
 	{
+		if (error == asio::error::operation_aborted) return;
 		if (error)
 		{
 			fail(-1, error.what());
@@ -113,7 +108,7 @@ namespace libtorrent
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (has_requester()) requester().debug_log("udp tracker name lookup successful");
 #endif
-		m_last_receive_time = second_clock::universal_time();
+		restart_read_timeout();
 		m_target = udp::endpoint(m_port, m_host.address(0));
 		if (has_requester()) requester().m_tracker_address
 			= tcp::endpoint(m_port, m_host.address(0));
@@ -126,47 +121,20 @@ namespace libtorrent
 		assert(false);
 	}
 
-	void udp_tracker_connection::fail(int code, char const* msg)
+	void udp_tracker_connection::on_timeout()
 	{
-		if (has_requester()) requester().tracker_request_error(
-			m_req, code, msg);
-		m_man.remove_request(this);
+		m_socket.reset();
+		m_name_lookup.cancel();
+		fail_timeout();
 	}
-	
-	void udp_tracker_connection::timeout(asio::error const& error) try
-	{
-		if (error) return;
-	
-		ptime now(second_clock::universal_time());
-		time_duration receive_timeout = now - m_last_receive_time;
-		time_duration completion_timeout = now - m_request_time;
-		
-		if (m_settings.tracker_receive_timeout
-			< receive_timeout.total_seconds()
-			|| m_settings.tracker_completion_timeout
-			< completion_timeout.total_seconds())
-		{
-			fail(-1, "tracker timed out");
-			return;
-		}
-		
-		m_timeout.expires_at(std::min(
-			m_last_receive_time + seconds(m_settings.tracker_receive_timeout)
-			, m_request_time + seconds(m_settings.tracker_completion_timeout)));
-		m_timeout.async_wait(bind(&udp_tracker_connection::timeout, self(), _1));
-	}
-	catch (std::exception& e)
-	{
-		assert(false);
-	}
-	
+
 	void udp_tracker_connection::send_udp_connect()
 	{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (has_requester())
 		{
 			requester().debug_log("==> UDP_TRACKER_CONNECT ["
-				+ lexical_cast<std::string>(m_req.info_hash) + "]");
+				+ lexical_cast<std::string>(tracker_req().info_hash) + "]");
 		}
 #endif
 
@@ -185,7 +153,6 @@ namespace libtorrent
 		detail::write_int32(m_transaction_id, ptr);
 
 		m_socket->send(asio::buffer((void*)send_buf, 16), 0);
-		m_request_time = second_clock::universal_time();
 		++m_attempts;
 		m_buffer.resize(udp_buffer_size);
 		m_socket->async_receive_from(asio::buffer(m_buffer), 0, m_sender
@@ -195,6 +162,7 @@ namespace libtorrent
 	void udp_tracker_connection::connect_response(asio::error const& error
 		, std::size_t bytes_transferred) try
 	{
+		if (error == asio::error::operation_aborted) return;
 		if (error)
 		{
 			fail(-1, error.what());
@@ -221,7 +189,7 @@ namespace libtorrent
 			return;
 		}
 
-		m_last_receive_time = second_clock::universal_time();
+		restart_read_timeout();
 
 		const char* ptr = &m_buffer[0];
 		int action = detail::read_int32(ptr);
@@ -264,9 +232,9 @@ namespace libtorrent
 		}
 #endif
 
-		if (m_req.kind == tracker_request::announce_request)
+		if (tracker_req().kind == tracker_request::announce_request)
 			send_udp_announce();
-		else if (m_req.kind == tracker_request::scrape_request)
+		else if (tracker_req().kind == tracker_request::scrape_request)
 			send_udp_scrape();
 	}
 	catch (std::exception& e)
@@ -282,6 +250,8 @@ namespace libtorrent
 
 		std::vector<char> buf;
 		std::back_insert_iterator<std::vector<char> > out(buf);
+		
+		tracker_request const& req = tracker_req();
 
 		// connection_id
 		detail::write_int64(m_connection_id, out);
@@ -290,25 +260,25 @@ namespace libtorrent
 		// transaction_id
 		detail::write_int32(m_transaction_id, out);
 		// info_hash
-		std::copy(m_req.info_hash.begin(), m_req.info_hash.end(), out);
+		std::copy(req.info_hash.begin(), req.info_hash.end(), out);
 		// peer_id
-		std::copy(m_req.pid.begin(), m_req.pid.end(), out);
+		std::copy(req.pid.begin(), req.pid.end(), out);
 		// downloaded
-		detail::write_int64(m_req.downloaded, out);
+		detail::write_int64(req.downloaded, out);
 		// left
-		detail::write_int64(m_req.left, out);
+		detail::write_int64(req.left, out);
 		// uploaded
-		detail::write_int64(m_req.uploaded, out);
+		detail::write_int64(req.uploaded, out);
 		// event
-		detail::write_int32(m_req.event, out);
+		detail::write_int32(req.event, out);
 		// ip address
 		detail::write_int32(0, out);
 		// key
-		detail::write_int32(m_req.key, out);
+		detail::write_int32(req.key, out);
 		// num_want
-		detail::write_int32(m_req.num_want, out);
+		detail::write_int32(req.num_want, out);
 		// port
-		detail::write_uint16(m_req.listen_port, out);
+		detail::write_uint16(req.listen_port, out);
 		// extensions
 		detail::write_uint16(0, out);
 
@@ -316,12 +286,11 @@ namespace libtorrent
 		if (has_requester())
 		{
 			requester().debug_log("==> UDP_TRACKER_ANNOUNCE ["
-				+ lexical_cast<std::string>(m_req.info_hash) + "]");
+				+ lexical_cast<std::string>(req.info_hash) + "]");
 		}
 #endif
 
 		m_socket->send(asio::buffer(buf), 0);
-		m_request_time = second_clock::universal_time();
 		++m_attempts;
 
 		m_socket->async_receive_from(asio::buffer(m_buffer), 0, m_sender
@@ -343,10 +312,9 @@ namespace libtorrent
 		// transaction_id
 		detail::write_int32(m_transaction_id, out);
 		// info_hash
-		std::copy(m_req.info_hash.begin(), m_req.info_hash.end(), out);
+		std::copy(tracker_req().info_hash.begin(), tracker_req().info_hash.end(), out);
 
 		m_socket->send(asio::buffer(&buf[0], buf.size()), 0);
-		m_request_time = second_clock::universal_time();
 		++m_attempts;
 
 		m_socket->async_receive_from(asio::buffer(m_buffer), 0, m_sender
@@ -356,6 +324,7 @@ namespace libtorrent
 	void udp_tracker_connection::announce_response(asio::error const& error
 		, std::size_t bytes_transferred) try
 	{
+		if (error == asio::error::operation_aborted) return;
 		if (error)
 		{
 			fail(-1, error.what());
@@ -382,7 +351,7 @@ namespace libtorrent
 			return;
 		}
 
-		m_last_receive_time = second_clock::universal_time();
+		restart_read_timeout();
 		char* buf = &m_buffer[0];
 		int action = detail::read_int32(buf);
 		int transaction = detail::read_int32(buf);
@@ -449,7 +418,7 @@ namespace libtorrent
 			peer_list.push_back(e);
 		}
 
-		requester().tracker_response(m_req, peer_list, interval
+		requester().tracker_response(tracker_req(), peer_list, interval
 			, complete, incomplete);
 
 		m_man.remove_request(this);
@@ -464,6 +433,7 @@ namespace libtorrent
 	void udp_tracker_connection::scrape_response(asio::error const& error
 		, std::size_t bytes_transferred) try
 	{
+		if (error == asio::error::operation_aborted) return;
 		if (error)
 		{
 			fail(-1, error.what());
@@ -490,7 +460,7 @@ namespace libtorrent
 			return;
 		}
 
-		m_last_receive_time = second_clock::universal_time();
+		restart_read_timeout();
 		char* buf = &m_buffer[0];
 		int action = detail::read_int32(buf);
 		int transaction = detail::read_int32(buf);
@@ -530,7 +500,7 @@ namespace libtorrent
 		}
 		
 		std::vector<peer_entry> peer_list;
-		requester().tracker_response(m_req, peer_list, 0
+		requester().tracker_response(tracker_req(), peer_list, 0
 			, complete, incomplete);
 
 		m_man.remove_request(this);

@@ -74,9 +74,6 @@ namespace libtorrent
 			, boost::weak_ptr<request_callback> c
 			, const http_settings& stn);
 
-		virtual tracker_request const& tracker_req() const
-		{ return m_req; }
-
 	private:
 
 		enum action_t
@@ -90,8 +87,6 @@ namespace libtorrent
 		boost::intrusive_ptr<udp_tracker_connection> self()
 		{ return boost::intrusive_ptr<udp_tracker_connection>(this); }
 
-		void fail(int code, char const* msg);
-
 		void name_lookup(asio::error const& error);
 		void timeout(asio::error const& error);
 
@@ -104,6 +99,8 @@ namespace libtorrent
 		void send_udp_scrape();
 		void scrape_response(asio::error const& error, std::size_t bytes_transferred);
 
+		virtual void on_timeout();
+
 		tracker_manager& m_man;
 
 		host_resolver m_name_lookup;
@@ -113,15 +110,6 @@ namespace libtorrent
 		udp::endpoint m_target;
 		udp::endpoint m_sender;
 
-		// used for timeouts
-		// this is set when the request has been sent
-		boost::posix_time::ptime m_request_time;
-		// this is set every time something is received
-		boost::posix_time::ptime m_last_receive_time;
-		
-		asio::deadline_timer m_timeout;
-
-		tracker_request m_req;
 		int m_transaction_id;
 		boost::int64_t m_connection_id;
 		const http_settings& m_settings;

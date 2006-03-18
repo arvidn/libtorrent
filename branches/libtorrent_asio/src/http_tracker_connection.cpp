@@ -239,7 +239,7 @@ namespace libtorrent
 		, boost::weak_ptr<request_callback> c
 		, const http_settings& stn
 		, std::string const& auth)
-		: tracker_connection(man, c)
+		: tracker_connection(man, req, d, c)
 		, m_man(man)
 		, m_state(read_status)
 		, m_content_encoding(plain)
@@ -248,13 +248,10 @@ namespace libtorrent
 		, m_port(port)
 		, m_recv_pos(0)
 		, m_buffer(http_buffer_size)
-		, m_request_time(second_clock::universal_time())
-		, m_last_receive_time(second_clock::universal_time())
-		, m_timeout(d)
 		, m_settings(stn)
-		, m_req(req)
 		, m_password(auth)
 		, m_code(0)
+		, m_timed_out(false)
 	{
 		const std::string* connect_to_host;
 		bool using_proxy = false;
@@ -281,7 +278,7 @@ namespace libtorrent
 			connect_to_host = &hostname;
 		}
 
-		if (m_req.kind == tracker_request::scrape_request)
+		if (tracker_req().kind == tracker_request::scrape_request)
 		{
 			// find and replace "announce" with "scrape"
 			// in request
@@ -289,7 +286,7 @@ namespace libtorrent
 			std::size_t pos = request.find("announce");
 			if (pos == std::string::npos)
 				throw std::runtime_error("scrape is not available on url: '"
-				+ m_req.url +"'");
+				+ tracker_req().url +"'");
 			request.replace(pos, 8, "scrape");
 		}
 
@@ -307,7 +304,7 @@ namespace libtorrent
 		m_send_buffer += escape_string(
 			reinterpret_cast<const char*>(req.info_hash.begin()), 20);
 
-		if (m_req.kind == tracker_request::announce_request)
+		if (tracker_req().kind == tracker_request::announce_request)
 		{
 			m_send_buffer += "&peer_id=";
 			m_send_buffer += escape_string(
@@ -379,24 +376,33 @@ namespace libtorrent
 
 		m_name_lookup.async_by_name(m_host, *connect_to_host
 			, bind(&http_tracker_connection::name_lookup, self(), _1));
-		m_timeout.expires_at(std::min(
-			m_last_receive_time + seconds(m_settings.tracker_receive_timeout)
-			, m_request_time + seconds(m_settings.tracker_completion_timeout)));
-		m_timeout.async_wait(bind(&http_tracker_connection::timeout, self(), _1));
+		set_timeout(m_settings.tracker_completion_timeout
+			, m_settings.tracker_receive_timeout);
+	}
+
+	void http_tracker_connection::on_timeout()
+	{
+		m_timed_out = true;
+		m_socket.reset();
+		m_name_lookup.cancel();
+		fail_timeout();
 	}
 
 	void http_tracker_connection::name_lookup(asio::error const& error) try
 	{
+		if (error == asio::error::operation_aborted) return;
+		if (m_timed_out) return;
+
 		if (error)
 		{
 			fail(-1, error.what());
 			return;
 		}
-
+		
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (has_requester()) requester().debug_log("tracker name lookup successful");
 #endif
-		m_last_receive_time = second_clock::universal_time();
+		restart_read_timeout();
 		m_socket.reset(new stream_socket(m_name_lookup.io_service()));
 		tcp::endpoint a(m_port, m_host.address(0));
 		if (has_requester()) requester().m_tracker_address = a;
@@ -408,15 +414,10 @@ namespace libtorrent
 		fail(-1, e.what());
 	}
 
-	void http_tracker_connection::fail(int code, char const* msg)
-	{
-		if (has_requester()) requester().tracker_request_error(
-			m_req, code, msg);
-		m_man.remove_request(this);
-	}
-	
 	void http_tracker_connection::connected(asio::error const& error) try
 	{
+		if (error == asio::error::operation_aborted) return;
+		if (m_timed_out) return;
 		if (error)
 		{
 			fail(-1, error.what());
@@ -427,7 +428,7 @@ namespace libtorrent
 		if (has_requester()) requester().debug_log("tracker connection successful");
 #endif
 
-		m_last_receive_time = second_clock::universal_time();
+		restart_read_timeout();
 		async_write(*m_socket, asio::buffer(m_send_buffer.c_str()
 			, m_send_buffer.size()), bind(&http_tracker_connection::sent
 			, self(), _1));
@@ -440,6 +441,8 @@ namespace libtorrent
 
 	void http_tracker_connection::sent(asio::error const& error) try
 	{
+		if (error == asio::error::operation_aborted) return;
+		if (m_timed_out) return;
 		if (error)
 		{
 			fail(-1, error.what());
@@ -449,7 +452,7 @@ namespace libtorrent
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (has_requester()) requester().debug_log("tracker send data completed");
 #endif
-		m_request_time = second_clock::universal_time();
+		restart_read_timeout();
 		assert(m_buffer.size() - m_recv_pos > 0);
 		m_socket->async_read_some(asio::buffer(&m_buffer[m_recv_pos]
 			, m_buffer.size() - m_recv_pos), bind(&http_tracker_connection::receive
@@ -466,13 +469,14 @@ namespace libtorrent
 		, std::size_t bytes_transferred) try
 	{
 		if (error == asio::error::operation_aborted) return;
+		if (m_timed_out) return;
 
 		if (error)
 		{
 			if (error == asio::error::eof)
 			{
 				on_response();
-				m_man.remove_request(this);
+				close();
 				return;
 			}
 
@@ -480,7 +484,7 @@ namespace libtorrent
 			return;
 		}
 
-		m_last_receive_time = second_clock::universal_time();
+		restart_read_timeout();
 		assert(bytes_transferred > 0);
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (has_requester()) requester().debug_log("tracker connection reading "
@@ -494,12 +498,7 @@ namespace libtorrent
 		{
 			if ((int)m_buffer.size() >= m_settings.tracker_maximum_response_length)
 			{
-				if (has_requester())
-				{
-					requester().tracker_request_error(m_req, 200
-						, "too large tracker response");
-				}
-				m_man.remove_request(this);
+				fail(200, "too large tracker response");
 				return;
 			}
 			assert(http_buffer_size > 0);
@@ -621,14 +620,16 @@ namespace libtorrent
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 						if (has_requester()) requester().debug_log("Redirecting to \"" + m_location + "\"");
 #endif
+						tracker_request req = tracker_req();
 						std::string::size_type i = m_location.find('?');
 						if (i == std::string::npos)
-							m_req.url = m_location;
+							req.url = m_location;
 						else
-							m_req.url.assign(m_location.begin(), m_location.begin() + i);
+							req.url.assign(m_location.begin(), m_location.begin() + i);
 
-						m_man.queue_request(m_socket->io_service(), m_req, m_password, m_requester);
-						m_man.remove_request(this);
+						m_man.queue_request(m_socket->io_service(), req
+							, m_password, m_requester);
+						close();
 						return;
 					}
 				}
@@ -649,7 +650,7 @@ namespace libtorrent
 			if (m_recv_pos == m_content_length)
 			{
 				on_response();
-				m_man.remove_request(this);
+				close();
 				return;
 			}
 		}
@@ -670,33 +671,6 @@ namespace libtorrent
 		fail(-1, e.what());
 	}
 	
-	void http_tracker_connection::timeout(asio::error const& error) try
-	{
-		if (error) return;
-	
-		ptime now(second_clock::universal_time());
-		time_duration receive_timeout = now - m_last_receive_time;
-		time_duration completion_timeout = now - m_request_time;
-		
-		if (m_settings.tracker_receive_timeout
-			< receive_timeout.total_seconds()
-			|| m_settings.tracker_completion_timeout
-			< completion_timeout.total_seconds())
-		{
-			fail(-1, "tracker timed out");
-			return;
-		}
-		
-		m_timeout.expires_at(std::min(
-			m_last_receive_time + seconds(m_settings.tracker_receive_timeout)
-			, m_request_time + seconds(m_settings.tracker_completion_timeout)));
-		m_timeout.async_wait(bind(&http_tracker_connection::timeout, self(), _1));
-	}
-	catch (std::exception& e)
-	{
-		assert(false);
-	}
-
 	void http_tracker_connection::on_response()
 	{
 		// GZIP
@@ -706,13 +680,13 @@ namespace libtorrent
 			
 			if (!r)
 			{
-				m_man.remove_request(this);
+				close();
 				return;
 			}
 			if (inflate_gzip(m_buffer, m_req, r.get(),
 				m_settings.tracker_maximum_response_length))
 			{
-				m_man.remove_request(this);
+				close();
 				return;
 			}
 		}
@@ -780,8 +754,7 @@ namespace libtorrent
 			{
 				entry const& failure = e["failure reason"];
 
-				if (has_requester()) requester().tracker_request_error(
-					m_req, m_code, failure.string().c_str());
+				fail(m_code, failure.string().c_str());
 				return;
 			}
 			catch (type_error const&) {}
@@ -796,10 +769,10 @@ namespace libtorrent
 			
 			std::vector<peer_entry> peer_list;
 
-			if (m_req.kind == tracker_request::scrape_request)
+			if (tracker_req().kind == tracker_request::scrape_request)
 			{
 				std::string ih;
-				std::copy(m_req.info_hash.begin(), m_req.info_hash.end()
+				std::copy(tracker_req().info_hash.begin(), tracker_req().info_hash.end()
 					, std::back_inserter(ih));
 				entry scrape_data = e["files"][ih];
 				int complete = scrape_data["complete"].integer();
