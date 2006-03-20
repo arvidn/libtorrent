@@ -164,7 +164,7 @@ namespace libtorrent
 		void add_stat(size_type downloaded, size_type uploaded);
 
 		// is called once every second by the main loop
-		void second_tick();
+		void second_tick(float tick_interval);
 
 		boost::shared_ptr<stream_socket> get_socket() const { return m_socket; }
 		tcp::endpoint const& remote() const { return m_remote; }

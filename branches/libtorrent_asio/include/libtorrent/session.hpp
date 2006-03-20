@@ -320,8 +320,8 @@ namespace libtorrent
 
 			// does the actual disconnections
 			// that are queued up in m_disconnect_peer
-//			void purge_connections();
 			void second_tick(asio::error const& e);
+			boost::posix_time::ptime m_last_tick;
 
 			// the timer used to fire the second_tick
 			deadline_timer m_timer;

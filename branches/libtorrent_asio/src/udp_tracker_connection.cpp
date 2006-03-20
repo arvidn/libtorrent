@@ -428,7 +428,7 @@ namespace libtorrent
 	{
 		fail(-1, e.what());
 		assert(false);
-	}
+	}; // msvc 7.1 seems to require this
 
 	void udp_tracker_connection::scrape_response(asio::error const& error
 		, std::size_t bytes_transferred) try

@@ -135,7 +135,7 @@ namespace libtorrent
 		// caclulate the upload/download and number
 		// of connections this torrent needs. And prepare
 		// it for being used by allocate_resources.
-		void second_tick(stat& accumulator);
+		void second_tick(stat& accumulator, float tick_interval);
 
 		// debug purpose only
 		void print(std::ostream& os) const;

@@ -1326,7 +1326,8 @@ namespace libtorrent
 				// reply with our handshake
 				write_handshake();
 				write_bitfield(t->pieces());
-//				write_dht_port(m_ses.dht_port());
+//				if (m_supports_dht_port)
+//					write_dht_port(m_ses.dht_port());
 			}
 			else
 			{

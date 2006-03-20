@@ -1304,7 +1304,7 @@ namespace libtorrent
 		m_time_scaler = 0;
 	}
 
-	void torrent::second_tick(stat& accumulator)
+	void torrent::second_tick(stat& accumulator, float tick_interval)
 	{
 		m_connections_quota.used = (int)m_connections.size();
 		m_uploads_quota.used = m_policy->num_uploads();
@@ -1320,7 +1320,7 @@ namespace libtorrent
 		if (m_paused)
 		{
 			// let the stats fade out to 0
- 			m_stat.second_tick();
+ 			m_stat.second_tick(tick_interval);
 			return;
 		}
 
@@ -1359,7 +1359,7 @@ namespace libtorrent
 			m_stat += p->statistics();
 			// updates the peer connection's ul/dl bandwidth
 			// resource requests
-			p->second_tick();
+			p->second_tick(tick_interval);
 
 			m_ul_bandwidth_quota.used += p->m_ul_bandwidth_quota.used;
 			m_ul_bandwidth_quota.min += p->m_ul_bandwidth_quota.min;
@@ -1388,7 +1388,7 @@ namespace libtorrent
 			m_dl_bandwidth_quota.max = resource_request::inf;
 
 		accumulator += m_stat;
-		m_stat.second_tick();
+		m_stat.second_tick(tick_interval);
 	}
 
 	void torrent::distribute_resources()

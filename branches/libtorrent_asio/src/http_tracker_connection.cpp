@@ -463,7 +463,7 @@ namespace libtorrent
 	{
 		assert(false);
 		fail(-1, e.what());
-	}
+	}; // msvc 7.1 seems to require this semi-colon
 
 	
 	void http_tracker_connection::receive(asio::error const& error

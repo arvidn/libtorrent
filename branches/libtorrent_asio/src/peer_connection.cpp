@@ -431,6 +431,7 @@ namespace libtorrent
 	
 	void peer_connection::attach_to_torrent(sha1_hash const& ih)
 	{
+		assert(!m_disconnecting);
 		m_torrent = m_ses.find_torrent(ih);
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
@@ -1315,7 +1316,7 @@ namespace libtorrent
 		m_recv_buffer.resize(m_packet_size);
 	}
 
-	void peer_connection::second_tick()
+	void peer_connection::second_tick(float tick_interval)
 	{
 		INVARIANT_CHECK;
 
@@ -1384,7 +1385,7 @@ namespace libtorrent
 	
 		on_tick();
 		
-		m_statistics.second_tick();
+		m_statistics.second_tick(tick_interval);
 		m_ul_bandwidth_quota.used = std::min(
 			(int)ceil(statistics().upload_rate())
 			, m_ul_bandwidth_quota.given);

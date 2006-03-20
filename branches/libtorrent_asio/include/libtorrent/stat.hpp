@@ -112,7 +112,7 @@ namespace libtorrent
 		}
 
 		// should be called once every second
-		void second_tick();
+		void second_tick(float tick_interval);
 
 		float upload_rate() const { return m_mean_upload_rate; }
 		float download_rate() const { return m_mean_download_rate; }
@@ -152,11 +152,11 @@ namespace libtorrent
 #endif
 
 		// history of download/upload speeds a few seconds back
-		int m_download_rate_history[history];
-		int m_upload_rate_history[history];
+		float m_download_rate_history[history];
+		float m_upload_rate_history[history];
 
-		int m_download_payload_rate_history[history];
-		int m_upload_payload_rate_history[history];
+		float m_download_payload_rate_history[history];
+		float m_upload_payload_rate_history[history];
 
 		// the accumulators we are adding the downloads/uploads
 		// to this second. This only counts the actual payload

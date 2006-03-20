@@ -401,6 +401,7 @@ namespace libtorrent { namespace detail
 		, m_max_connections(-1)
 		, m_half_open_limit(-1)
 		, m_incoming_connection(false)
+		, m_last_tick(second_clock::universal_time())
 		, m_timer(m_selector)
 	{
 		if (listen_interface != 0) m_listen_interface.address(
@@ -439,8 +440,8 @@ namespace libtorrent { namespace detail
 			*i = printable[rand() % (sizeof(printable)-1)];
 		}
 		// this says that we support the extensions
-//		std::memcpy(&m_peer_id[17], "ext", 3);
-		m_timer.expires_from_now(boost::posix_time::seconds(1));
+
+		m_timer.expires_from_now(seconds(1));
 		m_timer.async_wait(bind(&session_impl::second_tick, this, _1));
 	}
 
@@ -557,33 +558,32 @@ namespace libtorrent { namespace detail
 	void session_impl::on_incoming_connection(shared_ptr<stream_socket> const& s
 		, weak_ptr<socket_acceptor> const& listen_socket, asio::error const& e) try
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		if (listen_socket.expired())
 			return;
+		
+		if (e == asio::error::operation_aborted)
+			return;
 
+		mutex_t::scoped_lock l(m_mutex);
 		assert(listen_socket.lock() == m_listen_socket);
+
+		async_accept();
 		if (e)
 		{
-			if (e == asio::error::operation_aborted)
-				return;
-
 			if (m_alerts.should_post(alert::fatal))
 			{
-				std::string msg = "cannot listen on the given interface '"
+				std::string msg = "error accepting connection on '"
 					+ m_listen_interface.address().to_string() + "'";
 				m_alerts.post_alert(listen_failed_alert(msg));
 			}
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			std::string msg = "cannot listen on the given interface '"
+			std::string msg = "error accepting connection on '"
 				+ m_listen_interface.address().to_string() + "'";
 			(*m_logger) << msg << "\n";
 #endif
 			assert(m_listen_socket.unique());
-			m_listen_socket.reset();
 			return;
 		}
-
-		async_accept();
 
 		// we got a connection request!
 		m_incoming_connection = true;
@@ -721,8 +721,11 @@ namespace libtorrent { namespace detail
 		}
 		
 		if (m_abort) return;
+		float tick_interval = (second_clock::universal_time()
+			- m_last_tick).total_milliseconds() / 1000.f;
+		m_last_tick = second_clock::universal_time();
 
-		m_timer.expires_from_now(boost::posix_time::seconds(1));
+		m_timer.expires_from_now(seconds(1));
 		m_timer.async_wait(bind(&session_impl::second_tick, this, _1));
 		
 		session_impl::mutex_t::scoped_lock l(m_mutex);
@@ -786,23 +789,23 @@ namespace libtorrent { namespace detail
 			}
 
 			// tick() will set the used upload quota
-			t.second_tick(m_stat);
+			t.second_tick(m_stat, tick_interval);
 			++i;
 		}
 
-		m_stat.second_tick();
+		m_stat.second_tick(tick_interval);
 
 		// distribute the maximum upload rate among the torrents
 
 		allocate_resources(m_upload_rate == -1
 				? std::numeric_limits<int>::max()
-				: m_upload_rate
+				: int(m_upload_rate * tick_interval)
 				, m_torrents
 				, &torrent::m_ul_bandwidth_quota);
 
 		allocate_resources(m_download_rate == -1
 				? std::numeric_limits<int>::max()
-				: m_download_rate
+				: int(m_download_rate * tick_interval)
 				, m_torrents
 				, &torrent::m_dl_bandwidth_quota);
 
@@ -829,7 +832,7 @@ namespace libtorrent { namespace detail
 #ifndef NDEBUG
 		std::string err = exc.what();
 #endif
-	}
+	}; // msvc 7.1 seems to require this
 
 	void session_impl::connection_completed(
 		boost::intrusive_ptr<peer_connection> const& p)
@@ -883,8 +886,6 @@ namespace libtorrent { namespace detail
 		{
 		session_impl::mutex_t::scoped_lock l(m_mutex);
 
-		m_connections.clear();
-		
 		m_tracker_manager.abort_all_requests();
 		for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i =
 			m_torrents.begin(); i != m_torrents.end(); ++i)
@@ -908,6 +909,7 @@ namespace libtorrent { namespace detail
 		m_selector.run();
 
 		m_torrents.clear();
+		m_connections.clear();
 
 		assert(m_torrents.empty());
 		assert(m_connections.empty());
