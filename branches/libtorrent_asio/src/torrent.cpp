@@ -1388,7 +1388,10 @@ namespace libtorrent
 			m_dl_bandwidth_quota.max = resource_request::inf;
 
 		accumulator += m_stat;
-		m_stat.second_tick(tick_interval);
+		// don't pass the tick interval in here, because
+		// the stats have already been adjusted in the
+		// peer's stats.
+		m_stat.second_tick(1.f);
 	}
 
 	void torrent::distribute_resources()

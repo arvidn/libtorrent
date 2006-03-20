@@ -684,7 +684,7 @@ namespace libtorrent
 				read_bytes = static_cast<int>(file_iter->size - file_offset);
 
 #ifndef NDEBUG
-			assert(slices.size() > counter);
+			assert(int(slices.size()) > counter);
 			size_type slice_size = slices[counter].size;
 			assert(slice_size == read_bytes);
 			assert(m_pimpl->info.file_at(slices[counter].file_index).path
@@ -799,7 +799,7 @@ namespace libtorrent
 				write_bytes = static_cast<int>(file_iter->size - file_offset);
 			}
 
-			assert(slices.size() > counter);
+			assert(int(slices.size()) > counter);
 			assert(slices[counter].size == write_bytes);
 			assert(m_pimpl->info.file_at(slices[counter].file_index).path
 				== file_iter->path);

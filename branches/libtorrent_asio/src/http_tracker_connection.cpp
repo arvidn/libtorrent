@@ -147,7 +147,7 @@ namespace libtorrent
 				boost::get<1>(ret) += newline - pos;
 				pos = newline;
 
-				int separator = line.find(": ");
+				std::string::size_type separator = line.find(": ");
 				if (separator == std::string::npos)
 				{
 					++pos;

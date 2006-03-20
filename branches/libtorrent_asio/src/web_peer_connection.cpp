@@ -311,7 +311,7 @@ namespace libtorrent
 			if (m_intermediate_piece.length == m_requests.front().length)
 			{
 				assert(m_requests.front() == m_intermediate_piece);
-				assert(m_piece.size() == m_intermediate_piece.length);
+				assert(int(m_piece.size()) == m_intermediate_piece.length);
 				m_requests.pop_front();
 				incoming_piece(m_intermediate_piece, &m_piece[0]);
 				m_piece.clear();
