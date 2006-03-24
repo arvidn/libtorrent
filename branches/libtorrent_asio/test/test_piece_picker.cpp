@@ -223,11 +223,6 @@ int test_main()
 		picked.clear();
 		p.pick_pieces(peer1, picked, 100, true, tcp::endpoint(0, address("1.1.1.1")));
 
-		for (std::vector<piece_block>::iterator i = picked.begin(); i != picked.end(); ++i)
-		{
-			std::cerr << "(" << i->piece_index << "," << i->block_index << ")\n";
-		}
-	
 		TEST_CHECK(picked.size() == 11);
 	
 		piece_block expected6[] =

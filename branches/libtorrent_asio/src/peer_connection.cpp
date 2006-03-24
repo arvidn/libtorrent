@@ -1263,18 +1263,28 @@ namespace libtorrent
 
 		if (t)
 		{
-			piece_picker& picker = t->picker();
-			
-			while (!m_download_queue.empty())
+			if (t->valid_metadata())
 			{
-				picker.abort_download(m_download_queue.back());
-				m_download_queue.pop_back();
+				piece_picker& picker = t->picker();
+				
+				while (!m_download_queue.empty())
+				{
+					picker.abort_download(m_download_queue.back());
+					m_download_queue.pop_back();
+				}
+				while (!m_request_queue.empty())
+				{
+					picker.abort_download(m_request_queue.back());
+					m_request_queue.pop_back();
+				}
 			}
-			while (!m_request_queue.empty())
+#ifndef NDEBUG
+			else
 			{
-				picker.abort_download(m_request_queue.back());
-				m_request_queue.pop_back();
+				assert(m_download_queue.empty());
+				assert(m_request_queue.empty());
 			}
+#endif
 
 			t->remove_peer(this);
 		}
@@ -1324,7 +1334,11 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		assert(t);
-		
+
+		on_tick();
+
+		if (!t->valid_metadata()) return;
+
 		// calculate the desired download queue size
 		const float queue_time = m_ses.m_settings.request_queue_time;
 		// (if the latency is more than this, the download will stall)
@@ -1343,8 +1357,6 @@ namespace libtorrent
 		if (m_desired_queue_size < min_request_queue) m_desired_queue_size
 			= min_request_queue;
 
-		
-		// TODO: the timeout should be user-settable
 		if (!m_download_queue.empty()
 			&& now - m_last_piece > seconds(m_ses.m_settings.piece_timeout))
 		{
@@ -1377,14 +1389,12 @@ namespace libtorrent
 			m_download_queue.clear();
 			m_request_queue.clear();
 			
-//			m_assume_fifo = true;
+			m_assume_fifo = true;
 
 			// this will trigger new picking of pieces
 			t->get_policy().unchoked(*this);
 		}
-	
-		on_tick();
-		
+
 		m_statistics.second_tick(tick_interval);
 		m_ul_bandwidth_quota.used = std::min(
 			(int)ceil(statistics().upload_rate())

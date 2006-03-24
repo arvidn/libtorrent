@@ -740,7 +740,7 @@ namespace libtorrent
 			assert(t);
 		
 			buffer::const_interval recv_buffer = receive_buffer();
-			entry d = bdecode(recv_buffer.begin + 5, recv_buffer.end);
+			entry d = bdecode(recv_buffer.begin + 2, recv_buffer.end);
 			const std::string& str = d["msg"].string();
 
 			if (t->alerts().should_post(alert::critical))
@@ -1106,7 +1106,7 @@ namespace libtorrent
 		handshake["v"] = m_ses.m_http_settings.user_agent;
 
 		std::vector<char> msg;
-		bencode(std::back_inserter(msg), extended_handshake);
+		bencode(std::back_inserter(msg), handshake);
 
 		// make room for message
 		buffer::interval i = allocate_send_buffer(6 + msg.size());
@@ -1120,6 +1120,12 @@ namespace libtorrent
 		std::copy(msg.begin(), msg.end(), i.begin);
 		i.begin += msg.size();
 		assert(i.begin == i.end);
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		std::stringstream ext;
+		handshake.print(ext);
+		(*m_logger) << "==> EXTENDED HANDSHAKE: \n" << ext.str();
+#endif
 
 		setup_send();
 	}

@@ -508,7 +508,11 @@ namespace libtorrent { namespace detail
 		}
 		catch (asio::error& e)
 		{
-			m_alerts.post_alert(listen_failed_alert("failed to open listen port"/*e.what()*/));
+			if (m_alerts.should_post(alert::fatal))
+			{
+				m_alerts.post_alert(listen_failed_alert(
+					std::string("failed to open listen port") + e.what()));
+			}
 		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -570,12 +574,6 @@ namespace libtorrent { namespace detail
 		async_accept();
 		if (e)
 		{
-			if (m_alerts.should_post(alert::fatal))
-			{
-				std::string msg = "error accepting connection on '"
-					+ m_listen_interface.address().to_string() + "'";
-				m_alerts.post_alert(listen_failed_alert(msg));
-			}
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			std::string msg = "error accepting connection on '"
 				+ m_listen_interface.address().to_string() + "'";
@@ -597,7 +595,7 @@ namespace libtorrent { namespace detail
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			(*m_logger) << "filtered blocked ip\n";
 #endif
-			// TODO: issue an info-alert when an ip is blocked
+			// TODO: issue an info-alert when an ip is blocked!!
 			return;
 		}
 
@@ -1008,7 +1006,8 @@ namespace libtorrent
 	{
 		// turn off the filename checking in boost.filesystem
 		using namespace boost::filesystem;
-		path::default_name_check(no_check);
+		if (path::default_name_check_writable())
+			path::default_name_check(no_check);
 		assert(listen_port_range.first > 0);
 		assert(listen_port_range.first < listen_port_range.second);
 #ifndef NDEBUG

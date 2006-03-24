@@ -482,7 +482,7 @@ namespace libtorrent
 					for (fs::path::iterator j = boost::next(file_path.begin());
 							j != file_path.end(); ++j)
 					{
-						path_e.list().push_back(*j);
+						path_e.list().push_back(entry(*j));
 					}
 				}
 			}
@@ -537,7 +537,7 @@ namespace libtorrent
 					trackers.list().push_back(tier);
 					tier.list().clear();
 				}
-				tier.list().push_back(i->url);
+				tier.list().push_back(entry(i->url));
 			}
 			trackers.list().push_back(tier);
 			dict["announce-list"] = trackers;

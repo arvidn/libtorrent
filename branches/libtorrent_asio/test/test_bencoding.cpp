@@ -63,8 +63,8 @@ int test_main()
 	// ** dictionaries **
 	{
 		entry e(entry::dictionary_t);
-		e["cow"] = entry("moo");
 		e["spam"] = entry("eggs");
+		e["cow"] = entry("moo");
 		TEST_CHECK(encode(e) == "d3:cow3:moo4:spam4:eggse");
 		TEST_CHECK(decode(encode(e)) == e);
 	}

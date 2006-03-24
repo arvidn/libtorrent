@@ -77,7 +77,8 @@ int main(int argc, char* argv[])
 
 	if (argc != 4)
 	{
-		std::cerr << "usage: make_torrent <output torrent-file> <announce url> <file or directory to create torrent from>\n";
+		std::cerr << "usage: make_torrent <output torrent-file> "
+			"<announce url> <file or directory to create torrent from>\n";
 		return 1;
 	}
 

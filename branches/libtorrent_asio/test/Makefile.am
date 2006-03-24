@@ -1,4 +1,4 @@
-bin_PROGRAMS = test_hasher test_bencoding test_ip_filter test_piece_picker test_storage
+bin_PROGRAMS = test_hasher test_bencoding test_ip_filter test_piece_picker test_storage test_metadata_extension
 EXTRA_DIST = Jamfile
 
 test_hasher_SOURCES = main.cpp test_hasher.cpp
@@ -15,6 +15,9 @@ test_piece_picker_LDADD = $(top_builddir)/src/libtorrent.la
 
 test_storage_SOURCES = main.cpp test_storage.cpp
 test_storage_LDADD = $(top_builddir)/src/libtorrent.la
+
+test_metadata_extension_SOURCES = main.cpp test_metadata_extension.cpp
+test_metadata_extension_LDADD = $(top_builddir)/src/libtorrent.la
 
 noinst_HEADERS = test.hpp
 

@@ -306,7 +306,7 @@ namespace libtorrent
 			m_picker->dec_refcount(index);
 		}
 
-		int block_size() const { return m_block_size; }
+		int block_size() const { assert(m_block_size > 0); return m_block_size; }
 
 		// this will tell all peers that we just got his piece
 		// and also let the piece picker know that we have this piece

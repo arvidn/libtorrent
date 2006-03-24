@@ -1292,6 +1292,8 @@ hash_for_piece() info_hash()
 ``hash_for_piece()`` takes a piece-index and returns the 20-bytes sha1-hash for that
 piece and ``info_hash()`` returns the 20-bytes sha1-hash for the info-section of the
 torrent file. For more information on the ``sha1_hash``, see the big_number_ class.
+``info_hash()`` will only return a valid hash if the torrent_info was read from a
+``.torrent`` file or if an ``entry`` was created from it (through ``create_torrent``).
 
 
 name() comment() creation_date() creator()
@@ -1340,7 +1342,7 @@ Its declaration looks like this::
 		entry write_resume_data() const;
 		std::vector<char> const& metadata() const;
 		void force_reannounce() const;
-		void connect_peer(address const& adr) const;
+		void connect_peer(asio::ipv4::tcp::endpoint const& adr) const;
 
 		void set_tracker_login(std::string const& username
 			, std::string const& password) const;
@@ -1428,7 +1430,7 @@ connect_peer()
 
 	::
 
-		void connect_peer(address const& adr) const;
+		void connect_peer(asio::ipv4::tcp::endpoint const& adr) const;
 
 ``connect_peer()`` is a way to manually connect to peers that one believe is a part of the
 torrent. If the peer does not respond, or is not a member of this torrent, it will simply

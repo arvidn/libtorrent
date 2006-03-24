@@ -15,5 +15,6 @@ test-suite libtorrent :
 	[ run test_bencoding.cpp ]
 	[ run test_ip_filter.cpp ]
 	[ run test_hasher.cpp ]
+	[ run test_metadata_extension.cpp ]
 	; 
 
