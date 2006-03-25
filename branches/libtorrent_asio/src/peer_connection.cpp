@@ -1841,10 +1841,16 @@ namespace libtorrent
 #ifndef NDEBUG
 	void peer_connection::check_invariant() const
 	{
-		assert(m_num_pieces == std::count(
-			m_have_piece.begin()
-			, m_have_piece.end()
-			, true));
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (!t) return;
+
+		if (t->valid_metadata())
+		{
+			assert(m_num_pieces == std::count(
+				m_have_piece.begin()
+				, m_have_piece.end()
+				, true));
+		}
 	}
 #endif
 

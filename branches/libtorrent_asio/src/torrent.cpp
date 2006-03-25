@@ -591,6 +591,8 @@ namespace libtorrent
 
 	void torrent::piece_failed(int index)
 	{
+		INVARIANT_CHECK;
+
 		assert(m_storage.get());
 		assert(m_picker.get());
 		assert(index >= 0);
@@ -839,6 +841,8 @@ namespace libtorrent
 
 	tracker_request torrent::generate_tracker_request()
 	{
+		INVARIANT_CHECK;
+
 		m_next_request
 			= second_clock::universal_time()
 			+ boost::posix_time::seconds(tracker_retry_delay_max);
@@ -916,6 +920,8 @@ namespace libtorrent
 
 	peer_connection& torrent::connect_to_url_seed(std::string const& url)
 	{
+		INVARIANT_CHECK;
+
 		// TODO: should be non-blocking!!
 		host_resolver resolver(m_ses.m_selector);
 		host h;
@@ -967,6 +973,8 @@ namespace libtorrent
 
 	peer_connection& torrent::connect_to_peer(const tcp::endpoint& a)
 	{
+		INVARIANT_CHECK;
+
 		if (m_connections.find(a) != m_connections.end())
 			throw protocol_error("already connected to peer");
 
@@ -1007,6 +1015,8 @@ namespace libtorrent
 
 	void torrent::attach_peer(peer_connection* p)
 	{
+		INVARIANT_CHECK;
+
 		assert(p != 0);
 		assert(!p->is_local());
 
@@ -1041,6 +1051,8 @@ namespace libtorrent
 
 	void torrent::disconnect_all()
 	{
+		INVARIANT_CHECK;
+
 		while (!m_connections.empty())
 		{
 			peer_connection& p = *m_connections.begin()->second;
@@ -1056,13 +1068,15 @@ namespace libtorrent
 			std::size_t size = m_connections.size();
 #endif
 			p.disconnect();
-			assert(m_connections.size() < size);
+			assert(m_connections.size() <= size);
 		}
 	}
 
 	// called when torrent is finished (all interested pieces downloaded)
 	void torrent::finished()
 	{
+		INVARIANT_CHECK;
+
 		if (alerts().should_post(alert::info))
 		{
 			alerts().post_alert(torrent_finished_alert(
@@ -1125,6 +1139,8 @@ namespace libtorrent
 
 	void torrent::try_next_tracker()
 	{
+		INVARIANT_CHECK;
+
 		using namespace boost::posix_time;
 		++m_currently_trying_tracker;
 
@@ -1280,6 +1296,8 @@ namespace libtorrent
 
 	void torrent::pause()
 	{
+		INVARIANT_CHECK;
+
 		if (m_paused) return;
 		disconnect_all();
 		m_paused = true;
@@ -1293,6 +1311,8 @@ namespace libtorrent
 
 	void torrent::resume()
 	{
+		INVARIANT_CHECK;
+
 		if (!m_paused) return;
 		m_paused = false;
 
@@ -1306,6 +1326,8 @@ namespace libtorrent
 
 	void torrent::second_tick(stat& accumulator, float tick_interval)
 	{
+		INVARIANT_CHECK;
+
 		m_connections_quota.used = (int)m_connections.size();
 		m_uploads_quota.used = m_policy->num_uploads();
 
@@ -1396,6 +1418,8 @@ namespace libtorrent
 
 	void torrent::distribute_resources()
 	{
+		INVARIANT_CHECK;
+
 		m_time_scaler--;
 		if (m_time_scaler <= 0)
 		{
@@ -1429,6 +1453,8 @@ namespace libtorrent
 
 	bool torrent::verify_piece(int piece_index)
 	{
+		INVARIANT_CHECK;
+
 		assert(m_storage.get());
 		assert(piece_index >= 0);
 		assert(piece_index < m_torrent_file.num_pieces());
@@ -1465,6 +1491,8 @@ namespace libtorrent
 	
 	std::vector<char> const& torrent::metadata() const
 	{
+		INVARIANT_CHECK;
+
 		if (m_metadata.empty())
 		{
 			bencode(std::back_inserter(m_metadata)
@@ -1478,6 +1506,8 @@ namespace libtorrent
 	
 	torrent_status torrent::status() const
 	{
+		INVARIANT_CHECK;
+
 		assert(std::accumulate(
 			m_have_pieces.begin()
 			, m_have_pieces.end()
@@ -1485,9 +1515,6 @@ namespace libtorrent
 
 		torrent_status st;
 
-		st.block_size = block_size();
-
-		
 		st.num_peers = (int)std::count_if(m_connections.begin(),	m_connections.end(),
 			boost::bind<bool>(std::logical_not<bool>(), boost::bind(&peer_connection::is_connecting,
 			boost::bind(&std::map<tcp::endpoint,peer_connection*>::value_type::second, _1))));
@@ -1541,8 +1568,12 @@ namespace libtorrent
 			if (m_metadata_size == 0) st.progress = 0.f;
 			else st.progress = std::min(1.f, m_metadata_progress / (float)m_metadata_size);
 
+			st.block_size = 0;
+
 			return st;
 		}
+
+		st.block_size = block_size();
 
 		// fill in status that depends on metadata
 
@@ -1587,6 +1618,8 @@ namespace libtorrent
 
 	int torrent::num_seeds() const
 	{
+		INVARIANT_CHECK;
+
 		return (int)std::count_if(m_connections.begin(),	m_connections.end(),
 			boost::bind(&peer_connection::is_seed,
 				boost::bind(&std::map<tcp::endpoint,peer_connection*>::value_type::second, _1)));
