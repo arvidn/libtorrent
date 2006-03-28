@@ -234,6 +234,8 @@ namespace libtorrent
 		, m_default_block_size(block_size)
 		, m_connections_initialized(true)
 	{
+		INVARIANT_CHECK;
+
 		m_uploads_quota.min = 2;
 		m_connections_quota.min = 2;
 		// this will be corrected the next time the main session
@@ -314,6 +316,8 @@ namespace libtorrent
 		, m_default_block_size(block_size)
 		, m_connections_initialized(false)
 	{
+		INVARIANT_CHECK;
+
 		m_uploads_quota.min = 2;
 		m_connections_quota.min = 2;
 		// this will be corrected the next time the main session
@@ -356,6 +360,8 @@ namespace libtorrent
 
 	torrent::~torrent()
 	{
+		INVARIANT_CHECK;
+
 		if (m_ses.m_abort)
 			m_abort = true;
 		if (!m_connections.empty())
@@ -364,6 +370,8 @@ namespace libtorrent
 
 	void torrent::init()
 	{
+		INVARIANT_CHECK;
+
 		assert(m_torrent_file.is_valid());
 		assert(m_torrent_file.num_files() > 0);
 		assert(m_torrent_file.total_size() >= 0);
@@ -382,6 +390,8 @@ namespace libtorrent
 
 	void torrent::use_interface(const char* net_interface)
 	{
+		INVARIANT_CHECK;
+
 		m_net_interface = tcp::endpoint(0, net_interface);
 	}
 
@@ -389,6 +399,8 @@ namespace libtorrent
 	// tracker request
 	bool torrent::should_request()
 	{
+		INVARIANT_CHECK;
+
 		if (m_just_paused)
 		{
 			m_just_paused = false;
@@ -400,6 +412,8 @@ namespace libtorrent
 
 	void torrent::tracker_warning(std::string const& msg)
 	{
+		INVARIANT_CHECK;
+
 		if (m_ses.m_alerts.should_post(alert::warning))
 		{
 			m_ses.m_alerts.post_alert(tracker_warning_alert(get_handle(), msg));
@@ -413,6 +427,8 @@ namespace libtorrent
 		, int complete
 		, int incomplete)
 	{
+		INVARIANT_CHECK;
+
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
 		m_failed_trackers = 0;
@@ -663,6 +679,8 @@ namespace libtorrent
 
 	void torrent::abort()
 	{
+		INVARIANT_CHECK;
+
 		m_abort = true;
 		// if the torrent is paused, it doesn't need
 		// to announce with even=stopped again.
@@ -676,6 +694,8 @@ namespace libtorrent
 
 	void torrent::announce_piece(int index)
 	{
+		INVARIANT_CHECK;
+
 		assert(m_picker.get());
 		assert(index >= 0);
 		assert(index < m_torrent_file.num_pieces());
@@ -709,6 +729,8 @@ namespace libtorrent
 
 	void torrent::filter_piece(int index, bool filter)
 	{
+		INVARIANT_CHECK;
+
 		// this call is only valid on torrents with metadata
 		assert(m_picker.get());
 		assert(index >= 0);
@@ -722,6 +744,8 @@ namespace libtorrent
 
 	void torrent::filter_pieces(std::vector<bool> const& bitmask)
 	{
+		INVARIANT_CHECK;
+
 		// this call is only valid on torrents with metadata
 		assert(m_picker.get());
 
@@ -877,6 +901,8 @@ namespace libtorrent
 
 	void torrent::remove_peer(peer_connection* p) try
 	{
+		INVARIANT_CHECK;
+
 		assert(p != 0);
 
 		peer_iterator i = m_connections.find(p->remote());
@@ -1166,6 +1192,8 @@ namespace libtorrent
 
 	bool torrent::check_fastresume(detail::piece_checker_data& data)
 	{
+		INVARIANT_CHECK;
+
 		if (!m_storage.get())
 		{
 			// this means we have received the metadata through the
@@ -1174,22 +1202,23 @@ namespace libtorrent
 		}
 
 		assert(m_storage.get());
-		return m_storage->check_fastresume(data, m_have_pieces, m_compact_mode);
+		return m_storage->check_fastresume(data, m_have_pieces, m_num_pieces
+			, m_compact_mode);
 	}
 	
 	std::pair<bool, float> torrent::check_files()
 	{
+		INVARIANT_CHECK;
+
 		assert(m_storage.get());
-		return m_storage->check_files(m_have_pieces);
+		return m_storage->check_files(m_have_pieces, m_num_pieces);
 	}
 
 	void torrent::files_checked(std::vector<piece_picker::downloading_piece> const&
 		unfinished_pieces)
 	{
-		m_num_pieces = std::count(
-			m_have_pieces.begin()
-		  , m_have_pieces.end()
-		  , true);
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		INVARIANT_CHECK;
 
 		m_picker->files_checked(m_have_pieces, unfinished_pieces);
 		if (!m_connections_initialized)
@@ -1199,13 +1228,17 @@ namespace libtorrent
 			// is available
 			typedef std::map<tcp::endpoint, peer_connection*> conn_map;
 			for (conn_map::iterator i = m_connections.begin()
-					, end(m_connections.end()); i != end; ++i)
+				, end(m_connections.end()); i != end;)
 			{
-				try { i->second->init(); }
-				catch (std::exception&e)
+				try { i->second->init(); ++i;}
+				catch (std::exception& e)
 				{
-					// TODO: close the connection
-					assert(false);
+					// the connection failed, close it
+					conn_map::iterator j = i;
+					++j;
+					m_ses.connection_failed(i->second->get_socket()
+						, i->first, e.what());
+					i = j;
 				}
 			}
 		}

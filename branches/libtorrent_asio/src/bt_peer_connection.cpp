@@ -1519,12 +1519,8 @@ namespace libtorrent
 #ifndef NDEBUG
 	void bt_peer_connection::check_invariant() const
 	{
-/*
-		assert(m_num_pieces == std::count(
-			m_have_piece.begin()
-			, m_have_piece.end()
-			, true));
-*/	}
+		peer_connection::check_invariant();
+	}
 #endif
 
 }

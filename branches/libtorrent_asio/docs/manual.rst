@@ -2216,8 +2216,9 @@ This class creates sha1-hashes. Its declaration looks like this::
 	{
 	public:
 		hasher();
+		hasher(char const* data, unsigned int len);
 
-		void update(const char* data, unsigned int len);
+		void update(char const* data, unsigned int len);
 		sha1_hash final();
 		void reset();
 	};
@@ -2228,6 +2229,9 @@ with data. i.e. you don't have to keep the entire buffer of which you want to
 create the hash in memory. You can feed the hasher parts of it at a time. When
 You have fed the hasher with all the data, you call ``final()`` and it
 will return the sha1-hash of the data.
+
+The constructor that takes a ``char const*`` and an integer will construct the
+sha1 context and feed it the data passed in.
 
 If you want to reuse the hasher object once you have created a hash, you have to
 call ``reset()`` to reinitialize it.
