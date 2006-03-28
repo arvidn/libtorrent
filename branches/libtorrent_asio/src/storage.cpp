@@ -1950,9 +1950,9 @@ namespace libtorrent
 		// this object will syncronize the allocation with
 		// potential other threads
 		allocation_syncronization sync_obj(
-				m_allocating
-				, m_allocating_condition
-				, m_allocating_monitor);
+			m_allocating
+			, m_allocating_condition
+			, m_allocating_monitor);
 
 		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
@@ -1964,7 +1964,7 @@ namespace libtorrent
 
 		const int piece_size = static_cast<int>(m_info.piece_length());
 
-		std::vector<char> buffer(piece_size, 0);
+		static std::vector<char> buffer(piece_size, 0);
 
 		for (int i = 0; i < num_slots && !m_unallocated_slots.empty(); ++i)
 		{

@@ -284,6 +284,10 @@ namespace libtorrent
 		// that have been forwarded to the torrent object
 		// do not count.
 		int m_metadata_progress;
+
+#ifndef NDEBUG
+		bool m_in_constructor;
+#endif
 	};
 }
 

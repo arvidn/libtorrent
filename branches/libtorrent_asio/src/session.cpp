@@ -601,6 +601,9 @@ namespace libtorrent { namespace detail
 
 		boost::intrusive_ptr<peer_connection> c(
 			new bt_peer_connection(*this, s));
+#ifndef NDEBUG
+		c->m_in_constructor = false;
+#endif
 
 		m_connections.insert(std::make_pair(s, c));
 	}

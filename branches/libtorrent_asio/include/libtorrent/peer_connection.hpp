@@ -525,6 +525,11 @@ namespace libtorrent
 		int m_last_read_size;		
 		// reference counter for intrusive_ptr
 		mutable int m_refs;
+
+#ifndef NDEBUG
+	public:
+		bool m_in_constructor;
+#endif
 	};
 }
 

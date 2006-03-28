@@ -94,9 +94,10 @@ namespace libtorrent
 			, boost::posix_time::seconds(0))
 		, m_waiting_metadata_request(false)
 		, m_metadata_progress(0)
+#ifndef NDEBUG
+		, m_in_constructor(true)
+#endif
 	{
-		INVARIANT_CHECK;
-
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << "*** bt_peer_connection\n";
 #endif
@@ -121,6 +122,9 @@ namespace libtorrent
 
 		setup_send();
 		setup_receive();
+#ifndef NDEBUG
+		m_in_constructor = false;
+#endif
 	}
 
 	bt_peer_connection::bt_peer_connection(
@@ -138,9 +142,10 @@ namespace libtorrent
 			, boost::posix_time::seconds(0))
 		, m_waiting_metadata_request(false)
 		, m_metadata_progress(0)
+#ifndef NDEBUG
+		, m_in_constructor(true)
+#endif
 	{
-		INVARIANT_CHECK;
-
 		// initialize the extension list to zero, since
 		// we don't know which extensions the other
 		// end supports yet
@@ -154,6 +159,9 @@ namespace libtorrent
 		// handshake from the other side
 		reset_recv_buffer(1);
 		setup_receive();
+#ifndef NDEBUG
+		m_in_constructor = false;
+#endif
 	}
 
 	bt_peer_connection::~bt_peer_connection()
@@ -1519,7 +1527,8 @@ namespace libtorrent
 #ifndef NDEBUG
 	void bt_peer_connection::check_invariant() const
 	{
-		peer_connection::check_invariant();
+		if (!m_in_constructor)
+			peer_connection::check_invariant();
 	}
 #endif
 

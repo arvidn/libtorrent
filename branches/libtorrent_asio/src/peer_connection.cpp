@@ -114,9 +114,10 @@ namespace libtorrent
 		, m_reading(false)
 		, m_last_read_size(0)
 		, m_refs(0)
+#ifndef NDEBUG
+		, m_in_constructor(true)
+#endif
 	{
-		INVARIANT_CHECK;
-
 #ifdef TORRENT_VERBOSE_LOGGING
 		m_logger = m_ses.create_log(m_remote.address().to_string() + "_"
 			+ boost::lexical_cast<std::string>(m_remote.port()));
@@ -200,9 +201,10 @@ namespace libtorrent
 		, m_reading(false)
 		, m_last_read_size(0)
 		, m_refs(0)
+#ifndef NDEBUG
+		, m_in_constructor(true)
+#endif
 	{
-		INVARIANT_CHECK;
-
 		m_remote = m_socket->remote_endpoint();
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -446,6 +448,15 @@ namespace libtorrent
 			&& p.start % t->block_size() == 0;
 	}
 	
+	struct disconnect_torrent
+	{
+		disconnect_torrent(boost::weak_ptr<torrent>& t): m_t(&t) {}
+		~disconnect_torrent() { if (m_t) m_t->reset(); }
+		void cancel() { m_t = 0; }
+	private:
+		boost::weak_ptr<torrent>* m_t;
+	};
+	
 	void peer_connection::attach_to_torrent(sha1_hash const& ih)
 	{
 		INVARIANT_CHECK;
@@ -455,7 +466,8 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
-		if (t && t->is_aborted()) m_torrent.reset();
+		if (t && t->is_aborted()) { m_torrent.reset(); t.reset(); }
+
 		if (!t)
 		{
 			// we couldn't find the torrent!
@@ -465,9 +477,9 @@ namespace libtorrent
 			throw std::runtime_error("got info-hash that is not in our session");
 		}
 
+		disconnect_torrent disconnect(m_torrent);
 		if (t->is_paused())
 		{
-			m_torrent.reset();
 			// paused torrents will not accept
 			// incoming connections
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -490,6 +502,7 @@ namespace libtorrent
 		// leave the vector unallocated
 		assert(m_num_pieces == 0);
 		std::fill(m_have_piece.begin(), m_have_piece.end(), false);
+		disconnect.cancel();
 	}
 
 	// message handlers
@@ -1310,12 +1323,10 @@ namespace libtorrent
 				assert(m_request_queue.empty());
 			}
 #endif
-			check_invariant();
 			t->remove_peer(this);
-			check_invariant();
+			m_torrent.reset();
 		}
 
-		check_invariant();
 		boost::intrusive_ptr<peer_connection> me(this);
 		m_ses.close_connection(me);
 	}
@@ -1527,7 +1538,7 @@ namespace libtorrent
 		if (!can_write()) return;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		assert(t);
+		if (!t) return;
 
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
@@ -1889,12 +1900,16 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return;
 
+		if (!m_in_constructor && t->connection_for(remote()) != this)
+		{
+			assert(false);
+		}
+
 		if (t->valid_metadata())
 		{
-			if (m_num_pieces != std::count(
-				m_have_piece.begin()
-				, m_have_piece.end()
-				, true))
+			int piece_count = std::count(m_have_piece.begin()
+				, m_have_piece.end(), true);
+			if (m_num_pieces != piece_count)
 			{
 				assert(false);
 			}

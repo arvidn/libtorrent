@@ -965,6 +965,9 @@ namespace libtorrent
 		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_selector));
 		boost::intrusive_ptr<peer_connection> c(new web_peer_connection(
 			m_ses, shared_from_this(), s, a, url));
+#ifndef NDEBUG
+		c->m_in_constructor = false;
+#endif
 
 		try
 		{
@@ -1007,6 +1010,9 @@ namespace libtorrent
 		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_selector));
 		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
 			m_ses, shared_from_this(), s, a));
+#ifndef NDEBUG
+		c->m_in_constructor = false;
+#endif
 
 		try
 		{
@@ -1049,25 +1055,31 @@ namespace libtorrent
 		if (m_connections.find(p->remote()) != m_connections.end())
 			throw protocol_error("already connected to peer");
 
-		detail::session_impl::connection_map::iterator i
-			= m_ses.m_connections.find(p->get_socket());
-		if (i == m_ses.m_connections.end())
+		if (m_ses.m_connections.find(p->get_socket())
+			== m_ses.m_connections.end())
 		{
 			throw protocol_error("peer is not properly constructed");
 		}
 
-		// it's important that we call new_connection before
-		// the connection is added to the torrent's list.
-		// because if this fails, it will throw, and if this throws
-		// m_attatched_to_torrent won't be set in the peer_connections
-		// and the destructor won't remove the entry from the torrent's
-		// connection list.
-		m_policy->new_connection(*i->second);
+		
+		peer_iterator i = m_connections.insert(
+			std::make_pair(p->remote(), p)).first;
 
+		try
+		{
+			// if new_connection throws, we have to remove the
+			// it from the list.
+
+			m_policy->new_connection(*i->second);
+		}
+		catch (std::exception& e)
+		{
+			m_connections.erase(i);
+			throw;
+		}
 #ifndef NDEBUG
 		assert(p->remote() == p->get_socket()->remote_endpoint());
 #endif
-		m_connections.insert(std::make_pair(p->remote(), p));
 
 #ifndef NDEBUG
 		m_policy->check_invariant();
