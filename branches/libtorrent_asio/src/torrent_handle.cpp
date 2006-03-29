@@ -617,8 +617,7 @@ namespace libtorrent
 				return false;
 
 			// send the message 
-			// TODO: implement extension
-//			p->send_chat_message(message);
+			p->write_chat_message(message);
 			return true;
 		}
 		return false;

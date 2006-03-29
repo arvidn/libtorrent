@@ -180,7 +180,6 @@ namespace libtorrent
 		, m_last_sent(second_clock::universal_time())
 		, m_socket(s)
 		, m_active(false)
-		, m_peer_id()
 		, m_peer_interested(false)
 		, m_peer_choked(true)
 		, m_interesting(false)
@@ -191,6 +190,7 @@ namespace libtorrent
 		, m_free_upload(0)
 		, m_trust_points(0)
 		, m_assume_fifo(false)
+		, m_num_invalid_requests(0)
 		, m_disconnecting(false)
 		, m_became_uninterested(second_clock::universal_time())
 		, m_became_uninteresting(second_clock::universal_time())
@@ -1584,6 +1584,8 @@ namespace libtorrent
 
 	void peer_connection::setup_send()
 	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
 		INVARIANT_CHECK;
 
 		if (m_writing) return;
@@ -1629,6 +1631,8 @@ namespace libtorrent
 
 	void peer_connection::setup_receive()
 	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
 		INVARIANT_CHECK;
 
 		if (m_reading) return;
@@ -1803,9 +1807,10 @@ namespace libtorrent
 	
 	void peer_connection::on_connection_complete(asio::error const& e) try
 	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
 		INVARIANT_CHECK;
 
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		if (e)
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -1847,6 +1852,8 @@ namespace libtorrent
 	void peer_connection::on_send_data(asio::error const& error
 		, std::size_t bytes_transferred) try
 	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
 		INVARIANT_CHECK;
 
 		assert(m_writing);
@@ -1862,8 +1869,6 @@ namespace libtorrent
 
 		assert(!m_connecting);
 //		assert(bytes_transferred > 0);
-
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
 		int sending_buffer = (m_current_send_buffer + 1) & 1;
 		m_send_buffer[sending_buffer].erase(bytes_transferred);
