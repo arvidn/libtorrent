@@ -37,7 +37,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
+// if building as Objective C++, asio's template
+// parameters Protocol has to be renamed to avoid
+// colliding with keywords
+
+#ifdef __OBJC__
+#define Protocol Protocol_
+#endif
+
 #include <asio.hpp>
+
+#ifdef __OBJC__ 
+#undef Protocol
+#endif
 
 #ifdef _MSC_VER
 #pragma warning(pop)

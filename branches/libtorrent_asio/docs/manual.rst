@@ -262,6 +262,10 @@ The ``Jamfile`` has the following build variants:
  * ``debug_log`` - debug version with standard logging
  * ``debug_vlog`` - debug version with verbose logging
 
+When building the example client on windows, you need to build with
+``link=static`` otherwise you may get unresolved external symbols for some
+boost.program-options symbols.
+
 
 building with autotools
 -----------------------
@@ -1225,7 +1229,7 @@ vector of those urls. If you're creating a torrent file, ``add_url_seed()``
 adds one url to the list of url-seeds. Currently, the only transport protocol
 supported for the url is http.
 
-See `url seeds`_ for more information.
+See `HTTP seeding`_ for more information.
 
 
 print()
@@ -1550,6 +1554,8 @@ add_url_seed()
 given url already exists in that list, the call has no effect. The torrent
 will connect to the server and try to download pieces from it, unless it's
 paused, queued, checking or seeding.
+
+See `HTTP seeding`_ for more information.
 
 
 use_interface()
@@ -2563,6 +2569,25 @@ the tracker. It is generated with severity level ``warning``.
 
 		virtual std::auto_ptr<alert> clone() const;
 		torrent_handle handle;
+	};
+
+
+url_seed_alert
+--------------
+
+This alert is generated when a HTTP seed name lookup fails. This alert is
+generated as severity level ``warning``.
+
+It contains ``url`` to the HTTP seed that failed along with an error message.
+
+::
+
+	struct url_seed_alert: alert
+	{
+		url_seed_alert(std::string const& h, const std::string& msg);
+		virtual std::auto_ptr<alert> clone() const;
+
+		std::string url;
 	};
 
 

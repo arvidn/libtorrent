@@ -721,6 +721,8 @@ namespace libtorrent { namespace detail
 			return;
 		}
 		
+		session_impl::mutex_t::scoped_lock l(m_mutex);
+		
 		if (m_abort) return;
 		float tick_interval = (second_clock::universal_time()
 			- m_last_tick).total_milliseconds() / 1000.f;
@@ -729,8 +731,6 @@ namespace libtorrent { namespace detail
 		m_timer.expires_from_now(seconds(1));
 		m_timer.async_wait(bind(&session_impl::second_tick, this, _1));
 		
-		session_impl::mutex_t::scoped_lock l(m_mutex);
-
 		// do the second_tick() on each connection
 		// this will update their statistics (download and upload speeds)
 		// also purge sockets that have timed out
@@ -802,28 +802,28 @@ namespace libtorrent { namespace detail
 		// distribute the maximum upload rate among the torrents
 
 		allocate_resources(m_upload_rate == -1
-				? std::numeric_limits<int>::max()
-				: int(m_upload_rate * tick_interval)
-				, m_torrents
-				, &torrent::m_ul_bandwidth_quota);
+			? std::numeric_limits<int>::max()
+			: int(m_upload_rate * tick_interval)
+			, m_torrents
+			, &torrent::m_ul_bandwidth_quota);
 
 		allocate_resources(m_download_rate == -1
-				? std::numeric_limits<int>::max()
-				: int(m_download_rate * tick_interval)
-				, m_torrents
-				, &torrent::m_dl_bandwidth_quota);
+			? std::numeric_limits<int>::max()
+			: int(m_download_rate * tick_interval)
+			, m_torrents
+			, &torrent::m_dl_bandwidth_quota);
 
 		allocate_resources(m_max_uploads == -1
-				? std::numeric_limits<int>::max()
-				: m_max_uploads
-				, m_torrents
-				, &torrent::m_uploads_quota);
+			? std::numeric_limits<int>::max()
+			: m_max_uploads
+			, m_torrents
+			, &torrent::m_uploads_quota);
 
 		allocate_resources(m_max_connections == -1
-				? std::numeric_limits<int>::max()
-				: m_max_connections
-				, m_torrents
-				, &torrent::m_connections_quota);
+			? std::numeric_limits<int>::max()
+			: m_max_connections
+			, m_torrents
+			, &torrent::m_connections_quota);
 
 		for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
 				= m_torrents.begin(); i != m_torrents.end(); ++i)
@@ -844,6 +844,8 @@ namespace libtorrent { namespace detail
 		try
 #endif
 	{
+		mutex_t::scoped_lock l(m_mutex);
+		
 		if (m_abort) return;
 
 		connection_map::iterator i = m_half_open.find(p->get_socket());

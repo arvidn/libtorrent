@@ -409,9 +409,7 @@ namespace libtorrent
 
 		// info for each unfinished piece
 		for (std::vector<piece_picker::downloading_piece>::const_iterator i
-			= q.begin();
-			i != q.end();
-			++i)
+			= q.begin(); i != q.end(); ++i)
 		{
 			if (i->finished_blocks.count() == 0) continue;
 

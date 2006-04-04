@@ -1291,6 +1291,8 @@ namespace libtorrent
 
 	void peer_connection::disconnect()
 	{
+		boost::intrusive_ptr<peer_connection> me(this);
+
 		INVARIANT_CHECK;
 
 		if (m_disconnecting) return;
@@ -1327,7 +1329,6 @@ namespace libtorrent
 			m_torrent.reset();
 		}
 
-		boost::intrusive_ptr<peer_connection> me(this);
 		m_ses.close_connection(me);
 	}
 
@@ -1698,9 +1699,9 @@ namespace libtorrent
 	void peer_connection::on_receive_data(const asio::error& error
 		, std::size_t bytes_transferred) try
 	{
-		INVARIANT_CHECK;
-
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+		INVARIANT_CHECK;
 
 		assert(m_reading);
 		assert(m_last_read_size > 0);

@@ -152,9 +152,14 @@ pkgconfigdir   = $(libdir)/pkgconfig
 pkgconfig_DATA = libtorrent.pc
 
 check: test
-	test/test_hasher && test/test_bencoding && test/test_ip_filter\
-	&& test/test_piece_picker && test/test_storage\
-	&& test/test_metadata_extension && echo && echo && echo "  **** all tests passed ****" && echo && echo
+	test/test_hasher \
+	&& test/test_bencoding \
+	&& test/test_ip_filter \
+	&& test/test_piece_picker \
+	&& test/test_storage \
+	&& test/test_metadata_extension \
+	&& test/test_buffer \
+	&& echo && echo && echo "  **** all tests passed ****" && echo && echo
 
 deb:
 	dpkg-buildpackage -rfakeroot -us -uc

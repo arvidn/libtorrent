@@ -992,6 +992,12 @@ namespace libtorrent
 		// build the first time it is used (to save time if it
 		// isn't needed) 				
 		std::multimap<sha1_hash, int> m_hash_to_piece;
+		
+		// used as temporary piece data storage in allocate_slots
+		// it is a member in order to avoid allocating it on
+		// the heap every time a new slot is allocated. (This is quite
+		// frequent with high download speeds)
+		std::vector<char> m_scratch_buffer;
 	};
 
 	piece_manager::impl::impl(
@@ -1964,7 +1970,8 @@ namespace libtorrent
 
 		const int piece_size = static_cast<int>(m_info.piece_length());
 
-		static std::vector<char> buffer(piece_size, 0);
+		std::vector<char>& buffer = m_scratch_buffer;
+		buffer.resize(piece_size);
 
 		for (int i = 0; i < num_slots && !m_unallocated_slots.empty(); ++i)
 		{

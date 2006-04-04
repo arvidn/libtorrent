@@ -175,7 +175,7 @@ namespace libtorrent
 		void use_interface(const char* net_interface);
 		tcp::endpoint const& get_interface() const { return m_net_interface; }
 		
-		peer_connection& connect_to_url_seed(std::string const& url);
+		void connect_to_url_seed(std::string const& url);
 		peer_connection& connect_to_peer(tcp::endpoint const& a);
 
 		void set_ratio(float ratio)
@@ -319,6 +319,10 @@ namespace libtorrent
 		// the download. It will post an event, disconnect
 		// all seeds and let the tracker know we're finished.
 		void completed();
+		
+		// this is the asio callback that is called when a name
+		// lookup for a web seed is completed.
+		void on_name_lookup(asio::error const& e, int port, std::string url, host h);
 
 		// this is called when the torrent has finished. i.e.
 		// all the pieces we have not filtered have been downloaded.
@@ -471,7 +475,15 @@ namespace libtorrent
 	private:
 #endif
 
+		// The list of web seeds in this torrent. Seeds
+		// with fatal errors are removed from the set
 		std::set<std::string> m_web_seeds;
+		// The set of url seeds that are currently having
+		// their hostnames resolved.
+		std::map<std::string, host> m_resolving_web_seeds;
+
+		// used to resolve the names of web seeds
+		host_resolver m_host_resolver;
 
 		// this is the upload and download statistics for the whole torrent.
 		// it's updated from all its peers once every second.

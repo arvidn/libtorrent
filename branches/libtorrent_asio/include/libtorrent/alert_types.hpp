@@ -209,6 +209,21 @@ namespace libtorrent
 		torrent_handle handle;
 	};
 
+	struct TORRENT_EXPORT url_seed_alert: alert
+	{
+		url_seed_alert(
+			const std::string& url_
+			, const std::string& msg)
+			: alert(alert::warning, msg)
+			, url(url_)
+		{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new url_seed_alert(*this)); }
+
+		std::string url;
+	};
+
 	struct TORRENT_EXPORT file_error_alert: alert
 	{
 		file_error_alert(

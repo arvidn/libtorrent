@@ -303,15 +303,13 @@ namespace libtorrent
 	{
 		assert(c != 0);
 		assert(c->m_refs > 0);
-		bool destroy = false;
+		timeout_handler::mutex_t::scoped_lock l(c->m_mutex);
+		--c->m_refs;
+		if (c->m_refs == 0)
 		{
-			// the lock has to be released before we destroy the tracker
-			// connection, since the mutex is a member of it.
-			timeout_handler::mutex_t::scoped_lock l(c->m_mutex);
-			--c->m_refs;
-			destroy = c->m_refs == 0;
+			l.unlock();
+			delete c;
 		}
-		if (destroy) delete c;
 	}
 
 

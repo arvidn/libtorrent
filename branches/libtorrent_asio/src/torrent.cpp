@@ -209,6 +209,7 @@ namespace libtorrent
 		, m_duration(1800)
 		, m_complete(-1)
 		, m_incomplete(-1)
+		, m_host_resolver(ses.m_selector)
 		, m_policy()
 		, m_ses(ses)
 		, m_checker(checker)
@@ -292,6 +293,7 @@ namespace libtorrent
 		, m_duration(1800)
 		, m_complete(-1)
 		, m_incomplete(-1)
+		, m_host_resolver(ses.m_selector)
 		, m_policy()
 		, m_ses(ses)
 		, m_checker(checker)
@@ -944,14 +946,10 @@ namespace libtorrent
 		assert(false);
 	}
 
-	peer_connection& torrent::connect_to_url_seed(std::string const& url)
+	void torrent::connect_to_url_seed(std::string const& url)
 	{
 		INVARIANT_CHECK;
 
-		// TODO: should be non-blocking!!
-		host_resolver resolver(m_ses.m_selector);
-		host h;
-		
 		std::string protocol;
 		std::string hostname;
 		int port;
@@ -959,7 +957,41 @@ namespace libtorrent
 		boost::tie(protocol, hostname, port, path)
 			= parse_url_components(url);
 
-		resolver.by_name(h, hostname);
+		typedef std::map<std::string, host> resolving;
+		
+		resolving::iterator i = m_resolving_web_seeds.insert(std::pair<std::string, host>(url, host())).first;
+		m_host_resolver.async_by_name(i->second, hostname
+			, bind(&torrent::on_name_lookup, shared_from_this(), _1, port
+				, boost::ref(i->first), boost::ref(i->second)));
+	}
+
+	void torrent::on_name_lookup(asio::error const& e, int port, std::string url
+		, host h) try
+	{
+		detail::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+		INVARIANT_CHECK;
+		
+		typedef std::map<std::string, host> resolving;
+		resolving::iterator i = m_resolving_web_seeds.find(url);
+		if (i != m_resolving_web_seeds.end()) m_resolving_web_seeds.erase(i);
+
+		if (e)
+		{
+			if (m_ses.m_alerts.should_post(alert::warning))
+			{
+				std::stringstream msg;
+				msg << "HTTP seed hostname lookup failed: " << e.what();
+				m_ses.m_alerts.post_alert(
+					url_seed_alert(url, msg.str()));
+			}
+
+			// the name lookup failed for the http host. Don't try
+			// this host again
+			remove_url_seed(url);
+			return;
+		}
+
 		tcp::endpoint a(port, h.address(0));
 
 		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_selector));
@@ -995,9 +1027,11 @@ namespace libtorrent
 			if (i != m_connections.end()) m_connections.erase(i);
 			m_ses.connection_failed(s, a, e.what());
 			c->disconnect();
-			throw;
 		}
-		return *c;
+	}
+	catch (std::exception& exc)
+	{
+		assert(false);
 	}
 
 	peer_connection& torrent::connect_to_peer(const tcp::endpoint& a)
@@ -1089,6 +1123,8 @@ namespace libtorrent
 
 	void torrent::disconnect_all()
 	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
 		INVARIANT_CHECK;
 
 		while (!m_connections.empty())
@@ -1394,7 +1430,7 @@ namespace libtorrent
 		// ---- WEB SEEDS ----
 
 		// if we're a seed, we don't need to connect to any web-seed
-		if (!is_seed())
+		if (!is_seed() && !m_web_seeds.empty())
 		{
 			// keep trying web-seeds if there are any
 			// first find out which web seeds we are connected to
@@ -1407,6 +1443,11 @@ namespace libtorrent
 				if (!p) continue;
 				web_seeds.insert(p->url());
 			}
+
+			for (std::map<std::string, host>::iterator i
+				= m_resolving_web_seeds.begin(), end(m_resolving_web_seeds.end());
+				i != end; ++i)
+				web_seeds.insert(web_seeds.begin(), i->first);
 
 			// from the list of available web seeds, subtract the ones we are
 			// already connected to.
