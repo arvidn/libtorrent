@@ -138,14 +138,14 @@ namespace libtorrent
 		if (single_file_request)
 		{
 			request += "GET ";
-			request += escape_string(m_path.c_str(), m_path.length());
+			request += escape_path(m_path.c_str(), m_path.length());
 			request += " HTTP/1.1\r\n";
 			request += "Host: ";
 			request += m_host;
 			if (m_first_request)
 			{
 				request += "\r\nUser-Agent: ";
-				request += escape_path(m_ses.m_http_settings.user_agent.c_str()
+				request += escape_string(m_ses.m_http_settings.user_agent.c_str()
 					, m_ses.m_http_settings.user_agent.size());
 			}
 			request += "\r\nRange: bytes=";

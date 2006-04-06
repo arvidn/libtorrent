@@ -1300,6 +1300,9 @@ namespace libtorrent
 			i != m_torrent->end(); ++i)
 		{
 			if (i->second->is_disconnecting()) continue;
+			// ignore web_peer_connections since they are not managed
+			// by the policy class
+			if (dynamic_cast<web_peer_connection*>(i->second)) continue;
 			++num_torrent_peers;
 		}
 
