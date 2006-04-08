@@ -91,6 +91,7 @@ namespace libtorrent
 			, num_complete(-1)
 			, num_incomplete(-1)
 			, pieces(0)
+			, num_pieces(0)
 			, total_done(0)
 			, total_wanted_done(0)
 			, total_wanted(0)
@@ -159,6 +160,11 @@ namespace libtorrent
 		int num_incomplete;
 
 		const std::vector<bool>* pieces;
+		
+		// this is the number of pieces the client has
+		// downloaded. it is equal to:
+		// std::accumulate(pieces->begin(), pieces->end());
+		int num_pieces;
 
 		// the number of bytes of the file we have
 		// including pieces that may have been filtered

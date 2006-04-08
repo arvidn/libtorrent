@@ -1776,6 +1776,8 @@ It contains the following fields::
 		int num_incomplete;
 
 		const std::vector<bool>* pieces;
+		int num_pieces;
+
 		size_type total_done;
 		size_type total_wanted_done;
 		size_type total_wanted;
@@ -1853,6 +1855,11 @@ order block). This is supposed to be as low as possible.
 ``pieces`` is the bitmask that represents which pieces we have (set to true) and
 the pieces we don't have. It's a pointer and may be set to 0 if the torrent isn't
 downloading or seeding.
+
+``num_pieces`` is the number of pieces that has been downloaded. It is equivalent
+to: ``std::accumulate(pieces->begin(), pieces->end())``. So you don't have to
+count yourself. This can be used to see if anything has updated since last time
+if you want to keep a graph of the pieces up to date.
 
 ``download_rate`` and ``upload_rate`` are the total rates for all peers for this
 torrent. These will usually have better precision than summing the rates from

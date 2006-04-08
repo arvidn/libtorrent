@@ -1687,6 +1687,7 @@ namespace libtorrent
 			/ static_cast<double>(st.total_wanted);
 
 		st.pieces = &m_have_pieces;
+		st.num_pieces = m_num_pieces;
 
 		if (m_got_tracker_response == false)
 			st.state = torrent_status::connecting_to_tracker;

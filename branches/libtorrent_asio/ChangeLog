@@ -1,4 +1,5 @@
-
+	* fixed problem with re-requesting skipped pieces when peer was sending pieces
+	  out of fifo-order.
 	* added support for http seeding (the GetRight protocol)
 	* renamed identifiers called 'id' in the public interface to support linking
 	  with Objective.C++
