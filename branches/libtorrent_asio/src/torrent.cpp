@@ -235,6 +235,9 @@ namespace libtorrent
 		, m_default_block_size(block_size)
 		, m_connections_initialized(true)
 	{
+#ifndef NDEBUG
+		m_initial_done = 0;
+#endif
 		INVARIANT_CHECK;
 
 		m_uploads_quota.min = 2;
@@ -318,6 +321,9 @@ namespace libtorrent
 		, m_default_block_size(block_size)
 		, m_connections_initialized(false)
 	{
+#ifndef NDEBUG
+		m_initial_done = 0;
+#endif
 		INVARIANT_CHECK;
 
 		m_uploads_quota.min = 2;
@@ -1250,8 +1256,12 @@ namespace libtorrent
 		}
 
 		assert(m_storage.get());
-		return m_storage->check_fastresume(data, m_have_pieces, m_num_pieces
+		bool done = m_storage->check_fastresume(data, m_have_pieces, m_num_pieces
 			, m_compact_mode);
+#ifndef NDEBUG
+		m_initial_done = boost::get<0>(bytes_done());
+#endif
+		return done;
 	}
 	
 	std::pair<bool, float> torrent::check_files()
@@ -1259,13 +1269,19 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		assert(m_storage.get());
-		return m_storage->check_files(m_have_pieces, m_num_pieces);
+		std::pair<bool, float> progress = m_storage->check_files(m_have_pieces, m_num_pieces);
+
+#ifndef NDEBUG
+		m_initial_done = boost::get<0>(bytes_done());
+#endif
+		return progress;
 	}
 
 	void torrent::files_checked(std::vector<piece_picker::downloading_piece> const&
 		unfinished_pieces)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		
 		INVARIANT_CHECK;
 
 		m_picker->files_checked(m_have_pieces, unfinished_pieces);
@@ -1290,6 +1306,9 @@ namespace libtorrent
 				}
 			}
 		}
+#ifndef NDEBUG
+		m_initial_done = boost::get<0>(bytes_done());
+#endif
 	}
 
 	alert_manager& torrent::alerts() const
@@ -1334,11 +1353,15 @@ namespace libtorrent
 #ifndef NDEBUG
 	void torrent::check_invariant() const
 	{
+//		size_type download = m_stat.total_payload_download();
+//		size_type done = boost::get<0>(bytes_done());
+//		assert(download >= done - m_initial_done);
 		for (const_peer_iterator i = begin(); i != end(); ++i)
 			assert(i->second->associated_torrent().lock().get() == this);
 
-		assert(m_num_pieces
-			== std::count(m_have_pieces.begin(), m_have_pieces.end(), true));
+// This check is very expensive.
+//		assert(m_num_pieces
+//			== std::count(m_have_pieces.begin(), m_have_pieces.end(), true));
 		assert(m_priority >= 0.f && m_priority < 1.f);
 		assert(!valid_metadata() || m_block_size > 0);
 		assert(!valid_metadata() || (m_torrent_file.piece_length() % m_block_size) == 0);
@@ -1357,6 +1380,20 @@ namespace libtorrent
 		assert(limit >= -1);
 		if (limit == -1) limit = std::numeric_limits<int>::max();
 		m_connections_quota.max = std::max(m_connections_quota.min, limit);
+	}
+
+	void torrent::set_peer_upload_limit(tcp::endpoint ip, int limit)
+	{
+		peer_connection* p = connection_for(ip);
+		if (p == 0) return;
+		p->set_upload_limit(limit);
+	}
+
+	void torrent::set_peer_download_limit(tcp::endpoint ip, int limit)
+	{
+		peer_connection* p = connection_for(ip);
+		if (p == 0) return;
+		p->set_download_limit(limit);
 	}
 
 	void torrent::set_upload_limit(int limit)

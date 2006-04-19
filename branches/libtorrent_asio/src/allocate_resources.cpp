@@ -69,10 +69,12 @@ namespace libtorrent
 	{
 		assert(a >= 0);
 		assert(b >= 0);
+		assert(a <= resource_request::inf);
+		assert(b <= resource_request::inf);
 		assert(resource_request::inf + resource_request::inf < 0);
 
 		int sum = a + b;
-		if(sum < 0)
+		if (sum < 0)
 			sum = resource_request::inf;
 
 		assert(sum >= a && sum >= b);
@@ -164,7 +166,7 @@ namespace libtorrent
 				, res);
 	#endif
 
-			if(resources == resource_request::inf)
+			if (resources == resource_request::inf)
 			{
 				// No competition for resources.
 				// Just give everyone what they want.

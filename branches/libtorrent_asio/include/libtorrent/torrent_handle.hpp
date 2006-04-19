@@ -239,7 +239,6 @@ namespace libtorrent
 		void pause() const;
 		void resume() const;
 
-
 		// marks the piece with the given index as filtered
 		// it will not be downloaded
 		void filter_piece(int index, bool filter) const;
@@ -281,6 +280,9 @@ namespace libtorrent
 
 		void set_upload_limit(int limit) const;
 		void set_download_limit(int limit) const;
+
+		void set_peer_upload_limit(tcp::endpoint ip, int limit) const;
+		void set_peer_download_limit(tcp::endpoint ip, int limit) const;
 
 		// manually connect a peer
 		void connect_peer(tcp::endpoint const& adr) const;

@@ -149,6 +149,12 @@ namespace libtorrent { namespace detail
 						m_ses.m_alerts.post_alert(fastresume_rejected_alert(
 							t->torrent_ptr->get_handle()
 							, error_msg));
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+						session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+						(*m_ses.m_logger) << "fastresume data for "
+							<< t->torrent_ptr->torrent_file().name() << " rejected: "
+							<< error_msg << "\n";
+#endif
 					}
 
 					// clear the resume data now that it has been used

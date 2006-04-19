@@ -121,6 +121,9 @@ namespace libtorrent
 		// this is called from the constructor.
 		void init();
 
+		void set_upload_limit(int limit);
+		void set_download_limit(int limit);
+
 		virtual ~peer_connection();
 
 		// this adds an announcement in the announcement queue

@@ -388,6 +388,7 @@ namespace libtorrent
 		p.seed = is_seed();
 
 		p.client = m_server_string;
+		p.connection_type = peer_info::web_seed;
 	}
 
 	// throws exception when the client should be disconnected

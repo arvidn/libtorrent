@@ -240,6 +240,7 @@ namespace libtorrent
 		p.seed = is_seed();
 		
 		p.client = m_client_version;
+		p.connection_type = peer_info::standard_bittorrent;
 	}
 
 	void bt_peer_connection::write_handshake()

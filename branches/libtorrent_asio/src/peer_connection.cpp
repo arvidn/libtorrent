@@ -1332,6 +1332,22 @@ namespace libtorrent
 		m_ses.close_connection(me);
 	}
 
+	void peer_connection::set_upload_limit(int limit)
+	{
+		assert(limit >= -1);
+		if (limit == -1) limit = std::numeric_limits<int>::max();
+		if (limit < 10) limit = 10;
+		m_ul_bandwidth_quota.max = limit;
+	}
+
+	void peer_connection::set_download_limit(int limit)
+	{
+		assert(limit >= -1);
+		if (limit == -1) limit = std::numeric_limits<int>::max();
+		if (limit < 10) limit = 10;
+		m_dl_bandwidth_quota.max = limit;
+	}
+
 	size_type peer_connection::share_diff() const
 	{
 		INVARIANT_CHECK;

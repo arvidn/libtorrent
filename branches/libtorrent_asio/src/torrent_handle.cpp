@@ -147,6 +147,24 @@ namespace libtorrent
 			, bind(&torrent::set_max_connections, _1, max_connections));
 	}
 
+	void torrent_handle::set_peer_upload_limit(tcp::endpoint ip, int limit) const
+	{
+		INVARIANT_CHECK;
+		assert(limit >= -1);
+
+		call_member<void>(m_ses, m_chk, m_info_hash
+			, bind(&torrent::set_peer_upload_limit, _1, ip, limit));
+	}
+
+	void torrent_handle::set_peer_download_limit(tcp::endpoint ip, int limit) const
+	{
+		INVARIANT_CHECK;
+		assert(limit >= -1);
+
+		call_member<void>(m_ses, m_chk, m_info_hash
+			, bind(&torrent::set_peer_download_limit, _1, ip, limit));
+	}
+
 	void torrent_handle::set_upload_limit(int limit) const
 	{
 		INVARIANT_CHECK;

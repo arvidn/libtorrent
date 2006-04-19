@@ -1361,6 +1361,10 @@ Its declaration looks like this::
 		void set_max_connections(int max_connections) const;
 		void set_upload_limit(int limit) const;
 		void set_download_limit(int limit) const;
+
+		void set_peer_upload_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
+		void set_peer_download_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
+
 		void use_interface(char const* net_interface) const;
 
 		void pause() const;
@@ -1475,6 +1479,16 @@ Note that setting a higher limit on a torrent then the global limit (``session::
 will not override the global rate limit. The torrent can never upload more than the global rate
 limit.
 
+set_peer_upload_limit() set_peer_download_limit()
+-------------------------------------------------
+
+	::
+
+		void set_peer_upload_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
+		void set_peer_download_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
+
+Works like ``set_upload_limit`` and ``set_download_limit`` respectively, but controls individual
+peer instead of the whole torrent.
 
 pause() resume() is_paused()
 ----------------------------
@@ -1952,6 +1966,13 @@ It contains the following fields::
 		int downloading_total;
 
 		std::string client;
+
+		enum
+		{
+			standard_bittorrent = 0,
+			web_seed = 1
+		};
+		int connection_type;
 	};
 
 The ``flags`` attribute tells you in which state the peer is. It is set to
@@ -2047,6 +2068,8 @@ that may give away something about which software is running in the other end.
 In the case of a web seed, the server type and version will be a part of this
 string.
 
+``connection_type`` can currently be one of ``standard_bittorrent`` or
+``web_seed``. These are currently the only implemented protocols.
 
 http_settings
 =============

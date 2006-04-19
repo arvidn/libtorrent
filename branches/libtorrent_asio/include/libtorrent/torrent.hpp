@@ -396,6 +396,9 @@ namespace libtorrent
 		resource_request m_uploads_quota;
 		resource_request m_connections_quota;
 
+		void set_peer_upload_limit(tcp::endpoint ip, int limit);
+		void set_peer_download_limit(tcp::endpoint ip, int limit);
+
 		void set_upload_limit(int limit);
 		void set_download_limit(int limit);
 		void set_max_uploads(int limit);
@@ -592,6 +595,13 @@ namespace libtorrent
 		// them from altering the piece-picker before it
 		// has been initialized with files_checked().
 		bool m_connections_initialized;
+
+#ifndef NDEBUG
+		// this is the amount downloaded when this torrent
+		// is started. i.e.
+		// total_done - m_initial_done <= total_payload_download
+		size_type m_initial_done;
+#endif
 	};
 
 	inline boost::posix_time::ptime torrent::next_announce() const

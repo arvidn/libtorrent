@@ -92,6 +92,13 @@ namespace libtorrent
 		int downloading_total;
 		
 		std::string client;
+		
+		enum
+		{
+			standard_bittorrent = 0,
+			web_seed = 1
+		};
+		int connection_type;
 	};
 
 }
