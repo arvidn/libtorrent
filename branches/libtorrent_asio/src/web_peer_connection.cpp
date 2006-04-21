@@ -92,7 +92,7 @@ namespace libtorrent
 
 		int body_start = m_parser.body_start();
 		buffer::const_interval recv_buffer = receive_buffer();
-		assert(body_start < recv_buffer.left());
+		assert(body_start <= recv_buffer.left());
 		piece_block_progress ret;
 
 		ret.piece_index = m_requests.front().piece;
