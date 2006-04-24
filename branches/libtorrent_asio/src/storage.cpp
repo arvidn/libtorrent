@@ -1457,16 +1457,17 @@ namespace libtorrent
 				return std::make_pair(true, 1.f);
 			}
 			
-			// if we're not in compact mode, make sure the
-			// pieces are spread out and placed at their
-			// final position.
-			assert(!m_unallocated_slots.empty());
-			allocate_slots(1);
 			if (m_unallocated_slots.empty())
 			{
 				m_state = state_finished;
 				return std::make_pair(true, 1.f);
 			}
+
+			// if we're not in compact mode, make sure the
+			// pieces are spread out and placed at their
+			// final position.
+			assert(!m_unallocated_slots.empty());
+			allocate_slots(1);
 
 			return std::make_pair(false, 1.f - (float)m_unallocated_slots.size()
 				/ (float)m_slot_to_piece.size());
