@@ -12,7 +12,7 @@ int test_main()
 		const int num_pieces = 6;
 			  
 		// 4 blocks per piece
-		piece_picker p(4, num_pieces * 4);
+		piece_picker p(4, num_pieces * 4, 7);
 
 		// we have the first piece
 		std::vector<bool> have(num_pieces, false);

@@ -1,3 +1,5 @@
+	* improved the piece picker performance and made it possible to download
+	  popular pieces in sequence to improve disk performance.
 	* added the possibility to control upload and download limits per peer.
 	* fixed problem with re-requesting skipped pieces when peer was sending pieces
 	  out of fifo-order.
