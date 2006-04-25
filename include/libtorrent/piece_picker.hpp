@@ -49,13 +49,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/session_settings.hpp"
 #include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
 
 	class torrent;
-	class address;
 	class peer_connection;
 
 	struct TORRENT_EXPORT piece_block
@@ -93,7 +93,7 @@ namespace libtorrent
 			block_info(): num_downloads(0) {}
 			// the peer this block was requested or
 			// downloaded from
-			address peer;
+			tcp::endpoint peer;
 			// the number of times this block has been downloaded
 			int num_downloads;
 		};
@@ -110,8 +110,11 @@ namespace libtorrent
 			block_info info[max_blocks_per_piece];
 		};
 
-		piece_picker(int blocks_per_piece,
-			int total_num_blocks);
+		piece_picker(int blocks_per_piece
+			, int total_num_blocks
+			, int sequenced_download_threshold);
+
+		void set_sequenced_download_threshold(int sequenced_download_threshold);
 
 		// this is called before any other method is called
 		// after the local files has been checked.
@@ -161,12 +164,12 @@ namespace libtorrent
 		// decides to download a piece, it must mark it as being downloaded
 		// itself, by using the mark_as_downloading() member function.
 		// THIS IS DONE BY THE peer_connection::send_request() MEMBER FUNCTION!
-		// The last argument is the address of the peer that we'll download
+		// The last argument is the tcp::endpoint of the peer that we'll download
 		// from.
 		void pick_pieces(const std::vector<bool>& pieces
 			, std::vector<piece_block>& interesting_blocks
 			, int num_pieces, bool prefer_whole_pieces
-			, address peer) const;
+			, tcp::endpoint peer) const;
 
 		// returns true if any client is currently downloading this
 		// piece-block, or if it's queued for downloading by some client
@@ -175,8 +178,8 @@ namespace libtorrent
 		bool is_finished(piece_block block) const;
 
 		// marks this piece-block as queued for downloading
-		void mark_as_downloading(piece_block block, const address& peer);
-		void mark_as_finished(piece_block block, const address& peer);
+		void mark_as_downloading(piece_block block, tcp::endpoint const& peer);
+		void mark_as_finished(piece_block block, tcp::endpoint const& peer);
 
 		// if a piece had a hash-failure, it must be restored and
 		// made available for redownloading
@@ -195,12 +198,12 @@ namespace libtorrent
 		// the hash-check yet
 		int unverified_blocks() const;
 
-		void get_downloaders(std::vector<address>& d, int index) const;
+		void get_downloaders(std::vector<tcp::endpoint>& d, int index) const;
 
 		const std::vector<downloading_piece>& get_download_queue() const
 		{ return m_downloads; }
 
-		boost::optional<address> get_downloader(piece_block block) const;
+		boost::optional<tcp::endpoint> get_downloader(piece_block block) const;
 
 		// the number of filtered pieces we don't have
 		int num_filtered() const { return m_num_filtered; }
@@ -252,10 +255,20 @@ namespace libtorrent
 
 			enum { we_have_index = 0x3ffff };
 			
-			bool operator!=(piece_pos p)
+			int priority(int limit) const
+			{
+				return peer_count >= (unsigned)limit ? limit : peer_count;
+			}
+			
+			bool ordered(int limit) const
+			{
+				return peer_count >= (unsigned)limit;
+			}
+			
+			bool operator!=(piece_pos p) const
 			{ return index != p.index || peer_count != p.peer_count; }
 
-			bool operator==(piece_pos p)
+			bool operator==(piece_pos p) const
 			{ return index == p.index && peer_count == p.peer_count; }
 
 		};
@@ -280,7 +293,7 @@ namespace libtorrent
 				, std::vector<piece_block>& interesting_blocks
 				, std::vector<piece_block>& backup_blocks
 				, int num_blocks, bool prefer_whole_pieces
-				, address peer) const;
+				, tcp::endpoint peer) const;
 
 
 		// this vector contains all pieces we don't have.
@@ -321,6 +334,10 @@ namespace libtorrent
 
 		// the number of pieces we have that also are filtered
 		int m_num_have_filtered;
+
+		// the required popularity of a piece in order to download
+		// it in sequence instead of random order.
+		int m_sequenced_download_threshold;
 	};
 
 	inline int piece_picker::blocks_in_piece(int index) const

@@ -19,8 +19,8 @@ void test_rules_invariant(std::vector<ip_filter::ip_range> const& r, ip_filter c
 	TEST_CHECK(!r.empty());
 	if (r.empty()) return;
 
-	TEST_CHECK(r.front().first == address(0,0,0,0,0));
-	TEST_CHECK(r.back().last == address(255,255,255,255,0));
+	TEST_CHECK(r.front().first == address("0.0.0.0"));
+	TEST_CHECK(r.back().last == address("255.255.255.255"));
 	
 	iterator i = r.begin();
 	iterator j = boost::next(i);
@@ -29,7 +29,7 @@ void test_rules_invariant(std::vector<ip_filter::ip_range> const& r, ip_filter c
 	{
 		TEST_CHECK(f.access(i->last) == i->flags);
 		TEST_CHECK(f.access(j->first) == j->flags);
-		TEST_CHECK(i->last.ip() + 1 == j->first.ip());
+		TEST_CHECK(i->last.to_ulong() + 1 == j->first.to_ulong());
 	}
 }
 
@@ -41,15 +41,15 @@ int test_main()
 	// **** test joining of ranges at the end ****
 	ip_filter::ip_range expected1[] =
 	{
-		{address(0,0,0,0,0), address(0,255,255,255,0), 0}
-		, {address(1,0,0,0,0), address(3,0,0,0,0), ip_filter::blocked}
-		, {address(3,0,0,1,0), address(255,255,255,255,0), 0}
+		{address("0.0.0.0"), address("0.255.255.255"), 0}
+		, {address("1.0.0.0"), address("3.0.0.0"), ip_filter::blocked}
+		, {address("3.0.0.1"), address("255.255.255.255"), 0}
 	};
 	
 	{
 		ip_filter f;
-		f.add_rule(address(1,0,0,0,0), address(2,0,0,0,0), ip_filter::blocked);
-		f.add_rule(address(2,0,0,1,0), address(3,0,0,0,0), ip_filter::blocked);
+		f.add_rule(address("1.0.0.0"), address("2.0.0.0"), ip_filter::blocked);
+		f.add_rule(address("2.0.0.1"), address("3.0.0.0"), ip_filter::blocked);
 
 		range = f.export_filter();
 		test_rules_invariant(range, f);
@@ -62,8 +62,8 @@ int test_main()
 
 	{
 		ip_filter f;
-		f.add_rule(address(2,0,0,1,0), address(3,0,0,0,0), ip_filter::blocked);
-		f.add_rule(address(1,0,0,0,0), address(2,0,0,0,0), ip_filter::blocked);
+		f.add_rule(address("2.0.0.1"), address("3.0.0.0"), ip_filter::blocked);
+		f.add_rule(address("1.0.0.0"), address("2.0.0.0"), ip_filter::blocked);
 
 		range = f.export_filter();
 		test_rules_invariant(range, f);
@@ -77,8 +77,8 @@ int test_main()
 
 	{
 		ip_filter f;
-		f.add_rule(address(2,0,0,1,0), address(3,0,0,0,0), ip_filter::blocked);
-		f.add_rule(address(1,0,0,0,0), address(2,4,0,0,0), ip_filter::blocked);
+		f.add_rule(address("2.0.0.1"), address("3.0.0.0"), ip_filter::blocked);
+		f.add_rule(address("1.0.0.0"), address("2.4.0.0"), ip_filter::blocked);
 
 		range = f.export_filter();
 		test_rules_invariant(range, f);
@@ -92,8 +92,8 @@ int test_main()
 
 	{
 		ip_filter f;
-		f.add_rule(address(1,0,0,0,0), address(2,4,0,0,0), ip_filter::blocked);
-		f.add_rule(address(2,0,0,1,0), address(3,0,0,0,0), ip_filter::blocked);
+		f.add_rule(address("1.0.0.0"), address("2.4.0.0"), ip_filter::blocked);
+		f.add_rule(address("2.0.0.1"), address("3.0.0.0"), ip_filter::blocked);
 
 		range = f.export_filter();
 		test_rules_invariant(range, f);
@@ -107,12 +107,12 @@ int test_main()
 
 	{
 		ip_filter f;
-		f.add_rule(address(1,0,0,0,0), address(2,0,0,0,0), ip_filter::blocked);
-		f.add_rule(address(3,0,0,0,0), address(4,0,0,0,0), ip_filter::blocked);
-		f.add_rule(address(5,0,0,0,0), address(6,0,0,0,0), ip_filter::blocked);
-		f.add_rule(address(7,0,0,0,0), address(8,0,0,0,0), ip_filter::blocked);
+		f.add_rule(address("1.0.0.0"), address("2.0.0.0"), ip_filter::blocked);
+		f.add_rule(address("3.0.0.0"), address("4.0.0.0"), ip_filter::blocked);
+		f.add_rule(address("5.0.0.0"), address("6.0.0.0"), ip_filter::blocked);
+		f.add_rule(address("7.0.0.0"), address("8.0.0.0"), ip_filter::blocked);
 
-		f.add_rule(address(1,0,1,0,0), address(9,0,0,0,0), ip_filter::blocked);
+		f.add_rule(address("1.0.1.0"), address("9.0.0.0"), ip_filter::blocked);
 		
 		range = f.export_filter();
 		test_rules_invariant(range, f);
@@ -120,9 +120,9 @@ int test_main()
 		TEST_CHECK(range.size() == 3);
 		ip_filter::ip_range expected[] =
 		{
-			{address(0,0,0,0,0), address(0,255,255,255,0), 0}
-			, {address(1,0,0,0,0), address(9,0,0,0,0), ip_filter::blocked}
-			, {address(9,0,0,1,0), address(255,255,255,255,0), 0}
+			{address("0.0.0.0"), address("0.255.255.255"), 0}
+			, {address("1.0.0.0"), address("9.0.0.0"), ip_filter::blocked}
+			, {address("9.0.0.1"), address("255.255.255.255"), 0}
 		};
 	
 		TEST_CHECK(std::equal(range.begin(), range.end(), expected, &compare));
@@ -132,12 +132,12 @@ int test_main()
 
 	{
 		ip_filter f;
-		f.add_rule(address(1,0,0,0,0), address(2,0,0,0,0), ip_filter::blocked);
-		f.add_rule(address(3,0,0,0,0), address(4,0,0,0,0), ip_filter::blocked);
-		f.add_rule(address(5,0,0,0,0), address(6,0,0,0,0), ip_filter::blocked);
-		f.add_rule(address(7,0,0,0,0), address(8,0,0,0,0), ip_filter::blocked);
+		f.add_rule(address("1.0.0.0"), address("2.0.0.0"), ip_filter::blocked);
+		f.add_rule(address("3.0.0.0"), address("4.0.0.0"), ip_filter::blocked);
+		f.add_rule(address("5.0.0.0"), address("6.0.0.0"), ip_filter::blocked);
+		f.add_rule(address("7.0.0.0"), address("8.0.0.0"), ip_filter::blocked);
 
-		f.add_rule(address(0,0,1,0,0), address(7,0,4,0,0), ip_filter::blocked);
+		f.add_rule(address("0.0.1.0"), address("7.0.4.0"), ip_filter::blocked);
 		
 		range = f.export_filter();
 		test_rules_invariant(range, f);
@@ -145,9 +145,9 @@ int test_main()
 		TEST_CHECK(range.size() == 3);
 		ip_filter::ip_range expected[] =
 		{
-			{address(0,0,0,0,0), address(0,0,0,255,0), 0}
-			, {address(0,0,1,0,0), address(8,0,0,0,0), ip_filter::blocked}
-			, {address(8,0,0,1,0), address(255,255,255,255,0), 0}
+			{address("0.0.0.0"), address("0.0.0.255"), 0}
+			, {address("0.0.1.0"), address("8.0.0.0"), ip_filter::blocked}
+			, {address("8.0.0.1"), address("255.255.255.255"), 0}
 		};
 	
 		TEST_CHECK(std::equal(range.begin(), range.end(), expected, &compare));

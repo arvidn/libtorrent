@@ -44,16 +44,16 @@ namespace libtorrent
 	{
 		std::string ip;
 		int port;
-		peer_id id;
+		peer_id pid;
 
 		bool operator==(const peer_entry& p) const
 		{
-			return id == p.id;
+			return pid == p.pid;
 		}
 
 		bool operator<(const peer_entry& p) const
 		{
-			return id < p.id;
+			return pid < p.pid;
 		}
 	};
 

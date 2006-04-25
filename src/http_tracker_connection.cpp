@@ -38,16 +38,25 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "zlib.h"
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
+#include <boost/bind.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
-#include "libtorrent/udp_tracker_connection.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/io.hpp"
-#include "libtorrent/async_gethostbyname.hpp"
 
 using namespace libtorrent;
+using boost::bind;
 
 namespace
 {
@@ -77,9 +86,152 @@ using namespace boost::posix_time;
 
 namespace libtorrent
 {
+	http_parser::http_parser()
+		: m_recv_pos(0)
+		, m_status_code(-1)
+		, m_content_length(-1)
+		, m_content_encoding(plain)
+		, m_state(read_status)
+		, m_recv_buffer(0, 0)
+		, m_body_start_pos(0)
+		, m_finished(false)
+	{}
+
+	boost::tuple<int, int> http_parser::incoming(buffer::const_interval recv_buffer)
+	{
+		m_recv_buffer = recv_buffer;
+		boost::tuple<int, int> ret(0, 0);
+
+		char const* pos = recv_buffer.begin + m_recv_pos;
+		if (m_state == read_status)
+		{
+			assert(!m_finished);
+			char const* newline = std::find(pos, recv_buffer.end, '\n');
+			// if we don't have a full line yet, wait.
+			if (newline == recv_buffer.end) return ret;
+
+			if (newline == pos)
+				throw std::runtime_error("unexpected newline in HTTP response");
+
+			std::istringstream line(std::string(pos, newline - 1));
+			++newline;
+			int incoming = (int)std::distance(pos, newline);
+			m_recv_pos += incoming;
+			boost::get<1>(ret) += incoming;
+			pos = newline;
+
+			line >> m_protocol;
+			if (m_protocol.substr(0, 5) != "HTTP/")
+			{
+				throw std::runtime_error("unknown protocol in HTTP response: "
+					+ m_protocol);
+			}
+			line >> m_status_code;
+			std::getline(line, m_server_message);
+			m_state = read_header;
+		}
+
+		if (m_state == read_header)
+		{
+			assert(!m_finished);
+			char const* newline = std::find(pos, recv_buffer.end, '\n');
+			std::string line;
+
+			while (newline != recv_buffer.end && m_state == read_header)
+			{
+				if (newline == pos)
+					throw std::runtime_error("unexpected newline in HTTP response");
+			
+				line.assign(pos, newline - 1);
+				m_recv_pos += newline - pos;
+				boost::get<1>(ret) += newline - pos;
+				pos = newline;
+
+				std::string::size_type separator = line.find(": ");
+				if (separator == std::string::npos)
+				{
+					++pos;
+					++m_recv_pos;
+					boost::get<1>(ret) += 1;
+					
+					m_state = read_body;
+					m_body_start_pos = m_recv_pos;
+					break;
+				}
+
+				std::string name = line.substr(0, separator);
+				std::string value = line.substr(separator + 2, std::string::npos);
+				m_header.insert(std::make_pair(name, value));
+
+				if (name == "Content-Length")
+				{
+					try
+					{
+						m_content_length = boost::lexical_cast<int>(value);
+					}
+					catch(boost::bad_lexical_cast&) {}
+				}
+				else if (name == "Content-Encoding")
+				{
+					if (value == "gzip" || value == "x-gzip")
+					{
+						m_content_encoding = gzip;
+					}
+					else
+					{
+						std::string error_str = "unknown content encoding in response: \"";
+						error_str += value;
+						error_str += "\"";
+						throw std::runtime_error(error_str);
+					}
+				}
+				// TODO: make sure we don't step outside of the buffer
+				++pos;
+				++m_recv_pos;
+				assert(m_recv_pos <= (int)recv_buffer.left());
+				newline = std::find(pos, recv_buffer.end, '\n');
+			}
+		}
+
+		if (m_state == read_body)
+		{
+			int incoming = recv_buffer.end - pos;
+			if (m_recv_pos - m_body_start_pos + incoming > m_content_length
+				&& m_content_length >= 0)
+				incoming = m_content_length - m_recv_pos + m_body_start_pos;
+
+			assert(incoming >= 0);
+			m_recv_pos += incoming;
+			boost::get<0>(ret) += incoming;
+
+			if (m_content_length >= 0
+				&& m_recv_pos - m_body_start_pos >= m_content_length)
+			{
+				m_finished = true;
+			}
+		}
+		return ret;
+	}
+	
+	buffer::const_interval http_parser::get_body()
+	{
+		char const* body_begin = m_recv_buffer.begin + m_body_start_pos;
+		char const* body_end = m_recv_buffer.begin + m_recv_pos;
+
+		m_recv_pos = 0;
+		m_body_start_pos = 0;
+		m_status_code = -1;
+		m_content_length = -1;
+		m_finished = false;
+		m_state = read_status;
+		m_header.clear();
+		
+		return buffer::const_interval(body_begin, body_end);
+	}
 
 	http_tracker_connection::http_tracker_connection(
-		tracker_manager& man
+		demuxer& d
+		, tracker_manager& man
 		, tracker_request const& req
 		, std::string const& hostname
 		, unsigned short port
@@ -87,20 +239,21 @@ namespace libtorrent
 		, boost::weak_ptr<request_callback> c
 		, const http_settings& stn
 		, std::string const& auth)
-		: tracker_connection(c)
+		: tracker_connection(man, req, d, c)
 		, m_man(man)
 		, m_state(read_status)
 		, m_content_encoding(plain)
 		, m_content_length(0)
+		, m_name_lookup(d)
+		, m_port(port)
 		, m_recv_pos(0)
-		, m_request_time(second_clock::universal_time())
+		, m_buffer(http_buffer_size)
 		, m_settings(stn)
-		, m_req(req)
 		, m_password(auth)
 		, m_code(0)
+		, m_timed_out(false)
 	{
 		const std::string* connect_to_host;
-		int connect_to_port = port;
 		bool using_proxy = false;
 
 		m_send_buffer.assign("GET ");
@@ -117,7 +270,7 @@ namespace libtorrent
 				m_send_buffer += ":";
 				m_send_buffer += boost::lexical_cast<std::string>(port);
 			}
-			connect_to_port = m_settings.proxy_port != 0
+			m_port = m_settings.proxy_port != 0
 				? m_settings.proxy_port : 80 ;
 		}
 		else
@@ -125,7 +278,7 @@ namespace libtorrent
 			connect_to_host = &hostname;
 		}
 
-		if (m_req.kind == tracker_request::scrape_request)
+		if (tracker_req().kind == tracker_request::scrape_request)
 		{
 			// find and replace "announce" with "scrape"
 			// in request
@@ -133,7 +286,7 @@ namespace libtorrent
 			std::size_t pos = request.find("announce");
 			if (pos == std::string::npos)
 				throw std::runtime_error("scrape is not available on url: '"
-				+ m_req.url +"'");
+				+ tracker_req().url +"'");
 			request.replace(pos, 8, "scrape");
 		}
 
@@ -151,11 +304,11 @@ namespace libtorrent
 		m_send_buffer += escape_string(
 			reinterpret_cast<const char*>(req.info_hash.begin()), 20);
 
-		if (m_req.kind == tracker_request::announce_request)
+		if (tracker_req().kind == tracker_request::announce_request)
 		{
 			m_send_buffer += "&peer_id=";
 			m_send_buffer += escape_string(
-				reinterpret_cast<const char*>(req.id.begin()), 20);
+				reinterpret_cast<const char*>(req.pid.begin()), 20);
 
 			m_send_buffer += "&port=";
 			m_send_buffer += boost::lexical_cast<std::string>(req.listen_port);
@@ -191,7 +344,8 @@ namespace libtorrent
 
 		m_send_buffer += " HTTP/1.0\r\nAccept-Encoding: gzip\r\n"
 			"User-Agent: ";
-		m_send_buffer += m_settings.user_agent;
+		m_send_buffer += escape_string(m_settings.user_agent.c_str()
+			, m_settings.user_agent.length());
 		m_send_buffer += " (libtorrent)\r\n"
 			"Host: ";
 		m_send_buffer += hostname;
@@ -221,139 +375,147 @@ namespace libtorrent
 		}
 #endif
 
-		m_name_lookup = dns_lookup(connect_to_host->c_str(), connect_to_port);
-		m_socket.reset(new socket(socket::tcp, false));
+		m_name_lookup.async_by_name(m_host, *connect_to_host
+			, bind(&http_tracker_connection::name_lookup, self(), _1));
+		set_timeout(m_settings.tracker_completion_timeout
+			, m_settings.tracker_receive_timeout);
 	}
 
-	// returns true if this connection is finished and should be removed from
-	// the connections list.
-	bool http_tracker_connection::tick()
+	void http_tracker_connection::on_timeout()
 	{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		try
+		m_timed_out = true;
+		m_socket.reset();
+		m_name_lookup.cancel();
+		fail_timeout();
+	}
+
+	void http_tracker_connection::name_lookup(asio::error const& error) try
+	{
+		if (error == asio::error::operation_aborted) return;
+		if (m_timed_out) return;
+
+		if (error)
 		{
-#endif
-
-		if (m_name_lookup.running())
-		{
-			if (!m_name_lookup.finished()) return false;
-
-			if (m_name_lookup.failed())
-			{
-				if (has_requester()) requester().tracker_request_error(
-					m_req, -1, m_name_lookup.error());
-				return true;
-			}
-			address a(m_name_lookup.ip());
-			if (has_requester()) requester().m_tracker_address = a;
-
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		if (has_requester()) requester().debug_log("name lookup successful");
-#endif
-
-			m_socket->connect(a);
+			fail(-1, error.what());
+			return;
+		}
 		
-			// clear the lookup entry so it will not be
-			// marked as running anymore
-			m_name_lookup = dns_lookup();
-		}
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		if (has_requester()) requester().debug_log("tracker name lookup successful");
+#endif
+		restart_read_timeout();
+		m_socket.reset(new stream_socket(m_name_lookup.io_service()));
+		tcp::endpoint a(m_port, m_host.address(0));
+		if (has_requester()) requester().m_tracker_address = a;
+		m_socket->async_connect(a, bind(&http_tracker_connection::connected, self(), _1));
+	}
+	catch (std::exception& e)
+	{
+		assert(false);
+		fail(-1, e.what());
+	}
 
-		using namespace boost::posix_time;
-
-		time_duration d = second_clock::universal_time() - m_request_time;
-		if (d > seconds(m_settings.tracker_timeout) ||
-			(!has_requester() && d > seconds(m_settings.stop_tracker_timeout)))
+	void http_tracker_connection::connected(asio::error const& error) try
+	{
+		if (error == asio::error::operation_aborted) return;
+		if (m_timed_out) return;
+		if (error)
 		{
-			if (has_requester()) requester().tracker_request_timed_out(m_req);
-			return true;
+			fail(-1, error.what());
+			return;
 		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		if (has_requester()) requester().debug_log("tracker connection tick");
+		if (has_requester()) requester().debug_log("tracker connection successful");
 #endif
 
-		// if we have a send buffer and the socket is ready for writing
-		// send the buffer
-		if (!m_send_buffer.empty() && m_socket->is_writable())
+		restart_read_timeout();
+		async_write(*m_socket, asio::buffer(m_send_buffer.c_str()
+			, m_send_buffer.size()), bind(&http_tracker_connection::sent
+			, self(), _1));
+	}
+	catch (std::exception& e)
+	{
+		assert(false);
+		fail(-1, e.what());
+	}
+
+	void http_tracker_connection::sent(asio::error const& error) try
+	{
+		if (error == asio::error::operation_aborted) return;
+		if (m_timed_out) return;
+		if (error)
 		{
-			int sent = m_socket->send(m_send_buffer.c_str(),(int)m_send_buffer.size());
-
-			if (sent == (int)m_send_buffer.size())
-			{
-				m_send_buffer.clear();
-			}
-			else if (sent > 0)
-			{
-				m_send_buffer.erase(
-					m_send_buffer.begin()
-					, m_send_buffer.begin() + sent);
-			}
-
-			if (sent != 0)
-				m_request_time = second_clock::universal_time();
+			fail(-1, error.what());
+			return;
 		}
-
-		if (m_socket->has_error())
-		{
-			if (has_requester()) requester().tracker_request_error(
-				m_req, -1, "connection refused");
-			return true;
-		}
-
-		// if the socket isn't ready for reading, there's no point in continuing
-		// trying to read from it
-		if (!m_socket->is_readable()) return false;
-		m_request_time = second_clock::universal_time();
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		if (has_requester()) requester().debug_log("tracker connection socket readable");
+		if (has_requester()) requester().debug_log("tracker send data completed");
 #endif
+		restart_read_timeout();
+		assert(m_buffer.size() - m_recv_pos > 0);
+		m_socket->async_read_some(asio::buffer(&m_buffer[m_recv_pos]
+			, m_buffer.size() - m_recv_pos), bind(&http_tracker_connection::receive
+			, self(), _1, _2));
+	}
+	catch (std::exception& e)
+	{
+		assert(false);
+		fail(-1, e.what());
+	}; // msvc 7.1 seems to require this semi-colon
+
+	
+	void http_tracker_connection::receive(asio::error const& error
+		, std::size_t bytes_transferred) try
+	{
+		if (error == asio::error::operation_aborted) return;
+		if (m_timed_out) return;
+
+		if (error)
+		{
+			if (error == asio::error::eof)
+			{
+				on_response();
+				close();
+				return;
+			}
+
+			fail(-1, error.what());
+			return;
+		}
+
+		restart_read_timeout();
+		assert(bytes_transferred > 0);
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		if (has_requester()) requester().debug_log("tracker connection reading "
+			+ boost::lexical_cast<std::string>(bytes_transferred));
+#endif
+
+		m_recv_pos += bytes_transferred;
 
 		// if the receive buffer is full, expand it with http_buffer_size
 		if ((int)m_buffer.size() == m_recv_pos)
 		{
-			if ((int)m_buffer.size() > m_settings.tracker_maximum_response_length)
+			if ((int)m_buffer.size() >= m_settings.tracker_maximum_response_length)
 			{
-				if (has_requester())
-				{
-					requester().tracker_request_error(m_req, 200
-						, "too large tracker response");
-				}
-				return true;
+				fail(200, "too large tracker response");
+				return;
 			}
 			assert(http_buffer_size > 0);
-			m_buffer.resize(m_buffer.size() + http_buffer_size);
+			if ((int)m_buffer.size() + http_buffer_size
+				> m_settings.tracker_maximum_response_length)
+				m_buffer.resize(m_settings.tracker_maximum_response_length);
+			else
+				m_buffer.resize(m_buffer.size() + http_buffer_size);
 		}
-
-
-		assert(m_recv_pos >= 0);
-		assert(m_recv_pos < (int)m_buffer.size());
-		int received = m_socket->receive(&m_buffer[m_recv_pos], (int)m_buffer.size() - m_recv_pos);
-
-		assert(received <= (int)m_buffer.size() - m_recv_pos);
-
-		if (received > 0) m_recv_pos += received;
-
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		if (has_requester()) requester().debug_log("received: " + boost::lexical_cast<std::string>(m_recv_pos));
-#endif
 
 		if (m_state == read_status)
 		{
-			if (received <= 0)
-			{
-				if (has_requester())
-				{
-					requester().tracker_request_error(m_req, -1
-						, "invalid tracker response, connection closed");
-				}
-				return true;
-			}
-
 			std::vector<char>::iterator end = m_buffer.begin()+m_recv_pos;
 			std::vector<char>::iterator newline = std::find(m_buffer.begin(), end, '\n');
 			// if we don't have a full line yet, wait.
-			if (newline == end) return false;
+			if (newline == end) return;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			if (has_requester()) requester().debug_log(std::string(m_buffer.begin(), newline));
@@ -369,8 +531,8 @@ namespace libtorrent
 			if (m_server_protocol.substr(0, 5) != "HTTP/")
 			{
 				std::string error_msg = "unknown protocol in response: " + m_server_protocol;
-				if (has_requester()) requester().tracker_request_error(m_req, -1, error_msg.c_str());
-				return true;
+				fail(-1, error_msg.c_str());
+				return;
 			}
 			line >> m_code;
 			std::getline(line, m_server_message);
@@ -379,16 +541,7 @@ namespace libtorrent
 
 		if (m_state == read_header)
 		{
-			if (received <= 0)
-			{
-				if (has_requester())
-					requester().tracker_request_error(m_req, -1
-					, "invalid tracker response, connection closed "
-					"while reading header");
-				return true;
-			}
-
-			std::vector<char>::iterator end = m_buffer.begin()+m_recv_pos;
+			std::vector<char>::iterator end = m_buffer.begin() + m_recv_pos;
 			std::vector<char>::iterator newline
 				= std::find(m_buffer.begin(), end, '\n');
 			std::string line;
@@ -410,31 +563,19 @@ namespace libtorrent
 					}
 					catch(boost::bad_lexical_cast&)
 					{
-						if (has_requester())
-						{
-							requester().tracker_request_error(m_req, -1, 
-								"invalid content-length in tracker response");
-						}
-						return true;
+						fail(-1, "invalid content-length in tracker response");
+						return;
 					}
 					if (m_content_length > m_settings.tracker_maximum_response_length)
 					{
-						if (has_requester())
-						{
-							requester().tracker_request_error(m_req, -1
-								, "content-length is greater than maximum response length");
-						}
-						return true;
+						fail(-1, "content-length is greater than maximum response length");
+						return;
 					}
 
 					if (m_content_length < minimum_tracker_response_length && m_code == 200)
 					{
-						if (has_requester())
-						{
-							requester().tracker_request_error(m_req, -1
-								, "content-length is smaller than minimum response length");
-						}
-						return true;
+						fail(-1, "content-length is smaller than minimum response length");
+						return;
 					}
 				}
 				else if (line.substr(0, 18) == "Content-Encoding: ")
@@ -448,10 +589,8 @@ namespace libtorrent
 						std::string error_str = "unknown content encoding in response: \"";
 						error_str += line.substr(18, line.length() - 18 - 2);
 						error_str += "\"";
-						if (has_requester())
-							requester().tracker_request_error(m_req, -1
-								, error_str.c_str());
-						return true;
+						fail(-1, error_str.c_str());
+						return;
 					}
 				}
 				else if (line.substr(0, 10) == "Location: ")
@@ -475,23 +614,24 @@ namespace libtorrent
 							std::string error_str = "got redirection response (";
 							error_str += boost::lexical_cast<std::string>(m_code);
 							error_str += ") without 'Location' header";
-							if (has_requester())
-								requester().tracker_request_error(m_req
-									, m_code, error_str.c_str());
-							return true;
+							fail(-1, error_str.c_str());
+							return;
 						}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 						if (has_requester()) requester().debug_log("Redirecting to \"" + m_location + "\"");
 #endif
+						tracker_request req = tracker_req();
 						std::string::size_type i = m_location.find('?');
 						if (i == std::string::npos)
-							m_req.url = m_location;
+							req.url = m_location;
 						else
-							m_req.url.assign(m_location.begin(), m_location.begin() + i);
+							req.url.assign(m_location.begin(), m_location.begin() + i);
 
-						m_man.queue_request(m_req, m_password, m_requester);
-						return true;
+						m_man.queue_request(m_socket->io_service(), req
+							, m_password, m_requester);
+						close();
+						return;
 					}
 				}
 
@@ -508,54 +648,69 @@ namespace libtorrent
 
 		if (m_state == read_body)
 		{
-			if (m_recv_pos == m_content_length || received <= 0)
+			if (m_recv_pos == m_content_length)
 			{
-				// GZIP
-				if (m_content_encoding == gzip)
-				{
-					boost::shared_ptr<request_callback> r = m_requester.lock();
-					if (!r) return true;
-					if (inflate_gzip(m_buffer, m_req, r.get(),
-						m_settings.tracker_maximum_response_length))
-						return true;
-				}
-
-				// handle tracker response
-				try
-				{
-					entry e = bdecode(m_buffer.begin(), m_buffer.end());
-					parse(e);
-				}
-				catch (std::exception&)
-				{
-					std::string error_str(m_buffer.begin(), m_buffer.end());
-					if (has_requester()) requester().tracker_request_error(m_req, m_code, error_str);	
-				}
-				
-				return true;
+				on_response();
+				close();
+				return;
 			}
-			return false;
 		}
 		else if (m_recv_pos > m_content_length && m_content_length > 0)
 		{
-			if (has_requester())
-			{
-				requester().tracker_request_error(m_req, -1
-					, "invalid tracker response (body > content_length)");
-			}
-			return true;
+			fail(-1, "invalid tracker response (body > content_length)");
+			return;
 		}
 
-		return false;
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		}
-		catch (std::exception&)
+		assert(m_buffer.size() - m_recv_pos > 0);
+		m_socket->async_read_some(asio::buffer(&m_buffer[m_recv_pos]
+			, m_buffer.size() - m_recv_pos), bind(&http_tracker_connection::receive
+			, self(), _1, _2));
+	}
+	catch (std::exception& e)
+	{
+		assert(false);
+		fail(-1, e.what());
+	};
+	
+	void http_tracker_connection::on_response()
+	{
+		// GZIP
+		if (m_content_encoding == gzip)
 		{
-			if (has_requester())
-				requester().debug_log(std::string(m_buffer.begin(), m_buffer.end()));
-			throw;			
+			boost::shared_ptr<request_callback> r = m_requester.lock();
+			
+			if (!r)
+			{
+				close();
+				return;
+			}
+			if (inflate_gzip(m_buffer, m_req, r.get(),
+				m_settings.tracker_maximum_response_length))
+			{
+				close();
+				return;
+			}
 		}
-#endif
+
+		// handle tracker response
+		try
+		{
+			entry e = bdecode(m_buffer.begin(), m_buffer.end());
+			parse(e);
+		}
+		catch (std::exception& e)
+		{
+			std::string error_str(e.what());
+			error_str += ": ";
+			error_str.append(m_buffer.begin(), m_buffer.end());
+			fail(m_code, error_str.c_str());
+		}
+		#ifndef NDEBUG
+		catch (...)
+		{
+			assert(false);
+		}
+		#endif
 	}
 
 	peer_entry http_tracker_connection::extract_peer_info(const entry& info)
@@ -568,12 +723,12 @@ namespace libtorrent
 		{
 			if (i->string().length() != 20)
 				throw std::runtime_error("invalid response from tracker");
-			std::copy(i->string().begin(), i->string().end(), ret.id.begin());
+			std::copy(i->string().begin(), i->string().end(), ret.pid.begin());
 		}
 		else
 		{
 			// if there's no peer_id, just initialize it to a bunch of zeroes
-			std::fill_n(ret.id.begin(), 20, 0);
+			std::fill_n(ret.pid.begin(), 20, 0);
 		}
 
 		// extract ip
@@ -600,8 +755,7 @@ namespace libtorrent
 			{
 				entry const& failure = e["failure reason"];
 
-				if (has_requester()) requester().tracker_request_error(
-					m_req, m_code, failure.string().c_str());
+				fail(m_code, failure.string().c_str());
 				return;
 			}
 			catch (type_error const&) {}
@@ -616,10 +770,10 @@ namespace libtorrent
 			
 			std::vector<peer_entry> peer_list;
 
-			if (m_req.kind == tracker_request::scrape_request)
+			if (tracker_req().kind == tracker_request::scrape_request)
 			{
 				std::string ih;
-				std::copy(m_req.info_hash.begin(), m_req.info_hash.end()
+				std::copy(tracker_req().info_hash.begin(), tracker_req().info_hash.end()
 					, std::back_inserter(ih));
 				entry scrape_data = e["files"][ih];
 				int complete = scrape_data["complete"].integer();
@@ -640,7 +794,7 @@ namespace libtorrent
 					if (std::distance(i, peers.end()) < 6) break;
 
 					peer_entry p;
-					p.id.clear();
+					p.pid.clear();
 					std::stringstream ip_str;
 					ip_str << (int)detail::read_uint8(i) << ".";
 					ip_str << (int)detail::read_uint8(i) << ".";
@@ -661,7 +815,7 @@ namespace libtorrent
 				}
 			}
 
-			// look for optional crape info
+			// look for optional scrape info
 			int complete = -1;
 			int incomplete = -1;
 

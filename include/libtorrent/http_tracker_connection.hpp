@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/cstdint.hpp>
+#include <boost/tuple/tuple.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -56,19 +57,62 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer.hpp"
 #include "libtorrent/tracker_manager.hpp"
-#include "libtorrent/async_gethostbyname.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/buffer.hpp"
 
 namespace libtorrent
 {
+	
+	class http_parser
+	{
+	public:
+		http_parser();
+		template <class T>
+		T header(char const* key) const;
+		std::string const& protocol() const { return m_protocol; }
+		int status_code() const { return m_status_code; }
+		std::string message() const { return m_server_message; }
+		buffer::const_interval get_body();
+		bool header_finished() const { return m_state == read_body; }
+		bool finished() const { return m_finished; }
+		boost::tuple<int, int> incoming(buffer::const_interval recv_buffer);
+		int body_start() const { return m_body_start_pos; }
+	private:
+		int m_recv_pos;
+		int m_status_code;
+		std::string m_protocol;
+		std::string m_server_message;
 
-	class TORRENT_EXPORT http_tracker_connection: public tracker_connection
+		int m_content_length;
+		enum { plain, gzip } m_content_encoding;
+
+		enum { read_status, read_header, read_body } m_state;
+
+		std::map<std::string, std::string> m_header;
+		buffer::const_interval m_recv_buffer;
+		int m_body_start_pos;
+
+		bool m_finished;
+	};
+
+	template <class T>
+	T http_parser::header(char const* key) const
+	{
+		std::map<std::string, std::string>::const_iterator i
+			= m_header.find(key);
+		if (i == m_header.end()) return T();
+		return boost::lexical_cast<T>(i->second);
+	}
+
+	class TORRENT_EXPORT http_tracker_connection
+		: public tracker_connection
 	{
 	friend class tracker_manager;
 	public:
 
 		http_tracker_connection(
-			tracker_manager& man
+			demuxer& d
+			, tracker_manager& man
 			, tracker_request const& req
 			, std::string const& hostname
 			, unsigned short port
@@ -76,17 +120,28 @@ namespace libtorrent
 			, boost::weak_ptr<request_callback> c
 			, const http_settings& stn
 			, std::string const& password = "");
-		virtual bool tick();
-		virtual bool send_finished() const
-		{ return m_send_buffer.empty(); }
+
 		virtual tracker_request const& tracker_req() const
 		{ return m_req; }
 
 	private:
 
+		boost::intrusive_ptr<http_tracker_connection> self()
+		{ return boost::intrusive_ptr<http_tracker_connection>(this); }
+
+		void on_response();
+		
 		void init_send_buffer(
 			std::string const& hostname
 			, std::string const& request);
+
+		void name_lookup(asio::error const& error);
+		void connected(asio::error const& error);
+		void sent(asio::error const& error);
+		void receive(asio::error const& error
+			, std::size_t bytes_transferred);
+
+		virtual void on_timeout();
 
 		void parse(const entry& e);
 		peer_entry extract_peer_info(const entry& e);
@@ -98,14 +153,13 @@ namespace libtorrent
 		int m_content_length;
 		std::string m_location;
 
-		dns_lookup m_name_lookup;
-		boost::shared_ptr<socket> m_socket;
+		host_resolver m_name_lookup;
+		host m_host;
+		int m_port;
+		boost::shared_ptr<stream_socket> m_socket;
 		int m_recv_pos;
 		std::vector<char> m_buffer;
 		std::string m_send_buffer;
-
-		// used for time outs
-		boost::posix_time::ptime m_request_time;
 
 		std::string m_server_message;
 		std::string m_server_protocol;
@@ -117,8 +171,11 @@ namespace libtorrent
 
 		// server string in http-reply
 		std::string m_server;
+		
+		bool m_timed_out;
 	};
 
 }
 
 #endif // TORRENT_HTTP_TRACKER_CONNECTION_HPP_INCLUDED
+

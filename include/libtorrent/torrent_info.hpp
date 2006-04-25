@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/size_type.hpp"
+#include "libtorrent/peer_request.hpp"
 #include "libtorrent/config.hpp"
 
 namespace libtorrent
@@ -62,6 +63,13 @@ namespace libtorrent
 	struct TORRENT_EXPORT file_entry
 	{
 		boost::filesystem::path path;
+		size_type size;
+	};
+
+	struct TORRENT_EXPORT file_slice
+	{
+		int file_index;
+		size_type offset;
 		size_type size;
 	};
 
@@ -76,11 +84,6 @@ namespace libtorrent
 	{
 		virtual const char* what() const throw() { return "invalid torrent file"; }
 	};
-
-	// TODO: add a check to see if filenames are accepted on the
-	// current platform.
-	// also add a filename converter function that will transform
-	// invalid filenames to valid filenames on the current platform
 
 	class TORRENT_EXPORT torrent_info
 	{
@@ -99,6 +102,12 @@ namespace libtorrent
 		void set_hash(int index, sha1_hash const& h);
 		void add_tracker(std::string const& url, int tier = 0);
 		void add_file(boost::filesystem::path file, size_type size);
+		void add_url_seed(std::string const& url);
+
+		std::vector<file_slice> map_block(int piece, size_type offset, int size) const;
+		peer_request map_file(int file, size_type offset, int size) const;
+		
+		std::vector<std::string> const& url_seeds() const { return m_url_seeds; }
 
 		typedef std::vector<file_entry>::const_iterator file_iterator;
 		typedef std::vector<file_entry>::const_reverse_iterator reverse_file_iterator;
@@ -153,6 +162,8 @@ namespace libtorrent
 		// the urls to the trackers
 		std::vector<announce_entry> m_urls;
 
+		std::vector<std::string> m_url_seeds;
+
 		// the length of one piece
 		// if this is 0, the torrent_info is
 		// in an uninitialized state
@@ -168,7 +179,7 @@ namespace libtorrent
 		size_type m_total_size;
 
 		// the hash that identifies this torrent
-		// it is mutable because it's calculated
+		// is mutable because it's calculated
 		// lazily
 		mutable sha1_hash m_info_hash;
 

@@ -38,6 +38,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "zlib.h"
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
+#include <boost/bind.hpp>
+#include <boost/lexical_cast.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/udp_tracker_connection.hpp"
 #include "libtorrent/io.hpp"
@@ -55,135 +66,183 @@ namespace
 }
 
 using namespace boost::posix_time;
+using boost::bind;
+using boost::lexical_cast;
 
 namespace libtorrent
 {
 
 	udp_tracker_connection::udp_tracker_connection(
-		tracker_request const& req
+		demuxer& d
+		, tracker_manager& man
+		, tracker_request const& req
 		, std::string const& hostname
 		, unsigned short port
 		, boost::weak_ptr<request_callback> c
 		, const http_settings& stn)
-		: tracker_connection(c)
-		, m_request_time(second_clock::universal_time())
-		, m_request(req)
+		: tracker_connection(man, req, d, c)
+		, m_man(man)
+		, m_name_lookup(d)
+		, m_port(port)
 		, m_transaction_id(0)
 		, m_connection_id(0)
 		, m_settings(stn)
 		, m_attempts(0)
 	{
-		m_name_lookup = dns_lookup(hostname.c_str(), port);
-		m_socket.reset(new socket(socket::udp, false));
-
+		m_socket.reset(new datagram_socket(d));
+		m_name_lookup.async_by_name(m_host, hostname.c_str()
+			, bind(&udp_tracker_connection::name_lookup, self(), _1));
+		set_timeout(m_settings.tracker_completion_timeout
+			, m_settings.tracker_receive_timeout);
 	}
 
-	bool udp_tracker_connection::send_finished() const
+	void udp_tracker_connection::name_lookup(asio::error const& error) try
 	{
-		using namespace boost::posix_time;
-
-		time_duration d = second_clock::universal_time() - m_request_time;
-		return (m_transaction_id != 0
-			&& m_connection_id != 0)
-			|| d > seconds(m_settings.tracker_timeout);
-	}
-
-	bool udp_tracker_connection::tick()
-	{
-		using namespace boost::posix_time;
-
-		if (m_name_lookup.running())
+		if (error == asio::error::operation_aborted) return;
+		if (error)
 		{
-			if (!m_name_lookup.finished()) return false;
-
-			if (m_name_lookup.failed())
-			{
-				if (has_requester()) requester().tracker_request_error(
-					m_request, -1, m_name_lookup.error());
-				return true;
-			}
-			address a(m_name_lookup.ip());
-			if (has_requester()) requester().m_tracker_address = a;
+			fail(-1, error.what());
+			return;
+		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		if (has_requester()) requester().debug_log("name lookup successful");
+		if (has_requester()) requester().debug_log("udp tracker name lookup successful");
 #endif
-
-			m_socket->connect(a);
-			send_udp_connect();
-		
-			// clear the lookup entry so it will not be
-			// marked as running anymore
-			m_name_lookup = dns_lookup();
-		}
-
-		time_duration d = second_clock::universal_time() - m_request_time;
-		if (m_connection_id == 0
-			&& d > seconds(udp_connect_timeout))
-		{
-			if (m_attempts >= udp_connection_retries)
-			{
-				if (has_requester())
-					requester().tracker_request_timed_out(m_request);
-				return true;
-			}
-			send_udp_connect();
-			return false;
-		}
-
-		if (m_connection_id != 0
-			&& d > seconds(udp_announce_timeout))
-		{
-			if (m_attempts >= udp_announce_retries)
-			{
-				if (has_requester())
-					requester().tracker_request_timed_out(m_request);
-				return true;
-			}
-
-			if (m_request.kind == tracker_request::announce_request)
-				send_udp_announce();
-			else if (m_request.kind == tracker_request::scrape_request)
-				send_udp_scrape();
-			return false;
-		}
-
-		char buf[udp_buffer_size];
-		int ret = m_socket->receive(buf, udp_buffer_size);
-
-		// if there was nothing to receive, return
-		if (ret == 0) return false;
-		if (ret < 0)
-		{
-			socket::error_code err = m_socket->last_error();
-			if (err == socket::would_block) return false;
-			throw network_error(m_socket->last_error());
-		}
-		if (ret == udp_buffer_size)
-		{
-			if (has_requester())
-				requester().tracker_request_error(
-					m_request, -1, "tracker reply too big");
-			return true;
-		}
-
-		if (m_connection_id == 0)
-		{
-			return parse_connect_response(buf, ret);
-		}
-		else if (m_request.kind == tracker_request::announce_request)
-		{
-			return parse_announce_response(buf, ret);
-		}
-		else if (m_request.kind == tracker_request::scrape_request)
-		{
-			return parse_scrape_response(buf, ret);
-		}
-
+		restart_read_timeout();
+		m_target = udp::endpoint(m_port, m_host.address(0));
+		if (has_requester()) requester().m_tracker_address
+			= tcp::endpoint(m_port, m_host.address(0));
+		m_socket->connect(m_target);
+		send_udp_connect();
+	}
+	catch (std::exception& e)
+	{
+		fail(-1, e.what());
 		assert(false);
-		return false;
 	}
 
+	void udp_tracker_connection::on_timeout()
+	{
+		m_socket.reset();
+		m_name_lookup.cancel();
+		fail_timeout();
+	}
+
+	void udp_tracker_connection::send_udp_connect()
+	{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		if (has_requester())
+		{
+			requester().debug_log("==> UDP_TRACKER_CONNECT ["
+				+ lexical_cast<std::string>(tracker_req().info_hash) + "]");
+		}
+#endif
+
+		char send_buf[16];
+		char* ptr = send_buf;
+
+		if (m_transaction_id == 0)
+			m_transaction_id = rand() ^ (rand() << 16);
+
+		// connection_id
+		detail::write_uint32(0x417, ptr);
+		detail::write_uint32(0x27101980, ptr);
+		// action (connect)
+		detail::write_int32(action_connect, ptr);
+		// transaction_id
+		detail::write_int32(m_transaction_id, ptr);
+
+		m_socket->send(asio::buffer((void*)send_buf, 16), 0);
+		++m_attempts;
+		m_buffer.resize(udp_buffer_size);
+		m_socket->async_receive_from(asio::buffer(m_buffer), 0, m_sender
+			, boost::bind(&udp_tracker_connection::connect_response, self(), _1, _2));
+	}
+
+	void udp_tracker_connection::connect_response(asio::error const& error
+		, std::size_t bytes_transferred) try
+	{
+		if (error == asio::error::operation_aborted) return;
+		if (error)
+		{
+			fail(-1, error.what());
+			return;
+		}
+
+		if (m_target != m_sender)
+		{
+			// this packet was not received from the tracker
+			m_socket->async_receive_from(asio::buffer(m_buffer), 0, m_sender
+				, boost::bind(&udp_tracker_connection::connect_response, self(), _1, _2));
+			return;
+		}
+
+		if (bytes_transferred >= udp_buffer_size)
+		{
+			fail(-1, "udp response too big");
+			return;
+		}
+
+		if (bytes_transferred < 8)
+		{
+			fail(-1, "got a message with size < 8");
+			return;
+		}
+
+		restart_read_timeout();
+
+		const char* ptr = &m_buffer[0];
+		int action = detail::read_int32(ptr);
+		int transaction = detail::read_int32(ptr);
+
+		if (action == action_error)
+		{
+			fail(-1, std::string(ptr, bytes_transferred - 8).c_str());
+			return;
+		}
+
+		if (action != action_connect)
+		{
+			fail(-1, "invalid action in connect reply");
+			return;
+		}
+
+		if (m_transaction_id != transaction)
+		{
+			fail(-1, "incorrect transaction id");
+			return;
+		}
+
+		if (bytes_transferred < 16)
+		{
+			fail(-1, "udp_tracker_connection: "
+				"got a message with size < 16");
+			return;
+		}
+		// reset transaction
+		m_transaction_id = 0;
+		m_attempts = 0;
+		m_connection_id = detail::read_int64(ptr);
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		if (has_requester())
+		{
+			requester().debug_log("<== UDP_TRACKER_CONNECT_RESPONSE ["
+				+ lexical_cast<std::string>(m_connection_id) + "]");
+		}
+#endif
+
+		if (tracker_req().kind == tracker_request::announce_request)
+			send_udp_announce();
+		else if (tracker_req().kind == tracker_request::scrape_request)
+			send_udp_scrape();
+	}
+	catch (std::exception& e)
+	{
+		fail(-1, e.what());
+		assert(false);
+	}
+	
 	void udp_tracker_connection::send_udp_announce()
 	{
 		if (m_transaction_id == 0)
@@ -191,39 +250,51 @@ namespace libtorrent
 
 		std::vector<char> buf;
 		std::back_insert_iterator<std::vector<char> > out(buf);
+		
+		tracker_request const& req = tracker_req();
 
 		// connection_id
 		detail::write_int64(m_connection_id, out);
 		// action (announce)
-		detail::write_int32(announce, out);
+		detail::write_int32(action_announce, out);
 		// transaction_id
 		detail::write_int32(m_transaction_id, out);
 		// info_hash
-		std::copy(m_request.info_hash.begin(), m_request.info_hash.end(), out);
+		std::copy(req.info_hash.begin(), req.info_hash.end(), out);
 		// peer_id
-		std::copy(m_request.id.begin(), m_request.id.end(), out);
+		std::copy(req.pid.begin(), req.pid.end(), out);
 		// downloaded
-		detail::write_int64(m_request.downloaded, out);
+		detail::write_int64(req.downloaded, out);
 		// left
-		detail::write_int64(m_request.left, out);
+		detail::write_int64(req.left, out);
 		// uploaded
-		detail::write_int64(m_request.uploaded, out);
+		detail::write_int64(req.uploaded, out);
 		// event
-		detail::write_int32(m_request.event, out);
+		detail::write_int32(req.event, out);
 		// ip address
 		detail::write_int32(0, out);
 		// key
-		detail::write_int32(m_request.key, out);
+		detail::write_int32(req.key, out);
 		// num_want
-		detail::write_int32(m_request.num_want, out);
+		detail::write_int32(req.num_want, out);
 		// port
-		detail::write_uint16(m_request.listen_port, out);
+		detail::write_uint16(req.listen_port, out);
 		// extensions
 		detail::write_uint16(0, out);
 
-		m_socket->send(&buf[0], buf.size());
-		m_request_time = second_clock::universal_time();
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		if (has_requester())
+		{
+			requester().debug_log("==> UDP_TRACKER_ANNOUNCE ["
+				+ lexical_cast<std::string>(req.info_hash) + "]");
+		}
+#endif
+
+		m_socket->send(asio::buffer(buf), 0);
 		++m_attempts;
+
+		m_socket->async_receive_from(asio::buffer(m_buffer), 0, m_sender
+			, bind(&udp_tracker_connection::announce_response, self(), _1, _2));
 	}
 
 	void udp_tracker_connection::send_udp_scrape()
@@ -237,91 +308,100 @@ namespace libtorrent
 		// connection_id
 		detail::write_int64(m_connection_id, out);
 		// action (scrape)
-		detail::write_int32(scrape, out);
+		detail::write_int32(action_scrape, out);
 		// transaction_id
 		detail::write_int32(m_transaction_id, out);
 		// info_hash
-		std::copy(m_request.info_hash.begin(), m_request.info_hash.end(), out);
+		std::copy(tracker_req().info_hash.begin(), tracker_req().info_hash.end(), out);
 
-		m_socket->send(&buf[0], buf.size());
-		m_request_time = second_clock::universal_time();
+		m_socket->send(asio::buffer(&buf[0], buf.size()), 0);
 		++m_attempts;
+
+		m_socket->async_receive_from(asio::buffer(m_buffer), 0, m_sender
+			, bind(&udp_tracker_connection::scrape_response, self(), _1, _2));
 	}
 
-	void udp_tracker_connection::send_udp_connect()
+	void udp_tracker_connection::announce_response(asio::error const& error
+		, std::size_t bytes_transferred) try
 	{
-		char send_buf[16];
-		char* ptr = send_buf;
-
-		if (m_transaction_id == 0)
-			m_transaction_id = rand() ^ (rand() << 16);
-
-		// connection_id
-		detail::write_uint32(0x417, ptr);
-		detail::write_uint32(0x27101980, ptr);
-		// action (connect)
-		detail::write_int32(connect, ptr);
-		// transaction_id
-		detail::write_int32(m_transaction_id, ptr);
-
-		m_socket->send(send_buf, 16);
-		m_request_time = second_clock::universal_time();
-		++m_attempts;
-	}
-
-	bool udp_tracker_connection::parse_announce_response(const char* buf, int len)
-	{
-		assert(buf != 0);
-		assert(len > 0);
-
-		if (len < 8)
+		if (error == asio::error::operation_aborted) return;
+		if (error)
 		{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			if (has_requester())
-				requester().debug_log("udp_tracker_connection: "
-				"got a message with size < 8, ignoring");
-#endif
-			return false;
+			fail(-1, error.what());
+			return;
 		}
 
+		if (m_target != m_sender)
+		{
+			// this packet was not received from the tracker
+			m_socket->async_receive_from(asio::buffer(m_buffer), 0, m_sender
+				, bind(&udp_tracker_connection::connect_response, self(), _1, _2));
+			return;
+		}
+
+		if (bytes_transferred >= udp_buffer_size)
+		{
+			fail(-1, "udp response too big");
+			return;
+		}
+
+		if (bytes_transferred < 8)
+		{
+			fail(-1, "got a message with size < 8");
+			return;
+		}
+
+		restart_read_timeout();
+		char* buf = &m_buffer[0];
 		int action = detail::read_int32(buf);
 		int transaction = detail::read_int32(buf);
+
 		if (transaction != m_transaction_id)
 		{
-			return false;
+			fail(-1, "incorrect transaction id");
+			return;
 		}
 
-		if (action == error)
+		if (action == action_error)
 		{
-			if (has_requester())
-				requester().tracker_request_error(
-					m_request, -1, std::string(buf, buf + len - 8));
-			return true;
+			fail(-1, std::string(buf, bytes_transferred - 8).c_str());
+			return;
 		}
-		if (action != announce) return false;
 
-		if (len < 20)
+		if (action != action_announce)
 		{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			if (has_requester())
-				requester().debug_log("udp_tracker_connection: "
-				"got a message with size < 20, ignoring");
-#endif
-			return false;
+			fail(-1, "invalid action in announce response");
+			return;
 		}
+
+		if (bytes_transferred < 20)
+		{
+			fail(-1, "got a message with size < 20");
+			return;
+		}
+
 		int interval = detail::read_int32(buf);
 		int incomplete = detail::read_int32(buf);
 		int complete = detail::read_int32(buf);
-		int num_peers = (len - 20) / 6;
-		if ((len - 20) % 6 != 0)
+		int num_peers = (bytes_transferred - 20) / 6;
+		if ((bytes_transferred - 20) % 6 != 0)
 		{
-			if (has_requester())
-				requester().tracker_request_error(
-					m_request, -1, "invalid tracker response");
-			return true;
+			fail(-1, "invalid udp tracker response length");
+			return;
 		}
 
-		if (!has_requester()) return true;
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		if (has_requester())
+		{
+			requester().debug_log("<== UDP_TRACKER_ANNOUNCE_RESPONSE");
+		}
+#endif
+
+		if (!has_requester())
+		{
+			m_man.remove_request(this);
+			return;
+		}
 
 		std::vector<peer_entry> peer_list;
 		for (int i = 0; i < num_peers; ++i)
@@ -334,126 +414,102 @@ namespace libtorrent
 			s << (int)detail::read_uint8(buf);
 			e.ip = s.str();
 			e.port = detail::read_uint16(buf);
-			e.id.clear();
+			e.pid.clear();
 			peer_list.push_back(e);
 		}
 
-		requester().tracker_response(m_request, peer_list, interval
+		requester().tracker_response(tracker_req(), peer_list, interval
 			, complete, incomplete);
-		return true;
+
+		m_man.remove_request(this);
+		return;
 	}
-
-	bool udp_tracker_connection::parse_scrape_response(const char* buf, int len)
+	catch (std::exception& e)
 	{
-		assert(buf != 0);
-		assert(len > 0);
+		fail(-1, e.what());
+		assert(false);
+	}; // msvc 7.1 seems to require this
 
-		if (len < 8)
+	void udp_tracker_connection::scrape_response(asio::error const& error
+		, std::size_t bytes_transferred) try
+	{
+		if (error == asio::error::operation_aborted) return;
+		if (error)
 		{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			if (has_requester())
-				requester().debug_log("udp_tracker_connection: "
-				"got a message with size < 8, ignoring");
-#endif
-			return false;
+			fail(-1, error.what());
+			return;
 		}
 
+		if (m_target != m_sender)
+		{
+			// this packet was not received from the tracker
+			m_socket->async_receive_from(asio::buffer(m_buffer), 0, m_sender
+				, bind(&udp_tracker_connection::connect_response, self(), _1, _2));
+			return;
+		}
+
+		if (bytes_transferred >= udp_buffer_size)
+		{
+			fail(-1, "udp response too big");
+			return;
+		}
+
+		if (bytes_transferred < 8)
+		{
+			fail(-1, "got a message with size < 8");
+			return;
+		}
+
+		restart_read_timeout();
+		char* buf = &m_buffer[0];
 		int action = detail::read_int32(buf);
 		int transaction = detail::read_int32(buf);
+
 		if (transaction != m_transaction_id)
 		{
-			return false;
+			fail(-1, "incorrect transaction id");
+			return;
 		}
 
-		if (action == error)
+		if (action == action_error)
 		{
-			if (has_requester())
-				requester().tracker_request_error(
-					m_request, -1, std::string(buf, buf + len - 8));
-			return true;
+			fail(-1, std::string(buf, bytes_transferred - 8).c_str());
+			return;
 		}
-		if (action != scrape) return false;
 
-		if (len < 20)
+		if (action != action_scrape)
 		{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			if (has_requester())
-				requester().debug_log("udp_tracker_connection: "
-				"got a message with size < 20, ignoring");
-#endif
-			return false;
+			fail(-1, "invalid action in announce response");
+			return;
 		}
+
+		if (bytes_transferred < 20)
+		{
+			fail(-1, "got a message with size < 20");
+			return;
+		}
+
 		int complete = detail::read_int32(buf);
 		/*int downloaded = */detail::read_int32(buf);
 		int incomplete = detail::read_int32(buf);
 
-		if (!has_requester()) return true;
-
+		if (!has_requester())
+		{
+			m_man.remove_request(this);
+			return;
+		}
+		
 		std::vector<peer_entry> peer_list;
-		requester().tracker_response(m_request, peer_list, 0
+		requester().tracker_response(tracker_req(), peer_list, 0
 			, complete, incomplete);
-		return true;
+
+		m_man.remove_request(this);
 	}
-
-
-	bool udp_tracker_connection::parse_connect_response(const char* buf, int len)
+	catch (std::exception& e)
 	{
-		assert(buf != 0);
-		assert(len > 0);
-
-		if (len < 8)
-		{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			if (has_requester())
-				requester().debug_log("udp_tracker_connection: "
-				"got a message with size < 8, ignoring");
-#endif
-			return false;
-		}
-		const char* ptr = buf;
-		int action = detail::read_int32(ptr);
-		int transaction = detail::read_int32(ptr);
-
-		if (action == error)
-		{
-			if (has_requester())
-				requester().tracker_request_error(
-					m_request, -1, std::string(ptr, buf + len));
-			return true;
-		}
-		if (action != connect) return false;
-		if (m_transaction_id != transaction)
-		{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			if (has_requester())
-				requester().debug_log("udp_tracker_connection: "
-				"got a message with incorrect transaction id, ignoring");
-#endif
-			return false;
-		}
-
-		if (len < 16)
-		{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			if (has_requester())
-				requester().debug_log("udp_tracker_connection: "
-				"got a connection message size < 16, ignoring");
-#endif
-			return false;
-		}
-		// reset transaction
-		m_transaction_id = 0;
-		m_attempts = 0;
-		m_connection_id = detail::read_int64(ptr);
-
-		if (m_request.kind == tracker_request::announce_request)
-			send_udp_announce();
-		else if (m_request.kind == tracker_request::scrape_request)
-			send_udp_scrape();
-
-		return false;
+		fail(-1, e.what());
+		assert(false);
 	}
-
 
 }
 

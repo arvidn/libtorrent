@@ -233,7 +233,7 @@ namespace libtorrent
 			return bytes_read;
 		}
 
-		void seek(size_type pos, seek_mode from_where)
+		size_type seek(size_type pos, seek_mode from_where)
 		{
 			assert(pos >= 0 || from_where != seek_begin);
 			assert(pos <= 0 || from_where != seek_end);
@@ -333,9 +333,9 @@ namespace libtorrent
 		return m_impl->read(buffer, num_bytes);
 	}
 
-	void file::seek(size_type pos, seek_mode m)
+	size_type file::seek(size_type pos, seek_mode m)
 	{
-		m_impl->seek(pos,impl::seek_mode(m.m_val));
+		return m_impl->seek(pos,impl::seek_mode(m.m_val));
 	}
 	
 	size_type file::tell()

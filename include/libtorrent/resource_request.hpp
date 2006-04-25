@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Magnus Jonsson
+Copyright (c) 2003, Magnus Jonsson, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -60,7 +60,8 @@ namespace libtorrent
 		{
 			assert(given <= max);
 			assert(given >= min);
-			assert(given >= used);
+// TODO: TEMP!
+//			assert(given >= used);
 			return given - used;
 		}
 

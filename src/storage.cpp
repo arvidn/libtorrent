@@ -232,9 +232,9 @@ namespace
 		}
 	};
 */	
-	struct file_entry
+	struct lru_file_entry
 	{
-		file_entry(boost::shared_ptr<file> const& f)
+		lru_file_entry(boost::shared_ptr<file> const& f)
 			: file_ptr(f)
 			, last_use(pt::second_clock::universal_time()) {}
 		mutable boost::shared_ptr<file> file_ptr;
@@ -257,7 +257,7 @@ namespace
 			path_view::iterator i = pt.find(p);
 			if (i != pt.end())
 			{
-				file_entry e = *i;
+				lru_file_entry e = *i;
 				e.last_use = pt::second_clock::universal_time();
 
 				// if you hit this assert, you probably have more than one
@@ -294,7 +294,7 @@ namespace
 */				assert(lt.size() == 1 || (i->last_use <= boost::next(i)->last_use));
 				lt.erase(i);
 			}
-			file_entry e(boost::shared_ptr<file>(new file(p, m)));
+			lru_file_entry e(boost::shared_ptr<file>(new file(p, m)));
 			e.mode = m;
 			e.key = st;
 			e.file_path = p;
@@ -334,13 +334,13 @@ namespace
 		int m_size;
 
 		typedef multi_index_container<
-			file_entry, indexed_by<
-				ordered_unique<member<file_entry, path
-					, &file_entry::file_path> >
-				, ordered_non_unique<member<file_entry, pt::ptime
-					, &file_entry::last_use> >
-				, ordered_non_unique<member<file_entry, void*
-					, &file_entry::key> >
+			lru_file_entry, indexed_by<
+				ordered_unique<member<lru_file_entry, path
+					, &lru_file_entry::file_path> >
+				, ordered_non_unique<member<lru_file_entry, pt::ptime
+					, &lru_file_entry::last_use> >
+				, ordered_non_unique<member<lru_file_entry, void*
+					, &lru_file_entry::key> >
 				> 
 			> file_set;
 		
@@ -620,6 +620,12 @@ namespace libtorrent
 
 		slot_lock lock(*m_pimpl, slot);
 
+#ifndef NDEBUG
+		std::vector<file_slice> slices
+			= m_pimpl->info.map_block(slot, offset, size);
+		assert(!slices.empty());
+#endif
+
 		size_type start = slot * (size_type)m_pimpl->info.piece_length() + offset;
 
 		// find the file iterator and file offset
@@ -642,8 +648,10 @@ namespace libtorrent
 
 		assert(file_offset < file_iter->size);
 
-		in->seek(file_offset);
-		if (in->tell() != file_offset)
+		assert(slices[0].offset == file_offset);
+
+		size_type new_pos = in->seek(file_offset);
+		if (new_pos != file_offset)
 		{
 			// the file was not big enough
 			throw file_error("slot has no storage");
@@ -665,11 +673,23 @@ namespace libtorrent
 		size_type result = left_to_read;
 		int buf_pos = 0;
 
+#ifndef NDEBUG
+		int counter = 0;
+#endif
+
 		while (left_to_read > 0)
 		{
 			int read_bytes = left_to_read;
 			if (file_offset + read_bytes > file_iter->size)
 				read_bytes = static_cast<int>(file_iter->size - file_offset);
+
+#ifndef NDEBUG
+			assert(int(slices.size()) > counter);
+			size_type slice_size = slices[counter].size;
+			assert(slice_size == read_bytes);
+			assert(m_pimpl->info.file_at(slices[counter].file_index).path
+				== file_iter->path);
+#endif
 
 			size_type actual_read = in->read(buf + buf_pos, read_bytes);
 
@@ -687,6 +707,9 @@ namespace libtorrent
 			if (left_to_read > 0)
 			{
 				++file_iter;
+#ifndef NDEBUG
+				++counter;
+#endif
 				path path = m_pimpl->save_path / file_iter->path;
 
 				file_offset = 0;
@@ -714,6 +737,12 @@ namespace libtorrent
 		assert(size > 0);
 
 		slot_lock lock(*m_pimpl, slot);
+		
+#ifndef NDEBUG
+		std::vector<file_slice> slices
+			= m_pimpl->info.map_block(slot, offset, size);
+		assert(!slices.empty());
+#endif
 
 		size_type start = slot * (size_type)m_pimpl->info.piece_length() + offset;
 
@@ -737,9 +766,9 @@ namespace libtorrent
 			, p, file::out | file::in);
 
 		assert(file_offset < file_iter->size);
+		assert(slices[0].offset == file_offset);
 
-		out->seek(file_offset);
-		size_type pos = out->tell();
+		size_type pos = out->seek(file_offset);
 
 		if (pos != file_offset)
 		{
@@ -757,7 +786,9 @@ namespace libtorrent
 		assert(left_to_write >= 0);
 
 		int buf_pos = 0;
-
+#ifndef NDEBUG
+		int counter = 0;
+#endif
 		while (left_to_write > 0)
 		{
 			int write_bytes = left_to_write;
@@ -766,6 +797,11 @@ namespace libtorrent
 				assert(file_iter->size >= file_offset);
 				write_bytes = static_cast<int>(file_iter->size - file_offset);
 			}
+
+			assert(int(slices.size()) > counter);
+			assert(slices[counter].size == write_bytes);
+			assert(m_pimpl->info.file_at(slices[counter].file_index).path
+				== file_iter->path);
 
 			assert(buf_pos >= 0);
 			assert(write_bytes >= 0);
@@ -786,6 +822,9 @@ namespace libtorrent
 
 			if (left_to_write > 0)
 			{
+			#ifndef NDEBUG
+				++counter;
+			#endif
 				++file_iter;
 
 				assert(file_iter != m_pimpl->info.end_files());
@@ -818,10 +857,12 @@ namespace libtorrent
 		bool check_fastresume(
 			detail::piece_checker_data& d
 			, std::vector<bool>& pieces
+			, int& num_pieces
 			, bool compact_mode);
 
 		std::pair<bool, float> check_files(
-			std::vector<bool>& pieces);
+			std::vector<bool>& pieces
+			, int& num_pieces);
 
 		void release_files();
 
@@ -868,6 +909,7 @@ namespace libtorrent
 			const std::vector<char>& piece_data
 			, int current_slot
 			, std::vector<bool>& have_pieces
+			, int& num_pieces
 			, const std::multimap<sha1_hash, int>& hash_to_piece);
 
 		int allocate_slot_for_piece(int piece_index);
@@ -949,6 +991,12 @@ namespace libtorrent
 		// build the first time it is used (to save time if it
 		// isn't needed) 				
 		std::multimap<sha1_hash, int> m_hash_to_piece;
+		
+		// used as temporary piece data storage in allocate_slots
+		// it is a member in order to avoid allocating it on
+		// the heap every time a new slot is allocated. (This is quite
+		// frequent with high download speeds)
+		std::vector<char> m_scratch_buffer;
 	};
 
 	piece_manager::impl::impl(
@@ -1156,6 +1204,7 @@ namespace libtorrent
 		const std::vector<char>& piece_data
 		, int current_slot
 		, std::vector<bool>& have_pieces
+		, int& num_pieces
 		, const std::multimap<sha1_hash, int>& hash_to_piece)
 	{
 		INVARIANT_CHECK;
@@ -1245,7 +1294,7 @@ namespace libtorrent
 				{
 					// this index is the only piece with this
 					// hash. The previous slot we found with
-					// this hash must be tha same piece. Mark
+					// this hash must be the same piece. Mark
 					// that piece as unassigned, since this slot
 					// is the correct place for the piece.
 					m_slot_to_piece[other_slot] = unassigned;
@@ -1254,12 +1303,19 @@ namespace libtorrent
 				assert(m_piece_to_slot[piece_index] != current_slot);
 				assert(m_piece_to_slot[piece_index] >= 0);
 				m_piece_to_slot[piece_index] = has_no_slot;
+#ifndef NDEBUG
 				have_pieces[piece_index] = false;
+#endif
+			}
+			else
+			{
+				++num_pieces;
 			}
 			
 			assert(have_pieces[piece_index] == false);
 			assert(m_piece_to_slot[piece_index] == has_no_slot);
 			have_pieces[piece_index] = true;
+
 			return piece_index;
 		}
 
@@ -1279,6 +1335,7 @@ namespace libtorrent
 			assert(have_pieces[free_piece] == false);
 			assert(m_piece_to_slot[free_piece] == has_no_slot);
 			have_pieces[free_piece] = true;
+			++num_pieces;
 
 			return free_piece;
 		}
@@ -1296,7 +1353,7 @@ namespace libtorrent
 	bool piece_manager::impl::check_fastresume(
 		detail::piece_checker_data& data
 		, std::vector<bool>& pieces
-		, bool compact_mode)
+		, int& num_pieces, bool compact_mode)
 	{
 		assert(m_info.piece_length() > 0);
 		// synchronization ------------------------------------------------------
@@ -1320,6 +1377,7 @@ namespace libtorrent
 
 		pieces.clear();
 		pieces.resize(m_info.num_pieces(), false);
+		num_pieces = 0;
 
 		// if we have fast-resume info
 		// use it instead of doing the actual checking
@@ -1342,6 +1400,7 @@ namespace libtorrent
 						, piece_picker::has_index(found_piece))
 						== data.unfinished_pieces.end())
 					{
+						++num_pieces;
 						pieces[found_piece] = true;
 					}
 				}
@@ -1385,8 +1444,10 @@ namespace libtorrent
 	// file check is at. 0 is nothing done, and 1
 	// is finished
 	std::pair<bool, float> piece_manager::impl::check_files(
-		std::vector<bool>& pieces)
+		std::vector<bool>& pieces, int& num_pieces)
 	{
+		assert(num_pieces == std::count(pieces.begin(), pieces.end(), true));
+
 		if (m_state == state_allocating)
 		{
 			if (m_compact_mode)
@@ -1395,16 +1456,17 @@ namespace libtorrent
 				return std::make_pair(true, 1.f);
 			}
 			
-			// if we're not in compact mode, make sure the
-			// pieces are spread out and placed at their
-			// final position.
-			assert(!m_unallocated_slots.empty());
-			allocate_slots(1);
 			if (m_unallocated_slots.empty())
 			{
 				m_state = state_finished;
 				return std::make_pair(true, 1.f);
 			}
+
+			// if we're not in compact mode, make sure the
+			// pieces are spread out and placed at their
+			// final position.
+			assert(!m_unallocated_slots.empty());
+			allocate_slots(1);
 
 			return std::make_pair(false, 1.f - (float)m_unallocated_slots.size()
 				/ (float)m_slot_to_piece.size());
@@ -1462,8 +1524,10 @@ namespace libtorrent
 					m_piece_data
 					, m_current_slot
 					, pieces
+					, num_pieces
 					, m_hash_to_piece);
 
+			assert(num_pieces == std::count(pieces.begin(), pieces.end(), true));
 			assert(piece_index == unassigned || piece_index >= 0);
 
 			const bool this_should_move = piece_index >= 0 && m_slot_to_piece[piece_index] != unallocated;
@@ -1712,23 +1776,27 @@ namespace libtorrent
 			std::vector<char>().swap(m_piece_data);
 			std::multimap<sha1_hash, int>().swap(m_hash_to_piece);
 			m_state = state_allocating;
+			assert(num_pieces == std::count(pieces.begin(), pieces.end(), true));
 			return std::make_pair(false, 1.f);
 		}
+
+		assert(num_pieces == std::count(pieces.begin(), pieces.end(), true));
 
 		return std::make_pair(false, (float)m_current_slot / m_info.num_pieces());
 	}
 
 	bool piece_manager::check_fastresume(
 		detail::piece_checker_data& d, std::vector<bool>& pieces
-		, bool compact_mode)
+		, int& num_pieces, bool compact_mode)
 	{
-		return m_pimpl->check_fastresume(d, pieces, compact_mode);
+		return m_pimpl->check_fastresume(d, pieces, num_pieces, compact_mode);
 	}
 
 	std::pair<bool, float> piece_manager::check_files(
-		std::vector<bool>& pieces)
+		std::vector<bool>& pieces
+		, int& num_pieces)
 	{
-		return m_pimpl->check_files(pieces);
+		return m_pimpl->check_files(pieces, num_pieces);
 	}
 
 	int piece_manager::impl::allocate_slot_for_piece(int piece_index)
@@ -1888,9 +1956,9 @@ namespace libtorrent
 		// this object will syncronize the allocation with
 		// potential other threads
 		allocation_syncronization sync_obj(
-				m_allocating
-				, m_allocating_condition
-				, m_allocating_monitor);
+			m_allocating
+			, m_allocating_condition
+			, m_allocating_monitor);
 
 		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
@@ -1902,7 +1970,8 @@ namespace libtorrent
 
 		const int piece_size = static_cast<int>(m_info.piece_length());
 
-		std::vector<char> buffer(piece_size, 0);
+		std::vector<char>& buffer = m_scratch_buffer;
+		buffer.resize(piece_size);
 
 		for (int i = 0; i < num_slots && !m_unallocated_slots.empty(); ++i)
 		{

@@ -81,6 +81,8 @@ namespace libtorrent
 			, total_upload(0)
 			, total_payload_download(0)
 			, total_payload_upload(0)
+			, total_failed_bytes(0)
+			, total_redundant_bytes(0)
 			, download_rate(0)
 			, upload_rate(0)
 			, download_payload_rate(0)
@@ -89,6 +91,7 @@ namespace libtorrent
 			, num_complete(-1)
 			, num_incomplete(-1)
 			, pieces(0)
+			, num_pieces(0)
 			, total_done(0)
 			, total_wanted_done(0)
 			, total_wanted(0)
@@ -130,6 +133,10 @@ namespace libtorrent
 		// has failed their hash test
 		size_type total_failed_bytes;
 
+		// the number of payload bytes that
+		// has been received redundantly.
+		size_type total_redundant_bytes;
+
 		// current transfer rate
 		// payload plus protocol
 		float download_rate;
@@ -153,6 +160,11 @@ namespace libtorrent
 		int num_incomplete;
 
 		const std::vector<bool>* pieces;
+		
+		// this is the number of pieces the client has
+		// downloaded. it is equal to:
+		// std::accumulate(pieces->begin(), pieces->end());
+		int num_pieces;
 
 		// the number of bytes of the file we have
 		// including pieces that may have been filtered
@@ -196,7 +208,7 @@ namespace libtorrent
 		int blocks_in_piece;
 		std::bitset<max_blocks_per_piece> requested_blocks;
 		std::bitset<max_blocks_per_piece> finished_blocks;
-		address peer[max_blocks_per_piece];
+		tcp::endpoint peer[max_blocks_per_piece];
 		int num_downloads[max_blocks_per_piece];
 	};
 
@@ -209,12 +221,14 @@ namespace libtorrent
 		torrent_handle(): m_ses(0), m_chk(0) {}
 
 		void get_peer_info(std::vector<peer_info>& v) const;
-		bool send_chat_message(address ip, std::string message) const;
+		bool send_chat_message(tcp::endpoint ip, std::string message) const;
 		torrent_status status() const;
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 
 		std::vector<announce_entry> const& trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&) const;
+
+		void add_url_seed(std::string const& url);
 
 		bool has_metadata() const;
 		const torrent_info& get_torrent_info() const;
@@ -225,7 +239,6 @@ namespace libtorrent
 		void pause() const;
 		void resume() const;
 
-
 		// marks the piece with the given index as filtered
 		// it will not be downloaded
 		void filter_piece(int index, bool filter) const;
@@ -233,8 +246,6 @@ namespace libtorrent
 		bool is_piece_filtered(int index) const;
 		std::vector<bool> filtered_pieces() const;
 
-		//idea from Arvid and MooPolice
-		//todo refactoring and improving the function body
 		// marks the file with the given index as filtered
 		// it will not be downloaded
 		void filter_file(int index, bool filter) const;
@@ -247,7 +258,7 @@ namespace libtorrent
 		entry write_resume_data() const;
 
 		// kind of similar to get_torrent_info() but this
-		// is low level, returning the exact info-part of
+		// is lower level, returning the exact info-part of
 		// the .torrent file. When hashed, this buffer
 		// will produce the info hash. The reference is valid
 		// only as long as the torrent is running.
@@ -270,8 +281,11 @@ namespace libtorrent
 		void set_upload_limit(int limit) const;
 		void set_download_limit(int limit) const;
 
+		void set_peer_upload_limit(tcp::endpoint ip, int limit) const;
+		void set_peer_download_limit(tcp::endpoint ip, int limit) const;
+
 		// manually connect a peer
-		void connect_peer(address const& adr) const;
+		void connect_peer(tcp::endpoint const& adr) const;
 
 		// valid ratios are 0 (infinite ratio) or [ 1.0 , inf )
 		// the ratio is uploaded / downloaded. less than 1 is not allowed

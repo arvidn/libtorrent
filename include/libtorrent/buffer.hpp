@@ -49,6 +49,14 @@ public:
           , end(end)
         {}
 
+        char operator[](int index) const
+        {
+            assert(begin + index < end);
+            return begin[index];
+        }
+		  
+        int left() const { assert(end > begin); return end - begin; }
+
         char* begin;
         char* end;
     };
@@ -60,6 +68,14 @@ public:
           , end(end)
         {}
 
+        char operator[](int index) const
+        {
+            assert(begin + index < end);
+            return begin[index];
+        }
+
+        int left() const { assert(end > begin); return end - begin; }
+
         char const* begin;
         char const* end;
     };
@@ -69,7 +85,7 @@ public:
     buffer(std::size_t n = 0);
     ~buffer();
 
-	 interval allocate(std::size_t n);
+    interval allocate(std::size_t n);
     void insert(char const* first, char const* last);
     void erase(std::size_t n);
     std::size_t size() const;
@@ -94,7 +110,7 @@ private:
     char* m_last;
     char* m_write_cursor;
     char* m_read_cursor;
-	 char* m_read_end;
+    char* m_read_end;
     bool m_empty;
 #ifdef TORRENT_BUFFER_DEBUG
     mutable std::vector<char> m_debug;
@@ -230,27 +246,28 @@ inline void buffer::insert(char const* first, char const* last)
 
 inline void buffer::erase(std::size_t n)
 {
-    assert(!m_empty);
+	INVARIANT_CHECK;
 
-    INVARIANT_CHECK;
+	if (n == 0) return;
+	assert(!m_empty);
 	 
 #ifndef NDEBUG
 	int prev_size = size();
 #endif
 	assert(m_read_cursor <= m_read_end);
-    m_read_cursor += n;
-    if (m_read_cursor > m_read_end)
-	 {
-        m_read_cursor = m_first + (m_read_cursor - m_read_end);
-		  assert(m_read_cursor <= m_write_cursor);
-	 }
+	m_read_cursor += n;
+	if (m_read_cursor > m_read_end)
+	{
+		m_read_cursor = m_first + (m_read_cursor - m_read_end);
+		assert(m_read_cursor <= m_write_cursor);
+	}
 
-    m_empty = m_read_cursor == m_write_cursor;
+	m_empty = m_read_cursor == m_write_cursor;
 
-	 assert(prev_size - n == size());
+	assert(prev_size - n == size());
 
 #ifdef TORRENT_BUFFER_DEBUG
-	 m_debug.erase(m_debug.begin(), m_debug.begin() + n);
+	m_debug.erase(m_debug.begin(), m_debug.begin() + n);
 #endif
 }
 

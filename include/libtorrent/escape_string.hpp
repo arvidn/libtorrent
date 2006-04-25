@@ -40,6 +40,7 @@ namespace libtorrent
 {
 	std::string TORRENT_EXPORT unescape_string(std::string const& s);
 	std::string TORRENT_EXPORT escape_string(const char* str, int len);
+	std::string TORRENT_EXPORT escape_path(const char* str, int len);
 }
 
 #endif // TORRENT_ESCAPE_STRING_HPP_INCLUDED

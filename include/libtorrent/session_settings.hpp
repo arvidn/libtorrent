@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Magnus Jonsson
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,48 +30,39 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_ALLOCATE_RESOURCES_HPP_INCLUDED
-#define TORRENT_ALLOCATE_RESOURCES_HPP_INCLUDED
-
-#include <map>
-#include <utility>
-
-#include <boost/shared_ptr.hpp>
-
-#include "libtorrent/resource_request.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/socket.hpp"
+#ifndef TORRENT_SESSION_SETTINGS_HPP_INCLUDED
+#define TORRENT_SESSION_SETTINGS_HPP_INCLUDED
 
 namespace libtorrent
 {
-	class peer_connection;
-	class torrent;
 
-	int saturated_add(int a, int b);
+	struct TORRENT_EXPORT session_settings
+	{
+		session_settings()
+			: piece_timeout(120)
+			, request_queue_time(3.f)
+			, sequenced_download_threshold(7)
+			{}
 
-	// Function to allocate a limited resource fairly among many consumers.
-	// It takes into account the current use, and the consumer's desired use.
-	// Should be invoked periodically to allow it adjust to the situation (make
-	// sure "used" is updated between calls!).
-	// If resources = std::numeric_limits<int>::max() it means there is an infinite
-	// supply of resources (so everyone can get what they want).
-/*
-	void allocate_resources(
-		int resources
-		, std::map<boost::shared_ptr<socket>, boost::intrusive_ptr<peer_connection> >& connections
-		, resource_request peer_connection::* res);
-*/
-	void allocate_resources(
-		int resources
-		, std::map<sha1_hash, boost::shared_ptr<torrent> >& torrents
-		, resource_request torrent::* res);
+		// the number of seconds from a request is sent until
+		// it times out if no piece response is returned.
+		int piece_timeout;
 
-	void allocate_resources(
-		int resources
-		, std::map<tcp::endpoint, peer_connection*>& connections
-		, resource_request peer_connection::* res);
-
+		// the length of the request queue given in the number
+		// of seconds it should take for the other end to send
+		// all the pieces. i.e. the actual number of requests
+		// depends on the download rate and this number.
+		float request_queue_time;
+		
+		// this is the limit on how popular a piece has to be
+		// (popular == inverse of rarity) to be downloaded
+		// in sequence instead of in random (rarest first) order.
+		// it can be used to tweak disk performance in settings
+		// where the random download property is less necessary.
+		// for example, if the threshold is 7, all pieces which 7
+		// or more peers have, will be downloaded in index order.
+		int sequenced_download_threshold;
+	};
 }
-
 
 #endif

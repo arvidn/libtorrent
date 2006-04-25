@@ -3,10 +3,130 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.3.8: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.4: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
-<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+
+body
+{
+	background-color: white;
+	color: black;
+	margin: 1em 2em 1em 2em;
+}
+
+h1 { font-family: Verdana, Arial, Helvetica, sans-serif; font-weight: bold; text-align: left; font-size: 140%; }
+h2 { font-family: Verdana, Arial, Helvetica, sans-serif; font-weight: bold; text-align: left; font-size: 110%; }
+h3 { font-family: "courier new", courier, monospace; font-weight: bold; text-align: left; font-size: 100%; }
+
+pre
+{
+	border: gray 1pt solid;
+	padding: 2pt;
+
+	display: block;
+	font-family: "courier new", courier, monospace;
+	background-color: #eeeeee;
+	color: black;
+	font-size: small
+}
+
+code
+{
+	white-space: pre;
+	border: gray 1pt solid;
+	padding: 2pt;
+
+	display: block;
+	font-family: "courier new", courier, monospace;
+	color: black;
+	font-size: small
+}
+
+tt
+{
+	display: inline;
+	font-family: "Courier New", Courier, monospace;
+}
+
+p
+{
+	text-align: justify;
+	font-family: Georgia, "Times New Roman", Times, serif
+}
+
+ul
+{
+	font-family: Georgia, "Times New Roman", Times, serif
+}
+
+ol
+{
+	font-family: Georgia, "Times New Roman", Times, serif
+}
+
+a:link
+{
+	font-weight: bold;
+	color: #003366;
+	text-decoration: none;
+}
+
+a:visited
+{
+	font-weight: bold;
+	color: #003366;
+	text-decoration: none;
+}
+
+
+table
+{
+	border: 1px solid black;
+	border-collapse: collapse;
+}
+
+table td
+{
+	padding: 6px;
+}
+
+table th
+{
+	border: 3px solid black;
+	padding: 6px;
+}
+
+table.menu
+{
+	border-style: none;
+}
+
+table.menu td
+{
+	padding-left: 15px;
+	padding-right: 15px;
+	padding-top: 7px;
+	padding-bottom: 7px;
+}
+
+
+td
+{
+	border: 1px solid black
+}
+
+div.warning, div.note, div.important {
+    width: 80%;
+    margin: 1.5em auto;
+    background: #C1E5F6;
+    background: #F1FFF5;
+    border: solid 1px #D1DFD5;
+    padding: 5px 10px 5px 10px;
+}
+
+
+</style>
 </head>
 <body>
 <div class="document" id="libtorrent-manual">
@@ -19,148 +139,154 @@
 <td>Arvid Norberg, <a class="last reference" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 </tbody>
 </table>
-<div class="contents topic" id="table-of-contents">
-<p class="topic-title first"><a name="table-of-contents">Table of contents</a></p>
+<div class="contents topic">
+<p class="topic-title first"><a id="table-of-contents" name="table-of-contents">Table of contents</a></p>
 <ul class="simple">
-<li><a class="reference" href="#introduction" id="id21" name="id21">introduction</a></li>
-<li><a class="reference" href="#downloading-and-building" id="id22" name="id22">downloading and building</a><ul>
-<li><a class="reference" href="#building-with-bbv2" id="id23" name="id23">building with BBv2</a></li>
-<li><a class="reference" href="#building-with-autotools" id="id24" name="id24">building with autotools</a></li>
-<li><a class="reference" href="#building-with-other-build-systems" id="id25" name="id25">building with other build systems</a></li>
-<li><a class="reference" href="#build-configurations" id="id26" name="id26">build configurations</a></li>
+<li><a class="reference" href="#introduction" id="id24" name="id24">introduction</a></li>
+<li><a class="reference" href="#downloading-and-building" id="id25" name="id25">downloading and building</a><ul>
+<li><a class="reference" href="#building-with-bbv2" id="id26" name="id26">building with BBv2</a></li>
+<li><a class="reference" href="#building-with-autotools" id="id27" name="id27">building with autotools</a></li>
+<li><a class="reference" href="#building-with-other-build-systems" id="id28" name="id28">building with other build systems</a></li>
+<li><a class="reference" href="#build-configurations" id="id29" name="id29">build configurations</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#overview" id="id27" name="id27">overview</a></li>
-<li><a class="reference" href="#session" id="id28" name="id28">session</a><ul>
-<li><a class="reference" href="#id7" id="id29" name="id29">session()</a></li>
-<li><a class="reference" href="#id8" id="id30" name="id30">~session()</a></li>
-<li><a class="reference" href="#add-torrent" id="id31" name="id31">add_torrent()</a></li>
-<li><a class="reference" href="#remove-torrent" id="id32" name="id32">remove_torrent()</a></li>
-<li><a class="reference" href="#disable-extensions-enable-extension" id="id33" name="id33">disable_extensions() enable_extension()</a></li>
-<li><a class="reference" href="#set-upload-rate-limit-set-download-rate-limit" id="id34" name="id34">set_upload_rate_limit() set_download_rate_limit()</a></li>
-<li><a class="reference" href="#set-max-uploads-set-max-connections" id="id35" name="id35">set_max_uploads() set_max_connections()</a></li>
-<li><a class="reference" href="#set-max-half-open-connections" id="id36" name="id36">set_max_half_open_connections()</a></li>
-<li><a class="reference" href="#set-ip-filter" id="id37" name="id37">set_ip_filter()</a></li>
-<li><a class="reference" href="#status" id="id38" name="id38">status()</a></li>
-<li><a class="reference" href="#is-listening-listen-port-listen-on" id="id39" name="id39">is_listening() listen_port() listen_on()</a></li>
-<li><a class="reference" href="#pop-alert-set-severity-level" id="id40" name="id40">pop_alert() set_severity_level()</a></li>
+<li><a class="reference" href="#overview" id="id30" name="id30">overview</a></li>
+<li><a class="reference" href="#session" id="id31" name="id31">session</a><ul>
+<li><a class="reference" href="#id8" id="id32" name="id32">session()</a></li>
+<li><a class="reference" href="#id9" id="id33" name="id33">~session()</a></li>
+<li><a class="reference" href="#add-torrent" id="id34" name="id34">add_torrent()</a></li>
+<li><a class="reference" href="#remove-torrent" id="id35" name="id35">remove_torrent()</a></li>
+<li><a class="reference" href="#disable-extensions-enable-extension" id="id36" name="id36">disable_extensions() enable_extension()</a></li>
+<li><a class="reference" href="#set-upload-rate-limit-set-download-rate-limit" id="id37" name="id37">set_upload_rate_limit() set_download_rate_limit()</a></li>
+<li><a class="reference" href="#set-max-uploads-set-max-connections" id="id38" name="id38">set_max_uploads() set_max_connections()</a></li>
+<li><a class="reference" href="#set-max-half-open-connections" id="id39" name="id39">set_max_half_open_connections()</a></li>
+<li><a class="reference" href="#set-ip-filter" id="id40" name="id40">set_ip_filter()</a></li>
+<li><a class="reference" href="#status" id="id41" name="id41">status()</a></li>
+<li><a class="reference" href="#is-listening-listen-port-listen-on" id="id42" name="id42">is_listening() listen_port() listen_on()</a></li>
+<li><a class="reference" href="#pop-alert-set-severity-level" id="id43" name="id43">pop_alert() set_severity_level()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#entry" id="id41" name="id41">entry</a><ul>
-<li><a class="reference" href="#integer-string-list-dict-type" id="id42" name="id42">integer() string() list() dict() type()</a></li>
-<li><a class="reference" href="#operator" id="id43" name="id43">operator[]</a></li>
-<li><a class="reference" href="#find-key" id="id44" name="id44">find_key()</a></li>
+<li><a class="reference" href="#entry" id="id44" name="id44">entry</a><ul>
+<li><a class="reference" href="#integer-string-list-dict-type" id="id45" name="id45">integer() string() list() dict() type()</a></li>
+<li><a class="reference" href="#operator" id="id46" name="id46">operator[]</a></li>
+<li><a class="reference" href="#find-key" id="id47" name="id47">find_key()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#torrent-info" id="id45" name="id45">torrent_info</a><ul>
-<li><a class="reference" href="#id9" id="id46" name="id46">torrent_info()</a></li>
-<li><a class="reference" href="#set-comment-set-piece-size-set-creator-set-hash-add-tracker-add-file" id="id47" name="id47">set_comment() set_piece_size() set_creator() set_hash() add_tracker() add_file()</a></li>
-<li><a class="reference" href="#create-torrent" id="id48" name="id48">create_torrent()</a></li>
-<li><a class="reference" href="#begin-files-end-files-rbegin-files-rend-files" id="id49" name="id49">begin_files() end_files() rbegin_files() rend_files()</a></li>
-<li><a class="reference" href="#num-files-file-at" id="id50" name="id50">num_files() file_at()</a></li>
-<li><a class="reference" href="#print" id="id51" name="id51">print()</a></li>
-<li><a class="reference" href="#trackers" id="id52" name="id52">trackers()</a></li>
-<li><a class="reference" href="#total-size-piece-length-piece-size-num-pieces" id="id53" name="id53">total_size() piece_length() piece_size() num_pieces()</a></li>
-<li><a class="reference" href="#hash-for-piece-info-hash" id="id54" name="id54">hash_for_piece() info_hash()</a></li>
-<li><a class="reference" href="#name-comment-creation-date-creator" id="id55" name="id55">name() comment() creation_date() creator()</a></li>
+<li><a class="reference" href="#torrent-info" id="id48" name="id48">torrent_info</a><ul>
+<li><a class="reference" href="#id10" id="id49" name="id49">torrent_info()</a></li>
+<li><a class="reference" href="#set-comment-set-piece-size-set-creator-set-hash-add-tracker-add-file" id="id50" name="id50">set_comment() set_piece_size() set_creator() set_hash() add_tracker() add_file()</a></li>
+<li><a class="reference" href="#create-torrent" id="id51" name="id51">create_torrent()</a></li>
+<li><a class="reference" href="#begin-files-end-files-rbegin-files-rend-files" id="id52" name="id52">begin_files() end_files() rbegin_files() rend_files()</a></li>
+<li><a class="reference" href="#num-files-file-at" id="id53" name="id53">num_files() file_at()</a></li>
+<li><a class="reference" href="#map-block" id="id54" name="id54">map_block()</a></li>
+<li><a class="reference" href="#map-file" id="id55" name="id55">map_file()</a></li>
+<li><a class="reference" href="#url-seeds" id="id56" name="id56">url_seeds()</a></li>
+<li><a class="reference" href="#print" id="id57" name="id57">print()</a></li>
+<li><a class="reference" href="#trackers" id="id58" name="id58">trackers()</a></li>
+<li><a class="reference" href="#total-size-piece-length-piece-size-num-pieces" id="id59" name="id59">total_size() piece_length() piece_size() num_pieces()</a></li>
+<li><a class="reference" href="#hash-for-piece-info-hash" id="id60" name="id60">hash_for_piece() info_hash()</a></li>
+<li><a class="reference" href="#name-comment-creation-date-creator" id="id61" name="id61">name() comment() creation_date() creator()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#torrent-handle" id="id56" name="id56">torrent_handle</a><ul>
-<li><a class="reference" href="#save-path" id="id57" name="id57">save_path()</a></li>
-<li><a class="reference" href="#move-storage" id="id58" name="id58">move_storage()</a></li>
-<li><a class="reference" href="#force-reannounce" id="id59" name="id59">force_reannounce()</a></li>
-<li><a class="reference" href="#connect-peer" id="id60" name="id60">connect_peer()</a></li>
-<li><a class="reference" href="#set-ratio" id="id61" name="id61">set_ratio()</a></li>
-<li><a class="reference" href="#set-upload-limit-set-download-limit" id="id62" name="id62">set_upload_limit() set_download_limit()</a></li>
-<li><a class="reference" href="#pause-resume-is-paused" id="id63" name="id63">pause() resume() is_paused()</a></li>
-<li><a class="reference" href="#is-seed" id="id64" name="id64">is_seed()</a></li>
-<li><a class="reference" href="#has-metadata" id="id65" name="id65">has_metadata()</a></li>
-<li><a class="reference" href="#set-tracker-login" id="id66" name="id66">set_tracker_login()</a></li>
-<li><a class="reference" href="#trackers-replace-trackers" id="id67" name="id67">trackers() replace_trackers()</a></li>
-<li><a class="reference" href="#use-interface" id="id68" name="id68">use_interface()</a></li>
-<li><a class="reference" href="#info-hash" id="id69" name="id69">info_hash()</a></li>
-<li><a class="reference" href="#id11" id="id70" name="id70">set_max_uploads() set_max_connections()</a></li>
-<li><a class="reference" href="#write-resume-data" id="id71" name="id71">write_resume_data()</a></li>
-<li><a class="reference" href="#metadata" id="id72" name="id72">metadata()</a></li>
-<li><a class="reference" href="#id12" id="id73" name="id73">status()</a></li>
-<li><a class="reference" href="#get-download-queue" id="id74" name="id74">get_download_queue()</a></li>
-<li><a class="reference" href="#get-peer-info" id="id75" name="id75">get_peer_info()</a></li>
-<li><a class="reference" href="#get-torrent-info" id="id76" name="id76">get_torrent_info()</a></li>
-<li><a class="reference" href="#is-valid" id="id77" name="id77">is_valid()</a></li>
+<li><a class="reference" href="#torrent-handle" id="id62" name="id62">torrent_handle</a><ul>
+<li><a class="reference" href="#save-path" id="id63" name="id63">save_path()</a></li>
+<li><a class="reference" href="#move-storage" id="id64" name="id64">move_storage()</a></li>
+<li><a class="reference" href="#force-reannounce" id="id65" name="id65">force_reannounce()</a></li>
+<li><a class="reference" href="#connect-peer" id="id66" name="id66">connect_peer()</a></li>
+<li><a class="reference" href="#set-ratio" id="id67" name="id67">set_ratio()</a></li>
+<li><a class="reference" href="#set-upload-limit-set-download-limit" id="id68" name="id68">set_upload_limit() set_download_limit()</a></li>
+<li><a class="reference" href="#set-peer-upload-limit-set-peer-download-limit" id="id69" name="id69">set_peer_upload_limit() set_peer_download_limit()</a></li>
+<li><a class="reference" href="#pause-resume-is-paused" id="id70" name="id70">pause() resume() is_paused()</a></li>
+<li><a class="reference" href="#is-seed" id="id71" name="id71">is_seed()</a></li>
+<li><a class="reference" href="#has-metadata" id="id72" name="id72">has_metadata()</a></li>
+<li><a class="reference" href="#set-tracker-login" id="id73" name="id73">set_tracker_login()</a></li>
+<li><a class="reference" href="#trackers-replace-trackers" id="id74" name="id74">trackers() replace_trackers()</a></li>
+<li><a class="reference" href="#add-url-seed" id="id75" name="id75">add_url_seed()</a></li>
+<li><a class="reference" href="#use-interface" id="id76" name="id76">use_interface()</a></li>
+<li><a class="reference" href="#info-hash" id="id77" name="id77">info_hash()</a></li>
+<li><a class="reference" href="#id12" id="id78" name="id78">set_max_uploads() set_max_connections()</a></li>
+<li><a class="reference" href="#write-resume-data" id="id79" name="id79">write_resume_data()</a></li>
+<li><a class="reference" href="#metadata" id="id80" name="id80">metadata()</a></li>
+<li><a class="reference" href="#id13" id="id81" name="id81">status()</a></li>
+<li><a class="reference" href="#get-download-queue" id="id82" name="id82">get_download_queue()</a></li>
+<li><a class="reference" href="#get-peer-info" id="id83" name="id83">get_peer_info()</a></li>
+<li><a class="reference" href="#get-torrent-info" id="id84" name="id84">get_torrent_info()</a></li>
+<li><a class="reference" href="#is-valid" id="id85" name="id85">is_valid()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#torrent-status" id="id78" name="id78">torrent_status</a></li>
-<li><a class="reference" href="#peer-info" id="id79" name="id79">peer_info</a></li>
-<li><a class="reference" href="#address" id="id80" name="id80">address</a></li>
-<li><a class="reference" href="#http-settings" id="id81" name="id81">http_settings</a></li>
-<li><a class="reference" href="#ip-filter" id="id82" name="id82">ip_filter</a><ul>
-<li><a class="reference" href="#id14" id="id83" name="id83">ip_filter()</a></li>
-<li><a class="reference" href="#add-rule" id="id84" name="id84">add_rule()</a></li>
-<li><a class="reference" href="#access" id="id85" name="id85">access()</a></li>
-<li><a class="reference" href="#export-filter" id="id86" name="id86">export_filter()</a></li>
+<li><a class="reference" href="#torrent-status" id="id86" name="id86">torrent_status</a></li>
+<li><a class="reference" href="#peer-info" id="id87" name="id87">peer_info</a></li>
+<li><a class="reference" href="#http-settings" id="id88" name="id88">http_settings</a></li>
+<li><a class="reference" href="#ip-filter" id="id89" name="id89">ip_filter</a><ul>
+<li><a class="reference" href="#id16" id="id90" name="id90">ip_filter()</a></li>
+<li><a class="reference" href="#add-rule" id="id91" name="id91">add_rule()</a></li>
+<li><a class="reference" href="#access" id="id92" name="id92">access()</a></li>
+<li><a class="reference" href="#export-filter" id="id93" name="id93">export_filter()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#big-number" id="id87" name="id87">big_number</a></li>
-<li><a class="reference" href="#hasher" id="id88" name="id88">hasher</a></li>
-<li><a class="reference" href="#fingerprint" id="id89" name="id89">fingerprint</a></li>
-<li><a class="reference" href="#free-functions" id="id90" name="id90">free functions</a><ul>
-<li><a class="reference" href="#identify-client" id="id91" name="id91">identify_client()</a></li>
-<li><a class="reference" href="#bdecode-bencode" id="id92" name="id92">bdecode() bencode()</a></li>
+<li><a class="reference" href="#big-number" id="id94" name="id94">big_number</a></li>
+<li><a class="reference" href="#hasher" id="id95" name="id95">hasher</a></li>
+<li><a class="reference" href="#fingerprint" id="id96" name="id96">fingerprint</a></li>
+<li><a class="reference" href="#free-functions" id="id97" name="id97">free functions</a><ul>
+<li><a class="reference" href="#identify-client" id="id98" name="id98">identify_client()</a></li>
+<li><a class="reference" href="#bdecode-bencode" id="id99" name="id99">bdecode() bencode()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#alerts" id="id93" name="id93">alerts</a><ul>
-<li><a class="reference" href="#listen-failed-alert" id="id94" name="id94">listen_failed_alert</a></li>
-<li><a class="reference" href="#file-error-alert" id="id95" name="id95">file_error_alert</a></li>
-<li><a class="reference" href="#tracker-announce-alert" id="id96" name="id96">tracker_announce_alert</a></li>
-<li><a class="reference" href="#tracker-alert" id="id97" name="id97">tracker_alert</a></li>
-<li><a class="reference" href="#tracker-reply-alert" id="id98" name="id98">tracker_reply_alert</a></li>
-<li><a class="reference" href="#tracker-warning-alert" id="id99" name="id99">tracker_warning_alert</a></li>
-<li><a class="reference" href="#hash-failed-alert" id="id100" name="id100">hash_failed_alert</a></li>
-<li><a class="reference" href="#peer-ban-alert" id="id101" name="id101">peer_ban_alert</a></li>
-<li><a class="reference" href="#peer-error-alert" id="id102" name="id102">peer_error_alert</a></li>
-<li><a class="reference" href="#invalid-request-alert" id="id103" name="id103">invalid_request_alert</a></li>
-<li><a class="reference" href="#torrent-finished-alert" id="id104" name="id104">torrent_finished_alert</a></li>
-<li><a class="reference" href="#metadata-failed-alert" id="id105" name="id105">metadata_failed_alert</a></li>
-<li><a class="reference" href="#metadata-received-alert" id="id106" name="id106">metadata_received_alert</a></li>
-<li><a class="reference" href="#fastresume-rejected-alert" id="id107" name="id107">fastresume_rejected_alert</a></li>
-<li><a class="reference" href="#dispatcher" id="id108" name="id108">dispatcher</a></li>
+<li><a class="reference" href="#alerts" id="id100" name="id100">alerts</a><ul>
+<li><a class="reference" href="#listen-failed-alert" id="id101" name="id101">listen_failed_alert</a></li>
+<li><a class="reference" href="#file-error-alert" id="id102" name="id102">file_error_alert</a></li>
+<li><a class="reference" href="#tracker-announce-alert" id="id103" name="id103">tracker_announce_alert</a></li>
+<li><a class="reference" href="#tracker-alert" id="id104" name="id104">tracker_alert</a></li>
+<li><a class="reference" href="#tracker-reply-alert" id="id105" name="id105">tracker_reply_alert</a></li>
+<li><a class="reference" href="#tracker-warning-alert" id="id106" name="id106">tracker_warning_alert</a></li>
+<li><a class="reference" href="#url-seed-alert" id="id107" name="id107">url_seed_alert</a></li>
+<li><a class="reference" href="#hash-failed-alert" id="id108" name="id108">hash_failed_alert</a></li>
+<li><a class="reference" href="#peer-ban-alert" id="id109" name="id109">peer_ban_alert</a></li>
+<li><a class="reference" href="#peer-error-alert" id="id110" name="id110">peer_error_alert</a></li>
+<li><a class="reference" href="#invalid-request-alert" id="id111" name="id111">invalid_request_alert</a></li>
+<li><a class="reference" href="#torrent-finished-alert" id="id112" name="id112">torrent_finished_alert</a></li>
+<li><a class="reference" href="#metadata-failed-alert" id="id113" name="id113">metadata_failed_alert</a></li>
+<li><a class="reference" href="#metadata-received-alert" id="id114" name="id114">metadata_received_alert</a></li>
+<li><a class="reference" href="#fastresume-rejected-alert" id="id115" name="id115">fastresume_rejected_alert</a></li>
+<li><a class="reference" href="#dispatcher" id="id116" name="id116">dispatcher</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#exceptions" id="id109" name="id109">exceptions</a><ul>
-<li><a class="reference" href="#invalid-handle" id="id110" name="id110">invalid_handle</a></li>
-<li><a class="reference" href="#duplicate-torrent" id="id111" name="id111">duplicate_torrent</a></li>
-<li><a class="reference" href="#invalid-encoding" id="id112" name="id112">invalid_encoding</a></li>
-<li><a class="reference" href="#type-error" id="id113" name="id113">type_error</a></li>
-<li><a class="reference" href="#invalid-torrent-file" id="id114" name="id114">invalid_torrent_file</a></li>
+<li><a class="reference" href="#exceptions" id="id117" name="id117">exceptions</a><ul>
+<li><a class="reference" href="#invalid-handle" id="id118" name="id118">invalid_handle</a></li>
+<li><a class="reference" href="#duplicate-torrent" id="id119" name="id119">duplicate_torrent</a></li>
+<li><a class="reference" href="#invalid-encoding" id="id120" name="id120">invalid_encoding</a></li>
+<li><a class="reference" href="#type-error" id="id121" name="id121">type_error</a></li>
+<li><a class="reference" href="#invalid-torrent-file" id="id122" name="id122">invalid_torrent_file</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#examples" id="id115" name="id115">examples</a><ul>
-<li><a class="reference" href="#dump-torrent" id="id116" name="id116">dump_torrent</a></li>
-<li><a class="reference" href="#simple-client" id="id117" name="id117">simple client</a></li>
-<li><a class="reference" href="#make-torrent" id="id118" name="id118">make_torrent</a></li>
+<li><a class="reference" href="#examples" id="id123" name="id123">examples</a><ul>
+<li><a class="reference" href="#dump-torrent" id="id124" name="id124">dump_torrent</a></li>
+<li><a class="reference" href="#simple-client" id="id125" name="id125">simple client</a></li>
+<li><a class="reference" href="#make-torrent" id="id126" name="id126">make_torrent</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#fast-resume" id="id119" name="id119">fast resume</a><ul>
-<li><a class="reference" href="#file-format" id="id120" name="id120">file format</a></li>
+<li><a class="reference" href="#fast-resume" id="id127" name="id127">fast resume</a><ul>
+<li><a class="reference" href="#file-format" id="id128" name="id128">file format</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#threads" id="id121" name="id121">threads</a></li>
-<li><a class="reference" href="#storage-allocation" id="id122" name="id122">storage allocation</a><ul>
-<li><a class="reference" href="#full-allocation" id="id123" name="id123">full allocation</a></li>
-<li><a class="reference" href="#compact-allocation" id="id124" name="id124">compact allocation</a></li>
+<li><a class="reference" href="#threads" id="id129" name="id129">threads</a></li>
+<li><a class="reference" href="#storage-allocation" id="id130" name="id130">storage allocation</a><ul>
+<li><a class="reference" href="#full-allocation" id="id131" name="id131">full allocation</a></li>
+<li><a class="reference" href="#compact-allocation" id="id132" name="id132">compact allocation</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#extensions" id="id125" name="id125">extensions</a><ul>
-<li><a class="reference" href="#chat-messages" id="id126" name="id126">chat messages</a></li>
-<li><a class="reference" href="#metadata-from-peers" id="id127" name="id127">metadata from peers</a></li>
+<li><a class="reference" href="#extensions" id="id133" name="id133">extensions</a><ul>
+<li><a class="reference" href="#chat-messages" id="id134" name="id134">chat messages</a></li>
+<li><a class="reference" href="#metadata-from-peers" id="id135" name="id135">metadata from peers</a></li>
+<li><a class="reference" href="#http-seeding" id="id136" name="id136">HTTP seeding</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#filename-checks" id="id128" name="id128">filename checks</a></li>
-<li><a class="reference" href="#acknowledgements" id="id129" name="id129">acknowledgements</a></li>
+<li><a class="reference" href="#filename-checks" id="id137" name="id137">filename checks</a></li>
+<li><a class="reference" href="#acknowledgements" id="id138" name="id138">acknowledgements</a></li>
 </ul>
 </div>
-<div class="section" id="introduction">
-<h1><a name="introduction">introduction</a></h1>
+<div class="section">
+<h1><a id="introduction" name="introduction">introduction</a></h1>
 <p>libtorrent is a C++ library that aims to be a good alternative to all the
 other bittorrent implementations around. It is a
 library and not a full featured client, although it comes with a working
@@ -182,6 +308,7 @@ following features:</p>
 <li>serves multiple torrents on a single port and a single thread</li>
 <li>supports http proxies and proxy authentication</li>
 <li>gzipped tracker-responses</li>
+<li><a class="reference" href="#http-seeding">HTTP seeding</a>, as <a class="reference" href="http://www.getright.com/seedtorrent.html">specified by Michael Burford of GetRight</a>.</li>
 <li>piece picking on block-level like in <a class="reference" href="http://azureus.sourceforge.net">Azureus</a> (as opposed to piece-level).
 This means it can download parts of the same piece from different peers.
 It will also prefer to download whole pieces from single peers if the
@@ -216,8 +343,10 @@ want to download.</li>
 <li>ip filter</li>
 </ul>
 </blockquote>
-<p>libtorrent is portable at least among Windows, MacOS X and other UNIX-systems. It uses Boost.Thread,
-Boost.Filesystem, Boost.Date_time and various other boost libraries as well as zlib.</p>
+<p>libtorrent is portable at least among Windows, MacOS X and other UNIX-systems.
+It uses Boost.Thread, Boost.Filesystem, Boost.Date_time and various other
+boost libraries as well as <a class="reference" href="http://www.zlib.org">zlib</a> (shipped) and <a class="reference" href="http://asio.sf.net">asio</a> (shipped). At least version
+1.33.1 of boost is required.</p>
 <p>libtorrent has been successfully compiled and tested on:</p>
 <blockquote>
 <ul class="simple">
@@ -237,16 +366,16 @@ Boost.Filesystem, Boost.Date_time and various other boost libraries as well as z
 </blockquote>
 <p>libtorrent is released under the <a class="reference" href="http://www.opensource.org/licenses/bsd-license.php">BSD-license</a>.</p>
 </div>
-<div class="section" id="downloading-and-building">
-<h1><a name="downloading-and-building">downloading and building</a></h1>
+<div class="section">
+<h1><a id="downloading-and-building" name="downloading-and-building">downloading and building</a></h1>
 <p>To acquire the latest version of libtorrent, you'll have to grab it from CVS.
 You'll find instructions on how to do this <a class="reference" href="http://sourceforge.net/cvs/?group_id=79942">here</a> (see Anonymous CVS access).</p>
 <p>The build systems supported &quot;out of the box&quot; in libtorrent are boost-build v2
 (BBv2) and autotools (for unix-like systems). If you still can't build after
 following these instructions, you can usually get help in the <tt class="docutils literal"><span class="pre">#libtorrent</span></tt>
 IRC channel on <tt class="docutils literal"><span class="pre">irc.freenode.net</span></tt>.</p>
-<div class="section" id="building-with-bbv2">
-<h2><a name="building-with-bbv2">building with BBv2</a></h2>
+<div class="section">
+<h2><a id="building-with-bbv2" name="building-with-bbv2">building with BBv2</a></h2>
 <p>The primary reason to use boost-build is that it will automatically build the
 dependent boost libraries with the correct compiler settings, in order to
 ensure that the build targets are link compatible (see <a class="reference" href="http://boost.org/more/separate_compilation.html">boost guidelines</a>
@@ -255,8 +384,8 @@ for some details on this issue).</p>
 source package. Having boost installed via some package system is usually not
 enough (and even if it is enough, the necessary environment variables are
 usually not set by the package installer).</p>
-<div class="section" id="step-1-download-boost">
-<h3><a name="step-1-download-boost">Step 1: Download boost</a></h3>
+<div class="section">
+<h3><a id="step-1-download-boost" name="step-1-download-boost">Step 1: Download boost</a></h3>
 <p>You'll find boost <a class="reference" href="http://sourceforge.net/project/showfiles.php?group_id=7586">here</a>.</p>
 <p>Extract the archive to some directory where you want it. For the sake of this
 guide, let's assume you extract the package to <tt class="docutils literal"><span class="pre">c:\boost_1_33_0</span></tt> (I'm using
@@ -266,8 +395,8 @@ in order to build libtorrent.</p>
 <p>If you use 1.32, you need to download BBv2 separately, so for now, let's
 assume you will use version 1.33.</p>
 </div>
-<div class="section" id="step-2-setup-bbv2">
-<h3><a name="step-2-setup-bbv2">Step 2: Setup BBv2</a></h3>
+<div class="section">
+<h3><a id="step-2-setup-bbv2" name="step-2-setup-bbv2">Step 2: Setup BBv2</a></h3>
 <p>First you need to build <tt class="docutils literal"><span class="pre">bjam</span></tt>. You do this by opening a terminal (In
 windows, run <tt class="docutils literal"><span class="pre">cmd</span></tt>). Change directory to
 <tt class="docutils literal"><span class="pre">c:\boost_1_33_0\tools\build\jam_src</span></tt>. Then run the script called
@@ -313,8 +442,8 @@ using darwin : 4.0 : g++-4.0 ;
 </pre>
 <p>Note that the spaces around the semi-colons and colons are important!</p>
 </div>
-<div class="section" id="step-3-building-libtorrent">
-<h3><a name="step-3-building-libtorrent">Step 3: Building libtorrent</a></h3>
+<div class="section">
+<h3><a id="step-3-building-libtorrent" name="step-3-building-libtorrent">Step 3: Building libtorrent</a></h3>
 <p>When building libtorrent, the <tt class="docutils literal"><span class="pre">Jamfile</span></tt> expects the environment variable
 <tt class="docutils literal"><span class="pre">BOOST_ROOT</span></tt> to be set to the boost installation directory. It uses this to
 find the boost libraries it depends on, so they can be built and their headers
@@ -373,14 +502,17 @@ For more build configuration flags see <a class="reference" href="#build-configu
 <li><tt class="docutils literal"><span class="pre">debug_vlog</span></tt> - debug version with verbose logging</li>
 </ul>
 </blockquote>
+<p>When building the example client on windows, you need to build with
+<tt class="docutils literal"><span class="pre">link=static</span></tt> otherwise you may get unresolved external symbols for some
+boost.program-options symbols.</p>
 </div>
 </div>
-<div class="section" id="building-with-autotools">
-<h2><a name="building-with-autotools">building with autotools</a></h2>
+<div class="section">
+<h2><a id="building-with-autotools" name="building-with-autotools">building with autotools</a></h2>
 <p>First of all, you need to install <tt class="docutils literal"><span class="pre">automake</span></tt> and <tt class="docutils literal"><span class="pre">autoconf</span></tt>. Many
 unix/linux systems comes with these preinstalled.</p>
-<div class="section" id="step-1-running-configure">
-<h3><a name="step-1-running-configure">Step 1: Running configure</a></h3>
+<div class="section">
+<h3><a id="step-1-running-configure" name="step-1-running-configure">Step 1: Running configure</a></h3>
 <p>In your shell, change directory to the libtorrent directory and run
 <tt class="docutils literal"><span class="pre">./configure</span></tt>. This will look for libraries and C++ features that libtorrent
 is dependent on. If something is missing or can't be found it will print an
@@ -420,8 +552,8 @@ checking for main in -lboost_thread... yes
 directory contains spaces. Make sure you either rename the directories with
 spaces in their names to remove the spaces or move the libtorrent directory.</p>
 </div>
-<div class="section" id="creating-a-debug-build">
-<h3><a name="creating-a-debug-build">Creating a debug build</a></h3>
+<div class="section">
+<h3><a id="creating-a-debug-build" name="creating-a-debug-build">Creating a debug build</a></h3>
 <p>To tell configure to build a debug version (with debug info, asserts
 and invariant checks enabled), you have to run the configure script
 with the following option:</p>
@@ -429,8 +561,8 @@ with the following option:</p>
 ./configure --enable-debug=yes
 </pre>
 </div>
-<div class="section" id="creating-a-release-build">
-<h3><a name="creating-a-release-build">Creating a release build</a></h3>
+<div class="section">
+<h3><a id="creating-a-release-build" name="creating-a-release-build">Creating a release build</a></h3>
 <p>To tell the configure to build a release version (without debug info,
 asserts and invariant checks), you have to run the configure script
 with the following option:</p>
@@ -439,8 +571,8 @@ with the following option:</p>
 </pre>
 <p>The above option make use of -DNDEBUG, which is used throughout libtorrent.</p>
 </div>
-<div class="section" id="step-2-building-libtorrent">
-<h3><a name="step-2-building-libtorrent">Step 2: Building libtorrent</a></h3>
+<div class="section">
+<h3><a id="step-2-building-libtorrent" name="step-2-building-libtorrent">Step 2: Building libtorrent</a></h3>
 <p>Once the configure script is run successfully, you just type <tt class="docutils literal"><span class="pre">make</span></tt> and
 libtorrent, the examples and the tests will be built.</p>
 <p>When libtorrent is built it may be a good idea to run the tests, you do this
@@ -453,8 +585,8 @@ make clean
 make
 </pre>
 </div>
-<div class="section" id="generating-the-build-system">
-<h3><a name="generating-the-build-system">generating the build system</a></h3>
+<div class="section">
+<h3><a id="generating-the-build-system" name="generating-the-build-system">generating the build system</a></h3>
 <p>No build system is present if libtorrent is checked out from CVS - it
 needs to be generated first.</p>
 <p>Execute the following commands to generate the build system:</p>
@@ -469,8 +601,8 @@ needs to be generated first.</p>
 libtorrent. This was described earlier.</p>
 </div>
 </div>
-<div class="section" id="building-with-other-build-systems">
-<h2><a name="building-with-other-build-systems">building with other build systems</a></h2>
+<div class="section">
+<h2><a id="building-with-other-build-systems" name="building-with-other-build-systems">building with other build systems</a></h2>
 <p>If you're making your own project file, note that there are two versions of
 the file abstraction. There's one <tt class="docutils literal"><span class="pre">file_win.cpp</span></tt> which relies on windows
 file API that supports files larger than 2 Gigabytes. This does not work in
@@ -484,8 +616,8 @@ filenames, so if your target is Windows 2000 and up, you may want to use
 options &quot;force conformance in for loop scope&quot;, &quot;treat wchar_t as built-in
 type&quot; and &quot;Enable Run-Time Type Info&quot; to Yes.</p>
 </div>
-<div class="section" id="build-configurations">
-<h2><a name="build-configurations">build configurations</a></h2>
+<div class="section">
+<h2><a id="build-configurations" name="build-configurations">build configurations</a></h2>
 <p>By default libtorrent is built In debug mode, and will have pretty expensive
 invariant checks and asserts built into it. If you want to disable such checks
 (you want to do that in a release build) you can see the table below for which
@@ -496,8 +628,8 @@ defines you can use to control the build.</p>
 <col width="60%" />
 </colgroup>
 <thead valign="bottom">
-<tr><th>macro</th>
-<th>description</th>
+<tr><th class="head">macro</th>
+<th class="head">description</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -564,13 +696,13 @@ definately help to define <tt class="docutils literal"><span class="pre">NDEBUG<
 within the library.</p>
 </div>
 </div>
-<div class="section" id="overview">
-<h1><a name="overview">overview</a></h1>
+<div class="section">
+<h1><a id="overview" name="overview">overview</a></h1>
 <p>The interface of libtorrent consists of a few classes. The main class is
 the <tt class="docutils literal"><span class="pre">session</span></tt>, it contains the main loop that serves all torrents.</p>
 <p>The basic usage is as follows:</p>
 <ul>
-<li><p class="first">conststruct a session</p>
+<li><p class="first">construct a session</p>
 </li>
 <li><p class="first">parse .torrent-files and add them to the session (see <a class="reference" href="#bdecode-bencode">bdecode() bencode()</a>)</p>
 </li>
@@ -591,8 +723,8 @@ the <tt class="docutils literal"><span class="pre">session</span></tt>, it conta
 </ul>
 <p>Each class and function is described in this manual.</p>
 </div>
-<div class="section" id="session">
-<h1><a name="session">session</a></h1>
+<div class="section">
+<h1><a id="session" name="session">session</a></h1>
 <p>The <tt class="docutils literal"><span class="pre">session</span></tt> class has the following synopsis:</p>
 <pre class="literal-block">
 class session: public boost::noncopyable
@@ -651,8 +783,8 @@ class session: public boost::noncopyable
 </pre>
 <p>Once it's created, the session object will spawn the main thread that will do all the work.
 The main thread will be idle as long it doesn't have any torrents to participate in.</p>
-<div class="section" id="id7">
-<h2><a name="id7">session()</a></h2>
+<div class="section">
+<h2><a id="id8" name="id8">session()</a></h2>
 <blockquote>
 <pre class="literal-block">
 session(fingerprint const&amp; print = libtorrent::fingerprint(&quot;LT&quot;, 0, 1, 0, 0));
@@ -670,16 +802,16 @@ The other constructor, that takes a port range and an interface as well as the f
 will automatically try to listen on a port on the given interface. For more information about
 the parameters, see <tt class="docutils literal"><span class="pre">listen_on()</span></tt> function.</p>
 </div>
-<div class="section" id="id8">
-<h2><a name="id8">~session()</a></h2>
+<div class="section">
+<h2><a id="id9" name="id9">~session()</a></h2>
 <p>The destructor of session will notify all trackers that our torrents have been shut down.
 If some trackers are down, they will time out. All this before the destructor of session
 returns. So, it's adviced that any kind of interface (such as windows) are closed before
 destructing the sessoin object. Because it can take a few second for it to finish. The
 timeout can be set with <tt class="docutils literal"><span class="pre">set_http_settings()</span></tt>.</p>
 </div>
-<div class="section" id="add-torrent">
-<h2><a name="add-torrent">add_torrent()</a></h2>
+<div class="section">
+<h2><a id="add-torrent" name="add-torrent">add_torrent()</a></h2>
 <blockquote>
 <pre class="literal-block">
 torrent_handle add_torrent(
@@ -725,8 +857,8 @@ about the torrent's progress, its peers etc. It is also used to abort a torrent.
 the metadata extension. For the overload to be available, libtorrent must be built
 with extensions enabled (<tt class="docutils literal"><span class="pre">TORRENT_ENABLE_EXTENSIONS</span></tt> defined).</p>
 </div>
-<div class="section" id="remove-torrent">
-<h2><a name="remove-torrent">remove_torrent()</a></h2>
+<div class="section">
+<h2><a id="remove-torrent" name="remove-torrent">remove_torrent()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void remove_torrent(torrent_handle const&amp; h);
@@ -735,8 +867,8 @@ void remove_torrent(torrent_handle const&amp; h);
 <p><tt class="docutils literal"><span class="pre">remove_torrent()</span></tt> will close all peer connections associated with the torrent and tell
 the tracker that we've stopped participating in the swarm.</p>
 </div>
-<div class="section" id="disable-extensions-enable-extension">
-<h2><a name="disable-extensions-enable-extension">disable_extensions() enable_extension()</a></h2>
+<div class="section">
+<h2><a id="disable-extensions-enable-extension" name="disable-extensions-enable-extension">disable_extensions() enable_extension()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void disable_extensions();
@@ -760,8 +892,8 @@ enum extension_index
 <p>By default, all extensions are enabled.
 For more information about the extensions, see the <a class="reference" href="#extensions">extensions</a> section.</p>
 </div>
-<div class="section" id="set-upload-rate-limit-set-download-rate-limit">
-<h2><a name="set-upload-rate-limit-set-download-rate-limit">set_upload_rate_limit() set_download_rate_limit()</a></h2>
+<div class="section">
+<h2><a id="set-upload-rate-limit-set-download-rate-limit" name="set-upload-rate-limit-set-download-rate-limit">set_upload_rate_limit() set_download_rate_limit()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void set_upload_rate_limit(int bytes_per_second);
@@ -774,8 +906,8 @@ you don't want to limit upload rate, you can set this to -1 (the default).
 <tt class="docutils literal"><span class="pre">set_download_rate_limit()</span></tt> works the same way but for download rate instead
 of upload rate.</p>
 </div>
-<div class="section" id="set-max-uploads-set-max-connections">
-<h2><a name="set-max-uploads-set-max-connections">set_max_uploads() set_max_connections()</a></h2>
+<div class="section">
+<h2><a id="set-max-uploads-set-max-connections" name="set-max-uploads-set-max-connections">set_max_uploads() set_max_connections()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void set_max_uploads(int limit);
@@ -788,8 +920,8 @@ minimum of at least two connections per torrent, so if you set a too low
 connections limit, and open too many torrents, the limit will not be met. The
 number of uploads is at least one per torrent.</p>
 </div>
-<div class="section" id="set-max-half-open-connections">
-<h2><a name="set-max-half-open-connections">set_max_half_open_connections()</a></h2>
+<div class="section">
+<h2><a id="set-max-half-open-connections" name="set-max-half-open-connections">set_max_half_open_connections()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void set_max_half_open_connections(int limit);
@@ -805,8 +937,8 @@ and passing -1 as the limit, means to have no limit. When limiting the number
 of simultaneous connection attempts, peers will be put in a queue waiting for
 their turn to get connected.</p>
 </div>
-<div class="section" id="set-ip-filter">
-<h2><a name="set-ip-filter">set_ip_filter()</a></h2>
+<div class="section">
+<h2><a id="set-ip-filter" name="set-ip-filter">set_ip_filter()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void set_ip_filter(ip_filter const&amp; filter);
@@ -817,8 +949,8 @@ connections based on their originating ip address. The default filter will allow
 connections to any ip address. To build a set of rules for which addresses are
 accepted and not, see <a class="reference" href="#ip-filter">ip_filter</a>.</p>
 </div>
-<div class="section" id="status">
-<h2><a name="status">status()</a></h2>
+<div class="section">
+<h2><a id="status" name="status">status()</a></h2>
 <blockquote>
 <pre class="literal-block">
 session_status status() const;
@@ -857,8 +989,8 @@ uploaded to and from all torrents. <tt class="docutils literal"><span class="pre
 are the same thing but where only the payload is considered.</p>
 <p><tt class="docutils literal"><span class="pre">num_peers</span></tt> is the total number of peer connections this session have.</p>
 </div>
-<div class="section" id="is-listening-listen-port-listen-on">
-<h2><a name="is-listening-listen-port-listen-on">is_listening() listen_port() listen_on()</a></h2>
+<div class="section">
+<h2><a id="is-listening-listen-port-listen-on" name="is-listening-listen-port-listen-on">is_listening() listen_port() listen_on()</a></h2>
 <blockquote>
 <pre class="literal-block">
 bool is_listening() const;
@@ -886,8 +1018,8 @@ generate an appropriate alert (<a class="reference" href="#listen-failed-alert">
 <p>The interface parameter can also be a hostname that will resolve to the device you
 want to listen on.</p>
 </div>
-<div class="section" id="pop-alert-set-severity-level">
-<h2><a name="pop-alert-set-severity-level">pop_alert() set_severity_level()</a></h2>
+<div class="section">
+<h2><a id="pop-alert-set-severity-level" name="pop-alert-set-severity-level">pop_alert() set_severity_level()</a></h2>
 <blockquote>
 <pre class="literal-block">
 std::auto_ptr&lt;alert&gt; pop_alert();
@@ -899,8 +1031,8 @@ void set_severity_level(alert::severity_t s);
 receive it through <tt class="docutils literal"><span class="pre">pop_alert()</span></tt>. For information, see <a class="reference" href="#alerts">alerts</a>.</p>
 </div>
 </div>
-<div class="section" id="entry">
-<h1><a name="entry">entry</a></h1>
+<div class="section">
+<h1><a id="entry" name="entry">entry</a></h1>
 <p>The <tt class="docutils literal"><span class="pre">entry</span></tt> class represents one node in a bencoded hierarchy. It works as a
 variant type, it can be either a list, a dictionary (<tt class="docutils literal"><span class="pre">std::map</span></tt>), an integer
 or a string. This is its synopsis:</p>
@@ -951,20 +1083,20 @@ public:
         dictionary_type const&amp; dict() const;
 
         // these functions requires that the entry
-        // is a dictionary, otherwise they will throw   
+        // is a dictionary, otherwise they will throw
         entry&amp; operator[](char const* key);
         entry&amp; operator[](std::string const&amp; key);
         entry const&amp; operator[](char const* key) const;
         entry const&amp; operator[](std::string const&amp; key) const;
         entry* find_key(char const* key);
         entry const* find_key(char const* key) const;
-        
+
         void print(std::ostream&amp; os, int indent = 0) const;
 };
 </pre>
 <p><em>TODO: finish documentation of entry.</em></p>
-<div class="section" id="integer-string-list-dict-type">
-<h2><a name="integer-string-list-dict-type">integer() string() list() dict() type()</a></h2>
+<div class="section">
+<h2><a id="integer-string-list-dict-type" name="integer-string-list-dict-type">integer() string() list() dict() type()</a></h2>
 <blockquote>
 <pre class="literal-block">
 integer_type&amp; integer();
@@ -1016,8 +1148,8 @@ if (entry* i = torrent_file.find_key(&quot;announce&quot;))
 <p>To make it easier to extract information from a torrent file, the class <a class="reference" href="#torrent-info">torrent_info</a>
 exists.</p>
 </div>
-<div class="section" id="operator">
-<h2><a name="operator">operator[]</a></h2>
+<div class="section">
+<h2><a id="operator" name="operator">operator[]</a></h2>
 <blockquote>
 <pre class="literal-block">
 entry&amp; operator[](char const* key);
@@ -1035,8 +1167,8 @@ given key, a reference to a newly inserted element at that key.</p>
 existing element at the given key. If the key is not found, it will throw
 <tt class="docutils literal"><span class="pre">libtorrent::type_error</span></tt>.</p>
 </div>
-<div class="section" id="find-key">
-<h2><a name="find-key">find_key()</a></h2>
+<div class="section">
+<h2><a id="find-key" name="find-key">find_key()</a></h2>
 <blockquote>
 <pre class="literal-block">
 entry* find_key(char const* key);
@@ -1050,8 +1182,8 @@ element cannot be found, they will return 0. If an element with the given
 key is found, the return a pointer to it.</p>
 </div>
 </div>
-<div class="section" id="torrent-info">
-<h1><a name="torrent-info">torrent_info</a></h1>
+<div class="section">
+<h1><a id="torrent-info" name="torrent-info">torrent_info</a></h1>
 <p>The <tt class="docutils literal"><span class="pre">torrent_info</span></tt> has the following synopsis:</p>
 <pre class="literal-block">
 class torrent_info
@@ -1069,6 +1201,7 @@ public:
         void set_hash(int index, sha1_hash const&amp; h);
         void add_tracker(std::string const&amp; url, int tier = 0);
         void add_file(boost::filesystem::path file, size_type size);
+        void add_url_seed(std::string const&amp; url);
 
         typedef std::vector&lt;file_entry&gt;::const_iterator file_iterator;
         typedef std::vector&lt;file_entry&gt;::const_reverse_iterator
@@ -1082,7 +1215,14 @@ public:
         int num_files() const;
         file_entry const&amp; file_at(int index) const;
 
+        std::vector&lt;file_slice&gt; map_block(int piece, size_type offset
+                , int size) const;
+        peer_request map_file(int file_index, size_type file_offset
+                , int size) const;
+
         std::vector&lt;announce_entry&gt; const&amp; trackers() const;
+
+        std::vector&lt;std::string&gt; const&amp; url_seeds() const;
 
         size_type total_size() const;
         size_type piece_length() const;
@@ -1102,8 +1242,8 @@ public:
         sha1_hash const&amp; hash_for_piece(unsigned int index) const;
 };
 </pre>
-<div class="section" id="id9">
-<h2><a name="id9">torrent_info()</a></h2>
+<div class="section">
+<h2><a id="id10" name="id10">torrent_info()</a></h2>
 <blockquote>
 <pre class="literal-block">
 torrent_info();
@@ -1126,8 +1266,8 @@ object from the information found in the given torrent_file. The <tt class="docu
 node in an bencoded file. To load an ordinary .torrent file into an <tt class="docutils literal"><span class="pre">entry</span></tt>, use bdecode(),
 see <a class="reference" href="#bdecode-bencode">bdecode() bencode()</a>.</p>
 </div>
-<div class="section" id="set-comment-set-piece-size-set-creator-set-hash-add-tracker-add-file">
-<h2><a name="set-comment-set-piece-size-set-creator-set-hash-add-tracker-add-file">set_comment() set_piece_size() set_creator() set_hash() add_tracker() add_file()</a></h2>
+<div class="section">
+<h2><a id="set-comment-set-piece-size-set-creator-set-hash-add-tracker-add-file" name="set-comment-set-piece-size-set-creator-set-hash-add-tracker-add-file">set_comment() set_piece_size() set_creator() set_hash() add_tracker() add_file()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void set_comment(char const* str);
@@ -1159,8 +1299,8 @@ of the torrent. The <tt class="docutils literal"><span class="pre">size</span></
 which then can be encoded as a .torrent file. You do this by calling <a class="reference" href="#create-torrent">create_torrent()</a>.</p>
 <p>For a complete example of how to create a torrent from a file structure, see <a class="reference" href="#make-torrent">make_torrent</a>.</p>
 </div>
-<div class="section" id="create-torrent">
-<h2><a name="create-torrent">create_torrent()</a></h2>
+<div class="section">
+<h2><a id="create-torrent" name="create-torrent">create_torrent()</a></h2>
 <blockquote>
 <pre class="literal-block">
 entry create_torrent();
@@ -1172,8 +1312,8 @@ complete example, see <a class="reference" href="#make-torrent">make_torrent</a>
 <p>This function is not const because it will also set the info-hash of the <tt class="docutils literal"><span class="pre">torrent_info</span></tt>
 object.</p>
 </div>
-<div class="section" id="begin-files-end-files-rbegin-files-rend-files">
-<h2><a name="begin-files-end-files-rbegin-files-rend-files">begin_files() end_files() rbegin_files() rend_files()</a></h2>
+<div class="section">
+<h2><a id="begin-files-end-files-rbegin-files-rend-files" name="begin-files-end-files-rbegin-files-rend-files">begin_files() end_files() rbegin_files() rend_files()</a></h2>
 <blockquote>
 <pre class="literal-block">
 file_iterator begin_files() const;
@@ -1197,8 +1337,8 @@ struct file_entry
 };
 </pre>
 </div>
-<div class="section" id="num-files-file-at">
-<h2><a name="num-files-file-at">num_files() file_at()</a></h2>
+<div class="section">
+<h2><a id="num-files-file-at" name="num-files-file-at">num_files() file_at()</a></h2>
 <blockquote>
 <pre class="literal-block">
 int num_files() const;
@@ -1208,8 +1348,76 @@ file_entry const&amp; file_at(int index) const;
 <p>If you need index-access to files you can use the <tt class="docutils literal"><span class="pre">num_files()</span></tt> and <tt class="docutils literal"><span class="pre">file_at()</span></tt>
 to access files using indices.</p>
 </div>
-<div class="section" id="print">
-<h2><a name="print">print()</a></h2>
+<div class="section">
+<h2><a id="map-block" name="map-block">map_block()</a></h2>
+<blockquote>
+<pre class="literal-block">
+std::vector&lt;file_slice&gt; map_block(int piece, size_type offset
+        , int size) const;
+</pre>
+</blockquote>
+<p>This function will map a piece index, a byte offset within that piece and
+a size (in bytes) into the corresponding files with offsets where that data
+for that piece is supposed to be stored.</p>
+<p>The file slice struct looks like this:</p>
+<pre class="literal-block">
+struct file_slice
+{
+        int file_index;
+        size_type offset;
+        size_type size;
+};
+</pre>
+<p>The <tt class="docutils literal"><span class="pre">file_index</span></tt> refers to the index of the file (in the torrent_info).
+To get the path and filename, use <tt class="docutils literal"><span class="pre">file_at()</span></tt> and give the <tt class="docutils literal"><span class="pre">file_index</span></tt>
+as argument. The <tt class="docutils literal"><span class="pre">offset</span></tt> is the byte offset in the file where the range
+starts, and <tt class="docutils literal"><span class="pre">size</span></tt> is the number of bytes this range is. The size + offset
+will never be greater than the file size.</p>
+</div>
+<div class="section">
+<h2><a id="map-file" name="map-file">map_file()</a></h2>
+<blockquote>
+<pre class="literal-block">
+peer_request map_file(int file_index, size_type file_offset
+        , int size) const;
+</pre>
+</blockquote>
+<p>This function will map a range in a specific file into a range in the torrent.
+The <tt class="docutils literal"><span class="pre">file_offset</span></tt> parameter is the offset in the file, given in bytes, where
+0 is the start of the file.
+The <tt class="docutils literal"><span class="pre">peer_request</span></tt> structure looks like this:</p>
+<pre class="literal-block">
+struct peer_request
+{
+        int piece;
+        int start;
+        int length;
+        bool operator==(peer_request const&amp; r) const;
+};
+</pre>
+<p><tt class="docutils literal"><span class="pre">piece</span></tt> is the index of the piece in which the range starts.
+<tt class="docutils literal"><span class="pre">start</span></tt> is the offset within that piece where the range starts.
+<tt class="docutils literal"><span class="pre">length</span></tt> is the size of the range, in bytes.</p>
+<p>The input range is assumed to be valid within the torrent. <tt class="docutils literal"><span class="pre">file_offset</span></tt>
++ <tt class="docutils literal"><span class="pre">size</span></tt> is not allowed to be greater than the file size. <tt class="docutils literal"><span class="pre">file_index</span></tt>
+must refer to a valid file, i.e. it cannot be &gt;= <tt class="docutils literal"><span class="pre">num_files()</span></tt>.</p>
+</div>
+<div class="section">
+<h2><a id="url-seeds" name="url-seeds">url_seeds()</a></h2>
+<blockquote>
+<pre class="literal-block">
+std::vector&lt;std::string&gt; const&amp; url_seeds() const;
+void add_url_seed(std::string const&amp; url);
+</pre>
+</blockquote>
+<p>If there are any url-seeds in this torrent, <tt class="docutils literal"><span class="pre">url_seeds()</span></tt> will return a
+vector of those urls. If you're creating a torrent file, <tt class="docutils literal"><span class="pre">add_url_seed()</span></tt>
+adds one url to the list of url-seeds. Currently, the only transport protocol
+supported for the url is http.</p>
+<p>See <a class="reference" href="#http-seeding">HTTP seeding</a> for more information.</p>
+</div>
+<div class="section">
+<h2><a id="print" name="print">print()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void print(std::ostream&amp; os) const;
@@ -1218,8 +1426,8 @@ void print(std::ostream&amp; os) const;
 <p>The <tt class="docutils literal"><span class="pre">print()</span></tt> function is there for debug purposes only. It will print the info from
 the torrent file to the given outstream.</p>
 </div>
-<div class="section" id="trackers">
-<h2><a name="trackers">trackers()</a></h2>
+<div class="section">
+<h2><a id="trackers" name="trackers">trackers()</a></h2>
 <blockquote>
 <pre class="literal-block">
 std::vector&lt;announce_entry&gt; const&amp; trackers() const;
@@ -1238,8 +1446,8 @@ struct announce_entry
 };
 </pre>
 </div>
-<div class="section" id="total-size-piece-length-piece-size-num-pieces">
-<h2><a name="total-size-piece-length-piece-size-num-pieces">total_size() piece_length() piece_size() num_pieces()</a></h2>
+<div class="section">
+<h2><a id="total-size-piece-length-piece-size-num-pieces" name="total-size-piece-length-piece-size-num-pieces">total_size() piece_length() piece_size() num_pieces()</a></h2>
 <blockquote>
 <pre class="literal-block">
 size_type total_size() const;
@@ -1256,8 +1464,8 @@ the piece index as argument and gives you the exact size of that piece. It will 
 be the same as <tt class="docutils literal"><span class="pre">piece_length()</span></tt> except in the case of the last piece, which may
 be smaller.</p>
 </div>
-<div class="section" id="hash-for-piece-info-hash">
-<h2><a name="hash-for-piece-info-hash">hash_for_piece() info_hash()</a></h2>
+<div class="section">
+<h2><a id="hash-for-piece-info-hash" name="hash-for-piece-info-hash">hash_for_piece() info_hash()</a></h2>
 <blockquote>
 <pre class="literal-block">
 size_type piece_size(unsigned int index) const;
@@ -1266,10 +1474,12 @@ sha1_hash const&amp; hash_for_piece(unsigned int index) const;
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">hash_for_piece()</span></tt> takes a piece-index and returns the 20-bytes sha1-hash for that
 piece and <tt class="docutils literal"><span class="pre">info_hash()</span></tt> returns the 20-bytes sha1-hash for the info-section of the
-torrent file. For more information on the <tt class="docutils literal"><span class="pre">sha1_hash</span></tt>, see the <a class="reference" href="#big-number">big_number</a> class.</p>
+torrent file. For more information on the <tt class="docutils literal"><span class="pre">sha1_hash</span></tt>, see the <a class="reference" href="#big-number">big_number</a> class.
+<tt class="docutils literal"><span class="pre">info_hash()</span></tt> will only return a valid hash if the torrent_info was read from a
+<tt class="docutils literal"><span class="pre">.torrent</span></tt> file or if an <tt class="docutils literal"><span class="pre">entry</span></tt> was created from it (through <tt class="docutils literal"><span class="pre">create_torrent</span></tt>).</p>
 </div>
-<div class="section" id="name-comment-creation-date-creator">
-<h2><a name="name-comment-creation-date-creator">name() comment() creation_date() creator()</a></h2>
+<div class="section">
+<h2><a id="name-comment-creation-date-creator" name="name-comment-creation-date-creator">name() comment() creation_date() creator()</a></h2>
 <blockquote>
 <pre class="literal-block">
 std::string const&amp; name() const;
@@ -1287,8 +1497,8 @@ in the torrent file, this will return a date of january 1:st 1970.</p>
 it will return an empty string.</p>
 </div>
 </div>
-<div class="section" id="torrent-handle">
-<h1><a name="torrent-handle">torrent_handle</a></h1>
+<div class="section">
+<h1><a id="torrent-handle" name="torrent-handle">torrent_handle</a></h1>
 <p>You will usually have to store your torrent handles somewhere, since it's the
 object through which you retrieve infromation about the torrent and aborts the torrent.
 Its declaration looks like this:</p>
@@ -1306,7 +1516,7 @@ struct torrent_handle
         entry write_resume_data() const;
         std::vector&lt;char&gt; const&amp; metadata() const;
         void force_reannounce() const;
-        void connect_peer(address const&amp; adr) const;
+        void connect_peer(asio::ipv4::tcp::endpoint const&amp; adr) const;
 
         void set_tracker_login(std::string const&amp; username
                 , std::string const&amp; password) const;
@@ -1314,11 +1524,17 @@ struct torrent_handle
         std::vector&lt;announce_entry&gt; const&amp; trackers() const;
         void replace_trackers(std::vector&lt;announce_entry&gt; const&amp;);
 
+        void add_url_seed(std::string const&amp; url);
+
         void set_ratio(float ratio) const;
         void set_max_uploads(int max_uploads) const;
         void set_max_connections(int max_connections) const;
         void set_upload_limit(int limit) const;
         void set_download_limit(int limit) const;
+
+        void set_peer_upload_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
+        void set_peer_download_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
+
         void use_interface(char const* net_interface) const;
 
         void pause() const;
@@ -1349,8 +1565,8 @@ struct torrent_handle
 perform any operation on it, unless you first assign it a valid handle. If you try to perform
 any operation on an uninitialized handle, it will throw <tt class="docutils literal"><span class="pre">invalid_handle</span></tt>.</p>
 <p><em>TODO: document filter_piece(), filter_pieces(), is_piece_filtered(), filtered_pieces() and filter_files()</em></p>
-<div class="section" id="save-path">
-<h2><a name="save-path">save_path()</a></h2>
+<div class="section">
+<h2><a id="save-path" name="save-path">save_path()</a></h2>
 <blockquote>
 <pre class="literal-block">
 boost::filsystem::path save_path() const;
@@ -1359,8 +1575,8 @@ boost::filsystem::path save_path() const;
 <p><tt class="docutils literal"><span class="pre">save_path()</span></tt> returns the path that was given to <a class="reference" href="#add-torrent">add_torrent()</a> when this torrent
 was started.</p>
 </div>
-<div class="section" id="move-storage">
-<h2><a name="move-storage">move_storage()</a></h2>
+<div class="section">
+<h2><a id="move-storage" name="move-storage">move_storage()</a></h2>
 <blockquote>
 <pre class="literal-block">
 bool move_storage(boost::filsystem::path const&amp; save_path) const;
@@ -1372,8 +1588,8 @@ the same drive as the original save path. If the move operation fails, this func
 returns false, otherwise true. Post condition for successful operation is:
 <tt class="docutils literal"><span class="pre">save_path()</span> <span class="pre">==</span> <span class="pre">save_path</span></tt>.</p>
 </div>
-<div class="section" id="force-reannounce">
-<h2><a name="force-reannounce">force_reannounce()</a></h2>
+<div class="section">
+<h2><a id="force-reannounce" name="force-reannounce">force_reannounce()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void force_reannounce() const;
@@ -1383,11 +1599,11 @@ void force_reannounce() const;
 peers. If the torrent is invalid, queued or in checking mode, this functions will throw
 <a class="reference" href="#invalid-handle">invalid_handle</a>.</p>
 </div>
-<div class="section" id="connect-peer">
-<h2><a name="connect-peer">connect_peer()</a></h2>
+<div class="section">
+<h2><a id="connect-peer" name="connect-peer">connect_peer()</a></h2>
 <blockquote>
 <pre class="literal-block">
-void connect_peer(address const&amp; adr) const;
+void connect_peer(asio::ipv4::tcp::endpoint const&amp; adr) const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">connect_peer()</span></tt> is a way to manually connect to peers that one believe is a part of the
@@ -1396,8 +1612,8 @@ be disconnected. No harm can be done by using this other than an unnecessary con
 attempt is made. If the torrent is uninitialized or in queued or checking mode, this
 will throw <a class="reference" href="#invalid-handle">invalid_handle</a>.</p>
 </div>
-<div class="section" id="set-ratio">
-<h2><a name="set-ratio">set_ratio()</a></h2>
+<div class="section">
+<h2><a id="set-ratio" name="set-ratio">set_ratio()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void set_ratio(float ratio) const;
@@ -1411,8 +1627,8 @@ attempt to upload in return for each download. e.g. if set to 2, the client will
 2 bytes for every byte received. The default setting for this is 0, which will make it work
 as a standard client.</p>
 </div>
-<div class="section" id="set-upload-limit-set-download-limit">
-<h2><a name="set-upload-limit-set-download-limit">set_upload_limit() set_download_limit()</a></h2>
+<div class="section">
+<h2><a id="set-upload-limit-set-download-limit" name="set-upload-limit-set-download-limit">set_upload_limit() set_download_limit()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void set_upload_limit(int limit) const;
@@ -1426,8 +1642,19 @@ Note that setting a higher limit on a torrent then the global limit (<tt class="
 will not override the global rate limit. The torrent can never upload more than the global rate
 limit.</p>
 </div>
-<div class="section" id="pause-resume-is-paused">
-<h2><a name="pause-resume-is-paused">pause() resume() is_paused()</a></h2>
+<div class="section">
+<h2><a id="set-peer-upload-limit-set-peer-download-limit" name="set-peer-upload-limit-set-peer-download-limit">set_peer_upload_limit() set_peer_download_limit()</a></h2>
+<blockquote>
+<pre class="literal-block">
+void set_peer_upload_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
+void set_peer_download_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
+</pre>
+</blockquote>
+<p>Works like <tt class="docutils literal"><span class="pre">set_upload_limit</span></tt> and <tt class="docutils literal"><span class="pre">set_download_limit</span></tt> respectively, but controls individual
+peer instead of the whole torrent.</p>
+</div>
+<div class="section">
+<h2><a id="pause-resume-is-paused" name="pause-resume-is-paused">pause() resume() is_paused()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void pause() const;
@@ -1441,8 +1668,8 @@ all potential (not connected) peers. You can use <tt class="docutils literal"><s
 is currently paused. Torrents may be paused automatically if there is a file error (eg. disk full)
 or something similar. See <a class="reference" href="#file-error-alert">file_error_alert</a>.</p>
 </div>
-<div class="section" id="is-seed">
-<h2><a name="is-seed">is_seed()</a></h2>
+<div class="section">
+<h2><a id="is-seed" name="is-seed">is_seed()</a></h2>
 <blockquote>
 <pre class="literal-block">
 bool is_seed() const;
@@ -1450,8 +1677,8 @@ bool is_seed() const;
 </blockquote>
 <p>Returns true if the torrent is in seed mode (i.e. if it has finished downloading).</p>
 </div>
-<div class="section" id="has-metadata">
-<h2><a name="has-metadata">has_metadata()</a></h2>
+<div class="section">
+<h2><a id="has-metadata" name="has-metadata">has_metadata()</a></h2>
 <blockquote>
 <pre class="literal-block">
 bool has_metadata() const;
@@ -1462,8 +1689,8 @@ metadata has been downloaded). The only scenario where this can return false is 
 was started torrent-less (i.e. with just an info-hash and tracker ip). Note that if the torrent
 doesn't have metadata, the member <a class="reference" href="#get-torrent-info">get_torrent_info()</a> will throw.</p>
 </div>
-<div class="section" id="set-tracker-login">
-<h2><a name="set-tracker-login">set_tracker_login()</a></h2>
+<div class="section">
+<h2><a id="set-tracker-login" name="set-tracker-login">set_tracker_login()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void set_tracker_login(std::string const&amp; username
@@ -1473,8 +1700,8 @@ void set_tracker_login(std::string const&amp; username
 <p><tt class="docutils literal"><span class="pre">set_tracker_login()</span></tt> sets a username and password that will be sent along in the HTTP-request
 of the tracker announce. Set this if the tracker requires authorization.</p>
 </div>
-<div class="section" id="trackers-replace-trackers">
-<h2><a name="trackers-replace-trackers">trackers() replace_trackers()</a></h2>
+<div class="section">
+<h2><a id="trackers-replace-trackers" name="trackers-replace-trackers">trackers() replace_trackers()</a></h2>
 <blockquote>
 <pre class="literal-block">
 std::vector&lt;announce_entry&gt; const&amp; trackers() const;
@@ -1490,8 +1717,21 @@ a list of the same form as the one returned from <tt class="docutils literal"><s
 replace it. If you want an immediate effect, you have to call
 <a class="reference" href="#force-reannounce">force_reannounce()</a>.</p>
 </div>
-<div class="section" id="use-interface">
-<h2><a name="use-interface">use_interface()</a></h2>
+<div class="section">
+<h2><a id="add-url-seed" name="add-url-seed">add_url_seed()</a></h2>
+<blockquote>
+<pre class="literal-block">
+void add_url_seed(std::string const&amp; url);
+</pre>
+</blockquote>
+<p><tt class="docutils literal"><span class="pre">add_url_seed()</span></tt> adds another url to the torrent's list of url seeds. If the
+given url already exists in that list, the call has no effect. The torrent
+will connect to the server and try to download pieces from it, unless it's
+paused, queued, checking or seeding.</p>
+<p>See <a class="reference" href="#http-seeding">HTTP seeding</a> for more information.</p>
+</div>
+<div class="section">
+<h2><a id="use-interface" name="use-interface">use_interface()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void use_interface(char const* net_interface) const;
@@ -1501,8 +1741,8 @@ void use_interface(char const* net_interface) const;
 connections. By default, it uses the same interface as the <a class="reference" href="#session">session</a> uses to listen on. The
 parameter can be a string containing an ip-address or a hostname.</p>
 </div>
-<div class="section" id="info-hash">
-<h2><a name="info-hash">info_hash()</a></h2>
+<div class="section">
+<h2><a id="info-hash" name="info-hash">info_hash()</a></h2>
 <blockquote>
 <pre class="literal-block">
 sha1_hash info_hash() const;
@@ -1510,8 +1750,8 @@ sha1_hash info_hash() const;
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">info_hash()</span></tt> returns the info-hash for the torrent.</p>
 </div>
-<div class="section" id="id11">
-<h2><a name="id11">set_max_uploads() set_max_connections()</a></h2>
+<div class="section">
+<h2><a id="id12" name="id12">set_max_uploads() set_max_connections()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void set_max_uploads(int max_uploads) const;
@@ -1525,8 +1765,8 @@ connections are used up, incoming connections may be refused or poor connections
 This must be at least 2. The default is unlimited number of connections. If -1 is given to the
 function, it means unlimited.</p>
 </div>
-<div class="section" id="write-resume-data">
-<h2><a name="write-resume-data">write_resume_data()</a></h2>
+<div class="section">
+<h2><a id="write-resume-data" name="write-resume-data">write_resume_data()</a></h2>
 <blockquote>
 <pre class="literal-block">
 entry write_resume_data() const;
@@ -1548,8 +1788,8 @@ not be ready to write resume data.</li>
 is still downloading! The recommended practice is to first pause the torrent, then generate the
 fast resume data, and then close it down.</p>
 </div>
-<div class="section" id="metadata">
-<h2><a name="metadata">metadata()</a></h2>
+<div class="section">
+<h2><a id="metadata" name="metadata">metadata()</a></h2>
 <blockquote>
 <pre class="literal-block">
 std::vector&lt;char&gt; const&amp; metadata() const;
@@ -1559,8 +1799,8 @@ std::vector&lt;char&gt; const&amp; metadata() const;
 .torrent file. This buffer will be valid as long as the torrent is still running. When hashed,
 it will produce the same hash as the info-hash.</p>
 </div>
-<div class="section" id="id12">
-<h2><a name="id12">status()</a></h2>
+<div class="section">
+<h2><a id="id13" name="id13">status()</a></h2>
 <blockquote>
 <pre class="literal-block">
 torrent_status status() const;
@@ -1570,8 +1810,8 @@ torrent_status status() const;
 torrent. If the <a class="reference" href="#torrent-handle">torrent_handle</a> is invalid, it will throw <a class="reference" href="#invalid-handle">invalid_handle</a> exception.
 See <a class="reference" href="#torrent-status">torrent_status</a>.</p>
 </div>
-<div class="section" id="get-download-queue">
-<h2><a name="get-download-queue">get_download_queue()</a></h2>
+<div class="section">
+<h2><a id="get-download-queue" name="get-download-queue">get_download_queue()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void get_download_queue(std::vector&lt;partial_piece_info&gt;&amp; queue) const;
@@ -1607,8 +1847,8 @@ or not. And the <tt class="docutils literal"><span class="pre">num_downloads</sp
 When a piece fails a hash verification, single blocks may be redownloaded to see if the hash teast
 may pass then.</p>
 </div>
-<div class="section" id="get-peer-info">
-<h2><a name="get-peer-info">get_peer_info()</a></h2>
+<div class="section">
+<h2><a id="get-peer-info" name="get-peer-info">get_peer_info()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void get_peer_info(std::vector&lt;peer_info&gt;&amp;) const;
@@ -1619,8 +1859,8 @@ with one entry for each peer connected to this torrent, given the handle is vali
 <a class="reference" href="#torrent-handle">torrent_handle</a> is invalid, it will throw <a class="reference" href="#invalid-handle">invalid_handle</a> exception. Each entry in
 the vector contains information about that particular peer. See <a class="reference" href="#peer-info">peer_info</a>.</p>
 </div>
-<div class="section" id="get-torrent-info">
-<h2><a name="get-torrent-info">get_torrent_info()</a></h2>
+<div class="section">
+<h2><a id="get-torrent-info" name="get-torrent-info">get_torrent_info()</a></h2>
 <blockquote>
 <pre class="literal-block">
 torrent_info const&amp; get_torrent_info() const;
@@ -1633,8 +1873,8 @@ exception will be thrown. The torrent may be in a state without metadata only if
 it was started without a .torrent file, i.e. by using the libtorrent extension of
 just supplying a tracker and info-hash.</p>
 </div>
-<div class="section" id="is-valid">
-<h2><a name="is-valid">is_valid()</a></h2>
+<div class="section">
+<h2><a id="is-valid" name="is-valid">is_valid()</a></h2>
 <blockquote>
 <pre class="literal-block">
 bool is_valid() const;
@@ -1649,8 +1889,8 @@ that refers to that torrent will become invalid.</p>
 <p><em>TODO: document storage</em></p>
 </div>
 </div>
-<div class="section" id="torrent-status">
-<h1><a name="torrent-status">torrent_status</a></h1>
+<div class="section">
+<h1><a id="torrent-status" name="torrent-status">torrent_status</a></h1>
 <p>It contains the following fields:</p>
 <pre class="literal-block">
 struct torrent_status
@@ -1681,6 +1921,7 @@ struct torrent_status
         size_type total_payload_upload;
 
         size_type total_failed_bytes;
+        size_type total_redundant_bytes;
 
         float download_rate;
         float upload_rate;
@@ -1694,6 +1935,8 @@ struct torrent_status
         int num_incomplete;
 
         const std::vector&lt;bool&gt;* pieces;
+        int num_pieces;
+
         size_type total_done;
         size_type total_wanted_done;
         size_type total_wanted;
@@ -1763,9 +2006,21 @@ data), these counters ignore any protocol overhead.</p>
 <p><tt class="docutils literal"><span class="pre">total_failed_bytes</span></tt> is the number of bytes that has been downloaded and that
 has failed the piece hash test. In other words, this is just how much crap that
 has been downloaded.</p>
+<p><tt class="docutils literal"><span class="pre">total_redundant_bytes</span></tt> is the number of bytes that has been downloaded even
+though that data already was downloaded. The reason for this is that in some
+situations the same data can be downloaded by mistake. When libtorrent sends
+requests to a peer, and the peer doesn't send a response within a certain
+timeout, libtorrent will re-request that block. Another situation when
+libtorrent will re-request blocks is when the requests it sends out are not
+replyed in FIFO-order (it will re-request blocks that are skipped by an out of
+order block). This is supposed to be as low as possible.</p>
 <p><tt class="docutils literal"><span class="pre">pieces</span></tt> is the bitmask that represents which pieces we have (set to true) and
 the pieces we don't have. It's a pointer and may be set to 0 if the torrent isn't
 downloading or seeding.</p>
+<p><tt class="docutils literal"><span class="pre">num_pieces</span></tt> is the number of pieces that has been downloaded. It is equivalent
+to: <tt class="docutils literal"><span class="pre">std::accumulate(pieces-&gt;begin(),</span> <span class="pre">pieces-&gt;end())</span></tt>. So you don't have to
+count yourself. This can be used to see if anything has updated since last time
+if you want to keep a graph of the pieces up to date.</p>
 <p><tt class="docutils literal"><span class="pre">download_rate</span></tt> and <tt class="docutils literal"><span class="pre">upload_rate</span></tt> are the total rates for all peers for this
 torrent. These will usually have better precision than summing the rates from
 all peers. The rates are given as the number of bytes per second. The
@@ -1805,8 +2060,8 @@ bytes that each bit in the <tt class="docutils literal"><span class="pre">partia
 (see <a class="reference" href="#get-download-queue">get_download_queue()</a>). This is typically 16 kB, but it may be
 larger if the pieces are larger.</p>
 </div>
-<div class="section" id="peer-info">
-<h1><a name="peer-info">peer_info</a></h1>
+<div class="section">
+<h1><a id="peer-info" name="peer-info">peer_info</a></h1>
 <p>It contains the following fields:</p>
 <pre class="literal-block">
 struct peer_info
@@ -1819,22 +2074,23 @@ struct peer_info
                 remote_choked = 0x8,
                 supports_extensions = 0x10,
                 local_connection = 0x20,
-                connecting = 0x40,
-                queued = 0x80
+                handshake = 0x40,
+                connecting = 0x80,
+                queued = 0x100
         };
         unsigned int flags;
-        address ip;
+        asio::ipv4::tcp::endpoint ip;
         float up_speed;
         float down_speed;
         float payload_up_speed;
         float payload_down_speed;
         size_type total_download;
         size_type total_upload;
-        peer_id id;
+        peer_id pid;
         std::vector&lt;bool&gt; pieces;
         bool seed;
         int upload_limit;
-        int upload_ceiling;
+        int download_limit;
 
         size_type load_balancing;
 
@@ -1845,6 +2101,15 @@ struct peer_info
         int downloading_block_index;
         int downloading_progress;
         int downloading_total;
+
+        std::string client;
+
+        enum
+        {
+                standard_bittorrent = 0,
+                web_seed = 1
+        };
+        int connection_type;
 };
 </pre>
 <p>The <tt class="docutils literal"><span class="pre">flags</span></tt> attribute tells you in which state the peer is. It is set to
@@ -1874,9 +2139,14 @@ any combination of the enums above. The following table describes each flag:</p>
 <tr><td><tt class="docutils literal"><span class="pre">local_connection</span></tt></td>
 <td>The connection was initiated by us, the peer has a
 listen port open, and that port is the same as in the
-<a class="reference" href="#address">address</a> of this peer. If this flag is not set, this
+address of this peer. If this flag is not set, this
 peer connection was opened by this peer connecting to
 us.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">handshake</span></tt></td>
+<td>The connection is opened, and waiting for the
+handshake. Until the handshake is done, the peer
+cannot be identified.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">connecting</span></tt></td>
 <td>The connection is in a half-open state (i.e. it is
@@ -1889,8 +2159,8 @@ the number of half-open TCP connections.</td>
 </tr>
 </tbody>
 </table>
-<p>The <tt class="docutils literal"><span class="pre">ip</span></tt> field is the IP-address to this peer. Its type is a wrapper around the
-actual address and the port number. See <a class="reference" href="#address">address</a> class.</p>
+<p>The <tt class="docutils literal"><span class="pre">ip</span></tt> field is the IP-address to this peer. The type is an asio endpoint. For
+more info, see the <a class="reference" href="http://asio.sf.net">asio</a> documentation.</p>
 <p><tt class="docutils literal"><span class="pre">up_speed</span></tt> and <tt class="docutils literal"><span class="pre">down_speed</span></tt> contains the current upload and download speed
 we have to and from this peer (including any protocol messages). The transfer rates
 of payload data only are found in <tt class="docutils literal"><span class="pre">payload_up_speed</span></tt> and <tt class="docutils literal"><span class="pre">payload_down_speed</span></tt>.
@@ -1898,7 +2168,7 @@ These figures are updated aproximately once every second.</p>
 <p><tt class="docutils literal"><span class="pre">total_download</span></tt> and <tt class="docutils literal"><span class="pre">total_upload</span></tt> are the total number of bytes downloaded
 from and uploaded to this peer. These numbers do not include the protocol chatter, but only
 the payload data.</p>
-<p><tt class="docutils literal"><span class="pre">id</span></tt> is the peer's id as used in the bit torrent protocol. This id can be used to
+<p><tt class="docutils literal"><span class="pre">pid</span></tt> is the peer's id as used in the bit torrent protocol. This id can be used to
 extract 'fingerprints' from the peer. Sometimes it can tell you which client the peer
 is using. See identify_client()_</p>
 <p><tt class="docutils literal"><span class="pre">pieces</span></tt> is a vector of booleans that has as many entries as there are pieces
@@ -1908,9 +2178,8 @@ or if the peer miss that piece (set to false).</p>
 <p><tt class="docutils literal"><span class="pre">upload_limit</span></tt> is the number of bytes per second we are allowed to send to this
 peer every second. It may be -1 if there's no limit. The upload limits of all peers
 should sum up to the upload limit set by <tt class="docutils literal"><span class="pre">session::set_upload_limit</span></tt>.</p>
-<p><tt class="docutils literal"><span class="pre">upload_ceiling</span></tt> is the current maximum allowed upload rate given the cownload
-rate and share ratio. If the global upload rate is inlimited, the <tt class="docutils literal"><span class="pre">upload_limit</span></tt>
-for every peer will be the same as their <tt class="docutils literal"><span class="pre">upload_ceiling</span></tt>.</p>
+<p><tt class="docutils literal"><span class="pre">download_limit</span></tt> is the number of bytes per second this peer is allowed to
+receive. -1 means it's unlimited.</p>
 <p><tt class="docutils literal"><span class="pre">load_balancing</span></tt> is a measurment of the balancing of free download (that we get)
 and free upload that we give. Every peer gets a certain amount of free upload, but
 this member says how much <em>extra</em> free upload this peer has got. If it is a negative
@@ -1928,42 +2197,16 @@ This may be set to -1 if there's currently no piece downloading from this peer. 
 block (or sub-piece) that is being downloaded. <tt class="docutils literal"><span class="pre">downloading_progress</span></tt> is the number
 of bytes of this block we have received from the peer, and <tt class="docutils literal"><span class="pre">downloading_total</span></tt> is
 the total number of bytes in this block.</p>
+<p><tt class="docutils literal"><span class="pre">client</span></tt> is a string describing the software at the other end of the connection.
+In some cases this information is not available, then it will contain a string
+that may give away something about which software is running in the other end.
+In the case of a web seed, the server type and version will be a part of this
+string.</p>
+<p><tt class="docutils literal"><span class="pre">connection_type</span></tt> can currently be one of <tt class="docutils literal"><span class="pre">standard_bittorrent</span></tt> or
+<tt class="docutils literal"><span class="pre">web_seed</span></tt>. These are currently the only implemented protocols.</p>
 </div>
-<div class="section" id="address">
-<h1><a name="address">address</a></h1>
-<p>The <tt class="docutils literal"><span class="pre">address</span></tt> class represents a name of a network endpoint (usually referred to as
-IP-address) and a port number. This is the same thing as a <tt class="docutils literal"><span class="pre">sockaddr_in</span></tt> would contain.
-Its declaration looks like this:</p>
-<pre class="literal-block">
-class address
-{
-public:
-        address();
-        address(unsigned char a
-                , unsigned char b
-                , unsigned char c
-                , unsigned char d
-                , unsigned short  port);
-        address(unsigned int addr, unsigned short port);
-        address(const std::string&amp; addr, unsigned short port);
-        address(const address&amp; a);
-        ~address();
-
-        std::string as_string() const;
-        unsigned int ip() const;
-        unsigned short port() const;
-
-        bool operator&lt;(const address&amp; a) const;
-        bool operator!=(const address&amp; a) const;
-        bool operator==(const address&amp; a) const;
-};
-</pre>
-<p>It is less-than comparable to make it possible to use it as a key in a map. <tt class="docutils literal"><span class="pre">as_string()</span></tt> may block
-while it does the DNS lookup, it returns a string that points to the address represented by the object.</p>
-<p><tt class="docutils literal"><span class="pre">ip()</span></tt> will return the 32-bit ip-address as an integer. <tt class="docutils literal"><span class="pre">port()</span></tt> returns the port number.</p>
-</div>
-<div class="section" id="http-settings">
-<h1><a name="http-settings">http_settings</a></h1>
+<div class="section">
+<h1><a id="http-settings" name="http-settings">http_settings</a></h1>
 <p>You have some control over tracker requests through the <tt class="docutils literal"><span class="pre">http_settings</span></tt> object. You
 create it and fill it with your settings and then use <tt class="docutils literal"><span class="pre">session::set_http_settings()</span></tt>
 to apply them. You have control over proxy and authorization settings and also the user-agent
@@ -1977,7 +2220,8 @@ struct http_settings
         std::string proxy_login;
         std::string proxy_password;
         std::string user_agent;
-        int tracker_timeout;
+        int tracker_completion_timeout;
+        int tracker_receive_timeout;
         int tracker_maximum_response_length;
 };
 </pre>
@@ -1990,10 +2234,17 @@ empty, the http proxy will be tried to be used without authentication.</p>
 <p><tt class="docutils literal"><span class="pre">proxy_password</span></tt> the password string for the http proxy.</p>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker. It will
 be followed by the string &quot;(libtorrent)&quot; to identify that this library
-is being used. This should be set to your client's name and version number.</p>
-<p><tt class="docutils literal"><span class="pre">tracker_timeout</span></tt> is the number of seconds the tracker connection will
-wait until it considers the tracker to have timed-out. Default value is 10
-seconds.</p>
+is being used. This should be set to your client's name and version number.
+This name will not only be used when making HTTP requests, but also when
+sending extended headers to peers that support that extension.</p>
+<p><tt class="docutils literal"><span class="pre">tracker_completion_timeout</span></tt> is the number of seconds the tracker
+connection will wait from when it sent the request until it considers the
+tracker to have timed-out. Default value is 60 seconds.</p>
+<p><tt class="docutils literal"><span class="pre">tracker_receive_timeout</span></tt> is the number of seconds to wait to receive
+any data from the tracker. If no data is received for this number of
+seconds, the tracker will be considered as having timed out. If a tracker
+is down, this is the kind of timeout that will occur. The default value
+is 20 seconds.</p>
 <p><tt class="docutils literal"><span class="pre">tracker_maximum_response_length</span></tt> is the maximum number of bytes in a
 tracker response. If a response size passes this number it will be rejected
 and the connection will be closed. On gzipped responses this size is measured
@@ -2002,11 +2253,13 @@ expand to 2 megs, it will be interrupted before the entire response has been
 uncompressed (given your limit is lower than 2 megs). Default limit is
 1 megabyte.</p>
 </div>
-<div class="section" id="ip-filter">
-<h1><a name="ip-filter">ip_filter</a></h1>
+<div class="section">
+<h1><a id="ip-filter" name="ip-filter">ip_filter</a></h1>
 <p>The <tt class="docutils literal"><span class="pre">ip_filter</span></tt> class is a set of rules that uniquely categorizes all
 ip addresses as allowed or disallowed. The default constructor creates
-a single rule that allowes all addresses (0.0.0.0 - 255.255.255.255).</p>
+a single rule that allowes all addresses (0.0.0.0 - 255.255.255.255).
+The <tt class="docutils literal"><span class="pre">address</span></tt> type here is <tt class="docutils literal"><span class="pre">asio::ipv4::address</span></tt>. It can also be
+accessed as <tt class="docutils literal"><span class="pre">libtorrent::address</span></tt>.</p>
 <blockquote>
 <pre class="literal-block">
 class ip_filter
@@ -2029,8 +2282,8 @@ public:
 };
 </pre>
 </blockquote>
-<div class="section" id="id14">
-<h2><a name="id14">ip_filter()</a></h2>
+<div class="section">
+<h2><a id="id16" name="id16">ip_filter()</a></h2>
 <blockquote>
 <pre class="literal-block">
 ip_filter()
@@ -2040,8 +2293,8 @@ ip_filter()
 <p>postcondition:
 <tt class="docutils literal"><span class="pre">access(x)</span> <span class="pre">==</span> <span class="pre">0</span></tt> for every <tt class="docutils literal"><span class="pre">x</span></tt></p>
 </div>
-<div class="section" id="add-rule">
-<h2><a name="add-rule">add_rule()</a></h2>
+<div class="section">
+<h2><a id="add-rule" name="add-rule">add_rule()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void add_rule(address first, address last, int flags);
@@ -2056,8 +2309,8 @@ means disallowed.</p>
 <p>This means that in a case of overlapping ranges, the last one applied takes
 precedence.</p>
 </div>
-<div class="section" id="access">
-<h2><a name="access">access()</a></h2>
+<div class="section">
+<h2><a id="access" name="access">access()</a></h2>
 <blockquote>
 <pre class="literal-block">
 int access(address const&amp; addr) const;
@@ -2068,8 +2321,8 @@ can currently be 0 or <tt class="docutils literal"><span class="pre">ip_filter::
 is O(<tt class="docutils literal"><span class="pre">log</span></tt> n), where n is the minimum number of non-overlapping ranges to describe
 the current filter.</p>
 </div>
-<div class="section" id="export-filter">
-<h2><a name="export-filter">export_filter()</a></h2>
+<div class="section">
+<h2><a id="export-filter" name="export-filter">export_filter()</a></h2>
 <blockquote>
 <pre class="literal-block">
 std::vector&lt;ip_range&gt; export_filter() const;
@@ -2081,8 +2334,8 @@ entry in the returned vector is a range with the access control specified in its
 <tt class="docutils literal"><span class="pre">flags</span></tt> field.</p>
 </div>
 </div>
-<div class="section" id="big-number">
-<h1><a name="big-number">big_number</a></h1>
+<div class="section">
+<h1><a id="big-number" name="big-number">big_number</a></h1>
 <p>Both the <tt class="docutils literal"><span class="pre">peer_id</span></tt> and <tt class="docutils literal"><span class="pre">sha1_hash</span></tt> types are typedefs of the class
 <tt class="docutils literal"><span class="pre">big_number</span></tt>. It represents 20 bytes of data. Its synopsis follows:</p>
 <pre class="literal-block">
@@ -2102,16 +2355,17 @@ public:
 </pre>
 <p>The iterators gives you access to individual bytes.</p>
 </div>
-<div class="section" id="hasher">
-<h1><a name="hasher">hasher</a></h1>
+<div class="section">
+<h1><a id="hasher" name="hasher">hasher</a></h1>
 <p>This class creates sha1-hashes. Its declaration looks like this:</p>
 <pre class="literal-block">
 class hasher
 {
 public:
         hasher();
+        hasher(char const* data, unsigned int len);
 
-        void update(const char* data, unsigned int len);
+        void update(char const* data, unsigned int len);
         sha1_hash final();
         void reset();
 };
@@ -2121,13 +2375,15 @@ with data. i.e. you don't have to keep the entire buffer of which you want to
 create the hash in memory. You can feed the hasher parts of it at a time. When
 You have fed the hasher with all the data, you call <tt class="docutils literal"><span class="pre">final()</span></tt> and it
 will return the sha1-hash of the data.</p>
+<p>The constructor that takes a <tt class="docutils literal"><span class="pre">char</span> <span class="pre">const*</span></tt> and an integer will construct the
+sha1 context and feed it the data passed in.</p>
 <p>If you want to reuse the hasher object once you have created a hash, you have to
 call <tt class="docutils literal"><span class="pre">reset()</span></tt> to reinitialize it.</p>
 <p>The sha1-algorithm used was implemented by Steve Reid and released as public domain.
 For more info, see <tt class="docutils literal"><span class="pre">src/sha1.cpp</span></tt>.</p>
 </div>
-<div class="section" id="fingerprint">
-<h1><a name="fingerprint">fingerprint</a></h1>
+<div class="section">
+<h1><a id="fingerprint" name="fingerprint">fingerprint</a></h1>
 <p>The fingerprint class represents information about a client and its version. It is used
 to encode this information into the client's peer id.</p>
 <p>This is the class declaration:</p>
@@ -2139,7 +2395,7 @@ struct fingerprint
 
         std::string to_string() const;
 
-        char id[2];
+        char name[2];
         char major_version;
         char minor_version;
         char revision_version;
@@ -2156,8 +2412,8 @@ sure not to clash with anybody else. Here are some taken id's:</p>
 <col width="70%" />
 </colgroup>
 <thead valign="bottom">
-<tr><th>id chars</th>
-<th>client</th>
+<tr><th class="head">id chars</th>
+<th class="head">client</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -2189,10 +2445,10 @@ sure not to clash with anybody else. Here are some taken id's:</p>
 version of your client. All these numbers must be within the range [0, 9].</p>
 <p><tt class="docutils literal"><span class="pre">to_string()</span></tt> will generate the actual string put in the peer-id, and return it.</p>
 </div>
-<div class="section" id="free-functions">
-<h1><a name="free-functions">free functions</a></h1>
-<div class="section" id="identify-client">
-<h2><a name="identify-client">identify_client()</a></h2>
+<div class="section">
+<h1><a id="free-functions" name="free-functions">free functions</a></h1>
+<div class="section">
+<h2><a id="identify-client" name="identify-client">identify_client()</a></h2>
 <blockquote>
 <pre class="literal-block">
 std::string identify_client(peer_id const&amp; id);
@@ -2202,8 +2458,8 @@ std::string identify_client(peer_id const&amp; id);
 to extract a string describing a client version from its peer-id. It will recognize most clients
 that have this kind of identification in the peer-id.</p>
 </div>
-<div class="section" id="bdecode-bencode">
-<h2><a name="bdecode-bencode">bdecode() bencode()</a></h2>
+<div class="section">
+<h2><a id="bdecode-bencode" name="bdecode-bencode">bdecode() bencode()</a></h2>
 <blockquote>
 <pre class="literal-block">
 template&lt;class InIt&gt; entry bdecode(InIt start, InIt end);
@@ -2243,8 +2499,8 @@ entry e = bdecode(buf, buf + data_size);
 it will throw <a class="reference" href="#invalid-encoding">invalid_encoding</a>.</p>
 </div>
 </div>
-<div class="section" id="alerts">
-<h1><a name="alerts">alerts</a></h1>
+<div class="section">
+<h1><a id="alerts" name="alerts">alerts</a></h1>
 <p>The <tt class="docutils literal"><span class="pre">pop_alert()</span></tt> function on session is the interface for retrieving
 alerts, warnings, messages and errors from libtorrent. If there hasn't
 occured any errors (matching your severity level) <tt class="docutils literal"><span class="pre">pop_alert()</span></tt> will
@@ -2325,8 +2581,8 @@ public:
 have a severity level that can be used to sort them or present them to the
 user in different ways.</p>
 <p>The specific alerts, that all derives from <tt class="docutils literal"><span class="pre">alert</span></tt>, are:</p>
-<div class="section" id="listen-failed-alert">
-<h2><a name="listen-failed-alert">listen_failed_alert</a></h2>
+<div class="section">
+<h2><a id="listen-failed-alert" name="listen-failed-alert">listen_failed_alert</a></h2>
 <p>This alert is generated when none of the ports, given in the port range, to
 <a class="reference" href="#session">session</a> can be opened for listening. This alert is generated as severity
 level <tt class="docutils literal"><span class="pre">fatal</span></tt>.</p>
@@ -2338,8 +2594,8 @@ struct listen_failed_alert: alert
 };
 </pre>
 </div>
-<div class="section" id="file-error-alert">
-<h2><a name="file-error-alert">file_error_alert</a></h2>
+<div class="section">
+<h2><a id="file-error-alert" name="file-error-alert">file_error_alert</a></h2>
 <p>If the storage fails to read or write files that it needs access to, this alert is
 generated and the torrent is paused. It is generated as severity level <tt class="docutils literal"><span class="pre">fatal</span></tt>.</p>
 <pre class="literal-block">
@@ -2348,14 +2604,14 @@ struct file_error_alert: alert
         file_error_alert(
                 const torrent_handle&amp; h
                 , const std::string&amp; msg);
-                
+
         virtual std::auto_ptr&lt;alert&gt; clone() const;
         torrent_handle handle;
 };
 </pre>
 </div>
-<div class="section" id="tracker-announce-alert">
-<h2><a name="tracker-announce-alert">tracker_announce_alert</a></h2>
+<div class="section">
+<h2><a id="tracker-announce-alert" name="tracker-announce-alert">tracker_announce_alert</a></h2>
 <p>This alert is generated each time a tracker announce is sent (or attempted to be sent).
 It is generated at severity level <tt class="docutils literal"><span class="pre">info</span></tt>.</p>
 <pre class="literal-block">
@@ -2364,14 +2620,14 @@ struct tracker_announce_alert: alert
         tracker_announce_alert(
                 const torrent_handle&amp; h
                 , const std::string&amp; msg);
-                
+
         virtual std::auto_ptr&lt;alert&gt; clone() const;
         torrent_handle handle;
 };
 </pre>
 </div>
-<div class="section" id="tracker-alert">
-<h2><a name="tracker-alert">tracker_alert</a></h2>
+<div class="section">
+<h2><a id="tracker-alert" name="tracker-alert">tracker_alert</a></h2>
 <p>This alert is generated on tracker time outs, premature disconnects, invalid response or
 a HTTP response other than &quot;200 OK&quot;. From the alert you can get the handle to the torrent
 the tracker belongs to. This alert is generated as severity level <tt class="docutils literal"><span class="pre">warning</span></tt>.</p>
@@ -2392,8 +2648,8 @@ struct tracker_alert: alert
 };
 </pre>
 </div>
-<div class="section" id="tracker-reply-alert">
-<h2><a name="tracker-reply-alert">tracker_reply_alert</a></h2>
+<div class="section">
+<h2><a id="tracker-reply-alert" name="tracker-reply-alert">tracker_reply_alert</a></h2>
 <p>This alert is only for informational purpose. It is generated when a tracker announce
 succeeds. It is generated with severity level <tt class="docutils literal"><span class="pre">info</span></tt>.</p>
 <pre class="literal-block">
@@ -2407,8 +2663,8 @@ struct tracker_reply_alert: alert
 };
 </pre>
 </div>
-<div class="section" id="tracker-warning-alert">
-<h2><a name="tracker-warning-alert">tracker_warning_alert</a></h2>
+<div class="section">
+<h2><a id="tracker-warning-alert" name="tracker-warning-alert">tracker_warning_alert</a></h2>
 <p>This alert is triggered if the tracker reply contains a warning field. Usually this
 means that the tracker announce was successful, but the tracker has a message to
 the client. The message string in the alert will contain the warning message from
@@ -2424,8 +2680,23 @@ struct tracker_warning_alert: alert
 };
 </pre>
 </div>
-<div class="section" id="hash-failed-alert">
-<h2><a name="hash-failed-alert">hash_failed_alert</a></h2>
+<div class="section">
+<h2><a id="url-seed-alert" name="url-seed-alert">url_seed_alert</a></h2>
+<p>This alert is generated when a HTTP seed name lookup fails. This alert is
+generated as severity level <tt class="docutils literal"><span class="pre">warning</span></tt>.</p>
+<p>It contains <tt class="docutils literal"><span class="pre">url</span></tt> to the HTTP seed that failed along with an error message.</p>
+<pre class="literal-block">
+struct url_seed_alert: alert
+{
+        url_seed_alert(std::string const&amp; h, const std::string&amp; msg);
+        virtual std::auto_ptr&lt;alert&gt; clone() const;
+
+        std::string url;
+};
+</pre>
+</div>
+<div class="section">
+<h2><a id="hash-failed-alert" name="hash-failed-alert">hash_failed_alert</a></h2>
 <p>This alert is generated when a finished piece fails its hash check. You can get the handle
 to the torrent which got the failed piece and the index of the piece itself from the alert.
 This alert is generated as severity level <tt class="docutils literal"><span class="pre">info</span></tt>.</p>
@@ -2443,8 +2714,8 @@ struct hash_failed_alert: alert
 };
 </pre>
 </div>
-<div class="section" id="peer-ban-alert">
-<h2><a name="peer-ban-alert">peer_ban_alert</a></h2>
+<div class="section">
+<h2><a id="peer-ban-alert" name="peer-ban-alert">peer_ban_alert</a></h2>
 <p>This alert is generated when a peer is banned because it has sent too many corrupt pieces
 to us. It is generated at severity level <tt class="docutils literal"><span class="pre">info</span></tt>. The <tt class="docutils literal"><span class="pre">handle</span></tt> member is a <a class="reference" href="#torrent-handle">torrent_handle</a>
 to the torrent that this peer was a member of.</p>
@@ -2452,18 +2723,18 @@ to the torrent that this peer was a member of.</p>
 struct peer_ban_alert: alert
 {
         peer_ban_alert(
-                address const&amp; pip
+                asio::ipv4::tcp::endpoint const&amp; pip
                 , torrent_handle h
                 , const std::string&amp; msg);
 
         virtual std::auto_ptr&lt;alert&gt; clone() const;
-        address ip;
+        asio::ipv4::tcp::endpoint ip;
         torrent_handle handle;
 };
 </pre>
 </div>
-<div class="section" id="peer-error-alert">
-<h2><a name="peer-error-alert">peer_error_alert</a></h2>
+<div class="section">
+<h2><a id="peer-error-alert" name="peer-error-alert">peer_error_alert</a></h2>
 <p>This alert is generated when a peer sends invalid data over the peer-peer protocol. The peer
 will be disconnected, but you get its ip address from the alert, to identify it. This alert
 is generated as severity level <tt class="docutils literal"><span class="pre">debug</span></tt>.</p>
@@ -2471,18 +2742,18 @@ is generated as severity level <tt class="docutils literal"><span class="pre">de
 struct peer_error_alert: alert
 {
         peer_error_alert(
-                address const&amp; pip
+                asio::ipv4::tcp::endpoint const&amp; pip
                 , peer_id const&amp; pid
                 , const std::string&amp; msg);
 
         virtual std::auto_ptr&lt;alert&gt; clone() const;
-        address ip;
+        asio::ipv4::tcp::endpoint ip;
         peer_id id;
 };
 </pre>
 </div>
-<div class="section" id="invalid-request-alert">
-<h2><a name="invalid-request-alert">invalid_request_alert</a></h2>
+<div class="section">
+<h2><a id="invalid-request-alert" name="invalid-request-alert">invalid_request_alert</a></h2>
 <p>This is a debug alert that is generated by an incoming invalid piece request. The <tt class="docutils literal"><span class="pre">handle</span></tt>
 is a handle to the torrent the peer is a member of. <tt class="docutils literal"><span class="pre">ìp</span></tt> is the address of the peer and the
 <tt class="docutils literal"><span class="pre">request</span></tt> is the actual incoming request from the peer. The alert is generated as severity level
@@ -2493,13 +2764,13 @@ struct invalid_request_alert: alert
         invalid_request_alert(
                 peer_request const&amp; r
                 , torrent_handle const&amp; h
-                , address const&amp; send
+                , asio::ipv4::tcp::endpoint const&amp; send
                 , peer_id const&amp; pid
                 , std::string const&amp; msg);
 
         virtual std::auto_ptr&lt;alert&gt; clone() const;
         torrent_handle handle;
-        address ip;
+        asio::ipv4::tcp::endpoint ip;
         peer_request request;
         peer_id id;
 };
@@ -2517,8 +2788,8 @@ struct peer_request
 the index of the piece it want data from, <tt class="docutils literal"><span class="pre">start</span></tt> is the offset within the piece where the data
 should be read, and <tt class="docutils literal"><span class="pre">length</span></tt> is the amount of data it wants.</p>
 </div>
-<div class="section" id="torrent-finished-alert">
-<h2><a name="torrent-finished-alert">torrent_finished_alert</a></h2>
+<div class="section">
+<h2><a id="torrent-finished-alert" name="torrent-finished-alert">torrent_finished_alert</a></h2>
 <p>This alert is generated when a torrent switches from being a downloader to a seed.
 It will only be generated once per torrent. It contains a torrent_handle to the
 torrent in question. This alert is generated as severity level <tt class="docutils literal"><span class="pre">info</span></tt>.</p>
@@ -2534,8 +2805,8 @@ struct torrent_finished_alert: alert
 };
 </pre>
 </div>
-<div class="section" id="metadata-failed-alert">
-<h2><a name="metadata-failed-alert">metadata_failed_alert</a></h2>
+<div class="section">
+<h2><a id="metadata-failed-alert" name="metadata-failed-alert">metadata_failed_alert</a></h2>
 <p>This alert is generated when the metadata has been completely received and the info-hash
 failed to match it. i.e. the metadata that was received was corrupt. libtorrent will
 automatically retry to fetch it in this case. This is only relevant when running a
@@ -2547,14 +2818,14 @@ struct metadata_received_alert: alert
         metadata_received_alert(
                 const torrent_handle&amp; h
                 , const std::string&amp; msg);
-                
+
         virtual std::auto_ptr&lt;alert&gt; clone() const;
         torrent_handle handle;
 };
 </pre>
 </div>
-<div class="section" id="metadata-received-alert">
-<h2><a name="metadata-received-alert">metadata_received_alert</a></h2>
+<div class="section">
+<h2><a id="metadata-received-alert" name="metadata-received-alert">metadata_received_alert</a></h2>
 <p>This alert is generated when the metadata has been completely received and the torrent
 can start downloading. It is not generated on torrents that are started with metadata, but
 only those that needs to download it from peers (when utilizing the libtorrent extension).
@@ -2565,14 +2836,14 @@ struct metadata_received_alert: alert
         metadata_received_alert(
                 const torrent_handle&amp; h
                 , const std::string&amp; msg);
-                
+
         virtual std::auto_ptr&lt;alert&gt; clone() const;
         torrent_handle handle;
 };
 </pre>
 </div>
-<div class="section" id="fastresume-rejected-alert">
-<h2><a name="fastresume-rejected-alert">fastresume_rejected_alert</a></h2>
+<div class="section">
+<h2><a id="fastresume-rejected-alert" name="fastresume-rejected-alert">fastresume_rejected_alert</a></h2>
 <p>This alert is generated when a fastresume file has been passed to <tt class="docutils literal"><span class="pre">add_torrent</span></tt> but the
 files on disk did not match the fastresume file. The string explaints the reason why the
 resume file was rejected. It is generated at severity level <tt class="docutils literal"><span class="pre">warning</span></tt>.</p>
@@ -2610,17 +2881,17 @@ of the sending peer.
                 address ip;
         }; -->
 </div>
-<div class="section" id="dispatcher">
-<h2><a name="dispatcher">dispatcher</a></h2>
+<div class="section">
+<h2><a id="dispatcher" name="dispatcher">dispatcher</a></h2>
 <p><em>TODO: describe the dispatcher mechanism</em></p>
 </div>
 </div>
-<div class="section" id="exceptions">
-<h1><a name="exceptions">exceptions</a></h1>
+<div class="section">
+<h1><a id="exceptions" name="exceptions">exceptions</a></h1>
 <p>There are a number of exceptions that can be thrown from different places in libtorrent,
 here's a complete list with description.</p>
-<div class="section" id="invalid-handle">
-<h2><a name="invalid-handle">invalid_handle</a></h2>
+<div class="section">
+<h2><a id="invalid-handle" name="invalid-handle">invalid_handle</a></h2>
 <p>This exception is thrown when querying information from a <a class="reference" href="#torrent-handle">torrent_handle</a> that hasn't
 been initialized or that has become invalid.</p>
 <pre class="literal-block">
@@ -2630,8 +2901,8 @@ struct invalid_handle: std::exception
 };
 </pre>
 </div>
-<div class="section" id="duplicate-torrent">
-<h2><a name="duplicate-torrent">duplicate_torrent</a></h2>
+<div class="section">
+<h2><a id="duplicate-torrent" name="duplicate-torrent">duplicate_torrent</a></h2>
 <p>This is thrown by <a class="reference" href="#add-torrent">add_torrent()</a> if the torrent already has been added to
 the session.</p>
 <pre class="literal-block">
@@ -2641,8 +2912,8 @@ struct duplicate_torrent: std::exception
 };
 </pre>
 </div>
-<div class="section" id="invalid-encoding">
-<h2><a name="invalid-encoding">invalid_encoding</a></h2>
+<div class="section">
+<h2><a id="invalid-encoding" name="invalid-encoding">invalid_encoding</a></h2>
 <p>This is thrown by <tt class="docutils literal"><span class="pre">bdecode()</span></tt> if the input data is not a valid bencoding.</p>
 <pre class="literal-block">
 struct invalid_encoding: std::exception
@@ -2651,8 +2922,8 @@ struct invalid_encoding: std::exception
 };
 </pre>
 </div>
-<div class="section" id="type-error">
-<h2><a name="type-error">type_error</a></h2>
+<div class="section">
+<h2><a id="type-error" name="type-error">type_error</a></h2>
 <p>This is thrown from the accessors of <tt class="docutils literal"><span class="pre">entry</span></tt> if the data type of the <tt class="docutils literal"><span class="pre">entry</span></tt> doesn't
 match the type you want to extract from it.</p>
 <pre class="literal-block">
@@ -2662,8 +2933,8 @@ struct type_error: std::runtime_error
 };
 </pre>
 </div>
-<div class="section" id="invalid-torrent-file">
-<h2><a name="invalid-torrent-file">invalid_torrent_file</a></h2>
+<div class="section">
+<h2><a id="invalid-torrent-file" name="invalid-torrent-file">invalid_torrent_file</a></h2>
 <p>This exception is thrown from the constructor of <tt class="docutils literal"><span class="pre">torrent_info</span></tt> if the given bencoded information
 doesn't meet the requirements on what information has to be present in a torrent file.</p>
 <pre class="literal-block">
@@ -2674,13 +2945,13 @@ struct invalid_torrent_file: std::exception
 </pre>
 </div>
 </div>
-<div class="section" id="examples">
-<h1><a name="examples">examples</a></h1>
+<div class="section">
+<h1><a id="examples" name="examples">examples</a></h1>
 <p>Except for the example programs in this manual, there's also a bigger example
 of a (little bit) more complete client, <tt class="docutils literal"><span class="pre">client_test</span></tt>. There are separate
 instructions for how to use it <a class="reference" href="client_test.html">here</a> if you'd like to try it.</p>
-<div class="section" id="dump-torrent">
-<h2><a name="dump-torrent">dump_torrent</a></h2>
+<div class="section">
+<h2><a id="dump-torrent" name="dump-torrent">dump_torrent</a></h2>
 <p>This is an example of a program that will take a torrent-file as a parameter and
 print information about it to std out:</p>
 <pre class="literal-block">
@@ -2736,7 +3007,7 @@ int main(int argc, char* argv[])
                         std::cout &lt;&lt; &quot;  &quot; &lt;&lt; std::setw(11) &lt;&lt; i-&gt;size
                                 &lt;&lt; &quot; &quot; &lt;&lt; i-&gt;path.string() &lt;&lt; &quot;\n&quot;;
                 }
-                
+
         }
         catch (std::exception&amp; e)
         {
@@ -2747,8 +3018,8 @@ int main(int argc, char* argv[])
 }
 </pre>
 </div>
-<div class="section" id="simple-client">
-<h2><a name="simple-client">simple client</a></h2>
+<div class="section">
+<h2><a id="simple-client" name="simple-client">simple client</a></h2>
 <p>This is a simple client. It doesn't have much output to keep it simple:</p>
 <pre class="literal-block">
 #include &lt;iostream&gt;
@@ -2785,7 +3056,7 @@ int main(int argc, char* argv[])
                 entry e = bdecode(std::istream_iterator&lt;char&gt;(in)
                         , std::istream_iterator&lt;char&gt;());
                 s.add_torrent(torrent_info(e), &quot;&quot;);
-                        
+
                 // wait for the user to end
                 char a;
                 std::cin.unsetf(std::ios_base::skipws);
@@ -2799,8 +3070,8 @@ int main(int argc, char* argv[])
 }
 </pre>
 </div>
-<div class="section" id="make-torrent">
-<h2><a name="make-torrent">make_torrent</a></h2>
+<div class="section">
+<h2><a id="make-torrent" name="make-torrent">make_torrent</a></h2>
 <p>Shows how to create a torrent from a directory tree:</p>
 <pre class="literal-block">
 #include &lt;iostream&gt;
@@ -2896,8 +3167,8 @@ int main(int argc, char* argv[])
 </pre>
 </div>
 </div>
-<div class="section" id="fast-resume">
-<h1><a name="fast-resume">fast resume</a></h1>
+<div class="section">
+<h1><a id="fast-resume" name="fast-resume">fast resume</a></h1>
 <p>The fast resume mechanism is a way to remember which pieces are downloaded
 and where they are put between sessions. You can generate fast resume data by
 calling <tt class="docutils literal"><span class="pre">torrent_handle::write_resume_data()</span></tt> on <a class="reference" href="#torrent-handle">torrent_handle</a>. You can
@@ -2910,8 +3181,8 @@ start from scratch on the partially downloaded pieces.</p>
 will skip the time consuming checks. It may have to do the checking anyway, if
 the fast-resume data is corrupt or doesn't fit the storage for that torrent,
 then it will not trust the fast-resume data and just do the checking.</p>
-<div class="section" id="file-format">
-<h2><a name="file-format">file format</a></h2>
+<div class="section">
+<h2><a id="file-format" name="file-format">file format</a></h2>
 <p>The file format is a bencoded dictionary containing the following fields:</p>
 <table border="1" class="docutils">
 <colgroup>
@@ -3006,8 +3277,8 @@ re-check is issued.</td>
 </table>
 </div>
 </div>
-<div class="section" id="threads">
-<h1><a name="threads">threads</a></h1>
+<div class="section">
+<h1><a id="threads" name="threads">threads</a></h1>
 <p>libtorrent starts 3 threads.</p>
 <blockquote>
 <ul class="simple">
@@ -3027,8 +3298,8 @@ in its own thread to avoid stalling the main thread.</li>
 </ul>
 </blockquote>
 </div>
-<div class="section" id="storage-allocation">
-<h1><a name="storage-allocation">storage allocation</a></h1>
+<div class="section">
+<h1><a id="storage-allocation" name="storage-allocation">storage allocation</a></h1>
 <p>There are two modes in which storage (files on disk) are allocated in libtorrent.</p>
 <blockquote>
 <ul class="simple">
@@ -3041,8 +3312,8 @@ pieces that have been downloaded. This is the default allocation mode in libtorr
 <p>The allocation mode is selected when a torrent is started. It is passed as a boolean
 argument to <tt class="docutils literal"><span class="pre">session::add_torrent()</span></tt> (see <a class="reference" href="#add-torrent">add_torrent()</a>). These two modes have
 different drawbacks and benefits.</p>
-<div class="section" id="full-allocation">
-<h2><a name="full-allocation">full allocation</a></h2>
+<div class="section">
+<h2><a id="full-allocation" name="full-allocation">full allocation</a></h2>
 <p>When a torrent is started in full allocation mode, the checker thread (see <a class="reference" href="#threads">threads</a>)
 will make sure that the entire storage is allocated, and fill any gaps with zeroes.
 It will of course still check for existing pieces and fast resume data. The main
@@ -3066,8 +3337,8 @@ filesystems' file allocation, and reduce fragmentation.</li>
 </ul>
 </blockquote>
 </div>
-<div class="section" id="compact-allocation">
-<h2><a name="compact-allocation">compact allocation</a></h2>
+<div class="section">
+<h2><a id="compact-allocation" name="compact-allocation">compact allocation</a></h2>
 <p>The compact allocation will only allocate as much storage as it needs to keep the
 pieces downloaded so far. This means that pieces will be moved around to be placed
 at their final position in the files while downloading (to make sure the completed
@@ -3113,8 +3384,8 @@ contain any piece), return that slot index.</li>
 </ol>
 </div>
 </div>
-<div class="section" id="extensions">
-<h1><a name="extensions">extensions</a></h1>
+<div class="section">
+<h1><a id="extensions" name="extensions">extensions</a></h1>
 <p>These extensions all operates within the <a class="reference" href="extension_protocol.html">extension protocol</a>. The
 name of the extension is the name used in the extension-list packets,
 and the payload is the data in the extended message (not counting the
@@ -3123,8 +3394,8 @@ length-prefix, message-id nor extension-id).</p>
 handshake, it may be incompatible with future versions of the mainline
 bittorrent client.</p>
 <p>These are the extensions that are currently implemented.</p>
-<div class="section" id="chat-messages">
-<h2><a name="chat-messages">chat messages</a></h2>
+<div class="section">
+<h2><a id="chat-messages" name="chat-messages">chat messages</a></h2>
 <p>Extension name: &quot;chat&quot;</p>
 <p>The payload in the packet is a bencoded dictionary with any
 combination of the following entries:</p>
@@ -3151,8 +3422,8 @@ Any unrecognized strings should be ignored.</td>
 </table>
 </blockquote>
 </div>
-<div class="section" id="metadata-from-peers">
-<h2><a name="metadata-from-peers">metadata from peers</a></h2>
+<div class="section">
+<h2><a id="metadata-from-peers" name="metadata-from-peers">metadata from peers</a></h2>
 <p>Extension name: &quot;metadata&quot;</p>
 <p>The point with this extension is that you don't have to distribute the
 metadata (.torrent-file) separately. The metadata can be distributed
@@ -3178,9 +3449,9 @@ are put as payload to the extension message. The three packets are:</p>
 <col width="61%" />
 </colgroup>
 <thead valign="bottom">
-<tr><th>size</th>
-<th>name</th>
-<th>description</th>
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -3219,9 +3490,9 @@ metadata.</td>
 <col width="61%" />
 </colgroup>
 <thead valign="bottom">
-<tr><th>size</th>
-<th>name</th>
-<th>description</th>
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -3259,9 +3530,9 @@ protocol packet.</td>
 <col width="61%" />
 </colgroup>
 <thead valign="bottom">
-<tr><th>size</th>
-<th>name</th>
-<th>description</th>
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -3276,9 +3547,19 @@ doesn't have any metadata.</td>
 </table>
 </blockquote>
 </div>
+<div class="section">
+<h2><a id="http-seeding" name="http-seeding">HTTP seeding</a></h2>
+<p>The HTTP seed extension implements <a class="reference" href="http://www.getright.com/seedtorrent.html">this specification</a>.</p>
+<p>The libtorrent implementation assumes that, if the URL ends with a slash
+('/'), the filename should be appended to it in order to request pieces from
+that file. The way this works is that if the torrent is a single-file torrent,
+only that filename is appended. If the torrent is a multi-file torrent, the
+torrent's name '/' the file name is appended. This is the same directory
+structure that libtorrent will download torrents into.</p>
 </div>
-<div class="section" id="filename-checks">
-<h1><a name="filename-checks">filename checks</a></h1>
+</div>
+<div class="section">
+<h1><a id="filename-checks" name="filename-checks">filename checks</a></h1>
 <p>Boost.Filesystem will by default check all its paths to make sure they conform
 to filename requirements on many platforms. If you don't want this check, you can
 set it to either only check for native filesystem requirements or turn it off
@@ -3288,8 +3569,8 @@ boost::filesystem::path::default_name_check(boost::filesystem::native);
 </pre>
 <p>for example. For more information, see the <a class="reference" href="http://www.boost.org/libs/filesystem/doc/index.htm">Boost.Filesystem docs</a>.</p>
 </div>
-<div class="section" id="acknowledgements">
-<h1><a name="acknowledgements">acknowledgements</a></h1>
+<div class="section">
+<h1><a id="acknowledgements" name="acknowledgements">acknowledgements</a></h1>
 <p>Written by Arvid Norberg. Copyright © 2003-2005</p>
 <p>Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson</p>
 <p>Big thanks to Michael Wojciechowski and Peter Koeleman for making the autotools

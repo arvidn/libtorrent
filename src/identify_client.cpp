@@ -71,8 +71,8 @@ namespace
 			|| id[7] != '-')
 			return boost::optional<fingerprint>();
 
-		ret.id[0] = id[1];
-		ret.id[1] = id[2];
+		ret.name[0] = id[1];
+		ret.name[1] = id[2];
 		ret.major_version = decode_digit(id[3]);
 		ret.minor_version = decode_digit(id[4]);
 		ret.revision_version = decode_digit(id[5]);
@@ -108,8 +108,8 @@ namespace
 			ret.revision_version = id[3];
 		}
 
-		ret.id[0] = id[0];
-		ret.id[1] = 0;
+		ret.name[0] = id[0];
+		ret.name[1] = 0;
 
 		ret.tag_version = 0;
 		return boost::optional<fingerprint>(ret);
@@ -130,8 +130,8 @@ namespace
 
 		fingerprint ret("..", 0, 0, 0, 0);
 
-		ret.id[0] = id[0];
-		ret.id[1] = 0;
+		ret.name[0] = id[0];
+		ret.name[1] = 0;
 		ret.major_version = decode_digit(id[1]);
 		ret.minor_version = decode_digit(id[3]);
 		ret.revision_version = decode_digit(id[5]);
@@ -166,6 +166,7 @@ namespace
 		, map_entry("SZ", "Shareaza")
 		, map_entry("T",  "BitTornado")
 		, map_entry("TN", "Torrent.NET")
+		, map_entry("TR", "Transmission")
 		, map_entry("TS", "TorrentStorm")
 		, map_entry("U",  "UPnP")
 		, map_entry("UT", "MicroTorrent")
@@ -188,7 +189,7 @@ namespace
 		const int size = sizeof(name_map)/sizeof(name_map[0]);
 		map_entry* i =
 			std::lower_bound(name_map, name_map + size
-				, map_entry(f.id, ""), &compare_first_string);
+				, map_entry(f.name, ""), &compare_first_string);
 
 #ifndef NDEBUG
 		for (int i = 1; i < size; ++i)
@@ -198,19 +199,19 @@ namespace
 		}
 #endif
 
-		if (i < name_map + size && std::equal(f.id, f.id + 2, i->first))
+		if (i < name_map + size && std::equal(f.name, f.name + 2, i->first))
 			identity << i->second;
 		else
 		{
-			identity << f.id[0];
-			if (f.id[1] != 0) identity << f.id[1];
+			identity << f.name[0];
+			if (f.name[1] != 0) identity << f.name[1];
 		}
 
 		identity << " " << (int)f.major_version
 			<< "." << (int)f.minor_version
 			<< "." << (int)f.revision_version;
 
-		if (f.id[1] != 0)
+		if (f.name[1] != 0)
 			identity << "." << (int)f.tag_version;
 
 		return identity.str();

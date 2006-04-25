@@ -23,6 +23,7 @@ project torrent
 	: requirements
 
 	<include>./include
+	<include>./asio/include
 	<include>./zlib
 	<include>$(BOOST_ROOT)
 	<variant>release:<define>NDEBUG
@@ -33,8 +34,19 @@ project torrent
 	<library>/boost/filesystem//boost_filesystem/<link>static
 	<library>/boost/date_time//boost_date_time/<link>static
 	<threading>multi
+	<toolset>msvc:<define>_WIN32_WINNT=0x0500
+# WIN32 makes sure the win32 socket api is used
+# instead of win16
+	<toolset>msvc:<define>WIN32
+# without WIN32_LEAN_AND_MEAN there will be conflicts between
+# winsock.h and winsock2.h
+	<toolset>msvc:<define>WIN32_LEAN_AND_MEAN
+# these compiler settings just makes the compiler standard conforming
 	<toolset>msvc:<cxxflags>/Zc:wchar_t
 	<toolset>msvc:<cxxflags>/Zc:forScope
+# this should be defined when libtorrent is built as
+# a dll. It will make sure the functions and classes
+# are exported (GCC 4 and msvc)
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 
 	: usage-requirements 
@@ -50,17 +62,17 @@ project torrent
 SOURCES =
 	allocate_resources.cpp
 	alert.cpp
-	async_gethostbyname.cpp
 	entry.cpp
 	escape_string.cpp
 	file.cpp
 	identify_client.cpp
 	ip_filter.cpp
 	peer_connection.cpp
+	bt_peer_connection.cpp
+	web_peer_connection.cpp
 	piece_picker.cpp
 	policy.cpp
 	session.cpp
-	socket.cpp
 	stat.cpp
 	storage.cpp
 	torrent.cpp

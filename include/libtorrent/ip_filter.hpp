@@ -30,16 +30,22 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef IP_FILTER_HPP
-#define IP_FILTER_HPP
+#ifndef TORRENT_IP_FILTER_HPP
+#define TORRENT_IP_FILTER_HPP
 
-#include "libtorrent/socket.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/socket.hpp"
 #include <set>
 #include <iostream>
 
 namespace libtorrent
 {
+
+inline bool operator<=(address const& lhs
+	, address const& rhs)
+{
+	return lhs < rhs || lhs == rhs;
+}
 
 class TORRENT_EXPORT ip_filter
 {

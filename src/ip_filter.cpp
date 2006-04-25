@@ -37,10 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	
 	ip_filter::ip_filter()
 	{
 		// make the entire ip-range non-blocked
-		m_access_list.insert(range(address(0,0,0,0,0), 0));
+		m_access_list.insert(range(address(0UL), 0));
 	}
 
 	void ip_filter::add_rule(address first, address last, int flags)
@@ -70,7 +71,7 @@ namespace libtorrent
 
 		if (i->start != first && first_access != flags)
 		{
-			i = m_access_list.insert(i, range(address(first.ip(), 0), flags));
+			i = m_access_list.insert(i, range(first, flags));
 		}
 		else if (i != m_access_list.begin() && prior(i)->access == flags)
 		{
@@ -100,16 +101,16 @@ namespace libtorrent
 		}
 		else if (first_access != flags)
 		{
-			m_access_list.insert(i, range(address(first.ip(), 0), flags));
+			m_access_list.insert(i, range(first, flags));
 		}
 		
-		if ((j != m_access_list.end() && j->start.ip() - 1 != last.ip())
-			|| (j == m_access_list.end() && last.ip() != 0xffffffff))
+		if ((j != m_access_list.end() && j->start.to_ulong() - 1 != last.to_ulong())
+			|| (j == m_access_list.end() && last.to_ulong() != 0xffffffff))
 		{
-			assert(j == m_access_list.end() || last.ip() < j->start.ip() - 1);
+			assert(j == m_access_list.end() || last.to_ulong() < j->start.to_ulong() - 1);
 //			std::cout << " -- last_access: " << last_access << "\n";
 			if (last_access != flags)
-				j = m_access_list.insert(j, range(address(last.ip() + 1, 0), last_access));
+				j = m_access_list.insert(j, range(address(last.to_ulong() + 1), last_access));
 		}
 
 		if (j != m_access_list.end() && j->access == flags) m_access_list.erase(j);
@@ -138,14 +139,13 @@ namespace libtorrent
 		{
 			ip_range r;
 			r.first = i->start;
-			assert(r.first.port == 0);
 			r.flags = i->access;
 
 			++i;
 			if (i == end)
-				r.last = address(0xffffffff, 0);
+				r.last = address(0xffffffff);
 			else
-				r.last = address(i->start.ip() - 1, 0);
+				r.last = address(i->start.to_ulong() - 1);
 		
 			ret.push_back(r);
 		}
