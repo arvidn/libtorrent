@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
+#include "libtorrent/web_peer_connection.hpp"
 #include "libtorrent/policy.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/socket.hpp"
@@ -72,26 +73,8 @@ namespace
 		, peer_connection& c
 		, std::vector<peer_connection*> ignore = std::vector<peer_connection*>())
 	{
-		// this will make the number of requests linearly dependent
-		// on the rate in which we download from the peer.
-		// we want the queue to represent:
-		// TODO: make this constant user-settable
-		const int queue_time = 3; // seconds
-		// (if the latency is more than this, the download will stall)
-		// so, the queue size is 5 * down_rate / 16 kiB (16 kB is the size of each request)
-		// the minimum request size is 2 and the maximum is 48
-		// the block size doesn't have to be 16. So we first query the torrent for it
-		const int block_size = t.block_size();
-		assert(block_size > 0);
-		
-		int desired_queue_size = static_cast<int>(queue_time
-			* c.statistics().download_rate() / block_size);
-		if (desired_queue_size > max_request_queue) desired_queue_size = max_request_queue;
-		if (desired_queue_size < min_request_queue) desired_queue_size = min_request_queue;
-
-		assert(desired_queue_size >= min_request_queue);
-
-		int num_requests = desired_queue_size - (int)c.download_queue().size()
+		int num_requests = c.desired_queue_size()
+			- (int)c.download_queue().size()
 			- (int)c.request_queue().size();
 
 		// if our request queue is already full, we
@@ -117,7 +100,9 @@ namespace
 		// the number of blocks we want, but it will try to make the picked
 		// blocks be from whole pieces, possibly by returning more blocks
 		// than we requested.
-		assert(c.remote() == c.get_socket()->sender());
+#ifndef NDEBUG
+		assert(c.remote() == c.get_socket()->remote_endpoint());
+#endif
 		p.pick_pieces(c.get_bitfield(), interesting_pieces
 			, num_requests, prefer_whole_pieces, c.remote());
 
@@ -141,7 +126,7 @@ namespace
 			// ok, we found a piece that's not being downloaded
 			// by somebody else. request it from this peer
 			// and return
-			c.send_request(*i);
+			c.add_request(*i);
 			num_requests--;
 		}
 
@@ -217,8 +202,8 @@ namespace
 
 			assert(common_block != peer->download_queue().rend());
 			piece_block block = *common_block;
-			peer->send_cancel(block);
-			c.send_request(block);
+			peer->cancel_request(block);
+			c.add_request(block);
 
 			// the one we interrupted may need to request a new piece
 			// make sure it doesn't take over a block from the peer
@@ -308,14 +293,14 @@ namespace
 
 	struct match_peer_ip
 	{
-		match_peer_ip(const address& id)
-			: m_id(id)
+		match_peer_ip(const tcp::endpoint& ip)
+			: m_ip(ip)
 		{}
 
 		bool operator()(const policy::peer& p) const
-		{ return p.id.ip() == m_id.ip(); }
+		{ return p.ip.address() == m_ip.address(); }
 
-		address m_id;
+		tcp::endpoint m_ip;
 	};
 
 	struct match_peer_connection
@@ -837,10 +822,18 @@ namespace libtorrent
 			, m_peers.end()
 			, match_peer_connection(c));
 
-		assert(i != m_peers.end());
+		if (i == m_peers.end())
+		{
+			// this is probably a http seed
+			if (web_peer_connection const* p = dynamic_cast<web_peer_connection const*>(&c))
+			{
+				m_torrent->remove_url_seed(p->url());
+			}
+			return;
+		}
 
 		i->type = peer::not_connectable;
-		i->id.port = address::any_port;
+		i->ip.port(0);
 		i->banned = true;
 	}
 
@@ -850,7 +843,7 @@ namespace libtorrent
 /*
 #ifndef NDEBUG
 		// avoid the invariant check to fail
-		peer p(address("0.0.0.0", 0), peer::not_connectable);
+		peer p(tcp::endpoint("0.0.0.0", 0), peer::not_connectable);
 		p.connection = &c;
 		m_peers.push_back(p);
 #endif
@@ -868,15 +861,17 @@ namespace libtorrent
 
 		// TODO: only allow _one_ connection to use this
 		// override at a time
-		assert(c.remote() == c.get_socket()->sender());
+#ifndef NDEBUG
+		assert(c.remote() == c.get_socket()->remote_endpoint());
+#endif
 		if (m_torrent->num_peers() >= m_torrent->m_connections_quota.given
-			&& c.remote().ip() != m_torrent->current_tracker().ip())
+			&& c.remote().address() != m_torrent->current_tracker().address())
 		{
 			throw protocol_error("too many connections, refusing incoming connection"); // cause a disconnect
 		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		if (c.remote().ip() == m_torrent->current_tracker().ip())
+		if (c.remote().address() == m_torrent->current_tracker().address())
 		{
 			m_torrent->debug_log("overriding connection limit for tracker NAT-check");
 		}
@@ -894,8 +889,9 @@ namespace libtorrent
 
 			// we don't have ny info about this peer.
 			// add a new entry
-			
-			assert(c.remote() == c.get_socket()->sender());
+#ifndef NDEBUG
+			assert(c.remote() == c.get_socket()->remote_endpoint());
+#endif
 			peer p(c.remote(), peer::not_connectable);
 			m_peers.push_back(p);
 			i = m_peers.end()-1;
@@ -905,7 +901,7 @@ namespace libtorrent
 			if (i->connection != 0)
 				throw protocol_error("duplicate connection, closing");
 			if (i->banned)
-				throw protocol_error("ip address banned, closing");
+				throw protocol_error("ip tcp::endpoint banned, closing");
 		}
 		
 		assert(i->connection == 0);
@@ -918,12 +914,12 @@ namespace libtorrent
 		m_last_optimistic_disconnect = second_clock::universal_time();
 	}
 
-	void policy::peer_from_tracker(const address& remote, const peer_id& id)
+	void policy::peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid)
 	{
 		INVARIANT_CHECK;
 
 		// just ignore the obviously invalid entries from the tracker
-		if(remote.ip() == 0 || remote.port == 0)
+		if(remote.address().to_ulong() == 0 || remote.port() == 0)
 			return;
 
 		try
@@ -956,7 +952,7 @@ namespace libtorrent
 				// in case we got the ip from a remote connection, port is
 				// not known, so save it. Client may also have changed port
 				// for some reason.
-				i->id = remote;
+				i->ip = remote;
 
 				if (i->connection)
 				{
@@ -965,11 +961,11 @@ namespace libtorrent
 					// it again.
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-					m_torrent->debug_log("already connected to peer: " + remote.as_string() + ":"
-						+ boost::lexical_cast<std::string>(remote.port));
+					m_torrent->debug_log("already connected to peer: " + remote.address().to_string() + ":"
+						+ boost::lexical_cast<std::string>(remote.port()));
 #endif
 
-					assert(i->connection->associated_torrent() == m_torrent);
+					assert(i->connection->associated_torrent().lock().get() == m_torrent);
 					return;
 				}
 			}
@@ -990,20 +986,12 @@ namespace libtorrent
 			}
 			return;
 		}
-		catch(network_error& e)
+		catch(std::exception& e)
 		{
 			if (m_torrent->alerts().should_post(alert::debug))
 			{
 				m_torrent->alerts().post_alert(
-					peer_error_alert(remote, id, e.what()));
-			}
-		}
-		catch(protocol_error& e)
-		{
-			if (m_torrent->alerts().should_post(alert::debug))
-			{
-				m_torrent->alerts().post_alert(
-					peer_error_alert(remote, id, e.what()));
+					peer_error_alert(remote, pid, e.what()));
 			}
 		}
 	}
@@ -1174,7 +1162,7 @@ namespace libtorrent
 		try
 		{
 			assert(!p->connection);
-			p->connection = &m_torrent->connect_to_peer(p->id);
+			p->connection = &m_torrent->connect_to_peer(p->ip);
 			assert(p->connection);
 			p->connection->add_stat(p->prev_amount_download, p->prev_amount_upload);
 			p->prev_amount_download = 0;
@@ -1184,14 +1172,8 @@ namespace libtorrent
 					second_clock::universal_time();
 			return true;
 		}
-		catch (network_error& e)
-		{
-			// TODO: This path needs testing!
-#if defined(TORRENT_VERBOSE_LOGGING)
-		std::string msg = e.what();
-		(*p->connection->m_logger) << "*** CONNECTION FAILED '" << msg << "'\n";
-#endif
-		}
+		catch (std::exception& e)
+		{}
 		return false;
 	}
 
@@ -1209,11 +1191,11 @@ namespace libtorrent
 	}
 
 	// this is called whenever a peer connection is closed
-	void policy::connection_closed(const peer_connection& c)
+	void policy::connection_closed(const peer_connection& c) try
 	{
 		INVARIANT_CHECK;
 
-		assert(c.is_disconnecting());
+//		assert(c.is_disconnecting());
 		bool unchoked = false;
 
 		std::vector<peer>::iterator i = std::find_if(
@@ -1234,7 +1216,7 @@ namespace libtorrent
 		if (c.failed())
 		{
 			i->type = peer::not_connectable;
-			i->id.port = address::any_port;
+			i->ip.port(0);
 		}
 
 		// if the share ratio is 0 (infinite), the
@@ -1242,7 +1224,7 @@ namespace libtorrent
 		// because it isn't necessary.
 		if (m_torrent->ratio() != 0.f)
 		{
-			assert(i->connection->associated_torrent() == m_torrent);
+			assert(i->connection->associated_torrent().lock().get() == m_torrent);
 			assert(i->connection->share_diff() < std::numeric_limits<size_type>::max());
 			m_available_free_upload += i->connection->share_diff();
 		}
@@ -1260,6 +1242,13 @@ namespace libtorrent
 			else unchoke_one_peer();
 		}
 	}
+	catch (std::exception& e)
+	{
+#ifndef NDEBUG
+		std::string err = e.what();
+#endif
+		assert(false);
+	}
 
 	void policy::peer_is_interesting(peer_connection& c)
 	{
@@ -1274,7 +1263,9 @@ namespace libtorrent
 	bool policy::has_connection(const peer_connection* c)
 	{
 		assert(c);
-		assert(c->remote() == c->get_socket()->sender());
+#ifndef NDEBUG
+		assert(c->remote() == c->get_socket()->remote_endpoint());
+#endif
 		return std::find_if(
 			m_peers.begin()
 			, m_peers.end()
@@ -1309,6 +1300,9 @@ namespace libtorrent
 			i != m_torrent->end(); ++i)
 		{
 			if (i->second->is_disconnecting()) continue;
+			// ignore web_peer_connections since they are not managed
+			// by the policy class
+			if (dynamic_cast<web_peer_connection*>(i->second)) continue;
 			++num_torrent_peers;
 		}
 
@@ -1332,8 +1326,8 @@ namespace libtorrent
 	}
 #endif
 
-	policy::peer::peer(const address& pid, peer::connection_type t)
-		: id(pid)
+	policy::peer::peer(const tcp::endpoint& ip_, peer::connection_type t)
+		: ip(ip_)
 		, type(t)
 		, last_optimistically_unchoked(
 			boost::gregorian::date(1970,boost::gregorian::Jan,1))

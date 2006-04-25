@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-void libtorrent::stat::second_tick()
+void libtorrent::stat::second_tick(float tick_interval)
 {
 	INVARIANT_CHECK;
 
@@ -59,10 +59,12 @@ void libtorrent::stat::second_tick()
 		m_upload_payload_rate_history[i + 1] = m_upload_payload_rate_history[i];
 	}
 
-	m_download_rate_history[0] = m_downloaded_payload + m_downloaded_protocol;
-	m_upload_rate_history[0] = m_uploaded_payload + m_uploaded_protocol;
-	m_download_payload_rate_history[0] = m_downloaded_payload;
-	m_upload_payload_rate_history[0] = m_uploaded_payload;
+	m_download_rate_history[0] = (m_downloaded_payload + m_downloaded_protocol)
+		/ tick_interval;
+	m_upload_rate_history[0] = (m_uploaded_payload + m_uploaded_protocol)
+		/ tick_interval;
+	m_download_payload_rate_history[0] = m_downloaded_payload / tick_interval;
+	m_upload_payload_rate_history[0] = m_uploaded_payload / tick_interval;
 
 	m_downloaded_payload = 0;
 	m_uploaded_payload = 0;

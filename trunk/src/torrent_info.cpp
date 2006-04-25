@@ -279,8 +279,7 @@ namespace libtorrent
 	void torrent_info::read_torrent_info(const entry& torrent_file)
 	{
 		// extract the url of the tracker
-		entry const* i = torrent_file.find_key("announce-list");
-		if (i)
+		if (entry const* i = torrent_file.find_key("announce-list"))
 		{
 			const entry::list_type& l = i->list();
 			for (entry::list_type::const_iterator j = l.begin(); j != l.end(); ++j)
@@ -302,19 +301,19 @@ namespace libtorrent
 					torrent_file["announce"].string()));
 			}
 			// shuffle each tier
-			std::vector<announce_entry>::iterator i = m_urls.begin();
-			std::vector<announce_entry>::iterator j;
+			std::vector<announce_entry>::iterator start = m_urls.begin();
+			std::vector<announce_entry>::iterator stop;
 			int current_tier = m_urls.front().tier;
-			for (j = m_urls.begin(); j != m_urls.end(); ++j)
+			for (stop = m_urls.begin(); stop != m_urls.end(); ++stop)
 			{
-				if (j->tier != current_tier)
+				if (stop->tier != current_tier)
 				{
-					std::random_shuffle(i, j);
-					i = j;
-					current_tier = j->tier;
+					std::random_shuffle(start, stop);
+					start = stop;
+					current_tier = stop->tier;
 				}
 			}
-			std::random_shuffle(i, j);
+			std::random_shuffle(start, stop);
 		}
 		else
 		{
@@ -329,6 +328,26 @@ namespace libtorrent
 				+ seconds(long(torrent_file["creation date"].integer()));
 		}
 		catch (type_error) {}
+
+		// if there are any url-seeds, extract them
+		try
+		{
+			entry const& url_seeds = torrent_file["url-list"];
+			if (url_seeds.type() == entry::string_t)
+			{
+				m_url_seeds.push_back(url_seeds.string());
+			}
+			else if (url_seeds.type() == entry::list_t)
+			{
+				entry::list_type const& l = url_seeds.list();
+				for (entry::list_type::const_iterator i = l.begin();
+					i != l.end(); ++i)
+				{
+					m_url_seeds.push_back(i->string());
+				}
+			}
+		}
+		catch (type_error&) {}
 
 		// extract comment
 		if (entry const* e = torrent_file.find_key("comment.utf-8"))
@@ -409,6 +428,11 @@ namespace libtorrent
 
 	}
 
+	void torrent_info::add_url_seed(std::string const& url)
+	{
+		m_url_seeds.push_back(url);
+	}
+
 	void torrent_info::set_comment(char const* str)
 	{
 		m_comment = str;
@@ -458,7 +482,7 @@ namespace libtorrent
 					for (fs::path::iterator j = boost::next(file_path.begin());
 							j != file_path.end(); ++j)
 					{
-						path_e.list().push_back(*j);
+						path_e.list().push_back(entry(*j));
 					}
 				}
 			}
@@ -513,7 +537,7 @@ namespace libtorrent
 					trackers.list().push_back(tier);
 					tier.list().clear();
 				}
-				tier.list().push_back(i->url);
+				tier.list().push_back(entry(i->url));
 			}
 			trackers.list().push_back(tier);
 			dict["announce-list"] = trackers;
@@ -527,6 +551,24 @@ namespace libtorrent
 
 		if (!m_created_by.empty())
 			dict["created by"] = m_created_by;
+			
+		if (!m_url_seeds.empty())
+		{
+			if (m_url_seeds.size() == 1)
+			{
+				dict["url-list"] = m_url_seeds.front();
+			}
+			else
+			{
+				entry& list = dict["url-list"];
+				list = entry(entry::list_t);
+				for (std::vector<std::string>::const_iterator i
+					= m_url_seeds.begin(); i != m_url_seeds.end(); ++i)
+				{
+					list.list().push_back(entry(*i));
+				}
+			}
+		}
 
 		dict["info"] = create_info_metadata();
 
@@ -584,4 +626,55 @@ namespace libtorrent
 		else
 			return piece_length();
 	}
+	
+	std::vector<file_slice> torrent_info::map_block(int piece, size_type offset
+		, int size) const
+	{
+		assert(num_files() > 0);
+		std::vector<file_slice> ret;
+
+		size_type start = piece * (size_type)m_piece_length + offset;
+
+		// find the file iterator and file offset
+		// TODO: make a vector that can map piece -> file index in O(1)
+		size_type file_offset = start;
+		std::vector<file_entry>::const_iterator file_iter;
+
+		int counter = 0;
+		for (file_iter = begin_files();; ++counter, ++file_iter)
+		{
+			assert(file_iter != end_files());
+			if (file_offset < file_iter->size)
+			{
+				file_slice f;
+				f.file_index = counter;
+				f.offset = file_offset;
+				f.size = (std::min)(file_iter->size - file_offset, (size_type)size);
+				size -= f.size;
+				file_offset += f.size;
+				ret.push_back(f);
+			}
+			
+			assert(size >= 0);
+			if (size <= 0) break;
+
+			file_offset -= file_iter->size;
+		}
+		return ret;
+	}
+	
+	peer_request torrent_info::map_file(int file_index, size_type file_offset
+		, int size) const
+	{
+		size_type offset = file_offset;
+		for (int i = 0; i < file_index; ++i)
+			offset += file_at(i).size;
+
+		peer_request ret;
+		ret.piece = offset / piece_length();
+		ret.start = offset - ret.piece * piece_length();
+		ret.length = size;
+		return ret;
+	}
+
 }

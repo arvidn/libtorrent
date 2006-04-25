@@ -46,6 +46,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/weak_ptr.hpp>
+#include <boost/intrusive_ptr.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
+#include <boost/tuple/tuple.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -62,14 +66,17 @@ namespace libtorrent
 {
 	struct request_callback;
 	class tracker_manager;
-
-//	address parse_url(std::string const& url);
+	struct timeout_handler;
+	struct tracker_connection;
 
 	// encodes a string using the base64 scheme
 	TORRENT_EXPORT std::string base64encode(const std::string& s);
 
 	// returns -1 if gzip header is invalid or the header size in bytes
 	TORRENT_EXPORT int gzip_header(const char* buf, int size);
+
+	TORRENT_EXPORT boost::tuple<std::string, std::string, int, std::string>
+		parse_url_components(std::string url);
 
 	struct TORRENT_EXPORT tracker_request
 	{
@@ -95,7 +102,7 @@ namespace libtorrent
 		};
 
 		sha1_hash info_hash;
-		peer_id id;
+		peer_id pid;
 		size_type downloaded;
 		size_type uploaded;
 		size_type left;
@@ -125,7 +132,7 @@ namespace libtorrent
 			, int response_code
 			, const std::string& description) = 0;
 
-		address m_tracker_address;
+		tcp::endpoint m_tracker_address;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		virtual void debug_log(const std::string& line) = 0;
@@ -140,23 +147,71 @@ namespace libtorrent
 		, request_callback* requester
 		, int maximum_tracker_response_length);
 
-	struct TORRENT_EXPORT tracker_connection: boost::noncopyable
-	{
-		tracker_connection(boost::weak_ptr<request_callback> r)
-			: m_requester(r)
-		{}
+	TORRENT_EXPORT void intrusive_ptr_add_ref(timeout_handler const*);
+	TORRENT_EXPORT void intrusive_ptr_release(timeout_handler const*);
 
-		virtual bool tick() = 0;
-		virtual bool send_finished() const = 0;
-		bool has_requester() const { return !m_requester.expired(); }
+	struct TORRENT_EXPORT timeout_handler
+		: boost::noncopyable
+	{
+		friend void intrusive_ptr_add_ref(timeout_handler const*);
+		friend void intrusive_ptr_release(timeout_handler const*);
+
+		timeout_handler(demuxer& d);
+
+		void set_timeout(int completion_timeout, int read_timeout);
+		void restart_read_timeout();
+		void cancel();
+
+		virtual void on_timeout() = 0;
+		virtual ~timeout_handler() {}
+
+	private:
+	
+		void timeout_callback(asio::error const&);
+
+		boost::intrusive_ptr<timeout_handler> self()
+		{ return boost::intrusive_ptr<timeout_handler>(this); }
+
+		demuxer& m_demuxer;
+		// used for timeouts
+		// this is set when the request has been sent
+		boost::posix_time::ptime m_start_time;
+		// this is set every time something is received
+		boost::posix_time::ptime m_read_time;
+		// the asio async operation
+		asio::deadline_timer m_timeout;
+		
+		int m_completion_timeout;
+		int m_read_timeout;
+
+		typedef boost::mutex mutex_t;
+		mutable mutex_t m_mutex;
+		mutable int m_refs;
+	};
+
+	struct TORRENT_EXPORT tracker_connection
+		: timeout_handler
+	{
+		tracker_connection(tracker_manager& man
+			, tracker_request req
+			, demuxer& d
+			, boost::weak_ptr<request_callback> r);
+
 		request_callback& requester();
 		virtual ~tracker_connection() {}
-		virtual tracker_request const& tracker_req() const = 0;
+
+		tracker_request const& tracker_req() const { return m_req; }
+		bool has_requester() const { return !m_requester.expired(); }
+
+		void fail(int code, char const* msg);
+		void fail_timeout();
+		void close();
 
 	protected:
-
 		boost::weak_ptr<request_callback> m_requester;
-
+	private:
+		tracker_manager& m_man;
+		const tracker_request m_req;
 	};
 
 	class TORRENT_EXPORT tracker_manager: boost::noncopyable
@@ -165,19 +220,23 @@ namespace libtorrent
 
 		tracker_manager(const http_settings& s)
 			: m_settings(s) {}
-		
-		void tick();
+
 		void queue_request(
-			tracker_request r
+			demuxer& d
+			, tracker_request r
 			, std::string const& auth
 			, boost::weak_ptr<request_callback> c
 				= boost::weak_ptr<request_callback>());
 		void abort_all_requests();
-		bool send_finished() const;
 
+		void remove_request(tracker_connection const*);
+		
 	private:
 
-		typedef std::list<boost::shared_ptr<tracker_connection> >
+		typedef boost::recursive_mutex mutex_t;
+		mutex_t m_mutex;
+
+		typedef std::list<boost::intrusive_ptr<tracker_connection> >
 			tracker_connections_t;
 		tracker_connections_t m_connections;
 		const http_settings& m_settings;

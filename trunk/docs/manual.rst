@@ -30,6 +30,7 @@ following features:
 	* serves multiple torrents on a single port and a single thread
 	* supports http proxies and proxy authentication
 	* gzipped tracker-responses
+	* `HTTP seeding`_, as `specified by Michael Burford of GetRight`__.
 	* piece picking on block-level like in Azureus_ (as opposed to piece-level).
 	  This means it can download parts of the same piece from different peers.
 	  It will also prefer to download whole pieces from single peers if the
@@ -64,13 +65,19 @@ following features:
 	* ip filter
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
+__ http://www.getright.com/seedtorrent.html
 .. _Azureus: http://azureus.sourceforge.net
 __ extension_protocol.html
 __ udp_tracker_protocol.html
 
 
-libtorrent is portable at least among Windows, MacOS X and other UNIX-systems. It uses Boost.Thread,
-Boost.Filesystem, Boost.Date_time and various other boost libraries as well as zlib.
+libtorrent is portable at least among Windows, MacOS X and other UNIX-systems.
+It uses Boost.Thread, Boost.Filesystem, Boost.Date_time and various other
+boost libraries as well as zlib_ (shipped) and asio_ (shipped). At least version
+1.33.1 of boost is required.
+
+.. _zlib: http://www.zlib.org
+.. _asio: http://asio.sf.net
 
 libtorrent has been successfully compiled and tested on:
 
@@ -254,6 +261,10 @@ The ``Jamfile`` has the following build variants:
  * ``debug`` - debug version without any logging
  * ``debug_log`` - debug version with standard logging
  * ``debug_vlog`` - debug version with verbose logging
+
+When building the example client on windows, you need to build with
+``link=static`` otherwise you may get unresolved external symbols for some
+boost.program-options symbols.
 
 
 building with autotools
@@ -983,6 +994,7 @@ The ``torrent_info`` has the following synopsis::
 		void set_hash(int index, sha1_hash const& h);
 		void add_tracker(std::string const& url, int tier = 0);
 		void add_file(boost::filesystem::path file, size_type size);
+		void add_url_seed(std::string const& url);
 
 		typedef std::vector<file_entry>::const_iterator file_iterator;
 		typedef std::vector<file_entry>::const_reverse_iterator
@@ -996,7 +1008,14 @@ The ``torrent_info`` has the following synopsis::
 		int num_files() const;
 		file_entry const& file_at(int index) const;
 
+		std::vector<file_slice> map_block(int piece, size_type offset
+			, int size) const;
+		peer_request map_file(int file_index, size_type file_offset
+			, int size) const;
+
 		std::vector<announce_entry> const& trackers() const;
+
+		std::vector<std::string> const& url_seeds() const;
 
 		size_type total_size() const;
 		size_type piece_length() const;
@@ -1138,6 +1157,81 @@ If you need index-access to files you can use the ``num_files()`` and ``file_at(
 to access files using indices.
 
 
+map_block()
+-----------
+
+	::
+
+		std::vector<file_slice> map_block(int piece, size_type offset
+			, int size) const;
+
+This function will map a piece index, a byte offset within that piece and
+a size (in bytes) into the corresponding files with offsets where that data
+for that piece is supposed to be stored.
+
+The file slice struct looks like this::
+
+	struct file_slice
+	{
+		int file_index;
+		size_type offset;
+		size_type size;
+	};
+
+
+The ``file_index`` refers to the index of the file (in the torrent_info).
+To get the path and filename, use ``file_at()`` and give the ``file_index``
+as argument. The ``offset`` is the byte offset in the file where the range
+starts, and ``size`` is the number of bytes this range is. The size + offset
+will never be greater than the file size.
+
+
+map_file()
+----------
+
+	::
+
+		peer_request map_file(int file_index, size_type file_offset
+			, int size) const;
+
+This function will map a range in a specific file into a range in the torrent.
+The ``file_offset`` parameter is the offset in the file, given in bytes, where
+0 is the start of the file.
+The ``peer_request`` structure looks like this::
+
+	struct peer_request
+	{
+		int piece;
+		int start;
+		int length;
+		bool operator==(peer_request const& r) const;
+	};
+
+``piece`` is the index of the piece in which the range starts.
+``start`` is the offset within that piece where the range starts.
+``length`` is the size of the range, in bytes.
+
+The input range is assumed to be valid within the torrent. ``file_offset``
++ ``size`` is not allowed to be greater than the file size. ``file_index``
+must refer to a valid file, i.e. it cannot be >= ``num_files()``.
+
+
+url_seeds()
+-----------
+
+	::
+
+		std::vector<std::string> const& url_seeds() const;
+		void add_url_seed(std::string const& url);
+
+If there are any url-seeds in this torrent, ``url_seeds()`` will return a
+vector of those urls. If you're creating a torrent file, ``add_url_seed()``
+adds one url to the list of url-seeds. Currently, the only transport protocol
+supported for the url is http.
+
+See `HTTP seeding`_ for more information.
+
+
 print()
 -------
 
@@ -1202,6 +1296,8 @@ hash_for_piece() info_hash()
 ``hash_for_piece()`` takes a piece-index and returns the 20-bytes sha1-hash for that
 piece and ``info_hash()`` returns the 20-bytes sha1-hash for the info-section of the
 torrent file. For more information on the ``sha1_hash``, see the big_number_ class.
+``info_hash()`` will only return a valid hash if the torrent_info was read from a
+``.torrent`` file or if an ``entry`` was created from it (through ``create_torrent``).
 
 
 name() comment() creation_date() creator()
@@ -1250,7 +1346,7 @@ Its declaration looks like this::
 		entry write_resume_data() const;
 		std::vector<char> const& metadata() const;
 		void force_reannounce() const;
-		void connect_peer(address const& adr) const;
+		void connect_peer(asio::ipv4::tcp::endpoint const& adr) const;
 
 		void set_tracker_login(std::string const& username
 			, std::string const& password) const;
@@ -1258,11 +1354,17 @@ Its declaration looks like this::
 		std::vector<announce_entry> const& trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&);
 
+		void add_url_seed(std::string const& url);
+
 		void set_ratio(float ratio) const;
 		void set_max_uploads(int max_uploads) const;
 		void set_max_connections(int max_connections) const;
 		void set_upload_limit(int limit) const;
 		void set_download_limit(int limit) const;
+
+		void set_peer_upload_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
+		void set_peer_download_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
+
 		void use_interface(char const* net_interface) const;
 
 		void pause() const;
@@ -1336,7 +1438,7 @@ connect_peer()
 
 	::
 
-		void connect_peer(address const& adr) const;
+		void connect_peer(asio::ipv4::tcp::endpoint const& adr) const;
 
 ``connect_peer()`` is a way to manually connect to peers that one believe is a part of the
 torrent. If the peer does not respond, or is not a member of this torrent, it will simply
@@ -1377,6 +1479,16 @@ Note that setting a higher limit on a torrent then the global limit (``session::
 will not override the global rate limit. The torrent can never upload more than the global rate
 limit.
 
+set_peer_upload_limit() set_peer_download_limit()
+-------------------------------------------------
+
+	::
+
+		void set_peer_upload_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
+		void set_peer_download_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
+
+Works like ``set_upload_limit`` and ``set_download_limit`` respectively, but controls individual
+peer instead of the whole torrent.
 
 pause() resume() is_paused()
 ----------------------------
@@ -1443,6 +1555,21 @@ trackers for this torrent, you can use ``replace_trackers()`` which takes
 a list of the same form as the one returned from ``trackers()`` and will
 replace it. If you want an immediate effect, you have to call
 `force_reannounce()`_.
+
+
+add_url_seed()
+--------------
+
+	::
+
+		void add_url_seed(std::string const& url);
+
+``add_url_seed()`` adds another url to the torrent's list of url seeds. If the
+given url already exists in that list, the call has no effect. The torrent
+will connect to the server and try to download pieces from it, unless it's
+paused, queued, checking or seeding.
+
+See `HTTP seeding`_ for more information.
 
 
 use_interface()
@@ -1649,6 +1776,7 @@ It contains the following fields::
 		size_type total_payload_upload;
 
 		size_type total_failed_bytes;
+		size_type total_redundant_bytes;
 
 		float download_rate;
 		float upload_rate;
@@ -1662,6 +1790,8 @@ It contains the following fields::
 		int num_incomplete;
 
 		const std::vector<bool>* pieces;
+		int num_pieces;
+
 		size_type total_done;
 		size_type total_wanted_done;
 		size_type total_wanted;
@@ -1727,9 +1857,23 @@ data), these counters ignore any protocol overhead.
 has failed the piece hash test. In other words, this is just how much crap that
 has been downloaded.
 
+``total_redundant_bytes`` is the number of bytes that has been downloaded even
+though that data already was downloaded. The reason for this is that in some
+situations the same data can be downloaded by mistake. When libtorrent sends
+requests to a peer, and the peer doesn't send a response within a certain
+timeout, libtorrent will re-request that block. Another situation when
+libtorrent will re-request blocks is when the requests it sends out are not
+replyed in FIFO-order (it will re-request blocks that are skipped by an out of
+order block). This is supposed to be as low as possible.
+
 ``pieces`` is the bitmask that represents which pieces we have (set to true) and
 the pieces we don't have. It's a pointer and may be set to 0 if the torrent isn't
 downloading or seeding.
+
+``num_pieces`` is the number of pieces that has been downloaded. It is equivalent
+to: ``std::accumulate(pieces->begin(), pieces->end())``. So you don't have to
+count yourself. This can be used to see if anything has updated since last time
+if you want to keep a graph of the pieces up to date.
 
 ``download_rate`` and ``upload_rate`` are the total rates for all peers for this
 torrent. These will usually have better precision than summing the rates from
@@ -1793,22 +1937,23 @@ It contains the following fields::
 			remote_choked = 0x8,
 			supports_extensions = 0x10,
 			local_connection = 0x20,
-			connecting = 0x40,
-			queued = 0x80
+			handshake = 0x40,
+			connecting = 0x80,
+			queued = 0x100
 		};
 		unsigned int flags;
-		address ip;
+		asio::ipv4::tcp::endpoint ip;
 		float up_speed;
 		float down_speed;
 		float payload_up_speed;
 		float payload_down_speed;
 		size_type total_download;
 		size_type total_upload;
-		peer_id id;
+		peer_id pid;
 		std::vector<bool> pieces;
 		bool seed;
 		int upload_limit;
-		int upload_ceiling;
+		int download_limit;
 
 		size_type load_balancing;
 
@@ -1819,6 +1964,15 @@ It contains the following fields::
 		int downloading_block_index;
 		int downloading_progress;
 		int downloading_total;
+
+		std::string client;
+
+		enum
+		{
+			standard_bittorrent = 0,
+			web_seed = 1
+		};
+		int connection_type;
 	};
 
 The ``flags`` attribute tells you in which state the peer is. It is set to
@@ -1838,9 +1992,13 @@ any combination of the enums above. The following table describes each flag:
 +-------------------------+-------------------------------------------------------+
 | ``local_connection``    | The connection was initiated by us, the peer has a    |
 |                         | listen port open, and that port is the same as in the |
-|                         | address_ of this peer. If this flag is not set, this  |
+|                         | address of this peer. If this flag is not set, this   |
 |                         | peer connection was opened by this peer connecting to |
 |                         | us.                                                   |
++-------------------------+-------------------------------------------------------+
+| ``handshake``           | The connection is opened, and waiting for the         |
+|                         | handshake. Until the handshake is done, the peer      |
+|                         | cannot be identified.                                 |
 +-------------------------+-------------------------------------------------------+
 | ``connecting``          | The connection is in a half-open state (i.e. it is    |
 |                         | being connected).                                     |
@@ -1852,8 +2010,10 @@ any combination of the enums above. The following table describes each flag:
 
 __ extension_protocol.html
 
-The ``ip`` field is the IP-address to this peer. Its type is a wrapper around the
-actual address and the port number. See address_ class.
+The ``ip`` field is the IP-address to this peer. The type is an asio endpoint. For
+more info, see the asio_ documentation.
+
+.. _asio: http://asio.sf.net
 
 ``up_speed`` and ``down_speed`` contains the current upload and download speed
 we have to and from this peer (including any protocol messages). The transfer rates
@@ -1864,7 +2024,7 @@ These figures are updated aproximately once every second.
 from and uploaded to this peer. These numbers do not include the protocol chatter, but only
 the payload data.
 
-``id`` is the peer's id as used in the bit torrent protocol. This id can be used to
+``pid`` is the peer's id as used in the bit torrent protocol. This id can be used to
 extract 'fingerprints' from the peer. Sometimes it can tell you which client the peer
 is using. See identify_client()_
 
@@ -1878,9 +2038,8 @@ or if the peer miss that piece (set to false).
 peer every second. It may be -1 if there's no limit. The upload limits of all peers
 should sum up to the upload limit set by ``session::set_upload_limit``.
 
-``upload_ceiling`` is the current maximum allowed upload rate given the cownload
-rate and share ratio. If the global upload rate is inlimited, the ``upload_limit``
-for every peer will be the same as their ``upload_ceiling``.
+``download_limit`` is the number of bytes per second this peer is allowed to
+receive. -1 means it's unlimited.
 
 ``load_balancing`` is a measurment of the balancing of free download (that we get)
 and free upload that we give. Every peer gets a certain amount of free upload, but
@@ -1903,44 +2062,14 @@ block (or sub-piece) that is being downloaded. ``downloading_progress`` is the n
 of bytes of this block we have received from the peer, and ``downloading_total`` is
 the total number of bytes in this block.
 
+``client`` is a string describing the software at the other end of the connection.
+In some cases this information is not available, then it will contain a string
+that may give away something about which software is running in the other end.
+In the case of a web seed, the server type and version will be a part of this
+string.
 
-
-address
-=======
-
-The ``address`` class represents a name of a network endpoint (usually referred to as
-IP-address) and a port number. This is the same thing as a ``sockaddr_in`` would contain.
-Its declaration looks like this::
-
-	class address
-	{
-	public:
-		address();
-		address(unsigned char a
-			, unsigned char b
-			, unsigned char c
-			, unsigned char d
-			, unsigned short  port);
-		address(unsigned int addr, unsigned short port);
-		address(const std::string& addr, unsigned short port);
-		address(const address& a);
-		~address();
-
-		std::string as_string() const;
-		unsigned int ip() const;
-		unsigned short port() const;
-
-		bool operator<(const address& a) const;
-		bool operator!=(const address& a) const;
-		bool operator==(const address& a) const;
-	};
-
-It is less-than comparable to make it possible to use it as a key in a map. ``as_string()`` may block
-while it does the DNS lookup, it returns a string that points to the address represented by the object.
-
-``ip()`` will return the 32-bit ip-address as an integer. ``port()`` returns the port number.
-
-
+``connection_type`` can currently be one of ``standard_bittorrent`` or
+``web_seed``. These are currently the only implemented protocols.
 
 http_settings
 =============
@@ -1960,7 +2089,8 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		std::string proxy_login;
 		std::string proxy_password;
 		std::string user_agent;
-		int tracker_timeout;
+		int tracker_completion_timeout;
+		int tracker_receive_timeout;
 		int tracker_maximum_response_length;
 	};
 
@@ -1978,10 +2108,18 @@ empty, the http proxy will be tried to be used without authentication.
 ``user_agent`` this is the client identification to the tracker. It will
 be followed by the string "(libtorrent)" to identify that this library
 is being used. This should be set to your client's name and version number.
+This name will not only be used when making HTTP requests, but also when
+sending extended headers to peers that support that extension.
 
-``tracker_timeout`` is the number of seconds the tracker connection will
-wait until it considers the tracker to have timed-out. Default value is 10
-seconds.
+``tracker_completion_timeout`` is the number of seconds the tracker
+connection will wait from when it sent the request until it considers the
+tracker to have timed-out. Default value is 60 seconds.
+
+``tracker_receive_timeout`` is the number of seconds to wait to receive
+any data from the tracker. If no data is received for this number of
+seconds, the tracker will be considered as having timed out. If a tracker
+is down, this is the kind of timeout that will occur. The default value
+is 20 seconds.
 
 ``tracker_maximum_response_length`` is the maximum number of bytes in a
 tracker response. If a response size passes this number it will be rejected
@@ -1998,6 +2136,8 @@ ip_filter
 The ``ip_filter`` class is a set of rules that uniquely categorizes all
 ip addresses as allowed or disallowed. The default constructor creates
 a single rule that allowes all addresses (0.0.0.0 - 255.255.255.255).
+The ``address`` type here is ``asio::ipv4::address``. It can also be
+accessed as ``libtorrent::address``.
 
 	::
 
@@ -2112,8 +2252,9 @@ This class creates sha1-hashes. Its declaration looks like this::
 	{
 	public:
 		hasher();
+		hasher(char const* data, unsigned int len);
 
-		void update(const char* data, unsigned int len);
+		void update(char const* data, unsigned int len);
 		sha1_hash final();
 		void reset();
 	};
@@ -2124,6 +2265,9 @@ with data. i.e. you don't have to keep the entire buffer of which you want to
 create the hash in memory. You can feed the hasher parts of it at a time. When
 You have fed the hasher with all the data, you call ``final()`` and it
 will return the sha1-hash of the data.
+
+The constructor that takes a ``char const*`` and an integer will construct the
+sha1 context and feed it the data passed in.
 
 If you want to reuse the hasher object once you have created a hash, you have to
 call ``reset()`` to reinitialize it.
@@ -2147,7 +2291,7 @@ This is the class declaration::
 
 		std::string to_string() const;
 
-		char id[2];
+		char name[2];
 		char major_version;
 		char minor_version;
 		char revision_version;
@@ -2458,6 +2602,25 @@ the tracker. It is generated with severity level ``warning``.
 	};
 
 
+url_seed_alert
+--------------
+
+This alert is generated when a HTTP seed name lookup fails. This alert is
+generated as severity level ``warning``.
+
+It contains ``url`` to the HTTP seed that failed along with an error message.
+
+::
+
+	struct url_seed_alert: alert
+	{
+		url_seed_alert(std::string const& h, const std::string& msg);
+		virtual std::auto_ptr<alert> clone() const;
+
+		std::string url;
+	};
+
+
    
 hash_failed_alert
 -----------------
@@ -2493,12 +2656,12 @@ to the torrent that this peer was a member of.
 	struct peer_ban_alert: alert
 	{
 		peer_ban_alert(
-			address const& pip
+			asio::ipv4::tcp::endpoint const& pip
 			, torrent_handle h
 			, const std::string& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
-		address ip;
+		asio::ipv4::tcp::endpoint ip;
 		torrent_handle handle;
 	};
 
@@ -2515,12 +2678,12 @@ is generated as severity level ``debug``.
 	struct peer_error_alert: alert
 	{
 		peer_error_alert(
-			address const& pip
+			asio::ipv4::tcp::endpoint const& pip
 			, peer_id const& pid
 			, const std::string& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
-		address ip;
+		asio::ipv4::tcp::endpoint ip;
 		peer_id id;
 	};
 
@@ -2540,13 +2703,13 @@ is a handle to the torrent the peer is a member of. ``ìp`` is the address of the
 		invalid_request_alert(
 			peer_request const& r
 			, torrent_handle const& h
-			, address const& send
+			, asio::ipv4::tcp::endpoint const& send
 			, peer_id const& pid
 			, std::string const& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
 		torrent_handle handle;
-		address ip;
+		asio::ipv4::tcp::endpoint ip;
 		peer_request request;
 		peer_id id;
 	};
@@ -3291,6 +3454,20 @@ Don't have metadata:
 	|           |               | metadata request if the the client     |
 	|           |               | doesn't have any metadata.             |
 	+-----------+---------------+----------------------------------------+
+
+HTTP seeding
+------------
+
+The HTTP seed extension implements `this specification`__.
+
+The libtorrent implementation assumes that, if the URL ends with a slash
+('/'), the filename should be appended to it in order to request pieces from
+that file. The way this works is that if the torrent is a single-file torrent,
+only that filename is appended. If the torrent is a multi-file torrent, the
+torrent's name '/' the file name is appended. This is the same directory
+structure that libtorrent will download torrents into.
+
+__ http://www.getright.com/seedtorrent.html
 
 
 filename checks

@@ -56,7 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer.hpp"
 #include "libtorrent/tracker_manager.hpp"
-#include "libtorrent/async_gethostbyname.hpp"
 #include "libtorrent/config.hpp"
 
 namespace libtorrent
@@ -67,45 +66,55 @@ namespace libtorrent
 	public:
 
 		udp_tracker_connection(
-			tracker_request const& req
+			demuxer& d
+			, tracker_manager& man
+			, tracker_request const& req
 			, std::string const& hostname
 			, unsigned short port
 			, boost::weak_ptr<request_callback> c
 			, const http_settings& stn);
 
-		virtual bool tick();
-		virtual bool send_finished() const;
-		virtual tracker_request const& tracker_req() const
-		{ return m_request; }
-
 	private:
 
 		enum action_t
 		{
-			connect,
-			announce,
-			scrape,
-			error
+			action_connect,
+			action_announce,
+			action_scrape,
+			action_error
 		};
 
+		boost::intrusive_ptr<udp_tracker_connection> self()
+		{ return boost::intrusive_ptr<udp_tracker_connection>(this); }
+
+		void name_lookup(asio::error const& error);
+		void timeout(asio::error const& error);
+
 		void send_udp_connect();
+		void connect_response(asio::error const& error, std::size_t bytes_transferred);
+
 		void send_udp_announce();
+		void announce_response(asio::error const& error, std::size_t bytes_transferred);
+
 		void send_udp_scrape();
-		bool parse_connect_response(const char* buf, int ret);
-		bool parse_announce_response(const char* buf, int ret);
-		bool parse_scrape_response(const char* buf, int ret);
+		void scrape_response(asio::error const& error, std::size_t bytes_transferred);
 
-		dns_lookup m_name_lookup;
-		boost::shared_ptr<socket> m_socket;
+		virtual void on_timeout();
 
-		// used for time outs
-		boost::posix_time::ptime m_request_time;
+		tracker_manager& m_man;
 
-		tracker_request m_request;
+		host_resolver m_name_lookup;
+		host m_host;
+		int m_port;
+		boost::shared_ptr<datagram_socket> m_socket;
+		udp::endpoint m_target;
+		udp::endpoint m_sender;
+
 		int m_transaction_id;
 		boost::int64_t m_connection_id;
 		const http_settings& m_settings;
 		int m_attempts;
+		std::vector<char> m_buffer;
 	};
 
 }

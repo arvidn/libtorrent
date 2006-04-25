@@ -1,4 +1,4 @@
-bin_PROGRAMS = test_hasher test_bencoding test_ip_filter test_piece_picker test_storage
+bin_PROGRAMS = test_hasher test_bencoding test_ip_filter test_piece_picker test_storage test_metadata_extension test_buffer
 EXTRA_DIST = Jamfile
 
 test_hasher_SOURCES = main.cpp test_hasher.cpp
@@ -16,7 +16,13 @@ test_piece_picker_LDADD = $(top_builddir)/src/libtorrent.la
 test_storage_SOURCES = main.cpp test_storage.cpp
 test_storage_LDADD = $(top_builddir)/src/libtorrent.la
 
+test_buffer_SOURCES = main.cpp test_buffer.cpp
+test_buffer_LDADD = $(top_builddir)/src/libtorrent.la
+
+test_metadata_extension_SOURCES = main.cpp test_metadata_extension.cpp
+test_metadata_extension_LDADD = $(top_builddir)/src/libtorrent.la
+
 noinst_HEADERS = test.hpp
 
-AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@ @PTHREAD_CFLAGS@
+AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/asio/include @DEBUGFLAGS@ @PTHREAD_CFLAGS@
 AM_LDFLAGS= -L./ -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -l@BOOST_THREAD_LIB@ @PTHREAD_LIBS@ 

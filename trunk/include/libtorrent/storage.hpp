@@ -130,8 +130,9 @@ namespace libtorrent
 		~piece_manager();
 
 		bool check_fastresume(detail::piece_checker_data& d
-			, std::vector<bool>& pieces, bool compact_mode);
-		std::pair<bool, float> check_files(std::vector<bool>& pieces);
+			, std::vector<bool>& pieces, int& num_pieces, bool compact_mode);
+		std::pair<bool, float> check_files(std::vector<bool>& pieces
+			, int& num_pieces);
 
 		void release_files();
 

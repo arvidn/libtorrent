@@ -57,6 +57,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
+#define TORRENT_MAX_ALERT_TYPES 10
+
 namespace libtorrent {
 
 	class TORRENT_EXPORT alert
@@ -112,13 +114,13 @@ namespace libtorrent {
 
 		template<
 			class Handler
-		  , BOOST_PP_ENUM_PARAMS(5, class T)
+		  , BOOST_PP_ENUM_PARAMS(TORRENT_MAX_ALERT_TYPES, class T)
 		  >
 		void handle_alert_dispatch(
 				const std::auto_ptr<alert>& alert_
 			  , const Handler& handler
 			  , const std::type_info& typeid_
-			  , BOOST_PP_ENUM_BINARY_PARAMS(5, T, *p))
+			  , BOOST_PP_ENUM_BINARY_PARAMS(TORRENT_MAX_ALERT_TYPES, T, *p))
 		{
 			if (typeid_ == typeid(T0))
 				handler(*static_cast<T0*>(alert_.get()));
@@ -127,7 +129,7 @@ namespace libtorrent {
 					alert_
 				  , handler
 				  , typeid_
-				  , BOOST_PP_ENUM_SHIFTED_PARAMS(5, p), (void_*)0
+				  , BOOST_PP_ENUM_SHIFTED_PARAMS(TORRENT_MAX_ALERT_TYPES, p), (void_*)0
 				);
 		}
 
@@ -136,7 +138,7 @@ namespace libtorrent {
 				const std::auto_ptr<alert>& alert_
 			  , const Handler& handler
 			  , const std::type_info& typeid_
-			  , BOOST_PP_ENUM_PARAMS(5, void_* BOOST_PP_INTERCEPT))
+			  , BOOST_PP_ENUM_PARAMS(TORRENT_MAX_ALERT_TYPES, void_* BOOST_PP_INTERCEPT))
 		{
 			throw unhandled_alert();
 		}
@@ -144,7 +146,7 @@ namespace libtorrent {
 	} // namespace detail
 
 	template<
-	  	BOOST_PP_ENUM_PARAMS_WITH_A_DEFAULT(5, class T, detail::void_)
+	  	BOOST_PP_ENUM_PARAMS_WITH_A_DEFAULT(TORRENT_MAX_ALERT_TYPES, class T, detail::void_)
 	  >
 	struct TORRENT_EXPORT handle_alert
 	{
@@ -159,7 +161,7 @@ namespace libtorrent {
 				alert_
 			  , handler
 			  , typeid(*alert_)
-			  , BOOST_PP_ENUM(5, ALERT_POINTER_TYPE, _)
+			  , BOOST_PP_ENUM(TORRENT_MAX_ALERT_TYPES, ALERT_POINTER_TYPE, _)
 			);
 
 			#undef ALERT_POINTER_TYPE

@@ -1,3 +1,16 @@
+	* improved the piece picker performance and made it possible to download
+	  popular pieces in sequence to improve disk performance.
+	* added the possibility to control upload and download limits per peer.
+	* fixed problem with re-requesting skipped pieces when peer was sending pieces
+	  out of fifo-order.
+	* added support for http seeding (the GetRight protocol)
+	* renamed identifiers called 'id' in the public interface to support linking
+	  with Objective.C++
+	* changed the extensions protocol to use the new one, which is also
+	  implemented by uTorrent.
+	* factorized the peer_connection and added web_peer_connection which is
+	  able to download from http-sources. (currently only for single file torrents).
+	* converted the network code to use asio
 	* made libtorrent build in vc7 (patches from Allen Zhao)
 	* fixed bug caused when binding outgoing connections to a non-local interface.
 	* add_torrent() will now throw if called while the session object is

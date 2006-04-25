@@ -79,12 +79,17 @@ int test_main()
 	libtorrent::detail::piece_checker_data d;
 
 	std::vector<bool> pieces;
-	TEST_CHECK(pm.check_fastresume(d, pieces, true) == false);
+	num_pieces = 0;
+	TEST_CHECK(pm.check_fastresume(d, pieces, num_pieces, true) == false);
 	bool finished = false;
 	float progress;
+	num_pieces = 0;
 	while (!finished)
-		boost::tie(finished, progress) = pm.check_files(pieces);
+		boost::tie(finished, progress) = pm.check_files(pieces, num_pieces);
 
+	TEST_CHECK(num_pieces == std::count(pieces.begin(), pieces.end()
+		, true));
+	
 	pm.read(piece, 0, 0, piece_size);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece0));
 

@@ -65,6 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resource_request.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/escape_string.hpp"
 
 namespace libtorrent
 {
@@ -73,10 +74,6 @@ namespace libtorrent
 #endif
 
 	class piece_manager;
-
-	std::string escape_string(const char* str, int len);
-	std::string unescape_string(std::string const& s);
-
 
 	namespace detail
 	{
@@ -101,9 +98,10 @@ namespace libtorrent
 			, detail::checker_impl& checker
 			, torrent_info const& tf
 			, boost::filesystem::path const& save_path
-			, address const& net_interface
+			, tcp::endpoint const& net_interface
 			, bool compact_mode
-			, int block_size);
+			, int block_size
+			, session_settings const& s);
 
 		// used with metadata-less torrents
 		// (the metadata is downloaded from the peers)
@@ -113,9 +111,10 @@ namespace libtorrent
 			, char const* tracker_url
 			, sha1_hash const& info_hash
 			, boost::filesystem::path const& save_path
-			, address const& net_interface
+			, tcp::endpoint const& net_interface
 			, bool compact_mode
-			, int block_size);
+			, int block_size
+			, session_settings const& s);
 
 		~torrent();
 
@@ -138,7 +137,7 @@ namespace libtorrent
 		// caclulate the upload/download and number
 		// of connections this torrent needs. And prepare
 		// it for being used by allocate_resources.
-		void second_tick(stat& accumulator);
+		void second_tick(stat& accumulator, float tick_interval);
 
 		// debug purpose only
 		void print(std::ostream& os) const;
@@ -165,19 +164,15 @@ namespace libtorrent
 		bool is_piece_filtered(int index) const;
 		void filtered_pieces(std::vector<bool>& bitmask) const;
 	
-		// idea from Arvid and MooPolice
-		// todo refactoring and improving the function body
-		// marks the file with the given index as filtered
-		// it will not be downloaded
-		void filter_file(int index, bool filter);
 		void filter_files(std::vector<bool> const& files);
-
 
 		torrent_status status() const;
 
 		void use_interface(const char* net_interface);
-		address const& get_interface() const { return m_net_interface; }
-		peer_connection& connect_to_peer(const address& a);
+		tcp::endpoint const& get_interface() const { return m_net_interface; }
+		
+		void connect_to_url_seed(std::string const& url);
+		peer_connection& connect_to_peer(tcp::endpoint const& a);
 
 		void set_ratio(float ratio)
 		{ assert(ratio >= 0.0f); m_ratio = ratio; }
@@ -187,6 +182,14 @@ namespace libtorrent
 
 // --------------------------------------------
 		// PEER MANAGEMENT
+		
+		// add or remove a url that will be attempted for
+		// finding the file(s) in this torrent.
+		void add_url_seed(std::string const& url)
+		{ m_web_seeds.insert(url); }
+	
+		void remove_url_seed(std::string const& url)
+		{ m_web_seeds.erase(url); }
 
 		// used by peer_connection to attach itself to a torrent
 		// since incoming connections don't know what torrent
@@ -196,10 +199,9 @@ namespace libtorrent
 		// this will remove the peer and make sure all
 		// the pieces it had have their reference counter
 		// decreased in the piece_picker
-		// called from the peer_connection destructor
 		void remove_peer(peer_connection* p);
 
-		peer_connection* connection_for(const address& a)
+		peer_connection* connection_for(tcp::endpoint const& a)
 		{
 			peer_iterator i = m_connections.find(a);
 			if (i == m_connections.end()) return 0;
@@ -210,8 +212,8 @@ namespace libtorrent
 		int num_peers() const { return (int)m_connections.size(); }
 		int num_seeds() const;
 
-		typedef std::map<address, peer_connection*>::iterator peer_iterator;
-		typedef std::map<address, peer_connection*>::const_iterator const_peer_iterator;
+		typedef std::map<tcp::endpoint, peer_connection*>::iterator peer_iterator;
+		typedef std::map<tcp::endpoint, peer_connection*>::const_iterator const_peer_iterator;
 
 		const_peer_iterator begin() const { return m_connections.begin(); }
 		const_peer_iterator end() const { return m_connections.end(); }
@@ -264,9 +266,9 @@ namespace libtorrent
 		// the tracker
 		void set_tracker_login(std::string const& name, std::string const& pw);
 
-		// the address of the tracker that we managed to
+		// the tcp::endpoint of the tracker that we managed to
 		// announce ourself at the last time we tried to announce
-		const address& current_tracker() const;
+		const tcp::endpoint& current_tracker() const;
 
 // --------------------------------------------
 		// PIECE MANAGEMENT
@@ -300,7 +302,7 @@ namespace libtorrent
 			m_picker->dec_refcount(index);
 		}
 
-		int block_size() const { return m_block_size; }
+		int block_size() const { assert(m_block_size > 0); return m_block_size; }
 
 		// this will tell all peers that we just got his piece
 		// and also let the piece picker know that we have this piece
@@ -313,6 +315,10 @@ namespace libtorrent
 		// the download. It will post an event, disconnect
 		// all seeds and let the tracker know we're finished.
 		void completed();
+		
+		// this is the asio callback that is called when a name
+		// lookup for a web seed is completed.
+		void on_name_lookup(asio::error const& e, int port, std::string url, host h);
 
 		// this is called when the torrent has finished. i.e.
 		// all the pieces we have not filtered have been downloaded.
@@ -326,6 +332,8 @@ namespace libtorrent
 		// each time a piece has failed the hash
 		// test
 		void piece_failed(int index);
+		void received_redundant_data(int num_bytes)
+		{ assert(num_bytes > 0); m_total_redundant_bytes += num_bytes; }
 
 		float priority() const
 		{ return m_priority; }
@@ -383,6 +391,9 @@ namespace libtorrent
 		resource_request m_dl_bandwidth_quota;
 		resource_request m_uploads_quota;
 		resource_request m_connections_quota;
+
+		void set_peer_upload_limit(tcp::endpoint ip, int limit);
+		void set_peer_download_limit(tcp::endpoint ip, int limit);
 
 		void set_upload_limit(int limit);
 		void set_download_limit(int limit);
@@ -454,14 +465,24 @@ namespace libtorrent
 		// is optional and may be -1.
 		int m_complete;
 		int m_incomplete;
-		
+
 #ifndef NDEBUG
 	public:
 #endif
-		std::map<address, peer_connection*> m_connections;
+		std::map<tcp::endpoint, peer_connection*> m_connections;
 #ifndef NDEBUG
 	private:
 #endif
+
+		// The list of web seeds in this torrent. Seeds
+		// with fatal errors are removed from the set
+		std::set<std::string> m_web_seeds;
+		// The set of url seeds that are currently having
+		// their hostnames resolved.
+		std::map<std::string, host> m_resolving_web_seeds;
+
+		// used to resolve the names of web seeds
+		host_resolver m_host_resolver;
 
 		// this is the upload and download statistics for the whole torrent.
 		// it's updated from all its peers once every second.
@@ -518,13 +539,14 @@ namespace libtorrent
 		// the number of bytes that has been
 		// downloaded that failed the hash-test
 		size_type m_total_failed_bytes;
+		size_type m_total_redundant_bytes;
 
 		std::string m_username;
 		std::string m_password;
 
 		// the network interface all outgoing connections
 		// are opened through
-		address m_net_interface;
+		tcp::endpoint m_net_interface;
 
 		// the max number of bytes this torrent
 		// can upload per second
@@ -569,6 +591,15 @@ namespace libtorrent
 		// them from altering the piece-picker before it
 		// has been initialized with files_checked().
 		bool m_connections_initialized;
+
+		session_settings const& m_settings;
+
+#ifndef NDEBUG
+		// this is the amount downloaded when this torrent
+		// is started. i.e.
+		// total_done - m_initial_done <= total_payload_download
+		size_type m_initial_done;
+#endif
 	};
 
 	inline boost::posix_time::ptime torrent::next_announce() const

@@ -115,4 +115,34 @@ namespace libtorrent
 		}
 		return ret.str();
 	}
+	
+	std::string escape_path(const char* str, int len)
+	{
+		assert(str != 0);
+		assert(len >= 0);
+		static const char unreserved_chars[] = "/-_.!~*()"
+			"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+			"0123456789";
+
+		std::stringstream ret;
+		ret << std::hex << std::setfill('0');
+		for (int i = 0; i < len; ++i)
+		{
+			if (std::count(
+					unreserved_chars
+					, unreserved_chars+sizeof(unreserved_chars)-1
+					, *str))
+			{
+				ret << *str;
+			}
+			else
+			{
+				ret << '%'
+					<< std::setw(2)
+					<< (int)static_cast<unsigned char>(*str);
+			}
+			++str;
+		}
+		return ret.str();
+	}
 }

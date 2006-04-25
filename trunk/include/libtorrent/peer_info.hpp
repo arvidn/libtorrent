@@ -52,22 +52,23 @@ namespace libtorrent
 			remote_choked = 0x8,
 			supports_extensions = 0x10,
 			local_connection = 0x20,
-			connecting = 0x40,
-			queued = 0x80
+			handshake = 0x40,
+			connecting = 0x80,
+			queued = 0x100
 		};
 		unsigned int flags;
-		address ip;
+		tcp::endpoint ip;
 		float up_speed;
 		float down_speed;
 		float payload_up_speed;
 		float payload_down_speed;
 		size_type total_download;
 		size_type total_upload;
-		peer_id id;
+		peer_id pid;
 		std::vector<bool> pieces;
 		bool seed; // true if this is a seed
-		int upload_limit; // from peer_connection
-		int upload_ceiling; // from the global upload limiter
+		int upload_limit;
+		int download_limit;
 
 		size_type load_balancing;
 
@@ -89,6 +90,15 @@ namespace libtorrent
 		int downloading_block_index;
 		int downloading_progress;
 		int downloading_total;
+		
+		std::string client;
+		
+		enum
+		{
+			standard_bittorrent = 0,
+			web_seed = 1
+		};
+		int connection_type;
 	};
 
 }

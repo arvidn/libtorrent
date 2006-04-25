@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/tuple/tuple.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -69,6 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/session_settings.hpp"
 
 #if !defined(NDEBUG) && defined(_MSC_VER)
 #	include <float.h>
@@ -77,8 +79,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
 	class torrent;
+
+	enum extension_index
+	{
+		extended_handshake,
+		extended_chat_message,
+		extended_metadata_message,
+		extended_peer_exchange_message,
+		num_supported_extensions
+	};
 
 	namespace detail
 	{
@@ -123,7 +133,7 @@ namespace libtorrent
 
 			std::vector<int> piece_map;
 			std::vector<piece_picker::downloading_piece> unfinished_pieces;
-			std::vector<address> peers;
+			std::vector<tcp::endpoint> peers;
 			entry resume_data;
 
 			// this is true if this torrent is being processed (checked)
@@ -170,12 +180,10 @@ namespace libtorrent
 		struct session_impl: boost::noncopyable
 		{
 			friend class invariant_access;
-			// TODO: maybe this should be changed to a sorted vector
-			// using lower_bound?
-			typedef std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> >
+			typedef std::map<boost::shared_ptr<stream_socket>, boost::intrusive_ptr<peer_connection> >
 				connection_map;
 			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
-			typedef std::deque<boost::shared_ptr<peer_connection> >
+			typedef std::deque<boost::intrusive_ptr<peer_connection> >
 				connection_queue;
 
 			session_impl(
@@ -187,10 +195,16 @@ namespace libtorrent
 
 			void open_listen_port();
 
+			void async_accept();
+			void on_incoming_connection(boost::shared_ptr<stream_socket> const& s
+				, boost::weak_ptr<socket_acceptor> const& as, asio::error const& e);
+		
 			// must be locked to access the data
 			// in this struct
-			mutable boost::mutex m_mutex;
-			torrent* find_torrent(const sha1_hash& info_hash);
+			typedef boost::recursive_mutex mutex_t;
+			mutable mutex_t m_mutex;
+
+			boost::weak_ptr<torrent> find_torrent(const sha1_hash& info_hash);
 			peer_id const& get_peer_id() const { return m_peer_id; }
 
 			tracker_manager m_tracker_manager;
@@ -201,15 +215,11 @@ namespace libtorrent
 			// is reached.
 			void process_connection_queue();
 
-			void connection_failed(boost::shared_ptr<socket> const& s
-				, address const& a, char const* message);
+			void close_connection(boost::intrusive_ptr<peer_connection> const& p);
+			void connection_completed(boost::intrusive_ptr<peer_connection> const& p);
+			void connection_failed(boost::shared_ptr<stream_socket> const& s
+				, tcp::endpoint const& a, char const* message);
 
-			// this is where all active sockets are stored.
-			// the selector can sleep while there's no activity on
-			// them
-			selector m_selector;
-
-			
 			// this maps sockets to their peer_connection
 			// object. It is the complete list of all connected
 			// peers.
@@ -225,13 +235,7 @@ namespace libtorrent
 			// waiting for one slot in the half-open queue to open up.
 			connection_queue m_connection_queue;
 
-			// this is a list of iterators into the m_connections map
-			// that should be disconnected as soon as possible.
-			// It is used to delay disconnections to avoid troubles
-			// in loops that iterate over them.
-			std::vector<boost::shared_ptr<peer_connection> > m_disconnect_peer;
-
-			// filters incomming connections
+			// filters incoming connections
 			ip_filter m_ip_filter;
 			
 			// the peer id that is generated at the start of the session
@@ -250,18 +254,24 @@ namespace libtorrent
 			// if the ip is set to zero, it means
 			// that we should let the os decide which
 			// interface to listen on
-			address m_listen_interface;
+			tcp::endpoint m_listen_interface;
 
-			boost::shared_ptr<socket> m_listen_socket;
+			// this is where all active sockets are stored.
+			// the selector can sleep while there's no activity on
+			// them
+			demuxer m_selector;
+
+			boost::shared_ptr<socket_acceptor> m_listen_socket;
 
 			// the entries in this array maps the
 			// extension index (as specified in peer_connection)
-			bool m_extension_enabled[peer_connection::num_supported_extensions];
+			bool m_extension_enabled[num_supported_extensions];
 
 			bool extensions_enabled() const;
 
 			// the settings for the client
-			http_settings m_settings;
+			session_settings m_settings;
+			http_settings m_http_settings;
 
 			// set to true when the session object
 			// is being destructed and the thread
@@ -293,8 +303,11 @@ namespace libtorrent
 
 			// does the actual disconnections
 			// that are queued up in m_disconnect_peer
-			void purge_connections();
+			void second_tick(asio::error const& e);
+			boost::posix_time::ptime m_last_tick;
 
+			// the timer used to fire the second_tick
+			deadline_timer m_timer;
 #ifndef NDEBUG
 			void check_invariant(const char *place = 0);
 #endif
@@ -330,7 +343,7 @@ namespace libtorrent
 	{
 	public:
 
-		session(fingerprint const& print = fingerprint("LT", 0, 9, 1, 0));
+		session(fingerprint const& print = fingerprint("LT", 0, 9, 2, 0));
 		session(
 			fingerprint const& print
 			, std::pair<int, int> listen_port_range
@@ -348,7 +361,7 @@ namespace libtorrent
 			, bool compact_mode = true
 			, int block_size = 16 * 1024);
 
-		// TODO: depricated, this is for backwards compatibility only
+		// TODO: deprecated, this is for backwards compatibility only
 		torrent_handle add_torrent(
 			entry const& e
 			, boost::filesystem::path const& save_path
@@ -370,11 +383,11 @@ namespace libtorrent
 
 		session_status status() const;
 
-		void enable_extension(peer_connection::extension_index i);
+		void enable_extension(extension_index i);
 		void disable_extensions();
 
 		void set_ip_filter(ip_filter const& f);
-		void set_peer_id(peer_id const& id);
+		void set_peer_id(peer_id const& pid);
 		void set_key(int key);
 
 		bool is_listening() const;

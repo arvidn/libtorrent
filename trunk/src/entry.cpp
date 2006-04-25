@@ -62,7 +62,7 @@ namespace
 			std::pair<std::string
 			, libtorrent::entry> const& e) const
 		{
-			return e.first == m_str;
+			return m_str && e.first == m_str;
 		}
 		char const* m_str;
 	};

@@ -226,11 +226,11 @@ std::string progress_bar(float progress, int width, char const* code = "33")
 	return std::string(bar.begin(), bar.end());
 }
 
-char const* peer_index(libtorrent::address addr, std::vector<libtorrent::peer_info> const& peers)
+char const* peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
 	std::vector<peer_info>::const_iterator i = std::find_if(peers.begin()
-		, peers.end(), boost::bind(std::equal_to<address>()
+		, peers.end(), boost::bind(std::equal_to<libtorrent::tcp::endpoint>()
 		, bind(&peer_info::ip, _1), addr));
 	if (i == peers.end()) return "+";
 
@@ -274,7 +274,11 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			out << progress_bar(0.f, 15);
 		}
 
-		if (i->flags & peer_info::connecting)
+		if (i->flags & peer_info::handshake)
+		{
+			out << esc("31") << " waiting for handshake" << esc("0") << "\n";
+		}
+		else if (i->flags & peer_info::connecting)
 		{
 			out << esc("31") << " connecting to peer" << esc("0") << "\n";
 		}
@@ -284,7 +288,7 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 		}
 		else
 		{
-			out << " " << identify_client(i->id) << "\n";
+			out << " " << i->client << "\n";
 		}
 	}
 }
@@ -569,9 +573,9 @@ int main(int ac, char* av[])
 				int a, b, c, d;
 				char dummy;
 				in >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
-				address start(a, b, c, d, 0);
+				address start((a << 24) + (b << 16) + (c << 8) + d);
 				in >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
-				address last(a, b, c, d, 0);
+				address last((a << 24) + (b << 16) + (c << 8) + d);
 				int flags;
 				in >> flags;
 				if (flags <= 127) flags = ip_filter::blocked;
@@ -681,6 +685,7 @@ int main(int ac, char* av[])
 			// loop through the alert queue to see if anything has happened.
 			std::auto_ptr<alert> a;
 			a = ses.pop_alert();
+			std::string now = to_simple_string(second_clock::universal_time());
 			while (a.get())
 			{
 				if (torrent_finished_alert* p = dynamic_cast<torrent_finished_alert*>(a.get()))
@@ -693,20 +698,22 @@ int main(int ac, char* av[])
 					// all finished downloades are
 					// moved into this directory
 					//p->handle.move_storage("finished");
-					events.push_back(
-						p->handle.get_torrent_info().name() + ": " + a->msg());
+					events.push_back(now + ": "
+						+ p->handle.get_torrent_info().name() + ": " + a->msg());
 				}
 				else if (peer_error_alert* p = dynamic_cast<peer_error_alert*>(a.get()))
 				{
-					events.push_back(identify_client(p->id) + ": " + a->msg());
+					events.push_back(now + ": " + identify_client(p->pid)
+						+ ": " + a->msg());
 				}
 				else if (invalid_request_alert* p = dynamic_cast<invalid_request_alert*>(a.get()))
 				{
-					events.push_back(identify_client(p->id) + ": " + a->msg());
+					events.push_back(now + ": " + identify_client(p->pid)
+						+ ": " + a->msg());
 				}
 				else
 				{
-					events.push_back(a->msg());
+					events.push_back(now + ": " + a->msg());
 				}
 
 				if (events.size() >= 10) events.pop_front();

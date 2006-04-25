@@ -1,9 +1,9 @@
 lib_LTLIBRARIES = libtorrent.la
 
-libtorrent_la_SOURCES = allocate_resources.cpp async_gethostbyname.cpp \
+libtorrent_la_SOURCES = allocate_resources.cpp \
 entry.cpp escape_string.cpp \
-peer_connection.cpp piece_picker.cpp policy.cpp \
-session.cpp sha1.cpp socket.cpp stat.cpp \
+peer_connection.cpp bt_peer_connection.cpp web_peer_connection.cpp \
+piece_picker.cpp policy.cpp session.cpp sha1.cpp stat.cpp \
 storage.cpp torrent.cpp torrent_handle.cpp \
 torrent_info.cpp tracker_manager.cpp \
 http_tracker_connection.cpp udp_tracker_connection.cpp \
@@ -13,7 +13,6 @@ noinst_HEADERS = \
 $(top_srcdir)/include/libtorrent/alert.hpp \
 $(top_srcdir)/include/libtorrent/alert_types.hpp \
 $(top_srcdir)/include/libtorrent/allocate_resources.hpp \
-$(top_srcdir)/include/libtorrent/async_gethostbyname.hpp \
 $(top_srcdir)/include/libtorrent/bencode.hpp \
 $(top_srcdir)/include/libtorrent/buffer.hpp \
 $(top_srcdir)/include/libtorrent/debug.hpp \
@@ -30,6 +29,8 @@ $(top_srcdir)/include/libtorrent/io.hpp \
 $(top_srcdir)/include/libtorrent/ip_filter.hpp \
 $(top_srcdir)/include/libtorrent/peer.hpp \
 $(top_srcdir)/include/libtorrent/peer_connection.hpp \
+$(top_srcdir)/include/libtorrent/bt_peer_connection.hpp \
+$(top_srcdir)/include/libtorrent/web_peer_connection.hpp \
 $(top_srcdir)/include/libtorrent/peer_id.hpp \
 $(top_srcdir)/include/libtorrent/peer_info.hpp \
 $(top_srcdir)/include/libtorrent/peer_request.hpp \
@@ -54,5 +55,5 @@ $(top_srcdir)/include/libtorrent/version.hpp
 libtorrent_la_LDFLAGS = $(LDFLAGS) -version-info 1:0:1
 libtorrent_la_LIBADD = @ZLIB@ -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -l@BOOST_THREAD_LIB@ @PTHREAD_LIBS@ 
 
-AM_CXXFLAGS= -ftemplate-depth-50 -I$(top_srcdir)/include @ZLIBINCL@ @DEBUGFLAGS@ @PTHREAD_CFLAGS@ 
+AM_CXXFLAGS= -ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/asio/include @ZLIBINCL@ @DEBUGFLAGS@ @PTHREAD_CFLAGS@ 
 AM_LDFLAGS= $(LDFLAGS) -L./ -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -l@BOOST_THREAD_LIB@ @PTHREAD_LIBS@ 

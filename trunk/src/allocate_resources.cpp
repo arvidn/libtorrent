@@ -69,10 +69,12 @@ namespace libtorrent
 	{
 		assert(a >= 0);
 		assert(b >= 0);
+		assert(a <= resource_request::inf);
+		assert(b <= resource_request::inf);
 		assert(resource_request::inf + resource_request::inf < 0);
 
 		int sum = a + b;
-		if(sum < 0)
+		if (sum < 0)
 			sum = resource_request::inf;
 
 		assert(sum >= a && sum >= b);
@@ -121,7 +123,6 @@ namespace libtorrent
 				assert(m_resources >= 0);
 				for (It i = m_start, end(m_end); i != end; ++i)
 				{
-					assert(((*i).*m_res).used >= 0);
 					assert(((*i).*m_res).max >= 0);
 					assert(((*i).*m_res).given >= 0);
 				}
@@ -165,7 +166,7 @@ namespace libtorrent
 				, res);
 	#endif
 
-			if(resources == resource_request::inf)
+			if (resources == resource_request::inf)
 			{
 				// No competition for resources.
 				// Just give everyone what they want.
@@ -224,15 +225,18 @@ namespace libtorrent
 				for (It i = start; i != end && resources_to_distribute > 0; ++i)
 				{
 					resource_request& r = (*i).*res;
-					if(r.given == r.max) continue;
+					if (r.given == r.max) continue;
 
 					assert(r.given < r.max);
 
 					size_type used = (size_type)r.used + 1;
+					if (used < 1) used = 1;
 					size_type to_give = used * kNumer / kDenom;
 					if(to_give > resource_request::inf)
 						to_give = resource_request::inf;
+					assert(to_give >= 0);
 					resources_to_distribute -= give(r, (int)to_give);
+					assert(resources_to_distribute >= 0);
 				}
 
 				assert(resources_to_distribute >= 0);
@@ -240,13 +244,14 @@ namespace libtorrent
 		}
 
 		peer_connection& pick_peer(
-			std::pair<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> > const& p)
+			std::pair<boost::shared_ptr<stream_socket>
+			, boost::intrusive_ptr<peer_connection> > const& p)
 		{
 			return *p.second;
 		}
 
 		peer_connection& pick_peer2(
-			std::pair<address, peer_connection*> const& p)
+			std::pair<tcp::endpoint, peer_connection*> const& p)
 		{
 			return *p.second;
 		}
@@ -262,11 +267,11 @@ namespace libtorrent
 /*
 	void allocate_resources(
 		int resources
-		, std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> >& c
+		, std::map<boost::shared_ptr<socket>, boost::intrusive_ptr<peer_connection> >& c
 		, resource_request peer_connection::* res)
 	{
-		typedef std::map<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> >::iterator orig_iter;
-		typedef std::pair<boost::shared_ptr<socket>, boost::shared_ptr<peer_connection> > in_param;
+		typedef std::map<boost::shared_ptr<socket>, boost::intrusive_ptr<peer_connection> >::iterator orig_iter;
+		typedef std::pair<boost::shared_ptr<socket>, boost::intrusive_ptr<peer_connection> > in_param;
 		typedef boost::transform_iterator<peer_connection& (*)(in_param const&), orig_iter> new_iter;
 
 		allocate_resources_impl(
@@ -297,7 +302,7 @@ namespace libtorrent
 
 		struct iterator_wrapper2
 		{
-			typedef std::map<address, peer_connection*>::iterator orig_iter;
+			typedef std::map<tcp::endpoint, peer_connection*>::iterator orig_iter;
 
 			orig_iter iter;
 
@@ -326,7 +331,7 @@ namespace libtorrent
 
 	void allocate_resources(
 		int resources
-		, std::map<address, peer_connection*>& c
+		, std::map<tcp::endpoint, peer_connection*>& c
 		, resource_request peer_connection::* res)
 	{
 		allocate_resources_impl(
@@ -356,11 +361,11 @@ namespace libtorrent
 
 	void allocate_resources(
 		int resources
-		, std::map<address, peer_connection*>& c
+		, std::map<tcp::endpoint, peer_connection*>& c
 		, resource_request peer_connection::* res)
 	{
-		typedef std::map<address, peer_connection*>::iterator orig_iter;
-		typedef std::pair<address, peer_connection*> in_param;
+		typedef std::map<tcp::endpoint, peer_connection*>::iterator orig_iter;
+		typedef std::pair<tcp::endpoint, peer_connection*> in_param;
 		typedef boost::transform_iterator<peer_connection& (*)(in_param const&), orig_iter> new_iter;
 
 		allocate_resources_impl(
