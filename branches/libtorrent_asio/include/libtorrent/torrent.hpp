@@ -100,7 +100,8 @@ namespace libtorrent
 			, boost::filesystem::path const& save_path
 			, tcp::endpoint const& net_interface
 			, bool compact_mode
-			, int block_size);
+			, int block_size
+			, session_settings const& s);
 
 		// used with metadata-less torrents
 		// (the metadata is downloaded from the peers)
@@ -112,7 +113,8 @@ namespace libtorrent
 			, boost::filesystem::path const& save_path
 			, tcp::endpoint const& net_interface
 			, bool compact_mode
-			, int block_size);
+			, int block_size
+			, session_settings const& s);
 
 		~torrent();
 
@@ -162,13 +164,7 @@ namespace libtorrent
 		bool is_piece_filtered(int index) const;
 		void filtered_pieces(std::vector<bool>& bitmask) const;
 	
-		// idea from Arvid and MooPolice
-		// todo refactoring and improving the function body
-		// marks the file with the given index as filtered
-		// it will not be downloaded
-		void filter_file(int index, bool filter);
 		void filter_files(std::vector<bool> const& files);
-
 
 		torrent_status status() const;
 
@@ -595,6 +591,8 @@ namespace libtorrent
 		// them from altering the piece-picker before it
 		// has been initialized with files_checked().
 		bool m_connections_initialized;
+
+		session_settings const& m_settings;
 
 #ifndef NDEBUG
 		// this is the amount downloaded when this torrent

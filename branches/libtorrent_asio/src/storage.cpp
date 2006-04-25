@@ -650,8 +650,8 @@ namespace libtorrent
 
 		assert(slices[0].offset == file_offset);
 
-		in->seek(file_offset);
-		if (in->tell() != file_offset)
+		size_type new_pos = in->seek(file_offset);
+		if (new_pos != file_offset)
 		{
 			// the file was not big enough
 			throw file_error("slot has no storage");
@@ -768,8 +768,7 @@ namespace libtorrent
 		assert(file_offset < file_iter->size);
 		assert(slices[0].offset == file_offset);
 
-		out->seek(file_offset);
-		size_type pos = out->tell();
+		size_type pos = out->seek(file_offset);
 
 		if (pos != file_offset)
 		{

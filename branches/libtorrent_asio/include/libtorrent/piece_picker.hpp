@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/session_settings.hpp"
 #include "libtorrent/config.hpp"
 
 namespace libtorrent
@@ -109,8 +110,11 @@ namespace libtorrent
 			block_info info[max_blocks_per_piece];
 		};
 
-		piece_picker(int blocks_per_piece,
-			int total_num_blocks);
+		piece_picker(int blocks_per_piece
+			, int total_num_blocks
+			, int sequenced_download_threshold);
+
+		void set_sequenced_download_threshold(int sequenced_download_threshold);
 
 		// this is called before any other method is called
 		// after the local files has been checked.
@@ -251,10 +255,20 @@ namespace libtorrent
 
 			enum { we_have_index = 0x3ffff };
 			
-			bool operator!=(piece_pos p)
+			int priority(int limit) const
+			{
+				return peer_count >= (unsigned)limit ? limit : peer_count;
+			}
+			
+			bool ordered(int limit) const
+			{
+				return peer_count >= (unsigned)limit;
+			}
+			
+			bool operator!=(piece_pos p) const
 			{ return index != p.index || peer_count != p.peer_count; }
 
-			bool operator==(piece_pos p)
+			bool operator==(piece_pos p) const
 			{ return index == p.index && peer_count == p.peer_count; }
 
 		};
@@ -320,6 +334,10 @@ namespace libtorrent
 
 		// the number of pieces we have that also are filtered
 		int m_num_have_filtered;
+
+		// the required popularity of a piece in order to download
+		// it in sequence instead of random order.
+		int m_sequenced_download_threshold;
 	};
 
 	inline int piece_picker::blocks_in_piece(int index) const

@@ -45,12 +45,14 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	piece_picker::piece_picker(int blocks_per_piece, int total_num_blocks)
+	piece_picker::piece_picker(int blocks_per_piece, int total_num_blocks
+		, int sequenced_download_threshold)
 		: m_piece_info(2)
 		, m_downloading_piece_info(2)
 		, m_piece_map((total_num_blocks + blocks_per_piece-1) / blocks_per_piece)
 		, m_num_filtered(0)
 		, m_num_have_filtered(0)
+		, m_sequenced_download_threshold(sequenced_download_threshold)
 	{
 		assert(blocks_per_piece > 0);
 		assert(total_num_blocks >= 0);
@@ -104,12 +106,9 @@ namespace libtorrent
 			}
 		}
 
-		// random shuffle the list
-		std::random_shuffle(piece_list.begin(), piece_list.end());
-
 		// add the pieces to the piece_picker
-		for (std::vector<int>::iterator i = piece_list.begin();
-			i != piece_list.end(); ++i)
+		for (std::vector<int>::reverse_iterator i = piece_list.rbegin();
+			i != piece_list.rend(); ++i)
 		{
 			int index = *i;
 			assert(index >= 0);
@@ -139,6 +138,34 @@ namespace libtorrent
 					if (i->finished_blocks[j])
 						mark_as_finished(piece_block(i->index, j), peer);
 				}
+			}
+		}
+#ifndef NDEBUG
+		integrity_check();
+#endif
+	}
+
+	void piece_picker::set_sequenced_download_threshold(
+		int sequenced_download_threshold)
+	{
+#ifndef NDEBUG
+		integrity_check();
+#endif
+
+		if (sequenced_download_threshold == m_sequenced_download_threshold)
+			return;
+			
+		int old_limit = m_sequenced_download_threshold;
+		m_sequenced_download_threshold = sequenced_download_threshold;
+
+		for (std::vector<piece_pos>::iterator i = m_piece_map.begin()
+			, end(m_piece_map.end()); i != end; ++i)
+		{
+			if (i->priority(old_limit) != i->priority(m_sequenced_download_threshold))
+			{
+				piece_pos& p = m_piece_map[i->index];
+				int prev_priority = i->priority(old_limit);
+				move(p.downloading, p.filtered, prev_priority, i->index);
 			}
 		}
 #ifndef NDEBUG
@@ -236,8 +263,8 @@ namespace libtorrent
 					assert(!t->have_piece(index));
 
 				const std::vector<std::vector<int> >& c_vec = pick_piece_info_vector(i->downloading, i->filtered);
-				assert(i->peer_count < c_vec.size());
-				const std::vector<int>& vec = c_vec[i->peer_count];
+				assert(i->priority(m_sequenced_download_threshold) < (int)c_vec.size());
+				const std::vector<int>& vec = c_vec[i->priority(m_sequenced_download_threshold)];
 				assert(i->index < vec.size());
 				assert(vec[i->index] == index);
 			}
@@ -302,80 +329,159 @@ namespace libtorrent
 		std::vector<std::vector<int> >& dst_vec = pick_piece_info_vector(
 			p.downloading, p.filtered);
 
-		if (dst_vec.size() <= p.peer_count)
-			dst_vec.resize(p.peer_count + 1);
+		int priority = p.priority(m_sequenced_download_threshold);
+		if ((int)dst_vec.size() <= priority)
+			dst_vec.resize(priority + 1);
 
-		assert(dst_vec.size() > p.peer_count);
-		p.index = (int)dst_vec[p.peer_count].size();
-		dst_vec[p.peer_count].push_back(index);
+		assert((int)dst_vec.size() > priority);
+
+		if (p.ordered(m_sequenced_download_threshold))
+		{
+			// the piece should be inserted ordered, not randomly
+			std::vector<int>& v = dst_vec[priority];
+			std::vector<int>::iterator i = std::lower_bound(v.begin(), v.end()
+				, index, std::greater<int>());
+			p.index = i - v.begin();
+			v.insert(i, index);
+			i = v.begin() + p.index + 1;
+			for (;i != v.end(); ++i)
+			{
+				++m_piece_map[*i].index;
+				assert(v[m_piece_map[*i].index] == *i);
+			}
+		}
+		else if (dst_vec[priority].size() < 2)
+		{
+			p.index = dst_vec[priority].size();
+			dst_vec[priority].push_back(index);
+		}
+		else
+		{
+			// find a random position in the destination vector where we will place
+			// this entry.
+			int dst_index = rand() % dst_vec[priority].size();
+			
+			// copy the entry at that position to the back
+			m_piece_map[dst_vec[priority][dst_index]].index
+				= dst_vec[priority].size();
+			dst_vec[priority].push_back(dst_vec[priority][dst_index]);
+
+			// and then replace the one at dst_index with the one we're moving.
+			// this procedure is to make sure there's no ordering when pieces
+			// are moved in sequenced order.
+			p.index = dst_index;
+			dst_vec[priority][p.index] = index;
+		}
 	}
 
-	// will update the piece with the given properties (downloading, filtered, peer_count, elem_index)
-	// to place it at the correct position in the vectors.
-	void piece_picker::move(bool downloading, bool filtered, int peer_count, int elem_index)
+	// will update the piece with the given properties (downloading, filtered,
+	// priority, elem_index) to place it at the correct position in the
+	// vectors.
+	void piece_picker::move(bool downloading, bool filtered, int priority
+		, int elem_index)
 	{
 		assert(!filtered);
-		assert(peer_count >= 0);
+		assert(priority >= 0);
 		assert(elem_index >= 0);
-		std::vector<std::vector<int> >& src_vec(pick_piece_info_vector(downloading, filtered));
+		std::vector<std::vector<int> >& src_vec(pick_piece_info_vector(
+			downloading, filtered));
 
-		assert((int)src_vec.size() > peer_count);
-		assert((int)src_vec[peer_count].size() > elem_index);
+		assert((int)src_vec.size() > priority);
+		assert((int)src_vec[priority].size() > elem_index);
 
-		int index = src_vec[peer_count][elem_index];
+		int index = src_vec[priority][elem_index];
 		// update the piece_map
 		piece_pos& p = m_piece_map[index];
+		int new_priority = p.priority(m_sequenced_download_threshold);
 
 		assert(p.downloading != downloading
 			|| p.filtered != filtered
-			|| (int)p.peer_count != peer_count);
+			|| (int)new_priority != priority);
 
-		std::vector<std::vector<int> >& dst_vec(pick_piece_info_vector(p.downloading, p.filtered));
+		std::vector<std::vector<int> >& dst_vec(pick_piece_info_vector(
+			p.downloading, p.filtered));
 
-		if (dst_vec.size() <= p.peer_count)
+		if ((int)dst_vec.size() <= new_priority)
 		{
-			dst_vec.resize(p.peer_count+1);
-			assert(dst_vec.size() > p.peer_count);
+			dst_vec.resize(new_priority + 1);
+			assert((int)dst_vec.size() > new_priority);
 		}
 
-		p.index = (int)dst_vec[p.peer_count].size();
-		dst_vec[p.peer_count].push_back(index);
-		assert(p.index < dst_vec[p.peer_count].size());
-		assert(dst_vec[p.peer_count][p.index] == index);
+		if (p.ordered(m_sequenced_download_threshold))
+		{
+			// the piece should be inserted ordered, not randomly
+			std::vector<int>& v = dst_vec[new_priority];
+
+			std::vector<int>::iterator i = std::lower_bound(v.begin(), v.end()
+				, index, std::greater<int>());
+			p.index = i - v.begin();
+			v.insert(i, index);
+			i = v.begin() + p.index + 1;
+			for (;i != v.end(); ++i)
+			{
+				++m_piece_map[*i].index;
+				assert(v[m_piece_map[*i].index] == *i);
+			}
+		}
+		else if (dst_vec[new_priority].size() < 2)
+		{
+			p.index = dst_vec[new_priority].size();
+			dst_vec[new_priority].push_back(index);
+		}
+		else
+		{
+			// find a random position in the destination vector where we will place
+			// this entry.
+			int dst_index = rand() % dst_vec[new_priority].size();
+			
+			// copy the entry at that position to the back
+			m_piece_map[dst_vec[new_priority][dst_index]].index
+				= dst_vec[new_priority].size();
+			dst_vec[new_priority].push_back(dst_vec[new_priority][dst_index]);
+
+			// and then replace the one at dst_index with the one we're moving.
+			// this procedure is to make sure there's no ordering when pieces
+			// are moved in sequenced order.
+			p.index = dst_index;
+			dst_vec[new_priority][p.index] = index;
+		}
+		assert(p.index < dst_vec[p.priority(m_sequenced_download_threshold)].size());
+		assert(dst_vec[p.priority(m_sequenced_download_threshold)][p.index] == index);
 
 		// this will remove elem from the source vector without
-		// preserving order, but the order is random any way
-		int replace_index = src_vec[peer_count][elem_index] = src_vec[peer_count].back();
+		// preserving order, but the order is random anyway
+		int replace_index = src_vec[priority][elem_index] = src_vec[priority].back();
 		if (index != replace_index)
 		{
 			// update the entry we moved from the back
 			m_piece_map[replace_index].index = elem_index;
 
-			assert((int)src_vec[peer_count].size() > elem_index);
-			assert((int)m_piece_map[replace_index].peer_count == peer_count);
+			assert((int)src_vec[priority].size() > elem_index);
+			assert((int)m_piece_map[replace_index].priority(m_sequenced_download_threshold) == priority);
 			assert((int)m_piece_map[replace_index].index == elem_index);
-			assert(src_vec[peer_count][elem_index] == replace_index);
+			assert(src_vec[priority][elem_index] == replace_index);
 		}
 		else
 		{
-			assert((int)src_vec[peer_count].size() == elem_index+1);
+			assert((int)src_vec[priority].size() == elem_index+1);
 		}
 
-		src_vec[peer_count].pop_back();
+		src_vec[priority].pop_back();
 	}
 
-	void piece_picker::remove(bool downloading, bool filtered, int peer_count, int elem_index)
+	void piece_picker::remove(bool downloading, bool filtered, int priority
+		, int elem_index)
 	{
 		assert(!filtered);
-		assert(peer_count >= 0);
+		assert(priority >= 0);
 		assert(elem_index >= 0);
 
 		std::vector<std::vector<int> >& src_vec(pick_piece_info_vector(downloading, filtered));
 
-		assert((int)src_vec.size() > peer_count);
-		assert((int)src_vec[peer_count].size() > elem_index);
+		assert((int)src_vec.size() > priority);
+		assert((int)src_vec[priority].size() > elem_index);
 
-		int index = src_vec[peer_count][elem_index];
+		int index = src_vec[priority][elem_index];
 
 		if (downloading)
 		{
@@ -386,16 +492,30 @@ namespace libtorrent
 			assert(i != m_downloads.end());
 			m_downloads.erase(i);
 		}
-		m_piece_map[index].downloading = 0;
-
-		// this will remove elem from the vector without
-		// preserving order
-		index = src_vec[peer_count][elem_index] = src_vec[peer_count].back();
-		// update the entry we moved from the back
-		if ((int)src_vec[peer_count].size() > elem_index+1)
-			m_piece_map[index].index = elem_index;
-		src_vec[peer_count].pop_back();
-
+		piece_pos& p = m_piece_map[index];
+		p.downloading = 0;
+		if (p.ordered(m_sequenced_download_threshold))
+		{
+			std::vector<int>& v = src_vec[priority];
+			std::vector<int>::iterator i = v.begin() + elem_index;
+			v.erase(i);
+			i = v.begin() + elem_index;
+			for (; i != v.end(); ++i)
+			{
+				--m_piece_map[*i].index;
+				assert(v[m_piece_map[*i].index] == *i);
+			}
+		}
+		else
+		{
+			// this will remove elem from the vector without
+			// preserving order
+			index = src_vec[priority][elem_index] = src_vec[priority].back();
+			// update the entry we moved from the back
+			if ((int)src_vec[priority].size() > elem_index+1)
+				m_piece_map[index].index = elem_index;
+			src_vec[priority].pop_back();
+		}
 	}
 
 	void piece_picker::restore_piece(int index)
@@ -415,7 +535,7 @@ namespace libtorrent
 		m_piece_map[index].downloading = 0;
 		piece_pos& p = m_piece_map[index];
 		if (p.filtered) return;
-		move(true, p.filtered, p.peer_count, p.index);
+		move(true, p.filtered, p.priority(m_sequenced_download_threshold), p.index);
 
 #ifndef NDEBUG
 //		integrity_check();
@@ -427,10 +547,10 @@ namespace libtorrent
 		assert(i >= 0);
 		assert(i < (int)m_piece_map.size());
 
-		int peer_count = m_piece_map[i].peer_count;
 		int index = m_piece_map[i].index;
+		int prev_priority = m_piece_map[i].priority(m_sequenced_download_threshold);
 
-		assert(peer_count < 2048);
+		assert(m_piece_map[i].peer_count < 2048);
 		m_piece_map[i].peer_count++;
 		assert(m_piece_map[i].peer_count != 0);	
 
@@ -438,9 +558,10 @@ namespace libtorrent
 
 		// if we have the piece or if it's filtered
 		// we don't have to move any entries in the piece_info vector
-		if (index == piece_pos::we_have_index || p.filtered) return;
+		if (index == piece_pos::we_have_index || p.filtered
+			|| p.priority(m_sequenced_download_threshold) == prev_priority) return;
 
-		move(p.downloading, p.filtered, peer_count, index);
+		move(p.downloading, p.filtered, prev_priority, index);
 
 #ifndef NDEBUG
 //		integrity_check();
@@ -457,18 +578,19 @@ namespace libtorrent
 		assert(i >= 0);
 		assert(i < (int)m_piece_map.size());
 
-		int peer_count = m_piece_map[i].peer_count;
+		int prev_priority = m_piece_map[i].priority(m_sequenced_download_threshold);
 		int index = m_piece_map[i].index;
-		assert(peer_count > 0);
+		assert(m_piece_map[i].peer_count > 0);
 
 		if (m_piece_map[i].peer_count > 0)
 			m_piece_map[i].peer_count--;
 
 		piece_pos& p = m_piece_map[i];
 
-		if (index == piece_pos::we_have_index || p.filtered) return;
+		if (index == piece_pos::we_have_index || p.filtered
+			|| p.priority(m_sequenced_download_threshold) == prev_priority) return;
 
-		move(p.downloading, p.filtered, peer_count, index);
+		move(p.downloading, p.filtered, prev_priority, index);
 	}
 
 	// this is used to indicate that we succesfully have
@@ -481,7 +603,7 @@ namespace libtorrent
 		assert(index < (int)m_piece_map.size());
 
 		int info_index = m_piece_map[index].index;
-		int peer_count = m_piece_map[index].peer_count;
+		int priority = m_piece_map[index].priority(m_sequenced_download_threshold);
 
 		assert(m_piece_map[index].downloading == 1);
 
@@ -494,7 +616,7 @@ namespace libtorrent
 			return;
 		}
 		if (info_index == piece_pos::we_have_index) return;
-		remove(p.downloading, p.filtered, peer_count, info_index);
+		remove(p.downloading, p.filtered, priority, info_index);
 		p.index = piece_pos::we_have_index;
 #ifndef NDEBUG
 		integrity_check();
@@ -517,7 +639,7 @@ namespace libtorrent
 		if (p.index != piece_pos::we_have_index)
 		{
 			++m_num_filtered;
-			remove(p.downloading, false, p.peer_count, p.index);
+			remove(p.downloading, false, p.priority(m_sequenced_download_threshold), p.index);
 			assert(p.filtered == 1);
 		}
 		else
@@ -737,7 +859,7 @@ namespace libtorrent
 
 			assert(m_piece_map[*i].downloading == 1);
 
-		    // calculate the number of blocks in this
+			// calculate the number of blocks in this
 			// piece. It's always m_blocks_per_piece, except
 			// in the last piece.
 			int num_blocks_in_piece = blocks_in_piece(*i);
@@ -863,7 +985,7 @@ namespace libtorrent
 		if (p.downloading == 0)
 		{
 			p.downloading = 1;
-			move(false, p.filtered, p.peer_count, p.index);
+			move(false, p.filtered, p.priority(m_sequenced_download_threshold), p.index);
 
 			downloading_piece dp;
 			dp.index = block.piece_index;
@@ -901,7 +1023,7 @@ namespace libtorrent
 		if (p.downloading == 0)
 		{
 			p.downloading = 1;
-			move(false, p.filtered, p.peer_count, p.index);
+			move(false, p.filtered, p.priority(m_sequenced_download_threshold), p.index);
 
 			downloading_piece dp;
 			dp.index = block.piece_index;
@@ -1027,7 +1149,7 @@ namespace libtorrent
 			m_downloads.erase(i);
 			m_piece_map[block.piece_index].downloading = 0;
 			piece_pos& p = m_piece_map[block.piece_index];
-			move(true, p.filtered, p.peer_count, p.index);
+			move(true, p.filtered, p.priority(m_sequenced_download_threshold), p.index);
 		}
 #ifndef NDEBUG
 //		integrity_check();

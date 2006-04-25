@@ -314,13 +314,6 @@ namespace libtorrent
 		return ret;
 	}
 
-	void torrent_handle::filter_file(int index, bool filter) const
-	{
-		INVARIANT_CHECK;
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::filter_file, _1, index, filter));
-	}
-
 	void torrent_handle::filter_files(std::vector<bool> const& files) const
 	{
 		INVARIANT_CHECK;

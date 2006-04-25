@@ -676,7 +676,7 @@ namespace libtorrent { namespace detail
 	catch (...)
 	{
 		assert(false);
-	}
+	};
 #endif
 
 	void session_impl::close_connection(boost::intrusive_ptr<peer_connection> const& p)
@@ -864,7 +864,7 @@ namespace libtorrent { namespace detail
 	catch (std::exception& e)
 	{
 		assert(false);
-	}
+	};
 #endif
 
 	void session_impl::operator()()
@@ -1177,7 +1177,8 @@ namespace libtorrent
 		// the thread
 		boost::shared_ptr<torrent> torrent_ptr(
 			new torrent(m_impl, m_checker_impl, ti, save_path
-				, m_impl.m_listen_interface, compact_mode, block_size));
+				, m_impl.m_listen_interface, compact_mode, block_size
+				, m_impl.m_settings));
 
 		boost::shared_ptr<detail::piece_checker_data> d(
 			new detail::piece_checker_data);
@@ -1242,7 +1243,8 @@ namespace libtorrent
 		// the thread
 		boost::shared_ptr<torrent> torrent_ptr(
 			new torrent(m_impl, m_checker_impl, tracker_url, info_hash, save_path
-			, m_impl.m_listen_interface, compact_mode, block_size));
+			, m_impl.m_listen_interface, compact_mode, block_size
+			, m_impl.m_settings));
 
 		m_impl.m_torrents.insert(
 			std::make_pair(info_hash, torrent_ptr)).first;

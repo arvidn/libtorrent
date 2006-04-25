@@ -670,7 +670,7 @@ namespace libtorrent
 	{
 		assert(false);
 		fail(-1, e.what());
-	}
+	};
 	
 	void http_tracker_connection::on_response()
 	{

@@ -197,7 +197,8 @@ namespace libtorrent
 		, boost::filesystem::path const& save_path
 		, tcp::endpoint const& net_interface
 		, bool compact_mode
-		, int block_size)
+		, int block_size
+		, session_settings const& s)
 		: m_torrent_file(tf)
 		, m_abort(false)
 		, m_paused(false)
@@ -234,6 +235,7 @@ namespace libtorrent
 		, m_metadata_size(0)
 		, m_default_block_size(block_size)
 		, m_connections_initialized(true)
+		, m_settings(s)
 	{
 #ifndef NDEBUG
 		m_initial_done = 0;
@@ -284,7 +286,8 @@ namespace libtorrent
 		, boost::filesystem::path const& save_path
 		, tcp::endpoint const& net_interface
 		, bool compact_mode
-		, int block_size)
+		, int block_size
+		, session_settings const& s)
 		: m_torrent_file(info_hash)
 		, m_abort(false)
 		, m_paused(false)
@@ -320,6 +323,7 @@ namespace libtorrent
 		, m_metadata_size(0)
 		, m_default_block_size(block_size)
 		, m_connections_initialized(false)
+		, m_settings(s)
 	{
 #ifndef NDEBUG
 		m_initial_done = 0;
@@ -389,7 +393,8 @@ namespace libtorrent
 		m_block_size = calculate_block_size(m_torrent_file, m_default_block_size);
 		m_picker.reset(new piece_picker(
 			static_cast<int>(m_torrent_file.piece_length() / m_block_size)
-			, static_cast<int>((m_torrent_file.total_size()+m_block_size-1)/m_block_size)));
+			, static_cast<int>((m_torrent_file.total_size()+m_block_size-1)/m_block_size)
+			, m_settings.sequenced_download_threshold));
 
 		std::vector<std::string> const& url_seeds = m_torrent_file.url_seeds();
 		std::copy(url_seeds.begin(), url_seeds.end(), std::inserter(m_web_seeds
@@ -453,7 +458,7 @@ namespace libtorrent
 
 		if (complete >= 0) m_complete = complete;
 		if (incomplete >= 0) m_incomplete = incomplete;
-		
+
 		// connect to random peers from the list
 		std::random_shuffle(peer_list.begin(), peer_list.end());
 
@@ -771,9 +776,9 @@ namespace libtorrent
 			else
 				state.push_back(index);
 		}
-		std::random_shuffle(state.begin(), state.end());
-		for (std::vector<int>::iterator i = state.begin();
-			i != state.end(); ++i)
+
+		for (std::vector<int>::reverse_iterator i = state.rbegin();
+			i != state.rend(); ++i)
 		{
 			m_picker->mark_as_unfiltered(*i);
 		}
@@ -794,35 +799,6 @@ namespace libtorrent
 		// this call is only valid on torrents with metadata
 		assert(m_picker.get());
 		m_picker->filtered_pieces(bitmask);
-	}
-
-
-	
-	//idea from Arvid and MooPolice
-	//todo refactoring and improving the function body
-	void torrent::filter_file(int index, bool filter)
-	{
-		// this call is only valid on torrents with metadata
-		if (!valid_metadata()) return;
-
-		assert(index < m_torrent_file.num_files());
-		assert(index >= 0);
-
-		size_type start_position = 0;
-		int start_piece_index = 0;
-		int end_piece_index = 0;
-		int piece_length = m_torrent_file.piece_length();
-
-		for (int i = 0; i < index; ++i)
-			start_position += m_torrent_file.file_at(i).size;
-
-		start_piece_index = start_position / piece_length;
-		// make the end piece index be rounded upwards
-		end_piece_index = (start_position + m_torrent_file.file_at(index).size
-			+ piece_length - 1) / piece_length;
-
-		for(int i = start_piece_index; i <= end_piece_index; ++i)
-			filter_piece(i, filter);
 	}
 
 	void torrent::filter_files(std::vector<bool> const& bitmask)
@@ -929,10 +905,8 @@ namespace libtorrent
 				if (*i) piece_list.push_back(static_cast<int>(i - pieces.begin()));
 			}
 
-			std::random_shuffle(piece_list.begin(), piece_list.end());
-
-			for (std::vector<int>::iterator i = piece_list.begin();
-				i != piece_list.end(); ++i)
+			for (std::vector<int>::reverse_iterator i = piece_list.rbegin();
+				i != piece_list.rend(); ++i)
 			{
 				peer_lost(*i);
 			}
@@ -950,7 +924,7 @@ namespace libtorrent
 		std::string err = e.what();
 #endif
 		assert(false);
-	}
+	};
 
 	void torrent::connect_to_url_seed(std::string const& url)
 	{
@@ -1038,7 +1012,7 @@ namespace libtorrent
 	catch (std::exception& exc)
 	{
 		assert(false);
-	}
+	};
 
 	peer_connection& torrent::connect_to_peer(const tcp::endpoint& a)
 	{

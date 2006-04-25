@@ -278,14 +278,11 @@ namespace libtorrent
 			}
 		}
 
-		// shuffle the piece list
-		std::random_shuffle(piece_list.begin(), piece_list.end());
-
 		// let the torrent know which pieces the
 		// peer has, in a shuffled order
 		bool interesting = false;
-		for (std::vector<int>::iterator i = piece_list.begin();
-			i != piece_list.end(); ++i)
+		for (std::vector<int>::reverse_iterator i = piece_list.rbegin();
+			i != piece_list.rend(); ++i)
 		{
 			int index = *i;
 			t->peer_has(index);
@@ -736,14 +733,11 @@ namespace libtorrent
 			}
 		}
 
-		// shuffle the piece list
-		std::random_shuffle(piece_list.begin(), piece_list.end());
-
 		// let the torrent know which pieces the
 		// peer has, in a shuffled order
 		bool interesting = false;
-		for (std::vector<int>::iterator i = piece_list.begin();
-			i != piece_list.end(); ++i)
+		for (std::vector<int>::reverse_iterator i = piece_list.rbegin();
+			i != piece_list.rend(); ++i)
 		{
 			int index = *i;
 			t->peer_has(index);

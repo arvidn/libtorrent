@@ -70,6 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/session_settings.hpp"
 
 #if !defined(NDEBUG) && defined(_MSC_VER)
 #	include <float.h>
@@ -172,24 +173,6 @@ namespace libtorrent
 			std::deque<boost::shared_ptr<piece_checker_data> > m_processing;
 
 			bool m_abort;
-		};
-
-		struct TORRENT_EXPORT session_settings
-		{
-			session_settings()
-				: piece_timeout(120)
-				, request_queue_time(3.f)
-			{}
-
-			// the number of seconds from a request is sent until
-			// it times out if no piece response is returned.
-			int piece_timeout;
-
-			// the length of the request queue given in the number
-			// of seconds it should take for the other end to send
-			// all the pieces. i.e. the actual number of requests
-			// depends on the download rate and this number.
-			float request_queue_time;
 		};
 
 		// this is the link between the main thread and the
@@ -360,7 +343,7 @@ namespace libtorrent
 	{
 	public:
 
-		session(fingerprint const& print = fingerprint("LT", 0, 9, 1, 0));
+		session(fingerprint const& print = fingerprint("LT", 0, 9, 2, 0));
 		session(
 			fingerprint const& print
 			, std::pair<int, int> listen_port_range

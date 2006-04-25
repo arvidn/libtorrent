@@ -222,7 +222,7 @@ namespace libtorrent
 			return ret;
 		}
 
-		void seek(size_type offset, int m)
+		size_type seek(size_type offset, int m)
 		{
 			assert(m_open_mode);
 			assert(m_fd != -1);
@@ -246,7 +246,7 @@ namespace libtorrent
 					<< " seekdir: " << seekdir;
 				throw file_error(msg.str());
 			}
-
+			return ret;
 		}
 
 		size_type tell()
@@ -295,9 +295,9 @@ namespace libtorrent
 		return m_impl->read(buf, num_bytes);
 	}
 
-	void file::seek(size_type pos, file::seek_mode m)
+	size_type file::seek(size_type pos, file::seek_mode m)
 	{
-		m_impl->seek(pos, m.m_val);
+		return m_impl->seek(pos, m.m_val);
 	}
 
 	size_type file::tell()
