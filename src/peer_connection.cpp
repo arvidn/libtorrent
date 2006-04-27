@@ -1404,7 +1404,7 @@ namespace libtorrent
 		const int block_size = t->block_size();
 		assert(block_size > 0);
 		
-		int m_desired_queue_size = static_cast<int>(queue_time
+		m_desired_queue_size = static_cast<int>(queue_time
 			* statistics().download_rate() / block_size);
 		if (m_desired_queue_size > max_request_queue) m_desired_queue_size
 			= max_request_queue;

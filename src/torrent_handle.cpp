@@ -519,6 +519,9 @@ namespace libtorrent
 	
 		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
+		
+		// TODO: if the torrent is being checked, put this peer in a queue and
+		// connect it once the checking is done
 		if (!t) throw_invalid_handle();
 
 		peer_id id;
