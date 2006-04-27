@@ -784,10 +784,10 @@ namespace libtorrent
 //		f << "backup_blocks: " << backup_blocks.size() << "\n"
 //			<< "used: " << std::min(num_blocks, (int)backup_blocks.size()) << "\n----\n";
 #endif
-		
+
 		interesting_blocks.insert(interesting_blocks.end()
 			, backup_blocks.begin(), backup_blocks.begin()
-			+ std::min(num_blocks, (int)backup_blocks.size()));
+			+ (std::min)(num_blocks, (int)backup_blocks.size()));
 	}
 
 	namespace
@@ -832,7 +832,7 @@ namespace libtorrent
 			{
 				interesting_blocks.push_back(piece_block(*i, j));
 			}
-			num_blocks -= std::min(piece_blocks, num_blocks);
+			num_blocks -= (std::min)(piece_blocks, num_blocks);
 			assert(num_blocks >= 0);
 			if (num_blocks == 0) return num_blocks;
 		}
