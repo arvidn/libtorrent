@@ -64,10 +64,10 @@ namespace libtorrent
 			, m_mean_download_payload_rate(0)
 			, m_mean_upload_payload_rate(0)
 		{
-			std::fill(m_download_rate_history, m_download_rate_history+history, 0);
-			std::fill(m_upload_rate_history, m_upload_rate_history+history, 0);
-			std::fill(m_download_payload_rate_history, m_download_payload_rate_history+history, 0);
-			std::fill(m_upload_payload_rate_history, m_upload_payload_rate_history+history, 0);
+			std::fill(m_download_rate_history, m_download_rate_history+history, 0.f);
+			std::fill(m_upload_rate_history, m_upload_rate_history+history, 0.f);
+			std::fill(m_download_payload_rate_history, m_download_payload_rate_history+history, 0.f);
+			std::fill(m_upload_payload_rate_history, m_upload_payload_rate_history+history, 0.f);
 		}
 
 		void operator+=(const stat& s)

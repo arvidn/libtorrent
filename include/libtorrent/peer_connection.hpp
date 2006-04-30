@@ -313,7 +313,8 @@ namespace libtorrent
 		int send_buffer_size() const
 		{
 			return (int)m_send_buffer[0].size()
-				+ (int)m_send_buffer[1].size();
+				+ (int)m_send_buffer[1].size()
+				- m_write_pos;
 		}
 
 		buffer::const_interval receive_buffer() const
@@ -384,11 +385,17 @@ namespace libtorrent
 		// waiting for a async_write operation on one
 		// buffer, the other is used to write data to
 		// be queued up.
-		buffer m_send_buffer[2];
+		std::vector<char> m_send_buffer[2];
+//		buffer m_send_buffer[2];
 		// the current send buffer is the one to write to.
 		// (m_current_send_buffer + 1) % 2 is the
 		// buffer we're currently waiting for.
 		int m_current_send_buffer;
+		
+		// if the sending buffer doesn't finish in one send
+		// operation, this is the position within that buffer
+		// wher the next operation should continue
+		int m_write_pos;
 
 		// timeouts
 		boost::posix_time::ptime m_last_receive;

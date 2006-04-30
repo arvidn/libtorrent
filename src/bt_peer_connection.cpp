@@ -622,7 +622,7 @@ namespace libtorrent
 
 		int extended_id = detail::read_uint8(recv_buffer.begin);
 
-		if (extended_id >= 0 && extended_id < num_supported_extensions
+		if (extended_id > 0 && extended_id < num_supported_extensions
 			&& !m_ses.m_extension_enabled[extended_id])
 			throw protocol_error("'extended' message using disabled extension");
 
@@ -1188,6 +1188,8 @@ namespace libtorrent
 
 	void bt_peer_connection::write_piece(peer_request const& r)
 	{
+		INVARIANT_CHECK;
+
 		const int packet_size = 4 + 5 + 4 + r.length;
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
@@ -1425,7 +1427,9 @@ namespace libtorrent
 			if (packet_size > 1024*1024 || packet_size < 0)
 			{
 				// packet too large
-				throw std::runtime_error("packet > 1 MB");
+				throw std::runtime_error("packet > 1 MB ("
+					+ boost::lexical_cast<std::string>(
+					(unsigned int)packet_size) + " bytes)");
 			}
 					
 			if (packet_size == 0)
@@ -1530,6 +1534,15 @@ namespace libtorrent
 	{
 		if (!m_in_constructor)
 			peer_connection::check_invariant();
+
+		if (!m_payloads.empty())
+		{
+			for (std::deque<range>::const_iterator i = m_payloads.begin();
+				i != m_payloads.end() - 1; ++i)
+			{
+				assert(i->start + i->length <= (i+1)->start);
+			}
+		}
 	}
 #endif
 

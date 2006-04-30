@@ -42,6 +42,7 @@ namespace libtorrent
 			: piece_timeout(120)
 			, request_queue_time(3.f)
 			, sequenced_download_threshold(7)
+			, max_allowed_request_queue(200)
 			{}
 
 		// the number of seconds from a request is sent until
@@ -62,6 +63,14 @@ namespace libtorrent
 		// for example, if the threshold is 7, all pieces which 7
 		// or more peers have, will be downloaded in index order.
 		int sequenced_download_threshold;
+		
+		// the number of outstanding block requests a peer is
+		// allowed to queue up in the client. If a peer sends
+		// more requests than this (before the first one has
+		// been sent) the last request will be dropped.
+		// the higher this is, the faster upload speeds the
+		// client can get to a single peer.
+		int max_allowed_request_queue;
 	};
 }
 
