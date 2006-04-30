@@ -87,6 +87,7 @@ namespace libtorrent
 		, m_packet_size(0)
 		, m_recv_pos(0)
 		, m_current_send_buffer(0)
+		, m_write_pos(0)
 		, m_last_receive(second_clock::universal_time())
 		, m_last_sent(second_clock::universal_time())
 		, m_socket(s)
@@ -176,6 +177,7 @@ namespace libtorrent
 		, m_packet_size(0)
 		, m_recv_pos(0)
 		, m_current_send_buffer(0)
+		, m_write_pos(0)
 		, m_last_receive(second_clock::universal_time())
 		, m_last_sent(second_clock::universal_time())
 		, m_socket(s)
@@ -790,7 +792,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (m_requests.size() > 100)
+		if (m_requests.size() > m_ses.m_settings.max_allowed_request_queue)
 		{
 			// don't allow clients to abuse our
 			// memory consumption.
@@ -1604,19 +1606,26 @@ namespace libtorrent
 
 		assert(!m_writing);
 
+		int sending_buffer = (m_current_send_buffer + 1) & 1;
+		if (m_send_buffer[sending_buffer].empty())
+		{
+			// thise means we have to swap buffer, because there's no
+			// previous buffer we're still waiting for.
+			std::swap(m_current_send_buffer, sending_buffer);
+			m_write_pos = 0;
+		}
+
 		// send the actual buffer
-		if (!m_send_buffer[m_current_send_buffer].empty())
+		if (!m_send_buffer[sending_buffer].empty())
 		{
 			int amount_to_send
 				= std::min(m_ul_bandwidth_quota.left()
-				, (int)m_send_buffer[m_current_send_buffer].size());
+				, (int)m_send_buffer[sending_buffer].size() - m_write_pos);
 
 			assert(amount_to_send > 0);
-
+/*
 			buffer::interval_type send_buffer
-				= m_send_buffer[m_current_send_buffer].data();
-			// swap the send buffer for the double buffered effect
-			m_current_send_buffer = (m_current_send_buffer + 1) & 1;
+				= m_send_buffer[sending_buffer].data();
 
 			// we have data that's scheduled for sending
 			int to_send = std::min(int(send_buffer.first.end - send_buffer.first.begin)
@@ -1634,6 +1643,15 @@ namespace libtorrent
 			assert(m_ul_bandwidth_quota.left() >= int(buffer_size(bufs[0]) + buffer_size(bufs[1])));
 			m_socket->async_write_some(bufs, bind(&peer_connection::on_send_data
 				, self(), _1, _2));
+*/
+
+			assert(m_write_pos < (int)m_send_buffer[sending_buffer].size());
+			m_socket->async_write_some(asio::buffer(
+				&m_send_buffer[sending_buffer][m_write_pos], amount_to_send)
+				, bind(&peer_connection::on_send_data, self(), _1, _2));
+
+// --------------
+
 			m_writing = true;
 			m_last_write_size = amount_to_send;
 			m_ul_bandwidth_quota.used += m_last_write_size;
@@ -1678,7 +1696,8 @@ namespace libtorrent
 	
 	void peer_connection::send_buffer(char const* begin, char const* end)
 	{
-		m_send_buffer[m_current_send_buffer].insert(begin, end);
+		m_send_buffer[m_current_send_buffer].insert(
+			m_send_buffer[m_current_send_buffer].end(), begin, end);
 		setup_send();
 	}
 
@@ -1686,7 +1705,11 @@ namespace libtorrent
 // return value is destructed
 	buffer::interval peer_connection::allocate_send_buffer(int size)
 	{
-		return m_send_buffer[m_current_send_buffer].allocate(size);
+		m_send_buffer[m_current_send_buffer].resize(m_send_buffer[m_current_send_buffer].size() + size);
+		buffer::interval ret(&m_send_buffer[m_current_send_buffer][m_send_buffer[m_current_send_buffer].size() - size]
+			, &m_send_buffer[m_current_send_buffer][0] + m_send_buffer[m_current_send_buffer].size());
+		return ret;
+//		return m_send_buffer[m_current_send_buffer].allocate(size);
 	}
 
 	template<class T>
@@ -1715,6 +1738,7 @@ namespace libtorrent
 
 		assert(m_reading);
 		assert(m_last_read_size > 0);
+		assert(m_last_read_size >= bytes_transferred);
 		m_reading = false;
 		// correct the dl quota usage, if not all of the buffer was actually read
 		m_dl_bandwidth_quota.used -= m_last_read_size - bytes_transferred;
@@ -1828,7 +1852,6 @@ namespace libtorrent
 			(*m_ses.m_logger) << "CONNECTION FAILED: " << m_remote.address().to_string() << "\n";
 #endif
 			m_ses.connection_failed(m_socket, m_remote, e.what());
-//			disconnect();
 			return;
 		}
 
@@ -1873,27 +1896,28 @@ namespace libtorrent
 		// correct the ul quota usage, if not all of the buffer was sent
 		m_ul_bandwidth_quota.used -= m_last_write_size - bytes_transferred;
 		m_last_write_size = 0;
+		m_write_pos += bytes_transferred;
 
 		if (error)
 			throw std::runtime_error(error.what());
 		if (m_disconnecting) return;
 
 		assert(!m_connecting);
-//		assert(bytes_transferred > 0);
+		assert(bytes_transferred > 0);
 
 		int sending_buffer = (m_current_send_buffer + 1) & 1;
-		m_send_buffer[sending_buffer].erase(bytes_transferred);
+
+		assert(int(m_send_buffer[sending_buffer].size()) >= m_write_pos);
+		if (int(m_send_buffer[sending_buffer].size()) == m_write_pos)
+		{
+			m_send_buffer[sending_buffer].clear();
+			m_write_pos = 0;
+		}
 
 		m_last_sent = second_clock::universal_time();
 
 		on_sent(error, bytes_transferred);
 		fill_send_buffer();
-		if (!m_send_buffer[sending_buffer].empty())
-		{
-			// if the send operation didn't send all of the data in the buffer.
-			// send it again.
-			m_current_send_buffer = sending_buffer;
-		}
 		setup_send();
 	}
 	catch (std::exception& e)
@@ -1930,6 +1954,9 @@ namespace libtorrent
 				assert(false);
 			}
 		}
+		
+		assert(m_write_pos <= m_send_buffer[
+			(m_current_send_buffer + 1) & 1].size());
 	}
 #endif
 

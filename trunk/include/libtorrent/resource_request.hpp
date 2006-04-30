@@ -60,8 +60,6 @@ namespace libtorrent
 		{
 			assert(given <= max);
 			assert(given >= min);
-// TODO: TEMP!
-//			assert(given >= used);
 			return given - used;
 		}
 

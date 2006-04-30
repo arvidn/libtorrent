@@ -147,17 +147,15 @@ namespace libtorrent
 		}
 
 		template<class InIt>
-		std::string read_string(InIt& in, InIt end, int len)
+		void read_string(InIt& in, InIt end, int len, std::string& str)
 		{
 			assert(len >= 0);
-			std::string ret;
 			for (int i = 0; i < len; ++i)
 			{
 				if (in == end) throw invalid_encoding();
-				ret += *in;
+				str += *in;
 				++in;
 			}
-			return ret;
 		}
 
 		template<class OutIt>
@@ -265,7 +263,7 @@ namespace libtorrent
 					++in; // ':'
 					int len = std::atoi(len_s.c_str());
 					ret = entry(entry::string_t);
-					ret.string() = read_string(in, end, len);
+					read_string(in, end, len, ret.string());
 				}
 				else
 				{
