@@ -1047,16 +1047,6 @@ namespace libtorrent
 		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 		std::fill(m_impl.m_extension_enabled, m_impl.m_extension_enabled
 			+ num_supported_extensions, false);
-
-		static char const printable[]
-			= "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_.!~*'()";
-
-		// remove the 'ext' sufix in the peer_id
-		for (unsigned char* i = m_impl.m_peer_id.begin() + 17;
-			i != m_impl.m_peer_id.end(); ++i)
-		{
-			*i = printable[rand() % (sizeof(printable)-1)];
-		}
 	}
 
 	void session::set_ip_filter(ip_filter const& f)
