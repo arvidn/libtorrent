@@ -121,8 +121,8 @@ namespace libtorrent
 			, const http_settings& stn
 			, std::string const& password = "");
 
-		virtual tracker_request const& tracker_req() const
-		{ return m_req; }
+//		virtual tracker_request const& tracker_req() const
+//		{ return m_req; }
 
 	private:
 
@@ -165,7 +165,7 @@ namespace libtorrent
 		std::string m_server_protocol;
 
 		const http_settings& m_settings;
-		tracker_request m_req;
+//		tracker_request m_req;
 		std::string m_password;
 		int m_code;
 
