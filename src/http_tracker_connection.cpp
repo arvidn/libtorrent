@@ -684,7 +684,7 @@ namespace libtorrent
 				close();
 				return;
 			}
-			if (inflate_gzip(m_buffer, m_req, r.get(),
+			if (inflate_gzip(m_buffer, tracker_request(), r.get(),
 				m_settings.tracker_maximum_response_length))
 			{
 				close();
@@ -778,7 +778,7 @@ namespace libtorrent
 				entry scrape_data = e["files"][ih];
 				int complete = scrape_data["complete"].integer();
 				int incomplete = scrape_data["incomplete"].integer();
-				requester().tracker_response(m_req, peer_list, 0, complete
+				requester().tracker_response(tracker_request(), peer_list, 0, complete
 					, incomplete);
 				return;
 			}
@@ -825,16 +825,16 @@ namespace libtorrent
 			try { incomplete = e["incomplete"].integer(); }
 			catch(type_error&) {}
 			
-			requester().tracker_response(m_req, peer_list, interval, complete
+			requester().tracker_response(tracker_request(), peer_list, interval, complete
 				, incomplete);
 		}
 		catch(type_error& e)
 		{
-			requester().tracker_request_error(m_req, m_code, e.what());
+			requester().tracker_request_error(tracker_request(), m_code, e.what());
 		}
 		catch(std::runtime_error& e)
 		{
-			requester().tracker_request_error(m_req, m_code, e.what());
+			requester().tracker_request_error(tracker_request(), m_code, e.what());
 		}
 	}
 
