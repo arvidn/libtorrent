@@ -792,7 +792,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (m_requests.size() > m_ses.m_settings.max_allowed_request_queue)
+		if (int(m_requests.size()) > m_ses.m_settings.max_allowed_request_queue)
 		{
 			// don't allow clients to abuse our
 			// memory consumption.
@@ -1468,7 +1468,7 @@ namespace libtorrent
 			// if we have downloaded more than one piece more
 			// than we have uploaded OR if we are a seed
 			// have an unlimited upload rate
-			if(!m_send_buffer[m_current_send_buffer].empty()
+			if(send_buffer_size() > 0
 				|| (!m_requests.empty() && !is_choked()))
 				m_ul_bandwidth_quota.max = resource_request::inf;
 			else
@@ -1738,7 +1738,7 @@ namespace libtorrent
 
 		assert(m_reading);
 		assert(m_last_read_size > 0);
-		assert(m_last_read_size >= bytes_transferred);
+		assert(m_last_read_size >= int(bytes_transferred));
 		m_reading = false;
 		// correct the dl quota usage, if not all of the buffer was actually read
 		m_dl_bandwidth_quota.used -= m_last_read_size - bytes_transferred;
@@ -1803,7 +1803,8 @@ namespace libtorrent
 		// if we have requests or pending data to be sent or announcements to be made
 		// we want to send data
 		return ((!m_requests.empty() && !m_choked)
-			|| !m_send_buffer[m_current_send_buffer].empty())
+			|| !m_send_buffer[m_current_send_buffer].empty()
+			|| !m_send_buffer[(m_current_send_buffer + 1) & 1].empty())
 			&& m_ul_bandwidth_quota.left() > 0
 			&& !m_connecting;
 	}
@@ -1955,8 +1956,8 @@ namespace libtorrent
 			}
 		}
 		
-		assert(m_write_pos <= m_send_buffer[
-			(m_current_send_buffer + 1) & 1].size());
+		assert(m_write_pos <= int(m_send_buffer[
+			(m_current_send_buffer + 1) & 1].size()));
 	}
 #endif
 

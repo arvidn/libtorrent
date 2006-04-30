@@ -724,15 +724,19 @@ int main(int ac, char* av[])
 			
 			std::stringstream out;
 			for (handles_t::iterator i = handles.begin();
-				i != handles.end(); ++i)
+				i != handles.end();)
 			{
 				torrent_handle& h = i->second;
 				if (!h.is_valid())
 				{
-					handles.erase(i);
-					--i;
+					handles.erase(i++);
 					continue;
 				}
+				else
+				{
+					++i;
+				}
+
 				out << "name: " << esc("37");
 				if (h.has_metadata()) out << h.get_torrent_info().name();
 				else out << "-";

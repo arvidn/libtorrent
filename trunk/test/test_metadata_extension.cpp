@@ -17,7 +17,9 @@ void test_transfer(char const* tracker_url, libtorrent::torrent_info const& t)
 	using namespace libtorrent;
 
 	session ses1;
+	ses1.set_severity_level(alert::debug);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000));
+	ses2.set_severity_level(alert::debug);
 	
 	// they should not use the same save dir, because the
 	// file pool will complain if two torrents are trying to
@@ -47,12 +49,21 @@ void test_transfer(char const* tracker_url, libtorrent::torrent_info const& t)
 		// make sure this function can be called on
 		// torrents without metadata
 		tor2.status();
+		std::auto_ptr<alert> a;
+		a = ses1.pop_alert();
+		if (a.get())
+			std::cerr << "ses1: " << a->msg() << "\n";
+
+		a = ses2.pop_alert();
+		if (a.get())
+			std::cerr << "ses2: " << a->msg() << "\n";
+
 		if (tor2.has_metadata()) break;
 		sleep(100);
 	}
 
-	std::cerr << "metadata received. waiting for transfer to complete\n";
 	TEST_CHECK(tor2.has_metadata());
+	std::cerr << "metadata received. waiting for transfer to complete\n";
 
 	for (int i = 0; i < 50; ++i)
 	{
@@ -61,8 +72,8 @@ void test_transfer(char const* tracker_url, libtorrent::torrent_info const& t)
 		sleep(100);
 	}
 
-	std::cerr << "done\n";
 	TEST_CHECK(tor2.is_seed());
+	std::cerr << "done\n";
 }
 
 int test_main()
