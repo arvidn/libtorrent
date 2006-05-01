@@ -1334,6 +1334,7 @@ namespace libtorrent
 		if (limit == -1) limit = std::numeric_limits<int>::max();
 		if (limit < 10) limit = 10;
 		m_ul_bandwidth_quota.max = limit;
+		assert(m_ul_bandwidth_quota.max >= m_ul_bandwidth_quota.min);
 	}
 
 	void peer_connection::set_download_limit(int limit)
@@ -1342,6 +1343,7 @@ namespace libtorrent
 		if (limit == -1) limit = std::numeric_limits<int>::max();
 		if (limit < 10) limit = 10;
 		m_dl_bandwidth_quota.max = limit;
+		assert(m_dl_bandwidth_quota.max >= m_dl_bandwidth_quota.min);
 	}
 
 	size_type peer_connection::share_diff() const
@@ -1623,34 +1625,11 @@ namespace libtorrent
 				, (int)m_send_buffer[sending_buffer].size() - m_write_pos);
 
 			assert(amount_to_send > 0);
-/*
-			buffer::interval_type send_buffer
-				= m_send_buffer[sending_buffer].data();
-
-			// we have data that's scheduled for sending
-			int to_send = std::min(int(send_buffer.first.end - send_buffer.first.begin)
-				, amount_to_send);
-
-			boost::array<asio::const_buffer, 2> bufs;
-			assert(to_send >= 0);
-			bufs[0] = asio::buffer(send_buffer.first.begin, to_send);
-
-			to_send = std::min(int(send_buffer.second.end - send_buffer.second.begin)
-				, amount_to_send - to_send);
-			assert(to_send >= 0);
-			bufs[1] = asio::buffer(send_buffer.second.begin, to_send);
-
-			assert(m_ul_bandwidth_quota.left() >= int(buffer_size(bufs[0]) + buffer_size(bufs[1])));
-			m_socket->async_write_some(bufs, bind(&peer_connection::on_send_data
-				, self(), _1, _2));
-*/
 
 			assert(m_write_pos < (int)m_send_buffer[sending_buffer].size());
 			m_socket->async_write_some(asio::buffer(
 				&m_send_buffer[sending_buffer][m_write_pos], amount_to_send)
 				, bind(&peer_connection::on_send_data, self(), _1, _2));
-
-// --------------
 
 			m_writing = true;
 			m_last_write_size = amount_to_send;
@@ -1696,8 +1675,8 @@ namespace libtorrent
 	
 	void peer_connection::send_buffer(char const* begin, char const* end)
 	{
-		m_send_buffer[m_current_send_buffer].insert(
-			m_send_buffer[m_current_send_buffer].end(), begin, end);
+		std::vector<char>& buf = m_send_buffer[m_current_send_buffer];
+		buf.insert(buf.end(), begin, end);
 		setup_send();
 	}
 
@@ -1705,11 +1684,10 @@ namespace libtorrent
 // return value is destructed
 	buffer::interval peer_connection::allocate_send_buffer(int size)
 	{
-		m_send_buffer[m_current_send_buffer].resize(m_send_buffer[m_current_send_buffer].size() + size);
-		buffer::interval ret(&m_send_buffer[m_current_send_buffer][m_send_buffer[m_current_send_buffer].size() - size]
-			, &m_send_buffer[m_current_send_buffer][0] + m_send_buffer[m_current_send_buffer].size());
+		std::vector<char>& buf = m_send_buffer[m_current_send_buffer];
+		buf.resize(buf.size() + size);
+		buffer::interval ret(&buf[0] + buf.size() - size, &buf[0] + buf.size());
 		return ret;
-//		return m_send_buffer[m_current_send_buffer].allocate(size);
 	}
 
 	template<class T>
@@ -1785,7 +1763,6 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		m_ses.connection_failed(m_socket, remote(), e.what());
-//		disconnect();
 	}
 	catch (...)
 	{
@@ -1793,7 +1770,6 @@ namespace libtorrent
 		assert(false);
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		m_ses.connection_failed(m_socket, remote(), "connection failed for unkown reason");
-//		disconnect();
 	}
 
 	bool peer_connection::can_write() const
@@ -1865,6 +1841,7 @@ namespace libtorrent
 		m_connecting = false;
 		m_ses.connection_completed(self());
 		on_connected();
+		setup_send();
 	}
 	catch (std::exception& ex)
 	{

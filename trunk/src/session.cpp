@@ -807,6 +807,11 @@ namespace libtorrent { namespace detail
 
 		// distribute the maximum upload rate among the torrents
 
+		assert(m_upload_rate >= -1);
+		assert(m_download_rate >= -1);
+		assert(m_max_uploads >= -1);
+		assert(m_max_connections >= -1);
+
 		allocate_resources(m_upload_rate == -1
 			? std::numeric_limits<int>::max()
 			: int(m_upload_rate * tick_interval)
