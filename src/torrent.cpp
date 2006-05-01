@@ -1358,6 +1358,7 @@ namespace libtorrent
 
 	void torrent::set_peer_upload_limit(tcp::endpoint ip, int limit)
 	{
+		assert(limit >= -1);
 		peer_connection* p = connection_for(ip);
 		if (p == 0) return;
 		p->set_upload_limit(limit);
@@ -1365,6 +1366,7 @@ namespace libtorrent
 
 	void torrent::set_peer_download_limit(tcp::endpoint ip, int limit)
 	{
+		assert(limit >= -1);
 		peer_connection* p = connection_for(ip);
 		if (p == 0) return;
 		p->set_download_limit(limit);
@@ -1523,6 +1525,9 @@ namespace libtorrent
 			m_time_scaler = 10;
 			m_policy->pulse();
 		}
+
+		assert(m_ul_bandwidth_quota.given >= 0);
+		assert(m_dl_bandwidth_quota.given >= 0);
 
 		// distribute allowed upload among the peers
 		allocate_resources(m_ul_bandwidth_quota.given
