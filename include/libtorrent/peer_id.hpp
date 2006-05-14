@@ -51,6 +51,7 @@ namespace libtorrent
 		// the number of bytes of the number
 		enum { number_size = 20 };
 	public:
+		enum { size = number_size };
 
 		big_number() {}
 

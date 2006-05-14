@@ -261,6 +261,7 @@ namespace libtorrent
 		// adds a block to the request queue
 		void add_request(piece_block const& b);
 		void cancel_request(piece_block const& b);
+		void send_block_requests();
 
 		// how much bandwidth we're using, how much we want,
 		// and how much we are allowed to use.
@@ -360,10 +361,16 @@ namespace libtorrent
 		void on_receive_data(asio::error const& error
 			, std::size_t bytes_transferred);
 
+		// this is the limit on the number of outstanding requests
+		// we have to this peer. This is initialized to the settings
+		// in the session_settings structure. But it may be lowered
+		// if the peer is known to require a smaller limit (like BitComet).
+		// or if the extended handshake sets a limit.
+		int m_max_out_request_queue;
+
 	private:
 
 		void fill_send_buffer();
-		void send_block_requests();
 
 		// the timeout in seconds
 		int m_timeout;
@@ -386,7 +393,6 @@ namespace libtorrent
 		// buffer, the other is used to write data to
 		// be queued up.
 		std::vector<char> m_send_buffer[2];
-//		buffer m_send_buffer[2];
 		// the current send buffer is the one to write to.
 		// (m_current_send_buffer + 1) % 2 is the
 		// buffer we're currently waiting for.
@@ -394,7 +400,7 @@ namespace libtorrent
 		
 		// if the sending buffer doesn't finish in one send
 		// operation, this is the position within that buffer
-		// wher the next operation should continue
+		// where the next operation should continue
 		int m_write_pos;
 
 		// timeouts

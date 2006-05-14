@@ -133,6 +133,8 @@ namespace libtorrent
 		// by the checker thread.
 		bool is_allocating() const;
 		
+		session_settings const& settings() const;
+		
 		// is called every second by session. This will
 		// caclulate the upload/download and number
 		// of connections this torrent needs. And prepare

@@ -724,6 +724,14 @@ namespace libtorrent
 			if (client_info->type() == entry::string_t)
 				m_client_version = client_info->string();
 		}
+
+		if (entry* reqq = root.find_key("reqq"))
+		{
+			if (reqq->type() == entry::int_t)
+				m_max_out_request_queue = reqq->integer();
+			if (m_max_out_request_queue < 1)
+				m_max_out_request_queue = 1;
+		}
 	}
 	catch (std::exception& exc)
 	{
@@ -1113,6 +1121,7 @@ namespace libtorrent
 		handshake["m"] = extension_list;
 		handshake["p"] = m_ses.m_listen_interface.port();
 		handshake["v"] = m_ses.m_http_settings.user_agent;
+		handshake["reqq"] = m_ses.m_settings.max_allowed_in_request_queue;
 
 		std::vector<char> msg;
 		bencode(std::back_inserter(msg), handshake);
@@ -1395,12 +1404,18 @@ namespace libtorrent
 			set_pid(pid);
 			
 			m_client_version = identify_client(pid);
+			boost::optional<fingerprint> f = client_fingerprint(pid);
+			if (f && std::equal(f->name, f->name + 2, "BC"))
+			{
+				// if this is a bitcomet client, lower the request queue size limit
+				if (m_max_out_request_queue > 50) m_max_out_request_queue = 50;
+			}
 
 			// disconnect if the peer has the same peer-id as ourself
 			// since it most likely is ourself then
 			if (pid == m_ses.get_peer_id())
 				throw std::runtime_error("closing connection to ourself");
-					
+
 			if (m_supports_extensions) write_extensions();
 /*
 			if (!m_active)

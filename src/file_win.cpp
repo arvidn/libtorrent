@@ -247,6 +247,7 @@ namespace libtorrent
 			{
 				throw_exception("file::seek");
 			}
+			return offs.QuadPart;
 		}
 		
 		size_type tell()
@@ -264,8 +265,8 @@ namespace libtorrent
 				throw_exception("file::tell");
 			}
 
-			size_type pos=offs.QuadPart;
-			assert(pos>=0);
+			size_type pos = offs.QuadPart;
+			assert(pos >= 0);
 			return pos;
 		}
 /*

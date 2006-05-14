@@ -226,7 +226,24 @@ namespace
 namespace libtorrent
 {
 
-	std::string identify_client(const peer_id& p)
+	boost::optional<fingerprint> client_fingerprint(peer_id const& p)
+	{
+		// look for azureus style id
+		boost::optional<fingerprint> f;
+		f = parse_az_style(p);
+		if (f) return f;
+
+		// look for shadow style id
+		f = parse_shadow_style(p);
+		if (f) return f;
+
+		// look for mainline style id
+		f = parse_mainline_style(p);
+		if (f) return f;
+		return f;
+	}
+
+	std::string identify_client(peer_id const& p)
 	{
 		peer_id::const_iterator PID = p.begin();
 		boost::optional<fingerprint> f;

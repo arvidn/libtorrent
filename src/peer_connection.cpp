@@ -82,6 +82,7 @@ namespace libtorrent
 		,
 #endif
 		  m_ses(ses)
+		, m_max_out_request_queue(m_ses.m_settings.max_out_request_queue)
 		, m_timeout(120)
 		, m_last_piece(second_clock::universal_time())
 		, m_packet_size(0)
@@ -172,6 +173,7 @@ namespace libtorrent
 		,
 #endif
 		  m_ses(ses)
+		, m_max_out_request_queue(m_ses.m_settings.max_out_request_queue)
 		, m_timeout(120)
 		, m_last_piece(second_clock::universal_time())
 		, m_packet_size(0)
@@ -792,7 +794,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (int(m_requests.size()) > m_ses.m_settings.max_allowed_request_queue)
+		if (int(m_requests.size()) > m_ses.m_settings.max_allowed_in_request_queue)
 		{
 			// don't allow clients to abuse our
 			// memory consumption.
@@ -830,7 +832,7 @@ namespace libtorrent
 				return;
 
 			m_requests.push_back(r);
-			setup_send();
+			fill_send_buffer();
 #ifdef TORRENT_VERBOSE_LOGGING
 			using namespace boost::posix_time;
 			(*m_logger) << to_simple_string(second_clock::universal_time())
@@ -1093,7 +1095,6 @@ namespace libtorrent
 
 		t->picker().mark_as_downloading(block, m_remote);
 		m_request_queue.push_back(block);
-		send_block_requests();
 	}
 
 	void peer_connection::cancel_request(piece_block const& block)
@@ -1410,10 +1411,10 @@ namespace libtorrent
 		
 		m_desired_queue_size = static_cast<int>(queue_time
 			* statistics().download_rate() / block_size);
-		if (m_desired_queue_size > max_request_queue) m_desired_queue_size
-			= max_request_queue;
-		if (m_desired_queue_size < min_request_queue) m_desired_queue_size
-			= min_request_queue;
+		if (m_desired_queue_size > m_max_out_request_queue)
+			m_desired_queue_size = m_max_out_request_queue;
+		if (m_desired_queue_size < min_request_queue)
+			m_desired_queue_size = min_request_queue;
 
 		if (!m_download_queue.empty()
 			&& now - m_last_piece > seconds(m_ses.m_settings.piece_timeout))
@@ -1549,8 +1550,6 @@ namespace libtorrent
 	void peer_connection::fill_send_buffer()
 	{
 		INVARIANT_CHECK;
-
-		if (!can_write()) return;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return;
@@ -1778,8 +1777,7 @@ namespace libtorrent
 
 		// if we have requests or pending data to be sent or announcements to be made
 		// we want to send data
-		return ((!m_requests.empty() && !m_choked)
-			|| !m_send_buffer[m_current_send_buffer].empty()
+		return (!m_send_buffer[m_current_send_buffer].empty()
 			|| !m_send_buffer[(m_current_send_buffer + 1) & 1].empty())
 			&& m_ul_bandwidth_quota.left() > 0
 			&& !m_connecting;

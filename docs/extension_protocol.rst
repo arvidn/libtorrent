@@ -87,6 +87,10 @@ Here are two other items that an implementation may choose to support:
 |       | This is a much more reliable way of identifying the       |
 |       | client than relying on the peer id encoding.              |
 +-------+-----------------------------------------------------------+
+| reqq  | An integer, the number of outstanding request messages    |
+|       | this client supports without dropping any. The default in |
+|       | in libtorrent is 250.                                     |
++-------+-----------------------------------------------------------+
 
 The handshake dictionary could also include extended handshake
 information, such as support for encrypted headers or anything

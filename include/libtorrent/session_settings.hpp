@@ -42,8 +42,10 @@ namespace libtorrent
 			: piece_timeout(120)
 			, request_queue_time(3.f)
 			, sequenced_download_threshold(7)
-			, max_allowed_request_queue(200)
-			{}
+			, max_allowed_in_request_queue(250)
+			, max_out_request_queue(200)
+			, whole_pieces_threshold(20)
+		{}
 
 		// the number of seconds from a request is sent until
 		// it times out if no piece response is returned.
@@ -70,7 +72,20 @@ namespace libtorrent
 		// been sent) the last request will be dropped.
 		// the higher this is, the faster upload speeds the
 		// client can get to a single peer.
-		int max_allowed_request_queue;
+		int max_allowed_in_request_queue;
+		
+		// the maximum number of outstanding requests to
+		// send to a peer. This limit takes precedence over
+		// request_queue_time.
+		int max_out_request_queue;
+		
+		// if a whole piece can be downloaded in this number
+		// of seconds, or less, the peer_connection will prefer
+		// to request whole pieces at a time from this peer.
+		// The benefit of this is to better utilize disk caches by
+		// doing localized accesses and also to make it easier
+		// to identify bad peers if a piece fails the hash check.
+		int whole_pieces_threshold;
 	};
 }
 

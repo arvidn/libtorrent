@@ -1322,7 +1322,10 @@ namespace libtorrent
 		return torrent_handle(&m_ses, 0, m_torrent_file.info_hash());
 	}
 
-
+	session_settings const& torrent::settings() const
+	{
+		return m_ses.m_settings;
+	}
 
 #ifndef NDEBUG
 	void torrent::check_invariant() const
@@ -1599,6 +1602,7 @@ namespace libtorrent
 		{
 			bencode(std::back_inserter(m_metadata)
 				, m_torrent_file.create_info_metadata());
+
 			assert(hasher(&m_metadata[0], m_metadata.size()).final()
 				== m_torrent_file.info_hash());
 		}
