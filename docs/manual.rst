@@ -1850,7 +1850,7 @@ been successful yet, it's set to an empty string.
 uploaded to all peers, accumulated, *this session* only.
 
 ``total_payload_download`` and ``total_payload_upload`` counts the amount of bytes
-send and received this session, but only the actual oayload data (i.e the interesting
+send and received this session, but only the actual payload data (i.e the interesting
 data), these counters ignore any protocol overhead.
 
 ``total_failed_bytes`` is the number of bytes that has been downloaded and that
