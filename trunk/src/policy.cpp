@@ -94,7 +94,8 @@ namespace
 		// for this peer. If we're downloading one piece in 20 seconds
 		// then use this mode.
 		// TODO: 20 seconds has to be customizable
-		bool prefer_whole_pieces = c.statistics().download_payload_rate() * 20.f
+		bool prefer_whole_pieces = c.statistics().download_payload_rate()
+			* t.settings().whole_pieces_threshold
 			> t.torrent_file().piece_length();
 	
 		// if we prefer whole pieces, the piece picker will pick at least
@@ -130,6 +131,8 @@ namespace
 			c.add_request(*i);
 			num_requests--;
 		}
+
+		c.send_block_requests();
 
 		// in this case, we could not find any blocks
 		// that was free. If we couldn't find any busy
@@ -222,6 +225,7 @@ namespace
 
 			if (weight <= min_weight) break;
 		}
+		c.send_block_requests();
 	}
 
 

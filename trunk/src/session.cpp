@@ -372,6 +372,7 @@ namespace libtorrent { namespace detail
 		for (std::deque<boost::shared_ptr<piece_checker_data> >::iterator i
 			= m_processing.begin(); i != m_processing.end(); ++i)
 		{
+			
 			if ((*i)->info_hash == info_hash) return i->get();
 		}
 
@@ -390,6 +391,17 @@ namespace libtorrent { namespace detail
 				return;
 			}
 		}
+		for (std::deque<boost::shared_ptr<piece_checker_data> >::iterator i
+			= m_processing.begin(); i != m_processing.end(); ++i)
+		{
+			if ((*i)->info_hash == info_hash)
+			{
+				assert((*i)->processing == false);
+				m_torrents.erase(i);
+				return;
+			}
+		}
+
 		assert(false);
 	}
 
@@ -839,6 +851,9 @@ namespace libtorrent { namespace detail
 		for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
 				= m_torrents.begin(); i != m_torrents.end(); ++i)
 		{
+#ifndef DEBUG
+			i->second->check_invariant();
+#endif
 			i->second->distribute_resources();
 		}
 	}
@@ -955,7 +970,7 @@ namespace libtorrent { namespace detail
 	boost::shared_ptr<logger> session_impl::create_log(std::string const& name, bool append)
 	{
 		// current options are file_logger, cout_logger and null_logger
-		return boost::shared_ptr<logger>(new file_logger(name + ".log", append));
+		return boost::shared_ptr<logger>(new logger(name + ".log", append));
 	}
 #endif
 

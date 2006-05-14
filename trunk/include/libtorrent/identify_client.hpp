@@ -34,12 +34,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_IDENTIFY_CLIENT_HPP_INCLUDED
 
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/fingerprint.hpp"
 #include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
 
 	TORRENT_EXPORT std::string identify_client(const peer_id& p);
+	TORRENT_EXPORT boost::optional<fingerprint> client_fingerprint(peer_id const& p);
 
 }
 

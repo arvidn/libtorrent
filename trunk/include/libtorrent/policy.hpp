@@ -62,7 +62,6 @@ namespace libtorrent
 	enum
 	{
 		// the limits of the download queue size
-		max_request_queue = 48,
 		min_request_queue = 2,
 
 		// the amount of free upload allowed before

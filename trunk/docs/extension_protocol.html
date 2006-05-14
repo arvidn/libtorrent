@@ -3,10 +3,130 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.3.9: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.4: http://docutils.sourceforge.net/" />
 <title></title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com Ludvig Strigeus, ludde&#64;utorrent.com" />
-<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+
+body
+{
+	background-color: white;
+	color: black;
+	margin: 1em 2em 1em 2em;
+}
+
+h1 { font-family: Verdana, Arial, Helvetica, sans-serif; font-weight: bold; text-align: left; font-size: 140%; }
+h2 { font-family: Verdana, Arial, Helvetica, sans-serif; font-weight: bold; text-align: left; font-size: 110%; }
+h3 { font-family: "courier new", courier, monospace; font-weight: bold; text-align: left; font-size: 100%; }
+
+pre
+{
+	border: gray 1pt solid;
+	padding: 2pt;
+
+	display: block;
+	font-family: "courier new", courier, monospace;
+	background-color: #eeeeee;
+	color: black;
+	font-size: small
+}
+
+code
+{
+	white-space: pre;
+	border: gray 1pt solid;
+	padding: 2pt;
+
+	display: block;
+	font-family: "courier new", courier, monospace;
+	color: black;
+	font-size: small
+}
+
+tt
+{
+	display: inline;
+	font-family: "Courier New", Courier, monospace;
+}
+
+p
+{
+	text-align: justify;
+	font-family: Georgia, "Times New Roman", Times, serif
+}
+
+ul
+{
+	font-family: Georgia, "Times New Roman", Times, serif
+}
+
+ol
+{
+	font-family: Georgia, "Times New Roman", Times, serif
+}
+
+a:link
+{
+	font-weight: bold;
+	color: #003366;
+	text-decoration: none;
+}
+
+a:visited
+{
+	font-weight: bold;
+	color: #003366;
+	text-decoration: none;
+}
+
+
+table
+{
+	border: 1px solid black;
+	border-collapse: collapse;
+}
+
+table td
+{
+	padding: 6px;
+}
+
+table th
+{
+	border: 3px solid black;
+	padding: 6px;
+}
+
+table.menu
+{
+	border-style: none;
+}
+
+table.menu td
+{
+	padding-left: 15px;
+	padding-right: 15px;
+	padding-top: 7px;
+	padding-bottom: 7px;
+}
+
+
+td
+{
+	border: 1px solid black
+}
+
+div.warning, div.note, div.important {
+    width: 80%;
+    margin: 1.5em auto;
+    background: #C1E5F6;
+    background: #F1FFF5;
+    border: solid 1px #D1DFD5;
+    padding: 5px 10px 5px 10px;
+}
+
+
+</style>
 </head>
 <body>
 <div class="document">
@@ -19,8 +139,8 @@
 Ludvig Strigeus, <a class="last reference" href="mailto:ludde&#64;utorrent.com">ludde&#64;utorrent.com</a></td></tr>
 </tbody>
 </table>
-<div class="section" id="extension-protocol-for-bittorrent">
-<h1><a name="extension-protocol-for-bittorrent">extension protocol for bittorrent</a></h1>
+<div class="section">
+<h1><a id="extension-protocol-for-bittorrent" name="extension-protocol-for-bittorrent">extension protocol for bittorrent</a></h1>
 <p>The intention of this protocol is to provide a simple and thin transport
 for extensions to the bittorrent protocol. Supporting this protocol makes
 it easy to add new extensions without interfering with the standard
@@ -88,8 +208,8 @@ message as specified by the handshake.</td>
 </tr>
 </tbody>
 </table>
-<div class="section" id="handshake-message">
-<h2><a name="handshake-message">handshake message</a></h2>
+<div class="section">
+<h2><a id="handshake-message" name="handshake-message">handshake message</a></h2>
 <p>The payload of the handshake message is a bencoded dictionary. All items
 in the dictionary are optional. Any unknown names should be ignored
 by the client. All parts of the dictionary are case sensitive.
@@ -139,6 +259,11 @@ known.</td>
 <td>Client name and version (as an utf-8 string).
 This is a much more reliable way of identifying the
 client than relying on the peer id encoding.</td>
+</tr>
+<tr><td>reqq</td>
+<td>An integer, the number of outstanding request messages
+this client supports without dropping any. The default in
+in libtorrent is 250.</td>
 </tr>
 </tbody>
 </table>
@@ -214,8 +339,8 @@ for the actual extensions to the bittorrent protocol and the extensions
 named in the example above (such as <tt class="docutils literal"><span class="pre">p</span></tt>) are just examples of possible
 extensions.</p>
 </div>
-<div class="section" id="rationale">
-<h2><a name="rationale">rationale</a></h2>
+<div class="section">
+<h2><a id="rationale" name="rationale">rationale</a></h2>
 <p>The reason why the extension messages' IDs would be defined in the handshake
 is to avoid having a global registry somewhere, where ID's are assigned
 global identifiers. Now the extensions have unique names.</p>
