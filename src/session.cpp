@@ -851,7 +851,7 @@ namespace libtorrent { namespace detail
 		for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
 				= m_torrents.begin(); i != m_torrents.end(); ++i)
 		{
-#ifndef DEBUG
+#ifndef NDEBUG
 			i->second->check_invariant();
 #endif
 			i->second->distribute_resources();
