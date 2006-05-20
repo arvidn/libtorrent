@@ -14,6 +14,7 @@ To advertise to other clients that you support, one bit from the reserved
 bytes is used.
 
 Right now, two bits have known usages.
+
  * [7] & 1 is used by Mainline for DHT support
  * [7] & 2 is used by XBT client for peer-exchange support
 

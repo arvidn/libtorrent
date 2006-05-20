@@ -1347,7 +1347,7 @@ Its declaration looks like this::
 		entry write_resume_data() const;
 		std::vector<char> const& metadata() const;
 		void force_reannounce() const;
-		void connect_peer(asio::ipv4::tcp::endpoint const& adr) const;
+		void connect_peer(asio::ip::tcp::endpoint const& adr) const;
 
 		void set_tracker_login(std::string const& username
 			, std::string const& password) const;
@@ -1363,8 +1363,8 @@ Its declaration looks like this::
 		void set_upload_limit(int limit) const;
 		void set_download_limit(int limit) const;
 
-		void set_peer_upload_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
-		void set_peer_download_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
+		void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
+		void set_peer_download_limit(asio::ip::tcp::endpoint ip, int limit) const;
 
 		void use_interface(char const* net_interface) const;
 
@@ -1439,7 +1439,7 @@ connect_peer()
 
 	::
 
-		void connect_peer(asio::ipv4::tcp::endpoint const& adr) const;
+		void connect_peer(asio::ip::tcp::endpoint const& adr) const;
 
 ``connect_peer()`` is a way to manually connect to peers that one believe is a part of the
 torrent. If the peer does not respond, or is not a member of this torrent, it will simply
@@ -1485,8 +1485,8 @@ set_peer_upload_limit() set_peer_download_limit()
 
 	::
 
-		void set_peer_upload_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
-		void set_peer_download_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
+		void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
+		void set_peer_download_limit(asio::ip::tcp::endpoint ip, int limit) const;
 
 Works like ``set_upload_limit`` and ``set_download_limit`` respectively, but controls individual
 peer instead of the whole torrent.
@@ -1943,7 +1943,7 @@ It contains the following fields::
 			queued = 0x100
 		};
 		unsigned int flags;
-		asio::ipv4::tcp::endpoint ip;
+		asio::ip::tcp::endpoint ip;
 		float up_speed;
 		float down_speed;
 		float payload_up_speed;
@@ -2137,7 +2137,7 @@ ip_filter
 The ``ip_filter`` class is a set of rules that uniquely categorizes all
 ip addresses as allowed or disallowed. The default constructor creates
 a single rule that allowes all addresses (0.0.0.0 - 255.255.255.255).
-The ``address`` type here is ``asio::ipv4::address``. It can also be
+The ``address`` type here is ``asio::ip::address_v4``. It can also be
 accessed as ``libtorrent::address``.
 
 	::
@@ -2671,12 +2671,12 @@ to the torrent that this peer was a member of.
 	struct peer_ban_alert: alert
 	{
 		peer_ban_alert(
-			asio::ipv4::tcp::endpoint const& pip
+			asio::ip::tcp::endpoint const& pip
 			, torrent_handle h
 			, const std::string& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
-		asio::ipv4::tcp::endpoint ip;
+		asio::ip::tcp::endpoint ip;
 		torrent_handle handle;
 	};
 
@@ -2693,12 +2693,12 @@ is generated as severity level ``debug``.
 	struct peer_error_alert: alert
 	{
 		peer_error_alert(
-			asio::ipv4::tcp::endpoint const& pip
+			asio::ip::tcp::endpoint const& pip
 			, peer_id const& pid
 			, const std::string& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
-		asio::ipv4::tcp::endpoint ip;
+		asio::ip::tcp::endpoint ip;
 		peer_id id;
 	};
 
@@ -2718,13 +2718,13 @@ is a handle to the torrent the peer is a member of. ``ìp`` is the address of the
 		invalid_request_alert(
 			peer_request const& r
 			, torrent_handle const& h
-			, asio::ipv4::tcp::endpoint const& send
+			, asio::ip::tcp::endpoint const& send
 			, peer_id const& pid
 			, std::string const& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
 		torrent_handle handle;
-		asio::ipv4::tcp::endpoint ip;
+		asio::ip::tcp::endpoint ip;
 		peer_request request;
 		peer_id id;
 	};
@@ -3506,6 +3506,8 @@ acknowledgements
 Written by Arvid Norberg. Copyright |copy| 2003-2005
 
 Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson
+
+Lots of testing, suggestions and contributions by Massaroddel and Tianhao Qiu.
 
 Big thanks to Michael Wojciechowski and Peter Koeleman for making the autotools
 scripts.

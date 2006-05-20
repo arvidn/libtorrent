@@ -352,8 +352,8 @@ boost libraries as well as <a class="reference" href="http://www.zlib.org">zlib<
 <blockquote>
 <ul class="simple">
 <li>Windows 2000 vc7.1</li>
-<li>Linux x86 GCC 3.0.4, GCC 3.2.3, GCC 3.4.2</li>
-<li>MacOS X (darwin), (Apple's) GCC 3.3, (Apple's) GCC 4.0</li>
+<li>Linux x86 GCC 3.3, GCC 3.4.2</li>
+<li>MacOS X (darwin), (Apple's) GCC 4.0</li>
 <li>SunOS 5.8 GCC 3.1</li>
 <li>Cygwin GCC 3.3.3</li>
 </ul>
@@ -362,7 +362,8 @@ boost libraries as well as <a class="reference" href="http://www.zlib.org">zlib<
 <blockquote>
 <ul class="simple">
 <li>GCC 2.95.4</li>
-<li>msvc6 sp5</li>
+<li>msvc6</li>
+<li>(Apple's) GCC 3.3 (compiler crashes with the latest version of asio)</li>
 </ul>
 </blockquote>
 <p>libtorrent is released under the <a class="reference" href="http://www.opensource.org/licenses/bsd-license.php">BSD-license</a>.</p>
@@ -1517,7 +1518,7 @@ struct torrent_handle
         entry write_resume_data() const;
         std::vector&lt;char&gt; const&amp; metadata() const;
         void force_reannounce() const;
-        void connect_peer(asio::ipv4::tcp::endpoint const&amp; adr) const;
+        void connect_peer(asio::ip::tcp::endpoint const&amp; adr) const;
 
         void set_tracker_login(std::string const&amp; username
                 , std::string const&amp; password) const;
@@ -1533,8 +1534,8 @@ struct torrent_handle
         void set_upload_limit(int limit) const;
         void set_download_limit(int limit) const;
 
-        void set_peer_upload_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
-        void set_peer_download_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
+        void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
+        void set_peer_download_limit(asio::ip::tcp::endpoint ip, int limit) const;
 
         void use_interface(char const* net_interface) const;
 
@@ -1604,7 +1605,7 @@ peers. If the torrent is invalid, queued or in checking mode, this functions wil
 <h2><a id="connect-peer" name="connect-peer">connect_peer()</a></h2>
 <blockquote>
 <pre class="literal-block">
-void connect_peer(asio::ipv4::tcp::endpoint const&amp; adr) const;
+void connect_peer(asio::ip::tcp::endpoint const&amp; adr) const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">connect_peer()</span></tt> is a way to manually connect to peers that one believe is a part of the
@@ -1647,8 +1648,8 @@ limit.</p>
 <h2><a id="set-peer-upload-limit-set-peer-download-limit" name="set-peer-upload-limit-set-peer-download-limit">set_peer_upload_limit() set_peer_download_limit()</a></h2>
 <blockquote>
 <pre class="literal-block">
-void set_peer_upload_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
-void set_peer_download_limit(asio::ipv4::tcp::endpoint ip, int limit) const;
+void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
+void set_peer_download_limit(asio::ip::tcp::endpoint ip, int limit) const;
 </pre>
 </blockquote>
 <p>Works like <tt class="docutils literal"><span class="pre">set_upload_limit</span></tt> and <tt class="docutils literal"><span class="pre">set_download_limit</span></tt> respectively, but controls individual
@@ -2080,7 +2081,7 @@ struct peer_info
                 queued = 0x100
         };
         unsigned int flags;
-        asio::ipv4::tcp::endpoint ip;
+        asio::ip::tcp::endpoint ip;
         float up_speed;
         float down_speed;
         float payload_up_speed;
@@ -2259,7 +2260,7 @@ uncompressed (given your limit is lower than 2 megs). Default limit is
 <p>The <tt class="docutils literal"><span class="pre">ip_filter</span></tt> class is a set of rules that uniquely categorizes all
 ip addresses as allowed or disallowed. The default constructor creates
 a single rule that allowes all addresses (0.0.0.0 - 255.255.255.255).
-The <tt class="docutils literal"><span class="pre">address</span></tt> type here is <tt class="docutils literal"><span class="pre">asio::ipv4::address</span></tt>. It can also be
+The <tt class="docutils literal"><span class="pre">address</span></tt> type here is <tt class="docutils literal"><span class="pre">asio::ip::address_v4</span></tt>. It can also be
 accessed as <tt class="docutils literal"><span class="pre">libtorrent::address</span></tt>.</p>
 <blockquote>
 <pre class="literal-block">
@@ -2736,12 +2737,12 @@ to the torrent that this peer was a member of.</p>
 struct peer_ban_alert: alert
 {
         peer_ban_alert(
-                asio::ipv4::tcp::endpoint const&amp; pip
+                asio::ip::tcp::endpoint const&amp; pip
                 , torrent_handle h
                 , const std::string&amp; msg);
 
         virtual std::auto_ptr&lt;alert&gt; clone() const;
-        asio::ipv4::tcp::endpoint ip;
+        asio::ip::tcp::endpoint ip;
         torrent_handle handle;
 };
 </pre>
@@ -2755,12 +2756,12 @@ is generated as severity level <tt class="docutils literal"><span class="pre">de
 struct peer_error_alert: alert
 {
         peer_error_alert(
-                asio::ipv4::tcp::endpoint const&amp; pip
+                asio::ip::tcp::endpoint const&amp; pip
                 , peer_id const&amp; pid
                 , const std::string&amp; msg);
 
         virtual std::auto_ptr&lt;alert&gt; clone() const;
-        asio::ipv4::tcp::endpoint ip;
+        asio::ip::tcp::endpoint ip;
         peer_id id;
 };
 </pre>
@@ -2777,13 +2778,13 @@ struct invalid_request_alert: alert
         invalid_request_alert(
                 peer_request const&amp; r
                 , torrent_handle const&amp; h
-                , asio::ipv4::tcp::endpoint const&amp; send
+                , asio::ip::tcp::endpoint const&amp; send
                 , peer_id const&amp; pid
                 , std::string const&amp; msg);
 
         virtual std::auto_ptr&lt;alert&gt; clone() const;
         torrent_handle handle;
-        asio::ipv4::tcp::endpoint ip;
+        asio::ip::tcp::endpoint ip;
         peer_request request;
         peer_id id;
 };
@@ -3586,6 +3587,7 @@ boost::filesystem::path::default_name_check(boost::filesystem::native);
 <h1><a id="acknowledgements" name="acknowledgements">acknowledgements</a></h1>
 <p>Written by Arvid Norberg. Copyright © 2003-2005</p>
 <p>Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson</p>
+<p>Lots of testing, suggestions and contributions by Massaroddel and Tianhao Qiu.</p>
 <p>Big thanks to Michael Wojciechowski and Peter Koeleman for making the autotools
 scripts.</p>
 <p>Thanks to Reimond Retz for bugfixes, suggestions and testing</p>

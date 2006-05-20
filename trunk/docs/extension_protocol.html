@@ -148,14 +148,13 @@ bittorrent protocol or clients that don't support this extension or the
 one you want to add.</p>
 <p>To advertise to other clients that you support, one bit from the reserved
 bytes is used.</p>
-<dl class="docutils">
-<dt>Right now, two bits have known usages.</dt>
-<dd><ul class="first last simple">
+<p>Right now, two bits have known usages.</p>
+<blockquote>
+<ul class="simple">
 <li>[7] &amp; 1 is used by Mainline for DHT support</li>
 <li>[7] &amp; 2 is used by XBT client for peer-exchange support</li>
 </ul>
-</dd>
-</dl>
+</blockquote>
 <p>The bit selected for the extension protocol is bit 20 from the right (counting
 starts at 0). So (reserved_byte[5] &amp; 0x10) is the expression to use for checking
 if the client supports extended messaging.</p>
