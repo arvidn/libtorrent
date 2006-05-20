@@ -3,10 +3,130 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.3.8: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.4: http://docutils.sourceforge.net/" />
 <title>Bittorrent udp-tracker protocol extension</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
-<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+
+body
+{
+	background-color: white;
+	color: black;
+	margin: 1em 2em 1em 2em;
+}
+
+h1 { font-family: Verdana, Arial, Helvetica, sans-serif; font-weight: bold; text-align: left; font-size: 140%; }
+h2 { font-family: Verdana, Arial, Helvetica, sans-serif; font-weight: bold; text-align: left; font-size: 110%; }
+h3 { font-family: "courier new", courier, monospace; font-weight: bold; text-align: left; font-size: 100%; }
+
+pre
+{
+	border: gray 1pt solid;
+	padding: 2pt;
+
+	display: block;
+	font-family: "courier new", courier, monospace;
+	background-color: #eeeeee;
+	color: black;
+	font-size: small
+}
+
+code
+{
+	white-space: pre;
+	border: gray 1pt solid;
+	padding: 2pt;
+
+	display: block;
+	font-family: "courier new", courier, monospace;
+	color: black;
+	font-size: small
+}
+
+tt
+{
+	display: inline;
+	font-family: "Courier New", Courier, monospace;
+}
+
+p
+{
+	text-align: justify;
+	font-family: Georgia, "Times New Roman", Times, serif
+}
+
+ul
+{
+	font-family: Georgia, "Times New Roman", Times, serif
+}
+
+ol
+{
+	font-family: Georgia, "Times New Roman", Times, serif
+}
+
+a:link
+{
+	font-weight: bold;
+	color: #003366;
+	text-decoration: none;
+}
+
+a:visited
+{
+	font-weight: bold;
+	color: #003366;
+	text-decoration: none;
+}
+
+
+table
+{
+	border: 1px solid black;
+	border-collapse: collapse;
+}
+
+table td
+{
+	padding: 6px;
+}
+
+table th
+{
+	border: 3px solid black;
+	padding: 6px;
+}
+
+table.menu
+{
+	border-style: none;
+}
+
+table.menu td
+{
+	padding-left: 15px;
+	padding-right: 15px;
+	padding-top: 7px;
+	padding-bottom: 7px;
+}
+
+
+td
+{
+	border: 1px solid black
+}
+
+div.warning, div.note, div.important {
+    width: 80%;
+    margin: 1.5em auto;
+    background: #C1E5F6;
+    background: #F1FFF5;
+    border: solid 1px #D1DFD5;
+    padding: 5px 10px 5px 10px;
+}
+
+
+</style>
 </head>
 <body>
 <div class="document" id="bittorrent-udp-tracker-protocol-extension">
@@ -19,8 +139,8 @@
 <td>Arvid Norberg, <a class="last reference" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 </tbody>
 </table>
-<div class="contents topic" id="table-of-contents">
-<p class="topic-title first"><a name="table-of-contents">Table of contents</a></p>
+<div class="contents topic">
+<p class="topic-title first"><a id="table-of-contents" name="table-of-contents">Table of contents</a></p>
 <ul class="simple">
 <li><a class="reference" href="#introduction" id="id2" name="id2">introduction</a></li>
 <li><a class="reference" href="#connecting" id="id3" name="id3">connecting</a></li>
@@ -35,8 +155,8 @@
 <li><a class="reference" href="#credits" id="id10" name="id10">credits</a></li>
 </ul>
 </div>
-<div class="section" id="introduction">
-<h1><a name="introduction">introduction</a></h1>
+<div class="section">
+<h1><a id="introduction" name="introduction">introduction</a></h1>
 <p>A tracker with the protocol &quot;udp://&quot; in its URI
 is supposed to be contacted using this protocol.</p>
 <p>This protocol is supported by
@@ -50,8 +170,8 @@ are specified with ANSI-C standard types.</p>
 the request. If no reply has been received after 60 seconds, stop
 retrying.</p>
 </div>
-<div class="section" id="connecting">
-<h1><a name="connecting">connecting</a></h1>
+<div class="section">
+<h1><a id="connecting" name="connecting">connecting</a></h1>
 <p>Client sends packet:</p>
 <table border="1" class="docutils">
 <colgroup>
@@ -60,9 +180,9 @@ retrying.</p>
 <col width="54%" />
 </colgroup>
 <thead valign="bottom">
-<tr><th>size</th>
-<th>name</th>
-<th>description</th>
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -90,9 +210,9 @@ identify the protocol.</td>
 <col width="54%" />
 </colgroup>
 <thead valign="bottom">
-<tr><th>size</th>
-<th>name</th>
-<th>description</th>
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -120,8 +240,8 @@ anymore.</td>
 </tbody>
 </table>
 </div>
-<div class="section" id="announcing">
-<h1><a name="announcing">announcing</a></h1>
+<div class="section">
+<h1><a id="announcing" name="announcing">announcing</a></h1>
 <p>Client sends packet:</p>
 <table border="1" class="docutils">
 <colgroup>
@@ -130,9 +250,9 @@ anymore.</td>
 <col width="54%" />
 </colgroup>
 <thead valign="bottom">
-<tr><th>size</th>
-<th>name</th>
-<th>description</th>
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -221,9 +341,9 @@ in the reply. Use -1 for default.</td>
 <col width="54%" />
 </colgroup>
 <thead valign="bottom">
-<tr><th>size</th>
-<th>name</th>
-<th>description</th>
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -265,9 +385,9 @@ seeding.</td>
 <col width="54%" />
 </colgroup>
 <thead valign="bottom">
-<tr><th>size</th>
-<th>name</th>
-<th>description</th>
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -282,8 +402,8 @@ seeding.</td>
 </tbody>
 </table>
 </div>
-<div class="section" id="scraping">
-<h1><a name="scraping">scraping</a></h1>
+<div class="section">
+<h1><a id="scraping" name="scraping">scraping</a></h1>
 <p>Client sends packet:</p>
 <table border="1" class="docutils">
 <colgroup>
@@ -292,9 +412,9 @@ seeding.</td>
 <col width="54%" />
 </colgroup>
 <thead valign="bottom">
-<tr><th>size</th>
-<th>name</th>
-<th>description</th>
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -331,9 +451,9 @@ follow.</td>
 <col width="54%" />
 </colgroup>
 <thead valign="bottom">
-<tr><th>size</th>
-<th>name</th>
-<th>description</th>
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -351,9 +471,9 @@ follow.</td>
 <col width="54%" />
 </colgroup>
 <thead valign="bottom">
-<tr><th>size</th>
-<th>name</th>
-<th>description</th>
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -378,9 +498,9 @@ you asked in the scrape request.</p>
 <col width="54%" />
 </colgroup>
 <thead valign="bottom">
-<tr><th>size</th>
-<th>name</th>
-<th>description</th>
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -401,8 +521,8 @@ leechers.</td>
 </tbody>
 </table>
 </div>
-<div class="section" id="errors">
-<h1><a name="errors">errors</a></h1>
+<div class="section">
+<h1><a id="errors" name="errors">errors</a></h1>
 <p>In case of a tracker error,</p>
 <p>server replies packet:</p>
 <table border="1" class="docutils">
@@ -412,9 +532,9 @@ leechers.</td>
 <col width="54%" />
 </colgroup>
 <thead valign="bottom">
-<tr><th>size</th>
-<th>name</th>
-<th>description</th>
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -436,8 +556,8 @@ describing the error.</td>
 </tbody>
 </table>
 </div>
-<div class="section" id="actions">
-<h1><a name="actions">actions</a></h1>
+<div class="section">
+<h1><a id="actions" name="actions">actions</a></h1>
 <p>The action fields has the following encoding:</p>
 <blockquote>
 <ul class="simple">
@@ -448,8 +568,8 @@ describing the error.</td>
 </ul>
 </blockquote>
 </div>
-<div class="section" id="extensions">
-<h1><a name="extensions">extensions</a></h1>
+<div class="section">
+<h1><a id="extensions" name="extensions">extensions</a></h1>
 <p>The extensions field is a bitmask. The following
 bits are assigned:</p>
 <blockquote>
@@ -457,8 +577,8 @@ bits are assigned:</p>
 <li>1 = <a class="reference" href="#authentication">authentication</a>.</li>
 </ul>
 </blockquote>
-<div class="section" id="authentication">
-<h2><a name="authentication">authentication</a></h2>
+<div class="section">
+<h2><a id="authentication" name="authentication">authentication</a></h2>
 <p>The packet will have an authentication part
 appended to it. It has the following format:</p>
 <table border="1" class="docutils">
@@ -468,9 +588,9 @@ appended to it. It has the following format:</p>
 <col width="54%" />
 </colgroup>
 <thead valign="bottom">
-<tr><th>size</th>
-<th>name</th>
-<th>description</th>
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -497,8 +617,8 @@ from the 20 bytes hash calculated.</td>
 </table>
 </div>
 </div>
-<div class="section" id="credits">
-<h1><a name="credits">credits</a></h1>
+<div class="section">
+<h1><a id="credits" name="credits">credits</a></h1>
 <p>Protocol designed by Olaf van der Spek</p>
 </div>
 </div>

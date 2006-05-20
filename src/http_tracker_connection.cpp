@@ -375,7 +375,7 @@ namespace libtorrent
 		}
 #endif
 
-		tcp::resolver::query q(*connect_to_host);
+		tcp::resolver::query q(*connect_to_host, "http");
 		m_name_lookup.async_resolve(q
 			, boost::bind(&http_tracker_connection::name_lookup, self(), _1, _2));
 		set_timeout(m_settings.tracker_completion_timeout
@@ -415,7 +415,7 @@ namespace libtorrent
 	{
 		assert(false);
 		fail(-1, e.what());
-	}
+	};
 
 	void http_tracker_connection::connected(asio::error const& error) try
 	{

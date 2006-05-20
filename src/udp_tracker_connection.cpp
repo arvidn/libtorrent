@@ -90,7 +90,7 @@ namespace libtorrent
 		, m_attempts(0)
 	{
 		m_socket.reset(new datagram_socket(d));
-		tcp::resolver::query q(hostname.c_str());
+		tcp::resolver::query q(hostname, "http");
 		m_name_lookup.async_resolve(q
 			, boost::bind(&udp_tracker_connection::name_lookup, self(), _1, _2));
 		set_timeout(m_settings.tracker_completion_timeout
@@ -121,7 +121,7 @@ namespace libtorrent
 	{
 		fail(-1, e.what());
 		assert(false);
-	}
+	};
 
 	void udp_tracker_connection::on_timeout()
 	{

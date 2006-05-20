@@ -3,9 +3,129 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.3.8: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.4: http://docutils.sourceforge.net/" />
 <title>client_test example program</title>
-<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+
+body
+{
+	background-color: white;
+	color: black;
+	margin: 1em 2em 1em 2em;
+}
+
+h1 { font-family: Verdana, Arial, Helvetica, sans-serif; font-weight: bold; text-align: left; font-size: 140%; }
+h2 { font-family: Verdana, Arial, Helvetica, sans-serif; font-weight: bold; text-align: left; font-size: 110%; }
+h3 { font-family: "courier new", courier, monospace; font-weight: bold; text-align: left; font-size: 100%; }
+
+pre
+{
+	border: gray 1pt solid;
+	padding: 2pt;
+
+	display: block;
+	font-family: "courier new", courier, monospace;
+	background-color: #eeeeee;
+	color: black;
+	font-size: small
+}
+
+code
+{
+	white-space: pre;
+	border: gray 1pt solid;
+	padding: 2pt;
+
+	display: block;
+	font-family: "courier new", courier, monospace;
+	color: black;
+	font-size: small
+}
+
+tt
+{
+	display: inline;
+	font-family: "Courier New", Courier, monospace;
+}
+
+p
+{
+	text-align: justify;
+	font-family: Georgia, "Times New Roman", Times, serif
+}
+
+ul
+{
+	font-family: Georgia, "Times New Roman", Times, serif
+}
+
+ol
+{
+	font-family: Georgia, "Times New Roman", Times, serif
+}
+
+a:link
+{
+	font-weight: bold;
+	color: #003366;
+	text-decoration: none;
+}
+
+a:visited
+{
+	font-weight: bold;
+	color: #003366;
+	text-decoration: none;
+}
+
+
+table
+{
+	border: 1px solid black;
+	border-collapse: collapse;
+}
+
+table td
+{
+	padding: 6px;
+}
+
+table th
+{
+	border: 3px solid black;
+	padding: 6px;
+}
+
+table.menu
+{
+	border-style: none;
+}
+
+table.menu td
+{
+	padding-left: 15px;
+	padding-right: 15px;
+	padding-top: 7px;
+	padding-bottom: 7px;
+}
+
+
+td
+{
+	border: 1px solid black
+}
+
+div.warning, div.note, div.important {
+    width: 80%;
+    margin: 1.5em auto;
+    background: #C1E5F6;
+    background: #F1FFF5;
+    border: solid 1px #D1DFD5;
+    padding: 5px 10px 5px 10px;
+}
+
+
+</style>
 </head>
 <body>
 <div class="document" id="client-test-example-program">
@@ -26,7 +146,7 @@ client and has the metadata (.torrent file). The metadata extension in
 libtorrent will then download it from that peer (or from those peers if more
 than one).</p>
 <p>While running, the <tt class="docutils literal"><span class="pre">client_test</span></tt> sample will look something like this:</p>
-<div class="image"><img alt="client_test.png" src="client_test.png" /></div>
+<img alt="client_test.png" src="client_test.png" />
 <p>The commands available in the client are:</p>
 <blockquote>
 <ul class="simple">
@@ -47,7 +167,7 @@ been requested from which peer. The green background means that it has been
 downloaded. It shows that fast peers will prefer to request whole pieces
 instead of dowloading parts of pieces. It may make it easier to determine
 which peer that sent the corrupt data if a piece fails the hash test.</p>
-<div class="image"><img alt="unicode_support.png" src="unicode_support.png" /></div>
+<img alt="unicode_support.png" src="unicode_support.png" />
 <p>There's unicode support on linux, MacOS X and Windows.</p>
 </div>
 </body>
