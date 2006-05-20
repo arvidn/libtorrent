@@ -1803,7 +1803,7 @@ namespace libtorrent
 
 		m_queued = false;
 		assert(m_connecting);
-		m_socket->open(asio::ipv4::tcp());
+		m_socket->open(asio::ip::tcp::v4());
 		m_socket->bind(t->get_interface());
 		m_socket->async_connect(m_remote
 			, bind(&peer_connection::on_connection_complete, self(), _1));

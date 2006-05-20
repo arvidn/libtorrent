@@ -711,8 +711,8 @@ namespace libtorrent
 		{
 			if (listen_port->type() == entry::int_t)
 			{
-				tcp::endpoint adr((unsigned short)listen_port->integer()
-					, remote().address());
+				tcp::endpoint adr(remote().address()
+					, (unsigned short)listen_port->integer());
 				t->get_policy().peer_from_tracker(adr, pid());
 			}
 		}

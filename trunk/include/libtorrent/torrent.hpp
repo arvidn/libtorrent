@@ -320,7 +320,8 @@ namespace libtorrent
 		
 		// this is the asio callback that is called when a name
 		// lookup for a web seed is completed.
-		void on_name_lookup(asio::error const& e, int port, std::string url, host h);
+		void on_name_lookup(asio::error const& e, tcp::resolver::iterator i
+			, int port, std::string url);
 
 		// this is called when the torrent has finished. i.e.
 		// all the pieces we have not filtered have been downloaded.
@@ -479,12 +480,13 @@ namespace libtorrent
 		// The list of web seeds in this torrent. Seeds
 		// with fatal errors are removed from the set
 		std::set<std::string> m_web_seeds;
-		// The set of url seeds that are currently having
-		// their hostnames resolved.
-		std::map<std::string, host> m_resolving_web_seeds;
+		
+		// urls of the web seeds that we are currently
+		// resolving the address for
+		std::set<std::string> m_resolving_web_seeds;
 
 		// used to resolve the names of web seeds
-		host_resolver m_host_resolver;
+		tcp::resolver m_host_resolver;
 
 		// this is the upload and download statistics for the whole torrent.
 		// it's updated from all its peers once every second.

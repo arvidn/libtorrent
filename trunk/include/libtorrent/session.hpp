@@ -180,7 +180,8 @@ namespace libtorrent
 		struct session_impl: boost::noncopyable
 		{
 			friend class invariant_access;
-			typedef std::map<boost::shared_ptr<stream_socket>, boost::intrusive_ptr<peer_connection> >
+			typedef std::map<boost::shared_ptr<stream_socket>
+				, boost::intrusive_ptr<peer_connection> >
 				connection_map;
 			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
 			typedef std::deque<boost::intrusive_ptr<peer_connection> >
@@ -189,7 +190,7 @@ namespace libtorrent
 			session_impl(
 				std::pair<int, int> listen_port_range
 				, fingerprint const& cl_fprint
-				, const char* listen_interface);
+				, char const* listen_interface = "0.0.0.0");
 
 			void operator()();
 
@@ -347,7 +348,7 @@ namespace libtorrent
 		session(
 			fingerprint const& print
 			, std::pair<int, int> listen_port_range
-			, const char* listen_interface = 0);
+			, char const* listen_interface = "0.0.0.0");
 
 		~session();
 

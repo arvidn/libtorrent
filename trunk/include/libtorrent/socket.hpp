@@ -73,15 +73,13 @@ namespace libtorrent
 */
 	namespace asio = ::asio;
 
-	using asio::ipv4::tcp;
-	using asio::ipv4::udp;
-	typedef asio::ipv4::tcp::socket stream_socket;
-	using asio::ipv4::address;
-	typedef asio::ipv4::udp::socket datagram_socket;
-	typedef asio::ipv4::tcp::acceptor socket_acceptor;
+	using asio::ip::tcp;
+	using asio::ip::udp;
+	typedef asio::ip::tcp::socket stream_socket;
+	typedef asio::ip::address_v4 address;
+	typedef asio::ip::udp::socket datagram_socket;
+	typedef asio::ip::tcp::acceptor socket_acceptor;
 	typedef asio::io_service demuxer;
-	using asio::ipv4::host_resolver;
-	using asio::ipv4::host;
 
 	using asio::async_write;
 	using asio::deadline_timer;

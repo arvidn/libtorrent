@@ -226,7 +226,7 @@ namespace libtorrent
 		, m_ratio(0.f)
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
-		, m_net_interface(0, net_interface.address())
+		, m_net_interface(net_interface.address(), 0)
 		, m_upload_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_save_path(complete(save_path))
@@ -314,7 +314,7 @@ namespace libtorrent
 		, m_ratio(0.f)
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
-		, m_net_interface(0, net_interface.address())
+		, m_net_interface(net_interface.address(), 0)
 		, m_upload_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_save_path(complete(save_path))
@@ -405,7 +405,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		m_net_interface = tcp::endpoint(0, net_interface);
+		m_net_interface = tcp::endpoint(address::from_string(net_interface), 0);
 	}
 
 	// returns true if it is time for this torrent to make another
@@ -485,9 +485,9 @@ namespace libtorrent
 			if (i->pid == m_ses.get_peer_id())
 				continue;
 
-			tcp::endpoint a(i->port, i->ip.c_str());
+			tcp::endpoint a(address::from_string(i->ip), i->port);
 
-			if (m_ses.m_ip_filter.access(a.address()) == ip_filter::blocked)
+			if (m_ses.m_ip_filter.access(a.address().to_v4()) == ip_filter::blocked)
 			{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 				debug_log("blocked ip from tracker: " + i->ip);
@@ -937,26 +937,24 @@ namespace libtorrent
 		boost::tie(protocol, hostname, port, path)
 			= parse_url_components(url);
 
-		typedef std::map<std::string, host> resolving;
+		m_resolving_web_seeds.insert(url);
+		tcp::resolver::query q(hostname);
 		
-		resolving::iterator i = m_resolving_web_seeds.insert(std::pair<std::string, host>(url, host())).first;
-		m_host_resolver.async_by_name(i->second, hostname
-			, bind(&torrent::on_name_lookup, shared_from_this(), _1, port
-				, boost::ref(i->first), boost::ref(i->second)));
+		m_host_resolver.async_resolve(q, bind(&torrent::on_name_lookup
+			, shared_from_this(), _1, _2, port, url));
 	}
 
-	void torrent::on_name_lookup(asio::error const& e, int port, std::string url
-		, host h) try
+	void torrent::on_name_lookup(asio::error const& e, tcp::resolver::iterator host
+		, int port, std::string url) try
 	{
 		detail::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
-		
-		typedef std::map<std::string, host> resolving;
-		resolving::iterator i = m_resolving_web_seeds.find(url);
+
+		std::set<std::string>::iterator i = m_resolving_web_seeds.find(url);
 		if (i != m_resolving_web_seeds.end()) m_resolving_web_seeds.erase(i);
 
-		if (e)
+		if (e || host == tcp::resolver::iterator())
 		{
 			if (m_ses.m_alerts.should_post(alert::warning))
 			{
@@ -972,7 +970,7 @@ namespace libtorrent
 			return;
 		}
 
-		tcp::endpoint a(port, h.address(0));
+		tcp::endpoint a(host->endpoint().address(), port);
 
 		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_selector));
 		boost::intrusive_ptr<peer_connection> c(new web_peer_connection(
@@ -1460,10 +1458,9 @@ namespace libtorrent
 				web_seeds.insert(p->url());
 			}
 
-			for (std::map<std::string, host>::iterator i
-				= m_resolving_web_seeds.begin(), end(m_resolving_web_seeds.end());
-				i != end; ++i)
-				web_seeds.insert(web_seeds.begin(), i->first);
+			for (std::set<std::string>::iterator i = m_resolving_web_seeds.begin()
+				, end(m_resolving_web_seeds.end()); i != end; ++i)
+				web_seeds.insert(web_seeds.begin(), *i);
 
 			// from the list of available web seeds, subtract the ones we are
 			// already connected to.

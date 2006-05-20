@@ -90,16 +90,18 @@ namespace libtorrent
 		, m_attempts(0)
 	{
 		m_socket.reset(new datagram_socket(d));
-		m_name_lookup.async_by_name(m_host, hostname.c_str()
-			, bind(&udp_tracker_connection::name_lookup, self(), _1));
+		tcp::resolver::query q(hostname.c_str());
+		m_name_lookup.async_resolve(q
+			, boost::bind(&udp_tracker_connection::name_lookup, self(), _1, _2));
 		set_timeout(m_settings.tracker_completion_timeout
 			, m_settings.tracker_receive_timeout);
 	}
 
-	void udp_tracker_connection::name_lookup(asio::error const& error) try
+	void udp_tracker_connection::name_lookup(asio::error const& error
+		, tcp::resolver::iterator i) try
 	{
 		if (error == asio::error::operation_aborted) return;
-		if (error)
+		if (error || i == tcp::resolver::iterator())
 		{
 			fail(-1, error.what());
 			return;
@@ -109,9 +111,9 @@ namespace libtorrent
 		if (has_requester()) requester().debug_log("udp tracker name lookup successful");
 #endif
 		restart_read_timeout();
-		m_target = udp::endpoint(m_port, m_host.address(0));
+		m_target = udp::endpoint(i->endpoint().address(), m_port);
 		if (has_requester()) requester().m_tracker_address
-			= tcp::endpoint(m_port, m_host.address(0));
+			= tcp::endpoint(i->endpoint().address(), m_port);
 		m_socket->connect(m_target);
 		send_udp_connect();
 	}
@@ -155,7 +157,7 @@ namespace libtorrent
 		m_socket->send(asio::buffer((void*)send_buf, 16), 0);
 		++m_attempts;
 		m_buffer.resize(udp_buffer_size);
-		m_socket->async_receive_from(asio::buffer(m_buffer), 0, m_sender
+		m_socket->async_receive_from(asio::buffer(m_buffer), m_sender
 			, boost::bind(&udp_tracker_connection::connect_response, self(), _1, _2));
 	}
 
@@ -172,7 +174,7 @@ namespace libtorrent
 		if (m_target != m_sender)
 		{
 			// this packet was not received from the tracker
-			m_socket->async_receive_from(asio::buffer(m_buffer), 0, m_sender
+			m_socket->async_receive_from(asio::buffer(m_buffer), m_sender
 				, boost::bind(&udp_tracker_connection::connect_response, self(), _1, _2));
 			return;
 		}
@@ -293,7 +295,7 @@ namespace libtorrent
 		m_socket->send(asio::buffer(buf), 0);
 		++m_attempts;
 
-		m_socket->async_receive_from(asio::buffer(m_buffer), 0, m_sender
+		m_socket->async_receive_from(asio::buffer(m_buffer), m_sender
 			, bind(&udp_tracker_connection::announce_response, self(), _1, _2));
 	}
 
@@ -317,7 +319,7 @@ namespace libtorrent
 		m_socket->send(asio::buffer(&buf[0], buf.size()), 0);
 		++m_attempts;
 
-		m_socket->async_receive_from(asio::buffer(m_buffer), 0, m_sender
+		m_socket->async_receive_from(asio::buffer(m_buffer), m_sender
 			, bind(&udp_tracker_connection::scrape_response, self(), _1, _2));
 	}
 
@@ -334,7 +336,7 @@ namespace libtorrent
 		if (m_target != m_sender)
 		{
 			// this packet was not received from the tracker
-			m_socket->async_receive_from(asio::buffer(m_buffer), 0, m_sender
+			m_socket->async_receive_from(asio::buffer(m_buffer), m_sender
 				, bind(&udp_tracker_connection::connect_response, self(), _1, _2));
 			return;
 		}
@@ -443,7 +445,7 @@ namespace libtorrent
 		if (m_target != m_sender)
 		{
 			// this packet was not received from the tracker
-			m_socket->async_receive_from(asio::buffer(m_buffer), 0, m_sender
+			m_socket->async_receive_from(asio::buffer(m_buffer), m_sender
 				, bind(&udp_tracker_connection::connect_response, self(), _1, _2));
 			return;
 		}
