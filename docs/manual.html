@@ -216,7 +216,7 @@ div.warning, div.note, div.important {
 </li>
 <li><a class="reference" href="#torrent-status" id="id86" name="id86">torrent_status</a></li>
 <li><a class="reference" href="#peer-info" id="id87" name="id87">peer_info</a></li>
-<li><a class="reference" href="#http-settings" id="id88" name="id88">http_settings</a></li>
+<li><a class="reference" href="#session-settings" id="id88" name="id88">session_settings</a></li>
 <li><a class="reference" href="#ip-filter" id="id89" name="id89">ip_filter</a><ul>
 <li><a class="reference" href="#id16" id="id90" name="id90">ip_filter()</a></li>
 <li><a class="reference" href="#add-rule" id="id91" name="id91">add_rule()</a></li>
@@ -760,7 +760,7 @@ class session: public boost::noncopyable
         void disable_extensions();
         void enable_extension(peer_connection::extension_index);
 
-        void set_http_settings(const http_settings&amp; settings);
+        void set_settings(session_settings const&amp; settings);
 
         void set_upload_rate_limit(int bytes_per_second);
         void set_download_rate_limit(int bytes_per_second);
@@ -810,7 +810,7 @@ the parameters, see <tt class="docutils literal"><span class="pre">listen_on()</
 If some trackers are down, they will time out. All this before the destructor of session
 returns. So, it's adviced that any kind of interface (such as windows) are closed before
 destructing the sessoin object. Because it can take a few second for it to finish. The
-timeout can be set with <tt class="docutils literal"><span class="pre">set_http_settings()</span></tt>.</p>
+timeout can be set with <tt class="docutils literal"><span class="pre">set_settings()</span></tt>.</p>
 </div>
 <div class="section">
 <h2><a id="add-torrent" name="add-torrent">add_torrent()</a></h2>
@@ -2208,15 +2208,15 @@ string.</p>
 <tt class="docutils literal"><span class="pre">web_seed</span></tt>. These are currently the only implemented protocols.</p>
 </div>
 <div class="section">
-<h1><a id="http-settings" name="http-settings">http_settings</a></h1>
-<p>You have some control over tracker requests through the <tt class="docutils literal"><span class="pre">http_settings</span></tt> object. You
-create it and fill it with your settings and then use <tt class="docutils literal"><span class="pre">session::set_http_settings()</span></tt>
+<h1><a id="session-settings" name="session-settings">session_settings</a></h1>
+<p>You have some control over tracker requests through the <tt class="docutils literal"><span class="pre">session_settings</span></tt> object. You
+create it and fill it with your settings and then use <tt class="docutils literal"><span class="pre">session::set_settings()</span></tt>
 to apply them. You have control over proxy and authorization settings and also the user-agent
 that will be sent to the tracker. The user-agent is a good way to identify your client.</p>
 <pre class="literal-block">
-struct http_settings
+struct session_settings
 {
-        http_settings();
+        session_settings();
         std::string proxy_ip;
         int proxy_port;
         std::string proxy_login;
@@ -2225,6 +2225,13 @@ struct http_settings
         int tracker_completion_timeout;
         int tracker_receive_timeout;
         int tracker_maximum_response_length;
+
+        int piece_timeout;
+        float request_queue_time;
+        int sequenced_download_threshold;
+        int max_allowed_in_request_queue;
+        int max_out_request_queue;
+        int whole_pieces_threshold;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">proxy_ip</span></tt> may be a hostname or ip to a http proxy to use. If this is
@@ -2254,6 +2261,31 @@ on the uncompressed data. So, if you get 20 bytes of gzip response that'll
 expand to 2 megs, it will be interrupted before the entire response has been
 uncompressed (given your limit is lower than 2 megs). Default limit is
 1 megabyte.</p>
+<p><tt class="docutils literal"><span class="pre">piece_timeout</span></tt> controls the number of seconds from a request is sent until
+it times out if no piece response is returned.</p>
+<p><tt class="docutils literal"><span class="pre">request_queue_time</span></tt> is the length of the request queue given in the number
+of seconds it should take for the other end to send all the pieces. i.e. the
+actual number of requests depends on the download rate and this number.</p>
+<p><tt class="docutils literal"><span class="pre">sequenced_download_threshold</span></tt> is the limit on how popular a piece has to be
+(popular == inverse of rarity) to be downloaded in sequence instead of in
+random (rarest first) order. It can be used to tweak disk performance in
+settings where the random download property is less necessary. For example, if
+the threshold is 7, all pieces which 7 or more peers have, will be downloaded
+in index order.</p>
+<p><tt class="docutils literal"><span class="pre">max_allowed_in_request_queue</span></tt> is the number of outstanding block requests
+a peer is allowed to queue up in the client. If a peer sends more requests
+than this (before the first one has been sent) the last request will be
+dropped. The higher this is, the faster upload speeds the client can get to a
+single peer.</p>
+<p><tt class="docutils literal"><span class="pre">max_out_request_queue</span></tt> is the maximum number of outstanding requests to
+send to a peer. This limit takes precedence over <tt class="docutils literal"><span class="pre">request_queue_time</span></tt>. i.e.
+no matter the download speed, the number of outstanding requests will never
+exceed this limit.</p>
+<p><tt class="docutils literal"><span class="pre">whole_pieces_threshold</span></tt> is a limit in seconds. if a whole piece can be
+downloaded in this number of seconds, or less, the peer_connection will prefer
+to request whole pieces at a time from this peer. The benefit of this is to
+better utilize disk caches by doing localized accesses and also to make it
+easier to identify bad peers if a piece fails the hash check.</p>
 </div>
 <div class="section">
 <h1><a id="ip-filter" name="ip-filter">ip_filter</a></h1>
@@ -3047,7 +3079,7 @@ int main(int argc, char* argv[])
 #include &quot;libtorrent/entry.hpp&quot;
 #include &quot;libtorrent/bencode.hpp&quot;
 #include &quot;libtorrent/session.hpp&quot;
-#include &quot;libtorrent/http_settings.hpp&quot;
+#include &quot;libtorrent/session_settings.hpp&quot;
 
 int main(int argc, char* argv[])
 {
