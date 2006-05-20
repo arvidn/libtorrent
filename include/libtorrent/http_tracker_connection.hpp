@@ -132,7 +132,7 @@ namespace libtorrent
 			std::string const& hostname
 			, std::string const& request);
 
-		void name_lookup(asio::error const& error);
+		void name_lookup(asio::error const& error, tcp::resolver::iterator i);
 		void connected(asio::error const& error);
 		void sent(asio::error const& error);
 		void receive(asio::error const& error
@@ -150,8 +150,7 @@ namespace libtorrent
 		int m_content_length;
 		std::string m_location;
 
-		host_resolver m_name_lookup;
-		host m_host;
+		tcp::resolver m_name_lookup;
 		int m_port;
 		boost::shared_ptr<stream_socket> m_socket;
 		int m_recv_pos;

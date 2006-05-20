@@ -375,8 +375,9 @@ namespace libtorrent
 		}
 #endif
 
-		m_name_lookup.async_by_name(m_host, *connect_to_host
-			, bind(&http_tracker_connection::name_lookup, self(), _1));
+		tcp::resolver::query q(*connect_to_host);
+		m_name_lookup.async_resolve(q
+			, boost::bind(&http_tracker_connection::name_lookup, self(), _1, _2));
 		set_timeout(m_settings.tracker_completion_timeout
 			, m_settings.tracker_receive_timeout);
 	}
@@ -389,12 +390,13 @@ namespace libtorrent
 		fail_timeout();
 	}
 
-	void http_tracker_connection::name_lookup(asio::error const& error) try
+	void http_tracker_connection::name_lookup(asio::error const& error
+		, tcp::resolver::iterator i) try
 	{
 		if (error == asio::error::operation_aborted) return;
 		if (m_timed_out) return;
 
-		if (error)
+		if (error || i == tcp::resolver::iterator())
 		{
 			fail(-1, error.what());
 			return;
@@ -405,7 +407,7 @@ namespace libtorrent
 #endif
 		restart_read_timeout();
 		m_socket.reset(new stream_socket(m_name_lookup.io_service()));
-		tcp::endpoint a(m_port, m_host.address(0));
+		tcp::endpoint a(i->endpoint().address(), m_port);
 		if (has_requester()) requester().m_tracker_address = a;
 		m_socket->async_connect(a, bind(&http_tracker_connection::connected, self(), _1));
 	}
@@ -515,28 +517,30 @@ namespace libtorrent
 			std::vector<char>::iterator end = m_buffer.begin()+m_recv_pos;
 			std::vector<char>::iterator newline = std::find(m_buffer.begin(), end, '\n');
 			// if we don't have a full line yet, wait.
-			if (newline == end) return;
+			if (newline != end)
+			{
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			if (has_requester()) requester().debug_log(std::string(m_buffer.begin(), newline));
+				if (has_requester()) requester().debug_log(std::string(m_buffer.begin(), newline));
 #endif
 
-			std::istringstream line(std::string(m_buffer.begin(), newline));
-			++newline;
-			m_recv_pos -= (int)std::distance(m_buffer.begin(), newline);
-			m_buffer.erase(m_buffer.begin(), newline);
+				std::istringstream line(std::string(m_buffer.begin(), newline));
+				++newline;
+				m_recv_pos -= (int)std::distance(m_buffer.begin(), newline);
+				m_buffer.erase(m_buffer.begin(), newline);
 
-			std::string protocol;
-			line >> m_server_protocol;
-			if (m_server_protocol.substr(0, 5) != "HTTP/")
-			{
-				std::string error_msg = "unknown protocol in response: " + m_server_protocol;
-				fail(-1, error_msg.c_str());
-				return;
+				std::string protocol;
+				line >> m_server_protocol;
+				if (m_server_protocol.substr(0, 5) != "HTTP/")
+				{
+					std::string error_msg = "unknown protocol in response: " + m_server_protocol;
+					fail(-1, error_msg.c_str());
+					return;
+				}
+				line >> m_code;
+				std::getline(line, m_server_message);
+				m_state = read_header;
 			}
-			line >> m_code;
-			std::getline(line, m_server_message);
-			m_state = read_header;
 		}
 
 		if (m_state == read_header)

@@ -82,15 +82,16 @@ boost libraries as well as zlib_ (shipped) and asio_ (shipped). At least version
 libtorrent has been successfully compiled and tested on:
 
 	* Windows 2000 vc7.1
-	* Linux x86 GCC 3.0.4, GCC 3.2.3, GCC 3.4.2
-	* MacOS X (darwin), (Apple's) GCC 3.3, (Apple's) GCC 4.0
+	* Linux x86 GCC 3.3, GCC 3.4.2
+	* MacOS X (darwin), (Apple's) GCC 4.0
 	* SunOS 5.8 GCC 3.1
 	* Cygwin GCC 3.3.3
 
 Fails on:
 
 	* GCC 2.95.4
-	* msvc6 sp5
+	* msvc6
+	* (Apple's) GCC 3.3 (compiler crashes with the latest version of asio)
 
 libtorrent is released under the BSD-license_.
 

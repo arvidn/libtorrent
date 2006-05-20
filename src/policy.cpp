@@ -906,7 +906,7 @@ namespace libtorrent
 			if (i->connection != 0)
 				throw protocol_error("duplicate connection, closing");
 			if (i->banned)
-				throw protocol_error("ip tcp::endpoint banned, closing");
+				throw protocol_error("ip address banned, closing");
 		}
 		
 		assert(i->connection == 0);
@@ -924,7 +924,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		// just ignore the obviously invalid entries from the tracker
-		if(remote.address().to_ulong() == 0 || remote.port() == 0)
+		if(remote.address() == address(0) || remote.port() == 0)
 			return;
 
 		try

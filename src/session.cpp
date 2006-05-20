@@ -408,10 +408,10 @@ namespace libtorrent { namespace detail
 	session_impl::session_impl(
 		std::pair<int, int> listen_port_range
 		, const fingerprint& cl_fprint
-		, const char* listen_interface = 0)
+		, char const* listen_interface)
 		: m_tracker_manager(m_http_settings)
 		, m_listen_port_range(listen_port_range)
-		, m_listen_interface(listen_port_range.first)
+		, m_listen_interface(address::from_string(listen_interface), listen_port_range.first)
 		, m_abort(false)
 		, m_upload_rate(-1)
 		, m_download_rate(-1)
@@ -419,11 +419,9 @@ namespace libtorrent { namespace detail
 		, m_max_connections(-1)
 		, m_half_open_limit(-1)
 		, m_incoming_connection(false)
-		, m_last_tick(second_clock::universal_time())
+		, m_last_tick(microsec_clock::universal_time())
 		, m_timer(m_selector)
 	{
-		if (listen_interface != 0) m_listen_interface.address(
-			address(listen_interface));
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		m_logger = create_log("main_session", false);
@@ -481,7 +479,7 @@ namespace libtorrent { namespace detail
 			{
 				try
 				{
-					m_listen_socket->open(asio::ipv4::tcp());
+					m_listen_socket->open(asio::ip::tcp::v4());
 					m_listen_socket->bind(m_listen_interface);
 					m_listen_socket->listen();
 					break;
@@ -608,7 +606,7 @@ namespace libtorrent { namespace detail
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << endp << " <== INCOMING CONNECTION\n";
 #endif
-		if (m_ip_filter.access(endp.address()) & ip_filter::blocked)
+		if (m_ip_filter.access(endp.address().to_v4()) & ip_filter::blocked)
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			(*m_logger) << "filtered blocked ip\n";
@@ -742,9 +740,9 @@ namespace libtorrent { namespace detail
 		session_impl::mutex_t::scoped_lock l(m_mutex);
 		
 		if (m_abort) return;
-		float tick_interval = (second_clock::universal_time()
+		float tick_interval = (microsec_clock::universal_time()
 			- m_last_tick).total_milliseconds() / 1000.f;
-		m_last_tick = second_clock::universal_time();
+		m_last_tick = microsec_clock::universal_time();
 
 		m_timer.expires_from_now(seconds(1));
 		m_timer.async_wait(bind(&session_impl::second_tick, this, _1));
@@ -1080,7 +1078,7 @@ namespace libtorrent
 			= m_impl.m_connections.begin(); i != m_impl.m_connections.end();)
 		{
 			tcp::endpoint sender = i->first->remote_endpoint();
-			if (m_impl.m_ip_filter.access(sender.address())
+			if (m_impl.m_ip_filter.access(sender.address().to_v4())
 				& ip_filter::blocked)
 			{
 #if defined(TORRENT_VERBOSE_LOGGING)
@@ -1329,9 +1327,9 @@ namespace libtorrent
 
 		m_impl.m_listen_port_range = port_range;
 		if (net_interface && std::strlen(net_interface) > 0)
-			m_impl.m_listen_interface = tcp::endpoint(port_range.first, net_interface);
+			m_impl.m_listen_interface = tcp::endpoint(address::from_string(net_interface), port_range.first);
 		else
-			m_impl.m_listen_interface = tcp::endpoint(port_range.first);
+			m_impl.m_listen_interface = tcp::endpoint(address(), port_range.first);
 
 		m_impl.open_listen_port();
 		return m_impl.m_listen_socket;
@@ -1499,8 +1497,8 @@ namespace libtorrent
 					i != peer_list.end(); ++i)
 				{
 					tcp::endpoint a(
-						(unsigned short)(*i)["port"].integer()
-						, (*i)["ip"].string().c_str());
+						address::from_string((*i)["ip"].string())
+						, (unsigned short)(*i)["port"].integer());
 					tmp_peers.push_back(a);
 				}
 
