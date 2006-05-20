@@ -33,19 +33,57 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SESSION_SETTINGS_HPP_INCLUDED
 #define TORRENT_SESSION_SETTINGS_HPP_INCLUDED
 
+#include "libtorrent/version.hpp"
+
 namespace libtorrent
 {
 
 	struct TORRENT_EXPORT session_settings
 	{
-		session_settings()
-			: piece_timeout(120)
+		session_settings(std::string const& user_agent_ = "libtorrent "
+			LIBTORRENT_VERSION)
+			: proxy_port(0)
+			, user_agent(user_agent_)
+			, tracker_completion_timeout(60)
+			, tracker_receive_timeout(20)
+			, stop_tracker_timeout(10)
+			, tracker_maximum_response_length(1024*1024)
+			, piece_timeout(120)
 			, request_queue_time(3.f)
 			, sequenced_download_threshold(7)
 			, max_allowed_in_request_queue(250)
 			, max_out_request_queue(200)
 			, whole_pieces_threshold(20)
 		{}
+
+		std::string proxy_ip;
+		int proxy_port;
+		std::string proxy_login;
+		std::string proxy_password;
+
+		// this is the user agent that will be sent to the tracker
+		// when doing requests. It is used to identify the client.
+		// It cannot contain \r or \n
+		std::string user_agent;
+
+		// the number of seconds to wait until giving up on a
+		// tracker request if it hasn't finished
+		int tracker_completion_timeout;
+		
+		// the number of seconds where no data is received
+		// from the tracker until it should be considered
+		// as timed out
+		int tracker_receive_timeout;
+
+		// the time to wait when sending a stopped message
+		// before considering a tracker to have timed out.
+		// this is usually shorter, to make the client quit
+		// faster
+		int stop_tracker_timeout;
+
+		// if the content-length is greater than this value
+		// the tracker connection will be aborted
+		int tracker_maximum_response_length;
 
 		// the number of seconds from a request is sent until
 		// it times out if no piece response is returned.
@@ -78,7 +116,7 @@ namespace libtorrent
 		// send to a peer. This limit takes precedence over
 		// request_queue_time.
 		int max_out_request_queue;
-		
+
 		// if a whole piece can be downloaded in this number
 		// of seconds, or less, the peer_connection will prefer
 		// to request whole pieces at a time from this peer.

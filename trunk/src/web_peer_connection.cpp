@@ -145,8 +145,8 @@ namespace libtorrent
 			if (m_first_request)
 			{
 				request += "\r\nUser-Agent: ";
-				request += escape_string(m_ses.m_http_settings.user_agent.c_str()
-					, m_ses.m_http_settings.user_agent.size());
+				request += escape_string(m_ses.m_settings.user_agent.c_str()
+					, m_ses.m_settings.user_agent.size());
 			}
 			request += "\r\nRange: bytes=";
 			request += boost::lexical_cast<std::string>(r.piece
@@ -180,8 +180,8 @@ namespace libtorrent
 				if (m_first_request)
 				{
 					request += "\r\nUser-Agent: ";
-					request += escape_string(m_ses.m_http_settings.user_agent.c_str()
-						, m_ses.m_http_settings.user_agent.size());
+					request += escape_string(m_ses.m_settings.user_agent.c_str()
+						, m_ses.m_settings.user_agent.size());
 				}
 				request += "\r\nRange: bytes=";
 				request += boost::lexical_cast<std::string>(f.offset);

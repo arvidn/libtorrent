@@ -1,3 +1,6 @@
+	* exposed more settings for tweaking parameters in the piece-picker,
+	  downloader and uploader.
+	* tweaked default settings to improve high bandwidth transfers.
 	* improved the piece picker performance and made it possible to download
 	  popular pieces in sequence to improve disk performance.
 	* added the possibility to control upload and download limits per peer.
@@ -9,8 +12,9 @@
 	* changed the extensions protocol to use the new one, which is also
 	  implemented by uTorrent.
 	* factorized the peer_connection and added web_peer_connection which is
-	  able to download from http-sources. (currently only for single file torrents).
-	* converted the network code to use asio
+	  able to download from http-sources.
+	* converted the network code to use asio (resulted in slight api changes
+	  dealing with network addresses).
 	* made libtorrent build in vc7 (patches from Allen Zhao)
 	* fixed bug caused when binding outgoing connections to a non-local interface.
 	* add_torrent() will now throw if called while the session object is

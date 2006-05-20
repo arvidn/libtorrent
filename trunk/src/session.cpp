@@ -409,7 +409,7 @@ namespace libtorrent { namespace detail
 		std::pair<int, int> listen_port_range
 		, const fingerprint& cl_fprint
 		, char const* listen_interface)
-		: m_tracker_manager(m_http_settings)
+		: m_tracker_manager(m_settings)
 		, m_listen_port_range(listen_port_range)
 		, m_listen_interface(address::from_string(listen_interface), listen_port_range.first)
 		, m_abort(false)
@@ -466,6 +466,23 @@ namespace libtorrent { namespace detail
 		const int n = num_supported_extensions;
 		return std::find(m_extension_enabled
 			, m_extension_enabled + n, true) != m_extension_enabled + n;
+	}
+
+	void session_impl::set_settings(session_settings const& s)
+	{
+		if (m_settings.sequenced_download_threshold
+			!= s.sequenced_download_threshold)
+		{
+			for (torrent_map::iterator i = m_torrents.begin()
+				, end(m_torrents.end()); i != end; ++i)
+			{
+				torrent& t = *i->second;
+				if (t.valid_metadata())
+					t.picker().set_sequenced_download_threshold(
+						s.sequenced_download_threshold);
+			}
+		}
+		m_settings = s;
 	}
 
 	void session_impl::open_listen_port()
@@ -931,7 +948,7 @@ namespace libtorrent { namespace detail
 			}
 		}
 		m_timer.expires_from_now(boost::posix_time::seconds(
-			m_http_settings.stop_tracker_timeout));
+			m_settings.stop_tracker_timeout));
 		m_timer.async_wait(bind(&demuxer::interrupt, &m_selector));
 		}
 
@@ -1371,10 +1388,15 @@ namespace libtorrent
 		return m_impl.m_listen_socket;
 	}
 
-	void session::set_http_settings(const http_settings& s)
+	void session::set_settings(session_settings const& s)
 	{
 		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
-		m_impl.m_http_settings = s;
+		m_impl.set_settings(s);
+	}
+
+	session_settings const& session::settings()
+	{
+		return m_impl.m_settings;
 	}
 
 	session::~session()

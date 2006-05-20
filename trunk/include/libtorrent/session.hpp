@@ -221,6 +221,8 @@ namespace libtorrent
 			void connection_failed(boost::shared_ptr<stream_socket> const& s
 				, tcp::endpoint const& a, char const* message);
 
+			void set_settings(session_settings const& s);
+
 			// this maps sockets to their peer_connection
 			// object. It is the complete list of all connected
 			// peers.
@@ -272,7 +274,6 @@ namespace libtorrent
 
 			// the settings for the client
 			session_settings m_settings;
-			http_settings m_http_settings;
 
 			// set to true when the session object
 			// is being destructed and the thread
@@ -318,8 +319,6 @@ namespace libtorrent
 #endif
 		};
 	}
-
-	struct http_settings;
 
 	struct TORRENT_EXPORT session_status
 	{
@@ -413,7 +412,8 @@ namespace libtorrent
 
 		void remove_torrent(const torrent_handle& h);
 
-		void set_http_settings(const http_settings& s);
+		void set_settings(session_settings const& s);
+		session_settings const& settings();
 		void set_upload_rate_limit(int bytes_per_second);
 		void set_download_rate_limit(int bytes_per_second);
 		void set_max_uploads(int limit);
