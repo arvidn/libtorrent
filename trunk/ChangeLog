@@ -1,5 +1,5 @@
 	* exposed more settings for tweaking parameters in the piece-picker,
-	  downloader and uploader.
+	  downloader and uploader (http_settings replaced by session_settings).
 	* tweaked default settings to improve high bandwidth transfers.
 	* improved the piece picker performance and made it possible to download
 	  popular pieces in sequence to improve disk performance.

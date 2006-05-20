@@ -515,7 +515,7 @@ The ``session`` class has the following synopsis::
 		void disable_extensions();
 		void enable_extension(peer_connection::extension_index);
 
-		void set_http_settings(const http_settings& settings);
+		void set_settings(session_settings const& settings);
 
 		void set_upload_rate_limit(int bytes_per_second);
 		void set_download_rate_limit(int bytes_per_second);
@@ -567,7 +567,7 @@ The destructor of session will notify all trackers that our torrents have been s
 If some trackers are down, they will time out. All this before the destructor of session
 returns. So, it's adviced that any kind of interface (such as windows) are closed before
 destructing the sessoin object. Because it can take a few second for it to finish. The
-timeout can be set with ``set_http_settings()``.
+timeout can be set with ``set_settings()``.
 
 
 add_torrent()
@@ -2072,19 +2072,19 @@ string.
 ``connection_type`` can currently be one of ``standard_bittorrent`` or
 ``web_seed``. These are currently the only implemented protocols.
 
-http_settings
-=============
+session_settings
+================
 
-You have some control over tracker requests through the ``http_settings`` object. You
-create it and fill it with your settings and then use ``session::set_http_settings()``
+You have some control over tracker requests through the ``session_settings`` object. You
+create it and fill it with your settings and then use ``session::set_settings()``
 to apply them. You have control over proxy and authorization settings and also the user-agent
 that will be sent to the tracker. The user-agent is a good way to identify your client.
 
 ::
 
-	struct http_settings
+	struct session_settings
 	{
-		http_settings();
+		session_settings();
 		std::string proxy_ip;
 		int proxy_port;
 		std::string proxy_login;
@@ -2093,6 +2093,13 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int tracker_completion_timeout;
 		int tracker_receive_timeout;
 		int tracker_maximum_response_length;
+
+		int piece_timeout;
+		float request_queue_time;
+		int sequenced_download_threshold;
+		int max_allowed_in_request_queue;
+		int max_out_request_queue;
+		int whole_pieces_threshold;
 	};
 
 ``proxy_ip`` may be a hostname or ip to a http proxy to use. If this is
@@ -2129,6 +2136,37 @@ on the uncompressed data. So, if you get 20 bytes of gzip response that'll
 expand to 2 megs, it will be interrupted before the entire response has been
 uncompressed (given your limit is lower than 2 megs). Default limit is
 1 megabyte.
+
+``piece_timeout`` controls the number of seconds from a request is sent until
+it times out if no piece response is returned.
+
+``request_queue_time`` is the length of the request queue given in the number
+of seconds it should take for the other end to send all the pieces. i.e. the
+actual number of requests depends on the download rate and this number.
+	
+``sequenced_download_threshold`` is the limit on how popular a piece has to be
+(popular == inverse of rarity) to be downloaded in sequence instead of in
+random (rarest first) order. It can be used to tweak disk performance in
+settings where the random download property is less necessary. For example, if
+the threshold is 7, all pieces which 7 or more peers have, will be downloaded
+in index order.
+
+``max_allowed_in_request_queue`` is the number of outstanding block requests
+a peer is allowed to queue up in the client. If a peer sends more requests
+than this (before the first one has been sent) the last request will be
+dropped. The higher this is, the faster upload speeds the client can get to a
+single peer.
+
+``max_out_request_queue`` is the maximum number of outstanding requests to
+send to a peer. This limit takes precedence over ``request_queue_time``. i.e.
+no matter the download speed, the number of outstanding requests will never
+exceed this limit.
+
+``whole_pieces_threshold`` is a limit in seconds. if a whole piece can be
+downloaded in this number of seconds, or less, the peer_connection will prefer
+to request whole pieces at a time from this peer. The benefit of this is to
+better utilize disk caches by doing localized accesses and also to make it
+easier to identify bad peers if a piece fails the hash check.
 
 
 ip_filter
@@ -3029,7 +3067,7 @@ This is a simple client. It doesn't have much output to keep it simple::
 	#include "libtorrent/entry.hpp"
 	#include "libtorrent/bencode.hpp"
 	#include "libtorrent/session.hpp"
-	#include "libtorrent/http_settings.hpp"
+	#include "libtorrent/session_settings.hpp"
 
 	int main(int argc, char* argv[])
 	{
