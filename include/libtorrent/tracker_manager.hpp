@@ -57,7 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/http_settings.hpp"
+#include "libtorrent/session_settings.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer.hpp"
 #include "libtorrent/config.hpp"
@@ -218,7 +218,7 @@ namespace libtorrent
 	{
 	public:
 
-		tracker_manager(const http_settings& s)
+		tracker_manager(const session_settings& s)
 			: m_settings(s) {}
 
 		void queue_request(
@@ -239,7 +239,7 @@ namespace libtorrent
 		typedef std::list<boost::intrusive_ptr<tracker_connection> >
 			tracker_connections_t;
 		tracker_connections_t m_connections;
-		const http_settings& m_settings;
+		session_settings const& m_settings;
 	};
 }
 

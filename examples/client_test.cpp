@@ -54,7 +54,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
-#include "libtorrent/http_settings.hpp"
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/alert_types.hpp"
 
@@ -511,8 +510,8 @@ int main(int ac, char* av[])
 		if (vm.count("input-file") > 0)
 			input = vm["input-file"].as< std::vector<std::string> >();
 
-		http_settings settings;
-		settings.user_agent = "client_test";
+		session_settings settings;
+		settings.user_agent = "client_test " LIBTORRENT_VERSION;
 
 		std::deque<std::string> events;
 
@@ -530,7 +529,7 @@ int main(int ac, char* av[])
 		ses.set_upload_rate_limit(upload_limit);
 		ses.listen_on(std::make_pair(listen_port, listen_port + 10)
 			, bind_to_interface.c_str());
-		ses.set_http_settings(settings);
+		ses.set_settings(settings);
 		if (log_level == "debug")
 			ses.set_severity_level(alert::debug);
 		else if (log_level == "warning")

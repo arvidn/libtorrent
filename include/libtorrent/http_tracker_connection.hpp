@@ -53,7 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/http_settings.hpp"
+#include "libtorrent/session_settings.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer.hpp"
 #include "libtorrent/tracker_manager.hpp"
@@ -118,7 +118,7 @@ namespace libtorrent
 			, unsigned short port
 			, std::string request
 			, boost::weak_ptr<request_callback> c
-			, const http_settings& stn
+			, session_settings const& stn
 			, std::string const& password = "");
 
 	private:
@@ -160,7 +160,7 @@ namespace libtorrent
 		std::string m_server_message;
 		std::string m_server_protocol;
 
-		const http_settings& m_settings;
+		session_settings const& m_settings;
 		std::string m_password;
 		int m_code;
 

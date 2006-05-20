@@ -1120,7 +1120,7 @@ namespace libtorrent
 
 		handshake["m"] = extension_list;
 		handshake["p"] = m_ses.m_listen_interface.port();
-		handshake["v"] = m_ses.m_http_settings.user_agent;
+		handshake["v"] = m_ses.m_settings.user_agent;
 		handshake["reqq"] = m_ses.m_settings.max_allowed_in_request_queue;
 
 		std::vector<char> msg;

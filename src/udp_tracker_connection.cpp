@@ -79,7 +79,7 @@ namespace libtorrent
 		, std::string const& hostname
 		, unsigned short port
 		, boost::weak_ptr<request_callback> c
-		, const http_settings& stn)
+		, session_settings const& stn)
 		: tracker_connection(man, req, d, c)
 		, m_man(man)
 		, m_name_lookup(d)
