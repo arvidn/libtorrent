@@ -283,7 +283,7 @@ div.warning, div.note, div.important {
 </ul>
 </li>
 <li><a class="reference" href="#filename-checks" id="id138" name="id138">filename checks</a></li>
-<li><a class="reference" href="#acknowledgements" id="id139" name="id139">acknowledgements</a></li>
+<li><a class="reference" href="#acknowledgments" id="id139" name="id139">acknowledgments</a></li>
 </ul>
 </div>
 <div class="section">
@@ -372,7 +372,7 @@ epoll on linux and kqueue on MacOS X and BSD.</p>
 <p>libtorrent is released under the <a class="reference" href="http://www.opensource.org/licenses/bsd-license.php">BSD-license</a>.</p>
 <p>This means that you can use the library in your project without having to
 release its source code. The only requirement is that you give credit
-to the author of the library by including the libtorrent licence in your
+to the author of the library by including the libtorrent license in your
 software or documentation.</p>
 </div>
 <div class="section">
@@ -701,7 +701,7 @@ when <tt class="docutils literal"><span class="pre">link=shared</span></tt> is s
 </tbody>
 </table>
 <p>If you experience that libtorrent uses unreasonable amounts of cpu, it will
-definately help to define <tt class="docutils literal"><span class="pre">NDEBUG</span></tt>, since it will remove the invariant checks
+definitely help to define <tt class="docutils literal"><span class="pre">NDEBUG</span></tt>, since it will remove the invariant checks
 within the library.</p>
 </div>
 </div>
@@ -739,13 +739,13 @@ the <tt class="docutils literal"><span class="pre">session</span></tt>, it conta
 class session: public boost::noncopyable
 {
 
-        session(const fingerprint&amp; print
+        session(fingerprint const&amp; print
                 = libtorrent::fingerprint(&quot;LT&quot;, 0, 1, 0, 0));
 
         session(
-                const fingerprint&amp; print
+                fingerprint const&amp; print
                 , std::pair&lt;int, int&gt; listen_port_range
-                , const char* listen_interface = 0);
+                , char const* listen_interface = 0);
 
         torrent_handle add_torrent(
                 torrent_info const&amp; ti
@@ -802,7 +802,7 @@ session(fingerprint const&amp; print
         , char const* listen_interface = 0);
 </pre>
 </blockquote>
-<p>If the fingerprint in the first overload is ommited, the client will get a default
+<p>If the fingerprint in the first overload is omited, the client will get a default
 fingerprint stating the version of libtorrent. The fingerprint is a short string that will be
 used in the peer-id to identify the client and the client's version. For more details see the
 <a class="reference" href="#fingerprint">fingerprint</a> class. The constructor that only takes a fingerprint will not open a
@@ -815,8 +815,8 @@ the parameters, see <tt class="docutils literal"><span class="pre">listen_on()</
 <h2><a id="id9" name="id9">~session()</a></h2>
 <p>The destructor of session will notify all trackers that our torrents have been shut down.
 If some trackers are down, they will time out. All this before the destructor of session
-returns. So, it's adviced that any kind of interface (such as windows) are closed before
-destructing the sessoin object. Because it can take a few second for it to finish. The
+returns. So, it's advised that any kind of interface (such as windows) are closed before
+destructing the session object. Because it can take a few second for it to finish. The
 timeout can be set with <tt class="docutils literal"><span class="pre">set_settings()</span></tt>.</p>
 </div>
 <div class="section">
@@ -849,11 +849,11 @@ for checking, being checked or downloading) <tt class="docutils literal"><span c
 <p>The optional parameter, <tt class="docutils literal"><span class="pre">resume_data</span></tt> can be given if up to date fast-resume data
 is available. The fast-resume data can be acquired from a running torrent by calling
 <tt class="docutils literal"><span class="pre">torrent_handle::write_resume_data()</span></tt>. See <a class="reference" href="#fast-resume">fast resume</a>.</p>
-<p>The <tt class="docutils literal"><span class="pre">compact_mode</span></tt> paramater refers to the layout of the storage for this torrent. If
+<p>The <tt class="docutils literal"><span class="pre">compact_mode</span></tt> parameter refers to the layout of the storage for this torrent. If
 set to true (default), the storage will grow as more pieces are downloaded, and pieces
 are rearranged to finally be in their correct places once the entire torrent has been
 downloaded. If it is false, the entire storage is allocated before download begins. I.e.
-the files contained in the torrent are filled with zeroes, and each downloaded piece
+the files contained in the torrent are filled with zeros, and each downloaded piece
 is put in its final place directly when downloaded. For more info, see <a class="reference" href="#storage-allocation">storage allocation</a>.</p>
 <p><tt class="docutils literal"><span class="pre">block_size</span></tt> sets the preferred request size, i.e. the number of bytes to request from
 a peer at a time. This block size must be a divisor of the piece size, and since the piece
@@ -939,7 +939,7 @@ void set_max_half_open_connections(int limit);
 <p>Sets the maximum number of half-open connections libtorrent will have when
 connecting to peers. A half-open connection is one where connect() has been
 called, but the connection still hasn't been established (nor filed). Windows
-XP Service Pack 2 sets a defaul, system wide, limit of the number of half-open
+XP Service Pack 2 sets a default, system wide, limit of the number of half-open
 connections to 10. So, this limit can be used to work nicer together with
 other network applications on that system. The default is to have no limit,
 and passing -1 as the limit, means to have no limit. When limiting the number
@@ -1009,7 +1009,7 @@ bool listen_on(
         , char const* interface = 0);
 </pre>
 </blockquote>
-<p><tt class="docutils literal"><span class="pre">is_listening()</span></tt> will tell you wether or not the session has successfully
+<p><tt class="docutils literal"><span class="pre">is_listening()</span></tt> will tell you whether or not the session has successfully
 opened a listening port. If it hasn't, this function will return false, and
 then you can use <tt class="docutils literal"><span class="pre">listen_on()</span></tt> to make another try.</p>
 <p><tt class="docutils literal"><span class="pre">listen_port()</span></tt> returns the port we ended up listening on. Since you just pass
@@ -1035,7 +1035,7 @@ std::auto_ptr&lt;alert&gt; pop_alert();
 void set_severity_level(alert::severity_t s);
 </pre>
 </blockquote>
-<p><tt class="docutils literal"><span class="pre">pop_alert()</span></tt> is used to ask the session if any errors or events has occured. With
+<p><tt class="docutils literal"><span class="pre">pop_alert()</span></tt> is used to ask the session if any errors or events has occurred. With
 <tt class="docutils literal"><span class="pre">set_severity_level()</span></tt> you can filter how serious the event has to be for you to
 receive it through <tt class="docutils literal"><span class="pre">pop_alert()</span></tt>. For information, see <a class="reference" href="#alerts">alerts</a>.</p>
 </div>
@@ -1119,7 +1119,7 @@ dictionary_type const&amp; dict() const;
 </pre>
 </blockquote>
 <p>The <tt class="docutils literal"><span class="pre">integer()</span></tt>, <tt class="docutils literal"><span class="pre">string()</span></tt>, <tt class="docutils literal"><span class="pre">list()</span></tt> and <tt class="docutils literal"><span class="pre">dict()</span></tt> functions
-are accessors that return the respecive type. If the <tt class="docutils literal"><span class="pre">entry</span></tt> object isn't of the
+are accessors that return the respective type. If the <tt class="docutils literal"><span class="pre">entry</span></tt> object isn't of the
 type you request, the accessor will throw <a class="reference" href="#type-error">type_error</a> (which derives from
 <tt class="docutils literal"><span class="pre">std::runtime_error</span></tt>). You can ask an <tt class="docutils literal"><span class="pre">entry</span></tt> for its type through the
 <tt class="docutils literal"><span class="pre">type()</span></tt> function.</p>
@@ -1237,7 +1237,7 @@ public:
         size_type piece_length() const;
         int num_pieces() const;
         sha1_hash const&amp; info_hash() const;
-        std::stirng const&amp; name() const;
+        std::string const&amp; name() const;
         std::string const&amp; comment() const;
         std::string const&amp; creator() const;
 
@@ -1266,7 +1266,7 @@ to 0 when this constructor is used. To use the empty <tt class="docutils literal
 and piece hashes, announce URLs and optionally a creator tag and comment. To do this you
 use the members <tt class="docutils literal"><span class="pre">set_comment()</span></tt>, <tt class="docutils literal"><span class="pre">set_piece_size()</span></tt>, <tt class="docutils literal"><span class="pre">set_creator()</span></tt>, <tt class="docutils literal"><span class="pre">set_hash()</span></tt>
 etc.</p>
-<p>The contructor that takes an info-hash is identical to the default constructor with the
+<p>The constructor that takes an info-hash is identical to the default constructor with the
 exception that it will initialize the info-hash to the given value. This is used internally
 when downloading torrents without the metadata. The metadata will be created by libtorrent
 as soon as it has been downloaded from the swarm.</p>
@@ -1299,7 +1299,7 @@ that was used to create the torrent file. The string should be UTF-8 encoded.</p
 this function for every piece in the torrent. Usually the <a class="reference" href="#hasher">hasher</a> is used to calculate
 the sha1-hash for a piece.</p>
 <p><tt class="docutils literal"><span class="pre">add_tracker()</span></tt> adds a tracker to the announce-list. The <tt class="docutils literal"><span class="pre">tier</span></tt> determines the order in
-which the trackers are to be tried. For more iformation see <a class="reference" href="#trackers">trackers()</a>.</p>
+which the trackers are to be tried. For more information see <a class="reference" href="#trackers">trackers()</a>.</p>
 <p><tt class="docutils literal"><span class="pre">add_file()</span></tt> adds a file to the torrent. The order in which you add files will determine
 the order in which they are placed in the torrent file. You have to add at least one file
 to the torrent. The <tt class="docutils literal"><span class="pre">path</span></tt> you give has to be a relative path from the root directory
@@ -1499,8 +1499,8 @@ boost::optional&lt;boost::posix_time::ptime&gt; creation_date() const;
 <p><tt class="docutils literal"><span class="pre">name()</span></tt> returns the name of the torrent.</p>
 <p><tt class="docutils literal"><span class="pre">comment()</span></tt> returns the comment associated with the torrent. If there's no comment,
 it will return an empty string. <tt class="docutils literal"><span class="pre">creation_date()</span></tt> returns a <a class="reference" href="http://www.boost.org/libs/date_time/doc/class_ptime.html">boost::posix_time::ptime</a>
-object, representing the time when this torrent file was created. If there's no timestamp
-in the torrent file, this will return a date of january 1:st 1970.</p>
+object, representing the time when this torrent file was created. If there's no time stamp
+in the torrent file, this will return a date of January 1:st 1970.</p>
 <p>Both the name and the comment is UTF-8 encoded strings.</p>
 <p><tt class="docutils literal"><span class="pre">creator()</span></tt> returns the creator string in the torrent. If there is no creator string
 it will return an empty string.</p>
@@ -1509,7 +1509,7 @@ it will return an empty string.</p>
 <div class="section">
 <h1><a id="torrent-handle" name="torrent-handle">torrent_handle</a></h1>
 <p>You will usually have to store your torrent handles somewhere, since it's the
-object through which you retrieve infromation about the torrent and aborts the torrent.
+object through which you retrieve information about the torrent and aborts the torrent.
 Its declaration looks like this:</p>
 <pre class="literal-block">
 struct torrent_handle
@@ -1560,7 +1560,7 @@ struct torrent_handle
 
         bool has_metadata() const;
 
-        boost::filsystem::path save_path() const;
+        boost::filesystem::path save_path() const;
         bool move_storage(boost::filesystem::path const&amp; save_path) const;
 
         sha1_hash info_hash() const;
@@ -1578,7 +1578,7 @@ any operation on an uninitialized handle, it will throw <tt class="docutils lite
 <h2><a id="save-path" name="save-path">save_path()</a></h2>
 <blockquote>
 <pre class="literal-block">
-boost::filsystem::path save_path() const;
+boost::filesystem::path save_path() const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">save_path()</span></tt> returns the path that was given to <a class="reference" href="#add-torrent">add_torrent()</a> when this torrent
@@ -1588,7 +1588,7 @@ was started.</p>
 <h2><a id="move-storage" name="move-storage">move_storage()</a></h2>
 <blockquote>
 <pre class="literal-block">
-bool move_storage(boost::filsystem::path const&amp; save_path) const;
+bool move_storage(boost::filesystem::path const&amp; save_path) const;
 </pre>
 </blockquote>
 <p>Moves the file(s) that this torrent are currently seeding from or downloading to. This
@@ -1674,7 +1674,7 @@ bool is_paused() const;
 <p><tt class="docutils literal"><span class="pre">pause()</span></tt>, and <tt class="docutils literal"><span class="pre">resume()</span></tt> will disconnect all peers and reconnect all peers respectively.
 When a torrent is paused, it will however remember all share ratios to all peers and remember
 all potential (not connected) peers. You can use <tt class="docutils literal"><span class="pre">is_paused()</span></tt> to determine if a torrent
-is currently paused. Torrents may be paused automatically if there is a file error (eg. disk full)
+is currently paused. Torrents may be paused automatically if there is a file error (e.g. disk full)
 or something similar. See <a class="reference" href="#file-error-alert">file_error_alert</a>.</p>
 </div>
 <div class="section">
@@ -1718,7 +1718,7 @@ void replace_trackers(std::vector&lt;announce_entry&gt; const&amp;) const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">trackers()</span></tt> will return the list of trackers for this torrent. The
-announce entry contains both a string <tt class="docutils literal"><span class="pre">url</span></tt> which specifu the announce url
+announce entry contains both a string <tt class="docutils literal"><span class="pre">url</span></tt> which specify the announce url
 for the tracker as well as an int <tt class="docutils literal"><span class="pre">tier</span></tt>, which is specifies the order in
 which this tracker is tried. If you want libtorrent to use another list of
 trackers for this torrent, you can use <tt class="docutils literal"><span class="pre">replace_trackers()</span></tt> which takes
@@ -1847,14 +1847,14 @@ the last piece may have fewer blocks than the standard pieces.</p>
 <p><tt class="docutils literal"><span class="pre">requested_blocks</span></tt> is a bitset with one bit per block in the piece. If a bit is set, it
 means that that block has been requested, but not necessarily fully downloaded yet. To know
 from whom the block has been requested, have a look in the <tt class="docutils literal"><span class="pre">peer</span></tt> array. The bit-index
-in the <tt class="docutils literal"><span class="pre">requested_blocks</span></tt> and <tt class="docutils literal"><span class="pre">finished_blocks</span></tt> correspons to the array-index into
+in the <tt class="docutils literal"><span class="pre">requested_blocks</span></tt> and <tt class="docutils literal"><span class="pre">finished_blocks</span></tt> corresponds to the array-index into
 <tt class="docutils literal"><span class="pre">peers</span></tt> and <tt class="docutils literal"><span class="pre">num_downloads</span></tt>. The array of peers is contains the address of the
 peer the piece was requested from. If a piece hasn't been requested (the bit in
 <tt class="docutils literal"><span class="pre">requested_blocks</span></tt> is not set) the peer array entry will be undefined.</p>
 <p>The <tt class="docutils literal"><span class="pre">finished_blocks</span></tt> is a bitset where each bit says if the block is fully downloaded
 or not. And the <tt class="docutils literal"><span class="pre">num_downloads</span></tt> array says how many times that block has been downloaded.
-When a piece fails a hash verification, single blocks may be redownloaded to see if the hash teast
-may pass then.</p>
+When a piece fails a hash verification, single blocks may be re-downloaded to
+see if the hash test may pass then.</p>
 </div>
 <div class="section">
 <h2><a id="get-peer-info" name="get-peer-info">get_peer_info()</a></h2>
@@ -2020,8 +2020,8 @@ though that data already was downloaded. The reason for this is that in some
 situations the same data can be downloaded by mistake. When libtorrent sends
 requests to a peer, and the peer doesn't send a response within a certain
 timeout, libtorrent will re-request that block. Another situation when
-libtorrent will re-request blocks is when the requests it sends out are not
-replyed in FIFO-order (it will re-request blocks that are skipped by an out of
+libtorrent may re-request blocks is when the requests it sends out are not
+replied in FIFO-order (it will re-request blocks that are skipped by an out of
 order block). This is supposed to be as low as possible.</p>
 <p><tt class="docutils literal"><span class="pre">pieces</span></tt> is the bitmask that represents which pieces we have (set to true) and
 the pieces we don't have. It's a pointer and may be set to 0 if the torrent isn't
@@ -2036,7 +2036,7 @@ all peers. The rates are given as the number of bytes per second. The
 <tt class="docutils literal"><span class="pre">download_payload_rate</span></tt> and <tt class="docutils literal"><span class="pre">upload_payload_rate</span></tt> respectively is the
 total transfer rate of payload only, not counting protocol chatter. This might
 be slightly smaller than the other rates, but if projected over a long time
-(e.g. when calculating ETA:s) the difference may be noticable.</p>
+(e.g. when calculating ETA:s) the difference may be noticeable.</p>
 <p><tt class="docutils literal"><span class="pre">num_peers</span></tt> is the number of peers this torrent currently is connected to.
 Peer connections that are in the half-open state (is attempting to connect)
 or are queued for later connection attempt do not count. Although they are
@@ -2049,7 +2049,7 @@ that are still downloading (incomplete) this torrent.</p>
 <p><tt class="docutils literal"><span class="pre">total_done</span></tt> is the total number of bytes of the file(s) that we have. All
 this does not necessarily has to be downloaded during this session (that's
 <tt class="docutils literal"><span class="pre">total_download_payload</span></tt>).</p>
-<p><tt class="docutils literal"><span class="pre">total_wanted_done</span></tt> is the number of bytes we have downloadd, only counting the
+<p><tt class="docutils literal"><span class="pre">total_wanted_done</span></tt> is the number of bytes we have downloaded, only counting the
 pieces that we actually want to download. i.e. excluding any pieces that we have but
 are filtered as not wanted.</p>
 <p><tt class="docutils literal"><span class="pre">total_wanted</span></tt> is the total number of bytes we want to download. This is also
@@ -2173,7 +2173,7 @@ more info, see the <a class="reference" href="http://asio.sf.net">asio</a> docum
 <p><tt class="docutils literal"><span class="pre">up_speed</span></tt> and <tt class="docutils literal"><span class="pre">down_speed</span></tt> contains the current upload and download speed
 we have to and from this peer (including any protocol messages). The transfer rates
 of payload data only are found in <tt class="docutils literal"><span class="pre">payload_up_speed</span></tt> and <tt class="docutils literal"><span class="pre">payload_down_speed</span></tt>.
-These figures are updated aproximately once every second.</p>
+These figures are updated approximately once every second.</p>
 <p><tt class="docutils literal"><span class="pre">total_download</span></tt> and <tt class="docutils literal"><span class="pre">total_upload</span></tt> are the total number of bytes downloaded
 from and uploaded to this peer. These numbers do not include the protocol chatter, but only
 the payload data.</p>
@@ -2189,7 +2189,7 @@ peer every second. It may be -1 if there's no limit. The upload limits of all pe
 should sum up to the upload limit set by <tt class="docutils literal"><span class="pre">session::set_upload_limit</span></tt>.</p>
 <p><tt class="docutils literal"><span class="pre">download_limit</span></tt> is the number of bytes per second this peer is allowed to
 receive. -1 means it's unlimited.</p>
-<p><tt class="docutils literal"><span class="pre">load_balancing</span></tt> is a measurment of the balancing of free download (that we get)
+<p><tt class="docutils literal"><span class="pre">load_balancing</span></tt> is a measurement of the balancing of free download (that we get)
 and free upload that we give. Every peer gets a certain amount of free upload, but
 this member says how much <em>extra</em> free upload this peer has got. If it is a negative
 number it means that this was a peer from which we have got this amount of free
@@ -2299,7 +2299,7 @@ the hash check.</p>
 <h1><a id="ip-filter" name="ip-filter">ip_filter</a></h1>
 <p>The <tt class="docutils literal"><span class="pre">ip_filter</span></tt> class is a set of rules that uniquely categorizes all
 ip addresses as allowed or disallowed. The default constructor creates
-a single rule that allowes all addresses (0.0.0.0 - 255.255.255.255).
+a single rule that allows all addresses (0.0.0.0 - 255.255.255.255).
 The <tt class="docutils literal"><span class="pre">address</span></tt> type here is <tt class="docutils literal"><span class="pre">asio::ip::address_v4</span></tt>. It can also be
 accessed as <tt class="docutils literal"><span class="pre">libtorrent::address</span></tt>.</p>
 <blockquote>
@@ -2344,7 +2344,7 @@ void add_rule(address first, address last, int flags);
 </blockquote>
 <p>Adds a rule to the filter. <tt class="docutils literal"><span class="pre">first</span></tt> and <tt class="docutils literal"><span class="pre">last</span></tt> defines a range of
 ip addresses that will be marked with the given flags. The <tt class="docutils literal"><span class="pre">flags</span></tt>
-can currenly be 0, which means allowed, or <tt class="docutils literal"><span class="pre">ip_filter::blocked</span></tt>, which
+can currently be 0, which means allowed, or <tt class="docutils literal"><span class="pre">ip_filter::blocked</span></tt>, which
 means disallowed.</p>
 <p>postcondition:
 <tt class="docutils literal"><span class="pre">access(x)</span> <span class="pre">==</span> <span class="pre">flags</span></tt> for every <tt class="docutils literal"><span class="pre">x</span></tt> in the range [<tt class="docutils literal"><span class="pre">first</span></tt>, <tt class="docutils literal"><span class="pre">last</span></tt>]</p>
@@ -2508,7 +2508,7 @@ boost::optional&lt;fingerprint&gt; client_fingerprint(peer_id const&amp; p);
 </pre>
 </blockquote>
 <p>Returns an optional fingerprint if any can be identified from the peer id. This can be used
-to automate the identification of clients. It will not be able to identifiy peers with non-
+to automate the identification of clients. It will not be able to identify peers with non-
 standard encodings. Only Azureus style, Shadow's style and Mainline style. This function is
 declared in the header <tt class="docutils literal"><span class="pre">&lt;libtorrent/identify_client.hpp&gt;</span></tt>.</p>
 </div>
@@ -2522,7 +2522,7 @@ template&lt;class OutIt&gt; void bencode(OutIt out, const entry&amp; e);
 </blockquote>
 <p>These functions will encode data to <a class="reference" href="http://wiki.theory.org/index.php/BitTorrentSpecification">bencoded</a> or decode <a class="reference" href="http://wiki.theory.org/index.php/BitTorrentSpecification">bencoded</a> data.</p>
 <p>The <a class="reference" href="#entry">entry</a> class is the internal representation of the bencoded data
-and it can be used to retreive information, an <a class="reference" href="#entry">entry</a> can also be build by
+and it can be used to retrieve information, an <a class="reference" href="#entry">entry</a> can also be build by
 the program and given to <tt class="docutils literal"><span class="pre">bencode()</span></tt> to encode it into the <tt class="docutils literal"><span class="pre">OutIt</span></tt>
 iterator.</p>
 <p>The <tt class="docutils literal"><span class="pre">OutIt</span></tt> and <tt class="docutils literal"><span class="pre">InIt</span></tt> are iterators
@@ -2557,7 +2557,7 @@ it will throw <a class="reference" href="#invalid-encoding">invalid_encoding</a>
 <h1><a id="alerts" name="alerts">alerts</a></h1>
 <p>The <tt class="docutils literal"><span class="pre">pop_alert()</span></tt> function on session is the interface for retrieving
 alerts, warnings, messages and errors from libtorrent. If there hasn't
-occured any errors (matching your severity level) <tt class="docutils literal"><span class="pre">pop_alert()</span></tt> will
+occurred any errors (matching your severity level) <tt class="docutils literal"><span class="pre">pop_alert()</span></tt> will
 return a zero pointer. If there has been some error, it will return a pointer
 to an alert object describing it. You can then use the alert object and query
 it for information about the error or message. To retrieve any alerts, you have
@@ -2597,7 +2597,7 @@ require any user interaction.</td>
 an event. This could be a piece hash that fails.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">debug</span></tt></td>
-<td>This will include alot of debug events that can be used
+<td>This will include a lot of debug events that can be used
 both for debugging libtorrent but also when debugging
 other clients that are connected to libtorrent. It will
 report strange behaviors among the connected peers.</td>
@@ -2605,9 +2605,9 @@ report strange behaviors among the connected peers.</td>
 </tbody>
 </table>
 <p>When setting a severity level, you will receive messages of that severity and all
-messages that are more sever. If you set <tt class="docutils literal"><span class="pre">alert::none</span></tt> (the default) you will not recieve
+messages that are more sever. If you set <tt class="docutils literal"><span class="pre">alert::none</span></tt> (the default) you will not receive
 any events at all.</p>
-<p>When you set a severuty level other than <tt class="docutils literal"><span class="pre">none</span></tt>, you have the responsibility to call
+<p>When you set a severity level other than <tt class="docutils literal"><span class="pre">none</span></tt>, you have the responsibility to call
 <tt class="docutils literal"><span class="pre">pop_alert()</span></tt> from time to time. If you don't do that, the alert queue will just grow.</p>
 <p>When you get an alert, you can use <tt class="docutils literal"><span class="pre">typeid()</span></tt> or <tt class="docutils literal"><span class="pre">dynamic_cast&lt;&gt;</span></tt> to get more detailed
 information on exactly which type it is. i.e. what kind of error it is. You can also use a
@@ -2620,7 +2620,7 @@ class alert
 {
 public:
 
-        enum severity_t { debug, info, warning, critital, fatal, none };
+        enum severity_t { debug, info, warning, critical, fatal, none };
 
         alert(severity_t severity, const std::string&amp; msg);
         virtual ~alert();
@@ -2899,7 +2899,7 @@ struct metadata_received_alert: alert
 <div class="section">
 <h2><a id="fastresume-rejected-alert" name="fastresume-rejected-alert">fastresume_rejected_alert</a></h2>
 <p>This alert is generated when a fastresume file has been passed to <tt class="docutils literal"><span class="pre">add_torrent</span></tt> but the
-files on disk did not match the fastresume file. The string explaints the reason why the
+files on disk did not match the fastresume file. The string explains the reason why the
 resume file was rejected. It is generated at severity level <tt class="docutils literal"><span class="pre">warning</span></tt>.</p>
 <pre class="literal-block">
 struct fastresume_rejected_alert: alert
@@ -3260,7 +3260,7 @@ each block is 16 * 1024 bytes in size. But if piece size is
 greater than 4 megabytes, the block size will increase.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">slots</span></tt></td>
-<td><p class="first">list of integers. The list mappes slots to piece indices. It
+<td><p class="first">list of integers. The list maps slots to piece indices. It
 tells which piece is on which slot. If piece index is -2 it
 means it is free, that there's no piece there. If it is -1,
 means the slot isn't allocated on disk yet. The pieces have
@@ -3320,7 +3320,7 @@ blocks specified by <tt class="docutils literal"><span class="pre">bitmask</span
 <td>list where each entry corresponds to a file in the file list
 in the metadata. Each entry has a list of two values, the
 first value is the size of the file in bytes, the second
-is the timestamp when the last time someone wrote to it.
+is the time stamp when the last time someone wrote to it.
 This information is used to compare with the files on disk.
 All the files must match exactly this information in order
 to consider the resume data as current. Otherwise a full
@@ -3332,7 +3332,7 @@ re-check is issued.</td>
 </div>
 <div class="section">
 <h1><a id="threads" name="threads">threads</a></h1>
-<p>libtorrent starts 3 threads.</p>
+<p>libtorrent starts 2 or 3 threads.</p>
 <blockquote>
 <ul class="simple">
 <li>The first thread is the main thread that will sit
@@ -3344,10 +3344,8 @@ downloaded. If there is any resume data this thread will make sure it is valid
 and matches the files. Once the torrent has been checked, it is passed on to the
 main thread that will start it. The hash-check thread has a queue of torrents,
 it will only check one torrent at a time.</li>
-<li>The third thread is spawned the first time a tracker is contacted. It is used
-for doing calls to <tt class="docutils literal"><span class="pre">gethostbyname()</span></tt>. Since this call is blocking (and may block
-for several seconds if the dns server is down or slow) it is necessary to run this
-in its own thread to avoid stalling the main thread.</li>
+<li>The third thread is spawned by asio on systems that don't support
+non-blocking host name resolution to simulate non-blocking behavior.</li>
 </ul>
 </blockquote>
 </div>
@@ -3357,7 +3355,7 @@ in its own thread to avoid stalling the main thread.</li>
 <blockquote>
 <ul class="simple">
 <li>The traditional <em>full allocation</em> mode, where the entire files are filled up with
-zeroes before anything is downloaded.</li>
+zeros before anything is downloaded.</li>
 <li>And the <em>compact allocation</em> mode, where only files are allocated for actual
 pieces that have been downloaded. This is the default allocation mode in libtorrent.</li>
 </ul>
@@ -3368,19 +3366,19 @@ different drawbacks and benefits.</p>
 <div class="section">
 <h2><a id="full-allocation" name="full-allocation">full allocation</a></h2>
 <p>When a torrent is started in full allocation mode, the checker thread (see <a class="reference" href="#threads">threads</a>)
-will make sure that the entire storage is allocated, and fill any gaps with zeroes.
+will make sure that the entire storage is allocated, and fill any gaps with zeros.
 It will of course still check for existing pieces and fast resume data. The main
 drawbacks of this mode are:</p>
 <blockquote>
 <ul class="simple">
 <li>It will take longer to start the torrent, since it will need to fill the files
-with zeroes. This delay is linearly dependent on the size of the download.</li>
+with zeros. This delay is linearly dependent on the size of the download.</li>
 <li>The download will occupy unnecessary disk space between download sessions.</li>
 <li>Disk caches usually perform extremely poorly with random access to large files
 and may slow down a download considerably.</li>
 </ul>
 </blockquote>
-<p>The benefit of thise mode are:</p>
+<p>The benefits of this mode are:</p>
 <blockquote>
 <ul class="simple">
 <li>Downloaded pieces are written directly to their final place in the files and the
@@ -3616,14 +3614,14 @@ structure that libtorrent will download torrents into.</p>
 <p>Boost.Filesystem will by default check all its paths to make sure they conform
 to filename requirements on many platforms. If you don't want this check, you can
 set it to either only check for native filesystem requirements or turn it off
-alltogether. You can use:</p>
+altogether. You can use:</p>
 <pre class="literal-block">
 boost::filesystem::path::default_name_check(boost::filesystem::native);
 </pre>
 <p>for example. For more information, see the <a class="reference" href="http://www.boost.org/libs/filesystem/doc/index.htm">Boost.Filesystem docs</a>.</p>
 </div>
 <div class="section">
-<h1><a id="acknowledgements" name="acknowledgements">acknowledgements</a></h1>
+<h1><a id="acknowledgments" name="acknowledgments">acknowledgments</a></h1>
 <p>Written by Arvid Norberg. Copyright © 2003-2005</p>
 <p>Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson</p>
 <p>Lots of testing, suggestions and contributions by Massaroddel and Tianhao Qiu.</p>
