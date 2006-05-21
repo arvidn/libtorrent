@@ -102,7 +102,7 @@ libtorrent is released under the BSD-license_.
 
 This means that you can use the library in your project without having to
 release its source code. The only requirement is that you give credit
-to the author of the library by including the libtorrent licence in your
+to the author of the library by including the libtorrent license in your
 software or documentation.
 
 
@@ -460,7 +460,7 @@ defines you can use to control the build.
 
 
 If you experience that libtorrent uses unreasonable amounts of cpu, it will
-definately help to define ``NDEBUG``, since it will remove the invariant checks
+definitely help to define ``NDEBUG``, since it will remove the invariant checks
 within the library.
 
 overview
@@ -495,13 +495,13 @@ The ``session`` class has the following synopsis::
 	class session: public boost::noncopyable
 	{
 
-		session(const fingerprint& print
+		session(fingerprint const& print
 			= libtorrent::fingerprint("LT", 0, 1, 0, 0));
 
 		session(
-			const fingerprint& print
+			fingerprint const& print
 			, std::pair<int, int> listen_port_range
-			, const char* listen_interface = 0);
+			, char const* listen_interface = 0);
 
 		torrent_handle add_torrent(
 			torrent_info const& ti
@@ -559,7 +559,7 @@ session()
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = 0);
 
-If the fingerprint in the first overload is ommited, the client will get a default
+If the fingerprint in the first overload is omited, the client will get a default
 fingerprint stating the version of libtorrent. The fingerprint is a short string that will be
 used in the peer-id to identify the client and the client's version. For more details see the
 fingerprint_ class. The constructor that only takes a fingerprint will not open a
@@ -573,8 +573,8 @@ the parameters, see ``listen_on()`` function.
 
 The destructor of session will notify all trackers that our torrents have been shut down.
 If some trackers are down, they will time out. All this before the destructor of session
-returns. So, it's adviced that any kind of interface (such as windows) are closed before
-destructing the sessoin object. Because it can take a few second for it to finish. The
+returns. So, it's advised that any kind of interface (such as windows) are closed before
+destructing the session object. Because it can take a few second for it to finish. The
 timeout can be set with ``set_settings()``.
 
 
@@ -611,11 +611,11 @@ The optional parameter, ``resume_data`` can be given if up to date fast-resume d
 is available. The fast-resume data can be acquired from a running torrent by calling
 ``torrent_handle::write_resume_data()``. See `fast resume`_.
 
-The ``compact_mode`` paramater refers to the layout of the storage for this torrent. If
+The ``compact_mode`` parameter refers to the layout of the storage for this torrent. If
 set to true (default), the storage will grow as more pieces are downloaded, and pieces
 are rearranged to finally be in their correct places once the entire torrent has been
 downloaded. If it is false, the entire storage is allocated before download begins. I.e.
-the files contained in the torrent are filled with zeroes, and each downloaded piece
+the files contained in the torrent are filled with zeros, and each downloaded piece
 is put in its final place directly when downloaded. For more info, see `storage allocation`_.
 
 ``block_size`` sets the preferred request size, i.e. the number of bytes to request from
@@ -708,7 +708,7 @@ set_max_half_open_connections()
 Sets the maximum number of half-open connections libtorrent will have when
 connecting to peers. A half-open connection is one where connect() has been
 called, but the connection still hasn't been established (nor filed). Windows
-XP Service Pack 2 sets a defaul, system wide, limit of the number of half-open
+XP Service Pack 2 sets a default, system wide, limit of the number of half-open
 connections to 10. So, this limit can be used to work nicer together with
 other network applications on that system. The default is to have no limit,
 and passing -1 as the limit, means to have no limit. When limiting the number
@@ -784,7 +784,7 @@ is_listening() listen_port() listen_on()
 			std::pair<int, int> const& port_range
 			, char const* interface = 0);
 
-``is_listening()`` will tell you wether or not the session has successfully
+``is_listening()`` will tell you whether or not the session has successfully
 opened a listening port. If it hasn't, this function will return false, and
 then you can use ``listen_on()`` to make another try.
 
@@ -814,7 +814,7 @@ pop_alert() set_severity_level()
 		std::auto_ptr<alert> pop_alert();
 		void set_severity_level(alert::severity_t s);
 
-``pop_alert()`` is used to ask the session if any errors or events has occured. With
+``pop_alert()`` is used to ask the session if any errors or events has occurred. With
 ``set_severity_level()`` you can filter how serious the event has to be for you to
 receive it through ``pop_alert()``. For information, see alerts_.
 
@@ -901,7 +901,7 @@ integer() string() list() dict() type()
 		dictionary_type const& dict() const;
 
 The ``integer()``, ``string()``, ``list()`` and ``dict()`` functions
-are accessors that return the respecive type. If the ``entry`` object isn't of the
+are accessors that return the respective type. If the ``entry`` object isn't of the
 type you request, the accessor will throw type_error_ (which derives from
 ``std::runtime_error``). You can ask an ``entry`` for its type through the
 ``type()`` function.
@@ -1030,7 +1030,7 @@ The ``torrent_info`` has the following synopsis::
 		size_type piece_length() const;
 		int num_pieces() const;
 		sha1_hash const& info_hash() const;
-		std::stirng const& name() const;
+		std::string const& name() const;
 		std::string const& comment() const;
 		std::string const& creator() const;
 
@@ -1060,7 +1060,7 @@ and piece hashes, announce URLs and optionally a creator tag and comment. To do 
 use the members ``set_comment()``, ``set_piece_size()``, ``set_creator()``, ``set_hash()``
 etc.
 
-The contructor that takes an info-hash is identical to the default constructor with the
+The constructor that takes an info-hash is identical to the default constructor with the
 exception that it will initialize the info-hash to the given value. This is used internally
 when downloading torrents without the metadata. The metadata will be created by libtorrent
 as soon as it has been downloaded from the swarm.
@@ -1098,7 +1098,7 @@ this function for every piece in the torrent. Usually the hasher_ is used to cal
 the sha1-hash for a piece.
 
 ``add_tracker()`` adds a tracker to the announce-list. The ``tier`` determines the order in
-which the trackers are to be tried. For more iformation see `trackers()`_.
+which the trackers are to be tried. For more information see `trackers()`_.
 
 ``add_file()`` adds a file to the torrent. The order in which you add files will determine
 the order in which they are placed in the torrent file. You have to add at least one file
@@ -1322,8 +1322,8 @@ name() comment() creation_date() creator()
 
 ``comment()`` returns the comment associated with the torrent. If there's no comment,
 it will return an empty string. ``creation_date()`` returns a `boost::posix_time::ptime`__
-object, representing the time when this torrent file was created. If there's no timestamp
-in the torrent file, this will return a date of january 1:st 1970.
+object, representing the time when this torrent file was created. If there's no time stamp
+in the torrent file, this will return a date of January 1:st 1970.
 
 Both the name and the comment is UTF-8 encoded strings.
 
@@ -1339,7 +1339,7 @@ torrent_handle
 ==============
 
 You will usually have to store your torrent handles somewhere, since it's the
-object through which you retrieve infromation about the torrent and aborts the torrent.
+object through which you retrieve information about the torrent and aborts the torrent.
 Its declaration looks like this::
 
 	struct torrent_handle
@@ -1390,7 +1390,7 @@ Its declaration looks like this::
       
 		bool has_metadata() const;
 
-		boost::filsystem::path save_path() const;
+		boost::filesystem::path save_path() const;
 		bool move_storage(boost::filesystem::path const& save_path) const;
 
 		sha1_hash info_hash() const;
@@ -1411,7 +1411,7 @@ save_path()
 
 	::
 
-		boost::filsystem::path save_path() const;
+		boost::filesystem::path save_path() const;
 
 ``save_path()`` returns the path that was given to `add_torrent()`_ when this torrent
 was started.
@@ -1421,7 +1421,7 @@ move_storage()
 
 	::
 
-		bool move_storage(boost::filsystem::path const& save_path) const;
+		bool move_storage(boost::filesystem::path const& save_path) const;
 
 Moves the file(s) that this torrent are currently seeding from or downloading to. This
 operation will only have the desired effect if the given ``save_path`` is located on
@@ -1511,7 +1511,7 @@ pause() resume() is_paused()
 ``pause()``, and ``resume()`` will disconnect all peers and reconnect all peers respectively.
 When a torrent is paused, it will however remember all share ratios to all peers and remember
 all potential (not connected) peers. You can use ``is_paused()`` to determine if a torrent
-is currently paused. Torrents may be paused automatically if there is a file error (eg. disk full)
+is currently paused. Torrents may be paused automatically if there is a file error (e.g. disk full)
 or something similar. See file_error_alert_.
 
 is_seed()
@@ -1557,7 +1557,7 @@ trackers() replace_trackers()
 		void replace_trackers(std::vector<announce_entry> const&) const;
 
 ``trackers()`` will return the list of trackers for this torrent. The
-announce entry contains both a string ``url`` which specifu the announce url
+announce entry contains both a string ``url`` which specify the announce url
 for the tracker as well as an int ``tier``, which is specifies the order in
 which this tracker is tried. If you want libtorrent to use another list of
 trackers for this torrent, you can use ``replace_trackers()`` which takes
@@ -1696,15 +1696,15 @@ the last piece may have fewer blocks than the standard pieces.
 ``requested_blocks`` is a bitset with one bit per block in the piece. If a bit is set, it
 means that that block has been requested, but not necessarily fully downloaded yet. To know
 from whom the block has been requested, have a look in the ``peer`` array. The bit-index
-in the ``requested_blocks`` and ``finished_blocks`` correspons to the array-index into
+in the ``requested_blocks`` and ``finished_blocks`` corresponds to the array-index into
 ``peers`` and ``num_downloads``. The array of peers is contains the address of the
 peer the piece was requested from. If a piece hasn't been requested (the bit in
 ``requested_blocks`` is not set) the peer array entry will be undefined.
 
 The ``finished_blocks`` is a bitset where each bit says if the block is fully downloaded
 or not. And the ``num_downloads`` array says how many times that block has been downloaded.
-When a piece fails a hash verification, single blocks may be redownloaded to see if the hash teast
-may pass then.
+When a piece fails a hash verification, single blocks may be re-downloaded to
+see if the hash test may pass then.
 
 
 get_peer_info()
@@ -1871,8 +1871,8 @@ though that data already was downloaded. The reason for this is that in some
 situations the same data can be downloaded by mistake. When libtorrent sends
 requests to a peer, and the peer doesn't send a response within a certain
 timeout, libtorrent will re-request that block. Another situation when
-libtorrent will re-request blocks is when the requests it sends out are not
-replyed in FIFO-order (it will re-request blocks that are skipped by an out of
+libtorrent may re-request blocks is when the requests it sends out are not
+replied in FIFO-order (it will re-request blocks that are skipped by an out of
 order block). This is supposed to be as low as possible.
 
 ``pieces`` is the bitmask that represents which pieces we have (set to true) and
@@ -1890,7 +1890,7 @@ all peers. The rates are given as the number of bytes per second. The
 ``download_payload_rate`` and ``upload_payload_rate`` respectively is the
 total transfer rate of payload only, not counting protocol chatter. This might
 be slightly smaller than the other rates, but if projected over a long time
-(e.g. when calculating ETA:s) the difference may be noticable.
+(e.g. when calculating ETA:s) the difference may be noticeable.
 
 ``num_peers`` is the number of peers this torrent currently is connected to.
 Peer connections that are in the half-open state (is attempting to connect)
@@ -1907,7 +1907,7 @@ that are still downloading (incomplete) this torrent.
 this does not necessarily has to be downloaded during this session (that's
 ``total_download_payload``).
 
-``total_wanted_done`` is the number of bytes we have downloadd, only counting the
+``total_wanted_done`` is the number of bytes we have downloaded, only counting the
 pieces that we actually want to download. i.e. excluding any pieces that we have but
 are filtered as not wanted.
 
@@ -2027,7 +2027,7 @@ more info, see the asio_ documentation.
 ``up_speed`` and ``down_speed`` contains the current upload and download speed
 we have to and from this peer (including any protocol messages). The transfer rates
 of payload data only are found in ``payload_up_speed`` and ``payload_down_speed``.
-These figures are updated aproximately once every second.
+These figures are updated approximately once every second.
 
 ``total_download`` and ``total_upload`` are the total number of bytes downloaded
 from and uploaded to this peer. These numbers do not include the protocol chatter, but only
@@ -2050,7 +2050,7 @@ should sum up to the upload limit set by ``session::set_upload_limit``.
 ``download_limit`` is the number of bytes per second this peer is allowed to
 receive. -1 means it's unlimited.
 
-``load_balancing`` is a measurment of the balancing of free download (that we get)
+``load_balancing`` is a measurement of the balancing of free download (that we get)
 and free upload that we give. Every peer gets a certain amount of free upload, but
 this member says how much *extra* free upload this peer has got. If it is a negative
 number it means that this was a peer from which we have got this amount of free
@@ -2183,7 +2183,7 @@ ip_filter
 
 The ``ip_filter`` class is a set of rules that uniquely categorizes all
 ip addresses as allowed or disallowed. The default constructor creates
-a single rule that allowes all addresses (0.0.0.0 - 255.255.255.255).
+a single rule that allows all addresses (0.0.0.0 - 255.255.255.255).
 The ``address`` type here is ``asio::ip::address_v4``. It can also be
 accessed as ``libtorrent::address``.
 
@@ -2231,7 +2231,7 @@ add_rule()
 
 Adds a rule to the filter. ``first`` and ``last`` defines a range of
 ip addresses that will be marked with the given flags. The ``flags``
-can currenly be 0, which means allowed, or ``ip_filter::blocked``, which
+can currently be 0, which means allowed, or ``ip_filter::blocked``, which
 means disallowed.
 
 postcondition:
@@ -2403,7 +2403,7 @@ client_fingerprint()
 		boost::optional<fingerprint> client_fingerprint(peer_id const& p);
 
 Returns an optional fingerprint if any can be identified from the peer id. This can be used
-to automate the identification of clients. It will not be able to identifiy peers with non-
+to automate the identification of clients. It will not be able to identify peers with non-
 standard encodings. Only Azureus style, Shadow's style and Mainline style. This function is
 declared in the header ``<libtorrent/identify_client.hpp>``.
 
@@ -2422,7 +2422,7 @@ These functions will encode data to bencoded_ or decode bencoded_ data.
 .. _bencoded: http://wiki.theory.org/index.php/BitTorrentSpecification
 
 The entry_ class is the internal representation of the bencoded data
-and it can be used to retreive information, an entry_ can also be build by
+and it can be used to retrieve information, an entry_ can also be build by
 the program and given to ``bencode()`` to encode it into the ``OutIt``
 iterator.
 
@@ -2467,7 +2467,7 @@ alerts
 
 The ``pop_alert()`` function on session is the interface for retrieving
 alerts, warnings, messages and errors from libtorrent. If there hasn't
-occured any errors (matching your severity level) ``pop_alert()`` will
+occurred any errors (matching your severity level) ``pop_alert()`` will
 return a zero pointer. If there has been some error, it will return a pointer
 to an alert object describing it. You can then use the alert object and query
 it for information about the error or message. To retrieve any alerts, you have
@@ -2502,7 +2502,7 @@ You have the following levels to select among:
 |              | an event. This could be a piece hash that fails.         |
 |              |                                                          |
 +--------------+----------------------------------------------------------+
-| ``debug``    | This will include alot of debug events that can be used  |
+| ``debug``    | This will include a lot of debug events that can be used |
 |              | both for debugging libtorrent but also when debugging    |
 |              | other clients that are connected to libtorrent. It will  |
 |              | report strange behaviors among the connected peers.      |
@@ -2510,10 +2510,10 @@ You have the following levels to select among:
 +--------------+----------------------------------------------------------+
 
 When setting a severity level, you will receive messages of that severity and all
-messages that are more sever. If you set ``alert::none`` (the default) you will not recieve
+messages that are more sever. If you set ``alert::none`` (the default) you will not receive
 any events at all.
 
-When you set a severuty level other than ``none``, you have the responsibility to call
+When you set a severity level other than ``none``, you have the responsibility to call
 ``pop_alert()`` from time to time. If you don't do that, the alert queue will just grow.
 
 When you get an alert, you can use ``typeid()`` or ``dynamic_cast<>`` to get more detailed
@@ -2529,7 +2529,7 @@ is its synopsis::
 	{
 	public:
 
-		enum severity_t { debug, info, warning, critital, fatal, none };
+		enum severity_t { debug, info, warning, critical, fatal, none };
 
 		alert(severity_t severity, const std::string& msg);
 		virtual ~alert();
@@ -2857,7 +2857,7 @@ fastresume_rejected_alert
 -------------------------
 
 This alert is generated when a fastresume file has been passed to ``add_torrent`` but the
-files on disk did not match the fastresume file. The string explaints the reason why the
+files on disk did not match the fastresume file. The string explains the reason why the
 resume file was rejected. It is generated at severity level ``warning``.
 
 ::
@@ -3247,7 +3247,7 @@ The file format is a bencoded dictionary containing the following fields:
 |                      | greater than 4 megabytes, the block size will increase.      |
 |                      |                                                              |
 +----------------------+--------------------------------------------------------------+
-| ``slots``            | list of integers. The list mappes slots to piece indices. It |
+| ``slots``            | list of integers. The list maps slots to piece indices. It   |
 |                      | tells which piece is on which slot. If piece index is -2 it  |
 |                      | means it is free, that there's no piece there. If it is -1,  |
 |                      | means the slot isn't allocated on disk yet. The pieces have  |
@@ -3290,7 +3290,7 @@ The file format is a bencoded dictionary containing the following fields:
 | ``file sizes``       | list where each entry corresponds to a file in the file list |
 |                      | in the metadata. Each entry has a list of two values, the    |
 |                      | first value is the size of the file in bytes, the second     |
-|                      | is the timestamp when the last time someone wrote to it.     |
+|                      | is the time stamp when the last time someone wrote to it.    |
 |                      | This information is used to compare with the files on disk.  |
 |                      | All the files must match exactly this information in order   |
 |                      | to consider the resume data as current. Otherwise a full     |
@@ -3300,7 +3300,7 @@ The file format is a bencoded dictionary containing the following fields:
 threads
 =======
 
-libtorrent starts 3 threads.
+libtorrent starts 2 or 3 threads.
 
  * The first thread is the main thread that will sit
    idle in a ``select()`` call most of the time. This thread runs the main loop
@@ -3313,10 +3313,8 @@ libtorrent starts 3 threads.
    main thread that will start it. The hash-check thread has a queue of torrents,
    it will only check one torrent at a time.
 
- * The third thread is spawned the first time a tracker is contacted. It is used
-   for doing calls to ``gethostbyname()``. Since this call is blocking (and may block
-   for several seconds if the dns server is down or slow) it is necessary to run this
-   in its own thread to avoid stalling the main thread.
+ * The third thread is spawned by asio on systems that don't support
+   non-blocking host name resolution to simulate non-blocking behavior.
 
 
 storage allocation
@@ -3325,7 +3323,7 @@ storage allocation
 There are two modes in which storage (files on disk) are allocated in libtorrent.
 
  * The traditional *full allocation* mode, where the entire files are filled up with
-   zeroes before anything is downloaded.
+   zeros before anything is downloaded.
 
  * And the *compact allocation* mode, where only files are allocated for actual
    pieces that have been downloaded. This is the default allocation mode in libtorrent.
@@ -3338,19 +3336,19 @@ full allocation
 ---------------
 
 When a torrent is started in full allocation mode, the checker thread (see threads_)
-will make sure that the entire storage is allocated, and fill any gaps with zeroes.
+will make sure that the entire storage is allocated, and fill any gaps with zeros.
 It will of course still check for existing pieces and fast resume data. The main
 drawbacks of this mode are:
 
  * It will take longer to start the torrent, since it will need to fill the files
-   with zeroes. This delay is linearly dependent on the size of the download.
+   with zeros. This delay is linearly dependent on the size of the download.
 
  * The download will occupy unnecessary disk space between download sessions.
 
  * Disk caches usually perform extremely poorly with random access to large files
    and may slow down a download considerably.
 
-The benefit of thise mode are:
+The benefits of this mode are:
 
  * Downloaded pieces are written directly to their final place in the files and the
    total number of disk operations will be fewer and may also play nicer to
@@ -3537,7 +3535,7 @@ filename checks
 Boost.Filesystem will by default check all its paths to make sure they conform
 to filename requirements on many platforms. If you don't want this check, you can
 set it to either only check for native filesystem requirements or turn it off
-alltogether. You can use::
+altogether. You can use::
 
 	boost::filesystem::path::default_name_check(boost::filesystem::native);
 
@@ -3546,8 +3544,8 @@ for example. For more information, see the `Boost.Filesystem docs`__.
 __ http://www.boost.org/libs/filesystem/doc/index.htm
 
 
-acknowledgements
-================
+acknowledgments
+===============
 
 Written by Arvid Norberg. Copyright |copy| 2003-2005
 
