@@ -70,7 +70,6 @@ __ http://www.getright.com/seedtorrent.html
 __ extension_protocol.html
 __ udp_tracker_protocol.html
 
-
 libtorrent is portable at least among Windows, MacOS X and other UNIX-systems.
 It uses Boost.Thread, Boost.Filesystem, Boost.Date_time and various other
 boost libraries as well as zlib_ (shipped) and asio_ (shipped). At least version
@@ -78,6 +77,10 @@ boost libraries as well as zlib_ (shipped) and asio_ (shipped). At least version
 
 .. _zlib: http://www.zlib.org
 .. _asio: http://asio.sf.net
+
+Since libtorrent uses asio, it will take full advantage of high performance
+network APIs on the most popular platforms. I/O completion ports on windows,
+epoll on linux and kqueue on MacOS X and BSD.
 
 libtorrent has been successfully compiled and tested on:
 
@@ -96,6 +99,11 @@ Fails on:
 libtorrent is released under the BSD-license_.
 
 .. _BSD-license: http://www.opensource.org/licenses/bsd-license.php
+
+This means that you can use the library in your project without having to
+release its source code. The only requirement is that you give credit
+to the author of the library by including the libtorrent licence in your
+software or documentation.
 
 
 downloading and building
@@ -2153,7 +2161,7 @@ in index order.
 
 ``max_allowed_in_request_queue`` is the number of outstanding block requests
 a peer is allowed to queue up in the client. If a peer sends more requests
-than this (before the first one has been sent) the last request will be
+than this (before the first one has been handled) the last request will be
 dropped. The higher this is, the faster upload speeds the client can get to a
 single peer.
 
@@ -2163,10 +2171,11 @@ no matter the download speed, the number of outstanding requests will never
 exceed this limit.
 
 ``whole_pieces_threshold`` is a limit in seconds. if a whole piece can be
-downloaded in this number of seconds, or less, the peer_connection will prefer
-to request whole pieces at a time from this peer. The benefit of this is to
-better utilize disk caches by doing localized accesses and also to make it
-easier to identify bad peers if a piece fails the hash check.
+downloaded in at least this number of seconds from a specific peer, the
+peer_connection will prefer requesting whole pieces at a time from this peer.
+The benefit of this is to better utilize disk caches by doing localized
+accesses and also to make it easier to identify bad peers if a piece fails
+the hash check.
 
 
 ip_filter
