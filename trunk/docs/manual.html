@@ -348,6 +348,9 @@ want to download.</li>
 It uses Boost.Thread, Boost.Filesystem, Boost.Date_time and various other
 boost libraries as well as <a class="reference" href="http://www.zlib.org">zlib</a> (shipped) and <a class="reference" href="http://asio.sf.net">asio</a> (shipped). At least version
 1.33.1 of boost is required.</p>
+<p>Since libtorrent uses asio, it will take full advantage of high performance
+network APIs on the most popular platforms. I/O completion ports on windows,
+epoll on linux and kqueue on MacOS X and BSD.</p>
 <p>libtorrent has been successfully compiled and tested on:</p>
 <blockquote>
 <ul class="simple">
@@ -367,6 +370,10 @@ boost libraries as well as <a class="reference" href="http://www.zlib.org">zlib<
 </ul>
 </blockquote>
 <p>libtorrent is released under the <a class="reference" href="http://www.opensource.org/licenses/bsd-license.php">BSD-license</a>.</p>
+<p>This means that you can use the library in your project without having to
+release its source code. The only requirement is that you give credit
+to the author of the library by including the libtorrent licence in your
+software or documentation.</p>
 </div>
 <div class="section">
 <h1><a id="downloading-and-building" name="downloading-and-building">downloading and building</a></h1>
@@ -2274,7 +2281,7 @@ the threshold is 7, all pieces which 7 or more peers have, will be downloaded
 in index order.</p>
 <p><tt class="docutils literal"><span class="pre">max_allowed_in_request_queue</span></tt> is the number of outstanding block requests
 a peer is allowed to queue up in the client. If a peer sends more requests
-than this (before the first one has been sent) the last request will be
+than this (before the first one has been handled) the last request will be
 dropped. The higher this is, the faster upload speeds the client can get to a
 single peer.</p>
 <p><tt class="docutils literal"><span class="pre">max_out_request_queue</span></tt> is the maximum number of outstanding requests to
@@ -2282,10 +2289,11 @@ send to a peer. This limit takes precedence over <tt class="docutils literal"><s
 no matter the download speed, the number of outstanding requests will never
 exceed this limit.</p>
 <p><tt class="docutils literal"><span class="pre">whole_pieces_threshold</span></tt> is a limit in seconds. if a whole piece can be
-downloaded in this number of seconds, or less, the peer_connection will prefer
-to request whole pieces at a time from this peer. The benefit of this is to
-better utilize disk caches by doing localized accesses and also to make it
-easier to identify bad peers if a piece fails the hash check.</p>
+downloaded in at least this number of seconds from a specific peer, the
+peer_connection will prefer requesting whole pieces at a time from this peer.
+The benefit of this is to better utilize disk caches by doing localized
+accesses and also to make it easier to identify bad peers if a piece fails
+the hash check.</p>
 </div>
 <div class="section">
 <h1><a id="ip-filter" name="ip-filter">ip_filter</a></h1>

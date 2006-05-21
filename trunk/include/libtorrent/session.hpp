@@ -208,6 +208,11 @@ namespace libtorrent
 			boost::weak_ptr<torrent> find_torrent(const sha1_hash& info_hash);
 			peer_id const& get_peer_id() const { return m_peer_id; }
 
+			// this is where all active sockets are stored.
+			// the selector can sleep while there's no activity on
+			// them
+			demuxer m_selector;
+
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
 
@@ -258,11 +263,6 @@ namespace libtorrent
 			// that we should let the os decide which
 			// interface to listen on
 			tcp::endpoint m_listen_interface;
-
-			// this is where all active sockets are stored.
-			// the selector can sleep while there's no activity on
-			// them
-			demuxer m_selector;
 
 			boost::shared_ptr<socket_acceptor> m_listen_socket;
 
