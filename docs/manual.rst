@@ -3067,7 +3067,6 @@ This is a simple client. It doesn't have much output to keep it simple::
 	#include "libtorrent/entry.hpp"
 	#include "libtorrent/bencode.hpp"
 	#include "libtorrent/session.hpp"
-	#include "libtorrent/session_settings.hpp"
 
 	int main(int argc, char* argv[])
 	{
