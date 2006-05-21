@@ -42,7 +42,7 @@ void test_transfer(char const* tracker_url, libtorrent::torrent_info const& t)
 	}
 
 	std::cerr << "connecting peer\n";
-	tor1.connect_peer(tcp::endpoint(ses2.listen_port(), "127.0.0.1"));	
+	tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1"), ses2.listen_port()));
 
 	for (int i = 0; i < 50; ++i)
 	{

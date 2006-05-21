@@ -1096,7 +1096,6 @@ namespace libtorrent
 #ifndef NDEBUG
 		m_policy->check_invariant();
 #endif
-
 	}
 
 	void torrent::disconnect_all()
