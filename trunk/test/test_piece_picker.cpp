@@ -138,9 +138,9 @@ int test_main()
 
 		// we have block 0 and 2 already, so we can't mark
 		// them as begin downloaded. 
-		p.mark_as_downloading(piece_block(1, 1), tcp::endpoint(0, address("1.1.1.1")));
-		p.mark_as_downloading(piece_block(1, 3), tcp::endpoint(0, address("1.1.1.1")));
-		p.mark_as_downloading(piece_block(2, 0), tcp::endpoint(0, address("1.1.1.1")));
+		p.mark_as_downloading(piece_block(1, 1), tcp::endpoint(address::from_string("1.1.1.1"), 0));
+		p.mark_as_downloading(piece_block(1, 3), tcp::endpoint(address::from_string("1.1.1.1"), 0));
+		p.mark_as_downloading(piece_block(2, 0), tcp::endpoint(address::from_string("1.1.1.1"), 0));
 
 		std::vector<piece_picker::downloading_piece> const& downloads = p.get_download_queue();
 		TEST_CHECK(downloads.size() == 2);
@@ -221,7 +221,7 @@ int test_main()
 		// to make sure it can still fall back on partial pieces
 
 		picked.clear();
-		p.pick_pieces(peer1, picked, 100, true, tcp::endpoint(0, address("1.1.1.1")));
+		p.pick_pieces(peer1, picked, 100, true, tcp::endpoint(address::from_string("1.1.1.1"), 0));
 
 		TEST_CHECK(picked.size() == 11);
 	
