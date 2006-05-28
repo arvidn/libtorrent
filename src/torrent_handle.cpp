@@ -459,18 +459,23 @@ namespace libtorrent
 
 		ret["peers"] = entry::list_type();
 		entry::list_type& peer_list = ret["peers"].list();
+		
+		policy& pol = t->get_policy();
 
-		for (torrent::const_peer_iterator i = t->begin();
-			i != t->end(); ++i)
+		for (policy::iterator i = pol.begin_peer()
+			, end(pol.end_peer()); i != end; ++i)
 		{
 			// we cannot save remote connection
 			// since we don't know their listen port
-			// TODO: iterate the peers in the policy
-			// instead, since peers may be remote
-			// but still connectable
-			if (!i->second->is_local()) continue;
+			// unless they gave us their listen port
+			// through the extension handshake
+			// so, if the peer is not connectable (i.e. we
+			// don't know its listen port) or if it has
+			// been banned, don't save it.
+			if (i->type == policy::peer::not_connectable
+				|| i->banned) continue;
 
-			tcp::endpoint ip = i->second->remote();
+			tcp::endpoint ip = i->ip;
 			entry peer(entry::dictionary_t);
 			peer["ip"] = ip.address().to_string();
 			peer["port"] = ip.port();
@@ -520,9 +525,18 @@ namespace libtorrent
 		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
 		
-		// TODO: if the torrent is being checked, put this peer in a queue and
-		// connect it once the checking is done
-		if (!t) throw_invalid_handle();
+		if (!t)
+		{
+			// the torrent is being checked. Add the peer to its
+			// peer list. The entries in there will be connected
+			// once the checking is complete.
+			mutex::scoped_lock l2(m_chk->m_mutex);
+
+			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
+			if (d == 0) throw_invalid_handle();
+			d->peers.push_back(adr);
+			return;
+		}
 
 		peer_id id;
 		std::fill(id.begin(), id.end(), 0);

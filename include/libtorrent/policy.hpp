@@ -178,6 +178,10 @@ namespace libtorrent
 		{
 			return m_num_unchoked;
 		}
+		
+		typedef std::vector<peer>::iterator iterator;
+		iterator begin_peer() { return m_peers.begin(); }
+		iterator end_peer() { return m_peers.end(); }
 
 	private:
 
@@ -209,6 +213,7 @@ namespace libtorrent
 
 				ptime not_tried_yet(boost::gregorian::date(1970,boost::gregorian::Jan,1));
 
+				// this timeout has to be customizable!
 				return p.connection == 0
 					&& p.connected != not_tried_yet
 					&& second_clock::universal_time() - p.connected > minutes(30);

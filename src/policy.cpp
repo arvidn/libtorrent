@@ -829,7 +829,7 @@ namespace libtorrent
 
 		if (i == m_peers.end())
 		{
-			// this is probably a http seed
+			// this is probably an http seed
 			if (web_peer_connection const* p = dynamic_cast<web_peer_connection const*>(&c))
 			{
 				m_torrent->remove_url_seed(p->url());

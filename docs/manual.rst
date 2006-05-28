@@ -86,7 +86,7 @@ libtorrent has been successfully compiled and tested on:
 
 	* Windows 2000 vc7.1
 	* Linux x86 GCC 3.3, GCC 3.4.2
-	* MacOS X (darwin), (Apple's) GCC 4.0
+	* MacOS X (darwin), (Apple's) GCC 3.3, (Apple's) GCC 4.0
 	* SunOS 5.8 GCC 3.1
 	* Cygwin GCC 3.3.3
 
@@ -94,7 +94,6 @@ Fails on:
 
 	* GCC 2.95.4
 	* msvc6
-	* (Apple's) GCC 3.3 (compiler crashes with the latest version of asio)
 
 libtorrent is released under the BSD-license_.
 
@@ -275,6 +274,9 @@ When building the example client on windows, you need to build with
 ``link=static`` otherwise you may get unresolved external symbols for some
 boost.program-options symbols.
 
+For more information, see the `Boost build v2 documentation`__.
+
+__ http://www.boost.org/tools/build/v2/index.html
 
 building with autotools
 -----------------------
