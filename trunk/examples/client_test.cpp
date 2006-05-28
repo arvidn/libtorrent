@@ -689,14 +689,17 @@ int main(int ac, char* av[])
 			{
 				if (torrent_finished_alert* p = dynamic_cast<torrent_finished_alert*>(a.get()))
 				{
-					// limit the bandwidth for all seeding torrents
 					p->handle.set_max_connections(60);
-					//p->handle.set_max_uploads(5);
-					//p->handle.set_upload_limit(10000);
 
-					// all finished downloades are
-					// moved into this directory
-					//p->handle.move_storage("finished");
+					// write resume data for the finished torrent
+					torrent_handle h = p->handle;
+					entry data = h.write_resume_data();
+					std::stringstream s;
+					s << h.get_torrent_info().name() << ".fastresume";
+					boost::filesystem::ofstream out(h.save_path() / s.str(), std::ios_base::binary);
+					out.unsetf(std::ios_base::skipws);
+					bencode(std::ostream_iterator<char>(out), data);
+
 					events.push_back(now + ": "
 						+ p->handle.get_torrent_info().name() + ": " + a->msg());
 				}
@@ -794,13 +797,8 @@ int main(int ac, char* av[])
 					out << "tracker: " << s.current_tracker << "\n";
 				}
 
-				out << "___________________________________\n";
-
 				if (print_peers && !peers.empty())
-				{
 					print_peer_info(out, peers);
-					out << "___________________________________\n";
-				}
 
 				if (print_downloads && s.state != torrent_status::seeding)
 				{

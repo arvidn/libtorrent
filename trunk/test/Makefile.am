@@ -19,10 +19,10 @@ test_storage_LDADD = $(top_builddir)/src/libtorrent.la
 test_buffer_SOURCES = main.cpp test_buffer.cpp
 test_buffer_LDADD = $(top_builddir)/src/libtorrent.la
 
-test_metadata_extension_SOURCES = main.cpp test_metadata_extension.cpp
+test_metadata_extension_SOURCES = main.cpp setup_transfer.cpp test_metadata_extension.cpp
 test_metadata_extension_LDADD = $(top_builddir)/src/libtorrent.la
 
-noinst_HEADERS = test.hpp
+noinst_HEADERS = test.hpp setup_transfer.hpp
 
 AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/asio/include @DEBUGFLAGS@ @PTHREAD_CFLAGS@
 AM_LDFLAGS= -L./ -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -l@BOOST_THREAD_LIB@ @PTHREAD_LIBS@ 

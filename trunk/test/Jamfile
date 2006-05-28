@@ -5,6 +5,7 @@ project
 	requirements <threading>multi
 	<library>/torrent
 	<source>main.cpp
+	<source>setup_transfer.cpp
    ;
 
 test-suite libtorrent : 

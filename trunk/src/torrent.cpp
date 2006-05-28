@@ -372,6 +372,17 @@ namespace libtorrent
 
 	torrent::~torrent()
 	{
+		// The invariant can't be maintained here, since the torrent
+		// is being destructed, all weak references to it have been
+		// reset, which means that all its peers already have an
+		// invalidated torrent pointer (so it cannot be verified to be correct)
+		
+		// i.e. the invariant can only be maintained if all connections have
+		// been closed by the time the torrent is destructed. And they are
+		// supposed to be closed. So we can still do the invariant check.
+
+		assert(m_connections.empty());
+		
 		INVARIANT_CHECK;
 
 		if (m_ses.m_abort)
@@ -523,6 +534,8 @@ namespace libtorrent
 	// been filtered as not wanted we have downloaded
 	tuple<size_type, size_type> torrent::bytes_done() const
 	{
+		INVARIANT_CHECK;
+
 		if (!valid_metadata()) return tuple<size_type, size_type>(0,0);
 
 		assert(m_picker.get());
@@ -796,6 +809,8 @@ namespace libtorrent
 
 	void torrent::filtered_pieces(std::vector<bool>& bitmask) const
 	{
+		INVARIANT_CHECK;
+
 		// this call is only valid on torrents with metadata
 		assert(m_picker.get());
 		m_picker->filtered_pieces(bitmask);
@@ -803,6 +818,8 @@ namespace libtorrent
 
 	void torrent::filter_files(std::vector<bool> const& bitmask)
 	{
+		INVARIANT_CHECK;
+
 		// this call is only valid on torrents with metadata
 		if (!valid_metadata()) return;
 
@@ -950,7 +967,7 @@ namespace libtorrent
 		detail::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
-
+		
 		std::set<std::string>::iterator i = m_resolving_web_seeds.find(url);
 		if (i != m_resolving_web_seeds.end()) m_resolving_web_seeds.erase(i);
 
@@ -969,6 +986,8 @@ namespace libtorrent
 			remove_url_seed(url);
 			return;
 		}
+
+		if (m_ses.m_abort) return;
 
 		tcp::endpoint a(host->endpoint().address(), port);
 
@@ -1073,7 +1092,11 @@ namespace libtorrent
 			throw protocol_error("peer is not properly constructed");
 		}
 
-		
+		if (m_ses.m_abort)
+		{
+			throw protocol_error("session is closing");
+		}
+
 		peer_iterator i = m_connections.insert(
 			std::make_pair(p->remote(), p)).first;
 
@@ -1158,6 +1181,8 @@ namespace libtorrent
 	// called when torrent is complete (all pieces downloaded)
 	void torrent::completed()
 	{
+		INVARIANT_CHECK;
+
 /*
 		if (alerts().should_post(alert::info))
 		{
@@ -1177,6 +1202,8 @@ namespace libtorrent
 	// the begining) and return the new index to the tracker.
 	int torrent::prioritize_tracker(int index)
 	{
+		INVARIANT_CHECK;
+
 		assert(index >= 0);
 		if (index >= (int)m_trackers.size()) return (int)m_trackers.size()-1;
 
@@ -1294,6 +1321,8 @@ namespace libtorrent
 
 	bool torrent::move_storage(boost::filesystem::path const& save_path)
 	{
+		INVARIANT_CHECK;
+
 		bool ret = true;
 		if (m_storage.get())
 		{
@@ -1309,6 +1338,8 @@ namespace libtorrent
 
 	piece_manager& torrent::filesystem()
 	{
+		INVARIANT_CHECK;
+
 		assert(m_storage.get());
 		return *m_storage;
 	}
@@ -1316,11 +1347,15 @@ namespace libtorrent
 
 	torrent_handle torrent::get_handle() const
 	{
+		INVARIANT_CHECK;
+
 		return torrent_handle(&m_ses, 0, m_torrent_file.info_hash());
 	}
 
 	session_settings const& torrent::settings() const
 	{
+		INVARIANT_CHECK;
+
 		return m_ses.m_settings;
 	}
 
@@ -1331,7 +1366,12 @@ namespace libtorrent
 //		size_type done = boost::get<0>(bytes_done());
 //		assert(download >= done - m_initial_done);
 		for (const_peer_iterator i = begin(); i != end(); ++i)
-			assert(i->second->associated_torrent().lock().get() == this);
+		{
+			peer_connection const& p = *i->second;
+			torrent* associated_torrent = p.associated_torrent().lock().get();
+			if (associated_torrent != this)
+				assert(false);
+		}
 
 // This check is very expensive.
 //		assert(m_num_pieces
@@ -1857,6 +1897,8 @@ namespace libtorrent
 
 	std::pair<int, int> torrent::metadata_request()
 	{
+		INVARIANT_CHECK;
+
 		// count the number of peers that supports the
 		// extension and that has metadata
 		int peers = 0;
@@ -1909,9 +1951,11 @@ namespace libtorrent
 
 	void torrent::cancel_metadata_request(std::pair<int, int> req)
 	{
+		INVARIANT_CHECK;
+
 		for (int i = req.first; i < req.first + req.second; ++i)
 		{
-            assert(m_requested_metadata[i] > 0);
+			assert(m_requested_metadata[i] > 0);
 			if (m_requested_metadata[i] > 0)
 				--m_requested_metadata[i];
 		}
@@ -1921,9 +1965,12 @@ namespace libtorrent
 		tracker_request const&)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		INVARIANT_CHECK;
+
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		debug_log("*** tracker timed out");
 #endif
+
 		if (m_ses.m_alerts.should_post(alert::warning))
 		{
 			std::stringstream s;
@@ -1942,6 +1989,8 @@ namespace libtorrent
 	void torrent::tracker_request_error(tracker_request const&
 		, int response_code, const std::string& str)
 	{
+		INVARIANT_CHECK;
+
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		debug_log(std::string("*** tracker error: ") + str);
@@ -1956,7 +2005,6 @@ namespace libtorrent
 				, m_failed_trackers + 1, response_code, s.str()));
 		}
 
-
 		try_next_tracker();
 	}
 
@@ -1968,11 +2016,11 @@ namespace libtorrent
 	}
 #endif
 
-}
+	void torrent::metadata_progress(int total_size, int received)
+	{
+		m_metadata_progress += received;
+		m_metadata_size = total_size;
+	}
 
-void torrent::metadata_progress(int total_size, int received)
-{
-	m_metadata_progress += received;
-	m_metadata_size = total_size;
 }
 

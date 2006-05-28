@@ -1,54 +1,27 @@
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
 #include <boost/thread.hpp>
+#include <boost/tuple/tuple.hpp>
 
 #include "test.hpp"
+#include "setup_transfer.hpp"
 
-void sleep(int msec)
-{
-	boost::xtime xt;
-	boost::xtime_get(&xt, boost::TIME_UTC);
-	xt.nsec += msec * 1000000;
-	boost::thread::sleep(xt);
-}
-
-void test_transfer(char const* tracker_url, libtorrent::torrent_info const& t)
+void test_transfer(bool clear_files = true, bool disconnect = false)
 {
 	using namespace libtorrent;
 
 	session ses1;
-	ses1.set_severity_level(alert::debug);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000));
-	ses2.set_severity_level(alert::debug);
-	
-	// they should not use the same save dir, because the
-	// file pool will complain if two torrents are trying to
-	// use the same files
-	torrent_handle tor1 = ses1.add_torrent(t, "./tmp1");
-	torrent_handle tor2 = ses2.add_torrent(tracker_url
-		, t.info_hash(), "./tmp2");
+	torrent_handle tor1;
+	torrent_handle tor2;
 
-	std::cerr << "waiting for file check to complete\n";
-	
-	// wait for 5 seconds or until the torrent is in a state
-	// were it can accept connections
-	for (int i = 0; i < 50; ++i)
-	{
-		torrent_status st = tor1.status();
-		if (st.state != torrent_status::queued_for_checking
-			&&st.state != torrent_status::checking_files)
-			break;
-		sleep(100);
-	}
-
-	std::cerr << "connecting peer\n";
-	tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1"), ses2.listen_port()));
+	boost::tie(tor1, tor2) = setup_transfer(ses1, ses2, clear_files);	
 
 	for (int i = 0; i < 50; ++i)
 	{
 		// make sure this function can be called on
 		// torrents without metadata
-		tor2.status();
+		if (!disconnect) tor2.status();
 		std::auto_ptr<alert> a;
 		a = ses1.pop_alert();
 		if (a.get())
@@ -58,12 +31,15 @@ void test_transfer(char const* tracker_url, libtorrent::torrent_info const& t)
 		if (a.get())
 			std::cerr << "ses2: " << a->msg() << "\n";
 
-		if (tor2.has_metadata()) break;
+		if (disconnect && tor2.is_valid()) ses2.remove_torrent(tor2);
+		if (!disconnect && tor2.has_metadata()) break;
 		sleep(100);
 	}
 
+	if (disconnect) return;
+
 	TEST_CHECK(tor2.has_metadata());
-	std::cerr << "metadata received. waiting for transfer to complete\n";
+	std::cerr << "waiting for transfer to complete\n";
 
 	for (int i = 0; i < 50; ++i)
 	{
@@ -73,44 +49,21 @@ void test_transfer(char const* tracker_url, libtorrent::torrent_info const& t)
 	}
 
 	TEST_CHECK(tor2.is_seed());
-	std::cerr << "done\n";
+	if (tor2.is_seed()) std::cerr << "done\n";
 }
 
 int test_main()
 {
 	using namespace libtorrent;
-	using namespace boost::filesystem;
-
-	char const* tracker_url = "http://non-existant-name.com/announce";
 	
-	torrent_info t;
-	t.add_file(path("temporary"), 42);
-	t.set_piece_size(256 * 1024);
-	t.add_tracker(tracker_url);
-
-	std::vector<char> piece(42);
-	std::fill(piece.begin(), piece.end(), 0xfe);
-	
-	// calculate the hash for all pieces
-	int num = t.num_pieces();
-	for (int i = 0; i < num; ++i)
-	{
-		t.set_hash(i, hasher(&piece[0], piece.size()).final());
-	}
-	
-	create_directory("./tmp1");
-	std::ofstream file("./tmp1/temporary");
-	file.write(&piece[0], piece.size());
-	file.close();
-	remove_all("./tmp2/temporary");
-	
-	t.create_torrent();
+	// test to disconnect one client prematurely
+	test_transfer(true, true);
 	
 	// test where one has data and one doesn't
-	test_transfer(tracker_url, t);
+	test_transfer(true);
 
 	// test where both have data (to trigger the file check)
-	test_transfer(tracker_url, t);
+	test_transfer(false);
 
 	return 0;
 }

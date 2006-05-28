@@ -360,9 +360,14 @@ namespace libtorrent
 			assert(m_picker.get());
 			return *m_picker;
 		}
-		policy& get_policy() { return *m_policy; }
+		policy& get_policy()
+		{
+			assert(m_policy);
+			return *m_policy;
+		}
 		piece_manager& filesystem();
-		torrent_info const& torrent_file() const { return m_torrent_file; }
+		torrent_info const& torrent_file() const
+		{ return m_torrent_file; }
 
 		std::vector<announce_entry> const& trackers() const
 		{ return m_trackers; }

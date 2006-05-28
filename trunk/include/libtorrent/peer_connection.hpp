@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/optional.hpp>
 #include <boost/cstdint.hpp>
+#include <boost/detail/atomic_count.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -540,7 +541,7 @@ namespace libtorrent
 		bool m_reading;
 		int m_last_read_size;		
 		// reference counter for intrusive_ptr
-		mutable int m_refs;
+		mutable boost::detail::atomic_count m_refs;
 
 #ifndef NDEBUG
 	public:

@@ -375,7 +375,7 @@ namespace libtorrent
 		}
 #endif
 
-		tcp::resolver::query q(*connect_to_host, "http");
+		tcp::resolver::query q(*connect_to_host, "https");
 		m_name_lookup.async_resolve(q
 			, boost::bind(&http_tracker_connection::name_lookup, self(), _1, _2));
 		set_timeout(m_settings.tracker_completion_timeout

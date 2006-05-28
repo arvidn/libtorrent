@@ -30,9 +30,9 @@ project torrent
 	<define>BOOST_ALL_NO_LIB
 	<define>_FILE_OFFSET_BITS=64
 	<define>BOOST_THREAD_USE_LIB
-	<library>/boost/thread//boost_thread/<link>static
-	<library>/boost/filesystem//boost_filesystem/<link>static
-	<library>/boost/date_time//boost_date_time/<link>static
+	<library>/boost/thread//boost_thread #/<link>static
+	<library>/boost/filesystem//boost_filesystem #/<link>static
+	<library>/boost/date_time//boost_date_time #/<link>static
 	<threading>multi
 	<toolset>msvc:<define>_WIN32_WINNT=0x0500
 # WIN32 makes sure the win32 socket api is used

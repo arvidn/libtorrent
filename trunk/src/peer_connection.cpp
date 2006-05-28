@@ -65,8 +65,7 @@ namespace libtorrent
 	{
 		assert(c->m_refs > 0);
 		assert(c != 0);
-		--c->m_refs;
-		if (c->m_refs == 0)
+		if (--c->m_refs == 0)
 			delete c;
 	}
 
@@ -467,7 +466,11 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
-		if (t && t->is_aborted()) { m_torrent.reset(); t.reset(); }
+		if (t && t->is_aborted())
+		{
+			m_torrent.reset();
+			t.reset();
+		}
 
 		if (!t)
 		{
@@ -1669,7 +1672,8 @@ namespace libtorrent
 		assert(packet_size > 0);
 		m_recv_pos = 0;
 		m_packet_size = packet_size;
-		m_recv_buffer.resize(m_packet_size);
+		if (int(m_recv_buffer.size()) < m_packet_size)
+			m_recv_buffer.resize(m_packet_size);
 	}
 	
 	void peer_connection::send_buffer(char const* begin, char const* end)
@@ -1830,6 +1834,11 @@ namespace libtorrent
 			return;
 		}
 
+		// the connection cannot time out while connecting
+		// so we don't need to check m_disconnecting
+		assert(m_disconnecting == false);
+		m_last_receive = second_clock::universal_time();
+
 		// this means the connection just succeeded
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -1914,7 +1923,17 @@ namespace libtorrent
 	void peer_connection::check_invariant() const
 	{
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (!t) return;
+		if (!t)
+		{
+			typedef detail::session_impl::torrent_map torrent_map;
+			torrent_map& m = m_ses.m_torrents;
+			for (torrent_map::iterator i = m.begin(), end(m.end()); i != end; ++i)
+			{
+				torrent& t = *i->second;
+				assert(t.connection_for(m_remote) != this);
+			}
+			return;
+		}
 
 		if (!m_in_constructor && t->connection_for(remote()) != this)
 		{
