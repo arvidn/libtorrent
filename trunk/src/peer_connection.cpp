@@ -1834,9 +1834,7 @@ namespace libtorrent
 			return;
 		}
 
-		// the connection cannot time out while connecting
-		// so we don't need to check m_disconnecting
-		assert(m_disconnecting == false);
+		if (m_disconnecting) return;
 		m_last_receive = second_clock::universal_time();
 
 		// this means the connection just succeeded
@@ -1884,7 +1882,12 @@ namespace libtorrent
 		m_write_pos += bytes_transferred;
 
 		if (error)
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << "**ERROR**: " << error.what() << "\n";
+#endif
 			throw std::runtime_error(error.what());
+		}
 		if (m_disconnecting) return;
 
 		assert(!m_connecting);
