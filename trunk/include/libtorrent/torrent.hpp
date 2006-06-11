@@ -169,6 +169,7 @@ namespace libtorrent
 		void filter_files(std::vector<bool> const& files);
 
 		torrent_status status() const;
+		void file_progress(std::vector<float>& fp) const;
 
 		void use_interface(const char* net_interface);
 		tcp::endpoint const& get_interface() const { return m_net_interface; }

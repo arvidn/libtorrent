@@ -18,51 +18,51 @@ example client.
 
 The main goals of libtorrent are:
 
-	* to be cpu efficient
-	* to be memory efficient
-	* to be very easy to use
+* to be cpu efficient
+* to be memory efficient
+* to be very easy to use
 
 libtorrent is still being developed, however it is stable. It is an ongoing
 project (including this documentation). The current state includes the
 following features:
 
-	* multitracker extension support (as `specified by John Hoffman`__)
-	* serves multiple torrents on a single port and a single thread
-	* supports http proxies and proxy authentication
-	* gzipped tracker-responses
-	* `HTTP seeding`_, as `specified by Michael Burford of GetRight`__.
-	* piece picking on block-level like in Azureus_ (as opposed to piece-level).
-	  This means it can download parts of the same piece from different peers.
-	  It will also prefer to download whole pieces from single peers if the
-	  download speed is high enough from that particular peer.
-	* queues torrents for file check, instead of checking all of them in parallel.
-	* uses separate threads for checking files and for main downloader, with a
-	  fool-proof thread-safe library interface. (i.e. There's no way for the
-	  user to cause a deadlock). (see threads_)
-	* can limit the upload and download bandwidth usage and the maximum number of
-	  unchoked peers
-	* piece-wise, unordered, incremental file allocation
-	* implements fair trade. User settable trade-ratio, must at least be 1:1,
-	  but one can choose to trade 1 for 2 or any other ratio that isn't unfair
-	  to the other party.
-	* fast resume support, a way to get rid of the costly piece check at the
-	  start of a resumed torrent. Saves the storage state, piece_picker state
-	  as well as all local peers in a separate fast-resume file.
-	* supports an `extension protocol`__. See extensions_.
-	* supports files > 2 gigabytes.
-	* supports the ``no_peer_id=1`` extension that will ease the load off trackers.
-	* supports the `udp-tracker protocol`__ by Olaf van der Spek.
-	* possibility to limit the number of connections.
-	* delays have messages if there's no other outgoing traffic to the peer, and
-	  doesn't send have messages to peers that already has the piece. This saves
-	  bandwidth.
-	* does not have any requirements on the piece order in a torrent that it
-	  resumes. This means it can resume a torrent downloaded by any client.
-	* adjusts the length of the request queue depending on download rate.
-	* supports the ``compact=1`` tracker parameter.
-	* selective downloading. The ability to select which parts of a torrent you
-	  want to download.
-	* ip filter
+* multitracker extension support (as `specified by John Hoffman`__)
+* serves multiple torrents on a single port and a single thread
+* supports http proxies and proxy authentication
+* gzipped tracker-responses
+* `HTTP seeding`_, as `specified by Michael Burford of GetRight`__.
+* piece picking on block-level like in Azureus_ (as opposed to piece-level).
+  This means it can download parts of the same piece from different peers.
+  It will also prefer to download whole pieces from single peers if the
+  download speed is high enough from that particular peer.
+* queues torrents for file check, instead of checking all of them in parallel.
+* uses separate threads for checking files and for main downloader, with a
+  fool-proof thread-safe library interface. (i.e. There's no way for the
+  user to cause a deadlock). (see threads_)
+* can limit the upload and download bandwidth usage and the maximum number of
+  unchoked peers
+* piece-wise, unordered, incremental file allocation
+* implements fair trade. User settable trade-ratio, must at least be 1:1,
+  but one can choose to trade 1 for 2 or any other ratio that isn't unfair
+  to the other party.
+* fast resume support, a way to get rid of the costly piece check at the
+  start of a resumed torrent. Saves the storage state, piece_picker state
+  as well as all local peers in a separate fast-resume file.
+* supports an `extension protocol`__. See extensions_.
+* supports files > 2 gigabytes.
+* supports the ``no_peer_id=1`` extension that will ease the load off trackers.
+* supports the `udp-tracker protocol`__ by Olaf van der Spek.
+* possibility to limit the number of connections.
+* delays have messages if there's no other outgoing traffic to the peer, and
+  doesn't send have messages to peers that already has the piece. This saves
+  bandwidth.
+* does not have any requirements on the piece order in a torrent that it
+  resumes. This means it can resume a torrent downloaded by any client.
+* adjusts the length of the request queue depending on download rate.
+* supports the ``compact=1`` tracker parameter.
+* selective downloading. The ability to select which parts of a torrent you
+  want to download.
+* ip filter
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
 __ http://www.getright.com/seedtorrent.html
@@ -84,16 +84,16 @@ epoll on linux and kqueue on MacOS X and BSD.
 
 libtorrent has been successfully compiled and tested on:
 
-	* Windows 2000 vc7.1
-	* Linux x86 GCC 3.3, GCC 3.4.2
-	* MacOS X (darwin), (Apple's) GCC 3.3, (Apple's) GCC 4.0
-	* SunOS 5.8 GCC 3.1
-	* Cygwin GCC 3.3.3
+* Windows 2000 vc7.1
+* Linux x86 GCC 3.3, GCC 3.4.2
+* MacOS X (darwin), (Apple's) GCC 3.3, (Apple's) GCC 4.0
+* SunOS 5.8 GCC 3.1
+* Cygwin GCC 3.3.3
 
 Fails on:
 
-	* GCC 2.95.4
-	* msvc6
+* GCC 2.95.4
+* msvc6
 
 libtorrent is released under the BSD-license_.
 
@@ -263,12 +263,12 @@ For more build configuration flags see `Build configurations`_.
 
 The ``Jamfile`` has the following build variants:
 
- * ``release`` - release version without any logging
- * ``release_log`` - release version with standard logging
- * ``release_vlog`` - release version with verbose logging (all peer connections are logged)
- * ``debug`` - debug version without any logging
- * ``debug_log`` - debug version with standard logging
- * ``debug_vlog`` - debug version with verbose logging
+* ``release`` - release version without any logging
+* ``release_log`` - release version with standard logging
+* ``release_vlog`` - release version with verbose logging (all peer connections are logged)
+* ``debug`` - debug version without any logging
+* ``debug_log`` - debug version with standard logging
+* ``debug_vlog`` - debug version with verbose logging
 
 When building the example client on windows, you need to build with
 ``link=static`` otherwise you may get unresolved external symbols for some
@@ -1039,7 +1039,6 @@ The ``torrent_info`` has the following synopsis::
 		boost::optional<boost::posix_time::ptime>
 		creation_date() const;
 
-
 		void print(std::ostream& os) const;
 	
 		size_type piece_size(unsigned int index) const;
@@ -1335,8 +1334,6 @@ it will return an empty string.
 __ http://www.boost.org/libs/date_time/doc/class_ptime.html
 
 
-
-
 torrent_handle
 ==============
 
@@ -1349,6 +1346,7 @@ Its declaration looks like this::
 		torrent_handle();
 
 		torrent_status status();
+		void file_progress(std::vector<float>& fp);
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 		void get_peer_info(std::vector<peer_info>& v) const;
 		torrent_info const& get_torrent_info() const;
@@ -1407,6 +1405,19 @@ perform any operation on it, unless you first assign it a valid handle. If you t
 any operation on an uninitialized handle, it will throw ``invalid_handle``.
 
 *TODO: document filter_piece(), filter_pieces(), is_piece_filtered(), filtered_pieces() and filter_files()*
+
+file_progress()
+---------------
+
+	::
+
+		void file_progress(std::vector<float>& fp);
+
+This function fills in the supplied vector with the progress (a value in the
+range [0, 1]) describing the download progress of each file in this torrent.
+The progress values are ordered the same as the files in the `torrent_info`_.
+This operation is not very cheap.
+
 
 save_path()
 -----------

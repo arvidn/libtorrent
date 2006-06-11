@@ -224,6 +224,11 @@ namespace libtorrent
 		bool send_chat_message(tcp::endpoint ip, std::string message) const;
 		torrent_status status() const;
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
+		
+		// fills the specified vector with the download progress [0, 1]
+		// of each file in the torrent. The files are ordered as in
+		// the torrent_info.
+		void file_progress(std::vector<float>& progress);
 
 		std::vector<announce_entry> const& trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&) const;
@@ -290,9 +295,6 @@ namespace libtorrent
 		// valid ratios are 0 (infinite ratio) or [ 1.0 , inf )
 		// the ratio is uploaded / downloaded. less than 1 is not allowed
 		void set_ratio(float up_down_ratio) const;
-
-		// TODO: add finish_file_allocation, which will force the
-		// torrent to allocate storage for all pieces.
 
 		boost::filesystem::path save_path() const;
 
