@@ -625,6 +625,7 @@ int main(int ac, char* av[])
 		bool print_peers = false;
 		bool print_log = false;
 		bool print_downloads = false;
+		bool print_file_progress = false;
 
 		for (;;)
 		{
@@ -679,6 +680,7 @@ int main(int ac, char* av[])
 				if (c == 'i') print_peers = !print_peers;
 				if (c == 'l') print_log = !print_log;
 				if (c == 'd') print_downloads = !print_downloads;
+				if (c == 'f') print_file_progress = !print_file_progress;
 			}
 
 			// loop through the alert queue to see if anything has happened.
@@ -827,6 +829,27 @@ int main(int ac, char* av[])
 
 					out << "___________________________________\n";
 				}
+
+				if (print_file_progress
+					&& s.state != torrent_status::seeding
+					&& h.has_metadata())
+				{
+					std::vector<float> file_progress;
+					h.file_progress(file_progress);
+					torrent_info const& info = h.get_torrent_info();
+					for (int i = 0; i < info.num_files(); ++i)
+					{
+						if (file_progress[i] == 1.f)
+							out << progress_bar(file_progress[i], 10, "32") << " "
+								<< info.file_at(i).path.leaf() << "\n";
+						else
+							out << progress_bar(file_progress[i], 10, "33") << " "
+								<< info.file_at(i).path.leaf() << "\n";
+					}
+
+					out << "___________________________________\n";
+				}
+
 			}
 
 			if (print_log)
