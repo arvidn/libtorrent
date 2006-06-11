@@ -1120,6 +1120,9 @@ namespace libtorrent
 		{
 			c.send_choke();
 			--m_num_unchoked;
+
+			if (m_torrent->is_seed()) seed_unchoke_one_peer();
+			else unchoke_one_peer();
 		}
 	}
 

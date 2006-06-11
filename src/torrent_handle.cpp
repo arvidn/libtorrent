@@ -243,6 +243,39 @@ namespace libtorrent
 			, bind(&torrent::set_tracker_login, _1, name, password));
 	}
 
+	void torrent_handle::file_progress(std::vector<float>& progress)
+	{
+		INVARIANT_CHECK;
+		
+		if (m_ses == 0) throw_invalid_handle();
+
+		if (m_chk)
+		{
+			mutex::scoped_lock l(m_chk->m_mutex);
+
+			detail::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
+			if (d != 0)
+			{
+				if (!d->processing)
+				{
+					torrent_info const& info = d->torrent_ptr->torrent_file();
+					progress.clear();
+					progress.resize(info.num_files(), 0.f);
+					return;
+				}
+				d->torrent_ptr->file_progress(progress);
+				return;
+			}
+		}
+
+		{
+			session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
+			boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
+			if (t) return t->file_progress(progress);
+		}
+
+		throw_invalid_handle();
+	}
 
 	torrent_status torrent_handle::status() const
 	{
