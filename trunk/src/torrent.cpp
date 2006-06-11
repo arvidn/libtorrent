@@ -1645,6 +1645,32 @@ namespace libtorrent
 		assert(!m_metadata.empty());
 		return m_metadata;
 	}
+
+	void torrent::file_progress(std::vector<float>& fp) const
+	{
+		assert(valid_metadata());
+	
+		fp.clear();
+		fp.resize(m_torrent_file.num_files(), 0.f);
+		
+		for (int i = 0; i < m_torrent_file.num_files(); ++i)
+		{
+			peer_request ret = m_torrent_file.map_file(i, 0, m_torrent_file.file_at(i).size);
+			size_type done = 0;
+			while (ret.length > 0)
+			{
+				size_type bytes_step = std::min(m_torrent_file.piece_size(ret.piece)
+					- ret.start, (size_type)ret.length);
+				if (m_have_pieces[ret.piece]) done += bytes_step;
+				++ret.piece;
+				ret.start = 0;
+				ret.length -= bytes_step;
+			}
+			assert(ret.length == 0);
+			
+			fp[i] = static_cast<float>(done) / m_torrent_file.file_at(i).size;
+		}
+	}
 	
 	torrent_status torrent::status() const
 	{
