@@ -24,16 +24,18 @@ While running, the ``client_test`` sample will look something like this:
 
 The commands available in the client are:
 
- * ``q`` quits the client (there will be a delay while the client waits
-   for tracker responses)
- * ``l`` toggle log. Will display the log at the bottom, informing about
-   tracker and peer events.
- * ``i`` toggles torrent info. Will show the peer list for each torrent.
- * ``d`` toggle download info. Will show the block list for each torrent,
-   showing downloaded and requested blocks.
- * ``p`` pause all torrents.
- * ``u`` unpause all torrents.
- * ``r`` force tracker reannounce for all torrents.
+* ``q`` quits the client (there will be a delay while the client waits
+  for tracker responses)
+* ``l`` toggle log. Will display the log at the bottom, informing about
+  tracker and peer events.
+* ``i`` toggles torrent info. Will show the peer list for each torrent.
+* ``d`` toggle download info. Will show the block list for each torrent,
+  showing downloaded and requested blocks.
+* ``p`` pause all torrents.
+* ``u`` unpause all torrents.
+* ``r`` force tracker reannounce for all torrents.
+* ``f`` toggle show file progress. Displays a list of all files and the
+  download progress for each file.
 
 The list at the bottom (shown if you press ``d``) shows which blocks has
 been requested from which peer. The green background means that it has been
