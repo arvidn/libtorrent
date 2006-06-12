@@ -163,7 +163,7 @@ namespace libtorrent
 		{
 			if (i->priority(old_limit) != i->priority(m_sequenced_download_threshold))
 			{
-				piece_pos& p = m_piece_map[i->index];
+				piece_pos& p = *i;
 				int prev_priority = i->priority(old_limit);
 				move(p.downloading, p.filtered, prev_priority, i->index);
 			}
