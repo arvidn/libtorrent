@@ -218,7 +218,8 @@ namespace
 
 			// this peer doesn't have a faster connection than the
 			// slowest peer. Don't take over any blocks
-			const int queue_size = (int)c.download_queue().size();
+			const int queue_size = (int)c.download_queue().size()
+				+ (int)c.request_queue().size();
 			const float weight = queue_size == 0
 				? std::numeric_limits<float>::max()
 				: c.statistics().download_payload_rate() / queue_size;
