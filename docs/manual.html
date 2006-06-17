@@ -6,127 +6,7 @@
 <meta name="generator" content="Docutils 0.4: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
-<style type="text/css">
-
-body
-{
-	background-color: white;
-	color: black;
-	margin: 1em 2em 1em 2em;
-}
-
-h1 { font-family: Verdana, Arial, Helvetica, sans-serif; font-weight: bold; text-align: left; font-size: 140%; }
-h2 { font-family: Verdana, Arial, Helvetica, sans-serif; font-weight: bold; text-align: left; font-size: 110%; }
-h3 { font-family: "courier new", courier, monospace; font-weight: bold; text-align: left; font-size: 100%; }
-
-pre
-{
-	border: gray 1pt solid;
-	padding: 2pt;
-
-	display: block;
-	font-family: "courier new", courier, monospace;
-	background-color: #eeeeee;
-	color: black;
-	font-size: small
-}
-
-code
-{
-	white-space: pre;
-	border: gray 1pt solid;
-	padding: 2pt;
-
-	display: block;
-	font-family: "courier new", courier, monospace;
-	color: black;
-	font-size: small
-}
-
-tt
-{
-	display: inline;
-	font-family: "Courier New", Courier, monospace;
-}
-
-p
-{
-	text-align: justify;
-	font-family: Georgia, "Times New Roman", Times, serif
-}
-
-ul
-{
-	font-family: Georgia, "Times New Roman", Times, serif
-}
-
-ol
-{
-	font-family: Georgia, "Times New Roman", Times, serif
-}
-
-a:link
-{
-	font-weight: bold;
-	color: #003366;
-	text-decoration: none;
-}
-
-a:visited
-{
-	font-weight: bold;
-	color: #003366;
-	text-decoration: none;
-}
-
-
-table
-{
-	border: 1px solid black;
-	border-collapse: collapse;
-}
-
-table td
-{
-	padding: 6px;
-}
-
-table th
-{
-	border: 3px solid black;
-	padding: 6px;
-}
-
-table.menu
-{
-	border-style: none;
-}
-
-table.menu td
-{
-	padding-left: 15px;
-	padding-right: 15px;
-	padding-top: 7px;
-	padding-bottom: 7px;
-}
-
-
-td
-{
-	border: 1px solid black
-}
-
-div.warning, div.note, div.important {
-    width: 80%;
-    margin: 1.5em auto;
-    background: #C1E5F6;
-    background: #F1FFF5;
-    border: solid 1px #D1DFD5;
-    padding: 5px 10px 5px 10px;
-}
-
-
-</style>
+<link rel="stylesheet" href="rst.css" type="text/css" />
 </head>
 <body>
 <div class="document" id="libtorrent-manual">
@@ -137,10 +17,12 @@ div.warning, div.note, div.important {
 <tbody valign="top">
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>0.9.2</td></tr>
 </tbody>
 </table>
-<div class="contents topic">
-<p class="topic-title first"><a id="table-of-contents" name="table-of-contents">Table of contents</a></p>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first"><a name="table-of-contents">Table of contents</a></p>
 <ul class="simple">
 <li><a class="reference" href="#introduction" id="id25" name="id25">introduction</a></li>
 <li><a class="reference" href="#downloading-and-building" id="id26" name="id26">downloading and building</a><ul>
@@ -1328,10 +1210,14 @@ iterators with the type <tt class="docutils literal"><span class="pre">file_entr
 <p>The <tt class="docutils literal"><span class="pre">path</span></tt> is the full (relative) path of each file. i.e. if it is a multi-file
 torrent, all the files starts with a directory with the same name as <tt class="docutils literal"><span class="pre">torrent_info::name()</span></tt>.
 The filenames are encoded with UTF-8.</p>
+<p><tt class="docutils literal"><span class="pre">size</span></tt> is the size of the file (in bytes) and <tt class="docutils literal"><span class="pre">offset</span></tt> is the byte offset
+of the file within the torrent. i.e. the sum of all the sizes of the files
+before this one in the file list this one in the file list..</p>
 <pre class="literal-block">
 struct file_entry
 {
         boost::filesystem::path path;
+        size_type offset;
         size_type size;
 };
 </pre>

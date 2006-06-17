@@ -63,7 +63,8 @@ namespace libtorrent
 	struct TORRENT_EXPORT file_entry
 	{
 		boost::filesystem::path path;
-		size_type size;
+		size_type offset; // the offset of this file inside the torrent
+		size_type size; // the size of this file
 	};
 
 	struct TORRENT_EXPORT file_slice
