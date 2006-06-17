@@ -408,8 +408,8 @@ namespace libtorrent
 	
 	void tracker_connection::close()
 	{
-		m_man.remove_request(this);
 		cancel();
+		m_man.remove_request(this);
 	}
 
 	void tracker_manager::remove_request(tracker_connection const* c)
