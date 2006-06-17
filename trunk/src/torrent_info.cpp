@@ -87,7 +87,7 @@ namespace
 			i != list->end(); ++i)
 		{
 			if (i->string() != "..")
-			target.path /= i->string();
+				target.path /= i->string();
 		}
 		if (target.path.is_complete()) throw std::runtime_error("torrent contains "
 			"a file with an absolute path: '"
@@ -97,10 +97,13 @@ namespace
 	void extract_files(const entry::list_type& list, std::vector<file_entry>& target
 		, std::string const& root_dir)
 	{
+		size_type offset = 0;
 		for (entry::list_type::const_iterator i = list.begin(); i != list.end(); ++i)
 		{
 			target.push_back(file_entry());
 			extract_single_file(*i, target.back(), root_dir);
+			target.back().offset = offset;
+			offset += target.back().size;
 		}
 	}
 
@@ -224,6 +227,7 @@ namespace libtorrent
 			// field.
 			file_entry e;
 			e.path = m_name;
+			e.offset = 0;
 			e.size = info["length"].integer();
 			m_files.push_back(e);
 		}
@@ -666,9 +670,9 @@ namespace libtorrent
 	peer_request torrent_info::map_file(int file_index, size_type file_offset
 		, int size) const
 	{
-		size_type offset = file_offset;
-		for (int i = 0; i < file_index; ++i)
-			offset += file_at(i).size;
+		assert(file_index < (int)m_files.size());
+		assert(file_index >= 0);
+		size_type offset = file_offset + m_files[file_index].offset;
 
 		peer_request ret;
 		ret.piece = offset / piece_length();

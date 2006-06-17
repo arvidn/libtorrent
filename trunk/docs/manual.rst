@@ -3,6 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
+:Version: 0.9.2
 
 .. contents:: Table of contents
   :depth: 2
@@ -1146,11 +1147,16 @@ The ``path`` is the full (relative) path of each file. i.e. if it is a multi-fil
 torrent, all the files starts with a directory with the same name as ``torrent_info::name()``.
 The filenames are encoded with UTF-8.
 
+``size`` is the size of the file (in bytes) and ``offset`` is the byte offset
+of the file within the torrent. i.e. the sum of all the sizes of the files
+before this one in the file list this one in the file list..
+
 ::
 
 	struct file_entry
 	{
 		boost::filesystem::path path;
+		size_type offset;
 		size_type size;
 	};
 
