@@ -105,6 +105,9 @@ release its source code. The only requirement is that you give credit
 to the author of the library by including the libtorrent license in your
 software or documentation.
 
+`Here's`__ a list of some projects that uses libtorrent.
+
+__ projects.html
 
 downloading and building
 ========================
