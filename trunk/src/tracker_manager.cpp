@@ -343,8 +343,8 @@ namespace libtorrent
 
 	void timeout_handler::cancel()
 	{
-		m_timeout.cancel();
 		m_completion_timeout = 0;
+		m_timeout.cancel();
 	}
 
 	void timeout_handler::timeout_callback(asio::error const& error) try
