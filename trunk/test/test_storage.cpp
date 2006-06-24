@@ -99,6 +99,8 @@ int test_main()
 	pm.read(piece, 2, 0, piece_size);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece2));
 	
+	remove_all(initial_path() / "temp_storage");
+	
 	return 0;
 }
 

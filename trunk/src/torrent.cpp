@@ -1073,6 +1073,7 @@ namespace libtorrent
 			c->disconnect();
 			throw;
 		}
+		if (c->is_disconnecting()) throw protocol_error("failed to connect");
 		return *c;
 	}
 
