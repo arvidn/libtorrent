@@ -1,3 +1,5 @@
+	* fixed a bug in storage that would, in rare cases, fail to do a
+	  complete check.
 	* exposed more settings for tweaking parameters in the piece-picker,
 	  downloader and uploader (http_settings replaced by session_settings).
 	* tweaked default settings to improve high bandwidth transfers.

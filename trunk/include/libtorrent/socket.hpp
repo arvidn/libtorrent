@@ -45,7 +45,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #define Protocol Protocol_
 #endif
 
-#include <asio.hpp>
+#include <asio/ip/tcp.hpp>
+#include <asio/ip/udp.hpp>
+#include <asio/io_service.hpp>
+#include <asio/deadline_timer.hpp>
+#include <asio/write.hpp>
 
 #ifdef __OBJC__ 
 #undef Protocol
