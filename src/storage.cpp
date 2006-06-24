@@ -1289,6 +1289,7 @@ namespace libtorrent
 					have_pieces[other_piece] = true;
 					m_slot_to_piece[other_slot] = other_piece;
 					m_piece_to_slot[other_piece] = other_slot;
+					++num_pieces;
 				}
 				else
 				{
@@ -1304,6 +1305,7 @@ namespace libtorrent
 				assert(m_piece_to_slot[piece_index] >= 0);
 				m_piece_to_slot[piece_index] = has_no_slot;
 #ifndef NDEBUG
+				// to make the assert happy, a few lines down
 				have_pieces[piece_index] = false;
 #endif
 			}
