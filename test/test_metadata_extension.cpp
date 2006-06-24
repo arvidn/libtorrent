@@ -55,7 +55,8 @@ void test_transfer(bool clear_files = true, bool disconnect = false)
 int test_main()
 {
 	using namespace libtorrent;
-	
+	using namespace boost::filesystem;
+
 	// test to disconnect one client prematurely
 	test_transfer(true, true);
 	
@@ -64,6 +65,9 @@ int test_main()
 
 	// test where both have data (to trigger the file check)
 	test_transfer(false);
+
+	remove_all("./tmp1");
+	remove_all("./tmp2");
 
 	return 0;
 }

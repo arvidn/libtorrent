@@ -316,6 +316,7 @@ namespace libtorrent
 	peer_connection::~peer_connection()
 	{
 //		INVARIANT_CHECK;
+		assert(m_disconnecting);
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;

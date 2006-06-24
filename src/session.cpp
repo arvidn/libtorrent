@@ -599,6 +599,8 @@ namespace libtorrent { namespace detail
 			}
 			catch (std::exception& e)
 			{
+				c->disconnect();
+
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 				(*m_logger) << "connect failed [" << c->remote() << "]: "
 					<< e.what() << "\n";
@@ -750,8 +752,10 @@ namespace libtorrent { namespace detail
 				// has to be in the queue, waiting to be connected.
 				connection_queue::iterator j = std::find(
 					m_connection_queue.begin(), m_connection_queue.end(), p);
-					
-				assert(j != m_connection_queue.end());
+				
+				// if this connection was closed while being connected
+				// it has been removed from the connection queue and
+				// not yet put into the half-open queue.
 				if (j != m_connection_queue.end())
 					m_connection_queue.erase(j);
 			}
