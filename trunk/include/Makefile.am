@@ -1,4 +1,4 @@
-nobase_pkginclude_HEADERS = libtorrent/alert.hpp \
+nobase_include_HEADERS = libtorrent/alert.hpp \
 libtorrent/alert_types.hpp \
 libtorrent/allocate_resources.hpp \
 libtorrent/bencode.hpp \

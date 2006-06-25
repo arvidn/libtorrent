@@ -71,6 +71,7 @@ int test_main()
 	// make sure the files have the correct size
 	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test1.tmp") == 17);
 	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test2.tmp") == 31);
+	s.release_files();
 	}
 
 	// make sure the piece_manager can identify the pieces
@@ -98,7 +99,8 @@ int test_main()
 
 	pm.read(piece, 2, 0, piece_size);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece2));
-	
+	pm.release_files();
+
 	remove_all(initial_path() / "temp_storage");
 	
 	return 0;
