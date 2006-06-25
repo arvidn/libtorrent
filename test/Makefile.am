@@ -24,5 +24,5 @@ test_metadata_extension_LDADD = $(top_builddir)/src/libtorrent.la
 
 noinst_HEADERS = test.hpp setup_transfer.hpp
 
-AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@ @PTHREAD_CFLAGS@
+AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @DEBUGFLAGS@ @PTHREAD_CFLAGS@
 AM_LDFLAGS= -L./ -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -l@BOOST_THREAD_LIB@ @PTHREAD_LIBS@ 

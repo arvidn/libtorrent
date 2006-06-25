@@ -11,4 +11,4 @@ Name: libtorrent
 Description: Bittorrent library.
 Version: @VERSION@
 Libs: -L${libdir} @LIBS@ -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -l@BOOST_THREAD_LIB@ @ZLIB@ -ltorrent
-Cflags: -I${includedir} @CPPFLAGS@
+Cflags: -I${includedir} -I${includedir}/libtorrent @CPPFLAGS@

@@ -144,16 +144,16 @@ Step 1: Download boost
 
 You'll find boost here__.
 
-__ http://sourceforge.net/project/showfiles.php?group_id=7586
+__ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&release_id=376197
 
 Extract the archive to some directory where you want it. For the sake of this
-guide, let's assume you extract the package to ``c:\boost_1_33_0`` (I'm using
+guide, let's assume you extract the package to ``c:\boost_1_33_1`` (I'm using
 a windows path in this example since if you're on linux/unix you're more likely
 to use the autotools). You'll need at least version 1.32 of the boost library
 in order to build libtorrent.
 
 If you use 1.32, you need to download BBv2 separately, so for now, let's
-assume you will use version 1.33.
+assume you will use version 1.33.1.
 
 
 Step 2: Setup BBv2
@@ -161,7 +161,7 @@ Step 2: Setup BBv2
 
 First you need to build ``bjam``. You do this by opening a terminal (In
 windows, run ``cmd``). Change directory to
-``c:\boost_1_33_0\tools\build\jam_src``. Then run the script called
+``c:\boost_1_33_1\tools\build\jam_src``. Then run the script called
 ``build.bat`` or ``build.sh`` on a unix system. This will build ``bjam`` and
 place it in a directory starting with ``bin.`` and then have the name of your
 platform. Copy the ``bjam.exe`` (or ``bjam`` on a unix system) to a place
@@ -176,10 +176,16 @@ set the environment variable ``BOOST_BUILD_PATH``. This is the path that tells
 ``bjam`` where it can find boost-build, your configuration file and all the
 toolsets (descriptions used by boost-build to know how to use different
 compilers on different platforms). Assuming the boost install path above, set
-it to ``c:\boost_1_33_0\tools\build\v2``.
+it to ``c:\boost_1_33_1\tools\build\v2``.
+
+To set an environment variable in windows, type for example::
+
+  set BOOST_BUILD_PATH=c:\boost_1_33_1\tools\build\v2
+
+In a terminal window.
 
 The last thing to do to complete the setup of BBv2 is to modify your
-``user-config.jam`` file. It is located in ``c:\boost_1_33\tools\build\v2``.
+``user-config.jam`` file. It is located in ``c:\boost_1_33_1\tools\build\v2``.
 Depending on your platform and which compiler you're using, you should add a
 line for each compiler and compiler version you have installed on your system
 that you want to be able to use with BBv2. For example, if you're using
@@ -213,7 +219,7 @@ Step 3: Building libtorrent
 When building libtorrent, the ``Jamfile`` expects the environment variable
 ``BOOST_ROOT`` to be set to the boost installation directory. It uses this to
 find the boost libraries it depends on, so they can be built and their headers
-files found. So, set this to ``c:\boost_1_33_0``.
+files found. So, set this to ``c:\boost_1_33_1``.
 
 Then the only thing left is simply to invoke ``bjam``. If you want to specify
 a specific toolset to use (compiler) you can just add that to the commandline.
@@ -256,8 +262,8 @@ from a cygwin terminal, you'll have to run it from a ``cmd`` terminal. The same 
 cygwin, if you're building with gcc in cygwin you'll have to run it from a cygwin terminal.
 Also, make sure the paths are correct in the different environments. In cygwin, the paths
 (``BOOST_BUILD_PATH`` and ``BOOST_ROOT``) should be in the typical unix-format (e.g.
-``/cygdrive/c/boost_1_33_0``). In the windows environment, they should have the typical
-windows format (``c:/boost_1_33_0``).
+``/cygdrive/c/boost_1_33_1``). In the windows environment, they should have the typical
+windows format (``c:/boost_1_33_1``).
 
 The ``Jamfile`` will define ``NDEBUG`` when it's building a release build.
 There are two other build variants available in the ``Jamfile``. debug_log

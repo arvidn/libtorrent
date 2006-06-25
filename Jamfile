@@ -23,7 +23,7 @@ project torrent
 	: requirements
 
 	<include>./include
-	<include>./asio/include
+	<include>./include/libtorrent
 	<include>./zlib
 	<include>$(BOOST_ROOT)
 	<variant>release:<define>NDEBUG
