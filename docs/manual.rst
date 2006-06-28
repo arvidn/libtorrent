@@ -2136,6 +2136,8 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int max_allowed_in_request_queue;
 		int max_out_request_queue;
 		int whole_pieces_threshold;
+		int peer_timeout;
+		int urlseed_timeout;
 	};
 
 ``proxy_ip`` may be a hostname or ip to a http proxy to use. If this is
@@ -2184,7 +2186,7 @@ actual number of requests depends on the download rate and this number.
 (popular == inverse of rarity) to be downloaded in sequence instead of in
 random (rarest first) order. It can be used to tweak disk performance in
 settings where the random download property is less necessary. For example, if
-the threshold is 7, all pieces which 7 or more peers have, will be downloaded
+the threshold is 10, all pieces which 10 or more peers have, will be downloaded
 in index order.
 
 ``max_allowed_in_request_queue`` is the number of outstanding block requests
@@ -2204,6 +2206,15 @@ peer_connection will prefer requesting whole pieces at a time from this peer.
 The benefit of this is to better utilize disk caches by doing localized
 accesses and also to make it easier to identify bad peers if a piece fails
 the hash check.
+
+``peer_timeout`` is the number of seconds the peer connection should
+wait (for any activity on the peer connection) before closing it due
+to time out. This defaults to 120 seconds, since that's what's specified
+in the protocol specification. After half the time out, a keep alive message
+is sent.
+
+``urlseed_timeout`` is the same as ``peer_timeout`` but applies only to
+url seeds. This value defaults to 20 seconds.
 
 
 ip_filter

@@ -947,6 +947,11 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		std::string now(to_simple_string(second_clock::universal_time()));
+		(*m_ses.m_logger) << now << " resolving: " << url << "\n";
+#endif
+
 		std::string protocol;
 		std::string hostname;
 		int port;
@@ -967,6 +972,11 @@ namespace libtorrent
 		detail::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		std::string now(to_simple_string(second_clock::universal_time()));
+		(*m_ses.m_logger) << now << " completed resolve: " << url << "\n";
+#endif
 		
 		std::set<std::string>::iterator i = m_resolving_web_seeds.find(url);
 		if (i != m_resolving_web_seeds.end()) m_resolving_web_seeds.erase(i);
@@ -980,6 +990,9 @@ namespace libtorrent
 				m_ses.m_alerts.post_alert(
 					url_seed_alert(url, msg.str()));
 			}
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			(*m_ses.m_logger) << " ** HOSTNAME LOOKUP FAILED!**: " << url << "\n";
+#endif
 
 			// the name lookup failed for the http host. Don't try
 			// this host again
@@ -1019,6 +1032,10 @@ namespace libtorrent
 		}
 		catch (std::exception& e)
 		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			(*m_ses.m_logger) << " ** HOSTNAME LOOKUP FAILED!**: " << e.what() << "\n";
+#endif
+
 			// TODO: post an error alert!
 			std::map<tcp::endpoint, peer_connection*>::iterator i = m_connections.find(a);
 			if (i != m_connections.end()) m_connections.erase(i);

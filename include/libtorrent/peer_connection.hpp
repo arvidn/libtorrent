@@ -369,6 +369,8 @@ namespace libtorrent
 		// or if the extended handshake sets a limit.
 		int m_max_out_request_queue;
 
+		void set_timeout(int s) { m_timeout = s; }
+
 	private:
 
 		void fill_send_buffer();
