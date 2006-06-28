@@ -82,7 +82,7 @@ namespace libtorrent
 #endif
 		  m_ses(ses)
 		, m_max_out_request_queue(m_ses.m_settings.max_out_request_queue)
-		, m_timeout(120)
+		, m_timeout(m_ses.m_settings.peer_timeout)
 		, m_last_piece(second_clock::universal_time())
 		, m_packet_size(0)
 		, m_recv_pos(0)
@@ -173,7 +173,7 @@ namespace libtorrent
 #endif
 		  m_ses(ses)
 		, m_max_out_request_queue(m_ses.m_settings.max_out_request_queue)
-		, m_timeout(120)
+		, m_timeout(m_ses.m_settings.peer_timeout)
 		, m_last_piece(second_clock::universal_time())
 		, m_packet_size(0)
 		, m_recv_pos(0)
@@ -1961,7 +1961,7 @@ namespace libtorrent
 
 	bool peer_connection::has_timed_out() const
 	{
-		// TODO: the timeout should be set by an event rather
+		// TODO: the timeout should be called by an event
 		INVARIANT_CHECK;
 
 		using namespace boost::posix_time;

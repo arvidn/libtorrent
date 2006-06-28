@@ -66,6 +66,9 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		// since this is a web seed, change the timeout
+		// according to the settings.
+		set_timeout(ses.m_settings.urlseed_timeout);
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << "*** web_peer_connection\n";
 #endif

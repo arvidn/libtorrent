@@ -50,10 +50,12 @@ namespace libtorrent
 			, tracker_maximum_response_length(1024*1024)
 			, piece_timeout(120)
 			, request_queue_time(3.f)
-			, sequenced_download_threshold(7)
+			, sequenced_download_threshold(10)
 			, max_allowed_in_request_queue(250)
 			, max_out_request_queue(200)
 			, whole_pieces_threshold(20)
+			, peer_timeout(120)
+			, urlseed_timeout(20)
 		{}
 
 		std::string proxy_ip;
@@ -124,6 +126,16 @@ namespace libtorrent
 		// doing localized accesses and also to make it easier
 		// to identify bad peers if a piece fails the hash check.
 		int whole_pieces_threshold;
+		
+		// the number of seconds to wait for any activity on
+		// the peer wire before closing the connectiong due
+		// to time out.
+		int peer_timeout;
+		
+		// same as peer_timeout, but only applies to url-seeds.
+		// this is usually set lower, because web servers are
+		// expected to be more reliable.
+		int urlseed_timeout;
 	};
 }
 

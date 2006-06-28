@@ -34,6 +34,14 @@ MooPolice_ is a windows bittorrent client with a quite unique look.
 
 .. _MooPolice: http://www.massaroddel.de/MooPolice/
 
+**BitSlug**
+
+.. image:: bitslug_thumb.png
+
+BitSlug_ is a MacOSX cocoa client.
+
+.. _BitSlug: http://bitslug.sourceforge.net/
+
 **BitBuddy**
 
 .. image:: bitbuddy_thumb.jpg

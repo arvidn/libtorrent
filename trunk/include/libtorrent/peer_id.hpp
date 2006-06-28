@@ -80,12 +80,34 @@ namespace libtorrent
 
 		bool operator<(big_number const& n) const
 		{
-			for(int i = 0; i < number_size; ++i)
+			for (int i = 0; i < number_size; ++i)
 			{
 				if (m_number[i] < n.m_number[i]) return true;
 				if (m_number[i] > n.m_number[i]) return false;
 			}
 			return false;
+		}
+		
+		big_number operator~()
+		{
+			big_number ret;
+			for (int i = 0; i< number_size; ++i)
+				ret.m_number[i] = ~m_number[i];
+			return ret;
+		}
+		
+		big_number& operator &= (big_number const& n)
+		{
+			for (int i = 0; i< number_size; ++i)
+				m_number[i] &= n.m_number[i];
+			return *this;
+		}
+
+		big_number& operator |= (big_number const& n)
+		{
+			for (int i = 0; i< number_size; ++i)
+				m_number[i] |= n.m_number[i];
+			return *this;
 		}
 
 		unsigned char& operator[](int i)
