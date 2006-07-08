@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/io.hpp"
+#include "libtorrent/file.hpp"
 #include "libtorrent/version.hpp"
 
 using namespace boost::posix_time;
@@ -1762,6 +1763,25 @@ namespace libtorrent
 		reset.fire();
 
 		setup_receive();	
+	}
+	catch (file_error& e)
+	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (!t)
+		{
+			m_ses.connection_failed(m_socket, remote(), e.what());
+			return;
+		}
+		
+		if (t->alerts().should_post(alert::fatal))
+		{
+			t->alerts().post_alert(
+				file_error_alert(t->get_handle()
+				, std::string("torrent paused: ") + e.what()));
+		}
+		t->pause();
 	}
 	catch (std::exception& e)
 	{
