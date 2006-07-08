@@ -1482,6 +1482,13 @@ namespace libtorrent
 				end_iter = m_info.end_files();  file_iter != end_iter; ++file_iter)
 			{
 				path dir = (m_save_path / file_iter->path).branch_path();
+
+				// if the file is empty, just create it. But also make sure
+				// the directory exits.
+				if (dir == last_path
+					&& file_iter->size == 0)
+					file(m_save_path / file_iter->path, file::out);
+
 				if (dir == last_path) continue;
 				last_path = dir;
 
@@ -1492,6 +1499,9 @@ namespace libtorrent
 				if (!exists(last_path))
 					create_directories(last_path);
 #endif
+
+				if (file_iter->size == 0)
+					file(m_save_path / file_iter->path, file::out);
 			}
 			m_current_slot = 0;
 			m_state = state_full_check;

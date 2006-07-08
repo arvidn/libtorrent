@@ -171,7 +171,7 @@ namespace libtorrent
 
 		int num_peers() const
 		{
-			return m_num_peers;
+			return m_peers.size();
 		}
 
 		int num_uploads() const
@@ -223,7 +223,6 @@ namespace libtorrent
 
 		std::vector<peer> m_peers;
 
-		int m_num_peers;
 		torrent* m_torrent;
 
 		// the number of unchoked peers

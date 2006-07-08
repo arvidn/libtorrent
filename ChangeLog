@@ -1,5 +1,8 @@
 release 0.10
 
+	* fixed a bug where the requested number of peers in a tracker request could
+	  be too big.
+	* fixed a bug where empty files were not created in full allocation mode.
 	* fixed a bug in storage that would, in rare cases, fail to do a
 	  complete check.
 	* exposed more settings for tweaking parameters in the piece-picker,

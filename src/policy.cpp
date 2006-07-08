@@ -350,8 +350,7 @@ namespace
 namespace libtorrent
 {
 	policy::policy(torrent* t)
-		: m_num_peers(0)
-		, m_torrent(t)
+		: m_torrent(t)
 //		, m_max_uploads(std::numeric_limits<int>::max())
 //		, m_max_connections(std::numeric_limits<int>::max())
 		, m_num_unchoked(0)
