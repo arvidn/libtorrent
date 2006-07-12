@@ -966,32 +966,33 @@ namespace libtorrent { namespace detail
 			assert(false);
 		}
 
-		{
-			session_impl::mutex_t::scoped_lock l(m_mutex);
+		deadline_timer tracker_timer(m_selector);
 
-			m_tracker_manager.abort_all_requests();
-			for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i =
-				m_torrents.begin(); i != m_torrents.end(); ++i)
+		session_impl::mutex_t::scoped_lock l(m_mutex);
+
+		m_tracker_manager.abort_all_requests();
+		for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i =
+			m_torrents.begin(); i != m_torrents.end(); ++i)
+		{
+			i->second->abort();
+			if (!i->second->is_paused() || i->second->should_request())
 			{
-				i->second->abort();
-				if (!i->second->is_paused() || i->second->should_request())
-				{
-					tracker_request req = i->second->generate_tracker_request();
-					req.listen_port = m_listen_interface.port();
-					req.key = m_key;
-					std::string login = i->second->tracker_login();
-					m_tracker_manager.queue_request(m_selector, req, login);
-				}
+				tracker_request req = i->second->generate_tracker_request();
+				req.listen_port = m_listen_interface.port();
+				req.key = m_key;
+				std::string login = i->second->tracker_login();
+				m_tracker_manager.queue_request(m_selector, req, login);
 			}
-			m_timer.expires_from_now(boost::posix_time::seconds(
-				m_settings.stop_tracker_timeout));
-			m_timer.async_wait(bind(&demuxer::interrupt, &m_selector));
 		}
+		tracker_timer.expires_from_now(boost::posix_time::seconds(
+			m_settings.stop_tracker_timeout));
+		tracker_timer.async_wait(bind(&demuxer::interrupt, &m_selector));
+		l.unlock();
 
 		m_selector.reset();
 		m_selector.run();
 
-		session_impl::mutex_t::scoped_lock l(m_mutex);
+		l.lock();
 		assert(m_abort);
 		m_abort = true;
 

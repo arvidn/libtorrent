@@ -212,7 +212,7 @@ namespace libtorrent
 			assert(m_open_mode & mode_out);
 			assert(m_fd != -1);
 
-			// Test this a bit more, what happens with random failures in
+			// TODO: Test this a bit more, what happens with random failures in
 			// the files?
 //			if ((rand() % 100) > 80)
 //				throw file_error("debug");
