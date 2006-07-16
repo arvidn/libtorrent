@@ -186,8 +186,7 @@ project (including this documentation). The current state includes the
 following features:</p>
 <ul class="simple">
 <li>multitracker extension support (as <a class="reference" href="http://home.elp.rr.com/tur/multitracker-spec.txt">specified by John Hoffman</a>)</li>
-<li>serves multiple torrents on a single port and a single thread</li>
-<li>supports http proxies and proxy authentication</li>
+<li>serves multiple torrents on a single port and in a single thread</li>
 <li>gzipped tracker-responses</li>
 <li><a class="reference" href="#http-seeding">HTTP seeding</a>, as <a class="reference" href="http://www.getright.com/seedtorrent.html">specified by Michael Burford of GetRight</a>.</li>
 <li>piece picking on block-level like in <a class="reference" href="http://azureus.sourceforge.net">Azureus</a> (as opposed to piece-level).
@@ -195,6 +194,7 @@ This means it can download parts of the same piece from different peers.
 It will also prefer to download whole pieces from single peers if the
 download speed is high enough from that particular peer.</li>
 <li>queues torrents for file check, instead of checking all of them in parallel.</li>
+<li>supports http proxies and proxy authentication</li>
 <li>uses separate threads for checking files and for main downloader, with a
 fool-proof thread-safe library interface. (i.e. There's no way for the
 user to cause a deadlock). (see <a class="reference" href="#threads">threads</a>)</li>
@@ -232,7 +232,7 @@ network APIs on the most popular platforms. I/O completion ports on windows,
 epoll on linux and kqueue on MacOS X and BSD.</p>
 <p>libtorrent has been successfully compiled and tested on:</p>
 <ul class="simple">
-<li>Windows 2000 vc7.1</li>
+<li>Windows 2000 vc7.1, vc8</li>
 <li>Linux x86 GCC 3.3, GCC 3.4.2</li>
 <li>MacOS X (darwin), (Apple's) GCC 3.3, (Apple's) GCC 4.0</li>
 <li>SunOS 5.8 GCC 3.1</li>
@@ -1958,6 +1958,8 @@ peers this client is connected to. The fractional part tells the share of
 pieces that have more copies than the rarest piece(s). For example: 2.5 would
 mean that the rarest pieces have only 2 copies among the peers this torrent is
 connected to, and that 50% of all the pieces have more than two copies.</p>
+<p>If sequenced download is activated (in <a class="reference" href="#session-settings">session_settings</a>), the distributed
+copies will be saturated at the <tt class="docutils literal"><span class="pre">sequenced_download_threshold</span></tt>.</p>
 <p><tt class="docutils literal"><span class="pre">block_size</span></tt> is the size of a block, in bytes. A block is a sub piece, it
 is the number of bytes that each piece request asks for and the number of
 bytes that each bit in the <tt class="docutils literal"><span class="pre">partial_piece_info</span></tt>'s bitset represents
@@ -2175,7 +2177,8 @@ actual number of requests depends on the download rate and this number.</p>
 random (rarest first) order. It can be used to tweak disk performance in
 settings where the random download property is less necessary. For example, if
 the threshold is 10, all pieces which 10 or more peers have, will be downloaded
-in index order.</p>
+in index order. This setting defaults to 100, which means that it is disabled
+in practice.</p>
 <p><tt class="docutils literal"><span class="pre">max_allowed_in_request_queue</span></tt> is the number of outstanding block requests
 a peer is allowed to queue up in the client. If a peer sends more requests
 than this (before the first one has been handled) the last request will be

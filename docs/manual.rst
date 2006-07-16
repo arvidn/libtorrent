@@ -28,8 +28,7 @@ project (including this documentation). The current state includes the
 following features:
 
 * multitracker extension support (as `specified by John Hoffman`__)
-* serves multiple torrents on a single port and a single thread
-* supports http proxies and proxy authentication
+* serves multiple torrents on a single port and in a single thread
 * gzipped tracker-responses
 * `HTTP seeding`_, as `specified by Michael Burford of GetRight`__.
 * piece picking on block-level like in Azureus_ (as opposed to piece-level).
@@ -37,6 +36,7 @@ following features:
   It will also prefer to download whole pieces from single peers if the
   download speed is high enough from that particular peer.
 * queues torrents for file check, instead of checking all of them in parallel.
+* supports http proxies and proxy authentication
 * uses separate threads for checking files and for main downloader, with a
   fool-proof thread-safe library interface. (i.e. There's no way for the
   user to cause a deadlock). (see threads_)
@@ -85,7 +85,7 @@ epoll on linux and kqueue on MacOS X and BSD.
 
 libtorrent has been successfully compiled and tested on:
 
-* Windows 2000 vc7.1
+* Windows 2000 vc7.1, vc8
 * Linux x86 GCC 3.3, GCC 3.4.2
 * MacOS X (darwin), (Apple's) GCC 3.3, (Apple's) GCC 4.0
 * SunOS 5.8 GCC 3.1
@@ -1953,6 +1953,9 @@ pieces that have more copies than the rarest piece(s). For example: 2.5 would
 mean that the rarest pieces have only 2 copies among the peers this torrent is
 connected to, and that 50% of all the pieces have more than two copies.
 
+If sequenced download is activated (in session_settings_), the distributed
+copies will be saturated at the ``sequenced_download_threshold``.
+
 ``block_size`` is the size of a block, in bytes. A block is a sub piece, it
 is the number of bytes that each piece request asks for and the number of
 bytes that each bit in the ``partial_piece_info``'s bitset represents
@@ -2187,7 +2190,8 @@ actual number of requests depends on the download rate and this number.
 random (rarest first) order. It can be used to tweak disk performance in
 settings where the random download property is less necessary. For example, if
 the threshold is 10, all pieces which 10 or more peers have, will be downloaded
-in index order.
+in index order. This setting defaults to 100, which means that it is disabled
+in practice.
 
 ``max_allowed_in_request_queue`` is the number of outstanding block requests
 a peer is allowed to queue up in the client. If a peer sends more requests
