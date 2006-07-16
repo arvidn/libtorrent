@@ -35,12 +35,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <numeric>
 
+// non-standard header, is_sorted()
+//#include <algo.h>
+
 #include "libtorrent/piece_picker.hpp"
 
 #ifndef NDEBUG
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/torrent.hpp"
 #endif
+
+//#define TORRENT_PIECE_PICKER_INVARIANT_CHECK INVARIANT_CHECK
+#define TORRENT_PIECE_PICKER_INVARIANT_CHECK
 
 namespace libtorrent
 {
@@ -85,10 +91,6 @@ namespace libtorrent
 		std::vector<int> piece_list;
 		piece_list.reserve(std::count(pieces.begin(), pieces.end(), false));
 
-#ifndef NDEBUG
-		integrity_check();
-#endif
-
 		for (std::vector<bool>::const_iterator i = pieces.begin();
 			i != pieces.end(); ++i)
 		{
@@ -121,10 +123,6 @@ namespace libtorrent
 			assert(m_piece_map[index].index != piece_pos::we_have_index);
 		}
 
-#ifndef NDEBUG
-		integrity_check();
-#endif
-
 		// if we have fast resume info
 		// use it
 		if (!unfinished.empty())
@@ -140,17 +138,12 @@ namespace libtorrent
 				}
 			}
 		}
-#ifndef NDEBUG
-		integrity_check();
-#endif
 	}
 
 	void piece_picker::set_sequenced_download_threshold(
 		int sequenced_download_threshold)
 	{
-#ifndef NDEBUG
-		integrity_check();
-#endif
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 
 		if (sequenced_download_threshold == m_sequenced_download_threshold)
 			return;
@@ -168,14 +161,11 @@ namespace libtorrent
 				move(p.downloading, p.filtered, prev_priority, i->index);
 			}
 		}
-#ifndef NDEBUG
-		integrity_check();
-#endif
 	}
 
 #ifndef NDEBUG
 
-	void piece_picker::integrity_check(const torrent* t) const
+	void piece_picker::check_invariant(const torrent* t) const
 	{
 		assert(sizeof(piece_pos) == 4);
 
@@ -265,7 +255,10 @@ namespace libtorrent
 				const std::vector<std::vector<int> >& c_vec = pick_piece_info_vector(i->downloading, i->filtered);
 				assert(i->priority(m_sequenced_download_threshold) < (int)c_vec.size());
 				const std::vector<int>& vec = c_vec[i->priority(m_sequenced_download_threshold)];
-				assert(i->index < vec.size());
+				if (i->index >= vec.size())
+				{
+					assert(false);
+				}
 				assert(vec[i->index] == index);
 			}
 
@@ -339,8 +332,9 @@ namespace libtorrent
 		{
 			// the piece should be inserted ordered, not randomly
 			std::vector<int>& v = dst_vec[priority];
+//			assert(is_sorted(v.begin(), v.end()/*, std::greater<int>()*/));
 			std::vector<int>::iterator i = std::lower_bound(v.begin(), v.end()
-				, index, std::greater<int>());
+				, index/*, std::greater<int>()*/);
 			p.index = i - v.begin();
 			v.insert(i, index);
 			i = v.begin() + p.index + 1;
@@ -349,6 +343,7 @@ namespace libtorrent
 				++m_piece_map[*i].index;
 				assert(v[m_piece_map[*i].index] == *i);
 			}
+//			assert(is_sorted(v.begin(), v.end()/*, std::greater<int>()*/));
 		}
 		else if (dst_vec[priority].size() < 2)
 		{
@@ -394,12 +389,18 @@ namespace libtorrent
 		piece_pos& p = m_piece_map[index];
 		int new_priority = p.priority(m_sequenced_download_threshold);
 
-		assert(p.downloading != downloading
-			|| p.filtered != filtered
-			|| (int)new_priority != priority);
+		if (p.downloading == downloading
+			&& p.filtered == filtered
+			&& new_priority == priority)
+		{
+			assert(p.ordered(m_sequenced_download_threshold));
+			return;
+		}
 
 		std::vector<std::vector<int> >& dst_vec(pick_piece_info_vector(
 			p.downloading, p.filtered));
+
+		assert(&dst_vec != &src_vec || new_priority != priority);
 
 		if ((int)dst_vec.size() <= new_priority)
 		{
@@ -411,9 +412,9 @@ namespace libtorrent
 		{
 			// the piece should be inserted ordered, not randomly
 			std::vector<int>& v = dst_vec[new_priority];
-
+//			assert(is_sorted(v.begin(), v.end()/*, std::greater<int>()*/));
 			std::vector<int>::iterator i = std::lower_bound(v.begin(), v.end()
-				, index, std::greater<int>());
+				, index/*, std::greater<int>()*/);
 			p.index = i - v.begin();
 			v.insert(i, index);
 			i = v.begin() + p.index + 1;
@@ -422,6 +423,7 @@ namespace libtorrent
 				++m_piece_map[*i].index;
 				assert(v[m_piece_map[*i].index] == *i);
 			}
+//			assert(is_sorted(v.begin(), v.end()/*, std::greater<int>()*/));
 		}
 		else if (dst_vec[new_priority].size() < 2)
 		{
@@ -448,25 +450,40 @@ namespace libtorrent
 		assert(p.index < dst_vec[p.priority(m_sequenced_download_threshold)].size());
 		assert(dst_vec[p.priority(m_sequenced_download_threshold)][p.index] == index);
 
-		// this will remove elem from the source vector without
-		// preserving order, but the order is random anyway
-		int replace_index = src_vec[priority][elem_index] = src_vec[priority].back();
-		if (index != replace_index)
+		if (priority >= m_sequenced_download_threshold)
 		{
-			// update the entry we moved from the back
-			m_piece_map[replace_index].index = elem_index;
-
-			assert((int)src_vec[priority].size() > elem_index);
-			assert((int)m_piece_map[replace_index].priority(m_sequenced_download_threshold) == priority);
-			assert((int)m_piece_map[replace_index].index == elem_index);
-			assert(src_vec[priority][elem_index] == replace_index);
+			// remove the element from the source vector and preserve the order
+			std::vector<int>& v = src_vec[priority];
+			v.erase(v.begin() + elem_index);
+			for (std::vector<int>::iterator i = v.begin() + elem_index;
+				i != v.end(); ++i)
+			{
+				--m_piece_map[*i].index;
+				assert(v[m_piece_map[*i].index] == *i);
+			}
 		}
 		else
 		{
-			assert((int)src_vec[priority].size() == elem_index+1);
-		}
+			// this will remove elem from the source vector without
+			// preserving order, but the order is random anyway
+			int replace_index = src_vec[priority][elem_index] = src_vec[priority].back();
+			if (index != replace_index)
+			{
+				// update the entry we moved from the back
+				m_piece_map[replace_index].index = elem_index;
 
-		src_vec[priority].pop_back();
+				assert((int)src_vec[priority].size() > elem_index);
+				assert((int)m_piece_map[replace_index].priority(m_sequenced_download_threshold) == priority);
+				assert((int)m_piece_map[replace_index].index == elem_index);
+				assert(src_vec[priority][elem_index] == replace_index);
+			}
+			else
+			{
+				assert((int)src_vec[priority].size() == elem_index+1);
+			}
+
+			src_vec[priority].pop_back();
+		}
 	}
 
 	void piece_picker::remove(bool downloading, bool filtered, int priority
@@ -497,6 +514,7 @@ namespace libtorrent
 		if (p.ordered(m_sequenced_download_threshold))
 		{
 			std::vector<int>& v = src_vec[priority];
+//			assert(is_sorted(v.begin(), v.end()/*, std::greater<int>()*/));
 			std::vector<int>::iterator i = v.begin() + elem_index;
 			v.erase(i);
 			i = v.begin() + elem_index;
@@ -505,6 +523,7 @@ namespace libtorrent
 				--m_piece_map[*i].index;
 				assert(v[m_piece_map[*i].index] == *i);
 			}
+//			assert(is_sorted(v.begin(), v.end()/*, std::greater<int>()*/));
 		}
 		else
 		{
@@ -520,6 +539,8 @@ namespace libtorrent
 
 	void piece_picker::restore_piece(int index)
 	{
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+
 		assert(index >= 0);
 		assert(index < (int)m_piece_map.size());
 
@@ -536,14 +557,11 @@ namespace libtorrent
 		piece_pos& p = m_piece_map[index];
 		if (p.filtered) return;
 		move(true, p.filtered, p.priority(m_sequenced_download_threshold), p.index);
-
-#ifndef NDEBUG
-//		integrity_check();
-#endif
 	}
 
 	void piece_picker::inc_refcount(int i)
 	{
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 		assert(i >= 0);
 		assert(i < (int)m_piece_map.size());
 
@@ -571,9 +589,7 @@ namespace libtorrent
 
 	void piece_picker::dec_refcount(int i)
 	{
-#ifndef NDEBUG
-//		integrity_check();
-#endif
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 
 		assert(i >= 0);
 		assert(i < (int)m_piece_map.size());
@@ -599,6 +615,7 @@ namespace libtorrent
 	// be removed from the available piece list.
 	void piece_picker::we_have(int index)
 	{
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 		assert(index >= 0);
 		assert(index < (int)m_piece_map.size());
 
@@ -618,20 +635,14 @@ namespace libtorrent
 		if (info_index == piece_pos::we_have_index) return;
 		remove(p.downloading, p.filtered, priority, info_index);
 		p.index = piece_pos::we_have_index;
-#ifndef NDEBUG
-		integrity_check();
-#endif
 	}
 
 
 	void piece_picker::mark_as_filtered(int index)
 	{
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 		assert(index >= 0);
 		assert(index < (int)m_piece_map.size());
-
-#ifndef NDEBUG
-//		integrity_check();
-#endif
 		
 		piece_pos& p = m_piece_map[index];
 		if (p.filtered == 1) return;	
@@ -646,10 +657,6 @@ namespace libtorrent
 		{
 			++m_num_have_filtered;
 		}
-
-#ifndef NDEBUG
-		integrity_check();
-#endif
 	}
 	
 	// this function can be used for pieces that we don't
@@ -659,6 +666,7 @@ namespace libtorrent
 	// be inserted in the available piece list again
 	void piece_picker::mark_as_unfiltered(int index)
 	{
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 		assert(index >= 0);
 		assert(index < (int)m_piece_map.size());
 
@@ -676,10 +684,6 @@ namespace libtorrent
 			--m_num_have_filtered;
 			assert(m_num_have_filtered >= 0);
 		}
-
-#ifndef NDEBUG
-		integrity_check();
-#endif
 	}
 
 	bool piece_picker::is_filtered(int index) const
@@ -706,12 +710,9 @@ namespace libtorrent
 		, int num_blocks, bool prefer_whole_pieces
 		, tcp::endpoint peer) const
 	{
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 		assert(num_blocks > 0);
 		assert(pieces.size() == m_piece_map.size());
-
-#ifndef NDEBUG
-//		integrity_check();
-#endif
 
 		// free refers to pieces that are free to download, no one else
 		// is downloading them.
@@ -973,9 +974,8 @@ namespace libtorrent
 
 	void piece_picker::mark_as_downloading(piece_block block, const tcp::endpoint& peer)
 	{
-#ifndef NDEBUG
-//		integrity_check();
-#endif
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+
 		assert(block.piece_index >= 0);
 		assert(block.block_index >= 0);
 		assert(block.piece_index < (int)m_piece_map.size());
@@ -1002,16 +1002,12 @@ namespace libtorrent
 			i->info[block.block_index].peer = peer;
 			i->requested_blocks[block.block_index] = 1;
 		}
-#ifndef NDEBUG
-//		integrity_check();
-#endif
 	}
 
 	void piece_picker::mark_as_finished(piece_block block, const tcp::endpoint& peer)
 	{
-#ifndef NDEBUG
-//		integrity_check();
-#endif
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+
 		assert(block.piece_index >= 0);
 		assert(block.block_index >= 0);
 		assert(block.piece_index < (int)m_piece_map.size());
@@ -1041,9 +1037,6 @@ namespace libtorrent
 			i->requested_blocks[block.block_index] = 1;
 			i->finished_blocks[block.block_index] = 1;
 		}
-#ifndef NDEBUG
-//		integrity_check();
-#endif
 	}
 /*
 	void piece_picker::mark_as_finished(piece_block block, const peer_id& peer)
@@ -1110,9 +1103,7 @@ namespace libtorrent
 
 	void piece_picker::abort_download(piece_block block)
 	{
-#ifndef NDEBUG
-//		integrity_check();
-#endif
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 
 		assert(block.piece_index >= 0);
 		assert(block.block_index >= 0);
@@ -1151,9 +1142,6 @@ namespace libtorrent
 			piece_pos& p = m_piece_map[block.piece_index];
 			move(true, p.filtered, p.priority(m_sequenced_download_threshold), p.index);
 		}
-#ifndef NDEBUG
-//		integrity_check();
-#endif
 	}
 
 	int piece_picker::unverified_blocks() const

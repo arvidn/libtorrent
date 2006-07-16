@@ -50,7 +50,7 @@ namespace libtorrent
 			, tracker_maximum_response_length(1024*1024)
 			, piece_timeout(120)
 			, request_queue_time(3.f)
-			, sequenced_download_threshold(10)
+			, sequenced_download_threshold(100)
 			, max_allowed_in_request_queue(250)
 			, max_out_request_queue(200)
 			, whole_pieces_threshold(20)

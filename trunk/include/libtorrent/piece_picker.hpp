@@ -212,7 +212,7 @@ namespace libtorrent
 		int num_have_filtered() const { return m_num_have_filtered; }
 #ifndef NDEBUG
 		// used in debug mode
-		void integrity_check(const torrent* t = 0) const;
+		void check_invariant(const torrent* t = 0) const;
 #endif
 
 		// functor that compares indices on downloading_pieces
