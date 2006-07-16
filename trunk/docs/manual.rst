@@ -280,6 +280,9 @@ The ``Jamfile`` has the following build variants:
 * ``debug_log`` - debug version with standard logging
 * ``debug_vlog`` - debug version with verbose logging
 
+The logs created when building vlog or log mode are put in a directory called
+``libtorrent_logs`` in the current working directory.
+
 When building the example client on windows, you need to build with
 ``link=static`` otherwise you may get unresolved external symbols for some
 boost.program-options symbols.
