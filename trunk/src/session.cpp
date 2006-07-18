@@ -996,21 +996,12 @@ namespace libtorrent { namespace detail
 		assert(m_abort);
 		m_abort = true;
 
-		for (connection_map::iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
-		{
-			i->second->disconnect();
-		}
-		
-		m_connections.clear();
+		while (!m_connections.empty())
+			m_connections.begin()->second->disconnect();
 
-		for (connection_map::iterator i = m_half_open.begin();
-			i != m_half_open.end(); ++i)
-		{
-			i->second->disconnect();
-		}
+		while (!m_half_open.empty())
+			m_half_open.begin()->second->disconnect();
 
-		m_half_open.clear();
 		m_connection_queue.clear();
 
 #ifndef NDEBUG
