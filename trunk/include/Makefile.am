@@ -93,10 +93,8 @@ libtorrent/asio/detail/posix_signal_blocker.hpp \
 libtorrent/asio/detail/posix_thread.hpp \
 libtorrent/asio/detail/posix_tss_ptr.hpp \
 libtorrent/asio/detail/push_options.hpp \
-libtorrent/asio/detail/reactive_deadline_timer_service.hpp \
 libtorrent/asio/detail/reactive_socket_service.hpp \
 libtorrent/asio/detail/reactor_op_queue.hpp \
-libtorrent/asio/detail/reactor_timer_queue.hpp \
 libtorrent/asio/detail/resolver_service.hpp \
 libtorrent/asio/detail/scoped_lock.hpp \
 libtorrent/asio/detail/select_interrupter.hpp \

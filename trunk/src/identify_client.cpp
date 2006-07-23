@@ -119,23 +119,17 @@ namespace
 	// identification
 	boost::optional<fingerprint> parse_mainline_style(const peer_id& id)
 	{
-		if (!std::isprint(id[0])
-			|| !std::isalnum(id[1])
-			|| id[2] != '-'
-			|| !std::isalnum(id[3])
-			|| id[4] != '-'
-			|| !std::isalnum(id[5])
-			|| !std::equal(id.begin() + 6, id.begin() + 8, "--"))
+		char ids[21];
+		std::copy(id.begin(), id.end(), ids);
+		ids[20] = 0;
+		fingerprint ret("..", 0, 0, 0, 0);
+		ret.name[1] = 0;
+		ret.tag_version = 0;
+		if (sscanf(ids, "%c%d-%d-%d--", &ret.id[0], &ret.major_version, &ret.minor_version
+			, &ret.revision_version) != 4
+			|| !std::isprint(ret.id[0]))
 			return boost::optional<fingerprint>();
 
-		fingerprint ret("..", 0, 0, 0, 0);
-
-		ret.name[0] = id[0];
-		ret.name[1] = 0;
-		ret.major_version = decode_digit(id[1]);
-		ret.minor_version = decode_digit(id[3]);
-		ret.revision_version = decode_digit(id[5]);
-		ret.tag_version = 0;
 		return boost::optional<fingerprint>(ret);
 	}
 
@@ -147,18 +141,22 @@ namespace
 	{
 		map_entry("A",  "ABC")
 		, map_entry("AR", "Arctic Torrent")
+		, map_entry("AX", "BitPump")
 		, map_entry("AZ", "Azureus")
 		, map_entry("BB", "BitBuddy")
 		, map_entry("BC", "BitComet")
 		, map_entry("BS", "BTSlave")
 		, map_entry("BX", "BittorrentX")
+		, map_entry("CD", "Enhanced CTorrent")
 		, map_entry("CT", "CTorrent")
 		, map_entry("KT", "KTorrent")
+		, map_entry("LP", "lphant")
 		, map_entry("LT", "libtorrent")
 		, map_entry("M",  "Mainline")
 		, map_entry("MP", "MooPolice")
 		, map_entry("MT", "Moonlight Torrent")
 		, map_entry("O",  "Osprey Permaseed")
+		, map_entry("R",  "Tribler")
 		, map_entry("S",  "Shadow")
 		, map_entry("SB", "Swiftbit")
 		, map_entry("SN", "ShareNet")
