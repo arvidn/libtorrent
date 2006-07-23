@@ -125,9 +125,9 @@ namespace
 		fingerprint ret("..", 0, 0, 0, 0);
 		ret.name[1] = 0;
 		ret.tag_version = 0;
-		if (sscanf(ids, "%c%d-%d-%d--", &ret.id[0], &ret.major_version, &ret.minor_version
+		if (sscanf(ids, "%c%d-%d-%d--", &ret.name[0], &ret.major_version, &ret.minor_version
 			, &ret.revision_version) != 4
-			|| !std::isprint(ret.id[0]))
+			|| !std::isprint(ret.name[0]))
 			return boost::optional<fingerprint>();
 
 		return boost::optional<fingerprint>(ret);
