@@ -71,10 +71,10 @@ namespace libtorrent
 		}
 
 		char name[2];
-		char major_version;
-		char minor_version;
-		char revision_version;
-		char tag_version;
+		int major_version;
+		int minor_version;
+		int revision_version;
+		int tag_version;
 
 	private:
 
