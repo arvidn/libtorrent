@@ -410,7 +410,10 @@ filenames, so if your target is Windows 2000 and up, you may want to use
 
 If you're building in MS Visual Studio, you may have to set the compiler
 options "force conformance in for loop scope", "treat wchar_t as built-in
-type" and "Enable Run-Time Type Info" to Yes.
+type" and "Enable Run-Time Type Info" to Yes. For a detailed description
+on how to build libtorrent with VS 2005, see `this document`_.
+
+.. _`this document`: vs2005_build_notes.html
 
 
 build configurations

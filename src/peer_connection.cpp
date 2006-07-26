@@ -1453,6 +1453,9 @@ namespace libtorrent
 			m_download_queue.clear();
 			m_request_queue.clear();
 			
+			// TODO: If we have a limited number of upload
+			// slots, choke this peer
+			
 			m_assume_fifo = true;
 
 			// this will trigger new picking of pieces

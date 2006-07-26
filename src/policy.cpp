@@ -93,7 +93,6 @@ namespace
 		// the last argument is if we should prefer whole pieces
 		// for this peer. If we're downloading one piece in 20 seconds
 		// then use this mode.
-		// TODO: 20 seconds has to be customizable
 		bool prefer_whole_pieces = c.statistics().download_payload_rate()
 			* t.settings().whole_pieces_threshold
 			> t.torrent_file().piece_length();

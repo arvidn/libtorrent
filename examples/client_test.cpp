@@ -512,6 +512,7 @@ int main(int ac, char* av[])
 
 		session_settings settings;
 		settings.user_agent = "client_test " LIBTORRENT_VERSION;
+		settings.sequenced_download_threshold = 15;
 
 		std::deque<std::string> events;
 

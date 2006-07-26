@@ -638,6 +638,7 @@ namespace libtorrent
 		std::vector<file_slice> ret;
 
 		size_type start = piece * (size_type)m_piece_length + offset;
+		assert(start + size <= m_total_size);
 
 		// find the file iterator and file offset
 		// TODO: make a vector that can map piece -> file index in O(1)

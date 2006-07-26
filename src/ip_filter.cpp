@@ -60,14 +60,7 @@ namespace libtorrent
 		assert(j != i);
 		
 		int first_access = i->access;
-/*
-		std::cout << "flags: " << flags << "\n";
-		std::cout << "first_access: " << first_access << "\n";
-		std::cout << "i->start: " << i->start.as_string() << "\n";
-		std::cout << "first: " << first.as_string() << "\n";
-*/
 		int last_access = prior(j)->access;
-//		std::cout << "last_access: " << last_access << "\n";
 
 		if (i->start != first && first_access != flags)
 		{
@@ -78,20 +71,11 @@ namespace libtorrent
 			--i;
 			first_access = i->access;
 		}
-/*
-		std::cout << "distance(i, j): " << std::distance(i, j) << "\n";
-		std::cout << "size(): " << m_access_list.size() << "\n";
-*/		
 		assert(!m_access_list.empty());
 		assert(i != m_access_list.end());
 
 		if (i != j)
 			m_access_list.erase(next(i), j);
-/*
-		std::cout << "size(): " << m_access_list.size() << "\n";
-		std::cout << "last: " << last.as_string() << "\n";
-		std::cout << "last.ip(): " << last.ip() << " " << 0xffffffff << "\n";
-*/
 		if (i->start == first)
 		{
 			// we can do this const-cast because we know that the new
@@ -108,7 +92,6 @@ namespace libtorrent
 			|| (j == m_access_list.end() && last.to_ulong() != 0xffffffff))
 		{
 			assert(j == m_access_list.end() || last.to_ulong() < j->start.to_ulong() - 1);
-//			std::cout << " -- last_access: " << last_access << "\n";
 			if (last_access != flags)
 				j = m_access_list.insert(j, range(address(last.to_ulong() + 1), last_access));
 		}

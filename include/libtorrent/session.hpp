@@ -71,6 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/session_settings.hpp"
+#include "libtorrent/version.hpp"
 
 #if !defined(NDEBUG) && defined(_MSC_VER)
 #	include <float.h>
@@ -343,7 +344,8 @@ namespace libtorrent
 	{
 	public:
 
-		session(fingerprint const& print = fingerprint("LT", 0, 10, 0, 0));
+		session(fingerprint const& print = fingerprint("LT"
+			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0));
 		session(
 			fingerprint const& print
 			, std::pair<int, int> listen_port_range
