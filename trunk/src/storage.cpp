@@ -627,6 +627,7 @@ namespace libtorrent
 #endif
 
 		size_type start = slot * (size_type)m_pimpl->info.piece_length() + offset;
+		assert(start + size <= m_pimpl->info.total_size());
 
 		// find the file iterator and file offset
 		size_type file_offset = start;

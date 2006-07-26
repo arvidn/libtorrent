@@ -866,7 +866,7 @@ namespace libtorrent { namespace detail
 		// don't pass in the tick_interval here, because
 		// the stats have already been adjusted in
 		// the peer's second tick.
-		m_stat.second_tick(1.f);
+		m_stat.second_tick(tick_interval);
 
 		// distribute the maximum upload rate among the torrents
 

@@ -1,3 +1,7 @@
+
+	* Added more clients to the identifiable list
+	* Fixed fingerprint parser to cope with latest Mainline versions
+
 release 0.10
 
 	* fixed a bug where the requested number of peers in a tracker request could
