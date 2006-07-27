@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 0.10
+:Version: 0.11
 
 .. contents:: Table of contents
   :depth: 2
@@ -31,7 +31,7 @@ following features:
 * serves multiple torrents on a single port and in a single thread
 * gzipped tracker-responses
 * `HTTP seeding`_, as `specified by Michael Burford of GetRight`__.
-* piece picking on block-level like in Azureus_ (as opposed to piece-level).
+* piece picking on block-level (as opposed to piece-level).
   This means it can download parts of the same piece from different peers.
   It will also prefer to download whole pieces from single peers if the
   download speed is high enough from that particular peer.
@@ -67,7 +67,6 @@ following features:
 
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
 __ http://www.getright.com/seedtorrent.html
-.. _Azureus: http://azureus.sourceforge.net
 __ extension_protocol.html
 __ udp_tracker_protocol.html
 

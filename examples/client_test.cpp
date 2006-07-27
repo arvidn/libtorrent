@@ -425,6 +425,8 @@ int main(int ac, char* av[])
 	std::string allocation_mode;
 	std::string in_monitor_dir;
 	std::string bind_to_interface;
+	std::string proxy;
+	std::string proxy_login;
 	int poll_interval;
 
 	namespace po = boost::program_options;
@@ -469,6 +471,13 @@ int main(int ac, char* av[])
 		("bind,b", po::value<std::string>(&bind_to_interface)->default_value("")
 			, "Sets the local interface to bind outbound and the listen "
 			"socket to")
+		("proxy-server,x", po::value<std::string>(&proxy)->default_value("")
+			, "Sets the http proxy to be used for tracker and web seeds "
+			"connections. The string is expected to be on the form: "
+			"<hostname>:<port>. If no port is specified, 8080 is assumed")
+		("proxy-login,o", po::value<std::string>(&proxy_login)->default_value("")
+			, "Sets the username and password used to authenticate with the http "
+			"proxy. The string should be given in the form: <username>:<password>")
 			;
 
 		po::positional_options_description p;
@@ -511,6 +520,38 @@ int main(int ac, char* av[])
 			input = vm["input-file"].as< std::vector<std::string> >();
 
 		session_settings settings;
+
+		if (!proxy.empty())
+		{
+			try
+			{
+				std::size_t i = proxy.find(':');
+				settings.proxy_ip = proxy.substr(0, i);
+				if (i == std::string::npos) settings.proxy_port = 8080;
+				else settings.proxy_port = boost::lexical_cast<int>(
+					proxy.substr(i + 1));
+			}
+			catch (std::exception&)
+			{
+				std::cerr << "Proxy hostname did not match the required format: "
+					<< proxy << std::endl;
+				return 1;
+			}
+
+			if (!proxy_login.empty())
+			{
+				std::size_t i = proxy_login.find(':');
+				if (i == std::string::npos)
+				{
+					std::cerr << "Proxy login did not match the required format: "
+					<< proxy_login << std::endl;
+					return 1;
+				}
+				settings.proxy_login = proxy_login.substr(0, i);
+				settings.proxy_password = proxy_login.substr(i + 1);
+			}
+		}
+
 		settings.user_agent = "client_test " LIBTORRENT_VERSION;
 		settings.sequenced_download_threshold = 15;
 

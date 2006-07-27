@@ -2,6 +2,15 @@ SUBDIRS = include @ZLIBDIR@ src examples test
 EXTRA_DIST = docs/manual.html docs/manual.rst docs/extension_protocol.rst \
 docs/extension_protocol.html docs/udp_tracker_protocol.rst \
 docs/projects.rst docs/projects.html \
+docs/arctic_thumb.png \
+docs/bitbuddy_thumb.jpg \
+docs/bitslug_thumb.png \
+docs/btg_thumb.jpg \
+docs/moopolice_thumb.gif \
+docs/qbittorrent_thumb.jpg \
+docs/ziptorrent_thumb.gif \
+docs/vs2005_build_notes.html \
+docs/vs2005_build_notes.rst \
 docs/udp_tracker_protocol.html docs/client_test.rst docs/client_test.html \
 docs/unicode_support.png docs/client_test.png docs/style.css Jamfile project-root.jam \
 m4/ac_cxx_namespaces.m4 m4/acx_pthread.m4 m4/ax_boost_date-time.m4 \

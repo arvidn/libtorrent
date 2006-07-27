@@ -1054,7 +1054,6 @@ namespace libtorrent { namespace detail
 			i != m_half_open.end(); ++i)
 		{
 			assert(i->second->is_connecting());
-//			assert(m_selector.is_writability_monitored(i->second->get_socket()));
 		}
 
 		for (connection_map::iterator i = m_connections.begin();
@@ -1062,14 +1061,10 @@ namespace libtorrent { namespace detail
 		{
 			assert(i->second);
 			assert(!i->second->is_connecting());
-			if (i->second->is_connecting()
-/*				|| i->second->can_write() != m_selector.is_writability_monitored(i->first)
-				|| i->second->can_read() != m_selector.is_readability_monitored(i->first)*/)
+			if (i->second->is_connecting())
 			{
 				std::ofstream error_log("error.log", std::ios_base::app);
 				boost::intrusive_ptr<peer_connection> p = i->second;
-//				error_log << "selector::is_writability_monitored() " << m_selector.is_writability_monitored(i->first) << "\n";
-//				error_log << "selector::is_readability_monitored() " << m_selector.is_readability_monitored(i->first) << "\n";
 				error_log << "peer_connection::is_connecting() " << p->is_connecting() << "\n";
 				error_log << "peer_connection::can_write() " << p->can_write() << "\n";
 				error_log << "peer_connection::can_read() " << p->can_read() << "\n";
@@ -1396,16 +1391,24 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 
+		tcp::endpoint new_interface;
+		if (net_interface && std::strlen(net_interface) > 0)
+			new_interface = tcp::endpoint(address::from_string(net_interface), port_range.first);
+		else
+			new_interface = tcp::endpoint(address(), port_range.first);
+
+		m_impl.m_listen_port_range = port_range;
+
+		// if the interface is the same and the socket is open
+		// don't do anything
+		if (new_interface == m_impl.m_listen_interface
+			&& m_impl.m_listen_socket) return true;
+
 		if (m_impl.m_listen_socket)
 			m_impl.m_listen_socket.reset();
 
 		m_impl.m_incoming_connection = false;
-
-		m_impl.m_listen_port_range = port_range;
-		if (net_interface && std::strlen(net_interface) > 0)
-			m_impl.m_listen_interface = tcp::endpoint(address::from_string(net_interface), port_range.first);
-		else
-			m_impl.m_listen_interface = tcp::endpoint(address(), port_range.first);
+		m_impl.m_listen_interface = new_interface;
 
 		m_impl.open_listen_port();
 		return m_impl.m_listen_socket;

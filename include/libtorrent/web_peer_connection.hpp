@@ -128,7 +128,6 @@ namespace libtorrent
 
 #ifndef NDEBUG
 		void check_invariant() const;
-		boost::posix_time::ptime m_last_choke;
 #endif
 
 	private:
