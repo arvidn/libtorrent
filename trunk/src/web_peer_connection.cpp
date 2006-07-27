@@ -138,10 +138,15 @@ namespace libtorrent
 
 		m_requests.push_back(r);
 
+		bool using_proxy = false;
+		if (!m_ses.m_settings.proxy_ip.empty())
+			using_proxy = true;
+
 		if (single_file_request)
 		{
 			request += "GET ";
-			request += escape_path(m_path.c_str(), m_path.length());
+			if (using_proxy) request += m_url;
+			else request += escape_path(m_path.c_str(), m_path.length());
 			request += " HTTP/1.1\r\n";
 			request += "Host: ";
 			request += m_host;
@@ -151,13 +156,23 @@ namespace libtorrent
 				request += escape_string(m_ses.m_settings.user_agent.c_str()
 					, m_ses.m_settings.user_agent.size());
 			}
+			if (using_proxy && !m_ses.m_settings.proxy_login.empty())
+			{
+				request += "\r\nProxy-Authorization: Basic ";
+				request += base64encode(m_ses.m_settings.proxy_login + ":"
+					+ m_ses.m_settings.proxy_password);
+			}
+			if (using_proxy)
+			{
+				request += "\r\nProxy-Connection: keep-alive";
+			}
 			request += "\r\nRange: bytes=";
 			request += boost::lexical_cast<std::string>(r.piece
 				* info.piece_length() + r.start);
 			request += "-";
 			request += boost::lexical_cast<std::string>(r.piece
 				* info.piece_length() + r.start + r.length - 1);
-			if (m_first_request)
+			if (m_first_request || using_proxy)
 				request += "\r\nConnection: keep-alive";
 			request += "\r\n\r\n";
 			m_first_request = false;
@@ -173,10 +188,19 @@ namespace libtorrent
 			{
 				file_slice const& f = *i;
 
-				std::string path = m_path;
-				path += info.file_at(f.file_index).path.string();
 				request += "GET ";
-				request += escape_path(path.c_str(), path.length());
+				if (using_proxy)
+				{
+					request += m_url;
+					std::string path = info.file_at(f.file_index).path.string();
+					request += escape_path(path.c_str(), path.length());
+				}
+				else
+				{
+					std::string path = m_path;
+					path += info.file_at(f.file_index).path.string();
+					request += escape_path(path.c_str(), path.length());
+				}
 				request += " HTTP/1.1\r\n";
 				request += "Host: ";
 				request += m_host;
@@ -186,11 +210,21 @@ namespace libtorrent
 					request += escape_string(m_ses.m_settings.user_agent.c_str()
 						, m_ses.m_settings.user_agent.size());
 				}
+				if (using_proxy && !m_ses.m_settings.proxy_login.empty())
+				{
+					request += "\r\nProxy-Authorization: Basic ";
+					request += base64encode(m_ses.m_settings.proxy_login + ":"
+						+ m_ses.m_settings.proxy_password);
+				}
+				if (using_proxy)
+				{
+					request += "\r\nProxy-Connection: keep-alive";
+				}
 				request += "\r\nRange: bytes=";
 				request += boost::lexical_cast<std::string>(f.offset);
 				request += "-";
 				request += boost::lexical_cast<std::string>(f.offset + f.size - 1);
-				if (m_first_request)
+				if (m_first_request || using_proxy)
 					request += "\r\nConnection: keep-alive";
 				request += "\r\n\r\n";
 				m_first_request = false;

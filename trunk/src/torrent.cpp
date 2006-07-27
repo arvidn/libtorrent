@@ -960,10 +960,20 @@ namespace libtorrent
 			= parse_url_components(url);
 
 		m_resolving_web_seeds.insert(url);
-		tcp::resolver::query q(hostname, "0");
-		
-		m_host_resolver.async_resolve(q, bind(&torrent::on_name_lookup
-			, shared_from_this(), _1, _2, port, url));
+		if (m_ses.m_settings.proxy_ip.empty())
+		{
+			tcp::resolver::query q(hostname, "0");
+			m_host_resolver.async_resolve(q, bind(&torrent::on_name_lookup
+				, shared_from_this(), _1, _2, port, url));
+		}
+		else
+		{
+			// use proxy
+			tcp::resolver::query q(m_ses.m_settings.proxy_ip, "0");
+			m_host_resolver.async_resolve(q, bind(&torrent::on_name_lookup
+				, shared_from_this(), _1, _2, m_ses.m_settings.proxy_port, url));
+		}
+
 	}
 
 	void torrent::on_name_lookup(asio::error const& e, tcp::resolver::iterator host
