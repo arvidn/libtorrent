@@ -6,105 +6,93 @@ project listed here, let me_ know.
 
 .. _me: mailto:arvid@rasterbar.com
 
-**electric sheep**
-
-.. image:: electric_sheep_thumb.jpg
-
-`electric sheep`_ is a screensaver which collectively generates
-animations and lets the users vote which one to live on.
++-------------------------------------+-----------------------------------------------+
+| **electric sheep**                  | .. image:: electric_sheep_thumb.jpg           |
+|                                     |                                               |
+| `electric sheep`_ is a screensaver  |                                               |
+| which collectively generates        |                                               |
+| animations and lets the users       |                                               |
+| vote which one to live on.          |                                               |
++-------------------------------------+-----------------------------------------------+
+| **qBittorrent**                     | .. image:: qbittorrent_thumb.jpg              |
+|                                     |                                               |
+| qBittorrent_ is a QT bittorrent     |                                               |
+| client available for linux (likely  |                                               |
+| portable to most other desktops as  |                                               |
+| well). Written by Christophe Dumez. |                                               |
++-------------------------------------+-----------------------------------------------+
+| **btg**                             | .. image:: btg_thumb.jpg                      |
+|                                     |                                               |
+| btg_ is a linux bittorrent client   |                                               |
+| which is run as a daemon. It has    |                                               |
+| multiple user interfaces which      |                                               |
+| connects to the daemon. One GUI     |                                               |
+| (Gtkmm), one terminal interface     |                                               |
+| (ncurses) and one web interface     |                                               |
+| (accessable through a web browser). |                                               |
+| Written by Michael Wojciechowski    |                                               |
+| and Johan Stršm.                    |                                               |
++-------------------------------------+-----------------------------------------------+
+| **MooPolice**                       | .. image:: moopolice_thumb.gif                |
+|                                     |                                               |
+| MooPolice_ is a windows bittorrent  |                                               |
+| client with a quite unique look.    |                                               |
++-------------------------------------+-----------------------------------------------+
+| **BitsCast**                        | .. image:: bitscast_thumb.png                 |
+|                                     |                                               |
+| RSS reader, podcast subscriber,     |                                               |
+| video feed downloader, bittorrent   |                                               |
+| feed downloader. See BitsCast_      |                                               |
+| homepage for more info.             |                                               |
++-------------------------------------+-----------------------------------------------+
+| **BitSlug**                         | .. image:: bitslug_thumb.png                  |
+|                                     |                                               |
+| BitSlug_ is a MacOSX cocoa client.  |                                               |
++-------------------------------------+-----------------------------------------------+
+| **BitBuddy**                        | .. image:: bitbuddy_thumb.jpg                 |
+|                                     |                                               |
+| BitBuddy_ is a windows bittorrent   |                                               |
+| client by Daniel Wang, quite        |                                               |
+| similar to BitComet GUI-wise.       |                                               |
++-------------------------------------+-----------------------------------------------+
+| **Arctic Torrent**                  | .. image:: arctic_thumb.png                   |
+|                                     |                                               |
+| `Arctic Torrent`_ is a light-weight |                                               |
+| bittorrent client for windows.      |                                               |
+| Written by Cory Nelson.             |                                               |
++-------------------------------------+-----------------------------------------------+
+| **ZipTorrent**                      | .. image:: ziptorrent_thumb.gif               |
+|                                     |                                               |
+| ZipTorrent_ is another windows      |                                               |
+| bittorrent client with              |                                               |
+| decentralized search facility.      |                                               |
++-------------------------------------+-----------------------------------------------+
+| **FireANT**                         |                                               |
+|                                     |                                               |
+| FireANT_ is a video blog available  |                                               |
+| for Windows and Mac OSX.            |                                               |
++-------------------------------------+-----------------------------------------------+
+| **eDonkey 2000**                    |                                               |
+|                                     |                                               |
+| eDonkey2000_ comes bundled with a   |                                               |
+| bittorrent plugin by 'The Orphan'.  |                                               |
++-------------------------------------+-----------------------------------------------+
+| **pHoeniX**                         |                                               |
+|                                     |                                               |
+| pHoeniX_ is an eMule mod supporting,|                                               |
+| among other things, bittorrent.     |                                               |
++-------------------------------------+-----------------------------------------------+
 
 .. _`electric sheep`: http://electricsheep.org
-
-**qBittorrent**
-
-.. image:: qbittorrent_thumb.jpg
-
-qBittorrent_ is a QT bittorrent client available for linux (likely
-portable to most other desktops as well). Written by Christophe Dumez.
-
 .. _qBittorrent: http://www.qbittorrent.org/
-
-**btg**
-
-.. image:: btg_thumb.jpg
-
-btg_ is a linux bittorrent client which is run as a daemon. It has
-multiple user interfaces which connects to the daemon. One GUI (Gtkmm),
-one terminal interface (ncurses) and one web interface (accessable through
-a web browser). Written by Michael Wojciechowski and Johan Stršm.
-
 .. _btg: http://developer.berlios.de/projects/btg/
-
-**MooPolice**
-
-.. image:: moopolice_thumb.gif
-
-MooPolice_ is a windows bittorrent client with a quite unique look.
-
 .. _MooPolice: http://www.massaroddel.de/MooPolice/
-
-**BitsCast**
-
-.. image:: bitscast_thumb.png
-
-RSS reader, podcast subscriber, video feed downloader,
-bittorrent feed downloader. See BitsCast_ homepage for
-more info.
-
 .. _BitsCast: http://www.bitscast.com/software/
-
-
-**BitSlug**
-
-.. image:: bitslug_thumb.png
-
-BitSlug_ is a MacOSX cocoa client.
-
 .. _BitSlug: http://bitslug.sourceforge.net/
-
-**BitBuddy**
-
-.. image:: bitbuddy_thumb.jpg
-
-BitBuddy_ is a windows bittorrent client by Daniel Wang, quite similar
-to BitComet GUI-wise.
-
 .. _BitBuddy: http://www.btvampire.com
-
-**Arctic Torrent**
-
-.. image:: arctic_thumb.png
-
-`Arctic Torrent`_ is a light-weight bittorrent client for windows.
-Written by Cory Nelson.
-
 .. _`Arctic Torrent`: http://www.int64.org/arctic.html
-
-**ZipTorrent**
-
-.. image:: ziptorrent_thumb.gif
-
-ZipTorrent_ is another windows bittorrent client with decentralized
-search facility.
-
 .. _ZipTorrent: http://www.ziptorrent.com/
-
-
-**FireANT**
-
-FireANT_ is a video blog available for Windows and Mac OSX.
-
 .. _FireANT: http://antisnottv.net/
-
-**eDonkey 2000**
-
-eDonkey2000_ comes bundled with a bittorrent plugin by 'The Orphan'.
-
 .. _eDonkey2000: http://www.edonkey2000.com/
-
-**pHoeniX**
-
-pHoeniX_ is an eMule mod supporting, among other things, bittorrent.
-
 .. _pHoeniX: http://sourceforge.net/projects/emulephoenix
 
