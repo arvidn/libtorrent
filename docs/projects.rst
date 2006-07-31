@@ -6,6 +6,15 @@ project listed here, let me_ know.
 
 .. _me: mailto:arvid@rasterbar.com
 
+**electric sheep**
+
+.. image:: electric_sheep_thumb.jpg
+
+`electric sheep`_ is a screensaver which collectively generates
+animations and lets the users vote which one to live on.
+
+.. _`electric sheep`: http://electricsheep.org
+
 **qBittorrent**
 
 .. image:: qbittorrent_thumb.jpg
@@ -33,6 +42,17 @@ a web browser). Written by Michael Wojciechowski and Johan Stršm.
 MooPolice_ is a windows bittorrent client with a quite unique look.
 
 .. _MooPolice: http://www.massaroddel.de/MooPolice/
+
+**BitsCast**
+
+.. image:: bitscast_thumb.png
+
+RSS reader, podcast subscriber, video feed downloader,
+bittorrent feed downloader. See BitsCast_ homepage for
+more info.
+
+.. _BitsCast: http://www.bitscast.com/software/
+
 
 **BitSlug**
 
