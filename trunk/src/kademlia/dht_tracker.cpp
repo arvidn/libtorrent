@@ -297,11 +297,15 @@ namespace libtorrent { namespace dht
 	void dht_tracker::on_receive(asio::error const& error, size_t bytes_transferred)
 		try
 	{
+		if (error == asio::error::operation_aborted) return;
+	
 		int current_buffer = m_buffer;
 		m_buffer = (m_buffer + 1) & 1;
 		m_socket.async_receive_from(asio::buffer(&m_in_buf[m_buffer][0]
 			, m_in_buf[m_buffer].size()), m_remote_endpoint[m_buffer]
 			, bind(&dht_tracker::on_receive, this, _1, _2));
+
+		if (error) return;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		++m_total_message_input;
