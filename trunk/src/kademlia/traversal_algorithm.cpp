@@ -79,7 +79,7 @@ void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
 
 void traversal_algorithm::finished(node_id const& id)
 {
-	m_invoke_count--;
+	--m_invoke_count;
 	add_requests();
 	if (m_invoke_count == 0) done();
 }
@@ -114,7 +114,7 @@ void traversal_algorithm::failed(node_id const& id)
 void traversal_algorithm::add_request(node_id const& id, udp::endpoint addr)
 {
 	invoke(id, addr);
-	m_invoke_count++;
+	++m_invoke_count;
 }
 
 namespace

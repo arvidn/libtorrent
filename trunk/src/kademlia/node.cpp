@@ -59,9 +59,16 @@ using boost::posix_time::time_duration;
 namespace libtorrent { namespace dht
 {
 
+#ifdef _MSC_VER
+namespace
+{
+	char rand() { return (char)std::rand(); }
+}
+#endif
+
 typedef boost::shared_ptr<observer> observer_ptr;
 
-// TODO: configurable
+// TODO: configurable?
 enum { announce_interval = 30 };
 
 using asio::ip::udp;
@@ -74,7 +81,11 @@ node_id generate_id()
 {
 	char random[20];
 	std::srand(std::time(0));
+#ifdef _MSC_VER
+	std::generate(random, random + 20, &rand);
+#else
 	std::generate(random, random + 20, &std::rand);
+#endif
 
 	hasher h;
 	h.update(random, 20);

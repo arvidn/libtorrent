@@ -161,7 +161,7 @@ public:
 
 private:
 
-	enum { max_transactions = 1024 };
+	enum { max_transactions = 2048 };
 	unsigned int new_transaction_id();
 	void update_oldest_transaction_id();
 	
@@ -185,8 +185,6 @@ private:
 	routing_table& m_table;
 	boost::posix_time::ptime m_timer;
 	node_id m_random_number;
-	// a cache of connection ids
-	std::map<udp::endpoint, boost::uint32_t> m_connection_id;
 };
 
 } } // namespace libtorrent::dht
