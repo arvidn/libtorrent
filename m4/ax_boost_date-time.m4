@@ -36,7 +36,8 @@ if test "$ax_cv_boost_date_time" = yes; then
     ax_boost_date_time_lib=boost_date_time-$with_boost_date_time
   fi])
   for ax_lib in $ax_date_time_lib $ax_boost_date_time_lib boost_date_time; do
-    AC_CHECK_LIB($ax_lib, main, [BOOST_DATE_TIME_LIB=$ax_lib break])
+    AC_CHECK_LIB($ax_lib, main, [BOOST_DATE_TIME_LIB=$ax_lib
+break])
   done
   AC_SUBST(BOOST_DATE_TIME_LIB)
 fi

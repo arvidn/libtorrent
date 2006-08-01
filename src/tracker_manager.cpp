@@ -559,4 +559,11 @@ namespace libtorrent
 
 		std::swap(m_connections, keep_connections);
 	}
+	
+	bool tracker_manager::empty() const
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		return m_connections.empty();
+	}
+
 }

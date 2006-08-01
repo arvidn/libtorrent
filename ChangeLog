@@ -1,11 +1,18 @@
-
+	* added support for trackerless torrents (with kademlia DHT).
+	* support for torrents with the private flag set.
+	* support for torrents containing bootstrap nodes for the
+	  DHT network.
+	* fixed problem with the configure script on FreeBSD.
+	* limits the pipelining used on url-seeds.
+	* fixed problem where the shutdown always would delay for
+	  session_settings::stop_tracker_timeout seconds.
 	* session::listen_on() won't reopen the socket in case the port and
-	  interface is the same as is already open.
-	* Added http proxy support for web seeds.
-	* Fixed problem where upload and download stats could become incorrect
+	  interface is the same as the one currently in use.
+	* added http proxy support for web seeds.
+	* fixed problem where upload and download stats could become incorrect
 	  in case of high cpu load.
-	* Added more clients to the identifiable list.
-	* Fixed fingerprint parser to cope with latest Mainline versions.
+	* added more clients to the identifiable list.
+	* fixed fingerprint parser to cope with latest Mainline versions.
 
 release 0.10
 

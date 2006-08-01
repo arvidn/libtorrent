@@ -70,6 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/kademlia/dht_tracker.hpp"
 
 using namespace boost::posix_time;
 using boost::shared_ptr;
@@ -430,7 +431,7 @@ namespace libtorrent { namespace detail
 
 	session_impl::session_impl(
 		std::pair<int, int> listen_port_range
-		, const fingerprint& cl_fprint
+		, fingerprint const& cl_fprint
 		, char const* listen_interface)
 		: m_tracker_manager(m_settings)
 		, m_listen_port_range(listen_port_range)
@@ -858,14 +859,11 @@ namespace libtorrent { namespace detail
 				}
 			}
 
-			// tick() will set the used upload quota
+			// second_tick() will set the used upload quota
 			t.second_tick(m_stat, tick_interval);
 			++i;
 		}
 
-		// don't pass in the tick_interval here, because
-		// the stats have already been adjusted in
-		// the peer's second tick.
 		m_stat.second_tick(tick_interval);
 
 		// distribute the maximum upload rate among the torrents
@@ -959,10 +957,10 @@ namespace libtorrent { namespace detail
 		}
 		catch (std::exception& e)
 		{
-			#ifndef NDEBUG
+#ifndef NDEBUG
 			std::cerr << e.what() << "\n";
 			std::string err = e.what();
-			#endif
+#endif
 			assert(false);
 		}
 
@@ -984,13 +982,20 @@ namespace libtorrent { namespace detail
 				m_tracker_manager.queue_request(m_selector, req, login);
 			}
 		}
-		tracker_timer.expires_from_now(boost::posix_time::seconds(
-			m_settings.stop_tracker_timeout));
-		tracker_timer.async_wait(bind(&demuxer::interrupt, &m_selector));
+
+		ptime start(microsec_clock::universal_time());
 		l.unlock();
 
-		m_selector.reset();
-		m_selector.run();
+		while (microsec_clock::universal_time() - start < seconds(
+			m_settings.stop_tracker_timeout)
+			&& !m_tracker_manager.empty())
+		{
+			tracker_timer.expires_from_now(boost::posix_time::milliseconds(100));
+			tracker_timer.async_wait(bind(&demuxer::interrupt, &m_selector));
+
+			m_selector.reset();
+			m_selector.run();
+		}
 
 		l.lock();
 		assert(m_abort);
@@ -1263,6 +1268,14 @@ namespace libtorrent
 		d->info_hash = ti.info_hash();
 		d->resume_data = resume_data;
 
+#ifndef TORRENT_DISABLE_DHT
+		torrent_info::nodes_t const& nodes = ti.nodes();
+		std::for_each(nodes.begin(), nodes.end(), bind(
+			(void(dht::dht_tracker::*)(std::pair<std::string, int> const&))
+			&dht::dht_tracker::add_node
+			, boost::ref(m_impl.m_dht), _1));
+#endif
+
 		// add the torrent to the queue to be checked
 		m_checker_impl.m_torrents.push_back(d);
 		// and notify the thread that it got another
@@ -1443,6 +1456,43 @@ namespace libtorrent
 
 		return s;
 	}
+
+#ifndef TORRENT_DISABLE_DHT
+	void session::start_dht(entry const& startup_state)
+	{
+		m_impl.m_dht.reset(new dht::dht_tracker(m_impl.m_selector
+			, m_impl.m_dht_settings, startup_state));
+	}
+
+	void session::stop_dht()
+	{
+		m_impl.m_dht.reset();
+	}
+
+	void session::set_dht_settings(dht_settings const& settings)
+	{
+		if (settings.service_port != m_impl.m_dht_settings.service_port
+			&& m_impl.m_dht)
+		{
+			assert(false); // not implemented yet
+			// TODO: change dht service port!
+		}
+		m_impl.m_dht_settings = settings;
+	}
+
+	entry session::dht_state() const
+	{
+		assert(m_impl.m_dht);
+		return m_impl.m_dht->state();
+	}
+	
+	void session::add_dht_node(std::pair<std::string, int> const& node)
+	{
+		assert(m_impl.m_dht);
+		m_impl.m_dht->add_node(node);
+	}
+
+#endif
 
 	bool session::is_listening() const
 	{

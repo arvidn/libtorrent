@@ -1082,6 +1082,10 @@ namespace libtorrent
 		(*m_logger) << to_simple_string(second_clock::universal_time())
 			<< " <== DHT_PORT [ p: " << listen_port << " ]\n";
 #endif
+#ifndef TORRENT_DISABLE_DHT
+		if (m_ses.m_dht) m_ses.m_dht->add_node(udp::endpoint(
+			m_remote.address(), listen_port));
+#endif
 	}
 
 	void peer_connection::add_request(piece_block const& block)

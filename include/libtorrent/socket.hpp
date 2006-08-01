@@ -55,6 +55,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #undef Protocol
 #endif
 
+#include "libtorrent/io.hpp"
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
@@ -87,6 +89,24 @@ namespace libtorrent
 
 	using asio::async_write;
 	using asio::deadline_timer;
+	
+	namespace detail
+	{
+		template<class Endpoint, class OutIt>
+		void write_endpoint(Endpoint const& e, OutIt& out)
+		{
+			write_uint32(e.address().to_v4().to_ulong(), out);
+			write_uint16(e.port(), out);
+		}
+
+		template<class Endpoint, class InIt>
+		Endpoint read_endpoint(InIt& in)
+		{
+			unsigned int ip = read_uint32(in);
+			int port = read_uint16(in);
+			return Endpoint(address(ip), port);
+		}
+	}
 }
 
 #endif // TORRENT_SOCKET_HPP_INCLUDED

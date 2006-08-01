@@ -7,7 +7,17 @@ piece_picker.cpp policy.cpp session.cpp sha1.cpp stat.cpp \
 storage.cpp torrent.cpp torrent_handle.cpp \
 torrent_info.cpp tracker_manager.cpp \
 http_tracker_connection.cpp udp_tracker_connection.cpp \
-alert.cpp identify_client.cpp ip_filter.cpp file.cpp
+alert.cpp identify_client.cpp ip_filter.cpp file.cpp \
+\
+kademlia/closest_nodes.cpp \
+kademlia/dht_tracker.cpp \
+kademlia/find_data.cpp \
+kademlia/node.cpp \
+kademlia/node_id.cpp \
+kademlia/refresh.cpp \
+kademlia/routing_table.cpp \
+kademlia/rpc_manager.cpp \
+kademlia/traversal_algorithm.cpp
 
 noinst_HEADERS = \
 $(top_srcdir)/include/libtorrent/alert.hpp \

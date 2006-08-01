@@ -566,6 +566,23 @@ int main(int ac, char* av[])
 		handles_t handles;
 		session ses;
 
+		boost::filesystem::ifstream dht_state_file(".dht_state"
+			, std::ios_base::binary);
+		dht_state_file.unsetf(std::ios_base::skipws);
+		try
+		{
+			entry dht_state = bdecode(
+				std::istream_iterator<char>(dht_state_file)
+				, std::istream_iterator<char>());
+			ses.start_dht(dht_state);
+		}
+		catch (std::exception&)
+		{
+			ses.start_dht();
+			ses.add_dht_node(std::make_pair(std::string("router.bittorrent.com")
+				, 6881));
+		}
+
 		ses.set_max_half_open_connections(half_open_limit);
 		ses.set_download_rate_limit(download_limit);
 		ses.set_upload_rate_limit(upload_limit);
@@ -914,11 +931,18 @@ int main(int ac, char* av[])
 				next_dir_scan = second_clock::universal_time() + seconds(poll_interval);
 			}
 		}
+
+		entry dht_state = ses.dht_state();
+		boost::filesystem::ofstream out(".dht_state"
+			, std::ios_base::binary);
+		out.unsetf(std::ios_base::skipws);
+		bencode(std::ostream_iterator<char>(out), dht_state);
 	}
 	catch (std::exception& e)
 	{
   		std::cout << e.what() << "\n";
 	}
+
 #ifdef TORRENT_PROFILE
 	print_checkpoints();
 #endif

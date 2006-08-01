@@ -211,6 +211,9 @@ namespace libtorrent
 		, m_complete(-1)
 		, m_incomplete(-1)
 		, m_host_resolver(ses.m_selector)
+#ifndef TORRENT_DISABLE_DHT
+		, m_dht_announce_timer(ses.m_selector)
+#endif
 		, m_policy()
 		, m_ses(ses)
 		, m_checker(checker)
@@ -276,6 +279,14 @@ namespace libtorrent
 
 		m_policy.reset(new policy(this));
 		init();
+	
+#ifndef TORRENT_DISABLE_DHT
+		if (!tf.priv())
+		{
+			m_dht_announce_timer.expires_from_now(seconds(10));
+			m_dht_announce_timer.async_wait(bind(&torrent::on_dht_announce, this, _1));
+		}
+#endif
 	}
 
 	torrent::torrent(
@@ -300,6 +311,9 @@ namespace libtorrent
 		, m_complete(-1)
 		, m_incomplete(-1)
 		, m_host_resolver(ses.m_selector)
+#ifndef TORRENT_DISABLE_DHT
+		, m_dht_announce_timer(ses.m_selector)
+#endif
 		, m_policy()
 		, m_ses(ses)
 		, m_checker(checker)
@@ -368,6 +382,10 @@ namespace libtorrent
 
 		m_policy.reset(new policy(this));
 		m_torrent_file.add_tracker(tracker_url);
+#ifndef TORRENT_DISABLE_DHT
+		m_dht_announce_timer.expires_from_now(seconds(10));
+		m_dht_announce_timer.async_wait(bind(&torrent::on_dht_announce, this, _1));
+#endif
 	}
 
 	torrent::~torrent()
@@ -419,11 +437,34 @@ namespace libtorrent
 		m_net_interface = tcp::endpoint(address::from_string(net_interface), 0);
 	}
 
+#ifndef TORRENT_DISABLE_DHT
+
+	void torrent::on_dht_announce(asio::error const& e)
+	{
+		if (e) return;
+		m_dht_announce_timer.expires_from_now(boost::posix_time::minutes(30));
+		m_dht_announce_timer.async_wait(bind(&torrent::on_dht_announce, this, _1));
+		if (!m_ses.m_dht) return;
+		m_ses.m_dht->announce(m_torrent_file.info_hash()
+			, m_ses.m_listen_interface.port()
+			, bind(&torrent::on_dht_announce_response, this, _1));
+	}
+
+	void torrent::on_dht_announce_response(std::vector<tcp::endpoint> const& peers)
+	{
+		std::for_each(peers.begin(), peers.end(), bind(
+			&policy::peer_from_tracker, boost::ref(m_policy), _1, peer_id(0)));
+	}
+
+#endif
+
 	// returns true if it is time for this torrent to make another
 	// tracker request
 	bool torrent::should_request()
 	{
 		INVARIANT_CHECK;
+		
+		if (m_torrent_file.trackers().empty()) return false;
 
 		if (m_just_paused)
 		{
@@ -962,22 +1003,23 @@ namespace libtorrent
 		m_resolving_web_seeds.insert(url);
 		if (m_ses.m_settings.proxy_ip.empty())
 		{
-			tcp::resolver::query q(hostname, "0");
+			tcp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
 			m_host_resolver.async_resolve(q, bind(&torrent::on_name_lookup
-				, shared_from_this(), _1, _2, port, url));
+				, shared_from_this(), _1, _2, url));
 		}
 		else
 		{
 			// use proxy
-			tcp::resolver::query q(m_ses.m_settings.proxy_ip, "0");
+			tcp::resolver::query q(m_ses.m_settings.proxy_ip
+				, boost::lexical_cast<std::string>(m_ses.m_settings.proxy_port));
 			m_host_resolver.async_resolve(q, bind(&torrent::on_name_lookup
-				, shared_from_this(), _1, _2, m_ses.m_settings.proxy_port, url));
+				, shared_from_this(), _1, _2, url));
 		}
 
 	}
 
 	void torrent::on_name_lookup(asio::error const& e, tcp::resolver::iterator host
-		, int port, std::string url) try
+		, std::string url) try
 	{
 		detail::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
@@ -1012,7 +1054,7 @@ namespace libtorrent
 
 		if (m_ses.m_abort) return;
 
-		tcp::endpoint a(host->endpoint().address(), port);
+		tcp::endpoint a(host->endpoint());
 
 		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_selector));
 		boost::intrusive_ptr<peer_connection> c(new web_peer_connection(

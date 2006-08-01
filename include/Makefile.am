@@ -25,6 +25,7 @@ libtorrent/peer_request.hpp \
 libtorrent/piece_block_progress.hpp \
 libtorrent/piece_picker.hpp \
 libtorrent/policy.hpp \
+libtorrent/random_sample.hpp \
 libtorrent/resource_request.hpp \
 libtorrent/session.hpp \
 libtorrent/session_settings.hpp \
@@ -39,6 +40,19 @@ libtorrent/tracker_manager.hpp \
 libtorrent/udp_tracker_connection.hpp \
 libtorrent/utf8.hpp \
 libtorrent/version.hpp \
+\
+libtorrent/kademlia/closest_nodes.hpp \
+libtorrent/kademlia/dht_tracker.hpp \
+libtorrent/kademlia/find_data.hpp \
+libtorrent/kademlia/logging.hpp \
+libtorrent/kademlia/node.hpp \
+libtorrent/kademlia/node_entry.hpp \
+libtorrent/kademlia/node_id.hpp \
+libtorrent/kademlia/packet_iterator.hpp \
+libtorrent/kademlia/refresh.hpp \
+libtorrent/kademlia/routing_table.hpp \
+libtorrent/kademlia/rpc_manager.hpp \
+libtorrent/kademlia/traversal_algorithm.hpp \
 \
 libtorrent/asio/basic_datagram_socket.hpp \
 libtorrent/asio/basic_deadline_timer.hpp \
@@ -68,11 +82,13 @@ libtorrent/asio/detail/buffered_stream_storage.hpp \
 libtorrent/asio/detail/call_stack.hpp \
 libtorrent/asio/detail/const_buffers_iterator.hpp \
 libtorrent/asio/detail/consuming_buffers.hpp \
+libtorrent/asio/detail/deadline_timer_service.hpp \
 libtorrent/asio/detail/epoll_reactor.hpp \
 libtorrent/asio/detail/epoll_reactor_fwd.hpp \
 libtorrent/asio/detail/event.hpp \
 libtorrent/asio/detail/fd_set_adapter.hpp \
 libtorrent/asio/detail/handler_alloc_helpers.hpp \
+libtorrent/asio/detail/handler_dispatch_helpers.hpp \
 libtorrent/asio/detail/hash_map.hpp \
 libtorrent/asio/detail/io_control.hpp \
 libtorrent/asio/detail/kqueue_reactor.hpp \
@@ -112,6 +128,8 @@ libtorrent/asio/detail/strand_service.hpp \
 libtorrent/asio/detail/task_io_service.hpp \
 libtorrent/asio/detail/task_io_service_fwd.hpp \
 libtorrent/asio/detail/thread.hpp \
+libtorrent/asio/detail/timer_queue.hpp \
+libtorrent/asio/detail/timer_queue_base.hpp \
 libtorrent/asio/detail/tss_ptr.hpp \
 libtorrent/asio/detail/win_event.hpp \
 libtorrent/asio/detail/win_iocp_io_service.hpp \
@@ -128,6 +146,7 @@ libtorrent/asio/detail/wrapped_handler.hpp \
 libtorrent/asio/error.hpp \
 libtorrent/asio/error_handler.hpp \
 libtorrent/asio/handler_alloc_hook.hpp \
+libtorrent/asio/handler_dispatch_hook.hpp \
 libtorrent/asio/impl/io_service.ipp \
 libtorrent/asio/impl/read.ipp \
 libtorrent/asio/impl/read_until.ipp \
@@ -174,6 +193,6 @@ libtorrent/asio/streambuf.hpp \
 libtorrent/asio/system_exception.hpp \
 libtorrent/asio/thread.hpp \
 libtorrent/asio/time_traits.hpp \
-libtorrent/asio/write.hpp \
-libtorrent/asio.hpp
+libtorrent/asio/write.hpp
+
 

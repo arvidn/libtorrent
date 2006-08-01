@@ -27,6 +27,7 @@ libtorrent is still being developed, however it is stable. It is an ongoing
 project (including this documentation). The current state includes the
 following features:
 
+* Trackerless torrents (using a kademlia DHT)
 * multitracker extension support (as `specified by John Hoffman`__)
 * serves multiple torrents on a single port and in a single thread
 * gzipped tracker-responses
@@ -474,6 +475,9 @@ defines you can use to control the build.
 |                                | a shared library. (This is set by the Jamfile   |
 |                                | when ``link=shared`` is set).                   |
 +--------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_DHT``        | If this is defined, the support for trackerless |
+|Ê                               | torrents will be disabled.                      |
++--------------------------------+-------------------------------------------------+
 
 
 If you experience that libtorrent uses unreasonable amounts of cpu, it will
@@ -558,9 +562,15 @@ The ``session`` class has the following synopsis::
 			std::pair<int, int> const& port_range
 			, char const* interface = 0);
 
-
 		std::auto_ptr<alert> pop_alert();
 		void set_severity_level(alert::severity_t s);
+
+		void start_dht();
+		void stop_dht();
+		void set_dht_settings(dht_settings const& settings);
+		entry dht_state() const;
+		void add_dht_node(std::pair<std::string, int> const& node);
+
 	};
 
 Once it's created, the session object will spawn the main thread that will do all the work.
@@ -836,6 +846,68 @@ pop_alert() set_severity_level()
 receive it through ``pop_alert()``. For information, see alerts_.
 
 
+start_dht() stop_dht() set_dht_settings() dht_state()
+-----------------------------------------------------
+
+	::
+
+		void start_dht(entry const& startup_state);
+		void stop_dht();
+		void set_dht_settings(dht_settings const& settings);
+		entry dht_state() const;
+		void add_dht_node(std::pair<std::string, int> const& node);
+
+These functions are not available in case ``TORRENT_DISABLE_DHT`` is
+defined. ``start_dht`` starts the dht node and makes the trackerless service
+available to torrents. The startup state is optional and can contain nodes
+and the node id from the previous session. The dht node state is a bencoded
+dictionary with the following entries:
+
+``nodes``
+	is a string with the nodes written as 6 bytes each. 4 bytes ip
+	address and 2 bytes port number. Both are written in big endian byte order.
+
+``node-id``
+	The node id written as a readable string as a hexadecimal number.
+
+``dht_state`` will return the current state of the dht node, this can be used
+to start up the node again, passing this entry to ``start_dht``. It is a good
+idea to save this to disk when the session is closed, and read it up again
+when starting.
+
+``stop_dht`` stops the dht node.
+
+``add_dht_node`` adds a node to the routing table. This can be used if your
+client has its own source of bootstrapping nodes.
+
+``set_dht_settings`` sets some parameters availavle to the dht node. The
+struct has the following members::
+
+	struct dht_settings
+	{
+		int max_peers_reply;
+		int search_branching;
+		int service_port;
+		int max_fail_count;
+	};
+
+``max_peers_reply`` is the maximum number of peers the node will send in
+response to a ``get_peers`` message from another node.
+
+``search_branching`` is the number of concurrent search request the node will
+send when announcing and refreshing the routing table. This parameter is
+called alpha in the kademlia paper.
+
+``service_port`` is the udp port the node will listen to. (currently this
+cannot be changed while the node is running).
+
+``max_fail_count`` is the maximum number of failed tries to contact a node
+before it is removed from the routing table. If there are known working nodes
+that are ready to replace a failing node, it will be replaced immediately,
+this limit is only used to clear out nodes that don't have any node that can
+replace them.
+
+
 
 entry
 =====
@@ -1041,6 +1113,9 @@ The ``torrent_info`` has the following synopsis::
 
 		std::vector<announce_entry> const& trackers() const;
 
+		bool priv() const;
+		void set_priv(bool v);
+
 		std::vector<std::string> const& url_seeds() const;
 
 		size_type total_size() const;
@@ -1050,6 +1125,9 @@ The ``torrent_info`` has the following synopsis::
 		std::string const& name() const;
 		std::string const& comment() const;
 		std::string const& creator() const;
+
+		std::vector<std::pair<std::string, int> > const& nodes() const;
+		void add_node(std::pair<std::string, int> const& node);
 
 		boost::optional<boost::posix_time::ptime>
 		creation_date() const;
@@ -1140,6 +1218,9 @@ complete example, see make_torrent_.
 
 This function is not const because it will also set the info-hash of the ``torrent_info``
 object.
+
+Note that a torrent file must include at least one file, and it must have at
+least one tracker url or at least one DHT node.
 
 
 begin_files() end_files() rbegin_files() rend_files()
@@ -1352,6 +1433,42 @@ Both the name and the comment is UTF-8 encoded strings.
 it will return an empty string.
 
 __ http://www.boost.org/libs/date_time/doc/class_ptime.html
+
+
+priv() set_priv()
+-----------------
+
+	::
+
+		bool priv() const;
+		void set_priv(bool v);
+
+``priv()`` returns true if this torrent is private. i.e., it should not be
+distributed on the trackerless network (the kademlia DHT).
+
+``set_priv()`` sets or clears the private flag on this torrent.
+
+
+nodes()
+-------
+
+	::
+
+		std::vector<std::pair<std::string, int> > const& nodes() const;
+
+If this torrent contains any DHT nodes, they are put in this vector in their original
+form (host name and port number).
+
+
+add_node()
+----------
+
+	::
+
+		void add_node(std::pair<std::string, int> const& node);
+
+This is used when creating torrent. Use this to add a known DHT node. It may
+be used, by the client, to bootstrap into the DHT network.
 
 
 torrent_handle
@@ -2146,6 +2263,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int whole_pieces_threshold;
 		int peer_timeout;
 		int urlseed_timeout;
+		int urlseed_pipeline_size;
 	};
 
 ``proxy_ip`` may be a hostname or ip to a http proxy to use. If this is
@@ -2225,6 +2343,10 @@ is sent.
 ``urlseed_timeout`` is the same as ``peer_timeout`` but applies only to
 url seeds. This value defaults to 20 seconds.
 
+``urlseed_pipeline_size`` controls the pipelining with the web server. When
+using persistent connections to HTTP 1.1 servers, the client is allowed to
+send more requests before the first response is received. This number controls
+the number of outstanding requests to use with url-seeds. Default is 5.
 
 ip_filter
 =========
@@ -3476,17 +3598,17 @@ Extension name: "chat"
 The payload in the packet is a bencoded dictionary with any
 combination of the following entries:
 
-   +----------+--------------------------------------------------------+
-   | "msg"    | This is a string that contains a message that          |
-   |          | should be displayed to the user.                       |
-   +----------+--------------------------------------------------------+
-   | "ctrl"   | This is a control string that can tell a client that   |
-   |          | it is ignored (to make the user aware of that) and     |
-   |          | it can also tell a client that it is no longer ignored.|
-   |          | These notifications are encoded as the strings:        |
-   |          | "ignored" and "not ignored".                           |
-   |          | Any unrecognized strings should be ignored.            |
-   +----------+--------------------------------------------------------+
++----------+--------------------------------------------------------+
+| "msg"    | This is a string that contains a message that          |
+|          | should be displayed to the user.                       |
++----------+--------------------------------------------------------+
+| "ctrl"   | This is a control string that can tell a client that   |
+|          | it is ignored (to make the user aware of that) and     |
+|          | it can also tell a client that it is no longer ignored.|
+|          | These notifications are encoded as the strings:        |
+|          | "ignored" and "not ignored".                           |
+|          | Any unrecognized strings should be ignored.            |
++----------+--------------------------------------------------------+
 
 metadata from peers
 -------------------
@@ -3510,57 +3632,57 @@ are put as payload to the extension message. The three packets are:
 
 request metadata:
 
-	+-----------+---------------+----------------------------------------+
-	| size      | name          | description                            |
-	+===========+===============+========================================+
-	| uint8_t   | msg_type      | Determines the kind of message this is |
-	|           |               | 0 means 'request metadata'             |
-	+-----------+---------------+----------------------------------------+
-	| uint8_t   | start         | The start of the metadata block that   |
-	|           |               | is requested. It is given in 256:ths   |
-	|           |               | of the total size of the metadata,     |
-	|           |               | since the requesting client don't know |
-	|           |               | the size of the metadata.              |
-	+-----------+---------------+----------------------------------------+
-	| uint8_t   | size          | The size of the metadata block that is |
-	|           |               | requested. This is also given in       |
-	|           |               | 256:ths of the total size of the       |
-	|           |               | metadata. The size is given as size-1. |
-	|           |               | That means that if this field is set   |
-	|           |               | 0, the request wants one 256:th of the |
-	|           |               | metadata.                              |
-	+-----------+---------------+----------------------------------------+
++-----------+---------------+----------------------------------------+
+| size      | name          | description                            |
++===========+===============+========================================+
+| uint8_t   | msg_type      | Determines the kind of message this is |
+|           |               | 0 means 'request metadata'             |
++-----------+---------------+----------------------------------------+
+| uint8_t   | start         | The start of the metadata block that   |
+|           |               | is requested. It is given in 256:ths   |
+|           |               | of the total size of the metadata,     |
+|           |               | since the requesting client don't know |
+|           |               | the size of the metadata.              |
++-----------+---------------+----------------------------------------+
+| uint8_t   | size          | The size of the metadata block that is |
+|           |               | requested. This is also given in       |
+|           |               | 256:ths of the total size of the       |
+|           |               | metadata. The size is given as size-1. |
+|           |               | That means that if this field is set   |
+|           |               | 0, the request wants one 256:th of the |
+|           |               | metadata.                              |
++-----------+---------------+----------------------------------------+
 
 metadata:
 
-	+-----------+---------------+----------------------------------------+
-	| size      | name          | description                            |
-	+===========+===============+========================================+
-	| uint8_t   | msg_type      | 1 means 'metadata'                     |
-	+-----------+---------------+----------------------------------------+
-	| int32_t   | total_size    | The total size of the metadata, given  |
-	|           |               | in number of bytes.                    |
-	+-----------+---------------+----------------------------------------+
-	| int32_t   | offset        | The offset of where the metadata block |
-	|           |               | in this message belongs in the final   |
-	|           |               | metadata. This is given in bytes.      |
-	+-----------+---------------+----------------------------------------+
-	| uint8_t[] | metadata      | The actual metadata block. The size of |
-	|           |               | this part is given implicit by the     |
-	|           |               | length prefix in the bittorrent        |
-	|           |               | protocol packet.                       |
-	+-----------+---------------+----------------------------------------+
++-----------+---------------+----------------------------------------+
+| size      | name          | description                            |
++===========+===============+========================================+
+| uint8_t   | msg_type      | 1 means 'metadata'                     |
++-----------+---------------+----------------------------------------+
+| int32_t   | total_size    | The total size of the metadata, given  |
+|           |               | in number of bytes.                    |
++-----------+---------------+----------------------------------------+
+| int32_t   | offset        | The offset of where the metadata block |
+|           |               | in this message belongs in the final   |
+|           |               | metadata. This is given in bytes.      |
++-----------+---------------+----------------------------------------+
+| uint8_t[] | metadata      | The actual metadata block. The size of |
+|           |               | this part is given implicit by the     |
+|           |               | length prefix in the bittorrent        |
+|           |               | protocol packet.                       |
++-----------+---------------+----------------------------------------+
 
 Don't have metadata:
 
-	+-----------+---------------+----------------------------------------+
-	| size      | name          | description                            |
-	+===========+===============+========================================+
-	| uint8_t   | msg_type      | 2 means 'I don't have metadata'.       |
-	|           |               | This message is sent as a reply to a   |
-	|           |               | metadata request if the the client     |
-	|           |               | doesn't have any metadata.             |
-	+-----------+---------------+----------------------------------------+
++-----------+---------------+----------------------------------------+
+| size      | name          | description                            |
++===========+===============+========================================+
+| uint8_t   | msg_type      | 2 means 'I don't have metadata'.       |
+|           |               | This message is sent as a reply to a   |
+|           |               | metadata request if the the client     |
+|           |               | doesn't have any metadata.             |
++-----------+---------------+----------------------------------------+
 
 HTTP seeding
 ------------

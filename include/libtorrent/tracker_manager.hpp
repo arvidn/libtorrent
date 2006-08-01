@@ -230,11 +230,12 @@ namespace libtorrent
 		void abort_all_requests();
 
 		void remove_request(tracker_connection const*);
+		bool empty() const;
 		
 	private:
 
 		typedef boost::recursive_mutex mutex_t;
-		mutex_t m_mutex;
+		mutable mutex_t m_mutex;
 
 		typedef std::list<boost::intrusive_ptr<tracker_connection> >
 			tracker_connections_t;
