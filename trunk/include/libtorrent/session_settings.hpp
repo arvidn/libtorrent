@@ -56,6 +56,7 @@ namespace libtorrent
 			, whole_pieces_threshold(20)
 			, peer_timeout(120)
 			, urlseed_timeout(20)
+			, urlseed_pipeline_size(5)
 		{}
 
 		std::string proxy_ip;
@@ -136,7 +137,38 @@ namespace libtorrent
 		// this is usually set lower, because web servers are
 		// expected to be more reliable.
 		int urlseed_timeout;
+		
+		// controls the pipelining size of url-seeds
+		int urlseed_pipeline_size;
 	};
+	
+#ifndef TORRENT_DISABLE_DHT
+	struct dht_settings
+	{
+		dht_settings()
+			: max_peers_reply(50)
+			, search_branching(5)
+			, service_port(6881)
+			, max_fail_count(20)
+		{}
+		
+		// the maximum number of peers to send in a
+		// reply to get_peers
+		int max_peers_reply;
+
+		// the number of simultanous "connections" when
+		// searching the DHT.
+		int search_branching;
+		
+		// the listen port for the dht. This is a UDP port.
+		int service_port;
+		
+		// the maximum number of times a node can fail
+		// in a row before it is removed from the table.
+		int max_fail_count;
+	};
+#endif
+
 }
 
 #endif

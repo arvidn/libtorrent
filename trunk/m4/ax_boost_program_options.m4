@@ -34,7 +34,8 @@ if test "$ax_cv_boost_program_options" = yes; then
     ax_boost_program_options_lib=boost_program_options-$with_boost_program_options
   fi])
   for ax_lib in $ax_program_options_lib $ax_boost_program_options_lib boost_program_options; do
-    AC_CHECK_LIB($ax_lib, main, [BOOST_PROGRAM_OPTIONS_LIB=$ax_lib break])
+    AC_CHECK_LIB($ax_lib, main, [BOOST_PROGRAM_OPTIONS_LIB=$ax_lib
+break])
   done
   AC_SUBST(BOOST_PROGRAM_OPTIONS_LIB)
 fi

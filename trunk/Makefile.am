@@ -4,8 +4,10 @@ docs/extension_protocol.html docs/udp_tracker_protocol.rst \
 docs/projects.rst docs/projects.html \
 docs/arctic_thumb.png \
 docs/bitbuddy_thumb.jpg \
+docs/bitscast_thumb.png \
 docs/bitslug_thumb.png \
 docs/btg_thumb.jpg \
+docs/electric_sheep_thumb.jpg \
 docs/moopolice_thumb.gif \
 docs/qbittorrent_thumb.jpg \
 docs/ziptorrent_thumb.gif \

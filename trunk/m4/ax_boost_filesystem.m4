@@ -38,7 +38,8 @@ if test "$ax_cv_boost_filesystem" = yes; then
     ax_boost_filesystem_lib=boost_filesystem-$with_boost_filesystem
   fi])
   for ax_lib in $ax_filesystem_lib $ax_boost_filesystem_lib boost_filesystem; do
-    AC_CHECK_LIB($ax_lib, main, [BOOST_FILESYSTEM_LIB=$ax_lib break])
+    AC_CHECK_LIB($ax_lib, main, [BOOST_FILESYSTEM_LIB=$ax_lib
+break])
   done
   AC_SUBST(BOOST_FILESYSTEM_LIB)
 fi

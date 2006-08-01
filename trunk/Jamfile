@@ -27,6 +27,7 @@ project torrent
 	<include>./zlib
 	<include>$(BOOST_ROOT)
 	<variant>release:<define>NDEBUG
+	<variant>debug:<define>TORRENT_DHT_VERBOSE_LOGGING
 	<define>BOOST_ALL_NO_LIB
 	<define>_FILE_OFFSET_BITS=64
 	<define>BOOST_THREAD_USE_LIB
@@ -54,6 +55,7 @@ project torrent
 	<include>./include
 	<include>$(BOOST_ROOT)
 	<variant>release:<define>NDEBUG
+	<variant>debug:<define>TORRENT_DHT_VERBOSE_LOGGING
 	<define>BOOST_ALL_NO_LIB
 	<link>shared:<define>TORRENT_LINKING_SHARED
 
@@ -82,6 +84,16 @@ SOURCES =
 	http_tracker_connection.cpp
 	udp_tracker_connection.cpp
 	sha1.cpp
+
+	kademlia/closest_nodes.cpp
+	kademlia/dht_tracker.cpp
+	kademlia/node.cpp
+	kademlia/refresh.cpp
+	kademlia/rpc_manager.cpp
+	kademlia/find_data.cpp
+	kademlia/node_id.cpp
+	kademlia/routing_table.cpp
+	kademlia/traversal_algorithm.cpp
 	;
 
 ZLIB_SOURCES = 

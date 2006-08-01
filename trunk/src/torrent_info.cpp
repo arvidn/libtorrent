@@ -127,6 +127,7 @@ namespace libtorrent
 	torrent_info::torrent_info(const entry& torrent_file)
 		: m_creation_date(date(not_a_date_time))
 		, m_multifile(false)
+		, m_private(false)
 		, m_extra_info(entry::dictionary_t)
 	{
 		try
@@ -269,6 +270,13 @@ namespace libtorrent
 			m_extra_info[i->first] = i->second;
 		}
 
+		if (info.find_key("private"))
+		{
+			// this key exists, don't care about its value, consider
+			// the torrent private
+			m_private = true;
+		}
+
 #ifndef NDEBUG
 		std::vector<char> info_section_buf;
 		entry gen_info_section = create_info_metadata();
@@ -319,10 +327,27 @@ namespace libtorrent
 			}
 			std::random_shuffle(start, stop);
 		}
-		else
+		else if (entry const* i = torrent_file.find_key("announce"))
 		{
-			m_urls.push_back(announce_entry(
-				torrent_file["announce"].string()));
+			m_urls.push_back(announce_entry(i->string()));
+		}
+
+		if (entry const* i = torrent_file.find_key("nodes"))
+		{
+			entry::list_type const& list = i->list();
+			for (entry::list_type::const_iterator i(list.begin())
+				, end(list.end()); i != end; ++i)
+			{
+				if (i->type() != entry::list_t) continue;
+				entry::list_type const& l = i->list();
+				entry::list_type::const_iterator iter = l.begin();
+				if (l.size() < 1) continue;
+				std::string const& hostname = iter->string();
+				++iter;
+				int port = 6881;
+				if (list.end() != iter) port = iter->integer();
+				m_nodes.push_back(std::make_pair(hostname, port));
+			}
 		}
 
 		// extract creation date
@@ -518,14 +543,32 @@ namespace libtorrent
 
 		entry dict(entry::dictionary_t);
 
-		if (m_urls.empty() || m_files.empty())
+		if ((m_urls.empty() && m_nodes.empty()) || m_files.empty())
 		{
 			// TODO: throw something here
 			// throw
 			return entry();
 		}
 
-		dict["announce"] = m_urls.front().url;
+		if (m_private) dict["private"] = 1;
+
+		if (!m_urls.empty())
+			dict["announce"] = m_urls.front().url;
+		
+		if (!m_nodes.empty())
+		{
+			entry& nodes = dict["nodes"];
+			nodes = entry(entry::list_t);
+			entry::list_type& nodes_list = nodes.list();
+			for (nodes_t::const_iterator i = m_nodes.begin()
+				, end(m_nodes.end()); i != end; ++i)
+			{
+				entry::list_type node;
+				node.push_back(entry(i->first));
+				node.push_back(entry(i->second));
+				nodes_list.push_back(entry(node));
+			}
+		}
 
 		if (m_urls.size() > 1)
 		{
@@ -630,7 +673,12 @@ namespace libtorrent
 		else
 			return piece_length();
 	}
-	
+
+	void torrent_info::add_node(std::pair<std::string, int> const& node)
+	{
+		m_nodes.push_back(node);
+	}
+
 	std::vector<file_slice> torrent_info::map_block(int piece, size_type offset
 		, int size) const
 	{

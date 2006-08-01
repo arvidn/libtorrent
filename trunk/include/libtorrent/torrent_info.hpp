@@ -134,6 +134,9 @@ namespace libtorrent
 		void print(std::ostream& os) const;
 		bool is_valid() const { return m_piece_length > 0; }
 
+		bool priv() const { return m_private; }
+		void set_priv(bool v) { m_private = v; }
+
 		void convert_file_names();
 
 		size_type piece_size(int index) const;
@@ -153,6 +156,14 @@ namespace libtorrent
 
 		const std::string& comment() const
 		{ return m_comment; }
+
+		// dht nodes to add to the routing table/bootstrap from
+		typedef std::vector<std::pair<std::string, int> > nodes_t;
+		
+		nodes_t const& nodes() const
+		{ return m_nodes; }
+		
+		void add_node(std::pair<std::string, int> const& node);
 
 		void parse_info_section(entry const& e);
 
@@ -175,6 +186,8 @@ namespace libtorrent
 
 		// the list of files that this torrent consists of
 		std::vector<file_entry> m_files;
+
+		nodes_t m_nodes;
 
 		// the sum of all filesizes
 		size_type m_total_size;
@@ -205,6 +218,10 @@ namespace libtorrent
 		// or not. e.g. test/test  there's one file and one directory
 		// and they have the same name.
 		bool m_multifile;
+		
+		// this is true if the torrent is private. i.e., is should not
+		// be announced on the dht
+		bool m_private;
 
 		// contains any non-parsed entries from the info-section
 		// these are kept in order to be able to accurately

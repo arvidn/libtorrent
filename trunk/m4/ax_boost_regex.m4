@@ -34,7 +34,8 @@ if test "$ax_cv_boost_regex" = yes; then
     ax_boost_regex_lib=boost_regex-$with_boost_regex
   fi])
   for ax_lib in $ax_regex_lib $ax_boost_regex_lib boost_regex; do
-    AC_CHECK_LIB($ax_lib, main, [BOOST_REGEX_LIB=$ax_lib break])
+    AC_CHECK_LIB($ax_lib, main, [BOOST_REGEX_LIB=$ax_lib
+break])
   done
   AC_SUBST(BOOST_REGEX_LIB)
 fi

@@ -66,6 +66,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		m_max_out_request_queue = ses.m_settings.urlseed_pipeline_size;
+
 		// since this is a web seed, change the timeout
 		// according to the settings.
 		set_timeout(ses.m_settings.urlseed_timeout);

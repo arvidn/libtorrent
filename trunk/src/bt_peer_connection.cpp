@@ -272,8 +272,10 @@ namespace libtorrent
 			, i.begin + 8
 			, 0);
 
+#ifndef TORRENT_DISABLE_DHT
 		// indicate that we support the DHT messages
 		*(i.begin + 7) = 0x01;
+#endif
 		
 		// we support extensions
 		*(i.begin + 5) = 0x10;
@@ -1352,8 +1354,10 @@ namespace libtorrent
 				// reply with our handshake
 				write_handshake();
 				write_bitfield(t->pieces());
-//				if (m_supports_dht_port)
-//					write_dht_port(m_ses.dht_port());
+#ifndef TORRENT_DISABLE_DHT
+				if (m_supports_dht_port && m_ses.m_dht)
+					write_dht_port(m_ses.m_dht_settings.service_port);
+#endif
 			}
 			else
 			{

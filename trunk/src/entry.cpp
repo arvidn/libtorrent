@@ -329,7 +329,9 @@ namespace libtorrent
 				{
 					for (int j = 0; j < indent+1; ++j) os << " ";
 					os << "[" << i->first << "]";
-					if (i->second.type() != entry::string_t && i->second.type() != entry::int_t) os << "\n";
+					if (i->second.type() != entry::string_t
+						&& i->second.type() != entry::int_t)
+						os << "\n";
 					else os << " ";
 					i->second.print(os, indent+2);
 				}

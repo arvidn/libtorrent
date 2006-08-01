@@ -72,6 +72,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/version.hpp"
+#include "libtorrent/kademlia/dht_tracker.hpp"
 
 #if !defined(NDEBUG) && defined(_MSC_VER)
 #	include <float.h>
@@ -309,6 +310,10 @@ namespace libtorrent
 			void second_tick(asio::error const& e);
 			boost::posix_time::ptime m_last_tick;
 
+#ifndef TORRENT_DISABLE_DHT
+			boost::scoped_ptr<dht::dht_tracker> m_dht;
+			dht_settings m_dht_settings;
+#endif
 			// the timer used to fire the second_tick
 			deadline_timer m_timer;
 #ifndef NDEBUG
@@ -384,6 +389,14 @@ namespace libtorrent
 			, int block_size = 16 * 1024);
 
 		session_status status() const;
+
+#ifndef TORRENT_DISABLE_DHT
+		void start_dht(entry const& startup_state = entry());
+		void stop_dht();
+		void set_dht_settings(dht_settings const& settings);
+		entry dht_state() const;
+		void add_dht_node(std::pair<std::string, int> const& node);
+#endif
 
 		void enable_extension(extension_index i);
 		void disable_extensions();
