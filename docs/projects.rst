@@ -23,7 +23,7 @@ project listed here, let me_ know.
 +-------------------------------------+-----------------------------------------------+
 | **btg**                             | .. image:: btg_thumb.jpg                      |
 |                                     |                                               |
-| btg_ is a linux bittorrent client   |                                               |
+| btg_ is a *nix bittorrent client    |                                               |
 | which is run as a daemon. It has    |                                               |
 | multiple user interfaces which      |                                               |
 | connects to the daemon. One GUI     |                                               |
