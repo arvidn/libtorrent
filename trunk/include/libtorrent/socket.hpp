@@ -77,7 +77,7 @@ namespace libtorrent
 	using boost::asio::ipv4::host;
 	using boost::asio::deadline_timer;
 */
-	namespace asio = ::asio;
+//	namespace asio = ::asio;
 
 	using asio::ip::tcp;
 	using asio::ip::udp;
