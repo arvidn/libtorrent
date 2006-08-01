@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/bind.hpp>
 
 #include <libtorrent/io.hpp>
 #include <libtorrent/invariant_check.hpp>
@@ -48,6 +49,7 @@ using boost::posix_time::microsec_clock;
 using boost::posix_time::seconds;
 using boost::posix_time::milliseconds;
 using boost::shared_ptr;
+using boost::bind;
 
 namespace libtorrent { namespace dht
 {
@@ -88,9 +90,10 @@ void rpc_manager::check_invariant() const
 	assert(m_oldest_transaction_id < max_transactions);
 	assert(m_next_transaction_id >= 0);
 	assert(m_next_transaction_id < max_transactions);
+	assert(!m_transactions[m_next_transaction_id]);
 
-	for (int i = m_next_transaction_id; i != m_oldest_transaction_id;
-		i = (i + 1) % max_transactions)
+	for (int i = (m_next_transaction_id + 1) % max_transactions;
+		i != m_oldest_transaction_id; i = (i + 1) % max_transactions)
 	{
 		assert(!m_transactions[i]);
 	}
@@ -198,7 +201,7 @@ time_duration rpc_manager::tick()
 		assert(m_oldest_transaction_id >= 0);
 		assert(m_oldest_transaction_id < max_transactions);
 
-		boost::shared_ptr<observer>& o = m_transactions[m_oldest_transaction_id];
+		boost::shared_ptr<observer> o = m_transactions[m_oldest_transaction_id];
 		if (!o) continue;
 
 		time_duration diff = o->sent + milliseconds(timeout_ms)
@@ -209,8 +212,8 @@ time_duration rpc_manager::tick()
 			return diff;
 		}
 		
+		m_transactions[m_oldest_transaction_id].reset();
 		o->timeout();
-		o.reset();
 	}
 	return milliseconds(timeout_ms);
 }
@@ -221,16 +224,19 @@ unsigned int rpc_manager::new_transaction_id()
 
 	unsigned int tid = m_next_transaction_id;
 	m_next_transaction_id = (m_next_transaction_id + 1) % max_transactions;
-	assert(!m_transactions[tid]);
+//	boost::shared_ptr<observer> o = m_transactions[m_next_transaction_id];
 	if (m_transactions[m_next_transaction_id])
 	{
-		m_transactions[m_next_transaction_id]->timeout();
 		m_transactions[m_next_transaction_id].reset();
 		assert(m_oldest_transaction_id == m_next_transaction_id);
 	}
 	if (m_oldest_transaction_id == m_next_transaction_id)
 	{
 		m_oldest_transaction_id = (m_oldest_transaction_id + 1) % max_transactions;
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(rpc) << "WARNING: transaction limit reached! Too many concurrent"
+			" messages! limit: " << (int)max_transactions;
+#endif
 		update_oldest_transaction_id();
 	}
 
@@ -243,6 +249,12 @@ unsigned int rpc_manager::new_transaction_id()
 	}
 #endif
 
+// hopefully this wouldn't happen, but unfortunately, the
+// traversal algorithm will simply fail in case its connections
+// are overwritten. If timeout() is called, it will likely spawn
+// another connection, which in turn will close the next one
+// and so on.
+//	if (o) o->timeout();
 	return tid;
 }
 
@@ -250,6 +262,7 @@ void rpc_manager::update_oldest_transaction_id()
 {
 	INVARIANT_CHECK;
 
+	assert(m_oldest_transaction_id != m_next_transaction_id);
 	while (!m_transactions[m_oldest_transaction_id])
 	{
 		m_oldest_transaction_id = (m_oldest_transaction_id + 1)

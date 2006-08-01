@@ -46,7 +46,9 @@ namespace libtorrent { namespace dht
 
 using asio::ip::udp;
 
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DEFINE_LOG(refresh)
+#endif
 
 typedef boost::shared_ptr<observer> observer_ptr;
 
@@ -125,11 +127,11 @@ void ping_observer::timeout()
 	m_algorithm->ping_timeout(m_self);
 }
 
-void refresh::invoke(node_id const& id, udp::endpoint addr)
+void refresh::invoke(node_id const& nid, udp::endpoint addr)
 {
 	observer_ptr p(new refresh_observer(
 		this
-		, id
+		, nid
 		, m_target
 	));
 
@@ -144,13 +146,13 @@ void refresh::done()
 	invoke_pings_or_finish();
 }
 
-void refresh::ping_reply(node_id id)
+void refresh::ping_reply(node_id nid)
 {
 	m_active_pings--;
 	invoke_pings_or_finish();
 }
 
-void refresh::ping_timeout(node_id id)
+void refresh::ping_timeout(node_id nid)
 {
 	m_active_pings--;
 	invoke_pings_or_finish();
