@@ -135,17 +135,20 @@ void routing_table::print_state(std::ostream& os) const
 	}
 }
 
-bool routing_table::should_refresh(int bucket)
+void routing_table::touch_bucket(int bucket)
+{
+	m_bucket_activity[bucket] = second_clock::universal_time();
+}
+
+boost::posix_time::ptime routing_table::next_refresh(int bucket)
 {
 	assert(bucket < 160);
 	assert(bucket >= 0);
 	// lower than or equal to since a refresh of bucket 0 will
 	// effectively refresh the lowest active bucket as well
-	if (bucket <= m_lowest_active_bucket && bucket > 0) return false;
-	if (m_bucket_activity[bucket] + minutes(15)
-		> second_clock::universal_time())
-		return false;
-	return true;
+	if (bucket <= m_lowest_active_bucket && bucket > 0)
+		return second_clock::universal_time() + minutes(15);
+	return m_bucket_activity[bucket] + minutes(15);
 }
 
 void routing_table::replacement_cache(bucket_t& nodes) const

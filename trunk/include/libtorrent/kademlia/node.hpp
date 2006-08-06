@@ -129,13 +129,11 @@ public:
 	bool verify_token(msg const& m);
 	entry generate_token(msg const& m);
 	
-	// the returned time is the delay until tick should be called
-	// again the next time
-	boost::posix_time::time_duration tick();
-	
-	// checks the buckets for any that needs refreshing
-	void check_refresh();
-	
+	// the returned time is the delay until connection_timeout()
+	// should be called again the next time
+	boost::posix_time::time_duration connection_timeout();
+	boost::posix_time::time_duration refresh_timeout();
+
 	// generates a new secret number used to generate write tokens
 	void new_write_key();
 

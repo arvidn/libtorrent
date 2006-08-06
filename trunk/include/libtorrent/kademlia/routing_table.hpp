@@ -163,10 +163,11 @@ public:
 	// of its bucket.
 	bool node_seen(node_id const& id, udp::endpoint addr);
 	
-	// returns true if the given bucket is empty but there are nodes
+	// returns time when the given bucket needs another refresh.
+	// if the given bucket is empty but there are nodes
 	// in a bucket closer to us, or if the bucket is non-empty and
 	// the time from the last activity is more than 15 minutes
-	bool should_refresh(int bucket);
+	boost::posix_time::ptime next_refresh(int bucket);
 
 	// fills the vector with the count nodes from our buckets that
 	// are nearest to the given id.
@@ -177,6 +178,10 @@ public:
 	// that is not full. If the node already exists in the table
 	// this function returns false
 	bool need_node(node_id const& id);
+	
+	// this will set the given bucket's latest activity
+	// to the current time
+	void touch_bucket(int bucket);
 	
 	int bucket_size(int bucket)
 	{
