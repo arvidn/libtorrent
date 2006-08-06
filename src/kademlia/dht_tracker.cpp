@@ -75,7 +75,7 @@ typedef asio::ip::address_v4 address;
 
 namespace
 {
-	const int tick_period = 5; // minutes
+	const int tick_period = 1; // minutes
 
 	struct count_peers
 	{
@@ -123,7 +123,8 @@ namespace libtorrent { namespace dht
 		, m_buffer(0)
 		, m_last_refresh(second_clock::universal_time() - hours(1))
 		, m_timer(m_demuxer)
-		, m_second_timer(m_demuxer)
+		, m_connection_timer(m_demuxer)
+		, m_refresh_timer(m_demuxer)
 		, m_settings(settings)
 		, m_refresh_bucket(160)
 		, m_host_resolver(d)
@@ -145,6 +146,9 @@ namespace libtorrent { namespace dht
 		m_lt_message_input = 0;
 		m_mp_message_input = 0;
 		m_gr_message_input = 0;
+		m_total_in_bytes = 0;
+		m_total_out_bytes = 0;
+		m_queries_out_bytes = 0;
 		
 		// turns on and off individual components' logging
 
@@ -178,17 +182,33 @@ namespace libtorrent { namespace dht
 		m_timer.expires_from_now(seconds(1));
 		m_timer.async_wait(bind(&dht_tracker::tick, this, _1));
 
-		m_second_timer.expires_from_now(seconds(10));
-		m_second_timer.async_wait(bind(&dht_tracker::second_tick, this, _1));
+		m_connection_timer.expires_from_now(seconds(10));
+		m_connection_timer.async_wait(bind(&dht_tracker::connection_timeout, this, _1));
+
+		m_refresh_timer.expires_from_now(minutes(15));
+		m_refresh_timer.async_wait(bind(&dht_tracker::refresh_timeout, this, _1));
 	}
 
-	void dht_tracker::second_tick(asio::error const& e)
+	void dht_tracker::connection_timeout(asio::error const& e)
 		try
 	{
 		if (e) return;
-		time_duration d = m_dht.tick();
-		m_second_timer.expires_from_now(d);
-		m_second_timer.async_wait(bind(&dht_tracker::second_tick, this, _1));
+		time_duration d = m_dht.connection_timeout();
+		m_connection_timer.expires_from_now(d);
+		m_connection_timer.async_wait(bind(&dht_tracker::connection_timeout, this, _1));
+	}
+	catch (std::exception&)
+	{
+		assert(false);
+	};
+
+	void dht_tracker::refresh_timeout(asio::error const& e)
+		try
+	{
+		if (e) return;
+		time_duration d = m_dht.refresh_timeout();
+		m_refresh_timer.expires_from_now(d);
+		m_refresh_timer.async_wait(bind(&dht_tracker::refresh_timeout, this, _1));
 	}
 	catch (std::exception&)
 	{
@@ -203,7 +223,6 @@ namespace libtorrent { namespace dht
 		m_timer.async_wait(bind(&dht_tracker::tick, this, _1));
 
 		m_dht.new_write_key();
-		m_dht.check_refresh();
 		
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		static bool first = true;
@@ -243,7 +262,8 @@ namespace libtorrent { namespace dht
 				":num torrents:num peers:announces per min"
 				":failed announces per min:total msgs per min"
 				":ut msgs per min:lt msgs per min:mp msgs per min"
-				":gr msgs per min\n\n";
+				":gr msgs per min:bytes in per sec:bytes out per sec"
+				":queries out bytes per sec\n\n";
 		}
 
 		int active;
@@ -267,6 +287,9 @@ namespace libtorrent { namespace dht
 			<< "\t" << (m_lt_message_input / float(tick_period))
 			<< "\t" << (m_mp_message_input / float(tick_period))
 			<< "\t" << (m_gr_message_input / float(tick_period))
+			<< "\t" << (m_total_in_bytes / float(tick_period*60))
+			<< "\t" << (m_total_out_bytes / float(tick_period*60))
+			<< "\t" << (m_queries_out_bytes / float(tick_period*60))
 			<< std::endl;
 		++m_counter;
 		std::fill_n(m_replies_bytes_sent, 5, 0);
@@ -278,6 +301,9 @@ namespace libtorrent { namespace dht
 		m_total_message_input = 0;
 		m_ut_message_input = 0;
 		m_lt_message_input = 0;
+		m_total_in_bytes = 0;
+		m_total_out_bytes = 0;
+		m_queries_out_bytes = 0;
 #endif
 	}
 	catch (std::exception&)
@@ -309,6 +335,7 @@ namespace libtorrent { namespace dht
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		++m_total_message_input;
+		m_total_in_bytes += bytes_transferred;
 #endif
 
 		try
@@ -751,10 +778,16 @@ namespace libtorrent { namespace dht
 			, (int)m_send_buf.size()), m.addr);
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
+		m_total_out_bytes += m_send_buf.size();
+		
 		if (m.reply)
 		{
 			++m_replies_sent[m.message_id];
 			m_replies_bytes_sent[m.message_id] += int(m_send_buf.size());
+		}
+		else
+		{
+			m_queries_out_bytes += m_send_buf.size();
 		}
 		TORRENT_LOG(dht_tracker) << e;
 #endif

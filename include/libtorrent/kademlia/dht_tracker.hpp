@@ -77,7 +77,8 @@ namespace libtorrent { namespace dht
 
 		void on_name_lookup(asio::error const& e
 			, udp::resolver::iterator host);
-		void second_tick(asio::error const& e);
+		void connection_timeout(asio::error const& e);
+		void refresh_timeout(asio::error const& e);
 		void tick(asio::error const& e);
 
 		// translate bittorrent kademlia message into the generice kademlia message
@@ -100,7 +101,8 @@ namespace libtorrent { namespace dht
 
 		boost::posix_time::ptime m_last_refresh;
 		deadline_timer m_timer;
-		deadline_timer m_second_timer;
+		deadline_timer m_connection_timer;
+		deadline_timer m_refresh_timer;
 		dht_settings const& m_settings;
 		int m_refresh_bucket;
 
@@ -121,6 +123,11 @@ namespace libtorrent { namespace dht
 		int m_lt_message_input;
 		int m_mp_message_input;
 		int m_gr_message_input;
+		
+		int m_total_in_bytes;
+		int m_total_out_bytes;
+		
+		int m_queries_out_bytes;
 #endif
 	};
 }}

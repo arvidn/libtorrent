@@ -167,17 +167,6 @@ entry node_impl::generate_token(msg const& m)
 	return entry(token);
 }
 
-void node_impl::check_refresh()
-{
-	for (int i = 0; i < 160; ++i)
-	{
-		if (m_table.should_refresh(i))
-		{
-			refresh_bucket(i);
-		}
-	}
-}
-
 void node_impl::refresh(node_id const& id
 	, boost::function0<void> f)
 {
@@ -256,6 +245,7 @@ void node_impl::refresh_bucket(int bucket)
 
 	refresh::initiate(target, m_settings.search_branching, 10, m_table.bucket_size()
 		, m_table, start.begin(), start.end(), m_rpc, bind(&nop));
+	m_table.touch_bucket(bucket);
 }
 
 
@@ -377,7 +367,35 @@ void node_impl::announce(sha1_hash const& info_hash, int listen_port
 		, info_hash, f));
 }
 
-time_duration node_impl::tick()
+time_duration node_impl::refresh_timeout()
+{
+	int refresh = -1;
+	ptime now = second_clock::universal_time();
+	ptime next = now + minutes(15);
+	for (int i = 0; i < 160; ++i)
+	{
+		ptime r = m_table.next_refresh(i);
+		if (r <= now)
+		{
+			if (refresh == -1) refresh = i;
+		}
+		else if (r < next)
+		{
+			next = r;
+		}
+	}
+	if (refresh != -1)
+	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(node) << "refreshing bucket: " << refresh;
+#endif
+		refresh_bucket(refresh);
+	}
+	if (next < now + seconds(5)) return seconds(5);
+	return next - now;
+}
+
+time_duration node_impl::connection_timeout()
 {
 	time_duration d = m_rpc.tick();
 

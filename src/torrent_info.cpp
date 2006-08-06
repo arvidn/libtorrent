@@ -643,8 +643,7 @@ namespace libtorrent
 	{
 		os << "trackers:\n";
 		for (std::vector<announce_entry>::const_iterator i = trackers().begin();
-			i != trackers().end();
-			++i)
+			i != trackers().end(); ++i)
 		{
 			os << i->tier << ": " << i->url << "\n";
 		}
@@ -652,6 +651,7 @@ namespace libtorrent
 			os << "comment: " << m_comment << "\n";
 		if (m_creation_date != ptime(date(not_a_date_time)))
 			os << "creation date: " << to_simple_string(m_creation_date) << "\n";
+		os << "private: " << (m_private?"yes":"no") << "\n";
 		os << "number of pieces: " << num_pieces() << "\n";
 		os << "piece length: " << piece_length() << "\n";
 		os << "files:\n";
