@@ -431,6 +431,11 @@ void node_impl::on_announce(msg const& m, msg& reply)
 		return;
 	}
 
+	// the token was correct. That means this
+	// node is not spoofing its address. So, let
+	// the table get a chance to add it.
+	m_table.node_seen(m.id, m.addr);
+
 	torrent_entry& v = m_map[m.info_hash];
 	peer_entry e;
 	e.addr = tcp::endpoint(m.addr.address(), m.addr.port());
