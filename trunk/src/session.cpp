@@ -1269,11 +1269,14 @@ namespace libtorrent
 		d->resume_data = resume_data;
 
 #ifndef TORRENT_DISABLE_DHT
-		torrent_info::nodes_t const& nodes = ti.nodes();
-		std::for_each(nodes.begin(), nodes.end(), bind(
-			(void(dht::dht_tracker::*)(std::pair<std::string, int> const&))
-			&dht::dht_tracker::add_node
-			, boost::ref(m_impl.m_dht), _1));
+		if (m_impl.m_dht)
+		{
+			torrent_info::nodes_t const& nodes = ti.nodes();
+			std::for_each(nodes.begin(), nodes.end(), bind(
+				(void(dht::dht_tracker::*)(std::pair<std::string, int> const&))
+				&dht::dht_tracker::add_node
+				, boost::ref(m_impl.m_dht), _1));
+		}
 #endif
 
 		// add the torrent to the queue to be checked
