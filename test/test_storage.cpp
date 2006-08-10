@@ -19,7 +19,10 @@ int test_main()
 	torrent_info info;
 	info.set_piece_size(piece_size);
 	info.add_file("temp_storage/test1.tmp", 17);
-	info.add_file("temp_storage/test2.tmp", 613);
+	info.add_file("temp_storage/test2.tmp", 612);
+	info.add_file("temp_storage/test3.tmp", 0);
+	info.add_file("temp_storage/test4.tmp", 0);
+	info.add_file("temp_storage/test5.tmp", 1);
 
 	char piece0[piece_size] =
 	{ 6, 6, 6, 6, 6, 6, 6, 6
@@ -41,7 +44,7 @@ int test_main()
 
 	create_directory(initial_path() / "temp_storage");
 
-	int num_pieces = (613 + 17 + piece_size - 1) / piece_size;
+	int num_pieces = (1 + 612 + 17 + piece_size - 1) / piece_size;
 	TEST_CHECK(info.num_pieces() == num_pieces);
 
 	char piece[piece_size];
