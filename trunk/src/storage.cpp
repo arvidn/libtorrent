@@ -684,32 +684,37 @@ namespace libtorrent
 			if (file_offset + read_bytes > file_iter->size)
 				read_bytes = static_cast<int>(file_iter->size - file_offset);
 
+			if (read_bytes > 0)
+			{
 #ifndef NDEBUG
-			assert(int(slices.size()) > counter);
-			size_type slice_size = slices[counter].size;
-			assert(slice_size == read_bytes);
-			assert(m_pimpl->info.file_at(slices[counter].file_index).path
-				== file_iter->path);
+				assert(int(slices.size()) > counter);
+				size_type slice_size = slices[counter].size;
+				assert(slice_size == read_bytes);
+				assert(m_pimpl->info.file_at(slices[counter].file_index).path
+					== file_iter->path);
 #endif
 
-			size_type actual_read = in->read(buf + buf_pos, read_bytes);
+				size_type actual_read = in->read(buf + buf_pos, read_bytes);
 
-			if (read_bytes != actual_read)
-			{
-				// the file was not big enough
-				throw file_error("slot has no storage");
+				if (read_bytes != actual_read)
+				{
+					// the file was not big enough
+					throw file_error("slot has no storage");
+				}
+
+				left_to_read -= read_bytes;
+				buf_pos += read_bytes;
+				assert(buf_pos >= 0);
+				file_offset += read_bytes;
 			}
-
-			left_to_read -= read_bytes;
-			buf_pos += read_bytes;
-			assert(buf_pos >= 0);
-			file_offset += read_bytes;
 
 			if (left_to_read > 0)
 			{
 				++file_iter;
 #ifndef NDEBUG
-				++counter;
+				// empty files are not returned by map_block, so if
+				// this file was empty, don't increment the slice counter
+				if (read_bytes > 0) ++counter;
 #endif
 				path path = m_pimpl->save_path / file_iter->path;
 
@@ -799,32 +804,35 @@ namespace libtorrent
 				write_bytes = static_cast<int>(file_iter->size - file_offset);
 			}
 
-			assert(int(slices.size()) > counter);
-			assert(slices[counter].size == write_bytes);
-			assert(m_pimpl->info.file_at(slices[counter].file_index).path
-				== file_iter->path);
-
-			assert(buf_pos >= 0);
-			assert(write_bytes >= 0);
-			size_type written = out->write(buf + buf_pos, write_bytes);
-
-			if (written != write_bytes)
+			if (write_bytes > 0)
 			{
-				std::stringstream s;
-				s << "no storage for slot " << slot;
-				throw file_error(s.str());
-			}
+				assert(int(slices.size()) > counter);
+				assert(slices[counter].size == write_bytes);
+				assert(m_pimpl->info.file_at(slices[counter].file_index).path
+					== file_iter->path);
 
-			left_to_write -= write_bytes;
-			buf_pos += write_bytes;
-			assert(buf_pos >= 0);
-			file_offset += write_bytes;
-			assert(file_offset <= file_iter->size);
+				assert(buf_pos >= 0);
+				assert(write_bytes >= 0);
+				size_type written = out->write(buf + buf_pos, write_bytes);
+
+				if (written != write_bytes)
+				{
+					std::stringstream s;
+					s << "no storage for slot " << slot;
+					throw file_error(s.str());
+				}
+
+				left_to_write -= write_bytes;
+				buf_pos += write_bytes;
+				assert(buf_pos >= 0);
+				file_offset += write_bytes;
+				assert(file_offset <= file_iter->size);
+			}
 
 			if (left_to_write > 0)
 			{
 			#ifndef NDEBUG
-				++counter;
+				if (write_bytes > 0) ++counter;
 			#endif
 				++file_iter;
 

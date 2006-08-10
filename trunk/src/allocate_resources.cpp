@@ -158,6 +158,7 @@ namespace libtorrent
 			, It end
 			, resource_request T::* res)
 		{
+			assert(resources >= 0);
 	#ifndef NDEBUG
 			allocate_resources_contract_check<It, T> contract_check(
 				resources
@@ -197,7 +198,9 @@ namespace libtorrent
 			resources = std::max(resources, sum_min);
 			int resources_to_distribute = std::min(resources, sum_max) - sum_min;
 			assert(resources_to_distribute >= 0);
-
+#ifndef NDEBUG
+			int prev_resources_to_distribute = resources_to_distribute;
+#endif
 			while (resources_to_distribute > 0)
 			{
 				size_type total_used = 0;
@@ -215,11 +218,17 @@ namespace libtorrent
 
 				size_type kNumer = resources_to_distribute;
 				size_type kDenom = total_used;
+				assert(kNumer >= 0);
+				assert(kDenom >= 0);
+				assert(kNumer <= std::numeric_limits<int>::max());
+				assert(total_used < std::numeric_limits<int>::max());
 
 				if (kNumer * max_used <= kDenom)
 				{
 					kNumer = 1;
 					kDenom = max_used;
+					assert(kDenom >= 0);
+					assert(kDenom <= std::numeric_limits<int>::max());
 				}
 
 				for (It i = start; i != end && resources_to_distribute > 0; ++i)
@@ -241,6 +250,10 @@ namespace libtorrent
 				}
 
 				assert(resources_to_distribute >= 0);
+				assert(resources_to_distribute < prev_resources_to_distribute);
+#ifndef NDEBUG
+				prev_resources_to_distribute = resources_to_distribute;
+#endif
 			}
 		}
 

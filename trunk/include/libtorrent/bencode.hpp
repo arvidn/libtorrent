@@ -256,7 +256,7 @@ namespace libtorrent
 			// ----------------------------------------------
 			// string
 			default:
-				if (isdigit(*in))
+				if (isdigit((unsigned char)*in))
 				{
 					std::string len_s = read_until(in, end, ':');
 					assert(*in == ':');

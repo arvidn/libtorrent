@@ -1,3 +1,7 @@
+	* fixed problem with the resource distribution algorithm
+	  (controlling e.g upload/download rates)
+	* fixed incorrect asserts in storage related to torrents with
+	  zero-sized files.
 	* added support for trackerless torrents (with kademlia DHT).
 	* support for torrents with the private flag set.
 	* support for torrents containing bootstrap nodes for the
