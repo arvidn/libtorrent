@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TRAVERSAL_ALGORITHM_050324_HPP
 
 #include <vector>
+#include <set>
 
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
