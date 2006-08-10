@@ -445,6 +445,8 @@ namespace libtorrent
 		m_dht_announce_timer.expires_from_now(boost::posix_time::minutes(30));
 		m_dht_announce_timer.async_wait(bind(&torrent::on_dht_announce, this, _1));
 		if (!m_ses.m_dht) return;
+		// TODO: BUG! This may invoke on_dht_announce() with an invalid this-pointer.
+		// there has to be a way to abort an announce operation on the dht.
 		m_ses.m_dht->announce(m_torrent_file.info_hash()
 			, m_ses.m_listen_interface.port()
 			, bind(&torrent::on_dht_announce_response, this, _1));
