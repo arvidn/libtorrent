@@ -117,8 +117,8 @@ namespace aux
 		bool equal(routing_table_iterator const& other) const
 		{
 			return m_bucket_iterator == other.m_bucket_iterator
-				&& (m_iterator == other.m_iterator 
-					|| m_bucket_iterator == m_bucket_end);
+				&& (m_bucket_iterator == m_bucket_end
+					|| m_iterator == other.m_iterator);
 		}
 
 		void increment()
