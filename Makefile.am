@@ -1,4 +1,4 @@
-SUBDIRS = include @ZLIBDIR@ src examples test
+SUBDIRS = include @ZLIBDIR@ src @EXAMPLESDIR@ test
 EXTRA_DIST = docs/manual.html docs/manual.rst docs/extension_protocol.rst \
 docs/extension_protocol.html docs/udp_tracker_protocol.rst \
 docs/projects.rst docs/projects.html \
