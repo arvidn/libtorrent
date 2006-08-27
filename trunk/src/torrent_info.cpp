@@ -345,7 +345,7 @@ namespace libtorrent
 				std::string const& hostname = iter->string();
 				++iter;
 				int port = 6881;
-				if (list.end() != iter) port = iter->integer();
+				if (l.end() != iter) port = iter->integer();
 				m_nodes.push_back(std::make_pair(hostname, port));
 			}
 		}
