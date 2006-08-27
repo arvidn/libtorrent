@@ -86,7 +86,7 @@ project listed here, let me_ know.
 .. _`electric sheep`: http://electricsheep.org
 .. _qBittorrent: http://www.qbittorrent.org/
 .. _btg: http://developer.berlios.de/projects/btg/
-.. _MooPolice: http://www.massaroddel.de/MooPolice/
+.. _MooPolice: http://www.moopolice.de
 .. _BitsCast: http://www.bitscast.com/software/
 .. _BitSlug: http://bitslug.sourceforge.net/
 .. _BitBuddy: http://www.btvampire.com
