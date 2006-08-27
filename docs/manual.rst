@@ -297,7 +297,24 @@ building with autotools
 First of all, you need to install ``automake`` and ``autoconf``. Many
 unix/linux systems comes with these preinstalled.
 
-Step 1: Running configure
+Step 1: Generating the build system
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+No build system is present if libtorrent is checked out from CVS - it
+needs to be generated first. If you're building from a released tarball,
+you may skip directly to `Step 2: Running configure`_.
+
+Execute the following commands, in the given order, to generate
+the build system:
+
+*  aclocal -I m4
+*  autoheader
+*  libtoolize --copy --force
+*  automake --add-missing --copy --gnu
+*  autoconf
+
+
+Step 2: Running configure
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In your shell, change directory to the libtorrent directory and run
@@ -362,7 +379,7 @@ with the following option::
 
 The above option make use of -DNDEBUG, which is used throughout libtorrent.
 
-Step 2: Building libtorrent
+Step 3: Building libtorrent
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Once the configure script is run successfully, you just type ``make`` and
@@ -377,23 +394,6 @@ invariant checks), you have to rerun the configure script and rebuild, like this
   ./configure --disable-debug
   make clean
   make
-
-generating the build system
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-No build system is present if libtorrent is checked out from CVS - it
-needs to be generated first.
-
-Execute the following commands to generate the build system:
-
-*  autoheader
-*  aclocal -I m4
-*  libtoolize --copy --force
-*  automake --add-missing --copy --gnu
-*  autoconf
-
-After generating the build system, run configure and build
-libtorrent. This was described earlier.
 
 building with other build systems
 ---------------------------------
