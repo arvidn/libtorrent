@@ -1724,18 +1724,19 @@ namespace libtorrent
 		
 		for (int i = 0; i < m_torrent_file.num_files(); ++i)
 		{
-			peer_request ret = m_torrent_file.map_file(i, 0, m_torrent_file.file_at(i).size);
+			peer_request ret = m_torrent_file.map_file(i, 0, 0);
+			size_type size = m_torrent_file.file_at(i).size;
 			size_type done = 0;
-			while (ret.length > 0)
+			while (size > 0)
 			{
 				size_type bytes_step = std::min(m_torrent_file.piece_size(ret.piece)
-					- ret.start, (size_type)ret.length);
+					- ret.start, size);
 				if (m_have_pieces[ret.piece]) done += bytes_step;
 				++ret.piece;
 				ret.start = 0;
-				ret.length -= bytes_step;
+				size -= bytes_step;
 			}
-			assert(ret.length == 0);
+			assert(size == 0);
 			
 			fp[i] = static_cast<float>(done) / m_torrent_file.file_at(i).size;
 		}
