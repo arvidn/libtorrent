@@ -4,13 +4,13 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Docutils 0.3.9: http://docutils.sourceforge.net/" />
-<title>libtorrent manual</title>
+<title>libtorrent API Documentation</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" href="style.css" type="text/css" />
 </head>
 <body>
-<div class="document" id="libtorrent-manual">
-<h1 class="title">libtorrent manual</h1>
+<div class="document" id="libtorrent-api-documentation">
+<h1 class="title">libtorrent API Documentation</h1>
 <table class="docinfo" frame="void" rules="none">
 <col class="docinfo-name" />
 <col class="docinfo-content" />
@@ -24,577 +24,140 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first"><a name="table-of-contents">Table of contents</a></p>
 <ul class="simple">
-<li><a class="reference" href="#introduction" id="id27" name="id27">introduction</a></li>
-<li><a class="reference" href="#downloading-and-building" id="id28" name="id28">downloading and building</a><ul>
-<li><a class="reference" href="#building-with-bbv2" id="id29" name="id29">building with BBv2</a></li>
-<li><a class="reference" href="#building-with-autotools" id="id30" name="id30">building with autotools</a></li>
-<li><a class="reference" href="#building-with-other-build-systems" id="id31" name="id31">building with other build systems</a></li>
-<li><a class="reference" href="#build-configurations" id="id32" name="id32">build configurations</a></li>
+<li><a class="reference" href="#overview" id="id15" name="id15">overview</a></li>
+<li><a class="reference" href="#session" id="id16" name="id16">session</a><ul>
+<li><a class="reference" href="#id1" id="id17" name="id17">session()</a></li>
+<li><a class="reference" href="#id2" id="id18" name="id18">~session()</a></li>
+<li><a class="reference" href="#add-torrent" id="id19" name="id19">add_torrent()</a></li>
+<li><a class="reference" href="#remove-torrent" id="id20" name="id20">remove_torrent()</a></li>
+<li><a class="reference" href="#disable-extensions-enable-extension" id="id21" name="id21">disable_extensions() enable_extension()</a></li>
+<li><a class="reference" href="#set-upload-rate-limit-set-download-rate-limit" id="id22" name="id22">set_upload_rate_limit() set_download_rate_limit()</a></li>
+<li><a class="reference" href="#set-max-uploads-set-max-connections" id="id23" name="id23">set_max_uploads() set_max_connections()</a></li>
+<li><a class="reference" href="#set-max-half-open-connections" id="id24" name="id24">set_max_half_open_connections()</a></li>
+<li><a class="reference" href="#set-ip-filter" id="id25" name="id25">set_ip_filter()</a></li>
+<li><a class="reference" href="#status" id="id26" name="id26">status()</a></li>
+<li><a class="reference" href="#is-listening-listen-port-listen-on" id="id27" name="id27">is_listening() listen_port() listen_on()</a></li>
+<li><a class="reference" href="#pop-alert-set-severity-level" id="id28" name="id28">pop_alert() set_severity_level()</a></li>
+<li><a class="reference" href="#start-dht-stop-dht-set-dht-settings-dht-state" id="id29" name="id29">start_dht() stop_dht() set_dht_settings() dht_state()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#overview" id="id33" name="id33">overview</a></li>
-<li><a class="reference" href="#session" id="id34" name="id34">session</a><ul>
-<li><a class="reference" href="#id11" id="id35" name="id35">session()</a></li>
-<li><a class="reference" href="#id12" id="id36" name="id36">~session()</a></li>
-<li><a class="reference" href="#add-torrent" id="id37" name="id37">add_torrent()</a></li>
-<li><a class="reference" href="#remove-torrent" id="id38" name="id38">remove_torrent()</a></li>
-<li><a class="reference" href="#disable-extensions-enable-extension" id="id39" name="id39">disable_extensions() enable_extension()</a></li>
-<li><a class="reference" href="#set-upload-rate-limit-set-download-rate-limit" id="id40" name="id40">set_upload_rate_limit() set_download_rate_limit()</a></li>
-<li><a class="reference" href="#set-max-uploads-set-max-connections" id="id41" name="id41">set_max_uploads() set_max_connections()</a></li>
-<li><a class="reference" href="#set-max-half-open-connections" id="id42" name="id42">set_max_half_open_connections()</a></li>
-<li><a class="reference" href="#set-ip-filter" id="id43" name="id43">set_ip_filter()</a></li>
-<li><a class="reference" href="#status" id="id44" name="id44">status()</a></li>
-<li><a class="reference" href="#is-listening-listen-port-listen-on" id="id45" name="id45">is_listening() listen_port() listen_on()</a></li>
-<li><a class="reference" href="#pop-alert-set-severity-level" id="id46" name="id46">pop_alert() set_severity_level()</a></li>
-<li><a class="reference" href="#start-dht-stop-dht-set-dht-settings-dht-state" id="id47" name="id47">start_dht() stop_dht() set_dht_settings() dht_state()</a></li>
+<li><a class="reference" href="#entry" id="id30" name="id30">entry</a><ul>
+<li><a class="reference" href="#integer-string-list-dict-type" id="id31" name="id31">integer() string() list() dict() type()</a></li>
+<li><a class="reference" href="#operator" id="id32" name="id32">operator[]</a></li>
+<li><a class="reference" href="#find-key" id="id33" name="id33">find_key()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#entry" id="id48" name="id48">entry</a><ul>
-<li><a class="reference" href="#integer-string-list-dict-type" id="id49" name="id49">integer() string() list() dict() type()</a></li>
-<li><a class="reference" href="#operator" id="id50" name="id50">operator[]</a></li>
-<li><a class="reference" href="#find-key" id="id51" name="id51">find_key()</a></li>
+<li><a class="reference" href="#torrent-info" id="id34" name="id34">torrent_info</a><ul>
+<li><a class="reference" href="#id3" id="id35" name="id35">torrent_info()</a></li>
+<li><a class="reference" href="#set-comment-set-piece-size-set-creator-set-hash-add-tracker-add-file" id="id36" name="id36">set_comment() set_piece_size() set_creator() set_hash() add_tracker() add_file()</a></li>
+<li><a class="reference" href="#create-torrent" id="id37" name="id37">create_torrent()</a></li>
+<li><a class="reference" href="#begin-files-end-files-rbegin-files-rend-files" id="id38" name="id38">begin_files() end_files() rbegin_files() rend_files()</a></li>
+<li><a class="reference" href="#num-files-file-at" id="id39" name="id39">num_files() file_at()</a></li>
+<li><a class="reference" href="#map-block" id="id40" name="id40">map_block()</a></li>
+<li><a class="reference" href="#map-file" id="id41" name="id41">map_file()</a></li>
+<li><a class="reference" href="#url-seeds" id="id42" name="id42">url_seeds()</a></li>
+<li><a class="reference" href="#print" id="id43" name="id43">print()</a></li>
+<li><a class="reference" href="#trackers" id="id44" name="id44">trackers()</a></li>
+<li><a class="reference" href="#total-size-piece-length-piece-size-num-pieces" id="id45" name="id45">total_size() piece_length() piece_size() num_pieces()</a></li>
+<li><a class="reference" href="#hash-for-piece-info-hash" id="id46" name="id46">hash_for_piece() info_hash()</a></li>
+<li><a class="reference" href="#name-comment-creation-date-creator" id="id47" name="id47">name() comment() creation_date() creator()</a></li>
+<li><a class="reference" href="#priv-set-priv" id="id48" name="id48">priv() set_priv()</a></li>
+<li><a class="reference" href="#nodes" id="id49" name="id49">nodes()</a></li>
+<li><a class="reference" href="#add-node" id="id50" name="id50">add_node()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#torrent-info" id="id52" name="id52">torrent_info</a><ul>
-<li><a class="reference" href="#id13" id="id53" name="id53">torrent_info()</a></li>
-<li><a class="reference" href="#set-comment-set-piece-size-set-creator-set-hash-add-tracker-add-file" id="id54" name="id54">set_comment() set_piece_size() set_creator() set_hash() add_tracker() add_file()</a></li>
-<li><a class="reference" href="#create-torrent" id="id55" name="id55">create_torrent()</a></li>
-<li><a class="reference" href="#begin-files-end-files-rbegin-files-rend-files" id="id56" name="id56">begin_files() end_files() rbegin_files() rend_files()</a></li>
-<li><a class="reference" href="#num-files-file-at" id="id57" name="id57">num_files() file_at()</a></li>
-<li><a class="reference" href="#map-block" id="id58" name="id58">map_block()</a></li>
-<li><a class="reference" href="#map-file" id="id59" name="id59">map_file()</a></li>
-<li><a class="reference" href="#url-seeds" id="id60" name="id60">url_seeds()</a></li>
-<li><a class="reference" href="#print" id="id61" name="id61">print()</a></li>
-<li><a class="reference" href="#trackers" id="id62" name="id62">trackers()</a></li>
-<li><a class="reference" href="#total-size-piece-length-piece-size-num-pieces" id="id63" name="id63">total_size() piece_length() piece_size() num_pieces()</a></li>
-<li><a class="reference" href="#hash-for-piece-info-hash" id="id64" name="id64">hash_for_piece() info_hash()</a></li>
-<li><a class="reference" href="#name-comment-creation-date-creator" id="id65" name="id65">name() comment() creation_date() creator()</a></li>
-<li><a class="reference" href="#priv-set-priv" id="id66" name="id66">priv() set_priv()</a></li>
-<li><a class="reference" href="#nodes" id="id67" name="id67">nodes()</a></li>
-<li><a class="reference" href="#add-node" id="id68" name="id68">add_node()</a></li>
+<li><a class="reference" href="#torrent-handle" id="id51" name="id51">torrent_handle</a><ul>
+<li><a class="reference" href="#file-progress" id="id52" name="id52">file_progress()</a></li>
+<li><a class="reference" href="#save-path" id="id53" name="id53">save_path()</a></li>
+<li><a class="reference" href="#move-storage" id="id54" name="id54">move_storage()</a></li>
+<li><a class="reference" href="#force-reannounce" id="id55" name="id55">force_reannounce()</a></li>
+<li><a class="reference" href="#connect-peer" id="id56" name="id56">connect_peer()</a></li>
+<li><a class="reference" href="#set-ratio" id="id57" name="id57">set_ratio()</a></li>
+<li><a class="reference" href="#set-upload-limit-set-download-limit" id="id58" name="id58">set_upload_limit() set_download_limit()</a></li>
+<li><a class="reference" href="#set-peer-upload-limit-set-peer-download-limit" id="id59" name="id59">set_peer_upload_limit() set_peer_download_limit()</a></li>
+<li><a class="reference" href="#pause-resume-is-paused" id="id60" name="id60">pause() resume() is_paused()</a></li>
+<li><a class="reference" href="#is-seed" id="id61" name="id61">is_seed()</a></li>
+<li><a class="reference" href="#has-metadata" id="id62" name="id62">has_metadata()</a></li>
+<li><a class="reference" href="#set-tracker-login" id="id63" name="id63">set_tracker_login()</a></li>
+<li><a class="reference" href="#trackers-replace-trackers" id="id64" name="id64">trackers() replace_trackers()</a></li>
+<li><a class="reference" href="#add-url-seed" id="id65" name="id65">add_url_seed()</a></li>
+<li><a class="reference" href="#use-interface" id="id66" name="id66">use_interface()</a></li>
+<li><a class="reference" href="#info-hash" id="id67" name="id67">info_hash()</a></li>
+<li><a class="reference" href="#id5" id="id68" name="id68">set_max_uploads() set_max_connections()</a></li>
+<li><a class="reference" href="#write-resume-data" id="id69" name="id69">write_resume_data()</a></li>
+<li><a class="reference" href="#metadata" id="id70" name="id70">metadata()</a></li>
+<li><a class="reference" href="#id6" id="id71" name="id71">status()</a></li>
+<li><a class="reference" href="#get-download-queue" id="id72" name="id72">get_download_queue()</a></li>
+<li><a class="reference" href="#get-peer-info" id="id73" name="id73">get_peer_info()</a></li>
+<li><a class="reference" href="#get-torrent-info" id="id74" name="id74">get_torrent_info()</a></li>
+<li><a class="reference" href="#is-valid" id="id75" name="id75">is_valid()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#torrent-handle" id="id69" name="id69">torrent_handle</a><ul>
-<li><a class="reference" href="#file-progress" id="id70" name="id70">file_progress()</a></li>
-<li><a class="reference" href="#save-path" id="id71" name="id71">save_path()</a></li>
-<li><a class="reference" href="#move-storage" id="id72" name="id72">move_storage()</a></li>
-<li><a class="reference" href="#force-reannounce" id="id73" name="id73">force_reannounce()</a></li>
-<li><a class="reference" href="#connect-peer" id="id74" name="id74">connect_peer()</a></li>
-<li><a class="reference" href="#set-ratio" id="id75" name="id75">set_ratio()</a></li>
-<li><a class="reference" href="#set-upload-limit-set-download-limit" id="id76" name="id76">set_upload_limit() set_download_limit()</a></li>
-<li><a class="reference" href="#set-peer-upload-limit-set-peer-download-limit" id="id77" name="id77">set_peer_upload_limit() set_peer_download_limit()</a></li>
-<li><a class="reference" href="#pause-resume-is-paused" id="id78" name="id78">pause() resume() is_paused()</a></li>
-<li><a class="reference" href="#is-seed" id="id79" name="id79">is_seed()</a></li>
-<li><a class="reference" href="#has-metadata" id="id80" name="id80">has_metadata()</a></li>
-<li><a class="reference" href="#set-tracker-login" id="id81" name="id81">set_tracker_login()</a></li>
-<li><a class="reference" href="#trackers-replace-trackers" id="id82" name="id82">trackers() replace_trackers()</a></li>
-<li><a class="reference" href="#add-url-seed" id="id83" name="id83">add_url_seed()</a></li>
-<li><a class="reference" href="#use-interface" id="id84" name="id84">use_interface()</a></li>
-<li><a class="reference" href="#info-hash" id="id85" name="id85">info_hash()</a></li>
-<li><a class="reference" href="#id15" id="id86" name="id86">set_max_uploads() set_max_connections()</a></li>
-<li><a class="reference" href="#write-resume-data" id="id87" name="id87">write_resume_data()</a></li>
-<li><a class="reference" href="#metadata" id="id88" name="id88">metadata()</a></li>
-<li><a class="reference" href="#id16" id="id89" name="id89">status()</a></li>
-<li><a class="reference" href="#get-download-queue" id="id90" name="id90">get_download_queue()</a></li>
-<li><a class="reference" href="#get-peer-info" id="id91" name="id91">get_peer_info()</a></li>
-<li><a class="reference" href="#get-torrent-info" id="id92" name="id92">get_torrent_info()</a></li>
-<li><a class="reference" href="#is-valid" id="id93" name="id93">is_valid()</a></li>
+<li><a class="reference" href="#torrent-status" id="id76" name="id76">torrent_status</a></li>
+<li><a class="reference" href="#peer-info" id="id77" name="id77">peer_info</a></li>
+<li><a class="reference" href="#session-settings" id="id78" name="id78">session_settings</a></li>
+<li><a class="reference" href="#ip-filter" id="id79" name="id79">ip_filter</a><ul>
+<li><a class="reference" href="#id8" id="id80" name="id80">ip_filter()</a></li>
+<li><a class="reference" href="#add-rule" id="id81" name="id81">add_rule()</a></li>
+<li><a class="reference" href="#access" id="id82" name="id82">access()</a></li>
+<li><a class="reference" href="#export-filter" id="id83" name="id83">export_filter()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#torrent-status" id="id94" name="id94">torrent_status</a></li>
-<li><a class="reference" href="#peer-info" id="id95" name="id95">peer_info</a></li>
-<li><a class="reference" href="#session-settings" id="id96" name="id96">session_settings</a></li>
-<li><a class="reference" href="#ip-filter" id="id97" name="id97">ip_filter</a><ul>
-<li><a class="reference" href="#id19" id="id98" name="id98">ip_filter()</a></li>
-<li><a class="reference" href="#add-rule" id="id99" name="id99">add_rule()</a></li>
-<li><a class="reference" href="#access" id="id100" name="id100">access()</a></li>
-<li><a class="reference" href="#export-filter" id="id101" name="id101">export_filter()</a></li>
+<li><a class="reference" href="#big-number" id="id84" name="id84">big_number</a></li>
+<li><a class="reference" href="#hasher" id="id85" name="id85">hasher</a></li>
+<li><a class="reference" href="#fingerprint" id="id86" name="id86">fingerprint</a></li>
+<li><a class="reference" href="#free-functions" id="id87" name="id87">free functions</a><ul>
+<li><a class="reference" href="#identify-client" id="id88" name="id88">identify_client()</a></li>
+<li><a class="reference" href="#client-fingerprint" id="id89" name="id89">client_fingerprint()</a></li>
+<li><a class="reference" href="#bdecode-bencode" id="id90" name="id90">bdecode() bencode()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#big-number" id="id102" name="id102">big_number</a></li>
-<li><a class="reference" href="#hasher" id="id103" name="id103">hasher</a></li>
-<li><a class="reference" href="#fingerprint" id="id104" name="id104">fingerprint</a></li>
-<li><a class="reference" href="#free-functions" id="id105" name="id105">free functions</a><ul>
-<li><a class="reference" href="#identify-client" id="id106" name="id106">identify_client()</a></li>
-<li><a class="reference" href="#client-fingerprint" id="id107" name="id107">client_fingerprint()</a></li>
-<li><a class="reference" href="#bdecode-bencode" id="id108" name="id108">bdecode() bencode()</a></li>
+<li><a class="reference" href="#alerts" id="id91" name="id91">alerts</a><ul>
+<li><a class="reference" href="#listen-failed-alert" id="id92" name="id92">listen_failed_alert</a></li>
+<li><a class="reference" href="#file-error-alert" id="id93" name="id93">file_error_alert</a></li>
+<li><a class="reference" href="#tracker-announce-alert" id="id94" name="id94">tracker_announce_alert</a></li>
+<li><a class="reference" href="#tracker-alert" id="id95" name="id95">tracker_alert</a></li>
+<li><a class="reference" href="#tracker-reply-alert" id="id96" name="id96">tracker_reply_alert</a></li>
+<li><a class="reference" href="#tracker-warning-alert" id="id97" name="id97">tracker_warning_alert</a></li>
+<li><a class="reference" href="#url-seed-alert" id="id98" name="id98">url_seed_alert</a></li>
+<li><a class="reference" href="#hash-failed-alert" id="id99" name="id99">hash_failed_alert</a></li>
+<li><a class="reference" href="#peer-ban-alert" id="id100" name="id100">peer_ban_alert</a></li>
+<li><a class="reference" href="#peer-error-alert" id="id101" name="id101">peer_error_alert</a></li>
+<li><a class="reference" href="#invalid-request-alert" id="id102" name="id102">invalid_request_alert</a></li>
+<li><a class="reference" href="#torrent-finished-alert" id="id103" name="id103">torrent_finished_alert</a></li>
+<li><a class="reference" href="#metadata-failed-alert" id="id104" name="id104">metadata_failed_alert</a></li>
+<li><a class="reference" href="#metadata-received-alert" id="id105" name="id105">metadata_received_alert</a></li>
+<li><a class="reference" href="#fastresume-rejected-alert" id="id106" name="id106">fastresume_rejected_alert</a></li>
+<li><a class="reference" href="#dispatcher" id="id107" name="id107">dispatcher</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#alerts" id="id109" name="id109">alerts</a><ul>
-<li><a class="reference" href="#listen-failed-alert" id="id110" name="id110">listen_failed_alert</a></li>
-<li><a class="reference" href="#file-error-alert" id="id111" name="id111">file_error_alert</a></li>
-<li><a class="reference" href="#tracker-announce-alert" id="id112" name="id112">tracker_announce_alert</a></li>
-<li><a class="reference" href="#tracker-alert" id="id113" name="id113">tracker_alert</a></li>
-<li><a class="reference" href="#tracker-reply-alert" id="id114" name="id114">tracker_reply_alert</a></li>
-<li><a class="reference" href="#tracker-warning-alert" id="id115" name="id115">tracker_warning_alert</a></li>
-<li><a class="reference" href="#url-seed-alert" id="id116" name="id116">url_seed_alert</a></li>
-<li><a class="reference" href="#hash-failed-alert" id="id117" name="id117">hash_failed_alert</a></li>
-<li><a class="reference" href="#peer-ban-alert" id="id118" name="id118">peer_ban_alert</a></li>
-<li><a class="reference" href="#peer-error-alert" id="id119" name="id119">peer_error_alert</a></li>
-<li><a class="reference" href="#invalid-request-alert" id="id120" name="id120">invalid_request_alert</a></li>
-<li><a class="reference" href="#torrent-finished-alert" id="id121" name="id121">torrent_finished_alert</a></li>
-<li><a class="reference" href="#metadata-failed-alert" id="id122" name="id122">metadata_failed_alert</a></li>
-<li><a class="reference" href="#metadata-received-alert" id="id123" name="id123">metadata_received_alert</a></li>
-<li><a class="reference" href="#fastresume-rejected-alert" id="id124" name="id124">fastresume_rejected_alert</a></li>
-<li><a class="reference" href="#dispatcher" id="id125" name="id125">dispatcher</a></li>
+<li><a class="reference" href="#exceptions" id="id108" name="id108">exceptions</a><ul>
+<li><a class="reference" href="#invalid-handle" id="id109" name="id109">invalid_handle</a></li>
+<li><a class="reference" href="#duplicate-torrent" id="id110" name="id110">duplicate_torrent</a></li>
+<li><a class="reference" href="#invalid-encoding" id="id111" name="id111">invalid_encoding</a></li>
+<li><a class="reference" href="#type-error" id="id112" name="id112">type_error</a></li>
+<li><a class="reference" href="#invalid-torrent-file" id="id113" name="id113">invalid_torrent_file</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#exceptions" id="id126" name="id126">exceptions</a><ul>
-<li><a class="reference" href="#invalid-handle" id="id127" name="id127">invalid_handle</a></li>
-<li><a class="reference" href="#duplicate-torrent" id="id128" name="id128">duplicate_torrent</a></li>
-<li><a class="reference" href="#invalid-encoding" id="id129" name="id129">invalid_encoding</a></li>
-<li><a class="reference" href="#type-error" id="id130" name="id130">type_error</a></li>
-<li><a class="reference" href="#invalid-torrent-file" id="id131" name="id131">invalid_torrent_file</a></li>
+<li><a class="reference" href="#fast-resume" id="id114" name="id114">fast resume</a><ul>
+<li><a class="reference" href="#file-format" id="id115" name="id115">file format</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#examples" id="id132" name="id132">examples</a><ul>
-<li><a class="reference" href="#dump-torrent" id="id133" name="id133">dump_torrent</a></li>
-<li><a class="reference" href="#simple-client" id="id134" name="id134">simple client</a></li>
-<li><a class="reference" href="#make-torrent" id="id135" name="id135">make_torrent</a></li>
+<li><a class="reference" href="#threads" id="id116" name="id116">threads</a></li>
+<li><a class="reference" href="#storage-allocation" id="id117" name="id117">storage allocation</a><ul>
+<li><a class="reference" href="#full-allocation" id="id118" name="id118">full allocation</a></li>
+<li><a class="reference" href="#compact-allocation" id="id119" name="id119">compact allocation</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#fast-resume" id="id136" name="id136">fast resume</a><ul>
-<li><a class="reference" href="#file-format" id="id137" name="id137">file format</a></li>
+<li><a class="reference" href="#extensions" id="id120" name="id120">extensions</a><ul>
+<li><a class="reference" href="#chat-messages" id="id121" name="id121">chat messages</a></li>
+<li><a class="reference" href="#metadata-from-peers" id="id122" name="id122">metadata from peers</a></li>
+<li><a class="reference" href="#http-seeding" id="id123" name="id123">HTTP seeding</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#threads" id="id138" name="id138">threads</a></li>
-<li><a class="reference" href="#storage-allocation" id="id139" name="id139">storage allocation</a><ul>
-<li><a class="reference" href="#full-allocation" id="id140" name="id140">full allocation</a></li>
-<li><a class="reference" href="#compact-allocation" id="id141" name="id141">compact allocation</a></li>
+<li><a class="reference" href="#filename-checks" id="id124" name="id124">filename checks</a></li>
+<li><a class="reference" href="#acknowledgments" id="id125" name="id125">acknowledgments</a></li>
 </ul>
-</li>
-<li><a class="reference" href="#extensions" id="id142" name="id142">extensions</a><ul>
-<li><a class="reference" href="#chat-messages" id="id143" name="id143">chat messages</a></li>
-<li><a class="reference" href="#metadata-from-peers" id="id144" name="id144">metadata from peers</a></li>
-<li><a class="reference" href="#http-seeding" id="id145" name="id145">HTTP seeding</a></li>
-</ul>
-</li>
-<li><a class="reference" href="#filename-checks" id="id146" name="id146">filename checks</a></li>
-<li><a class="reference" href="#acknowledgments" id="id147" name="id147">acknowledgments</a></li>
-</ul>
-</div>
-<div class="section" id="introduction">
-<h1><a name="introduction">introduction</a></h1>
-<p>libtorrent is a C++ library that aims to be a good alternative to all the
-other bittorrent implementations around. It is a
-library and not a full featured client, although it comes with a working
-example client.</p>
-<p>The main goals of libtorrent are:</p>
-<ul class="simple">
-<li>to be cpu efficient</li>
-<li>to be memory efficient</li>
-<li>to be very easy to use</li>
-</ul>
-<p>libtorrent is still being developed, however it is stable. It is an ongoing
-project (including this documentation). The current state includes the
-following features:</p>
-<ul class="simple">
-<li>Trackerless torrents (using a kademlia DHT)</li>
-<li>multitracker extension support (as <a class="reference" href="http://home.elp.rr.com/tur/multitracker-spec.txt">specified by John Hoffman</a>)</li>
-<li>serves multiple torrents on a single port and in a single thread</li>
-<li>gzipped tracker-responses</li>
-<li><a class="reference" href="#http-seeding">HTTP seeding</a>, as <a class="reference" href="http://www.getright.com/seedtorrent.html">specified by Michael Burford of GetRight</a>.</li>
-<li>piece picking on block-level (as opposed to piece-level).
-This means it can download parts of the same piece from different peers.
-It will also prefer to download whole pieces from single peers if the
-download speed is high enough from that particular peer.</li>
-<li>queues torrents for file check, instead of checking all of them in parallel.</li>
-<li>supports http proxies and proxy authentication</li>
-<li>uses separate threads for checking files and for main downloader, with a
-fool-proof thread-safe library interface. (i.e. There's no way for the
-user to cause a deadlock). (see <a class="reference" href="#threads">threads</a>)</li>
-<li>can limit the upload and download bandwidth usage and the maximum number of
-unchoked peers</li>
-<li>piece-wise, unordered, incremental file allocation</li>
-<li>implements fair trade. User settable trade-ratio, must at least be 1:1,
-but one can choose to trade 1 for 2 or any other ratio that isn't unfair
-to the other party.</li>
-<li>fast resume support, a way to get rid of the costly piece check at the
-start of a resumed torrent. Saves the storage state, piece_picker state
-as well as all local peers in a separate fast-resume file.</li>
-<li>supports an <a class="reference" href="extension_protocol.html">extension protocol</a>. See <a class="reference" href="#extensions">extensions</a>.</li>
-<li>supports files &gt; 2 gigabytes.</li>
-<li>supports the <tt class="docutils literal"><span class="pre">no_peer_id=1</span></tt> extension that will ease the load off trackers.</li>
-<li>supports the <a class="reference" href="udp_tracker_protocol.html">udp-tracker protocol</a> by Olaf van der Spek.</li>
-<li>possibility to limit the number of connections.</li>
-<li>delays have messages if there's no other outgoing traffic to the peer, and
-doesn't send have messages to peers that already has the piece. This saves
-bandwidth.</li>
-<li>does not have any requirements on the piece order in a torrent that it
-resumes. This means it can resume a torrent downloaded by any client.</li>
-<li>adjusts the length of the request queue depending on download rate.</li>
-<li>supports the <tt class="docutils literal"><span class="pre">compact=1</span></tt> tracker parameter.</li>
-<li>selective downloading. The ability to select which parts of a torrent you
-want to download.</li>
-<li>ip filter</li>
-</ul>
-<p>libtorrent is portable at least among Windows, MacOS X and other UNIX-systems.
-It uses Boost.Thread, Boost.Filesystem, Boost.Date_time and various other
-boost libraries as well as <a class="reference" href="http://www.zlib.org">zlib</a> (shipped) and <a class="reference" href="http://asio.sf.net">asio</a> (shipped). At least version
-1.33.1 of boost is required.</p>
-<p>Since libtorrent uses asio, it will take full advantage of high performance
-network APIs on the most popular platforms. I/O completion ports on windows,
-epoll on linux and kqueue on MacOS X and BSD.</p>
-<p>libtorrent has been successfully compiled and tested on:</p>
-<ul class="simple">
-<li>Windows 2000 vc7.1, vc8</li>
-<li>Linux x86 GCC 3.3, GCC 3.4.2</li>
-<li>MacOS X (darwin), (Apple's) GCC 3.3, (Apple's) GCC 4.0</li>
-<li>SunOS 5.8 GCC 3.1</li>
-<li>Cygwin GCC 3.3.3</li>
-</ul>
-<p>Fails on:</p>
-<ul class="simple">
-<li>GCC 2.95.4</li>
-<li>msvc6</li>
-</ul>
-<p>libtorrent is released under the <a class="reference" href="http://www.opensource.org/licenses/bsd-license.php">BSD-license</a>.</p>
-<p>This means that you can use the library in your project without having to
-release its source code. The only requirement is that you give credit
-to the author of the library by including the libtorrent license in your
-software or documentation.</p>
-<p><a class="reference" href="projects.html">Here's</a> a list of some projects that uses libtorrent.</p>
-</div>
-<div class="section" id="downloading-and-building">
-<h1><a name="downloading-and-building">downloading and building</a></h1>
-<p>To acquire the latest version of libtorrent, you'll have to grab it from CVS.
-You'll find instructions on how to do this <a class="reference" href="http://sourceforge.net/cvs/?group_id=79942">here</a> (see Anonymous CVS access).</p>
-<p>The build systems supported &quot;out of the box&quot; in libtorrent are boost-build v2
-(BBv2) and autotools (for unix-like systems). If you still can't build after
-following these instructions, you can usually get help in the <tt class="docutils literal"><span class="pre">#libtorrent</span></tt>
-IRC channel on <tt class="docutils literal"><span class="pre">irc.freenode.net</span></tt>.</p>
-<div class="section" id="building-with-bbv2">
-<h2><a name="building-with-bbv2">building with BBv2</a></h2>
-<p>The primary reason to use boost-build is that it will automatically build the
-dependent boost libraries with the correct compiler settings, in order to
-ensure that the build targets are link compatible (see <a class="reference" href="http://boost.org/more/separate_compilation.html">boost guidelines</a>
-for some details on this issue).</p>
-<p>Since BBv2 will build the boost libraries for you, you need the full boost
-source package. Having boost installed via some package system is usually not
-enough (and even if it is enough, the necessary environment variables are
-usually not set by the package installer).</p>
-<div class="section" id="step-1-download-boost">
-<h3><a name="step-1-download-boost">Step 1: Download boost</a></h3>
-<p>You'll find boost <a class="reference" href="http://sourceforge.net/project/showfiles.php?group_id=7586&amp;package_id=8041&amp;release_id=376197">here</a>.</p>
-<p>Extract the archive to some directory where you want it. For the sake of this
-guide, let's assume you extract the package to <tt class="docutils literal"><span class="pre">c:\boost_1_33_1</span></tt> (I'm using
-a windows path in this example since if you're on linux/unix you're more likely
-to use the autotools). You'll need at least version 1.32 of the boost library
-in order to build libtorrent.</p>
-<p>If you use 1.32, you need to download BBv2 separately, so for now, let's
-assume you will use version 1.33.1.</p>
-</div>
-<div class="section" id="step-2-setup-bbv2">
-<h3><a name="step-2-setup-bbv2">Step 2: Setup BBv2</a></h3>
-<p>First you need to build <tt class="docutils literal"><span class="pre">bjam</span></tt>. You do this by opening a terminal (In
-windows, run <tt class="docutils literal"><span class="pre">cmd</span></tt>). Change directory to
-<tt class="docutils literal"><span class="pre">c:\boost_1_33_1\tools\build\jam_src</span></tt>. Then run the script called
-<tt class="docutils literal"><span class="pre">build.bat</span></tt> or <tt class="docutils literal"><span class="pre">build.sh</span></tt> on a unix system. This will build <tt class="docutils literal"><span class="pre">bjam</span></tt> and
-place it in a directory starting with <tt class="docutils literal"><span class="pre">bin.</span></tt> and then have the name of your
-platform. Copy the <tt class="docutils literal"><span class="pre">bjam.exe</span></tt> (or <tt class="docutils literal"><span class="pre">bjam</span></tt> on a unix system) to a place
-that's in you shell's <tt class="docutils literal"><span class="pre">PATH</span></tt>. On linux systems a place commonly used may be
-<tt class="docutils literal"><span class="pre">/usr/local/bin</span></tt> or on windows <tt class="docutils literal"><span class="pre">c:\windows</span></tt> (you can also add directories
-to the search paths by modifying the environment variable called <tt class="docutils literal"><span class="pre">PATH</span></tt>).</p>
-<p>Now you have <tt class="docutils literal"><span class="pre">bjam</span></tt> installed. <tt class="docutils literal"><span class="pre">bjam</span></tt> can be considered an interpreter
-that the boost-build system is implemented on. So boost-build uses <tt class="docutils literal"><span class="pre">bjam</span></tt>.
-So, to complete the installation you need to make two more things. You need to
-set the environment variable <tt class="docutils literal"><span class="pre">BOOST_BUILD_PATH</span></tt>. This is the path that tells
-<tt class="docutils literal"><span class="pre">bjam</span></tt> where it can find boost-build, your configuration file and all the
-toolsets (descriptions used by boost-build to know how to use different
-compilers on different platforms). Assuming the boost install path above, set
-it to <tt class="docutils literal"><span class="pre">c:\boost_1_33_1\tools\build\v2</span></tt>.</p>
-<p>To set an environment variable in windows, type for example:</p>
-<pre class="literal-block">
-set BOOST_BUILD_PATH=c:\boost_1_33_1\tools\build\v2
-</pre>
-<p>In a terminal window.</p>
-<p>The last thing to do to complete the setup of BBv2 is to modify your
-<tt class="docutils literal"><span class="pre">user-config.jam</span></tt> file. It is located in <tt class="docutils literal"><span class="pre">c:\boost_1_33_1\tools\build\v2</span></tt>.
-Depending on your platform and which compiler you're using, you should add a
-line for each compiler and compiler version you have installed on your system
-that you want to be able to use with BBv2. For example, if you're using
-Microsoft Visual Studio 7.1 (2003), just add a line:</p>
-<pre class="literal-block">
-using msvc : 7.1 ;
-</pre>
-<p>If you use GCC, add the line:</p>
-<pre class="literal-block">
-using gcc ;
-</pre>
-<p>If you have more than one version of GCC installed, you can add the
-commandline used to invoke g++ after the version number, like this:</p>
-<pre class="literal-block">
-using gcc : 3.3 : g++-3.3 ;
-using gcc : 4.0 : g++-4.0 ;
-</pre>
-<p>Another toolset worth mentioning is the <tt class="docutils literal"><span class="pre">darwin</span></tt> toolset (For MacOS X).
-From Tiger (10.4) MacOS X comes with both GCC 3.3 and GCC 4.0. Then you can
-use the following toolsets:</p>
-<pre class="literal-block">
-using darwin : 3.3 : g++-3.3 ;
-using darwin : 4.0 : g++-4.0 ;
-</pre>
-<p>Note that the spaces around the semi-colons and colons are important!</p>
-</div>
-<div class="section" id="step-3-building-libtorrent">
-<h3><a name="step-3-building-libtorrent">Step 3: Building libtorrent</a></h3>
-<p>When building libtorrent, the <tt class="docutils literal"><span class="pre">Jamfile</span></tt> expects the environment variable
-<tt class="docutils literal"><span class="pre">BOOST_ROOT</span></tt> to be set to the boost installation directory. It uses this to
-find the boost libraries it depends on, so they can be built and their headers
-files found. So, set this to <tt class="docutils literal"><span class="pre">c:\boost_1_33_1</span></tt>.</p>
-<p>Then the only thing left is simply to invoke <tt class="docutils literal"><span class="pre">bjam</span></tt>. If you want to specify
-a specific toolset to use (compiler) you can just add that to the commandline.
-For example:</p>
-<pre class="literal-block">
-bjam msvc-7.1 link=static
-bjam gcc-3.3 link=static
-bjam darwin-4.0 link=static
-</pre>
-<p>To build different versions you can also just add the name of the build
-variant. Some default build variants in BBv2 are <tt class="docutils literal"><span class="pre">release</span></tt>, <tt class="docutils literal"><span class="pre">debug</span></tt>,
-<tt class="docutils literal"><span class="pre">profile</span></tt>.</p>
-<p>You can build libtorrent as a dll too, by typing <tt class="docutils literal"><span class="pre">link=shared</span></tt>, or
-<tt class="docutils literal"><span class="pre">link=static</span></tt> to build a static library. <tt class="docutils literal"><span class="pre">link=shared</span></tt> is the default.</p>
-<p>If you want to explicitly say how to link against the runtime library, you
-can set the <tt class="docutils literal"><span class="pre">runtime-link</span></tt> feature on the commandline, either to <tt class="docutils literal"><span class="pre">shared</span></tt>
-or <tt class="docutils literal"><span class="pre">static</span></tt>. Most operating systems will only allow linking shared against
-the runtime, but on windows you can do both. Example:</p>
-<pre class="literal-block">
-bjam msvc-7.1 link=static runtime-link=static
-</pre>
-<div class="warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">If you link statically to the runtime library, you cannot build libtorrent
-as a shared library (DLL), since you will get separate heaps in the library
-and in the client application. It will result in crashes.</p>
-</div>
-<p>The build targets are put in a directory called bin, and under it they are
-sorted in directories depending on the toolset and build variant used.</p>
-<p>To build the examples, just change directory to the examples directory and
-invoke <tt class="docutils literal"><span class="pre">bjam</span></tt> from there. To build and run the tests, go to the test
-directory and run <tt class="docutils literal"><span class="pre">bjam</span></tt>.</p>
-<p>Note that if you're building on windows using the <tt class="docutils literal"><span class="pre">msvc</span></tt> toolset, you cannot run it
-from a cygwin terminal, you'll have to run it from a <tt class="docutils literal"><span class="pre">cmd</span></tt> terminal. The same goes for
-cygwin, if you're building with gcc in cygwin you'll have to run it from a cygwin terminal.
-Also, make sure the paths are correct in the different environments. In cygwin, the paths
-(<tt class="docutils literal"><span class="pre">BOOST_BUILD_PATH</span></tt> and <tt class="docutils literal"><span class="pre">BOOST_ROOT</span></tt>) should be in the typical unix-format (e.g.
-<tt class="docutils literal"><span class="pre">/cygdrive/c/boost_1_33_1</span></tt>). In the windows environment, they should have the typical
-windows format (<tt class="docutils literal"><span class="pre">c:/boost_1_33_1</span></tt>).</p>
-<p>The <tt class="docutils literal"><span class="pre">Jamfile</span></tt> will define <tt class="docutils literal"><span class="pre">NDEBUG</span></tt> when it's building a release build.
-There are two other build variants available in the <tt class="docutils literal"><span class="pre">Jamfile</span></tt>. debug_log
-and release_log, these two variants inherits from the debug and release
-variants respectively, but adds extra logging (<tt class="docutils literal"><span class="pre">TORRENT_VERBOSE_LOGGING</span></tt>).
-For more build configuration flags see <a class="reference" href="#build-configurations">Build configurations</a>.</p>
-<p>The <tt class="docutils literal"><span class="pre">Jamfile</span></tt> has the following build variants:</p>
-<ul class="simple">
-<li><tt class="docutils literal"><span class="pre">release</span></tt> - release version without any logging</li>
-<li><tt class="docutils literal"><span class="pre">release_log</span></tt> - release version with standard logging</li>
-<li><tt class="docutils literal"><span class="pre">release_vlog</span></tt> - release version with verbose logging (all peer connections are logged)</li>
-<li><tt class="docutils literal"><span class="pre">debug</span></tt> - debug version without any logging</li>
-<li><tt class="docutils literal"><span class="pre">debug_log</span></tt> - debug version with standard logging</li>
-<li><tt class="docutils literal"><span class="pre">debug_vlog</span></tt> - debug version with verbose logging</li>
-</ul>
-<p>The logs created when building vlog or log mode are put in a directory called
-<tt class="docutils literal"><span class="pre">libtorrent_logs</span></tt> in the current working directory.</p>
-<p>When building the example client on windows, you need to build with
-<tt class="docutils literal"><span class="pre">link=static</span></tt> otherwise you may get unresolved external symbols for some
-boost.program-options symbols.</p>
-<p>For more information, see the <a class="reference" href="http://www.boost.org/tools/build/v2/index.html">Boost build v2 documentation</a>.</p>
-</div>
-</div>
-<div class="section" id="building-with-autotools">
-<h2><a name="building-with-autotools">building with autotools</a></h2>
-<p>First of all, you need to install <tt class="docutils literal"><span class="pre">automake</span></tt> and <tt class="docutils literal"><span class="pre">autoconf</span></tt>. Many
-unix/linux systems comes with these preinstalled.</p>
-<div class="section" id="step-1-generating-the-build-system">
-<h3><a name="step-1-generating-the-build-system">Step 1: Generating the build system</a></h3>
-<p>No build system is present if libtorrent is checked out from CVS - it
-needs to be generated first. If you're building from a released tarball,
-you may skip directly to <a class="reference" href="#step-2-running-configure">Step 2: Running configure</a>.</p>
-<p>Execute the following commands, in the given order, to generate
-the build system:</p>
-<ul class="simple">
-<li>aclocal -I m4</li>
-<li>autoheader</li>
-<li>libtoolize --copy --force</li>
-<li>automake --add-missing --copy --gnu</li>
-<li>autoconf</li>
-</ul>
-</div>
-<div class="section" id="step-2-running-configure">
-<h3><a name="step-2-running-configure">Step 2: Running configure</a></h3>
-<p>In your shell, change directory to the libtorrent directory and run
-<tt class="docutils literal"><span class="pre">./configure</span></tt>. This will look for libraries and C++ features that libtorrent
-is dependent on. If something is missing or can't be found it will print an
-error telling you what failed.</p>
-<p>The most likely problem you may encounter is that the configure script won't
-find the boost libraries. Make sure you have boost installed on your system.
-The easiest way to install boost is usually to use the preferred package
-system on your platform. Usually libraries and headers are installed in
-standard directories where the compiler will find them, but sometimes that
-may not be the case. For example when installing boost on darwin using
-darwinports (the package system based on BSD ports) all libraries are
-installed to <tt class="docutils literal"><span class="pre">/opt/local/lib</span></tt> and headers are installed to
-<tt class="docutils literal"><span class="pre">/opt/local/include</span></tt>. By default the compiler will not look in these
-directories. You have to set the enviornment variables <tt class="docutils literal"><span class="pre">LDFLAGS</span></tt> and
-<tt class="docutils literal"><span class="pre">CXXFLAGS</span></tt> in order to make the compiler find those libs. In this example
-you'd set them like this:</p>
-<pre class="literal-block">
-export LDFLAGS=-L/opt/local/lib
-export CXXFLAGS=-I/opt/local/include
-</pre>
-<p>It was observed on FreeBSD (release 6.0) that one needs to add '-lpthread' to
-LDFLAGS, as Boost::Thread detection will fail without it, even if
-Boost::Thread is installed.</p>
-<p>If you need to set these variables, it may be a good idea to add those lines
-to your <tt class="docutils literal"><span class="pre">~/.profile</span></tt> or <tt class="docutils literal"><span class="pre">~/.tcshrc</span></tt> depending on your shell.</p>
-<p>You know that the boost libraries were found if you see the following output
-from the configure script:</p>
-<pre class="literal-block">
-checking whether the Boost::DateTime library is available... yes
-checking for main in -lboost_date_time... yes
-checking whether the Boost::Filesystem library is available... yes
-checking for main in -lboost_filesystem... yes
-checking whether the Boost::Thread library is available... yes
-checking for main in -lboost_thread... yes
-</pre>
-<p>Another possible source of problems may be if the path to your libtorrent
-directory contains spaces. Make sure you either rename the directories with
-spaces in their names to remove the spaces or move the libtorrent directory.</p>
-</div>
-<div class="section" id="creating-a-debug-build">
-<h3><a name="creating-a-debug-build">Creating a debug build</a></h3>
-<p>To tell configure to build a debug version (with debug info, asserts
-and invariant checks enabled), you have to run the configure script
-with the following option:</p>
-<pre class="literal-block">
-./configure --enable-debug=yes
-</pre>
-</div>
-<div class="section" id="creating-a-release-build">
-<h3><a name="creating-a-release-build">Creating a release build</a></h3>
-<p>To tell the configure to build a release version (without debug info,
-asserts and invariant checks), you have to run the configure script
-with the following option:</p>
-<pre class="literal-block">
-./configure --enable-debug=no
-</pre>
-<p>The above option make use of -DNDEBUG, which is used throughout libtorrent.</p>
-</div>
-<div class="section" id="id10">
-<h3><a name="id10">Step 3: Building libtorrent</a></h3>
-<p>Once the configure script is run successfully, you just type <tt class="docutils literal"><span class="pre">make</span></tt> and
-libtorrent, the examples and the tests will be built.</p>
-<p>When libtorrent is built it may be a good idea to run the tests, you do this
-by running <tt class="docutils literal"><span class="pre">make</span> <span class="pre">check</span></tt>.</p>
-<p>If you want to build a release version (without debug info, asserts and
-invariant checks), you have to rerun the configure script and rebuild, like this:</p>
-<pre class="literal-block">
-./configure --disable-debug
-make clean
-make
-</pre>
-</div>
-</div>
-<div class="section" id="building-with-other-build-systems">
-<h2><a name="building-with-other-build-systems">building with other build systems</a></h2>
-<p>If you're making your own project file, note that there are two versions of
-the file abstraction. There's one <tt class="docutils literal"><span class="pre">file_win.cpp</span></tt> which relies on windows
-file API that supports files larger than 2 Gigabytes. This does not work in
-vc6 for some reason, possibly because it may require windows NT and above.
-The other file, <tt class="docutils literal"><span class="pre">file.cpp</span></tt> is the default implementation that simply relies
-on the standard low level io routines (<tt class="docutils literal"><span class="pre">read()</span></tt>, <tt class="docutils literal"><span class="pre">write()</span></tt>, <tt class="docutils literal"><span class="pre">open()</span></tt>
-etc.), this implementation doesn't do anything special to support unicode
-filenames, so if your target is Windows 2000 and up, you may want to use
-<tt class="docutils literal"><span class="pre">file_win.cpp</span></tt> which supports unicode filenames.</p>
-<p>If you're building in MS Visual Studio, you may have to set the compiler
-options &quot;force conformance in for loop scope&quot;, &quot;treat wchar_t as built-in
-type&quot; and &quot;Enable Run-Time Type Info&quot; to Yes. For a detailed description
-on how to build libtorrent with VS 2005, see <a class="reference" href="vs2005_build_notes.html">this document</a>.</p>
-</div>
-<div class="section" id="build-configurations">
-<h2><a name="build-configurations">build configurations</a></h2>
-<p>By default libtorrent is built In debug mode, and will have pretty expensive
-invariant checks and asserts built into it. If you want to disable such checks
-(you want to do that in a release build) you can see the table below for which
-defines you can use to control the build.</p>
-<table border="1" class="docutils">
-<colgroup>
-<col width="40%" />
-<col width="60%" />
-</colgroup>
-<thead valign="bottom">
-<tr><th class="head">macro</th>
-<th class="head">description</th>
-</tr>
-</thead>
-<tbody valign="top">
-<tr><td><tt class="docutils literal"><span class="pre">NDEBUG</span></tt></td>
-<td>If you define this macro, all asserts,
-invariant checks and general debug code will be
-removed. This option takes precedence over
-other debug settings.</td>
-</tr>
-<tr><td><tt class="docutils literal"><span class="pre">TORRENT_LOGGING</span></tt></td>
-<td>This macro will enable logging of the session
-events, such as tracker announces and incoming
-connections (as well as blocked connections).</td>
-</tr>
-<tr><td><tt class="docutils literal"><span class="pre">TORRENT_VERBOSE_LOGGING</span></tt></td>
-<td>If you define this macro, every peer connection
-will log its traffic to a log file as well as
-the session log.</td>
-</tr>
-<tr><td><tt class="docutils literal"><span class="pre">TORRENT_STORAGE_DEBUG</span></tt></td>
-<td>This will enable extra expensive invariant
-checks in the storage, including logging of
-piece sorting.</td>
-</tr>
-<tr><td><tt class="docutils literal"><span class="pre">UNICODE</span></tt></td>
-<td>If building on windows this will make sure the
-UTF-8 strings in pathnames are converted into
-UTF-16 before they are passed to the file
-operations.</td>
-</tr>
-<tr><td><tt class="docutils literal"><span class="pre">LITTLE_ENDIAN</span></tt></td>
-<td>This will use the little endian version of the
-sha-1 code. If defined on a big-endian system
-the sha-1 hashes will be incorrect and fail.
-If it is not defined and <tt class="docutils literal"><span class="pre">__BIG_ENDIAN__</span></tt>
-isn't defined either (it is defined by Apple's
-GCC) both little-endian and big-endian versions
-will be built and the correct code will be
-chosen at run-time.</td>
-</tr>
-<tr><td><tt class="docutils literal"><span class="pre">TORRENT_LINKING_SHARED</span></tt></td>
-<td>If this is defined when including the
-libtorrent headers, the classes and functions
-will be tagged with <tt class="docutils literal"><span class="pre">__declspec(dllimport)</span></tt>
-on msvc and default visibility on GCC 4 and
-later. Set this in your project if you're
-linking against libtorrent as a shared library.
-(This is set by the Jamfile when
-<tt class="docutils literal"><span class="pre">link=shared</span></tt> is set).</td>
-</tr>
-<tr><td><tt class="docutils literal"><span class="pre">TORRENT_BUILDING_SHARED</span></tt></td>
-<td>If this is defined, the functions and classes
-in libtorrent are marked with
-<tt class="docutils literal"><span class="pre">__declspec(dllexport)</span></tt> on msvc, or with
-default visibility on GCC 4 and later. This
-should be defined when building libtorrent as
-a shared library. (This is set by the Jamfile
-when <tt class="docutils literal"><span class="pre">link=shared</span></tt> is set).</td>
-</tr>
-<tr><td><tt class="docutils literal"><span class="pre">TORRENT_DISABLE_DHT</span></tt></td>
-<td>If this is defined, the support for trackerless
-torrents will be disabled.</td>
-</tr>
-</tbody>
-</table>
-<p>If you experience that libtorrent uses unreasonable amounts of cpu, it will
-definitely help to define <tt class="docutils literal"><span class="pre">NDEBUG</span></tt>, since it will remove the invariant checks
-within the library.</p>
-</div>
 </div>
 <div class="section" id="overview">
 <h1><a name="overview">overview</a></h1>
@@ -631,7 +194,8 @@ class session: public boost::noncopyable
 {
 
         session(fingerprint const&amp; print
-                = libtorrent::fingerprint(&quot;LT&quot;, 0, 1, 0, 0));
+                = libtorrent::fingerprint(
+                &quot;LT&quot;, 0, 1, 0, 0));
 
         session(
                 fingerprint const&amp; print
@@ -656,9 +220,11 @@ class session: public boost::noncopyable
         void remove_torrent(torrent_handle const&amp; h);
 
         void disable_extensions();
-        void enable_extension(peer_connection::extension_index);
+        void enable_extension(
+                peer_connection::extension_index);
 
-        void set_settings(session_settings const&amp; settings);
+        void set_settings(
+                session_settings const&amp; settings);
 
         void set_upload_rate_limit(int bytes_per_second);
         void set_download_rate_limit(int bytes_per_second);
@@ -681,19 +247,22 @@ class session: public boost::noncopyable
 
         void start_dht();
         void stop_dht();
-        void set_dht_settings(dht_settings const&amp; settings);
+        void set_dht_settings(
+                dht_settings const&amp; settings);
         entry dht_state() const;
-        void add_dht_node(std::pair&lt;std::string, int&gt; const&amp; node);
+        void add_dht_node(std::pair&lt;std::string
+                , int&gt; const&amp; node);
 
 };
 </pre>
 <p>Once it's created, the session object will spawn the main thread that will do all the work.
 The main thread will be idle as long it doesn't have any torrents to participate in.</p>
-<div class="section" id="id11">
-<h2><a name="id11">session()</a></h2>
+<div class="section" id="id1">
+<h2><a name="id1">session()</a></h2>
 <blockquote>
 <pre class="literal-block">
-session(fingerprint const&amp; print = libtorrent::fingerprint(&quot;LT&quot;, 0, 1, 0, 0));
+session(fingerprint const&amp; print
+        = libtorrent::fingerprint(&quot;LT&quot;, 0, 1, 0, 0));
 session(fingerprint const&amp; print
         , std::pair&lt;int, int&gt; listen_port_range
         , char const* listen_interface = 0);
@@ -708,8 +277,8 @@ The other constructor, that takes a port range and an interface as well as the f
 will automatically try to listen on a port on the given interface. For more information about
 the parameters, see <tt class="docutils literal"><span class="pre">listen_on()</span></tt> function.</p>
 </div>
-<div class="section" id="id12">
-<h2><a name="id12">~session()</a></h2>
+<div class="section" id="id2">
+<h2><a name="id2">~session()</a></h2>
 <p>The destructor of session will notify all trackers that our torrents have been shut down.
 If some trackers are down, they will time out. All this before the destructor of session
 returns. So, it's advised that any kind of interface (such as windows) are closed before
@@ -1207,8 +776,8 @@ public:
         sha1_hash const&amp; hash_for_piece(unsigned int index) const;
 };
 </pre>
-<div class="section" id="id13">
-<h2><a name="id13">torrent_info()</a></h2>
+<div class="section" id="id3">
+<h2><a name="id3">torrent_info()</a></h2>
 <blockquote>
 <pre class="literal-block">
 torrent_info();
@@ -1262,7 +831,7 @@ to the torrent. The <tt class="docutils literal"><span class="pre">path</span></
 of the torrent. The <tt class="docutils literal"><span class="pre">size</span></tt> is given in bytes.</p>
 <p>When you have added all the files and hashes to your torrent, you can generate an <tt class="docutils literal"><span class="pre">entry</span></tt>
 which then can be encoded as a .torrent file. You do this by calling <a class="reference" href="#create-torrent">create_torrent()</a>.</p>
-<p>For a complete example of how to create a torrent from a file structure, see <a class="reference" href="#make-torrent">make_torrent</a>.</p>
+<p>For a complete example of how to create a torrent from a file structure, see <a class="reference" href="examples.html#make_torrent">make_torrent</a>.</p>
 </div>
 <div class="section" id="create-torrent">
 <h2><a name="create-torrent">create_torrent()</a></h2>
@@ -1273,7 +842,7 @@ entry create_torrent();
 </blockquote>
 <p>Returns an <tt class="docutils literal"><span class="pre">entry</span></tt> representing the bencoded tree of data that makes up a .torrent file.
 You can save this data as a torrent file with bencode() (see <a class="reference" href="#bdecode-bencode">bdecode() bencode()</a>), for a
-complete example, see <a class="reference" href="#make-torrent">make_torrent</a>.</p>
+complete example, see <a class="reference" href="examples.html#make_torrent">make_torrent</a>.</p>
 <p>This function is not const because it will also set the info-hash of the <tt class="docutils literal"><span class="pre">torrent_info</span></tt>
 object.</p>
 <p>Note that a torrent file must include at least one file, and it must have at
@@ -1766,8 +1335,8 @@ sha1_hash info_hash() const;
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">info_hash()</span></tt> returns the info-hash for the torrent.</p>
 </div>
-<div class="section" id="id15">
-<h2><a name="id15">set_max_uploads() set_max_connections()</a></h2>
+<div class="section" id="id5">
+<h2><a name="id5">set_max_uploads() set_max_connections()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void set_max_uploads(int max_uploads) const;
@@ -1815,8 +1384,8 @@ std::vector&lt;char&gt; const&amp; metadata() const;
 .torrent file. This buffer will be valid as long as the torrent is still running. When hashed,
 it will produce the same hash as the info-hash.</p>
 </div>
-<div class="section" id="id16">
-<h2><a name="id16">status()</a></h2>
+<div class="section" id="id6">
+<h2><a name="id6">status()</a></h2>
 <blockquote>
 <pre class="literal-block">
 torrent_status status() const;
@@ -2348,8 +1917,8 @@ public:
 };
 </pre>
 </blockquote>
-<div class="section" id="id19">
-<h2><a name="id19">ip_filter()</a></h2>
+<div class="section" id="id8">
+<h2><a name="id8">ip_filter()</a></h2>
 <blockquote>
 <pre class="literal-block">
 ip_filter()
@@ -3020,227 +2589,6 @@ struct invalid_torrent_file: std::exception
 {
         const char* what() const throw();
 };
-</pre>
-</div>
-</div>
-<div class="section" id="examples">
-<h1><a name="examples">examples</a></h1>
-<p>Except for the example programs in this manual, there's also a bigger example
-of a (little bit) more complete client, <tt class="docutils literal"><span class="pre">client_test</span></tt>. There are separate
-instructions for how to use it <a class="reference" href="client_test.html">here</a> if you'd like to try it.</p>
-<div class="section" id="dump-torrent">
-<h2><a name="dump-torrent">dump_torrent</a></h2>
-<p>This is an example of a program that will take a torrent-file as a parameter and
-print information about it to std out:</p>
-<pre class="literal-block">
-#include &lt;iostream&gt;
-#include &lt;fstream&gt;
-#include &lt;iterator&gt;
-#include &lt;iomanip&gt;
-
-#include &quot;libtorrent/entry.hpp&quot;
-#include &quot;libtorrent/bencode.hpp&quot;
-#include &quot;libtorrent/torrent_info.hpp&quot;
-
-
-int main(int argc, char* argv[])
-{
-        using namespace libtorrent;
-
-        if (argc != 2)
-        {
-                std::cerr &lt;&lt; &quot;usage: dump_torrent torrent-file\n&quot;;
-                return 1;
-        }
-
-        try
-        {
-                std::ifstream in(argv[1], std::ios_base::binary);
-                in.unsetf(std::ios_base::skipws);
-                entry e = bdecode(std::istream_iterator&lt;char&gt;(in), std::istream_iterator&lt;char&gt;());
-
-                std::cout &lt;&lt; &quot;\n\n----- raw info -----\n\n&quot;;
-                e.print(std::cout);
-
-                torrent_info t(e);
-
-                // print info about torrent
-                std::cout &lt;&lt; &quot;\n\n----- torrent file info -----\n\n&quot;;
-                std::cout &lt;&lt; &quot;trackers:\n&quot;;
-                for (std::vector&lt;announce_entry&gt;::const_iterator i = t.trackers().begin();
-                        i != t.trackers().end(); ++i)
-                {
-                        std::cout &lt;&lt; i-&gt;tier &lt;&lt; &quot;: &quot; &lt;&lt; i-&gt;url &lt;&lt; &quot;\n&quot;;
-                }
-
-                std::cout &lt;&lt; &quot;number of pieces: &quot; &lt;&lt; t.num_pieces() &lt;&lt; &quot;\n&quot;;
-                std::cout &lt;&lt; &quot;piece length: &quot; &lt;&lt; t.piece_length() &lt;&lt; &quot;\n&quot;;
-                std::cout &lt;&lt; &quot;info hash: &quot; &lt;&lt; t.info_hash() &lt;&lt; &quot;\n&quot;;
-                std::cout &lt;&lt; &quot;comment: &quot; &lt;&lt; t.comment() &lt;&lt; &quot;\n&quot;;
-                std::cout &lt;&lt; &quot;created by: &quot; &lt;&lt; t.creator() &lt;&lt; &quot;\n&quot;;
-                std::cout &lt;&lt; &quot;files:\n&quot;;
-                for (torrent_info::file_iterator i = t.begin_files();
-                        i != t.end_files(); ++i)
-                {
-                        std::cout &lt;&lt; &quot;  &quot; &lt;&lt; std::setw(11) &lt;&lt; i-&gt;size
-                                &lt;&lt; &quot; &quot; &lt;&lt; i-&gt;path.string() &lt;&lt; &quot;\n&quot;;
-                }
-                
-        }
-        catch (std::exception&amp; e)
-        {
-                std::cout &lt;&lt; e.what() &lt;&lt; &quot;\n&quot;;
-        }
-
-        return 0;
-}
-</pre>
-</div>
-<div class="section" id="simple-client">
-<h2><a name="simple-client">simple client</a></h2>
-<p>This is a simple client. It doesn't have much output to keep it simple:</p>
-<pre class="literal-block">
-#include &lt;iostream&gt;
-#include &lt;fstream&gt;
-#include &lt;iterator&gt;
-#include &lt;exception&gt;
-
-#include &lt;boost/format.hpp&gt;
-#include &lt;boost/date_time/posix_time/posix_time.hpp&gt;
-
-#include &quot;libtorrent/entry.hpp&quot;
-#include &quot;libtorrent/bencode.hpp&quot;
-#include &quot;libtorrent/session.hpp&quot;
-
-int main(int argc, char* argv[])
-{
-        using namespace libtorrent;
-
-        if (argc != 2)
-        {
-                std::cerr &lt;&lt; &quot;usage: ./simple_cient torrent-file\n&quot;
-                        &quot;to stop the client, press return.\n&quot;;
-                return 1;
-        }
-
-        try
-        {
-                session s;
-                s.listen_on(std::make_pair(6881, 6889));
-
-                std::ifstream in(argv[1], std::ios_base::binary);
-                in.unsetf(std::ios_base::skipws);
-                entry e = bdecode(std::istream_iterator&lt;char&gt;(in)
-                        , std::istream_iterator&lt;char&gt;());
-                s.add_torrent(torrent_info(e), &quot;&quot;);
-                        
-                // wait for the user to end
-                char a;
-                std::cin.unsetf(std::ios_base::skipws);
-                std::cin &gt;&gt; a;
-        }
-        catch (std::exception&amp; e)
-        {
-                std::cout &lt;&lt; e.what() &lt;&lt; &quot;\n&quot;;
-        }
-        return 0;
-}
-</pre>
-</div>
-<div class="section" id="make-torrent">
-<h2><a name="make-torrent">make_torrent</a></h2>
-<p>Shows how to create a torrent from a directory tree:</p>
-<pre class="literal-block">
-#include &lt;iostream&gt;
-#include &lt;fstream&gt;
-#include &lt;iterator&gt;
-#include &lt;iomanip&gt;
-
-#include &quot;libtorrent/entry.hpp&quot;
-#include &quot;libtorrent/bencode.hpp&quot;
-#include &quot;libtorrent/torrent_info.hpp&quot;
-#include &quot;libtorrent/file.hpp&quot;
-#include &quot;libtorrent/storage.hpp&quot;
-#include &quot;libtorrent/hasher.hpp&quot;
-
-#include &lt;boost/filesystem/operations.hpp&gt;
-#include &lt;boost/filesystem/path.hpp&gt;
-#include &lt;boost/filesystem/fstream.hpp&gt;
-
-using namespace boost::filesystem;
-using namespace libtorrent;
-
-void add_files(torrent_info&amp; t, path const&amp; p, path const&amp; l)
-{
-        path f(p / l);
-        if (is_directory(f))
-        {
-                for (directory_iterator i(f), end; i != end; ++i)
-                        add_files(t, p, l / i-&gt;leaf());
-        }
-        else
-        {
-                std::cerr &lt;&lt; &quot;adding \&quot;&quot; &lt;&lt; l.string() &lt;&lt; &quot;\&quot;\n&quot;;
-                file fi(f, file::in);
-                fi.seek(0, file::end);
-                libtorrent::size_type size = fi.tell();
-                t.add_file(l, size);
-        }
-}
-
-int main(int argc, char* argv[])
-{
-        using namespace libtorrent;
-        using namespace boost::filesystem;
-
-        if (argc != 4)
-        {
-                std::cerr &lt;&lt; &quot;usage: make_torrent &lt;output torrent-file&gt; &quot;
-                        &quot;&lt;announce url&gt; &lt;file or directory to create torrent from&gt;\n&quot;;
-                return 1;
-        }
-
-        boost::filesystem::path::default_name_check(native);
-
-        try
-        {
-                torrent_info t;
-                path full_path = initial_path() / path(argv[3]);
-                ofstream out(initial_path() / path(argv[1]), std::ios_base::binary);
-
-                int piece_size = 256 * 1024;
-                char const* creator_str = &quot;libtorrent&quot;;
-
-                add_files(t, full_path.branch_path(), full_path.leaf());
-                t.set_piece_size(piece_size);
-
-                storage st(t, full_path.branch_path());
-                t.add_tracker(argv[2]);
-
-                // calculate the hash for all pieces
-                int num = t.num_pieces();
-                std::vector&lt;char&gt; buf(piece_size);
-                for (int i = 0; i &lt; num; ++i)
-                {
-                        st.read(&amp;buf[0], i, 0, t.piece_size(i));
-                        hasher h(&amp;buf[0], t.piece_size(i));
-                        t.set_hash(i, h.final());
-                        std::cerr &lt;&lt; (i+1) &lt;&lt; &quot;/&quot; &lt;&lt; num &lt;&lt; &quot;\r&quot;;
-                }
-
-                t.set_creator(creator_str);
-
-                // create the torrent and print it to out
-                entry e = t.create_torrent();
-                libtorrent::bencode(std::ostream_iterator&lt;char&gt;(out), e);
-        }
-        catch (std::exception&amp; e)
-        {
-                std::cerr &lt;&lt; e.what() &lt;&lt; &quot;\n&quot;;
-        }
-
-        return 0;
-}
 </pre>
 </div>
 </div>

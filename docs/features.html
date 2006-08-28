@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.9: http://docutils.sourceforge.net/" />
+<title>libtorrent manual</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" href="style.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="libtorrent-manual">
+<h1 class="title">libtorrent manual</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first"><a name="table-of-contents">Table of contents</a></p>
+<ul class="simple">
+<li><a class="reference" href="#introduction" id="id6" name="id6">introduction</a></li>
+<li><a class="reference" href="#features" id="id7" name="id7">features</a></li>
+<li><a class="reference" href="#portability" id="id8" name="id8">portability</a></li>
+<li><a class="reference" href="#license" id="id9" name="id9">license</a></li>
+</ul>
+</div>
+<div class="section" id="introduction">
+<h1><a name="introduction">introduction</a></h1>
+<p>libtorrent is a C++ library that aims to be a good alternative to all the
+other bittorrent implementations around. It is a
+library and not a full featured client, although it comes with a working
+example client.</p>
+<p>The main goals of libtorrent are:</p>
+<ul class="simple">
+<li>to be cpu efficient</li>
+<li>to be memory efficient</li>
+<li>to be very easy to use</li>
+</ul>
+</div>
+<div class="section" id="features">
+<h1><a name="features">features</a></h1>
+<p>libtorrent is still being developed, however it is stable. It is an ongoing
+project (including this documentation). The current state includes the
+following features:</p>
+<ul class="simple">
+<li>Trackerless torrents (using a kademlia DHT)</li>
+<li>multitracker extension support (as <a class="reference" href="http://home.elp.rr.com/tur/multitracker-spec.txt">specified by John Hoffman</a>)</li>
+<li>serves multiple torrents on a single port and in a single thread</li>
+<li>gzipped tracker-responses</li>
+<li><a class="reference" href="manual.html#http-seeding">HTTP seeding</a>, as <a class="reference" href="http://www.getright.com/seedtorrent.html">specified by Michael Burford of GetRight</a>.</li>
+<li>piece picking on block-level (as opposed to piece-level).
+This means it can download parts of the same piece from different peers.
+It will also prefer to download whole pieces from single peers if the
+download speed is high enough from that particular peer.</li>
+<li>queues torrents for file check, instead of checking all of them in parallel.</li>
+<li>supports http proxies and proxy authentication</li>
+<li>uses separate threads for checking files and for main downloader, with a
+fool-proof thread-safe library interface. (i.e. There's no way for the
+user to cause a deadlock). (see <a class="reference" href="manual.html#threads">threads</a>)</li>
+<li>can limit the upload and download bandwidth usage and the maximum number of
+unchoked peers</li>
+<li>piece-wise, unordered, incremental file allocation</li>
+<li>implements fair trade. User settable trade-ratio, must at least be 1:1,
+but one can choose to trade 1 for 2 or any other ratio that isn't unfair
+to the other party.</li>
+<li>fast resume support, a way to get rid of the costly piece check at the
+start of a resumed torrent. Saves the storage state, piece_picker state
+as well as all local peers in a separate fast-resume file.</li>
+<li>supports an <a class="reference" href="extension_protocol.html">extension protocol</a>. See <a class="reference" href="manual.html#extensions">extensions</a>.</li>
+<li>supports files &gt; 2 gigabytes.</li>
+<li>supports the <tt class="docutils literal"><span class="pre">no_peer_id=1</span></tt> extension that will ease the load off trackers.</li>
+<li>supports the <a class="reference" href="udp_tracker_protocol.html">udp-tracker protocol</a> by Olaf van der Spek.</li>
+<li>possibility to limit the number of connections.</li>
+<li>delays have messages if there's no other outgoing traffic to the peer, and
+doesn't send have messages to peers that already has the piece. This saves
+bandwidth.</li>
+<li>does not have any requirements on the piece order in a torrent that it
+resumes. This means it can resume a torrent downloaded by any client.</li>
+<li>adjusts the length of the request queue depending on download rate.</li>
+<li>supports the <tt class="docutils literal"><span class="pre">compact=1</span></tt> tracker parameter.</li>
+<li>selective downloading. The ability to select which parts of a torrent you
+want to download.</li>
+<li>ip filter</li>
+</ul>
+</div>
+<div class="section" id="portability">
+<h1><a name="portability">portability</a></h1>
+<p>libtorrent is portable at least among Windows, MacOS X and other UNIX-systems.
+It uses Boost.Thread, Boost.Filesystem, Boost.Date_time and various other
+boost libraries as well as <a class="reference" href="http://www.zlib.org">zlib</a> (shipped) and <a class="reference" href="http://asio.sf.net">asio</a> (shipped). At least version
+1.33.1 of boost is required.</p>
+<p>Since libtorrent uses asio, it will take full advantage of high performance
+network APIs on the most popular platforms. I/O completion ports on windows,
+epoll on linux and kqueue on MacOS X and BSD.</p>
+<p>libtorrent has been successfully compiled and tested on:</p>
+<ul class="simple">
+<li>Windows 2000 vc7.1, vc8</li>
+<li>Linux x86 GCC 3.3, GCC 3.4.2</li>
+<li>MacOS X (darwin), (Apple's) GCC 3.3, (Apple's) GCC 4.0</li>
+<li>SunOS 5.8 GCC 3.1</li>
+<li>Cygwin GCC 3.3.3</li>
+</ul>
+<p>Fails on:</p>
+<ul class="simple">
+<li>GCC 2.95.4</li>
+<li>msvc6</li>
+</ul>
+</div>
+<div class="section" id="license">
+<h1><a name="license">license</a></h1>
+<p>libtorrent is released under the <a class="reference" href="http://www.opensource.org/licenses/bsd-license.php">BSD-license</a>.</p>
+<p>This means that you can use the library in your project without having to
+release its source code. The only requirement is that you give credit
+to the author of the library by including the libtorrent license in your
+software or documentation.</p>
+<p><a class="reference" href="projects.html">Here's</a> a list of some projects that uses libtorrent.</p>
+</div>
+</div>
+</body>
+</html>
