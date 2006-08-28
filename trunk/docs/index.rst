@@ -1,20 +1,36 @@
+.. raw:: html
+
+   <div id="librarySidebar">
+
+
+* features_
+* `building libtorrent`_
+* examples_
+* `api documentation`_
+* screenshot_
+* `mailing list`_
+* `who's using libtorrent?`_
+* `report bugs`_
+* `sourceforge page`_ 
+
+.. raw:: html
+
+   </div>
+   <div id="libraryBody">
+
 ==========
 libtorrent
 ==========
 
-
-.. class:: menu
-
-=================== ============== ============== =========== =============== ==========================
-`sourceforge page`_ documentation_ `report bugs`_ screenshot_ `mailing list`_ `who's using libtorrent?`_
-=================== ============== ============== =========== =============== ==========================
-
-.. _sourceforge page: http://www.sourceforge.net/projects/libtorrent
-.. _documentation: manual.html
-.. _`report bugs`: http://sourceforge.net/tracker/?group_id=79942&atid=558250
+.. _features: features.html
+.. _`building libtorrent`: building.html
+.. _examples: examples.html
+.. _`api documentation`: manual.html
 .. _screenshot: client_test.png
 .. _mailing list: http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 .. _`who's using libtorrent?`: projects.html
+.. _`report bugs`: http://sourceforge.net/tracker/?group_id=79942&atid=558250
+.. _sourceforge page: http://www.sourceforge.net/projects/libtorrent
 
 libtorrent is a C++ library that aims to be a good alternative to all the
 other bittorrent implementations around. It is a
@@ -25,9 +41,9 @@ __ client_test.html
 
 The main goals of libtorrent are:
 
-	* to be cpu efficient
-	* to be memory efficient
-	* to be very easy to use
+* to be cpu efficient
+* to be memory efficient
+* to be very easy to use
 
 
 Donate
@@ -76,4 +92,7 @@ Project is hosted by sourceforge.
 .. |sf_logo| image:: http://sourceforge.net/sflogo.php?group_id=7994
 __ http://sourceforge.net
 
+.. raw:: html
+
+   </div>
 

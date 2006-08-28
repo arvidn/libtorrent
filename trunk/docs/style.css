@@ -274,6 +274,18 @@ dd pre {
 
 li p, li li { font-size: 100%; }
 
+#librarySidebar {
+    float: left;
+    width: 150px;
+}
+
+#libraryBody {
+    border-left: solid 1px #eee;
+    padding-left: 10px;
+    margin-left: 158px;
+    margin-right: 10px;
+}
+
 /* IE Hacks */
 
 /* Hides from IE-mac \*/
