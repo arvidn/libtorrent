@@ -185,7 +185,6 @@ namespace
 
 		peer_id const& pid;
 	};
-
 }
 
 namespace libtorrent
@@ -439,17 +438,26 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_DHT
 
+	void torrent::on_dht_announce_response_disp(boost::weak_ptr<libtorrent::torrent> t
+		, std::vector<tcp::endpoint> const& peers)
+	{
+		boost::shared_ptr<libtorrent::torrent> tor = t.lock();
+		if (!tor) return;
+		tor->on_dht_announce_response(peers);
+	}
+
 	void torrent::on_dht_announce(asio::error const& e)
 	{
 		if (e) return;
 		m_dht_announce_timer.expires_from_now(boost::posix_time::minutes(30));
 		m_dht_announce_timer.async_wait(bind(&torrent::on_dht_announce, this, _1));
 		if (!m_ses.m_dht) return;
-		// TODO: BUG! This may invoke on_dht_announce() with an invalid this-pointer.
-		// there has to be a way to abort an announce operation on the dht.
+		// TODO: There should be a way to abort an announce operation on the dht.
+		// when the torrent is destructed
+		boost::weak_ptr<torrent> self(shared_from_this());
 		m_ses.m_dht->announce(m_torrent_file.info_hash()
 			, m_ses.m_listen_interface.port()
-			, bind(&torrent::on_dht_announce_response, this, _1));
+			, bind(&torrent::on_dht_announce_response_disp, self, _1));
 	}
 
 	void torrent::on_dht_announce_response(std::vector<tcp::endpoint> const& peers)

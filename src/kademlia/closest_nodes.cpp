@@ -118,7 +118,6 @@ void closest_nodes::invoke(node_id const& id, udp::endpoint addr)
 
 void closest_nodes::done()
 {
-	std::cerr << "[closest_nodes] DONE" << std::endl;
 	std::vector<node_entry> results;
 	int result_size = m_table.bucket_size();
 	if (result_size > (int)m_results.size()) result_size = (int)m_results.size();
