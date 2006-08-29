@@ -495,6 +495,8 @@ namespace libtorrent
 		tcp::resolver m_host_resolver;
 		
 #ifndef TORRENT_DISABLE_DHT
+		static void on_dht_announce_response_disp(boost::weak_ptr<torrent> t
+			, std::vector<tcp::endpoint> const& peers);
 		deadline_timer m_dht_announce_timer;
 		void on_dht_announce(asio::error const& e);
 		void on_dht_announce_response(std::vector<tcp::endpoint> const& peers);

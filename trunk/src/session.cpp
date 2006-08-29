@@ -948,21 +948,23 @@ namespace libtorrent { namespace detail
 
 		boost::posix_time::ptime timer = second_clock::universal_time();
 
-		//		for(;;)
-		//		{
-		try
+		do
 		{
-			m_selector.run();
-			assert(m_abort == true);
+			try
+			{
+				m_selector.run();
+				assert(m_abort == true);
+			}
+			catch (std::exception& e)
+			{
+	#ifndef NDEBUG
+				std::cerr << e.what() << "\n";
+				std::string err = e.what();
+	#endif
+				assert(false);
+			}
 		}
-		catch (std::exception& e)
-		{
-#ifndef NDEBUG
-			std::cerr << e.what() << "\n";
-			std::string err = e.what();
-#endif
-			assert(false);
-		}
+		while (!m_abort);
 
 		deadline_timer tracker_timer(m_selector);
 
