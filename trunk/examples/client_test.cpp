@@ -899,10 +899,10 @@ int main(int ac, char* av[])
 					for (int i = 0; i < info.num_files(); ++i)
 					{
 						if (file_progress[i] == 1.f)
-							out << progress_bar(file_progress[i], 10, "32") << " "
+							out << progress_bar(file_progress[i], 20, "32") << " "
 								<< info.file_at(i).path.leaf() << "\n";
 						else
-							out << progress_bar(file_progress[i], 10, "33") << " "
+							out << progress_bar(file_progress[i], 20, "33") << " "
 								<< info.file_at(i).path.leaf() << "\n";
 					}
 

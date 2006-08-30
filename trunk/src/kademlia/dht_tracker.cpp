@@ -115,9 +115,9 @@ namespace libtorrent { namespace dht
 	// class that puts the networking and the kademlia node in a single
 	// unit and connecting them together.
 	dht_tracker::dht_tracker(asio::io_service& d, dht_settings const& settings
-		, entry const& bootstrap)
+		, asio::ip::address listen_interface, entry const& bootstrap)
 		: m_demuxer(d)
-		, m_socket(m_demuxer, udp::endpoint(address(), settings.service_port))
+		, m_socket(m_demuxer, udp::endpoint(listen_interface, settings.service_port))
 		, m_dht(bind(&dht_tracker::send_packet, this, _1), settings
 			, read_id(bootstrap))
 		, m_buffer(0)
@@ -214,6 +214,14 @@ namespace libtorrent { namespace dht
 	{
 		assert(false);
 	};
+
+	void dht_tracker::rebind(asio::ip::address listen_interface, int listen_port)
+	{
+		m_socket.close();
+		m_socket.open(asio::ip::udp::v4());
+		m_socket.bind(udp::endpoint(listen_interface, listen_port));
+		assert(m_settings.service_port == listen_port);
+	}
 
 	void dht_tracker::tick(asio::error const& e)
 		try

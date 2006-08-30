@@ -66,8 +66,10 @@ routing_table::routing_table(node_id const& id, int bucket_size
 	, m_id(id)
 	, m_lowest_active_bucket(160)
 {
-	std::fill(m_bucket_activity.begin(), m_bucket_activity.end()
-		, second_clock::universal_time() - hours(1));
+	// distribute the refresh times for the buckets in an
+	// attempt do even out the network load
+	for (int i = 0; i < 160; ++i)
+		m_bucket_activity[i] = second_clock::universal_time() - seconds(15*60 - i*5);
 }
 
 boost::tuple<int, int> routing_table::size() const

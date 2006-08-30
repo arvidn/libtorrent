@@ -62,10 +62,12 @@ namespace libtorrent { namespace dht
 	struct dht_tracker
 	{
 		dht_tracker(asio::io_service& d, dht_settings const& settings
-			, entry const& bootstrap);
+			, asio::ip::address listen_interface, entry const& bootstrap);
 
 		void add_node(udp::endpoint node);
 		void add_node(std::pair<std::string, int> const& node);
+		
+		void rebind(asio::ip::address interface, int listen_port);
 
 		entry state() const;
 
