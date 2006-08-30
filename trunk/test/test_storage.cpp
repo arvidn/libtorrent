@@ -104,6 +104,9 @@ int test_main()
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece2));
 	pm.release_files();
 
+	TEST_CHECK(exists("temp_storage/test3.tmp"));
+	TEST_CHECK(exists("temp_storage/test4.tmp"));
+	
 	remove_all(initial_path() / "temp_storage");
 	
 	return 0;
