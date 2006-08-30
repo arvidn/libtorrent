@@ -216,7 +216,8 @@ private:
 	typedef boost::array<std::pair<bucket_t, bucket_t>, 160> table_t;
 	table_t m_buckets;
 	// timestamps of the last activity in each bucket
-	boost::array<boost::posix_time::ptime, 160> m_bucket_activity;
+	typedef boost::array<boost::posix_time::ptime, 160> table_activity_t;
+	table_activity_t m_bucket_activity;
 	node_id m_id; // our own node id
 	
 	// this is the lowest bucket index with nodes in it

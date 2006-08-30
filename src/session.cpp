@@ -1424,6 +1424,16 @@ namespace libtorrent
 
 		if (m_impl.m_listen_socket)
 			m_impl.m_listen_socket.reset();
+			
+#ifndef TORRENT_DISABLE_DHT
+		if (m_impl.m_listen_interface.address() != new_interface.address()
+			&& m_impl.m_dht)
+		{
+			// the listen interface changed, rebind the dht listen socket as well
+			m_impl.m_dht->rebind(new_interface.address()
+				, m_impl.m_dht_settings.service_port);
+		}
+#endif
 
 		m_impl.m_incoming_connection = false;
 		m_impl.m_listen_interface = new_interface;
@@ -1466,7 +1476,8 @@ namespace libtorrent
 	void session::start_dht(entry const& startup_state)
 	{
 		m_impl.m_dht.reset(new dht::dht_tracker(m_impl.m_selector
-			, m_impl.m_dht_settings, startup_state));
+			, m_impl.m_dht_settings, m_impl.m_listen_interface.address()
+			, startup_state));
 	}
 
 	void session::stop_dht()
@@ -1479,8 +1490,8 @@ namespace libtorrent
 		if (settings.service_port != m_impl.m_dht_settings.service_port
 			&& m_impl.m_dht)
 		{
-			assert(false); // not implemented yet
-			// TODO: change dht service port!
+			m_impl.m_dht->rebind(m_impl.m_listen_interface.address()
+				, settings.service_port);
 		}
 		m_impl.m_dht_settings = settings;
 	}
