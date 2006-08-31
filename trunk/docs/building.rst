@@ -111,6 +111,10 @@ use the following toolsets::
 
 Note that the spaces around the semi-colons and colons are important!
 
+Also see the `official installation instructions`_.
+
+.. _`official installation instructions`: http://www.boost.org/doc/html/bbv2/installation.html
+
 
 Step 3: Building libtorrent
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -146,7 +150,8 @@ the runtime, but on windows you can do both. Example::
 
   If you link statically to the runtime library, you cannot build libtorrent
   as a shared library (DLL), since you will get separate heaps in the library
-  and in the client application. It will result in crashes.
+  and in the client application. It will result in crashes and possibly link
+  errors.
 
 
 The build targets are put in a directory called bin, and under it they are
@@ -165,19 +170,23 @@ Also, make sure the paths are correct in the different environments. In cygwin, 
 windows format (``c:/boost_1_33_1``).
 
 The ``Jamfile`` will define ``NDEBUG`` when it's building a release build.
-There are two other build variants available in the ``Jamfile``. debug_log
-and release_log, these two variants inherits from the debug and release
-variants respectively, but adds extra logging (``TORRENT_VERBOSE_LOGGING``).
 For more build configuration flags see `Build configurations`_.
 
-The ``Jamfile`` has the following build variants:
+Build features:
 
-* ``release`` - release version without any logging
-* ``release_log`` - release version with standard logging
-* ``release_vlog`` - release version with verbose logging (all peer connections are logged)
-* ``debug`` - debug version without any logging
-* ``debug_log`` - debug version with standard logging
-* ``debug_vlog`` - debug version with verbose logging
++------------------------+----------------------------------------------------+
+| boost build feature    | values                                             |
++========================+====================================================+
+| ``logging``            | * ``none`` - no logging.                           |
+|                        | * ``default`` - basic session logging.             |
+|                        | * ``verbose`` - verbose peer wire logging.         |
++------------------------+----------------------------------------------------+
+| ``dht-support``        | * ``on`` - build with support for tracker less     |
+|                        |   torrents and DHT support.                        |
+|                        | * ``logging`` - build with DHT support and verbose |
+|                        |   logging of the DHT protocol traffic.             |
+|                        | * ``off`` - build without DHT support.             |
++------------------------+----------------------------------------------------+
 
 The logs created when building vlog or log mode are put in a directory called
 ``libtorrent_logs`` in the current working directory.
@@ -189,6 +198,12 @@ boost.program-options symbols.
 For more information, see the `Boost build v2 documentation`__.
 
 __ http://www.boost.org/tools/build/v2/index.html
+
+To build all possible variants of libtorrent (good for testing when making
+sure all build variants will actually compile), you can invoke this command::
+
+	bjam debug release link=shared link=static logging=verbose logging=default \
+	logging=none dht-support=on dht-support=logging dht-support=off
 
 building with autotools
 -----------------------
@@ -323,60 +338,63 @@ invariant checks and asserts built into it. If you want to disable such checks
 (you want to do that in a release build) you can see the table below for which
 defines you can use to control the build.
 
-+--------------------------------+-------------------------------------------------+
-| macro                          | description                                     |
-+================================+=================================================+
-| ``NDEBUG``                     | If you define this macro, all asserts,          |
-|                                | invariant checks and general debug code will be |
-|                                | removed. This option takes precedence over      |
-|                                | other debug settings.                           |
-+--------------------------------+-------------------------------------------------+
-| ``TORRENT_LOGGING``            | This macro will enable logging of the session   |
-|                                | events, such as tracker announces and incoming  |
-|                                | connections (as well as blocked connections).   |
-+--------------------------------+-------------------------------------------------+
-| ``TORRENT_VERBOSE_LOGGING``    | If you define this macro, every peer connection |
-|                                | will log its traffic to a log file as well as   |
-|                                | the session log.                                |
-+--------------------------------+-------------------------------------------------+
-| ``TORRENT_STORAGE_DEBUG``      | This will enable extra expensive invariant      |
-|                                | checks in the storage, including logging of     |
-|                                | piece sorting.                                  |
-+--------------------------------+-------------------------------------------------+
-| ``UNICODE``                    | If building on windows this will make sure the  |
-|                                | UTF-8 strings in pathnames are converted into   |
-|                                | UTF-16 before they are passed to the file       |
-|                                | operations.                                     |
-+--------------------------------+-------------------------------------------------+
-| ``LITTLE_ENDIAN``              | This will use the little endian version of the  |
-|                                | sha-1 code. If defined on a big-endian system   |
-|                                | the sha-1 hashes will be incorrect and fail.    |
-|                                | If it is not defined and ``__BIG_ENDIAN__``     |
-|                                | isn't defined either (it is defined by Apple's  |
-|                                | GCC) both little-endian and big-endian versions |
-|                                | will be built and the correct code will be      |
-|                                | chosen at run-time.                             |
-+--------------------------------+-------------------------------------------------+
-| ``TORRENT_LINKING_SHARED``     | If this is defined when including the           |
-|                                | libtorrent headers, the classes and functions   |
-|                                | will be tagged with ``__declspec(dllimport)``   |
-|                                | on msvc and default visibility on GCC 4 and     |
-|                                | later. Set this in your project if you're       |
-|                                | linking against libtorrent as a shared library. |
-|                                | (This is set by the Jamfile when                |
-|                                | ``link=shared`` is set).                        |
-+--------------------------------+-------------------------------------------------+
-| ``TORRENT_BUILDING_SHARED``    | If this is defined, the functions and classes   |
-|                                | in libtorrent are marked with                   |
-|                                | ``__declspec(dllexport)`` on msvc, or with      |
-|                                | default visibility on GCC 4 and later. This     |
-|                                | should be defined when building libtorrent as   |
-|                                | a shared library. (This is set by the Jamfile   |
-|                                | when ``link=shared`` is set).                   |
-+--------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_DHT``        | If this is defined, the support for trackerless |
-|Ê                               | torrents will be disabled.                      |
-+--------------------------------+-------------------------------------------------+
++---------------------------------+-------------------------------------------------+
+| macro                           | description                                     |
++=================================+=================================================+
+| ``NDEBUG``                      | If you define this macro, all asserts,          |
+|                                 | invariant checks and general debug code will be |
+|                                 | removed. This option takes precedence over      |
+|                                 | other debug settings.                           |
++---------------------------------+-------------------------------------------------+
+| ``TORRENT_LOGGING``             | This macro will enable logging of the session   |
+|                                 | events, such as tracker announces and incoming  |
+|                                 | connections (as well as blocked connections).   |
++---------------------------------+-------------------------------------------------+
+| ``TORRENT_VERBOSE_LOGGING``     | If you define this macro, every peer connection |
+|                                 | will log its traffic to a log file as well as   |
+|                                 | the session log.                                |
++---------------------------------+-------------------------------------------------+
+| ``TORRENT_STORAGE_DEBUG``       | This will enable extra expensive invariant      |
+|                                 | checks in the storage, including logging of     |
+|                                 | piece sorting.                                  |
++---------------------------------+-------------------------------------------------+
+| ``UNICODE``                     | If building on windows this will make sure the  |
+|                                 | UTF-8 strings in pathnames are converted into   |
+|                                 | UTF-16 before they are passed to the file       |
+|                                 | operations.                                     |
++---------------------------------+-------------------------------------------------+
+| ``LITTLE_ENDIAN``               | This will use the little endian version of the  |
+|                                 | sha-1 code. If defined on a big-endian system   |
+|                                 | the sha-1 hashes will be incorrect and fail.    |
+|                                 | If it is not defined and ``__BIG_ENDIAN__``     |
+|                                 | isn't defined either (it is defined by Apple's  |
+|                                 | GCC) both little-endian and big-endian versions |
+|                                 | will be built and the correct code will be      |
+|                                 | chosen at run-time.                             |
++---------------------------------+-------------------------------------------------+
+| ``TORRENT_LINKING_SHARED``      | If this is defined when including the           |
+|                                 | libtorrent headers, the classes and functions   |
+|                                 | will be tagged with ``__declspec(dllimport)``   |
+|                                 | on msvc and default visibility on GCC 4 and     |
+|                                 | later. Set this in your project if you're       |
+|                                 | linking against libtorrent as a shared library. |
+|                                 | (This is set by the Jamfile when                |
+|                                 | ``link=shared`` is set).                        |
++---------------------------------+-------------------------------------------------+
+| ``TORRENT_BUILDING_SHARED``     | If this is defined, the functions and classes   |
+|                                 | in libtorrent are marked with                   |
+|                                 | ``__declspec(dllexport)`` on msvc, or with      |
+|                                 | default visibility on GCC 4 and later. This     |
+|                                 | should be defined when building libtorrent as   |
+|                                 | a shared library. (This is set by the Jamfile   |
+|                                 | when ``link=shared`` is set).                   |
++---------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_DHT``         | If this is defined, the support for trackerless |
+|                                 | torrents will be disabled.                      |
++---------------------------------+-------------------------------------------------+
+| ``TORRENT_DHT_VERBOSE_LOGGING`` | This will enable verbose logging of the DHT     |
+|                                 | protocol traffic.                               |
++---------------------------------+-------------------------------------------------+
 
 
 If you experience that libtorrent uses unreasonable amounts of cpu, it will

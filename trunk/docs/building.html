@@ -111,6 +111,7 @@ using darwin : 3.3 : g++-3.3 ;
 using darwin : 4.0 : g++-4.0 ;
 </pre>
 <p>Note that the spaces around the semi-colons and colons are important!</p>
+<p>Also see the <a class="reference" href="http://www.boost.org/doc/html/bbv2/installation.html">official installation instructions</a>.</p>
 </div>
 <div class="section" id="step-3-building-libtorrent">
 <h3><a name="step-3-building-libtorrent">Step 3: Building libtorrent</a></h3>
@@ -142,7 +143,8 @@ bjam msvc-7.1 link=static runtime-link=static
 <p class="first admonition-title">Warning</p>
 <p class="last">If you link statically to the runtime library, you cannot build libtorrent
 as a shared library (DLL), since you will get separate heaps in the library
-and in the client application. It will result in crashes.</p>
+and in the client application. It will result in crashes and possibly link
+errors.</p>
 </div>
 <p>The build targets are put in a directory called bin, and under it they are
 sorted in directories depending on the toolset and build variant used.</p>
@@ -157,25 +159,51 @@ Also, make sure the paths are correct in the different environments. In cygwin, 
 <tt class="docutils literal"><span class="pre">/cygdrive/c/boost_1_33_1</span></tt>). In the windows environment, they should have the typical
 windows format (<tt class="docutils literal"><span class="pre">c:/boost_1_33_1</span></tt>).</p>
 <p>The <tt class="docutils literal"><span class="pre">Jamfile</span></tt> will define <tt class="docutils literal"><span class="pre">NDEBUG</span></tt> when it's building a release build.
-There are two other build variants available in the <tt class="docutils literal"><span class="pre">Jamfile</span></tt>. debug_log
-and release_log, these two variants inherits from the debug and release
-variants respectively, but adds extra logging (<tt class="docutils literal"><span class="pre">TORRENT_VERBOSE_LOGGING</span></tt>).
 For more build configuration flags see <a class="reference" href="#build-configurations">Build configurations</a>.</p>
-<p>The <tt class="docutils literal"><span class="pre">Jamfile</span></tt> has the following build variants:</p>
-<ul class="simple">
-<li><tt class="docutils literal"><span class="pre">release</span></tt> - release version without any logging</li>
-<li><tt class="docutils literal"><span class="pre">release_log</span></tt> - release version with standard logging</li>
-<li><tt class="docutils literal"><span class="pre">release_vlog</span></tt> - release version with verbose logging (all peer connections are logged)</li>
-<li><tt class="docutils literal"><span class="pre">debug</span></tt> - debug version without any logging</li>
-<li><tt class="docutils literal"><span class="pre">debug_log</span></tt> - debug version with standard logging</li>
-<li><tt class="docutils literal"><span class="pre">debug_vlog</span></tt> - debug version with verbose logging</li>
+<p>Build features:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="32%" />
+<col width="68%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">boost build feature</th>
+<th class="head">values</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal"><span class="pre">logging</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">none</span></tt> - no logging.</li>
+<li><tt class="docutils literal"><span class="pre">default</span></tt> - basic session logging.</li>
+<li><tt class="docutils literal"><span class="pre">verbose</span></tt> - verbose peer wire logging.</li>
 </ul>
+</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">dht-support</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">on</span></tt> - build with support for tracker less
+torrents and DHT support.</li>
+<li><tt class="docutils literal"><span class="pre">logging</span></tt> - build with DHT support and verbose
+logging of the DHT protocol traffic.</li>
+<li><tt class="docutils literal"><span class="pre">off</span></tt> - build without DHT support.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 <p>The logs created when building vlog or log mode are put in a directory called
 <tt class="docutils literal"><span class="pre">libtorrent_logs</span></tt> in the current working directory.</p>
 <p>When building the example client on windows, you need to build with
 <tt class="docutils literal"><span class="pre">link=static</span></tt> otherwise you may get unresolved external symbols for some
 boost.program-options symbols.</p>
 <p>For more information, see the <a class="reference" href="http://www.boost.org/tools/build/v2/index.html">Boost build v2 documentation</a>.</p>
+<p>To build all possible variants of libtorrent (good for testing when making
+sure all build variants will actually compile), you can invoke this command:</p>
+<pre class="literal-block">
+bjam debug release link=shared link=static logging=verbose logging=default \
+logging=none dht-support=on dht-support=logging dht-support=off
+</pre>
 </div>
 </div>
 <div class="section" id="building-with-autotools">
@@ -364,6 +392,10 @@ when <tt class="docutils literal"><span class="pre">link=shared</span></tt> is s
 <tr><td><tt class="docutils literal"><span class="pre">TORRENT_DISABLE_DHT</span></tt></td>
 <td>If this is defined, the support for trackerless
 torrents will be disabled.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">TORRENT_DHT_VERBOSE_LOGGING</span></tt></td>
+<td>This will enable verbose logging of the DHT
+protocol traffic.</td>
 </tr>
 </tbody>
 </table>
