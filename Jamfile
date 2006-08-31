@@ -3,6 +3,7 @@
 import modules ;
 import os ;
 import errors ;
+import feature : feature ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 
@@ -27,7 +28,6 @@ project torrent
 	<include>./zlib
 	<include>$(BOOST_ROOT)
 	<variant>release:<define>NDEBUG
-	<variant>debug:<define>TORRENT_DHT_VERBOSE_LOGGING
 	<define>BOOST_ALL_NO_LIB
 	<define>_FILE_OFFSET_BITS=64
 	<define>BOOST_THREAD_USE_LIB
@@ -55,7 +55,6 @@ project torrent
 	<include>./include
 	<include>$(BOOST_ROOT)
 	<variant>release:<define>NDEBUG
-	<variant>debug:<define>TORRENT_DHT_VERBOSE_LOGGING
 	<define>BOOST_ALL_NO_LIB
 	<link>shared:<define>TORRENT_LINKING_SHARED
 
@@ -121,11 +120,15 @@ LIBS = ;
 		LIBS += wsock32 ;
 	}
 
-variant release_vlog : release : <define>TORRENT_VERBOSE_LOGGING ;
-variant release_log : release : <define>TORRENT_LOGGING ;
-variant debug_vlog : debug : <define>TORRENT_VERBOSE_LOGGING ;
-variant debug_log : debug : <define>TORRENT_LOGGING ;
+feature logging : none default verbose : composite propagated symmetric link-incompatible ;
+feature.compose <logging>none : ;
+feature.compose <logging>default : <define>TORRENT_LOGGING ;
+feature.compose <logging>verbose : <define>TORRENT_VERBOSE_LOGGING ;
 
+feature dht-support : on off logging : composite propagated symmetric link-incompatible ;
+feature.compose <dht-support>on : ;
+feature.compose <dht-support>off : <define>TORRENT_DISABLE_DHT ;
+feature.compose <dht-support>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 
 lib torrent
 	:
