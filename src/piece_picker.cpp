@@ -157,8 +157,9 @@ namespace libtorrent
 			if (i->priority(old_limit) != i->priority(m_sequenced_download_threshold))
 			{
 				piece_pos& p = *i;
-				int prev_priority = i->priority(old_limit);
-				move(p.downloading, p.filtered, prev_priority, i->index);
+				if (p.index == piece_pos::we_have_index) continue;
+				int prev_priority = p.priority(old_limit);
+				move(p.downloading, p.filtered, prev_priority, p.index);
 			}
 		}
 	}
@@ -378,6 +379,7 @@ namespace libtorrent
 		assert(!filtered);
 		assert(priority >= 0);
 		assert(elem_index >= 0);
+		assert(elem_index != piece_pos::we_have_index);
 		std::vector<std::vector<int> >& src_vec(pick_piece_info_vector(
 			downloading, filtered));
 

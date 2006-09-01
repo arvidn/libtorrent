@@ -1,7 +1,11 @@
-	* fixed bug with file_progress() with files > 2 GB
-	* added --enable-examples option to configure script
+	* changed the address type to support IPv6
+	* fixed in piece picker which would assert when changing
+	  sequenced download threshold on torrents with already
+	  downloaded pieces.
+	* fixed bug with file_progress() with files > 2 GB.
+	* added --enable-examples option to configure script.
 	* fixed problem with the resource distribution algorithm
-	  (controlling e.g upload/download rates)
+	  (controlling e.g upload/download rates).
 	* fixed incorrect asserts in storage related to torrents with
 	  zero-sized files.
 	* added support for trackerless torrents (with kademlia DHT).
