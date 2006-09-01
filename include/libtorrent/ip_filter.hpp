@@ -57,13 +57,13 @@ public:
 	};
 		 
 	ip_filter();
-	void add_rule(address first, address last, int flags);
-	int access(address const& addr) const;
+	void add_rule(address_v4 first, address_v4 last, int flags);
+	int access(address_v4 const& addr) const;
 
 	struct ip_range
 	{
-		address first;
-		address last;
+		address_v4 first;
+		address_v4 last;
 		int flags;
 	};
 			  
@@ -74,12 +74,12 @@ public:
 private:
 	struct range
 	{
-		range(address addr, int access = 0): start(addr), access(access) {}
+		range(address_v4 addr, int access = 0): start(addr), access(access) {}
 		bool operator<(range const& r) const
 		{ return start < r.start; }
 		bool operator<(address const& a) const
 		{ return start < a; }
-		address start;
+		address_v4 start;
 		// the end of the range is implicit
 		// and given by the next entry in the set
 		int access;

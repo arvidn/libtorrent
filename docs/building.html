@@ -190,8 +190,40 @@ logging of the DHT protocol traffic.</li>
 </ul>
 </td>
 </tr>
+<tr><td><tt class="docutils literal"><span class="pre">link</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">static</span></tt> - builds libtorrent as a static
+library (.a / .lib)</li>
+<li><tt class="docutils literal"><span class="pre">shared</span></tt> - builds libtorrent as a shared
+library (.so / .dll).</li>
+</ul>
+</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">runtime-link</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">static</span></tt> - links statically against the
+run-time library (if available on your
+platform).</li>
+<li><tt class="docutils literal"><span class="pre">shared</span></tt> - link dynamically against the
+run-time library (default).</li>
+</ul>
+</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">variant</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">debug</span></tt> - builds libtorrent with debug
+information and invariant checks.</li>
+<li><tt class="docutils literal"><span class="pre">release</span></tt> - builds libtorrent in release mode
+without invariant checks and with optimization.</li>
+<li><tt class="docutils literal"><span class="pre">profile</span></tt> - builds libtorrent with profile
+information.</li>
+</ul>
+</td>
+</tr>
 </tbody>
 </table>
+<p>The <tt class="docutils literal"><span class="pre">variant</span></tt> feature is <em>implicit</em>, which means you don't need to specify
+the name of the feature, just the value.</p>
 <p>The logs created when building vlog or log mode are put in a directory called
 <tt class="docutils literal"><span class="pre">libtorrent_logs</span></tt> in the current working directory.</p>
 <p>When building the example client on windows, you need to build with
@@ -217,13 +249,14 @@ needs to be generated first. If you're building from a released tarball,
 you may skip directly to <a class="reference" href="#step-2-running-configure">Step 2: Running configure</a>.</p>
 <p>Execute the following commands, in the given order, to generate
 the build system:</p>
-<ul class="simple">
-<li>aclocal -I m4</li>
-<li>autoheader</li>
-<li>libtoolize --copy --force</li>
-<li>automake --add-missing --copy --gnu</li>
-<li>autoconf</li>
-</ul>
+<pre class="literal-block">
+aclocal -I m4
+autoheader
+libtoolize --copy --force
+automake --add-missing --copy --gnu
+autoconf
+</pre>
+<p>On darwin/OSX you have to run <tt class="docutils literal"><span class="pre">glibtoolize</span></tt> instead of <tt class="docutils literal"><span class="pre">libtoolize</span></tt>.</p>
 </div>
 <div class="section" id="step-2-running-configure">
 <h3><a name="step-2-running-configure">Step 2: Running configure</a></h3>

@@ -946,7 +946,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		// just ignore the obviously invalid entries from the tracker
-		if(remote.address() == address(0) || remote.port() == 0)
+		if(remote.address() == address() || remote.port() == 0)
 			return;
 
 		try

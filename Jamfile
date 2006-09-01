@@ -16,8 +16,71 @@ if ! $(BOOST_ROOT)
         "BOOST_ROOT must be set to your boost installation path." ;
 }
 
-
 use-project /boost : $(BOOST_ROOT) ;
+
+
+feature logging : none default verbose : composite propagated symmetric link-incompatible ;
+feature.compose <logging>none : ;
+feature.compose <logging>default : <define>TORRENT_LOGGING ;
+feature.compose <logging>verbose : <define>TORRENT_VERBOSE_LOGGING ;
+
+feature dht-support : on off logging : composite propagated symmetric link-incompatible ;
+feature.compose <dht-support>on : ;
+feature.compose <dht-support>off : <define>TORRENT_DISABLE_DHT ;
+feature.compose <dht-support>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
+
+SOURCES =
+	allocate_resources.cpp
+	alert.cpp
+	entry.cpp
+	escape_string.cpp
+	file.cpp
+	identify_client.cpp
+	ip_filter.cpp
+	peer_connection.cpp
+	bt_peer_connection.cpp
+	web_peer_connection.cpp
+	piece_picker.cpp
+	policy.cpp
+	session.cpp
+	stat.cpp
+	storage.cpp
+	torrent.cpp
+	torrent_handle.cpp
+	torrent_info.cpp
+	tracker_manager.cpp
+	http_tracker_connection.cpp
+	udp_tracker_connection.cpp
+	sha1.cpp
+	;
+
+KADEMLIA_SOURCES =
+	kademlia/closest_nodes.cpp
+	kademlia/dht_tracker.cpp
+	kademlia/node.cpp
+	kademlia/refresh.cpp
+	kademlia/rpc_manager.cpp
+	kademlia/find_data.cpp
+	kademlia/node_id.cpp
+	kademlia/routing_table.cpp
+	kademlia/traversal_algorithm.cpp
+	;
+
+ZLIB_SOURCES = 
+	adler32.c
+	compress.c
+	crc32.c
+	deflate.c
+	gzio.c
+	infback.c
+	inffast.c
+	inflate.c
+	inftrees.c
+	trees.c
+	uncompr.c
+	zutil.c
+	;
+
 
 project torrent
 
@@ -50,6 +113,8 @@ project torrent
 # are exported (GCC 4 and msvc)
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 
+	<link>shared:<define>TORRENT_LINKING_SHARED
+
 	: usage-requirements 
 
 	<include>./include
@@ -58,56 +123,6 @@ project torrent
 	<define>BOOST_ALL_NO_LIB
 	<link>shared:<define>TORRENT_LINKING_SHARED
 
-	;
-
-SOURCES =
-	allocate_resources.cpp
-	alert.cpp
-	entry.cpp
-	escape_string.cpp
-	file.cpp
-	identify_client.cpp
-	ip_filter.cpp
-	peer_connection.cpp
-	bt_peer_connection.cpp
-	web_peer_connection.cpp
-	piece_picker.cpp
-	policy.cpp
-	session.cpp
-	stat.cpp
-	storage.cpp
-	torrent.cpp
-	torrent_handle.cpp
-	torrent_info.cpp
-	tracker_manager.cpp
-	http_tracker_connection.cpp
-	udp_tracker_connection.cpp
-	sha1.cpp
-
-	kademlia/closest_nodes.cpp
-	kademlia/dht_tracker.cpp
-	kademlia/node.cpp
-	kademlia/refresh.cpp
-	kademlia/rpc_manager.cpp
-	kademlia/find_data.cpp
-	kademlia/node_id.cpp
-	kademlia/routing_table.cpp
-	kademlia/traversal_algorithm.cpp
-	;
-
-ZLIB_SOURCES = 
-	adler32.c
-	compress.c
-	crc32.c
-	deflate.c
-	gzio.c
-	infback.c
-	inffast.c
-	inflate.c
-	inftrees.c
-	trees.c
-	uncompr.c
-	zutil.c
 	;
 
 LIBS = ;
@@ -120,21 +135,23 @@ LIBS = ;
 		LIBS += wsock32 ;
 	}
 
-feature logging : none default verbose : composite propagated symmetric link-incompatible ;
-feature.compose <logging>none : ;
-feature.compose <logging>default : <define>TORRENT_LOGGING ;
-feature.compose <logging>verbose : <define>TORRENT_VERBOSE_LOGGING ;
+lib torrent
+	:
+	src/$(SOURCES)
+	src/$(KADEMLIA_SOURCES)
+	zlib/$(ZLIB_SOURCES)
+	$(LIBS)
+	;
 
-feature dht-support : on off logging : composite propagated symmetric link-incompatible ;
-feature.compose <dht-support>on : ;
-feature.compose <dht-support>off : <define>TORRENT_DISABLE_DHT ;
-feature.compose <dht-support>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 
+# if DHT support is disabled, don't include the kademlia sources
 lib torrent
 	:
 	src/$(SOURCES)
 	zlib/$(ZLIB_SOURCES)
 	$(LIBS)
+	:
+	<dht-support>off
 	;
 
 

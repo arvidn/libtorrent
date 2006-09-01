@@ -651,7 +651,8 @@ namespace libtorrent { namespace detail
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << endp << " <== INCOMING CONNECTION\n";
 #endif
-		if (m_ip_filter.access(endp.address().to_v4()) & ip_filter::blocked)
+		if (endp.address().is_v4()
+			&& (m_ip_filter.access(endp.address().to_v4()) & ip_filter::blocked))
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			(*m_logger) << "filtered blocked ip\n";
@@ -1153,8 +1154,9 @@ namespace libtorrent
 			= m_impl.m_connections.begin(); i != m_impl.m_connections.end();)
 		{
 			tcp::endpoint sender = i->first->remote_endpoint();
-			if (m_impl.m_ip_filter.access(sender.address().to_v4())
-				& ip_filter::blocked)
+			if (sender.address().is_v4()
+				&& (m_impl.m_ip_filter.access(sender.address().to_v4())
+				& ip_filter::blocked))
 			{
 #if defined(TORRENT_VERBOSE_LOGGING)
 				(*i->second->m_logger) << "*** CONNECTION FILTERED'\n";

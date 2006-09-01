@@ -105,7 +105,6 @@ namespace
 	}
 }
 
-
 namespace libtorrent { namespace dht
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -164,12 +163,20 @@ namespace libtorrent { namespace dht
 		{
 			if (entry const* nodes = bootstrap.find_key("nodes"))
 			{
-				if (nodes->type() == entry::string_t)
+				if (nodes->type() == entry::list_t)
 				{
-					std::string const& s = nodes->string();
-					std::string::const_iterator in(s.begin());
-					while (std::distance(in, s.end()) >= 6)
-						initial_nodes.push_back(read_endpoint<udp::endpoint>(in));
+					entry::list_type const& node_list = nodes->list();
+					for (entry::list_type::const_iterator i = node_list.begin()
+						, end(node_list.end()); i != end; ++i)
+					{
+						if (i->type() != entry::string_t) continue;
+						std::string const& str = i->string();
+						std::string::const_iterator in(str.begin());
+						if (str.length() == 6)
+							initial_nodes.push_back(read_v4_endpoint<udp::endpoint>(in));
+						else if (str.length() == 18)
+							initial_nodes.push_back(read_v6_endpoint<udp::endpoint>(in));
+					}
 				}
 			}
 		}
@@ -430,7 +437,10 @@ namespace libtorrent { namespace dht
 						std::string const& p = i->string();
 						if (p.size() < 6) continue;
 						std::string::const_iterator in = p.begin();
-						m.peers.push_back(read_endpoint<tcp::endpoint>(in));
+						if (p.size() == 6)
+							m.peers.push_back(read_v4_endpoint<tcp::endpoint>(in));
+						else if (p.size() == 18)
+							m.peers.push_back(read_v6_endpoint<tcp::endpoint>(in));
 					}
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 					TORRENT_LOG(dht_tracker) << "   peers: " << m.peers.size();
@@ -450,7 +460,7 @@ namespace libtorrent { namespace dht
 						std::copy(i, i + 20, id.begin());
 						i += 20;
 						m.nodes.push_back(libtorrent::dht::node_entry(
-							id, read_endpoint<udp::endpoint>(i)));
+							id, read_v4_endpoint<udp::endpoint>(i)));
 					}
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 					TORRENT_LOG(dht_tracker) << "   nodes: " << m.nodes.size();
@@ -575,17 +585,26 @@ namespace libtorrent { namespace dht
 	{
 		entry ret(entry::dictionary_t);
 		{
-			std::string nodes;
-			std::back_insert_iterator<std::string> out(nodes);
+			entry nodes(entry::list_t);
 			for (node_impl::iterator i(m_dht.begin())
 				, end(m_dht.end()); i != end; ++i)
+			{
+				std::string node;
+				std::back_insert_iterator<std::string> out(node);
 				write_endpoint(i->addr, out);
+				nodes.list().push_back(entry(node));
+			}
 			bucket_t cache;
 			m_dht.replacement_cache(cache);
 			for (bucket_t::iterator i(cache.begin())
 				, end(cache.end()); i != end; ++i)
+			{
+				std::string node;
+				std::back_insert_iterator<std::string> out(node);
 				write_endpoint(i->addr, out);
-			if (!nodes.empty())
+				nodes.list().push_back(entry(node));
+			}
+			if (!nodes.list().empty())
 				ret["nodes"] = nodes;
 		}
 		

@@ -549,7 +549,9 @@ namespace libtorrent
 
 			tcp::endpoint a(address::from_string(i->ip), i->port);
 
-			if (m_ses.m_ip_filter.access(a.address().to_v4()) == ip_filter::blocked)
+			if (a.address().is_v4()
+				&& (m_ses.m_ip_filter.access(a.address().to_v4())
+				& ip_filter::blocked))
 			{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 				debug_log("blocked ip from tracker: " + i->ip);
