@@ -31,7 +31,27 @@ The basic usage is as follows:
 
 Each class and function is described in this manual.
 
+primitive network types
+=======================
 
+There are a few typedefs in the ``libtorrent`` namespace which pulls
+in network types from the ``asio`` namespace. These are::
+
+	typedef asio::ip::address address;
+	typedef asio::ip::address_v4 address_v4;
+	typedef asio::ip::address_v6 address_v6;
+	using asio::ip::tcp;
+	using asio::ip::udp;
+
+These are declared in the ``<libtorrent/socket.hpp>`` header.
+
+The ``using`` statements will give easy access to::
+
+	tcp::endpoint
+	udp::endpoint
+
+Which are the endpoint types used in libtorrent. An endpoint is an address
+with an associated port.
 
 session
 =======
@@ -1898,13 +1918,13 @@ accessed as ``libtorrent::address``.
 			enum access_flags { blocked = 1 };
 
 			ip_filter();
-			void add_rule(address first, address last, int flags);
-			int access(address const& addr) const;
+			void add_rule(address_v4 first, address_v4 last, int flags);
+			int access(address_v4 const& addr) const;
 
 			struct ip_range
 			{
-				address first;
-				address last;
+				address_v4 first;
+				address_v4 last;
 				int flags;
 			};
 
@@ -1930,7 +1950,7 @@ add_rule()
 
 	::
 
-		void add_rule(address first, address last, int flags);
+		void add_rule(address_v4 first, address_v4 last, int flags);
 
 Adds a rule to the filter. ``first`` and ``last`` defines a range of
 ip addresses that will be marked with the given flags. The ``flags``
@@ -1949,7 +1969,7 @@ access()
 
 	::
 
-		int access(address const& addr) const;
+		int access(address_v4 const& addr) const;
 
 Returns the access permissions for the given address (``addr``). The permission
 can currently be 0 or ``ip_filter::blocked``. The complexity of this operation
@@ -2737,7 +2757,10 @@ The file format is a bencoded dictionary containing the following fields:
 |                      | layout:                                                      |
 |                      |                                                              |
 |                      | +----------+-----------------------------------------------+ |
-|                      | | ``ip``   | string, the ip address of the peer.           | |
+|                      | | ``ip``   | string, the ip address of the peer. This is   | |
+|                      | |          | not a binary representation of the ip         | |
+|                      | |          | address, but the string representation. It    | |
+|                      | |          | may be an IPv6 string or an IPv4 string.      | |
 |                      | +----------+-----------------------------------------------+ |
 |                      | | ``port`` | integer, the listen port of the peer          | |
 |                      | +----------+-----------------------------------------------+ |

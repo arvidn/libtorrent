@@ -187,6 +187,27 @@ Build features:
 |                        |   logging of the DHT protocol traffic.             |
 |                        | * ``off`` - build without DHT support.             |
 +------------------------+----------------------------------------------------+
+| ``link``               | * ``static`` - builds libtorrent as a static       |
+|                        |   library (.a / .lib)                              |
+|                        | * ``shared`` - builds libtorrent as a shared       |
+|                        |   library (.so / .dll).                            |
++------------------------+----------------------------------------------------+
+| ``runtime-link``       | * ``static`` - links statically against the        |
+|                        |   run-time library (if available on your           |
+|                        |   platform).                                       |
+|                        | * ``shared`` - link dynamically against the        |
+|                        |   run-time library (default).                      |
++------------------------+----------------------------------------------------+
+| ``variant``            | * ``debug`` - builds libtorrent with debug         |
+|                        |   information and invariant checks.                |
+|                        | * ``release`` - builds libtorrent in release mode  |
+|                        |   without invariant checks and with optimization.  |
+|                        | * ``profile`` - builds libtorrent with profile     |
+|                        |   information.                                     |
++------------------------+----------------------------------------------------+
+
+The ``variant`` feature is *implicit*, which means you don't need to specify
+the name of the feature, just the value.
 
 The logs created when building vlog or log mode are put in a directory called
 ``libtorrent_logs`` in the current working directory.
@@ -219,14 +240,15 @@ needs to be generated first. If you're building from a released tarball,
 you may skip directly to `Step 2: Running configure`_.
 
 Execute the following commands, in the given order, to generate
-the build system:
+the build system::
 
-*  aclocal -I m4
-*  autoheader
-*  libtoolize --copy --force
-*  automake --add-missing --copy --gnu
-*  autoconf
+	aclocal -I m4
+	autoheader
+	libtoolize --copy --force
+	automake --add-missing --copy --gnu
+	autoconf
 
+On darwin/OSX you have to run ``glibtoolize`` instead of ``libtoolize``.
 
 Step 2: Running configure
 ~~~~~~~~~~~~~~~~~~~~~~~~~

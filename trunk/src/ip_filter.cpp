@@ -41,10 +41,10 @@ namespace libtorrent
 	ip_filter::ip_filter()
 	{
 		// make the entire ip-range non-blocked
-		m_access_list.insert(range(address(0UL), 0));
+		m_access_list.insert(range(address_v4(0UL), 0));
 	}
 
-	void ip_filter::add_rule(address first, address last, int flags)
+	void ip_filter::add_rule(address_v4 first, address_v4 last, int flags)
 	{
 		using boost::next;
 		using boost::prior;
@@ -80,7 +80,7 @@ namespace libtorrent
 		{
 			// we can do this const-cast because we know that the new
 			// start address will keep the set correctly ordered
-			const_cast<address&>(i->start) = first;
+			const_cast<address_v4&>(i->start) = first;
 			const_cast<int&>(i->access) = flags;
 		}
 		else if (first_access != flags)
@@ -93,14 +93,14 @@ namespace libtorrent
 		{
 			assert(j == m_access_list.end() || last.to_ulong() < j->start.to_ulong() - 1);
 			if (last_access != flags)
-				j = m_access_list.insert(j, range(address(last.to_ulong() + 1), last_access));
+				j = m_access_list.insert(j, range(address_v4(last.to_ulong() + 1), last_access));
 		}
 
 		if (j != m_access_list.end() && j->access == flags) m_access_list.erase(j);
 		assert(!m_access_list.empty());
 	}
 
-	int ip_filter::access(address const& addr) const
+	int ip_filter::access(address_v4 const& addr) const
 	{
 		assert(!m_access_list.empty());
 		range_t::const_iterator i = m_access_list.upper_bound(addr);
@@ -126,9 +126,9 @@ namespace libtorrent
 
 			++i;
 			if (i == end)
-				r.last = address(0xffffffff);
+				r.last = address_v4(0xffffffff);
 			else
-				r.last = address(i->start.to_ulong() - 1);
+				r.last = address_v4(i->start.to_ulong() - 1);
 		
 			ret.push_back(r);
 		}

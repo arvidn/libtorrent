@@ -566,6 +566,7 @@ int main(int ac, char* av[])
 		handles_t handles;
 		session ses;
 
+#ifndef TORRENT_DISABLE_DHT
 		boost::filesystem::ifstream dht_state_file(".dht_state"
 			, std::ios_base::binary);
 		dht_state_file.unsetf(std::ios_base::skipws);
@@ -582,6 +583,7 @@ int main(int ac, char* av[])
 			ses.add_dht_node(std::make_pair(std::string("router.bittorrent.com")
 				, 6881));
 		}
+#endif
 
 		ses.set_max_half_open_connections(half_open_limit);
 		ses.set_download_rate_limit(download_limit);
@@ -631,9 +633,9 @@ int main(int ac, char* av[])
 				int a, b, c, d;
 				char dummy;
 				in >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
-				address start((a << 24) + (b << 16) + (c << 8) + d);
+				address_v4 start((a << 24) + (b << 16) + (c << 8) + d);
 				in >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
-				address last((a << 24) + (b << 16) + (c << 8) + d);
+				address_v4 last((a << 24) + (b << 16) + (c << 8) + d);
 				int flags;
 				in >> flags;
 				if (flags <= 127) flags = ip_filter::blocked;
@@ -932,11 +934,13 @@ int main(int ac, char* av[])
 			}
 		}
 
+#ifndef TORRENT_DISABLE_DHT
 		entry dht_state = ses.dht_state();
 		boost::filesystem::ofstream out(".dht_state"
 			, std::ios_base::binary);
 		out.unsetf(std::ios_base::skipws);
 		bencode(std::ostream_iterator<char>(out), dht_state);
+#endif
 	}
 	catch (std::exception& e)
 	{

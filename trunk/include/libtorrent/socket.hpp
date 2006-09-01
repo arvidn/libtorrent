@@ -82,7 +82,9 @@ namespace libtorrent
 	using asio::ip::tcp;
 	using asio::ip::udp;
 	typedef asio::ip::tcp::socket stream_socket;
-	typedef asio::ip::address_v4 address;
+	typedef asio::ip::address address;
+	typedef asio::ip::address_v4 address_v4;
+	typedef asio::ip::address_v6 address_v6;
 	typedef asio::ip::udp::socket datagram_socket;
 	typedef asio::ip::tcp::acceptor socket_acceptor;
 	typedef asio::io_service demuxer;
@@ -92,19 +94,60 @@ namespace libtorrent
 	
 	namespace detail
 	{
+		template<class OutIt>
+		void write_address(address const& a, OutIt& out)
+		{
+			if (a.is_v4())
+			{
+				write_uint32(a.to_v4().to_ulong(), out);
+			}
+			else if (a.is_v6())
+			{
+				asio::ip::address_v6::bytes_type bytes
+					= a.to_v6().to_bytes();
+				std::copy(bytes.begin(), bytes.end(), out);
+			}
+		}
+
+		template<class InIt>
+		address read_v4_address(InIt& in)
+		{
+			unsigned long ip = read_uint32(in);
+			return asio::ip::address_v4(ip);
+		}
+
+		template<class InIt>
+		address read_v6_address(InIt& in)
+		{
+			typedef asio::ip::address_v6::bytes_type bytes_t;
+			bytes_t bytes;
+			for (bytes_t::iterator i = bytes.begin()
+				, end(bytes.end()); i != end; ++i)
+				*i = read_uint8(in);
+			return asio::ip::address_v6(bytes);
+		}
+
 		template<class Endpoint, class OutIt>
 		void write_endpoint(Endpoint const& e, OutIt& out)
 		{
-			write_uint32(e.address().to_v4().to_ulong(), out);
+			write_address(e.address(), out);
 			write_uint16(e.port(), out);
 		}
 
 		template<class Endpoint, class InIt>
-		Endpoint read_endpoint(InIt& in)
+		Endpoint read_v4_endpoint(InIt& in)
 		{
-			unsigned int ip = read_uint32(in);
+			address addr = read_v4_address(in);
 			int port = read_uint16(in);
-			return Endpoint(address(ip), port);
+			return Endpoint(addr, port);
+		}
+
+		template<class Endpoint, class InIt>
+		Endpoint read_v6_endpoint(InIt& in)
+		{
+			address addr = read_v6_address(in);
+			int port = read_uint16(in);
+			return Endpoint(addr, port);
 		}
 	}
 }
