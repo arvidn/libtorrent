@@ -415,8 +415,11 @@ and the node id from the previous session. The dht node state is a bencoded
 dictionary with the following entries:
 
 ``nodes``
-	is a string with the nodes written as 6 bytes each. 4 bytes ip
-	address and 2 bytes port number. Both are written in big endian byte order.
+	A list of strings, where each string is a node endpoint encoded in binary. If
+	the string is 6 bytes long, it is an IPv4 address of 4 bytes, encoded in
+	network byte order (big endian), followed by a 2 byte port number (also
+	network byte order). If the string is 18 bytes long, it is 16 bytes of IPv6
+	address followed by a 2 bytes port number (also network byte order).
 
 ``node-id``
 	The node id written as a readable string as a hexadecimal number.
@@ -449,8 +452,7 @@ response to a ``get_peers`` message from another node.
 send when announcing and refreshing the routing table. This parameter is
 called alpha in the kademlia paper.
 
-``service_port`` is the udp port the node will listen to. (currently this
-cannot be changed while the node is running).
+``service_port`` is the udp port the node will listen to.
 
 ``max_fail_count`` is the maximum number of failed tries to contact a node
 before it is removed from the routing table. If there are known working nodes
