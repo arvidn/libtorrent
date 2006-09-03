@@ -74,6 +74,15 @@ int main(int argc, char* argv[])
 
                 // print info about torrent
                 std::cout &lt;&lt; &quot;\n\n----- torrent file info -----\n\n&quot;;
+                std::cout &lt;&lt; &quot;nodes:\n&quot;;
+                typedef std::vector&lt;std::pair&lt;std::string, int&gt; &gt; node_vec;
+                node_vec const&amp; nodes = t.nodes();
+                for (node_vec::const_iterator i = nodes.begin(), end(nodes.end());
+                        i != end; ++i)
+                {
+                        std::cout &lt;&lt; i-&gt;first &lt;&lt; &quot;:&quot; &lt;&lt; i-&gt;second &lt;&lt; &quot;\n&quot;;
+                }
+
                 std::cout &lt;&lt; &quot;trackers:\n&quot;;
                 for (std::vector&lt;announce_entry&gt;::const_iterator i
                         = t.trackers().begin(); i != t.trackers().end(); ++i)
