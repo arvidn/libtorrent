@@ -162,6 +162,38 @@ namespace libtorrent
 				move(p.downloading, p.filtered, prev_priority, p.index);
 			}
 		}
+		
+		typedef std::vector<int> info_t;
+
+		if (old_limit < sequenced_download_threshold)
+		{
+			INVARIANT_CHECK;
+			assert(int(m_piece_info.size()) > old_limit);
+			info_t& in = m_piece_info[old_limit];
+			std::random_shuffle(in.begin(), in.end());
+			int c = 0;
+			for (info_t::iterator i = in.begin()
+				, end(in.end()); i != end; ++i)
+			{
+				m_piece_map[*i].index = c++;
+				assert(m_piece_map[*i].priority(old_limit) == old_limit);
+			}
+		}
+		else if (int(m_piece_info.size()) > sequenced_download_threshold)
+		{
+			INVARIANT_CHECK;
+			assert(int(m_piece_info.size()) > sequenced_download_threshold);
+			info_t& in = m_piece_info[sequenced_download_threshold];
+			std::sort(in.begin(), in.end());
+			int c = 0;
+			for (info_t::iterator i = in.begin()
+				, end(in.end()); i != end; ++i)
+			{
+				m_piece_map[*i].index = c++;
+				assert(m_piece_map[*i].priority(
+					sequenced_download_threshold) == sequenced_download_threshold);
+			}
+		}
 	}
 
 #ifndef NDEBUG
@@ -475,7 +507,9 @@ namespace libtorrent
 				m_piece_map[replace_index].index = elem_index;
 
 				assert((int)src_vec[priority].size() > elem_index);
-				assert((int)m_piece_map[replace_index].priority(m_sequenced_download_threshold) == priority);
+				// this may not necessarily be the case. If we've just updated the threshold and are updating
+				// the piece map
+//				assert((int)m_piece_map[replace_index].priority(m_sequenced_download_threshold) == priority);
 				assert((int)m_piece_map[replace_index].index == elem_index);
 				assert(src_vec[priority][elem_index] == replace_index);
 			}

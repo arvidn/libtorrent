@@ -507,6 +507,11 @@ namespace libtorrent { namespace detail
 			}
 		}
 		m_settings = s;
+		// replace all occurances of '\n' with ' '.
+		std::string::iterator i = m_settings.user_agent.begin();
+		while ((i = std::find(i, m_settings.user_agent.end(), '\n'))
+			!= m_settings.user_agent.end())
+			*i = ' ';
 	}
 
 	void session_impl::open_listen_port()

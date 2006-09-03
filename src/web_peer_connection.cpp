@@ -155,8 +155,7 @@ namespace libtorrent
 			if (m_first_request)
 			{
 				request += "\r\nUser-Agent: ";
-				request += escape_string(m_ses.m_settings.user_agent.c_str()
-					, m_ses.m_settings.user_agent.size());
+				request += m_ses.m_settings.user_agent;
 			}
 			if (using_proxy && !m_ses.m_settings.proxy_login.empty())
 			{
@@ -209,8 +208,7 @@ namespace libtorrent
 				if (m_first_request)
 				{
 					request += "\r\nUser-Agent: ";
-					request += escape_string(m_ses.m_settings.user_agent.c_str()
-						, m_ses.m_settings.user_agent.size());
+					request += m_ses.m_settings.user_agent;
 				}
 				if (using_proxy && !m_ses.m_settings.proxy_login.empty())
 				{
