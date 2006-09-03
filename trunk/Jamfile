@@ -135,15 +135,6 @@ LIBS = ;
 		LIBS += wsock32 ;
 	}
 
-#lib torrent
-#	:
-#	src/$(SOURCES)
-#	src/$(KADEMLIA_SOURCES)
-#	zlib/$(ZLIB_SOURCES)
-#	$(LIBS)
-#	;
-
-# if DHT support is disabled, don't include the kademlia sources
 lib torrent
 	:
 	src/$(SOURCES)
