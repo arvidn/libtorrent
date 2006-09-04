@@ -196,6 +196,12 @@ namespace libtorrent { namespace dht
 		m_refresh_timer.async_wait(bind(&dht_tracker::refresh_timeout, this, _1));
 	}
 
+	void dht_tracker::dht_status(session_status& s)
+	{
+		boost::tie(s.m_dht_nodes, s.m_dht_node_cache) = m_dht.size();
+		s.m_dht_torrents = m_dht.data_size();
+	}
+
 	void dht_tracker::connection_timeout(asio::error const& e)
 		try
 	{

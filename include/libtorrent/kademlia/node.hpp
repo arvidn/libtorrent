@@ -118,6 +118,7 @@ public:
 
 	data_iterator begin_data() { return m_map.begin(); }
 	data_iterator end_data() { return m_map.end(); }
+	int data_size() const { return int(m_map.size()); }
 
 	void print_state(std::ostream& os) const
 	{ m_table.print_state(os); }
