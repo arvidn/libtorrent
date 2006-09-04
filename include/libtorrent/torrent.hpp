@@ -135,6 +135,8 @@ namespace libtorrent
 		
 		session_settings const& settings() const;
 		
+		void set_sequenced_download_threshold(int threshold);
+		
 		// is called every second by session. This will
 		// caclulate the upload/download and number
 		// of connections this torrent needs. And prepare

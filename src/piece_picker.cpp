@@ -51,14 +51,13 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	piece_picker::piece_picker(int blocks_per_piece, int total_num_blocks
-		, int sequenced_download_threshold)
+	piece_picker::piece_picker(int blocks_per_piece, int total_num_blocks)
 		: m_piece_info(2)
 		, m_downloading_piece_info(2)
 		, m_piece_map((total_num_blocks + blocks_per_piece-1) / blocks_per_piece)
 		, m_num_filtered(0)
 		, m_num_have_filtered(0)
-		, m_sequenced_download_threshold(sequenced_download_threshold)
+		, m_sequenced_download_threshold(100)
 	{
 		assert(blocks_per_piece > 0);
 		assert(total_num_blocks >= 0);
@@ -167,7 +166,6 @@ namespace libtorrent
 
 		if (old_limit < sequenced_download_threshold)
 		{
-			INVARIANT_CHECK;
 			assert(int(m_piece_info.size()) > old_limit);
 			info_t& in = m_piece_info[old_limit];
 			std::random_shuffle(in.begin(), in.end());
@@ -181,7 +179,6 @@ namespace libtorrent
 		}
 		else if (int(m_piece_info.size()) > sequenced_download_threshold)
 		{
-			INVARIANT_CHECK;
 			assert(int(m_piece_info.size()) > sequenced_download_threshold);
 			info_t& in = m_piece_info[sequenced_download_threshold];
 			std::sort(in.begin(), in.end());

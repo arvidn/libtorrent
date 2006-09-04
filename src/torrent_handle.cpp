@@ -317,6 +317,13 @@ namespace libtorrent
 		return torrent_status();
 	}
 
+	void torrent_handle::set_sequenced_download_threshold(int threshold) const
+	{
+		INVARIANT_CHECK;
+		call_member<void>(m_ses, m_chk, m_info_hash
+			, bind(&torrent::set_sequenced_download_threshold, _1, threshold));
+	}
+
 	void torrent_handle::filter_piece(int index, bool filter) const
 	{
 		INVARIANT_CHECK;

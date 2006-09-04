@@ -1,7 +1,8 @@
+	* modified the api slightly to make sequenced download threshold
+	  a per torrent-setting.
 	* changed the address type to support IPv6
-	* fixed in piece picker which would assert when changing
-	  sequenced download threshold on torrents with already
-	  downloaded pieces.
+	* fixed bug in piece picker which would not behave as
+	  expected with regard to sequenced download threshold.
 	* fixed bug with file_progress() with files > 2 GB.
 	* added --enable-examples option to configure script.
 	* fixed problem with the resource distribution algorithm

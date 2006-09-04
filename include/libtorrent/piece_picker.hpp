@@ -111,8 +111,7 @@ namespace libtorrent
 		};
 
 		piece_picker(int blocks_per_piece
-			, int total_num_blocks
-			, int sequenced_download_threshold);
+			, int total_num_blocks);
 
 		void set_sequenced_download_threshold(int sequenced_download_threshold);
 
