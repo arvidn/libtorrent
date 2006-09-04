@@ -494,18 +494,6 @@ namespace libtorrent { namespace detail
 
 	void session_impl::set_settings(session_settings const& s)
 	{
-		if (m_settings.sequenced_download_threshold
-			!= s.sequenced_download_threshold)
-		{
-			for (torrent_map::iterator i = m_torrents.begin()
-				, end(m_torrents.end()); i != end; ++i)
-			{
-				torrent& t = *i->second;
-				if (t.valid_metadata())
-					t.picker().set_sequenced_download_threshold(
-						s.sequenced_download_threshold);
-			}
-		}
 		m_settings = s;
 		// replace all occurances of '\n' with ' '.
 		std::string::iterator i = m_settings.user_agent.begin();

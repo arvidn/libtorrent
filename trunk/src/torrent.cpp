@@ -421,8 +421,7 @@ namespace libtorrent
 		m_block_size = calculate_block_size(m_torrent_file, m_default_block_size);
 		m_picker.reset(new piece_picker(
 			static_cast<int>(m_torrent_file.piece_length() / m_block_size)
-			, static_cast<int>((m_torrent_file.total_size()+m_block_size-1)/m_block_size)
-			, m_settings.sequenced_download_threshold));
+			, static_cast<int>((m_torrent_file.total_size()+m_block_size-1)/m_block_size)));
 
 		std::vector<std::string> const& url_seeds = m_torrent_file.url_seeds();
 		std::copy(url_seeds.begin(), url_seeds.end(), std::inserter(m_web_seeds
@@ -1463,6 +1462,13 @@ namespace libtorrent
 		assert(!valid_metadata() || (m_torrent_file.piece_length() % m_block_size) == 0);
 	}
 #endif
+
+	void torrent::set_sequenced_download_threshold(int threshold)
+	{
+		if (valid_metadata())
+			picker().set_sequenced_download_threshold(threshold);
+	}
+
 
 	void torrent::set_max_uploads(int limit)
 	{

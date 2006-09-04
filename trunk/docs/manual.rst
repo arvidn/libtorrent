@@ -1062,6 +1062,7 @@ Its declaration looks like this::
 		void set_max_connections(int max_connections) const;
 		void set_upload_limit(int limit) const;
 		void set_download_limit(int limit) const;
+		void set_sequenced_download_threshold(int threshold) const;
 
 		void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
 		void set_peer_download_limit(asio::ip::tcp::endpoint ip, int limit) const;
@@ -1192,6 +1193,27 @@ limit you set. It is given as the number of bytes per second the torrent is allo
 Note that setting a higher limit on a torrent then the global limit (``session::set_upload_rate_limit``)
 will not override the global rate limit. The torrent can never upload more than the global rate
 limit.
+
+
+set_sequenced_download_threshold()
+----------------------------------
+
+	::
+
+		void set_sequenced_download_threshold(int threshold);
+
+sequenced-download threshold is the limit on how popular a piece has to be
+(popular == inverse of rarity) to be downloaded in sequence instead of in
+random (rarest first) order. It can be used to tweak disk performance in
+settings where the random download property is less necessary. For example, if
+the threshold is 10, all pieces which 10 or more peers have, will be downloaded
+in index order. This setting defaults to 100, which means that it is disabled
+in practice.
+
+Setting this threshold to a very small value will affect the piece distribution
+negatively in the swarm. It should basically only be used in situations where
+the random seeks on the disk is the download bottleneck.
+
 
 set_peer_upload_limit() set_peer_download_limit()
 -------------------------------------------------
@@ -1812,7 +1834,6 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 
 		int piece_timeout;
 		float request_queue_time;
-		int sequenced_download_threshold;
 		int max_allowed_in_request_queue;
 		int max_out_request_queue;
 		int whole_pieces_threshold;
@@ -1863,14 +1884,6 @@ it times out if no piece response is returned.
 of seconds it should take for the other end to send all the pieces. i.e. the
 actual number of requests depends on the download rate and this number.
 	
-``sequenced_download_threshold`` is the limit on how popular a piece has to be
-(popular == inverse of rarity) to be downloaded in sequence instead of in
-random (rarest first) order. It can be used to tweak disk performance in
-settings where the random download property is less necessary. For example, if
-the threshold is 10, all pieces which 10 or more peers have, will be downloaded
-in index order. This setting defaults to 100, which means that it is disabled
-in practice.
-
 ``max_allowed_in_request_queue`` is the number of outstanding block requests
 a peer is allowed to queue up in the client. If a peer sends more requests
 than this (before the first one has been handled) the last request will be

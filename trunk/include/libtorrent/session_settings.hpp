@@ -50,7 +50,6 @@ namespace libtorrent
 			, tracker_maximum_response_length(1024*1024)
 			, piece_timeout(120)
 			, request_queue_time(3.f)
-			, sequenced_download_threshold(100)
 			, max_allowed_in_request_queue(250)
 			, max_out_request_queue(200)
 			, whole_pieces_threshold(20)
@@ -97,15 +96,6 @@ namespace libtorrent
 		// all the pieces. i.e. the actual number of requests
 		// depends on the download rate and this number.
 		float request_queue_time;
-		
-		// this is the limit on how popular a piece has to be
-		// (popular == inverse of rarity) to be downloaded
-		// in sequence instead of in random (rarest first) order.
-		// it can be used to tweak disk performance in settings
-		// where the random download property is less necessary.
-		// for example, if the threshold is 7, all pieces which 7
-		// or more peers have, will be downloaded in index order.
-		int sequenced_download_threshold;
 		
 		// the number of outstanding block requests a peer is
 		// allowed to queue up in the client. If a peer sends

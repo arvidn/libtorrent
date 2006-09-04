@@ -348,6 +348,7 @@ void add_torrent(libtorrent::session& ses
 	h.set_max_connections(60);
 	h.set_max_uploads(-1);
 	h.set_ratio(preferred_ratio);
+	h.set_sequenced_download_threshold(15);
 }
 
 void scan_dir(path const& dir_path
@@ -553,7 +554,6 @@ int main(int ac, char* av[])
 		}
 
 		settings.user_agent = "client_test " LIBTORRENT_VERSION;
-		settings.sequenced_download_threshold = 15;
 
 		std::deque<std::string> events;
 
@@ -667,6 +667,7 @@ int main(int ac, char* av[])
 					h.set_max_connections(60);
 					h.set_max_uploads(-1);
 					h.set_ratio(preferred_ratio);
+					h.set_sequenced_download_threshold(15);
 					continue;
 				}
 				// if it's a torrent file, open it as usual
