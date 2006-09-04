@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/traversal_algorithm.hpp"
 #include "libtorrent/kademlia/packet_iterator.hpp"
 #include "libtorrent/session_settings.hpp"
+#include "libtorrent/session_status.hpp"
 
 namespace libtorrent { namespace dht
 {
@@ -74,6 +75,8 @@ namespace libtorrent { namespace dht
 		void announce(sha1_hash const& ih, int listen_port
 			, boost::function<void(std::vector<tcp::endpoint> const&
 			, sha1_hash const&)> f);
+
+		void dht_status(session_status& s);
 
 	private:
 

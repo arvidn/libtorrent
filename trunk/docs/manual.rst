@@ -334,6 +334,10 @@ struct has the following members::
 		size_type total_payload_upload;
 
 		int num_peers;
+
+		int dht_nodes;
+		int dht_cache_nodes;
+		int dht_torrents;
 	};
 
 ``has_incoming_connections`` is false as long as no incoming connections have been
@@ -349,6 +353,16 @@ uploaded to and from all torrents. ``total_payload_download`` and ``total_payloa
 are the same thing but where only the payload is considered.
 
 ``num_peers`` is the total number of peer connections this session have.
+
+``dht_nodes``, ``dht_cache_nodes`` and ``dht_torrents`` are only available when
+built with DHT support. They are all set to 0 if the DHT isn't running. When
+the DHT is running, ``dht_nodes`` is set to the number of nodes in the routing
+table. This number only includes *active* nodes, not cache nodes. The
+``dht_cache_nodes`` is set to the number of nodes in the node cache. These nodes
+are used to replace the regular nodes in the routing table in case any of them
+becomes unresponsive.
+
+``dht_torrents`` are the number of torrents tracked by the DHT at the moment.
 
 
 is_listening() listen_port() listen_on()

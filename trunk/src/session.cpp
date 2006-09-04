@@ -1464,6 +1464,19 @@ namespace libtorrent
 		s.total_payload_download = m_impl.m_stat.total_payload_download();
 		s.total_payload_upload = m_impl.m_stat.total_payload_upload();
 
+#ifndef TORRENT_DISABLE_DHT
+		if (m_impl.m_dht)
+		{
+			m_impl.m_dht->dht_status(s);
+		}
+		else
+		{
+			s.m_dht_nodes = 0;
+			s.m_dht_node_cache = 0;
+			s.m_dht_torrents = 0;
+		}
+#endif
+
 		return s;
 	}
 

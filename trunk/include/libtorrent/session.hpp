@@ -73,6 +73,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/version.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
+#include "libtorrent/session_status.hpp"
 
 #if !defined(NDEBUG) && defined(_MSC_VER)
 #	include <float.h>
@@ -325,25 +326,6 @@ namespace libtorrent
 #endif
 		};
 	}
-
-	struct TORRENT_EXPORT session_status
-	{
-		bool has_incoming_connections;
-
-		float upload_rate;
-		float download_rate;
-
-		float payload_upload_rate;
-		float payload_download_rate;
-
-		size_type total_download;
-		size_type total_upload;
-
-		size_type total_payload_download;
-		size_type total_payload_upload;
-
-		int num_peers;
-	};
 
 	class TORRENT_EXPORT session: public boost::noncopyable, detail::eh_initializer
 	{

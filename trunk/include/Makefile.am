@@ -29,6 +29,7 @@ libtorrent/random_sample.hpp \
 libtorrent/resource_request.hpp \
 libtorrent/session.hpp \
 libtorrent/session_settings.hpp \
+libtorrent/session_status.hpp \
 libtorrent/size_type.hpp \
 libtorrent/socket.hpp \
 libtorrent/stat.hpp \

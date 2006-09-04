@@ -473,6 +473,10 @@ struct session_status
         size_type total_payload_upload;
 
         int num_peers;
+
+        int dht_nodes;
+        int dht_cache_nodes;
+        int dht_torrents;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">has_incoming_connections</span></tt> is false as long as no incoming connections have been
@@ -485,6 +489,14 @@ versions is the payload download only.</p>
 uploaded to and from all torrents. <tt class="docutils literal"><span class="pre">total_payload_download</span></tt> and <tt class="docutils literal"><span class="pre">total_payload_upload</span></tt>
 are the same thing but where only the payload is considered.</p>
 <p><tt class="docutils literal"><span class="pre">num_peers</span></tt> is the total number of peer connections this session have.</p>
+<p><tt class="docutils literal"><span class="pre">dht_nodes</span></tt>, <tt class="docutils literal"><span class="pre">dht_cache_nodes</span></tt> and <tt class="docutils literal"><span class="pre">dht_torrents</span></tt> are only available when
+built with DHT support. They are all set to 0 if the DHT isn't running. When
+the DHT is running, <tt class="docutils literal"><span class="pre">dht_nodes</span></tt> is set to the number of nodes in the routing
+table. This number only includes <em>active</em> nodes, not cache nodes. The
+<tt class="docutils literal"><span class="pre">dht_cache_nodes</span></tt> is set to the number of nodes in the node cache. These nodes
+are used to replace the regular nodes in the routing table in case any of them
+becomes unresponsive.</p>
+<p><tt class="docutils literal"><span class="pre">dht_torrents</span></tt> are the number of torrents tracked by the DHT at the moment.</p>
 </div>
 <div class="section" id="is-listening-listen-port-listen-on">
 <h2><a name="is-listening-listen-port-listen-on">is_listening() listen_port() listen_on()</a></h2>
