@@ -62,8 +62,6 @@ libtorrent/asio/basic_resolver.hpp \
 libtorrent/asio/basic_socket.hpp \
 libtorrent/asio/basic_socket_acceptor.hpp \
 libtorrent/asio/basic_socket_iostream.hpp \
-libtorrent/asio/basic_socketbuf.hpp \
-libtorrent/asio/basic_strand.hpp \
 libtorrent/asio/basic_stream_socket.hpp \
 libtorrent/asio/basic_streambuf.hpp \
 libtorrent/asio/buffer.hpp \
@@ -89,7 +87,6 @@ libtorrent/asio/detail/epoll_reactor_fwd.hpp \
 libtorrent/asio/detail/event.hpp \
 libtorrent/asio/detail/fd_set_adapter.hpp \
 libtorrent/asio/detail/handler_alloc_helpers.hpp \
-libtorrent/asio/detail/handler_dispatch_helpers.hpp \
 libtorrent/asio/detail/hash_map.hpp \
 libtorrent/asio/detail/io_control.hpp \
 libtorrent/asio/detail/kqueue_reactor.hpp \
@@ -147,7 +144,6 @@ libtorrent/asio/detail/wrapped_handler.hpp \
 libtorrent/asio/error.hpp \
 libtorrent/asio/error_handler.hpp \
 libtorrent/asio/handler_alloc_hook.hpp \
-libtorrent/asio/handler_dispatch_hook.hpp \
 libtorrent/asio/impl/io_service.ipp \
 libtorrent/asio/impl/read.ipp \
 libtorrent/asio/impl/read_until.ipp \
@@ -188,7 +184,6 @@ libtorrent/asio/ssl/stream_base.hpp \
 libtorrent/asio/ssl/stream_service.hpp \
 libtorrent/asio/ssl.hpp \
 libtorrent/asio/strand.hpp \
-libtorrent/asio/strand_service.hpp \
 libtorrent/asio/stream_socket_service.hpp \
 libtorrent/asio/streambuf.hpp \
 libtorrent/asio/system_exception.hpp \
