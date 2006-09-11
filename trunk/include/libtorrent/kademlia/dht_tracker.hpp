@@ -68,7 +68,7 @@ namespace libtorrent { namespace dht
 		void add_node(udp::endpoint node);
 		void add_node(std::pair<std::string, int> const& node);
 		
-		void rebind(asio::ip::address interface, int listen_port);
+		void rebind(asio::ip::address listen_interface, int listen_port);
 
 		entry state() const;
 

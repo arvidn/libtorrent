@@ -1354,10 +1354,6 @@ namespace libtorrent
 				// reply with our handshake
 				write_handshake();
 				write_bitfield(t->pieces());
-#ifndef TORRENT_DISABLE_DHT
-				if (m_supports_dht_port && m_ses.m_dht)
-					write_dht_port(m_ses.m_dht_settings.service_port);
-#endif
 			}
 			else
 			{
@@ -1371,6 +1367,11 @@ namespace libtorrent
 					throw std::runtime_error("invalid info-hash in handshake");
 				}
 			}
+
+#ifndef TORRENT_DISABLE_DHT
+			if (m_supports_dht_port && m_ses.m_dht)
+				write_dht_port(m_ses.m_dht_settings.service_port);
+#endif
 
 			m_state = read_peer_id;
 			reset_recv_buffer(20);

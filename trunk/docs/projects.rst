@@ -33,6 +33,14 @@ project listed here, let me_ know.
 | Written by Michael Wojciechowski                                              |                                     |
 | and Johan Stršm.                                                              |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
+| **BitRocket**                                                                 | .. image:: bitrocket_thumb.png      |
+|                                                                               |                                     |
+| BitRocket_ is a MacOS X bittorrent client.                                    |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **Instant Media**                                                             | .. image:: im_thumb.jpg             |
+|                                                                               |                                     |
+| IM_ is a client for downloading Internet TV.                                  |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
 | **MooPolice**                                                                 | .. image:: moopolice_thumb.gif      |
 |                                                                               |                                     |
 | MooPolice_ is a windows bittorrent                                            |                                     |
@@ -92,6 +100,8 @@ project listed here, let me_ know.
 .. _`electric sheep`: http://electricsheep.org
 .. _qBittorrent: http://www.qbittorrent.org/
 .. _btg: http://developer.berlios.de/projects/btg/
+.. _BitRocket: http://www.bitrocket.org/
+.. _IM: http://www.im.com/
 .. _MooPolice: http://www.moopolice.de
 .. _BitsCast: http://www.bitscast.com/software/
 .. _Jamplayer: http://www.jamendo.com/en/static/jamendotools_jamplayer/
