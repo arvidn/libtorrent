@@ -270,11 +270,15 @@ namespace libtorrent
 			m_extra_info[i->first] = i->second;
 		}
 
-		if (info.find_key("private"))
+		if (entry const* priv = info.find_key("private"))
 		{
-			// this key exists, don't care about its value, consider
-			// the torrent private
-			m_private = true;
+			if (priv->type() != entry::int_t
+				|| priv->integer() != 0)
+			{
+				// this key exists and it's not 0.
+				// consider the torrent private
+				m_private = true;
+			}
 		}
 
 #ifndef NDEBUG
