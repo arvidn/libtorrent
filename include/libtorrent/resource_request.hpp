@@ -60,6 +60,8 @@ namespace libtorrent
 		{
 			assert(given <= max);
 			assert(given >= min);
+			if (used < 0 && (given - used < 0))
+				return boost::integer_traits<int>::const_max;
 			return given - used;
 		}
 
