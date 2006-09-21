@@ -103,6 +103,25 @@ namespace
 		return boost::optional<node_id>(
 			boost::lexical_cast<node_id>(nid->string()));
 	}
+
+	template <class EndpointType>
+	void read_endpoint_list(libtorrent::entry const* n, std::vector<EndpointType>& epl)				
+	{
+		using namespace libtorrent;
+		entry::list_type const& contacts = n->list();
+		for (entry::list_type::const_iterator i = contacts.begin()
+			, end(contacts.end()); i != end; ++i)
+		{
+			std::string const& p = i->string();
+			if (p.size() < 6) continue;
+			std::string::const_iterator in = p.begin();
+			if (p.size() == 6)
+				epl.push_back(read_v4_endpoint<EndpointType>(in));
+			else if (p.size() == 18)
+				epl.push_back(read_v6_endpoint<EndpointType>(in));
+		}
+	}
+
 }
 
 namespace libtorrent { namespace dht
@@ -161,24 +180,11 @@ namespace libtorrent { namespace dht
 
 		if (bootstrap.type() == entry::dictionary_t)
 		{
-			if (entry const* nodes = bootstrap.find_key("nodes"))
+			try
 			{
-				if (nodes->type() == entry::list_t)
-				{
-					entry::list_type const& node_list = nodes->list();
-					for (entry::list_type::const_iterator i = node_list.begin()
-						, end(node_list.end()); i != end; ++i)
-					{
-						if (i->type() != entry::string_t) continue;
-						std::string const& str = i->string();
-						std::string::const_iterator in(str.begin());
-						if (str.length() == 6)
-							initial_nodes.push_back(read_v4_endpoint<udp::endpoint>(in));
-						else if (str.length() == 18)
-							initial_nodes.push_back(read_v6_endpoint<udp::endpoint>(in));
-					}
-				}
-			}
+			if (entry const* nodes = bootstrap.find_key("nodes"))
+				read_endpoint_list<udp::endpoint>(nodes, initial_nodes);
+			} catch (std::exception&) {}
 		}
 
 		m_dht.bootstrap(initial_nodes, bind(&dht_tracker::on_bootstrap, this));
@@ -436,26 +442,15 @@ namespace libtorrent { namespace dht
 				if (entry const* n = r.find_key("values"))				
 				{
 					m.peers.clear();
-					entry::list_type const& peers = n->list();
-					for (entry::list_type::const_iterator i = peers.begin()
-						, end(peers.end()); i != end; ++i)
-					{
-						std::string const& p = i->string();
-						if (p.size() < 6) continue;
-						std::string::const_iterator in = p.begin();
-						if (p.size() == 6)
-							m.peers.push_back(read_v4_endpoint<tcp::endpoint>(in));
-						else if (p.size() == 18)
-							m.peers.push_back(read_v6_endpoint<tcp::endpoint>(in));
-					}
+					read_endpoint_list<tcp::endpoint>(n, m.peers);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 					TORRENT_LOG(dht_tracker) << "   peers: " << m.peers.size();
 #endif
 				}
 
+				m.nodes.clear();
 				if (entry const* n = r.find_key("nodes"))				
 				{
-					m.nodes.clear();
 					std::string const& nodes = n->string();
 					std::string::const_iterator i = nodes.begin();
 					std::string::const_iterator end = nodes.end();
@@ -470,6 +465,31 @@ namespace libtorrent { namespace dht
 					}
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 					TORRENT_LOG(dht_tracker) << "   nodes: " << m.nodes.size();
+#endif
+				}
+
+				if (entry const* n = r.find_key("nodes2"))				
+				{
+					entry::list_type const& contacts = n->list();
+					for (entry::list_type::const_iterator i = contacts.begin()
+						, end(contacts.end()); i != end; ++i)
+					{
+						std::string const& p = i->string();
+						if (p.size() < 6 + 20) continue;
+						std::string::const_iterator in = p.begin();
+
+						node_id id;
+						std::copy(in, in + 20, id.begin());
+						in += 20;
+						if (p.size() == 6 + 20)
+							m.nodes.push_back(libtorrent::dht::node_entry(
+								id, read_v4_endpoint<udp::endpoint>(in)));
+						else if (p.size() == 18 + 20)
+							m.nodes.push_back(libtorrent::dht::node_entry(
+								id, read_v6_endpoint<udp::endpoint>(in)));
+					}
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+					TORRENT_LOG(dht_tracker) << "   nodes2 + nodes: " << m.nodes.size();
 #endif
 				}
 
@@ -697,17 +717,39 @@ namespace libtorrent { namespace dht
 					break;
 				case messages::find_node:
 				{
+					bool ipv6_nodes = false;
 					r["nodes"] = entry(entry::string_t);
 					entry& n = r["nodes"];
 					std::back_insert_iterator<std::string> out(n.string());
 					for (msg::nodes_t::const_iterator i = m.nodes.begin()
 						, end(m.nodes.end()); i != end; ++i)
 					{
+						if (!i->addr.address().is_v4())
+						{
+							ipv6_nodes = true;
+							continue;
+						}
 						std::copy(i->id.begin(), i->id.end(), out);
 						write_endpoint(i->addr, out);
 					}
+
+					if (ipv6_nodes)
+					{
+						r["nodes2"] = entry(entry::list_t);
+						entry& p = r["nodes2"];
+						std::string endpoint;
+						endpoint.resize(6);
+						for (msg::nodes_t::const_iterator i = m.nodes.begin()
+							, end(m.nodes.end()); i != end; ++i)
+						{
+							std::string::iterator out = endpoint.begin();
+							std::copy(i->id.begin(), i->id.end(), out);
+							write_endpoint(i->addr, out);
+							p.list().push_back(entry(endpoint));
+						}
+					}
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-				TORRENT_LOG(dht_tracker) << "   nodes: " << m.nodes.size();
+					TORRENT_LOG(dht_tracker) << "   nodes: " << m.nodes.size();
 #endif
 					break;
 				}
@@ -721,6 +763,7 @@ namespace libtorrent { namespace dht
 						for (msg::nodes_t::const_iterator i = m.nodes.begin()
 							, end(m.nodes.end()); i != end; ++i)
 						{
+							if (!i->addr.address().is_v4()) continue;
 							std::copy(i->id.begin(), i->id.end(), out);
 							write_endpoint(i->addr, out);
 						}
