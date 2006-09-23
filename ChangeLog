@@ -1,3 +1,4 @@
+	* fixed bug causing a crash with a torrent with piece length 0
 	* added an extension to the DHT network protocol to support the
 	  exchange of nodes with IPv6 addresses.
 	* modified the ip_filter api slightly to support IPv6
