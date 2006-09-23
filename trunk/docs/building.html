@@ -242,6 +242,14 @@ logging=none dht-support=on dht-support=logging dht-support=off
 <h2><a name="building-with-autotools">building with autotools</a></h2>
 <p>First of all, you need to install <tt class="docutils literal"><span class="pre">automake</span></tt> and <tt class="docutils literal"><span class="pre">autoconf</span></tt>. Many
 unix/linux systems comes with these preinstalled.</p>
+<p>The prerequisites for building libtorrent is boost.thread, boost.date_time
+and boost.filesystem. Those are the <em>compiled</em> boost libraries needed. The
+headers-only libraries needed include (but is not necessarily limited to)
+boost.bind, boost.ref, boost.multi_index, boost.optional, boost.lexical_cast,
+boost.integer, boost.iterator, boost.tuple, boost.array, boost.function,
+boost.smart_ptr, boost.preprocessor, boost.static_assert.</p>
+<p>If you want to build the <tt class="docutils literal"><span class="pre">client_test</span></tt> example, you'll also need boost.regex
+and boost.program_options.</p>
 <div class="section" id="step-1-generating-the-build-system">
 <h3><a name="step-1-generating-the-build-system">Step 1: Generating the build system</a></h3>
 <p>No build system is present if libtorrent is checked out from CVS - it

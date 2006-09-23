@@ -29,45 +29,49 @@ libtorrent is still being developed, however it is stable. It is an ongoing
 project (including this documentation). The current state includes the
 following features:
 
-* Trackerless torrents (using a kademlia DHT)
+* trackerless torrents (using the Mainline kademlia DHT protocol) with
+  some `DHT extensions`_.
+* support for IPv6
+* piece-wise, unordered, incremental file allocation
+* uses separate threads for checking files and for main downloader, with a
+  fool-proof thread-safe library interface. (i.e. There's no way for the
+  user to cause a deadlock). (see threads_)
+* adjusts the length of the request queue depending on download rate.
 * multitracker extension support (as `specified by John Hoffman`__)
+* supports files > 2 gigabytes.
 * serves multiple torrents on a single port and in a single thread
-* gzipped tracker-responses
+* fast resume support, a way to get rid of the costly piece check at the
+  start of a resumed torrent. Saves the storage state, piece_picker state
+  as well as all local peers in a separate fast-resume file.
 * `HTTP seeding`_, as `specified by Michael Burford of GetRight`__.
 * piece picking on block-level (as opposed to piece-level).
   This means it can download parts of the same piece from different peers.
   It will also prefer to download whole pieces from single peers if the
   download speed is high enough from that particular peer.
+* supports the `udp-tracker protocol`__ by Olaf van der Spek.
 * queues torrents for file check, instead of checking all of them in parallel.
-* supports http proxies and proxy authentication
-* uses separate threads for checking files and for main downloader, with a
-  fool-proof thread-safe library interface. (i.e. There's no way for the
-  user to cause a deadlock). (see threads_)
+* supports http proxies and basic proxy authentication
+* gzipped tracker-responses
 * can limit the upload and download bandwidth usage and the maximum number of
   unchoked peers
-* piece-wise, unordered, incremental file allocation
 * implements fair trade. User settable trade-ratio, must at least be 1:1,
   but one can choose to trade 1 for 2 or any other ratio that isn't unfair
   to the other party.
-* fast resume support, a way to get rid of the costly piece check at the
-  start of a resumed torrent. Saves the storage state, piece_picker state
-  as well as all local peers in a separate fast-resume file.
 * supports an `extension protocol`__. See extensions_.
-* supports files > 2 gigabytes.
 * supports the ``no_peer_id=1`` extension that will ease the load off trackers.
-* supports the `udp-tracker protocol`__ by Olaf van der Spek.
 * possibility to limit the number of connections.
 * delays have messages if there's no other outgoing traffic to the peer, and
   doesn't send have messages to peers that already has the piece. This saves
   bandwidth.
 * does not have any requirements on the piece order in a torrent that it
   resumes. This means it can resume a torrent downloaded by any client.
-* adjusts the length of the request queue depending on download rate.
 * supports the ``compact=1`` tracker parameter.
 * selective downloading. The ability to select which parts of a torrent you
   want to download.
-* ip filter
+* ip filter to disallow ip addresses and ip ranges from connecting and
+  being connected
 
+.. _`DHT extensions`: dht_extensions.html
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
 __ http://www.getright.com/seedtorrent.html
 __ extension_protocol.html

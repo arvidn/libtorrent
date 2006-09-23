@@ -1935,11 +1935,19 @@ ip_filter
 
 The ``ip_filter`` class is a set of rules that uniquely categorizes all
 ip addresses as allowed or disallowed. The default constructor creates
-a single rule that allows all addresses (0.0.0.0 - 255.255.255.255).
-The ``address`` type here is ``asio::ip::address_v4``. It can also be
-accessed as ``libtorrent::address``.
+a single rule that allows all addresses (0.0.0.0 - 255.255.255.255 for
+the IPv4 range, and the equivalent range covering all addresses for the
+IPv6 range).
 
 	::
+
+		template <class Addr>
+		struct ip_range
+		{
+			Addr first;
+			Addr last;
+			int flags;
+		};
 
 		class ip_filter
 		{
@@ -1947,17 +1955,13 @@ accessed as ``libtorrent::address``.
 			enum access_flags { blocked = 1 };
 
 			ip_filter();
-			void add_rule(address_v4 first, address_v4 last, int flags);
-			int access(address_v4 const& addr) const;
+			void add_rule(address first, address last, int flags);
+			int access(address const& addr) const;
 
-			struct ip_range
-			{
-				address_v4 first;
-				address_v4 last;
-				int flags;
-			};
+			typedef boost::tuple<std::vector<ip_range<address_v4> >
+				, std::vector<ip_range<address_v6> > > filter_tuple_t;
 
-			std::vector<ip_range> export_filter() const;
+			filter_tuple_t export_filter() const;
 		};
 
 
@@ -1979,12 +1983,15 @@ add_rule()
 
 	::
 
-		void add_rule(address_v4 first, address_v4 last, int flags);
+		void add_rule(address first, address last, int flags);
 
 Adds a rule to the filter. ``first`` and ``last`` defines a range of
 ip addresses that will be marked with the given flags. The ``flags``
 can currently be 0, which means allowed, or ``ip_filter::blocked``, which
 means disallowed.
+
+precondition:
+``first.is_v4() == last.is_v4() && first.is_v6() == last.is_v6()``
 
 postcondition:
 ``access(x) == flags`` for every ``x`` in the range [``first``, ``last``]
@@ -1998,7 +2005,7 @@ access()
 
 	::
 
-		int access(address_v4 const& addr) const;
+		int access(address const& addr) const;
 
 Returns the access permissions for the given address (``addr``). The permission
 can currently be 0 or ``ip_filter::blocked``. The complexity of this operation
@@ -2011,12 +2018,16 @@ export_filter()
 
 	::
 
-		std::vector<ip_range> export_filter() const;
+		boost::tuple<std::vector<ip_range<address_v4> >
+			, std::vector<ip_range<address_v6> > > export_filter() const;
 
 This function will return the current state of the filter in the minimum number of
 ranges possible. They are sorted from ranges in low addresses to high addresses. Each
 entry in the returned vector is a range with the access control specified in its
 ``flags`` field.
+
+The return value is a tuple containing two range-lists. One for IPv4 addresses
+and one for IPv6 addresses.
 
       
 big_number
