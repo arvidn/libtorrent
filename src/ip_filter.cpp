@@ -37,103 +37,37 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	
-	ip_filter::ip_filter()
+	void ip_filter::add_rule(address first, address last, int flags)
 	{
-		// make the entire ip-range non-blocked
-		m_access_list.insert(range(address_v4(0UL), 0));
+		if (first.is_v4())
+		{
+			assert(last.is_v4());
+			m_filter4.add_rule(first.to_v4(), last.to_v4(), flags);
+		}
+		else if (first.is_v6())
+		{
+			assert(last.is_v6());
+			m_filter6.add_rule(first.to_v6(), last.to_v6(), flags);
+		}
+		else
+			assert(false);
 	}
 
-	void ip_filter::add_rule(address_v4 first, address_v4 last, int flags)
+	int ip_filter::access(address const& addr) const
 	{
-		using boost::next;
-		using boost::prior;
-			  
-		assert(!m_access_list.empty());
-		assert(first <= last);
-		range_t::iterator i = m_access_list.upper_bound(first);
-		range_t::iterator j = m_access_list.upper_bound(last);
-
-		if (i != m_access_list.begin()) --i;
-		
-		assert(j != m_access_list.begin());
-		assert(j != i);
-		
-		int first_access = i->access;
-		int last_access = prior(j)->access;
-
-		if (i->start != first && first_access != flags)
-		{
-			i = m_access_list.insert(i, range(first, flags));
-		}
-		else if (i != m_access_list.begin() && prior(i)->access == flags)
-		{
-			--i;
-			first_access = i->access;
-		}
-		assert(!m_access_list.empty());
-		assert(i != m_access_list.end());
-
-		if (i != j)
-			m_access_list.erase(next(i), j);
-		if (i->start == first)
-		{
-			// we can do this const-cast because we know that the new
-			// start address will keep the set correctly ordered
-			const_cast<address_v4&>(i->start) = first;
-			const_cast<int&>(i->access) = flags;
-		}
-		else if (first_access != flags)
-		{
-			m_access_list.insert(i, range(first, flags));
-		}
-		
-		if ((j != m_access_list.end() && j->start.to_ulong() - 1 != last.to_ulong())
-			|| (j == m_access_list.end() && last.to_ulong() != 0xffffffff))
-		{
-			assert(j == m_access_list.end() || last.to_ulong() < j->start.to_ulong() - 1);
-			if (last_access != flags)
-				j = m_access_list.insert(j, range(address_v4(last.to_ulong() + 1), last_access));
-		}
-
-		if (j != m_access_list.end() && j->access == flags) m_access_list.erase(j);
-		assert(!m_access_list.empty());
+		if (addr.is_v4())
+			return m_filter4.access(addr.to_v4());
+		else if (addr.is_v6())
+			return m_filter6.access(addr.to_v6());
+		else
+			assert(false);
 	}
 
-	int ip_filter::access(address_v4 const& addr) const
+	ip_filter::filter_tuple_t ip_filter::export_filter() const
 	{
-		assert(!m_access_list.empty());
-		range_t::const_iterator i = m_access_list.upper_bound(addr);
-		if (i != m_access_list.begin()) --i;
-		assert(i != m_access_list.end());
-		assert(i->start <= addr && (boost::next(i) == m_access_list.end()
-			|| addr < boost::next(i)->start));
-		return i->access;
+		return boost::make_tuple(m_filter4.export_filter()
+			, m_filter6.export_filter());
 	}
-
-
-	std::vector<ip_filter::ip_range> ip_filter::export_filter() const
-	{
-		std::vector<ip_range> ret;
-		ret.reserve(m_access_list.size());
-
-		for (range_t::const_iterator i = m_access_list.begin()
-			, end(m_access_list.end()); i != end;)
-		{
-			ip_range r;
-			r.first = i->start;
-			r.flags = i->access;
-
-			++i;
-			if (i == end)
-				r.last = address_v4(0xffffffff);
-			else
-				r.last = address_v4(i->start.to_ulong() - 1);
-		
-			ret.push_back(r);
-		}
-		return ret;
-	}	
 	
 /*
 	void ip_filter::print() const

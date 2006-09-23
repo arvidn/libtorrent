@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.9: http://docutils.sourceforge.net/" />
+<title></title>
+<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" href="style.css" type="text/css" />
+</head>
+<body>
+<div class="document">
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+</tbody>
+</table>
+<div class="section" id="mainline-dht-extensions">
+<h1><a name="mainline-dht-extensions">Mainline DHT extensions</a></h1>
+<p>libtorrent implements a few extensions to the Mainline DHT protocol.</p>
+<div class="section" id="client-identification">
+<h2><a name="client-identification">client identification</a></h2>
+<p>In each DHT packet, an extra key is inserted named &quot;v&quot;. This is a string
+describing the client and version used. This can help alot when debugging
+and finding errors in client implementations. The string is encoded as four
+characters, two characters describing the client and two characters interpreted
+as a binary number describing the client version.</p>
+<p>Currently known clients:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="65%" />
+<col width="35%" />
+</colgroup>
+<tbody valign="top">
+<tr><td>uTorrent</td>
+<td><tt class="docutils literal"><span class="pre">UT</span></tt></td>
+</tr>
+<tr><td>libtorrent</td>
+<td><tt class="docutils literal"><span class="pre">LT</span></tt></td>
+</tr>
+<tr><td>MooPolice</td>
+<td><tt class="docutils literal"><span class="pre">MP</span></tt></td>
+</tr>
+<tr><td>GetRight</td>
+<td><tt class="docutils literal"><span class="pre">GR</span></tt></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="ipv6-support">
+<h2><a name="ipv6-support">IPv6 support</a></h2>
+<p>The only DHT messages that don't support IPv6 is the <tt class="docutils literal"><span class="pre">nodes</span></tt> reply. It
+encodes all the contacts as 6 bytes sequences packed together in sequence in 
+string. The problem is that IPv6 endpoints cannot be encoded as 6 bytes, but
+needs 18 bytes. The extension libtorrent applies is to add another key, called
+<tt class="docutils literal"><span class="pre">nodes2</span></tt> which is encoded as a list of strings. Each string represents one
+contact and is encoded as 20 bytes node-id and then a variable length encoded
+IP address (6 bytes in IPv4 case and 18 bytes in IPv6 case).</p>
+</div>
+</div>
+</div>
+</body>
+</html>

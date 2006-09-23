@@ -2,7 +2,7 @@
 
    <div id="librarySidebar">
 
-
+* download_
 * features_
 * `building libtorrent`_
 * examples_
@@ -22,6 +22,7 @@
 libtorrent
 ==========
 
+.. _download: http://sourceforge.net/project/showfiles.php?group_id=79942
 .. _features: features.html
 .. _`building libtorrent`: building.html
 .. _examples: examples.html

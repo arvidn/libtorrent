@@ -1939,28 +1939,32 @@ the number of outstanding requests to use with url-seeds. Default is 5.</p>
 <h1><a name="ip-filter">ip_filter</a></h1>
 <p>The <tt class="docutils literal"><span class="pre">ip_filter</span></tt> class is a set of rules that uniquely categorizes all
 ip addresses as allowed or disallowed. The default constructor creates
-a single rule that allows all addresses (0.0.0.0 - 255.255.255.255).
-The <tt class="docutils literal"><span class="pre">address</span></tt> type here is <tt class="docutils literal"><span class="pre">asio::ip::address_v4</span></tt>. It can also be
-accessed as <tt class="docutils literal"><span class="pre">libtorrent::address</span></tt>.</p>
+a single rule that allows all addresses (0.0.0.0 - 255.255.255.255 for
+the IPv4 range, and the equivalent range covering all addresses for the
+IPv6 range).</p>
 <blockquote>
 <pre class="literal-block">
+template &lt;class Addr&gt;
+struct ip_range
+{
+        Addr first;
+        Addr last;
+        int flags;
+};
+
 class ip_filter
 {
 public:
         enum access_flags { blocked = 1 };
 
         ip_filter();
-        void add_rule(address_v4 first, address_v4 last, int flags);
-        int access(address_v4 const&amp; addr) const;
+        void add_rule(address first, address last, int flags);
+        int access(address const&amp; addr) const;
 
-        struct ip_range
-        {
-                address_v4 first;
-                address_v4 last;
-                int flags;
-        };
+        typedef boost::tuple&lt;std::vector&lt;ip_range&lt;address_v4&gt; &gt;
+                , std::vector&lt;ip_range&lt;address_v6&gt; &gt; &gt; filter_tuple_t;
 
-        std::vector&lt;ip_range&gt; export_filter() const;
+        filter_tuple_t export_filter() const;
 };
 </pre>
 </blockquote>
@@ -1979,13 +1983,15 @@ ip_filter()
 <h2><a name="add-rule">add_rule()</a></h2>
 <blockquote>
 <pre class="literal-block">
-void add_rule(address_v4 first, address_v4 last, int flags);
+void add_rule(address first, address last, int flags);
 </pre>
 </blockquote>
 <p>Adds a rule to the filter. <tt class="docutils literal"><span class="pre">first</span></tt> and <tt class="docutils literal"><span class="pre">last</span></tt> defines a range of
 ip addresses that will be marked with the given flags. The <tt class="docutils literal"><span class="pre">flags</span></tt>
 can currently be 0, which means allowed, or <tt class="docutils literal"><span class="pre">ip_filter::blocked</span></tt>, which
 means disallowed.</p>
+<p>precondition:
+<tt class="docutils literal"><span class="pre">first.is_v4()</span> <span class="pre">==</span> <span class="pre">last.is_v4()</span> <span class="pre">&amp;&amp;</span> <span class="pre">first.is_v6()</span> <span class="pre">==</span> <span class="pre">last.is_v6()</span></tt></p>
 <p>postcondition:
 <tt class="docutils literal"><span class="pre">access(x)</span> <span class="pre">==</span> <span class="pre">flags</span></tt> for every <tt class="docutils literal"><span class="pre">x</span></tt> in the range [<tt class="docutils literal"><span class="pre">first</span></tt>, <tt class="docutils literal"><span class="pre">last</span></tt>]</p>
 <p>This means that in a case of overlapping ranges, the last one applied takes
@@ -1995,7 +2001,7 @@ precedence.</p>
 <h2><a name="access">access()</a></h2>
 <blockquote>
 <pre class="literal-block">
-int access(address_v4 const&amp; addr) const;
+int access(address const&amp; addr) const;
 </pre>
 </blockquote>
 <p>Returns the access permissions for the given address (<tt class="docutils literal"><span class="pre">addr</span></tt>). The permission
@@ -2007,13 +2013,16 @@ the current filter.</p>
 <h2><a name="export-filter">export_filter()</a></h2>
 <blockquote>
 <pre class="literal-block">
-std::vector&lt;ip_range&gt; export_filter() const;
+boost::tuple&lt;std::vector&lt;ip_range&lt;address_v4&gt; &gt;
+        , std::vector&lt;ip_range&lt;address_v6&gt; &gt; &gt; export_filter() const;
 </pre>
 </blockquote>
 <p>This function will return the current state of the filter in the minimum number of
 ranges possible. They are sorted from ranges in low addresses to high addresses. Each
 entry in the returned vector is a range with the access control specified in its
 <tt class="docutils literal"><span class="pre">flags</span></tt> field.</p>
+<p>The return value is a tuple containing two range-lists. One for IPv4 addresses
+and one for IPv6 addresses.</p>
 </div>
 </div>
 <div class="section" id="big-number">
