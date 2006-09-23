@@ -1306,10 +1306,6 @@ namespace libtorrent
 			m_statistics.received_bytes(0, bytes_transferred);
 			if (!packet_finished()) break;
 
-			// the use of this bit collides with Mainline
-			// the new way of identifying support for the extensions
-			// is in the peer_id
-
 // MassaRoddel
 #ifdef TORRENT_VERBOSE_LOGGING	
 			for (int i=0; i < 8; ++i)
