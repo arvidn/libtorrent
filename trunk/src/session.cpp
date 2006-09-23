@@ -479,7 +479,6 @@ namespace libtorrent { namespace detail
 		{
 			*i = printable[rand() % (sizeof(printable)-1)];
 		}
-		// this says that we support the extensions
 
 		m_timer.expires_from_now(seconds(1));
 		m_timer.async_wait(bind(&session_impl::second_tick, this, _1));
@@ -1180,9 +1179,6 @@ namespace libtorrent
 		assert(i < num_supported_extensions);
 		session_impl::mutex_t::scoped_lock l(m_impl.m_mutex);
 		m_impl.m_extension_enabled[i] = true;
-
-//		// this says that we support the extensions
-//		std::memcpy(&m_impl.m_peer_id[17], "ext", 3);
 	}
 
 	std::vector<torrent_handle> session::get_torrents()
