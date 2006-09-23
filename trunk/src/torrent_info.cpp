@@ -207,6 +207,7 @@ namespace libtorrent
 
 		// extract piece length
 		m_piece_length = (int)info["piece length"].integer();
+		if (m_piece_length <= 0) throw std::runtime_error("invalid torrent. piece length <= 0");
 
 		// extract file name (or the directory name if it's a multifile libtorrent)
 		if (entry const* e = info.find_key("name.utf-8"))
