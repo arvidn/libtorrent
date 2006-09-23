@@ -168,11 +168,13 @@ namespace
 		, map_entry("TR", "Transmission")
 		, map_entry("TS", "TorrentStorm")
 		, map_entry("U",  "UPnP")
+		, map_entry("UL", "uLeecher")
 		, map_entry("UT", "MicroTorrent")
 		, map_entry("XT", "XanTorrent")
 		, map_entry("ZT", "ZipTorrent")
 		, map_entry("lt", "libTorrent (libtorrent.rakshasa.no/)")
 		, map_entry("pX", "pHoeniX")
+		, map_entry("qB", "qBittorrent")
 	};
 
 	bool compare_first_string(map_entry const& lhs, map_entry const& rhs)
