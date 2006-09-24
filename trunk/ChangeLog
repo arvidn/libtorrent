@@ -1,3 +1,4 @@
+	* fixed crasing bug when closing while checking a torrent
 	* fixed bug causing a crash with a torrent with piece length 0
 	* added an extension to the DHT network protocol to support the
 	  exchange of nodes with IPv6 addresses.

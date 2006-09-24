@@ -957,7 +957,7 @@ namespace libtorrent
 		req.downloaded = m_stat.total_payload_download();
 		req.uploaded = m_stat.total_payload_upload();
 		req.left = bytes_left();
-		if (req.left == -1) req.left = 1000;
+		if (req.left == -1) req.left = 16*1024;
 		req.event = m_event;
 
 		if (m_event != tracker_request::stopped)
