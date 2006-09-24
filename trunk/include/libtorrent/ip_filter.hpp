@@ -188,7 +188,7 @@ namespace detail
 			for (iter i = tmp.rbegin()
 				, end(tmp.rend()); i != end; ++i)
 			{
-				if (*i < std::numeric_limits<typename iter::value_type>::max())
+				if (*i < (std::numeric_limits<typename iter::value_type>::max)())
 				{
 					*i += 1;
 					break;
@@ -210,7 +210,7 @@ namespace detail
 					*i -= 1;
 					break;
 				}
-				*i = std::numeric_limits<typename iter::value_type>::max();
+				*i = (std::numeric_limits<typename iter::value_type>::max)();
 			}
 			return Addr(tmp);
 		}
@@ -219,7 +219,7 @@ namespace detail
 		{
 			typename Addr::bytes_type tmp;
 			std::fill(tmp.begin(), tmp.end()
-				, std::numeric_limits<typename Addr::bytes_type::value_type>::max());
+				, (std::numeric_limits<typename Addr::bytes_type::value_type>::max)());
 			return Addr(tmp);
 		}
 	
