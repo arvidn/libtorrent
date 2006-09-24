@@ -57,10 +57,8 @@ namespace libtorrent
 	{
 		if (addr.is_v4())
 			return m_filter4.access(addr.to_v4());
-		else if (addr.is_v6())
-			return m_filter6.access(addr.to_v6());
-		else
-			assert(false);
+		assert(addr.is_v6());
+		return m_filter6.access(addr.to_v6());
 	}
 
 	ip_filter::filter_tuple_t ip_filter::export_filter() const
