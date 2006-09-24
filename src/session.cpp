@@ -112,6 +112,8 @@ namespace libtorrent { namespace detail
 				{
 					boost::mutex::scoped_lock l(m_mutex);
 
+					INVARIANT_CHECK;
+
 					// if the job queue is empty and
 					// we shouldn't abort
 					// wait for a signal
@@ -160,7 +162,8 @@ namespace libtorrent { namespace detail
 				if (t)
 				{
 					std::string error_msg;
-					t->parse_resume_data(t->resume_data, t->torrent_ptr->torrent_file(), error_msg);
+					t->parse_resume_data(t->resume_data, t->torrent_ptr->torrent_file()
+						, error_msg);
 
 					if (!error_msg.empty() && m_ses.m_alerts.should_post(alert::warning))
 					{
@@ -185,6 +188,7 @@ namespace libtorrent { namespace detail
 						// lock the session to add the new torrent
 						session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 						mutex::scoped_lock l2(m_mutex);
+						INVARIANT_CHECK;
 
 						assert(m_torrents.front() == t);
 
@@ -276,6 +280,9 @@ namespace libtorrent { namespace detail
 
 				{
 					mutex::scoped_lock l(m_mutex);
+
+					INVARIANT_CHECK;
+
 					processing->progress = progress;
 					if (processing->abort)
 					{
@@ -299,7 +306,9 @@ namespace libtorrent { namespace detail
 					// lock the session to add the new torrent
 					session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 					mutex::scoped_lock l2(m_mutex);
-				
+
+					INVARIANT_CHECK;
+
 					assert(!m_processing.empty());
 					assert(m_processing.front() == processing);
 
@@ -388,6 +397,7 @@ namespace libtorrent { namespace detail
 
 	detail::piece_checker_data* checker_impl::find_torrent(sha1_hash const& info_hash)
 	{
+		INVARIANT_CHECK;
 		for (std::deque<boost::shared_ptr<piece_checker_data> >::iterator i
 			= m_torrents.begin(); i != m_torrents.end(); ++i)
 		{
@@ -405,6 +415,7 @@ namespace libtorrent { namespace detail
 
 	void checker_impl::remove_torrent(sha1_hash const& info_hash)
 	{
+		INVARIANT_CHECK;
 		for (std::deque<boost::shared_ptr<piece_checker_data> >::iterator i
 			= m_torrents.begin(); i != m_torrents.end(); ++i)
 		{
@@ -421,13 +432,31 @@ namespace libtorrent { namespace detail
 			if ((*i)->info_hash == info_hash)
 			{
 				assert((*i)->processing == false);
-				m_torrents.erase(i);
+				m_processing.erase(i);
 				return;
 			}
 		}
 
 		assert(false);
 	}
+
+#ifndef NDEBUG
+	void checker_impl::check_invariant() const
+	{
+		for (std::deque<boost::shared_ptr<piece_checker_data> >::const_iterator i
+			= m_torrents.begin(); i != m_torrents.end(); ++i)
+		{
+			assert(*i);
+			assert((*i)->torrent_ptr);
+		}
+		for (std::deque<boost::shared_ptr<piece_checker_data> >::const_iterator i
+			= m_processing.begin(); i != m_processing.end(); ++i)
+		{
+			assert(*i);
+			assert((*i)->torrent_ptr);
+		}
+	}
+#endif
 
 	session_impl::session_impl(
 		std::pair<int, int> listen_port_range

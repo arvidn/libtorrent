@@ -163,6 +163,10 @@ namespace libtorrent
 			piece_checker_data* find_torrent(const sha1_hash& info_hash);
 			void remove_torrent(sha1_hash const& info_hash);
 
+#ifndef NDEBUG
+			void check_invariant() const;
+#endif
+
 			// when the files has been checked
 			// the torrent is added to the session
 			session_impl& m_ses;
