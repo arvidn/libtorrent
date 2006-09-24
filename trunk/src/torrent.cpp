@@ -578,7 +578,34 @@ namespace libtorrent
 		// cannot tell how big the torrent is.
 		if (!valid_metadata()) return -1;
 		return m_torrent_file.total_size()
-			- boost::tuples::get<0>(bytes_done());
+			- quantized_bytes_done();
+	}
+
+	size_type torrent::quantized_bytes_done() const
+	{
+		INVARIANT_CHECK;
+
+		if (!valid_metadata()) return 0;
+
+		assert(m_picker.get());
+
+		if (m_torrent_file.num_pieces() == 0)
+			return 0;
+		const int last_piece = m_torrent_file.num_pieces() - 1;
+
+		size_type total_done
+			= m_num_pieces * m_torrent_file.piece_length();
+
+		// if we have the last piece, we have to correct
+		// the amount we have, since the first calculation
+		// assumed all pieces were of equal size
+		if (m_have_pieces[last_piece])
+		{
+			int corr = m_torrent_file.piece_size(last_piece)
+				- m_torrent_file.piece_length();
+			total_done += corr;
+		}
+		return total_done;
 	}
 
 	// the first value is the total number of bytes downloaded
