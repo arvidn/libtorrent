@@ -236,8 +236,7 @@ void node_impl::refresh_bucket(int bucket)
 	target[(num_bits - 1) / 8] |=
 		(~(m_id[(num_bits - 1) / 8])) & (0x80 >> ((num_bits - 1) % 8));
 
-	int new_bucket = distance_exp(m_id, target);
-	assert(new_bucket == bucket);
+	assert(distance_exp(m_id, target) == bucket);
 
 	std::vector<node_entry> start;
 	start.reserve(m_table.bucket_size());
