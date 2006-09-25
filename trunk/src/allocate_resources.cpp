@@ -73,12 +73,12 @@ namespace libtorrent
 		assert(b <= resource_request::inf);
 		assert(resource_request::inf + resource_request::inf < 0);
 
-		int sum = a + b;
-		if (sum < 0)
+		unsigned int sum = unsigned(a) + unsigned(b);
+		if (sum > unsigned(resource_request::inf))
 			sum = resource_request::inf;
 
-		assert(sum >= a && sum >= b);
-		return sum;
+		assert(sum >= unsigned(a) && sum >= unsigned(b));
+		return int(sum);
 	}
 
 	namespace
@@ -278,23 +278,6 @@ namespace libtorrent
 
 	} // namespace anonymous
 
-/*
-	void allocate_resources(
-		int resources
-		, std::map<boost::shared_ptr<socket>, boost::intrusive_ptr<peer_connection> >& c
-		, resource_request peer_connection::* res)
-	{
-		typedef std::map<boost::shared_ptr<socket>, boost::intrusive_ptr<peer_connection> >::iterator orig_iter;
-		typedef std::pair<boost::shared_ptr<socket>, boost::intrusive_ptr<peer_connection> > in_param;
-		typedef boost::transform_iterator<peer_connection& (*)(in_param const&), orig_iter> new_iter;
-
-		allocate_resources_impl(
-			resources
-			, new_iter(c.begin(), &pick_peer)
-			, new_iter(c.end(), &pick_peer)
-			, res);
-	}
-*/
 #if defined(_MSC_VER) && _MSC_VER < 1310
 
 	namespace detail

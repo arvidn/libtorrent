@@ -69,6 +69,12 @@ project listed here, let me_ know.
 | bittorrent client for windows.                                                |                                     |
 | Written by Cory Nelson.                                                       |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
+| **deluge torrent**                                                            | .. image:: gtorrent_thumb.jpg       |
+|                                                                               |                                     |
+| `deluge Torrent`_ is a more full-featured yet still lightweight bittorrent    |                                     |
+| client. It has the ability to automatically resume partial downloads and      |                                     |
+| background to the system tray.                                                |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
 | **ZipTorrent**                                                                | .. image:: ziptorrent_thumb.gif     |
 |                                                                               |                                     |
 | ZipTorrent_ is another windows                                                |                                     |
@@ -108,6 +114,7 @@ project listed here, let me_ know.
 .. _BitSlug: http://bitslug.sourceforge.net/
 .. _BitBuddy: http://www.btvampire.com
 .. _`Arctic Torrent`: http://www.int64.org/arctic.html
+.. _`deluge Torrent`: http://code.google.com/p/deluge-torrent/
 .. _ZipTorrent: http://www.ziptorrent.com/
 .. _FireANT: http://antisnottv.net/
 .. _eDonkey2000: http://www.edonkey2000.com/

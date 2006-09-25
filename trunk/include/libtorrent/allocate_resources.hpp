@@ -55,12 +55,7 @@ namespace libtorrent
 	// sure "used" is updated between calls!).
 	// If resources = std::numeric_limits<int>::max() it means there is an infinite
 	// supply of resources (so everyone can get what they want).
-/*
-	void allocate_resources(
-		int resources
-		, std::map<boost::shared_ptr<socket>, boost::intrusive_ptr<peer_connection> >& connections
-		, resource_request peer_connection::* res);
-*/
+
 	void allocate_resources(
 		int resources
 		, std::map<sha1_hash, boost::shared_ptr<torrent> >& torrents

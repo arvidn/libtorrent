@@ -11,7 +11,12 @@
 * `mailing list`_ (archive_)
 * `who's using libtorrent?`_
 * `report bugs`_
-* `sourceforge page`_ 
+* `sourceforge page`_
+
+--------
+
+* `ruby bindings`_
+* `python bindings`_
 
 .. raw:: html
 
@@ -33,6 +38,9 @@ libtorrent
 .. _`who's using libtorrent?`: projects.html
 .. _`report bugs`: http://sourceforge.net/tracker/?group_id=79942&atid=558250
 .. _sourceforge page: http://www.sourceforge.net/projects/libtorrent
+
+.. _`ruby bindings`: http://libtorrent-ruby.rubyforge.org/
+.. _`python bindings`: http://code.google.com/p/python-libtorrent/
 
 libtorrent is a C++ library that aims to be a good alternative to all the
 other bittorrent implementations around. It is a
@@ -81,7 +89,7 @@ You can usually find me as hydri in ``#libtorrent`` on ``irc.freenode.net``.
 Acknowledgements
 ================
 
-Written by Arvid Norberg. Copyright (c) 2003
+Written by Arvid Norberg. Copyright (c) 2003-2006
 
 Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson
 

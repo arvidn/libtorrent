@@ -291,6 +291,15 @@ Boost::Thread is installed.
 If you need to set these variables, it may be a good idea to add those lines
 to your ``~/.profile`` or ``~/.tcshrc`` depending on your shell.
 
+If the boost libraries are named with a suffix on your platform, you may use
+the ``--with-boost-thread=`` option to specify the suffix used for the thread
+library in this case. For more information about these options, run::
+
+	./configure --help
+
+On gentoo the boost libraries that are built with multi-threading support have
+the suffix ``mt``.
+
 You know that the boost libraries were found if you see the following output
 from the configure script::
 
