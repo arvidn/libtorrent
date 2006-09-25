@@ -285,7 +285,7 @@ set_max_half_open_connections()
 
 Sets the maximum number of half-open connections libtorrent will have when
 connecting to peers. A half-open connection is one where connect() has been
-called, but the connection still hasn't been established (nor filed). Windows
+called, but the connection still hasn't been established (nor failed). Windows
 XP Service Pack 2 sets a default, system wide, limit of the number of half-open
 connections to 10. So, this limit can be used to work nicer together with
 other network applications on that system. The default is to have no limit,
@@ -3086,7 +3086,7 @@ __ http://www.boost.org/libs/filesystem/doc/index.htm
 acknowledgments
 ===============
 
-Written by Arvid Norberg. Copyright |copy| 2003-2005
+Written by Arvid Norberg. Copyright |copy| 2003-2006
 
 Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson
 
