@@ -548,9 +548,7 @@ namespace libtorrent
 
 			tcp::endpoint a(address::from_string(i->ip), i->port);
 
-			if (a.address().is_v4()
-				&& (m_ses.m_ip_filter.access(a.address().to_v4())
-				& ip_filter::blocked))
+			if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
 			{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 				debug_log("blocked ip from tracker: " + i->ip);
@@ -1191,8 +1189,21 @@ namespace libtorrent
 		assert(p != 0);
 		assert(!p->is_local());
 
-		if (m_connections.find(p->remote()) != m_connections.end())
-			throw protocol_error("already connected to peer");
+		std::map<tcp::endpoint, peer_connection*>::iterator c
+			= m_connections.find(p->remote());
+		if (c != m_connections.end())
+		{
+			// we already have a peer_connection to this ip.
+			// It may currently be waiting for completing a
+			// connection attempt that might fail. So,
+			// prioritize this current connection since
+			// it has already succeeded.
+			if (!c->second->is_connecting())
+			{
+				throw protocol_error("already connected to peer");
+			}
+			c->second->disconnect();
+		}
 
 		if (m_ses.m_connections.find(p->get_socket())
 			== m_ses.m_connections.end())
