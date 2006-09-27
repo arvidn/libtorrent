@@ -118,7 +118,7 @@ AC_SUBST([ZLIBINCL])
 dnl Check whether the examples should be build
 AC_ARG_ENABLE(
 	[examples],
-	AS_HELP_STRING([--enable-examples]],[Build the examples. Default is not to build them.]),
+	AS_HELP_STRING([--enable-examples],[Build the examples. Default is not to build them.]),
 	[[examples=$enableval]],
 	[[examples=no]]
 )
