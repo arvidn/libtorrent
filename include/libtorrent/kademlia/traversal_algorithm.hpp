@@ -141,6 +141,17 @@ traversal_algorithm::traversal_algorithm(
 	{
 		add_entry(i->id, i->addr, result::initial);
 	}
+	
+	// in case the routing table is empty, use the
+	// router nodes in the table
+	if (start == end)
+	{
+		for (routing_table::router_iterator i = table.router_begin()
+			, end(table.router_end()); i != end; ++i)
+		{
+			add_entry(node_id(0), *i, result::initial);
+		}
+	}
 
 }
 

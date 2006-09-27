@@ -672,8 +672,7 @@ namespace libtorrent { namespace detail
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << endp << " <== INCOMING CONNECTION\n";
 #endif
-		if (endp.address().is_v4()
-			&& (m_ip_filter.access(endp.address().to_v4()) & ip_filter::blocked))
+		if (m_ip_filter.access(endp.address().to_v4()) & ip_filter::blocked)
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			(*m_logger) << "filtered blocked ip\n";
@@ -1175,9 +1174,7 @@ namespace libtorrent
 			= m_impl.m_connections.begin(); i != m_impl.m_connections.end();)
 		{
 			tcp::endpoint sender = i->first->remote_endpoint();
-			if (sender.address().is_v4()
-				&& (m_impl.m_ip_filter.access(sender.address().to_v4())
-				& ip_filter::blocked))
+			if (m_impl.m_ip_filter.access(sender.address()) & ip_filter::blocked)
 			{
 #if defined(TORRENT_VERBOSE_LOGGING)
 				(*i->second->m_logger) << "*** CONNECTION FILTERED'\n";
@@ -1539,6 +1536,12 @@ namespace libtorrent
 	{
 		assert(m_impl.m_dht);
 		m_impl.m_dht->add_node(node);
+	}
+
+	void session::add_dht_router(std::pair<std::string, int> const& node)
+	{
+		assert(m_impl.m_dht);
+		m_impl.m_dht->add_router_node(node);
 	}
 
 #endif

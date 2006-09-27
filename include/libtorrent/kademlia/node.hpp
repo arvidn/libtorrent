@@ -99,6 +99,7 @@ public:
 		, boost::function0<void> f);
 	void find_node(node_id const& id, boost::function<
 	void(std::vector<node_entry> const&)> f);
+	void add_router_node(udp::endpoint router);
 		
 	void incoming(msg const& m);
 
