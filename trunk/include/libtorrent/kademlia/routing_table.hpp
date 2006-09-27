@@ -156,6 +156,15 @@ public:
 		, dht_settings const& settings);
 
 	void node_failed(node_id const& id);
+	
+	// adds an endpoint that will never be added to
+	// the routing table
+	void add_router_node(udp::endpoint router);
+
+	// iterates over the router nodes added
+	typedef std::set<udp::endpoint>::const_iterator router_iterator;
+	router_iterator router_begin() const { return m_router_nodes.begin(); }
+	router_iterator router_end() const { return m_router_nodes.end(); }
 
 	// this function is called every time the node sees
 	// a sign of a node being alive. This node will either
@@ -219,6 +228,12 @@ private:
 	typedef boost::array<boost::posix_time::ptime, 160> table_activity_t;
 	table_activity_t m_bucket_activity;
 	node_id m_id; // our own node id
+	
+	// this is a set of all the endpoints that have
+	// been identified as router nodes. They will
+	// be used in searches, but they will never
+	// be added to the routing table.
+	std::set<udp::endpoint> m_router_nodes;
 	
 	// this is the lowest bucket index with nodes in it
 	int m_lowest_active_bucket;

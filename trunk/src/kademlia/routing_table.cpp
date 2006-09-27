@@ -221,6 +221,11 @@ void routing_table::node_failed(node_id const& id)
 	rb.erase(rb.end() - 1);
 }
 
+void routing_table::add_router_node(udp::endpoint router)
+{
+	m_router_nodes.insert(router);
+}
+
 // this function is called every time the node sees
 // a sign of a node being alive. This node will either
 // be inserted in the k-buckets or be moved to the top
@@ -230,6 +235,7 @@ void routing_table::node_failed(node_id const& id)
 // on its own id)
 bool routing_table::node_seen(node_id const& id, udp::endpoint addr)
 {
+	if (m_router_nodes.find(addr) != m_router_nodes.end()) return false;
 	int bucket_index = distance_exp(m_id, id);
 	assert(bucket_index < (int)m_buckets.size());
 	assert(bucket_index >= 0);
@@ -266,7 +272,10 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint addr)
 	if ((int)b.size() < m_bucket_size)
 	{
 		b.push_back(node_entry(id, addr));
-		if (bucket_index < m_lowest_active_bucket)
+		// if bucket index is 0, the node is ourselves
+		// don't updated m_lowest_active_bucket
+		if (bucket_index < m_lowest_active_bucket
+			&& bucket_index > 0)
 			m_lowest_active_bucket = bucket_index;
 //		TORRENT_LOG(table) << "inserting node: " << id << " " << addr;
 		return ret;

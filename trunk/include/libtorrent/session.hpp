@@ -382,6 +382,7 @@ namespace libtorrent
 		void set_dht_settings(dht_settings const& settings);
 		entry dht_state() const;
 		void add_dht_node(std::pair<std::string, int> const& node);
+		void add_dht_router(std::pair<std::string, int> const& node);
 #endif
 
 		void enable_extension(extension_index i);

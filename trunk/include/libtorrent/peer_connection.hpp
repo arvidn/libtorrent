@@ -413,7 +413,7 @@ namespace libtorrent
 
 		boost::shared_ptr<stream_socket> m_socket;
 		tcp::endpoint m_remote;
-		
+
 		// this is the torrent this connection is
 		// associated with. If the connection is an
 		// incoming conncetion, this is set to zero

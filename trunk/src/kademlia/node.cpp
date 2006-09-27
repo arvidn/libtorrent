@@ -347,6 +347,11 @@ namespace
 	};
 }
 
+void node_impl::add_router_node(udp::endpoint router)
+{
+	m_table.add_router_node(router);
+}
+
 void node_impl::add_node(udp::endpoint node)
 {
 	// ping the node, and if we get a reply, it

@@ -120,7 +120,8 @@ The ``session`` class has the following synopsis::
 		entry dht_state() const;
 		void add_dht_node(std::pair<std::string
 			, int> const& node);
-
+		void add_dht_router(std::pair<std::string
+			, int> const& node);
 	};
 
 Once it's created, the session object will spawn the main thread that will do all the work.
@@ -420,7 +421,6 @@ start_dht() stop_dht() set_dht_settings() dht_state()
 		void stop_dht();
 		void set_dht_settings(dht_settings const& settings);
 		entry dht_state() const;
-		void add_dht_node(std::pair<std::string, int> const& node);
 
 These functions are not available in case ``TORRENT_DISABLE_DHT`` is
 defined. ``start_dht`` starts the dht node and makes the trackerless service
@@ -474,6 +474,26 @@ that are ready to replace a failing node, it will be replaced immediately,
 this limit is only used to clear out nodes that don't have any node that can
 replace them.
 
+add_dht_node() add_dht_router()
+-------------------------------
+
+	::
+
+		void add_dht_node(std::pair<std::string, int> const& node);
+		void add_dht_router(std::pair<std::string, int> const& node);
+
+``add_dht_node`` takes a host name and port pair. That endpoint will be
+pinged, and if a valid DHT reply is received, the node will be added to
+the routing table.
+
+``add_dht_router`` adds the given endpoint to a list of DHT router nodes.
+If a search is ever made while the routing table is empty, those nodes will
+be used as backups. Nodes in the router node list will also never be added
+to the regular routing table, which effectively means they are only used
+for bootstrapping, to keep the load off them.
+
+An example routing node that you could typically add is
+``router.bittorrent.com``.
 
 
 entry

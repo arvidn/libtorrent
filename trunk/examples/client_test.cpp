@@ -575,14 +575,15 @@ int main(int ac, char* av[])
 			entry dht_state = bdecode(
 				std::istream_iterator<char>(dht_state_file)
 				, std::istream_iterator<char>());
-			ses.start_dht(dht_state);
 		}
-		catch (std::exception&)
-		{
-			ses.start_dht();
-			ses.add_dht_node(std::make_pair(std::string("router.bittorrent.com")
-				, 6881));
-		}
+		catch (std::exception&) {}
+		ses.start_dht();
+		ses.add_dht_router(std::make_pair(std::string("router.bittorrent.com")
+			, 6881));
+		ses.add_dht_router(std::make_pair(std::string("router.utorrent.com")
+			, 6881));
+		ses.add_dht_router(std::make_pair(std::string("router.bitcomet.com")
+			, 6881));
 #endif
 
 		ses.set_max_half_open_connections(half_open_limit);

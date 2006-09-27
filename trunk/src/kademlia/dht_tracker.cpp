@@ -649,12 +649,30 @@ namespace libtorrent { namespace dht
 		m_host_resolver.async_resolve(q, bind(&dht_tracker::on_name_lookup
 			, this, _1, _2));
 	}
-	
-	void dht_tracker::on_name_lookup(asio::error const& e, udp::resolver::iterator host)
-		try
+
+	void dht_tracker::on_name_lookup(asio::error const& e
+		, udp::resolver::iterator host) try
 	{
 		if (e || host == udp::resolver::iterator()) return;
 		add_node(host->endpoint());
+	}
+	catch (std::exception&)
+	{
+		assert(false);
+	};
+
+	void dht_tracker::add_router_node(std::pair<std::string, int> const& node)
+	{
+		udp::resolver::query q(node.first, lexical_cast<std::string>(node.second));
+		m_host_resolver.async_resolve(q, bind(&dht_tracker::on_router_name_lookup
+			, this, _1, _2));
+	}
+
+	void dht_tracker::on_router_name_lookup(asio::error const& e
+		, udp::resolver::iterator host) try
+	{
+		if (e || host == udp::resolver::iterator()) return;
+		m_dht.add_router_node(host->endpoint());
 	}
 	catch (std::exception&)
 	{

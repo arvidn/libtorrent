@@ -67,7 +67,8 @@ namespace libtorrent { namespace dht
 
 		void add_node(udp::endpoint node);
 		void add_node(std::pair<std::string, int> const& node);
-		
+		void add_router_node(std::pair<std::string, int> const& node);
+
 		void rebind(asio::ip::address listen_interface, int listen_port);
 
 		entry state() const;
@@ -81,6 +82,8 @@ namespace libtorrent { namespace dht
 	private:
 
 		void on_name_lookup(asio::error const& e
+			, udp::resolver::iterator host);
+		void on_router_name_lookup(asio::error const& e
 			, udp::resolver::iterator host);
 		void connection_timeout(asio::error const& e);
 		void refresh_timeout(asio::error const& e);
