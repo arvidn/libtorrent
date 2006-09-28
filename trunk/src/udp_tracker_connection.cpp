@@ -120,7 +120,6 @@ namespace libtorrent
 	catch (std::exception& e)
 	{
 		fail(-1, e.what());
-		assert(false);
 	};
 
 	void udp_tracker_connection::on_timeout()
@@ -242,7 +241,6 @@ namespace libtorrent
 	catch (std::exception& e)
 	{
 		fail(-1, e.what());
-		assert(false);
 	}
 	
 	void udp_tracker_connection::send_udp_announce()
@@ -429,7 +427,6 @@ namespace libtorrent
 	catch (std::exception& e)
 	{
 		fail(-1, e.what());
-		assert(false);
 	}; // msvc 7.1 seems to require this
 
 	void udp_tracker_connection::scrape_response(asio::error const& error
@@ -510,7 +507,6 @@ namespace libtorrent
 	catch (std::exception& e)
 	{
 		fail(-1, e.what());
-		assert(false);
 	}
 
 }

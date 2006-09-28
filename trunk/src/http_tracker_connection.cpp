@@ -345,7 +345,7 @@ namespace libtorrent
 		m_send_buffer += " HTTP/1.0\r\nAccept-Encoding: gzip\r\n"
 			"User-Agent: ";
 		m_send_buffer += m_settings.user_agent;
-		m_send_buffer += " (libtorrent)\r\n"
+		m_send_buffer += "\r\n"
 			"Host: ";
 		m_send_buffer += hostname;
 		if (port != 80)

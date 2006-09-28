@@ -1123,6 +1123,10 @@ namespace libtorrent
 		handshake["m"] = extension_list;
 		handshake["p"] = m_ses.m_listen_interface.port();
 		handshake["v"] = m_ses.m_settings.user_agent;
+		std::string remote_address;
+		std::back_insert_iterator<std::string> out(remote_address);
+		detail::write_address(remote().address(), out);
+		handshake["ip"] = remote_address;
 		handshake["reqq"] = m_ses.m_settings.max_allowed_in_request_queue;
 
 		std::vector<char> msg;
