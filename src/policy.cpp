@@ -909,7 +909,33 @@ namespace libtorrent
 			, m_peers.end()
 			, match_peer_ip(c.remote()));
 
-		if (i == m_peers.end())
+
+		if (i != m_peers.end())
+		{
+			if (i->banned)
+				throw protocol_error("ip address banned, closing");
+
+			if (i->connection != 0)
+			{
+				// the new connection is a local (outgoing) connection
+				// or the current one is already connected
+				if (!i->connection->is_connecting() || c.is_local())
+				{
+					throw protocol_error("duplicate connection, closing");
+				}
+				else
+				{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+					m_torrent->debug_log("duplicate connection. existing connection"
+					" is connecting and this connection is incoming. closing existing "
+					"connection in favour of this one");
+#endif
+					i->connection->disconnect();
+					i->connection = 0;
+				}
+			}
+		}
+		else
 		{
 			using namespace boost::posix_time;
 			using namespace boost::gregorian;
@@ -922,13 +948,6 @@ namespace libtorrent
 			peer p(c.remote(), peer::not_connectable);
 			m_peers.push_back(p);
 			i = m_peers.end()-1;
-		}
-		else
-		{
-			if (i->connection != 0)
-				throw protocol_error("duplicate connection, closing");
-			if (i->banned)
-				throw protocol_error("ip address banned, closing");
 		}
 		
 		assert(i->connection == 0);
