@@ -40,7 +40,7 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT session_settings
 	{
-		session_settings(std::string const& user_agent_ = "libtorrent "
+		session_settings(std::string const& user_agent_ = "libtorrent/"
 			LIBTORRENT_VERSION)
 			: proxy_port(0)
 			, user_agent(user_agent_)

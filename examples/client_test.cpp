@@ -553,7 +553,7 @@ int main(int ac, char* av[])
 			}
 		}
 
-		settings.user_agent = "client_test " LIBTORRENT_VERSION;
+		settings.user_agent = "client_test/" LIBTORRENT_VERSION;
 
 		std::deque<std::string> events;
 
