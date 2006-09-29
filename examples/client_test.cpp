@@ -570,14 +570,15 @@ int main(int ac, char* av[])
 		boost::filesystem::ifstream dht_state_file(".dht_state"
 			, std::ios_base::binary);
 		dht_state_file.unsetf(std::ios_base::skipws);
+		entry dht_state;
 		try
 		{
-			entry dht_state = bdecode(
+			dht_state = bdecode(
 				std::istream_iterator<char>(dht_state_file)
 				, std::istream_iterator<char>());
 		}
 		catch (std::exception&) {}
-		ses.start_dht();
+		ses.start_dht(dht_state);
 		ses.add_dht_router(std::make_pair(std::string("router.bittorrent.com")
 			, 6881));
 		ses.add_dht_router(std::make_pair(std::string("router.utorrent.com")
