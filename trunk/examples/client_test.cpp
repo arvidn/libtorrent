@@ -938,7 +938,7 @@ int main(int ac, char* av[])
 		}
 
 #ifndef TORRENT_DISABLE_DHT
-		entry dht_state = ses.dht_state();
+		dht_state = ses.dht_state();
 		boost::filesystem::ofstream out(".dht_state"
 			, std::ios_base::binary);
 		out.unsetf(std::ios_base::skipws);
