@@ -599,7 +599,10 @@ namespace libtorrent { namespace dht
 		}
 		catch (std::exception& e)
 		{
-			std::cerr << "invalid incoming packet: " << e.what();
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			TORRENT_LOG(dht_tracker) << "invalid incoming packet: "
+				<< e.what();
+#endif
 		}
 	}
 	catch (std::exception& e)
