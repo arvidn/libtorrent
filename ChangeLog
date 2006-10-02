@@ -1,3 +1,5 @@
+	* fixed bug occuring when increasing the sequenced download threshold
+	  with max availability lower than previous threshold.
 	* fixed an integer overflow bug occuring when built with gcc 4.1.x
 	* fixed crasing bug when closing while checking a torrent
 	* fixed bug causing a crash with a torrent with piece length 0
