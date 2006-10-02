@@ -1,3 +1,5 @@
+	* fixed a race condition bug in udp_tracker_connection that could
+	  cause a crash.
 	* fixed bug occuring when increasing the sequenced download threshold
 	  with max availability lower than previous threshold.
 	* fixed an integer overflow bug occuring when built with gcc 4.1.x

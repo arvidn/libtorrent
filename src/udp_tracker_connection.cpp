@@ -101,6 +101,7 @@ namespace libtorrent
 		, tcp::resolver::iterator i) try
 	{
 		if (error == asio::error::operation_aborted) return;
+		if (!m_socket) return; // the operation was aborted
 		if (error || i == tcp::resolver::iterator())
 		{
 			fail(-1, error.what());
@@ -138,6 +139,7 @@ namespace libtorrent
 				+ lexical_cast<std::string>(tracker_req().info_hash) + "]");
 		}
 #endif
+		if (!m_socket) return; // the operation was aborted
 
 		char send_buf[16];
 		char* ptr = send_buf;
@@ -164,6 +166,7 @@ namespace libtorrent
 		, std::size_t bytes_transferred) try
 	{
 		if (error == asio::error::operation_aborted) return;
+		if (!m_socket) return; // the operation was aborted
 		if (error)
 		{
 			fail(-1, error.what());
@@ -248,6 +251,8 @@ namespace libtorrent
 		if (m_transaction_id == 0)
 			m_transaction_id = rand() ^ (rand() << 16);
 
+		if (!m_socket) return; // the operation was aborted
+
 		std::vector<char> buf;
 		std::back_insert_iterator<std::vector<char> > out(buf);
 		
@@ -302,6 +307,8 @@ namespace libtorrent
 		if (m_transaction_id == 0)
 			m_transaction_id = rand() ^ (rand() << 16);
 
+		if (!m_socket) return; // the operation was aborted
+
 		std::vector<char> buf;
 		std::back_insert_iterator<std::vector<char> > out(buf);
 
@@ -325,6 +332,7 @@ namespace libtorrent
 		, std::size_t bytes_transferred) try
 	{
 		if (error == asio::error::operation_aborted) return;
+		if (!m_socket) return; // the operation was aborted
 		if (error)
 		{
 			fail(-1, error.what());
@@ -433,6 +441,7 @@ namespace libtorrent
 		, std::size_t bytes_transferred) try
 	{
 		if (error == asio::error::operation_aborted) return;
+		if (!m_socket) return; // the operation was aborted
 		if (error)
 		{
 			fail(-1, error.what());
