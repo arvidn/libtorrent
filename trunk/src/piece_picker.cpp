@@ -166,20 +166,25 @@ namespace libtorrent
 
 		if (old_limit < sequenced_download_threshold)
 		{
-			assert(int(m_piece_info.size()) > old_limit);
-			info_t& in = m_piece_info[old_limit];
-			std::random_shuffle(in.begin(), in.end());
-			int c = 0;
-			for (info_t::iterator i = in.begin()
-				, end(in.end()); i != end; ++i)
+			// the threshold was incremented, in case
+			// the previous max availability was reached
+			// we need to shuffle that bucket, if not, we
+			// don't have to do anything
+			if (int(m_piece_info.size()) > old_limit)
 			{
-				m_piece_map[*i].index = c++;
-				assert(m_piece_map[*i].priority(old_limit) == old_limit);
+				info_t& in = m_piece_info[old_limit];
+				std::random_shuffle(in.begin(), in.end());
+				int c = 0;
+				for (info_t::iterator i = in.begin()
+					, end(in.end()); i != end; ++i)
+				{
+					m_piece_map[*i].index = c++;
+					assert(m_piece_map[*i].priority(old_limit) == old_limit);
+				}
 			}
 		}
 		else if (int(m_piece_info.size()) > sequenced_download_threshold)
 		{
-			assert(int(m_piece_info.size()) > sequenced_download_threshold);
 			info_t& in = m_piece_info[sequenced_download_threshold];
 			std::sort(in.begin(), in.end());
 			int c = 0;
