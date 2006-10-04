@@ -41,6 +41,7 @@ libtorrent/tracker_manager.hpp \
 libtorrent/udp_tracker_connection.hpp \
 libtorrent/utf8.hpp \
 libtorrent/version.hpp \
+libtorrent/aux_/allocate_resources_impl.hpp \
 \
 libtorrent/kademlia/closest_nodes.hpp \
 libtorrent/kademlia/dht_tracker.hpp \
@@ -62,6 +63,7 @@ libtorrent/asio/basic_resolver.hpp \
 libtorrent/asio/basic_socket.hpp \
 libtorrent/asio/basic_socket_acceptor.hpp \
 libtorrent/asio/basic_socket_iostream.hpp \
+libtorrent/asio/basic_socket_streambuf.hpp \
 libtorrent/asio/basic_stream_socket.hpp \
 libtorrent/asio/basic_streambuf.hpp \
 libtorrent/asio/buffer.hpp \
@@ -91,6 +93,7 @@ libtorrent/asio/detail/hash_map.hpp \
 libtorrent/asio/detail/io_control.hpp \
 libtorrent/asio/detail/kqueue_reactor.hpp \
 libtorrent/asio/detail/kqueue_reactor_fwd.hpp \
+libtorrent/asio/detail/handler_invoke_helpers.hpp \
 libtorrent/asio/detail/mutex.hpp \
 libtorrent/asio/detail/noncopyable.hpp \
 libtorrent/asio/detail/null_event.hpp \
@@ -102,6 +105,7 @@ libtorrent/asio/detail/old_win_sdk_compat.hpp \
 libtorrent/asio/detail/pipe_select_interrupter.hpp \
 libtorrent/asio/detail/pop_options.hpp \
 libtorrent/asio/detail/posix_event.hpp \
+libtorrent/asio/detail/posix_fd_set_adapter.hpp \
 libtorrent/asio/detail/posix_mutex.hpp \
 libtorrent/asio/detail/posix_signal_blocker.hpp \
 libtorrent/asio/detail/posix_thread.hpp \
@@ -130,6 +134,7 @@ libtorrent/asio/detail/timer_queue.hpp \
 libtorrent/asio/detail/timer_queue_base.hpp \
 libtorrent/asio/detail/tss_ptr.hpp \
 libtorrent/asio/detail/win_event.hpp \
+libtorrent/asio/detail/win_fd_set_adapter.hpp \
 libtorrent/asio/detail/win_iocp_io_service.hpp \
 libtorrent/asio/detail/win_iocp_io_service_fwd.hpp \
 libtorrent/asio/detail/win_iocp_operation.hpp \
@@ -144,6 +149,7 @@ libtorrent/asio/detail/wrapped_handler.hpp \
 libtorrent/asio/error.hpp \
 libtorrent/asio/error_handler.hpp \
 libtorrent/asio/handler_alloc_hook.hpp \
+libtorrent/asio/handler_invoke_hook.hpp \
 libtorrent/asio/impl/io_service.ipp \
 libtorrent/asio/impl/read.ipp \
 libtorrent/asio/impl/read_until.ipp \
