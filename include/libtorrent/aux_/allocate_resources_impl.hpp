@@ -43,6 +43,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/size_type.hpp"
 
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
+
 namespace libtorrent
 {
 
@@ -57,7 +65,7 @@ namespace libtorrent
 			assert(num_resources >= 0);
 			assert(r.given <= r.max);
 			
-			int accepted = std::min(num_resources, r.max - r.given);
+			int accepted = (std::min)(num_resources, r.max - r.given);
 			assert(accepted >= 0);
 
 			r.given += accepted;
@@ -112,7 +120,7 @@ namespace libtorrent
 					sum_max = saturated_add(sum_max, ((*i).*m_res).max);
 					sum_min = saturated_add(sum_min, ((*i).*m_res).min);
 				}
-				assert(sum_given == std::min(std::max(m_resources, sum_min), sum_max));
+				assert(sum_given == (std::min)(std::max(m_resources, sum_min), sum_max));
 			}
 		};
 
@@ -162,8 +170,8 @@ namespace libtorrent
 			if (resources == 0 || sum_max == 0)
 				return;
 
-			resources = std::max(resources, sum_min);
-			int resources_to_distribute = std::min(resources, sum_max) - sum_min;
+			resources = (std::max)(resources, sum_min);
+			int resources_to_distribute = (std::min)(resources, sum_max) - sum_min;
 			assert(resources_to_distribute >= 0);
 #ifndef NDEBUG
 			int prev_resources_to_distribute = resources_to_distribute;
@@ -179,7 +187,7 @@ namespace libtorrent
 
 					assert(r.given < r.max);
 
-					max_used = std::max(max_used, (size_type)r.used + 1);
+					max_used = (std::max)(max_used, (size_type)r.used + 1);
 					total_used += (size_type)r.used + 1;
 				}
 
@@ -187,15 +195,15 @@ namespace libtorrent
 				size_type kDenom = total_used;
 				assert(kNumer >= 0);
 				assert(kDenom >= 0);
-				assert(kNumer <= std::numeric_limits<int>::max());
-				assert(total_used < std::numeric_limits<int>::max());
+				assert(kNumer <= (std::numeric_limits<int>::max)());
+				assert(total_used < (std::numeric_limits<int>::max)());
 
 				if (kNumer * max_used <= kDenom)
 				{
 					kNumer = 1;
 					kDenom = max_used;
 					assert(kDenom >= 0);
-					assert(kDenom <= std::numeric_limits<int>::max());
+					assert(kDenom <= (std::numeric_limits<int>::max)());
 				}
 
 				for (It i = start; i != end && resources_to_distribute > 0; ++i)
