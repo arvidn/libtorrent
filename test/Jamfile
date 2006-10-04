@@ -17,5 +17,6 @@ test-suite libtorrent :
 	[ run test_ip_filter.cpp ]
 	[ run test_hasher.cpp ]
 	[ run test_metadata_extension.cpp ]
+	[ run test_allocate_resources.cpp ]
 	; 
 

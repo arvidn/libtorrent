@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/torrent.hpp"
+#include "libtorrent/aux_/allocate_resources_impl.hpp"
 
 #include <cassert>
 #include <algorithm>
@@ -80,203 +81,6 @@ namespace libtorrent
 		assert(sum >= unsigned(a) && sum >= unsigned(b));
 		return int(sum);
 	}
-
-	namespace
-	{
-		// give num_resources to r,
-		// return how how many were actually accepted.
-		int give(resource_request& r, int num_resources)
-		{
-			assert(num_resources >= 0);
-			assert(r.given <= r.max);
-			
-			int accepted = std::min(num_resources, r.max - r.given);
-			assert(accepted >= 0);
-
-			r.given += accepted;
-			assert(r.given <= r.max);
-
-			return accepted;
-		}
-
-#ifndef NDEBUG
-
-		template<class It, class T>
-		class allocate_resources_contract_check
-		{
-			int m_resources;
-			It m_start;
-			It m_end;
-			resource_request T::* m_res;
-
-		public:
-			allocate_resources_contract_check(
-				int resources
-				, It start
-				, It end
-				, resource_request T::* res)
-				: m_resources(resources)
-				, m_start(start)
-				, m_end(end)
-				, m_res(res)
-			{
-				assert(m_resources >= 0);
-				for (It i = m_start, end(m_end); i != end; ++i)
-				{
-					assert(((*i).*m_res).max >= 0);
-					assert(((*i).*m_res).given >= 0);
-				}
-			}
-
-			~allocate_resources_contract_check()
-			{
-				int sum_given = 0;
-				int sum_max = 0;
-				int sum_min = 0;
-				for (It i = m_start, end(m_end); i != end; ++i)
-				{
-					assert(((*i).*m_res).max >= 0);
-					assert(((*i).*m_res).min >= 0);
-					assert(((*i).*m_res).max >= ((*i).*m_res).min);
-					assert(((*i).*m_res).given >= 0);
-					assert(((*i).*m_res).given <= ((*i).*m_res).max);
-
-					sum_given = saturated_add(sum_given, ((*i).*m_res).given);
-					sum_max = saturated_add(sum_max, ((*i).*m_res).max);
-					sum_min = saturated_add(sum_min, ((*i).*m_res).min);
-				}
-				assert(sum_given == std::min(std::max(m_resources, sum_min), sum_max));
-			}
-		};
-
-#endif
-
-		template<class It, class T>
-		void allocate_resources_impl(
-			int resources
-			, It start
-			, It end
-			, resource_request T::* res)
-		{
-			assert(resources >= 0);
-	#ifndef NDEBUG
-			allocate_resources_contract_check<It, T> contract_check(
-				resources
-				, start
-				, end
-				, res);
-	#endif
-
-			if (resources == resource_request::inf)
-			{
-				// No competition for resources.
-				// Just give everyone what they want.
-				for (It i = start; i != end; ++i)
-				{
-					((*i).*res).given = ((*i).*res).max;
-				}
-				return;
-			}
-
-			// Resources are scarce
-
-			int sum_max = 0;
-			int sum_min = 0;
-			for (It i = start; i != end; ++i)
-			{
-				sum_max = saturated_add(sum_max, ((*i).*res).max);
-				assert(((*i).*res).min < resource_request::inf);
-				assert(((*i).*res).min >= 0);
-				assert(((*i).*res).min <= ((*i).*res).max);
-				sum_min += ((*i).*res).min;
-				((*i).*res).given = ((*i).*res).min;
-			}
-
-			if (resources == 0 || sum_max == 0)
-				return;
-
-			resources = std::max(resources, sum_min);
-			int resources_to_distribute = std::min(resources, sum_max) - sum_min;
-			assert(resources_to_distribute >= 0);
-#ifndef NDEBUG
-			int prev_resources_to_distribute = resources_to_distribute;
-#endif
-			while (resources_to_distribute > 0)
-			{
-				size_type total_used = 0;
-				size_type max_used = 0;
-				for (It i = start; i != end; ++i)
-				{
-					resource_request& r = (*i).*res;
-					if(r.given == r.max) continue;
-
-					assert(r.given < r.max);
-
-					max_used = std::max(max_used, (size_type)r.used + 1);
-					total_used += (size_type)r.used + 1;
-				}
-
-				size_type kNumer = resources_to_distribute;
-				size_type kDenom = total_used;
-				assert(kNumer >= 0);
-				assert(kDenom >= 0);
-				assert(kNumer <= std::numeric_limits<int>::max());
-				assert(total_used < std::numeric_limits<int>::max());
-
-				if (kNumer * max_used <= kDenom)
-				{
-					kNumer = 1;
-					kDenom = max_used;
-					assert(kDenom >= 0);
-					assert(kDenom <= std::numeric_limits<int>::max());
-				}
-
-				for (It i = start; i != end && resources_to_distribute > 0; ++i)
-				{
-					resource_request& r = (*i).*res;
-					if (r.given == r.max) continue;
-
-					assert(r.given < r.max);
-
-					size_type used = (size_type)r.used + 1;
-					if (used < 1) used = 1;
-					size_type to_give = used * kNumer / kDenom;
-					if (to_give > resources_to_distribute)
-						to_give = resources_to_distribute;
-					assert(to_give >= 0);
-					assert(to_give <= resources_to_distribute);
-					resources_to_distribute -= give(r, (int)to_give);
-					assert(resources_to_distribute >= 0);
-				}
-
-				assert(resources_to_distribute >= 0);
-				assert(resources_to_distribute < prev_resources_to_distribute);
-#ifndef NDEBUG
-				prev_resources_to_distribute = resources_to_distribute;
-#endif
-			}
-		}
-
-		peer_connection& pick_peer(
-			std::pair<boost::shared_ptr<stream_socket>
-			, boost::intrusive_ptr<peer_connection> > const& p)
-		{
-			return *p.second;
-		}
-
-		peer_connection& pick_peer2(
-			std::pair<tcp::endpoint, peer_connection*> const& p)
-		{
-			return *p.second;
-		}
-
-		torrent& deref(std::pair<sha1_hash, boost::shared_ptr<torrent> > const& p)
-		{
-			return *p.second;
-		}
-
-
-	} // namespace anonymous
 
 #if defined(_MSC_VER) && _MSC_VER < 1310
 
@@ -319,7 +123,7 @@ namespace libtorrent
 		, std::map<sha1_hash, boost::shared_ptr<torrent> >& c
 		, resource_request torrent::* res)
 	{
-		allocate_resources_impl(
+		aux::allocate_resources_impl(
 			resources
 			, detail::iterator_wrapper(c.begin())
 			, detail::iterator_wrapper(c.end())
@@ -331,7 +135,7 @@ namespace libtorrent
 		, std::map<tcp::endpoint, peer_connection*>& c
 		, resource_request peer_connection::* res)
 	{
-		allocate_resources_impl(
+		aux::allocate_resources_impl(
 			resources
 			, detail::iterator_wrapper2(c.begin())
 			, detail::iterator_wrapper2(c.end())
@@ -339,6 +143,27 @@ namespace libtorrent
 	}
 
 #else
+
+	namespace aux
+	{
+		peer_connection& pick_peer(
+			std::pair<boost::shared_ptr<stream_socket>
+			, boost::intrusive_ptr<peer_connection> > const& p)
+		{
+			return *p.second;
+		}
+
+		peer_connection& pick_peer2(
+			std::pair<tcp::endpoint, peer_connection*> const& p)
+		{
+			return *p.second;
+		}
+
+		torrent& deref(std::pair<sha1_hash, boost::shared_ptr<torrent> > const& p)
+		{
+			return *p.second;
+		}
+	}
 
 	void allocate_resources(
 		int resources
@@ -349,10 +174,10 @@ namespace libtorrent
 		typedef std::pair<sha1_hash, boost::shared_ptr<torrent> > in_param;
 		typedef boost::transform_iterator<torrent& (*)(in_param const&), orig_iter> new_iter;
 
-		allocate_resources_impl(
+		aux::allocate_resources_impl(
 			resources
-			, new_iter(c.begin(), &deref)
-			, new_iter(c.end(), &deref)
+			, new_iter(c.begin(), &aux::deref)
+			, new_iter(c.end(), &aux::deref)
 			, res);
 	}
 
@@ -365,10 +190,10 @@ namespace libtorrent
 		typedef std::pair<tcp::endpoint, peer_connection*> in_param;
 		typedef boost::transform_iterator<peer_connection& (*)(in_param const&), orig_iter> new_iter;
 
-		allocate_resources_impl(
+		aux::allocate_resources_impl(
 			resources
-			, new_iter(c.begin(), &pick_peer2)
-			, new_iter(c.end(), &pick_peer2)
+			, new_iter(c.begin(), &aux::pick_peer2)
+			, new_iter(c.end(), &aux::pick_peer2)
 			, res);
 	}
 #endif
