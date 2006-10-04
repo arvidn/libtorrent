@@ -43,6 +43,7 @@ check: test
 	&& test/test_piece_picker \
 	&& test/test_storage \
 	&& test/test_buffer \
+	&& test/test_allocate_resources \
 	&& echo && echo && echo "  **** all tests passed ****" && echo && echo
 
 deb:
