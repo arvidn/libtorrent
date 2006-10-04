@@ -56,6 +56,13 @@ namespace libtorrent
 			, given(0)
 		{}
 
+		resource_request(int used_, int min_, int max_, int given_)
+			: used(used_)
+			, min(min_)
+			, max(max_)
+			, given(given_)
+		{}
+
 		int left() const
 		{
 			assert(given <= max);
@@ -67,7 +74,7 @@ namespace libtorrent
 
 		static const int inf = boost::integer_traits<int>::const_max;
 
-		// I'm right now actively using:
+		// right now I'm actively using this amount
 		int used;
 
 		// given cannot be smaller than min
@@ -75,7 +82,7 @@ namespace libtorrent
 		int min;
 		int max;
 
-		// Reply: Okay, you're allowed to use this much (a compromise):
+		// Reply: Okay, you're allowed to use this amount (a compromise):
 		int given;
 	};
 }
