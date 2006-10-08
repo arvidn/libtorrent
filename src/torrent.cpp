@@ -1780,6 +1780,15 @@ namespace libtorrent
 		{
 			peer_request ret = m_torrent_file.map_file(i, 0, 0);
 			size_type size = m_torrent_file.file_at(i).size;
+
+// zero sized files are considered
+// 100% done all the time
+			if (size == 0)
+			{
+				fp[i] = 1.f;
+				continue;
+			}
+
 			size_type done = 0;
 			while (size > 0)
 			{
@@ -1791,7 +1800,7 @@ namespace libtorrent
 				size -= bytes_step;
 			}
 			assert(size == 0);
-			
+
 			fp[i] = static_cast<float>(done) / m_torrent_file.file_at(i).size;
 		}
 	}

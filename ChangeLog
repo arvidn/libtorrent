@@ -1,3 +1,4 @@
+	* fixed bug with file_progress() with files = 0 bytes
 	* fixed a race condition bug in udp_tracker_connection that could
 	  cause a crash.
 	* fixed bug occuring when increasing the sequenced download threshold
