@@ -514,7 +514,7 @@ namespace libtorrent
 					assert(*file_path.begin() == m_name);
 
 					for (fs::path::iterator j = boost::next(file_path.begin());
-							j != file_path.end(); ++j)
+						j != file_path.end(); ++j)
 					{
 						path_e.list().push_back(entry(*j));
 					}
