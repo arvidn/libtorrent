@@ -105,7 +105,7 @@ namespace libtorrent
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
 		peer_connection(
-			detail::session_impl& ses
+			aux::session_impl& ses
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<stream_socket> s
 			, tcp::endpoint const& remote);
@@ -113,7 +113,7 @@ namespace libtorrent
 		// with this constructor we have been contacted and we still don't
 		// know which torrent the connection belongs to
 		peer_connection(
-			detail::session_impl& ses
+			aux::session_impl& ses
 			, boost::shared_ptr<stream_socket> s);
 
 		// this function is called once the torrent associated
@@ -350,7 +350,7 @@ namespace libtorrent
 
 		// a back reference to the session
 		// the peer belongs to.
-		detail::session_impl& m_ses;
+		aux::session_impl& m_ses;
 
 		boost::intrusive_ptr<peer_connection> self()
 		{ return boost::intrusive_ptr<peer_connection>(this); }

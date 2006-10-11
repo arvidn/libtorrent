@@ -1,6 +1,7 @@
 #include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 
 #include <boost/utility.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -80,7 +81,7 @@ int test_main()
 	// make sure the piece_manager can identify the pieces
 	piece_manager pm(info, initial_path());
 	boost::mutex lock;
-	libtorrent::detail::piece_checker_data d;
+	libtorrent::aux::piece_checker_data d;
 
 	std::vector<bool> pieces;
 	num_pieces = 0;

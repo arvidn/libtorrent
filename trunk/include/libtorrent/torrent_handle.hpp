@@ -53,7 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	namespace detail
+	namespace aux
 	{
 		struct session_impl;
 		struct checker_impl;
@@ -215,7 +215,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT torrent_handle
 	{
 		friend class invariant_access;
-		friend class session;
+		friend class aux::session_impl;
 		friend class torrent;
 
 		torrent_handle(): m_ses(0), m_chk(0) {}
@@ -324,8 +324,8 @@ namespace libtorrent
 
 	private:
 
-		torrent_handle(detail::session_impl* s,
-			detail::checker_impl* c,
+		torrent_handle(aux::session_impl* s,
+			aux::checker_impl* c,
 			const sha1_hash& h)
 			: m_ses(s)
 			, m_chk(c)
@@ -338,8 +338,8 @@ namespace libtorrent
 		void check_invariant() const;
 #endif
 
-		detail::session_impl* m_ses;
-		detail::checker_impl* m_chk;
+		aux::session_impl* m_ses;
+		aux::checker_impl* m_chk;
 		sha1_hash m_info_hash;
 
 	};

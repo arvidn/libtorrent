@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	namespace detail
+	namespace aux
 	{
 		struct piece_checker_data;
 	}
@@ -129,7 +129,7 @@ namespace libtorrent
 
 		~piece_manager();
 
-		bool check_fastresume(detail::piece_checker_data& d
+		bool check_fastresume(aux::piece_checker_data& d
 			, std::vector<bool>& pieces, int& num_pieces, bool compact_mode);
 		std::pair<bool, float> check_files(std::vector<bool>& pieces
 			, int& num_pieces);

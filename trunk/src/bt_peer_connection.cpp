@@ -45,11 +45,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/version.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 
 using namespace boost::posix_time;
 using boost::bind;
 using boost::shared_ptr;
-using libtorrent::detail::session_impl;
+using libtorrent::aux::session_impl;
 
 namespace libtorrent
 {
@@ -78,7 +79,7 @@ namespace libtorrent
 
 
 	bt_peer_connection::bt_peer_connection(
-		detail::session_impl& ses
+		session_impl& ses
 		, boost::weak_ptr<torrent> tor
 		, shared_ptr<stream_socket> s
 		, tcp::endpoint const& remote)
@@ -128,7 +129,7 @@ namespace libtorrent
 	}
 
 	bt_peer_connection::bt_peer_connection(
-		detail::session_impl& ses
+		session_impl& ses
 		, boost::shared_ptr<stream_socket> s)
 		: peer_connection(ses, s)
 		, m_state(read_protocol_length)
@@ -625,7 +626,7 @@ namespace libtorrent
 		int extended_id = detail::read_uint8(recv_buffer.begin);
 
 		if (extended_id > 0 && extended_id < num_supported_extensions
-			&& !m_ses.m_extension_enabled[extended_id])
+			&& !m_ses.extension_enabled(extended_id))
 			throw protocol_error("'extended' message using disabled extension");
 
 		switch (extended_id)
@@ -1116,18 +1117,18 @@ namespace libtorrent
 		{
 			// if this specific extension is disabled
 			// just don't add it to the supported set
-			if (!m_ses.m_extension_enabled[i]) continue;
+			if (!m_ses.extension_enabled(i)) continue;
 			extension_list[extension_names[i]] = i;
 		}
 
 		handshake["m"] = extension_list;
-		handshake["p"] = m_ses.m_listen_interface.port();
-		handshake["v"] = m_ses.m_settings.user_agent;
+		handshake["p"] = m_ses.listen_port();
+		handshake["v"] = m_ses.settings().user_agent;
 		std::string remote_address;
 		std::back_insert_iterator<std::string> out(remote_address);
 		detail::write_address(remote().address(), out);
 		handshake["ip"] = remote_address;
-		handshake["reqq"] = m_ses.m_settings.max_allowed_in_request_queue;
+		handshake["reqq"] = m_ses.settings().max_allowed_in_request_queue;
 
 		std::vector<char> msg;
 		bencode(std::back_inserter(msg), handshake);
@@ -1370,7 +1371,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_DHT
 			if (m_supports_dht_port && m_ses.m_dht)
-				write_dht_port(m_ses.m_dht_settings.service_port);
+				write_dht_port(m_ses.kad_settings().service_port);
 #endif
 
 			m_state = read_peer_id;

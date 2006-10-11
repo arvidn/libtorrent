@@ -75,7 +75,7 @@ namespace libtorrent
 
 	class piece_manager;
 
-	namespace detail
+	namespace aux
 	{
 		struct session_impl;
 		struct piece_checker_data;
@@ -94,8 +94,8 @@ namespace libtorrent
 	public:
 
 		torrent(
-			detail::session_impl& ses
-			, detail::checker_impl& checker
+			aux::session_impl& ses
+			, aux::checker_impl& checker
 			, torrent_info const& tf
 			, boost::filesystem::path const& save_path
 			, tcp::endpoint const& net_interface
@@ -106,8 +106,8 @@ namespace libtorrent
 		// used with metadata-less torrents
 		// (the metadata is downloaded from the peers)
 		torrent(
-			detail::session_impl& ses
-			, detail::checker_impl& checker
+			aux::session_impl& ses
+			, aux::checker_impl& checker
 			, char const* tracker_url
 			, sha1_hash const& info_hash
 			, boost::filesystem::path const& save_path
@@ -150,7 +150,7 @@ namespace libtorrent
 		// each piece of metadata it receives
 		void metadata_progress(int total_size, int received);
 	
-		bool check_fastresume(detail::piece_checker_data&);
+		bool check_fastresume(aux::piece_checker_data&);
 		std::pair<bool, float> check_files();
 		void files_checked(std::vector<piece_picker::downloading_piece> const&
 			unfinished_pieces);
@@ -515,8 +515,8 @@ namespace libtorrent
 
 		// a back reference to the session
 		// this torrent belongs to.
-		detail::session_impl& m_ses;
-		detail::checker_impl& m_checker;
+		aux::session_impl& m_ses;
+		aux::checker_impl& m_checker;
 
 		boost::scoped_ptr<piece_picker> m_picker;
 
