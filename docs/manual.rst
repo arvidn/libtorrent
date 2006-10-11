@@ -161,6 +161,10 @@ timeout can be set with ``set_settings()``.
 abort()
 -------
 
+::
+
+		session_proxy abort();
+
 In case you want to destruct the session asynchrounously, you can request a session
 destruction proxy. If you don't do this, the destructor of the session object will
 block while the trackers are contacted. If you keep one ``session_proxy`` to the
