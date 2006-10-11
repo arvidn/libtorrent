@@ -568,6 +568,9 @@ int main(int ac, char* av[])
 		session ses;
 
 #ifndef TORRENT_DISABLE_DHT
+		dht_settings s;
+		s.service_port = listen_port;
+		ses.set_dht_settings(s);
 		boost::filesystem::ifstream dht_state_file(".dht_state"
 			, std::ios_base::binary);
 		dht_state_file.unsetf(std::ios_base::skipws);
