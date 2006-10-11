@@ -43,6 +43,7 @@ SOURCES =
 	piece_picker.cpp
 	policy.cpp
 	session.cpp
+	session_impl.cpp
 	stat.cpp
 	storage.cpp
 	torrent.cpp
