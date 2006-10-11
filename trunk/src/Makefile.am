@@ -3,7 +3,7 @@ lib_LTLIBRARIES = libtorrent.la
 libtorrent_la_SOURCES = allocate_resources.cpp \
 entry.cpp escape_string.cpp \
 peer_connection.cpp bt_peer_connection.cpp web_peer_connection.cpp \
-piece_picker.cpp policy.cpp session.cpp sha1.cpp stat.cpp \
+piece_picker.cpp policy.cpp session.cpp session_impl.cpp sha1.cpp stat.cpp \
 storage.cpp torrent.cpp torrent_handle.cpp \
 torrent_info.cpp tracker_manager.cpp \
 http_tracker_connection.cpp udp_tracker_connection.cpp \
@@ -23,6 +23,7 @@ noinst_HEADERS = \
 $(top_srcdir)/include/libtorrent/alert.hpp \
 $(top_srcdir)/include/libtorrent/alert_types.hpp \
 $(top_srcdir)/include/libtorrent/allocate_resources.hpp \
+$(top_srcdir)/include/libtorrent/aux_/allocate_resources_impl.hpp \
 $(top_srcdir)/include/libtorrent/bencode.hpp \
 $(top_srcdir)/include/libtorrent/buffer.hpp \
 $(top_srcdir)/include/libtorrent/debug.hpp \
@@ -49,6 +50,7 @@ $(top_srcdir)/include/libtorrent/piece_picker.hpp \
 $(top_srcdir)/include/libtorrent/policy.hpp \
 $(top_srcdir)/include/libtorrent/resource_request.hpp \
 $(top_srcdir)/include/libtorrent/session.hpp \
+$(top_srcdir)/include/libtorrent/aux_/session_impl.hpp \
 $(top_srcdir)/include/libtorrent/size_type.hpp \
 $(top_srcdir)/include/libtorrent/socket.hpp \
 $(top_srcdir)/include/libtorrent/stat.hpp \
