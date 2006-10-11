@@ -64,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 
 #ifndef NDEBUG
 #include <ios>
@@ -864,7 +865,7 @@ namespace libtorrent
 			, path const& path);
 
 		bool check_fastresume(
-			detail::piece_checker_data& d
+			aux::piece_checker_data& d
 			, std::vector<bool>& pieces
 			, int& num_pieces
 			, bool compact_mode);
@@ -1362,7 +1363,7 @@ namespace libtorrent
 	// isn't return false and the full check
 	// will be run
 	bool piece_manager::impl::check_fastresume(
-		detail::piece_checker_data& data
+		aux::piece_checker_data& data
 		, std::vector<bool>& pieces
 		, int& num_pieces, bool compact_mode)
 	{
@@ -1807,7 +1808,7 @@ namespace libtorrent
 	}
 
 	bool piece_manager::check_fastresume(
-		detail::piece_checker_data& d, std::vector<bool>& pieces
+		aux::piece_checker_data& d, std::vector<bool>& pieces
 		, int& num_pieces, bool compact_mode)
 	{
 		return m_pimpl->check_fastresume(d, pieces, num_pieces, compact_mode);

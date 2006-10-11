@@ -85,6 +85,8 @@ The ``session`` class has the following synopsis::
 			, bool compact_mode = true
 			, int block_size = 16 * 1024);
 
+		session_proxy abort();
+
 		void remove_torrent(torrent_handle const& h);
 
 		void disable_extensions();
@@ -155,6 +157,21 @@ If some trackers are down, they will time out. All this before the destructor of
 returns. So, it's advised that any kind of interface (such as windows) are closed before
 destructing the session object. Because it can take a few second for it to finish. The
 timeout can be set with ``set_settings()``.
+
+abort()
+-------
+
+In case you want to destruct the session asynchrounously, you can request a session
+destruction proxy. If you don't do this, the destructor of the session object will
+block while the trackers are contacted. If you keep one ``session_proxy`` to the
+session when destructing it, the destructor will not block, but start to close down
+the session, the destructor of the proxy will then synchronize the threads. So, the
+destruction of the session is performed from the ``session`` destructor call until the
+``session_proxy`` destructor call. The ``session_proxy`` does not have any operations
+on it (since the session is being closed down, no operations are allowed on it). The
+only valid operation is calling the destructor::
+
+	class session_proxy { ~session_proxy() };
 
 
 add_torrent()

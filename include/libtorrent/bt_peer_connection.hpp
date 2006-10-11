@@ -89,7 +89,7 @@ namespace libtorrent
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
 		bt_peer_connection(
-			detail::session_impl& ses
+			aux::session_impl& ses
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<stream_socket> s
 			, tcp::endpoint const& remote);
@@ -97,7 +97,7 @@ namespace libtorrent
 		// with this constructor we have been contacted and we still don't
 		// know which torrent the connection belongs to
 		bt_peer_connection(
-			detail::session_impl& ses
+			aux::session_impl& ses
 			, boost::shared_ptr<stream_socket> s);
 
 		~bt_peer_connection();

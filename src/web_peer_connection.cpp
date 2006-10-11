@@ -46,16 +46,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/version.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 
 using namespace boost::posix_time;
 using boost::bind;
 using boost::shared_ptr;
-using libtorrent::detail::session_impl;
+using libtorrent::aux::session_impl;
 
 namespace libtorrent
 {
 	web_peer_connection::web_peer_connection(
-		detail::session_impl& ses
+		session_impl& ses
 		, boost::weak_ptr<torrent> t
 		, boost::shared_ptr<stream_socket> s
 		, tcp::endpoint const& remote
@@ -66,11 +67,11 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		m_max_out_request_queue = ses.m_settings.urlseed_pipeline_size;
+		m_max_out_request_queue = ses.settings().urlseed_pipeline_size;
 
 		// since this is a web seed, change the timeout
 		// according to the settings.
-		set_timeout(ses.m_settings.urlseed_timeout);
+		set_timeout(ses.settings().urlseed_timeout);
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << "*** web_peer_connection\n";
 #endif
@@ -141,7 +142,7 @@ namespace libtorrent
 		m_requests.push_back(r);
 
 		bool using_proxy = false;
-		if (!m_ses.m_settings.proxy_ip.empty())
+		if (!m_ses.settings().proxy_ip.empty())
 			using_proxy = true;
 
 		if (single_file_request)
@@ -155,13 +156,13 @@ namespace libtorrent
 			if (m_first_request)
 			{
 				request += "\r\nUser-Agent: ";
-				request += m_ses.m_settings.user_agent;
+				request += m_ses.settings().user_agent;
 			}
-			if (using_proxy && !m_ses.m_settings.proxy_login.empty())
+			if (using_proxy && !m_ses.settings().proxy_login.empty())
 			{
 				request += "\r\nProxy-Authorization: Basic ";
-				request += base64encode(m_ses.m_settings.proxy_login + ":"
-					+ m_ses.m_settings.proxy_password);
+				request += base64encode(m_ses.settings().proxy_login + ":"
+					+ m_ses.settings().proxy_password);
 			}
 			if (using_proxy)
 			{
@@ -208,13 +209,13 @@ namespace libtorrent
 				if (m_first_request)
 				{
 					request += "\r\nUser-Agent: ";
-					request += m_ses.m_settings.user_agent;
+					request += m_ses.settings().user_agent;
 				}
-				if (using_proxy && !m_ses.m_settings.proxy_login.empty())
+				if (using_proxy && !m_ses.settings().proxy_login.empty())
 				{
 					request += "\r\nProxy-Authorization: Basic ";
-					request += base64encode(m_ses.m_settings.proxy_login + ":"
-						+ m_ses.m_settings.proxy_password);
+					request += base64encode(m_ses.settings().proxy_login + ":"
+						+ m_ses.settings().proxy_password);
 				}
 				if (using_proxy)
 				{

@@ -66,6 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 
 using namespace libtorrent;
 using namespace boost::posix_time;
@@ -75,7 +76,7 @@ using boost::tuples::make_tuple;
 using boost::filesystem::complete;
 using boost::bind;
 using boost::mutex;
-using libtorrent::detail::session_impl;
+using libtorrent::aux::session_impl;
 
 // PROFILING CODE
 
@@ -158,7 +159,7 @@ namespace
 			, tor(t)
 		{ assert(t != 0); }
 		
-		bool operator()(const detail::session_impl::connection_map::value_type& c) const
+		bool operator()(const session_impl::connection_map::value_type& c) const
 		{
 			tcp::endpoint sender = c.first->remote_endpoint();
 			if (sender.address() != ip.address()) return false;
@@ -190,8 +191,8 @@ namespace
 namespace libtorrent
 {
 	torrent::torrent(
-		detail::session_impl& ses
-		, detail::checker_impl& checker
+		session_impl& ses
+		, aux::checker_impl& checker
 		, torrent_info const& tf
 		, boost::filesystem::path const& save_path
 		, tcp::endpoint const& net_interface
@@ -289,8 +290,8 @@ namespace libtorrent
 	}
 
 	torrent::torrent(
-		detail::session_impl& ses
-		, detail::checker_impl& checker
+		session_impl& ses
+		, aux::checker_impl& checker
 		, char const* tracker_url
 		, sha1_hash const& info_hash
 		, boost::filesystem::path const& save_path
@@ -402,7 +403,7 @@ namespace libtorrent
 		
 		INVARIANT_CHECK;
 
-		if (m_ses.m_abort)
+		if (m_ses.is_aborted())
 			m_abort = true;
 		if (!m_connections.empty())
 			disconnect_all();
@@ -1037,7 +1038,7 @@ namespace libtorrent
 			= parse_url_components(url);
 
 		m_resolving_web_seeds.insert(url);
-		if (m_ses.m_settings.proxy_ip.empty())
+		if (m_ses.settings().proxy_ip.empty())
 		{
 			tcp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
 			m_host_resolver.async_resolve(q, bind(&torrent::on_name_lookup
@@ -1046,8 +1047,8 @@ namespace libtorrent
 		else
 		{
 			// use proxy
-			tcp::resolver::query q(m_ses.m_settings.proxy_ip
-				, boost::lexical_cast<std::string>(m_ses.m_settings.proxy_port));
+			tcp::resolver::query q(m_ses.settings().proxy_ip
+				, boost::lexical_cast<std::string>(m_ses.settings().proxy_port));
 			m_host_resolver.async_resolve(q, bind(&torrent::on_name_lookup
 				, shared_from_this(), _1, _2, url));
 		}
@@ -1057,7 +1058,7 @@ namespace libtorrent
 	void torrent::on_name_lookup(asio::error const& e, tcp::resolver::iterator host
 		, std::string url) try
 	{
-		detail::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
 
@@ -1088,7 +1089,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (m_ses.m_abort) return;
+		if (m_ses.is_aborted()) return;
 
 		tcp::endpoint a(host->endpoint());
 
@@ -1211,7 +1212,7 @@ namespace libtorrent
 			throw protocol_error("peer is not properly constructed");
 		}
 
-		if (m_ses.m_abort)
+		if (m_ses.is_aborted())
 		{
 			throw protocol_error("session is closing");
 		}
@@ -1361,7 +1362,7 @@ namespace libtorrent
 
 	}
 
-	bool torrent::check_fastresume(detail::piece_checker_data& data)
+	bool torrent::check_fastresume(aux::piece_checker_data& data)
 	{
 		INVARIANT_CHECK;
 
@@ -1475,7 +1476,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		return m_ses.m_settings;
+		return m_ses.settings();
 	}
 
 #ifndef NDEBUG
@@ -2025,14 +2026,14 @@ namespace libtorrent
 		{
 			boost::mutex::scoped_lock(m_checker.m_mutex);
 
-			boost::shared_ptr<detail::piece_checker_data> d(
-					new detail::piece_checker_data);
+			boost::shared_ptr<aux::piece_checker_data> d(
+					new aux::piece_checker_data);
 			d->torrent_ptr = shared_from_this();
 			d->save_path = m_save_path;
 			d->info_hash = m_torrent_file.info_hash();
 			// add the torrent to the queue to be checked
 			m_checker.m_torrents.push_back(d);
-			typedef detail::session_impl::torrent_map torrent_map;
+			typedef session_impl::torrent_map torrent_map;
 			torrent_map::iterator i = m_ses.m_torrents.find(
 				m_torrent_file.info_hash());
 			assert(i != m_ses.m_torrents.end());

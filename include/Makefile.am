@@ -42,6 +42,7 @@ libtorrent/udp_tracker_connection.hpp \
 libtorrent/utf8.hpp \
 libtorrent/version.hpp \
 libtorrent/aux_/allocate_resources_impl.hpp \
+libtorrent/aux_/session_impl.hpp \
 \
 libtorrent/kademlia/closest_nodes.hpp \
 libtorrent/kademlia/dht_tracker.hpp \

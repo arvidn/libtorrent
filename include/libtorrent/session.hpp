@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/tuple/tuple.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
-#include <boost/thread/recursive_mutex.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -56,24 +55,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/torrent_info.hpp"
-#include "libtorrent/socket.hpp"
-#include "libtorrent/peer_connection.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/policy.hpp"
-#include "libtorrent/tracker_manager.hpp"
-#include "libtorrent/peer_info.hpp"
 #include "libtorrent/alert.hpp"
-#include "libtorrent/fingerprint.hpp"
-#include "libtorrent/debug.hpp"
-#include "libtorrent/peer_request.hpp"
-#include "libtorrent/piece_block_progress.hpp"
-#include "libtorrent/ip_filter.hpp"
-#include "libtorrent/config.hpp"
-#include "libtorrent/session_settings.hpp"
-#include "libtorrent/version.hpp"
-#include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/session_status.hpp"
+#include "libtorrent/version.hpp"
+#include "libtorrent/fingerprint.hpp"
+
 
 #if !defined(NDEBUG) && defined(_MSC_VER)
 #	include <float.h>
@@ -83,6 +69,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	class torrent;
+	class ip_filter;
 
 	enum extension_index
 	{
@@ -93,7 +80,7 @@ namespace libtorrent
 		num_supported_extensions
 	};
 
-	namespace detail
+	namespace aux
 	{
 		// workaround for microsofts
 		// hardware exceptions that makes
@@ -116,222 +103,19 @@ namespace libtorrent
 #else
 		struct eh_initializer {};
 #endif
-
-		// this data is shared between the main thread and the
-		// thread that initialize pieces
-		struct piece_checker_data
-		{
-			piece_checker_data()
-				: processing(false), progress(0.f), abort(false) {}
-
-			boost::shared_ptr<torrent> torrent_ptr;
-			boost::filesystem::path save_path;
-
-			sha1_hash info_hash;
-
-			void parse_resume_data(
-				const entry& rd
-				, const torrent_info& info
-				, std::string& error);
-
-			std::vector<int> piece_map;
-			std::vector<piece_picker::downloading_piece> unfinished_pieces;
-			std::vector<tcp::endpoint> peers;
-			entry resume_data;
-
-			// this is true if this torrent is being processed (checked)
-			// if it is not being processed, then it can be removed from
-			// the queue without problems, otherwise the abort flag has
-			// to be set.
-			bool processing;
-
-			// is filled in by storage::initialize_pieces()
-			// and represents the progress. It should be a
-			// value in the range [0, 1]
-			float progress;
-
-			// abort defaults to false and is typically
-			// filled in by torrent_handle when the user
-			// aborts the torrent
-			bool abort;
-		};
-
-		struct checker_impl: boost::noncopyable
-		{
-			checker_impl(session_impl& s): m_ses(s), m_abort(false) {}
-			void operator()();
-			piece_checker_data* find_torrent(const sha1_hash& info_hash);
-			void remove_torrent(sha1_hash const& info_hash);
-
-#ifndef NDEBUG
-			void check_invariant() const;
-#endif
-
-			// when the files has been checked
-			// the torrent is added to the session
-			session_impl& m_ses;
-
-			mutable boost::mutex m_mutex;
-			boost::condition m_cond;
-
-			// a list of all torrents that are currently in queue
-			// or checking their files
-			std::deque<boost::shared_ptr<piece_checker_data> > m_torrents;
-			std::deque<boost::shared_ptr<piece_checker_data> > m_processing;
-
-			bool m_abort;
-		};
-
-		// this is the link between the main thread and the
-		// thread started to run the main downloader loop
-		struct session_impl: boost::noncopyable
-		{
-			friend class invariant_access;
-			typedef std::map<boost::shared_ptr<stream_socket>
-				, boost::intrusive_ptr<peer_connection> >
-				connection_map;
-			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
-			typedef std::deque<boost::intrusive_ptr<peer_connection> >
-				connection_queue;
-
-			session_impl(
-				std::pair<int, int> listen_port_range
-				, fingerprint const& cl_fprint
-				, char const* listen_interface = "0.0.0.0");
-
-			void operator()();
-
-			void open_listen_port();
-
-			void async_accept();
-			void on_incoming_connection(boost::shared_ptr<stream_socket> const& s
-				, boost::weak_ptr<socket_acceptor> const& as, asio::error const& e);
-		
-			// must be locked to access the data
-			// in this struct
-			typedef boost::recursive_mutex mutex_t;
-			mutable mutex_t m_mutex;
-
-			boost::weak_ptr<torrent> find_torrent(const sha1_hash& info_hash);
-			peer_id const& get_peer_id() const { return m_peer_id; }
-
-			// this is where all active sockets are stored.
-			// the selector can sleep while there's no activity on
-			// them
-			demuxer m_selector;
-
-			tracker_manager m_tracker_manager;
-			torrent_map m_torrents;
-
-			// this will see if there are any pending connection attempts
-			// and in that case initiate new connections until the limit
-			// is reached.
-			void process_connection_queue();
-
-			void close_connection(boost::intrusive_ptr<peer_connection> const& p);
-			void connection_completed(boost::intrusive_ptr<peer_connection> const& p);
-			void connection_failed(boost::shared_ptr<stream_socket> const& s
-				, tcp::endpoint const& a, char const* message);
-
-			void set_settings(session_settings const& s);
-
-			// this maps sockets to their peer_connection
-			// object. It is the complete list of all connected
-			// peers.
-			connection_map m_connections;
-			
-			// this is a list of half-open tcp connections
-			// (only outgoing connections)
-			connection_map m_half_open;
-
-			// this is a queue of pending outgoing connections. If the
-			// list of half-open connections is full (given the global
-			// limit), new outgoing connections are put on this queue,
-			// waiting for one slot in the half-open queue to open up.
-			connection_queue m_connection_queue;
-
-			// filters incoming connections
-			ip_filter m_ip_filter;
-			
-			// the peer id that is generated at the start of the session
-			peer_id m_peer_id;
-
-			// the key is an id that is used to identify the
-			// client with the tracker only. It is randomized
-			// at startup
-			int m_key;
-
-			// the range of ports we try to listen on
-			std::pair<int, int> m_listen_port_range;
-
-			// the ip-address of the interface
-			// we are supposed to listen on.
-			// if the ip is set to zero, it means
-			// that we should let the os decide which
-			// interface to listen on
-			tcp::endpoint m_listen_interface;
-
-			boost::shared_ptr<socket_acceptor> m_listen_socket;
-
-			// the entries in this array maps the
-			// extension index (as specified in peer_connection)
-			bool m_extension_enabled[num_supported_extensions];
-
-			bool extensions_enabled() const;
-
-			// the settings for the client
-			session_settings m_settings;
-
-			// set to true when the session object
-			// is being destructed and the thread
-			// should exit
-			volatile bool m_abort;
-
-			// maximum upload rate given in
-			// bytes per second. -1 means
-			// unlimited
-			int m_upload_rate;
-			int m_download_rate;
-			int m_max_uploads;
-			int m_max_connections;
-			// the number of simultaneous half-open tcp
-			// connections libtorrent will have.
-			int m_half_open_limit;
-
-			// statistics gathered from all torrents.
-			stat m_stat;
-
-			// handles delayed alerts
-			alert_manager m_alerts;
-
-			// is false by default and set to true when
-			// the first incoming connection is established
-			// this is used to know if the client is behind
-			// NAT or not.
-			bool m_incoming_connection;
-
-			// does the actual disconnections
-			// that are queued up in m_disconnect_peer
-			void second_tick(asio::error const& e);
-			boost::posix_time::ptime m_last_tick;
-
-#ifndef TORRENT_DISABLE_DHT
-			boost::scoped_ptr<dht::dht_tracker> m_dht;
-			dht_settings m_dht_settings;
-#endif
-			// the timer used to fire the second_tick
-			deadline_timer m_timer;
-#ifndef NDEBUG
-			void check_invariant(const char *place = 0);
-#endif
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			boost::shared_ptr<logger> create_log(std::string const& name, bool append = true);
-			boost::shared_ptr<logger> m_logger;
-#endif
-		};
+		struct session_impl;
 	}
 
-	class TORRENT_EXPORT session: public boost::noncopyable, detail::eh_initializer
+	class TORRENT_EXPORT session_proxy
+	{
+		friend class session;
+	private:
+		session_proxy(boost::shared_ptr<aux::session_impl> impl)
+			: m_impl(impl) {}
+		boost::shared_ptr<aux::session_impl> m_impl;
+	};
+	
+	class TORRENT_EXPORT session: public boost::noncopyable, aux::eh_initializer
 	{
 	public:
 
@@ -341,10 +125,10 @@ namespace libtorrent
 			fingerprint const& print
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = "0.0.0.0");
-
+			
 		~session();
 
-		std::vector<torrent_handle> get_torrents();
+		std::vector<torrent_handle> get_torrents() const;
 
 		// all torrent_handles must be destructed before the session is destructed!
 		torrent_handle add_torrent(
@@ -373,6 +157,8 @@ namespace libtorrent
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
 			, int block_size = 16 * 1024);
+
+		session_proxy abort() { return session_proxy(m_impl); }
 
 		session_status status() const;
 
@@ -429,18 +215,7 @@ namespace libtorrent
 
 		// data shared between the main thread
 		// and the working thread
-		detail::session_impl m_impl;
-
-		// data shared between the main thread
-		// and the checker thread
-		detail::checker_impl m_checker_impl;
-
-		// the main working thread
-		boost::thread m_thread;
-
-		// the thread that calls initialize_pieces()
-		// on all torrents before they start downloading
-		boost::thread m_checker_thread;
+		boost::shared_ptr<aux::session_impl> m_impl;
 	};
 
 }

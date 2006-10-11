@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //#include <algo.h>
 
 #include "libtorrent/piece_picker.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 
 #ifndef NDEBUG
 #include "libtorrent/peer_connection.hpp"

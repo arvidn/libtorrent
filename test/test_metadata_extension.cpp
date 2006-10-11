@@ -2,9 +2,12 @@
 #include "libtorrent/hasher.hpp"
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/filesystem/operations.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+
+using boost::filesystem::remove_all;
 
 void test_transfer(bool clear_files = true, bool disconnect = false)
 {

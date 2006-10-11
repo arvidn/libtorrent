@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 
 #include "libtorrent/peer_connection.hpp"
-#include "libtorrent/session.hpp"
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
@@ -46,11 +45,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/version.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 
 using namespace boost::posix_time;
 using boost::bind;
 using boost::shared_ptr;
-using libtorrent::detail::session_impl;
+using libtorrent::aux::session_impl;
 
 namespace libtorrent
 {
@@ -71,7 +71,7 @@ namespace libtorrent
 	}
 
 	peer_connection::peer_connection(
-		detail::session_impl& ses
+		session_impl& ses
 		, boost::weak_ptr<torrent> tor
 		, shared_ptr<stream_socket> s
 		, tcp::endpoint const& remote)
@@ -82,8 +82,8 @@ namespace libtorrent
 		,
 #endif
 		  m_ses(ses)
-		, m_max_out_request_queue(m_ses.m_settings.max_out_request_queue)
-		, m_timeout(m_ses.m_settings.peer_timeout)
+		, m_max_out_request_queue(m_ses.settings().max_out_request_queue)
+		, m_timeout(m_ses.settings().peer_timeout)
 		, m_last_piece(second_clock::universal_time())
 		, m_packet_size(0)
 		, m_recv_pos(0)
@@ -164,7 +164,7 @@ namespace libtorrent
 	}
 
 	peer_connection::peer_connection(
-		detail::session_impl& ses
+		session_impl& ses
 		, boost::shared_ptr<stream_socket> s)
 		:
 #ifndef NDEBUG
@@ -173,8 +173,8 @@ namespace libtorrent
 		,
 #endif
 		  m_ses(ses)
-		, m_max_out_request_queue(m_ses.m_settings.max_out_request_queue)
-		, m_timeout(m_ses.m_settings.peer_timeout)
+		, m_max_out_request_queue(m_ses.settings().max_out_request_queue)
+		, m_timeout(m_ses.settings().peer_timeout)
 		, m_last_piece(second_clock::universal_time())
 		, m_packet_size(0)
 		, m_recv_pos(0)
@@ -799,7 +799,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (int(m_requests.size()) > m_ses.m_settings.max_allowed_in_request_queue)
+		if (int(m_requests.size()) > m_ses.settings().max_allowed_in_request_queue)
 		{
 			// don't allow clients to abuse our
 			// memory consumption.
@@ -1083,7 +1083,7 @@ namespace libtorrent
 			<< " <== DHT_PORT [ p: " << listen_port << " ]\n";
 #endif
 #ifndef TORRENT_DISABLE_DHT
-		if (m_ses.m_dht) m_ses.m_dht->add_node(udp::endpoint(
+		m_ses.add_dht_node(udp::endpoint(
 			m_remote.address(), listen_port));
 #endif
 	}
@@ -1408,7 +1408,7 @@ namespace libtorrent
 		if (!t->valid_metadata()) return;
 
 		// calculate the desired download queue size
-		const float queue_time = m_ses.m_settings.request_queue_time;
+		const float queue_time = m_ses.settings().request_queue_time;
 		// (if the latency is more than this, the download will stall)
 		// so, the queue size is queue_time * down_rate / 16 kiB
 		// (16 kB is the size of each request)
@@ -1426,7 +1426,7 @@ namespace libtorrent
 			m_desired_queue_size = min_request_queue;
 
 		if (!m_download_queue.empty()
-			&& now - m_last_piece > seconds(m_ses.m_settings.piece_timeout))
+			&& now - m_last_piece > seconds(m_ses.settings().piece_timeout))
 		{
 			// this peer isn't sending the pieces we've
 			// requested (this has been observed by BitComet)
@@ -1956,7 +1956,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t)
 		{
-			typedef detail::session_impl::torrent_map torrent_map;
+			typedef session_impl::torrent_map torrent_map;
 			torrent_map& m = m_ses.m_torrents;
 			for (torrent_map::iterator i = m.begin(), end(m.end()); i != end; ++i)
 			{

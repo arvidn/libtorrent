@@ -1,9 +1,15 @@
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
+#include <fstream>
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/convenience.hpp>
 
 #include "test.hpp"
+
+using boost::filesystem::remove_all;
+using boost::filesystem::create_directory;
 
 void sleep(int msec)
 {
