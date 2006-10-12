@@ -944,13 +944,20 @@ torrent, all the files starts with a directory with the same name as <tt class="
 The filenames are encoded with UTF-8.</p>
 <p><tt class="docutils literal"><span class="pre">size</span></tt> is the size of the file (in bytes) and <tt class="docutils literal"><span class="pre">offset</span></tt> is the byte offset
 of the file within the torrent. i.e. the sum of all the sizes of the files
-before this one in the file list this one in the file list..</p>
+before this one in the file list this one in the file list.</p>
+<p><tt class="docutils literal"><span class="pre">orig_path</span></tt> is set to 0 in case the path element is an exact copy of that
+found in the metadata. In case the path in the original metadata was
+incorrectly encoded, and had to be fixed in order to be acceptable utf-8,
+the original string is preserved in <tt class="docutils literal"><span class="pre">orig_path</span></tt>. The reason to keep it
+is to be able to reproduce the info-section exactly, with the correct
+info-hash.</p>
 <pre class="literal-block">
 struct file_entry
 {
         boost::filesystem::path path;
         size_type offset;
         size_type size;
+        boost::scoped_ptr&lt;boost::filesystem::path&gt; orig_path;
 };
 </pre>
 </div>
