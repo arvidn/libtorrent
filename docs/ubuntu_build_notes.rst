@@ -18,25 +18,25 @@ To build libtorrent, you need the following libraries:
 Step 1: Acquire the source code from cvs
 ========================================
 
-1. Create a directory for the project::
+Create a directory for the project::
 
-      mkdir /home/you/work
-      cd /home/you/work
+   mkdir /home/you/work
+   cd /home/you/work
 
-2. Check out ``boost``, ``libtorrent``, ``asio`` source code from cvs
-   by executing the following commands::
+Check out ``boost``, ``libtorrent``, ``asio`` source code from cvs
+by executing the following commands::
 
-      cvs -d:pserver:anonymous@boost.cvs.sourceforge.net:/cvsroot/boost login
-      cvs -z3 -d:pserver:anonymous@boost.cvs.sourceforge.net:/cvsroot/boost checkout boost
-      cvs -d:pserver:anonymous@boost.cvs.sourceforge.net:/cvsroot/boost logout
+   cvs -d:pserver:anonymous@boost.cvs.sourceforge.net:/cvsroot/boost login
+   cvs -z3 -d:pserver:anonymous@boost.cvs.sourceforge.net:/cvsroot/boost checkout boost
+   cvs -d:pserver:anonymous@boost.cvs.sourceforge.net:/cvsroot/boost logout
 
-      cvs -d:pserver:anonym...@libtorrent.cvs.sourceforge.net:/cvsroot/libtorrent login
-      cvs -z3 -d:pserver:anonym...@libtorrent.cvs.sourceforge.net:/cvsroot/libtorrent co -P libtorrent
-      cvs -d:pserver:anonym...@libtorrent.cvs.sourceforge.net:/cvsroot/libtorrent logout
+   cvs -d:pserver:anonym...@libtorrent.cvs.sourceforge.net:/cvsroot/libtorrent login
+   cvs -z3 -d:pserver:anonym...@libtorrent.cvs.sourceforge.net:/cvsroot/libtorrent co -P libtorrent
+   cvs -d:pserver:anonym...@libtorrent.cvs.sourceforge.net:/cvsroot/libtorrent logout
 
-      cvs -d:pserver:anonym...@asio.cvs.sourceforge.net:/cvsroot/asio login
-      cvs -z3 -d:pserver:anonym...@asio.cvs.sourceforge.net:/cvsroot/asio co -P asio
-      cvs -d:pserver:anonym...@asio.cvs.sourceforge.net:/cvsroot/asio login
+   cvs -d:pserver:anonym...@asio.cvs.sourceforge.net:/cvsroot/asio login
+   cvs -z3 -d:pserver:anonym...@asio.cvs.sourceforge.net:/cvsroot/asio co -P asio
+   cvs -d:pserver:anonym...@asio.cvs.sourceforge.net:/cvsroot/asio login
 
 Step 2: Building boost
 ======================
