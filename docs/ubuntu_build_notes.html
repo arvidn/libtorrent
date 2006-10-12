@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.9: http://docutils.sourceforge.net/" />
+<title>Building libtorrent on Ubuntu 6.06</title>
+<meta name="date" content="Oct 12, 2006" />
+<meta name="author" content="Xi Stan" />
+<link rel="stylesheet" href="style.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="building-libtorrent-on-ubuntu-6-06">
+<h1 class="title">Building libtorrent on Ubuntu 6.06</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Date:</th>
+<td>Oct 12, 2006</td></tr>
+<tr><th class="docinfo-name">Author:</th>
+<td>Xi Stan</td></tr>
+<tr><th class="docinfo-name">Contact:</th>
+<td><a class="first last reference" href="mailto:stan8688&#64;gmail.com">stan8688&#64;gmail.com</a></td></tr>
+</tbody>
+</table>
+<div class="section" id="prerequisites">
+<h1><a name="prerequisites">Prerequisites</a></h1>
+<p>To build libtorrent, you need the following libraries:</p>
+<ul class="simple">
+<li><a class="reference" href="http://www.rasterbar.com/products/libtorrent/index.html">http://www.rasterbar.com/products/libtorrent/index.html</a></li>
+<li><a class="reference" href="http://www.boost.org">http://www.boost.org</a></li>
+<li><a class="reference" href="http://asio.sourceforge.net/">http://asio.sourceforge.net/</a></li>
+</ul>
+</div>
+<div class="section" id="step-1-acquire-the-source-code-from-cvs">
+<h1><a name="step-1-acquire-the-source-code-from-cvs">Step 1: Acquire the source code from cvs</a></h1>
+<ol class="arabic">
+<li><p class="first">Create a directory for the project:</p>
+<pre class="literal-block">
+mkdir /home/you/work
+cd /home/you/work
+</pre>
+</li>
+<li><p class="first">Check out <tt class="docutils literal"><span class="pre">boost</span></tt>, <tt class="docutils literal"><span class="pre">libtorrent</span></tt>, <tt class="docutils literal"><span class="pre">asio</span></tt> source code from cvs
+by executing the following commands:</p>
+<pre class="literal-block">
+cvs -d:pserver:anonymous&#64;boost.cvs.sourceforge.net:/cvsroot/boost login
+cvs -z3 -d:pserver:anonymous&#64;boost.cvs.sourceforge.net:/cvsroot/boost checkout boost
+cvs -d:pserver:anonymous&#64;boost.cvs.sourceforge.net:/cvsroot/boost logout
+
+cvs -d:pserver:anonym...&#64;libtorrent.cvs.sourceforge.net:/cvsroot/libtorrent login
+cvs -z3 -d:pserver:anonym...&#64;libtorrent.cvs.sourceforge.net:/cvsroot/libtorrent co -P libtorrent
+cvs -d:pserver:anonym...&#64;libtorrent.cvs.sourceforge.net:/cvsroot/libtorrent logout
+
+cvs -d:pserver:anonym...&#64;asio.cvs.sourceforge.net:/cvsroot/asio login
+cvs -z3 -d:pserver:anonym...&#64;asio.cvs.sourceforge.net:/cvsroot/asio co -P asio
+cvs -d:pserver:anonym...&#64;asio.cvs.sourceforge.net:/cvsroot/asio login
+</pre>
+</li>
+</ol>
+</div>
+<div class="section" id="step-2-building-boost">
+<h1><a name="step-2-building-boost">Step 2: Building boost</a></h1>
+<p>To build boost, first build boost-build and then use that to build
+the library themselves:</p>
+<pre class="literal-block">
+cd /home/you/boost
+set BOOST_BUILD_PATH=/home/you/boost/tools/build/v2
+set BOOST_ROOT=/home/you/boost
+cd /home/you/boost/tools/build/boost-build/jam_src
+./build.sh
+cp /bin.linuxx86/bjam /usr/bin
+cd /home/you/boost
+bjam -sTOOLS=gcc install
+</pre>
+<p>If you're successful you will see the followinf files in <tt class="docutils literal"><span class="pre">/usr/local/lib</span></tt>:</p>
+<pre class="literal-block">
+libboost_date_time-gcc-d-1_31.so
+libboost_date_time-gcc-mt-d-1_31.so
+libboost_date_time-gcc-1_31.so
+libboost_date_time-gcc-mt-1_31.so
+libboost_date_time-gcc-d-1_31.a
+libboost_date_time-gcc-mt-d-1_31.a
+libboost_date_time-gcc-1_31.a
+libboost_date_time-gcc-mt-1_31.a
+</pre>
+</div>
+<div class="section" id="step-3-copy-asio-into-the-libtorrent-directory">
+<h1><a name="step-3-copy-asio-into-the-libtorrent-directory">Step 3: Copy asio into the libtorrent directory</a></h1>
+<p>Execute the following command:</p>
+<pre class="literal-block">
+cp -R /home/you/asio/include/asio* /home/you/libtorrent/include/libtorrent
+</pre>
+</div>
+<div class="section" id="step-4-building-libtorrent">
+<h1><a name="step-4-building-libtorrent">Step 4: Building libtorrent</a></h1>
+<p>To use the auto tools to build libtorrent, execute the following commands:</p>
+<pre class="literal-block">
+cd /home/you/libtorrent
+export CXXFLAGS=-I/usr/local/include/boost-1_35
+export LDFLAGS=-L/usr/local/lib
+
+./configure --with-boost-date-time=boost_date_time-gcc \
+--with-boost-filesystem=boost_filesystem-gcc \
+--with-boost-thread=boost_thread-gcc-mt
+
+make
+sudo make install
+</pre>
+<p>If successful, you will see the following file:</p>
+<pre class="literal-block">
+/usr/local/lib/libtorrent.a
+/usr/local/lib/libtorrent.so.0
+/usr/local/lib/libtorrent.la
+/usr/local/lib/libtorrent.so.0.1.0
+/usr/local/lib/libtorrent.so
+</pre>
+</div>
+</div>
+</body>
+</html>

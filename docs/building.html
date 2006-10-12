@@ -22,11 +22,11 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first"><a name="table-of-contents">Table of contents</a></p>
 <ul class="simple">
-<li><a class="reference" href="#downloading-and-building" id="id6" name="id6">downloading and building</a><ul>
-<li><a class="reference" href="#building-with-bbv2" id="id7" name="id7">building with BBv2</a></li>
-<li><a class="reference" href="#building-with-autotools" id="id8" name="id8">building with autotools</a></li>
-<li><a class="reference" href="#building-with-other-build-systems" id="id9" name="id9">building with other build systems</a></li>
-<li><a class="reference" href="#build-configurations" id="id10" name="id10">build configurations</a></li>
+<li><a class="reference" href="#downloading-and-building" id="id7" name="id7">downloading and building</a><ul>
+<li><a class="reference" href="#building-with-bbv2" id="id8" name="id8">building with BBv2</a></li>
+<li><a class="reference" href="#building-with-autotools" id="id9" name="id9">building with autotools</a></li>
+<li><a class="reference" href="#building-with-other-build-systems" id="id10" name="id10">building with other build systems</a></li>
+<li><a class="reference" href="#build-configurations" id="id11" name="id11">build configurations</a></li>
 </ul>
 </li>
 </ul>
@@ -39,6 +39,8 @@ You'll find instructions on how to do this <a class="reference" href="http://sou
 (BBv2) and autotools (for unix-like systems). If you still can't build after
 following these instructions, you can usually get help in the <tt class="docutils literal"><span class="pre">#libtorrent</span></tt>
 IRC channel on <tt class="docutils literal"><span class="pre">irc.freenode.net</span></tt>.</p>
+<p>If you want to build the cvs version on Ubuntu (and possibly other Linux
+distros), see <a class="reference" href="ubuntu_build_notes.html">this</a> document.</p>
 <div class="section" id="building-with-bbv2">
 <h2><a name="building-with-bbv2">building with BBv2</a></h2>
 <p>The primary reason to use boost-build is that it will automatically build the
@@ -334,8 +336,8 @@ with the following option:</p>
 </pre>
 <p>The above option make use of -DNDEBUG, which is used throughout libtorrent.</p>
 </div>
-<div class="section" id="id5">
-<h3><a name="id5">Step 3: Building libtorrent</a></h3>
+<div class="section" id="id6">
+<h3><a name="id6">Step 3: Building libtorrent</a></h3>
 <p>Once the configure script is run successfully, you just type <tt class="docutils literal"><span class="pre">make</span></tt> and
 libtorrent, the examples and the tests will be built.</p>
 <p>When libtorrent is built it may be a good idea to run the tests, you do this
