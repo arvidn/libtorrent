@@ -854,7 +854,14 @@ The filenames are encoded with UTF-8.
 
 ``size`` is the size of the file (in bytes) and ``offset`` is the byte offset
 of the file within the torrent. i.e. the sum of all the sizes of the files
-before this one in the file list this one in the file list..
+before this one in the file list this one in the file list.
+
+``orig_path`` is set to 0 in case the path element is an exact copy of that
+found in the metadata. In case the path in the original metadata was
+incorrectly encoded, and had to be fixed in order to be acceptable utf-8,
+the original string is preserved in ``orig_path``. The reason to keep it
+is to be able to reproduce the info-section exactly, with the correct
+info-hash.
 
 ::
 
@@ -863,6 +870,7 @@ before this one in the file list this one in the file list..
 		boost::filesystem::path path;
 		size_type offset;
 		size_type size;
+		boost::shared_ptr<boost::filesystem::path> orig_path;
 	};
 
 

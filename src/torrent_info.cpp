@@ -62,6 +62,98 @@ using namespace boost::filesystem;
 
 namespace
 {
+	void convert_to_utf8(std::string& str, unsigned char chr)
+	{
+		str += 0xc0 | ((chr & 0xff) >> 6);
+		str += 0x80 | (chr & 0x3f);
+	}
+
+	void verify_encoding(file_entry& target)
+	{
+		std::string tmp_path;
+		std::string file_path = target.path.string();
+		bool valid_encoding = true;
+		for (std::string::iterator i = file_path.begin()
+			, end(file_path.end()); i != end; ++i)
+		{
+			// valid ascii-character
+			if ((*i & 0x80) == 0)
+			{
+				tmp_path += *i;
+				continue;
+			}
+			
+			if (std::distance(i, end) < 2)
+			{
+				convert_to_utf8(tmp_path, *i);
+				valid_encoding = false;
+				continue;
+			}
+			
+			// valid 2-byte utf-8 character
+			if ((i[0] & 0xe0) == 0xc0
+				&& (i[1] & 0xc0) == 0x80)
+			{
+				tmp_path += i[0];
+				tmp_path += i[1];
+				i += 1;
+				continue;
+			}
+
+			if (std::distance(i, end) < 3)
+			{
+				convert_to_utf8(tmp_path, *i);
+				valid_encoding = false;
+				continue;
+			}
+
+			// valid 3-byte utf-8 character
+			if ((i[0] & 0xf0) == 0xe0
+				&& (i[1] & 0xc0) == 0x80
+				&& (i[2] & 0xc0) == 0x80)
+			{
+				tmp_path += i[0];
+				tmp_path += i[1];
+				tmp_path += i[2];
+				i += 2;
+				continue;
+			}
+
+			if (std::distance(i, end) < 4)
+			{
+				convert_to_utf8(tmp_path, *i);
+				valid_encoding = false;
+				continue;
+			}
+
+			// valid 4-byte utf-8 character
+			if ((i[0] & 0xf0) == 0xe0
+				&& (i[1] & 0xc0) == 0x80
+				&& (i[2] & 0xc0) == 0x80
+				&& (i[3] & 0xc0) == 0x80)
+			{
+				tmp_path += i[0];
+				tmp_path += i[1];
+				tmp_path += i[2];
+				tmp_path += i[3];
+				i += 3;
+				continue;
+			}
+
+			convert_to_utf8(tmp_path, *i);
+			valid_encoding = false;
+		}
+		// the encoding was not valid utf-8
+		// save the original encoding and replace the
+		// commonly used path with the correctly
+		// encoded string
+		if (!valid_encoding)
+		{
+			target.orig_path.reset(new path(target.path));
+			target.path = tmp_path;
+		}
+	}
+
 	void extract_single_file(const entry& dict, file_entry& target
 		, std::string const& root_dir)
 	{
@@ -89,6 +181,7 @@ namespace
 			if (i->string() != "..")
 				target.path /= i->string();
 		}
+		verify_encoding(target);
 		if (target.path.is_complete()) throw std::runtime_error("torrent contains "
 			"a file with an absolute path: '"
 			+ target.path.native_file_string() + "'");
@@ -501,7 +594,7 @@ namespace libtorrent
 				files = entry(entry::list_t);
 
 				for (std::vector<file_entry>::const_iterator i = m_files.begin();
-						i != m_files.end(); ++i)
+					i != m_files.end(); ++i)
 				{
 					files.list().push_back(entry(entry::dictionary_t));
 					entry& file_e = files.list().back();
@@ -509,12 +602,14 @@ namespace libtorrent
 					entry& path_e = file_e["path"];
 					path_e = entry(entry::list_t);
 
-					fs::path const& file_path(i->path);
-					assert(file_path.has_branch_path());
-					assert(*file_path.begin() == m_name);
+					fs::path const* file_path;
+					if (i->orig_path) file_path = &(*i->orig_path);
+					else file_path = &i->path;
+					assert(file_path->has_branch_path());
+					assert(*file_path->begin() == m_name);
 
-					for (fs::path::iterator j = boost::next(file_path.begin());
-						j != file_path.end(); ++j)
+					for (fs::path::iterator j = boost::next(file_path->begin());
+						j != file_path->end(); ++j)
 					{
 						path_e.list().push_back(entry(*j));
 					}

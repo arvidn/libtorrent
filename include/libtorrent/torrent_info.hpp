@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/date_time/gregorian/gregorian_types.hpp>
 #include <boost/optional.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/shared_ptr.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -65,6 +66,11 @@ namespace libtorrent
 		boost::filesystem::path path;
 		size_type offset; // the offset of this file inside the torrent
 		size_type size; // the size of this file
+		// if the path was incorrectly encoded, this is
+		// the origianal corrupt encoded string. It is
+		// preserved in order to be able to reproduce
+		// the correct info-hash
+		boost::shared_ptr<boost::filesystem::path> orig_path;
 	};
 
 	struct TORRENT_EXPORT file_slice
