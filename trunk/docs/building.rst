@@ -21,6 +21,10 @@ The build systems supported "out of the box" in libtorrent are boost-build v2
 following these instructions, you can usually get help in the ``#libtorrent``
 IRC channel on ``irc.freenode.net``.
 
+If you want to build the cvs version on Ubuntu (and possibly other Linux
+distros), see this__ document.
+
+__ ubuntu_build_notes.html
 
 building with BBv2
 ------------------
