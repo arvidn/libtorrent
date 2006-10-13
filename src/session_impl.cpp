@@ -1411,6 +1411,7 @@ namespace libtorrent { namespace detail
 
 	session_status session_impl::status() const
 	{
+		mutex_t::scoped_lock l(m_mutex);
 		session_status s;
 		s.has_incoming_connections = m_incoming_connection;
 		s.num_peers = (int)m_connections.size();
@@ -1450,6 +1451,7 @@ namespace libtorrent { namespace detail
 
 	void session_impl::start_dht(entry const& startup_state)
 	{
+		mutex_t::scoped_lock l(m_mutex);
 		m_dht.reset(new dht::dht_tracker(m_selector
 			, m_dht_settings, m_listen_interface.address()
 			, startup_state));
@@ -1457,11 +1459,13 @@ namespace libtorrent { namespace detail
 
 	void session_impl::stop_dht()
 	{
+		mutex_t::scoped_lock l(m_mutex);
 		m_dht.reset();
 	}
 
 	void session_impl::set_dht_settings(dht_settings const& settings)
 	{
+		mutex_t::scoped_lock l(m_mutex);
 		if (settings.service_port != m_dht_settings.service_port
 			&& m_dht)
 		{
@@ -1474,18 +1478,21 @@ namespace libtorrent { namespace detail
 	entry session_impl::dht_state() const
 	{
 		assert(m_dht);
+		mutex_t::scoped_lock l(m_mutex);
 		return m_dht->state();
 	}
 
 	void session_impl::add_dht_node(std::pair<std::string, int> const& node)
 	{
 		assert(m_dht);
+		mutex_t::scoped_lock l(m_mutex);
 		m_dht->add_node(node);
 	}
 
 	void session_impl::add_dht_router(std::pair<std::string, int> const& node)
 	{
 		assert(m_dht);
+		mutex_t::scoped_lock l(m_mutex);
 		m_dht->add_router_node(node);
 	}
 
