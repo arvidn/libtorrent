@@ -1,5 +1,8 @@
+release 0.11
+
 	* added support for incorrectly encoded paths in torrent files
 	  (assumes Latin-1 encoding and converts to UTF-8).
+	* added support for destructing session objects asynchronously.
 	* fixed bug with file_progress() with files = 0 bytes
 	* fixed a race condition bug in udp_tracker_connection that could
 	  cause a crash.

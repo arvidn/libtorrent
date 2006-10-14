@@ -957,7 +957,7 @@ struct file_entry
         boost::filesystem::path path;
         size_type offset;
         size_type size;
-        boost::scoped_ptr&lt;boost::filesystem::path&gt; orig_path;
+        boost::shared_ptr&lt;const boost::filesystem::path&gt; orig_path;
 };
 </pre>
 </div>

@@ -70,7 +70,7 @@ namespace libtorrent
 		// the origianal corrupt encoded string. It is
 		// preserved in order to be able to reproduce
 		// the correct info-hash
-		boost::shared_ptr<boost::filesystem::path> orig_path;
+		boost::shared_ptr<const boost::filesystem::path> orig_path;
 	};
 
 	struct TORRENT_EXPORT file_slice
