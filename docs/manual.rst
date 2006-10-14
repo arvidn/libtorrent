@@ -870,7 +870,7 @@ info-hash.
 		boost::filesystem::path path;
 		size_type offset;
 		size_type size;
-		boost::shared_ptr<boost::filesystem::path> orig_path;
+		boost::shared_ptr<const boost::filesystem::path> orig_path;
 	};
 
 
