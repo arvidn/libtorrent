@@ -1222,6 +1222,14 @@ struct torrent_handle
 <p>The default constructor will initialize the handle to an invalid state. Which means you cannot
 perform any operation on it, unless you first assign it a valid handle. If you try to perform
 any operation on an uninitialized handle, it will throw <tt class="docutils literal"><span class="pre">invalid_handle</span></tt>.</p>
+<div class="warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">All operations on a <tt class="docutils literal"><span class="pre">torrent_handle</span></tt> may throw <a class="reference" href="#invalid-handle">invalid_handle</a>
+exception, in case the handle is no longer refering to a torrent. There are
+two exceptions, <tt class="docutils literal"><span class="pre">info_hash()</span></tt> and <tt class="docutils literal"><span class="pre">is_valid()</span></tt> will never throw.
+Since the torrents are processed by a background thread, there is no
+guarantee that a handle will remain valid between two calls.</p>
+</div>
 <p><em>TODO: document filter_piece(), filter_pieces(), is_piece_filtered(), filtered_pieces() and filter_files()</em></p>
 <div class="section" id="file-progress">
 <h2><a name="file-progress">file_progress()</a></h2>

@@ -1160,6 +1160,12 @@ The default constructor will initialize the handle to an invalid state. Which me
 perform any operation on it, unless you first assign it a valid handle. If you try to perform
 any operation on an uninitialized handle, it will throw ``invalid_handle``.
 
+.. warning:: All operations on a ``torrent_handle`` may throw invalid_handle_
+	exception, in case the handle is no longer refering to a torrent. There are
+	two exceptions, ``info_hash()`` and ``is_valid()`` will never throw.
+	Since the torrents are processed by a background thread, there is no
+	guarantee that a handle will remain valid between two calls.
+
 *TODO: document filter_piece(), filter_pieces(), is_piece_filtered(), filtered_pieces() and filter_files()*
 
 file_progress()
