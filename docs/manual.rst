@@ -175,7 +175,12 @@ destruction of the session is performed from the ``session`` destructor call unt
 on it (since the session is being closed down, no operations are allowed on it). The
 only valid operation is calling the destructor::
 
-	class session_proxy { ~session_proxy() };
+	class session_proxy
+	{
+	public:
+		session_proxy();
+		~session_proxy()
+	};
 
 
 add_torrent()
