@@ -109,6 +109,8 @@ namespace libtorrent
 	class TORRENT_EXPORT session_proxy
 	{
 		friend class session;
+	public:
+		session_proxy() {}
 	private:
 		session_proxy(boost::shared_ptr<aux::session_impl> impl)
 			: m_impl(impl) {}
