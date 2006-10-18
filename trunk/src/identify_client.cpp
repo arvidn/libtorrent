@@ -149,6 +149,7 @@ namespace
 		, map_entry("BX", "BittorrentX")
 		, map_entry("CD", "Enhanced CTorrent")
 		, map_entry("CT", "CTorrent")
+		, map_entry("DE", "Deluge")
 		, map_entry("ES", "electric sheep")
 		, map_entry("KT", "KTorrent")
 		, map_entry("LP", "lphant")
