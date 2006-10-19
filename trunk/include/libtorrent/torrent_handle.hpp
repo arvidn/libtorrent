@@ -215,7 +215,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT torrent_handle
 	{
 		friend class invariant_access;
-		friend class aux::session_impl;
+		friend struct aux::session_impl;
 		friend class torrent;
 
 		torrent_handle(): m_ses(0), m_chk(0) {}
