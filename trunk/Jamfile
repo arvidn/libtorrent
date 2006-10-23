@@ -119,6 +119,7 @@ project torrent
 	: usage-requirements 
 
 	<include>./include
+	<include>./include/libtorrent
 	<include>$(BOOST_ROOT)
 	<variant>release:<define>NDEBUG
 	<define>BOOST_ALL_NO_LIB
