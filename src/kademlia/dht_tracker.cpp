@@ -239,7 +239,6 @@ namespace libtorrent { namespace dht
 		m_socket.close();
 		m_socket.open(asio::ip::udp::v4());
 		m_socket.bind(udp::endpoint(listen_interface, listen_port));
-		assert(m_settings.service_port == listen_port);
 	}
 
 	void dht_tracker::tick(asio::error const& e)
