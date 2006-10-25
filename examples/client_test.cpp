@@ -316,7 +316,7 @@ void add_torrent(libtorrent::session& ses
 	, float preferred_ratio
 	, bool compact_mode
 	, path const& save_path
-	, bool monitored_dir)
+	, bool monitored_dir) try
 {
 	using namespace libtorrent;
 
@@ -351,6 +351,7 @@ void add_torrent(libtorrent::session& ses
 	h.set_ratio(preferred_ratio);
 	h.set_sequenced_download_threshold(15);
 }
+catch (std::exception&) {}
 
 void scan_dir(path const& dir_path
 	, libtorrent::session& ses
