@@ -199,6 +199,9 @@ void routing_table::node_failed(node_id const& id)
 		, bind(&node_entry::id, _1), id));
 
 	if (i == b.end()) return;
+	
+	// if messages to ourself fails, ignore it
+	if (bucket_index == 0) return;
 
 	if (rb.empty())
 	{
