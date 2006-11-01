@@ -57,6 +57,7 @@ libtorrent/kademlia/routing_table.hpp \
 libtorrent/kademlia/rpc_manager.hpp \
 libtorrent/kademlia/traversal_algorithm.hpp \
 \
+libtorrent/asio.hpp \
 libtorrent/asio/basic_datagram_socket.hpp \
 libtorrent/asio/basic_deadline_timer.hpp \
 libtorrent/asio/basic_io_object.hpp \
