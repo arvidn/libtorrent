@@ -109,6 +109,10 @@ project torrent
 # these compiler settings just makes the compiler standard conforming
 	<toolset>msvc:<cxxflags>/Zc:wchar_t
 	<toolset>msvc:<cxxflags>/Zc:forScope
+# disable bogus deprecation warnings on msvc8
+	<toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
+	<toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
+
 # this should be defined when libtorrent is built as
 # a dll. It will make sure the functions and classes
 # are exported (GCC 4 and msvc)
