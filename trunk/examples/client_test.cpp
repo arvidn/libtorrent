@@ -351,7 +351,7 @@ void add_torrent(libtorrent::session& ses
 	h.set_ratio(preferred_ratio);
 	h.set_sequenced_download_threshold(15);
 }
-catch (std::exception&) {}
+catch (std::exception&) {};
 
 void scan_dir(path const& dir_path
 	, libtorrent::session& ses
