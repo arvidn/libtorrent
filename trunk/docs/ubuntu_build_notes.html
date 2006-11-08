@@ -22,6 +22,8 @@
 <td>Xi Stan</td></tr>
 <tr><th class="docinfo-name">Contact:</th>
 <td><a class="first last reference" href="mailto:stan8688&#64;gmail.com">stan8688&#64;gmail.com</a></td></tr>
+<tr class="field"><th class="docinfo-name">Last Updates:</th><td class="field-body">Francois Dermu, Nov 6 18:24 PST 2006</td>
+</tr>
 </tbody>
 </table>
 <div class="section" id="prerequisites">
@@ -37,11 +39,12 @@
 <h1><a name="step-1-acquire-the-source-code-from-cvs">Step 1: Acquire the source code from cvs</a></h1>
 <p>Create a directory for the project:</p>
 <pre class="literal-block">
-mkdir /home/you/work
-cd /home/you/work
+mkdir ${HOME}/work
+cd ${HOME}/work
 </pre>
 <p>Check out <tt class="docutils literal"><span class="pre">boost</span></tt>, <tt class="docutils literal"><span class="pre">libtorrent</span></tt>, <tt class="docutils literal"><span class="pre">asio</span></tt> source code from cvs
 by executing the following commands:</p>
+<p><em>No password needed (just hit enter when prompted)</em></p>
 <pre class="literal-block">
 cvs -d:pserver:anonymous&#64;boost.cvs.sourceforge.net:/cvsroot/boost login
 cvs -z3 -d:pserver:anonymous&#64;boost.cvs.sourceforge.net:/cvsroot/boost checkout boost
@@ -59,18 +62,19 @@ cvs -d:pserver:anonymous&#64;asio.cvs.sourceforge.net:/cvsroot/asio login
 <div class="section" id="step-2-building-boost">
 <h1><a name="step-2-building-boost">Step 2: Building boost</a></h1>
 <p>To build boost, first build boost-build and then use that to build
-the library themselves:</p>
+the libraries themselves:</p>
 <pre class="literal-block">
-cd /home/you/boost
-set BOOST_BUILD_PATH=/home/you/boost/tools/build/v2
-set BOOST_ROOT=/home/you/boost
-cd /home/you/boost/tools/build/boost-build/jam_src
+BASE_DIR=${HOME} <em>### Feel free to change this one.</em>
+BOOST_ROOT=${BASE_DIR}/boost
+BOOST_BUILD_PATH=${BOOST_ROOT}/tools/build/v2
+cd ${BOOST_ROOT}/tools/jam/src
 ./build.sh
-cp /bin.linuxx86/bjam /usr/bin
-cd /home/you/boost
-bjam -sTOOLS=gcc install
+sudo cp ./bin.linuxx86/bjam /usr/bin
+cd $BOOST_ROOT
+sudo bjam -sTOOLS=gcc install
 </pre>
-<p>If you're successful you will see the followinf files in <tt class="docutils literal"><span class="pre">/usr/local/lib</span></tt>:</p>
+<p><em>It takes about 45 min. (so if you want to grap a coke, now is the time)</em></p>
+<p>If you're successful you will see the following files in <tt class="docutils literal"><span class="pre">/usr/local/lib</span></tt>:</p>
 <pre class="literal-block">
 libboost_date_time-gcc-d-1_31.so
 libboost_date_time-gcc-mt-d-1_31.so
@@ -84,18 +88,51 @@ libboost_date_time-gcc-mt-1_31.a
 </div>
 <div class="section" id="step-3-copy-asio-into-the-libtorrent-directory">
 <h1><a name="step-3-copy-asio-into-the-libtorrent-directory">Step 3: Copy asio into the libtorrent directory</a></h1>
+<p>Skip this step if you're using a released tarball.</p>
 <p>Execute the following command:</p>
 <pre class="literal-block">
-cp -R /home/you/asio/include/asio* /home/you/libtorrent/include/libtorrent
+cp -R ${BASE_DIR}/asio/include/asio* ${BASE_DIR}/libtorrent/include/libtorrent
 </pre>
 </div>
 <div class="section" id="step-4-building-libtorrent">
 <h1><a name="step-4-building-libtorrent">Step 4: Building libtorrent</a></h1>
+<div class="section" id="building-with-autotools">
+<h2><a name="building-with-autotools">building with autotools</a></h2>
+<p>First of all, you need to install automake and autoconf. Many unix/linux systems
+comes with these preinstalled. The prerequisites for building libtorrent are
+boost.thread, boost.date_time and boost.filesystem. Those are the <em>compiled</em> boost
+libraries needed. The headers-only libraries needed include (but is not necessarily
+limited to) boost.bind, boost.ref, boost.multi_index, boost.optional,
+boost.lexical_cast, boost.integer, boost.iterator, boost.tuple, boost.array,
+boost.function, boost.smart_ptr, boost.preprocessor, boost.static_assert.</p>
+<p>If you want to build the client_test example, you'll also need boost.regex and boost.program_options.</p>
+</div>
+<div class="section" id="generating-the-build-system">
+<h2><a name="generating-the-build-system">generating the build system</a></h2>
+<p>No build system is present if libtorrent is checked out from CVS - it needs to be
+generated first. If you're building from a released tarball, you may skip directly
+to <a class="reference" href="#running-configure">running configure</a>.</p>
+<p>Execute the following commands, in the given order, to generate the build system:</p>
+<pre class="literal-block">
+cd ${BASE_DIR}/libtorrent
+CXXFLAGS=&quot;-I/usr/local/include/boost-1_35 -I${BASE_DIR}/libtorrent/include/libtorrent&quot;
+LDFLAGS=-L/usr/local/lib
+
+aclocal -I m4
+autoheader
+libtoolize --copy --force
+automake --add-missing --copy --gnu
+autoconf
+</pre>
+<p>On darwin/OSX you have to run glibtoolize instead of libtoolize.</p>
+</div>
+<div class="section" id="running-configure">
+<h2><a name="running-configure">running configure</a></h2>
 <p>To use the auto tools to build libtorrent, execute the following commands:</p>
 <pre class="literal-block">
-cd /home/you/libtorrent
-export CXXFLAGS=-I/usr/local/include/boost-1_35
-export LDFLAGS=-L/usr/local/lib
+cd ${BASE_DIR}/libtorrent
+CXXFLAGS=&quot;-I/usr/local/include/boost-1_35 -I${BASE_DIR}/libtorrent/include/libtorrent&quot;
+LDFLAGS=-L/usr/local/lib
 
 ./configure --with-boost-date-time=boost_date_time-gcc \
 --with-boost-filesystem=boost_filesystem-gcc \
@@ -104,7 +141,7 @@ export LDFLAGS=-L/usr/local/lib
 make
 sudo make install
 </pre>
-<p>If successful, you will see the following file:</p>
+<p>If successful, you will see the following files:</p>
 <pre class="literal-block">
 /usr/local/lib/libtorrent.a
 /usr/local/lib/libtorrent.so.0
@@ -112,6 +149,7 @@ sudo make install
 /usr/local/lib/libtorrent.so.0.1.0
 /usr/local/lib/libtorrent.so
 </pre>
+</div>
 </div>
 </div>
 </body>
