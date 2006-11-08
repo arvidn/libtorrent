@@ -13,11 +13,6 @@ one you want to add.
 To advertise to other clients that you support, one bit from the reserved
 bytes is used.
 
-Right now, two bits have known usages.
-
- * [7] & 1 is used by Mainline for DHT support
- * [7] & 2 is used by XBT client for peer-exchange support
-
 The bit selected for the extension protocol is bit 20 from the right (counting
 starts at 0). So (reserved_byte[5] & 0x10) is the expression to use for checking
 if the client supports extended messaging.

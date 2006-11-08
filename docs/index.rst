@@ -8,6 +8,7 @@
 * examples_
 * `api documentation`_
 * screenshot_
+* extensions_
 * `mailing list`_ (archive_)
 * `who's using libtorrent?`_
 * `report bugs`_
@@ -33,6 +34,7 @@ libtorrent
 .. _examples: examples.html
 .. _`api documentation`: manual.html
 .. _screenshot: client_test.png
+.. _extensions: extension_protocol.html
 .. _mailing list: http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 .. _archive: http://dir.gmane.org/gmane.network.bit-torrent.libtorrent
 .. _`who's using libtorrent?`: projects.html
