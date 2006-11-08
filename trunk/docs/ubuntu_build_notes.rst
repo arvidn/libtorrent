@@ -2,10 +2,9 @@
 Building libtorrent on Ubuntu 6.06
 ==================================
 
-:Date: Oct 12, 2006
-:Author: Xi Stan
+:Date: Nov 6, 2006
+:Authors: Xi Stan, Francois Dermu
 :Contact: stan8688@gmail.com
-:Last Updates: Francois Dermu, Nov 6 18:24 PST 2006
 
 
 Prerequisites
