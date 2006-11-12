@@ -19,6 +19,10 @@
 * `ruby bindings`_
 * `python bindings`_
 
+--------
+
+* `Introduction, slides`_
+
 .. raw:: html
 
    </div>
@@ -43,6 +47,8 @@ libtorrent
 
 .. _`ruby bindings`: http://libtorrent-ruby.rubyforge.org/
 .. _`python bindings`: http://code.google.com/p/python-libtorrent/
+
+.. _`Introduction, slides`: bittorrent.pdf
 
 libtorrent is a C++ library that aims to be a good alternative to all the
 other bittorrent implementations around. It is a
