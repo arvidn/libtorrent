@@ -9,6 +9,7 @@ libtorrent/entry.hpp \
 libtorrent/escape_string.hpp \
 libtorrent/extensions.hpp \
 libtorrent/file.hpp \
+libtorrent/file_pool.hpp \
 libtorrent/fingerprint.hpp \
 libtorrent/hasher.hpp \
 libtorrent/http_tracker_connection.hpp \

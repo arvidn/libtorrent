@@ -91,7 +91,7 @@ namespace libtorrent
 	public:
 		storage(
 			const torrent_info& info
-		  , const boost::filesystem::path& path);
+			, const boost::filesystem::path& path);
 
 		void swap(storage&);
 

@@ -82,8 +82,6 @@ namespace libtorrent
 	{
 		void throw_invalid_handle()
 		{
-			// TODO: TEMP!
-			assert(false);
 			throw invalid_handle();
 		}
 			  
@@ -109,7 +107,6 @@ namespace libtorrent
 				if (t) return f(*t);
 			}
 
-			assert(false);
 			// throwing directly instead of calling
 			// the throw_invalid_handle() function
 			// avoids a warning in gcc
