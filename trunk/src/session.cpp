@@ -123,9 +123,9 @@ namespace libtorrent
 			m_impl->abort();
 	}
 
-	void session::disable_extensions()
+	void session::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*)> ext)
 	{
-		m_impl->disable_extensions();
+		m_impl->add_extension(ext);
 	}
 
 	void session::set_ip_filter(ip_filter const& f)
@@ -143,15 +143,16 @@ namespace libtorrent
 		m_impl->set_key(key);
 	}
 
-	void session::enable_extension(extension_index i)
-	{
-		m_impl->enable_extension(i);
-	}
-
 	std::vector<torrent_handle> session::get_torrents() const
 	{
 		return m_impl->get_torrents();
 	}
+	
+	torrent_handle session::find_torrent(sha1_hash const& info_hash) const
+	{
+		return m_impl->find_torrent_handle(info_hash);
+	}
+
 
 	// if the torrent already exists, this will throw duplicate_torrent
 	torrent_handle session::add_torrent(
@@ -168,12 +169,13 @@ namespace libtorrent
 	torrent_handle session::add_torrent(
 		char const* tracker_url
 		, sha1_hash const& info_hash
+		, char const* name
 		, boost::filesystem::path const& save_path
 		, entry const& e
 		, bool compact_mode
 		, int block_size)
 	{
-		return m_impl->add_torrent(tracker_url, info_hash, save_path, e
+		return m_impl->add_torrent(tracker_url, info_hash, name, save_path, e
 			, compact_mode, block_size);
 	}
 

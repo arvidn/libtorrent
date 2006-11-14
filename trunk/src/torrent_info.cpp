@@ -244,6 +244,7 @@ namespace libtorrent
 		, m_name()
 		, m_creation_date(second_clock::universal_time())
 		, m_multifile(false)
+		, m_private(false)
 		, m_extra_info(entry::dictionary_t)
 	{
 	}
@@ -255,6 +256,7 @@ namespace libtorrent
 		, m_name()
 		, m_creation_date(second_clock::universal_time())
 		, m_multifile(false)
+		, m_private(false)
 		, m_extra_info(entry::dictionary_t)
 	{
 	}
@@ -591,16 +593,14 @@ namespace libtorrent
 			if (!info.find_key("files"))
 			{
 				entry& files = info["files"];
-				files = entry(entry::list_t);
 
 				for (std::vector<file_entry>::const_iterator i = m_files.begin();
 					i != m_files.end(); ++i)
 				{
-					files.list().push_back(entry(entry::dictionary_t));
+					files.list().push_back(entry());
 					entry& file_e = files.list().back();
 					file_e["length"] = i->size;
 					entry& path_e = file_e["path"];
-					path_e = entry(entry::list_t);
 
 					fs::path const* file_path;
 					if (i->orig_path) file_path = &(*i->orig_path);
@@ -619,7 +619,6 @@ namespace libtorrent
 
 		info["piece length"] = piece_length();
 		entry& pieces = info["pieces"];
-		pieces = entry(entry::string_t);
 
 		std::string& p = pieces.string();
 
@@ -641,14 +640,14 @@ namespace libtorrent
 
 		namespace fs = boost::filesystem;
 
-		entry dict(entry::dictionary_t);
-
 		if ((m_urls.empty() && m_nodes.empty()) || m_files.empty())
 		{
 			// TODO: throw something here
 			// throw
 			return entry();
 		}
+
+		entry dict;
 
 		if (m_private) dict["private"] = 1;
 
@@ -658,7 +657,6 @@ namespace libtorrent
 		if (!m_nodes.empty())
 		{
 			entry& nodes = dict["nodes"];
-			nodes = entry(entry::list_t);
 			entry::list_type& nodes_list = nodes.list();
 			for (nodes_t::const_iterator i = m_nodes.begin()
 				, end(m_nodes.end()); i != end; ++i)
@@ -708,7 +706,6 @@ namespace libtorrent
 			else
 			{
 				entry& list = dict["url-list"];
-				list = entry(entry::list_t);
 				for (std::vector<std::string>::const_iterator i
 					= m_url_seeds.begin(); i != m_url_seeds.end(); ++i)
 				{

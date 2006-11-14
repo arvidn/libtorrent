@@ -60,7 +60,9 @@ boost::tuple<torrent_handle, torrent_handle> setup_transfer(
 	// use the same files
 	torrent_handle tor1 = ses1.add_torrent(t, "./tmp1");
 	torrent_handle tor2 = ses2.add_torrent(tracker_url
-		, t.info_hash(), "./tmp2");
+		, t.info_hash(), 0, "./tmp2");
+
+	sleep(100);
 
 	std::cerr << "connecting peer\n";
 	tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1")

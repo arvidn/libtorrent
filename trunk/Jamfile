@@ -53,6 +53,8 @@ SOURCES =
 	http_tracker_connection.cpp
 	udp_tracker_connection.cpp
 	sha1.cpp
+	metadata_transfer.cpp
+	logger.cpp
 	;
 
 KADEMLIA_SOURCES =

@@ -132,10 +132,10 @@ namespace libtorrent
 			std::string const& hostname
 			, std::string const& request);
 
-		void name_lookup(asio::error const& error, tcp::resolver::iterator i);
-		void connected(asio::error const& error);
-		void sent(asio::error const& error);
-		void receive(asio::error const& error
+		void name_lookup(asio::error_code const& error, tcp::resolver::iterator i);
+		void connected(asio::error_code const& error);
+		void sent(asio::error_code const& error);
+		void receive(asio::error_code const& error
 			, std::size_t bytes_transferred);
 
 		virtual void on_timeout();

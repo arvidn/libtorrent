@@ -6,6 +6,7 @@
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include "libtorrent/extensions/metadata_transfer.hpp"
 
 using boost::filesystem::remove_all;
 
@@ -15,6 +16,8 @@ void test_transfer(bool clear_files = true, bool disconnect = false)
 
 	session ses1;
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000));
+	ses1.add_extension(&create_metadata_plugin);
+	ses2.add_extension(&create_metadata_plugin);
 	torrent_handle tor1;
 	torrent_handle tor2;
 
@@ -61,13 +64,13 @@ int test_main()
 	using namespace boost::filesystem;
 
 	// test to disconnect one client prematurely
-	test_transfer(true, true);
+//	test_transfer(true, true);
 	
 	// test where one has data and one doesn't
 	test_transfer(true);
 
 	// test where both have data (to trigger the file check)
-	test_transfer(false);
+//	test_transfer(false);
 
 	remove_all("./tmp1");
 	remove_all("./tmp2");

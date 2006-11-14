@@ -80,6 +80,7 @@ The ``session`` class has the following synopsis::
 		torrent_handle add_torrent(
 			char const* tracker_url
 			, sha1_hash const& info_hash
+			, char const* name
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
@@ -88,10 +89,6 @@ The ``session`` class has the following synopsis::
 		session_proxy abort();
 
 		void remove_torrent(torrent_handle const& h);
-
-		void disable_extensions();
-		void enable_extension(
-			peer_connection::extension_index);
 
 		void set_settings(
 			session_settings const& settings);
@@ -198,6 +195,7 @@ add_torrent()
 		torrent_handle add_torrent(
 			char const* tracker_url
 			, sha1_hash const& info_hash
+			, char const* name
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
@@ -234,7 +232,10 @@ about the torrent's progress, its peers etc. It is also used to abort a torrent.
 The second overload that takes a tracker url and an info-hash instead of metadata
 (``torrent_info``) can be used with torrents where (at least some) peers support
 the metadata extension. For the overload to be available, libtorrent must be built
-with extensions enabled (``TORRENT_ENABLE_EXTENSIONS`` defined).
+with extensions enabled (``TORRENT_ENABLE_EXTENSIONS`` defined). It also takes an
+optional ``name`` argument. This may be 0 in case no name should be assigned to the
+torrent. In case it's not 0, the name is used for the torrent as long as it doesn't
+have metadata. See ``torrent_handle::name``.
 
 remove_torrent()
 ----------------
@@ -246,32 +247,6 @@ remove_torrent()
 ``remove_torrent()`` will close all peer connections associated with the torrent and tell
 the tracker that we've stopped participating in the swarm.
 
-
-disable_extensions() enable_extension()
----------------------------------------
-
-	::
-
-		void disable_extensions();
-		void enable_extension(peer_connection::extension_index);
-
-``disable_extensions()`` will disable all extensions available in libtorrent.
-``enable_extension()`` will enable a single extension. The available extensions
-are enumerated in the ``peer_connection`` class. These are the available extensions::
-
-	enum extension_index
-	{
-		extended_chat_message,
-		extended_metadata_message,
-		extended_peer_exchange_message,
-		extended_listen_port_message,
-		num_supported_extensions
-	};
-
-*peer_exchange is not implemented yet*
-
-By default, all extensions are enabled.
-For more information about the extensions, see the extensions_ section.
 
 set_upload_rate_limit() set_download_rate_limit()
 -------------------------------------------------
@@ -469,6 +444,9 @@ to start up the node again, passing this entry to ``start_dht``. It is a good
 idea to save this to disk when the session is closed, and read it up again
 when starting.
 
+If the port the DHT is supposed to listen on is already in use, and exception
+is thrown, ``asio::error``.
+
 ``stop_dht`` stops the dht node.
 
 ``add_dht_node`` adds a node to the routing table. This can be used if your
@@ -499,6 +477,7 @@ before it is removed from the routing table. If there are known working nodes
 that are ready to replace a failing node, it will be replaced immediately,
 this limit is only used to clear out nodes that don't have any node that can
 replace them.
+
 
 add_dht_node() add_dht_router()
 -------------------------------
@@ -1112,8 +1091,9 @@ Its declaration looks like this::
 		torrent_info const& get_torrent_info() const;
 		bool is_valid() const;
 
+		std::string name() const;
+
 		entry write_resume_data() const;
-		std::vector<char> const& metadata() const;
 		void force_reannounce() const;
 		void connect_peer(asio::ip::tcp::endpoint const& adr) const;
 
@@ -1234,6 +1214,18 @@ torrent. If the peer does not respond, or is not a member of this torrent, it wi
 be disconnected. No harm can be done by using this other than an unnecessary connection
 attempt is made. If the torrent is uninitialized or in queued or checking mode, this
 will throw invalid_handle_.
+
+
+name()
+------
+
+	::
+
+		std::string name() const;
+
+Returns the name of the torrent. i.e. the name from the metadata associated with it. In
+case the torrent was started without metadata, and hasn't completely received it yet,
+it returns the name given to it when added to the session. See ``session::add_torrent``.
 
 
 set_ratio()
@@ -1442,18 +1434,6 @@ There are three cases where this function will just return an empty ``entry``:
 Note that by the time this function returns, the resume data may already be invalid if the torrent
 is still downloading! The recommended practice is to first pause the torrent, then generate the
 fast resume data, and then close it down.
-
-
-metadata()
--------------------
-
-	::
-
-		std::vector<char> const& metadata() const;
-
-``metadata()`` will return a reference to a buffer containing the exact info part of the
-.torrent file. This buffer will be valid as long as the torrent is still running. When hashed,
-it will produce the same hash as the info-hash.
 
 
 status()
@@ -2644,9 +2624,9 @@ It is generated at severity level ``info``.
 
 ::
 
-	struct metadata_received_alert: alert
+	struct metadata_failed_alert: alert
 	{
-		metadata_received_alert(
+		metadata_failed_alert(
 			const torrent_handle& h
 			, const std::string& msg);
 			

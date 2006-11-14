@@ -208,7 +208,7 @@ namespace libtorrent { namespace dht
 		s.m_dht_torrents = m_dht.data_size();
 	}
 
-	void dht_tracker::connection_timeout(asio::error const& e)
+	void dht_tracker::connection_timeout(asio::error_code const& e)
 		try
 	{
 		if (e) return;
@@ -216,12 +216,12 @@ namespace libtorrent { namespace dht
 		m_connection_timer.expires_from_now(d);
 		m_connection_timer.async_wait(bind(&dht_tracker::connection_timeout, this, _1));
 	}
-	catch (std::exception&)
+	catch (std::exception& exc)
 	{
 		assert(false);
 	};
 
-	void dht_tracker::refresh_timeout(asio::error const& e)
+	void dht_tracker::refresh_timeout(asio::error_code const& e)
 		try
 	{
 		if (e) return;
@@ -241,7 +241,7 @@ namespace libtorrent { namespace dht
 		m_socket.bind(udp::endpoint(listen_interface, listen_port));
 	}
 
-	void dht_tracker::tick(asio::error const& e)
+	void dht_tracker::tick(asio::error_code const& e)
 		try
 	{
 		if (e) return;
@@ -346,7 +346,7 @@ namespace libtorrent { namespace dht
 
 	// translate bittorrent kademlia message into the generice kademlia message
 	// used by the library
-	void dht_tracker::on_receive(asio::error const& error, size_t bytes_transferred)
+	void dht_tracker::on_receive(asio::error_code const& error, size_t bytes_transferred)
 		try
 	{
 		if (error == asio::error::operation_aborted) return;
@@ -652,7 +652,7 @@ namespace libtorrent { namespace dht
 			, this, _1, _2));
 	}
 
-	void dht_tracker::on_name_lookup(asio::error const& e
+	void dht_tracker::on_name_lookup(asio::error_code const& e
 		, udp::resolver::iterator host) try
 	{
 		if (e || host == udp::resolver::iterator()) return;
@@ -670,7 +670,7 @@ namespace libtorrent { namespace dht
 			, this, _1, _2));
 	}
 
-	void dht_tracker::on_router_name_lookup(asio::error const& e
+	void dht_tracker::on_router_name_lookup(asio::error_code const& e
 		, udp::resolver::iterator host) try
 	{
 		if (e || host == udp::resolver::iterator()) return;

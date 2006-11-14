@@ -81,17 +81,17 @@ namespace libtorrent { namespace dht
 
 	private:
 
-		void on_name_lookup(asio::error const& e
+		void on_name_lookup(asio::error_code const& e
 			, udp::resolver::iterator host);
-		void on_router_name_lookup(asio::error const& e
+		void on_router_name_lookup(asio::error_code const& e
 			, udp::resolver::iterator host);
-		void connection_timeout(asio::error const& e);
-		void refresh_timeout(asio::error const& e);
-		void tick(asio::error const& e);
+		void connection_timeout(asio::error_code const& e);
+		void refresh_timeout(asio::error_code const& e);
+		void tick(asio::error_code const& e);
 
 		// translate bittorrent kademlia message into the generice kademlia message
 		// used by the library
-		void on_receive(asio::error const& error, size_t bytes_transferred);
+		void on_receive(asio::error_code const& error, size_t bytes_transferred);
 		void on_bootstrap();
 		void send_packet(msg const& m);
 

@@ -102,22 +102,49 @@ namespace libtorrent
 
 		~bt_peer_connection();
 
+		enum message_type
+		{
+	// standard messages
+			msg_choke = 0,
+			msg_unchoke,
+			msg_interested,
+			msg_not_interested,
+			msg_have,
+			msg_bitfield,
+			msg_request,
+			msg_piece,
+			msg_cancel,
+			msg_dht_port,
+	// extension protocol message
+			msg_extended = 20,
+
+			num_supported_messages
+		};
+
 		// called from the main loop when this connection has any
 		// work to do.
 
-		void on_sent(asio::error const& error
+		void on_sent(asio::error_code const& error
 			, std::size_t bytes_transferred);
-		void on_receive(asio::error const& error
+		void on_receive(asio::error_code const& error
 			, std::size_t bytes_transferred);
 		
 		virtual void get_peer_info(peer_info& p) const;
-
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		bool support_extensions() const { return m_supports_extensions; }
 
-		bool supports_extension(extension_index ex) const
-		{ return m_extension_messages[ex] > 0; }
-
-		bool has_metadata() const;
+		template <class T>
+		T* supports_extension() const
+		{
+			for (extension_list_t::const_iterator i = m_extensions.begin()
+				, end(m_extensions.end()); i != end; ++i)
+			{
+				T* ret = dynamic_cast<T*>(i->get());
+				if (ret) return ret;
+			}
+			return 0;
+		}
+#endif
 
 		// the message handlers are called
 		// each time a recv() returns some new
@@ -142,9 +169,6 @@ namespace libtorrent
 		void on_extended(int received);
 
 		void on_extended_handshake();
-		void on_chat();
-		void on_metadata();
-		void on_peer_exchange();
 
 		typedef void (bt_peer_connection::*message_handler)(int received);
 
@@ -160,14 +184,16 @@ namespace libtorrent
 		void write_have(int index);
 		void write_piece(peer_request const& r);
 		void write_handshake();
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		void write_extensions();
+#endif
 		void write_chat_message(const std::string& msg);
 		void write_metadata(std::pair<int, int> req);
 		void write_metadata_request(std::pair<int, int> req);
 		void write_keepalive();
 		void write_dht_port(int listen_port);
 		void on_connected() {}
-		void on_tick();
+		void on_metadata();
 
 #ifndef NDEBUG
 		void check_invariant() const;
@@ -183,11 +209,6 @@ namespace libtorrent
 		// a piece for the moment, the boost::optional
 		// will be invalid.
 		boost::optional<piece_block_progress> downloading_piece_progress() const;
-
-		// if we don't have all metadata
-		// this function will request a part of it
-		// from this peer
-		void request_metadata();
 
 		enum state
 		{
@@ -206,25 +227,6 @@ namespace libtorrent
 
 		// the timeout in seconds
 		int m_timeout;
-
-		enum message_type
-		{
-	// standard messages
-			msg_choke = 0,
-			msg_unchoke,
-			msg_interested,
-			msg_not_interested,
-			msg_have,
-			msg_bitfield,
-			msg_request,
-			msg_piece,
-			msg_cancel,
-			msg_dht_port,
-	// extension protocol message
-			msg_extended = 20,
-
-			num_supported_messages
-		};
 
 		static const message_handler m_message_handler[num_supported_messages];
 
@@ -249,43 +251,19 @@ namespace libtorrent
 		{ return r.start < 0; }
 		std::deque<range> m_payloads;
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		// this is set to true if the handshake from
 		// the peer indicated that it supports the
 		// extension protocol
 		bool m_supports_extensions;
+#endif
 		bool m_supports_dht_port;
 
-		static const char* extension_names[num_supported_extensions];
-		// contains the indices of the extension messages for each extension
-		// supported by the other end. A value of <= 0 means that the extension
-		// is not supported.
-		int m_extension_messages[num_supported_extensions];
-
-		// this is set to the current time each time we get a
-		// "I don't have metadata" message.
-		boost::posix_time::ptime m_no_metadata;
-
-		// this is set to the time when we last sent
-		// a request for metadata to this peer
-		boost::posix_time::ptime m_metadata_request;
-
-		// this is set to true when we send a metadata
-		// request to this peer, and reset to false when
-		// we receive a reply to our request.
-		bool m_waiting_metadata_request;
-
-		// if we're waiting for a metadata request
-		// this was the request we sent
-		std::pair<int, int> m_last_metadata_request;
-
-		// the number of bytes of metadata we have received
-		// so far from this per, only counting the current
-		// request. Any previously finished requests
-		// that have been forwarded to the torrent object
-		// do not count.
-		int m_metadata_progress;
-
 #ifndef NDEBUG
+		// this is set to true when the client's
+		// bitfield is sent to this peer
+		bool m_sent_bitfield;
+
 		bool m_in_constructor;
 #endif
 	};

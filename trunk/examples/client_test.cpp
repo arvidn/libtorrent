@@ -51,6 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
+#include "libtorrent/extensions/metadata_transfer.hpp"
+
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
@@ -567,6 +569,7 @@ int main(int ac, char* av[])
 		// monitor when they're not in the directory anymore.
 		handles_t handles;
 		session ses;
+		ses.add_extension(&create_metadata_plugin);
 
 #ifndef TORRENT_DISABLE_DHT
 		dht_settings s;
@@ -668,7 +671,7 @@ int main(int ac, char* av[])
 					sha1_hash info_hash = boost::lexical_cast<sha1_hash>(what[1]);
 
 					torrent_handle h = ses.add_torrent(std::string(what[2]).c_str()
-						, info_hash, save_path, entry(), compact_allocation_mode);
+						, info_hash, 0, save_path, entry(), compact_allocation_mode);
 					handles.insert(std::make_pair(std::string(), h));
 
 					h.set_max_connections(60);
