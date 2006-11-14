@@ -97,14 +97,14 @@ namespace libtorrent
 			, m_settings.tracker_receive_timeout);
 	}
 
-	void udp_tracker_connection::name_lookup(asio::error const& error
+	void udp_tracker_connection::name_lookup(asio::error_code const& error
 		, tcp::resolver::iterator i) try
 	{
 		if (error == asio::error::operation_aborted) return;
 		if (!m_socket) return; // the operation was aborted
 		if (error || i == tcp::resolver::iterator())
 		{
-			fail(-1, error.what());
+			fail(-1, error.message().c_str());
 			return;
 		}
 
@@ -162,14 +162,14 @@ namespace libtorrent
 			, boost::bind(&udp_tracker_connection::connect_response, self(), _1, _2));
 	}
 
-	void udp_tracker_connection::connect_response(asio::error const& error
+	void udp_tracker_connection::connect_response(asio::error_code const& error
 		, std::size_t bytes_transferred) try
 	{
 		if (error == asio::error::operation_aborted) return;
 		if (!m_socket) return; // the operation was aborted
 		if (error)
 		{
-			fail(-1, error.what());
+			fail(-1, error.message().c_str());
 			return;
 		}
 
@@ -328,14 +328,14 @@ namespace libtorrent
 			, bind(&udp_tracker_connection::scrape_response, self(), _1, _2));
 	}
 
-	void udp_tracker_connection::announce_response(asio::error const& error
+	void udp_tracker_connection::announce_response(asio::error_code const& error
 		, std::size_t bytes_transferred) try
 	{
 		if (error == asio::error::operation_aborted) return;
 		if (!m_socket) return; // the operation was aborted
 		if (error)
 		{
-			fail(-1, error.what());
+			fail(-1, error.message().c_str());
 			return;
 		}
 
@@ -437,14 +437,14 @@ namespace libtorrent
 		fail(-1, e.what());
 	}; // msvc 7.1 seems to require this
 
-	void udp_tracker_connection::scrape_response(asio::error const& error
+	void udp_tracker_connection::scrape_response(asio::error_code const& error
 		, std::size_t bytes_transferred) try
 	{
 		if (error == asio::error::operation_aborted) return;
 		if (!m_socket) return; // the operation was aborted
 		if (error)
 		{
-			fail(-1, error.what());
+			fail(-1, error.message().c_str());
 			return;
 		}
 

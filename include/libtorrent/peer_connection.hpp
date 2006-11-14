@@ -79,6 +79,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	class torrent;
+	struct peer_plugin;
 
 	namespace detail
 	{
@@ -116,16 +117,36 @@ namespace libtorrent
 			aux::session_impl& ses
 			, boost::shared_ptr<stream_socket> s);
 
+		virtual ~peer_connection();
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		void add_extension(boost::shared_ptr<peer_plugin>);
+#endif
+
 		// this function is called once the torrent associated
 		// with this peer connection has retrieved the meta-
 		// data. If the torrent was spawned with metadata
 		// this is called from the constructor.
 		void init();
 
+		// this is called when the metadata is retrieved
+		// and the files has been checked
+		virtual void on_metadata() {}
+
 		void set_upload_limit(int limit);
 		void set_download_limit(int limit);
 
-		virtual ~peer_connection();
+		bool prefer_whole_pieces() const
+		{ return m_prefer_whole_pieces; }
+
+		void prefer_whole_pieces(bool b)
+		{ m_prefer_whole_pieces = b; }
+
+		bool request_large_blocks() const
+		{ return m_request_large_blocks; }
+
+		void request_large_blocks(bool b)
+		{ m_request_large_blocks = b; }
 
 		// this adds an announcement in the announcement queue
 		// it will let the peer know that we have the given piece
@@ -185,7 +206,7 @@ namespace libtorrent
 		// this is called when the connection attempt has succeeded
 		// and the peer_connection is supposed to set m_connecting
 		// to false, and stop monitor writability
-		void on_connection_complete(asio::error const& e);
+		void on_connection_complete(asio::error_code const& e);
 
 		// returns true if this connection is still waiting to
 		// finish the connection attempt
@@ -212,8 +233,8 @@ namespace libtorrent
 		void add_free_upload(size_type free_upload);
 
 		// trust management.
-		void received_valid_data();
-		void received_invalid_data();
+		void received_valid_data(int index);
+		void received_invalid_data(int index);
 		int trust_points() const;
 
 		size_type share_diff() const;
@@ -290,6 +311,10 @@ namespace libtorrent
 			return boost::optional<piece_block_progress>();
 		}
 
+		void send_buffer(char const* begin, char const* end);
+		buffer::interval allocate_send_buffer(int size);
+		void setup_send();
+
 	protected:
 
 		virtual void write_choke() = 0;
@@ -305,13 +330,11 @@ namespace libtorrent
 		virtual void on_connected() = 0;
 		virtual void on_tick() {}
 	
-		virtual void on_receive(asio::error const& error
+		virtual void on_receive(asio::error_code const& error
 			, std::size_t bytes_transferred) = 0;
-		virtual void on_sent(asio::error const& error
+		virtual void on_sent(asio::error_code const& error
 			, std::size_t bytes_transferred) = 0;
 
-		void send_buffer(char const* begin, char const* end);
-		buffer::interval allocate_send_buffer(int size);
 		int send_buffer_size() const
 		{
 			return (int)m_send_buffer[0].size()
@@ -336,7 +359,6 @@ namespace libtorrent
 			return m_packet_size == m_recv_pos;
 		}
 
-		void setup_send();
 		void setup_receive();
 
 		void attach_to_torrent(sha1_hash const& ih);
@@ -357,9 +379,9 @@ namespace libtorrent
 		
 		// called from the main loop when this connection has any
 		// work to do.
-		void on_send_data(asio::error const& error
+		void on_send_data(asio::error_code const& error
 			, std::size_t bytes_transferred);
-		void on_receive_data(asio::error const& error
+		void on_receive_data(asio::error_code const& error
 			, std::size_t bytes_transferred);
 
 		// this is the limit on the number of outstanding requests
@@ -371,6 +393,11 @@ namespace libtorrent
 		int m_max_out_request_queue;
 
 		void set_timeout(int s) { m_timeout = s; }
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		typedef std::list<boost::shared_ptr<peer_plugin> > extension_list_t;
+		extension_list_t m_extensions;
+#endif
 
 	private:
 
@@ -543,6 +570,22 @@ namespace libtorrent
 		int m_last_write_size;
 		bool m_reading;
 		int m_last_read_size;		
+
+		// if set to true, this peer will always prefer
+		// to request entire pieces, rather than blocks.
+		// if it is false, the download rate limit setting
+		// will be used to determine if whole pieces
+		// are preferred.
+		bool m_prefer_whole_pieces;
+		
+		// if this is true, the blocks picked by the piece
+		// picker will be merged before passed to the
+		// request function. i.e. subsequent blocks are
+		// merged into larger blocks. This is used by
+		// the http-downloader, to request whole pieces
+		// at a time.
+		bool m_request_large_blocks;
+
 		// reference counter for intrusive_ptr
 		mutable boost::detail::atomic_count m_refs;
 

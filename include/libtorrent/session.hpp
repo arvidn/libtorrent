@@ -68,17 +68,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct torrent_plugin;
 	class torrent;
 	class ip_filter;
 
-	enum extension_index
-	{
-		extended_handshake,
-		extended_chat_message,
-		extended_metadata_message,
-		extended_peer_exchange_message,
-		num_supported_extensions
-	};
 
 	namespace aux
 	{
@@ -130,7 +123,11 @@ namespace libtorrent
 			
 		~session();
 
+		// returns a list of all torrents in this session
 		std::vector<torrent_handle> get_torrents() const;
+		
+		// returns an invalid handle in case the torrent doesn't exist
+		torrent_handle find_torrent(sha1_hash const& info_hash) const;
 
 		// all torrent_handles must be destructed before the session is destructed!
 		torrent_handle add_torrent(
@@ -155,6 +152,7 @@ namespace libtorrent
 		torrent_handle add_torrent(
 			char const* tracker_url
 			, sha1_hash const& info_hash
+			, char const* name
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
@@ -173,8 +171,11 @@ namespace libtorrent
 		void add_dht_router(std::pair<std::string, int> const& node);
 #endif
 
-		void enable_extension(extension_index i);
-		void disable_extensions();
+#ifndef TORRENT_DISABLE_EXTENSIONS
+
+		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*)> ext);
+
+#endif
 
 		void set_ip_filter(ip_filter const& f);
 		void set_peer_id(peer_id const& pid);

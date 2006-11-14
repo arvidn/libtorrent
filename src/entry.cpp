@@ -34,8 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #include "libtorrent/entry.hpp"
 #include "libtorrent/config.hpp"
-#include <boost/bind.hpp>
-#include <boost/next_prior.hpp>
 
 #if defined(_MSC_VER)
 namespace std
@@ -139,52 +137,52 @@ namespace libtorrent
 		return (*this)[key.c_str()];
 	}
 
-	entry::entry(const dictionary_type& v)
+	entry::entry(dictionary_type const& v)
 	{
 		new(data) dictionary_type(v);
 		m_type = dictionary_t;
 	}
 
-	entry::entry(const string_type& v)
+	entry::entry(string_type const& v)
 	{
 		new(data) string_type(v);
 		m_type = string_t;
 	}
 
-	entry::entry(const list_type& v)
+	entry::entry(list_type const& v)
 	{
 		new(data) list_type(v);
 		m_type = list_t;
 	}
 
-	entry::entry(const integer_type& v)
+	entry::entry(integer_type const& v)
 	{
 		new(data) integer_type(v);
 		m_type = int_t;
 	}
 
-	void entry::operator=(const dictionary_type& v)
+	void entry::operator=(dictionary_type const& v)
 	{
 		destruct();
 		new(data) dictionary_type(v);
 		m_type = dictionary_t;
 	}
 
-	void entry::operator=(const string_type& v)
+	void entry::operator=(string_type const& v)
 	{
 		destruct();
 		new(data) string_type(v);
 		m_type = string_t;
 	}
 
-	void entry::operator=(const list_type& v)
+	void entry::operator=(list_type const& v)
 	{
 		destruct();
 		new(data) list_type(v);
 		m_type = list_t;
 	}
 
-	void entry::operator=(const integer_type& v)
+	void entry::operator=(integer_type const& v)
 	{
 		destruct();
 		new(data) integer_type(v);
@@ -234,7 +232,7 @@ namespace libtorrent
 		}
 	}
 
-	void entry::copy(const entry& e)
+	void entry::copy(entry const& e)
 	{
 		m_type = e.m_type;
 		switch(m_type)

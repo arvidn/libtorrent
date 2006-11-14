@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,12 +30,25 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_VERSION_HPP_INCLUDED
-#define TORRENT_VERSION_HPP_INCLUDED
+#ifndef TORRENT_METADATA_TRANSFER_HPP_INCLUDED
+#define TORRENT_METADATA_TRANSFER_HPP_INCLUDED
 
-#define LIBTORRENT_VERSION_MAJOR 0
-#define LIBTORRENT_VERSION_MINOR 12
-
-#define LIBTORRENT_VERSION "0.12.0.0"
-
+#ifdef _MSC_VER
+#pragma warning(push, 1)
 #endif
+
+#include <boost/shared_ptr.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+namespace libtorrent
+{
+	struct torrent_plugin;
+	class torrent;
+	boost::shared_ptr<torrent_plugin> create_metadata_plugin(torrent*);
+}
+
+#endif // TORRENT_METADATA_TRANSFER_HPP_INCLUDED
+

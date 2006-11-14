@@ -128,14 +128,14 @@ namespace libtorrent
 
 		data_type type() const;
 
-		entry(const dictionary_type&);
-		entry(const string_type&);
-		entry(const list_type&);
-		entry(const integer_type&);
+		entry(dictionary_type const&);
+		entry(string_type const&);
+		entry(list_type const&);
+		entry(integer_type const&);
 
 		entry();
 		entry(data_type t);
-		entry(const entry& e);
+		entry(entry const& e);
 		~entry();
 
 		bool operator==(entry const& e) const;
@@ -221,6 +221,7 @@ namespace libtorrent
 
 	inline entry::integer_type& entry::integer()
 	{
+		if (m_type == undefined_t) construct(int_t);
 		if (m_type != int_t) throw type_error("invalid type requested from entry");
 		return *reinterpret_cast<integer_type*>(data);
 	}
@@ -233,6 +234,7 @@ namespace libtorrent
 
 	inline entry::string_type& entry::string()
 	{
+		if (m_type == undefined_t) construct(string_t);
 		if (m_type != string_t) throw type_error("invalid type requested from entry");
 		return *reinterpret_cast<string_type*>(data);
 	}
@@ -245,6 +247,7 @@ namespace libtorrent
 
 	inline entry::list_type& entry::list()
 	{
+		if (m_type == undefined_t) construct(list_t);
 		if (m_type != list_t) throw type_error("invalid type requested from entry");
 		return *reinterpret_cast<list_type*>(data);
 	}
@@ -257,6 +260,7 @@ namespace libtorrent
 
 	inline entry::dictionary_type& entry::dict()
 	{
+		if (m_type == undefined_t) construct(dictionary_t);
 		if (m_type != dictionary_t) throw type_error("invalid type requested from entry");
 		return *reinterpret_cast<dictionary_type*>(data);
 	}

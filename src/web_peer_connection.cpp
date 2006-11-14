@@ -67,7 +67,18 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		m_max_out_request_queue = ses.settings().urlseed_pipeline_size;
+		// we always prefer downloading entire
+		// pieces from web seeds
+		prefer_whole_pieces(true);
+		request_large_blocks(true);
+		shared_ptr<torrent> tor = t.lock();
+		assert(tor);
+		int blocks_per_piece = tor->torrent_file().piece_length() / tor->block_size();
+		
+		// multiply with the blocks per piece since that many requests are
+		// merged into one http request
+		m_max_out_request_queue = ses.settings().urlseed_pipeline_size
+			* blocks_per_piece;
 
 		// since this is a web seed, change the timeout
 		// according to the settings.
@@ -241,15 +252,12 @@ namespace libtorrent
 	// --------------------------
 
 	// throws exception when the client should be disconnected
-	void web_peer_connection::on_receive(const asio::error& error
+	void web_peer_connection::on_receive(asio::error_code const& error
 		, std::size_t bytes_transferred)
 	{
 		INVARIANT_CHECK;
 
-		if (error)
-		{
-			return;
-		}
+		if (error) return;
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		assert(t);
@@ -312,7 +320,7 @@ namespace libtorrent
 				, range_end - range_start);
 
 			buffer::const_interval http_body = m_parser.get_body();
-						
+
 			if (r == m_requests.front())
 			{
 				m_requests.pop_front();
@@ -430,7 +438,7 @@ namespace libtorrent
 	}
 
 	// throws exception when the client should be disconnected
-	void web_peer_connection::on_sent(asio::error const& error
+	void web_peer_connection::on_sent(asio::error_code const& error
 		, std::size_t bytes_transferred)
 	{
 		INVARIANT_CHECK;

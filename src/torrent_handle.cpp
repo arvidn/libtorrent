@@ -82,6 +82,8 @@ namespace libtorrent
 	{
 		void throw_invalid_handle()
 		{
+			// TODO: TEMP!
+			assert(false);
 			throw invalid_handle();
 		}
 			  
@@ -107,6 +109,10 @@ namespace libtorrent
 				if (t) return f(*t);
 			}
 
+			assert(false);
+			// throwing directly instead of calling
+			// the throw_invalid_handle() function
+			// avoids a warning in gcc
 			throw invalid_handle();
 		}
 	}
@@ -346,6 +352,13 @@ namespace libtorrent
 			, bind(&torrent::is_piece_filtered, _1, index));
 	}
 
+	std::string torrent_handle::name() const
+	{
+		INVARIANT_CHECK;
+		return call_member<std::string>(m_ses, m_chk, m_info_hash
+			, bind(&torrent::name, _1));
+	}
+
 	std::vector<bool> torrent_handle::filtered_pieces() const
 	{
 		INVARIANT_CHECK;
@@ -387,7 +400,7 @@ namespace libtorrent
 			, bind(&torrent::replace_trackers, _1, urls));
 	}
 
-	const torrent_info& torrent_handle::get_torrent_info() const
+	torrent_info const& torrent_handle::get_torrent_info() const
 	{
 		INVARIANT_CHECK;
 
@@ -549,14 +562,6 @@ namespace libtorrent
 			, bind(&torrent::save_path, _1));
 	}
 
-	std::vector<char> const& torrent_handle::metadata() const
-	{
-		INVARIANT_CHECK;
-
-		return call_member<std::vector<char> const&>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::metadata, _1));
-	}
-
 	void torrent_handle::connect_peer(tcp::endpoint const& adr) const
 	{
 		INVARIANT_CHECK;
@@ -653,7 +658,7 @@ namespace libtorrent
 			peer->get_peer_info(p);
 		}
 	}
-  
+/*
 	bool torrent_handle::send_chat_message(tcp::endpoint ip, std::string message) const
 	{
 		if (m_ses == 0) throw_invalid_handle();
@@ -689,7 +694,7 @@ namespace libtorrent
 		}
 		return false;
 	}
-
+*/
 	void torrent_handle::get_download_queue(std::vector<partial_piece_info>& queue) const
 	{
 		INVARIANT_CHECK;

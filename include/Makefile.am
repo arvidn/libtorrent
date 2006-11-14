@@ -7,6 +7,7 @@ libtorrent/config.hpp \
 libtorrent/debug.hpp \
 libtorrent/entry.hpp \
 libtorrent/escape_string.hpp \
+libtorrent/extensions.hpp \
 libtorrent/file.hpp \
 libtorrent/fingerprint.hpp \
 libtorrent/hasher.hpp \
@@ -43,6 +44,8 @@ libtorrent/utf8.hpp \
 libtorrent/version.hpp \
 libtorrent/aux_/allocate_resources_impl.hpp \
 libtorrent/aux_/session_impl.hpp \
+libtorrent/extensions/metadata_transfer.hpp \
+libtorrent/extensions/logger.hpp \
 \
 libtorrent/kademlia/closest_nodes.hpp \
 libtorrent/kademlia/dht_tracker.hpp \
@@ -61,7 +64,6 @@ libtorrent/asio.hpp \
 libtorrent/asio/basic_datagram_socket.hpp \
 libtorrent/asio/basic_deadline_timer.hpp \
 libtorrent/asio/basic_io_object.hpp \
-libtorrent/asio/basic_resolver.hpp \
 libtorrent/asio/basic_socket.hpp \
 libtorrent/asio/basic_socket_acceptor.hpp \
 libtorrent/asio/basic_socket_iostream.hpp \
@@ -91,11 +93,12 @@ libtorrent/asio/detail/epoll_reactor_fwd.hpp \
 libtorrent/asio/detail/event.hpp \
 libtorrent/asio/detail/fd_set_adapter.hpp \
 libtorrent/asio/detail/handler_alloc_helpers.hpp \
+libtorrent/asio/detail/handler_invoke_helpers.hpp \
 libtorrent/asio/detail/hash_map.hpp \
 libtorrent/asio/detail/io_control.hpp \
 libtorrent/asio/detail/kqueue_reactor.hpp \
 libtorrent/asio/detail/kqueue_reactor_fwd.hpp \
-libtorrent/asio/detail/handler_invoke_helpers.hpp \
+libtorrent/asio/detail/local_free_on_block_exit.hpp \
 libtorrent/asio/detail/mutex.hpp \
 libtorrent/asio/detail/noncopyable.hpp \
 libtorrent/asio/detail/null_event.hpp \
@@ -132,6 +135,7 @@ libtorrent/asio/detail/strand_service.hpp \
 libtorrent/asio/detail/task_io_service.hpp \
 libtorrent/asio/detail/task_io_service_fwd.hpp \
 libtorrent/asio/detail/thread.hpp \
+libtorrent/asio/detail/throw_error.hpp \
 libtorrent/asio/detail/timer_queue.hpp \
 libtorrent/asio/detail/timer_queue_base.hpp \
 libtorrent/asio/detail/tss_ptr.hpp \
@@ -141,7 +145,6 @@ libtorrent/asio/detail/win_iocp_io_service.hpp \
 libtorrent/asio/detail/win_iocp_io_service_fwd.hpp \
 libtorrent/asio/detail/win_iocp_operation.hpp \
 libtorrent/asio/detail/win_iocp_socket_service.hpp \
-libtorrent/asio/detail/win_local_free_on_block_exit.hpp \
 libtorrent/asio/detail/win_mutex.hpp \
 libtorrent/asio/detail/win_signal_blocker.hpp \
 libtorrent/asio/detail/win_thread.hpp \
@@ -149,9 +152,10 @@ libtorrent/asio/detail/win_tss_ptr.hpp \
 libtorrent/asio/detail/winsock_init.hpp \
 libtorrent/asio/detail/wrapped_handler.hpp \
 libtorrent/asio/error.hpp \
-libtorrent/asio/error_handler.hpp \
+libtorrent/asio/error_code.hpp \
 libtorrent/asio/handler_alloc_hook.hpp \
 libtorrent/asio/handler_invoke_hook.hpp \
+libtorrent/asio/impl/error_code.ipp \
 libtorrent/asio/impl/io_service.ipp \
 libtorrent/asio/impl/read.ipp \
 libtorrent/asio/impl/read_until.ipp \
@@ -161,6 +165,7 @@ libtorrent/asio/ip/address.hpp \
 libtorrent/asio/ip/address_v4.hpp \
 libtorrent/asio/ip/address_v6.hpp \
 libtorrent/asio/ip/basic_endpoint.hpp \
+libtorrent/asio/ip/basic_resolver.hpp \
 libtorrent/asio/ip/basic_resolver_entry.hpp \
 libtorrent/asio/ip/basic_resolver_iterator.hpp \
 libtorrent/asio/ip/basic_resolver_query.hpp \
@@ -168,6 +173,7 @@ libtorrent/asio/ip/detail/socket_option.hpp \
 libtorrent/asio/ip/host_name.hpp \
 libtorrent/asio/ip/multicast.hpp \
 libtorrent/asio/ip/resolver_query_base.hpp \
+libtorrent/asio/ip/resolver_service.hpp \
 libtorrent/asio/ip/tcp.hpp \
 libtorrent/asio/ip/udp.hpp \
 libtorrent/asio/is_read_buffered.hpp \
@@ -175,7 +181,6 @@ libtorrent/asio/is_write_buffered.hpp \
 libtorrent/asio/placeholders.hpp \
 libtorrent/asio/read.hpp \
 libtorrent/asio/read_until.hpp \
-libtorrent/asio/resolver_service.hpp \
 libtorrent/asio/socket_acceptor_service.hpp \
 libtorrent/asio/socket_base.hpp \
 libtorrent/asio/ssl/basic_context.hpp \
@@ -194,9 +199,8 @@ libtorrent/asio/ssl.hpp \
 libtorrent/asio/strand.hpp \
 libtorrent/asio/stream_socket_service.hpp \
 libtorrent/asio/streambuf.hpp \
-libtorrent/asio/system_exception.hpp \
+libtorrent/asio/system_error.hpp \
 libtorrent/asio/thread.hpp \
 libtorrent/asio/time_traits.hpp \
 libtorrent/asio/write.hpp
-
 

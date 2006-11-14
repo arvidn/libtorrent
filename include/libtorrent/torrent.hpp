@@ -74,16 +74,13 @@ namespace libtorrent
 #endif
 
 	class piece_manager;
+	struct torrent_plugin;
 
 	namespace aux
 	{
 		struct session_impl;
 		struct piece_checker_data;
 	}
-
-	int div_round_up(int numerator, int denominator);
-	std::pair<int, int> req_to_offset(std::pair<int, int> req, int total_size);
-	std::pair<int, int> offset_to_req(std::pair<int, int> offset, int total_size);
 
 	// a torrent is a class that holds information
 	// for a specific download. It updates itself against
@@ -110,6 +107,7 @@ namespace libtorrent
 			, aux::checker_impl& checker
 			, char const* tracker_url
 			, sha1_hash const& info_hash
+			, char const* name
 			, boost::filesystem::path const& save_path
 			, tcp::endpoint const& net_interface
 			, bool compact_mode
@@ -117,6 +115,10 @@ namespace libtorrent
 			, session_settings const& s);
 
 		~torrent();
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		void add_extension(boost::shared_ptr<torrent_plugin>);
+#endif
 
 		// this is called when the torrent has metadata.
 		// it will initialize the storage and the piece-picker
@@ -146,10 +148,8 @@ namespace libtorrent
 		// debug purpose only
 		void print(std::ostream& os) const;
 
-		// this is called from the peer_connection for
-		// each piece of metadata it receives
-		void metadata_progress(int total_size, int received);
-	
+		std::string name() const;
+
 		bool check_fastresume(aux::piece_checker_data&);
 		std::pair<bool, float> check_files();
 		void files_checked(std::vector<piece_picker::downloading_piece> const&
@@ -324,7 +324,7 @@ namespace libtorrent
 		
 		// this is the asio callback that is called when a name
 		// lookup for a web seed is completed.
-		void on_name_lookup(asio::error const& e, tcp::resolver::iterator i
+		void on_name_lookup(asio::error_code const& e, tcp::resolver::iterator i
 			, std::string url);
 
 		// this is called when the torrent has finished. i.e.
@@ -419,19 +419,13 @@ namespace libtorrent
 		{ return m_connections_initialized; }
 		bool valid_metadata() const
 		{ return m_storage.get() != 0; }
-		std::vector<char> const& metadata() const;
 
-		bool received_metadata(
-			char const* buf
-			, int size
-			, int offset
-			, int total_size);
-
-		// returns a range of the metadata that
-		// we should request.
-		std::pair<int, int> metadata_request();
-		void cancel_metadata_request(std::pair<int, int> req);
-
+		// parses the info section from the given
+		// bencoded tree and moves the torrent
+		// to the checker thread for initial checking
+		// of the storage.
+		void set_metadata(entry const&);
+		
 	private:
 
 		void try_next_tracker();
@@ -501,7 +495,7 @@ namespace libtorrent
 		static void on_dht_announce_response_disp(boost::weak_ptr<torrent> t
 			, std::vector<tcp::endpoint> const& peers);
 		deadline_timer m_dht_announce_timer;
-		void on_dht_announce(asio::error const& e);
+		void on_dht_announce(asio::error_code const& e);
 		void on_dht_announce_response(std::vector<tcp::endpoint> const& peers);
 #endif
 
@@ -574,29 +568,10 @@ namespace libtorrent
 		int m_upload_bandwidth_limit;
 		int m_download_bandwidth_limit;
 
-		// this buffer is filled with the info-section of
-		// the metadata file while downloading it from
-		// peers, and while sending it.
-		// it is mutable because it's generated lazily
-		mutable std::vector<char> m_metadata;
-
-		// this is a bitfield of size 256, each bit represents
-		// a piece of the metadata. It is set to one if we
-		// have that piece. This vector may be empty
-		// (size 0) if we haven't received any metadata
-		// or if we already have all metadata
-		std::vector<bool> m_have_metadata;
-		// this vector keeps track of how many times each meatdata
-		// block has been requested
-		std::vector<int> m_requested_metadata;
-
 		boost::filesystem::path m_save_path;
 
 		// determines the storage state for this torrent.
 		const bool m_compact_mode;
-
-		int m_metadata_progress;
-		int m_metadata_size;
 
 		// defaults to 16 kiB, but can be set by the user
 		// when creating the torrent
@@ -613,7 +588,18 @@ namespace libtorrent
 		// has been initialized with files_checked().
 		bool m_connections_initialized;
 
+		// if the torrent is started without metadata, it may
+		// still be given a name until the metadata is received
+		// once the metadata is received this field will no
+		// longer be used and will be reset
+		boost::scoped_ptr<std::string> m_name;
+
 		session_settings const& m_settings;
+		
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		typedef std::list<boost::shared_ptr<torrent_plugin> > extension_list_t;
+		extension_list_t m_extensions;
+#endif
 
 #ifndef NDEBUG
 		// this is the amount downloaded when this torrent

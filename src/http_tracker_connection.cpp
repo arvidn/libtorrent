@@ -389,7 +389,7 @@ namespace libtorrent
 		fail_timeout();
 	}
 
-	void http_tracker_connection::name_lookup(asio::error const& error
+	void http_tracker_connection::name_lookup(asio::error_code const& error
 		, tcp::resolver::iterator i) try
 	{
 		if (error == asio::error::operation_aborted) return;
@@ -397,7 +397,7 @@ namespace libtorrent
 
 		if (error || i == tcp::resolver::iterator())
 		{
-			fail(-1, error.what());
+			fail(-1, error.message().c_str());
 			return;
 		}
 		
@@ -416,13 +416,13 @@ namespace libtorrent
 		fail(-1, e.what());
 	};
 
-	void http_tracker_connection::connected(asio::error const& error) try
+	void http_tracker_connection::connected(asio::error_code const& error) try
 	{
 		if (error == asio::error::operation_aborted) return;
 		if (m_timed_out) return;
 		if (error)
 		{
-			fail(-1, error.what());
+			fail(-1, error.message().c_str());
 			return;
 		}
 
@@ -441,13 +441,13 @@ namespace libtorrent
 		fail(-1, e.what());
 	}
 
-	void http_tracker_connection::sent(asio::error const& error) try
+	void http_tracker_connection::sent(asio::error_code const& error) try
 	{
 		if (error == asio::error::operation_aborted) return;
 		if (m_timed_out) return;
 		if (error)
 		{
-			fail(-1, error.what());
+			fail(-1, error.message().c_str());
 			return;
 		}
 
@@ -467,7 +467,7 @@ namespace libtorrent
 	}; // msvc 7.1 seems to require this semi-colon
 
 	
-	void http_tracker_connection::receive(asio::error const& error
+	void http_tracker_connection::receive(asio::error_code const& error
 		, std::size_t bytes_transferred) try
 	{
 		if (error == asio::error::operation_aborted) return;
@@ -482,7 +482,7 @@ namespace libtorrent
 				return;
 			}
 
-			fail(-1, error.what());
+			fail(-1, error.message().c_str());
 			return;
 		}
 

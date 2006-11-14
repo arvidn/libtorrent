@@ -86,6 +86,20 @@ namespace
 		std::vector<piece_block> interesting_pieces;
 		interesting_pieces.reserve(100);
 
+		bool prefer_whole_pieces = c.prefer_whole_pieces();
+		if (!prefer_whole_pieces)
+		{
+			prefer_whole_pieces = c.statistics().download_payload_rate()
+				* t.settings().whole_pieces_threshold
+				> t.torrent_file().piece_length();
+		}
+	
+		// if we prefer whole pieces, the piece picker will pick at least
+		// the number of blocks we want, but it will try to make the picked
+		// blocks be from whole pieces, possibly by returning more blocks
+		// than we requested.
+		assert(c.remote() == c.get_socket()->remote_endpoint());
+
 		// picks the interesting pieces from this peer
 		// the integer is the number of pieces that
 		// should be guaranteed to be available for download
@@ -94,17 +108,6 @@ namespace
 		// the last argument is if we should prefer whole pieces
 		// for this peer. If we're downloading one piece in 20 seconds
 		// then use this mode.
-		bool prefer_whole_pieces = c.statistics().download_payload_rate()
-			* t.settings().whole_pieces_threshold
-			> t.torrent_file().piece_length();
-	
-		// if we prefer whole pieces, the piece picker will pick at least
-		// the number of blocks we want, but it will try to make the picked
-		// blocks be from whole pieces, possibly by returning more blocks
-		// than we requested.
-#ifndef NDEBUG
-		assert(c.remote() == c.get_socket()->remote_endpoint());
-#endif
 		p.pick_pieces(c.get_bitfield(), interesting_pieces
 			, num_requests, prefer_whole_pieces, c.remote());
 

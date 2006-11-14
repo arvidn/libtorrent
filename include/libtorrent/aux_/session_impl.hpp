@@ -170,13 +170,16 @@ namespace libtorrent
 				, char const* listen_interface = "0.0.0.0");
 			~session_impl();
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*)> ext);
+#endif
 			void operator()();
 
 			void open_listen_port();
 
 			void async_accept();
 			void on_incoming_connection(boost::shared_ptr<stream_socket> const& s
-				, boost::weak_ptr<socket_acceptor> const& as, asio::error const& e);
+				, boost::weak_ptr<socket_acceptor> const& as, asio::error_code const& e);
 		
 			// must be locked to access the data
 			// in this struct
@@ -228,18 +231,13 @@ namespace libtorrent
 			torrent_handle add_torrent(
 				char const* tracker_url
 				, sha1_hash const& info_hash
+				, char const* name
 				, boost::filesystem::path const& save_path
 				, entry const& resume_data
 				, bool compact_mode
 				, int block_size);
 
 			void remove_torrent(torrent_handle const& h);
-
-			void disable_extensions();
-			void enable_extension(extension_index i);
-			bool extensions_enabled() const;
-			bool extension_enabled(int i) const
-			{ return m_extension_enabled[i]; }
 
 			std::vector<torrent_handle> get_torrents();
 			
@@ -258,6 +256,9 @@ namespace libtorrent
 			unsigned short listen_port() const;
 			
 			void abort();
+			
+			torrent_handle find_torrent_handle(sha1_hash const& info_hash);
+
 			
 			// handles delayed alerts
 			alert_manager m_alerts;
@@ -310,10 +311,6 @@ namespace libtorrent
 
 			boost::shared_ptr<socket_acceptor> m_listen_socket;
 
-			// the entries in this array maps the
-			// extension index (as specified in peer_connection)
-			bool m_extension_enabled[num_supported_extensions];
-
 			// the settings for the client
 			session_settings m_settings;
 
@@ -344,7 +341,7 @@ namespace libtorrent
 
 			// does the actual disconnections
 			// that are queued up in m_disconnect_peer
-			void second_tick(asio::error const& e);
+			void second_tick(asio::error_code const& e);
 			boost::posix_time::ptime m_last_tick;
 
 #ifndef TORRENT_DISABLE_DHT
@@ -361,6 +358,13 @@ namespace libtorrent
 		public:
 			boost::shared_ptr<logger> m_logger;
 		private:
+#endif
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			typedef std::list<boost::function<boost::shared_ptr<
+				torrent_plugin>(torrent*)> > extension_list_t;
+
+			extension_list_t m_extensions;
 #endif
 
 			// data shared between the main thread

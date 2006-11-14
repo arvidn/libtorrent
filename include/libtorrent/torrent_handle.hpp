@@ -218,7 +218,7 @@ namespace libtorrent
 		friend struct aux::session_impl;
 		friend class torrent;
 
-		torrent_handle(): m_ses(0), m_chk(0) {}
+		torrent_handle(): m_ses(0), m_chk(0), m_info_hash(0) {}
 
 		void get_peer_info(std::vector<peer_info>& v) const;
 		bool send_chat_message(tcp::endpoint ip, std::string message) const;
@@ -261,13 +261,6 @@ namespace libtorrent
 
 		entry write_resume_data() const;
 
-		// kind of similar to get_torrent_info() but this
-		// is lower level, returning the exact info-part of
-		// the .torrent file. When hashed, this buffer
-		// will produce the info hash. The reference is valid
-		// only as long as the torrent is running.
-		std::vector<char> const& metadata() const;
-
 		// forces this torrent to reannounce
 		// (make a rerequest from the tracker)
 		void force_reannounce() const;
@@ -277,6 +270,11 @@ namespace libtorrent
 		// announce will take place until the given time has
 		// timed out.
 		void force_reannounce(boost::posix_time::time_duration) const;
+
+		// returns the name of this torrent, in case it doesn't
+		// have metadata it returns the name assigned to it
+		// when it was added.
+		std::string name() const;
 
 		// TODO: add a feature where the user can tell the torrent
 		// to finish all pieces currently in the pipeline, and then

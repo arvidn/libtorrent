@@ -164,7 +164,11 @@ namespace libtorrent
 				, map_open_mode(mode)
 				, S_IREAD | S_IWRITE);
 #else
+#ifdef _WIN32
+			m_fd = ::_open(
+#else
 			m_fd = ::open(
+#endif
 				utf8_native(path.native_file_string()).c_str()
 				, map_open_mode(mode)
 #ifdef _WIN32
@@ -187,7 +191,11 @@ namespace libtorrent
 		{
 			if (m_fd == -1) return;
 
+#ifdef _WIN32
+			::_close(m_fd);
+#else
 			::close(m_fd);
+#endif
 			m_fd = -1;
 			m_open_mode = 0;
 		}
@@ -197,7 +205,11 @@ namespace libtorrent
 			assert(m_open_mode & mode_in);
 			assert(m_fd != -1);
 
+#ifdef _WIN32
+			size_type ret = ::_read(m_fd, buf, num_bytes);
+#else
 			size_type ret = ::read(m_fd, buf, num_bytes);
+#endif
 			if (ret == -1)
 			{
 				std::stringstream msg;
@@ -217,7 +229,11 @@ namespace libtorrent
 //			if ((rand() % 100) > 80)
 //				throw file_error("debug");
 
+#ifdef _WIN32
+			size_type ret = ::_write(m_fd, buf, num_bytes);
+#else
 			size_type ret = ::write(m_fd, buf, num_bytes);
+#endif
 			if (ret == -1)
 			{
 				std::stringstream msg;

@@ -1,7 +1,7 @@
 AC_PREREQ(2.59)
 
 AC_INIT(src/torrent.cpp)
-AM_INIT_AUTOMAKE(libtorrent, 0.11)
+AM_INIT_AUTOMAKE(libtorrent, 0.12)
 
 AM_CONFIG_HEADER(config.h)
 
