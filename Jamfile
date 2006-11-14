@@ -55,6 +55,7 @@ SOURCES =
 	sha1.cpp
 	metadata_transfer.cpp
 	logger.cpp
+	file_pool.cpp
 	;
 
 KADEMLIA_SOURCES =

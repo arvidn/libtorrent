@@ -9,6 +9,7 @@ torrent_info.cpp tracker_manager.cpp \
 http_tracker_connection.cpp udp_tracker_connection.cpp \
 alert.cpp identify_client.cpp ip_filter.cpp file.cpp metadata_transfer.cpp \
 logger.cpp \
+file_pool.cpp \
 \
 kademlia/closest_nodes.cpp \
 kademlia/dht_tracker.cpp \
@@ -25,12 +26,17 @@ $(top_srcdir)/include/libtorrent/alert.hpp \
 $(top_srcdir)/include/libtorrent/alert_types.hpp \
 $(top_srcdir)/include/libtorrent/allocate_resources.hpp \
 $(top_srcdir)/include/libtorrent/aux_/allocate_resources_impl.hpp \
+$(top_srcdir)/include/libtorrent/aux_/session_impl.hpp \
 $(top_srcdir)/include/libtorrent/bencode.hpp \
 $(top_srcdir)/include/libtorrent/buffer.hpp \
 $(top_srcdir)/include/libtorrent/debug.hpp \
 $(top_srcdir)/include/libtorrent/entry.hpp \
 $(top_srcdir)/include/libtorrent/escape_string.hpp \
+$(top_srcdir)/include/libtorrent/extensions.hpp \
+$(top_srcdir)/include/libtorrent/extensions/metadata_transfer.hpp \
+$(top_srcdir)/include/libtorrent/extensions/logger.hpp \
 $(top_srcdir)/include/libtorrent/file.hpp \
+$(top_srcdir)/include/libtorrent/file_pool.hpp \
 $(top_srcdir)/include/libtorrent/fingerprint.hpp \
 $(top_srcdir)/include/libtorrent/hasher.hpp \
 $(top_srcdir)/include/libtorrent/session_settings.hpp \
@@ -51,7 +57,6 @@ $(top_srcdir)/include/libtorrent/piece_picker.hpp \
 $(top_srcdir)/include/libtorrent/policy.hpp \
 $(top_srcdir)/include/libtorrent/resource_request.hpp \
 $(top_srcdir)/include/libtorrent/session.hpp \
-$(top_srcdir)/include/libtorrent/aux_/session_impl.hpp \
 $(top_srcdir)/include/libtorrent/size_type.hpp \
 $(top_srcdir)/include/libtorrent/socket.hpp \
 $(top_srcdir)/include/libtorrent/stat.hpp \

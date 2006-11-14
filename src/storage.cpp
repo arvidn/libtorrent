@@ -64,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/invariant_check.hpp"
+#include "libtorrent/file_pool.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
 #ifndef NDEBUG
@@ -218,135 +219,7 @@ namespace
 		log << s;
 		log.flush();
 	}
-/*
-	struct file_key
-	{
-		file_key(sha1_hash ih, path f): info_hash(ih), file_path(f) {}
-		file_key() {}
-		sha1_hash info_hash;
-		path file_path;
-		bool operator<(file_key const& fk) const
-		{
-			if (info_hash < fk.info_hash) return true;
-			if (fk.info_hash < info_hash) return false;
-			return file_path < fk.file_path;
-		}
-	};
-*/	
-	struct lru_file_entry
-	{
-		lru_file_entry(boost::shared_ptr<file> const& f)
-			: file_ptr(f)
-			, last_use(pt::second_clock::universal_time()) {}
-		mutable boost::shared_ptr<file> file_ptr;
-		path file_path;
-		void* key;
-		pt::ptime last_use;
-		file::open_mode mode;
-	};
 
-	struct file_pool
-	{
-		file_pool(int size): m_size(size) {}
-
-		boost::shared_ptr<file> open_file(void* st, path const& p, file::open_mode m)
-		{
-			assert(st != 0);
-			assert(p.is_complete());
-			typedef nth_index<file_set, 0>::type path_view;
-			path_view& pt = get<0>(m_files);
-			path_view::iterator i = pt.find(p);
-			if (i != pt.end())
-			{
-				lru_file_entry e = *i;
-				e.last_use = pt::second_clock::universal_time();
-
-				// if you hit this assert, you probably have more than one
-				// storage/torrent using the same file at the same time!
-				assert(e.key == st);
-
-				e.key = st;
-				if ((e.mode & m) != m)
-				{
-					// close the file before we open it with
-					// the new read/write privilages
-					i->file_ptr.reset();
-					assert(e.file_ptr.unique());
-					e.file_ptr.reset();
-					e.file_ptr.reset(new file(p, m));
-					e.mode = m;
-				}
-				pt.replace(i, e);
-				return e.file_ptr;
-			}
-			// the file is not in our cache
-			if ((int)m_files.size() >= m_size)
-			{
-				// the file cache is at its maximum size, close
-				// the least recently used (lru) file from it
-				typedef nth_index<file_set, 1>::type lru_view;
-				lru_view& lt = get<1>(m_files);
-				lru_view::iterator i = lt.begin();
-				// the first entry in this view is the least recently used
-/*				for (lru_view::iterator i = lt.begin(); i != lt.end(); ++i)
-				{
-					std::cerr << i->last_use << "\n";
-				}
-*/				assert(lt.size() == 1 || (i->last_use <= boost::next(i)->last_use));
-				lt.erase(i);
-			}
-			lru_file_entry e(boost::shared_ptr<file>(new file(p, m)));
-			e.mode = m;
-			e.key = st;
-			e.file_path = p;
-			pt.insert(e);
-			return e.file_ptr;
-		}
-
-		void release(void* st)
-		{
-			assert(st != 0);
-			using boost::tie;
-
-			typedef nth_index<file_set, 2>::type key_view;
-			key_view& kt = get<2>(m_files);
-
-			key_view::iterator start, end;
-			tie(start, end) = kt.equal_range(st);
-
-/*
-			std::cerr << "releasing files!\n";
-			for (path_view::iterator i = r.first; i != r.second; ++i)
-			{
-				std::cerr << i->key.file_path.native_file_string() << "\n";
-			}
-*/
-			kt.erase(start, end);
-/*
-			std::cerr << "files left: " << pt.size() << "\n";
-			for (path_view::iterator i = pt.begin(); i != pt.end(); ++i)
-			{
-				std::cerr << i->key.file_path.native_file_string() << "\n";
-			}
-*/
-		}
-
-	private:
-		int m_size;
-
-		typedef multi_index_container<
-			lru_file_entry, indexed_by<
-				ordered_unique<member<lru_file_entry, path
-					, &lru_file_entry::file_path> >
-				, ordered_non_unique<member<lru_file_entry, pt::ptime
-					, &lru_file_entry::last_use> >
-				, ordered_non_unique<member<lru_file_entry, void*
-					, &lru_file_entry::key> >
-				> 
-			> file_set;
-		
-		file_set m_files;
-	};
 }
 
 namespace libtorrent
