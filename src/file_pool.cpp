@@ -101,4 +101,23 @@ namespace libtorrent
 		kt.erase(start, end);
 	}
 
+	void file_pool::resize(int size)
+	{
+		assert(size > 0);
+		if (size == m_size) return;
+		m_size = size;
+		if (int(m_files.size()) <= m_size) return;
+
+		// close the least recently used files
+		typedef nth_index<file_set, 1>::type lru_view;
+		lru_view& lt = get<1>(m_files);
+		lru_view::iterator i = lt.begin();
+		while (int(m_files.size()) > m_size)
+		{
+			// the first entry in this view is the least recently used
+			assert(lt.size() == 1 || (i->last_use <= boost::next(i)->last_use));
+			lt.erase(i++);
+		}
+	}
+
 }

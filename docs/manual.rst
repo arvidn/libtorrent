@@ -1894,6 +1894,8 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int peer_timeout;
 		int urlseed_timeout;
 		int urlseed_pipeline_size;
+		int file_pool_size;
+		bool allow_multiple_connections_per_ip;
 	};
 
 ``proxy_ip`` may be a hostname or ip to a http proxy to use. If this is
@@ -1969,6 +1971,22 @@ url seeds. This value defaults to 20 seconds.
 using persistent connections to HTTP 1.1 servers, the client is allowed to
 send more requests before the first response is received. This number controls
 the number of outstanding requests to use with url-seeds. Default is 5.
+
+``file_pool_size`` is the the upper limit on the total number of files this
+session will keep open. The reason why files are left open at all is that
+some anti virus software hooks on every file close, and scans the file for
+viruses. deferring the closing of the files will be the difference between
+a usable system and a completely hogged down system. Most operating systems
+also has a limit on the total number of file descriptors a process may have
+open. It is usually a good idea to find this limit and set the number of
+connections and the number of files limits so their sum is slightly below it.
+
+``allow_multiple_connections_per_ip`` determines if connections from the
+same IP address as existing connections should be rejected or not. Multiple
+connections from the same IP address is not allowed by default, to prevent
+abusive behavior by peers. It may be useful to allow such connections in
+cases where simulations are run on the same machie, and all peers in a
+swarm has the same IP address.
 
 ip_filter
 =========

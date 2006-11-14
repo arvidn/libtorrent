@@ -342,9 +342,10 @@ namespace libtorrent
 	class storage::impl : public thread_safe_storage, boost::noncopyable
 	{
 	public:
-		impl(torrent_info const& info, path const& path)
+		impl(torrent_info const& info, path const& path, file_pool& fp)
 			: thread_safe_storage(info.num_pieces())
 			, info(info)
+			, files(fp)
 		{
 			save_path = complete(path);
 			assert(save_path.is_complete());
@@ -354,6 +355,7 @@ namespace libtorrent
 			: thread_safe_storage(x.info.num_pieces())
 			, info(x.info)
 			, save_path(x.save_path)
+			, files(x.files)
 		{}
 
 		~impl()
@@ -363,13 +365,15 @@ namespace libtorrent
 
 		torrent_info const& info;
 		path save_path;
-		static file_pool files;
+		// the file pool is typically stored in
+		// the session, to make all storage
+		// instances use the same pool
+		file_pool& files;
 	};
 
-	file_pool storage::impl::files(40);
-
-	storage::storage(torrent_info const& info, path const& path)
-		: m_pimpl(new impl(info, path))
+	storage::storage(torrent_info const& info, path const& path
+		, file_pool& fp)
+		: m_pimpl(new impl(info, path, fp))
 	{
 		assert(info.begin_files() != info.end_files());
 	}
@@ -735,7 +739,8 @@ namespace libtorrent
 
 		impl(
 			torrent_info const& info
-			, path const& path);
+			, path const& path
+			, file_pool& fp);
 
 		bool check_fastresume(
 			aux::piece_checker_data& d
@@ -884,8 +889,9 @@ namespace libtorrent
 
 	piece_manager::impl::impl(
 		torrent_info const& info
-		, path const& save_path)
-		: m_storage(info, save_path)
+		, path const& save_path
+		, file_pool& fp)
+		: m_storage(info, save_path, fp)
 		, m_compact_mode(false)
 		, m_fill_mode(true)
 		, m_info(info)
@@ -897,8 +903,9 @@ namespace libtorrent
 
 	piece_manager::piece_manager(
 		torrent_info const& info
-		, path const& save_path)
-		: m_pimpl(new impl(info, save_path))
+		, path const& save_path
+		, file_pool& fp)
+		: m_pimpl(new impl(info, save_path, fp))
 	{
 	}
 

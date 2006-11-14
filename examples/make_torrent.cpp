@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/file_pool.hpp"
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -94,7 +95,8 @@ int main(int argc, char* argv[])
 		add_files(t, full_path.branch_path(), full_path.leaf());
 		t.set_piece_size(piece_size);
 
-		storage st(t, full_path.branch_path());
+		file_pool fp;
+		storage st(t, full_path.branch_path(), fp);
 		t.add_tracker(argv[2]);
 
 		// calculate the hash for all pieces

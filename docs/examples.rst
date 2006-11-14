@@ -158,22 +158,26 @@ Shows how to create a torrent from a directory tree::
 	#include <fstream>
 	#include <iterator>
 	#include <iomanip>
-
+	
 	#include "libtorrent/entry.hpp"
 	#include "libtorrent/bencode.hpp"
 	#include "libtorrent/torrent_info.hpp"
 	#include "libtorrent/file.hpp"
 	#include "libtorrent/storage.hpp"
 	#include "libtorrent/hasher.hpp"
-
+	#include "libtorrent/file_pool.hpp"
+	
 	#include <boost/filesystem/operations.hpp>
 	#include <boost/filesystem/path.hpp>
 	#include <boost/filesystem/fstream.hpp>
-
+	
 	using namespace boost::filesystem;
 	using namespace libtorrent;
-
-	void add_files(torrent_info& t, path const& p, path const& l)
+	
+	void add_files(
+		torrent_info& t
+		, path const& p
+		, path const& l)
 	{
 		path f(p / l);
 		if (is_directory(f))
@@ -184,42 +188,40 @@ Shows how to create a torrent from a directory tree::
 		else
 		{
 			std::cerr << "adding \"" << l.string() << "\"\n";
-			file fi(f, file::in);
-			fi.seek(0, file::end);
-			libtorrent::size_type size = fi.tell();
-			t.add_file(l, size);
+			t.add_file(l, file_size(f));
 		}
 	}
-
+	
 	int main(int argc, char* argv[])
 	{
 		using namespace libtorrent;
 		using namespace boost::filesystem;
-
+	
+		path::default_name_check(no_check);
+	
 		if (argc != 4)
 		{
 			std::cerr << "usage: make_torrent <output torrent-file> "
 				"<announce url> <file or directory to create torrent from>\n";
 			return 1;
 		}
-
-		boost::filesystem::path::default_name_check(native);
-
+	
 		try
 		{
 			torrent_info t;
-			path full_path = initial_path() / path(argv[3]);
-			ofstream out(initial_path() / path(argv[1]), std::ios_base::binary);
-
+			path full_path = complete(path(argv[3]));
+			ofstream out(complete(path(argv[1])), std::ios_base::binary);
+	
 			int piece_size = 256 * 1024;
 			char const* creator_str = "libtorrent";
-
+	
 			add_files(t, full_path.branch_path(), full_path.leaf());
 			t.set_piece_size(piece_size);
-
-			storage st(t, full_path.branch_path());
+	
+			file_pool fp;
+			storage st(t, full_path.branch_path(), fp);
 			t.add_tracker(argv[2]);
-
+	
 			// calculate the hash for all pieces
 			int num = t.num_pieces();
 			std::vector<char> buf(piece_size);
@@ -230,19 +232,19 @@ Shows how to create a torrent from a directory tree::
 				t.set_hash(i, h.final());
 				std::cerr << (i+1) << "/" << num << "\r";
 			}
-
+	
 			t.set_creator(creator_str);
-
+	
 			// create the torrent and print it to out
 			entry e = t.create_torrent();
 			libtorrent::bencode(std::ostream_iterator<char>(out), e);
-		}
-		catch (std::exception& e)
+			}
+			catch (std::exception& e)
 		{
 			std::cerr << e.what() << "\n";
 		}
-
+	
 		return 0;
 	}
-
+	
 

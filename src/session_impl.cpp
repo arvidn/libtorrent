@@ -475,6 +475,7 @@ namespace libtorrent { namespace detail
 		, m_max_connections(-1)
 		, m_half_open_limit(-1)
 		, m_incoming_connection(false)
+		, m_files(40)
 		, m_last_tick(microsec_clock::universal_time())
 		, m_timer(m_selector)
 		, m_checker_impl(*this)
@@ -575,6 +576,7 @@ namespace libtorrent { namespace detail
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		m_settings = s;
+		m_files.resize(m_settings.file_pool_size);
 		// replace all occurances of '\n' with ' '.
 		std::string::iterator i = m_settings.user_agent.begin();
 		while ((i = std::find(i, m_settings.user_agent.end(), '\n'))

@@ -871,21 +871,9 @@ namespace libtorrent
 	void policy::new_connection(peer_connection& c)
 	{
 		assert(!c.is_local());
-/*
-#ifndef NDEBUG
-		// avoid the invariant check to fail
-		peer p(tcp::endpoint("0.0.0.0", 0), peer::not_connectable);
-		p.connection = &c;
-		m_peers.push_back(p);
-#endif
-*/
+
 		INVARIANT_CHECK;
-/*
-#ifndef NDEBUG
-		// avoid the invariant check to fail
-		m_peers.erase(m_peers.end() - 1);
-#endif
-*/
+
 		// if the connection comes from the tracker,
 		// it's probably just a NAT-check. Ignore the
 		// num connections constraint then.
@@ -908,11 +896,19 @@ namespace libtorrent
 		}
 #endif
 
-		std::vector<peer>::iterator i = std::find_if(
-			m_peers.begin()
-			, m_peers.end()
-			, match_peer_ip(c.remote()));
+		std::vector<peer>::iterator i;
 
+		if (m_torrent->settings().allow_multiple_connections_per_ip)
+		{
+			i = m_peers.end();
+		}
+		else
+		{
+			i = std::find_if(
+				m_peers.begin()
+				, m_peers.end()
+				, match_peer_ip(c.remote()));
+		}
 
 		if (i != m_peers.end())
 		{
@@ -1322,7 +1318,7 @@ namespace libtorrent
 		return std::find_if(
 			m_peers.begin()
 			, m_peers.end()
-			, match_peer_ip(c->remote())) != m_peers.end();
+			, match_peer_connection(*c)) != m_peers.end();
 	}
 
 	void policy::check_invariant() const

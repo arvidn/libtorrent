@@ -1203,7 +1203,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 					(*m_logger) << " received invalid info_hash\n";
 #endif
-					throw std::runtime_error("invalid info-hash in handshake");
+					throw protocol_error("invalid info-hash in handshake");
 				}
 			}
 
@@ -1279,13 +1279,6 @@ namespace libtorrent
 			if (m_supports_extensions) write_extensions();
 #endif
 
-/*
-			if (!m_active)
-			{
-				m_attached_to_torrent = true;
-				assert(m_torrent->get_policy().has_connection(this));
-			}
-*/
 			m_state = read_packet_size;
 			reset_recv_buffer(4);
 		}
