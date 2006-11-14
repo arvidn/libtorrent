@@ -63,10 +63,11 @@ namespace libtorrent
 
 	struct file_pool
 	{
-		file_pool(int size): m_size(size) {}
+		file_pool(int size = 40): m_size(size) {}
 
 		boost::shared_ptr<file> open_file(void* st, fs::path const& p, file::open_mode m);
 		void release(void* st);
+		void resize(int size);
 
 	private:
 		int m_size;

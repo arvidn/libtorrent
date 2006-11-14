@@ -1,3 +1,5 @@
+	* moved the file_pool into session. The number of open files is now
+	  limited per session.
 	* fixed uninitialized private flag in torrent_info
 	* fixed long standing issue with file.cpp on windows. Replaced the low level
 	  io functions used on windows.

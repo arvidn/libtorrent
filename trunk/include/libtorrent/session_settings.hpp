@@ -56,6 +56,8 @@ namespace libtorrent
 			, peer_timeout(120)
 			, urlseed_timeout(20)
 			, urlseed_pipeline_size(5)
+			, file_pool_size(40)
+			, allow_multiple_connections_per_ip(false)
 		{}
 
 		std::string proxy_ip;
@@ -130,6 +132,24 @@ namespace libtorrent
 		
 		// controls the pipelining size of url-seeds
 		int urlseed_pipeline_size;
+		
+		// sets the upper limit on the total number of files this
+		// session will keep open. The reason why files are
+		// left open at all is that some anti virus software
+		// hooks on every file close, and scans the file for
+		// viruses. deferring the closing of the files will
+		// be the difference between a usable system and
+		// a completely hogged down system. Most operating
+		// systems also has a limit on the total number of
+		// file descriptors a process may have open. It is
+		// usually a good idea to find this limit and set the
+		// number of connections and the number of files
+		// limits so their sum is slightly below it.
+		int file_pool_size;
+		
+		// false to not allow multiple connections from the same
+		// IP address. true will allow it.
+		bool allow_multiple_connections_per_ip;
 	};
 	
 #ifndef TORRENT_DISABLE_DHT

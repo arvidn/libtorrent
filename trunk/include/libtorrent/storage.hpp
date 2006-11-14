@@ -61,6 +61,7 @@ namespace libtorrent
 	}
 
 	class session;
+	class file_pool;
 
 #if defined(_WIN32) && defined(UNICODE)
 
@@ -91,7 +92,8 @@ namespace libtorrent
 	public:
 		storage(
 			const torrent_info& info
-			, const boost::filesystem::path& path);
+			, const boost::filesystem::path& path
+			, file_pool& fp);
 
 		void swap(storage&);
 
@@ -125,7 +127,8 @@ namespace libtorrent
 
 		piece_manager(
 			const torrent_info& info
-			, const boost::filesystem::path& path);
+			, const boost::filesystem::path& path
+			, file_pool& fp);
 
 		~piece_manager();
 

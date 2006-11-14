@@ -75,6 +75,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/stat.hpp"
+#include "libtorrent/file_pool.hpp"
 
 namespace libtorrent
 {
@@ -338,6 +339,11 @@ namespace libtorrent
 			// this is used to know if the client is behind
 			// NAT or not.
 			bool m_incoming_connection;
+			
+			// the file pool that all storages in this session's
+			// torrents uses. It sets a limit on the number of
+			// open files by this session.
+			file_pool m_files;
 
 			// does the actual disconnections
 			// that are queued up in m_disconnect_peer
