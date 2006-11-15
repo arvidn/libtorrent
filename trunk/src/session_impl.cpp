@@ -461,6 +461,12 @@ namespace libtorrent { namespace detail
 	}
 #endif
 
+	struct seed_random_generator
+	{
+		seed_random_generator()
+		{ std::srand((unsigned int)std::time(0)); }
+	};
+
 	session_impl::session_impl(
 		std::pair<int, int> listen_port_range
 		, fingerprint const& cl_fprint
@@ -482,14 +488,14 @@ namespace libtorrent { namespace detail
 	{
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		m_logger = create_log("main_session", false);
+		m_logger = create_log("main_session", listen_port(), false);
 		using boost::posix_time::second_clock;
 		using boost::posix_time::to_simple_string;
 		(*m_logger) << to_simple_string(second_clock::universal_time()) << "\n";
 #endif
 
 		// ---- generate a peer id ----
-		std::srand((unsigned int)std::time(0));
+		static seed_random_generator seeder;
 
 		m_key = rand() + (rand() << 15) + (rand() << 30);
 		std::string print = cl_fprint.to_string();
@@ -643,7 +649,7 @@ namespace libtorrent { namespace detail
 			if (m_alerts.should_post(alert::fatal))
 			{
 				m_alerts.post_alert(listen_failed_alert(
-					std::string("failed to open listen port") + e.what()));
+					std::string("failed to open listen port: ") + e.what()));
 			}
 		}
 
@@ -1068,7 +1074,13 @@ namespace libtorrent { namespace detail
 				req.listen_port = m_listen_interface.port();
 				req.key = m_key;
 				std::string login = i->second->tracker_login();
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+				boost::shared_ptr<tracker_logger> tl(new tracker_logger(*this));
+				m_tracker_loggers.push_back(tl);
+				m_tracker_manager.queue_request(m_selector, req, login, tl);
+#else
 				m_tracker_manager.queue_request(m_selector, req, login);
+#endif
 			}
 		}
 
@@ -1132,10 +1144,11 @@ namespace libtorrent { namespace detail
 	}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-	boost::shared_ptr<logger> session_impl::create_log(std::string const& name, bool append)
+	boost::shared_ptr<logger> session_impl::create_log(std::string const& name
+		, int instance, bool append)
 	{
 		// current options are file_logger, cout_logger and null_logger
-		return boost::shared_ptr<logger>(new logger(name + ".log", append));
+		return boost::shared_ptr<logger>(new logger(name + ".log", instance, append));
 	}
 #endif
 
@@ -1344,8 +1357,16 @@ namespace libtorrent { namespace detail
 				assert(req.event == tracker_request::stopped);
 				req.listen_port = m_listen_interface.port();
 				req.key = m_key;
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+				boost::shared_ptr<tracker_logger> tl(new tracker_logger(*this));
+				m_tracker_loggers.push_back(tl);
+				m_tracker_manager.queue_request(m_selector, req
+					, t.tracker_login(), tl);
+#else
 				m_tracker_manager.queue_request(m_selector, req
 					, t.tracker_login());
+#endif
 
 				if (m_alerts.should_post(alert::info))
 				{
@@ -1413,6 +1434,14 @@ namespace libtorrent { namespace detail
 		m_listen_interface = new_interface;
 
 		open_listen_port();
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		m_logger = create_log("main_session", listen_port(), false);
+		using boost::posix_time::second_clock;
+		using boost::posix_time::to_simple_string;
+		(*m_logger) << to_simple_string(second_clock::universal_time()) << "\n";
+#endif
+
 		return m_listen_socket;
 	}
 

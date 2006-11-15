@@ -1097,7 +1097,7 @@ namespace libtorrent
 		, int& num_pieces
 		, const std::multimap<sha1_hash, int>& hash_to_piece)
 	{
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		assert((int)have_pieces.size() == m_info.num_pieces());
 
@@ -1707,7 +1707,7 @@ namespace libtorrent
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		// ----------------------------------------------------------------------
 
-		//		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		assert(piece_index >= 0);
 		assert(piece_index < (int)m_piece_to_slot.size());
@@ -1866,7 +1866,7 @@ namespace libtorrent
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		// ----------------------------------------------------------------------
 
-		//		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		assert(!m_unallocated_slots.empty());
 

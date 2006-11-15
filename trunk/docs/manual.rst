@@ -1706,7 +1706,7 @@ pieces that have more copies than the rarest piece(s). For example: 2.5 would
 mean that the rarest pieces have only 2 copies among the peers this torrent is
 connected to, and that 50% of all the pieces have more than two copies.
 
-If sequenced download is activated (in session_settings_), the distributed
+If sequenced download is activated (see torrent_handle_), the distributed
 copies will be saturated at the ``sequenced_download_threshold``.
 
 ``block_size`` is the size of a block, in bytes. A block is a sub piece, it

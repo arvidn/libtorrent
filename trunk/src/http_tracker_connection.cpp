@@ -364,17 +364,21 @@ namespace libtorrent
 			m_send_buffer += base64encode(auth);
 		}
 		m_send_buffer += "\r\n\r\n";
+
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (has_requester())
 		{
 			requester().debug_log("==> TRACKER_REQUEST [ str: " + m_send_buffer + " ]");
 			std::stringstream info_hash_str;
 			info_hash_str << req.info_hash;
-			requester().debug_log("info_hash: " + info_hash_str.str() + "\n");
+			requester().debug_log("info_hash: "
+				+ boost::lexical_cast<std::string>(req.info_hash));
+			requester().debug_log("name lookup: " + *connect_to_host);
 		}
 #endif
 
-		tcp::resolver::query q(*connect_to_host, "0");
+		tcp::resolver::query q(*connect_to_host
+			, boost::lexical_cast<std::string>(m_port));
 		m_name_lookup.async_resolve(q
 			, boost::bind(&http_tracker_connection::name_lookup, self(), _1, _2));
 		set_timeout(m_settings.tracker_completion_timeout
@@ -392,6 +396,9 @@ namespace libtorrent
 	void http_tracker_connection::name_lookup(asio::error_code const& error
 		, tcp::resolver::iterator i) try
 	{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		if (has_requester()) requester().debug_log("tracker name lookup handler called");
+#endif
 		if (error == asio::error::operation_aborted) return;
 		if (m_timed_out) return;
 
@@ -406,9 +413,8 @@ namespace libtorrent
 #endif
 		restart_read_timeout();
 		m_socket.reset(new stream_socket(m_name_lookup.io_service()));
-		tcp::endpoint a(i->endpoint().address(), m_port);
-		if (has_requester()) requester().m_tracker_address = a;
-		m_socket->async_connect(a, bind(&http_tracker_connection::connected, self(), _1));
+		if (has_requester()) requester().m_tracker_address = *i;
+		m_socket->async_connect(*i, bind(&http_tracker_connection::connected, self(), _1));
 	}
 	catch (std::exception& e)
 	{

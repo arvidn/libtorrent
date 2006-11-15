@@ -61,7 +61,7 @@ namespace libtorrent
 	namespace pt = boost::posix_time;
 	namespace fs = boost::filesystem;
 
-	struct file_pool
+	struct TORRENT_EXPORT file_pool : boost::noncopyable
 	{
 		file_pool(int size = 40): m_size(size) {}
 

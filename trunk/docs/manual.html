@@ -1733,7 +1733,7 @@ peers this client is connected to. The fractional part tells the share of
 pieces that have more copies than the rarest piece(s). For example: 2.5 would
 mean that the rarest pieces have only 2 copies among the peers this torrent is
 connected to, and that 50% of all the pieces have more than two copies.</p>
-<p>If sequenced download is activated (in <a class="reference" href="#session-settings">session_settings</a>), the distributed
+<p>If sequenced download is activated (see <a class="reference" href="#torrent-handle">torrent_handle</a>), the distributed
 copies will be saturated at the <tt class="docutils literal"><span class="pre">sequenced_download_threshold</span></tt>.</p>
 <p><tt class="docutils literal"><span class="pre">block_size</span></tt> is the size of a block, in bytes. A block is a sub piece, it
 is the number of bytes that each piece request asks for and the number of

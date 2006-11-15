@@ -325,23 +325,35 @@ namespace
 
 	struct match_peer_ip
 	{
-		match_peer_ip(const tcp::endpoint& ip)
+		match_peer_ip(tcp::endpoint const& ip)
 			: m_ip(ip)
 		{}
 
-		bool operator()(const policy::peer& p) const
+		bool operator()(policy::peer const& p) const
 		{ return p.ip.address() == m_ip.address(); }
 
 		tcp::endpoint m_ip;
 	};
 
+	struct match_peer_id
+	{
+		match_peer_id(peer_id const& id)
+			: m_id(id)
+		{}
+
+		bool operator()(policy::peer const& p) const
+		{ return p.connection && p.connection->pid() == m_id; }
+
+		peer_id m_id;
+	};
+
 	struct match_peer_connection
 	{
-		match_peer_connection(const peer_connection& c)
+		match_peer_connection(peer_connection const& c)
 			: m_conn(c)
 		{}
 
-		bool operator()(const policy::peer& p) const
+		bool operator()(policy::peer const& p) const
 		{ return p.connection == &m_conn; }
 
 		const peer_connection& m_conn;
@@ -900,7 +912,17 @@ namespace libtorrent
 
 		if (m_torrent->settings().allow_multiple_connections_per_ip)
 		{
-			i = m_peers.end();
+			if (c.pid().is_all_zeros())
+			{
+				i = m_peers.end();
+			}
+			else
+			{
+				i = std::find_if(
+					m_peers.begin()
+					, m_peers.end()
+					, match_peer_id(c.pid()));
+			}
 		}
 		else
 		{
@@ -970,10 +992,29 @@ namespace libtorrent
 
 		try
 		{
-			std::vector<peer>::iterator i = std::find_if(
-				m_peers.begin()
-				, m_peers.end()
-				, match_peer_ip(remote));
+			std::vector<peer>::iterator i;
+			
+			if (m_torrent->settings().allow_multiple_connections_per_ip)
+			{
+				if (pid.is_all_zeros())
+				{
+					i = m_peers.end();
+				}
+				else
+				{
+					i = std::find_if(
+						m_peers.begin()
+						, m_peers.end()
+						, match_peer_id(pid));
+				}
+			}
+			else
+			{
+				i = std::find_if(
+					m_peers.begin()
+					, m_peers.end()
+					, match_peer_ip(remote));
+			}
 			
 			bool just_added = false;
 			
@@ -1008,7 +1049,8 @@ namespace libtorrent
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 					m_torrent->debug_log("already connected to peer: " + remote.address().to_string() + ":"
-						+ boost::lexical_cast<std::string>(remote.port()));
+						+ boost::lexical_cast<std::string>(remote.port()) + " "
+						+ boost::lexical_cast<std::string>(i->connection->pid()));
 #endif
 
 					assert(i->connection->associated_torrent().lock().get() == m_torrent);
