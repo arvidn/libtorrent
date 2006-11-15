@@ -149,6 +149,10 @@ namespace libtorrent
 			bool m_abort;
 		};
 
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+		struct tracker_logger;
+#endif
+
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
 		struct session_impl: boost::noncopyable
@@ -360,7 +364,12 @@ namespace libtorrent
 			void check_invariant(const char *place = 0);
 #endif
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			boost::shared_ptr<logger> create_log(std::string const& name, bool append = true);
+			boost::shared_ptr<logger> create_log(std::string const& name, int instance, bool append = true);
+			
+			// this list of tracker loggers serves as tracker_callbacks when
+			// shutting down. This list is just here to keep them alive during
+			// whe shutting down process
+			std::list<boost::shared_ptr<tracker_logger> > m_tracker_loggers;
 		public:
 			boost::shared_ptr<logger> m_logger;
 		private:
@@ -384,6 +393,61 @@ namespace libtorrent
 			// on all torrents before they start downloading
 			boost::scoped_ptr<boost::thread> m_checker_thread;
 		};
+		
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+		struct tracker_logger : request_callback
+		{
+			tracker_logger(session_impl& ses): m_ses(ses) {}
+			void tracker_warning(std::string const& str)
+			{
+				debug_log("*** tracker warning: " + str);
+			}
+
+			void tracker_response(tracker_request const&
+				, std::vector<peer_entry>& peers
+				, int interval
+				, int complete
+				, int incomplete)
+			{
+				std::stringstream s;
+				s << "TRACKER RESPONSE:\n"
+					"interval: " << interval << "\n"
+					"peers:\n";
+				for (std::vector<peer_entry>::const_iterator i = peers.begin();
+					i != peers.end(); ++i)
+				{
+					s << "  " << std::setfill(' ') << std::setw(16) << i->ip
+						<< " " << std::setw(5) << std::dec << i->port << "  ";
+					if (!i->pid.is_all_zeros()) s << " " << i->pid;
+					s << "\n";
+				}
+				debug_log(s.str());
+			}
+
+			void tracker_request_timed_out(
+				tracker_request const&)
+			{
+				debug_log("*** tracker timed out");
+			}
+
+			void tracker_request_error(
+				tracker_request const&
+				, int response_code
+				, const std::string& str)
+			{
+				debug_log(std::string("*** tracker error: ")
+					+ boost::lexical_cast<std::string>(response_code) + ": "
+					+ str);
+			}
+			
+			void debug_log(const std::string& line)
+			{
+				(*m_ses.m_logger) << line << "\n";
+			}
+			session_impl& m_ses;
+		};
+#endif
+
 	}
 }
 

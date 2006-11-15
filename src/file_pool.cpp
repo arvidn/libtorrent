@@ -32,6 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/file_pool.hpp"
 
+#include <iostream>
+
 namespace libtorrent
 {
 	using boost::multi_index::nth_index;
@@ -39,7 +41,6 @@ namespace libtorrent
 
 	boost::shared_ptr<file> file_pool::open_file(void* st, fs::path const& p, file::open_mode m)
 	{
-	
 		assert(st != 0);
 		assert(p.is_complete());
 		typedef nth_index<file_set, 0>::type path_view;

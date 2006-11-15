@@ -125,7 +125,7 @@ namespace libtorrent
 	{
 #ifdef TORRENT_VERBOSE_LOGGING
 		m_logger = m_ses.create_log(m_remote.address().to_string() + "_"
-			+ boost::lexical_cast<std::string>(m_remote.port()));
+			+ boost::lexical_cast<std::string>(m_remote.port()), m_ses.listen_port());
 		(*m_logger) << "*** OUTGOING CONNECTION\n";
 #endif
 
@@ -219,7 +219,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		assert(m_socket->remote_endpoint() == remote());
 		m_logger = m_ses.create_log(remote().address().to_string() + "_"
-			+ boost::lexical_cast<std::string>(remote().port()));
+			+ boost::lexical_cast<std::string>(remote().port()), m_ses.listen_port());
 		(*m_logger) << "*** INCOMING CONNECTION\n";
 #endif
 
@@ -1958,7 +1958,8 @@ namespace libtorrent
 		if (e)
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			(*m_ses.m_logger) << "CONNECTION FAILED: " << m_remote.address().to_string() << "\n";
+			(*m_ses.m_logger) << "CONNECTION FAILED: " << m_remote.address().to_string()
+				<< ": " << e.message() << "\n";
 #endif
 			m_ses.connection_failed(m_socket, m_remote, e.message().c_str());
 			return;

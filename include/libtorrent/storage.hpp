@@ -61,7 +61,7 @@ namespace libtorrent
 	}
 
 	class session;
-	class file_pool;
+	struct file_pool;
 
 #if defined(_WIN32) && defined(UNICODE)
 

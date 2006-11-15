@@ -1,3 +1,9 @@
+	* logging now supports multiple sessions (different sessions now log
+	  to different directories).
+	* fixed random number generator seed problem, generating the same
+	  peer-id for sessions constructed the same second.
+	* added an option to accept multiple connections from the same IP.
+	* improved tracker logging.
 	* moved the file_pool into session. The number of open files is now
 	  limited per session.
 	* fixed uninitialized private flag in torrent_info
