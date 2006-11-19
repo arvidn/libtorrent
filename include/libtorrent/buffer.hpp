@@ -55,7 +55,7 @@ public:
             return begin[index];
         }
 		  
-        int left() const { assert(end > begin); return end - begin; }
+        int left() const { assert(end >= begin); return end - begin; }
 
         char* begin;
         char* end;
@@ -74,7 +74,7 @@ public:
             return begin[index];
         }
 
-        int left() const { assert(end > begin); return end - begin; }
+        int left() const { assert(end >= begin); return end - begin; }
 
         char const* begin;
         char const* end;
