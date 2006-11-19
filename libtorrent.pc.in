@@ -3,6 +3,7 @@ exec_prefix=@exec_prefix@
 bindir=@bindir@
 libdir=@libdir@
 datadir=@datadir@
+datarootdir=@datarootdir@
 sysconfdir=@sysconfdir@
 includedir=@includedir@
 package=@PACKAGE@
