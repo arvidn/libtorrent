@@ -351,7 +351,18 @@ namespace libtorrent
 		// optimization, don't send have messages
 		// to peers that already have the piece
 		if (has_piece(index)) return;
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::universal_time())
+			<< " ==> HAVE    [ piece: " << index << "]\n";
+#endif
 		write_have(index);
+#ifndef NDEBUG
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		assert(t);
+		assert(t->have_piece(index));
+#endif
 	}
 
 	bool peer_connection::has_piece(int i) const
@@ -866,6 +877,11 @@ namespace libtorrent
 			&& r.length + r.start <= t->torrent_file().piece_size(r.piece)
 			&& m_peer_interested)
 		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			using namespace boost::posix_time;
+			(*m_logger) << to_simple_string(second_clock::universal_time())
+				<< " <== REQUEST [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
+#endif
 			// if we have choked the client
 			// ignore the request
 			if (m_choked)
@@ -873,11 +889,6 @@ namespace libtorrent
 
 			m_requests.push_back(r);
 			fill_send_buffer();
-#ifdef TORRENT_VERBOSE_LOGGING
-			using namespace boost::posix_time;
-			(*m_logger) << to_simple_string(second_clock::universal_time())
-				<< " <== REQUEST [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
-#endif
 		}
 		else
 		{
@@ -890,7 +901,8 @@ namespace libtorrent
 				"l: " << r.length << " | "
 				"i: " << m_peer_interested << " | "
 				"t: " << (int)t->torrent_file().piece_size(r.piece) << " | "
-				"n: " << t->torrent_file().num_pieces() << " ]\n";
+				"n: " << t->torrent_file().num_pieces() << " | "
+				"h: " << t->have_piece(r.piece) << " ]\n";
 #endif
 
 			++m_num_invalid_requests;

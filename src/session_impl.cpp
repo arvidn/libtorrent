@@ -732,7 +732,7 @@ namespace libtorrent { namespace detail
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << endp << " <== INCOMING CONNECTION\n";
 #endif
-		if (m_ip_filter.access(endp.address().to_v4()) & ip_filter::blocked)
+		if (m_ip_filter.access(endp.address()) & ip_filter::blocked)
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			(*m_logger) << "filtered blocked ip\n";
