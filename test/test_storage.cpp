@@ -1,4 +1,5 @@
 #include "libtorrent/storage.hpp"
+#include "libtorrent/file_pool.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
@@ -51,14 +52,15 @@ int test_main()
 	char piece[piece_size];
 
 	{ // avoid having two storages use the same files	
-	storage s(info, initial_path());
+	file_pool fp;
+	storage s(info, initial_path(), fp);
 
 	// write piece 1 (in slot 0)
 	s.write(piece1, 0, 0, half);
 	s.write(piece1 + half, 0, half, half);
 
 	// verify piece 1
-	s.read(piece, 0, 0, piece_size);
+	TEST_CHECK(s.read(piece, 0, 0, piece_size) == piece_size);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece1));
 	
 	// do the same with piece 0 and 2 (in slot 1 and 2)
@@ -66,7 +68,7 @@ int test_main()
 	s.write(piece2, 2, 0, piece_size);
 
 	// verify piece 0 and 2
-	s.read(piece, 1, 0, piece_size);
+	TEST_CHECK(s.read(piece, 1, 0, piece_size) == piece_size);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece0));
 
 	s.read(piece, 2, 0, piece_size);
@@ -79,7 +81,8 @@ int test_main()
 	}
 
 	// make sure the piece_manager can identify the pieces
-	piece_manager pm(info, initial_path());
+	file_pool fp;
+	piece_manager pm(info, initial_path(), fp);
 	boost::mutex lock;
 	libtorrent::aux::piece_checker_data d;
 
@@ -95,13 +98,13 @@ int test_main()
 	TEST_CHECK(num_pieces == std::count(pieces.begin(), pieces.end()
 		, true));
 	
-	pm.read(piece, 0, 0, piece_size);
+	TEST_CHECK(pm.read(piece, 0, 0, piece_size) == piece_size);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece0));
 
-	pm.read(piece, 1, 0, piece_size);
+	TEST_CHECK(pm.read(piece, 1, 0, piece_size) == piece_size);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece1));
 
-	pm.read(piece, 2, 0, piece_size);
+	TEST_CHECK(pm.read(piece, 2, 0, piece_size) == piece_size);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece2));
 	pm.release_files();
 

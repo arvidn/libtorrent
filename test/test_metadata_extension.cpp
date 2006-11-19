@@ -64,13 +64,13 @@ int test_main()
 	using namespace boost::filesystem;
 
 	// test to disconnect one client prematurely
-//	test_transfer(true, true);
+	test_transfer(true, true);
 	
 	// test where one has data and one doesn't
 	test_transfer(true);
 
 	// test where both have data (to trigger the file check)
-//	test_transfer(false);
+	test_transfer(false);
 
 	remove_all("./tmp1");
 	remove_all("./tmp2");
