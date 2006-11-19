@@ -567,6 +567,12 @@ namespace libtorrent
 		// can upload per second
 		int m_upload_bandwidth_limit;
 		int m_download_bandwidth_limit;
+		
+		// the accumulated excess upload and download
+		// bandwidth used. Used to balance out the
+		// bandwidth to match the limit over time
+		int m_excess_ul;
+		int m_excess_dl;
 
 		boost::filesystem::path m_save_path;
 

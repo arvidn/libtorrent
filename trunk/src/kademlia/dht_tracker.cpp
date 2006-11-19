@@ -218,6 +218,8 @@ namespace libtorrent { namespace dht
 	}
 	catch (std::exception& exc)
 	{
+		std::cerr << "exception-type: " << typeid(exc).name() << std::endl;
+		std::cerr << "what: " << exc.what() << std::endl;
 		assert(false);
 	};
 

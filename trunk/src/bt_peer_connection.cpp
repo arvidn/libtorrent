@@ -742,13 +742,13 @@ namespace libtorrent
 		}
 		catch (std::exception& exc)
 		{
-#ifdef TORRENT_VERBOSE_LOGGIGN
+#ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << "invalid extended handshake: " << exc.what() << "\n";
 #endif
 			return;
 		}
 
-#ifdef TORRENT_VERBOSE_LOGGIGN
+#ifdef TORRENT_VERBOSE_LOGGING
 		std::stringstream ext;
 		root.print(ext);
 		(*m_logger) << "<== EXTENDED HANDSHAKE: \n" << ext.str();

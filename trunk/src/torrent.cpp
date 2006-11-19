@@ -233,6 +233,8 @@ namespace libtorrent
 		, m_net_interface(net_interface.address(), 0)
 		, m_upload_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
+		, m_excess_ul(0)
+		, m_excess_dl(0)
 		, m_save_path(complete(save_path))
 		, m_compact_mode(compact_mode)
 		, m_default_block_size(block_size)
@@ -331,6 +333,8 @@ namespace libtorrent
 		, m_net_interface(net_interface.address(), 0)
 		, m_upload_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
+		, m_excess_ul(0)
+		, m_excess_dl(0)
 		, m_save_path(complete(save_path))
 		, m_compact_mode(compact_mode)
 		, m_default_block_size(block_size)
@@ -520,7 +524,7 @@ namespace libtorrent
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
 		m_failed_trackers = 0;
-		// less than 5 minutes announce intervals
+		// announce intervals less than 5 minutes
 		// are insane.
 		if (interval < 60 * 5) interval = 60 * 5;
 
@@ -1125,6 +1129,13 @@ namespace libtorrent
 		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_selector));
 		boost::intrusive_ptr<peer_connection> c(new web_peer_connection(
 			m_ses, shared_from_this(), s, a, url));
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_ses.m_logger) << "add url seed (" << c->m_dl_bandwidth_quota.given << ", "
+			<< c->m_dl_bandwidth_quota.used << ") ";
+		(*m_ses.m_logger) << "\n";
+#endif
+			
 #ifndef NDEBUG
 		c->m_in_constructor = false;
 #endif
@@ -1176,6 +1187,14 @@ namespace libtorrent
 		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_selector));
 		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
 			m_ses, shared_from_this(), s, a));
+			
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_ses.m_logger) << "connect_to_peer (" << c->m_dl_bandwidth_quota.given << ", "
+			<< c->m_dl_bandwidth_quota.used << ") ";
+		(*m_ses.m_logger) << "\n";
+#endif
+
+			
 #ifndef NDEBUG
 		c->m_in_constructor = false;
 #endif
@@ -1797,13 +1816,44 @@ namespace libtorrent
 		assert(m_ul_bandwidth_quota.given >= 0);
 		assert(m_dl_bandwidth_quota.given >= 0);
 
+		int ul_used = 0;
+		int dl_used = 0;
+		for (peer_iterator i = m_connections.begin();
+			i != m_connections.end(); ++i)
+		{
+			ul_used += i->second->m_ul_bandwidth_quota.used;
+			dl_used += i->second->m_dl_bandwidth_quota.used;
+		}
+
+		m_excess_ul += ul_used - m_ul_bandwidth_quota.given;
+		m_excess_dl += dl_used - m_dl_bandwidth_quota.given;
+
+		m_excess_ul = std::max(m_excess_ul, 0);
+		m_excess_dl = std::max(m_excess_dl, 0);
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+/*		for (peer_iterator i = m_connections.begin();
+			i != m_connections.end(); ++i)
+		{
+			(*m_ses.m_logger) << i->second->remote() << " (" << i->second->m_dl_bandwidth_quota.given << ", "
+				<< i->second->m_dl_bandwidth_quota.used << ") ";
+		}
+*/
+		(*m_ses.m_logger) << m_excess_ul << " " << m_excess_dl << "\n";
+#endif
+
+		int ul_to_distribute = int((m_ul_bandwidth_quota.given
+			- m_excess_ul) * 1.3f);
+		int dl_to_distribute = int((m_dl_bandwidth_quota.given
+			- m_excess_dl) * 1.3f);
+
 		// distribute allowed upload among the peers
-		allocate_resources(m_ul_bandwidth_quota.given
+		allocate_resources(ul_to_distribute
 			, m_connections
 			, &peer_connection::m_ul_bandwidth_quota);
 
 		// distribute allowed download among the peers
-		allocate_resources(m_dl_bandwidth_quota.given
+		allocate_resources(dl_to_distribute
 			, m_connections
 			, &peer_connection::m_dl_bandwidth_quota);
 	

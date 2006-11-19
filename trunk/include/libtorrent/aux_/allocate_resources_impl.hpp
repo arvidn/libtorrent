@@ -74,6 +74,11 @@ namespace libtorrent
 			return accepted;
 		}
 
+		inline int div_round_up(int numerator, int denominator)
+		{
+			return (numerator + denominator - 1) / denominator;
+		}
+
 #ifndef NDEBUG
 
 		template<class It, class T>
@@ -120,7 +125,11 @@ namespace libtorrent
 					sum_max = saturated_add(sum_max, ((*i).*m_res).max);
 					sum_min = saturated_add(sum_min, ((*i).*m_res).min);
 				}
-				assert(sum_given == (std::min)(std::max(m_resources, sum_min), sum_max));
+				if (sum_given != (std::min)(std::max(m_resources, sum_min), sum_max))
+				{
+					std::cerr << sum_given << " " << m_resources << " " << sum_min << " " << sum_max << std::endl;
+					assert(false);
+				}
 			}
 		};
 
@@ -157,18 +166,88 @@ namespace libtorrent
 
 			int sum_max = 0;
 			int sum_min = 0;
+			// the number of consumer that saturated their
+			// quota last time slice
+			int num_saturated = 0;
+			// the total resources those that saturated their
+			// quota used. This is used to calculate the mean
+			// of the saturating consumers, in order to
+			// balance their quotas for the next time slice.
+			size_type saturated_sum = 0;
 			for (It i = start; i != end; ++i)
 			{
-				sum_max = saturated_add(sum_max, ((*i).*res).max);
-				assert(((*i).*res).min < resource_request::inf);
-				assert(((*i).*res).min >= 0);
-				assert(((*i).*res).min <= ((*i).*res).max);
-				sum_min += ((*i).*res).min;
-				((*i).*res).given = ((*i).*res).min;
+				resource_request& r = (*i).*res;
+				sum_max = saturated_add(sum_max, r.max);
+				assert(r.min < resource_request::inf);
+				assert(r.min >= 0);
+				assert(r.min <= r.max);
+				sum_min += r.min;
+				
+				// a consumer that uses 95% or more of its assigned
+				// quota is considered saturating
+				size_type used = r.used;
+				if (used * 20 / r.given >= 19)
+				{
+					++num_saturated;
+					saturated_sum += r.given;
+				}
 			}
 
 			if (resources == 0 || sum_max == 0)
 				return;
+
+			if (sum_max <= resources)
+			{
+				// it turns out that there's no competition for resources
+				// after all.
+				for (It i = start; i != end; ++i)
+				{
+					((*i).*res).given = ((*i).*res).max;
+				}
+				return;
+			}
+
+			if (sum_min >= resources)
+			{
+				// the amount of resources is smaller than
+				// the minimum resources to distribute, so
+				// give everyone the minimum
+				for (It i = start; i != end; ++i)
+				{
+					((*i).*res).given = ((*i).*res).min;
+				}
+				return;
+			}
+
+			// now, the "used" field will be used as a target value.
+			// the algorithm following this loop will then scale the
+			// used values to fit the available resources and store
+			// the scaled values as given. So, the ratios of the
+			// used values will be maintained.
+			for (It i = start; i != end; ++i)
+			{
+				resource_request& r = (*i).*res;
+				
+				int target;
+				size_type used = r.used;
+				if (used * 20 / r.given >= 19)
+				{
+					assert(num_saturated > 0);
+					target = div_round_up(saturated_sum, num_saturated);
+					target += div_round_up(target, 10);
+				}
+				else
+				{
+					target = r.used;
+				}
+				if (target > r.max) target = r.max;
+				else if (target < r.min) target = r.min;
+
+				// move 50% towards the the target value
+				r.used = r.given + div_round_up(target - r.given, 2);
+				r.given = r.min;
+			}
+
 
 			resources = (std::max)(resources, sum_min);
 			int resources_to_distribute = (std::min)(resources, sum_max) - sum_min;
@@ -178,12 +257,14 @@ namespace libtorrent
 #endif
 			while (resources_to_distribute > 0)
 			{
+				// in order to scale, we need to calculate the sum of
+				// all the used values.
 				size_type total_used = 0;
 				size_type max_used = 0;
 				for (It i = start; i != end; ++i)
 				{
 					resource_request& r = (*i).*res;
-					if(r.given == r.max) continue;
+					if (r.given == r.max) continue;
 
 					assert(r.given < r.max);
 
@@ -191,19 +272,18 @@ namespace libtorrent
 					total_used += (size_type)r.used + 1;
 				}
 
+
 				size_type kNumer = resources_to_distribute;
 				size_type kDenom = total_used;
 				assert(kNumer >= 0);
 				assert(kDenom >= 0);
 				assert(kNumer <= (std::numeric_limits<int>::max)());
-				assert(total_used < (std::numeric_limits<int>::max)());
 
 				if (kNumer * max_used <= kDenom)
 				{
 					kNumer = 1;
 					kDenom = max_used;
 					assert(kDenom >= 0);
-					assert(kDenom <= (std::numeric_limits<int>::max)());
 				}
 
 				for (It i = start; i != end && resources_to_distribute > 0; ++i)
@@ -220,7 +300,11 @@ namespace libtorrent
 						to_give = resources_to_distribute;
 					assert(to_give >= 0);
 					assert(to_give <= resources_to_distribute);
+#ifndef NDEBUG
+					int tmp = resources_to_distribute;
+#endif
 					resources_to_distribute -= give(r, (int)to_give);
+					assert(resources_to_distribute <= tmp);
 					assert(resources_to_distribute >= 0);
 				}
 
@@ -230,6 +314,7 @@ namespace libtorrent
 				prev_resources_to_distribute = resources_to_distribute;
 #endif
 			}
+			assert(resources_to_distribute == 0);
 		}
 
 	} // namespace libtorrent::aux
