@@ -996,7 +996,7 @@ namespace libtorrent { namespace detail
 #ifndef NDEBUG
 			i->second->check_invariant();
 #endif
-			i->second->distribute_resources();
+			i->second->distribute_resources(tick_interval);
 		}
 	}
 	catch (std::exception& exc)

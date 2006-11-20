@@ -562,14 +562,7 @@ namespace libtorrent
 		// these are true when there's a asynchronous write
 		// or read operation running.
 		bool m_writing;
-		// this is the number of bytes sent to the socket last
-		// time it was invoked. This is compared against the
-		// bytes_transferred in the callback function that tells
-		// how much actually was sent. Then the quota can be
-		// corrected according to the actual number of bytes sent
-		int m_last_write_size;
 		bool m_reading;
-		int m_last_read_size;		
 
 		// if set to true, this peer will always prefer
 		// to request entire pieces, rather than blocks.

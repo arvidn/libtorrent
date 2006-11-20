@@ -54,6 +54,7 @@ namespace libtorrent
 			, min(0)
 			, max(0)
 			, given(0)
+			, leftovers(0)
 		{}
 
 		resource_request(int used_, int min_, int max_, int given_)
@@ -61,16 +62,18 @@ namespace libtorrent
 			, min(min_)
 			, max(max_)
 			, given(given_)
+			, leftovers(0)
 		{}
 
 		int left() const
 		{
 			assert(given <= max);
 			assert(given >= min);
-			if (used < 0 && (given - used < 0))
-				return boost::integer_traits<int>::const_max;
-			return given - used;
+			assert(used >= 0);
+			return (std::max)(given - used, 0);
 		}
+		
+		void reset() { used = leftovers; }
 
 		static const int inf = boost::integer_traits<int>::const_max;
 
@@ -84,6 +87,11 @@ namespace libtorrent
 
 		// Reply: Okay, you're allowed to use this amount (a compromise):
 		int given;
+
+		// this is the amount of resources that exceeded the
+		// given limit. When the used field is reset (after resources
+		// have been distributed), it is reset to this number.
+		int leftovers;
 	};
 }
 

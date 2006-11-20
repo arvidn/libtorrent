@@ -151,6 +151,12 @@ namespace libtorrent
 				, res);
 	#endif
 
+			for (It i = start; i != end; ++i)
+			{
+				resource_request& r = (*i).*res;
+				r.leftovers = (std::max)(r.used - r.given, 0);
+			}
+
 			if (resources == resource_request::inf)
 			{
 				// No competition for resources.
@@ -192,9 +198,6 @@ namespace libtorrent
 					saturated_sum += r.given;
 				}
 			}
-
-			if (resources == 0 || sum_max == 0)
-				return;
 
 			if (sum_max <= resources)
 			{

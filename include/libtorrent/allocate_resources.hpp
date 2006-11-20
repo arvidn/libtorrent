@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resource_request.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/session.hpp"
 
 namespace libtorrent
 {
@@ -66,6 +67,11 @@ namespace libtorrent
 		, std::map<tcp::endpoint, peer_connection*>& connections
 		, resource_request peer_connection::* res);
 
+	// Used for global limits.
+	void allocate_resources(
+		int resources
+		, std::vector<session*>& _sessions
+		, resource_request session::* res);
 }
 
 

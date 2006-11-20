@@ -382,8 +382,6 @@ namespace libtorrent
 
 		// LOGGING
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		logger* spawn_logger(const char* title);
-
 		virtual void debug_log(const std::string& line);
 #endif
 
@@ -397,7 +395,7 @@ namespace libtorrent
 
 		// this will distribute the given upload/download
 		// quotas and number of connections, among the peers
-		void distribute_resources();
+		void distribute_resources(float tick_interval);
 
 		resource_request m_ul_bandwidth_quota;
 		resource_request m_dl_bandwidth_quota;
@@ -612,6 +610,14 @@ namespace libtorrent
 		// is started. i.e.
 		// total_done - m_initial_done <= total_payload_download
 		size_type m_initial_done;
+#endif
+
+#ifdef TORRENT_LOGGING
+		boost::shared_ptr<logger> m_log;
+		int m_second_count;
+		
+		int m_ul_history[10];
+		int m_dl_history[10];
 #endif
 	};
 
