@@ -187,6 +187,27 @@ namespace
 
 		peer_id const& pid;
 	};
+	
+#ifdef TORRENT_LOGGING
+	void print_legend(boost::shared_ptr<logger> l)
+	{
+		(*l) << "time, seconds\n"
+			<< "bytes sent\n"
+			<< "bytes sent 10 seconds mean\n"
+			<< "hard send quota, bytes\n"
+			<< "soft send quota, bytes\n"
+			<< "excess bytes sent\n"
+			<< "bytes received\n"
+			<< "bytes received 10 seconds mean\n"
+			<< "hard receive quota, bytes\n"
+			<< "soft receive quota, bytes\n"
+			<< "excess bytes received\n"
+			<< "num peers\n"
+			
+			<< "\n";
+	}
+#endif
+
 }
 
 namespace libtorrent
@@ -243,6 +264,15 @@ namespace libtorrent
 	{
 #ifndef NDEBUG
 		m_initial_done = 0;
+#endif
+#ifdef TORRENT_LOGGING
+		m_log = ses.create_log("torrent_"
+			+ boost::lexical_cast<std::string>(tf.info_hash())
+			, m_ses.listen_port(), true);
+		print_legend(m_log);
+		m_second_count = 0;
+		std::fill_n(m_ul_history, 10, 0);
+		std::fill_n(m_dl_history, 10, 0);
 #endif
 		INVARIANT_CHECK;
 
@@ -344,6 +374,17 @@ namespace libtorrent
 #ifndef NDEBUG
 		m_initial_done = 0;
 #endif
+
+#ifdef TORRENT_LOGGING
+		m_log = ses.create_log("torrent_"
+			+ boost::lexical_cast<std::string>(info_hash)
+			, m_ses.listen_port(), true);
+		print_legend(m_log);
+		m_second_count = 0;
+		std::fill_n(m_ul_history, 10, 0);
+		std::fill_n(m_dl_history, 10, 0);
+#endif
+
 		INVARIANT_CHECK;
 
 		if (name) m_name.reset(new std::string(name));
@@ -1802,7 +1843,7 @@ namespace libtorrent
 		m_stat.second_tick(tick_interval);
 	}
 
-	void torrent::distribute_resources()
+	void torrent::distribute_resources(float tick_interval)
 	{
 		INVARIANT_CHECK;
 
@@ -1824,6 +1865,9 @@ namespace libtorrent
 			ul_used += i->second->m_ul_bandwidth_quota.used;
 			dl_used += i->second->m_dl_bandwidth_quota.used;
 		}
+		
+		assert(ul_used == m_ul_bandwidth_quota.used);
+		assert(dl_used == m_dl_bandwidth_quota.used);
 
 		m_excess_ul += ul_used - m_ul_bandwidth_quota.given;
 		m_excess_dl += dl_used - m_dl_bandwidth_quota.given;
@@ -1831,21 +1875,42 @@ namespace libtorrent
 		m_excess_ul = std::max(m_excess_ul, 0);
 		m_excess_dl = std::max(m_excess_dl, 0);
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-/*		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
-		{
-			(*m_ses.m_logger) << i->second->remote() << " (" << i->second->m_dl_bandwidth_quota.given << ", "
-				<< i->second->m_dl_bandwidth_quota.used << ") ";
-		}
-*/
-		(*m_ses.m_logger) << m_excess_ul << " " << m_excess_dl << "\n";
-#endif
+		int ul_to_distribute = std::max(int((m_ul_bandwidth_quota.given
+			- m_excess_ul) * 1.6f), 0);
+		int dl_to_distribute = std::max(int((m_dl_bandwidth_quota.given
+			- m_excess_dl) * 1.6f), 0);
 
-		int ul_to_distribute = int((m_ul_bandwidth_quota.given
-			- m_excess_ul) * 1.3f);
-		int dl_to_distribute = int((m_dl_bandwidth_quota.given
-			- m_excess_dl) * 1.3f);
+#ifdef TORRENT_LOGGING
+		std::copy(m_ul_history + 1, m_ul_history + 10, m_ul_history);
+		m_ul_history[9] = ul_used;
+		std::copy(m_dl_history + 1, m_dl_history + 10, m_dl_history);
+		m_dl_history[9] = dl_used;
+
+		size_type mean_ul = 0;
+		size_type mean_dl = 0;
+		for (int i = 0; i < 10; ++i)
+		{
+			mean_ul += m_ul_history[i];
+			mean_dl += m_dl_history[i];
+		}
+		mean_ul /= 10;
+		mean_dl /= 10;
+
+		(*m_log) << m_second_count++ << "\t"
+			<< ul_used << "\t"
+			<< mean_ul << "\t"
+			<< m_ul_bandwidth_quota.given << "\t"
+			<< ul_to_distribute << "\t"
+			<< m_excess_ul << "\t"
+			<< dl_used << "\t"
+			<< mean_dl << "\t"
+			<< m_dl_bandwidth_quota.given << "\t"
+			<< dl_to_distribute << "\t"
+			<< m_excess_dl << "\t"
+			<< num_peers() << "\t"
+			<< "\n";
+
+#endif
 
 		// distribute allowed upload among the peers
 		allocate_resources(ul_to_distribute
@@ -1866,8 +1931,6 @@ namespace libtorrent
 			= m_connections.begin(); i != m_connections.end(); ++i)
 		{
 			i->second->reset_upload_quota();
-			assert(i->second->m_dl_bandwidth_quota.used
-				<= i->second->m_dl_bandwidth_quota.given);
 		}
 	}
 

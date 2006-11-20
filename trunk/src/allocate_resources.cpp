@@ -163,6 +163,11 @@ namespace libtorrent
 		{
 			return *p.second;
 		}
+
+		session& deref(session* p)
+		{
+			return *p;
+		}
 	}
 
 	void allocate_resources(
@@ -196,6 +201,23 @@ namespace libtorrent
 			, new_iter(c.end(), &aux::pick_peer2)
 			, res);
 	}
+
+   void allocate_resources(
+		int resources
+		, std::vector<session*>& _sessions
+		, resource_request session::* res)
+   {
+      typedef std::vector<session*>::iterator orig_iter;
+      typedef session* in_param;
+		typedef boost::transform_iterator<session& (*)(in_param), orig_iter> new_iter;
+
+      aux::allocate_resources_impl(
+			resources
+			, new_iter(_sessions.begin(), &aux::deref)
+			, new_iter(_sessions.end(), &aux::deref)
+			, res);
+   }
+
 #endif
 
 } // namespace libtorrent

@@ -113,9 +113,7 @@ namespace libtorrent
 		, m_connecting(true)
 		, m_queued(true)
 		, m_writing(false)
-		, m_last_write_size(0)
 		, m_reading(false)
-		, m_last_read_size(0)
 		, m_prefer_whole_pieces(false)
 		, m_request_large_blocks(false)
 		, m_refs(0)
@@ -204,9 +202,7 @@ namespace libtorrent
 		, m_connecting(false)
 		, m_queued(false)
 		, m_writing(false)
-		, m_last_write_size(0)
 		, m_reading(false)
-		, m_last_read_size(0)
 		, m_prefer_whole_pieces(false)
 		, m_request_large_blocks(false)
 		, m_refs(0)
@@ -459,8 +455,8 @@ namespace libtorrent
 
 	void peer_connection::reset_upload_quota()
 	{
-		m_ul_bandwidth_quota.used = 0;
-		m_dl_bandwidth_quota.used = 0;
+		m_ul_bandwidth_quota.reset();
+		m_dl_bandwidth_quota.reset();
 		assert(m_ul_bandwidth_quota.left() >= 0);
 		assert(m_dl_bandwidth_quota.left() >= 0);
 		setup_send();
@@ -1581,9 +1577,6 @@ namespace libtorrent
 		}
 
 		m_statistics.second_tick(tick_interval);
-		m_ul_bandwidth_quota.used = std::min(
-			(int)ceil(statistics().upload_rate())
-			, m_ul_bandwidth_quota.given);
 
 		// If the client sends more data
 		// we send it data faster, otherwise, slower.
@@ -1599,13 +1592,17 @@ namespace libtorrent
 			// have an unlimited upload rate
 			if(send_buffer_size() > 0
 				|| (!m_requests.empty() && !is_choked()))
+			{
 				m_ul_bandwidth_quota.max = resource_request::inf;
+			}
 			else
+			{
 				m_ul_bandwidth_quota.max = m_ul_bandwidth_quota.min;
+			}
 		}
 		else
 		{
-			size_type bias = 0x10000+2*t->block_size() + m_free_upload;
+			size_type bias = 0x10000 + 2 * t->block_size() + m_free_upload;
 
 			double break_even_time = 15; // seconds.
 			size_type have_uploaded = m_statistics.total_payload_upload();
@@ -1619,7 +1616,7 @@ namespace libtorrent
 				soon_downloaded = (size_type)(soon_downloaded*(double)t->ratio());
 
 			double upload_speed_limit = (soon_downloaded - have_uploaded
-				                         + bias) / break_even_time;
+				+ bias) / break_even_time;
 
 			upload_speed_limit = std::min(upload_speed_limit,
 				(double)std::numeric_limits<int>::max());
@@ -1629,9 +1626,6 @@ namespace libtorrent
 		}
 		if (m_ul_bandwidth_quota.given > m_ul_bandwidth_quota.max)
 			m_ul_bandwidth_quota.given = m_ul_bandwidth_quota.max;
-
-		if (m_ul_bandwidth_quota.used > m_ul_bandwidth_quota.given)
-			m_ul_bandwidth_quota.used = m_ul_bandwidth_quota.given;
 
 		fill_send_buffer();
 /*
@@ -1757,8 +1751,6 @@ namespace libtorrent
 				, bind(&peer_connection::on_send_data, self(), _1, _2));
 
 			m_writing = true;
-			m_last_write_size = amount_to_send;
-			m_ul_bandwidth_quota.used += m_last_write_size;
 		}
 	}
 
@@ -1785,8 +1777,6 @@ namespace libtorrent
 		m_socket->async_read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
 			, max_receive), bind(&peer_connection::on_receive_data, self(), _1, _2));
 		m_reading = true;
-		m_last_read_size = max_receive;
-		m_dl_bandwidth_quota.used += max_receive;
 		assert(m_dl_bandwidth_quota.used <= m_dl_bandwidth_quota.given);
 	}
 
@@ -1841,12 +1831,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		assert(m_reading);
-		assert(m_last_read_size > 0);
-		assert(m_last_read_size >= int(bytes_transferred));
 		m_reading = false;
 		// correct the dl quota usage, if not all of the buffer was actually read
-		m_dl_bandwidth_quota.used -= m_last_read_size - bytes_transferred;
-		m_last_read_size = 0;
+		m_dl_bandwidth_quota.used += bytes_transferred;
 
 		if (error)
 		{
@@ -1986,8 +1973,8 @@ namespace libtorrent
 		(*m_ses.m_logger) << "COMPLETED: " << m_remote.address().to_string() << "\n";
 #endif
 
-		m_connecting = false;
 		m_ses.connection_completed(self());
+		m_connecting = false;
 		on_connected();
 		setup_send();
 	}
@@ -2017,11 +2004,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		assert(m_writing);
-		assert(m_last_write_size > 0);
 		m_writing = false;
 		// correct the ul quota usage, if not all of the buffer was sent
-		m_ul_bandwidth_quota.used -= m_last_write_size - bytes_transferred;
-		m_last_write_size = 0;
+		m_ul_bandwidth_quota.used += bytes_transferred;
 		m_write_pos += bytes_transferred;
 
 		if (error)

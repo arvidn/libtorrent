@@ -60,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/version.hpp"
 #include "libtorrent/fingerprint.hpp"
 
+#include "libtorrent/resource_request.hpp"
 
 #if !defined(NDEBUG) && defined(_MSC_VER)
 #	include <float.h>
@@ -213,6 +214,12 @@ namespace libtorrent
 
 		std::auto_ptr<alert> pop_alert();
 		void set_severity_level(alert::severity_t s);
+
+      // Resource management used for global limits.
+      resource_request m_ul_bandwidth_quota;
+		resource_request m_dl_bandwidth_quota;
+		resource_request m_uploads_quota;
+		resource_request m_connections_quota;
 
 	private:
 
