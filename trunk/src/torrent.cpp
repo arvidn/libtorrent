@@ -197,11 +197,13 @@ namespace
 			<< "hard send quota, bytes\n"
 			<< "soft send quota, bytes\n"
 			<< "excess bytes sent\n"
+			<< "excess bytes sent last time slice\n"
 			<< "bytes received\n"
 			<< "bytes received 10 seconds mean\n"
 			<< "hard receive quota, bytes\n"
 			<< "soft receive quota, bytes\n"
 			<< "excess bytes received\n"
+			<< "excess bytes received last time slice\n"
 			<< "num peers\n"
 			
 			<< "\n";
@@ -1862,12 +1864,14 @@ namespace libtorrent
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
 		{
-			ul_used += i->second->m_ul_bandwidth_quota.used;
-			dl_used += i->second->m_dl_bandwidth_quota.used;
+			peer_connection* p = i->second;
+
+			// the bandwidth exceeding the given amount is accumulated to
+			// the next timeslice, don't take it into account now as well!
+			// (that would lead to a spiral of accumulating used-values)
+			ul_used += std::min(p->m_ul_bandwidth_quota.used, p->m_ul_bandwidth_quota.given);
+			dl_used += std::min(p->m_dl_bandwidth_quota.used, p->m_dl_bandwidth_quota.given);
 		}
-		
-		assert(ul_used == m_ul_bandwidth_quota.used);
-		assert(dl_used == m_dl_bandwidth_quota.used);
 
 		m_excess_ul += ul_used - m_ul_bandwidth_quota.given;
 		m_excess_dl += dl_used - m_dl_bandwidth_quota.given;
@@ -1896,17 +1900,28 @@ namespace libtorrent
 		mean_ul /= 10;
 		mean_dl /= 10;
 
+		int ul_leftovers = 0;
+		int dl_leftovers = 0;
+		for (peer_iterator i = m_connections.begin();
+			i != m_connections.end(); ++i)
+		{
+			ul_leftovers += i->second->m_ul_bandwidth_quota.leftovers;
+			dl_leftovers += i->second->m_dl_bandwidth_quota.leftovers;
+		}
+
 		(*m_log) << m_second_count++ << "\t"
 			<< ul_used << "\t"
 			<< mean_ul << "\t"
 			<< m_ul_bandwidth_quota.given << "\t"
 			<< ul_to_distribute << "\t"
 			<< m_excess_ul << "\t"
+			<< ul_leftovers << "\t"
 			<< dl_used << "\t"
 			<< mean_dl << "\t"
 			<< m_dl_bandwidth_quota.given << "\t"
 			<< dl_to_distribute << "\t"
 			<< m_excess_dl << "\t"
+			<< dl_leftovers << "\t"
 			<< num_peers() << "\t"
 			<< "\n";
 
