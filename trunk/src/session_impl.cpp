@@ -492,6 +492,14 @@ namespace libtorrent { namespace detail
 		using boost::posix_time::second_clock;
 		using boost::posix_time::to_simple_string;
 		(*m_logger) << to_simple_string(second_clock::universal_time()) << "\n";
+		
+		m_stats_logger = create_log("session_stats", listen_port(), false);
+		(*m_stats_logger) <<
+			"1. second\n"
+			"2. hard upload quota\n"
+			"3. hard download quota\n"
+			"\n";
+		m_second_counter = 0;
 #endif
 
 		// ---- generate a peer id ----
@@ -966,6 +974,12 @@ namespace libtorrent { namespace detail
 		assert(m_max_uploads >= -1);
 		assert(m_max_connections >= -1);
 
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_stats_logger) << m_second_counter++ << "\t"
+			<< (m_upload_rate == -1 ? m_upload_rate
+			: int(m_upload_rate * tick_interval)) << "\n";
+#endif
+
 		allocate_resources(m_upload_rate == -1
 			? std::numeric_limits<int>::max()
 			: int(m_upload_rate * tick_interval)
@@ -977,6 +991,19 @@ namespace libtorrent { namespace detail
 			: int(m_download_rate * tick_interval)
 			, m_torrents
 			, &torrent::m_dl_bandwidth_quota);
+
+#ifndef NDEBUG
+		size_type sum_ul = 0;
+		size_type sum_dl = 0;
+		for (torrent_map::iterator i = m_torrents.begin();
+			i != m_torrents.end(); ++i)
+		{
+			sum_ul += i->second->m_ul_bandwidth_quota.given;
+			sum_dl += i->second->m_dl_bandwidth_quota.given;
+		}
+		assert(m_upload_rate == -1 || sum_ul == int(m_upload_rate * tick_interval));
+		assert(m_download_rate == -1 || sum_dl == int(m_download_rate * tick_interval));
+#endif
 
 		allocate_resources(m_max_uploads == -1
 			? std::numeric_limits<int>::max()
@@ -1017,8 +1044,8 @@ namespace libtorrent { namespace detail
 		if (m_abort) return;
 
 		connection_map::iterator i = m_half_open.find(p->get_socket());
-
 		m_connections.insert(std::make_pair(p->get_socket(), p));
+		assert(i != m_half_open.end());
 		if (i != m_half_open.end()) m_half_open.erase(i);
 		process_connection_queue();
 	}

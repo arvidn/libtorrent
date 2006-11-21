@@ -370,6 +370,10 @@ namespace libtorrent
 			// shutting down. This list is just here to keep them alive during
 			// whe shutting down process
 			std::list<boost::shared_ptr<tracker_logger> > m_tracker_loggers;
+			
+			// logger used to write bandwidth usage statistics
+			boost::shared_ptr<logger> m_stats_logger;
+			int m_second_counter;
 		public:
 			boost::shared_ptr<logger> m_logger;
 		private:
