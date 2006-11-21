@@ -73,7 +73,7 @@ namespace libtorrent
 			return (std::max)(given - used, 0);
 		}
 		
-		void reset() { used = leftovers; }
+		void reset() { used = leftovers; leftovers = 0; }
 
 		static const int inf = boost::integer_traits<int>::const_max;
 

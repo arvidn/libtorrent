@@ -616,8 +616,9 @@ namespace libtorrent
 		boost::shared_ptr<logger> m_log;
 		int m_second_count;
 		
-		int m_ul_history[10];
-		int m_dl_history[10];
+		enum { debug_bw_history_size = 10 };
+		int m_ul_history[debug_bw_history_size];
+		int m_dl_history[debug_bw_history_size];
 #endif
 	};
 

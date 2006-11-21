@@ -191,21 +191,22 @@ namespace
 #ifdef TORRENT_LOGGING
 	void print_legend(boost::shared_ptr<logger> l)
 	{
-		(*l) << "time, seconds\n"
-			<< "bytes sent\n"
-			<< "bytes sent 10 seconds mean\n"
-			<< "hard send quota, bytes\n"
-			<< "soft send quota, bytes\n"
-			<< "excess bytes sent\n"
-			<< "excess bytes sent last time slice\n"
-			<< "bytes received\n"
-			<< "bytes received 10 seconds mean\n"
-			<< "hard receive quota, bytes\n"
-			<< "soft receive quota, bytes\n"
-			<< "excess bytes received\n"
-			<< "excess bytes received last time slice\n"
-			<< "num peers\n"
-			
+		(*l) << "1. time, seconds\n"
+			<< "2. hard send quota, bytes\n"
+			<< "3. soft send quota, bytes\n"
+			<< "4. excess bytes sent\n"
+			<< "5. excess bytes sent last time slice\n"
+			<< "6. hard receive quota, bytes\n"
+			<< "7. soft receive quota, bytes\n"
+			<< "8. excess bytes received\n"
+			<< "9. excess bytes received last time slice\n"
+			<< "10. num peers\n"
+			<< "11. max ul quota limit\n"
+			<< "12. max dl quota limit\n"
+			<< "13. bytes sent\n"
+			<< "14. bytes sent 10 seconds mean\n"
+			<< "15. bytes received\n"
+			<< "16. bytes received 10 seconds mean\n"
 			<< "\n";
 	}
 #endif
@@ -270,7 +271,7 @@ namespace libtorrent
 #ifdef TORRENT_LOGGING
 		m_log = ses.create_log("torrent_"
 			+ boost::lexical_cast<std::string>(tf.info_hash())
-			, m_ses.listen_port(), true);
+			, m_ses.listen_port(), false);
 		print_legend(m_log);
 		m_second_count = 0;
 		std::fill_n(m_ul_history, 10, 0);
@@ -1861,6 +1862,10 @@ namespace libtorrent
 
 		int ul_used = 0;
 		int dl_used = 0;
+#ifdef TORRENT_LOGGING
+		int ul_max = 0;
+		int dl_max = 0;
+#endif
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
 		{
@@ -1871,13 +1876,18 @@ namespace libtorrent
 			// (that would lead to a spiral of accumulating used-values)
 			ul_used += std::min(p->m_ul_bandwidth_quota.used, p->m_ul_bandwidth_quota.given);
 			dl_used += std::min(p->m_dl_bandwidth_quota.used, p->m_dl_bandwidth_quota.given);
+#ifdef TORRENT_LOGGING
+			ul_max = saturated_add(ul_max, p->m_ul_bandwidth_quota.max);
+			dl_max = saturated_add(dl_max, p->m_dl_bandwidth_quota.max);
+#endif
 		}
 
+		
 		m_excess_ul += ul_used - m_ul_bandwidth_quota.given;
 		m_excess_dl += dl_used - m_dl_bandwidth_quota.given;
 
-		m_excess_ul = std::max(m_excess_ul, 0);
-		m_excess_dl = std::max(m_excess_dl, 0);
+		m_excess_ul = std::max(m_excess_ul, -10000);
+		m_excess_dl = std::max(m_excess_dl, -10000);
 
 		int ul_to_distribute = std::max(int((m_ul_bandwidth_quota.given
 			- m_excess_ul) * 1.6f), 0);
@@ -1885,20 +1895,20 @@ namespace libtorrent
 			- m_excess_dl) * 1.6f), 0);
 
 #ifdef TORRENT_LOGGING
-		std::copy(m_ul_history + 1, m_ul_history + 10, m_ul_history);
-		m_ul_history[9] = ul_used;
-		std::copy(m_dl_history + 1, m_dl_history + 10, m_dl_history);
-		m_dl_history[9] = dl_used;
+		std::copy(m_ul_history + 1, m_ul_history + debug_bw_history_size, m_ul_history);
+		m_ul_history[debug_bw_history_size-1] = ul_used;
+		std::copy(m_dl_history + 1, m_dl_history + debug_bw_history_size, m_dl_history);
+		m_dl_history[debug_bw_history_size-1] = dl_used;
 
 		size_type mean_ul = 0;
 		size_type mean_dl = 0;
-		for (int i = 0; i < 10; ++i)
+		for (int i = 0; i < debug_bw_history_size; ++i)
 		{
 			mean_ul += m_ul_history[i];
 			mean_dl += m_dl_history[i];
 		}
-		mean_ul /= 10;
-		mean_dl /= 10;
+		mean_ul /= debug_bw_history_size;
+		mean_dl /= debug_bw_history_size;
 
 		int ul_leftovers = 0;
 		int dl_leftovers = 0;
@@ -1909,21 +1919,26 @@ namespace libtorrent
 			dl_leftovers += i->second->m_dl_bandwidth_quota.leftovers;
 		}
 
-		(*m_log) << m_second_count++ << "\t"
+		(*m_log)
 			<< ul_used << "\t"
 			<< mean_ul << "\t"
+			<< dl_used << "\t"
+			<< mean_dl << "\t"
+			<< "\n";
+
+		(*m_log)
+			<< m_second_count++ << "\t"
 			<< m_ul_bandwidth_quota.given << "\t"
 			<< ul_to_distribute << "\t"
 			<< m_excess_ul << "\t"
 			<< ul_leftovers << "\t"
-			<< dl_used << "\t"
-			<< mean_dl << "\t"
 			<< m_dl_bandwidth_quota.given << "\t"
 			<< dl_to_distribute << "\t"
 			<< m_excess_dl << "\t"
 			<< dl_leftovers << "\t"
 			<< num_peers() << "\t"
-			<< "\n";
+			<< ul_max << "\t"
+			<< dl_max << "\t";
 
 #endif
 

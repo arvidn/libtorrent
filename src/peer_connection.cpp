@@ -1590,15 +1590,7 @@ namespace libtorrent
 			// if we have downloaded more than one piece more
 			// than we have uploaded OR if we are a seed
 			// have an unlimited upload rate
-			if(send_buffer_size() > 0
-				|| (!m_requests.empty() && !is_choked()))
-			{
-				m_ul_bandwidth_quota.max = resource_request::inf;
-			}
-			else
-			{
-				m_ul_bandwidth_quota.max = m_ul_bandwidth_quota.min;
-			}
+			m_ul_bandwidth_quota.max = resource_request::inf;
 		}
 		else
 		{
