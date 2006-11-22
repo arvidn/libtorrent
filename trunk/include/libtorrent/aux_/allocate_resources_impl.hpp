@@ -192,6 +192,7 @@ namespace libtorrent
 				// a consumer that uses 95% or more of its assigned
 				// quota is considered saturating
 				size_type used = r.used;
+				if (r.given == 0) continue;
 				if (used * 20 / r.given >= 19)
 				{
 					++num_saturated;
@@ -233,7 +234,7 @@ namespace libtorrent
 				
 				int target;
 				size_type used = r.used;
-				if (used * 20 / r.given >= 19)
+				if (r.given > 0 && used * 20 / r.given >= 19)
 				{
 					assert(num_saturated > 0);
 					target = div_round_up(saturated_sum, num_saturated);
