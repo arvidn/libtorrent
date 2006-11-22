@@ -992,19 +992,6 @@ namespace libtorrent { namespace detail
 			, m_torrents
 			, &torrent::m_dl_bandwidth_quota);
 
-#ifndef NDEBUG
-		size_type sum_ul = 0;
-		size_type sum_dl = 0;
-		for (torrent_map::iterator i = m_torrents.begin();
-			i != m_torrents.end(); ++i)
-		{
-			sum_ul += i->second->m_ul_bandwidth_quota.given;
-			sum_dl += i->second->m_dl_bandwidth_quota.given;
-		}
-		assert(m_upload_rate == -1 || sum_ul == int(m_upload_rate * tick_interval));
-		assert(m_download_rate == -1 || sum_dl == int(m_download_rate * tick_interval));
-#endif
-
 		allocate_resources(m_max_uploads == -1
 			? std::numeric_limits<int>::max()
 			: m_max_uploads
@@ -1521,6 +1508,7 @@ namespace libtorrent { namespace detail
 	void session_impl::start_dht(entry const& startup_state)
 	{
 		mutex_t::scoped_lock l(m_mutex);
+		m_dht.reset();
 		m_dht.reset(new dht::dht_tracker(m_selector
 			, m_dht_settings, m_listen_interface.address()
 			, startup_state));
