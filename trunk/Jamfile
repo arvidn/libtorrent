@@ -85,6 +85,24 @@ ZLIB_SOURCES =
 	zutil.c
 	;
 
+DEFINES = ;
+LIBS = ;
+
+if [ os.name ] = CYGWIN
+{
+	DEFINES += __USE_W32_SOCKETS ;
+	DEFINES += _WIN32_WINNT ;
+}
+
+# some windows specific settings
+
+if [ os.name ] = NT
+{
+	lib wsock32 : : <name>wsock32.lib ;
+	LIBS += wsock32 ;
+	DEFINES += _WIN32_WINNT ;
+}	
+
 
 project torrent
 
@@ -98,6 +116,7 @@ project torrent
 	<define>BOOST_ALL_NO_LIB
 	<define>_FILE_OFFSET_BITS=64
 	<define>BOOST_THREAD_USE_LIB
+	<define>$(DEFINES)
 	<library>/boost/thread//boost_thread #/<link>static
 	<library>/boost/filesystem//boost_filesystem #/<link>static
 	<library>/boost/date_time//boost_date_time #/<link>static
@@ -130,19 +149,10 @@ project torrent
 	<include>$(BOOST_ROOT)
 	<variant>release:<define>NDEBUG
 	<define>BOOST_ALL_NO_LIB
+	<define>$(DEFINES)
 	<link>shared:<define>TORRENT_LINKING_SHARED
 
 	;
-
-LIBS = ;
-
-# some windows specific settings
-
-	if [ os.name ] = NT
-	{
-		lib wsock32 : : <name>wsock32.lib ;
-		LIBS += wsock32 ;
-	}
 
 lib torrent
 	:
