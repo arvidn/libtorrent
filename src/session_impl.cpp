@@ -1256,7 +1256,8 @@ namespace libtorrent { namespace detail
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
-				torrent_ptr->add_extension((*i)(torrent_ptr.get()));
+			boost::shared_ptr<torrent_plugin> tp((*i)(torrent_ptr.get()));
+			if (tp) torrent_ptr->add_extension(tp);
 		}
 #endif
 
@@ -1341,7 +1342,8 @@ namespace libtorrent { namespace detail
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
-				torrent_ptr->add_extension((*i)(torrent_ptr.get()));
+			boost::shared_ptr<torrent_plugin> tp((*i)(torrent_ptr.get()));
+			if (tp) torrent_ptr->add_extension(tp);
 		}
 #endif
 
