@@ -576,6 +576,9 @@ namespace libtorrent
 		int m_excess_ul;
 		int m_excess_dl;
 
+		int m_soft_ul_limit;
+		int m_soft_dl_limit;
+
 		boost::filesystem::path m_save_path;
 
 		// determines the storage state for this torrent.
