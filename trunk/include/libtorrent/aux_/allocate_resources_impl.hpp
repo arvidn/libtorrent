@@ -175,7 +175,7 @@ namespace libtorrent
 			// the number of consumer that saturated their
 			// quota last time slice
 			int num_saturated = 0;
-			// the total resources those that saturated their
+			// the total resources that those saturated their
 			// quota used. This is used to calculate the mean
 			// of the saturating consumers, in order to
 			// balance their quotas for the next time slice.
@@ -238,7 +238,7 @@ namespace libtorrent
 				{
 					assert(num_saturated > 0);
 					target = div_round_up(saturated_sum, num_saturated);
-					target += div_round_up(target, 10);
+					target += div_round_up(target, 6);
 				}
 				else
 				{
@@ -247,8 +247,8 @@ namespace libtorrent
 				if (target > r.max) target = r.max;
 				else if (target < r.min) target = r.min;
 
-				// move 50% towards the the target value
-				r.used = r.given + div_round_up(target - r.given, 2);
+				// move 12.5% towards the the target value
+				r.used = r.given + div_round_up(target - r.given, 8);
 				r.given = r.min;
 			}
 

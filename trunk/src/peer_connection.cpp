@@ -141,8 +141,22 @@ namespace libtorrent
 		}
 		else
 		{
-			// just enough to get started with the handshake and bitmask
-			m_ul_bandwidth_quota.given = 400;
+			if (t->num_peers() == 0)
+			{
+				// just enough to get started with the handshake and bitmask
+				m_ul_bandwidth_quota.given = 400;
+			}
+			else
+			{
+				// set the limit of this new connection to the mean of the other connections
+				size_type total_ul_given = 0;
+				for (torrent::peer_iterator i = t->begin()
+					, end(t->end()); i != end; ++i)
+				{
+					total_ul_given += i->second->m_ul_bandwidth_quota.given;
+				}
+				m_ul_bandwidth_quota.given = total_ul_given / t->num_peers();
+			}
 		}
 
 		m_dl_bandwidth_quota.min = 10;
@@ -154,8 +168,22 @@ namespace libtorrent
 		}
 		else
 		{
-			// just enough to get started with the handshake and bitmask
-			m_dl_bandwidth_quota.given = 400;
+			if (t->num_peers() == 0)
+			{
+				// just enough to get started with the handshake and bitmask
+				m_dl_bandwidth_quota.given = 400;
+			}
+			else
+			{
+				// set the limit of this new connection to the mean of the other connections
+				size_type total_dl_given = 0;
+				for (torrent::peer_iterator i = t->begin()
+					, end(t->end()); i != end; ++i)
+				{
+					total_dl_given += i->second->m_dl_bandwidth_quota.given;
+				}
+				m_dl_bandwidth_quota.given = total_dl_given / t->num_peers();
+			}
 		}
 
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
@@ -230,29 +258,11 @@ namespace libtorrent
 
 		m_ul_bandwidth_quota.min = 10;
 		m_ul_bandwidth_quota.max = resource_request::inf;
-
-		if (m_ses.m_upload_rate == -1)
-		{
-			m_ul_bandwidth_quota.given = resource_request::inf;
-		}
-		else
-		{
-			// just enough to get started with the handshake and bitmask
-			m_ul_bandwidth_quota.given = 400;
-		}
+		m_ul_bandwidth_quota.given = 400;
 
 		m_dl_bandwidth_quota.min = 10;
 		m_dl_bandwidth_quota.max = resource_request::inf;
-	
-		if (m_ses.m_download_rate == -1)
-		{
-			m_dl_bandwidth_quota.given = resource_request::inf;
-		}
-		else
-		{
-			// just enough to get started with the handshake and bitmask
-			m_dl_bandwidth_quota.given = 400;
-		}
+		m_dl_bandwidth_quota.given = 400;
 
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
 	}

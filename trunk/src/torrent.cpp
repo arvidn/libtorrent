@@ -207,6 +207,8 @@ namespace
 			<< "14. bytes sent 10 seconds mean\n"
 			<< "15. bytes received\n"
 			<< "16. bytes received 10 seconds mean\n"
+			<< "17. total payload download\n"
+			<< "18. total web seed payload download\n"
 			<< "\n";
 	}
 #endif
@@ -276,6 +278,11 @@ namespace libtorrent
 		m_second_count = 0;
 		std::fill_n(m_ul_history, 10, 0);
 		std::fill_n(m_dl_history, 10, 0);
+
+		m_peer_log = ses.create_log("torrent_peers_"
+			+ boost::lexical_cast<std::string>(tf.info_hash())
+			, m_ses.listen_port(), false);
+
 #endif
 		INVARIANT_CHECK;
 
@@ -1031,6 +1038,7 @@ namespace libtorrent
 		req.info_hash = m_torrent_file.info_hash();
 		req.pid = m_ses.get_peer_id();
 		req.downloaded = m_stat.total_payload_download();
+		req.web_downloaded = m_web_stat.total_payload_download();
 		req.uploaded = m_stat.total_payload_upload();
 		req.left = bytes_left();
 		if (req.left == -1) req.left = 16*1024;
@@ -1170,6 +1178,12 @@ namespace libtorrent
 
 		tcp::endpoint a(host->endpoint());
 
+		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
+		{
+			// TODO: post alert: "web seed at " + a.address().to_string() + " blocked by ip filter");
+			return;
+		}
+
 		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_selector));
 		boost::intrusive_ptr<peer_connection> c(new web_peer_connection(
 			m_ses, shared_from_this(), s, a, url));
@@ -1224,6 +1238,9 @@ namespace libtorrent
 	peer_connection& torrent::connect_to_peer(const tcp::endpoint& a)
 	{
 		INVARIANT_CHECK;
+
+		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
+			throw protocol_error(a.address().to_string() + " blocked by ip filter");
 
 		if (m_connections.find(a) != m_connections.end())
 			throw protocol_error("already connected to peer");
@@ -1772,6 +1789,7 @@ namespace libtorrent
 		{
 			// let the stats fade out to 0
  			m_stat.second_tick(tick_interval);
+ 			m_web_stat.second_tick(tick_interval);
 			return;
 		}
 
@@ -1812,6 +1830,10 @@ namespace libtorrent
 		{
 			peer_connection* p = i->second;
 			m_stat += p->statistics();
+			if (dynamic_cast<web_peer_connection*>(p))
+			{
+				m_web_stat += p->statistics();
+			}
 			// updates the peer connection's ul/dl bandwidth
 			// resource requests
 			p->second_tick(tick_interval);
@@ -1844,6 +1866,7 @@ namespace libtorrent
 
 		accumulator += m_stat;
 		m_stat.second_tick(tick_interval);
+		m_web_stat.second_tick(tick_interval);
 	}
 
 	void torrent::distribute_resources(float tick_interval)
@@ -1890,9 +1913,9 @@ namespace libtorrent
 		m_excess_dl = std::max(m_excess_dl, -10000);
 
 		int ul_to_distribute = std::max(int((m_ul_bandwidth_quota.given
-			- m_excess_ul) * 1.6f), 0);
+			- m_excess_ul * 0.7f) * 1.6f), 0);
 		int dl_to_distribute = std::max(int((m_dl_bandwidth_quota.given
-			- m_excess_dl) * 1.6f), 0);
+			- m_excess_dl * 0.7f) * 1.6f), 0);
 
 #ifdef TORRENT_LOGGING
 		std::copy(m_ul_history + 1, m_ul_history + debug_bw_history_size, m_ul_history);
@@ -1924,6 +1947,8 @@ namespace libtorrent
 			<< mean_ul << "\t"
 			<< dl_used << "\t"
 			<< mean_dl << "\t"
+			<< m_stat.total_payload_download() << "\t"
+			<< m_web_stat.total_payload_download() << "\t"
 			<< "\n";
 
 		(*m_log)
@@ -1939,6 +1964,20 @@ namespace libtorrent
 			<< num_peers() << "\t"
 			<< ul_max << "\t"
 			<< dl_max << "\t";
+		
+		(*m_peer_log) << m_second_count << "\t";
+		for (peer_iterator i = m_connections.begin();
+			i != m_connections.end(); ++i)
+		{
+			int given = i->second->m_dl_bandwidth_quota.given;
+			(*m_peer_log) << (given == resource_request::inf ? -1 : given)
+				<< "\t" << i->second->m_dl_bandwidth_quota.used << "\t";
+		}
+		for (int i = m_connections.size(); i < 10; ++i)
+		{
+			(*m_peer_log) << 0 << "\t" << 0 << "\t";
+		}
+		(*m_peer_log) << "\n";
 
 #endif
 
