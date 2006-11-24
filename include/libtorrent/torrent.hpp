@@ -501,6 +501,10 @@ namespace libtorrent
 		// it's updated from all its peers once every second.
 		libtorrent::stat m_stat;
 
+		// this is the stats for web seeds in this torrent only. It is updated
+		// once every second.
+		libtorrent::stat m_web_stat;
+
 		// -----------------------------
 
 		boost::shared_ptr<policy> m_policy;
@@ -614,6 +618,7 @@ namespace libtorrent
 
 #ifdef TORRENT_LOGGING
 		boost::shared_ptr<logger> m_log;
+		boost::shared_ptr<logger> m_peer_log;
 		int m_second_count;
 		
 		enum { debug_bw_history_size = 10 };

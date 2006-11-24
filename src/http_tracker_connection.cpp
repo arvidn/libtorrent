@@ -322,6 +322,12 @@ namespace libtorrent
 			m_send_buffer += "&left=";
 			m_send_buffer += boost::lexical_cast<std::string>(req.left);
 
+			if (req.web_downloaded > 0)
+			{
+				m_send_buffer += "&http_downloaded=";
+				m_send_buffer += boost::lexical_cast<std::string>(req.web_downloaded);
+			}
+
 			if (req.event != tracker_request::none)
 			{
 				const char* event_string[] = {"completed", "started", "stopped"};
