@@ -261,6 +261,8 @@ namespace libtorrent
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_excess_ul(0)
 		, m_excess_dl(0)
+		, m_soft_ul_limit(10000)
+		, m_soft_dl_limit(10000)
 		, m_save_path(complete(save_path))
 		, m_compact_mode(compact_mode)
 		, m_default_block_size(block_size)
@@ -375,6 +377,8 @@ namespace libtorrent
 		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
 		, m_excess_ul(0)
 		, m_excess_dl(0)
+		, m_soft_ul_limit(10000)
+		, m_soft_dl_limit(10000)
 		, m_save_path(complete(save_path))
 		, m_compact_mode(compact_mode)
 		, m_default_block_size(block_size)
@@ -1916,6 +1920,12 @@ namespace libtorrent
 			- m_excess_ul * 0.7f) * 1.6f), 0);
 		int dl_to_distribute = std::max(int((m_dl_bandwidth_quota.given
 			- m_excess_dl * 0.7f) * 1.6f), 0);
+
+		m_soft_ul_limit = m_soft_ul_limit + (ul_to_distribute - m_soft_ul_limit) * 0.1f;
+		m_soft_dl_limit = m_soft_dl_limit + (dl_to_distribute - m_soft_dl_limit) * 0.1f;
+
+		ul_to_distribute = m_soft_ul_limit;
+		dl_to_distribute = m_soft_dl_limit;
 
 #ifdef TORRENT_LOGGING
 		std::copy(m_ul_history + 1, m_ul_history + debug_bw_history_size, m_ul_history);
