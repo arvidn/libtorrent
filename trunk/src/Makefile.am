@@ -8,8 +8,7 @@ storage.cpp torrent.cpp torrent_handle.cpp \
 torrent_info.cpp tracker_manager.cpp \
 http_tracker_connection.cpp udp_tracker_connection.cpp \
 alert.cpp identify_client.cpp ip_filter.cpp file.cpp metadata_transfer.cpp \
-logger.cpp \
-file_pool.cpp \
+logger.cpp file_pool.cpp ut_pex.cpp \
 \
 kademlia/closest_nodes.cpp \
 kademlia/dht_tracker.cpp \
@@ -35,6 +34,7 @@ $(top_srcdir)/include/libtorrent/escape_string.hpp \
 $(top_srcdir)/include/libtorrent/extensions.hpp \
 $(top_srcdir)/include/libtorrent/extensions/metadata_transfer.hpp \
 $(top_srcdir)/include/libtorrent/extensions/logger.hpp \
+$(top_srcdir)/include/libtorrent/extensions/ut_pex.hpp \
 $(top_srcdir)/include/libtorrent/file.hpp \
 $(top_srcdir)/include/libtorrent/file_pool.hpp \
 $(top_srcdir)/include/libtorrent/fingerprint.hpp \
@@ -75,3 +75,4 @@ libtorrent_la_LIBADD = @ZLIB@ -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -
 
 AM_CXXFLAGS= -ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @ZLIBINCL@ @DEBUGFLAGS@ @PTHREAD_CFLAGS@ 
 AM_LDFLAGS= $(LDFLAGS) -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -l@BOOST_THREAD_LIB@ @PTHREAD_LIBS@ 
+

@@ -54,6 +54,7 @@ SOURCES =
 	udp_tracker_connection.cpp
 	sha1.cpp
 	metadata_transfer.cpp
+	ut_pex.cpp
 	logger.cpp
 	file_pool.cpp
 	;
