@@ -8,13 +8,24 @@
 * examples_
 * `api documentation`_
 * screenshot_
-* extensions_
 * `mailing list`_ (archive_)
 * `who's using libtorrent?`_
 * `report bugs`_
 * `sourceforge page`_
 
 --------
+
+Extensions
+
+* `extensions protocol`_
+* `DHT extensions`_
+* `UDP tracker protocol`_
+* `HTTP seed`_
+* multitracker_
+
+--------
+
+Bindings
 
 * `ruby bindings`_
 * `python bindings`_
@@ -38,7 +49,11 @@ libtorrent
 .. _examples: examples.html
 .. _`api documentation`: manual.html
 .. _screenshot: client_test.png
-.. _extensions: extension_protocol.html
+.. _`extensions protocol`: extension_protocol.html
+.. _`DHT extensions`: dht_extensions.html
+.. _`UDP tracker protocol`: udp_tracker_protocol.html
+.. _`HTTP seed`: http://www.getright.com/seedtorrent.html
+.. _multitracker: http://home.elp.rr.com/tur/multitracker-spec.txt
 .. _mailing list: http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 .. _archive: http://dir.gmane.org/gmane.network.bit-torrent.libtorrent
 .. _`who's using libtorrent?`: projects.html
