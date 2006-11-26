@@ -1,3 +1,4 @@
+	* Added support for uT peer exchange extension, implemented by Massaroddel.
 	* Modified the quota management to offer better bandwidth balancing
 	  between peers.
 	* added XCode project files (maintained by Gregor Riepl)

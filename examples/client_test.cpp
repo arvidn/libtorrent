@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/extensions/metadata_transfer.hpp"
+#include "libtorrent/extensions/ut_pex.hpp"
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
@@ -570,6 +571,7 @@ int main(int ac, char* av[])
 		handles_t handles;
 		session ses;
 		ses.add_extension(&create_metadata_plugin);
+		ses.add_extension(&create_ut_pex_plugin);
 
 #ifndef TORRENT_DISABLE_DHT
 		dht_settings s;

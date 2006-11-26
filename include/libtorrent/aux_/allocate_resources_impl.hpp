@@ -238,7 +238,7 @@ namespace libtorrent
 				{
 					assert(num_saturated > 0);
 					target = div_round_up(saturated_sum, num_saturated);
-					target += div_round_up(target, 6);
+					target += div_round_up(target, 10);
 				}
 				else
 				{
