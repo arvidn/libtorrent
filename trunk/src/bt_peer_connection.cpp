@@ -948,7 +948,11 @@ namespace libtorrent
 		entry extension_list(entry::dictionary_t);
 
 		handshake["m"] = extension_list;
-		handshake["p"] = m_ses.listen_port();
+
+		// only send the port in case we bade the connection
+		// on incoming connections the other end already knows
+		// our listen port
+		if (is_local()) handshake["p"] = m_ses.listen_port();
 		handshake["v"] = m_ses.settings().user_agent;
 		std::string remote_address;
 		std::back_insert_iterator<std::string> out(remote_address);
