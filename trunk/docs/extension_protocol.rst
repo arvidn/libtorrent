@@ -59,16 +59,20 @@ This is the defined item in the dictionary:
 | name  | description                                               |
 +=======+===========================================================+
 | m     | Dictionary of supported extension messages which maps     |
-|       | names of extensions to identification numbers of each     |
-|       | extension. The only requirement on the identification     |
-|       | numbers is that no extensions share the same. Setting     |
+|       | names of extensions to an extended message ID for each    |
+|       | extension message. The only requirement on these IDs      |
+|       | is that no extension message share the same one. Setting  |
 |       | an extension number to zero means that the extension is   |
 |       | not supported/disabled. The client should ignore any      |
 |       | extension names it doesn't recognize.                     |
+|       |                                                           |
+|       | The extension message IDs are the IDs used to send the    |
+|       | extension messages to the peer sending this handshake.    |
+|       | i.e. The IDs are local to this particular peer.           |
 +-------+-----------------------------------------------------------+
 
 
-Here are two other items that an implementation may choose to support:
+Here are some other items that an implementation may choose to support:
 
 +-------+-----------------------------------------------------------+
 | name  | description                                               |
@@ -102,7 +106,7 @@ An example of what the payload of a handshake message could look like:
 |                   |  +======================+===+    |
 |                   |  | ``LT_metadata``      | 1 |    |
 |                   |  +----------------------+---+    |
-|                   |  | ``µT_PEX``           | 2 |    |
+|                   |  | ``ut_pex``           | 2 |    |
 |                   |  +----------------------+---+    |
 |                   |                                  |
 +-------------------+----------------------------------+
@@ -150,8 +154,12 @@ rationale
 ---------
 
 The reason why the extension messages' IDs would be defined in the handshake
-is to avoid having a global registry somewhere, where ID's are assigned
-global identifiers. Now the extensions have unique names.
+is to avoid having a global registry of message IDs. Instead the names of the
+extension messages requires unique names, which is much easier to do without
+a global registry. The convention is to use a two letter prefix on the
+extension message names, the prefix would identify the client first
+implementing the extension message. e.g. ``LT_metadata`` is implemented by
+libtorrent, and hence it has the ``LT`` prefix.
 
 If the client supporting the extensions can decide which numbers the messages
 it receives will have, it means they are constants within that client. i.e.
@@ -177,3 +185,4 @@ identifiers is 1) The mainline DHT uses single byte identifiers. 2) Saves
 bandwidth. The only advantage of longer messages is that it makes the
 protocol more readable for a human, but the BT protocol wasn't designed to
 be a human readable protocol, so why bother.
+
