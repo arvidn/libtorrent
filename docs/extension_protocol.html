@@ -98,17 +98,21 @@ This is the defined item in the dictionary:</p>
 </thead>
 <tbody valign="top">
 <tr><td>m</td>
-<td>Dictionary of supported extension messages which maps
-names of extensions to identification numbers of each
-extension. The only requirement on the identification
-numbers is that no extensions share the same. Setting
+<td><p class="first">Dictionary of supported extension messages which maps
+names of extensions to an extended message ID for each
+extension message. The only requirement on these IDs
+is that no extension message share the same one. Setting
 an extension number to zero means that the extension is
 not supported/disabled. The client should ignore any
-extension names it doesn't recognize.</td>
+extension names it doesn't recognize.</p>
+<p class="last">The extension message IDs are the IDs used to send the
+extension messages to the peer sending this handshake.
+i.e. The IDs are local to this particular peer.</p>
+</td>
 </tr>
 </tbody>
 </table>
-<p>Here are two other items that an implementation may choose to support:</p>
+<p>Here are some other items that an implementation may choose to support:</p>
 <table border="1" class="docutils">
 <colgroup>
 <col width="11%" />
@@ -167,7 +171,7 @@ imaginable.</p>
 <tr><td><tt class="docutils literal"><span class="pre">LT_metadata</span></tt></td>
 <td>1</td>
 </tr>
-<tr><td><tt class="docutils literal"><span class="pre">µT_PEX</span></tt></td>
+<tr><td><tt class="docutils literal"><span class="pre">ut_pex</span></tt></td>
 <td>2</td>
 </tr>
 </tbody>
@@ -214,8 +218,12 @@ extensions.</p>
 <div class="section" id="rationale">
 <h2><a name="rationale">rationale</a></h2>
 <p>The reason why the extension messages' IDs would be defined in the handshake
-is to avoid having a global registry somewhere, where ID's are assigned
-global identifiers. Now the extensions have unique names.</p>
+is to avoid having a global registry of message IDs. Instead the names of the
+extension messages requires unique names, which is much easier to do without
+a global registry. The convention is to use a two letter prefix on the
+extension message names, the prefix would identify the client first
+implementing the extension message. e.g. <tt class="docutils literal"><span class="pre">LT_metadata</span></tt> is implemented by
+libtorrent, and hence it has the <tt class="docutils literal"><span class="pre">LT</span></tt> prefix.</p>
 <p>If the client supporting the extensions can decide which numbers the messages
 it receives will have, it means they are constants within that client. i.e.
 they can be used in <tt class="docutils literal"><span class="pre">switch</span></tt> statements. It's easy for the other end to

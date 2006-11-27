@@ -18,6 +18,7 @@
 Extensions
 
 * `extensions protocol`_
+* `plugin interface`_
 * `DHT extensions`_
 * `UDP tracker protocol`_
 * `HTTP seed`_
@@ -50,6 +51,7 @@ libtorrent
 .. _`api documentation`: manual.html
 .. _screenshot: client_test.png
 .. _`extensions protocol`: extension_protocol.html
+.. _`plugin interface`: libtorrent_plugins.html
 .. _`DHT extensions`: dht_extensions.html
 .. _`UDP tracker protocol`: udp_tracker_protocol.html
 .. _`HTTP seed`: http://www.getright.com/seedtorrent.html
