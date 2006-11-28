@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.3.9: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>Bittorrent udp-tracker protocol extension</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" href="style.css" type="text/css" />
@@ -35,8 +35,8 @@
 <li><a class="reference" href="#credits" id="id10" name="id10">credits</a></li>
 </ul>
 </div>
-<div class="section" id="introduction">
-<h1><a name="introduction">introduction</a></h1>
+<div class="section">
+<h1><a id="introduction" name="introduction">introduction</a></h1>
 <p>A tracker with the protocol &quot;udp://&quot; in its URI
 is supposed to be contacted using this protocol.</p>
 <p>This protocol is supported by
@@ -50,8 +50,8 @@ are specified with ANSI-C standard types.</p>
 the request. If no reply has been received after 60 seconds, stop
 retrying.</p>
 </div>
-<div class="section" id="connecting">
-<h1><a name="connecting">connecting</a></h1>
+<div class="section">
+<h1><a id="connecting" name="connecting">connecting</a></h1>
 <p>Client sends packet:</p>
 <table border="1" class="docutils">
 <colgroup>
@@ -120,8 +120,8 @@ anymore.</td>
 </tbody>
 </table>
 </div>
-<div class="section" id="announcing">
-<h1><a name="announcing">announcing</a></h1>
+<div class="section">
+<h1><a id="announcing" name="announcing">announcing</a></h1>
 <p>Client sends packet:</p>
 <table border="1" class="docutils">
 <colgroup>
@@ -282,8 +282,8 @@ seeding.</td>
 </tbody>
 </table>
 </div>
-<div class="section" id="scraping">
-<h1><a name="scraping">scraping</a></h1>
+<div class="section">
+<h1><a id="scraping" name="scraping">scraping</a></h1>
 <p>Client sends packet:</p>
 <table border="1" class="docutils">
 <colgroup>
@@ -401,8 +401,8 @@ leechers.</td>
 </tbody>
 </table>
 </div>
-<div class="section" id="errors">
-<h1><a name="errors">errors</a></h1>
+<div class="section">
+<h1><a id="errors" name="errors">errors</a></h1>
 <p>In case of a tracker error,</p>
 <p>server replies packet:</p>
 <table border="1" class="docutils">
@@ -436,8 +436,8 @@ describing the error.</td>
 </tbody>
 </table>
 </div>
-<div class="section" id="actions">
-<h1><a name="actions">actions</a></h1>
+<div class="section">
+<h1><a id="actions" name="actions">actions</a></h1>
 <p>The action fields has the following encoding:</p>
 <blockquote>
 <ul class="simple">
@@ -448,8 +448,8 @@ describing the error.</td>
 </ul>
 </blockquote>
 </div>
-<div class="section" id="extensions">
-<h1><a name="extensions">extensions</a></h1>
+<div class="section">
+<h1><a id="extensions" name="extensions">extensions</a></h1>
 <p>The extensions field is a bitmask. The following
 bits are assigned:</p>
 <blockquote>
@@ -457,8 +457,8 @@ bits are assigned:</p>
 <li>1 = <a class="reference" href="#authentication">authentication</a>.</li>
 </ul>
 </blockquote>
-<div class="section" id="authentication">
-<h2><a name="authentication">authentication</a></h2>
+<div class="section">
+<h2><a id="authentication" name="authentication">authentication</a></h2>
 <p>The packet will have an authentication part
 appended to it. It has the following format:</p>
 <table border="1" class="docutils">
@@ -497,8 +497,8 @@ from the 20 bytes hash calculated.</td>
 </table>
 </div>
 </div>
-<div class="section" id="credits">
-<h1><a name="credits">credits</a></h1>
+<div class="section">
+<h1><a id="credits" name="credits">credits</a></h1>
 <p>Protocol designed by Olaf van der Spek</p>
 </div>
 </div>

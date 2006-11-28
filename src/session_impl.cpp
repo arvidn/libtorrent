@@ -1496,9 +1496,9 @@ namespace libtorrent { namespace detail
 		}
 		else
 		{
-			s.m_dht_nodes = 0;
-			s.m_dht_node_cache = 0;
-			s.m_dht_torrents = 0;
+			s.dht_nodes = 0;
+			s.dht_node_cache = 0;
+			s.dht_torrents = 0;
 		}
 #endif
 
@@ -1839,7 +1839,7 @@ namespace libtorrent { namespace detail
 					const entry& ad = (*i)["adler32"];
 	
 					// crc's didn't match, don't use the resume data
-					if (ad.integer() != adler)
+					if (ad.integer() != entry::integer_type(adler))
 					{
 						error = "checksum mismatch on piece " + boost::lexical_cast<std::string>(p.index);
 						return;

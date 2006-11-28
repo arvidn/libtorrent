@@ -3,13 +3,14 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.3.9: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title></title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" href="style.css" type="text/css" />
 </head>
 <body>
 <div class="document">
+
 <table class="docinfo" frame="void" rules="none">
 <col class="docinfo-name" />
 <col class="docinfo-content" />
@@ -18,10 +19,10 @@
 <td>Arvid Norberg, <a class="last reference" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 </tbody>
 </table>
-<div class="section" id="libtorrent-plugins">
-<h1><a name="libtorrent-plugins">libtorrent plugins</a></h1>
+<div class="section">
+<h1><a id="libtorrent-plugins" name="libtorrent-plugins">libtorrent plugins</a></h1>
 <div class="contents topic" id="table-of-contents">
-<p class="topic-title first"><a name="contents">Contents</a></p>
+<p class="topic-title first"><a id="contents" name="contents">Contents</a></p>
 <ul class="simple">
 <li><a class="reference" href="#libtorrent-plugins" id="id1" name="id1">libtorrent plugins</a><ul>
 <li><a class="reference" href="#a-word-of-caution" id="id2" name="id2">a word of caution</a></li>
@@ -50,8 +51,8 @@ to fit a particular (closed) network.</p>
 <li>send extension messages and standard bittorrent messages.</li>
 <li>override or block the handling of standard bittorrent messages.</li>
 </ul>
-<div class="section" id="a-word-of-caution">
-<h2><a name="a-word-of-caution">a word of caution</a></h2>
+<div class="section">
+<h2><a id="a-word-of-caution" name="a-word-of-caution">a word of caution</a></h2>
 <p>Writing your own plugin is a very easy way to introduce serious bugs such as
 dead locks and race conditions. Since a plugin has access to internal
 structures it is also quite easy to sabotage libtorrent's operation.</p>
@@ -66,16 +67,16 @@ callback). See <a class="reference" href="http://www.boost.org/doc/html/mutex.ht
 another thread, use an internal queue, and do the actual sending in <tt class="docutils literal"><span class="pre">tick()</span></tt>.</p>
 </div>
 </div>
-<div class="section" id="plugin-interface">
-<h1><a name="plugin-interface">plugin interface</a></h1>
+<div class="section">
+<h1><a id="plugin-interface" name="plugin-interface">plugin interface</a></h1>
 <p>The plugin interface consists of two base classes that the plugin may
 implement. These are called <tt class="docutils literal"><span class="pre">torrent_plugin</span></tt> and <tt class="docutils literal"><span class="pre">peer_plugin</span></tt>. They are
 both found in the <tt class="docutils literal"><span class="pre">&lt;libtorrent/extensions.hpp&gt;</span></tt> header.</p>
 <p>These plugins are instantiated for each torrent and possibly each peer,
 respectively.</p>
 </div>
-<div class="section" id="torrent-plugin">
-<h1><a name="torrent-plugin">torrent_plugin</a></h1>
+<div class="section">
+<h1><a id="torrent-plugin" name="torrent-plugin">torrent_plugin</a></h1>
 <p>The synopsis for <tt class="docutils literal"><span class="pre">torrent_plugin</span></tt> follows:</p>
 <pre class="literal-block">
 struct torrent_plugin
@@ -95,8 +96,8 @@ struct torrent_plugin
 <p>This is the base class for a torrent_plugin. Your derived class is (if added
 as an extension) instantiated for each torrent in the session. The callback
 hook functions are defined as follows.</p>
-<div class="section" id="new-connection">
-<h2><a name="new-connection">new_connection()</a></h2>
+<div class="section">
+<h2><a id="new-connection" name="new-connection">new_connection()</a></h2>
 <pre class="literal-block">
 boost::shared_ptr&lt;peer_plugin&gt; new_connection(peer_connection*);
 </pre>
@@ -113,8 +114,8 @@ held by the torrent object. So, it is generally a good idea to not keep a
 use <tt class="docutils literal"><span class="pre">weak_ptr</span></tt>.</p>
 <p>If this function throws an exception, the connection will be closed.</p>
 </div>
-<div class="section" id="on-piece-pass-on-piece-fail">
-<h2><a name="on-piece-pass-on-piece-fail">on_piece_pass() on_piece_fail()</a></h2>
+<div class="section">
+<h2><a id="on-piece-pass-on-piece-fail" name="on-piece-pass-on-piece-fail">on_piece_pass() on_piece_fail()</a></h2>
 <pre class="literal-block">
 void on_piece_pass(int index);
 void on_piece_failed(int index);
@@ -124,16 +125,16 @@ check, respectively. The <tt class="docutils literal"><span class="pre">index</s
 It is possible to access the list of peers that participated in sending the
 piece through the <tt class="docutils literal"><span class="pre">torrent</span></tt> and the <tt class="docutils literal"><span class="pre">piece_picker</span></tt>.</p>
 </div>
-<div class="section" id="tick">
-<h2><a name="tick">tick()</a></h2>
+<div class="section">
+<h2><a id="tick" name="tick">tick()</a></h2>
 <pre class="literal-block">
 void tick();
 </pre>
 <p>This hook is called approximately once per second. It is a way of making it
 easy for plugins to do timed events, for sending messages or whatever.</p>
 </div>
-<div class="section" id="on-pause-on-resume">
-<h2><a name="on-pause-on-resume">on_pause() on_resume()</a></h2>
+<div class="section">
+<h2><a id="on-pause-on-resume" name="on-pause-on-resume">on_pause() on_resume()</a></h2>
 <pre class="literal-block">
 bool on_pause();
 bool on_resume();
@@ -150,8 +151,8 @@ standard handler, you have to keep your own state on whether you want standard
 behavior or overridden behavior.</p>
 </div>
 </div>
-<div class="section" id="peer-plugin">
-<h1><a name="peer-plugin">peer_plugin</a></h1>
+<div class="section">
+<h1><a id="peer-plugin" name="peer-plugin">peer_plugin</a></h1>
 <pre class="literal-block">
 struct peer_plugin
 {
