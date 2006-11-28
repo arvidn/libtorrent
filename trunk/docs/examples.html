@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.3.9: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>libtorrent Examples</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" href="style.css" type="text/css" />
@@ -30,14 +30,14 @@
 </li>
 </ul>
 </div>
-<div class="section" id="examples">
-<h1><a name="examples">examples</a></h1>
+<div class="section">
+<h1><a id="examples" name="examples">examples</a></h1>
 <p>Except for the example programs in this manual, there's also a bigger example
 of a (little bit) more complete client, <tt class="docutils literal"><span class="pre">client_test</span></tt>. There are separate
 instructions for how to use it <a class="reference" href="client_test.html">here</a> if you'd like to try it. Note that building
 <tt class="docutils literal"><span class="pre">client_test</span></tt> also requires boost.regex and boost.program_options library.</p>
-<div class="section" id="dump-torrent">
-<h2><a name="dump-torrent">dump_torrent</a></h2>
+<div class="section">
+<h2><a id="dump-torrent" name="dump-torrent">dump_torrent</a></h2>
 <p>This is an example of a program that will take a torrent-file as a parameter and
 print information about it to std out:</p>
 <pre class="literal-block">
@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
                         std::cout &lt;&lt; &quot;  &quot; &lt;&lt; std::setw(11) &lt;&lt; i-&gt;size
                                 &lt;&lt; &quot; &quot; &lt;&lt; i-&gt;path.string() &lt;&lt; &quot;\n&quot;;
                 }
-                
+
         }
         catch (std::exception&amp; e)
         {
@@ -114,8 +114,8 @@ int main(int argc, char* argv[])
 }
 </pre>
 </div>
-<div class="section" id="simple-client">
-<h2><a name="simple-client">simple client</a></h2>
+<div class="section">
+<h2><a id="simple-client" name="simple-client">simple client</a></h2>
 <p>This is a simple client. It doesn't have much output to keep it simple:</p>
 <pre class="literal-block">
 #include &lt;iostream&gt;
@@ -151,7 +151,7 @@ int main(int argc, char* argv[])
                 entry e = bdecode(std::istream_iterator&lt;char&gt;(in)
                         , std::istream_iterator&lt;char&gt;());
                 s.add_torrent(torrent_info(e), &quot;&quot;);
-                        
+
                 // wait for the user to end
                 char a;
                 std::cin.unsetf(std::ios_base::skipws);
@@ -165,8 +165,8 @@ int main(int argc, char* argv[])
 }
 </pre>
 </div>
-<div class="section" id="make-torrent">
-<h2><a name="make-torrent">make_torrent</a></h2>
+<div class="section">
+<h2><a id="make-torrent" name="make-torrent">make_torrent</a></h2>
 <p>Shows how to create a torrent from a directory tree:</p>
 <pre class="literal-block">
 #include &lt;iostream&gt;

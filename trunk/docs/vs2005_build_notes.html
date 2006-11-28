@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.3.9: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>libtorrent setup for VS.NET 2005 Development</title>
 <meta name="author" content="THOMAS GODDARD" />
 <link rel="stylesheet" href="style.css" type="text/css" />
@@ -21,16 +21,16 @@
 <td>www.thomasgoddard.com</td></tr>
 </tbody>
 </table>
-<div class="section" id="prerequisites">
-<h1><a name="prerequisites">Prerequisites</a></h1>
+<div class="section">
+<h1><a id="prerequisites" name="prerequisites">Prerequisites</a></h1>
 <ol class="arabic simple">
 <li>Download boost from boost.org</li>
 <li>Download libtorrent</li>
 <li>Extract both to a folder called libtorrent</li>
 </ol>
 </div>
-<div class="section" id="compiling-boost-for-vs-net-2005">
-<h1><a name="compiling-boost-for-vs-net-2005">Compiling boost for VS.NET 2005</a></h1>
+<div class="section">
+<h1><a id="compiling-boost-for-vs-net-2005" name="compiling-boost-for-vs-net-2005">Compiling boost for VS.NET 2005</a></h1>
 <ol class="arabic simple">
 <li>Copy bjam.exe to libtorrent\boost_[version]\tools\build</li>
 <li>Add the path &quot;libtorrent\boost_[version]\tools\build&quot; to the windows path environment variable</li>
@@ -44,16 +44,16 @@
 <li>Type: <tt class="docutils literal"><span class="pre">bjam</span> <span class="pre">&quot;-sTOOLS=vc-8_0&quot;</span> <span class="pre">install</span></tt> and hit enter</li>
 <li>Be patient and wait for it to finish</li>
 </ol>
-<div class="section" id="troubleshooting">
-<h2><a name="troubleshooting">Troubleshooting</a></h2>
+<div class="section">
+<h2><a id="troubleshooting" name="troubleshooting">Troubleshooting</a></h2>
 <ul class="simple">
 <li>Make sure to CD to the root of the boost directory before running the install.</li>
 <li>For additional details and information on using Visual Studio 2005 Express addition, see the Boost Getting Started Guide.</li>
 </ul>
 </div>
 </div>
-<div class="section" id="setting-up-and-compiling-libtorrent-with-vs-net-2005">
-<h1><a name="setting-up-and-compiling-libtorrent-with-vs-net-2005">Setting up and compiling libtorrent with VS.NET 2005</a></h1>
+<div class="section">
+<h1><a id="setting-up-and-compiling-libtorrent-with-vs-net-2005" name="setting-up-and-compiling-libtorrent-with-vs-net-2005">Setting up and compiling libtorrent with VS.NET 2005</a></h1>
 <ol class="arabic">
 <li><p class="first">Create a new vs.net 2005 MFC project and solution file in the root of the libtorrent folder where you extracted all of the libtorrent files.</p>
 </li>
@@ -98,8 +98,8 @@ libboost_date_time-vc80-mt.lib
 <li><p class="first">Set the Runtime Library to Multi-threaded Debug DLL (/MDd) under the code generation section.</p>
 </li>
 </ol>
-<div class="section" id="id1">
-<h2><a name="id1">Troubleshooting</a></h2>
+<div class="section">
+<h2><a id="id1" name="id1">Troubleshooting</a></h2>
 <dl class="docutils">
 <dt>Error: error LNK2005:already defined etc...</dt>
 <dd>Make sure you use the Multi-threaded Debug DLL (/MDd)</dd>

@@ -114,7 +114,7 @@ project listed here, let me_ know.
 .. _BitSlug: http://bitslug.sourceforge.net/
 .. _BitBuddy: http://www.btvampire.com
 .. _`Arctic Torrent`: http://www.int64.org/arctic.html
-.. _`deluge Torrent`: http://code.google.com/p/deluge-torrent/
+.. _`deluge Torrent`: http://deluge-torrent.org/
 .. _ZipTorrent: http://www.ziptorrent.com/
 .. _FireANT: http://antisnottv.net/
 .. _eDonkey2000: http://www.edonkey2000.com/

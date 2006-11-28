@@ -3,11 +3,10 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.3.9: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>Building libtorrent on Ubuntu 6.06</title>
 <meta name="date" content="Nov 6, 2006" />
-<meta name="author" content="Xi Stan" />
-<meta name="author" content="Francois Dermu" />
+<meta name="authors" content="Xi Stan  Francois Dermu" />
 <link rel="stylesheet" href="style.css" type="text/css" />
 </head>
 <body>
@@ -19,16 +18,15 @@
 <tbody valign="top">
 <tr><th class="docinfo-name">Date:</th>
 <td>Nov 6, 2006</td></tr>
-<tr><th class="docinfo-name">Author:</th>
-<td>Xi Stan</td></tr>
-<tr><th class="docinfo-name">Author:</th>
-<td>Francois Dermu</td></tr>
+<tr><th class="docinfo-name">Authors:</th>
+<td>Xi Stan
+<br />Francois Dermu</td></tr>
 <tr><th class="docinfo-name">Contact:</th>
 <td><a class="first last reference" href="mailto:stan8688&#64;gmail.com">stan8688&#64;gmail.com</a></td></tr>
 </tbody>
 </table>
-<div class="section" id="prerequisites">
-<h1><a name="prerequisites">Prerequisites</a></h1>
+<div class="section">
+<h1><a id="prerequisites" name="prerequisites">Prerequisites</a></h1>
 <p>To build libtorrent, you need the following libraries:</p>
 <ul class="simple">
 <li><a class="reference" href="http://www.rasterbar.com/products/libtorrent/index.html">http://www.rasterbar.com/products/libtorrent/index.html</a></li>
@@ -36,8 +34,8 @@
 <li><a class="reference" href="http://asio.sourceforge.net/">http://asio.sourceforge.net/</a></li>
 </ul>
 </div>
-<div class="section" id="step-1-acquire-the-source-code-from-cvs">
-<h1><a name="step-1-acquire-the-source-code-from-cvs">Step 1: Acquire the source code from cvs</a></h1>
+<div class="section">
+<h1><a id="step-1-acquire-the-source-code-from-cvs" name="step-1-acquire-the-source-code-from-cvs">Step 1: Acquire the source code from cvs</a></h1>
 <p>Create a directory for the project:</p>
 <pre class="literal-block">
 mkdir ${HOME}/work
@@ -60,8 +58,8 @@ cvs -z3 -d:pserver:anonymous&#64;asio.cvs.sourceforge.net:/cvsroot/asio co -P as
 cvs -d:pserver:anonymous&#64;asio.cvs.sourceforge.net:/cvsroot/asio login
 </pre>
 </div>
-<div class="section" id="step-2-building-boost">
-<h1><a name="step-2-building-boost">Step 2: Building boost</a></h1>
+<div class="section">
+<h1><a id="step-2-building-boost" name="step-2-building-boost">Step 2: Building boost</a></h1>
 <p>To build boost, first build boost-build and then use that to build
 the libraries themselves:</p>
 <pre class="literal-block">
@@ -87,18 +85,18 @@ libboost_date_time-gcc-1_31.a
 libboost_date_time-gcc-mt-1_31.a
 </pre>
 </div>
-<div class="section" id="step-3-copy-asio-into-the-libtorrent-directory">
-<h1><a name="step-3-copy-asio-into-the-libtorrent-directory">Step 3: Copy asio into the libtorrent directory</a></h1>
+<div class="section">
+<h1><a id="step-3-copy-asio-into-the-libtorrent-directory" name="step-3-copy-asio-into-the-libtorrent-directory">Step 3: Copy asio into the libtorrent directory</a></h1>
 <p>Skip this step if you're using a released tarball.</p>
 <p>Execute the following command:</p>
 <pre class="literal-block">
 cp -R ${BASE_DIR}/asio/include/asio* ${BASE_DIR}/libtorrent/include/libtorrent
 </pre>
 </div>
-<div class="section" id="step-4-building-libtorrent">
-<h1><a name="step-4-building-libtorrent">Step 4: Building libtorrent</a></h1>
-<div class="section" id="building-with-autotools">
-<h2><a name="building-with-autotools">building with autotools</a></h2>
+<div class="section">
+<h1><a id="step-4-building-libtorrent" name="step-4-building-libtorrent">Step 4: Building libtorrent</a></h1>
+<div class="section">
+<h2><a id="building-with-autotools" name="building-with-autotools">building with autotools</a></h2>
 <p>First of all, you need to install automake and autoconf. Many unix/linux systems
 comes with these preinstalled. The prerequisites for building libtorrent are
 boost.thread, boost.date_time and boost.filesystem. Those are the <em>compiled</em> boost
@@ -108,8 +106,8 @@ boost.lexical_cast, boost.integer, boost.iterator, boost.tuple, boost.array,
 boost.function, boost.smart_ptr, boost.preprocessor, boost.static_assert.</p>
 <p>If you want to build the client_test example, you'll also need boost.regex and boost.program_options.</p>
 </div>
-<div class="section" id="generating-the-build-system">
-<h2><a name="generating-the-build-system">generating the build system</a></h2>
+<div class="section">
+<h2><a id="generating-the-build-system" name="generating-the-build-system">generating the build system</a></h2>
 <p>No build system is present if libtorrent is checked out from CVS - it needs to be
 generated first. If you're building from a released tarball, you may skip directly
 to <a class="reference" href="#running-configure">running configure</a>.</p>
@@ -127,8 +125,8 @@ autoconf
 </pre>
 <p>On darwin/OSX you have to run glibtoolize instead of libtoolize.</p>
 </div>
-<div class="section" id="running-configure">
-<h2><a name="running-configure">running configure</a></h2>
+<div class="section">
+<h2><a id="running-configure" name="running-configure">running configure</a></h2>
 <p>To use the auto tools to build libtorrent, execute the following commands:</p>
 <pre class="literal-block">
 cd ${BASE_DIR}/libtorrent

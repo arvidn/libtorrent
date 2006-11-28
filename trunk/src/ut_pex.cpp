@@ -80,8 +80,8 @@ namespace libtorrent { namespace
 
 			m_1_minute = 0;
 			std::list<tcp::endpoint> cs;
-			for (torrent::peer_iterator i = m_torrent.m_connections.begin()
-				, end(m_torrent.m_connections.end()); i != end; ++i)
+			for (torrent::peer_iterator i = m_torrent.begin()
+				, end(m_torrent.end()); i != end; ++i)
 			{	
 				if (!i->second->is_local()) continue;
 				cs.push_back(i->first);
