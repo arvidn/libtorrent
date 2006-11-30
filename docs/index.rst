@@ -63,7 +63,7 @@ libtorrent
 .. _sourceforge page: http://www.sourceforge.net/projects/libtorrent
 
 .. _`ruby bindings`: http://libtorrent-ruby.rubyforge.org/
-.. _`python bindings`: http://code.google.com/p/python-libtorrent/
+.. _`python bindings`: http://deluge-torrent.org/trac/wiki/python-libtorrent
 
 .. _`Introduction, slides`: bittorrent.pdf
 
