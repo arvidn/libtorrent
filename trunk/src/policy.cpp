@@ -932,7 +932,7 @@ namespace libtorrent
 					"connection in favour of this one");
 #endif
 					i->connection->disconnect();
-					i->connection = &c;
+					i->connection = 0;
 				}
 			}
 		}
