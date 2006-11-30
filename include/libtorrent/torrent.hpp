@@ -137,6 +137,8 @@ namespace libtorrent
 		
 		session_settings const& settings() const;
 		
+		aux::session_impl& session() { return m_ses; }
+		
 		void set_sequenced_download_threshold(int threshold);
 		
 		// is called every second by session. This will

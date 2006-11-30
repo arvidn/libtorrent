@@ -1921,8 +1921,8 @@ namespace libtorrent
 		int dl_to_distribute = std::max(int((m_dl_bandwidth_quota.given
 			- m_excess_dl * 0.7f) * 1.6f), 0);
 
-		m_soft_ul_limit = m_soft_ul_limit + (ul_to_distribute - m_soft_ul_limit) * 0.1f;
-		m_soft_dl_limit = m_soft_dl_limit + (dl_to_distribute - m_soft_dl_limit) * 0.1f;
+		m_soft_ul_limit = int(m_soft_ul_limit + (ul_to_distribute - m_soft_ul_limit) * 0.1f);
+		m_soft_dl_limit = int(m_soft_dl_limit + (dl_to_distribute - m_soft_dl_limit) * 0.1f);
 
 		ul_to_distribute = m_soft_ul_limit;
 		dl_to_distribute = m_soft_dl_limit;

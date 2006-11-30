@@ -85,7 +85,6 @@ namespace libtorrent
 		void peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid);
 
 		// called when an incoming connection is accepted
-		// return false if the connection closed
 		void new_connection(peer_connection& c);
 
 		// this is called if a peer timed-out or

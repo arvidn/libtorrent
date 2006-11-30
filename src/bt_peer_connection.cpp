@@ -1066,6 +1066,27 @@ namespace libtorrent
 		setup_send();
 	}
 
+	namespace
+	{
+		struct match_peer_id
+		{
+			match_peer_id(peer_id const& id, peer_connection const* pc)
+				: m_id(id), m_pc(pc)
+			{ assert(pc); }
+
+			bool operator()(policy::peer const& p) const
+			{
+				return p.connection != m_pc
+					&& p.connection
+					&& p.connection->pid() == m_id
+					&& !p.connection->pid().is_all_zeros();
+			}
+
+			peer_id m_id;
+			peer_connection const* m_pc;
+		};
+	}
+
 	// --------------------------
 	// RECEIVE DATA
 	// --------------------------
@@ -1150,7 +1171,6 @@ namespace libtorrent
 			m_statistics.received_bytes(0, bytes_transferred);
 			if (!packet_finished()) break;
 
-// MassaRoddel
 #ifdef TORRENT_VERBOSE_LOGGING	
 			for (int i=0; i < 8; ++i)
 			{
@@ -1164,9 +1184,9 @@ namespace libtorrent
 			if (recv_buffer[7] & 0x01)
 				(*m_logger) << "supports DHT port message\n";
 			if (recv_buffer[7] & 0x02)
-				(*m_logger) << "supports XBT peer exchange message\n";
+				(*m_logger) << "supports FAST extensions\n";
 			if (recv_buffer[5] & 0x10)
-				(*m_logger) << "supports LT/uT extensions\n";
+				(*m_logger) << "supports extensions protocol\n";
 #endif
 
 #ifndef DISABLE_EXTENSIONS
@@ -1190,8 +1210,6 @@ namespace libtorrent
 				t = associated_torrent().lock();
 				assert(t);
 
-				assert(t->get_policy().has_connection(this));
-
 				// yes, we found the torrent
 				// reply with our handshake
 				write_handshake();
@@ -1211,12 +1229,7 @@ namespace libtorrent
 				}
 			}
 
-			
-
-#ifndef TORRENT_DISABLE_DHT
-			if (m_supports_dht_port && m_ses.m_dht)
-				write_dht_port(m_ses.kad_settings().service_port);
-#endif
+			assert(t->get_policy().has_connection(this));
 
 			m_state = read_peer_id;
 			reset_recv_buffer(20);
@@ -1252,7 +1265,40 @@ namespace libtorrent
 			peer_id pid;
 			std::copy(recv_buffer.begin, recv_buffer.begin + 20, (char*)pid.begin());
 			set_pid(pid);
-			
+ 
+			if (t->settings().allow_multiple_connections_per_ip)
+			{
+				// now, let's see if this connection should be closed
+				policy& p = t->get_policy();
+				policy::iterator i = std::find_if(p.begin_peer(), p.end_peer()
+					, match_peer_id(pid, this));
+				if (i != p.end_peer())
+				{
+					assert(i->connection->pid() == pid);
+					// we found another connection with the same peer-id
+					// which connection should be closed in order to be
+					// sure that the other end closes the same connection?
+					// the peer with greatest peer-id is the one allowed to
+					// initiate connections. So, if our peer-id is greater than
+					// the others, we should close the incoming connection,
+					// if not, we should close the outgoing one.
+					if (pid < m_ses.get_peer_id() && is_local())
+					{
+						i->connection->disconnect();
+					}
+					else
+					{
+						throw protocol_error("duplicate peer-id, connection closed");
+					}
+				}
+				
+			}
+ 
+#ifndef TORRENT_DISABLE_DHT
+			if (m_supports_dht_port && m_ses.m_dht)
+				write_dht_port(m_ses.kad_settings().service_port);
+#endif
+
 			m_client_version = identify_client(pid);
 			boost::optional<fingerprint> f = client_fingerprint(pid);
 			if (f && std::equal(f->name, f->name + 2, "BC"))
