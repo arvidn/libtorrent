@@ -464,7 +464,10 @@ namespace libtorrent { namespace detail
 	struct seed_random_generator
 	{
 		seed_random_generator()
-		{ std::srand((unsigned int)std::time(0)); }
+		{
+			std::srand((unsigned int)boost::posix_time::microsec_clock::
+				universal_time().time_of_day().total_microseconds());
+		}
 	};
 
 	session_impl::session_impl(

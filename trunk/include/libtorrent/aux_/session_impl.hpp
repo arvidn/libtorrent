@@ -364,7 +364,8 @@ namespace libtorrent
 			void check_invariant(const char *place = 0);
 #endif
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			boost::shared_ptr<logger> create_log(std::string const& name, int instance, bool append = true);
+			boost::shared_ptr<logger> create_log(std::string const& name
+				, int instance, bool append = true);
 			
 			// this list of tracker loggers serves as tracker_callbacks when
 			// shutting down. This list is just here to keep them alive during

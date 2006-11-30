@@ -335,18 +335,6 @@ namespace
 		tcp::endpoint m_ip;
 	};
 
-	struct match_peer_id
-	{
-		match_peer_id(peer_id const& id)
-			: m_id(id)
-		{}
-
-		bool operator()(policy::peer const& p) const
-		{ return p.connection && p.connection->pid() == m_id; }
-
-		peer_id m_id;
-	};
-
 	struct match_peer_connection
 	{
 		match_peer_connection(peer_connection const& c)
@@ -912,17 +900,7 @@ namespace libtorrent
 
 		if (m_torrent->settings().allow_multiple_connections_per_ip)
 		{
-			if (c.pid().is_all_zeros())
-			{
-				i = m_peers.end();
-			}
-			else
-			{
-				i = std::find_if(
-					m_peers.begin()
-					, m_peers.end()
-					, match_peer_id(c.pid()));
-			}
+			i = m_peers.end();
 		}
 		else
 		{
@@ -939,6 +917,7 @@ namespace libtorrent
 
 			if (i->connection != 0)
 			{
+				assert(i->connection != &c);
 				// the new connection is a local (outgoing) connection
 				// or the current one is already connected
 				if (!i->connection->is_connecting() || c.is_local())
@@ -953,7 +932,7 @@ namespace libtorrent
 					"connection in favour of this one");
 #endif
 					i->connection->disconnect();
-					i->connection = 0;
+					i->connection = &c;
 				}
 			}
 		}
@@ -996,17 +975,7 @@ namespace libtorrent
 			
 			if (m_torrent->settings().allow_multiple_connections_per_ip)
 			{
-				if (pid.is_all_zeros())
-				{
-					i = m_peers.end();
-				}
-				else
-				{
-					i = std::find_if(
-						m_peers.begin()
-						, m_peers.end()
-						, match_peer_id(pid));
-				}
+				i = m_peers.end();
 			}
 			else
 			{
