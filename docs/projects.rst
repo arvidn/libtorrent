@@ -37,6 +37,12 @@ project listed here, let me_ know.
 |                                                                               |                                     |
 | BitRocket_ is a MacOS X bittorrent client.                                    |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
+| **Acquasition**                                                               | .. image:: acquasition.jpg          |
+|                                                                               |                                     |
+| Acquasition_ is a multi-network peer-to-peer                                  |                                     |
+| client for Mac.                                                               |                                     |
+|                                                                               |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
 | **Instant Media**                                                             | .. image:: im_thumb.jpg             |
 |                                                                               |                                     |
 | IM_ is a client for downloading Internet TV.                                  |                                     |
@@ -107,6 +113,7 @@ project listed here, let me_ know.
 .. _qBittorrent: http://www.qbittorrent.org/
 .. _btg: http://developer.berlios.de/projects/btg/
 .. _BitRocket: http://www.bitrocket.org/
+.. _Acquasition: http://www.acquisitionx.com
 .. _IM: http://www.im.com/
 .. _MooPolice: http://www.moopolice.de
 .. _BitsCast: http://www.bitscast.com/software/
