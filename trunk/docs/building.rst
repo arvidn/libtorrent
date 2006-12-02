@@ -21,10 +21,20 @@ The build systems supported "out of the box" in libtorrent are boost-build v2
 following these instructions, you can usually get help in the ``#libtorrent``
 IRC channel on ``irc.freenode.net``.
 
-If you want to build the cvs version on Ubuntu (and possibly other Linux
-distros), see this__ document.
+Contributed build tutorials
+---------------------------
 
-__ ubuntu_build_notes.html
+* libtorrent cvs, ubuntu_
+* `ubuntu 6.10`_
+* suse_
+* `visual studio 2005`_
+
+These tutorials may work on similar linux distros as well.
+
+.. _ubuntu: ubuntu_build_notes.html
+.. _`ubuntu 6.10`: ubuntu_6_build_notes.html
+.. _suse: suse_build_notes.html
+.. _`visual studio 2005`: vs2005_build_notes.html
 
 building with BBv2
 ------------------

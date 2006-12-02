@@ -22,7 +22,8 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first"><a name="table-of-contents">Table of contents</a></p>
 <ul class="simple">
-<li><a class="reference" href="#downloading-and-building" id="id7" name="id7">downloading and building</a><ul>
+<li><a class="reference" href="#downloading-and-building" id="id6" name="id6">downloading and building</a><ul>
+<li><a class="reference" href="#contributed-build-tutorials" id="id7" name="id7">Contributed build tutorials</a></li>
 <li><a class="reference" href="#building-with-bbv2" id="id8" name="id8">building with BBv2</a></li>
 <li><a class="reference" href="#building-with-autotools" id="id9" name="id9">building with autotools</a></li>
 <li><a class="reference" href="#building-with-other-build-systems" id="id10" name="id10">building with other build systems</a></li>
@@ -39,8 +40,16 @@ You'll find instructions on how to do this <a class="reference" href="http://sou
 (BBv2) and autotools (for unix-like systems). If you still can't build after
 following these instructions, you can usually get help in the <tt class="docutils literal"><span class="pre">#libtorrent</span></tt>
 IRC channel on <tt class="docutils literal"><span class="pre">irc.freenode.net</span></tt>.</p>
-<p>If you want to build the cvs version on Ubuntu (and possibly other Linux
-distros), see <a class="reference" href="ubuntu_build_notes.html">this</a> document.</p>
+<div class="section">
+<h2><a id="contributed-build-tutorials" name="contributed-build-tutorials">Contributed build tutorials</a></h2>
+<ul class="simple">
+<li>libtorrent cvs, <a class="reference" href="ubuntu_build_notes.html">ubuntu</a></li>
+<li><a class="reference" href="ubuntu_6_build_notes.html">ubuntu 6.10</a></li>
+<li><a class="reference" href="suse_build_notes.html">suse</a></li>
+<li><a class="reference" href="vs2005_build_notes.html">visual studio 2005</a></li>
+</ul>
+<p>These tutorials may work on similar linux distros as well.</p>
+</div>
 <div class="section">
 <h2><a id="building-with-bbv2" name="building-with-bbv2">building with BBv2</a></h2>
 <p>The primary reason to use boost-build is that it will automatically build the
@@ -337,7 +346,7 @@ with the following option:</p>
 <p>The above option make use of -DNDEBUG, which is used throughout libtorrent.</p>
 </div>
 <div class="section">
-<h3><a id="id6" name="id6">Step 3: Building libtorrent</a></h3>
+<h3><a id="id5" name="id5">Step 3: Building libtorrent</a></h3>
 <p>Once the configure script is run successfully, you just type <tt class="docutils literal"><span class="pre">make</span></tt> and
 libtorrent, the examples and the tests will be built.</p>
 <p>When libtorrent is built it may be a good idea to run the tests, you do this
