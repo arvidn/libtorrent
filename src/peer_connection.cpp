@@ -117,6 +117,8 @@ namespace libtorrent
 		, m_prefer_whole_pieces(false)
 		, m_request_large_blocks(false)
 		, m_refs(0)
+		, m_upload_limit(resource_request::inf)
+		, m_download_limit(resource_request::inf)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif
@@ -234,6 +236,8 @@ namespace libtorrent
 		, m_prefer_whole_pieces(false)
 		, m_request_large_blocks(false)
 		, m_refs(0)
+		, m_upload_limit(resource_request::inf)
+		, m_download_limit(resource_request::inf)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif
@@ -971,6 +975,10 @@ namespace libtorrent
 			throw protocol_error("got invalid piece packet");
 		}
 
+		// if we're already seeding, don't bother,
+		// just ignore it
+		if (t->is_seed()) return;
+
 		using namespace boost::posix_time;
 
 		piece_picker& picker = t->picker();
@@ -1062,7 +1070,6 @@ namespace libtorrent
 			picker.mark_as_finished(block_finished, m_remote);
 
 			t->get_policy().block_finished(*this, block_finished);
-
 		}
 
 		if (redundant) return;
@@ -1461,19 +1468,15 @@ namespace libtorrent
 	void peer_connection::set_upload_limit(int limit)
 	{
 		assert(limit >= -1);
-		if (limit == -1) limit = std::numeric_limits<int>::max();
-		if (limit < 10) limit = 10;
-		m_ul_bandwidth_quota.max = limit;
-		assert(m_ul_bandwidth_quota.max >= m_ul_bandwidth_quota.min);
+		if (limit == -1) m_upload_limit = resource_request::inf;
+		if (limit < 10) m_upload_limit = 10;
 	}
 
 	void peer_connection::set_download_limit(int limit)
 	{
 		assert(limit >= -1);
-		if (limit == -1) limit = std::numeric_limits<int>::max();
-		if (limit < 10) limit = 10;
-		m_dl_bandwidth_quota.max = limit;
-		assert(m_dl_bandwidth_quota.max >= m_dl_bandwidth_quota.min);
+		if (limit == -1) m_download_limit = resource_request::inf;
+		if (limit < 10) m_download_limit = 10;
 	}
 
 	size_type peer_connection::share_diff() const
@@ -1604,12 +1607,33 @@ namespace libtorrent
 		// maintain the share ratio given by m_ratio
 		// with all peers.
 
+		if (has_peer_choked() || !is_interesting())
+		{
+			// if the peer choked us, we can't download
+			// any data anyway, limit the max download
+			// bandwidth. If we're a seed, it doesn't matter,
+			// we won't be interested in downloading anyway
+			m_dl_bandwidth_quota.max = 400;
+		}
+		else
+		{
+			m_dl_bandwidth_quota.max = resource_request::inf;
+		}
+
 		if (t->is_seed() || is_choked() || t->ratio() == 0.0f)
 		{
 			// if we have downloaded more than one piece more
 			// than we have uploaded OR if we are a seed
 			// have an unlimited upload rate
-			m_ul_bandwidth_quota.max = resource_request::inf;
+			// the exception is if we have choked the peer, and
+			// we have a limited amount of upload bandwidth, then
+			// we set the max to 400, just enough for the
+			// protocol chatter.
+			if (is_choked()
+				&& m_ul_bandwidth_quota.given < resource_request::inf)
+				m_ul_bandwidth_quota.max = 400;
+			else
+				m_ul_bandwidth_quota.max = resource_request::inf;
 		}
 		else
 		{
@@ -1623,7 +1647,7 @@ namespace libtorrent
 			size_type soon_downloaded =
 				have_downloaded + (size_type)(download_speed * break_even_time*1.5);
 
-			if(t->ratio() != 1.f)
+			if (t->ratio() != 1.f)
 				soon_downloaded = (size_type)(soon_downloaded*(double)t->ratio());
 
 			double upload_speed_limit = (soon_downloaded - have_uploaded
@@ -1637,6 +1661,12 @@ namespace libtorrent
 		}
 		if (m_ul_bandwidth_quota.given > m_ul_bandwidth_quota.max)
 			m_ul_bandwidth_quota.given = m_ul_bandwidth_quota.max;
+
+		if (m_upload_limit < m_ul_bandiwdth_quota.max)
+			m_ul_bandiwdth_quota.max = m_upload_limit;
+
+		if (m_download_limit < m_dl_bandiwdth_quota.max)
+			m_dl_bandiwdth_quota.max = m_download_limit;
 
 		fill_send_buffer();
 /*
