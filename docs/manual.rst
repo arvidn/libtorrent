@@ -89,6 +89,8 @@ The ``session`` class has the following synopsis::
 		session_proxy abort();
 
 		void remove_torrent(torrent_handle const& h);
+		torrent_handle find_torrent(sha_hash const& ih);
+		std::vector<torrent_handle> get_torrents() const;
 
 		void set_settings(
 			session_settings const& settings);
@@ -112,7 +114,10 @@ The ``session`` class has the following synopsis::
 		std::auto_ptr<alert> pop_alert();
 		void set_severity_level(alert::severity_t s);
 
-		void start_dht();
+		void add_extension(boost::function<
+			boost::shared_ptr<torrent_plugin>(torrent*)> ext);
+ 
+ 		void start_dht();
 		void stop_dht();
 		void set_dht_settings(
 			dht_settings const& settings);
@@ -237,15 +242,26 @@ optional ``name`` argument. This may be 0 in case no name should be assigned to 
 torrent. In case it's not 0, the name is used for the torrent as long as it doesn't
 have metadata. See ``torrent_handle::name``.
 
-remove_torrent()
-----------------
+remove_torrent() find_torrent() get_torrents()
+----------------------------------------------
 
 	::
 
 		void remove_torrent(torrent_handle const& h);
+		torrent_handle find_torrent(sha_hash const& ih);
+		std::vector<torrent_handle> get_torrents() const;
 
 ``remove_torrent()`` will close all peer connections associated with the torrent and tell
 the tracker that we've stopped participating in the swarm.
+
+``find_torrent()`` looks for a torrent with the given info-hash. In case there
+is such a torrent in the session, a torrent_handle to that torrent is returned.
+In case the torrent cannot be found, an invalid torrent_handle is returned.
+
+See ``torrent_handle::is_valid()`` to know if the torrent was found or not.
+
+``get_torrents()`` returns a vector of torrent_handles to all the torrents
+currently in the session.
 
 
 set_upload_rate_limit() set_download_rate_limit()
@@ -412,6 +428,34 @@ pop_alert() set_severity_level()
 ``set_severity_level()`` you can filter how serious the event has to be for you to
 receive it through ``pop_alert()``. For information, see alerts_.
 
+
+add_extension()
+---------------
+
+	::
+
+		void add_extension(boost::function<
+			boost::shared_ptr<torrent_plugin>(torrent*)> ext);
+
+This function adds an extension to this session. The argument is a function
+object that is called with a ``torrent*`` and which should return a
+``boost::shared_ptr<torrent_plugin>``. To write custom plugins, see
+`libtorrent plugins`_. The main plugins implemented in libtorrent are:
+
+metadata extension
+	Allows peers to download the metadata (.torren files) from the swarm
+	directly. Makes it possible to join a swarm with just a tracker and
+	info-hash.
+
+uTorrent peer exchange
+	Exchanges peers between clients.
+
+To use these, imclude ``<libtorrent/extensions/metadata_transfer.hpp>``
+or ``<libtorrent/extensions/ut_pex.hpp>``. The functions to pass in to
+``add_extension()`` are ``libtorrent::create_metadata_plugin`` and
+``libtorrent::create_ut_pex_plugin`` respectively.
+
+.. _`libtorrent plugins`: libtorrent_plugins.html
 
 start_dht() stop_dht() set_dht_settings() dht_state()
 -----------------------------------------------------
@@ -3017,30 +3061,30 @@ bittorrent client.
 
 These are the extensions that are currently implemented.
 
-chat messages
--------------
+.. chat messages
+   -------------
 
-Extension name: "chat"
+   Extension name: "chat"
 
-The payload in the packet is a bencoded dictionary with any
-combination of the following entries:
+   The payload in the packet is a bencoded dictionary with any
+   combination of the following entries:
 
-+----------+--------------------------------------------------------+
-| "msg"    | This is a string that contains a message that          |
-|          | should be displayed to the user.                       |
-+----------+--------------------------------------------------------+
-| "ctrl"   | This is a control string that can tell a client that   |
-|          | it is ignored (to make the user aware of that) and     |
-|          | it can also tell a client that it is no longer ignored.|
-|          | These notifications are encoded as the strings:        |
-|          | "ignored" and "not ignored".                           |
-|          | Any unrecognized strings should be ignored.            |
-+----------+--------------------------------------------------------+
+   +----------+--------------------------------------------------------+
+   | "msg"    | This is a string that contains a message that          |
+   |          | should be displayed to the user.                       |
+   +----------+--------------------------------------------------------+
+   | "ctrl"   | This is a control string that can tell a client that   |
+   |          | it is ignored (to make the user aware of that) and     |
+   |          | it can also tell a client that it is no longer ignored.|
+   |          | These notifications are encoded as the strings:        |
+   |          | "ignored" and "not ignored".                           |
+   |          | Any unrecognized strings should be ignored.            |
+   +----------+--------------------------------------------------------+
 
 metadata from peers
 -------------------
 
-Extension name: "metadata"
+Extension name: "LT_metadata"
 
 The point with this extension is that you don't have to distribute the
 metadata (.torrent-file) separately. The metadata can be distributed
