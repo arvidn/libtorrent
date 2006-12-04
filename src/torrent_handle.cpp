@@ -455,57 +455,61 @@ namespace libtorrent
 		entry::list_type& slots = ret["slots"].list();
 		std::copy(piece_index.begin(), piece_index.end(), std::back_inserter(slots));
 
-		const piece_picker& p = t->picker();
-
-		const std::vector<piece_picker::downloading_piece>& q
-			= p.get_download_queue();
-
-		// blocks per piece
-		int num_blocks_per_piece =
-			static_cast<int>(t->torrent_file().piece_length()) / t->block_size();
-		ret["blocks per piece"] = num_blocks_per_piece;
-
-		// unfinished pieces
-		ret["unfinished"] = entry::list_type();
-		entry::list_type& up = ret["unfinished"].list();
-
-		// info for each unfinished piece
-		for (std::vector<piece_picker::downloading_piece>::const_iterator i
-			= q.begin(); i != q.end(); ++i)
+		// if this torrent is a seed, we won't have a piece picker
+		// and there will be no half-finished pieces.
+		if (!t->is_seed())
 		{
-			if (i->finished_blocks.count() == 0) continue;
+			const piece_picker& p = t->picker();
 
-			entry piece_struct(entry::dictionary_t);
+			const std::vector<piece_picker::downloading_piece>& q
+				= p.get_download_queue();
 
-			// the unfinished piece's index
-			piece_struct["piece"] = i->index;
+			// blocks per piece
+			int num_blocks_per_piece =
+				static_cast<int>(t->torrent_file().piece_length()) / t->block_size();
+			ret["blocks per piece"] = num_blocks_per_piece;
 
-			std::string bitmask;
-			const int num_bitmask_bytes
-				= std::max(num_blocks_per_piece / 8, 1);
+			// unfinished pieces
+			ret["unfinished"] = entry::list_type();
+			entry::list_type& up = ret["unfinished"].list();
 
-			for (int j = 0; j < num_bitmask_bytes; ++j)
+			// info for each unfinished piece
+			for (std::vector<piece_picker::downloading_piece>::const_iterator i
+				= q.begin(); i != q.end(); ++i)
 			{
-				unsigned char v = 0;
-				for (int k = 0; k < 8; ++k)
-					v |= i->finished_blocks[j*8+k]?(1 << k):0;
-				bitmask.insert(bitmask.end(), v);
+				if (i->finished_blocks.count() == 0) continue;
+
+				entry piece_struct(entry::dictionary_t);
+
+				// the unfinished piece's index
+				piece_struct["piece"] = i->index;
+
+				std::string bitmask;
+				const int num_bitmask_bytes
+					= std::max(num_blocks_per_piece / 8, 1);
+
+				for (int j = 0; j < num_bitmask_bytes; ++j)
+				{
+					unsigned char v = 0;
+					for (int k = 0; k < 8; ++k)
+						v |= i->finished_blocks[j*8+k]?(1 << k):0;
+					bitmask.insert(bitmask.end(), v);
+				}
+				piece_struct["bitmask"] = bitmask;
+
+				assert(t->filesystem().slot_for_piece(i->index) >= 0);
+				unsigned long adler
+					= t->filesystem().piece_crc(
+						t->filesystem().slot_for_piece(i->index)
+						, t->block_size()
+						, i->finished_blocks);
+
+				piece_struct["adler32"] = adler;
+
+				// push the struct onto the unfinished-piece list
+				up.push_back(piece_struct);
 			}
-			piece_struct["bitmask"] = bitmask;
-
-			assert(t->filesystem().slot_for_piece(i->index) >= 0);
-			unsigned long adler
-				= t->filesystem().piece_crc(
-					t->filesystem().slot_for_piece(i->index)
-					, t->block_size()
-					, i->finished_blocks);
-
-			piece_struct["adler32"] = adler;
-
-			// push the struct onto the unfinished-piece list
-			up.push_back(piece_struct);
 		}
-
 		// write local peers
 
 		ret["peers"] = entry::list_type();
@@ -704,6 +708,8 @@ namespace libtorrent
 		queue.clear();
 		if (!t) return;
 		if (!t->valid_metadata()) return;
+		// if we're a seed, the piece picker has been removed
+		if (t->is_seed()) return;
 
 		const piece_picker& p = t->picker();
 

@@ -74,6 +74,7 @@ namespace
 		, peer_connection& c
 		, std::vector<peer_connection*> ignore = std::vector<peer_connection*>())
 	{
+		assert(!t.is_seed());
 		int num_requests = c.desired_queue_size()
 			- (int)c.download_queue().size()
 			- (int)c.request_queue().size();

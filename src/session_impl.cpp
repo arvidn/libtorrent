@@ -465,8 +465,8 @@ namespace libtorrent { namespace detail
 	{
 		seed_random_generator()
 		{
-			std::srand((unsigned int)boost::posix_time::microsec_clock::
-				universal_time().time_of_day().total_microseconds());
+			std::srand((unsigned int)(boost::posix_time::microsec_clock::
+				universal_time().time_of_day().total_microseconds()));
 		}
 	};
 
