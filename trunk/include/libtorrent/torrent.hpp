@@ -297,17 +297,35 @@ namespace libtorrent
 		// piece a peer has gained.
 		void peer_has(int index)
 		{
-			assert(m_picker.get());
-			assert(index >= 0 && index < (signed)m_have_pieces.size());
-			m_picker->inc_refcount(index);
+			if (m_picker.get())
+			{
+				assert(!is_seed());
+				assert(index >= 0 && index < (signed)m_have_pieces.size());
+				m_picker->inc_refcount(index);
+			}
+#ifndef NDEBUG
+			else
+			{
+				assert(is_seed());
+			}
+#endif
 		}
 
 		// when peer disconnects, this is called for every piece it had
 		void peer_lost(int index)
 		{
-			assert(m_picker.get());
-			assert(index >= 0 && index < (signed)m_have_pieces.size());
-			m_picker->dec_refcount(index);
+			if (m_picker.get())
+			{
+				assert(!is_seed());
+				assert(index >= 0 && index < (signed)m_have_pieces.size());
+				m_picker->dec_refcount(index);
+			}
+#ifndef NDEBUG
+			else
+			{
+				assert(is_seed());
+			}
+#endif
 		}
 
 		int block_size() const { assert(m_block_size > 0); return m_block_size; }

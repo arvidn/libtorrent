@@ -658,10 +658,11 @@ namespace libtorrent
 
 		if (!valid_metadata()) return 0;
 
-		assert(m_picker.get());
-
 		if (m_torrent_file.num_pieces() == 0)
 			return 0;
+
+		if (is_seed()) return m_torrent_file.total_size();
+
 		const int last_piece = m_torrent_file.num_pieces() - 1;
 
 		size_type total_done
@@ -688,11 +689,13 @@ namespace libtorrent
 
 		if (!valid_metadata()) return tuple<size_type, size_type>(0,0);
 
-		assert(m_picker.get());
-
 		if (m_torrent_file.num_pieces() == 0)
 			return tuple<size_type, size_type>(0,0);
 		const int last_piece = m_torrent_file.num_pieces() - 1;
+
+		if (is_seed())
+			return make_tuple(m_torrent_file.total_size()
+				, m_torrent_file.total_size());
 
 		size_type wanted_done = (m_num_pieces - m_picker->num_have_filtered())
 			* m_torrent_file.piece_length();
@@ -880,7 +883,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		assert(m_picker.get());
 		assert(index >= 0);
 		assert(index < m_torrent_file.num_pieces());
 
@@ -911,6 +913,7 @@ namespace libtorrent
 			try { (*i)->on_piece_pass(index); } catch (std::exception&) {}
 		}
 #endif
+		if (is_seed()) m_picker.reset();
 	}
 
 	std::string torrent::tracker_login() const
@@ -1560,7 +1563,14 @@ namespace libtorrent
 		
 		INVARIANT_CHECK;
 
-		m_picker->files_checked(m_have_pieces, unfinished_pieces);
+		if (!is_seed())
+		{
+			m_picker->files_checked(m_have_pieces, unfinished_pieces);
+		}
+		else
+		{
+			m_picker.reset();
+		}
 		if (!m_connections_initialized)
 		{
 			m_connections_initialized = true;
@@ -1662,12 +1672,15 @@ namespace libtorrent
 		assert(m_priority >= 0.f && m_priority < 1.f);
 		assert(!valid_metadata() || m_block_size > 0);
 		assert(!valid_metadata() || (m_torrent_file.piece_length() % m_block_size) == 0);
+//		if (is_seed()) assert(m_picker.get() == 0);
 	}
 #endif
 
 	void torrent::set_sequenced_download_threshold(int threshold)
 	{
-		if (valid_metadata())
+		// TODO: if there is not valid metadata, save this setting and
+		// set it once the piece picker is created.
+		if (valid_metadata() && !is_seed())
 			picker().set_sequenced_download_threshold(threshold);
 	}
 
@@ -2040,6 +2053,7 @@ namespace libtorrent
 
 		assert(std::accumulate(m_have_pieces.begin(), m_have_pieces.end(), 0)
 			== m_num_pieces);
+
 		return true;
 	}
 
@@ -2199,7 +2213,10 @@ namespace libtorrent
 			st.state = torrent_status::downloading;
 
 		st.num_seeds = num_seeds();
-		st.distributed_copies = m_picker->distributed_copies();
+		if (m_picker.get())
+			st.distributed_copies = m_picker->distributed_copies();
+		else
+			st.distributed_copies = -1;
 		return st;
 	}
 

@@ -595,19 +595,22 @@ namespace libtorrent
 		m_peer_choked = true;
 		t->get_policy().choked(*this);
 
-		// remove all pieces from this peers download queue and
-		// remove the 'downloading' flag from piece_picker.
-		for (std::deque<piece_block>::iterator i = m_download_queue.begin();
-			i != m_download_queue.end(); ++i)
+		if (!t->is_seed())
 		{
-			t->picker().abort_download(*i);
-		}
-		for (std::deque<piece_block>::const_iterator i = m_request_queue.begin()
-			, end(m_request_queue.end()); i != end; ++i)
-		{
-			// since this piece was skipped, clear it and allow it to
-			// be requested from other peers
-			t->picker().abort_download(*i);
+			// remove all pieces from this peers download queue and
+			// remove the 'downloading' flag from piece_picker.
+			for (std::deque<piece_block>::iterator i = m_download_queue.begin();
+				i != m_download_queue.end(); ++i)
+			{
+				t->picker().abort_download(*i);
+			}
+			for (std::deque<piece_block>::const_iterator i = m_request_queue.begin()
+				, end(m_request_queue.end()); i != end; ++i)
+			{
+				// since this piece was skipped, clear it and allow it to
+				// be requested from other peers
+				t->picker().abort_download(*i);
+			}
 		}
 		m_download_queue.clear();
 		m_request_queue.clear();
@@ -717,13 +720,16 @@ namespace libtorrent
 			m_have_piece[index] = true;
 
 			// only update the piece_picker if
-			// we have the metadata
+			// we have the metadata and if
+			// we're not a seed (in which case
+			// we won't have a piece picker)
 			if (t->valid_metadata())
 			{
 				++m_num_pieces;
 				t->peer_has(index);
 
 				if (!t->have_piece(index)
+					&& !t->is_seed()
 					&& !is_interesting()
 					&& !t->picker().is_filtered(index))
 					t->get_policy().peer_is_interesting(*this);
@@ -797,14 +803,17 @@ namespace libtorrent
 		// let the torrent know which pieces the
 		// peer has, in a shuffled order
 		bool interesting = false;
-		for (std::vector<int>::reverse_iterator i = piece_list.rbegin();
-			i != piece_list.rend(); ++i)
+		if (!t->is_seed())
 		{
-			int index = *i;
-			t->peer_has(index);
-			if (!t->have_piece(index)
-				&& !t->picker().is_filtered(index))
-				interesting = true;
+			for (std::vector<int>::reverse_iterator i = piece_list.rbegin();
+				i != piece_list.rend(); ++i)
+			{
+				int index = *i;
+				t->peer_has(index);
+				if (!t->have_piece(index)
+					&& !t->picker().is_filtered(index))
+					interesting = true;
+			}
 		}
 
 		if (piece_list.size() == m_have_piece.size())
@@ -1420,7 +1429,7 @@ namespace libtorrent
 
 		if (t)
 		{
-			if (t->valid_metadata())
+			if (t->valid_metadata() && !t->is_seed())
 			{
 				piece_picker& picker = t->picker();
 				
