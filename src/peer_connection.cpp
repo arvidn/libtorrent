@@ -1662,11 +1662,11 @@ namespace libtorrent
 		if (m_ul_bandwidth_quota.given > m_ul_bandwidth_quota.max)
 			m_ul_bandwidth_quota.given = m_ul_bandwidth_quota.max;
 
-		if (m_upload_limit < m_ul_bandiwdth_quota.max)
-			m_ul_bandiwdth_quota.max = m_upload_limit;
+		if (m_upload_limit < m_ul_bandwidth_quota.max)
+			m_ul_bandwidth_quota.max = m_upload_limit;
 
-		if (m_download_limit < m_dl_bandiwdth_quota.max)
-			m_dl_bandiwdth_quota.max = m_download_limit;
+		if (m_download_limit < m_dl_bandwidth_quota.max)
+			m_dl_bandwidth_quota.max = m_download_limit;
 
 		fill_send_buffer();
 /*
