@@ -581,6 +581,9 @@ namespace libtorrent
 
 		// reference counter for intrusive_ptr
 		mutable boost::detail::atomic_count m_refs;
+		
+		int m_upload_limit;
+		int m_download_limit;
 
 #ifndef NDEBUG
 	public:
