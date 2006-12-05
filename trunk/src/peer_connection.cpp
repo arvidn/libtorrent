@@ -975,11 +975,11 @@ namespace libtorrent
 			throw protocol_error("got invalid piece packet");
 		}
 
+		using namespace boost::posix_time;
+
 		// if we're already seeding, don't bother,
 		// just ignore it
 		if (t->is_seed()) return;
-
-		using namespace boost::posix_time;
 
 		piece_picker& picker = t->picker();
 
@@ -1080,21 +1080,22 @@ namespace libtorrent
 		bool was_finished = picker.num_filtered() + t->num_pieces()
 			== t->torrent_file().num_pieces();
 
-		// if the piece failed, this connection may be closed, and
-		// detached from the torrent. In that case m_torrent will
-		// be set to 0. So, we need to temporarily save it in this function
-
 		// did we just finish the piece?
 		if (picker.is_piece_finished(p.piece))
 		{
 			bool verified = t->verify_piece(p.piece);
 			if (verified)
 			{
+				// the following call may cause picker to become invalid
+				// in case we just became a seed
 				t->announce_piece(p.piece);
 				assert(t->valid_metadata());
+				// if we jsut became a seed, picker is now invalid, since it
+				// is deallocated by the torrent once it starts seeding
 				if (!was_finished
-					&& picker.num_filtered() + t->num_pieces()
-						== t->torrent_file().num_pieces())  
+					&& (t->is_seed()
+						|| picker.num_filtered() + t->num_pieces()
+						== t->torrent_file().num_pieces()))
 				{
 					// torrent finished
 					// i.e. all the pieces we're interested in have
