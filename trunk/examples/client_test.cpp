@@ -815,10 +815,19 @@ int main(int ac, char* av[])
 					++i;
 				}
 
-				out << "name: " << esc("37");
-				if (h.has_metadata()) out << h.get_torrent_info().name();
-				else out << "-";
-				out << esc("0") << "\n";
+				out << "* " << esc("37") << std::setw(40)
+					<< std::setiosflags(std::ios::left);
+				if (h.has_metadata())
+				{
+					std::string name = h.get_torrent_info().name();
+					if (name.size() > 40) name.resize(40);
+					out << name;
+				}
+				else
+				{
+					out << "-";
+				}
+				out << esc("0") << " ";
 				torrent_status s = h.status();
 
 				if (s.state != torrent_status::seeding)
