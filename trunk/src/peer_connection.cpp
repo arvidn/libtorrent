@@ -953,6 +953,9 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		assert(t);
+#ifndef NDEBUG
+		t->check_invariant();
+#endif
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << to_simple_string(second_clock::universal_time())
@@ -982,6 +985,7 @@ namespace libtorrent
 		if (t->is_seed()) return;
 
 		piece_picker& picker = t->picker();
+		piece_manager& fs = t->filesystem();
 
 		piece_block block_finished(p.piece, p.start / t->block_size());
 		bool redundant = true;
@@ -1074,7 +1078,7 @@ namespace libtorrent
 
 		if (redundant) return;
 
-		t->filesystem().write(data, p.piece, p.start, p.length);
+		fs.write(data, p.piece, p.start, p.length);
 
 		bool was_seed = t->is_seed();
 		bool was_finished = picker.num_filtered() + t->num_pieces()

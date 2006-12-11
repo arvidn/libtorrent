@@ -654,7 +654,7 @@ namespace libtorrent
 
 	size_type torrent::quantized_bytes_done() const
 	{
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		if (!valid_metadata()) return 0;
 
@@ -702,6 +702,7 @@ namespace libtorrent
 		
 		size_type total_done
 			= m_num_pieces * m_torrent_file.piece_length();
+		assert(m_num_pieces < m_torrent_file.num_pieces());
 
 		// if we have the last piece, we have to correct
 		// the amount we have, since the first calculation
@@ -715,6 +716,8 @@ namespace libtorrent
 				wanted_done += corr;
 		}
 
+		assert(total_done < m_torrent_file.total_size());
+
 		const std::vector<piece_picker::downloading_piece>& dl_queue
 			= m_picker->get_download_queue();
 
@@ -725,7 +728,8 @@ namespace libtorrent
 			dl_queue.begin(); i != dl_queue.end(); ++i)
 		{
 			int corr = 0;
-			assert(!m_have_pieces[i->index]);
+			if (m_have_pieces[i->index]) continue;
+//			assert(!m_have_pieces[i->index]);
 
 			for (int j = 0; j < blocks_per_piece; ++j)
 			{
@@ -926,6 +930,9 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		assert(valid_metadata());
+		if (is_seed()) return;
+
 		// this call is only valid on torrents with metadata
 		assert(m_picker.get());
 		assert(index >= 0);
@@ -942,6 +949,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		// this call is only valid on torrents with metadata
+		assert(valid_metadata());
+		if (is_seed()) return;
+
 		assert(m_picker.get());
 
 		// TODO: update peer's interesting-bit
@@ -969,6 +979,9 @@ namespace libtorrent
 	bool torrent::is_piece_filtered(int index) const
 	{
 		// this call is only valid on torrents with metadata
+		assert(valid_metadata());
+		if (is_seed()) return false;
+		
 		assert(m_picker.get());
 		assert(index >= 0);
 		assert(index < m_torrent_file.num_pieces());
@@ -981,6 +994,14 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		// this call is only valid on torrents with metadata
+		assert(valid_metadata());
+		if (is_seed())
+		{
+			bitmask.clear();
+			bitmask.resize(m_torrent_file.num_pieces(), false);
+			return;
+		}
+
 		assert(m_picker.get());
 		m_picker->filtered_pieces(bitmask);
 	}
@@ -990,7 +1011,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		// this call is only valid on torrents with metadata
-		if (!valid_metadata()) return;
+		if (!valid_metadata() || is_seed()) return;
 
 		// the bitmask need to have exactly one bit for every file
 		// in the torrent
@@ -1647,7 +1668,7 @@ namespace libtorrent
 
 	session_settings const& torrent::settings() const
 	{
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		return m_ses.settings();
 	}
@@ -1665,6 +1686,21 @@ namespace libtorrent
 			if (associated_torrent != this)
 				assert(false);
 		}
+
+		if (valid_metadata())
+		{
+			assert(m_have_pieces.size() == m_torrent_file.num_pieces());
+		}
+		else
+		{
+			assert(m_have_pieces.empty());
+		}
+
+		size_type total_done = quantized_bytes_done();
+		if (is_seed())
+			assert(total_done == m_torrent_file.total_size());
+		else
+			assert(total_done != m_torrent_file.total_size());
 
 // This check is very expensive.
 //		assert(m_num_pieces
@@ -2204,13 +2240,24 @@ namespace libtorrent
 		st.num_pieces = m_num_pieces;
 
 		if (m_got_tracker_response == false)
+		{
 			st.state = torrent_status::connecting_to_tracker;
-		else if (m_num_pieces == (int)m_have_pieces.size())
+		}
+		else if (is_seed())
+		{
+			assert(st.total_done == m_torrent_file.total_size());
 			st.state = torrent_status::seeding;
+		}
 		else if (st.total_wanted_done == st.total_wanted)
+		{
+			assert(!is_seed());
+			assert(st.total_done != m_torrent_file.total_size());
 			st.state = torrent_status::finished;
+		}
 		else
+		{
 			st.state = torrent_status::downloading;
+		}
 
 		st.num_seeds = num_seeds();
 		if (m_picker.get())
