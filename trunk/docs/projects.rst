@@ -81,6 +81,11 @@ project listed here, let me_ know.
 | client. It has the ability to automatically resume partial downloads and      |                                     |
 | background to the system tray.                                                |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
+| **halite BitTorrent**                                                         | .. image:: halite_thumb.png         |
+|                                                                               |                                     |
+| Halite_ is a windows bittorrent client controllabel via an xml-rpc            |                                     |
+| interface.                                                                    |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
 | **ZipTorrent**                                                                | .. image:: ziptorrent_thumb.gif     |
 |                                                                               |                                     |
 | ZipTorrent_ is another windows                                                |                                     |
@@ -122,6 +127,7 @@ project listed here, let me_ know.
 .. _BitBuddy: http://www.btvampire.com
 .. _`Arctic Torrent`: http://www.int64.org/arctic.html
 .. _`deluge Torrent`: http://deluge-torrent.org/
+.. _Halite: http://www.binarynotions.com/halite.php
 .. _ZipTorrent: http://www.ziptorrent.com/
 .. _FireANT: http://antisnottv.net/
 .. _eDonkey2000: http://www.edonkey2000.com/
