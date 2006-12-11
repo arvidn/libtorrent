@@ -987,6 +987,7 @@ namespace libtorrent
 		piece_picker& picker = t->picker();
 		piece_manager& fs = t->filesystem();
 
+		std::vector<piece_block> finished_blocks;
 		piece_block block_finished(p.piece, p.start / t->block_size());
 		bool redundant = true;
 		for (;block_finished.block_index * t->block_size() < p.start + p.length;
@@ -1071,9 +1072,7 @@ namespace libtorrent
 				redundant = false;
 			}
 
-			picker.mark_as_finished(block_finished, m_remote);
-
-			t->get_policy().block_finished(*this, block_finished);
+			finished_blocks.push_back(block_finished);
 		}
 
 		if (redundant) return;
@@ -1083,6 +1082,13 @@ namespace libtorrent
 		bool was_seed = t->is_seed();
 		bool was_finished = picker.num_filtered() + t->num_pieces()
 			== t->torrent_file().num_pieces();
+
+		for (std::vector<piece_block>::iterator i = finished_blocks.begin()
+			, end(finished_blocks.end()); i != end; ++i)
+		{
+			picker.mark_as_finished(*i, m_remote);
+			t->get_policy().block_finished(*this, *i);
+		}
 
 		// did we just finish the piece?
 		if (picker.is_piece_finished(p.piece))
@@ -1120,6 +1126,17 @@ namespace libtorrent
 				t->completed();
 			}
 		}
+#ifndef NDEBUG
+
+		size_type total_done, total_wanted;
+		boost::tie(total_done, total_wanted) = t->bytes_done();
+		if (t->is_seed())
+			assert(total_done == t->torrent_file().total_size());
+		else
+			assert(total_done != t->torrent_file().total_size());
+			
+		t->check_invariant();
+#endif
 	}
 
 	// -----------------------------
@@ -1456,14 +1473,13 @@ namespace libtorrent
 					m_request_queue.pop_back();
 				}
 			}
-#ifndef NDEBUG
-			else
-			{
-				assert(m_download_queue.empty());
-				assert(m_request_queue.empty());
-			}
-#endif
+
 			t->remove_peer(this);
+
+#ifndef NDEBUG
+			assert(m_download_queue.empty());
+			assert(m_request_queue.empty());
+#endif
 			m_torrent.reset();
 		}
 
