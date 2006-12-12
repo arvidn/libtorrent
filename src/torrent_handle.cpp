@@ -455,6 +455,11 @@ namespace libtorrent
 		entry::list_type& slots = ret["slots"].list();
 		std::copy(piece_index.begin(), piece_index.end(), std::back_inserter(slots));
 
+		// blocks per piece
+		int num_blocks_per_piece =
+			static_cast<int>(t->torrent_file().piece_length()) / t->block_size();
+		ret["blocks per piece"] = num_blocks_per_piece;
+
 		// if this torrent is a seed, we won't have a piece picker
 		// and there will be no half-finished pieces.
 		if (!t->is_seed())
@@ -463,11 +468,6 @@ namespace libtorrent
 
 			const std::vector<piece_picker::downloading_piece>& q
 				= p.get_download_queue();
-
-			// blocks per piece
-			int num_blocks_per_piece =
-				static_cast<int>(t->torrent_file().piece_length()) / t->block_size();
-			ret["blocks per piece"] = num_blocks_per_piece;
 
 			// unfinished pieces
 			ret["unfinished"] = entry::list_type();
