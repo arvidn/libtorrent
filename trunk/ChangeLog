@@ -1,3 +1,5 @@
+	* fixed bug where the http header parser was case sensitive to the header
+	  names.
 	* Implemented an optmization which frees the piece_picker once a torrent
 	  turns into a seed.
 	* Added support for uT peer exchange extension, implemented by Massaroddel.

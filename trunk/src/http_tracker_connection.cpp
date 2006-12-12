@@ -171,21 +171,7 @@ namespace libtorrent
 					}
 					catch(boost::bad_lexical_cast&) {}
 				}
-/*				else if (name == "content-encoding")
-				{
-					if (value == "gzip" || value == "x-gzip")
-					{
-						m_content_encoding = gzip;
-					}
-					else
-					{
-						std::string error_str = "unknown content encoding in response: \"";
-						error_str += value;
-						error_str += "\"";
-						throw std::runtime_error(error_str);
-					}
-				}
-*/
+
 				// TODO: make sure we don't step outside of the buffer
 				++pos;
 				++m_recv_pos;
@@ -242,16 +228,12 @@ namespace libtorrent
 		, std::string const& auth)
 		: tracker_connection(man, req, d, c)
 		, m_man(man)
-//		, m_state(read_status)
-//		, m_content_encoding(plain)
-//		, m_content_length(0)
 		, m_name_lookup(d)
 		, m_port(port)
 		, m_recv_pos(0)
 		, m_buffer(http_buffer_size)
 		, m_settings(stn)
 		, m_password(auth)
-//		, m_code(0)
 		, m_timed_out(false)
 	{
 		const std::string* connect_to_host;
@@ -535,7 +517,7 @@ namespace libtorrent
 				return;
 			}
 
-			if (cl < minimum_tracker_response_length && m_parser.status_code() == 200)
+			if (cl > 0 && cl < minimum_tracker_response_length && m_parser.status_code() == 200)
 			{
 				fail(-1, "content-length is smaller than minimum response length");
 				return;
@@ -561,7 +543,7 @@ namespace libtorrent
 	
 	void http_tracker_connection::on_response()
 	{
-		if (!m_parser.finished())
+		if (!m_parser.header_finished())
 		{
 			fail(-1, "premature end of file");
 			return;
