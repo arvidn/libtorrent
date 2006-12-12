@@ -84,7 +84,6 @@ namespace libtorrent
 		std::string m_server_message;
 
 		int m_content_length;
-		enum { plain, gzip } m_content_encoding;
 
 		enum { read_status, read_header, read_body } m_state;
 
@@ -144,11 +143,7 @@ namespace libtorrent
 		peer_entry extract_peer_info(const entry& e);
 
 		tracker_manager& m_man;
-		enum { read_status, read_header, read_body } m_state;
-
-		enum { plain, gzip } m_content_encoding;
-		int m_content_length;
-		std::string m_location;
+		http_parser m_parser;
 
 		tcp::resolver m_name_lookup;
 		int m_port;
@@ -157,16 +152,9 @@ namespace libtorrent
 		std::vector<char> m_buffer;
 		std::string m_send_buffer;
 
-		std::string m_server_message;
-		std::string m_server_protocol;
-
 		session_settings const& m_settings;
 		std::string m_password;
-		int m_code;
 
-		// server string in http-reply
-		std::string m_server;
-		
 		bool m_timed_out;
 	};
 

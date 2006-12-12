@@ -283,7 +283,7 @@ namespace libtorrent
 
 			if (!m_parser.finished()) break;
 
-			std::string server_version = m_parser.header<std::string>("Server");
+			std::string server_version = m_parser.header<std::string>("server");
 			if (!server_version.empty())
 			{
 				m_server_string = "URL seed @ ";
@@ -293,7 +293,7 @@ namespace libtorrent
 				m_server_string += ")";
 			}
 
-			std::stringstream range_str(m_parser.header<std::string>("Content-Range"));
+			std::stringstream range_str(m_parser.header<std::string>("content-range"));
 			size_type range_start;
 			size_type range_end;
 			char dummy;

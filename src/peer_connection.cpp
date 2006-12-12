@@ -1111,7 +1111,11 @@ namespace libtorrent
 					// i.e. all the pieces we're interested in have
 					// been downloaded. Release the files (they will open
 					// in read only mode if needed)
-					t->finished();
+					try { t->finished(); }
+					catch (std::exception&)
+					{
+						assert(false);
+					}
 				}
 			}
 			else
