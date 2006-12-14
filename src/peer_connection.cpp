@@ -1129,6 +1129,19 @@ namespace libtorrent
 				assert(verified);
 				t->completed();
 			}
+
+#ifndef NDEBUG
+
+			size_type total_done, total_wanted;
+			boost::tie(total_done, total_wanted) = t->bytes_done();
+			if (t->is_seed())
+				assert(total_done == t->torrent_file().total_size());
+			else
+				assert(total_done != t->torrent_file().total_size());
+				
+			t->check_invariant();
+#endif
+
 		}
 #ifndef NDEBUG
 
@@ -1481,8 +1494,11 @@ namespace libtorrent
 			t->remove_peer(this);
 
 #ifndef NDEBUG
-			assert(m_download_queue.empty());
-			assert(m_request_queue.empty());
+			if (!t->is_seed())
+			{
+				assert(m_download_queue.empty());
+				assert(m_request_queue.empty());
+			}
 #endif
 			m_torrent.reset();
 		}

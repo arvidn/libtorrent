@@ -1,3 +1,4 @@
+	* fixed bug in DHT code which would send incorrect announce messages.
 	* fixed bug where the http header parser was case sensitive to the header
 	  names.
 	* Implemented an optmization which frees the piece_picker once a torrent
