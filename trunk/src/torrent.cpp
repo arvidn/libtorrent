@@ -729,7 +729,14 @@ namespace libtorrent
 		{
 			int corr = 0;
 			if (m_have_pieces[i->index]) continue;
-//			assert(!m_have_pieces[i->index]);
+
+#ifndef NDEBUG
+			for (std::vector<piece_picker::downloading_piece>::const_iterator j = boost::next(i);
+				j != dl_queue.end(); ++j)
+			{
+				assert(j->index != i->index);
+			}
+#endif
 
 			for (int j = 0; j < blocks_per_piece; ++j)
 			{
@@ -785,12 +792,18 @@ namespace libtorrent
 			if (!m_picker->is_filtered(i->first.piece_index))
 				wanted_done += i->second;
 		}
+		assert(total_done >= wanted_done);
 		return make_tuple(total_done, wanted_done);
 	}
 
 	void torrent::piece_failed(int index)
 	{
-		INVARIANT_CHECK;
+		// if the last piece fails the peer connection will still
+		// think that it has received all of it until this function
+		// resets the download queue. So, we cannot do the
+		// invariant check here since it assumes:
+		// (total_done == m_torrent_file.total_size()) => is_seed()
+//		INVARIANT_CHECK;
 
 		assert(m_storage.get());
 		assert(m_picker.get());
@@ -1461,6 +1474,8 @@ namespace libtorrent
 		}
 
 	// disconnect all seeds
+	// TODO: should disconnect all peers that have the pieces we have
+	// not just seeds
 		std::vector<peer_connection*> seeds;
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
@@ -1485,14 +1500,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-/*
-		if (alerts().should_post(alert::info))
-		{
-			alerts().post_alert(torrent_complete_alert(
-				get_handle()
-				, "torrent is complete"));
-		}
-*/
 		// make the next tracker request
 		// be a completed-event
 		m_event = tracker_request::completed;
@@ -1689,7 +1696,7 @@ namespace libtorrent
 
 		if (valid_metadata())
 		{
-			assert(m_have_pieces.size() == m_torrent_file.num_pieces());
+			assert(int(m_have_pieces.size()) == m_torrent_file.num_pieces());
 		}
 		else
 		{
@@ -2198,7 +2205,7 @@ namespace libtorrent
 			else
 				st.state = torrent_status::downloading_metadata;
 
-// TODO: add e progress member to the torrent that will be used in this case
+// TODO: add a progress member to the torrent that will be used in this case
 // and that may be set by a plugin
 //			if (m_metadata_size == 0) st.progress = 0.f;
 //			else st.progress = std::min(1.f, m_metadata_progress / (float)m_metadata_size);
@@ -2250,7 +2257,6 @@ namespace libtorrent
 		}
 		else if (st.total_wanted_done == st.total_wanted)
 		{
-			assert(!is_seed());
 			assert(st.total_done != m_torrent_file.total_size());
 			st.state = torrent_status::finished;
 		}
