@@ -857,7 +857,7 @@ namespace libtorrent { namespace dht
 				}
 				case messages::announce_peer:
 					a["port"] = m_settings.service_port;
-					a["info_hash"] = boost::lexical_cast<std::string>(m.info_hash);
+					a["info_hash"] = std::string(m.info_hash.begin(), m.info_hash.end());
 					a["token"] = m.write_token;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 					TORRENT_LOG(dht_tracker) << "   port: "
