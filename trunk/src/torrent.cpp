@@ -209,6 +209,7 @@ namespace
 			<< "16. bytes received 10 seconds mean\n"
 			<< "17. total payload download\n"
 			<< "18. total web seed payload download\n"
+			<< "19. total redundant bytes downloaded\n"
 			<< "\n";
 	}
 #endif
@@ -2015,6 +2016,7 @@ namespace libtorrent
 			<< mean_dl << "\t"
 			<< m_stat.total_payload_download() << "\t"
 			<< m_web_stat.total_payload_download() << "\t"
+			<< m_total_redundant_bytes
 			<< "\n";
 
 		(*m_log)
