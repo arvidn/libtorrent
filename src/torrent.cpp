@@ -720,8 +720,8 @@ namespace libtorrent
 				wanted_done += corr;
 		}
 
-		assert(total_done < m_torrent_file.total_size());
-		assert(wanted_done < m_torrent_file.total_size());
+		assert(total_done <= m_torrent_file.total_size());
+		assert(wanted_done <= m_torrent_file.total_size());
 
 		const std::vector<piece_picker::downloading_piece>& dl_queue
 			= m_picker->get_download_queue();
@@ -745,7 +745,11 @@ namespace libtorrent
 
 			for (int j = 0; j < blocks_per_piece; ++j)
 			{
-				corr += (i->finished_blocks[j]) * m_block_size;
+				assert(i->finished_blocks[j] == 0 || i->finished_blocks[j] == 1);
+				assert(m_picker->is_finished(piece_block(i->index, j) == i->finished_blocks[j]));
+				corr += i->finished_blocks[j] * m_block_size;
+				assert(i->index != last_piece || j < m_picker-blocks_in_last_piece()
+					|| i->finished_blocks[j] == 0);
 			}
 
 			// correction if this was the last piece
@@ -761,8 +765,8 @@ namespace libtorrent
 				wanted_done += corr;
 		}
 
-		assert(total_done < m_torrent_file.total_size());
-		assert(wanted_done < m_torrent_file.total_size());
+		assert(total_done <= m_torrent_file.total_size());
+		assert(wanted_done <= m_torrent_file.total_size());
 
 		std::map<piece_block, int> downloading_piece;
 		for (const_peer_iterator i = begin(); i != end(); ++i)
@@ -801,8 +805,8 @@ namespace libtorrent
 				wanted_done += i->second;
 		}
 
-		assert(total_done < m_torrent_file.total_size());
-		assert(wanted_done < m_torrent_file.total_size());
+		assert(total_done <= m_torrent_file.total_size());
+		assert(wanted_done <= m_torrent_file.total_size());
 
 		assert(total_done >= wanted_done);
 		return make_tuple(total_done, wanted_done);
