@@ -746,9 +746,9 @@ namespace libtorrent
 			for (int j = 0; j < blocks_per_piece; ++j)
 			{
 				assert(i->finished_blocks[j] == 0 || i->finished_blocks[j] == 1);
-				assert(m_picker->is_finished(piece_block(i->index, j) == i->finished_blocks[j]));
+				assert(m_picker->is_finished(piece_block(i->index, j)) == i->finished_blocks[j]);
 				corr += i->finished_blocks[j] * m_block_size;
-				assert(i->index != last_piece || j < m_picker-blocks_in_last_piece()
+				assert(i->index != last_piece || j < m_picker->blocks_in_last_piece()
 					|| i->finished_blocks[j] == 0);
 			}
 
