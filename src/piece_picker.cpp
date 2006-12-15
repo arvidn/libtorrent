@@ -1163,14 +1163,17 @@ namespace libtorrent
 
 		assert(block.block_index < blocks_in_piece(block.piece_index));
 #ifndef NDEBUG
-		if (i->requested_blocks[block.block_index] != 1)
+		if (i->requested_blocks[block.block_index] == false)
 		{
 			assert(false);
 		}
 #endif
 
 		// clear this block as being downloaded
-		i->requested_blocks[block.block_index] = 0;
+		i->requested_blocks[block.block_index] = false;
+		
+		// clear the downloader of this block
+		i->info[block.block_index].peer = tcp::endpoint();
 
 		// if there are no other blocks in this piece
 		// that's being downloaded, remove it from the list

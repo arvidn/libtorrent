@@ -181,25 +181,35 @@ namespace
 				const std::deque<piece_block>& request_queue = i->second->request_queue();
 				const int queue_size = (int)i->second->download_queue().size()
 					+ (int)i->second->request_queue().size();
-				const float weight = queue_size == 0
+
+				bool in_request_queue = std::find_first_of(
+						busy_pieces.begin()
+						, busy_pieces.end()
+						, request_queue.begin()
+						, request_queue.end()) != busy_pieces.end();
+						
+				bool in_download_queue = std::find_first_of(
+						busy_pieces.begin()
+						, busy_pieces.end()
+						, download_queue.begin()
+						, download_queue.end()) != busy_pieces.end();
+
+				// if the block is in the request queue rather than the download queue
+				// (i.e. the request message hasn't been sent yet) lower the weight in
+				// order to prioritize it. Taking over a block in the request queue is
+				// free in terms of redundant download. A block that already has been
+				// requested is likely to be in transit already, and would in that case
+				// mean redundant data to receive.
+				const float weight = (queue_size == 0)
 					? std::numeric_limits<float>::max()
-					: i->second->statistics().download_payload_rate() / queue_size;
+					: i->second->statistics().download_payload_rate() / queue_size
+						* in_request_queue ? .1f : 1.f;
 
 				// if the peer's (i) weight is less than the lowest we've found so
 				// far (weight == priority) and it has blocks in its request-
 				// or download queue that we could request from this peer (c),
 				// replace the currently lowest ranking peer.
-				if (weight < min_weight
-					&& (std::find_first_of(
-						busy_pieces.begin()
-						, busy_pieces.end()
-						, request_queue.begin()
-						, request_queue.end()) != busy_pieces.end()
-					|| std::find_first_of(
-						busy_pieces.begin()
-						, busy_pieces.end()
-						, download_queue.begin()
-						, download_queue.end()) != busy_pieces.end()))
+				if (weight < min_weight && (in_request_queue || in_download_queue))
 				{
 					peer = i->second;
 					min_weight = weight;
