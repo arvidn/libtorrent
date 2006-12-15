@@ -1172,7 +1172,7 @@ namespace libtorrent
 		// clear this block as being downloaded
 		i->requested_blocks[block.block_index] = 0;
 
-		// if there are no other blocks in this pieces
+		// if there are no other blocks in this piece
 		// that's being downloaded, remove it from the list
 		if (i->requested_blocks.count() == 0)
 		{

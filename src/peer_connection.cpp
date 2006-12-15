@@ -615,9 +615,13 @@ namespace libtorrent
 				// be requested from other peers
 				t->picker().abort_download(*i);
 			}
+
+			m_download_queue.clear();
+			m_request_queue.clear();
 		}
-		m_download_queue.clear();
-		m_request_queue.clear();
+		
+		assert(m_download_queue.empty());
+		assert(m_request_queue.empty());
 
 #ifndef NDEBUG
 //		t->picker().integrity_check(m_torrent);
@@ -1037,6 +1041,7 @@ namespace libtorrent
 				// peer that has taken over it.
 				boost::optional<tcp::endpoint> peer
 					= t->picker().get_downloader(block_finished);
+				assert(!t->picker().is_finished(block_finished));
 				if (peer)
 				{
 					peer_connection* pc = t->connection_for(*peer);
@@ -1612,24 +1617,17 @@ namespace libtorrent
 #endif
 
 			piece_picker& picker = t->picker();
-			for (std::deque<piece_block>::const_iterator i = m_download_queue.begin()
-				, end(m_download_queue.end()); i != end; ++i)
+			while (!m_download_queue.empty())
 			{
-				// since this piece was skipped, clear it and allow it to
-				// be requested from other peers
-				picker.abort_download(*i);
+				picker.abort_download(m_download_queue.back());
+				m_download_queue.pop_back();
 			}
-			for (std::deque<piece_block>::const_iterator i = m_request_queue.begin()
-				, end(m_request_queue.end()); i != end; ++i)
+			while (!m_request_queue.empty())
 			{
-				// since this piece was skipped, clear it and allow it to
-				// be requested from other peers
-				picker.abort_download(*i);
+				picker.abort_download(m_request_queue.back());
+				m_request_queue.pop_back();
 			}
 
-			m_download_queue.clear();
-			m_request_queue.clear();
-			
 			// TODO: If we have a limited number of upload
 			// slots, choke this peer
 			
