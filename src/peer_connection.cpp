@@ -1041,8 +1041,7 @@ namespace libtorrent
 				// peer that has taken over it.
 				boost::optional<tcp::endpoint> peer
 					= t->picker().get_downloader(block_finished);
-				assert(!t->picker().is_finished(block_finished));
-				if (peer)
+				if (!t->picker().is_finished(block_finished) && peer)
 				{
 					peer_connection* pc = t->connection_for(*peer);
 					if (pc && pc != this)
