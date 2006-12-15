@@ -110,7 +110,7 @@ namespace libtorrent
 	public:
 
 		http_tracker_connection(
-			demuxer& d
+			asio::strand& str
 			, tracker_manager& man
 			, tracker_request const& req
 			, std::string const& hostname
@@ -145,6 +145,7 @@ namespace libtorrent
 		tracker_manager& m_man;
 		http_parser m_parser;
 
+		asio::strand& m_strand;
 		tcp::resolver m_name_lookup;
 		int m_port;
 		boost::shared_ptr<stream_socket> m_socket;

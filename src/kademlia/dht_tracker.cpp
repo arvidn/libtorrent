@@ -132,20 +132,20 @@ namespace libtorrent { namespace dht
 
 	// class that puts the networking and the kademlia node in a single
 	// unit and connecting them together.
-	dht_tracker::dht_tracker(asio::io_service& d, dht_settings const& settings
+	dht_tracker::dht_tracker(asio::io_service& ios, dht_settings const& settings
 		, asio::ip::address listen_interface, entry const& bootstrap)
-		: m_demuxer(d)
-		, m_socket(m_demuxer, udp::endpoint(listen_interface, settings.service_port))
+		: m_strand(ios)
+		, m_socket(ios, udp::endpoint(listen_interface, settings.service_port))
 		, m_dht(bind(&dht_tracker::send_packet, this, _1), settings
 			, read_id(bootstrap))
 		, m_buffer(0)
 		, m_last_refresh(second_clock::universal_time() - hours(1))
-		, m_timer(m_demuxer)
-		, m_connection_timer(m_demuxer)
-		, m_refresh_timer(m_demuxer)
+		, m_timer(ios)
+		, m_connection_timer(ios)
+		, m_refresh_timer(ios)
 		, m_settings(settings)
 		, m_refresh_bucket(160)
-		, m_host_resolver(d)
+		, m_host_resolver(ios)
 	{
 		using boost::bind;
 
@@ -191,15 +191,16 @@ namespace libtorrent { namespace dht
 
 		m_socket.async_receive_from(asio::buffer(&m_in_buf[m_buffer][0]
 			, m_in_buf[m_buffer].size()), m_remote_endpoint[m_buffer]
-			, bind(&dht_tracker::on_receive, this, _1, _2));
+			, m_strand.wrap(bind(&dht_tracker::on_receive, this, _1, _2)));
 		m_timer.expires_from_now(seconds(1));
-		m_timer.async_wait(bind(&dht_tracker::tick, this, _1));
+		m_timer.async_wait(m_strand.wrap(bind(&dht_tracker::tick, this, _1)));
 
 		m_connection_timer.expires_from_now(seconds(10));
-		m_connection_timer.async_wait(bind(&dht_tracker::connection_timeout, this, _1));
+		m_connection_timer.async_wait(m_strand.wrap(
+			bind(&dht_tracker::connection_timeout, this, _1)));
 
 		m_refresh_timer.expires_from_now(minutes(15));
-		m_refresh_timer.async_wait(bind(&dht_tracker::refresh_timeout, this, _1));
+		m_refresh_timer.async_wait(m_strand.wrap(bind(&dht_tracker::refresh_timeout, this, _1)));
 	}
 
 	void dht_tracker::dht_status(session_status& s)
@@ -214,7 +215,7 @@ namespace libtorrent { namespace dht
 		if (e) return;
 		time_duration d = m_dht.connection_timeout();
 		m_connection_timer.expires_from_now(d);
-		m_connection_timer.async_wait(bind(&dht_tracker::connection_timeout, this, _1));
+		m_connection_timer.async_wait(m_strand.wrap(bind(&dht_tracker::connection_timeout, this, _1)));
 	}
 	catch (std::exception& exc)
 	{
@@ -229,7 +230,8 @@ namespace libtorrent { namespace dht
 		if (e) return;
 		time_duration d = m_dht.refresh_timeout();
 		m_refresh_timer.expires_from_now(d);
-		m_refresh_timer.async_wait(bind(&dht_tracker::refresh_timeout, this, _1));
+		m_refresh_timer.async_wait(m_strand.wrap(
+			bind(&dht_tracker::refresh_timeout, this, _1)));
 	}
 	catch (std::exception&)
 	{
@@ -248,7 +250,7 @@ namespace libtorrent { namespace dht
 	{
 		if (e) return;
 		m_timer.expires_from_now(minutes(tick_period));
-		m_timer.async_wait(bind(&dht_tracker::tick, this, _1));
+		m_timer.async_wait(m_strand.wrap(bind(&dht_tracker::tick, this, _1)));
 
 		m_dht.new_write_key();
 		
@@ -357,7 +359,7 @@ namespace libtorrent { namespace dht
 		m_buffer = (m_buffer + 1) & 1;
 		m_socket.async_receive_from(asio::buffer(&m_in_buf[m_buffer][0]
 			, m_in_buf[m_buffer].size()), m_remote_endpoint[m_buffer]
-			, bind(&dht_tracker::on_receive, this, _1, _2));
+			, m_strand.wrap(bind(&dht_tracker::on_receive, this, _1, _2)));
 
 		if (error) return;
 
@@ -650,8 +652,8 @@ namespace libtorrent { namespace dht
 	void dht_tracker::add_node(std::pair<std::string, int> const& node)
 	{
 		udp::resolver::query q(node.first, lexical_cast<std::string>(node.second));
-		m_host_resolver.async_resolve(q, bind(&dht_tracker::on_name_lookup
-			, this, _1, _2));
+		m_host_resolver.async_resolve(q, m_strand.wrap(
+			bind(&dht_tracker::on_name_lookup, this, _1, _2)));
 	}
 
 	void dht_tracker::on_name_lookup(asio::error_code const& e
@@ -668,8 +670,8 @@ namespace libtorrent { namespace dht
 	void dht_tracker::add_router_node(std::pair<std::string, int> const& node)
 	{
 		udp::resolver::query q(node.first, lexical_cast<std::string>(node.second));
-		m_host_resolver.async_resolve(q, bind(&dht_tracker::on_router_name_lookup
-			, this, _1, _2));
+		m_host_resolver.async_resolve(q, m_strand.wrap(
+			bind(&dht_tracker::on_router_name_lookup, this, _1, _2)));
 	}
 
 	void dht_tracker::on_router_name_lookup(asio::error_code const& e

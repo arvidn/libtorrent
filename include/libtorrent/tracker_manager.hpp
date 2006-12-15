@@ -158,7 +158,7 @@ namespace libtorrent
 		friend void intrusive_ptr_add_ref(timeout_handler const*);
 		friend void intrusive_ptr_release(timeout_handler const*);
 
-		timeout_handler(demuxer& d);
+		timeout_handler(asio::strand& str);
 
 		void set_timeout(int completion_timeout, int read_timeout);
 		void restart_read_timeout();
@@ -174,7 +174,7 @@ namespace libtorrent
 		boost::intrusive_ptr<timeout_handler> self()
 		{ return boost::intrusive_ptr<timeout_handler>(this); }
 
-		demuxer& m_demuxer;
+		asio::strand& m_strand;
 		// used for timeouts
 		// this is set when the request has been sent
 		boost::posix_time::ptime m_start_time;
@@ -196,7 +196,7 @@ namespace libtorrent
 	{
 		tracker_connection(tracker_manager& man
 			, tracker_request req
-			, demuxer& d
+			, asio::strand& str
 			, boost::weak_ptr<request_callback> r);
 
 		request_callback& requester();
@@ -224,7 +224,7 @@ namespace libtorrent
 			: m_settings(s) {}
 
 		void queue_request(
-			demuxer& d
+			asio::strand& str
 			, tracker_request r
 			, std::string const& auth
 			, boost::weak_ptr<request_callback> c

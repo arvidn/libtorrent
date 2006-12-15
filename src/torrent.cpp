@@ -238,9 +238,9 @@ namespace libtorrent
 		, m_duration(1800)
 		, m_complete(-1)
 		, m_incomplete(-1)
-		, m_host_resolver(ses.m_selector)
+		, m_host_resolver(ses.m_io_service)
 #ifndef TORRENT_DISABLE_DHT
-		, m_dht_announce_timer(ses.m_selector)
+		, m_dht_announce_timer(ses.m_io_service)
 #endif
 		, m_policy()
 		, m_ses(ses)
@@ -328,7 +328,8 @@ namespace libtorrent
 		if (!tf.priv())
 		{
 			m_dht_announce_timer.expires_from_now(seconds(10));
-			m_dht_announce_timer.async_wait(bind(&torrent::on_dht_announce, this, _1));
+			m_dht_announce_timer.async_wait(m_ses.m_strand.wrap(
+				bind(&torrent::on_dht_announce, this, _1)));
 		}
 #endif
 	}
@@ -355,9 +356,9 @@ namespace libtorrent
 		, m_duration(1800)
 		, m_complete(-1)
 		, m_incomplete(-1)
-		, m_host_resolver(ses.m_selector)
+		, m_host_resolver(ses.m_io_service)
 #ifndef TORRENT_DISABLE_DHT
-		, m_dht_announce_timer(ses.m_selector)
+		, m_dht_announce_timer(ses.m_io_service)
 #endif
 		, m_policy()
 		, m_ses(ses)
@@ -443,7 +444,8 @@ namespace libtorrent
 		m_torrent_file.add_tracker(tracker_url);
 #ifndef TORRENT_DISABLE_DHT
 		m_dht_announce_timer.expires_from_now(seconds(10));
-		m_dht_announce_timer.async_wait(bind(&torrent::on_dht_announce, this, _1));
+		m_dht_announce_timer.async_wait(m_ses.m_strand.wrap(
+			bind(&torrent::on_dht_announce, this, _1)));
 #endif
 	}
 
@@ -523,14 +525,15 @@ namespace libtorrent
 	{
 		if (e) return;
 		m_dht_announce_timer.expires_from_now(boost::posix_time::minutes(30));
-		m_dht_announce_timer.async_wait(bind(&torrent::on_dht_announce, this, _1));
+		m_dht_announce_timer.async_wait(m_ses.m_strand.wrap(
+			bind(&torrent::on_dht_announce, this, _1)));
 		if (!m_ses.m_dht) return;
 		// TODO: There should be a way to abort an announce operation on the dht.
 		// when the torrent is destructed
 		boost::weak_ptr<torrent> self(shared_from_this());
 		m_ses.m_dht->announce(m_torrent_file.info_hash()
 			, m_ses.m_listen_interface.port()
-			, bind(&torrent::on_dht_announce_response_disp, self, _1));
+			, m_ses.m_strand.wrap(bind(&torrent::on_dht_announce_response_disp, self, _1)));
 	}
 
 	void torrent::on_dht_announce_response(std::vector<tcp::endpoint> const& peers)
@@ -1176,16 +1179,16 @@ namespace libtorrent
 		if (m_ses.settings().proxy_ip.empty())
 		{
 			tcp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
-			m_host_resolver.async_resolve(q, bind(&torrent::on_name_lookup
-				, shared_from_this(), _1, _2, url));
+			m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
+				bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, url)));
 		}
 		else
 		{
 			// use proxy
 			tcp::resolver::query q(m_ses.settings().proxy_ip
 				, boost::lexical_cast<std::string>(m_ses.settings().proxy_port));
-			m_host_resolver.async_resolve(q, bind(&torrent::on_name_lookup
-				, shared_from_this(), _1, _2, url));
+			m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
+				bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, url)));
 		}
 
 	}
@@ -1234,7 +1237,7 @@ namespace libtorrent
 			return;
 		}
 
-		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_selector));
+		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_io_service));
 		boost::intrusive_ptr<peer_connection> c(new web_peer_connection(
 			m_ses, shared_from_this(), s, a, url));
 
@@ -1295,7 +1298,7 @@ namespace libtorrent
 		if (m_connections.find(a) != m_connections.end())
 			throw protocol_error("already connected to peer");
 
-		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_selector));
+		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_io_service));
 		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
 			m_ses, shared_from_this(), s, a));
 			
