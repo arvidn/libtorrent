@@ -217,7 +217,7 @@ namespace libtorrent
 	}
 	
 	http_tracker_connection::http_tracker_connection(
-		demuxer& d
+		asio::strand& str
 		, tracker_manager& man
 		, tracker_request const& req
 		, std::string const& hostname
@@ -226,9 +226,10 @@ namespace libtorrent
 		, boost::weak_ptr<request_callback> c
 		, session_settings const& stn
 		, std::string const& auth)
-		: tracker_connection(man, req, d, c)
+		: tracker_connection(man, req, str, c)
 		, m_man(man)
-		, m_name_lookup(d)
+		, m_strand(str)
+		, m_name_lookup(m_strand.io_service())
 		, m_port(port)
 		, m_recv_pos(0)
 		, m_buffer(http_buffer_size)
@@ -368,8 +369,8 @@ namespace libtorrent
 
 		tcp::resolver::query q(*connect_to_host
 			, boost::lexical_cast<std::string>(m_port));
-		m_name_lookup.async_resolve(q
-			, boost::bind(&http_tracker_connection::name_lookup, self(), _1, _2));
+		m_name_lookup.async_resolve(q, m_strand.wrap(
+			boost::bind(&http_tracker_connection::name_lookup, self(), _1, _2)));
 		set_timeout(m_settings.tracker_completion_timeout
 			, m_settings.tracker_receive_timeout);
 	}
@@ -572,7 +573,7 @@ namespace libtorrent
 			else
 				req.url.assign(location.begin(), location.begin() + i);
 
-			m_man.queue_request(m_socket->io_service(), req
+			m_man.queue_request(m_strand, req
 				, m_password, m_requester);
 			close();
 			return;

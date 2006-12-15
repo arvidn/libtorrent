@@ -273,7 +273,8 @@ namespace libtorrent
 			// this is where all active sockets are stored.
 			// the selector can sleep while there's no activity on
 			// them
-			demuxer m_selector;
+			io_service m_io_service;
+			asio::strand m_strand;
 
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;

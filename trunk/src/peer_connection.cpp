@@ -615,13 +615,10 @@ namespace libtorrent
 				// be requested from other peers
 				t->picker().abort_download(*i);
 			}
-
-			m_download_queue.clear();
-			m_request_queue.clear();
 		}
 		
-		assert(m_download_queue.empty());
-		assert(m_request_queue.empty());
+		m_download_queue.clear();
+		m_request_queue.clear();
 
 #ifndef NDEBUG
 //		t->picker().integrity_check(m_torrent);
@@ -1474,7 +1471,7 @@ namespace libtorrent
 
 		if (m_disconnecting) return;
 		m_disconnecting = true;
-		m_ses.m_selector.post(boost::bind(&close_socket_ignore_error, m_socket));
+		m_ses.m_io_service.post(boost::bind(&close_socket_ignore_error, m_socket));
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 

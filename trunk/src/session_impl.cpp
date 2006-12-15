@@ -474,7 +474,8 @@ namespace libtorrent { namespace detail
 		std::pair<int, int> listen_port_range
 		, fingerprint const& cl_fprint
 		, char const* listen_interface)
-		: m_tracker_manager(m_settings)
+		: m_strand(m_io_service)
+		, m_tracker_manager(m_settings)
 		, m_listen_port_range(listen_port_range)
 		, m_listen_interface(address::from_string(listen_interface), listen_port_range.first)
 		, m_abort(false)
@@ -486,7 +487,7 @@ namespace libtorrent { namespace detail
 		, m_incoming_connection(false)
 		, m_files(40)
 		, m_last_tick(microsec_clock::universal_time())
-		, m_timer(m_selector)
+		, m_timer(m_io_service)
 		, m_checker_impl(*this)
 	{
 
@@ -530,7 +531,8 @@ namespace libtorrent { namespace detail
 		}
 
 		m_timer.expires_from_now(seconds(1));
-		m_timer.async_wait(bind(&session_impl::second_tick, this, _1));
+		m_timer.async_wait(m_strand.wrap(
+			bind(&session_impl::second_tick, this, _1)));
 
 		m_thread.reset(new boost::thread(boost::ref(*this)));
 		m_checker_thread.reset(new boost::thread(boost::ref(m_checker_impl)));
@@ -557,7 +559,7 @@ namespace libtorrent { namespace detail
 		assert(!m_abort);
 		// abort the main thread
 		m_abort = true;
-		m_selector.interrupt();
+		m_io_service.interrupt();
 		l.unlock();
 
 		mutex::scoped_lock l2(m_checker_impl.m_mutex);
@@ -606,7 +608,7 @@ namespace libtorrent { namespace detail
 		try
 		{
 			// create listener socket
-			m_listen_socket = boost::shared_ptr<socket_acceptor>(new socket_acceptor(m_selector));
+			m_listen_socket = boost::shared_ptr<socket_acceptor>(new socket_acceptor(m_io_service));
 
 			for(;;)
 			{
@@ -704,7 +706,7 @@ namespace libtorrent { namespace detail
 
 	void session_impl::async_accept()
 	{
-		shared_ptr<stream_socket> c(new stream_socket(m_selector));
+		shared_ptr<stream_socket> c(new stream_socket(m_io_service));
 		m_listen_socket->async_accept(*c
 			, bind(&session_impl::on_incoming_connection, this, c
 			, weak_ptr<socket_acceptor>(m_listen_socket), _1));
@@ -892,7 +894,7 @@ namespace libtorrent { namespace detail
 			(*m_logger) << "*** SECOND TIMER FAILED " << e.message() << "\n";
 #endif
 			m_abort = true;
-			m_selector.interrupt();
+			m_io_service.interrupt();
 			return;
 		}
 
@@ -902,7 +904,8 @@ namespace libtorrent { namespace detail
 		m_last_tick = microsec_clock::universal_time();
 
 		m_timer.expires_from_now(seconds(1));
-		m_timer.async_wait(bind(&session_impl::second_tick, this, _1));
+		m_timer.async_wait(m_strand.wrap(
+			bind(&session_impl::second_tick, this, _1)));
 		
 		// do the second_tick() on each connection
 		// this will update their statistics (download and upload speeds)
@@ -952,7 +955,7 @@ namespace libtorrent { namespace detail
 				tracker_request req = t.generate_tracker_request();
 				req.listen_port = m_listen_interface.port();
 				req.key = m_key;
-				m_tracker_manager.queue_request(m_selector, req, t.tracker_login()
+				m_tracker_manager.queue_request(m_strand, req, t.tracker_login()
 					, i->second);
 
 				if (m_alerts.should_post(alert::info))
@@ -1062,7 +1065,7 @@ namespace libtorrent { namespace detail
 		{
 			try
 			{
-				m_selector.run();
+				m_io_service.run();
 				assert(m_abort == true);
 			}
 			catch (std::exception& e)
@@ -1076,7 +1079,7 @@ namespace libtorrent { namespace detail
 		}
 		while (!m_abort);
 
-		deadline_timer tracker_timer(m_selector);
+		deadline_timer tracker_timer(m_io_service);
 
 		session_impl::mutex_t::scoped_lock l(m_mutex);
 
@@ -1094,9 +1097,9 @@ namespace libtorrent { namespace detail
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 				boost::shared_ptr<tracker_logger> tl(new tracker_logger(*this));
 				m_tracker_loggers.push_back(tl);
-				m_tracker_manager.queue_request(m_selector, req, login, tl);
+				m_tracker_manager.queue_request(m_strand, req, login, tl);
 #else
-				m_tracker_manager.queue_request(m_selector, req, login);
+				m_tracker_manager.queue_request(m_strand, req, login);
 #endif
 			}
 		}
@@ -1109,10 +1112,11 @@ namespace libtorrent { namespace detail
 			&& !m_tracker_manager.empty())
 		{
 			tracker_timer.expires_from_now(boost::posix_time::milliseconds(100));
-			tracker_timer.async_wait(bind(&demuxer::interrupt, &m_selector));
+			tracker_timer.async_wait(m_strand.wrap(
+				bind(&io_service::interrupt, &m_io_service)));
 
-			m_selector.reset();
-			m_selector.run();
+			m_io_service.reset();
+			m_io_service.run();
 		}
 
 		l.lock();
@@ -1380,10 +1384,10 @@ namespace libtorrent { namespace detail
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 				boost::shared_ptr<tracker_logger> tl(new tracker_logger(*this));
 				m_tracker_loggers.push_back(tl);
-				m_tracker_manager.queue_request(m_selector, req
+				m_tracker_manager.queue_request(m_strand, req
 					, t.tracker_login(), tl);
 #else
-				m_tracker_manager.queue_request(m_selector, req
+				m_tracker_manager.queue_request(m_strand, req
 					, t.tracker_login());
 #endif
 
@@ -1514,7 +1518,7 @@ namespace libtorrent { namespace detail
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		m_dht.reset();
-		m_dht.reset(new dht::dht_tracker(m_selector
+		m_dht.reset(new dht::dht_tracker(m_io_service
 			, m_dht_settings, m_listen_interface.address()
 			, startup_state));
 	}
@@ -1579,7 +1583,7 @@ namespace libtorrent { namespace detail
 			// lock the main thread and abort it
 			mutex_t::scoped_lock l(m_mutex);
 			m_abort = true;
-			m_selector.interrupt();
+			m_io_service.interrupt();
 		}
 		m_thread->join();
 

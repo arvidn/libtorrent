@@ -66,7 +66,7 @@ namespace libtorrent
 	public:
 
 		udp_tracker_connection(
-			demuxer& d
+			asio::strand& str
 			, tracker_manager& man
 			, tracker_request const& req
 			, std::string const& hostname
@@ -103,6 +103,7 @@ namespace libtorrent
 
 		tracker_manager& m_man;
 
+		asio::strand& m_strand;
 		tcp::resolver m_name_lookup;
 		int m_port;
 		boost::shared_ptr<datagram_socket> m_socket;

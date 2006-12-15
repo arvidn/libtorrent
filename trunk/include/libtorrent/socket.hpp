@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <asio/io_service.hpp>
 #include <asio/deadline_timer.hpp>
 #include <asio/write.hpp>
+#include <asio/strand.hpp>
 
 #ifdef __OBJC__ 
 #undef Protocol
@@ -71,7 +72,7 @@ namespace libtorrent
 	using boost::asio::stream_socket;
 	using boost::asio::datagram_socket;
 	using boost::asio::socket_acceptor;
-	using boost::asio::demuxer;
+	using boost::asio::io_service;
 	using boost::asio::ipv4::host_resolver;
 	using boost::asio::async_write;
 	using boost::asio::ipv4::host;
@@ -87,7 +88,7 @@ namespace libtorrent
 	typedef asio::ip::address_v6 address_v6;
 	typedef asio::ip::udp::socket datagram_socket;
 	typedef asio::ip::tcp::acceptor socket_acceptor;
-	typedef asio::io_service demuxer;
+	typedef asio::io_service io_service;
 
 	using asio::async_write;
 	using asio::deadline_timer;
