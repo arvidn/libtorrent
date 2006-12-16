@@ -620,25 +620,6 @@ namespace libtorrent
 		
 		m_download_queue.clear();
 		m_request_queue.clear();
-
-#ifndef NDEBUG
-		if (!t->is_seed())
-		{
-			piece_picker& p = t->picker();
-			const std::vector<piece_picker::downloading_piece>& dlq = p.get_download_queue();
-			const int blocks_per_piece = static_cast<int>(
-				t->torrent_file().piece_length() / t->block_size());
-
-			for (std::vector<piece_picker::downloading_piece>::const_iterator i =
-				dlq.begin(); i != dlq.end(); ++i)
-			{
-				for (int j = 0; j < blocks_per_piece; ++j)
-				{
-					assert(i->info[j].peer != m_remote);
-				}			
-			}
-		}
-#endif
 	}
 
 	// -----------------------------
@@ -1515,26 +1496,6 @@ namespace libtorrent
 
 			t->remove_peer(this);
 
-#ifndef NDEBUG
-			if (!t->is_seed())
-			{
-				piece_picker& p = t->picker();
-				const std::vector<piece_picker::downloading_piece>& dlq = p.get_download_queue();
-				const int blocks_per_piece = static_cast<int>(
-					t->torrent_file().piece_length() / t->block_size());
-
-				for (std::vector<piece_picker::downloading_piece>::const_iterator i =
-					dlq.begin(); i != dlq.end(); ++i)
-				{
-					for (int j = 0; j < blocks_per_piece; ++j)
-					{
-						assert(i->info[j].peer != m_remote);
-					}			
-				}
-				assert(m_download_queue.empty());
-				assert(m_request_queue.empty());
-			}
-#endif
 			m_torrent.reset();
 		}
 
@@ -1657,26 +1618,6 @@ namespace libtorrent
 				picker.abort_download(m_request_queue.back());
 				m_request_queue.pop_back();
 			}
-
-#ifndef NDEBUG
-			if (!t->is_seed())
-			{
-				piece_picker& p = t->picker();
-				const std::vector<piece_picker::downloading_piece>& dlq = p.get_download_queue();
-				const int blocks_per_piece = static_cast<int>(
-					t->torrent_file().piece_length() / t->block_size());
-
-				for (std::vector<piece_picker::downloading_piece>::const_iterator i =
-					dlq.begin(); i != dlq.end(); ++i)
-				{
-					for (int j = 0; j < blocks_per_piece; ++j)
-					{
-						assert(i->info[j].peer != m_remote);
-					}			
-				}
-			}
-#endif
-
 
 			// TODO: If we have a limited number of upload
 			// slots, choke this peer
@@ -2213,6 +2154,37 @@ namespace libtorrent
 		
 		assert(m_write_pos <= int(m_send_buffer[
 			(m_current_send_buffer + 1) & 1].size()));
+
+		if (!t->is_seed())
+		{
+			piece_picker& p = t->picker();
+			const std::vector<piece_picker::downloading_piece>& dlq = p.get_download_queue();
+			const int blocks_per_piece = static_cast<int>(
+				t->torrent_file().piece_length() / t->block_size());
+
+			for (std::vector<piece_picker::downloading_piece>::const_iterator i =
+				dlq.begin(); i != dlq.end(); ++i)
+			{
+				for (int j = 0; j < blocks_per_piece; ++j)
+				{
+					if (std::find(m_request_queue.begin(), m_request_queue.end()
+						, piece_block(i->index, j)) != m_request_queue.end()
+						||
+						std::find(m_download_queue.begin(), m_download_queue.end()
+						, piece_block(i->index, j)) != m_download_queue.end())
+					{
+						assert(i->info[j].peer == m_remote);
+					}
+					else
+					{
+						assert(i->info[j].peer != m_remote);
+					}
+				}			
+			}
+			assert(m_download_queue.empty());
+			assert(m_request_queue.empty());
+		}
+
 	}
 #endif
 
