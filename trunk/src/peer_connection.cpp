@@ -2179,12 +2179,9 @@ namespace libtorrent
 					{
 						assert(i->info[j].peer != m_remote);
 					}
-				}			
+				}
 			}
-			assert(m_download_queue.empty());
-			assert(m_request_queue.empty());
 		}
-
 	}
 #endif
 
