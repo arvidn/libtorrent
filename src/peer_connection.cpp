@@ -1031,7 +1031,6 @@ namespace libtorrent
 				{
 					m_download_queue.erase(b);
 				}
-				send_block_requests();
 			}
 			else
 			{
@@ -1075,7 +1074,10 @@ namespace libtorrent
 				redundant = false;
 			}
 
-			finished_blocks.push_back(block_finished);
+			picker.mark_as_finished(block_finished, m_remote);
+			t->get_policy().block_finished(*this, block_finished);
+
+			send_block_requests();
 		}
 
 		if (redundant) return;
@@ -1089,8 +1091,7 @@ namespace libtorrent
 		for (std::vector<piece_block>::iterator i = finished_blocks.begin()
 			, end(finished_blocks.end()); i != end; ++i)
 		{
-			picker.mark_as_finished(*i, m_remote);
-			t->get_policy().block_finished(*this, *i);
+
 		}
 
 		// did we just finish the piece?
@@ -2177,7 +2178,7 @@ namespace libtorrent
 					}
 					else
 					{
-						assert(i->info[j].peer != m_remote);
+						assert(i->info[j].peer != m_remote || i->finished_blocks[j]);
 					}
 				}
 			}
