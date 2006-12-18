@@ -72,11 +72,13 @@ namespace libtorrent
 		std::string const& protocol() const { return m_protocol; }
 		int status_code() const { return m_status_code; }
 		std::string message() const { return m_server_message; }
-		buffer::const_interval get_body();
+		buffer::const_interval get_body() const;
 		bool header_finished() const { return m_state == read_body; }
 		bool finished() const { return m_finished; }
 		boost::tuple<int, int> incoming(buffer::const_interval recv_buffer);
 		int body_start() const { return m_body_start_pos; }
+
+		void reset();
 	private:
 		int m_recv_pos;
 		int m_status_code;

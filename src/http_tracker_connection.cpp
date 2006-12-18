@@ -98,8 +98,12 @@ namespace libtorrent
 
 	boost::tuple<int, int> http_parser::incoming(buffer::const_interval recv_buffer)
 	{
-		m_recv_buffer = recv_buffer;
+		assert(recv_buffer.left() >= m_recv_buffer.left());
 		boost::tuple<int, int> ret(0, 0);
+
+		// early exit if there's nothing new in the receive buffer
+		if (recv_buffer.left() == m_recv_buffer.left()) return ret;
+		m_recv_buffer = recv_buffer;
 
 		char const* pos = recv_buffer.begin + m_recv_pos;
 		if (m_state == read_status)
@@ -200,20 +204,29 @@ namespace libtorrent
 		return ret;
 	}
 	
-	buffer::const_interval http_parser::get_body()
+	buffer::const_interval http_parser::get_body() const
 	{
-		char const* body_begin = m_recv_buffer.begin + m_body_start_pos;
-		char const* body_end = m_recv_buffer.begin + m_recv_pos;
-
+		assert(m_state == read_body);
+		if (m_content_length >= 0)
+			return buffer::const_interval(m_recv_buffer.begin + m_body_start_pos
+				, m_recv_buffer.begin + std::min(m_recv_pos
+				, m_body_start_pos + m_content_length));
+		else
+			return buffer::const_interval(m_recv_buffer.begin + m_body_start_pos
+				, m_recv_buffer.begin + m_recv_pos);
+	}
+	
+	void http_parser::reset()
+	{
 		m_recv_pos = 0;
 		m_body_start_pos = 0;
 		m_status_code = -1;
 		m_content_length = -1;
 		m_finished = false;
 		m_state = read_status;
+		m_recv_buffer.begin = 0;
+		m_recv_buffer.end = 0;
 		m_header.clear();
-		
-		return buffer::const_interval(body_begin, body_end);
 	}
 	
 	http_tracker_connection::http_tracker_connection(
