@@ -2127,6 +2127,8 @@ namespace libtorrent
 		assert(m_write_pos <= int(m_send_buffer[
 			(m_current_send_buffer + 1) & 1].size()));
 
+// extremely expensive invariant check
+/*
 		if (!t->is_seed())
 		{
 			piece_picker& p = t->picker();
@@ -2154,6 +2156,7 @@ namespace libtorrent
 				}
 			}
 		}
+*/
 	}
 #endif
 
