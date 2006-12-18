@@ -107,15 +107,17 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		assert(t);
 
-		int body_start = m_parser.body_start();
-		buffer::const_interval recv_buffer = receive_buffer();
-		assert(body_start <= recv_buffer.left());
+		buffer::const_interval http_body = m_parser.get_body();
 		piece_block_progress ret;
 
 		ret.piece_index = m_requests.front().piece;
-		ret.block_index = m_requests.front().start / t->block_size();
-		ret.bytes_downloaded = recv_buffer.left() - body_start;
-		ret.full_block_bytes = m_requests.front().length;
+		ret.bytes_downloaded = http_body.left() % t->block_size();
+		ret.block_index = (m_requests.front().start + ret.bytes_downloaded) / t->block_size();
+		ret.full_block_bytes = t->block_size();
+		const int last_piece = t->torrent_file().num_pieces() - 1;
+		if (ret.piece_index == last_piece && ret.block_index
+			== t->torrent_file().piece_size(last_piece) / t->block_size())
+			ret.full_block_bytes = t->torrent_file().piece_size(last_piece) % t->block_size();
 		return ret;
 	}
 
@@ -150,7 +152,16 @@ namespace libtorrent
 		
 		std::string request;
 
-		m_requests.push_back(r);
+		int size = r.length;
+		const int block_size = t->block_size();
+		while (size > 0)
+		{
+			int request_size = std::min(block_size, size);
+			peer_request pr = {r.piece, r.start + r.length - size
+				,  request_size};
+			m_requests.push_back(pr);
+			size -= request_size;
+		}
 
 		bool using_proxy = false;
 		if (!m_ses.settings().proxy_ip.empty())
@@ -281,7 +292,9 @@ namespace libtorrent
 				throw std::runtime_error("HTTP server does not support byte range requests");
 			}
 
-			if (!m_parser.finished()) break;
+			if (!m_parser.header_finished()) break;
+
+			buffer::const_interval http_body = m_parser.get_body();
 
 			std::string server_version = m_parser.header<std::string>("server");
 			if (!server_version.empty())
@@ -314,21 +327,69 @@ namespace libtorrent
 				throw std::runtime_error("unexpected HTTP response");
 
 			int file_index = m_file_requests.front();
-			m_file_requests.pop_front();
-
-			peer_request r = info.map_file(file_index, range_start
+			peer_request in_range = info.map_file(file_index, range_start
 				, range_end - range_start);
 
-			buffer::const_interval http_body = m_parser.get_body();
-
-			if (r == m_requests.front())
+			peer_request front_request = m_requests.front();
+			if (in_range.piece != front_request.piece
+				|| in_range.start > front_request.start)
 			{
-				m_requests.pop_front();
-				incoming_piece(r, http_body.begin);
-				cut_receive_buffer(http_body.end - recv_buffer.begin, 512*1024+1024);
-				return;
+				throw std::runtime_error("invalid range in HTTP response");
 			}
 
+			// skip the http header and the blocks we've already read. The
+			// http_body.begin is now in sync with the request at the front
+			// of the request queue
+			assert(in_range.start <= front_request.start);
+			http_body.begin += front_request.start - in_range.start;
+
+			if ((in_range.start + in_range.length - front_request.start
+				< front_request.length)
+				&& (http_body.left() > front_request.length - m_piece.size()))
+			{
+				// the start of the next block to receive is stored
+				// in m_piece. We need to append the rest of that
+				// block from the http receive buffer and then
+				// (if it completed) call incoming_piece() with
+				// m_piece as buffer.
+				
+				m_piece.reserve(info.piece_length());
+				char const* start = http_body.begin;
+				int copy_size = std::min(front_request.length - int(m_piece.size())
+					, http_body.left());
+				std::copy(start, start + copy_size, std::back_inserter(m_piece));
+				http_body.begin += copy_size;
+				if (m_piece.size() == front_request.length)
+				{
+					m_requests.pop_front();
+					incoming_piece(front_request, &m_piece[0]);
+					m_piece.clear();
+				}
+			}
+
+			// report all received blocks to the bittorrent engine
+			if (m_piece.empty())
+			{
+				while (!m_requests.empty()
+					&& http_body.left() >= m_requests.front().length)
+				{
+					peer_request r = m_requests.front();
+					m_requests.pop_front();
+					incoming_piece(r, http_body.begin);
+					http_body.begin += r.length;
+				}
+			}
+
+			if (m_parser.finished())
+			{
+				m_file_requests.pop_front();
+				assert(http_body.left() == 0);
+				m_parser.reset();
+				cut_receive_buffer(http_body.end - recv_buffer.begin, 512*1024+1024);
+				continue;
+			}
+			break;
+/*
 			if (!m_piece.empty())
 			{
 				// this is not the first partial request we get
@@ -368,6 +429,7 @@ namespace libtorrent
 			}
 
 			cut_receive_buffer(http_body.end - recv_buffer.begin, 512*1024+1024);
+*/
 		}
 	}
 

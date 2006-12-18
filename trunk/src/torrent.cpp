@@ -765,8 +765,8 @@ namespace libtorrent
 				wanted_done += corr;
 		}
 
-		assert(total_done <= m_torrent_file.total_size());
-		assert(wanted_done <= m_torrent_file.total_size());
+		assert(total_done < m_torrent_file.total_size());
+		assert(wanted_done < m_torrent_file.total_size());
 
 		std::map<piece_block, int> downloading_piece;
 		for (const_peer_iterator i = begin(); i != end(); ++i)
@@ -794,7 +794,15 @@ namespace libtorrent
 				{
 					downloading_piece[block] = p->bytes_downloaded;
 				}
+#ifndef NDEBUG
 				assert(p->bytes_downloaded <= p->full_block_bytes);
+				int last_piece = m_torrent_file.num_pieces() - 1;
+				if (p->piece_index == last_piece
+					&& p->block_index == m_torrent_file.piece_size(last_piece) / block_size())
+					assert(p->full_block_bytes == m_torrent_file.piece_size(last_piece) % block_size());
+				else
+					assert(p->full_block_bytes == block_size());
+#endif
 			}
 		}
 		for (std::map<piece_block, int>::iterator i = downloading_piece.begin();
@@ -805,8 +813,43 @@ namespace libtorrent
 				wanted_done += i->second;
 		}
 
-		assert(total_done <= m_torrent_file.total_size());
-		assert(wanted_done <= m_torrent_file.total_size());
+#ifndef NDEBUG
+
+		if (total_done >= m_torrent_file.total_size())
+		{
+			std::copy(m_have_pieces.begin(), m_have_pieces.end()
+				, std::ostream_iterator<bool>(std::cerr, " "));
+			std::cerr << std::endl;
+			std::cerr << "num_pieces: " << m_num_pieces << std::endl;
+			
+			std::cerr << "unfinished:" << std::endl;
+			
+			for (std::vector<piece_picker::downloading_piece>::const_iterator i =
+				dl_queue.begin(); i != dl_queue.end(); ++i)
+			{
+				std::cerr << "   " << i->index << " ";
+				for (int j = 0; j < blocks_per_piece; ++j)
+				{
+					std::cerr << i->finished_blocks[j];
+				}
+				std::cerr << std::endl;
+			}
+			
+			std::cerr << "downloading pieces:" << std::endl;
+
+			for (std::map<piece_block, int>::iterator i = downloading_piece.begin();
+				i != downloading_piece.end(); ++i)
+			{
+				std::cerr << "   " << i->first.piece_index << ":" << i->first.block_index
+					<< "  " << i->second << std::endl;
+			}
+
+		}
+
+		assert(total_done < m_torrent_file.total_size());
+		assert(wanted_done < m_torrent_file.total_size());
+
+#endif
 
 		assert(total_done >= wanted_done);
 		return make_tuple(total_done, wanted_done);
@@ -1726,8 +1769,8 @@ namespace libtorrent
 			assert(total_done != m_torrent_file.total_size());
 
 // This check is very expensive.
-//		assert(m_num_pieces
-//			== std::count(m_have_pieces.begin(), m_have_pieces.end(), true));
+		assert(m_num_pieces
+			== std::count(m_have_pieces.begin(), m_have_pieces.end(), true));
 		assert(m_priority >= 0.f && m_priority < 1.f);
 		assert(!valid_metadata() || m_block_size > 0);
 		assert(!valid_metadata() || (m_torrent_file.piece_length() % m_block_size) == 0);

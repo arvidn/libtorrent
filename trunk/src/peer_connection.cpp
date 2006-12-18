@@ -1088,12 +1088,6 @@ namespace libtorrent
 		bool was_finished = picker.num_filtered() + t->num_pieces()
 			== t->torrent_file().num_pieces();
 
-		for (std::vector<piece_block>::iterator i = finished_blocks.begin()
-			, end(finished_blocks.end()); i != end; ++i)
-		{
-
-		}
-
 		// did we just finish the piece?
 		if (picker.is_piece_finished(p.piece))
 		{
@@ -1134,30 +1128,7 @@ namespace libtorrent
 				t->completed();
 			}
 
-#ifndef NDEBUG
-
-			size_type total_done, total_wanted;
-			boost::tie(total_done, total_wanted) = t->bytes_done();
-			if (t->is_seed())
-				assert(total_done == t->torrent_file().total_size());
-			else
-				assert(total_done != t->torrent_file().total_size());
-				
-			t->check_invariant();
-#endif
-
 		}
-#ifndef NDEBUG
-
-		size_type total_done, total_wanted;
-		boost::tie(total_done, total_wanted) = t->bytes_done();
-		if (t->is_seed())
-			assert(total_done == t->torrent_file().total_size());
-		else
-			assert(total_done != t->torrent_file().total_size());
-			
-		t->check_invariant();
-#endif
 	}
 
 	// -----------------------------
