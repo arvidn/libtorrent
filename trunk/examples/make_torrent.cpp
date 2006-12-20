@@ -55,6 +55,7 @@ void add_files(
 	, path const& p
 	, path const& l)
 {
+	if (l.leaf()[0] == '.') return;
 	path f(p / l);
 	if (is_directory(f))
 	{
