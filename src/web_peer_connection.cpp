@@ -262,6 +262,15 @@ namespace libtorrent
 	// RECEIVE DATA
 	// --------------------------
 
+	namespace
+	{
+		bool range_contains(peer_request const& range, peer_request const& req)
+		{
+			return range.start <= req.start
+				&& range.start + range.length >= req.start + req.length;
+		}
+	}
+
 	// throws exception when the client should be disconnected
 	void web_peer_connection::on_receive(asio::error_code const& error
 		, std::size_t bytes_transferred)
@@ -283,13 +292,15 @@ namespace libtorrent
 			boost::tie(payload, protocol) = m_parser.incoming(recv_buffer);
 			m_statistics.received_bytes(payload, protocol);
 
-			if (m_parser.status_code() != 206 && m_parser.status_code() != -1)
+			// TODO: maybe all 200 - 299 should be considered successful
+			if (m_parser.status_code() != 206
+				&& m_parser.status_code() != 200
+				&& m_parser.status_code() != -1)
 			{
 				// we should not try this server again.
 				t->remove_url_seed(m_url);
-				if (m_parser.status_code() == 404)
-					throw std::runtime_error("File not found on server");
-				throw std::runtime_error("HTTP server does not support byte range requests");
+				throw std::runtime_error(boost::lexical_cast<std::string>(m_parser.status_code())
+					+ " " + m_parser.message());
 			}
 
 			if (!m_parser.header_finished()) break;
@@ -306,20 +317,34 @@ namespace libtorrent
 				m_server_string += ")";
 			}
 
-			std::stringstream range_str(m_parser.header<std::string>("content-range"));
 			size_type range_start;
 			size_type range_end;
-			char dummy;
-			std::string bytes;
-			range_str >> bytes >> range_start >> dummy >> range_end;
-			if (!range_str)
+			if (m_parser.status_code() == 206)
 			{
-				// we should not try this server again.
-				t->remove_url_seed(m_url);
-				throw std::runtime_error("invalid range in HTTP response: " + range_str.str());
+				std::stringstream range_str(m_parser.header<std::string>("content-range"));
+				char dummy;
+				std::string bytes;
+				range_str >> bytes >> range_start >> dummy >> range_end;
+				if (!range_str)
+				{
+					// we should not try this server again.
+					t->remove_url_seed(m_url);
+					throw std::runtime_error("invalid range in HTTP response: " + range_str.str());
+				}
+				// the http range is inclusive
+				range_end++;
 			}
-			// the http range is inclusive
-			range_end++;
+			else
+			{
+				range_start = 0;
+				range_end = m_parser.header<size_type>("content-length");
+				if (range_end == -1)
+				{
+					// we should not try this server again.
+					t->remove_url_seed(m_url);
+					throw std::runtime_error("no content-length in HTTP response");
+				}
+			}
 
 			torrent_info const& info = t->torrent_file();
 
@@ -332,7 +357,7 @@ namespace libtorrent
 
 			peer_request front_request = m_requests.front();
 			if (in_range.piece != front_request.piece
-				|| in_range.start > front_request.start)
+				|| in_range.start > front_request.start + int(m_piece.size()))
 			{
 				throw std::runtime_error("invalid range in HTTP response");
 			}
@@ -340,12 +365,25 @@ namespace libtorrent
 			// skip the http header and the blocks we've already read. The
 			// http_body.begin is now in sync with the request at the front
 			// of the request queue
-			assert(in_range.start <= front_request.start);
-			http_body.begin += front_request.start - in_range.start;
+			assert(in_range.start - int(m_piece.size()) <= front_request.start);
+			http_body.begin += front_request.start - in_range.start + int(m_piece.size());
 
-			if ((in_range.start + in_range.length - front_request.start
-				< front_request.length)
-				&& (http_body.left() > front_request.length - m_piece.size()))
+			front_request = m_requests.front();
+
+			// the http response body consists of 3 parts
+			// 1. the middle of a block or the ending of a block
+			// 2. a number of whole blocks
+			// 3. the start of a block
+			// in that order, these parts are parsed.
+
+			bool range_overlaps_request = in_range.start + in_range.length
+				> front_request.start + int(m_piece.size());
+
+			// if the request is contained in the range (i.e. the entire request
+			// fits in the range) we should not start a partial piece, since we soon
+			// will receive enough to call incoming_piece() and pass the read buffer
+			// directly (in the next loop below).
+			if (range_overlaps_request && !range_contains(in_range, front_request))
 			{
 				// the start of the next block to receive is stored
 				// in m_piece. We need to append the rest of that
@@ -354,30 +392,44 @@ namespace libtorrent
 				// m_piece as buffer.
 				
 				m_piece.reserve(info.piece_length());
-				char const* start = http_body.begin;
 				int copy_size = std::min(front_request.length - int(m_piece.size())
 					, http_body.left());
-				std::copy(start, start + copy_size, std::back_inserter(m_piece));
+				std::copy(http_body.begin, http_body.begin + copy_size, std::back_inserter(m_piece));
 				http_body.begin += copy_size;
-				if (m_piece.size() == front_request.length)
+				if (int(m_piece.size()) == front_request.length)
 				{
 					m_requests.pop_front();
 					incoming_piece(front_request, &m_piece[0]);
 					m_piece.clear();
 				}
+				else
+				{
+					return;
+				}
 			}
 
 			// report all received blocks to the bittorrent engine
-			if (m_piece.empty())
+			while (!m_requests.empty()
+				&& range_contains(in_range, m_requests.front())
+				&& http_body.left() >= m_requests.front().length)
 			{
-				while (!m_requests.empty()
-					&& http_body.left() >= m_requests.front().length)
-				{
-					peer_request r = m_requests.front();
-					m_requests.pop_front();
-					incoming_piece(r, http_body.begin);
-					http_body.begin += r.length;
-				}
+				peer_request r = m_requests.front();
+				m_requests.pop_front();
+				incoming_piece(r, http_body.begin);
+				http_body.begin += r.length;
+			}
+
+			range_overlaps_request = in_range.start + in_range.length
+				> m_requests.front().start + int(m_piece.size());
+
+			if (in_range.start + in_range.length < m_requests.front().start + m_requests.front().length
+				&& m_parser.finished())
+			{
+				m_piece.reserve(info.piece_length());
+				int copy_size = std::min(m_requests.front().length - int(m_piece.size())
+					, http_body.left());
+				std::copy(http_body.begin, http_body.begin + copy_size, std::back_inserter(m_piece));
+				http_body.begin += copy_size;
 			}
 
 			if (m_parser.finished())

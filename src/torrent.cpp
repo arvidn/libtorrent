@@ -733,7 +733,8 @@ namespace libtorrent
 			dl_queue.begin(); i != dl_queue.end(); ++i)
 		{
 			int corr = 0;
-			if (m_have_pieces[i->index]) continue;
+			assert(!m_have_pieces[i->index]);
+			assert(int(i->finished_blocks.count()) < blocks_per_piece);
 
 #ifndef NDEBUG
 			for (std::vector<piece_picker::downloading_piece>::const_iterator j = boost::next(i);
