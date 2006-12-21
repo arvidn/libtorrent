@@ -971,7 +971,7 @@ namespace libtorrent
 		assert(i != m_downloads.end());
 		assert((int)i->finished_blocks.count() <= m_blocks_per_piece);
 		int max_blocks = blocks_in_piece(index);
-		if ((int)i->finished_blocks.count() != max_blocks) return false;
+		if ((int)i->finished_blocks.count() < max_blocks) return false;
 
 		assert((int)i->requested_blocks.count() == max_blocks);
 		return true;
