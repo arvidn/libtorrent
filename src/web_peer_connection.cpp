@@ -395,7 +395,7 @@ namespace libtorrent
 				int copy_size = std::min(front_request.length - int(m_piece.size())
 					, http_body.left());
 				std::copy(http_body.begin, http_body.begin + copy_size, std::back_inserter(m_piece));
-				assert(int(m_piece.size() <= front_request.length));
+				assert(int(m_piece.size()) <= front_request.length);
 				http_body.begin += copy_size;
 				int piece_size = int(m_piece.size());
 				if (piece_size < front_request.length)
