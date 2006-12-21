@@ -199,7 +199,7 @@ namespace libtorrent
 
 		void get_downloaders(std::vector<tcp::endpoint>& d, int index) const;
 
-		const std::vector<downloading_piece>& get_download_queue() const
+		std::vector<downloading_piece> const& get_download_queue() const
 		{ return m_downloads; }
 
 		boost::optional<tcp::endpoint> get_downloader(piece_block block) const;
