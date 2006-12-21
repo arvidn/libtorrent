@@ -1001,13 +1001,11 @@ namespace libtorrent
 				, m_download_queue.end()
 				, block_finished);
 
-		std::deque<piece_block>::iterator i;
-
 		if (b != m_download_queue.end())
 		{
 			if (m_assume_fifo)
 			{
-				for (i = m_download_queue.begin();
+				for (std::deque<piece_block>::iterator i = m_download_queue.begin();
 					i != b; ++i)
 				{
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -1115,6 +1113,23 @@ namespace libtorrent
 			{
 				t->piece_failed(p.piece);
 			}
+#ifndef NDEBUG
+			if (!t->is_seed())
+			{
+				const int blocks_per_piece = static_cast<int>(
+					t->torrent_file().piece_length() / t->block_size());
+
+				std::vector<piece_picker::downloading_piece> const& dl_queue
+					= t->picker().get_download_queue();
+
+				for (std::vector<piece_picker::downloading_piece>::const_iterator i =
+					dl_queue.begin(); i != dl_queue.end(); ++i)
+				{
+					assert(int(i->finished_blocks.count()) < blocks_per_piece);
+				}
+			}
+#endif
+
 			t->get_policy().piece_finished(p.piece, verified);
 
 			if (!was_seed && t->is_seed())

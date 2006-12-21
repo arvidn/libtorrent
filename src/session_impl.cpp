@@ -1029,17 +1029,18 @@ namespace libtorrent { namespace detail
 	void session_impl::connection_completed(
 		boost::intrusive_ptr<peer_connection> const& p)
 #ifndef NDEBUG
-		try
+	try
 #endif
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		
-		if (m_abort) return;
 
 		connection_map::iterator i = m_half_open.find(p->get_socket());
 		m_connections.insert(std::make_pair(p->get_socket(), p));
 		assert(i != m_half_open.end());
 		if (i != m_half_open.end()) m_half_open.erase(i);
+
+		if (m_abort) return;
+
 		process_connection_queue();
 	}
 #ifndef NDEBUG
@@ -1123,13 +1124,13 @@ namespace libtorrent { namespace detail
 		assert(m_abort);
 		m_abort = true;
 
-		while (!m_connections.empty())
-			m_connections.begin()->second->disconnect();
+		m_connection_queue.clear();
 
 		while (!m_half_open.empty())
 			m_half_open.begin()->second->disconnect();
 
-		m_connection_queue.clear();
+		while (!m_connections.empty())
+			m_connections.begin()->second->disconnect();
 
 #ifndef NDEBUG
 		for (torrent_map::iterator i = m_torrents.begin();
