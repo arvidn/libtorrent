@@ -991,98 +991,93 @@ namespace libtorrent
 
 		std::vector<piece_block> finished_blocks;
 		piece_block block_finished(p.piece, p.start / t->block_size());
-		bool redundant = true;
-		for (;block_finished.block_index * t->block_size() < p.start + p.length;
-			++block_finished.block_index)
+		assert(p.start % t->block_size() == 0);
+		assert(p.length == t->block_size()
+			|| p.length == t->torrent_file().total_size() % t->block_size());
+
+		std::deque<piece_block>::iterator b
+			= std::find(
+				m_download_queue.begin()
+				, m_download_queue.end()
+				, block_finished);
+
+		std::deque<piece_block>::iterator i;
+
+		if (b != m_download_queue.end())
 		{
-			std::deque<piece_block>::iterator b
-				= std::find(
-					m_download_queue.begin()
-					, m_download_queue.end()
-					, block_finished);
-
-			std::deque<piece_block>::iterator i;
-
-			if (b != m_download_queue.end())
+			if (m_assume_fifo)
 			{
-				if (m_assume_fifo)
+				for (i = m_download_queue.begin();
+					i != b; ++i)
 				{
-					for (i = m_download_queue.begin();
-						i != b; ++i)
-					{
-	#ifdef TORRENT_VERBOSE_LOGGING
-						(*m_logger) << to_simple_string(second_clock::universal_time())
-							<< " *** SKIPPED_PIECE [ piece: " << i->piece_index << " | "
-							"b: " << i->block_index << " ] ***\n";
-	#endif
-						// since this piece was skipped, clear it and allow it to
-						// be requested from other peers
-						// TODO: send cancel?
-						picker.abort_download(*i);
-					}
-				
-					// remove the request that just finished
-					// from the download queue plus the
-					// skipped blocks.
-					m_download_queue.erase(m_download_queue.begin()
-						, boost::next(b));
+#ifdef TORRENT_VERBOSE_LOGGING
+					(*m_logger) << to_simple_string(second_clock::universal_time())
+						<< " *** SKIPPED_PIECE [ piece: " << i->piece_index << " | "
+						"b: " << i->block_index << " ] ***\n";
+#endif
+					// since this piece was skipped, clear it and allow it to
+					// be requested from other peers
+					// TODO: send cancel?
+					picker.abort_download(*i);
 				}
-				else
+			
+				// remove the request that just finished
+				// from the download queue plus the
+				// skipped blocks.
+				m_download_queue.erase(m_download_queue.begin()
+					, boost::next(b));
+			}
+			else
+			{
+				m_download_queue.erase(b);
+			}
+		}
+		else
+		{
+			// cancel the block from the
+			// peer that has taken over it.
+			boost::optional<tcp::endpoint> peer
+				= t->picker().get_downloader(block_finished);
+			if (peer)
+			{
+				assert(!t->picker().is_finished(block_finished));
+				peer_connection* pc = t->connection_for(*peer);
+				if (pc && pc != this)
 				{
-					m_download_queue.erase(b);
+					pc->cancel_request(block_finished);
 				}
 			}
 			else
 			{
-				// cancel the block from the
-				// peer that has taken over it.
-				boost::optional<tcp::endpoint> peer
-					= t->picker().get_downloader(block_finished);
-				if (peer)
+				if (t->alerts().should_post(alert::debug))
 				{
-					assert(!t->picker().is_finished(block_finished));
-					peer_connection* pc = t->connection_for(*peer);
-					if (pc && pc != this)
-					{
-						pc->cancel_request(block_finished);
-					}
+					t->alerts().post_alert(
+						peer_error_alert(
+							m_remote
+							, m_peer_id
+							, "got a block that was not requested"));
 				}
-				else
-				{
-					if (t->alerts().should_post(alert::debug))
-					{
-						t->alerts().post_alert(
-							peer_error_alert(
-								m_remote
-								, m_peer_id
-								, "got a block that was not requested"));
-					}
-	#ifdef TORRENT_VERBOSE_LOGGING
-					(*m_logger) << " *** The block we just got was not in the "
-						"request queue ***\n";
-	#endif
-				}
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << " *** The block we just got was not in the "
+					"request queue ***\n";
+#endif
 			}
-
-			// if the block we got is already finished, then ignore it
-			if (picker.is_finished(block_finished))
-			{
-				t->received_redundant_data(t->block_size());
-			}
-			else
-			{
-				redundant = false;
-			}
-
-			picker.mark_as_finished(block_finished, m_remote);
-			t->get_policy().block_finished(*this, block_finished);
-
-			send_block_requests();
 		}
 
-		if (redundant) return;
-
+		// if the block we got is already finished, then ignore it
+		if (picker.is_finished(block_finished))
+		{
+			t->received_redundant_data(t->block_size());
+			send_block_requests();
+			return;
+		}
+		
 		fs.write(data, p.piece, p.start, p.length);
+
+		picker.mark_as_finished(block_finished, m_remote);
+		t->get_policy().block_finished(*this, block_finished);
+
+		send_block_requests();
 
 		bool was_seed = t->is_seed();
 		bool was_finished = picker.num_filtered() + t->num_pieces()
