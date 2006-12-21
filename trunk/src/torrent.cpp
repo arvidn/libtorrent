@@ -979,6 +979,13 @@ namespace libtorrent
 			p->second->received_valid_data(index);
 		}
 
+		if (!m_have_pieces[index])
+			m_num_pieces++;
+		m_have_pieces[index] = true;
+
+		assert(std::accumulate(m_have_pieces.begin(), m_have_pieces.end(), 0)
+			== m_num_pieces);
+
 		m_picker->we_have(index);
 		for (peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
 			i->second->announce_piece(index);
@@ -2150,13 +2157,6 @@ namespace libtorrent
 
 		if (m_torrent_file.hash_for_piece(piece_index) != digest)
 			return false;
-
-		if (!m_have_pieces[piece_index])
-			m_num_pieces++;
-		m_have_pieces[piece_index] = true;
-
-		assert(std::accumulate(m_have_pieces.begin(), m_have_pieces.end(), 0)
-			== m_num_pieces);
 
 		return true;
 	}

@@ -395,17 +395,15 @@ namespace libtorrent
 				int copy_size = std::min(front_request.length - int(m_piece.size())
 					, http_body.left());
 				std::copy(http_body.begin, http_body.begin + copy_size, std::back_inserter(m_piece));
+				assert(int(m_piece.size() <= front_request.length));
 				http_body.begin += copy_size;
-				if (int(m_piece.size()) == front_request.length)
-				{
-					m_requests.pop_front();
-					incoming_piece(front_request, &m_piece[0]);
-					m_piece.clear();
-				}
-				else
-				{
+				int piece_size = int(m_piece.size());
+				if (piece_size < front_request.length)
 					return;
-				}
+
+				m_requests.pop_front();
+				incoming_piece(front_request, &m_piece[0]);
+				m_piece.clear();
 			}
 
 			// report all received blocks to the bittorrent engine
@@ -484,10 +482,6 @@ namespace libtorrent
 */
 		}
 	}
-
-	// --------------------------
-	// SEND DATA
-	// --------------------------
 
 	void web_peer_connection::get_peer_info(peer_info& p) const
 	{

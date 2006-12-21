@@ -1127,8 +1127,11 @@ namespace libtorrent
 				assert(verified);
 				t->completed();
 			}
-
 		}
+
+#ifndef NDEBUG
+		t->check_invariant();
+#endif
 	}
 
 	// -----------------------------
