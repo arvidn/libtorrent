@@ -965,7 +965,12 @@ namespace libtorrent
 		assert(index < (int)m_piece_map.size());
 		assert(index >= 0);
 
-		if (m_piece_map[index].downloading == 0) return false;
+		if (m_piece_map[index].downloading == 0)
+		{
+			assert(std::find_if(m_downloads.begin(), m_downloads.end(), has_index(index))
+				== m_downloads.end());
+			return false;
+		}
 		std::vector<downloading_piece>::const_iterator i
 			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(index));
 		assert(i != m_downloads.end());

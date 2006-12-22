@@ -734,7 +734,8 @@ namespace libtorrent
 		{
 			int corr = 0;
 			assert(!m_have_pieces[i->index]);
-			assert(int(i->finished_blocks.count()) < blocks_per_piece);
+			assert(int(i->finished_blocks.count())
+				< m_torrent_file.piece_size(i->index) / m_block_size);
 
 #ifndef NDEBUG
 			for (std::vector<piece_picker::downloading_piece>::const_iterator j = boost::next(i);
