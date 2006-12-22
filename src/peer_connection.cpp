@@ -940,7 +940,38 @@ namespace libtorrent
 	{
 		m_last_piece = second_clock::universal_time();
 	}
+
+#ifndef NDEBUG
+	struct check_postcondition
+	{
+		check_postcondition(boost::shared_ptr<torrent> const& t_
+			, bool init_check = true): t(t_) { if (init_check) check(); }
 	
+		~check_postcondition() { check(); }
+		
+		void check()
+		{
+			if (!t->is_seed())
+			{
+				const int blocks_per_piece = static_cast<int>(
+					t->torrent_file().piece_length() / t->block_size());
+
+				std::vector<piece_picker::downloading_piece> const& dl_queue
+					= t->picker().get_download_queue();
+
+				for (std::vector<piece_picker::downloading_piece>::const_iterator i =
+					dl_queue.begin(); i != dl_queue.end(); ++i)
+				{
+					assert(int(i->finished_blocks.count()) < blocks_per_piece);
+				}
+			}
+		}
+		
+		shared_ptr<torrent> t;
+	};
+#endif
+
+
 	// -----------------------------
 	// ----------- PIECE -----------
 	// -----------------------------
@@ -952,6 +983,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		assert(t);
 #ifndef NDEBUG
+		check_postcondition post_checker_(t);
 		t->check_invariant();
 #endif
 
@@ -1073,9 +1105,18 @@ namespace libtorrent
 		fs.write(data, p.piece, p.start, p.length);
 
 		picker.mark_as_finished(block_finished, m_remote);
-		t->get_policy().block_finished(*this, block_finished);
 
-		send_block_requests();
+		try
+		{
+			t->get_policy().block_finished(*this, block_finished);
+			send_block_requests();
+		}
+		catch (std::exception const&) {}
+
+#ifndef NDEBUG
+		try
+		{
+#endif
 
 		bool was_seed = t->is_seed();
 		bool was_finished = picker.num_filtered() + t->num_pieces()
@@ -1084,6 +1125,9 @@ namespace libtorrent
 		// did we just finish the piece?
 		if (picker.is_piece_finished(p.piece))
 		{
+#ifndef NDEBUG
+			check_postcondition post_checker2_(t, false);
+#endif
 			bool verified = t->verify_piece(p.piece);
 			if (verified)
 			{
@@ -1113,22 +1157,6 @@ namespace libtorrent
 			{
 				t->piece_failed(p.piece);
 			}
-#ifndef NDEBUG
-			if (!t->is_seed())
-			{
-				const int blocks_per_piece = static_cast<int>(
-					t->torrent_file().piece_length() / t->block_size());
-
-				std::vector<piece_picker::downloading_piece> const& dl_queue
-					= t->picker().get_download_queue();
-
-				for (std::vector<piece_picker::downloading_piece>::const_iterator i =
-					dl_queue.begin(); i != dl_queue.end(); ++i)
-				{
-					assert(int(i->finished_blocks.count()) < blocks_per_piece);
-				}
-			}
-#endif
 
 			t->get_policy().piece_finished(p.piece, verified);
 
@@ -1138,9 +1166,13 @@ namespace libtorrent
 				t->completed();
 			}
 		}
-
 #ifndef NDEBUG
-		t->check_invariant();
+		}
+		catch (std::exception const& e)
+		{
+			std::string err = e.what();
+			assert(false);
+		}
 #endif
 	}
 
