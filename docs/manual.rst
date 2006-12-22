@@ -1953,9 +1953,9 @@ empty, the http proxy will be tried to be used without authentication.
 
 ``proxy_password`` the password string for the http proxy.
 
-``user_agent`` this is the client identification to the tracker. It will
-be followed by the string "(libtorrent)" to identify that this library
-is being used. This should be set to your client's name and version number.
+``user_agent`` this is the client identification to the tracker.
+The recommended format of this string is:
+"ClientName/ClientVersion libtorrent/libtorrentVersion".
 This name will not only be used when making HTTP requests, but also when
 sending extended headers to peers that support that extension.
 
