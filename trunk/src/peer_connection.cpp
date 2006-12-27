@@ -1382,10 +1382,12 @@ namespace libtorrent
 	void peer_connection::send_block_requests()
 	{
 		INVARIANT_CHECK;
+		
+		if (has_peer_choked()) return;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		assert(t);
-		
+
 		assert(!has_peer_choked());
 
 		if ((int)m_download_queue.size() >= m_desired_queue_size) return;
