@@ -142,10 +142,11 @@ namespace libtorrent
 
 			while (newline != recv_buffer.end && m_state == read_header)
 			{
-				if (newline == pos)
-					throw std::runtime_error("unexpected newline in HTTP response");
-			
-				line.assign(pos, newline - 1);
+				// if the LF character is preceeded by a CR
+				// charachter, don't copy it into the line string.
+				char const* line_end = newline;
+				if (pos != line_end && *(line_end - 1) == '\r') --line_end;
+				line.assign(pos, line_end);
 				m_recv_pos += newline - pos;
 				boost::get<1>(ret) += newline - pos;
 				pos = newline;
@@ -153,6 +154,9 @@ namespace libtorrent
 				std::string::size_type separator = line.find(": ");
 				if (separator == std::string::npos)
 				{
+					// this means we got a blank line,
+					// the header is finished and the body
+					// starts.
 					++pos;
 					++m_recv_pos;
 					boost::get<1>(ret) += 1;

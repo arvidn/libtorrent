@@ -245,6 +245,7 @@ namespace libtorrent { namespace detail
 			catch (const std::exception& e)
 			{
 				// This will happen if the storage fails to initialize
+				// for example if one of the files has an invalid filename.
 				session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 				mutex::scoped_lock l2(m_mutex);
 

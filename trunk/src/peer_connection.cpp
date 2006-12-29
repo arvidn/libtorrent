@@ -2161,6 +2161,8 @@ namespace libtorrent
 			assert(false);
 		}
 
+// expensive when using checked iterators
+/*
 		if (t->valid_metadata())
 		{
 			int piece_count = std::count(m_have_piece.begin()
@@ -2170,7 +2172,7 @@ namespace libtorrent
 				assert(false);
 			}
 		}
-		
+*/
 		assert(m_write_pos <= int(m_send_buffer[
 			(m_current_send_buffer + 1) & 1].size()));
 
