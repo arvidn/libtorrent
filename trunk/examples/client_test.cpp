@@ -789,6 +789,10 @@ int main(int ac, char* av[])
 					events.push_back(now + ": " + identify_client(p->pid)
 						+ ": " + a->msg());
 				}
+				else if (tracker_warning_alert* p = dynamic_cast<tracker_warning_alert*>(a.get()))
+				{
+					events.push_back(now + ": tracker message: " + p->msg());
+				}
 				else
 				{
 					events.push_back(now + ": " + a->msg());

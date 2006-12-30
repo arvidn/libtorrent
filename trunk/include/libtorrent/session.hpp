@@ -98,6 +98,12 @@ namespace libtorrent
 		struct eh_initializer {};
 #endif
 		struct session_impl;
+		
+		struct filesystem_init
+		{
+			filesystem_init();
+		};
+
 	}
 
 	class TORRENT_EXPORT session_proxy
@@ -215,13 +221,17 @@ namespace libtorrent
 		std::auto_ptr<alert> pop_alert();
 		void set_severity_level(alert::severity_t s);
 
-      // Resource management used for global limits.
-      resource_request m_ul_bandwidth_quota;
+		// Resource management used for global limits.
+		resource_request m_ul_bandwidth_quota;
 		resource_request m_dl_bandwidth_quota;
 		resource_request m_uploads_quota;
 		resource_request m_connections_quota;
 
 	private:
+
+		// just a way to initialize boost.filesystem
+		// before the session_impl is created
+		aux::filesystem_init m_dummy;
 
 		// data shared between the main thread
 		// and the working thread
