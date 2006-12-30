@@ -116,7 +116,10 @@ namespace libtorrent
 			if (newline == pos)
 				throw std::runtime_error("unexpected newline in HTTP response");
 
-			std::istringstream line(std::string(pos, newline - 1));
+			char const* line_end = newline;
+			if (pos != line_end && *(line_end - 1) == '\r') --line_end;
+
+			std::istringstream line(std::string(pos, line_end));
 			++newline;
 			int incoming = (int)std::distance(pos, newline);
 			m_recv_pos += incoming;

@@ -1631,8 +1631,27 @@ namespace libtorrent
 		}
 
 		assert(m_storage.get());
-		bool done = m_storage->check_fastresume(data, m_have_pieces, m_num_pieces
-			, m_compact_mode);
+		bool done = true;
+		try
+		{
+			done = m_storage->check_fastresume(data, m_have_pieces, m_num_pieces
+				, m_compact_mode);
+		}
+		catch (std::exception& e)
+		{
+			// probably means file permission failure or invalid filename
+			std::fill(m_have_pieces.begin(), m_have_pieces.end(), false);
+			m_num_pieces = 0;
+
+			if (m_ses.m_alerts.should_post(alert::fatal))
+			{
+				m_ses.m_alerts.post_alert(
+					file_error_alert(
+						get_handle()
+						, e.what()));
+			}
+			pause();
+		}
 #ifndef NDEBUG
 		m_initial_done = boost::get<0>(bytes_done());
 #endif
@@ -1644,7 +1663,27 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		assert(m_storage.get());
-		std::pair<bool, float> progress = m_storage->check_files(m_have_pieces, m_num_pieces);
+
+		std::pair<bool, float> progress(true, 1.f);
+		try
+		{
+			progress = m_storage->check_files(m_have_pieces, m_num_pieces);
+		}
+		catch (std::exception& e)
+		{
+			// probably means file permission failure or invalid filename
+			std::fill(m_have_pieces.begin(), m_have_pieces.end(), false);
+			m_num_pieces = 0;
+
+			if (m_ses.m_alerts.should_post(alert::fatal))
+			{
+				m_ses.m_alerts.post_alert(
+					file_error_alert(
+						get_handle()
+						, e.what()));
+			}
+			pause();
+		}
 
 #ifndef NDEBUG
 		m_initial_done = boost::get<0>(bytes_done());

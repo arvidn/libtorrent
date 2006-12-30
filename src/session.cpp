@@ -83,6 +83,16 @@ using libtorrent::aux::session_impl;
 namespace libtorrent
 {
 
+	namespace aux
+	{
+		filesystem_init::filesystem_init()
+		{
+			using namespace boost::filesystem;
+			if (path::default_name_check_writable())
+				path::default_name_check(no_check);
+		}
+	}
+
 	session::session(
 		fingerprint const& id
 		, std::pair<int, int> listen_port_range
@@ -90,9 +100,6 @@ namespace libtorrent
 		: m_impl(new session_impl(listen_port_range, id, listen_interface))
 	{
 		// turn off the filename checking in boost.filesystem
-		using namespace boost::filesystem;
-		if (path::default_name_check_writable())
-			path::default_name_check(no_check);
 		assert(listen_port_range.first > 0);
 		assert(listen_port_range.first < listen_port_range.second);
 #ifndef NDEBUG
