@@ -1,3 +1,5 @@
+	* fixed bug where one of the session constructors didn't initialize boost.filesystem. 
+	* fixed bug when the initial checking of a torrent fails with an exception.
 	* fixed bug in DHT code which would send incorrect announce messages.
 	* fixed bug where the http header parser was case sensitive to the header
 	  names.
