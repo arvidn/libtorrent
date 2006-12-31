@@ -1115,7 +1115,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		// if the peer hasn't choked us, ask for another piece
-		if (!c.has_peer_choked())
+		if (!c.has_peer_choked() && !m_torrent->is_seed())
 			request_a_block(*m_torrent, c);
 	}
 
