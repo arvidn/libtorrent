@@ -733,24 +733,25 @@ namespace libtorrent
 			dl_queue.begin(); i != dl_queue.end(); ++i)
 		{
 			int corr = 0;
-			assert(!m_have_pieces[i->index]);
+			int index = i->index;
+			assert(!m_have_pieces[index]);
 			assert(int(i->finished_blocks.count())
-				< m_torrent_file.piece_size(i->index) / m_block_size);
+				< m_picker->blocks_in_piece(index));
 
 #ifndef NDEBUG
 			for (std::vector<piece_picker::downloading_piece>::const_iterator j = boost::next(i);
 				j != dl_queue.end(); ++j)
 			{
-				assert(j->index != i->index);
+				assert(j->index != index);
 			}
 #endif
 
 			for (int j = 0; j < blocks_per_piece; ++j)
 			{
 				assert(i->finished_blocks[j] == 0 || i->finished_blocks[j] == 1);
-				assert(m_picker->is_finished(piece_block(i->index, j)) == i->finished_blocks[j]);
+				assert(m_picker->is_finished(piece_block(index, j)) == i->finished_blocks[j]);
 				corr += i->finished_blocks[j] * m_block_size;
-				assert(i->index != last_piece || j < m_picker->blocks_in_last_piece()
+				assert(index != last_piece || j < m_picker->blocks_in_last_piece()
 					|| i->finished_blocks[j] == 0);
 			}
 
@@ -763,7 +764,7 @@ namespace libtorrent
 				corr += m_torrent_file.piece_size(last_piece) % m_block_size;
 			}
 			total_done += corr;
-			if (!m_picker->is_filtered(i->index))
+			if (!m_picker->is_filtered(index))
 				wanted_done += corr;
 		}
 
@@ -959,7 +960,7 @@ namespace libtorrent
 
 	void torrent::announce_piece(int index)
 	{
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		assert(index >= 0);
 		assert(index < m_torrent_file.num_pieces());
@@ -972,14 +973,6 @@ namespace libtorrent
 		std::set<tcp::endpoint> peers;
 		std::copy(downloaders.begin(), downloaders.end(), std::inserter(peers, peers.begin()));
 
-		for (std::set<tcp::endpoint>::iterator i = peers.begin()
-			, end(peers.end()); i != end; ++i)
-		{
-			peer_iterator p = m_connections.find(*i);
-			if (p == m_connections.end()) continue;
-			p->second->received_valid_data(index);
-		}
-
 		if (!m_have_pieces[index])
 			m_num_pieces++;
 		m_have_pieces[index] = true;
@@ -990,6 +983,14 @@ namespace libtorrent
 		m_picker->we_have(index);
 		for (peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
 			i->second->announce_piece(index);
+
+		for (std::set<tcp::endpoint>::iterator i = peers.begin()
+			, end(peers.end()); i != end; ++i)
+		{
+			peer_iterator p = m_connections.find(*i);
+			if (p == m_connections.end()) continue;
+			p->second->received_valid_data(index);
+		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -2179,7 +2180,7 @@ namespace libtorrent
 
 	bool torrent::verify_piece(int piece_index)
 	{
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		assert(m_storage.get());
 		assert(piece_index >= 0);

@@ -136,6 +136,12 @@ namespace libtorrent
 					if (i->finished_blocks[j])
 						mark_as_finished(piece_block(i->index, j), peer);
 				}
+				if (is_piece_finished(i->index))
+				{
+					// TODO: handle this case by verifying the
+					// piece and either accept it or discard it
+					assert(false);
+				}
 			}
 		}
 	}
