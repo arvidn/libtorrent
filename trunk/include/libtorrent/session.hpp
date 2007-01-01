@@ -208,10 +208,18 @@ namespace libtorrent
 		// returns the port we ended up listening on
 		unsigned short listen_port() const;
 
+		// Get the number of uploads.
+		int num_uploads() const;
+
+		// Get the number of connections. This number also contains the
+		// number of half open connections.
+		int num_connections() const;
+
 		void remove_torrent(const torrent_handle& h);
 
 		void set_settings(session_settings const& s);
 		session_settings const& settings();
+
 		void set_upload_rate_limit(int bytes_per_second);
 		void set_download_rate_limit(int bytes_per_second);
 		void set_max_uploads(int limit);
