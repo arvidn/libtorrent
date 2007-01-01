@@ -1106,6 +1106,13 @@ namespace libtorrent
 
 		picker.mark_as_finished(block_finished, m_remote);
 
+		try
+		{
+			t->get_policy().block_finished(*this, block_finished);
+			send_block_requests();
+		}
+		catch (std::exception const&) {}
+
 #ifndef NDEBUG
 		try
 		{
@@ -1159,13 +1166,6 @@ namespace libtorrent
 				t->completed();
 			}
 		}
-		
-		try
-		{
-			t->get_policy().block_finished(*this, block_finished);
-			send_block_requests();
-		}
-		catch (std::exception const&) {}
 
 #ifndef NDEBUG
 		}
@@ -1382,7 +1382,7 @@ namespace libtorrent
 
 	void peer_connection::send_block_requests()
 	{
-//		INVARIANT_CHECK;
+		INVARIANT_CHECK;
 		
 		if (has_peer_choked()) return;
 
@@ -2156,8 +2156,6 @@ namespace libtorrent
 			}
 			return;
 		}
-
-		check_postcondition post_checker_(t, false);
 
 		if (!m_in_constructor && t->connection_for(remote()) != this)
 		{
