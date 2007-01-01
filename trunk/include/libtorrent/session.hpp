@@ -220,6 +220,9 @@ namespace libtorrent
 		void set_settings(session_settings const& s);
 		session_settings const& settings();
 
+		int upload_rate_limit() const;
+		int download_rate_limit() const;
+
 		void set_upload_rate_limit(int bytes_per_second);
 		void set_download_rate_limit(int bytes_per_second);
 		void set_max_uploads(int limit);

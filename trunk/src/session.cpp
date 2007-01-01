@@ -272,6 +272,16 @@ namespace libtorrent
 		m_impl->set_max_half_open_connections(limit);
 	}
 
+	int session::upload_rate_limit() const
+	{
+		return m_impl->upload_rate_limit();
+	}
+
+	int session::download_rate_limit() const
+	{
+		return m_impl->download_rate_limit();
+	}
+
 	void session::set_upload_rate_limit(int bytes_per_second)
 	{
 		m_impl->set_upload_rate_limit(bytes_per_second);

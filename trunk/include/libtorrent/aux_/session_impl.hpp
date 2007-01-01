@@ -248,6 +248,10 @@ namespace libtorrent
 			
 			void set_severity_level(alert::severity_t s);
 			std::auto_ptr<alert> pop_alert();
+
+			int upload_rate_limit() const;
+			int download_rate_limit() const;
+
 			void set_download_rate_limit(int bytes_per_second);
 			void set_upload_rate_limit(int bytes_per_second);
 			void set_max_half_open_connections(int limit);

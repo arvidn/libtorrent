@@ -1566,7 +1566,6 @@ namespace libtorrent { namespace detail
 
 #endif
 
-
 	void session_impl::set_download_rate_limit(int bytes_per_second)
 	{
 		assert(bytes_per_second > 0 || bytes_per_second == -1);
@@ -1675,6 +1674,18 @@ namespace libtorrent { namespace detail
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		m_alerts.set_severity(s);
+	}
+
+	int session_impl::upload_rate_limit() const
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		return m_upload_rate;
+	}
+
+	int session_impl::download_rate_limit() const
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		return m_download_rate;
 	}
 
 #ifndef NDEBUG
