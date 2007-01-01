@@ -282,6 +282,16 @@ namespace libtorrent
 		m_impl->set_download_rate_limit(bytes_per_second);
 	}
 
+	int session::num_uploads() const
+	{
+		return m_impl->num_uploads();
+	}
+
+	int session::num_connections() const
+	{
+		return m_impl->num_connections();
+	}
+
 	std::auto_ptr<alert> session::pop_alert()
 	{
 		return m_impl->pop_alert();

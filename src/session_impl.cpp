@@ -1633,6 +1633,7 @@ namespace libtorrent { namespace detail
 	{
 		assert(limit > 0 || limit == -1);
 		mutex_t::scoped_lock l(m_mutex);
+   
 		m_half_open_limit = limit;
 	}
 
@@ -1642,6 +1643,25 @@ namespace libtorrent { namespace detail
 		mutex_t::scoped_lock l(m_mutex);
 		m_upload_rate = bytes_per_second;
 	}
+
+	int session_impl::num_uploads() const
+	{
+		int uploads = 0;
+		mutex_t::scoped_lock l(m_mutex);
+		for (torrent_map::const_iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; i++)
+		{
+			uploads += i->second->get_policy().num_uploads();
+		}
+		return uploads;
+	}
+
+	int session_impl::num_connections() const
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		return  m_connections.size() + m_half_open.size();
+	}
+
 
 	std::auto_ptr<alert> session_impl::pop_alert()
 	{

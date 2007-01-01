@@ -254,6 +254,8 @@ namespace libtorrent
 			void set_max_connections(int limit);
 			void set_max_uploads(int limit);
 
+			int num_uploads() const;
+			int num_connections() const;
 
 			session_status status() const;
 			void set_peer_id(peer_id const& id);

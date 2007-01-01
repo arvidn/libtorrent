@@ -1020,6 +1020,7 @@ namespace libtorrent
 
 		piece_picker& picker = t->picker();
 		piece_manager& fs = t->filesystem();
+		policy& pol = t->get_policy();
 
 		std::vector<piece_block> finished_blocks;
 		piece_block block_finished(p.piece, p.start / t->block_size());
@@ -1108,7 +1109,7 @@ namespace libtorrent
 
 		try
 		{
-			t->get_policy().block_finished(*this, block_finished);
+			pol.block_finished(*this, block_finished);
 			send_block_requests();
 		}
 		catch (std::exception const&) {}
@@ -1158,7 +1159,7 @@ namespace libtorrent
 				t->piece_failed(p.piece);
 			}
 
-			t->get_policy().piece_finished(p.piece, verified);
+			pol.piece_finished(p.piece, verified);
 
 			if (!was_seed && t->is_seed())
 			{
