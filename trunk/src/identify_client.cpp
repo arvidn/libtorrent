@@ -158,7 +158,7 @@ namespace
 		, map_entry("LP", "lphant")
 		, map_entry("LT", "libtorrent")
 		, map_entry("M",  "Mainline")
-		, map_entry("ML",  "MLDonkey")
+		, map_entry("ML", "MLDonkey")
 		, map_entry("MP", "MooPolice")
 		, map_entry("MT", "Moonlight Torrent")
 		, map_entry("O",  "Osprey Permaseed")
