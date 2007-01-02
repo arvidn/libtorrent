@@ -870,10 +870,14 @@ int main(int ac, char* av[])
 					out	<< "peers: " << s.num_peers << " "
 						<< "seeds: " << s.num_seeds << " "
 						<< "distributed copies: " << s.distributed_copies << "\n";
+					out << "download: " << esc("32") << add_suffix(s.download_rate) << "/s " << esc("0")
+						<< "(" << esc("32") << add_suffix(s.total_download) << esc("0") << ") ";
 				}
-				out << "download: " << esc("32") << add_suffix(s.download_rate) << "/s " << esc("0")
-					<< "(" << esc("32") << add_suffix(s.total_download) << esc("0") << ") "
-					<< "upload: " << esc("31") << add_suffix(s.upload_rate) << "/s " << esc("0")
+				else
+				{
+					out << "download: " << "(" << esc("32") << add_suffix(s.total_download) << esc("0") << ") ";
+				}
+				out << "upload: " << esc("31") << add_suffix(s.upload_rate) << "/s " << esc("0")
 					<< "(" << esc("31") << add_suffix(s.total_upload) << esc("0") << ") "
 					<< "ratio: " << ratio(s.total_payload_download, s.total_payload_upload) << "\n";
 				if (s.state != torrent_status::seeding)

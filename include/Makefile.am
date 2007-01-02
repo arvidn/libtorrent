@@ -126,6 +126,9 @@ libtorrent/asio/detail/select_interrupter.hpp \
 libtorrent/asio/detail/select_reactor.hpp \
 libtorrent/asio/detail/select_reactor_fwd.hpp \
 libtorrent/asio/detail/service_registry.hpp \
+libtorrent/asio/detail/service_registry_fwd.hpp \
+libtorrent/asio/detail/service_base.hpp \
+libtorrent/asio/detail/service_id.hpp \
 libtorrent/asio/detail/signal_blocker.hpp \
 libtorrent/asio/detail/signal_init.hpp \
 libtorrent/asio/detail/socket_holder.hpp \

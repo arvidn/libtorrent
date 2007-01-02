@@ -83,7 +83,11 @@ namespace libtorrent { namespace
 			for (torrent::peer_iterator i = m_torrent.begin()
 				, end(m_torrent.end()); i != end; ++i)
 			{	
+				// don't send out peers that we haven't connected to
+				// (that have connected to us)
 				if (!i->second->is_local()) continue;
+				// don't send out peers that we haven't successfully connected to
+				if (i->second->connecting()) continue;
 				cs.push_back(i->first);
 			}
 			std::list<tcp::endpoint> added_peers, dropped_peers;
@@ -101,6 +105,7 @@ namespace libtorrent { namespace
 			std::back_insert_iterator<std::string> pld_out(pld);
 			std::back_insert_iterator<std::string> plf_out(plf);
 
+			// TODO: use random selection in case added_peers.size() > num_peers
 			for (std::list<tcp::endpoint>::const_iterator i = added_peers.begin()
 				, end(added_peers.end());i != end; ++i)
 			{	
@@ -114,6 +119,7 @@ namespace libtorrent { namespace
 			}
 
 			num_peers = max_peer_entries;
+			// TODO: use random selection in case dropped_peers.size() > num_peers
 			for (std::list<tcp::endpoint>::const_iterator i = dropped_peers.begin()
 				, end(dropped_peers.end());i != end; ++i)
 			{	
