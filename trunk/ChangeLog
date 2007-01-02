@@ -1,3 +1,5 @@
+	* Improved the HTTP seed downloader to report accurate progress.
+	* Added more client peer-id signatures to be recognized.
 	* fixed bug where one of the session constructors didn't initialize boost.filesystem. 
 	* fixed bug when the initial checking of a torrent fails with an exception.
 	* fixed bug in DHT code which would send incorrect announce messages.

@@ -177,6 +177,7 @@ namespace
 		, map_entry("UL", "uLeecher")
 		, map_entry("UT", "MicroTorrent")
 		, map_entry("XT", "XanTorrent")
+		, map_entry("XX", "Xtorrent")
 		, map_entry("ZT", "ZipTorrent")
 		, map_entry("lt", "libTorrent (libtorrent.rakshasa.no/)")
 		, map_entry("pX", "pHoeniX")
