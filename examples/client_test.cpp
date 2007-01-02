@@ -472,7 +472,7 @@ int main(int ac, char* av[])
 		("poll-interval,t", po::value<int>(&poll_interval)->default_value(2)
 			, "if a directory is being monitored, this is the interval (given "
 			"in seconds) between two refreshes of the directory listing")
-		("half-open-limit,a", po::value<int>(&half_open_limit)->default_value(-1)
+		("half-open-limit,o", po::value<int>(&half_open_limit)->default_value(-1)
 			, "Sets the maximum number of simultaneous half-open tcp connections")
 		("bind,b", po::value<std::string>(&bind_to_interface)->default_value("")
 			, "Sets the local interface to bind outbound and the listen "
@@ -481,7 +481,7 @@ int main(int ac, char* av[])
 			, "Sets the http proxy to be used for tracker and web seeds "
 			"connections. The string is expected to be on the form: "
 			"<hostname>:<port>. If no port is specified, 8080 is assumed")
-		("proxy-login,o", po::value<std::string>(&proxy_login)->default_value("")
+		("proxy-login,n", po::value<std::string>(&proxy_login)->default_value("")
 			, "Sets the username and password used to authenticate with the http "
 			"proxy. The string should be given in the form: <username>:<password>")
 			;
