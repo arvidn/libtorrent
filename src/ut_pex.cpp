@@ -87,7 +87,7 @@ namespace libtorrent { namespace
 				// (that have connected to us)
 				if (!i->second->is_local()) continue;
 				// don't send out peers that we haven't successfully connected to
-				if (i->second->connecting()) continue;
+				if (i->second->is_connecting()) continue;
 				cs.push_back(i->first);
 			}
 			std::list<tcp::endpoint> added_peers, dropped_peers;
