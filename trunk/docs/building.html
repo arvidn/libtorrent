@@ -22,12 +22,13 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first"><a name="table-of-contents">Table of contents</a></p>
 <ul class="simple">
-<li><a class="reference" href="#downloading-and-building" id="id6" name="id6">downloading and building</a><ul>
-<li><a class="reference" href="#contributed-build-tutorials" id="id7" name="id7">Contributed build tutorials</a></li>
-<li><a class="reference" href="#building-with-bbv2" id="id8" name="id8">building with BBv2</a></li>
-<li><a class="reference" href="#building-with-autotools" id="id9" name="id9">building with autotools</a></li>
-<li><a class="reference" href="#building-with-other-build-systems" id="id10" name="id10">building with other build systems</a></li>
-<li><a class="reference" href="#build-configurations" id="id11" name="id11">build configurations</a></li>
+<li><a class="reference" href="#downloading-and-building" id="id8" name="id8">downloading and building</a><ul>
+<li><a class="reference" href="#contributed-build-tutorials" id="id9" name="id9">Contributed build tutorials</a></li>
+<li><a class="reference" href="#building-from-cvs" id="id10" name="id10">building from cvs</a></li>
+<li><a class="reference" href="#building-with-bbv2" id="id11" name="id11">building with BBv2</a></li>
+<li><a class="reference" href="#building-with-autotools" id="id12" name="id12">building with autotools</a></li>
+<li><a class="reference" href="#building-with-other-build-systems" id="id13" name="id13">building with other build systems</a></li>
+<li><a class="reference" href="#build-configurations" id="id14" name="id14">build configurations</a></li>
 </ul>
 </li>
 </ul>
@@ -49,6 +50,22 @@ IRC channel on <tt class="docutils literal"><span class="pre">irc.freenode.net</
 <li><a class="reference" href="vs2005_build_notes.html">visual studio 2005</a></li>
 </ul>
 <p>These tutorials may work on similar linux distros as well.</p>
+</div>
+<div class="section">
+<h2><a id="building-from-cvs" name="building-from-cvs">building from cvs</a></h2>
+<p>To build libtorrent from cvs you need to check out the libtorrent sources from
+sourceforge and also check out the asio sources from its sourceforge cvs.
+If you downloaded a release tarball, you can skip this section.</p>
+<p>To prepare the directory structure for building, follow these steps:</p>
+<ul class="simple">
+<li>Check out libtorrent (<a class="reference" href="http://sourceforge.net/cvs/?group_id=79942">instructions</a>).</li>
+<li>Check out asio (<a class="reference" href="http://sourceforge.net/cvs/?group_id=122478">instructions</a>).</li>
+<li>Copy the <tt class="docutils literal"><span class="pre">asio/include/asio/</span></tt> directory into the <tt class="docutils literal"><span class="pre">libtorrent/include/libtorrent/</span></tt>
+directory. Alternatively you can make a symbolic link.</li>
+<li>Copy <tt class="docutils literal"><span class="pre">asio/include/asio.hpp</span></tt> into <tt class="docutils literal"><span class="pre">libtorrent/include/libtorrent</span></tt>.</li>
+</ul>
+<p>Now the libtorrent directory is ready for building. Follow the steps in one
+of the following sections depending on which build system you prefer to use.</p>
 </div>
 <div class="section">
 <h2><a id="building-with-bbv2" name="building-with-bbv2">building with BBv2</a></h2>
@@ -346,7 +363,7 @@ with the following option:</p>
 <p>The above option make use of -DNDEBUG, which is used throughout libtorrent.</p>
 </div>
 <div class="section">
-<h3><a id="id5" name="id5">Step 3: Building libtorrent</a></h3>
+<h3><a id="id7" name="id7">Step 3: Building libtorrent</a></h3>
 <p>Once the configure script is run successfully, you just type <tt class="docutils literal"><span class="pre">make</span></tt> and
 libtorrent, the examples and the tests will be built.</p>
 <p>When libtorrent is built it may be a good idea to run the tests, you do this
