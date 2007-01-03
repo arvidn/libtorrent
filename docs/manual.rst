@@ -96,10 +96,15 @@ The ``session`` class has the following synopsis::
 			session_settings const& settings);
 
 		void set_upload_rate_limit(int bytes_per_second);
+		int upload_rate_limit() const;
 		void set_download_rate_limit(int bytes_per_second);
+		int download_rate_limit() const;
 		void set_max_uploads(int limit);
 		void set_max_connections(int limit);
 		void set_max_half_open_connections(int limit);
+
+		int num_uploads() const;
+		int num_connections() const;
 
 		void set_ip_filter(ip_filter const& f);
       
@@ -264,19 +269,23 @@ See ``torrent_handle::is_valid()`` to know if the torrent was found or not.
 currently in the session.
 
 
-set_upload_rate_limit() set_download_rate_limit()
--------------------------------------------------
+set_upload_rate_limit() set_download_rate_limit() upload_rate_limit() download_rate_limit()
+-------------------------------------------------------------------------------------------
 
 	::
 
 		void set_upload_rate_limit(int bytes_per_second);
 		void set_download_rate_limit(int bytes_per_second);
+		int upload_rate_limit() const;
+		int download_rate_limit() const;
 
 ``set_upload_rate_limit()`` set the maximum number of bytes allowed to be
 sent to peers per second. This bandwidth is distributed among all the peers. If
 you don't want to limit upload rate, you can set this to -1 (the default).
 ``set_download_rate_limit()`` works the same way but for download rate instead
 of upload rate.
+``download_rate_limit()`` and ``upload_rate_limit()`` returns the previously
+set limits.
 
 
 set_max_uploads() set_max_connections()
@@ -292,6 +301,18 @@ and the number of connections opened. The number of connections is set to a hard
 minimum of at least two connections per torrent, so if you set a too low
 connections limit, and open too many torrents, the limit will not be met. The
 number of uploads is at least one per torrent.
+
+
+num_uploads() num_connections()
+-------------------------------
+
+	::
+		
+		int num_uploads() const;
+		int num_connections() const;
+
+Returns the number of currently unchoked peers and the number of connections
+(including half-open ones) respectively.
 
 
 set_max_half_open_connections()
@@ -454,6 +475,13 @@ To use these, imclude ``<libtorrent/extensions/metadata_transfer.hpp>``
 or ``<libtorrent/extensions/ut_pex.hpp>``. The functions to pass in to
 ``add_extension()`` are ``libtorrent::create_metadata_plugin`` and
 ``libtorrent::create_ut_pex_plugin`` respectively.
+
+e.g.
+
+::
+
+	ses.add_extension(&libtorrent::create_metadata_plugin);
+	ses.add_extension(&libtorrent::create_ut_pex_plugin);
 
 .. _`libtorrent plugins`: libtorrent_plugins.html
 

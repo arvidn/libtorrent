@@ -36,6 +36,27 @@ These tutorials may work on similar linux distros as well.
 .. _suse: suse_build_notes.html
 .. _`visual studio 2005`: vs2005_build_notes.html
 
+building from cvs
+-----------------
+
+To build libtorrent from cvs you need to check out the libtorrent sources from
+sourceforge and also check out the asio sources from its sourceforge cvs.
+If you downloaded a release tarball, you can skip this section.
+
+To prepare the directory structure for building, follow these steps:
+
+* Check out libtorrent (instructions__).
+* Check out asio (instructions__).
+* Copy the ``asio/include/asio/`` directory into the ``libtorrent/include/libtorrent/``
+  directory. Alternatively you can make a symbolic link.
+* Copy ``asio/include/asio.hpp`` into ``libtorrent/include/libtorrent``.
+
+__ http://sourceforge.net/cvs/?group_id=79942
+__ http://sourceforge.net/cvs/?group_id=122478
+
+Now the libtorrent directory is ready for building. Follow the steps in one
+of the following sections depending on which build system you prefer to use.
+
 building with BBv2
 ------------------
 
@@ -383,7 +404,6 @@ type" and "Enable Run-Time Type Info" to Yes. For a detailed description
 on how to build libtorrent with VS 2005, see `this document`_.
 
 .. _`this document`: vs2005_build_notes.html
-
 
 build configurations
 --------------------
