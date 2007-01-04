@@ -212,8 +212,11 @@ time_duration rpc_manager::tick()
 			return diff;
 		}
 		
-		m_transactions[m_oldest_transaction_id].reset();
-		o->timeout();
+		try
+		{
+			m_transactions[m_oldest_transaction_id].reset();
+			o->timeout();
+		} catch (std::exception) {}
 	}
 	return milliseconds(timeout_ms);
 }
