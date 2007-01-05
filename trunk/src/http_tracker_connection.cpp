@@ -586,6 +586,7 @@ namespace libtorrent
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			if (has_requester()) requester().debug_log("Redirecting to \"" + location + "\"");
 #endif
+			if (has_requester()) requester().tracker_warning("Redirecting to \"" + location + "\"");
 			tracker_request req = tracker_req();
 			std::string::size_type i = location.find('?');
 			if (i == std::string::npos)
