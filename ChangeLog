@@ -1,5 +1,7 @@
 	* Improved the HTTP seed downloader to report accurate progress.
 	* Added more client peer-id signatures to be recognized.
+	* added support for HTTP servers that skip the CR before the NL at line breaks.
+	* fixed bug in the HTTP code that onlcy accepted headers case sensitive.
 	* fixed bug where one of the session constructors didn't initialize boost.filesystem. 
 	* fixed bug when the initial checking of a torrent fails with an exception.
 	* fixed bug in DHT code which would send incorrect announce messages.
