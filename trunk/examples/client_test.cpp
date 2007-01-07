@@ -424,6 +424,7 @@ int main(int ac, char* av[])
 	float preferred_ratio;
 	int download_limit;
 	int upload_limit;
+	int upload_slots_limit;
 	int half_open_limit;
 	std::string save_path_str;
 	std::string log_level;
@@ -451,6 +452,8 @@ int main(int ac, char* av[])
 			, "the maximum download rate given in kB/s. 0 means infinite.")
 		("max-upload-rate,u", po::value<int>(&upload_limit)->default_value(0)
 			, "the maximum upload rate given in kB/s. 0 means infinite.")
+		("max-upload-slots", po::value<int>(&upload_slots_limit)->default_value(8)
+			, "the maximum number of upload slots. 0 means infinite.")
 		("save-path,s", po::value<std::string>(&save_path_str)->default_value("./")
 			, "the path where the downloaded file/folder should be placed.")
 		("log-level,l", po::value<std::string>(&log_level)->default_value("info")
@@ -504,6 +507,7 @@ int main(int ac, char* av[])
 		if (upload_limit <= 0) upload_limit = -1;
 		if (poll_interval < 2) poll_interval = 2;
 		if (half_open_limit < 1) half_open_limit = -1;
+		if (upload_slots_limit <= 0) upload_slots_limit = -1;
 		if (!monitor_dir.empty() && !exists(monitor_dir))
 		{
 			std::cerr << "The monitor directory doesn't exist: " << monitor_dir.string() << std::endl;
@@ -597,6 +601,7 @@ int main(int ac, char* av[])
 			, 6881));
 #endif
 
+		ses.set_max_uploads(upload_slots_limit);
 		ses.set_max_half_open_connections(half_open_limit);
 		ses.set_download_rate_limit(download_limit);
 		ses.set_upload_rate_limit(upload_limit);
