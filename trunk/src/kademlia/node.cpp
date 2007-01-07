@@ -210,7 +210,7 @@ void node_impl::new_write_key()
 	m_secret[0] = std::rand();
 }
 
-void node_impl::refresh_bucket(int bucket)
+void node_impl::refresh_bucket(int bucket) try
 {
 	assert(bucket >= 0 && bucket < 160);
 	
@@ -246,7 +246,7 @@ void node_impl::refresh_bucket(int bucket)
 		, m_table, start.begin(), start.end(), m_rpc, bind(&nop));
 	m_table.touch_bucket(bucket);
 }
-
+catch (std::exception&) {}
 
 void node_impl::incoming(msg const& m)
 {
@@ -371,7 +371,7 @@ void node_impl::announce(sha1_hash const& info_hash, int listen_port
 		, info_hash, f));
 }
 
-time_duration node_impl::refresh_timeout()
+time_duration node_impl::refresh_timeout() try
 {
 	int refresh = -1;
 	ptime now = second_clock::universal_time();
@@ -398,8 +398,9 @@ time_duration node_impl::refresh_timeout()
 	if (next < now + seconds(5)) return seconds(5);
 	return next - now;
 }
+catch (std::exception&) {}
 
-time_duration node_impl::connection_timeout()
+time_duration node_impl::connection_timeout() try
 {
 	time_duration d = m_rpc.tick();
 
@@ -424,6 +425,7 @@ time_duration node_impl::connection_timeout()
 	}
 	return d;
 }
+catch (std::exception&) {}
 
 void node_impl::on_announce(msg const& m, msg& reply)
 {
