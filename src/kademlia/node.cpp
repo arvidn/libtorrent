@@ -371,61 +371,68 @@ void node_impl::announce(sha1_hash const& info_hash, int listen_port
 		, info_hash, f));
 }
 
-time_duration node_impl::refresh_timeout() try
+time_duration node_impl::refresh_timeout()
 {
 	int refresh = -1;
 	ptime now = second_clock::universal_time();
 	ptime next = now + minutes(15);
-	for (int i = 0; i < 160; ++i)
+	try
 	{
-		ptime r = m_table.next_refresh(i);
-		if (r <= now)
+		for (int i = 0; i < 160; ++i)
 		{
-			if (refresh == -1) refresh = i;
+			ptime r = m_table.next_refresh(i);
+			if (r <= now)
+			{
+				if (refresh == -1) refresh = i;
+			}
+			else if (r < next)
+			{
+				next = r;
+			}
 		}
-		else if (r < next)
+		if (refresh != -1)
 		{
-			next = r;
+	#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			TORRENT_LOG(node) << "refreshing bucket: " << refresh;
+	#endif
+			refresh_bucket(refresh);
 		}
 	}
-	if (refresh != -1)
-	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(node) << "refreshing bucket: " << refresh;
-#endif
-		refresh_bucket(refresh);
-	}
+	catch (std::exception&) {}
+
 	if (next < now + seconds(5)) return seconds(5);
 	return next - now;
 }
-catch (std::exception&) {}
 
-time_duration node_impl::connection_timeout() try
+time_duration node_impl::connection_timeout()
 {
 	time_duration d = m_rpc.tick();
-
-	ptime now(second_clock::universal_time());
-	if (now - m_last_tracker_tick < minutes(10)) return d;
-	m_last_tracker_tick = now;
-	
-	// look through all peers and see if any have timed out
-	for (data_iterator i = begin_data(), end(end_data()); i != end;)
+	try
 	{
-		torrent_entry& t = i->second;
-		node_id const& key = i->first;
-		++i;
-		purge_peers(t.peers);
-
-		// if there are no more peers, remove the entry altogether
-		if (t.peers.empty())
+		ptime now(second_clock::universal_time());
+		if (now - m_last_tracker_tick < minutes(10)) return d;
+		m_last_tracker_tick = now;
+		
+		// look through all peers and see if any have timed out
+		for (data_iterator i = begin_data(), end(end_data()); i != end;)
 		{
-			table_t::iterator i = m_map.find(key);
-			if (i != m_map.end()) m_map.erase(i);
+			torrent_entry& t = i->second;
+			node_id const& key = i->first;
+			++i;
+			purge_peers(t.peers);
+
+			// if there are no more peers, remove the entry altogether
+			if (t.peers.empty())
+			{
+				table_t::iterator i = m_map.find(key);
+				if (i != m_map.end()) m_map.erase(i);
+			}
 		}
 	}
+	catch (std::exception&) {}
+
 	return d;
 }
-catch (std::exception&) {}
 
 void node_impl::on_announce(msg const& m, msg& reply)
 {
