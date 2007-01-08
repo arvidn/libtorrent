@@ -417,17 +417,20 @@ namespace libtorrent
 				http_body.begin += r.length;
 			}
 
-			range_overlaps_request = in_range.start + in_range.length
-				> m_requests.front().start + int(m_piece.size());
-
-			if (in_range.start + in_range.length < m_requests.front().start + m_requests.front().length
-				&& m_parser.finished())
+			if (!m_requests.empty())
 			{
-				m_piece.reserve(info.piece_length());
-				int copy_size = std::min(m_requests.front().length - int(m_piece.size())
-					, http_body.left());
-				std::copy(http_body.begin, http_body.begin + copy_size, std::back_inserter(m_piece));
-				http_body.begin += copy_size;
+				range_overlaps_request = in_range.start + in_range.length
+					> m_requests.front().start + int(m_piece.size());
+
+				if (in_range.start + in_range.length < m_requests.front().start + m_requests.front().length
+					&& m_parser.finished())
+				{
+					m_piece.reserve(info.piece_length());
+					int copy_size = std::min(m_requests.front().length - int(m_piece.size())
+						, http_body.left());
+					std::copy(http_body.begin, http_body.begin + copy_size, std::back_inserter(m_piece));
+					http_body.begin += copy_size;
+				}
 			}
 
 			if (m_parser.finished())
