@@ -1,0 +1,27 @@
+import python ;
+
+python-extension libtorrent 
+  : src/module.cpp
+    src/big_number.cpp
+    src/fingerprint.cpp
+    src/utility.cpp
+    src/session.cpp
+    src/entry.cpp
+    src/torrent_info.cpp
+    src/filesystem.cpp
+    src/torrent_handle.cpp
+    src/torrent_status.cpp
+    src/session_settings.cpp
+    src/version.cpp
+    src/alert.cpp
+    src/datetime.cpp
+    src/extensions.cpp
+    src/peer_plugin.cpp
+    src/docstrings.cpp
+    src/torrent.cpp
+    src/peer_info.cpp
+    /torrent//torrent
+    /boost/python//boost_python
+  : <include>src
+  ;
+
