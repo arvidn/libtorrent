@@ -5,6 +5,7 @@
 #include <libtorrent/extensions.hpp>
 #include <libtorrent/entry.hpp>
 #include <libtorrent/peer_request.hpp>
+#include <libtorrent/peer_connection.hpp>
 #include <boost/python.hpp>
 #include "gil.hpp"
 
@@ -21,7 +22,7 @@ namespace
           lock_gil lock;
 
           if (override f = this->get_override("new_connection"))
-              return f(p);
+              return f(ptr(p));
           return torrent_plugin::new_connection(p);
       }
 
@@ -135,5 +136,8 @@ void bind_extensions()
             "on_resume"
           , &torrent_plugin::on_resume, &torrent_plugin_wrap::default_on_resume
         );
+
+    // TODO move to it's own file
+    class_<peer_connection, boost::noncopyable>("peer_connection", no_init);
 }
 
