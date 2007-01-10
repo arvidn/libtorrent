@@ -7,8 +7,60 @@
 import sys
 import libtorrent as lt
 import time
-import Console
 import os.path
+import sys
+
+class WindowsConsole:
+    def __init__(self):
+        self.console = Console.getconsole()
+
+    def clear(self):
+        self.console.page()
+
+    def write(self, str):
+        self.console.write(str)
+
+    def sleep_and_input(self, seconds):
+        time.sleep(seconds)
+        if msvcrt.kbhit():
+            return msvcrt.getch()
+        return None
+
+class UnixConsole:
+    def __init__(self):
+        self.fd = sys.stdin
+        self.old = termios.tcgetattr(self.fd.fileno())
+        new = termios.tcgetattr(self.fd.fileno())
+        new[3] = new[3] & ~termios.ICANON
+        new[6][termios.VTIME] = 0
+        new[6][termios.VMIN] = 1
+        termios.tcsetattr(self.fd.fileno(), termios.TCSADRAIN, new)
+
+        sys.exitfunc = self._onexit
+
+    def _onexit(self):
+        termios.tcsetattr(self.fd.fileno(), termios.TCSADRAIN, self.old)
+
+    def clear(self):
+        sys.stdout.write('\033[2J\033[0;0H')
+        sys.stdout.flush()
+
+    def write(self, str):
+        sys.stdout.write(str)
+        sys.stdout.flush()
+
+    def sleep_and_input(self, seconds):
+        read,_,_ = select.select([self.fd.fileno()], [], [], seconds)
+        if len(read) > 0:
+            return self.fd.read(1)
+        return None
+
+if os.name == 'nt':
+    import Console
+    import msvcrt
+else:
+    import termios
+    import select
 
 class PythonExtension(lt.torrent_plugin):
     def __init__(self, alerts):
@@ -178,13 +230,14 @@ def main():
         h.set_ratio(options.ratio)
         h.set_sequenced_download_threshold(15)
 
-    import msvcrt
-
-    console = Console.getconsole()
+    if os.name == 'nt':
+        console = WindowsConsole()
+    else:
+        console = UnixConsole()
 
     alive = True
     while alive:
-        console.page()
+        console.clear()
 
         out = ''
 
@@ -254,17 +307,19 @@ def main():
             else:
                 write_line(console, a.msg() + '\n')
 
-        time.sleep(0.5)
-        if msvcrt.kbhit():
-            c = msvcrt.getch()
-            if c == 'r':
-                for h in handles: h.force_reannounce()
-            elif c == 'q':
-                alive = False
-            elif c == 'p':
-                for h in handles: h.pause()
-            elif c == 'u':
-                for h in handles: h.resume()
+        c = console.sleep_and_input(0.5)
+
+        if not c:
+            continue
+
+        if c == 'r':
+            for h in handles: h.force_reannounce()
+        elif c == 'q':
+            alive = False
+        elif c == 'p':
+            for h in handles: h.pause()
+        elif c == 'u':
+            for h in handles: h.resume()
 
     for h in handles:
         if not h.is_valid() or not h.has_metadata():
