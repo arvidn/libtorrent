@@ -132,6 +132,14 @@ namespace libtorrent
 		// we have to wait for the handshake to see
 		// which torrent the connector want's to connect to
 
+
+		// upload bandwidth will only be given to connections
+		// that are part of a torrent. Since this is an incoming
+		// connection, we have to give it some initial bandwidth
+		// to send the handshake.
+		m_bandwidth_limit[download_channel].assign(80);
+		m_bandwidth_limit[upload_channel].assign(80);
+
 		// start in the state where we are trying to read the
 		// handshake from the other side
 		reset_recv_buffer(1);
@@ -178,15 +186,15 @@ namespace libtorrent
 		p.total_download = statistics().total_payload_download();
 		p.total_upload = statistics().total_payload_upload();
 
-		if (m_ul_bandwidth_quota.given == std::numeric_limits<int>::max())
+		if (m_bandwidth_limit[upload_channel].throttle() == bandwidth_limit::inf)
 			p.upload_limit = -1;
 		else
-			p.upload_limit = m_ul_bandwidth_quota.given;
+			p.upload_limit = m_bandwidth_limit[upload_channel].throttle();
 
-		if (m_dl_bandwidth_quota.given == std::numeric_limits<int>::max())
+		if (m_bandwidth_limit[download_channel].throttle() == bandwidth_limit::inf)
 			p.download_limit = -1;
 		else
-			p.download_limit = m_dl_bandwidth_quota.given;
+			p.download_limit = m_bandwidth_limit[download_channel].throttle();
 
 		p.load_balancing = total_free_upload();
 

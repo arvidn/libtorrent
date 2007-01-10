@@ -258,12 +258,6 @@ namespace libtorrent
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
 		, m_net_interface(net_interface.address(), 0)
-		, m_upload_bandwidth_limit(std::numeric_limits<int>::max())
-		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
-		, m_excess_ul(0)
-		, m_excess_dl(0)
-		, m_soft_ul_limit(10000)
-		, m_soft_dl_limit(10000)
 		, m_save_path(complete(save_path))
 		, m_compact_mode(compact_mode)
 		, m_default_block_size(block_size)
@@ -294,33 +288,6 @@ namespace libtorrent
 		// this will be corrected the next time the main session
 		// distributes resources, i.e. on average in 0.5 seconds
 		m_connections_quota.given = 100;
-		m_uploads_quota.max = std::numeric_limits<int>::max();
-		m_connections_quota.max = std::numeric_limits<int>::max();
-
-		m_dl_bandwidth_quota.min = 100;
-		m_dl_bandwidth_quota.max = resource_request::inf;
-
-		if (m_ses.m_download_rate == -1)
-		{
-			m_dl_bandwidth_quota.given = resource_request::inf;
-		}
-		else
-		{
-			m_dl_bandwidth_quota.given = 400;
-		}
-
-		m_ul_bandwidth_quota.min = 100;
-		m_ul_bandwidth_quota.max = resource_request::inf;
-
-		if (m_ses.m_upload_rate == -1)
-		{
-			m_ul_bandwidth_quota.given = resource_request::inf;
-		}
-		else
-		{
-			m_ul_bandwidth_quota.given = 400;
-		}
-
 		m_policy.reset(new policy(this));
 		init();
 	
@@ -375,12 +342,6 @@ namespace libtorrent
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
 		, m_net_interface(net_interface.address(), 0)
-		, m_upload_bandwidth_limit(std::numeric_limits<int>::max())
-		, m_download_bandwidth_limit(std::numeric_limits<int>::max())
-		, m_excess_ul(0)
-		, m_excess_dl(0)
-		, m_soft_ul_limit(10000)
-		, m_soft_dl_limit(10000)
 		, m_save_path(complete(save_path))
 		, m_compact_mode(compact_mode)
 		, m_default_block_size(block_size)
@@ -412,32 +373,6 @@ namespace libtorrent
 		m_connections_quota.given = 100;
 		m_uploads_quota.max = std::numeric_limits<int>::max();
 		m_connections_quota.max = std::numeric_limits<int>::max();
-
-		m_dl_bandwidth_quota.min = 100;
-		m_dl_bandwidth_quota.max = resource_request::inf;
-
-		if (m_ses.m_download_rate == -1)
-		{
-			m_dl_bandwidth_quota.given = resource_request::inf;
-		}
-		else
-		{
-			m_dl_bandwidth_quota.given = 400;
-		}
-
-		m_ul_bandwidth_quota.min = 100;
-		m_ul_bandwidth_quota.max = resource_request::inf;
-
-
-		if (m_ses.m_upload_rate == -1)
-		{
-			m_ul_bandwidth_quota.given = resource_request::inf;
-		}
-		else
-		{
-			m_ul_bandwidth_quota.given = 400;
-		}
-
 		m_trackers.push_back(announce_entry(tracker_url));
 
 		m_policy.reset(new policy(this));
@@ -1297,12 +1232,6 @@ namespace libtorrent
 		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_io_service));
 		boost::intrusive_ptr<peer_connection> c(new web_peer_connection(
 			m_ses, shared_from_this(), s, a, url));
-
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_ses.m_logger) << "add url seed (" << c->m_dl_bandwidth_quota.given << ", "
-			<< c->m_dl_bandwidth_quota.used << ") ";
-		(*m_ses.m_logger) << "\n";
-#endif
 			
 #ifndef NDEBUG
 		c->m_in_constructor = false;
@@ -1358,13 +1287,6 @@ namespace libtorrent
 		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_io_service));
 		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
 			m_ses, shared_from_this(), s, a));
-			
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_ses.m_logger) << "connect_to_peer (" << c->m_dl_bandwidth_quota.given << ", "
-			<< c->m_dl_bandwidth_quota.used << ") ";
-		(*m_ses.m_logger) << "\n";
-#endif
-
 			
 #ifndef NDEBUG
 		c->m_in_constructor = false;
@@ -1528,6 +1450,47 @@ namespace libtorrent
 			p.disconnect();
 			assert(m_connections.size() <= size);
 		}
+	}
+
+	void torrent::request_bandwidth(int channel
+		, boost::intrusive_ptr<peer_connection> p)
+	{
+		if (m_bandwidth_limit[channel].max_assignable() >= 17000)
+		{
+			if (channel == peer_connection::upload_channel)
+				m_ses.m_ul_bandwidth_manager.request_bandwidth(p);
+			else if (channel == peer_connection::download_channel)
+				m_ses.m_dl_bandwidth_manager.request_bandwidth(p);
+			m_bandwidth_limit[channel].assign(17000);
+		}
+		else
+		{
+			m_bandwidth_queue[channel].push_back(p);
+		}
+	}
+
+	void torrent::expire_bandwidth(int channel, int amount)
+	{
+		assert(amount >= -1);
+		if (amount == -1) amount = 17000;
+		m_bandwidth_limit[channel].expire(amount);
+		
+		while (!m_bandwidth_queue[channel].empty() && m_bandwidth_limit[channel].max_assignable() >= 17000)
+		{
+			intrusive_ptr<peer_connection> p = m_bandwidth_queue[channel].front();
+			m_bandwidth_queue[channel].pop_front();
+			if (channel == peer_connection::upload_channel)
+				m_ses.m_ul_bandwidth_manager.request_bandwidth(p);
+			else if (channel == peer_connection::download_channel)
+				m_ses.m_dl_bandwidth_manager.request_bandwidth(p);
+			m_bandwidth_limit[channel].assign(17000);
+		}
+	}
+
+	void torrent::assign_bandwidth(int channel, int amount)
+	{
+		assert(amount >= 0);
+		if (amount < 17000) expire_bandwidth(channel, 17000 - amount);
 	}
 
 	// called when torrent is finished (all interested pieces downloaded)
@@ -1871,7 +1834,7 @@ namespace libtorrent
 		assert(limit >= -1);
 		if (limit == -1) limit = std::numeric_limits<int>::max();
 		if (limit < num_peers() * 10) limit = num_peers() * 10;
-		m_upload_bandwidth_limit = limit;
+		m_bandwidth_limit[peer_connection::upload_channel].throttle(limit);
 	}
 
 	void torrent::set_download_limit(int limit)
@@ -1879,7 +1842,7 @@ namespace libtorrent
 		assert(limit >= -1);
 		if (limit == -1) limit = std::numeric_limits<int>::max();
 		if (limit < num_peers() * 10) limit = num_peers() * 10;
-		m_download_bandwidth_limit = limit;
+		m_bandwidth_limit[peer_connection::download_channel].throttle(limit);
 	}
 
 	void torrent::pause()
@@ -1936,14 +1899,6 @@ namespace libtorrent
 
 		m_connections_quota.used = (int)m_connections.size();
 		m_uploads_quota.used = m_policy->num_uploads();
-
-		m_ul_bandwidth_quota.used = 0;
-		m_ul_bandwidth_quota.max = 0;
-		m_ul_bandwidth_quota.min = 0;
-
-		m_dl_bandwidth_quota.used = 0;
-		m_dl_bandwidth_quota.min = 0;
-		m_dl_bandwidth_quota.max = 0;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -2005,33 +1960,7 @@ namespace libtorrent
 			// updates the peer connection's ul/dl bandwidth
 			// resource requests
 			p->second_tick(tick_interval);
-
-			m_ul_bandwidth_quota.used += p->m_ul_bandwidth_quota.used;
-			m_ul_bandwidth_quota.min += p->m_ul_bandwidth_quota.min;
-			m_dl_bandwidth_quota.used += p->m_dl_bandwidth_quota.used;
-			m_dl_bandwidth_quota.min += p->m_dl_bandwidth_quota.min;
-
-			m_ul_bandwidth_quota.max = saturated_add(
-				m_ul_bandwidth_quota.max
-				, p->m_ul_bandwidth_quota.max);
-
-			m_dl_bandwidth_quota.max = saturated_add(
-				m_dl_bandwidth_quota.max
-				, p->m_dl_bandwidth_quota.max);
 		}
-
-		m_ul_bandwidth_quota.max
-			= std::min(m_ul_bandwidth_quota.max, m_upload_bandwidth_limit);
-
-		if (m_upload_bandwidth_limit == resource_request::inf)
-			m_ul_bandwidth_quota.max = resource_request::inf;
-
-		m_dl_bandwidth_quota.max
-			= std::min(m_dl_bandwidth_quota.max, m_download_bandwidth_limit);
-
-		if (m_download_bandwidth_limit == resource_request::inf)
-			m_dl_bandwidth_quota.max = resource_request::inf;
-
 		accumulator += m_stat;
 		m_stat.second_tick(tick_interval);
 		m_web_stat.second_tick(tick_interval);
@@ -2046,135 +1975,6 @@ namespace libtorrent
 		{
 			m_time_scaler = 10;
 			m_policy->pulse();
-		}
-
-		assert(m_ul_bandwidth_quota.given >= 0);
-		assert(m_dl_bandwidth_quota.given >= 0);
-
-		int ul_used = 0;
-		int dl_used = 0;
-#ifdef TORRENT_LOGGING
-		int ul_max = 0;
-		int dl_max = 0;
-#endif
-		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
-		{
-			peer_connection* p = i->second;
-
-			// the bandwidth exceeding the given amount is accumulated to
-			// the next timeslice, don't take it into account now as well!
-			// (that would lead to a spiral of accumulating used-values)
-			ul_used += std::min(p->m_ul_bandwidth_quota.used, p->m_ul_bandwidth_quota.given);
-			dl_used += std::min(p->m_dl_bandwidth_quota.used, p->m_dl_bandwidth_quota.given);
-#ifdef TORRENT_LOGGING
-			ul_max = saturated_add(ul_max, p->m_ul_bandwidth_quota.max);
-			dl_max = saturated_add(dl_max, p->m_dl_bandwidth_quota.max);
-#endif
-		}
-
-		
-		m_excess_ul += ul_used - m_ul_bandwidth_quota.given;
-		m_excess_dl += dl_used - m_dl_bandwidth_quota.given;
-
-		m_excess_ul = std::max(m_excess_ul, -10000);
-		m_excess_dl = std::max(m_excess_dl, -10000);
-
-		int ul_to_distribute = std::max(int((m_ul_bandwidth_quota.given
-			- m_excess_ul * 0.7f) * 1.6f), 0);
-		int dl_to_distribute = std::max(int((m_dl_bandwidth_quota.given
-			- m_excess_dl * 0.7f) * 1.6f), 0);
-
-		m_soft_ul_limit = int(m_soft_ul_limit + (ul_to_distribute - m_soft_ul_limit) * 0.1f);
-		m_soft_dl_limit = int(m_soft_dl_limit + (dl_to_distribute - m_soft_dl_limit) * 0.1f);
-
-		ul_to_distribute = m_soft_ul_limit;
-		dl_to_distribute = m_soft_dl_limit;
-
-#ifdef TORRENT_LOGGING
-		std::copy(m_ul_history + 1, m_ul_history + debug_bw_history_size, m_ul_history);
-		m_ul_history[debug_bw_history_size-1] = ul_used;
-		std::copy(m_dl_history + 1, m_dl_history + debug_bw_history_size, m_dl_history);
-		m_dl_history[debug_bw_history_size-1] = dl_used;
-
-		size_type mean_ul = 0;
-		size_type mean_dl = 0;
-		for (int i = 0; i < debug_bw_history_size; ++i)
-		{
-			mean_ul += m_ul_history[i];
-			mean_dl += m_dl_history[i];
-		}
-		mean_ul /= debug_bw_history_size;
-		mean_dl /= debug_bw_history_size;
-
-		int ul_leftovers = 0;
-		int dl_leftovers = 0;
-		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
-		{
-			ul_leftovers += i->second->m_ul_bandwidth_quota.leftovers;
-			dl_leftovers += i->second->m_dl_bandwidth_quota.leftovers;
-		}
-
-		(*m_log)
-			<< ul_used << "\t"
-			<< mean_ul << "\t"
-			<< dl_used << "\t"
-			<< mean_dl << "\t"
-			<< m_stat.total_payload_download() << "\t"
-			<< m_web_stat.total_payload_download() << "\t"
-			<< m_total_redundant_bytes
-			<< "\n";
-
-		(*m_log)
-			<< m_second_count++ << "\t"
-			<< m_ul_bandwidth_quota.given << "\t"
-			<< ul_to_distribute << "\t"
-			<< m_excess_ul << "\t"
-			<< ul_leftovers << "\t"
-			<< m_dl_bandwidth_quota.given << "\t"
-			<< dl_to_distribute << "\t"
-			<< m_excess_dl << "\t"
-			<< dl_leftovers << "\t"
-			<< num_peers() << "\t"
-			<< ul_max << "\t"
-			<< dl_max << "\t";
-		
-		(*m_peer_log) << m_second_count << "\t";
-		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
-		{
-			int given = i->second->m_dl_bandwidth_quota.given;
-			(*m_peer_log) << (given == resource_request::inf ? -1 : given)
-				<< "\t" << i->second->m_dl_bandwidth_quota.used << "\t";
-		}
-		for (int i = m_connections.size(); i < 10; ++i)
-		{
-			(*m_peer_log) << 0 << "\t" << 0 << "\t";
-		}
-		(*m_peer_log) << "\n";
-
-#endif
-
-		// distribute allowed upload among the peers
-		allocate_resources(ul_to_distribute
-			, m_connections
-			, &peer_connection::m_ul_bandwidth_quota);
-
-		// distribute allowed download among the peers
-		allocate_resources(dl_to_distribute
-			, m_connections
-			, &peer_connection::m_dl_bandwidth_quota);
-	
-		using boost::bind;
-
-		// tell all peers to reset their used quota. This is
-		// a new second and they can again use up their quota
-
-		for (std::map<tcp::endpoint, peer_connection*>::iterator i
-			= m_connections.begin(); i != m_connections.end(); ++i)
-		{
-			i->second->reset_upload_quota();
 		}
 	}
 

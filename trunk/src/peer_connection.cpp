@@ -131,63 +131,6 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		assert(t);
-		// these numbers are used the first second of connection.
-		// then the given upload limits will be applied by running
-		// allocate_resources().
-		m_ul_bandwidth_quota.min = 10;
-		m_ul_bandwidth_quota.max = resource_request::inf;
-
-		if (t->m_ul_bandwidth_quota.given == resource_request::inf)
-		{
-			m_ul_bandwidth_quota.given = resource_request::inf;
-		}
-		else
-		{
-			if (t->num_peers() == 0)
-			{
-				// just enough to get started with the handshake and bitmask
-				m_ul_bandwidth_quota.given = 400;
-			}
-			else
-			{
-				// set the limit of this new connection to the mean of the other connections
-				size_type total_ul_given = 0;
-				for (torrent::peer_iterator i = t->begin()
-					, end(t->end()); i != end; ++i)
-				{
-					total_ul_given += i->second->m_ul_bandwidth_quota.given;
-				}
-				m_ul_bandwidth_quota.given = total_ul_given / t->num_peers();
-			}
-		}
-
-		m_dl_bandwidth_quota.min = 10;
-		m_dl_bandwidth_quota.max = resource_request::inf;
-	
-		if (t->m_dl_bandwidth_quota.given == resource_request::inf)
-		{
-			m_dl_bandwidth_quota.given = resource_request::inf;
-		}
-		else
-		{
-			if (t->num_peers() == 0)
-			{
-				// just enough to get started with the handshake and bitmask
-				m_dl_bandwidth_quota.given = 400;
-			}
-			else
-			{
-				// set the limit of this new connection to the mean of the other connections
-				size_type total_dl_given = 0;
-				for (torrent::peer_iterator i = t->begin()
-					, end(t->end()); i != end; ++i)
-				{
-					total_dl_given += i->second->m_dl_bandwidth_quota.given;
-				}
-				m_dl_bandwidth_quota.given = total_dl_given / t->num_peers();
-			}
-		}
-
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
 
 		if (t->ready_for_connections())
@@ -250,24 +193,7 @@ namespace libtorrent
 			+ boost::lexical_cast<std::string>(remote().port()), m_ses.listen_port());
 		(*m_logger) << "*** INCOMING CONNECTION\n";
 #endif
-
-
-		// upload bandwidth will only be given to connections
-		// that are part of a torrent. Since this is an incoming
-		// connection, we have to give it some initial bandwidth
-		// to send the handshake.
-		// after one second, allocate_resources() will be called
-		// and the correct bandwidth limits will be set on all
-		// connections.
-
-		m_ul_bandwidth_quota.min = 10;
-		m_ul_bandwidth_quota.max = resource_request::inf;
-		m_ul_bandwidth_quota.given = 400;
-
-		m_dl_bandwidth_quota.min = 10;
-		m_dl_bandwidth_quota.max = resource_request::inf;
-		m_dl_bandwidth_quota.given = 400;
-
+		
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
 	}
 
@@ -277,7 +203,6 @@ namespace libtorrent
 		m_extensions.push_back(ext);
 	}
 #endif
-
 
 	void peer_connection::init()
 	{
@@ -465,16 +390,6 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		m_free_upload += free_upload;
-	}
-
-	void peer_connection::reset_upload_quota()
-	{
-		m_ul_bandwidth_quota.reset();
-		m_dl_bandwidth_quota.reset();
-		assert(m_ul_bandwidth_quota.left() >= 0);
-		assert(m_dl_bandwidth_quota.left() >= 0);
-		setup_send();
-		setup_receive();
 	}
 
 	// verifies a piece to see if it is valid (is within a valid range)
@@ -1560,6 +1475,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		assert(packet_size > 0);
 		assert((int)m_recv_buffer.size() >= size);
 
 		std::copy(m_recv_buffer.begin() + size, m_recv_buffer.begin() + m_recv_pos, m_recv_buffer.begin());
@@ -1658,33 +1574,12 @@ namespace libtorrent
 		// maintain the share ratio given by m_ratio
 		// with all peers.
 
-		if (has_peer_choked() || !is_interesting())
-		{
-			// if the peer choked us, we can't download
-			// any data anyway, limit the max download
-			// bandwidth. If we're a seed, it doesn't matter,
-			// we won't be interested in downloading anyway
-			m_dl_bandwidth_quota.max = 400;
-		}
-		else
-		{
-			m_dl_bandwidth_quota.max = resource_request::inf;
-		}
-
 		if (t->is_seed() || is_choked() || t->ratio() == 0.0f)
 		{
 			// if we have downloaded more than one piece more
 			// than we have uploaded OR if we are a seed
 			// have an unlimited upload rate
-			// the exception is if we have choked the peer, and
-			// we have a limited amount of upload bandwidth, then
-			// we set the max to 400, just enough for the
-			// protocol chatter.
-			if (is_choked()
-				&& m_ul_bandwidth_quota.given < resource_request::inf)
-				m_ul_bandwidth_quota.max = 400;
-			else
-				m_ul_bandwidth_quota.max = resource_request::inf;
+			m_bandwidth_limit[upload_channel].throttle(bandwidth_limit::inf);
 		}
 		else
 		{
@@ -1707,17 +1602,10 @@ namespace libtorrent
 			upload_speed_limit = std::min(upload_speed_limit,
 				(double)std::numeric_limits<int>::max());
 
-			m_ul_bandwidth_quota.max
-				= std::max((int)upload_speed_limit, m_ul_bandwidth_quota.min);
+			m_bandwidth_limit[upload_channel].throttle(
+				std::min(std::max((int)upload_speed_limit, 20)
+				, m_upload_limit));
 		}
-		if (m_ul_bandwidth_quota.given > m_ul_bandwidth_quota.max)
-			m_ul_bandwidth_quota.given = m_ul_bandwidth_quota.max;
-
-		if (m_upload_limit < m_ul_bandwidth_quota.max)
-			m_ul_bandwidth_quota.max = m_upload_limit;
-
-		if (m_download_limit < m_dl_bandwidth_quota.max)
-			m_dl_bandwidth_quota.max = m_download_limit;
 
 		fill_send_buffer();
 /*
@@ -1808,6 +1696,38 @@ namespace libtorrent
 		}
 	}
 
+	void peer_connection::assign_bandwidth(int channel, int amount)
+	{
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << "bandwidth [ " << channel << " ] + " << amount << "\n";
+#endif
+
+		m_bandwidth_limit[channel].assign(amount);
+		if (channel == upload_channel)
+		{
+			m_writing = false;
+			setup_send();
+		}
+		else if (channel == download_channel)
+		{
+			m_reading = false;
+			setup_receive();
+		}
+	}
+
+	void peer_connection::expire_bandwidth(int channel, int amount)
+	{
+		m_bandwidth_limit[channel].expire(amount);
+		if (channel == upload_channel)
+		{
+			setup_send();
+		}
+		else if (channel == download_channel)
+		{
+			setup_receive();
+		}
+	}
+
 	void peer_connection::setup_send()
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
@@ -1815,6 +1735,31 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_writing) return;
+		
+		shared_ptr<torrent> t = m_torrent.lock();
+		
+		if (m_bandwidth_limit[upload_channel].quota_left() == 0
+			&& (!m_send_buffer[m_current_send_buffer].empty()
+				|| !m_send_buffer[(m_current_send_buffer + 1) & 1].empty())
+			&& !m_connecting
+			&& t)
+		{
+			// in this case, we have data to send, but no
+			// bandwidth. So, we simply request bandwidth
+			// from the torrent
+			assert(t);
+			if (m_bandwidth_limit[upload_channel].max_assignable() > 0)
+			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << "req bandwidth [ " << upload_channel << " ]\n";
+#endif
+
+				t->request_bandwidth(upload_channel, self());
+				m_writing = true;
+			}
+			return;
+		}
+		
 		if (!can_write()) return;
 
 		assert(!m_writing);
@@ -1832,7 +1777,7 @@ namespace libtorrent
 		if (!m_send_buffer[sending_buffer].empty())
 		{
 			int amount_to_send
-				= std::min(m_ul_bandwidth_quota.left()
+				= std::min(m_bandwidth_limit[upload_channel].quota_left()
 				, (int)m_send_buffer[sending_buffer].size() - m_write_pos);
 
 			assert(amount_to_send > 0);
@@ -1853,23 +1798,41 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_reading) return;
+
+		shared_ptr<torrent> t = m_torrent.lock();
+		
+		if (m_bandwidth_limit[download_channel].quota_left() == 0
+			&& !m_connecting
+			&& t)
+		{
+			assert(t);
+			if (m_bandwidth_limit[download_channel].max_assignable() > 0)
+			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << "req bandwidth [ " << download_channel << " ]\n";
+#endif
+				t->request_bandwidth(download_channel, self());
+				m_reading = true;
+			}
+			return;
+		}
+		
 		if (!can_read()) return;
 
 		assert(m_packet_size > 0);
 		int max_receive = std::min(
-			m_dl_bandwidth_quota.left()
+			m_bandwidth_limit[download_channel].quota_left()
 			, m_packet_size - m_recv_pos);
+		assert(max_receive > 0);
 
 		assert(m_recv_pos >= 0);
 		assert(m_packet_size > 0);
-		assert(m_dl_bandwidth_quota.left() > 0);
 		assert(max_receive > 0);
 
 		assert(can_read());
 		m_socket->async_read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
 			, max_receive), bind(&peer_connection::on_receive_data, self(), _1, _2));
 		m_reading = true;
-		assert(m_dl_bandwidth_quota.used <= m_dl_bandwidth_quota.given);
 	}
 
 	void peer_connection::reset_recv_buffer(int packet_size)
@@ -1925,7 +1888,7 @@ namespace libtorrent
 		assert(m_reading);
 		m_reading = false;
 		// correct the dl quota usage, if not all of the buffer was actually read
-		m_dl_bandwidth_quota.used += bytes_transferred;
+		m_bandwidth_limit[download_channel].use_quota(bytes_transferred);
 
 		if (error)
 		{
@@ -2004,7 +1967,7 @@ namespace libtorrent
 		// we want to send data
 		return (!m_send_buffer[m_current_send_buffer].empty()
 			|| !m_send_buffer[(m_current_send_buffer + 1) & 1].empty())
-			&& m_ul_bandwidth_quota.left() > 0
+			&& m_bandwidth_limit[upload_channel].quota_left() > 0
 			&& !m_connecting;
 	}
 
@@ -2012,7 +1975,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		return m_dl_bandwidth_quota.left() > 0 && !m_connecting;
+		return m_bandwidth_limit[download_channel].quota_left() > 0
+			&& !m_connecting;
 	}
 
 	void peer_connection::connect()
@@ -2069,6 +2033,7 @@ namespace libtorrent
 		m_connecting = false;
 		on_connected();
 		setup_send();
+		setup_receive();
 	}
 	catch (std::exception& ex)
 	{
@@ -2097,8 +2062,8 @@ namespace libtorrent
 
 		assert(m_writing);
 		m_writing = false;
-		// correct the ul quota usage, if not all of the buffer was sent
-		m_ul_bandwidth_quota.used += bytes_transferred;
+
+		m_bandwidth_limit[upload_channel].use_quota(bytes_transferred);
 		m_write_pos += bytes_transferred;
 
 		if (error)

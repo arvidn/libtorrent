@@ -1,3 +1,4 @@
+	* Improved the bandwidth limiter (it now implements a leaky bucket).
 	* Improved the HTTP seed downloader to report accurate progress.
 	* Added more client peer-id signatures to be recognized.
 	* added support for HTTP servers that skip the CR before the NL at line breaks.

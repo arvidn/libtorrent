@@ -442,47 +442,6 @@ namespace libtorrent
 				continue;
 			}
 			break;
-/*
-			if (!m_piece.empty())
-			{
-				// this is not the first partial request we get
-				if (m_intermediate_piece.start + m_intermediate_piece.length != r.start
-					|| m_intermediate_piece.piece != r.piece)
-				{
-					throw std::runtime_error("invalid range in HTTP response");
-				}
-			}
-			else
-			{
-				// this is the first part of a partial request
-				if (r.start != m_requests.front().start
-					|| r.piece != m_requests.front().piece)
-				{
-					throw std::runtime_error("invalid range in HTTP response");
-				}
-				m_intermediate_piece.piece = r.piece;
-				m_intermediate_piece.start = r.start;
-				m_intermediate_piece.length = 0;
-			}
-
-			m_piece.reserve(info.piece_length());
-			std::copy(http_body.begin, http_body.end, back_inserter(m_piece));
-			m_intermediate_piece.length += r.length;
-			if (m_intermediate_piece.length == m_requests.front().length)
-			{
-				assert(m_requests.front() == m_intermediate_piece);
-				assert(int(m_piece.size()) == m_intermediate_piece.length);
-				m_requests.pop_front();
-				incoming_piece(m_intermediate_piece, &m_piece[0]);
-				m_piece.clear();
-			}
-			else if (m_intermediate_piece.length > m_requests.front().length)
-			{
-				throw std::runtime_error("too large HTTP response body");
-			}
-
-			cut_receive_buffer(http_body.end - recv_buffer.begin, 512*1024+1024);
-*/
 		}
 	}
 
@@ -500,15 +459,15 @@ namespace libtorrent
 		p.total_download = statistics().total_payload_download();
 		p.total_upload = statistics().total_payload_upload();
 
-		if (m_ul_bandwidth_quota.given == std::numeric_limits<int>::max())
+		if (m_bandwidth_limit[upload_channel].throttle() == bandwidth_limit::inf)
 			p.upload_limit = -1;
 		else
-			p.upload_limit = m_ul_bandwidth_quota.given;
+			p.upload_limit = m_bandwidth_limit[upload_channel].throttle();
 
-		if (m_dl_bandwidth_quota.given == std::numeric_limits<int>::max())
+		if (m_bandwidth_limit[download_channel].throttle() == bandwidth_limit::inf)
 			p.download_limit = -1;
 		else
-			p.download_limit = m_dl_bandwidth_quota.given;
+			p.download_limit = m_bandwidth_limit[download_channel].throttle();
 
 		p.load_balancing = total_free_upload();
 

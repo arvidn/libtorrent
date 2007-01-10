@@ -229,18 +229,15 @@ std::string progress_bar(float progress, int width, char const* code = "33")
 	return std::string(bar.begin(), bar.end());
 }
 
-char const* peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info> const& peers)
+int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
 	std::vector<peer_info>::const_iterator i = std::find_if(peers.begin()
 		, peers.end(), boost::bind(std::equal_to<libtorrent::tcp::endpoint>()
 		, bind(&peer_info::ip, _1), addr));
-	if (i == peers.end()) return "+";
+	if (i == peers.end()) return -1;
 
-	static char str[] = " ";
-	int index = i - peers.begin();
-	str[0] = (index < 10)?'0' + index:'A' + index - 10;
-	return str;
+	return i - peers.begin();
 }
 
 void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const& peers)
@@ -909,14 +906,21 @@ int main(int ac, char* av[])
 						out << i->piece_index << ": [";
 						for (int j = 0; j < i->blocks_in_piece; ++j)
 						{
-							char const* peer_str = peer_index(i->peer[j], peers);
+							int index = peer_index(i->peer[j], peers);
+							static char str[] = "+";
+							if (index >= 0)
+								str[0] = (index < 10)?'0' + index:'A' + index - 10;
+
 #ifdef ANSI_TERMINAL_COLORS
-							if (i->finished_blocks[j]) out << esc("32;7") << peer_str << esc("0");
-							else if (i->requested_blocks[j]) out << peer_str;
+							if (peers[index].downloading_piece_index == i->piece_index
+								&& peers[index].downloading_block_index == j)
+								out << esc("33;7") << str << esc("0");
+							else if (i->finished_blocks[j]) out << esc("32;7") << str << esc("0");
+							else if (i->requested_blocks[j]) out << str;
 							else out << "-";
 #else
 							if (i->finished_blocks[j]) out << "#";
-							else if (i->requested_blocks[j]) out << peer_str;
+							else if (i->requested_blocks[j]) out << str;
 							else out << "-";
 #endif
 						}

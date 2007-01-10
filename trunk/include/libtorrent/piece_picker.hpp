@@ -337,6 +337,9 @@ namespace libtorrent
 		// the required popularity of a piece in order to download
 		// it in sequence instead of random order.
 		int m_sequenced_download_threshold;
+#ifndef NDEBUG
+		bool m_files_checked_called;
+#endif
 	};
 
 	inline int piece_picker::blocks_in_piece(int index) const

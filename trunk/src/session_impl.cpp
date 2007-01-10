@@ -476,12 +476,12 @@ namespace libtorrent { namespace detail
 		, fingerprint const& cl_fprint
 		, char const* listen_interface)
 		: m_strand(m_io_service)
+		, m_dl_bandwidth_manager(m_io_service, peer_connection::download_channel)
+		, m_ul_bandwidth_manager(m_io_service, peer_connection::upload_channel)
 		, m_tracker_manager(m_settings)
 		, m_listen_port_range(listen_port_range)
 		, m_listen_interface(address::from_string(listen_interface), listen_port_range.first)
 		, m_abort(false)
-		, m_upload_rate(-1)
-		, m_download_rate(-1)
 		, m_max_uploads(-1)
 		, m_max_connections(-1)
 		, m_half_open_limit(-1)
@@ -505,6 +505,8 @@ namespace libtorrent { namespace detail
 			"3. hard download quota\n"
 			"\n";
 		m_second_counter = 0;
+		m_dl_bandwidth_manager.m_ses = this;
+		m_ul_bandwidth_manager.m_ses = this;
 #endif
 
 		// ---- generate a peer id ----
@@ -560,7 +562,7 @@ namespace libtorrent { namespace detail
 		assert(!m_abort);
 		// abort the main thread
 		m_abort = true;
-		m_io_service.interrupt();
+		m_io_service.stop();
 		l.unlock();
 
 		mutex::scoped_lock l2(m_checker_impl.m_mutex);
@@ -895,7 +897,7 @@ namespace libtorrent { namespace detail
 			(*m_logger) << "*** SECOND TIMER FAILED " << e.message() << "\n";
 #endif
 			m_abort = true;
-			m_io_service.interrupt();
+			m_io_service.stop();
 			return;
 		}
 
@@ -976,28 +978,8 @@ namespace libtorrent { namespace detail
 
 		// distribute the maximum upload rate among the torrents
 
-		assert(m_upload_rate >= -1);
-		assert(m_download_rate >= -1);
 		assert(m_max_uploads >= -1);
 		assert(m_max_connections >= -1);
-
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_stats_logger) << m_second_counter++ << "\t"
-			<< (m_upload_rate == -1 ? m_upload_rate
-			: int(m_upload_rate * tick_interval)) << "\n";
-#endif
-
-		allocate_resources(m_upload_rate == -1
-			? std::numeric_limits<int>::max()
-			: int(m_upload_rate * tick_interval)
-			, m_torrents
-			, &torrent::m_ul_bandwidth_quota);
-
-		allocate_resources(m_download_rate == -1
-			? std::numeric_limits<int>::max()
-			: int(m_download_rate * tick_interval)
-			, m_torrents
-			, &torrent::m_dl_bandwidth_quota);
 
 		allocate_resources(m_max_uploads == -1
 			? std::numeric_limits<int>::max()
@@ -1115,7 +1097,7 @@ namespace libtorrent { namespace detail
 		{
 			tracker_timer.expires_from_now(boost::posix_time::milliseconds(100));
 			tracker_timer.async_wait(m_strand.wrap(
-				bind(&io_service::interrupt, &m_io_service)));
+				bind(&io_service::stop, &m_io_service)));
 
 			m_io_service.reset();
 			m_io_service.run();
@@ -1570,8 +1552,10 @@ namespace libtorrent { namespace detail
 	{
 		assert(bytes_per_second > 0 || bytes_per_second == -1);
 		mutex_t::scoped_lock l(m_mutex);
-		m_download_rate = bytes_per_second;
+		if (bytes_per_second == -1) bytes_per_second = bandwidth_limit::inf;
+		m_dl_bandwidth_manager.throttle(bytes_per_second);
 	}
+
 	bool session_impl::is_listening() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
@@ -1584,7 +1568,7 @@ namespace libtorrent { namespace detail
 			// lock the main thread and abort it
 			mutex_t::scoped_lock l(m_mutex);
 			m_abort = true;
-			m_io_service.interrupt();
+			m_io_service.stop();
 		}
 		m_thread->join();
 
@@ -1640,7 +1624,8 @@ namespace libtorrent { namespace detail
 	{
 		assert(bytes_per_second > 0 || bytes_per_second == -1);
 		mutex_t::scoped_lock l(m_mutex);
-		m_upload_rate = bytes_per_second;
+		if (bytes_per_second == -1) bytes_per_second = bandwidth_limit::inf;
+		m_ul_bandwidth_manager.throttle(bytes_per_second);
 	}
 
 	int session_impl::num_uploads() const
@@ -1679,13 +1664,13 @@ namespace libtorrent { namespace detail
 	int session_impl::upload_rate_limit() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		return m_upload_rate;
+		return m_ul_bandwidth_manager.throttle();
 	}
 
 	int session_impl::download_rate_limit() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		return m_download_rate;
+		return m_dl_bandwidth_manager.throttle();
 	}
 
 #ifndef NDEBUG
@@ -1711,9 +1696,6 @@ namespace libtorrent { namespace detail
 				error_log << "peer_connection::is_connecting() " << p->is_connecting() << "\n";
 				error_log << "peer_connection::can_write() " << p->can_write() << "\n";
 				error_log << "peer_connection::can_read() " << p->can_read() << "\n";
-				error_log << "peer_connection::ul_quota_left " << p->m_ul_bandwidth_quota.left() << "\n";
-				error_log << "peer_connection::dl_quota_left " << p->m_dl_bandwidth_quota.left() << "\n";
-				error_log << "peer_connection::m_ul_bandwidth_quota.given " << p->m_ul_bandwidth_quota.given << "\n";
 				error_log << "peer_connection::get_peer_id " << p->pid() << "\n";
 				error_log << "place: " << place << "\n";
 				error_log.flush();
