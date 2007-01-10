@@ -907,14 +907,11 @@ int main(int ac, char* av[])
 						for (int j = 0; j < i->blocks_in_piece; ++j)
 						{
 							int index = peer_index(i->peer[j], peers);
-							static char str[] = "+";
+							char str[] = "+";
 							bool currently_downloading = false;
 							if (index >= 0)
 							{
 								str[0] = (index < 10)?'0' + index:'A' + index - 10;
-							}
-							else
-							{
 								currently_downloading = peers[index].downloading_piece_index == i->piece_index
 									&& peers[index].downloading_block_index == j;
 							}
