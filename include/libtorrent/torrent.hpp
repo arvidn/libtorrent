@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/tuple/tuple.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/scoped_ptr.hpp>
+#include <boost/intrusive_ptr.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -66,6 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/escape_string.hpp"
+#include "libtorrent/bandwidth_manager.hpp"
 
 namespace libtorrent
 {
@@ -187,6 +189,17 @@ namespace libtorrent
 
 		float ratio() const
 		{ return m_ratio; }
+
+// --------------------------------------------
+		// BANDWIDTH MANAGEMENT
+
+		bandwidth_limit m_bandwidth_limit[2];
+
+		void request_bandwidth(int channel
+			, boost::intrusive_ptr<peer_connection> p);
+		
+		void expire_bandwidth(int channel, int amount);
+		void assign_bandwidth(int channel, int amount);
 
 // --------------------------------------------
 		// PEER MANAGEMENT
@@ -413,12 +426,8 @@ namespace libtorrent
 // --------------------------------------------
 		// RESOURCE MANAGEMENT
 
-		// this will distribute the given upload/download
-		// quotas and number of connections, among the peers
 		void distribute_resources(float tick_interval);
 
-		resource_request m_ul_bandwidth_quota;
-		resource_request m_dl_bandwidth_quota;
 		resource_request m_uploads_quota;
 		resource_request m_connections_quota;
 
@@ -536,6 +545,9 @@ namespace libtorrent
 
 		boost::scoped_ptr<piece_picker> m_picker;
 
+		// the queue of peer_connections that want more bandwidth
+		std::deque<intrusive_ptr<peer_connection> > m_bandwidth_queue[2];
+
 		std::vector<announce_entry> m_trackers;
 		// this is an index into m_torrent_file.trackers()
 		int m_last_working_tracker;
@@ -584,20 +596,6 @@ namespace libtorrent
 		// the network interface all outgoing connections
 		// are opened through
 		tcp::endpoint m_net_interface;
-
-		// the max number of bytes this torrent
-		// can upload per second
-		int m_upload_bandwidth_limit;
-		int m_download_bandwidth_limit;
-		
-		// the accumulated excess upload and download
-		// bandwidth used. Used to balance out the
-		// bandwidth to match the limit over time
-		int m_excess_ul;
-		int m_excess_dl;
-
-		int m_soft_ul_limit;
-		int m_soft_dl_limit;
 
 		boost::filesystem::path m_save_path;
 

@@ -76,6 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/file_pool.hpp"
+#include "libtorrent/bandwidth_manager.hpp"
 
 namespace libtorrent
 {
@@ -282,6 +283,13 @@ namespace libtorrent
 			io_service m_io_service;
 			asio::strand m_strand;
 
+			// the bandwidth manager is responsible for
+			// handing out bandwidth to connections that
+			// asks for it, it can also throttle the
+			// rate.
+			bandwidth_manager m_dl_bandwidth_manager;
+			bandwidth_manager m_ul_bandwidth_manager;
+
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
 
@@ -331,11 +339,6 @@ namespace libtorrent
 			// should exit
 			volatile bool m_abort;
 
-			// maximum upload rate given in
-			// bytes per second. -1 means
-			// unlimited
-			int m_upload_rate;
-			int m_download_rate;
 			int m_max_uploads;
 			int m_max_connections;
 			// the number of simultaneous half-open tcp

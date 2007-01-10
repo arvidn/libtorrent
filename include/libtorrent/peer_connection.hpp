@@ -71,6 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/bandwidth_manager.hpp"
 
 // TODO: each time a block is 'taken over'
 // from another peer. That peer must be given
@@ -101,6 +102,13 @@ namespace libtorrent
 	friend void intrusive_ptr_add_ref(peer_connection const*);
 	friend void intrusive_ptr_release(peer_connection const*);
 	public:
+
+		enum channels
+		{
+			upload_channel,
+			download_channel,
+			num_channels
+		};
 
 		// this is the constructor where the we are the active part.
 		// The peer_conenction should handshake and verify that the
@@ -285,10 +293,13 @@ namespace libtorrent
 		void cancel_request(piece_block const& b);
 		void send_block_requests();
 
-		// how much bandwidth we're using, how much we want,
-		// and how much we are allowed to use.
-		resource_request m_ul_bandwidth_quota;
-		resource_request m_dl_bandwidth_quota;
+		int max_assignable_bandwidth(int channel) const
+		{
+			return m_bandwidth_limit[channel].max_assignable();
+		}
+		
+		void assign_bandwidth(int channel, int amount);
+		void expire_bandwidth(int channel, int amount);
 
 #ifndef NDEBUG
 		void check_invariant() const;
@@ -364,6 +375,10 @@ namespace libtorrent
 		void attach_to_torrent(sha1_hash const& ih);
 
 		bool verify_piece(peer_request const& p) const;
+
+		// the bandwidth channels, upload and download
+		// keeps track of the current quotas
+		bandwidth_limit m_bandwidth_limit[num_channels];
 
 		// statistics about upload and download speeds
 		// and total amount of uploads and downloads for

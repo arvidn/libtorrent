@@ -32,6 +32,7 @@ feature.compose <dht-support>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 SOURCES =
 	allocate_resources.cpp
 	alert.cpp
+	bandwidth_manager.cpp
 	entry.cpp
 	escape_string.cpp
 	file.cpp
