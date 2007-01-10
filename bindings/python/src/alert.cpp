@@ -47,12 +47,12 @@ void bind_alert()
             ;
 
         enum_<alert::severity_t>("severity_levels")
-            .value("debug", alert::severity_t::debug)
-            .value("info", alert::severity_t::info)
-            .value("warning", alert::severity_t::warning)
-            .value("critical", alert::severity_t::critical)
-            .value("fatal", alert::severity_t::fatal)
-            .value("none", alert::severity_t::none)
+            .value("debug", alert::debug)
+            .value("info", alert::info)
+            .value("warning", alert::warning)
+            .value("critical", alert::critical)
+            .value("fatal", alert::fatal)
+            .value("none", alert::none)
             ; 
     }
 
