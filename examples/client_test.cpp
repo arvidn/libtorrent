@@ -908,12 +908,19 @@ int main(int ac, char* av[])
 						{
 							int index = peer_index(i->peer[j], peers);
 							static char str[] = "+";
+							bool currently_downloading = false;
 							if (index >= 0)
+							{
 								str[0] = (index < 10)?'0' + index:'A' + index - 10;
+							}
+							else
+							{
+								currently_downloading = peers[index].downloading_piece_index == i->piece_index
+									&& peers[index].downloading_block_index == j;
+							}
 
 #ifdef ANSI_TERMINAL_COLORS
-							if (peers[index].downloading_piece_index == i->piece_index
-								&& peers[index].downloading_block_index == j)
+							if (currently_downloading)
 								out << esc("33;7") << str << esc("0");
 							else if (i->finished_blocks[j]) out << esc("32;7") << str << esc("0");
 							else if (i->requested_blocks[j]) out << str;
