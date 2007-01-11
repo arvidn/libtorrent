@@ -197,8 +197,8 @@ def main():
     settings.user_agent = 'python_client/' + lt.version
 
     ses = lt.session()
-    ses.set_download_rate_limit(options.max_download_rate)
-    ses.set_upload_rate_limit(options.max_upload_rate)
+    ses.set_download_rate_limit(int(options.max_download_rate))
+    ses.set_upload_rate_limit(int(options.max_upload_rate))
     ses.listen_on(options.port, options.port + 10)
     ses.set_settings(settings)
     ses.set_severity_level(lt.alert.severity_levels.info)
