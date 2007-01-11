@@ -288,6 +288,8 @@ namespace libtorrent
 		// this will be corrected the next time the main session
 		// distributes resources, i.e. on average in 0.5 seconds
 		m_connections_quota.given = 100;
+		m_uploads_quota.max = std::numeric_limits<int>::max();
+		m_connections_quota.max = std::numeric_limits<int>::max();
 		m_policy.reset(new policy(this));
 		init();
 	
