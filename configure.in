@@ -7,7 +7,18 @@ AM_INIT_AUTOMAKE(libtorrent, 0.12)
 # AM_CONFIG_HEADER(config.h)
 
 AC_PROG_CC
+
+if test -z "$(which $CC)"; then
+    AC_MSG_ERROR([Unable to find a working C compiler, giving up.])
+fi
+
 AC_PROG_CPP
+
+if test -z "$(which $CXX)"; then
+    AC_MSG_ERROR([Unable to find a working C++ compiler, giving up.])
+fi
+
+AC_CACHE_SAVE
 AC_PROG_CXX
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
