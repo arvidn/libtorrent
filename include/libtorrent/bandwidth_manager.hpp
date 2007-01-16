@@ -53,6 +53,12 @@ namespace libtorrent
 	class peer_connection;
 	class torrent;
 	
+	// the maximum block of bandwidth quota to
+	// hand out is 33kB. The block size may
+	// be smaller on lower limits
+	const int max_bandwidth_block_size = 33000;
+	const int min_bandwidth_block_size = 4000;
+
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 	namespace aux
 	{

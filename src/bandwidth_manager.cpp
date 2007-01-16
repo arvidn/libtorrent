@@ -42,7 +42,6 @@ namespace libtorrent
 	namespace
 	{
 		const pt::time_duration window_size = pt::seconds(1);
-		const int bandwidth_block_size = 17000;
 	}
 
 	history_entry::history_entry(intrusive_ptr<peer_connection> p
@@ -96,7 +95,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
-		(*m_ses->m_logger) << "bw history [" << m_channel << "]\n";
+//		(*m_ses->m_logger) << "bw history [" << m_channel << "]\n";
 #endif
 
 		m_history.push_front(e);
@@ -117,7 +116,7 @@ namespace libtorrent
 		if (e) return;
 
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
-		(*m_ses->m_logger) << "bw expire [" << m_channel << "]\n";
+//		(*m_ses->m_logger) << "bw expire [" << m_channel << "]\n";
 #endif
 
 		assert(!m_history.empty());
@@ -156,13 +155,18 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
-		(*m_ses->m_logger) << "hand out bw [" << m_channel << "]\n";
+//		(*m_ses->m_logger) << "hand out bw [" << m_channel << "]\n";
 #endif
 
 		pt::ptime now(pt::microsec_clock::universal_time());
 
 		// available bandwidth to hand out
 		int amount = m_limit - m_current_quota;
+		
+		int bandwidth_block_size_limit = max_bandwidth_block_size;
+		if (m_queue.size() > 3 && bandwidth_block_size_limit / int(m_queue.size()) > m_limit)
+			bandwidth_block_size_limit = std::max(max_bandwidth_block_size / int(m_queue.size() - 2)
+				, min_bandwidth_block_size);
 
 		while (!m_queue.empty() && amount > 0)
 		{
@@ -186,9 +190,9 @@ namespace libtorrent
 
 			// so, hand out max_assignable, but no more than
 			// the available bandwidth (amount) and no more
-			// than the bandwidth_block_size
+			// than the max_bandwidth_block_size
 			int single_amount = std::min(amount
-				, std::min(bandwidth_block_size
+				, std::min(bandwidth_block_size_limit
 					, max_assignable));
 			amount -= single_amount;
 			if (single_amount > 0) peer->assign_bandwidth(m_channel, single_amount);

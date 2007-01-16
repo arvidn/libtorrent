@@ -1900,8 +1900,8 @@ or if the peer miss that piece (set to false).
 ``seed`` is true if this peer is a seed.
 
 ``upload_limit`` is the number of bytes per second we are allowed to send to this
-peer every second. It may be -1 if there's no limit. The upload limits of all peers
-should sum up to the upload limit set by ``session::set_upload_limit``.
+peer every second. It may be -1 if there's no local limit on the peer. The global
+limit and the torrent limit is always enforced anyway.
 
 ``download_limit`` is the number of bytes per second this peer is allowed to
 receive. -1 means it's unlimited.
@@ -2424,7 +2424,7 @@ is its synopsis::
 
 		enum severity_t { debug, info, warning, critical, fatal, none };
 
-		alert(severity_t severity, const std::string& msg);
+		alert(severity_t severity, std::string const& msg);
 		virtual ~alert();
 
 		std::string const& msg() const;
@@ -2436,6 +2436,16 @@ is its synopsis::
 This means that all alerts have at least a string describing it. They also
 have a severity level that can be used to sort them or present them to the
 user in different ways.
+
+There's another alert base class that all most alerts derives from, all the
+alerts that are generated for a specific torrent are derived from::
+
+	struct torrent_alert: alert
+	{
+		torrent_alert(torrent_handle const& h, severity_t s, std::string const& msg);
+
+		torrent_handle handle;
+	};
 
 The specific alerts, that all derives from ``alert``, are:
 
@@ -2464,14 +2474,13 @@ generated and the torrent is paused. It is generated as severity level ``fatal``
 
 ::
 
-	struct file_error_alert: alert
+	struct file_error_alert: torrent_alert
 	{
 		file_error_alert(
 			const torrent_handle& h
 			, const std::string& msg);
 			
 		virtual std::auto_ptr<alert> clone() const;
-		torrent_handle handle;
 	};
 
 
@@ -2483,14 +2492,13 @@ It is generated at severity level ``info``.
 
 ::
 
-	struct tracker_announce_alert: alert
+	struct tracker_announce_alert: torrent_alert
 	{
 		tracker_announce_alert(
 			const torrent_handle& h
 			, const std::string& msg);
 			
 		virtual std::auto_ptr<alert> clone() const;
-		torrent_handle handle;
 	};
 
 
@@ -2508,13 +2516,12 @@ to 0.
 
 ::
 
-	struct tracker_alert: alert
+	struct tracker_alert: torrent_alert
 	{
-		tracker_alert(const torrent_handle& h, int times, int status
+		tracker_alert(torrent_handle const& h, int times, int status
 			, const std::string& msg);
 		virtual std::auto_ptr<alert> clone() const;
 
-		torrent_handle handle;
 		int times_in_row;
 		int status_code;
 	};
@@ -2528,13 +2535,12 @@ succeeds. It is generated with severity level ``info``.
 
 ::
 
-	struct tracker_reply_alert: alert
+	struct tracker_reply_alert: torrent_alert
 	{
 		tracker_reply_alert(const torrent_handle& h
 			, const std::string& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
-		torrent_handle handle;
 	};
 	
 tracker_warning_alert
@@ -2547,13 +2553,12 @@ the tracker. It is generated with severity level ``warning``.
 
 ::
 
-	struct tracker_warning_alert: alert
+	struct tracker_warning_alert: torrent_alert
 	{
 		tracker_warning_alert(torrent_handle const& h
 			, std::string const& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
-		torrent_handle handle;
 	};
 
 
@@ -2567,14 +2572,14 @@ It contains ``url`` to the HTTP seed that failed along with an error message.
 
 ::
 
-	struct url_seed_alert: alert
+	struct url_seed_alert: torrent_alert
 	{
-		url_seed_alert(std::string const& h, const std::string& msg);
+		url_seed_alert(torrent_handle const& h, std::string const& h
+			, const std::string& msg);
 		virtual std::auto_ptr<alert> clone() const;
 
 		std::string url;
 	};
-
 
    
 hash_failed_alert
@@ -2586,15 +2591,15 @@ This alert is generated as severity level ``info``.
 
 ::
 
-	struct hash_failed_alert: alert
+	struct hash_failed_alert: torrent_alert
 	{
 		hash_failed_alert(
-			const torrent_handle& h
+			torrent_handle const& h
 			, int index
 			, const std::string& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
-		torrent_handle handle;
+
 		int piece_index;
 	};
 
@@ -2608,7 +2613,7 @@ to the torrent that this peer was a member of.
 
 ::
 
-	struct peer_ban_alert: alert
+	struct peer_ban_alert: torrent_alert
 	{
 		peer_ban_alert(
 			asio::ip::tcp::endpoint const& pip
@@ -2616,8 +2621,8 @@ to the torrent that this peer was a member of.
 			, const std::string& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
+
 		asio::ip::tcp::endpoint ip;
-		torrent_handle handle;
 	};
 
 
@@ -2653,7 +2658,7 @@ is a handle to the torrent the peer is a member of. ``ìp`` is the address of the
 
 ::
 
-	struct invalid_request_alert: alert
+	struct invalid_request_alert: torrent_alert
 	{
 		invalid_request_alert(
 			peer_request const& r
@@ -2663,7 +2668,7 @@ is a handle to the torrent the peer is a member of. ``ìp`` is the address of the
 			, std::string const& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
-		torrent_handle handle;
+
 		asio::ip::tcp::endpoint ip;
 		peer_request request;
 		peer_id id;
@@ -2692,14 +2697,13 @@ torrent in question. This alert is generated as severity level ``info``.
 
 ::
 
-	struct torrent_finished_alert: alert
+	struct torrent_finished_alert:torrent_ alert
 	{
 		torrent_finished_alert(
 			const torrent_handle& h
 			, const std::string& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
-		torrent_handle handle;
 	};
 
 
@@ -2714,14 +2718,13 @@ It is generated at severity level ``info``.
 
 ::
 
-	struct metadata_failed_alert: alert
+	struct metadata_failed_alert: torrent_alert
 	{
 		metadata_failed_alert(
-			const torrent_handle& h
-			, const std::string& msg);
+			torrent_handle const& h
+			, std::string const& msg);
 			
 		virtual std::auto_ptr<alert> clone() const;
-		torrent_handle handle;
 	};
 
 
@@ -2735,14 +2738,13 @@ It is generated at severity level ``info``.
 
 ::
 
-	struct metadata_received_alert: alert
+	struct metadata_received_alert: torrent_alert
 	{
 		metadata_received_alert(
-			const torrent_handle& h
-			, const std::string& msg);
+			torrent_handle const_& h
+			, std::string const& msg);
 			
 		virtual std::auto_ptr<alert> clone() const;
-		torrent_handle handle;
 	};
 
 
@@ -2764,31 +2766,6 @@ resume file was rejected. It is generated at severity level ``warning``.
 		torrent_handle handle;
 	};
 
-
-
-.. chat_message_alert
-	------------------
-
-	This alert is generated when you receive a chat message from another peer. Chat messages
-	are supported as an extension ("chat"). It is generated as severity level ``critical``,
-	even though it doesn't necessarily require any user intervention, it's high priority
-	since you would almost never want to ignore such a message. The alert class contain
-	a torrent_handle_ to the torrent in which the sender-peer is a member and the ip
-	of the sending peer.
-
-	::
-
-		struct chat_message_alert: alert
-		{
-			chat_message_alert(const torrent_handle& h
-				, const address& sender
-				, const std::string& msg);
-	
-			virtual std::auto_ptr<alert> clone() const;
-	
-			torrent_handle handle;
-			address ip;
-		};
 
 
 dispatcher
