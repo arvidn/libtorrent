@@ -868,11 +868,11 @@ int main(int ac, char* av[])
 					out << (s.progress*100) << "% ";
 					out << progress_bar(s.progress, 49, progress_bar_color);
 					out << "\n";
-					out << "total downloaded: " << esc("32") << s.total_done << esc("0") << " Bytes\n";
+					out << "total downloaded: " << esc("32") << s.total_done << esc("0") << " Bytes ";
 					out	<< "peers: " << s.num_peers << " "
 						<< "seeds: " << s.num_seeds << " "
-						<< "distributed copies: " << s.distributed_copies << "\n";
-					out << "download: " << esc("32") << add_suffix(s.download_rate) << "/s " << esc("0")
+						<< "distributed copies: " << s.distributed_copies << "\n"
+						<< "download: " << esc("32") << add_suffix(s.download_rate) << "/s " << esc("0")
 						<< "(" << esc("32") << add_suffix(s.total_download) << esc("0") << ") ";
 				}
 				else
@@ -884,11 +884,9 @@ int main(int ac, char* av[])
 					<< "ratio: " << ratio(s.total_payload_download, s.total_payload_upload) << "\n";
 				if (s.state != torrent_status::seeding)
 				{
-					out << "info-hash: " << h.info_hash() << "\n";
-
 					boost::posix_time::time_duration t = s.next_announce;
 					out << "next announce: " << esc("37") <<
-						boost::posix_time::to_simple_string(t) << esc("0") << "\n";
+						boost::posix_time::to_simple_string(t) << esc("0") << " ";
 					out << "tracker: " << s.current_tracker << "\n";
 				}
 

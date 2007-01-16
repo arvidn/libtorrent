@@ -659,43 +659,7 @@ namespace libtorrent
 			peer->get_peer_info(p);
 		}
 	}
-/*
-	bool torrent_handle::send_chat_message(tcp::endpoint ip, std::string message) const
-	{
-		if (m_ses == 0) throw_invalid_handle();
 
-		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
-		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
-		if (!t) return false;
-
-		for (torrent::const_peer_iterator i = t->begin();
-			i != t->end(); ++i)
-		{
-			peer_connection* peer = i->second;
-
-			// peers that haven't finished the handshake should
-			// not be included in this list
-			if (peer->associated_torrent().expired()) continue;
-
-			tcp::endpoint sender = peer->get_socket()->remote_endpoint();
-			// loop until we find the required ip tcp::endpoint
-			if (ip != sender) continue;
-			
-			bt_peer_connection* p = dynamic_cast<bt_peer_connection*>(peer);
-			if (!p) return false;
-
-			// peers that don's support chat message extension
-			// should not be included either
-			if (!p->supports_extension(extended_chat_message))
-				return false;
-
-			// send the message 
-			p->write_chat_message(message);
-			return true;
-		}
-		return false;
-	}
-*/
 	void torrent_handle::get_download_queue(std::vector<partial_piece_info>& queue) const
 	{
 		INVARIANT_CHECK;

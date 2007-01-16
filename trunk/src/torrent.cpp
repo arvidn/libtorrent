@@ -1209,7 +1209,7 @@ namespace libtorrent
 				std::stringstream msg;
 				msg << "HTTP seed hostname lookup failed: " << e.message();
 				m_ses.m_alerts.post_alert(
-					url_seed_alert(url, msg.str()));
+					url_seed_alert(get_handle(), url, msg.str()));
 			}
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			(*m_ses.m_logger) << " ** HOSTNAME LOOKUP FAILED!**: " << url << "\n";
@@ -1457,13 +1457,13 @@ namespace libtorrent
 	void torrent::request_bandwidth(int channel
 		, boost::intrusive_ptr<peer_connection> p)
 	{
-		if (m_bandwidth_limit[channel].max_assignable() >= 17000)
+		if (m_bandwidth_limit[channel].max_assignable() >= max_bandwidth_block_size)
 		{
 			if (channel == peer_connection::upload_channel)
 				m_ses.m_ul_bandwidth_manager.request_bandwidth(p);
 			else if (channel == peer_connection::download_channel)
 				m_ses.m_dl_bandwidth_manager.request_bandwidth(p);
-			m_bandwidth_limit[channel].assign(17000);
+			m_bandwidth_limit[channel].assign(max_bandwidth_block_size);
 		}
 		else
 		{
@@ -1474,10 +1474,11 @@ namespace libtorrent
 	void torrent::expire_bandwidth(int channel, int amount)
 	{
 		assert(amount >= -1);
-		if (amount == -1) amount = 17000;
+		if (amount == -1) amount = max_bandwidth_block_size;
 		m_bandwidth_limit[channel].expire(amount);
 		
-		while (!m_bandwidth_queue[channel].empty() && m_bandwidth_limit[channel].max_assignable() >= 17000)
+		while (!m_bandwidth_queue[channel].empty()
+			&& m_bandwidth_limit[channel].max_assignable() >= max_bandwidth_block_size)
 		{
 			intrusive_ptr<peer_connection> p = m_bandwidth_queue[channel].front();
 			m_bandwidth_queue[channel].pop_front();
@@ -1485,14 +1486,15 @@ namespace libtorrent
 				m_ses.m_ul_bandwidth_manager.request_bandwidth(p);
 			else if (channel == peer_connection::download_channel)
 				m_ses.m_dl_bandwidth_manager.request_bandwidth(p);
-			m_bandwidth_limit[channel].assign(17000);
+			m_bandwidth_limit[channel].assign(max_bandwidth_block_size);
 		}
 	}
 
 	void torrent::assign_bandwidth(int channel, int amount)
 	{
 		assert(amount >= 0);
-		if (amount < 17000) expire_bandwidth(channel, 17000 - amount);
+		if (amount < max_bandwidth_block_size)
+			expire_bandwidth(channel, max_bandwidth_block_size - amount);
 	}
 
 	// called when torrent is finished (all interested pieces downloaded)

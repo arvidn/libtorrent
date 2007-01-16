@@ -1921,8 +1921,8 @@ in the torrent. Each boolean tells you if the peer has that piece (if it's set t
 or if the peer miss that piece (set to false).</p>
 <p><tt class="docutils literal"><span class="pre">seed</span></tt> is true if this peer is a seed.</p>
 <p><tt class="docutils literal"><span class="pre">upload_limit</span></tt> is the number of bytes per second we are allowed to send to this
-peer every second. It may be -1 if there's no limit. The upload limits of all peers
-should sum up to the upload limit set by <tt class="docutils literal"><span class="pre">session::set_upload_limit</span></tt>.</p>
+peer every second. It may be -1 if there's no local limit on the peer. The global
+limit and the torrent limit is always enforced anyway.</p>
 <p><tt class="docutils literal"><span class="pre">download_limit</span></tt> is the number of bytes per second this peer is allowed to
 receive. -1 means it's unlimited.</p>
 <p><tt class="docutils literal"><span class="pre">load_balancing</span></tt> is a measurement of the balancing of free download (that we get)
@@ -2390,7 +2390,7 @@ public:
 
         enum severity_t { debug, info, warning, critical, fatal, none };
 
-        alert(severity_t severity, const std::string&amp; msg);
+        alert(severity_t severity, std::string const&amp; msg);
         virtual ~alert();
 
         std::string const&amp; msg() const;
@@ -2402,6 +2402,16 @@ public:
 <p>This means that all alerts have at least a string describing it. They also
 have a severity level that can be used to sort them or present them to the
 user in different ways.</p>
+<p>There's another alert base class that all most alerts derives from, all the
+alerts that are generated for a specific torrent are derived from:</p>
+<pre class="literal-block">
+struct torrent_alert: alert
+{
+        torrent_alert(torrent_handle const&amp; h, severity_t s, std::string const&amp; msg);
+
+        torrent_handle handle;
+};
+</pre>
 <p>The specific alerts, that all derives from <tt class="docutils literal"><span class="pre">alert</span></tt>, are:</p>
 <div class="section">
 <h2><a id="listen-failed-alert" name="listen-failed-alert">listen_failed_alert</a></h2>
@@ -2421,14 +2431,13 @@ struct listen_failed_alert: alert
 <p>If the storage fails to read or write files that it needs access to, this alert is
 generated and the torrent is paused. It is generated as severity level <tt class="docutils literal"><span class="pre">fatal</span></tt>.</p>
 <pre class="literal-block">
-struct file_error_alert: alert
+struct file_error_alert: torrent_alert
 {
         file_error_alert(
                 const torrent_handle&amp; h
                 , const std::string&amp; msg);
 
         virtual std::auto_ptr&lt;alert&gt; clone() const;
-        torrent_handle handle;
 };
 </pre>
 </div>
@@ -2437,14 +2446,13 @@ struct file_error_alert: alert
 <p>This alert is generated each time a tracker announce is sent (or attempted to be sent).
 It is generated at severity level <tt class="docutils literal"><span class="pre">info</span></tt>.</p>
 <pre class="literal-block">
-struct tracker_announce_alert: alert
+struct tracker_announce_alert: torrent_alert
 {
         tracker_announce_alert(
                 const torrent_handle&amp; h
                 , const std::string&amp; msg);
 
         virtual std::auto_ptr&lt;alert&gt; clone() const;
-        torrent_handle handle;
 };
 </pre>
 </div>
@@ -2458,13 +2466,12 @@ the tracker belongs to. This alert is generated as severity level <tt class="doc
 authentication, 404 means not found etc. If the tracker timed out, the code will be set
 to 0.</p>
 <pre class="literal-block">
-struct tracker_alert: alert
+struct tracker_alert: torrent_alert
 {
-        tracker_alert(const torrent_handle&amp; h, int times, int status
+        tracker_alert(torrent_handle const&amp; h, int times, int status
                 , const std::string&amp; msg);
         virtual std::auto_ptr&lt;alert&gt; clone() const;
 
-        torrent_handle handle;
         int times_in_row;
         int status_code;
 };
@@ -2475,13 +2482,12 @@ struct tracker_alert: alert
 <p>This alert is only for informational purpose. It is generated when a tracker announce
 succeeds. It is generated with severity level <tt class="docutils literal"><span class="pre">info</span></tt>.</p>
 <pre class="literal-block">
-struct tracker_reply_alert: alert
+struct tracker_reply_alert: torrent_alert
 {
         tracker_reply_alert(const torrent_handle&amp; h
                 , const std::string&amp; msg);
 
         virtual std::auto_ptr&lt;alert&gt; clone() const;
-        torrent_handle handle;
 };
 </pre>
 </div>
@@ -2492,13 +2498,12 @@ means that the tracker announce was successful, but the tracker has a message to
 the client. The message string in the alert will contain the warning message from
 the tracker. It is generated with severity level <tt class="docutils literal"><span class="pre">warning</span></tt>.</p>
 <pre class="literal-block">
-struct tracker_warning_alert: alert
+struct tracker_warning_alert: torrent_alert
 {
         tracker_warning_alert(torrent_handle const&amp; h
                 , std::string const&amp; msg);
 
         virtual std::auto_ptr&lt;alert&gt; clone() const;
-        torrent_handle handle;
 };
 </pre>
 </div>
@@ -2508,9 +2513,10 @@ struct tracker_warning_alert: alert
 generated as severity level <tt class="docutils literal"><span class="pre">warning</span></tt>.</p>
 <p>It contains <tt class="docutils literal"><span class="pre">url</span></tt> to the HTTP seed that failed along with an error message.</p>
 <pre class="literal-block">
-struct url_seed_alert: alert
+struct url_seed_alert: torrent_alert
 {
-        url_seed_alert(std::string const&amp; h, const std::string&amp; msg);
+        url_seed_alert(torrent_handle const&amp; h, std::string const&amp; h
+                , const std::string&amp; msg);
         virtual std::auto_ptr&lt;alert&gt; clone() const;
 
         std::string url;
@@ -2523,15 +2529,15 @@ struct url_seed_alert: alert
 to the torrent which got the failed piece and the index of the piece itself from the alert.
 This alert is generated as severity level <tt class="docutils literal"><span class="pre">info</span></tt>.</p>
 <pre class="literal-block">
-struct hash_failed_alert: alert
+struct hash_failed_alert: torrent_alert
 {
         hash_failed_alert(
-                const torrent_handle&amp; h
+                torrent_handle const&amp; h
                 , int index
                 , const std::string&amp; msg);
 
         virtual std::auto_ptr&lt;alert&gt; clone() const;
-        torrent_handle handle;
+
         int piece_index;
 };
 </pre>
@@ -2542,7 +2548,7 @@ struct hash_failed_alert: alert
 to us. It is generated at severity level <tt class="docutils literal"><span class="pre">info</span></tt>. The <tt class="docutils literal"><span class="pre">handle</span></tt> member is a <a class="reference" href="#torrent-handle">torrent_handle</a>
 to the torrent that this peer was a member of.</p>
 <pre class="literal-block">
-struct peer_ban_alert: alert
+struct peer_ban_alert: torrent_alert
 {
         peer_ban_alert(
                 asio::ip::tcp::endpoint const&amp; pip
@@ -2550,8 +2556,8 @@ struct peer_ban_alert: alert
                 , const std::string&amp; msg);
 
         virtual std::auto_ptr&lt;alert&gt; clone() const;
+
         asio::ip::tcp::endpoint ip;
-        torrent_handle handle;
 };
 </pre>
 </div>
@@ -2581,7 +2587,7 @@ is a handle to the torrent the peer is a member of. <tt class="docutils literal"
 <tt class="docutils literal"><span class="pre">request</span></tt> is the actual incoming request from the peer. The alert is generated as severity level
 <tt class="docutils literal"><span class="pre">debug</span></tt>.</p>
 <pre class="literal-block">
-struct invalid_request_alert: alert
+struct invalid_request_alert: torrent_alert
 {
         invalid_request_alert(
                 peer_request const&amp; r
@@ -2591,7 +2597,7 @@ struct invalid_request_alert: alert
                 , std::string const&amp; msg);
 
         virtual std::auto_ptr&lt;alert&gt; clone() const;
-        torrent_handle handle;
+
         asio::ip::tcp::endpoint ip;
         peer_request request;
         peer_id id;
@@ -2616,14 +2622,13 @@ should be read, and <tt class="docutils literal"><span class="pre">length</span>
 It will only be generated once per torrent. It contains a torrent_handle to the
 torrent in question. This alert is generated as severity level <tt class="docutils literal"><span class="pre">info</span></tt>.</p>
 <pre class="literal-block">
-struct torrent_finished_alert: alert
+struct torrent_finished_alert:torrent_ alert
 {
         torrent_finished_alert(
                 const torrent_handle&amp; h
                 , const std::string&amp; msg);
 
         virtual std::auto_ptr&lt;alert&gt; clone() const;
-        torrent_handle handle;
 };
 </pre>
 </div>
@@ -2635,14 +2640,13 @@ automatically retry to fetch it in this case. This is only relevant when running
 torrent-less download, with the metadata extension provided by libtorrent.
 It is generated at severity level <tt class="docutils literal"><span class="pre">info</span></tt>.</p>
 <pre class="literal-block">
-struct metadata_failed_alert: alert
+struct metadata_failed_alert: torrent_alert
 {
         metadata_failed_alert(
-                const torrent_handle&amp; h
-                , const std::string&amp; msg);
+                torrent_handle const&amp; h
+                , std::string const&amp; msg);
 
         virtual std::auto_ptr&lt;alert&gt; clone() const;
-        torrent_handle handle;
 };
 </pre>
 </div>
@@ -2653,14 +2657,13 @@ can start downloading. It is not generated on torrents that are started with met
 only those that needs to download it from peers (when utilizing the libtorrent extension).
 It is generated at severity level <tt class="docutils literal"><span class="pre">info</span></tt>.</p>
 <pre class="literal-block">
-struct metadata_received_alert: alert
+struct metadata_received_alert: torrent_alert
 {
         metadata_received_alert(
-                const torrent_handle&amp; h
-                , const std::string&amp; msg);
+                torrent_handle const_&amp; h
+                , std::string const&amp; msg);
 
         virtual std::auto_ptr&lt;alert&gt; clone() const;
-        torrent_handle handle;
 };
 </pre>
 </div>
@@ -2679,29 +2682,6 @@ struct fastresume_rejected_alert: alert
         torrent_handle handle;
 };
 </pre>
-<!-- chat_message_alert
-- - - - - - - - - - - - - - - - - -
-
-This alert is generated when you receive a chat message from another peer. Chat messages
-are supported as an extension ("chat"). It is generated as severity level ``critical``,
-even though it doesn't necessarily require any user intervention, it's high priority
-since you would almost never want to ignore such a message. The alert class contain
-a torrent_handle_ to the torrent in which the sender-peer is a member and the ip
-of the sending peer.
-
-::
-
-        struct chat_message_alert: alert
-        {
-                chat_message_alert(const torrent_handle& h
-                        , const address& sender
-                        , const std::string& msg);
-
-                virtual std::auto_ptr<alert> clone() const;
-
-                torrent_handle handle;
-                address ip;
-        }; -->
 </div>
 <div class="section">
 <h2><a id="dispatcher" name="dispatcher">dispatcher</a></h2>
