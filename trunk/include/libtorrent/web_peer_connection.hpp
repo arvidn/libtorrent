@@ -112,7 +112,8 @@ namespace libtorrent
 		std::string const& url() const { return m_url; }
 		
 		virtual void get_peer_info(peer_info& p) const;
-		
+		virtual bool in_handshake() const;
+
 		// the following functions appends messages
 		// to the send buffer
 		void write_choke() {}

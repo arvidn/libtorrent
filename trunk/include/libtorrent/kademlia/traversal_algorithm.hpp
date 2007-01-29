@@ -58,7 +58,7 @@ class traversal_algorithm : boost::noncopyable
 public:
 	void traverse(node_id const& id, udp::endpoint addr);
 	void finished(node_id const& id);
-	void failed(node_id const& id);
+	void failed(node_id const& id, bool prevent_request = false);
 	virtual ~traversal_algorithm() {}
 
 protected:
@@ -73,7 +73,6 @@ protected:
 		, InIt end
 	);
 
-	void add_request(node_id const& id, udp::endpoint addr);
 	void add_requests();
 	void add_entry(node_id const& id, udp::endpoint addr, unsigned char flags);
 

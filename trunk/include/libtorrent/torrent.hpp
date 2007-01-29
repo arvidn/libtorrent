@@ -190,6 +190,11 @@ namespace libtorrent
 		float ratio() const
 		{ return m_ratio; }
 
+		void resolve_countries(bool r)
+		{ m_resolve_countries = r; }
+
+		bool resolving_countries() const { return m_resolve_countries; }
+
 // --------------------------------------------
 		// BANDWIDTH MANAGEMENT
 
@@ -242,6 +247,7 @@ namespace libtorrent
 		peer_iterator begin() { return m_connections.begin(); }
 		peer_iterator end() { return m_connections.end(); }
 
+		void resolve_peer_country(boost::intrusive_ptr<peer_connection> const& p) const;
 
 // --------------------------------------------
 		// TRACKER MANAGEMENT
@@ -457,6 +463,8 @@ namespace libtorrent
 
 		void try_next_tracker();
 		int prioritize_tracker(int tracker_index);
+		void on_country_lookup(asio::error_code const& error, tcp::resolver::iterator i
+			, boost::intrusive_ptr<peer_connection> p) const;
 
 		torrent_info m_torrent_file;
 
@@ -516,8 +524,18 @@ namespace libtorrent
 		std::set<std::string> m_resolving_web_seeds;
 
 		// used to resolve the names of web seeds
-		tcp::resolver m_host_resolver;
+		mutable tcp::resolver m_host_resolver;
 		
+		// this is true while there is a country
+		// resolution in progress. To avoid flodding
+		// the DNS request queue, only one ip is reolved
+		// at a time.
+		mutable bool m_resolving_country;
+		
+		// this is true if the user has enabled
+		// country resolution in this torrent
+		bool m_resolve_countries;
+
 #ifndef TORRENT_DISABLE_DHT
 		static void on_dht_announce_response_disp(boost::weak_ptr<torrent> t
 			, std::vector<tcp::endpoint> const& peers);

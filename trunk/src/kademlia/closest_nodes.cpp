@@ -47,12 +47,12 @@ public:
 	closest_nodes_observer(
 		boost::intrusive_ptr<traversal_algorithm> const& algorithm
 		, node_id self
-		, node_id target
-	)
+		, node_id target)
 		: m_algorithm(algorithm)
 		, m_target(target) 
 		, m_self(self)
 	{}
+	~closest_nodes_observer();
 
 	void send(msg& p)
 	{
@@ -61,6 +61,7 @@ public:
 
 	void timeout();
 	void reply(msg const&);
+	void abort() { m_algorithm = 0; }
 
 private:
 	boost::intrusive_ptr<traversal_algorithm> m_algorithm;
@@ -68,8 +69,19 @@ private:
 	node_id const m_self;
 };
 
+closest_nodes_observer::~closest_nodes_observer()
+{
+	if (m_algorithm) m_algorithm->failed(m_self, true);
+}
+
 void closest_nodes_observer::reply(msg const& in)
 {
+	if (!m_algorithm)
+	{
+		assert(false);
+		return;
+	}
+
 	if (!in.nodes.empty())
 	{
 		for (msg::nodes_t::const_iterator i = in.nodes.begin()
@@ -79,11 +91,14 @@ void closest_nodes_observer::reply(msg const& in)
 		}
 	}
 	m_algorithm->finished(m_self);
+	m_algorithm = 0;
 }
 
 void closest_nodes_observer::timeout()
 {
+	if (!m_algorithm) return;
 	m_algorithm->failed(m_self);
+	m_algorithm = 0;
 }
 
 

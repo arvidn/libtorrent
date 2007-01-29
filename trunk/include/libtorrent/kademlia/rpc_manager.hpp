@@ -128,6 +128,12 @@ struct observer : boost::noncopyable
 	// this is called when no reply has been received within
 	// some timeout
 	virtual void timeout() = 0;
+	
+	// if this is called the destructor should
+	// not invoke any new messages, and should
+	// only clean up. It means the rpc-manager
+	// is being destructed
+	virtual void abort() = 0;
 
 	udp::endpoint target_addr;
 	boost::posix_time::ptime sent;
@@ -162,7 +168,8 @@ public:
 private:
 
 	enum { max_transactions = 2048 };
-	unsigned int new_transaction_id();
+
+	unsigned int new_transaction_id(boost::shared_ptr<observer> o);
 	void update_oldest_transaction_id();
 	
 	boost::uint32_t calc_connection_id(udp::endpoint addr);
@@ -170,6 +177,7 @@ private:
 	typedef boost::array<boost::shared_ptr<observer>, max_transactions>
 		transactions_t;
 	transactions_t m_transactions;
+	std::vector<boost::shared_ptr<observer> > m_aborted_transactions;
 	
 	// this is the next transaction id to be used
 	int m_next_transaction_id;
@@ -185,6 +193,7 @@ private:
 	routing_table& m_table;
 	boost::posix_time::ptime m_timer;
 	node_id m_random_number;
+	bool m_destructing;
 };
 
 } } // namespace libtorrent::dht

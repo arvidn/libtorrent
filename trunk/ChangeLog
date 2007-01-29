@@ -1,3 +1,5 @@
+	* Added the possibility to have libtorrent resolve the countries of
+	  the peers in torrents.
 	* Improved the bandwidth limiter (it now implements a leaky bucket).
 	* Improved the HTTP seed downloader to report accurate progress.
 	* Added more client peer-id signatures to be recognized.

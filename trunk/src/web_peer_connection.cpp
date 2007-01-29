@@ -455,6 +455,9 @@ namespace libtorrent
 		p.payload_up_speed = statistics().upload_payload_rate();
 		p.pid = pid();
 		p.ip = remote();
+		
+		p.country[0] = m_country[0];
+		p.country[1] = m_country[1];
 
 		p.total_download = statistics().total_payload_download();
 		p.total_upload = statistics().total_payload_upload();
@@ -505,6 +508,11 @@ namespace libtorrent
 
 		p.client = m_server_string;
 		p.connection_type = peer_info::web_seed;
+	}
+
+	bool web_peer_connection::in_handshake() const
+	{
+		return m_server_string.empty();
 	}
 
 	// throws exception when the client should be disconnected

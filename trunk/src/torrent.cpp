@@ -239,6 +239,8 @@ namespace libtorrent
 		, m_complete(-1)
 		, m_incomplete(-1)
 		, m_host_resolver(ses.m_io_service)
+		, m_resolving_country(false)
+		, m_resolve_countries(false)
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_announce_timer(ses.m_io_service)
 #endif
@@ -326,6 +328,8 @@ namespace libtorrent
 		, m_complete(-1)
 		, m_incomplete(-1)
 		, m_host_resolver(ses.m_io_service)
+		, m_resolving_country(false)
+		, m_resolve_countries(false)
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_announce_timer(ses.m_io_service)
 #endif
@@ -1185,6 +1189,320 @@ namespace libtorrent
 				bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, url)));
 		}
 
+	}
+
+	void torrent::resolve_peer_country(boost::intrusive_ptr<peer_connection> const& p) const
+	{
+		if (m_resolving_country
+			|| p->has_country()
+			|| p->is_connecting()
+			|| p->is_queued()
+			|| p->in_handshake()) return;
+
+		m_resolving_country = true;
+		tcp::resolver::query q(boost::lexical_cast<std::string>(p->remote().address())
+			+ ".zz.countries.nerd.dk", "0");
+		m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
+			bind(&torrent::on_country_lookup, shared_from_this(), _1, _2, p)));
+	}
+
+	namespace
+	{
+		typedef std::pair<int, char const*> country_entry;
+
+		bool compare_first(country_entry const& lhs, country_entry const& rhs)
+		{
+			return lhs.first < rhs.first;
+		}
+	}
+
+	void torrent::on_country_lookup(asio::error_code const& error, tcp::resolver::iterator i
+		, intrusive_ptr<peer_connection> p) const
+	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+		INVARIANT_CHECK;
+		
+		m_resolving_country = false;
+
+		// must be ordered in increasing order
+		country_entry country_map[] =
+		{
+			  country_entry(  4,  "AF")
+			, country_entry(  8,  "AL")
+			, country_entry( 10,  "AQ")
+			, country_entry( 12,  "DZ")
+			, country_entry( 16,  "AS")
+			, country_entry( 20,  "AD")
+			, country_entry( 24,  "AO")
+			, country_entry( 28,  "AG")
+			, country_entry( 31,  "AZ")
+			, country_entry( 32,  "AR")
+			, country_entry( 36,  "AU")
+			, country_entry( 40,  "AT")
+			, country_entry( 44,  "BS")
+			, country_entry( 48,  "BH")
+			, country_entry( 50,  "BD")
+			, country_entry( 51,  "AM")
+			, country_entry( 52,  "BB")
+			, country_entry( 56,  "BE")
+			, country_entry( 60,  "BM")
+			, country_entry( 64,  "BT")
+			, country_entry( 68,  "BO")
+			, country_entry( 70,  "BA")
+			, country_entry( 72,  "BW")
+			, country_entry( 74,  "BV")
+			, country_entry( 76,  "BR")
+			, country_entry( 84,  "BZ")
+			, country_entry( 86,  "IO")
+			, country_entry( 90,  "SB")
+			, country_entry( 92,  "VG")
+			, country_entry( 96,  "BN")
+			, country_entry(100,  "BG")
+			, country_entry(104,  "MM")
+			, country_entry(108,  "BI")
+			, country_entry(112,  "BY")
+			, country_entry(116,  "KH")
+			, country_entry(120,  "CM")
+			, country_entry(124,  "CA")
+			, country_entry(132,  "CV")
+			, country_entry(136,  "KY")
+			, country_entry(140,  "CF")
+			, country_entry(144,  "LK")
+			, country_entry(148,  "TD")
+			, country_entry(152,  "CL")
+			, country_entry(156,  "CN")
+			, country_entry(158,  "TW")
+			, country_entry(162,  "CX")
+			, country_entry(166,  "CC")
+			, country_entry(170,  "CO")
+			, country_entry(174,  "KM")
+			, country_entry(175,  "YT")
+			, country_entry(178,  "CG")
+			, country_entry(180,  "CD")
+			, country_entry(184,  "CK")
+			, country_entry(188,  "CR")
+			, country_entry(191,  "HR")
+			, country_entry(192,  "CU")
+			, country_entry(203,  "CZ")
+			, country_entry(204,  "BJ")
+			, country_entry(208,  "DK")
+			, country_entry(212,  "DM")
+			, country_entry(214,  "DO")
+			, country_entry(218,  "EC")
+			, country_entry(222,  "SV")
+			, country_entry(226,  "GQ")
+			, country_entry(231,  "ET")
+			, country_entry(232,  "ER")
+			, country_entry(233,  "EE")
+			, country_entry(234,  "FO")
+			, country_entry(238,  "FK")
+			, country_entry(239,  "GS")
+			, country_entry(242,  "FJ")
+			, country_entry(246,  "FI")
+			, country_entry(248,  "AX")
+			, country_entry(250,  "FR")
+			, country_entry(254,  "GF")
+			, country_entry(258,  "PF")
+			, country_entry(260,  "TF")
+			, country_entry(262,  "DJ")
+			, country_entry(266,  "GA")
+			, country_entry(268,  "GE")
+			, country_entry(270,  "GM")
+			, country_entry(275,  "PS")
+			, country_entry(276,  "DE")
+			, country_entry(288,  "GH")
+			, country_entry(292,  "GI")
+			, country_entry(296,  "KI")
+			, country_entry(300,  "GR")
+			, country_entry(304,  "GL")
+			, country_entry(308,  "GD")
+			, country_entry(312,  "GP")
+			, country_entry(316,  "GU")
+			, country_entry(320,  "GT")
+			, country_entry(324,  "GN")
+			, country_entry(328,  "GY")
+			, country_entry(332,  "HT")
+			, country_entry(334,  "HM")
+			, country_entry(336,  "VA")
+			, country_entry(340,  "HN")
+			, country_entry(344,  "HK")
+			, country_entry(348,  "HU")
+			, country_entry(352,  "IS")
+			, country_entry(356,  "IN")
+			, country_entry(360,  "ID")
+			, country_entry(364,  "IR")
+			, country_entry(368,  "IQ")
+			, country_entry(372,  "IE")
+			, country_entry(376,  "IL")
+			, country_entry(380,  "IT")
+			, country_entry(384,  "CI")
+			, country_entry(388,  "JM")
+			, country_entry(392,  "JP")
+			, country_entry(398,  "KZ")
+			, country_entry(400,  "JO")
+			, country_entry(404,  "KE")
+			, country_entry(408,  "KP")
+			, country_entry(410,  "KR")
+			, country_entry(414,  "KW")
+			, country_entry(417,  "KG")
+			, country_entry(418,  "LA")
+			, country_entry(422,  "LB")
+			, country_entry(426,  "LS")
+			, country_entry(428,  "LV")
+			, country_entry(430,  "LR")
+			, country_entry(434,  "LY")
+			, country_entry(438,  "LI")
+			, country_entry(440,  "LT")
+			, country_entry(442,  "LU")
+			, country_entry(446,  "MO")
+			, country_entry(450,  "MG")
+			, country_entry(454,  "MW")
+			, country_entry(458,  "MY")
+			, country_entry(462,  "MV")
+			, country_entry(466,  "ML")
+			, country_entry(470,  "MT")
+			, country_entry(474,  "MQ")
+			, country_entry(478,  "MR")
+			, country_entry(480,  "MU")
+			, country_entry(484,  "MX")
+			, country_entry(492,  "MC")
+			, country_entry(496,  "MN")
+			, country_entry(498,  "MD")
+			, country_entry(500,  "MS")
+			, country_entry(504,  "MA")
+			, country_entry(508,  "MZ")
+			, country_entry(512,  "OM")
+			, country_entry(516,  "NA")
+			, country_entry(520,  "NR")
+			, country_entry(524,  "NP")
+			, country_entry(528,  "NL")
+			, country_entry(530,  "AN")
+			, country_entry(533,  "AW")
+			, country_entry(540,  "NC")
+			, country_entry(548,  "VU")
+			, country_entry(554,  "NZ")
+			, country_entry(558,  "NI")
+			, country_entry(562,  "NE")
+			, country_entry(566,  "NG")
+			, country_entry(570,  "NU")
+			, country_entry(574,  "NF")
+			, country_entry(578,  "NO")
+			, country_entry(580,  "MP")
+			, country_entry(581,  "UM")
+			, country_entry(583,  "FM")
+			, country_entry(584,  "MH")
+			, country_entry(585,  "PW")
+			, country_entry(586,  "PK")
+			, country_entry(591,  "PA")
+			, country_entry(598,  "PG")
+			, country_entry(600,  "PY")
+			, country_entry(604,  "PE")
+			, country_entry(608,  "PH")
+			, country_entry(612,  "PN")
+			, country_entry(616,  "PL")
+			, country_entry(620,  "PT")
+			, country_entry(624,  "GW")
+			, country_entry(626,  "TL")
+			, country_entry(630,  "PR")
+			, country_entry(634,  "QA")
+			, country_entry(634,  "QA")
+			, country_entry(638,  "RE")
+			, country_entry(642,  "RO")
+			, country_entry(643,  "RU")
+			, country_entry(646,  "RW")
+			, country_entry(654,  "SH")
+			, country_entry(659,  "KN")
+			, country_entry(660,  "AI")
+			, country_entry(662,  "LC")
+			, country_entry(666,  "PM")
+			, country_entry(670,  "VC")
+			, country_entry(674,  "SM")
+			, country_entry(678,  "ST")
+			, country_entry(682,  "SA")
+			, country_entry(686,  "SN")
+			, country_entry(690,  "SC")
+			, country_entry(694,  "SL")
+			, country_entry(702,  "SG")
+			, country_entry(703,  "SK")
+			, country_entry(704,  "VN")
+			, country_entry(705,  "SI")
+			, country_entry(706,  "SO")
+			, country_entry(710,  "ZA")
+			, country_entry(716,  "ZW")
+			, country_entry(724,  "ES")
+			, country_entry(732,  "EH")
+			, country_entry(736,  "SD")
+			, country_entry(740,  "SR")
+			, country_entry(744,  "SJ")
+			, country_entry(748,  "SZ")
+			, country_entry(752,  "SE")
+			, country_entry(756,  "CH")
+			, country_entry(760,  "SY")
+			, country_entry(762,  "TJ")
+			, country_entry(764,  "TH")
+			, country_entry(768,  "TG")
+			, country_entry(772,  "TK")
+			, country_entry(776,  "TO")
+			, country_entry(780,  "TT")
+			, country_entry(784,  "AE")
+			, country_entry(788,  "TN")
+			, country_entry(792,  "TR")
+			, country_entry(795,  "TM")
+			, country_entry(796,  "TC")
+			, country_entry(798,  "TV")
+			, country_entry(800,  "UG")
+			, country_entry(804,  "UA")
+			, country_entry(807,  "MK")
+			, country_entry(818,  "EG")
+			, country_entry(826,  "GB")
+			, country_entry(834,  "TZ")
+			, country_entry(840,  "US")
+			, country_entry(850,  "VI")
+			, country_entry(854,  "BF")
+			, country_entry(858,  "UY")
+			, country_entry(860,  "UZ")
+			, country_entry(862,  "VE")
+			, country_entry(876,  "WF")
+			, country_entry(882,  "WS")
+			, country_entry(887,  "YE")
+			, country_entry(891,  "CS")
+			, country_entry(894,  "ZM")
+		};
+
+		if (error || i == tcp::resolver::iterator())
+		{
+			// this is used to indicate that we shouldn't
+			// try to resolve it again
+			p->set_country("--");
+			return;
+		}
+
+		while (i != tcp::resolver::iterator()
+			&& !i->endpoint().address().is_v4()) ++i;
+		if (i != tcp::resolver::iterator())
+		{
+			// country is an ISO 3166 country code
+			int country = i->endpoint().address().to_v4().to_ulong() & 0xffff;
+			
+			// look up the country code in the map
+			const int size = sizeof(country_map)/sizeof(country_map[0]);
+			country_entry* i =
+				std::lower_bound(country_map, country_map + size
+					, country_entry(country, ""), &compare_first);
+			if (i == country_map + size
+				|| i->first != country)
+			{
+				// unknown country!
+				p->set_country("!!");
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+				(*m_ses.m_logger) << "IP " << p->remote().address() << " was mapped to unknown country: " << country << "\n";
+#endif
+				return;
+			}
+			
+			p->set_country(i->second);
+		}
 	}
 
 	void torrent::on_name_lookup(asio::error_code const& e, tcp::resolver::iterator host

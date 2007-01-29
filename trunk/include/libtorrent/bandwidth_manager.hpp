@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 #include <boost/integer_traits.hpp>
+#include <boost/thread/mutex.hpp>
 #include <deque>
 
 namespace pt = boost::posix_time;
@@ -157,12 +158,14 @@ struct bandwidth_manager
 
 	void throttle(int limit)
 	{
+		mutex_t::scoped_lock l(m_mutex);
 		assert(limit >= 0);
 		m_limit = limit;
 	}
 	
 	int throttle() const
 	{
+		mutex_t::scoped_lock l(m_mutex);
 		return m_limit;
 	}
 
@@ -180,6 +183,9 @@ private:
 	void add_history_entry(history_entry const& e);
 	void on_history_expire(asio::error_code const& e);
 	void hand_out_bandwidth();
+
+	typedef boost::mutex mutex_t;
+	mutable mutex_t m_mutex;
 
 	// the io_service used for the timer
 	io_service& m_ios;

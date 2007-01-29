@@ -308,6 +308,10 @@ namespace libtorrent
 
 		virtual void get_peer_info(peer_info& p) const = 0;
 
+		// is true until we can be sure that the other end
+		// speaks our protocol (be it bittorrent or http).
+		virtual bool in_handshake() const = 0;
+
 		// returns the block currently being
 		// downloaded. And the progress of that
 		// block. If the peer isn't downloading
@@ -325,6 +329,14 @@ namespace libtorrent
 		void send_buffer(char const* begin, char const* end);
 		buffer::interval allocate_send_buffer(int size);
 		void setup_send();
+
+		void set_country(char const* c)
+		{
+			assert(strlen(c) == 2);
+			m_country[0] = c[0];
+			m_country[1] = c[1];
+		}
+		bool has_country() const { return m_country[0] != 0; }
 
 	protected:
 
@@ -413,6 +425,12 @@ namespace libtorrent
 		typedef std::list<boost::shared_ptr<peer_plugin> > extension_list_t;
 		extension_list_t m_extensions;
 #endif
+
+		// in case the session settings is set
+		// to resolve countries, this is set to
+		// the two character country code this
+		// peer resides in.
+		char m_country[2];
 
 	private:
 

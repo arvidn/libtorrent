@@ -182,6 +182,9 @@ namespace libtorrent
 		p.payload_up_speed = statistics().upload_payload_rate();
 		p.pid = pid();
 		p.ip = remote();
+		
+		p.country[0] = m_country[0];
+		p.country[1] = m_country[1];
 
 		p.total_download = statistics().total_payload_download();
 		p.total_upload = statistics().total_payload_upload();
@@ -233,6 +236,11 @@ namespace libtorrent
 		
 		p.client = m_client_version;
 		p.connection_type = peer_info::standard_bittorrent;
+	}
+	
+	bool bt_peer_connection::in_handshake() const
+	{
+		return m_state < read_packet_size;
 	}
 
 	void bt_peer_connection::write_handshake()
@@ -1146,8 +1154,9 @@ namespace libtorrent
 				, recv_buffer.end) << "'\n";
 #endif
 			const char protocol_string[] = "BitTorrent protocol";
-			if (!std::equal(recv_buffer.begin, recv_buffer.end
-				, protocol_string))
+			if (recv_buffer.end - recv_buffer.begin != 19
+				|| !std::equal(recv_buffer.begin, recv_buffer.end
+					, protocol_string))
 			{
 				const char cmd[] = "version";
 				if (recv_buffer.end - recv_buffer.begin == 7 && std::equal(
