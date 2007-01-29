@@ -243,8 +243,9 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
-
-	out << " down    (total)   up      (total)  q  r  flags  block progress  client \n";
+#ifndef ANSI_TERMINAL_COLORS
+	out << " down    (total)   up      (total)  q  r  flags  block progress country client \n";
+#endif
 
 	for (std::vector<peer_info>::const_iterator i = peers.begin();
 		i != peers.end(); ++i)
@@ -272,6 +273,15 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 		else
 		{
 			out << progress_bar(0.f, 15);
+		}
+
+		if (i->country[0] == 0)
+		{
+			out << " ..";
+		}
+		else
+		{
+			out << " " << i->country[0] << i->country[1];
 		}
 
 		if (i->flags & peer_info::handshake)
@@ -350,6 +360,7 @@ void add_torrent(libtorrent::session& ses
 	h.set_max_uploads(-1);
 	h.set_ratio(preferred_ratio);
 	h.set_sequenced_download_threshold(15);
+	h.resolve_countries(true);
 }
 catch (std::exception&) {};
 

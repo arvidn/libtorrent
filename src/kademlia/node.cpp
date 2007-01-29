@@ -278,6 +278,7 @@ namespace
 
 		void timeout() {}
 		void reply(msg const&) {}
+		void abort() {}
 
 	private:
 		sha1_hash m_info_hash;
@@ -311,6 +312,7 @@ namespace
 				new announce_observer(m_info_hash, m_listen_port, r.write_token)));
 			m_fun(r.peers, m_info_hash);
 		}
+		void abort() {}
 
 	private:
 		sha1_hash m_info_hash;
@@ -344,6 +346,7 @@ namespace
 		virtual void reply(msg const&) {}
 		virtual void timeout() {}
 		virtual void send(msg&) {}
+		virtual void abort() {}
 	};
 }
 

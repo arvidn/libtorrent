@@ -243,6 +243,9 @@ namespace libtorrent
 		bool is_paused() const;
 		void pause() const;
 		void resume() const;
+		
+		void resolve_countries(bool r);
+		bool resolve_countries() const;
 
 		// marks the piece with the given index as filtered
 		// it will not be downloaded

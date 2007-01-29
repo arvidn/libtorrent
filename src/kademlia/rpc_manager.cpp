@@ -72,15 +72,25 @@ rpc_manager::rpc_manager(fun const& f, node_id const& our_id
 	, m_table(table)
 	, m_timer(boost::posix_time::microsec_clock::universal_time())
 	, m_random_number(generate_id())
+	, m_destructing(false)
 {
 	std::srand(time(0));
 }
 
 rpc_manager::~rpc_manager()
 {
+	m_destructing = true;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(rpc) << "Destructing";
 #endif
+	std::for_each(m_aborted_transactions.begin(), m_aborted_transactions.end()
+		, bind(&observer::abort, _1));
+	
+	for (transactions_t::iterator i = m_transactions.begin()
+		, end(m_transactions.end()); i != end; ++i)
+	{
+		if (*i) (*i)->abort();
+	}
 }
 
 #ifndef NDEBUG
@@ -103,6 +113,8 @@ void rpc_manager::check_invariant() const
 bool rpc_manager::incoming(msg const& m)
 {
 	INVARIANT_CHECK;
+
+	if (m_destructing) return false;
 
 	if (m.reply)
 	{
@@ -195,6 +207,8 @@ time_duration rpc_manager::tick()
 
 	if (m_next_transaction_id == m_oldest_transaction_id) return milliseconds(timeout_ms);
 
+	std::vector<shared_ptr<observer> > timeouts;
+
 	for (;m_next_transaction_id != m_oldest_transaction_id;
 		m_oldest_transaction_id = (m_oldest_transaction_id + 1) % max_transactions)
 	{
@@ -215,24 +229,39 @@ time_duration rpc_manager::tick()
 		try
 		{
 			m_transactions[m_oldest_transaction_id].reset();
-			o->timeout();
+			timeouts.push_back(o);
 		} catch (std::exception) {}
 	}
+	
+	check_invariant();
+
+	std::for_each(timeouts.begin(), timeouts.end(), bind(&observer::timeout, _1));
+	timeouts.clear();
+	
+	// clear the aborted transactions, will likely
+	// generate new requests. We need to swap, since the
+	// destrutors may add more observers to the m_aborted_transactions
+	std::vector<shared_ptr<observer> >().swap(m_aborted_transactions);
 	return milliseconds(timeout_ms);
 }
 
-unsigned int rpc_manager::new_transaction_id()
+unsigned int rpc_manager::new_transaction_id(shared_ptr<observer> o)
 {
 	INVARIANT_CHECK;
 
 	unsigned int tid = m_next_transaction_id;
 	m_next_transaction_id = (m_next_transaction_id + 1) % max_transactions;
-//	boost::shared_ptr<observer> o = m_transactions[m_next_transaction_id];
 	if (m_transactions[m_next_transaction_id])
 	{
+		// moving the observer into the set of aborted transactions
+		// it will prevent it from spawning new requests right now,
+		// since that would break the invariant
+		m_aborted_transactions.push_back(m_transactions[m_next_transaction_id]);
 		m_transactions[m_next_transaction_id].reset();
 		assert(m_oldest_transaction_id == m_next_transaction_id);
 	}
+	assert(!m_transactions[tid]);
+	m_transactions[tid] = o;
 	if (m_oldest_transaction_id == m_next_transaction_id)
 	{
 		m_oldest_transaction_id = (m_oldest_transaction_id + 1) % max_transactions;
@@ -243,21 +272,6 @@ unsigned int rpc_manager::new_transaction_id()
 		update_oldest_transaction_id();
 	}
 
-#ifndef NDEBUG
-	assert(!m_transactions[m_next_transaction_id]);
-	for (int i = (m_next_transaction_id + 1) % max_transactions;
-		i != m_oldest_transaction_id; i = (i + 1) % max_transactions)
-	{
-		assert(!m_transactions[i]);
-	}
-#endif
-
-// hopefully this wouldn't happen, but unfortunately, the
-// traversal algorithm will simply fail in case its connections
-// are overwritten. If timeout() is called, it will likely spawn
-// another connection, which in turn will close the next one
-// and so on.
-//	if (o) o->timeout();
 	return tid;
 }
 
@@ -280,32 +294,47 @@ void rpc_manager::invoke(int message_id, udp::endpoint target_addr
 {
 	INVARIANT_CHECK;
 
+	if (m_destructing)
+	{
+		o->abort();
+		return;
+	}
+
 	msg m;
 	m.message_id = message_id;
 	m.reply = false;
 	m.id = m_our_id;
 	m.addr = target_addr;
-	int tid = new_transaction_id();
-	m.transaction_id.clear();
-	std::back_insert_iterator<std::string> out(m.transaction_id);
-	io::write_uint16(tid, out);
-	
-	o->send(m);
+	assert(!m_transactions[m_next_transaction_id]);
+	try
+	{
+		m.transaction_id.clear();
+		std::back_insert_iterator<std::string> out(m.transaction_id);
+		io::write_uint16(m_next_transaction_id, out);
+		
+		o->send(m);
 
-	m_transactions[tid] = o;
-	o->sent = boost::posix_time::microsec_clock::universal_time();
-	o->target_addr = target_addr;
+		o->sent = boost::posix_time::microsec_clock::universal_time();
+		o->target_addr = target_addr;
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(rpc) << "Invoking " << messages::ids[message_id] 
-		<< " -> " << target_addr;
-#endif	
-	m_send(m);
+	#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(rpc) << "Invoking " << messages::ids[message_id] 
+			<< " -> " << target_addr;
+	#endif	
+		m_send(m);
+		new_transaction_id(o);
+	}
+	catch (std::exception&)
+	{
+		assert(false);
+	}
 }
 
 void rpc_manager::reply(msg& m, msg const& reply_to)
 {
 	INVARIANT_CHECK;
+
+	if (m_destructing) return;
 
 	if (m.message_id != messages::error)
 		m.message_id = reply_to.message_id;
@@ -325,12 +354,15 @@ namespace
 		virtual void reply(msg const&) {}
 		virtual void timeout() {}
 		virtual void send(msg&) {}
+		void abort() {}
 	};
 }
 
 void rpc_manager::reply_with_ping(msg& m, msg const& reply_to)
 {
 	INVARIANT_CHECK;
+
+	if (m_destructing) return;
 
 	if (m.message_id != messages::error)
 		m.message_id = reply_to.message_id;
@@ -340,17 +372,24 @@ void rpc_manager::reply_with_ping(msg& m, msg const& reply_to)
 	m.id = m_our_id;
 	m.transaction_id = reply_to.transaction_id;
 
-	int ptid = new_transaction_id();
-	m.ping_transaction_id.clear();
-	std::back_insert_iterator<std::string> out(m.ping_transaction_id);
-	io::write_uint16(ptid, out);
+	try
+	{
+		m.ping_transaction_id.clear();
+		std::back_insert_iterator<std::string> out(m.ping_transaction_id);
+		io::write_uint16(m_next_transaction_id, out);
 
-	boost::shared_ptr<observer> o(new dummy_observer);
-	m_transactions[ptid] = o;
-	o->sent = boost::posix_time::microsec_clock::universal_time();
-	o->target_addr = m.addr;
-	
-	m_send(m);
+		boost::shared_ptr<observer> o(new dummy_observer);
+		assert(!m_transactions[m_next_transaction_id]);
+		o->sent = boost::posix_time::microsec_clock::universal_time();
+		o->target_addr = m.addr;
+		
+		m_send(m);
+		new_transaction_id(o);
+	}
+	catch (std::exception& e)
+	{
+		assert(false);
+	}
 }
 
 

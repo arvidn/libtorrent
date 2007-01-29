@@ -64,6 +64,7 @@ public:
 		, m_self(self)
 		, m_algorithm(algorithm)
 	{}
+	~refresh_observer();
 
 	void send(msg& m)
 	{
@@ -72,6 +73,8 @@ public:
 
 	void timeout();
 	void reply(msg const& m);
+	void abort() { m_algorithm = 0; }
+
 
 private:
 	node_id const m_target;
@@ -79,8 +82,15 @@ private:
 	boost::intrusive_ptr<refresh> m_algorithm;
 };
 
+refresh_observer::~refresh_observer()
+{
+	if (m_algorithm) m_algorithm->failed(m_self, true);
+}
+
 void refresh_observer::reply(msg const& in)
 {
+	if (!m_algorithm) return;
+
 	if (!in.nodes.empty())
 	{
 		for (msg::nodes_t::const_iterator i = in.nodes.begin()
@@ -90,11 +100,14 @@ void refresh_observer::reply(msg const& in)
 		}
 	}
 	m_algorithm->finished(m_self);
+	m_algorithm = 0;
 }
 
 void refresh_observer::timeout()
 {
+	if (!m_algorithm) return;
 	m_algorithm->failed(m_self);
+	m_algorithm = 0;
 }
 
 class ping_observer : public observer
@@ -107,24 +120,37 @@ public:
 		: m_self(self)
 		, m_algorithm(algorithm)
 	{}
+	~ping_observer();
 
 	void send(msg& p) {}
 	void timeout();
 	void reply(msg const& m);
+	void abort() { m_algorithm = 0; }
+
 
 private:
 	node_id const m_self;
 	boost::intrusive_ptr<refresh> m_algorithm;
 };
 
+ping_observer::~ping_observer()
+{
+	if (m_algorithm) m_algorithm->ping_timeout(m_self, true);
+}
+
 void ping_observer::reply(msg const& m)
 {
+	if (!m_algorithm) return;
+	
 	m_algorithm->ping_reply(m_self);
+	m_algorithm = 0;
 }
 
 void ping_observer::timeout()
 {
+	if (!m_algorithm) return;
 	m_algorithm->ping_timeout(m_self);
+	m_algorithm = 0;
 }
 
 void refresh::invoke(node_id const& nid, udp::endpoint addr)
@@ -152,32 +178,44 @@ void refresh::ping_reply(node_id nid)
 	invoke_pings_or_finish();
 }
 
-void refresh::ping_timeout(node_id nid)
+void refresh::ping_timeout(node_id nid, bool prevent_request)
 {
 	m_active_pings--;
-	invoke_pings_or_finish();
+	invoke_pings_or_finish(prevent_request);
 }
 
-void refresh::invoke_pings_or_finish()
+void refresh::invoke_pings_or_finish(bool prevent_request)
 {
-	while (m_active_pings < m_max_active_pings)
+	if (prevent_request)
 	{
-		if (m_leftover_nodes_iterator == m_results.end()) break;
-
-		result const& node = *m_leftover_nodes_iterator;
-
-		// Skip initial nodes
-		if (node.flags & result::initial)
+		--m_max_active_pings;
+		if (m_max_active_pings <= 0)
+			m_max_active_pings = 1;
+	}
+	else
+	{
+		while (m_active_pings < m_max_active_pings)
 		{
-			++m_leftover_nodes_iterator;
-			continue;
+			if (m_leftover_nodes_iterator == m_results.end()) break;
+
+			result const& node = *m_leftover_nodes_iterator;
+
+			// Skip initial nodes
+			if (node.flags & result::initial)
+			{
+				++m_leftover_nodes_iterator;
+				continue;
+			}
+
+			try
+			{
+				observer_ptr p(new ping_observer(this, node.id));
+				m_rpc.invoke(messages::ping, node.addr, p);
+				++m_active_pings;
+				++m_leftover_nodes_iterator;
+			}
+			catch (std::exception& e) {}
 		}
-
-		observer_ptr p(new ping_observer(this, node.id));
-
-		m_rpc.invoke(messages::ping, node.addr, p);
-		++m_active_pings;
-		++m_leftover_nodes_iterator;
 	}
 
 	if (m_active_pings == 0)

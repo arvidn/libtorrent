@@ -1194,6 +1194,9 @@ Its declaration looks like this::
 		bool is_paused() const;
 		bool is_seed() const;
 
+		void resolve_countries(bool r);
+		bool resolve_countries() const;
+
 		void filter_piece(int index, bool filter) const;
 		void filter_pieces(std::vector<bool> const& bitmask) const;
 		bool is_piece_filtered(int index) const;
@@ -1378,6 +1381,19 @@ When a torrent is paused, it will however remember all share ratios to all peers
 all potential (not connected) peers. You can use ``is_paused()`` to determine if a torrent
 is currently paused. Torrents may be paused automatically if there is a file error (e.g. disk full)
 or something similar. See file_error_alert_.
+
+resolve_countries()
+-------------------
+
+	::
+
+		void resolve_countries(bool r);
+		bool resolve_countries() const;
+
+Sets or gets the flag that derermines if countries should be resolved for the peers of this
+torrent. It defaults to false. If it is set to true, the peer_info_ structure for the peers
+in this torrent will have their ``country`` member set. See peer_info_ for more information
+on how to interpret this field.
 
 is_seed()
 ---------
@@ -1820,6 +1836,8 @@ It contains the following fields::
 		int upload_limit;
 		int download_limit;
 
+		char country[2];
+
 		size_type load_balancing;
 
 		int download_queue_length;
@@ -1905,6 +1923,15 @@ limit and the torrent limit is always enforced anyway.
 
 ``download_limit`` is the number of bytes per second this peer is allowed to
 receive. -1 means it's unlimited.
+
+``country`` is the two letter `ISO 3166 country code`__ for the country the peer
+is connected from. If the country hasn't been resolved yet, both chars are set
+to 0. If the resolution failed for some reason, the field is set to "--". If the
+resolution service returns an invalid country code, it is set to "!!".
+The ``countries.nerd.dk`` service is used to look up countries. This field will
+remain set to 0 unless the torrent is set to resolve countries, see `resolve_countries()`_.
+
+__ http://www.iso.org/iso/en/prods-services/iso3166ma/02iso-3166-code-lists/list-en1.html
 
 ``load_balancing`` is a measurement of the balancing of free download (that we get)
 and free upload that we give. Every peer gets a certain amount of free upload, but
@@ -3065,26 +3092,6 @@ handshake, it may be incompatible with future versions of the mainline
 bittorrent client.
 
 These are the extensions that are currently implemented.
-
-.. chat messages
-   -------------
-
-   Extension name: "chat"
-
-   The payload in the packet is a bencoded dictionary with any
-   combination of the following entries:
-
-   +----------+--------------------------------------------------------+
-   | "msg"    | This is a string that contains a message that          |
-   |          | should be displayed to the user.                       |
-   +----------+--------------------------------------------------------+
-   | "ctrl"   | This is a control string that can tell a client that   |
-   |          | it is ignored (to make the user aware of that) and     |
-   |          | it can also tell a client that it is no longer ignored.|
-   |          | These notifications are encoded as the strings:        |
-   |          | "ignored" and "not ignored".                           |
-   |          | Any unrecognized strings should be ignored.            |
-   +----------+--------------------------------------------------------+
 
 metadata from peers
 -------------------

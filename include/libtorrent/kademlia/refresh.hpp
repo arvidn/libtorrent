@@ -69,7 +69,7 @@ public:
 	);
 
 	void ping_reply(node_id id);
-	void ping_timeout(node_id id);
+	void ping_timeout(node_id id, bool prevent_request = false);
 
 private:
 	template<class InIt>
@@ -88,7 +88,7 @@ private:
 	void done();
 	void invoke(node_id const& id, udp::endpoint addr);
 
-	void invoke_pings_or_finish();
+	void invoke_pings_or_finish(bool prevent_request = false);
 
 	int m_max_active_pings;
 	int m_active_pings;

@@ -60,6 +60,9 @@ namespace libtorrent
 	void bandwidth_manager::request_bandwidth(intrusive_ptr<peer_connection> peer)
 	{
 		INVARIANT_CHECK;
+
+		mutex_t::scoped_lock l(m_mutex);
+
 		// make sure this peer isn't already in line
 		// waiting for bandwidth
 #ifndef NDEBUG
@@ -114,6 +117,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (e) return;
+
+		mutex_t::scoped_lock l(m_mutex);
 
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 //		(*m_ses->m_logger) << "bw expire [" << m_channel << "]\n";
@@ -187,6 +192,11 @@ namespace libtorrent
 			// send. If the peer was added to the queue while the data was
 			// still being sent, max_assignable may have been > 0 at that time.
 			int max_assignable = peer->max_assignable_bandwidth(m_channel);
+			if (max_assignable == 0)
+			{
+				t->expire_bandwidth(m_channel, -1);
+				continue;
+			}
 
 			// so, hand out max_assignable, but no more than
 			// the available bandwidth (amount) and no more
@@ -194,8 +204,9 @@ namespace libtorrent
 			int single_amount = std::min(amount
 				, std::min(bandwidth_block_size_limit
 					, max_assignable));
+			assert(single_amount > 0);
 			amount -= single_amount;
-			if (single_amount > 0) peer->assign_bandwidth(m_channel, single_amount);
+			peer->assign_bandwidth(m_channel, single_amount);
 			t->assign_bandwidth(m_channel, single_amount);
 			add_history_entry(history_entry(peer, t, single_amount, now + window_size));
 		}

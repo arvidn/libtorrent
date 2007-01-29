@@ -130,6 +130,8 @@ namespace libtorrent
 			, std::size_t bytes_transferred);
 		
 		virtual void get_peer_info(peer_info& p) const;
+		virtual bool in_handshake() const;
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		bool support_extensions() const { return m_supports_extensions; }
 

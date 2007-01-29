@@ -65,6 +65,9 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 
 	if (i == m_results.end() || i->id != id)
 	{
+		assert(std::find_if(m_results.begin(), m_results.end()
+			, bind(std::equal_to<node_id>()
+				, bind(&result::id, _1), id)) == m_results.end());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(traversal) << "adding result: " << id << " " << addr;
 #endif
@@ -84,7 +87,10 @@ void traversal_algorithm::finished(node_id const& id)
 	if (m_invoke_count == 0) done();
 }
 
-void traversal_algorithm::failed(node_id const& id)
+// prevent request means that the total number of requests has
+// overflown. This query failed because it was the oldest one.
+// So, if this is true, don't make another request
+void traversal_algorithm::failed(node_id const& id, bool prevent_request)
 {
 	m_invoke_count--;
 
@@ -100,21 +106,26 @@ void traversal_algorithm::failed(node_id const& id)
 
 	assert(i != m_results.end());
 
-	assert(i->flags & result::queried);
-	m_failed.insert(i->addr);
+	if (i != m_results.end())
+	{
+		assert(i->flags & result::queried);
+		m_failed.insert(i->addr);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(traversal) << "failed: " << i->id << " " << i->addr;
+		TORRENT_LOG(traversal) << "failed: " << i->id << " " << i->addr;
 #endif
-	m_results.erase(i);
-	m_table.node_failed(id);
+		m_results.erase(i);
+	}
+	if (prevent_request)
+	{
+		--m_branch_factor;
+		if (m_branch_factor <= 0) m_branch_factor = 1;
+	}
+	else
+	{
+		m_table.node_failed(id);
+	}
 	add_requests();
 	if (m_invoke_count == 0) done();
-}
-
-void traversal_algorithm::add_request(node_id const& id, udp::endpoint addr)
-{
-	invoke(id, addr);
-	++m_invoke_count;
 }
 
 namespace
@@ -128,7 +139,7 @@ namespace
 void traversal_algorithm::add_requests()
 {
 	while (m_invoke_count < m_branch_factor)
-	{	
+	{
 		// Find the first node that hasn't already been queried.
 		// TODO: Better heuristic
 		std::vector<result>::iterator i = std::find_if(
@@ -146,8 +157,13 @@ void traversal_algorithm::add_requests()
 
 		if (i == last_iterator()) break;
 
-		add_request(i->id, i->addr);
-		i->flags |= result::queried;
+		try
+		{
+			invoke(i->id, i->addr);
+			++m_invoke_count;
+			i->flags |= result::queried;
+		}
+		catch (std::exception& e) {}
 	}
 }
 

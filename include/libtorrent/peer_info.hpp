@@ -69,6 +69,12 @@ namespace libtorrent
 		bool seed; // true if this is a seed
 		int upload_limit;
 		int download_limit;
+		
+		// in case the session settings is set
+		// to resolve countries, this is set to
+		// the two character country code this
+		// peer resides in.
+		char country[2];
 
 		size_type load_balancing;
 

@@ -51,6 +51,7 @@ public:
 		, m_target(target) 
 		, m_self(self)
 	{}
+	~find_data_observer();
 
 	void send(msg& m)
 	{
@@ -61,6 +62,7 @@ public:
 
 	void timeout();
 	void reply(msg const&);
+	void abort() { m_algorithm = 0; }
 
 private:
 	boost::intrusive_ptr<find_data> m_algorithm;
@@ -68,8 +70,19 @@ private:
 	node_id const m_self;
 };
 
+find_data_observer::~find_data_observer()
+{
+	if (m_algorithm) m_algorithm->failed(m_self);
+}
+
 void find_data_observer::reply(msg const& m)
 {
+	if (!m_algorithm)
+	{
+		assert(false);
+		return;
+	}
+
 	if (!m.peers.empty())
 	{
 		m_algorithm->got_data(&m);
@@ -83,11 +96,14 @@ void find_data_observer::reply(msg const& m)
 		}
 	}
 	m_algorithm->finished(m_self);
+	m_algorithm = 0;
 }
 
 void find_data_observer::timeout()
 {
+	if (!m_algorithm) return;
 	m_algorithm->failed(m_self);
+	m_algorithm = 0;
 }
 
 
