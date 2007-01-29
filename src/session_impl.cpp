@@ -642,6 +642,7 @@ namespace libtorrent { namespace detail
 						m_listen_socket.reset();
 						break;
 					}
+					m_listen_socket->close();
 					m_listen_interface.port(m_listen_interface.port() + 1);
 					if (m_listen_interface.port() > m_listen_port_range.second)
 					{
