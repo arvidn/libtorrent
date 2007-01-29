@@ -233,8 +233,6 @@ time_duration rpc_manager::tick()
 		} catch (std::exception) {}
 	}
 	
-	check_invariant();
-
 	std::for_each(timeouts.begin(), timeouts.end(), bind(&observer::timeout, _1));
 	timeouts.clear();
 	
