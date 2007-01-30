@@ -1791,6 +1791,8 @@ namespace libtorrent
 
 	void torrent::expire_bandwidth(int channel, int amount)
 	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
 		assert(amount >= -1);
 		if (amount == -1) amount = max_bandwidth_block_size;
 		m_bandwidth_limit[channel].expire(amount);
@@ -1810,6 +1812,8 @@ namespace libtorrent
 
 	void torrent::assign_bandwidth(int channel, int amount)
 	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
 		assert(amount >= 0);
 		if (amount < max_bandwidth_block_size)
 			expire_bandwidth(channel, max_bandwidth_block_size - amount);

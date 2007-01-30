@@ -1700,6 +1700,8 @@ namespace libtorrent
 
 	void peer_connection::assign_bandwidth(int channel, int amount)
 	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << "bandwidth [ " << channel << " ] + " << amount << "\n";
 #endif
@@ -1719,6 +1721,8 @@ namespace libtorrent
 
 	void peer_connection::expire_bandwidth(int channel, int amount)
 	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
 		m_bandwidth_limit[channel].expire(amount);
 		if (channel == upload_channel)
 		{
