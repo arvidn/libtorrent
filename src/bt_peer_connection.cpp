@@ -715,32 +715,6 @@ namespace libtorrent
 		throw protocol_error("unknown extended message id: "
 			+ boost::lexical_cast<std::string>(extended_id));
 	}
-/*
-	void bt_peer_connection::write_chat_message(const std::string& msg)
-	{
-		INVARIANT_CHECK;
-
-		assert(msg.length() <= 1 * 1024);
-		if (!supports_extension(extended_chat_message)) return;
-
-		entry e(entry::dictionary_t);
-		e["msg"] = msg;
-
-		std::vector<char> message;
-		bencode(std::back_inserter(message), e);
-
-		buffer::interval i = allocate_send_buffer(message.size() + 6);
-
-		detail::write_uint32(1 + 1 + (int)message.size(), i.begin);
-		detail::write_uint8(msg_extended, i.begin);
-		detail::write_uint8(m_extension_messages[extended_chat_message], i.begin);
-
-		std::copy(message.begin(), message.end(), i.begin);
-		i.begin += message.size();
-		assert(i.begin == i.end);
-		setup_send();
-	}
-*/
 
 	void bt_peer_connection::on_extended_handshake()
 	{
