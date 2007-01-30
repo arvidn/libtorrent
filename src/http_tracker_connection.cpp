@@ -84,6 +84,22 @@ namespace
 
 using namespace boost::posix_time;
 
+namespace
+{
+	bool url_has_argument(std::string const& url, std::string argument)
+	{
+		size_t i = url.find('?');
+		if (i == std::string::npos) return false;
+
+		argument += '=';
+
+		if (url.compare(i + 1, argument.size(), argument) == 0) return true;
+		argument.insert(0, "&");
+		return url.find(argument, i)
+			!= std::string::npos;
+	}
+}
+
 namespace libtorrent
 {
 	http_parser::http_parser()
@@ -299,57 +315,100 @@ namespace libtorrent
 		// if request-string already contains
 		// some parameters, append an ampersand instead
 		// of a question mark
-		if (request.find('?') != std::string::npos)
+		size_t arguments_start = request.find('?');
+		if (arguments_start != std::string::npos)
 			m_send_buffer += "&";
 		else
 			m_send_buffer += "?";
 
-		m_send_buffer += "info_hash=";
-		m_send_buffer += escape_string(
-			reinterpret_cast<const char*>(req.info_hash.begin()), 20);
+		if (!url_has_argument(request, "info_hash"))
+		{
+			m_send_buffer += "info_hash=";
+			m_send_buffer += escape_string(
+				reinterpret_cast<const char*>(req.info_hash.begin()), 20);
+			m_send_buffer += '&';
+		}
 
 		if (tracker_req().kind == tracker_request::announce_request)
 		{
-			m_send_buffer += "&peer_id=";
-			m_send_buffer += escape_string(
-				reinterpret_cast<const char*>(req.pid.begin()), 20);
-
-			m_send_buffer += "&port=";
-			m_send_buffer += boost::lexical_cast<std::string>(req.listen_port);
-
-			m_send_buffer += "&uploaded=";
-			m_send_buffer += boost::lexical_cast<std::string>(req.uploaded);
-
-			m_send_buffer += "&downloaded=";
-			m_send_buffer += boost::lexical_cast<std::string>(req.downloaded);
-
-			m_send_buffer += "&left=";
-			m_send_buffer += boost::lexical_cast<std::string>(req.left);
-
-			if (req.web_downloaded > 0)
+			if (!url_has_argument(request, "peer_id"))
 			{
-				m_send_buffer += "&http_downloaded=";
-				m_send_buffer += boost::lexical_cast<std::string>(req.web_downloaded);
+				m_send_buffer += "peer_id=";
+				m_send_buffer += escape_string(
+					reinterpret_cast<const char*>(req.pid.begin()), 20);
+				m_send_buffer += '&';
+			}
+
+			if (!url_has_argument(request, "port"))
+			{
+				m_send_buffer += "port=";
+				m_send_buffer += boost::lexical_cast<std::string>(req.listen_port);
+				m_send_buffer += '&';
+			}
+
+			if (!url_has_argument(request, "uploaded"))
+			{
+				m_send_buffer += "uploaded=";
+				m_send_buffer += boost::lexical_cast<std::string>(req.uploaded);
+				m_send_buffer += '&';
+			}
+
+			if (!url_has_argument(request, "downloaded"))
+			{
+				m_send_buffer += "downloaded=";
+				m_send_buffer += boost::lexical_cast<std::string>(req.downloaded);
+				m_send_buffer += '&';
+			}
+
+			if (!url_has_argument(request, "left"))
+			{
+				m_send_buffer += "left=";
+				m_send_buffer += boost::lexical_cast<std::string>(req.left);
+				m_send_buffer += '&';
 			}
 
 			if (req.event != tracker_request::none)
 			{
-				const char* event_string[] = {"completed", "started", "stopped"};
-				m_send_buffer += "&event=";
-				m_send_buffer += event_string[req.event - 1];
+				if (!url_has_argument(request, "event"))
+				{
+					const char* event_string[] = {"completed", "started", "stopped"};
+					m_send_buffer += "event=";
+					m_send_buffer += event_string[req.event - 1];
+					m_send_buffer += '&';
+				}
 			}
-			m_send_buffer += "&key=";
-			std::stringstream key_string;
-			key_string << std::hex << req.key;
-			m_send_buffer += key_string.str();
-			m_send_buffer += "&compact=1";
-			m_send_buffer += "&numwant=";
-			m_send_buffer += boost::lexical_cast<std::string>(
-				std::min(req.num_want, 999));
+			if (!url_has_argument(request, "key"))
+			{
+				m_send_buffer += "key=";
+				std::stringstream key_string;
+				key_string << std::hex << req.key;
+				m_send_buffer += key_string.str();
+				m_send_buffer += '&';
+			}
+
+			if (!url_has_argument(request, "compact"))
+			{
+				m_send_buffer += "compact=1&";
+			}
+			if (!url_has_argument(request, "numwant"))
+			{
+				m_send_buffer += "&numwant=";
+				m_send_buffer += boost::lexical_cast<std::string>(
+					std::min(req.num_want, 999));
+				m_send_buffer += '&';
+			}
 
 			// extension that tells the tracker that
 			// we don't need any peer_id's in the response
-			m_send_buffer += "&no_peer_id=1";
+			if (!url_has_argument(request, "no_peer_id"))
+			{
+				m_send_buffer += "no_peer_id=1";
+			}
+			else
+			{
+				// remove the trailing '&'
+				m_send_buffer.resize(m_send_buffer.size() - 1);
+			}
 		}
 
 		m_send_buffer += " HTTP/1.0\r\nAccept-Encoding: gzip\r\n"
@@ -588,11 +647,8 @@ namespace libtorrent
 #endif
 			if (has_requester()) requester().tracker_warning("Redirecting to \"" + location + "\"");
 			tracker_request req = tracker_req();
-			std::string::size_type i = location.find('?');
-			if (i == std::string::npos)
-				req.url = location;
-			else
-				req.url.assign(location.begin(), location.begin() + i);
+
+			req.url = location;
 
 			m_man.queue_request(m_strand, req
 				, m_password, m_requester);

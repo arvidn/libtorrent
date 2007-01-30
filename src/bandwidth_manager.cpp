@@ -61,8 +61,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		mutex_t::scoped_lock l(m_mutex);
-
 		// make sure this peer isn't already in line
 		// waiting for bandwidth
 #ifndef NDEBUG
@@ -118,8 +116,6 @@ namespace libtorrent
 
 		if (e) return;
 
-		mutex_t::scoped_lock l(m_mutex);
-
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 //		(*m_ses->m_logger) << "bw expire [" << m_channel << "]\n";
 #endif
@@ -165,17 +161,21 @@ namespace libtorrent
 
 		pt::ptime now(pt::microsec_clock::universal_time());
 
+		mutex_t::scoped_lock l(m_mutex);
+		int limit = m_limit;
+		l.unlock();
+
 		// available bandwidth to hand out
-		int amount = m_limit - m_current_quota;
-		
+		int amount = limit - m_current_quota;
+
 		int bandwidth_block_size_limit = max_bandwidth_block_size;
-		if (m_queue.size() > 3 && bandwidth_block_size_limit / int(m_queue.size()) > m_limit)
-			bandwidth_block_size_limit = std::max(max_bandwidth_block_size / int(m_queue.size() - 2)
+		if (m_queue.size() > 3 && bandwidth_block_size_limit > limit / int(m_queue.size()))
+			bandwidth_block_size_limit = std::max(max_bandwidth_block_size / int(m_queue.size() - 3)
 				, min_bandwidth_block_size);
 
 		while (!m_queue.empty() && amount > 0)
 		{
-			assert(amount == m_limit - m_current_quota);
+			assert(amount == limit - m_current_quota);
 			intrusive_ptr<peer_connection> peer = m_queue.front();
 			m_queue.pop_front();
 
