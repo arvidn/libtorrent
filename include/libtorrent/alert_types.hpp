@@ -86,9 +86,13 @@ namespace libtorrent
 	struct TORRENT_EXPORT tracker_reply_alert: torrent_alert
 	{
 		tracker_reply_alert(torrent_handle const& h
+			, int np
 			, std::string const& msg)
 			: torrent_alert(h, alert::info, msg)
+			, num_peers(np)
 		{}
+
+		int num_peers;
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new tracker_reply_alert(*this)); }

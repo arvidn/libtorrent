@@ -48,6 +48,11 @@ namespace libtorrent
 		, weak_ptr<torrent> t, int a, pt::ptime exp)
 		: expires_at(exp), amount(a), peer(p), tor(t)
 	{}
+	
+	bw_queue_entry::bw_queue_entry(intrusive_ptr<peer_connection> const& pe
+		, bool no_prio)
+		: peer(pe), non_prioritized(no_prio)
+	{}
 
 	bandwidth_manager::bandwidth_manager(io_service& ios, int channel)
 		: m_ios(ios)
@@ -57,23 +62,39 @@ namespace libtorrent
 		, m_channel(channel)
 	{}
 
-	void bandwidth_manager::request_bandwidth(intrusive_ptr<peer_connection> peer)
+	void bandwidth_manager::request_bandwidth(intrusive_ptr<peer_connection> peer
+		, bool non_prioritized)
 	{
 		INVARIANT_CHECK;
 
 		// make sure this peer isn't already in line
 		// waiting for bandwidth
 #ifndef NDEBUG
-		for (std::deque<intrusive_ptr<peer_connection> >::iterator i = m_queue.begin()
+		for (std::deque<bw_queue_entry>::iterator i = m_queue.begin()
 			, end(m_queue.end()); i != end; ++i)
 		{
-			assert(*i < peer || peer < *i);
+			assert(i->peer < peer || peer < i->peer);
 		}
 #endif
 
 		assert(peer->max_assignable_bandwidth(m_channel) > 0);
-
-		m_queue.push_back(peer);
+		
+		// if the queue is empty, we have to push the new
+		// peer at the back of it. If the peer is non-prioritized
+		// it is not supposed to cut in fron of anybody, so then
+		// we also just add it at the end
+		if (m_queue.empty() || non_prioritized)
+		{
+			m_queue.push_back(bw_queue_entry(peer, non_prioritized));
+		}
+		else
+		{
+			// skip forward in the queue until we find a prioritized peer
+			// or hit the front of it.
+			std::deque<bw_queue_entry>::reverse_iterator i = m_queue.rbegin();
+			while (i != m_queue.rend() && i->non_prioritized) ++i;
+			m_queue.insert(i.base(), bw_queue_entry(peer, non_prioritized));
+		}
 		if (m_queue.size() == 1) hand_out_bandwidth();
 	}
 
@@ -176,12 +197,12 @@ namespace libtorrent
 		while (!m_queue.empty() && amount > 0)
 		{
 			assert(amount == limit - m_current_quota);
-			intrusive_ptr<peer_connection> peer = m_queue.front();
+			bw_queue_entry qe = m_queue.front();
 			m_queue.pop_front();
 
-			shared_ptr<torrent> t = peer->associated_torrent().lock();
+			shared_ptr<torrent> t = qe.peer->associated_torrent().lock();
 			if (!t) continue;
-			if (peer->is_disconnecting())
+			if (qe.peer->is_disconnecting())
 			{
 				t->expire_bandwidth(m_channel, -1);
 				continue;
@@ -191,7 +212,7 @@ namespace libtorrent
 			// the bandwidth quota is subtracted once the data has been
 			// send. If the peer was added to the queue while the data was
 			// still being sent, max_assignable may have been > 0 at that time.
-			int max_assignable = peer->max_assignable_bandwidth(m_channel);
+			int max_assignable = qe.peer->max_assignable_bandwidth(m_channel);
 			if (max_assignable == 0)
 			{
 				t->expire_bandwidth(m_channel, -1);
@@ -206,9 +227,9 @@ namespace libtorrent
 					, max_assignable));
 			assert(single_amount > 0);
 			amount -= single_amount;
-			peer->assign_bandwidth(m_channel, single_amount);
+			qe.peer->assign_bandwidth(m_channel, single_amount);
 			t->assign_bandwidth(m_channel, single_amount);
-			add_history_entry(history_entry(peer, t, single_amount, now + window_size));
+			add_history_entry(history_entry(qe.peer, t, single_amount, now + window_size));
 		}
 	}
 	catch (std::exception& e)

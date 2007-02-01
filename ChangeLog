@@ -1,10 +1,14 @@
-	* Added the possibility to have libtorrent resolve the countries of
+	* fixed a bug in the DHT which could be triggered if the network was
+	  dropped or extremely rare cases.
+	* if the download rate is limited, web seeds will now only use left-over
+	  bandwidth after all bt peers have used up as much bandwidth as they can.
+	* added the possibility to have libtorrent resolve the countries of
 	  the peers in torrents.
-	* Improved the bandwidth limiter (it now implements a leaky bucket).
-	* Improved the HTTP seed downloader to report accurate progress.
-	* Added more client peer-id signatures to be recognized.
+	* improved the bandwidth limiter (it now implements a leaky bucket/node bucket).
+	* improved the HTTP seed downloader to report accurate progress.
+	* added more client peer-id signatures to be recognized.
 	* added support for HTTP servers that skip the CR before the NL at line breaks.
-	* fixed bug in the HTTP code that onlcy accepted headers case sensitive.
+	* fixed bug in the HTTP code that only accepted headers case sensitive.
 	* fixed bug where one of the session constructors didn't initialize boost.filesystem. 
 	* fixed bug when the initial checking of a torrent fails with an exception.
 	* fixed bug in DHT code which would send incorrect announce messages.

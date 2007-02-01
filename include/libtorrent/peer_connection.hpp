@@ -156,6 +156,9 @@ namespace libtorrent
 		void request_large_blocks(bool b)
 		{ m_request_large_blocks = b; }
 
+		void set_non_prioritized(bool b)
+		{ m_non_prioritized = b; }
+
 		// this adds an announcement in the announcement queue
 		// it will let the peer know that we have the given piece
 		void announce_piece(int index);
@@ -611,6 +614,12 @@ namespace libtorrent
 		// the http-downloader, to request whole pieces
 		// at a time.
 		bool m_request_large_blocks;
+		
+		// if this is true, other (prioritized) peers will
+		// skip ahead of it in the queue for bandwidth. The
+		// effect is that non prioritized peers will only use
+		// the left-over bandwidth (suitable for web seeds).
+		bool m_non_prioritized;
 
 		// reference counter for intrusive_ptr
 		mutable boost::detail::atomic_count m_refs;

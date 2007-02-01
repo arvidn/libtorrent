@@ -201,7 +201,8 @@ namespace libtorrent
 		bandwidth_limit m_bandwidth_limit[2];
 
 		void request_bandwidth(int channel
-			, boost::intrusive_ptr<peer_connection> p);
+			, boost::intrusive_ptr<peer_connection> p
+			, bool non_prioritized);
 		
 		void expire_bandwidth(int channel, int amount);
 		void assign_bandwidth(int channel, int amount);
@@ -564,7 +565,7 @@ namespace libtorrent
 		boost::scoped_ptr<piece_picker> m_picker;
 
 		// the queue of peer_connections that want more bandwidth
-		std::deque<intrusive_ptr<peer_connection> > m_bandwidth_queue[2];
+		std::deque<bw_queue_entry> m_bandwidth_queue[2];
 
 		std::vector<announce_entry> m_trackers;
 		// this is an index into m_torrent_file.trackers()

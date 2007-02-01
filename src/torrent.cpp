@@ -479,6 +479,13 @@ namespace libtorrent
 
 	void torrent::on_dht_announce_response(std::vector<tcp::endpoint> const& peers)
 	{
+		if (peers.empty()) return;
+
+		if (m_ses.m_alerts.should_post(alert::info))
+		{
+			m_ses.m_alerts.post_alert(tracker_reply_alert(
+				get_handle(), peers.size(), "Got peers from DHT"));
+		}
 		std::for_each(peers.begin(), peers.end(), bind(
 			&policy::peer_from_tracker, boost::ref(m_policy), _1, peer_id(0)));
 	}
@@ -583,7 +590,7 @@ namespace libtorrent
 			s << "Got response from tracker: "
 				<< m_trackers[m_last_working_tracker].url;
 			m_ses.m_alerts.post_alert(tracker_reply_alert(
-				get_handle(), s.str()));
+				get_handle(), peer_list.size(), s.str()));
 		}
 		m_got_tracker_response = true;
 	}
@@ -1773,19 +1780,20 @@ namespace libtorrent
 	}
 
 	void torrent::request_bandwidth(int channel
-		, boost::intrusive_ptr<peer_connection> p)
+		, boost::intrusive_ptr<peer_connection> p
+		, bool non_prioritized)
 	{
 		if (m_bandwidth_limit[channel].max_assignable() >= max_bandwidth_block_size)
 		{
 			if (channel == peer_connection::upload_channel)
-				m_ses.m_ul_bandwidth_manager.request_bandwidth(p);
+				m_ses.m_ul_bandwidth_manager.request_bandwidth(p, non_prioritized);
 			else if (channel == peer_connection::download_channel)
-				m_ses.m_dl_bandwidth_manager.request_bandwidth(p);
+				m_ses.m_dl_bandwidth_manager.request_bandwidth(p, non_prioritized);
 			m_bandwidth_limit[channel].assign(max_bandwidth_block_size);
 		}
 		else
 		{
-			m_bandwidth_queue[channel].push_back(p);
+			m_bandwidth_queue[channel].push_back(bw_queue_entry(p, non_prioritized));
 		}
 	}
 
@@ -1800,12 +1808,12 @@ namespace libtorrent
 		while (!m_bandwidth_queue[channel].empty()
 			&& m_bandwidth_limit[channel].max_assignable() >= max_bandwidth_block_size)
 		{
-			intrusive_ptr<peer_connection> p = m_bandwidth_queue[channel].front();
+			bw_queue_entry qe = m_bandwidth_queue[channel].front();
 			m_bandwidth_queue[channel].pop_front();
 			if (channel == peer_connection::upload_channel)
-				m_ses.m_ul_bandwidth_manager.request_bandwidth(p);
+				m_ses.m_ul_bandwidth_manager.request_bandwidth(qe.peer, qe.non_prioritized);
 			else if (channel == peer_connection::download_channel)
-				m_ses.m_dl_bandwidth_manager.request_bandwidth(p);
+				m_ses.m_dl_bandwidth_manager.request_bandwidth(qe.peer, qe.non_prioritized);
 			m_bandwidth_limit[channel].assign(max_bandwidth_block_size);
 		}
 	}
