@@ -116,6 +116,7 @@ namespace libtorrent
 		, m_reading(false)
 		, m_prefer_whole_pieces(false)
 		, m_request_large_blocks(false)
+		, m_non_prioritized(false)
 		, m_refs(0)
 		, m_upload_limit(resource_request::inf)
 		, m_download_limit(resource_request::inf)
@@ -179,6 +180,7 @@ namespace libtorrent
 		, m_reading(false)
 		, m_prefer_whole_pieces(false)
 		, m_request_large_blocks(false)
+		, m_non_prioritized(false)
 		, m_refs(0)
 		, m_upload_limit(resource_request::inf)
 		, m_download_limit(resource_request::inf)
@@ -1760,7 +1762,7 @@ namespace libtorrent
 				(*m_logger) << "req bandwidth [ " << upload_channel << " ]\n";
 #endif
 
-				t->request_bandwidth(upload_channel, self());
+				t->request_bandwidth(upload_channel, self(), m_non_prioritized);
 				m_writing = true;
 			}
 			return;
@@ -1817,7 +1819,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 				(*m_logger) << "req bandwidth [ " << download_channel << " ]\n";
 #endif
-				t->request_bandwidth(download_channel, self());
+				t->request_bandwidth(download_channel, self(), m_non_prioritized);
 				m_reading = true;
 			}
 			return;

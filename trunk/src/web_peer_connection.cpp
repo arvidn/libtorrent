@@ -70,7 +70,11 @@ namespace libtorrent
 		// we always prefer downloading entire
 		// pieces from web seeds
 		prefer_whole_pieces(true);
+		// we want large blocks as well, so
+		// we can request more bytes at once
 		request_large_blocks(true);
+		// we only want left-over bandwidth
+		set_non_prioritized(true);
 		shared_ptr<torrent> tor = t.lock();
 		assert(tor);
 		int blocks_per_piece = tor->torrent_file().piece_length() / tor->block_size();

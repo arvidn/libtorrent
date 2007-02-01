@@ -2505,16 +2505,22 @@ struct tracker_alert: torrent_alert
 <div class="section">
 <h2><a id="tracker-reply-alert" name="tracker-reply-alert">tracker_reply_alert</a></h2>
 <p>This alert is only for informational purpose. It is generated when a tracker announce
-succeeds. It is generated with severity level <tt class="docutils literal"><span class="pre">info</span></tt>.</p>
+succeeds. It is generated regardless what kind of tracker was used, be it UDP, HTTP or
+the DHT. It is generated with severity level <tt class="docutils literal"><span class="pre">info</span></tt>.</p>
 <pre class="literal-block">
 struct tracker_reply_alert: torrent_alert
 {
         tracker_reply_alert(const torrent_handle&amp; h
+                , int num_peers
                 , const std::string&amp; msg);
+
+        int num_peers;
 
         virtual std::auto_ptr&lt;alert&gt; clone() const;
 };
 </pre>
+<p>The <tt class="docutils literal"><span class="pre">num_peers</span></tt> tells how many peers were returned from the tracker. This is
+not necessarily all new peers, some of them may already be connected.</p>
 </div>
 <div class="section">
 <h2><a id="tracker-warning-alert" name="tracker-warning-alert">tracker_warning_alert</a></h2>

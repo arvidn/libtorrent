@@ -641,6 +641,13 @@ namespace libtorrent
 				fail(-1, error_str.c_str());
 				return;
 			}
+			
+			// if the protocol isn't specified, assume http
+			if (location.compare(0, 7, "http://") != 0
+				&& location.compare(0, 6, "udp://") != 0)
+			{
+				location.insert(0, "http://");
+			}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			if (has_requester()) requester().debug_log("Redirecting to \"" + location + "\"");

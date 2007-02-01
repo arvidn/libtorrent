@@ -77,6 +77,13 @@ struct history_entry
 	weak_ptr<torrent> tor;
 };
 
+struct bw_queue_entry
+{
+	bw_queue_entry(boost::intrusive_ptr<peer_connection> const& pe, bool no_prio);
+	boost::intrusive_ptr<peer_connection> peer;
+	bool non_prioritized;
+};
+
 // member of peer_connection
 struct bandwidth_limit
 {
@@ -169,7 +176,11 @@ struct bandwidth_manager
 		return m_limit;
 	}
 
-	void request_bandwidth(intrusive_ptr<peer_connection> peer);
+	// non prioritized means that, if there's a line for bandwidth,
+	// others will cut in front of the non-prioritized peers.
+	// this is used by web seeds
+	void request_bandwidth(intrusive_ptr<peer_connection> peer
+		, bool non_prioritized);
 
 #ifndef NDEBUG
 	void check_invariant() const;
@@ -202,7 +213,7 @@ private:
 	int m_current_quota;
 
 	// these are the consumers that want bandwidth
-	std::deque<intrusive_ptr<peer_connection> > m_queue;
+	std::deque<bw_queue_entry> m_queue;
 
 	// these are the consumers that have received bandwidth
 	// that will expire

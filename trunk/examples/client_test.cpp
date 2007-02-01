@@ -806,6 +806,11 @@ int main(int ac, char* av[])
 				{
 					events.push_back(now + ": tracker message: " + p->msg());
 				}
+				else if (tracker_reply_alert* p = dynamic_cast<tracker_reply_alert*>(a.get()))
+				{
+					events.push_back(now + ": " + p->msg() + " ("
+						+ boost::lexical_cast<std::string>(p->num_peers) + ")");
+				}
 				else
 				{
 					events.push_back(now + ": " + a->msg());

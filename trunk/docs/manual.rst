@@ -2558,17 +2558,24 @@ tracker_reply_alert
 -------------------
 
 This alert is only for informational purpose. It is generated when a tracker announce
-succeeds. It is generated with severity level ``info``.
+succeeds. It is generated regardless what kind of tracker was used, be it UDP, HTTP or
+the DHT. It is generated with severity level ``info``.
 
 ::
 
 	struct tracker_reply_alert: torrent_alert
 	{
 		tracker_reply_alert(const torrent_handle& h
+			, int num_peers
 			, const std::string& msg);
+
+		int num_peers;
 
 		virtual std::auto_ptr<alert> clone() const;
 	};
+
+The ``num_peers`` tells how many peers were returned from the tracker. This is
+not necessarily all new peers, some of them may already be connected.
 	
 tracker_warning_alert
 ---------------------
