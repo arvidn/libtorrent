@@ -181,6 +181,9 @@ namespace libtorrent { namespace detail
 #endif
 					}
 
+					// lock the session to add the new torrent
+					session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+					mutex::scoped_lock l2(m_mutex);
 					// clear the resume data now that it has been used
 					// (the fast resume data is now parsed and stored in t)
 					t->resume_data = entry();
@@ -188,9 +191,6 @@ namespace libtorrent { namespace detail
 
 					if (up_to_date)
 					{
-						// lock the session to add the new torrent
-						session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-						mutex::scoped_lock l2(m_mutex);
 						INVARIANT_CHECK;
 
 						assert(m_torrents.front() == t);
@@ -225,20 +225,19 @@ namespace libtorrent { namespace detail
 						continue;
 					}
 
-					// lock the checker while we move the torrent from
-					// m_torrents to m_processing
-					{
-						mutex::scoped_lock l(m_mutex);
-						assert(m_torrents.front() == t);
+					l.unlock();
 
-						m_torrents.pop_front();
-						m_processing.push_back(t);
-						if (!processing)
-						{
-							processing = t;
-							processing->processing = true;
-							t.reset();
-						}
+					// move the torrent from
+					// m_torrents to m_processing
+					assert(m_torrents.front() == t);
+
+					m_torrents.pop_front();
+					m_processing.push_back(t);
+					if (!processing)
+					{
+						processing = t;
+						processing->processing = true;
+						t.reset();
 					}
 				}
 			}
