@@ -13,13 +13,13 @@ if test -z "$(which $CC)"; then
 fi
 
 AC_PROG_CPP
+AC_PROG_CXX
 
 if test -z "$(which $CXX)"; then
     AC_MSG_ERROR([Unable to find a working C++ compiler, giving up.])
 fi
 
 AC_CACHE_SAVE
-AC_PROG_CXX
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
