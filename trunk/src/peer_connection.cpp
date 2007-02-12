@@ -1182,7 +1182,8 @@ namespace libtorrent
 			if (it == m_request_queue.end()) return;
 			m_request_queue.erase(it);
 			
-			m_policy->block_finished(*this, block);
+			policy& pol = t->get_policy();
+			pol.block_finished(*this, block);
 			send_block_requests();
 			// since we found it in the request queue, it means it hasn't been
 			// sent yet, so we don't have to send a cancel.
@@ -1207,7 +1208,8 @@ namespace libtorrent
 
 		write_cancel(r);
 
-		m_policy->block_finished(*this, block);
+		policy& pol = t->get_policy();
+		pol.block_finished(*this, block);
 		send_block_requests();
 
 #ifdef TORRENT_VERBOSE_LOGGING
