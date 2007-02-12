@@ -77,10 +77,11 @@ int main(int argc, char* argv[])
 
 	path::default_name_check(no_check);
 
-	if (argc != 4)
+	if (argc != 4 && argc != 5)
 	{
 		std::cerr << "usage: make_torrent <output torrent-file> "
-			"<announce url> <file or directory to create torrent from>\n";
+			"<announce url> <file or directory to create torrent from> "
+			"[url-seed]\n";
 		return 1;
 	}
 
@@ -112,6 +113,9 @@ int main(int argc, char* argv[])
 		}
 
 		t.set_creator(creator_str);
+
+		if (argc == 5)
+			t.add_url_seed(argv[4]);
 
 		// create the torrent and print it to out
 		entry e = t.create_torrent();

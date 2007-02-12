@@ -117,7 +117,8 @@ namespace libtorrent
 			aux::session_impl& ses
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<stream_socket> s
-			, tcp::endpoint const& remote);
+			, tcp::endpoint const& remote
+			, tcp::endpoint const& proxy);
 
 		// with this constructor we have been contacted and we still don't
 		// know which torrent the connection belongs to
@@ -204,13 +205,11 @@ namespace libtorrent
 
 		boost::shared_ptr<stream_socket> get_socket() const { return m_socket; }
 		tcp::endpoint const& remote() const { return m_remote; }
+		tcp::endpoint const& proxy() const { return m_remote_proxy; }
 
 		std::vector<bool> const& get_bitfield() const;
 
 		// this will cause this peer_connection to be disconnected.
-		// what it does is that it puts a reference to it in
-		// m_ses.m_disconnect_peer list, which will be scanned in the
-		// mainloop to disconnect peers.
 		void disconnect();
 		bool is_disconnecting() const { return m_disconnecting; }
 
@@ -382,7 +381,7 @@ namespace libtorrent
 		bool packet_finished() const
 		{
 			assert(m_recv_pos <= m_packet_size);
-			return m_packet_size == m_recv_pos;
+			return m_packet_size <= m_recv_pos;
 		}
 
 		void setup_receive();
@@ -475,7 +474,13 @@ namespace libtorrent
 		boost::posix_time::ptime m_last_sent;
 
 		boost::shared_ptr<stream_socket> m_socket;
+		// this is the peer we're actually talking to
+		// it may not necessarily be the peer we're
+		// connected to, in case we use a proxy
 		tcp::endpoint m_remote;
+		
+		// if we use a proxy, this is the address to it
+		tcp::endpoint m_remote_proxy;
 
 		// this is the torrent this connection is
 		// associated with. If the connection is an

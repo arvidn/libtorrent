@@ -386,6 +386,9 @@ void rpc_manager::reply_with_ping(msg& m, msg const& reply_to)
 	}
 	catch (std::exception& e)
 	{
+#ifndef NDEBUG
+		std::cerr << e.what() << "\n";
+#endif
 		assert(false);
 	}
 }

@@ -198,6 +198,20 @@ namespace libtorrent
 					}
 					catch(boost::bad_lexical_cast&) {}
 				}
+				else if (name == "content-range")
+				{
+					std::stringstream range_str(value);
+					char dummy;
+					std::string bytes;
+					size_type range_start, range_end;
+					range_str >> bytes >> range_start >> dummy >> range_end;
+					if (!range_str || range_end < range_start)
+					{
+						throw std::runtime_error("invalid content-range in HTTP response: " + range_str.str());
+					}
+					// the http range is inclusive
+					m_content_length = range_end - range_start + 1;
+				}
 
 				// TODO: make sure we don't step outside of the buffer
 				++pos;

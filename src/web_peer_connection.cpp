@@ -60,8 +60,9 @@ namespace libtorrent
 		, boost::weak_ptr<torrent> t
 		, boost::shared_ptr<stream_socket> s
 		, tcp::endpoint const& remote
+		, tcp::endpoint const& proxy
 		, std::string const& url)
-		: peer_connection(ses, t, s, remote)
+		: peer_connection(ses, t, s, remote, proxy)
 		, m_url(url)
 		, m_first_request(true)
 	{
@@ -136,7 +137,7 @@ namespace libtorrent
 		// it is always possible to request pieces
 		incoming_unchoke();
 		
-		reset_recv_buffer(512*1024+1024);
+		reset_recv_buffer(t->torrent_file().piece_length() + 1024 * 2);
 	}
 
 	void web_peer_connection::write_request(peer_request const& r)
@@ -291,15 +292,25 @@ namespace libtorrent
 		for (;;)
 		{
 			buffer::const_interval recv_buffer = receive_buffer();
+
 			int payload;
 			int protocol;
+			bool header_finished = m_parser.header_finished();
 			boost::tie(payload, protocol) = m_parser.incoming(recv_buffer);
 			m_statistics.received_bytes(payload, protocol);
+			
+			assert(recv_buffer.left() <= packet_size());
+			assert (recv_buffer.left() < packet_size()
+				|| m_parser.finished());
+			
+			// this means the entire status line hasn't been received yet
+			if (m_parser.status_code() == -1) break;
 
-			// TODO: maybe all 200 - 299 should be considered successful
-			if (m_parser.status_code() != 206
-				&& m_parser.status_code() != 200
-				&& m_parser.status_code() != -1)
+			// if the status code is not one of the accepted ones, abort
+			if (m_parser.status_code() != 206 // partial content
+				&& m_parser.status_code() != 200 // OK
+				&& m_parser.status_code() < 300 // redirect
+				&& m_parser.status_code() >= 400)
 			{
 				// we should not try this server again.
 				t->remove_url_seed(m_url);
@@ -309,17 +320,62 @@ namespace libtorrent
 
 			if (!m_parser.header_finished()) break;
 
-			buffer::const_interval http_body = m_parser.get_body();
-
-			std::string server_version = m_parser.header<std::string>("server");
-			if (!server_version.empty())
+			// we just completed reading the header
+			if (!header_finished)
 			{
-				m_server_string = "URL seed @ ";
-				m_server_string += m_host;
-				m_server_string += " (";
-				m_server_string += server_version;
-				m_server_string += ")";
+				if (m_parser.status_code() >= 300 && m_parser.status_code() < 400)
+				{
+					// this means we got a redirection request
+					// look for the location header
+					std::string location = m_parser.header<std::string>("location");
+
+					if (location.empty())
+					{
+						// we should not try this server again.
+						t->remove_url_seed(m_url);
+						throw std::runtime_error("got HTTP redirection status without location header");
+					}
+					
+					bool single_file_request = false;
+					if (!m_path.empty() && m_path[m_path.size() - 1] != '/')
+						single_file_request = true;
+
+					// add the redirected url and remove the current one
+					if (!single_file_request)
+					{
+						assert(!m_file_requests.empty());
+						int file_index = m_file_requests.front();
+
+						torrent_info const& info = t->torrent_file();
+						std::string path = info.file_at(file_index).path.string();
+						path = escape_path(path.c_str(), path.length());
+						size_t i = location.rfind(path);
+						if (i == std::string::npos)
+						{
+							t->remove_url_seed(m_url);
+							throw std::runtime_error("got invalid HTTP redirection location (\"" + location + "\") "
+								"expected it to end with: " + path);
+						}
+						location.resize(i);
+					}
+					t->add_url_seed(location);
+					t->remove_url_seed(m_url);
+					throw std::runtime_error("redirecting to " + location);
+				}
+
+				std::string server_version = m_parser.header<std::string>("server");
+				if (!server_version.empty())
+				{
+					m_server_string = "URL seed @ ";
+					m_server_string += m_host;
+					m_server_string += " (";
+					m_server_string += server_version;
+					m_server_string += ")";
+				}
+
 			}
+
+			buffer::const_interval http_body = m_parser.get_body();
 
 			size_type range_start;
 			size_type range_end;
@@ -366,13 +422,13 @@ namespace libtorrent
 				throw std::runtime_error("invalid range in HTTP response");
 			}
 
+			front_request = m_requests.front();
+
 			// skip the http header and the blocks we've already read. The
 			// http_body.begin is now in sync with the request at the front
 			// of the request queue
 			assert(in_range.start - int(m_piece.size()) <= front_request.start);
 			http_body.begin += front_request.start - in_range.start + int(m_piece.size());
-
-			front_request = m_requests.front();
 
 			// the http response body consists of 3 parts
 			// 1. the middle of a block or the ending of a block
@@ -417,6 +473,10 @@ namespace libtorrent
 			{
 				peer_request r = m_requests.front();
 				m_requests.pop_front();
+				assert(http_body.begin == recv_buffer.begin + m_parser.body_start()
+					+ r.start - in_range.start);
+				assert(http_body.left() >= r.length);
+
 				incoming_piece(r, http_body.begin);
 				http_body.begin += r.length;
 			}
@@ -442,7 +502,9 @@ namespace libtorrent
 				m_file_requests.pop_front();
 				assert(http_body.left() == 0);
 				m_parser.reset();
-				cut_receive_buffer(http_body.end - recv_buffer.begin, 512*1024+1024);
+				assert(recv_buffer.end == http_body.end || *http_body.end == 'H');
+				cut_receive_buffer(http_body.end - recv_buffer.begin
+					, t->torrent_file().piece_length() + 1024 * 2);
 				continue;
 			}
 			break;

@@ -1,3 +1,6 @@
+	* added support for HTTP redirection support for web seeds.
+	* fixed race condition when accessing a torrent that was checking its
+	  fast resume data.
 	* fixed a bug in the DHT which could be triggered if the network was
 	  dropped or extremely rare cases.
 	* if the download rate is limited, web seeds will now only use left-over

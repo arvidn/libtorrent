@@ -79,7 +79,7 @@ namespace libtorrent
 		, boost::weak_ptr<torrent> tor
 		, shared_ptr<stream_socket> s
 		, tcp::endpoint const& remote)
-		: peer_connection(ses, tor, s, remote)
+		: peer_connection(ses, tor, s, remote, tcp::endpoint())
 		, m_state(read_protocol_length)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_supports_extensions(false)
@@ -310,7 +310,7 @@ namespace libtorrent
 		buffer::const_interval recv_buffer = receive_buffer();
 		// are we currently receiving a 'piece' message?
 		if (m_state != read_packet
-			|| (recv_buffer.end - recv_buffer.begin) < 9
+			|| recv_buffer.left() < 9
 			|| recv_buffer[0] != msg_piece)
 			return boost::optional<piece_block_progress>();
 
@@ -328,7 +328,7 @@ namespace libtorrent
 
 		p.piece_index = r.piece;
 		p.block_index = r.start / t->block_size();
-		p.bytes_downloaded = recv_buffer.end - recv_buffer.begin - 9;
+		p.bytes_downloaded = recv_buffer.left() - 9;
 		p.full_block_bytes = r.length;
 
 		return boost::optional<piece_block_progress>(p);
