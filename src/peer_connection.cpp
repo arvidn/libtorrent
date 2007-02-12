@@ -985,6 +985,11 @@ namespace libtorrent
 				if (pc && pc != this)
 				{
 					pc->cancel_request(block_finished);
+					if (!pc->has_peer_choked() && !t->is_seed())
+					{
+						request_a_block(*t, *pc);
+						pc->send_block_requests();
+					}
 				}
 			}
 			else
@@ -1181,10 +1186,6 @@ namespace libtorrent
 			assert(it != m_request_queue.end());
 			if (it == m_request_queue.end()) return;
 			m_request_queue.erase(it);
-			
-			policy& pol = t->get_policy();
-			pol.block_finished(*this, block);
-			send_block_requests();
 			// since we found it in the request queue, it means it hasn't been
 			// sent yet, so we don't have to send a cancel.
 			return;
@@ -1207,10 +1208,6 @@ namespace libtorrent
 		r.length = block_size;
 
 		write_cancel(r);
-
-		policy& pol = t->get_policy();
-		pol.block_finished(*this, block);
-		send_block_requests();
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
@@ -1545,25 +1542,33 @@ namespace libtorrent
 				<< " " << to_simple_string(now - m_last_piece) << "] ***\n";
 #endif
 
-			piece_picker& picker = t->picker();
-			while (!m_download_queue.empty())
+			if (t->is_seed())
 			{
-				picker.abort_download(m_download_queue.back());
-				m_download_queue.pop_back();
+				m_download_queue.clear();
+				m_request_queue.clear();
 			}
-			while (!m_request_queue.empty())
+			else
 			{
-				picker.abort_download(m_request_queue.back());
-				m_request_queue.pop_back();
+				piece_picker& picker = t->picker();
+				while (!m_download_queue.empty())
+				{
+					picker.abort_download(m_download_queue.back());
+					m_download_queue.pop_back();
+				}
+				while (!m_request_queue.empty())
+				{
+					picker.abort_download(m_request_queue.back());
+					m_request_queue.pop_back();
+				}
+
+				// TODO: If we have a limited number of upload
+				// slots, choke this peer
+				
+				m_assume_fifo = true;
+
+				request_a_block(*t, *this);
+				send_block_requests();
 			}
-
-			// TODO: If we have a limited number of upload
-			// slots, choke this peer
-			
-			m_assume_fifo = true;
-
-			// this will trigger new picking of pieces
-			t->get_policy().unchoked(*this);
 		}
 
 		m_statistics.second_tick(tick_interval);

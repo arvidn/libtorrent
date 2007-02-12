@@ -296,7 +296,7 @@ namespace libtorrent
 		init();
 	
 #ifndef TORRENT_DISABLE_DHT
-		if (!tf.priv())
+		if (should_announce_dht())
 		{
 			m_dht_announce_timer.expires_from_now(seconds(10));
 			m_dht_announce_timer.async_wait(m_ses.m_strand.wrap(
@@ -384,11 +384,26 @@ namespace libtorrent
 		m_policy.reset(new policy(this));
 		m_torrent_file.add_tracker(tracker_url);
 #ifndef TORRENT_DISABLE_DHT
-		m_dht_announce_timer.expires_from_now(seconds(10));
-		m_dht_announce_timer.async_wait(m_ses.m_strand.wrap(
-			bind(&torrent::on_dht_announce, this, _1)));
+		if (should_announce_dht())
+		{
+			m_dht_announce_timer.expires_from_now(seconds(10));
+			m_dht_announce_timer.async_wait(m_ses.m_strand.wrap(
+				bind(&torrent::on_dht_announce, this, _1)));
+		}
 #endif
 	}
+
+#ifndef TORRENT_DISABLE_DHT
+	bool torrent::should_announce_dht() const
+	{
+		// don't announce private torrents
+		if (m_torrent_file.is_valid() && m_torrent_file.priv()) return false;
+	
+		if (m_trackers.empty()) return true;
+			
+		return m_failed_trackers > 0 || !m_ses.settings().use_dht_as_fallback;
+	}
+#endif
 
 	torrent::~torrent()
 	{
@@ -465,9 +480,12 @@ namespace libtorrent
 	void torrent::on_dht_announce(asio::error_code const& e)
 	{
 		if (e) return;
-		m_dht_announce_timer.expires_from_now(boost::posix_time::minutes(30));
-		m_dht_announce_timer.async_wait(m_ses.m_strand.wrap(
-			bind(&torrent::on_dht_announce, this, _1)));
+		if (should_announce_dht())
+		{
+			m_dht_announce_timer.expires_from_now(boost::posix_time::minutes(30));
+			m_dht_announce_timer.async_wait(m_ses.m_strand.wrap(
+				bind(&torrent::on_dht_announce, this, _1)));
+		}
 		if (!m_ses.m_dht) return;
 		// TODO: There should be a way to abort an announce operation on the dht.
 		// when the torrent is destructed
@@ -1968,6 +1986,19 @@ namespace libtorrent
 			// if we've looped the tracker list, wait a bit before retrying
 			m_currently_trying_tracker = 0;
 			m_next_request = second_clock::universal_time() + seconds(delay);
+
+#ifndef DISABLE_DHT_SUPPORT
+			// only start the dht announce unless we already are already running
+			// the announce timer (a positive expiration time indicates
+			// that it's running)
+			if (m_dht_announce_timer.expires_from_now().is_negative() && should_announce_dht())
+			{
+				m_dht_announce_timer.expires_from_now(boost::posix_time::seconds(1));
+				m_dht_announce_timer.async_wait(m_ses.m_strand.wrap(
+					bind(&torrent::on_dht_announce, this, _1)));
+			}
+#endif
+
 		}
 		else
 		{

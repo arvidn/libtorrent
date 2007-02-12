@@ -466,7 +466,7 @@ namespace libtorrent
 		void set_metadata(entry const&);
 		
 	private:
-
+	
 		void try_next_tracker();
 		int prioritize_tracker(int tracker_index);
 		void on_country_lookup(asio::error_code const& error, tcp::resolver::iterator i
@@ -548,6 +548,7 @@ namespace libtorrent
 		deadline_timer m_dht_announce_timer;
 		void on_dht_announce(asio::error_code const& e);
 		void on_dht_announce_response(std::vector<tcp::endpoint> const& peers);
+		bool should_announce_dht() const;
 #endif
 
 		// this is the upload and download statistics for the whole torrent.
