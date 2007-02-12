@@ -1054,10 +1054,10 @@ namespace libtorrent { namespace detail
 			}
 			catch (std::exception& e)
 			{
-	#ifndef NDEBUG
+#ifndef NDEBUG
 				std::cerr << e.what() << "\n";
 				std::string err = e.what();
-	#endif
+#endif
 				assert(false);
 			}
 		}
