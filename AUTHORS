@@ -1,12 +1,19 @@
 
-Written by Arvid Norberg. Copyright (c) 2003-2006
+Written by Arvid Norberg. Copyright (c) 2003-2007
 
-Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson
+Lots of testing, suggestions and contributions by:
+Massaroddel
+Tianhao Qiu.
 
-Lots of testing, suggestions and contributions by Massaroddel and Tianhao Qiu.
+Contributions by:
+Magnus Jonsson
+Daniel Wallin
+Cory Nelson
+Stas Khirman
 
-Big thanks to Michael Wojciechowski and Peter Koeleman for making the
-autotools scripts.
+Building and maintainance of the autotools scripts:
+Michael Wojciechowski
+Peter Koeleman
 
 Thanks to Reimond Retz for bugfixes, suggestions and testing
 
