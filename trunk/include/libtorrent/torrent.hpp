@@ -365,6 +365,11 @@ namespace libtorrent
 		// this is the asio callback that is called when a name
 		// lookup for a web seed is completed.
 		void on_name_lookup(asio::error_code const& e, tcp::resolver::iterator i
+			, std::string url, tcp::endpoint proxy);
+
+		// this is the asio callback that is called when a name
+		// lookup for a proxy for a web seed is completed.
+		void on_proxy_name_lookup(asio::error_code const& e, tcp::resolver::iterator i
 			, std::string url);
 
 		// this is called when the torrent has finished. i.e.

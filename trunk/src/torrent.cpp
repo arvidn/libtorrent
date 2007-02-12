@@ -1106,9 +1106,7 @@ namespace libtorrent
 			m_event = tracker_request::none;
 		req.url = m_trackers[m_currently_trying_tracker].url;
 		assert(m_connections_quota.given > 0);
-		req.num_want = std::max(
-			(m_connections_quota.given
-			- m_policy->num_peers()), 10);
+		req.num_want = std::max(m_connections_quota.given - num_peers(), 10);
 		// if we are aborting. we don't want any new peers
 		if (req.event == tracker_request::stopped)
 			req.num_want = 0;
@@ -1173,19 +1171,20 @@ namespace libtorrent
 		(*m_ses.m_logger) << now << " resolving: " << url << "\n";
 #endif
 
-		std::string protocol;
-		std::string hostname;
-		int port;
-		std::string path;
-		boost::tie(protocol, hostname, port, path)
-			= parse_url_components(url);
-
 		m_resolving_web_seeds.insert(url);
 		if (m_ses.settings().proxy_ip.empty())
 		{
+			std::string protocol;
+			std::string hostname;
+			int port;
+			std::string path;
+			boost::tie(protocol, hostname, port, path)
+				= parse_url_components(url);
+
 			tcp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
 			m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
-				bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, url)));
+				bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, url
+					, tcp::endpoint())));
 		}
 		else
 		{
@@ -1193,10 +1192,161 @@ namespace libtorrent
 			tcp::resolver::query q(m_ses.settings().proxy_ip
 				, boost::lexical_cast<std::string>(m_ses.settings().proxy_port));
 			m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
-				bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, url)));
+				bind(&torrent::on_proxy_name_lookup, shared_from_this(), _1, _2, url)));
 		}
 
 	}
+
+	void torrent::on_proxy_name_lookup(asio::error_code const& e, tcp::resolver::iterator host
+		, std::string url) try
+	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+		INVARIANT_CHECK;
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		std::string now(to_simple_string(second_clock::universal_time()));
+		(*m_ses.m_logger) << now << " completed resolve proxy hostname for: " << url << "\n";
+#endif
+
+		if (e || host == tcp::resolver::iterator())
+		{
+			if (m_ses.m_alerts.should_post(alert::warning))
+			{
+				std::stringstream msg;
+				msg << "HTTP seed proxy hostname lookup failed: " << e.message();
+				m_ses.m_alerts.post_alert(
+					url_seed_alert(get_handle(), url, msg.str()));
+			}
+
+			// the name lookup failed for the http host. Don't try
+			// this host again
+			remove_url_seed(url);
+			return;
+		}
+
+		if (m_ses.is_aborted()) return;
+
+		tcp::endpoint a(host->endpoint());
+
+		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
+		{
+			// TODO: post alert: "proxy at " + a.address().to_string() + " (" + hostname + ") blocked by ip filter");
+			return;
+		}
+
+		std::string protocol;
+		std::string hostname;
+		int port;
+		std::string path;
+		boost::tie(protocol, hostname, port, path)
+			= parse_url_components(url);
+
+		tcp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
+		m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
+			bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, url, a)));
+	}
+	catch (std::exception& exc)
+	{
+		assert(false);
+	};
+
+	void torrent::on_name_lookup(asio::error_code const& e, tcp::resolver::iterator host
+		, std::string url, tcp::endpoint proxy) try
+	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+		INVARIANT_CHECK;
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		std::string now(to_simple_string(second_clock::universal_time()));
+		(*m_ses.m_logger) << now << " completed resolve: " << url << "\n";
+#endif
+
+		std::set<std::string>::iterator i = m_resolving_web_seeds.find(url);
+		if (i != m_resolving_web_seeds.end()) m_resolving_web_seeds.erase(i);
+
+		if (e || host == tcp::resolver::iterator())
+		{
+			if (m_ses.m_alerts.should_post(alert::warning))
+			{
+				std::stringstream msg;
+				msg << "HTTP seed hostname lookup failed: " << e.message();
+				m_ses.m_alerts.post_alert(
+					url_seed_alert(get_handle(), url, msg.str()));
+			}
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			(*m_ses.m_logger) << " ** HOSTNAME LOOKUP FAILED!**: " << url << "\n";
+#endif
+
+			// the name lookup failed for the http host. Don't try
+			// this host again
+			remove_url_seed(url);
+			return;
+		}
+
+		if (m_ses.is_aborted()) return;
+
+		tcp::endpoint a(host->endpoint());
+
+		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
+		{
+			// TODO: post alert: "web seed at " + a.address().to_string() + " blocked by ip filter");
+			return;
+		}
+		
+		peer_iterator conn = m_connections.find(a);
+		if (conn != m_connections.end())
+		{
+			if (dynamic_cast<web_peer_connection*>(conn->second) == 0
+				|| conn->second->is_disconnecting()) conn->second->disconnect();
+			else return;
+		}
+
+		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_io_service));
+		boost::intrusive_ptr<peer_connection> c(new web_peer_connection(
+			m_ses, shared_from_this(), s, a, proxy, url));
+			
+#ifndef NDEBUG
+		c->m_in_constructor = false;
+#endif
+
+		try
+		{
+			m_ses.m_connection_queue.push_back(c);
+
+			assert(m_connections.find(a) == m_connections.end());
+
+#ifndef NDEBUG
+			m_policy->check_invariant();
+#endif
+			// add the newly connected peer to this torrent's peer list
+			m_connections.insert(
+				std::make_pair(a, boost::get_pointer(c)));
+
+#ifndef NDEBUG
+			m_policy->check_invariant();
+#endif
+
+			m_ses.process_connection_queue();
+		}
+		catch (std::exception& e)
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			(*m_ses.m_logger) << " ** HOSTNAME LOOKUP FAILED!**: " << e.what() << "\n";
+#endif
+
+			// TODO: post an error alert!
+			std::map<tcp::endpoint, peer_connection*>::iterator i = m_connections.find(a);
+			if (i != m_connections.end()) m_connections.erase(i);
+			m_ses.connection_failed(s, a, e.what());
+			c->disconnect();
+		}
+	}
+	catch (std::exception& exc)
+	{
+		assert(false);
+	};
 
 	void torrent::resolve_peer_country(boost::intrusive_ptr<peer_connection> const& p) const
 	{
@@ -1512,95 +1662,6 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::on_name_lookup(asio::error_code const& e, tcp::resolver::iterator host
-		, std::string url) try
-	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-
-		INVARIANT_CHECK;
-
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		std::string now(to_simple_string(second_clock::universal_time()));
-		(*m_ses.m_logger) << now << " completed resolve: " << url << "\n";
-#endif
-		
-		std::set<std::string>::iterator i = m_resolving_web_seeds.find(url);
-		if (i != m_resolving_web_seeds.end()) m_resolving_web_seeds.erase(i);
-
-		if (e || host == tcp::resolver::iterator())
-		{
-			if (m_ses.m_alerts.should_post(alert::warning))
-			{
-				std::stringstream msg;
-				msg << "HTTP seed hostname lookup failed: " << e.message();
-				m_ses.m_alerts.post_alert(
-					url_seed_alert(get_handle(), url, msg.str()));
-			}
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			(*m_ses.m_logger) << " ** HOSTNAME LOOKUP FAILED!**: " << url << "\n";
-#endif
-
-			// the name lookup failed for the http host. Don't try
-			// this host again
-			remove_url_seed(url);
-			return;
-		}
-
-		if (m_ses.is_aborted()) return;
-
-		tcp::endpoint a(host->endpoint());
-
-		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
-		{
-			// TODO: post alert: "web seed at " + a.address().to_string() + " blocked by ip filter");
-			return;
-		}
-
-		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_io_service));
-		boost::intrusive_ptr<peer_connection> c(new web_peer_connection(
-			m_ses, shared_from_this(), s, a, url));
-			
-#ifndef NDEBUG
-		c->m_in_constructor = false;
-#endif
-
-		try
-		{
-			m_ses.m_connection_queue.push_back(c);
-
-			assert(m_connections.find(a) == m_connections.end());
-
-#ifndef NDEBUG
-			m_policy->check_invariant();
-#endif
-			// add the newly connected peer to this torrent's peer list
-			m_connections.insert(
-				std::make_pair(a, boost::get_pointer(c)));
-
-#ifndef NDEBUG
-			m_policy->check_invariant();
-#endif
-
-			m_ses.process_connection_queue();
-		}
-		catch (std::exception& e)
-		{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			(*m_ses.m_logger) << " ** HOSTNAME LOOKUP FAILED!**: " << e.what() << "\n";
-#endif
-
-			// TODO: post an error alert!
-			std::map<tcp::endpoint, peer_connection*>::iterator i = m_connections.find(a);
-			if (i != m_connections.end()) m_connections.erase(i);
-			m_ses.connection_failed(s, a, e.what());
-			c->disconnect();
-		}
-	}
-	catch (std::exception& exc)
-	{
-		assert(false);
-	};
-
 	peer_connection& torrent::connect_to_peer(const tcp::endpoint& a)
 	{
 		INVARIANT_CHECK;
@@ -1745,9 +1806,8 @@ namespace libtorrent
 			m_connections.erase(ci);
 			throw;
 		}
-#ifndef NDEBUG
-		assert(p->remote() == p->get_socket()->remote_endpoint());
-#endif
+		assert((p->proxy() == tcp::endpoint() && p->remote() == p->get_socket()->remote_endpoint())
+			|| p->proxy() == p->get_socket()->remote_endpoint());
 
 #ifndef NDEBUG
 		m_policy->check_invariant();
@@ -2247,6 +2307,10 @@ namespace libtorrent
 			// let the stats fade out to 0
  			m_stat.second_tick(tick_interval);
  			m_web_stat.second_tick(tick_interval);
+			m_connections_quota.min = 0;
+			m_connections_quota.max = 0;
+			m_uploads_quota.min = 0;
+			m_uploads_quota.max = 0;
 			return;
 		}
 

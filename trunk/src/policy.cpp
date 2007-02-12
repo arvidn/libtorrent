@@ -79,6 +79,7 @@ namespace
 			- (int)c.download_queue().size()
 			- (int)c.request_queue().size();
 
+		assert(c.desired_queue_size() > 0);
 		// if our request queue is already full, we
 		// don't have to make any new requests yet
 		if (num_requests <= 0) return;
@@ -99,7 +100,8 @@ namespace
 		// the number of blocks we want, but it will try to make the picked
 		// blocks be from whole pieces, possibly by returning more blocks
 		// than we requested.
-		assert(c.remote() == c.get_socket()->remote_endpoint());
+		assert((c.proxy() == tcp::endpoint() && c.remote() == c.get_socket()->remote_endpoint())
+			|| c.proxy() == c.get_socket()->remote_endpoint());
 
 		// picks the interesting pieces from this peer
 		// the integer is the number of pieces that
@@ -248,7 +250,8 @@ namespace
 
 			// the one we interrupted may need to request a new piece.
 			// make sure it doesn't take over a block from the peer
-			// that just took over its block
+			// that just took over its block (that would cause an
+			// infinite recursion)
 			ignore.push_back(&c);
 			request_a_block(t, *peer, ignore);
 			num_requests--;
@@ -891,9 +894,9 @@ namespace libtorrent
 
 		// TODO: only allow _one_ connection to use this
 		// override at a time
-#ifndef NDEBUG
-		assert(c.remote() == c.get_socket()->remote_endpoint());
-#endif
+		assert((c.proxy() == tcp::endpoint() && c.remote() == c.get_socket()->remote_endpoint())
+			|| c.proxy() == c.get_socket()->remote_endpoint());
+
 		if (m_torrent->num_peers() >= m_torrent->m_connections_quota.given
 			&& c.remote().address() != m_torrent->current_tracker().address())
 		{
@@ -954,9 +957,9 @@ namespace libtorrent
 
 			// we don't have ny info about this peer.
 			// add a new entry
-#ifndef NDEBUG
-			assert(c.remote() == c.get_socket()->remote_endpoint());
-#endif
+			assert((c.proxy() == tcp::endpoint() && c.remote() == c.get_socket()->remote_endpoint())
+				|| c.proxy() == c.get_socket()->remote_endpoint());
+
 			peer p(c.remote(), peer::not_connectable);
 			m_peers.push_back(p);
 			i = m_peers.end()-1;
@@ -1334,9 +1337,9 @@ namespace libtorrent
 	bool policy::has_connection(const peer_connection* c)
 	{
 		assert(c);
-#ifndef NDEBUG
-		assert(c->remote() == c->get_socket()->remote_endpoint());
-#endif
+		assert((c->proxy() == tcp::endpoint() && c->remote() == c->get_socket()->remote_endpoint())
+			|| c->proxy() == c->get_socket()->remote_endpoint());
+
 		return std::find_if(
 			m_peers.begin()
 			, m_peers.end()

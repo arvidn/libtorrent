@@ -75,7 +75,8 @@ namespace libtorrent
 		session_impl& ses
 		, boost::weak_ptr<torrent> tor
 		, shared_ptr<stream_socket> s
-		, tcp::endpoint const& remote)
+		, tcp::endpoint const& remote
+		, tcp::endpoint const& proxy)
 		:
 #ifndef NDEBUG
 		m_last_choke(boost::posix_time::second_clock::universal_time()
@@ -94,6 +95,7 @@ namespace libtorrent
 		, m_last_sent(second_clock::universal_time())
 		, m_socket(s)
 		, m_remote(remote)
+		, m_remote_proxy(proxy)
 		, m_torrent(tor)
 		, m_active(true)
 		, m_peer_interested(false)
@@ -593,7 +595,7 @@ namespace libtorrent
 
 		// clear the request queue if the client isn't interested
 		m_requests.clear();
-		setup_send();
+//		setup_send();
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
@@ -701,8 +703,9 @@ namespace libtorrent
 			return;
 		}
 
-		// build a vector of all pieces
-		std::vector<int> piece_list;
+		// let the torrent know which pieces the
+		// peer has
+		bool interesting = false;
 		for (int i = 0; i < (int)m_have_piece.size(); ++i)
 		{
 			bool have = bitfield[i];
@@ -710,7 +713,10 @@ namespace libtorrent
 			{
 				m_have_piece[i] = true;
 				++m_num_pieces;
-				piece_list.push_back(i);
+				t->peer_has(i);
+				if (!t->have_piece(i)
+					&& !t->picker().is_filtered(i))
+					interesting = true;
 			}
 			else if (!have && m_have_piece[i])
 			{
@@ -721,23 +727,7 @@ namespace libtorrent
 			}
 		}
 
-		// let the torrent know which pieces the
-		// peer has, in a shuffled order
-		bool interesting = false;
-		if (!t->is_seed())
-		{
-			for (std::vector<int>::reverse_iterator i = piece_list.rbegin();
-				i != piece_list.rend(); ++i)
-			{
-				int index = *i;
-				t->peer_has(index);
-				if (!t->have_piece(index)
-					&& !t->picker().is_filtered(index))
-					interesting = true;
-			}
-		}
-
-		if (piece_list.size() == m_have_piece.size())
+		if (m_num_pieces == int(m_have_piece.size()))
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << " *** THIS IS A SEED ***\n";
@@ -1018,6 +1008,7 @@ namespace libtorrent
 		if (picker.is_finished(block_finished))
 		{
 			t->received_redundant_data(t->block_size());
+			pol.block_finished(*this, block_finished);
 			send_block_requests();
 			return;
 		}
@@ -1190,6 +1181,9 @@ namespace libtorrent
 			assert(it != m_request_queue.end());
 			if (it == m_request_queue.end()) return;
 			m_request_queue.erase(it);
+			
+			m_policy->block_finished(*this, block);
+			send_block_requests();
 			// since we found it in the request queue, it means it hasn't been
 			// sent yet, so we don't have to send a cancel.
 			return;
@@ -1198,8 +1192,6 @@ namespace libtorrent
 		{	
 			m_download_queue.erase(it);
 		}
-
-		send_block_requests();
 
 		int block_offset = block.block_index * t->block_size();
 		int block_size
@@ -1214,6 +1206,9 @@ namespace libtorrent
 		r.length = block_size;
 
 		write_cancel(r);
+
+		m_policy->block_finished(*this, block);
+		send_block_requests();
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
@@ -1481,7 +1476,7 @@ namespace libtorrent
 
 		assert(packet_size > 0);
 		assert((int)m_recv_buffer.size() >= size);
-
+		// TODO: replace with memmov
 		std::copy(m_recv_buffer.begin() + size, m_recv_buffer.begin() + m_recv_pos, m_recv_buffer.begin());
 
 		assert(m_recv_pos >= size);
@@ -1492,7 +1487,7 @@ namespace libtorrent
 #endif
 
 		m_packet_size = packet_size;
-		m_recv_buffer.resize(m_packet_size);
+		if (m_packet_size >= m_recv_pos) m_recv_buffer.resize(m_packet_size);
 	}
 
 	void peer_connection::second_tick(float tick_interval)
@@ -1762,7 +1757,8 @@ namespace libtorrent
 				(*m_logger) << "req bandwidth [ " << upload_channel << " ]\n";
 #endif
 
-				t->request_bandwidth(upload_channel, self(), m_non_prioritized);
+				// the upload queue should not have non-prioritized peers
+				t->request_bandwidth(upload_channel, self(), /*m_non_prioritized*/ false);
 				m_writing = true;
 			}
 			return;
@@ -1775,7 +1771,7 @@ namespace libtorrent
 		int sending_buffer = (m_current_send_buffer + 1) & 1;
 		if (m_send_buffer[sending_buffer].empty())
 		{
-			// thise means we have to swap buffer, because there's no
+			// this means we have to swap buffer, because there's no
 			// previous buffer we're still waiting for.
 			std::swap(m_current_send_buffer, sending_buffer);
 			m_write_pos = 0;
@@ -1846,6 +1842,11 @@ namespace libtorrent
 	void peer_connection::reset_recv_buffer(int packet_size)
 	{
 		assert(packet_size > 0);
+		if (m_recv_pos > m_packet_size)
+		{
+			cut_receive_buffer(m_packet_size, packet_size);
+			return;
+		}
 		m_recv_pos = 0;
 		m_packet_size = packet_size;
 		if (int(m_recv_buffer.size()) < m_packet_size)
@@ -1914,14 +1915,7 @@ namespace libtorrent
 
 		m_last_receive = second_clock::universal_time();
 		m_recv_pos += bytes_transferred;
-
-		// this will reset the m_recv_pos to 0 if the
-		// entire packet was received
-		// it is important that this is done before
-		// setup_receive() is called. Therefore, fire() is
-		// called before setup_receive().
-		assert(m_recv_pos <= m_packet_size);
-		set_to_zero<int> reset(m_recv_pos, m_recv_pos == m_packet_size);
+		assert(m_recv_pos <= int(m_recv_buffer.size()));
 		
 		{
 			INVARIANT_CHECK;
@@ -1929,9 +1923,6 @@ namespace libtorrent
 		}
 
 		assert(m_packet_size > 0);
-
-		// do the reset immediately
-		reset.fire();
 
 		setup_receive();	
 	}
@@ -2002,8 +1993,16 @@ namespace libtorrent
 		assert(m_connecting);
 		m_socket->open(asio::ip::tcp::v4());
 		m_socket->bind(t->get_interface());
-		m_socket->async_connect(m_remote
-			, bind(&peer_connection::on_connection_complete, self(), _1));
+		if (m_remote_proxy != tcp::endpoint())
+		{
+			m_socket->async_connect(m_remote_proxy
+				, bind(&peer_connection::on_connection_complete, self(), _1));
+		}
+		else
+		{
+			m_socket->async_connect(m_remote
+				, bind(&peer_connection::on_connection_complete, self(), _1));
+		}
 
 		if (t->alerts().should_post(alert::debug))
 		{
@@ -2188,6 +2187,11 @@ namespace libtorrent
 	{
 		// TODO: the timeout should be called by an event
 		INVARIANT_CHECK;
+
+#ifndef NDEBUG
+		// allow step debugging without timing out
+		return false;
+#endif
 
 		using namespace boost::posix_time;
 

@@ -77,6 +77,7 @@ namespace libtorrent
 		bool finished() const { return m_finished; }
 		boost::tuple<int, int> incoming(buffer::const_interval recv_buffer);
 		int body_start() const { return m_body_start_pos; }
+		int content_length() const { return m_content_length; }
 
 		void reset();
 	private:

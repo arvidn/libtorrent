@@ -860,7 +860,9 @@ int main(int ac, char* av[])
 					out << state_str[s.state] << " ";
 				}
 
-				h.get_peer_info(peers);
+				if ((print_downloads && s.state != torrent_status::seeding)
+					|| print_peers)
+					h.get_peer_info(peers);
 
 				if (s.state != torrent_status::seeding)
 				{

@@ -359,8 +359,6 @@ namespace libtorrent
 			// open files by this session.
 			file_pool m_files;
 
-			// does the actual disconnections
-			// that are queued up in m_disconnect_peer
 			void second_tick(asio::error_code const& e);
 			boost::posix_time::ptime m_last_tick;
 
