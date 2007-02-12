@@ -315,7 +315,8 @@ namespace libtorrent { namespace
 			// abort if the peer doesn't support the metadata extension
 			if (m_message_index == 0) return;
 
-			if (m_torrent.valid_metadata())
+			// only send metadata if the torrent is non-private
+			if (m_torrent.valid_metadata() && !m_torrent.torrent_file().priv())
 			{
 				std::pair<int, int> offset
 					= req_to_offset(req, (int)m_tp.metadata().size());

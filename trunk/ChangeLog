@@ -1,3 +1,5 @@
+	* metadata extension now respects the private flag in the torrent.
+	* made the DHT to only be used as a fallback to trackers by default.
 	* added support for HTTP redirection support for web seeds.
 	* fixed race condition when accessing a torrent that was checking its
 	  fast resume data.

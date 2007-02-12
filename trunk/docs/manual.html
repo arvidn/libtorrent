@@ -2004,6 +2004,7 @@ struct session_settings
         int urlseed_pipeline_size;
         int file_pool_size;
         bool allow_multiple_connections_per_ip;
+        bool use_dht_as_fallback;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">proxy_ip</span></tt> may be a hostname or ip to a http proxy to use. If this is
@@ -2078,6 +2079,10 @@ connections from the same IP address is not allowed by default, to prevent
 abusive behavior by peers. It may be useful to allow such connections in
 cases where simulations are run on the same machie, and all peers in a
 swarm has the same IP address.</p>
+<p><tt class="docutils literal"><span class="pre">use_dht_as_fallback</span></tt> determines how the DHT is used. If this is true
+(which it is by default), the DHT will only be used for torrents where
+all trackers in its tracker list has failed. Either by an explicit error
+message or a time out.</p>
 </div>
 <div class="section">
 <h1><a id="ip-filter" name="ip-filter">ip_filter</a></h1>

@@ -1995,6 +1995,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int urlseed_pipeline_size;
 		int file_pool_size;
 		bool allow_multiple_connections_per_ip;
+		bool use_dht_as_fallback;
 	};
 
 ``proxy_ip`` may be a hostname or ip to a http proxy to use. If this is
@@ -2086,6 +2087,11 @@ connections from the same IP address is not allowed by default, to prevent
 abusive behavior by peers. It may be useful to allow such connections in
 cases where simulations are run on the same machie, and all peers in a
 swarm has the same IP address.
+
+``use_dht_as_fallback`` determines how the DHT is used. If this is true
+(which it is by default), the DHT will only be used for torrents where
+all trackers in its tracker list has failed. Either by an explicit error
+message or a time out.
 
 ip_filter
 =========

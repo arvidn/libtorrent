@@ -58,6 +58,7 @@ namespace libtorrent
 			, urlseed_pipeline_size(5)
 			, file_pool_size(40)
 			, allow_multiple_connections_per_ip(false)
+			, use_dht_as_fallback(true)
 		{}
 
 		std::string proxy_ip;
@@ -150,6 +151,12 @@ namespace libtorrent
 		// false to not allow multiple connections from the same
 		// IP address. true will allow it.
 		bool allow_multiple_connections_per_ip;
+
+#ifndef TORRENT_DISABLE_DHT
+		// while this is true, the dht will note be used unless the
+		// tracker is online
+		bool use_dht_as_fallback;
+#endif
 	};
 	
 #ifndef TORRENT_DISABLE_DHT

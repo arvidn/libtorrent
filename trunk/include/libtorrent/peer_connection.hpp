@@ -292,6 +292,10 @@ namespace libtorrent
 
 		// adds a block to the request queue
 		void add_request(piece_block const& b);
+		// removes a block from the request queue or download queue
+		// sends a cancel message if appropriate
+		// refills the request queue, and possibly ignoring pieces requested
+		// by peers in the ignore list (to avoid recursion)
 		void cancel_request(piece_block const& b);
 		void send_block_requests();
 
