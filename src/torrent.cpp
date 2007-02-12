@@ -2309,6 +2309,10 @@ namespace libtorrent
 #endif
 
 		m_paused = false;
+		m_uploads_quota.min = 2;
+		m_connections_quota.min = 2;
+		m_uploads_quota.max = std::numeric_limits<int>::max();
+		m_connections_quota.max = std::numeric_limits<int>::max();
 
 		// tell the tracker that we're back
 		m_event = tracker_request::started;
