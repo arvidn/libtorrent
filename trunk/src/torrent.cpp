@@ -1123,8 +1123,7 @@ namespace libtorrent
 		if (m_event != tracker_request::stopped)
 			m_event = tracker_request::none;
 		req.url = m_trackers[m_currently_trying_tracker].url;
-		assert(m_connections_quota.given > 0);
-		req.num_want = std::max(m_connections_quota.given - num_peers(), 10);
+		req.num_want = 50;
 		// if we are aborting. we don't want any new peers
 		if (req.event == tracker_request::stopped)
 			req.num_want = 0;
