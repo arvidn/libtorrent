@@ -238,7 +238,7 @@ namespace libtorrent
 	// just the necessary to use it with piece manager
 	// used for torrents with no metadata
 	torrent_info::torrent_info(sha1_hash const& info_hash)
-		: m_piece_length(256 * 1024)
+		: m_piece_length(0)
 		, m_total_size(0)
 		, m_info_hash(info_hash)
 		, m_name()
@@ -250,7 +250,7 @@ namespace libtorrent
 	}
 
 	torrent_info::torrent_info()
-		: m_piece_length(256 * 1024)
+		: m_piece_length(0)
 		, m_total_size(0)
 		, m_info_hash(0)
 		, m_name()
@@ -543,18 +543,18 @@ namespace libtorrent
 		m_files.push_back(e);
 
 		m_total_size += size;
+		
+		if (m_piece_length == 0)
+			m_piece_length = 256 * 1024;
 
 		int num_pieces = static_cast<int>(
 			(m_total_size + m_piece_length - 1) / m_piece_length);
 		int old_num_pieces = static_cast<int>(m_piece_hash.size());
 
 		m_piece_hash.resize(num_pieces);
-		for (std::vector<sha1_hash>::iterator i = m_piece_hash.begin() + old_num_pieces;
-			i != m_piece_hash.end(); ++i)
-		{
-			i->clear();
-		}
-
+		if (num_pieces > old_num_pieces)
+			std::for_each(m_piece_hash.begin() + old_num_pieces
+				, m_piece_hash.end(), boost::bind(&sha1_hash::clear, _1));
 	}
 
 	void torrent_info::add_url_seed(std::string const& url)

@@ -943,6 +943,10 @@ namespace libtorrent
 				, m_download_queue.end()
 				, block_finished);
 
+		// if there's another peer that needs to do another
+		// piece request, this will point to it
+		peer_connection* request_peer = 0;
+
 		if (b != m_download_queue.end())
 		{
 			if (m_assume_fifo)
@@ -985,11 +989,7 @@ namespace libtorrent
 				if (pc && pc != this)
 				{
 					pc->cancel_request(block_finished);
-					if (!pc->has_peer_choked() && !t->is_seed())
-					{
-						request_a_block(*t, *pc);
-						pc->send_block_requests();
-					}
+					request_peer = pc;
 				}
 			}
 			else
@@ -1015,6 +1015,12 @@ namespace libtorrent
 			t->received_redundant_data(t->block_size());
 			pol.block_finished(*this, block_finished);
 			send_block_requests();
+
+			if (request_peer && !request_peer->has_peer_choked() && !t->is_seed())
+			{
+				request_a_block(*t, *request_peer);
+				request_peer->send_block_requests();
+			}
 			return;
 		}
 		
@@ -1028,6 +1034,12 @@ namespace libtorrent
 			send_block_requests();
 		}
 		catch (std::exception const&) {}
+
+		if (request_peer && !request_peer->has_peer_choked() && !t->is_seed())
+		{
+			request_a_block(*t, *request_peer);
+			request_peer->send_block_requests();
+		}
 
 #ifndef NDEBUG
 		try
@@ -1765,7 +1777,7 @@ namespace libtorrent
 #endif
 
 				// the upload queue should not have non-prioritized peers
-				t->request_bandwidth(upload_channel, self(), /*m_non_prioritized*/ false);
+				t->request_bandwidth(upload_channel, self(), false);
 				m_writing = true;
 			}
 			return;
