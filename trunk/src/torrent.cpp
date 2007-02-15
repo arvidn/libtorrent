@@ -2199,10 +2199,17 @@ namespace libtorrent
 		}
 
 		size_type total_done = quantized_bytes_done();
-		if (is_seed())
-			assert(total_done == m_torrent_file.total_size());
+		if (m_torrent_file.is_valid())
+		{
+			if (is_seed())
+				assert(total_done == m_torrent_file.total_size());
+			else
+				assert(total_done != m_torrent_file.total_size());
+		}
 		else
-			assert(total_done != m_torrent_file.total_size());
+		{
+			assert(total_done == 0);
+		}
 
 // This check is very expensive.
 		assert(m_num_pieces
