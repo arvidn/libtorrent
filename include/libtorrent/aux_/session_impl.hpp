@@ -161,7 +161,7 @@ namespace libtorrent
 #ifndef NDEBUG
 			friend class ::libtorrent::peer_connection;
 #endif
-			friend class checker_impl;
+			friend struct checker_impl;
 			friend class invariant_access;
 			typedef std::map<boost::shared_ptr<stream_socket>
 				, boost::intrusive_ptr<peer_connection> >
