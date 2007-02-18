@@ -58,7 +58,9 @@ namespace libtorrent
 			, urlseed_pipeline_size(5)
 			, file_pool_size(40)
 			, allow_multiple_connections_per_ip(false)
+#ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(true)
+#endif
 		{}
 
 		std::string proxy_ip;
