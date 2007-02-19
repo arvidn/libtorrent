@@ -218,6 +218,10 @@ namespace libtorrent
 				t->expire_bandwidth(m_channel, -1);
 				continue;
 			}
+			// don't hand out chunks larger than the throttle
+			// per second on the torrent
+			if (max_assignable > t->bandwidth_throttle(m_channel))
+				max_assignable = t->bandwidth_throttle(m_channel);
 
 			// so, hand out max_assignable, but no more than
 			// the available bandwidth (amount) and no more
