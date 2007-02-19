@@ -1856,16 +1856,25 @@ namespace libtorrent
 		}
 	}
 
+	bool torrent::request_bandwidth_from_session(int channel) const
+	{
+		int max_assignable = m_bandwidth_limit[channel].max_assignable();
+		return max_assignable > max_bandwidth_block_size
+			|| (m_bandwidth_limit[channel].throttle() < m_bandwidth_limit[channel].max_assignable())
+				&& max_assignable > 0;
+	}
+
 	void torrent::request_bandwidth(int channel
 		, boost::intrusive_ptr<peer_connection> p
 		, bool non_prioritized)
 	{
-		if (m_bandwidth_limit[channel].max_assignable() >= max_bandwidth_block_size)
+		if (request_bandwidth_from_session(channel))
 		{
 			if (channel == peer_connection::upload_channel)
 				m_ses.m_ul_bandwidth_manager.request_bandwidth(p, non_prioritized);
 			else if (channel == peer_connection::download_channel)
 				m_ses.m_dl_bandwidth_manager.request_bandwidth(p, non_prioritized);
+			
 			m_bandwidth_limit[channel].assign(max_bandwidth_block_size);
 		}
 		else
@@ -1883,7 +1892,7 @@ namespace libtorrent
 		m_bandwidth_limit[channel].expire(amount);
 		
 		while (!m_bandwidth_queue[channel].empty()
-			&& m_bandwidth_limit[channel].max_assignable() >= max_bandwidth_block_size)
+			&& request_bandwidth_from_session(channel))
 		{
 			bw_queue_entry qe = m_bandwidth_queue[channel].front();
 			m_bandwidth_queue[channel].pop_front();
@@ -1986,7 +1995,7 @@ namespace libtorrent
 			m_currently_trying_tracker = 0;
 			m_next_request = second_clock::universal_time() + seconds(delay);
 
-#ifndef DISABLE_DHT_SUPPORT
+#ifndef TORRENT_DISABLE_DHT
 			// only start the dht announce unless we already are already running
 			// the announce timer (a positive expiration time indicates
 			// that it's running)
