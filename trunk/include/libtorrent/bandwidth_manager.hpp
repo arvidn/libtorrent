@@ -108,7 +108,6 @@ struct bandwidth_limit
 	void assign(int amount)
 	{
 		assert(amount > 0);
-		assert(amount <= max_assignable());
 		m_current_rate += amount;
 		m_quota_left += amount;
 	}
@@ -121,7 +120,7 @@ struct bandwidth_limit
 
 	int quota_left() const
 	{
-		return m_quota_left;
+		return (std::max)(m_quota_left, 0);
 	}
 
 	void expire(int amount)

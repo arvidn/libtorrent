@@ -471,6 +471,7 @@ namespace libtorrent
 		int prioritize_tracker(int tracker_index);
 		void on_country_lookup(asio::error_code const& error, tcp::resolver::iterator i
 			, boost::intrusive_ptr<peer_connection> p) const;
+		bool request_bandwidth_from_session(int channel) const;
 
 		torrent_info m_torrent_file;
 
