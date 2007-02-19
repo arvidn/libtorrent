@@ -406,7 +406,7 @@ namespace libtorrent
 			}
 			if (!url_has_argument(request, "numwant"))
 			{
-				m_send_buffer += "&numwant=";
+				m_send_buffer += "numwant=";
 				m_send_buffer += boost::lexical_cast<std::string>(
 					std::min(req.num_want, 999));
 				m_send_buffer += '&';
