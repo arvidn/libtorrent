@@ -206,6 +206,8 @@ namespace libtorrent
 		
 		void expire_bandwidth(int channel, int amount);
 		void assign_bandwidth(int channel, int amount);
+		
+		int bandwidth_throttle(int channel) const;
 
 // --------------------------------------------
 		// PEER MANAGEMENT

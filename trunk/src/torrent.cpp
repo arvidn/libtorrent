@@ -1861,7 +1861,12 @@ namespace libtorrent
 		int max_assignable = m_bandwidth_limit[channel].max_assignable();
 		return max_assignable > max_bandwidth_block_size
 			|| (m_bandwidth_limit[channel].throttle() < max_bandwidth_block_size
-				&& max_assignable > 0);
+				&& max_assignable == m_bandwidth_limit[channel].throttle());
+	}
+
+	int torrent::bandwidth_throttle(int channel) const
+	{
+		return m_bandwidth_limit[channel].throttle();
 	}
 
 	void torrent::request_bandwidth(int channel

@@ -91,11 +91,13 @@ namespace libtorrent
 		catch (std::exception)
 		{
 			std::wstring ret;
-			for (const char* i = &s[0]; i < &s[0] + s.size(); ++i)
+			const char* end = &s[0] + s.size();
+			for (const char* i = &s[0]; i < end;)
 			{
-				wchar_t c;
-				c = '.';
-				std::mbtowc(&c, i, 1);
+				wchar_t c = '.';
+				int result = std::mbtowc(&c, i, end - i);
+				if (result > 0) i += result;
+				else ++i;
 				ret += c;
 			}
 			return ret;
