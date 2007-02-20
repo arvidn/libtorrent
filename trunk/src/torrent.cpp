@@ -1106,6 +1106,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		assert(!m_trackers.empty());
+
 		m_next_request
 			= second_clock::universal_time()
 			+ boost::posix_time::seconds(tracker_retry_delay_max);
