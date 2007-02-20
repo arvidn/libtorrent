@@ -260,6 +260,10 @@ namespace libtorrent
 			}
 		}
 
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << request << "\n";
+#endif
+
 		send_buffer(request.c_str(), request.c_str() + request.size());
 	}
 

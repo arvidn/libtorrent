@@ -1,3 +1,5 @@
+	* added python binding, using boost.python
+	* improved character conversion on windows when strings are not utf-8.
 	* metadata extension now respects the private flag in the torrent.
 	* made the DHT to only be used as a fallback to trackers by default.
 	* added support for HTTP redirection support for web seeds.
