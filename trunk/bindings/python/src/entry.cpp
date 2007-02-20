@@ -44,9 +44,9 @@ struct entry_to_python
             return convert(e.list());
         case entry::dictionary_t:
             return convert(e.dict());
+        default:
+            return object();
         }
-
-        return object();
     }
 
     static PyObject* convert(entry const& e)

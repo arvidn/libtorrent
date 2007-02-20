@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<title>libtorrent python binding</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" href="style.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="libtorrent-python-binding">
+<h1 class="title">libtorrent python binding</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first"><a name="table-of-contents">Table of contents</a></p>
+<ul class="simple">
+<li><a class="reference" href="#building" id="id1" name="id1">building</a></li>
+<li><a class="reference" href="#using" id="id2" name="id2">using</a></li>
+</ul>
+</div>
+<div class="section">
+<h1><a id="building" name="building">building</a></h1>
+<p>Building the libtorrent python bindings will produce a shared library (DLL)
+which is a python module that can be imported in a python program.</p>
+<p>The only supported build system for the bindings are currently boost build. To
+set up your build environment, you need to add some settings to your
+<tt class="docutils literal"><span class="pre">$BOOST_BUILD_PATH/user-config.jam</span></tt>.</p>
+<p>Make sure your user config contains the following line:</p>
+<pre class="literal-block">
+using python : 2.3 ;
+</pre>
+<p>Set the version to the version of python you have installed or want to use. If
+you've installed python in a non-standard location, you have to add the prefix
+path used when you installed python as a second option. Like this:</p>
+<pre class="literal-block">
+using python : 2.3 : /usr ;
+</pre>
+<p>The bindings require <em>at least</em> python version 2.2.</p>
+<p>For more information on how to install and set up boost-build, see the
+<a class="reference" href="building.html#step-2-setup-bbv2">building libtorrent</a> section.</p>
+<p>Once you have boost-build set up, you cd to the <tt class="docutils literal"><span class="pre">bindings/python</span></tt>
+directory and invoke <tt class="docutils literal"><span class="pre">bjam</span></tt> with the apropriate settings. For the available
+build variants, see <a class="reference" href="building.html#step-3-building-libtorrent">libtorrent build options</a>.</p>
+<p>For example:</p>
+<pre class="literal-block">
+$ bjam dht-support=on release link=static
+</pre>
+<p>On Mac OS X, this will produce the following python module:</p>
+<pre class="literal-block">
+bin/darwin-4.0/release/dht-support-on/link-static/logging-none/threading-multi/libtorrent.so
+</pre>
+</div>
+<div class="section">
+<h1><a id="using" name="using">using</a></h1>
+<p>The python interface is nearly identical to the C++ interface. Please refer to
+the <a class="reference" href="manual.html">main library reference</a>.</p>
+<p>For an example python program, see <tt class="docutils literal"><span class="pre">client.py</span></tt> in the <tt class="docutils literal"><span class="pre">bindings/python</span></tt>
+directory.</p>
+<p>A very simple example usage of the module would be something like this:</p>
+<pre class="literal-block">
+import libtorrent as lt
+import time
+
+ses = lt.session()
+ses.listen_on(6881, 6891)
+
+e = lt.bdecode(open(&quot;test.torrent&quot;, 'rb').read())
+info = lt.torrent_info(e)
+
+h = ses.add_torrent(info, &quot;./&quot;, compact_mode = True)
+
+while (not h.is_seed()):
+        s = h.status()
+
+        state_str = ['queued', 'checking', 'connecting', 'downloading metadata', \
+                'downloading', 'finished', 'seeding', 'allocating']
+        print '%.2f%% complete (down: %.1f kb/s up: %.1f kB/s peers: %d) %s' % \
+                (s.progress * 100, s.download_rate / 1000, s.upload_rate / 1000, \
+                s.num_peers, state_str[s.state])
+
+        time.sleep(1)
+</pre>
+</div>
+</div>
+</body>
+</html>
