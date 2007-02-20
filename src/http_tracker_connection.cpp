@@ -146,7 +146,7 @@ namespace libtorrent
 			if (m_protocol.substr(0, 5) != "HTTP/")
 			{
 				throw std::runtime_error("unknown protocol in HTTP response: "
-					+ m_protocol);
+					+ m_protocol + " line: " + std::string(pos, newline));
 			}
 			line >> m_status_code;
 			std::getline(line, m_server_message);
