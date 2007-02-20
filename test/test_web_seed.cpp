@@ -60,17 +60,17 @@ void test_transfer()
 	remove_all("./tmp1");
 	torrent_handle th = ses.add_torrent(torrent_file, "./tmp1");
 
-	for (int i = 0; i < 50; ++i)
+	for (int i = 0; i < 70; ++i)
 	{
 		torrent_status s = th.status();
-		std::cerr << s.progress << "\r";
+		std::cerr << s.progress << " " << (s.download_rate / 1000.f) << "\r";
 		std::auto_ptr<alert> a;
 		a = ses.pop_alert();
 		if (a.get())
 			std::cerr << a->msg() << "\n";
 
 		if (th.is_seed()) break;
-		sleep(100);
+		sleep(999);
 	}
 
 	TEST_CHECK(th.is_seed());
