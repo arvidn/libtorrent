@@ -1072,7 +1072,12 @@ namespace libtorrent { namespace detail
 			m_torrents.begin(); i != m_torrents.end(); ++i)
 		{
 			i->second->abort();
-			if (!i->second->is_paused() || i->second->should_request())
+			// generate a tracker request in case the torrent is not paused
+			// (in which case it's not currently announced with the tracker)
+			// or if the torrent itself thinks we should request. Do not build
+			// a request in case the torrent doesn't have any trackers
+			if ((!i->second->is_paused() || i->second->should_request())
+				&& !i->second->torrent_file().trackers().empty())
 			{
 				tracker_request req = i->second->generate_tracker_request();
 				req.listen_port = m_listen_interface.port();

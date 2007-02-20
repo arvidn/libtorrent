@@ -540,6 +540,8 @@ namespace libtorrent
 		file_entry e;
 		e.path = file;
 		e.size = size;
+		e.offset = m_files.empty() ? 0 : m_files.back().offset
+			+ m_files.back().size;
 		m_files.push_back(e);
 
 		m_total_size += size;
