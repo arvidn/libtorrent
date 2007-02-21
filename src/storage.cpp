@@ -422,17 +422,15 @@ namespace libtorrent
 			path single_file = m_pimpl->info.begin_files()->path;
 			if (single_file.has_branch_path())
 			{
-#if defined(_WIN32) && defined(UNICODE)
-				std::wstring wsave_path(safe_convert((save_path / single_file.branch_path())
-					.native_directory_string()));
-				CreateDirectory(wsave_path.c_str(), 0);
-#else
-				create_directory(save_path / single_file.branch_path());
-#endif
+				std::string const& trunk = *single_file.begin();
+				old_path = m_pimpl->save_path / trunk;
+				new_path = save_path / trunk;
 			}
-
-			old_path = m_pimpl->save_path / single_file;
-			new_path = save_path / m_pimpl->info.begin_files()->path;
+			else
+			{
+				old_path = m_pimpl->save_path / single_file;
+				new_path = save_path / m_pimpl->info.begin_files()->path;
+			}
 		}
 		else
 		{
