@@ -1364,7 +1364,7 @@ namespace libtorrent { namespace detail
 			t.abort();
 
 			if ((!t.is_paused() || t.should_request())
-				&& !t.torrent_file.trackers().empty())
+				&& !t.torrent_file().trackers().empty())
 			{
 				tracker_request req = t.generate_tracker_request();
 				assert(req.event == tracker_request::stopped);
