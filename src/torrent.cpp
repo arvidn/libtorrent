@@ -379,10 +379,13 @@ namespace libtorrent
 		m_connections_quota.given = 100;
 		m_uploads_quota.max = std::numeric_limits<int>::max();
 		m_connections_quota.max = std::numeric_limits<int>::max();
-		m_trackers.push_back(announce_entry(tracker_url));
+		if (tracker_url)
+		{
+			m_trackers.push_back(announce_entry(tracker_url));
+			m_torrent_file.add_tracker(tracker_url);
+		}
 
 		m_policy.reset(new policy(this));
-		m_torrent_file.add_tracker(tracker_url);
 #ifndef TORRENT_DISABLE_DHT
 		if (should_announce_dht())
 		{

@@ -89,7 +89,7 @@ namespace libtorrent { namespace dht
 		void refresh_timeout(asio::error_code const& e);
 		void tick(asio::error_code const& e);
 
-		// translate bittorrent kademlia message into the generice kademlia message
+		// translate bittorrent kademlia message into the generic kademlia message
 		// used by the library
 		void on_receive(asio::error_code const& error, size_t bytes_transferred);
 		void on_bootstrap();

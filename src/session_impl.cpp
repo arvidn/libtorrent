@@ -1077,7 +1077,7 @@ namespace libtorrent { namespace detail
 			// or if the torrent itself thinks we should request. Do not build
 			// a request in case the torrent doesn't have any trackers
 			if ((!i->second->is_paused() || i->second->should_request())
-				&& !i->second->torrent_file().trackers().empty())
+				&& !i->second->trackers().empty())
 			{
 				tracker_request req = i->second->generate_tracker_request();
 				req.listen_port = m_listen_interface.port();
