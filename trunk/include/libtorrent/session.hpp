@@ -62,8 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/resource_request.hpp"
 
-#if !defined(NDEBUG) && defined(_MSC_VER)
-#	include <float.h>
+#ifdef _MSC_VER
 #	include <eh.h>
 #endif
 
@@ -79,16 +78,12 @@ namespace libtorrent
 		// workaround for microsofts
 		// hardware exceptions that makes
 		// it hard to debug stuff
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 		struct eh_initializer
 		{
 			eh_initializer()
 			{
-#ifndef NDEBUG
-				_clearfp();
-				_controlfp(_EM_INEXACT | _EM_UNDERFLOW, _MCW_EM );
 				::_set_se_translator(straight_to_debugger);
-#endif
 			}
 
 			static void straight_to_debugger(unsigned int, _EXCEPTION_POINTERS*)
