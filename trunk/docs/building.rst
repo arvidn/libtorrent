@@ -36,6 +36,11 @@ These tutorials may work on similar linux distros as well.
 .. _suse: suse_build_notes.html
 .. _`visual studio 2005`: vs2005_build_notes.html
 
+For Gentoo there is an ebuild called "rb_libtorrent" in portage. Another
+Gentoo ebuild is provided by the `BTG project`_.
+
+.. _`BTG project`: http://www.peerweb.nl/gentoo/net-libs/rblibtorrent/
+
 building from cvs
 -----------------
 
