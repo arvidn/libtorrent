@@ -420,9 +420,11 @@ namespace libtorrent
 		if (m_pimpl->info.num_files() == 1)
 		{
 			path single_file = m_pimpl->info.begin_files()->path;
+			assert(!is_complete(single_file));
 			if (single_file.has_branch_path())
 			{
-				std::string const& trunk = *single_file.begin();
+				assert(single_file.begin() != single_file.end());
+				std::string trunk = *single_file.begin();
 				old_path = m_pimpl->save_path / trunk;
 				new_path = save_path / trunk;
 			}

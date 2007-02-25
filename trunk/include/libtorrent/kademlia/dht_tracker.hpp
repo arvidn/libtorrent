@@ -45,6 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/optional.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/intrusive_ptr.hpp>
+#include <boost/detail/atomic_count.hpp>
 
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
@@ -60,10 +62,18 @@ namespace libtorrent { namespace dht
 	TORRENT_DECLARE_LOG(dht_tracker);
 #endif
 
+	struct dht_tracker;
+
+	TORRENT_EXPORT void intrusive_ptr_add_ref(dht_tracker const*);
+	TORRENT_EXPORT void intrusive_ptr_release(dht_tracker const*);	
+
 	struct dht_tracker
 	{
+		friend void intrusive_ptr_add_ref(dht_tracker const*);
+		friend void intrusive_ptr_release(dht_tracker const*);
 		dht_tracker(asio::io_service& ios, dht_settings const& settings
 			, asio::ip::address listen_interface, entry const& bootstrap);
+		void stop();
 
 		void add_node(udp::endpoint node);
 		void add_node(std::pair<std::string, int> const& node);
@@ -80,6 +90,9 @@ namespace libtorrent { namespace dht
 		void dht_status(session_status& s);
 
 	private:
+	
+		boost::intrusive_ptr<dht_tracker> self()
+		{ return boost::intrusive_ptr<dht_tracker>(this); }
 
 		void on_name_lookup(asio::error_code const& e
 			, udp::resolver::iterator host);
@@ -116,6 +129,9 @@ namespace libtorrent { namespace dht
 
 		// used to resolve hostnames for nodes
 		udp::resolver m_host_resolver;
+		
+		// reference counter for intrusive_ptr
+		mutable boost::detail::atomic_count m_refs;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		int m_replies_sent[5];

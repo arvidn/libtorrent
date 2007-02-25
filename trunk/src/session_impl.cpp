@@ -1507,7 +1507,11 @@ namespace libtorrent { namespace detail
 	void session_impl::start_dht(entry const& startup_state)
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		m_dht.reset();
+		if (m_dht)
+		{
+			m_dht->stop();
+			m_dht.reset();
+		}
 		m_dht.reset(new dht::dht_tracker(m_io_service
 			, m_dht_settings, m_listen_interface.address()
 			, startup_state));
@@ -1516,6 +1520,7 @@ namespace libtorrent { namespace detail
 	void session_impl::stop_dht()
 	{
 		mutex_t::scoped_lock l(m_mutex);
+		m_dht->stop();
 		m_dht.reset();
 	}
 
