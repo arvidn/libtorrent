@@ -14,17 +14,11 @@
 using namespace libtorrent;
 using namespace boost::filesystem;
 
-int test_main()
+const int piece_size = 16;
+
+void run_storage_tests(torrent_info& info)
 {
-	const int piece_size = 16;
 	const int half = piece_size / 2;
-	torrent_info info;
-	info.set_piece_size(piece_size);
-	info.add_file("temp_storage/test1.tmp", 17);
-	info.add_file("temp_storage/test2.tmp", 612);
-	info.add_file("temp_storage/test3.tmp", 0);
-	info.add_file("temp_storage/test4.tmp", 0);
-	info.add_file("temp_storage/test5.tmp", 1);
 
 	char piece0[piece_size] =
 	{ 6, 6, 6, 6, 6, 6, 6, 6
@@ -74,13 +68,11 @@ int test_main()
 	s.read(piece, 2, 0, piece_size);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece2));
 	
-	// make sure the files have the correct size
-	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test1.tmp") == 17);
-	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test2.tmp") == 31);
 	s.release_files();
 	}
 
 	// make sure the piece_manager can identify the pieces
+	{
 	file_pool fp;
 	piece_manager pm(info, initial_path(), fp);
 	boost::mutex lock;
@@ -97,7 +89,14 @@ int test_main()
 
 	TEST_CHECK(num_pieces == std::count(pieces.begin(), pieces.end()
 		, true));
-	
+
+	pm.move_storage("temp_storage2");
+	TEST_CHECK(!exists("temp_storage"));
+	TEST_CHECK(exists("temp_storage2/temp_storage"));
+	pm.move_storage(".");
+	TEST_CHECK(!exists("temp_storage2/temp_storage"));	
+	remove_all("temp_storage2");
+
 	TEST_CHECK(pm.read(piece, 0, 0, piece_size) == piece_size);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece0));
 
@@ -108,11 +107,38 @@ int test_main()
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece2));
 	pm.release_files();
 
+	}
+}
+
+int test_main()
+{
+	torrent_info info;
+	info.set_piece_size(piece_size);
+	info.add_file("temp_storage/test1.tmp", 17);
+	info.add_file("temp_storage/test2.tmp", 612);
+	info.add_file("temp_storage/test3.tmp", 0);
+	info.add_file("temp_storage/test4.tmp", 0);
+	info.add_file("temp_storage/test5.tmp", 1);
+
+	run_storage_tests(info);
+
+	// make sure the files have the correct size
+	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test1.tmp") == 17);
+	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test2.tmp") == 31);
 	TEST_CHECK(exists("temp_storage/test3.tmp"));
 	TEST_CHECK(exists("temp_storage/test4.tmp"));
-	
 	remove_all(initial_path() / "temp_storage");
-	
+
+	info = torrent_info();
+	info.set_piece_size(piece_size);
+	info.add_file("temp_storage/test1.tmp", 17 + 612 + 1);
+
+	run_storage_tests(info);
+
+	// 48 = piece_size * 3
+	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test1.tmp") == 48);
+	remove_all(initial_path() / "temp_storage");
+
 	return 0;
 }
 
