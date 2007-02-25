@@ -1,3 +1,4 @@
+ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = include @ZLIBDIR@ src @EXAMPLESDIR@ test
 EXTRA_DIST = docs/manual.html docs/manual.rst docs/extension_protocol.rst \
 docs/extension_protocol.html docs/udp_tracker_protocol.rst \
