@@ -1520,6 +1520,8 @@ namespace libtorrent
 		}
 #endif
 
+		m_statistics.second_tick(tick_interval);
+
 		if (!t->valid_metadata()) return;
 
 		// calculate the desired download queue size
@@ -1582,8 +1584,6 @@ namespace libtorrent
 				send_block_requests();
 			}
 		}
-
-		m_statistics.second_tick(tick_interval);
 
 		// If the client sends more data
 		// we send it data faster, otherwise, slower.
