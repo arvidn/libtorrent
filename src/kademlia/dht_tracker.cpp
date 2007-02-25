@@ -126,6 +126,22 @@ namespace
 
 namespace libtorrent { namespace dht
 {
+
+	void intrusive_ptr_add_ref(dht_tracker const* c)
+	{
+		assert(c->m_refs >= 0);
+		assert(c != 0);
+		++c->m_refs;
+	}
+
+	void intrusive_ptr_release(dht_tracker const* c)
+	{
+		assert(c->m_refs > 0);
+		assert(c != 0);
+		if (--c->m_refs == 0)
+			delete c;
+	}
+
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_DEFINE_LOG(dht_tracker)
 #endif
@@ -146,6 +162,7 @@ namespace libtorrent { namespace dht
 		, m_settings(settings)
 		, m_refresh_bucket(160)
 		, m_host_resolver(ios)
+		, m_refs(0)
 	{
 		using boost::bind;
 
@@ -187,20 +204,28 @@ namespace libtorrent { namespace dht
 			} catch (std::exception&) {}
 		}
 
-		m_dht.bootstrap(initial_nodes, bind(&dht_tracker::on_bootstrap, this));
+		m_dht.bootstrap(initial_nodes, bind(&dht_tracker::on_bootstrap, self()));
 
 		m_socket.async_receive_from(asio::buffer(&m_in_buf[m_buffer][0]
 			, m_in_buf[m_buffer].size()), m_remote_endpoint[m_buffer]
-			, m_strand.wrap(bind(&dht_tracker::on_receive, this, _1, _2)));
+			, m_strand.wrap(bind(&dht_tracker::on_receive, self(), _1, _2)));
 		m_timer.expires_from_now(seconds(1));
-		m_timer.async_wait(m_strand.wrap(bind(&dht_tracker::tick, this, _1)));
+		m_timer.async_wait(m_strand.wrap(bind(&dht_tracker::tick, self(), _1)));
 
 		m_connection_timer.expires_from_now(seconds(10));
 		m_connection_timer.async_wait(m_strand.wrap(
-			bind(&dht_tracker::connection_timeout, this, _1)));
+			bind(&dht_tracker::connection_timeout, self(), _1)));
 
 		m_refresh_timer.expires_from_now(minutes(15));
-		m_refresh_timer.async_wait(m_strand.wrap(bind(&dht_tracker::refresh_timeout, this, _1)));
+		m_refresh_timer.async_wait(m_strand.wrap(bind(&dht_tracker::refresh_timeout, self(), _1)));
+	}
+
+	void dht_tracker::stop()
+	{
+		m_timer.cancel();
+		m_connection_timer.cancel();
+		m_refresh_timer.cancel();
+		m_socket.close();
 	}
 
 	void dht_tracker::dht_status(session_status& s)
@@ -215,7 +240,7 @@ namespace libtorrent { namespace dht
 		if (e) return;
 		time_duration d = m_dht.connection_timeout();
 		m_connection_timer.expires_from_now(d);
-		m_connection_timer.async_wait(m_strand.wrap(bind(&dht_tracker::connection_timeout, this, _1)));
+		m_connection_timer.async_wait(m_strand.wrap(bind(&dht_tracker::connection_timeout, self(), _1)));
 	}
 	catch (std::exception& exc)
 	{
@@ -233,7 +258,7 @@ namespace libtorrent { namespace dht
 		time_duration d = m_dht.refresh_timeout();
 		m_refresh_timer.expires_from_now(d);
 		m_refresh_timer.async_wait(m_strand.wrap(
-			bind(&dht_tracker::refresh_timeout, this, _1)));
+			bind(&dht_tracker::refresh_timeout, self(), _1)));
 	}
 	catch (std::exception&)
 	{
@@ -361,7 +386,7 @@ namespace libtorrent { namespace dht
 		m_buffer = (m_buffer + 1) & 1;
 		m_socket.async_receive_from(asio::buffer(&m_in_buf[m_buffer][0]
 			, m_in_buf[m_buffer].size()), m_remote_endpoint[m_buffer]
-			, m_strand.wrap(bind(&dht_tracker::on_receive, this, _1, _2)));
+			, m_strand.wrap(bind(&dht_tracker::on_receive, self(), _1, _2)));
 
 		if (error) return;
 
@@ -655,7 +680,7 @@ namespace libtorrent { namespace dht
 	{
 		udp::resolver::query q(node.first, lexical_cast<std::string>(node.second));
 		m_host_resolver.async_resolve(q, m_strand.wrap(
-			bind(&dht_tracker::on_name_lookup, this, _1, _2)));
+			bind(&dht_tracker::on_name_lookup, self(), _1, _2)));
 	}
 
 	void dht_tracker::on_name_lookup(asio::error_code const& e
@@ -673,7 +698,7 @@ namespace libtorrent { namespace dht
 	{
 		udp::resolver::query q(node.first, lexical_cast<std::string>(node.second));
 		m_host_resolver.async_resolve(q, m_strand.wrap(
-			bind(&dht_tracker::on_router_name_lookup, this, _1, _2)));
+			bind(&dht_tracker::on_router_name_lookup, self(), _1, _2)));
 	}
 
 	void dht_tracker::on_router_name_lookup(asio::error_code const& e

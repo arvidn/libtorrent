@@ -363,7 +363,7 @@ namespace libtorrent
 			boost::posix_time::ptime m_last_tick;
 
 #ifndef TORRENT_DISABLE_DHT
-			boost::scoped_ptr<dht::dht_tracker> m_dht;
+			boost::shared_ptr<dht::dht_tracker> m_dht;
 			dht_settings m_dht_settings;
 #endif
 			// the timer used to fire the second_tick
