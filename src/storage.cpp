@@ -420,7 +420,7 @@ namespace libtorrent
 		if (m_pimpl->info.num_files() == 1)
 		{
 			path single_file = m_pimpl->info.begin_files()->path;
-			assert(!is_complete(single_file));
+			assert(!single_file.is_complete());
 			if (single_file.has_branch_path())
 			{
 				assert(single_file.begin() != single_file.end());
