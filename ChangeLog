@@ -1,3 +1,6 @@
+	* fixed bug where directories would be left behind when moving storage
+	  in some cases.
+	* fixed crashing bug when restarting or stopping the DHT.
 	* added python binding, using boost.python
 	* improved character conversion on windows when strings are not utf-8.
 	* metadata extension now respects the private flag in the torrent.

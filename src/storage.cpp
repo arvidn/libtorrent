@@ -417,29 +417,8 @@ namespace libtorrent
 
 		m_pimpl->files.release(m_pimpl.get());
 
-		if (m_pimpl->info.num_files() == 1)
-		{
-			path single_file = m_pimpl->info.begin_files()->path;
-			assert(!single_file.is_complete());
-			if (single_file.has_branch_path())
-			{
-				assert(single_file.begin() != single_file.end());
-				std::string trunk = *single_file.begin();
-				old_path = m_pimpl->save_path / trunk;
-				new_path = save_path / trunk;
-			}
-			else
-			{
-				old_path = m_pimpl->save_path / single_file;
-				new_path = save_path / m_pimpl->info.begin_files()->path;
-			}
-		}
-		else
-		{
-			assert(m_pimpl->info.num_files() > 1);
-			old_path = m_pimpl->save_path / m_pimpl->info.name();
-			new_path = save_path / m_pimpl->info.name();
-		}
+		old_path = m_pimpl->save_path / m_pimpl->info.name();
+		new_path = save_path / m_pimpl->info.name();
 
 		try
 		{
