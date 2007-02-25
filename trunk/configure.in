@@ -25,6 +25,11 @@ AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 # AC_PROG_RANLIB is obsolete by AC_PROC_LIBTOOL
 
+dnl Make sure that the asio header files are added.
+ASIO_DIR=include/libtorrent/asio
+AC_CHECK_FILES([$ASIO_DIR/../asio.hpp $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp ],,AC_MSG_ERROR([ ASIO header files not found. Get them from asio.sourceforge.net and include or simlink them. Example: ln -s -t include/libtorrent/ ../../../asio/include/asio.hpp && ln -s -t include/libtorrent/ ../../../asio/include/asio  ]) )
+dnl check asio version
+
 dnl Check for pthreads and boost libraries.
 ACX_PTHREAD
 
