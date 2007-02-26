@@ -37,6 +37,10 @@ project listed here, let me_ know.
 |                                                                               |                                     |
 | BitRocket_ is a MacOS X bittorrent client.                                    |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
+| **Bitfox**                                                                    | .. image:: bitfox.png               |
+|                                                                               |                                     |
+| A firefox plugin integrating bittorrent downloads in firefox.                 |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
 | **Acquasition**                                                               | .. image:: acquasition.jpg          |
 |                                                                               |                                     |
 | Acquasition_ is a multi-network peer-to-peer                                  |                                     |
@@ -118,6 +122,7 @@ project listed here, let me_ know.
 .. _qBittorrent: http://www.qbittorrent.org/
 .. _btg: http://developer.berlios.de/projects/btg/
 .. _BitRocket: http://www.bitrocket.org/
+.. _Bitfox: http://code.google.com/p/bitfox/
 .. _Acquasition: http://www.acquisitionx.com
 .. _IM: http://www.im.com/
 .. _MooPolice: http://www.moopolice.de
