@@ -268,8 +268,9 @@ namespace libtorrent { namespace dht
 	void dht_tracker::rebind(asio::ip::address listen_interface, int listen_port)
 	{
 		m_socket.close();
-		m_socket.open(asio::ip::udp::v4());
-		m_socket.bind(udp::endpoint(listen_interface, listen_port));
+		udp::endpoint ep(listen_interface, listen_port);
+		m_socket.open(ep.protocol());
+		m_socket.bind(ep);
 	}
 
 	void dht_tracker::tick(asio::error_code const& e)
