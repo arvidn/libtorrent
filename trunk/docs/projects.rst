@@ -90,6 +90,10 @@ project listed here, let me_ know.
 | Halite_ is a windows bittorrent client controllabel via an xml-rpc            |                                     |
 | interface.                                                                    |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
+| **DelCo**                                                                     |                                     |
+|                                                                               |                                     |
+| DelCo_ is a research project at tempere university of technology, finland.    |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
 | **ZipTorrent**                                                                | .. image:: ziptorrent_thumb.gif     |
 |                                                                               |                                     |
 | ZipTorrent_ is another windows                                                |                                     |
@@ -133,6 +137,7 @@ project listed here, let me_ know.
 .. _`Arctic Torrent`: http://www.int64.org/arctic.html
 .. _`deluge Torrent`: http://deluge-torrent.org/
 .. _Halite: http://www.binarynotions.com/halite.php
+.. _DelCo: http://atm.tut.fi/delco/
 .. _ZipTorrent: http://www.ziptorrent.com/
 .. _FireANT: http://antisnottv.net/
 .. _eDonkey2000: http://www.edonkey2000.com/
