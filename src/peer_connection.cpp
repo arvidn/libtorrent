@@ -2010,7 +2010,7 @@ namespace libtorrent
 
 		m_queued = false;
 		assert(m_connecting);
-		m_socket->open(asio::ip::tcp::v4());
+		m_socket->open(t->get_interface().protocol());
 		m_socket->bind(t->get_interface());
 		if (m_remote_proxy != tcp::endpoint())
 		{

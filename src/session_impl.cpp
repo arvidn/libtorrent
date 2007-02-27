@@ -616,7 +616,7 @@ namespace libtorrent { namespace detail
 			{
 				try
 				{
-					m_listen_socket->open(asio::ip::tcp::v4());
+					m_listen_socket->open(m_listen_interface.protocol());
 					m_listen_socket->bind(m_listen_interface);
 					m_listen_socket->listen();
 					break;
