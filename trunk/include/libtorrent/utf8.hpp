@@ -26,6 +26,7 @@
 #include <string>
 #include <iterator>
 #include <stdexcept>
+#include <cwchar>
 
 namespace libtorrent {
 namespace detail {
@@ -132,7 +133,7 @@ OutputIterator wchar_utf8(InputIterator first, InputIterator last, OutputIterato
 inline void utf8_wchar(const std::string &utf8, std::wstring &wide)
 {
 	wide.clear();
-	detail::utf8_wchar(utf8.begin(), utf8.end(), std::insert_iterator<std::wstring>(wide, wide.end()));
+	detail::utf8_wchar(utf8.begin(), utf8.end(), std::back_inserter(wide));
 }
 
 inline std::wstring utf8_wchar(const std::string &str)
@@ -145,7 +146,7 @@ inline std::wstring utf8_wchar(const std::string &str)
 inline void wchar_utf8(const std::wstring &wide, std::string &utf8)
 {
 	utf8.clear();
-	detail::wchar_utf8(wide.begin(), wide.end(), std::insert_iterator<std::string>(utf8, utf8.end()));
+	detail::wchar_utf8(wide.begin(), wide.end(), std::back_inserter(utf8));
 }
 
 inline std::string wchar_utf8(const std::wstring &str)

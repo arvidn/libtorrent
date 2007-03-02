@@ -35,7 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cctype>
 #include <iomanip>
 #include <sstream>
+#include <algorithm>
 
+#include "libtorrent/config.hpp"
 #include "zlib.h"
 
 #ifdef _MSC_VER
@@ -98,6 +100,8 @@ namespace
 		return url.find(argument, i)
 			!= std::string::npos;
 	}
+
+	char to_lower(char c) { return std::tolower(c); }
 }
 
 namespace libtorrent
@@ -186,7 +190,7 @@ namespace libtorrent
 				}
 
 				std::string name = line.substr(0, separator);
-				transform(name.begin(), name.end(), name.begin(), (int(*)(int))std::tolower);
+				std::transform(name.begin(), name.end(), name.begin(), &to_lower);
 				std::string value = line.substr(separator + 2, std::string::npos);
 				m_header.insert(std::make_pair(name, value));
 

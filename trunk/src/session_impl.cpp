@@ -1510,18 +1510,18 @@ namespace libtorrent { namespace detail
 		if (m_dht)
 		{
 			m_dht->stop();
-			m_dht.reset();
+			m_dht = 0;
 		}
-		m_dht.reset(new dht::dht_tracker(m_io_service
+		m_dht = new dht::dht_tracker(m_io_service
 			, m_dht_settings, m_listen_interface.address()
-			, startup_state));
+			, startup_state);
 	}
 
 	void session_impl::stop_dht()
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		m_dht->stop();
-		m_dht.reset();
+		m_dht = 0;
 	}
 
 	void session_impl::set_dht_settings(dht_settings const& settings)
