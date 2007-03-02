@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iterator>
 #include <exception>
 
+#include "libtorrent/config.hpp"
+
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -75,9 +77,9 @@ using boost::bind;
 bool sleep_and_input(char* c)
 {
 	Sleep(500);
-	if (kbhit())
+	if (_kbhit())
 	{
-		*c = getch();
+		*c = _getch();
 		return true;
 	}
 	return false;

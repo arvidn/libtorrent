@@ -36,6 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iterator>
 #include <cstdlib>
 
+#include "libtorrent/config.hpp"
+
 namespace libtorrent
 {
 
@@ -51,7 +53,7 @@ namespace libtorrent
 
 		while (m < n)
 		{
-			if ((rand() / (RAND_MAX + 1.f)) * (N - t) >= n - m)
+			if ((std::rand() / (RAND_MAX + 1.f)) * (N - t) >= n - m)
 			{
 				++start;
 				++t;
