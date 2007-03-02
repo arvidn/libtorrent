@@ -129,15 +129,15 @@ namespace libtorrent { namespace dht
 
 	void intrusive_ptr_add_ref(dht_tracker const* c)
 	{
-		assert(c->m_refs >= 0);
 		assert(c != 0);
+		assert(c->m_refs >= 0);
 		++c->m_refs;
 	}
 
 	void intrusive_ptr_release(dht_tracker const* c)
 	{
-		assert(c->m_refs > 0);
 		assert(c != 0);
+		assert(c->m_refs > 0);
 		if (--c->m_refs == 0)
 			delete c;
 	}
@@ -205,8 +205,6 @@ namespace libtorrent { namespace dht
 			} catch (std::exception&) {}
 		}
 
-		m_dht.bootstrap(initial_nodes, bind(&dht_tracker::on_bootstrap, self()));
-
 		m_socket.async_receive_from(asio::buffer(&m_in_buf[m_buffer][0]
 			, m_in_buf[m_buffer].size()), m_remote_endpoint[m_buffer]
 			, m_strand.wrap(bind(&dht_tracker::on_receive, self(), _1, _2)));
@@ -219,6 +217,8 @@ namespace libtorrent { namespace dht
 
 		m_refresh_timer.expires_from_now(minutes(15));
 		m_refresh_timer.async_wait(m_strand.wrap(bind(&dht_tracker::refresh_timeout, self(), _1)));
+
+		m_dht.bootstrap(initial_nodes, bind(&dht_tracker::on_bootstrap, self()));
 	}
 
 	void dht_tracker::stop()
