@@ -386,9 +386,9 @@ namespace libtorrent
 		, boost::weak_ptr<request_callback> r)
 		: timeout_handler(str)
 		, m_requester(r)
+		, m_bind_interface(bind_interface_)
 		, m_man(man)
 		, m_req(req)
-		, m_bind_interface(bind_interface_)
 	{}
 
 	request_callback& tracker_connection::requester()
