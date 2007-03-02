@@ -147,6 +147,7 @@ namespace libtorrent { namespace dht
 		int m_lt_message_input;
 		int m_mp_message_input;
 		int m_gr_message_input;
+		int m_mo_message_input;
 		
 		int m_total_in_bytes;
 		int m_total_out_bytes;

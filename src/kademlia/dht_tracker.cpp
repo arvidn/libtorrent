@@ -181,6 +181,7 @@ namespace libtorrent { namespace dht
 		m_lt_message_input = 0;
 		m_mp_message_input = 0;
 		m_gr_message_input = 0;
+		m_mo_message_input = 0;
 		m_total_in_bytes = 0;
 		m_total_out_bytes = 0;
 		m_queries_out_bytes = 0;
@@ -345,6 +346,7 @@ namespace libtorrent { namespace dht
 			<< "\t" << (m_lt_message_input / float(tick_period))
 			<< "\t" << (m_mp_message_input / float(tick_period))
 			<< "\t" << (m_gr_message_input / float(tick_period))
+			<< "\t" << (m_mo_message_input / float(tick_period))
 			<< "\t" << (m_total_in_bytes / float(tick_period*60))
 			<< "\t" << (m_total_out_bytes / float(tick_period*60))
 			<< "\t" << (m_queries_out_bytes / float(tick_period*60))
@@ -443,6 +445,11 @@ namespace libtorrent { namespace dht
 				{
 					++m_gr_message_input;
 					TORRENT_LOG(dht_tracker) << "   client: GetRight";
+				}
+				else if (client.size() > 1 && std::equal(client.begin(), client.begin() + 2, "MO"))
+				{
+					++m_mo_message_input;
+					TORRENT_LOG(dht_tracker) << "   client: Mono Torrent";
 				}
 				else
 				{

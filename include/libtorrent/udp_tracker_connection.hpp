@@ -71,6 +71,7 @@ namespace libtorrent
 			, tracker_request const& req
 			, std::string const& hostname
 			, unsigned short port
+			, address bind_infc
 			, boost::weak_ptr<request_callback> c
 			, session_settings const& stn);
 
@@ -87,7 +88,7 @@ namespace libtorrent
 		boost::intrusive_ptr<udp_tracker_connection> self()
 		{ return boost::intrusive_ptr<udp_tracker_connection>(this); }
 
-		void name_lookup(asio::error_code const& error, tcp::resolver::iterator i);
+		void name_lookup(asio::error_code const& error, udp::resolver::iterator i);
 		void timeout(asio::error_code const& error);
 
 		void send_udp_connect();
@@ -104,8 +105,7 @@ namespace libtorrent
 		tracker_manager& m_man;
 
 		asio::strand& m_strand;
-		tcp::resolver m_name_lookup;
-		int m_port;
+		udp::resolver m_name_lookup;
 		boost::shared_ptr<datagram_socket> m_socket;
 		udp::endpoint m_target;
 		udp::endpoint m_sender;

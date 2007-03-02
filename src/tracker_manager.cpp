@@ -382,11 +382,13 @@ namespace libtorrent
 		tracker_manager& man
 		, tracker_request req
 		, asio::strand& str
+		, address bind_interface_
 		, boost::weak_ptr<request_callback> r)
 		: timeout_handler(str)
 		, m_requester(r)
 		, m_man(man)
 		, m_req(req)
+		, m_bind_interface(bind_interface_)
 	{}
 
 	request_callback& tracker_connection::requester()
@@ -484,6 +486,7 @@ namespace libtorrent
 		asio::strand& str
 		, tracker_request req
 		, std::string const& auth
+		, address bind_infc
 		, boost::weak_ptr<request_callback> c)
 	{
 		mutex_t::scoped_lock l(m_mutex);
@@ -512,6 +515,7 @@ namespace libtorrent
 					, hostname
 					, port
 					, request_string
+					, bind_infc
 					, c
 					, m_settings
 					, auth);
@@ -524,6 +528,7 @@ namespace libtorrent
 					, req
 					, hostname
 					, port
+					, bind_infc
 					, c
 					, m_settings);
 			}

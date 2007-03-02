@@ -277,10 +277,11 @@ namespace libtorrent
 		, std::string const& hostname
 		, unsigned short port
 		, std::string request
+		, address bind_infc
 		, boost::weak_ptr<request_callback> c
 		, session_settings const& stn
 		, std::string const& auth)
-		: tracker_connection(man, req, str, c)
+		: tracker_connection(man, req, str, bind_infc, c)
 		, m_man(man)
 		, m_strand(str)
 		, m_name_lookup(m_strand.io_service())
@@ -499,9 +500,35 @@ namespace libtorrent
 		if (has_requester()) requester().debug_log("tracker name lookup successful");
 #endif
 		restart_read_timeout();
+
+		// look for an address that has the same kind as the one
+		// we're listening on. To make sure the tracker get our
+		// correct listening address.
+		tcp::resolver::iterator target = i;
+		tcp::resolver::iterator end;
+		tcp::endpoint target_address = *i;
+		for (; target != end && target->endpoint().address().is_v4()
+			!= bind_interface().is_v4(); ++target);
+		if (target == end)
+		{
+			assert(target_address.address().is_v4() != bind_interface().is_v4());
+			if (has_requester())
+			{
+				std::string tracker_address_type = target_address.address().is_v4() ? "IPv4" : "IPv6";
+				std::string bind_address_type = bind_interface().is_v4() ? "IPv4" : "IPv6";
+				requester().tracker_warning("the tracker only resolves to an "
+					+ tracker_address_type + " address, and your listen interface is an "
+					+ bind_address_type + " address. This may prevent you from incoming connections.");
+			}
+		}
+		else
+		{
+			target_address = *target;
+		}
+
+		if (has_requester()) requester().m_tracker_address = target_address;
 		m_socket.reset(new stream_socket(m_name_lookup.io_service()));
-		if (has_requester()) requester().m_tracker_address = *i;
-		m_socket->async_connect(*i, bind(&http_tracker_connection::connected, self(), _1));
+		m_socket->async_connect(target_address, bind(&http_tracker_connection::connected, self(), _1));
 	}
 	catch (std::exception& e)
 	{
@@ -676,7 +703,7 @@ namespace libtorrent
 			req.url = location;
 
 			m_man.queue_request(m_strand, req
-				, m_password, m_requester);
+				, m_password, bind_interface(), m_requester);
 			close();
 			return;
 		}
