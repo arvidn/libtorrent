@@ -1520,6 +1520,7 @@ namespace libtorrent { namespace detail
 	void session_impl::stop_dht()
 	{
 		mutex_t::scoped_lock l(m_mutex);
+		if (!m_dht) return;
 		m_dht->stop();
 		m_dht = 0;
 	}
@@ -1575,12 +1576,15 @@ namespace libtorrent { namespace detail
 
 	session_impl::~session_impl()
 	{
-		{
-			// lock the main thread and abort it
-			mutex_t::scoped_lock l(m_mutex);
-			m_abort = true;
-			m_io_service.stop();
-		}
+#ifndef TORRENT_DISABLE_DHT
+		stop_dht();
+#endif
+		// lock the main thread and abort it
+		mutex_t::scoped_lock l(m_mutex);
+		m_abort = true;
+		m_io_service.stop();
+		l.unlock();
+
 		m_thread->join();
 
 		// it's important that the main thread is closed completely before
