@@ -197,6 +197,7 @@ namespace libtorrent
 		tracker_connection(tracker_manager& man
 			, tracker_request req
 			, asio::strand& str
+			, address bind_interface
 			, boost::weak_ptr<request_callback> r);
 
 		request_callback& requester();
@@ -208,10 +209,12 @@ namespace libtorrent
 		void fail(int code, char const* msg);
 		void fail_timeout();
 		void close();
+		address const& bind_interface() const { return m_bind_interface; }
 
 	protected:
 		boost::weak_ptr<request_callback> m_requester;
 	private:
+		address m_bind_interface;
 		tracker_manager& m_man;
 		const tracker_request m_req;
 	};
@@ -227,6 +230,7 @@ namespace libtorrent
 			asio::strand& str
 			, tracker_request r
 			, std::string const& auth
+			, address bind_infc
 			, boost::weak_ptr<request_callback> c
 				= boost::weak_ptr<request_callback>());
 		void abort_all_requests();

@@ -959,7 +959,7 @@ namespace libtorrent { namespace detail
 				req.listen_port = m_listen_interface.port();
 				req.key = m_key;
 				m_tracker_manager.queue_request(m_strand, req, t.tracker_login()
-					, i->second);
+					, m_listen_interface.address(), i->second);
 
 				if (m_alerts.should_post(alert::info))
 				{
@@ -1086,9 +1086,9 @@ namespace libtorrent { namespace detail
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 				boost::shared_ptr<tracker_logger> tl(new tracker_logger(*this));
 				m_tracker_loggers.push_back(tl);
-				m_tracker_manager.queue_request(m_strand, req, login, tl);
+				m_tracker_manager.queue_request(m_strand, req, login, m_listen_interface.address(), tl);
 #else
-				m_tracker_manager.queue_request(m_strand, req, login);
+				m_tracker_manager.queue_request(m_strand, req, login, m_listen_interface.address());
 #endif
 			}
 		}
@@ -1375,10 +1375,10 @@ namespace libtorrent { namespace detail
 				boost::shared_ptr<tracker_logger> tl(new tracker_logger(*this));
 				m_tracker_loggers.push_back(tl);
 				m_tracker_manager.queue_request(m_strand, req
-					, t.tracker_login(), tl);
+					, t.tracker_login(), m_listen_interface.address(), tl);
 #else
 				m_tracker_manager.queue_request(m_strand, req
-					, t.tracker_login());
+					, t.tracker_login(), m_listen_interface.address());
 #endif
 
 				if (m_alerts.should_post(alert::info))
