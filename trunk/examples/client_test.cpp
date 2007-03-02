@@ -254,9 +254,9 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 	{
 		out.fill(' ');
 		out.width(2);
-		out << esc("32") << add_suffix(i->down_speed) << "/s "
+		out << esc("32") << (i->down_speed > 0 ? add_suffix(i->down_speed) + "/s " : "         ")
 			<< "(" << add_suffix(i->total_download) << ") " << esc("0")
-			<< esc("31") << add_suffix(i->up_speed) << "/s "
+			<< esc("31") << (i->up_speed > 0 ? add_suffix(i->up_speed) + "/s ": "         ")
 			<< "(" << add_suffix(i->total_upload) << ") " << esc("0")
 			<< to_string(i->download_queue_length, 2, 2) << " "
 			<< to_string(i->upload_queue_length, 2, 2) << " "
@@ -892,14 +892,14 @@ int main(int ac, char* av[])
 					out	<< "peers: " << s.num_peers << " "
 						<< "seeds: " << s.num_seeds << " "
 						<< "distributed copies: " << s.distributed_copies << "\n"
-						<< "  download: " << esc("32") << add_suffix(s.download_rate) << "/s " << esc("0")
+						<< "  download: " << esc("32") << (s.download_rate > 0 ? add_suffix(s.download_rate) + "/s ": "         ") << esc("0")
 						<< "(" << esc("32") << add_suffix(s.total_download) << esc("0") << ") ";
 				}
 				else
 				{
 					out << "download: " << "(" << esc("32") << add_suffix(s.total_download) << esc("0") << ") ";
 				}
-				out << "upload: " << esc("31") << add_suffix(s.upload_rate) << "/s " << esc("0")
+				out << "upload: " << esc("31") << (s.upload_rate > 0 ? add_suffix(s.upload_rate) + "/s ": "         ") << esc("0")
 					<< "(" << esc("31") << add_suffix(s.total_upload) << esc("0") << ") "
 					<< "ratio: " << ratio(s.total_payload_download, s.total_payload_upload) << "\n";
 				if (s.state != torrent_status::seeding)

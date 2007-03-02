@@ -1418,28 +1418,6 @@ namespace libtorrent
 		m_statistics.sent_bytes(amount_payload, bytes_transferred - amount_payload);
 	}
 
-/*
-	void bt_peer_connection::on_tick()
-	{
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		if (!t) return;
-
-		// if we don't have any metadata, and this peer
-		// supports the request metadata extension
-		// and we aren't currently waiting for a request
-		// reply. Then, send a request for some metadata.
-		if (!t->valid_metadata()
-			&& supports_extension(extended_metadata_message)
-			&& !m_waiting_metadata_request
-			&& has_metadata())
-		{
-			m_last_metadata_request = t->metadata_request();
-			write_metadata_request(m_last_metadata_request);
-			m_waiting_metadata_request = true;
-			m_metadata_request = second_clock::universal_time();
-		}
-	}
-*/	
 #ifndef NDEBUG
 	void bt_peer_connection::check_invariant() const
 	{
