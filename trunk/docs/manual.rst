@@ -2614,7 +2614,7 @@ It contains ``url`` to the HTTP seed that failed along with an error message.
 
 	struct url_seed_alert: torrent_alert
 	{
-		url_seed_alert(torrent_handle const& h, std::string const& h
+		url_seed_alert(torrent_handle const& h, std::string const& url
 			, const std::string& msg);
 		virtual std::auto_ptr<alert> clone() const;
 
