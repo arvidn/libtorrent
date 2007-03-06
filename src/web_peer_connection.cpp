@@ -313,8 +313,8 @@ namespace libtorrent
 			// if the status code is not one of the accepted ones, abort
 			if (m_parser.status_code() != 206 // partial content
 				&& m_parser.status_code() != 200 // OK
-				&& m_parser.status_code() < 300 // redirect
-				&& m_parser.status_code() >= 400)
+				&& !(m_parser.status_code() >= 300 // redirect
+					&& m_parser.status_code() < 400))
 			{
 				// we should not try this server again.
 				t->remove_url_seed(m_url);
