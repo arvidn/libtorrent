@@ -363,9 +363,14 @@ namespace libtorrent
 		// the download. It will post an event, disconnect
 		// all seeds and let the tracker know we're finished.
 		void completed();
-		
+
 		// this is the asio callback that is called when a name
-		// lookup for a web seed is completed.
+		// lookup for a PEER is completed.
+		void on_peer_name_lookup(asio::error_code const& e, tcp::resolver::iterator i
+			, peer_id pid);
+
+		// this is the asio callback that is called when a name
+		// lookup for a WEB SEED is completed.
 		void on_name_lookup(asio::error_code const& e, tcp::resolver::iterator i
 			, std::string url, tcp::endpoint proxy);
 
