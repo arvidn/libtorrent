@@ -813,6 +813,10 @@ int main(int ac, char* av[])
 					events.push_back(now + ": " + p->msg() + " ("
 						+ boost::lexical_cast<std::string>(p->num_peers) + ")");
 				}
+				else if (url_seed_alert* p = dynamic_cast<url_seed_alert*>(a.get()))
+				{
+					events.push_back(now + ": web seed '" + p->url + "': "+ p->msg());
+				}
 				else
 				{
 					events.push_back(now + ": " + a->msg());
