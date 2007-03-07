@@ -175,8 +175,9 @@ namespace libtorrent
 		if (single_file_request)
 		{
 			request += "GET ";
-			if (using_proxy) request += m_url;
-			else request += escape_path(m_path.c_str(), m_path.length());
+			// do not encode single file paths, they are 
+			// assumed to be encoded in the torrent file
+			request += using_proxy ? m_url : m_path;
 			request += " HTTP/1.1\r\n";
 			request += "Host: ";
 			request += m_host;
