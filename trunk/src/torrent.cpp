@@ -592,17 +592,29 @@ namespace libtorrent
 			if (i->pid == m_ses.get_peer_id())
 				continue;
 
-			tcp::endpoint a(address::from_string(i->ip), i->port);
-
-			if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
+			try
 			{
+				tcp::endpoint a(address::from_string(i->ip), i->port);
+
+				if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
+				{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-				debug_log("blocked ip from tracker: " + i->ip);
+					debug_log("blocked ip from tracker: " + i->ip);
 #endif
-				continue;
-			}
+					continue;
+				}
 			
-			m_policy->peer_from_tracker(a, i->pid);
+				m_policy->peer_from_tracker(a, i->pid);
+			}
+			catch (std::exception&)
+			{
+				// assume this is because we got a hostname instead of
+				// an ip address from the tracker
+
+				tcp::resolver::query q(i->ip, boost::lexical_cast<std::string>(i->port));
+				m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
+					bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i->pid)));
+			}	
 		}
 
 		if (m_ses.m_alerts.should_post(alert::info))
@@ -615,6 +627,29 @@ namespace libtorrent
 		}
 		m_got_tracker_response = true;
 	}
+
+	void torrent::on_peer_name_lookup(asio::error_code const& e, tcp::resolver::iterator host
+		, peer_id pid) try
+	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+		INVARIANT_CHECK;
+
+		if (e || host == tcp::resolver::iterator() ||
+			m_ses.is_aborted()) return;
+
+		if (m_ses.m_ip_filter.access(host->endpoint().address()) & ip_filter::blocked)
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			debug_log("blocked ip from tracker: " + host->endpoint().address().to_string());
+#endif
+			return;
+		}
+			
+		m_policy->peer_from_tracker(*host, pid);
+	}
+	catch (std::exception&)
+	{}
 
 	size_type torrent::bytes_left() const
 	{

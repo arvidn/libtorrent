@@ -1471,7 +1471,8 @@ use_interface()
 
 ``use_interface()`` sets the network interface this torrent will use when it opens outgoing
 connections. By default, it uses the same interface as the session_ uses to listen on. The
-parameter can be a string containing an ip-address or a hostname.
+parameter must be a string containing an ip-address (either an IPv4 or IPv6 address). If
+the string does not conform to this format and exception is thrown.
 
 
 info_hash()
