@@ -588,6 +588,8 @@ int main(int ac, char* av[])
 		ses.add_extension(&create_ut_pex_plugin);
 
 #ifndef TORRENT_DISABLE_DHT
+		settings.use_dht_as_fallback = false;
+
 		dht_settings s;
 		s.service_port = listen_port;
 		ses.set_dht_settings(s);

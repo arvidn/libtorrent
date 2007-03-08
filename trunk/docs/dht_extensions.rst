@@ -29,12 +29,17 @@ Currently known clients:
 IPv6 support
 ------------
 
-The only DHT messages that don't support IPv6 is the ``nodes`` reply. It
-encodes all the contacts as 6 bytes sequences packed together in sequence in 
+The DHT messages that don't support IPv6 are the ``nodes`` replies.
+They encode all the contacts as 6 bytes packed together in sequence in a
 string. The problem is that IPv6 endpoints cannot be encoded as 6 bytes, but
 needs 18 bytes. The extension libtorrent applies is to add another key, called
-``nodes2`` which is encoded as a list of strings. Each string represents one
-contact and is encoded as 20 bytes node-id and then a variable length encoded
-IP address (6 bytes in IPv4 case and 18 bytes in IPv6 case).
+``nodes2``.
 
+``nodes2`` may be present in replies that contains a ``nodes`` key. It is encoded
+as a list of strings. Each string represents one contact and is encoded as 20
+bytes node-id and then a variable length encoded IP address (6 bytes in IPv4 case
+and 18 bytes in IPv6 case).
+
+As an optimization, libtorrent does not include the extra key in case there are
+only IPv4 nodes present.
 

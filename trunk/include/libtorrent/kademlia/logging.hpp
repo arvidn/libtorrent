@@ -133,7 +133,7 @@ public:
 #define TORRENT_DEFINE_LOG(name) \
 	libtorrent::dht::log& name ## _log() \
 	{ \
-		static std::ofstream log_file("libtorrent_logs/dht.log", std::ios::app); \
+		static std::ofstream log_file("dht.log", std::ios::app); \
 		static libtorrent::dht::log instance(#name, log_file); \
 		return instance; \
 	}
