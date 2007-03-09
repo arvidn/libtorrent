@@ -201,7 +201,7 @@ time_duration rpc_manager::tick()
 
 	using boost::posix_time::microsec_clock;
 
-	const int timeout_ms = 20 * 1000;
+	const int timeout_ms = 10 * 1000;
 
 	//	look for observers that has timed out
 
