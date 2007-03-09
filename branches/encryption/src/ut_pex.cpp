@@ -111,9 +111,12 @@ namespace libtorrent { namespace
 			{	
 				if (!i->address().is_v4()) continue;
 				detail::write_endpoint(*i, pla_out);
-				// no supported flags to set yet
+#ifndef TORRENT_DISABLE_ENCRYPTION
 				// 0x01 - peer supports encryption
 				detail::write_uint8(0x01, plf_out);
+#elif
+				detail::write_uint8(0x00, plf_out);
+#endif
 
 				if (--num_peers == 0) break;
 			}

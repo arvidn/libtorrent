@@ -227,12 +227,12 @@ namespace libtorrent
 		void write_pe3_sync();
 		void write_pe4_sync();
 
-// 		void write_pe_synchash_skey();
 		void write_pe_vc_cryptofield(buffer::interval& write_buf, int pad_size);
 
-		// SKEY is the stream key (info hash of attached torrent)
-		// S is the DH shared secret. initializes m_RC4_handler.
-		void init_pe_RC4_handler(char const* S, char const* SKEY);
+		// stream key (info hash of attached torrent)
+		// secret is the DH shared secret
+		// initializes m_RC4_handler
+		void init_pe_RC4_handler(char const* secret, sha1_hash const& stream_key);
 
 		void send_buffer(char* begin, char* end);
 		buffer::interval allocate_send_buffer(int size);
@@ -343,7 +343,7 @@ namespace libtorrent
 		
 		// (outgoing only) synchronize verification constant with
 		// remote peer, this will hold RC4_decrypt(vc).
-		boost::scoped_ptr<std::vector<char> > m_sync_vc;
+		boost::scoped_array<char> m_sync_vc;
 #endif
 
 #ifndef NDEBUG

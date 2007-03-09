@@ -386,17 +386,12 @@ namespace libtorrent
 		}
 
 		void cut_receive_buffer(int size, int packet_size);
-		void cut_receive_buffer(int size)
-		{
-			cut_receive_buffer(size, m_packet_size);
-		}
 
 		void reset_recv_buffer(int packet_size);
 		int packet_size() const { return m_packet_size; }
 
 		bool packet_finished() const
 		{
-// 			assert(m_recv_pos <= m_packet_size); // no longer valid.
 			return m_packet_size <= m_recv_pos;
 		}
 

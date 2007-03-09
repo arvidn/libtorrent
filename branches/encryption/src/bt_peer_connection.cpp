@@ -108,29 +108,19 @@ namespace libtorrent
 		// and the encryption policy
 		// write_encrypted_handshake
 		
-		//write_handshake();
 		write_pe1_2_dhkey();
 
 		m_state = read_pe_dhkey;
 		reset_recv_buffer(dh_key_len);
 		setup_receive();
-#endif
+#elif
+		write_handshake();
 		
 		// start in the state where we are trying to read the
 		// handshake from the other side
-  		//reset_recv_buffer(20);
-
-		// assume the other end has no pieces
-
-// 		boost::shared_ptr<torrent> t = associated_torrent().lock();
-//  		assert(t);
-		
-//  		if (t->ready_for_connections())
-//  			write_bitfield(t->pieces());
-
-//  		setup_send(); // Why is this being called?
-// 		setup_receive();
-// 		setup_send in constructor setup_receive();
+		reset_recv_buffer(20);
+		setup_receive();
+#endif // #ifndef TORRENT_DISABLE_ENCRYPTION
 		
 #ifndef NDEBUG
 		m_in_constructor = false;
@@ -166,8 +156,8 @@ namespace libtorrent
 		// that are part of a torrent. Since this is an incoming
 		// connection, we have to give it some initial bandwidth
 		// to send the handshake.
-		m_bandwidth_limit[download_channel].assign(1024);
-		m_bandwidth_limit[upload_channel].assign(1024);
+		m_bandwidth_limit[download_channel].assign(2048);
+		m_bandwidth_limit[upload_channel].assign(2048);
 
 		// start in the state where we are trying to read the
 		// handshake from the other side
@@ -358,7 +348,7 @@ namespace libtorrent
 
 		// Discard DH key exchange data, setup RC4 keys
 		m_DH_key_exchange.reset();
-		init_pe_RC4_handler(secret, (const char*)info_hash.begin());
+		init_pe_RC4_handler(secret, info_hash);
 		
 		// write the verification constant and crypto field
 		assert(send_buf.left() == 8 + 4 + 2 + pad_size + 2);
@@ -415,10 +405,9 @@ namespace libtorrent
 		assert (write_buf.begin == write_buf.end);
  	}
 
-	void bt_peer_connection::init_pe_RC4_handler(char const* S, char const* SKEY)
+	void bt_peer_connection::init_pe_RC4_handler(char const* secret, sha1_hash const& stream_key)
 	{
-		assert(S);
-		assert(SKEY);
+		assert(secret);
 		
 		hasher h;
 		const char keyA[] = "keyA";
@@ -429,8 +418,8 @@ namespace libtorrent
 		// incoming connection : hash ('keyB',S,SKEY)
 		
 		is_local() ? h.update(keyA, 4) : h.update(keyB, 4);
-		h.update(S, dh_key_len);
-		h.update(SKEY, 20);
+		h.update(secret, dh_key_len);
+		h.update((char const*)stream_key.begin(), 20);
 		const sha1_hash local_key = h.final();
 
 		h.reset();
@@ -440,13 +429,13 @@ namespace libtorrent
 		// incoming connection : hash ('keyA',S,SKEY)
 		
 		is_local() ? h.update(keyB, 4) : h.update(keyA, 4);
-		h.update(S, dh_key_len);
-		h.update(SKEY, 20);
+		h.update(secret, dh_key_len);
+		h.update((char const*)stream_key.begin(), 20);
 		const sha1_hash remote_key = h.final();
 		
 		assert(!m_RC4_handler.get());
 		m_RC4_handler.reset (new RC4_handler ((char const*)local_key.begin(),
-											  (char const*)remote_key.begin()));
+						      (char const*)remote_key.begin()));
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << " computed RC4 keys\n";
@@ -1480,8 +1469,9 @@ namespace libtorrent
 			// No sync 
 			if (syncoffset == -1)
 			{
-				cut_receive_buffer(recv_buffer.left() - 20);
-				m_statistics.received_bytes(0, recv_buffer.left() - 20);
+				std::size_t bytes_processed = recv_buffer.left() - 20;
+				cut_receive_buffer(bytes_processed, packet_size());
+				m_statistics.received_bytes(0, bytes_processed);
 				assert(!packet_finished());
 				return;
 			}
@@ -1539,7 +1529,7 @@ namespace libtorrent
 				if (std::equal (recv_buffer.begin, recv_buffer.begin + 20,
 								(char*)obfs_hash.begin()))
 				{
-					init_pe_RC4_handler(m_DH_key_exchange->get_secret(), (char*)info_hash.begin());
+					init_pe_RC4_handler(m_DH_key_exchange->get_secret(), info_hash);
 #ifdef TORRENT_VERBOSE_LOGGING
 					(*m_logger) << " stream key found, torrent located.\n";
 #endif
@@ -1592,35 +1582,25 @@ namespace libtorrent
 				return;
 			}
 
-			const int next_pkt_size = 4+2; // crypto_select, len(PadD) // move this down // remove this
-				
-			// generate the verification constant // TODO This is a temporary hack
+			// generate the verification constant
 			if (!m_sync_vc.get()) 
 			{
-				// TODO check this, reset?
-				m_sync_vc.reset (new std::vector<char>(8,0));
-
-				char vc[8] = {0,0,0,0, 0,0,0,0};
-				assert (m_sync_vc->size() == sizeof(vc));
-
-				m_RC4_handler->decrypt(vc, m_sync_vc->size());
-				std::copy (vc, vc+8, m_sync_vc->begin());
+				m_sync_vc.reset (new char[8]);
+				std::fill(m_sync_vc.get(), m_sync_vc.get() + 8, 0);
+				m_RC4_handler->decrypt(m_sync_vc.get(), 8);
 			}
 
-			// TODO temp hack
-			char vc[8]; 
-			assert(m_sync_vc->size() == 8);
-			std::copy(m_sync_vc->begin(), m_sync_vc->end(), vc);
-
-			int syncoffset = get_syncoffset((char const*)vc, m_sync_vc->size(),
+			assert(m_sync_vc.get());
+			int syncoffset = get_syncoffset(m_sync_vc.get(), 8,
 											recv_buffer.begin, recv_buffer.left());
 
 
 			// No sync 
 			if (syncoffset == -1)
 			{
-				cut_receive_buffer(recv_buffer.left() - 8);
- 				m_statistics.received_bytes(0, recv_buffer.left() - 8);
+				std::size_t bytes_processed = recv_buffer.left() - 8;
+				cut_receive_buffer(bytes_processed, packet_size());
+ 				m_statistics.received_bytes(0, bytes_processed);
 
 				assert(!packet_finished());
 				return;
@@ -1628,18 +1608,19 @@ namespace libtorrent
 			// found complete sync
 			else
 			{
-				std::size_t bytes_processed = syncoffset + m_sync_vc->size();
+				std::size_t bytes_processed = syncoffset + 8;
 
 				// decrypt all the data after vc received so far
 				buffer::interval i = wr_recv_buffer();
-				i.begin += syncoffset + m_sync_vc->size();
+				i.begin += syncoffset + 8;
 
 				m_RC4_handler->decrypt(i.begin, i.left());
 				m_rd_encrypted = true;
 
-				cut_receive_buffer (bytes_processed, next_pkt_size); // explicit 4+2
+				cut_receive_buffer (bytes_processed, 4 + 2);
 				m_statistics.received_bytes(0, bytes_processed);
 
+				// delete verification constant
 				m_sync_vc.reset();
 				m_state = read_pe_cryptofield;
 				// fall through
@@ -1732,7 +1713,7 @@ namespace libtorrent
 				if (!m_rd_encrypted && !m_wr_encrypted)
 				{
 #ifdef TORRENT_VERBOSE_LOGGING
- 					(*m_logger) << "attempting encrypted connection\n";
+ 					(*m_logger) << " attempting encrypted connection\n";
 #endif
  					m_state = read_pe_dhkey;
 					cut_receive_buffer(0, dh_key_len);
