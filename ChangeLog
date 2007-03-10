@@ -1,3 +1,6 @@
+release 0.12
+
+	* fixes to make the DHT more compatible
 	* http seed improvements including error reporting and url encoding issues.
 	* fixed bug where directories would be left behind when moving storage
 	  in some cases.
