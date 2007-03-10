@@ -52,12 +52,6 @@ namespace libtorrent
 		// Get local public key, always 96 bytes
 		char const* get_local_key (void) const;
 
-		int get_local_key_size () const // TODO Make this private
-		{
-			assert (m_DH);
-			return BN_num_bytes (m_DH->pub_key);
-		}
-
 		// read remote_pubkey, generate and store shared secret in
 		// m_dh_secret
 		void compute_secret (const char* remote_pubkey);
@@ -65,6 +59,12 @@ namespace libtorrent
 		const char* get_secret (void) const;
 		
 	private:
+		int get_local_key_size () const
+		{
+			assert (m_DH);
+			return BN_num_bytes (m_DH->pub_key);
+		}
+
 		DH* m_DH;
 		static const unsigned char m_dh_prime[96];
 		static const unsigned char m_dh_generator[1];

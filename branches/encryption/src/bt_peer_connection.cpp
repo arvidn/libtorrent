@@ -293,13 +293,6 @@ namespace libtorrent
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << " sent DH key\n";
-
-		// TODO : Check if this completes a key exchange correctly
-		if (m_DH_key_exchange->get_local_key_size() != dh_key_len)
-		{
-			(*m_logger) << " Warning! DH key length is : "
-						<< m_DH_key_exchange->get_local_key_size() << "\n";
-		}
 #endif
 	}
 

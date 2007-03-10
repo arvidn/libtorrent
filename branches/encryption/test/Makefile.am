@@ -1,4 +1,4 @@
-noinst_PROGRAMS = test_hasher test_bencoding test_ip_filter test_piece_picker test_storage test_metadata_extension test_buffer test_allocate_resources
+noinst_PROGRAMS = test_hasher test_bencoding test_ip_filter test_piece_picker test_storage test_metadata_extension test_buffer test_allocate_resources test_pe_crypto
 EXTRA_DIST = Jamfile
 
 test_hasher_SOURCES = main.cpp test_hasher.cpp
@@ -24,6 +24,9 @@ test_allocate_resources_LDADD = $(top_builddir)/src/libtorrent.la
 
 test_metadata_extension_SOURCES = main.cpp setup_transfer.cpp test_metadata_extension.cpp
 test_metadata_extension_LDADD = $(top_builddir)/src/libtorrent.la
+
+test_pe_crypto_SOURCES = main.cpp test_pe_crypto.cpp
+test_pe_crypto_LDADD = $(top_builddir)/src/libtorrent.la
 
 noinst_HEADERS = test.hpp setup_transfer.hpp
 
