@@ -1,0 +1,168 @@
+#This Jamfile requires boost-build v2 to build.
+
+import modules ;
+import os ;
+import errors ;
+import feature : feature ;
+
+BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
+
+ECHO "BOOST_ROOT =" $(BOOST_ROOT) ;
+ECHO "OS =" [ os.name ] ;
+
+if ! $(BOOST_ROOT)
+{
+    errors.user-error
+        "BOOST_ROOT must be set to your boost installation path." ;
+}
+
+use-project /boost : $(BOOST_ROOT) ;
+
+
+feature logging : none default verbose : composite propagated symmetric link-incompatible ;
+feature.compose <logging>none : ;
+feature.compose <logging>default : <define>TORRENT_LOGGING ;
+feature.compose <logging>verbose : <define>TORRENT_VERBOSE_LOGGING ;
+
+feature dht-support : on off logging : composite propagated symmetric link-incompatible ;
+feature.compose <dht-support>on : ;
+feature.compose <dht-support>off : <define>TORRENT_DISABLE_DHT ;
+feature.compose <dht-support>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
+
+SOURCES =
+	allocate_resources.cpp
+	alert.cpp
+	bandwidth_manager.cpp
+	entry.cpp
+	escape_string.cpp
+	file.cpp
+	identify_client.cpp
+	ip_filter.cpp
+	peer_connection.cpp
+	bt_peer_connection.cpp
+	web_peer_connection.cpp
+	piece_picker.cpp
+	policy.cpp
+	session.cpp
+	session_impl.cpp
+	stat.cpp
+	storage.cpp
+	torrent.cpp
+	torrent_handle.cpp
+	torrent_info.cpp
+	tracker_manager.cpp
+	http_tracker_connection.cpp
+	udp_tracker_connection.cpp
+	sha1.cpp
+	metadata_transfer.cpp
+	ut_pex.cpp
+	logger.cpp
+	file_pool.cpp
+	;
+
+KADEMLIA_SOURCES =
+	kademlia/closest_nodes.cpp
+	kademlia/dht_tracker.cpp
+	kademlia/node.cpp
+	kademlia/refresh.cpp
+	kademlia/rpc_manager.cpp
+	kademlia/find_data.cpp
+	kademlia/node_id.cpp
+	kademlia/routing_table.cpp
+	kademlia/traversal_algorithm.cpp
+	;
+
+ZLIB_SOURCES = 
+	adler32.c
+	compress.c
+	crc32.c
+	deflate.c
+	gzio.c
+	infback.c
+	inffast.c
+	inflate.c
+	inftrees.c
+	trees.c
+	uncompr.c
+	zutil.c
+	;
+
+DEFINES = ;
+LIBS = ;
+
+if [ os.name ] = CYGWIN
+{
+	DEFINES += __USE_W32_SOCKETS ;
+	DEFINES += _WIN32_WINNT ;
+}
+
+# some windows specific settings
+
+if [ os.name ] = NT
+{
+	lib wsock32 : : <name>wsock32.lib ;
+	LIBS += wsock32 ;
+	DEFINES += _WIN32_WINNT ;
+}	
+
+
+project torrent
+
+	: requirements
+
+	<include>./include
+	<include>./include/libtorrent
+	<include>./zlib
+	<include>$(BOOST_ROOT)
+	<variant>release:<define>NDEBUG
+	<define>BOOST_ALL_NO_LIB
+	<define>_FILE_OFFSET_BITS=64
+	<define>BOOST_THREAD_USE_LIB
+	<define>$(DEFINES)
+	<library>/boost/thread//boost_thread #/<link>static
+	<library>/boost/filesystem//boost_filesystem #/<link>static
+	<library>/boost/date_time//boost_date_time #/<link>static
+	<threading>multi
+	<toolset>msvc:<define>_WIN32_WINNT=0x0500
+# WIN32 makes sure the win32 socket api is used
+# instead of win16
+	<toolset>msvc:<define>WIN32
+# without WIN32_LEAN_AND_MEAN there will be conflicts between
+# winsock.h and winsock2.h
+	<toolset>msvc:<define>WIN32_LEAN_AND_MEAN
+# these compiler settings just makes the compiler standard conforming
+	<toolset>msvc:<cxxflags>/Zc:wchar_t
+	<toolset>msvc:<cxxflags>/Zc:forScope
+# disable bogus deprecation warnings on msvc8
+	<toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
+	<toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
+
+# this should be defined when libtorrent is built as
+# a dll. It will make sure the functions and classes
+# are exported (GCC 4 and msvc)
+	<link>shared:<define>TORRENT_BUILDING_SHARED
+
+	<link>shared:<define>TORRENT_LINKING_SHARED
+
+	: usage-requirements 
+
+	<include>./include
+	<include>./include/libtorrent
+	<include>$(BOOST_ROOT)
+	<variant>release:<define>NDEBUG
+	<define>BOOST_ALL_NO_LIB
+	<define>$(DEFINES)
+	<link>shared:<define>TORRENT_LINKING_SHARED
+
+	;
+
+lib torrent
+	:
+	src/$(SOURCES)
+	zlib/$(ZLIB_SOURCES)
+	$(LIBS)
+	:
+	<dht-support>on:<source>src/$(KADEMLIA_SOURCES)
+	<dht-support>logging:<source>src/$(KADEMLIA_SOURCES)
+	;
+
