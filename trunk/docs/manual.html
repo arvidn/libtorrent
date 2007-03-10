@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.4: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>libtorrent API Documentation</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" href="style.css" type="text/css" />
@@ -1510,7 +1510,8 @@ void use_interface(char const* net_interface) const;
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">use_interface()</span></tt> sets the network interface this torrent will use when it opens outgoing
 connections. By default, it uses the same interface as the <a class="reference" href="#session">session</a> uses to listen on. The
-parameter can be a string containing an ip-address or a hostname.</p>
+parameter must be a string containing an ip-address (either an IPv4 or IPv6 address). If
+the string does not conform to this format and exception is thrown.</p>
 </div>
 <div class="section">
 <h2><a id="info-hash" name="info-hash">info_hash()</a></h2>
@@ -2551,7 +2552,7 @@ generated as severity level <tt class="docutils literal"><span class="pre">warni
 <pre class="literal-block">
 struct url_seed_alert: torrent_alert
 {
-        url_seed_alert(torrent_handle const&amp; h, std::string const&amp; h
+        url_seed_alert(torrent_handle const&amp; h, std::string const&amp; url
                 , const std::string&amp; msg);
         virtual std::auto_ptr&lt;alert&gt; clone() const;
 
