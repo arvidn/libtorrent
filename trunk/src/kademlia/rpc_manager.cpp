@@ -324,10 +324,7 @@ void rpc_manager::invoke(int message_id, udp::endpoint target_addr
 	}
 	catch (std::exception& e)
 	{
-#ifndef NDEBUG
-		std::cerr << e.what() << "\n";
-#endif
-		assert(false);
+		// m_send may fail with "no route to host"
 	}
 }
 
@@ -389,10 +386,7 @@ void rpc_manager::reply_with_ping(msg& m, msg const& reply_to)
 	}
 	catch (std::exception& e)
 	{
-#ifndef NDEBUG
-		std::cerr << e.what() << "\n";
-#endif
-		assert(false);
+		// m_send may fail with "no route to host"
 	}
 }
 
