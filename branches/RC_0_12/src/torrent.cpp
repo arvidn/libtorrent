@@ -649,7 +649,7 @@ namespace libtorrent
 		m_policy->peer_from_tracker(*host, pid);
 	}
 	catch (std::exception&)
-	{}
+	{};
 
 	size_type torrent::bytes_left() const
 	{
