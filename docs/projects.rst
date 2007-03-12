@@ -56,6 +56,10 @@ project listed here, let me_ know.
 | MooPolice_ is a windows bittorrent                                            |                                     |
 | client with a quite unique look.                                              |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
+| **Linkage**                                                                   | .. image:: Linkage.jpg              |
+|                                                                               |                                     |
+| Linkage_ is a gtkmm client that aims to be middle weight.                     |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
 | **BitsCast**                                                                  | .. image:: bitscast_thumb.png       |
 |                                                                               |                                     |
 | RSS reader, podcast subscriber,                                               |                                     |
@@ -130,6 +134,7 @@ project listed here, let me_ know.
 .. _Acquasition: http://www.acquisitionx.com
 .. _IM: http://www.im.com/
 .. _MooPolice: http://www.moopolice.de
+.. _Linkage: http://code.google.com/p/linkage/
 .. _BitsCast: http://www.bitscast.com/software/
 .. _Jamplayer: http://www.jamendo.com/en/static/jamendotools_jamplayer/
 .. _BitSlug: http://bitslug.sourceforge.net/
