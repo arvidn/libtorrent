@@ -480,6 +480,7 @@ namespace libtorrent { namespace detail
 		, m_tracker_manager(m_settings)
 		, m_listen_port_range(listen_port_range)
 		, m_listen_interface(address::from_string(listen_interface), listen_port_range.first)
+		, m_external_listen_port(0)
 		, m_abort(false)
 		, m_max_uploads(-1)
 		, m_max_connections(-1)
@@ -487,6 +488,11 @@ namespace libtorrent { namespace detail
 		, m_incoming_connection(false)
 		, m_files(40)
 		, m_last_tick(microsec_clock::universal_time())
+#ifndef TORRENT_DISABLE_DHT
+		, m_dht_same_port(true)
+		, m_external_udp_port(0)
+#endif
+		, m_natpmp(m_io_service, bind(&session_impl::on_port_mapping, this, _1, _2, _3))
 		, m_timer(m_io_service)
 		, m_checker_impl(*this)
 	{
@@ -619,6 +625,7 @@ namespace libtorrent { namespace detail
 					m_listen_socket->open(m_listen_interface.protocol());
 					m_listen_socket->bind(m_listen_interface);
 					m_listen_socket->listen();
+					m_external_listen_port = m_listen_interface.port();
 					break;
 				}
 				catch (asio::system_error& e)
@@ -672,9 +679,11 @@ namespace libtorrent { namespace detail
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (m_listen_socket)
 		{
-			(*m_logger) << "listening on port: " << m_listen_interface.port() << "\n";
+			(*m_logger) << "listening on port: " << m_listen_interface.port()
+				<< " external port: " << m_external_listen_port << "\n";
 		}
 #endif
+		m_natpmp.set_mappings(m_listen_interface.port(), 0);
 		if (m_listen_socket) async_accept();
 	}
 
@@ -956,7 +965,8 @@ namespace libtorrent { namespace detail
 			if (t.should_request())
 			{
 				tracker_request req = t.generate_tracker_request();
-				req.listen_port = m_listen_interface.port();
+				assert(m_external_listen_port > 0);
+				req.listen_port = m_external_listen_port;
 				req.key = m_key;
 				m_tracker_manager.queue_request(m_strand, req, t.tracker_login()
 					, m_listen_interface.address(), i->second);
@@ -1064,6 +1074,8 @@ namespace libtorrent { namespace detail
 		while (!m_abort);
 
 		deadline_timer tracker_timer(m_io_service);
+		// this will remove the port mappings
+		m_natpmp.close();
 
 		session_impl::mutex_t::scoped_lock l(m_mutex);
 
@@ -1080,7 +1092,8 @@ namespace libtorrent { namespace detail
 				&& !i->second->trackers().empty())
 			{
 				tracker_request req = i->second->generate_tracker_request();
-				req.listen_port = m_listen_interface.port();
+				assert(m_external_listen_port > 0);
+				req.listen_port = m_external_listen_port;
 				req.key = m_key;
 				std::string login = i->second->tracker_login();
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -1368,7 +1381,8 @@ namespace libtorrent { namespace detail
 			{
 				tracker_request req = t.generate_tracker_request();
 				assert(req.event == tracker_request::stopped);
-				req.listen_port = m_listen_interface.port();
+				assert(m_external_listen_port > 0);
+				req.listen_port = m_external_listen_port;
 				req.key = m_key;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -1434,12 +1448,16 @@ namespace libtorrent { namespace detail
 			m_listen_socket.reset();
 			
 #ifndef TORRENT_DISABLE_DHT
-		if (m_listen_interface.address() != new_interface.address()
+		if ((m_listen_interface.address() != new_interface.address()
+			|| m_dht_same_port)
 			&& m_dht)
 		{
+			if (m_dht_same_port)
+				m_dht_settings.service_port = new_interface.port();
 			// the listen interface changed, rebind the dht listen socket as well
 			m_dht->rebind(new_interface.address()
 				, m_dht_settings.service_port);
+			m_natpmp.set_mappings(0, m_dht_settings.service_port);
 		}
 #endif
 
@@ -1461,7 +1479,31 @@ namespace libtorrent { namespace detail
 	unsigned short session_impl::listen_port() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		return m_listen_interface.port();
+		return m_external_listen_port;
+	}
+
+	void session_impl::on_port_mapping(int tcp_port, int udp_port
+		, std::string const& errmsg)
+	{
+#ifndef TORRENT_DISABLE_DHT
+		if (udp_port != 0)
+		{
+			m_external_udp_port = udp_port;
+			m_dht_settings.service_port = udp_port;
+			// TODO: generate successful port map alert
+		}
+#endif
+
+		if (tcp_port != 0)
+		{
+			m_external_listen_port = tcp_port;
+			// TODO: generate successful port map alert
+		}
+
+		if (!errmsg.empty())
+		{
+			// TODO: generate port map failure alert
+		}
 	}
 
 	session_status session_impl::status() const
@@ -1512,6 +1554,11 @@ namespace libtorrent { namespace detail
 			m_dht->stop();
 			m_dht = 0;
 		}
+		if (m_dht_settings.service_port == 0)
+			m_dht_same_port = true;
+		m_dht_settings.service_port = m_listen_interface.port();
+		m_external_udp_port = m_dht_settings.service_port;
+		m_natpmp.set_mappings(0, m_dht_settings.service_port);
 		m_dht = new dht::dht_tracker(m_io_service
 			, m_dht_settings, m_listen_interface.address()
 			, startup_state);
@@ -1528,13 +1575,23 @@ namespace libtorrent { namespace detail
 	void session_impl::set_dht_settings(dht_settings const& settings)
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		if (settings.service_port != m_dht_settings.service_port
+		// only change the dht listen port in case the settings
+		// contains a vaiid port, and if it is different from
+		// the current setting
+		if (settings.service_port != 0)
+			m_dht_same_port = false;
+		if (!m_dht_same_port
+			&& settings.service_port != m_dht_settings.service_port
 			&& m_dht)
 		{
 			m_dht->rebind(m_listen_interface.address()
 				, settings.service_port);
+			m_natpmp.set_mappings(0, m_dht_settings.service_port);
+			m_external_udp_port = settings.service_port;
 		}
 		m_dht_settings = settings;
+		if (m_dht_same_port)
+			m_dht_settings.service_port = m_listen_interface.port();
 	}
 
 	entry session_impl::dht_state() const

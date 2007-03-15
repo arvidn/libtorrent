@@ -22,6 +22,7 @@ libtorrent/peer.hpp \
 libtorrent/peer_connection.hpp \
 libtorrent/bt_peer_connection.hpp \
 libtorrent/web_peer_connection.hpp \
+libtorrent/natpmp.hpp \
 libtorrent/peer_id.hpp \
 libtorrent/peer_info.hpp \
 libtorrent/peer_request.hpp \

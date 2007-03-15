@@ -36,12 +36,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <bitset>
 #include <cassert>
+#include <utility>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
 
 #include <boost/optional.hpp>
+#include <boost/static_assert.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -137,19 +139,15 @@ namespace libtorrent
 		// (i.e. we don't have to maintain a refcount)
 		void we_have(int index);
 
-		// This will mark a piece as unfiltered, and if it was
-		// previously marked as filtered, it will be considered
-		// interesting again and be placed in the piece list available
-		// for downloading.
-		void mark_as_unfiltered(int index);
+		// sets the priority of a piece.
+		// 0 is filtered, i.e. do not download
+		// 1 is normal priority
+		// 2 is high priority
+		// 3 is maximum priority (availability is ignored)
+		void set_piece_priority(int index, int prio);
 
-		// This will mark a piece as filtered. The piece will be
-		// removed from the list of pieces avalable for downloading
-		// and hence, will not be downloaded.
-		void mark_as_filtered(int index);
-
-		// returns true if the pieces at 'index' is marked as filtered
-		bool is_filtered(int index) const;
+		// returns the priority for the piece at 'index'
+		int piece_priority(int index) const;
 
 		// fills the bitmask with 1's for pieces that are filtered
 		void filtered_pieces(std::vector<bool>& mask) const;
@@ -236,7 +234,7 @@ namespace libtorrent
 			piece_pos(int peer_count_, int index_)
 				: peer_count(peer_count_)
 				, downloading(0)
-				, filtered(0)
+				, piece_priority(1)
 				, index(index_)
 			{
 				assert(peer_count_ >= 0);
@@ -244,26 +242,52 @@ namespace libtorrent
 			}
 
 			// selects which vector to look in
-			unsigned peer_count : 11;
+			unsigned peer_count : 10;
 			// is 1 if the piece is marked as being downloaded
 			unsigned downloading : 1;
-			// is 1 if the piece is filtered (not to be downloaded)
-			unsigned filtered : 1;
+			// is 0 if the piece is filtered (not to be downloaded)
+			// 1 is normal priority (default)
+			// 2 is high priority
+			// 3 is maximum priority (ignores availability)
+			unsigned piece_priority : 2;
 			// index in to the piece_info vector
 			unsigned index : 19;
 
-			enum { we_have_index = 0x3ffff };
+			enum
+			{
+				// index is set to this to indicate that we have the
+				// piece. There is no entry for the piece in the
+				// buckets if this is the case.
+				we_have_index = 0x7ffff,
+				// the priority value that means the piece is filtered
+				filter_priority = 0,
+				// the max number the peer count can hold
+				max_peer_count = 0x3ff
+			};
+			
+			bool have() const { return index == we_have_index; }
+			void set_have() { index = we_have_index; assert(have()); }
+			
+			bool filtered() const { return piece_priority == filter_priority; }
+			void filtered(bool f) { piece_priority = f ? filter_priority : 0; }
 			
 			int priority(int limit) const
 			{
-				return peer_count >= (unsigned)limit ? limit : peer_count;
+				if (filtered() || have()) return 0;
+				// pieces we are currently downloading are prioritized
+				int prio = downloading ? peer_count : peer_count * 2;
+				// if the peer_count is 0 or 1, the priority cannot be higher
+				if (prio <= 1) return prio;
+				if (prio >= limit * 2) prio = limit * 2;
+				// the different priority levels
+				switch (piece_priority)
+				{
+					case 2: return prio - 1;
+					case 3: return 1;
+				}
+				return prio;
 			}
-			
-			bool ordered(int limit) const
-			{
-				return peer_count >= (unsigned)limit;
-			}
-			
+
 			bool operator!=(piece_pos p) const
 			{ return index != p.index || peer_count != p.peer_count; }
 
@@ -272,27 +296,23 @@ namespace libtorrent
 
 		};
 
+		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 4);
+
+		bool is_ordered(int priority) const
+		{
+			return priority >= m_sequenced_download_threshold * 2;
+		}
 
 		void add(int index);
-		void move(bool downloading, bool filtered, int vec_index, int elem_index);
-		void remove(bool downloading, bool filtered, int vec_index, int elem_index);
-		std::vector<std::vector<int> >& pick_piece_info_vector(bool downloading
-			, bool filtered);
+		void move(int vec_index, int elem_index);
+//		void remove(int vec_index, int elem_index);
 
-		std::vector<std::vector<int> > const& pick_piece_info_vector(
-			bool downloading, bool filtered) const;
-
-		int add_interesting_blocks_free(const std::vector<int>& piece_list
-				, const std::vector<bool>& pieces
-				, std::vector<piece_block>& interesting_blocks
-				, int num_blocks, bool prefer_whole_pieces) const;
-
-		int add_interesting_blocks_partial(const std::vector<int>& piece_list
-				, const std::vector<bool>& pieces
-				, std::vector<piece_block>& interesting_blocks
-				, std::vector<piece_block>& backup_blocks
-				, int num_blocks, bool prefer_whole_pieces
-				, tcp::endpoint peer) const;
+		int add_interesting_blocks(const std::vector<int>& piece_list
+			, const std::vector<bool>& pieces
+			, std::vector<piece_block>& interesting_blocks
+			, std::vector<piece_block>& backup_blocks
+			, int num_blocks, bool prefer_whole_pieces
+			, tcp::endpoint peer) const;
 
 
 		// this vector contains all pieces we don't have.
@@ -300,13 +320,10 @@ namespace libtorrent
 		// that no peer have, the vector at index 1 contains
 		// all pieces that exactly one peer have, index 2 contains
 		// all pieces exactly two peers have and so on.
+		// this is not entirely true. The availibility of a piece
+		// is adjusted depending on its priority. But the principle
+		// is that the higher index, the lower priority a piece has.
 		std::vector<std::vector<int> > m_piece_info;
-
-		// this vector has the same structure as m_piece_info
-		// but only contains pieces we are currently downloading
-		// they have higher priority than pieces we aren't downloading
-		// during piece picking
-		std::vector<std::vector<int> > m_downloading_piece_info;
 
 		// this maps indices to number of peers that has this piece and
 		// index into the m_piece_info vectors.

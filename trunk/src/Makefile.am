@@ -3,8 +3,8 @@ lib_LTLIBRARIES = libtorrent.la
 libtorrent_la_SOURCES = allocate_resources.cpp \
 bandwidth_manager.cpp entry.cpp escape_string.cpp \
 peer_connection.cpp bt_peer_connection.cpp web_peer_connection.cpp \
-piece_picker.cpp policy.cpp session.cpp session_impl.cpp sha1.cpp stat.cpp \
-storage.cpp torrent.cpp torrent_handle.cpp \
+natpmp.cpp piece_picker.cpp policy.cpp session.cpp session_impl.cpp sha1.cpp \
+stat.cpp storage.cpp torrent.cpp torrent_handle.cpp \
 torrent_info.cpp tracker_manager.cpp \
 http_tracker_connection.cpp udp_tracker_connection.cpp \
 alert.cpp identify_client.cpp ip_filter.cpp file.cpp metadata_transfer.cpp \
@@ -50,6 +50,7 @@ $(top_srcdir)/include/libtorrent/peer.hpp \
 $(top_srcdir)/include/libtorrent/peer_connection.hpp \
 $(top_srcdir)/include/libtorrent/bt_peer_connection.hpp \
 $(top_srcdir)/include/libtorrent/web_peer_connection.hpp \
+$(top_srcdir)/include/libtorrent/natpmp.hpp \
 $(top_srcdir)/include/libtorrent/peer_id.hpp \
 $(top_srcdir)/include/libtorrent/peer_info.hpp \
 $(top_srcdir)/include/libtorrent/peer_request.hpp \

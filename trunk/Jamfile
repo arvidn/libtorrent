@@ -41,6 +41,7 @@ SOURCES =
 	peer_connection.cpp
 	bt_peer_connection.cpp
 	web_peer_connection.cpp
+	natpmp.cpp
 	piece_picker.cpp
 	policy.cpp
 	session.cpp
