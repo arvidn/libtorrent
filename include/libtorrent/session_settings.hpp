@@ -167,7 +167,7 @@ namespace libtorrent
 		dht_settings()
 			: max_peers_reply(50)
 			, search_branching(5)
-			, service_port(6881)
+			, service_port(0)
 			, max_fail_count(20)
 		{}
 		
@@ -180,6 +180,7 @@ namespace libtorrent
 		int search_branching;
 		
 		// the listen port for the dht. This is a UDP port.
+		// zero means use the same as the tcp interface
 		int service_port;
 		
 		// the maximum number of times a node can fail

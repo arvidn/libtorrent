@@ -657,7 +657,11 @@ response to a <tt class="docutils literal"><span class="pre">get_peers</span></t
 <p><tt class="docutils literal"><span class="pre">search_branching</span></tt> is the number of concurrent search request the node will
 send when announcing and refreshing the routing table. This parameter is
 called alpha in the kademlia paper.</p>
-<p><tt class="docutils literal"><span class="pre">service_port</span></tt> is the udp port the node will listen to.</p>
+<p><tt class="docutils literal"><span class="pre">service_port</span></tt> is the udp port the node will listen to. This will default
+to 0, which means the udp listen port will be the same as the tcp listen
+port. This is in general a good idea, since some NAT implementations
+reserves the udp port for any mapped tcp port, and vice versa. NAT-PMP
+guarantees this for example.</p>
 <p><tt class="docutils literal"><span class="pre">max_fail_count</span></tt> is the maximum number of failed tries to contact a node
 before it is removed from the routing table. If there are known working nodes
 that are ready to replace a failing node, it will be replaced immediately,

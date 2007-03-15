@@ -542,7 +542,11 @@ response to a ``get_peers`` message from another node.
 send when announcing and refreshing the routing table. This parameter is
 called alpha in the kademlia paper.
 
-``service_port`` is the udp port the node will listen to.
+``service_port`` is the udp port the node will listen to. This will default
+to 0, which means the udp listen port will be the same as the tcp listen
+port. This is in general a good idea, since some NAT implementations
+reserves the udp port for any mapped tcp port, and vice versa. NAT-PMP
+guarantees this for example.
 
 ``max_fail_count`` is the maximum number of failed tries to contact a node
 before it is removed from the routing table. If there are known working nodes

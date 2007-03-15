@@ -226,30 +226,21 @@ namespace libtorrent
 
 		// build a vector of all pieces
 		m_num_pieces = 0;
-		std::vector<int> piece_list;
-		for (int i = 0; i < (int)m_have_piece.size(); ++i)
+		bool interesting = false;
+		for (int i = 0; i < int(m_have_piece.size()); ++i)
 		{
 			if (m_have_piece[i])
 			{
 				++m_num_pieces;
-				piece_list.push_back(i);
+				t->peer_has(i);
+				// if the peer has a piece and we don't, the peer is interesting
+				if (!t->have_piece(i)
+					&& !t->picker().piece_priority(i) == 0)
+					interesting = true;
 			}
 		}
 
-		// let the torrent know which pieces the
-		// peer has, in a shuffled order
-		bool interesting = false;
-		for (std::vector<int>::reverse_iterator i = piece_list.rbegin();
-			i != piece_list.rend(); ++i)
-		{
-			int index = *i;
-			t->peer_has(index);
-			if (!t->have_piece(index)
-				&& !t->picker().is_filtered(index))
-				interesting = true;
-		}
-
-		if (piece_list.size() == m_have_piece.size())
+		if (m_num_pieces == int(m_have_piece.size()))
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << " *** THIS IS A SEED ***\n";
@@ -654,7 +645,7 @@ namespace libtorrent
 				if (!t->have_piece(index)
 					&& !t->is_seed()
 					&& !is_interesting()
-					&& !t->picker().is_filtered(index))
+					&& t->picker().piece_priority(index) != 0)
 					t->get_policy().peer_is_interesting(*this);
 			}
 
@@ -714,8 +705,7 @@ namespace libtorrent
 				m_have_piece[i] = true;
 				++m_num_pieces;
 				t->peer_has(i);
-				if (!t->have_piece(i)
-					&& !t->picker().is_filtered(i))
+				if (!t->have_piece(i) && t->picker().piece_priority(i) != 0)
 					interesting = true;
 			}
 			else if (!have && m_have_piece[i])

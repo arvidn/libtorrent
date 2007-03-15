@@ -493,8 +493,9 @@ namespace libtorrent
 		// TODO: There should be a way to abort an announce operation on the dht.
 		// when the torrent is destructed
 		boost::weak_ptr<torrent> self(shared_from_this());
+		assert(m_ses.m_external_listen_port > 0);
 		m_ses.m_dht->announce(m_torrent_file.info_hash()
-			, m_ses.m_listen_interface.port()
+			, m_ses.m_external_listen_port
 			, m_ses.m_strand.wrap(bind(&torrent::on_dht_announce_response_disp, self, _1)));
 	}
 
@@ -720,7 +721,7 @@ namespace libtorrent
 			int corr = m_torrent_file.piece_size(last_piece)
 				- m_torrent_file.piece_length();
 			total_done += corr;
-			if (!m_picker->is_filtered(last_piece))
+			if (m_picker->piece_priority(last_piece) != 0)
 				wanted_done += corr;
 		}
 
@@ -768,7 +769,7 @@ namespace libtorrent
 				corr += m_torrent_file.piece_size(last_piece) % m_block_size;
 			}
 			total_done += corr;
-			if (!m_picker->is_filtered(index))
+			if (m_picker->piece_priority(index) != 0)
 				wanted_done += corr;
 		}
 
@@ -816,7 +817,7 @@ namespace libtorrent
 			i != downloading_piece.end(); ++i)
 		{
 			total_done += i->second;
-			if (!m_picker->is_filtered(i->first.piece_index))
+			if (m_picker->piece_priority(i->first.piece_index) != 0)
 				wanted_done += i->second;
 		}
 
@@ -1026,8 +1027,7 @@ namespace libtorrent
 
 		// TODO: update peer's interesting-bit
 		
-		if (filter) m_picker->mark_as_filtered(index);
-		else m_picker->mark_as_unfiltered(index);
+		m_picker->set_piece_priority(index, filter ? 1 : 0);
 	}
 
 	void torrent::filter_pieces(std::vector<bool> const& bitmask)
@@ -1042,23 +1042,15 @@ namespace libtorrent
 
 		// TODO: update peer's interesting-bit
 		
-		std::vector<int> state;
-		state.reserve(100);
 		int index = 0;
 		for (std::vector<bool>::const_iterator i = bitmask.begin()
 			, end(bitmask.end()); i != end; ++i, ++index)
 		{
-			if (m_picker->is_filtered(index) == *i) continue;
+			if ((m_picker->piece_priority(index) == 0) == *i) continue;
 			if (*i)
-				m_picker->mark_as_filtered(index);
+				m_picker->set_piece_priority(index, 0);
 			else
-				state.push_back(index);
-		}
-
-		for (std::vector<int>::reverse_iterator i = state.rbegin();
-			i != state.rend(); ++i)
-		{
-			m_picker->mark_as_unfiltered(*i);
+				m_picker->set_piece_priority(index, 1);
 		}
 	}
 
@@ -1072,7 +1064,7 @@ namespace libtorrent
 		assert(index >= 0);
 		assert(index < m_torrent_file.num_pieces());
 
-		return m_picker->is_filtered(index);
+		return m_picker->piece_priority(index) == 0;
 	}
 
 	void torrent::filtered_pieces(std::vector<bool>& bitmask) const
@@ -1189,19 +1181,12 @@ namespace libtorrent
 		{
 			assert(p->associated_torrent().lock().get() == this);
 
-			std::vector<int> piece_list;
 			const std::vector<bool>& pieces = p->get_bitfield();
 
 			for (std::vector<bool>::const_iterator i = pieces.begin();
 				i != pieces.end(); ++i)
 			{
-				if (*i) piece_list.push_back(static_cast<int>(i - pieces.begin()));
-			}
-
-			for (std::vector<int>::reverse_iterator i = piece_list.rbegin();
-				i != piece_list.rend(); ++i)
-			{
-				peer_lost(*i);
+				if (*i) peer_lost(static_cast<int>(i - pieces.begin()));
 			}
 		}
 
@@ -2623,7 +2608,7 @@ namespace libtorrent
 			int filtered_pieces = m_picker->num_filtered()
 				+ m_picker->num_have_filtered();
 			int last_piece_index = m_torrent_file.num_pieces() - 1;
-			if (m_picker->is_filtered(last_piece_index))
+			if (m_picker->piece_priority(last_piece_index) == 0)
 			{
 				st.total_wanted -= m_torrent_file.piece_size(last_piece_index);
 				--filtered_pieces;

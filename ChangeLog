@@ -1,3 +1,7 @@
+	* added support for NAT-PMP
+	* added support for piece priorities. Piece filtering is now set as
+	  a priority
+
 release 0.12
 
 	* fixes to make the DHT more compatible

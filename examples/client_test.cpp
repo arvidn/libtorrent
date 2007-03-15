@@ -252,6 +252,9 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 	for (std::vector<peer_info>::const_iterator i = peers.begin();
 		i != peers.end(); ++i)
 	{
+		if (i->flags & (peer_info::handshake | peer_info::connecting | peer_info::queued))
+			continue;
+
 		out.fill(' ');
 		out.width(2);
 		out << esc("32") << (i->down_speed > 0 ? add_suffix(i->down_speed) + "/s " : "         ")
@@ -590,9 +593,6 @@ int main(int ac, char* av[])
 #ifndef TORRENT_DISABLE_DHT
 		settings.use_dht_as_fallback = false;
 
-		dht_settings s;
-		s.service_port = listen_port;
-		ses.set_dht_settings(s);
 		boost::filesystem::ifstream dht_state_file(".dht_state"
 			, std::ios_base::binary);
 		dht_state_file.unsetf(std::ios_base::skipws);
@@ -968,10 +968,10 @@ int main(int ac, char* av[])
 					for (int i = 0; i < info.num_files(); ++i)
 					{
 						if (file_progress[i] == 1.f)
-							out << progress_bar(file_progress[i], 20, "32") << " "
+							out << progress_bar(file_progress[i], 40, "32") << " "
 								<< info.file_at(i).path.leaf() << "\n";
 						else
-							out << progress_bar(file_progress[i], 20, "33") << " "
+							out << progress_bar(file_progress[i], 40, "33") << " "
 								<< info.file_at(i).path.leaf() << "\n";
 					}
 
