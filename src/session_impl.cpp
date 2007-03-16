@@ -1492,19 +1492,34 @@ namespace libtorrent { namespace detail
 		{
 			m_external_udp_port = udp_port;
 			m_dht_settings.service_port = udp_port;
-			// TODO: generate successful port map alert
+			if (m_alerts.should_post(alert::info))
+			{
+				std::stringstream msg;
+				msg << "successfully mapped UDP port " << udp_port;
+				m_alerts.post_alert(portmap_alert(msg.str()));
+			}
 		}
 #endif
 
 		if (tcp_port != 0)
 		{
 			m_external_listen_port = tcp_port;
-			// TODO: generate successful port map alert
+			if (m_alerts.should_post(alert::info))
+			{
+				std::stringstream msg;
+				msg << "successfully mapped TCP port " << tcp_port;
+				m_alerts.post_alert(portmap_alert(msg.str()));
+			}
 		}
 
 		if (!errmsg.empty())
 		{
-			// TODO: generate port map failure alert
+			if (m_alerts.should_post(alert::warning))
+			{
+				std::stringstream msg;
+				msg << "Error while mapping ports on NAT router: " << errmsg;
+				m_alerts.post_alert(portmap_error_alert(msg.str()));
+			}
 		}
 	}
 
