@@ -307,11 +307,15 @@ void natpmp::on_reply(asio::error_code const& e
 			throw std::runtime_error(errmsg.str());
 		}
 
-		int tcp_port = 0;
-		int udp_port = 0;
-		if (m.protocol == 1) udp_port = m.external_port;
-		else tcp_port = public_port;
-		m_callback(tcp_port, udp_port, "");
+		// don't report when we remove mappings
+		if (m.local_port != 0)
+		{
+			int tcp_port = 0;
+			int udp_port = 0;
+			if (m.protocol == 1) udp_port = m.external_port;
+			else tcp_port = public_port;
+			m_callback(tcp_port, udp_port, "");
+		}
 	}
 	catch (std::exception& e)
 	{
