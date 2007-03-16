@@ -87,39 +87,29 @@ namespace libtorrent
 		std::string m_msg;
 	};
 
-	class TORRENT_EXPORT storage
+	struct TORRENT_EXPORT storage_interface
 	{
-	public:
-		storage(
-			const torrent_info& info
-			, const boost::filesystem::path& path
-			, file_pool& fp);
-
-		void swap(storage&);
-
 		// may throw file_error if storage for slot does not exist
-		size_type read(char* buf, int slot, int offset, int size);
+		virtual size_type read(char* buf, int slot, int offset, int size) = 0;
 
 		// may throw file_error if storage for slot hasn't been allocated
-		void write(const char* buf, int slot, int offset, int size);
+		virtual void write(const char* buf, int slot, int offset, int size) = 0;
 
-		bool move_storage(boost::filesystem::path save_path);
+		virtual bool move_storage(boost::filesystem::path save_path) = 0;
 
 		// this will close all open files that are opened for
 		// writing. This is called when a torrent has finished
 		// downloading.
-		void release_files();
-
-#ifndef NDEBUG
-		// overwrites some slots with the
-		// contents of others
-		void shuffle();
-#endif
-
-	private:
-		class impl;
-		boost::shared_ptr<impl> m_pimpl;
+		virtual void release_files() = 0;
+		virtual ~storage_interface() {}
 	};
+
+	typedef storage_interface* (&storage_constructor_type)(
+		torrent_info const&, boost::filesystem::path const&
+		, file_pool&);
+
+	TORRENT_EXPORT storage_interface* default_storage_constructor(torrent_info const& ti
+		, boost::filesystem::path const& path, file_pool& fp);
 
 	class TORRENT_EXPORT piece_manager : boost::noncopyable
 	{
@@ -128,7 +118,8 @@ namespace libtorrent
 		piece_manager(
 			const torrent_info& info
 			, const boost::filesystem::path& path
-			, file_pool& fp);
+			, file_pool& fp
+			, storage_constructor_type sc);
 
 		~piece_manager();
 

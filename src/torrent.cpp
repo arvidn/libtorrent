@@ -226,7 +226,8 @@ namespace libtorrent
 		, tcp::endpoint const& net_interface
 		, bool compact_mode
 		, int block_size
-		, session_settings const& s)
+		, session_settings const& s
+		, storage_constructor_type sc)
 		: m_torrent_file(tf)
 		, m_abort(false)
 		, m_paused(false)
@@ -265,6 +266,7 @@ namespace libtorrent
 		, m_default_block_size(block_size)
 		, m_connections_initialized(true)
 		, m_settings(s)
+		, m_storage_constructor(sc)
 	{
 #ifndef NDEBUG
 		m_initial_done = 0;
@@ -315,7 +317,8 @@ namespace libtorrent
 		, tcp::endpoint const& net_interface
 		, bool compact_mode
 		, int block_size
-		, session_settings const& s)
+		, session_settings const& s
+		, storage_constructor_type sc)
 		: m_torrent_file(info_hash)
 		, m_abort(false)
 		, m_paused(false)
@@ -353,6 +356,7 @@ namespace libtorrent
 		, m_default_block_size(block_size)
 		, m_connections_initialized(false)
 		, m_settings(s)
+		, m_storage_constructor(sc)
 	{
 #ifndef NDEBUG
 		m_initial_done = 0;
@@ -452,7 +456,8 @@ namespace libtorrent
 		assert(m_torrent_file.total_size() >= 0);
 
 		m_have_pieces.resize(m_torrent_file.num_pieces(), false);
-		m_storage.reset(new piece_manager(m_torrent_file, m_save_path, m_ses.m_files));
+		m_storage.reset(new piece_manager(m_torrent_file, m_save_path
+			, m_ses.m_files, m_storage_constructor));
 		m_block_size = calculate_block_size(m_torrent_file, m_default_block_size);
 		m_picker.reset(new piece_picker(
 			static_cast<int>(m_torrent_file.piece_length() / m_block_size)

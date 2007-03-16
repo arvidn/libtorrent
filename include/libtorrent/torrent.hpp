@@ -68,6 +68,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/bandwidth_manager.hpp"
+#include "libtorrent/storage.hpp"
 
 namespace libtorrent
 {
@@ -100,7 +101,8 @@ namespace libtorrent
 			, tcp::endpoint const& net_interface
 			, bool compact_mode
 			, int block_size
-			, session_settings const& s);
+			, session_settings const& s
+			, storage_constructor_type sc);
 
 		// used with metadata-less torrents
 		// (the metadata is downloaded from the peers)
@@ -114,7 +116,8 @@ namespace libtorrent
 			, tcp::endpoint const& net_interface
 			, bool compact_mode
 			, int block_size
-			, session_settings const& s);
+			, session_settings const& s
+			, storage_constructor_type sc);
 
 		~torrent();
 
@@ -657,6 +660,8 @@ namespace libtorrent
 		boost::scoped_ptr<std::string> m_name;
 
 		session_settings const& m_settings;
+
+		storage_constructor_type m_storage_constructor;
 		
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::list<boost::shared_ptr<torrent_plugin> > extension_list_t;

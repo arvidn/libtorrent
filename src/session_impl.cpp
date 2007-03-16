@@ -1219,7 +1219,8 @@ namespace libtorrent { namespace detail
 		, boost::filesystem::path const& save_path
 		, entry const& resume_data
 		, bool compact_mode
-		, int block_size)
+		, int block_size
+		, storage_constructor_type sc)
 	{
 		// make sure the block_size is an even power of 2
 #ifndef NDEBUG
@@ -1259,7 +1260,7 @@ namespace libtorrent { namespace detail
 		boost::shared_ptr<torrent> torrent_ptr(
 			new torrent(*this, m_checker_impl, ti, save_path
 				, m_listen_interface, compact_mode, block_size
-				, settings()));
+				, settings(), sc));
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -1304,7 +1305,8 @@ namespace libtorrent { namespace detail
 		, boost::filesystem::path const& save_path
 		, entry const&
 		, bool compact_mode
-		, int block_size)
+		, int block_size
+		, storage_constructor_type sc)
 	{
 		// make sure the block_size is an even power of 2
 #ifndef NDEBUG
@@ -1345,7 +1347,7 @@ namespace libtorrent { namespace detail
 		boost::shared_ptr<torrent> torrent_ptr(
 			new torrent(*this, m_checker_impl, tracker_url, info_hash, name
 			, save_path, m_listen_interface, compact_mode, block_size
-			, settings()));
+			, settings(), sc));
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
