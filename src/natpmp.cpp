@@ -40,7 +40,9 @@ using boost::bind;
 using namespace libtorrent;
 using boost::posix_time::microsec_clock;
 
-natpmp::natpmp(io_service& ios, portmap_callback_t const& cb)
+enum { num_mappings = 2 };
+
+natpmp::natpmp(io_service& ios, address const& listen_interface, portmap_callback_t const& cb)
 	: m_callback(cb)
 	, m_currently_mapping(-1)
 	, m_retry_count(0)
@@ -55,25 +57,42 @@ natpmp::natpmp(io_service& ios, portmap_callback_t const& cb)
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log.open("natpmp.log", std::ios::in | std::ios::out | std::ios::trunc);
 #endif
-	
-	udp::resolver r(ios);
-	udp::resolver::iterator i = r.resolve(udp::resolver::query(asio::ip::host_name(), "0"));
-	for (;i != udp::resolver_iterator(); ++i)
+	rebind(listen_interface);
+}
+
+void natpmp::rebind(address const& listen_interface)
+{
+	address_v4 local;
+	if (listen_interface.is_v4() && listen_interface != address_v4::from_string("0.0.0.0"))
 	{
-		if (i->endpoint().address().is_v4()) break;
+		local = listen_interface.to_v4();
+	}
+	else
+	{
+		// make a best guess of the interface we're using and its IP
+		udp::resolver r(m_socket.io_service());
+		udp::resolver::iterator i = r.resolve(udp::resolver::query(asio::ip::host_name(), "0"));
+		for (;i != udp::resolver_iterator(); ++i)
+		{
+			if (i->endpoint().address().is_v4()) break;
+		}
+
+		if (i == udp::resolver_iterator())
+		{
+	#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+			m_log << "local host name did not resolve to an IPv4 address. "
+				"disabling NAT-PMP" << std::endl;
+	#endif
+			m_disabled = true;
+			return;
+		}
+
+		local = i->endpoint().address().to_v4();
 	}
 
-	if (i == udp::resolver_iterator())
-	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << "local host name did not resolve to an IPv4 address. "
-			"disabling NAT-PMP" << std::endl;
-#endif
-		m_disabled = true;
-		return;
-	}
+	m_socket.open(udp::v4());
+	m_socket.bind(udp::endpoint(local, 0));
 
-	address_v4 local = i->endpoint().address().to_v4();
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log << to_simple_string(microsec_clock::universal_time())
 		<< " local ip: " << local.to_string() << std::endl;
@@ -92,18 +111,28 @@ natpmp::natpmp(io_service& ios, portmap_callback_t const& cb)
 		return;
 	}
 
+	m_disabled = false;
+
+	udp::endpoint nat_endpoint(
+		address_v4((local.to_ulong() & 0xffffff00) | 1), 5351);
+
+	if (nat_endpoint == m_nat_endpoint) return;
+
 	// assume the router is located on the local
 	// network as x.x.x.1
 	// TODO: find a better way to figure out the router IP
-	m_nat_endpoint = udp::endpoint(
-		address_v4((local.to_ulong() & 0xffffff00) | 1), 5351);
+	m_nat_endpoint = nat_endpoint;
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log << "assuming router is at: " << m_nat_endpoint.address().to_string() << std::endl;
 #endif
 
-	m_socket.open(udp::v4());
-	m_socket.bind(udp::endpoint());
+	for (int i = 0; i < num_mappings; ++i)
+	{
+		if (m_mappings[i].local_port == 0)
+			continue;
+		refresh_mapping(i);
+	}
 }
 
 void natpmp::set_mappings(int tcp, int udp)
@@ -305,7 +334,7 @@ void natpmp::update_expiration_timer()
 	boost::posix_time::ptime now = boost::posix_time::second_clock::universal_time();
 	boost::posix_time::ptime min_expire = now + seconds(3600);
 	int min_index = -1;
-	for (int i = 0; i < 2; ++i)
+	for (int i = 0; i < num_mappings; ++i)
 		if (m_mappings[i].expires < min_expire
 			&& m_mappings[i].local_port != 0)
 		{
@@ -346,7 +375,7 @@ void natpmp::refresh_mapping(int i)
 void natpmp::try_next_mapping(int i)
 {
 	++i;
-	if (i >= 2) i = 0;
+	if (i >= num_mappings) i = 0;
 	if (m_mappings[i].need_update)
 		refresh_mapping(i);
 }
@@ -354,7 +383,7 @@ void natpmp::try_next_mapping(int i)
 void natpmp::close()
 {
 	if (m_disabled) return;
-	for (int i = 0; i < 2; ++i)
+	for (int i = 0; i < num_mappings; ++i)
 	{
 		if (m_mappings[i].local_port == 0)
 			continue;

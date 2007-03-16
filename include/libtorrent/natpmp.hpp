@@ -52,7 +52,9 @@ typedef boost::function<void(int, int, std::string const&)> portmap_callback_t;
 class natpmp
 {
 public:
-	natpmp(io_service& ios, portmap_callback_t const& cb);
+	natpmp(io_service& ios, address const& listen_interface, portmap_callback_t const& cb);
+
+	void rebind(address const& listen_interface);
 
 	// maps the ports, if a port is set to 0
 	// it will not be mapped

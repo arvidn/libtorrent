@@ -492,7 +492,8 @@ namespace libtorrent { namespace detail
 		, m_dht_same_port(true)
 		, m_external_udp_port(0)
 #endif
-		, m_natpmp(m_io_service, bind(&session_impl::on_port_mapping, this, _1, _2, _3))
+		, m_natpmp(m_io_service, m_listen_interface.address()
+			, bind(&session_impl::on_port_mapping, this, _1, _2, _3))
 		, m_timer(m_io_service)
 		, m_checker_impl(*this)
 	{
@@ -1459,6 +1460,8 @@ namespace libtorrent { namespace detail
 			// the listen interface changed, rebind the dht listen socket as well
 			m_dht->rebind(new_interface.address()
 				, m_dht_settings.service_port);
+			if (m_listen_interface.address() != new_interface.address())
+				m_natpmp.rebind(new_interface.address());
 			m_natpmp.set_mappings(0, m_dht_settings.service_port);
 		}
 #endif
@@ -1571,9 +1574,12 @@ namespace libtorrent { namespace detail
 			m_dht->stop();
 			m_dht = 0;
 		}
-		if (m_dht_settings.service_port == 0)
+		if (m_dht_settings.service_port == 0
+			|| m_dht_same_port)
+		{
 			m_dht_same_port = true;
-		m_dht_settings.service_port = m_listen_interface.port();
+			m_dht_settings.service_port = m_listen_interface.port();
+		}
 		m_external_udp_port = m_dht_settings.service_port;
 		m_natpmp.set_mappings(0, m_dht_settings.service_port);
 		m_dht = new dht::dht_tracker(m_io_service
@@ -1597,6 +1603,8 @@ namespace libtorrent { namespace detail
 		// the current setting
 		if (settings.service_port != 0)
 			m_dht_same_port = false;
+		else
+			m_dht_same_port = true;
 		if (!m_dht_same_port
 			&& settings.service_port != m_dht_settings.service_port
 			&& m_dht)
