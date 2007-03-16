@@ -1810,11 +1810,10 @@ namespace libtorrent { namespace detail
 			}
 
 			// verify info_hash
-			const std::string &hash = rd["info-hash"].string();
-			std::string real_hash((char*)info.info_hash().begin(), (char*)info.info_hash().end());
-			if (hash != real_hash)
+			sha1_hash hash = rd["info-hash"].string();
+			if (hash != info.info_hash())
 			{
-				error = "mismatching info-hash: " + hash;
+				error = "mismatching info-hash: " + boost::lexical_cast<std::string>(hash);
 				return;
 			}
 
