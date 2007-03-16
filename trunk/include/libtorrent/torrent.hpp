@@ -416,8 +416,16 @@ namespace libtorrent
 		alert_manager& alerts() const;
 		piece_picker& picker()
 		{
+			assert(m_files_checked_called);
+			assert(!is_seed());
 			assert(m_picker.get());
 			return *m_picker;
+		}
+		bool has_picker() const
+		{
+			assert((m_files_checked_called && !is_seed())
+				== bool(m_picker.get()));
+			return m_picker.get();
 		}
 		policy& get_policy()
 		{
@@ -611,6 +619,11 @@ namespace libtorrent
 		// m_have_pieces.end(), 0)
 		int m_num_pieces;
 
+		// in case the piece picker hasn't been constructed
+		// when this settings is set, this variable will keep
+		// its value until the piece picker is created
+		int m_sequenced_download_threshold;
+
 		// is false by default and set to
 		// true when the first tracker reponse
 		// is received
@@ -673,6 +686,10 @@ namespace libtorrent
 		// is started. i.e.
 		// total_done - m_initial_done <= total_payload_download
 		size_type m_initial_done;
+
+		// set to true once files_checked has been called
+		// and the piece picker is constructed
+		bool m_files_checked_called;
 #endif
 
 #ifdef TORRENT_LOGGING
