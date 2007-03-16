@@ -696,7 +696,7 @@ namespace libtorrent
 		// just remember the bitmask
 		// don't update the piecepicker
 		// (since it doesn't exist yet)
-		if (!t->valid_metadata())
+		if (!t->ready_for_connections())
 		{
 			m_have_piece = bitfield;
 			m_num_pieces = std::count(bitfield.begin(), bitfield.end(), true);
