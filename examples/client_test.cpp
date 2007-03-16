@@ -777,7 +777,7 @@ int main(int ac, char* av[])
 			// loop through the alert queue to see if anything has happened.
 			std::auto_ptr<alert> a;
 			a = ses.pop_alert();
-			std::string now = to_simple_string(second_clock::universal_time());
+			std::string now = to_simple_string(second_clock::local_time());
 			while (a.get())
 			{
 				std::stringstream event_string;
