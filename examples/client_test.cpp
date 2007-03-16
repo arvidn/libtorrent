@@ -590,6 +590,22 @@ int main(int ac, char* av[])
 		ses.add_extension(&create_metadata_plugin);
 		ses.add_extension(&create_ut_pex_plugin);
 
+		ses.set_max_uploads(upload_slots_limit);
+		ses.set_max_half_open_connections(half_open_limit);
+		ses.set_download_rate_limit(download_limit);
+		ses.set_upload_rate_limit(upload_limit);
+		ses.listen_on(std::make_pair(listen_port, listen_port + 10)
+			, bind_to_interface.c_str());
+		ses.set_settings(settings);
+		if (log_level == "debug")
+			ses.set_severity_level(alert::debug);
+		else if (log_level == "warning")
+			ses.set_severity_level(alert::warning);
+		else if (log_level == "fatal")
+			ses.set_severity_level(alert::fatal);
+		else
+			ses.set_severity_level(alert::info);
+
 #ifndef TORRENT_DISABLE_DHT
 		settings.use_dht_as_fallback = false;
 
@@ -612,22 +628,6 @@ int main(int ac, char* av[])
 		ses.add_dht_router(std::make_pair(std::string("router.bitcomet.com")
 			, 6881));
 #endif
-
-		ses.set_max_uploads(upload_slots_limit);
-		ses.set_max_half_open_connections(half_open_limit);
-		ses.set_download_rate_limit(download_limit);
-		ses.set_upload_rate_limit(upload_limit);
-		ses.listen_on(std::make_pair(listen_port, listen_port + 10)
-			, bind_to_interface.c_str());
-		ses.set_settings(settings);
-		if (log_level == "debug")
-			ses.set_severity_level(alert::debug);
-		else if (log_level == "warning")
-			ses.set_severity_level(alert::warning);
-		else if (log_level == "fatal")
-			ses.set_severity_level(alert::fatal);
-		else
-			ses.set_severity_level(alert::info);
 
 		// look for ipfilter.dat
 		// poor man's parser
