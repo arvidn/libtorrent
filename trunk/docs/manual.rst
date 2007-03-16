@@ -2742,7 +2742,7 @@ torrent in question. This alert is generated as severity level ``info``.
 
 ::
 
-	struct torrent_finished_alert:torrent_ alert
+	struct torrent_finished_alert: torrent_alert
 	{
 		torrent_finished_alert(
 			const torrent_handle& h
@@ -2802,13 +2802,12 @@ resume file was rejected. It is generated at severity level ``warning``.
 
 ::
 
-	struct fastresume_rejected_alert: alert
+	struct fastresume_rejected_alert: torrent_alert
 	{
 		fastresume_rejected_alert(torrent_handle const& h
 			, std::string const& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
-		torrent_handle handle;
 	};
 
 
