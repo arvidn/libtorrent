@@ -436,6 +436,22 @@ generate an appropriate alert (listen_failed_alert_).
 The interface parameter can also be a hostname that will resolve to the device you
 want to listen on.
 
+If you're also starting the DHT, it is a good idea to do that after you've called
+``listen_on()``, since the default listen port for the DHT is the same as the tcp
+listen socket. If you start the DHT first, it will assume the tcp port is free and
+open the udp socket on that port, then later, when ``listen_on()`` is called, it
+may turn out that the tcp port is in use. That results in the DHT and the bittorrent
+socket listening on different ports. If the DHT is active when ``listen_on`` is
+called, the udp port will be rebound to the new port, if it was configured to use
+the same port as the tcp socket, and if the listen_on call failed to bind to the
+same port that the udp uses.
+
+The reason why it's a good idea to run the DHT and the bittorrent socket on the same
+port is because that is an assumption that may be used to increase performance. One
+way to accelerate the connecting of peers on windows may be to first ping all peers
+with a DHT ping packet, and connect to those that responds first. On windows one
+can only connect to a few peers at a time because of a built in limitation (in XP
+Service pack 2).
 
 pop_alert() set_severity_level()
 --------------------------------

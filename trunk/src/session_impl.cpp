@@ -1450,26 +1450,26 @@ namespace libtorrent { namespace detail
 		if (m_listen_socket)
 			m_listen_socket.reset();
 			
+		bool new_listen_address = m_listen_interface.address() != new_interface.address();
+
+		m_incoming_connection = false;
+		m_listen_interface = new_interface;
+
+		open_listen_port();
+
 #ifndef TORRENT_DISABLE_DHT
-		if ((m_listen_interface.address() != new_interface.address()
-			|| m_dht_same_port)
-			&& m_dht)
+		if ((new_listen_address || m_dht_same_port) && m_dht)
 		{
 			if (m_dht_same_port)
 				m_dht_settings.service_port = new_interface.port();
 			// the listen interface changed, rebind the dht listen socket as well
 			m_dht->rebind(new_interface.address()
 				, m_dht_settings.service_port);
-			if (m_listen_interface.address() != new_interface.address())
+			if (new_listen_address)
 				m_natpmp.rebind(new_interface.address());
 			m_natpmp.set_mappings(0, m_dht_settings.service_port);
 		}
 #endif
-
-		m_incoming_connection = false;
-		m_listen_interface = new_interface;
-
-		open_listen_port();
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		m_logger = create_log("main_session", listen_port(), false);
@@ -1578,6 +1578,14 @@ namespace libtorrent { namespace detail
 			|| m_dht_same_port)
 		{
 			m_dht_same_port = true;
+			// if you hit this assert you are trying to start the
+			// DHT with the same port as the tcp listen port
+			// (which is default) _before_ you have opened the
+			// tcp listen port (so there is no configured port to use)
+			// basically, make sure you call listen_on() before
+			// start_dht(). See documentation for listen_on() for
+			// more information.
+			assert(m_listen_interface.port() > 0);
 			m_dht_settings.service_port = m_listen_interface.port();
 		}
 		m_external_udp_port = m_dht_settings.service_port;
