@@ -37,9 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 
-using namespace libtorrent;
-
-
 int test_main()
 {
 	using namespace libtorrent;
@@ -54,31 +51,28 @@ int test_main()
 	sha1_hash test1_key = hasher("test1_key",8).final();
 	sha1_hash test2_key = hasher("test2_key",8).final();
 
-	RC4_handler RC41 ((char const*)test2_key.begin(), (char const*)test1_key.begin());
-	RC4_handler RC42 ((char const*)test1_key.begin(), (char const*)test2_key.begin());
+	RC4_handler RC41 (test2_key, test1_key);
+	RC4_handler RC42 (test1_key, test2_key);
 
-	for (int rep = 0; rep < 1024; ++rep)
+	for (int rep = 0; rep < 64; ++rep)
 	{
-		for (int i = 0; i < 16; ++i)
-		{
-			std::size_t buf_len = 2^i;
-			char* buf = new char[buf_len];
-			char* zero_buf = new char[buf_len];
-			
-			std::fill(buf, buf + sizeof(buf), 0);
-			std::fill(zero_buf, zero_buf + sizeof(zero_buf), 0);
-				
-			RC41.encrypt(buf, buf_len);
-			RC42.decrypt(buf, buf_len);
-			TEST_CHECK(std::equal(buf, buf + sizeof(buf), zero_buf));
-				
-			RC42.encrypt(buf, buf_len);
-			RC41.decrypt(buf, buf_len);
-			TEST_CHECK(std::equal(buf, buf + sizeof(buf), zero_buf));
-				
-			delete[] buf;
-			delete[] zero_buf;
-		}
+		std::size_t buf_len = rand() % (512 * 1024);
+		char* buf = new char[buf_len];
+		char* zero_buf = new char[buf_len];
+		
+		std::fill(buf, buf + sizeof(buf), 0);
+		std::fill(zero_buf, zero_buf + sizeof(zero_buf), 0);
+		
+		RC41.encrypt(buf, buf_len);
+		RC42.decrypt(buf, buf_len);
+		TEST_CHECK(std::equal(buf, buf + sizeof(buf), zero_buf));
+		
+		RC42.encrypt(buf, buf_len);
+		RC41.decrypt(buf, buf_len);
+		TEST_CHECK(std::equal(buf, buf + sizeof(buf), zero_buf));
+		
+		delete[] buf;
+		delete[] zero_buf;
 	}
 	return 0;
 }

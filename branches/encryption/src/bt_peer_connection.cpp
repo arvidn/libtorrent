@@ -106,7 +106,6 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		// Check if peer explicitly prohibits encryption,
 		// and the encryption policy
-		// write_encrypted_handshake
 		
 		write_pe1_2_dhkey();
 
@@ -340,9 +339,9 @@ namespace libtorrent
 		send_buf.begin += 20;
 
 		// Discard DH key exchange data, setup RC4 keys
-		m_DH_key_exchange.reset();
 		init_pe_RC4_handler(secret, info_hash);
-		
+		m_DH_key_exchange.reset(); // secret should be invalid at this point
+	
 		// write the verification constant and crypto field
 		assert(send_buf.left() == 8 + 4 + 2 + pad_size + 2);
 		int encrypt_size = send_buf.left();
@@ -427,8 +426,7 @@ namespace libtorrent
 		const sha1_hash remote_key = h.final();
 		
 		assert(!m_RC4_handler.get());
-		m_RC4_handler.reset (new RC4_handler ((char const*)local_key.begin(),
-						      (char const*)remote_key.begin()));
+		m_RC4_handler.reset (new RC4_handler (local_key, remote_key));
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << " computed RC4 keys\n";
@@ -1448,15 +1446,18 @@ namespace libtorrent
 				return;
 			}
 
-			hasher h;
+			if (!m_sync_hash.get())
+			{
+				hasher h;
 
-			// compute synchash (hash('req1',S))
-			h.update("req1", 4);
-			h.update(m_DH_key_exchange->get_secret(), 96);
+				// compute synchash (hash('req1',S))
+				h.update("req1", 4);
+				h.update(m_DH_key_exchange->get_secret(), dh_key_len);
 
-			sha1_hash sync_hash = h.final();
+				m_sync_hash.reset(new sha1_hash(h.final()));
+			}
 
-			int syncoffset = get_syncoffset((char*)sync_hash.begin(), 20
+			int syncoffset = get_syncoffset((char*)m_sync_hash->begin(), 20
 											,recv_buffer.begin, recv_buffer.left());
 
 			// No sync 
@@ -1476,6 +1477,7 @@ namespace libtorrent
 
 				m_state = read_pe_skey_vc;
 				// skey,vc - 28 bytes
+				m_sync_hash.reset();
 				cut_receive_buffer(bytes_processed, 28);
 			}
 		}

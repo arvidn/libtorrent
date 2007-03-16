@@ -41,6 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <openssl/engine.h>
 #include <openssl/rc4.h>
 
+#include "peer_id.hpp" // For sha1_hash
+
 namespace libtorrent
 {
 	class DH_key_exchange
@@ -77,17 +79,14 @@ namespace libtorrent
 	{
 	public:
 		// Input longkeys must be 20 bytes
-		RC4_handler (const char* rc4_local_longkey,
-					 const char* rc4_remote_longkey)
+		RC4_handler (const sha1_hash& rc4_local_longkey,
+					 const sha1_hash& rc4_remote_longkey)
 			
 		{
-			assert (rc4_local_longkey);
-			assert (rc4_remote_longkey);
-			
 			RC4_set_key (&m_local_key, 20,
-						 reinterpret_cast<unsigned char const*>(rc4_local_longkey));
+						 reinterpret_cast<unsigned char const*>(rc4_local_longkey.begin()));
 			RC4_set_key (&m_remote_key, 20,
-						 reinterpret_cast<unsigned char const*>(rc4_remote_longkey));
+						 reinterpret_cast<unsigned char const*>(rc4_remote_longkey.begin()));
 
 			// Discard first 1024 bytes
 			char buf[1024];

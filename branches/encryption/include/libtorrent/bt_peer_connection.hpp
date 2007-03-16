@@ -315,9 +315,6 @@ namespace libtorrent
 		bool m_supports_dht_port;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
-		static const int m_len_handshake; // standard handshake length (68 bytes)
-		static const int m_len_dh_key; // dh key length (96 bytes)
-		
 		// this is set to true after checking the verification
 		// constant, indicating that the write/read payload must be
 		// encrypted/decrypted.
@@ -331,7 +328,7 @@ namespace libtorrent
 		// need to check for non zero (begin, end)  for operations with this
 		buffer::interval m_enc_send_buffer;
 		
-		// initialized during write_pe_dhkey, and destroyed on
+		// initialized during write_pe1_2_dhkey, and destroyed on
 		// creation of m_RC4_handler. Cannot reinitialize once
 		// initialized.
 		boost::scoped_ptr<DH_key_exchange> m_DH_key_exchange;
@@ -344,7 +341,11 @@ namespace libtorrent
 		// (outgoing only) synchronize verification constant with
 		// remote peer, this will hold RC4_decrypt(vc).
 		boost::scoped_array<char> m_sync_vc;
-#endif
+
+		// (incoming only) synchronize hash with remote peer, holds
+		// the sync hash (hash("req1",secret))
+		boost::scoped_ptr<sha1_hash> m_sync_hash;
+#endif // #ifndef TORRENT_DISABLE_ENCRYPTION
 
 #ifndef NDEBUG
 		// this is set to true when the client's
