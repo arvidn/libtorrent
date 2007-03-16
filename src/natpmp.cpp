@@ -81,7 +81,7 @@ natpmp::natpmp(io_service& ios, portmap_callback_t const& cb)
 
 	if ((local.to_ulong() & 0xff000000) != 0x0a000000
 		&& (local.to_ulong() & 0xfff00000) != 0xac100000
-		&& (local.to_ulong() & 0xffff0000) != 0xaca80000)
+		&& (local.to_ulong() & 0xffff0000) != 0xc0a80000)
 	{
 		// the local address seems to be an external
 		// internet address. Assume it is not behind a NAT
