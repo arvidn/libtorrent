@@ -98,7 +98,8 @@ int main(int argc, char* argv[])
 		t.set_piece_size(piece_size);
 
 		file_pool fp;
-		storage st(t, full_path.branch_path(), fp);
+		boost::scoped_ptr<storage_interface> st(
+			default_storage_constructor(t, full_path.branch_path(), fp));
 		t.add_tracker(argv[2]);
 
 		// calculate the hash for all pieces
@@ -106,7 +107,7 @@ int main(int argc, char* argv[])
 		std::vector<char> buf(piece_size);
 		for (int i = 0; i < num; ++i)
 		{
-			st.read(&buf[0], i, 0, t.piece_size(i));
+			st->read(&buf[0], i, 0, t.piece_size(i));
 			hasher h(&buf[0], t.piece_size(i));
 			t.set_hash(i, h.final());
 			std::cerr << (i+1) << "/" << num << "\r";

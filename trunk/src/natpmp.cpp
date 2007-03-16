@@ -1,3 +1,35 @@
+/*
+
+Copyright (c) 2007, Arvid Norberg
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in
+      the documentation and/or other materials provided with the distribution.
+    * Neither the name of the author nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+*/
+
 #include <libtorrent/natpmp.hpp>
 #include <libtorrent/io.hpp>
 #include <boost/bind.hpp>
@@ -31,7 +63,16 @@ natpmp::natpmp(io_service& ios, portmap_callback_t const& cb)
 		if (i->endpoint().address().is_v4()) break;
 	}
 
-	if (i == udp::resolver_iterator()) return;
+	if (i == udp::resolver_iterator())
+	{
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+		m_log << "local host name did not resolve to an IPv4 address. "
+			"disabling NAT-PMP" << std::endl;
+#endif
+		m_disabled = true;
+		return;
+	}
+
 	address_v4 local = i->endpoint().address().to_v4();
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log << to_simple_string(microsec_clock::universal_time())
@@ -45,7 +86,7 @@ natpmp::natpmp(io_service& ios, portmap_callback_t const& cb)
 		// the local address seems to be an external
 		// internet address. Assume it is not behind a NAT
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << "not on a NAT. disable NAT-PMP" << std::endl;
+		m_log << "not on a NAT. disabling NAT-PMP" << std::endl;
 #endif
 		m_disabled = true;
 		return;

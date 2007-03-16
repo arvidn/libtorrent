@@ -238,7 +238,8 @@ namespace libtorrent
 				, boost::filesystem::path const& save_path
 				, entry const& resume_data
 				, bool compact_mode
-				, int block_size);
+				, int block_size
+				, storage_constructor_type sc);
 
 			torrent_handle add_torrent(
 				char const* tracker_url
@@ -247,7 +248,8 @@ namespace libtorrent
 				, boost::filesystem::path const& save_path
 				, entry const& resume_data
 				, bool compact_mode
-				, int block_size);
+				, int block_size
+				, storage_constructor_type sc);
 
 			void remove_torrent(torrent_handle const& h);
 
