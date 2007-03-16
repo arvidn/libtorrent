@@ -2503,6 +2503,43 @@ level ``fatal``.
 		virtual std::auto_ptr<alert> clone() const;
 	};
 
+portmap_error_alert
+-------------------
+
+This alert is generated when a NAT router was successfully found but some
+part of the port mapping request failed. It contains a text message that
+may help the user figure out what is wrong. This alert is not generated in
+case it appears the client is not running on a NAT:ed network or if it
+appears there is no NAT router that can be remote controlled to add port
+mappings.
+
+The alert is generated as severity ``warning``, since it should be displayed
+to the user somehow, and could mean reduced preformance.
+
+::
+
+	struct portmap_error_alert: alert
+	{
+		portmap_error_alert(const std::string& msg);
+		virtual std::auto_ptr<alert> clone() const;
+	};
+
+portmap_alert
+-------------
+
+This alert is generated when a NAT router was successfully found and
+a port was successfully mapped on it. On a NAT:ed network with a NAT-PMP
+capable router, this is typically generated once when mapping the TCP
+port and, if DHT is enabled, when the UDP port is mapped. This is merely
+an informational alert, and is generated at severity level ``info``.
+
+::
+
+	struct portmap_alert: alert
+	{
+		portmap_alert(const std::string& msg);
+		virtual std::auto_ptr<alert> clone() const;
+	};
 
 file_error_alert
 ----------------
