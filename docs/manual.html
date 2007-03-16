@@ -2663,7 +2663,7 @@ should be read, and <tt class="docutils literal"><span class="pre">length</span>
 It will only be generated once per torrent. It contains a torrent_handle to the
 torrent in question. This alert is generated as severity level <tt class="docutils literal"><span class="pre">info</span></tt>.</p>
 <pre class="literal-block">
-struct torrent_finished_alert:torrent_ alert
+struct torrent_finished_alert: torrent_alert
 {
         torrent_finished_alert(
                 const torrent_handle&amp; h
@@ -2714,13 +2714,12 @@ struct metadata_received_alert: torrent_alert
 files on disk did not match the fastresume file. The string explains the reason why the
 resume file was rejected. It is generated at severity level <tt class="docutils literal"><span class="pre">warning</span></tt>.</p>
 <pre class="literal-block">
-struct fastresume_rejected_alert: alert
+struct fastresume_rejected_alert: torrent_alert
 {
         fastresume_rejected_alert(torrent_handle const&amp; h
                 , std::string const&amp; msg);
 
         virtual std::auto_ptr&lt;alert&gt; clone() const;
-        torrent_handle handle;
 };
 </pre>
 </div>

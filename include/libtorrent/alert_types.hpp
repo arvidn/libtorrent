@@ -249,18 +249,15 @@ namespace libtorrent
 		{ return std::auto_ptr<alert>(new listen_failed_alert(*this)); }
 	};
 
-	struct TORRENT_EXPORT fastresume_rejected_alert: alert
+	struct TORRENT_EXPORT fastresume_rejected_alert: torrent_alert
 	{
 		fastresume_rejected_alert(torrent_handle const& h
 			, std::string const& msg)
-			: alert(alert::warning, msg)
-			, handle(h)
+			: torrent_alert(h, alert::warning, msg)
 		{}
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new fastresume_rejected_alert(*this)); }
-
-		torrent_handle handle;
 	};
 
 }
