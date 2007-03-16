@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cassert>
 #include <cctype>
 #include <algorithm>
+#include <string>
 
 #include "libtorrent/config.hpp"
 
@@ -54,6 +55,12 @@ namespace libtorrent
 		enum { size = number_size };
 
 		big_number() {}
+
+		big_number(std::string const& s)
+		{
+			int sl = int(s.size()) < size ? int(s.size()) : size;
+			std::memcpy(m_number, &s[0], sl);
+		}
 
 		// when initialized with 0
 		big_number(private_pointer*) { clear(); }
