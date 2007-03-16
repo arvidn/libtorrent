@@ -780,6 +780,13 @@ int main(int ac, char* av[])
 			std::string now = to_simple_string(second_clock::universal_time());
 			while (a.get())
 			{
+				std::stringstream event_string;
+				if (a->severity() == alert::fatal)
+					event_string << esc("31"); // red
+				else if (a->severity() == alert::warning)
+					event_string << esc("33"); // yellow
+
+				event_string << now << ": ";
 				if (torrent_finished_alert* p = dynamic_cast<torrent_finished_alert*>(a.get()))
 				{
 					p->handle.set_max_connections(60);
@@ -793,38 +800,37 @@ int main(int ac, char* av[])
 					out.unsetf(std::ios_base::skipws);
 					bencode(std::ostream_iterator<char>(out), data);
 
-					events.push_back(now + ": "
-						+ p->handle.get_torrent_info().name() + ": " + a->msg());
+					event_string << p->handle.get_torrent_info().name() << ": "
+						<< a->msg();
 				}
 				else if (peer_error_alert* p = dynamic_cast<peer_error_alert*>(a.get()))
 				{
-					events.push_back(now + ": " + identify_client(p->pid)
-						+ ": " + a->msg());
+					event_string << identify_client(p->pid) << ": " << a->msg();
 				}
 				else if (invalid_request_alert* p = dynamic_cast<invalid_request_alert*>(a.get()))
 				{
-					events.push_back(now + ": " + identify_client(p->pid)
-						+ ": " + a->msg());
+					event_string << identify_client(p->pid) << ": " << a->msg();
 				}
 				else if (tracker_warning_alert* p = dynamic_cast<tracker_warning_alert*>(a.get()))
 				{
-					events.push_back(now + ": tracker message: " + p->msg());
+					event_string << "tracker message: " << p->msg();
 				}
 				else if (tracker_reply_alert* p = dynamic_cast<tracker_reply_alert*>(a.get()))
 				{
-					events.push_back(now + ": " + p->msg() + " ("
-						+ boost::lexical_cast<std::string>(p->num_peers) + ")");
+					event_string << p->msg() << " (" << p->num_peers << ")";
 				}
 				else if (url_seed_alert* p = dynamic_cast<url_seed_alert*>(a.get()))
 				{
-					events.push_back(now + ": web seed '" + p->url + "': "+ p->msg());
+					event_string << "web seed '" << p->url << "': " << p->msg();
 				}
 				else
 				{
-					events.push_back(now + ": " + a->msg());
+					event_string << a->msg();
 				}
+				event_string << esc("0");
+				events.push_back(event_string.str());
 
-				if (events.size() >= 10) events.pop_front();
+				if (events.size() >= 20) events.pop_front();
 				a = ses.pop_alert();
 			}
 
