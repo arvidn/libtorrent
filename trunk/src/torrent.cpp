@@ -274,7 +274,6 @@ namespace libtorrent
 	{
 #ifndef NDEBUG
 		m_initial_done = 0;
-		m_files_checked_called = false;
 #endif
 #ifdef TORRENT_LOGGING
 		m_log = ses.create_log("torrent_"
@@ -366,7 +365,6 @@ namespace libtorrent
 	{
 #ifndef NDEBUG
 		m_initial_done = 0;
-		m_files_checked_called = false;
 #endif
 
 #ifdef TORRENT_LOGGING
@@ -466,6 +464,9 @@ namespace libtorrent
 		m_storage.reset(new piece_manager(m_torrent_file, m_save_path
 			, m_ses.m_files, m_storage_constructor));
 		m_block_size = calculate_block_size(m_torrent_file, m_default_block_size);
+		m_picker.reset(new piece_picker(
+			static_cast<int>(m_torrent_file.piece_length() / m_block_size)
+			, static_cast<int>((m_torrent_file.total_size()+m_block_size-1)/m_block_size)));
 
 		std::vector<std::string> const& url_seeds = m_torrent_file.url_seeds();
 		std::copy(url_seeds.begin(), url_seeds.end(), std::inserter(m_web_seeds
@@ -705,7 +706,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (!has_picker() || m_torrent_file.num_pieces() == 0)
+		if (!valid_metadata() || m_torrent_file.num_pieces() == 0)
 			return tuple<size_type, size_type>(0,0);
 
 		const int last_piece = m_torrent_file.num_pieces() - 1;
@@ -2136,18 +2137,15 @@ namespace libtorrent
 
 		if (!is_seed())
 		{
-			m_picker.reset(new piece_picker(
-				static_cast<int>(m_torrent_file.piece_length() / m_block_size)
-				, static_cast<int>((m_torrent_file.total_size()+m_block_size-1)/m_block_size)
-				, m_have_pieces, unfinished_pieces));
-			m_files_checked_called = true;
+			m_picker->files_checked(m_have_pieces, unfinished_pieces);
 			if (m_sequenced_download_threshold > 0)
 				picker().set_sequenced_download_threshold(m_sequenced_download_threshold);
 		}
 		else
 		{
-			assert(!m_picker);
+			m_picker.reset();
 		}
+
 		if (!m_connections_initialized)
 		{
 			m_connections_initialized = true;

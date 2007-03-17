@@ -54,9 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	piece_picker::piece_picker(int blocks_per_piece, int total_num_blocks
-		, std::vector<bool> const& pieces
-		, std::vector<downloading_piece> const& unfinished)
+	piece_picker::piece_picker(int blocks_per_piece, int total_num_blocks)
 		: m_piece_info(2)
 		, m_piece_map((total_num_blocks + blocks_per_piece-1) / blocks_per_piece)
 		, m_num_filtered(0)
@@ -65,6 +63,9 @@ namespace libtorrent
 	{
 		assert(blocks_per_piece > 0);
 		assert(total_num_blocks >= 0);
+#ifndef NDEBUG
+		m_files_checked_called = false;
+#endif
 
 		// the piece index is stored in 20 bits, which limits the allowed
 		// number of pieces somewhat
@@ -83,8 +84,16 @@ namespace libtorrent
 		// and make them invalid (as if though we already had every piece)
 		std::fill(m_piece_map.begin(), m_piece_map.end()
 			, piece_pos(0, piece_pos::we_have_index));
+	}
 
-
+	// pieces is a bitmask with the pieces we have
+	void piece_picker::files_checked(
+		const std::vector<bool>& pieces
+		, const std::vector<downloading_piece>& unfinished)
+	{
+#ifndef NDEBUG
+		m_files_checked_called = true;
+#endif
 		for (std::vector<bool>::const_iterator i = pieces.begin();
 			i != pieces.end(); ++i)
 		{
@@ -119,7 +128,6 @@ namespace libtorrent
 				}
 			}
 		}
-
 	}
 
 	void piece_picker::set_sequenced_download_threshold(
@@ -370,6 +378,7 @@ namespace libtorrent
 	{
 		assert(priority > 0);
 		assert(elem_index >= 0);
+		assert(m_files_checked_called);
 
 		assert(int(m_piece_info.size()) > priority);
 		assert(int(m_piece_info[priority].size()) > elem_index);
@@ -525,6 +534,7 @@ namespace libtorrent
 
 		assert(index >= 0);
 		assert(index < (int)m_piece_map.size());
+		assert(m_files_checked_called);
 
 		assert(m_piece_map[index].downloading == 1);
 
@@ -546,6 +556,7 @@ namespace libtorrent
 //		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 		assert(i >= 0);
 		assert(i < (int)m_piece_map.size());
+		assert(m_files_checked_called);
 
 		piece_pos& p = m_piece_map[i];
 		int index = p.index;
@@ -578,6 +589,7 @@ namespace libtorrent
 	{
 //		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 
+		assert(m_files_checked_called);
 		assert(i >= 0);
 		assert(i < (int)m_piece_map.size());
 
@@ -744,6 +756,7 @@ namespace libtorrent
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 		assert(num_blocks > 0);
 		assert(pieces.size() == m_piece_map.size());
+		assert(m_files_checked_called);
 
 		// free refers to pieces that are free to download, no one else
 		// is downloading them.
