@@ -112,14 +112,16 @@ namespace libtorrent
 			block_info info[max_blocks_per_piece];
 		};
 
-		// the vector tells which pieces we already have
-		// and which we don't have.
 		piece_picker(int blocks_per_piece
-			, int total_num_blocks
-			, std::vector<bool> const& pieces
-			, std::vector<downloading_piece> const& unfinished);
+			, int total_num_blocks);
 
 		void set_sequenced_download_threshold(int sequenced_download_threshold);
+
+		// the vector tells which pieces we already have
+		// and which we don't have.
+		void files_checked(
+			const std::vector<bool>& pieces
+			, const std::vector<downloading_piece>& unfinished);
 
 		// increases the peer count for the given piece
 		// (is used when a HAVE or BITFIELD message is received)
@@ -300,8 +302,8 @@ namespace libtorrent
 		}
 
 		void add(int index);
-		//TODO: should be renamed update()
 		void move(int vec_index, int elem_index);
+//		void remove(int vec_index, int elem_index);
 
 		int add_interesting_blocks(const std::vector<int>& piece_list
 			, const std::vector<bool>& pieces
@@ -350,6 +352,9 @@ namespace libtorrent
 		// the required popularity of a piece in order to download
 		// it in sequence instead of random order.
 		int m_sequenced_download_threshold;
+#ifndef NDEBUG
+		bool m_files_checked_called;
+#endif
 	};
 
 	inline int piece_picker::blocks_in_piece(int index) const

@@ -416,15 +416,13 @@ namespace libtorrent
 		alert_manager& alerts() const;
 		piece_picker& picker()
 		{
-			assert(m_files_checked_called);
 			assert(!is_seed());
 			assert(m_picker.get());
 			return *m_picker;
 		}
 		bool has_picker() const
 		{
-			assert((m_files_checked_called && !is_seed())
-				== bool(m_picker.get()));
+			assert((valid_metadata() && !is_seed()) == bool(m_picker.get()));
 			return m_picker.get();
 		}
 		policy& get_policy()
@@ -686,10 +684,6 @@ namespace libtorrent
 		// is started. i.e.
 		// total_done - m_initial_done <= total_payload_download
 		size_type m_initial_done;
-
-		// set to true once files_checked has been called
-		// and the piece picker is constructed
-		bool m_files_checked_called;
 #endif
 
 #ifdef TORRENT_LOGGING
