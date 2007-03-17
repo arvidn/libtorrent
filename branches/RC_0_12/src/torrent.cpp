@@ -2109,7 +2109,8 @@ namespace libtorrent
 		std::pair<bool, float> progress(true, 1.f);
 		try
 		{
-			progress = m_storage->check_files(m_have_pieces, m_num_pieces);
+			progress = m_storage->check_files(m_have_pieces, m_num_pieces
+				, m_ses.m_mutex);
 		}
 		catch (std::exception& e)
 		{
