@@ -29,6 +29,9 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 */
+
+#include "libtorrent/pch.hpp"
+
 #include <ctime>
 #include <iostream>
 #include <fstream>
@@ -2099,7 +2102,8 @@ namespace libtorrent
 		std::pair<bool, float> progress(true, 1.f);
 		try
 		{
-			progress = m_storage->check_files(m_have_pieces, m_num_pieces);
+			progress = m_storage->check_files(m_have_pieces, m_num_pieces
+				, m_ses.m_mutex);
 		}
 		catch (std::exception& e)
 		{

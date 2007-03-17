@@ -30,9 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <iostream>
+#include "libtorrent/pch.hpp"
 
-#include "libtorrent/peer_connection.hpp"
+#include <iostream>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
+#include "libtorrent/peer_connection.hpp"
 #include "libtorrent/web_peer_connection.hpp"
 #include "libtorrent/policy.hpp"
 #include "libtorrent/torrent.hpp"

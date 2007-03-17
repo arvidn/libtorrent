@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/pch.hpp"
+
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif

@@ -51,6 +51,7 @@ $(top_srcdir)/include/libtorrent/peer_connection.hpp \
 $(top_srcdir)/include/libtorrent/bt_peer_connection.hpp \
 $(top_srcdir)/include/libtorrent/web_peer_connection.hpp \
 $(top_srcdir)/include/libtorrent/natpmp.hpp \
+$(top_srcdir)/include/libtorrent/pch.hpp \
 $(top_srcdir)/include/libtorrent/peer_id.hpp \
 $(top_srcdir)/include/libtorrent/peer_info.hpp \
 $(top_srcdir)/include/libtorrent/peer_request.hpp \

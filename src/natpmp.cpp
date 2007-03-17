@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/pch.hpp"
+
 #include <libtorrent/natpmp.hpp>
 #include <libtorrent/io.hpp>
 #include <boost/bind.hpp>
@@ -302,7 +304,7 @@ void natpmp::on_reply(asio::error_code const& e
 				case 2: errmsg << "Not authorized to create port map (enable NAT-PMP on your router)"; break;
 				case 3: errmsg << "Network failure"; break;
 				case 4: errmsg << "Out of resources"; break;
-				case 5: errmsg << "Unsupported opcpde"; break;
+				case 5: errmsg << "Unsupported opcode"; break;
 			}
 			throw std::runtime_error(errmsg.str());
 		}

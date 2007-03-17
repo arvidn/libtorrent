@@ -35,11 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 // per second and one (low pass-filter) for rates < 1
 // packet per second.
 
+#include "libtorrent/pch.hpp"
+
 #include <numeric>
+#include <algorithm>
 
 #include "libtorrent/stat.hpp"
 #include "libtorrent/invariant_check.hpp"
-#include <algorithm>
 
 #if defined _MSC_VER && _MSC_VER <= 1200
 #define for if (false) {} else for

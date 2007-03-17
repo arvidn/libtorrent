@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/pch.hpp"
+
 #include <ctime>
 #include <iterator>
 #include <algorithm>
@@ -716,7 +718,7 @@ namespace libtorrent
 
 		std::pair<bool, float> check_files(
 			std::vector<bool>& pieces
-			, int& num_pieces);
+			, int& num_pieces, boost::recursive_mutex& mutex);
 
 		void release_files();
 
@@ -764,7 +766,8 @@ namespace libtorrent
 			, int current_slot
 			, std::vector<bool>& have_pieces
 			, int& num_pieces
-			, const std::multimap<sha1_hash, int>& hash_to_piece);
+			, const std::multimap<sha1_hash, int>& hash_to_piece
+			, boost::recursive_mutex& mutex);
 
 		int allocate_slot_for_piece(int piece_index);
 #ifndef NDEBUG
@@ -1063,7 +1066,8 @@ namespace libtorrent
 		, int current_slot
 		, std::vector<bool>& have_pieces
 		, int& num_pieces
-		, const std::multimap<sha1_hash, int>& hash_to_piece)
+		, const std::multimap<sha1_hash, int>& hash_to_piece
+		, boost::recursive_mutex& mutex)
 	{
 //		INVARIANT_CHECK;
 
@@ -1122,6 +1126,9 @@ namespace libtorrent
 			, current_slot) != matching_pieces.end())
 		{
 			const int piece_index = current_slot;
+
+			// lock because we're writing to have_pieces
+			boost::recursive_mutex::scoped_lock l(mutex);
 
 			if (have_pieces[piece_index])
 			{
@@ -1192,6 +1199,9 @@ namespace libtorrent
 
 		if (free_piece >= 0)
 		{
+			// lock because we're writing to have_pieces
+			boost::recursive_mutex::scoped_lock l(mutex);
+
 			assert(have_pieces[free_piece] == false);
 			assert(m_piece_to_slot[free_piece] == has_no_slot);
 			have_pieces[free_piece] = true;
@@ -1304,7 +1314,7 @@ namespace libtorrent
 	// file check is at. 0 is nothing done, and 1
 	// is finished
 	std::pair<bool, float> piece_manager::impl::check_files(
-		std::vector<bool>& pieces, int& num_pieces)
+		std::vector<bool>& pieces, int& num_pieces, boost::recursive_mutex& mutex)
 	{
 		assert(num_pieces == std::count(pieces.begin(), pieces.end(), true));
 
@@ -1395,7 +1405,8 @@ namespace libtorrent
 				, m_current_slot
 				, pieces
 				, num_pieces
-				, m_hash_to_piece);
+				, m_hash_to_piece
+				, mutex);
 
 			assert(num_pieces == std::count(pieces.begin(), pieces.end(), true));
 			assert(piece_index == unassigned || piece_index >= 0);
@@ -1664,9 +1675,10 @@ namespace libtorrent
 
 	std::pair<bool, float> piece_manager::check_files(
 		std::vector<bool>& pieces
-		, int& num_pieces)
+		, int& num_pieces
+		, boost::recursive_mutex& mutex)
 	{
-		return m_pimpl->check_files(pieces, num_pieces);
+		return m_pimpl->check_files(pieces, num_pieces, mutex);
 	}
 
 	int piece_manager::impl::allocate_slot_for_piece(int piece_index)
