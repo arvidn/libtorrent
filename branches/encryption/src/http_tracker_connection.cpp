@@ -418,7 +418,7 @@ namespace libtorrent
 			}
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
-			m_send_buffer += "supportcrypto=1&requirecrypto=1&";
+			m_send_buffer += "supportcrypto=1&";
 #endif
 
 			// extension that tells the tracker that

@@ -55,6 +55,10 @@ namespace libtorrent
 			handshake = 0x40,
 			connecting = 0x80,
 			queued = 0x100
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			, rc4_encrypted = 0x200,
+			plaintext_encrypted = 0x400
+#endif
 		};
 		unsigned int flags;
 		tcp::endpoint ip;

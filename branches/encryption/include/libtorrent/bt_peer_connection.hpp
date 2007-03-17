@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2003, Arvid Norberg
+Copyright (c) 2003 - 2006, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg, Un Shyam
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -225,15 +226,19 @@ namespace libtorrent
 
 		void write_pe1_2_dhkey();
 		void write_pe3_sync();
-		void write_pe4_sync();
+		void write_pe4_sync(int crypto_select);
 
-		void write_pe_vc_cryptofield(buffer::interval& write_buf, int pad_size);
+		void write_pe_vc_cryptofield(buffer::interval& write_buf, 
+									 int crypto_field, int pad_size);
 
 		// stream key (info hash of attached torrent)
 		// secret is the DH shared secret
 		// initializes m_RC4_handler
 		void init_pe_RC4_handler(char const* secret, sha1_hash const& stream_key);
 
+		// these functions encrypt the send buffer if m_rc4_encrypted
+		// is true, otherwise it passes the call to the
+		// peer_connection functions of the same names
 		void send_buffer(char* begin, char* end);
 		buffer::interval allocate_send_buffer(int size);
 		void setup_send();
@@ -254,7 +259,8 @@ namespace libtorrent
 			read_pe_skey_vc,
 			read_pe_cryptofield,
 			read_pe_pad,
-
+			read_pe_ia,
+			init_bt_handshake,
 			read_protocol_identifier,
 #else
 			read_protocol_identifier = 0,
@@ -268,11 +274,11 @@ namespace libtorrent
 		};
 		
 #ifndef TORRENT_DISABLE_ENCRYPTION
-	enum
-	{
-		handshake_len = 68,
-		dh_key_len = 96
-	};
+		enum
+		{
+			handshake_len = 68,
+			dh_key_len = 96
+		};
 #endif
 
 		std::string m_client_version;
@@ -315,14 +321,13 @@ namespace libtorrent
 		bool m_supports_dht_port;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
-		// this is set to true after checking the verification
-		// constant, indicating that the write/read payload must be
-		// encrypted/decrypted.
-		bool m_wr_encrypted; // checked to provide encryption in
-							 // setup_send(), allocate_send_buffer(),
-							 // send_buffer()
-		bool m_rd_encrypted; // checked to provide decryption in
-							 // on_receive()
+		// this is set to true after the encryption method has been
+		// succesfully negotiated (either plaintext or rc4), to signal
+		// automatic encryption/decryption.
+		bool m_encrypted;
+
+		// true if rc4, false if plaintext
+		bool m_rc4_encrypted;
 
 		// hold information about latest allocated send buffer
 		// need to check for non zero (begin, end)  for operations with this
@@ -335,15 +340,17 @@ namespace libtorrent
 		
 		// if RC4 is negotiated, this is used for
 		// encryption/decryption during the entire session. Destroyed
-		// after handshake if plaintext is used.
+		// if plaintext is selected
 		boost::scoped_ptr<RC4_handler> m_RC4_handler;
 		
 		// (outgoing only) synchronize verification constant with
-		// remote peer, this will hold RC4_decrypt(vc).
+		// remote peer, this will hold RC4_decrypt(vc). Destroyed
+		// after the sync step.
 		boost::scoped_array<char> m_sync_vc;
 
 		// (incoming only) synchronize hash with remote peer, holds
-		// the sync hash (hash("req1",secret))
+		// the sync hash (hash("req1",secret)). Destroyed after the
+		// sync step.
 		boost::scoped_ptr<sha1_hash> m_sync_hash;
 #endif // #ifndef TORRENT_DISABLE_ENCRYPTION
 

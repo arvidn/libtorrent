@@ -218,6 +218,12 @@ namespace libtorrent
 			void stop_dht();
 			entry dht_state() const;
 #endif
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			void set_pe_settings(pe_settings const& settings);
+			pe_settings const& get_pe_settings() const { return m_pe_settings; }
+#endif
+
 			bool is_aborted() const { return m_abort; }
 
 			void set_ip_filter(ip_filter const& f);
@@ -366,6 +372,11 @@ namespace libtorrent
 			boost::intrusive_ptr<dht::dht_tracker> m_dht;
 			dht_settings m_dht_settings;
 #endif
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			pe_settings m_pe_settings;
+#endif
+
 			// the timer used to fire the second_tick
 			deadline_timer m_timer;
 #ifndef NDEBUG

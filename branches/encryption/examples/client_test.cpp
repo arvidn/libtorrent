@@ -265,7 +265,12 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			<< ((i->flags & peer_info::remote_interested)?'i':'.')
 			<< ((i->flags & peer_info::remote_choked)?'c':'.')
 			<< ((i->flags & peer_info::supports_extensions)?'e':'.')
-			<< ((i->flags & peer_info::local_connection)?'l':'r') << " ";
+			<< ((i->flags & peer_info::local_connection)?'l':'r')
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			<< ((i->flags & peer_info::rc4_encrypted)?'E':
+				(i->flags & peer_info::plaintext_encrypted)?'e':'.')
+#endif
+			<< " ";
 
 		if (i->downloading_piece_index >= 0)
 		{
