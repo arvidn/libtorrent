@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/pch.hpp"
+
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/bandwidth_manager.hpp"
 #include "libtorrent/peer_connection.hpp"

@@ -4,6 +4,7 @@ import modules ;
 import os ;
 import errors ;
 import feature : feature ;
+#import pch ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 
@@ -157,11 +158,14 @@ project torrent
 
 	;
 
+#cpp-pch pch : include/libtorrent/pch.hpp ;
+
 lib torrent
 	:
 	src/$(SOURCES)
 	zlib/$(ZLIB_SOURCES)
 	$(LIBS)
+#	pch
 	:
 	<dht-support>on:<source>src/$(KADEMLIA_SOURCES)
 	<dht-support>logging:<source>src/$(KADEMLIA_SOURCES)

@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/config.hpp"
+#include "zlib.h"
 
 // from sha1.cpp
 struct TORRENT_EXPORT SHA1_CTX
@@ -51,12 +52,6 @@ TORRENT_EXPORT void SHA1Init(SHA1_CTX* context);
 TORRENT_EXPORT void SHA1Update(SHA1_CTX* context, boost::uint8_t const* data, boost::uint32_t len);
 TORRENT_EXPORT void SHA1Final(SHA1_CTX* context, boost::uint8_t* digest);
 
-extern "C"
-{
-	// from zlib/adler32.c
-	unsigned long adler32(unsigned long adler, const char* data, unsigned int len);
-}
-
 namespace libtorrent
 {
 
@@ -69,7 +64,7 @@ namespace libtorrent
 		{
 			assert(data != 0);
 			assert(len > 0);
-			m_adler = adler32(m_adler, data, len);
+			m_adler = adler32(m_adler, (const Bytef*)data, len);
 		}
 		unsigned long final() const { return m_adler; }
 		void reset() { m_adler = adler32(0, 0, 0); }

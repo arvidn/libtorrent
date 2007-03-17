@@ -126,7 +126,7 @@ namespace libtorrent
 		bool check_fastresume(aux::piece_checker_data& d
 			, std::vector<bool>& pieces, int& num_pieces, bool compact_mode);
 		std::pair<bool, float> check_files(std::vector<bool>& pieces
-			, int& num_pieces);
+			, int& num_pieces, boost::recursive_mutex& mutex);
 
 		void release_files();
 

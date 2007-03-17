@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/pch.hpp"
+
 #ifdef _WIN32
 // windows part
 #include "libtorrent/utf8.hpp"
