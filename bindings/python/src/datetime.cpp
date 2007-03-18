@@ -5,8 +5,11 @@
 #include <boost/python.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include "optional.hpp"
+#include <boost/version.hpp>
 
 using namespace boost::python;
+
+#if BOOST_VERSION < 103400
 
 // From Boost 1.34
 object import(str name)
@@ -16,6 +19,8 @@ object import(str name)
     handle<> module(borrowed(PyImport_ImportModule(n)));
     return object(module);
 }
+
+#endif
 
 object datetime_timedelta;
 object datetime_datetime;
