@@ -1401,6 +1401,9 @@ namespace libtorrent
 	policy::peer::peer(const tcp::endpoint& ip_, peer::connection_type t)
 		: ip(ip_)
 		, type(t)
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		, pe_support(peer::unknown)
+#endif
 		, last_optimistically_unchoked(
 			boost::gregorian::date(1970,boost::gregorian::Jan,1))
 		, connected(boost::gregorian::date(1970,boost::gregorian::Jan,1))

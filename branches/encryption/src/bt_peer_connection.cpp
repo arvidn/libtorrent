@@ -59,6 +59,24 @@ using boost::bind;
 using boost::shared_ptr;
 using libtorrent::aux::session_impl;
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
+namespace
+{
+	using namespace libtorrent;
+	struct match_peer_connection
+	{
+		match_peer_connection(peer_connection const& c)
+			: m_conn(c)
+		{}
+
+		bool operator()(policy::peer const& p) const
+		{ return p.connection == &m_conn; }
+
+		const peer_connection& m_conn;
+	};
+}
+#endif
+
 namespace libtorrent
 {
 	const bt_peer_connection::message_handler
@@ -105,8 +123,6 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
-		// Check if peer explicitly prohibits encryption,
-		// and the encryption policy
 		
 		pe_settings::enc_policy const& out_enc_policy = m_ses.get_pe_settings().out_enc_policy;
 
@@ -120,7 +136,28 @@ namespace libtorrent
 		}
 		else if (out_enc_policy == pe_settings::enabled)
 		{
-			// Todo
+			boost::shared_ptr<torrent> t = tor.lock();
+			assert(t);
+
+			policy& p = t->get_policy();
+			policy::iterator i = std::find_if(p.begin_peer(), p.end_peer()
+											  , match_peer_connection(*this));
+			assert(i != p.end_peer());
+			
+			if ((*i).pe_support == policy::peer::unknown || 
+				(*i).pe_support == policy::peer::yes)
+			{
+				write_pe1_2_dhkey();
+				m_state = read_pe_dhkey;
+				reset_recv_buffer(dh_key_len);
+				setup_receive();
+			}
+			else // (*i).pe_support == no
+			{
+				write_handshake();
+				reset_recv_buffer(20);
+				setup_receive();
+			}
 		}
 		else if (out_enc_policy == pe_settings::disabled)
 #endif
@@ -1466,6 +1503,13 @@ namespace libtorrent
 
 			if (is_local())
 			{
+				// mark peer as supporting encryption
+				policy& p = t->get_policy();
+				policy::iterator i = std::find_if(p.begin_peer(), p.end_peer()
+												  , match_peer_connection(*this));
+				assert(i != p.end_peer());
+				(*i).pe_support = policy::peer::yes;
+				
 				write_pe3_sync();
 
 				// initial payload is the standard handshake, this is
@@ -1840,7 +1884,7 @@ namespace libtorrent
 			if (!m_rc4_encrypted)
 			{
 				m_RC4_handler.reset();
-#ifndef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_VERBOSE_LOGGING
 				(*m_logger) << " destroyed rc4 keys\n";
 #endif
 			}

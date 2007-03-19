@@ -2261,15 +2261,16 @@ namespace libtorrent
 		boost::posix_time::time_duration d;
 		d = second_clock::universal_time() - m_last_sent;
 		if (d.total_seconds() < m_timeout / 2) return;
-
 		
 		if (m_connecting) return;
 		if (in_handshake()) return;
 
+		// if the last send has not completed yet, do not send a keep
+		// alive
+		if (m_writing) return;
+
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace	boost::posix_time;
-		(*m_logger) << " last_sent : " << to_simple_string(m_last_sent)
-					<< " m_timeout : " << m_timeout << "\n"; 
 		(*m_logger) << to_simple_string(second_clock::universal_time())
 					<< " ==> KEEPALIVE\n";
 #endif

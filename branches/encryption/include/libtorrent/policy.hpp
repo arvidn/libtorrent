@@ -132,6 +132,10 @@ namespace libtorrent
 		{
 			enum connection_type { not_connectable,connectable };
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			enum pe_support_type { unknown, yes, no };	
+#endif
+
 			peer(const tcp::endpoint& ip, connection_type t);
 
 			size_type total_download() const;
@@ -144,6 +148,12 @@ namespace libtorrent
 			tcp::endpoint ip;
 			connection_type type;
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			// known encryption support of peer. If an attempt to
+			// establish an encrypted connection fails, this is
+			// updated
+			pe_support_type pe_support;
+#endif
 			// the time when this peer was optimistically unchoked
 			// the last time.
 			boost::posix_time::ptime last_optimistically_unchoked;
