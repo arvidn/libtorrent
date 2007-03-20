@@ -546,15 +546,19 @@ namespace libtorrent
 		m_downloads.erase(i);
 
 		piece_pos& p = m_piece_map[index];
-		int priority = p.priority(m_sequenced_download_threshold);
+		int prev_priority = p.priority(m_sequenced_download_threshold);
 		p.downloading = 0;
-		if (priority == 0)
+		int new_priority = p.priority(m_sequenced_download_threshold);
+
+		if (new_priority == prev_priority) return;
+
+		if (prev_priority == 0)
 		{
 			add(index);
 		}
 		else
 		{
-			move(priority, p.index);
+			move(prev_priority, p.index);
 		}
 	}
 
