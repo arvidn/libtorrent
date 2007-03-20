@@ -1217,11 +1217,19 @@ Its declaration looks like this::
 		void resolve_countries(bool r);
 		bool resolve_countries() const;
 
+		void piece_priority(int index, int priority) const;
+		int piece_priority(int index) const;
+
+		void prioritize_pieces(std::vector<int> const& pieces) const;
+		std::vector<int> piece_priorities() const;
+
+		void prioritize_files(std::vector<int> const& files) const;
+
+		// these functions are deprecated
 		void filter_piece(int index, bool filter) const;
 		void filter_pieces(std::vector<bool> const& bitmask) const;
 		bool is_piece_filtered(int index) const;
 		std::vector<bool> filtered_pieces() const;
-
 		void filter_files(std::vector<bool> const& files) const;
       
 		bool has_metadata() const;
@@ -1236,9 +1244,10 @@ Its declaration looks like this::
 		bool operator<(torrent_handle const&) const;
 	};
 
-The default constructor will initialize the handle to an invalid state. Which means you cannot
-perform any operation on it, unless you first assign it a valid handle. If you try to perform
-any operation on an uninitialized handle, it will throw ``invalid_handle``.
+The default constructor will initialize the handle to an invalid state. Which
+means you cannot perform any operation on it, unless you first assign it a
+valid handle. If you try to perform any operation on an uninitialized handle,
+it will throw ``invalid_handle``.
 
 .. warning:: All operations on a ``torrent_handle`` may throw invalid_handle_
 	exception, in case the handle is no longer refering to a torrent. There are
@@ -1246,7 +1255,54 @@ any operation on an uninitialized handle, it will throw ``invalid_handle``.
 	Since the torrents are processed by a background thread, there is no
 	guarantee that a handle will remain valid between two calls.
 
-*TODO: document filter_piece(), filter_pieces(), is_piece_filtered(), filtered_pieces() and filter_files()*
+
+piece_priority() prioritize_pieces() piece_priorities() prioritize_files()
+--------------------------------------------------------------------------
+
+	::
+
+		void piece_priority(int index, int priority) const;
+		int piece_priority(int index) const;
+		void prioritize_pieces(std::vector<int> const& pieces) const;
+		std::vector<int> piece_priorities() const;
+		void prioritize_files(std::vector<int> const& files) const;
+
+These functions are used to set and get the prioritiy of individual pieces.
+By default all pieces have priority 1. That means that the random rarest
+first algorithm is effectively active for all pieces. You may however
+change the priority of individual pieces. There are 8 different priority
+levels:
+
+0. piece is not downloaded at all
+1. normal priority. Download order is dependent on availability
+2. higher than normal priority. Pieces are preferred over pieces with
+   the same availability, but not over pieces with lower availability
+3. pieces are as likely to be picked as partial pieces.
+4. pieces are preferred over partial pieces, but not over pieces with
+   lower availability
+5. *currently the same as 4*
+6. piece is as likely to be picked as any piece with availability 1
+7. maximum priority, availability is disregarded, the piece is preferred
+   over any other piece with lower priority
+
+The exact definitions of these priorities are implementation details, and
+subject to change. The interface guarantees that higher number means higher
+priority, and that 0 means do not download.
+
+``piece_priority`` sets or gets the priority for an individual piece,
+specified by ``index``.
+
+``prioritize_pieces`` takes a vector of integers, one integer per piece in
+the torrent. All the piece priorities will be updated with the priorities
+in the vector.
+
+``piece_priorities`` returns a vector with one element for each piece in the
+torrent. Each element is the current priority of that piece.
+
+``prioritize_files`` takes a vector that has at as many elements as there are
+files in the torrent. Each entry is the priority of that file. The function
+sets the priorities of all the pieces in the torrent based on the vector.
+
 
 file_progress()
 ---------------

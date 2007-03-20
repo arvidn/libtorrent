@@ -330,6 +330,57 @@ namespace libtorrent
 			, bind(&torrent::set_sequenced_download_threshold, _1, threshold));
 	}
 
+	std::string torrent_handle::name() const
+	{
+		INVARIANT_CHECK;
+		return call_member<std::string>(m_ses, m_chk, m_info_hash
+			, bind(&torrent::name, _1));
+	}
+
+
+	void torrent_handle::piece_priority(int index, int priority) const
+	{
+		INVARIANT_CHECK;
+	
+		call_member<void>(m_ses, m_chk, m_info_hash
+			, bind(&torrent::set_piece_priority, _1, index, priority));
+	}
+
+	int torrent_handle::piece_priority(int index) const
+	{
+		INVARIANT_CHECK;
+	
+		return call_member<int>(m_ses, m_chk, m_info_hash
+			, bind(&torrent::piece_priority, _1, index));
+	}
+
+	void torrent_handle::prioritize_pieces(std::vector<int> const& pieces) const
+	{
+		INVARIANT_CHECK;
+
+		call_member<void>(m_ses, m_chk, m_info_hash
+			, bind(&torrent::prioritize_pieces, _1, boost::cref(pieces)));
+	}
+
+	std::vector<int> torrent_handle::piece_priorities() const
+	{
+		INVARIANT_CHECK;
+		std::vector<int> ret;
+		call_member<void>(m_ses, m_chk, m_info_hash
+			, bind(&torrent::piece_priorities, _1, boost::ref(ret)));
+		return ret;
+	}
+
+	void torrent_handle::prioritize_files(std::vector<int> const& files) const
+	{
+		INVARIANT_CHECK;
+	
+		call_member<void>(m_ses, m_chk, m_info_hash
+			, bind(&torrent::prioritize_files, _1, boost::cref(files)));
+	}
+
+// ============ start deprecation ===============
+
 	void torrent_handle::filter_piece(int index, bool filter) const
 	{
 		INVARIANT_CHECK;
@@ -341,7 +392,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::filter_pieces, _1, pieces));
+			, bind(&torrent::filter_pieces, _1, boost::cref(pieces)));
 	}
 
 	bool torrent_handle::is_piece_filtered(int index) const
@@ -349,13 +400,6 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		return call_member<bool>(m_ses, m_chk, m_info_hash
 			, bind(&torrent::is_piece_filtered, _1, index));
-	}
-
-	std::string torrent_handle::name() const
-	{
-		INVARIANT_CHECK;
-		return call_member<std::string>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::name, _1));
 	}
 
 	std::vector<bool> torrent_handle::filtered_pieces() const
@@ -373,6 +417,9 @@ namespace libtorrent
 		call_member<void>(m_ses, m_chk, m_info_hash
 			, bind(&torrent::filter_files, _1, files));
 	}
+
+// ============ end deprecation ===============
+
 
 	std::vector<announce_entry> const& torrent_handle::trackers() const
 	{

@@ -1022,6 +1022,134 @@ namespace libtorrent
 		return m_username + ":" + m_password;
 	}
 
+
+
+	void torrent::set_piece_priority(int index, int priority)
+	{
+		INVARIANT_CHECK;
+
+		assert(valid_metadata());
+		if (is_seed()) return;
+
+		// this call is only valid on torrents with metadata
+		assert(m_picker.get());
+		assert(index >= 0);
+		assert(index < m_torrent_file.num_pieces());
+
+		// TODO: update peer's interesting-bit
+		
+		m_picker->set_piece_priority(index, priority);
+	}
+
+	int torrent::piece_priority(int index) const
+	{
+		INVARIANT_CHECK;
+
+		assert(valid_metadata());
+		if (is_seed()) return 1;
+
+		// this call is only valid on torrents with metadata
+		assert(m_picker.get());
+		assert(index >= 0);
+		assert(index < m_torrent_file.num_pieces());
+
+		// TODO: update peer's interesting-bit
+		
+		return m_picker->piece_priority(index);
+	}
+
+	void torrent::prioritize_pieces(std::vector<int> const& pieces)
+	{
+		INVARIANT_CHECK;
+
+		// this call is only valid on torrents with metadata
+		assert(valid_metadata());
+		if (is_seed()) return;
+
+		assert(m_picker.get());
+
+		// TODO: update peer's interesting-bit
+		
+		int index = 0;
+		for (std::vector<int>::const_iterator i = pieces.begin()
+			, end(pieces.end()); i != end; ++i, ++index)
+		{
+			assert(*i >= 0);
+			assert(*i <= 7);
+			m_picker->set_piece_priority(index, *i);
+		}
+	}
+
+	void torrent::piece_priorities(std::vector<int>& pieces) const
+	{
+		INVARIANT_CHECK;
+
+		// this call is only valid on torrents with metadata
+		assert(valid_metadata());
+		if (is_seed())
+		{
+			pieces.clear();
+			pieces.resize(m_torrent_file.num_pieces(), 1);
+			return;
+		}
+
+		assert(m_picker.get());
+		m_picker->piece_priorities(pieces);
+	}
+
+	namespace
+	{
+		void set_if_greater(int& piece_prio, int file_prio)
+		{
+			if (file_prio > piece_prio) piece_prio = file_prio;
+		}
+	}
+
+	void torrent::prioritize_files(std::vector<int> const& files)
+	{
+		INVARIANT_CHECK;
+
+		// this call is only valid on torrents with metadata
+		if (!valid_metadata() || is_seed()) return;
+
+		// the bitmask need to have exactly one bit for every file
+		// in the torrent
+		assert(int(files.size()) == m_torrent_file.num_files());
+		
+		size_type position = 0;
+
+		if (m_torrent_file.num_pieces())
+		{
+			int piece_length = m_torrent_file.piece_length();
+			// initialize the piece priorities to 0, then only allow
+			// setting higher priorities
+			std::vector<int> pieces(m_torrent_file.num_pieces(), 0);
+			for (int i = 0; i < int(files.size()); ++i)
+			{
+				size_type start = position;
+				position += m_torrent_file.file_at(i).size;
+				// mark all pieces of the file with this file's priority
+				// but only if the priority is higher than the pieces
+				// already set (to avoid problems with overlapping pieces)
+				int start_piece = int(start / piece_length);
+				int last_piece = int(position / piece_length);
+				// if one piece spans several files, we might
+				// come here several times with the same start_piece, end_piece
+				std::for_each(pieces.begin() + start_piece
+					, pieces.begin() + last_piece + 1
+					, bind(&set_if_greater, _1, files[i]));
+			}
+			prioritize_pieces(pieces);
+		}
+	}
+
+
+
+
+
+
+
+
 	void torrent::filter_piece(int index, bool filter)
 	{
 		INVARIANT_CHECK;

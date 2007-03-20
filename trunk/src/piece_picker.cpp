@@ -649,7 +649,7 @@ namespace libtorrent
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 		assert(new_piece_priority >= 0);
-		assert(new_piece_priority <= 3);
+		assert(new_piece_priority <= 7);
 		assert(index >= 0);
 		assert(index < (int)m_piece_map.size());
 		
@@ -701,34 +701,7 @@ namespace libtorrent
 			move(prev_priority, p.index);
 		}
 	}
-/*	
-	// this function can be used for pieces that we don't
-	// have, but have marked as filtered (so we didn't
-	// want to download them) but later want to enable for
-	// downloading, then we call this function and it will
-	// be inserted in the available piece list again
-	void piece_picker::mark_as_unfiltered(int index)
-	{
-		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
-		assert(index >= 0);
-		assert(index < (int)m_piece_map.size());
 
-		piece_pos& p = m_piece_map[index];
-		if (!p.filtered()) return;	
-		p.filtered(false);
-		if (p.index != piece_pos::we_have_index)
-		{
-			--m_num_filtered;
-			assert(m_num_filtered >= 0);
-			add(index);
-		}
-		else
-		{
-			--m_num_have_filtered;
-			assert(m_num_have_filtered >= 0);
-		}
-	}
-*/
 	int piece_picker::piece_priority(int index) const
 	{
 		assert(index >= 0);
@@ -736,6 +709,19 @@ namespace libtorrent
 
 		return m_piece_map[index].piece_priority;
 	}
+
+	void piece_picker::piece_priorities(std::vector<int>& pieces) const
+	{
+		pieces.resize(m_piece_map.size());
+		std::vector<int>::iterator j = pieces.begin();
+		for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin(),
+			end(m_piece_map.end()); i != end; ++i, ++j)
+		{
+			*j = i->piece_priority;
+		}
+	}
+
+	// ============ start deprecation ==============
 
 	void piece_picker::filtered_pieces(std::vector<bool>& mask) const
 	{
@@ -747,6 +733,8 @@ namespace libtorrent
 			*j = i->filtered();
 		}
 	}
+
+	// ============ end deprecation ==============
 	
 	void piece_picker::pick_pieces(const std::vector<bool>& pieces
 		, std::vector<piece_block>& interesting_blocks

@@ -138,17 +138,20 @@ namespace libtorrent
 		void we_have(int index);
 
 		// sets the priority of a piece.
-		// 0 is filtered, i.e. do not download
-		// 1 is normal priority
-		// 2 is high priority
-		// 3 is maximum priority (availability is ignored)
 		void set_piece_priority(int index, int prio);
 
 		// returns the priority for the piece at 'index'
 		int piece_priority(int index) const;
 
+		// returns the current piece priorities for all pieces
+		void piece_priorities(std::vector<int>& pieces) const;
+
+		// ========== start deprecation ==============
+
 		// fills the bitmask with 1's for pieces that are filtered
 		void filtered_pieces(std::vector<bool>& mask) const;
+
+		// ========== end deprecation ==============
 
 		// pieces should be the vector that represents the pieces a
 		// client has. It returns a list of all pieces that this client
@@ -245,18 +248,21 @@ namespace libtorrent
 			unsigned downloading : 1;
 			// is 0 if the piece is filtered (not to be downloaded)
 			// 1 is normal priority (default)
-			// 2 is high priority
-			// 3 is maximum priority (ignores availability)
-			unsigned piece_priority : 2;
+			// 2 is higher priority than pieces at the same availability level
+			// 3 is same priority as partial pieces
+			// 4 is higher priority than partial pieces
+			// 5 and 6 same priority as availability 1 (ignores availability)
+			// 7 is maximum priority (ignores availability)
+			unsigned piece_priority : 3;
 			// index in to the piece_info vector
-			unsigned index : 19;
+			unsigned index : 18;
 
 			enum
 			{
 				// index is set to this to indicate that we have the
 				// piece. There is no entry for the piece in the
 				// buckets if this is the case.
-				we_have_index = 0x7ffff,
+				we_have_index = 0x3ffff,
 				// the priority value that means the piece is filtered
 				filter_priority = 0,
 				// the max number the peer count can hold
@@ -281,7 +287,11 @@ namespace libtorrent
 				switch (piece_priority)
 				{
 					case 2: return prio - 1;
-					case 3: return 1;
+					case 3: return (std::max)(prio / 2, 1);
+					case 4: return (std::max)(prio / 2 - 1, 1);
+					case 5:
+					case 6: return (std::min)(prio / 2 - 1, 2);
+					case 7: return 1;
 				}
 				return prio;
 			}

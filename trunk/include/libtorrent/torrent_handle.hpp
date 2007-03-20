@@ -188,7 +188,7 @@ namespace libtorrent
 		// the number of distributed copies of the file.
 		// note that one copy may be spread out among many peers.
 		//
-		// the whole number part tells how many copies
+		// the integer part tells how many copies
 		//   there are of the rarest piece(s)
 		//
 		// the fractional part tells the fraction of pieces that
@@ -247,16 +247,32 @@ namespace libtorrent
 		void resolve_countries(bool r);
 		bool resolve_countries() const;
 
+		// all these are deprecated, use piece
+		// priority functions instead
+
+		// ================ start deprecation ============
+
 		// marks the piece with the given index as filtered
 		// it will not be downloaded
 		void filter_piece(int index, bool filter) const;
 		void filter_pieces(std::vector<bool> const& pieces) const;
 		bool is_piece_filtered(int index) const;
 		std::vector<bool> filtered_pieces() const;
-
 		// marks the file with the given index as filtered
 		// it will not be downloaded
 		void filter_files(std::vector<bool> const& files) const;
+
+		// ================ end deprecation ============
+
+		// priority must be within the range [0, 7]
+		void piece_priority(int index, int priority) const;
+		int piece_priority(int index) const;
+
+		void prioritize_pieces(std::vector<int> const& pieces) const;
+		std::vector<int> piece_priorities() const;
+
+		void prioritize_files(std::vector<int> const& files) const;
+
 
 		// set the interface to bind outgoing connections
 		// to.
