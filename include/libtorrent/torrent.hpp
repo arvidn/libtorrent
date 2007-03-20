@@ -171,12 +171,23 @@ namespace libtorrent
 		void resume();
 		bool is_paused() const { return m_paused; }
 
+		// ============ start deprecation =============
 		void filter_piece(int index, bool filter);
 		void filter_pieces(std::vector<bool> const& bitmask);
 		bool is_piece_filtered(int index) const;
 		void filtered_pieces(std::vector<bool>& bitmask) const;
-	
 		void filter_files(std::vector<bool> const& files);
+		// ============ end deprecation =============
+
+
+		void set_piece_priority(int index, int priority);
+		int piece_priority(int index) const;
+
+		void prioritize_pieces(std::vector<int> const& pieces);
+		void piece_priorities(std::vector<int>&) const;
+
+		void prioritize_files(std::vector<int> const& files);
+
 
 		torrent_status status() const;
 		void file_progress(std::vector<float>& fp) const;
