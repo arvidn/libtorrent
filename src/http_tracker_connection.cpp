@@ -530,6 +530,8 @@ namespace libtorrent
 
 		if (has_requester()) requester().m_tracker_address = target_address;
 		m_socket.reset(new stream_socket(m_name_lookup.io_service()));
+		m_socket->open(target_address.protocol());
+		m_socket->bind(tcp::endpoint(bind_interface(), 0));
 		m_socket->async_connect(target_address, bind(&http_tracker_connection::connected, self(), _1));
 	}
 	catch (std::exception& e)

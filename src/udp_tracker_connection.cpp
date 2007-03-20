@@ -92,7 +92,6 @@ namespace libtorrent
 		, m_settings(stn)
 		, m_attempts(0)
 	{
-		m_socket.reset(new datagram_socket(m_strand.io_service()));
 		udp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
 		m_name_lookup.async_resolve(q
 			, m_strand.wrap(boost::bind(
@@ -144,6 +143,9 @@ namespace libtorrent
 		
 		if (has_requester()) requester().m_tracker_address = tcp::endpoint(target_address.address(), target_address.port());
 		m_target = target_address;
+		m_socket.reset(new datagram_socket(m_name_lookup.io_service()));
+		m_socket->open(target_address.protocol());
+		m_socket->bind(udp::endpoint(bind_interface(), 0));
 		m_socket->connect(target_address);
 		send_udp_connect();
 	}
