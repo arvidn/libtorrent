@@ -548,7 +548,14 @@ namespace libtorrent
 		piece_pos& p = m_piece_map[index];
 		int priority = p.priority(m_sequenced_download_threshold);
 		p.downloading = 0;
-		move(priority, p.index);
+		if (priority == 0)
+		{
+			add(index);
+		}
+		else
+		{
+			move(priority, p.index);
+		}
 	}
 
 	void piece_picker::inc_refcount(int i)
