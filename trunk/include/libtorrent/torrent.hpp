@@ -500,6 +500,8 @@ namespace libtorrent
 			, boost::intrusive_ptr<peer_connection> p) const;
 		bool request_bandwidth_from_session(int channel) const;
 
+		void update_peer_interest();
+
 		torrent_info m_torrent_file;
 
 		// is set to true when the torrent has

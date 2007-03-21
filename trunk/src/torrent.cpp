@@ -1036,9 +1036,8 @@ namespace libtorrent
 		assert(index >= 0);
 		assert(index < m_torrent_file.num_pieces());
 
-		// TODO: update peer's interesting-bit
-		
 		m_picker->set_piece_priority(index, priority);
+		update_peer_interest();
 	}
 
 	int torrent::piece_priority(int index) const
@@ -1053,8 +1052,6 @@ namespace libtorrent
 		assert(index >= 0);
 		assert(index < m_torrent_file.num_pieces());
 
-		// TODO: update peer's interesting-bit
-		
 		return m_picker->piece_priority(index);
 	}
 
@@ -1068,8 +1065,6 @@ namespace libtorrent
 
 		assert(m_picker.get());
 
-		// TODO: update peer's interesting-bit
-		
 		int index = 0;
 		for (std::vector<int>::const_iterator i = pieces.begin()
 			, end(pieces.end()); i != end; ++i, ++index)
@@ -1078,6 +1073,7 @@ namespace libtorrent
 			assert(*i <= 7);
 			m_picker->set_piece_priority(index, *i);
 		}
+		update_peer_interest();
 	}
 
 	void torrent::piece_priorities(std::vector<int>& pieces) const
@@ -1118,35 +1114,37 @@ namespace libtorrent
 		
 		size_type position = 0;
 
-		if (m_torrent_file.num_pieces())
+		if (m_torrent_file.num_pieces() == 0) return;
+
+		int piece_length = m_torrent_file.piece_length();
+		// initialize the piece priorities to 0, then only allow
+		// setting higher priorities
+		std::vector<int> pieces(m_torrent_file.num_pieces(), 0);
+		for (int i = 0; i < int(files.size()); ++i)
 		{
-			int piece_length = m_torrent_file.piece_length();
-			// initialize the piece priorities to 0, then only allow
-			// setting higher priorities
-			std::vector<int> pieces(m_torrent_file.num_pieces(), 0);
-			for (int i = 0; i < int(files.size()); ++i)
-			{
-				size_type start = position;
-				position += m_torrent_file.file_at(i).size;
-				// mark all pieces of the file with this file's priority
-				// but only if the priority is higher than the pieces
-				// already set (to avoid problems with overlapping pieces)
-				int start_piece = int(start / piece_length);
-				int last_piece = int(position / piece_length);
-				// if one piece spans several files, we might
-				// come here several times with the same start_piece, end_piece
-				std::for_each(pieces.begin() + start_piece
-					, pieces.begin() + last_piece + 1
-					, bind(&set_if_greater, _1, files[i]));
-			}
-			prioritize_pieces(pieces);
+			size_type start = position;
+			position += m_torrent_file.file_at(i).size;
+			// mark all pieces of the file with this file's priority
+			// but only if the priority is higher than the pieces
+			// already set (to avoid problems with overlapping pieces)
+			int start_piece = int(start / piece_length);
+			int last_piece = int(position / piece_length);
+			// if one piece spans several files, we might
+			// come here several times with the same start_piece, end_piece
+			std::for_each(pieces.begin() + start_piece
+				, pieces.begin() + last_piece + 1
+				, bind(&set_if_greater, _1, files[i]));
 		}
+		prioritize_pieces(pieces);
+		update_peer_interest();
 	}
 
-
-
-
-
+	// updates the interested flag in peers
+	void torrent::update_peer_interest()
+	{
+		for (peer_iterator i = begin(); i != end(); ++i)
+			i->second->update_interest();
+	}
 
 
 

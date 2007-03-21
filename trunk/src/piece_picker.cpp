@@ -264,18 +264,26 @@ namespace libtorrent
 					}
 				}
 			}
-			else if (!i->filtered())
+			else
 			{
 				if (t != 0)
 					assert(!t->have_piece(index));
 
-				assert(i->priority(m_sequenced_download_threshold) < int(m_piece_info.size()));
 				int prio = i->priority(m_sequenced_download_threshold);
 				if (prio > 0)
 				{
 					const std::vector<int>& vec = m_piece_info[prio];
 					assert (i->index < vec.size());
 					assert(vec[i->index] == index);
+				}
+
+				for (int k = 0; k < int(m_piece_info.size()); ++k)
+				{
+					for (int j = 0; j < int(m_piece_info[k].size()); ++j)
+					{
+						assert(int(m_piece_info[k][j]) != index
+							|| (prio > 0 && prio == k && int(i->index) == j));
+					}
 				}
 			}
 
@@ -386,6 +394,8 @@ namespace libtorrent
 		int index = m_piece_info[priority][elem_index];
 		// update the piece_map
 		piece_pos& p = m_piece_map[index];
+		assert(int(p.index) == index || p.have());		
+
 		int new_priority = p.priority(m_sequenced_download_threshold);
 
 		if (new_priority == priority) return;
@@ -665,10 +675,12 @@ namespace libtorrent
 		assert(index < (int)m_piece_map.size());
 		
 		piece_pos& p = m_piece_map[index];
-		
+
 		// if the priority isn't changed, don't do anything
 		if (new_piece_priority == int(p.piece_priority)) return;
 		
+		int prev_priority = p.priority(m_sequenced_download_threshold);
+
 		if (new_piece_priority == piece_pos::filter_priority
 			&& p.piece_priority != piece_pos::filter_priority)
 		{
@@ -697,7 +709,6 @@ namespace libtorrent
 		assert(m_num_filtered >= 0);
 		assert(m_num_have_filtered >= 0);
 		
-		int prev_priority = p.priority(m_sequenced_download_threshold);
 		p.piece_priority = new_piece_priority;
 		int new_priority = p.priority(m_sequenced_download_threshold);
 
