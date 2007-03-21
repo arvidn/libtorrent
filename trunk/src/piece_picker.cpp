@@ -394,7 +394,7 @@ namespace libtorrent
 		int index = m_piece_info[priority][elem_index];
 		// update the piece_map
 		piece_pos& p = m_piece_map[index];
-		assert(int(p.index) == index || p.have());		
+		assert(int(p.index) == elem_index || p.have());		
 
 		int new_priority = p.priority(m_sequenced_download_threshold);
 
