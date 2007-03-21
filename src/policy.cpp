@@ -1090,21 +1090,7 @@ namespace libtorrent
 				if (!i->connection->is_interesting()) continue;
 				if (!i->connection->has_piece(index)) continue;
 
-				bool interested = false;
-				const std::vector<bool>& peer_has = i->connection->get_bitfield();
-				const std::vector<bool>& we_have = m_torrent->pieces();
-				assert(we_have.size() == peer_has.size());
-				for (int j = 0; j != (int)we_have.size(); ++j)
-				{
-					if (!we_have[j] && peer_has[j])
-					{
-						interested = true;
-						break;
-					}
-				}
-				if (!interested)
-					i->connection->send_not_interested();
-				assert(i->connection->is_interesting() == interested);
+				i->connection->update_interest();
 			}
 		}
 	}

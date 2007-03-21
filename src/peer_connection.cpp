@@ -205,6 +205,33 @@ namespace libtorrent
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
 	}
 
+	void peer_connection::update_interest()
+	{
+		INVARIANT_CHECK;
+
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		assert(t);
+
+		bool interested = false;
+		const std::vector<bool>& we_have = t->pieces();
+		for (int j = 0; j != (int)we_have.size(); ++j)
+		{
+			if (!we_have[j]
+				&& t->piece_priority(j) > 0
+				&& m_have_piece[j])
+			{
+				interested = true;
+				break;
+			}
+		}
+		if (!interested)
+			send_not_interested();
+		else
+			t->get_policy().peer_is_interesting(*this);
+
+		assert(is_interesting() == interested);
+	}
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void peer_connection::add_extension(boost::shared_ptr<peer_plugin> ext)
 	{
@@ -237,7 +264,7 @@ namespace libtorrent
 				t->peer_has(i);
 				// if the peer has a piece and we don't, the peer is interesting
 				if (!t->have_piece(i)
-					&& !t->picker().piece_priority(i) == 0)
+					&& t->picker().piece_priority(i) != 0)
 					interesting = true;
 			}
 		}

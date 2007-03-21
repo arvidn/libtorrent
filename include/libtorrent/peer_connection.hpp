@@ -190,6 +190,8 @@ namespace libtorrent
 		bool is_peer_interested() const { return m_peer_interested; }
 		bool has_peer_choked() const { return m_peer_choked; }
 
+		void update_interest();
+
 		// returns the torrent this connection is a part of
 		// may be zero if the connection is an incoming connection
 		// and it hasn't received enough information to determine
