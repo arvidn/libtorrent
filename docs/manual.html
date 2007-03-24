@@ -1160,7 +1160,7 @@ boost::optional&lt;boost::posix_time::ptime&gt; creation_date() const;
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">name()</span></tt> returns the name of the torrent.</p>
 <p><tt class="docutils literal"><span class="pre">comment()</span></tt> returns the comment associated with the torrent. If there's no comment,
-it will return an empty string. <tt class="docutils literal"><span class="pre">creation_date()</span></tt> returns a <a class="reference" href="http://www.boost.org/libs/date_time/doc/class_ptime.html">boost::posix_time::ptime</a>
+it will return an empty string. <tt class="docutils literal"><span class="pre">creation_date()</span></tt> returns a <a class="reference" href="http://www.boost.org/doc/html/date_time/posix_time.html#date_time.posix_time.ptime_class">boost::posix_time::ptime</a>
 object, representing the time when this torrent file was created. If there's no time stamp
 in the torrent file, this will return a date of January 1:st 1970.</p>
 <p>Both the name and the comment is UTF-8 encoded strings.</p>
