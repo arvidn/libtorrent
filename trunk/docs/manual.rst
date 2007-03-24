@@ -1126,7 +1126,7 @@ Both the name and the comment is UTF-8 encoded strings.
 ``creator()`` returns the creator string in the torrent. If there is no creator string
 it will return an empty string.
 
-__ http://www.boost.org/libs/date_time/doc/class_ptime.html
+__ http://www.boost.org/doc/html/date_time/posix_time.html#date_time.posix_time.ptime_class
 
 
 priv() set_priv()
