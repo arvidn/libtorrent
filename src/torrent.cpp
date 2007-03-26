@@ -986,7 +986,7 @@ namespace libtorrent
 
 		m_picker->we_have(index);
 		for (peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
-			i->second->announce_piece(index);
+			try { i->second->announce_piece(index); } catch (std::exception&) {}
 
 		for (std::set<tcp::endpoint>::iterator i = peers.begin()
 			, end(peers.end()); i != end; ++i)
