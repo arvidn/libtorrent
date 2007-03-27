@@ -97,6 +97,8 @@ namespace libtorrent
 
 		virtual bool move_storage(boost::filesystem::path save_path) = 0;
 
+		virtual bool verify_resume_data(entry& rd, std::string& error) = 0;
+
 		// this will close all open files that are opened for
 		// writing. This is called when a torrent has finished
 		// downloading.
@@ -129,6 +131,8 @@ namespace libtorrent
 			, int& num_pieces, boost::recursive_mutex& mutex);
 
 		void release_files();
+
+		bool verify_resume_data(entry& rd, std::string& error);
 
 		bool is_allocating() const;
 		void allocate_slots(int num_slots);

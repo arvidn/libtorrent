@@ -145,7 +145,10 @@ namespace libtorrent
 		aux::session_impl& session() { return m_ses; }
 		
 		void set_sequenced_download_threshold(int threshold);
-		
+	
+		bool verify_resume_data(entry& rd, std::string& error)
+		{ assert(m_storage); return m_storage->verify_resume_data(rd, error); }
+
 		// is called every second by session. This will
 		// caclulate the upload/download and number
 		// of connections this torrent needs. And prepare
