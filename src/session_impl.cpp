@@ -1969,7 +1969,8 @@ namespace libtorrent { namespace detail
 					// crc's didn't match, don't use the resume data
 					if (ad.integer() != entry::integer_type(adler))
 					{
-						error = "checksum mismatch on piece " + boost::lexical_cast<std::string>(p.index);
+						error = "checksum mismatch on piece "
+							+ boost::lexical_cast<std::string>(p.index);
 						return;
 					}
 
@@ -1978,62 +1979,21 @@ namespace libtorrent { namespace detail
 			}
 
 			// verify file sizes
-
-			std::vector<std::pair<size_type, std::time_t> > file_sizes;
-			entry::list_type& l = rd["file sizes"].list();
-
-			for (entry::list_type::iterator i = l.begin();
-				i != l.end(); ++i)
-			{
-				file_sizes.push_back(std::pair<size_type, std::time_t>(
-					i->list().front().integer()
-					, i->list().back().integer()));
-			}
-
-			if ((int)tmp_pieces.size() == info.num_pieces()
-				&& std::find_if(tmp_pieces.begin(), tmp_pieces.end()
-				, boost::bind<bool>(std::less<int>(), _1, 0)) == tmp_pieces.end())
-			{
-				if (info.num_files() != (int)file_sizes.size())
-				{
-					error = "the number of files does not match the torrent (num: "
-						+ boost::lexical_cast<std::string>(file_sizes.size()) + " actual: "
-						+ boost::lexical_cast<std::string>(info.num_files()) + ")";
-					return;
-				}
-
-				std::vector<std::pair<size_type, std::time_t> >::iterator
-					fs = file_sizes.begin();
-				// the resume data says we have the entire torrent
-				// make sure the file sizes are the right ones
-				for (torrent_info::file_iterator i = info.begin_files()
-					, end(info.end_files()); i != end; ++i, ++fs)
-				{
-					if (i->size != fs->first)
-					{
-						error = "file size for '" + i->path.native_file_string() + "' was expected to be "
-							+ boost::lexical_cast<std::string>(i->size) + " bytes";
-						return;
-					}
-				}
-			}
-
-
-			if (!match_filesizes(info, save_path, file_sizes, &error))
+			if (!torrent_ptr->verify_resume_data(rd, error))
 				return;
 
 			piece_map.swap(tmp_pieces);
 			unfinished_pieces.swap(tmp_unfinished);
 		}
-		catch (invalid_encoding)
+		catch (invalid_encoding&)
 		{
 			return;
 		}
-		catch (type_error)
+		catch (type_error&)
 		{
 			return;
 		}
-		catch (file_error)
+		catch (file_error&)
 		{
 			return;
 		}

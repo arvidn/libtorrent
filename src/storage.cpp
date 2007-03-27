@@ -362,6 +362,8 @@ namespace libtorrent
 		size_type read(char* buf, int slot, int offset, int size);
 		void write(const char* buf, int slot, int offset, int size);
 
+		bool verify_resume_data(entry& rd, std::string& error);
+
 		~storage()
 		{
 			m_files.release(this);
@@ -378,6 +380,57 @@ namespace libtorrent
 	void storage::release_files()
 	{
 		m_files.release(this);
+	}
+
+	bool storage::verify_resume_data(entry& rd, std::string& error)
+	{
+		std::vector<std::pair<size_type, std::time_t> > file_sizes;
+		entry::list_type& l = rd["file sizes"].list();
+
+		for (entry::list_type::iterator i = l.begin();
+			i != l.end(); ++i)
+		{
+			file_sizes.push_back(std::pair<size_type, std::time_t>(
+				i->list().front().integer()
+				, i->list().back().integer()));
+		}
+
+		entry::list_type& slots = rd["slots"].list();
+		bool seed = int(slots.size()) == m_info.num_pieces()
+			&& std::find_if(slots.begin(), slots.end()
+				, boost::bind<bool>(std::less<int>()
+				, boost::bind((size_type const& (entry::*)() const)
+					&entry::integer, _1), 0)) == slots.end();
+
+		if (seed)
+		{
+			if (m_info.num_files() != (int)file_sizes.size())
+			{
+				error = "the number of files does not match the torrent (num: "
+					+ boost::lexical_cast<std::string>(file_sizes.size()) + " actual: "
+					+ boost::lexical_cast<std::string>(m_info.num_files()) + ")";
+				return false;
+			}
+
+			std::vector<std::pair<size_type, std::time_t> >::iterator
+				fs = file_sizes.begin();
+			// the resume data says we have the entire torrent
+			// make sure the file sizes are the right ones
+			for (torrent_info::file_iterator i = m_info.begin_files()
+					, end(m_info.end_files()); i != end; ++i, ++fs)
+			{
+				if (i->size != fs->first)
+				{
+					error = "file size for '" + i->path.native_file_string()
+						+ "' was expected to be "
+						+ boost::lexical_cast<std::string>(i->size) + " bytes";
+					return false;
+				}
+			}
+			return true;
+		}
+
+		return match_filesizes(m_info, m_save_path, file_sizes, &error);
 	}
 
 	// returns true on success
@@ -882,6 +935,11 @@ namespace libtorrent
 
 	piece_manager::~piece_manager()
 	{
+	}
+
+	bool piece_manager::verify_resume_data(entry& rd, std::string& error)
+	{
+		return m_pimpl->m_storage->verify_resume_data(rd, error);
 	}
 
 	void piece_manager::release_files()
