@@ -250,6 +250,8 @@ void natpmp::on_reply(asio::error_code const& e
 		int public_port = read_uint16(in);
 		int lifetime = read_uint32(in);
 
+		(void)time; // to remove warning
+
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 		m_log << to_simple_string(microsec_clock::universal_time())
 			<< " <== port map response: " << (cmd - 128 == 1 ? "udp" : "tcp")

@@ -176,7 +176,7 @@ namespace libtorrent
 				boost::get<1>(ret) += newline - pos;
 				pos = newline;
 
-				std::string::size_type separator = line.find(": ");
+				std::string::size_type separator = line.find(':');
 				if (separator == std::string::npos)
 				{
 					// this means we got a blank line,
@@ -193,7 +193,12 @@ namespace libtorrent
 
 				std::string name = line.substr(0, separator);
 				std::transform(name.begin(), name.end(), name.begin(), &to_lower);
-				std::string value = line.substr(separator + 2, std::string::npos);
+				++separator;
+				// skip whitespace
+				while (separator < line.size()
+					&& (line[separator] == ' ' || line[separator] == '\t'))
+					++separator;
+				std::string value = line.substr(separator, std::string::npos);
 				m_header.insert(std::make_pair(name, value));
 
 				if (name == "content-length")
