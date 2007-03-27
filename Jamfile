@@ -37,6 +37,7 @@ SOURCES =
 	entry.cpp
 	escape_string.cpp
 	file.cpp
+	http_connection.cpp
 	identify_client.cpp
 	ip_filter.cpp
 	peer_connection.cpp
@@ -57,6 +58,7 @@ SOURCES =
 	udp_tracker_connection.cpp
 	sha1.cpp
 	metadata_transfer.cpp
+	upnp.cpp
 	ut_pex.cpp
 	logger.cpp
 	file_pool.cpp

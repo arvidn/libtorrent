@@ -1105,13 +1105,42 @@ namespace libtorrent
 				t->piece_failed(p.piece);
 			}
 
+#ifndef NDEBUG
+			try
+			{
+#endif
+
 			pol.piece_finished(p.piece, verified);
+
+#ifndef NDEBUG
+			}
+			catch (std::exception const& e)
+			{
+				std::string err = e.what();
+				assert(false);
+			}
+#endif
+
+#ifndef NDEBUG
+			try
+			{
+#endif
 
 			if (!was_seed && t->is_seed())
 			{
 				assert(verified);
 				t->completed();
 			}
+
+#ifndef NDEBUG
+			}
+			catch (std::exception const& e)
+			{
+				std::string err = e.what();
+				assert(false);
+			}
+#endif
+
 		}
 
 #ifndef NDEBUG

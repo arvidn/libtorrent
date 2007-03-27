@@ -5,7 +5,7 @@ bandwidth_manager.cpp entry.cpp escape_string.cpp \
 peer_connection.cpp bt_peer_connection.cpp web_peer_connection.cpp \
 natpmp.cpp piece_picker.cpp policy.cpp session.cpp session_impl.cpp sha1.cpp \
 stat.cpp storage.cpp torrent.cpp torrent_handle.cpp \
-torrent_info.cpp tracker_manager.cpp \
+torrent_info.cpp tracker_manager.cpp http_connection.cpp \
 http_tracker_connection.cpp udp_tracker_connection.cpp \
 alert.cpp identify_client.cpp ip_filter.cpp file.cpp metadata_transfer.cpp \
 logger.cpp file_pool.cpp ut_pex.cpp \
@@ -40,6 +40,7 @@ $(top_srcdir)/include/libtorrent/file.hpp \
 $(top_srcdir)/include/libtorrent/file_pool.hpp \
 $(top_srcdir)/include/libtorrent/fingerprint.hpp \
 $(top_srcdir)/include/libtorrent/hasher.hpp \
+$(top_srcdir)/include/libtorrent/http_connection.hpp \
 $(top_srcdir)/include/libtorrent/session_settings.hpp \
 $(top_srcdir)/include/libtorrent/http_tracker_connection.hpp \
 $(top_srcdir)/include/libtorrent/identify_client.hpp \
@@ -70,6 +71,7 @@ $(top_srcdir)/include/libtorrent/torrent_info.hpp \
 $(top_srcdir)/include/libtorrent/tracker_manager.hpp \
 $(top_srcdir)/include/libtorrent/udp_tracker_connection.hpp \
 $(top_srcdir)/include/libtorrent/utf8.hpp \
+$(top_srcdir)/include/libtorrent/xml_parse.hpp \
 $(top_srcdir)/include/libtorrent/version.hpp
 
 
