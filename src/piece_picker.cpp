@@ -1023,12 +1023,11 @@ namespace libtorrent
 
 		piece_pos& p = m_piece_map[block.piece_index];
 		int prio = p.priority(m_sequenced_download_threshold);
-		if (prio == 0) return;
 
 		if (p.downloading == 0)
 		{
 			p.downloading = 1;
-			move(prio, p.index);
+			if (prio > 0) move(prio, p.index);
 
 			downloading_piece dp;
 			dp.index = block.piece_index;
