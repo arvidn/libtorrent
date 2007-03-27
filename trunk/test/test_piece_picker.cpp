@@ -26,25 +26,27 @@ int test_main()
 		unfinished.push_back(partial);
 		
 		p.files_checked(have, unfinished);
+		TEST_CHECK(p.is_downloading(piece_block(1, 0)));
+		TEST_CHECK(p.is_downloading(piece_block(1, 2)));
 
-		p.mark_as_filtered(4);
+		p.set_piece_priority(4, 0);
 	
-		TEST_CHECK(p.is_filtered(4) == true);
-		TEST_CHECK(p.is_filtered(3) == false);
+		TEST_CHECK(p.piece_priority(4) == 0);
+		TEST_CHECK(p.piece_priority(3) == 1);
 		
-		p.mark_as_filtered(3);
-		TEST_CHECK(p.is_filtered(3) == true);
-		p.mark_as_unfiltered(3);
-		TEST_CHECK(p.is_filtered(3) == false);
+		p.set_piece_priority(3, 0);
+		TEST_CHECK(p.piece_priority(3) == 0);
+		p.set_piece_priority(3, 1);
+		TEST_CHECK(p.piece_priority(3) == 1);
 	
 		TEST_CHECK(p.num_filtered() == 1);
 		TEST_CHECK(p.num_have_filtered() == 0);
 
-		std::vector<bool> filtered_pieces;
-		p.filtered_pieces(filtered_pieces);
-		bool expected1[] = {false, false, false, false, true, false};
-		TEST_CHECK(std::equal(filtered_pieces.begin()
-			, filtered_pieces.end(), expected1));
+		std::vector<int> piece_priorities;
+		p.piece_priorities(piece_priorities);
+		int expected1[] = {1, 1, 1, 1, 0, 1};
+		TEST_CHECK(std::equal(piece_priorities.begin()
+			, piece_priorities.end(), expected1));
 
 		std::vector<bool> peer1(num_pieces, false);
 		std::vector<bool> peer2(num_pieces, false);
@@ -106,11 +108,7 @@ int test_main()
 
 		// now, if all peers would have piece 1 (the piece we have partially)
 		// it should be prioritized over picking a completely new piece.
-		peer1[1] = true;
-		peer2[1] = true;
 		peer3[1] = true;
-		p.inc_refcount(1);
-		p.inc_refcount(1);
 		p.inc_refcount(1);
 		
 		picked.clear();
@@ -201,7 +199,7 @@ int test_main()
 		picked.clear();
 		p.pick_pieces(peer1, picked, 100, true, tcp::endpoint());
 
-		TEST_CHECK(picked.size() == 14);
+		TEST_CHECK(picked.size() == 12);
 	
 		piece_block expected5[] =
 		{
@@ -211,7 +209,6 @@ int test_main()
 			, piece_block(5, 2), piece_block(5, 3)
 			, piece_block(2, 0), piece_block(2, 1)
 			, piece_block(2, 2), piece_block(2, 3)
-			, piece_block(1, 1), piece_block(1, 3)
 		};
 	
 		TEST_CHECK(std::equal(picked.begin()
