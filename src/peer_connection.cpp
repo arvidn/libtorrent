@@ -703,7 +703,14 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
 		(*m_logger) << to_simple_string(second_clock::universal_time())
-			<< " <== BITFIELD\n";
+			<< " <== BITFIELD ";
+
+		for (int i = 0; i < int(bitfield.size()); ++i)
+		{
+			if (bitfield[i]) (*m_logger) << "1";
+			else (*m_logger) << "0";
+		}
+		(*m_logger) << "\n";
 #endif
 
 		// if we don't have the metedata, we cannot
