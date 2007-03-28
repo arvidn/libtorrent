@@ -1829,8 +1829,9 @@ namespace libtorrent
 				(*m_logger) << "req bandwidth [ " << upload_channel << " ]\n";
 #endif
 
-				// the upload queue should not have non-prioritized peers
-				t->request_bandwidth(upload_channel, self(), false);
+				// peers that we are not interested in are non-prioritized
+				t->request_bandwidth(upload_channel, self()
+					, !(is_interesting() && !has_peer_choked()));
 				m_writing = true;
 			}
 			return;
