@@ -1,3 +1,5 @@
+	* fixed problem where peer interested flags were not updated correctly
+	  when pieces were filtered
 	* improvements to ut_pex messages, including support for seed flag
 	* prioritizes upload bandwidth to peers that might send back data
 	* the following functions have been deprecated:

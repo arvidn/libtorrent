@@ -1160,9 +1160,8 @@ namespace libtorrent
 		assert(index >= 0);
 		assert(index < m_torrent_file.num_pieces());
 
-		// TODO: update peer's interesting-bit
-		
 		m_picker->set_piece_priority(index, filter ? 1 : 0);
+		update_peer_interest();
 	}
 
 	void torrent::filter_pieces(std::vector<bool> const& bitmask)
@@ -1175,8 +1174,6 @@ namespace libtorrent
 
 		assert(m_picker.get());
 
-		// TODO: update peer's interesting-bit
-		
 		int index = 0;
 		for (std::vector<bool>::const_iterator i = bitmask.begin()
 			, end(bitmask.end()); i != end; ++i, ++index)
@@ -1187,6 +1184,7 @@ namespace libtorrent
 			else
 				m_picker->set_piece_priority(index, 1);
 		}
+		update_peer_interest();
 	}
 
 	bool torrent::is_piece_filtered(int index) const
