@@ -2299,6 +2299,14 @@ namespace libtorrent
 #ifndef NDEBUG
 		m_initial_done = boost::get<0>(bytes_done());
 #endif
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			try { (*i)->on_files_checked(); } catch (std::exception&) {}
+		}
+#endif
 	}
 
 	alert_manager& torrent::alerts() const
