@@ -77,6 +77,10 @@ namespace libtorrent
 		// default behavior will be skipped
 		virtual bool on_pause() { return false; }
 		virtual bool on_resume() { return false;}
+
+		// this is called when the initial checking of
+		// files is completed.
+		virtual void on_files_checked() {}
 	};
 
 	struct TORRENT_EXPORT peer_plugin
