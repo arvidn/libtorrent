@@ -660,6 +660,10 @@ namespace libtorrent
 			assert(i != m_downloads.end());
 			m_downloads.erase(i);
 			p.downloading = 0;
+
+			assert(std::find_if(m_downloads.begin(),
+				m_downloads.end(),
+				has_index(index)) == m_downloads.end());
 		}
 		assert(p.priority(m_sequenced_download_threshold) == 0);
 		move(priority, info_index);
@@ -696,6 +700,9 @@ namespace libtorrent
 					has_index(index));
 				assert(i != m_downloads.end());
 				m_downloads.erase(i);
+				assert(std::find_if(m_downloads.begin(),
+					m_downloads.end(),
+					has_index(index)) == m_downloads.end());
 			}
 			p.downloading = 0;
 		}
@@ -1153,6 +1160,9 @@ namespace libtorrent
 			int prio = p.priority(m_sequenced_download_threshold);
 			p.downloading = 0;
 			move(prio, p.index);
+
+			assert(std::find_if(m_downloads.begin(),
+				m_downloads.end(), has_index(p.index)) == m_downloads.end());
 		}
 	}
 
