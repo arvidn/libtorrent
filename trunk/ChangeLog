@@ -1,3 +1,5 @@
+	* improvements to ut_pex messages, including support for seed flag
+	* prioritizes upload bandwidth to peers that might send back data
 	* the following functions have been deprecated:
 	  	void torrent_handle::filter_piece(int index, bool filter) const;
 	  	void torrent_handle::filter_pieces(std::vector<bool> const& pieces) const;
