@@ -86,7 +86,8 @@ namespace libtorrent
 
 		// this is called once for every peer we get from
 		// the tracker
-		void peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid);
+		void peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid
+			, char flags = 0);
 
 		// called when an incoming connection is accepted
 		void new_connection(peer_connection& c);
@@ -101,7 +102,10 @@ namespace libtorrent
 
 		// is called when a peer is believed to have
 		// sent invalid data
-		void ban_peer(const peer_connection& c);
+		void ban_peer(peer_connection const& c);
+
+		// is called on peers that become seeds
+		void set_seed(peer_connection const& c);
 
 		// the peer has got at least one interesting piece
 		void peer_is_interesting(peer_connection& c);
@@ -143,6 +147,9 @@ namespace libtorrent
 			// tracker, type is set to local_connection.
 			tcp::endpoint ip;
 			connection_type type;
+
+			// this is true if the peer is a seed
+			bool seed;
 
 			// the time when this peer was optimistically unchoked
 			// the last time.
