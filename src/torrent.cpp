@@ -519,7 +519,7 @@ namespace libtorrent
 				get_handle(), peers.size(), "Got peers from DHT"));
 		}
 		std::for_each(peers.begin(), peers.end(), bind(
-			&policy::peer_from_tracker, boost::ref(m_policy), _1, peer_id(0)));
+			&policy::peer_from_tracker, boost::ref(m_policy), _1, peer_id(0), 0));
 	}
 
 #endif

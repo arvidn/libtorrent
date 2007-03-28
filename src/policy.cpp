@@ -512,9 +512,10 @@ namespace libtorrent
 		for (std::vector<peer>::iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
-			if(i->connection) continue;
-			if(i->banned) continue;
-			if(i->type == peer::not_connectable) continue;
+			if (i->connection) continue;
+			if (i->banned) continue;
+			if (i->type == peer::not_connectable) continue;
+			if (i->seed && m_torrent->is_seed()) continue;
 
 			assert(i->connected <= local_time);
 
@@ -857,7 +858,7 @@ namespace libtorrent
 		}
 	}
 
-	void policy::ban_peer(const peer_connection& c)
+	void policy::ban_peer(peer_connection const& c)
 	{
 		INVARIANT_CHECK;
 
@@ -879,6 +880,21 @@ namespace libtorrent
 		i->type = peer::not_connectable;
 		i->ip.port(0);
 		i->banned = true;
+	}
+
+	void policy::set_seed(peer_connection const& c)
+	{
+		INVARIANT_CHECK;
+
+		std::vector<peer>::iterator i = std::find_if(
+			m_peers.begin()
+			, m_peers.end()
+			, match_peer_connection(c));
+
+		// it might be an http-seed
+		if (i == m_peers.end()) return;
+
+		i->seed = true;
 	}
 
 	void policy::new_connection(peer_connection& c)
@@ -974,7 +990,8 @@ namespace libtorrent
 		m_last_optimistic_disconnect = second_clock::universal_time();
 	}
 
-	void policy::peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid)
+	void policy::peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid
+		, char flags)
 	{
 		INVARIANT_CHECK;
 
@@ -1012,6 +1029,7 @@ namespace libtorrent
 				// the iterator is invalid
 				// because of the push_back()
 				i = m_peers.end() - 1;
+				if (flags & 0x02) p.seed = true;
 				just_added = true;
 			}
 			else
@@ -1022,6 +1040,7 @@ namespace libtorrent
 				// not known, so save it. Client may also have changed port
 				// for some reason.
 				i->ip = remote;
+				if (flags & 0x02) i->seed = true;
 
 				if (i->connection)
 				{
@@ -1386,7 +1405,8 @@ namespace libtorrent
 #endif
 
 	policy::peer::peer(const tcp::endpoint& ip_, peer::connection_type t)
-		: ip(ip_)
+		: seed(false)
+		, ip(ip_)
 		, type(t)
 		, last_optimistically_unchoked(
 			boost::gregorian::date(1970,boost::gregorian::Jan,1))

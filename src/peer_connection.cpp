@@ -678,9 +678,13 @@ namespace libtorrent
 					t->get_policy().peer_is_interesting(*this);
 			}
 
-			if (t->is_seed() && is_seed())
+			if (is_seed())
 			{
-				throw protocol_error("seed to seed connection redundant, disconnecting");
+				t->get_policy().set_seed(*this);
+				if (t->is_seed())
+				{
+					throw protocol_error("seed to seed connection redundant, disconnecting");
+				}
 			}
 		}
 	}
@@ -751,6 +755,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << " *** THIS IS A SEED ***\n";
 #endif
+			t->get_policy().set_seed(*this);
 			// if we're a seed too, disconnect
 			if (t->is_seed())
 			{
