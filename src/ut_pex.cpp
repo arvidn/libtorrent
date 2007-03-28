@@ -60,6 +60,18 @@ namespace libtorrent { namespace
 		max_peer_entries = 100
 	};
 
+	bool send_peer(peer_connection const& p)
+	{
+		// don't send out peers that we haven't connected to
+		// (that have connected to us)
+		if (!p.is_local()) return false;
+		// don't send out peers that we haven't successfully connected to
+		if (p.is_connecting()) return false;
+		// ut pex does not support IPv6
+		if (!p.remote().address().is_v4()) return false;
+		return true;
+	}
+
 	struct ut_pex_plugin: torrent_plugin
 	{
 		ut_pex_plugin(torrent& t): m_torrent(t), m_1_minute(0) {}
@@ -96,14 +108,8 @@ namespace libtorrent { namespace
 			int num_added = 0;
 			for (torrent::peer_iterator i = m_torrent.begin()
 				, end(m_torrent.end()); i != end; ++i)
-			{	
-				// don't send out peers that we haven't connected to
-				// (that have connected to us)
-				if (!i->second->is_local()) continue;
-				// don't send out peers that we haven't successfully connected to
-				if (i->second->is_connecting()) continue;
-				// ut pex does not support IPv6
-				if (!i->first.address().is_v4()) continue;
+			{
+				if (!send_peer(*i->second)) continue;
 
 				m_old_peers.insert(i->first);
 
@@ -158,6 +164,7 @@ namespace libtorrent { namespace
 			, m_tp(tp)
 			, m_1_minute(0)
 			, m_message_index(0)
+			, m_first_time(true)
 		{}
 
 		virtual void add_handshake(entry& h)
@@ -193,10 +200,6 @@ namespace libtorrent { namespace
 
 			if (body.left() < length) return true;
 
-			// in case we are a seed we do not use the peers
-			// from the pex message to prevent us from 
-			// overloading ourself
-			
 			entry pex_msg = bdecode(body.begin, body.end);
 			std::string const& peers = pex_msg["added"].string();
 			std::string const& peer_flags = pex_msg["added.f"].string();
@@ -230,15 +233,66 @@ namespace libtorrent { namespace
 			if (!m_message_index) return;	// no handshake yet
 			if (++m_1_minute <= 60) return;
 
-			send_ut_peer_list();
+			if (m_first_time)
+			{
+				send_ut_peer_list();
+				m_first_time = false;
+			}
+			else
+			{
+				send_ut_peer_diff();
+			}
 			m_1_minute = 0;
 		}
 
 	private:
 
+		void send_ut_peer_diff()
+		{
+			std::vector<char> const& pex_msg = m_tp.get_ut_pex_msg();
+
+			buffer::interval i = m_pc.allocate_send_buffer(6 + pex_msg.size());
+
+			detail::write_uint32(1 + 1 + pex_msg.size(), i.begin);
+			detail::write_uint8(bt_peer_connection::msg_extended, i.begin);
+			detail::write_uint8(m_message_index, i.begin);
+			std::copy(pex_msg.begin(), pex_msg.end(), i.begin);
+			i.begin += pex_msg.size();
+
+			assert(i.begin == i.end);
+			m_pc.setup_send();
+		}
+
 		void send_ut_peer_list()
 		{
-			std::vector<char>& pex_msg = m_tp.get_ut_pex_msg();
+			entry pex;
+			// leave the dropped string empty
+			pex["dropped"].string();
+			std::string& pla = pex["added"].string();
+			std::string& plf = pex["added.f"].string();
+			std::back_insert_iterator<std::string> pla_out(pla);
+			std::back_insert_iterator<std::string> plf_out(plf);
+
+			int num_added = 0;
+			for (torrent::peer_iterator i = m_torrent.begin()
+				, end(m_torrent.end()); i != end; ++i)
+			{
+				if (!send_peer(*i->second)) continue;
+
+				// don't write too big of a package
+				if (num_added >= max_peer_entries) continue;
+
+				// i->first was added since the last time
+				detail::write_endpoint(i->first, pla_out);
+				// no supported flags to set yet
+				// 0x01 - peer supports encryption
+				// 0x02 - peer is a seed
+				int flags = i->second->is_seed() ? 2 : 0;
+				detail::write_uint8(flags, plf_out);
+				++num_added;
+			}
+			std::vector<char> pex_msg;
+			bencode(std::back_inserter(pex_msg), pex);
 
 			buffer::interval i = m_pc.allocate_send_buffer(6 + pex_msg.size());
 
@@ -257,6 +311,12 @@ namespace libtorrent { namespace
 		ut_pex_plugin& m_tp;
 		int m_1_minute;
 		int m_message_index;
+
+		// this is initialized to true, and set to
+		// false after the first pex message has been sent.
+		// it is used to know if a diff message or a full
+		// message should be sent.
+		bool m_first_time;
 	};
 
 	boost::shared_ptr<peer_plugin> ut_pex_plugin::new_connection(peer_connection* pc)
