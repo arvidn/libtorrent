@@ -505,9 +505,9 @@ namespace libtorrent
 
 	policy::peer *policy::find_connect_candidate()
 	{
-		boost::posix_time::ptime local_time=second_clock::universal_time();
+		boost::posix_time::ptime local_time = second_clock::universal_time();
 		boost::posix_time::ptime ptime(local_time);
-		policy::peer* candidate  =0;
+		policy::peer* candidate = 0;
 
 		for (std::vector<peer>::iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
@@ -683,7 +683,8 @@ namespace libtorrent
 				// every minute, disconnect the worst peer in hope of finding a better peer
 
 				boost::posix_time::ptime local_time = second_clock::universal_time();
-				if (m_last_optimistic_disconnect + boost::posix_time::seconds(120) <= local_time)
+				if (m_last_optimistic_disconnect + boost::posix_time::seconds(120) <= local_time
+					&& find_connect_candidate())
 				{
 					m_last_optimistic_disconnect = local_time;
 					--max_connections; // this will have the effect of disconnecting the worst peer
@@ -1275,6 +1276,7 @@ namespace libtorrent
 
 //		assert(c.is_disconnecting());
 		bool unchoked = false;
+		bool erase = false;
 
 		std::vector<peer>::iterator i = std::find_if(
 			m_peers.begin()
@@ -1293,8 +1295,8 @@ namespace libtorrent
 
 		if (c.failed())
 		{
-			i->type = peer::not_connectable;
-			i->ip.port(0);
+			if (++i->failcount > 3) erase = true;
+			i->connected = second_clock::universal_time();
 		}
 
 		// if the share ratio is 0 (infinite), the
@@ -1309,6 +1311,9 @@ namespace libtorrent
 		i->prev_amount_download += c.statistics().total_payload_download();
 		i->prev_amount_upload += c.statistics().total_payload_upload();
 		i->connection = 0;
+
+		if (erase)
+			m_peers.erase(i);
 
 		if (unchoked)
 		{
@@ -1405,9 +1410,10 @@ namespace libtorrent
 #endif
 
 	policy::peer::peer(const tcp::endpoint& ip_, peer::connection_type t)
-		: seed(false)
-		, ip(ip_)
+		: ip(ip_)
 		, type(t)
+		, failcount(0)
+		, seed(false)
 		, last_optimistically_unchoked(
 			boost::gregorian::date(1970,boost::gregorian::Jan,1))
 		, connected(boost::gregorian::date(1970,boost::gregorian::Jan,1))

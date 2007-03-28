@@ -148,6 +148,9 @@ namespace libtorrent
 			tcp::endpoint ip;
 			connection_type type;
 
+			// the number of failed connection attempts this peer has
+			int failcount;
+
 			// this is true if the peer is a seed
 			bool seed;
 
@@ -226,7 +229,7 @@ namespace libtorrent
 				// this timeout has to be customizable!
 				return p.connection == 0
 					&& p.connected != not_tried_yet
-					&& second_clock::universal_time() - p.connected > minutes(30);
+					&& second_clock::universal_time() - p.connected > minutes(120);
 			}
 		};
 
