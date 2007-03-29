@@ -58,7 +58,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	m_timeout = timeout;
 	m_timer.expires_from_now(m_timeout);
 	m_timer.async_wait(bind(&http_connection::on_timeout, shared_from_this(), _1));
-	if (m_hostname == hostname && m_port == port)
+	if (m_sock.is_open() && m_hostname == hostname && m_port == port)
 	{
 		m_parser.reset();
 		asio::async_write(m_sock, asio::buffer(sendbuffer)
