@@ -48,8 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #endif
 
-//#define TORRENT_PIECE_PICKER_INVARIANT_CHECK INVARIANT_CHECK
-#define TORRENT_PIECE_PICKER_INVARIANT_CHECK
+#define TORRENT_PIECE_PICKER_INVARIANT_CHECK INVARIANT_CHECK
+//#define TORRENT_PIECE_PICKER_INVARIANT_CHECK
 
 namespace libtorrent
 {
@@ -215,6 +215,7 @@ namespace libtorrent
 				else
 					++num_have_filtered;
 			}
+#if 0
 			if (t != 0)
 			{
 				int actual_peer_count = 0;
@@ -247,7 +248,8 @@ namespace libtorrent
 				}
 */
 			}
-
+#endif
+/*
 			if (i->index == piece_pos::we_have_index)
 			{
 				assert(t == 0 || t->have_piece(index));
@@ -286,18 +288,16 @@ namespace libtorrent
 					}
 				}
 			}
-
-			std::vector<downloading_piece>::const_iterator down
-				= std::find_if(m_downloads.begin(),
-				m_downloads.end(),
-				has_index(index));
+*/
+			int count = std::count_if(m_downloads.begin(), m_downloads.end()
+				, has_index(index));
 			if (i->downloading == 1)
 			{
-				assert(down != m_downloads.end());
+				assert(count == 1);
 			}
 			else
 			{
-				assert(down == m_downloads.end());
+				assert(count == 0);
 			}
 		}
 		assert(num_filtered == m_num_filtered);

@@ -1094,7 +1094,7 @@ namespace libtorrent
 				// in case we just became a seed
 				t->announce_piece(p.piece);
 				assert(t->valid_metadata());
-				// if we jsut became a seed, picker is now invalid, since it
+				// if we just became a seed, picker is now invalid, since it
 				// is deallocated by the torrent once it starts seeding
 				if (!was_finished
 					&& (t->is_seed()
