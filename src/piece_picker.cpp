@@ -652,8 +652,7 @@ namespace libtorrent
 		m_downloads.erase(i);
 		p.downloading = 0;
 
-		assert(std::find_if(m_downloads.begin()
-			, m_downloads.end()
+		assert(std::find_if(m_downloads.begin(), m_downloads.end()
 			, has_index(index)) == m_downloads.end());
 
 		if (p.filtered())
@@ -698,9 +697,8 @@ namespace libtorrent
 					has_index(index));
 				assert(i != m_downloads.end());
 				m_downloads.erase(i);
-				assert(std::find_if(m_downloads.begin(),
-					m_downloads.end(),
-					has_index(index)) == m_downloads.end());
+				assert(std::find_if(m_downloads.begin(), m_downloads.end()
+					, has_index(index)) == m_downloads.end());
 			}
 			p.downloading = 0;
 		}
@@ -935,8 +933,8 @@ namespace libtorrent
 
 		if (m_piece_map[index].downloading == 0)
 		{
-			assert(std::find_if(m_downloads.begin(), m_downloads.end(), has_index(index))
-				== m_downloads.end());
+			assert(std::find_if(m_downloads.begin(), m_downloads.end()
+				, has_index(index)) == m_downloads.end());
 			return false;
 		}
 		std::vector<downloading_piece>::const_iterator i
@@ -1125,23 +1123,24 @@ namespace libtorrent
 
 		if (m_piece_map[block.piece_index].downloading == 0)
 		{
-			assert(std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index)) == m_downloads.end());
+			assert(std::find_if(m_downloads.begin(), m_downloads.end()
+				, has_index(block.piece_index)) == m_downloads.end());
 			return;
 		}
 
-		std::vector<downloading_piece>::iterator i
-			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
+		std::vector<downloading_piece>::iterator i = std::find_if(m_downloads.begin()
+			, m_downloads.end(), has_index(block.piece_index));
 		assert(i != m_downloads.end());
 
-		if (i->finished_blocks[block.block_index]) return;
+		if (i->finished_blocks[block.block_index])
+		{
+			assert(std::find_if(m_downloads.begin(), m_downloads.end()
+				, has_index(block.piece_index)) == m_downloads.end());
+			return;
+		}
 
 		assert(block.block_index < blocks_in_piece(block.piece_index));
-#ifndef NDEBUG
-		if (i->requested_blocks[block.block_index] == false)
-		{
-			assert(false);
-		}
-#endif
+		assert(i->requested_blocks[block.block_index]);
 
 		// clear this block as being downloaded
 		i->requested_blocks[block.block_index] = false;
@@ -1159,8 +1158,8 @@ namespace libtorrent
 			p.downloading = 0;
 			move(prio, p.index);
 
-			assert(std::find_if(m_downloads.begin(),
-				m_downloads.end(), has_index(p.index)) == m_downloads.end());
+			assert(std::find_if(m_downloads.begin(), m_downloads.end()
+				, has_index(block.piece_index)) == m_downloads.end());
 		}
 	}
 
