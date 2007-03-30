@@ -343,7 +343,7 @@ void upnp::map_port(rootdevice& d, int i)
 {
 	d.upnp_connection.reset(new http_connection(m_socket.io_service()
 		, boost::bind(&upnp::on_upnp_map_response, this, _1, _2
-		, boost::ref(d))));
+		, boost::ref(d), i)));
 
 	std::string soap_action = "AddPortMapping";
 
@@ -432,6 +432,17 @@ namespace
 void upnp::on_upnp_xml(asio::error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d)
 {
+	d.upnp_connection.reset();
+
+	if (e)
+	{
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+		m_log << to_simple_string(microsec_clock::universal_time())
+			<< " <== error while fetching control url: " << e << std::endl;
+#endif
+		return;
+	}
+
 	parse_state s;
 	s.reset("urn:schemas-upnp-org:service:WANIPConnection:1");
 	xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
@@ -453,7 +464,6 @@ void upnp::on_upnp_xml(asio::error_code const& e
 #endif
 
 	d.control_url = s.control_url;
-	d.upnp_connection.reset();
 
 	map_port(d, 0);
 }
@@ -484,13 +494,15 @@ namespace
 }
 
 void upnp::on_upnp_map_response(asio::error_code const& e
-	, libtorrent::http_parser const& p, rootdevice& d)
+	, libtorrent::http_parser const& p, rootdevice& d, int mapping)
 {
+	d.upnp_connection.reset();
+
 	if (e)
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << to_simple_string(microsec_clock::universal_time())
-		<< " <== error while adding portmap: " << e << std::endl;
+		m_log << to_simple_string(microsec_clock::universal_time())
+			<< " <== error while adding portmap: " << e << std::endl;
 #endif
 		return;
 	}
@@ -527,12 +539,52 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 	
 	if (s.error_code == 725)
 	{
+		// only permanent leases supported
 		d.lease_duration = 0;
-		map_port(d, 0);
-		return;
+		map_port(d, mapping);
+	}
+	else if (s.error_code == 718)
+	{
+		// conflict in mapping, try next external port
+		++d.mapping[0].external_port;
+		map_port(d, mapping);
+	}
+	else if (s.error_code != -1)
+	{
+		std::map<int, std::string> error_codes;
+		error_codes[402] = "Invalid Arguments";
+		error_codes[501] = "Action Failed";
+		error_codes[714] = "The specified value does not exist in the array";
+		error_codes[715] = "The source IP address cannot be wild-carded";
+		error_codes[716] = "The external port cannot be wild-carded";
+		error_codes[718] = "The port mapping entry specified conflicts with "
+			"a mapping assigned previously to another client";
+		error_codes[724] = "Internal and External port values must be the same";
+		error_codes[725] = "The NAT implementation only supports permanent "
+			"lease times on port mappings";
+		error_codes[726] = "RemoteHost must be a wildcard and cannot be a "
+			"specific IP address or DNS name";
+		error_codes[727] = "ExternalPort must be a wildcard and cannot be a specific port ";
+		m_callback(0, 0, "UPnP mapping error " + boost::lexical_cast<std::string>(s.error_code)
+			+ ": " + error_codes[s.error_code]);
 	}
 	
+	// TODO: update d.mapping[mapping].expires
 	std::cerr << std::string(p.get_body().begin, p.get_body().end) << std::endl;
+	if (s.error_code == -1)
+	{
+		int tcp = 0;
+		int udp = 0;
+		
+		if (mapping == 0)
+			tcp = d.mapping[mapping].external_port;
+		else
+			udp = d.mapping[mapping].external_port;
+
+		m_callback(tcp, udp, "");
+	}
+
+	if (mapping < 1) map_port(d, mapping + 1);
 }
 
 void upnp::close()

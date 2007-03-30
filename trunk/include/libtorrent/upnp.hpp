@@ -79,7 +79,8 @@ private:
 	void on_upnp_xml(asio::error_code const& e
 		, libtorrent::http_parser const& p, rootdevice& d);
 	void on_upnp_map_response(asio::error_code const& e
-		, libtorrent::http_parser const& p, rootdevice& d);
+		, libtorrent::http_parser const& p, rootdevice& d
+		, int mapping);
 
 /*
 	void send_map_request(int i);
