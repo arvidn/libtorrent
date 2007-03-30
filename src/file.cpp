@@ -204,7 +204,6 @@ namespace libtorrent
 
 		size_type read(char* buf, size_type num_bytes)
 		{
-			assert(num_bytes > 0);
 			assert(m_open_mode & mode_in);
 			assert(m_fd != -1);
 
@@ -213,7 +212,7 @@ namespace libtorrent
 #else
 			size_type ret = ::read(m_fd, buf, num_bytes);
 #endif
-			if (ret == -1 || ret == 0)
+			if (ret == -1)
 			{
 				std::stringstream msg;
 				msg << "read failed: " << strerror(errno);
