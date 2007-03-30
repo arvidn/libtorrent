@@ -643,28 +643,26 @@ namespace libtorrent
 
 		assert(p.downloading == 1);
 		assert(!p.have());
+
+		std::vector<downloading_piece>::iterator i
+			= std::find_if(m_downloads.begin()
+			, m_downloads.end()
+			, has_index(index));
+		assert(i != m_downloads.end());
+		m_downloads.erase(i);
+		p.downloading = 0;
+
+		assert(std::find_if(m_downloads.begin()
+			, m_downloads.end()
+			, has_index(index)) == m_downloads.end());
+
 		if (p.filtered())
 		{
 			--m_num_filtered;
 			++m_num_have_filtered;
-			return;
 		}
 		if (p.have()) return;
 		p.set_have();
-		if (p.downloading)
-		{
-			std::vector<downloading_piece>::iterator i
-				= std::find_if(m_downloads.begin(),
-				m_downloads.end(),
-				has_index(index));
-			assert(i != m_downloads.end());
-			m_downloads.erase(i);
-			p.downloading = 0;
-
-			assert(std::find_if(m_downloads.begin(),
-				m_downloads.end(),
-				has_index(index)) == m_downloads.end());
-		}
 		assert(p.priority(m_sequenced_download_threshold) == 0);
 		move(priority, info_index);
 	}
