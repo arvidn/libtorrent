@@ -1444,11 +1444,13 @@ namespace libtorrent
 		try
 		{
 
-			m_storage->read(
-				&m_piece_data[0]
-				, m_current_slot
-				, 0
-				, int(m_info.piece_size(m_current_slot)));
+			int piece_size = int(m_info.piece_size(m_current_slot));
+			int num_read = m_storage->read(&m_piece_data[0]
+				, m_current_slot, 0, piece_size);
+
+			// if the file is incomplete, skip the rest of it
+			if (num_read != piece_size)
+				throw file_error("");
 
 			if (m_hash_to_piece.empty())
 			{
@@ -1458,13 +1460,8 @@ namespace libtorrent
 				}
 			}
 
-			int piece_index = identify_data(
-				m_piece_data
-				, m_current_slot
-				, pieces
-				, num_pieces
-				, m_hash_to_piece
-				, mutex);
+			int piece_index = identify_data(m_piece_data, m_current_slot
+				, pieces, num_pieces, m_hash_to_piece, mutex);
 
 			assert(num_pieces == std::count(pieces.begin(), pieces.end(), true));
 			assert(piece_index == unassigned || piece_index >= 0);
