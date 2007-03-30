@@ -532,6 +532,8 @@ namespace libtorrent
 
 	void torrent::tracker_warning(std::string const& msg)
 	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
 		INVARIANT_CHECK;
 
 		if (m_ses.m_alerts.should_post(alert::warning))
@@ -547,9 +549,9 @@ namespace libtorrent
 		, int complete
 		, int incomplete)
 	{
-		INVARIANT_CHECK;
-
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+		INVARIANT_CHECK;
 
 		m_failed_trackers = 0;
 		// announce intervals less than 5 minutes
@@ -2683,6 +2685,7 @@ namespace libtorrent
 		tracker_request const&)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
 		INVARIANT_CHECK;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -2707,9 +2710,10 @@ namespace libtorrent
 	void torrent::tracker_request_error(tracker_request const&
 		, int response_code, const std::string& str)
 	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
 		INVARIANT_CHECK;
 
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		debug_log(std::string("*** tracker error: ") + str);
 #endif
