@@ -662,6 +662,7 @@ namespace libtorrent
 		}
 		if (p.have()) return;
 		p.set_have();
+		if (priority == 0) return;
 		assert(p.priority(m_sequenced_download_threshold) == 0);
 		move(priority, info_index);
 	}
