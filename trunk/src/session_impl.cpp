@@ -965,7 +965,7 @@ namespace libtorrent { namespace detail
 		{
 			torrent& t = *i->second;
 			assert(!t.is_aborted());
-			if (t.should_request() && m_external_listen_port > 0)
+			if (t.should_request())
 			{
 				tracker_request req = t.generate_tracker_request();
 				req.listen_port = m_external_listen_port;
@@ -1224,6 +1224,10 @@ namespace libtorrent { namespace detail
 		, int block_size
 		, storage_constructor_type sc)
 	{
+		// if you get this assert, you haven't managed to
+		// open a listen port. call listen_on() first.
+		assert(m_external_listen_port > 0);
+
 		// make sure the block_size is an even power of 2
 #ifndef NDEBUG
 		for (int i = 0; i < 32; ++i)
