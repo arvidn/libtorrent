@@ -686,7 +686,6 @@ namespace libtorrent
 		{
 			--m_num_filtered;
 			++m_num_have_filtered;
-			return;
 		}
 		if (info_index == piece_pos::we_have_index) return;
 		remove(p.downloading, p.filtered, priority, info_index);
