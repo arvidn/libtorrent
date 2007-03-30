@@ -965,10 +965,9 @@ namespace libtorrent { namespace detail
 		{
 			torrent& t = *i->second;
 			assert(!t.is_aborted());
-			if (t.should_request())
+			if (t.should_request() && m_external_listen_port > 0)
 			{
 				tracker_request req = t.generate_tracker_request();
-				assert(m_external_listen_port > 0);
 				req.listen_port = m_external_listen_port;
 				req.key = m_key;
 				m_tracker_manager.queue_request(m_strand, req, t.tracker_login()
