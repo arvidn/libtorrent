@@ -496,6 +496,9 @@ namespace libtorrent { namespace detail
 #endif
 		, m_natpmp(m_io_service, m_listen_interface.address()
 			, bind(&session_impl::on_port_mapping, this, _1, _2, _3))
+		, m_upnp(m_io_service, m_listen_interface.address()
+			, m_settings.user_agent
+			, bind(&session_impl::on_port_mapping, this, _1, _2, _3))
 		, m_timer(m_io_service)
 		, m_checker_impl(*this)
 	{
@@ -687,6 +690,7 @@ namespace libtorrent { namespace detail
 		}
 #endif
 		m_natpmp.set_mappings(m_listen_interface.port(), 0);
+		m_upnp.set_mappings(m_listen_interface.port(), 0);
 		if (m_listen_socket) async_accept();
 	}
 
@@ -1078,6 +1082,7 @@ namespace libtorrent { namespace detail
 		deadline_timer tracker_timer(m_io_service);
 		// this will remove the port mappings
 		m_natpmp.close();
+		m_upnp.close();
 
 		session_impl::mutex_t::scoped_lock l(m_mutex);
 
@@ -1471,8 +1476,12 @@ namespace libtorrent { namespace detail
 			m_dht->rebind(new_interface.address()
 				, m_dht_settings.service_port);
 			if (new_listen_address)
+			{
 				m_natpmp.rebind(new_interface.address());
+				m_upnp.rebind(new_interface.address());
+			}
 			m_natpmp.set_mappings(0, m_dht_settings.service_port);
+			m_upnp.set_mappings(0, m_dht_settings.service_port);
 		}
 #endif
 
@@ -1595,6 +1604,7 @@ namespace libtorrent { namespace detail
 		}
 		m_external_udp_port = m_dht_settings.service_port;
 		m_natpmp.set_mappings(0, m_dht_settings.service_port);
+		m_upnp.set_mappings(0, m_dht_settings.service_port);
 		m_dht = new dht::dht_tracker(m_io_service
 			, m_dht_settings, m_listen_interface.address()
 			, startup_state);
@@ -1625,6 +1635,7 @@ namespace libtorrent { namespace detail
 			m_dht->rebind(m_listen_interface.address()
 				, settings.service_port);
 			m_natpmp.set_mappings(0, m_dht_settings.service_port);
+			m_upnp.set_mappings(0, m_dht_settings.service_port);
 			m_external_udp_port = settings.service_port;
 		}
 		m_dht_settings = settings;

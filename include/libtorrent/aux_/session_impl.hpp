@@ -78,6 +78,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/bandwidth_manager.hpp"
 #include "libtorrent/natpmp.hpp"
+#include "libtorrent/upnp.hpp"
 
 namespace libtorrent
 {
@@ -393,6 +394,7 @@ namespace libtorrent
 			int m_external_udp_port;
 #endif
 			natpmp m_natpmp;
+			upnp m_upnp;
 
 			// the timer used to fire the second_tick
 			deadline_timer m_timer;

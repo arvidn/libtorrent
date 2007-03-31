@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <asio/ip/host_name.hpp>
 #include <asio/ip/multicast.hpp>
+#include <boost/thread/mutex.hpp>
 #include <cstdlib>
 
 using boost::bind;
@@ -48,6 +49,8 @@ using namespace libtorrent;
 using boost::posix_time::microsec_clock;
 using boost::posix_time::milliseconds;
 using boost::posix_time::seconds;
+using boost::posix_time::second_clock;
+using boost::posix_time::ptime;
 
 enum { num_mappings = 2 };
 
@@ -64,11 +67,19 @@ upnp::upnp(io_service& ios, address const& listen_interface
 	, m_broadcast_timer(ios)
 	, m_refresh_timer(ios)
 	, m_disabled(false)
+	, m_closing(false)
 {
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log.open("upnp.log", std::ios::in | std::ios::out | std::ios::trunc);
 #endif
 	rebind(listen_interface);
+}
+
+upnp::~upnp()
+{
+	boost::mutex::scoped_lock l(m_mutex);
+	while (!m_devices.empty())
+		m_condvar.wait(l);
 }
 
 void upnp::rebind(address const& listen_interface)
@@ -269,7 +280,9 @@ void upnp::on_reply(asio::error_code const& e
 
 	rootdevice d;
 	d.url = url;
-	
+
+	boost::mutex::scoped_lock l(m_mutex);
+
 	std::set<rootdevice>::iterator i = m_devices.find(d);
 
 	if (i == m_devices.end())
@@ -316,11 +329,6 @@ void upnp::on_reply(asio::error_code const& e
 			, boost::bind(&upnp::on_upnp_xml, this, _1, _2, boost::ref(d))));
 		d.upnp_connection->get(d.url);
 	}
-	else if (!i->ports_mapped)
-	{
-	// TODO: initiate a port map operation if any is pending
-	}
-	
 }
 
 void upnp::post(rootdevice& d, std::stringstream const& soap
@@ -370,6 +378,33 @@ void upnp::map_port(rootdevice& d, int i)
 		<< " ==> AddPortMapping: " << soap.str() << std::endl;
 #endif
 	
+}
+
+void upnp::unmap_port(rootdevice& d, int i)
+{
+	d.upnp_connection.reset(new http_connection(m_socket.io_service()
+		, boost::bind(&upnp::on_upnp_unmap_response, this, _1, _2
+		, boost::ref(d), i)));
+
+	std::string soap_action = "DeletePortMapping";
+
+	std::stringstream soap;
+	
+	soap << "<?xml version=\"1.0\"?>\n"
+		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
+		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
+		"<s:Body><u:" << soap_action << " xmlns:u=\"" << d.service_namespace << "\">";
+
+	soap << "<NewRemoteHost></NewRemoteHost>"
+		"<NewExternalPort>" << d.mapping[i].external_port << "</NewExternalPort>"
+		"<NewProtocol>" << (d.mapping[i].protocol ? "UDP" : "TCP") << "</NewProtocol>";
+	soap << "</u:" << soap_action << "></s:Body></s:Envelope>";
+
+	post(d, soap, soap_action);
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+	m_log << to_simple_string(microsec_clock::universal_time())
+		<< " ==> DeletePortMapping: " << soap.str() << std::endl;
+#endif
 }
 
 namespace
@@ -507,6 +542,10 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 		return;
 	}
 	
+	boost::mutex::scoped_lock l(m_mutex);
+	if (m_closing) return;
+	l.unlock();
+	
 //	 error code response may look like this:
 //	<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
 //		s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
@@ -568,9 +607,13 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 		m_callback(0, 0, "UPnP mapping error " + boost::lexical_cast<std::string>(s.error_code)
 			+ ": " + error_codes[s.error_code]);
 	}
-	
-	// TODO: update d.mapping[mapping].expires
-	std::cerr << std::string(p.get_body().begin, p.get_body().end) << std::endl;
+
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+	m_log << to_simple_string(microsec_clock::universal_time())
+		<< " <== map response: " << std::string(p.get_body().begin, p.get_body().end)
+		<< std::endl;
+#endif
+
 	if (s.error_code == -1)
 	{
 		int tcp = 0;
@@ -582,16 +625,111 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 			udp = d.mapping[mapping].external_port;
 
 		m_callback(tcp, udp, "");
+		if (d.lease_duration > 0)
+		{
+			d.mapping[mapping].expires = second_clock::universal_time() + seconds(d.lease_duration * 0.75);
+			ptime next_expire = m_refresh_timer.expires_at();
+			if (next_expire == ptime(boost::date_time::not_a_date_time)
+				|| next_expire < second_clock::universal_time()
+				|| next_expire > d.mapping[mapping].expires)
+			{
+				m_refresh_timer.expires_at(d.mapping[mapping].expires);
+				m_refresh_timer.async_wait(bind(&upnp::on_expire, this, _1));
+			}
+		}
+		else
+		{
+			d.mapping[mapping].expires = ptime(boost::date_time::not_a_date_time);
+		}
 	}
 
-	if (mapping < 1) map_port(d, mapping + 1);
+	if (mapping < num_mappings - 1)
+		map_port(d, mapping + 1);
+}
+
+void upnp::on_upnp_unmap_response(asio::error_code const& e
+	, libtorrent::http_parser const& p, rootdevice& d, int mapping)
+{
+	d.upnp_connection.reset();
+
+	if (e)
+	{
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+		m_log << to_simple_string(microsec_clock::universal_time())
+			<< " <== error while deleting portmap: " << e << std::endl;
+#endif
+	}
+
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+	m_log << to_simple_string(microsec_clock::universal_time())
+		<< " <== unmap response: " << std::string(p.get_body().begin, p.get_body().end)
+		<< std::endl;
+#endif
+
+	// ignore errors and continue with the next mapping for this device
+	if (mapping < num_mappings - 1)
+	{
+		unmap_port(d, mapping + 1);
+	}
+	else
+	{
+		boost::mutex::scoped_lock l(m_mutex);
+		// the main thread is likely to be waiting for
+		// all the unmap operations to complete
+		m_devices.erase(d);
+		m_condvar.notify_all();
+	}
+}
+
+void upnp::on_expire(asio::error_code const& e)
+{
+	if (e) return;
+
+	ptime now = second_clock::universal_time();
+	ptime next_expire = ptime(boost::date_time::not_a_date_time);
+
+	boost::mutex::scoped_lock l(m_mutex);
+	for (std::set<rootdevice>::iterator i = m_devices.begin()
+		, end(m_devices.end()); i != end; ++i)
+	{
+		rootdevice& d = const_cast<rootdevice&>(*i);
+		for (int m = 0; m < num_mappings; ++m)
+		{
+			if (d.mapping[m].expires != ptime(boost::date_time::not_a_date_time))
+				continue;
+
+			if (d.mapping[m].expires < now)
+			{
+				d.mapping[m].expires = ptime(boost::date_time::not_a_date_time);
+				map_port(d, m);
+			}
+			else if (next_expire == ptime(boost::date_time::not_a_date_time)
+				|| d.mapping[m].expires < next_expire)
+			{
+				next_expire = d.mapping[m].expires;
+			}
+		}
+	}
+	if (next_expire != ptime(boost::date_time::not_a_date_time))
+	{
+		m_refresh_timer.expires_at(next_expire);
+		m_refresh_timer.async_wait(bind(&upnp::on_expire, this, _1));
+	}
 }
 
 void upnp::close()
 {
 	if (m_disabled) return;
 	m_socket.close();
-	std::for_each(m_devices.begin(), m_devices.end()
-		, bind(&rootdevice::close, _1));
+
+	boost::mutex::scoped_lock l(m_mutex);
+	m_closing = true;
+
+	for (std::set<rootdevice>::iterator i = m_devices.begin()
+		, end(m_devices.end()); i != end; ++i)
+	{
+		rootdevice& d = const_cast<rootdevice&>(*i);
+		unmap_port(d, 0);
+	}
 }
 
