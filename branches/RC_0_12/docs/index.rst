@@ -12,6 +12,7 @@
 * `who's using libtorrent?`_
 * `report bugs`_
 * `sourceforge page`_
+* `wiki`_
 
 --------
 
@@ -59,8 +60,9 @@ libtorrent
 .. _mailing list: http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 .. _archive: http://dir.gmane.org/gmane.network.bit-torrent.libtorrent
 .. _`who's using libtorrent?`: projects.html
-.. _`report bugs`: http://sourceforge.net/tracker/?group_id=79942&atid=558250
+.. _`report bugs`: http://code.rasterbar.com/libtorrent/newticket
 .. _sourceforge page: http://www.sourceforge.net/projects/libtorrent
+.. _wiki: http://code.rasterbar.com/libtorrent
 
 .. _`ruby bindings`: http://libtorrent-ruby.rubyforge.org/
 .. _`python bindings`: python_binding.html
