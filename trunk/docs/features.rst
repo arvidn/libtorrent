@@ -32,7 +32,7 @@ following features:
 * trackerless torrents (using the Mainline kademlia DHT protocol) with
   some `DHT extensions`_.
 * support for IPv6
-* NAT-PMP support (automatic port mapping on routers that supports it)
+* NAT-PMP and UPnP support (automatic port mapping on routers that supports it)
 * piece-wise, unordered, incremental file allocation
 * uses separate threads for checking files and for main downloader, with a
   fool-proof thread-safe library interface. (i.e. There's no way for the

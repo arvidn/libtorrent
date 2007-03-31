@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/condition.hpp>
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 #include <fstream>
@@ -57,6 +59,7 @@ class upnp : boost::noncopyable
 public:
 	upnp(io_service& ios, address const& listen_interface
 		, std::string const& user_agent, portmap_callback_t const& cb);
+	~upnp();
 
 	void rebind(address const& listen_interface);
 
@@ -67,6 +70,9 @@ public:
 	void close();
 
 private:
+
+	enum { num_mappings = 2 };
+	enum { default_lease_time = 3600 };
 	
 	void update_mapping(int i, int port);
 	void resend_request(asio::error_code const& e);
@@ -81,31 +87,23 @@ private:
 	void on_upnp_map_response(asio::error_code const& e
 		, libtorrent::http_parser const& p, rootdevice& d
 		, int mapping);
-
-/*
-	void send_map_request(int i);
-	void try_next_mapping(int i);
-	void update_expiration_timer();
-	void refresh_mapping(int i);
-	void mapping_expired(asio::error_code const& e, int i);
-*/
+	void on_upnp_unmap_response(asio::error_code const& e
+		, libtorrent::http_parser const& p, rootdevice& d
+		, int mapping);
+	void on_expire(asio::error_code const& e);
 
 	void post(rootdevice& d, std::stringstream const& s
 		, std::string const& soap_action);
 	void map_port(rootdevice& d, int i);
-	
+	void unmap_port(rootdevice& d, int i);
+
 	struct mapping_t
 	{
 		mapping_t()
-			: need_update(false)
-			, local_port(0)
+			: local_port(0)
 			, external_port(0)
 			, protocol(1)
 		{}
-
-		// indicates that the mapping has changed
-		// and needs an update
-		bool need_update;
 
 		// the time the port mapping will expire
 		boost::posix_time::ptime expires;
@@ -125,8 +123,12 @@ private:
 
 	struct rootdevice
 	{
-		rootdevice(): ports_mapped(false), lease_duration(3600)
-			, supports_specific_external(true) {}
+		rootdevice(): lease_duration(default_lease_time)
+			, supports_specific_external(true)
+		{
+			mapping[0].protocol = 0;
+			mapping[1].protocol = 1;
+		}
 		// the interface url, through which the list of
 		// supported interfaces are fetched
 		std::string url;
@@ -136,10 +138,7 @@ private:
 		// either the WANIP namespace or the WANPPP namespace
 		std::string service_namespace;
 
-		mapping_t mapping[2];
-		
-		// true if we already mapped the ports on this device
-		bool ports_mapped;
+		mapping_t mapping[num_mappings];
 		
 		std::string hostname;
 		int port;
@@ -188,7 +187,12 @@ private:
 	// timer used to refresh mappings
 	deadline_timer m_refresh_timer;
 	
+	// locks m_closing and m_devices
+	boost::mutex m_mutex;
+	boost::condition m_condvar;
+	
 	bool m_disabled;
+	bool m_closing;
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	std::ofstream m_log;

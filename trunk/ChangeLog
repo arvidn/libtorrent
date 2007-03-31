@@ -1,3 +1,4 @@
+	* added UPnP support
 	* fixed problem where peer interested flags were not updated correctly
 	  when pieces were filtered
 	* improvements to ut_pex messages, including support for seed flag
