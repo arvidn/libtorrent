@@ -52,15 +52,15 @@ using boost::posix_time::seconds;
 using boost::posix_time::second_clock;
 using boost::posix_time::ptime;
 
-enum { num_mappings = 2 };
-
 // UPnP multicast address and port
 address_v4 multicast_address = address_v4::from_string("239.255.255.250");
 udp::endpoint multicast_endpoint(multicast_address, 1900);
 
 upnp::upnp(io_service& ios, address const& listen_interface
 	, std::string const& user_agent, portmap_callback_t const& cb)
-	: m_user_agent(user_agent)
+	: m_udp_local_port(0)
+	, m_tcp_local_port(0)
+	, m_user_agent(user_agent)
 	, m_callback(cb)
 	, m_retry_count(0)
 	, m_socket(ios)
@@ -173,18 +173,39 @@ void upnp::discover_device()
 	m_broadcast_timer.async_wait(bind(&upnp::resend_request, this, _1));
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << to_simple_string(microsec_clock::universal_time())
-			<< " ==> Broadcasting search for rootdevice" << std::endl;
+	m_log << to_simple_string(microsec_clock::universal_time())
+		<< " ==> Broadcasting search for rootdevice" << std::endl;
 #endif
 }
 
 void upnp::set_mappings(int tcp, int udp)
 {
 	if (m_disabled) return;
-/*
-	update_mapping(0, tcp);
-	update_mapping(1, udp);
-*/
+	m_udp_local_port = udp;
+	m_tcp_local_port = tcp;
+
+	boost::mutex::scoped_lock l(m_mutex);
+	for (std::set<rootdevice>::iterator i = m_devices.begin()
+		, end(m_devices.end()); i != end; ++i)
+	{
+		rootdevice& d = const_cast<rootdevice&>(*i);
+		if (d.mapping[0].local_port != m_tcp_local_port)
+		{
+			if (d.mapping[0].external_port == 0)
+				d.mapping[0].external_port = m_tcp_local_port;
+			d.mapping[0].local_port = m_tcp_local_port;
+			d.mapping[0].need_update = true;
+		}
+		if (d.mapping[1].local_port != m_udp_local_port)
+		{
+			if (d.mapping[1].external_port == 0)
+				d.mapping[1].external_port = m_tcp_local_port;
+			d.mapping[1].local_port = m_tcp_local_port;
+			d.mapping[1].need_update = true;
+		}
+		if (d.mapping[0].need_update || d.mapping[1].need_update)
+			map_port(d, 0);
+	}
 }
 
 void upnp::resend_request(asio::error_code const& e)
@@ -198,7 +219,6 @@ void upnp::resend_request(asio::error_code const& e)
 			<< " *** Got no response in 9 retries. Giving up, "
 			"disabling UPnP." << std::endl;
 #endif
-		// try again in two hours
 		m_disabled = true;
 		return;
 	}
@@ -317,10 +337,20 @@ void upnp::on_reply(asio::error_code const& e
 			<< " <== Found rootdevice: " << d.url << std::endl;
 #endif
 
+		if (m_tcp_local_port != 0)
+		{
+			d.mapping[0].need_update = true;
+			d.mapping[0].local_port = m_tcp_local_port;
+		}
+		if (m_udp_local_port != 0)
+		{
+			d.mapping[1].need_update = true;
+			d.mapping[1].local_port = m_udp_local_port;
+		}
 		boost::tie(i, boost::tuples::ignore) = m_devices.insert(d);
 	}
 
-	if (i->control_url.empty())
+	if (i->control_url.empty() && !i->upnp_connection)
 	{
 		// we don't have a WANIP or WANPPP url for this device,
 		// ask for it
@@ -349,6 +379,13 @@ void upnp::post(rootdevice& d, std::stringstream const& soap
 
 void upnp::map_port(rootdevice& d, int i)
 {
+	if (!d.mapping[i].need_update)
+	{
+		if (i < num_mappings - 1)
+			map_port(d, i + 1);
+		return;
+	}
+	d.mapping[i].need_update = false;
 	d.upnp_connection.reset(new http_connection(m_socket.io_service()
 		, boost::bind(&upnp::on_upnp_map_response, this, _1, _2
 		, boost::ref(d), i)));
@@ -473,7 +510,7 @@ void upnp::on_upnp_xml(asio::error_code const& e
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 		m_log << to_simple_string(microsec_clock::universal_time())
-			<< " <== error while fetching control url: " << e << std::endl;
+			<< " <== error while fetching control url: " << e.message() << std::endl;
 #endif
 		return;
 	}
@@ -537,8 +574,11 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 		m_log << to_simple_string(microsec_clock::universal_time())
-			<< " <== error while adding portmap: " << e << std::endl;
+			<< " <== error while adding portmap: " << e.message() << std::endl;
 #endif
+		boost::mutex::scoped_lock l(m_mutex);
+		m_devices.erase(d);
+		m_condvar.notify_all();
 		return;
 	}
 	
@@ -656,7 +696,7 @@ void upnp::on_upnp_unmap_response(asio::error_code const& e
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 		m_log << to_simple_string(microsec_clock::universal_time())
-			<< " <== error while deleting portmap: " << e << std::endl;
+			<< " <== error while deleting portmap: " << e.message() << std::endl;
 #endif
 	}
 
@@ -726,10 +766,13 @@ void upnp::close()
 	m_closing = true;
 
 	for (std::set<rootdevice>::iterator i = m_devices.begin()
-		, end(m_devices.end()); i != end; ++i)
+		, end(m_devices.end()); i != end;)
 	{
 		rootdevice& d = const_cast<rootdevice&>(*i);
+		if (d.control_url.empty())
+			m_devices.erase(i++);
 		unmap_port(d, 0);
+		++i;
 	}
 }
 
