@@ -100,13 +100,16 @@ private:
 	struct mapping_t
 	{
 		mapping_t()
-			: local_port(0)
+			: need_update(false)
+			, local_port(0)
 			, external_port(0)
 			, protocol(1)
 		{}
 
 		// the time the port mapping will expire
 		boost::posix_time::ptime expires;
+		
+		bool need_update;
 
 		// the local port for this mapping. If this is set
 		// to 0, the mapping is not in use
@@ -156,6 +159,9 @@ private:
 		bool operator<(rootdevice const& rhs) const
 		{ return url < rhs.url; }
 	};
+	
+	int m_udp_local_port;
+	int m_tcp_local_port;
 
 	std::string const& m_user_agent;
 	
