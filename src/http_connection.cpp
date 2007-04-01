@@ -57,7 +57,9 @@ void http_connection::start(std::string const& hostname, std::string const& port
 {
 	m_timeout = timeout;
 	m_timer.expires_from_now(m_timeout);
-	m_timer.async_wait(bind(&http_connection::on_timeout, shared_from_this(), _1));
+	m_timer.async_wait(bind(&http_connection::on_timeout
+		, boost::weak_ptr<http_connection>(shared_from_this()), _1));
+	m_called = false;
 	if (m_sock.is_open() && m_hostname == hostname && m_port == port)
 	{
 		m_parser.reset();
@@ -75,10 +77,15 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	}
 }
 
-void http_connection::on_timeout(asio::error_code const& e)
+void http_connection::on_timeout(boost::weak_ptr<http_connection> p
+	, asio::error_code const& e)
 {
 	if (e == asio::error::operation_aborted) return;
-	m_handler(asio::error::timed_out, m_parser, 0, 0);
+	boost::shared_ptr<http_connection> c = p.lock();
+	if (!c) return;
+	if (c->m_bottled && c->m_called) return;
+	c->m_called = true;
+	c->m_handler(asio::error::timed_out, c->m_parser, 0, 0);
 }
 
 void http_connection::close()
@@ -95,6 +102,8 @@ void http_connection::on_resolve(asio::error_code const& e
 	if (e)
 	{
 		close();
+		if (m_bottled && m_called) return;
+		m_called = true;
 		m_handler(e, m_parser, 0, 0);
 		return;
 	}
@@ -123,6 +132,8 @@ void http_connection::on_connect(asio::error_code const& e
 */	else
 	{ 
 		close();
+		if (m_bottled && m_called) return;
+		m_called = true;
 		m_handler(e, m_parser, 0, 0);
 	}
 }
@@ -132,6 +143,8 @@ void http_connection::on_write(asio::error_code const& e)
 	if (e)
 	{
 		close();
+		if (m_bottled && m_called) return;
+		m_called = true;
 		m_handler(e, m_parser, 0, 0);
 		return;
 	}
@@ -149,13 +162,17 @@ void http_connection::on_read(asio::error_code const& e
 	if (e == asio::error::eof)
 	{
 		close();
-		m_handler(e, m_parser, 0, 0);
+		if (m_bottled && m_called) return;
+		m_called = true;
+		m_handler(asio::error_code(), m_parser, 0, 0);
 		return;
 	}
 
 	if (e)
 	{
 		close();
+		if (m_bottled && m_called) return;
+		m_called = true;
 		m_handler(e, m_parser, 0, 0);
 		return;
 	}
@@ -179,11 +196,15 @@ void http_connection::on_read(asio::error_code const& e
 		}
 		else if (m_bottled && m_parser.finished())
 		{
+			m_timer.cancel();
+			if (m_bottled && m_called) return;
+			m_called = true;
 			m_handler(e, m_parser, 0, 0);
 		}
 	}
 	else
 	{
+		assert(!m_bottled);
 		m_handler(e, m_parser, &m_recvbuffer[0], m_read_pos);
 		m_read_pos = 0;
 	}
@@ -193,6 +214,8 @@ void http_connection::on_read(asio::error_code const& e
 	if (m_read_pos == 1024 * 500)
 	{
 		close();
+		if (m_bottled && m_called) return;
+		m_called = true;
 		m_handler(asio::error::eof, m_parser, 0, 0);
 		return;
 	}

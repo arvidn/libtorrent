@@ -64,6 +64,7 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 		, m_handler(handler)
 		, m_timer(ios)
 		, m_bottled(bottled)
+		, m_called(false)
 	{
 		assert(!m_handler.empty());
 	}
@@ -85,7 +86,8 @@ private:
 /*		, tcp::resolver::iterator i*/);
 	void on_write(asio::error_code const& e);
 	void on_read(asio::error_code const& e, std::size_t bytes_transferred);
-	void on_timeout(asio::error_code const& e);
+	static void on_timeout(boost::weak_ptr<http_connection> p
+		, asio::error_code const& e);
 
 	std::vector<char> m_recvbuffer;
 	tcp::socket m_sock;
@@ -100,6 +102,8 @@ private:
 	// non bottled means that once the headers have been
 	// received, data is streamed to the handler
 	bool m_bottled;
+	// set to true the first time the handler is called
+	bool m_called;
 	std::string m_hostname;
 	std::string m_port;
 };
