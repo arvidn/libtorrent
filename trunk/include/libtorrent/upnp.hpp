@@ -132,6 +132,7 @@ private:
 			mapping[0].protocol = 0;
 			mapping[1].protocol = 1;
 		}
+		
 		// the interface url, through which the list of
 		// supported interfaces are fetched
 		std::string url;
