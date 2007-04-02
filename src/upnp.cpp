@@ -825,11 +825,15 @@ void upnp::on_expire(asio::error_code const& e)
 
 void upnp::close()
 {
-	if (m_disabled) return;
-	m_socket.close();
-
 	boost::mutex::scoped_lock l(m_mutex);
 	m_closing = true;
+	m_socket.close();
+
+	if (m_disabled)
+	{
+		m_devices.clear();
+		return;
+	}
 
 	for (std::set<rootdevice>::iterator i = m_devices.begin()
 		, end(m_devices.end()); i != end;)
