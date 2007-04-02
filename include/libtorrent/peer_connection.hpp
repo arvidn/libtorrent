@@ -145,6 +145,9 @@ namespace libtorrent
 		void set_upload_limit(int limit);
 		void set_download_limit(int limit);
 
+		int upload_limit() const { return m_upload_limit; }
+		int download_limit() const { return m_download_limit; }
+
 		bool prefer_whole_pieces() const
 		{ return m_prefer_whole_pieces; }
 
