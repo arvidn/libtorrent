@@ -306,6 +306,9 @@ void rpc_manager::invoke(int message_id, udp::endpoint target_addr
 	m.id = m_our_id;
 	m.addr = target_addr;
 	assert(!m_transactions[m_next_transaction_id]);
+#ifndef NDEBUG
+	int potential_new_id = m_next_transaction_id;
+#endif
 	try
 	{
 		m.transaction_id.clear();
@@ -327,6 +330,8 @@ void rpc_manager::invoke(int message_id, udp::endpoint target_addr
 	catch (std::exception& e)
 	{
 		// m_send may fail with "no route to host"
+		assert(potential_new_id == m_next_transaction_id);
+		o->abort();
 	}
 }
 
