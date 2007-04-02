@@ -1913,7 +1913,7 @@ namespace libtorrent
 		int max_receive = std::min(
 			m_bandwidth_limit[download_channel].quota_left()
 			, m_packet_size - m_recv_pos);
- 		assert(max_receive > 0);
+		assert(max_receive > 0);
 
 		assert(m_recv_pos >= 0);
 		assert(m_packet_size > 0);
