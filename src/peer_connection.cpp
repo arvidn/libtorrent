@@ -1586,6 +1586,7 @@ namespace libtorrent
 		assert(limit >= -1);
 		if (limit == -1) m_upload_limit = resource_request::inf;
 		if (limit < 10) m_upload_limit = 10;
+		m_bandwidth_limit[upload_channel].throttle(m_upload_limit);
 	}
 
 	void peer_connection::set_download_limit(int limit)
@@ -1593,6 +1594,7 @@ namespace libtorrent
 		assert(limit >= -1);
 		if (limit == -1) m_download_limit = resource_request::inf;
 		if (limit < 10) m_download_limit = 10;
+		m_bandwidth_limit[download_channel].throttle(m_download_limit);
 	}
 
 	size_type peer_connection::share_diff() const
@@ -1730,7 +1732,7 @@ namespace libtorrent
 			// if we have downloaded more than one piece more
 			// than we have uploaded OR if we are a seed
 			// have an unlimited upload rate
-			m_bandwidth_limit[upload_channel].throttle(bandwidth_limit::inf);
+			m_bandwidth_limit[upload_channel].throttle(m_upload_limit);
 		}
 		else
 		{
@@ -1747,8 +1749,8 @@ namespace libtorrent
 			if (t->ratio() != 1.f)
 				soon_downloaded = (size_type)(soon_downloaded*(double)t->ratio());
 
-			double upload_speed_limit = (soon_downloaded - have_uploaded
-				+ bias) / break_even_time;
+			double upload_speed_limit = std::min((soon_downloaded - have_uploaded
+				+ bias) / break_even_time, double(m_upload_limit));
 
 			upload_speed_limit = std::min(upload_speed_limit,
 				(double)std::numeric_limits<int>::max());
