@@ -31,6 +31,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/pch.hpp"
+
 #include <vector>
 #include <iostream>
 #include <iomanip>
@@ -230,7 +232,11 @@ namespace libtorrent
 	void bt_peer_connection::write_dht_port(int listen_port)
 	{
 		INVARIANT_CHECK;
-
+#ifdef TORRENT_VERBOSE_LOGGING
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::universal_time())
+			<< " ==> DHT_PORT [ " << listen_port << " ]\n";
+#endif
 		buffer::interval packet = allocate_send_buffer(7);
 		detail::write_uint32(3, packet.begin);
 		detail::write_uint8(msg_dht_port, packet.begin);
@@ -2123,7 +2129,7 @@ namespace libtorrent
  
 #ifndef TORRENT_DISABLE_DHT
 			if (m_supports_dht_port && m_ses.m_dht)
-				write_dht_port(m_ses.kad_settings().service_port);
+				write_dht_port(m_ses.get_dht_settings().service_port);
 #endif
 
 			m_client_version = identify_client(pid);

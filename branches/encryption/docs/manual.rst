@@ -3,7 +3,7 @@ libtorrent API Documentation
 ============================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 0.12
+:Version: 0.13
 
 .. contents:: Table of contents
   :depth: 2
@@ -436,6 +436,22 @@ generate an appropriate alert (listen_failed_alert_).
 The interface parameter can also be a hostname that will resolve to the device you
 want to listen on.
 
+If you're also starting the DHT, it is a good idea to do that after you've called
+``listen_on()``, since the default listen port for the DHT is the same as the tcp
+listen socket. If you start the DHT first, it will assume the tcp port is free and
+open the udp socket on that port, then later, when ``listen_on()`` is called, it
+may turn out that the tcp port is in use. That results in the DHT and the bittorrent
+socket listening on different ports. If the DHT is active when ``listen_on`` is
+called, the udp port will be rebound to the new port, if it was configured to use
+the same port as the tcp socket, and if the listen_on call failed to bind to the
+same port that the udp uses.
+
+The reason why it's a good idea to run the DHT and the bittorrent socket on the same
+port is because that is an assumption that may be used to increase performance. One
+way to accelerate the connecting of peers on windows may be to first ping all peers
+with a DHT ping packet, and connect to those that responds first. On windows one
+can only connect to a few peers at a time because of a built in limitation (in XP
+Service pack 2).
 
 pop_alert() set_severity_level()
 --------------------------------
@@ -542,7 +558,11 @@ response to a ``get_peers`` message from another node.
 send when announcing and refreshing the routing table. This parameter is
 called alpha in the kademlia paper.
 
-``service_port`` is the udp port the node will listen to.
+``service_port`` is the udp port the node will listen to. This will default
+to 0, which means the udp listen port will be the same as the tcp listen
+port. This is in general a good idea, since some NAT implementations
+reserves the udp port for any mapped tcp port, and vice versa. NAT-PMP
+guarantees this for example.
 
 ``max_fail_count`` is the maximum number of failed tries to contact a node
 before it is removed from the routing table. If there are known working nodes
@@ -1106,7 +1126,7 @@ Both the name and the comment is UTF-8 encoded strings.
 ``creator()`` returns the creator string in the torrent. If there is no creator string
 it will return an empty string.
 
-__ http://www.boost.org/libs/date_time/doc/class_ptime.html
+__ http://www.boost.org/doc/html/date_time/posix_time.html#date_time.posix_time.ptime_class
 
 
 priv() set_priv()
@@ -1197,11 +1217,19 @@ Its declaration looks like this::
 		void resolve_countries(bool r);
 		bool resolve_countries() const;
 
+		void piece_priority(int index, int priority) const;
+		int piece_priority(int index) const;
+
+		void prioritize_pieces(std::vector<int> const& pieces) const;
+		std::vector<int> piece_priorities() const;
+
+		void prioritize_files(std::vector<int> const& files) const;
+
+		// these functions are deprecated
 		void filter_piece(int index, bool filter) const;
 		void filter_pieces(std::vector<bool> const& bitmask) const;
 		bool is_piece_filtered(int index) const;
 		std::vector<bool> filtered_pieces() const;
-
 		void filter_files(std::vector<bool> const& files) const;
       
 		bool has_metadata() const;
@@ -1216,9 +1244,10 @@ Its declaration looks like this::
 		bool operator<(torrent_handle const&) const;
 	};
 
-The default constructor will initialize the handle to an invalid state. Which means you cannot
-perform any operation on it, unless you first assign it a valid handle. If you try to perform
-any operation on an uninitialized handle, it will throw ``invalid_handle``.
+The default constructor will initialize the handle to an invalid state. Which
+means you cannot perform any operation on it, unless you first assign it a
+valid handle. If you try to perform any operation on an uninitialized handle,
+it will throw ``invalid_handle``.
 
 .. warning:: All operations on a ``torrent_handle`` may throw invalid_handle_
 	exception, in case the handle is no longer refering to a torrent. There are
@@ -1226,7 +1255,54 @@ any operation on an uninitialized handle, it will throw ``invalid_handle``.
 	Since the torrents are processed by a background thread, there is no
 	guarantee that a handle will remain valid between two calls.
 
-*TODO: document filter_piece(), filter_pieces(), is_piece_filtered(), filtered_pieces() and filter_files()*
+
+piece_priority() prioritize_pieces() piece_priorities() prioritize_files()
+--------------------------------------------------------------------------
+
+	::
+
+		void piece_priority(int index, int priority) const;
+		int piece_priority(int index) const;
+		void prioritize_pieces(std::vector<int> const& pieces) const;
+		std::vector<int> piece_priorities() const;
+		void prioritize_files(std::vector<int> const& files) const;
+
+These functions are used to set and get the prioritiy of individual pieces.
+By default all pieces have priority 1. That means that the random rarest
+first algorithm is effectively active for all pieces. You may however
+change the priority of individual pieces. There are 8 different priority
+levels:
+
+0. piece is not downloaded at all
+1. normal priority. Download order is dependent on availability
+2. higher than normal priority. Pieces are preferred over pieces with
+   the same availability, but not over pieces with lower availability
+3. pieces are as likely to be picked as partial pieces.
+4. pieces are preferred over partial pieces, but not over pieces with
+   lower availability
+5. *currently the same as 4*
+6. piece is as likely to be picked as any piece with availability 1
+7. maximum priority, availability is disregarded, the piece is preferred
+   over any other piece with lower priority
+
+The exact definitions of these priorities are implementation details, and
+subject to change. The interface guarantees that higher number means higher
+priority, and that 0 means do not download.
+
+``piece_priority`` sets or gets the priority for an individual piece,
+specified by ``index``.
+
+``prioritize_pieces`` takes a vector of integers, one integer per piece in
+the torrent. All the piece priorities will be updated with the priorities
+in the vector.
+
+``piece_priorities`` returns a vector with one element for each piece in the
+torrent. Each element is the current priority of that piece.
+
+``prioritize_files`` takes a vector that has at as many elements as there are
+files in the torrent. Each entry is the priority of that file. The function
+sets the priorities of all the pieces in the torrent based on the vector.
+
 
 file_progress()
 ---------------
@@ -1471,7 +1547,8 @@ use_interface()
 
 ``use_interface()`` sets the network interface this torrent will use when it opens outgoing
 connections. By default, it uses the same interface as the session_ uses to listen on. The
-parameter can be a string containing an ip-address or a hostname.
+parameter must be a string containing an ip-address (either an IPv4 or IPv6 address). If
+the string does not conform to this format and exception is thrown.
 
 
 info_hash()
@@ -2498,6 +2575,43 @@ level ``fatal``.
 		virtual std::auto_ptr<alert> clone() const;
 	};
 
+portmap_error_alert
+-------------------
+
+This alert is generated when a NAT router was successfully found but some
+part of the port mapping request failed. It contains a text message that
+may help the user figure out what is wrong. This alert is not generated in
+case it appears the client is not running on a NAT:ed network or if it
+appears there is no NAT router that can be remote controlled to add port
+mappings.
+
+The alert is generated as severity ``warning``, since it should be displayed
+to the user somehow, and could mean reduced preformance.
+
+::
+
+	struct portmap_error_alert: alert
+	{
+		portmap_error_alert(const std::string& msg);
+		virtual std::auto_ptr<alert> clone() const;
+	};
+
+portmap_alert
+-------------
+
+This alert is generated when a NAT router was successfully found and
+a port was successfully mapped on it. On a NAT:ed network with a NAT-PMP
+capable router, this is typically generated once when mapping the TCP
+port and, if DHT is enabled, when the UDP port is mapped. This is merely
+an informational alert, and is generated at severity level ``info``.
+
+::
+
+	struct portmap_alert: alert
+	{
+		portmap_alert(const std::string& msg);
+		virtual std::auto_ptr<alert> clone() const;
+	};
 
 file_error_alert
 ----------------
@@ -2737,7 +2851,7 @@ torrent in question. This alert is generated as severity level ``info``.
 
 ::
 
-	struct torrent_finished_alert:torrent_ alert
+	struct torrent_finished_alert: torrent_alert
 	{
 		torrent_finished_alert(
 			const torrent_handle& h
@@ -2797,13 +2911,12 @@ resume file was rejected. It is generated at severity level ``warning``.
 
 ::
 
-	struct fastresume_rejected_alert: alert
+	struct fastresume_rejected_alert: torrent_alert
 	{
 		fastresume_rejected_alert(torrent_handle const& h
 			, std::string const& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
-		torrent_handle handle;
 	};
 
 

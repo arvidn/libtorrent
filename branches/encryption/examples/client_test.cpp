@@ -252,6 +252,9 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 	for (std::vector<peer_info>::const_iterator i = peers.begin();
 		i != peers.end(); ++i)
 	{
+		if (i->flags & (peer_info::handshake | peer_info::connecting | peer_info::queued))
+			continue;
+
 		out.fill(' ');
 		out.width(2);
 		out << esc("32") << (i->down_speed > 0 ? add_suffix(i->down_speed) + "/s " : "         ")
@@ -592,10 +595,25 @@ int main(int ac, char* av[])
 		ses.add_extension(&create_metadata_plugin);
 		ses.add_extension(&create_ut_pex_plugin);
 
+		ses.set_max_uploads(upload_slots_limit);
+		ses.set_max_half_open_connections(half_open_limit);
+		ses.set_download_rate_limit(download_limit);
+		ses.set_upload_rate_limit(upload_limit);
+		ses.listen_on(std::make_pair(listen_port, listen_port + 10)
+			, bind_to_interface.c_str());
+		ses.set_settings(settings);
+		if (log_level == "debug")
+			ses.set_severity_level(alert::debug);
+		else if (log_level == "warning")
+			ses.set_severity_level(alert::warning);
+		else if (log_level == "fatal")
+			ses.set_severity_level(alert::fatal);
+		else
+			ses.set_severity_level(alert::info);
+
 #ifndef TORRENT_DISABLE_DHT
-		dht_settings s;
-		s.service_port = listen_port;
-		ses.set_dht_settings(s);
+		settings.use_dht_as_fallback = false;
+
 		boost::filesystem::ifstream dht_state_file(".dht_state"
 			, std::ios_base::binary);
 		dht_state_file.unsetf(std::ios_base::skipws);
@@ -615,22 +633,6 @@ int main(int ac, char* av[])
 		ses.add_dht_router(std::make_pair(std::string("router.bitcomet.com")
 			, 6881));
 #endif
-
-		ses.set_max_uploads(upload_slots_limit);
-		ses.set_max_half_open_connections(half_open_limit);
-		ses.set_download_rate_limit(download_limit);
-		ses.set_upload_rate_limit(upload_limit);
-		ses.listen_on(std::make_pair(listen_port, listen_port + 10)
-			, bind_to_interface.c_str());
-		ses.set_settings(settings);
-		if (log_level == "debug")
-			ses.set_severity_level(alert::debug);
-		else if (log_level == "warning")
-			ses.set_severity_level(alert::warning);
-		else if (log_level == "fatal")
-			ses.set_severity_level(alert::fatal);
-		else
-			ses.set_severity_level(alert::info);
 
 		// look for ipfilter.dat
 		// poor man's parser
@@ -780,9 +782,16 @@ int main(int ac, char* av[])
 			// loop through the alert queue to see if anything has happened.
 			std::auto_ptr<alert> a;
 			a = ses.pop_alert();
-			std::string now = to_simple_string(second_clock::universal_time());
+			std::string now = to_simple_string(second_clock::local_time());
 			while (a.get())
 			{
+				std::stringstream event_string;
+				if (a->severity() == alert::fatal)
+					event_string << esc("31"); // red
+				else if (a->severity() == alert::warning)
+					event_string << esc("33"); // yellow
+
+				event_string << now << ": ";
 				if (torrent_finished_alert* p = dynamic_cast<torrent_finished_alert*>(a.get()))
 				{
 					p->handle.set_max_connections(60);
@@ -796,34 +805,37 @@ int main(int ac, char* av[])
 					out.unsetf(std::ios_base::skipws);
 					bencode(std::ostream_iterator<char>(out), data);
 
-					events.push_back(now + ": "
-						+ p->handle.get_torrent_info().name() + ": " + a->msg());
+					event_string << p->handle.get_torrent_info().name() << ": "
+						<< a->msg();
 				}
 				else if (peer_error_alert* p = dynamic_cast<peer_error_alert*>(a.get()))
 				{
-					events.push_back(now + ": " + identify_client(p->pid)
-						+ ": " + a->msg());
+					event_string << identify_client(p->pid) << ": " << a->msg();
 				}
 				else if (invalid_request_alert* p = dynamic_cast<invalid_request_alert*>(a.get()))
 				{
-					events.push_back(now + ": " + identify_client(p->pid)
-						+ ": " + a->msg());
+					event_string << identify_client(p->pid) << ": " << a->msg();
 				}
 				else if (tracker_warning_alert* p = dynamic_cast<tracker_warning_alert*>(a.get()))
 				{
-					events.push_back(now + ": tracker message: " + p->msg());
+					event_string << "tracker message: " << p->msg();
 				}
 				else if (tracker_reply_alert* p = dynamic_cast<tracker_reply_alert*>(a.get()))
 				{
-					events.push_back(now + ": " + p->msg() + " ("
-						+ boost::lexical_cast<std::string>(p->num_peers) + ")");
+					event_string << p->msg() << " (" << p->num_peers << ")";
+				}
+				else if (url_seed_alert* p = dynamic_cast<url_seed_alert*>(a.get()))
+				{
+					event_string << "web seed '" << p->url << "': " << p->msg();
 				}
 				else
 				{
-					events.push_back(now + ": " + a->msg());
+					event_string << a->msg();
 				}
+				event_string << esc("0");
+				events.push_back(event_string.str());
 
-				if (events.size() >= 10) events.pop_front();
+				if (events.size() >= 20) events.pop_front();
 				a = ses.pop_alert();
 			}
 
@@ -967,10 +979,10 @@ int main(int ac, char* av[])
 					for (int i = 0; i < info.num_files(); ++i)
 					{
 						if (file_progress[i] == 1.f)
-							out << progress_bar(file_progress[i], 20, "32") << " "
+							out << progress_bar(file_progress[i], 40, "32") << " "
 								<< info.file_at(i).path.leaf() << "\n";
 						else
-							out << progress_bar(file_progress[i], 20, "33") << " "
+							out << progress_bar(file_progress[i], 40, "33") << " "
 								<< info.file_at(i).path.leaf() << "\n";
 					}
 

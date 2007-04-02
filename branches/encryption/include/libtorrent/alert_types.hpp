@@ -249,18 +249,35 @@ namespace libtorrent
 		{ return std::auto_ptr<alert>(new listen_failed_alert(*this)); }
 	};
 
-	struct TORRENT_EXPORT fastresume_rejected_alert: alert
+	struct TORRENT_EXPORT portmap_error_alert: alert
+	{
+		portmap_error_alert(const std::string& msg)
+			: alert(alert::warning, msg)
+		{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new portmap_error_alert(*this)); }
+	};
+
+	struct TORRENT_EXPORT portmap_alert: alert
+	{
+		portmap_alert(const std::string& msg)
+			: alert(alert::info, msg)
+		{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new portmap_alert(*this)); }
+	};
+
+	struct TORRENT_EXPORT fastresume_rejected_alert: torrent_alert
 	{
 		fastresume_rejected_alert(torrent_handle const& h
 			, std::string const& msg)
-			: alert(alert::warning, msg)
-			, handle(h)
+			: torrent_alert(h, alert::warning, msg)
 		{}
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new fastresume_rejected_alert(*this)); }
-
-		torrent_handle handle;
 	};
 
 }

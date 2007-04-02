@@ -103,6 +103,11 @@ namespace libtorrent
 			, boost::shared_ptr<stream_socket> s);
 
 		~bt_peer_connection();
+		
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		bool supports_encryption() const
+		{ return m_encrypted; }
+#endif
 
 		enum message_type
 		{

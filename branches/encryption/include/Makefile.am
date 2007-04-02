@@ -13,6 +13,7 @@ libtorrent/file.hpp \
 libtorrent/file_pool.hpp \
 libtorrent/fingerprint.hpp \
 libtorrent/hasher.hpp \
+libtorrent/http_connection.hpp \
 libtorrent/http_tracker_connection.hpp \
 libtorrent/identify_client.hpp \
 libtorrent/invariant_check.hpp \
@@ -23,6 +24,8 @@ libtorrent/peer_connection.hpp \
 libtorrent/bt_peer_connection.hpp \
 libtorrent/web_peer_connection.hpp \
 libtorrent/pe_crypto.hpp \
+libtorrent/natpmp.hpp \
+libtorrent/pch.hpp \
 libtorrent/peer_id.hpp \
 libtorrent/peer_info.hpp \
 libtorrent/peer_request.hpp \
@@ -44,6 +47,7 @@ libtorrent/torrent_info.hpp \
 libtorrent/tracker_manager.hpp \
 libtorrent/udp_tracker_connection.hpp \
 libtorrent/utf8.hpp \
+libtorrent/xml_parse.hpp \
 libtorrent/version.hpp \
 libtorrent/aux_/allocate_resources_impl.hpp \
 libtorrent/aux_/session_impl.hpp \

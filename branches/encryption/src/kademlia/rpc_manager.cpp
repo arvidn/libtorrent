@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/pch.hpp"
+
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/bind.hpp>
@@ -201,7 +203,7 @@ time_duration rpc_manager::tick()
 
 	using boost::posix_time::microsec_clock;
 
-	const int timeout_ms = 20 * 1000;
+	const int timeout_ms = 10 * 1000;
 
 	//	look for observers that has timed out
 
@@ -304,6 +306,9 @@ void rpc_manager::invoke(int message_id, udp::endpoint target_addr
 	m.id = m_our_id;
 	m.addr = target_addr;
 	assert(!m_transactions[m_next_transaction_id]);
+#ifndef NDEBUG
+	int potential_new_id = m_next_transaction_id;
+#endif
 	try
 	{
 		m.transaction_id.clear();
@@ -324,7 +329,9 @@ void rpc_manager::invoke(int message_id, udp::endpoint target_addr
 	}
 	catch (std::exception&)
 	{
-		assert(false);
+		// m_send may fail with "no route to host"
+		assert(potential_new_id == m_next_transaction_id);
+		o->abort();
 	}
 }
 
@@ -386,10 +393,7 @@ void rpc_manager::reply_with_ping(msg& m, msg const& reply_to)
 	}
 	catch (std::exception& e)
 	{
-#ifndef NDEBUG
-		std::cerr << e.what() << "\n";
-#endif
-		assert(false);
+		// m_send may fail with "no route to host"
 	}
 }
 

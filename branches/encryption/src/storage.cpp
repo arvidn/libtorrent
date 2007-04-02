@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/pch.hpp"
+
 #include <ctime>
 #include <iterator>
 #include <algorithm>
@@ -341,53 +343,94 @@ namespace libtorrent
 		int slot;
 	};
 
-	class storage::impl : public thread_safe_storage, boost::noncopyable
+	class storage : public storage_interface, thread_safe_storage, boost::noncopyable
 	{
 	public:
-		impl(torrent_info const& info, path const& path, file_pool& fp)
+		storage(torrent_info const& info, path const& path, file_pool& fp)
 			: thread_safe_storage(info.num_pieces())
-			, info(info)
-			, files(fp)
+			, m_info(info)
+			, m_files(fp)
 		{
-			save_path = complete(path);
-			assert(save_path.is_complete());
+			assert(info.begin_files() != info.end_files());
+			m_save_path = complete(path);
+			assert(m_save_path.is_complete());
 		}
 
-		impl(impl const& x)
-			: thread_safe_storage(x.info.num_pieces())
-			, info(x.info)
-			, save_path(x.save_path)
-			, files(x.files)
-		{}
+		void release_files();
 
-		~impl()
+		bool move_storage(path save_path);
+		size_type read(char* buf, int slot, int offset, int size);
+		void write(const char* buf, int slot, int offset, int size);
+
+		bool verify_resume_data(entry& rd, std::string& error);
+
+		~storage()
 		{
-			files.release(this);
+			m_files.release(this);
 		}
 
-		torrent_info const& info;
-		path save_path;
+		torrent_info const& m_info;
+		path m_save_path;
 		// the file pool is typically stored in
 		// the session, to make all storage
 		// instances use the same pool
-		file_pool& files;
+		file_pool& m_files;
 	};
-
-	storage::storage(torrent_info const& info, path const& path
-		, file_pool& fp)
-		: m_pimpl(new impl(info, path, fp))
-	{
-		assert(info.begin_files() != info.end_files());
-	}
 
 	void storage::release_files()
 	{
-		m_pimpl->files.release(m_pimpl.get());
+		m_files.release(this);
 	}
 
-	void storage::swap(storage& other)
+	bool storage::verify_resume_data(entry& rd, std::string& error)
 	{
-		m_pimpl.swap(other.m_pimpl);
+		std::vector<std::pair<size_type, std::time_t> > file_sizes;
+		entry::list_type& l = rd["file sizes"].list();
+
+		for (entry::list_type::iterator i = l.begin();
+			i != l.end(); ++i)
+		{
+			file_sizes.push_back(std::pair<size_type, std::time_t>(
+				i->list().front().integer()
+				, i->list().back().integer()));
+		}
+
+		entry::list_type& slots = rd["slots"].list();
+		bool seed = int(slots.size()) == m_info.num_pieces()
+			&& std::find_if(slots.begin(), slots.end()
+				, boost::bind<bool>(std::less<int>()
+				, boost::bind((size_type const& (entry::*)() const)
+					&entry::integer, _1), 0)) == slots.end();
+
+		if (seed)
+		{
+			if (m_info.num_files() != (int)file_sizes.size())
+			{
+				error = "the number of files does not match the torrent (num: "
+					+ boost::lexical_cast<std::string>(file_sizes.size()) + " actual: "
+					+ boost::lexical_cast<std::string>(m_info.num_files()) + ")";
+				return false;
+			}
+
+			std::vector<std::pair<size_type, std::time_t> >::iterator
+				fs = file_sizes.begin();
+			// the resume data says we have the entire torrent
+			// make sure the file sizes are the right ones
+			for (torrent_info::file_iterator i = m_info.begin_files()
+					, end(m_info.end_files()); i != end; ++i, ++fs)
+			{
+				if (i->size != fs->first)
+				{
+					error = "file size for '" + i->path.native_file_string()
+						+ "' was expected to be "
+						+ boost::lexical_cast<std::string>(i->size) + " bytes";
+					return false;
+				}
+			}
+			return true;
+		}
+
+		return match_filesizes(m_info, m_save_path, file_sizes, &error);
 	}
 
 	// returns true on success
@@ -409,16 +452,16 @@ namespace libtorrent
 			return false;
 		}
 #else
-		if(!exists(save_path))
+		if (!exists(save_path))
 			create_directory(save_path);
-		else if(!is_directory(save_path))
+		else if (!is_directory(save_path))
 			return false;
 #endif
 
-		m_pimpl->files.release(m_pimpl.get());
+		m_files.release(this);
 
-		old_path = m_pimpl->save_path / m_pimpl->info.name();
-		new_path = save_path / m_pimpl->info.name();
+		old_path = m_save_path / m_info.name();
+		new_path = save_path / m_info.name();
 
 		try
 		{
@@ -427,7 +470,7 @@ namespace libtorrent
 #else
 			rename(old_path, new_path);
 #endif
-			m_pimpl->save_path = save_path;
+			m_save_path = save_path;
 			return true;
 		}
 		catch (std::exception&) {}
@@ -435,15 +478,14 @@ namespace libtorrent
 	}
 
 #ifndef NDEBUG
-
+/*
 	void storage::shuffle()
 	{
-		int num_pieces = m_pimpl->info.num_pieces();
+		int num_pieces = m_info.num_pieces();
 
 		std::vector<int> pieces(num_pieces);
 		for (std::vector<int>::iterator i = pieces.begin();
-			i != pieces.end();
-			++i)
+			i != pieces.end(); ++i)
 		{
 			*i = static_cast<int>(i - pieces.begin());
 		}
@@ -456,13 +498,13 @@ namespace libtorrent
 		{
 			const int slot_index = targets[i];
 			const int piece_index = pieces[i];
-			const int slot_size =static_cast<int>(m_pimpl->info.piece_size(slot_index));
+			const int slot_size =static_cast<int>(m_info.piece_size(slot_index));
 			std::vector<char> buf(slot_size);
 			read(&buf[0], piece_index, 0, slot_size);
 			write(&buf[0], slot_index, 0, slot_size);
 		}
 	}
-
+*/
 #endif
 
 	size_type storage::read(
@@ -472,27 +514,27 @@ namespace libtorrent
 		, int size)
 	{
 		assert(buf != 0);
-		assert(slot >= 0 && slot < m_pimpl->info.num_pieces());
+		assert(slot >= 0 && slot < m_info.num_pieces());
 		assert(offset >= 0);
-		assert(offset < m_pimpl->info.piece_size(slot));
+		assert(offset < m_info.piece_size(slot));
 		assert(size > 0);
 
-		slot_lock lock(*m_pimpl, slot);
+		slot_lock lock(*this, slot);
 
 #ifndef NDEBUG
 		std::vector<file_slice> slices
-			= m_pimpl->info.map_block(slot, offset, size);
+			= m_info.map_block(slot, offset, size);
 		assert(!slices.empty());
 #endif
 
-		size_type start = slot * (size_type)m_pimpl->info.piece_length() + offset;
-		assert(start + size <= m_pimpl->info.total_size());
+		size_type start = slot * (size_type)m_info.piece_length() + offset;
+		assert(start + size <= m_info.total_size());
 
 		// find the file iterator and file offset
 		size_type file_offset = start;
 		std::vector<file_entry>::const_iterator file_iter;
 
-		for (file_iter = m_pimpl->info.begin_files();;)
+		for (file_iter = m_info.begin_files();;)
 		{
 			if (file_offset < file_iter->size)
 				break;
@@ -501,10 +543,8 @@ namespace libtorrent
 			++file_iter;
 		}
 
-		boost::shared_ptr<file> in(m_pimpl->files.open_file(
-			m_pimpl.get()
-			, m_pimpl->save_path / file_iter->path
-			, file::in));
+		boost::shared_ptr<file> in(m_files.open_file(
+			this, m_save_path / file_iter->path, file::in));
 
 		assert(file_offset < file_iter->size);
 
@@ -523,7 +563,7 @@ namespace libtorrent
 #endif
 
 		int left_to_read = size;
-		int slot_size = static_cast<int>(m_pimpl->info.piece_size(slot));
+		int slot_size = static_cast<int>(m_info.piece_size(slot));
 
 		if (offset + left_to_read > slot_size)
 			left_to_read = slot_size - offset;
@@ -549,7 +589,7 @@ namespace libtorrent
 				assert(int(slices.size()) > counter);
 				size_type slice_size = slices[counter].size;
 				assert(slice_size == read_bytes);
-				assert(m_pimpl->info.file_at(slices[counter].file_index).path
+				assert(m_info.file_at(slices[counter].file_index).path
 					== file_iter->path);
 #endif
 
@@ -575,12 +615,11 @@ namespace libtorrent
 				// this file was empty, don't increment the slice counter
 				if (read_bytes > 0) ++counter;
 #endif
-				path path = m_pimpl->save_path / file_iter->path;
+				path path = m_save_path / file_iter->path;
 
 				file_offset = 0;
-				in = m_pimpl->files.open_file(
-					m_pimpl.get()
-					, path, file::in);
+				in = m_files.open_file(
+					this, path, file::in);
 				in->seek(0);
 			}
 		}
@@ -597,38 +636,37 @@ namespace libtorrent
 	{
 		assert(buf != 0);
 		assert(slot >= 0);
-		assert(slot < m_pimpl->info.num_pieces());
+		assert(slot < m_info.num_pieces());
 		assert(offset >= 0);
 		assert(size > 0);
 
-		slot_lock lock(*m_pimpl, slot);
+		slot_lock lock(*this, slot);
 		
 #ifndef NDEBUG
 		std::vector<file_slice> slices
-			= m_pimpl->info.map_block(slot, offset, size);
+			= m_info.map_block(slot, offset, size);
 		assert(!slices.empty());
 #endif
 
-		size_type start = slot * (size_type)m_pimpl->info.piece_length() + offset;
+		size_type start = slot * (size_type)m_info.piece_length() + offset;
 
 		// find the file iterator and file offset
 		size_type file_offset = start;
 		std::vector<file_entry>::const_iterator file_iter;
 
-		for (file_iter = m_pimpl->info.begin_files();;)
+		for (file_iter = m_info.begin_files();;)
 		{
 			if (file_offset < file_iter->size)
 				break;
 
 			file_offset -= file_iter->size;
 			++file_iter;
-			assert(file_iter != m_pimpl->info.end_files());
+			assert(file_iter != m_info.end_files());
 		}
 
-		path p(m_pimpl->save_path / file_iter->path);
-		boost::shared_ptr<file> out = m_pimpl->files.open_file(
-			m_pimpl.get()
-			, p, file::out | file::in);
+		path p(m_save_path / file_iter->path);
+		boost::shared_ptr<file> out = m_files.open_file(
+			this, p, file::out | file::in);
 
 		assert(file_offset < file_iter->size);
 		assert(slices[0].offset == file_offset);
@@ -643,7 +681,7 @@ namespace libtorrent
 		}
 
 		int left_to_write = size;
-		int slot_size = static_cast<int>(m_pimpl->info.piece_size(slot));
+		int slot_size = static_cast<int>(m_info.piece_size(slot));
 
 		if (offset + left_to_write > slot_size)
 			left_to_write = slot_size - offset;
@@ -667,7 +705,7 @@ namespace libtorrent
 			{
 				assert(int(slices.size()) > counter);
 				assert(slices[counter].size == write_bytes);
-				assert(m_pimpl->info.file_at(slices[counter].file_index).path
+				assert(m_info.file_at(slices[counter].file_index).path
 					== file_iter->path);
 
 				assert(buf_pos >= 0);
@@ -695,21 +733,22 @@ namespace libtorrent
 			#endif
 				++file_iter;
 
-				assert(file_iter != m_pimpl->info.end_files());
- 				path p = m_pimpl->save_path / file_iter->path;
+				assert(file_iter != m_info.end_files());
+ 				path p = m_save_path / file_iter->path;
 				file_offset = 0;
-				out = m_pimpl->files.open_file(
-					m_pimpl.get()
-					, p, file::out | file::in);
+				out = m_files.open_file(
+					this, p, file::out | file::in);
 
 				out->seek(0);
 			}
 		}
 	}
 
-
-
-
+	storage_interface* default_storage_constructor(torrent_info const& ti
+		, boost::filesystem::path const& path, file_pool& fp)
+	{
+		return new storage(ti, path, fp);
+	}
 
 	// -- piece_manager -----------------------------------------------------
 
@@ -721,7 +760,8 @@ namespace libtorrent
 		impl(
 			torrent_info const& info
 			, path const& path
-			, file_pool& fp);
+			, file_pool& fp
+			, storage_constructor_type sc);
 
 		bool check_fastresume(
 			aux::piece_checker_data& d
@@ -731,7 +771,7 @@ namespace libtorrent
 
 		std::pair<bool, float> check_files(
 			std::vector<bool>& pieces
-			, int& num_pieces);
+			, int& num_pieces, boost::recursive_mutex& mutex);
 
 		void release_files();
 
@@ -761,7 +801,7 @@ namespace libtorrent
 
 		bool move_storage(path save_path)
 		{
-			if (m_storage.move_storage(save_path))
+			if (m_storage->move_storage(save_path))
 			{
 				m_save_path = complete(save_path);
 				return true;
@@ -779,7 +819,8 @@ namespace libtorrent
 			, int current_slot
 			, std::vector<bool>& have_pieces
 			, int& num_pieces
-			, const std::multimap<sha1_hash, int>& hash_to_piece);
+			, const std::multimap<sha1_hash, int>& hash_to_piece
+			, boost::recursive_mutex& mutex);
 
 		int allocate_slot_for_piece(int piece_index);
 #ifndef NDEBUG
@@ -788,7 +829,7 @@ namespace libtorrent
 		void debug_log() const;
 #endif
 #endif
-		storage m_storage;
+		boost::scoped_ptr<storage_interface> m_storage;
 
 		// if this is true, pieces are always allocated at the
 		// lowest possible slot index. If it is false, pieces
@@ -871,8 +912,9 @@ namespace libtorrent
 	piece_manager::impl::impl(
 		torrent_info const& info
 		, path const& save_path
-		, file_pool& fp)
-		: m_storage(info, save_path, fp)
+		, file_pool& fp
+		, storage_constructor_type sc)
+		: m_storage(sc(info, save_path, fp))
 		, m_compact_mode(false)
 		, m_fill_mode(true)
 		, m_info(info)
@@ -885,13 +927,19 @@ namespace libtorrent
 	piece_manager::piece_manager(
 		torrent_info const& info
 		, path const& save_path
-		, file_pool& fp)
-		: m_pimpl(new impl(info, save_path, fp))
+		, file_pool& fp
+		, storage_constructor_type sc)
+		: m_pimpl(new impl(info, save_path, fp, sc))
 	{
 	}
 
 	piece_manager::~piece_manager()
 	{
+	}
+
+	bool piece_manager::verify_resume_data(entry& rd, std::string& error)
+	{
+		return m_pimpl->m_storage->verify_resume_data(rd, error);
 	}
 
 	void piece_manager::release_files()
@@ -901,7 +949,7 @@ namespace libtorrent
 
 	void piece_manager::impl::release_files()
 	{
-		m_storage.release_files();
+		m_storage->release_files();
 	}
 
 	void piece_manager::impl::export_piece_map(
@@ -1003,7 +1051,7 @@ namespace libtorrent
 		for (int i = 0; i < num_blocks-1; ++i)
 		{
 			if (!bitmask[i]) continue;
-			m_storage.read(
+			m_storage->read(
 				&buf[0]
 				, slot_index
 				, i * block_size
@@ -1012,7 +1060,7 @@ namespace libtorrent
 		}
 		if (bitmask[num_blocks - 1])
 		{
-			m_storage.read(
+			m_storage->read(
 				&buf[0]
 				, slot_index
 				, block_size * (num_blocks - 1)
@@ -1024,9 +1072,9 @@ namespace libtorrent
 
 	size_type piece_manager::impl::read(
 		char* buf
-	  , int piece_index
-	  , int offset
-	  , int size)
+		, int piece_index
+		, int offset
+		, int size)
 	{
 		assert(buf);
 		assert(offset >= 0);
@@ -1035,14 +1083,14 @@ namespace libtorrent
 		assert(m_piece_to_slot[piece_index] >= 0 && m_piece_to_slot[piece_index] < (int)m_slot_to_piece.size());
 		int slot = m_piece_to_slot[piece_index];
 		assert(slot >= 0 && slot < (int)m_slot_to_piece.size());
-		return m_storage.read(buf, slot, offset, size);
+		return m_storage->read(buf, slot, offset, size);
 	}
 
 	size_type piece_manager::read(
 		char* buf
-	  , int piece_index
-	  , int offset
-	  , int size)
+		, int piece_index
+		, int offset
+		, int size)
 	{
 		return m_pimpl->read(buf, piece_index, offset, size);
 	}
@@ -1059,7 +1107,7 @@ namespace libtorrent
 		assert(piece_index >= 0 && piece_index < (int)m_piece_to_slot.size());
 		int slot = allocate_slot_for_piece(piece_index);
 		assert(slot >= 0 && slot < (int)m_slot_to_piece.size());
-		m_storage.write(buf, slot, offset, size);
+		m_storage->write(buf, slot, offset, size);
 	}
 
 	void piece_manager::write(
@@ -1076,7 +1124,8 @@ namespace libtorrent
 		, int current_slot
 		, std::vector<bool>& have_pieces
 		, int& num_pieces
-		, const std::multimap<sha1_hash, int>& hash_to_piece)
+		, const std::multimap<sha1_hash, int>& hash_to_piece
+		, boost::recursive_mutex& mutex)
 	{
 //		INVARIANT_CHECK;
 
@@ -1135,6 +1184,9 @@ namespace libtorrent
 			, current_slot) != matching_pieces.end())
 		{
 			const int piece_index = current_slot;
+
+			// lock because we're writing to have_pieces
+			boost::recursive_mutex::scoped_lock l(mutex);
 
 			if (have_pieces[piece_index])
 			{
@@ -1205,6 +1257,9 @@ namespace libtorrent
 
 		if (free_piece >= 0)
 		{
+			// lock because we're writing to have_pieces
+			boost::recursive_mutex::scoped_lock l(mutex);
+
 			assert(have_pieces[free_piece] == false);
 			assert(m_piece_to_slot[free_piece] == has_no_slot);
 			have_pieces[free_piece] = true;
@@ -1241,7 +1296,7 @@ namespace libtorrent
 		// use while debugging to find
 		// states that cannot be scanned
 		// by check_pieces.
-//		m_storage.shuffle();
+//		m_storage->shuffle();
 
 		m_piece_to_slot.resize(m_info.num_pieces(), has_no_slot);
 		m_slot_to_piece.resize(m_info.num_pieces(), unallocated);
@@ -1317,7 +1372,7 @@ namespace libtorrent
 	// file check is at. 0 is nothing done, and 1
 	// is finished
 	std::pair<bool, float> piece_manager::impl::check_files(
-		std::vector<bool>& pieces, int& num_pieces)
+		std::vector<bool>& pieces, int& num_pieces, boost::recursive_mutex& mutex)
 	{
 		assert(num_pieces == std::count(pieces.begin(), pieces.end(), true));
 
@@ -1389,11 +1444,13 @@ namespace libtorrent
 		try
 		{
 
-			m_storage.read(
-				&m_piece_data[0]
-				, m_current_slot
-				, 0
-				, int(m_info.piece_size(m_current_slot)));
+			int piece_size = int(m_info.piece_size(m_current_slot));
+			int num_read = m_storage->read(&m_piece_data[0]
+				, m_current_slot, 0, piece_size);
+
+			// if the file is incomplete, skip the rest of it
+			if (num_read != piece_size)
+				throw file_error("");
 
 			if (m_hash_to_piece.empty())
 			{
@@ -1403,12 +1460,8 @@ namespace libtorrent
 				}
 			}
 
-			int piece_index = identify_data(
-				m_piece_data
-				, m_current_slot
-				, pieces
-				, num_pieces
-				, m_hash_to_piece);
+			int piece_index = identify_data(m_piece_data, m_current_slot
+				, pieces, num_pieces, m_hash_to_piece, mutex);
 
 			assert(num_pieces == std::count(pieces.begin(), pieces.end(), true));
 			assert(piece_index == unassigned || piece_index >= 0);
@@ -1468,14 +1521,14 @@ namespace libtorrent
 				const int slot1_size = static_cast<int>(m_info.piece_size(piece_index));
 				const int slot2_size = other_piece >= 0 ? static_cast<int>(m_info.piece_size(other_piece)) : 0;
 				std::vector<char> buf1(slot1_size);
-				m_storage.read(&buf1[0], m_current_slot, 0, slot1_size);
+				m_storage->read(&buf1[0], m_current_slot, 0, slot1_size);
 				if (slot2_size > 0)
 				{
 					std::vector<char> buf2(slot2_size);
-					m_storage.read(&buf2[0], piece_index, 0, slot2_size);
-					m_storage.write(&buf2[0], m_current_slot, 0, slot2_size);
+					m_storage->read(&buf2[0], piece_index, 0, slot2_size);
+					m_storage->write(&buf2[0], m_current_slot, 0, slot2_size);
 				}
-				m_storage.write(&buf1[0], piece_index, 0, slot1_size);
+				m_storage->write(&buf1[0], piece_index, 0, slot1_size);
 				assert(m_slot_to_piece[m_current_slot] == unassigned
 						|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);
 			}
@@ -1501,14 +1554,14 @@ namespace libtorrent
 				const int slot1_size = static_cast<int>(m_info.piece_size(other_piece));
 				const int slot2_size = piece_index >= 0 ? static_cast<int>(m_info.piece_size(piece_index)) : 0;
 				std::vector<char> buf1(slot1_size);
-				m_storage.read(&buf1[0], other_slot, 0, slot1_size);
+				m_storage->read(&buf1[0], other_slot, 0, slot1_size);
 				if (slot2_size > 0)
 				{
 					std::vector<char> buf2(slot2_size);
-					m_storage.read(&buf2[0], m_current_slot, 0, slot2_size);
-					m_storage.write(&buf2[0], other_slot, 0, slot2_size);
+					m_storage->read(&buf2[0], m_current_slot, 0, slot2_size);
+					m_storage->write(&buf2[0], other_slot, 0, slot2_size);
 				}
-				m_storage.write(&buf1[0], m_current_slot, 0, slot1_size);
+				m_storage->write(&buf1[0], m_current_slot, 0, slot1_size);
 				assert(m_slot_to_piece[m_current_slot] == unassigned
 						|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);
 			}
@@ -1550,10 +1603,10 @@ namespace libtorrent
 					std::vector<char> buf1(static_cast<int>(slot1_size));
 					std::vector<char> buf2(static_cast<int>(slot3_size));
 
-					m_storage.read(&buf2[0], m_current_slot, 0, slot3_size);
-					m_storage.read(&buf1[0], slot1, 0, slot1_size);
-					m_storage.write(&buf1[0], m_current_slot, 0, slot1_size);
-					m_storage.write(&buf2[0], slot1, 0, slot3_size);
+					m_storage->read(&buf2[0], m_current_slot, 0, slot3_size);
+					m_storage->read(&buf1[0], slot1, 0, slot1_size);
+					m_storage->write(&buf1[0], m_current_slot, 0, slot1_size);
+					m_storage->write(&buf2[0], slot1, 0, slot3_size);
 
 					assert(m_slot_to_piece[m_current_slot] == unassigned
 							|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);
@@ -1592,15 +1645,15 @@ namespace libtorrent
 					std::vector<char> buf1(static_cast<int>(m_info.piece_length()));
 					std::vector<char> buf2(static_cast<int>(m_info.piece_length()));
 
-					m_storage.read(&buf2[0], m_current_slot, 0, slot3_size);
-					m_storage.read(&buf1[0], slot2, 0, slot2_size);
-					m_storage.write(&buf1[0], m_current_slot, 0, slot2_size);
+					m_storage->read(&buf2[0], m_current_slot, 0, slot3_size);
+					m_storage->read(&buf1[0], slot2, 0, slot2_size);
+					m_storage->write(&buf1[0], m_current_slot, 0, slot2_size);
 					if (slot1_size > 0)
 					{
-						m_storage.read(&buf1[0], slot1, 0, slot1_size);
-						m_storage.write(&buf1[0], slot2, 0, slot1_size);
+						m_storage->read(&buf1[0], slot1, 0, slot1_size);
+						m_storage->write(&buf1[0], slot2, 0, slot1_size);
 					}
-					m_storage.write(&buf2[0], slot1, 0, slot3_size);
+					m_storage->write(&buf2[0], slot1, 0, slot3_size);
 					assert(m_slot_to_piece[m_current_slot] == unassigned
 						|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);
 				}
@@ -1677,9 +1730,10 @@ namespace libtorrent
 
 	std::pair<bool, float> piece_manager::check_files(
 		std::vector<bool>& pieces
-		, int& num_pieces)
+		, int& num_pieces
+		, boost::recursive_mutex& mutex)
 	{
-		return m_pimpl->check_files(pieces, num_pieces);
+		return m_pimpl->check_files(pieces, num_pieces, mutex);
 	}
 
 	int piece_manager::impl::allocate_slot_for_piece(int piece_index)
@@ -1778,8 +1832,8 @@ namespace libtorrent
 
 			const int slot_size = static_cast<int>(m_info.piece_size(slot_index));
 			std::vector<char> buf(slot_size);
-			m_storage.read(&buf[0], piece_index, 0, slot_size);
-			m_storage.write(&buf[0], slot_index, 0, slot_size);
+			m_storage->read(&buf[0], piece_index, 0, slot_size);
+			m_storage->write(&buf[0], slot_index, 0, slot_size);
 
 			assert(m_slot_to_piece[piece_index] == piece_index);
 			assert(m_piece_to_slot[piece_index] == piece_index);
@@ -1866,7 +1920,7 @@ namespace libtorrent
 			if (m_piece_to_slot[pos] != has_no_slot)
 			{
 				assert(m_piece_to_slot[pos] >= 0);
-				m_storage.read(&buffer[0], m_piece_to_slot[pos], 0, static_cast<int>(m_info.piece_size(pos)));
+				m_storage->read(&buffer[0], m_piece_to_slot[pos], 0, static_cast<int>(m_info.piece_size(pos)));
 				new_free_slot = m_piece_to_slot[pos];
 				m_slot_to_piece[pos] = pos;
 				m_piece_to_slot[pos] = pos;
@@ -1877,7 +1931,7 @@ namespace libtorrent
 			m_free_slots.push_back(new_free_slot);
 
 			if (write_back || m_fill_mode)
-				m_storage.write(&buffer[0], pos, 0, static_cast<int>(m_info.piece_size(pos)));
+				m_storage->write(&buffer[0], pos, 0, static_cast<int>(m_info.piece_size(pos)));
 		}
 
 		assert(m_free_slots.size() > 0);

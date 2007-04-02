@@ -173,6 +173,9 @@ namespace libtorrent
 
 		void parse_info_section(entry const& e);
 
+		entry extra(char const* key) const
+		{ return m_extra_info[key]; }
+
 	private:
 
 		void read_torrent_info(const entry& libtorrent);

@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/pch.hpp"
+
 #include <utility>
 #include <boost/bind.hpp>
 #include <boost/optional.hpp>

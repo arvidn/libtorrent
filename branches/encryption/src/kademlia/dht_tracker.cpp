@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/pch.hpp"
+
 #include <fstream>
 #include <set>
 #include <numeric>
@@ -477,10 +479,24 @@ namespace libtorrent { namespace dht
 				if (id.size() != 20) throw std::runtime_error("invalid size of id");
 				std::copy(id.begin(), id.end(), m.id.begin());
 
-				if (entry const* n = r.find_key("values"))				
+				if (entry const* n = r.find_key("values"))
 				{
 					m.peers.clear();
-					read_endpoint_list<tcp::endpoint>(n, m.peers);
+					if (n->list().size() == 1)
+					{
+						// assume it's mainline format
+						std::string const& peers = n->list().front().string();
+						std::string::const_iterator i = peers.begin();
+						std::string::const_iterator end = peers.end();
+
+						while (std::distance(i, end) >= 6)
+							m.peers.push_back(read_v4_endpoint<tcp::endpoint>(i));
+					}
+					else
+					{
+						// assume it's uTorrent/libtorrent format
+						read_endpoint_list<tcp::endpoint>(n, m.peers);
+					}
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 					TORRENT_LOG(dht_tracker) << "   peers: " << m.peers.size();
 #endif

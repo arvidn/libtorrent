@@ -30,9 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <iostream>
+#include "libtorrent/pch.hpp"
 
-#include "libtorrent/peer_connection.hpp"
+#include <iostream>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
+#include "libtorrent/peer_connection.hpp"
 #include "libtorrent/web_peer_connection.hpp"
 #include "libtorrent/policy.hpp"
 #include "libtorrent/torrent.hpp"
@@ -504,16 +505,17 @@ namespace libtorrent
 
 	policy::peer *policy::find_connect_candidate()
 	{
-		boost::posix_time::ptime local_time=second_clock::universal_time();
+		boost::posix_time::ptime local_time = second_clock::universal_time();
 		boost::posix_time::ptime ptime(local_time);
-		policy::peer* candidate  =0;
+		policy::peer* candidate = 0;
 
 		for (std::vector<peer>::iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
-			if(i->connection) continue;
-			if(i->banned) continue;
-			if(i->type == peer::not_connectable) continue;
+			if (i->connection) continue;
+			if (i->banned) continue;
+			if (i->type == peer::not_connectable) continue;
+			if (i->seed && m_torrent->is_seed()) continue;
 
 			assert(i->connected <= local_time);
 
@@ -681,7 +683,8 @@ namespace libtorrent
 				// every minute, disconnect the worst peer in hope of finding a better peer
 
 				boost::posix_time::ptime local_time = second_clock::universal_time();
-				if (m_last_optimistic_disconnect + boost::posix_time::seconds(120) <= local_time)
+				if (m_last_optimistic_disconnect + boost::posix_time::seconds(120) <= local_time
+					&& find_connect_candidate())
 				{
 					m_last_optimistic_disconnect = local_time;
 					--max_connections; // this will have the effect of disconnecting the worst peer
@@ -856,7 +859,7 @@ namespace libtorrent
 		}
 	}
 
-	void policy::ban_peer(const peer_connection& c)
+	void policy::ban_peer(peer_connection const& c)
 	{
 		INVARIANT_CHECK;
 
@@ -878,6 +881,21 @@ namespace libtorrent
 		i->type = peer::not_connectable;
 		i->ip.port(0);
 		i->banned = true;
+	}
+
+	void policy::set_seed(peer_connection const& c)
+	{
+		INVARIANT_CHECK;
+
+		std::vector<peer>::iterator i = std::find_if(
+			m_peers.begin()
+			, m_peers.end()
+			, match_peer_connection(c));
+
+		// it might be an http-seed
+		if (i == m_peers.end()) return;
+
+		i->seed = true;
 	}
 
 	void policy::new_connection(peer_connection& c)
@@ -973,7 +991,8 @@ namespace libtorrent
 		m_last_optimistic_disconnect = second_clock::universal_time();
 	}
 
-	void policy::peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid)
+	void policy::peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid
+		, char flags)
 	{
 		INVARIANT_CHECK;
 
@@ -1011,6 +1030,7 @@ namespace libtorrent
 				// the iterator is invalid
 				// because of the push_back()
 				i = m_peers.end() - 1;
+				if (flags & 0x02) p.seed = true;
 				just_added = true;
 			}
 			else
@@ -1021,6 +1041,7 @@ namespace libtorrent
 				// not known, so save it. Client may also have changed port
 				// for some reason.
 				i->ip = remote;
+				if (flags & 0x02) i->seed = true;
 
 				if (i->connection)
 				{
@@ -1089,21 +1110,7 @@ namespace libtorrent
 				if (!i->connection->is_interesting()) continue;
 				if (!i->connection->has_piece(index)) continue;
 
-				bool interested = false;
-				const std::vector<bool>& peer_has = i->connection->get_bitfield();
-				const std::vector<bool>& we_have = m_torrent->pieces();
-				assert(we_have.size() == peer_has.size());
-				for (int j = 0; j != (int)we_have.size(); ++j)
-				{
-					if (!we_have[j] && peer_has[j])
-					{
-						interested = true;
-						break;
-					}
-				}
-				if (!interested)
-					i->connection->send_not_interested();
-				assert(i->connection->is_interesting() == interested);
+				i->connection->update_interest();
 			}
 		}
 	}
@@ -1269,6 +1276,7 @@ namespace libtorrent
 
 //		assert(c.is_disconnecting());
 		bool unchoked = false;
+		bool erase = false;
 
 		std::vector<peer>::iterator i = std::find_if(
 			m_peers.begin()
@@ -1287,8 +1295,8 @@ namespace libtorrent
 
 		if (c.failed())
 		{
-			i->type = peer::not_connectable;
-			i->ip.port(0);
+			if (++i->failcount > 3) erase = true;
+			i->connected = second_clock::universal_time();
 		}
 
 		// if the share ratio is 0 (infinite), the
@@ -1303,6 +1311,9 @@ namespace libtorrent
 		i->prev_amount_download += c.statistics().total_payload_download();
 		i->prev_amount_upload += c.statistics().total_payload_upload();
 		i->connection = 0;
+
+		if (erase)
+			m_peers.erase(i);
 
 		if (unchoked)
 		{
@@ -1404,6 +1415,8 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		, pe_support(peer::unknown)
 #endif
+		, failcount(0)
+		, seed(false)
 		, last_optimistically_unchoked(
 			boost::gregorian::date(1970,boost::gregorian::Jan,1))
 		, connected(boost::gregorian::date(1970,boost::gregorian::Jan,1))

@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/pch.hpp"
+
 #include <vector>
 #include <iostream>
 #include <iomanip>
@@ -203,6 +205,33 @@ namespace libtorrent
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
 	}
 
+	void peer_connection::update_interest()
+	{
+		INVARIANT_CHECK;
+
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		assert(t);
+
+		bool interested = false;
+		const std::vector<bool>& we_have = t->pieces();
+		for (int j = 0; j != (int)we_have.size(); ++j)
+		{
+			if (!we_have[j]
+				&& t->piece_priority(j) > 0
+				&& m_have_piece[j])
+			{
+				interested = true;
+				break;
+			}
+		}
+		if (!interested)
+			send_not_interested();
+		else
+			t->get_policy().peer_is_interesting(*this);
+
+		assert(is_interesting() == interested);
+	}
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void peer_connection::add_extension(boost::shared_ptr<peer_plugin> ext)
 	{
@@ -226,30 +255,21 @@ namespace libtorrent
 
 		// build a vector of all pieces
 		m_num_pieces = 0;
-		std::vector<int> piece_list;
-		for (int i = 0; i < (int)m_have_piece.size(); ++i)
+		bool interesting = false;
+		for (int i = 0; i < int(m_have_piece.size()); ++i)
 		{
 			if (m_have_piece[i])
 			{
 				++m_num_pieces;
-				piece_list.push_back(i);
+				t->peer_has(i);
+				// if the peer has a piece and we don't, the peer is interesting
+				if (!t->have_piece(i)
+					&& t->picker().piece_priority(i) != 0)
+					interesting = true;
 			}
 		}
 
-		// let the torrent know which pieces the
-		// peer has, in a shuffled order
-		bool interesting = false;
-		for (std::vector<int>::reverse_iterator i = piece_list.rbegin();
-			i != piece_list.rend(); ++i)
-		{
-			int index = *i;
-			t->peer_has(index);
-			if (!t->have_piece(index)
-				&& !t->picker().is_filtered(index))
-				interesting = true;
-		}
-
-		if (piece_list.size() == m_have_piece.size())
+		if (m_num_pieces == int(m_have_piece.size()))
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << " *** THIS IS A SEED ***\n";
@@ -657,13 +677,17 @@ namespace libtorrent
 				if (!t->have_piece(index)
 					&& !t->is_seed()
 					&& !is_interesting()
-					&& !t->picker().is_filtered(index))
+					&& t->picker().piece_priority(index) != 0)
 					t->get_policy().peer_is_interesting(*this);
 			}
 
-			if (t->is_seed() && is_seed())
+			if (is_seed())
 			{
-				throw protocol_error("seed to seed connection redundant, disconnecting");
+				t->get_policy().set_seed(*this);
+				if (t->is_seed())
+				{
+					throw protocol_error("seed to seed connection redundant, disconnecting");
+				}
 			}
 		}
 	}
@@ -682,7 +706,14 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
 		(*m_logger) << to_simple_string(second_clock::universal_time())
-			<< " <== BITFIELD\n";
+			<< " <== BITFIELD ";
+
+		for (int i = 0; i < int(bitfield.size()); ++i)
+		{
+			if (bitfield[i]) (*m_logger) << "1";
+			else (*m_logger) << "0";
+		}
+		(*m_logger) << "\n";
 #endif
 
 		// if we don't have the metedata, we cannot
@@ -699,7 +730,7 @@ namespace libtorrent
 		// just remember the bitmask
 		// don't update the piecepicker
 		// (since it doesn't exist yet)
-		if (!t->valid_metadata())
+		if (!t->ready_for_connections())
 		{
 			m_have_piece = bitfield;
 			m_num_pieces = std::count(bitfield.begin(), bitfield.end(), true);
@@ -717,8 +748,7 @@ namespace libtorrent
 				m_have_piece[i] = true;
 				++m_num_pieces;
 				t->peer_has(i);
-				if (!t->have_piece(i)
-					&& !t->picker().is_filtered(i))
+				if (!t->have_piece(i) && t->picker().piece_priority(i) != 0)
 					interesting = true;
 			}
 			else if (!have && m_have_piece[i])
@@ -735,6 +765,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << " *** THIS IS A SEED ***\n";
 #endif
+			t->get_policy().set_seed(*this);
 			// if we're a seed too, disconnect
 			if (t->is_seed())
 			{
@@ -1066,7 +1097,7 @@ namespace libtorrent
 				// in case we just became a seed
 				t->announce_piece(p.piece);
 				assert(t->valid_metadata());
-				// if we jsut became a seed, picker is now invalid, since it
+				// if we just became a seed, picker is now invalid, since it
 				// is deallocated by the torrent once it starts seeding
 				if (!was_finished
 					&& (t->is_seed()
@@ -1089,13 +1120,42 @@ namespace libtorrent
 				t->piece_failed(p.piece);
 			}
 
+#ifndef NDEBUG
+			try
+			{
+#endif
+
 			pol.piece_finished(p.piece, verified);
+
+#ifndef NDEBUG
+			}
+			catch (std::exception const& e)
+			{
+				std::string err = e.what();
+				assert(false);
+			}
+#endif
+
+#ifndef NDEBUG
+			try
+			{
+#endif
 
 			if (!was_seed && t->is_seed())
 			{
 				assert(verified);
 				t->completed();
 			}
+
+#ifndef NDEBUG
+			}
+			catch (std::exception const& e)
+			{
+				std::string err = e.what();
+				assert(false);
+			}
+#endif
+
 		}
 
 #ifndef NDEBUG
@@ -1782,8 +1842,9 @@ namespace libtorrent
 				(*m_logger) << "req bandwidth [ " << upload_channel << " ]\n";
 #endif
 
-				// the upload queue should not have non-prioritized peers
-				t->request_bandwidth(upload_channel, self(), false);
+				// peers that we are not interested in are non-prioritized
+				t->request_bandwidth(upload_channel, self()
+					, !(is_interesting() && !has_peer_choked()));
 				m_writing = true;
 			}
 			return;

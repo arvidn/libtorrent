@@ -11,10 +11,10 @@ libtorrent manual
 downloading and building
 ========================
 
-To acquire the latest version of libtorrent, you'll have to grab it from CVS.
-You'll find instructions on how to do this here__ (see Anonymous CVS access).
+To acquire the latest version of libtorrent, you'll have to grab it from SVN.
+You'll find instructions on how to do this here__ (see subversion access).
 
-__ http://sourceforge.net/cvs/?group_id=79942
+__ http://sourceforge.net/svn/?group_id=79942
 
 The build systems supported "out of the box" in libtorrent are boost-build v2
 (BBv2) and autotools (for unix-like systems). If you still can't build after
@@ -24,7 +24,7 @@ IRC channel on ``irc.freenode.net``.
 Contributed build tutorials
 ---------------------------
 
-* libtorrent cvs, ubuntu_
+* libtorrent svn, ubuntu_
 * `ubuntu 6.10`_
 * suse_
 * `visual studio 2005`_
@@ -41,10 +41,10 @@ Gentoo ebuild is provided by the `BTG project`_.
 
 .. _`BTG project`: http://www.peerweb.nl/gentoo/net-libs/rblibtorrent/
 
-building from cvs
+building from svn
 -----------------
 
-To build libtorrent from cvs you need to check out the libtorrent sources from
+To build libtorrent from svn you need to check out the libtorrent sources from
 sourceforge and also check out the asio sources from its sourceforge cvs.
 If you downloaded a release tarball, you can skip this section.
 
@@ -56,7 +56,7 @@ To prepare the directory structure for building, follow these steps:
   directory. Alternatively you can make a symbolic link.
 * Copy ``asio/include/asio.hpp`` into ``libtorrent/include/libtorrent``.
 
-__ http://sourceforge.net/cvs/?group_id=79942
+__ http://sourceforge.net/svn/?group_id=79942
 __ http://sourceforge.net/cvs/?group_id=122478
 
 Now the libtorrent directory is ready for building. Follow the steps in one

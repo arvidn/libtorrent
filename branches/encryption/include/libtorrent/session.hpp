@@ -61,6 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/fingerprint.hpp"
 
 #include "libtorrent/resource_request.hpp"
+#include "libtorrent/storage.hpp"
 
 #ifdef _MSC_VER
 #	include <eh.h>
@@ -137,7 +138,8 @@ namespace libtorrent
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
-			, int block_size = 16 * 1024);
+			, int block_size = 16 * 1024
+			, storage_constructor_type sc = default_storage_constructor);
 
 		// TODO: deprecated, this is for backwards compatibility only
 		torrent_handle add_torrent(
@@ -145,10 +147,11 @@ namespace libtorrent
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
-			, int block_size = 16 * 1024)
+			, int block_size = 16 * 1024
+			, storage_constructor_type sc = default_storage_constructor)
 		{
 			return add_torrent(torrent_info(e), save_path, resume_data
-				, compact_mode, block_size);
+				, compact_mode, block_size, sc);
 		}
 
 		torrent_handle add_torrent(
@@ -158,7 +161,8 @@ namespace libtorrent
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
-			, int block_size = 16 * 1024);
+			, int block_size = 16 * 1024
+			, storage_constructor_type sc = default_storage_constructor);
 
 		session_proxy abort() { return session_proxy(m_impl); }
 

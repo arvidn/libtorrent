@@ -4,6 +4,7 @@ import modules ;
 import os ;
 import errors ;
 import feature : feature ;
+#import pch ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 
@@ -40,11 +41,13 @@ SOURCES =
 	entry.cpp
 	escape_string.cpp
 	file.cpp
+	http_connection.cpp
 	identify_client.cpp
 	ip_filter.cpp
 	peer_connection.cpp
 	bt_peer_connection.cpp
 	web_peer_connection.cpp
+	natpmp.cpp
 	piece_picker.cpp
 	policy.cpp
 	session.cpp
@@ -59,6 +62,7 @@ SOURCES =
 	udp_tracker_connection.cpp
 	sha1.cpp
 	metadata_transfer.cpp
+	upnp.cpp
 	ut_pex.cpp
 	logger.cpp
 	file_pool.cpp
@@ -166,10 +170,13 @@ feature zlib : system shipped : composite ;
 feature.compose <zlib>system : ;
 feature.compose <zlib>shipped : ;
 
+#cpp-pch pch : include/libtorrent/pch.hpp ;
+
 lib torrent
 	:
 	src/$(SOURCES)
 	$(LIBS)
+#	pch
 	:
 	<dht-support>on:<source>src/$(KADEMLIA_SOURCES)
 	<dht-support>logging:<source>src/$(KADEMLIA_SOURCES)

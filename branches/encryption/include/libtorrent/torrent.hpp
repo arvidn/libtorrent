@@ -68,6 +68,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/bandwidth_manager.hpp"
+#include "libtorrent/storage.hpp"
 
 namespace libtorrent
 {
@@ -100,7 +101,8 @@ namespace libtorrent
 			, tcp::endpoint const& net_interface
 			, bool compact_mode
 			, int block_size
-			, session_settings const& s);
+			, session_settings const& s
+			, storage_constructor_type sc);
 
 		// used with metadata-less torrents
 		// (the metadata is downloaded from the peers)
@@ -114,7 +116,8 @@ namespace libtorrent
 			, tcp::endpoint const& net_interface
 			, bool compact_mode
 			, int block_size
-			, session_settings const& s);
+			, session_settings const& s
+			, storage_constructor_type sc);
 
 		~torrent();
 
@@ -142,7 +145,10 @@ namespace libtorrent
 		aux::session_impl& session() { return m_ses; }
 		
 		void set_sequenced_download_threshold(int threshold);
-		
+	
+		bool verify_resume_data(entry& rd, std::string& error)
+		{ assert(m_storage); return m_storage->verify_resume_data(rd, error); }
+
 		// is called every second by session. This will
 		// caclulate the upload/download and number
 		// of connections this torrent needs. And prepare
@@ -168,12 +174,23 @@ namespace libtorrent
 		void resume();
 		bool is_paused() const { return m_paused; }
 
+		// ============ start deprecation =============
 		void filter_piece(int index, bool filter);
 		void filter_pieces(std::vector<bool> const& bitmask);
 		bool is_piece_filtered(int index) const;
 		void filtered_pieces(std::vector<bool>& bitmask) const;
-	
 		void filter_files(std::vector<bool> const& files);
+		// ============ end deprecation =============
+
+
+		void set_piece_priority(int index, int priority);
+		int piece_priority(int index) const;
+
+		void prioritize_pieces(std::vector<int> const& pieces);
+		void piece_priorities(std::vector<int>&) const;
+
+		void prioritize_files(std::vector<int> const& files);
+
 
 		torrent_status status() const;
 		void file_progress(std::vector<float>& fp) const;
@@ -363,9 +380,14 @@ namespace libtorrent
 		// the download. It will post an event, disconnect
 		// all seeds and let the tracker know we're finished.
 		void completed();
-		
+
 		// this is the asio callback that is called when a name
-		// lookup for a web seed is completed.
+		// lookup for a PEER is completed.
+		void on_peer_name_lookup(asio::error_code const& e, tcp::resolver::iterator i
+			, peer_id pid);
+
+		// this is the asio callback that is called when a name
+		// lookup for a WEB SEED is completed.
 		void on_name_lookup(asio::error_code const& e, tcp::resolver::iterator i
 			, std::string url, tcp::endpoint proxy);
 
@@ -408,8 +430,14 @@ namespace libtorrent
 		alert_manager& alerts() const;
 		piece_picker& picker()
 		{
+			assert(!is_seed());
 			assert(m_picker.get());
 			return *m_picker;
+		}
+		bool has_picker() const
+		{
+			assert((valid_metadata() && !is_seed()) == bool(m_picker.get()));
+			return m_picker.get();
 		}
 		policy& get_policy()
 		{
@@ -474,6 +502,8 @@ namespace libtorrent
 		void on_country_lookup(asio::error_code const& error, tcp::resolver::iterator i
 			, boost::intrusive_ptr<peer_connection> p) const;
 		bool request_bandwidth_from_session(int channel) const;
+
+		void update_peer_interest();
 
 		torrent_info m_torrent_file;
 
@@ -603,6 +633,11 @@ namespace libtorrent
 		// m_have_pieces.end(), 0)
 		int m_num_pieces;
 
+		// in case the piece picker hasn't been constructed
+		// when this settings is set, this variable will keep
+		// its value until the piece picker is created
+		int m_sequenced_download_threshold;
+
 		// is false by default and set to
 		// true when the first tracker reponse
 		// is received
@@ -652,6 +687,8 @@ namespace libtorrent
 		boost::scoped_ptr<std::string> m_name;
 
 		session_settings const& m_settings;
+
+		storage_constructor_type m_storage_constructor;
 		
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::list<boost::shared_ptr<torrent_plugin> > extension_list_t;

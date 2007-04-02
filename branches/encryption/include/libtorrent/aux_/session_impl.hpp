@@ -77,6 +77,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/stat.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/bandwidth_manager.hpp"
+#include "libtorrent/natpmp.hpp"
+#include "libtorrent/upnp.hpp"
 
 namespace libtorrent
 {
@@ -213,7 +215,7 @@ namespace libtorrent
 			void add_dht_node(udp::endpoint n);
 			void add_dht_router(std::pair<std::string, int> const& node);
 			void set_dht_settings(dht_settings const& s);
-			dht_settings const& kad_settings() const { return m_dht_settings; }
+			dht_settings const& get_dht_settings() const { return m_dht_settings; }
 			void start_dht(entry const& startup_state);
 			void stop_dht();
 			entry dht_state() const;
@@ -223,6 +225,10 @@ namespace libtorrent
 			void set_pe_settings(pe_settings const& settings);
 			pe_settings const& get_pe_settings() const { return m_pe_settings; }
 #endif
+
+			// called when a port mapping is successful, or a router returns
+			// a failure to map a port
+			void on_port_mapping(int tcp_port, int udp_port, std::string const& errmsg);
 
 			bool is_aborted() const { return m_abort; }
 
@@ -238,7 +244,8 @@ namespace libtorrent
 				, boost::filesystem::path const& save_path
 				, entry const& resume_data
 				, bool compact_mode
-				, int block_size);
+				, int block_size
+				, storage_constructor_type sc);
 
 			torrent_handle add_torrent(
 				char const* tracker_url
@@ -247,7 +254,8 @@ namespace libtorrent
 				, boost::filesystem::path const& save_path
 				, entry const& resume_data
 				, bool compact_mode
-				, int block_size);
+				, int block_size
+				, storage_constructor_type sc);
 
 			void remove_torrent(torrent_handle const& h);
 
@@ -334,6 +342,15 @@ namespace libtorrent
 			// that we should let the os decide which
 			// interface to listen on
 			tcp::endpoint m_listen_interface;
+			
+			// this is typically set to the same as the local
+			// listen port. In case a NAT port forward was
+			// successfully opened, this will be set to the
+			// port that is open on the external (NAT) interface
+			// on the NAT box itself. This is the port that has
+			// to be published to peers, since this is the port
+			// the client is reachable through.
+			int m_external_listen_port;
 
 			boost::shared_ptr<socket_acceptor> m_listen_socket;
 
@@ -371,11 +388,23 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_DHT
 			boost::intrusive_ptr<dht::dht_tracker> m_dht;
 			dht_settings m_dht_settings;
+			// if this is set to true, the dht listen port
+			// will be set to the same as the tcp listen port
+			// and will be synchronlized with it as it changes
+			// it defaults to true
+			bool m_dht_same_port;
+			
+			// see m_external_listen_port. This is the same
+			// but for the udp port used by the DHT.
+			int m_external_udp_port;
 #endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			pe_settings m_pe_settings;
 #endif
+
+			natpmp m_natpmp;
+			upnp m_upnp;
 
 			// the timer used to fire the second_tick
 			deadline_timer m_timer;

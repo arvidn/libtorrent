@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/pch.hpp"
+
 #include <cctype>
 #include <algorithm>
 
@@ -155,6 +157,7 @@ namespace
 		, map_entry("ES", "electric sheep")
 		, map_entry("HL", "Halite")
 		, map_entry("KT", "KTorrent")
+		, map_entry("LK", "Linkage")
 		, map_entry("LP", "lphant")
 		, map_entry("LT", "libtorrent")
 		, map_entry("M",  "Mainline")
