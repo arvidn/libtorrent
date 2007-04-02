@@ -373,14 +373,6 @@ namespace libtorrent
 		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
-		{
-			if ((*i)->on_choke()) return;
-		}
-#endif
-
 		incoming_choke();
 	}
 
@@ -397,14 +389,6 @@ namespace libtorrent
 			throw protocol_error("'unchoke' message size != 1");
 		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
-		{
-			if ((*i)->on_unchoke()) return;
-		}
-#endif
 
 		incoming_unchoke();
 	}
@@ -423,14 +407,6 @@ namespace libtorrent
 		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
-		{
-			if ((*i)->on_interested()) return;
-		}
-#endif
-
 		incoming_interested();
 	}
 
@@ -447,14 +423,6 @@ namespace libtorrent
 			throw protocol_error("'not interested' message size != 1");
 		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
-		{
-			if ((*i)->on_not_interested()) return;
-		}
-#endif
 
 		incoming_not_interested();
 	}
@@ -477,14 +445,6 @@ namespace libtorrent
 
 		const char* ptr = recv_buffer.begin + 1;
 		int index = detail::read_int32(ptr);
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
-		{
-			if ((*i)->on_have(index)) return;
-		}
-#endif
 
 		incoming_have(index);
 	}
@@ -527,14 +487,6 @@ namespace libtorrent
 		for (int i = 0; i < (int)bitfield.size(); ++i)
 			bitfield[i] = (recv_buffer[1 + (i>>3)] & (1 << (7 - (i&7)))) != 0;
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
-		{
-			if ((*i)->on_bitfield(bitfield)) return;
-		}
-#endif
-
 		incoming_bitfield(bitfield);
 	}
 
@@ -560,14 +512,6 @@ namespace libtorrent
 		r.start = detail::read_int32(ptr);
 		r.length = detail::read_int32(ptr);
 		
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
-		{
-			if ((*i)->on_request(r)) return;
-		}
-#endif
-
 		incoming_request(r);
 	}
 
@@ -612,14 +556,6 @@ namespace libtorrent
 		p.start = detail::read_int32(ptr);
 		p.length = packet_size() - 9;
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
-		{
-			if ((*i)->on_piece(p, recv_buffer.begin + 9)) return;
-		}
-#endif
-
 		incoming_piece(p, recv_buffer.begin + 9);
 	}
 
@@ -644,14 +580,6 @@ namespace libtorrent
 		r.piece = detail::read_int32(ptr);
 		r.start = detail::read_int32(ptr);
 		r.length = detail::read_int32(ptr);
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
-		{
-			if ((*i)->on_cancel(r)) return;
-		}
-#endif
 
 		incoming_cancel(r);
 	}

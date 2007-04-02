@@ -487,6 +487,8 @@ namespace libtorrent { namespace
 	boost::shared_ptr<peer_plugin> metadata_plugin::new_connection(
 		peer_connection* pc)
 	{
+		bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(pc);
+		if (!c) return boost::shared_ptr<peer_plugin>();
 		return boost::shared_ptr<peer_plugin>(new metadata_peer_plugin(m_torrent, *pc, *this));
 	}
 

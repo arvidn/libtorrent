@@ -1693,6 +1693,8 @@ namespace libtorrent { namespace detail
 
 		m_thread->join();
 
+		assert(m_torrents.empty());
+
 		// it's important that the main thread is closed completely before
 		// the checker thread is terminated. Because all the connections
 		// have to be closed and removed from the torrents before they
