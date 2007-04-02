@@ -1584,16 +1584,18 @@ namespace libtorrent
 	void peer_connection::set_upload_limit(int limit)
 	{
 		assert(limit >= -1);
-		if (limit == -1) m_upload_limit = resource_request::inf;
-		if (limit < 10) m_upload_limit = 10;
+		if (limit == -1) limit = resource_request::inf;
+		if (limit < 10) limit = 10;
+		m_upload_limit = limit;
 		m_bandwidth_limit[upload_channel].throttle(m_upload_limit);
 	}
 
 	void peer_connection::set_download_limit(int limit)
 	{
 		assert(limit >= -1);
-		if (limit == -1) m_download_limit = resource_request::inf;
-		if (limit < 10) m_download_limit = 10;
+		if (limit == -1) limit = resource_request::inf;
+		if (limit < 10) limit = 10;
+		m_download_limit = limit;
 		m_bandwidth_limit[download_channel].throttle(m_download_limit);
 	}
 
