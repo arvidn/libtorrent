@@ -190,8 +190,8 @@ void upnp::discover_device()
 void upnp::set_mappings(int tcp, int udp)
 {
 	if (m_disabled) return;
-	m_udp_local_port = udp;
-	m_tcp_local_port = tcp;
+	if (udp != 0) m_udp_local_port = udp;
+	if (tcp != 0) m_tcp_local_port = tcp;
 
 	boost::mutex::scoped_lock l(m_mutex);
 	for (std::set<rootdevice>::iterator i = m_devices.begin()
