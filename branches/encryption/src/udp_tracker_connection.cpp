@@ -92,6 +92,7 @@ namespace libtorrent
 		, m_settings(stn)
 		, m_attempts(0)
 	{
+		m_socket.reset(new datagram_socket(m_strand.io_service()));
 		udp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
 		m_name_lookup.async_resolve(q
 			, m_strand.wrap(boost::bind(

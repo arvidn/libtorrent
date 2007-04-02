@@ -177,8 +177,9 @@ namespace libtorrent
 		if (single_file_request)
 		{
 			request += "GET ";
-			if (using_proxy) request += m_url;
-			else request += escape_path(m_path.c_str(), m_path.length());
+			// do not encode single file paths, they are 
+			// assumed to be encoded in the torrent file
+			request += using_proxy ? m_url : m_path;
 			request += " HTTP/1.1\r\n";
 			request += "Host: ";
 			request += m_host;
@@ -315,13 +316,20 @@ namespace libtorrent
 			// if the status code is not one of the accepted ones, abort
 			if (m_parser.status_code() != 206 // partial content
 				&& m_parser.status_code() != 200 // OK
-				&& m_parser.status_code() < 300 // redirect
-				&& m_parser.status_code() >= 400)
+				&& !(m_parser.status_code() >= 300 // redirect
+					&& m_parser.status_code() < 400))
 			{
 				// we should not try this server again.
 				t->remove_url_seed(m_url);
-				throw std::runtime_error(boost::lexical_cast<std::string>(m_parser.status_code())
-					+ " " + m_parser.message());
+				std::string error_msg = boost::lexical_cast<std::string>(m_parser.status_code())
+					+ " " + m_parser.message();
+				if (m_ses.m_alerts.should_post(alert::warning))
+				{
+					session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+					m_ses.m_alerts.post_alert(url_seed_alert(t->get_handle(), url()
+						, error_msg));
+				}
+				throw std::runtime_error(error_msg);
 			}
 
 			if (!m_parser.header_finished()) break;
