@@ -1488,6 +1488,15 @@ namespace libtorrent
 		c->m_in_constructor = false;
 #endif
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			boost::shared_ptr<peer_plugin> pp((*i)->new_connection(c.get()));
+			if (pp) c->add_extension(pp);
+		}
+#endif
+
 		try
 		{
 			m_ses.m_connection_queue.push_back(c);

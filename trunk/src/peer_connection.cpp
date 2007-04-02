@@ -532,6 +532,14 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		assert(t);
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_choke()) return;
+		}
+#endif
+
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
 		(*m_logger) << to_simple_string(second_clock::universal_time())
@@ -574,6 +582,14 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		assert(t);
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_unchoke()) return;
+		}
+#endif
+
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
 		(*m_logger) << to_simple_string(second_clock::universal_time())
@@ -594,6 +610,14 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		assert(t);
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_interested()) return;
+		}
+#endif
+
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
 		(*m_logger) << to_simple_string(second_clock::universal_time())
@@ -610,6 +634,14 @@ namespace libtorrent
 	void peer_connection::incoming_not_interested()
 	{
 		INVARIANT_CHECK;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_not_interested()) return;
+		}
+#endif
 
 		m_became_uninterested = second_clock::universal_time();
 
@@ -640,6 +672,14 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		assert(t);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_have(index)) return;
+		}
+#endif
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
@@ -699,6 +739,14 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		assert(t);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_bitfield(bitfield)) return;
+		}
+#endif
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
@@ -783,6 +831,14 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		assert(t);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_request(r)) return;
+		}
+#endif
 
 		if (!t->valid_metadata())
 		{
@@ -922,6 +978,15 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		assert(t);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_piece(p, data)) return;
+		}
+#endif
+
 #ifndef NDEBUG
 		check_postcondition post_checker_(t);
 		t->check_invariant();
@@ -1172,6 +1237,14 @@ namespace libtorrent
 	void peer_connection::incoming_cancel(peer_request const& r)
 	{
 		INVARIANT_CHECK;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_cancel(r)) return;
+		}
+#endif
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
