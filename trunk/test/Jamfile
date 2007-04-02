@@ -1,6 +1,8 @@
 use-project /torrent : .. ;
 
-project 
+exe test_upnp : test_upnp.cpp /torrent : <threading>multi <logging>verbose ;
+
+project
    :
 	requirements <threading>multi
 	<library>/torrent
