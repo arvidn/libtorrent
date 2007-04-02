@@ -439,7 +439,7 @@ namespace libtorrent
 		path old_path;
 		path new_path;
 
-		m_save_path = complete(save_path);
+		save_path = complete(save_path);
 
 #if defined(_WIN32) && defined(UNICODE)
 		std::wstring wsave_path(safe_convert(save_path.native_file_string()));
@@ -452,9 +452,9 @@ namespace libtorrent
 			return false;
 		}
 #else
-		if(!exists(save_path))
+		if (!exists(save_path))
 			create_directory(save_path);
-		else if(!is_directory(save_path))
+		else if (!is_directory(save_path))
 			return false;
 #endif
 
