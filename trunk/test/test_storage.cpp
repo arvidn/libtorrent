@@ -47,34 +47,35 @@ void run_storage_tests(torrent_info& info)
 
 	{ // avoid having two storages use the same files	
 	file_pool fp;
-	storage s(info, initial_path(), fp);
+	boost::scoped_ptr<storage_interface> s(
+		default_storage_constructor(info, initial_path(), fp));
 
 	// write piece 1 (in slot 0)
-	s.write(piece1, 0, 0, half);
-	s.write(piece1 + half, 0, half, half);
+	s->write(piece1, 0, 0, half);
+	s->write(piece1 + half, 0, half, half);
 
 	// verify piece 1
-	TEST_CHECK(s.read(piece, 0, 0, piece_size) == piece_size);
+	TEST_CHECK(s->read(piece, 0, 0, piece_size) == piece_size);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece1));
 	
 	// do the same with piece 0 and 2 (in slot 1 and 2)
-	s.write(piece0, 1, 0, piece_size);
-	s.write(piece2, 2, 0, piece_size);
+	s->write(piece0, 1, 0, piece_size);
+	s->write(piece2, 2, 0, piece_size);
 
 	// verify piece 0 and 2
-	TEST_CHECK(s.read(piece, 1, 0, piece_size) == piece_size);
+	TEST_CHECK(s->read(piece, 1, 0, piece_size) == piece_size);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece0));
 
-	s.read(piece, 2, 0, piece_size);
+	s->read(piece, 2, 0, piece_size);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece2));
 	
-	s.release_files();
+	s->release_files();
 	}
 
 	// make sure the piece_manager can identify the pieces
 	{
 	file_pool fp;
-	piece_manager pm(info, initial_path(), fp);
+	piece_manager pm(info, initial_path(), fp, default_storage_constructor);
 	boost::mutex lock;
 	libtorrent::aux::piece_checker_data d;
 
@@ -91,6 +92,7 @@ void run_storage_tests(torrent_info& info)
 	TEST_CHECK(num_pieces == std::count(pieces.begin(), pieces.end()
 		, true));
 
+	TEST_CHECK(exists("temp_storage"));
 	pm.move_storage("temp_storage2");
 	TEST_CHECK(!exists("temp_storage"));
 	TEST_CHECK(exists("temp_storage2/temp_storage"));
