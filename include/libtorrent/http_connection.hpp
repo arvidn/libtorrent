@@ -63,6 +63,7 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 		, m_resolver(ios)
 		, m_handler(handler)
 		, m_timer(ios)
+		, m_last_receive(boost::posix_time::second_clock::universal_time())
 		, m_bottled(bottled)
 		, m_called(false)
 	{
@@ -97,6 +98,7 @@ private:
 	http_handler m_handler;
 	deadline_timer m_timer;
 	boost::posix_time::time_duration m_timeout;
+	boost::posix_time::ptime m_last_receive;
 	// bottled means that the handler is called once, when
 	// everything is received (and buffered in memory).
 	// non bottled means that once the headers have been

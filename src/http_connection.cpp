@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "http_connection.hpp"
 #include <asio/ip/tcp.hpp>
 
+using boost::posix_time::second_clock;
+
 namespace libtorrent
 {
 
@@ -84,8 +86,16 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 	boost::shared_ptr<http_connection> c = p.lock();
 	if (!c) return;
 	if (c->m_bottled && c->m_called) return;
-	c->m_called = true;
-	c->m_handler(asio::error::timed_out, c->m_parser, 0, 0);
+
+	if (c->m_last_receive + c->m_timeout < second_clock::universal_time())
+	{
+		c->m_called = true;
+		c->m_handler(asio::error::timed_out, c->m_parser, 0, 0);
+		return;
+	}
+
+	c->m_timer.expires_at(c->m_last_receive + c->m_timeout);
+	c->m_timer.async_wait(bind(&http_connection::on_timeout, p, _1));
 }
 
 void http_connection::close()
@@ -117,8 +127,7 @@ void http_connection::on_connect(asio::error_code const& e
 {
 	if (!e)
 	{ 
-		m_timer.expires_from_now(m_timeout);
-		m_timer.async_wait(bind(&http_connection::on_timeout, shared_from_this(), _1));
+		m_last_receive = second_clock::universal_time();
 		asio::async_write(m_sock, asio::buffer(sendbuffer)
 			, bind(&http_connection::on_write, shared_from_this(), _1));
 	}
@@ -191,8 +200,7 @@ void http_connection::on_read(asio::error_code const& e
 				m_handler(e, m_parser, &m_recvbuffer[0] + m_parser.body_start()
 					, m_read_pos - m_parser.body_start());
 			m_read_pos = 0;
-			m_timer.expires_from_now(m_timeout);
-			m_timer.async_wait(bind(&http_connection::on_timeout, shared_from_this(), _1));
+			m_last_receive = second_clock::universal_time();
 		}
 		else if (m_bottled && m_parser.finished())
 		{
@@ -207,6 +215,7 @@ void http_connection::on_read(asio::error_code const& e
 		assert(!m_bottled);
 		m_handler(e, m_parser, &m_recvbuffer[0], m_read_pos);
 		m_read_pos = 0;
+		m_last_receive = second_clock::universal_time();
 	}
 
 	if (int(m_recvbuffer.size()) == m_read_pos)
