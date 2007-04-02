@@ -14,7 +14,7 @@ void test_transfer(bool clear_files = true, bool disconnect = false)
 {
 	using namespace libtorrent;
 
-	session ses1;
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000));
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000));
 	ses1.add_extension(&create_metadata_plugin);
 	ses2.add_extension(&create_metadata_plugin);
