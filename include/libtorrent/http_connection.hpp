@@ -66,9 +66,18 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 		, m_last_receive(boost::posix_time::second_clock::universal_time())
 		, m_bottled(bottled)
 		, m_called(false)
+		, m_rate_limit(0)
+		, m_download_quota(0)
+		, m_limiter_timer_active(false)
+		, m_limiter_timer(ios)
 	{
 		assert(!m_handler.empty());
 	}
+
+	void rate_limit(int limit);
+
+	int rate_limit() const
+	{ return m_rate_limit; }
 
 	std::string sendbuffer;
 
@@ -89,6 +98,7 @@ private:
 	void on_read(asio::error_code const& e, std::size_t bytes_transferred);
 	static void on_timeout(boost::weak_ptr<http_connection> p
 		, asio::error_code const& e);
+	void on_assign_bandwidth(asio::error_code const& e);
 
 	std::vector<char> m_recvbuffer;
 	tcp::socket m_sock;
@@ -108,6 +118,22 @@ private:
 	bool m_called;
 	std::string m_hostname;
 	std::string m_port;
+
+	// the current download limit, in bytes per second
+	// 0 is unlimited.
+	int m_rate_limit;
+
+	// the number of bytes we are allowed to receive
+	int m_download_quota;
+
+	// only hand out new quota 4 times a second if the
+	// quota is 0. If it isn't 0 wait for it to reach
+	// 0 and continue to hand out quota at that time.
+	bool m_limiter_timer_active;
+
+	// the timer fires every 250 millisecond as long
+	// as all the quota was used.
+	deadline_timer m_limiter_timer;
 };
 
 }

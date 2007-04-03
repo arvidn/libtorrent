@@ -31,9 +31,13 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "http_connection.hpp"
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/bind.hpp>
 #include <asio/ip/tcp.hpp>
 
 using boost::posix_time::second_clock;
+using boost::posix_time::millisec;
+using boost::bind;
 
 namespace libtorrent
 {
@@ -160,14 +164,33 @@ void http_connection::on_write(asio::error_code const& e)
 
 	std::string().swap(sendbuffer);
 	m_recvbuffer.resize(4096);
+
+	int amount_to_read = m_recvbuffer.size() - m_read_pos;
+	if (m_rate_limit > 0 && amount_to_read > m_download_quota)
+	{
+		amount_to_read = m_download_quota;
+		if (m_download_quota == 0)
+		{
+			if (!m_limiter_timer_active)
+				on_assign_bandwidth(asio::error_code());
+			return;
+		}
+	}
 	m_sock.async_read_some(asio::buffer(&m_recvbuffer[0] + m_read_pos
-		, m_recvbuffer.size() - m_read_pos)
-		, bind(&http_connection::on_read, shared_from_this(), _1, _2));
+		, amount_to_read)
+		, bind(&http_connection::on_read
+		, shared_from_this(), _1, _2));
 }
 
 void http_connection::on_read(asio::error_code const& e
 	, std::size_t bytes_transferred)
 {
+	if (m_rate_limit)
+	{
+		m_download_quota -= bytes_transferred;
+		assert(m_download_quota >= 0);
+	}
+
 	if (e == asio::error::eof)
 	{
 		close();
@@ -228,10 +251,57 @@ void http_connection::on_read(asio::error_code const& e
 		m_handler(asio::error::eof, m_parser, 0, 0);
 		return;
 	}
+	int amount_to_read = m_recvbuffer.size() - m_read_pos;
+	if (m_rate_limit > 0 && amount_to_read > m_download_quota)
+	{
+		amount_to_read = m_download_quota;
+		if (m_download_quota == 0)
+		{
+			if (!m_limiter_timer_active)
+				on_assign_bandwidth(asio::error_code());
+			return;
+		}
+	}
 	m_sock.async_read_some(asio::buffer(&m_recvbuffer[0] + m_read_pos
-		, m_recvbuffer.size() - m_read_pos)
+		, amount_to_read)
 		, bind(&http_connection::on_read
 		, shared_from_this(), _1, _2));
+}
+
+void http_connection::on_assign_bandwidth(asio::error_code const& e)
+{
+	m_limiter_timer_active = false;
+	if (e) return;
+
+	if (m_download_quota > 0) return;
+
+	m_download_quota = m_rate_limit / 4;
+
+	int amount_to_read = m_recvbuffer.size() - m_read_pos;
+	if (amount_to_read > m_download_quota)
+		amount_to_read = m_download_quota;
+
+	m_sock.async_read_some(asio::buffer(&m_recvbuffer[0] + m_read_pos
+		, amount_to_read)
+		, bind(&http_connection::on_read
+		, shared_from_this(), _1, _2));
+
+	m_limiter_timer_active = true;
+	m_limiter_timer.expires_from_now(millisec(250));
+	m_limiter_timer.async_wait(bind(&http_connection::on_assign_bandwidth
+		, shared_from_this(), _1));
+}
+
+void http_connection::rate_limit(int limit)
+{
+	if (!m_limiter_timer_active)
+	{
+		m_limiter_timer_active = true;
+		m_limiter_timer.expires_from_now(millisec(250));
+		m_limiter_timer.async_wait(bind(&http_connection::on_assign_bandwidth
+			, shared_from_this(), _1));
+	}
+	m_rate_limit = limit;
 }
 
 }

@@ -242,3 +242,4 @@ namespace libtorrent
 	{ assert(false); };
 
 }
+
