@@ -207,6 +207,7 @@ void natpmp::resend_request(int i, asio::error_code const& e)
 {
 	using boost::posix_time::hours;
 	if (e) return;
+	if (m_currently_mapping != i) return;
 	if (m_retry_count >= 9)
 	{
 		m_mappings[i].need_update = false;
@@ -332,6 +333,7 @@ void natpmp::on_reply(asio::error_code const& e
 	int i = m_currently_mapping;
 	m_currently_mapping = -1;
 	m_mappings[i].need_update = false;
+	m_send_timer.cancel();
 	update_expiration_timer();
 	try_next_mapping(i);
 }
