@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
@@ -63,7 +64,7 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 		, m_resolver(ios)
 		, m_handler(handler)
 		, m_timer(ios)
-		, m_last_receive(boost::posix_time::second_clock::universal_time())
+		, m_last_receive(time_now())
 		, m_bottled(bottled)
 		, m_called(false)
 		, m_rate_limit(0)
@@ -81,11 +82,10 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 
 	std::string sendbuffer;
 
-	void get(std::string const& url, boost::posix_time::time_duration timeout
-		= boost::posix_time::seconds(30));
+	void get(std::string const& url, time_duration timeout = seconds(30));
 
 	void start(std::string const& hostname, std::string const& port
-		, boost::posix_time::time_duration timeout);
+		, time_duration timeout);
 	void close();
 
 private:
@@ -107,8 +107,8 @@ private:
 	http_parser m_parser;
 	http_handler m_handler;
 	deadline_timer m_timer;
-	boost::posix_time::time_duration m_timeout;
-	boost::posix_time::ptime m_last_receive;
+	time_duration m_timeout;
+	ptime m_last_receive;
 	// bottled means that the handler is called once, when
 	// everything is received (and buffered in memory).
 	// non bottled means that once the headers have been

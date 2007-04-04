@@ -57,9 +57,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
+	namespace pt = boost::posix_time;
+	namespace gr = boost::gregorian;
 
 	struct TORRENT_EXPORT file_entry
 	{
@@ -154,8 +157,7 @@ namespace libtorrent
 			return m_piece_hash[index];
 		}
 
-		boost::optional<boost::posix_time::ptime>
-		creation_date() const;
+		boost::optional<pt::ptime> creation_date() const;
 
 		const std::string& creator() const
 		{ return m_created_by; }
@@ -211,7 +213,7 @@ namespace libtorrent
 		// if a creation date is found in the torrent file
 		// this will be set to that, otherwise it'll be
 		// 1970, Jan 1
-		boost::posix_time::ptime m_creation_date;
+		pt::ptime m_creation_date;
 
 		// if a comment is found in the torrent file
 		// this will be set to that comment

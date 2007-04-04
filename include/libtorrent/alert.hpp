@@ -49,12 +49,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/preprocessor/repetition/enum.hpp>
 #include <boost/preprocessor/repetition/enum_params.hpp>
 #include <boost/preprocessor/repetition/enum_shifted_params.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
+#include "libtorrent/time.hpp"
 #include "libtorrent/config.hpp"
 
 #define TORRENT_MAX_ALERT_TYPES 10
@@ -70,7 +70,7 @@ namespace libtorrent {
 		virtual ~alert();
 
 		// a timestamp is automatically created in the constructor
-		boost::posix_time::ptime timestamp() const;
+		ptime timestamp() const;
 
 		const std::string& msg() const;
 
@@ -81,7 +81,7 @@ namespace libtorrent {
 	private:
 		std::string m_msg;
 		severity_t m_severity;
-		boost::posix_time::ptime m_timestamp;
+		ptime m_timestamp;
 	};
 
 	class TORRENT_EXPORT alert_manager

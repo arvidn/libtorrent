@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 #include <boost/cstdint.hpp>
 #include <boost/bind.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
@@ -47,13 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using boost::bind;
 using boost::uint8_t;
-
-using boost::posix_time::second_clock;
-using boost::posix_time::minutes;
-using boost::posix_time::seconds;
-using boost::posix_time::hours;
-
-namespace pt = boost::posix_time;
 
 namespace libtorrent { namespace dht
 {
@@ -71,7 +63,7 @@ routing_table::routing_table(node_id const& id, int bucket_size
 	// distribute the refresh times for the buckets in an
 	// attempt do even out the network load
 	for (int i = 0; i < 160; ++i)
-		m_bucket_activity[i] = second_clock::universal_time() - seconds(15*60 - i*5);
+		m_bucket_activity[i] = time_now() - seconds(15*60 - i*5);
 }
 
 boost::tuple<int, int> routing_table::size() const
@@ -127,7 +119,6 @@ void routing_table::print_state(std::ostream& os) const
 	{
 		int bucket_index = int(i - m_buckets.begin());
 		os << "bucket " << bucket_index << " "
-			<< to_simple_string(m_bucket_activity[bucket_index])
 			<< " " << (bucket_index >= m_lowest_active_bucket?"active":"inactive")
 			<< "\n";
 		for (bucket_t::const_iterator j = i->first.begin()
@@ -141,17 +132,17 @@ void routing_table::print_state(std::ostream& os) const
 
 void routing_table::touch_bucket(int bucket)
 {
-	m_bucket_activity[bucket] = second_clock::universal_time();
+	m_bucket_activity[bucket] = time_now();
 }
 
-boost::posix_time::ptime routing_table::next_refresh(int bucket)
+ptime routing_table::next_refresh(int bucket)
 {
 	assert(bucket < 160);
 	assert(bucket >= 0);
 	// lower than or equal to since a refresh of bucket 0 will
 	// effectively refresh the lowest active bucket as well
 	if (bucket <= m_lowest_active_bucket && bucket > 0)
-		return second_clock::universal_time() + minutes(15);
+		return time_now() + minutes(15);
 	return m_bucket_activity[bucket] + minutes(15);
 }
 
@@ -252,7 +243,7 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint addr)
 
 	bool ret = need_bootstrap();
 
-	m_bucket_activity[bucket_index] = second_clock::universal_time();
+	m_bucket_activity[bucket_index] = time_now();
 
 	if (i != b.end())
 	{

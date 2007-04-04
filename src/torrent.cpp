@@ -91,8 +91,8 @@ namespace libtorrent
 {
 	namespace
 	{
-		using boost::posix_time::ptime;
-		using boost::posix_time::time_duration;
+		using ptime;
+		using time_duration;
 		using boost::posix_time::microsec_clock;
 		std::vector<std::pair<ptime, std::string> > checkpoints;
 	}
@@ -238,7 +238,7 @@ namespace libtorrent
 		, m_event(tracker_request::started)
 		, m_block_size(0)
 		, m_storage(0)
-		, m_next_request(second_clock::universal_time())
+		, m_next_request(time_now())
 		, m_duration(1800)
 		, m_complete(-1)
 		, m_incomplete(-1)
@@ -322,7 +322,7 @@ namespace libtorrent
 		, m_event(tracker_request::started)
 		, m_block_size(0)
 		, m_storage(0)
-		, m_next_request(second_clock::universal_time())
+		, m_next_request(time_now())
 		, m_duration(1800)
 		, m_complete(-1)
 		, m_incomplete(-1)
@@ -468,7 +468,7 @@ namespace libtorrent
 	{
 		if (e) return;
 
-		m_announce_timer.expires_from_now(boost::posix_time::minutes(30));
+		m_announce_timer.expires_from_now(minutes(30));
 		m_announce_timer.async_wait(m_ses.m_strand.wrap(
 			bind(&torrent::on_announce, this, _1)));
 
@@ -528,8 +528,7 @@ namespace libtorrent
 			m_just_paused = false;
 			return true;
 		}
-		return !m_paused &&
-			m_next_request < second_clock::universal_time();
+		return !m_paused && m_next_request < time_now();
 	}
 
 	void torrent::tracker_warning(std::string const& msg)
@@ -565,7 +564,10 @@ namespace libtorrent
 		m_currently_trying_tracker = 0;
 
 		m_duration = interval;
-		m_next_request = second_clock::universal_time() + boost::posix_time::seconds(m_duration);
+		m_next_request = time_now() + seconds(m_duration);
+		std::cerr << "next announce: " << next_announce().time
+			<< " time: " << time_now().time
+			<< " duration: " << libtorrent::seconds(m_duration).diff << std::endl;
 
 		if (complete >= 0) m_complete = complete;
 		if (incomplete >= 0) m_incomplete = incomplete;
@@ -1264,9 +1266,7 @@ namespace libtorrent
 
 		assert(!m_trackers.empty());
 
-		m_next_request
-			= second_clock::universal_time()
-			+ boost::posix_time::seconds(tracker_retry_delay_max);
+		m_next_request = time_now() + seconds(tracker_retry_delay_max);
 
 		tracker_request req;
 		req.info_hash = m_torrent_file.info_hash();
@@ -1335,7 +1335,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		std::string now(to_simple_string(second_clock::universal_time()));
+		std::string now(to_simple_string(second_clock::local_time()));
 		(*m_ses.m_logger) << now << " resolving: " << url << "\n";
 #endif
 
@@ -1373,7 +1373,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		std::string now(to_simple_string(second_clock::universal_time()));
+		std::string now(to_simple_string(second_clock::local_time()));
 		(*m_ses.m_logger) << now << " completed resolve proxy hostname for: " << url << "\n";
 #endif
 
@@ -1427,7 +1427,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		std::string now(to_simple_string(second_clock::universal_time()));
+		std::string now(to_simple_string(second_clock::local_time()));
 		(*m_ses.m_logger) << now << " completed resolve: " << url << "\n";
 #endif
 
@@ -2158,13 +2158,13 @@ namespace libtorrent
 			++m_failed_trackers;
 			// if we've looped the tracker list, wait a bit before retrying
 			m_currently_trying_tracker = 0;
-			m_next_request = second_clock::universal_time() + seconds(delay);
+			m_next_request = time_now() + seconds(delay);
 
 #ifndef TORRENT_DISABLE_DHT
 			// only start the announce if we want to announce with the dht
 			if (should_announce_dht())
 			{
-				m_announce_timer.expires_from_now(boost::posix_time::seconds(1));
+				m_announce_timer.expires_from_now(seconds(1));
 				m_announce_timer.async_wait(m_ses.m_strand.wrap(
 					bind(&torrent::on_announce, this, _1)));
 			}
@@ -2174,7 +2174,7 @@ namespace libtorrent
 		else
 		{
 			// don't delay before trying the next tracker
-			m_next_request = second_clock::universal_time();
+			m_next_request = time_now();
 		}
 
 	}
@@ -2712,10 +2712,11 @@ namespace libtorrent
 		st.download_payload_rate = m_stat.download_payload_rate();
 		st.upload_payload_rate = m_stat.upload_payload_rate();
 
-		st.next_announce = next_announce()
-			- second_clock::universal_time();
-		if (st.next_announce.is_negative()) st.next_announce
-			= boost::posix_time::seconds(0);
+		st.next_announce = boost::posix_time::seconds(
+			total_seconds(next_announce() - time_now()));
+		if (st.next_announce.is_negative())
+			st.next_announce = boost::posix_time::seconds(0);
+
 		st.announce_interval = boost::posix_time::seconds(m_duration);
 
 		if (m_last_working_tracker >= 0)

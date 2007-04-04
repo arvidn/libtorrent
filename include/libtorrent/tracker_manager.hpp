@@ -61,6 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
@@ -177,11 +178,11 @@ namespace libtorrent
 		asio::strand& m_strand;
 		// used for timeouts
 		// this is set when the request has been sent
-		boost::posix_time::ptime m_start_time;
+		ptime m_start_time;
 		// this is set every time something is received
-		boost::posix_time::ptime m_read_time;
+		ptime m_read_time;
 		// the asio async operation
-		asio::deadline_timer m_timeout;
+		deadline_timer m_timeout;
 		
 		int m_completion_timeout;
 		int m_read_timeout;

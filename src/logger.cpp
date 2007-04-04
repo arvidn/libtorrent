@@ -73,7 +73,7 @@ namespace libtorrent { namespace
 		void log_timestamp()
 		{
 			using namespace boost::posix_time;
-			std::string now(to_simple_string(second_clock::universal_time()));
+			std::string now(to_simple_string(second_clock::local_time()));
 			m_file << now << ": ";
 		}
 

@@ -47,10 +47,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/cstdint.hpp>
 #include <boost/optional.hpp>
-#include <boost/date_time/posix_time/ptime.hpp>
-#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/iterator/transform_iterator.hpp>
 #include <boost/ref.hpp>
+
+#include "libtorrent/socket.hpp"
 
 namespace libtorrent { namespace dht
 {
@@ -67,7 +67,7 @@ TORRENT_DECLARE_LOG(node);
 struct peer_entry
 {
 	tcp::endpoint addr;
-	boost::posix_time::ptime added;
+	ptime added;
 };
 
 // this is a group. It contains a set of group members
@@ -133,8 +133,8 @@ public:
 	
 	// the returned time is the delay until connection_timeout()
 	// should be called again the next time
-	boost::posix_time::time_duration connection_timeout();
-	boost::posix_time::time_duration refresh_timeout();
+	time_duration connection_timeout();
+	time_duration refresh_timeout();
 
 	// generates a new secret number used to generate write tokens
 	void new_write_key();
@@ -172,7 +172,7 @@ private:
 	rpc_manager m_rpc;
 	table_t m_map;
 	
-	boost::posix_time::ptime m_last_tracker_tick;
+	ptime m_last_tracker_tick;
 
 	// secret random numbers used to create write tokens
 	int m_secret[2];

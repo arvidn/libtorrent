@@ -31,9 +31,8 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/pch.hpp"
+#include "libtorrent/socket.hpp"
 
-#include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/bind.hpp>
 
 #include <libtorrent/io.hpp>
@@ -45,11 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <fstream>
 
-using boost::posix_time::ptime;
-using boost::posix_time::time_duration;
-using boost::posix_time::microsec_clock;
-using boost::posix_time::seconds;
-using boost::posix_time::milliseconds;
 using boost::shared_ptr;
 using boost::bind;
 
@@ -72,7 +66,7 @@ rpc_manager::rpc_manager(fun const& f, node_id const& our_id
 	, m_send(sf)
 	, m_our_id(our_id)
 	, m_table(table)
-	, m_timer(boost::posix_time::microsec_clock::universal_time())
+	, m_timer(time_now())
 	, m_random_number(generate_id())
 	, m_destructing(false)
 {
@@ -201,8 +195,6 @@ time_duration rpc_manager::tick()
 {
 	INVARIANT_CHECK;
 
-	using boost::posix_time::microsec_clock;
-
 	const int timeout_ms = 10 * 1000;
 
 	//	look for observers that has timed out
@@ -220,8 +212,7 @@ time_duration rpc_manager::tick()
 		boost::shared_ptr<observer> o = m_transactions[m_oldest_transaction_id];
 		if (!o) continue;
 
-		time_duration diff = o->sent + milliseconds(timeout_ms)
-			- microsec_clock::universal_time();
+		time_duration diff = o->sent + milliseconds(timeout_ms) - time_now();
 		if (diff > seconds(0))
 		{
 			if (diff < seconds(1)) return seconds(1);
@@ -317,7 +308,7 @@ void rpc_manager::invoke(int message_id, udp::endpoint target_addr
 		
 		o->send(m);
 
-		o->sent = boost::posix_time::microsec_clock::universal_time();
+		o->sent = time_now();
 		o->target_addr = target_addr;
 
 	#ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -385,7 +376,7 @@ void rpc_manager::reply_with_ping(msg& m, msg const& reply_to)
 
 		boost::shared_ptr<observer> o(new dummy_observer);
 		assert(!m_transactions[m_next_transaction_id]);
-		o->sent = boost::posix_time::microsec_clock::universal_time();
+		o->sent = time_now();
 		o->target_addr = m.addr;
 		
 		m_send(m);

@@ -51,7 +51,7 @@ namespace libtorrent
 		if (i != pt.end())
 		{
 			lru_file_entry e = *i;
-			e.last_use = pt::second_clock::universal_time();
+			e.last_use = time_now();
 
 			// if you hit this assert, you probably have more than one
 			// storage/torrent using the same file at the same time!

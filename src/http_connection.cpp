@@ -30,19 +30,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "http_connection.hpp"
-#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include "libtorrent/http_connection.hpp"
+
 #include <boost/bind.hpp>
 #include <asio/ip/tcp.hpp>
 
-using boost::posix_time::second_clock;
-using boost::posix_time::millisec;
 using boost::bind;
 
 namespace libtorrent
 {
 
-void http_connection::get(std::string const& url, boost::posix_time::time_duration timeout)
+void http_connection::get(std::string const& url, time_duration timeout)
 {
 	std::string protocol;
 	std::string hostname;
@@ -59,7 +57,7 @@ void http_connection::get(std::string const& url, boost::posix_time::time_durati
 }
 
 void http_connection::start(std::string const& hostname, std::string const& port
-	, boost::posix_time::time_duration timeout)
+	, time_duration timeout)
 {
 	m_timeout = timeout;
 	m_timer.expires_from_now(m_timeout);
@@ -91,7 +89,7 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 	if (!c) return;
 	if (c->m_bottled && c->m_called) return;
 
-	if (c->m_last_receive + c->m_timeout < second_clock::universal_time())
+	if (c->m_last_receive + c->m_timeout < time_now())
 	{
 		c->m_called = true;
 		c->m_handler(asio::error::timed_out, c->m_parser, 0, 0);
@@ -131,7 +129,7 @@ void http_connection::on_connect(asio::error_code const& e
 {
 	if (!e)
 	{ 
-		m_last_receive = second_clock::universal_time();
+		m_last_receive = time_now();
 		asio::async_write(m_sock, asio::buffer(sendbuffer)
 			, bind(&http_connection::on_write, shared_from_this(), _1));
 	}
@@ -223,7 +221,7 @@ void http_connection::on_read(asio::error_code const& e
 				m_handler(e, m_parser, &m_recvbuffer[0] + m_parser.body_start()
 					, m_read_pos - m_parser.body_start());
 			m_read_pos = 0;
-			m_last_receive = second_clock::universal_time();
+			m_last_receive = time_now();
 		}
 		else if (m_bottled && m_parser.finished())
 		{
@@ -238,7 +236,7 @@ void http_connection::on_read(asio::error_code const& e
 		assert(!m_bottled);
 		m_handler(e, m_parser, &m_recvbuffer[0], m_read_pos);
 		m_read_pos = 0;
-		m_last_receive = second_clock::universal_time();
+		m_last_receive = time_now();
 	}
 
 	if (int(m_recvbuffer.size()) == m_read_pos)
@@ -287,7 +285,7 @@ void http_connection::on_assign_bandwidth(asio::error_code const& e)
 		, shared_from_this(), _1, _2));
 
 	m_limiter_timer_active = true;
-	m_limiter_timer.expires_from_now(millisec(250));
+	m_limiter_timer.expires_from_now(milliseconds(250));
 	m_limiter_timer.async_wait(bind(&http_connection::on_assign_bandwidth
 		, shared_from_this(), _1));
 }
@@ -297,7 +295,7 @@ void http_connection::rate_limit(int limit)
 	if (!m_limiter_timer_active)
 	{
 		m_limiter_timer_active = true;
-		m_limiter_timer.expires_from_now(millisec(250));
+		m_limiter_timer.expires_from_now(milliseconds(250));
 		m_limiter_timer.async_wait(bind(&http_connection::on_assign_bandwidth
 			, shared_from_this(), _1));
 	}
