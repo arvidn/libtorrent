@@ -52,9 +52,12 @@ using boost::posix_time::seconds;
 using boost::posix_time::second_clock;
 using boost::posix_time::ptime;
 
-// UPnP multicast address and port
-address_v4 multicast_address = address_v4::from_string("239.255.255.250");
-udp::endpoint multicast_endpoint(multicast_address, 1900);
+namespace
+{
+	// UPnP multicast address and port
+	address_v4 multicast_address = address_v4::from_string("239.255.255.250");
+	udp::endpoint multicast_endpoint(multicast_address, 1900);
+}
 
 upnp::upnp(io_service& ios, address const& listen_interface
 	, std::string const& user_agent, portmap_callback_t const& cb)
@@ -388,6 +391,8 @@ void upnp::post(rootdevice& d, std::stringstream const& soap
 
 void upnp::map_port(rootdevice& d, int i)
 {
+	if (d.upnp_connection) return;
+
 	if (!d.mapping[i].need_update)
 	{
 		if (i < num_mappings - 1)
@@ -650,6 +655,9 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 		m_log << to_simple_string(microsec_clock::universal_time())
 			<< " <== incomplete http message" << std::endl;
 #endif
+		boost::mutex::scoped_lock l(m_mutex);
+		m_devices.erase(d);
+		m_condvar.notify_all();
 		return;
 	}
 	
@@ -737,8 +745,14 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 		}
 	}
 
-	if (mapping < num_mappings - 1)
-		map_port(d, mapping + 1);
+	for (int i = 0; i < num_mappings; ++i)
+	{
+		if (d.mapping[i].need_update)
+		{
+			map_port(d, i);
+			return;
+		}
+	}
 }
 
 void upnp::on_upnp_unmap_response(asio::error_code const& e
