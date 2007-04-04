@@ -394,15 +394,6 @@ namespace libtorrent
 		void received_redundant_data(int num_bytes)
 		{ assert(num_bytes > 0); m_total_redundant_bytes += num_bytes; }
 
-		float priority() const
-		{ return m_priority; }
-
-		void set_priority(float p)
-		{
-			assert(p >= 0.f && p <= 1.f);
-			m_priority = p;
-		}
-
 		bool is_seed() const
 		{
 			return valid_metadata()
@@ -594,11 +585,6 @@ namespace libtorrent
 		// second, and when it reaches 10, the policy::pulse()
 		// is called and the time scaler is reset to 0.
 		int m_time_scaler;
-
-		// this is the priority of this torrent. It is used
-		// to weight the assigned upload bandwidth between peers
-		// it should be within the range [0, 1]
-		float m_priority;
 
 		// the bitmask that says which pieces we have
 		std::vector<bool> m_have_pieces;
