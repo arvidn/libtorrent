@@ -33,8 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_NATPMP_HPP
 #define TORRENT_NATPMP_HPP
 
-#include <libtorrent/socket.hpp>
-#include <boost/date_time/posix_time/ptime.hpp>
+#include "libtorrent/socket.hpp"
+
 #include <boost/function.hpp>
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
@@ -88,7 +88,7 @@ private:
 		bool need_update;
 
 		// the time the port mapping will expire
-		boost::posix_time::ptime expires;
+		ptime expires;
 
 		// the local port for this mapping. If this is set
 		// to 0, the mapping is not in use

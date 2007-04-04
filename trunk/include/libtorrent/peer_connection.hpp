@@ -314,7 +314,7 @@ namespace libtorrent
 
 #ifndef NDEBUG
 		void check_invariant() const;
-		boost::posix_time::ptime m_last_choke;
+		ptime m_last_choke;
 #endif
 
 		virtual void get_peer_info(peer_info& p) const = 0;
@@ -452,7 +452,7 @@ namespace libtorrent
 
 		// the time when we last got a part of a
 		// piece packet from this peer
-		boost::posix_time::ptime m_last_piece;
+		ptime		m_last_piece;
 
 		int m_packet_size;
 		int m_recv_pos;
@@ -479,8 +479,8 @@ namespace libtorrent
 		int m_write_pos;
 
 		// timeouts
-		boost::posix_time::ptime m_last_receive;
-		boost::posix_time::ptime m_last_sent;
+		ptime m_last_receive;
+		ptime m_last_sent;
 
 		boost::shared_ptr<stream_socket> m_socket;
 		// this is the peer we're actually talking to
@@ -588,11 +588,11 @@ namespace libtorrent
 
 		// the time when this peer sent us a not_interested message
 		// the last time.
-		boost::posix_time::ptime m_became_uninterested;
+		ptime m_became_uninterested;
 
 		// the time when we sent a not_interested message to
 		// this peer the last time.
-		boost::posix_time::ptime m_became_uninteresting;
+		ptime m_became_uninteresting;
 
 		// this is true until this socket has become
 		// writable for the first time (i.e. the

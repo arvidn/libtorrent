@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/bandwidth_manager.hpp"
 #include "libtorrent/peer_connection.hpp"
+#include "libtorrent/time.hpp"
+
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 #include "libtorrent/aux_/session_impl.hpp"
 #endif
@@ -43,11 +45,11 @@ namespace libtorrent
 {
 	namespace
 	{
-		const pt::time_duration window_size = pt::seconds(1);
+		const time_duration window_size = seconds(1);
 	}
 
 	history_entry::history_entry(intrusive_ptr<peer_connection> p
-		, weak_ptr<torrent> t, int a, pt::ptime exp)
+		, weak_ptr<torrent> t, int a, ptime exp)
 		: expires_at(exp), amount(a), peer(p), tor(t)
 	{}
 	
@@ -145,7 +147,7 @@ namespace libtorrent
 
 		assert(!m_history.empty());
 
-		pt::ptime now(pt::microsec_clock::universal_time());
+		ptime now(time_now());
 		while (!m_history.empty() && m_history.back().expires_at <= now)
 		{
 			history_entry e = m_history.back();
@@ -182,7 +184,7 @@ namespace libtorrent
 //		(*m_ses->m_logger) << "hand out bw [" << m_channel << "]\n";
 #endif
 
-		pt::ptime now(pt::microsec_clock::universal_time());
+		ptime now(time_now());
 
 		mutex_t::scoped_lock l(m_mutex);
 		int limit = m_limit;

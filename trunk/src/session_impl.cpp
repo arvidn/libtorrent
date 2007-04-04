@@ -489,7 +489,7 @@ namespace libtorrent { namespace detail
 		, m_half_open_limit(-1)
 		, m_incoming_connection(false)
 		, m_files(40)
-		, m_last_tick(microsec_clock::universal_time())
+		, m_last_tick(time_now())
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_same_port(true)
 		, m_external_udp_port(0)
@@ -509,7 +509,7 @@ namespace libtorrent { namespace detail
 		m_logger = create_log("main_session", listen_port(), false);
 		using boost::posix_time::second_clock;
 		using boost::posix_time::to_simple_string;
-		(*m_logger) << to_simple_string(second_clock::universal_time()) << "\n";
+		(*m_logger) << to_simple_string(second_clock::local_time()) << "\n";
 		
 		m_stats_logger = create_log("session_stats", listen_port(), false);
 		(*m_stats_logger) <<
@@ -920,9 +920,8 @@ namespace libtorrent { namespace detail
 		}
 
 		if (m_abort) return;
-		float tick_interval = (microsec_clock::universal_time()
-			- m_last_tick).total_milliseconds() / 1000.f;
-		m_last_tick = microsec_clock::universal_time();
+		float tick_interval = total_microseconds(time_now() - m_last_tick) / 1000000.f;
+		m_last_tick = time_now();
 
 		m_timer.expires_from_now(seconds(1));
 		m_timer.async_wait(m_strand.wrap(
@@ -1061,7 +1060,7 @@ namespace libtorrent { namespace detail
 			open_listen_port();
 		}
 
-		boost::posix_time::ptime timer = second_clock::universal_time();
+		ptime timer = time_now();
 
 		do
 		{
@@ -1115,14 +1114,14 @@ namespace libtorrent { namespace detail
 			}
 		}
 
-		ptime start(microsec_clock::universal_time());
+		ptime start(time_now());
 		l.unlock();
 
-		while (microsec_clock::universal_time() - start < seconds(
+		while (time_now() - start < seconds(
 			m_settings.stop_tracker_timeout)
 			&& !m_tracker_manager.empty())
 		{
-			tracker_timer.expires_from_now(boost::posix_time::milliseconds(100));
+			tracker_timer.expires_from_now(milliseconds(100));
 			tracker_timer.async_wait(m_strand.wrap(
 				bind(&io_service::stop, &m_io_service)));
 
@@ -1491,7 +1490,7 @@ namespace libtorrent { namespace detail
 		m_logger = create_log("main_session", listen_port(), false);
 		using boost::posix_time::second_clock;
 		using boost::posix_time::to_simple_string;
-		(*m_logger) << to_simple_string(second_clock::universal_time()) << "\n";
+		(*m_logger) << to_simple_string(second_clock::local_time()) << "\n";
 #endif
 
 		return m_listen_socket;
@@ -1517,7 +1516,7 @@ namespace libtorrent { namespace detail
 		if (!t) return;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << to_simple_string(second_clock::universal_time())
+		(*m_logger) << to_simple_string(second_clock::local_time())
 			<< ": added peer from local discovery: " << peer << "\n";
 #endif
 		t->get_policy().peer_from_tracker(peer, peer_id(0));

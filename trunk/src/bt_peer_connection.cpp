@@ -167,7 +167,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
-		(*m_logger) << to_simple_string(second_clock::universal_time())
+		(*m_logger) << to_simple_string(second_clock::local_time())
 			<< " ==> DHT_PORT [ " << listen_port << " ]\n";
 #endif
 		buffer::interval packet = allocate_send_buffer(7);
@@ -302,7 +302,7 @@ namespace libtorrent
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
-		(*m_logger) << to_simple_string(second_clock::universal_time())
+		(*m_logger) << to_simple_string(second_clock::local_time())
 			<< " ==> HANDSHAKE\n";
 #endif
 		setup_send();
@@ -353,7 +353,7 @@ namespace libtorrent
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
-		(*m_logger) << to_simple_string(second_clock::universal_time())
+		(*m_logger) << to_simple_string(second_clock::local_time())
 			<< " <== KEEPALIVE\n";
 #endif
 		incoming_keepalive();
@@ -826,7 +826,7 @@ namespace libtorrent
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
-		(*m_logger) << to_simple_string(second_clock::universal_time())
+		(*m_logger) << to_simple_string(second_clock::local_time())
 			<< " ==> BITFIELD ";
 
 		for (int i = 0; i < (int)get_bitfield().size(); ++i)
@@ -863,7 +863,7 @@ namespace libtorrent
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace boost::posix_time;
-		(*m_logger) << to_simple_string(second_clock::universal_time())
+		(*m_logger) << to_simple_string(second_clock::local_time())
 			<< " ==> EXTENSIONS\n";
 #endif
 		assert(m_supports_extensions);

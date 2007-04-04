@@ -382,7 +382,7 @@ namespace libtorrent
 			file_pool m_files;
 
 			void second_tick(asio::error_code const& e);
-			boost::posix_time::ptime m_last_tick;
+			ptime m_last_tick;
 
 #ifndef TORRENT_DISABLE_DHT
 			boost::intrusive_ptr<dht::dht_tracker> m_dht;

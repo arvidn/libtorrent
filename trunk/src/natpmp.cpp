@@ -35,12 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/natpmp.hpp>
 #include <libtorrent/io.hpp>
 #include <boost/bind.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <asio/ip/host_name.hpp>
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+
+using boost::posix_time::microsec_clock;
 using boost::bind;
 using namespace libtorrent;
-using boost::posix_time::microsec_clock;
 
 enum { num_mappings = 2 };
 
@@ -169,7 +170,6 @@ void natpmp::update_mapping(int i, int port)
 void natpmp::send_map_request(int i) try
 {
 	using namespace libtorrent::detail;
-	using boost::posix_time::milliseconds;
 
 	assert(m_currently_mapping == -1
 		|| m_currently_mapping == i);
@@ -205,15 +205,13 @@ catch (std::exception& e)
 
 void natpmp::resend_request(int i, asio::error_code const& e)
 {
-	using boost::posix_time::hours;
 	if (e) return;
 	if (m_currently_mapping != i) return;
 	if (m_retry_count >= 9)
 	{
 		m_mappings[i].need_update = false;
 		// try again in two hours
-		m_mappings[i].expires
-			= boost::posix_time::second_clock::universal_time() + hours(2);
+		m_mappings[i].expires = time_now() + hours(2);
 		return;
 	}
 	send_map_request(i);
@@ -223,7 +221,6 @@ void natpmp::on_reply(asio::error_code const& e
 	, std::size_t bytes_transferred)
 {
 	using namespace libtorrent::detail;
-	using boost::posix_time::seconds;
 	if (e) return;
 
 	try
@@ -289,8 +286,7 @@ void natpmp::on_reply(asio::error_code const& e
 		}
 		else
 		{
-			m.expires = boost::posix_time::second_clock::universal_time()
-				+ seconds(int(lifetime * 0.7f));
+			m.expires = time_now() + seconds(int(lifetime * 0.7f));
 			m.external_port = public_port;
 		}
 		
@@ -324,10 +320,8 @@ void natpmp::on_reply(asio::error_code const& e
 	}
 	catch (std::exception& e)
 	{
-		using boost::posix_time::hours;
 		// try again in two hours
-		m_mappings[m_currently_mapping].expires
-			= boost::posix_time::second_clock::universal_time() + hours(2);
+		m_mappings[m_currently_mapping].expires = time_now() + hours(2);
 		m_callback(0, 0, e.what());
 	}
 	int i = m_currently_mapping;
@@ -340,9 +334,8 @@ void natpmp::on_reply(asio::error_code const& e
 
 void natpmp::update_expiration_timer()
 {
-	using boost::posix_time::seconds;
-	boost::posix_time::ptime now = boost::posix_time::second_clock::universal_time();
-	boost::posix_time::ptime min_expire = now + seconds(3600);
+	ptime now = time_now();
+	ptime min_expire = now + seconds(3600);
 	int min_index = -1;
 	for (int i = 0; i < num_mappings; ++i)
 		if (m_mappings[i].expires < min_expire

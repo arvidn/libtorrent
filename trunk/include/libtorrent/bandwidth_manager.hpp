@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BANDWIDTH_MANAGER_HPP_INCLUDED
 
 #include "libtorrent/socket.hpp"
+
 #include <boost/shared_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/function.hpp>
@@ -42,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/thread/mutex.hpp>
 #include <deque>
 
-namespace pt = boost::posix_time;
 using boost::weak_ptr;
 using boost::shared_ptr;
 using boost::intrusive_ptr;
@@ -70,8 +70,8 @@ namespace libtorrent
 struct history_entry
 {
 	history_entry(intrusive_ptr<peer_connection> p, weak_ptr<torrent> t
-		, int a, pt::ptime exp);
-	pt::ptime expires_at;
+		, int a, ptime exp);
+	ptime expires_at;
 	int amount;
 	intrusive_ptr<peer_connection> peer;
 	weak_ptr<torrent> tor;

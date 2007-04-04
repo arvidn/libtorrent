@@ -59,6 +59,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
 
+namespace pt = boost::posix_time;
+namespace gr = boost::gregorian;
+
 using namespace libtorrent;
 using namespace boost::filesystem;
 
@@ -220,7 +223,7 @@ namespace libtorrent
 
 	// standard constructor that parses a torrent file
 	torrent_info::torrent_info(const entry& torrent_file)
-		: m_creation_date(date(not_a_date_time))
+		: m_creation_date(pt::ptime(pt::not_a_date_time))
 		, m_multifile(false)
 		, m_private(false)
 		, m_extra_info(entry::dictionary_t)
@@ -244,7 +247,7 @@ namespace libtorrent
 		, m_total_size(0)
 		, m_info_hash(info_hash)
 		, m_name()
-		, m_creation_date(second_clock::universal_time())
+		, m_creation_date(pt::second_clock::universal_time())
 		, m_multifile(false)
 		, m_private(false)
 		, m_extra_info(entry::dictionary_t)
@@ -256,7 +259,7 @@ namespace libtorrent
 		, m_total_size(0)
 		, m_info_hash(0)
 		, m_name()
-		, m_creation_date(second_clock::universal_time())
+		, m_creation_date(pt::second_clock::universal_time())
 		, m_multifile(false)
 		, m_private(false)
 		, m_extra_info(entry::dictionary_t)
@@ -455,8 +458,8 @@ namespace libtorrent
 		// extract creation date
 		try
 		{
-			m_creation_date = ptime(date(1970, Jan, 1))
-				+ seconds(long(torrent_file["creation date"].integer()));
+			m_creation_date = pt::ptime(gr::date(1970, gr::Jan, 1))
+				+ pt::seconds(long(torrent_file["creation date"].integer()));
 		}
 		catch (type_error) {}
 
@@ -494,14 +497,14 @@ namespace libtorrent
 		parse_info_section(torrent_file["info"]);
 	}
 
-	boost::optional<ptime>
+	boost::optional<pt::ptime>
 	torrent_info::creation_date() const
 	{
-		if (m_creation_date != ptime(date(not_a_date_time)))
+		if (m_creation_date != pt::ptime(gr::date(pt::not_a_date_time)))
 		{
-			return boost::optional<ptime>(m_creation_date);
+			return boost::optional<pt::ptime>(m_creation_date);
 		}
-		return boost::optional<ptime>();
+		return boost::optional<pt::ptime>();
 	}
 
 	void torrent_info::add_tracker(std::string const& url, int tier)
@@ -696,7 +699,7 @@ namespace libtorrent
 			dict["comment"] = m_comment;
 
 		dict["creation date"] =
-			(m_creation_date - ptime(date(1970, Jan, 1))).total_seconds();
+			(m_creation_date - pt::ptime(gr::date(1970, gr::Jan, 1))).total_seconds();
 
 		if (!m_created_by.empty())
 			dict["created by"] = m_created_by;
@@ -750,7 +753,7 @@ namespace libtorrent
 		}
 		if (!m_comment.empty())
 			os << "comment: " << m_comment << "\n";
-		if (m_creation_date != ptime(date(not_a_date_time)))
+		if (m_creation_date != pt::ptime(gr::date(pt::not_a_date_time)))
 			os << "creation date: " << to_simple_string(m_creation_date) << "\n";
 		os << "private: " << (m_private?"yes":"no") << "\n";
 		os << "number of pieces: " << num_pieces() << "\n";

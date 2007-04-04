@@ -640,7 +640,7 @@ namespace libtorrent
 	}
 
 	void torrent_handle::force_reannounce(
-		boost::posix_time::time_duration duration) const
+		time_duration duration) const
 	{
 		INVARIANT_CHECK;
 
@@ -651,7 +651,7 @@ namespace libtorrent
 		if (!t) throw_invalid_handle();
 
 		using boost::posix_time::second_clock;
-		t->force_tracker_request(second_clock::universal_time()
+		t->force_tracker_request(time_now()
 			+ duration);
 	}
 

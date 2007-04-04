@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/pch.hpp"
 
+#include "libtorrent/socket.hpp"
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
@@ -44,13 +45,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/thread/mutex.hpp>
 #include <cstdlib>
 
+using boost::posix_time::microsec_clock;
 using boost::bind;
 using namespace libtorrent;
-using boost::posix_time::microsec_clock;
-using boost::posix_time::milliseconds;
-using boost::posix_time::seconds;
-using boost::posix_time::second_clock;
-using boost::posix_time::ptime;
 
 namespace
 {
@@ -728,11 +725,11 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 		m_callback(tcp, udp, "");
 		if (d.lease_duration > 0)
 		{
-			d.mapping[mapping].expires = second_clock::universal_time()
+			d.mapping[mapping].expires = time_now()
 				+ seconds(int(d.lease_duration * 0.75f));
 			ptime next_expire = m_refresh_timer.expires_at();
 			if (next_expire == ptime(boost::date_time::not_a_date_time)
-				|| next_expire < second_clock::universal_time()
+				|| next_expire < time_now()
 				|| next_expire > d.mapping[mapping].expires)
 			{
 				m_refresh_timer.expires_at(d.mapping[mapping].expires);
@@ -741,7 +738,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 		}
 		else
 		{
-			d.mapping[mapping].expires = ptime(boost::date_time::not_a_date_time);
+			d.mapping[mapping].expires = max_time();
 		}
 	}
 
@@ -805,8 +802,8 @@ void upnp::on_expire(asio::error_code const& e)
 {
 	if (e) return;
 
-	ptime now = second_clock::universal_time();
-	ptime next_expire = ptime(boost::date_time::not_a_date_time);
+	ptime now = time_now();
+	ptime next_expire = max_time();
 
 	boost::mutex::scoped_lock l(m_mutex);
 	for (std::set<rootdevice>::iterator i = m_devices.begin()
@@ -815,22 +812,21 @@ void upnp::on_expire(asio::error_code const& e)
 		rootdevice& d = const_cast<rootdevice&>(*i);
 		for (int m = 0; m < num_mappings; ++m)
 		{
-			if (d.mapping[m].expires != ptime(boost::date_time::not_a_date_time))
+			if (d.mapping[m].expires != max_time())
 				continue;
 
 			if (d.mapping[m].expires < now)
 			{
-				d.mapping[m].expires = ptime(boost::date_time::not_a_date_time);
+				d.mapping[m].expires = max_time();
 				map_port(d, m);
 			}
-			else if (next_expire == ptime(boost::date_time::not_a_date_time)
-				|| d.mapping[m].expires < next_expire)
+			else if (d.mapping[m].expires < next_expire)
 			{
 				next_expire = d.mapping[m].expires;
 			}
 		}
 	}
-	if (next_expire != ptime(boost::date_time::not_a_date_time))
+	if (next_expire != max_time())
 	{
 		m_refresh_timer.expires_at(next_expire);
 		m_refresh_timer.async_wait(bind(&upnp::on_expire, this, _1));

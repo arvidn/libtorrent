@@ -1,10 +1,8 @@
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/socket.hpp"
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 
-using boost::posix_time::seconds;
 using namespace libtorrent;
 
 void callback(int tcp, int udp, std::string const& err)

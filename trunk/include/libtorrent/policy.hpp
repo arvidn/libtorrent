@@ -40,8 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/date_time/posix_time/posix_time.hpp>
-
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
@@ -52,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
@@ -156,11 +155,11 @@ namespace libtorrent
 
 			// the time when this peer was optimistically unchoked
 			// the last time.
-			boost::posix_time::ptime last_optimistically_unchoked;
+			ptime last_optimistically_unchoked;
 
 			// the time when the peer connected to us
 			// or disconnected if it isn't connected right now
-			boost::posix_time::ptime connected;
+			ptime connected;
 
 			// this is the accumulated amount of
 			// uploaded and downloaded data to this
@@ -222,14 +221,12 @@ namespace libtorrent
 		{
 			bool operator()(const peer& p)
 			{
-				using namespace boost::posix_time;
-
-				ptime not_tried_yet(boost::gregorian::date(1970,boost::gregorian::Jan,1));
+				ptime not_tried_yet(min_time());
 
 				// this timeout has to be customizable!
 				return p.connection == 0
 					&& p.connected != not_tried_yet
-					&& second_clock::universal_time() - p.connected > minutes(120);
+					&& time_now() - p.connected > minutes(120);
 			}
 		};
 
@@ -249,7 +246,7 @@ namespace libtorrent
 		// if there is a connection limit,
 		// we disconnect one peer every minute in hope of
 		// establishing a connection with a better peer
-		boost::posix_time::ptime m_last_optimistic_disconnect;
+		ptime m_last_optimistic_disconnect;
 	};
 
 }

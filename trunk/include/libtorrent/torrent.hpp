@@ -299,7 +299,7 @@ namespace libtorrent
 
 		// returns the absolute time when the next tracker
 		// announce will take place.
-		boost::posix_time::ptime next_announce() const;
+		ptime next_announce() const;
 
 		// returns true if it is time for this torrent to make another
 		// tracker request
@@ -307,7 +307,7 @@ namespace libtorrent
 
 		// forcefully sets next_announce to the current time
 		void force_tracker_request();
-		void force_tracker_request(boost::posix_time::ptime);
+		void force_tracker_request(ptime);
 
 		// sets the username and password that will be sent to
 		// the tracker
@@ -523,7 +523,7 @@ namespace libtorrent
 		boost::scoped_ptr<piece_manager> m_storage;
 
 		// the time of next tracker request
-		boost::posix_time::ptime m_next_request;
+		ptime m_next_request;
 
 		// -----------------------------
 		// DATA FROM TRACKER RESPONSE
@@ -705,20 +705,18 @@ namespace libtorrent
 #endif
 	};
 
-	inline boost::posix_time::ptime torrent::next_announce() const
+	inline ptime torrent::next_announce() const
 	{
 		return m_next_request;
 	}
 
 	inline void torrent::force_tracker_request()
 	{
-		using boost::posix_time::second_clock;
-		m_next_request = second_clock::universal_time();
+		m_next_request = time_now();
 	}
 
-	inline void torrent::force_tracker_request(boost::posix_time::ptime t)
+	inline void torrent::force_tracker_request(ptime t)
 	{
-		namespace time = boost::posix_time;
 		m_next_request = t;
 	}
 
