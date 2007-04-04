@@ -253,7 +253,6 @@ namespace libtorrent
 		, m_currently_trying_tracker(0)
 		, m_failed_trackers(0)
 		, m_time_scaler(0)
-		, m_priority(.5)
 		, m_num_pieces(0)
 		, m_got_tracker_response(false)
 		, m_ratio(0.f)
@@ -341,7 +340,6 @@ namespace libtorrent
 		, m_currently_trying_tracker(0)
 		, m_failed_trackers(0)
 		, m_time_scaler(0)
-		, m_priority(.5)
 		, m_num_pieces(0)
 		, m_got_tracker_response(false)
 		, m_ratio(0.f)
@@ -2271,7 +2269,6 @@ namespace libtorrent
 // This check is very expensive.
 		assert(m_num_pieces
 			== std::count(m_have_pieces.begin(), m_have_pieces.end(), true));
-		assert(m_priority >= 0.f && m_priority < 1.f);
 		assert(!valid_metadata() || m_block_size > 0);
 		assert(!valid_metadata() || (m_torrent_file.piece_length() % m_block_size) == 0);
 //		if (is_seed()) assert(m_picker.get() == 0);
