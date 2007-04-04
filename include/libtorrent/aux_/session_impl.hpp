@@ -79,6 +79,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bandwidth_manager.hpp"
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/upnp.hpp"
+#include "libtorrent/lsd.hpp"
 
 namespace libtorrent
 {
@@ -280,11 +281,14 @@ namespace libtorrent
 			
 			torrent_handle find_torrent_handle(sha1_hash const& info_hash);
 
+			void announce_lsd(sha1_hash const& ih);
 			
 			// handles delayed alerts
 			alert_manager m_alerts;
 			
 //		private:
+
+			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 
 			// this is where all active sockets are stored.
 			// the selector can sleep while there's no activity on
@@ -395,6 +399,7 @@ namespace libtorrent
 #endif
 			natpmp m_natpmp;
 			upnp m_upnp;
+			lsd m_lsd;
 
 			// the timer used to fire the second_tick
 			deadline_timer m_timer;
