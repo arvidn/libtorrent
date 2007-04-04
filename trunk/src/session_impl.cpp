@@ -499,6 +499,8 @@ namespace libtorrent { namespace detail
 		, m_upnp(m_io_service, m_listen_interface.address()
 			, m_settings.user_agent
 			, bind(&session_impl::on_port_mapping, this, _1, _2, _3))
+		, m_lsd(m_io_service, m_listen_interface.address()
+			, bind(&session_impl::on_lsd_peer, this, _1, _2))
 		, m_timer(m_io_service)
 		, m_checker_impl(*this)
 	{
@@ -1460,14 +1462,13 @@ namespace libtorrent { namespace detail
 		if (m_listen_socket)
 			m_listen_socket.reset();
 			
-		bool new_listen_address = m_listen_interface.address() != new_interface.address();
-
 		m_incoming_connection = false;
 		m_listen_interface = new_interface;
 
 		open_listen_port();
 
 #ifndef TORRENT_DISABLE_DHT
+		bool new_listen_address = m_listen_interface.address() != new_interface.address();
 		if ((new_listen_address || m_dht_same_port) && m_dht)
 		{
 			if (m_dht_same_port)
@@ -1479,6 +1480,7 @@ namespace libtorrent { namespace detail
 			{
 				m_natpmp.rebind(new_interface.address());
 				m_upnp.rebind(new_interface.address());
+				m_lsd.rebind(new_interface.address());
 			}
 			m_natpmp.set_mappings(0, m_dht_settings.service_port);
 			m_upnp.set_mappings(0, m_dht_settings.service_port);
@@ -1499,6 +1501,26 @@ namespace libtorrent { namespace detail
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		return m_external_listen_port;
+	}
+
+	void session_impl::announce_lsd(sha1_hash const& ih)
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		m_lsd.announce(ih, m_external_listen_port);
+	}
+
+	void session_impl::on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih)
+	{
+		mutex_t::scoped_lock l(m_mutex);
+
+		boost::shared_ptr<torrent> t = find_torrent(ih).lock();
+		if (!t) return;
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << to_simple_string(second_clock::universal_time())
+			<< ": added peer from local discovery: " << peer << "\n";
+#endif
+		t->get_policy().peer_from_tracker(peer, peer_id(0));
 	}
 
 	void session_impl::on_port_mapping(int tcp_port, int udp_port

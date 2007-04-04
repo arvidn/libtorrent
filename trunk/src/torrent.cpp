@@ -245,9 +245,7 @@ namespace libtorrent
 		, m_host_resolver(ses.m_io_service)
 		, m_resolving_country(false)
 		, m_resolve_countries(false)
-#ifndef TORRENT_DISABLE_DHT
-		, m_dht_announce_timer(ses.m_io_service)
-#endif
+		, m_announce_timer(ses.m_io_service)
 		, m_policy()
 		, m_ses(ses)
 		, m_checker(checker)
@@ -301,14 +299,9 @@ namespace libtorrent
 		m_policy.reset(new policy(this));
 		init();
 	
-#ifndef TORRENT_DISABLE_DHT
-		if (should_announce_dht())
-		{
-			m_dht_announce_timer.expires_from_now(seconds(10));
-			m_dht_announce_timer.async_wait(m_ses.m_strand.wrap(
-				bind(&torrent::on_dht_announce, this, _1)));
-		}
-#endif
+		m_announce_timer.expires_from_now(seconds(1));
+		m_announce_timer.async_wait(m_ses.m_strand.wrap(
+			bind(&torrent::on_announce, this, _1)));
 	}
 
 	torrent::torrent(
@@ -337,9 +330,7 @@ namespace libtorrent
 		, m_host_resolver(ses.m_io_service)
 		, m_resolving_country(false)
 		, m_resolve_countries(false)
-#ifndef TORRENT_DISABLE_DHT
-		, m_dht_announce_timer(ses.m_io_service)
-#endif
+		, m_announce_timer(ses.m_io_service)
 		, m_policy()
 		, m_ses(ses)
 		, m_checker(checker)
@@ -395,14 +386,9 @@ namespace libtorrent
 		}
 
 		m_policy.reset(new policy(this));
-#ifndef TORRENT_DISABLE_DHT
-		if (should_announce_dht())
-		{
-			m_dht_announce_timer.expires_from_now(seconds(10));
-			m_dht_announce_timer.async_wait(m_ses.m_strand.wrap(
-				bind(&torrent::on_dht_announce, this, _1)));
-		}
-#endif
+		m_announce_timer.expires_from_now(seconds(1));
+		m_announce_timer.async_wait(m_ses.m_strand.wrap(
+			bind(&torrent::on_announce, this, _1)));
 	}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -480,6 +466,32 @@ namespace libtorrent
 		m_net_interface = tcp::endpoint(address::from_string(net_interface), 0);
 	}
 
+	void torrent::on_announce(asio::error_code const& e)
+	{
+		if (e) return;
+
+		m_announce_timer.expires_from_now(boost::posix_time::minutes(30));
+		m_announce_timer.async_wait(m_ses.m_strand.wrap(
+			bind(&torrent::on_announce, this, _1)));
+
+		// announce with the local discovery service
+		m_ses.announce_lsd(m_torrent_file.info_hash());
+
+#ifndef TORRENT_DISABLE_DHT
+		if (!m_ses.m_dht) return;
+		if (should_announce_dht())
+		{
+			// TODO: There should be a way to abort an announce operation on the dht.
+			// when the torrent is destructed
+			boost::weak_ptr<torrent> self(shared_from_this());
+			assert(m_ses.m_external_listen_port > 0);
+			m_ses.m_dht->announce(m_torrent_file.info_hash()
+				, m_ses.m_external_listen_port
+				, m_ses.m_strand.wrap(bind(&torrent::on_dht_announce_response_disp, self, _1)));
+		}
+#endif
+	}
+
 #ifndef TORRENT_DISABLE_DHT
 
 	void torrent::on_dht_announce_response_disp(boost::weak_ptr<libtorrent::torrent> t
@@ -488,25 +500,6 @@ namespace libtorrent
 		boost::shared_ptr<libtorrent::torrent> tor = t.lock();
 		if (!tor) return;
 		tor->on_dht_announce_response(peers);
-	}
-
-	void torrent::on_dht_announce(asio::error_code const& e)
-	{
-		if (e) return;
-		if (should_announce_dht())
-		{
-			m_dht_announce_timer.expires_from_now(boost::posix_time::minutes(30));
-			m_dht_announce_timer.async_wait(m_ses.m_strand.wrap(
-				bind(&torrent::on_dht_announce, this, _1)));
-		}
-		if (!m_ses.m_dht) return;
-		// TODO: There should be a way to abort an announce operation on the dht.
-		// when the torrent is destructed
-		boost::weak_ptr<torrent> self(shared_from_this());
-		assert(m_ses.m_external_listen_port > 0);
-		m_ses.m_dht->announce(m_torrent_file.info_hash()
-			, m_ses.m_external_listen_port
-			, m_ses.m_strand.wrap(bind(&torrent::on_dht_announce_response_disp, self, _1)));
 	}
 
 	void torrent::on_dht_announce_response(std::vector<tcp::endpoint> const& peers)
@@ -2170,14 +2163,12 @@ namespace libtorrent
 			m_next_request = second_clock::universal_time() + seconds(delay);
 
 #ifndef TORRENT_DISABLE_DHT
-			// only start the dht announce unless we already are already running
-			// the announce timer (a positive expiration time indicates
-			// that it's running)
-			if (m_dht_announce_timer.expires_from_now().is_negative() && should_announce_dht())
+			// only start the announce if we want to announce with the dht
+			if (should_announce_dht())
 			{
-				m_dht_announce_timer.expires_from_now(boost::posix_time::seconds(1));
-				m_dht_announce_timer.async_wait(m_ses.m_strand.wrap(
-					bind(&torrent::on_dht_announce, this, _1)));
+				m_announce_timer.expires_from_now(boost::posix_time::seconds(1));
+				m_announce_timer.async_wait(m_ses.m_strand.wrap(
+					bind(&torrent::on_announce, this, _1)));
 			}
 #endif
 

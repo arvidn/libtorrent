@@ -8,7 +8,7 @@ stat.cpp storage.cpp torrent.cpp torrent_handle.cpp \
 torrent_info.cpp tracker_manager.cpp http_connection.cpp \
 http_tracker_connection.cpp udp_tracker_connection.cpp \
 alert.cpp identify_client.cpp ip_filter.cpp file.cpp metadata_transfer.cpp \
-logger.cpp file_pool.cpp ut_pex.cpp \
+logger.cpp file_pool.cpp ut_pex.cpp lsd.cpp \
 \
 kademlia/closest_nodes.cpp \
 kademlia/dht_tracker.cpp \
@@ -47,6 +47,7 @@ $(top_srcdir)/include/libtorrent/identify_client.hpp \
 $(top_srcdir)/include/libtorrent/invariant_check.hpp \
 $(top_srcdir)/include/libtorrent/io.hpp \
 $(top_srcdir)/include/libtorrent/ip_filter.hpp \
+$(top_srcdir)/include/libtorrent/lsd.hpp \
 $(top_srcdir)/include/libtorrent/peer.hpp \
 $(top_srcdir)/include/libtorrent/peer_connection.hpp \
 $(top_srcdir)/include/libtorrent/bt_peer_connection.hpp \

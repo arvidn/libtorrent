@@ -575,11 +575,17 @@ namespace libtorrent
 		// country resolution in this torrent
 		bool m_resolve_countries;
 
+		// this announce timer is used both
+		// by Local service discovery and
+		// by the DHT.
+		deadline_timer m_announce_timer;
+
+		// this is called once per announce interval
+		void on_announce(asio::error_code const& e);
+
 #ifndef TORRENT_DISABLE_DHT
 		static void on_dht_announce_response_disp(boost::weak_ptr<torrent> t
 			, std::vector<tcp::endpoint> const& peers);
-		deadline_timer m_dht_announce_timer;
-		void on_dht_announce(asio::error_code const& e);
 		void on_dht_announce_response(std::vector<tcp::endpoint> const& peers);
 		bool should_announce_dht() const;
 #endif
