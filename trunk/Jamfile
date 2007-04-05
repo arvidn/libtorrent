@@ -97,8 +97,13 @@ LIBS = ;
 
 if [ os.name ] = CYGWIN
 {
+	lib wsock32 : : <name>wsock32 ;
+	lib ws2_32 : : <name>ws2_32 ;
+	LIBS += wsock32 ws2_32 ;
+	DEFINES += WIN32_LEAN_AND_MEAN ;
+	DEFINES += _WIN32_WINNT=0x0500 ;
 	DEFINES += __USE_W32_SOCKETS ;
-	DEFINES += _WIN32_WINNT ;
+	DEFINES += WIN32 ;
 }
 
 # some windows specific settings
@@ -107,7 +112,9 @@ if [ os.name ] = NT
 {
 	lib wsock32 : : <name>wsock32.lib ;
 	LIBS += wsock32 ;
-	DEFINES += _WIN32_WINNT ;
+	DEFINES += WIN32_LEAN_AND_MEAN ;
+	DEFINES += _WIN32_WINNT=0x0500 ;
+	DEFINES += WIN32 ;
 }	
 
 
@@ -128,13 +135,9 @@ project torrent
 	<library>/boost/filesystem//boost_filesystem #/<link>static
 	<library>/boost/date_time//boost_date_time #/<link>static
 	<threading>multi
-	<toolset>msvc:<define>_WIN32_WINNT=0x0500
-# WIN32 makes sure the win32 socket api is used
-# instead of win16
-	<toolset>msvc:<define>WIN32
-# without WIN32_LEAN_AND_MEAN there will be conflicts between
-# winsock.h and winsock2.h
-	<toolset>msvc:<define>WIN32_LEAN_AND_MEAN
+
+# ======= compiler settings =======
+
 # these compiler settings just makes the compiler standard conforming
 	<toolset>msvc:<cxxflags>/Zc:wchar_t
 	<toolset>msvc:<cxxflags>/Zc:forScope
@@ -158,7 +161,6 @@ project torrent
 	<define>BOOST_ALL_NO_LIB
 	<define>$(DEFINES)
 	<link>shared:<define>TORRENT_LINKING_SHARED
-
 	;
 
 #cpp-pch pch : include/libtorrent/pch.hpp ;
