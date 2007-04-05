@@ -565,9 +565,6 @@ namespace libtorrent
 
 		m_duration = interval;
 		m_next_request = time_now() + seconds(m_duration);
-		std::cerr << "next announce: " << next_announce().time
-			<< " time: " << time_now().time
-			<< " duration: " << libtorrent::seconds(m_duration).diff << std::endl;
 
 		if (complete >= 0) m_complete = complete;
 		if (incomplete >= 0) m_incomplete = incomplete;
