@@ -115,7 +115,7 @@ namespace libtorrent
 
 	ptime time_now();
 	inline ptime min_time() { return ptime(0); }
-	inline ptime max_time() { return ptime(std::numeric_limits<boost::int64_t>::max()); }
+	inline ptime max_time() { return ptime((std::numeric_limits<boost::int64_t>::max)()); }
 	int total_seconds(time_duration td);
 	int total_milliseconds(time_duration td);
 	boost::int64_t total_microseconds(time_duration td);
@@ -222,7 +222,9 @@ namespace libtorrent
 }
 #elif defined(_WIN32)
 
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 #include <Windows.h>
 
 namespace libtorrent
