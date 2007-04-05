@@ -240,7 +240,7 @@ void http_connection::on_read(asio::error_code const& e
 	}
 
 	if (int(m_recvbuffer.size()) == m_read_pos)
-		m_recvbuffer.resize(std::min(m_read_pos + 2048, 1024*500));
+		m_recvbuffer.resize((std::min)(m_read_pos + 2048, 1024*500));
 	if (m_read_pos == 1024 * 500)
 	{
 		close();
