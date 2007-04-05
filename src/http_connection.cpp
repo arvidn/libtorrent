@@ -103,6 +103,8 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 void http_connection::close()
 {
 	m_timer.cancel();
+	m_limiter_timer.cancel();
+	m_limiter_timer_active = false;
 	m_sock.close();
 	m_hostname.clear();
 	m_port.clear();
