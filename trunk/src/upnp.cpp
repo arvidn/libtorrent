@@ -854,8 +854,8 @@ void upnp::close()
 			m_devices.erase(i++);
 			continue;
 		}
-		unmap_port(d, 0);
 		++i;
+		unmap_port(d, 0);
 	}
 }
 
