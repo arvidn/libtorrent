@@ -270,6 +270,12 @@ void http_connection::on_read(asio::error_code const& e
 
 void http_connection::on_assign_bandwidth(asio::error_code const& e)
 {
+	if (e == asio::error::operation_aborted
+		&& m_limiter_timer_active)
+	{
+		if (!m_bottled || !m_called)
+			m_handler(e, m_parser, 0, 0);
+	}
 	m_limiter_timer_active = false;
 	if (e) return;
 
