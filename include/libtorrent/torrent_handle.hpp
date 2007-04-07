@@ -289,7 +289,7 @@ namespace libtorrent
 		// This overrides the default announce interval, and no
 		// announce will take place until the given time has
 		// timed out.
-		void force_reannounce(time_duration) const;
+		void force_reannounce(boost::posix_time::time_duration) const;
 
 		// returns the name of this torrent, in case it doesn't
 		// have metadata it returns the name assigned to it
