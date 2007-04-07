@@ -1,4 +1,4 @@
-// Copyright Daniel Wallin 2007. Use, modification and distribution is
+// Copyright Daniel Wallin, Arvid Norberg 2007. Use, modification and distribution is
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -6,6 +6,8 @@
 #include <libtorrent/entry.hpp>
 #include <libtorrent/peer_request.hpp>
 #include <libtorrent/peer_connection.hpp>
+#include <libtorrent/extensions/ut_pex.hpp>
+#include <libtorrent/extensions/metadata_transfer.hpp>
 #include <boost/python.hpp>
 #include "gil.hpp"
 
@@ -139,5 +141,8 @@ void bind_extensions()
 
     // TODO move to it's own file
     class_<peer_connection, boost::noncopyable>("peer_connection", no_init);
+
+    def("create_ut_pex_plugin", create_ut_pex_plugin);
+    def("create_metadata_plugin", create_metadata_plugin);
 }
 
