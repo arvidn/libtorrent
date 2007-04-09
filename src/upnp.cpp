@@ -52,8 +52,8 @@ using namespace libtorrent;
 namespace
 {
 	// UPnP multicast address and port
-	address_v4 multicast_address = address_v4::from_string("239.255.255.250");
-	udp::endpoint multicast_endpoint(multicast_address, 1900);
+	address_v4 upnp_multicast_address = address_v4::from_string("239.255.255.250");
+	udp::endpoint upnp_multicast_endpoint(upnp_multicast_address, 1900);
 }
 
 upnp::upnp(io_service& ios, address const& listen_interface
@@ -144,9 +144,9 @@ void upnp::rebind(address const& listen_interface)
 		m_socket.set_option(datagram_socket::reuse_address(true));
 		m_socket.bind(udp::endpoint(m_local_ip, 0));
 
-		m_socket.set_option(join_group(multicast_address));
+		m_socket.set_option(join_group(upnp_multicast_address));
 		m_socket.set_option(outbound_interface(m_local_ip));
-
+		m_socket.set_option(hops(255));
 	}
 	catch (std::exception& e)
 	{
@@ -175,7 +175,7 @@ void upnp::discover_device()
 	m_socket.async_receive_from(asio::buffer(m_receive_buffer
 		, sizeof(m_receive_buffer)), m_remote, bind(&upnp::on_reply, this, _1, _2));
 	m_socket.send_to(asio::buffer(msearch, sizeof(msearch) - 1)
-		, multicast_endpoint);
+		, upnp_multicast_endpoint);
 
 	++m_retry_count;
 	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count));

@@ -55,8 +55,8 @@ using boost::posix_time::ptime;
 namespace
 {
 	// Bittorrent Local discovery multicast address and port
-	address_v4 multicast_address = address_v4::from_string("239.192.152.143");
-	udp::endpoint multicast_endpoint(multicast_address, 6771);
+	address_v4 lsd_multicast_address = address_v4::from_string("239.192.152.143");
+	udp::endpoint lsd_multicast_endpoint(lsd_multicast_address, 6771);
 }
 
 lsd::lsd(io_service& ios, address const& listen_interface
@@ -70,7 +70,7 @@ lsd::lsd(io_service& ios, address const& listen_interface
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log.open("lsd.log", std::ios::in | std::ios::out | std::ios::trunc);
 #endif
-	assert(multicast_address.is_multicast());
+	assert(lsd_multicast_address.is_multicast());
 	rebind(listen_interface);
 }
 
@@ -125,10 +125,10 @@ void lsd::rebind(address const& listen_interface)
 		m_log << "local ip: " << local_ip << std::endl;
 #endif
 
-		m_socket.set_option(join_group(multicast_address));
-//		m_socket.set_option(outbound_interface(address_v4()));
+		m_socket.set_option(join_group(lsd_multicast_address));
+		m_socket.set_option(outbound_interface(address_v4()));
 		m_socket.set_option(enable_loopback(false));
-//		m_socket.set_option(hops(255));
+		m_socket.set_option(hops(255));
 	}
 	catch (std::exception& e)
 	{
@@ -158,7 +158,7 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 
 	m_retry_count = 0;
 	m_socket.send_to(asio::buffer(msg.c_str(), msg.size() - 1)
-		, multicast_endpoint);
+		, lsd_multicast_endpoint);
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log << to_simple_string(microsec_clock::universal_time())
@@ -175,7 +175,7 @@ void lsd::resend_announce(asio::error_code const& e, std::string msg)
 	if (e) return;
 
 	m_socket.send_to(asio::buffer(msg, msg.size() - 1)
-		, multicast_endpoint);
+		, lsd_multicast_endpoint);
 
 	++m_retry_count;
 	if (m_retry_count >= 5)
