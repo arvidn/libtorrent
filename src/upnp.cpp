@@ -836,6 +836,8 @@ void upnp::on_expire(asio::error_code const& e)
 void upnp::close()
 {
 	boost::mutex::scoped_lock l(m_mutex);
+	m_refresh_timer.cancel();
+	m_broadcast_timer.cancel();
 	m_closing = true;
 	m_socket.close();
 
