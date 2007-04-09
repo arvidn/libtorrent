@@ -33,7 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_TIME_HPP_INCLUDED
 #define TORRENT_TIME_HPP_INCLUDED
 
-#if (!defined (__MACH__) && !defined (_WIN32)) || defined (TORRENT_USE_BOOST_DATE_TIME)
+#ifndef _WIN32
+#include <unistd.h>
+#endif
+
+#if (!defined (__MACH__) && !defined (_WIN32) && !defined(_POSIX_MONOTONIC_CLOCK) || _POSIX_MONOTONIC_CLOCK < 0) || defined (TORRENT_USE_BOOST_DATE_TIME)
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
@@ -294,6 +298,55 @@ namespace libtorrent
 	{
 		return time_duration(aux::microseconds_to_performance_counter(
 			s * 1000000 * 60 * 60));
+	}
+
+}
+
+#elif defined(_POSIX_MONOTONIC_CLOCK) && _POSIX_MONOTONIC_CLOCK >= 0
+
+#include <time.h>
+
+namespace libtorrent
+{
+	inline int total_seconds(time_duration td)
+	{
+		return td.diff / 1000000;
+	}
+	inline int total_milliseconds(time_duration td)
+	{
+		return td.diff / 1000;
+	}
+	inline boost::int64_t total_microseconds(time_duration td)
+	{
+		return td.diff;
+	}
+
+	inline ptime time_now()
+	{
+		timespec ts;
+		clock_gettime(CLOCK_MONOTONIC, &ts);
+		return ptime(boost::int64_t(ts.tv_sec) + ts.nsec / 1000);
+	}
+
+	inline time_duration microsec(boost::int64_t s)
+	{
+		return time_duration(s);
+	}
+	inline time_duration milliseconds(boost::int64_t s)
+	{
+		return time_duration(s * 1000);
+	}
+	inline time_duration seconds(boost::int64_t s)
+	{
+		return time_duration(s * 1000000);
+	}
+	inline time_duration minutes(boost::int64_t s)
+	{
+		return time_duration(s * 1000000 * 60);
+	}
+	inline time_duration hours(boost::int64_t s)
+	{
+		return time_duration(s * 1000000 * 60 * 60);
 	}
 
 }
