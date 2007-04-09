@@ -80,6 +80,7 @@ namespace
     , boost::filesystem::path const& save, entry const& resume
     , bool compact, int block_size)
   {
+    allow_threading_guard guard;
     return s.add_torrent(ti, save, resume, compact, block_size
       , default_storage_constructor);
   }
