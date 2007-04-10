@@ -467,7 +467,10 @@ namespace libtorrent
 		void set_peer_download_limit(tcp::endpoint ip, int limit);
 
 		void set_upload_limit(int limit);
+		int upload_limit() const;
 		void set_download_limit(int limit);
+		int download_limit() const;
+
 		void set_max_uploads(int limit);
 		void set_max_connections(int limit);
 		bool move_storage(boost::filesystem::path const& save_path);
