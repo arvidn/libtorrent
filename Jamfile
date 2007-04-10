@@ -133,7 +133,6 @@ project torrent
 	<define>$(DEFINES)
 	<library>/boost/thread//boost_thread #/<link>static
 	<library>/boost/filesystem//boost_filesystem #/<link>static
-	<library>/boost/date_time//boost_date_time #/<link>static
 	<threading>multi
 
 # ======= compiler settings =======

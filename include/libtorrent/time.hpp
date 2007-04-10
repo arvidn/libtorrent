@@ -50,7 +50,7 @@ namespace libtorrent
 
 #if (!defined (__MACH__) && !defined (_WIN32) && !defined(_POSIX_MONOTONIC_CLOCK) || _POSIX_MONOTONIC_CLOCK < 0) || defined (TORRENT_USE_BOOST_DATE_TIME)
 
-#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 
 namespace libtorrent
 {

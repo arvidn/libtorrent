@@ -33,7 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_connection.hpp"
 
 #include <boost/bind.hpp>
+#include <boost/lexical_cast.hpp>
 #include <asio/ip/tcp.hpp>
+#include <string>
 
 using boost::bind;
 

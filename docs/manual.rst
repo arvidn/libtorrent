@@ -1045,7 +1045,8 @@ print()
 		void print(std::ostream& os) const;
 
 The ``print()`` function is there for debug purposes only. It will print the info from
-the torrent file to the given outstream.
+the torrent file to the given outstream. This function has been deprecated and will
+be removed from future releases.
 
 
 trackers()
