@@ -66,6 +66,7 @@ upnp::upnp(io_service& ios, address const& listen_interface
 	, m_socket(ios)
 	, m_broadcast_timer(ios)
 	, m_refresh_timer(ios)
+	, m_strand(ios)
 	, m_disabled(false)
 	, m_closing(false)
 {
@@ -77,9 +78,6 @@ upnp::upnp(io_service& ios, address const& listen_interface
 
 upnp::~upnp()
 {
-	boost::mutex::scoped_lock l(m_mutex);
-	while (!m_devices.empty())
-		m_condvar.wait(l);
 }
 
 void upnp::rebind(address const& listen_interface)
@@ -173,13 +171,15 @@ void upnp::discover_device()
 		"\r\n\r\n";
 
 	m_socket.async_receive_from(asio::buffer(m_receive_buffer
-		, sizeof(m_receive_buffer)), m_remote, bind(&upnp::on_reply, this, _1, _2));
+		, sizeof(m_receive_buffer)), m_remote, m_strand.wrap(bind(
+		&upnp::on_reply, this, _1, _2)));
 	m_socket.send_to(asio::buffer(msearch, sizeof(msearch) - 1)
 		, upnp_multicast_endpoint);
 
 	++m_retry_count;
 	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count));
-	m_broadcast_timer.async_wait(bind(&upnp::resend_request, this, _1));
+	m_broadcast_timer.async_wait(m_strand.wrap(bind(&upnp::resend_request
+		, this, _1)));
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log << to_simple_string(microsec_clock::universal_time())
@@ -193,7 +193,6 @@ void upnp::set_mappings(int tcp, int udp)
 	if (udp != 0) m_udp_local_port = udp;
 	if (tcp != 0) m_tcp_local_port = tcp;
 
-	boost::mutex::scoped_lock l(m_mutex);
 	for (std::set<rootdevice>::iterator i = m_devices.begin()
 		, end(m_devices.end()); i != end; ++i)
 	{
@@ -310,8 +309,6 @@ void upnp::on_reply(asio::error_code const& e
 	rootdevice d;
 	d.url = url;
 
-	boost::mutex::scoped_lock l(m_mutex);
-
 	std::set<rootdevice>::iterator i = m_devices.find(d);
 
 	if (i == m_devices.end())
@@ -365,7 +362,7 @@ void upnp::on_reply(asio::error_code const& e
 		// ask for it
 		rootdevice& d = const_cast<rootdevice&>(*i);
 		d.upnp_connection.reset(new http_connection(m_socket.io_service()
-			, boost::bind(&upnp::on_upnp_xml, this, _1, _2, boost::ref(d))));
+			, m_strand.wrap(bind(&upnp::on_upnp_xml, this, _1, _2, boost::ref(d)))));
 		d.upnp_connection->get(d.url);
 	}
 }
@@ -399,8 +396,8 @@ void upnp::map_port(rootdevice& d, int i)
 	d.mapping[i].need_update = false;
 	assert(!d.upnp_connection);
 	d.upnp_connection.reset(new http_connection(m_socket.io_service()
-		, boost::bind(&upnp::on_upnp_map_response, this, _1, _2
-		, boost::ref(d), i)));
+		, m_strand.wrap(bind(&upnp::on_upnp_map_response, this, _1, _2
+		, boost::ref(d), i))));
 
 	std::string soap_action = "AddPortMapping";
 
@@ -441,13 +438,12 @@ void upnp::unmap_port(rootdevice& d, int i)
 		else
 		{
 			m_devices.erase(d);
-			m_condvar.notify_all();
 		}
 		return;
 	}
 	d.upnp_connection.reset(new http_connection(m_socket.io_service()
-		, boost::bind(&upnp::on_upnp_unmap_response, this, _1, _2
-		, boost::ref(d), i)));
+		, m_strand.wrap(bind(&upnp::on_upnp_unmap_response, this, _1, _2
+		, boost::ref(d), i))));
 
 	std::string soap_action = "DeletePortMapping";
 
@@ -557,7 +553,7 @@ void upnp::on_upnp_xml(asio::error_code const& e
 	parse_state s;
 	s.reset("urn:schemas-upnp-org:service:WANIPConnection:1");
 	xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
-		, boost::bind(&find_control_url, _1, _2, boost::ref(s)));
+		, m_strand.wrap(bind(&find_control_url, _1, _2, boost::ref(s))));
 	d.service_namespace = "urn:schemas-upnp-org:service:WANIPConnection:1";
 	if (!s.found_service)
 	{
@@ -565,7 +561,7 @@ void upnp::on_upnp_xml(asio::error_code const& e
 		// a PPP IP connection
 		s.reset("urn:schemas-upnp-org:service:PPPIPConnection:1");
 		xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
-			, boost::bind(&find_control_url, _1, _2, boost::ref(s)));
+			, m_strand.wrap(bind(&find_control_url, _1, _2, boost::ref(s))));
 		d.service_namespace = "urn:schemas-upnp-org:service:WANPPPConnection:1";
 	}
 	
@@ -619,15 +615,11 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 		m_log << to_simple_string(microsec_clock::universal_time())
 			<< " <== error while adding portmap: " << e.message() << std::endl;
 #endif
-		boost::mutex::scoped_lock l(m_mutex);
 		m_devices.erase(d);
-		m_condvar.notify_all();
 		return;
 	}
 	
-	boost::mutex::scoped_lock l(m_mutex);
 	if (m_closing) return;
-	l.unlock();
 	
 //	 error code response may look like this:
 //	<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
@@ -652,15 +644,13 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 		m_log << to_simple_string(microsec_clock::universal_time())
 			<< " <== incomplete http message" << std::endl;
 #endif
-		boost::mutex::scoped_lock l(m_mutex);
 		m_devices.erase(d);
-		m_condvar.notify_all();
 		return;
 	}
 	
 	error_code_parse_state s;
 	xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
-		, bind(&find_error_code, _1, _2, boost::ref(s)));
+		, m_strand.wrap(bind(&find_error_code, _1, _2, boost::ref(s))));
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	if (s.error_code != -1)
@@ -733,7 +723,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 				|| next_expire > d.mapping[mapping].expires)
 			{
 				m_refresh_timer.expires_at(d.mapping[mapping].expires);
-				m_refresh_timer.async_wait(bind(&upnp::on_expire, this, _1));
+				m_refresh_timer.async_wait(m_strand.wrap(bind(&upnp::on_expire, this, _1)));
 			}
 		}
 		else
@@ -785,7 +775,6 @@ void upnp::on_upnp_unmap_response(asio::error_code const& e
 #endif
 
 	// ignore errors and continue with the next mapping for this device
-	boost::mutex::scoped_lock l(m_mutex);
 	if (mapping < num_mappings - 1)
 	{
 		unmap_port(d, mapping + 1);
@@ -795,7 +784,6 @@ void upnp::on_upnp_unmap_response(asio::error_code const& e
 	// the main thread is likely to be waiting for
 	// all the unmap operations to complete
 	m_devices.erase(d);
-	m_condvar.notify_all();
 }
 
 void upnp::on_expire(asio::error_code const& e)
@@ -805,7 +793,6 @@ void upnp::on_expire(asio::error_code const& e)
 	ptime now = time_now();
 	ptime next_expire = max_time();
 
-	boost::mutex::scoped_lock l(m_mutex);
 	for (std::set<rootdevice>::iterator i = m_devices.begin()
 		, end(m_devices.end()); i != end; ++i)
 	{
@@ -829,13 +816,12 @@ void upnp::on_expire(asio::error_code const& e)
 	if (next_expire != max_time())
 	{
 		m_refresh_timer.expires_at(next_expire);
-		m_refresh_timer.async_wait(bind(&upnp::on_expire, this, _1));
+		m_refresh_timer.async_wait(m_strand.wrap(bind(&upnp::on_expire, this, _1)));
 	}
 }
 
 void upnp::close()
 {
-	boost::mutex::scoped_lock l(m_mutex);
 	m_refresh_timer.cancel();
 	m_broadcast_timer.cancel();
 	m_closing = true;

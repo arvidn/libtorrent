@@ -194,10 +194,8 @@ private:
 
 	// timer used to refresh mappings
 	deadline_timer m_refresh_timer;
-	
-	// locks m_closing and m_devices
-	boost::mutex m_mutex;
-	boost::condition m_condvar;
+
+	asio::strand m_strand;	
 	
 	bool m_disabled;
 	bool m_closing;
