@@ -106,7 +106,6 @@ void http_connection::close()
 {
 	m_timer.cancel();
 	m_limiter_timer.cancel();
-	m_limiter_timer_active = false;
 	m_sock.close();
 	m_hostname.clear();
 	m_port.clear();
@@ -272,8 +271,9 @@ void http_connection::on_read(asio::error_code const& e
 
 void http_connection::on_assign_bandwidth(asio::error_code const& e)
 {
-	if (e == asio::error::operation_aborted
+	if ((e == asio::error::operation_aborted
 		&& m_limiter_timer_active)
+		|| !m_sock.is_open())
 	{
 		if (!m_bottled || !m_called)
 			m_handler(e, m_parser, 0, 0);
