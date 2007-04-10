@@ -41,8 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/date_time/gregorian/gregorian_types.hpp>
 #include <boost/optional.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/shared_ptr.hpp>

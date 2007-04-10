@@ -50,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
-using namespace boost::posix_time;
 using boost::bind;
 using boost::shared_ptr;
 using libtorrent::aux::session_impl;
@@ -166,8 +165,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 #ifdef TORRENT_VERBOSE_LOGGING
-		using namespace boost::posix_time;
-		(*m_logger) << to_simple_string(second_clock::local_time())
+		(*m_logger) << time_now_string()
 			<< " ==> DHT_PORT [ " << listen_port << " ]\n";
 #endif
 		buffer::interval packet = allocate_send_buffer(7);
@@ -301,9 +299,7 @@ namespace libtorrent
 		assert(i.begin == i.end);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		using namespace boost::posix_time;
-		(*m_logger) << to_simple_string(second_clock::local_time())
-			<< " ==> HANDSHAKE\n";
+		(*m_logger) << time_now_string() << " ==> HANDSHAKE\n";
 #endif
 		setup_send();
 	}
@@ -352,9 +348,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		using namespace boost::posix_time;
-		(*m_logger) << to_simple_string(second_clock::local_time())
-			<< " <== KEEPALIVE\n";
+		(*m_logger) << time_now_string() << " <== KEEPALIVE\n";
 #endif
 		incoming_keepalive();
 	}
@@ -825,9 +819,7 @@ namespace libtorrent
 		assert(t->valid_metadata());
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		using namespace boost::posix_time;
-		(*m_logger) << to_simple_string(second_clock::local_time())
-			<< " ==> BITFIELD ";
+		(*m_logger) << time_now_string() << " ==> BITFIELD ";
 
 		for (int i = 0; i < (int)get_bitfield().size(); ++i)
 		{
@@ -862,9 +854,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		using namespace boost::posix_time;
-		(*m_logger) << to_simple_string(second_clock::local_time())
-			<< " ==> EXTENSIONS\n";
+		(*m_logger) << time_now_string() << " ==> EXTENSIONS\n";
 #endif
 		assert(m_supports_extensions);
 

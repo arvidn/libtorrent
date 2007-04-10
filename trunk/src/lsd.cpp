@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/xml_parse.hpp"
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <asio/ip/host_name.hpp>
 #include <asio/ip/multicast.hpp>
 #include <boost/thread/mutex.hpp>
@@ -46,11 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using boost::bind;
 using namespace libtorrent;
-using boost::posix_time::microsec_clock;
-using boost::posix_time::milliseconds;
-using boost::posix_time::seconds;
-using boost::posix_time::second_clock;
-using boost::posix_time::ptime;
 
 namespace
 {
@@ -161,7 +155,7 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 		, lsd_multicast_endpoint);
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << to_simple_string(microsec_clock::universal_time())
+	m_log << time_now_string()
 		<< " ==> announce: ih: " << ih << " port: " << listen_port << std::endl;
 #endif
 
@@ -171,7 +165,6 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 
 void lsd::resend_announce(asio::error_code const& e, std::string msg)
 {
-	using boost::posix_time::hours;
 	if (e) return;
 
 	m_socket.send_to(asio::buffer(msg, msg.size() - 1)
@@ -189,11 +182,10 @@ void lsd::on_announce(asio::error_code const& e
 	, std::size_t bytes_transferred)
 {
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << to_simple_string(microsec_clock::universal_time())
+		m_log << time_now_string()
 			<< " <== on_announce" << std::endl;
 #endif
 	using namespace libtorrent::detail;
-	using boost::posix_time::seconds;
 	if (e) return;
 
 	char* p = m_receive_buffer;
@@ -203,7 +195,7 @@ void lsd::on_announce(asio::error_code const& e
 	if (line == end || std::strcmp("bt-search", p))
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << to_simple_string(microsec_clock::universal_time())
+		m_log << time_now_string()
 			<< " <== Got incorrect method in announce" << std::string(p, line) << std::endl;
 #endif
 		setup_receive();
@@ -232,7 +224,7 @@ void lsd::on_announce(asio::error_code const& e
 	if (!ih.is_all_zeros() && port != 0)
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << to_simple_string(microsec_clock::universal_time())
+		m_log << time_now_string()
 			<< " <== Got incoming local announce " << m_remote.address()
 			<< ":" << port << " ih: " << ih << std::endl;
 #endif
@@ -246,7 +238,7 @@ void lsd::on_announce(asio::error_code const& e
 void lsd::setup_receive()
 {
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << to_simple_string(microsec_clock::universal_time())
+	m_log << time_now_string()
 		<< " *** setup_receive" << std::endl;
 #endif
 	assert(m_socket.is_open());

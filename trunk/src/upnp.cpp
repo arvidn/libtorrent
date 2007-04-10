@@ -39,13 +39,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/xml_parse.hpp"
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <asio/ip/host_name.hpp>
 #include <asio/ip/multicast.hpp>
 #include <boost/thread/mutex.hpp>
 #include <cstdlib>
 
-using boost::posix_time::microsec_clock;
 using boost::bind;
 using namespace libtorrent;
 
@@ -110,7 +108,7 @@ void upnp::rebind(address const& listen_interface)
 	}
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << to_simple_string(microsec_clock::universal_time())
+	m_log << time_now_string()
 		<< " local ip: " << m_local_ip.to_string() << std::endl;
 #endif
 
@@ -182,7 +180,7 @@ void upnp::discover_device()
 		, this, _1)));
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << to_simple_string(microsec_clock::universal_time())
+	m_log << time_now_string()
 		<< " ==> Broadcasting search for rootdevice" << std::endl;
 #endif
 }
@@ -218,12 +216,11 @@ void upnp::set_mappings(int tcp, int udp)
 
 void upnp::resend_request(asio::error_code const& e)
 {
-	using boost::posix_time::hours;
 	if (e) return;
 	if (m_retry_count >= 9)
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << to_simple_string(microsec_clock::universal_time())
+		m_log << time_now_string()
 			<< " *** Got no response in 9 retries. Giving up, "
 			"disabling UPnP." << std::endl;
 #endif
@@ -237,7 +234,6 @@ void upnp::on_reply(asio::error_code const& e
 	, std::size_t bytes_transferred)
 {
 	using namespace libtorrent::detail;
-	using boost::posix_time::seconds;
 	if (e) return;
 
 	// since we're using udp, send the query 4 times
@@ -268,7 +264,7 @@ void upnp::on_reply(asio::error_code const& e
 	catch (std::exception& e)
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << to_simple_string(microsec_clock::universal_time())
+		m_log << time_now_string()
 			<< " <== Rootdevice responded with incorrect HTTP packet: "
 			<< e.what() << ". Ignoring device" << std::endl;
 #endif
@@ -278,7 +274,7 @@ void upnp::on_reply(asio::error_code const& e
 	if (p.status_code() != 200)
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << to_simple_string(microsec_clock::universal_time())
+		m_log << time_now_string()
 			<< " <== Rootdevice responded with HTTP status: " << p.status_code()
 			<< ". Ignoring device" << std::endl;
 #endif
@@ -288,7 +284,7 @@ void upnp::on_reply(asio::error_code const& e
 	if (!p.header_finished())
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << to_simple_string(microsec_clock::universal_time())
+		m_log << time_now_string()
 			<< " <== Rootdevice responded with incomplete HTTP "
 			"packet. Ignoring device" << std::endl;
 #endif
@@ -299,7 +295,7 @@ void upnp::on_reply(asio::error_code const& e
 	if (url.empty())
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << to_simple_string(microsec_clock::universal_time())
+		m_log << time_now_string()
 			<< " <== Rootdevice response is missing a location header. "
 			"Ignoring device" << std::endl;
 #endif
@@ -322,7 +318,7 @@ void upnp::on_reply(asio::error_code const& e
 		if (protocol != "http")
 		{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-			m_log << to_simple_string(microsec_clock::universal_time())
+			m_log << time_now_string()
 				<< " <== Rootdevice uses unsupported protocol: '" << protocol
 				<< "'. Ignoring device" << std::endl;
 #endif
@@ -332,14 +328,14 @@ void upnp::on_reply(asio::error_code const& e
 		if (d.port == 0)
 		{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-			m_log << to_simple_string(microsec_clock::universal_time())
+			m_log << time_now_string()
 				<< " <== Rootdevice responded with a url with port 0. "
 				"Ignoring device" << std::endl;
 #endif
 			return;
 		}
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << to_simple_string(microsec_clock::universal_time())
+		m_log << time_now_string()
 			<< " <== Found rootdevice: " << d.url << std::endl;
 #endif
 
@@ -420,7 +416,7 @@ void upnp::map_port(rootdevice& d, int i)
 
 	post(d, soap, soap_action);
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << to_simple_string(microsec_clock::universal_time())
+	m_log << time_now_string()
 		<< " ==> AddPortMapping: " << soap.str() << std::endl;
 #endif
 	
@@ -461,7 +457,7 @@ void upnp::unmap_port(rootdevice& d, int i)
 
 	post(d, soap, soap_action);
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << to_simple_string(microsec_clock::universal_time())
+	m_log << time_now_string()
 		<< " ==> DeletePortMapping: " << soap.str() << std::endl;
 #endif
 }
@@ -535,7 +531,7 @@ void upnp::on_upnp_xml(asio::error_code const& e
 	if (e)
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << to_simple_string(microsec_clock::universal_time())
+		m_log << time_now_string()
 			<< " <== error while fetching control url: " << e.message() << std::endl;
 #endif
 		return;
@@ -544,7 +540,7 @@ void upnp::on_upnp_xml(asio::error_code const& e
 	if (!p.header_finished())
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << to_simple_string(microsec_clock::universal_time())
+		m_log << time_now_string()
 			<< " <== incomplete http message" << std::endl;
 #endif
 		return;
@@ -566,7 +562,7 @@ void upnp::on_upnp_xml(asio::error_code const& e
 	}
 	
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << to_simple_string(microsec_clock::universal_time())
+	m_log << time_now_string()
 		<< " <== Rootdevice response, found control URL: " << s.control_url << std::endl;
 #endif
 
@@ -612,7 +608,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 	if (e)
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << to_simple_string(microsec_clock::universal_time())
+		m_log << time_now_string()
 			<< " <== error while adding portmap: " << e.message() << std::endl;
 #endif
 		m_devices.erase(d);
@@ -641,7 +637,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 	if (!p.header_finished())
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << to_simple_string(microsec_clock::universal_time())
+		m_log << time_now_string()
 			<< " <== incomplete http message" << std::endl;
 #endif
 		m_devices.erase(d);
@@ -655,7 +651,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	if (s.error_code != -1)
 	{
-		m_log << to_simple_string(microsec_clock::universal_time())
+		m_log << time_now_string()
 			<< " <== got error message: " << s.error_code << std::endl;
 	}
 #endif
@@ -697,7 +693,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 	}
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << to_simple_string(microsec_clock::universal_time())
+	m_log << time_now_string()
 		<< " <== map response: " << std::string(p.get_body().begin, p.get_body().end)
 		<< std::endl;
 #endif
@@ -718,8 +714,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 			d.mapping[mapping].expires = time_now()
 				+ seconds(int(d.lease_duration * 0.75f));
 			ptime next_expire = m_refresh_timer.expires_at();
-			if (next_expire == ptime(boost::date_time::not_a_date_time)
-				|| next_expire < time_now()
+			if (next_expire < time_now()
 				|| next_expire > d.mapping[mapping].expires)
 			{
 				m_refresh_timer.expires_at(d.mapping[mapping].expires);
@@ -754,7 +749,7 @@ void upnp::on_upnp_unmap_response(asio::error_code const& e
 	if (e)
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << to_simple_string(microsec_clock::universal_time())
+		m_log << time_now_string()
 			<< " <== error while deleting portmap: " << e.message() << std::endl;
 #endif
 	}
@@ -762,14 +757,14 @@ void upnp::on_upnp_unmap_response(asio::error_code const& e
 	if (!p.header_finished())
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << to_simple_string(microsec_clock::universal_time())
+		m_log << time_now_string()
 			<< " <== incomplete http message" << std::endl;
 #endif
 		return;
 	}
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << to_simple_string(microsec_clock::universal_time())
+	m_log << time_now_string()
 		<< " <== unmap response: " << std::string(p.get_body().begin, p.get_body().end)
 		<< std::endl;
 #endif

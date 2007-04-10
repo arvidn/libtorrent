@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/shared_ptr.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>

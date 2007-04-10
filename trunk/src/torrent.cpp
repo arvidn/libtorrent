@@ -73,7 +73,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 
 using namespace libtorrent;
-using namespace boost::posix_time;
 using boost::tuples::tuple;
 using boost::tuples::get;
 using boost::tuples::make_tuple;
@@ -81,47 +80,6 @@ using boost::filesystem::complete;
 using boost::bind;
 using boost::mutex;
 using libtorrent::aux::session_impl;
-
-// PROFILING CODE
-
-#ifdef TORRENT_PROFILE
-#include <boost/date_time/posix_time/ptime.hpp>
-
-namespace libtorrent
-{
-	namespace
-	{
-		using ptime;
-		using time_duration;
-		using boost::posix_time::microsec_clock;
-		std::vector<std::pair<ptime, std::string> > checkpoints;
-	}
-
-	void add_checkpoint(std::string const& str)
-	{
-		checkpoints.push_back(std::make_pair(microsec_clock::universal_time(), str));
-	}
-
-	void print_checkpoints()
-	{
-		for (std::vector<std::pair<ptime, std::string> >::iterator i
-			= checkpoints.begin(); i != checkpoints.end(); ++i)
-		{
-			ptime cur = i->first;
-			if (i + 1 != checkpoints.end())
-			{
-				time_duration diff = (i + 1)->first - cur;
-				std::cout << diff.total_microseconds() << " " << i->second << "\n";
-			}
-			else
-			{
-				std::cout << "    " << i->second << "\n";
-			}
-		}
-	}
-}
-
-#endif
 
 namespace
 {
@@ -1332,8 +1290,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		std::string now(to_simple_string(second_clock::local_time()));
-		(*m_ses.m_logger) << now << " resolving: " << url << "\n";
+		(*m_ses.m_logger) << time_now_string() << " resolving: " << url << "\n";
 #endif
 
 		m_resolving_web_seeds.insert(url);
@@ -1370,8 +1327,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		std::string now(to_simple_string(second_clock::local_time()));
-		(*m_ses.m_logger) << now << " completed resolve proxy hostname for: " << url << "\n";
+		(*m_ses.m_logger) << time_now_string() << " completed resolve proxy hostname for: " << url << "\n";
 #endif
 
 		if (e || host == tcp::resolver::iterator())
@@ -1424,8 +1380,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		std::string now(to_simple_string(second_clock::local_time()));
-		(*m_ses.m_logger) << now << " completed resolve: " << url << "\n";
+		(*m_ses.m_logger) << time_now_string() << " completed resolve: " << url << "\n";
 #endif
 
 		std::set<std::string>::iterator i = m_resolving_web_seeds.find(url);
@@ -2142,7 +2097,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		using namespace boost::posix_time;
 		++m_currently_trying_tracker;
 
 		if ((unsigned)m_currently_trying_tracker >= m_trackers.size())

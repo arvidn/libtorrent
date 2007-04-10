@@ -33,9 +33,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_TIME_HPP_INCLUDED
 #define TORRENT_TIME_HPP_INCLUDED
 
+#include <ctime>
+
 #ifndef _WIN32
 #include <unistd.h>
 #endif
+
+namespace libtorrent
+{
+	inline char const* time_now_string()
+	{
+		time_t t = std::time(0);
+		return std::ctime(&t);
+	}
+}
 
 #if (!defined (__MACH__) && !defined (_WIN32) && !defined(_POSIX_MONOTONIC_CLOCK) || _POSIX_MONOTONIC_CLOCK < 0) || defined (TORRENT_USE_BOOST_DATE_TIME)
 
@@ -69,7 +80,6 @@ namespace libtorrent
 #else
 
 #include <asio/time_traits.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/cstdint.hpp>
 
 namespace libtorrent

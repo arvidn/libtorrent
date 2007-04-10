@@ -650,7 +650,6 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
 		if (!t) throw_invalid_handle();
 
-		using boost::posix_time::second_clock;
 		t->force_tracker_request(time_now()
 			+ seconds(duration.total_seconds()));
 	}

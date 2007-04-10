@@ -45,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/limits.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/scoped_ptr.hpp>
