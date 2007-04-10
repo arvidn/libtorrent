@@ -1,3 +1,5 @@
+	* removed the dependency on the compiled boost.date_time library
+	* deprecated torrent_info::print()
 	* added UPnP support
 	* fixed problem where peer interested flags were not updated correctly
 	  when pieces were filtered
