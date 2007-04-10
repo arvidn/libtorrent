@@ -736,6 +736,8 @@ namespace libtorrent
 		assert(false);
 	}
 
+// ------- start deprecation -------
+
 	void torrent_info::print(std::ostream& os) const
 	{
 		os << "trackers:\n";
@@ -746,8 +748,8 @@ namespace libtorrent
 		}
 		if (!m_comment.empty())
 			os << "comment: " << m_comment << "\n";
-		if (m_creation_date != pt::ptime(gr::date(pt::not_a_date_time)))
-			os << "creation date: " << to_simple_string(m_creation_date) << "\n";
+//		if (m_creation_date != pt::ptime(gr::date(pt::not_a_date_time)))
+//			os << "creation date: " << to_simple_string(m_creation_date) << "\n";
 		os << "private: " << (m_private?"yes":"no") << "\n";
 		os << "number of pieces: " << num_pieces() << "\n";
 		os << "piece length: " << piece_length() << "\n";
@@ -755,6 +757,8 @@ namespace libtorrent
 		for (file_iterator i = begin_files(); i != end_files(); ++i)
 			os << "  " << std::setw(11) << i->size << "  " << i->path.string() << "\n";
 	}
+
+// ------- end deprecation -------
 
 	size_type torrent_info::piece_size(int index) const
 	{

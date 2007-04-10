@@ -138,7 +138,11 @@ namespace libtorrent
 		int num_pieces() const { assert(m_piece_length > 0); return (int)m_piece_hash.size(); }
 		const sha1_hash& info_hash() const { return m_info_hash; }
 		const std::string& name() const { assert(m_piece_length > 0); return m_name; }
+
+// ------- start deprecation -------
 		void print(std::ostream& os) const;
+// ------- end deprecation -------
+
 		bool is_valid() const { return m_piece_length > 0; }
 
 		bool priv() const { return m_private; }

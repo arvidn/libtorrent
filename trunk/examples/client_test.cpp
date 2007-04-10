@@ -147,8 +147,6 @@ void clear_home()
 
 #endif
 
-namespace pt = boost::posix_time;
-
 std::string esc(char const* code)
 {
 #ifdef ANSI_TERMINAL_COLORS
@@ -577,7 +575,7 @@ int main(int ac, char* av[])
 
 		std::deque<std::string> events;
 
-		boost::posix_time::ptime next_dir_scan = boost::posix_time::second_clock::universal_time();
+		ptime next_dir_scan = time_now();
 
 		// the string is the filename of the .torrent file, but only if
 		// it was added through the directory monitor. It is used to
@@ -775,7 +773,7 @@ int main(int ac, char* av[])
 			// loop through the alert queue to see if anything has happened.
 			std::auto_ptr<alert> a;
 			a = ses.pop_alert();
-			std::string now = to_simple_string(boost::posix_time::second_clock::local_time());
+			std::string now = time_now_string();
 			while (a.get())
 			{
 				std::stringstream event_string;
@@ -916,7 +914,7 @@ int main(int ac, char* av[])
 				{
 					boost::posix_time::time_duration t = s.next_announce;
 					out << "  next announce: " << esc("37") <<
-						boost::posix_time::to_simple_string(t) << esc("0") << " ";
+						t.hours() << ":" << t.minutes() << ":" << t.seconds() << esc("0") << " ";
 					out << "tracker: " << s.current_tracker << "\n";
 				}
 
@@ -997,12 +995,11 @@ int main(int ac, char* av[])
 			puts(out.str().c_str());
 
 			if (!monitor_dir.empty()
-				&& next_dir_scan < boost::posix_time::second_clock::universal_time())
+				&& next_dir_scan < time_now())
 			{
 				scan_dir(monitor_dir, ses, handles, preferred_ratio
 					, compact_allocation_mode, save_path);
-				next_dir_scan = boost::posix_time::second_clock::universal_time()
-					+ boost::posix_time::seconds(poll_interval);
+				next_dir_scan = time_now() + seconds(poll_interval);
 			}
 		}
 
