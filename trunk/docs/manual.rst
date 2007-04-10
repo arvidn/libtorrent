@@ -1188,7 +1188,7 @@ Its declaration looks like this::
 
 		entry write_resume_data() const;
 		void force_reannounce() const;
-		void connect_peer(asio::ip::tcp::endpoint const& adr) const;
+		void connect_peer(asio::ip::tcp::endpoint const& adr, int source = 0) const;
 
 		void set_tracker_login(std::string const& username
 			, std::string const& password) const;
@@ -1361,13 +1361,15 @@ connect_peer()
 
 	::
 
-		void connect_peer(asio::ip::tcp::endpoint const& adr) const;
+		void connect_peer(asio::ip::tcp::endpoint const& adr, int source = 0) const;
 
 ``connect_peer()`` is a way to manually connect to peers that one believe is a part of the
 torrent. If the peer does not respond, or is not a member of this torrent, it will simply
 be disconnected. No harm can be done by using this other than an unnecessary connection
 attempt is made. If the torrent is uninitialized or in queued or checking mode, this
-will throw invalid_handle_.
+will throw invalid_handle_. The second (optional) argument will be bitwised ORed into
+the source mask of this peer. Typically this is one of the source flags in peer_info_.
+i.e. ``tracker``, ``pex``, ``dht`` etc.
 
 
 name()
@@ -1907,7 +1909,19 @@ It contains the following fields::
 			connecting = 0x80,
 			queued = 0x100
 		};
+
 		unsigned int flags;
+
+		enum peer_source_flags
+		{
+			tracker = 0x1,
+			dht = 0x2,
+			pex = 0x4,
+			lsd = 0x8
+		};
+
+		int source;
+
 		asio::ip::tcp::endpoint ip;
 		float up_speed;
 		float down_speed;
@@ -1977,6 +1991,23 @@ any combination of the enums above. The following table describes each flag:
 +-------------------------+-------------------------------------------------------+
 
 __ extension_protocol.html
+
+``source`` is a combination of flags describing from which sources this peer
+was received. The flags are:
+
++------------------------+--------------------------------------------------------+
+| ``tracker``            | The peer was received from the tracker.                |
++------------------------+--------------------------------------------------------+
+| ``dht``                | The peer was received from the kademlia DHT.           |
++------------------------+--------------------------------------------------------+
+| ``pex``                | The peer was received from the peer exchange           |
+|                        | extension.                                             |
++------------------------+--------------------------------------------------------+
+| ``lsd``                | The peer was received from the local service           |
+|                        | discovery (The peer is on the local network).          |
++------------------------+--------------------------------------------------------+
+| ``resume_data``        | The peer was added from the fast resume data.          |
++------------------------+--------------------------------------------------------+
 
 The ``ip`` field is the IP-address to this peer. The type is an asio endpoint. For
 more info, see the asio_ documentation.

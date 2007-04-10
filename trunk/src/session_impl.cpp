@@ -215,7 +215,8 @@ namespace libtorrent { namespace detail
 							for (std::vector<tcp::endpoint>::const_iterator i = t->peers.begin();
 								i != t->peers.end(); ++i)
 							{
-								t->torrent_ptr->get_policy().peer_from_tracker(*i, id);
+								t->torrent_ptr->get_policy().peer_from_tracker(*i, id
+									, peer_info::resume_data, 0);
 							}
 						}
 						else
@@ -337,7 +338,8 @@ namespace libtorrent { namespace detail
 						for (std::vector<tcp::endpoint>::const_iterator i = processing->peers.begin();
 							i != processing->peers.end(); ++i)
 						{
-							processing->torrent_ptr->get_policy().peer_from_tracker(*i, id);
+							processing->torrent_ptr->get_policy().peer_from_tracker(*i, id
+								, peer_info::resume_data, 0);
 						}
 					}
 					else
@@ -772,7 +774,7 @@ namespace libtorrent { namespace detail
 		}
 
 		boost::intrusive_ptr<peer_connection> c(
-			new bt_peer_connection(*this, s));
+			new bt_peer_connection(*this, s, 0));
 #ifndef NDEBUG
 		c->m_in_constructor = false;
 #endif
@@ -1513,7 +1515,7 @@ namespace libtorrent { namespace detail
 		(*m_logger) << time_now_string()
 			<< ": added peer from local discovery: " << peer << "\n";
 #endif
-		t->get_policy().peer_from_tracker(peer, peer_id(0));
+		t->get_policy().peer_from_tracker(peer, peer_id(0), peer_info::lsd, 0);
 	}
 
 	void session_impl::on_port_mapping(int tcp_port, int udp_port

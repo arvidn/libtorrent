@@ -626,7 +626,7 @@ namespace libtorrent
 			, bind(&torrent::save_path, _1));
 	}
 
-	void torrent_handle::connect_peer(tcp::endpoint const& adr) const
+	void torrent_handle::connect_peer(tcp::endpoint const& adr, int source) const
 	{
 		INVARIANT_CHECK;
 
@@ -650,7 +650,7 @@ namespace libtorrent
 
 		peer_id id;
 		std::fill(id.begin(), id.end(), 0);
-		t->get_policy().peer_from_tracker(adr, id);
+		t->get_policy().peer_from_tracker(adr, id, source, 0);
 	}
 
 	void torrent_handle::force_reannounce(

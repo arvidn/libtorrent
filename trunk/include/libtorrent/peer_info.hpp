@@ -56,7 +56,20 @@ namespace libtorrent
 			connecting = 0x80,
 			queued = 0x100
 		};
+
 		unsigned int flags;
+
+		enum peer_source_flags
+		{
+			tracker = 0x1,
+			dht = 0x2,
+			pex = 0x4,
+			lsd = 0x8,
+			resume_data = 0x10
+		};
+
+		int source;
+
 		tcp::endpoint ip;
 		float up_speed;
 		float down_speed;

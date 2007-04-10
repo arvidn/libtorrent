@@ -468,7 +468,8 @@ namespace libtorrent
 				get_handle(), peers.size(), "Got peers from DHT"));
 		}
 		std::for_each(peers.begin(), peers.end(), bind(
-			&policy::peer_from_tracker, boost::ref(m_policy), _1, peer_id(0), 0));
+			&policy::peer_from_tracker, boost::ref(m_policy), _1, peer_id(0)
+			, peer_info::dht, 0));
 	}
 
 #endif
@@ -565,7 +566,7 @@ namespace libtorrent
 					continue;
 				}
 			
-				m_policy->peer_from_tracker(a, i->pid);
+				m_policy->peer_from_tracker(a, i->pid, peer_info::tracker, 0);
 			}
 			catch (std::exception&)
 			{
@@ -607,7 +608,7 @@ namespace libtorrent
 			return;
 		}
 			
-		m_policy->peer_from_tracker(*host, pid);
+		m_policy->peer_from_tracker(*host, pid, peer_info::tracker, 0);
 	}
 	catch (std::exception&)
 	{};
@@ -1425,7 +1426,7 @@ namespace libtorrent
 
 		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_io_service));
 		boost::intrusive_ptr<peer_connection> c(new web_peer_connection(
-			m_ses, shared_from_this(), s, a, proxy, url));
+			m_ses, shared_from_this(), s, a, proxy, url, 0));
 			
 #ifndef NDEBUG
 		c->m_in_constructor = false;
@@ -1791,10 +1792,10 @@ namespace libtorrent
 		}
 	}
 
-	peer_connection& torrent::connect_to_peer(const tcp::endpoint& a)
+	peer_connection& torrent::connect_to_peer(policy::peer* peerinfo)
 	{
 		INVARIANT_CHECK;
-
+		tcp::endpoint const& a(peerinfo->ip);
 		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
 			throw protocol_error(a.address().to_string() + " blocked by ip filter");
 
@@ -1803,7 +1804,7 @@ namespace libtorrent
 
 		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_io_service));
 		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
-			m_ses, shared_from_this(), s, a));
+			m_ses, shared_from_this(), s, a, peerinfo));
 			
 #ifndef NDEBUG
 		c->m_in_constructor = false;

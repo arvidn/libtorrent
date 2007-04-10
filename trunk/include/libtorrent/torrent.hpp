@@ -181,7 +181,6 @@ namespace libtorrent
 		void filter_files(std::vector<bool> const& files);
 		// ============ end deprecation =============
 
-
 		void set_piece_priority(int index, int priority);
 		int piece_priority(int index) const;
 
@@ -190,7 +189,6 @@ namespace libtorrent
 
 		void prioritize_files(std::vector<int> const& files);
 
-
 		torrent_status status() const;
 		void file_progress(std::vector<float>& fp) const;
 
@@ -198,7 +196,7 @@ namespace libtorrent
 		tcp::endpoint const& get_interface() const { return m_net_interface; }
 		
 		void connect_to_url_seed(std::string const& url);
-		peer_connection& connect_to_peer(tcp::endpoint const& a);
+		peer_connection& connect_to_peer(policy::peer* peerinfo);
 
 		void set_ratio(float ratio)
 		{ assert(ratio >= 0.0f); m_ratio = ratio; }

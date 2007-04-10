@@ -79,8 +79,10 @@ namespace libtorrent
 		session_impl& ses
 		, boost::weak_ptr<torrent> tor
 		, shared_ptr<stream_socket> s
-		, tcp::endpoint const& remote)
-		: peer_connection(ses, tor, s, remote, tcp::endpoint())
+		, tcp::endpoint const& remote
+		, policy::peer* peerinfo)
+		: peer_connection(ses, tor, s, remote
+			, tcp::endpoint(), peerinfo)
 		, m_state(read_protocol_length)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_supports_extensions(false)
@@ -117,8 +119,9 @@ namespace libtorrent
 
 	bt_peer_connection::bt_peer_connection(
 		session_impl& ses
-		, boost::shared_ptr<stream_socket> s)
-		: peer_connection(ses, s)
+		, boost::shared_ptr<stream_socket> s
+		, policy::peer* peerinfo)
+		: peer_connection(ses, s, peerinfo)
 		, m_state(read_protocol_length)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_supports_extensions(false)
@@ -240,6 +243,16 @@ namespace libtorrent
 		
 		p.client = m_client_version;
 		p.connection_type = peer_info::standard_bittorrent;
+
+		if (peer_info_struct())
+		{
+			p.source = peer_info_struct()->source;
+		}
+		else
+		{
+			assert(!is_local());
+			p.source = 0;
+		}
 	}
 	
 	bool bt_peer_connection::in_handshake() const
@@ -692,7 +705,7 @@ namespace libtorrent
 			{
 				tcp::endpoint adr(remote().address()
 					, (unsigned short)listen_port->integer());
-				t->get_policy().peer_from_tracker(adr, pid());
+				t->get_policy().peer_from_tracker(adr, pid(), 0, 0);
 			}
 		}
 		// there should be a version too
