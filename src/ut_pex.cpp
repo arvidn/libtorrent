@@ -217,7 +217,7 @@ namespace libtorrent { namespace
 			{
 				tcp::endpoint adr = detail::read_v4_endpoint<tcp::endpoint>(in);
 				char flags = detail::read_uint8(fin);
-				p.peer_from_tracker(adr, pid, flags);
+				p.peer_from_tracker(adr, pid, peer_info::pex, flags);
 			} 
 			return true;
 		}

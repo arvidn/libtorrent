@@ -62,8 +62,9 @@ namespace libtorrent
 		, boost::shared_ptr<stream_socket> s
 		, tcp::endpoint const& remote
 		, tcp::endpoint const& proxy
-		, std::string const& url)
-		: peer_connection(ses, t, s, remote, proxy)
+		, std::string const& url
+		, policy::peer* peerinfo)
+		: peer_connection(ses, t, s, remote, proxy, peerinfo)
 		, m_url(url)
 		, m_first_request(true)
 	{
@@ -587,6 +588,7 @@ namespace libtorrent
 
 		p.client = m_server_string;
 		p.connection_type = peer_info::web_seed;
+		p.source = 0;
 	}
 
 	bool web_peer_connection::in_handshake() const

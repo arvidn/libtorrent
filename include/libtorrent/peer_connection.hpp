@@ -71,6 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/bandwidth_manager.hpp"
+#include "libtorrent/policy.hpp"
 
 // TODO: each time a block is 'taken over'
 // from another peer. That peer must be given
@@ -117,15 +118,26 @@ namespace libtorrent
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<stream_socket> s
 			, tcp::endpoint const& remote
-			, tcp::endpoint const& proxy);
+			, tcp::endpoint const& proxy
+			, policy::peer* peerinfo);
 
 		// with this constructor we have been contacted and we still don't
 		// know which torrent the connection belongs to
 		peer_connection(
 			aux::session_impl& ses
-			, boost::shared_ptr<stream_socket> s);
+			, boost::shared_ptr<stream_socket> s
+			, policy::peer* peerinfo);
 
 		virtual ~peer_connection();
+
+		void set_peer_info(policy::peer* pi)
+		{
+			assert(m_peer_info == 0);
+			m_peer_info = pi;
+		}
+
+		policy::peer* peer_info_struct() const
+		{ return m_peer_info; }
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<peer_plugin>);
@@ -639,6 +651,11 @@ namespace libtorrent
 		
 		int m_upload_limit;
 		int m_download_limit;
+
+		// this peer's peer info struct. This may
+		// be 0, in case the connection is incoming
+		// and hasn't been added to a torrent yet.
+		policy::peer* m_peer_info;
 
 #ifndef NDEBUG
 	public:

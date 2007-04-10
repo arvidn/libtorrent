@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/version.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/policy.hpp"
 
 using boost::bind;
 using boost::shared_ptr;
@@ -77,7 +78,8 @@ namespace libtorrent
 		, boost::weak_ptr<torrent> tor
 		, shared_ptr<stream_socket> s
 		, tcp::endpoint const& remote
-		, tcp::endpoint const& proxy)
+		, tcp::endpoint const& proxy
+		, policy::peer* peerinfo)
 		:
 #ifndef NDEBUG
 		m_last_choke(time_now() - hours(1))
@@ -122,6 +124,7 @@ namespace libtorrent
 		, m_refs(0)
 		, m_upload_limit(resource_request::inf)
 		, m_download_limit(resource_request::inf)
+		, m_peer_info(peerinfo)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif
@@ -143,7 +146,8 @@ namespace libtorrent
 
 	peer_connection::peer_connection(
 		session_impl& ses
-		, boost::shared_ptr<stream_socket> s)
+		, boost::shared_ptr<stream_socket> s
+		, policy::peer* peerinfo)
 		:
 #ifndef NDEBUG
 		m_last_choke(time_now() - hours(1))
@@ -185,6 +189,7 @@ namespace libtorrent
 		, m_refs(0)
 		, m_upload_limit(resource_request::inf)
 		, m_download_limit(resource_request::inf)
+		, m_peer_info(peerinfo)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif

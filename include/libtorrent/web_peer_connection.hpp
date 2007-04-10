@@ -98,7 +98,8 @@ namespace libtorrent
 			, boost::shared_ptr<stream_socket> s
 			, tcp::endpoint const& remote
 			, tcp::endpoint const& proxy
-			, std::string const& url);
+			, std::string const& url
+			, policy::peer* peerinfo);
 
 		~web_peer_connection();
 

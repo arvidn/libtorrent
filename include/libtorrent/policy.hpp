@@ -84,9 +84,9 @@ namespace libtorrent
 		void pulse();
 
 		// this is called once for every peer we get from
-		// the tracker
+		// the tracker, pex, lsd or dht.
 		void peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid
-			, char flags = 0);
+			, int source, char flags);
 
 		// called when an incoming connection is accepted
 		void new_connection(peer_connection& c);
@@ -135,7 +135,7 @@ namespace libtorrent
 		{
 			enum connection_type { not_connectable,connectable };
 
-			peer(const tcp::endpoint& ip, connection_type t);
+			peer(const tcp::endpoint& ip, connection_type t, int src);
 
 			size_type total_download() const;
 			size_type total_upload() const;
@@ -176,6 +176,10 @@ namespace libtorrent
 			// is set to true if this peer has been banned
 			bool banned;
 
+			// a bitmap combining the peer_source flags
+			// from peer_info.
+			int source;
+
 			// if the peer is connected now, this
 			// will refer to a valid peer_connection
 			peer_connection* connection;
@@ -191,7 +195,8 @@ namespace libtorrent
 			return m_num_unchoked;
 		}
 		
-		typedef std::vector<peer>::iterator iterator;
+		typedef std::list<peer>::iterator iterator;
+		typedef std::list<peer>::const_iterator const_iterator;
 		iterator begin_peer() { return m_peers.begin(); }
 		iterator end_peer() { return m_peers.end(); }
 
@@ -231,7 +236,7 @@ namespace libtorrent
 		};
 
 
-		std::vector<peer> m_peers;
+		std::list<peer> m_peers;
 
 		torrent* m_torrent;
 

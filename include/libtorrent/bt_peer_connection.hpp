@@ -91,13 +91,15 @@ namespace libtorrent
 			aux::session_impl& ses
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<stream_socket> s
-			, tcp::endpoint const& remote);
+			, tcp::endpoint const& remote
+			, policy::peer* peerinfo);
 
 		// with this constructor we have been contacted and we still don't
 		// know which torrent the connection belongs to
 		bt_peer_connection(
 			aux::session_impl& ses
-			, boost::shared_ptr<stream_socket> s);
+			, boost::shared_ptr<stream_socket> s
+			, policy::peer* peerinfo);
 
 		~bt_peer_connection();
 

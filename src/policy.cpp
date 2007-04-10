@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/bind.hpp>
+#include <boost/utility.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -393,7 +394,7 @@ namespace libtorrent
 		
 		// TODO: make this selection better
 
-		for (std::vector<peer>::iterator i = m_peers.begin();
+		for (iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
 			peer_connection* c = i->connection;
@@ -440,7 +441,7 @@ namespace libtorrent
 
 		// TODO: make this selection better
 
-		for (std::vector<peer>::iterator i = m_peers.begin();
+		for (iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
 			peer_connection* c = i->connection;
@@ -466,7 +467,7 @@ namespace libtorrent
 
 		ptime local_time = time_now();
 
-		for (std::vector<peer>::iterator i = m_peers.begin();
+		for (iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
 			peer_connection* c = i->connection;
@@ -502,7 +503,7 @@ namespace libtorrent
 		ptime ptime(now);
 		policy::peer* candidate = 0;
 
-		for (std::vector<peer>::iterator i = m_peers.begin();
+		for (iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
 			if (i->connection) continue;
@@ -545,7 +546,7 @@ namespace libtorrent
 		peer* second_candidate = 0;
 		size_type lowest_share_diff = 0; // not valid when secondCandidate==0
 
-		for (std::vector<peer>::iterator i = m_peers.begin();
+		for (iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
 			peer_connection* c = i->connection;
@@ -588,7 +589,7 @@ namespace libtorrent
 		peer* candidate = 0;
 		ptime last_unchoke = time_now();
 
-		for (std::vector<peer>::iterator i = m_peers.begin();
+		for (iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
 			peer_connection* c = i->connection;
@@ -652,7 +653,7 @@ namespace libtorrent
 		// that are currently in the process of disconnecting
 		int num_connected_peers = 0;
 
-		for (std::vector<peer>::iterator i = m_peers.begin();
+		for (iterator i = m_peers.begin();
 					i != m_peers.end(); ++i)
 		{
 			if (i->connection && !i->connection->is_disconnecting())
@@ -784,7 +785,7 @@ namespace libtorrent
 			if (m_torrent->ratio() != 0)
 			{
 				// choke peers that have leeched too much without giving anything back
-				for (std::vector<peer>::iterator i = m_peers.begin();
+				for (iterator i = m_peers.begin();
 					i != m_peers.end(); ++i)
 				{
 					peer_connection* c = i->connection;
@@ -849,7 +850,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		std::vector<peer>::iterator i = std::find_if(
+		iterator i = std::find_if(
 			m_peers.begin()
 			, m_peers.end()
 			, match_peer_connection(c));
@@ -873,7 +874,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		std::vector<peer>::iterator i = std::find_if(
+		iterator i = std::find_if(
 			m_peers.begin()
 			, m_peers.end()
 			, match_peer_connection(c));
@@ -912,7 +913,7 @@ namespace libtorrent
 		}
 #endif
 
-		std::vector<peer>::iterator i;
+		iterator i;
 
 		if (m_torrent->settings().allow_multiple_connections_per_ip)
 		{
@@ -959,11 +960,12 @@ namespace libtorrent
 			assert((c.proxy() == tcp::endpoint() && c.remote() == c.get_socket()->remote_endpoint())
 				|| c.proxy() == c.get_socket()->remote_endpoint());
 
-			peer p(c.remote(), peer::not_connectable);
+			peer p(c.remote(), peer::not_connectable, 0);
 			m_peers.push_back(p);
-			i = m_peers.end()-1;
+			i = boost::prior(m_peers.end());
 		}
 		
+		c.set_peer_info(&*i);
 		assert(i->connection == 0);
 		c.add_stat(i->prev_amount_download, i->prev_amount_upload);
 		i->prev_amount_download = 0;
@@ -975,7 +977,7 @@ namespace libtorrent
 	}
 
 	void policy::peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid
-		, char flags)
+		, int src, char flags)
 	{
 		INVARIANT_CHECK;
 
@@ -985,7 +987,7 @@ namespace libtorrent
 
 		try
 		{
-			std::vector<peer>::iterator i;
+			iterator i;
 			
 			if (m_torrent->settings().allow_multiple_connections_per_ip)
 			{
@@ -1005,11 +1007,11 @@ namespace libtorrent
 			{
 				// we don't have any info about this peer.
 				// add a new entry
-				peer p(remote, peer::connectable);
+				peer p(remote, peer::connectable, src);
 				m_peers.push_back(p);
 				// the iterator is invalid
 				// because of the push_back()
-				i = m_peers.end() - 1;
+				i = boost::prior(m_peers.end());
 				if (flags & 0x02) p.seed = true;
 				just_added = true;
 			}
@@ -1021,6 +1023,8 @@ namespace libtorrent
 				// not known, so save it. Client may also have changed port
 				// for some reason.
 				i->ip = remote;
+				i->source |= src;
+
 				if (flags & 0x02) i->seed = true;
 
 				if (i->connection)
@@ -1042,6 +1046,7 @@ namespace libtorrent
 
 			if (i->banned) return;
 
+			// TODO: move the connecting of peers somewhere else!
 			if (m_torrent->num_peers() < m_torrent->m_connections_quota.given
 				&& !m_torrent->is_paused())
 			{
@@ -1050,7 +1055,7 @@ namespace libtorrent
 					// if this peer was just added, and it
 					// failed to connect. Remove it from the list
 					// (to keep it in sync with the session's list)
-					assert(i == m_peers.end() - 1);
+					assert(i == boost::prior(m_peers.end()));
 					m_peers.erase(i);
 				}
 			}
@@ -1082,7 +1087,7 @@ namespace libtorrent
 		if (successfully_verified)
 		{
 			// have all peers update their interested-flag
-			for (std::vector<peer>::iterator i = m_peers.begin();
+			for (iterator i = m_peers.begin();
 				i != m_peers.end(); ++i)
 			{
 				if (i->connection == 0) continue;
@@ -1221,7 +1226,7 @@ namespace libtorrent
 		try
 		{
 			assert(!p->connection);
-			p->connection = &m_torrent->connect_to_peer(p->ip);
+			p->connection = &m_torrent->connect_to_peer(p);
 			assert(p->connection);
 			p->connection->add_stat(p->prev_amount_download, p->prev_amount_upload);
 			p->prev_amount_download = 0;
@@ -1258,7 +1263,7 @@ namespace libtorrent
 		bool unchoked = false;
 		bool erase = false;
 
-		std::vector<peer>::iterator i = std::find_if(
+		iterator i = std::find_if(
 			m_peers.begin()
 			, m_peers.end()
 			, match_peer_connection(c));
@@ -1345,7 +1350,7 @@ namespace libtorrent
 		int nonempty_connections = 0;
 		
 		
-		for (std::vector<peer>::const_iterator i = m_peers.begin();
+		for (const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
 			++total_connections;
@@ -1389,7 +1394,7 @@ namespace libtorrent
 	}
 #endif
 
-	policy::peer::peer(const tcp::endpoint& ip_, peer::connection_type t)
+	policy::peer::peer(const tcp::endpoint& ip_, peer::connection_type t, int src)
 		: ip(ip_)
 		, type(t)
 		, failcount(0)
@@ -1399,6 +1404,7 @@ namespace libtorrent
 		, prev_amount_upload(0)
 		, prev_amount_download(0)
 		, banned(false)
+		, source(src)
 		, connection(0)
 	{
 		assert(connected < time_now());

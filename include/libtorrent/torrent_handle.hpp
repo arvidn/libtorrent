@@ -311,7 +311,7 @@ namespace libtorrent
 		void set_peer_download_limit(tcp::endpoint ip, int limit) const;
 
 		// manually connect a peer
-		void connect_peer(tcp::endpoint const& adr) const;
+		void connect_peer(tcp::endpoint const& adr, int source = 0) const;
 
 		// valid ratios are 0 (infinite ratio) or [ 1.0 , inf )
 		// the ratio is uploaded / downloaded. less than 1 is not allowed

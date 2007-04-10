@@ -245,7 +245,7 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 {
 	using namespace libtorrent;
 #ifndef ANSI_TERMINAL_COLORS
-	out << " down    (total)   up      (total)  q  r  flags  block progress country client \n";
+	out << " down    (total)   up      (total)  q  r  flags  source block progress country client \n";
 #endif
 
 	for (std::vector<peer_info>::const_iterator i = peers.begin();
@@ -267,7 +267,13 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			<< ((i->flags & peer_info::remote_interested)?'i':'.')
 			<< ((i->flags & peer_info::remote_choked)?'c':'.')
 			<< ((i->flags & peer_info::supports_extensions)?'e':'.')
-			<< ((i->flags & peer_info::local_connection)?'l':'r') << " ";
+			<< ((i->flags & peer_info::local_connection)?'l':'r') << " "
+			<< ((i->source & peer_info::tracker)?"T":"_")
+			<< ((i->source & peer_info::pex)?"P":"_")
+			<< ((i->source & peer_info::dht)?"D":"_")
+			<< ((i->source & peer_info::lsd)?"L":"_")
+			<< ((i->source & peer_info::resume_data)?"R":"_")
+			<< "  ";
 
 		if (i->downloading_piece_index >= 0)
 		{
