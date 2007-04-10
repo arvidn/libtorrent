@@ -1202,7 +1202,9 @@ Its declaration looks like this::
 		void set_max_uploads(int max_uploads) const;
 		void set_max_connections(int max_connections) const;
 		void set_upload_limit(int limit) const;
+		int upload_limit() const;
 		void set_download_limit(int limit) const;
+		int download_limit() const;
 		void set_sequenced_download_threshold(int threshold) const;
 
 		void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
@@ -1397,13 +1399,15 @@ attempt to upload in return for each download. e.g. if set to 2, the client will
 as a standard client.
 
 
-set_upload_limit() set_download_limit()
----------------------------------------
+set_upload_limit() set_download_limit() upload_limit() download_limit()
+-----------------------------------------------------------------------
 
 	::
 
 		void set_upload_limit(int limit) const;
 		void set_download_limit(int limit) const;
+		int upload_limit() const;
+		int download_limit() const;
 
 ``set_upload_limit`` will limit the upload bandwidth used by this particular torrent to the
 limit you set. It is given as the number of bytes per second the torrent is allowed to upload.
@@ -1411,6 +1415,9 @@ limit you set. It is given as the number of bytes per second the torrent is allo
 Note that setting a higher limit on a torrent then the global limit (``session::set_upload_rate_limit``)
 will not override the global rate limit. The torrent can never upload more than the global rate
 limit.
+
+``upload_limit`` and ``download_limit`` will return the current limit setting, for upload and
+download, respectively.
 
 
 set_sequenced_download_threshold()

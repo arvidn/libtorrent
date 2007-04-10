@@ -79,7 +79,7 @@
 <li><a class="reference" href="#connect-peer" id="id62" name="id62">connect_peer()</a></li>
 <li><a class="reference" href="#name" id="id63" name="id63">name()</a></li>
 <li><a class="reference" href="#set-ratio" id="id64" name="id64">set_ratio()</a></li>
-<li><a class="reference" href="#set-upload-limit-set-download-limit" id="id65" name="id65">set_upload_limit() set_download_limit()</a></li>
+<li><a class="reference" href="#set-upload-limit-set-download-limit-upload-limit-download-limit" id="id65" name="id65">set_upload_limit() set_download_limit() upload_limit() download_limit()</a></li>
 <li><a class="reference" href="#set-sequenced-download-threshold" id="id66" name="id66">set_sequenced_download_threshold()</a></li>
 <li><a class="reference" href="#set-peer-upload-limit-set-peer-download-limit" id="id67" name="id67">set_peer_upload_limit() set_peer_download_limit()</a></li>
 <li><a class="reference" href="#pause-resume-is-paused" id="id68" name="id68">pause() resume() is_paused()</a></li>
@@ -1258,7 +1258,9 @@ struct torrent_handle
         void set_max_uploads(int max_uploads) const;
         void set_max_connections(int max_connections) const;
         void set_upload_limit(int limit) const;
+        int upload_limit() const;
         void set_download_limit(int limit) const;
+        int download_limit() const;
         void set_sequenced_download_threshold(int threshold) const;
 
         void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
@@ -1442,11 +1444,13 @@ attempt to upload in return for each download. e.g. if set to 2, the client will
 as a standard client.</p>
 </div>
 <div class="section">
-<h2><a id="set-upload-limit-set-download-limit" name="set-upload-limit-set-download-limit">set_upload_limit() set_download_limit()</a></h2>
+<h2><a id="set-upload-limit-set-download-limit-upload-limit-download-limit" name="set-upload-limit-set-download-limit-upload-limit-download-limit">set_upload_limit() set_download_limit() upload_limit() download_limit()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void set_upload_limit(int limit) const;
 void set_download_limit(int limit) const;
+int upload_limit() const;
+int download_limit() const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">set_upload_limit</span></tt> will limit the upload bandwidth used by this particular torrent to the
@@ -1455,6 +1459,8 @@ limit you set. It is given as the number of bytes per second the torrent is allo
 Note that setting a higher limit on a torrent then the global limit (<tt class="docutils literal"><span class="pre">session::set_upload_rate_limit</span></tt>)
 will not override the global rate limit. The torrent can never upload more than the global rate
 limit.</p>
+<p><tt class="docutils literal"><span class="pre">upload_limit</span></tt> and <tt class="docutils literal"><span class="pre">download_limit</span></tt> will return the current limit setting, for upload and
+download, respectively.</p>
 </div>
 <div class="section">
 <h2><a id="set-sequenced-download-threshold" name="set-sequenced-download-threshold">set_sequenced_download_threshold()</a></h2>
