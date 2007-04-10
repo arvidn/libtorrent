@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/noncopyable.hpp>
-#include <boost/date_time/time_duration.hpp>
 #include <vector>
 #include <string>
 

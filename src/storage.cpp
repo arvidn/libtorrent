@@ -48,7 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/fstream.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/ref.hpp>
-#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/bind.hpp>
 #include <boost/version.hpp>
 #include <boost/multi_index_container.hpp>
@@ -208,7 +207,6 @@ bool operator<(boost::filesystem::path const& lhs
 #endif
 
 using namespace boost::filesystem;
-namespace pt = boost::posix_time;
 using boost::bind;
 using namespace ::boost::multi_index;
 using boost::multi_index::multi_index_container;

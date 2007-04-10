@@ -45,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/lexical_cast.hpp>
-#include <boost/date_time/gregorian/gregorian_types.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/next_prior.hpp>
 #include <boost/bind.hpp>
@@ -217,9 +216,6 @@ namespace
 
 namespace libtorrent
 {
-
-	using namespace boost::gregorian;
-	using namespace boost::posix_time;
 
 	// standard constructor that parses a torrent file
 	torrent_info::torrent_info(const entry& torrent_file)
@@ -641,9 +637,6 @@ namespace libtorrent
 	entry torrent_info::create_torrent() const
 	{
 		assert(m_piece_length > 0);
-
-		using namespace boost::gregorian;
-		using namespace boost::posix_time;
 
 		namespace fs = boost::filesystem;
 

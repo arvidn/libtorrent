@@ -296,10 +296,7 @@ namespace libtorrent { namespace dht
 		if (first)
 		{
 			first = false;
-			using boost::posix_time::to_simple_string;
-			using boost::posix_time::second_clock;
-			pc << "\n\n *****   starting log at " << to_simple_string(
-				second_clock::universal_time()) << "   *****\n\n"
+			pc << "\n\n *****   starting log at " << time_now_string() << "   *****\n\n"
 				<< "minute:active nodes:passive nodes"
 				":ping replies sent:ping queries recvd:ping"
 				":ping replies sent:ping queries recvd:ping"

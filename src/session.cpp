@@ -75,7 +75,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 
-using namespace boost::posix_time;
 using boost::shared_ptr;
 using boost::weak_ptr;
 using boost::bind;

@@ -75,7 +75,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 
-using namespace boost::posix_time;
 using boost::shared_ptr;
 using boost::weak_ptr;
 using boost::bind;
@@ -467,8 +466,7 @@ namespace libtorrent { namespace detail
 	{
 		seed_random_generator()
 		{
-			std::srand((unsigned int)(boost::posix_time::microsec_clock::
-				universal_time().time_of_day().total_microseconds()));
+			std::srand(total_microseconds(time_now() - min_time()));
 		}
 	};
 
@@ -507,9 +505,7 @@ namespace libtorrent { namespace detail
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		m_logger = create_log("main_session", listen_port(), false);
-		using boost::posix_time::second_clock;
-		using boost::posix_time::to_simple_string;
-		(*m_logger) << to_simple_string(second_clock::local_time()) << "\n";
+		(*m_logger) << time_now_string() << "\n";
 		
 		m_stats_logger = create_log("session_stats", listen_port(), false);
 		(*m_stats_logger) <<
@@ -1488,9 +1484,7 @@ namespace libtorrent { namespace detail
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		m_logger = create_log("main_session", listen_port(), false);
-		using boost::posix_time::second_clock;
-		using boost::posix_time::to_simple_string;
-		(*m_logger) << to_simple_string(second_clock::local_time()) << "\n";
+		(*m_logger) << time_now_string() << "\n";
 #endif
 
 		return m_listen_socket;
@@ -1516,7 +1510,7 @@ namespace libtorrent { namespace detail
 		if (!t) return;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << to_simple_string(second_clock::local_time())
+		(*m_logger) << time_now_string()
 			<< ": added peer from local discovery: " << peer << "\n";
 #endif
 		t->get_policy().peer_from_tracker(peer, peer_id(0));

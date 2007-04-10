@@ -86,8 +86,6 @@ namespace
 
 }
 
-using namespace boost::posix_time;
-
 namespace
 {
 	bool url_has_argument(std::string const& url, std::string argument)

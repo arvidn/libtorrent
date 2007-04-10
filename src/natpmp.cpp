@@ -37,9 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <asio/ip/host_name.hpp>
 
-#include <boost/date_time/posix_time/posix_time.hpp>
-
-using boost::posix_time::microsec_clock;
 using boost::bind;
 using namespace libtorrent;
 
@@ -97,7 +94,7 @@ void natpmp::rebind(address const& listen_interface)
 	m_socket.bind(udp::endpoint(local, 0));
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << to_simple_string(microsec_clock::universal_time())
+	m_log << time_now_string()
 		<< " local ip: " << local.to_string() << std::endl;
 #endif
 
@@ -186,7 +183,7 @@ void natpmp::send_map_request(int i) try
 	write_uint32(ttl, out); // port mapping lifetime
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << to_simple_string(microsec_clock::universal_time())
+	m_log << time_now_string()
 		<< " ==> port map request: " << (m.protocol == 1 ? "udp" : "tcp")
 		<< " local: " << m.local_port << " external: " << m.external_port
 		<< " ttl: " << ttl << std::endl;
@@ -251,7 +248,7 @@ void natpmp::on_reply(asio::error_code const& e
 		(void)time; // to remove warning
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << to_simple_string(microsec_clock::universal_time())
+		m_log << time_now_string()
 			<< " <== port map response: " << (cmd - 128 == 1 ? "udp" : "tcp")
 			<< " local: " << private_port << " external: " << public_port
 			<< " ttl: " << lifetime << std::endl;
