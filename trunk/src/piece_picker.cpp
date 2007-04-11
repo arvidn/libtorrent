@@ -307,21 +307,38 @@ namespace libtorrent
 
 	float piece_picker::distributed_copies() const
 	{
-		// TODO: this is completely broken now
 		const float num_pieces = static_cast<float>(m_piece_map.size());
 
-		for (int i = 0; i < (int)m_piece_info.size(); ++i)
+		int min_availability = piece_pos::max_peer_count;
+		// find the lowest availability count
+		// count the number of pieces that have that availability
+		// and also the number of pieces that have more than that.
+		int integer_part = 0;
+		int fraction_part = 0;
+		for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin()
+			, end(m_piece_map.end()); i != end; ++i)
 		{
-			int p = (int)m_piece_info[i].size();
-			assert(num_pieces == 0 || float(p) / num_pieces <= 1.f);
-			if (p > 0)
+			int peer_count = int(i->peer_count);
+			// take ourself into account
+			if (i->have()) ++peer_count;
+			if (min_availability > peer_count)
 			{
-				float fraction_above_count =
-					1.f - float(p) / num_pieces;
-				return i + fraction_above_count;
+				min_availability = i->peer_count;
+				fraction_part += integer_part;
+				integer_part = 1;
+			}
+			else if (peer_count == min_availability)
+			{
+				++integer_part;
+			}
+			else
+			{
+				assert(peer_count > min_availability);
+				++fraction_part;
 			}
 		}
-		return 1.f;
+		assert(integer_part + fraction_part == num_pieces);
+		return float(min_availability) + (fraction_part / num_pieces);
 	}
 
 	void piece_picker::add(int index)
