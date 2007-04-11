@@ -423,8 +423,7 @@ namespace libtorrent
 		{
 			if (is_seed()) return true;
 			return valid_metadata() && m_torrent_file.num_pieces()
-				- m_num_pieces - m_picker->num_filtered()
-				+ m_picker->num_have_filtered() == 0;
+				- m_num_pieces - m_picker->num_filtered() == 0;
 		}
 
 		boost::filesystem::path save_path() const;
