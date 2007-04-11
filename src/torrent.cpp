@@ -256,9 +256,10 @@ namespace libtorrent
 		m_policy.reset(new policy(this));
 		init();
 	
+		boost::weak_ptr<torrent> self(shared_from_this());
 		m_announce_timer.expires_from_now(seconds(1));
 		m_announce_timer.async_wait(m_ses.m_strand.wrap(
-			bind(&torrent::on_announce, this, _1)));
+			bind(&torrent::on_announce_disp, self, _1)));
 	}
 
 	torrent::torrent(
@@ -342,9 +343,11 @@ namespace libtorrent
 		}
 
 		m_policy.reset(new policy(this));
+
+		boost::weak_ptr<torrent> self(shared_from_this());
 		m_announce_timer.expires_from_now(seconds(1));
 		m_announce_timer.async_wait(m_ses.m_strand.wrap(
-			bind(&torrent::on_announce, this, _1)));
+			bind(&torrent::on_announce_disp, self, _1)));
 	}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -422,13 +425,22 @@ namespace libtorrent
 		m_net_interface = tcp::endpoint(address::from_string(net_interface), 0);
 	}
 
-	void torrent::on_announce(asio::error_code const& e)
+	void torrent::on_announce_disp(boost::weak_ptr<torrent> p
+		, asio::error_code const& e)
 	{
 		if (e) return;
+		boost::shared_ptr<torrent> t = p.lock();
+		if (!t) return;
+		t->on_announce();
+	}
+
+	void torrent::on_announce()
+	{
+		boost::weak_ptr<torrent> self(shared_from_this());
 
 		m_announce_timer.expires_from_now(minutes(30));
 		m_announce_timer.async_wait(m_ses.m_strand.wrap(
-			bind(&torrent::on_announce, this, _1)));
+			bind(&torrent::on_announce_disp, self, _1)));
 
 		// announce with the local discovery service
 		m_ses.announce_lsd(m_torrent_file.info_hash());
@@ -439,7 +451,6 @@ namespace libtorrent
 		{
 			// TODO: There should be a way to abort an announce operation on the dht.
 			// when the torrent is destructed
-			boost::weak_ptr<torrent> self(shared_from_this());
 			assert(m_ses.m_external_listen_port > 0);
 			m_ses.m_dht->announce(m_torrent_file.info_hash()
 				, m_ses.m_external_listen_port
@@ -2115,9 +2126,10 @@ namespace libtorrent
 			// only start the announce if we want to announce with the dht
 			if (should_announce_dht())
 			{
+				boost::weak_ptr<torrent> self(shared_from_this());
 				m_announce_timer.expires_from_now(seconds(1));
 				m_announce_timer.async_wait(m_ses.m_strand.wrap(
-					bind(&torrent::on_announce, this, _1)));
+					bind(&torrent::on_announce_disp, self, _1)));
 			}
 #endif
 
