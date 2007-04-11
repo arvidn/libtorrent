@@ -82,7 +82,6 @@ namespace libtorrent
 	{
 		tracker_request()
 			: kind(announce_request)
-			, web_downloaded(0)
 			, event(none)
 			, key(0)
 			, num_want(0)
@@ -107,7 +106,6 @@ namespace libtorrent
 		size_type downloaded;
 		size_type uploaded;
 		size_type left;
-		size_type web_downloaded;
 		unsigned short listen_port;
 		event_t event;
 		std::string url;
