@@ -571,8 +571,11 @@ namespace libtorrent
 		// by the DHT.
 		deadline_timer m_announce_timer;
 
+		static void on_announce_disp(boost::weak_ptr<torrent> p
+			, asio::error_code const& e);
+
 		// this is called once per announce interval
-		void on_announce(asio::error_code const& e);
+		void on_announce();
 
 #ifndef TORRENT_DISABLE_DHT
 		static void on_dht_announce_response_disp(boost::weak_ptr<torrent> t
