@@ -1228,7 +1228,6 @@ namespace libtorrent
 		req.info_hash = m_torrent_file.info_hash();
 		req.pid = m_ses.get_peer_id();
 		req.downloaded = m_stat.total_payload_download();
-		req.web_downloaded = m_web_stat.total_payload_download();
 		req.uploaded = m_stat.total_payload_upload();
 		req.left = bytes_left();
 		if (req.left == -1) req.left = 16*1024;
@@ -2500,7 +2499,6 @@ namespace libtorrent
 		{
 			// let the stats fade out to 0
  			m_stat.second_tick(tick_interval);
- 			m_web_stat.second_tick(tick_interval);
 			m_connections_quota.min = 0;
 			m_connections_quota.max = 0;
 			m_uploads_quota.min = 0;
@@ -2545,17 +2543,12 @@ namespace libtorrent
 		{
 			peer_connection* p = i->second;
 			m_stat += p->statistics();
-			if (dynamic_cast<web_peer_connection*>(p))
-			{
-				m_web_stat += p->statistics();
-			}
 			// updates the peer connection's ul/dl bandwidth
 			// resource requests
 			p->second_tick(tick_interval);
 		}
 		accumulator += m_stat;
 		m_stat.second_tick(tick_interval);
-		m_web_stat.second_tick(tick_interval);
 	}
 
 	void torrent::distribute_resources(float tick_interval)
