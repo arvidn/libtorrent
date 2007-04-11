@@ -411,10 +411,20 @@ namespace libtorrent
 		void received_redundant_data(int num_bytes)
 		{ assert(num_bytes > 0); m_total_redundant_bytes += num_bytes; }
 
+		// this is true if we have all the pieces
 		bool is_seed() const
 		{
 			return valid_metadata()
 				&& m_num_pieces == m_torrent_file.num_pieces();
+		}
+
+		// this is true if we have all the pieces that we want
+		bool is_finished() const
+		{
+			if (is_seed()) return true;
+			return valid_metadata() && m_torrent_file.num_pieces()
+				- m_num_pieces - m_picker->num_filtered()
+				+ m_picker->num_have_filtered() == 0;
 		}
 
 		boost::filesystem::path save_path() const;

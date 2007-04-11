@@ -2519,8 +2519,8 @@ namespace libtorrent
 
 		// ---- WEB SEEDS ----
 
-		// if we're a seed, we don't need to connect to any web-seed
-		if (!is_seed() && !m_web_seeds.empty())
+		// if we have everything we want we don't need to connect to any web-seed
+		if (!is_finished() && !m_web_seeds.empty())
 		{
 			// keep trying web-seeds if there are any
 			// first find out which web seeds we are connected to
