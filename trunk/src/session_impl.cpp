@@ -1271,6 +1271,7 @@ namespace libtorrent { namespace detail
 			new torrent(*this, m_checker_impl, ti, save_path
 				, m_listen_interface, compact_mode, block_size
 				, settings(), sc));
+		torrent_ptr->start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -1358,6 +1359,7 @@ namespace libtorrent { namespace detail
 			new torrent(*this, m_checker_impl, tracker_url, info_hash, name
 			, save_path, m_listen_interface, compact_mode, block_size
 			, settings(), sc));
+		torrent_ptr->start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()

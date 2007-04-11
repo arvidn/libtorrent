@@ -120,6 +120,9 @@ namespace libtorrent
 
 		~torrent();
 
+		// starts the announce timer
+		void start();
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<torrent_plugin>);
 #endif

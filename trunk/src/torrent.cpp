@@ -255,12 +255,8 @@ namespace libtorrent
 		m_connections_quota.max = std::numeric_limits<int>::max();
 		m_policy.reset(new policy(this));
 		init();
-	
-		boost::weak_ptr<torrent> self(shared_from_this());
-		m_announce_timer.expires_from_now(seconds(1));
-		m_announce_timer.async_wait(m_ses.m_strand.wrap(
-			bind(&torrent::on_announce_disp, self, _1)));
 	}
+
 
 	torrent::torrent(
 		session_impl& ses
@@ -343,7 +339,10 @@ namespace libtorrent
 		}
 
 		m_policy.reset(new policy(this));
+	}
 
+	void torrent::start()
+	{
 		boost::weak_ptr<torrent> self(shared_from_this());
 		m_announce_timer.expires_from_now(seconds(1));
 		m_announce_timer.async_wait(m_ses.m_strand.wrap(
