@@ -131,10 +131,7 @@ namespace libtorrent
 		virtual ~peer_connection();
 
 		void set_peer_info(policy::peer* pi)
-		{
-			assert(m_peer_info == 0);
-			m_peer_info = pi;
-		}
+		{ m_peer_info = pi; }
 
 		policy::peer* peer_info_struct() const
 		{ return m_peer_info; }
