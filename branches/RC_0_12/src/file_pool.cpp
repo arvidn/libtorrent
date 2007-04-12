@@ -43,6 +43,7 @@ namespace libtorrent
 	{
 		assert(st != 0);
 		assert(p.is_complete());
+		boost::mutex::scoped_lock l(m_mutex);
 		typedef nth_index<file_set, 0>::type path_view;
 		path_view& pt = get<0>(m_files);
 		path_view::iterator i = pt.find(p);
@@ -91,6 +92,7 @@ namespace libtorrent
 
 	void file_pool::release(void* st)
 	{
+		boost::mutex::scoped_lock l(m_mutex);
 		assert(st != 0);
 		using boost::tie;
 
@@ -106,6 +108,7 @@ namespace libtorrent
 	{
 		assert(size > 0);
 		if (size == m_size) return;
+		boost::mutex::scoped_lock l(m_mutex);
 		m_size = size;
 		if (int(m_files.size()) <= m_size) return;
 

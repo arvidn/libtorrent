@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/thread.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -95,6 +96,7 @@ namespace libtorrent
 			> file_set;
 		
 		file_set m_files;
+		boost::mutex m_mutex;
 	};
 }
 
