@@ -335,7 +335,7 @@ namespace libtorrent
 	{
 		timespec ts;
 		clock_gettime(CLOCK_MONOTONIC, &ts);
-		return ptime(boost::int64_t(ts.tv_sec) + ts.tv_nsec / 1000);
+		return ptime(boost::int64_t(ts.tv_sec) * 1000000 + ts.tv_nsec / 1000);
 	}
 
 	inline time_duration microsec(boost::int64_t s)
