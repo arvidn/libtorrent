@@ -1244,7 +1244,7 @@ struct torrent_handle
 
         entry write_resume_data() const;
         void force_reannounce() const;
-        void connect_peer(asio::ip::tcp::endpoint const&amp; adr) const;
+        void connect_peer(asio::ip::tcp::endpoint const&amp; adr, int source = 0) const;
 
         void set_tracker_login(std::string const&amp; username
                 , std::string const&amp; password) const;
@@ -1408,14 +1408,16 @@ peers. If the torrent is invalid, queued or in checking mode, this functions wil
 <h2><a id="connect-peer" name="connect-peer">connect_peer()</a></h2>
 <blockquote>
 <pre class="literal-block">
-void connect_peer(asio::ip::tcp::endpoint const&amp; adr) const;
+void connect_peer(asio::ip::tcp::endpoint const&amp; adr, int source = 0) const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">connect_peer()</span></tt> is a way to manually connect to peers that one believe is a part of the
 torrent. If the peer does not respond, or is not a member of this torrent, it will simply
 be disconnected. No harm can be done by using this other than an unnecessary connection
 attempt is made. If the torrent is uninitialized or in queued or checking mode, this
-will throw <a class="reference" href="#invalid-handle">invalid_handle</a>.</p>
+will throw <a class="reference" href="#invalid-handle">invalid_handle</a>. The second (optional) argument will be bitwised ORed into
+the source mask of this peer. Typically this is one of the source flags in <a class="reference" href="#peer-info">peer_info</a>.
+i.e. <tt class="docutils literal"><span class="pre">tracker</span></tt>, <tt class="docutils literal"><span class="pre">pex</span></tt>, <tt class="docutils literal"><span class="pre">dht</span></tt> etc.</p>
 </div>
 <div class="section">
 <h2><a id="name" name="name">name()</a></h2>
@@ -1895,8 +1897,9 @@ peers this client is connected to. The fractional part tells the share of
 pieces that have more copies than the rarest piece(s). For example: 2.5 would
 mean that the rarest pieces have only 2 copies among the peers this torrent is
 connected to, and that 50% of all the pieces have more than two copies.</p>
-<p>If sequenced download is activated (see <a class="reference" href="#torrent-handle">torrent_handle</a>), the distributed
-copies will be saturated at the <tt class="docutils literal"><span class="pre">sequenced_download_threshold</span></tt>.</p>
+<p>If we are a seed, the piece picker is deallocated as an optimization, and
+piece availability is no longer tracked. In this case the distributed
+copies is set to -1.</p>
 <p><tt class="docutils literal"><span class="pre">block_size</span></tt> is the size of a block, in bytes. A block is a sub piece, it
 is the number of bytes that each piece request asks for and the number of
 bytes that each bit in the <tt class="docutils literal"><span class="pre">partial_piece_info</span></tt>'s bitset represents
@@ -1921,7 +1924,19 @@ struct peer_info
                 connecting = 0x80,
                 queued = 0x100
         };
+
         unsigned int flags;
+
+        enum peer_source_flags
+        {
+                tracker = 0x1,
+                dht = 0x2,
+                pex = 0x4,
+                lsd = 0x8
+        };
+
+        int source;
+
         asio::ip::tcp::endpoint ip;
         float up_speed;
         float down_speed;
@@ -2001,6 +2016,33 @@ being connected).</td>
 <td>The connection is currently queued for a connection
 attempt. This may happen if there is a limit set on
 the number of half-open TCP connections.</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">source</span></tt> is a combination of flags describing from which sources this peer
+was received. The flags are:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="30%" />
+<col width="70%" />
+</colgroup>
+<tbody valign="top">
+<tr><td><tt class="docutils literal"><span class="pre">tracker</span></tt></td>
+<td>The peer was received from the tracker.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">dht</span></tt></td>
+<td>The peer was received from the kademlia DHT.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">pex</span></tt></td>
+<td>The peer was received from the peer exchange
+extension.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">lsd</span></tt></td>
+<td>The peer was received from the local service
+discovery (The peer is on the local network).</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">resume_data</span></tt></td>
+<td>The peer was added from the fast resume data.</td>
 </tr>
 </tbody>
 </table>
