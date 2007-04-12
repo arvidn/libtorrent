@@ -1266,7 +1266,11 @@ namespace libtorrent
 		assert(p != 0);
 
 		peer_iterator i = m_connections.find(p->remote());
-		if (i == m_connections.end()) return;
+		if (i == m_connections.end())
+		{
+			assert(false);
+			return;
+		}
 
 		if (ready_for_connections())
 		{
@@ -1282,6 +1286,7 @@ namespace libtorrent
 		}
 
 		m_policy->connection_closed(*p);
+		p->set_peer_info(0);
 		m_connections.erase(i);
 #ifndef NDEBUG
 		m_policy->check_invariant();

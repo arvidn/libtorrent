@@ -155,11 +155,11 @@ namespace libtorrent
 
 			// the time when this peer was optimistically unchoked
 			// the last time.
-			ptime last_optimistically_unchoked;
+			libtorrent::ptime last_optimistically_unchoked;
 
 			// the time when the peer connected to us
 			// or disconnected if it isn't connected right now
-			ptime connected;
+			libtorrent::ptime connected;
 
 			// this is the accumulated amount of
 			// uploaded and downloaded data to this
@@ -204,21 +204,21 @@ namespace libtorrent
 
 		bool unchoke_one_peer();
 		void choke_one_peer();
-		peer* find_choke_candidate();
-		peer* find_unchoke_candidate();
+		iterator find_choke_candidate();
+		iterator find_unchoke_candidate();
 
 		// the seed prefix means that the
 		// function is used while seeding.
 		bool seed_unchoke_one_peer();
 		void seed_choke_one_peer();
-		peer* find_seed_choke_candidate();
-		peer* find_seed_unchoke_candidate();
+		iterator find_seed_choke_candidate();
+		iterator find_seed_unchoke_candidate();
 
-		bool connect_peer(peer *);
+		bool connect_peer(iterator p);
 		bool connect_one_peer();
 		bool disconnect_one_peer();
-		peer* find_disconnect_candidate();
-		peer* find_connect_candidate();
+		iterator find_disconnect_candidate();
+		iterator find_connect_candidate();
 
 		// a functor that identifies peers that have disconnected and that
 		// are too old for still being saved.

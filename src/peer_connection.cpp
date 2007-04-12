@@ -226,10 +226,20 @@ namespace libtorrent
 				break;
 			}
 		}
-		if (!interested)
-			send_not_interested();
-		else
-			t->get_policy().peer_is_interesting(*this);
+		try
+		{
+			if (!interested)
+				send_not_interested();
+			else
+				t->get_policy().peer_is_interesting(*this);
+		}
+		catch (std::exception& e)
+		{
+#ifndef NDEBUG
+			std::cerr << e.what() << std::endl;
+			assert(false);
+#endif
+		}
 
 		assert(is_interesting() == interested);
 	}
@@ -303,6 +313,9 @@ namespace libtorrent
 		}
 #endif
 #ifndef NDEBUG
+		if (m_peer_info)
+			assert(m_peer_info->connection == 0);
+
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (t) assert(t->connection_for(remote()) != this);
 #endif
@@ -1151,9 +1164,12 @@ namespace libtorrent
 					// been downloaded. Release the files (they will open
 					// in read only mode if needed)
 					try { t->finished(); }
-					catch (std::exception&)
+					catch (std::exception& e)
 					{
+#ifndef NDEBUG
+						std::cerr << e.what() << std::endl;
 						assert(false);
+#endif
 					}
 				}
 			}
@@ -1173,7 +1189,7 @@ namespace libtorrent
 			}
 			catch (std::exception const& e)
 			{
-				std::string err = e.what();
+				std::cerr << e.what() << std::endl;
 				assert(false);
 			}
 #endif
@@ -1193,7 +1209,7 @@ namespace libtorrent
 			}
 			catch (std::exception const& e)
 			{
-				std::string err = e.what();
+				std::cerr << e.what() << std::endl;
 				assert(false);
 			}
 #endif
@@ -1204,7 +1220,7 @@ namespace libtorrent
 		}
 		catch (std::exception const& e)
 		{
-			std::string err = e.what();
+			std::cerr << e.what() << std::endl;
 			assert(false);
 		}
 #endif
@@ -1520,10 +1536,10 @@ namespace libtorrent
 
 		if (t)
 		{
-			if (t->valid_metadata() && !t->is_seed())
+			if (t->has_picker())
 			{
 				piece_picker& picker = t->picker();
-				
+
 				while (!m_download_queue.empty())
 				{
 					picker.abort_download(m_download_queue.back());
@@ -2236,6 +2252,10 @@ namespace libtorrent
 #ifndef NDEBUG
 	void peer_connection::check_invariant() const
 	{
+		if (m_peer_info)
+			assert(m_peer_info->connection == this
+				|| m_peer_info->connection == 0);
+	
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t)
 		{
