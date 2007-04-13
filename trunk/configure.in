@@ -118,7 +118,7 @@ AC_ARG_WITH(
 	[[dht=$withval]],
 	[[dht=on]]
 )
-dnl Check the value for the --with-dht-support switch
+dnl Check the value for the --with-dht switch
 AC_MSG_CHECKING([how to use DHT])
 case "$dht" in
 	"on")
@@ -134,7 +134,7 @@ case "$dht" in
 		;;
 	*)
 		AC_MSG_RESULT()
-		AC_MSG_ERROR([Unknown dht-dupport option "$dht". Use either "on", "off" or "logging".])
+		AC_MSG_ERROR([Unknown dht option "$dht". Use either "on", "off" or "logging".])
 		;;
 esac
 AM_CONDITIONAL(USE_DHT, test "x$dht" != "xoff")

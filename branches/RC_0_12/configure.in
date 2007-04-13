@@ -113,14 +113,14 @@ esac
 
 dnl find out what kind of dht-support to use
 AC_ARG_WITH(
-	[dhtsupport],
-	AS_HELP_STRING([--with-dht-support=on|off|logging],[Specify how to use DHT support. Option logging will add extra logging. Default is on.]),
-	[[dhtsupport=$withval]],
-	[[dhtsupport=on]]
+	[dht],
+	AS_HELP_STRING([--with-dht=on|off|logging],[Specify how to use DHT support. Option logging will add extra logging. Default is on.]),
+	[[dht=$withval]],
+	[[dht=on]]
 )
-dnl Check the value for the --with-dht-support switch
+dnl Check the value for the --with-dht switch
 AC_MSG_CHECKING([how to use DHT])
-case "$dhtsupport" in
+case "$dht" in
 	"on")
 		AC_MSG_RESULT(on)
 		;;
@@ -134,9 +134,10 @@ case "$dhtsupport" in
 		;;
 	*)
 		AC_MSG_RESULT()
-		AC_MSG_ERROR([Unknown dht-dupport option "$dhtsupport". Use either "on", "off" or "logging".])
+		AC_MSG_ERROR([Unknown dht option "$dht". Use either "on", "off" or "logging".])
 		;;
 esac
+AM_CONDITIONAL(USE_DHT, test "x$dht" != "xoff")
 
 dnl the user can choose which zlib to use
 AC_ARG_WITH(
