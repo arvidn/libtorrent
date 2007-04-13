@@ -894,7 +894,22 @@ namespace libtorrent
 						, get_handle()
 						, "banning peer because of too many corrupt pieces"));
 				}
-				m_policy->ban_peer(*p->second);
+
+				// mark the peer as banned
+				policy::peer* peerinfo = p->second->peer_info_struct();
+				if (peerinfo)
+				{
+					peerinfo->banned = true;
+				}
+				else
+				{
+					// it might be a web seed
+					if (web_peer_connection const* wpc
+						= dynamic_cast<web_peer_connection const*>(p->second))
+					{
+						remove_url_seed(wpc->url());
+					}
+				}
 
 #if defined(TORRENT_VERBOSE_LOGGING)
 				(*p->second->m_logger) << "*** BANNING PEER 'too many corrupt pieces'\n";
