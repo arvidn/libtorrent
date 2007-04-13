@@ -233,13 +233,8 @@ namespace libtorrent
 			else
 				t->get_policy().peer_is_interesting(*this);
 		}
-		catch (std::exception& e)
-		{
-#ifndef NDEBUG
-			std::cerr << e.what() << std::endl;
-			assert(false);
-#endif
-		}
+		// may throw an asio error if socket has disconnected
+		catch (std::exception& e) {}
 
 		assert(is_interesting() == interested);
 	}

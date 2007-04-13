@@ -208,22 +208,6 @@ namespace libtorrent
 		iterator find_disconnect_candidate();
 		iterator find_connect_candidate();
 
-		// a functor that identifies peers that have disconnected and that
-		// are too old for still being saved.
-		struct old_disconnected_peer
-		{
-			bool operator()(const peer& p)
-			{
-				ptime not_tried_yet(min_time());
-
-				// this timeout has to be customizable!
-				return p.connection == 0
-					&& p.connected != not_tried_yet
-					&& time_now() - p.connected > minutes(120);
-			}
-		};
-
-
 		std::list<peer> m_peers;
 
 		torrent* m_torrent;

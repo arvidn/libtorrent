@@ -462,6 +462,8 @@ namespace libtorrent
 
 	policy::iterator policy::find_disconnect_candidate()
 	{
+		INVARIANT_CHECK;
+
 		iterator disconnect_peer = m_peers.end();
 		double slowest_transfer_rate = std::numeric_limits<double>::max();
 
@@ -491,7 +493,11 @@ namespace libtorrent
 			double transfer_rate
 				= transferred_amount / (connected_time_in_seconds + 1);
 
-			if (transfer_rate <= slowest_transfer_rate)
+			// prefer to disconnect uninteresting peers, and secondly slow peers
+			if (transfer_rate <= slowest_transfer_rate
+				|| (disconnect_peer != m_peers.end()
+				&& disconnect_peer->connection->is_interesting()
+				&& !c->is_interesting()))
 			{
 				slowest_transfer_rate = transfer_rate;
 				disconnect_peer = i;
@@ -502,6 +508,8 @@ namespace libtorrent
 
 	policy::iterator policy::find_connect_candidate()
 	{
+		INVARIANT_CHECK;
+
 		ptime now = time_now();
 		ptime ptime(now);
 		iterator candidate = m_peers.end();
@@ -646,11 +654,20 @@ namespace libtorrent
 		if (m_torrent->is_paused()) return;
 
 		// remove old disconnected peers from the list
-		m_peers.erase(
-			std::remove_if(m_peers.begin()
-				, m_peers.end()
-				, old_disconnected_peer())
-			, m_peers.end());
+		for (iterator i = m_peers.begin(); i != m_peers.end();)
+		{
+			// this timeout has to be customizable!
+			if (i->connection == 0
+				&& i->connected != min_time()
+				&& time_now() - i->connected > minutes(120))
+			{
+				m_peers.erase(i++);
+			}
+			else
+			{
+				++i;
+			}
+		}
 
 		// -------------------------------------
 		// maintain the number of connections
@@ -1131,6 +1148,8 @@ namespace libtorrent
 
 	bool policy::unchoke_one_peer()
 	{
+		INVARIANT_CHECK;
+
 		iterator p = find_unchoke_candidate();
 		if (p == m_peers.end()) return false;
 		assert(p->connection);
@@ -1145,6 +1164,8 @@ namespace libtorrent
 
 	void policy::choke_one_peer()
 	{
+		INVARIANT_CHECK;
+
 		iterator p = find_choke_candidate();
 		if (p == m_peers.end()) return;
 		assert(p->connection);
@@ -1156,6 +1177,8 @@ namespace libtorrent
 
 	bool policy::connect_one_peer()
 	{
+		INVARIANT_CHECK;
+
 		if(m_torrent->num_peers() >= m_torrent->m_connections_quota.given)
 			return false;
 		
@@ -1288,6 +1311,8 @@ namespace libtorrent
 #ifndef NDEBUG
 	bool policy::has_connection(const peer_connection* c)
 	{
+		INVARIANT_CHECK;
+
 		assert(c);
 		assert((c->proxy() == tcp::endpoint() && c->remote() == c->get_socket()->remote_endpoint())
 			|| c->proxy() == c->get_socket()->remote_endpoint());
@@ -1313,6 +1338,8 @@ namespace libtorrent
 		{
 			++total_connections;
 			if (!i->connection) continue;
+			assert(i->connection->peer_info_struct() == 0
+				|| i->connection->peer_info_struct() == &*i);
 			++nonempty_connections;
 			if (!i->connection->is_disconnecting())
 				++connected_peers;
