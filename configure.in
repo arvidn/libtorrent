@@ -137,6 +137,7 @@ case "$dht" in
 		AC_MSG_ERROR([Unknown dht-dupport option "$dht". Use either "on", "off" or "logging".])
 		;;
 esac
+AM_CONDITIONAL(USE_DHT, test "x$dht" != "xoff")
 
 dnl the user can choose which zlib to use
 AC_ARG_WITH(
