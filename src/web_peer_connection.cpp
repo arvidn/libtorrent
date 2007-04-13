@@ -589,6 +589,7 @@ namespace libtorrent
 		p.client = m_server_string;
 		p.connection_type = peer_info::web_seed;
 		p.source = 0;
+		p.failcount = 0;
 	}
 
 	bool web_peer_connection::in_handshake() const
