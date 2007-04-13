@@ -853,45 +853,6 @@ namespace libtorrent
 		}
 	}
 
-	void policy::ban_peer(peer_connection const& c)
-	{
-		INVARIANT_CHECK;
-
-		iterator i = std::find_if(
-			m_peers.begin()
-			, m_peers.end()
-			, match_peer_connection(c));
-
-		if (i == m_peers.end())
-		{
-			// this is probably an http seed
-			if (web_peer_connection const* p = dynamic_cast<web_peer_connection const*>(&c))
-			{
-				m_torrent->remove_url_seed(p->url());
-			}
-			return;
-		}
-
-		i->type = peer::not_connectable;
-		i->ip.port(0);
-		i->banned = true;
-	}
-
-	void policy::set_seed(peer_connection const& c)
-	{
-		INVARIANT_CHECK;
-
-		iterator i = std::find_if(
-			m_peers.begin()
-			, m_peers.end()
-			, match_peer_connection(c));
-
-		// it might be an http-seed
-		if (i == m_peers.end()) return;
-
-		i->seed = true;
-	}
-
 	void policy::new_connection(peer_connection& c)
 	{
 		assert(!c.is_local());

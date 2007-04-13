@@ -91,20 +91,8 @@ namespace libtorrent
 		// called when an incoming connection is accepted
 		void new_connection(peer_connection& c);
 
-		// this is called if a peer timed-out or
-		// forcefully closed the connection. This
-		// will mark the connection as non-reconnectale
-		void peer_failed(peer_connection const& c);
-
 		// the given connection was just closed
 		void connection_closed(const peer_connection& c);
-
-		// is called when a peer is believed to have
-		// sent invalid data
-		void ban_peer(peer_connection const& c);
-
-		// is called on peers that become seeds
-		void set_seed(peer_connection const& c);
 
 		// the peer has got at least one interesting piece
 		void peer_is_interesting(peer_connection& c);

@@ -726,7 +726,6 @@ namespace libtorrent
 			{
 				assert(m_peer_info);
 				m_peer_info->seed = true;
-				t->get_policy().set_seed(*this);
 				if (t->is_seed())
 				{
 					throw protocol_error("seed to seed connection redundant, disconnecting");
@@ -783,7 +782,24 @@ namespace libtorrent
 		{
 			m_have_piece = bitfield;
 			m_num_pieces = std::count(bitfield.begin(), bitfield.end(), true);
+
+			if (m_peer_info) m_peer_info->seed = true;
 			return;
+		}
+
+		int num_pieces = std::count(bitfield.begin(), bitfield.end(), true);
+		if (num_pieces == int(m_have_piece.size()))
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << " *** THIS IS A SEED ***\n";
+#endif
+			assert(m_peer_info);
+			m_peer_info->seed = true;
+			// if we're a seed too, disconnect
+			if (t->is_seed())
+			{
+				throw protocol_error("seed to seed connection redundant, disconnecting");
+			}
 		}
 
 		// let the torrent know which pieces the
@@ -806,21 +822,6 @@ namespace libtorrent
 				m_have_piece[i] = false;
 				--m_num_pieces;
 				t->peer_lost(i);
-			}
-		}
-
-		if (m_num_pieces == int(m_have_piece.size()))
-		{
-#ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << " *** THIS IS A SEED ***\n";
-#endif
-			assert(m_peer_info);
-			m_peer_info->seed = true;
-			t->get_policy().set_seed(*this);
-			// if we're a seed too, disconnect
-			if (t->is_seed())
-			{
-				throw protocol_error("seed to seed connection redundant, disconnecting");
 			}
 		}
 
