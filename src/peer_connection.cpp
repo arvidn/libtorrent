@@ -793,8 +793,8 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << " *** THIS IS A SEED ***\n";
 #endif
-			assert(m_peer_info);
-			m_peer_info->seed = true;
+			// if this is a web seed. we don't have a peer_info struct
+			if (m_peer_info) m_peer_info->seed = true;
 			// if we're a seed too, disconnect
 			if (t->is_seed())
 			{
