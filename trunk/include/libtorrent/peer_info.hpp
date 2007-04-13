@@ -102,6 +102,10 @@ namespace libtorrent
 		// that we haven't sent yet
 		int upload_queue_length;
 
+		// the number of times this IP
+		// has failed to connect
+		int failcount;
+
 		// the currently downloading piece
 		// if piece index is -1 all associated
 		// members are just set to 0

@@ -247,11 +247,13 @@ namespace libtorrent
 		if (peer_info_struct())
 		{
 			p.source = peer_info_struct()->source;
+			p.failcount = peer_info_struct()->failcount;
 		}
 		else
 		{
 			assert(!is_local());
 			p.source = 0;
+			p.failcount = 0;
 		}
 	}
 	
