@@ -286,6 +286,8 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << " *** THIS IS A SEED ***\n";
 #endif
+			assert(m_peer_info);
+			m_peer_info->seed = true;
 			// if we're a seed too, disconnect
 			if (t->is_seed())
 			{
@@ -722,6 +724,8 @@ namespace libtorrent
 
 			if (is_seed())
 			{
+				assert(m_peer_info);
+				m_peer_info->seed = true;
 				t->get_policy().set_seed(*this);
 				if (t->is_seed())
 				{
@@ -810,6 +814,8 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << " *** THIS IS A SEED ***\n";
 #endif
+			assert(m_peer_info);
+			m_peer_info->seed = true;
 			t->get_policy().set_seed(*this);
 			// if we're a seed too, disconnect
 			if (t->is_seed())
