@@ -919,10 +919,10 @@ int main(int ac, char* av[])
 				if (s.state != torrent_status::seeding)
 				{
 					boost::posix_time::time_duration t = s.next_announce;
-					out << "  next announce: " << esc("37")
-						<< std::setw(2) << std::setfill('0') << t.hours() << ":"
-						<< std::setw(2) << std::setfill('0') << t.minutes() << ":"
-						<< std::setw(2) << std::setfill('0') << t.seconds() << esc("0") << " ";
+					out << "  next announce: " << esc("37") << std::setfill('0')
+						<< std::setw(2) << t.hours() << ":"
+						<< std::setw(2) << t.minutes() << ":"
+						<< std::setw(2) << t.seconds() << esc("0") << " " << std::setfill(' ');
 					out << "tracker: " << s.current_tracker << "\n";
 				}
 
