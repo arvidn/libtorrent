@@ -44,7 +44,10 @@ namespace libtorrent
 	inline char const* time_now_string()
 	{
 		time_t t = std::time(0);
-		return std::ctime(&t);
+		tm* timeinfo = std::localtime(&t);
+		static char str[200];
+		std::strftime(str, 200, "%b %d %X", timeinfo);
+		return str;
 	}
 }
 
