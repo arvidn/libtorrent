@@ -513,9 +513,9 @@ namespace libtorrent
 		ptime now = time_now();
 		ptime ptime(now);
 		iterator candidate = m_peers.end();
-		
-		// TODO: take failcount into account
-		// TODO: have a minimum time before retrying
+
+		int max_failcount = m_torrent->settings().max_failcount;
+		int min_reconnect_time = m_torrent->settings().min_reconnect_time;
 
 		for (iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
@@ -524,6 +524,9 @@ namespace libtorrent
 			if (i->banned) continue;
 			if (i->type == peer::not_connectable) continue;
 			if (i->seed && m_torrent->is_seed()) continue;
+			if (i->failcount >= max_failcount) continue;
+			if (now - i->connected < seconds(i->failcount * min_reconnect_time))
+				continue;
 
 			assert(i->connected <= now);
 
@@ -1005,6 +1008,13 @@ namespace libtorrent
 				// for some reason.
 				i->ip = remote;
 				i->source |= src;
+				
+				// if this peer has failed before, decrease the
+				// counter to allow it another try, since somebody
+				// else is appearantly able to connect to it
+				// if it comes from the DHT it might be stale though
+				if (i->failcount > 0 && src != peer_info::dht)
+					--i->failcount;
 
 				if (flags & 0x02) i->seed = true;
 
@@ -1214,9 +1224,6 @@ namespace libtorrent
 		catch (std::exception& e)
 		{
 			++p->failcount;
-			// TODO: make this costumizable
-			if (p->failcount > 3)
-				m_peers.erase(p);
 		}
 		return false;
 	}
@@ -1241,7 +1248,6 @@ namespace libtorrent
 
 //		assert(c.is_disconnecting());
 		bool unchoked = false;
-		bool erase = false;
 
 		iterator i = std::find_if(
 			m_peers.begin()
@@ -1261,8 +1267,7 @@ namespace libtorrent
 
 		if (c.failed())
 		{
-			// TODO: make 3 customizable
-			if (++i->failcount > 3) erase = true;
+			++i->failcount;
 			i->connected = time_now();
 		}
 
@@ -1277,9 +1282,6 @@ namespace libtorrent
 		}
 		i->prev_amount_download += c.statistics().total_payload_download();
 		i->prev_amount_upload += c.statistics().total_payload_upload();
-
-		if (erase)
-			m_peers.erase(i);
 
 		if (unchoked)
 		{

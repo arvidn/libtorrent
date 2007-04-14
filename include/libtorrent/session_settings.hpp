@@ -58,6 +58,8 @@ namespace libtorrent
 			, urlseed_pipeline_size(5)
 			, file_pool_size(40)
 			, allow_multiple_connections_per_ip(false)
+			, max_failcount(3)
+			, min_reconnect_time(60)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(true)
 #endif
@@ -153,6 +155,14 @@ namespace libtorrent
 		// false to not allow multiple connections from the same
 		// IP address. true will allow it.
 		bool allow_multiple_connections_per_ip;
+
+		// the number of times we can fail to connect to a peer
+		// before we stop retrying it.
+		int max_failcount;
+		
+		// the number of seconds to wait to reconnect to a peer.
+		// this time is multiplied with the failcount.
+		int min_reconnect_time;
 
 #ifndef TORRENT_DISABLE_DHT
 		// while this is true, the dht will note be used unless the
