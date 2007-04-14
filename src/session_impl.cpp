@@ -689,8 +689,6 @@ namespace libtorrent { namespace detail
 				<< " external port: " << m_external_listen_port << "\n";
 		}
 #endif
-		m_natpmp.set_mappings(m_listen_interface.port(), 0);
-		m_upnp.set_mappings(m_listen_interface.port(), 0);
 		if (m_listen_socket) async_accept();
 	}
 
@@ -1056,6 +1054,8 @@ namespace libtorrent { namespace detail
 		{
 			session_impl::mutex_t::scoped_lock l(m_mutex);
 			open_listen_port();
+			m_natpmp.set_mappings(m_listen_interface.port(), 0);
+			m_upnp.set_mappings(m_listen_interface.port(), 0);
 		}
 
 		ptime timer = time_now();
@@ -1466,8 +1466,19 @@ namespace libtorrent { namespace detail
 
 		open_listen_port();
 
-#ifndef TORRENT_DISABLE_DHT
 		bool new_listen_address = m_listen_interface.address() != new_interface.address();
+
+		if (new_listen_address)
+		{
+			m_natpmp.rebind(new_interface.address());
+			m_upnp.rebind(new_interface.address());
+			m_lsd.rebind(new_interface.address());
+		}
+
+		m_natpmp.set_mappings(m_listen_interface.port(), 0);
+		m_upnp.set_mappings(m_listen_interface.port(), 0);
+
+#ifndef TORRENT_DISABLE_DHT
 		if ((new_listen_address || m_dht_same_port) && m_dht)
 		{
 			if (m_dht_same_port)
@@ -1475,12 +1486,6 @@ namespace libtorrent { namespace detail
 			// the listen interface changed, rebind the dht listen socket as well
 			m_dht->rebind(new_interface.address()
 				, m_dht_settings.service_port);
-			if (new_listen_address)
-			{
-				m_natpmp.rebind(new_interface.address());
-				m_upnp.rebind(new_interface.address());
-				m_lsd.rebind(new_interface.address());
-			}
 			m_natpmp.set_mappings(0, m_dht_settings.service_port);
 			m_upnp.set_mappings(0, m_dht_settings.service_port);
 		}
