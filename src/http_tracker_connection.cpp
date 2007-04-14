@@ -539,7 +539,6 @@ namespace libtorrent
 	}
 	catch (std::exception& e)
 	{
-		assert(false);
 		fail(-1, e.what());
 	};
 
@@ -564,7 +563,6 @@ namespace libtorrent
 	}
 	catch (std::exception& e)
 	{
-		assert(false);
 		fail(-1, e.what());
 	}
 
@@ -589,7 +587,6 @@ namespace libtorrent
 	}
 	catch (std::exception& e)
 	{
-		assert(false);
 		fail(-1, e.what());
 	}; // msvc 7.1 seems to require this semi-colon
 
