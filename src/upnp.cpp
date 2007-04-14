@@ -78,7 +78,7 @@ upnp::~upnp()
 {
 }
 
-void upnp::rebind(address const& listen_interface)
+void upnp::rebind(address const& listen_interface) try
 {
 	if (listen_interface.is_v4() && listen_interface != address_v4::from_string("0.0.0.0"))
 	{
@@ -96,12 +96,8 @@ void upnp::rebind(address const& listen_interface)
 
 		if (i == udp::resolver_iterator())
 		{
-	#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-			m_log << "local host name did not resolve to an IPv4 address. "
-				"disabling UPnP" << std::endl;
-	#endif
-			m_disabled = true;
-			return;
+			throw std::runtime_error("local host name did not resolve to an "
+				"IPv4 address. disabling NAT-PMP");
 		}
 
 		m_local_ip = i->endpoint().address().to_v4();
@@ -118,44 +114,36 @@ void upnp::rebind(address const& listen_interface)
 	{
 		// the local address seems to be an external
 		// internet address. Assume it is not behind a NAT
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << "not on a NAT. disabling UPnP" << std::endl;
-#endif
-		m_disabled = true;
-		return;
+		throw std::runtime_error("local IP is not on a local network");
 	}
 	
-	try
-	{
-		// the local interface hasn't changed
-		if (m_socket.is_open()
-			&& m_socket.local_endpoint().address() == m_local_ip)
-			return;
-		
-		m_socket.close();
-		
-		using namespace asio::ip::multicast;
-
-		m_socket.open(udp::v4());
-		m_socket.set_option(datagram_socket::reuse_address(true));
-		m_socket.bind(udp::endpoint(m_local_ip, 0));
-
-		m_socket.set_option(join_group(upnp_multicast_address));
-		m_socket.set_option(outbound_interface(m_local_ip));
-		m_socket.set_option(hops(255));
-	}
-	catch (std::exception& e)
-	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << "socket multicast error " << e.what() << ". disabling UPnP" << std::endl;
-#endif
-		m_disabled = true;
+	// the local interface hasn't changed
+	if (m_socket.is_open()
+		&& m_socket.local_endpoint().address() == m_local_ip)
 		return;
-	}
+	
+	m_socket.close();
+	
+	using namespace asio::ip::multicast;
+
+	m_socket.open(udp::v4());
+	m_socket.set_option(datagram_socket::reuse_address(true));
+	m_socket.bind(udp::endpoint(m_local_ip, 0));
+
+	m_socket.set_option(join_group(upnp_multicast_address));
+	m_socket.set_option(outbound_interface(m_local_ip));
+	m_socket.set_option(hops(255));
 	m_disabled = false;
 
 	m_retry_count = 0;
 	discover_device();
+}
+catch (std::exception& e)
+{
+	m_disabled = true;
+	std::stringstream msg;
+	msg << "UPnP portmapping disabled: " << e.what();
+	m_callback(0, 0, msg.str());
 }
 
 void upnp::discover_device()

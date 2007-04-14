@@ -1503,7 +1503,8 @@ namespace libtorrent { namespace detail
 	void session_impl::announce_lsd(sha1_hash const& ih)
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		m_lsd.announce(ih, m_external_listen_port);
+		// use internal listen port for local peers
+		m_lsd.announce(ih, m_listen_interface.port());
 	}
 
 	void session_impl::on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih)

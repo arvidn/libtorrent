@@ -60,7 +60,7 @@ natpmp::natpmp(io_service& ios, address const& listen_interface, portmap_callbac
 	rebind(listen_interface);
 }
 
-void natpmp::rebind(address const& listen_interface)
+void natpmp::rebind(address const& listen_interface) try
 {
 	address_v4 local;
 	if (listen_interface.is_v4() && listen_interface != address_v4::from_string("0.0.0.0"))
@@ -79,12 +79,8 @@ void natpmp::rebind(address const& listen_interface)
 
 		if (i == udp::resolver_iterator())
 		{
-	#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-			m_log << "local host name did not resolve to an IPv4 address. "
-				"disabling NAT-PMP" << std::endl;
-	#endif
-			m_disabled = true;
-			return;
+			throw std::runtime_error("local host name did not resolve to an "
+				"IPv4 address. disabling NAT-PMP");
 		}
 
 		local = i->endpoint().address().to_v4();
@@ -104,11 +100,7 @@ void natpmp::rebind(address const& listen_interface)
 	{
 		// the local address seems to be an external
 		// internet address. Assume it is not behind a NAT
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << "not on a NAT. disabling NAT-PMP" << std::endl;
-#endif
-		m_disabled = true;
-		return;
+		throw std::runtime_error("local IP is not on a local network");
 	}
 
 	m_disabled = false;
@@ -133,6 +125,16 @@ void natpmp::rebind(address const& listen_interface)
 			continue;
 		refresh_mapping(i);
 	}
+}
+catch (std::exception& e)
+{
+	m_disabled = true;
+	std::stringstream msg;
+	msg << "NAT-PMP disabled: " << e.what();
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+	m_log << msg.str() << std::endl;
+#endif
+	m_callback(0, 0, msg.str());
 }
 
 void natpmp::set_mappings(int tcp, int udp)
