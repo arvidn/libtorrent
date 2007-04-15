@@ -30,6 +30,10 @@ feature.compose <dht-support>on : ;
 feature.compose <dht-support>off : <define>TORRENT_DISABLE_DHT ;
 feature.compose <dht-support>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 
+feature openssl : off on : composite propagated symmetric link-incompatible ;
+feature.compose <openssl>off : ;
+feature.compose <openssl>on : <define>TORRENT_USE_OPENSSL ;
+
 SOURCES =
 	allocate_resources.cpp
 	alert.cpp
@@ -56,7 +60,6 @@ SOURCES =
 	tracker_manager.cpp
 	http_tracker_connection.cpp
 	udp_tracker_connection.cpp
-	sha1.cpp
 	metadata_transfer.cpp
 	upnp.cpp
 	ut_pex.cpp
@@ -117,6 +120,7 @@ if [ os.name ] = NT
 	DEFINES += WIN32 ;
 }	
 
+lib openssl_lib : : <name>crypto ;
 
 project torrent
 
@@ -173,5 +177,7 @@ lib torrent
 	:
 	<dht-support>on:<source>src/$(KADEMLIA_SOURCES)
 	<dht-support>logging:<source>src/$(KADEMLIA_SOURCES)
+	<openssl>off:<source>src/sha1.cpp
+	<openssl>on:<library>openssl_lib
 	;
 
