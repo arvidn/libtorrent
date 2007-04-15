@@ -273,7 +273,6 @@ namespace libtorrent
 			{
 				throw std::runtime_error("seed to seed connection redundant, disconnecting");
 			}
-			std::fill(m_have_piece.begin(), m_have_piece.end(), true);
 			m_num_pieces = num_pieces;
 			t->peer_has_all();
 			if (!t->is_finished())
