@@ -1291,12 +1291,27 @@ namespace libtorrent
 		{
 			assert(p->associated_torrent().lock().get() == this);
 
-			const std::vector<bool>& pieces = p->get_bitfield();
-
-			for (std::vector<bool>::const_iterator i = pieces.begin();
-				i != pieces.end(); ++i)
+			if (p->is_seed())
 			{
-				if (*i) peer_lost(static_cast<int>(i - pieces.begin()));
+				if (m_picker.get())
+				{
+					assert(!is_seed());
+					m_picker->dec_refcount_all();
+				}
+			}
+			else
+			{
+				// if we're a seed, we don't keep track of piece availability
+				if (!is_seed())
+				{
+					const std::vector<bool>& pieces = p->get_bitfield();
+
+					for (std::vector<bool>::const_iterator i = pieces.begin();
+						i != pieces.end(); ++i)
+					{
+						if (*i) peer_lost(static_cast<int>(i - pieces.begin()));
+					}
+				}
 			}
 		}
 
