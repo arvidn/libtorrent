@@ -2112,6 +2112,8 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int urlseed_pipeline_size;
 		int file_pool_size;
 		bool allow_multiple_connections_per_ip;
+		int max_failcount;
+		int min_reconnect_time;
 		bool use_dht_as_fallback;
 	};
 
@@ -2204,6 +2206,14 @@ connections from the same IP address is not allowed by default, to prevent
 abusive behavior by peers. It may be useful to allow such connections in
 cases where simulations are run on the same machie, and all peers in a
 swarm has the same IP address.
+
+``max_failcount`` is the maximum times we try to connect to a peer before
+stop connecting again. If a peer succeeds, the failcounter is reset. If
+a peer is retrieved from a peer source (other than DHT) the failcount is
+decremented by one, allowing another try.
+
+``min_reconnect_time`` is the time to wait between connection attempts. If
+the peer fails, the time is multiplied by fail counter.
 
 ``use_dht_as_fallback`` determines how the DHT is used. If this is true
 (which it is by default), the DHT will only be used for torrents where

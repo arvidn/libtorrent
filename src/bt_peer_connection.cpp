@@ -1259,6 +1259,8 @@ namespace libtorrent
 			if (m_supports_extensions) write_extensions();
 #endif
 
+			// consider this a successful connection, reset the failcount
+			if (peer_info_struct()) peer_info_struct()->failcount = 0;
 			m_state = read_packet_size;
 			reset_recv_buffer(4);
 		}

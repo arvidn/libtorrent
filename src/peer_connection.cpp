@@ -260,41 +260,46 @@ namespace libtorrent
 		// now that we have a piece_picker,
 		// update it with this peers pieces
 
-		// build a vector of all pieces
-		m_num_pieces = 0;
-		bool interesting = false;
-		for (int i = 0; i < int(m_have_piece.size()); ++i)
-		{
-			if (m_have_piece[i])
-			{
-				++m_num_pieces;
-				t->peer_has(i);
-				// if the peer has a piece and we don't, the peer is interesting
-				if (!t->have_piece(i)
-					&& t->picker().piece_priority(i) != 0)
-					interesting = true;
-			}
-		}
-
-		if (m_num_pieces == int(m_have_piece.size()))
+		int num_pieces = std::count(m_have_piece.begin(), m_have_piece.end(), true);
+		if (num_pieces == int(m_have_piece.size()))
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << " *** THIS IS A SEED ***\n";
 #endif
-			assert(m_peer_info);
-			m_peer_info->seed = true;
+			// if this is a web seed. we don't have a peer_info struct
+			if (m_peer_info) m_peer_info->seed = true;
 			// if we're a seed too, disconnect
 			if (t->is_seed())
 			{
-#ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << " we're also a seed, disconnecting\n";
-#endif
 				throw std::runtime_error("seed to seed connection redundant, disconnecting");
 			}
+			std::fill(m_have_piece.begin(), m_have_piece.end(), true);
+			m_num_pieces = num_pieces;
+			t->peer_has_all();
+			if (!t->is_finished())
+				t->get_policy().peer_is_interesting(*this);
+			return;
 		}
 
-		if (interesting)
-			t->get_policy().peer_is_interesting(*this);
+		m_num_pieces = num_pieces;
+		// if we're a seed, we don't keep track of piece availability
+		if (!t->is_seed())
+		{
+			bool interesting = false;
+			for (int i = 0; i < int(m_have_piece.size()); ++i)
+			{
+				if (m_have_piece[i])
+				{
+					t->peer_has(i);
+					// if the peer has a piece and we don't, the peer is interesting
+					if (!t->have_piece(i)
+						&& t->picker().piece_priority(i) != 0)
+						interesting = true;
+				}
+			}
+			if (interesting)
+				t->get_policy().peer_is_interesting(*this);
+		}
 	}
 
 	peer_connection::~peer_connection()
@@ -795,32 +800,61 @@ namespace libtorrent
 			{
 				throw protocol_error("seed to seed connection redundant, disconnecting");
 			}
+
+			std::fill(m_have_piece.begin(), m_have_piece.end(), true);
+			m_num_pieces = num_pieces;
+			t->peer_has_all();
+			if (!t->is_finished())
+				t->get_policy().peer_is_interesting(*this);
+			return;
 		}
 
 		// let the torrent know which pieces the
 		// peer has
-		bool interesting = false;
-		for (int i = 0; i < (int)m_have_piece.size(); ++i)
+		// if we're a seed, we don't keep track of piece availability
+		if (!t->is_seed())
 		{
-			bool have = bitfield[i];
-			if (have && !m_have_piece[i])
+			bool interesting = false;
+			for (int i = 0; i < (int)m_have_piece.size(); ++i)
 			{
-				m_have_piece[i] = true;
-				++m_num_pieces;
-				t->peer_has(i);
-				if (!t->have_piece(i) && t->picker().piece_priority(i) != 0)
-					interesting = true;
+				bool have = bitfield[i];
+				if (have && !m_have_piece[i])
+				{
+					m_have_piece[i] = true;
+					++m_num_pieces;
+					t->peer_has(i);
+					if (!t->have_piece(i) && t->picker().piece_priority(i) != 0)
+						interesting = true;
+				}
+				else if (!have && m_have_piece[i])
+				{
+					// this should probably not be allowed
+					m_have_piece[i] = false;
+					--m_num_pieces;
+					t->peer_lost(i);
+				}
 			}
-			else if (!have && m_have_piece[i])
+
+			if (interesting) t->get_policy().peer_is_interesting(*this);
+		}
+		else
+		{
+			for (int i = 0; i < (int)m_have_piece.size(); ++i)
 			{
-				// this should probably not be allowed
-				m_have_piece[i] = false;
-				--m_num_pieces;
-				t->peer_lost(i);
+				bool have = bitfield[i];
+				if (have && !m_have_piece[i])
+				{
+					m_have_piece[i] = true;
+					++m_num_pieces;
+				}
+				else if (!have && m_have_piece[i])
+				{
+					// this should probably not be allowed
+					m_have_piece[i] = false;
+					--m_num_pieces;
+				}
 			}
 		}
-
-		if (interesting) t->get_policy().peer_is_interesting(*this);
 	}
 
 	// -----------------------------

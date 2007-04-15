@@ -349,6 +349,21 @@ namespace libtorrent
 			}
 #endif
 		}
+		
+		void peer_has_all()
+		{
+			if (m_picker.get())
+			{
+				assert(!is_seed());
+				m_picker->inc_refcount_all();
+			}
+#ifndef NDEBUG
+			else
+			{
+				assert(is_seed());
+			}
+#endif
+		}
 
 		// when peer disconnects, this is called for every piece it had
 		void peer_lost(int index)
