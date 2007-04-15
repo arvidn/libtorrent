@@ -2096,9 +2096,7 @@ namespace libtorrent
 #endif
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			using namespace boost::posix_time;
-			(*m_logger) << to_simple_string(second_clock::universal_time())
-						<< " <== HANDSHAKE\n";
+			(*m_logger) << time_now_string() << " <== HANDSHAKE\n";
 #endif
 			// consider this a successful connection, reset the failcount
 			if (peer_info_struct()) peer_info_struct()->failcount = 0;

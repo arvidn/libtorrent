@@ -2424,8 +2424,7 @@ namespace libtorrent
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		using namespace	boost::posix_time;
-		(*m_logger) << to_simple_string(second_clock::universal_time())
-					<< " ==> KEEPALIVE\n";
+		(*m_logger) << time_now_string() << " ==> KEEPALIVE\n";
 #endif
 		
 		write_keepalive();
