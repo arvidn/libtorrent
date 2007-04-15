@@ -54,9 +54,13 @@ namespace libtorrent
 			lru_file_entry e = *i;
 			e.last_use = time_now();
 
-			// if you hit this assert, you probably have more than one
-			// storage/torrent using the same file at the same time!
-			assert(e.key == st);
+			if (e.key != st)
+			{
+				// this means that another instance of the storage
+				// is using the exact same file.
+				throw file_error("torrent uses the same file as another torrent "
+					"(" + p.string() + ")");
+			}
 
 			e.key = st;
 			if ((e.mode & m) != m)
