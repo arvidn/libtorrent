@@ -161,6 +161,16 @@ std::string esc(char const* code)
 #endif
 }
 
+std::string to_string(int v, int width)
+{
+	std::stringstream s;
+	s.flags(std::ios_base::right);
+	s.width(width);
+	s.fill('0');
+	s << v;
+	return s.str();
+}
+
 std::string to_string(float v, int width, int precision = 3)
 {
 	std::stringstream s;
@@ -919,10 +929,10 @@ int main(int ac, char* av[])
 				if (s.state != torrent_status::seeding)
 				{
 					boost::posix_time::time_duration t = s.next_announce;
-					out << "  next announce: " << esc("37") << std::setfill('0')
-						<< std::setw(2) << t.hours() << ":"
-						<< std::setw(2) << t.minutes() << ":"
-						<< std::setw(2) << t.seconds() << esc("0") << " " << std::setfill(' ');
+					out << "  next announce: " << esc("37")
+						<< to_string(t.hours(),2) << ":"
+						<< to_string(t.minutes(),2) << ":"
+						<< to_string(t.seconds(), 2) << esc("0") << " ";
 					out << "tracker: " << s.current_tracker << "\n";
 				}
 
