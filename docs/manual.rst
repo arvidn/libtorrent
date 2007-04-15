@@ -2811,8 +2811,48 @@ resume file was rejected. It is generated at severity level ``warning``.
 dispatcher
 ----------
 
-*TODO: describe the dispatcher mechanism*
+The ``handle_alert`` class is defined in ``<libtorrent/alert.hpp>``.
 
+Examples usage::
+
+	struct my_handler
+	{
+		void operator()(portmap_error_alert const& a)
+		{
+			std::cout << "Portmapper: " << a.msg << std::endl;
+		}
+
+		void operator()(tracker_warning_alert const& a)
+		{
+			std::cout << "Tracker warning: " << a.msg << std::endl;
+		}
+
+		void operator()(torrent_finished_alert const& a)
+		{
+			// write fast resume data
+			// ...
+
+			std::cout << a.handle.get_torrent_info().name() << "completed"
+				<< std::endl;
+		}
+	};
+
+::
+
+	std::auto_ptr<alert> a;
+	a = ses.pop_alert();
+	my_handler h;
+	while (a.get())
+	{
+		handle_alert<portmap_error_alert
+			, tracker_warning_alert
+			, torrent_finished_alert
+		>::handle_alert(h, a);
+		a = ses.pop_alert();
+	}
+
+In this example 3 alert types are used. You can use max 10 template
+parameters to select between alert types.
 
 
 exceptions

@@ -2721,7 +2721,46 @@ struct fastresume_rejected_alert: torrent_alert
 </div>
 <div class="section">
 <h2><a id="dispatcher" name="dispatcher">dispatcher</a></h2>
-<p><em>TODO: describe the dispatcher mechanism</em></p>
+<p>The <tt class="docutils literal"><span class="pre">handle_alert</span></tt> class is defined in <tt class="docutils literal"><span class="pre">&lt;libtorrent/alert.hpp&gt;</span></tt>.</p>
+<p>Examples usage:</p>
+<pre class="literal-block">
+struct my_handler
+{
+        void operator()(portmap_error_alert const&amp; a)
+        {
+                std::cout &lt;&lt; &quot;Portmapper: &quot; &lt;&lt; a.msg &lt;&lt; std::endl;
+        }
+
+        void operator()(tracker_warning_alert const&amp; a)
+        {
+                std::cout &lt;&lt; &quot;Tracker warning: &quot; &lt;&lt; a.msg &lt;&lt; std::endl;
+        }
+
+        void operator()(torrent_finished_alert const&amp; a)
+        {
+                // write fast resume data
+                // ...
+
+                std::cout &lt;&lt; a.handle.get_torrent_info().name() &lt;&lt; &quot;completed&quot;
+                        &lt;&lt; std::endl;
+        }
+};
+</pre>
+<pre class="literal-block">
+std::auto_ptr&lt;alert&gt; a;
+a = ses.pop_alert();
+my_handler h;
+while (a.get())
+{
+        handle_alert&lt;portmap_error_alert
+                , tracker_warning_alert
+                , torrent_finished_alert
+        &gt;::handle_alert(h, a);
+        a = ses.pop_alert();
+}
+</pre>
+<p>In this example 3 alert types are used. You can use max 10 template
+parameters to select between alert types.</p>
 </div>
 </div>
 <div class="section">
