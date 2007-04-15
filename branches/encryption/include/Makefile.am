@@ -19,6 +19,7 @@ libtorrent/identify_client.hpp \
 libtorrent/invariant_check.hpp \
 libtorrent/io.hpp \
 libtorrent/ip_filter.hpp \
+libtorrent/lsd.hpp \
 libtorrent/peer.hpp \
 libtorrent/peer_connection.hpp \
 libtorrent/bt_peer_connection.hpp \

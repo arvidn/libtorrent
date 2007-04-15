@@ -49,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/smart_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/array.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/optional.hpp>
 #include <boost/cstdint.hpp>
 
@@ -94,13 +93,15 @@ namespace libtorrent
 			aux::session_impl& ses
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<stream_socket> s
-			, tcp::endpoint const& remote);
+			, tcp::endpoint const& remote
+			, policy::peer* peerinfo);
 
 		// with this constructor we have been contacted and we still don't
 		// know which torrent the connection belongs to
 		bt_peer_connection(
 			aux::session_impl& ses
-			, boost::shared_ptr<stream_socket> s);
+			, boost::shared_ptr<stream_socket> s
+			, policy::peer* peerinfo);
 
 		~bt_peer_connection();
 		
@@ -206,7 +207,7 @@ namespace libtorrent
 
 #ifndef NDEBUG
 		void check_invariant() const;
-		boost::posix_time::ptime m_last_choke;
+		ptime m_last_choke;
 #endif
 
 	private:

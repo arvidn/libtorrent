@@ -12,10 +12,6 @@ docs/electric_sheep_thumb.jpg \
 docs/moopolice_thumb.gif \
 docs/qbittorrent_thumb.jpg \
 docs/ziptorrent_thumb.gif \
-docs/vs2005_build_notes.html \
-docs/vs2005_build_notes.rst \
-docs/ubuntu_build_notes.html \
-docs/ubuntu_build_notes.rst \
 docs/udp_tracker_protocol.html docs/client_test.rst docs/client_test.html \
 docs/unicode_support.png docs/client_test.png docs/style.css Jamfile project-root.jam \
 m4/ac_cxx_namespaces.m4 m4/acx_pthread.m4 m4/ax_boost_date-time.m4 \

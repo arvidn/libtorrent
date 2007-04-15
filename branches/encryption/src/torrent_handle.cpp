@@ -181,6 +181,13 @@ namespace libtorrent
 			, bind(&torrent::set_upload_limit, _1, limit));
 	}
 
+	int torrent_handle::upload_limit() const
+	{
+		INVARIANT_CHECK;
+		return call_member<int>(m_ses, m_chk, m_info_hash
+			, bind(&torrent::upload_limit, _1));
+	}
+
 	void torrent_handle::set_download_limit(int limit) const
 	{
 		INVARIANT_CHECK;
@@ -189,6 +196,13 @@ namespace libtorrent
 
 		call_member<void>(m_ses, m_chk, m_info_hash
 			, bind(&torrent::set_download_limit, _1, limit));
+	}
+
+	int torrent_handle::download_limit() const
+	{
+		INVARIANT_CHECK;
+		return call_member<int>(m_ses, m_chk, m_info_hash
+			, bind(&torrent::download_limit, _1));
 	}
 
 	bool torrent_handle::move_storage(
@@ -612,7 +626,7 @@ namespace libtorrent
 			, bind(&torrent::save_path, _1));
 	}
 
-	void torrent_handle::connect_peer(tcp::endpoint const& adr) const
+	void torrent_handle::connect_peer(tcp::endpoint const& adr, int source) const
 	{
 		INVARIANT_CHECK;
 
@@ -636,7 +650,7 @@ namespace libtorrent
 
 		peer_id id;
 		std::fill(id.begin(), id.end(), 0);
-		t->get_policy().peer_from_tracker(adr, id);
+		t->get_policy().peer_from_tracker(adr, id, source, 0);
 	}
 
 	void torrent_handle::force_reannounce(
@@ -650,9 +664,8 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
 		if (!t) throw_invalid_handle();
 
-		using boost::posix_time::second_clock;
-		t->force_tracker_request(second_clock::universal_time()
-			+ duration);
+		t->force_tracker_request(time_now()
+			+ seconds(duration.total_seconds()));
 	}
 
 	void torrent_handle::force_reannounce() const

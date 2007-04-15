@@ -25,16 +25,16 @@ using boost::uint8_t;
 
 #include "libtorrent/config.hpp"
 
-struct TORRENT_EXPORT SHA1_CTX
+struct TORRENT_EXPORT SHA_CTX
 {
 	uint32_t state[5];
 	uint32_t count[2];
 	uint8_t buffer[64];
 };
 
-TORRENT_EXPORT void SHA1Init(SHA1_CTX* context);
-TORRENT_EXPORT void SHA1Update(SHA1_CTX* context, uint8_t const* data, uint32_t len);
-TORRENT_EXPORT void SHA1Final(SHA1_CTX* context, uint8_t* digest);
+TORRENT_EXPORT void SHA1_Init(SHA_CTX* context);
+TORRENT_EXPORT void SHA1_Update(SHA_CTX* context, uint8_t const* data, uint32_t len);
+TORRENT_EXPORT void SHA1_Final(uint8_t* digest, SHA_CTX* context);
 
 namespace
 {
@@ -125,7 +125,7 @@ namespace
 		a = b = c = d = e = 0;
 	}
 
-	void SHAPrintContext(SHA1_CTX *context, char *msg)
+	void SHAPrintContext(SHA_CTX *context, char *msg)
 	{
 		using namespace std;
 		printf("%s (%d,%d) %x %x %x %x %x\n"
@@ -136,7 +136,7 @@ namespace
 	}
 
 	template <class BlkFun>
-	void internal_update(SHA1_CTX* context, uint8_t const* data, uint32_t len)
+	void internal_update(SHA_CTX* context, uint8_t const* data, uint32_t len)
 	{
 		using namespace std;
 		uint32_t i, j;	// JHB
@@ -176,7 +176,7 @@ namespace
 
 // SHA1Init - Initialize new context
 
-void SHA1Init(SHA1_CTX* context)
+void SHA1_Init(SHA_CTX* context)
 {
     // SHA1 initialization constants
     context->state[0] = 0x67452301;
@@ -190,7 +190,7 @@ void SHA1Init(SHA1_CTX* context)
 
 // Run your data through this.
 
-void SHA1Update(SHA1_CTX* context, uint8_t const* data, uint32_t len)
+void SHA1_Update(SHA_CTX* context, uint8_t const* data, uint32_t len)
 {
 #if defined __BIG_ENDIAN__
 	internal_update<big_endian_blk0>(context, data, len);
@@ -209,7 +209,7 @@ void SHA1Update(SHA1_CTX* context, uint8_t const* data, uint32_t len)
 
 // Add padding and return the message digest.
 
-void SHA1Final(SHA1_CTX* context, uint8_t* digest)
+void SHA1_Final(uint8_t* digest, SHA_CTX* context)
 {
 	uint8_t finalcount[8];
 
@@ -221,10 +221,10 @@ void SHA1Final(SHA1_CTX* context, uint8_t* digest)
 			>> ((3-(i & 3)) * 8) ) & 255);
 	}
 
-	SHA1Update(context, (uint8_t const*)"\200", 1);
+	SHA1_Update(context, (uint8_t const*)"\200", 1);
 	while ((context->count[0] & 504) != 448)
-		SHA1Update(context, (uint8_t const*)"\0", 1);
-	SHA1Update(context, finalcount, 8);  // Should cause a SHA1Transform()
+		SHA1_Update(context, (uint8_t const*)"\0", 1);
+	SHA1_Update(context, finalcount, 8);  // Should cause a SHA1Transform()
 
 	for (uint32_t i = 0; i < 20; ++i)
 	{
@@ -301,6 +301,7 @@ By Arvid Norberg <arvidn@sourceforge.net>
 4- using anonymous namespace to avoid external
    linkage on internal functions
 5- using standard C++ includes
+6- made API compatible with openssl
 
 still 100% PD
 */

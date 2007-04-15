@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/shared_ptr.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
@@ -61,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
@@ -82,7 +82,6 @@ namespace libtorrent
 	{
 		tracker_request()
 			: kind(announce_request)
-			, web_downloaded(0)
 			, event(none)
 			, key(0)
 			, num_want(0)
@@ -107,7 +106,6 @@ namespace libtorrent
 		size_type downloaded;
 		size_type uploaded;
 		size_type left;
-		size_type web_downloaded;
 		unsigned short listen_port;
 		event_t event;
 		std::string url;
@@ -177,11 +175,11 @@ namespace libtorrent
 		asio::strand& m_strand;
 		// used for timeouts
 		// this is set when the request has been sent
-		boost::posix_time::ptime m_start_time;
+		ptime m_start_time;
 		// this is set every time something is received
-		boost::posix_time::ptime m_read_time;
+		ptime m_read_time;
 		// the asio async operation
-		asio::deadline_timer m_timeout;
+		deadline_timer m_timeout;
 		
 		int m_completion_timeout;
 		int m_read_timeout;

@@ -67,7 +67,6 @@ namespace
 	};
 }
 
-using namespace boost::posix_time;
 using boost::bind;
 using boost::lexical_cast;
 

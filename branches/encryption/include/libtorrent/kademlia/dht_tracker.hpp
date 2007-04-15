@@ -39,8 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <numeric>
 #include <boost/bind.hpp>
-#include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/ref.hpp>
 #include <boost/optional.hpp>
 #include <boost/lexical_cast.hpp>
@@ -120,7 +118,7 @@ namespace libtorrent { namespace dht
 		udp::endpoint m_remote_endpoint[2];
 		std::vector<char> m_send_buf;
 
-		boost::posix_time::ptime m_last_refresh;
+		ptime m_last_refresh;
 		deadline_timer m_timer;
 		deadline_timer m_connection_timer;
 		deadline_timer m_refresh_timer;

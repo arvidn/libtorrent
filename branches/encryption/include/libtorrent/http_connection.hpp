@@ -38,12 +38,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/noncopyable.hpp>
-#include <boost/date_time/time_duration.hpp>
 #include <vector>
 #include <string>
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
@@ -63,19 +63,28 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 		, m_resolver(ios)
 		, m_handler(handler)
 		, m_timer(ios)
+		, m_last_receive(time_now())
 		, m_bottled(bottled)
 		, m_called(false)
+		, m_rate_limit(0)
+		, m_download_quota(0)
+		, m_limiter_timer_active(false)
+		, m_limiter_timer(ios)
 	{
 		assert(!m_handler.empty());
 	}
 
+	void rate_limit(int limit);
+
+	int rate_limit() const
+	{ return m_rate_limit; }
+
 	std::string sendbuffer;
 
-	void get(std::string const& url, boost::posix_time::time_duration timeout
-		= boost::posix_time::seconds(30));
+	void get(std::string const& url, time_duration timeout = seconds(30));
 
 	void start(std::string const& hostname, std::string const& port
-		, boost::posix_time::time_duration timeout);
+		, time_duration timeout);
 	void close();
 
 private:
@@ -88,6 +97,7 @@ private:
 	void on_read(asio::error_code const& e, std::size_t bytes_transferred);
 	static void on_timeout(boost::weak_ptr<http_connection> p
 		, asio::error_code const& e);
+	void on_assign_bandwidth(asio::error_code const& e);
 
 	std::vector<char> m_recvbuffer;
 	tcp::socket m_sock;
@@ -96,7 +106,8 @@ private:
 	http_parser m_parser;
 	http_handler m_handler;
 	deadline_timer m_timer;
-	boost::posix_time::time_duration m_timeout;
+	time_duration m_timeout;
+	ptime m_last_receive;
 	// bottled means that the handler is called once, when
 	// everything is received (and buffered in memory).
 	// non bottled means that once the headers have been
@@ -106,6 +117,22 @@ private:
 	bool m_called;
 	std::string m_hostname;
 	std::string m_port;
+
+	// the current download limit, in bytes per second
+	// 0 is unlimited.
+	int m_rate_limit;
+
+	// the number of bytes we are allowed to receive
+	int m_download_quota;
+
+	// only hand out new quota 4 times a second if the
+	// quota is 0. If it isn't 0 wait for it to reach
+	// 0 and continue to hand out quota at that time.
+	bool m_limiter_timer_active;
+
+	// the timer fires every 250 millisecond as long
+	// as all the quota was used.
+	deadline_timer m_limiter_timer;
 };
 
 }

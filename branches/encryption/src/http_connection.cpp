@@ -30,13 +30,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "http_connection.hpp"
+#include "libtorrent/http_connection.hpp"
+
+#include <boost/bind.hpp>
+#include <boost/lexical_cast.hpp>
 #include <asio/ip/tcp.hpp>
+#include <string>
+
+using boost::bind;
 
 namespace libtorrent
 {
 
-void http_connection::get(std::string const& url, boost::posix_time::time_duration timeout)
+void http_connection::get(std::string const& url, time_duration timeout)
 {
 	std::string protocol;
 	std::string hostname;
@@ -53,7 +59,7 @@ void http_connection::get(std::string const& url, boost::posix_time::time_durati
 }
 
 void http_connection::start(std::string const& hostname, std::string const& port
-	, boost::posix_time::time_duration timeout)
+	, time_duration timeout)
 {
 	m_timeout = timeout;
 	m_timer.expires_from_now(m_timeout);
@@ -84,13 +90,22 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 	boost::shared_ptr<http_connection> c = p.lock();
 	if (!c) return;
 	if (c->m_bottled && c->m_called) return;
-	c->m_called = true;
-	c->m_handler(asio::error::timed_out, c->m_parser, 0, 0);
+
+	if (c->m_last_receive + c->m_timeout < time_now())
+	{
+		c->m_called = true;
+		c->m_handler(asio::error::timed_out, c->m_parser, 0, 0);
+		return;
+	}
+
+	c->m_timer.expires_at(c->m_last_receive + c->m_timeout);
+	c->m_timer.async_wait(bind(&http_connection::on_timeout, p, _1));
 }
 
 void http_connection::close()
 {
 	m_timer.cancel();
+	m_limiter_timer.cancel();
 	m_sock.close();
 	m_hostname.clear();
 	m_port.clear();
@@ -117,8 +132,7 @@ void http_connection::on_connect(asio::error_code const& e
 {
 	if (!e)
 	{ 
-		m_timer.expires_from_now(m_timeout);
-		m_timer.async_wait(bind(&http_connection::on_timeout, shared_from_this(), _1));
+		m_last_receive = time_now();
 		asio::async_write(m_sock, asio::buffer(sendbuffer)
 			, bind(&http_connection::on_write, shared_from_this(), _1));
 	}
@@ -151,14 +165,33 @@ void http_connection::on_write(asio::error_code const& e)
 
 	std::string().swap(sendbuffer);
 	m_recvbuffer.resize(4096);
+
+	int amount_to_read = m_recvbuffer.size() - m_read_pos;
+	if (m_rate_limit > 0 && amount_to_read > m_download_quota)
+	{
+		amount_to_read = m_download_quota;
+		if (m_download_quota == 0)
+		{
+			if (!m_limiter_timer_active)
+				on_assign_bandwidth(asio::error_code());
+			return;
+		}
+	}
 	m_sock.async_read_some(asio::buffer(&m_recvbuffer[0] + m_read_pos
-		, m_recvbuffer.size() - m_read_pos)
-		, bind(&http_connection::on_read, shared_from_this(), _1, _2));
+		, amount_to_read)
+		, bind(&http_connection::on_read
+		, shared_from_this(), _1, _2));
 }
 
 void http_connection::on_read(asio::error_code const& e
 	, std::size_t bytes_transferred)
 {
+	if (m_rate_limit)
+	{
+		m_download_quota -= bytes_transferred;
+		assert(m_download_quota >= 0);
+	}
+
 	if (e == asio::error::eof)
 	{
 		close();
@@ -191,8 +224,7 @@ void http_connection::on_read(asio::error_code const& e
 				m_handler(e, m_parser, &m_recvbuffer[0] + m_parser.body_start()
 					, m_read_pos - m_parser.body_start());
 			m_read_pos = 0;
-			m_timer.expires_from_now(m_timeout);
-			m_timer.async_wait(bind(&http_connection::on_timeout, shared_from_this(), _1));
+			m_last_receive = time_now();
 		}
 		else if (m_bottled && m_parser.finished())
 		{
@@ -207,10 +239,11 @@ void http_connection::on_read(asio::error_code const& e
 		assert(!m_bottled);
 		m_handler(e, m_parser, &m_recvbuffer[0], m_read_pos);
 		m_read_pos = 0;
+		m_last_receive = time_now();
 	}
 
 	if (int(m_recvbuffer.size()) == m_read_pos)
-		m_recvbuffer.resize(std::min(m_read_pos + 2048, 1024*500));
+		m_recvbuffer.resize((std::min)(m_read_pos + 2048, 1024*500));
 	if (m_read_pos == 1024 * 500)
 	{
 		close();
@@ -219,10 +252,65 @@ void http_connection::on_read(asio::error_code const& e
 		m_handler(asio::error::eof, m_parser, 0, 0);
 		return;
 	}
+	int amount_to_read = m_recvbuffer.size() - m_read_pos;
+	if (m_rate_limit > 0 && amount_to_read > m_download_quota)
+	{
+		amount_to_read = m_download_quota;
+		if (m_download_quota == 0)
+		{
+			if (!m_limiter_timer_active)
+				on_assign_bandwidth(asio::error_code());
+			return;
+		}
+	}
 	m_sock.async_read_some(asio::buffer(&m_recvbuffer[0] + m_read_pos
-		, m_recvbuffer.size() - m_read_pos)
+		, amount_to_read)
 		, bind(&http_connection::on_read
 		, shared_from_this(), _1, _2));
+}
+
+void http_connection::on_assign_bandwidth(asio::error_code const& e)
+{
+	if ((e == asio::error::operation_aborted
+		&& m_limiter_timer_active)
+		|| !m_sock.is_open())
+	{
+		if (!m_bottled || !m_called)
+			m_handler(e, m_parser, 0, 0);
+		return;
+	}
+	m_limiter_timer_active = false;
+	if (e) return;
+
+	if (m_download_quota > 0) return;
+
+	m_download_quota = m_rate_limit / 4;
+
+	int amount_to_read = m_recvbuffer.size() - m_read_pos;
+	if (amount_to_read > m_download_quota)
+		amount_to_read = m_download_quota;
+
+	m_sock.async_read_some(asio::buffer(&m_recvbuffer[0] + m_read_pos
+		, amount_to_read)
+		, bind(&http_connection::on_read
+		, shared_from_this(), _1, _2));
+
+	m_limiter_timer_active = true;
+	m_limiter_timer.expires_from_now(milliseconds(250));
+	m_limiter_timer.async_wait(bind(&http_connection::on_assign_bandwidth
+		, shared_from_this(), _1));
+}
+
+void http_connection::rate_limit(int limit)
+{
+	if (!m_limiter_timer_active)
+	{
+		m_limiter_timer_active = true;
+		m_limiter_timer.expires_from_now(milliseconds(250));
+		m_limiter_timer.async_wait(bind(&http_connection::on_assign_bandwidth
+			, shared_from_this(), _1));
+	}
+	m_rate_limit = limit;
 }
 
 }

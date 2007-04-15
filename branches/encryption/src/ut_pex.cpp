@@ -224,7 +224,7 @@ namespace libtorrent { namespace
 			{
 				tcp::endpoint adr = detail::read_v4_endpoint<tcp::endpoint>(in);
 				char flags = detail::read_uint8(fin);
-				p.peer_from_tracker(adr, pid, flags);
+				p.peer_from_tracker(adr, pid, peer_info::pex, flags);
 			} 
 			return true;
 		}
@@ -335,6 +335,8 @@ namespace libtorrent { namespace
 
 	boost::shared_ptr<peer_plugin> ut_pex_plugin::new_connection(peer_connection* pc)
 	{
+		bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(pc);
+		if (!c) return boost::shared_ptr<peer_plugin>();
 		return boost::shared_ptr<peer_plugin>(new ut_pex_peer_plugin(m_torrent
 			, *pc, *this));
 	}

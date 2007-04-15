@@ -49,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/weak_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/array.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/optional.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/detail/atomic_count.hpp>
@@ -72,6 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/bandwidth_manager.hpp"
+#include "libtorrent/policy.hpp"
 
 // TODO: each time a block is 'taken over'
 // from another peer. That peer must be given
@@ -118,15 +118,23 @@ namespace libtorrent
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<stream_socket> s
 			, tcp::endpoint const& remote
-			, tcp::endpoint const& proxy);
+			, tcp::endpoint const& proxy
+			, policy::peer* peerinfo);
 
 		// with this constructor we have been contacted and we still don't
 		// know which torrent the connection belongs to
 		peer_connection(
 			aux::session_impl& ses
-			, boost::shared_ptr<stream_socket> s);
+			, boost::shared_ptr<stream_socket> s
+			, policy::peer* peerinfo);
 
 		virtual ~peer_connection();
+
+		void set_peer_info(policy::peer* pi)
+		{ m_peer_info = pi; }
+
+		policy::peer* peer_info_struct() const
+		{ return m_peer_info; }
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<peer_plugin>);
@@ -144,6 +152,9 @@ namespace libtorrent
 
 		void set_upload_limit(int limit);
 		void set_download_limit(int limit);
+
+		int upload_limit() const { return m_upload_limit; }
+		int download_limit() const { return m_download_limit; }
 
 		bool prefer_whole_pieces() const
 		{ return m_prefer_whole_pieces; }
@@ -311,7 +322,7 @@ namespace libtorrent
 
 #ifndef NDEBUG
 		void check_invariant() const;
-		boost::posix_time::ptime m_last_choke;
+		ptime m_last_choke;
 #endif
 
 		virtual void get_peer_info(peer_info& p) const = 0;
@@ -456,7 +467,7 @@ namespace libtorrent
 
 		// the time when we last got a part of a
 		// piece packet from this peer
-		boost::posix_time::ptime m_last_piece;
+		ptime		m_last_piece;
 
 		int m_packet_size;
 		int m_recv_pos;
@@ -483,8 +494,8 @@ namespace libtorrent
 		int m_write_pos;
 
 		// timeouts
-		boost::posix_time::ptime m_last_receive;
-		boost::posix_time::ptime m_last_sent;
+		ptime m_last_receive;
+		ptime m_last_sent;
 
 		boost::shared_ptr<stream_socket> m_socket;
 		// this is the peer we're actually talking to
@@ -592,11 +603,11 @@ namespace libtorrent
 
 		// the time when this peer sent us a not_interested message
 		// the last time.
-		boost::posix_time::ptime m_became_uninterested;
+		ptime m_became_uninterested;
 
 		// the time when we sent a not_interested message to
 		// this peer the last time.
-		boost::posix_time::ptime m_became_uninteresting;
+		ptime m_became_uninteresting;
 
 		// this is true until this socket has become
 		// writable for the first time (i.e. the
@@ -644,6 +655,11 @@ namespace libtorrent
 		
 		int m_upload_limit;
 		int m_download_limit;
+
+		// this peer's peer info struct. This may
+		// be 0, in case the connection is incoming
+		// and hasn't been added to a torrent yet.
+		policy::peer* m_peer_info;
 
 #ifndef NDEBUG
 	public:

@@ -60,7 +60,20 @@ namespace libtorrent
 			plaintext_encrypted = 0x400
 #endif
 		};
+
 		unsigned int flags;
+
+		enum peer_source_flags
+		{
+			tracker = 0x1,
+			dht = 0x2,
+			pex = 0x4,
+			lsd = 0x8,
+			resume_data = 0x10
+		};
+
+		int source;
+
 		tcp::endpoint ip;
 		float up_speed;
 		float down_speed;
@@ -92,6 +105,10 @@ namespace libtorrent
 		// the peer has sent to us
 		// that we haven't sent yet
 		int upload_queue_length;
+
+		// the number of times this IP
+		// has failed to connect
+		int failcount;
 
 		// the currently downloading piece
 		// if piece index is -1 all associated

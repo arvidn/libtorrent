@@ -45,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/limits.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -121,6 +120,9 @@ namespace libtorrent
 
 		~torrent();
 
+		// starts the announce timer
+		void start();
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<torrent_plugin>);
 #endif
@@ -182,7 +184,6 @@ namespace libtorrent
 		void filter_files(std::vector<bool> const& files);
 		// ============ end deprecation =============
 
-
 		void set_piece_priority(int index, int priority);
 		int piece_priority(int index) const;
 
@@ -191,7 +192,6 @@ namespace libtorrent
 
 		void prioritize_files(std::vector<int> const& files);
 
-
 		torrent_status status() const;
 		void file_progress(std::vector<float>& fp) const;
 
@@ -199,7 +199,7 @@ namespace libtorrent
 		tcp::endpoint const& get_interface() const { return m_net_interface; }
 		
 		void connect_to_url_seed(std::string const& url);
-		peer_connection& connect_to_peer(tcp::endpoint const& a);
+		peer_connection& connect_to_peer(policy::peer* peerinfo);
 
 		void set_ratio(float ratio)
 		{ assert(ratio >= 0.0f); m_ratio = ratio; }
@@ -299,7 +299,7 @@ namespace libtorrent
 
 		// returns the absolute time when the next tracker
 		// announce will take place.
-		boost::posix_time::ptime next_announce() const;
+		ptime next_announce() const;
 
 		// returns true if it is time for this torrent to make another
 		// tracker request
@@ -307,7 +307,7 @@ namespace libtorrent
 
 		// forcefully sets next_announce to the current time
 		void force_tracker_request();
-		void force_tracker_request(boost::posix_time::ptime);
+		void force_tracker_request(ptime);
 
 		// sets the username and password that will be sent to
 		// the tracker
@@ -341,6 +341,21 @@ namespace libtorrent
 				assert(!is_seed());
 				assert(index >= 0 && index < (signed)m_have_pieces.size());
 				m_picker->inc_refcount(index);
+			}
+#ifndef NDEBUG
+			else
+			{
+				assert(is_seed());
+			}
+#endif
+		}
+		
+		void peer_has_all()
+		{
+			if (m_picker.get())
+			{
+				assert(!is_seed());
+				m_picker->inc_refcount_all();
 			}
 #ifndef NDEBUG
 			else
@@ -411,19 +426,19 @@ namespace libtorrent
 		void received_redundant_data(int num_bytes)
 		{ assert(num_bytes > 0); m_total_redundant_bytes += num_bytes; }
 
-		float priority() const
-		{ return m_priority; }
-
-		void set_priority(float p)
-		{
-			assert(p >= 0.f && p <= 1.f);
-			m_priority = p;
-		}
-
+		// this is true if we have all the pieces
 		bool is_seed() const
 		{
 			return valid_metadata()
 				&& m_num_pieces == m_torrent_file.num_pieces();
+		}
+
+		// this is true if we have all the pieces that we want
+		bool is_finished() const
+		{
+			if (is_seed()) return true;
+			return valid_metadata() && m_torrent_file.num_pieces()
+				- m_num_pieces - m_picker->num_filtered() == 0;
 		}
 
 		boost::filesystem::path save_path() const;
@@ -477,7 +492,10 @@ namespace libtorrent
 		void set_peer_download_limit(tcp::endpoint ip, int limit);
 
 		void set_upload_limit(int limit);
+		int upload_limit() const;
 		void set_download_limit(int limit);
+		int download_limit() const;
+
 		void set_max_uploads(int limit);
 		void set_max_connections(int limit);
 		bool move_storage(boost::filesystem::path const& save_path);
@@ -532,7 +550,7 @@ namespace libtorrent
 		boost::scoped_ptr<piece_manager> m_storage;
 
 		// the time of next tracker request
-		boost::posix_time::ptime m_next_request;
+		ptime m_next_request;
 
 		// -----------------------------
 		// DATA FROM TRACKER RESPONSE
@@ -575,11 +593,20 @@ namespace libtorrent
 		// country resolution in this torrent
 		bool m_resolve_countries;
 
+		// this announce timer is used both
+		// by Local service discovery and
+		// by the DHT.
+		deadline_timer m_announce_timer;
+
+		static void on_announce_disp(boost::weak_ptr<torrent> p
+			, asio::error_code const& e);
+
+		// this is called once per announce interval
+		void on_announce();
+
 #ifndef TORRENT_DISABLE_DHT
 		static void on_dht_announce_response_disp(boost::weak_ptr<torrent> t
 			, std::vector<tcp::endpoint> const& peers);
-		deadline_timer m_dht_announce_timer;
-		void on_dht_announce(asio::error_code const& e);
 		void on_dht_announce_response(std::vector<tcp::endpoint> const& peers);
 		bool should_announce_dht() const;
 #endif
@@ -587,10 +614,6 @@ namespace libtorrent
 		// this is the upload and download statistics for the whole torrent.
 		// it's updated from all its peers once every second.
 		libtorrent::stat m_stat;
-
-		// this is the stats for web seeds in this torrent only. It is updated
-		// once every second.
-		libtorrent::stat m_web_stat;
 
 		// -----------------------------
 
@@ -619,11 +642,6 @@ namespace libtorrent
 		// second, and when it reaches 10, the policy::pulse()
 		// is called and the time scaler is reset to 0.
 		int m_time_scaler;
-
-		// this is the priority of this torrent. It is used
-		// to weight the assigned upload bandwidth between peers
-		// it should be within the range [0, 1]
-		float m_priority;
 
 		// the bitmask that says which pieces we have
 		std::vector<bool> m_have_pieces;
@@ -713,20 +731,18 @@ namespace libtorrent
 #endif
 	};
 
-	inline boost::posix_time::ptime torrent::next_announce() const
+	inline ptime torrent::next_announce() const
 	{
 		return m_next_request;
 	}
 
 	inline void torrent::force_tracker_request()
 	{
-		using boost::posix_time::second_clock;
-		m_next_request = second_clock::universal_time();
+		m_next_request = time_now();
 	}
 
-	inline void torrent::force_tracker_request(boost::posix_time::ptime t)
+	inline void torrent::force_tracker_request(ptime t)
 	{
-		namespace time = boost::posix_time;
 		m_next_request = t;
 	}
 

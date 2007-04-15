@@ -51,12 +51,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <asio/deadline_timer.hpp>
 #include <asio/write.hpp>
 #include <asio/strand.hpp>
+#include <asio/time_traits.hpp>
+#include <asio/basic_deadline_timer.hpp>
 
 #ifdef __OBJC__ 
 #undef Protocol
 #endif
 
 #include "libtorrent/io.hpp"
+#include "libtorrent/time.hpp"
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -64,6 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+
 /*
 	namespace asio = boost::asio;
 
@@ -91,7 +95,8 @@ namespace libtorrent
 	typedef asio::io_service io_service;
 
 	using asio::async_write;
-	using asio::deadline_timer;
+	
+	typedef asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
 	
 	namespace detail
 	{

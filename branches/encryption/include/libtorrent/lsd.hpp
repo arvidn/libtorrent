@@ -30,12 +30,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_NATPMP_HPP
-#define TORRENT_NATPMP_HPP
+#ifndef TORRENT_LSD_HPP
+#define TORRENT_LSD_HPP
 
 #include "libtorrent/socket.hpp"
+#include "libtorrent/peer_id.hpp"
 
 #include <boost/function.hpp>
+#include <boost/noncopyable.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/condition.hpp>
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 #include <fstream>
@@ -44,100 +49,47 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-// int: external tcp port
-// int: external udp port
-// std::string: error message
-typedef boost::function<void(int, int, std::string const&)> portmap_callback_t;
+typedef boost::function<void(tcp::endpoint, sha1_hash)> peer_callback_t;
 
-class natpmp
+class lsd : boost::noncopyable
 {
 public:
-	natpmp(io_service& ios, address const& listen_interface, portmap_callback_t const& cb);
+	lsd(io_service& ios, address const& listen_interface
+		, peer_callback_t const& cb);
+	~lsd();
 
 	void rebind(address const& listen_interface);
 
-	// maps the ports, if a port is set to 0
-	// it will not be mapped
-	void set_mappings(int tcp, int udp);
-
+	void announce(sha1_hash const& ih, int listen_port);
 	void close();
 
 private:
-	
-	void update_mapping(int i, int port);
-	void send_map_request(int i);
-	void resend_request(int i, asio::error_code const& e);
-	void on_reply(asio::error_code const& e
+
+	void resend_announce(asio::error_code const& e, std::string msg);
+	void on_announce(asio::error_code const& e
 		, std::size_t bytes_transferred);
-	void try_next_mapping(int i);
-	void update_expiration_timer();
-	void refresh_mapping(int i);
-	void mapping_expired(asio::error_code const& e, int i);
+	void setup_receive();
 
-	struct mapping
-	{
-		mapping()
-			: need_update(false)
-			, local_port(0)
-			, external_port(0)
-			, protocol(1)
-		{}
-
-		// indicates that the mapping has changed
-		// and needs an update
-		bool need_update;
-
-		// the time the port mapping will expire
-		ptime expires;
-
-		// the local port for this mapping. If this is set
-		// to 0, the mapping is not in use
-		int local_port;
-
-		// the external (on the NAT router) port
-		// for the mapping. This is the port we
-		// should announce to others
-		int external_port;
-
-		// 1 = udp, 2 = tcp
-		int protocol;
-	};
-
-	portmap_callback_t m_callback;
-
-	// 0 is tcp and 1 is udp
-	mapping m_mappings[2];
-	
-	// the endpoint to the nat router
-	udp::endpoint m_nat_endpoint;
-
-	// this is the mapping that is currently
-	// being updated. It is -1 in case no
-	// mapping is being updated at the moment
-	int m_currently_mapping;
+	peer_callback_t m_callback;
 
 	// current retry count
 	int m_retry_count;
 
 	// used to receive responses in	
-	char m_response_buffer[16];
+	char m_receive_buffer[1024];
 
 	// the endpoint we received the message from
 	udp::endpoint m_remote;
-	
-	// the udp socket used to communicate
-	// with the NAT router
+
+	// the udp socket used to send and receive
+	// multicast messages on
 	datagram_socket m_socket;
 
 	// used to resend udp packets in case
 	// they time out
-	deadline_timer m_send_timer;
+	deadline_timer m_broadcast_timer;
 
-	// timer used to refresh mappings
-	deadline_timer m_refresh_timer;
-	
 	bool m_disabled;
-
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	std::ofstream m_log;
 #endif

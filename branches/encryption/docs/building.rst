@@ -21,25 +21,9 @@ The build systems supported "out of the box" in libtorrent are boost-build v2
 following these instructions, you can usually get help in the ``#libtorrent``
 IRC channel on ``irc.freenode.net``.
 
-Contributed build tutorials
----------------------------
+Community contributed build tutorials can be found on the wiki_.
 
-* libtorrent svn, ubuntu_
-* `ubuntu 6.10`_
-* suse_
-* `visual studio 2005`_
-
-These tutorials may work on similar linux distros as well.
-
-.. _ubuntu: ubuntu_build_notes.html
-.. _`ubuntu 6.10`: ubuntu_6_build_notes.html
-.. _suse: suse_build_notes.html
-.. _`visual studio 2005`: vs2005_build_notes.html
-
-For Gentoo there is an ebuild called "rb_libtorrent" in portage. Another
-Gentoo ebuild is provided by the `BTG project`_.
-
-.. _`BTG project`: http://www.peerweb.nl/gentoo/net-libs/rblibtorrent/
+.. _wiki: http://code.rasterbar.com/libtorrent/wiki/Building
 
 building from svn
 -----------------
@@ -88,11 +72,8 @@ __ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&re
 Extract the archive to some directory where you want it. For the sake of this
 guide, let's assume you extract the package to ``c:\boost_1_33_1`` (I'm using
 a windows path in this example since if you're on linux/unix you're more likely
-to use the autotools). You'll need at least version 1.32 of the boost library
+to use the autotools). You'll need at least version 1.33.1 of the boost library
 in order to build libtorrent.
-
-If you use 1.32, you need to download BBv2 separately, so for now, let's
-assume you will use version 1.33.1.
 
 
 Step 2: Setup BBv2

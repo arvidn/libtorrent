@@ -35,12 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/http_connection.hpp"
-#include <boost/date_time/posix_time/ptime.hpp>
+
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition.hpp>
+#include <set>
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 #include <fstream>
@@ -107,7 +108,7 @@ private:
 		{}
 
 		// the time the port mapping will expire
-		boost::posix_time::ptime expires;
+		ptime expires;
 		
 		bool need_update;
 
@@ -193,10 +194,8 @@ private:
 
 	// timer used to refresh mappings
 	deadline_timer m_refresh_timer;
-	
-	// locks m_closing and m_devices
-	boost::mutex m_mutex;
-	boost::condition m_condvar;
+
+	asio::strand m_strand;	
 	
 	bool m_disabled;
 	bool m_closing;

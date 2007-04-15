@@ -249,12 +249,12 @@ namespace libtorrent
 */
 			}
 #endif
-/*
+
 			if (i->index == piece_pos::we_have_index)
 			{
 				assert(t == 0 || t->have_piece(index));
 				assert(i->downloading == 0);
-
+/*
 				// make sure there's no entry
 				// with this index. (there shouldn't
 				// be since the piece_map is piece_pos::we_have_index)
@@ -265,6 +265,7 @@ namespace libtorrent
 						assert(m_piece_info[i][j] != index);
 					}
 				}
+*/
 			}
 			else
 			{
@@ -278,7 +279,7 @@ namespace libtorrent
 					assert (i->index < vec.size());
 					assert(vec[i->index] == index);
 				}
-
+/*
 				for (int k = 0; k < int(m_piece_info.size()); ++k)
 				{
 					for (int j = 0; j < int(m_piece_info[k].size()); ++j)
@@ -287,8 +288,9 @@ namespace libtorrent
 							|| (prio > 0 && prio == k && int(i->index) == j));
 					}
 				}
-			}
 */
+			}
+
 			int count = std::count_if(m_downloads.begin(), m_downloads.end()
 				, has_index(index));
 			if (i->downloading == 1)
@@ -307,21 +309,38 @@ namespace libtorrent
 
 	float piece_picker::distributed_copies() const
 	{
-		// TODO: this is completely broken now
 		const float num_pieces = static_cast<float>(m_piece_map.size());
 
-		for (int i = 0; i < (int)m_piece_info.size(); ++i)
+		int min_availability = piece_pos::max_peer_count;
+		// find the lowest availability count
+		// count the number of pieces that have that availability
+		// and also the number of pieces that have more than that.
+		int integer_part = 0;
+		int fraction_part = 0;
+		for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin()
+			, end(m_piece_map.end()); i != end; ++i)
 		{
-			int p = (int)m_piece_info[i].size();
-			assert(num_pieces == 0 || float(p) / num_pieces <= 1.f);
-			if (p > 0)
+			int peer_count = int(i->peer_count);
+			// take ourself into account
+			if (i->have()) ++peer_count;
+			if (min_availability > peer_count)
 			{
-				float fraction_above_count =
-					1.f - float(p) / num_pieces;
-				return i + fraction_above_count;
+				min_availability = i->peer_count;
+				fraction_part += integer_part;
+				integer_part = 1;
+			}
+			else if (peer_count == min_availability)
+			{
+				++integer_part;
+			}
+			else
+			{
+				assert(peer_count > min_availability);
+				++fraction_part;
 			}
 		}
-		return 1.f;
+		assert(integer_part + fraction_part == num_pieces);
+		return float(min_availability) + (fraction_part / num_pieces);
 	}
 
 	void piece_picker::add(int index)
@@ -569,6 +588,133 @@ namespace libtorrent
 		else
 		{
 			move(prev_priority, p.index);
+		}
+	}
+
+	void piece_picker::inc_refcount_all()
+	{
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+		assert(m_files_checked_called);
+		
+		// in general priority = availability * 2
+		// see piece_block::priority()
+		
+		// this will insert two empty vectors at the start of the
+		// piece_info vector. It is done like this as an optimization,
+		// to swap vectors instead of copying them
+		while (m_piece_info.size() < 3
+			|| (!m_piece_info.rbegin()->empty())
+			|| (!(m_piece_info.rbegin()+1)->empty()))
+		{
+			m_piece_info.push_back(std::vector<int>());
+		}
+		assert(m_piece_info.rbegin()->empty());
+		assert((m_piece_info.rbegin()+1)->empty());
+		typedef std::vector<std::vector<int> > piece_info_t;
+		for (piece_info_t::reverse_iterator i = m_piece_info.rbegin(), j(i+1)
+			, k(j+1), end(m_piece_info.rend()); k != end; ++i, ++j, ++k)
+		{
+			k->swap(*i);
+		}
+		assert(m_piece_info.begin()->empty());
+		assert((m_piece_info.begin()+1)->empty());
+		
+		// now, increase the peer count of all the pieces.
+		// because of different priorities, some pieces may have
+		// ended up in the wrong priority bucket. Adjust that.
+		for (std::vector<piece_pos>::iterator i = m_piece_map.begin()
+			, end(m_piece_map.end()); i != end; ++i)
+		{
+			int prev_prio = i->priority(m_sequenced_download_threshold);
+			++i->peer_count;
+			// if the assumption that the priority would
+			// increase by 2 when increasing the availability
+			// by one isn't true for this particular piece, correct it.
+			// that assumption is true for all pieces with priority 0 or 1
+			int new_prio = i->priority(m_sequenced_download_threshold);
+			if (prev_prio == 0 && new_prio > 0)
+			{
+				add(i - m_piece_map.begin());
+				continue;
+			}
+			if (new_prio == 0)
+			{
+				assert(prev_prio == 0);
+				continue;
+			}
+			if (new_prio == prev_prio + 2)
+				continue;
+			move(prev_prio + 2, i->index);
+		}
+	}
+
+	void piece_picker::dec_refcount_all()
+	{
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+		assert(m_files_checked_called);
+
+		assert(m_piece_info.size() >= 2);
+		assert(m_piece_info.front().empty());
+		// swap all vectors two steps down
+		if (m_piece_info.size() > 2)
+		{
+			typedef std::vector<std::vector<int> > piece_info_t;
+			for (piece_info_t::iterator i = m_piece_info.begin(), j(i+1)
+				, k(j+1), end(m_piece_info.end()); k != end; ++i, ++j, ++k)
+			{
+				k->swap(*i);
+			}
+		}
+		else
+		{
+			m_piece_info.resize(3);
+		}
+		if (m_piece_info.size() & 1 == 0)
+		{
+			// if there's an even number of vectors, swap
+			// the last two to get the same layout in both cases
+			m_piece_info.rend()->swap(*(m_piece_info.rend()+1));
+		}
+		assert(m_piece_info.back().empty());
+		
+		// first is the vector that were
+		// bumped down to 0. The should always be moved
+		// since they have to be removed or reinserted
+		std::vector<int>().swap(m_piece_info.front());
+
+		for (std::vector<piece_pos>::iterator i = m_piece_map.begin()
+			, end(m_piece_map.end()); i != end; ++i)
+		{
+			int prev_prio = i->priority(m_sequenced_download_threshold);
+			assert(i->peer_count > 0);
+			--i->peer_count;
+			// if the assumption that the priority would
+			// decrease by 2 when decreasing the availability
+			// by one isn't true for this particular piece, correct it.
+			// that assumption is true for all pieces with priority 0 or 1
+			if (prev_prio == 0)
+			{
+				assert(i->priority(m_sequenced_download_threshold) == 0);
+				continue;
+			}
+
+			int new_prio = i->priority(m_sequenced_download_threshold);
+			if (new_prio == prev_prio - 2) continue;
+			
+			// if this piece was pushed down to priority 0, it was
+			// removed
+			if (prev_prio == 2)
+			{
+				assert(new_prio > 0);
+				add(i - m_piece_map.begin());
+				continue;
+			}
+
+			// if this piece was one of the vectors that was pushed to the
+			// top, adjust the prev_prio to point to that vector, so that
+			// the pieces are moved from there
+			if (prev_prio == 1) prev_prio = m_piece_info.size();
+			move(prev_prio - 2, i->index);
 		}
 	}
 

@@ -75,7 +75,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 
-using namespace boost::posix_time;
 using boost::shared_ptr;
 using boost::weak_ptr;
 using boost::bind;
@@ -216,7 +215,8 @@ namespace libtorrent { namespace detail
 							for (std::vector<tcp::endpoint>::const_iterator i = t->peers.begin();
 								i != t->peers.end(); ++i)
 							{
-								t->torrent_ptr->get_policy().peer_from_tracker(*i, id);
+								t->torrent_ptr->get_policy().peer_from_tracker(*i, id
+									, peer_info::resume_data, 0);
 							}
 						}
 						else
@@ -338,7 +338,8 @@ namespace libtorrent { namespace detail
 						for (std::vector<tcp::endpoint>::const_iterator i = processing->peers.begin();
 							i != processing->peers.end(); ++i)
 						{
-							processing->torrent_ptr->get_policy().peer_from_tracker(*i, id);
+							processing->torrent_ptr->get_policy().peer_from_tracker(*i, id
+								, peer_info::resume_data, 0);
 						}
 					}
 					else
@@ -467,8 +468,7 @@ namespace libtorrent { namespace detail
 	{
 		seed_random_generator()
 		{
-			std::srand((unsigned int)(boost::posix_time::microsec_clock::
-				universal_time().time_of_day().total_microseconds()));
+			std::srand(total_microseconds(time_now() - min_time()));
 		}
 	};
 
@@ -489,7 +489,7 @@ namespace libtorrent { namespace detail
 		, m_half_open_limit(-1)
 		, m_incoming_connection(false)
 		, m_files(40)
-		, m_last_tick(microsec_clock::universal_time())
+		, m_last_tick(time_now())
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_same_port(true)
 		, m_external_udp_port(0)
@@ -499,15 +499,15 @@ namespace libtorrent { namespace detail
 		, m_upnp(m_io_service, m_listen_interface.address()
 			, m_settings.user_agent
 			, bind(&session_impl::on_port_mapping, this, _1, _2, _3))
+		, m_lsd(m_io_service, m_listen_interface.address()
+			, bind(&session_impl::on_lsd_peer, this, _1, _2))
 		, m_timer(m_io_service)
 		, m_checker_impl(*this)
 	{
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		m_logger = create_log("main_session", listen_port(), false);
-		using boost::posix_time::second_clock;
-		using boost::posix_time::to_simple_string;
-		(*m_logger) << to_simple_string(second_clock::universal_time()) << "\n";
+		(*m_logger) << time_now_string() << "\n";
 		
 		m_stats_logger = create_log("session_stats", listen_port(), false);
 		(*m_stats_logger) <<
@@ -689,8 +689,6 @@ namespace libtorrent { namespace detail
 				<< " external port: " << m_external_listen_port << "\n";
 		}
 #endif
-		m_natpmp.set_mappings(m_listen_interface.port(), 0);
-		m_upnp.set_mappings(m_listen_interface.port(), 0);
 		if (m_listen_socket) async_accept();
 	}
 
@@ -774,7 +772,7 @@ namespace libtorrent { namespace detail
 		}
 
 		boost::intrusive_ptr<peer_connection> c(
-			new bt_peer_connection(*this, s));
+			new bt_peer_connection(*this, s, 0));
 #ifndef NDEBUG
 		c->m_in_constructor = false;
 #endif
@@ -918,9 +916,8 @@ namespace libtorrent { namespace detail
 		}
 
 		if (m_abort) return;
-		float tick_interval = (microsec_clock::universal_time()
-			- m_last_tick).total_milliseconds() / 1000.f;
-		m_last_tick = microsec_clock::universal_time();
+		float tick_interval = total_microseconds(time_now() - m_last_tick) / 1000000.f;
+		m_last_tick = time_now();
 
 		m_timer.expires_from_now(seconds(1));
 		m_timer.async_wait(m_strand.wrap(
@@ -1057,9 +1054,11 @@ namespace libtorrent { namespace detail
 		{
 			session_impl::mutex_t::scoped_lock l(m_mutex);
 			open_listen_port();
+			m_natpmp.set_mappings(m_listen_interface.port(), 0);
+			m_upnp.set_mappings(m_listen_interface.port(), 0);
 		}
 
-		boost::posix_time::ptime timer = second_clock::universal_time();
+		ptime timer = time_now();
 
 		do
 		{
@@ -1113,14 +1112,14 @@ namespace libtorrent { namespace detail
 			}
 		}
 
-		ptime start(microsec_clock::universal_time());
+		ptime start(time_now());
 		l.unlock();
 
-		while (microsec_clock::universal_time() - start < seconds(
+		while (time_now() - start < seconds(
 			m_settings.stop_tracker_timeout)
 			&& !m_tracker_manager.empty())
 		{
-			tracker_timer.expires_from_now(boost::posix_time::milliseconds(100));
+			tracker_timer.expires_from_now(milliseconds(100));
 			tracker_timer.async_wait(m_strand.wrap(
 				bind(&io_service::stop, &m_io_service)));
 
@@ -1272,6 +1271,7 @@ namespace libtorrent { namespace detail
 			new torrent(*this, m_checker_impl, ti, save_path
 				, m_listen_interface, compact_mode, block_size
 				, settings(), sc));
+		torrent_ptr->start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -1359,6 +1359,7 @@ namespace libtorrent { namespace detail
 			new torrent(*this, m_checker_impl, tracker_url, info_hash, name
 			, save_path, m_listen_interface, compact_mode, block_size
 			, settings(), sc));
+		torrent_ptr->start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -1460,12 +1461,22 @@ namespace libtorrent { namespace detail
 		if (m_listen_socket)
 			m_listen_socket.reset();
 			
-		bool new_listen_address = m_listen_interface.address() != new_interface.address();
-
 		m_incoming_connection = false;
 		m_listen_interface = new_interface;
 
 		open_listen_port();
+
+		bool new_listen_address = m_listen_interface.address() != new_interface.address();
+
+		if (new_listen_address)
+		{
+			m_natpmp.rebind(new_interface.address());
+			m_upnp.rebind(new_interface.address());
+			m_lsd.rebind(new_interface.address());
+		}
+
+		m_natpmp.set_mappings(m_listen_interface.port(), 0);
+		m_upnp.set_mappings(m_listen_interface.port(), 0);
 
 #ifndef TORRENT_DISABLE_DHT
 		if ((new_listen_address || m_dht_same_port) && m_dht)
@@ -1475,11 +1486,6 @@ namespace libtorrent { namespace detail
 			// the listen interface changed, rebind the dht listen socket as well
 			m_dht->rebind(new_interface.address()
 				, m_dht_settings.service_port);
-			if (new_listen_address)
-			{
-				m_natpmp.rebind(new_interface.address());
-				m_upnp.rebind(new_interface.address());
-			}
 			m_natpmp.set_mappings(0, m_dht_settings.service_port);
 			m_upnp.set_mappings(0, m_dht_settings.service_port);
 		}
@@ -1487,9 +1493,7 @@ namespace libtorrent { namespace detail
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		m_logger = create_log("main_session", listen_port(), false);
-		using boost::posix_time::second_clock;
-		using boost::posix_time::to_simple_string;
-		(*m_logger) << to_simple_string(second_clock::universal_time()) << "\n";
+		(*m_logger) << time_now_string() << "\n";
 #endif
 
 		return m_listen_socket;
@@ -1499,6 +1503,27 @@ namespace libtorrent { namespace detail
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		return m_external_listen_port;
+	}
+
+	void session_impl::announce_lsd(sha1_hash const& ih)
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		// use internal listen port for local peers
+		m_lsd.announce(ih, m_listen_interface.port());
+	}
+
+	void session_impl::on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih)
+	{
+		mutex_t::scoped_lock l(m_mutex);
+
+		boost::shared_ptr<torrent> t = find_torrent(ih).lock();
+		if (!t) return;
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string()
+			<< ": added peer from local discovery: " << peer << "\n";
+#endif
+		t->get_policy().peer_from_tracker(peer, peer_id(0), peer_info::lsd, 0);
 	}
 
 	void session_impl::on_port_mapping(int tcp_port, int udp_port
@@ -1700,6 +1725,8 @@ namespace libtorrent { namespace detail
 		l.unlock();
 
 		m_thread->join();
+
+		assert(m_torrents.empty());
 
 		// it's important that the main thread is closed completely before
 		// the checker thread is terminated. Because all the connections

@@ -130,6 +130,12 @@ namespace libtorrent
 		// decreases the peer count for the given piece
 		// (used when a peer disconnects)
 		void dec_refcount(int index);
+		
+		// these will increase and decrease the peer count
+		// of all pieces. They are used when seeds join
+		// or leave the swarm.
+		void inc_refcount_all();
+		void dec_refcount_all();
 
 		// This indicates that we just received this piece
 		// it means that the refcounter will indicate that
@@ -208,6 +214,7 @@ namespace libtorrent
 
 		// the number of filtered pieces we already have
 		int num_have_filtered() const { return m_num_have_filtered; }
+
 #ifndef NDEBUG
 		// used in debug mode
 		void check_invariant(const torrent* t = 0) const;

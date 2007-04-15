@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/exception.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/bind.hpp>
 #include <boost/program_options.hpp>
 #include <boost/regex.hpp>
@@ -162,6 +161,16 @@ std::string esc(char const* code)
 #endif
 }
 
+std::string to_string(int v, int width)
+{
+	std::stringstream s;
+	s.flags(std::ios_base::right);
+	s.width(width);
+	s.fill('0');
+	s << v;
+	return s.str();
+}
+
 std::string to_string(float v, int width, int precision = 3)
 {
 	std::stringstream s;
@@ -245,9 +254,7 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
-#ifndef ANSI_TERMINAL_COLORS
-	out << " down    (total)   up      (total)  q  r  flags  block progress country client \n";
-#endif
+	out << " down    (total)   up      (total)  q  r  flags  source fail block-progress country client \n";
 
 	for (std::vector<peer_info>::const_iterator i = peers.begin();
 		i != peers.end(); ++i)
@@ -273,7 +280,15 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			<< ((i->flags & peer_info::rc4_encrypted)?'E':
 				(i->flags & peer_info::plaintext_encrypted)?'e':'.')
 #endif
-			<< " ";
+			<< " "
+			<< ((i->source & peer_info::tracker)?"T":"_")
+			<< ((i->source & peer_info::pex)?"P":"_")
+			<< ((i->source & peer_info::dht)?"D":"_")
+			<< ((i->source & peer_info::lsd)?"L":"_")
+			<< ((i->source & peer_info::resume_data)?"R":"_") << "  ";
+		out.width(2);
+		out.fill(' ');
+		out << (i->failcount) << "   ";
 
 		if (i->downloading_piece_index >= 0)
 		{
@@ -315,9 +330,6 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 
 typedef std::multimap<std::string, libtorrent::torrent_handle> handles_t;
 
-using boost::posix_time::ptime;
-using boost::posix_time::second_clock;
-using boost::posix_time::seconds;
 using boost::bind;
 using boost::filesystem::path;
 using boost::filesystem::exists;
@@ -584,7 +596,7 @@ int main(int ac, char* av[])
 
 		std::deque<std::string> events;
 
-		ptime next_dir_scan = second_clock::universal_time();
+		ptime next_dir_scan = time_now();
 
 		// the string is the filename of the .torrent file, but only if
 		// it was added through the directory monitor. It is used to
@@ -782,7 +794,7 @@ int main(int ac, char* av[])
 			// loop through the alert queue to see if anything has happened.
 			std::auto_ptr<alert> a;
 			a = ses.pop_alert();
-			std::string now = to_simple_string(second_clock::local_time());
+			std::string now = time_now_string();
 			while (a.get())
 			{
 				std::stringstream event_string;
@@ -922,8 +934,10 @@ int main(int ac, char* av[])
 				if (s.state != torrent_status::seeding)
 				{
 					boost::posix_time::time_duration t = s.next_announce;
-					out << "  next announce: " << esc("37") <<
-						boost::posix_time::to_simple_string(t) << esc("0") << " ";
+					out << "  next announce: " << esc("37")
+						<< to_string(t.hours(),2) << ":"
+						<< to_string(t.minutes(),2) << ":"
+						<< to_string(t.seconds(), 2) << esc("0") << " ";
 					out << "tracker: " << s.current_tracker << "\n";
 				}
 
@@ -1004,11 +1018,11 @@ int main(int ac, char* av[])
 			puts(out.str().c_str());
 
 			if (!monitor_dir.empty()
-				&& next_dir_scan < second_clock::universal_time())
+				&& next_dir_scan < time_now())
 			{
 				scan_dir(monitor_dir, ses, handles, preferred_ratio
 					, compact_allocation_mode, save_path);
-				next_dir_scan = second_clock::universal_time() + seconds(poll_interval);
+				next_dir_scan = time_now() + seconds(poll_interval);
 			}
 		}
 

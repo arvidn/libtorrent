@@ -27,7 +27,7 @@ AC_PROG_LIBTOOL
 
 dnl Make sure that the asio header files are added.
 ASIO_DIR=include/libtorrent/asio
-AC_CHECK_FILES([$ASIO_DIR/../asio.hpp $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp ],,AC_MSG_ERROR([ ASIO header files not found. Get them from asio.sourceforge.net and include or simlink them. Example: ln -s -t include/libtorrent/ ../../../asio/include/asio.hpp && ln -s -t include/libtorrent/ ../../../asio/include/asio  ]) )
+AC_CHECK_FILES([$ASIO_DIR/../asio.hpp $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp ],,AC_MSG_ERROR([ ASIO header files not found. Get them from asio.sourceforge.net and include or symlink them. Example: ln -s ../../../asio/include/asio.hpp include/libtorrent/asio.hpp && ln -s ../../../asio/include/asio include/libtorrent/asio ]) )
 dnl check asio version
 
 dnl Check for pthreads and boost libraries.
@@ -118,7 +118,7 @@ AC_ARG_WITH(
 	[[dht=$withval]],
 	[[dht=on]]
 )
-dnl Check the value for the --with-dht-support switch
+dnl Check the value for the --with-dht switch
 AC_MSG_CHECKING([how to use DHT])
 case "$dht" in
 	"on")
@@ -134,9 +134,10 @@ case "$dht" in
 		;;
 	*)
 		AC_MSG_RESULT()
-		AC_MSG_ERROR([Unknown dht-dupport option "$dht". Use either "on", "off" or "logging".])
+		AC_MSG_ERROR([Unknown dht option "$dht". Use either "on", "off" or "logging".])
 		;;
 esac
+AM_CONDITIONAL(USE_DHT, test "x$dht" != "xoff")
 
 dnl the user can choose which zlib to use
 AC_ARG_WITH(

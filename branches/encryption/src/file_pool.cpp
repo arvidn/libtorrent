@@ -45,17 +45,22 @@ namespace libtorrent
 	{
 		assert(st != 0);
 		assert(p.is_complete());
+		boost::mutex::scoped_lock l(m_mutex);
 		typedef nth_index<file_set, 0>::type path_view;
 		path_view& pt = get<0>(m_files);
 		path_view::iterator i = pt.find(p);
 		if (i != pt.end())
 		{
 			lru_file_entry e = *i;
-			e.last_use = pt::second_clock::universal_time();
+			e.last_use = time_now();
 
-			// if you hit this assert, you probably have more than one
-			// storage/torrent using the same file at the same time!
-			assert(e.key == st);
+			if (e.key != st)
+			{
+				// this means that another instance of the storage
+				// is using the exact same file.
+				throw file_error("torrent uses the same file as another torrent "
+					"(" + p.string() + ")");
+			}
 
 			e.key = st;
 			if ((e.mode & m) != m)
@@ -93,6 +98,7 @@ namespace libtorrent
 
 	void file_pool::release(void* st)
 	{
+		boost::mutex::scoped_lock l(m_mutex);
 		assert(st != 0);
 		using boost::tie;
 
@@ -108,6 +114,7 @@ namespace libtorrent
 	{
 		assert(size > 0);
 		if (size == m_size) return;
+		boost::mutex::scoped_lock l(m_mutex);
 		m_size = size;
 		if (int(m_files.size()) <= m_size) return;
 

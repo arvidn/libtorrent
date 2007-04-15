@@ -35,12 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/natpmp.hpp>
 #include <libtorrent/io.hpp>
 #include <boost/bind.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <asio/ip/host_name.hpp>
 
 using boost::bind;
 using namespace libtorrent;
-using boost::posix_time::microsec_clock;
 
 enum { num_mappings = 2 };
 
@@ -62,7 +60,7 @@ natpmp::natpmp(io_service& ios, address const& listen_interface, portmap_callbac
 	rebind(listen_interface);
 }
 
-void natpmp::rebind(address const& listen_interface)
+void natpmp::rebind(address const& listen_interface) try
 {
 	address_v4 local;
 	if (listen_interface.is_v4() && listen_interface != address_v4::from_string("0.0.0.0"))
@@ -81,12 +79,8 @@ void natpmp::rebind(address const& listen_interface)
 
 		if (i == udp::resolver_iterator())
 		{
-	#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-			m_log << "local host name did not resolve to an IPv4 address. "
-				"disabling NAT-PMP" << std::endl;
-	#endif
-			m_disabled = true;
-			return;
+			throw std::runtime_error("local host name did not resolve to an "
+				"IPv4 address. disabling NAT-PMP");
 		}
 
 		local = i->endpoint().address().to_v4();
@@ -96,7 +90,7 @@ void natpmp::rebind(address const& listen_interface)
 	m_socket.bind(udp::endpoint(local, 0));
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << to_simple_string(microsec_clock::universal_time())
+	m_log << time_now_string()
 		<< " local ip: " << local.to_string() << std::endl;
 #endif
 
@@ -106,11 +100,7 @@ void natpmp::rebind(address const& listen_interface)
 	{
 		// the local address seems to be an external
 		// internet address. Assume it is not behind a NAT
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << "not on a NAT. disabling NAT-PMP" << std::endl;
-#endif
-		m_disabled = true;
-		return;
+		throw std::runtime_error("local IP is not on a local network");
 	}
 
 	m_disabled = false;
@@ -135,6 +125,16 @@ void natpmp::rebind(address const& listen_interface)
 			continue;
 		refresh_mapping(i);
 	}
+}
+catch (std::exception& e)
+{
+	m_disabled = true;
+	std::stringstream msg;
+	msg << "NAT-PMP disabled: " << e.what();
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+	m_log << msg.str() << std::endl;
+#endif
+	m_callback(0, 0, msg.str());
 }
 
 void natpmp::set_mappings(int tcp, int udp)
@@ -169,7 +169,6 @@ void natpmp::update_mapping(int i, int port)
 void natpmp::send_map_request(int i) try
 {
 	using namespace libtorrent::detail;
-	using boost::posix_time::milliseconds;
 
 	assert(m_currently_mapping == -1
 		|| m_currently_mapping == i);
@@ -186,7 +185,7 @@ void natpmp::send_map_request(int i) try
 	write_uint32(ttl, out); // port mapping lifetime
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << to_simple_string(microsec_clock::universal_time())
+	m_log << time_now_string()
 		<< " ==> port map request: " << (m.protocol == 1 ? "udp" : "tcp")
 		<< " local: " << m.local_port << " external: " << m.external_port
 		<< " ttl: " << ttl << std::endl;
@@ -205,14 +204,13 @@ catch (std::exception& e)
 
 void natpmp::resend_request(int i, asio::error_code const& e)
 {
-	using boost::posix_time::hours;
 	if (e) return;
+	if (m_currently_mapping != i) return;
 	if (m_retry_count >= 9)
 	{
 		m_mappings[i].need_update = false;
 		// try again in two hours
-		m_mappings[i].expires
-			= boost::posix_time::second_clock::universal_time() + hours(2);
+		m_mappings[i].expires = time_now() + hours(2);
 		return;
 	}
 	send_map_request(i);
@@ -222,7 +220,6 @@ void natpmp::on_reply(asio::error_code const& e
 	, std::size_t bytes_transferred)
 {
 	using namespace libtorrent::detail;
-	using boost::posix_time::seconds;
 	if (e) return;
 
 	try
@@ -253,7 +250,7 @@ void natpmp::on_reply(asio::error_code const& e
 		(void)time; // to remove warning
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << to_simple_string(microsec_clock::universal_time())
+		m_log << time_now_string()
 			<< " <== port map response: " << (cmd - 128 == 1 ? "udp" : "tcp")
 			<< " local: " << private_port << " external: " << public_port
 			<< " ttl: " << lifetime << std::endl;
@@ -288,8 +285,7 @@ void natpmp::on_reply(asio::error_code const& e
 		}
 		else
 		{
-			m.expires = boost::posix_time::second_clock::universal_time()
-				+ seconds(int(lifetime * 0.7f));
+			m.expires = time_now() + seconds(int(lifetime * 0.7f));
 			m.external_port = public_port;
 		}
 		
@@ -323,24 +319,22 @@ void natpmp::on_reply(asio::error_code const& e
 	}
 	catch (std::exception& e)
 	{
-		using boost::posix_time::hours;
 		// try again in two hours
-		m_mappings[m_currently_mapping].expires
-			= boost::posix_time::second_clock::universal_time() + hours(2);
+		m_mappings[m_currently_mapping].expires = time_now() + hours(2);
 		m_callback(0, 0, e.what());
 	}
 	int i = m_currently_mapping;
 	m_currently_mapping = -1;
 	m_mappings[i].need_update = false;
+	m_send_timer.cancel();
 	update_expiration_timer();
 	try_next_mapping(i);
 }
 
 void natpmp::update_expiration_timer()
 {
-	using boost::posix_time::seconds;
-	boost::posix_time::ptime now = boost::posix_time::second_clock::universal_time();
-	boost::posix_time::ptime min_expire = now + seconds(3600);
+	ptime now = time_now();
+	ptime min_expire = now + seconds(3600);
 	int min_index = -1;
 	for (int i = 0; i < num_mappings; ++i)
 		if (m_mappings[i].expires < min_expire

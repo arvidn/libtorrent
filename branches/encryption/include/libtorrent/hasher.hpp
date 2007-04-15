@@ -40,17 +40,25 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "zlib.h"
 
+#ifdef TORRENT_USE_OPENSSL
+extern "C"
+{
+#include <openssl/sha.h>
+}
+#else
 // from sha1.cpp
-struct TORRENT_EXPORT SHA1_CTX
+struct TORRENT_EXPORT SHA_CTX
 {
 	boost::uint32_t state[5];
 	boost::uint32_t count[2];
 	boost::uint8_t buffer[64];
 };
 
-TORRENT_EXPORT void SHA1Init(SHA1_CTX* context);
-TORRENT_EXPORT void SHA1Update(SHA1_CTX* context, boost::uint8_t const* data, boost::uint32_t len);
-TORRENT_EXPORT void SHA1Final(SHA1_CTX* context, boost::uint8_t* digest);
+TORRENT_EXPORT void SHA1_Init(SHA_CTX* context);
+TORRENT_EXPORT void SHA1_Update(SHA_CTX* context, boost::uint8_t const* data, boost::uint32_t len);
+TORRENT_EXPORT void SHA1_Final(boost::uint8_t* digest, SHA_CTX* context);
+
+#endif
 
 namespace libtorrent
 {
@@ -79,33 +87,33 @@ namespace libtorrent
 	{
 	public:
 
-		hasher() { SHA1Init(&m_context); }
+		hasher() { SHA1_Init(&m_context); }
 		hasher(const char* data, int len)
 		{
-			SHA1Init(&m_context);
+			SHA1_Init(&m_context);
 			assert(data != 0);
 			assert(len > 0);
-			SHA1Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
+			SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
 		}
 		void update(const char* data, int len)
 		{
 			assert(data != 0);
 			assert(len > 0);
-			SHA1Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
+			SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
 		}
 
 		sha1_hash final()
 		{
 			sha1_hash digest;
-			SHA1Final(&m_context, digest.begin());
+			SHA1_Final(digest.begin(), &m_context);
 			return digest;
 		}
 
-		void reset() { SHA1Init(&m_context); }
+		void reset() { SHA1_Init(&m_context); }
 
 	private:
 
-		SHA1_CTX m_context;
+		SHA_CTX m_context;
 
 	};
 }

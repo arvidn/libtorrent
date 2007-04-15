@@ -79,7 +79,7 @@
 <li><a class="reference" href="#connect-peer" id="id62" name="id62">connect_peer()</a></li>
 <li><a class="reference" href="#name" id="id63" name="id63">name()</a></li>
 <li><a class="reference" href="#set-ratio" id="id64" name="id64">set_ratio()</a></li>
-<li><a class="reference" href="#set-upload-limit-set-download-limit" id="id65" name="id65">set_upload_limit() set_download_limit()</a></li>
+<li><a class="reference" href="#set-upload-limit-set-download-limit-upload-limit-download-limit" id="id65" name="id65">set_upload_limit() set_download_limit() upload_limit() download_limit()</a></li>
 <li><a class="reference" href="#set-sequenced-download-threshold" id="id66" name="id66">set_sequenced_download_threshold()</a></li>
 <li><a class="reference" href="#set-peer-upload-limit-set-peer-download-limit" id="id67" name="id67">set_peer_upload_limit() set_peer_download_limit()</a></li>
 <li><a class="reference" href="#pause-resume-is-paused" id="id68" name="id68">pause() resume() is_paused()</a></li>
@@ -1117,7 +1117,8 @@ void print(std::ostream&amp; os) const;
 </pre>
 </blockquote>
 <p>The <tt class="docutils literal"><span class="pre">print()</span></tt> function is there for debug purposes only. It will print the info from
-the torrent file to the given outstream.</p>
+the torrent file to the given outstream. This function has been deprecated and will
+be removed from future releases.</p>
 </div>
 <div class="section">
 <h2><a id="trackers" name="trackers">trackers()</a></h2>
@@ -1243,7 +1244,7 @@ struct torrent_handle
 
         entry write_resume_data() const;
         void force_reannounce() const;
-        void connect_peer(asio::ip::tcp::endpoint const&amp; adr) const;
+        void connect_peer(asio::ip::tcp::endpoint const&amp; adr, int source = 0) const;
 
         void set_tracker_login(std::string const&amp; username
                 , std::string const&amp; password) const;
@@ -1257,7 +1258,9 @@ struct torrent_handle
         void set_max_uploads(int max_uploads) const;
         void set_max_connections(int max_connections) const;
         void set_upload_limit(int limit) const;
+        int upload_limit() const;
         void set_download_limit(int limit) const;
+        int download_limit() const;
         void set_sequenced_download_threshold(int threshold) const;
 
         void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
@@ -1405,14 +1408,16 @@ peers. If the torrent is invalid, queued or in checking mode, this functions wil
 <h2><a id="connect-peer" name="connect-peer">connect_peer()</a></h2>
 <blockquote>
 <pre class="literal-block">
-void connect_peer(asio::ip::tcp::endpoint const&amp; adr) const;
+void connect_peer(asio::ip::tcp::endpoint const&amp; adr, int source = 0) const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">connect_peer()</span></tt> is a way to manually connect to peers that one believe is a part of the
 torrent. If the peer does not respond, or is not a member of this torrent, it will simply
 be disconnected. No harm can be done by using this other than an unnecessary connection
 attempt is made. If the torrent is uninitialized or in queued or checking mode, this
-will throw <a class="reference" href="#invalid-handle">invalid_handle</a>.</p>
+will throw <a class="reference" href="#invalid-handle">invalid_handle</a>. The second (optional) argument will be bitwised ORed into
+the source mask of this peer. Typically this is one of the source flags in <a class="reference" href="#peer-info">peer_info</a>.
+i.e. <tt class="docutils literal"><span class="pre">tracker</span></tt>, <tt class="docutils literal"><span class="pre">pex</span></tt>, <tt class="docutils literal"><span class="pre">dht</span></tt> etc.</p>
 </div>
 <div class="section">
 <h2><a id="name" name="name">name()</a></h2>
@@ -1441,11 +1446,13 @@ attempt to upload in return for each download. e.g. if set to 2, the client will
 as a standard client.</p>
 </div>
 <div class="section">
-<h2><a id="set-upload-limit-set-download-limit" name="set-upload-limit-set-download-limit">set_upload_limit() set_download_limit()</a></h2>
+<h2><a id="set-upload-limit-set-download-limit-upload-limit-download-limit" name="set-upload-limit-set-download-limit-upload-limit-download-limit">set_upload_limit() set_download_limit() upload_limit() download_limit()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void set_upload_limit(int limit) const;
 void set_download_limit(int limit) const;
+int upload_limit() const;
+int download_limit() const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">set_upload_limit</span></tt> will limit the upload bandwidth used by this particular torrent to the
@@ -1454,6 +1461,8 @@ limit you set. It is given as the number of bytes per second the torrent is allo
 Note that setting a higher limit on a torrent then the global limit (<tt class="docutils literal"><span class="pre">session::set_upload_rate_limit</span></tt>)
 will not override the global rate limit. The torrent can never upload more than the global rate
 limit.</p>
+<p><tt class="docutils literal"><span class="pre">upload_limit</span></tt> and <tt class="docutils literal"><span class="pre">download_limit</span></tt> will return the current limit setting, for upload and
+download, respectively.</p>
 </div>
 <div class="section">
 <h2><a id="set-sequenced-download-threshold" name="set-sequenced-download-threshold">set_sequenced_download_threshold()</a></h2>
@@ -1888,8 +1897,9 @@ peers this client is connected to. The fractional part tells the share of
 pieces that have more copies than the rarest piece(s). For example: 2.5 would
 mean that the rarest pieces have only 2 copies among the peers this torrent is
 connected to, and that 50% of all the pieces have more than two copies.</p>
-<p>If sequenced download is activated (see <a class="reference" href="#torrent-handle">torrent_handle</a>), the distributed
-copies will be saturated at the <tt class="docutils literal"><span class="pre">sequenced_download_threshold</span></tt>.</p>
+<p>If we are a seed, the piece picker is deallocated as an optimization, and
+piece availability is no longer tracked. In this case the distributed
+copies is set to -1.</p>
 <p><tt class="docutils literal"><span class="pre">block_size</span></tt> is the size of a block, in bytes. A block is a sub piece, it
 is the number of bytes that each piece request asks for and the number of
 bytes that each bit in the <tt class="docutils literal"><span class="pre">partial_piece_info</span></tt>'s bitset represents
@@ -1914,7 +1924,19 @@ struct peer_info
                 connecting = 0x80,
                 queued = 0x100
         };
+
         unsigned int flags;
+
+        enum peer_source_flags
+        {
+                tracker = 0x1,
+                dht = 0x2,
+                pex = 0x4,
+                lsd = 0x8
+        };
+
+        int source;
+
         asio::ip::tcp::endpoint ip;
         float up_speed;
         float down_speed;
@@ -1994,6 +2016,33 @@ being connected).</td>
 <td>The connection is currently queued for a connection
 attempt. This may happen if there is a limit set on
 the number of half-open TCP connections.</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">source</span></tt> is a combination of flags describing from which sources this peer
+was received. The flags are:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="30%" />
+<col width="70%" />
+</colgroup>
+<tbody valign="top">
+<tr><td><tt class="docutils literal"><span class="pre">tracker</span></tt></td>
+<td>The peer was received from the tracker.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">dht</span></tt></td>
+<td>The peer was received from the kademlia DHT.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">pex</span></tt></td>
+<td>The peer was received from the peer exchange
+extension.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">lsd</span></tt></td>
+<td>The peer was received from the local service
+discovery (The peer is on the local network).</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">resume_data</span></tt></td>
+<td>The peer was added from the fast resume data.</td>
 </tr>
 </tbody>
 </table>
@@ -2078,6 +2127,8 @@ struct session_settings
         int urlseed_pipeline_size;
         int file_pool_size;
         bool allow_multiple_connections_per_ip;
+        int max_failcount;
+        int min_reconnect_time;
         bool use_dht_as_fallback;
 };
 </pre>
@@ -2153,6 +2204,12 @@ connections from the same IP address is not allowed by default, to prevent
 abusive behavior by peers. It may be useful to allow such connections in
 cases where simulations are run on the same machie, and all peers in a
 swarm has the same IP address.</p>
+<p><tt class="docutils literal"><span class="pre">max_failcount</span></tt> is the maximum times we try to connect to a peer before
+stop connecting again. If a peer succeeds, the failcounter is reset. If
+a peer is retrieved from a peer source (other than DHT) the failcount is
+decremented by one, allowing another try.</p>
+<p><tt class="docutils literal"><span class="pre">min_reconnect_time</span></tt> is the time to wait between connection attempts. If
+the peer fails, the time is multiplied by fail counter.</p>
 <p><tt class="docutils literal"><span class="pre">use_dht_as_fallback</span></tt> determines how the DHT is used. If this is true
 (which it is by default), the DHT will only be used for torrents where
 all trackers in its tracker list has failed. Either by an explicit error
@@ -2827,7 +2884,48 @@ struct fastresume_rejected_alert: torrent_alert
 </div>
 <div class="section">
 <h2><a id="dispatcher" name="dispatcher">dispatcher</a></h2>
-<p><em>TODO: describe the dispatcher mechanism</em></p>
+<p>The <tt class="docutils literal"><span class="pre">handle_alert</span></tt> class is defined in <tt class="docutils literal"><span class="pre">&lt;libtorrent/alert.hpp&gt;</span></tt>.</p>
+<p>Examples usage:</p>
+<pre class="literal-block">
+struct my_handler
+{
+        void operator()(portmap_error_alert const&amp; a)
+        {
+                std::cout &lt;&lt; &quot;Portmapper: &quot; &lt;&lt; a.msg &lt;&lt; std::endl;
+        }
+
+        void operator()(tracker_warning_alert const&amp; a)
+        {
+                std::cout &lt;&lt; &quot;Tracker warning: &quot; &lt;&lt; a.msg &lt;&lt; std::endl;
+        }
+
+        void operator()(torrent_finished_alert const&amp; a)
+        {
+                // write fast resume data
+                // ...
+
+                std::cout &lt;&lt; a.handle.get_torrent_info().name() &lt;&lt; &quot;completed&quot;
+                        &lt;&lt; std::endl;
+        }
+};
+</pre>
+<pre class="literal-block">
+std::auto_ptr&lt;alert&gt; a;
+a = ses.pop_alert();
+my_handler h;
+while (a.get())
+{
+        handle_alert&lt;portmap_error_alert
+                , tracker_warning_alert
+                , torrent_finished_alert
+        &gt;::handle_alert(h, a);
+        a = ses.pop_alert();
+}
+</pre>
+<p>In this example 3 alert types are used. You can use any number of template
+parameters to select between more types. If the number of types are more than
+15, you can define <tt class="docutils literal"><span class="pre">TORRENT_MAX_ALERT_TYPES</span></tt> to a greater number before
+including <tt class="docutils literal"><span class="pre">&lt;libtorrent/alert.hpp&gt;</span></tt>.</p>
 </div>
 </div>
 <div class="section">

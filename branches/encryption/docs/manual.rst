@@ -1045,7 +1045,8 @@ print()
 		void print(std::ostream& os) const;
 
 The ``print()`` function is there for debug purposes only. It will print the info from
-the torrent file to the given outstream.
+the torrent file to the given outstream. This function has been deprecated and will
+be removed from future releases.
 
 
 trackers()
@@ -1187,7 +1188,7 @@ Its declaration looks like this::
 
 		entry write_resume_data() const;
 		void force_reannounce() const;
-		void connect_peer(asio::ip::tcp::endpoint const& adr) const;
+		void connect_peer(asio::ip::tcp::endpoint const& adr, int source = 0) const;
 
 		void set_tracker_login(std::string const& username
 			, std::string const& password) const;
@@ -1201,7 +1202,9 @@ Its declaration looks like this::
 		void set_max_uploads(int max_uploads) const;
 		void set_max_connections(int max_connections) const;
 		void set_upload_limit(int limit) const;
+		int upload_limit() const;
 		void set_download_limit(int limit) const;
+		int download_limit() const;
 		void set_sequenced_download_threshold(int threshold) const;
 
 		void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
@@ -1358,13 +1361,15 @@ connect_peer()
 
 	::
 
-		void connect_peer(asio::ip::tcp::endpoint const& adr) const;
+		void connect_peer(asio::ip::tcp::endpoint const& adr, int source = 0) const;
 
 ``connect_peer()`` is a way to manually connect to peers that one believe is a part of the
 torrent. If the peer does not respond, or is not a member of this torrent, it will simply
 be disconnected. No harm can be done by using this other than an unnecessary connection
 attempt is made. If the torrent is uninitialized or in queued or checking mode, this
-will throw invalid_handle_.
+will throw invalid_handle_. The second (optional) argument will be bitwised ORed into
+the source mask of this peer. Typically this is one of the source flags in peer_info_.
+i.e. ``tracker``, ``pex``, ``dht`` etc.
 
 
 name()
@@ -1396,13 +1401,15 @@ attempt to upload in return for each download. e.g. if set to 2, the client will
 as a standard client.
 
 
-set_upload_limit() set_download_limit()
----------------------------------------
+set_upload_limit() set_download_limit() upload_limit() download_limit()
+-----------------------------------------------------------------------
 
 	::
 
 		void set_upload_limit(int limit) const;
 		void set_download_limit(int limit) const;
+		int upload_limit() const;
+		int download_limit() const;
 
 ``set_upload_limit`` will limit the upload bandwidth used by this particular torrent to the
 limit you set. It is given as the number of bytes per second the torrent is allowed to upload.
@@ -1410,6 +1417,9 @@ limit you set. It is given as the number of bytes per second the torrent is allo
 Note that setting a higher limit on a torrent then the global limit (``session::set_upload_rate_limit``)
 will not override the global rate limit. The torrent can never upload more than the global rate
 limit.
+
+``upload_limit`` and ``download_limit`` will return the current limit setting, for upload and
+download, respectively.
 
 
 set_sequenced_download_threshold()
@@ -1871,8 +1881,9 @@ pieces that have more copies than the rarest piece(s). For example: 2.5 would
 mean that the rarest pieces have only 2 copies among the peers this torrent is
 connected to, and that 50% of all the pieces have more than two copies.
 
-If sequenced download is activated (see torrent_handle_), the distributed
-copies will be saturated at the ``sequenced_download_threshold``.
+If we are a seed, the piece picker is deallocated as an optimization, and
+piece availability is no longer tracked. In this case the distributed
+copies is set to -1.
 
 ``block_size`` is the size of a block, in bytes. A block is a sub piece, it
 is the number of bytes that each piece request asks for and the number of
@@ -1899,7 +1910,19 @@ It contains the following fields::
 			connecting = 0x80,
 			queued = 0x100
 		};
+
 		unsigned int flags;
+
+		enum peer_source_flags
+		{
+			tracker = 0x1,
+			dht = 0x2,
+			pex = 0x4,
+			lsd = 0x8
+		};
+
+		int source;
+
 		asio::ip::tcp::endpoint ip;
 		float up_speed;
 		float down_speed;
@@ -1969,6 +1992,23 @@ any combination of the enums above. The following table describes each flag:
 +-------------------------+-------------------------------------------------------+
 
 __ extension_protocol.html
+
+``source`` is a combination of flags describing from which sources this peer
+was received. The flags are:
+
++------------------------+--------------------------------------------------------+
+| ``tracker``            | The peer was received from the tracker.                |
++------------------------+--------------------------------------------------------+
+| ``dht``                | The peer was received from the kademlia DHT.           |
++------------------------+--------------------------------------------------------+
+| ``pex``                | The peer was received from the peer exchange           |
+|                        | extension.                                             |
++------------------------+--------------------------------------------------------+
+| ``lsd``                | The peer was received from the local service           |
+|                        | discovery (The peer is on the local network).          |
++------------------------+--------------------------------------------------------+
+| ``resume_data``        | The peer was added from the fast resume data.          |
++------------------------+--------------------------------------------------------+
 
 The ``ip`` field is the IP-address to this peer. The type is an asio endpoint. For
 more info, see the asio_ documentation.
@@ -2072,6 +2112,8 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int urlseed_pipeline_size;
 		int file_pool_size;
 		bool allow_multiple_connections_per_ip;
+		int max_failcount;
+		int min_reconnect_time;
 		bool use_dht_as_fallback;
 	};
 
@@ -2164,6 +2206,14 @@ connections from the same IP address is not allowed by default, to prevent
 abusive behavior by peers. It may be useful to allow such connections in
 cases where simulations are run on the same machie, and all peers in a
 swarm has the same IP address.
+
+``max_failcount`` is the maximum times we try to connect to a peer before
+stop connecting again. If a peer succeeds, the failcounter is reset. If
+a peer is retrieved from a peer source (other than DHT) the failcount is
+decremented by one, allowing another try.
+
+``min_reconnect_time`` is the time to wait between connection attempts. If
+the peer fails, the time is multiplied by fail counter.
 
 ``use_dht_as_fallback`` determines how the DHT is used. If this is true
 (which it is by default), the DHT will only be used for torrents where
@@ -2924,8 +2974,50 @@ resume file was rejected. It is generated at severity level ``warning``.
 dispatcher
 ----------
 
-*TODO: describe the dispatcher mechanism*
+The ``handle_alert`` class is defined in ``<libtorrent/alert.hpp>``.
 
+Examples usage::
+
+	struct my_handler
+	{
+		void operator()(portmap_error_alert const& a)
+		{
+			std::cout << "Portmapper: " << a.msg << std::endl;
+		}
+
+		void operator()(tracker_warning_alert const& a)
+		{
+			std::cout << "Tracker warning: " << a.msg << std::endl;
+		}
+
+		void operator()(torrent_finished_alert const& a)
+		{
+			// write fast resume data
+			// ...
+
+			std::cout << a.handle.get_torrent_info().name() << "completed"
+				<< std::endl;
+		}
+	};
+
+::
+
+	std::auto_ptr<alert> a;
+	a = ses.pop_alert();
+	my_handler h;
+	while (a.get())
+	{
+		handle_alert<portmap_error_alert
+			, tracker_warning_alert
+			, torrent_finished_alert
+		>::handle_alert(h, a);
+		a = ses.pop_alert();
+	}
+
+In this example 3 alert types are used. You can use any number of template
+parameters to select between more types. If the number of types are more than
+15, you can define ``TORRENT_MAX_ALERT_TYPES`` to a greater number before
+including ``<libtorrent/alert.hpp>``.
 
 
 exceptions
