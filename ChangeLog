@@ -1,3 +1,4 @@
+	* optimized the piece picker in the case where a peer is a seed.
 	* added support for local peer discovery
 	* removed the dependency on the compiled boost.date_time library
 	* deprecated torrent_info::print()
