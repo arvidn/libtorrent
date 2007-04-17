@@ -998,6 +998,15 @@ namespace libtorrent
 				// because of the push_back()
 				i = boost::prior(m_peers.end());
 				if (flags & 0x02) p.seed = true;
+
+				// try to send a DHT ping to this peer
+				// as well, to figure out if it supports
+				// DHT (uTorrent and BitComet doesn't
+				// advertise support)
+#ifndef TORRENT_DISABLE_DHT
+				udp::endpoint node(remote.address(), remote.port());
+				m_torrent->session().add_dht_node(node);
+#endif
 			}
 			else
 			{
