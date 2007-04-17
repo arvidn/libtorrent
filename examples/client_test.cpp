@@ -673,15 +673,16 @@ int main(int ac, char* av[])
 				if (line[0] == '#') continue;
 				int a, b, c, d;
 				char dummy;
-				in >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
+				std::stringstream ln(line);
+				ln >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
 				address_v4 start((a << 24) + (b << 16) + (c << 8) + d);
-				in >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
+				ln >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
 				address_v4 last((a << 24) + (b << 16) + (c << 8) + d);
 				int flags;
-				in >> flags;
+				ln >> flags;
 				if (flags <= 127) flags = ip_filter::blocked;
 				else flags = 0;
-				if (in.fail()) break;
+				if (ln.fail()) break;
 				filter.add_rule(start, last, flags);
 			}
 			ses.set_ip_filter(filter);
@@ -834,6 +835,10 @@ int main(int ac, char* av[])
 				else if (url_seed_alert* p = dynamic_cast<url_seed_alert*>(a.get()))
 				{
 					event_string << "web seed '" << p->url << "': " << p->msg();
+				}
+				else if (peer_blocked_alert* p = dynamic_cast<peer_blocked_alert*>(a.get()))
+				{
+					event_string << "(" << p->ip << ") " << p->msg();
 				}
 				else
 				{
