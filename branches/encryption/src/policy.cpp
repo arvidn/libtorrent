@@ -1385,7 +1385,7 @@ namespace libtorrent
 		: ip(ip_)
 		, type(t)
 #ifndef TORRENT_DISABLE_ENCRYPTION
-		, pe_support(peer::unknown)
+		, pe_support(true)
 #endif
 		, failcount(0)
 		, seed(false)

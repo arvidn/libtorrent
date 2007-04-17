@@ -60,24 +60,6 @@ using boost::bind;
 using boost::shared_ptr;
 using libtorrent::aux::session_impl;
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
-namespace
-{
-	using namespace libtorrent;
-	struct match_peer_connection
-	{
-		match_peer_connection(peer_connection const& c)
-			: m_conn(c)
-		{}
-
-		bool operator()(policy::peer const& p) const
-		{ return p.connection == &m_conn; }
-
-		const peer_connection& m_conn;
-	};
-}
-#endif
-
 namespace libtorrent
 {
 	const bt_peer_connection::message_handler
@@ -139,24 +121,27 @@ namespace libtorrent
 		}
 		else if (out_enc_policy == pe_settings::enabled)
 		{
-			boost::shared_ptr<torrent> t = tor.lock();
-			assert(t);
+			assert(peer_info_struct());
 
-			policy& p = t->get_policy();
-			policy::iterator i = std::find_if(p.begin_peer(), p.end_peer()
-											  , match_peer_connection(*this));
-			assert(i != p.end_peer());
-			
-			if ((*i).pe_support == policy::peer::unknown || 
-				(*i).pe_support == policy::peer::yes)
+			policy::peer* pi = peer_info_struct();
+			if (pi->pe_support == true)
 			{
+				// toggle encryption support flag, toggled back to
+				// true if encrypted portion of the handshake
+				// completes correctly
+				pi->pe_support = !(pi->pe_support);
+
 				write_pe1_2_dhkey();
 				m_state = read_pe_dhkey;
 				reset_recv_buffer(dh_key_len);
 				setup_receive();
 			}
-			else // (*i).pe_support == no
+			else // pi->pe_support == false
 			{
+				// toggled back to false if standard handshake
+				// completes correctly (without encryption)
+				pi->pe_support = !(pi->pe_support);
+
 				write_handshake();
 				reset_recv_buffer(20);
 				setup_receive();
@@ -208,8 +193,13 @@ namespace libtorrent
 		// that are part of a torrent. Since this is an incoming
 		// connection, we have to give it some initial bandwidth
 		// to send the handshake.
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		m_bandwidth_limit[download_channel].assign(2048);
 		m_bandwidth_limit[upload_channel].assign(2048);
+#else
+		m_bandwidth_limit[download_channel].assign(80);
+		m_bandwidth_limit[upload_channel].assign(80);
+#endif
 
 		// start in the state where we are trying to read the
 		// handshake from the other side
@@ -1442,13 +1432,6 @@ namespace libtorrent
 
 			if (is_local())
 			{
-				// mark peer as supporting encryption
-				policy& p = t->get_policy();
-				policy::iterator i = std::find_if(p.begin_peer(), p.end_peer()
-												  , match_peer_connection(*this));
-				assert(i != p.end_peer());
-				(*i).pe_support = policy::peer::yes;
-				
 				write_pe3_sync();
 
 				// initial payload is the standard handshake, this is
@@ -1860,6 +1843,18 @@ namespace libtorrent
 			// payload stream, start with 20 handshake bytes
 			m_state = read_protocol_identifier;
 			reset_recv_buffer(20);
+
+			// encrypted portion of handshake completed, toggle
+			// peer_info pe_support flag back to true
+			if (is_local() &&
+				m_ses.get_pe_settings().out_enc_policy == pe_settings::enabled)
+			{
+				policy::peer* pi = peer_info_struct();
+				assert(pi);
+				assert(pi->pe_support == false);
+				
+				pi->pe_support = !(pi->pe_support);
+			}
 		}
 
 #endif // #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -2100,6 +2095,21 @@ namespace libtorrent
 #endif
 			// consider this a successful connection, reset the failcount
 			if (peer_info_struct()) peer_info_struct()->failcount = 0;
+			
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			// Toggle pe_support back to false if this is a
+			// standard successful connection
+			if (is_local() && !m_encrypted &&
+				m_ses.get_pe_settings().out_enc_policy == pe_settings::enabled)
+			{
+				policy::peer* pi = peer_info_struct();
+				assert(pi);
+				assert(pi->pe_support == true);
+
+				pi->pe_support = !(pi->pe_support);
+			}
+#endif
+
 			m_state = read_packet_size;
 			reset_recv_buffer(4);
 

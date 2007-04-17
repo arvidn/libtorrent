@@ -123,10 +123,6 @@ namespace libtorrent
 		{
 			enum connection_type { not_connectable,connectable };
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
-			enum pe_support_type { unknown, yes, no };	
-#endif
-
 			peer(const tcp::endpoint& ip, connection_type t, int src);
 
 			size_type total_download() const;
@@ -140,10 +136,15 @@ namespace libtorrent
 			connection_type type;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
-			// known encryption support of peer. If an attempt to
-			// establish an encrypted connection fails, this is
-			// updated
-			pe_support_type pe_support;
+			// Hints encryption support of peer. Only effective for
+			// and when the outgoing encryption policy allows both
+			// encrypted and non encrypted connections
+			// (pe_settings::out_enc_policy == enabled). The initial
+			// state of this flag determines the initial connection
+			// attempt type (true = encrypted, false = standard).
+			// This will be toggled everytime either an encrypted or
+			// non-encrypted handshake fails.
+			bool pe_support;
 #endif
 			// the number of failed connection attempts this peer has
 			int failcount;

@@ -218,7 +218,7 @@ namespace libtorrent
 		};
 
 		pe_settings()
-			: out_enc_policy(forced)
+			: out_enc_policy(enabled)
 			, in_enc_policy(enabled)
 			, allowed_enc_level(both)
 			, prefer_rc4(false)
