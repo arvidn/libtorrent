@@ -1240,6 +1240,7 @@ namespace libtorrent
 		{
 			p.downloading = 1;
 			if (prio > 0) move(prio, p.index);
+			else add(block.piece_index);
 
 			downloading_piece dp;
 			dp.index = block.piece_index;
