@@ -123,8 +123,6 @@ else
 	SOURCES += file ;
 }
 
-lib openssl_lib : : <name>crypto ;
-
 project torrent
 
 	: requirements
@@ -181,6 +179,6 @@ lib torrent
 	<dht-support>on:<source>src/$(KADEMLIA_SOURCES).cpp
 	<dht-support>logging:<source>src/$(KADEMLIA_SOURCES).cpp
 	<openssl>off:<source>src/sha1.cpp
-	<openssl>on:<library>openssl_lib
+	<openssl>on:<library>crypto
 	;
 
