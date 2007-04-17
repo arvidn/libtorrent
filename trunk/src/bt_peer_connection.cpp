@@ -836,12 +836,14 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " ==> BITFIELD ";
 
+		std::stringstream bitfield_string;
 		for (int i = 0; i < (int)get_bitfield().size(); ++i)
 		{
-			if (bitfield[i]) (*m_logger) << "1";
-			else (*m_logger) << "0";
+			if (bitfield[i]) bitfield_string << "1";
+			else bitfield_string << "0";
 		}
-		(*m_logger) << "\n";
+		bitfield_string << "\n";
+		(*m_logger) << bitfield_string.str();
 #endif
 		const int packet_size = ((int)bitfield.size() + 7) / 8 + 5;
 	
