@@ -560,7 +560,7 @@ namespace libtorrent { namespace detail
 	}
 #endif
 
-#ifndef TORRENT_DISABLE_DHT	
+#ifndef TORRENT_DISABLE_DHT
 	void session_impl::add_dht_node(udp::endpoint n)
 	{
 		if (m_dht) m_dht->add_node(n);
