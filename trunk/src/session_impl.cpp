@@ -597,6 +597,12 @@ namespace libtorrent { namespace detail
 #if defined(TORRENT_VERBOSE_LOGGING)
 				(*i->second->m_logger) << "*** CONNECTION FILTERED\n";
 #endif
+				if (m_alerts.should_post(alert::info))
+				{
+					m_alerts.post_alert(peer_blocked_alert(sender.address()
+						, "peer connection closed by IP filter"));
+				}
+
 				session_impl::connection_map::iterator j = i;
 				++i;
 				j->second->disconnect();
@@ -767,7 +773,11 @@ namespace libtorrent { namespace detail
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			(*m_logger) << "filtered blocked ip\n";
 #endif
-			// TODO: issue an info-alert when an ip is blocked!!
+			if (m_alerts.should_post(alert::info))
+			{
+				m_alerts.post_alert(peer_blocked_alert(endp.address()
+					, "incoming connection blocked by IP filter"));
+			}
 			return;
 		}
 
@@ -1018,15 +1028,13 @@ namespace libtorrent { namespace detail
 	catch (std::exception& exc)
 	{
 #ifndef NDEBUG
-		std::string err = exc.what();
+		std::cerr << exc.what() << std::endl;
+		assert(false);
 #endif
 	}; // msvc 7.1 seems to require this
 
 	void session_impl::connection_completed(
-		boost::intrusive_ptr<peer_connection> const& p)
-#ifndef NDEBUG
-	try
-#endif
+		boost::intrusive_ptr<peer_connection> const& p) try
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
@@ -1039,12 +1047,13 @@ namespace libtorrent { namespace detail
 
 		process_connection_queue();
 	}
-#ifndef NDEBUG
 	catch (std::exception& e)
 	{
+#ifndef NDEBUG
+		std::cerr << e.what() << std::endl;
 		assert(false);
-	};
 #endif
+	};
 
 	void session_impl::operator()()
 	{

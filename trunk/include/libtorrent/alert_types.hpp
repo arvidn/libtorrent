@@ -280,6 +280,20 @@ namespace libtorrent
 		{ return std::auto_ptr<alert>(new fastresume_rejected_alert(*this)); }
 	};
 
+	struct TORRENT_EXPORT peer_blocked_alert: alert
+	{
+		peer_blocked_alert(address const& ip_
+			, std::string const& msg)
+			: alert(alert::info, msg)
+			, ip(ip_)
+		{}
+		
+		address ip;
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new peer_blocked_alert(*this)); }
+	};
+
 }
 
 

@@ -573,6 +573,12 @@ namespace libtorrent
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 					debug_log("blocked ip from tracker: " + i->ip);
 #endif
+					if (m_ses.m_alerts.should_post(alert::info))
+					{
+						m_ses.m_alerts.post_alert(peer_blocked_alert(a.address()
+							, "peer from tracker blocked by IP filter"));
+					}
+
 					continue;
 				}
 			
@@ -615,6 +621,12 @@ namespace libtorrent
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			debug_log("blocked ip from tracker: " + host->endpoint().address().to_string());
 #endif
+			if (m_ses.m_alerts.should_post(alert::info))
+			{
+				m_ses.m_alerts.post_alert(peer_blocked_alert(host->endpoint().address()
+					, "peer from tracker blocked by IP filter"));
+			}
+
 			return;
 		}
 			
@@ -1394,19 +1406,22 @@ namespace libtorrent
 		if (m_ses.is_aborted()) return;
 
 		tcp::endpoint a(host->endpoint());
-
-		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
-		{
-			// TODO: post alert: "proxy at " + a.address().to_string() + " (" + hostname + ") blocked by ip filter");
-			return;
-		}
-
 		std::string protocol;
 		std::string hostname;
 		int port;
 		std::string path;
 		boost::tie(protocol, hostname, port, path)
 			= parse_url_components(url);
+
+		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
+		{
+			if (m_ses.m_alerts.should_post(alert::info))
+			{
+				m_ses.m_alerts.post_alert(peer_blocked_alert(a.address()
+					, "proxy (" + hostname + ") blocked by IP filter"));
+			}
+			return;
+		}
 
 		tcp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
 		m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
@@ -1456,7 +1471,11 @@ namespace libtorrent
 
 		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
 		{
-			// TODO: post alert: "web seed at " + a.address().to_string() + " blocked by ip filter");
+			if (m_ses.m_alerts.should_post(alert::info))
+			{
+				m_ses.m_alerts.post_alert(peer_blocked_alert(a.address()
+					, "web seed (" + url + ") blocked by IP filter"));
+			}
 			return;
 		}
 		
@@ -1841,7 +1860,14 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		tcp::endpoint const& a(peerinfo->ip);
 		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
+		{
+			if (m_ses.m_alerts.should_post(alert::info))
+			{
+				m_ses.m_alerts.post_alert(peer_blocked_alert(a.address()
+					, "peer connection blocked by IP filter"));
+			}
 			throw protocol_error(a.address().to_string() + " blocked by ip filter");
+		}
 
 		if (m_connections.find(a) != m_connections.end())
 			throw protocol_error("already connected to peer");

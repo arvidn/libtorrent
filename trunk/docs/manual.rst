@@ -345,6 +345,9 @@ connections based on their originating ip address. The default filter will allow
 connections to any ip address. To build a set of rules for which addresses are
 accepted and not, see ip_filter_.
 
+Each time a peer is blocked because of the IP filter, a peer_blocked_alert_ is
+generated.
+
 
 status()
 --------
@@ -2969,6 +2972,24 @@ resume file was rejected. It is generated at severity level ``warning``.
 		virtual std::auto_ptr<alert> clone() const;
 	};
 
+
+peer_blocked_alert
+------------------
+
+This alert is generated when a peer is blocked by the IP filter. It has the severity leve
+``info``. The ``ip`` member is the address that was blocked.
+
+::
+
+	struct peer_blocked_alert: alert
+	{
+		peer_blocked_alert(address const& ip_
+			, std::string const& msg);
+		
+		address ip;
+
+		virtual std::auto_ptr<alert> clone() const;
+	};
 
 
 dispatcher

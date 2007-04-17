@@ -137,34 +137,35 @@
 <li><a class="reference" href="#metadata-failed-alert" id="id114" name="id114">metadata_failed_alert</a></li>
 <li><a class="reference" href="#metadata-received-alert" id="id115" name="id115">metadata_received_alert</a></li>
 <li><a class="reference" href="#fastresume-rejected-alert" id="id116" name="id116">fastresume_rejected_alert</a></li>
-<li><a class="reference" href="#dispatcher" id="id117" name="id117">dispatcher</a></li>
+<li><a class="reference" href="#peer-blocked-alert" id="id117" name="id117">peer_blocked_alert</a></li>
+<li><a class="reference" href="#dispatcher" id="id118" name="id118">dispatcher</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#exceptions" id="id118" name="id118">exceptions</a><ul>
-<li><a class="reference" href="#invalid-handle" id="id119" name="id119">invalid_handle</a></li>
-<li><a class="reference" href="#duplicate-torrent" id="id120" name="id120">duplicate_torrent</a></li>
-<li><a class="reference" href="#invalid-encoding" id="id121" name="id121">invalid_encoding</a></li>
-<li><a class="reference" href="#type-error" id="id122" name="id122">type_error</a></li>
-<li><a class="reference" href="#invalid-torrent-file" id="id123" name="id123">invalid_torrent_file</a></li>
+<li><a class="reference" href="#exceptions" id="id119" name="id119">exceptions</a><ul>
+<li><a class="reference" href="#invalid-handle" id="id120" name="id120">invalid_handle</a></li>
+<li><a class="reference" href="#duplicate-torrent" id="id121" name="id121">duplicate_torrent</a></li>
+<li><a class="reference" href="#invalid-encoding" id="id122" name="id122">invalid_encoding</a></li>
+<li><a class="reference" href="#type-error" id="id123" name="id123">type_error</a></li>
+<li><a class="reference" href="#invalid-torrent-file" id="id124" name="id124">invalid_torrent_file</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#fast-resume" id="id124" name="id124">fast resume</a><ul>
-<li><a class="reference" href="#file-format" id="id125" name="id125">file format</a></li>
+<li><a class="reference" href="#fast-resume" id="id125" name="id125">fast resume</a><ul>
+<li><a class="reference" href="#file-format" id="id126" name="id126">file format</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#threads" id="id126" name="id126">threads</a></li>
-<li><a class="reference" href="#storage-allocation" id="id127" name="id127">storage allocation</a><ul>
-<li><a class="reference" href="#full-allocation" id="id128" name="id128">full allocation</a></li>
-<li><a class="reference" href="#compact-allocation" id="id129" name="id129">compact allocation</a></li>
+<li><a class="reference" href="#threads" id="id127" name="id127">threads</a></li>
+<li><a class="reference" href="#storage-allocation" id="id128" name="id128">storage allocation</a><ul>
+<li><a class="reference" href="#full-allocation" id="id129" name="id129">full allocation</a></li>
+<li><a class="reference" href="#compact-allocation" id="id130" name="id130">compact allocation</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#extensions" id="id130" name="id130">extensions</a><ul>
-<li><a class="reference" href="#metadata-from-peers" id="id131" name="id131">metadata from peers</a></li>
-<li><a class="reference" href="#http-seeding" id="id132" name="id132">HTTP seeding</a></li>
+<li><a class="reference" href="#extensions" id="id131" name="id131">extensions</a><ul>
+<li><a class="reference" href="#metadata-from-peers" id="id132" name="id132">metadata from peers</a></li>
+<li><a class="reference" href="#http-seeding" id="id133" name="id133">HTTP seeding</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#filename-checks" id="id133" name="id133">filename checks</a></li>
-<li><a class="reference" href="#acknowledgments" id="id134" name="id134">acknowledgments</a></li>
+<li><a class="reference" href="#filename-checks" id="id134" name="id134">filename checks</a></li>
+<li><a class="reference" href="#acknowledgments" id="id135" name="id135">acknowledgments</a></li>
 </ul>
 </div>
 <div class="section">
@@ -486,6 +487,8 @@ void set_ip_filter(ip_filter const&amp; filter);
 connections based on their originating ip address. The default filter will allow
 connections to any ip address. To build a set of rules for which addresses are
 accepted and not, see <a class="reference" href="#ip-filter">ip_filter</a>.</p>
+<p>Each time a peer is blocked because of the IP filter, a <a class="reference" href="#peer-blocked-alert">peer_blocked_alert</a> is
+generated.</p>
 </div>
 <div class="section">
 <h2><a id="status" name="status">status()</a></h2>
@@ -2877,6 +2880,22 @@ struct fastresume_rejected_alert: torrent_alert
 {
         fastresume_rejected_alert(torrent_handle const&amp; h
                 , std::string const&amp; msg);
+
+        virtual std::auto_ptr&lt;alert&gt; clone() const;
+};
+</pre>
+</div>
+<div class="section">
+<h2><a id="peer-blocked-alert" name="peer-blocked-alert">peer_blocked_alert</a></h2>
+<p>This alert is generated when a peer is blocked by the IP filter. It has the severity leve
+<tt class="docutils literal"><span class="pre">info</span></tt>. The <tt class="docutils literal"><span class="pre">ip</span></tt> member is the address that was blocked.</p>
+<pre class="literal-block">
+struct peer_blocked_alert: alert
+{
+        peer_blocked_alert(address const&amp; ip_
+                , std::string const&amp; msg);
+
+        address ip;
 
         virtual std::auto_ptr&lt;alert&gt; clone() const;
 };
