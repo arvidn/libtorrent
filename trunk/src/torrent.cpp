@@ -1111,12 +1111,15 @@ namespace libtorrent
 		for (int i = 0; i < int(files.size()); ++i)
 		{
 			size_type start = position;
-			position += m_torrent_file.file_at(i).size;
+			size_type size = m_torrent_file.file_at(i).size;
+			if (size == 0) continue;
+			position += size;
 			// mark all pieces of the file with this file's priority
 			// but only if the priority is higher than the pieces
 			// already set (to avoid problems with overlapping pieces)
 			int start_piece = int(start / piece_length);
-			int last_piece = int(position / piece_length);
+			int last_piece = int((position - 1) / piece_length);
+			assert(last_piece <= int(pieces.size()));
 			// if one piece spans several files, we might
 			// come here several times with the same start_piece, end_piece
 			std::for_each(pieces.begin() + start_piece
@@ -1133,8 +1136,6 @@ namespace libtorrent
 		for (peer_iterator i = begin(); i != end(); ++i)
 			i->second->update_interest();
 	}
-
-
 
 	void torrent::filter_piece(int index, bool filter)
 	{
