@@ -144,7 +144,7 @@ catch (std::exception& e)
 	std::stringstream msg;
 	msg << "UPnP portmapping disabled: " << e.what();
 	m_callback(0, 0, msg.str());
-}
+};
 
 void upnp::discover_device()
 {
