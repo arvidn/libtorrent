@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <sstream>
 #include <windows.h>
+#include <winioctl.h>
 
 namespace
 {
@@ -172,6 +173,10 @@ namespace libtorrent
 				std::stringstream s;
 				throw_exception(file_name);
 			}
+			// try to make the file sparse if supported
+			DWORD temp;
+			::DeviceIoControl(new_handle, FSCTL_SET_SPARSE, 0, 0
+				, 0, 0, &temp, 0);
 			// will only close old file if the open succeeded
 			close();
 			m_file_handle = new_handle;

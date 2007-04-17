@@ -712,7 +712,7 @@ namespace libtorrent
 			m_piece_info.resize(3);
 		}
 		int last_index = m_piece_info.size() - 1;
-		if (m_piece_info.size() & 1 == 0)
+		if ((m_piece_info.size() & 1) == 0)
 		{
 			// if there's an even number of vectors, swap
 			// the last two to get the same layout in both cases
