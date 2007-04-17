@@ -202,6 +202,9 @@ namespace libtorrent
 		if (t != 0)
 			assert((int)m_piece_map.size() == t->torrent_file().num_pieces());
 
+		for (int i = m_sequenced_download_threshold * 2 + 1; i < int(m_piece_info.size()); ++i)
+			assert(m_piece_info[i].empty());
+
 		int num_filtered = 0;
 		int num_have_filtered = 0;
 		for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin();
@@ -618,6 +621,29 @@ namespace libtorrent
 		}
 		assert(m_piece_info.begin()->empty());
 		assert((m_piece_info.begin()+1)->empty());
+
+		// if we have some priorities that are clamped to the
+		// sequenced download, move that vector back down
+		int last_index = m_piece_info.size() - 1;
+		int cap_index = m_sequenced_download_threshold * 2;
+		if (last_index == cap_index)
+		{
+			// this is the case when the top bucket
+			// was moved up into the sequenced download bucket.
+			m_piece_info.push_back(std::vector<int>());
+			m_piece_info[cap_index].swap(m_piece_info[cap_index+1]);
+			++last_index;
+		}
+		else if (last_index > cap_index)
+		{
+			if (last_index - cap_index == 1)
+			{
+				m_piece_info.push_back(std::vector<int>());
+				++last_index;
+			}
+			m_piece_info[cap_index+1].swap(m_piece_info[cap_index+2]);
+			m_piece_info[cap_index].swap(m_piece_info[cap_index+1]);
+		}
 		
 		// now, increase the peer count of all the pieces.
 		// because of different priorities, some pieces may have
@@ -632,6 +658,7 @@ namespace libtorrent
 			// by one isn't true for this particular piece, correct it.
 			// that assumption is true for all pieces with priority 0 or 1
 			int new_prio = i->priority(m_sequenced_download_threshold);
+			assert(new_prio <= cap_index);
 			if (prev_prio == 0 && new_prio > 0)
 			{
 				add(i - m_piece_map.begin());
@@ -642,8 +669,24 @@ namespace libtorrent
 				assert(prev_prio == 0);
 				continue;
 			}
-			if (new_prio == prev_prio + 2)
+			if (prev_prio == cap_index)
+			{
+				assert(new_prio == cap_index);
 				continue;
+			}
+			if (new_prio == prev_prio + 2 && new_prio != cap_index)
+			{
+				assert(new_prio != cap_index);
+				continue;
+			}
+			if (prev_prio + 2 >= cap_index)
+			{
+				// these two vectors will have moved one extra step
+				// passed the sequenced download threshold
+				++prev_prio;
+			}
+			assert(prev_prio + 2 != cap_index);
+			assert(prev_prio + 2 != new_prio);
 			move(prev_prio + 2, i->index);
 		}
 	}
@@ -652,7 +695,6 @@ namespace libtorrent
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 		assert(m_files_checked_called);
-
 		assert(m_piece_info.size() >= 2);
 		assert(m_piece_info.front().empty());
 		// swap all vectors two steps down
@@ -669,13 +711,24 @@ namespace libtorrent
 		{
 			m_piece_info.resize(3);
 		}
+		int last_index = m_piece_info.size() - 1;
 		if (m_piece_info.size() & 1 == 0)
 		{
 			// if there's an even number of vectors, swap
 			// the last two to get the same layout in both cases
-			m_piece_info.rend()->swap(*(m_piece_info.rend()+1));
+			m_piece_info[last_index].swap(m_piece_info[last_index-1]);
 		}
 		assert(m_piece_info.back().empty());
+		int pushed_out_index = m_piece_info.size() - 2;
+
+		int cap_index = m_sequenced_download_threshold * 2;
+		assert(m_piece_info[last_index].empty());
+		if (last_index >= cap_index)
+		{
+			assert(m_piece_info[cap_index].empty());
+			m_piece_info[cap_index].swap(m_piece_info[cap_index - 2]);
+			assert(cap_index != pushed_out_index);
+		}
 		
 		// first is the vector that were
 		// bumped down to 0. The should always be moved
@@ -699,21 +752,30 @@ namespace libtorrent
 			}
 
 			int new_prio = i->priority(m_sequenced_download_threshold);
-			if (new_prio == prev_prio - 2) continue;
-			
-			// if this piece was pushed down to priority 0, it was
-			// removed
-			if (prev_prio == 2)
+			if (prev_prio == cap_index)
 			{
+				if (new_prio == cap_index) continue;
+				prev_prio += 2;
+			}
+			else if (new_prio == prev_prio - 2)
+			{
+				continue;
+			}
+			else if (prev_prio == 2)
+			{
+				// if this piece was pushed down to priority 0, it was
+				// removed
 				assert(new_prio > 0);
 				add(i - m_piece_map.begin());
 				continue;
 			}
-
-			// if this piece was one of the vectors that was pushed to the
-			// top, adjust the prev_prio to point to that vector, so that
-			// the pieces are moved from there
-			if (prev_prio == 1) prev_prio = m_piece_info.size();
+			else if (prev_prio == 1)
+			{
+				// if this piece was one of the vectors that was pushed to the
+				// top, adjust the prev_prio to point to that vector, so that
+				// the pieces are moved from there
+				prev_prio = pushed_out_index + 2;
+			}
 			move(prev_prio - 2, i->index);
 		}
 	}
