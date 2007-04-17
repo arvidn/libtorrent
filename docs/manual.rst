@@ -1613,6 +1613,10 @@ Note that by the time this function returns, the resume data may already be inva
 is still downloading! The recommended practice is to first pause the torrent, then generate the
 fast resume data, and then close it down.
 
+It is still a good idea to save resume data periodically during download as well as when
+closing down. In full allocation mode the reume data is never invalidated by subsequent
+writes to the files, since pieces won't move around.
+
 
 status()
 --------
@@ -3208,6 +3212,12 @@ The file format is a bencoded dictionary containing the following fields:
 |                      | to consider the resume data as current. Otherwise a full     |
 |                      | re-check is issued.                                          |
 +----------------------+--------------------------------------------------------------+
+| ``allocation``       | The allocation mode for the storage. Can be either ``full``  |
+|                      | or ``compact``. If this is full, the file sizes and          |
+|                      | timestamps are disregarded. Pieces are assumed not to have   |
+|                      | moved around even if the files have been modified after the  |
+|                      | last resume data checkpoint.                                 |
++----------------------+--------------------------------------------------------------+
 
 threads
 =======
@@ -3235,7 +3245,10 @@ storage allocation
 There are two modes in which storage (files on disk) are allocated in libtorrent.
 
  * The traditional *full allocation* mode, where the entire files are filled up with
-   zeros before anything is downloaded.
+   zeros before anything is downloaded. libtorrent will look for sparse files support
+	in the filesystem that is used for storage, and use sparse files or file system
+	zaero fill support if present. This means that on NTFS, full allocation mode will
+	only allocate storage for the downloaded pieces.
 
  * And the *compact allocation* mode, where only files are allocated for actual
    pieces that have been downloaded. This is the default allocation mode in libtorrent.
@@ -3249,13 +3262,16 @@ full allocation
 
 When a torrent is started in full allocation mode, the checker thread (see threads_)
 will make sure that the entire storage is allocated, and fill any gaps with zeros.
+This will be skipped if the filesystem supports sparse files or automatic zero filling.
 It will of course still check for existing pieces and fast resume data. The main
 drawbacks of this mode are:
 
- * It will take longer to start the torrent, since it will need to fill the files
-   with zeros. This delay is linearly dependent on the size of the download.
+ * It may take longer to start the torrent, since it will need to fill the files
+   with zeros on some systems. This delay is linearly dependent on the size of
+   the download.
 
- * The download will occupy unnecessary disk space between download sessions.
+ * The download may occupy unnecessary disk space between download sessions. In case
+   sparse files are not supported.
 
  * Disk caches usually perform extremely poorly with random access to large files
    and may slow down a download considerably.
@@ -3266,8 +3282,13 @@ The benefits of this mode are:
    total number of disk operations will be fewer and may also play nicer to
    filesystems' file allocation, and reduce fragmentation.
 
- * No risk of a download failing because of a full disk during download.
+ * No risk of a download failing because of a full disk during download. Unless
+   sparse files are being used.
 
+ * The fast resume data will be more likely to be usable, regardless of crashes or
+   out of date data, since pieces won't move around.
+
+ * Can be used with the filter files feature.
 
 compact allocation
 ------------------
@@ -3281,6 +3302,8 @@ download has all its pieces in the correct place). So, the main drawbacks are:
 
  * Potentially more fragmentation in the filesystem.
 
+ * Cannot be used while filtering files.
+
 The benefits though, are:
 
  * No startup delay, since the files doesn't need allocating.
@@ -3289,6 +3312,8 @@ The benefits though, are:
 
  * Disk caches perform much better than in full allocation and raises the download
    speed limit imposed by the disk.
+
+ * Works well on filesystems that doesn't support sparse files.
 
 The algorithm that is used when allocating pieces and slots isn't very complicated.
 For the interested, a description follows.

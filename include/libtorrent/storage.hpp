@@ -135,7 +135,7 @@ namespace libtorrent
 		bool verify_resume_data(entry& rd, std::string& error);
 
 		bool is_allocating() const;
-		void allocate_slots(int num_slots);
+		bool allocate_slots(int num_slots);
 		void mark_failed(int index);
 
 		unsigned long piece_crc(
@@ -164,6 +164,8 @@ namespace libtorrent
 		// partially stored) there. -2 is the index
 		// of unassigned pieces and -1 is unallocated
 		void export_piece_map(std::vector<int>& pieces) const;
+
+		bool compact_allocation() const;
 
 	private:
 		class impl;
