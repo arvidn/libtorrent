@@ -35,64 +35,64 @@ feature.compose <openssl>off : ;
 feature.compose <openssl>on : <define>TORRENT_USE_OPENSSL ;
 
 SOURCES =
-	allocate_resources.cpp
-	alert.cpp
-	bandwidth_manager.cpp
-	entry.cpp
-	escape_string.cpp
-	file.cpp
-	http_connection.cpp
-	identify_client.cpp
-	ip_filter.cpp
-	peer_connection.cpp
-	bt_peer_connection.cpp
-	web_peer_connection.cpp
-	natpmp.cpp
-	piece_picker.cpp
-	policy.cpp
-	session.cpp
-	session_impl.cpp
-	stat.cpp
-	storage.cpp
-	torrent.cpp
-	torrent_handle.cpp
-	torrent_info.cpp
-	tracker_manager.cpp
-	http_tracker_connection.cpp
-	udp_tracker_connection.cpp
-	metadata_transfer.cpp
-	upnp.cpp
-	ut_pex.cpp
-	logger.cpp
-	file_pool.cpp
-	lsd.cpp
+	allocate_resources
+	alert
+	bandwidth_manager
+	entry
+	escape_string
+	http_connection
+	identify_client
+	ip_filter
+	peer_connection
+	bt_peer_connection
+	web_peer_connection
+	natpmp
+	piece_picker
+	policy
+	session
+	session_impl
+	stat
+	storage
+	torrent
+	torrent_handle
+	torrent_info
+	tracker_manager
+	http_tracker_connection
+	udp_tracker_connection
+	sha1
+	metadata_transfer
+	upnp
+	ut_pex
+	logger
+	file_pool
+	lsd
 	;
 
 KADEMLIA_SOURCES =
-	kademlia/closest_nodes.cpp
-	kademlia/dht_tracker.cpp
-	kademlia/node.cpp
-	kademlia/refresh.cpp
-	kademlia/rpc_manager.cpp
-	kademlia/find_data.cpp
-	kademlia/node_id.cpp
-	kademlia/routing_table.cpp
-	kademlia/traversal_algorithm.cpp
+	kademlia/closest_nodes
+	kademlia/dht_tracker
+	kademlia/node
+	kademlia/refresh
+	kademlia/rpc_manager
+	kademlia/find_data
+	kademlia/node_id
+	kademlia/routing_table
+	kademlia/traversal_algorithm
 	;
 
 ZLIB_SOURCES = 
-	adler32.c
-	compress.c
-	crc32.c
-	deflate.c
-	gzio.c
-	infback.c
-	inffast.c
-	inflate.c
-	inftrees.c
-	trees.c
-	uncompr.c
-	zutil.c
+	adler32
+	compress
+	crc32
+	deflate
+	gzio
+	infback
+	inffast
+	inflate
+	inftrees
+	trees
+	uncompr
+	zutil
 	;
 
 DEFINES = ;
@@ -107,18 +107,21 @@ if [ os.name ] = CYGWIN
 	DEFINES += _WIN32_WINNT=0x0500 ;
 	DEFINES += __USE_W32_SOCKETS ;
 	DEFINES += WIN32 ;
+	SOURCES += file_win ;
 }
-
-# some windows specific settings
-
-if [ os.name ] = NT
+else if [ os.name ] = NT
 {
 	lib wsock32 : : <name>wsock32.lib ;
 	LIBS += wsock32 ;
 	DEFINES += WIN32_LEAN_AND_MEAN ;
 	DEFINES += _WIN32_WINNT=0x0500 ;
 	DEFINES += WIN32 ;
-}	
+	SOURCES += file_win ;
+}
+else
+{
+	SOURCES += file ;
+}
 
 lib openssl_lib : : <name>crypto ;
 
@@ -170,13 +173,13 @@ project torrent
 
 lib torrent
 	:
-	src/$(SOURCES)
-	zlib/$(ZLIB_SOURCES)
+	src/$(SOURCES).cpp
+	zlib/$(ZLIB_SOURCES).c
 	$(LIBS)
 #	pch
 	:
-	<dht-support>on:<source>src/$(KADEMLIA_SOURCES)
-	<dht-support>logging:<source>src/$(KADEMLIA_SOURCES)
+	<dht-support>on:<source>src/$(KADEMLIA_SOURCES).cpp
+	<dht-support>logging:<source>src/$(KADEMLIA_SOURCES).cpp
 	<openssl>off:<source>src/sha1.cpp
 	<openssl>on:<library>openssl_lib
 	;
