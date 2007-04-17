@@ -451,8 +451,8 @@ namespace libtorrent
 		}
 		bool has_picker() const
 		{
-			assert((valid_metadata() && !is_seed()) == bool(m_picker.get()));
-			return m_picker.get();
+			assert((valid_metadata() && !is_seed()) == bool(m_picker.get() != 0));
+			return m_picker.get() != 0;
 		}
 		policy& get_policy()
 		{
