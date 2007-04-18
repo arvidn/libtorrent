@@ -774,13 +774,19 @@ namespace libtorrent
 	bool supports_sparse_files(path const& p)
 	{
 		assert(p.is_complete());
-#if defined(WIN32)
+#if defined(_WIN32)
 		// assume windows API is available
 		DWORD max_component_len = 0;
 		DWORD volume_flags = 0;
 		std::string root_device = p.root_name() + "\\";
+#if defined(UNICODE)
+		std::wstring wph(safe_convert(root_device));
+		bool ret = ::GetVolumeInformation(wph.c_str(), 0
+			, 0, 0, &max_component_len, &volume_flags, 0, 0);
+#else
 		bool ret = ::GetVolumeInformation(root_device.c_str(), 0
 			, 0, 0, &max_component_len, &volume_flags, 0, 0);
+#endif
 
 		if (!ret) return false;
 		if (volume_flags & FILE_SUPPORTS_SPARSE_FILES)
