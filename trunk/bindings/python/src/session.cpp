@@ -201,6 +201,8 @@ void bind_session()
         .def("add_extension", &add_extension)
         ;
 
+    def("supports_sparse_files", &supports_sparse_files);
+
     register_ptr_to_python<std::auto_ptr<alert> >();
 }
 

@@ -44,6 +44,8 @@ void bind_filesystem()
     to_python_converter<boost::filesystem::path, path_to_python>();
     path_from_python();
 
-    boost::filesystem::path::default_name_check(boost::filesystem::native);
+    using namespace boost::filesystem;
+    if (path::default_name_check_writable())
+        path::default_name_check(no_check);
 }
 
