@@ -778,7 +778,7 @@ namespace libtorrent
 		// assume windows API is available
 		DWORD max_component_len = 0;
 		DWORD volume_flags = 0;
-		std::string root_device = m_save_path.root_name() + "\\";
+		std::string root_device = p.root_name() + "\\";
 		bool ret = ::GetVolumeInformation(root_device.c_str(), 0
 			, 0, 0, &max_component_len, &volume_flags, 0, 0);
 
