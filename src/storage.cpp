@@ -2043,7 +2043,6 @@ namespace libtorrent
 				assert(m_piece_to_slot[pos] >= 0);
 				m_storage->read(&buffer[0], m_piece_to_slot[pos], 0
 					, static_cast<int>(m_info.piece_size(pos)));
-				std::cerr << "reading" << std::endl;
 				new_free_slot = m_piece_to_slot[pos];
 				m_slot_to_piece[pos] = pos;
 				m_piece_to_slot[pos] = pos;
@@ -2055,7 +2054,6 @@ namespace libtorrent
 
 			if (write_back || m_fill_mode)
 			{
-				std::cerr << "writing" << std::endl;
 				m_storage->write(&buffer[0], pos, 0, static_cast<int>(m_info.piece_size(pos)));
 				written = true;
 				if (abort_on_disk) return true;
