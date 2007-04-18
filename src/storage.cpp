@@ -118,7 +118,9 @@ namespace libtorrent
 		}
 	}
 }
+#endif
 
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 13400
 namespace
 {
 	using libtorrent::safe_convert;
@@ -254,7 +256,7 @@ namespace libtorrent
 			try
 			{
 				path f = p / i->path;
-#if defined(_WIN32) && defined(UNICODE)
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 13400
 				size = file_size_win(f);
 				time = last_write_time_win(f);
 #else
@@ -291,7 +293,7 @@ namespace libtorrent
 			try
 			{
 				path f = p / i->path;
-#if defined(_WIN32) && defined(UNICODE)
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 13400
 				size = file_size_win(f);
 				time = last_write_time_win(f);
 #else
@@ -462,7 +464,7 @@ namespace libtorrent
 
 		save_path = complete(save_path);
 
-#if defined(_WIN32) && defined(UNICODE)
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 13400
 		std::wstring wsave_path(safe_convert(save_path.native_file_string()));
 		if (!exists_win(save_path))
 		{
@@ -486,7 +488,7 @@ namespace libtorrent
 
 		try
 		{
-#if defined(_WIN32) && defined(UNICODE)
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 13400
 			rename_win(old_path, new_path);
 #else
 			rename(old_path, new_path);
@@ -876,7 +878,7 @@ namespace libtorrent
 
 		void release_files();
 
-		bool allocate_slots(int num_slots);
+		bool allocate_slots(int num_slots, bool abort_on_disk = false);
 		void mark_failed(int index);
 		unsigned long piece_crc(
 			int slot_index
@@ -1499,13 +1501,20 @@ namespace libtorrent
 			// final position.
 			assert(!m_unallocated_slots.empty());
 
-			// if we're not filling the allocation
-			// just make sure we move the current pieces
-			// into place, and just skip all other
-			// allocation
-			// allocate_slots returns true if it had to
-			// move any data
-			while (!m_unallocated_slots.empty() && !allocate_slots(1));
+			if (!m_fill_mode)
+			{
+				// if we're not filling the allocation
+				// just make sure we move the current pieces
+				// into place, and just skip all other
+				// allocation
+				// allocate_slots returns true if it had to
+				// move any data
+				allocate_slots(m_unallocated_slots.size(), true);
+			}
+			else
+			{
+				allocate_slots(1);
+			}
 
 			return std::make_pair(false, 1.f - (float)m_unallocated_slots.size()
 				/ (float)m_slot_to_piece.size());
@@ -1529,7 +1538,7 @@ namespace libtorrent
 				if (dir == last_path) continue;
 				last_path = dir;
 
-#if defined(_WIN32) && defined(UNICODE)
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 13400
 				if (!exists_win(last_path))
 					create_directories_win(last_path);
 #else
@@ -1997,7 +2006,7 @@ namespace libtorrent
 
 	}
 
-	bool piece_manager::impl::allocate_slots(int num_slots)
+	bool piece_manager::impl::allocate_slots(int num_slots, bool abort_on_disk)
 	{
 		assert(num_slots > 0);
 
@@ -2034,6 +2043,7 @@ namespace libtorrent
 				assert(m_piece_to_slot[pos] >= 0);
 				m_storage->read(&buffer[0], m_piece_to_slot[pos], 0
 					, static_cast<int>(m_info.piece_size(pos)));
+				std::cerr << "reading" << std::endl;
 				new_free_slot = m_piece_to_slot[pos];
 				m_slot_to_piece[pos] = pos;
 				m_piece_to_slot[pos] = pos;
@@ -2045,8 +2055,10 @@ namespace libtorrent
 
 			if (write_back || m_fill_mode)
 			{
+				std::cerr << "writing" << std::endl;
 				m_storage->write(&buffer[0], pos, 0, static_cast<int>(m_info.piece_size(pos)));
 				written = true;
+				if (abort_on_disk) return true;
 			}
 		}
 
@@ -2054,9 +2066,9 @@ namespace libtorrent
 		return written;
 	}
 
-	bool piece_manager::allocate_slots(int num_slots)
+	bool piece_manager::allocate_slots(int num_slots, bool abort_on_disk)
 	{
-		return m_pimpl->allocate_slots(num_slots);
+		return m_pimpl->allocate_slots(num_slots, abort_on_disk);
 	}
 
 	path const& piece_manager::save_path() const

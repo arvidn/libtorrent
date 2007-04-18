@@ -169,14 +169,13 @@ namespace libtorrent
 		#endif
 
 			if (new_handle == INVALID_HANDLE_VALUE)
-			{
-				std::stringstream s;
 				throw_exception(file_name);
-			}
 			// try to make the file sparse if supported
 			DWORD temp;
-			::DeviceIoControl(new_handle, FSCTL_SET_SPARSE, 0, 0
+			int ret = ::DeviceIoControl(new_handle, FSCTL_SET_SPARSE, 0, 0
 				, 0, 0, &temp, 0);
+			if (ret == 0)
+				throw_exception(file_name);
 			// will only close old file if the open succeeded
 			close();
 			m_file_handle = new_handle;
