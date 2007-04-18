@@ -139,7 +139,7 @@ namespace libtorrent
 		bool verify_resume_data(entry& rd, std::string& error);
 
 		bool is_allocating() const;
-		bool allocate_slots(int num_slots);
+		bool allocate_slots(int num_slots, bool abort_on_disk = false);
 		void mark_failed(int index);
 
 		unsigned long piece_crc(

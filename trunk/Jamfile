@@ -21,18 +21,18 @@ use-project /boost : $(BOOST_ROOT) ;
 
 
 feature logging : none default verbose : composite propagated symmetric link-incompatible ;
-feature.compose <logging>none : ;
 feature.compose <logging>default : <define>TORRENT_LOGGING ;
 feature.compose <logging>verbose : <define>TORRENT_VERBOSE_LOGGING ;
 
 feature dht-support : on off logging : composite propagated symmetric link-incompatible ;
-feature.compose <dht-support>on : ;
 feature.compose <dht-support>off : <define>TORRENT_DISABLE_DHT ;
 feature.compose <dht-support>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 
 feature openssl : off on : composite propagated symmetric link-incompatible ;
-feature.compose <openssl>off : ;
 feature.compose <openssl>on : <define>TORRENT_USE_OPENSSL ;
+
+feature character-set : ansi unicode : composite propagated link-incompatible ;
+feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
 
 SOURCES =
 	allocate_resources
