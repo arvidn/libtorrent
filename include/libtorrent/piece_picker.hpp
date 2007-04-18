@@ -286,7 +286,7 @@ namespace libtorrent
 			{
 				if (filtered() || have()) return 0;
 				// pieces we are currently downloading have high priority
-				int prio = downloading ? 1 : peer_count * 2;
+				int prio = downloading ? (std::min)(1, int(peer_count)) : peer_count * 2;
 				// if the peer_count is 0 or 1, the priority cannot be higher
 				if (prio <= 1) return prio;
 				if (prio >= limit * 2) prio = limit * 2;
