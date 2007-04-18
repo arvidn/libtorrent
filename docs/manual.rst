@@ -2521,6 +2521,20 @@ If ``bdecode()`` encounters invalid encoded data in the range given to it
 it will throw invalid_encoding_.
 
 
+supports_sparse_files()
+-----------------------
+
+	::
+
+		bool supports_sparse_files(boost::filesystem::path const&);
+
+The path is expected to be the path to the directory where you will want to
+store sparse files. The return value is true if the file system supports
+sparse files or if it supports automatic zero filling of files. The main
+characteristics that is tested by this function is not the storage aspects
+of sparse files, but rather the support for seeking passed end of file and
+write data there, with expected behavior.
+
 
 alerts
 ======
@@ -3256,6 +3270,12 @@ There are two modes in which storage (files on disk) are allocated in libtorrent
 The allocation mode is selected when a torrent is started. It is passed as a boolean
 argument to ``session::add_torrent()`` (see `add_torrent()`_). These two modes have
 different drawbacks and benefits.
+
+The decision to use full allocation or compact allocation typically depends on whether
+any files are filtered and if the filesystem supports sparse files.
+
+To know if the filesystem supports sparse files (and to know if libtorrent believes the
+filesystem supports sparse files), see `supports_sparse_files()`_.
 
 full allocation
 ---------------
