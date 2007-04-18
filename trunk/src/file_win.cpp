@@ -171,11 +171,12 @@ namespace libtorrent
 			if (new_handle == INVALID_HANDLE_VALUE)
 				throw_exception(file_name);
 			// try to make the file sparse if supported
-			DWORD temp;
-			int ret = ::DeviceIoControl(new_handle, FSCTL_SET_SPARSE, 0, 0
-				, 0, 0, &temp, 0);
-			if (ret == 0)
-				throw_exception(file_name);
+			if (access_mask & GENERIC_WRITE)
+			{
+				DWORD temp;
+				::DeviceIoControl(new_handle, FSCTL_SET_SPARSE, 0, 0
+					, 0, 0, &temp, 0);
+			}
 			// will only close old file if the open succeeded
 			close();
 			m_file_handle = new_handle;
