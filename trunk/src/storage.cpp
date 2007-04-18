@@ -84,6 +84,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/mount.h>
 #endif
 
+#if defined(__linux__)
+#include <sys/statfs.h>
+#endif
+
 #if defined(_WIN32) && defined(UNICODE)
 
 #include <windows.h>
@@ -767,6 +771,80 @@ namespace libtorrent
 		return new storage(ti, path, fp);
 	}
 
+	bool supports_sparse_files(path const& p)
+	{
+		assert(p.is_complete());
+#if defined(WIN32)
+		// assume windows API is available
+		DWORD max_component_len = 0;
+		DWORD volume_flags = 0;
+		std::string root_device = m_save_path.root_name() + "\\";
+		bool ret = ::GetVolumeInformation(root_device.c_str(), 0
+			, 0, 0, &max_component_len, &volume_flags, 0, 0);
+
+		if (!ret) return false;
+		if (volume_flags & FILE_SUPPORTS_SPARSE_FILES)
+			return true;
+#endif
+
+#if defined(__APPLE__)
+
+		// find the last existing directory of the save path
+		path query_path = p;
+		while (!query_path.empty() && !exists(query_path))
+			query_path = query_path.branch_path();
+
+		struct statfs fsinfo;
+		int ret = statfs(query_path.native_directory_string().c_str(), &fsinfo);
+		if (ret != 0) return false;
+
+		attrlist request;
+		request.bitmapcount = ATTR_BIT_MAP_COUNT;
+		request.reserved = 0;
+		request.commonattr = 0;
+		request.volattr = ATTR_VOL_CAPABILITIES;
+		request.dirattr = 0;
+		request.fileattr = 0;
+		request.forkattr = 0;
+	
+		struct vol_capabilities_attr_buf
+		{
+			unsigned long length;
+			vol_capabilities_attr_t info;
+		} vol_cap;
+
+		ret = getattrlist(fsinfo.f_mntonname, &request, &vol_cap
+			, sizeof(vol_cap), 0);
+		if (ret != 0) return false;
+
+		if (vol_cap.info.capabilities[VOL_CAPABILITIES_FORMAT]
+			& (VOL_CAP_FMT_SPARSE_FILES | VOL_CAP_FMT_ZERO_RUNS))
+		{
+			return true;
+		}
+#endif
+
+#if defined(__linux__)
+		struct statfs buf;
+		if (statfs(p.native_directory_string().c_str(), &buf) != 0);
+			return false;
+
+		switch (buf.f_type)
+		{
+			case 0x5346544e: // NTFS
+			case 0xEF51: // EXT2 OLD
+			case 0xEF53: // EXT2 and EXT3
+			case 0x00011954: // UFS
+			case 0x52654973: // ReiserFS
+			case 0x58465342: // XFS
+				return true;
+		}
+#endif
+
+		// TODO: POSIX implementation
+		return false;
+	}
+
 	// -- piece_manager -----------------------------------------------------
 
 	class piece_manager::impl
@@ -938,62 +1016,7 @@ namespace libtorrent
 		, m_save_path(complete(save_path))
 		, m_allocating(false)
 	{
-		assert(m_save_path.is_complete());
-		// try to figure out if the filesystem supports sparse files
-#if defined(WIN32)
-		// assume windows API is available
-		DWORD max_component_len = 0;
-		DWORD volume_flags = 0;
-		std::string root_device = m_save_path.root_name() + "\\";
-		bool ret = ::GetVolumeInformation(root_device.c_str(), 0
-			, 0, 0, &max_component_len, &volume_flags, 0, 0);
-
-		if (ret)
-		{
-			if (volume_flags & FILE_SUPPORTS_SPARSE_FILES)
-				m_fill_mode = false;
-		}
-#elif defined(__APPLE__)
-
-		// find the last existing directory of the save path
-		path query_path = m_save_path;
-		while (!query_path.empty() && !exists(query_path))
-			query_path = query_path.branch_path();
-
-		struct statfs fsinfo;
-		int ret = statfs(query_path.native_directory_string().c_str(), &fsinfo);
-		if (ret != 0) return;
-
-		attrlist request;
-		request.bitmapcount = ATTR_BIT_MAP_COUNT;
-		request.reserved = 0;
-		request.commonattr = 0;
-		request.volattr = ATTR_VOL_CAPABILITIES;
-		request.dirattr = 0;
-		request.fileattr = 0;
-		request.forkattr = 0;
-	
-		struct vol_capabilities_attr_buf
-		{
-			unsigned long length;
-			vol_capabilities_attr_t info;
-		} vol_cap;
-
-		ret = getattrlist(fsinfo.f_mntonname, &request, &vol_cap
-			, sizeof(vol_cap), 0);
-
-		if (ret == 0 && vol_cap.info.capabilities[VOL_CAPABILITIES_FORMAT]
-			& (VOL_CAP_FMT_SPARSE_FILES | VOL_CAP_FMT_ZERO_RUNS))
-		{
-			m_fill_mode = false;
-		}
-		// TODO: None of those flags are set for HFS+, which
-		// is supposed to support zero filling
-		m_fill_mode = false;
-#else
-		//TODO: posix implementation
-		m_fill_mode = false;
-#endif
+		m_fill_mode = !supports_sparse_files(save_path);
 	}
 
 	piece_manager::piece_manager(

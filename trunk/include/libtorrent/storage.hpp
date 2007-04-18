@@ -113,6 +113,10 @@ namespace libtorrent
 	TORRENT_EXPORT storage_interface* default_storage_constructor(torrent_info const& ti
 		, boost::filesystem::path const& path, file_pool& fp);
 
+	// returns true if the filesystem the path relies on supports
+	// sparse files or automatic zero filling of files.
+	TORRENT_EXPORT bool supports_sparse_files(boost::filesystem::path const& p);
+
 	class TORRENT_EXPORT piece_manager : boost::noncopyable
 	{
 	public:
