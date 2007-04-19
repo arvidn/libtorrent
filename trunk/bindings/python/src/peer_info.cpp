@@ -33,6 +33,7 @@ void bind_peer_info()
         .def_readonly("downloading_total", &peer_info::downloading_total)
         .def_readonly("client", &peer_info::client)
         .def_readonly("connection_type", &peer_info::connection_type)
+        .def_readonly("source", &peer_info::source)
         ;
 
     pi.attr("interesting") = (int)peer_info::interesting;
@@ -47,5 +48,11 @@ void bind_peer_info()
 
     pi.attr("standard_bittorrent") = 0;
     pi.attr("web_seed") = 1;
+
+    pi.attr("tracker") = 0x1;
+    pi.attr("dht") = 0x2;
+    pi.attr("pex") = 0x4;
+    pi.attr("lsd") = 0x8;
+    pi.attr("resume_data") = 0x10;
 }
 
