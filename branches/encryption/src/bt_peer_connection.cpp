@@ -1554,6 +1554,13 @@ namespace libtorrent
 				if (std::equal (recv_buffer.begin, recv_buffer.begin + 20,
 								(char*)obfs_hash.begin()))
 				{
+					if (!t)
+					{
+						attach_to_torrent(info_hash);
+						t = associated_torrent().lock();
+						assert(t);
+					}
+
 					init_pe_RC4_handler(m_DH_key_exchange->get_secret(), info_hash);
 #ifdef TORRENT_VERBOSE_LOGGING
 					(*m_logger) << " stream key found, torrent located.\n";
@@ -1955,15 +1962,6 @@ namespace libtorrent
 				attach_to_torrent(info_hash);
 				t = associated_torrent().lock();
 				assert(t);
-
-				// yes, we found the torrent
-				// reply with handshake and bitfield
-				if (!is_local())
-				{
- 					write_handshake();
-					if (t->valid_metadata())
-						write_bitfield(t->pieces());
-				}
 			}
 			else
 			{
@@ -1982,11 +1980,15 @@ namespace libtorrent
 #endif
 				t = associated_torrent().lock();
 				assert(t);
-				
-				// respond with bitfield on verifying info hash
-				if (t->valid_metadata())
-					write_bitfield(t->pieces());
 			}
+
+			// Respond with handshake and bitfield
+			if (!is_local())
+			{
+				write_handshake();
+			}
+			if (t->valid_metadata())
+				write_bitfield(t->pieces());
 
 			assert(t->get_policy().has_connection(this));
 
