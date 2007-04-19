@@ -56,13 +56,12 @@ void http_connection::get(std::string const& url, time_duration timeout
 		"Host:" << hostname <<
 		"Connection: close\r\n"
 		"\r\n\r\n";
-	m_path = path;
 	sendbuffer = headers.str();
 	start(hostname, boost::lexical_cast<std::string>(port), timeout);
 }
 
 void http_connection::start(std::string const& hostname, std::string const& port
-	, time_duration timeout, bool handle_redirect = true)
+	, time_duration timeout, bool handle_redirect)
 {
 	m_redirect = handle_redirect;
 	m_timeout = timeout;
