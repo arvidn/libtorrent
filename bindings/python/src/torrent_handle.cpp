@@ -103,18 +103,18 @@ list get_download_queue(torrent_handle& handle)
 		partial_piece["blocks_in_piece"] = i->blocks_in_piece;
 		list requested;
 		list finished;
-		list peer;
+//		list peer;
 		for (int k = 0; k < i->blocks_in_piece; ++k)
 		{
-			requested.extend(i->requested_blocks[k]);
-			finished.extend(i->finished_blocks[k]);
-			peer.extend(i->peer[k]);
+			requested.append(bool(i->requested_blocks[k]));
+			finished.append(bool(i->finished_blocks[k]));
+//			peer.append(i->peer[k]);
 		}
 		partial_piece["requested_blocks"] = requested;
 		partial_piece["finished_blocks"] = finished;
-		partial_piece["peer"] = peer;
+//		partial_piece["peer"] = peer;
 
-		ret.extend(partial_piece);
+		ret.append(partial_piece);
 	}
 
 	return ret;

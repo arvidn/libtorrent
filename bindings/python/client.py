@@ -153,16 +153,16 @@ def print_download_queue(console, download_queue):
 
     for e in download_queue:
         out += '%4d: [' % e['piece_index'];
-        finished_blocks = e['finished_blocks']
-        requested_blocks = e['requested_blocks']
-        for index in xrange(len(e['peers']))
-            if (finished_blocks[index])
+        for fin, req in zip(e['finished_blocks'], e['requested_blocks']):
+            if fin:
                 out += '#'
-            elif requested_blocks[index]
+            elif req:
                 out += '+'
-            else
+            else:
                 out += '-'
         out += ']\n'
+
+    write_line(console, out)
 
 def main():
     from optparse import OptionParser
@@ -220,8 +220,8 @@ def main():
     ses.listen_on(options.port, options.port + 10)
     ses.set_settings(settings)
     ses.set_severity_level(lt.alert.severity_levels.info)
-    ses.add_extension(lt.create_ut_pex_plugin);
-    ses.add_extension(lt.create_metadata_plugin);
+#    ses.add_extension(lt.create_ut_pex_plugin);
+#    ses.add_extension(lt.create_metadata_plugin);
 
     handles = []
     alerts = []
