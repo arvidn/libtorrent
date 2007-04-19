@@ -372,7 +372,7 @@ namespace libtorrent
 
 		void release_files();
 
-		void initialize();
+		void initialize(bool allocate_files);
 		bool move_storage(path save_path);
 		size_type read(char* buf, int slot, int offset, int size);
 		void write(const char* buf, int slot, int offset, int size);
@@ -392,10 +392,9 @@ namespace libtorrent
 		file_pool& m_files;
 	};
 
-	void storage::initialize()
+	void storage::initialize(bool allocate_files)
 	{
 		// first, create all missing directories
-		bool sparse = supports_sparse_files(m_save_path);
 		path last_path;
 		for (torrent_info::file_iterator file_iter = m_info.begin_files(),
 			end_iter = m_info.end_files(); file_iter != end_iter; ++file_iter)
@@ -423,9 +422,9 @@ namespace libtorrent
 				continue;
 			}
 
-			if (sparse)
+			if (allocate_files)
 			{
-				m_files.open_file(this, m_save_path / file_iter->path, file::out)
+				m_files.open_file(this, m_save_path / file_iter->path, file::in | file::out)
 					->set_size(file_iter->size);
 			}
 		}
@@ -1564,7 +1563,7 @@ namespace libtorrent
 
 		if (m_state == state_create_files)
 		{
-			m_storage->initialize();
+			m_storage->initialize(!m_fill_mode && !m_compact_mode);
 
 			m_current_slot = 0;
 			m_state = state_full_check;
