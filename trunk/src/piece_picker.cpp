@@ -725,9 +725,10 @@ namespace libtorrent
 		assert(m_piece_info[last_index].empty());
 		if (last_index >= cap_index)
 		{
-			assert(m_piece_info[cap_index].empty());
+			assert(m_piece_info[cap_index - 1].empty());
 			m_piece_info[cap_index].swap(m_piece_info[cap_index - 2]);
-			assert(cap_index != pushed_out_index);
+			if (cap_index == pushed_out_index)
+				pushed_out_index = cap_index - 2;
 		}
 		
 		// first is the vector that were
