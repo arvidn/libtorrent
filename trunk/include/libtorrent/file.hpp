@@ -110,6 +110,7 @@ namespace libtorrent
 
 		void open(boost::filesystem::path const& p, open_mode m);
 		void close();
+		void set_size(size_type size);
 
 		size_type write(const char*, size_type num_bytes);
 		size_type read(char*, size_type num_bytes);

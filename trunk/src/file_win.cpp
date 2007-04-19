@@ -238,6 +238,16 @@ namespace libtorrent
 			return bytes_read;
 		}
 
+		void set_size(size_type s)
+		{
+			size_type pos = tell();
+			seek(s, seek_begin);
+			if (FALSE == ::SetEndOfFile(m_file_handle))
+				throw_exception("file::set_size");
+
+			seek(pos, seek_begin);
+		}
+
 		size_type seek(size_type pos, seek_mode from_where)
 		{
 			assert(pos >= 0 || from_where != seek_begin);
@@ -337,6 +347,11 @@ namespace libtorrent
 	size_type file::read(char* buffer, size_type num_bytes)
 	{
 		return m_impl->read(buffer, num_bytes);
+	}
+
+	void file::set_size(size_type s)
+	{
+		m_impl->set_size(s);
 	}
 
 	size_type file::seek(size_type pos, seek_mode m)

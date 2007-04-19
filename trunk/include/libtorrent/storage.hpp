@@ -89,6 +89,10 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT storage_interface
 	{
+		// create directories and set file sizes
+		// (if sparse files are supported)
+		virtual void initialize() = 0;
+
 		// may throw file_error if storage for slot does not exist
 		virtual size_type read(char* buf, int slot, int offset, int size) = 0;
 
