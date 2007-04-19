@@ -70,6 +70,7 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 		, m_download_quota(0)
 		, m_limiter_timer_active(false)
 		, m_limiter_timer(ios)
+		, m_redirect(true)
 	{
 		assert(!m_handler.empty());
 	}
@@ -81,10 +82,11 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 
 	std::string sendbuffer;
 
-	void get(std::string const& url, time_duration timeout = seconds(30));
+	void get(std::string const& url, time_duration timeout = seconds(30)
+		, bool handle_redirect = true);
 
 	void start(std::string const& hostname, std::string const& port
-		, time_duration timeout);
+		, time_duration timeout, bool handle_redirect = true);
 	void close();
 
 private:
@@ -133,6 +135,10 @@ private:
 	// the timer fires every 250 millisecond as long
 	// as all the quota was used.
 	deadline_timer m_limiter_timer;
+
+	// if set to true, the connection should handle
+	// HTTP redirects.
+	bool m_redirect;
 };
 
 }
