@@ -120,7 +120,7 @@ namespace libtorrent
 }
 #endif
 
-#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 13400
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
 namespace
 {
 	using libtorrent::safe_convert;
@@ -256,7 +256,7 @@ namespace libtorrent
 			try
 			{
 				path f = p / i->path;
-#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 13400
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
 				size = file_size_win(f);
 				time = last_write_time_win(f);
 #else
@@ -293,7 +293,7 @@ namespace libtorrent
 			try
 			{
 				path f = p / i->path;
-#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 13400
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
 				size = file_size_win(f);
 				time = last_write_time_win(f);
 #else
@@ -405,7 +405,7 @@ namespace libtorrent
 			{
 				last_path = dir;
 
-#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 13400
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
 				if (!exists_win(last_path))
 					create_directories_win(last_path);
 #else
@@ -503,7 +503,7 @@ namespace libtorrent
 
 		save_path = complete(save_path);
 
-#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 13400
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
 		std::wstring wsave_path(safe_convert(save_path.native_file_string()));
 		if (!exists_win(save_path))
 		{
@@ -527,7 +527,7 @@ namespace libtorrent
 
 		try
 		{
-#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 13400
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
 			rename_win(old_path, new_path);
 #else
 			rename(old_path, new_path);
