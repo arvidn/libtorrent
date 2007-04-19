@@ -42,8 +42,10 @@ using boost::bind;
 namespace libtorrent
 {
 
-void http_connection::get(std::string const& url, time_duration timeout)
+void http_connection::get(std::string const& url, time_duration timeout
+	, bool handle_redirect)
 {
+	m_redirect = handle_redirect;
 	std::string protocol;
 	std::string hostname;
 	std::string path;
@@ -54,13 +56,15 @@ void http_connection::get(std::string const& url, time_duration timeout)
 		"Host:" << hostname <<
 		"Connection: close\r\n"
 		"\r\n\r\n";
+	m_path = path;
 	sendbuffer = headers.str();
 	start(hostname, boost::lexical_cast<std::string>(port), timeout);
 }
 
 void http_connection::start(std::string const& hostname, std::string const& port
-	, time_duration timeout)
+	, time_duration timeout, bool handle_redirect = true)
 {
+	m_redirect = handle_redirect;
 	m_timeout = timeout;
 	m_timer.expires_from_now(m_timeout);
 	m_timer.async_wait(bind(&http_connection::on_timeout
@@ -212,6 +216,36 @@ void http_connection::on_read(asio::error_code const& e
 
 	m_read_pos += bytes_transferred;
 	assert(m_read_pos <= int(m_recvbuffer.size()));
+
+	// having a nonempty path means we should handle redirects
+	if (m_redirect && m_parser.header_finished())
+	{
+		int code = m_parser.status_code();
+		if (code >= 300 && code < 400)
+		{
+			// attempt a redirect
+			std::string url = m_parser.header<std::string>("location");
+			if (url.empty())
+			{
+				// missing location header
+				if (m_bottled && m_called) return;
+				m_called = true;
+				m_handler(e, m_parser, 0, 0);
+				return;
+			}
+
+			m_limiter_timer_active = false;
+			m_timer.cancel();
+			m_limiter_timer.cancel();
+			m_sock.close();
+			m_hostname.clear();
+			m_port.clear();
+			get(url, m_timeout);
+			return;
+		}
+	
+		m_redirect = false;
+	}
 
 	if (m_bottled || !m_parser.header_finished())
 	{
