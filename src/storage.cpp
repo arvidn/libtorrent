@@ -372,6 +372,7 @@ namespace libtorrent
 
 		void release_files();
 
+		void initialize();
 		bool move_storage(path save_path);
 		size_type read(char* buf, int slot, int offset, int size);
 		void write(const char* buf, int slot, int offset, int size);
@@ -390,6 +391,45 @@ namespace libtorrent
 		// instances use the same pool
 		file_pool& m_files;
 	};
+
+	void storage::initialize()
+	{
+		// first, create all missing directories
+		bool sparse = supports_sparse_files(m_save_path);
+		path last_path;
+		for (torrent_info::file_iterator file_iter = m_info.begin_files(),
+			end_iter = m_info.end_files(); file_iter != end_iter; ++file_iter)
+		{
+			path dir = (m_save_path / file_iter->path).branch_path();
+
+			if (dir != last_path)
+			{
+				last_path = dir;
+
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 13400
+				if (!exists_win(last_path))
+					create_directories_win(last_path);
+#else
+				if (!exists(last_path))
+					create_directories(last_path);
+#endif
+			}
+
+			// if the file is empty, just create it. But also make sure
+			// the directory exits.
+			if (file_iter->size == 0)
+			{
+				file(m_save_path / file_iter->path, file::out);
+				continue;
+			}
+
+			if (sparse)
+			{
+				m_files.open_file(this, m_save_path / file_iter->path, file::out)
+					->set_size(file_iter->size);
+			}
+		}
+	}
 
 	void storage::release_files()
 	{
@@ -830,6 +870,8 @@ namespace libtorrent
 		{
 			return true;
 		}
+
+		return true;
 #endif
 
 #if defined(__linux__)
@@ -1522,33 +1564,8 @@ namespace libtorrent
 
 		if (m_state == state_create_files)
 		{
-			// first, create all missing directories
-			path last_path;
-			for (torrent_info::file_iterator file_iter = m_info.begin_files(),
-				end_iter = m_info.end_files();  file_iter != end_iter; ++file_iter)
-			{
-				path dir = (m_save_path / file_iter->path).branch_path();
+			m_storage->initialize();
 
-				// if the file is empty, just create it. But also make sure
-				// the directory exits.
-				if (dir == last_path
-					&& file_iter->size == 0)
-					file(m_save_path / file_iter->path, file::out);
-
-				if (dir == last_path) continue;
-				last_path = dir;
-
-#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 13400
-				if (!exists_win(last_path))
-					create_directories_win(last_path);
-#else
-				if (!exists(last_path))
-					create_directories(last_path);
-#endif
-
-				if (file_iter->size == 0)
-					file(m_save_path / file_iter->path, file::out);
-			}
 			m_current_slot = 0;
 			m_state = state_full_check;
 			m_piece_data.resize(int(m_info.piece_length()));
