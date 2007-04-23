@@ -49,8 +49,9 @@ int main(int argc, char* argv[])
 		std::cerr << "usage: dump_torrent torrent-file\n";
 		return 1;
 	}
-
+#if BOOST_VERSION < 103400
 	boost::filesystem::path::default_name_check(boost::filesystem::no_check);
+#endif
 
 	try
 	{
