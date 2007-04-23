@@ -88,9 +88,11 @@ namespace libtorrent
 	{
 		filesystem_init::filesystem_init()
 		{
+#if BOOST_VERSION < 103400
 			using namespace boost::filesystem;
 			if (path::default_name_check_writable())
 				path::default_name_check(no_check);
+#endif
 		}
 	}
 

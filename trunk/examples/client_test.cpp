@@ -328,7 +328,6 @@ typedef std::multimap<std::string, libtorrent::torrent_handle> handles_t;
 using boost::bind;
 using boost::filesystem::path;
 using boost::filesystem::exists;
-using boost::filesystem::no_check;
 using boost::filesystem::directory_iterator;
 using boost::filesystem::extension;
 
@@ -443,7 +442,10 @@ void scan_dir(path const& dir_path
 
 int main(int ac, char* av[])
 {
+#if BOOST_VERSION < 103400
+	using boost::filesystem::no_check;
 	path::default_name_check(no_check);
+#endif
 
 	int listen_port;
 	float preferred_ratio;
