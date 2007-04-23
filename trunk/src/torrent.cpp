@@ -1488,7 +1488,9 @@ namespace libtorrent
 			else return;
 		}
 
-		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_io_service));
+		boost::shared_ptr<peer_connection::socket_type> s(
+			new peer_connection::socket_type(m_ses.m_io_service));
+		s->instantiate<stream_socket>();
 		boost::intrusive_ptr<peer_connection> c(new web_peer_connection(
 			m_ses, shared_from_this(), s, a, proxy, url, 0));
 			
@@ -1873,7 +1875,9 @@ namespace libtorrent
 		if (m_connections.find(a) != m_connections.end())
 			throw protocol_error("already connected to peer");
 
-		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_io_service));
+		boost::shared_ptr<peer_connection::socket_type> s(
+			new peer_connection::socket_type(m_ses.m_io_service));
+		s->instantiate<stream_socket>();
 		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
 			m_ses, shared_from_this(), s, a, peerinfo));
 			

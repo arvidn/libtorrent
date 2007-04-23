@@ -76,7 +76,7 @@ namespace libtorrent
 	peer_connection::peer_connection(
 		session_impl& ses
 		, boost::weak_ptr<torrent> tor
-		, shared_ptr<stream_socket> s
+		, shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
 		, tcp::endpoint const& proxy
 		, policy::peer* peerinfo)
@@ -146,7 +146,7 @@ namespace libtorrent
 
 	peer_connection::peer_connection(
 		session_impl& ses
-		, boost::shared_ptr<stream_socket> s
+		, boost::shared_ptr<socket_type> s
 		, policy::peer* peerinfo)
 		:
 #ifndef NDEBUG
@@ -1551,10 +1551,9 @@ namespace libtorrent
 	}
 
 
-	void close_socket_ignore_error(boost::shared_ptr<stream_socket> s)
+	void close_socket_ignore_error(boost::shared_ptr<peer_connection::socket_type> s)
 	{
-		asio::error_code e;
-		s->close(e);
+		try { s->close(); } catch (std::exception& e) {}
 	}
 
 	void peer_connection::disconnect()

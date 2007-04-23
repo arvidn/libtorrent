@@ -166,7 +166,7 @@ namespace libtorrent
 #endif
 			friend struct checker_impl;
 			friend class invariant_access;
-			typedef std::map<boost::shared_ptr<stream_socket>
+			typedef std::map<boost::shared_ptr<peer_connection::socket_type>
 				, boost::intrusive_ptr<peer_connection> >
 				connection_map;
 			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
@@ -187,7 +187,7 @@ namespace libtorrent
 			void open_listen_port();
 
 			void async_accept();
-			void on_incoming_connection(boost::shared_ptr<stream_socket> const& s
+			void on_incoming_connection(boost::shared_ptr<peer_connection::socket_type> const& s
 				, boost::weak_ptr<socket_acceptor> const& as, asio::error_code const& e);
 		
 			// must be locked to access the data
@@ -205,7 +205,7 @@ namespace libtorrent
 
 			void close_connection(boost::intrusive_ptr<peer_connection> const& p);
 			void connection_completed(boost::intrusive_ptr<peer_connection> const& p);
-			void connection_failed(boost::shared_ptr<stream_socket> const& s
+			void connection_failed(boost::shared_ptr<peer_connection::socket_type> const& s
 				, tcp::endpoint const& a, char const* message);
 
 			void set_settings(session_settings const& s);
