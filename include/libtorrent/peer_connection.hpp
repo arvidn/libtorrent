@@ -72,6 +72,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/bandwidth_manager.hpp"
 #include "libtorrent/policy.hpp"
+#include "libtorrent/variant_stream.hpp"
 
 // TODO: each time a block is 'taken over'
 // from another peer. That peer must be given
@@ -103,6 +104,8 @@ namespace libtorrent
 	friend void intrusive_ptr_release(peer_connection const*);
 	public:
 
+		typedef variant_stream<stream_socket> socket_type;
+
 		enum channels
 		{
 			upload_channel,
@@ -116,7 +119,7 @@ namespace libtorrent
 		peer_connection(
 			aux::session_impl& ses
 			, boost::weak_ptr<torrent> t
-			, boost::shared_ptr<stream_socket> s
+			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
 			, tcp::endpoint const& proxy
 			, policy::peer* peerinfo);
@@ -125,7 +128,7 @@ namespace libtorrent
 		// know which torrent the connection belongs to
 		peer_connection(
 			aux::session_impl& ses
-			, boost::shared_ptr<stream_socket> s
+			, boost::shared_ptr<socket_type> s
 			, policy::peer* peerinfo);
 
 		virtual ~peer_connection();
@@ -216,7 +219,7 @@ namespace libtorrent
 		// is called once every second by the main loop
 		void second_tick(float tick_interval);
 
-		boost::shared_ptr<stream_socket> get_socket() const { return m_socket; }
+		boost::shared_ptr<socket_type> get_socket() const { return m_socket; }
 		tcp::endpoint const& remote() const { return m_remote; }
 		tcp::endpoint const& proxy() const { return m_remote_proxy; }
 
@@ -490,7 +493,7 @@ namespace libtorrent
 		ptime m_last_receive;
 		ptime m_last_sent;
 
-		boost::shared_ptr<stream_socket> m_socket;
+		boost::shared_ptr<socket_type> m_socket;
 		// this is the peer we're actually talking to
 		// it may not necessarily be the peer we're
 		// connected to, in case we use a proxy

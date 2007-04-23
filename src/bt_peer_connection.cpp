@@ -78,7 +78,7 @@ namespace libtorrent
 	bt_peer_connection::bt_peer_connection(
 		session_impl& ses
 		, boost::weak_ptr<torrent> tor
-		, shared_ptr<stream_socket> s
+		, shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
 		, policy::peer* peerinfo)
 		: peer_connection(ses, tor, s, remote
@@ -119,7 +119,7 @@ namespace libtorrent
 
 	bt_peer_connection::bt_peer_connection(
 		session_impl& ses
-		, boost::shared_ptr<stream_socket> s
+		, boost::shared_ptr<socket_type> s
 		, policy::peer* peerinfo)
 		: peer_connection(ses, s, peerinfo)
 		, m_state(read_protocol_length)
@@ -1073,16 +1073,6 @@ namespace libtorrent
 				|| !std::equal(recv_buffer.begin, recv_buffer.end
 					, protocol_string))
 			{
-				const char cmd[] = "version";
-				if (recv_buffer.end - recv_buffer.begin == 7 && std::equal(
-					recv_buffer.begin, recv_buffer.end, cmd))
-				{
-#ifdef TORRENT_VERBOSE_LOGGING
-					(*m_logger) << "sending libtorrent version\n";
-#endif
-					asio::write(*get_socket(), asio::buffer("libtorrent version " LIBTORRENT_VERSION "\n", 27));
-					throw std::runtime_error("closing");
-				}
 #ifdef TORRENT_VERBOSE_LOGGING
 				(*m_logger) << "incorrect protocol name\n";
 #endif
