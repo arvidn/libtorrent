@@ -92,7 +92,7 @@ namespace libtorrent
 		bt_peer_connection(
 			aux::session_impl& ses
 			, boost::weak_ptr<torrent> t
-			, boost::shared_ptr<stream_socket> s
+			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
 			, policy::peer* peerinfo);
 
@@ -100,7 +100,7 @@ namespace libtorrent
 		// know which torrent the connection belongs to
 		bt_peer_connection(
 			aux::session_impl& ses
-			, boost::shared_ptr<stream_socket> s
+			, boost::shared_ptr<socket_type> s
 			, policy::peer* peerinfo);
 
 		~bt_peer_connection();

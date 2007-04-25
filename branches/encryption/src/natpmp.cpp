@@ -135,7 +135,7 @@ catch (std::exception& e)
 	m_log << msg.str() << std::endl;
 #endif
 	m_callback(0, 0, msg.str());
-}
+};
 
 void natpmp::set_mappings(int tcp, int udp)
 {
@@ -200,7 +200,7 @@ void natpmp::send_map_request(int i) try
 catch (std::exception& e)
 {
 	std::string err = e.what();
-}
+};
 
 void natpmp::resend_request(int i, asio::error_code const& e)
 {

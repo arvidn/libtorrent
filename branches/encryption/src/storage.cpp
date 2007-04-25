@@ -75,6 +75,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio>
 #endif
 
+#if defined(__APPLE__)
+// for getattrlist()
+#include <sys/attr.h>
+#include <unistd.h>
+// for statfs()
+#include <sys/param.h>
+#include <sys/mount.h>
+#endif
+
+#if defined(__linux__)
+#include <sys/statfs.h>
+#endif
+
 #if defined(_WIN32) && defined(UNICODE)
 
 #include <windows.h>
@@ -105,7 +118,9 @@ namespace libtorrent
 		}
 	}
 }
+#endif
 
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
 namespace
 {
 	using libtorrent::safe_convert;
@@ -211,6 +226,7 @@ using boost::bind;
 using namespace ::boost::multi_index;
 using boost::multi_index::multi_index_container;
 
+#if !defined(NDEBUG) && defined(TORRENT_STORAGE_DEBUG)
 namespace
 {
 	using namespace libtorrent;
@@ -221,8 +237,8 @@ namespace
 		log << s;
 		log.flush();
 	}
-
 }
+#endif
 
 namespace libtorrent
 {
@@ -240,7 +256,7 @@ namespace libtorrent
 			try
 			{
 				path f = p / i->path;
-#if defined(_WIN32) && defined(UNICODE)
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
 				size = file_size_win(f);
 				time = last_write_time_win(f);
 #else
@@ -277,7 +293,7 @@ namespace libtorrent
 			try
 			{
 				path f = p / i->path;
-#if defined(_WIN32) && defined(UNICODE)
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
 				size = file_size_win(f);
 				time = last_write_time_win(f);
 #else
@@ -356,6 +372,7 @@ namespace libtorrent
 
 		void release_files();
 
+		void initialize(bool allocate_files);
 		bool move_storage(path save_path);
 		size_type read(char* buf, int slot, int offset, int size);
 		void write(const char* buf, int slot, int offset, int size);
@@ -374,6 +391,44 @@ namespace libtorrent
 		// instances use the same pool
 		file_pool& m_files;
 	};
+
+	void storage::initialize(bool allocate_files)
+	{
+		// first, create all missing directories
+		path last_path;
+		for (torrent_info::file_iterator file_iter = m_info.begin_files(),
+			end_iter = m_info.end_files(); file_iter != end_iter; ++file_iter)
+		{
+			path dir = (m_save_path / file_iter->path).branch_path();
+
+			if (dir != last_path)
+			{
+				last_path = dir;
+
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
+				if (!exists_win(last_path))
+					create_directories_win(last_path);
+#else
+				if (!exists(last_path))
+					create_directories(last_path);
+#endif
+			}
+
+			// if the file is empty, just create it. But also make sure
+			// the directory exits.
+			if (file_iter->size == 0)
+			{
+				file(m_save_path / file_iter->path, file::out);
+				continue;
+			}
+
+			if (allocate_files)
+			{
+				m_files.open_file(this, m_save_path / file_iter->path, file::in | file::out)
+					->set_size(file_iter->size);
+			}
+		}
+	}
 
 	void storage::release_files()
 	{
@@ -399,6 +454,13 @@ namespace libtorrent
 				, boost::bind<bool>(std::less<int>()
 				, boost::bind((size_type const& (entry::*)() const)
 					&entry::integer, _1), 0)) == slots.end();
+
+		bool full_allocation_mode = false;
+		try
+		{
+			full_allocation_mode = rd["allocation"].string() == "full";
+		}
+		catch (std::exception&) {}
 
 		if (seed)
 		{
@@ -428,6 +490,8 @@ namespace libtorrent
 			return true;
 		}
 
+		if (full_allocation_mode) return true;
+
 		return match_filesizes(m_info, m_save_path, file_sizes, &error);
 	}
 
@@ -439,7 +503,7 @@ namespace libtorrent
 
 		save_path = complete(save_path);
 
-#if defined(_WIN32) && defined(UNICODE)
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
 		std::wstring wsave_path(safe_convert(save_path.native_file_string()));
 		if (!exists_win(save_path))
 		{
@@ -463,7 +527,7 @@ namespace libtorrent
 
 		try
 		{
-#if defined(_WIN32) && defined(UNICODE)
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
 			rename_win(old_path, new_path);
 #else
 			rename(old_path, new_path);
@@ -748,6 +812,88 @@ namespace libtorrent
 		return new storage(ti, path, fp);
 	}
 
+	bool supports_sparse_files(path const& p)
+	{
+		assert(p.is_complete());
+#if defined(_WIN32)
+		// assume windows API is available
+		DWORD max_component_len = 0;
+		DWORD volume_flags = 0;
+		std::string root_device = p.root_name() + "\\";
+#if defined(UNICODE)
+		std::wstring wph(safe_convert(root_device));
+		bool ret = ::GetVolumeInformation(wph.c_str(), 0
+			, 0, 0, &max_component_len, &volume_flags, 0, 0);
+#else
+		bool ret = ::GetVolumeInformation(root_device.c_str(), 0
+			, 0, 0, &max_component_len, &volume_flags, 0, 0);
+#endif
+
+		if (!ret) return false;
+		if (volume_flags & FILE_SUPPORTS_SPARSE_FILES)
+			return true;
+#endif
+
+#if defined(__APPLE__)
+
+		// find the last existing directory of the save path
+		path query_path = p;
+		while (!query_path.empty() && !exists(query_path))
+			query_path = query_path.branch_path();
+
+		struct statfs fsinfo;
+		int ret = statfs(query_path.native_directory_string().c_str(), &fsinfo);
+		if (ret != 0) return false;
+
+		attrlist request;
+		request.bitmapcount = ATTR_BIT_MAP_COUNT;
+		request.reserved = 0;
+		request.commonattr = 0;
+		request.volattr = ATTR_VOL_CAPABILITIES;
+		request.dirattr = 0;
+		request.fileattr = 0;
+		request.forkattr = 0;
+	
+		struct vol_capabilities_attr_buf
+		{
+			unsigned long length;
+			vol_capabilities_attr_t info;
+		} vol_cap;
+
+		ret = getattrlist(fsinfo.f_mntonname, &request, &vol_cap
+			, sizeof(vol_cap), 0);
+		if (ret != 0) return false;
+
+		if (vol_cap.info.capabilities[VOL_CAPABILITIES_FORMAT]
+			& (VOL_CAP_FMT_SPARSE_FILES | VOL_CAP_FMT_ZERO_RUNS))
+		{
+			return true;
+		}
+
+		return true;
+#endif
+
+#if defined(__linux__)
+		struct statfs buf;
+		if (statfs(p.native_directory_string().c_str(), &buf) != 0);
+			return false;
+
+		switch (buf.f_type)
+		{
+			case 0x5346544e: // NTFS
+			case 0xEF51: // EXT2 OLD
+			case 0xEF53: // EXT2 and EXT3
+			case 0x00011954: // UFS
+			case 0x52654973: // ReiserFS
+			case 0x58465342: // XFS
+				return true;
+		}
+#endif
+
+		// TODO: POSIX implementation
+		return false;
+	}
+
 	// -- piece_manager -----------------------------------------------------
 
 	class piece_manager::impl
@@ -773,7 +919,7 @@ namespace libtorrent
 
 		void release_files();
 
-		void allocate_slots(int num_slots);
+		bool allocate_slots(int num_slots, bool abort_on_disk = false);
 		void mark_failed(int index);
 		unsigned long piece_crc(
 			int slot_index
@@ -919,7 +1065,7 @@ namespace libtorrent
 		, m_save_path(complete(save_path))
 		, m_allocating(false)
 	{
-		assert(m_save_path.is_complete());
+		m_fill_mode = !supports_sparse_files(save_path);
 	}
 
 	piece_manager::piece_manager(
@@ -974,6 +1120,9 @@ namespace libtorrent
 			p.push_back(*i);
 		}
 	}
+
+	bool piece_manager::compact_allocation() const
+	{ return m_pimpl->m_compact_mode; }
 
 	void piece_manager::export_piece_map(
 			std::vector<int>& p) const
@@ -1381,7 +1530,7 @@ namespace libtorrent
 				m_state = state_finished;
 				return std::make_pair(true, 1.f);
 			}
-			
+		
 			if (m_unallocated_slots.empty())
 			{
 				m_state = state_finished;
@@ -1392,7 +1541,21 @@ namespace libtorrent
 			// pieces are spread out and placed at their
 			// final position.
 			assert(!m_unallocated_slots.empty());
-			allocate_slots(1);
+
+			if (!m_fill_mode)
+			{
+				// if we're not filling the allocation
+				// just make sure we move the current pieces
+				// into place, and just skip all other
+				// allocation
+				// allocate_slots returns true if it had to
+				// move any data
+				allocate_slots(m_unallocated_slots.size(), true);
+			}
+			else
+			{
+				allocate_slots(1);
+			}
 
 			return std::make_pair(false, 1.f - (float)m_unallocated_slots.size()
 				/ (float)m_slot_to_piece.size());
@@ -1400,33 +1563,8 @@ namespace libtorrent
 
 		if (m_state == state_create_files)
 		{
-			// first, create all missing directories
-			path last_path;
-			for (torrent_info::file_iterator file_iter = m_info.begin_files(),
-				end_iter = m_info.end_files();  file_iter != end_iter; ++file_iter)
-			{
-				path dir = (m_save_path / file_iter->path).branch_path();
+			m_storage->initialize(!m_fill_mode && !m_compact_mode);
 
-				// if the file is empty, just create it. But also make sure
-				// the directory exits.
-				if (dir == last_path
-					&& file_iter->size == 0)
-					file(m_save_path / file_iter->path, file::out);
-
-				if (dir == last_path) continue;
-				last_path = dir;
-
-#if defined(_WIN32) && defined(UNICODE)
-				if (!exists_win(last_path))
-					create_directories_win(last_path);
-#else
-				if (!exists(last_path))
-					create_directories(last_path);
-#endif
-
-				if (file_iter->size == 0)
-					file(m_save_path / file_iter->path, file::out);
-			}
 			m_current_slot = 0;
 			m_state = state_full_check;
 			m_piece_data.resize(int(m_info.piece_length()));
@@ -1884,7 +2022,7 @@ namespace libtorrent
 
 	}
 
-	void piece_manager::impl::allocate_slots(int num_slots)
+	bool piece_manager::impl::allocate_slots(int num_slots, bool abort_on_disk)
 	{
 		assert(num_slots > 0);
 
@@ -1907,6 +2045,7 @@ namespace libtorrent
 
 		std::vector<char>& buffer = m_scratch_buffer;
 		buffer.resize(piece_size);
+		bool written = false;
 
 		for (int i = 0; i < num_slots && !m_unallocated_slots.empty(); ++i)
 		{
@@ -1918,7 +2057,8 @@ namespace libtorrent
 			if (m_piece_to_slot[pos] != has_no_slot)
 			{
 				assert(m_piece_to_slot[pos] >= 0);
-				m_storage->read(&buffer[0], m_piece_to_slot[pos], 0, static_cast<int>(m_info.piece_size(pos)));
+				m_storage->read(&buffer[0], m_piece_to_slot[pos], 0
+					, static_cast<int>(m_info.piece_size(pos)));
 				new_free_slot = m_piece_to_slot[pos];
 				m_slot_to_piece[pos] = pos;
 				m_piece_to_slot[pos] = pos;
@@ -1929,15 +2069,20 @@ namespace libtorrent
 			m_free_slots.push_back(new_free_slot);
 
 			if (write_back || m_fill_mode)
+			{
 				m_storage->write(&buffer[0], pos, 0, static_cast<int>(m_info.piece_size(pos)));
+				written = true;
+				if (abort_on_disk) return true;
+			}
 		}
 
 		assert(m_free_slots.size() > 0);
+		return written;
 	}
 
-	void piece_manager::allocate_slots(int num_slots)
+	bool piece_manager::allocate_slots(int num_slots, bool abort_on_disk)
 	{
-		m_pimpl->allocate_slots(num_slots);
+		return m_pimpl->allocate_slots(num_slots, abort_on_disk);
 	}
 
 	path const& piece_manager::save_path() const

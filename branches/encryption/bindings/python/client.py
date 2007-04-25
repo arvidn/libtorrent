@@ -146,6 +146,24 @@ def print_peer_info(console, peers):
 
     write_line(console, out)
 
+
+def print_download_queue(console, download_queue):
+
+    out = ""
+
+    for e in download_queue:
+        out += '%4d: [' % e['piece_index'];
+        for fin, req in zip(e['finished_blocks'], e['requested_blocks']):
+            if fin:
+                out += '#'
+            elif req:
+                out += '+'
+            else:
+                out += '-'
+        out += ']\n'
+
+    write_line(console, out)
+
 def main():
     from optparse import OptionParser
 
@@ -202,8 +220,8 @@ def main():
     ses.listen_on(options.port, options.port + 10)
     ses.set_settings(settings)
     ses.set_severity_level(lt.alert.severity_levels.info)
-    ses.add_extension(lt.create_ut_pex_plugin);
-    ses.add_extension(lt.create_metadata_plugin);
+#    ses.add_extension(lt.create_ut_pex_plugin);
+#    ses.add_extension(lt.create_metadata_plugin);
 
     handles = []
     alerts = []
@@ -279,8 +297,8 @@ def main():
 
             write_line(console, out)
 
-            peers = h.get_peer_info()
-            print_peer_info(console, peers)
+            print_peer_info(console, h.get_peer_info())
+            print_download_queue(console, h.get_download_queue())
 
             if True and s.state != lt.torrent_status.seeding:
                 out = '\n'

@@ -511,6 +511,8 @@ namespace libtorrent
 		ret["file-format"] = "libtorrent resume file";
 		ret["file-version"] = 1;
 
+		ret["allocation"] = t->filesystem().compact_allocation()?"compact":"full";
+
 		const sha1_hash& info_hash = t->torrent_file().info_hash();
 		ret["info-hash"] = std::string((char*)info_hash.begin(), (char*)info_hash.end());
 

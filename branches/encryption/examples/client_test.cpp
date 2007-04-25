@@ -333,7 +333,6 @@ typedef std::multimap<std::string, libtorrent::torrent_handle> handles_t;
 using boost::bind;
 using boost::filesystem::path;
 using boost::filesystem::exists;
-using boost::filesystem::no_check;
 using boost::filesystem::directory_iterator;
 using boost::filesystem::extension;
 
@@ -448,7 +447,10 @@ void scan_dir(path const& dir_path
 
 int main(int ac, char* av[])
 {
+#if BOOST_VERSION < 103400
+	using boost::filesystem::no_check;
 	path::default_name_check(no_check);
+#endif
 
 	int listen_port;
 	float preferred_ratio;
@@ -464,6 +466,7 @@ int main(int ac, char* av[])
 	std::string bind_to_interface;
 	std::string proxy;
 	std::string proxy_login;
+	std::string proxy_type;
 	int poll_interval;
 
 	namespace po = boost::program_options;
@@ -517,6 +520,8 @@ int main(int ac, char* av[])
 		("proxy-login,n", po::value<std::string>(&proxy_login)->default_value("")
 			, "Sets the username and password used to authenticate with the http "
 			"proxy. The string should be given in the form: <username>:<password>")
+		("proxy-type", po::value<std::string>(&proxy_type)->default_value("socks5")
+			, "Sets the type of proxy to use [socks5 | http] ")
 			;
 
 		po::positional_options_description p;
@@ -560,16 +565,21 @@ int main(int ac, char* av[])
 			input = vm["input-file"].as< std::vector<std::string> >();
 
 		session_settings settings;
+		proxy_settings ps;
 
 		if (!proxy.empty())
 		{
 			try
 			{
 				std::size_t i = proxy.find(':');
-				settings.proxy_ip = proxy.substr(0, i);
-				if (i == std::string::npos) settings.proxy_port = 8080;
-				else settings.proxy_port = boost::lexical_cast<int>(
+				ps.hostname = proxy.substr(0, i);
+				if (i == std::string::npos) ps.port = 8080;
+				else ps.port = boost::lexical_cast<int>(
 					proxy.substr(i + 1));
+				if (proxy_type == "socks5")
+					ps.type = proxy_settings::socks5;
+				else
+					ps.type = proxy_settings::http;
 			}
 			catch (std::exception&)
 			{
@@ -587,8 +597,12 @@ int main(int ac, char* av[])
 					<< proxy_login << std::endl;
 					return 1;
 				}
-				settings.proxy_login = proxy_login.substr(0, i);
-				settings.proxy_password = proxy_login.substr(i + 1);
+				ps.username = proxy_login.substr(0, i);
+				ps.password = proxy_login.substr(i + 1);
+				if (proxy_type == "socks5")
+					ps.type = proxy_settings::socks5_pw;
+				else
+					ps.type = proxy_settings::http_pw;
 			}
 		}
 
@@ -614,6 +628,10 @@ int main(int ac, char* av[])
 		ses.listen_on(std::make_pair(listen_port, listen_port + 10)
 			, bind_to_interface.c_str());
 		ses.set_settings(settings);
+		ses.set_tracker_proxy(ps);
+		ses.set_peer_proxy(ps);
+		ses.set_web_seed_proxy(ps);
+
 		if (log_level == "debug")
 			ses.set_severity_level(alert::debug);
 		else if (log_level == "warning")
@@ -678,15 +696,16 @@ int main(int ac, char* av[])
 				if (line[0] == '#') continue;
 				int a, b, c, d;
 				char dummy;
-				in >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
+				std::stringstream ln(line);
+				ln >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
 				address_v4 start((a << 24) + (b << 16) + (c << 8) + d);
-				in >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
+				ln >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
 				address_v4 last((a << 24) + (b << 16) + (c << 8) + d);
 				int flags;
-				in >> flags;
+				ln >> flags;
 				if (flags <= 127) flags = ip_filter::blocked;
 				else flags = 0;
-				if (in.fail()) break;
+				if (ln.fail()) break;
 				filter.add_rule(start, last, flags);
 			}
 			ses.set_ip_filter(filter);
@@ -839,6 +858,10 @@ int main(int ac, char* av[])
 				else if (url_seed_alert* p = dynamic_cast<url_seed_alert*>(a.get()))
 				{
 					event_string << "web seed '" << p->url << "': " << p->msg();
+				}
+				else if (peer_blocked_alert* p = dynamic_cast<peer_blocked_alert*>(a.get()))
+				{
+					event_string << "(" << p->ip << ") " << p->msg();
 				}
 				else
 				{

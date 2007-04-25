@@ -14,8 +14,10 @@ libtorrent/file_pool.hpp \
 libtorrent/fingerprint.hpp \
 libtorrent/hasher.hpp \
 libtorrent/http_connection.hpp \
+libtorrent/http_stream.hpp \
 libtorrent/http_tracker_connection.hpp \
 libtorrent/identify_client.hpp \
+libtorrent/instantiate_connection.hpp \
 libtorrent/invariant_check.hpp \
 libtorrent/io.hpp \
 libtorrent/ip_filter.hpp \
@@ -40,6 +42,8 @@ libtorrent/session_settings.hpp \
 libtorrent/session_status.hpp \
 libtorrent/size_type.hpp \
 libtorrent/socket.hpp \
+libtorrent/socket_type.hpp \
+libtorrent/socks5_stream.hpp \
 libtorrent/stat.hpp \
 libtorrent/storage.hpp \
 libtorrent/torrent.hpp \
@@ -49,6 +53,7 @@ libtorrent/tracker_manager.hpp \
 libtorrent/udp_tracker_connection.hpp \
 libtorrent/utf8.hpp \
 libtorrent/xml_parse.hpp \
+libtorrent/variant_stream.hpp \
 libtorrent/version.hpp \
 libtorrent/aux_/allocate_resources_impl.hpp \
 libtorrent/aux_/session_impl.hpp \

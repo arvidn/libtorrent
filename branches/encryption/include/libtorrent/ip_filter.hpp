@@ -75,7 +75,7 @@ namespace detail
 	// a filter for a specific address type.
 	// it works with IPv4 and IPv6
 	template<class Addr>
-	class filter_impl
+	class TORRENT_EXPORT filter_impl
 	{
 	public:
 

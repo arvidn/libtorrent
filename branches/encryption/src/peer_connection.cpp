@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/policy.hpp"
+#include "libtorrent/socket_type.hpp"
 
 using boost::bind;
 using boost::shared_ptr;
@@ -76,9 +77,8 @@ namespace libtorrent
 	peer_connection::peer_connection(
 		session_impl& ses
 		, boost::weak_ptr<torrent> tor
-		, shared_ptr<stream_socket> s
+		, shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
-		, tcp::endpoint const& proxy
 		, policy::peer* peerinfo)
 		:
 #ifndef NDEBUG
@@ -97,7 +97,6 @@ namespace libtorrent
 		, m_last_sent(time_now())
 		, m_socket(s)
 		, m_remote(remote)
-		, m_remote_proxy(proxy)
 		, m_torrent(tor)
 		, m_active(true)
 		, m_peer_interested(false)
@@ -146,7 +145,7 @@ namespace libtorrent
 
 	peer_connection::peer_connection(
 		session_impl& ses
-		, boost::shared_ptr<stream_socket> s
+		, boost::shared_ptr<socket_type> s
 		, policy::peer* peerinfo)
 		:
 #ifndef NDEBUG
@@ -1554,10 +1553,9 @@ namespace libtorrent
 	}
 
 
-	void close_socket_ignore_error(boost::shared_ptr<stream_socket> s)
+	void close_socket_ignore_error(boost::shared_ptr<socket_type> s)
 	{
-		asio::error_code e;
-		s->close(e);
+		try { s->close(); } catch (std::exception& e) {}
 	}
 
 	void peer_connection::disconnect()
@@ -2100,6 +2098,13 @@ namespace libtorrent
 
 		assert(m_packet_size > 0);
 
+		if (m_peer_choked
+			&& m_recv_pos == 0
+			&& (m_recv_buffer.capacity() - m_packet_size) > 128)
+		{
+			std::vector<char>(m_packet_size).swap(m_recv_buffer);
+		}
+
 		setup_receive();	
 	}
 	catch (file_error& e)
@@ -2169,16 +2174,8 @@ namespace libtorrent
 		assert(m_connecting);
 		m_socket->open(t->get_interface().protocol());
 		m_socket->bind(t->get_interface());
-		if (m_remote_proxy != tcp::endpoint())
-		{
-			m_socket->async_connect(m_remote_proxy
-				, bind(&peer_connection::on_connection_complete, self(), _1));
-		}
-		else
-		{
-			m_socket->async_connect(m_remote
-				, bind(&peer_connection::on_connection_complete, self(), _1));
-		}
+		m_socket->async_connect(m_remote
+			, bind(&peer_connection::on_connection_complete, self(), _1));
 
 		if (t->alerts().should_post(alert::debug))
 		{
@@ -2275,6 +2272,21 @@ namespace libtorrent
 
 		on_sent(error, bytes_transferred);
 		fill_send_buffer();
+
+		if (m_choked)
+		{
+			for (int i = 0; i < 2; ++i)
+			{
+				if (int(m_send_buffer[i].size()) < 64
+					&& int(m_send_buffer[i].capacity()) > 128)
+				{
+					std::vector<char> tmp(m_send_buffer[i]);
+					tmp.swap(m_send_buffer[i]);
+					assert(m_send_buffer[i].capacity() == m_send_buffer[i].size());
+				}
+			}
+		}
+
 		setup_send();
 	}
 	catch (std::exception& e)

@@ -84,6 +84,42 @@ void replace_trackers(torrent_handle& info, object trackers)
     info.replace_trackers(result);
 }
 
+list get_download_queue(torrent_handle& handle)
+{
+	list ret;
+
+	std::vector<partial_piece_info> downloading;
+
+	{
+		allow_threading_guard guard;
+		handle.get_download_queue(downloading);
+	}
+
+	for (std::vector<partial_piece_info>::iterator i = downloading.begin()
+		, end(downloading.end()); i != end; ++i)
+	{
+		dict partial_piece;
+		partial_piece["piece_index"] = i->piece_index;
+		partial_piece["blocks_in_piece"] = i->blocks_in_piece;
+		list requested;
+		list finished;
+//		list peer;
+		for (int k = 0; k < i->blocks_in_piece; ++k)
+		{
+			requested.append(bool(i->requested_blocks[k]));
+			finished.append(bool(i->finished_blocks[k]));
+//			peer.append(i->peer[k]);
+		}
+		partial_piece["requested_blocks"] = requested;
+		partial_piece["finished_blocks"] = finished;
+//		partial_piece["peer"] = peer;
+
+		ret.append(partial_piece);
+	}
+
+	return ret;
+}
+
 void bind_torrent_handle()
 {
     void (torrent_handle::*force_reannounce0)() const = &torrent_handle::force_reannounce;
@@ -123,6 +159,7 @@ void bind_torrent_handle()
         .def("trackers", range(begin_trackers, end_trackers))
         .def("replace_trackers", replace_trackers)
         .def("get_peer_info", get_peer_info)
+        .def("get_download_queue", get_download_queue)
         ;
 }
 

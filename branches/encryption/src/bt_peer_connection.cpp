@@ -83,11 +83,11 @@ namespace libtorrent
 	bt_peer_connection::bt_peer_connection(
 		session_impl& ses
 		, boost::weak_ptr<torrent> tor
-		, shared_ptr<stream_socket> s
+		, shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
 		, policy::peer* peerinfo)
 		: peer_connection(ses, tor, s, remote
-			, tcp::endpoint(), peerinfo)
+			, peerinfo)
 		, m_state(read_protocol_identifier)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_supports_extensions(false)
@@ -165,7 +165,7 @@ namespace libtorrent
 
 	bt_peer_connection::bt_peer_connection(
 		session_impl& ses
-		, boost::shared_ptr<stream_socket> s
+		, boost::shared_ptr<socket_type> s
 		, policy::peer* peerinfo)
 		: peer_connection(ses, s, peerinfo)
 		, m_state(read_protocol_identifier)
@@ -1192,12 +1192,14 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " ==> BITFIELD ";
 
+		std::stringstream bitfield_string;
 		for (int i = 0; i < (int)get_bitfield().size(); ++i)
 		{
-			if (bitfield[i]) (*m_logger) << "1";
-			else (*m_logger) << "0";
+			if (bitfield[i]) bitfield_string << "1";
+			else bitfield_string << "0";
 		}
-		(*m_logger) << "\n";
+		bitfield_string << "\n";
+		(*m_logger) << bitfield_string.str();
 #endif
 		const int packet_size = ((int)bitfield.size() + 7) / 8 + 5;
 	
@@ -1617,9 +1619,8 @@ namespace libtorrent
 			}
 
 			assert(m_sync_vc.get());
-			int syncoffset = get_syncoffset(m_sync_vc.get(), 8,
-											recv_buffer.begin, recv_buffer.left());
-
+			int syncoffset = get_syncoffset(m_sync_vc.get(), 8
+				, recv_buffer.begin, recv_buffer.left());
 
 			// No sync 
 			if (syncoffset == -1)

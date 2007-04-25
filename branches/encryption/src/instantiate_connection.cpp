@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,51 +30,49 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <iostream>
-#include <fstream>
-#include <iterator>
-#include <exception>
+#include "libtorrent/pch.hpp"
 
-#include <boost/format.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
+#include "libtorrent/socket.hpp"
+#include "libtorrent/session_settings.hpp"
+#include "libtorrent/socket_type.hpp"
+#include <boost/shared_ptr.hpp>
+#include <stdexcept>
+#include <asio/io_service.hpp>
 
-#include "libtorrent/entry.hpp"
-#include "libtorrent/bencode.hpp"
-#include "libtorrent/session.hpp"
-
-int main(int argc, char* argv[])
+namespace libtorrent
 {
-	using namespace libtorrent;
-#if BOOST_VERSION < 103400
-	namespace fs = boost::filesystem;
-	fs::path::default_name_check(fs::no_check);
-#endif
 
-	if (argc != 2)
+	boost::shared_ptr<socket_type> instantiate_connection(
+		asio::io_service& ios, proxy_settings const& ps)
 	{
-		std::cerr << "usage: ./simple_client torrent-file\n"
-			"to stop the client, press return.\n";
-		return 1;
+		boost::shared_ptr<socket_type> s(new socket_type(ios));
+
+		if (ps.type == proxy_settings::none)
+		{
+			s->instantiate<stream_socket>();
+		}
+		else if (ps.type == proxy_settings::http
+			|| ps.type == proxy_settings::http_pw)
+		{
+			s->instantiate<http_stream>();
+			s->get<http_stream>().set_proxy(ps.hostname, ps.port);
+			if (ps.type == proxy_settings::socks5_pw)
+				s->get<http_stream>().set_username(ps.username, ps.password);
+		}
+		else if (ps.type == proxy_settings::socks5
+			|| ps.type == proxy_settings::socks5_pw)
+		{
+			s->instantiate<socks5_stream>();
+			s->get<socks5_stream>().set_proxy(ps.hostname, ps.port);
+			if (ps.type == proxy_settings::socks5_pw)
+				s->get<socks5_stream>().set_username(ps.username, ps.password);
+		}
+		else
+		{
+			throw std::runtime_error("unsupported proxy type");
+		}
+		return s;
 	}
 
-	try
-	{
-		session s;
-		s.listen_on(std::make_pair(6881, 6889));
-	
-		std::ifstream in(argv[1], std::ios_base::binary);
-		in.unsetf(std::ios_base::skipws);
-		entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
-		s.add_torrent(torrent_info(e), "./");
-
-		// wait for the user to end
-		char a;
-		std::cin.unsetf(std::ios_base::skipws);
-		std::cin >> a;
-	}
-	catch (std::exception& e)
-	{
-  		std::cout << e.what() << "\n";
-	}
-	return 0;
 }
+

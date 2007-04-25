@@ -72,6 +72,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/bandwidth_manager.hpp"
 #include "libtorrent/policy.hpp"
+#include "libtorrent/socket_type.hpp"
 
 // TODO: each time a block is 'taken over'
 // from another peer. That peer must be given
@@ -116,16 +117,15 @@ namespace libtorrent
 		peer_connection(
 			aux::session_impl& ses
 			, boost::weak_ptr<torrent> t
-			, boost::shared_ptr<stream_socket> s
+			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
-			, tcp::endpoint const& proxy
 			, policy::peer* peerinfo);
 
 		// with this constructor we have been contacted and we still don't
 		// know which torrent the connection belongs to
 		peer_connection(
 			aux::session_impl& ses
-			, boost::shared_ptr<stream_socket> s
+			, boost::shared_ptr<socket_type> s
 			, policy::peer* peerinfo);
 
 		virtual ~peer_connection();
@@ -216,9 +216,8 @@ namespace libtorrent
 		// is called once every second by the main loop
 		void second_tick(float tick_interval);
 
-		boost::shared_ptr<stream_socket> get_socket() const { return m_socket; }
+		boost::shared_ptr<socket_type> get_socket() const { return m_socket; }
 		tcp::endpoint const& remote() const { return m_remote; }
-		tcp::endpoint const& proxy() const { return m_remote_proxy; }
 
 		std::vector<bool> const& get_bitfield() const;
 
@@ -497,15 +496,12 @@ namespace libtorrent
 		ptime m_last_receive;
 		ptime m_last_sent;
 
-		boost::shared_ptr<stream_socket> m_socket;
+		boost::shared_ptr<socket_type> m_socket;
 		// this is the peer we're actually talking to
 		// it may not necessarily be the peer we're
 		// connected to, in case we use a proxy
 		tcp::endpoint m_remote;
 		
-		// if we use a proxy, this is the address to it
-		tcp::endpoint m_remote_proxy;
-
 		// this is the torrent this connection is
 		// associated with. If the connection is an
 		// incoming conncetion, this is set to zero

@@ -479,7 +479,7 @@ namespace libtorrent { namespace detail
 		: m_strand(m_io_service)
 		, m_dl_bandwidth_manager(m_io_service, peer_connection::download_channel)
 		, m_ul_bandwidth_manager(m_io_service, peer_connection::upload_channel)
-		, m_tracker_manager(m_settings)
+		, m_tracker_manager(m_settings, m_tracker_proxy)
 		, m_listen_port_range(listen_port_range)
 		, m_listen_interface(address::from_string(listen_interface), listen_port_range.first)
 		, m_external_listen_port(0)
@@ -560,7 +560,7 @@ namespace libtorrent { namespace detail
 	}
 #endif
 
-#ifndef TORRENT_DISABLE_DHT	
+#ifndef TORRENT_DISABLE_DHT
 	void session_impl::add_dht_node(udp::endpoint n)
 	{
 		if (m_dht) m_dht->add_node(n);
@@ -597,6 +597,12 @@ namespace libtorrent { namespace detail
 #if defined(TORRENT_VERBOSE_LOGGING)
 				(*i->second->m_logger) << "*** CONNECTION FILTERED\n";
 #endif
+				if (m_alerts.should_post(alert::info))
+				{
+					m_alerts.post_alert(peer_blocked_alert(sender.address()
+						, "peer connection closed by IP filter"));
+				}
+
 				session_impl::connection_map::iterator j = i;
 				++i;
 				j->second->disconnect();
@@ -723,13 +729,14 @@ namespace libtorrent { namespace detail
 
 	void session_impl::async_accept()
 	{
-		shared_ptr<stream_socket> c(new stream_socket(m_io_service));
-		m_listen_socket->async_accept(*c
+		shared_ptr<socket_type> c(new socket_type(m_io_service));
+		c->instantiate<stream_socket>();
+		m_listen_socket->async_accept(c->get<stream_socket>()
 			, bind(&session_impl::on_incoming_connection, this, c
 			, weak_ptr<socket_acceptor>(m_listen_socket), _1));
 	}
 
-	void session_impl::on_incoming_connection(shared_ptr<stream_socket> const& s
+	void session_impl::on_incoming_connection(shared_ptr<socket_type> const& s
 		, weak_ptr<socket_acceptor> const& listen_socket, asio::error_code const& e) try
 	{
 		if (listen_socket.expired())
@@ -767,7 +774,11 @@ namespace libtorrent { namespace detail
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			(*m_logger) << "filtered blocked ip\n";
 #endif
-			// TODO: issue an info-alert when an ip is blocked!!
+			if (m_alerts.should_post(alert::info))
+			{
+				m_alerts.post_alert(peer_blocked_alert(endp.address()
+					, "incoming connection blocked by IP filter"));
+			}
 			return;
 		}
 
@@ -786,7 +797,7 @@ namespace libtorrent { namespace detail
 #endif
 	}
 	
-	void session_impl::connection_failed(boost::shared_ptr<stream_socket> const& s
+	void session_impl::connection_failed(boost::shared_ptr<socket_type> const& s
 		, tcp::endpoint const& a, char const* message)
 #ifndef NDEBUG
 		try
@@ -1018,15 +1029,13 @@ namespace libtorrent { namespace detail
 	catch (std::exception& exc)
 	{
 #ifndef NDEBUG
-		std::string err = exc.what();
+		std::cerr << exc.what() << std::endl;
+		assert(false);
 #endif
 	}; // msvc 7.1 seems to require this
 
 	void session_impl::connection_completed(
-		boost::intrusive_ptr<peer_connection> const& p)
-#ifndef NDEBUG
-	try
-#endif
+		boost::intrusive_ptr<peer_connection> const& p) try
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
@@ -1039,12 +1048,13 @@ namespace libtorrent { namespace detail
 
 		process_connection_queue();
 	}
-#ifndef NDEBUG
 	catch (std::exception& e)
 	{
+#ifndef NDEBUG
+		std::cerr << e.what() << std::endl;
 		assert(false);
-	};
 #endif
+	};
 
 	void session_impl::operator()()
 	{

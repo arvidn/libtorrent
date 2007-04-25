@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <sstream>
 #include <windows.h>
+#include <winioctl.h>
 
 namespace
 {
@@ -168,9 +169,13 @@ namespace libtorrent
 		#endif
 
 			if (new_handle == INVALID_HANDLE_VALUE)
-			{
-				std::stringstream s;
 				throw_exception(file_name);
+			// try to make the file sparse if supported
+			if (access_mask & GENERIC_WRITE)
+			{
+				DWORD temp;
+				::DeviceIoControl(new_handle, FSCTL_SET_SPARSE, 0, 0
+					, 0, 0, &temp, 0);
 			}
 			// will only close old file if the open succeeded
 			close();
@@ -231,6 +236,16 @@ namespace libtorrent
 				}
 			}
 			return bytes_read;
+		}
+
+		void set_size(size_type s)
+		{
+			size_type pos = tell();
+			seek(s, seek_begin);
+			if (FALSE == ::SetEndOfFile(m_file_handle))
+				throw_exception("file::set_size");
+
+			seek(pos, seek_begin);
 		}
 
 		size_type seek(size_type pos, seek_mode from_where)
@@ -332,6 +347,11 @@ namespace libtorrent
 	size_type file::read(char* buffer, size_type num_bytes)
 	{
 		return m_impl->read(buffer, num_bytes);
+	}
+
+	void file::set_size(size_type s)
+	{
+		m_impl->set_size(s);
 	}
 
 	size_type file::seek(size_type pos, seek_mode m)

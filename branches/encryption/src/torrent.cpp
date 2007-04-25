@@ -71,6 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/instantiate_connection.hpp"
 
 using namespace libtorrent;
 using boost::tuples::tuple;
@@ -573,6 +574,12 @@ namespace libtorrent
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 					debug_log("blocked ip from tracker: " + i->ip);
 #endif
+					if (m_ses.m_alerts.should_post(alert::info))
+					{
+						m_ses.m_alerts.post_alert(peer_blocked_alert(a.address()
+							, "peer from tracker blocked by IP filter"));
+					}
+
 					continue;
 				}
 			
@@ -615,6 +622,12 @@ namespace libtorrent
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			debug_log("blocked ip from tracker: " + host->endpoint().address().to_string());
 #endif
+			if (m_ses.m_alerts.should_post(alert::info))
+			{
+				m_ses.m_alerts.post_alert(peer_blocked_alert(host->endpoint().address()
+					, "peer from tracker blocked by IP filter"));
+			}
+
 			return;
 		}
 			
@@ -1099,12 +1112,15 @@ namespace libtorrent
 		for (int i = 0; i < int(files.size()); ++i)
 		{
 			size_type start = position;
-			position += m_torrent_file.file_at(i).size;
+			size_type size = m_torrent_file.file_at(i).size;
+			if (size == 0) continue;
+			position += size;
 			// mark all pieces of the file with this file's priority
 			// but only if the priority is higher than the pieces
 			// already set (to avoid problems with overlapping pieces)
 			int start_piece = int(start / piece_length);
-			int last_piece = int(position / piece_length);
+			int last_piece = int((position - 1) / piece_length);
+			assert(last_piece <= int(pieces.size()));
 			// if one piece spans several files, we might
 			// come here several times with the same start_piece, end_piece
 			std::for_each(pieces.begin() + start_piece
@@ -1121,8 +1137,6 @@ namespace libtorrent
 		for (peer_iterator i = begin(); i != end(); ++i)
 			i->second->update_interest();
 	}
-
-
 
 	void torrent::filter_piece(int index, bool filter)
 	{
@@ -1339,7 +1353,17 @@ namespace libtorrent
 #endif
 
 		m_resolving_web_seeds.insert(url);
-		if (m_ses.settings().proxy_ip.empty())
+		proxy_settings const& ps = m_ses.web_seed_proxy();
+		if (ps.type == proxy_settings::http
+			|| ps.type == proxy_settings::http_pw)
+		{
+			// use proxy
+			tcp::resolver::query q(ps.hostname
+				, boost::lexical_cast<std::string>(ps.port));
+			m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
+				bind(&torrent::on_proxy_name_lookup, shared_from_this(), _1, _2, url)));
+		}
+		else
 		{
 			std::string protocol;
 			std::string hostname;
@@ -1352,14 +1376,6 @@ namespace libtorrent
 			m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
 				bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, url
 					, tcp::endpoint())));
-		}
-		else
-		{
-			// use proxy
-			tcp::resolver::query q(m_ses.settings().proxy_ip
-				, boost::lexical_cast<std::string>(m_ses.settings().proxy_port));
-			m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
-				bind(&torrent::on_proxy_name_lookup, shared_from_this(), _1, _2, url)));
 		}
 
 	}
@@ -1394,19 +1410,22 @@ namespace libtorrent
 		if (m_ses.is_aborted()) return;
 
 		tcp::endpoint a(host->endpoint());
-
-		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
-		{
-			// TODO: post alert: "proxy at " + a.address().to_string() + " (" + hostname + ") blocked by ip filter");
-			return;
-		}
-
 		std::string protocol;
 		std::string hostname;
 		int port;
 		std::string path;
 		boost::tie(protocol, hostname, port, path)
 			= parse_url_components(url);
+
+		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
+		{
+			if (m_ses.m_alerts.should_post(alert::info))
+			{
+				m_ses.m_alerts.post_alert(peer_blocked_alert(a.address()
+					, "proxy (" + hostname + ") blocked by IP filter"));
+			}
+			return;
+		}
 
 		tcp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
 		m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
@@ -1456,7 +1475,11 @@ namespace libtorrent
 
 		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
 		{
-			// TODO: post alert: "web seed at " + a.address().to_string() + " blocked by ip filter");
+			if (m_ses.m_alerts.should_post(alert::info))
+			{
+				m_ses.m_alerts.post_alert(peer_blocked_alert(a.address()
+					, "web seed (" + url + ") blocked by IP filter"));
+			}
 			return;
 		}
 		
@@ -1468,9 +1491,17 @@ namespace libtorrent
 			else return;
 		}
 
-		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_io_service));
+		boost::shared_ptr<socket_type> s
+			= instantiate_connection(m_ses.m_io_service, m_ses.web_seed_proxy());
+		if (m_ses.web_seed_proxy().type == proxy_settings::http
+			|| m_ses.web_seed_proxy().type == proxy_settings::http_pw)
+		{
+			// the web seed connection will talk immediately to
+			// the proxy, without requiring CONNECT support
+			s->get<http_stream>().set_no_connect(true);
+		}
 		boost::intrusive_ptr<peer_connection> c(new web_peer_connection(
-			m_ses, shared_from_this(), s, a, proxy, url, 0));
+			m_ses, shared_from_this(), s, a, url, 0));
 			
 #ifndef NDEBUG
 		c->m_in_constructor = false;
@@ -1841,12 +1872,20 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		tcp::endpoint const& a(peerinfo->ip);
 		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
+		{
+			if (m_ses.m_alerts.should_post(alert::info))
+			{
+				m_ses.m_alerts.post_alert(peer_blocked_alert(a.address()
+					, "peer connection blocked by IP filter"));
+			}
 			throw protocol_error(a.address().to_string() + " blocked by ip filter");
+		}
 
 		if (m_connections.find(a) != m_connections.end())
 			throw protocol_error("already connected to peer");
 
-		boost::shared_ptr<stream_socket> s(new stream_socket(m_ses.m_io_service));
+		boost::shared_ptr<socket_type> s
+			= instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy());
 		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
 			m_ses, shared_from_this(), s, a, peerinfo));
 			
@@ -1980,8 +2019,7 @@ namespace libtorrent
 			m_connections.erase(ci);
 			throw;
 		}
-		assert((p->proxy() == tcp::endpoint() && p->remote() == p->get_socket()->remote_endpoint())
-			|| p->proxy() == p->get_socket()->remote_endpoint());
+		assert(p->remote() == p->get_socket()->remote_endpoint());
 
 #ifndef NDEBUG
 		m_policy->check_invariant();

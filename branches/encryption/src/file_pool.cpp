@@ -45,6 +45,7 @@ namespace libtorrent
 	{
 		assert(st != 0);
 		assert(p.is_complete());
+		assert(m == file::in || m == (file::in | file::out));
 		boost::mutex::scoped_lock l(m_mutex);
 		typedef nth_index<file_set, 0>::type path_view;
 		path_view& pt = get<0>(m_files);

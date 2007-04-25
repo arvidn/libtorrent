@@ -198,8 +198,7 @@ namespace libtorrent
 		// the number of blocks we want, but it will try to make the picked
 		// blocks be from whole pieces, possibly by returning more blocks
 		// than we requested.
-		assert((c.proxy() == tcp::endpoint() && c.remote() == c.get_socket()->remote_endpoint())
-			|| c.proxy() == c.get_socket()->remote_endpoint());
+		assert(c.remote() == c.get_socket()->remote_endpoint());
 
 		// picks the interesting pieces from this peer
 		// the integer is the number of pieces that
@@ -885,8 +884,7 @@ namespace libtorrent
 
 		// TODO: only allow _one_ connection to use this
 		// override at a time
-		assert((c.proxy() == tcp::endpoint() && c.remote() == c.get_socket()->remote_endpoint())
-			|| c.proxy() == c.get_socket()->remote_endpoint());
+		assert(c.remote() == c.get_socket()->remote_endpoint());
 
 		if (m_torrent->num_peers() >= m_torrent->m_connections_quota.given
 			&& c.remote().address() != m_torrent->current_tracker().address())
@@ -944,8 +942,7 @@ namespace libtorrent
 		{
 			// we don't have ny info about this peer.
 			// add a new entry
-			assert((c.proxy() == tcp::endpoint() && c.remote() == c.get_socket()->remote_endpoint())
-				|| c.proxy() == c.get_socket()->remote_endpoint());
+			assert(c.remote() == c.get_socket()->remote_endpoint());
 
 			peer p(c.remote(), peer::not_connectable, 0);
 			m_peers.push_back(p);
@@ -998,6 +995,15 @@ namespace libtorrent
 				// because of the push_back()
 				i = boost::prior(m_peers.end());
 				if (flags & 0x02) p.seed = true;
+
+				// try to send a DHT ping to this peer
+				// as well, to figure out if it supports
+				// DHT (uTorrent and BitComet doesn't
+				// advertise support)
+#ifndef TORRENT_DISABLE_DHT
+				udp::endpoint node(remote.address(), remote.port());
+				m_torrent->session().add_dht_node(node);
+#endif
 			}
 			else
 			{
@@ -1316,8 +1322,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		assert(c);
-		assert((c->proxy() == tcp::endpoint() && c->remote() == c->get_socket()->remote_endpoint())
-			|| c->proxy() == c->get_socket()->remote_endpoint());
+		assert(c->remote() == c->get_socket()->remote_endpoint());
 
 		return std::find_if(
 			m_peers.begin()

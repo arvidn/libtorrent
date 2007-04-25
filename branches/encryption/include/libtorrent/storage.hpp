@@ -89,6 +89,12 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT storage_interface
 	{
+		// create directories and set file sizes
+		// if allocate_files is true. 
+		// allocate_files is true if allocation mode
+		// is set to full and sparse files are supported
+		virtual void initialize(bool allocate_files) = 0;
+
 		// may throw file_error if storage for slot does not exist
 		virtual size_type read(char* buf, int slot, int offset, int size) = 0;
 
@@ -113,6 +119,10 @@ namespace libtorrent
 	TORRENT_EXPORT storage_interface* default_storage_constructor(torrent_info const& ti
 		, boost::filesystem::path const& path, file_pool& fp);
 
+	// returns true if the filesystem the path relies on supports
+	// sparse files or automatic zero filling of files.
+	TORRENT_EXPORT bool supports_sparse_files(boost::filesystem::path const& p);
+
 	class TORRENT_EXPORT piece_manager : boost::noncopyable
 	{
 	public:
@@ -135,7 +145,7 @@ namespace libtorrent
 		bool verify_resume_data(entry& rd, std::string& error);
 
 		bool is_allocating() const;
-		void allocate_slots(int num_slots);
+		bool allocate_slots(int num_slots, bool abort_on_disk = false);
 		void mark_failed(int index);
 
 		unsigned long piece_crc(
@@ -164,6 +174,8 @@ namespace libtorrent
 		// partially stored) there. -2 is the index
 		// of unassigned pieces and -1 is unallocated
 		void export_piece_map(std::vector<int>& pieces) const;
+
+		bool compact_allocation() const;
 
 	private:
 		class impl;

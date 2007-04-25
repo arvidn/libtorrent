@@ -236,6 +236,21 @@ Build features:
 |                        | * ``profile`` - builds libtorrent with profile     |
 |                        |   information.                                     |
 +------------------------+----------------------------------------------------+
+| ``openssl``            | * ``on`` - openssl will be used instead of the     |
+|                        |   public domain SHA-1 implementation shipped with  |
+|                        |   libtorrent. ``crypto.lib`` or ``libcrypto.a``    |
+|                        |   will be required for linking.                    |
+|                        | * ``off`` - the shipped SHA-1 implementation will  |
+|                        |   be used, and there will be no dependency on      |
+|                        |   openssl.                                         |
++------------------------+----------------------------------------------------+
+| ``character-set``      | This setting will only have an affect on windows.  |
+|                        | Other platforms are expected to support UTF-8.     |
+|                        | * ``ansi`` - The ansi version of the win32 API is  |
+|                        |   used.                                            |
+|                        | * ``unicode`` - The unicode version of the win32   |
+|                        |   API is used.                                     |
++------------------------+----------------------------------------------------+
 
 The ``variant`` feature is *implicit*, which means you don't need to specify
 the name of the feature, just the value.
