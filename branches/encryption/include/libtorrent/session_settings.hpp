@@ -235,6 +235,13 @@ namespace libtorrent
 
 	struct pe_settings
 	{
+		pe_settings()
+			: out_enc_policy(enabled)
+			, in_enc_policy(enabled)
+			, allowed_enc_level(both)
+			, prefer_rc4(false)
+		{}
+
 		enum enc_policy
 		{
 			forced,  // disallow non encrypted connections
@@ -248,13 +255,6 @@ namespace libtorrent
 			rc4, // use only rc4 encryption 
 			both // allow both
 		};
-
-		pe_settings()
-			: out_enc_policy(enabled)
-			, in_enc_policy(enabled)
-			, allowed_enc_level(both)
-			, prefer_rc4(false)
-		{}
 
 		enc_policy out_enc_policy;
 		enc_policy in_enc_policy;

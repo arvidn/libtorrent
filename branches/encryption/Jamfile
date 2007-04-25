@@ -38,6 +38,8 @@ feature.compose <openssl>on : <define>TORRENT_USE_OPENSSL ;
 feature character-set : ansi unicode : composite propagated link-incompatible ;
 feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
 
+feature zlib : shipped system : composite ;
+
 SOURCES =
 	allocate_resources
 	alert
@@ -136,7 +138,7 @@ project torrent
 
 	<include>./include
 	<include>./include/libtorrent
-	<include>./zlib
+	<zlib>shipped:<include>./zlib
 	<include>$(BOOST_ROOT)
 	<variant>release:<define>NDEBUG
 	<define>BOOST_ALL_NO_LIB
@@ -174,29 +176,21 @@ project torrent
 	<link>shared:<define>TORRENT_LINKING_SHARED
 	;
 
-lib libz : : <search>/usr/lib <name>z ;
-lib crypto : : <search>/usr/lib <name>crypto ;
-
-feature zlib : system shipped : composite ;
-feature.compose <zlib>system : ;
-feature.compose <zlib>shipped : ;
-
 #cpp-pch pch : include/libtorrent/pch.hpp ;
 
 lib torrent
 	:
 	src/$(SOURCES).cpp
-	zlib/$(ZLIB_SOURCES).c
 	$(LIBS)
 #	pch
 	:
 	<dht-support>on:<source>src/$(KADEMLIA_SOURCES).cpp
 	<dht-support>logging:<source>src/$(KADEMLIA_SOURCES).cpp
-	<zlib>shipped:<source>zlib/$(ZLIB_SOURCES)
-	<zlib>system:<source>libz
+	<zlib>shipped:<source>zlib/$(ZLIB_SOURCES).c
+	<zlib>system:<library>z
 	<pe-support>on:<source>src/pe_crypto.cpp
-	<pe-support>on:<source>crypto
-	<openssl>off:<source>src/sha1.cpp
+	<pe-support>on:<library>crypto
 	<openssl>on:<library>crypto
+	<openssl>off:<source>src/sha1.cpp
 	;
 
