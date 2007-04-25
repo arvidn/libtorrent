@@ -117,14 +117,12 @@ namespace libtorrent
 			return *this;
 		}
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
 		big_number& operator ^= (big_number const& n)
 		{
 			for (int i = 0; i< number_size; ++i)
 				m_number[i] ^= n.m_number[i];
 			return *this;
 		}
-#endif
 		
 		unsigned char& operator[](int i)
 		{ assert(i >= 0 && i < number_size); return m_number[i]; }
