@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/io.hpp"
+#include "libtorrent/instantiate_connection.hpp"
 
 using namespace libtorrent;
 using boost::bind;
@@ -285,6 +286,7 @@ namespace libtorrent
 		, address bind_infc
 		, boost::weak_ptr<request_callback> c
 		, session_settings const& stn
+		, proxy_settings const& ps
 		, std::string const& auth)
 		: tracker_connection(man, req, str, bind_infc, c)
 		, m_man(man)
@@ -294,19 +296,16 @@ namespace libtorrent
 		, m_recv_pos(0)
 		, m_buffer(http_buffer_size)
 		, m_settings(stn)
+		, m_proxy(ps)
 		, m_password(auth)
 		, m_timed_out(false)
 	{
-		const std::string* connect_to_host;
-		bool using_proxy = false;
-
 		m_send_buffer.assign("GET ");
 
 		// should we use the proxy?
-		if (!m_settings.proxy_ip.empty())
+		if (m_proxy.type == proxy_settings::http
+			|| m_proxy.type == proxy_settings::http_pw)
 		{
-			connect_to_host = &m_settings.proxy_ip;
-			using_proxy = true;
 			m_send_buffer += "http://";
 			m_send_buffer += hostname;
 			if (port != 80)
@@ -314,12 +313,6 @@ namespace libtorrent
 				m_send_buffer += ":";
 				m_send_buffer += boost::lexical_cast<std::string>(port);
 			}
-			m_port = m_settings.proxy_port != 0
-				? m_settings.proxy_port : 80 ;
-		}
-		else
-		{
-			connect_to_host = &hostname;
 		}
 
 		if (tracker_req().kind == tracker_request::scrape_request)
@@ -446,12 +439,12 @@ namespace libtorrent
 			m_send_buffer += ':';
 			m_send_buffer += boost::lexical_cast<std::string>(port);
 		}
-		if (using_proxy && !m_settings.proxy_login.empty())
+		if (m_proxy.type == proxy_settings::http_pw)
 		{
 			m_send_buffer += "\r\nProxy-Authorization: Basic ";
-			m_send_buffer += base64encode(m_settings.proxy_login + ":" + m_settings.proxy_password);
+			m_send_buffer += base64encode(m_proxy.username + ":" + m_proxy.password);
 		}
-		if (auth != "")
+		if (!auth.empty())
 		{
 			m_send_buffer += "\r\nAuthorization: Basic ";
 			m_send_buffer += base64encode(auth);
@@ -466,11 +459,11 @@ namespace libtorrent
 			info_hash_str << req.info_hash;
 			requester().debug_log("info_hash: "
 				+ boost::lexical_cast<std::string>(req.info_hash));
-			requester().debug_log("name lookup: " + *connect_to_host);
+			requester().debug_log("name lookup: " + hostname);
 		}
 #endif
 
-		tcp::resolver::query q(*connect_to_host
+		tcp::resolver::query q(hostname
 			, boost::lexical_cast<std::string>(m_port));
 		m_name_lookup.async_resolve(q, m_strand.wrap(
 			boost::bind(&http_tracker_connection::name_lookup, self(), _1, _2)));
@@ -532,7 +525,16 @@ namespace libtorrent
 		}
 
 		if (has_requester()) requester().m_tracker_address = target_address;
-		m_socket.reset(new stream_socket(m_name_lookup.io_service()));
+		m_socket = instantiate_connection(m_name_lookup.io_service(), m_proxy);
+
+		if (m_proxy.type == proxy_settings::http
+			|| m_proxy.type == proxy_settings::http_pw)
+		{
+			// the tracker connection will talk immediately to
+			// the proxy, without requiring CONNECT support
+			m_socket->get<http_stream>().set_no_connect(true);
+		}
+
 		m_socket->open(target_address.protocol());
 		m_socket->bind(tcp::endpoint(bind_interface(), 0));
 		m_socket->async_connect(target_address, bind(&http_tracker_connection::connected, self(), _1));
@@ -708,6 +710,13 @@ namespace libtorrent
 
 			m_man.queue_request(m_strand, req
 				, m_password, bind_interface(), m_requester);
+			close();
+			return;
+		}
+
+		if (m_parser.status_code() != 200)
+		{
+			fail(m_parser.status_code(), m_parser.message().c_str());
 			close();
 			return;
 		}

@@ -219,6 +219,19 @@ namespace libtorrent
 		void set_settings(session_settings const& s);
 		session_settings const& settings();
 
+		void set_peer_proxy(proxy_settings const& s);
+		void set_web_seed_proxy(proxy_settings const& s);
+		void set_tracker_proxy(proxy_settings const& s);
+
+		proxy_settings const& peer_proxy() const;
+		proxy_settings const& web_seed_proxy() const;
+		proxy_settings const& tracker_proxy() const;
+
+#ifndef TORRENT_DISABLE_DHT
+		void set_dht_proxy(proxy_settings const& s);
+		proxy_settings const& dht_proxy() const;
+#endif
+
 		int upload_rate_limit() const;
 		int download_rate_limit() const;
 

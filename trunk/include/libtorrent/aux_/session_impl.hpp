@@ -80,6 +80,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/lsd.hpp"
+#include "libtorrent/socket_type.hpp"
 
 namespace libtorrent
 {
@@ -166,7 +167,7 @@ namespace libtorrent
 #endif
 			friend struct checker_impl;
 			friend class invariant_access;
-			typedef std::map<boost::shared_ptr<peer_connection::socket_type>
+			typedef std::map<boost::shared_ptr<socket_type>
 				, boost::intrusive_ptr<peer_connection> >
 				connection_map;
 			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
@@ -187,7 +188,7 @@ namespace libtorrent
 			void open_listen_port();
 
 			void async_accept();
-			void on_incoming_connection(boost::shared_ptr<peer_connection::socket_type> const& s
+			void on_incoming_connection(boost::shared_ptr<socket_type> const& s
 				, boost::weak_ptr<socket_acceptor> const& as, asio::error_code const& e);
 		
 			// must be locked to access the data
@@ -205,7 +206,7 @@ namespace libtorrent
 
 			void close_connection(boost::intrusive_ptr<peer_connection> const& p);
 			void connection_completed(boost::intrusive_ptr<peer_connection> const& p);
-			void connection_failed(boost::shared_ptr<peer_connection::socket_type> const& s
+			void connection_failed(boost::shared_ptr<socket_type> const& s
 				, tcp::endpoint const& a, char const* message);
 
 			void set_settings(session_settings const& s);
@@ -282,7 +283,28 @@ namespace libtorrent
 			torrent_handle find_torrent_handle(sha1_hash const& info_hash);
 
 			void announce_lsd(sha1_hash const& ih);
-			
+
+			void set_peer_proxy(proxy_settings const& s)
+			{ m_peer_proxy = s; }
+			void set_web_seed_proxy(proxy_settings const& s)
+			{ m_web_seed_proxy = s; }
+			void set_tracker_proxy(proxy_settings const& s)
+			{ m_tracker_proxy = s; }
+
+			proxy_settings const& peer_proxy() const
+			{ return m_peer_proxy; }
+			proxy_settings const& web_seed_proxy() const
+			{ return m_web_seed_proxy; }
+			proxy_settings const& tracker_proxy() const
+			{ return m_tracker_proxy; }
+
+#ifndef TORRENT_DISABLE_DHT
+			void set_dht_proxy(proxy_settings const& s)
+			{ m_dht_proxy = s; }
+			proxy_settings const& dht_proxy() const
+			{ return m_dht_proxy; }
+#endif
+
 			// handles delayed alerts
 			alert_manager m_alerts;
 			
@@ -355,6 +377,14 @@ namespace libtorrent
 
 			// the settings for the client
 			session_settings m_settings;
+			// the proxy settings for different
+			// kinds of connections
+			proxy_settings m_peer_proxy;
+			proxy_settings m_web_seed_proxy;
+			proxy_settings m_tracker_proxy;
+#ifndef TORRENT_DISABLE_DHT
+			proxy_settings m_dht_proxy;
+#endif
 
 			// set to true when the session object
 			// is being destructed and the thread

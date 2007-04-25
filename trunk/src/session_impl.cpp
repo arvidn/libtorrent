@@ -479,7 +479,7 @@ namespace libtorrent { namespace detail
 		: m_strand(m_io_service)
 		, m_dl_bandwidth_manager(m_io_service, peer_connection::download_channel)
 		, m_ul_bandwidth_manager(m_io_service, peer_connection::upload_channel)
-		, m_tracker_manager(m_settings)
+		, m_tracker_manager(m_settings, m_tracker_proxy)
 		, m_listen_port_range(listen_port_range)
 		, m_listen_interface(address::from_string(listen_interface), listen_port_range.first)
 		, m_external_listen_port(0)
@@ -729,14 +729,14 @@ namespace libtorrent { namespace detail
 
 	void session_impl::async_accept()
 	{
-		shared_ptr<peer_connection::socket_type> c(new peer_connection::socket_type(m_io_service));
+		shared_ptr<socket_type> c(new socket_type(m_io_service));
 		c->instantiate<stream_socket>();
 		m_listen_socket->async_accept(c->get<stream_socket>()
 			, bind(&session_impl::on_incoming_connection, this, c
 			, weak_ptr<socket_acceptor>(m_listen_socket), _1));
 	}
 
-	void session_impl::on_incoming_connection(shared_ptr<peer_connection::socket_type> const& s
+	void session_impl::on_incoming_connection(shared_ptr<socket_type> const& s
 		, weak_ptr<socket_acceptor> const& listen_socket, asio::error_code const& e) try
 	{
 		if (listen_socket.expired())
@@ -797,7 +797,7 @@ namespace libtorrent { namespace detail
 #endif
 	}
 	
-	void session_impl::connection_failed(boost::shared_ptr<peer_connection::socket_type> const& s
+	void session_impl::connection_failed(boost::shared_ptr<socket_type> const& s
 		, tcp::endpoint const& a, char const* message)
 #ifndef NDEBUG
 		try

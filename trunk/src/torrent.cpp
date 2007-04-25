@@ -71,6 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/instantiate_connection.hpp"
 
 using namespace libtorrent;
 using boost::tuples::tuple;
@@ -1352,7 +1353,17 @@ namespace libtorrent
 #endif
 
 		m_resolving_web_seeds.insert(url);
-		if (m_ses.settings().proxy_ip.empty())
+		proxy_settings const& ps = m_ses.web_seed_proxy();
+		if (ps.type == proxy_settings::http
+			|| ps.type == proxy_settings::http_pw)
+		{
+			// use proxy
+			tcp::resolver::query q(ps.hostname
+				, boost::lexical_cast<std::string>(ps.port));
+			m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
+				bind(&torrent::on_proxy_name_lookup, shared_from_this(), _1, _2, url)));
+		}
+		else
 		{
 			std::string protocol;
 			std::string hostname;
@@ -1365,14 +1376,6 @@ namespace libtorrent
 			m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
 				bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, url
 					, tcp::endpoint())));
-		}
-		else
-		{
-			// use proxy
-			tcp::resolver::query q(m_ses.settings().proxy_ip
-				, boost::lexical_cast<std::string>(m_ses.settings().proxy_port));
-			m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
-				bind(&torrent::on_proxy_name_lookup, shared_from_this(), _1, _2, url)));
 		}
 
 	}
@@ -1488,11 +1491,17 @@ namespace libtorrent
 			else return;
 		}
 
-		boost::shared_ptr<peer_connection::socket_type> s(
-			new peer_connection::socket_type(m_ses.m_io_service));
-		s->instantiate<stream_socket>();
+		boost::shared_ptr<socket_type> s
+			= instantiate_connection(m_ses.m_io_service, m_ses.web_seed_proxy());
+		if (m_ses.web_seed_proxy().type == proxy_settings::http
+			|| m_ses.web_seed_proxy().type == proxy_settings::http_pw)
+		{
+			// the web seed connection will talk immediately to
+			// the proxy, without requiring CONNECT support
+			s->get<http_stream>().set_no_connect(true);
+		}
 		boost::intrusive_ptr<peer_connection> c(new web_peer_connection(
-			m_ses, shared_from_this(), s, a, proxy, url, 0));
+			m_ses, shared_from_this(), s, a, url, 0));
 			
 #ifndef NDEBUG
 		c->m_in_constructor = false;
@@ -1875,9 +1884,8 @@ namespace libtorrent
 		if (m_connections.find(a) != m_connections.end())
 			throw protocol_error("already connected to peer");
 
-		boost::shared_ptr<peer_connection::socket_type> s(
-			new peer_connection::socket_type(m_ses.m_io_service));
-		s->instantiate<stream_socket>();
+		boost::shared_ptr<socket_type> s
+			= instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy());
 		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
 			m_ses, shared_from_this(), s, a, peerinfo));
 			
@@ -2011,8 +2019,7 @@ namespace libtorrent
 			m_connections.erase(ci);
 			throw;
 		}
-		assert((p->proxy() == tcp::endpoint() && p->remote() == p->get_socket()->remote_endpoint())
-			|| p->proxy() == p->get_socket()->remote_endpoint());
+		assert(p->remote() == p->get_socket()->remote_endpoint());
 
 #ifndef NDEBUG
 		m_policy->check_invariant();

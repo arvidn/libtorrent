@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/policy.hpp"
+#include "libtorrent/socket_type.hpp"
 
 using boost::bind;
 using boost::shared_ptr;
@@ -78,7 +79,6 @@ namespace libtorrent
 		, boost::weak_ptr<torrent> tor
 		, shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
-		, tcp::endpoint const& proxy
 		, policy::peer* peerinfo)
 		:
 #ifndef NDEBUG
@@ -97,7 +97,6 @@ namespace libtorrent
 		, m_last_sent(time_now())
 		, m_socket(s)
 		, m_remote(remote)
-		, m_remote_proxy(proxy)
 		, m_torrent(tor)
 		, m_active(true)
 		, m_peer_interested(false)
@@ -1551,7 +1550,7 @@ namespace libtorrent
 	}
 
 
-	void close_socket_ignore_error(boost::shared_ptr<peer_connection::socket_type> s)
+	void close_socket_ignore_error(boost::shared_ptr<socket_type> s)
 	{
 		try { s->close(); } catch (std::exception& e) {}
 	}
@@ -2169,16 +2168,8 @@ namespace libtorrent
 		assert(m_connecting);
 		m_socket->open(t->get_interface().protocol());
 		m_socket->bind(t->get_interface());
-		if (m_remote_proxy != tcp::endpoint())
-		{
-			m_socket->async_connect(m_remote_proxy
-				, bind(&peer_connection::on_connection_complete, self(), _1));
-		}
-		else
-		{
-			m_socket->async_connect(m_remote
-				, bind(&peer_connection::on_connection_complete, self(), _1));
-		}
+		m_socket->async_connect(m_remote
+			, bind(&peer_connection::on_connection_complete, self(), _1));
 
 		if (t->alerts().should_post(alert::debug))
 		{

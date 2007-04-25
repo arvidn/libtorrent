@@ -262,6 +262,49 @@ namespace libtorrent
 		return m_impl->settings();
 	}
 
+	void session::set_peer_proxy(proxy_settings const& s)
+	{
+		m_impl->set_peer_proxy(s);
+	}
+
+	void session::set_web_seed_proxy(proxy_settings const& s)
+	{
+		m_impl->set_web_seed_proxy(s);
+	}
+
+	void session::set_tracker_proxy(proxy_settings const& s)
+	{
+		m_impl->set_tracker_proxy(s);
+	}
+
+	proxy_settings const& session::peer_proxy() const
+	{
+		return m_impl->peer_proxy();
+	}
+
+	proxy_settings const& session::web_seed_proxy() const
+	{
+		return m_impl->web_seed_proxy();
+	}
+
+	proxy_settings const& session::tracker_proxy() const
+	{
+		return m_impl->tracker_proxy();
+	}
+
+
+#ifndef TORRENT_DISABLE_DHT
+	void session::set_dht_proxy(proxy_settings const& s)
+	{
+		m_impl->set_dht_proxy(s);
+	}
+
+	proxy_settings const& session::dht_proxy() const
+	{
+		return m_impl->dht_proxy();
+	}
+#endif
+
 	void session::set_max_uploads(int limit)
 	{
 		m_impl->set_max_uploads(limit);

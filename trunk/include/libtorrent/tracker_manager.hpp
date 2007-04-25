@@ -221,8 +221,9 @@ namespace libtorrent
 	{
 	public:
 
-		tracker_manager(const session_settings& s)
-			: m_settings(s) {}
+		tracker_manager(session_settings const& s, proxy_settings const& ps)
+			: m_settings(s)
+			, m_proxy(ps) {}
 
 		void queue_request(
 			asio::strand& str
@@ -245,6 +246,7 @@ namespace libtorrent
 			tracker_connections_t;
 		tracker_connections_t m_connections;
 		session_settings const& m_settings;
+		proxy_settings const& m_proxy;
 	};
 }
 

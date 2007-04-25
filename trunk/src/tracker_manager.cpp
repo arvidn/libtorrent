@@ -515,6 +515,7 @@ namespace libtorrent
 					, bind_infc
 					, c
 					, m_settings
+					, m_proxy
 					, auth);
 			}
 			else if (protocol == "udp")

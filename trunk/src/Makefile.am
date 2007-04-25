@@ -20,7 +20,8 @@ stat.cpp storage.cpp torrent.cpp torrent_handle.cpp \
 torrent_info.cpp tracker_manager.cpp http_connection.cpp \
 http_tracker_connection.cpp udp_tracker_connection.cpp \
 alert.cpp identify_client.cpp ip_filter.cpp file.cpp metadata_transfer.cpp \
-logger.cpp file_pool.cpp ut_pex.cpp lsd.cpp upnp.cpp $(kademlia_sources)
+logger.cpp file_pool.cpp ut_pex.cpp lsd.cpp upnp.cpp instantiate_connection.cpp \
+socks5_stream.cpp http_stream.cpp $(kademlia_sources)
 
 noinst_HEADERS = \
 $(top_srcdir)/include/libtorrent/alert.hpp \
@@ -43,9 +44,11 @@ $(top_srcdir)/include/libtorrent/file_pool.hpp \
 $(top_srcdir)/include/libtorrent/fingerprint.hpp \
 $(top_srcdir)/include/libtorrent/hasher.hpp \
 $(top_srcdir)/include/libtorrent/http_connection.hpp \
+$(top_srcdir)/include/libtorrent/http_stream.hpp \
 $(top_srcdir)/include/libtorrent/session_settings.hpp \
 $(top_srcdir)/include/libtorrent/http_tracker_connection.hpp \
 $(top_srcdir)/include/libtorrent/identify_client.hpp \
+$(top_srcdir)/include/libtorrent/instantiate_connection.hpp \
 $(top_srcdir)/include/libtorrent/invariant_check.hpp \
 $(top_srcdir)/include/libtorrent/io.hpp \
 $(top_srcdir)/include/libtorrent/ip_filter.hpp \
@@ -66,6 +69,8 @@ $(top_srcdir)/include/libtorrent/resource_request.hpp \
 $(top_srcdir)/include/libtorrent/session.hpp \
 $(top_srcdir)/include/libtorrent/size_type.hpp \
 $(top_srcdir)/include/libtorrent/socket.hpp \
+$(top_srcdir)/include/libtorrent/socket_type.hpp \
+$(top_srcdir)/include/libtorrent/socks5_stream.hpp \
 $(top_srcdir)/include/libtorrent/stat.hpp \
 $(top_srcdir)/include/libtorrent/storage.hpp \
 $(top_srcdir)/include/libtorrent/time.hpp \
@@ -76,6 +81,7 @@ $(top_srcdir)/include/libtorrent/tracker_manager.hpp \
 $(top_srcdir)/include/libtorrent/udp_tracker_connection.hpp \
 $(top_srcdir)/include/libtorrent/utf8.hpp \
 $(top_srcdir)/include/libtorrent/xml_parse.hpp \
+$(top_srcdir)/include/libtorrent/variant_stream.hpp \
 $(top_srcdir)/include/libtorrent/version.hpp
 
 
