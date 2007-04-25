@@ -101,23 +101,14 @@ ZLIB_SOURCES =
 DEFINES = ;
 LIBS = ;
 
-if [ os.name ] = CYGWIN
+if [ os.name ] = CYGWIN || [ os.name ] = NT
 {
 	lib wsock32 : : <name>wsock32 ;
 	lib ws2_32 : : <name>ws2_32 ;
-	LIBS += wsock32 ws2_32 ;
+	LIBS += ws2_32 wsock32 ;
 	DEFINES += WIN32_LEAN_AND_MEAN ;
 	DEFINES += _WIN32_WINNT=0x0500 ;
 	DEFINES += __USE_W32_SOCKETS ;
-	DEFINES += WIN32 ;
-	SOURCES += file_win ;
-}
-else if [ os.name ] = NT
-{
-	lib wsock32 : : <name>wsock32.lib ;
-	LIBS += wsock32 ;
-	DEFINES += WIN32_LEAN_AND_MEAN ;
-	DEFINES += _WIN32_WINNT=0x0500 ;
 	DEFINES += WIN32 ;
 	SOURCES += file_win ;
 }
