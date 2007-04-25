@@ -2093,6 +2093,13 @@ namespace libtorrent
 
 		assert(m_packet_size > 0);
 
+		if (m_peer_choked
+			&& m_recv_pos == 0
+			&& (m_recv_buffer.capacity() - m_packet_size) > 128)
+		{
+			std::vector<char>(m_packet_size).swap(m_recv_buffer);
+		}
+
 		setup_receive();	
 	}
 	catch (file_error& e)
@@ -2267,6 +2274,21 @@ namespace libtorrent
 
 		on_sent(error, bytes_transferred);
 		fill_send_buffer();
+
+		if (m_choked)
+		{
+			for (int i = 0; i < 2; ++i)
+			{
+				if (int(m_send_buffer[i].size()) < 64
+					&& int(m_send_buffer[i].capacity()) > 128)
+				{
+					std::vector<char> tmp(m_send_buffer[i]);
+					tmp.swap(m_send_buffer[i]);
+					assert(m_send_buffer[i].capacity() == m_send_buffer[i].size());
+				}
+			}
+		}
+
 		setup_send();
 	}
 	catch (std::exception& e)
