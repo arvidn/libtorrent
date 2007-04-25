@@ -103,6 +103,14 @@ The ``session`` class has the following synopsis::
 		void set_max_connections(int limit);
 		void set_max_half_open_connections(int limit);
 
+		void set_peer_proxy(proxy_settings const& s);
+		void set_web_seed_proxy(proxy_settings const& s);
+		void set_tracker_proxy(proxy_settings const& s);
+
+		proxy_settings const& peer_proxy() const;
+		proxy_settings const& web_seed_proxy() const;
+		proxy_settings const& tracker_proxy() const;
+
 		int num_uploads() const;
 		int num_connections() const;
 
@@ -503,6 +511,37 @@ e.g.
 	ses.add_extension(&libtorrent::create_ut_pex_plugin);
 
 .. _`libtorrent plugins`: libtorrent_plugins.html
+
+set_peer_proxy() set_web_seed_proxy() set_tracker_proxy() set_dht_proxy()
+-------------------------------------------------------------------------
+
+	::
+
+		void set_peer_proxy(proxy_settings const& s);
+		void set_web_seed_proxy(proxy_settings const& s);
+		void set_tracker_proxy(proxy_settings const& s);
+		void set_dht_proxy(proxy_settings const& s);
+
+The ``set_dht_proxy`` is not available when DHT is disabled. These functions
+sets the proxy settings for different kinds of connections, bittorrent peers,
+web seeds, trackers and the DHT traffic.
+
+``set_peer_proxy`` affects regular bittorrent peers. ``set_web_seed_proxy``
+affects only web seeds. see `HTTP seeding`_.
+
+
+peer_proxy() web_seed_proxy() tracker_proxy() dht_proxy()
+---------------------------------------------------------
+
+	::
+
+		proxy_settings const& peer_proxy() const;
+		proxy_settings const& web_seed_proxy() const;
+		proxy_settings const& tracker_proxy() const;
+		proxy_settings const& dht_proxy() const;
+
+The ``dht_proxy`` is not available when DHT is disabled.
+
 
 start_dht() stop_dht() set_dht_settings() dht_state()
 -----------------------------------------------------
@@ -1279,17 +1318,17 @@ first algorithm is effectively active for all pieces. You may however
 change the priority of individual pieces. There are 8 different priority
 levels:
 
-0. piece is not downloaded at all
-1. normal priority. Download order is dependent on availability
-2. higher than normal priority. Pieces are preferred over pieces with
-   the same availability, but not over pieces with lower availability
-3. pieces are as likely to be picked as partial pieces.
-4. pieces are preferred over partial pieces, but not over pieces with
-   lower availability
-5. *currently the same as 4*
-6. piece is as likely to be picked as any piece with availability 1
-7. maximum priority, availability is disregarded, the piece is preferred
-   over any other piece with lower priority
+ 0. piece is not downloaded at all
+ 1. normal priority. Download order is dependent on availability
+ 2. higher than normal priority. Pieces are preferred over pieces with
+    the same availability, but not over pieces with lower availability
+ 3. pieces are as likely to be picked as partial pieces.
+ 4. pieces are preferred over partial pieces, but not over pieces with
+    lower availability
+ 5. *currently the same as 4*
+ 6. piece is as likely to be picked as any piece with availability 1
+ 7. maximum priority, availability is disregarded, the piece is preferred
+    over any other piece with lower priority
 
 The exact definitions of these priorities are implementation details, and
 subject to change. The interface guarantees that higher number means higher
@@ -2100,10 +2139,6 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 	struct session_settings
 	{
 		session_settings();
-		std::string proxy_ip;
-		int proxy_port;
-		std::string proxy_login;
-		std::string proxy_password;
 		std::string user_agent;
 		int tracker_completion_timeout;
 		int tracker_receive_timeout;
@@ -2123,17 +2158,6 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int min_reconnect_time;
 		bool use_dht_as_fallback;
 	};
-
-``proxy_ip`` may be a hostname or ip to a http proxy to use. If this is
-an empty string, no http proxy will be used.
-
-``proxy_port`` is the port on which the http proxy listens. If ``proxy_ip``
-is empty, this will be ignored.
-
-``proxy_login`` should be the login username for the http proxy, if this
-empty, the http proxy will be tried to be used without authentication.
-
-``proxy_password`` the password string for the http proxy.
 
 ``user_agent`` this is the client identification to the tracker.
 The recommended format of this string is:
@@ -2226,6 +2250,66 @@ the peer fails, the time is multiplied by fail counter.
 (which it is by default), the DHT will only be used for torrents where
 all trackers in its tracker list has failed. Either by an explicit error
 message or a time out.
+
+proxy_settings
+==============
+
+The ``proxy_settings`` structs contains the information needed to
+direct certain traffic to a proxy.
+
+	::
+
+		struct TORRENT_EXPORT proxy_settings
+		{
+			proxy_settings();
+
+			std::string hostname;
+			int port;
+
+			std::string username;
+			std::string password;
+
+			enum proxy_type
+			{
+				none,
+				socks5,
+				socks5_pw,
+				http,
+				http_pw
+			};
+		
+			proxy_type type;
+		};
+
+``hostname`` is the name or IP of the proxy server. ``port`` is the
+port number the proxy listens to. If required, ``username`` and ``password``
+can be set to authenticate with the proxy.
+
+The ``type`` tells libtorrent what kind of proxy server it is. The following
+options are available:
+
+ * ``none`` - This is the default, no proxy server is used, all other fields
+   are ignored.
+
+ * ``socks5`` - The server is assumed to be a SOCKS5 server (`RFC 1928`_) that
+   does not require any authentication. The username and password are ignored.
+
+ * ``socks5_pw`` - The server is assumed to be a SOCKS5 server that supports
+   plain text username and password authentication (`RFC 1929`_). The username
+   and password specified may be sent to the proxy if it requires.
+
+ * ``http`` - The server is assumed to be an HTTP proxy. If the transport used
+   for the connection is non-HTTP, the server is assumed to support the
+   CONNECT method. i.e. for web seeds and HTTP trackers, a plain proxy will
+   suffice. The proxy is assumed to not require authorization. The username
+   and password will not be used.
+
+ * ``http_pw`` - The server is assumed to be an HTTP proxy that requires
+   user authorization. The username and password will be sent to the proxy.
+
+
+_`RFC 1928`: http://www.faqs.org/rfcs/rfc1928.html
+_`RFC 1929`: http://www.faqs.org/rfcs/rfc1929.html
 
 ip_filter
 =========
