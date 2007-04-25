@@ -82,7 +82,7 @@ namespace libtorrent
 		, tcp::endpoint const& remote
 		, policy::peer* peerinfo)
 		: peer_connection(ses, tor, s, remote
-			, tcp::endpoint(), peerinfo)
+			, peerinfo)
 		, m_state(read_protocol_length)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_supports_extensions(false)

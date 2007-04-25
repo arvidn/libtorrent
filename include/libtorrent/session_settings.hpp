@@ -34,16 +34,53 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SESSION_SETTINGS_HPP_INCLUDED
 
 #include "libtorrent/version.hpp"
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
+
+	struct TORRENT_EXPORT proxy_settings
+	{
+		proxy_settings() : port(0), type(none) {}
+
+		std::string hostname;
+		int port;
+
+		std::string username;
+		std::string password;
+
+		enum proxy_type
+		{
+			// a plain tcp socket is used, and
+			// the other settings are ignored.
+			none,
+			// the hostname and port settings are
+			// used to connect to the proxy. No
+			// username or password is sent.
+			socks5,
+			// the hostname and port are used to
+			// connect to the proxy. the username
+			// and password are used to authenticate
+			// with the proxy server.
+			socks5_pw,
+			// the http proxy is only available for
+			// tracker and web seed traffic
+			// assumes anonymous access to proxy
+			http,
+			// http proxy with basic authentication
+			// uses username and password
+			http_pw
+		};
+		
+		proxy_type type;
+	
+	};
 
 	struct TORRENT_EXPORT session_settings
 	{
 		session_settings(std::string const& user_agent_ = "libtorrent/"
 			LIBTORRENT_VERSION)
-			: proxy_port(0)
-			, user_agent(user_agent_)
+			: user_agent(user_agent_)
 			, tracker_completion_timeout(60)
 			, tracker_receive_timeout(20)
 			, stop_tracker_timeout(10)
@@ -64,11 +101,6 @@ namespace libtorrent
 			, use_dht_as_fallback(true)
 #endif
 		{}
-
-		std::string proxy_ip;
-		int proxy_port;
-		std::string proxy_login;
-		std::string proxy_password;
 
 		// this is the user agent that will be sent to the tracker
 		// when doing requests. It is used to identify the client.

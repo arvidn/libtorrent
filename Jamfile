@@ -41,16 +41,19 @@ SOURCES =
 	entry
 	escape_string
 	http_connection
+	http_stream
 	identify_client
 	ip_filter
 	peer_connection
 	bt_peer_connection
 	web_peer_connection
+	instantiate_connection
 	natpmp
 	piece_picker
 	policy
 	session
 	session_impl
+	socks5_stream
 	stat
 	storage
 	torrent

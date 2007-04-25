@@ -198,8 +198,7 @@ namespace libtorrent
 		// the number of blocks we want, but it will try to make the picked
 		// blocks be from whole pieces, possibly by returning more blocks
 		// than we requested.
-		assert((c.proxy() == tcp::endpoint() && c.remote() == c.get_socket()->remote_endpoint())
-			|| c.proxy() == c.get_socket()->remote_endpoint());
+		assert(c.remote() == c.get_socket()->remote_endpoint());
 
 		// picks the interesting pieces from this peer
 		// the integer is the number of pieces that
@@ -885,8 +884,7 @@ namespace libtorrent
 
 		// TODO: only allow _one_ connection to use this
 		// override at a time
-		assert((c.proxy() == tcp::endpoint() && c.remote() == c.get_socket()->remote_endpoint())
-			|| c.proxy() == c.get_socket()->remote_endpoint());
+		assert(c.remote() == c.get_socket()->remote_endpoint());
 
 		if (m_torrent->num_peers() >= m_torrent->m_connections_quota.given
 			&& c.remote().address() != m_torrent->current_tracker().address())
@@ -944,8 +942,7 @@ namespace libtorrent
 		{
 			// we don't have ny info about this peer.
 			// add a new entry
-			assert((c.proxy() == tcp::endpoint() && c.remote() == c.get_socket()->remote_endpoint())
-				|| c.proxy() == c.get_socket()->remote_endpoint());
+			assert(c.remote() == c.get_socket()->remote_endpoint());
 
 			peer p(c.remote(), peer::not_connectable, 0);
 			m_peers.push_back(p);
@@ -1325,8 +1322,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		assert(c);
-		assert((c->proxy() == tcp::endpoint() && c->remote() == c->get_socket()->remote_endpoint())
-			|| c->proxy() == c->get_socket()->remote_endpoint());
+		assert(c->remote() == c->get_socket()->remote_endpoint());
 
 		return std::find_if(
 			m_peers.begin()

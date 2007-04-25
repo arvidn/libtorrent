@@ -461,6 +461,7 @@ int main(int ac, char* av[])
 	std::string bind_to_interface;
 	std::string proxy;
 	std::string proxy_login;
+	std::string proxy_type;
 	int poll_interval;
 
 	namespace po = boost::program_options;
@@ -514,6 +515,8 @@ int main(int ac, char* av[])
 		("proxy-login,n", po::value<std::string>(&proxy_login)->default_value("")
 			, "Sets the username and password used to authenticate with the http "
 			"proxy. The string should be given in the form: <username>:<password>")
+		("proxy-type", po::value<std::string>(&proxy_type)->default_value("socks5")
+			, "Sets the type of proxy to use [socks5 | http] ")
 			;
 
 		po::positional_options_description p;
@@ -557,16 +560,21 @@ int main(int ac, char* av[])
 			input = vm["input-file"].as< std::vector<std::string> >();
 
 		session_settings settings;
+		proxy_settings ps;
 
 		if (!proxy.empty())
 		{
 			try
 			{
 				std::size_t i = proxy.find(':');
-				settings.proxy_ip = proxy.substr(0, i);
-				if (i == std::string::npos) settings.proxy_port = 8080;
-				else settings.proxy_port = boost::lexical_cast<int>(
+				ps.hostname = proxy.substr(0, i);
+				if (i == std::string::npos) ps.port = 8080;
+				else ps.port = boost::lexical_cast<int>(
 					proxy.substr(i + 1));
+				if (proxy_type == "socks5")
+					ps.type = proxy_settings::socks5;
+				else
+					ps.type = proxy_settings::http;
 			}
 			catch (std::exception&)
 			{
@@ -584,8 +592,12 @@ int main(int ac, char* av[])
 					<< proxy_login << std::endl;
 					return 1;
 				}
-				settings.proxy_login = proxy_login.substr(0, i);
-				settings.proxy_password = proxy_login.substr(i + 1);
+				ps.username = proxy_login.substr(0, i);
+				ps.password = proxy_login.substr(i + 1);
+				if (proxy_type == "socks5")
+					ps.type = proxy_settings::socks5_pw;
+				else
+					ps.type = proxy_settings::http_pw;
 			}
 		}
 
@@ -611,6 +623,10 @@ int main(int ac, char* av[])
 		ses.listen_on(std::make_pair(listen_port, listen_port + 10)
 			, bind_to_interface.c_str());
 		ses.set_settings(settings);
+		ses.set_tracker_proxy(ps);
+		ses.set_peer_proxy(ps);
+		ses.set_web_seed_proxy(ps);
+
 		if (log_level == "debug")
 			ses.set_severity_level(alert::debug);
 		else if (log_level == "warning")

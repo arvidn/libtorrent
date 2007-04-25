@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_IO_HPP_INCLUDED
 
 #include <boost/cstdint.hpp>
+#include <string>
 
 namespace libtorrent
 {
@@ -133,6 +134,18 @@ namespace libtorrent
 		template <class OutIt>
 		void write_int8(boost::int8_t val, OutIt& start)
 		{ write_impl(val, start); }
+
+		inline void write_string(std::string const& str, char*& start)
+		{
+			std::copy(str.begin(), str.end(), start);
+			start += str.size();
+		}
+
+		template <class OutIt>
+		void write_string(std::string const& str, OutIt& start)
+		{
+			std::copy(str.begin(), str.end(), start);
+		}
 
 	}
 }

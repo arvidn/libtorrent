@@ -277,7 +277,7 @@ namespace aux
   struct async_read_some_visitor
     : boost::static_visitor<>
   {
-      async_read_some_visitor(Mutable_Buffers const& buffers, Handler& handler)
+      async_read_some_visitor(Mutable_Buffers const& buffers, Handler const& handler)
         : buffers(buffers)
         , handler(handler)
       {}
@@ -291,7 +291,7 @@ namespace aux
       {}
 
       Mutable_Buffers const& buffers;
-      Handler& handler;
+      Handler const& handler;
   };
 
 // -------------- async_write_some -----------
@@ -300,7 +300,7 @@ namespace aux
   struct async_write_some_visitor
     : boost::static_visitor<>
   {
-      async_write_some_visitor(Const_Buffers const& buffers, Handler& handler)
+      async_write_some_visitor(Const_Buffers const& buffers, Handler const& handler)
         : buffers(buffers)
         , handler(handler)
       {}
@@ -315,7 +315,7 @@ namespace aux
       {}
 
       Const_Buffers const& buffers;
-      Handler& handler;
+      Handler const& handler;
   };
 
 // -------------- in_avail -----------
@@ -419,7 +419,7 @@ public:
     >::type variant_type;
 
     typedef typename S0::lowest_layer_type lowest_layer_type;
-	 typedef typename S0::endpoint_type endpoint_type;
+    typedef typename S0::endpoint_type endpoint_type;
     typedef typename S0::protocol_type protocol_type;
 
     explicit variant_stream(asio::io_service& io_service)
@@ -436,7 +436,7 @@ public:
         owned.release();
     }
 
-	 template <class S>
+    template <class S>
     S& get()
     {
 	     return *boost::get<S*>(m_variant);
@@ -453,7 +453,7 @@ public:
     }
 
     template <class Mutable_Buffers, class Handler>
-    void async_read_some(Mutable_Buffers const& buffers, Handler handler)
+    void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
     {
         assert(instantiated());
         boost::apply_visitor(
@@ -463,7 +463,7 @@ public:
     }
 
     template <class Const_Buffers, class Handler>
-    void async_write_some(Const_Buffers const& buffers, Handler handler)
+    void async_write_some(Const_Buffers const& buffers, Handler const& handler)
     {
         assert(instantiated());
         boost::apply_visitor(
@@ -473,7 +473,7 @@ public:
     }
 
     template <class Handler>
-    void async_connect(endpoint_type const& endpoint, Handler handler)
+    void async_connect(endpoint_type const& endpoint, Handler const& handler)
     {
         assert(instantiated());
         boost::apply_visitor(
@@ -488,7 +488,7 @@ public:
     }
 
     template <class Error_Handler>
-    void bind(endpoint_type const& endpoint, Error_Handler error_handler)
+    void bind(endpoint_type const& endpoint, Error_Handler const& error_handler)
     {
         assert(instantiated());
         boost::apply_visitor(
@@ -503,7 +503,7 @@ public:
     }
 
     template <class Error_Handler>
-    void open(protocol_type const& p, Error_Handler error_handler)
+    void open(protocol_type const& p, Error_Handler const& error_handler)
     {
         assert(instantiated());
         boost::apply_visitor(
@@ -518,7 +518,7 @@ public:
     }
 
     template <class Error_Handler>
-    void close(Error_Handler error_handler)
+    void close(Error_Handler const& error_handler)
     {
         assert(instantiated());
         boost::apply_visitor(
@@ -533,7 +533,7 @@ public:
     }
 
     template <class Error_Handler>
-    std::size_t in_avail(Error_Handler error_handler)
+    std::size_t in_avail(Error_Handler const& error_handler)
     {
         assert(instantiated());
         return boost::apply_visitor(
@@ -548,7 +548,7 @@ public:
     }
 
     template <class Error_Handler>
-    endpoint_type remote_endpoint(Error_Handler error_handler)
+    endpoint_type remote_endpoint(Error_Handler const& error_handler)
     {
         assert(instantiated());
         return boost::apply_visitor(
@@ -563,7 +563,7 @@ public:
     }
 
     template <class Error_Handler>
-    endpoint_type local_endpoint(Error_Handler error_handler)
+    endpoint_type local_endpoint(Error_Handler const& error_handler)
     {
         assert(instantiated());
         return boost::apply_visitor(
@@ -592,7 +592,7 @@ private:
     variant_type m_variant;
 };
 
-} // namespace network
+} // namespace libtorrent
 
 #endif // VARIANT_STREAM_070211_HPP
 
