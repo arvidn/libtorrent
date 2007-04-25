@@ -246,6 +246,7 @@ Build features:
 +------------------------+----------------------------------------------------+
 | ``character-set``      | This setting will only have an affect on windows.  |
 |                        | Other platforms are expected to support UTF-8.     |
+|                        |                                                    |
 |                        | * ``ansi`` - The ansi version of the win32 API is  |
 |                        |   used.                                            |
 |                        | * ``unicode`` - The unicode version of the win32   |
