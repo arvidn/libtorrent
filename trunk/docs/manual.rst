@@ -3356,7 +3356,7 @@ There are two modes in which storage (files on disk) are allocated in libtorrent
  * The traditional *full allocation* mode, where the entire files are filled up with
    zeros before anything is downloaded. libtorrent will look for sparse files support
    in the filesystem that is used for storage, and use sparse files or file system
-   zaero fill support if present. This means that on NTFS, full allocation mode will
+   zero fill support if present. This means that on NTFS, full allocation mode will
    only allocate storage for the downloaded pieces.
 
  * And the *compact allocation* mode, where only files are allocated for actual
