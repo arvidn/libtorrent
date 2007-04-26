@@ -2285,9 +2285,10 @@ and outgoing connections respectively. The settings for these are:
 
  * ``disabled`` - only non-encrypted connections are allowed.
 
-``allowed_enc_level`` determines the encryption level of the connections.
-This setting will adjust which encryption scheme is offered to the other
-peer. The settings are:
+``allowed_enc_level`` determines the encryption level of the
+connections.  This setting will adjust which encryption scheme is
+offered to the other peer, as well as which encryption scheme is
+selected by the client. The settings are:
 
  * ``plaintext`` - only the handshake is encrypted, the bulk of the traffic
    remains unchanged.
