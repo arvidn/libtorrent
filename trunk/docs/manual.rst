@@ -529,6 +529,15 @@ web seeds, trackers and the DHT traffic.
 ``set_peer_proxy`` affects regular bittorrent peers. ``set_web_seed_proxy``
 affects only web seeds. see `HTTP seeding`_.
 
+``set_tracker_proxy`` only affects HTTP tracker connections (UDP tracker
+connections are affected if the given proxy supports UDP, e.g. SOCKS5).
+
+``set_dht_proxy`` affects the DHT messages. Since they are sent over UDP,
+it only has any effect if the proxy supports UDP.
+
+For more information on what settings are available for proxies, see
+`proxy_settings`_.
+
 
 peer_proxy() web_seed_proxy() tracker_proxy() dht_proxy()
 ---------------------------------------------------------
@@ -540,8 +549,9 @@ peer_proxy() web_seed_proxy() tracker_proxy() dht_proxy()
 		proxy_settings const& tracker_proxy() const;
 		proxy_settings const& dht_proxy() const;
 
-The ``dht_proxy`` is not available when DHT is disabled.
+These functions returns references to their respective current settings.
 
+The ``dht_proxy`` is not available when DHT is disabled.
 
 start_dht() stop_dht() set_dht_settings() dht_state()
 -----------------------------------------------------
@@ -2300,7 +2310,7 @@ options are available:
 
  * ``http`` - The server is assumed to be an HTTP proxy. If the transport used
    for the connection is non-HTTP, the server is assumed to support the
-   CONNECT method. i.e. for web seeds and HTTP trackers, a plain proxy will
+   CONNECT_ method. i.e. for web seeds and HTTP trackers, a plain proxy will
    suffice. The proxy is assumed to not require authorization. The username
    and password will not be used.
 
@@ -2308,8 +2318,9 @@ options are available:
    user authorization. The username and password will be sent to the proxy.
 
 
-_`RFC 1928`: http://www.faqs.org/rfcs/rfc1928.html
-_`RFC 1929`: http://www.faqs.org/rfcs/rfc1929.html
+.. _`RFC 1928`: http://www.faqs.org/rfcs/rfc1928.html
+.. _`RFC 1929`: http://www.faqs.org/rfcs/rfc1929.html
+.. _CONNECT: draft-luotonen-web-proxy-tunneling-01.txt
 
 ip_filter
 =========
@@ -3344,9 +3355,9 @@ There are two modes in which storage (files on disk) are allocated in libtorrent
 
  * The traditional *full allocation* mode, where the entire files are filled up with
    zeros before anything is downloaded. libtorrent will look for sparse files support
-	in the filesystem that is used for storage, and use sparse files or file system
-	zaero fill support if present. This means that on NTFS, full allocation mode will
-	only allocate storage for the downloaded pieces.
+   in the filesystem that is used for storage, and use sparse files or file system
+   zaero fill support if present. This means that on NTFS, full allocation mode will
+   only allocate storage for the downloaded pieces.
 
  * And the *compact allocation* mode, where only files are allocated for actual
    pieces that have been downloaded. This is the default allocation mode in libtorrent.
