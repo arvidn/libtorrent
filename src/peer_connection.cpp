@@ -1334,7 +1334,7 @@ namespace libtorrent
 		peer_speed_t speed = peer_speed();
 		if (speed == fast) state = piece_picker::fast;
 		else if (speed == medium) state = piece_picker::medium;
-		else if (speed == slow) state = piece_picker::slow;
+		else state = piece_picker::slow;
 
 		t->picker().mark_as_downloading(block, m_remote, state);
 
@@ -2425,8 +2425,8 @@ namespace libtorrent
 		shared_ptr<torrent> t = m_torrent.lock();
 		assert(t);
 
-		int download_rate = statistics().download_payload_rate();
-		int torrent_download_rate = t->statistics().download_payload_rate();
+		int download_rate = int(statistics().download_payload_rate());
+		int torrent_download_rate = int(t->statistics().download_payload_rate());
 
 		if (download_rate > 512 && download_rate > torrent_download_rate / 16)
 			m_speed = fast;

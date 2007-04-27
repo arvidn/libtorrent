@@ -204,7 +204,7 @@ namespace libtorrent
 		peer_connection::peer_speed_t speed = c.peer_speed();
 		if (speed == peer_connection::fast) state = piece_picker::fast;
 		else if (speed == peer_connection::medium) state = piece_picker::medium;
-		else if (speed == peer_connection::slow) state = piece_picker::slow;
+		else state = piece_picker::slow;
 
 		// picks the interesting pieces from this peer
 		// the integer is the number of pieces that
