@@ -136,6 +136,9 @@ namespace libtorrent
 		policy::peer* peer_info_struct() const
 		{ return m_peer_info; }
 
+		enum peer_speed_t { slow, medium, fast };
+		peer_speed_t peer_speed();
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<peer_plugin>);
 #endif
@@ -650,6 +653,10 @@ namespace libtorrent
 		// and hasn't been added to a torrent yet.
 		policy::peer* m_peer_info;
 
+		// this is a measurement of how fast the peer
+		// it allows some variance without changing
+		// back and forth between states
+		peer_speed_t m_speed;
 #ifndef NDEBUG
 	public:
 		bool m_in_constructor;

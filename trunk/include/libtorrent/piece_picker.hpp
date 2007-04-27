@@ -100,8 +100,18 @@ namespace libtorrent
 			int num_downloads;
 		};
 
+		// the peers that are downloading this piece
+		// are considered fast peers or slow peers.
+		// none is set if the blocks were downloaded
+		// in a previous session
+		enum piece_state_t
+		{ none, slow, medium, fast };
+
 		struct downloading_piece
 		{
+			piece_state_t state;
+
+			// the index of the piece
 			int index;
 			// each bit represents a block in the piece
 			// set to one if the block has been requested
@@ -173,7 +183,7 @@ namespace libtorrent
 		void pick_pieces(const std::vector<bool>& pieces
 			, std::vector<piece_block>& interesting_blocks
 			, int num_pieces, bool prefer_whole_pieces
-			, tcp::endpoint peer) const;
+			, tcp::endpoint peer, piece_state_t speed) const;
 
 		// returns true if any client is currently downloading this
 		// piece-block, or if it's queued for downloading by some client
@@ -182,7 +192,8 @@ namespace libtorrent
 		bool is_finished(piece_block block) const;
 
 		// marks this piece-block as queued for downloading
-		void mark_as_downloading(piece_block block, tcp::endpoint const& peer);
+		void mark_as_downloading(piece_block block, tcp::endpoint const& peer
+			, piece_state_t s);
 		void mark_as_finished(piece_block block, tcp::endpoint const& peer);
 
 		// if a piece had a hash-failure, it must be restored and
@@ -320,15 +331,13 @@ namespace libtorrent
 
 		void add(int index);
 		void move(int vec_index, int elem_index);
-//		void remove(int vec_index, int elem_index);
 
 		int add_interesting_blocks(const std::vector<int>& piece_list
 			, const std::vector<bool>& pieces
 			, std::vector<piece_block>& interesting_blocks
 			, std::vector<piece_block>& backup_blocks
 			, int num_blocks, bool prefer_whole_pieces
-			, tcp::endpoint peer) const;
-
+			, tcp::endpoint peer, piece_state_t speed) const;
 
 		// this vector contains all pieces we don't have.
 		// in the first entry (index 0) is a vector of all pieces
