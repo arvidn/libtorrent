@@ -1103,6 +1103,12 @@ namespace libtorrent
 					= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(*i));
 				assert(p != m_downloads.end());
 
+				// is true if all the other pieces that are currently
+				// requested from this piece are from the same
+				// peer as 'peer'.
+				bool only_same_peer = exclusively_requested_from(*p
+					, num_blocks_in_piece, peer);
+
 				// this means that this partial piece has
 				// been downloaded/requested partially from
 				// another peer that isn't us. And since
@@ -1110,8 +1116,7 @@ namespace libtorrent
 				// blocks to the backup list. If the prioritized
 				// blocks aren't enough, blocks from this list
 				// will be picked.
-				if (prefer_whole_pieces
-					&& !exclusively_requested_from(*p, num_blocks_in_piece, peer))
+				if (prefer_whole_pieces && !only_same_peer)
 				{
 					if (int(backup_blocks.size()) >= num_blocks) continue;
 					for (int j = 0; j < num_blocks_in_piece; ++j)
@@ -1132,8 +1137,12 @@ namespace libtorrent
 					if (p->requested_blocks[j] == 1
 						&& p->info[j].peer == peer) continue;
 					// if the piece is fast and the peer is slow, or vice versa,
-					// add the block as a backup
-					if (p->state != none && p->state != speed)
+					// add the block as a backup.
+					// override this behavior if all the other blocks
+					// have been requested from the same peer or
+					// if the state of the piece is none (the
+					// piece will in that case change state).
+					if (p->state != none && p->state != speed && !only_same_peer)
 					{
 						if (int(backup_blocks.size()) >= num_blocks) continue;
 						backup_blocks.push_back(piece_block(*i, j));
