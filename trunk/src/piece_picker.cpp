@@ -1449,26 +1449,28 @@ namespace libtorrent
 			assert(std::find_if(m_downloads.begin(), m_downloads.end()
 				, has_index(block.piece_index)) == m_downloads.end());
 		}
-
-		// TODO: maintain requested and finished counters so that
-		// we don't have to count every time
-		bool blocks_requested = false;
-		int num_blocks = blocks_in_piece(i->index);
-		for (int k = 0; k < num_blocks; ++k)
+		else
 		{
-			if (i->finished_blocks[k]) continue;
-			if (i->requested_blocks[k])
+			// TODO: maintain requested and finished counters so that
+			// we don't have to count every time
+			bool blocks_requested = false;
+			int num_blocks = blocks_in_piece(i->index);
+			for (int k = 0; k < num_blocks; ++k)
 			{
-				blocks_requested = true;
-				break;
+				if (i->finished_blocks[k]) continue;
+				if (i->requested_blocks[k])
+				{
+					blocks_requested = true;
+					break;
+				}
 			}
-		}
 
-		if (!blocks_requested)
-		{
-			// there are no blocks requested in this piece.
-			// remove the fast/slow state from it
-			i->state = none;
+			if (!blocks_requested)
+			{
+				// there are no blocks requested in this piece.
+				// remove the fast/slow state from it
+				i->state = none;
+			}
 		}
 	}
 
