@@ -211,6 +211,8 @@ namespace libtorrent
 		std::bitset<max_blocks_per_piece> finished_blocks;
 		tcp::endpoint peer[max_blocks_per_piece];
 		int num_downloads[max_blocks_per_piece];
+		enum state_t { none, slow, medium, fast };
+		state_t piece_state;
 	};
 
 	struct TORRENT_EXPORT torrent_handle

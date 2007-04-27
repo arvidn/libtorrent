@@ -1699,6 +1699,8 @@ requested. The entry in the vector (``partial_piece_info``) looks like this::
 		std::bitset<max_blocks_per_piece> finished_blocks;
 		address peer[max_blocks_per_piece];
 		int num_downloads[max_blocks_per_piece];
+		enum state_t { none, slow. medium, fast };
+		state_t piece_state;
 	};
 
 ``piece_index`` is the index of the piece in question. ``blocks_in_piece`` is the
@@ -1717,6 +1719,13 @@ The ``finished_blocks`` is a bitset where each bit says if the block is fully do
 or not. And the ``num_downloads`` array says how many times that block has been downloaded.
 When a piece fails a hash verification, single blocks may be re-downloaded to
 see if the hash test may pass then.
+
+``piece_state`` is set to either ``fast``, ``medium``, ``slow`` or ``none``. It tells which
+download rate category the peers downloading this piece falls into. ``none`` means that no
+peer is currently downloading any part of the piece. Peers prefer picking pieces from
+the same category as themselves. The reason for this is to keep the number of partially
+downloaded pieces down. Pieces set to ``none`` can be converted into any of ``fast``,
+``medium`` or ``slow`` as soon as a peer want to download from it.
 
 
 get_peer_info()

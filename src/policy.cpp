@@ -200,6 +200,12 @@ namespace libtorrent
 		// than we requested.
 		assert(c.remote() == c.get_socket()->remote_endpoint());
 
+		piece_picker::piece_state_t state;
+		peer_connection::peer_speed_t speed = c.peer_speed();
+		if (speed == peer_connection::fast) state = piece_picker::fast;
+		else if (speed == peer_connection::medium) state = piece_picker::medium;
+		else if (speed == peer_connection::slow) state = piece_picker::slow;
+
 		// picks the interesting pieces from this peer
 		// the integer is the number of pieces that
 		// should be guaranteed to be available for download
@@ -209,7 +215,7 @@ namespace libtorrent
 		// for this peer. If we're downloading one piece in 20 seconds
 		// then use this mode.
 		p.pick_pieces(c.get_bitfield(), interesting_pieces
-			, num_requests, prefer_whole_pieces, c.remote());
+			, num_requests, prefer_whole_pieces, c.remote(), state);
 
 		// this vector is filled with the interesting pieces
 		// that some other peer is currently downloading

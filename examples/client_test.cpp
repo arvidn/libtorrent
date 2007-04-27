@@ -995,7 +995,8 @@ int main(int ac, char* av[])
 							else out << "-";
 #endif
 						}
-						out << "]\n";
+						char* piece_state[4] = {"", "slow", "medium", "fast"};
+						out << "] " << piece_state[i->piece_state] << "\n";
 					}
 
 					out << "___________________________________\n";

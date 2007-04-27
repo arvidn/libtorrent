@@ -764,6 +764,7 @@ namespace libtorrent
 			= q.begin(); i != q.end(); ++i)
 		{
 			partial_piece_info pi;
+			pi.piece_state = (partial_piece_info::state_t)i->state;
 			pi.finished_blocks = i->finished_blocks;
 			pi.requested_blocks = i->requested_blocks;
 			for (int j = 0; j < partial_piece_info::max_blocks_per_piece; ++j)
