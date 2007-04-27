@@ -472,8 +472,14 @@ namespace libtorrent
 				if (piece_size < front_request.length)
 					return;
 
+				// each call to incoming_piece() may result in us becoming
+				// a seed. If we become a seed, all seeds we're connected to
+				// will be disconnected, including this web seed. We need to
+				// check for the disconnect condition after the call.
+
 				m_requests.pop_front();
 				incoming_piece(front_request, &m_piece[0]);
+				if (m_torrent.expired()) return;
 				m_piece.clear();
 			}
 
@@ -489,6 +495,7 @@ namespace libtorrent
 				assert(http_body.left() >= r.length);
 
 				incoming_piece(r, http_body.begin);
+				if (m_torrent.expired()) return;
 				http_body.begin += r.length;
 			}
 
