@@ -480,7 +480,7 @@ namespace libtorrent
 
 				m_requests.pop_front();
 				incoming_piece(front_request, &m_piece[0]);
-				if (m_torrent.expired()) return;
+				if (associated_torrent().expired()) return;
 				m_piece.clear();
 			}
 
@@ -496,7 +496,7 @@ namespace libtorrent
 				assert(http_body.left() >= r.length);
 
 				incoming_piece(r, http_body.begin);
-				if (m_torrent.expired()) return;
+				if (associated_torrent().expired()) return;
 				http_body.begin += r.length;
 			}
 
