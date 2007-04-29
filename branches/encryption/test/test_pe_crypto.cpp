@@ -34,8 +34,61 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/pe_crypto.hpp"
+#include "libtorrent/session.hpp"
 
+#include "setup_transfer.hpp"
 #include "test.hpp"
+
+void test_transfer(libtorrent::pe_settings::enc_level level)
+{
+	using namespace libtorrent;
+
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000));
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000));
+	pe_settings s;
+	s.out_enc_policy = pe_settings::forced;
+	s.in_enc_policy = pe_settings::forced;
+	s.allowed_enc_level = pe_settings::both;
+	ses1.set_pe_settings(s);
+	s.allowed_enc_level = level;
+	ses2.set_pe_settings(s);
+	torrent_handle tor1;
+	torrent_handle tor2;
+
+	boost::tie(tor1, tor2) = setup_transfer(ses1, ses2, true, false);	
+
+	for (int i = 0; i < 50; ++i)
+	{
+		// make sure this function can be called on
+		// torrents without metadata
+		tor2.status();
+		std::auto_ptr<alert> a;
+		a = ses1.pop_alert();
+		if (a.get())
+			std::cerr << "ses1: " << a->msg() << "\n";
+
+		a = ses2.pop_alert();
+		if (a.get())
+			std::cerr << "ses2: " << a->msg() << "\n";
+
+		if (tor2.has_metadata()) break;
+		sleep(100);
+	}
+
+	TEST_CHECK(tor2.has_metadata());
+	std::cerr << "waiting for transfer to complete\n";
+
+	for (int i = 0; i < 50; ++i)
+	{
+		tor2.status();
+		if (tor2.is_seed()) break;
+		sleep(100);
+	}
+
+	TEST_CHECK(tor2.is_seed());
+	if (tor2.is_seed()) std::cerr << "done\n";
+}
+
 
 int test_main()
 {
@@ -74,5 +127,10 @@ int test_main()
 		delete[] buf;
 		delete[] zero_buf;
 	}
+
+	test_transfer(pe_settings::plaintext);
+	test_transfer(pe_settings::rc4);
+	test_transfer(pe_settings::both);
 	return 0;
 }
+
