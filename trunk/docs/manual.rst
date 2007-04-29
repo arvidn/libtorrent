@@ -2278,7 +2278,7 @@ direct certain traffic to a proxy.
 
 	::
 
-		struct TORRENT_EXPORT proxy_settings
+		struct proxy_settings
 		{
 			proxy_settings();
 
