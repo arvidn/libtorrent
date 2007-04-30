@@ -105,6 +105,8 @@ namespace libtorrent
 
 		virtual bool verify_resume_data(entry& rd, std::string& error) = 0;
 
+		virtual void move_slot(int src_slot, int dst_slot) = 0;
+
 		// this will close all open files that are opened for
 		// writing. This is called when a torrent has finished
 		// downloading.

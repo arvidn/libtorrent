@@ -371,13 +371,14 @@ namespace libtorrent
 		}
 
 		void release_files();
-
 		void initialize(bool allocate_files);
 		bool move_storage(path save_path);
 		size_type read(char* buf, int slot, int offset, int size);
 		void write(const char* buf, int slot, int offset, int size);
-
+		void move_slot(int src_slot, int dst_slot);
 		bool verify_resume_data(entry& rd, std::string& error);
+
+		size_type read_impl(char* buf, int slot, int offset, int size, bool fill_zero);
 
 		~storage()
 		{
@@ -390,6 +391,9 @@ namespace libtorrent
 		// the session, to make all storage
 		// instances use the same pool
 		file_pool& m_files;
+		
+		// temporary storage for moving pieces
+		std::vector<char> m_scratch_buffer;
 	};
 
 	void storage::initialize(bool allocate_files)
@@ -433,6 +437,7 @@ namespace libtorrent
 	void storage::release_files()
 	{
 		m_files.release(this);
+		std::vector<char>().swap(m_scratch_buffer);
 	}
 
 	bool storage::verify_resume_data(entry& rd, std::string& error)
@@ -569,11 +574,29 @@ namespace libtorrent
 */
 #endif
 
+	void storage::move_slot(int src_slot, int dst_slot)
+	{
+		int piece_size = m_info.piece_size(dst_slot);
+		m_scratch_buffer.resize(piece_size);
+		read_impl(&m_scratch_buffer[0], src_slot, 0, piece_size, true);
+		write(&m_scratch_buffer[0], dst_slot, 0, piece_size);
+	}
+
 	size_type storage::read(
 		char* buf
 		, int slot
 		, int offset
 		, int size)
+	{
+		return read_impl(buf, slot, offset, size, false);
+	}
+
+	size_type storage::read_impl(
+		char* buf
+		, int slot
+		, int offset
+		, int size
+		, bool fill_zero)
 	{
 		assert(buf != 0);
 		assert(slot >= 0 && slot < m_info.num_pieces());
@@ -659,8 +682,15 @@ namespace libtorrent
 
 				if (read_bytes != actual_read)
 				{
-					// the file was not big enough
-					throw file_error("slot has no storage");
+					if (fill_zero && actual_read < read_bytes)
+					{
+						std::memset(buf + buf_pos + actual_read, 0, read_bytes - actual_read);
+					}
+					else
+					{
+						// the file was not big enough
+						throw file_error("slot has no storage");
+					}
 				}
 
 				left_to_read -= read_bytes;
@@ -1045,12 +1075,6 @@ namespace libtorrent
 		// build the first time it is used (to save time if it
 		// isn't needed) 				
 		std::multimap<sha1_hash, int> m_hash_to_piece;
-		
-		// used as temporary piece data storage in allocate_slots
-		// it is a member in order to avoid allocating it on
-		// the heap every time a new slot is allocated. (This is quite
-		// frequent with high download speeds)
-		std::vector<char> m_scratch_buffer;
 	};
 
 	piece_manager::impl::impl(
@@ -1093,6 +1117,10 @@ namespace libtorrent
 
 	void piece_manager::impl::release_files()
 	{
+		// synchronization ------------------------------------------------------
+		boost::recursive_mutex::scoped_lock lock(m_mutex);
+		// ----------------------------------------------------------------------
+
 		m_storage->release_files();
 	}
 
@@ -2043,8 +2071,10 @@ namespace libtorrent
 
 		const int piece_size = static_cast<int>(m_info.piece_length());
 
-		std::vector<char>& buffer = m_scratch_buffer;
-		buffer.resize(piece_size);
+		const int stack_buffer_size = 16*16*1024;
+		char zeroes[stack_buffer_size];
+		memset(zeroes, 0, stack_buffer_size);
+		
 		bool written = false;
 
 		for (int i = 0; i < num_slots && !m_unallocated_slots.empty(); ++i)
@@ -2056,24 +2086,28 @@ namespace libtorrent
 			int new_free_slot = pos;
 			if (m_piece_to_slot[pos] != has_no_slot)
 			{
-				assert(m_piece_to_slot[pos] >= 0);
-				m_storage->read(&buffer[0], m_piece_to_slot[pos], 0
-					, static_cast<int>(m_info.piece_size(pos)));
 				new_free_slot = m_piece_to_slot[pos];
+				m_storage->move_slot(new_free_slot, pos);
 				m_slot_to_piece[pos] = pos;
 				m_piece_to_slot[pos] = pos;
-				write_back = true;
+				written = true;
 			}
+			else if (m_fill_mode)
+			{
+				int piece_size = int(m_info.piece_size(pos));
+				int offset = 0;
+				for (; piece_size > 0; piece_size -= stack_buffer_size
+					, offset += stack_buffer_size)
+				{
+					m_storage->write(zeroes, pos, offset
+						, std::min(piece_size, stack_buffer_size));
+				}
+				written = true;
+			}
+			if (abort_on_disk && written) return true;
 			m_unallocated_slots.erase(m_unallocated_slots.begin());
 			m_slot_to_piece[new_free_slot] = unassigned;
 			m_free_slots.push_back(new_free_slot);
-
-			if (write_back || m_fill_mode)
-			{
-				m_storage->write(&buffer[0], pos, 0, static_cast<int>(m_info.piece_size(pos)));
-				written = true;
-				if (abort_on_disk) return true;
-			}
 		}
 
 		assert(m_free_slots.size() > 0);
