@@ -57,25 +57,6 @@ void test_transfer(libtorrent::pe_settings::enc_level level)
 
 	boost::tie(tor1, tor2) = setup_transfer(ses1, ses2, true, false);	
 
-	for (int i = 0; i < 50; ++i)
-	{
-		// make sure this function can be called on
-		// torrents without metadata
-		tor2.status();
-		std::auto_ptr<alert> a;
-		a = ses1.pop_alert();
-		if (a.get())
-			std::cerr << "ses1: " << a->msg() << "\n";
-
-		a = ses2.pop_alert();
-		if (a.get())
-			std::cerr << "ses2: " << a->msg() << "\n";
-
-		if (tor2.has_metadata()) break;
-		sleep(100);
-	}
-
-	TEST_CHECK(tor2.has_metadata());
 	std::cerr << "waiting for transfer to complete\n";
 
 	for (int i = 0; i < 50; ++i)
