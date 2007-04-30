@@ -72,7 +72,7 @@ namespace
 
   void add_extension(session& s, object const& e)
   {
-//      allow_threading_guard guard;
+      allow_threading_guard guard;
       s.add_extension(invoke_extension_factory(e));
   }
 
@@ -199,6 +199,12 @@ void bind_session()
         )
         .def("pop_alert", allow_threads(&session::pop_alert), session_pop_alert_doc)
         .def("add_extension", &add_extension)
+        .def("set_peer_proxy", allow_threads(&session::set_peer_proxy))
+        .def("set_tracker_proxy", allow_threads(&session::set_tracker_proxy))
+        .def("set_web_seed_proxy", allow_threads(&session::set_web_seed_proxy))
+#ifndef TORRENT_DISABLE_DHT
+        .def("set_dht_proxy", allow_threads(&session::set_dht_proxy))
+#endif
         ;
 
     def("supports_sparse_files", &supports_sparse_files);

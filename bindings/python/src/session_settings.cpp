@@ -11,10 +11,6 @@ using namespace libtorrent;
 void bind_session_settings()
 {
     class_<session_settings>("session_settings")
-        .def_readwrite("proxy_ip", &session_settings::proxy_ip)
-        .def_readwrite("proxy_port", &session_settings::proxy_port)
-        .def_readwrite("proxy_login", &session_settings::proxy_login)
-        .def_readwrite("proxy_password", &session_settings::proxy_password)
         .def_readwrite("user_agent", &session_settings::user_agent)
         .def_readwrite("tracker_completion_timeout", &session_settings::tracker_completion_timeout)
         .def_readwrite("tracker_receive_timeout", &session_settings::tracker_receive_timeout)
@@ -28,5 +24,19 @@ void bind_session_settings()
         .def_readwrite("urlseed_timeout", &session_settings::urlseed_timeout)
         .def_readwrite("urlseed_pipeline_size", &session_settings::urlseed_pipeline_size)
         ;
+    
+    scope ps = class_<proxy_settings>("proxy_settings")
+        .def_readwrite("hostname", &proxy_settings::hostname)
+        .def_readwrite("port", &proxy_settings::port)
+        .def_readwrite("password", &proxy_settings::password)
+        .def_readwrite("username", &proxy_settings::username)
+        .def_readwrite("type", &proxy_settings::type)
+    ;
+
+    ps.attr("none") = (int)proxy_settings::none;
+    ps.attr("socks5") = (int)proxy_settings::socks5;
+    ps.attr("socks5_pw") = (int)proxy_settings::socks5_pw;
+    ps.attr("http") = (int)proxy_settings::http;
+    ps.attr("http_pw") = (int)proxy_settings::http_pw;
 }
 
