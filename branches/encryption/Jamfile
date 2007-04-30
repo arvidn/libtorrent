@@ -107,23 +107,14 @@ ZLIB_SOURCES =
 DEFINES = ;
 LIBS = ;
 
-if [ os.name ] = CYGWIN
+if [ os.name ] = CYGWIN || [ os.name ] = NT
 {
 	lib wsock32 : : <name>wsock32 ;
 	lib ws2_32 : : <name>ws2_32 ;
-	LIBS += wsock32 ws2_32 ;
+	LIBS += ws2_32 wsock32 ;
 	DEFINES += WIN32_LEAN_AND_MEAN ;
 	DEFINES += _WIN32_WINNT=0x0500 ;
 	DEFINES += __USE_W32_SOCKETS ;
-	DEFINES += WIN32 ;
-	SOURCES += file_win ;
-}
-else if [ os.name ] = NT
-{
-	lib wsock32 : : <name>wsock32 ;
-	LIBS += wsock32 ;
-	DEFINES += WIN32_LEAN_AND_MEAN ;
-	DEFINES += _WIN32_WINNT=0x0500 ;
 	DEFINES += WIN32 ;
 	SOURCES += file_win ;
 }
@@ -131,6 +122,8 @@ else
 {
 	SOURCES += file ;
 }
+
+lib crypt : : <name>crypto ;
 
 project torrent
 
@@ -189,8 +182,8 @@ lib torrent
 	<zlib>shipped:<source>zlib/$(ZLIB_SOURCES).c
 	<zlib>system:<library>z
 	<pe-support>on:<source>src/pe_crypto.cpp
-	<pe-support>on:<library>crypto
-	<openssl>on:<library>crypto
-	<openssl>off:<source>src/sha1.cpp
+	<pe-support>on:<library>crypt
+	<openssl>on:<library>crypt
+	<openssl>off,<pe-support>off:<source>src/sha1.cpp
 	;
 

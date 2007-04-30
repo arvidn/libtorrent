@@ -124,6 +124,7 @@ namespace libtorrent
 		, m_upload_limit(resource_request::inf)
 		, m_download_limit(resource_request::inf)
 		, m_peer_info(peerinfo)
+		, m_speed(slow)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif
@@ -189,6 +190,7 @@ namespace libtorrent
 		, m_upload_limit(resource_request::inf)
 		, m_download_limit(resource_request::inf)
 		, m_peer_info(peerinfo)
+		, m_speed(slow)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif
@@ -1331,7 +1333,14 @@ namespace libtorrent
 		assert(block.block_index < t->torrent_file().piece_size(block.piece_index));
 		assert(!t->picker().is_downloading(block));
 
-		t->picker().mark_as_downloading(block, m_remote);
+		piece_picker::piece_state_t state;
+		peer_speed_t speed = peer_speed();
+		if (speed == fast) state = piece_picker::fast;
+		else if (speed == medium) state = piece_picker::medium;
+		else state = piece_picker::slow;
+
+		t->picker().mark_as_downloading(block, m_remote, state);
+
 		m_request_queue.push_back(block);
 	}
 
@@ -2418,6 +2427,25 @@ namespace libtorrent
 		return false;
 	}
 
+	peer_connection::peer_speed_t peer_connection::peer_speed()
+	{
+		shared_ptr<torrent> t = m_torrent.lock();
+		assert(t);
+
+		int download_rate = int(statistics().download_payload_rate());
+		int torrent_download_rate = int(t->statistics().download_payload_rate());
+
+		if (download_rate > 512 && download_rate > torrent_download_rate / 16)
+			m_speed = fast;
+		else if (download_rate > 4096 && download_rate > torrent_download_rate / 64)
+			m_speed = medium;
+		else if (download_rate < torrent_download_rate / 15 && m_speed == fast)
+			m_speed = medium;
+		else if (download_rate < torrent_download_rate / 63 && m_speed == medium)
+			m_speed = slow;
+
+		return m_speed;
+	}
 
 	void peer_connection::keep_alive()
 	{

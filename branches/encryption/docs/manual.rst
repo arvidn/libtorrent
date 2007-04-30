@@ -103,6 +103,14 @@ The ``session`` class has the following synopsis::
 		void set_max_connections(int limit);
 		void set_max_half_open_connections(int limit);
 
+		void set_peer_proxy(proxy_settings const& s);
+		void set_web_seed_proxy(proxy_settings const& s);
+		void set_tracker_proxy(proxy_settings const& s);
+
+		proxy_settings const& peer_proxy() const;
+		proxy_settings const& web_seed_proxy() const;
+		proxy_settings const& tracker_proxy() const;
+
 		int num_uploads() const;
 		int num_connections() const;
 
@@ -515,6 +523,48 @@ set_settings() set_pe_settings()
 Sets the session settings and the packet encryption settings respectively.
 See session_settings_ and pe_settings_ for more information on available
 options.
+
+
+set_peer_proxy() set_web_seed_proxy() set_tracker_proxy() set_dht_proxy()
+-------------------------------------------------------------------------
+
+	::
+
+		void set_peer_proxy(proxy_settings const& s);
+		void set_web_seed_proxy(proxy_settings const& s);
+		void set_tracker_proxy(proxy_settings const& s);
+		void set_dht_proxy(proxy_settings const& s);
+
+The ``set_dht_proxy`` is not available when DHT is disabled. These functions
+sets the proxy settings for different kinds of connections, bittorrent peers,
+web seeds, trackers and the DHT traffic.
+
+``set_peer_proxy`` affects regular bittorrent peers. ``set_web_seed_proxy``
+affects only web seeds. see `HTTP seeding`_.
+
+``set_tracker_proxy`` only affects HTTP tracker connections (UDP tracker
+connections are affected if the given proxy supports UDP, e.g. SOCKS5).
+
+``set_dht_proxy`` affects the DHT messages. Since they are sent over UDP,
+it only has any effect if the proxy supports UDP.
+
+For more information on what settings are available for proxies, see
+`proxy_settings`_.
+
+
+peer_proxy() web_seed_proxy() tracker_proxy() dht_proxy()
+---------------------------------------------------------
+
+	::
+
+		proxy_settings const& peer_proxy() const;
+		proxy_settings const& web_seed_proxy() const;
+		proxy_settings const& tracker_proxy() const;
+		proxy_settings const& dht_proxy() const;
+
+These functions returns references to their respective current settings.
+
+The ``dht_proxy`` is not available when DHT is disabled.
 
 
 start_dht() stop_dht() set_dht_settings() dht_state()
@@ -1292,17 +1342,17 @@ first algorithm is effectively active for all pieces. You may however
 change the priority of individual pieces. There are 8 different priority
 levels:
 
-0. piece is not downloaded at all
-1. normal priority. Download order is dependent on availability
-2. higher than normal priority. Pieces are preferred over pieces with
-   the same availability, but not over pieces with lower availability
-3. pieces are as likely to be picked as partial pieces.
-4. pieces are preferred over partial pieces, but not over pieces with
-   lower availability
-5. *currently the same as 4*
-6. piece is as likely to be picked as any piece with availability 1
-7. maximum priority, availability is disregarded, the piece is preferred
-   over any other piece with lower priority
+ 0. piece is not downloaded at all
+ 1. normal priority. Download order is dependent on availability
+ 2. higher than normal priority. Pieces are preferred over pieces with
+    the same availability, but not over pieces with lower availability
+ 3. pieces are as likely to be picked as partial pieces.
+ 4. pieces are preferred over partial pieces, but not over pieces with
+    lower availability
+ 5. *currently the same as 4*
+ 6. piece is as likely to be picked as any piece with availability 1
+ 7. maximum priority, availability is disregarded, the piece is preferred
+    over any other piece with lower priority
 
 The exact definitions of these priorities are implementation details, and
 subject to change. The interface guarantees that higher number means higher
@@ -1663,6 +1713,8 @@ requested. The entry in the vector (``partial_piece_info``) looks like this::
 		std::bitset<max_blocks_per_piece> finished_blocks;
 		address peer[max_blocks_per_piece];
 		int num_downloads[max_blocks_per_piece];
+		enum state_t { none, slow. medium, fast };
+		state_t piece_state;
 	};
 
 ``piece_index`` is the index of the piece in question. ``blocks_in_piece`` is the
@@ -1681,6 +1733,13 @@ The ``finished_blocks`` is a bitset where each bit says if the block is fully do
 or not. And the ``num_downloads`` array says how many times that block has been downloaded.
 When a piece fails a hash verification, single blocks may be re-downloaded to
 see if the hash test may pass then.
+
+``piece_state`` is set to either ``fast``, ``medium``, ``slow`` or ``none``. It tells which
+download rate category the peers downloading this piece falls into. ``none`` means that no
+peer is currently downloading any part of the piece. Peers prefer picking pieces from
+the same category as themselves. The reason for this is to keep the number of partially
+downloaded pieces down. Pieces set to ``none`` can be converted into any of ``fast``,
+``medium`` or ``slow`` as soon as a peer want to download from it.
 
 
 get_peer_info()
@@ -2113,10 +2172,6 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 	struct session_settings
 	{
 		session_settings();
-		std::string proxy_ip;
-		int proxy_port;
-		std::string proxy_login;
-		std::string proxy_password;
 		std::string user_agent;
 		int tracker_completion_timeout;
 		int tracker_receive_timeout;
@@ -2136,17 +2191,6 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int min_reconnect_time;
 		bool use_dht_as_fallback;
 	};
-
-``proxy_ip`` may be a hostname or ip to a http proxy to use. If this is
-an empty string, no http proxy will be used.
-
-``proxy_port`` is the port on which the http proxy listens. If ``proxy_ip``
-is empty, this will be ignored.
-
-``proxy_login`` should be the login username for the http proxy, if this
-empty, the http proxy will be tried to be used without authentication.
-
-``proxy_password`` the password string for the http proxy.
 
 ``user_agent`` this is the client identification to the tracker.
 The recommended format of this string is:
@@ -2299,6 +2343,67 @@ selected by the client. The settings are:
 
 ``prefer_rc4`` can be set to true if you want to prefer the RC4 encrypted stream.
 
+
+proxy_settings
+==============
+
+The ``proxy_settings`` structs contains the information needed to
+direct certain traffic to a proxy.
+
+	::
+
+		struct proxy_settings
+		{
+			proxy_settings();
+
+			std::string hostname;
+			int port;
+
+			std::string username;
+			std::string password;
+
+			enum proxy_type
+			{
+				none,
+				socks5,
+				socks5_pw,
+				http,
+				http_pw
+			};
+		
+			proxy_type type;
+		};
+
+``hostname`` is the name or IP of the proxy server. ``port`` is the
+port number the proxy listens to. If required, ``username`` and ``password``
+can be set to authenticate with the proxy.
+
+The ``type`` tells libtorrent what kind of proxy server it is. The following
+options are available:
+
+ * ``none`` - This is the default, no proxy server is used, all other fields
+   are ignored.
+
+ * ``socks5`` - The server is assumed to be a SOCKS5 server (`RFC 1928`_) that
+   does not require any authentication. The username and password are ignored.
+
+ * ``socks5_pw`` - The server is assumed to be a SOCKS5 server that supports
+   plain text username and password authentication (`RFC 1929`_). The username
+   and password specified may be sent to the proxy if it requires.
+
+ * ``http`` - The server is assumed to be an HTTP proxy. If the transport used
+   for the connection is non-HTTP, the server is assumed to support the
+   CONNECT_ method. i.e. for web seeds and HTTP trackers, a plain proxy will
+   suffice. The proxy is assumed to not require authorization. The username
+   and password will not be used.
+
+ * ``http_pw`` - The server is assumed to be an HTTP proxy that requires
+   user authorization. The username and password will be sent to the proxy.
+
+
+.. _`RFC 1928`: http://www.faqs.org/rfcs/rfc1928.html
+.. _`RFC 1929`: http://www.faqs.org/rfcs/rfc1929.html
+.. _CONNECT: draft-luotonen-web-proxy-tunneling-01.txt
 
 ip_filter
 =========
@@ -3334,7 +3439,7 @@ There are two modes in which storage (files on disk) are allocated in libtorrent
  * The traditional *full allocation* mode, where the entire files are filled up with
    zeros before anything is downloaded. libtorrent will look for sparse files support
    in the filesystem that is used for storage, and use sparse files or file system
-   zaero fill support if present. This means that on NTFS, full allocation mode will
+   zero fill support if present. This means that on NTFS, full allocation mode will
    only allocate storage for the downloaded pieces.
 
  * And the *compact allocation* mode, where only files are allocated for actual

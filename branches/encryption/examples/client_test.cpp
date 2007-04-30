@@ -244,8 +244,7 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 {
 	using namespace libtorrent;
 	std::vector<peer_info>::const_iterator i = std::find_if(peers.begin()
-		, peers.end(), boost::bind(std::equal_to<libtorrent::tcp::endpoint>()
-		, bind(&peer_info::ip, _1), addr));
+		, peers.end(), bind(&peer_info::ip, _1) == addr);
 	if (i == peers.end()) return -1;
 
 	return i - peers.begin();
@@ -1000,7 +999,8 @@ int main(int ac, char* av[])
 							else out << "-";
 #endif
 						}
-						out << "]\n";
+						char* piece_state[4] = {"", "slow", "medium", "fast"};
+						out << "] " << piece_state[i->piece_state] << "\n";
 					}
 
 					out << "___________________________________\n";

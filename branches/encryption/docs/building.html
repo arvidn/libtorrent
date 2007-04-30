@@ -254,6 +254,29 @@ information.</li>
 </ul>
 </td>
 </tr>
+<tr><td><tt class="docutils literal"><span class="pre">openssl</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">on</span></tt> - openssl will be used instead of the
+public domain SHA-1 implementation shipped with
+libtorrent. <tt class="docutils literal"><span class="pre">crypto.lib</span></tt> or <tt class="docutils literal"><span class="pre">libcrypto.a</span></tt>
+will be required for linking.</li>
+<li><tt class="docutils literal"><span class="pre">off</span></tt> - the shipped SHA-1 implementation will
+be used, and there will be no dependency on
+openssl.</li>
+</ul>
+</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">character-set</span></tt></td>
+<td><p class="first">This setting will only have an affect on windows.
+Other platforms are expected to support UTF-8.</p>
+<ul class="last simple">
+<li><tt class="docutils literal"><span class="pre">ansi</span></tt> - The ansi version of the win32 API is
+used.</li>
+<li><tt class="docutils literal"><span class="pre">unicode</span></tt> - The unicode version of the win32
+API is used.</li>
+</ul>
+</td>
+</tr>
 </tbody>
 </table>
 <p>The <tt class="docutils literal"><span class="pre">variant</span></tt> feature is <em>implicit</em>, which means you don't need to specify

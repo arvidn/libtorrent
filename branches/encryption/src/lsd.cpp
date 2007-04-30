@@ -163,7 +163,7 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 	m_broadcast_timer.async_wait(bind(&lsd::resend_announce, this, _1, msg));
 }
 
-void lsd::resend_announce(asio::error_code const& e, std::string msg)
+void lsd::resend_announce(asio::error_code const& e, std::string msg) try
 {
 	if (e) return;
 
@@ -177,6 +177,8 @@ void lsd::resend_announce(asio::error_code const& e, std::string msg)
 	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count));
 	m_broadcast_timer.async_wait(bind(&lsd::resend_announce, this, _1, msg));
 }
+catch (std::exception&)
+{}
 
 void lsd::on_announce(asio::error_code const& e
 	, std::size_t bytes_transferred)
@@ -235,7 +237,7 @@ void lsd::on_announce(asio::error_code const& e
 	setup_receive();
 }
 
-void lsd::setup_receive()
+void lsd::setup_receive() try
 {
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log << time_now_string()
@@ -245,6 +247,8 @@ void lsd::setup_receive()
 	m_socket.async_receive_from(asio::buffer(m_receive_buffer
 		, sizeof(m_receive_buffer)), m_remote, bind(&lsd::on_announce, this, _1, _2));
 }
+catch (std::exception&)
+{}
 
 void lsd::close()
 {

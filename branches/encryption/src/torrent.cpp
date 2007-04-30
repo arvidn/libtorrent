@@ -435,6 +435,9 @@ namespace libtorrent
 	}
 
 	void torrent::on_announce()
+#ifndef NDEBUG
+	try
+#endif
 	{
 		boost::weak_ptr<torrent> self(shared_from_this());
 
@@ -458,6 +461,13 @@ namespace libtorrent
 		}
 #endif
 	}
+#ifndef NDEBUG
+	catch (std::exception& e)
+	{
+		std::cerr << e.what() << std::endl;
+		assert(false);
+	}
+#endif
 
 #ifndef TORRENT_DISABLE_DHT
 

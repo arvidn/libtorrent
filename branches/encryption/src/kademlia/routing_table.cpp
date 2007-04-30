@@ -170,11 +170,11 @@ bool routing_table::need_node(node_id const& id)
 	if ((int)rb.size() >= m_bucket_size) return false;
 	
 	// if the node already exists, we don't need it
-	if (std::find_if(b.begin(), b.end(), bind(std::equal_to<node_id>()
-		, bind(&node_entry::id, _1), id)) != b.end()) return false;
+	if (std::find_if(b.begin(), b.end(), bind(&node_entry::id, _1) == id)
+		!= b.end()) return false;
 
-	if (std::find_if(rb.begin(), rb.end(), bind(std::equal_to<node_id>()
-		, bind(&node_entry::id, _1), id)) != rb.end()) return false;
+	if (std::find_if(rb.begin(), rb.end(), bind(&node_entry::id, _1) == id)
+		!= rb.end()) return false;
 
 	return true;
 }
@@ -188,8 +188,7 @@ void routing_table::node_failed(node_id const& id)
 	bucket_t& rb = m_buckets[bucket_index].second;
 
 	bucket_t::iterator i = std::find_if(b.begin(), b.end()
-		, bind(std::equal_to<node_id>()
-		, bind(&node_entry::id, _1), id));
+		, bind(&node_entry::id, _1) == id);
 
 	if (i == b.end()) return;
 	
@@ -238,8 +237,7 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint addr)
 	bucket_t& b = m_buckets[bucket_index].first;
 
 	bucket_t::iterator i = std::find_if(b.begin(), b.end()
-		, bind(std::equal_to<node_id>()
-		, bind(&node_entry::id, _1), id));
+		, bind(&node_entry::id, _1) == id);
 
 	bool ret = need_bootstrap();
 
@@ -286,9 +284,8 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint addr)
 	// with nodes from that cache.
 
 	i = std::max_element(b.begin(), b.end()
-		, bind(std::less<int>()
-			, bind(&node_entry::fail_count, _1)
-			, bind(&node_entry::fail_count, _2)));
+		, bind(&node_entry::fail_count, _1)
+		< bind(&node_entry::fail_count, _2));
 
 	if (i != b.end() && i->fail_count > 0)
 	{
@@ -308,8 +305,7 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint addr)
 	bucket_t& rb = m_buckets[bucket_index].second;
 
 	i = std::find_if(rb.begin(), rb.end()
-		, bind(std::equal_to<node_id>()
-		, bind(&node_entry::id, _1), id));
+		, bind(&node_entry::id, _1) == id);
 
 	// if the node is already in the replacement bucket
 	// just return.
@@ -351,8 +347,7 @@ void routing_table::find_node(node_id const& target
 	if ((int)l.size() == count)
 	{
 		assert(std::count_if(l.begin(), l.end()
-			, boost::bind(std::not_equal_to<int>()
-				, boost::bind(&node_entry::fail_count, _1), 0)) == 0);
+			, boost::bind(&node_entry::fail_count, _1) != 0) == 0);
 		return;
 	}
 
@@ -384,8 +379,7 @@ void routing_table::find_node(node_id const& target
 		|| bucket_index == (int)m_buckets.size() - 1)
 	{
 		assert(std::count_if(l.begin(), l.end()
-			, boost::bind(std::not_equal_to<int>()
-				, boost::bind(&node_entry::fail_count, _1), 0)) == 0);
+			, boost::bind(&node_entry::fail_count, _1) != 0) == 0);
 		return;
 	}
 
@@ -399,8 +393,7 @@ void routing_table::find_node(node_id const& target
 		{
 			l.erase(l.begin() + count, l.end());
 			assert(std::count_if(l.begin(), l.end()
-				, boost::bind(std::not_equal_to<int>()
-					, boost::bind(&node_entry::fail_count, _1), 0)) == 0);
+				, boost::bind(&node_entry::fail_count, _1) != 0) == 0);
 			return;
 		}
 	}
@@ -409,8 +402,7 @@ void routing_table::find_node(node_id const& target
 	assert((int)l.size() <= count);
 
 	assert(std::count_if(l.begin(), l.end()
-		, boost::bind(std::not_equal_to<int>()
-			, boost::bind(&node_entry::fail_count, _1), 0)) == 0);
+		, boost::bind(&node_entry::fail_count, _1) != 0) == 0);
 }
 
 routing_table::iterator routing_table::begin() const
