@@ -199,7 +199,7 @@ namespace libtorrent
 		tcp::endpoint const& get_interface() const { return m_net_interface; }
 		
 		void connect_to_url_seed(std::string const& url);
-		peer_connection& connect_to_peer(policy::peer* peerinfo);
+		peer_connection* connect_to_peer(policy::peer* peerinfo);
 
 		void set_ratio(float ratio)
 		{ assert(ratio >= 0.0f); m_ratio = ratio; }
@@ -246,6 +246,8 @@ namespace libtorrent
 		// the pieces it had have their reference counter
 		// decreased in the piece_picker
 		void remove_peer(peer_connection* p);
+
+		bool want_more_peers() const;
 
 		peer_connection* connection_for(tcp::endpoint const& a)
 		{
