@@ -246,9 +246,11 @@ namespace libtorrent
 		bool is_paused() const;
 		void pause() const;
 		void resume() const;
-		
+
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		void resolve_countries(bool r);
 		bool resolve_countries() const;
+#endif
 
 		// all these are deprecated, use piece
 		// priority functions instead

@@ -207,10 +207,12 @@ namespace libtorrent
 		float ratio() const
 		{ return m_ratio; }
 
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		void resolve_countries(bool r)
 		{ m_resolve_countries = r; }
 
 		bool resolving_countries() const { return m_resolve_countries; }
+#endif
 
 // --------------------------------------------
 		// BANDWIDTH MANAGEMENT
@@ -585,15 +587,17 @@ namespace libtorrent
 		// used to resolve the names of web seeds
 		mutable tcp::resolver m_host_resolver;
 		
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		// this is true while there is a country
 		// resolution in progress. To avoid flodding
-		// the DNS request queue, only one ip is reolved
+		// the DNS request queue, only one ip is resolved
 		// at a time.
 		mutable bool m_resolving_country;
 		
 		// this is true if the user has enabled
 		// country resolution in this torrent
 		bool m_resolve_countries;
+#endif
 
 		// this announce timer is used both
 		// by Local service discovery and

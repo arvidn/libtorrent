@@ -129,7 +129,9 @@ namespace libtorrent
 		, m_in_constructor(true)
 #endif
 	{
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		std::fill(m_country, m_country + 2, 0);
+#endif
 #ifdef TORRENT_VERBOSE_LOGGING
 		m_logger = m_ses.create_log(m_remote.address().to_string() + "_"
 			+ boost::lexical_cast<std::string>(m_remote.port()), m_ses.listen_port());
@@ -195,7 +197,9 @@ namespace libtorrent
 		, m_in_constructor(true)
 #endif
 	{
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		std::fill(m_country, m_country + 2, 0);
+#endif
 		m_remote = m_socket->remote_endpoint();
 
 #ifdef TORRENT_VERBOSE_LOGGING

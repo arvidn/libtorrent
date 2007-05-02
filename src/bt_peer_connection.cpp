@@ -190,8 +190,10 @@ namespace libtorrent
 		p.pid = pid();
 		p.ip = remote();
 		
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		p.country[0] = m_country[0];
 		p.country[1] = m_country[1];
+#endif
 
 		p.total_download = statistics().total_payload_download();
 		p.total_upload = statistics().total_payload_upload();

@@ -202,8 +202,10 @@ namespace libtorrent
 		, m_complete(-1)
 		, m_incomplete(-1)
 		, m_host_resolver(ses.m_io_service)
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		, m_resolving_country(false)
 		, m_resolve_countries(false)
+#endif
 		, m_announce_timer(ses.m_io_service)
 		, m_policy()
 		, m_ses(ses)
@@ -283,8 +285,10 @@ namespace libtorrent
 		, m_complete(-1)
 		, m_incomplete(-1)
 		, m_host_resolver(ses.m_io_service)
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		, m_resolving_country(false)
 		, m_resolve_countries(false)
+#endif
 		, m_announce_timer(ses.m_io_service)
 		, m_policy()
 		, m_ses(ses)
@@ -1563,6 +1567,7 @@ namespace libtorrent
 		assert(false);
 	};
 
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 	void torrent::resolve_peer_country(boost::intrusive_ptr<peer_connection> const& p) const
 	{
 		if (m_resolving_country
@@ -1876,6 +1881,7 @@ namespace libtorrent
 			p->set_country(i->second);
 		}
 	}
+#endif
 
 	peer_connection* torrent::connect_to_peer(policy::peer* peerinfo)
 	{
