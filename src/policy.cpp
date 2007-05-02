@@ -724,12 +724,8 @@ namespace libtorrent
 			}
 		}
 
-		while (m_torrent->num_peers() < m_torrent->m_connections_quota.given)
-		{
-			if (!connect_one_peer())
-				break;
-		}
-
+		if (m_torrent->want_more_peers())
+			connect_one_peer();
 
 		// ------------------------
 		// upload shift
@@ -1201,8 +1197,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (!m_torrent->want_more_peers())
-			return false;
+		assert(m_torrent->want_more_peers());
 		
 		bool succeed = false;
 		while (!succeed)
