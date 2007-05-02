@@ -351,6 +351,7 @@ namespace libtorrent
 		buffer::interval allocate_send_buffer(int size);
 		void setup_send();
 
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		void set_country(char const* c)
 		{
 			assert(strlen(c) == 2);
@@ -358,6 +359,7 @@ namespace libtorrent
 			m_country[1] = c[1];
 		}
 		bool has_country() const { return m_country[0] != 0; }
+#endif
 
 	protected:
 
@@ -447,11 +449,13 @@ namespace libtorrent
 		extension_list_t m_extensions;
 #endif
 
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		// in case the session settings is set
 		// to resolve countries, this is set to
 		// the two character country code this
 		// peer resides in.
 		char m_country[2];
+#endif
 
 	private:
 
