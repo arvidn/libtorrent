@@ -2069,9 +2069,7 @@ namespace libtorrent
 
 		assert(!m_unallocated_slots.empty());
 
-		const int piece_size = static_cast<int>(m_info.piece_length());
-
-		const int stack_buffer_size = 16*16*1024;
+		const int stack_buffer_size = 16*1024;
 		char zeroes[stack_buffer_size];
 		memset(zeroes, 0, stack_buffer_size);
 		
@@ -2080,8 +2078,6 @@ namespace libtorrent
 		for (int i = 0; i < num_slots && !m_unallocated_slots.empty(); ++i)
 		{
 			int pos = m_unallocated_slots.front();
-			//			int piece_pos = pos;
-			bool write_back = false;
 
 			int new_free_slot = pos;
 			if (m_piece_to_slot[pos] != has_no_slot)
