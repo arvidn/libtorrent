@@ -2040,8 +2040,8 @@ namespace libtorrent
 
 	bool torrent::want_more_peers() const
 	{
-		return m_connections.size() < m_connections_quota.given
-			&& m_ses.m_half_open.size() < m_ses.m_half_open_limit;
+		return int(m_connections.size()) < m_connections_quota.given
+			&& int(m_ses.m_half_open.size()) < m_ses.m_half_open_limit;
 	}
 
 
