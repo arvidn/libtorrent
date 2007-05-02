@@ -1877,9 +1877,12 @@ namespace libtorrent
 		}
 	}
 
-	peer_connection& torrent::connect_to_peer(policy::peer* peerinfo)
+	peer_connection* torrent::connect_to_peer(policy::peer* peerinfo)
 	{
 		INVARIANT_CHECK;
+
+		if (!want_more_peers()) return 0;
+
 		tcp::endpoint const& a(peerinfo->ip);
 		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
 		{
@@ -1888,11 +1891,10 @@ namespace libtorrent
 				m_ses.m_alerts.post_alert(peer_blocked_alert(a.address()
 					, "peer connection blocked by IP filter"));
 			}
-			throw protocol_error(a.address().to_string() + " blocked by ip filter");
+			return 0;
 		}
 
-		if (m_connections.find(a) != m_connections.end())
-			throw protocol_error("already connected to peer");
+		if (m_connections.find(a) != m_connections.end()) return 0;
 
 		boost::shared_ptr<socket_type> s
 			= instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy());
@@ -1941,7 +1943,7 @@ namespace libtorrent
 			throw;
 		}
 		if (c->is_disconnecting()) throw protocol_error("failed to connect");
-		return *c;
+		return c.get();
 	}
 
 	void torrent::set_metadata(entry const& metadata)
@@ -2035,6 +2037,13 @@ namespace libtorrent
 		m_policy->check_invariant();
 #endif
 	}
+
+	bool torrent::want_more_peers() const
+	{
+		return m_connections.size() < m_connections_quota.given
+			&& m_ses.m_half_open.size() < m_ses.m_half_open_limit;
+	}
+
 
 	void torrent::disconnect_all()
 	{
