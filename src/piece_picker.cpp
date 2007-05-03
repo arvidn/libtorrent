@@ -212,7 +212,11 @@ namespace libtorrent
 			int num_blocks = blocks_in_piece(i->index);
 			for (int k = 0; k < num_blocks; ++k)
 			{
-				if (i->finished_blocks[k]) continue;
+				if (i->finished_blocks[k])
+				{
+					assert(i->requested_blocks[k]);
+					continue;
+				}
 				if (i->requested_blocks[k])
 				{
 					blocks_requested = true;
