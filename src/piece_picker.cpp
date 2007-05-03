@@ -1334,6 +1334,7 @@ namespace libtorrent
 
 		if (i->finished_blocks[block.block_index])
 		{
+			assert(i->requested_blocks[block.block_index]);
 			assert(std::find_if(m_downloads.begin(), m_downloads.end()
 				, has_index(block.piece_index)) == m_downloads.end());
 			return;
@@ -1356,7 +1357,7 @@ namespace libtorrent
 			piece_pos& p = m_piece_map[block.piece_index];
 			int prio = p.priority(m_sequenced_download_threshold);
 			p.downloading = 0;
-			move(prio, p.index);
+			if (prio > 0) move(prio, p.index);
 
 			assert(std::find_if(m_downloads.begin(), m_downloads.end()
 				, has_index(block.piece_index)) == m_downloads.end());
