@@ -724,8 +724,8 @@ namespace libtorrent
 			}
 		}
 
-		if (m_torrent->want_more_peers())
-			connect_one_peer();
+		while (m_torrent->want_more_peers())
+			if (!connect_one_peer()) break;
 
 		// ------------------------
 		// upload shift
