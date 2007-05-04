@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
@@ -68,7 +66,8 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 	if (i == m_results.end() || i->id != id)
 	{
 		assert(std::find_if(m_results.begin(), m_results.end()
-			, bind(&result::id, _1) == id) == m_results.end());
+			, bind(std::equal_to<node_id>()
+				, bind(&result::id, _1), id)) == m_results.end());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(traversal) << "adding result: " << id << " " << addr;
 #endif

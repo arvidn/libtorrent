@@ -249,26 +249,6 @@ namespace libtorrent
 		{ return std::auto_ptr<alert>(new listen_failed_alert(*this)); }
 	};
 
-	struct TORRENT_EXPORT portmap_error_alert: alert
-	{
-		portmap_error_alert(const std::string& msg)
-			: alert(alert::warning, msg)
-		{}
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new portmap_error_alert(*this)); }
-	};
-
-	struct TORRENT_EXPORT portmap_alert: alert
-	{
-		portmap_alert(const std::string& msg)
-			: alert(alert::info, msg)
-		{}
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new portmap_alert(*this)); }
-	};
-
 	struct TORRENT_EXPORT fastresume_rejected_alert: torrent_alert
 	{
 		fastresume_rejected_alert(torrent_handle const& h
@@ -278,20 +258,6 @@ namespace libtorrent
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new fastresume_rejected_alert(*this)); }
-	};
-
-	struct TORRENT_EXPORT peer_blocked_alert: alert
-	{
-		peer_blocked_alert(address const& ip_
-			, std::string const& msg)
-			: alert(alert::info, msg)
-			, ip(ip_)
-		{}
-		
-		address ip;
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new peer_blocked_alert(*this)); }
 	};
 
 }

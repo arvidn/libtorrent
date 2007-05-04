@@ -3,7 +3,7 @@ libtorrent API Documentation
 ============================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 0.13
+:Version: 0.12
 
 .. contents:: Table of contents
   :depth: 2
@@ -102,14 +102,6 @@ The ``session`` class has the following synopsis::
 		void set_max_uploads(int limit);
 		void set_max_connections(int limit);
 		void set_max_half_open_connections(int limit);
-
-		void set_peer_proxy(proxy_settings const& s);
-		void set_web_seed_proxy(proxy_settings const& s);
-		void set_tracker_proxy(proxy_settings const& s);
-
-		proxy_settings const& peer_proxy() const;
-		proxy_settings const& web_seed_proxy() const;
-		proxy_settings const& tracker_proxy() const;
 
 		int num_uploads() const;
 		int num_connections() const;
@@ -353,9 +345,6 @@ connections based on their originating ip address. The default filter will allow
 connections to any ip address. To build a set of rules for which addresses are
 accepted and not, see ip_filter_.
 
-Each time a peer is blocked because of the IP filter, a peer_blocked_alert_ is
-generated.
-
 
 status()
 --------
@@ -447,22 +436,6 @@ generate an appropriate alert (listen_failed_alert_).
 The interface parameter can also be a hostname that will resolve to the device you
 want to listen on.
 
-If you're also starting the DHT, it is a good idea to do that after you've called
-``listen_on()``, since the default listen port for the DHT is the same as the tcp
-listen socket. If you start the DHT first, it will assume the tcp port is free and
-open the udp socket on that port, then later, when ``listen_on()`` is called, it
-may turn out that the tcp port is in use. That results in the DHT and the bittorrent
-socket listening on different ports. If the DHT is active when ``listen_on`` is
-called, the udp port will be rebound to the new port, if it was configured to use
-the same port as the tcp socket, and if the listen_on call failed to bind to the
-same port that the udp uses.
-
-The reason why it's a good idea to run the DHT and the bittorrent socket on the same
-port is because that is an assumption that may be used to increase performance. One
-way to accelerate the connecting of peers on windows may be to first ping all peers
-with a DHT ping packet, and connect to those that responds first. On windows one
-can only connect to a few peers at a time because of a built in limitation (in XP
-Service pack 2).
 
 pop_alert() set_severity_level()
 --------------------------------
@@ -511,47 +484,6 @@ e.g.
 	ses.add_extension(&libtorrent::create_ut_pex_plugin);
 
 .. _`libtorrent plugins`: libtorrent_plugins.html
-
-set_peer_proxy() set_web_seed_proxy() set_tracker_proxy() set_dht_proxy()
--------------------------------------------------------------------------
-
-	::
-
-		void set_peer_proxy(proxy_settings const& s);
-		void set_web_seed_proxy(proxy_settings const& s);
-		void set_tracker_proxy(proxy_settings const& s);
-		void set_dht_proxy(proxy_settings const& s);
-
-The ``set_dht_proxy`` is not available when DHT is disabled. These functions
-sets the proxy settings for different kinds of connections, bittorrent peers,
-web seeds, trackers and the DHT traffic.
-
-``set_peer_proxy`` affects regular bittorrent peers. ``set_web_seed_proxy``
-affects only web seeds. see `HTTP seeding`_.
-
-``set_tracker_proxy`` only affects HTTP tracker connections (UDP tracker
-connections are affected if the given proxy supports UDP, e.g. SOCKS5).
-
-``set_dht_proxy`` affects the DHT messages. Since they are sent over UDP,
-it only has any effect if the proxy supports UDP.
-
-For more information on what settings are available for proxies, see
-`proxy_settings`_.
-
-
-peer_proxy() web_seed_proxy() tracker_proxy() dht_proxy()
----------------------------------------------------------
-
-	::
-
-		proxy_settings const& peer_proxy() const;
-		proxy_settings const& web_seed_proxy() const;
-		proxy_settings const& tracker_proxy() const;
-		proxy_settings const& dht_proxy() const;
-
-These functions returns references to their respective current settings.
-
-The ``dht_proxy`` is not available when DHT is disabled.
 
 start_dht() stop_dht() set_dht_settings() dht_state()
 -----------------------------------------------------
@@ -610,11 +542,7 @@ response to a ``get_peers`` message from another node.
 send when announcing and refreshing the routing table. This parameter is
 called alpha in the kademlia paper.
 
-``service_port`` is the udp port the node will listen to. This will default
-to 0, which means the udp listen port will be the same as the tcp listen
-port. This is in general a good idea, since some NAT implementations
-reserves the udp port for any mapped tcp port, and vice versa. NAT-PMP
-guarantees this for example.
+``service_port`` is the udp port the node will listen to.
 
 ``max_fail_count`` is the maximum number of failed tries to contact a node
 before it is removed from the routing table. If there are known working nodes
@@ -1097,8 +1025,7 @@ print()
 		void print(std::ostream& os) const;
 
 The ``print()`` function is there for debug purposes only. It will print the info from
-the torrent file to the given outstream. This function has been deprecated and will
-be removed from future releases.
+the torrent file to the given outstream.
 
 
 trackers()
@@ -1240,7 +1167,7 @@ Its declaration looks like this::
 
 		entry write_resume_data() const;
 		void force_reannounce() const;
-		void connect_peer(asio::ip::tcp::endpoint const& adr, int source = 0) const;
+		void connect_peer(asio::ip::tcp::endpoint const& adr) const;
 
 		void set_tracker_login(std::string const& username
 			, std::string const& password) const;
@@ -1254,9 +1181,7 @@ Its declaration looks like this::
 		void set_max_uploads(int max_uploads) const;
 		void set_max_connections(int max_connections) const;
 		void set_upload_limit(int limit) const;
-		int upload_limit() const;
 		void set_download_limit(int limit) const;
-		int download_limit() const;
 		void set_sequenced_download_threshold(int threshold) const;
 
 		void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
@@ -1272,19 +1197,11 @@ Its declaration looks like this::
 		void resolve_countries(bool r);
 		bool resolve_countries() const;
 
-		void piece_priority(int index, int priority) const;
-		int piece_priority(int index) const;
-
-		void prioritize_pieces(std::vector<int> const& pieces) const;
-		std::vector<int> piece_priorities() const;
-
-		void prioritize_files(std::vector<int> const& files) const;
-
-		// these functions are deprecated
 		void filter_piece(int index, bool filter) const;
 		void filter_pieces(std::vector<bool> const& bitmask) const;
 		bool is_piece_filtered(int index) const;
 		std::vector<bool> filtered_pieces() const;
+
 		void filter_files(std::vector<bool> const& files) const;
       
 		bool has_metadata() const;
@@ -1299,10 +1216,9 @@ Its declaration looks like this::
 		bool operator<(torrent_handle const&) const;
 	};
 
-The default constructor will initialize the handle to an invalid state. Which
-means you cannot perform any operation on it, unless you first assign it a
-valid handle. If you try to perform any operation on an uninitialized handle,
-it will throw ``invalid_handle``.
+The default constructor will initialize the handle to an invalid state. Which means you cannot
+perform any operation on it, unless you first assign it a valid handle. If you try to perform
+any operation on an uninitialized handle, it will throw ``invalid_handle``.
 
 .. warning:: All operations on a ``torrent_handle`` may throw invalid_handle_
 	exception, in case the handle is no longer refering to a torrent. There are
@@ -1310,54 +1226,7 @@ it will throw ``invalid_handle``.
 	Since the torrents are processed by a background thread, there is no
 	guarantee that a handle will remain valid between two calls.
 
-
-piece_priority() prioritize_pieces() piece_priorities() prioritize_files()
---------------------------------------------------------------------------
-
-	::
-
-		void piece_priority(int index, int priority) const;
-		int piece_priority(int index) const;
-		void prioritize_pieces(std::vector<int> const& pieces) const;
-		std::vector<int> piece_priorities() const;
-		void prioritize_files(std::vector<int> const& files) const;
-
-These functions are used to set and get the prioritiy of individual pieces.
-By default all pieces have priority 1. That means that the random rarest
-first algorithm is effectively active for all pieces. You may however
-change the priority of individual pieces. There are 8 different priority
-levels:
-
- 0. piece is not downloaded at all
- 1. normal priority. Download order is dependent on availability
- 2. higher than normal priority. Pieces are preferred over pieces with
-    the same availability, but not over pieces with lower availability
- 3. pieces are as likely to be picked as partial pieces.
- 4. pieces are preferred over partial pieces, but not over pieces with
-    lower availability
- 5. *currently the same as 4*
- 6. piece is as likely to be picked as any piece with availability 1
- 7. maximum priority, availability is disregarded, the piece is preferred
-    over any other piece with lower priority
-
-The exact definitions of these priorities are implementation details, and
-subject to change. The interface guarantees that higher number means higher
-priority, and that 0 means do not download.
-
-``piece_priority`` sets or gets the priority for an individual piece,
-specified by ``index``.
-
-``prioritize_pieces`` takes a vector of integers, one integer per piece in
-the torrent. All the piece priorities will be updated with the priorities
-in the vector.
-
-``piece_priorities`` returns a vector with one element for each piece in the
-torrent. Each element is the current priority of that piece.
-
-``prioritize_files`` takes a vector that has at as many elements as there are
-files in the torrent. Each entry is the priority of that file. The function
-sets the priorities of all the pieces in the torrent based on the vector.
-
+*TODO: document filter_piece(), filter_pieces(), is_piece_filtered(), filtered_pieces() and filter_files()*
 
 file_progress()
 ---------------
@@ -1413,15 +1282,13 @@ connect_peer()
 
 	::
 
-		void connect_peer(asio::ip::tcp::endpoint const& adr, int source = 0) const;
+		void connect_peer(asio::ip::tcp::endpoint const& adr) const;
 
 ``connect_peer()`` is a way to manually connect to peers that one believe is a part of the
 torrent. If the peer does not respond, or is not a member of this torrent, it will simply
 be disconnected. No harm can be done by using this other than an unnecessary connection
 attempt is made. If the torrent is uninitialized or in queued or checking mode, this
-will throw invalid_handle_. The second (optional) argument will be bitwised ORed into
-the source mask of this peer. Typically this is one of the source flags in peer_info_.
-i.e. ``tracker``, ``pex``, ``dht`` etc.
+will throw invalid_handle_.
 
 
 name()
@@ -1453,15 +1320,13 @@ attempt to upload in return for each download. e.g. if set to 2, the client will
 as a standard client.
 
 
-set_upload_limit() set_download_limit() upload_limit() download_limit()
------------------------------------------------------------------------
+set_upload_limit() set_download_limit()
+---------------------------------------
 
 	::
 
 		void set_upload_limit(int limit) const;
 		void set_download_limit(int limit) const;
-		int upload_limit() const;
-		int download_limit() const;
 
 ``set_upload_limit`` will limit the upload bandwidth used by this particular torrent to the
 limit you set. It is given as the number of bytes per second the torrent is allowed to upload.
@@ -1469,9 +1334,6 @@ limit you set. It is given as the number of bytes per second the torrent is allo
 Note that setting a higher limit on a torrent then the global limit (``session::set_upload_rate_limit``)
 will not override the global rate limit. The torrent can never upload more than the global rate
 limit.
-
-``upload_limit`` and ``download_limit`` will return the current limit setting, for upload and
-download, respectively.
 
 
 set_sequenced_download_threshold()
@@ -1662,10 +1524,6 @@ Note that by the time this function returns, the resume data may already be inva
 is still downloading! The recommended practice is to first pause the torrent, then generate the
 fast resume data, and then close it down.
 
-It is still a good idea to save resume data periodically during download as well as when
-closing down. In full allocation mode the reume data is never invalidated by subsequent
-writes to the files, since pieces won't move around.
-
 
 status()
 --------
@@ -1699,8 +1557,6 @@ requested. The entry in the vector (``partial_piece_info``) looks like this::
 		std::bitset<max_blocks_per_piece> finished_blocks;
 		address peer[max_blocks_per_piece];
 		int num_downloads[max_blocks_per_piece];
-		enum state_t { none, slow. medium, fast };
-		state_t piece_state;
 	};
 
 ``piece_index`` is the index of the piece in question. ``blocks_in_piece`` is the
@@ -1719,13 +1575,6 @@ The ``finished_blocks`` is a bitset where each bit says if the block is fully do
 or not. And the ``num_downloads`` array says how many times that block has been downloaded.
 When a piece fails a hash verification, single blocks may be re-downloaded to
 see if the hash test may pass then.
-
-``piece_state`` is set to either ``fast``, ``medium``, ``slow`` or ``none``. It tells which
-download rate category the peers downloading this piece falls into. ``none`` means that no
-peer is currently downloading any part of the piece. Peers prefer picking pieces from
-the same category as themselves. The reason for this is to keep the number of partially
-downloaded pieces down. Pieces set to ``none`` can be converted into any of ``fast``,
-``medium`` or ``slow`` as soon as a peer want to download from it.
 
 
 get_peer_info()
@@ -1946,9 +1795,8 @@ pieces that have more copies than the rarest piece(s). For example: 2.5 would
 mean that the rarest pieces have only 2 copies among the peers this torrent is
 connected to, and that 50% of all the pieces have more than two copies.
 
-If we are a seed, the piece picker is deallocated as an optimization, and
-piece availability is no longer tracked. In this case the distributed
-copies is set to -1.
+If sequenced download is activated (see torrent_handle_), the distributed
+copies will be saturated at the ``sequenced_download_threshold``.
 
 ``block_size`` is the size of a block, in bytes. A block is a sub piece, it
 is the number of bytes that each piece request asks for and the number of
@@ -1975,19 +1823,7 @@ It contains the following fields::
 			connecting = 0x80,
 			queued = 0x100
 		};
-
 		unsigned int flags;
-
-		enum peer_source_flags
-		{
-			tracker = 0x1,
-			dht = 0x2,
-			pex = 0x4,
-			lsd = 0x8
-		};
-
-		int source;
-
 		asio::ip::tcp::endpoint ip;
 		float up_speed;
 		float down_speed;
@@ -2057,23 +1893,6 @@ any combination of the enums above. The following table describes each flag:
 +-------------------------+-------------------------------------------------------+
 
 __ extension_protocol.html
-
-``source`` is a combination of flags describing from which sources this peer
-was received. The flags are:
-
-+------------------------+--------------------------------------------------------+
-| ``tracker``            | The peer was received from the tracker.                |
-+------------------------+--------------------------------------------------------+
-| ``dht``                | The peer was received from the kademlia DHT.           |
-+------------------------+--------------------------------------------------------+
-| ``pex``                | The peer was received from the peer exchange           |
-|                        | extension.                                             |
-+------------------------+--------------------------------------------------------+
-| ``lsd``                | The peer was received from the local service           |
-|                        | discovery (The peer is on the local network).          |
-+------------------------+--------------------------------------------------------+
-| ``resume_data``        | The peer was added from the fast resume data.          |
-+------------------------+--------------------------------------------------------+
 
 The ``ip`` field is the IP-address to this peer. The type is an asio endpoint. For
 more info, see the asio_ documentation.
@@ -2158,6 +1977,10 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 	struct session_settings
 	{
 		session_settings();
+		std::string proxy_ip;
+		int proxy_port;
+		std::string proxy_login;
+		std::string proxy_password;
 		std::string user_agent;
 		int tracker_completion_timeout;
 		int tracker_receive_timeout;
@@ -2173,10 +1996,19 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int urlseed_pipeline_size;
 		int file_pool_size;
 		bool allow_multiple_connections_per_ip;
-		int max_failcount;
-		int min_reconnect_time;
 		bool use_dht_as_fallback;
 	};
+
+``proxy_ip`` may be a hostname or ip to a http proxy to use. If this is
+an empty string, no http proxy will be used.
+
+``proxy_port`` is the port on which the http proxy listens. If ``proxy_ip``
+is empty, this will be ignored.
+
+``proxy_login`` should be the login username for the http proxy, if this
+empty, the http proxy will be tried to be used without authentication.
+
+``proxy_password`` the password string for the http proxy.
 
 ``user_agent`` this is the client identification to the tracker.
 The recommended format of this string is:
@@ -2257,79 +2089,10 @@ abusive behavior by peers. It may be useful to allow such connections in
 cases where simulations are run on the same machie, and all peers in a
 swarm has the same IP address.
 
-``max_failcount`` is the maximum times we try to connect to a peer before
-stop connecting again. If a peer succeeds, the failcounter is reset. If
-a peer is retrieved from a peer source (other than DHT) the failcount is
-decremented by one, allowing another try.
-
-``min_reconnect_time`` is the time to wait between connection attempts. If
-the peer fails, the time is multiplied by fail counter.
-
 ``use_dht_as_fallback`` determines how the DHT is used. If this is true
 (which it is by default), the DHT will only be used for torrents where
 all trackers in its tracker list has failed. Either by an explicit error
 message or a time out.
-
-proxy_settings
-==============
-
-The ``proxy_settings`` structs contains the information needed to
-direct certain traffic to a proxy.
-
-	::
-
-		struct proxy_settings
-		{
-			proxy_settings();
-
-			std::string hostname;
-			int port;
-
-			std::string username;
-			std::string password;
-
-			enum proxy_type
-			{
-				none,
-				socks5,
-				socks5_pw,
-				http,
-				http_pw
-			};
-		
-			proxy_type type;
-		};
-
-``hostname`` is the name or IP of the proxy server. ``port`` is the
-port number the proxy listens to. If required, ``username`` and ``password``
-can be set to authenticate with the proxy.
-
-The ``type`` tells libtorrent what kind of proxy server it is. The following
-options are available:
-
- * ``none`` - This is the default, no proxy server is used, all other fields
-   are ignored.
-
- * ``socks5`` - The server is assumed to be a SOCKS5 server (`RFC 1928`_) that
-   does not require any authentication. The username and password are ignored.
-
- * ``socks5_pw`` - The server is assumed to be a SOCKS5 server that supports
-   plain text username and password authentication (`RFC 1929`_). The username
-   and password specified may be sent to the proxy if it requires.
-
- * ``http`` - The server is assumed to be an HTTP proxy. If the transport used
-   for the connection is non-HTTP, the server is assumed to support the
-   CONNECT_ method. i.e. for web seeds and HTTP trackers, a plain proxy will
-   suffice. The proxy is assumed to not require authorization. The username
-   and password will not be used.
-
- * ``http_pw`` - The server is assumed to be an HTTP proxy that requires
-   user authorization. The username and password will be sent to the proxy.
-
-
-.. _`RFC 1928`: http://www.faqs.org/rfcs/rfc1928.html
-.. _`RFC 1929`: http://www.faqs.org/rfcs/rfc1929.html
-.. _CONNECT: draft-luotonen-web-proxy-tunneling-01.txt
 
 ip_filter
 =========
@@ -2625,20 +2388,6 @@ If ``bdecode()`` encounters invalid encoded data in the range given to it
 it will throw invalid_encoding_.
 
 
-supports_sparse_files()
------------------------
-
-	::
-
-		bool supports_sparse_files(boost::filesystem::path const&);
-
-The path is expected to be the path to the directory where you will want to
-store sparse files. The return value is true if the file system supports
-sparse files or if it supports automatic zero filling of files. The main
-characteristics that is tested by this function is not the storage aspects
-of sparse files, but rather the support for seeking passed end of file and
-write data there, with expected behavior.
-
 
 alerts
 ======
@@ -2750,43 +2499,6 @@ level ``fatal``.
 		virtual std::auto_ptr<alert> clone() const;
 	};
 
-portmap_error_alert
--------------------
-
-This alert is generated when a NAT router was successfully found but some
-part of the port mapping request failed. It contains a text message that
-may help the user figure out what is wrong. This alert is not generated in
-case it appears the client is not running on a NAT:ed network or if it
-appears there is no NAT router that can be remote controlled to add port
-mappings.
-
-The alert is generated as severity ``warning``, since it should be displayed
-to the user somehow, and could mean reduced preformance.
-
-::
-
-	struct portmap_error_alert: alert
-	{
-		portmap_error_alert(const std::string& msg);
-		virtual std::auto_ptr<alert> clone() const;
-	};
-
-portmap_alert
--------------
-
-This alert is generated when a NAT router was successfully found and
-a port was successfully mapped on it. On a NAT:ed network with a NAT-PMP
-capable router, this is typically generated once when mapping the TCP
-port and, if DHT is enabled, when the UDP port is mapped. This is merely
-an informational alert, and is generated at severity level ``info``.
-
-::
-
-	struct portmap_alert: alert
-	{
-		portmap_alert(const std::string& msg);
-		virtual std::auto_ptr<alert> clone() const;
-	};
 
 file_error_alert
 ----------------
@@ -3095,24 +2807,6 @@ resume file was rejected. It is generated at severity level ``warning``.
 	};
 
 
-peer_blocked_alert
-------------------
-
-This alert is generated when a peer is blocked by the IP filter. It has the severity leve
-``info``. The ``ip`` member is the address that was blocked.
-
-::
-
-	struct peer_blocked_alert: alert
-	{
-		peer_blocked_alert(address const& ip_
-			, std::string const& msg);
-		
-		address ip;
-
-		virtual std::auto_ptr<alert> clone() const;
-	};
-
 
 dispatcher
 ----------
@@ -3157,10 +2851,8 @@ Examples usage::
 		a = ses.pop_alert();
 	}
 
-In this example 3 alert types are used. You can use any number of template
-parameters to select between more types. If the number of types are more than
-15, you can define ``TORRENT_MAX_ALERT_TYPES`` to a greater number before
-including ``<libtorrent/alert.hpp>``.
+In this example 3 alert types are used. You can use max 10 template
+parameters to select between alert types.
 
 
 exceptions
@@ -3330,12 +3022,6 @@ The file format is a bencoded dictionary containing the following fields:
 |                      | to consider the resume data as current. Otherwise a full     |
 |                      | re-check is issued.                                          |
 +----------------------+--------------------------------------------------------------+
-| ``allocation``       | The allocation mode for the storage. Can be either ``full``  |
-|                      | or ``compact``. If this is full, the file sizes and          |
-|                      | timestamps are disregarded. Pieces are assumed not to have   |
-|                      | moved around even if the files have been modified after the  |
-|                      | last resume data checkpoint.                                 |
-+----------------------+--------------------------------------------------------------+
 
 threads
 =======
@@ -3363,10 +3049,7 @@ storage allocation
 There are two modes in which storage (files on disk) are allocated in libtorrent.
 
  * The traditional *full allocation* mode, where the entire files are filled up with
-   zeros before anything is downloaded. libtorrent will look for sparse files support
-   in the filesystem that is used for storage, and use sparse files or file system
-   zero fill support if present. This means that on NTFS, full allocation mode will
-   only allocate storage for the downloaded pieces.
+   zeros before anything is downloaded.
 
  * And the *compact allocation* mode, where only files are allocated for actual
    pieces that have been downloaded. This is the default allocation mode in libtorrent.
@@ -3375,27 +3058,18 @@ The allocation mode is selected when a torrent is started. It is passed as a boo
 argument to ``session::add_torrent()`` (see `add_torrent()`_). These two modes have
 different drawbacks and benefits.
 
-The decision to use full allocation or compact allocation typically depends on whether
-any files are filtered and if the filesystem supports sparse files.
-
-To know if the filesystem supports sparse files (and to know if libtorrent believes the
-filesystem supports sparse files), see `supports_sparse_files()`_.
-
 full allocation
 ---------------
 
 When a torrent is started in full allocation mode, the checker thread (see threads_)
 will make sure that the entire storage is allocated, and fill any gaps with zeros.
-This will be skipped if the filesystem supports sparse files or automatic zero filling.
 It will of course still check for existing pieces and fast resume data. The main
 drawbacks of this mode are:
 
- * It may take longer to start the torrent, since it will need to fill the files
-   with zeros on some systems. This delay is linearly dependent on the size of
-   the download.
+ * It will take longer to start the torrent, since it will need to fill the files
+   with zeros. This delay is linearly dependent on the size of the download.
 
- * The download may occupy unnecessary disk space between download sessions. In case
-   sparse files are not supported.
+ * The download will occupy unnecessary disk space between download sessions.
 
  * Disk caches usually perform extremely poorly with random access to large files
    and may slow down a download considerably.
@@ -3406,13 +3080,8 @@ The benefits of this mode are:
    total number of disk operations will be fewer and may also play nicer to
    filesystems' file allocation, and reduce fragmentation.
 
- * No risk of a download failing because of a full disk during download. Unless
-   sparse files are being used.
+ * No risk of a download failing because of a full disk during download.
 
- * The fast resume data will be more likely to be usable, regardless of crashes or
-   out of date data, since pieces won't move around.
-
- * Can be used with the filter files feature.
 
 compact allocation
 ------------------
@@ -3426,8 +3095,6 @@ download has all its pieces in the correct place). So, the main drawbacks are:
 
  * Potentially more fragmentation in the filesystem.
 
- * Cannot be used while filtering files.
-
 The benefits though, are:
 
  * No startup delay, since the files doesn't need allocating.
@@ -3436,8 +3103,6 @@ The benefits though, are:
 
  * Disk caches perform much better than in full allocation and raises the download
    speed limit imposed by the disk.
-
- * Works well on filesystems that doesn't support sparse files.
 
 The algorithm that is used when allocating pieces and slots isn't very complicated.
 For the interested, a description follows.

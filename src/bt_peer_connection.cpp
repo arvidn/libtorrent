@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <vector>
 #include <iostream>
 #include <iomanip>
@@ -50,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
+using namespace boost::posix_time;
 using boost::bind;
 using boost::shared_ptr;
 using libtorrent::aux::session_impl;
@@ -78,11 +77,9 @@ namespace libtorrent
 	bt_peer_connection::bt_peer_connection(
 		session_impl& ses
 		, boost::weak_ptr<torrent> tor
-		, shared_ptr<socket_type> s
-		, tcp::endpoint const& remote
-		, policy::peer* peerinfo)
-		: peer_connection(ses, tor, s, remote
-			, peerinfo)
+		, shared_ptr<stream_socket> s
+		, tcp::endpoint const& remote)
+		: peer_connection(ses, tor, s, remote, tcp::endpoint())
 		, m_state(read_protocol_length)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_supports_extensions(false)
@@ -119,9 +116,8 @@ namespace libtorrent
 
 	bt_peer_connection::bt_peer_connection(
 		session_impl& ses
-		, boost::shared_ptr<socket_type> s
-		, policy::peer* peerinfo)
-		: peer_connection(ses, s, peerinfo)
+		, boost::shared_ptr<stream_socket> s)
+		: peer_connection(ses, s)
 		, m_state(read_protocol_length)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_supports_extensions(false)
@@ -167,10 +163,7 @@ namespace libtorrent
 	void bt_peer_connection::write_dht_port(int listen_port)
 	{
 		INVARIANT_CHECK;
-#ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string()
-			<< " ==> DHT_PORT [ " << listen_port << " ]\n";
-#endif
+
 		buffer::interval packet = allocate_send_buffer(7);
 		detail::write_uint32(3, packet.begin);
 		detail::write_uint8(msg_dht_port, packet.begin);
@@ -190,10 +183,8 @@ namespace libtorrent
 		p.pid = pid();
 		p.ip = remote();
 		
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		p.country[0] = m_country[0];
 		p.country[1] = m_country[1];
-#endif
 
 		p.total_download = statistics().total_payload_download();
 		p.total_upload = statistics().total_payload_upload();
@@ -245,18 +236,6 @@ namespace libtorrent
 		
 		p.client = m_client_version;
 		p.connection_type = peer_info::standard_bittorrent;
-
-		if (peer_info_struct())
-		{
-			p.source = peer_info_struct()->source;
-			p.failcount = peer_info_struct()->failcount;
-		}
-		else
-		{
-			assert(!is_local());
-			p.source = 0;
-			p.failcount = 0;
-		}
 	}
 	
 	bool bt_peer_connection::in_handshake() const
@@ -316,7 +295,9 @@ namespace libtorrent
 		assert(i.begin == i.end);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string() << " ==> HANDSHAKE\n";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::universal_time())
+			<< " ==> HANDSHAKE\n";
 #endif
 		setup_send();
 	}
@@ -365,7 +346,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string() << " <== KEEPALIVE\n";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::universal_time())
+			<< " <== KEEPALIVE\n";
 #endif
 		incoming_keepalive();
 	}
@@ -384,6 +367,14 @@ namespace libtorrent
 		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_choke()) return;
+		}
+#endif
+
 		incoming_choke();
 	}
 
@@ -400,6 +391,14 @@ namespace libtorrent
 			throw protocol_error("'unchoke' message size != 1");
 		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_unchoke()) return;
+		}
+#endif
 
 		incoming_unchoke();
 	}
@@ -418,6 +417,14 @@ namespace libtorrent
 		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_interested()) return;
+		}
+#endif
+
 		incoming_interested();
 	}
 
@@ -434,6 +441,14 @@ namespace libtorrent
 			throw protocol_error("'not interested' message size != 1");
 		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_not_interested()) return;
+		}
+#endif
 
 		incoming_not_interested();
 	}
@@ -456,6 +471,14 @@ namespace libtorrent
 
 		const char* ptr = recv_buffer.begin + 1;
 		int index = detail::read_int32(ptr);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_have(index)) return;
+		}
+#endif
 
 		incoming_have(index);
 	}
@@ -498,6 +521,14 @@ namespace libtorrent
 		for (int i = 0; i < (int)bitfield.size(); ++i)
 			bitfield[i] = (recv_buffer[1 + (i>>3)] & (1 << (7 - (i&7)))) != 0;
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_bitfield(bitfield)) return;
+		}
+#endif
+
 		incoming_bitfield(bitfield);
 	}
 
@@ -523,6 +554,14 @@ namespace libtorrent
 		r.start = detail::read_int32(ptr);
 		r.length = detail::read_int32(ptr);
 		
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_request(r)) return;
+		}
+#endif
+
 		incoming_request(r);
 	}
 
@@ -567,6 +606,14 @@ namespace libtorrent
 		p.start = detail::read_int32(ptr);
 		p.length = packet_size() - 9;
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_piece(p, recv_buffer.begin + 9)) return;
+		}
+#endif
+
 		incoming_piece(p, recv_buffer.begin + 9);
 	}
 
@@ -591,6 +638,14 @@ namespace libtorrent
 		r.piece = detail::read_int32(ptr);
 		r.start = detail::read_int32(ptr);
 		r.length = detail::read_int32(ptr);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_cancel(r)) return;
+		}
+#endif
 
 		incoming_cancel(r);
 	}
@@ -709,7 +764,7 @@ namespace libtorrent
 			{
 				tcp::endpoint adr(remote().address()
 					, (unsigned short)listen_port->integer());
-				t->get_policy().peer_from_tracker(adr, pid(), 0, 0);
+				t->get_policy().peer_from_tracker(adr, pid());
 			}
 		}
 		// there should be a version too
@@ -836,16 +891,16 @@ namespace libtorrent
 		assert(t->valid_metadata());
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string() << " ==> BITFIELD ";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::universal_time())
+			<< " ==> BITFIELD ";
 
-		std::stringstream bitfield_string;
 		for (int i = 0; i < (int)get_bitfield().size(); ++i)
 		{
-			if (bitfield[i]) bitfield_string << "1";
-			else bitfield_string << "0";
+			if (bitfield[i]) (*m_logger) << "1";
+			else (*m_logger) << "0";
 		}
-		bitfield_string << "\n";
-		(*m_logger) << bitfield_string.str();
+		(*m_logger) << "\n";
 #endif
 		const int packet_size = ((int)bitfield.size() + 7) / 8 + 5;
 	
@@ -873,7 +928,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string() << " ==> EXTENSIONS\n";
+		using namespace boost::posix_time;
+		(*m_logger) << to_simple_string(second_clock::universal_time())
+			<< " ==> EXTENSIONS\n";
 #endif
 		assert(m_supports_extensions);
 
@@ -1075,6 +1132,16 @@ namespace libtorrent
 				|| !std::equal(recv_buffer.begin, recv_buffer.end
 					, protocol_string))
 			{
+				const char cmd[] = "version";
+				if (recv_buffer.end - recv_buffer.begin == 7 && std::equal(
+					recv_buffer.begin, recv_buffer.end, cmd))
+				{
+#ifdef TORRENT_VERBOSE_LOGGING
+					(*m_logger) << "sending libtorrent version\n";
+#endif
+					asio::write(*get_socket(), asio::buffer("libtorrent version " LIBTORRENT_VERSION "\n", 27));
+					throw std::runtime_error("closing");
+				}
 #ifdef TORRENT_VERBOSE_LOGGING
 				(*m_logger) << "incorrect protocol name\n";
 #endif
@@ -1220,7 +1287,7 @@ namespace libtorrent
  
 #ifndef TORRENT_DISABLE_DHT
 			if (m_supports_dht_port && m_ses.m_dht)
-				write_dht_port(m_ses.get_dht_settings().service_port);
+				write_dht_port(m_ses.kad_settings().service_port);
 #endif
 
 			m_client_version = identify_client(pid);
@@ -1253,8 +1320,6 @@ namespace libtorrent
 			if (m_supports_extensions) write_extensions();
 #endif
 
-			// consider this a successful connection, reset the failcount
-			if (peer_info_struct()) peer_info_struct()->failcount = 0;
 			m_state = read_packet_size;
 			reset_recv_buffer(4);
 		}

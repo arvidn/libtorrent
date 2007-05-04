@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/filesystem/path.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -49,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/file.hpp"
-#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
@@ -59,6 +59,7 @@ namespace libtorrent
 	using boost::multi_index::ordered_unique;
 	using boost::multi_index::indexed_by;
 	using boost::multi_index::member;
+	namespace pt = boost::posix_time;
 	namespace fs = boost::filesystem;
 
 	struct TORRENT_EXPORT file_pool : boost::noncopyable
@@ -76,11 +77,11 @@ namespace libtorrent
 		{
 			lru_file_entry(boost::shared_ptr<file> const& f)
 				: file_ptr(f)
-				, last_use(time_now()) {}
+				, last_use(pt::second_clock::universal_time()) {}
 			mutable boost::shared_ptr<file> file_ptr;
 			fs::path file_path;
 			void* key;
-			ptime last_use;
+			pt::ptime last_use;
 			file::open_mode mode;
 		};
 
@@ -88,7 +89,7 @@ namespace libtorrent
 			lru_file_entry, indexed_by<
 				ordered_unique<member<lru_file_entry, fs::path
 					, &lru_file_entry::file_path> >
-				, ordered_non_unique<member<lru_file_entry, ptime
+				, ordered_non_unique<member<lru_file_entry, pt::ptime
 					, &lru_file_entry::last_use> >
 				, ordered_non_unique<member<lru_file_entry, void*
 					, &lru_file_entry::key> >

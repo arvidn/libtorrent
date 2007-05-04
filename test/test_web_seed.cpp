@@ -42,14 +42,13 @@ void test_transfer()
 	add_files(torrent_file, full_path.branch_path(), full_path.leaf());
 
 	file_pool fp;
-	boost::scoped_ptr<storage_interface> s(default_storage_constructor(
-		torrent_file, full_path.branch_path(), fp));
+	storage st(torrent_file, full_path.branch_path(), fp);
 	// calculate the hash for all pieces
 	int num = torrent_file.num_pieces();
 	std::vector<char> buf(torrent_file.piece_length());
 	for (int i = 0; i < num; ++i)
 	{
-		s->read(&buf[0], i, 0, torrent_file.piece_size(i));
+		st.read(&buf[0], i, 0, torrent_file.piece_size(i));
 		hasher h(&buf[0], torrent_file.piece_size(i));
 		torrent_file.set_hash(i, h.final());
 	}
@@ -58,7 +57,6 @@ void test_transfer()
 	torrent_file.create_torrent();
 
 	session ses;
-	ses.listen_on(std::make_pair(49000, 50000));
 	remove_all("./tmp1");
 	torrent_handle th = ses.add_torrent(torrent_file, "./tmp1");
 

@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include "libtorrent/alert.hpp"
 
 namespace libtorrent {
@@ -39,7 +37,7 @@ namespace libtorrent {
 	alert::alert(severity_t severity, const std::string& msg)
 		: m_msg(msg)
 		, m_severity(severity)
-		, m_timestamp(time_now())
+		, m_timestamp(boost::posix_time::second_clock::universal_time())
 	{
 	}
 
@@ -47,7 +45,7 @@ namespace libtorrent {
 	{
 	}
 
-	ptime alert::timestamp() const
+	boost::posix_time::ptime alert::timestamp() const
 	{
 		return m_timestamp;
 	}

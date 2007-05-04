@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <vector>
 #include <iostream>
 #include <cctype>
@@ -81,6 +79,11 @@ namespace
 
 namespace libtorrent
 {
+	using boost::posix_time::second_clock;
+	using boost::posix_time::seconds;
+	using boost::posix_time::ptime;
+	using boost::posix_time::time_duration;
+
 	// returns -1 if gzip header is invalid or the header size in bytes
 	int gzip_header(const char* buf, int size)
 	{
@@ -313,8 +316,8 @@ namespace libtorrent
 
 	timeout_handler::timeout_handler(asio::strand& str)
 		: m_strand(str)
-		, m_start_time(time_now())
-		, m_read_time(time_now())
+		, m_start_time(second_clock::universal_time())
+		, m_read_time(second_clock::universal_time())
 		, m_timeout(str.io_service())
 		, m_completion_timeout(0)
 		, m_read_timeout(0)
@@ -325,8 +328,8 @@ namespace libtorrent
 	{
 		m_completion_timeout = completion_timeout;
 		m_read_timeout = read_timeout;
-		m_start_time = time_now();
-		m_read_time = time_now();
+		m_start_time = second_clock::universal_time();
+		m_read_time = second_clock::universal_time();
 
 		m_timeout.expires_at(std::min(
 			m_read_time + seconds(m_read_timeout)
@@ -337,7 +340,7 @@ namespace libtorrent
 
 	void timeout_handler::restart_read_timeout()
 	{
-		m_read_time = time_now();
+		m_read_time = second_clock::universal_time();
 	}
 
 	void timeout_handler::cancel()
@@ -351,14 +354,14 @@ namespace libtorrent
 		if (error) return;
 		if (m_completion_timeout == 0) return;
 		
-		ptime now(time_now());
+		ptime now(second_clock::universal_time());
 		time_duration receive_timeout = now - m_read_time;
 		time_duration completion_timeout = now - m_start_time;
 		
 		if (m_read_timeout
-			< total_seconds(receive_timeout)
+			< receive_timeout.total_seconds()
 			|| m_completion_timeout
-			< total_seconds(completion_timeout))
+			< completion_timeout.total_seconds())
 		{
 			on_timeout();
 			return;
@@ -515,7 +518,6 @@ namespace libtorrent
 					, bind_infc
 					, c
 					, m_settings
-					, m_proxy
 					, auth);
 			}
 			else if (protocol == "udp")

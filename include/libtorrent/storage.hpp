@@ -87,43 +87,39 @@ namespace libtorrent
 		std::string m_msg;
 	};
 
-	struct TORRENT_EXPORT storage_interface
+	class TORRENT_EXPORT storage
 	{
-		// create directories and set file sizes
-		// if allocate_files is true. 
-		// allocate_files is true if allocation mode
-		// is set to full and sparse files are supported
-		virtual void initialize(bool allocate_files) = 0;
+	public:
+		storage(
+			const torrent_info& info
+			, const boost::filesystem::path& path
+			, file_pool& fp);
+
+		void swap(storage&);
 
 		// may throw file_error if storage for slot does not exist
-		virtual size_type read(char* buf, int slot, int offset, int size) = 0;
+		size_type read(char* buf, int slot, int offset, int size);
 
 		// may throw file_error if storage for slot hasn't been allocated
-		virtual void write(const char* buf, int slot, int offset, int size) = 0;
+		void write(const char* buf, int slot, int offset, int size);
 
-		virtual bool move_storage(boost::filesystem::path save_path) = 0;
-
-		virtual bool verify_resume_data(entry& rd, std::string& error) = 0;
-
-		virtual void move_slot(int src_slot, int dst_slot) = 0;
+		bool move_storage(boost::filesystem::path save_path);
 
 		// this will close all open files that are opened for
 		// writing. This is called when a torrent has finished
 		// downloading.
-		virtual void release_files() = 0;
-		virtual ~storage_interface() {}
+		void release_files();
+
+#ifndef NDEBUG
+		// overwrites some slots with the
+		// contents of others
+		void shuffle();
+#endif
+
+	private:
+		class impl;
+		boost::shared_ptr<impl> m_pimpl;
 	};
-
-	typedef storage_interface* (&storage_constructor_type)(
-		torrent_info const&, boost::filesystem::path const&
-		, file_pool&);
-
-	TORRENT_EXPORT storage_interface* default_storage_constructor(torrent_info const& ti
-		, boost::filesystem::path const& path, file_pool& fp);
-
-	// returns true if the filesystem the path relies on supports
-	// sparse files or automatic zero filling of files.
-	TORRENT_EXPORT bool supports_sparse_files(boost::filesystem::path const& p);
 
 	class TORRENT_EXPORT piece_manager : boost::noncopyable
 	{
@@ -132,8 +128,7 @@ namespace libtorrent
 		piece_manager(
 			const torrent_info& info
 			, const boost::filesystem::path& path
-			, file_pool& fp
-			, storage_constructor_type sc);
+			, file_pool& fp);
 
 		~piece_manager();
 
@@ -144,10 +139,8 @@ namespace libtorrent
 
 		void release_files();
 
-		bool verify_resume_data(entry& rd, std::string& error);
-
 		bool is_allocating() const;
-		bool allocate_slots(int num_slots, bool abort_on_disk = false);
+		void allocate_slots(int num_slots);
 		void mark_failed(int index);
 
 		unsigned long piece_crc(
@@ -176,8 +169,6 @@ namespace libtorrent
 		// partially stored) there. -2 is the index
 		// of unassigned pieces and -1 is unallocated
 		void export_piece_map(std::vector<int>& pieces) const;
-
-		bool compact_allocation() const;
 
 	private:
 		class impl;

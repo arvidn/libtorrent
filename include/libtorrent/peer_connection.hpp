@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/weak_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/array.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/optional.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/detail/atomic_count.hpp>
@@ -71,8 +72,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/bandwidth_manager.hpp"
-#include "libtorrent/policy.hpp"
-#include "libtorrent/socket_type.hpp"
 
 // TODO: each time a block is 'taken over'
 // from another peer. That peer must be given
@@ -117,27 +116,17 @@ namespace libtorrent
 		peer_connection(
 			aux::session_impl& ses
 			, boost::weak_ptr<torrent> t
-			, boost::shared_ptr<socket_type> s
+			, boost::shared_ptr<stream_socket> s
 			, tcp::endpoint const& remote
-			, policy::peer* peerinfo);
+			, tcp::endpoint const& proxy);
 
 		// with this constructor we have been contacted and we still don't
 		// know which torrent the connection belongs to
 		peer_connection(
 			aux::session_impl& ses
-			, boost::shared_ptr<socket_type> s
-			, policy::peer* peerinfo);
+			, boost::shared_ptr<stream_socket> s);
 
 		virtual ~peer_connection();
-
-		void set_peer_info(policy::peer* pi)
-		{ m_peer_info = pi; }
-
-		policy::peer* peer_info_struct() const
-		{ return m_peer_info; }
-
-		enum peer_speed_t { slow, medium, fast };
-		peer_speed_t peer_speed();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<peer_plugin>);
@@ -155,9 +144,6 @@ namespace libtorrent
 
 		void set_upload_limit(int limit);
 		void set_download_limit(int limit);
-
-		int upload_limit() const { return m_upload_limit; }
-		int download_limit() const { return m_download_limit; }
 
 		bool prefer_whole_pieces() const
 		{ return m_prefer_whole_pieces; }
@@ -204,8 +190,6 @@ namespace libtorrent
 		bool is_peer_interested() const { return m_peer_interested; }
 		bool has_peer_choked() const { return m_peer_choked; }
 
-		void update_interest();
-
 		// returns the torrent this connection is a part of
 		// may be zero if the connection is an incoming connection
 		// and it hasn't received enough information to determine
@@ -219,8 +203,9 @@ namespace libtorrent
 		// is called once every second by the main loop
 		void second_tick(float tick_interval);
 
-		boost::shared_ptr<socket_type> get_socket() const { return m_socket; }
+		boost::shared_ptr<stream_socket> get_socket() const { return m_socket; }
 		tcp::endpoint const& remote() const { return m_remote; }
+		tcp::endpoint const& proxy() const { return m_remote_proxy; }
 
 		std::vector<bool> const& get_bitfield() const;
 
@@ -324,7 +309,7 @@ namespace libtorrent
 
 #ifndef NDEBUG
 		void check_invariant() const;
-		ptime m_last_choke;
+		boost::posix_time::ptime m_last_choke;
 #endif
 
 		virtual void get_peer_info(peer_info& p) const = 0;
@@ -351,7 +336,6 @@ namespace libtorrent
 		buffer::interval allocate_send_buffer(int size);
 		void setup_send();
 
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		void set_country(char const* c)
 		{
 			assert(strlen(c) == 2);
@@ -359,7 +343,6 @@ namespace libtorrent
 			m_country[1] = c[1];
 		}
 		bool has_country() const { return m_country[0] != 0; }
-#endif
 
 	protected:
 
@@ -449,13 +432,11 @@ namespace libtorrent
 		extension_list_t m_extensions;
 #endif
 
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		// in case the session settings is set
 		// to resolve countries, this is set to
 		// the two character country code this
 		// peer resides in.
 		char m_country[2];
-#endif
 
 	private:
 
@@ -466,7 +447,7 @@ namespace libtorrent
 
 		// the time when we last got a part of a
 		// piece packet from this peer
-		ptime		m_last_piece;
+		boost::posix_time::ptime m_last_piece;
 
 		int m_packet_size;
 		int m_recv_pos;
@@ -493,15 +474,18 @@ namespace libtorrent
 		int m_write_pos;
 
 		// timeouts
-		ptime m_last_receive;
-		ptime m_last_sent;
+		boost::posix_time::ptime m_last_receive;
+		boost::posix_time::ptime m_last_sent;
 
-		boost::shared_ptr<socket_type> m_socket;
+		boost::shared_ptr<stream_socket> m_socket;
 		// this is the peer we're actually talking to
 		// it may not necessarily be the peer we're
 		// connected to, in case we use a proxy
 		tcp::endpoint m_remote;
 		
+		// if we use a proxy, this is the address to it
+		tcp::endpoint m_remote_proxy;
+
 		// this is the torrent this connection is
 		// associated with. If the connection is an
 		// incoming conncetion, this is set to zero
@@ -599,11 +583,11 @@ namespace libtorrent
 
 		// the time when this peer sent us a not_interested message
 		// the last time.
-		ptime m_became_uninterested;
+		boost::posix_time::ptime m_became_uninterested;
 
 		// the time when we sent a not_interested message to
 		// this peer the last time.
-		ptime m_became_uninteresting;
+		boost::posix_time::ptime m_became_uninteresting;
 
 		// this is true until this socket has become
 		// writable for the first time (i.e. the
@@ -652,15 +636,6 @@ namespace libtorrent
 		int m_upload_limit;
 		int m_download_limit;
 
-		// this peer's peer info struct. This may
-		// be 0, in case the connection is incoming
-		// and hasn't been added to a torrent yet.
-		policy::peer* m_peer_info;
-
-		// this is a measurement of how fast the peer
-		// it allows some variance without changing
-		// back and forth between states
-		peer_speed_t m_speed;
 #ifndef NDEBUG
 	public:
 		bool m_in_constructor;

@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <map>
 #include <boost/function.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/cstdint.hpp>
@@ -47,8 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/logging.hpp>
 #include <libtorrent/kademlia/node_entry.hpp>
-
-#include "libtorrent/time.hpp"
 
 namespace libtorrent { namespace dht
 {
@@ -113,7 +112,8 @@ struct msg
 
 struct observer : boost::noncopyable
 {
-	observer(): sent(time_now())
+	observer()
+		: sent(boost::posix_time::microsec_clock::universal_time())
 	{}
 
 	virtual ~observer() {}
@@ -136,7 +136,7 @@ struct observer : boost::noncopyable
 	virtual void abort() = 0;
 
 	udp::endpoint target_addr;
-	ptime sent;
+	boost::posix_time::ptime sent;
 };
 
 class routing_table;
@@ -153,7 +153,7 @@ public:
 
 	// returns true if the node needs a refresh
 	bool incoming(msg const&);
-	time_duration tick();
+	boost::posix_time::time_duration tick();
 
 	void invoke(int message_id, udp::endpoint target
 		, boost::shared_ptr<observer> o);
@@ -191,7 +191,7 @@ private:
 	send_fun m_send;
 	node_id m_our_id;
 	routing_table& m_table;
-	ptime m_timer;
+	boost::posix_time::ptime m_timer;
 	node_id m_random_number;
 	bool m_destructing;
 };

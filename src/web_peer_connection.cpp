@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <vector>
 #include <iostream>
 #include <iomanip>
@@ -50,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/version.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
+using namespace boost::posix_time;
 using boost::bind;
 using boost::shared_ptr;
 using libtorrent::aux::session_impl;
@@ -59,11 +58,11 @@ namespace libtorrent
 	web_peer_connection::web_peer_connection(
 		session_impl& ses
 		, boost::weak_ptr<torrent> t
-		, boost::shared_ptr<socket_type> s
+		, boost::shared_ptr<stream_socket> s
 		, tcp::endpoint const& remote
-		, std::string const& url
-		, policy::peer* peerinfo)
-		: peer_connection(ses, t, s, remote, peerinfo)
+		, tcp::endpoint const& proxy
+		, std::string const& url)
+		: peer_connection(ses, t, s, remote, proxy)
 		, m_url(url)
 		, m_first_request(true)
 	{
@@ -169,9 +168,9 @@ namespace libtorrent
 			size -= request_size;
 		}
 
-		proxy_settings const& ps = m_ses.web_seed_proxy();
-		bool using_proxy = ps.type == proxy_settings::http
-			|| ps.type == proxy_settings::http_pw;
+		bool using_proxy = false;
+		if (!m_ses.settings().proxy_ip.empty())
+			using_proxy = true;
 
 		if (single_file_request)
 		{
@@ -187,10 +186,11 @@ namespace libtorrent
 				request += "\r\nUser-Agent: ";
 				request += m_ses.settings().user_agent;
 			}
-			if (ps.type == proxy_settings::http_pw)
+			if (using_proxy && !m_ses.settings().proxy_login.empty())
 			{
 				request += "\r\nProxy-Authorization: Basic ";
-				request += base64encode(ps.username + ":" + ps.password);
+				request += base64encode(m_ses.settings().proxy_login + ":"
+					+ m_ses.settings().proxy_password);
 			}
 			if (using_proxy)
 			{
@@ -239,10 +239,11 @@ namespace libtorrent
 					request += "\r\nUser-Agent: ";
 					request += m_ses.settings().user_agent;
 				}
-				if (ps.type == proxy_settings::http_pw)
+				if (using_proxy && !m_ses.settings().proxy_login.empty())
 				{
 					request += "\r\nProxy-Authorization: Basic ";
-					request += base64encode(ps.username + ":" + ps.password);
+					request += base64encode(m_ses.settings().proxy_login + ":"
+						+ m_ses.settings().proxy_password);
 				}
 				if (using_proxy)
 				{
@@ -539,11 +540,9 @@ namespace libtorrent
 		p.payload_up_speed = statistics().upload_payload_rate();
 		p.pid = pid();
 		p.ip = remote();
-
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
+		
 		p.country[0] = m_country[0];
 		p.country[1] = m_country[1];
-#endif
 
 		p.total_download = statistics().total_payload_download();
 		p.total_upload = statistics().total_payload_upload();
@@ -594,8 +593,6 @@ namespace libtorrent
 
 		p.client = m_server_string;
 		p.connection_type = peer_info::web_seed;
-		p.source = 0;
-		p.failcount = 0;
 	}
 
 	bool web_peer_connection::in_handshake() const

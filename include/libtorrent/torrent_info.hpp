@@ -41,6 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/gregorian/gregorian_types.hpp>
 #include <boost/optional.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/shared_ptr.hpp>
@@ -55,12 +57,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
-	namespace pt = boost::posix_time;
-	namespace gr = boost::gregorian;
 
 	struct TORRENT_EXPORT file_entry
 	{
@@ -138,11 +137,7 @@ namespace libtorrent
 		int num_pieces() const { assert(m_piece_length > 0); return (int)m_piece_hash.size(); }
 		const sha1_hash& info_hash() const { return m_info_hash; }
 		const std::string& name() const { assert(m_piece_length > 0); return m_name; }
-
-// ------- start deprecation -------
 		void print(std::ostream& os) const;
-// ------- end deprecation -------
-
 		bool is_valid() const { return m_piece_length > 0; }
 
 		bool priv() const { return m_private; }
@@ -159,7 +154,8 @@ namespace libtorrent
 			return m_piece_hash[index];
 		}
 
-		boost::optional<pt::ptime> creation_date() const;
+		boost::optional<boost::posix_time::ptime>
+		creation_date() const;
 
 		const std::string& creator() const
 		{ return m_created_by; }
@@ -176,9 +172,6 @@ namespace libtorrent
 		void add_node(std::pair<std::string, int> const& node);
 
 		void parse_info_section(entry const& e);
-
-		entry extra(char const* key) const
-		{ return m_extra_info[key]; }
 
 	private:
 
@@ -215,7 +208,7 @@ namespace libtorrent
 		// if a creation date is found in the torrent file
 		// this will be set to that, otherwise it'll be
 		// 1970, Jan 1
-		pt::ptime m_creation_date;
+		boost::posix_time::ptime m_creation_date;
 
 		// if a comment is found in the torrent file
 		// this will be set to that comment

@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -49,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/time.hpp"
 #include "libtorrent/config.hpp"
 
 namespace libtorrent
@@ -189,7 +188,7 @@ namespace libtorrent
 		// the number of distributed copies of the file.
 		// note that one copy may be spread out among many peers.
 		//
-		// the integer part tells how many copies
+		// the whole number part tells how many copies
 		//   there are of the rarest piece(s)
 		//
 		// the fractional part tells the fraction of pieces that
@@ -211,8 +210,6 @@ namespace libtorrent
 		std::bitset<max_blocks_per_piece> finished_blocks;
 		tcp::endpoint peer[max_blocks_per_piece];
 		int num_downloads[max_blocks_per_piece];
-		enum state_t { none, slow, medium, fast };
-		state_t piece_state;
 	};
 
 	struct TORRENT_EXPORT torrent_handle
@@ -246,16 +243,9 @@ namespace libtorrent
 		bool is_paused() const;
 		void pause() const;
 		void resume() const;
-
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
+		
 		void resolve_countries(bool r);
 		bool resolve_countries() const;
-#endif
-
-		// all these are deprecated, use piece
-		// priority functions instead
-
-		// ================ start deprecation ============
 
 		// marks the piece with the given index as filtered
 		// it will not be downloaded
@@ -263,21 +253,10 @@ namespace libtorrent
 		void filter_pieces(std::vector<bool> const& pieces) const;
 		bool is_piece_filtered(int index) const;
 		std::vector<bool> filtered_pieces() const;
+
 		// marks the file with the given index as filtered
 		// it will not be downloaded
 		void filter_files(std::vector<bool> const& files) const;
-
-		// ================ end deprecation ============
-
-		// priority must be within the range [0, 7]
-		void piece_priority(int index, int priority) const;
-		int piece_priority(int index) const;
-
-		void prioritize_pieces(std::vector<int> const& pieces) const;
-		std::vector<int> piece_priorities() const;
-
-		void prioritize_files(std::vector<int> const& files) const;
-
 
 		// set the interface to bind outgoing connections
 		// to.
@@ -305,17 +284,14 @@ namespace libtorrent
 		// abort the torrent.
 
 		void set_upload_limit(int limit) const;
-		int upload_limit() const;
 		void set_download_limit(int limit) const;
-		int download_limit() const;
-
 		void set_sequenced_download_threshold(int threshold) const;
 
 		void set_peer_upload_limit(tcp::endpoint ip, int limit) const;
 		void set_peer_download_limit(tcp::endpoint ip, int limit) const;
 
 		// manually connect a peer
-		void connect_peer(tcp::endpoint const& adr, int source = 0) const;
+		void connect_peer(tcp::endpoint const& adr) const;
 
 		// valid ratios are 0 (infinite ratio) or [ 1.0 , inf )
 		// the ratio is uploaded / downloaded. less than 1 is not allowed

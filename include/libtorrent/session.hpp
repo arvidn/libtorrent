@@ -61,7 +61,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/fingerprint.hpp"
 
 #include "libtorrent/resource_request.hpp"
-#include "libtorrent/storage.hpp"
 
 #ifdef _MSC_VER
 #	include <eh.h>
@@ -138,8 +137,7 @@ namespace libtorrent
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
-			, int block_size = 16 * 1024
-			, storage_constructor_type sc = default_storage_constructor);
+			, int block_size = 16 * 1024);
 
 		// TODO: deprecated, this is for backwards compatibility only
 		torrent_handle add_torrent(
@@ -147,11 +145,10 @@ namespace libtorrent
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
-			, int block_size = 16 * 1024
-			, storage_constructor_type sc = default_storage_constructor)
+			, int block_size = 16 * 1024)
 		{
 			return add_torrent(torrent_info(e), save_path, resume_data
-				, compact_mode, block_size, sc);
+				, compact_mode, block_size);
 		}
 
 		torrent_handle add_torrent(
@@ -161,8 +158,7 @@ namespace libtorrent
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
-			, int block_size = 16 * 1024
-			, storage_constructor_type sc = default_storage_constructor);
+			, int block_size = 16 * 1024);
 
 		session_proxy abort() { return session_proxy(m_impl); }
 
@@ -218,19 +214,6 @@ namespace libtorrent
 
 		void set_settings(session_settings const& s);
 		session_settings const& settings();
-
-		void set_peer_proxy(proxy_settings const& s);
-		void set_web_seed_proxy(proxy_settings const& s);
-		void set_tracker_proxy(proxy_settings const& s);
-
-		proxy_settings const& peer_proxy() const;
-		proxy_settings const& web_seed_proxy() const;
-		proxy_settings const& tracker_proxy() const;
-
-#ifndef TORRENT_DISABLE_DHT
-		void set_dht_proxy(proxy_settings const& s);
-		proxy_settings const& dht_proxy() const;
-#endif
 
 		int upload_rate_limit() const;
 		int download_rate_limit() const;

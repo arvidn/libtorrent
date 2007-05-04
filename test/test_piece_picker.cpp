@@ -26,27 +26,25 @@ int test_main()
 		unfinished.push_back(partial);
 		
 		p.files_checked(have, unfinished);
-		TEST_CHECK(p.is_downloading(piece_block(1, 0)));
-		TEST_CHECK(p.is_downloading(piece_block(1, 2)));
 
-		p.set_piece_priority(4, 0);
+		p.mark_as_filtered(4);
 	
-		TEST_CHECK(p.piece_priority(4) == 0);
-		TEST_CHECK(p.piece_priority(3) == 1);
+		TEST_CHECK(p.is_filtered(4) == true);
+		TEST_CHECK(p.is_filtered(3) == false);
 		
-		p.set_piece_priority(3, 0);
-		TEST_CHECK(p.piece_priority(3) == 0);
-		p.set_piece_priority(3, 1);
-		TEST_CHECK(p.piece_priority(3) == 1);
+		p.mark_as_filtered(3);
+		TEST_CHECK(p.is_filtered(3) == true);
+		p.mark_as_unfiltered(3);
+		TEST_CHECK(p.is_filtered(3) == false);
 	
 		TEST_CHECK(p.num_filtered() == 1);
 		TEST_CHECK(p.num_have_filtered() == 0);
 
-		std::vector<int> piece_priorities;
-		p.piece_priorities(piece_priorities);
-		int expected1[] = {1, 1, 1, 1, 0, 1};
-		TEST_CHECK(std::equal(piece_priorities.begin()
-			, piece_priorities.end(), expected1));
+		std::vector<bool> filtered_pieces;
+		p.filtered_pieces(filtered_pieces);
+		bool expected1[] = {false, false, false, false, true, false};
+		TEST_CHECK(std::equal(filtered_pieces.begin()
+			, filtered_pieces.end(), expected1));
 
 		std::vector<bool> peer1(num_pieces, false);
 		std::vector<bool> peer2(num_pieces, false);
@@ -88,31 +86,35 @@ int test_main()
 
 		std::vector<piece_block> picked;
 		picked.clear();
-		p.pick_pieces(peer1, picked, 1, false, tcp::endpoint(), piece_picker::fast);
+		p.pick_pieces(peer1, picked, 1, false, tcp::endpoint());
 		TEST_CHECK(picked.size() == 1);
 		TEST_CHECK(picked.front().piece_index == 2);
 
 		// now pick a piece from peer2. The block is supposed to be
 		// from piece 3, since it is the rarest piece that peer has.
 		picked.clear();
-		p.pick_pieces(peer2, picked, 1, false, tcp::endpoint(), piece_picker::fast);
+		p.pick_pieces(peer2, picked, 1, false, tcp::endpoint());
 		TEST_CHECK(picked.size() == 1);
 		TEST_CHECK(picked.front().piece_index == 3);
 
 		// same thing for peer3.
 
 		picked.clear();
-		p.pick_pieces(peer3, picked, 1, false, tcp::endpoint(), piece_picker::fast);
+		p.pick_pieces(peer3, picked, 1, false, tcp::endpoint());
 		TEST_CHECK(picked.size() == 1);
 		TEST_CHECK(picked.front().piece_index == 5);
 
 		// now, if all peers would have piece 1 (the piece we have partially)
 		// it should be prioritized over picking a completely new piece.
+		peer1[1] = true;
+		peer2[1] = true;
 		peer3[1] = true;
+		p.inc_refcount(1);
+		p.inc_refcount(1);
 		p.inc_refcount(1);
 		
 		picked.clear();
-		p.pick_pieces(peer3, picked, 1, false, tcp::endpoint(), piece_picker::fast);
+		p.pick_pieces(peer3, picked, 1, false, tcp::endpoint());
 		TEST_CHECK(picked.size() == 1);
 		TEST_CHECK(picked.front().piece_index == 1);
 		// and the block picked should not be 0 or 2
@@ -136,12 +138,9 @@ int test_main()
 
 		// we have block 0 and 2 already, so we can't mark
 		// them as begin downloaded. 
-		p.mark_as_downloading(piece_block(1, 1), tcp::endpoint(
-			address::from_string("1.1.1.1"), 0), piece_picker::fast);
-		p.mark_as_downloading(piece_block(1, 3), tcp::endpoint(
-			address::from_string("1.1.1.1"), 0), piece_picker::fast);
-		p.mark_as_downloading(piece_block(2, 0), tcp::endpoint(
-			address::from_string("1.1.1.1"), 0), piece_picker::fast);
+		p.mark_as_downloading(piece_block(1, 1), tcp::endpoint(address::from_string("1.1.1.1"), 0));
+		p.mark_as_downloading(piece_block(1, 3), tcp::endpoint(address::from_string("1.1.1.1"), 0));
+		p.mark_as_downloading(piece_block(2, 0), tcp::endpoint(address::from_string("1.1.1.1"), 0));
 
 		std::vector<piece_picker::downloading_piece> const& downloads = p.get_download_queue();
 		TEST_CHECK(downloads.size() == 2);
@@ -169,7 +168,7 @@ int test_main()
 		TEST_CHECK(!p.is_downloading(piece_block(2, 1)));
 
 		picked.clear();
-		p.pick_pieces(peer1, picked, 1, false, tcp::endpoint(), piece_picker::fast);
+		p.pick_pieces(peer1, picked, 1, false, tcp::endpoint());
 		TEST_CHECK(picked.size() == 2);
 
 		piece_block expected3[] = { piece_block(2, 0), piece_block(2, 1) };
@@ -182,7 +181,7 @@ int test_main()
 		// partially selected)
 
 		picked.clear();
-		p.pick_pieces(peer1, picked, 1, true, tcp::endpoint(), piece_picker::fast);
+		p.pick_pieces(peer1, picked, 1, true, tcp::endpoint());
 
 		// it will pick 4 blocks, since we said we
 		// wanted whole pieces.
@@ -200,9 +199,9 @@ int test_main()
 		// to make sure it can still fall back on partial pieces
 
 		picked.clear();
-		p.pick_pieces(peer1, picked, 100, true, tcp::endpoint(), piece_picker::fast);
+		p.pick_pieces(peer1, picked, 100, true, tcp::endpoint());
 
-		TEST_CHECK(picked.size() == 12);
+		TEST_CHECK(picked.size() == 14);
 	
 		piece_block expected5[] =
 		{
@@ -212,6 +211,7 @@ int test_main()
 			, piece_block(5, 2), piece_block(5, 3)
 			, piece_block(2, 0), piece_block(2, 1)
 			, piece_block(2, 2), piece_block(2, 3)
+			, piece_block(1, 1), piece_block(1, 3)
 		};
 	
 		TEST_CHECK(std::equal(picked.begin()
@@ -221,8 +221,7 @@ int test_main()
 		// to make sure it can still fall back on partial pieces
 
 		picked.clear();
-		p.pick_pieces(peer1, picked, 100, true
-			, tcp::endpoint(address::from_string("1.1.1.1"), 0), piece_picker::fast);
+		p.pick_pieces(peer1, picked, 100, true, tcp::endpoint(address::from_string("1.1.1.1"), 0));
 
 		TEST_CHECK(picked.size() == 11);
 	

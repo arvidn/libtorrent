@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/weak_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/array.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/optional.hpp>
 #include <boost/cstdint.hpp>
 
@@ -95,10 +96,10 @@ namespace libtorrent
 		web_peer_connection(
 			aux::session_impl& ses
 			, boost::weak_ptr<torrent> t
-			, boost::shared_ptr<socket_type> s
+			, boost::shared_ptr<stream_socket> s
 			, tcp::endpoint const& remote
-			, std::string const& url
-			, policy::peer* peerinfo);
+			, tcp::endpoint const& proxy
+			, std::string const& url);
 
 		~web_peer_connection();
 

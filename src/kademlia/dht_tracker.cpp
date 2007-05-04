@@ -30,13 +30,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <fstream>
 #include <set>
 #include <numeric>
 #include <stdexcept>
 #include <boost/bind.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/ref.hpp>
 #include <boost/optional.hpp>
 #include <boost/lexical_cast.hpp>
@@ -52,6 +52,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/version.hpp"
 
+using boost::posix_time::ptime;
+using boost::posix_time::time_duration;
+using boost::posix_time::second_clock;
+using boost::posix_time::microsec_clock;
+using boost::posix_time::seconds;
+using boost::posix_time::minutes;
+using boost::posix_time::hours;
+using boost::posix_time::milliseconds;
 using boost::ref;
 using boost::lexical_cast;
 using libtorrent::dht::node_impl;
@@ -147,7 +155,7 @@ namespace libtorrent { namespace dht
 		, m_dht(bind(&dht_tracker::send_packet, this, _1), settings
 			, read_id(bootstrap))
 		, m_buffer(0)
-		, m_last_refresh(time_now() - hours(1))
+		, m_last_refresh(second_clock::universal_time() - hours(1))
 		, m_timer(ios)
 		, m_connection_timer(ios)
 		, m_refresh_timer(ios)
@@ -296,7 +304,9 @@ namespace libtorrent { namespace dht
 		if (first)
 		{
 			first = false;
-			pc << "\n\n *****   starting log at " << time_now_string() << "   *****\n\n"
+			using boost::posix_time::to_simple_string;
+			pc << "\n\n *****   starting log at " << to_simple_string(
+				second_clock::universal_time()) << "   *****\n\n"
 				<< "minute:active nodes:passive nodes"
 				":ping replies sent:ping queries recvd:ping"
 				":ping replies sent:ping queries recvd:ping"

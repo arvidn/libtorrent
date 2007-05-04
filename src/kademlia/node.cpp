@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <utility>
 #include <boost/bind.hpp>
 #include <boost/optional.hpp>
@@ -52,6 +50,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/find_data.hpp"
 
 using boost::bind;
+using boost::posix_time::second_clock;
+using boost::posix_time::seconds;
+using boost::posix_time::minutes;
+using boost::posix_time::ptime;
+using boost::posix_time::time_duration;
 
 namespace libtorrent { namespace dht
 {
@@ -96,7 +99,7 @@ void purge_peers(std::set<peer_entry>& peers)
 		  , end(peers.end()); i != end;)
 	{
 		// the peer has timed out
-		if (i->added + minutes(int(announce_interval * 1.5f)) < time_now())
+		if (i->added + minutes(int(announce_interval * 1.5f)) < second_clock::universal_time())
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(node) << "peer timed out at: " << i->addr.address();
@@ -117,7 +120,7 @@ node_impl::node_impl(boost::function<void(msg const&)> const& f
 	, m_table(m_id, 8, settings)
 	, m_rpc(bind(&node_impl::incoming_request, this, _1)
 		, m_id, m_table, f)
-	, m_last_tracker_tick(time_now())
+	, m_last_tracker_tick(boost::posix_time::second_clock::universal_time())
 {
 	m_secret[0] = std::rand();
 	m_secret[1] = std::rand();
@@ -374,7 +377,7 @@ void node_impl::announce(sha1_hash const& info_hash, int listen_port
 time_duration node_impl::refresh_timeout()
 {
 	int refresh = -1;
-	ptime now = time_now();
+	ptime now = second_clock::universal_time();
 	ptime next = now + minutes(15);
 	try
 	{
@@ -409,7 +412,7 @@ time_duration node_impl::connection_timeout()
 	time_duration d = m_rpc.tick();
 	try
 	{
-		ptime now(time_now());
+		ptime now(second_clock::universal_time());
 		if (now - m_last_tracker_tick < minutes(10)) return d;
 		m_last_tracker_tick = now;
 		
@@ -452,7 +455,7 @@ void node_impl::on_announce(msg const& m, msg& reply)
 	torrent_entry& v = m_map[m.info_hash];
 	peer_entry e;
 	e.addr = tcp::endpoint(m.addr.address(), m.addr.port());
-	e.added = time_now();
+	e.added = second_clock::universal_time();
 	std::set<peer_entry>::iterator i = v.peers.find(e);
 	if (i != v.peers.end()) v.peers.erase(i++);
 	v.peers.insert(i, e);

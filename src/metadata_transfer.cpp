@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -40,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/convenience.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -56,6 +55,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/metadata_transfer.hpp"
+
+using boost::posix_time::second_clock;
 
 namespace libtorrent { namespace
 {
@@ -242,8 +243,12 @@ namespace libtorrent { namespace
 			: m_waiting_metadata_request(false)
 			, m_message_index(0)
 			, m_metadata_progress(0)
-			, m_no_metadata(min_time())
-			, m_metadata_request(min_time())
+			, m_no_metadata(
+				boost::gregorian::date(1970, boost::date_time::Jan, 1)
+				, boost::posix_time::seconds(0))
+			, m_metadata_request(
+				boost::gregorian::date(1970, boost::date_time::Jan, 1)
+				, boost::posix_time::seconds(0))
 			, m_torrent(t)
 			, m_pc(pc)
 			, m_tp(tp)
@@ -406,7 +411,7 @@ namespace libtorrent { namespace
 				}
 				break;
 			case 2: // have no data
-				m_no_metadata = time_now();
+				m_no_metadata = second_clock::universal_time();
 				if (m_waiting_metadata_request)
 					m_tp.cancel_metadata_request(m_last_metadata_request);
 				m_waiting_metadata_request = false;
@@ -432,13 +437,14 @@ namespace libtorrent { namespace
 				m_last_metadata_request = m_tp.metadata_request();
 				write_metadata_request(m_last_metadata_request);
 				m_waiting_metadata_request = true;
-				m_metadata_request = time_now();
+				m_metadata_request = second_clock::universal_time();
 			}
 		}
 
 		bool has_metadata() const
 		{
-			return time_now() - m_no_metadata > minutes(5);
+			using namespace boost::posix_time;
+			return second_clock::universal_time() - m_no_metadata > minutes(5);
 		}
 
 	private:
@@ -461,11 +467,11 @@ namespace libtorrent { namespace
 
 		// this is set to the current time each time we get a
 		// "I don't have metadata" message.
-		ptime m_no_metadata;
+		boost::posix_time::ptime m_no_metadata;
 
 		// this is set to the time when we last sent
 		// a request for metadata to this peer
-		ptime m_metadata_request;
+		boost::posix_time::ptime m_metadata_request;
 
 		// if we're waiting for a metadata request
 		// this was the request we sent
@@ -479,8 +485,6 @@ namespace libtorrent { namespace
 	boost::shared_ptr<peer_plugin> metadata_plugin::new_connection(
 		peer_connection* pc)
 	{
-		bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(pc);
-		if (!c) return boost::shared_ptr<peer_plugin>();
 		return boost::shared_ptr<peer_plugin>(new metadata_peer_plugin(m_torrent, *pc, *this));
 	}
 

@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #ifdef _WIN32
 // windows part
 #include "libtorrent/utf8.hpp"
@@ -245,17 +243,6 @@ namespace libtorrent
 			return ret;
 		}
 
-		void set_size(size_type s)
-		{
-			size_type pos = tell();
-			seek(1, 0);
-			char dummy = 0;
-			read(&dummy, 1);
-			seek(1, 0);
-			write(&dummy, 1);
-			seek(pos, 1);
-		}
-
 		size_type seek(size_type offset, int m)
 		{
 			assert(m_open_mode);
@@ -327,11 +314,6 @@ namespace libtorrent
 	size_type file::read(char* buf, size_type num_bytes)
 	{
 		return m_impl->read(buf, num_bytes);
-	}
-
-	void file::set_size(size_type s)
-	{
-		m_impl->set_size(s);
 	}
 
 	size_type file::seek(size_type pos, file::seek_mode m)

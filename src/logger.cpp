@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -40,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/convenience.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -71,7 +70,9 @@ namespace libtorrent { namespace
 
 		void log_timestamp()
 		{
-			m_file << time_now_string() << ": ";
+			using namespace boost::posix_time;
+			std::string now(to_simple_string(second_clock::universal_time()));
+			m_file << now << ": ";
 		}
 
 		// can add entries to the extension handshake

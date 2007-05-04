@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <ctime>
 #include <iostream>
 #include <fstream>
@@ -75,6 +73,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 
+using namespace boost::posix_time;
 using boost::shared_ptr;
 using boost::weak_ptr;
 using boost::bind;
@@ -88,11 +87,9 @@ namespace libtorrent
 	{
 		filesystem_init::filesystem_init()
 		{
-#if BOOST_VERSION < 103400
 			using namespace boost::filesystem;
 			if (path::default_name_check_writable())
 				path::default_name_check(no_check);
-#endif
 		}
 	}
 
@@ -170,11 +167,10 @@ namespace libtorrent
 		, boost::filesystem::path const& save_path
 		, entry const& resume_data
 		, bool compact_mode
-		, int block_size
-		, storage_constructor_type sc)
+		, int block_size)
 	{
 		return m_impl->add_torrent(ti, save_path, resume_data
-			, compact_mode, block_size, sc);
+			, compact_mode, block_size);
 	}
 
 	torrent_handle session::add_torrent(
@@ -184,11 +180,10 @@ namespace libtorrent
 		, boost::filesystem::path const& save_path
 		, entry const& e
 		, bool compact_mode
-		, int block_size
-		, storage_constructor_type sc)
+		, int block_size)
 	{
 		return m_impl->add_torrent(tracker_url, info_hash, name, save_path, e
-			, compact_mode, block_size, sc);
+			, compact_mode, block_size);
 	}
 
 	void session::remove_torrent(const torrent_handle& h)
@@ -261,49 +256,6 @@ namespace libtorrent
 	{
 		return m_impl->settings();
 	}
-
-	void session::set_peer_proxy(proxy_settings const& s)
-	{
-		m_impl->set_peer_proxy(s);
-	}
-
-	void session::set_web_seed_proxy(proxy_settings const& s)
-	{
-		m_impl->set_web_seed_proxy(s);
-	}
-
-	void session::set_tracker_proxy(proxy_settings const& s)
-	{
-		m_impl->set_tracker_proxy(s);
-	}
-
-	proxy_settings const& session::peer_proxy() const
-	{
-		return m_impl->peer_proxy();
-	}
-
-	proxy_settings const& session::web_seed_proxy() const
-	{
-		return m_impl->web_seed_proxy();
-	}
-
-	proxy_settings const& session::tracker_proxy() const
-	{
-		return m_impl->tracker_proxy();
-	}
-
-
-#ifndef TORRENT_DISABLE_DHT
-	void session::set_dht_proxy(proxy_settings const& s)
-	{
-		m_impl->set_dht_proxy(s);
-	}
-
-	proxy_settings const& session::dht_proxy() const
-	{
-		return m_impl->dht_proxy();
-	}
-#endif
 
 	void session::set_max_uploads(int limit)
 	{

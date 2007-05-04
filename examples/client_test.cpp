@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/exception.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/bind.hpp>
 #include <boost/program_options.hpp>
 #include <boost/regex.hpp>
@@ -161,16 +162,6 @@ std::string esc(char const* code)
 #endif
 }
 
-std::string to_string(int v, int width)
-{
-	std::stringstream s;
-	s.flags(std::ios_base::right);
-	s.width(width);
-	s.fill('0');
-	s << v;
-	return s.str();
-}
-
 std::string to_string(float v, int width, int precision = 3)
 {
 	std::stringstream s;
@@ -244,7 +235,8 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 {
 	using namespace libtorrent;
 	std::vector<peer_info>::const_iterator i = std::find_if(peers.begin()
-		, peers.end(), bind(&peer_info::ip, _1) == addr);
+		, peers.end(), boost::bind(std::equal_to<libtorrent::tcp::endpoint>()
+		, bind(&peer_info::ip, _1), addr));
 	if (i == peers.end()) return -1;
 
 	return i - peers.begin();
@@ -253,14 +245,13 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
-	out << " down    (total)   up      (total)  q  r  flags  source fail block-progress country client \n";
+#ifndef ANSI_TERMINAL_COLORS
+	out << " down    (total)   up      (total)  q  r  flags  block progress country client \n";
+#endif
 
 	for (std::vector<peer_info>::const_iterator i = peers.begin();
 		i != peers.end(); ++i)
 	{
-		if (i->flags & (peer_info::handshake | peer_info::connecting | peer_info::queued))
-			continue;
-
 		out.fill(' ');
 		out.width(2);
 		out << esc("32") << (i->down_speed > 0 ? add_suffix(i->down_speed) + "/s " : "         ")
@@ -274,15 +265,7 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			<< ((i->flags & peer_info::remote_interested)?'i':'.')
 			<< ((i->flags & peer_info::remote_choked)?'c':'.')
 			<< ((i->flags & peer_info::supports_extensions)?'e':'.')
-			<< ((i->flags & peer_info::local_connection)?'l':'r') << " "
-			<< ((i->source & peer_info::tracker)?"T":"_")
-			<< ((i->source & peer_info::pex)?"P":"_")
-			<< ((i->source & peer_info::dht)?"D":"_")
-			<< ((i->source & peer_info::lsd)?"L":"_")
-			<< ((i->source & peer_info::resume_data)?"R":"_") << "  ";
-		out.width(2);
-		out.fill(' ');
-		out << (i->failcount) << "   ";
+			<< ((i->flags & peer_info::local_connection)?'l':'r') << " ";
 
 		if (i->downloading_piece_index >= 0)
 		{
@@ -324,9 +307,13 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 
 typedef std::multimap<std::string, libtorrent::torrent_handle> handles_t;
 
+using boost::posix_time::ptime;
+using boost::posix_time::second_clock;
+using boost::posix_time::seconds;
 using boost::bind;
 using boost::filesystem::path;
 using boost::filesystem::exists;
+using boost::filesystem::no_check;
 using boost::filesystem::directory_iterator;
 using boost::filesystem::extension;
 
@@ -441,10 +428,7 @@ void scan_dir(path const& dir_path
 
 int main(int ac, char* av[])
 {
-#if BOOST_VERSION < 103400
-	using boost::filesystem::no_check;
 	path::default_name_check(no_check);
-#endif
 
 	int listen_port;
 	float preferred_ratio;
@@ -460,7 +444,6 @@ int main(int ac, char* av[])
 	std::string bind_to_interface;
 	std::string proxy;
 	std::string proxy_login;
-	std::string proxy_type;
 	int poll_interval;
 
 	namespace po = boost::program_options;
@@ -514,8 +497,6 @@ int main(int ac, char* av[])
 		("proxy-login,n", po::value<std::string>(&proxy_login)->default_value("")
 			, "Sets the username and password used to authenticate with the http "
 			"proxy. The string should be given in the form: <username>:<password>")
-		("proxy-type", po::value<std::string>(&proxy_type)->default_value("socks5")
-			, "Sets the type of proxy to use [socks5 | http] ")
 			;
 
 		po::positional_options_description p;
@@ -559,21 +540,16 @@ int main(int ac, char* av[])
 			input = vm["input-file"].as< std::vector<std::string> >();
 
 		session_settings settings;
-		proxy_settings ps;
 
 		if (!proxy.empty())
 		{
 			try
 			{
 				std::size_t i = proxy.find(':');
-				ps.hostname = proxy.substr(0, i);
-				if (i == std::string::npos) ps.port = 8080;
-				else ps.port = boost::lexical_cast<int>(
+				settings.proxy_ip = proxy.substr(0, i);
+				if (i == std::string::npos) settings.proxy_port = 8080;
+				else settings.proxy_port = boost::lexical_cast<int>(
 					proxy.substr(i + 1));
-				if (proxy_type == "socks5")
-					ps.type = proxy_settings::socks5;
-				else
-					ps.type = proxy_settings::http;
 			}
 			catch (std::exception&)
 			{
@@ -591,12 +567,8 @@ int main(int ac, char* av[])
 					<< proxy_login << std::endl;
 					return 1;
 				}
-				ps.username = proxy_login.substr(0, i);
-				ps.password = proxy_login.substr(i + 1);
-				if (proxy_type == "socks5")
-					ps.type = proxy_settings::socks5_pw;
-				else
-					ps.type = proxy_settings::http_pw;
+				settings.proxy_login = proxy_login.substr(0, i);
+				settings.proxy_password = proxy_login.substr(i + 1);
 			}
 		}
 
@@ -604,7 +576,7 @@ int main(int ac, char* av[])
 
 		std::deque<std::string> events;
 
-		ptime next_dir_scan = time_now();
+		ptime next_dir_scan = second_clock::universal_time();
 
 		// the string is the filename of the .torrent file, but only if
 		// it was added through the directory monitor. It is used to
@@ -615,29 +587,12 @@ int main(int ac, char* av[])
 		ses.add_extension(&create_metadata_plugin);
 		ses.add_extension(&create_ut_pex_plugin);
 
-		ses.set_max_uploads(upload_slots_limit);
-		ses.set_max_half_open_connections(half_open_limit);
-		ses.set_download_rate_limit(download_limit);
-		ses.set_upload_rate_limit(upload_limit);
-		ses.listen_on(std::make_pair(listen_port, listen_port + 10)
-			, bind_to_interface.c_str());
-		ses.set_settings(settings);
-		ses.set_tracker_proxy(ps);
-		ses.set_peer_proxy(ps);
-		ses.set_web_seed_proxy(ps);
-
-		if (log_level == "debug")
-			ses.set_severity_level(alert::debug);
-		else if (log_level == "warning")
-			ses.set_severity_level(alert::warning);
-		else if (log_level == "fatal")
-			ses.set_severity_level(alert::fatal);
-		else
-			ses.set_severity_level(alert::info);
-
 #ifndef TORRENT_DISABLE_DHT
 		settings.use_dht_as_fallback = false;
 
+		dht_settings s;
+		s.service_port = listen_port;
+		ses.set_dht_settings(s);
 		boost::filesystem::ifstream dht_state_file(".dht_state"
 			, std::ios_base::binary);
 		dht_state_file.unsetf(std::ios_base::skipws);
@@ -657,6 +612,22 @@ int main(int ac, char* av[])
 		ses.add_dht_router(std::make_pair(std::string("router.bitcomet.com")
 			, 6881));
 #endif
+
+		ses.set_max_uploads(upload_slots_limit);
+		ses.set_max_half_open_connections(half_open_limit);
+		ses.set_download_rate_limit(download_limit);
+		ses.set_upload_rate_limit(upload_limit);
+		ses.listen_on(std::make_pair(listen_port, listen_port + 10)
+			, bind_to_interface.c_str());
+		ses.set_settings(settings);
+		if (log_level == "debug")
+			ses.set_severity_level(alert::debug);
+		else if (log_level == "warning")
+			ses.set_severity_level(alert::warning);
+		else if (log_level == "fatal")
+			ses.set_severity_level(alert::fatal);
+		else
+			ses.set_severity_level(alert::info);
 
 		// look for ipfilter.dat
 		// poor man's parser
@@ -690,16 +661,15 @@ int main(int ac, char* av[])
 				if (line[0] == '#') continue;
 				int a, b, c, d;
 				char dummy;
-				std::stringstream ln(line);
-				ln >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
+				in >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
 				address_v4 start((a << 24) + (b << 16) + (c << 8) + d);
-				ln >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
+				in >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
 				address_v4 last((a << 24) + (b << 16) + (c << 8) + d);
 				int flags;
-				ln >> flags;
+				in >> flags;
 				if (flags <= 127) flags = ip_filter::blocked;
 				else flags = 0;
-				if (ln.fail()) break;
+				if (in.fail()) break;
 				filter.add_rule(start, last, flags);
 			}
 			ses.set_ip_filter(filter);
@@ -807,16 +777,9 @@ int main(int ac, char* av[])
 			// loop through the alert queue to see if anything has happened.
 			std::auto_ptr<alert> a;
 			a = ses.pop_alert();
-			std::string now = time_now_string();
+			std::string now = to_simple_string(second_clock::universal_time());
 			while (a.get())
 			{
-				std::stringstream event_string;
-				if (a->severity() == alert::fatal)
-					event_string << esc("31"); // red
-				else if (a->severity() == alert::warning)
-					event_string << esc("33"); // yellow
-
-				event_string << now << ": ";
 				if (torrent_finished_alert* p = dynamic_cast<torrent_finished_alert*>(a.get()))
 				{
 					p->handle.set_max_connections(60);
@@ -830,41 +793,38 @@ int main(int ac, char* av[])
 					out.unsetf(std::ios_base::skipws);
 					bencode(std::ostream_iterator<char>(out), data);
 
-					event_string << p->handle.get_torrent_info().name() << ": "
-						<< a->msg();
+					events.push_back(now + ": "
+						+ p->handle.get_torrent_info().name() + ": " + a->msg());
 				}
 				else if (peer_error_alert* p = dynamic_cast<peer_error_alert*>(a.get()))
 				{
-					event_string << identify_client(p->pid) << ": " << a->msg();
+					events.push_back(now + ": " + identify_client(p->pid)
+						+ ": " + a->msg());
 				}
 				else if (invalid_request_alert* p = dynamic_cast<invalid_request_alert*>(a.get()))
 				{
-					event_string << identify_client(p->pid) << ": " << a->msg();
+					events.push_back(now + ": " + identify_client(p->pid)
+						+ ": " + a->msg());
 				}
 				else if (tracker_warning_alert* p = dynamic_cast<tracker_warning_alert*>(a.get()))
 				{
-					event_string << "tracker message: " << p->msg();
+					events.push_back(now + ": tracker message: " + p->msg());
 				}
 				else if (tracker_reply_alert* p = dynamic_cast<tracker_reply_alert*>(a.get()))
 				{
-					event_string << p->msg() << " (" << p->num_peers << ")";
+					events.push_back(now + ": " + p->msg() + " ("
+						+ boost::lexical_cast<std::string>(p->num_peers) + ")");
 				}
 				else if (url_seed_alert* p = dynamic_cast<url_seed_alert*>(a.get()))
 				{
-					event_string << "web seed '" << p->url << "': " << p->msg();
-				}
-				else if (peer_blocked_alert* p = dynamic_cast<peer_blocked_alert*>(a.get()))
-				{
-					event_string << "(" << p->ip << ") " << p->msg();
+					events.push_back(now + ": web seed '" + p->url + "': "+ p->msg());
 				}
 				else
 				{
-					event_string << a->msg();
+					events.push_back(now + ": " + a->msg());
 				}
-				event_string << esc("0");
-				events.push_back(event_string.str());
 
-				if (events.size() >= 20) events.pop_front();
+				if (events.size() >= 10) events.pop_front();
 				a = ses.pop_alert();
 			}
 
@@ -951,10 +911,8 @@ int main(int ac, char* av[])
 				if (s.state != torrent_status::seeding)
 				{
 					boost::posix_time::time_duration t = s.next_announce;
-					out << "  next announce: " << esc("37")
-						<< to_string(t.hours(),2) << ":"
-						<< to_string(t.minutes(),2) << ":"
-						<< to_string(t.seconds(), 2) << esc("0") << " ";
+					out << "  next announce: " << esc("37") <<
+						boost::posix_time::to_simple_string(t) << esc("0") << " ";
 					out << "tracker: " << s.current_tracker << "\n";
 				}
 
@@ -994,8 +952,7 @@ int main(int ac, char* av[])
 							else out << "-";
 #endif
 						}
-						char* piece_state[4] = {"", "slow", "medium", "fast"};
-						out << "] " << piece_state[i->piece_state] << "\n";
+						out << "]\n";
 					}
 
 					out << "___________________________________\n";
@@ -1011,10 +968,10 @@ int main(int ac, char* av[])
 					for (int i = 0; i < info.num_files(); ++i)
 					{
 						if (file_progress[i] == 1.f)
-							out << progress_bar(file_progress[i], 40, "32") << " "
+							out << progress_bar(file_progress[i], 20, "32") << " "
 								<< info.file_at(i).path.leaf() << "\n";
 						else
-							out << progress_bar(file_progress[i], 40, "33") << " "
+							out << progress_bar(file_progress[i], 20, "33") << " "
 								<< info.file_at(i).path.leaf() << "\n";
 					}
 
@@ -1036,11 +993,11 @@ int main(int ac, char* av[])
 			puts(out.str().c_str());
 
 			if (!monitor_dir.empty()
-				&& next_dir_scan < time_now())
+				&& next_dir_scan < second_clock::universal_time())
 			{
 				scan_dir(monitor_dir, ses, handles, preferred_ratio
 					, compact_allocation_mode, save_path);
-				next_dir_scan = time_now() + seconds(poll_interval);
+				next_dir_scan = second_clock::universal_time() + seconds(poll_interval);
 			}
 		}
 

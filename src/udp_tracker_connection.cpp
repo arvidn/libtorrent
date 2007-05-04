@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <vector>
 #include <iostream>
 #include <cctype>
@@ -67,6 +65,7 @@ namespace
 	};
 }
 
+using namespace boost::posix_time;
 using boost::bind;
 using boost::lexical_cast;
 

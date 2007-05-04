@@ -1,10 +1,9 @@
-// Copyright Daniel Wallin, Arvid Norberg 2006. Use, modification and distribution is
+// Copyright Daniel Wallin 2006. Use, modification and distribution is
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include <libtorrent/session.hpp>
 #include <libtorrent/torrent.hpp>
-#include <libtorrent/storage.hpp>
 #include <boost/python.hpp>
 #include "gil.hpp"
 
@@ -72,19 +71,10 @@ namespace
 
   void add_extension(session& s, object const& e)
   {
-      allow_threading_guard guard;
+//      allow_threading_guard guard;
       s.add_extension(invoke_extension_factory(e));
   }
 
-  torrent_handle add_torrent(session& s, torrent_info const& ti
-    , boost::filesystem::path const& save, entry const& resume
-    , bool compact, int block_size)
-  {
-    allow_threading_guard guard;
-    return s.add_torrent(ti, save, resume, compact, block_size
-      , default_storage_constructor);
-  }
-  
 } // namespace unnamed
 
 void bind_session()
@@ -146,6 +136,14 @@ void bind_session()
 #endif
         ;
 
+    torrent_handle (session::*add_torrent0)(
+        torrent_info const&
+      , boost::filesystem::path const&
+      , entry const&
+      , bool
+      , int
+    ) = &session::add_torrent;
+
     class_<session, boost::noncopyable>("session", session_doc, no_init)
         .def(
             init<fingerprint>(arg("fingerprint")=fingerprint("LT",0,1,0,0), session_init_doc)
@@ -164,7 +162,7 @@ void bind_session()
         .def("dht_state", allow_threads(&session::dht_state), session_dht_state_doc)
 #endif
         .def(
-            "add_torrent", &add_torrent
+            "add_torrent", allow_threads(add_torrent0)
           , (
                 arg("torrent_info"), "save_path", arg("resume_data") = entry()
               , arg("compact_mode") = true, arg("block_size") = 16 * 1024
@@ -199,15 +197,7 @@ void bind_session()
         )
         .def("pop_alert", allow_threads(&session::pop_alert), session_pop_alert_doc)
         .def("add_extension", &add_extension)
-        .def("set_peer_proxy", allow_threads(&session::set_peer_proxy))
-        .def("set_tracker_proxy", allow_threads(&session::set_tracker_proxy))
-        .def("set_web_seed_proxy", allow_threads(&session::set_web_seed_proxy))
-#ifndef TORRENT_DISABLE_DHT
-        .def("set_dht_proxy", allow_threads(&session::set_dht_proxy))
-#endif
         ;
-
-    def("supports_sparse_files", &supports_sparse_files);
 
     register_ptr_to_python<std::auto_ptr<alert> >();
 }

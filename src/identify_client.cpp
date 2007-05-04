@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <cctype>
 #include <algorithm>
 
@@ -149,7 +147,6 @@ namespace
 		, map_entry("BC", "BitComet")
 		, map_entry("BF", "Bitflu")
 		, map_entry("BG", "btgdaemon")
-		, map_entry("BR", "BitRocket")
 		, map_entry("BS", "BTSlave")
 		, map_entry("BX", "BittorrentX")
 		, map_entry("CD", "Enhanced CTorrent")

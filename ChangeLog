@@ -1,26 +1,3 @@
-	* aded support for SOCKS5 proxies and HTTP CONNECT proxies.
-	* optimized the piece picker in the case where a peer is a seed.
-	* added support for local peer discovery
-	* removed the dependency on the compiled boost.date_time library
-	* deprecated torrent_info::print()
-	* added UPnP support
-	* fixed problem where peer interested flags were not updated correctly
-	  when pieces were filtered
-	* improvements to ut_pex messages, including support for seed flag
-	* prioritizes upload bandwidth to peers that might send back data
-	* the following functions have been deprecated:
-	  	void torrent_handle::filter_piece(int index, bool filter) const;
-	  	void torrent_handle::filter_pieces(std::vector<bool> const& pieces) const;
-	  	bool torrent_handle::is_piece_filtered(int index) const;
-	  	std::vector<bool> torrent_handle::filtered_pieces() const;
-	  	void torrent_handle::filter_files(std::vector<bool> const& files) const;
-	  
-	  instead, use the piece_priority functions.
-	  
-	* added support for NAT-PMP
-	* added support for piece priorities. Piece filtering is now set as
-	  a priority
-
 release 0.12
 
 	* fixes to make the DHT more compatible

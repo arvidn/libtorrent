@@ -56,20 +56,7 @@ namespace libtorrent
 			connecting = 0x80,
 			queued = 0x100
 		};
-
 		unsigned int flags;
-
-		enum peer_source_flags
-		{
-			tracker = 0x1,
-			dht = 0x2,
-			pex = 0x4,
-			lsd = 0x8,
-			resume_data = 0x10
-		};
-
-		int source;
-
 		tcp::endpoint ip;
 		float up_speed;
 		float down_speed;
@@ -82,14 +69,12 @@ namespace libtorrent
 		bool seed; // true if this is a seed
 		int upload_limit;
 		int download_limit;
-
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
+		
 		// in case the session settings is set
 		// to resolve countries, this is set to
 		// the two character country code this
 		// peer resides in.
 		char country[2];
-#endif
 
 		size_type load_balancing;
 
@@ -103,10 +88,6 @@ namespace libtorrent
 		// the peer has sent to us
 		// that we haven't sent yet
 		int upload_queue_length;
-
-		// the number of times this IP
-		// has failed to connect
-		int failcount;
 
 		// the currently downloading piece
 		// if piece index is -1 all associated

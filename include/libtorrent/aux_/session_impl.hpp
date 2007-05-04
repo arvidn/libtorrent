@@ -77,10 +77,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/stat.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/bandwidth_manager.hpp"
-#include "libtorrent/natpmp.hpp"
-#include "libtorrent/upnp.hpp"
-#include "libtorrent/lsd.hpp"
-#include "libtorrent/socket_type.hpp"
 
 namespace libtorrent
 {
@@ -167,7 +163,7 @@ namespace libtorrent
 #endif
 			friend struct checker_impl;
 			friend class invariant_access;
-			typedef std::map<boost::shared_ptr<socket_type>
+			typedef std::map<boost::shared_ptr<stream_socket>
 				, boost::intrusive_ptr<peer_connection> >
 				connection_map;
 			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
@@ -188,7 +184,7 @@ namespace libtorrent
 			void open_listen_port();
 
 			void async_accept();
-			void on_incoming_connection(boost::shared_ptr<socket_type> const& s
+			void on_incoming_connection(boost::shared_ptr<stream_socket> const& s
 				, boost::weak_ptr<socket_acceptor> const& as, asio::error_code const& e);
 		
 			// must be locked to access the data
@@ -206,7 +202,7 @@ namespace libtorrent
 
 			void close_connection(boost::intrusive_ptr<peer_connection> const& p);
 			void connection_completed(boost::intrusive_ptr<peer_connection> const& p);
-			void connection_failed(boost::shared_ptr<socket_type> const& s
+			void connection_failed(boost::shared_ptr<stream_socket> const& s
 				, tcp::endpoint const& a, char const* message);
 
 			void set_settings(session_settings const& s);
@@ -217,16 +213,11 @@ namespace libtorrent
 			void add_dht_node(udp::endpoint n);
 			void add_dht_router(std::pair<std::string, int> const& node);
 			void set_dht_settings(dht_settings const& s);
-			dht_settings const& get_dht_settings() const { return m_dht_settings; }
+			dht_settings const& kad_settings() const { return m_dht_settings; }
 			void start_dht(entry const& startup_state);
 			void stop_dht();
 			entry dht_state() const;
 #endif
-
-			// called when a port mapping is successful, or a router returns
-			// a failure to map a port
-			void on_port_mapping(int tcp_port, int udp_port, std::string const& errmsg);
-
 			bool is_aborted() const { return m_abort; }
 
 			void set_ip_filter(ip_filter const& f);
@@ -241,8 +232,7 @@ namespace libtorrent
 				, boost::filesystem::path const& save_path
 				, entry const& resume_data
 				, bool compact_mode
-				, int block_size
-				, storage_constructor_type sc);
+				, int block_size);
 
 			torrent_handle add_torrent(
 				char const* tracker_url
@@ -251,8 +241,7 @@ namespace libtorrent
 				, boost::filesystem::path const& save_path
 				, entry const& resume_data
 				, bool compact_mode
-				, int block_size
-				, storage_constructor_type sc);
+				, int block_size);
 
 			void remove_torrent(torrent_handle const& h);
 
@@ -282,35 +271,11 @@ namespace libtorrent
 			
 			torrent_handle find_torrent_handle(sha1_hash const& info_hash);
 
-			void announce_lsd(sha1_hash const& ih);
-
-			void set_peer_proxy(proxy_settings const& s)
-			{ m_peer_proxy = s; }
-			void set_web_seed_proxy(proxy_settings const& s)
-			{ m_web_seed_proxy = s; }
-			void set_tracker_proxy(proxy_settings const& s)
-			{ m_tracker_proxy = s; }
-
-			proxy_settings const& peer_proxy() const
-			{ return m_peer_proxy; }
-			proxy_settings const& web_seed_proxy() const
-			{ return m_web_seed_proxy; }
-			proxy_settings const& tracker_proxy() const
-			{ return m_tracker_proxy; }
-
-#ifndef TORRENT_DISABLE_DHT
-			void set_dht_proxy(proxy_settings const& s)
-			{ m_dht_proxy = s; }
-			proxy_settings const& dht_proxy() const
-			{ return m_dht_proxy; }
-#endif
-
+			
 			// handles delayed alerts
 			alert_manager m_alerts;
 			
 //		private:
-
-			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 
 			// this is where all active sockets are stored.
 			// the selector can sleep while there's no activity on
@@ -363,28 +328,11 @@ namespace libtorrent
 			// that we should let the os decide which
 			// interface to listen on
 			tcp::endpoint m_listen_interface;
-			
-			// this is typically set to the same as the local
-			// listen port. In case a NAT port forward was
-			// successfully opened, this will be set to the
-			// port that is open on the external (NAT) interface
-			// on the NAT box itself. This is the port that has
-			// to be published to peers, since this is the port
-			// the client is reachable through.
-			int m_external_listen_port;
 
 			boost::shared_ptr<socket_acceptor> m_listen_socket;
 
 			// the settings for the client
 			session_settings m_settings;
-			// the proxy settings for different
-			// kinds of connections
-			proxy_settings m_peer_proxy;
-			proxy_settings m_web_seed_proxy;
-			proxy_settings m_tracker_proxy;
-#ifndef TORRENT_DISABLE_DHT
-			proxy_settings m_dht_proxy;
-#endif
 
 			// set to true when the session object
 			// is being destructed and the thread
@@ -412,25 +360,12 @@ namespace libtorrent
 			file_pool m_files;
 
 			void second_tick(asio::error_code const& e);
-			ptime m_last_tick;
+			boost::posix_time::ptime m_last_tick;
 
 #ifndef TORRENT_DISABLE_DHT
 			boost::intrusive_ptr<dht::dht_tracker> m_dht;
 			dht_settings m_dht_settings;
-			// if this is set to true, the dht listen port
-			// will be set to the same as the tcp listen port
-			// and will be synchronlized with it as it changes
-			// it defaults to true
-			bool m_dht_same_port;
-			
-			// see m_external_listen_port. This is the same
-			// but for the udp port used by the DHT.
-			int m_external_udp_port;
 #endif
-			natpmp m_natpmp;
-			upnp m_upnp;
-			lsd m_lsd;
-
 			// the timer used to fire the second_tick
 			deadline_timer m_timer;
 #ifndef NDEBUG
