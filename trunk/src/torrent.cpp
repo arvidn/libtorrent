@@ -1888,6 +1888,10 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		assert(peerinfo);
+		assert(peerinfo->connection == 0);
+		assert(m_connections.find(peerinfo->ip) == m_connections.end());
+
 		if (!want_more_peers()) return 0;
 
 		tcp::endpoint const& a(peerinfo->ip);
@@ -1900,8 +1904,6 @@ namespace libtorrent
 			}
 			return 0;
 		}
-
-		if (m_connections.find(a) != m_connections.end()) return 0;
 
 		boost::shared_ptr<socket_type> s
 			= instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy());
@@ -1924,8 +1926,6 @@ namespace libtorrent
 		try
 		{
 			m_ses.m_connection_queue.push_back(c);
-
-			assert(m_connections.find(a) == m_connections.end());
 
 #ifndef NDEBUG
 			m_policy->check_invariant();
