@@ -203,7 +203,7 @@ private:
 	bool m_disabled;
 	bool m_closing;
 
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 	std::ofstream m_log;
 #endif
 };
