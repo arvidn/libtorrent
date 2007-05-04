@@ -212,7 +212,11 @@ namespace libtorrent
 			int num_blocks = blocks_in_piece(i->index);
 			for (int k = 0; k < num_blocks; ++k)
 			{
-				if (i->finished_blocks[k]) continue;
+				if (i->finished_blocks[k])
+				{
+					assert(i->requested_blocks[k]);
+					continue;
+				}
 				if (i->requested_blocks[k])
 				{
 					blocks_requested = true;
@@ -530,54 +534,7 @@ namespace libtorrent
 			m_piece_info[priority].pop_back();
 		}
 	}
-/*
-	void piece_picker::remove(int priority, int elem_index)
-	{
-		assert(priority > 0);
-		assert(elem_index >= 0);
-		assert(m_files_checked_called);
 
-		assert(int(m_piece_info.size()) > priority);
-		assert(int(m_piece_info[priority].size()) > elem_index);
-
-		int index = m_piece_info[priority][elem_index];
-
-		piece_pos& p = m_piece_map[index];
-
-		if (p.downloading)
-		{
-			std::vector<downloading_piece>::iterator i
-				= std::find_if(m_downloads.begin(),
-				m_downloads.end(),
-				has_index(index));
-			assert(i != m_downloads.end());
-			m_downloads.erase(i);
-		}
-
-		p.downloading = 0;
-		if (is_ordered(priority))
-		{
-			std::vector<int>& v = m_piece_info[priority];
-			std::vector<int>::iterator i = v.begin() + elem_index;
-			v.erase(i);
-			i = v.begin() + elem_index;
-			for (; i != v.end(); ++i)
-			{
-				--m_piece_map[*i].index;
-				assert(v[m_piece_map[*i].index] == *i);
-			}
-		}
-		else
-		{
-			// this will remove elem from the vector without
-			// preserving order
-			index = m_piece_info[priority][elem_index] = m_piece_info[priority].back();
-			// update the entry we moved from the back
-			m_piece_map[index].index = elem_index;
-			m_piece_info[priority].pop_back();
-		}
-	}
-*/
 	void piece_picker::restore_piece(int index)
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
@@ -917,19 +874,6 @@ namespace libtorrent
 			// the piece just got filtered
 			if (p.have()) ++m_num_have_filtered;
 			else ++m_num_filtered;
-
-			if (p.downloading)
-			{
-				std::vector<downloading_piece>::iterator i
-					= std::find_if(m_downloads.begin(),
-					m_downloads.end(),
-					has_index(index));
-				assert(i != m_downloads.end());
-				m_downloads.erase(i);
-				assert(std::find_if(m_downloads.begin(), m_downloads.end()
-					, has_index(index)) == m_downloads.end());
-			}
-			p.downloading = 0;
 		}
 		else if (new_piece_priority != piece_pos::filter_priority
 			&& p.piece_priority == piece_pos::filter_priority)
@@ -1337,35 +1281,7 @@ namespace libtorrent
 			}
 		}
 	}
-/*
-	void piece_picker::mark_as_finished(piece_block block, const peer_id& peer)
-	{
-#ifndef NDEBUG
-		integrity_check();
-#endif
-		assert(block.piece_index >= 0);
-		assert(block.block_index >= 0);
-		assert(block.piece_index < m_piece_map.size());
-		assert(block.block_index < blocks_in_piece(block.piece_index));
 
-		assert(m_piece_map[block.piece_index].downloading == 1);
-
-		std::vector<downloading_piece>::iterator i
-			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
-		assert(i != m_downloads.end());
-		i->finished_blocks[block.block_index] = 1;
-		// the block may have been requested, then cancled
-		// and requested by a peer that disconnects
-		// that way we can actually receive the piece
-		// without the requested bit is set.
-		i->requested_blocks[block.block_index] = 1;
-		i->info[block.block_index].num_downloads++;
-		i->info[block.block_index].peer = peer;
-#ifndef NDEBUG
-		integrity_check();
-#endif
-	}
-*/
 	void piece_picker::get_downloaders(std::vector<tcp::endpoint>& d, int index) const
 	{
 		assert(index >= 0 && index <= (int)m_piece_map.size());
@@ -1422,6 +1338,7 @@ namespace libtorrent
 
 		if (i->finished_blocks[block.block_index])
 		{
+			assert(i->requested_blocks[block.block_index]);
 			assert(std::find_if(m_downloads.begin(), m_downloads.end()
 				, has_index(block.piece_index)) == m_downloads.end());
 			return;
@@ -1444,7 +1361,7 @@ namespace libtorrent
 			piece_pos& p = m_piece_map[block.piece_index];
 			int prio = p.priority(m_sequenced_download_threshold);
 			p.downloading = 0;
-			move(prio, p.index);
+			if (prio > 0) move(prio, p.index);
 
 			assert(std::find_if(m_downloads.begin(), m_downloads.end()
 				, has_index(block.piece_index)) == m_downloads.end());

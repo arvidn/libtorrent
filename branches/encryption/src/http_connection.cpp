@@ -54,8 +54,8 @@ void http_connection::get(std::string const& url, time_duration timeout
 	std::stringstream headers;
 	headers << "GET " << path << " HTTP/1.0\r\n"
 		"Host:" << hostname <<
-		"Connection: close\r\n"
-		"\r\n\r\n";
+		"\r\nConnection: close\r\n"
+		"\r\n";
 	sendbuffer = headers.str();
 	start(hostname, boost::lexical_cast<std::string>(port), timeout);
 }
@@ -200,7 +200,14 @@ void http_connection::on_read(asio::error_code const& e
 		close();
 		if (m_bottled && m_called) return;
 		m_called = true;
-		m_handler(asio::error_code(), m_parser, 0, 0);
+		char const* data = 0;
+		std::size_t size = 0;
+		if (m_bottled)
+		{
+			data = m_parser.get_body().begin;
+			size = m_parser.get_body().left();
+		}
+		m_handler(asio::error_code(), m_parser, data, size);
 		return;
 	}
 
@@ -264,7 +271,7 @@ void http_connection::on_read(asio::error_code const& e
 			m_timer.cancel();
 			if (m_bottled && m_called) return;
 			m_called = true;
-			m_handler(e, m_parser, 0, 0);
+			m_handler(e, m_parser, m_parser.get_body().begin, m_parser.get_body().left());
 		}
 	}
 	else

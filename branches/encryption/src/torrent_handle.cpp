@@ -696,6 +696,7 @@ namespace libtorrent
 			, bind(&torrent::set_ratio, _1, ratio));
 	}
 
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 	void torrent_handle::resolve_countries(bool r)
 	{
 		INVARIANT_CHECK;
@@ -709,6 +710,7 @@ namespace libtorrent
 		return call_member<bool>(m_ses, m_chk, m_info_hash
 			, bind(&torrent::resolving_countries, _1));
 	}
+#endif
 
 	void torrent_handle::get_peer_info(std::vector<peer_info>& v) const
 	{
@@ -735,8 +737,10 @@ namespace libtorrent
 			peer_info& p = v.back();
 			
 			peer->get_peer_info(p);
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 			if (t->resolving_countries())
 				t->resolve_peer_country(intrusive_ptr<peer_connection>(peer));
+#endif
 		}
 	}
 
