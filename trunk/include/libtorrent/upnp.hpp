@@ -72,6 +72,9 @@ public:
 
 private:
 
+	static address_v4 upnp_multicast_address;
+	static udp::endpoint upnp_multicast_endpoint;
+
 	enum { num_mappings = 2 };
 	enum { default_lease_time = 3600 };
 	

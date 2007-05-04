@@ -47,12 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 using boost::bind;
 using namespace libtorrent;
 
-namespace
-{
-	// UPnP multicast address and port
-	address_v4 upnp_multicast_address = address_v4::from_string("239.255.255.250");
-	udp::endpoint upnp_multicast_endpoint(upnp_multicast_address, 1900);
-}
+address_v4 upnp::upnp_multicast_address;
+udp::endpoint upnp::upnp_multicast_endpoint;
 
 upnp::upnp(io_service& ios, address const& listen_interface
 	, std::string const& user_agent, portmap_callback_t const& cb)
@@ -68,6 +64,10 @@ upnp::upnp(io_service& ios, address const& listen_interface
 	, m_disabled(false)
 	, m_closing(false)
 {
+	// UPnP multicast address and port
+	upnp_multicast_address = address_v4::from_string("239.255.255.250");
+	upnp_multicast_endpoint = udp::endpoint(upnp_multicast_address, 1900);
+
 #ifdef TORRENT_UPNP_LOGGING
 	m_log.open("upnp.log", std::ios::in | std::ios::out | std::ios::trunc);
 #endif
