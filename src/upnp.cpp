@@ -209,6 +209,7 @@ void upnp::resend_request(asio::error_code const& e)
 		&& (m_devices.empty() || m_retry_count < 4))
 	{
 		discover_device();
+		return;
 	}
 
 	if (m_devices.empty())
