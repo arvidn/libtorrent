@@ -628,95 +628,100 @@ namespace libtorrent
 			++file_iter;
 		}
 
-		boost::shared_ptr<file> in(m_files.open_file(
-			this, m_save_path / file_iter->path, file::in));
-
-		assert(file_offset < file_iter->size);
-
-		assert(slices[0].offset == file_offset);
-
-		size_type new_pos = in->seek(file_offset);
-		if (new_pos != file_offset)
-		{
-			// the file was not big enough
-			throw file_error("slot has no storage");
-		}
-
-#ifndef NDEBUG
-		size_type in_tell = in->tell();
-		assert(in_tell == file_offset);
-#endif
-
-		int left_to_read = size;
-		int slot_size = static_cast<int>(m_info.piece_size(slot));
-
-		if (offset + left_to_read > slot_size)
-			left_to_read = slot_size - offset;
-
-		assert(left_to_read >= 0);
-
-		size_type result = left_to_read;
 		int buf_pos = 0;
-
-#ifndef NDEBUG
-		int counter = 0;
-#endif
-
-		while (left_to_read > 0)
+		try
 		{
-			int read_bytes = left_to_read;
-			if (file_offset + read_bytes > file_iter->size)
-				read_bytes = static_cast<int>(file_iter->size - file_offset);
+			boost::shared_ptr<file> in(m_files.open_file(
+				this, m_save_path / file_iter->path, file::in));
 
-			if (read_bytes > 0)
+			assert(file_offset < file_iter->size);
+
+			assert(slices[0].offset == file_offset);
+
+			size_type new_pos = in->seek(file_offset);
+			if (new_pos != file_offset)
 			{
-#ifndef NDEBUG
-				assert(int(slices.size()) > counter);
-				size_type slice_size = slices[counter].size;
-				assert(slice_size == read_bytes);
-				assert(m_info.file_at(slices[counter].file_index).path
-					== file_iter->path);
-#endif
+				// the file was not big enough
+				throw file_error("slot has no storage");
+			}
 
-				size_type actual_read = in->read(buf + buf_pos, read_bytes);
+	#ifndef NDEBUG
+			size_type in_tell = in->tell();
+			assert(in_tell == file_offset);
+	#endif
 
-				if (read_bytes != actual_read)
+			int left_to_read = size;
+			int slot_size = static_cast<int>(m_info.piece_size(slot));
+
+			if (offset + left_to_read > slot_size)
+				left_to_read = slot_size - offset;
+
+			assert(left_to_read >= 0);
+
+			size_type result = left_to_read;
+
+	#ifndef NDEBUG
+			int counter = 0;
+	#endif
+
+			while (left_to_read > 0)
+			{
+				int read_bytes = left_to_read;
+				if (file_offset + read_bytes > file_iter->size)
+					read_bytes = static_cast<int>(file_iter->size - file_offset);
+
+				if (read_bytes > 0)
 				{
-					if (fill_zero && actual_read < read_bytes)
+	#ifndef NDEBUG
+					assert(int(slices.size()) > counter);
+					size_type slice_size = slices[counter].size;
+					assert(slice_size == read_bytes);
+					assert(m_info.file_at(slices[counter].file_index).path
+						== file_iter->path);
+	#endif
+
+					size_type actual_read = in->read(buf + buf_pos, read_bytes);
+
+					if (read_bytes != actual_read)
 					{
-						std::memset(buf + buf_pos + actual_read, 0, read_bytes - actual_read);
-					}
-					else
-					{
+						if (actual_read > 0) buf_pos += actual_read;
 						// the file was not big enough
 						throw file_error("slot has no storage");
 					}
+
+					left_to_read -= read_bytes;
+					buf_pos += read_bytes;
+					assert(buf_pos >= 0);
+					file_offset += read_bytes;
 				}
 
-				left_to_read -= read_bytes;
-				buf_pos += read_bytes;
-				assert(buf_pos >= 0);
-				file_offset += read_bytes;
-			}
+				if (left_to_read > 0)
+				{
+					++file_iter;
+	#ifndef NDEBUG
+					// empty files are not returned by map_block, so if
+					// this file was empty, don't increment the slice counter
+					if (read_bytes > 0) ++counter;
+	#endif
+					path path = m_save_path / file_iter->path;
 
-			if (left_to_read > 0)
-			{
-				++file_iter;
-#ifndef NDEBUG
-				// empty files are not returned by map_block, so if
-				// this file was empty, don't increment the slice counter
-				if (read_bytes > 0) ++counter;
-#endif
-				path path = m_save_path / file_iter->path;
-
-				file_offset = 0;
-				in = m_files.open_file(
-					this, path, file::in);
-				in->seek(0);
+					file_offset = 0;
+					in = m_files.open_file(
+						this, path, file::in);
+					in->seek(0);
+				}
 			}
+			return result;
 		}
-
-		return result;
+		catch (std::exception&)
+		{
+			if (fill_zero)
+			{
+				std::memset(buf + buf_pos, 0, size - buf_pos);
+				return size;
+			}
+			throw;
+		}
 	}
 
 	// throws file_error if it fails to write
