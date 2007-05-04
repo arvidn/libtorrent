@@ -65,6 +65,9 @@ public:
 
 private:
 
+	static address_v4 lsd_multicast_address;
+	static udp::endpoint lsd_multicast_endpoint;
+
 	void resend_announce(asio::error_code const& e, std::string msg);
 	void on_announce(asio::error_code const& e
 		, std::size_t bytes_transferred);
