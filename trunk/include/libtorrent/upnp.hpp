@@ -132,9 +132,9 @@ private:
 
 	struct rootdevice
 	{
-		rootdevice(): lease_duration(default_lease_time)
+		rootdevice(): service_namespace(0)
+			, lease_duration(default_lease_time)
 			, supports_specific_external(true)
-			, service_namespace(0)
 		{
 			mapping[0].protocol = 0;
 			mapping[1].protocol = 1;
