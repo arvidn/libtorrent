@@ -61,6 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/connection_queue.hpp"
 
 namespace libtorrent
 {
@@ -227,6 +228,7 @@ namespace libtorrent
 
 		void queue_request(
 			asio::strand& str
+			, connection_queue& cc
 			, tracker_request r
 			, std::string const& auth
 			, address bind_infc

@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/http_connection.hpp"
+#include "libtorrent/connection_queue.hpp"
 
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
@@ -58,8 +59,9 @@ typedef boost::function<void(int, int, std::string const&)> portmap_callback_t;
 class upnp : boost::noncopyable
 {
 public:
-	upnp(io_service& ios, address const& listen_interface
-		, std::string const& user_agent, portmap_callback_t const& cb);
+	upnp(io_service& ios, connection_queue& cc
+		, address const& listen_interface, std::string const& user_agent
+		, portmap_callback_t const& cb);
 	~upnp();
 
 	void rebind(address const& listen_interface);
@@ -202,6 +204,8 @@ private:
 	
 	bool m_disabled;
 	bool m_closing;
+
+	connection_queue& m_cc;
 
 #ifdef TORRENT_UPNP_LOGGING
 	std::ofstream m_log;

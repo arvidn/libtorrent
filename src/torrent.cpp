@@ -1533,22 +1533,17 @@ namespace libtorrent
 
 		try
 		{
-			m_ses.m_connection_queue.push_back(c);
-
 			assert(m_connections.find(a) == m_connections.end());
 
-#ifndef NDEBUG
-			m_policy->check_invariant();
-#endif
 			// add the newly connected peer to this torrent's peer list
 			m_connections.insert(
 				std::make_pair(a, boost::get_pointer(c)));
+			m_ses.m_connections.insert(std::make_pair(s, c));
 
-#ifndef NDEBUG
-			m_policy->check_invariant();
-#endif
-
-			m_ses.process_connection_queue();
+			m_ses.m_half_open.enqueue(
+				bind(&peer_connection::connect, c, _1)
+				, bind(&peer_connection::timed_out, c)
+				, seconds(settings().peer_connect_timeout));
 		}
 		catch (std::exception& e)
 		{
@@ -1925,20 +1920,15 @@ namespace libtorrent
 
 		try
 		{
-			m_ses.m_connection_queue.push_back(c);
-
-#ifndef NDEBUG
-			m_policy->check_invariant();
-#endif
 			// add the newly connected peer to this torrent's peer list
 			m_connections.insert(
 				std::make_pair(a, boost::get_pointer(c)));
+			m_ses.m_connections.insert(std::make_pair(s, c));
 
-#ifndef NDEBUG
-			m_policy->check_invariant();
-#endif
-
-			m_ses.process_connection_queue();
+			m_ses.m_half_open.enqueue(
+				bind(&peer_connection::connect, c, _1)
+				, bind(&peer_connection::timed_out, c)
+				, seconds(settings().peer_connect_timeout));
 		}
 		catch (std::exception& e)
 		{
@@ -2048,10 +2038,8 @@ namespace libtorrent
 	bool torrent::want_more_peers() const
 	{
 		return int(m_connections.size()) < m_connections_quota.given
-			&& (int(m_ses.m_half_open.size()) < m_ses.m_half_open_limit
-			|| m_ses.m_half_open_limit <= 0);
+			&& m_ses.m_half_open.free_slots();
 	}
-
 
 	void torrent::disconnect_all()
 	{
@@ -2660,6 +2648,12 @@ namespace libtorrent
 		}
 		accumulator += m_stat;
 		m_stat.second_tick(tick_interval);
+	}
+
+	void torrent::try_connect_peer()
+	{
+		assert(want_more_peers());
+		m_policy->connect_one_peer();
 	}
 
 	void torrent::distribute_resources(float tick_interval)
