@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/xml_parse.hpp"
+#include "libtorrent/connection_queue.hpp"
+
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 #include <asio/ip/host_name.hpp>
@@ -50,8 +52,9 @@ using namespace libtorrent;
 address_v4 upnp::upnp_multicast_address;
 udp::endpoint upnp::upnp_multicast_endpoint;
 
-upnp::upnp(io_service& ios, address const& listen_interface
-	, std::string const& user_agent, portmap_callback_t const& cb)
+upnp::upnp(io_service& ios, connection_queue& cc
+	, address const& listen_interface, std::string const& user_agent
+	, portmap_callback_t const& cb)
 	: m_udp_local_port(0)
 	, m_tcp_local_port(0)
 	, m_user_agent(user_agent)
@@ -63,6 +66,7 @@ upnp::upnp(io_service& ios, address const& listen_interface
 	, m_strand(ios)
 	, m_disabled(false)
 	, m_closing(false)
+	, m_cc(cc)
 {
 	// UPnP multicast address and port
 	upnp_multicast_address = address_v4::from_string("239.255.255.250");
@@ -232,7 +236,8 @@ void upnp::resend_request(asio::error_code const& e)
 			// ask for it
 			rootdevice& d = const_cast<rootdevice&>(*i);
 			d.upnp_connection.reset(new http_connection(m_socket.io_service()
-				, m_strand.wrap(bind(&upnp::on_upnp_xml, this, _1, _2, boost::ref(d)))));
+				, m_cc, m_strand.wrap(bind(&upnp::on_upnp_xml, this, _1, _2
+				, boost::ref(d)))));
 			d.upnp_connection->get(d.url);
 		}
 	}
@@ -390,7 +395,7 @@ void upnp::map_port(rootdevice& d, int i)
 	d.mapping[i].need_update = false;
 	assert(!d.upnp_connection);
 	d.upnp_connection.reset(new http_connection(m_socket.io_service()
-		, m_strand.wrap(bind(&upnp::on_upnp_map_response, this, _1, _2
+		, m_cc, m_strand.wrap(bind(&upnp::on_upnp_map_response, this, _1, _2
 		, boost::ref(d), i))));
 
 	std::string soap_action = "AddPortMapping";
@@ -436,7 +441,7 @@ void upnp::unmap_port(rootdevice& d, int i)
 		return;
 	}
 	d.upnp_connection.reset(new http_connection(m_socket.io_service()
-		, m_strand.wrap(bind(&upnp::on_upnp_unmap_response, this, _1, _2
+		, m_cc, m_strand.wrap(bind(&upnp::on_upnp_unmap_response, this, _1, _2
 		, boost::ref(d), i))));
 
 	std::string soap_action = "DeletePortMapping";

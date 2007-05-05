@@ -481,6 +481,7 @@ namespace libtorrent
 
 	void tracker_manager::queue_request(
 		asio::strand& str
+		, connection_queue& cc
 		, tracker_request req
 		, std::string const& auth
 		, address bind_infc
@@ -507,6 +508,7 @@ namespace libtorrent
 			{
 				con = new http_tracker_connection(
 					str
+					, cc
 					, *this
 					, req
 					, hostname

@@ -41,6 +41,7 @@ SOURCES =
 	allocate_resources
 	alert
 	bandwidth_manager
+	connection_queue
 	entry
 	escape_string
 	http_connection

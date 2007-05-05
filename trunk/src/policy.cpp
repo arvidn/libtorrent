@@ -661,13 +661,14 @@ namespace libtorrent
 
 		if (m_torrent->is_paused()) return;
 
+		ptime now = time_now();
 		// remove old disconnected peers from the list
 		for (iterator i = m_peers.begin(); i != m_peers.end();)
 		{
 			// this timeout has to be customizable!
 			if (i->connection == 0
 				&& i->connected != min_time()
-				&& time_now() - i->connected > minutes(120))
+				&& now - i->connected > minutes(120))
 			{
 				m_peers.erase(i++);
 			}
@@ -723,9 +724,6 @@ namespace libtorrent
 				--num_connected_peers;
 			}
 		}
-
-		while (m_torrent->want_more_peers())
-			if (!connect_one_peer()) break;
 
 		// ------------------------
 		// upload shift
@@ -967,7 +965,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		// just ignore the obviously invalid entries from the tracker
+		// just ignore the obviously invalid entries
 		if(remote.address() == address() || remote.port() == 0)
 			return;
 

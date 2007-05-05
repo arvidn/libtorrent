@@ -360,5 +360,9 @@ namespace libtorrent
 		m_impl->set_severity_level(s);
 	}
 
+	connection_queue& session::get_connection_queue()
+	{
+		return m_impl->m_half_open;
+	}
 }
 

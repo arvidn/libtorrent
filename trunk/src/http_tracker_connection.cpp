@@ -278,6 +278,7 @@ namespace libtorrent
 	
 	http_tracker_connection::http_tracker_connection(
 		asio::strand& str
+		, connection_queue& cc
 		, tracker_manager& man
 		, tracker_request const& req
 		, std::string const& hostname
@@ -299,6 +300,8 @@ namespace libtorrent
 		, m_proxy(ps)
 		, m_password(auth)
 		, m_timed_out(false)
+		, m_connection_ticket(-1)
+		, m_cc(cc)
 	{
 		m_send_buffer.assign("GET ");
 
@@ -476,6 +479,8 @@ namespace libtorrent
 		m_timed_out = true;
 		m_socket.reset();
 		m_name_lookup.cancel();
+		if (m_connection_ticket > -1) m_cc.done(m_connection_ticket);
+		m_connection_ticket = -1;
 		fail_timeout();
 	}
 
@@ -537,15 +542,25 @@ namespace libtorrent
 
 		m_socket->open(target_address.protocol());
 		m_socket->bind(tcp::endpoint(bind_interface(), 0));
-		m_socket->async_connect(target_address, bind(&http_tracker_connection::connected, self(), _1));
+		m_cc.enqueue(bind(&http_tracker_connection::connect, self(), _1, target_address)
+			, bind(&http_tracker_connection::on_timeout, self())
+			, seconds(m_settings.tracker_receive_timeout));
 	}
 	catch (std::exception& e)
 	{
 		fail(-1, e.what());
 	};
 
+	void http_tracker_connection::connect(int ticket, tcp::endpoint target_address)
+	{
+		m_connection_ticket = ticket;
+		m_socket->async_connect(target_address, bind(&http_tracker_connection::connected, self(), _1));
+	}
+
 	void http_tracker_connection::connected(asio::error_code const& error) try
 	{
+		if (m_connection_ticket > -1) m_cc.done(m_connection_ticket);
+		m_connection_ticket = -1;
 		if (error == asio::error::operation_aborted) return;
 		if (m_timed_out) return;
 		if (error)
@@ -708,7 +723,7 @@ namespace libtorrent
 
 			req.url = location;
 
-			m_man.queue_request(m_strand, req
+			m_man.queue_request(m_strand, m_cc, req
 				, m_password, bind_interface(), m_requester);
 			close();
 			return;

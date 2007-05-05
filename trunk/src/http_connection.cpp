@@ -86,12 +86,27 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	}
 }
 
+void http_connection::on_connect_timeout()
+{
+	if (m_connection_ticket > -1) m_cc.done(m_connection_ticket);
+	m_connection_ticket = -1;
+
+	if (m_bottled && m_called) return;
+	m_called = true;
+	m_handler(asio::error::timed_out, m_parser, 0, 0);
+	close();
+}
+
 void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 	, asio::error_code const& e)
 {
-	if (e == asio::error::operation_aborted) return;
 	boost::shared_ptr<http_connection> c = p.lock();
 	if (!c) return;
+	if (c->m_connection_ticket > -1) c->m_cc.done(c->m_connection_ticket);
+	c->m_connection_ticket = -1;
+
+	if (e == asio::error::operation_aborted) return;
+
 	if (c->m_bottled && c->m_called) return;
 
 	if (c->m_last_receive + c->m_timeout < time_now())
@@ -112,6 +127,9 @@ void http_connection::close()
 	m_sock.close();
 	m_hostname.clear();
 	m_port.clear();
+
+	if (m_connection_ticket > -1) m_cc.done(m_connection_ticket);
+	m_connection_ticket = -1;
 }
 
 void http_connection::on_resolve(asio::error_code const& e
@@ -126,7 +144,15 @@ void http_connection::on_resolve(asio::error_code const& e
 		return;
 	}
 	assert(i != tcp::resolver::iterator());
-	m_sock.async_connect(*i, boost::bind(&http_connection::on_connect
+	m_cc.enqueue(bind(&http_connection::connect, shared_from_this(), _1, *i)
+		, bind(&http_connection::on_connect_timeout, shared_from_this())
+		, m_timeout);
+}
+
+void http_connection::connect(int ticket, tcp::endpoint target_address)
+{
+	m_connection_ticket = ticket;
+	m_sock.async_connect(target_address, boost::bind(&http_connection::on_connect
 		, shared_from_this(), _1/*, ++i*/));
 }
 
@@ -143,8 +169,9 @@ void http_connection::on_connect(asio::error_code const& e
 	{
 		// The connection failed. Try the next endpoint in the list.
 		m_sock.close();
-		m_sock.async_connect(*i, bind(&http_connection::on_connect
-			, shared_from_this(), _1, ++i));
+		m_cc.enqueue(bind(&http_connection::connect, shared_from_this(), _1, *i)
+			, bind(&http_connection::on_connect_timeout, shared_from_this())
+			, m_timeout);
 	} 
 */	else
 	{ 
@@ -241,11 +268,8 @@ void http_connection::on_read(asio::error_code const& e
 			}
 
 			m_limiter_timer_active = false;
-			m_timer.cancel();
-			m_limiter_timer.cancel();
-			m_sock.close();
-			m_hostname.clear();
-			m_port.clear();
+			close();
+
 			get(url, m_timeout);
 			return;
 		}
