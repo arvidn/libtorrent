@@ -4,6 +4,7 @@ libtorrent/allocate_resources.hpp \
 libtorrent/bandwidth_manager.hpp \
 libtorrent/bencode.hpp \
 libtorrent/buffer.hpp \
+libtorrent/connection_queue.hpp \
 libtorrent/config.hpp \
 libtorrent/debug.hpp \
 libtorrent/entry.hpp \

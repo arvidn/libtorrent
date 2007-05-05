@@ -57,7 +57,8 @@ typedef boost::function<void(asio::error_code const&
 // will always be 0
 struct http_connection : boost::enable_shared_from_this<http_connection>, boost::noncopyable
 {
-	http_connection(asio::io_service& ios, http_handler handler, bool bottled = true)
+	http_connection(asio::io_service& ios, connection_queue& cc
+		, http_handler handler, bool bottled = true)
 		: m_sock(ios)
 		, m_read_pos(0)
 		, m_resolver(ios)
@@ -71,6 +72,8 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 		, m_limiter_timer_active(false)
 		, m_limiter_timer(ios)
 		, m_redirect(true)
+		, m_connection_ticket(-1)
+		, m_cc(cc)
 	{
 		assert(!m_handler.empty());
 	}
@@ -93,6 +96,8 @@ private:
 
 	void on_resolve(asio::error_code const& e
 		, tcp::resolver::iterator i);
+	void connect(int ticket, tcp::endpoint target_address);
+	void on_connect_timeout();
 	void on_connect(asio::error_code const& e
 /*		, tcp::resolver::iterator i*/);
 	void on_write(asio::error_code const& e);
@@ -139,6 +144,9 @@ private:
 	// if set to true, the connection should handle
 	// HTTP redirects.
 	bool m_redirect;
+
+	int m_connection_ticket;
+	connection_queue& m_cc;
 };
 
 }

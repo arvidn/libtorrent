@@ -81,6 +81,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/lsd.hpp"
 #include "libtorrent/socket_type.hpp"
+#include "libtorrent/connection_queue.hpp"
 
 namespace libtorrent
 {
@@ -171,8 +172,6 @@ namespace libtorrent
 				, boost::intrusive_ptr<peer_connection> >
 				connection_map;
 			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
-			typedef std::deque<boost::intrusive_ptr<peer_connection> >
-				connection_queue;
 
 			session_impl(
 				std::pair<int, int> listen_port_range
@@ -199,13 +198,7 @@ namespace libtorrent
 			boost::weak_ptr<torrent> find_torrent(const sha1_hash& info_hash);
 			peer_id const& get_peer_id() const { return m_peer_id; }
 
-			// this will see if there are any pending connection attempts
-			// and in that case initiate new connections until the limit
-			// is reached.
-			void process_connection_queue();
-
 			void close_connection(boost::intrusive_ptr<peer_connection> const& p);
-			void connection_completed(boost::intrusive_ptr<peer_connection> const& p);
 			void connection_failed(boost::shared_ptr<socket_type> const& s
 				, tcp::endpoint const& a, char const* message);
 
@@ -340,13 +333,7 @@ namespace libtorrent
 			
 			// this is a list of half-open tcp connections
 			// (only outgoing connections)
-			connection_map m_half_open;
-
-			// this is a queue of pending outgoing connections. If the
-			// list of half-open connections is full (given the global
-			// limit), new outgoing connections are put on this queue,
-			// waiting for one slot in the half-open queue to open up.
-			connection_queue m_connection_queue;
+			connection_queue m_half_open;
 
 			// filters incoming connections
 			ip_filter m_ip_filter;
@@ -398,9 +385,6 @@ namespace libtorrent
 
 			int m_max_uploads;
 			int m_max_connections;
-			// the number of simultaneous half-open tcp
-			// connections libtorrent will have.
-			int m_half_open_limit;
 
 			// statistics gathered from all torrents.
 			stat m_stat;
@@ -443,6 +427,11 @@ namespace libtorrent
 
 			// the timer used to fire the second_tick
 			deadline_timer m_timer;
+
+			// the index of the torrent that will be offered to
+			// connect to a peer next time second_tick is called.
+			// This implements a round robin.
+			int m_next_connect_torrent;
 #ifndef NDEBUG
 			void check_invariant(const char *place = 0);
 #endif
@@ -458,6 +447,7 @@ namespace libtorrent
 			// logger used to write bandwidth usage statistics
 			boost::shared_ptr<logger> m_stats_logger;
 			int m_second_counter;
+
 		public:
 			boost::shared_ptr<logger> m_logger;
 		private:

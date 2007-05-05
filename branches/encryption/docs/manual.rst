@@ -2189,6 +2189,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		bool allow_multiple_connections_per_ip;
 		int max_failcount;
 		int min_reconnect_time;
+		int peer_connect_timeout;
 		bool use_dht_as_fallback;
 	};
 
@@ -2278,6 +2279,12 @@ decremented by one, allowing another try.
 
 ``min_reconnect_time`` is the time to wait between connection attempts. If
 the peer fails, the time is multiplied by fail counter.
+
+``peer_connect_timeout`` the number of seconds to wait after a connection
+attempt is initiated to a peer until it is considered as having timed out.
+The default is 10 seconds. This setting is especially important in case
+the number of half-open connections are limited, since stale half-open
+connection may delay the connection of other peers considerably.
 
 ``use_dht_as_fallback`` determines how the DHT is used. If this is true
 (which it is by default), the DHT will only be used for torrents where

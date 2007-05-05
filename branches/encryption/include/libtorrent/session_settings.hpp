@@ -97,6 +97,7 @@ namespace libtorrent
 			, allow_multiple_connections_per_ip(false)
 			, max_failcount(3)
 			, min_reconnect_time(60)
+			, peer_connect_timeout(10)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(true)
 #endif
@@ -195,6 +196,11 @@ namespace libtorrent
 		// the number of seconds to wait to reconnect to a peer.
 		// this time is multiplied with the failcount.
 		int min_reconnect_time;
+
+		// this is the timeout for a connection attempt. If
+		// the connect does not succeed within this time, the
+		// connection is dropped. The time is specified in seconds.
+		int peer_connect_timeout;
 
 #ifndef TORRENT_DISABLE_DHT
 		// while this is true, the dht will note be used unless the

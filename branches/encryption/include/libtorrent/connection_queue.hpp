@@ -30,76 +30,67 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_LSD_HPP
-#define TORRENT_LSD_HPP
+#ifndef TORRENT_CONNECTION_QUEUE
+#define TORRENT_CONNECTION_QUEUE
 
-#include "libtorrent/socket.hpp"
-#include "libtorrent/peer_id.hpp"
-
+#include <list>
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition.hpp>
-
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-#include <fstream>
-#endif
+#include "libtorrent/socket.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
 
-typedef boost::function<void(tcp::endpoint, sha1_hash)> peer_callback_t;
-
-class lsd : boost::noncopyable
+class connection_queue : public boost::noncopyable
 {
 public:
-	lsd(io_service& ios, address const& listen_interface
-		, peer_callback_t const& cb);
-	~lsd();
+	connection_queue(io_service& ios);
 
-	void rebind(address const& listen_interface);
+	bool free_slots() const;
 
-	void announce(sha1_hash const& ih, int listen_port);
-	void close();
+	void enqueue(boost::function<void(int)> const& on_connect
+		, boost::function<void()> const& on_timeout
+		, time_duration timeout);
+	void done(int ticket);
+	void limit(int limit);
+	int limit() const;
+
+#ifndef NDEBUG
+
+	void check_invariant() const;
+
+#endif
 
 private:
 
-	static address_v4 lsd_multicast_address;
-	static udp::endpoint lsd_multicast_endpoint;
+	void try_connect();
+	void on_timeout(asio::error_code const& e);
 
-	void resend_announce(asio::error_code const& e, std::string msg);
-	void on_announce(asio::error_code const& e
-		, std::size_t bytes_transferred);
-	void setup_receive();
+	struct entry
+	{
+		entry(): connecting(false), ticket(0), expires(max_time()) {}
+		// called when the connection is initiated
+		boost::function<void(int)> on_connect;
+		// called if done hasn't been called within the timeout
+		boost::function<void()> on_timeout;
+		bool connecting;
+		int ticket;
+		ptime expires;
+		time_duration timeout;
+	};
 
-	peer_callback_t m_callback;
+	std::list<entry> m_queue;
 
-	// current retry count
-	int m_retry_count;
+	// the next ticket id a connection will be given
+	int m_next_ticket;
+	int m_num_connecting;
+	int m_half_open_limit;
 
-	// used to receive responses in	
-	char m_receive_buffer[1024];
-
-	// the endpoint we received the message from
-	udp::endpoint m_remote;
-
-	// the udp socket used to send and receive
-	// multicast messages on
-	datagram_socket m_socket;
-
-	// used to resend udp packets in case
-	// they time out
-	deadline_timer m_broadcast_timer;
-
-	bool m_disabled;
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	std::ofstream m_log;
-#endif
+	deadline_timer m_timer;
 };
 
 }
-
 
 #endif
 

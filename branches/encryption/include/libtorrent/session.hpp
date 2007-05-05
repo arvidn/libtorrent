@@ -72,7 +72,7 @@ namespace libtorrent
 	struct torrent_plugin;
 	class torrent;
 	class ip_filter;
-
+	class connection_queue;
 
 	namespace aux
 	{
@@ -247,6 +247,8 @@ namespace libtorrent
 
 		std::auto_ptr<alert> pop_alert();
 		void set_severity_level(alert::severity_t s);
+
+		connection_queue& get_connection_queue();
 
 		// Resource management used for global limits.
 		resource_request m_ul_bandwidth_quota;

@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/http_connection.hpp"
+#include "libtorrent/connection_queue.hpp"
 
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
@@ -58,8 +59,9 @@ typedef boost::function<void(int, int, std::string const&)> portmap_callback_t;
 class upnp : boost::noncopyable
 {
 public:
-	upnp(io_service& ios, address const& listen_interface
-		, std::string const& user_agent, portmap_callback_t const& cb);
+	upnp(io_service& ios, connection_queue& cc
+		, address const& listen_interface, std::string const& user_agent
+		, portmap_callback_t const& cb);
 	~upnp();
 
 	void rebind(address const& listen_interface);
@@ -71,6 +73,9 @@ public:
 	void close();
 
 private:
+
+	static address_v4 upnp_multicast_address;
+	static udp::endpoint upnp_multicast_endpoint;
 
 	enum { num_mappings = 2 };
 	enum { default_lease_time = 3600 };
@@ -127,7 +132,8 @@ private:
 
 	struct rootdevice
 	{
-		rootdevice(): lease_duration(default_lease_time)
+		rootdevice(): service_namespace(0)
+			, lease_duration(default_lease_time)
 			, supports_specific_external(true)
 		{
 			mapping[0].protocol = 0;
@@ -141,7 +147,7 @@ private:
 		// the url to the WANIP or WANPPP interface
 		std::string control_url;
 		// either the WANIP namespace or the WANPPP namespace
-		std::string service_namespace;
+		char const* service_namespace;
 
 		mapping_t mapping[num_mappings];
 		
@@ -200,7 +206,9 @@ private:
 	bool m_disabled;
 	bool m_closing;
 
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+	connection_queue& m_cc;
+
+#ifdef TORRENT_UPNP_LOGGING
 	std::ofstream m_log;
 #endif
 };

@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/xml_parse.hpp"
+#include "libtorrent/connection_queue.hpp"
+
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 #include <asio/ip/host_name.hpp>
@@ -47,15 +49,12 @@ POSSIBILITY OF SUCH DAMAGE.
 using boost::bind;
 using namespace libtorrent;
 
-namespace
-{
-	// UPnP multicast address and port
-	address_v4 upnp_multicast_address = address_v4::from_string("239.255.255.250");
-	udp::endpoint upnp_multicast_endpoint(upnp_multicast_address, 1900);
-}
+address_v4 upnp::upnp_multicast_address;
+udp::endpoint upnp::upnp_multicast_endpoint;
 
-upnp::upnp(io_service& ios, address const& listen_interface
-	, std::string const& user_agent, portmap_callback_t const& cb)
+upnp::upnp(io_service& ios, connection_queue& cc
+	, address const& listen_interface, std::string const& user_agent
+	, portmap_callback_t const& cb)
 	: m_udp_local_port(0)
 	, m_tcp_local_port(0)
 	, m_user_agent(user_agent)
@@ -67,8 +66,13 @@ upnp::upnp(io_service& ios, address const& listen_interface
 	, m_strand(ios)
 	, m_disabled(false)
 	, m_closing(false)
+	, m_cc(cc)
 {
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+	// UPnP multicast address and port
+	upnp_multicast_address = address_v4::from_string("239.255.255.250");
+	upnp_multicast_endpoint = udp::endpoint(upnp_multicast_address, 1900);
+
+#ifdef TORRENT_UPNP_LOGGING
 	m_log.open("upnp.log", std::ios::in | std::ios::out | std::ios::trunc);
 #endif
 	rebind(listen_interface);
@@ -103,7 +107,7 @@ void upnp::rebind(address const& listen_interface) try
 		m_local_ip = i->endpoint().address().to_v4();
 	}
 
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 	m_log << time_now_string()
 		<< " local ip: " << m_local_ip.to_string() << std::endl;
 #endif
@@ -167,7 +171,7 @@ void upnp::discover_device()
 	m_broadcast_timer.async_wait(m_strand.wrap(bind(&upnp::resend_request
 		, this, _1)));
 
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 	m_log << time_now_string()
 		<< " ==> Broadcasting search for rootdevice" << std::endl;
 #endif
@@ -205,9 +209,16 @@ void upnp::set_mappings(int tcp, int udp)
 void upnp::resend_request(asio::error_code const& e)
 {
 	if (e) return;
-	if (m_retry_count >= 9)
+	if (m_retry_count < 9
+		&& (m_devices.empty() || m_retry_count < 4))
 	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+		discover_device();
+		return;
+	}
+
+	if (m_devices.empty())
+	{
+#ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
 			<< " *** Got no response in 9 retries. Giving up, "
 			"disabling UPnP." << std::endl;
@@ -215,7 +226,21 @@ void upnp::resend_request(asio::error_code const& e)
 		m_disabled = true;
 		return;
 	}
-	discover_device();
+	
+	for (std::set<rootdevice>::iterator i = m_devices.begin()
+		, end(m_devices.end()); i != end; ++i)
+	{
+		if (i->control_url.empty() && !i->upnp_connection)
+		{
+			// we don't have a WANIP or WANPPP url for this device,
+			// ask for it
+			rootdevice& d = const_cast<rootdevice&>(*i);
+			d.upnp_connection.reset(new http_connection(m_socket.io_service()
+				, m_cc, m_strand.wrap(bind(&upnp::on_upnp_xml, this, _1, _2
+				, boost::ref(d)))));
+			d.upnp_connection->get(d.url);
+		}
+	}
 }
 
 void upnp::on_reply(asio::error_code const& e
@@ -251,7 +276,7 @@ void upnp::on_reply(asio::error_code const& e
 	}
 	catch (std::exception& e)
 	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
 			<< " <== Rootdevice responded with incorrect HTTP packet: "
 			<< e.what() << ". Ignoring device" << std::endl;
@@ -261,7 +286,7 @@ void upnp::on_reply(asio::error_code const& e
 
 	if (p.status_code() != 200)
 	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
 			<< " <== Rootdevice responded with HTTP status: " << p.status_code()
 			<< ". Ignoring device" << std::endl;
@@ -271,7 +296,7 @@ void upnp::on_reply(asio::error_code const& e
 
 	if (!p.header_finished())
 	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
 			<< " <== Rootdevice responded with incomplete HTTP "
 			"packet. Ignoring device" << std::endl;
@@ -282,7 +307,7 @@ void upnp::on_reply(asio::error_code const& e
 	std::string url = p.header<std::string>("location");
 	if (url.empty())
 	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
 			<< " <== Rootdevice response is missing a location header. "
 			"Ignoring device" << std::endl;
@@ -305,7 +330,7 @@ void upnp::on_reply(asio::error_code const& e
 
 		if (protocol != "http")
 		{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 			m_log << time_now_string()
 				<< " <== Rootdevice uses unsupported protocol: '" << protocol
 				<< "'. Ignoring device" << std::endl;
@@ -315,14 +340,14 @@ void upnp::on_reply(asio::error_code const& e
 
 		if (d.port == 0)
 		{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 			m_log << time_now_string()
 				<< " <== Rootdevice responded with a url with port 0. "
 				"Ignoring device" << std::endl;
 #endif
 			return;
 		}
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
 			<< " <== Found rootdevice: " << d.url << std::endl;
 #endif
@@ -338,16 +363,6 @@ void upnp::on_reply(asio::error_code const& e
 			d.mapping[1].local_port = m_udp_local_port;
 		}
 		boost::tie(i, boost::tuples::ignore) = m_devices.insert(d);
-	}
-
-	if (i->control_url.empty() && !i->upnp_connection)
-	{
-		// we don't have a WANIP or WANPPP url for this device,
-		// ask for it
-		rootdevice& d = const_cast<rootdevice&>(*i);
-		d.upnp_connection.reset(new http_connection(m_socket.io_service()
-			, m_strand.wrap(bind(&upnp::on_upnp_xml, this, _1, _2, boost::ref(d)))));
-		d.upnp_connection->get(d.url);
 	}
 }
 
@@ -379,8 +394,10 @@ void upnp::map_port(rootdevice& d, int i)
 	}
 	d.mapping[i].need_update = false;
 	assert(!d.upnp_connection);
+	assert(d.service_namespace);
+
 	d.upnp_connection.reset(new http_connection(m_socket.io_service()
-		, m_strand.wrap(bind(&upnp::on_upnp_map_response, this, _1, _2
+		, m_cc, m_strand.wrap(bind(&upnp::on_upnp_map_response, this, _1, _2
 		, boost::ref(d), i))));
 
 	std::string soap_action = "AddPortMapping";
@@ -403,7 +420,7 @@ void upnp::map_port(rootdevice& d, int i)
 	soap << "</u:" << soap_action << "></s:Body></s:Envelope>";
 
 	post(d, soap, soap_action);
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 	m_log << time_now_string()
 		<< " ==> AddPortMapping: " << soap.str() << std::endl;
 #endif
@@ -426,7 +443,7 @@ void upnp::unmap_port(rootdevice& d, int i)
 		return;
 	}
 	d.upnp_connection.reset(new http_connection(m_socket.io_service()
-		, m_strand.wrap(bind(&upnp::on_upnp_unmap_response, this, _1, _2
+		, m_cc, m_strand.wrap(bind(&upnp::on_upnp_unmap_response, this, _1, _2
 		, boost::ref(d), i))));
 
 	std::string soap_action = "DeletePortMapping";
@@ -444,7 +461,7 @@ void upnp::unmap_port(rootdevice& d, int i)
 	soap << "</u:" << soap_action << "></s:Body></s:Envelope>";
 
 	post(d, soap, soap_action);
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 	m_log << time_now_string()
 		<< " ==> DeletePortMapping: " << soap.str() << std::endl;
 #endif
@@ -518,7 +535,7 @@ void upnp::on_upnp_xml(asio::error_code const& e
 
 	if (e)
 	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
 			<< " <== error while fetching control url: " << e.message() << std::endl;
 #endif
@@ -527,7 +544,7 @@ void upnp::on_upnp_xml(asio::error_code const& e
 
 	if (!p.header_finished())
 	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
 			<< " <== incomplete http message" << std::endl;
 #endif
@@ -538,20 +555,35 @@ void upnp::on_upnp_xml(asio::error_code const& e
 	s.reset("urn:schemas-upnp-org:service:WANIPConnection:1");
 	xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
 		, m_strand.wrap(bind(&find_control_url, _1, _2, boost::ref(s))));
-	d.service_namespace = "urn:schemas-upnp-org:service:WANIPConnection:1";
-	if (!s.found_service)
+	if (s.found_service)
+	{
+		d.service_namespace = s.service_type;
+	}
+	else
 	{
 		// we didn't find the WAN IP connection, look for
-		// a PPP IP connection
-		s.reset("urn:schemas-upnp-org:service:PPPIPConnection:1");
+		// a PPP connection
+		s.reset("urn:schemas-upnp-org:service:WANPPPConnection:1");
 		xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
 			, m_strand.wrap(bind(&find_control_url, _1, _2, boost::ref(s))));
-		d.service_namespace = "urn:schemas-upnp-org:service:WANPPPConnection:1";
+		if (s.found_service)
+		{
+			d.service_namespace = s.service_type;
+		}
+		else
+		{
+#ifdef TORRENT_UPNP_LOGGING
+			m_log << time_now_string()
+				<< " <== Rootdevice response, did not find a port mapping interface" << std::endl;
+#endif
+			return;
+		}
 	}
 	
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 	m_log << time_now_string()
-		<< " <== Rootdevice response, found control URL: " << s.control_url << std::endl;
+		<< " <== Rootdevice response, found control URL: " << s.control_url
+		<< " namespace: " << d.service_namespace << std::endl;
 #endif
 
 	d.control_url = s.control_url;
@@ -595,7 +627,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 
 	if (e)
 	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
 			<< " <== error while adding portmap: " << e.message() << std::endl;
 #endif
@@ -624,7 +656,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 
 	if (!p.header_finished())
 	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
 			<< " <== incomplete http message" << std::endl;
 #endif
@@ -636,7 +668,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 	xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
 		, m_strand.wrap(bind(&find_error_code, _1, _2, boost::ref(s))));
 
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 	if (s.error_code != -1)
 	{
 		m_log << time_now_string()
@@ -680,7 +712,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 			+ ": " + error_codes[s.error_code]);
 	}
 
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 	m_log << time_now_string()
 		<< " <== map response: " << std::string(p.get_body().begin, p.get_body().end)
 		<< std::endl;
@@ -736,7 +768,7 @@ void upnp::on_upnp_unmap_response(asio::error_code const& e
 
 	if (e)
 	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
 			<< " <== error while deleting portmap: " << e.message() << std::endl;
 #endif
@@ -744,14 +776,14 @@ void upnp::on_upnp_unmap_response(asio::error_code const& e
 
 	if (!p.header_finished())
 	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
 			<< " <== incomplete http message" << std::endl;
 #endif
 		return;
 	}
 
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#ifdef TORRENT_UPNP_LOGGING
 	m_log << time_now_string()
 		<< " <== unmap response: " << std::string(p.get_body().begin, p.get_body().end)
 		<< std::endl;

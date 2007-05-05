@@ -60,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/socket_type.hpp"
+#include "libtorrent/connection_queue.hpp"
 
 namespace libtorrent
 {
@@ -115,6 +116,7 @@ namespace libtorrent
 
 		http_tracker_connection(
 			asio::strand& str
+			, connection_queue& cc
 			, tracker_manager& man
 			, tracker_request const& req
 			, std::string const& hostname
@@ -138,6 +140,7 @@ namespace libtorrent
 			, std::string const& request);
 
 		void name_lookup(asio::error_code const& error, tcp::resolver::iterator i);
+		void connect(int ticket, tcp::endpoint target_address);
 		void connected(asio::error_code const& error);
 		void sent(asio::error_code const& error);
 		void receive(asio::error_code const& error
@@ -164,6 +167,9 @@ namespace libtorrent
 		std::string m_password;
 
 		bool m_timed_out;
+
+		int m_connection_ticket;
+		connection_queue& m_cc;
 	};
 
 }

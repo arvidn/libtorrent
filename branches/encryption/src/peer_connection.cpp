@@ -125,6 +125,7 @@ namespace libtorrent
 		, m_download_limit(resource_request::inf)
 		, m_peer_info(peerinfo)
 		, m_speed(slow)
+		, m_connection_ticket(-1)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif
@@ -1571,6 +1572,16 @@ namespace libtorrent
 		try { s->close(); } catch (std::exception& e) {}
 	}
 
+	void peer_connection::timed_out()
+	{
+		if (m_peer_info) ++m_peer_info->failcount;
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_ses.m_logger) << "CONNECTION TIMED OUT: " << m_remote.address().to_string()
+			<< "\n";
+#endif
+		m_ses.connection_failed(m_socket, m_remote, "timed out");
+	}
+
 	void peer_connection::disconnect()
 	{
 		boost::intrusive_ptr<peer_connection> me(this);
@@ -1579,6 +1590,9 @@ namespace libtorrent
 
 		if (m_disconnecting) return;
 		m_disconnecting = true;
+		if (m_connecting)
+			m_ses.m_half_open.done(m_connection_ticket);
+
 		m_ses.m_io_service.post(boost::bind(&close_socket_ignore_error, m_socket));
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
@@ -2172,7 +2186,7 @@ namespace libtorrent
 			&& !m_connecting;
 	}
 
-	void peer_connection::connect()
+	void peer_connection::connect(int ticket)
 	{
 		INVARIANT_CHECK;
 
@@ -2180,6 +2194,7 @@ namespace libtorrent
 		(*m_ses.m_logger) << "CONNECTING: " << m_remote.address().to_string() << "\n";
 #endif
 
+		m_connection_ticket = ticket;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		assert(t);
 
@@ -2203,6 +2218,11 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
+		if (m_disconnecting) return;
+
+		m_connecting = false;
+		m_ses.m_half_open.done(m_connection_ticket);
+
 		if (e)
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -2222,8 +2242,6 @@ namespace libtorrent
 		(*m_ses.m_logger) << "COMPLETED: " << m_remote.address().to_string() << "\n";
 #endif
 
-		m_ses.connection_completed(self());
-		m_connecting = false;
 		on_connected();
 		setup_send();
 		setup_receive();

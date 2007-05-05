@@ -224,6 +224,7 @@ namespace libtorrent
 
 		std::vector<bool> const& get_bitfield() const;
 
+		void timed_out();
 		// this will cause this peer_connection to be disconnected.
 		void disconnect();
 		bool is_disconnecting() const { return m_disconnecting; }
@@ -246,7 +247,7 @@ namespace libtorrent
 		// initiate the tcp connection. This may be postponed until
 		// the library isn't using up the limitation of half-open
 		// tcp connections.	
-		void connect();
+		void connect(int ticket);
 		
 		// This is called for every peer right after the upload
 		// bandwidth has been distributed among them
@@ -668,6 +669,12 @@ namespace libtorrent
 		// it allows some variance without changing
 		// back and forth between states
 		peer_speed_t m_speed;
+
+		// the ticket id from the connection queue.
+		// This is used to identify the connection
+		// so that it can be removed from the queue
+		// once the connection completes
+		int m_connection_ticket;
 #ifndef NDEBUG
 	public:
 		bool m_in_constructor;

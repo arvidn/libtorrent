@@ -46,12 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 using boost::bind;
 using namespace libtorrent;
 
-namespace
-{
-	// Bittorrent Local discovery multicast address and port
-	address_v4 lsd_multicast_address = address_v4::from_string("239.192.152.143");
-	udp::endpoint lsd_multicast_endpoint(lsd_multicast_address, 6771);
-}
+address_v4 lsd::lsd_multicast_address;
+udp::endpoint lsd::lsd_multicast_endpoint;
 
 lsd::lsd(io_service& ios, address const& listen_interface
 	, peer_callback_t const& cb)
@@ -61,6 +57,10 @@ lsd::lsd(io_service& ios, address const& listen_interface
 	, m_broadcast_timer(ios)
 	, m_disabled(false)
 {
+	// Bittorrent Local discovery multicast address and port
+	lsd_multicast_address = address_v4::from_string("239.192.152.143");
+	lsd_multicast_endpoint = udp::endpoint(lsd_multicast_address, 6771);
+
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log.open("lsd.log", std::ios::in | std::ios::out | std::ios::trunc);
 #endif
