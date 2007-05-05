@@ -204,7 +204,6 @@ namespace libtorrent
 		iterator find_seed_choke_candidate();
 		iterator find_seed_unchoke_candidate();
 
-		bool connect_peer(iterator p);
 		bool disconnect_one_peer();
 		iterator find_disconnect_candidate();
 		iterator find_connect_candidate();

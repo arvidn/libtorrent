@@ -987,6 +987,19 @@ namespace libtorrent
 			
 			if (i == m_peers.end())
 			{
+				aux::session_impl& ses = m_torrent->session();
+
+				// if the IP is blocked, don't add it
+				if (ses.m_ip_filter.access(remote.address()) & ip_filter::blocked)
+				{
+					if (ses.m_alerts.should_post(alert::info))
+					{
+						ses.m_alerts.post_alert(peer_blocked_alert(remote.address()
+						, "blocked peer not added to peer list"));
+					}
+					return;
+				}
+			
 				// we don't have any info about this peer.
 				// add a new entry
 				peer p(remote, peer::connectable, src);
@@ -1198,27 +1211,17 @@ namespace libtorrent
 		assert(m_torrent->want_more_peers());
 		
 		bool succeed = false;
-		while (!succeed)
-		{
-			iterator p = find_connect_candidate();
-			if (p == m_peers.end()) return false;
-			assert(!p->banned);
-			assert(!p->connection);
-			assert(p->type == peer::connectable);
-			succeed = connect_peer(p);
-		}
-		return true;
-	}
+		iterator p = find_connect_candidate();
+		if (p == m_peers.end()) return false;
 
-	bool policy::connect_peer(iterator p)
-	{
-		INVARIANT_CHECK;
+		assert(!p->banned);
+		assert(!p->connection);
+		assert(p->type == peer::connectable);
+
 		try
 		{
-			assert(!p->connection);
 			p->connection = m_torrent->connect_to_peer(&*p);
 			if (p->connection == 0) return false;
-			assert(p->connection);
 			p->connection->add_stat(p->prev_amount_download, p->prev_amount_upload);
 			p->prev_amount_download = 0;
 			p->prev_amount_upload = 0;
@@ -1229,9 +1232,13 @@ namespace libtorrent
 		}
 		catch (std::exception& e)
 		{
+#if defined(TORRENT_VERBOSE_LOGGING)
+			(*m_torrent->session().m_logger) << "*** CONNECTION FAILED '"
+				<< e.what() << "'\n";
+#endif
 			++p->failcount;
+			return false;
 		}
-		return false;
 	}
 
 	bool policy::disconnect_one_peer()
