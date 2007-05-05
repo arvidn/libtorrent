@@ -566,7 +566,8 @@ void upnp::on_upnp_xml(asio::error_code const& e
 	
 #ifdef TORRENT_UPNP_LOGGING
 	m_log << time_now_string()
-		<< " <== Rootdevice response, found control URL: " << s.control_url << std::endl;
+		<< " <== Rootdevice response, found control URL: " << s.control_url
+		<< " namespace: " << d.service_namespace << std::endl;
 #endif
 
 	d.control_url = s.control_url;

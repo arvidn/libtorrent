@@ -1,5 +1,6 @@
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/connection_queue.hpp"
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 
@@ -20,8 +21,9 @@ int main(int argc, char* argv[])
 		std::cerr << "usage: " << argv[0] << " bind-address tcp-port udp-port" << std::endl;
 		return 1;
 	}
-	
-	upnp upnp_handler(ios, address_v4(), user_agent, &callback);
+
+	connection_queue cc(ios);
+	upnp upnp_handler(ios, cc, address_v4(), user_agent, &callback);
 
 	deadline_timer timer(ios);
 	timer.expires_from_now(seconds(2));
