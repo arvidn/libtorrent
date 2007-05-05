@@ -394,6 +394,8 @@ void upnp::map_port(rootdevice& d, int i)
 	}
 	d.mapping[i].need_update = false;
 	assert(!d.upnp_connection);
+	assert(d.service_namespace);
+
 	d.upnp_connection.reset(new http_connection(m_socket.io_service()
 		, m_cc, m_strand.wrap(bind(&upnp::on_upnp_map_response, this, _1, _2
 		, boost::ref(d), i))));
@@ -553,15 +555,29 @@ void upnp::on_upnp_xml(asio::error_code const& e
 	s.reset("urn:schemas-upnp-org:service:WANIPConnection:1");
 	xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
 		, m_strand.wrap(bind(&find_control_url, _1, _2, boost::ref(s))));
-	d.service_namespace = "urn:schemas-upnp-org:service:WANIPConnection:1";
-	if (!s.found_service)
+	if (s.found_service)
+	{
+		d.service_namespace = s.service_type;
+	}
+	else
 	{
 		// we didn't find the WAN IP connection, look for
-		// a PPP IP connection
-		s.reset("urn:schemas-upnp-org:service:PPPIPConnection:1");
+		// a PPP connection
+		s.reset("urn:schemas-upnp-org:service:WANPPPConnection:1");
 		xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
 			, m_strand.wrap(bind(&find_control_url, _1, _2, boost::ref(s))));
-		d.service_namespace = "urn:schemas-upnp-org:service:WANPPPConnection:1";
+		if (s.found_service)
+		{
+			d.service_namespace = s.service_type;
+		}
+		else
+		{
+#ifdef TORRENT_UPNP_LOGGING
+			m_log << time_now_string()
+				<< " <== Rootdevice response, did not find a port mapping interface" << std::endl;
+#endif
+			return;
+		}
 	}
 	
 #ifdef TORRENT_UPNP_LOGGING

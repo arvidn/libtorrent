@@ -134,6 +134,7 @@ private:
 	{
 		rootdevice(): lease_duration(default_lease_time)
 			, supports_specific_external(true)
+			, service_namespace(0)
 		{
 			mapping[0].protocol = 0;
 			mapping[1].protocol = 1;
@@ -146,7 +147,7 @@ private:
 		// the url to the WANIP or WANPPP interface
 		std::string control_url;
 		// either the WANIP namespace or the WANPPP namespace
-		std::string service_namespace;
+		char const* service_namespace;
 
 		mapping_t mapping[num_mappings];
 		
