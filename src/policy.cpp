@@ -516,14 +516,13 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		ptime now = time_now();
-		ptime ptime(now);
+		ptime min_connect_time(now);
 		iterator candidate = m_peers.end();
 
 		int max_failcount = m_torrent->settings().max_failcount;
 		int min_reconnect_time = m_torrent->settings().min_reconnect_time;
 
-		for (iterator i = m_peers.begin();
-			i != m_peers.end(); ++i)
+		for (iterator i = m_peers.begin(); i != m_peers.end(); ++i)
 		{
 			if (i->connection) continue;
 			if (i->banned) continue;
@@ -535,16 +534,14 @@ namespace libtorrent
 
 			assert(i->connected <= now);
 
-			libtorrent::ptime next_connect = i->connected;
-
-			if (next_connect <= ptime)
+			if (i->connected <= min_connect_time)
 			{
-				ptime = next_connect;
+				min_connect_time = i->connected;
 				candidate = i;
 			}
 		}
 		
-		assert(ptime <= now);
+		assert(min_connect_time <= now);
 
 		return candidate;
 	}
@@ -1210,7 +1207,6 @@ namespace libtorrent
 
 		assert(m_torrent->want_more_peers());
 		
-		bool succeed = false;
 		iterator p = find_connect_candidate();
 		if (p == m_peers.end()) return false;
 
@@ -1220,14 +1216,12 @@ namespace libtorrent
 
 		try
 		{
+			p->connected = m_last_optimistic_disconnect = time_now();
 			p->connection = m_torrent->connect_to_peer(&*p);
 			if (p->connection == 0) return false;
 			p->connection->add_stat(p->prev_amount_download, p->prev_amount_upload);
 			p->prev_amount_download = 0;
 			p->prev_amount_upload = 0;
-			p->connected =
-				m_last_optimistic_disconnect = 
-					time_now();
 			return true;
 		}
 		catch (std::exception& e)
