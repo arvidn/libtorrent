@@ -616,6 +616,33 @@ namespace
 	}
 }
 
+namespace
+{
+	struct error_code_t
+	{
+		int code;
+		char const* msg;
+	};
+	
+	error_code_t error_codes[] =
+	{
+		{402, "Invalid Arguments"}
+		, {501, "Action Failed"}
+		, {714, "The specified value does not exist in the array"}
+		, {715, "The source IP address cannot be wild-carded"}
+		, {716, "The external port cannot be wild-carded"}
+		, {718, "The port mapping entry specified conflicts with "
+			"a mapping assigned previously to another client"}
+		, {724, "Internal and External port values must be the same"}
+		, {725, "The NAT implementation only supports permanent "
+			"lease times on port mappings"}
+		, {726, "RemoteHost must be a wildcard and cannot be a "
+			"specific IP address or DNS name"}
+		, {727, "ExternalPort must be a wildcard and cannot be a specific port "}
+	};
+
+}
+
 void upnp::on_upnp_map_response(asio::error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d, int mapping)
 {
@@ -694,22 +721,19 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 	}
 	else if (s.error_code != -1)
 	{
-		std::map<int, std::string> error_codes;
-		error_codes[402] = "Invalid Arguments";
-		error_codes[501] = "Action Failed";
-		error_codes[714] = "The specified value does not exist in the array";
-		error_codes[715] = "The source IP address cannot be wild-carded";
-		error_codes[716] = "The external port cannot be wild-carded";
-		error_codes[718] = "The port mapping entry specified conflicts with "
-			"a mapping assigned previously to another client";
-		error_codes[724] = "Internal and External port values must be the same";
-		error_codes[725] = "The NAT implementation only supports permanent "
-			"lease times on port mappings";
-		error_codes[726] = "RemoteHost must be a wildcard and cannot be a "
-			"specific IP address or DNS name";
-		error_codes[727] = "ExternalPort must be a wildcard and cannot be a specific port ";
-		m_callback(0, 0, "UPnP mapping error " + boost::lexical_cast<std::string>(s.error_code)
-			+ ": " + error_codes[s.error_code]);
+		int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
+		error_code_t* end = error_codes + num_errors;
+		error_code_t tmp = {s.error_code, 0};
+		error_code_t* e = std::lower_bound(error_codes, end, tmp
+			, bind(&error_code_t::code, _1) < bind(&error_code_t::code, _2));
+		std::string error_string = "UPnP mapping error ";
+		error_string += boost::lexical_cast<std::string>(s.error_code);
+		if (e != end  && e->code == s.error_code)
+		{
+			error_string += ": ";
+			error_string += e->msg;
+		}
+		m_callback(0, 0, error_string);
 	}
 
 #ifdef TORRENT_UPNP_LOGGING
