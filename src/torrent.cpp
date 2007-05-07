@@ -1698,7 +1698,7 @@ namespace libtorrent
 		assert(want_more_peers());
 
 		tcp::endpoint const& a(peerinfo->ip);
-		assert(m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked == 0);
+		assert((m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked) == 0);
 
 		boost::shared_ptr<socket_type> s
 			= instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy());
