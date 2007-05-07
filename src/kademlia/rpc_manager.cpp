@@ -161,8 +161,8 @@ bool rpc_manager::incoming(msg const& m)
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		std::ofstream reply_stats("libtorrent_logs/round_trip_ms.log", std::ios::app);
-		reply_stats << m.addr << "\t" << (microsec_clock::universal_time()
-			- o->sent).total_milliseconds() << std::endl;
+		reply_stats << m.addr << "\t" << total_milliseconds(time_now() - o->sent)
+			<< std::endl;
 #endif
 		o->reply(m);
 		m_transactions[tid].reset();

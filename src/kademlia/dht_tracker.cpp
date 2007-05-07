@@ -399,9 +399,8 @@ namespace libtorrent { namespace dht
 				, m_in_buf[current_buffer].end());
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(dht_tracker) << microsec_clock::universal_time()
-				<< " RECEIVED [" << m_remote_endpoint[current_buffer]
-				<< "]:";
+			TORRENT_LOG(dht_tracker) << time_now_string() << " RECEIVED ["
+				<< m_remote_endpoint[current_buffer] << "]:";
 #endif
 
 			libtorrent::dht::msg m;
@@ -784,10 +783,9 @@ namespace libtorrent { namespace dht
 		e["v"] = version_str;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(dht_tracker) << microsec_clock::universal_time()
+		TORRENT_LOG(dht_tracker) << time_now_string()
 			<< " SENDING [" << m.addr << "]:";
 		TORRENT_LOG(dht_tracker) << "   transaction: " << m.transaction_id;
-//		e.print(std::cerr);
 #endif
 
 		if (m.message_id == messages::error)
@@ -799,8 +797,8 @@ namespace libtorrent { namespace dht
 			error_list.list().push_back(entry(m.error_msg));
 			e["e"] = error_list;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(dht_tracker) << "   error: " << m.error_code << " "
-			<< m.error_msg;
+		TORRENT_LOG(dht_tracker) << time_now_string()
+			<< "   error: " << m.error_code << " " << m.error_msg;
 #endif
 		}
 		else if (m.reply)
@@ -811,8 +809,8 @@ namespace libtorrent { namespace dht
 			r["id"] = std::string(m.id.begin(), m.id.end());
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(dht_tracker) << "   reply: "
-				<< messages::ids[m.message_id];
+			TORRENT_LOG(dht_tracker) << time_now_string()
+				<< "   reply: " << messages::ids[m.message_id];
 #endif
 
 			if (m.write_token.type() != entry::undefined_t)
