@@ -727,6 +727,50 @@ namespace libtorrent { namespace dht
 	void dht_tracker::on_bootstrap()
 	{}
 
+	namespace
+	{
+		void write_nodes_entry(entry& r, libtorrent::dht::msg const& m)
+		{
+			bool ipv6_nodes = false;
+			r["nodes"] = entry(entry::string_t);
+			entry& n = r["nodes"];
+			std::back_insert_iterator<std::string> out(n.string());
+			for (msg::nodes_t::const_iterator i = m.nodes.begin()
+				, end(m.nodes.end()); i != end; ++i)
+			{
+				if (!i->addr.address().is_v4())
+				{
+					ipv6_nodes = true;
+					continue;
+				}
+				std::copy(i->id.begin(), i->id.end(), out);
+				write_endpoint(i->addr, out);
+			}
+
+			if (ipv6_nodes)
+			{
+				r["nodes2"] = entry(entry::list_t);
+				entry& p = r["nodes2"];
+				std::string endpoint;
+				for (msg::nodes_t::const_iterator i = m.nodes.begin()
+					, end(m.nodes.end()); i != end; ++i)
+				{
+					if (!i->addr.address().is_v6()) continue;
+					endpoint.resize(18 + 20);
+					std::string::iterator out = endpoint.begin();
+					std::copy(i->id.begin(), i->id.end(), out);
+					out += 20;
+					write_endpoint(i->addr, out);
+					endpoint.resize(out - endpoint.begin());
+					p.list().push_back(entry(endpoint));
+				}
+			}
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			TORRENT_LOG(dht_tracker) << "   nodes: " << m.nodes.size();
+#endif
+		}
+	}
+
 	void dht_tracker::send_packet(msg const& m)
 	{
 		using libtorrent::bencode;
@@ -780,71 +824,27 @@ namespace libtorrent { namespace dht
 					break;
 				case messages::find_node:
 				{
-					bool ipv6_nodes = false;
-					r["nodes"] = entry(entry::string_t);
-					entry& n = r["nodes"];
-					std::back_insert_iterator<std::string> out(n.string());
-					for (msg::nodes_t::const_iterator i = m.nodes.begin()
-						, end(m.nodes.end()); i != end; ++i)
-					{
-						if (!i->addr.address().is_v4())
-						{
-							ipv6_nodes = true;
-							continue;
-						}
-						std::copy(i->id.begin(), i->id.end(), out);
-						write_endpoint(i->addr, out);
-					}
-
-					if (ipv6_nodes)
-					{
-						r["nodes2"] = entry(entry::list_t);
-						entry& p = r["nodes2"];
-						std::string endpoint;
-						endpoint.resize(6);
-						for (msg::nodes_t::const_iterator i = m.nodes.begin()
-							, end(m.nodes.end()); i != end; ++i)
-						{
-							std::string::iterator out = endpoint.begin();
-							std::copy(i->id.begin(), i->id.end(), out);
-							write_endpoint(i->addr, out);
-							p.list().push_back(entry(endpoint));
-						}
-					}
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-					TORRENT_LOG(dht_tracker) << "   nodes: " << m.nodes.size();
-#endif
+					write_nodes_entry(r, m);
 					break;
 				}
 				case messages::get_peers:
 				{
 					if (m.peers.empty())
 					{
-						r["nodes"] = entry(entry::string_t);
-						entry& n = r["nodes"];
-						std::back_insert_iterator<std::string> out(n.string());
-						for (msg::nodes_t::const_iterator i = m.nodes.begin()
-							, end(m.nodes.end()); i != end; ++i)
-						{
-							if (!i->addr.address().is_v4()) continue;
-							std::copy(i->id.begin(), i->id.end(), out);
-							write_endpoint(i->addr, out);
-						}
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-						TORRENT_LOG(dht_tracker) << "   nodes: " << m.nodes.size();
-#endif
+						write_nodes_entry(r, m);
 					}
 					else
 					{
 						r["values"] = entry(entry::list_t);
 						entry& p = r["values"];
 						std::string endpoint;
-						endpoint.resize(6);
 						for (msg::peers_t::const_iterator i = m.peers.begin()
 							, end(m.peers.end()); i != end; ++i)
 						{
+							endpoint.resize(18);
 							std::string::iterator out = endpoint.begin();
 							write_endpoint(*i, out);
+							endpoint.resize(out - endpoint.begin());
 							p.list().push_back(entry(endpoint));
 						}
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
