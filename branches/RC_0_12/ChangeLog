@@ -1,3 +1,7 @@
+	* Fixed bug in DHT, related to IPv6 nodes
+	* DHT accepts transaction IDs that have garbage appended to them
+	* DHT logs messages that it fails to decode
+
 release 0.12
 
 	* fixes to make the DHT more compatible

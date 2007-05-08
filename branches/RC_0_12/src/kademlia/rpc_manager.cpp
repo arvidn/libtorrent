@@ -121,7 +121,7 @@ bool rpc_manager::incoming(msg const& m)
 		// if we don't have the transaction id in our
 		// request list, ignore the packet
 
-		if (m.transaction_id.size() != 2)
+		if (m.transaction_id.size() < 2)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(rpc) << "Reply with invalid transaction id size: " 
