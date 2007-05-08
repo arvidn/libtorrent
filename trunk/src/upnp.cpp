@@ -250,11 +250,6 @@ void upnp::on_reply(asio::error_code const& e
 	using namespace libtorrent::detail;
 	if (e) return;
 
-	// since we're using udp, send the query 4 times
-	// just to make sure we find all devices
-	if (m_retry_count >= 4)
-		m_broadcast_timer.cancel();
-
 	// parse out the url for the device
 
 /*
