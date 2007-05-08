@@ -57,7 +57,7 @@ using asio::ip::udp;
 
 //TORRENT_DECLARE_LOG(table);
 	
-typedef std::deque<node_entry> bucket_t;
+typedef std::vector<node_entry> bucket_t;
 
 // differences in the implementation from the description in
 // the paper:
@@ -101,7 +101,7 @@ namespace aux
 			, bucket_iterator_t end)
 			: m_bucket_iterator(begin)
 			, m_bucket_end(end)
-			, m_iterator(begin != end ? begin->first.begin() : bucket_t::iterator())
+			, m_iterator(begin != end ? begin->first.begin() : bucket_t::const_iterator())
 		{
 			if (m_bucket_iterator == m_bucket_end) return;
 			while (m_iterator == m_bucket_iterator->first.end())
