@@ -360,6 +360,29 @@ void upnp::on_reply(asio::error_code const& e
 		}
 		boost::tie(i, boost::tuples::ignore) = m_devices.insert(d);
 	}
+
+
+	// since we're using udp, send the query 4 times
+	// just to make sure we find all devices
+	if (m_retry_count >= 4 && !devices.empty())
+	{
+		m_broadcast_timer.cancel();
+
+		for (std::set<rootdevice>::iterator i = m_devices.begin()
+			, end(m_devices.end()); i != end; ++i)
+		{
+			if (i->control_url.empty() && !i->upnp_connection)
+			{
+				// we don't have a WANIP or WANPPP url for this device,
+				// ask for it
+				rootdevice& d = const_cast<rootdevice&>(*i);
+				d.upnp_connection.reset(new http_connection(m_socket.io_service()
+					, m_cc, m_strand.wrap(bind(&upnp::on_upnp_xml, this, _1, _2
+					, boost::ref(d)))));
+				d.upnp_connection->get(d.url);
+			}
+		}
+	}
 }
 
 void upnp::post(rootdevice& d, std::stringstream const& soap
@@ -384,6 +407,10 @@ void upnp::map_port(rootdevice& d, int i)
 
 	if (!d.mapping[i].need_update)
 	{
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string() << " *** mapping (" << i
+			<< ") does not need update, skipping" << std::endl;
+#endif
 		if (i < num_mappings - 1)
 			map_port(d, i + 1);
 		return;
