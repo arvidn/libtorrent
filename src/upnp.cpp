@@ -201,7 +201,8 @@ void upnp::set_mappings(int tcp, int udp)
 			d.mapping[1].local_port = m_udp_local_port;
 			d.mapping[1].need_update = true;
 		}
-		if (d.mapping[0].need_update || d.mapping[1].need_update)
+		if (d.service_namespace
+			&& (d.mapping[0].need_update || d.mapping[1].need_update))
 			map_port(d, 0);
 	}
 }
