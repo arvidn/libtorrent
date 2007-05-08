@@ -1436,6 +1436,7 @@ namespace libtorrent
 
 			if (is_local())
 			{
+				m_state = read_pe_syncvc;
 				write_pe3_sync();
 
 				// initial payload is the standard handshake, this is
@@ -1447,7 +1448,6 @@ namespace libtorrent
 				m_rc4_encrypted = false;
 				m_encrypted = false;
 
-				m_state = read_pe_syncvc;
 				// vc,crypto_select,len(pad),pad, encrypt(handshake)
 				// 8+4+2+0+handshake_len
 			   	reset_recv_buffer(8+4+2+0+handshake_len);
@@ -2225,6 +2225,10 @@ namespace libtorrent
 #ifndef NDEBUG
 	void bt_peer_connection::check_invariant() const
 	{
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		assert(bool(m_state == read_pe_dhkey) == bool(m_DH_key_exchange)
+			|| !is_local());
+#endif
 		if (!m_in_constructor)
 			peer_connection::check_invariant();
 
