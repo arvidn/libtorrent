@@ -265,6 +265,7 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint addr)
 	// offline
 	if ((int)b.size() < m_bucket_size)
 	{
+		if (b.empty()) b.reserve(m_bucket_size);
 		b.push_back(node_entry(id, addr));
 		// if bucket index is 0, the node is ourselves
 		// don't updated m_lowest_active_bucket
