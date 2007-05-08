@@ -92,12 +92,14 @@ namespace libtorrent
 
 		struct block_info
 		{
-			block_info(): num_downloads(0) {}
+			block_info(): num_downloads(0), requested(0), finished(0) {}
 			// the peer this block was requested or
 			// downloaded from
 			tcp::endpoint peer;
 			// the number of times this block has been downloaded
-			int num_downloads;
+			unsigned num_downloads:14;
+			unsigned requested:1;
+			unsigned finished:1;
 		};
 
 		// the peers that are downloading this piece
@@ -109,17 +111,15 @@ namespace libtorrent
 
 		struct downloading_piece
 		{
+			downloading_piece(): finished(0), requested(0) {}
 			piece_state_t state;
 
 			// the index of the piece
 			int index;
-			// each bit represents a block in the piece
-			// set to one if the block has been requested
-			std::bitset<max_blocks_per_piece> requested_blocks;
-			// the bit is set to one if the block has been acquired
-			std::bitset<max_blocks_per_piece> finished_blocks;
 			// info about each block
 			block_info info[max_blocks_per_piece];
+			boost::uint16_t finished;
+			boost::uint16_t requested;
 		};
 
 		piece_picker(int blocks_per_piece

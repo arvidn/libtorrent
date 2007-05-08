@@ -959,7 +959,7 @@ namespace libtorrent
 		unsigned long piece_crc(
 			int slot_index
 			, int block_size
-			, const std::bitset<256>& bitmask);
+			, piece_picker::block_info const* bi);
 
 		int slot_for_piece(int piece_index) const;
 
@@ -1208,15 +1208,15 @@ namespace libtorrent
 	unsigned long piece_manager::piece_crc(
 		int index
 		, int block_size
-		, const std::bitset<256>& bitmask)
+		, piece_picker::block_info const* bi)
 	{
-		return m_pimpl->piece_crc(index, block_size, bitmask);
+		return m_pimpl->piece_crc(index, block_size, bi);
 	}
 
 	unsigned long piece_manager::impl::piece_crc(
 		int slot_index
 		, int block_size
-		, const std::bitset<256>& bitmask)
+		, piece_picker::block_info const* bi)
 	{
 		assert(slot_index >= 0);
 		assert(slot_index < m_info.num_pieces());
@@ -1230,7 +1230,7 @@ namespace libtorrent
 
 		for (int i = 0; i < num_blocks-1; ++i)
 		{
-			if (!bitmask[i]) continue;
+			if (!bi[i].finished) continue;
 			m_storage->read(
 				&buf[0]
 				, slot_index
@@ -1238,7 +1238,7 @@ namespace libtorrent
 				, block_size);
 			crc.update(&buf[0], block_size);
 		}
-		if (bitmask[num_blocks - 1])
+		if (bi[num_blocks - 1].finished)
 		{
 			m_storage->read(
 				&buf[0]
@@ -1260,7 +1260,8 @@ namespace libtorrent
 		assert(offset >= 0);
 		assert(size > 0);
 		assert(piece_index >= 0 && piece_index < (int)m_piece_to_slot.size());
-		assert(m_piece_to_slot[piece_index] >= 0 && m_piece_to_slot[piece_index] < (int)m_slot_to_piece.size());
+		assert(m_piece_to_slot[piece_index] >= 0
+			&& m_piece_to_slot[piece_index] < (int)m_slot_to_piece.size());
 		int slot = m_piece_to_slot[piece_index];
 		assert(slot >= 0 && slot < (int)m_slot_to_piece.size());
 		return m_storage->read(buf, slot, offset, size);
