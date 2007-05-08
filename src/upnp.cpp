@@ -364,7 +364,7 @@ void upnp::on_reply(asio::error_code const& e
 
 	// since we're using udp, send the query 4 times
 	// just to make sure we find all devices
-	if (m_retry_count >= 4 && !devices.empty())
+	if (m_retry_count >= 4 && !m_devices.empty())
 	{
 		m_broadcast_timer.cancel();
 
