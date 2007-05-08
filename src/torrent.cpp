@@ -738,8 +738,7 @@ namespace libtorrent
 			int corr = 0;
 			int index = i->index;
 			assert(!m_have_pieces[index]);
-			assert(int(i->finished_blocks.count())
-				< m_picker->blocks_in_piece(index));
+			assert(i->finished < m_picker->blocks_in_piece(index));
 
 #ifndef NDEBUG
 			for (std::vector<piece_picker::downloading_piece>::const_iterator j = boost::next(i);
@@ -751,17 +750,17 @@ namespace libtorrent
 
 			for (int j = 0; j < blocks_per_piece; ++j)
 			{
-				assert(i->finished_blocks[j] == 0 || i->finished_blocks[j] == 1);
-				assert(m_picker->is_finished(piece_block(index, j)) == i->finished_blocks[j]);
-				corr += i->finished_blocks[j] * m_block_size;
+				assert(i->info[j].finished == 0 || i->info[j].finished == 1);
+				assert(m_picker->is_finished(piece_block(index, j)) == i->info[j].finished);
+				corr += i->info[j].finished * m_block_size;
 				assert(index != last_piece || j < m_picker->blocks_in_last_piece()
-					|| i->finished_blocks[j] == 0);
+					|| i->info[j].finished == 0);
 			}
 
 			// correction if this was the last piece
 			// and if we have the last block
 			if (i->index == last_piece
-				&& i->finished_blocks[m_picker->blocks_in_last_piece()-1])
+				&& i->info[m_picker->blocks_in_last_piece()-1].finished)
 			{
 				corr -= m_block_size;
 				corr += m_torrent_file.piece_size(last_piece) % m_block_size;
@@ -836,7 +835,7 @@ namespace libtorrent
 				std::cerr << "   " << i->index << " ";
 				for (int j = 0; j < blocks_per_piece; ++j)
 				{
-					std::cerr << i->finished_blocks[j];
+					std::cerr << i->info[j].finished;
 				}
 				std::cerr << std::endl;
 			}

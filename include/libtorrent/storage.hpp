@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/piece_picker.hpp"
 #include "libtorrent/config.hpp"
 
 namespace libtorrent
@@ -153,7 +154,7 @@ namespace libtorrent
 		unsigned long piece_crc(
 			int slot_index
 			, int block_size
-			, const std::bitset<256>& bitmask);
+			, piece_picker::block_info const* bi);
 		int slot_for_piece(int piece_index) const;
 
 		size_type read(

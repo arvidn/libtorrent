@@ -1906,11 +1906,14 @@ namespace libtorrent { namespace detail
 						{
 							const int bit = j * 8 + k;
 							if (bits & (1 << k))
-								p.finished_blocks[bit] = true;
+							{
+								p.info[bit].finished = true;
+								++p.finished;
+							}
 						}
 					}
 
-					if (p.finished_blocks.count() == 0) continue;
+					if (p.finished == 0) continue;
 	
 					std::vector<int>::iterator slot_iter
 						= std::find(tmp_pieces.begin(), tmp_pieces.end(), p.index);
@@ -1929,7 +1932,7 @@ namespace libtorrent { namespace detail
 						= torrent_ptr->filesystem().piece_crc(
 							slot_index
 							, torrent_ptr->block_size()
-							, p.finished_blocks);
+							, p.info);
 
 					const entry& ad = (*i)["adler32"];
 	

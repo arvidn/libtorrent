@@ -995,7 +995,7 @@ namespace libtorrent
 				for (std::vector<piece_picker::downloading_piece>::const_iterator i =
 					dl_queue.begin(); i != dl_queue.end(); ++i)
 				{
-					assert(int(i->finished_blocks.count()) < blocks_per_piece);
+					assert(i->finished < blocks_per_piece);
 				}
 			}
 		}
