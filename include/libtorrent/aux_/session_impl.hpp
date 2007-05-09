@@ -109,6 +109,7 @@ namespace libtorrent
 
 			std::vector<int> piece_map;
 			std::vector<piece_picker::downloading_piece> unfinished_pieces;
+			std::vector<piece_picker::block_info> block_info;
 			std::vector<tcp::endpoint> peers;
 			entry resume_data;
 

@@ -1875,13 +1875,15 @@ namespace libtorrent { namespace detail
 				// the unfinished pieces
 
 				entry::list_type& unfinished = rd["unfinished"].list();
-
-				tmp_unfinished.reserve(unfinished.size());
+				int unfinished_size = int(unfinished.size());
+				block_info.resize(num_blocks_per_piece * unfinished_size);
+				tmp_unfinished.reserve(unfinished_size);
+				int index = 0;
 				for (entry::list_type::iterator i = unfinished.begin();
-					i != unfinished.end(); ++i)
+					i != unfinished.end(); ++i, ++index)
 				{
 					piece_picker::downloading_piece p;
-	
+					p.info = &block_info[index * num_blocks_per_piece];
 					p.index = (int)(*i)["piece"].integer();
 					if (p.index < 0 || p.index >= info.num_pieces())
 					{
