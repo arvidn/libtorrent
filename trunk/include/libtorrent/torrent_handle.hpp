@@ -204,7 +204,7 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT partial_piece_info
 	{
-		enum { max_blocks_per_piece = piece_picker::max_blocks_per_piece };
+		enum { max_blocks_per_piece = 256 };
 		int piece_index;
 		int blocks_in_piece;
 		std::bitset<max_blocks_per_piece> requested_blocks;

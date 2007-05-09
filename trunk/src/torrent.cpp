@@ -105,12 +105,6 @@ namespace
 			return static_cast<int>(i.piece_length());
 		}
 
-		// if pieces are too large, adjust the block size
-		if (i.piece_length() / default_block_size > piece_picker::max_blocks_per_piece)
-		{
-			return static_cast<int>(i.piece_length() / piece_picker::max_blocks_per_piece);
-		}
-
 		// otherwise, go with the default
 		return default_block_size;
 	}
