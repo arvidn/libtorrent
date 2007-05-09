@@ -88,8 +88,6 @@ namespace libtorrent
 	{
 	public:
 
-		enum { max_blocks_per_piece = 256 };
-
 		struct block_info
 		{
 			block_info(): num_downloads(0), requested(0), finished(0) {}
@@ -117,7 +115,9 @@ namespace libtorrent
 			// the index of the piece
 			int index;
 			// info about each block
-			block_info info[max_blocks_per_piece];
+			// this is a pointer into the m_block_info
+			// vector owned by the piece_picker
+			block_info* info;
 			boost::uint16_t finished;
 			boost::uint16_t requested;
 		};
@@ -339,6 +339,9 @@ namespace libtorrent
 			, int num_blocks, bool prefer_whole_pieces
 			, tcp::endpoint peer, piece_state_t speed) const;
 
+		downloading_piece& add_download_piece();
+		void erase_download_piece(std::vector<downloading_piece>::iterator i);
+
 		// this vector contains all pieces we don't have.
 		// in the first entry (index 0) is a vector of all pieces
 		// that no peer have, the vector at index 1 contains
@@ -362,6 +365,15 @@ namespace libtorrent
 		// i.e. it says wich parts of the piece that
 		// is being downloaded
 		std::vector<downloading_piece> m_downloads;
+
+		// this holds the information of the
+		// blocks in partially downloaded pieces.
+		// the first m_blocks_per_piece entries
+		// in the vector belongs to the first
+		// entry in m_downloads, the second
+		// m_blocks_per_piece entries to the
+		// second entry in m_downloads and so on.
+		std::vector<block_info> m_block_info;
 
 		int m_blocks_per_piece;
 		int m_blocks_in_last_piece;

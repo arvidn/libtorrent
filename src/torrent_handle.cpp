@@ -769,7 +769,8 @@ namespace libtorrent
 		{
 			partial_piece_info pi;
 			pi.piece_state = (partial_piece_info::state_t)i->state;
-			for (int j = 0; j < partial_piece_info::max_blocks_per_piece; ++j)
+			pi.blocks_in_piece = p.blocks_in_piece(i->index);
+			for (int j = 0; j < pi.blocks_in_piece; ++j)
 			{
 				pi.peer[j] = i->info[j].peer;
 				pi.num_downloads[j] = i->info[j].num_downloads;
@@ -777,7 +778,6 @@ namespace libtorrent
 				pi.requested_blocks[j] = i->info[j].requested;
 			}
 			pi.piece_index = i->index;
-			pi.blocks_in_piece = p.blocks_in_piece(i->index);
 			queue.push_back(pi);
 		}
 	}
