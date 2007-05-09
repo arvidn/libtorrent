@@ -219,10 +219,14 @@ namespace libtorrent
 
 	// standard constructor that parses a torrent file
 	torrent_info::torrent_info(const entry& torrent_file)
-		: m_creation_date(pt::ptime(pt::not_a_date_time))
+		: m_num_pieces(0)
+		, m_creation_date(pt::ptime(pt::not_a_date_time))
 		, m_multifile(false)
 		, m_private(false)
 		, m_extra_info(entry::dictionary_t)
+#ifndef NDEBUG
+		, m_half_metadata(false)
+#endif
 	{
 		try
 		{
@@ -241,24 +245,32 @@ namespace libtorrent
 	torrent_info::torrent_info(sha1_hash const& info_hash)
 		: m_piece_length(0)
 		, m_total_size(0)
+		, m_num_pieces(0)
 		, m_info_hash(info_hash)
 		, m_name()
 		, m_creation_date(pt::second_clock::universal_time())
 		, m_multifile(false)
 		, m_private(false)
 		, m_extra_info(entry::dictionary_t)
+#ifndef NDEBUG
+		, m_half_metadata(false)
+#endif
 	{
 	}
 
 	torrent_info::torrent_info()
 		: m_piece_length(0)
 		, m_total_size(0)
+		, m_num_pieces(0)
 		, m_info_hash(0)
 		, m_name()
 		, m_creation_date(pt::second_clock::universal_time())
 		, m_multifile(false)
 		, m_private(false)
 		, m_extra_info(entry::dictionary_t)
+#ifndef NDEBUG
+		, m_half_metadata(false)
+#endif
 	{
 	}
 
@@ -278,15 +290,15 @@ namespace libtorrent
 			}
 		}
 #endif
+		assert(!m_half_metadata);
 		m_piece_length = size;
 
-
-		int num_pieces = static_cast<int>(
+		m_num_pieces = static_cast<int>(
 			(m_total_size + m_piece_length - 1) / m_piece_length);
 		int old_num_pieces = static_cast<int>(m_piece_hash.size());
 
-		m_piece_hash.resize(num_pieces);
-		for (int i = old_num_pieces; i < num_pieces; ++i)
+		m_piece_hash.resize(m_num_pieces);
+		for (int i = old_num_pieces; i < m_num_pieces; ++i)
 		{
 			m_piece_hash[i].clear();
 		}
@@ -344,14 +356,14 @@ namespace libtorrent
 		// we want this division to round upwards, that's why we have the
 		// extra addition
 
-		int num_pieces = static_cast<int>((m_total_size + m_piece_length - 1) / m_piece_length);
-		m_piece_hash.resize(num_pieces);
+		m_num_pieces = static_cast<int>((m_total_size + m_piece_length - 1) / m_piece_length);
+		m_piece_hash.resize(m_num_pieces);
 		const std::string& hash_string = info["pieces"].string();
 
-		if ((int)hash_string.length() != num_pieces * 20)
+		if ((int)hash_string.length() != m_num_pieces * 20)
 			throw invalid_torrent_file();
 
-		for (int i = 0; i < num_pieces; ++i)
+		for (int i = 0; i < m_num_pieces; ++i)
 			std::copy(
 				hash_string.begin() + i*20
 				, hash_string.begin() + (i+1)*20
@@ -550,12 +562,12 @@ namespace libtorrent
 		if (m_piece_length == 0)
 			m_piece_length = 256 * 1024;
 
-		int num_pieces = static_cast<int>(
+		m_num_pieces = static_cast<int>(
 			(m_total_size + m_piece_length - 1) / m_piece_length);
 		int old_num_pieces = static_cast<int>(m_piece_hash.size());
 
-		m_piece_hash.resize(num_pieces);
-		if (num_pieces > old_num_pieces)
+		m_piece_hash.resize(m_num_pieces);
+		if (m_num_pieces > old_num_pieces)
 			std::for_each(m_piece_hash.begin() + old_num_pieces
 				, m_piece_hash.end(), boost::bind(&sha1_hash::clear, _1));
 	}
@@ -734,6 +746,16 @@ namespace libtorrent
 	void torrent_info::convert_file_names()
 	{
 		assert(false);
+	}
+
+	void torrent_info::seed_free()
+	{
+		std::vector<std::string>().swap(m_url_seeds);
+		nodes_t().swap(m_nodes);
+		std::vector<sha1_hash>().swap(m_piece_hash);
+#ifndef NDEBUG
+		m_half_metadata = true;
+#endif
 	}
 
 // ------- start deprecation -------
