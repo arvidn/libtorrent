@@ -106,7 +106,15 @@ namespace libtorrent { namespace
 		{
 			m_requested_metadata.resize(256, 0);
 		}
-	
+
+		virtual void on_files_checked()
+		{
+			// if the torrent is a seed, copy the metadata from
+			// the torrent before it is deallocated
+			if (m_torrent.is_seed())
+				metadata();
+		}
+
 		virtual boost::shared_ptr<peer_plugin> new_connection(
 			peer_connection* pc);
 		
@@ -209,6 +217,14 @@ namespace libtorrent { namespace
 		{
 			m_metadata_progress += received;
 			m_metadata_size = total_size;
+		}
+
+		void piece_pass(int)
+		{
+			// if we became a seed, copy the metadata from
+			// the torrent before it is deallocated
+			if (m_torrent.is_seed())
+				metadata();
 		}
 
 	private:
