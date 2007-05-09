@@ -12,7 +12,9 @@ int test_main()
 		const int num_pieces = 6;
 			  
 		// 4 blocks per piece
-		piece_picker p(4, num_pieces * 4);
+		const int blocks_per_piece = 4;
+		piece_picker p(blocks_per_piece
+			, num_pieces * blocks_per_piece);
 
 		// we have the first piece
 		std::vector<bool> have(num_pieces, false);
@@ -20,9 +22,12 @@ int test_main()
 
 		std::vector<piece_picker::downloading_piece> unfinished;
 		piece_picker::downloading_piece partial;
+		piece_picker::block_info blocks[blocks_per_piece * num_pieces];
+
 		partial.index = 1;
-		partial.finished_blocks[0] = true;
-		partial.finished_blocks[2] = true;
+		partial.info = blocks;
+		partial.info[0].finished = true;
+		partial.info[2].finished = true;
 		unfinished.push_back(partial);
 		
 		p.files_checked(have, unfinished);
@@ -146,22 +151,22 @@ int test_main()
 		std::vector<piece_picker::downloading_piece> const& downloads = p.get_download_queue();
 		TEST_CHECK(downloads.size() == 2);
 		TEST_CHECK(downloads[0].index == 1);
-		TEST_CHECK(downloads[0].finished_blocks[0] == 1);
-		TEST_CHECK(downloads[0].finished_blocks[1] == 0);
-		TEST_CHECK(downloads[0].finished_blocks[2] == 1);
-		TEST_CHECK(downloads[0].finished_blocks[3] == 0);
-		TEST_CHECK(downloads[0].requested_blocks[1] == 1);
-		TEST_CHECK(downloads[0].requested_blocks[3] == 1);
+		TEST_CHECK(downloads[0].info[0].finished == 1);
+		TEST_CHECK(downloads[0].info[1].finished == 0);
+		TEST_CHECK(downloads[0].info[2].finished == 1);
+		TEST_CHECK(downloads[0].info[3].finished == 0);
+		TEST_CHECK(downloads[0].info[1].requested == 1);
+		TEST_CHECK(downloads[0].info[3].requested == 1);
 
 		TEST_CHECK(downloads[1].index == 2);
-		TEST_CHECK(downloads[1].finished_blocks[0] == 0);
-		TEST_CHECK(downloads[1].finished_blocks[1] == 0);
-		TEST_CHECK(downloads[1].finished_blocks[2] == 0);
-		TEST_CHECK(downloads[1].finished_blocks[3] == 0);
-		TEST_CHECK(downloads[1].requested_blocks[0] == 1);
-		TEST_CHECK(downloads[1].requested_blocks[1] == 0);
-		TEST_CHECK(downloads[1].requested_blocks[2] == 0);
-		TEST_CHECK(downloads[1].requested_blocks[3] == 0);
+		TEST_CHECK(downloads[1].info[0].finished == 0);
+		TEST_CHECK(downloads[1].info[1].finished == 0);
+		TEST_CHECK(downloads[1].info[2].finished == 0);
+		TEST_CHECK(downloads[1].info[3].finished == 0);
+		TEST_CHECK(downloads[1].info[0].requested == 1);
+		TEST_CHECK(downloads[1].info[1].requested == 0);
+		TEST_CHECK(downloads[1].info[2].requested == 0);
+		TEST_CHECK(downloads[1].info[3].requested == 0);
 
 		TEST_CHECK(p.is_downloading(piece_block(1, 1)));
 		TEST_CHECK(p.is_downloading(piece_block(1, 3)));
