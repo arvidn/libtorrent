@@ -74,6 +74,7 @@ namespace libtorrent
 			delete c;
 	}
 
+	// outbound connection
 	peer_connection::peer_connection(
 		session_impl& ses
 		, boost::weak_ptr<torrent> tor
@@ -147,6 +148,7 @@ namespace libtorrent
 			init();
 	}
 
+	// incoming connection
 	peer_connection::peer_connection(
 		session_impl& ses
 		, boost::shared_ptr<socket_type> s
@@ -198,6 +200,8 @@ namespace libtorrent
 		, m_in_constructor(true)
 #endif
 	{
+		tcp::socket::non_blocking_io ioc(true);
+		m_socket->io_control(ioc);
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		std::fill(m_country, m_country + 2, 0);
 #endif
@@ -2004,7 +2008,6 @@ namespace libtorrent
 			&& !m_connecting
 			&& t)
 		{
-			assert(t);
 			if (m_bandwidth_limit[download_channel].max_assignable() > 0)
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -2076,7 +2079,6 @@ namespace libtorrent
 		bool m_cond;
 	};
 
-
 	// --------------------------
 	// RECEIVE DATA
 	// --------------------------
@@ -2091,8 +2093,6 @@ namespace libtorrent
 
 		assert(m_reading);
 		m_reading = false;
-		// correct the dl quota usage, if not all of the buffer was actually read
-		m_bandwidth_limit[download_channel].use_quota(bytes_transferred);
 
 		if (error)
 		{
@@ -2103,28 +2103,46 @@ namespace libtorrent
 			throw std::runtime_error(error.message());
 		}
 
-		if (m_disconnecting) return;
+		do
+		{
+			// correct the dl quota usage, if not all of the buffer was actually read
+			m_bandwidth_limit[download_channel].use_quota(bytes_transferred);
+
+			if (m_disconnecting) return;
 	
-		assert(m_packet_size > 0);
-		assert(bytes_transferred > 0);
+			assert(m_packet_size > 0);
+			assert(bytes_transferred > 0);
 
-		m_last_receive = time_now();
-		m_recv_pos += bytes_transferred;
-		assert(m_recv_pos <= int(m_recv_buffer.size()));
+			m_last_receive = time_now();
+			m_recv_pos += bytes_transferred;
+			assert(m_recv_pos <= int(m_recv_buffer.size()));
 		
-		{
-			INVARIANT_CHECK;
-			on_receive(error, bytes_transferred);
-		}
+			{
+				INVARIANT_CHECK;
+				on_receive(error, bytes_transferred);
+			}
 
-		assert(m_packet_size > 0);
+			assert(m_packet_size > 0);
 
-		if (m_peer_choked
-			&& m_recv_pos == 0
-			&& (m_recv_buffer.capacity() - m_packet_size) > 128)
-		{
-			std::vector<char>(m_packet_size).swap(m_recv_buffer);
+			if (m_peer_choked
+				&& m_recv_pos == 0
+				&& (m_recv_buffer.capacity() - m_packet_size) > 128)
+			{
+				std::vector<char>(m_packet_size).swap(m_recv_buffer);
+			}
+
+			if (m_bandwidth_limit[download_channel].quota_left() == 0) break;
+
+			int max_receive = std::min(
+				m_bandwidth_limit[download_channel].quota_left()
+				, m_packet_size - m_recv_pos);
+			asio::error_code ec;
+			bytes_transferred = m_socket->read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
+				, max_receive), ec);
+			if (ec && ec != asio::error::would_block)
+				throw asio::system_error(ec);
 		}
+		while (bytes_transferred > 0);
 
 		setup_receive();	
 	}
@@ -2195,6 +2213,11 @@ namespace libtorrent
 		m_queued = false;
 		assert(m_connecting);
 		m_socket->open(t->get_interface().protocol());
+
+		// set the socket to non-blocking, so that we can
+		// read the entire buffer on each read event we get
+		tcp::socket::non_blocking_io ioc(true);
+		m_socket->io_control(ioc);
 		m_socket->bind(t->get_interface());
 		m_socket->async_connect(m_remote
 			, bind(&peer_connection::on_connection_complete, self(), _1));

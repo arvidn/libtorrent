@@ -44,6 +44,30 @@ public:
 		m_sock.async_read_some(buffers, handler);
 	}
 
+	template <class Mutable_Buffers>
+	std::size_t read_some(Mutable_Buffers const& buffers, asio::error_code& ec)
+	{
+		return m_sock.read_some(buffers, ec);
+	}
+
+	template <class Mutable_Buffers>
+	std::size_t read_some(Mutable_Buffers const& buffers)
+	{
+		return m_sock.read_some(buffers);
+	}
+
+	template <class IO_Control_Command>
+	void io_control(IO_Control_Command& ioc)
+	{
+		m_sock.io_control(ioc);
+	}
+
+	template <class IO_Control_Command>
+	void io_control(IO_Control_Command& ioc, asio::error_code& ec)
+	{
+		m_sock.io_control(ioc, ec);
+	}
+
 	template <class Const_Buffers, class Handler>
 	void async_write_some(Const_Buffers const& buffers, Handler const& handler)
 	{
