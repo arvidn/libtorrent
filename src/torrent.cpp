@@ -1557,6 +1557,9 @@ namespace libtorrent
 	}
 	catch (std::exception& exc)
 	{
+#ifndef NDEBUG
+		std::cerr << exc.what() << std::endl;
+#endif
 		assert(false);
 	};
 

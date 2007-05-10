@@ -43,6 +43,45 @@ namespace aux
       {}
   };
 
+// -------------- io_control -----------
+
+  template<class IO_Control_Command>
+  struct io_control_visitor_ec: boost::static_visitor<>
+  {
+      io_control_visitor_ec(IO_Control_Command& ioc, asio::error_code& ec)
+          : ioc(ioc), ec(ec) {}
+
+      template <class T>
+      void operator()(T* p) const
+      {
+          p->io_control(ioc, ec);
+      }
+
+      void operator()(boost::blank) const
+      {}
+
+      IO_Control_Command& ioc;
+		asio::error_code& ec;
+  };
+
+  template<class IO_Control_Command>
+  struct io_control_visitor
+      : boost::static_visitor<>
+  {
+      io_control_visitor(IO_Control_Command& ioc)
+          : ioc(ioc) {}
+
+      template <class T>
+      void operator()(T* p) const
+      {
+          p->io_control(ioc);
+      }
+
+      void operator()(boost::blank) const
+      {}
+
+      IO_Control_Command& ioc;
+  };
 // -------------- async_connect -----------
 
   template <class EndpointType, class Handler>
@@ -294,6 +333,46 @@ namespace aux
       Handler const& handler;
   };
 
+// -------------- read_some -----------
+
+  template <class Mutable_Buffers>
+  struct read_some_visitor
+    : boost::static_visitor<std::size_t>
+  {
+      read_some_visitor(Mutable_Buffers const& buffers)
+        : buffers(buffers)
+      {}
+
+      template <class T>
+      std::size_t operator()(T* p) const
+      { return p->read_some(buffers); }
+
+		std::size_t operator()(boost::blank) const
+      { return 0; }
+
+      Mutable_Buffers const& buffers;
+  };
+
+  template <class Mutable_Buffers>
+  struct read_some_visitor_ec
+    : boost::static_visitor<std::size_t>
+  {
+      read_some_visitor_ec(Mutable_Buffers const& buffers, asio::error_code& ec)
+        : buffers(buffers)
+        , ec(ec)
+      {}
+
+      template <class T>
+      std::size_t operator()(T* p) const
+      { return p->read_some(buffers, ec); }
+
+		std::size_t operator()(boost::blank) const
+      { return 0; }
+
+      Mutable_Buffers const& buffers;
+      asio::error_code& ec;
+  };
+
 // -------------- async_write_some -----------
 
   template <class Const_Buffers, class Handler>
@@ -452,6 +531,26 @@ public:
         boost::apply_visitor(aux::delete_visitor(), m_variant);
     }
 
+    template <class Mutable_Buffers>
+    std::size_t read_some(Mutable_Buffers const& buffers, asio::error_code& ec)
+    {
+        assert(instantiated());
+        return boost::apply_visitor(
+            aux::read_some_visitor_ec<Mutable_Buffers>(buffers, ec)
+          , m_variant
+        );
+    }
+
+    template <class Mutable_Buffers>
+    std::size_t read_some(Mutable_Buffers const& buffers)
+    {
+        assert(instantiated());
+        return boost::apply_visitor(
+            aux::read_some_visitor<Mutable_Buffers>(buffers)
+          , m_variant
+        );
+    }
+
     template <class Mutable_Buffers, class Handler>
     void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
     {
@@ -478,6 +577,25 @@ public:
         assert(instantiated());
         boost::apply_visitor(
             aux::async_connect_visitor<endpoint_type, Handler>(endpoint, handler), m_variant
+        );
+    }
+
+    template <class IO_Control_Command>
+    void io_control(IO_Control_Command& ioc)
+    {
+        assert(instantiated());
+        boost::apply_visitor(
+            aux::io_control_visitor<IO_Control_Command>(ioc), m_variant
+        );
+    }
+
+    template <class IO_Control_Command>
+    void io_control(IO_Control_Command& ioc, asio::error_code& ec)
+    {
+        assert(instantiated());
+        boost::apply_visitor(
+            aux::io_control_visitor_ec<IO_Control_Command>(ioc, ec)
+            , m_variant
         );
     }
 
