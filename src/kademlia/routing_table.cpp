@@ -313,7 +313,7 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint addr)
 	if (i != rb.end()) return ret;
 	
 	if ((int)rb.size() > m_bucket_size) rb.erase(rb.begin());
-	if (rb.empty()) rm.reserve(m_bucket_size);
+	if (rb.empty()) rb.reserve(m_bucket_size);
 	rb.push_back(node_entry(id, addr));
 //	TORRENT_LOG(table) << "inserting node in replacement cache: " << id << " " << addr;
 	return ret;
