@@ -1856,7 +1856,7 @@ namespace libtorrent
 		// otherwise there will be no end to how large it will be!
 		// TODO: the buffer size should probably be dependent on the transfer speed
 		
-		int blocks_per_second = m_statistics.upload_rate() / t->block_size();
+		int blocks_per_second = int(m_statistics.upload_rate() / t->block_size());
 		if (blocks_per_second == 0) blocks_per_second = 1;
 		else if (blocks_per_second > 12) blocks_per_second = 12;
 
