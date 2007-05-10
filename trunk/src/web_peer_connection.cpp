@@ -256,6 +256,7 @@ namespace libtorrent
 					request += "\r\nConnection: keep-alive";
 				request += "\r\n\r\n";
 				m_first_request = false;
+				assert(f.file_index >= 0);
 				m_file_requests.push_back(f.file_index);
 			}
 		}
@@ -462,14 +463,14 @@ namespace libtorrent
 				// (if it completed) call incoming_piece() with
 				// m_piece as buffer.
 				
-				int copy_size = std::min(front_request.length - int(m_piece.size())
+				int piece_size = int(m_piece.size());
+				int copy_size = std::min(front_request.length - piece_size
 					, http_body.left());
-				m_piece.resize(m_piece.size() + copy_size);
+				m_piece.resize(piece_size + copy_size);
 				std::memcpy(&m_piece[0] + m_piece.size(), http_body.begin, copy_size);
 				assert(int(m_piece.size()) <= front_request.length);
 				http_body.begin += copy_size;
-				int piece_size = int(m_piece.size());
-				if (piece_size < front_request.length)
+				if (int(m_piece.size()) < front_request.length)
 					return;
 
 				// each call to incoming_piece() may result in us becoming
@@ -507,10 +508,11 @@ namespace libtorrent
 				if (in_range.start + in_range.length < m_requests.front().start + m_requests.front().length
 					&& m_parser.finished())
 				{
-					int copy_size = std::min(m_requests.front().length - int(m_piece.size())
+					int piece_size = int(m_piece.size());
+					int copy_size = std::min(m_requests.front().length - piece_size
 						, http_body.left());
-					m_piece.resize(m_piece.size() + copy_size);
-					std::memcpy(&m_piece[0] + m_piece.size(), http_body.begin, copy_size);
+					m_piece.resize(piece_size + copy_size);
+					std::memcpy(&m_piece[0] + piece_size, http_body.begin, copy_size);
 					http_body.begin += copy_size;
 				}
 			}
