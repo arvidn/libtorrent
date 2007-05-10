@@ -150,7 +150,7 @@ catch (std::exception& e)
 	m_callback(0, 0, msg.str());
 };
 
-void upnp::discover_device()
+void upnp::discover_device() try
 {
 	const char msearch[] = 
 		"M-SEARCH * HTTP/1.1\r\n"
@@ -175,6 +175,10 @@ void upnp::discover_device()
 	m_log << time_now_string()
 		<< " ==> Broadcasting search for rootdevice" << std::endl;
 #endif
+}
+catch (std::exception&)
+{
+	m_disabled = true;
 }
 
 void upnp::set_mappings(int tcp, int udp)
@@ -207,7 +211,7 @@ void upnp::set_mappings(int tcp, int udp)
 	}
 }
 
-void upnp::resend_request(asio::error_code const& e)
+void upnp::resend_request(asio::error_code const& e) try
 {
 	if (e) return;
 	if (m_retry_count < 9
@@ -243,9 +247,13 @@ void upnp::resend_request(asio::error_code const& e)
 		}
 	}
 }
+catch (std::exception&)
+{
+	m_disabled = true;
+}
 
 void upnp::on_reply(asio::error_code const& e
-	, std::size_t bytes_transferred)
+	, std::size_t bytes_transferred) try
 {
 	using namespace libtorrent::detail;
 	if (e) return;
@@ -383,6 +391,10 @@ void upnp::on_reply(asio::error_code const& e
 			}
 		}
 	}
+}
+catch (std::exception&)
+{
+	m_disabled = true;
 }
 
 void upnp::post(rootdevice& d, std::stringstream const& soap
@@ -548,7 +560,7 @@ namespace
 }
 
 void upnp::on_upnp_xml(asio::error_code const& e
-	, libtorrent::http_parser const& p, rootdevice& d)
+	, libtorrent::http_parser const& p, rootdevice& d) try
 {
 	if (d.upnp_connection)
 	{
@@ -613,6 +625,10 @@ void upnp::on_upnp_xml(asio::error_code const& e
 
 	map_port(d, 0);
 }
+catch (std::exception&)
+{
+	m_disabled = true;
+}
 
 namespace
 {
@@ -667,7 +683,7 @@ namespace
 }
 
 void upnp::on_upnp_map_response(asio::error_code const& e
-	, libtorrent::http_parser const& p, rootdevice& d, int mapping)
+	, libtorrent::http_parser const& p, rootdevice& d, int mapping) try
 {
 	if (d.upnp_connection)
 	{
@@ -803,9 +819,13 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 		}
 	}
 }
+catch (std::exception&)
+{
+	m_disabled = true;
+}
 
 void upnp::on_upnp_unmap_response(asio::error_code const& e
-	, libtorrent::http_parser const& p, rootdevice& d, int mapping)
+	, libtorrent::http_parser const& p, rootdevice& d, int mapping) try
 {
 	if (d.upnp_connection)
 	{
@@ -847,8 +867,12 @@ void upnp::on_upnp_unmap_response(asio::error_code const& e
 	// all the unmap operations to complete
 	m_devices.erase(d);
 }
+catch (std::exception&)
+{
+	m_disabled = true;
+}
 
-void upnp::on_expire(asio::error_code const& e)
+void upnp::on_expire(asio::error_code const& e) try
 {
 	if (e) return;
 
@@ -880,6 +904,10 @@ void upnp::on_expire(asio::error_code const& e)
 		m_refresh_timer.expires_at(next_expire);
 		m_refresh_timer.async_wait(m_strand.wrap(bind(&upnp::on_expire, this, _1)));
 	}
+}
+catch (std::exception&)
+{
+	m_disabled = true;
 }
 
 void upnp::close()
