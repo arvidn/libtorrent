@@ -1855,8 +1855,15 @@ namespace libtorrent
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
 		// TODO: the buffer size should probably be dependent on the transfer speed
+		
+		int blocks_per_second = m_statistics.upload_rate() / t->block_size();
+		if (blocks_per_second == 0) blocks_per_second = 1;
+		else if (blocks_per_second > 12) blocks_per_second = 12;
+
+		int buffer_size_watermark = t->block_size() * blocks_per_second / 2;
+
 		while (!m_requests.empty()
-			&& (send_buffer_size() < t->block_size() * 6)
+			&& (send_buffer_size() < buffer_size_watermark)
 			&& !m_choked)
 		{
 			assert(t->valid_metadata());
@@ -1871,9 +1878,9 @@ namespace libtorrent
 			write_piece(r);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string()
-			<< " ==> PIECE   [ piece: " << r.piece << " | s: " << r.start
-			<< " | l: " << r.length << " ]\n";
+			(*m_logger) << time_now_string()
+				<< " ==> PIECE   [ piece: " << r.piece << " | s: " << r.start
+				<< " | l: " << r.length << " ]\n";
 #endif
 
 			m_requests.erase(m_requests.begin());
