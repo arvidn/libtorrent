@@ -462,10 +462,10 @@ namespace libtorrent
 				// (if it completed) call incoming_piece() with
 				// m_piece as buffer.
 				
-				m_piece.reserve(info.piece_length());
 				int copy_size = std::min(front_request.length - int(m_piece.size())
 					, http_body.left());
-				std::copy(http_body.begin, http_body.begin + copy_size, std::back_inserter(m_piece));
+				m_piece.resize(m_piece.size() + copy_size);
+				std::memcpy(&m_piece[0] + m_piece.size(), http_body.begin, copy_size);
 				assert(int(m_piece.size()) <= front_request.length);
 				http_body.begin += copy_size;
 				int piece_size = int(m_piece.size());
@@ -507,10 +507,10 @@ namespace libtorrent
 				if (in_range.start + in_range.length < m_requests.front().start + m_requests.front().length
 					&& m_parser.finished())
 				{
-					m_piece.reserve(info.piece_length());
 					int copy_size = std::min(m_requests.front().length - int(m_piece.size())
 						, http_body.left());
-					std::copy(http_body.begin, http_body.begin + copy_size, std::back_inserter(m_piece));
+					m_piece.resize(m_piece.size() + copy_size);
+					std::memcpy(&m_piece[0] + m_piece.size(), http_body.begin, copy_size);
 					http_body.begin += copy_size;
 				}
 			}
