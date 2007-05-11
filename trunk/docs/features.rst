@@ -49,7 +49,7 @@ following features:
   This means it can download parts of the same piece from different peers.
   It will also prefer to download whole pieces from single peers if the
   download speed is high enough from that particular peer.
-* supports the `udp-tracker protocol`__ by Olaf van der Spek.
+* supports the `udp-tracker protocol`_ by Olaf van der Spek.
 * queues torrents for file check, instead of checking all of them in parallel.
 * supports http proxies and basic proxy authentication
 * gzipped tracker-responses
@@ -58,7 +58,7 @@ following features:
 * implements fair trade. User settable trade-ratio, must at least be 1:1,
   but one can choose to trade 1 for 2 or any other ratio that isn't unfair
   to the other party.
-* supports an `extension protocol`__. See extensions_.
+* supports an `extension protocol`_. See extensions_.
 * supports the ``no_peer_id=1`` extension that will ease the load off trackers.
 * possibility to limit the number of connections.
 * delays have messages if there's no other outgoing traffic to the peer, and
@@ -75,8 +75,8 @@ following features:
 .. _`DHT extensions`: dht_extensions.html
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
 __ http://www.getright.com/seedtorrent.html
-__ extension_protocol.html
-__ udp_tracker_protocol.html
+.. _`extension protocol`: extension_protocol.html
+.. _`udp-tracker protocol`: udp_tracker_protocol.html
 
 portability
 ===========
