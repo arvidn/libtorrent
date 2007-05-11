@@ -312,6 +312,14 @@ namespace libtorrent
 			io_service m_io_service;
 			asio::strand m_strand;
 
+			// the file pool that all storages in this session's
+			// torrents uses. It sets a limit on the number of
+			// open files by this session.
+			// file pool must be destructed after the torrents
+			// since they will still have references to it
+			// when they are destructed.
+			file_pool m_files;
+
 			// the bandwidth manager is responsible for
 			// handing out bandwidth to connections that
 			// asks for it, it can also throttle the
@@ -391,11 +399,6 @@ namespace libtorrent
 			// NAT or not.
 			bool m_incoming_connection;
 			
-			// the file pool that all storages in this session's
-			// torrents uses. It sets a limit on the number of
-			// open files by this session.
-			file_pool m_files;
-
 			void second_tick(asio::error_code const& e);
 			ptime m_last_tick;
 

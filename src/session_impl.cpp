@@ -477,6 +477,7 @@ namespace libtorrent { namespace detail
 		, fingerprint const& cl_fprint
 		, char const* listen_interface)
 		: m_strand(m_io_service)
+		, m_files(40)
 		, m_dl_bandwidth_manager(m_io_service, peer_connection::download_channel)
 		, m_ul_bandwidth_manager(m_io_service, peer_connection::upload_channel)
 		, m_tracker_manager(m_settings, m_tracker_proxy)
@@ -488,7 +489,6 @@ namespace libtorrent { namespace detail
 		, m_max_uploads(-1)
 		, m_max_connections(-1)
 		, m_incoming_connection(false)
-		, m_files(40)
 		, m_last_tick(time_now())
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_same_port(true)
