@@ -475,6 +475,7 @@ namespace libtorrent { namespace detail
 		, fingerprint const& cl_fprint
 		, char const* listen_interface)
 		: m_strand(m_io_service)
+		, m_files(40)
 		, m_dl_bandwidth_manager(m_io_service, peer_connection::download_channel)
 		, m_ul_bandwidth_manager(m_io_service, peer_connection::upload_channel)
 		, m_tracker_manager(m_settings)
@@ -485,7 +486,6 @@ namespace libtorrent { namespace detail
 		, m_max_connections(-1)
 		, m_half_open_limit(-1)
 		, m_incoming_connection(false)
-		, m_files(40)
 		, m_last_tick(microsec_clock::universal_time())
 		, m_timer(m_io_service)
 		, m_checker_impl(*this)
