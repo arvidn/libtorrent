@@ -163,6 +163,14 @@ namespace libtorrent
 		std::vector<char> m_piece;
 		// the mapping of the data in the m_piece buffer
 		peer_request m_intermediate_piece;
+		
+		// the number of bytes into the receive buffer where
+		// current read cursor is.
+		int m_body_start;
+		// the number of bytes received in the current HTTP
+		// response. used to know where in the buffer the
+		// next response starts
+		int m_received_body;
 	};
 }
 
