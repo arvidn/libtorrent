@@ -1666,11 +1666,12 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		assert(packet_size > 0);
-		assert((int)m_recv_buffer.size() >= size);
-		// TODO: replace with memmov
-		std::copy(m_recv_buffer.begin() + size, m_recv_buffer.begin() + m_recv_pos, m_recv_buffer.begin());
-
+		assert(int(m_recv_buffer.size()) >= size);
+		assert(int(m_recv_buffer.size()) >= m_recv_pos);
 		assert(m_recv_pos >= size);
+		
+		std::memmove(&m_recv_buffer[0], &m_recv_buffer[0] + size, m_recv_pos - size);
+
 		m_recv_pos -= size;
 
 #ifndef NDEBUG
