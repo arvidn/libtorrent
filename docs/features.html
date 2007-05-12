@@ -20,16 +20,16 @@
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
-<p class="topic-title first"><a name="table-of-contents">Table of contents</a></p>
+<p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference" href="#introduction" id="id6" name="id6">introduction</a></li>
-<li><a class="reference" href="#features" id="id7" name="id7">features</a></li>
-<li><a class="reference" href="#portability" id="id8" name="id8">portability</a></li>
-<li><a class="reference" href="#license" id="id9" name="id9">license</a></li>
+<li><a class="reference" href="#introduction" id="id4">introduction</a></li>
+<li><a class="reference" href="#features" id="id5">features</a></li>
+<li><a class="reference" href="#portability" id="id6">portability</a></li>
+<li><a class="reference" href="#license" id="id7">license</a></li>
 </ul>
 </div>
-<div class="section">
-<h1><a id="introduction" name="introduction">introduction</a></h1>
+<div class="section" id="introduction">
+<h1>introduction</h1>
 <p>libtorrent is a C++ library that aims to be a good alternative to all the
 other bittorrent implementations around. It is a
 library and not a full featured client, although it comes with a working
@@ -41,8 +41,8 @@ example client.</p>
 <li>to be very easy to use</li>
 </ul>
 </div>
-<div class="section">
-<h1><a id="features" name="features">features</a></h1>
+<div class="section" id="features">
+<h1>features</h1>
 <p>libtorrent is still being developed, however it is stable. It is an ongoing
 project (including this documentation). The current state includes the
 following features:</p>
@@ -67,7 +67,7 @@ as well as all local peers in a separate fast-resume file.</li>
 This means it can download parts of the same piece from different peers.
 It will also prefer to download whole pieces from single peers if the
 download speed is high enough from that particular peer.</li>
-<li>supports the <a class="reference" href="extension_protocol.html">udp-tracker protocol</a> by Olaf van der Spek.</li>
+<li>supports the <a class="reference" href="udp_tracker_protocol.html">udp-tracker protocol</a> by Olaf van der Spek.</li>
 <li>queues torrents for file check, instead of checking all of them in parallel.</li>
 <li>supports http proxies and basic proxy authentication</li>
 <li>gzipped tracker-responses</li>
@@ -76,7 +76,7 @@ unchoked peers</li>
 <li>implements fair trade. User settable trade-ratio, must at least be 1:1,
 but one can choose to trade 1 for 2 or any other ratio that isn't unfair
 to the other party.</li>
-<li>supports an <a class="reference" href="udp_tracker_protocol.html">extension protocol</a>. See <a class="reference" href="manual.html#extensions">extensions</a>.</li>
+<li>supports an <a class="reference" href="extension_protocol.html">extension protocol</a>. See <a class="reference" href="manual.html#extensions">extensions</a>.</li>
 <li>supports the <tt class="docutils literal"><span class="pre">no_peer_id=1</span></tt> extension that will ease the load off trackers.</li>
 <li>possibility to limit the number of connections.</li>
 <li>delays have messages if there's no other outgoing traffic to the peer, and
@@ -91,8 +91,8 @@ want to download.</li>
 being connected</li>
 </ul>
 </div>
-<div class="section">
-<h1><a id="portability" name="portability">portability</a></h1>
+<div class="section" id="portability">
+<h1>portability</h1>
 <p>libtorrent is portable at least among Windows, MacOS X and other UNIX-systems.
 It uses Boost.Thread, Boost.Filesystem, Boost.Date_time and various other
 boost libraries as well as <a class="reference" href="http://www.zlib.org">zlib</a> (shipped) and <a class="reference" href="http://asio.sf.net">asio</a> (shipped). At least version
@@ -114,8 +114,8 @@ epoll on linux and kqueue on MacOS X and BSD.</p>
 <li>msvc6</li>
 </ul>
 </div>
-<div class="section">
-<h1><a id="license" name="license">license</a></h1>
+<div class="section" id="license">
+<h1>license</h1>
 <p>libtorrent is released under the <a class="reference" href="http://www.opensource.org/licenses/bsd-license.php">BSD-license</a>.</p>
 <p>This means that you can use the library in your project without having to
 release its source code. The only requirement is that you give credit

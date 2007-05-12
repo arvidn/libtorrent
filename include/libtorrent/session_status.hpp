@@ -59,6 +59,7 @@ namespace libtorrent
 		int dht_nodes;
 		int dht_node_cache;
 		int dht_torrents;
+		size_type dht_global_nodes;
 #endif
 	};
 

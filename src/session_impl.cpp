@@ -1544,6 +1544,7 @@ namespace libtorrent { namespace detail
 			s.dht_nodes = 0;
 			s.dht_node_cache = 0;
 			s.dht_torrents = 0;
+			s.dht_global_nodes = 0;
 		}
 #endif
 
