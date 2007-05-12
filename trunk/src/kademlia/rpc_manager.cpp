@@ -133,7 +133,7 @@ bool rpc_manager::incoming(msg const& m)
 			|| tid < 0)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(rpc) << "Reply with unknown transaction id: " 
+			TORRENT_LOG(rpc) << "Reply with invalid transaction id: " 
 				<< tid << " from " << m.addr;
 #endif
 			return false;
@@ -145,7 +145,7 @@ bool rpc_manager::incoming(msg const& m)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(rpc) << "Reply with unknown transaction id: " 
-				<< tid << " from " << m.addr;
+				<< tid << " from " << m.addr << " (possibly timed out)";
 #endif
 			return false;
 		}
@@ -174,17 +174,16 @@ bool rpc_manager::incoming(msg const& m)
 			msg ph;
 			ph.message_id = messages::ping;
 			ph.transaction_id = m.ping_transaction_id;
-			ph.id = m_our_id;
 			ph.addr = m.addr;
-
-			msg empty;
+			ph.reply = true;
 			
-			reply(empty, ph);
+			reply(ph);
 		}
 		return m_table.node_seen(m.id, m.addr);
 	}
 	else
 	{
+		assert(m.message_id != messages::error);
 		// this is an incoming request
 		m_incoming(m);
 	}
@@ -326,19 +325,15 @@ void rpc_manager::invoke(int message_id, udp::endpoint target_addr
 	}
 }
 
-void rpc_manager::reply(msg& m, msg const& reply_to)
+void rpc_manager::reply(msg& m)
 {
 	INVARIANT_CHECK;
 
 	if (m_destructing) return;
 
-	if (m.message_id != messages::error)
-		m.message_id = reply_to.message_id;
-	m.addr = reply_to.addr;
-	m.reply = true;
+	assert(m.reply);
 	m.piggy_backed_ping = false;
 	m.id = m_our_id;
-	m.transaction_id = reply_to.transaction_id;
 	
 	m_send(m);
 }
@@ -354,38 +349,27 @@ namespace
 	};
 }
 
-void rpc_manager::reply_with_ping(msg& m, msg const& reply_to)
+void rpc_manager::reply_with_ping(msg& m)
 {
 	INVARIANT_CHECK;
 
 	if (m_destructing) return;
+	assert(m.reply);
 
-	if (m.message_id != messages::error)
-		m.message_id = reply_to.message_id;
-	m.addr = reply_to.addr;
-	m.reply = true;
 	m.piggy_backed_ping = true;
 	m.id = m_our_id;
-	m.transaction_id = reply_to.transaction_id;
 
-	try
-	{
-		m.ping_transaction_id.clear();
-		std::back_insert_iterator<std::string> out(m.ping_transaction_id);
-		io::write_uint16(m_next_transaction_id, out);
+	m.ping_transaction_id.clear();
+	std::back_insert_iterator<std::string> out(m.ping_transaction_id);
+	io::write_uint16(m_next_transaction_id, out);
 
-		boost::shared_ptr<observer> o(new dummy_observer);
-		assert(!m_transactions[m_next_transaction_id]);
-		o->sent = time_now();
-		o->target_addr = m.addr;
+	boost::shared_ptr<observer> o(new dummy_observer);
+	assert(!m_transactions[m_next_transaction_id]);
+	o->sent = time_now();
+	o->target_addr = m.addr;
 		
-		m_send(m);
-		new_transaction_id(o);
-	}
-	catch (std::exception& e)
-	{
-		// m_send may fail with "no route to host"
-	}
+	m_send(m);
+	new_transaction_id(o);
 }
 
 

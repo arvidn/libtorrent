@@ -381,27 +381,35 @@ time_duration node_impl::refresh_timeout()
 		for (int i = 0; i < 160; ++i)
 		{
 			ptime r = m_table.next_refresh(i);
-			if (r <= now)
+			if (r <= next)
 			{
-				if (refresh == -1) refresh = i;
-			}
-			else if (r < next)
-			{
+				refresh = i;
 				next = r;
 			}
 		}
-		if (refresh != -1)
+		if (next < now)
 		{
-	#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			assert(refresh > -1);
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(node) << "refreshing bucket: " << refresh;
-	#endif
+#endif
 			refresh_bucket(refresh);
 		}
 	}
 	catch (std::exception&) {}
 
-	if (next < now + seconds(5)) return seconds(5);
-	return next - now;
+	time_duration next_refresh = next - now;
+	time_duration min_next_refresh
+		= minutes(15) / (m_table.num_active_buckets());
+
+	if (next_refresh < min_next_refresh)
+		next_refresh = min_next_refresh;
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(node) << "next refresh: " << total_seconds(next_refresh) << " seconds";
+#endif
+
+	return next_refresh;
 }
 
 time_duration node_impl::connection_timeout()
@@ -493,6 +501,11 @@ bool node_impl::on_find(msg const& m, std::vector<tcp::endpoint>& peers) const
 void node_impl::incoming_request(msg const& m)
 {
 	msg reply;
+	reply.message_id = m.message_id;
+	reply.addr = m.addr;
+	reply.reply = true;
+	reply.transaction_id = m.transaction_id;
+
 	switch (m.message_id)
 	{
 	case messages::ping:
@@ -532,16 +545,16 @@ void node_impl::incoming_request(msg const& m)
 		}
 		break;
 	case messages::announce_peer:
-		{
-			on_announce(m, reply);
-		}
+		on_announce(m, reply);
 		break;
+	default:
+		assert(false);
 	};
 
 	if (m_table.need_node(m.id))
-		m_rpc.reply_with_ping(reply, m);
+		m_rpc.reply_with_ping(reply);
 	else
-		m_rpc.reply(reply, m);
+		m_rpc.reply(reply);
 }
 
 

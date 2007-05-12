@@ -69,7 +69,7 @@ namespace messages
 struct msg
 {
 	msg() : reply(false), piggy_backed_ping(false)
-		, port(0) {}
+		, message_id(-1), port(0) {}
 
 	// true if this message is a reply
 	bool reply;
@@ -158,8 +158,8 @@ public:
 	void invoke(int message_id, udp::endpoint target
 		, boost::shared_ptr<observer> o);
 
-	void reply(msg& m, msg const& reply_to);
-	void reply_with_ping(msg& m, msg const& reply_to);
+	void reply(msg& m);
+	void reply_with_ping(msg& m);
 
 #ifndef NDEBUG
 	void check_invariant() const;
