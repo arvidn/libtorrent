@@ -904,18 +904,19 @@ namespace libtorrent
 
 #if defined(__linux__)
 		struct statfs buf;
-		if (statfs(p.native_directory_string().c_str(), &buf) != 0);
-			return false;
-
-		switch (buf.f_type)
+		int err = statfs(p.native_directory_string().c_str(), &buf);
+		if (err == 0)
 		{
-			case 0x5346544e: // NTFS
-			case 0xEF51: // EXT2 OLD
-			case 0xEF53: // EXT2 and EXT3
-			case 0x00011954: // UFS
-			case 0x52654973: // ReiserFS
-			case 0x58465342: // XFS
-				return true;
+			switch (buf.f_type)
+			{
+				case 0x5346544e: // NTFS
+				case 0xEF51: // EXT2 OLD
+				case 0xEF53: // EXT2 and EXT3
+				case 0x00011954: // UFS
+				case 0x52654973: // ReiserFS
+				case 0x58465342: // XFS
+					return true;
+			}
 		}
 #endif
 
