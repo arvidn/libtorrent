@@ -153,7 +153,7 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 	m_retry_count = 0;
 	asio::error_code ec;
 	m_socket.send_to(asio::buffer(msg.c_str(), msg.size() - 1)
-		, lsd_multicast_endpoint, ec);
+		, lsd_multicast_endpoint, 0, ec);
 	if (ec)
 	{
 		m_disabled = true;
