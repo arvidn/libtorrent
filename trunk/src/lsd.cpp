@@ -151,8 +151,14 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 	std::string const& msg = btsearch.str();
 
 	m_retry_count = 0;
+	asio::error_code ec;
 	m_socket.send_to(asio::buffer(msg.c_str(), msg.size() - 1)
-		, lsd_multicast_endpoint);
+		, lsd_multicast_endpoint, ec);
+	if (ec)
+	{
+		m_disabled = true;
+		return;
+	}
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log << time_now_string()
