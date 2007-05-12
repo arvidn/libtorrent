@@ -1693,7 +1693,11 @@ namespace libtorrent
 
 		assert(peerinfo);
 		assert(peerinfo->connection == 0);
-		assert(m_connections.find(peerinfo->ip) == m_connections.end());
+#ifndef NDEBUG
+		peer_iterator i_ = m_connections.find(peerinfo->ip);
+		assert(i_ == m_connections.end()
+			|| (i_->second->is_disconnecting()));
+#endif
 
 		assert(want_more_peers());
 
