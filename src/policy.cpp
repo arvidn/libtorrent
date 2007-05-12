@@ -1340,10 +1340,12 @@ namespace libtorrent
 		int total_connections = 0;
 		int nonempty_connections = 0;
 		
-		
+		std::set<address> unique_test;
 		for (const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
+			assert(unique_test.find(i->ip.address()) == unique_test.end());
+			unique_test.insert(i->ip.address());
 			++total_connections;
 			if (!i->connection) continue;
 			assert(i->connection->peer_info_struct() == 0
@@ -1381,9 +1383,6 @@ namespace libtorrent
 				&& connected_peers > 0)
 			|| (connected_peers + 1 == num_torrent_peers
 				&& num_torrent_peers > 0));
-		
-		// TODO: Make sure the number of peers in m_torrent is equal
-		// to the number of connected peers in m_peers.
 	}
 #endif
 
