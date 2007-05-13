@@ -863,12 +863,14 @@ namespace libtorrent
 			return true;
 #endif
 
-#if defined(__APPLE__)
-
+#if defined(__APPLE__) || defined(__linux__)
 		// find the last existing directory of the save path
 		path query_path = p;
 		while (!query_path.empty() && !exists(query_path))
 			query_path = query_path.branch_path();
+#endif
+
+#if defined(__APPLE__)
 
 		struct statfs fsinfo;
 		int ret = statfs(query_path.native_directory_string().c_str(), &fsinfo);
@@ -904,9 +906,12 @@ namespace libtorrent
 
 #if defined(__linux__)
 		struct statfs buf;
-		int err = statfs(p.native_directory_string().c_str(), &buf);
+		int err = statfs(query_path.native_directory_string().c_str(), &buf);
 		if (err == 0)
 		{
+#ifndef NDEBUG
+			std::cerr << "buf.f_type " << std::hex << buf.f_type << std::endl;
+#endif
 			switch (buf.f_type)
 			{
 				case 0x5346544e: // NTFS
@@ -918,6 +923,14 @@ namespace libtorrent
 					return true;
 			}
 		}
+#ifndef NDEBUG
+		else
+		{
+			std::cerr << "statfs returned " << err << std::endl;
+			std::cerr << "errno: " << errno << std::endl;
+			std::cerr << "path: " << query_path.native_directory_string() << std::endl;
+		}
+#endif
 #endif
 
 		// TODO: POSIX implementation
@@ -2070,7 +2083,11 @@ namespace libtorrent
 
 		for (int i = 0; i < num_slots && !m_unallocated_slots.empty(); ++i)
 		{
+//			INVARIANT_CHECK;
+
 			int pos = m_unallocated_slots.front();
+			assert(m_slot_to_piece[pos] == unallocated);
+			assert(m_piece_to_slot[pos] != pos);
 
 			int new_free_slot = pos;
 			if (m_piece_to_slot[pos] != has_no_slot)
@@ -2093,10 +2110,10 @@ namespace libtorrent
 				}
 				written = true;
 			}
-			if (abort_on_disk && written) return true;
 			m_unallocated_slots.erase(m_unallocated_slots.begin());
 			m_slot_to_piece[new_free_slot] = unassigned;
 			m_free_slots.push_back(new_free_slot);
+			if (abort_on_disk && written) return true;
 		}
 
 		assert(m_free_slots.size() > 0);
