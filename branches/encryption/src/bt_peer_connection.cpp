@@ -1703,14 +1703,14 @@ namespace libtorrent
 				case (pe_settings::plaintext):
 				{
 					if (!(crypto_field & 0x01))
-						throw protocol_error(" plaintext not provided\n");
+						throw protocol_error("plaintext not provided");
 					crypto_select = 0x01;
 				}
 				break;
 				case (pe_settings::rc4):
 				{
 					if (!(crypto_field & 0x02))
-						throw protocol_error(" rc4 not provided\n");
+						throw protocol_error("rc4 not provided");
 					crypto_select = 0x02;
 				}
 				break;
@@ -1731,7 +1731,7 @@ namespace libtorrent
 							crypto_select = 0x02;
 					}
 					if (!crypto_select)
-						throw protocol_error(" rc4/plaintext not provided\n");
+						throw protocol_error("rc4/plaintext not provided");
 				}
 				} // switch
 				
@@ -1746,22 +1746,22 @@ namespace libtorrent
 				if (crypto_field == 0x02)
 				{
 					if (allowed_enc_level == pe_settings::plaintext)
-						throw protocol_error(" rc4 selected by peer when not provided\n");
+						throw protocol_error("rc4 selected by peer when not provided");
 					m_rc4_encrypted = true;
 				}
 				else if (crypto_field == 0x01)
 				{
 					if (allowed_enc_level == pe_settings::rc4)
-						throw protocol_error(" plaintext selected by peer when not provided\n");
+						throw protocol_error("plaintext selected by peer when not provided");
 					m_rc4_encrypted = false;
 				}
 				else
-					throw protocol_error(" unsupported crypto method selected by peer\n");
+					throw protocol_error("unsupported crypto method selected by peer");
 			}
 
 			int len_pad = detail::read_int16(recv_buffer.begin);
 			if (len_pad < 0 || len_pad > 512)
-				throw protocol_error(" invalid pad length\n");
+				throw protocol_error("invalid pad length");
 			
 			m_state = read_pe_pad;
 			if (!is_local())
@@ -1903,7 +1903,7 @@ namespace libtorrent
 			{
 #ifndef TORRENT_DISABLE_ENCRYPTION
 				if (m_ses.get_pe_settings().in_enc_policy == pe_settings::disabled)
-					throw protocol_error(" encrypted incoming connections disabled\n");
+					throw protocol_error("encrypted incoming connections disabled");
 
 				// Don't attempt to perform an encrypted handshake
 				// within an encrypted connection
@@ -1918,7 +1918,7 @@ namespace libtorrent
  					return;
 				}
 #endif // #ifndef TORRENT_DISABLE_ENCRYPTION
-				throw protocol_error(" incorrect protocol identifier\n");
+				throw protocol_error("incorrect protocol identifier");
 			}
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -1926,7 +1926,7 @@ namespace libtorrent
 
 			if ((m_ses.get_pe_settings().in_enc_policy == pe_settings::forced) &&
 				!m_encrypted) 
-				throw protocol_error(" non encrypted incoming connections disabled\n");
+				throw protocol_error("non encrypted incoming connections disabled");
 #endif
 
 #ifdef TORRENT_VERBOSE_LOGGING
