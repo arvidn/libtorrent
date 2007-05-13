@@ -52,17 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
-	// PROFILING CODE
-#ifdef TORRENT_PROFILE
-
-	void add_checkpoint(std::string const& str);
-	void print_checkpoints();
-#define TORRENT_CHECKPOINT(str) libtorrent::add_checkpoint(str)
-#else
-#define TORRENT_CHECKPOINT(str) void(0)
-#endif
-
 	// DEBUG API
 
 	struct logger
