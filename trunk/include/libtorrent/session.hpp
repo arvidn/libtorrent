@@ -178,9 +178,7 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*)> ext);
-
 #endif
 
 		void set_ip_filter(ip_filter const& f);

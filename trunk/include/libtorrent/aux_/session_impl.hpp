@@ -429,6 +429,12 @@ namespace libtorrent
 #ifndef NDEBUG
 			void check_invariant(const char *place = 0);
 #endif
+
+#ifdef TORRENT_STATS
+			// logger used to write bandwidth usage statistics
+			std::ofstream m_stats_logger;
+			int m_second_counter;
+#endif
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			boost::shared_ptr<logger> create_log(std::string const& name
 				, int instance, bool append = true);
@@ -437,10 +443,6 @@ namespace libtorrent
 			// shutting down. This list is just here to keep them alive during
 			// whe shutting down process
 			std::list<boost::shared_ptr<tracker_logger> > m_tracker_loggers;
-			
-			// logger used to write bandwidth usage statistics
-			boost::shared_ptr<logger> m_stats_logger;
-			int m_second_counter;
 
 		public:
 			boost::shared_ptr<logger> m_logger;

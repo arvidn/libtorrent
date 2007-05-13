@@ -510,15 +510,21 @@ namespace libtorrent { namespace detail
 		m_logger = create_log("main_session", listen_port(), false);
 		(*m_logger) << time_now_string() << "\n";
 		
-		m_stats_logger = create_log("session_stats", listen_port(), false);
-		(*m_stats_logger) <<
-			"1. second\n"
-			"2. hard upload quota\n"
-			"3. hard download quota\n"
-			"\n";
-		m_second_counter = 0;
 		m_dl_bandwidth_manager.m_ses = this;
 		m_ul_bandwidth_manager.m_ses = this;
+#endif
+
+#ifdef TORRENT_STATS
+		m_stats_logger.open("session_stats");
+		m_stats_logger <<
+			"1. second\n"
+			"2. upload rate\n"
+			"3. download rate\n"
+			"4. downloading torrents\n"
+			"5. seeding torrents\n"
+			"6. peers\n"
+			"\n";
+		m_second_counter = 0;
 #endif
 
 		// ---- generate a peer id ----
@@ -846,6 +852,29 @@ namespace libtorrent { namespace detail
 		m_timer.expires_from_now(seconds(1));
 		m_timer.async_wait(m_strand.wrap(
 			bind(&session_impl::second_tick, this, _1)));
+
+#ifdef TORRENT_STATS
+		++m_second_counter;
+		int downloading_torrents = 0;
+		int seeding_torrents = 0;
+		for (torrent_map::iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+		{
+			if (i->second->is_seed())
+				++seeding_torrents;
+			else
+				++downloading_torrents;
+		}
+		m_stats_logger
+			<< m_second_counter << "\t"
+			<< m_stat.upload_rate() << "\t"
+			<< m_stat.download_rate() << "\t"
+			<< downloading_torrents << "\t"
+			<< seeding_torrents << "\t"
+			<< m_connections.size() << "\t"
+			"\n";
+#endif
+
 	
 		// let torrents connect to peers if they want to
 		// if there are any torrents and any free slots
