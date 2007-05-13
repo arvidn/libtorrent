@@ -31,13 +31,13 @@ feature.compose <dht-support>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 feature openssl : off on : composite propagated symmetric link-incompatible ;
 feature.compose <openssl>on : <define>TORRENT_USE_OPENSSL ;
 
-feature resolve-countries : on off : composite propagated link-incompatible ;
+feature resolve-countries : on off : composite propagated symmetric link-incompatible ;
 feature.compose <resolve-countries>off : <define>TORRENT_DISABLE_RESOLVE_COUNTRIES ;
 
 feature character-set : ansi unicode : composite propagated link-incompatible ;
 feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
 
-feature statistics : on off : composite propagated link-incompatible ;
+feature statistics : off on : composite propagated symmetric link-incompatible ;
 feature.compose <statistics>on : <define>TORRENT_STATS ;
 
 SOURCES =
