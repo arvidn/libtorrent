@@ -1902,12 +1902,12 @@ namespace libtorrent
 				!std::equal(recv_buffer.begin + 1, recv_buffer.begin + 19, protocol_string))
 			{
 #ifndef TORRENT_DISABLE_ENCRYPTION
-				if (m_ses.get_pe_settings().in_enc_policy == pe_settings::disabled)
+				if (!is_local() && m_ses.get_pe_settings().in_enc_policy == pe_settings::disabled)
 					throw protocol_error("encrypted incoming connections disabled");
 
 				// Don't attempt to perform an encrypted handshake
 				// within an encrypted connection
-				if (!m_encrypted)
+				if (!m_encrypted && !is_local())
 				{
 #ifdef TORRENT_VERBOSE_LOGGING
  					(*m_logger) << " attempting encrypted connection\n";
@@ -1917,6 +1917,8 @@ namespace libtorrent
 					assert(!packet_finished());
  					return;
 				}
+				
+				assert ((!is_local() && m_encrypted) || is_local());
 #endif // #ifndef TORRENT_DISABLE_ENCRYPTION
 				throw protocol_error("incorrect protocol identifier");
 			}
@@ -1924,7 +1926,8 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			assert (m_state != read_pe_dhkey);
 
-			if ((m_ses.get_pe_settings().in_enc_policy == pe_settings::forced) &&
+			if (!is_local() && 
+				(m_ses.get_pe_settings().in_enc_policy == pe_settings::forced) &&
 				!m_encrypted) 
 				throw protocol_error("non encrypted incoming connections disabled");
 #endif
