@@ -335,6 +335,10 @@ namespace libtorrent
 		// true if rc4, false if plaintext
 		bool m_rc4_encrypted;
 
+		// used to disconnect peer if sync points are not found within
+		// the maximum number of bytes
+		int m_sync_bytes_read;
+
 		// hold information about latest allocated send buffer
 		// need to check for non zero (begin, end)  for operations with this
 		buffer::interval m_enc_send_buffer;

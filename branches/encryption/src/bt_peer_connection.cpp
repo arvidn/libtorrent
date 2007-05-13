@@ -96,6 +96,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		, m_encrypted(false)
 		, m_rc4_encrypted(false)
+		, m_sync_bytes_read(0)
 		, m_enc_send_buffer(0, 0)
 #endif
 #ifndef NDEBUG
@@ -176,6 +177,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		, m_encrypted(false)
 		, m_rc4_encrypted(false)
+		, m_sync_bytes_read(0)
 		, m_enc_send_buffer(0, 0)
 #endif		
 #ifndef NDEBUG
@@ -1475,7 +1477,7 @@ namespace libtorrent
 			{
 				if (packet_finished())
 				{
-					throw protocol_error (" sync hash not found\n");
+					throw protocol_error ("sync hash not found");
 				}
 				// else 
 				return;
@@ -1483,6 +1485,7 @@ namespace libtorrent
 
 			if (!m_sync_hash.get())
 			{
+				assert(m_sync_bytes_read == 0);
 				hasher h;
 
 				// compute synchash (hash('req1',S))
@@ -1499,7 +1502,11 @@ namespace libtorrent
 			if (syncoffset == -1)
 			{
 				std::size_t bytes_processed = recv_buffer.left() - 20;
-				cut_receive_buffer(bytes_processed, packet_size());
+				m_sync_bytes_read += bytes_processed;
+				if (m_sync_bytes_read > 512)
+					throw protocol_error("sync hash not found within 532 bytes");
+
+				cut_receive_buffer(bytes_processed, std::min(packet_size(), (512+20) - m_sync_bytes_read));
 
 				assert(!packet_finished());
 				return;
@@ -1508,7 +1515,10 @@ namespace libtorrent
 			else
 			{
 				std::size_t bytes_processed = syncoffset + 20;
-
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << " sync point (hash) found at offset " 
+							<< m_sync_bytes_read + bytes_processed - 20 << "\n";
+#endif
 				m_state = read_pe_skey_vc;
 				// skey,vc - 28 bytes
 				m_sync_hash.reset();
@@ -1574,7 +1584,7 @@ namespace libtorrent
 			}
 
 			if (!m_RC4_handler.get())
-				throw protocol_error(" invalid streamkey identifier (info hash) in encrypted handshake\n");
+				throw protocol_error("invalid streamkey identifier (info hash) in encrypted handshake");
 
 			// verify constant
 			buffer::interval wr_recv_buf = wr_recv_buffer();
@@ -1584,7 +1594,7 @@ namespace libtorrent
 			const char sh_vc[] = {0,0,0,0, 0,0,0,0};
 			if (!std::equal(sh_vc, sh_vc+8, recv_buffer.begin + 20))
 			{
-				throw protocol_error(" unable to verify constant\n");
+				throw protocol_error("unable to verify constant");
 			}
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -1606,7 +1616,7 @@ namespace libtorrent
 			{
 				if (packet_finished())
 				{
-					throw protocol_error ("  sync verification constant not found\n");
+					throw protocol_error ("sync verification constant not found");
 				}
 				// else 
 				return;
@@ -1615,6 +1625,8 @@ namespace libtorrent
 			// generate the verification constant
 			if (!m_sync_vc.get()) 
 			{
+				assert(m_sync_bytes_read == 0);
+
 				m_sync_vc.reset (new char[8]);
 				std::fill(m_sync_vc.get(), m_sync_vc.get() + 8, 0);
 				m_RC4_handler->decrypt(m_sync_vc.get(), 8);
@@ -1628,7 +1640,11 @@ namespace libtorrent
 			if (syncoffset == -1)
 			{
 				std::size_t bytes_processed = recv_buffer.left() - 8;
-				cut_receive_buffer(bytes_processed, packet_size());
+				m_sync_bytes_read += bytes_processed;
+				if (m_sync_bytes_read > 512)
+					throw protocol_error("sync verification constant not found within 520 bytes");
+
+				cut_receive_buffer(bytes_processed, std::min(packet_size(), (512+8) - m_sync_bytes_read));
 
 				assert(!packet_finished());
 				return;
@@ -1637,7 +1653,10 @@ namespace libtorrent
 			else
 			{
 				std::size_t bytes_processed = syncoffset + 8;
-
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << " sync point (verification constant) found at offset " 
+							<< m_sync_bytes_read + bytes_processed - 8 << "\n";
+#endif
 				cut_receive_buffer (bytes_processed, 4 + 2);
 
 				// delete verification constant
