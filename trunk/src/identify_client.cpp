@@ -135,72 +135,77 @@ namespace
 		return boost::optional<fingerprint>(ret);
 	}
 
-	typedef std::pair<char const*, char const*> map_entry;
+	struct map_entry
+	{
+		char const* id;
+		char const* name;
+	};
 
 	// only support BitTorrentSpecification
 	// must be ordered alphabetically
 	map_entry name_map[] =
 	{
-		map_entry("A",  "ABC")
-		, map_entry("A~",  "Ares")
-		, map_entry("AG",  "Ares")
-		, map_entry("AR", "Arctic Torrent")
-		, map_entry("AV", "Avicora")
-		, map_entry("AX", "BitPump")
-		, map_entry("AZ", "Azureus")
-		, map_entry("BB", "BitBuddy")
-		, map_entry("BC", "BitComet")
-		, map_entry("BF", "Bitflu")
-		, map_entry("BG", "BTG")
-		, map_entry("BR", "BitRocket")
-		, map_entry("BS", "BTSlave")
-		, map_entry("BX", "BittorrentX")
-		, map_entry("CD", "Enhanced CTorrent")
-		, map_entry("CT", "CTorrent")
-		, map_entry("DE", "Deluge Torrent")
-		, map_entry("ES", "electric sheep")
-		, map_entry("EB", "EBit")
-		, map_entry("HL", "Halite")
-		, map_entry("HN", "Hydranode")
-		, map_entry("KT", "KTorrent")
-		, map_entry("LK", "Linkage")
-		, map_entry("LP", "lphant")
-		, map_entry("LT", "libtorrent")
-		, map_entry("M",  "Mainline")
-		, map_entry("ML", "MLDonkey")
-		, map_entry("MO", "Mono Torrent")
-		, map_entry("MP", "MooPolice")
-		, map_entry("MT", "Moonlight Torrent")
-		, map_entry("O",  "Osprey Permaseed")
-		, map_entry("PD",  "Pando")
-		, map_entry("QT", "Qt 4")
-		, map_entry("R",  "Tribler")
-		, map_entry("S",  "Shadow")
-		, map_entry("S~",  "Shareaza (beta)")
-		, map_entry("SB", "Swiftbit")
-		, map_entry("SN", "ShareNet")
-		, map_entry("SS", "SwarmScope")
-		, map_entry("SZ", "Shareaza")
-		, map_entry("T",  "BitTornado")
-		, map_entry("TN", "Torrent.NET")
-		, map_entry("TR", "Transmission")
-		, map_entry("TS", "TorrentStorm")
-		, map_entry("TT", "TuoTu")
-		, map_entry("U",  "UPnP")
-		, map_entry("UL", "uLeecher")
-		, map_entry("UT", "MicroTorrent")
-		, map_entry("XT", "XanTorrent")
-		, map_entry("XX", "Xtorrent")
-		, map_entry("ZT", "ZipTorrent")
-		, map_entry("lt", "libTorrent (libtorrent.rakshasa.no/)")
-		, map_entry("pX", "pHoeniX")
-		, map_entry("qB", "qBittorrent")
+		{"A",  "ABC"}
+		, {"AG",  "Ares"}
+		, {"AR", "Arctic Torrent"}
+		, {"AV", "Avicora"}
+		, {"AX", "BitPump"}
+		, {"AZ", "Azureus"}
+		, {"A~",  "Ares"}
+		, {"BB", "BitBuddy"}
+		, {"BC", "BitComet"}
+		, {"BF", "Bitflu"}
+		, {"BG", "BTG"}
+		, {"BR", "BitRocket"}
+		, {"BS", "BTSlave"}
+		, {"BX", "BittorrentX"}
+		, {"CD", "Enhanced CTorrent"}
+		, {"CT", "CTorrent"}
+		, {"DE", "Deluge Torrent"}
+		, {"EB", "EBit"}
+		, {"ES", "electric sheep"}
+		, {"HL", "Halite"}
+		, {"HN", "Hydranode"}
+		, {"KT", "KTorrent"}
+		, {"LK", "Linkage"}
+		, {"LP", "lphant"}
+		, {"LT", "libtorrent"}
+		, {"M",  "Mainline"}
+		, {"ML", "MLDonkey"}
+		, {"MO", "Mono Torrent"}
+		, {"MP", "MooPolice"}
+		, {"MT", "Moonlight Torrent"}
+		, {"O",  "Osprey Permaseed"}
+		, {"PD",  "Pando"}
+		, {"Q", "BTQueue"}
+		, {"QT", "Qt 4"}
+		, {"R",  "Tribler"}
+		, {"S",  "Shadow"}
+		, {"SB", "Swiftbit"}
+		, {"SN", "ShareNet"}
+		, {"SS", "SwarmScope"}
+		, {"SZ", "Shareaza"}
+		, {"S~",  "Shareaza (beta}"}
+		, {"T",  "BitTornado"}
+		, {"TN", "Torrent.NET"}
+		, {"TR", "Transmission"}
+		, {"TS", "TorrentStorm"}
+		, {"TT", "TuoTu"}
+		, {"U",  "UPnP"}
+		, {"UL", "uLeecher"}
+		, {"UT", "MicroTorrent"}
+		, {"XT", "XanTorrent"}
+		, {"XX", "Xtorrent"}
+		, {"ZT", "ZipTorrent"}
+		, {"lt", "libTorrent (libtorrent.rakshasa.no/}"}
+		, {"pX", "pHoeniX"}
+		, {"qB", "qBittorrent"}
 	};
 
-	bool compare_first_string(map_entry const& lhs, map_entry const& rhs)
+	bool compare_id(map_entry const& lhs, map_entry const& rhs)
 	{
-		return lhs.first[0] < rhs.first[0]
-			|| ((lhs.first[0] == rhs.first[0]) && (lhs.first[1] < rhs.first[1]));
+		return lhs.id[0] < rhs.id[0]
+			|| ((lhs.id[0] == rhs.id[0]) && (lhs.id[1] < rhs.id[1]));
 	}
 
 	std::string lookup(fingerprint const& f)
@@ -208,20 +213,21 @@ namespace
 		std::stringstream identity;
 
 		const int size = sizeof(name_map)/sizeof(name_map[0]);
+		map_entry tmp = {f.name, ""};
 		map_entry* i =
 			std::lower_bound(name_map, name_map + size
-				, map_entry(f.name, ""), &compare_first_string);
+				, tmp, &compare_id);
 
 #ifndef NDEBUG
 		for (int i = 1; i < size; ++i)
 		{
-			assert(compare_first_string(name_map[i-1]
+			assert(compare_id(name_map[i-1]
 				, name_map[i]));
 		}
 #endif
 
-		if (i < name_map + size && std::equal(f.name, f.name + 2, i->first))
-			identity << i->second;
+		if (i < name_map + size && std::equal(f.name, f.name + 2, i->id))
+			identity << i->name;
 		else
 		{
 			identity << f.name[0];
