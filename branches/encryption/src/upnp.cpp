@@ -144,13 +144,13 @@ void upnp::rebind(address const& listen_interface) try
 }
 catch (std::exception& e)
 {
-	m_disabled = true;
+	disable();
 	std::stringstream msg;
 	msg << "UPnP portmapping disabled: " << e.what();
 	m_callback(0, 0, msg.str());
 };
 
-void upnp::discover_device()
+void upnp::discover_device() try
 {
 	const char msearch[] = 
 		"M-SEARCH * HTTP/1.1\r\n"
@@ -163,8 +163,20 @@ void upnp::discover_device()
 	m_socket.async_receive_from(asio::buffer(m_receive_buffer
 		, sizeof(m_receive_buffer)), m_remote, m_strand.wrap(bind(
 		&upnp::on_reply, this, _1, _2)));
+
+	asio::error_code ec;
+#ifdef TORRENT_DEBUG_UPNP
+	// simulate packet loss
+	if (m_retry_count & 1)
+#endif
 	m_socket.send_to(asio::buffer(msearch, sizeof(msearch) - 1)
-		, upnp_multicast_endpoint);
+		, upnp_multicast_endpoint, 0, ec);
+
+	if (ec)
+	{
+		disable();
+		return;
+	}
 
 	++m_retry_count;
 	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count));
@@ -176,9 +188,20 @@ void upnp::discover_device()
 		<< " ==> Broadcasting search for rootdevice" << std::endl;
 #endif
 }
+catch (std::exception&)
+{
+	disable();
+}
 
 void upnp::set_mappings(int tcp, int udp)
 {
+#ifdef TORRENT_UPNP_LOGGING
+	m_log << time_now_string()
+		<< " *** set mappings " << tcp << " " << udp;
+	if (m_disabled) m_log << " DISABLED";
+	m_log << std::endl;
+#endif
+
 	if (m_disabled) return;
 	if (udp != 0) m_udp_local_port = udp;
 	if (tcp != 0) m_tcp_local_port = tcp;
@@ -201,12 +224,16 @@ void upnp::set_mappings(int tcp, int udp)
 			d.mapping[1].local_port = m_udp_local_port;
 			d.mapping[1].need_update = true;
 		}
-		if (d.mapping[0].need_update || d.mapping[1].need_update)
+		if (d.service_namespace
+			&& (d.mapping[0].need_update || d.mapping[1].need_update))
 			map_port(d, 0);
 	}
 }
 
 void upnp::resend_request(asio::error_code const& e)
+#ifndef NDEBUG
+try
+#endif
 {
 	if (e) return;
 	if (m_retry_count < 9
@@ -223,36 +250,52 @@ void upnp::resend_request(asio::error_code const& e)
 			<< " *** Got no response in 9 retries. Giving up, "
 			"disabling UPnP." << std::endl;
 #endif
-		m_disabled = true;
+		disable();
 		return;
 	}
 	
 	for (std::set<rootdevice>::iterator i = m_devices.begin()
 		, end(m_devices.end()); i != end; ++i)
 	{
-		if (i->control_url.empty() && !i->upnp_connection)
+		if (i->control_url.empty() && !i->upnp_connection && !i->disabled)
 		{
 			// we don't have a WANIP or WANPPP url for this device,
 			// ask for it
 			rootdevice& d = const_cast<rootdevice&>(*i);
-			d.upnp_connection.reset(new http_connection(m_socket.io_service()
-				, m_cc, m_strand.wrap(bind(&upnp::on_upnp_xml, this, _1, _2
-				, boost::ref(d)))));
-			d.upnp_connection->get(d.url);
+			try
+			{
+				d.upnp_connection.reset(new http_connection(m_socket.io_service()
+					, m_cc, m_strand.wrap(bind(&upnp::on_upnp_xml, this, _1, _2
+					, boost::ref(d)))));
+				d.upnp_connection->get(d.url);
+			}
+			catch (std::exception& e)
+			{
+#ifdef TORRENT_UPNP_LOGGING
+				m_log << time_now_string()
+					<< " *** Connection failed to: " << d.url
+					<< " " << e.what() << std::endl;
+#endif
+				d.disabled = true;
+			}
 		}
 	}
 }
+#ifndef NDEBUG
+catch (std::exception&)
+{
+	assert(false);
+}
+#endif
 
 void upnp::on_reply(asio::error_code const& e
 	, std::size_t bytes_transferred)
+#ifndef NDEBUG
+try
+#endif
 {
 	using namespace libtorrent::detail;
 	if (e) return;
-
-	// since we're using udp, send the query 4 times
-	// just to make sure we find all devices
-	if (m_retry_count >= 4)
-		m_broadcast_timer.cancel();
 
 	// parse out the url for the device
 
@@ -356,15 +399,62 @@ void upnp::on_reply(asio::error_code const& e
 		{
 			d.mapping[0].need_update = true;
 			d.mapping[0].local_port = m_tcp_local_port;
+#ifdef TORRENT_UPNP_LOGGING
+			m_log << time_now_string() << " *** Mapping 0 will be updated" << std::endl;
+#endif
 		}
 		if (m_udp_local_port != 0)
 		{
 			d.mapping[1].need_update = true;
 			d.mapping[1].local_port = m_udp_local_port;
+#ifdef TORRENT_UPNP_LOGGING
+			m_log << time_now_string() << " *** Mapping 1 will be updated" << std::endl;
+#endif
 		}
 		boost::tie(i, boost::tuples::ignore) = m_devices.insert(d);
 	}
+
+
+	// since we're using udp, send the query 4 times
+	// just to make sure we find all devices
+	if (m_retry_count >= 4 && !m_devices.empty())
+	{
+		m_broadcast_timer.cancel();
+
+		for (std::set<rootdevice>::iterator i = m_devices.begin()
+			, end(m_devices.end()); i != end; ++i)
+		{
+			if (i->control_url.empty() && !i->upnp_connection && !i->disabled)
+			{
+				// we don't have a WANIP or WANPPP url for this device,
+				// ask for it
+				rootdevice& d = const_cast<rootdevice&>(*i);
+				try
+				{
+					d.upnp_connection.reset(new http_connection(m_socket.io_service()
+						, m_cc, m_strand.wrap(bind(&upnp::on_upnp_xml, this, _1, _2
+						, boost::ref(d)))));
+					d.upnp_connection->get(d.url);
+				}
+				catch (std::exception& e)
+				{
+#ifdef TORRENT_UPNP_LOGGING
+					m_log << time_now_string()
+						<< " *** Connection failed to: " << d.url
+						<< " " << e.what() << std::endl;
+#endif
+					d.disabled = true;
+				}
+			}
+		}
+	}
 }
+#ifndef NDEBUG
+catch (std::exception&)
+{
+	assert(false);
+}
+#endif
 
 void upnp::post(rootdevice& d, std::stringstream const& soap
 	, std::string const& soap_action)
@@ -388,6 +478,10 @@ void upnp::map_port(rootdevice& d, int i)
 
 	if (!d.mapping[i].need_update)
 	{
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string() << " *** mapping (" << i
+			<< ") does not need update, skipping" << std::endl;
+#endif
 		if (i < num_mappings - 1)
 			map_port(d, i + 1);
 		return;
@@ -525,7 +619,7 @@ namespace
 }
 
 void upnp::on_upnp_xml(asio::error_code const& e
-	, libtorrent::http_parser const& p, rootdevice& d)
+	, libtorrent::http_parser const& p, rootdevice& d) try
 {
 	if (d.upnp_connection)
 	{
@@ -590,6 +684,19 @@ void upnp::on_upnp_xml(asio::error_code const& e
 
 	map_port(d, 0);
 }
+catch (std::exception&)
+{
+	disable();
+}
+
+void upnp::disable()
+{
+	m_disabled = true;
+	m_devices.clear();
+	m_broadcast_timer.cancel();
+	m_refresh_timer.cancel();
+	m_socket.close();
+}
 
 namespace
 {
@@ -616,8 +723,35 @@ namespace
 	}
 }
 
+namespace
+{
+	struct error_code_t
+	{
+		int code;
+		char const* msg;
+	};
+	
+	error_code_t error_codes[] =
+	{
+		{402, "Invalid Arguments"}
+		, {501, "Action Failed"}
+		, {714, "The specified value does not exist in the array"}
+		, {715, "The source IP address cannot be wild-carded"}
+		, {716, "The external port cannot be wild-carded"}
+		, {718, "The port mapping entry specified conflicts with "
+			"a mapping assigned previously to another client"}
+		, {724, "Internal and External port values must be the same"}
+		, {725, "The NAT implementation only supports permanent "
+			"lease times on port mappings"}
+		, {726, "RemoteHost must be a wildcard and cannot be a "
+			"specific IP address or DNS name"}
+		, {727, "ExternalPort must be a wildcard and cannot be a specific port "}
+	};
+
+}
+
 void upnp::on_upnp_map_response(asio::error_code const& e
-	, libtorrent::http_parser const& p, rootdevice& d, int mapping)
+	, libtorrent::http_parser const& p, rootdevice& d, int mapping) try
 {
 	if (d.upnp_connection)
 	{
@@ -694,22 +828,19 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 	}
 	else if (s.error_code != -1)
 	{
-		std::map<int, std::string> error_codes;
-		error_codes[402] = "Invalid Arguments";
-		error_codes[501] = "Action Failed";
-		error_codes[714] = "The specified value does not exist in the array";
-		error_codes[715] = "The source IP address cannot be wild-carded";
-		error_codes[716] = "The external port cannot be wild-carded";
-		error_codes[718] = "The port mapping entry specified conflicts with "
-			"a mapping assigned previously to another client";
-		error_codes[724] = "Internal and External port values must be the same";
-		error_codes[725] = "The NAT implementation only supports permanent "
-			"lease times on port mappings";
-		error_codes[726] = "RemoteHost must be a wildcard and cannot be a "
-			"specific IP address or DNS name";
-		error_codes[727] = "ExternalPort must be a wildcard and cannot be a specific port ";
-		m_callback(0, 0, "UPnP mapping error " + boost::lexical_cast<std::string>(s.error_code)
-			+ ": " + error_codes[s.error_code]);
+		int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
+		error_code_t* end = error_codes + num_errors;
+		error_code_t tmp = {s.error_code, 0};
+		error_code_t* e = std::lower_bound(error_codes, end, tmp
+			, bind(&error_code_t::code, _1) < bind(&error_code_t::code, _2));
+		std::string error_string = "UPnP mapping error ";
+		error_string += boost::lexical_cast<std::string>(s.error_code);
+		if (e != end  && e->code == s.error_code)
+		{
+			error_string += ": ";
+			error_string += e->msg;
+		}
+		m_callback(0, 0, error_string);
 	}
 
 #ifdef TORRENT_UPNP_LOGGING
@@ -756,9 +887,13 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 		}
 	}
 }
+catch (std::exception&)
+{
+	disable();
+}
 
 void upnp::on_upnp_unmap_response(asio::error_code const& e
-	, libtorrent::http_parser const& p, rootdevice& d, int mapping)
+	, libtorrent::http_parser const& p, rootdevice& d, int mapping) try
 {
 	if (d.upnp_connection)
 	{
@@ -800,8 +935,12 @@ void upnp::on_upnp_unmap_response(asio::error_code const& e
 	// all the unmap operations to complete
 	m_devices.erase(d);
 }
+catch (std::exception&)
+{
+	disable();
+}
 
-void upnp::on_expire(asio::error_code const& e)
+void upnp::on_expire(asio::error_code const& e) try
 {
 	if (e) return;
 
@@ -833,6 +972,10 @@ void upnp::on_expire(asio::error_code const& e)
 		m_refresh_timer.expires_at(next_expire);
 		m_refresh_timer.async_wait(m_strand.wrap(bind(&upnp::on_expire, this, _1)));
 	}
+}
+catch (std::exception&)
+{
+	disable();
 }
 
 void upnp::close()

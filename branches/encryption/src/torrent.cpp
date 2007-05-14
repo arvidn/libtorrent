@@ -105,12 +105,6 @@ namespace
 			return static_cast<int>(i.piece_length());
 		}
 
-		// if pieces are too large, adjust the block size
-		if (i.piece_length() / default_block_size > piece_picker::max_blocks_per_piece)
-		{
-			return static_cast<int>(i.piece_length() / piece_picker::max_blocks_per_piece);
-		}
-
 		// otherwise, go with the default
 		return default_block_size;
 	}
@@ -738,8 +732,7 @@ namespace libtorrent
 			int corr = 0;
 			int index = i->index;
 			assert(!m_have_pieces[index]);
-			assert(int(i->finished_blocks.count())
-				< m_picker->blocks_in_piece(index));
+			assert(i->finished < m_picker->blocks_in_piece(index));
 
 #ifndef NDEBUG
 			for (std::vector<piece_picker::downloading_piece>::const_iterator j = boost::next(i);
@@ -751,17 +744,17 @@ namespace libtorrent
 
 			for (int j = 0; j < blocks_per_piece; ++j)
 			{
-				assert(i->finished_blocks[j] == 0 || i->finished_blocks[j] == 1);
-				assert(m_picker->is_finished(piece_block(index, j)) == i->finished_blocks[j]);
-				corr += i->finished_blocks[j] * m_block_size;
+				assert(i->info[j].finished == 0 || i->info[j].finished == 1);
+				assert(m_picker->is_finished(piece_block(index, j)) == i->info[j].finished);
+				corr += i->info[j].finished * m_block_size;
 				assert(index != last_piece || j < m_picker->blocks_in_last_piece()
-					|| i->finished_blocks[j] == 0);
+					|| i->info[j].finished == 0);
 			}
 
 			// correction if this was the last piece
 			// and if we have the last block
 			if (i->index == last_piece
-				&& i->finished_blocks[m_picker->blocks_in_last_piece()-1])
+				&& i->info[m_picker->blocks_in_last_piece()-1].finished)
 			{
 				corr -= m_block_size;
 				corr += m_torrent_file.piece_size(last_piece) % m_block_size;
@@ -836,7 +829,7 @@ namespace libtorrent
 				std::cerr << "   " << i->index << " ";
 				for (int j = 0; j < blocks_per_piece; ++j)
 				{
-					std::cerr << i->finished_blocks[j];
+					std::cerr << i->info[j].finished;
 				}
 				std::cerr << std::endl;
 			}
@@ -1017,7 +1010,11 @@ namespace libtorrent
 			try { (*i)->on_piece_pass(index); } catch (std::exception&) {}
 		}
 #endif
-		if (is_seed()) m_picker.reset();
+		if (is_seed())
+		{
+			m_picker.reset();
+			m_torrent_file.seed_free();
+		}
 	}
 
 	std::string torrent::tracker_login() const
@@ -1560,6 +1557,9 @@ namespace libtorrent
 	}
 	catch (std::exception& exc)
 	{
+#ifndef NDEBUG
+		std::cerr << exc.what() << std::endl;
+#endif
 		assert(false);
 	};
 
@@ -1581,12 +1581,11 @@ namespace libtorrent
 
 	namespace
 	{
-		typedef std::pair<int, char const*> country_entry;
-
-		bool compare_first(country_entry const& lhs, country_entry const& rhs)
+		struct country_entry
 		{
-			return lhs.first < rhs.first;
-		}
+			int code;
+			char const* name;
+		};
 	}
 
 	void torrent::on_country_lookup(asio::error_code const& error, tcp::resolver::iterator i
@@ -1601,246 +1600,54 @@ namespace libtorrent
 		// must be ordered in increasing order
 		country_entry country_map[] =
 		{
-			  country_entry(  4,  "AF")
-			, country_entry(  8,  "AL")
-			, country_entry( 10,  "AQ")
-			, country_entry( 12,  "DZ")
-			, country_entry( 16,  "AS")
-			, country_entry( 20,  "AD")
-			, country_entry( 24,  "AO")
-			, country_entry( 28,  "AG")
-			, country_entry( 31,  "AZ")
-			, country_entry( 32,  "AR")
-			, country_entry( 36,  "AU")
-			, country_entry( 40,  "AT")
-			, country_entry( 44,  "BS")
-			, country_entry( 48,  "BH")
-			, country_entry( 50,  "BD")
-			, country_entry( 51,  "AM")
-			, country_entry( 52,  "BB")
-			, country_entry( 56,  "BE")
-			, country_entry( 60,  "BM")
-			, country_entry( 64,  "BT")
-			, country_entry( 68,  "BO")
-			, country_entry( 70,  "BA")
-			, country_entry( 72,  "BW")
-			, country_entry( 74,  "BV")
-			, country_entry( 76,  "BR")
-			, country_entry( 84,  "BZ")
-			, country_entry( 86,  "IO")
-			, country_entry( 90,  "SB")
-			, country_entry( 92,  "VG")
-			, country_entry( 96,  "BN")
-			, country_entry(100,  "BG")
-			, country_entry(104,  "MM")
-			, country_entry(108,  "BI")
-			, country_entry(112,  "BY")
-			, country_entry(116,  "KH")
-			, country_entry(120,  "CM")
-			, country_entry(124,  "CA")
-			, country_entry(132,  "CV")
-			, country_entry(136,  "KY")
-			, country_entry(140,  "CF")
-			, country_entry(144,  "LK")
-			, country_entry(148,  "TD")
-			, country_entry(152,  "CL")
-			, country_entry(156,  "CN")
-			, country_entry(158,  "TW")
-			, country_entry(162,  "CX")
-			, country_entry(166,  "CC")
-			, country_entry(170,  "CO")
-			, country_entry(174,  "KM")
-			, country_entry(175,  "YT")
-			, country_entry(178,  "CG")
-			, country_entry(180,  "CD")
-			, country_entry(184,  "CK")
-			, country_entry(188,  "CR")
-			, country_entry(191,  "HR")
-			, country_entry(192,  "CU")
-			, country_entry(203,  "CZ")
-			, country_entry(204,  "BJ")
-			, country_entry(208,  "DK")
-			, country_entry(212,  "DM")
-			, country_entry(214,  "DO")
-			, country_entry(218,  "EC")
-			, country_entry(222,  "SV")
-			, country_entry(226,  "GQ")
-			, country_entry(231,  "ET")
-			, country_entry(232,  "ER")
-			, country_entry(233,  "EE")
-			, country_entry(234,  "FO")
-			, country_entry(238,  "FK")
-			, country_entry(239,  "GS")
-			, country_entry(242,  "FJ")
-			, country_entry(246,  "FI")
-			, country_entry(248,  "AX")
-			, country_entry(250,  "FR")
-			, country_entry(254,  "GF")
-			, country_entry(258,  "PF")
-			, country_entry(260,  "TF")
-			, country_entry(262,  "DJ")
-			, country_entry(266,  "GA")
-			, country_entry(268,  "GE")
-			, country_entry(270,  "GM")
-			, country_entry(275,  "PS")
-			, country_entry(276,  "DE")
-			, country_entry(288,  "GH")
-			, country_entry(292,  "GI")
-			, country_entry(296,  "KI")
-			, country_entry(300,  "GR")
-			, country_entry(304,  "GL")
-			, country_entry(308,  "GD")
-			, country_entry(312,  "GP")
-			, country_entry(316,  "GU")
-			, country_entry(320,  "GT")
-			, country_entry(324,  "GN")
-			, country_entry(328,  "GY")
-			, country_entry(332,  "HT")
-			, country_entry(334,  "HM")
-			, country_entry(336,  "VA")
-			, country_entry(340,  "HN")
-			, country_entry(344,  "HK")
-			, country_entry(348,  "HU")
-			, country_entry(352,  "IS")
-			, country_entry(356,  "IN")
-			, country_entry(360,  "ID")
-			, country_entry(364,  "IR")
-			, country_entry(368,  "IQ")
-			, country_entry(372,  "IE")
-			, country_entry(376,  "IL")
-			, country_entry(380,  "IT")
-			, country_entry(384,  "CI")
-			, country_entry(388,  "JM")
-			, country_entry(392,  "JP")
-			, country_entry(398,  "KZ")
-			, country_entry(400,  "JO")
-			, country_entry(404,  "KE")
-			, country_entry(408,  "KP")
-			, country_entry(410,  "KR")
-			, country_entry(414,  "KW")
-			, country_entry(417,  "KG")
-			, country_entry(418,  "LA")
-			, country_entry(422,  "LB")
-			, country_entry(426,  "LS")
-			, country_entry(428,  "LV")
-			, country_entry(430,  "LR")
-			, country_entry(434,  "LY")
-			, country_entry(438,  "LI")
-			, country_entry(440,  "LT")
-			, country_entry(442,  "LU")
-			, country_entry(446,  "MO")
-			, country_entry(450,  "MG")
-			, country_entry(454,  "MW")
-			, country_entry(458,  "MY")
-			, country_entry(462,  "MV")
-			, country_entry(466,  "ML")
-			, country_entry(470,  "MT")
-			, country_entry(474,  "MQ")
-			, country_entry(478,  "MR")
-			, country_entry(480,  "MU")
-			, country_entry(484,  "MX")
-			, country_entry(492,  "MC")
-			, country_entry(496,  "MN")
-			, country_entry(498,  "MD")
-			, country_entry(500,  "MS")
-			, country_entry(504,  "MA")
-			, country_entry(508,  "MZ")
-			, country_entry(512,  "OM")
-			, country_entry(516,  "NA")
-			, country_entry(520,  "NR")
-			, country_entry(524,  "NP")
-			, country_entry(528,  "NL")
-			, country_entry(530,  "AN")
-			, country_entry(533,  "AW")
-			, country_entry(540,  "NC")
-			, country_entry(548,  "VU")
-			, country_entry(554,  "NZ")
-			, country_entry(558,  "NI")
-			, country_entry(562,  "NE")
-			, country_entry(566,  "NG")
-			, country_entry(570,  "NU")
-			, country_entry(574,  "NF")
-			, country_entry(578,  "NO")
-			, country_entry(580,  "MP")
-			, country_entry(581,  "UM")
-			, country_entry(583,  "FM")
-			, country_entry(584,  "MH")
-			, country_entry(585,  "PW")
-			, country_entry(586,  "PK")
-			, country_entry(591,  "PA")
-			, country_entry(598,  "PG")
-			, country_entry(600,  "PY")
-			, country_entry(604,  "PE")
-			, country_entry(608,  "PH")
-			, country_entry(612,  "PN")
-			, country_entry(616,  "PL")
-			, country_entry(620,  "PT")
-			, country_entry(624,  "GW")
-			, country_entry(626,  "TL")
-			, country_entry(630,  "PR")
-			, country_entry(634,  "QA")
-			, country_entry(634,  "QA")
-			, country_entry(638,  "RE")
-			, country_entry(642,  "RO")
-			, country_entry(643,  "RU")
-			, country_entry(646,  "RW")
-			, country_entry(654,  "SH")
-			, country_entry(659,  "KN")
-			, country_entry(660,  "AI")
-			, country_entry(662,  "LC")
-			, country_entry(666,  "PM")
-			, country_entry(670,  "VC")
-			, country_entry(674,  "SM")
-			, country_entry(678,  "ST")
-			, country_entry(682,  "SA")
-			, country_entry(686,  "SN")
-			, country_entry(690,  "SC")
-			, country_entry(694,  "SL")
-			, country_entry(702,  "SG")
-			, country_entry(703,  "SK")
-			, country_entry(704,  "VN")
-			, country_entry(705,  "SI")
-			, country_entry(706,  "SO")
-			, country_entry(710,  "ZA")
-			, country_entry(716,  "ZW")
-			, country_entry(724,  "ES")
-			, country_entry(732,  "EH")
-			, country_entry(736,  "SD")
-			, country_entry(740,  "SR")
-			, country_entry(744,  "SJ")
-			, country_entry(748,  "SZ")
-			, country_entry(752,  "SE")
-			, country_entry(756,  "CH")
-			, country_entry(760,  "SY")
-			, country_entry(762,  "TJ")
-			, country_entry(764,  "TH")
-			, country_entry(768,  "TG")
-			, country_entry(772,  "TK")
-			, country_entry(776,  "TO")
-			, country_entry(780,  "TT")
-			, country_entry(784,  "AE")
-			, country_entry(788,  "TN")
-			, country_entry(792,  "TR")
-			, country_entry(795,  "TM")
-			, country_entry(796,  "TC")
-			, country_entry(798,  "TV")
-			, country_entry(800,  "UG")
-			, country_entry(804,  "UA")
-			, country_entry(807,  "MK")
-			, country_entry(818,  "EG")
-			, country_entry(826,  "GB")
-			, country_entry(834,  "TZ")
-			, country_entry(840,  "US")
-			, country_entry(850,  "VI")
-			, country_entry(854,  "BF")
-			, country_entry(858,  "UY")
-			, country_entry(860,  "UZ")
-			, country_entry(862,  "VE")
-			, country_entry(876,  "WF")
-			, country_entry(882,  "WS")
-			, country_entry(887,  "YE")
-			, country_entry(891,  "CS")
-			, country_entry(894,  "ZM")
+			  {  4,  "AF"}, {  8,  "AL"}, { 10,  "AQ"}, { 12,  "DZ"}, { 16,  "AS"}
+			, { 20,  "AD"}, { 24,  "AO"}, { 28,  "AG"}, { 31,  "AZ"}, { 32,  "AR"}
+			, { 36,  "AU"}, { 40,  "AT"}, { 44,  "BS"}, { 48,  "BH"}, { 50,  "BD"}
+			, { 51,  "AM"}, { 52,  "BB"}, { 56,  "BE"}, { 60,  "BM"}, { 64,  "BT"}
+			, { 68,  "BO"}, { 70,  "BA"}, { 72,  "BW"}, { 74,  "BV"}, { 76,  "BR"}
+			, { 84,  "BZ"}, { 86,  "IO"}, { 90,  "SB"}, { 92,  "VG"}, { 96,  "BN"}
+			, {100,  "BG"}, {104,  "MM"}, {108,  "BI"}, {112,  "BY"}, {116,  "KH"}
+			, {120,  "CM"}, {124,  "CA"}, {132,  "CV"}, {136,  "KY"}, {140,  "CF"}
+			, {144,  "LK"}, {148,  "TD"}, {152,  "CL"}, {156,  "CN"}, {158,  "TW"}
+			, {162,  "CX"}, {166,  "CC"}, {170,  "CO"}, {174,  "KM"}, {175,  "YT"}
+			, {178,  "CG"}, {180,  "CD"}, {184,  "CK"}, {188,  "CR"}, {191,  "HR"}
+			, {192,  "CU"}, {203,  "CZ"}, {204,  "BJ"}, {208,  "DK"}, {212,  "DM"}
+			, {214,  "DO"}, {218,  "EC"}, {222,  "SV"}, {226,  "GQ"}, {231,  "ET"}
+			, {232,  "ER"}, {233,  "EE"}, {234,  "FO"}, {238,  "FK"}, {239,  "GS"}
+			, {242,  "FJ"}, {246,  "FI"}, {248,  "AX"}, {250,  "FR"}, {254,  "GF"}
+			, {258,  "PF"}, {260,  "TF"}, {262,  "DJ"}, {266,  "GA"}, {268,  "GE"}
+			, {270,  "GM"}, {275,  "PS"}, {276,  "DE"}, {288,  "GH"}, {292,  "GI"}
+			, {296,  "KI"}, {300,  "GR"}, {304,  "GL"}, {308,  "GD"}, {312,  "GP"}
+			, {316,  "GU"}, {320,  "GT"}, {324,  "GN"}, {328,  "GY"}, {332,  "HT"}
+			, {334,  "HM"}, {336,  "VA"}, {340,  "HN"}, {344,  "HK"}, {348,  "HU"}
+			, {352,  "IS"}, {356,  "IN"}, {360,  "ID"}, {364,  "IR"}, {368,  "IQ"}
+			, {372,  "IE"}, {376,  "IL"}, {380,  "IT"}, {384,  "CI"}, {388,  "JM"}
+			, {392,  "JP"}, {398,  "KZ"}, {400,  "JO"}, {404,  "KE"}, {408,  "KP"}
+			, {410,  "KR"}, {414,  "KW"}, {417,  "KG"}, {418,  "LA"}, {422,  "LB"}
+			, {426,  "LS"}, {428,  "LV"}, {430,  "LR"}, {434,  "LY"}, {438,  "LI"}
+			, {440,  "LT"}, {442,  "LU"}, {446,  "MO"}, {450,  "MG"}, {454,  "MW"}
+			, {458,  "MY"}, {462,  "MV"}, {466,  "ML"}, {470,  "MT"}, {474,  "MQ"}
+			, {478,  "MR"}, {480,  "MU"}, {484,  "MX"}, {492,  "MC"}, {496,  "MN"}
+			, {498,  "MD"}, {500,  "MS"}, {504,  "MA"}, {508,  "MZ"}, {512,  "OM"}
+			, {516,  "NA"}, {520,  "NR"}, {524,  "NP"}, {528,  "NL"}, {530,  "AN"}
+			, {533,  "AW"}, {540,  "NC"}, {548,  "VU"}, {554,  "NZ"}, {558,  "NI"}
+			, {562,  "NE"}, {566,  "NG"}, {570,  "NU"}, {574,  "NF"}, {578,  "NO"}
+			, {580,  "MP"}, {581,  "UM"}, {583,  "FM"}, {584,  "MH"}, {585,  "PW"}
+			, {586,  "PK"}, {591,  "PA"}, {598,  "PG"}, {600,  "PY"}, {604,  "PE"}
+			, {608,  "PH"}, {612,  "PN"}, {616,  "PL"}, {620,  "PT"}, {624,  "GW"}
+			, {626,  "TL"}, {630,  "PR"}, {634,  "QA"}, {634,  "QA"}, {638,  "RE"}
+			, {642,  "RO"}, {643,  "RU"}, {646,  "RW"}, {654,  "SH"}, {659,  "KN"}
+			, {660,  "AI"}, {662,  "LC"}, {666,  "PM"}, {670,  "VC"}, {674,  "SM"}
+			, {678,  "ST"}, {682,  "SA"}, {686,  "SN"}, {690,  "SC"}, {694,  "SL"}
+			, {702,  "SG"}, {703,  "SK"}, {704,  "VN"}, {705,  "SI"}, {706,  "SO"}
+			, {710,  "ZA"}, {716,  "ZW"}, {724,  "ES"}, {732,  "EH"}, {736,  "SD"}
+			, {740,  "SR"}, {744,  "SJ"}, {748,  "SZ"}, {752,  "SE"}, {756,  "CH"}
+			, {760,  "SY"}, {762,  "TJ"}, {764,  "TH"}, {768,  "TG"}, {772,  "TK"}
+			, {776,  "TO"}, {780,  "TT"}, {784,  "AE"}, {788,  "TN"}, {792,  "TR"}
+			, {795,  "TM"}, {796,  "TC"}, {798,  "TV"}, {800,  "UG"}, {804,  "UA"}
+			, {807,  "MK"}, {818,  "EG"}, {826,  "GB"}, {834,  "TZ"}, {840,  "US"}
+			, {850,  "VI"}, {854,  "BF"}, {858,  "UY"}, {860,  "UZ"}, {862,  "VE"}
+			, {876,  "WF"}, {882,  "WS"}, {887,  "YE"}, {891,  "CS"}, {894,  "ZM"}
 		};
 
 		if (error || i == tcp::resolver::iterator())
@@ -1860,11 +1667,12 @@ namespace libtorrent
 			
 			// look up the country code in the map
 			const int size = sizeof(country_map)/sizeof(country_map[0]);
+			country_entry tmp = {country, ""};
 			country_entry* i =
-				std::lower_bound(country_map, country_map + size
-					, country_entry(country, ""), &compare_first);
+				std::lower_bound(country_map, country_map + size, tmp
+					, bind(&country_entry::code, _1) < bind(&country_entry::code, _2));
 			if (i == country_map + size
-				|| i->first != country)
+				|| i->code != country)
 			{
 				// unknown country!
 				p->set_country("!!");
@@ -1874,7 +1682,7 @@ namespace libtorrent
 				return;
 			}
 			
-			p->set_country(i->second);
+			p->set_country(i->name);
 		}
 	}
 #endif
@@ -1885,20 +1693,16 @@ namespace libtorrent
 
 		assert(peerinfo);
 		assert(peerinfo->connection == 0);
-		assert(m_connections.find(peerinfo->ip) == m_connections.end());
+#ifndef NDEBUG
+		peer_iterator i_ = m_connections.find(peerinfo->ip);
+		assert(i_ == m_connections.end()
+			|| (i_->second->is_disconnecting()));
+#endif
 
-		if (!want_more_peers()) return 0;
+		assert(want_more_peers());
 
 		tcp::endpoint const& a(peerinfo->ip);
-		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
-		{
-			if (m_ses.m_alerts.should_post(alert::info))
-			{
-				m_ses.m_alerts.post_alert(peer_blocked_alert(a.address()
-					, "peer connection blocked by IP filter"));
-			}
-			return 0;
-		}
+		assert((m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked) == 0);
 
 		boost::shared_ptr<socket_type> s
 			= instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy());
@@ -2315,9 +2119,19 @@ namespace libtorrent
 			if (m_sequenced_download_threshold > 0)
 				picker().set_sequenced_download_threshold(m_sequenced_download_threshold);
 		}
-		else
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			try { (*i)->on_files_checked(); } catch (std::exception&) {}
+		}
+#endif
+
+		if (is_seed())
 		{
 			m_picker.reset();
+			m_torrent_file.seed_free();
 		}
 
 		if (!m_connections_initialized)
@@ -2348,14 +2162,6 @@ namespace libtorrent
 		}
 #ifndef NDEBUG
 		m_initial_done = boost::get<0>(bytes_done());
-#endif
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
-		{
-			try { (*i)->on_files_checked(); } catch (std::exception&) {}
-		}
 #endif
 	}
 

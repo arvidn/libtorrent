@@ -35,6 +35,9 @@ int main(int argc, char* argv[])
 	ios.run();
 
 	upnp_handler.rebind(address_v4::from_string(argv[1]));
+	timer.expires_from_now(seconds(2));
+	timer.async_wait(boost::bind(&io_service::stop, boost::ref(ios)));
+
 	std::cerr << "rebinding to IP " << argv[1]
 		<< " broadcasting for UPnP device" << std::endl;
 	

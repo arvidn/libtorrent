@@ -116,14 +116,18 @@ public:
 
 	node_id const& nid() const { return m_id; }
 	boost::tuple<int, int> size() const{ return m_table.size(); }
+	size_type num_global_nodes() const
+	{ return m_table.num_global_nodes(); }
 
 	data_iterator begin_data() { return m_map.begin(); }
 	data_iterator end_data() { return m_map.end(); }
 	int data_size() const { return int(m_map.size()); }
 
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 	void print_state(std::ostream& os) const
 	{ m_table.print_state(os); }
-	
+#endif
+
 	void announce(sha1_hash const& info_hash, int listen_port
 		, boost::function<void(std::vector<tcp::endpoint> const&
 			, sha1_hash const&)> f);

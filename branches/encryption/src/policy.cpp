@@ -516,14 +516,13 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		ptime now = time_now();
-		ptime ptime(now);
+		ptime min_connect_time(now);
 		iterator candidate = m_peers.end();
 
 		int max_failcount = m_torrent->settings().max_failcount;
 		int min_reconnect_time = m_torrent->settings().min_reconnect_time;
 
-		for (iterator i = m_peers.begin();
-			i != m_peers.end(); ++i)
+		for (iterator i = m_peers.begin(); i != m_peers.end(); ++i)
 		{
 			if (i->connection) continue;
 			if (i->banned) continue;
@@ -535,16 +534,14 @@ namespace libtorrent
 
 			assert(i->connected <= now);
 
-			libtorrent::ptime next_connect = i->connected;
-
-			if (next_connect <= ptime)
+			if (i->connected <= min_connect_time)
 			{
-				ptime = next_connect;
+				min_connect_time = i->connected;
 				candidate = i;
 			}
 		}
 		
-		assert(ptime <= now);
+		assert(min_connect_time <= now);
 
 		return candidate;
 	}
@@ -987,6 +984,19 @@ namespace libtorrent
 			
 			if (i == m_peers.end())
 			{
+				aux::session_impl& ses = m_torrent->session();
+
+				// if the IP is blocked, don't add it
+				if (ses.m_ip_filter.access(remote.address()) & ip_filter::blocked)
+				{
+					if (ses.m_alerts.should_post(alert::info))
+					{
+						ses.m_alerts.post_alert(peer_blocked_alert(remote.address()
+						, "blocked peer not added to peer list"));
+					}
+					return;
+				}
+			
 				// we don't have any info about this peer.
 				// add a new entry
 				peer p(remote, peer::connectable, src);
@@ -1200,41 +1210,32 @@ namespace libtorrent
 
 		assert(m_torrent->want_more_peers());
 		
-		bool succeed = false;
-		while (!succeed)
-		{
-			iterator p = find_connect_candidate();
-			if (p == m_peers.end()) return false;
-			assert(!p->banned);
-			assert(!p->connection);
-			assert(p->type == peer::connectable);
-			succeed = connect_peer(p);
-		}
-		return true;
-	}
+		iterator p = find_connect_candidate();
+		if (p == m_peers.end()) return false;
 
-	bool policy::connect_peer(iterator p)
-	{
-		INVARIANT_CHECK;
+		assert(!p->banned);
+		assert(!p->connection);
+		assert(p->type == peer::connectable);
+
 		try
 		{
-			assert(!p->connection);
+			p->connected = m_last_optimistic_disconnect = time_now();
 			p->connection = m_torrent->connect_to_peer(&*p);
 			if (p->connection == 0) return false;
-			assert(p->connection);
 			p->connection->add_stat(p->prev_amount_download, p->prev_amount_upload);
 			p->prev_amount_download = 0;
 			p->prev_amount_upload = 0;
-			p->connected =
-				m_last_optimistic_disconnect = 
-					time_now();
 			return true;
 		}
 		catch (std::exception& e)
 		{
+#if defined(TORRENT_VERBOSE_LOGGING)
+			(*m_torrent->session().m_logger) << "*** CONNECTION FAILED '"
+				<< e.what() << "'\n";
+#endif
 			++p->failcount;
+			return false;
 		}
-		return false;
 	}
 
 	bool policy::disconnect_one_peer()
@@ -1342,10 +1343,12 @@ namespace libtorrent
 		int total_connections = 0;
 		int nonempty_connections = 0;
 		
-		
+		std::set<address> unique_test;
 		for (const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
+			assert(unique_test.find(i->ip.address()) == unique_test.end());
+			unique_test.insert(i->ip.address());
 			++total_connections;
 			if (!i->connection) continue;
 			assert(i->connection->peer_info_struct() == 0
@@ -1383,9 +1386,6 @@ namespace libtorrent
 				&& connected_peers > 0)
 			|| (connected_peers + 1 == num_torrent_peers
 				&& num_torrent_peers > 0));
-		
-		// TODO: Make sure the number of peers in m_torrent is equal
-		// to the number of connected peers in m_peers.
 	}
 #endif
 

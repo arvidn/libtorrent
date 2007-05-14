@@ -388,6 +388,7 @@ struct has the following members::
 		int dht_nodes;
 		int dht_cache_nodes;
 		int dht_torrents;
+		int dht_global_nodes;
 	};
 
 ``has_incoming_connections`` is false as long as no incoming connections have been
@@ -414,6 +415,8 @@ becomes unresponsive.
 
 ``dht_torrents`` are the number of torrents tracked by the DHT at the moment.
 
+``dht_global_nodes`` is an estimation of the total number of nodes in the DHT
+network.
 
 is_listening() listen_port() listen_on()
 ----------------------------------------

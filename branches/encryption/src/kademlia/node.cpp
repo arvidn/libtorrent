@@ -126,9 +126,20 @@ node_impl::node_impl(boost::function<void(msg const&)> const& f
 bool node_impl::verify_token(msg const& m)
 {
 	if (m.write_token.type() != entry::string_t)
+	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(node) << "token of incorrect type " << m.write_token.type();
+#endif
 		return false;
+	}
 	std::string const& token = m.write_token.string();
-	if (token.length() != 4) return false;
+	if (token.length() != 4)
+	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(node) << "token of incorrect length: " << token.length();
+#endif
+		return false;
+	}
 
 	hasher h1;
 	std::string address = m.addr.address().to_string();
@@ -139,10 +150,11 @@ bool node_impl::verify_token(msg const& m)
 	sha1_hash h = h1.final();
 	if (std::equal(token.begin(), token.end(), (signed char*)&h[0]))
 		return true;
-
+		
 	hasher h2;
 	h2.update(&address[0], address.length());
 	h2.update((char*)&m_secret[1], sizeof(m_secret[1]));
+	h2.update((char*)&m.info_hash[0], sha1_hash::size);
 	h = h2.final();
 	if (std::equal(token.begin(), token.end(), (signed char*)&h[0]))
 		return true;
@@ -381,27 +393,37 @@ time_duration node_impl::refresh_timeout()
 		for (int i = 0; i < 160; ++i)
 		{
 			ptime r = m_table.next_refresh(i);
-			if (r <= now)
+			if (r <= next)
 			{
-				if (refresh == -1) refresh = i;
-			}
-			else if (r < next)
-			{
+				refresh = i;
 				next = r;
 			}
 		}
-		if (refresh != -1)
+		if (next < now)
 		{
-	#ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(node) << "refreshing bucket: " << refresh;
-	#endif
+			assert(refresh > -1);
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(node) << "refreshing bucket: " << refresh;
+#endif
 			refresh_bucket(refresh);
 		}
 	}
 	catch (std::exception&) {}
 
-	if (next < now + seconds(5)) return seconds(5);
-	return next - now;
+	time_duration next_refresh = next - now;
+	time_duration min_next_refresh
+		= minutes(15) / (m_table.num_active_buckets());
+	if (min_next_refresh > seconds(40))
+		min_next_refresh = seconds(40);
+
+	if (next_refresh < min_next_refresh)
+		next_refresh = min_next_refresh;
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(node) << "next refresh: " << total_seconds(next_refresh) << " seconds";
+#endif
+
+	return next_refresh;
 }
 
 time_duration node_impl::connection_timeout()
@@ -440,7 +462,7 @@ void node_impl::on_announce(msg const& m, msg& reply)
 	{
 		reply.message_id = messages::error;
 		reply.error_code = 203;
-		reply.error_msg = "Incorrect write token in announce_peer message";
+		reply.error_msg = "Incorrect token in announce_peer";
 		return;
 	}
 
@@ -493,6 +515,11 @@ bool node_impl::on_find(msg const& m, std::vector<tcp::endpoint>& peers) const
 void node_impl::incoming_request(msg const& m)
 {
 	msg reply;
+	reply.message_id = m.message_id;
+	reply.addr = m.addr;
+	reply.reply = true;
+	reply.transaction_id = m.transaction_id;
+
 	switch (m.message_id)
 	{
 	case messages::ping:
@@ -532,16 +559,16 @@ void node_impl::incoming_request(msg const& m)
 		}
 		break;
 	case messages::announce_peer:
-		{
-			on_announce(m, reply);
-		}
+		on_announce(m, reply);
 		break;
+	default:
+		assert(false);
 	};
 
 	if (m_table.need_node(m.id))
-		m_rpc.reply_with_ping(reply, m);
+		m_rpc.reply_with_ping(reply);
 	else
-		m_rpc.reply(reply, m);
+		m_rpc.reply(reply);
 }
 
 

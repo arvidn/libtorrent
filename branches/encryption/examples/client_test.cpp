@@ -992,11 +992,11 @@ int main(int ac, char* av[])
 								out << esc("33;7") << str << esc("0");
 							else if (i->finished_blocks[j]) out << esc("32;7") << str << esc("0");
 							else if (i->requested_blocks[j]) out << str;
-							else out << "-";
+							else out << " ";
 #else
 							if (i->finished_blocks[j]) out << "#";
 							else if (i->requested_blocks[j]) out << str;
-							else out << "-";
+							else out << " ";
 #endif
 						}
 						char* piece_state[4] = {"", "slow", "medium", "fast"};

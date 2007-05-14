@@ -109,6 +109,7 @@ namespace libtorrent
 
 			std::vector<int> piece_map;
 			std::vector<piece_picker::downloading_piece> unfinished_pieces;
+			std::vector<piece_picker::block_info> block_info;
 			std::vector<tcp::endpoint> peers;
 			entry resume_data;
 
@@ -316,6 +317,14 @@ namespace libtorrent
 			io_service m_io_service;
 			asio::strand m_strand;
 
+			// the file pool that all storages in this session's
+			// torrents uses. It sets a limit on the number of
+			// open files by this session.
+			// file pool must be destructed after the torrents
+			// since they will still have references to it
+			// when they are destructed.
+			file_pool m_files;
+
 			// the bandwidth manager is responsible for
 			// handing out bandwidth to connections that
 			// asks for it, it can also throttle the
@@ -395,11 +404,6 @@ namespace libtorrent
 			// NAT or not.
 			bool m_incoming_connection;
 			
-			// the file pool that all storages in this session's
-			// torrents uses. It sets a limit on the number of
-			// open files by this session.
-			file_pool m_files;
-
 			void second_tick(asio::error_code const& e);
 			ptime m_last_tick;
 
@@ -435,6 +439,12 @@ namespace libtorrent
 #ifndef NDEBUG
 			void check_invariant(const char *place = 0);
 #endif
+
+#ifdef TORRENT_STATS
+			// logger used to write bandwidth usage statistics
+			std::ofstream m_stats_logger;
+			int m_second_counter;
+#endif
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			boost::shared_ptr<logger> create_log(std::string const& name
 				, int instance, bool append = true);
@@ -443,10 +453,6 @@ namespace libtorrent
 			// shutting down. This list is just here to keep them alive during
 			// whe shutting down process
 			std::list<boost::shared_ptr<tracker_logger> > m_tracker_loggers;
-			
-			// logger used to write bandwidth usage statistics
-			boost::shared_ptr<logger> m_stats_logger;
-			int m_second_counter;
 
 		public:
 			boost::shared_ptr<logger> m_logger;

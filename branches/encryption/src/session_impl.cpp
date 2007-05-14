@@ -477,6 +477,7 @@ namespace libtorrent { namespace detail
 		, fingerprint const& cl_fprint
 		, char const* listen_interface)
 		: m_strand(m_io_service)
+		, m_files(40)
 		, m_dl_bandwidth_manager(m_io_service, peer_connection::download_channel)
 		, m_ul_bandwidth_manager(m_io_service, peer_connection::upload_channel)
 		, m_tracker_manager(m_settings, m_tracker_proxy)
@@ -488,7 +489,6 @@ namespace libtorrent { namespace detail
 		, m_max_uploads(-1)
 		, m_max_connections(-1)
 		, m_incoming_connection(false)
-		, m_files(40)
 		, m_last_tick(time_now())
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_same_port(true)
@@ -510,15 +510,22 @@ namespace libtorrent { namespace detail
 		m_logger = create_log("main_session", listen_port(), false);
 		(*m_logger) << time_now_string() << "\n";
 		
-		m_stats_logger = create_log("session_stats", listen_port(), false);
-		(*m_stats_logger) <<
-			"1. second\n"
-			"2. hard upload quota\n"
-			"3. hard download quota\n"
-			"\n";
-		m_second_counter = 0;
 		m_dl_bandwidth_manager.m_ses = this;
 		m_ul_bandwidth_manager.m_ses = this;
+#endif
+
+#ifdef TORRENT_STATS
+		m_stats_logger.open("session_stats.log");
+		m_stats_logger <<
+			"1. second\n"
+			"2. upload rate\n"
+			"3. download rate\n"
+			"4. downloading torrents\n"
+			"5. seeding torrents\n"
+			"6. peers\n"
+			"7. connecting peers\n"
+			"\n";
+		m_second_counter = 0;
 #endif
 
 		// ---- generate a peer id ----
@@ -846,6 +853,41 @@ namespace libtorrent { namespace detail
 		m_timer.expires_from_now(seconds(1));
 		m_timer.async_wait(m_strand.wrap(
 			bind(&session_impl::second_tick, this, _1)));
+
+#ifdef TORRENT_STATS
+		++m_second_counter;
+		int downloading_torrents = 0;
+		int seeding_torrents = 0;
+		for (torrent_map::iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+		{
+			if (i->second->is_seed())
+				++seeding_torrents;
+			else
+				++downloading_torrents;
+		}
+		int num_connections = 0;
+		int num_half_open = 0;
+		for (connection_map::iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
+		{
+			if (i->second->is_connecting())
+				++num_half_open;
+			else
+				++num_connections;
+		}
+		
+		m_stats_logger
+			<< m_second_counter << "\t"
+			<< m_stat.upload_rate() << "\t"
+			<< m_stat.download_rate() << "\t"
+			<< downloading_torrents << "\t"
+			<< seeding_torrents << "\t"
+			<< num_connections << "\t"
+			<< num_half_open << "\t"
+			<< std::endl;
+#endif
+
 	
 		// let torrents connect to peers if they want to
 		// if there are any torrents and any free slots
@@ -1544,6 +1586,7 @@ namespace libtorrent { namespace detail
 			s.dht_nodes = 0;
 			s.dht_node_cache = 0;
 			s.dht_torrents = 0;
+			s.dht_global_nodes = 0;
 		}
 #endif
 
@@ -1883,13 +1926,15 @@ namespace libtorrent { namespace detail
 				// the unfinished pieces
 
 				entry::list_type& unfinished = rd["unfinished"].list();
-
-				tmp_unfinished.reserve(unfinished.size());
+				int unfinished_size = int(unfinished.size());
+				block_info.resize(num_blocks_per_piece * unfinished_size);
+				tmp_unfinished.reserve(unfinished_size);
+				int index = 0;
 				for (entry::list_type::iterator i = unfinished.begin();
-					i != unfinished.end(); ++i)
+					i != unfinished.end(); ++i, ++index)
 				{
 					piece_picker::downloading_piece p;
-	
+					p.info = &block_info[index * num_blocks_per_piece];
 					p.index = (int)(*i)["piece"].integer();
 					if (p.index < 0 || p.index >= info.num_pieces())
 					{
@@ -1914,11 +1959,14 @@ namespace libtorrent { namespace detail
 						{
 							const int bit = j * 8 + k;
 							if (bits & (1 << k))
-								p.finished_blocks[bit] = true;
+							{
+								p.info[bit].finished = true;
+								++p.finished;
+							}
 						}
 					}
 
-					if (p.finished_blocks.count() == 0) continue;
+					if (p.finished == 0) continue;
 	
 					std::vector<int>::iterator slot_iter
 						= std::find(tmp_pieces.begin(), tmp_pieces.end(), p.index);
@@ -1937,7 +1985,7 @@ namespace libtorrent { namespace detail
 						= torrent_ptr->filesystem().piece_crc(
 							slot_index
 							, torrent_ptr->block_size()
-							, p.finished_blocks);
+							, p.info);
 
 					const entry& ad = (*i)["adler32"];
 	

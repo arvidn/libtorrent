@@ -88,16 +88,16 @@ namespace libtorrent
 	{
 	public:
 
-		enum { max_blocks_per_piece = 256 };
-
 		struct block_info
 		{
-			block_info(): num_downloads(0) {}
+			block_info(): num_downloads(0), requested(0), finished(0) {}
 			// the peer this block was requested or
 			// downloaded from
 			tcp::endpoint peer;
 			// the number of times this block has been downloaded
-			int num_downloads;
+			unsigned num_downloads:14;
+			unsigned requested:1;
+			unsigned finished:1;
 		};
 
 		// the peers that are downloading this piece
@@ -109,17 +109,17 @@ namespace libtorrent
 
 		struct downloading_piece
 		{
+			downloading_piece(): finished(0), requested(0) {}
 			piece_state_t state;
 
 			// the index of the piece
 			int index;
-			// each bit represents a block in the piece
-			// set to one if the block has been requested
-			std::bitset<max_blocks_per_piece> requested_blocks;
-			// the bit is set to one if the block has been acquired
-			std::bitset<max_blocks_per_piece> finished_blocks;
 			// info about each block
-			block_info info[max_blocks_per_piece];
+			// this is a pointer into the m_block_info
+			// vector owned by the piece_picker
+			block_info* info;
+			boost::uint16_t finished;
+			boost::uint16_t requested;
 		};
 
 		piece_picker(int blocks_per_piece
@@ -339,6 +339,9 @@ namespace libtorrent
 			, int num_blocks, bool prefer_whole_pieces
 			, tcp::endpoint peer, piece_state_t speed) const;
 
+		downloading_piece& add_download_piece();
+		void erase_download_piece(std::vector<downloading_piece>::iterator i);
+
 		// this vector contains all pieces we don't have.
 		// in the first entry (index 0) is a vector of all pieces
 		// that no peer have, the vector at index 1 contains
@@ -363,6 +366,15 @@ namespace libtorrent
 		// is being downloaded
 		std::vector<downloading_piece> m_downloads;
 
+		// this holds the information of the
+		// blocks in partially downloaded pieces.
+		// the first m_blocks_per_piece entries
+		// in the vector belongs to the first
+		// entry in m_downloads, the second
+		// m_blocks_per_piece entries to the
+		// second entry in m_downloads and so on.
+		std::vector<block_info> m_block_info;
+
 		int m_blocks_per_piece;
 		int m_blocks_in_last_piece;
 
@@ -374,6 +386,9 @@ namespace libtorrent
 
 		// the number of pieces we have that also are filtered
 		int m_num_have_filtered;
+		
+		// the number of pieces we have
+		int m_num_have;
 
 		// the required popularity of a piece in order to download
 		// it in sequence instead of random order.

@@ -63,7 +63,8 @@ routing_table::routing_table(node_id const& id, int bucket_size
 	// distribute the refresh times for the buckets in an
 	// attempt do even out the network load
 	for (int i = 0; i < 160; ++i)
-		m_bucket_activity[i] = time_now() - seconds(15*60 - i*5);
+		m_bucket_activity[i] = time_now() - milliseconds(i*5625);
+	m_bucket_activity[0] = time_now() - minutes(15);
 }
 
 boost::tuple<int, int> routing_table::size() const
@@ -79,14 +80,34 @@ boost::tuple<int, int> routing_table::size() const
 	return boost::make_tuple(nodes, replacements);
 }
 
+size_type routing_table::num_global_nodes() const
+{
+	int first_full = m_lowest_active_bucket;
+	int num_nodes = 1; // we are one of the nodes
+	for (; first_full < 160
+		&& int(m_buckets[first_full].first.size()) < m_bucket_size;
+		++first_full)
+	{
+		num_nodes += m_buckets[first_full].first.size();
+	}
+
+	return (2 << (160 - first_full)) * num_nodes;
+}
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+
 void routing_table::print_state(std::ostream& os) const
 {
 	os << "kademlia routing table state\n"
 		<< "bucket_size: " << m_bucket_size << "\n"
+		<< "global node count: " << num_global_nodes() << "\n"
 		<< "node_id: " << m_id << "\n\n";
 
-	os << "number of nodes per bucket:\n"
-		"live\n";
+	os << "number of nodes per bucket:\n-- live ";
+	for (int i = 8; i < 160; ++i)
+		os << "-";
+	os << "\n";
+
 	for (int k = 0; k < 8; ++k)
 	{
 		for (table_t::const_iterator i = m_buckets.begin(), end(m_buckets.end());
@@ -111,16 +132,20 @@ void routing_table::print_state(std::ostream& os) const
 		}
 		os << "\n";
 	}
-	os << "cached\n-----------\n";
+	os << "-- cached ";
+	for (int i = 10; i < 160; ++i)
+		os << "-";
+	os << "\n\n";
 
 	os << "nodes:\n";
 	for (table_t::const_iterator i = m_buckets.begin(), end(m_buckets.end());
 		i != end; ++i)
 	{
 		int bucket_index = int(i - m_buckets.begin());
-		os << "bucket " << bucket_index << " "
-			<< " " << (bucket_index >= m_lowest_active_bucket?"active":"inactive")
-			<< "\n";
+		os << "=== BUCKET = " << bucket_index
+			<< " = " << (bucket_index >= m_lowest_active_bucket?"active":"inactive")
+			<< " = " << total_seconds(time_now() - m_bucket_activity[bucket_index])
+			<< " s ago ===== \n";
 		for (bucket_t::const_iterator j = i->first.begin()
 			, end(i->first.end()); j != end; ++j)
 		{
@@ -129,6 +154,8 @@ void routing_table::print_state(std::ostream& os) const
 		}
 	}
 }
+
+#endif
 
 void routing_table::touch_bucket(int bucket)
 {
@@ -141,7 +168,7 @@ ptime routing_table::next_refresh(int bucket)
 	assert(bucket >= 0);
 	// lower than or equal to since a refresh of bucket 0 will
 	// effectively refresh the lowest active bucket as well
-	if (bucket <= m_lowest_active_bucket && bucket > 0)
+	if (bucket < m_lowest_active_bucket && bucket > 0)
 		return time_now() + minutes(15);
 	return m_bucket_activity[bucket] + minutes(15);
 }
@@ -241,7 +268,7 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint addr)
 
 	bool ret = need_bootstrap();
 
-	m_bucket_activity[bucket_index] = time_now();
+	//m_bucket_activity[bucket_index] = time_now();
 
 	if (i != b.end())
 	{
@@ -265,6 +292,7 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint addr)
 	// offline
 	if ((int)b.size() < m_bucket_size)
 	{
+		if (b.empty()) b.reserve(m_bucket_size);
 		b.push_back(node_entry(id, addr));
 		// if bucket index is 0, the node is ourselves
 		// don't updated m_lowest_active_bucket
@@ -312,6 +340,7 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint addr)
 	if (i != rb.end()) return ret;
 	
 	if ((int)rb.size() > m_bucket_size) rb.erase(rb.begin());
+	if (rb.empty()) rb.reserve(m_bucket_size);
 	rb.push_back(node_entry(id, addr));
 //	TORRENT_LOG(table) << "inserting node in replacement cache: " << id << " " << addr;
 	return ret;

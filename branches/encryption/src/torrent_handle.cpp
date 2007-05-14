@@ -542,7 +542,7 @@ namespace libtorrent
 			for (std::vector<piece_picker::downloading_piece>::const_iterator i
 				= q.begin(); i != q.end(); ++i)
 			{
-				if (i->finished_blocks.count() == 0) continue;
+				if (i->finished == 0) continue;
 
 				entry piece_struct(entry::dictionary_t);
 
@@ -557,7 +557,7 @@ namespace libtorrent
 				{
 					unsigned char v = 0;
 					for (int k = 0; k < 8; ++k)
-						v |= i->finished_blocks[j*8+k]?(1 << k):0;
+						v |= i->info[j*8+k].finished?(1 << k):0;
 					bitmask.insert(bitmask.end(), v);
 				}
 				piece_struct["bitmask"] = bitmask;
@@ -567,7 +567,7 @@ namespace libtorrent
 					= t->filesystem().piece_crc(
 						t->filesystem().slot_for_piece(i->index)
 						, t->block_size()
-						, i->finished_blocks);
+						, i->info);
 
 				piece_struct["adler32"] = adler;
 
@@ -769,15 +769,15 @@ namespace libtorrent
 		{
 			partial_piece_info pi;
 			pi.piece_state = (partial_piece_info::state_t)i->state;
-			pi.finished_blocks = i->finished_blocks;
-			pi.requested_blocks = i->requested_blocks;
-			for (int j = 0; j < partial_piece_info::max_blocks_per_piece; ++j)
+			pi.blocks_in_piece = p.blocks_in_piece(i->index);
+			for (int j = 0; j < pi.blocks_in_piece; ++j)
 			{
 				pi.peer[j] = i->info[j].peer;
 				pi.num_downloads[j] = i->info[j].num_downloads;
+				pi.finished_blocks[j] = i->info[j].finished;
+				pi.requested_blocks[j] = i->info[j].requested;
 			}
 			pi.piece_index = i->index;
-			pi.blocks_in_piece = p.blocks_in_piece(i->index);
 			queue.push_back(pi);
 		}
 	}

@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/node_entry.hpp>
 #include <libtorrent/session_settings.hpp>
+#include <libtorrent/size_type.hpp>
 
 namespace libtorrent { namespace dht
 {
@@ -57,7 +58,7 @@ using asio::ip::udp;
 
 //TORRENT_DECLARE_LOG(table);
 	
-typedef std::deque<node_entry> bucket_t;
+typedef std::vector<node_entry> bucket_t;
 
 // differences in the implementation from the description in
 // the paper:
@@ -101,7 +102,7 @@ namespace aux
 			, bucket_iterator_t end)
 			: m_bucket_iterator(begin)
 			, m_bucket_end(end)
-			, m_iterator(begin != end ? begin->first.begin() : bucket_t::iterator())
+			, m_iterator(begin != end ? begin->first.begin() : bucket_t::const_iterator())
 		{
 			if (m_bucket_iterator == m_bucket_end) return;
 			while (m_iterator == m_bucket_iterator->first.end())
@@ -201,17 +202,21 @@ public:
 	iterator end() const;
 
 	boost::tuple<int, int> size() const;
+	size_type num_global_nodes() const;
 	
 	// returns true if there are no working nodes
 	// in the routing table
 	bool need_bootstrap() const;
+	int num_active_buckets() const
+	{ return 160 - m_lowest_active_bucket + 1; }
 	
 	void replacement_cache(bucket_t& nodes) const;
-
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 	// used for debug and monitoring purposes. This will print out
 	// the state of the routing table to the given stream
 	void print_state(std::ostream& os) const;
-	
+#endif
+
 private:
 
 	// constant called k in paper
