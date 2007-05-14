@@ -118,7 +118,7 @@ namespace libtorrent { namespace dht
 		udp::endpoint m_remote_endpoint[2];
 		std::vector<char> m_send_buf;
 
-		ptime m_last_refresh;
+		ptime m_last_new_key;
 		deadline_timer m_timer;
 		deadline_timer m_connection_timer;
 		deadline_timer m_refresh_timer;

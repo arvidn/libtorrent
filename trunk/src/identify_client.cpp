@@ -185,7 +185,7 @@ namespace
 		, {"SN", "ShareNet"}
 		, {"SS", "SwarmScope"}
 		, {"SZ", "Shareaza"}
-		, {"S~",  "Shareaza (beta}"}
+		, {"S~",  "Shareaza (beta)"}
 		, {"T",  "BitTornado"}
 		, {"TN", "Torrent.NET"}
 		, {"TR", "Transmission"}
