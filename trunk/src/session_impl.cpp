@@ -515,7 +515,7 @@ namespace libtorrent { namespace detail
 #endif
 
 #ifdef TORRENT_STATS
-		m_stats_logger.open("session_stats");
+		m_stats_logger.open("session_stats.log");
 		m_stats_logger <<
 			"1. second\n"
 			"2. upload rate\n"
