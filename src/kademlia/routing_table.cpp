@@ -84,7 +84,8 @@ size_type routing_table::num_global_nodes() const
 {
 	int first_full = m_lowest_active_bucket;
 	int num_nodes = 1; // we are one of the nodes
-	for (; first_full < 160 && m_buckets[first_full].first.size() < m_bucket_size;
+	for (; first_full < 160
+		&& int(m_buckets[first_full].first.size()) < m_bucket_size;
 		++first_full)
 	{
 		num_nodes += m_buckets[first_full].first.size();

@@ -872,7 +872,7 @@ namespace libtorrent { namespace detail
 			<< downloading_torrents << "\t"
 			<< seeding_torrents << "\t"
 			<< m_connections.size() << "\t"
-			"\n";
+			std::endl;
 #endif
 
 	
