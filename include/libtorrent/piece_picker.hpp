@@ -386,6 +386,9 @@ namespace libtorrent
 
 		// the number of pieces we have that also are filtered
 		int m_num_have_filtered;
+		
+		// the number of pieces we have
+		int m_num_have;
 
 		// the required popularity of a piece in order to download
 		// it in sequence instead of random order.

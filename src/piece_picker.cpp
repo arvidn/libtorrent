@@ -59,6 +59,7 @@ namespace libtorrent
 		, m_piece_map((total_num_blocks + blocks_per_piece-1) / blocks_per_piece)
 		, m_num_filtered(0)
 		, m_num_have_filtered(0)
+		, m_num_have(0)
 		, m_sequenced_download_threshold(100)
 	{
 		assert(blocks_per_piece > 0);
@@ -82,6 +83,7 @@ namespace libtorrent
 		// and make them invalid (as if though we already had every piece)
 		std::fill(m_piece_map.begin(), m_piece_map.end()
 			, piece_pos(0, piece_pos::we_have_index));
+		m_num_have = m_piece_map.size();
 	}
 
 	// pieces is a bitmask with the pieces we have
@@ -98,6 +100,7 @@ namespace libtorrent
 			if (*i) continue;
 			int index = static_cast<int>(i - pieces.begin());
 			m_piece_map[index].index = 0;
+			--m_num_have;
 			if (m_piece_map[index].filtered())
 			{
 				++m_num_filtered;
@@ -279,6 +282,7 @@ namespace libtorrent
 
 		int num_filtered = 0;
 		int num_have_filtered = 0;
+		int num_have = 0;
 		for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin();
 			i != m_piece_map.end(); ++i)
 		{
@@ -290,6 +294,9 @@ namespace libtorrent
 				else
 					++num_have_filtered;
 			}
+			if (i->index == piece_pos::we_have_index)
+				++num_have;
+
 #if 0
 			if (t != 0)
 			{
@@ -377,6 +384,7 @@ namespace libtorrent
 				assert(count == 0);
 			}
 		}
+		assert(num_have == m_num_have);
 		assert(num_filtered == m_num_filtered);
 		assert(num_have_filtered == m_num_have_filtered);
 	}
@@ -890,12 +898,13 @@ namespace libtorrent
 		assert(std::find_if(m_downloads.begin(), m_downloads.end()
 			, has_index(index)) == m_downloads.end());
 
+		if (p.have()) return;
 		if (p.filtered())
 		{
 			--m_num_filtered;
 			++m_num_have_filtered;
 		}
-		if (p.have()) return;
+		++m_num_have;
 		p.set_have();
 		if (priority == 0) return;
 		assert(p.priority(m_sequenced_download_threshold) == 0);
@@ -1089,6 +1098,10 @@ namespace libtorrent
 			// if the peer doesn't have the piece
 			// skip it
 			if (!pieces[*i]) continue;
+			
+			// if we have less than 1% of the pieces, ignore speed priorities and just try
+			// to finish any downloading piece
+			bool ignore_speed_categories = (m_num_have * 100 / m_piece_map.size()) < 1;
 
 			int num_blocks_in_piece = blocks_in_piece(*i);
 
@@ -1138,7 +1151,9 @@ namespace libtorrent
 					// have been requested from the same peer or
 					// if the state of the piece is none (the
 					// piece will in that case change state).
-					if (p->state != none && p->state != speed && !only_same_peer)
+					if (p->state != none && p->state != speed
+						&& !only_same_peer
+						&& !ignore_speed_categories)
 					{
 						if (int(backup_blocks.size()) >= num_blocks) continue;
 						backup_blocks.push_back(piece_block(*i, j));
