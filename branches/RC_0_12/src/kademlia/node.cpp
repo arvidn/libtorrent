@@ -146,6 +146,7 @@ bool node_impl::verify_token(msg const& m)
 	hasher h2;
 	h2.update(&address[0], address.length());
 	h2.update((char*)&m_secret[1], sizeof(m_secret[1]));
+	h2.update((char*)&m.info_hash[0], sha1_hash::size);
 	h = h2.final();
 	if (std::equal(token.begin(), token.end(), (signed char*)&h[0]))
 		return true;
