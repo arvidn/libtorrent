@@ -62,6 +62,11 @@ using libtorrent::dht::packet_iterator;
 namespace messages = libtorrent::dht::messages;
 using namespace libtorrent::detail;
 
+enum
+{
+	key_refresh = 5 // generate a new write token key every 5 minutes
+};
+
 using asio::ip::udp;
 typedef asio::ip::address_v4 address;
 
@@ -147,7 +152,7 @@ namespace libtorrent { namespace dht
 		, m_dht(bind(&dht_tracker::send_packet, this, _1), settings
 			, read_id(bootstrap))
 		, m_buffer(0)
-		, m_last_refresh(time_now() - hours(1))
+		, m_last_new_key(time_now() - minutes(key_refresh))
 		, m_timer(ios)
 		, m_connection_timer(ios)
 		, m_refresh_timer(ios)
@@ -274,7 +279,15 @@ namespace libtorrent { namespace dht
 		m_timer.expires_from_now(minutes(tick_period));
 		m_timer.async_wait(m_strand.wrap(bind(&dht_tracker::tick, this, _1)));
 
-		m_dht.new_write_key();
+		ptime now = time_now();
+		if (now - m_last_new_key > minutes(key_refresh))
+		{
+			m_last_new_key = now;
+			m_dht.new_write_key();
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			TORRENT_LOG(dht_tracker) << time_now_string() << " new write key";
+#endif
+		}
 		
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		static bool first = true;

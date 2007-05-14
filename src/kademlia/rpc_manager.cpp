@@ -123,6 +123,13 @@ bool rpc_manager::incoming(msg const& m)
 			TORRENT_LOG(rpc) << "Reply with invalid transaction id size: " 
 				<< m.transaction_id.size() << " from " << m.addr;
 #endif
+			msg reply;
+			reply.message_id = messages::error;
+			reply.error_code = 203; // Protocol error
+			reply.error_msg = "reply with invalid transaction id, size " + m.transaction_id.size();
+			reply.addr = m.addr;
+			reply.transaction_id = "";
+			m_send(m);
 			return false;
 		}
 	
@@ -136,6 +143,13 @@ bool rpc_manager::incoming(msg const& m)
 			TORRENT_LOG(rpc) << "Reply with invalid transaction id: " 
 				<< tid << " from " << m.addr;
 #endif
+			msg reply;
+			reply.message_id = messages::error;
+			reply.error_code = 203; // Protocol error
+			reply.error_msg = "reply with invalid transaction id";
+			reply.addr = m.addr;
+			reply.transaction_id = "";
+			m_send(m);
 			return false;
 		}
 		

@@ -168,7 +168,7 @@ ptime routing_table::next_refresh(int bucket)
 	assert(bucket >= 0);
 	// lower than or equal to since a refresh of bucket 0 will
 	// effectively refresh the lowest active bucket as well
-	if (bucket <= m_lowest_active_bucket && bucket > 0)
+	if (bucket < m_lowest_active_bucket && bucket > 0)
 		return time_now() + minutes(15);
 	return m_bucket_activity[bucket] + minutes(15);
 }
