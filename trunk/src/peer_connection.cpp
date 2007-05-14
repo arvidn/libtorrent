@@ -1855,13 +1855,10 @@ namespace libtorrent
 
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
-		// TODO: the buffer size should probably be dependent on the transfer speed
 		
-		int blocks_per_second = int(m_statistics.upload_rate() / t->block_size());
-		if (blocks_per_second == 0) blocks_per_second = 1;
-		else if (blocks_per_second > 12) blocks_per_second = 12;
-
-		int buffer_size_watermark = t->block_size() * blocks_per_second / 2;
+		int buffer_size_watermark = int(m_statistics.upload_rate()) / 2;
+		if (buffer_size_watermark < 1024) buffer_size_watermark = 1024;
+		else if (buffer_size_watermark > 80 * 1024) buffer_size_watermark = 80 * 1024;
 
 		while (!m_requests.empty()
 			&& (send_buffer_size() < buffer_size_watermark)
