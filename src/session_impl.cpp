@@ -523,6 +523,7 @@ namespace libtorrent { namespace detail
 			"4. downloading torrents\n"
 			"5. seeding torrents\n"
 			"6. peers\n"
+			"7. connecting peers\n"
 			"\n";
 		m_second_counter = 0;
 #endif
@@ -865,14 +866,26 @@ namespace libtorrent { namespace detail
 			else
 				++downloading_torrents;
 		}
+		int num_connections = 0;
+		int num_half_open = 0;
+		for (connection_map::iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
+		{
+			if (i->second->is_connecting())
+				++num_half_open;
+			else
+				++num_connections;
+		}
+		
 		m_stats_logger
 			<< m_second_counter << "\t"
 			<< m_stat.upload_rate() << "\t"
 			<< m_stat.download_rate() << "\t"
 			<< downloading_torrents << "\t"
 			<< seeding_torrents << "\t"
-			<< m_connections.size() << "\t"
-			std::endl;
+			<< num_connections << "\t"
+			<< num_half_open << "\t"
+			<< std::endl;
 #endif
 
 	
