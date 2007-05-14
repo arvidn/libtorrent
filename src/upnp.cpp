@@ -195,6 +195,13 @@ catch (std::exception&)
 
 void upnp::set_mappings(int tcp, int udp)
 {
+#ifdef TORRENT_UPNP_LOGGING
+	m_log << time_now_string()
+		<< " *** set mappings " << tcp << " " << udp;
+	if (m_disabled) m_log << " DISABLED";
+	m_log << std::endl;
+#endif
+
 	if (m_disabled) return;
 	if (udp != 0) m_udp_local_port = udp;
 	if (tcp != 0) m_tcp_local_port = tcp;
@@ -392,11 +399,17 @@ try
 		{
 			d.mapping[0].need_update = true;
 			d.mapping[0].local_port = m_tcp_local_port;
+#ifdef TORRENT_UPNP_LOGGING
+			m_log << time_now_string() << " *** Mapping 0 will be updated" << std::endl;
+#endif
 		}
 		if (m_udp_local_port != 0)
 		{
 			d.mapping[1].need_update = true;
 			d.mapping[1].local_port = m_udp_local_port;
+#ifdef TORRENT_UPNP_LOGGING
+			m_log << time_now_string() << " *** Mapping 1 will be updated" << std::endl;
+#endif
 		}
 		boost::tie(i, boost::tuples::ignore) = m_devices.insert(d);
 	}
