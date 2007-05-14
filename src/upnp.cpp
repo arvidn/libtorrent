@@ -144,7 +144,7 @@ void upnp::rebind(address const& listen_interface) try
 }
 catch (std::exception& e)
 {
-	m_disabled = true;
+	disable();
 	std::stringstream msg;
 	msg << "UPnP portmapping disabled: " << e.what();
 	m_callback(0, 0, msg.str());
@@ -163,8 +163,20 @@ void upnp::discover_device() try
 	m_socket.async_receive_from(asio::buffer(m_receive_buffer
 		, sizeof(m_receive_buffer)), m_remote, m_strand.wrap(bind(
 		&upnp::on_reply, this, _1, _2)));
+
+	asio::error_code ec;
+#ifdef TORRENT_DEBUG_UPNP
+	// simulate packet loss
+	if (m_retry_count & 1)
+#endif
 	m_socket.send_to(asio::buffer(msearch, sizeof(msearch) - 1)
-		, upnp_multicast_endpoint);
+		, upnp_multicast_endpoint, 0, ec);
+
+	if (ec)
+	{
+		disable();
+		return;
+	}
 
 	++m_retry_count;
 	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count));
@@ -178,7 +190,7 @@ void upnp::discover_device() try
 }
 catch (std::exception&)
 {
-	m_disabled = true;
+	disable();
 }
 
 void upnp::set_mappings(int tcp, int udp)
@@ -211,7 +223,10 @@ void upnp::set_mappings(int tcp, int udp)
 	}
 }
 
-void upnp::resend_request(asio::error_code const& e) try
+void upnp::resend_request(asio::error_code const& e)
+#ifndef NDEBUG
+try
+#endif
 {
 	if (e) return;
 	if (m_retry_count < 9
@@ -228,32 +243,49 @@ void upnp::resend_request(asio::error_code const& e) try
 			<< " *** Got no response in 9 retries. Giving up, "
 			"disabling UPnP." << std::endl;
 #endif
-		m_disabled = true;
+		disable();
 		return;
 	}
 	
 	for (std::set<rootdevice>::iterator i = m_devices.begin()
 		, end(m_devices.end()); i != end; ++i)
 	{
-		if (i->control_url.empty() && !i->upnp_connection)
+		if (i->control_url.empty() && !i->upnp_connection && !i->disabled)
 		{
 			// we don't have a WANIP or WANPPP url for this device,
 			// ask for it
 			rootdevice& d = const_cast<rootdevice&>(*i);
-			d.upnp_connection.reset(new http_connection(m_socket.io_service()
-				, m_cc, m_strand.wrap(bind(&upnp::on_upnp_xml, this, _1, _2
-				, boost::ref(d)))));
-			d.upnp_connection->get(d.url);
+			try
+			{
+				d.upnp_connection.reset(new http_connection(m_socket.io_service()
+					, m_cc, m_strand.wrap(bind(&upnp::on_upnp_xml, this, _1, _2
+					, boost::ref(d)))));
+				d.upnp_connection->get(d.url);
+			}
+			catch (std::exception& e)
+			{
+#ifdef TORRENT_UPNP_LOGGING
+				m_log << time_now_string()
+					<< " *** Connection failed to: " << d.url
+					<< " " << e.what() << std::endl;
+#endif
+				d.disabled = true;
+			}
 		}
 	}
 }
+#ifndef NDEBUG
 catch (std::exception&)
 {
-	m_disabled = true;
+	assert(false);
 }
+#endif
 
 void upnp::on_reply(asio::error_code const& e
-	, std::size_t bytes_transferred) try
+	, std::size_t bytes_transferred)
+#ifndef NDEBUG
+try
+#endif
 {
 	using namespace libtorrent::detail;
 	if (e) return;
@@ -379,23 +411,37 @@ void upnp::on_reply(asio::error_code const& e
 		for (std::set<rootdevice>::iterator i = m_devices.begin()
 			, end(m_devices.end()); i != end; ++i)
 		{
-			if (i->control_url.empty() && !i->upnp_connection)
+			if (i->control_url.empty() && !i->upnp_connection && !i->disabled)
 			{
 				// we don't have a WANIP or WANPPP url for this device,
 				// ask for it
 				rootdevice& d = const_cast<rootdevice&>(*i);
-				d.upnp_connection.reset(new http_connection(m_socket.io_service()
-					, m_cc, m_strand.wrap(bind(&upnp::on_upnp_xml, this, _1, _2
-					, boost::ref(d)))));
-				d.upnp_connection->get(d.url);
+				try
+				{
+					d.upnp_connection.reset(new http_connection(m_socket.io_service()
+						, m_cc, m_strand.wrap(bind(&upnp::on_upnp_xml, this, _1, _2
+						, boost::ref(d)))));
+					d.upnp_connection->get(d.url);
+				}
+				catch (std::exception& e)
+				{
+#ifdef TORRENT_UPNP_LOGGING
+					m_log << time_now_string()
+						<< " *** Connection failed to: " << d.url
+						<< " " << e.what() << std::endl;
+#endif
+					d.disabled = true;
+				}
 			}
 		}
 	}
 }
+#ifndef NDEBUG
 catch (std::exception&)
 {
-	m_disabled = true;
+	assert(false);
 }
+#endif
 
 void upnp::post(rootdevice& d, std::stringstream const& soap
 	, std::string const& soap_action)
@@ -627,7 +673,16 @@ void upnp::on_upnp_xml(asio::error_code const& e
 }
 catch (std::exception&)
 {
+	disable();
+}
+
+void upnp::disable()
+{
 	m_disabled = true;
+	m_devices.clear();
+	m_broadcast_timer.cancel();
+	m_refresh_timer.cancel();
+	m_socket.close();
 }
 
 namespace
@@ -821,7 +876,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 }
 catch (std::exception&)
 {
-	m_disabled = true;
+	disable();
 }
 
 void upnp::on_upnp_unmap_response(asio::error_code const& e
@@ -869,7 +924,7 @@ void upnp::on_upnp_unmap_response(asio::error_code const& e
 }
 catch (std::exception&)
 {
-	m_disabled = true;
+	disable();
 }
 
 void upnp::on_expire(asio::error_code const& e) try
@@ -907,7 +962,7 @@ void upnp::on_expire(asio::error_code const& e) try
 }
 catch (std::exception&)
 {
-	m_disabled = true;
+	disable();
 }
 
 void upnp::close()

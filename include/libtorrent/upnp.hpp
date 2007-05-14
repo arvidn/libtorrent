@@ -102,6 +102,7 @@ private:
 		, std::string const& soap_action);
 	void map_port(rootdevice& d, int i);
 	void unmap_port(rootdevice& d, int i);
+	void disable();
 
 	struct mapping_t
 	{
@@ -135,6 +136,7 @@ private:
 		rootdevice(): service_namespace(0)
 			, lease_duration(default_lease_time)
 			, supports_specific_external(true)
+			, disabled(false)
 		{
 			mapping[0].protocol = 0;
 			mapping[1].protocol = 1;
@@ -159,10 +161,17 @@ private:
 		// true if the device supports specifying a
 		// specific external port, false if it doesn't
 		bool supports_specific_external;
+		
+		bool disabled;
 
-		boost::shared_ptr<http_connection> upnp_connection;
+		mutable boost::shared_ptr<http_connection> upnp_connection;
 
-		void close() const { if (upnp_connection) upnp_connection->close(); }
+		void close() const
+		{
+			if (!upnp_connection) return;
+			upnp_connection->close();
+			upnp_connection.reset();
+		}
 		
 		bool operator<(rootdevice const& rhs) const
 		{ return url < rhs.url; }

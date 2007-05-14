@@ -40,6 +40,9 @@ feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
 feature statistics : off on : composite propagated symmetric link-incompatible ;
 feature.compose <statistics>on : <define>TORRENT_STATS ;
 
+feature upnp-logging : off on : composite propagated link-incompatible ;
+feature.compose <upnp-logging>on : <define>TORRENT_UPNP_LOGGING ;
+
 SOURCES =
 	allocate_resources
 	alert
