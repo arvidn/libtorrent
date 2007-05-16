@@ -174,6 +174,9 @@ namespace libtorrent
 		void set_non_prioritized(bool b)
 		{ m_non_prioritized = b; }
 
+		bool on_parole() const
+		{ return m_on_parole; }
+
 		// this adds an announcement in the announcement queue
 		// it will let the peer know that we have the given piece
 		void announce_piece(int index);
@@ -632,6 +635,14 @@ namespace libtorrent
 		// will be used to determine if whole pieces
 		// are preferred.
 		bool m_prefer_whole_pieces;
+		
+		// if this is true, the peer has previously participated
+		// in a piece that failed the piece hash check. This will
+		// put the peer on parole and only request entire pieces.
+		// if a piece pass that was partially requested from this
+		// peer it will leave parole mode and continue download
+		// pieces as normal peers.
+		bool m_on_parole;
 		
 		// if this is true, the blocks picked by the piece
 		// picker will be merged before passed to the

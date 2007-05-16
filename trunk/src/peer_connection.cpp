@@ -119,6 +119,7 @@ namespace libtorrent
 		, m_writing(false)
 		, m_reading(false)
 		, m_prefer_whole_pieces(false)
+		, m_on_parole(false)
 		, m_request_large_blocks(false)
 		, m_non_prioritized(false)
 		, m_refs(0)
@@ -189,6 +190,7 @@ namespace libtorrent
 		, m_writing(false)
 		, m_reading(false)
 		, m_prefer_whole_pieces(false)
+		, m_on_parole(false)
 		, m_request_large_blocks(false)
 		, m_non_prioritized(false)
 		, m_refs(0)
@@ -401,6 +403,8 @@ namespace libtorrent
 		}
 #endif
 
+		m_on_parole = false;
+
 		m_trust_points++;
 		// TODO: make this limit user settable
 		if (m_trust_points > 20) m_trust_points = 20;
@@ -417,6 +421,8 @@ namespace libtorrent
 			try { (*i)->on_piece_failed(index); } catch (std::exception&) {}
 		}
 #endif
+
+		m_on_parole = true;
 
 		// we decrease more than we increase, to keep the
 		// allowed failed/passed ratio low.
