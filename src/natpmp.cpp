@@ -74,6 +74,9 @@ void natpmp::rebind(address const& listen_interface) try
 		udp::resolver::iterator i = r.resolve(udp::resolver::query(asio::ip::host_name(), "0"));
 		for (;i != udp::resolver_iterator(); ++i)
 		{
+			// ignore the loopback
+			if (i->endpoint().address() == address_v4((127 << 24) + 1)) continue;
+			// ignore non-IPv4 addresses
 			if (i->endpoint().address().is_v4()) break;
 		}
 
