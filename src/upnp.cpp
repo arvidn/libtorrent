@@ -453,7 +453,7 @@ try
 catch (std::exception&)
 {
 	assert(false);
-}
+};
 #endif
 
 void upnp::post(rootdevice& d, std::stringstream const& soap
@@ -687,7 +687,7 @@ void upnp::on_upnp_xml(asio::error_code const& e
 catch (std::exception&)
 {
 	disable();
-}
+};
 
 void upnp::disable()
 {
@@ -890,7 +890,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 catch (std::exception&)
 {
 	disable();
-}
+};
 
 void upnp::on_upnp_unmap_response(asio::error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d, int mapping) try
@@ -938,7 +938,7 @@ void upnp::on_upnp_unmap_response(asio::error_code const& e
 catch (std::exception&)
 {
 	disable();
-}
+};
 
 void upnp::on_expire(asio::error_code const& e) try
 {
@@ -976,7 +976,7 @@ void upnp::on_expire(asio::error_code const& e) try
 catch (std::exception&)
 {
 	disable();
-}
+};
 
 void upnp::close()
 {
