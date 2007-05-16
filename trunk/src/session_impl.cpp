@@ -774,7 +774,7 @@ namespace libtorrent { namespace detail
 #ifndef NDEBUG
 		std::string err = exc.what();
 #endif
-	}
+	};
 	
 	void session_impl::connection_failed(boost::shared_ptr<socket_type> const& s
 		, tcp::endpoint const& a, char const* message)

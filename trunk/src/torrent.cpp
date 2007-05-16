@@ -464,7 +464,7 @@ namespace libtorrent
 	{
 		std::cerr << e.what() << std::endl;
 		assert(false);
-	}
+	};
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
