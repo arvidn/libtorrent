@@ -549,7 +549,8 @@ namespace libtorrent
 						, recv_buffer.left()), int(range_end - range_start - m_received_body));
 					assert(copy_size >= 0);
 					m_piece.resize(piece_size + copy_size);
-					std::memcpy(&m_piece[0] + piece_size, recv_buffer.begin, copy_size);
+					if (copy_size > 0)
+						std::memcpy(&m_piece[0] + piece_size, recv_buffer.begin, copy_size);
 					recv_buffer.begin += copy_size;
 					m_received_body += copy_size;
 					m_body_start += copy_size;
