@@ -2142,11 +2142,12 @@ namespace libtorrent
 				std::vector<char>(m_packet_size).swap(m_recv_buffer);
 			}
 
-			if (m_bandwidth_limit[download_channel].quota_left() == 0) break;
-
 			int max_receive = std::min(
 				m_bandwidth_limit[download_channel].quota_left()
 				, m_packet_size - m_recv_pos);
+
+			if (max_receive == 0) break;
+
 			asio::error_code ec;
 			bytes_transferred = m_socket->read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
 				, max_receive), ec);
