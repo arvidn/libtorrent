@@ -51,6 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+bool is_local(address const& a);
+
 // int: external tcp port
 // int: external udp port
 // std::string: error message

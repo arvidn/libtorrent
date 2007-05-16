@@ -42,6 +42,11 @@ using namespace libtorrent;
 
 enum { num_mappings = 2 };
 
+namespace libtorrent
+{
+	bool is_local(address const& a);
+}
+
 natpmp::natpmp(io_service& ios, address const& listen_interface, portmap_callback_t const& cb)
 	: m_callback(cb)
 	, m_currently_mapping(-1)
@@ -62,8 +67,8 @@ natpmp::natpmp(io_service& ios, address const& listen_interface, portmap_callbac
 
 void natpmp::rebind(address const& listen_interface) try
 {
-	address_v4 local;
-	if (listen_interface.is_v4() && listen_interface != address_v4::from_string("0.0.0.0"))
+	address_v4 local = address_v4::any();
+	if (listen_interface.is_v4() && listen_interface != address_v4::any())
 	{
 		local = listen_interface.to_v4();
 	}
@@ -76,30 +81,27 @@ void natpmp::rebind(address const& listen_interface) try
 		{
 			// ignore the loopback
 			if (i->endpoint().address() == address_v4((127 << 24) + 1)) continue;
+			// ignore addresses that are not on a local network
+			if (!is_local(i->endpoint().address())) continue;
 			// ignore non-IPv4 addresses
 			if (i->endpoint().address().is_v4()) break;
 		}
 
 		if (i == udp::resolver_iterator())
 		{
-			throw std::runtime_error("local host name did not resolve to an "
-				"IPv4 address. disabling NAT-PMP");
+			throw std::runtime_error("local host is probably not on a NATed "
+				"network. disabling NAT-PMP");
 		}
 
 		local = i->endpoint().address().to_v4();
 	}
-
-	m_socket.open(udp::v4());
-	m_socket.bind(udp::endpoint(local, 0));
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log << time_now_string()
 		<< " local ip: " << local.to_string() << std::endl;
 #endif
 
-	if ((local.to_ulong() & 0xff000000) != 0x0a000000
-		&& (local.to_ulong() & 0xfff00000) != 0xac100000
-		&& (local.to_ulong() & 0xffff0000) != 0xc0a80000)
+	if (!is_local(local))
 	{
 		// the local address seems to be an external
 		// internet address. Assume it is not behind a NAT
@@ -108,19 +110,22 @@ void natpmp::rebind(address const& listen_interface) try
 
 	m_disabled = false;
 
+	// assume the router is located on the local
+	// network as x.x.x.1
 	udp::endpoint nat_endpoint(
 		address_v4((local.to_ulong() & 0xffffff00) | 1), 5351);
 
 	if (nat_endpoint == m_nat_endpoint) return;
 
-	// assume the router is located on the local
-	// network as x.x.x.1
 	// TODO: find a better way to figure out the router IP
 	m_nat_endpoint = nat_endpoint;
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log << "assuming router is at: " << m_nat_endpoint.address().to_string() << std::endl;
 #endif
+
+	m_socket.open(udp::v4());
+	m_socket.bind(udp::endpoint(address_v4::any(), 0));
 
 	for (int i = 0; i < num_mappings; ++i)
 	{

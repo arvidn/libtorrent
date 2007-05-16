@@ -52,6 +52,18 @@ using namespace libtorrent;
 address_v4 upnp::upnp_multicast_address;
 udp::endpoint upnp::upnp_multicast_endpoint;
 
+namespace libtorrent
+{
+	bool is_local(address const& a)
+	{
+		if (a.is_v6()) return false;
+		address_v4 a4 = a.to_v4();
+		return ((a4.to_ulong() & 0xff000000) == 0x0a000000
+			|| (a4.to_ulong() & 0xfff00000) == 0xac100000
+			|| (a4.to_ulong() & 0xffff0000) == 0xc0a80000);
+	}
+}
+
 upnp::upnp(io_service& ios, connection_queue& cc
 	, address const& listen_interface, std::string const& user_agent
 	, portmap_callback_t const& cb)
@@ -84,7 +96,7 @@ upnp::~upnp()
 
 void upnp::rebind(address const& listen_interface) try
 {
-	if (listen_interface.is_v4() && listen_interface != address_v4::from_string("0.0.0.0"))
+	if (listen_interface.is_v4() && listen_interface != address_v4::any())
 	{
 		m_local_ip = listen_interface.to_v4();
 	}
@@ -97,14 +109,16 @@ void upnp::rebind(address const& listen_interface) try
 		{
 			// ignore the loopback
 			if (i->endpoint().address() == address_v4((127 << 24) + 1)) continue;
+			// ignore addresses that are not on a local network
+			if (!is_local(i->endpoint().address())) continue;
 			// ignore non-IPv4 addresses
 			if (i->endpoint().address().is_v4()) break;
 		}
 
 		if (i == udp::resolver_iterator())
 		{
-			throw std::runtime_error("local host name did not resolve to an "
-				"IPv4 address. disabling UPnP");
+			throw std::runtime_error("local host is probably not on a NATed "
+				"network. disabling UPnP");
 		}
 
 		m_local_ip = i->endpoint().address().to_v4();
@@ -115,9 +129,7 @@ void upnp::rebind(address const& listen_interface) try
 		<< " local ip: " << m_local_ip.to_string() << std::endl;
 #endif
 
-	if ((m_local_ip.to_ulong() & 0xff000000) != 0x0a000000
-		&& (m_local_ip.to_ulong() & 0xfff00000) != 0xac100000
-		&& (m_local_ip.to_ulong() & 0xffff0000) != 0xc0a80000)
+	if (!is_local(m_local_ip))
 	{
 		// the local address seems to be an external
 		// internet address. Assume it is not behind a NAT
