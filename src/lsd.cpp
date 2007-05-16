@@ -72,35 +72,10 @@ lsd::~lsd() {}
 
 void lsd::rebind(address const& listen_interface)
 {
-	address_v4 local_ip;
-	if (listen_interface.is_v4() && listen_interface != address_v4::from_string("0.0.0.0"))
+	address_v4 local_ip = address_v4::any();
+	if (listen_interface.is_v4() && listen_interface != address_v4::any())
 	{
 		local_ip = listen_interface.to_v4();
-	}
-	else
-	{
-		// make a best guess of the interface we're using and its IP
-		udp::resolver r(m_socket.io_service());
-		udp::resolver::iterator i = r.resolve(udp::resolver::query(asio::ip::host_name(), "0"));
-		for (;i != udp::resolver_iterator(); ++i)
-		{
-			// ignore the loopback
-			if (i->endpoint().address() == address_v4((127 << 24) + 1)) continue;
-			// ignore non-IPv4 addresses
-			if (i->endpoint().address().is_v4()) break;
-		}
-
-		if (i == udp::resolver_iterator())
-		{
-	#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-			m_log << "local host name did not resolve to an IPv4 address. "
-				"disabling local service discovery" << std::endl;
-	#endif
-			m_disabled = true;
-			return;
-		}
-
-		local_ip = i->endpoint().address().to_v4();
 	}
 
 	try
@@ -123,8 +98,12 @@ void lsd::rebind(address const& listen_interface)
 #endif
 
 		m_socket.set_option(join_group(lsd_multicast_address));
-		m_socket.set_option(outbound_interface(address_v4()));
+		m_socket.set_option(outbound_interface(local_ip));
+#ifdef NDEBUG
 		m_socket.set_option(enable_loopback(false));
+#else
+		m_socket.set_option(enable_loopback(true));
+#endif
 		m_socket.set_option(hops(255));
 	}
 	catch (std::exception& e)
