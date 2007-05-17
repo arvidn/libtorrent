@@ -99,11 +99,7 @@ void lsd::rebind(address const& listen_interface)
 
 		m_socket.set_option(join_group(lsd_multicast_address));
 		m_socket.set_option(outbound_interface(local_ip));
-#ifdef NDEBUG
 		m_socket.set_option(enable_loopback(false));
-#else
-		m_socket.set_option(enable_loopback(true));
-#endif
 		m_socket.set_option(hops(255));
 	}
 	catch (std::exception& e)
@@ -171,10 +167,6 @@ catch (std::exception&)
 void lsd::on_announce(asio::error_code const& e
 	, std::size_t bytes_transferred)
 {
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << time_now_string()
-			<< " <== on_announce" << std::endl;
-#endif
 	using namespace libtorrent::detail;
 	if (e) return;
 
@@ -182,11 +174,15 @@ void lsd::on_announce(asio::error_code const& e
 	char* end = m_receive_buffer + bytes_transferred;
 	char* line = std::find(p, end, '\n');
 	for (char* i = p; i < line; ++i) *i = std::tolower(*i);
-	if (line == end || std::strcmp("bt-search", p))
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+	m_log << time_now_string()
+		<< " <== announce: " << std::string(p, line) << std::endl;
+#endif
+	if (line == end || (line - p >= 9 && std::memcmp("bt-search", p, 9)))
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 		m_log << time_now_string()
-			<< " <== Got incorrect method in announce" << std::string(p, line) << std::endl;
+			<< " *** assumed 'bt-search', ignoring" << std::endl;
 #endif
 		setup_receive();
 		return;
@@ -200,13 +196,19 @@ void lsd::on_announce(asio::error_code const& e
 		if (line == end) break;
 		*line = 0;
 		for (char* i = p; i < line; ++i) *i = std::tolower(*i);
-		if (!strcmp(p, "port:"))
+		if (line - p >= 5 && memcmp(p, "port:", 5) == 0)
 		{
-			port = atoi(p + 5);
+			p += 5;
+			while (*p == ' ') ++p;
+			port = atoi(p);
 		}
-		else if (!strcmp(p, "infohash:"))
+		else if (line - p >= 9 && memcmp(p, "infohash:", 9) == 0)
 		{
-			ih = boost::lexical_cast<sha1_hash>(p + 9);
+			p += 9;
+			while (*p == ' ') ++p;
+			if (line - p > 40) p[40] = 0;
+			try { ih = boost::lexical_cast<sha1_hash>(p); }
+			catch (std::exception&) {}
 		}
 		p = line + 1;
 	}
@@ -215,7 +217,7 @@ void lsd::on_announce(asio::error_code const& e
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 		m_log << time_now_string()
-			<< " <== Got incoming local announce " << m_remote.address()
+			<< " *** incoming local announce " << m_remote.address()
 			<< ":" << port << " ih: " << ih << std::endl;
 #endif
 		// we got an announce, pass it on through the callback
@@ -227,10 +229,6 @@ void lsd::on_announce(asio::error_code const& e
 
 void lsd::setup_receive() try
 {
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << time_now_string()
-		<< " *** setup_receive" << std::endl;
-#endif
 	assert(m_socket.is_open());
 	m_socket.async_receive_from(asio::buffer(m_receive_buffer
 		, sizeof(m_receive_buffer)), m_remote, bind(&lsd::on_announce, this, _1, _2));

@@ -616,6 +616,10 @@ namespace libtorrent
 			, std::vector<tcp::endpoint> const& peers);
 		void on_dht_announce_response(std::vector<tcp::endpoint> const& peers);
 		bool should_announce_dht() const;
+
+		// the time when the DHT was last announced of our
+		// presence on this torrent
+		ptime m_last_dht_announce;
 #endif
 
 		// this is the upload and download statistics for the whole torrent.
