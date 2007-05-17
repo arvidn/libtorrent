@@ -201,6 +201,7 @@ namespace libtorrent
 		, m_resolve_countries(false)
 #endif
 		, m_announce_timer(ses.m_io_service)
+		, m_last_dht_announce(time_now() - minutes(15))
 		, m_policy()
 		, m_ses(ses)
 		, m_checker(checker)
@@ -284,6 +285,7 @@ namespace libtorrent
 		, m_resolve_countries(false)
 #endif
 		, m_announce_timer(ses.m_io_service)
+		, m_last_dht_announce(time_now() - minutes(15))
 		, m_policy()
 		, m_ses(ses)
 		, m_checker(checker)
@@ -439,7 +441,8 @@ namespace libtorrent
 	{
 		boost::weak_ptr<torrent> self(shared_from_this());
 
-		m_announce_timer.expires_from_now(minutes(30));
+		// announce on local network every 5 minutes
+		m_announce_timer.expires_from_now(minutes(5));
 		m_announce_timer.async_wait(m_ses.m_strand.wrap(
 			bind(&torrent::on_announce_disp, self, _1)));
 
@@ -448,8 +451,10 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_DHT
 		if (!m_ses.m_dht) return;
-		if (should_announce_dht())
+		ptime now = time_now();
+		if (should_announce_dht() && now - m_last_dht_announce > minutes(14))
 		{
+			m_last_dht_announce = now;
 			// TODO: There should be a way to abort an announce operation on the dht.
 			// when the torrent is destructed
 			assert(m_ses.m_external_listen_port > 0);
@@ -2017,6 +2022,8 @@ namespace libtorrent
 			// only start the announce if we want to announce with the dht
 			if (should_announce_dht())
 			{
+				// force the DHT to reannounce
+				m_last_dht_announce = time_now() - minutes(15);
 				boost::weak_ptr<torrent> self(shared_from_this());
 				m_announce_timer.expires_from_now(seconds(1));
 				m_announce_timer.async_wait(m_ses.m_strand.wrap(
