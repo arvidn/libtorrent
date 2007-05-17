@@ -44,7 +44,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/thread/condition.hpp>
 #include <set>
 
+
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#define TORRENT_UPNP_LOGGING
+#endif
+
+#if defined(TORRENT_UPNP_LOGGING)
 #include <fstream>
 #endif
 
@@ -52,6 +57,7 @@ namespace libtorrent
 {
 
 bool is_local(address const& a);
+address_v4 guess_local_address(asio::io_service&);
 
 // int: external tcp port
 // int: external udp port

@@ -42,9 +42,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <asio/ip/multicast.hpp>
 #include <boost/thread/mutex.hpp>
 #include <cstdlib>
+#include <boost/config.hpp>
 
 using boost::bind;
 using namespace libtorrent;
+
+namespace libtorrent
+{
+	// defined in upnp.cpp
+	address_v4 guess_local_address(asio::io_service&);
+}
 
 address_v4 lsd::lsd_multicast_address;
 udp::endpoint lsd::lsd_multicast_endpoint;
@@ -99,7 +106,7 @@ void lsd::rebind(address const& listen_interface)
 
 		m_socket.set_option(join_group(lsd_multicast_address));
 		m_socket.set_option(outbound_interface(local_ip));
-		m_socket.set_option(enable_loopback(false));
+		m_socket.set_option(enable_loopback(true));
 		m_socket.set_option(hops(255));
 	}
 	catch (std::exception& e)

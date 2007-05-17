@@ -46,6 +46,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/thread/mutex.hpp>
 #include <cstdlib>
 
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#define TORRENT_UPNP_LOGGING
+#endif
+
 using boost::bind;
 using namespace libtorrent;
 
@@ -61,6 +65,24 @@ namespace libtorrent
 		return ((a4.to_ulong() & 0xff000000) == 0x0a000000
 			|| (a4.to_ulong() & 0xfff00000) == 0xac100000
 			|| (a4.to_ulong() & 0xffff0000) == 0xc0a80000);
+	}
+
+	address_v4 guess_local_address(asio::io_service& ios)
+	{
+		// make a best guess of the interface we're using and its IP
+		udp::resolver r(ios);
+		udp::resolver::iterator i = r.resolve(udp::resolver::query(asio::ip::host_name(), "0"));
+		for (;i != udp::resolver_iterator(); ++i)
+		{
+			// ignore the loopback
+			if (i->endpoint().address() == address_v4((127 << 24) + 1)) continue;
+			// ignore addresses that are not on a local network
+			if (!is_local(i->endpoint().address())) continue;
+			// ignore non-IPv4 addresses
+			if (i->endpoint().address().is_v4()) break;
+		}
+		if (i == udp::resolver_iterator()) return address_v4::any();
+		return i->endpoint().address().to_v4();
 	}
 }
 
@@ -96,32 +118,26 @@ upnp::~upnp()
 
 void upnp::rebind(address const& listen_interface) try
 {
+	m_local_ip = address_v4::any();
 	if (listen_interface.is_v4() && listen_interface != address_v4::any())
 	{
 		m_local_ip = listen_interface.to_v4();
+		if (!is_local(m_local_ip))
+		{
+			// the local address seems to be an external
+			// internet address. Assume it is not behind a NAT
+			throw std::runtime_error("local IP is not on a local network");
+		}
 	}
 	else
 	{
-		// make a best guess of the interface we're using and its IP
-		udp::resolver r(m_socket.io_service());
-		udp::resolver::iterator i = r.resolve(udp::resolver::query(asio::ip::host_name(), "0"));
-		for (;i != udp::resolver_iterator(); ++i)
-		{
-			// ignore the loopback
-			if (i->endpoint().address() == address_v4((127 << 24) + 1)) continue;
-			// ignore addresses that are not on a local network
-			if (!is_local(i->endpoint().address())) continue;
-			// ignore non-IPv4 addresses
-			if (i->endpoint().address().is_v4()) break;
-		}
+		address_v4 local_ip = guess_local_address(m_socket.io_service());
 
-		if (i == udp::resolver_iterator())
+		if (local_ip == address_v4::any())
 		{
 			throw std::runtime_error("local host is probably not on a NATed "
 				"network. disabling UPnP");
 		}
-
-		m_local_ip = i->endpoint().address().to_v4();
 	}
 
 #ifdef TORRENT_UPNP_LOGGING
@@ -129,13 +145,6 @@ void upnp::rebind(address const& listen_interface) try
 		<< " local ip: " << m_local_ip.to_string() << std::endl;
 #endif
 
-	if (!is_local(m_local_ip))
-	{
-		// the local address seems to be an external
-		// internet address. Assume it is not behind a NAT
-		throw std::runtime_error("local IP is not on a local network");
-	}
-	
 	// the local interface hasn't changed
 	if (m_socket.is_open()
 		&& m_socket.local_endpoint().address() == m_local_ip)

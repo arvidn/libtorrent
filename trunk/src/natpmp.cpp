@@ -44,7 +44,9 @@ enum { num_mappings = 2 };
 
 namespace libtorrent
 {
+	// defined in upnp.cpp
 	bool is_local(address const& a);
+	address_v4 guess_local_address(asio::io_service&);
 }
 
 natpmp::natpmp(io_service& ios, address const& listen_interface, portmap_callback_t const& cb)
@@ -74,26 +76,13 @@ void natpmp::rebind(address const& listen_interface) try
 	}
 	else
 	{
-		// make a best guess of the interface we're using and its IP
-		udp::resolver r(m_socket.io_service());
-		udp::resolver::iterator i = r.resolve(udp::resolver::query(asio::ip::host_name(), "0"));
-		for (;i != udp::resolver_iterator(); ++i)
-		{
-			// ignore the loopback
-			if (i->endpoint().address() == address_v4((127 << 24) + 1)) continue;
-			// ignore addresses that are not on a local network
-			if (!is_local(i->endpoint().address())) continue;
-			// ignore non-IPv4 addresses
-			if (i->endpoint().address().is_v4()) break;
-		}
+		local = guess_local_address(m_socket.io_service());
 
-		if (i == udp::resolver_iterator())
+		if (local == address_v4::any())
 		{
 			throw std::runtime_error("local host is probably not on a NATed "
 				"network. disabling NAT-PMP");
 		}
-
-		local = i->endpoint().address().to_v4();
 	}
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
