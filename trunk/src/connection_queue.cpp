@@ -126,7 +126,7 @@ namespace libtorrent
 
 			entry& ent = *i;
 			++i;
-			try { ent.on_connect(i->ticket); } catch (std::exception&) {}
+			try { ent.on_connect(ent.ticket); } catch (std::exception&) {}
 
 			if (!free_slots()) break;
 			i = std::find_if(i, m_queue.end(), boost::bind(&entry::connecting, _1) == false);
