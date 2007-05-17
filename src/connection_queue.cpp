@@ -111,6 +111,7 @@ namespace libtorrent
 			, m_queue.end(), boost::bind(&entry::connecting, _1) == false);
 		while (i != m_queue.end())
 		{
+			assert(i->connecting == false);
 			ptime expire = time_now() + i->timeout;
 			if (m_num_connecting == 0)
 			{
@@ -120,7 +121,12 @@ namespace libtorrent
 			i->connecting = true;
 			++m_num_connecting;
 			i->expires = expire;
-			try { i->on_connect(i->ticket); } catch (std::exception&) {}
+
+			INVARIANT_CHECK;
+
+			entry& ent = *i;
+			++i;
+			try { ent.on_connect(i->ticket); } catch (std::exception&) {}
 
 			if (!free_slots()) break;
 			i = std::find_if(i, m_queue.end(), boost::bind(&entry::connecting, _1) == false);
@@ -142,7 +148,7 @@ namespace libtorrent
 			if (i->connecting && i->expires < now)
 			{
 				boost::function<void()> on_timeout = i->on_timeout;
-				i = m_queue.erase(i);
+				m_queue.erase(i++);
 				--m_num_connecting;
 				try { on_timeout(); } catch (std::exception&) {}
 				continue;
