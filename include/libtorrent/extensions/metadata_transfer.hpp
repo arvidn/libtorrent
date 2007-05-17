@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/shared_ptr.hpp>
+#include "libtorrent/config.hpp"
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -47,7 +48,7 @@ namespace libtorrent
 {
 	struct torrent_plugin;
 	class torrent;
-	boost::shared_ptr<torrent_plugin> create_metadata_plugin(torrent*);
+	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_metadata_plugin(torrent*);
 }
 
 #endif // TORRENT_METADATA_TRANSFER_HPP_INCLUDED
