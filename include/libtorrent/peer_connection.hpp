@@ -99,8 +99,8 @@ namespace libtorrent
 		: public boost::noncopyable
 	{
 	friend class invariant_access;
-	friend void intrusive_ptr_add_ref(peer_connection const*);
-	friend void intrusive_ptr_release(peer_connection const*);
+	friend TORRENT_EXPORT void intrusive_ptr_add_ref(peer_connection const*);
+	friend TORRENT_EXPORT void intrusive_ptr_release(peer_connection const*);
 	public:
 
 		enum channels
