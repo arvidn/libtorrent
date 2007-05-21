@@ -155,8 +155,8 @@ namespace libtorrent
 	struct TORRENT_EXPORT timeout_handler
 		: boost::noncopyable
 	{
-		friend void intrusive_ptr_add_ref(timeout_handler const*);
-		friend void intrusive_ptr_release(timeout_handler const*);
+		friend TORRENT_EXPORT void intrusive_ptr_add_ref(timeout_handler const*);
+		friend TORRENT_EXPORT void intrusive_ptr_release(timeout_handler const*);
 
 		timeout_handler(asio::strand& str);
 
