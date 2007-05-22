@@ -171,6 +171,7 @@ namespace libtorrent
 				char const* line_end = newline;
 				if (pos != line_end && *(line_end - 1) == '\r') --line_end;
 				line.assign(pos, line_end);
+				++newline;
 				m_recv_pos += newline - pos;
 				boost::get<1>(ret) += newline - pos;
 				pos = newline;
@@ -181,10 +182,6 @@ namespace libtorrent
 					// this means we got a blank line,
 					// the header is finished and the body
 					// starts.
-					++pos;
-					++m_recv_pos;
-					boost::get<1>(ret) += 1;
-					
 					m_state = read_body;
 					m_body_start_pos = m_recv_pos;
 					break;
@@ -223,9 +220,6 @@ namespace libtorrent
 					m_content_length = range_end - range_start + 1;
 				}
 
-				// TODO: make sure we don't step outside of the buffer
-				++pos;
-				++m_recv_pos;
 				assert(m_recv_pos <= (int)recv_buffer.left());
 				newline = std::find(pos, recv_buffer.end, '\n');
 			}
