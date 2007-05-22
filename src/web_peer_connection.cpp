@@ -94,9 +94,12 @@ namespace libtorrent
 #endif
 
 		std::string protocol;
-		boost::tie(protocol, m_host, m_port, m_path)
+		boost::tie(protocol, m_auth, m_host, m_port, m_path)
 			= parse_url_components(url);
-			
+		
+		if (!m_auth.empty())
+			m_auth = base64encode(m_auth);
+
 		m_server_string = "URL seed @ ";
 		m_server_string += m_host;
 	}
@@ -201,6 +204,11 @@ namespace libtorrent
 				request += "\r\nUser-Agent: ";
 				request += m_ses.settings().user_agent;
 			}
+			if (!m_auth.empty())
+			{
+				request += "\r\nAuthorization: Basic ";
+				request += m_auth;
+			}
 			if (ps.type == proxy_settings::http_pw)
 			{
 				request += "\r\nProxy-Authorization: Basic ";
@@ -252,6 +260,11 @@ namespace libtorrent
 				{
 					request += "\r\nUser-Agent: ";
 					request += m_ses.settings().user_agent;
+				}
+				if (!m_auth.empty())
+				{
+					request += "\r\nAuthorization: Basic ";
+					request += m_auth;
 				}
 				if (ps.type == proxy_settings::http_pw)
 				{
