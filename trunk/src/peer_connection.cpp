@@ -2426,7 +2426,7 @@ namespace libtorrent
 					}
 					else
 					{
-						assert(i->info[j].peer != m_remote || i->finished_blocks[j]);
+						assert(i->info[j].peer != m_remote || i->info[j].finished);
 					}
 				}
 			}

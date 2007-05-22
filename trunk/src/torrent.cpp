@@ -1383,11 +1383,14 @@ namespace libtorrent
 		else
 		{
 			std::string protocol;
+			std::string auth;
 			std::string hostname;
 			int port;
 			std::string path;
-			boost::tie(protocol, hostname, port, path)
+			boost::tie(protocol, auth, hostname, port, path)
 				= parse_url_components(url);
+
+			// TODO: should auth be used here?
 
 			tcp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
 			m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
@@ -1427,11 +1430,11 @@ namespace libtorrent
 		if (m_ses.is_aborted()) return;
 
 		tcp::endpoint a(host->endpoint());
-		std::string protocol;
+
+		using boost::tuples::ignore;
 		std::string hostname;
 		int port;
-		std::string path;
-		boost::tie(protocol, hostname, port, path)
+		boost::tie(ignore, ignore, hostname, port, ignore)
 			= parse_url_components(url);
 
 		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)

@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 
 
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#if (defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)) && !defined (TORRENT_UPNP_LOGGING)
 #define TORRENT_UPNP_LOGGING
 #endif
 

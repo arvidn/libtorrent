@@ -424,11 +424,13 @@ namespace libtorrent
 
 		m_connections.erase(i);
 	}
-	
-	tuple<std::string, std::string, int, std::string>
+
+	// returns protocol, auth, hostname, port, path	
+	tuple<std::string, std::string, std::string, int, std::string>
 		parse_url_components(std::string url)
 	{
 		std::string hostname; // hostname only
+		std::string auth; // user:pass
 		std::string protocol; // should be http
 		int port = 80;
 
@@ -439,7 +441,7 @@ namespace libtorrent
 			++start;
 		std::string::iterator end
 			= std::find(url.begin(), url.end(), ':');
-		protocol = std::string(start, end);
+		protocol.assign(start, end);
 
 		if (end == url.end()) throw std::runtime_error("invalid url");
 		++end;
@@ -451,7 +453,20 @@ namespace libtorrent
 		++end;
 		start = end;
 
+		std::string::iterator at = std::find(start, url.end(), '@');
+		std::string::iterator colon = std::find(start, url.end(), ':');
 		end = std::find(start, url.end(), '/');
+
+		if (at != url.end()
+			&& colon != url.end()
+			&& colon < at
+			&& at < end)
+		{
+			auth.assign(start, at);
+			start = at;
+			++start;
+		}
+
 		std::string::iterator port_pos
 			= std::find(start, url.end(), ':');
 
@@ -475,7 +490,7 @@ namespace libtorrent
 		}
 
 		start = end;
-		return make_tuple(protocol, hostname, port
+		return make_tuple(protocol, auth, hostname, port
 			, std::string(start, url.end()));
 	}
 
@@ -499,7 +514,9 @@ namespace libtorrent
 			int port;
 			std::string request_string;
 
-			boost::tie(protocol, hostname, port, request_string)
+			using boost::tuples::ignore;
+			// TODO: should auth be used here?
+			boost::tie(protocol, ignore, hostname, port, request_string)
 				= parse_url_components(req.url);
 
 			boost::intrusive_ptr<tracker_connection> con;

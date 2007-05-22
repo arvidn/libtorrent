@@ -47,15 +47,18 @@ void http_connection::get(std::string const& url, time_duration timeout
 {
 	m_redirect = handle_redirect;
 	std::string protocol;
+	std::string auth;
 	std::string hostname;
 	std::string path;
 	int port;
-	boost::tie(protocol, hostname, port, path) = parse_url_components(url);
+	boost::tie(protocol, auth, hostname, port, path) = parse_url_components(url);
 	std::stringstream headers;
 	headers << "GET " << path << " HTTP/1.0\r\n"
 		"Host:" << hostname <<
-		"\r\nConnection: close\r\n"
-		"\r\n";
+		"\r\nConnection: close\r\n";
+	if (!auth.empty())
+		headers << "Authorization: Basic " << base64encode(auth) << "\r\n";
+	headers << "\r\n";
 	sendbuffer = headers.str();
 	start(hostname, boost::lexical_cast<std::string>(port), timeout);
 }

@@ -76,7 +76,7 @@ namespace libtorrent
 	// returns -1 if gzip header is invalid or the header size in bytes
 	TORRENT_EXPORT int gzip_header(const char* buf, int size);
 
-	TORRENT_EXPORT boost::tuple<std::string, std::string, int, std::string>
+	TORRENT_EXPORT boost::tuple<std::string, std::string, std::string, int, std::string>
 		parse_url_components(std::string url);
 
 	struct TORRENT_EXPORT tracker_request

@@ -391,9 +391,13 @@ try
 	{
 
 		std::string protocol;
+		std::string auth;
 		// we don't have this device in our list. Add it
-		boost::tie(protocol, d.hostname, d.port, d.path)
+		boost::tie(protocol, auth, d.hostname, d.port, d.path)
 			= parse_url_components(d.url);
+
+		// ignore the auth here. It will be re-parsed
+		// by the http connection later
 
 		if (protocol != "http")
 		{
