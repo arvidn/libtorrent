@@ -147,17 +147,18 @@ void clear_home()
 
 #endif
 
-std::string esc(char const* code)
+char const* esc(char const* code)
 {
+	static char ret[20] = "\033[";
 #ifdef ANSI_TERMINAL_COLORS
-	std::string ret;
-	ret += char(0x1b);
-	ret += "[";
-	ret += code;
-	ret += "m";
+	int i = 2;
+	int j = 0;
+	while (code[j]) ret[i++] = code[j++];
+	ret[i++] = 'm';
+	ret[i++] = 0;
 	return ret;
 #else
-	return std::string();
+	return "";
 #endif
 }
 
@@ -171,15 +172,13 @@ std::string to_string(int v, int width)
 	return s.str();
 }
 
-std::string to_string(float v, int width, int precision = 3)
+std::string const& to_string(float v, int width, int precision = 3)
 {
-	std::stringstream s;
-	s.precision(precision);
-	s.flags(std::ios_base::right);
-	s.width(width);
-	s.fill(' ');
-	s << v;
-	return s.str();
+	static std::string ret;
+	ret.resize(20);
+	int size = std::sprintf(&ret[0], "%*.*f", width, precision, v);
+	ret.resize(std::min(size, width));
+	return ret;
 }
 
 std::string pos_to_string(float v, int width, int precision = 4)
@@ -214,30 +213,38 @@ std::string ratio(float a, float b)
 	return s.str();
 }
 
-std::string add_suffix(float val)
+std::string const& add_suffix(float val)
 {
-	const char* prefix[] = {"B", "kB", "MB", "GB", "TB"};
+	static std::string ret;
+	const char* prefix[] = {"kB", "MB", "GB", "TB"};
 	const int num_prefix = sizeof(prefix) / sizeof(const char*);
 	for (int i = 0; i < num_prefix; ++i)
 	{
-		if (fabs(val) < 1000.f)
-			return to_string(val, i==0?5:4) + prefix[i];
 		val /= 1000.f;
+		if (fabs(val) < 1000.f)
+		{
+			ret = to_string(val, 4);
+			ret += prefix[i];
+			return ret;
+		}
 	}
-	return to_string(val, 6) + "PB";
+	ret = to_string(val, 4);
+	ret += "PB";
+	return ret;
 }
 
-std::string progress_bar(float progress, int width, char const* code = "33")
+std::string const& progress_bar(float progress, int width, char const* code = "33")
 {
-	std::string bar;
-	bar.reserve(width);
+	static std::string bar;
+	bar.clear();
+	bar.reserve(width + 10);
 
 	int progress_chars = static_cast<int>(progress * width + .5f);
 	bar = esc(code);
 	std::fill_n(std::back_inserter(bar), progress_chars, '#');
 	bar += esc("0");
 	std::fill_n(std::back_inserter(bar), width - progress_chars, '-');
-	return std::string(bar.begin(), bar.end());
+	return bar;
 }
 
 int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info> const& peers)
