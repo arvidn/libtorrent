@@ -89,7 +89,7 @@ namespace libtorrent
 	}
 
 	TORRENT_EXPORT void intrusive_ptr_add_ref(peer_connection const*);
-	TORRENT_EXPORT void intrusive_ptr_release(peer_connection const*);	
+	TORRENT_EXPORT void intrusive_ptr_release(peer_connection const*);
 
 	struct TORRENT_EXPORT protocol_error: std::runtime_error
 	{
@@ -470,7 +470,7 @@ namespace libtorrent
 
 		// the time when we last got a part of a
 		// piece packet from this peer
-		ptime		m_last_piece;
+		ptime m_last_piece;
 
 		int m_packet_size;
 		int m_recv_pos;

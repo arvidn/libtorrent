@@ -174,6 +174,7 @@ namespace libtorrent
 		torrent_info const& info = t->torrent_file();
 		
 		std::string request;
+		request.reserve(400);
 
 		int size = r.length;
 		const int block_size = t->block_size();

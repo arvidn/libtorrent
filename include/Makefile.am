@@ -65,9 +65,11 @@ libtorrent/kademlia/closest_nodes.hpp \
 libtorrent/kademlia/dht_tracker.hpp \
 libtorrent/kademlia/find_data.hpp \
 libtorrent/kademlia/logging.hpp \
+libtorrent/kademlia/msg.hpp \
 libtorrent/kademlia/node.hpp \
 libtorrent/kademlia/node_entry.hpp \
 libtorrent/kademlia/node_id.hpp \
+libtorrent/kademlia/observer.hpp \
 libtorrent/kademlia/packet_iterator.hpp \
 libtorrent/kademlia/refresh.hpp \
 libtorrent/kademlia/routing_table.hpp \
