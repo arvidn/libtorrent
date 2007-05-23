@@ -1,5 +1,16 @@
 	* added encryption support
-	* aded support for SOCKS5 proxies and HTTP CONNECT proxies.
+	* added parole mode for peers whose data fails the hash check.
+	* optimized heap usage in piece-picker and web seed downloader.
+	* fixed bug in DHT where older write tokens weren't accepted.
+	* added support for sparse files.
+	* introduced speed categories for peers and pieces, to separate
+	  slow and fast peers.
+	* added a half-open tcp connection limit that takes all connections
+	  in to account, not just peer connections.
+	* added alerts for filtered IPs.
+	* added support for SOCKS5 proxies and HTTP CONNECT proxies.
+	* fixed proper distributed copies calculation.
+	* added option to use openssl for sha-1 calculations.
 	* optimized the piece picker in the case where a peer is a seed.
 	* added support for local peer discovery
 	* removed the dependency on the compiled boost.date_time library

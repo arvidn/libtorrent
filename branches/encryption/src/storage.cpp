@@ -376,6 +376,8 @@ namespace libtorrent
 		size_type read(char* buf, int slot, int offset, int size);
 		void write(const char* buf, int slot, int offset, int size);
 		void move_slot(int src_slot, int dst_slot);
+		void swap_slots(int slot1, int slot2);
+		void swap_slots3(int slot1, int slot2, int slot3);
 		bool verify_resume_data(entry& rd, std::string& error);
 
 		size_type read_impl(char* buf, int slot, int offset, int size, bool fill_zero);
@@ -580,6 +582,35 @@ namespace libtorrent
 		m_scratch_buffer.resize(piece_size);
 		read_impl(&m_scratch_buffer[0], src_slot, 0, piece_size, true);
 		write(&m_scratch_buffer[0], dst_slot, 0, piece_size);
+	}
+
+	void storage::swap_slots(int slot1, int slot2)
+	{
+		// the size of the target slot is the size of the piece
+		int piece_size = m_info.piece_length();
+		int piece1_size = m_info.piece_size(slot2);
+		int piece2_size = m_info.piece_size(slot1);
+		m_scratch_buffer.resize(piece_size * 2);
+		read_impl(&m_scratch_buffer[0], slot1, 0, piece1_size, true);
+		read_impl(&m_scratch_buffer[piece_size], slot2, 0, piece2_size, true);
+		write(&m_scratch_buffer[0], slot2, 0, piece1_size);
+		write(&m_scratch_buffer[piece_size], slot1, 0, piece2_size);
+	}
+
+	void storage::swap_slots3(int slot1, int slot2, int slot3)
+	{
+		// the size of the target slot is the size of the piece
+		int piece_size = m_info.piece_length();
+		int piece1_size = m_info.piece_size(slot2);
+		int piece2_size = m_info.piece_size(slot3);
+		int piece3_size = m_info.piece_size(slot1);
+		m_scratch_buffer.resize(piece_size * 2);
+		read_impl(&m_scratch_buffer[0], slot1, 0, piece1_size, true);
+		read_impl(&m_scratch_buffer[piece_size], slot2, 0, piece2_size, true);
+		write(&m_scratch_buffer[0], slot2, 0, piece1_size);
+		read_impl(&m_scratch_buffer[0], slot3, 0, piece3_size, true);
+		write(&m_scratch_buffer[piece_size], slot3, 0, piece2_size);
+		write(&m_scratch_buffer[0], slot1, 0, piece3_size);
 	}
 
 	size_type storage::read(
@@ -1701,13 +1732,11 @@ namespace libtorrent
 					m_free_slots.push_back(m_current_slot);
 				}
 
-				const int slot1_size = static_cast<int>(m_info.piece_size(piece_index));
-				const int slot2_size = other_piece >= 0 ? static_cast<int>(m_info.piece_size(other_piece)) : 0;
-				std::vector<char> buf1(slot1_size);
-				m_storage->read(&buf1[0], m_current_slot, 0, slot1_size);
-				if (slot2_size > 0)
-					m_storage->move_slot(piece_index, m_current_slot);
-				m_storage->write(&buf1[0], piece_index, 0, slot1_size);
+				if (other_piece >= 0)
+					m_storage->swap_slots(other_slot, m_current_slot);
+				else
+					m_storage->move_slot(m_current_slot, other_slot);
+
 				assert(m_slot_to_piece[m_current_slot] == unassigned
 						|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);
 			}
@@ -1723,21 +1752,14 @@ namespace libtorrent
 				m_slot_to_piece[m_current_slot] = other_piece;
 				m_slot_to_piece[other_slot] = piece_index;
 				m_piece_to_slot[other_piece] = m_current_slot;
-				if (piece_index >= 0) m_piece_to_slot[piece_index] = other_slot;
 
 				if (piece_index == unassigned)
-				{
 					m_free_slots.push_back(other_slot);
-				}
 
-				const int slot1_size = static_cast<int>(m_info.piece_size(other_piece));
-				const int slot2_size = piece_index >= 0 ? static_cast<int>(m_info.piece_size(piece_index)) : 0;
-				if (slot2_size > 0)
+				if (piece_index >= 0)
 				{
-					std::vector<char> buf1(slot1_size);
-					m_storage->read(&buf1[0], other_slot, 0, slot1_size);
-					m_storage->move_slot(m_current_slot, other_slot);
-					m_storage->write(&buf1[0], m_current_slot, 0, slot1_size);
+					m_piece_to_slot[piece_index] = other_slot;
+					m_storage->swap_slots(other_slot, m_current_slot);
 				}
 				else
 				{
@@ -1779,12 +1801,7 @@ namespace libtorrent
 					assert(piece1 == m_current_slot);
 					assert(piece_index == slot1);
 
-					const int slot3_size = static_cast<int>(m_info.piece_size(piece_index));
-					std::vector<char> buf(static_cast<int>(slot3_size));
-
-					m_storage->read(&buf[0], m_current_slot, 0, slot3_size);
-					m_storage->move_slot(slot1, m_current_slot);
-					m_storage->write(&buf[0], slot1, 0, slot3_size);
+					m_storage->swap_slots(m_current_slot, slot1);
 
 					assert(m_slot_to_piece[m_current_slot] == unassigned
 							|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);
@@ -1805,7 +1822,6 @@ namespace libtorrent
 
 					m_piece_to_slot[piece_index] = slot1;
 					m_piece_to_slot[m_current_slot] = piece2;
-					if (piece1 >= 0) m_piece_to_slot[piece1] = slot2;
 
 					if (piece1 == unassigned)
 					{
@@ -1816,16 +1832,16 @@ namespace libtorrent
 						m_free_slots.push_back(slot2);
 					}
 
-					const int slot1_size = piece1 >= 0 ? static_cast<int>(m_info.piece_size(piece1)) : 0;
-					const int slot3_size = static_cast<int>(m_info.piece_size(piece_index));
-
-					std::vector<char> buf(static_cast<int>(m_info.piece_length()));
-
-					m_storage->read(&buf[0], m_current_slot, 0, slot3_size);
-					m_storage->move_slot(slot2, m_current_slot);
-					if (slot1_size > 0)
-						m_storage->move_slot(slot1, slot2);
-					m_storage->write(&buf[0], slot1, 0, slot3_size);
+					if (piece1 >= 0)
+					{
+						m_piece_to_slot[piece1] = slot2;
+						m_storage->swap_slots3(m_current_slot, slot1, slot2);
+					}
+					else
+					{
+						m_storage->move_slot(m_current_slot, slot1);
+						m_storage->move_slot(slot2, m_current_slot);
+					}
 
 					assert(m_slot_to_piece[m_current_slot] == unassigned
 						|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);

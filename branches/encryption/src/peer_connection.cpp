@@ -119,6 +119,7 @@ namespace libtorrent
 		, m_writing(false)
 		, m_reading(false)
 		, m_prefer_whole_pieces(false)
+		, m_on_parole(false)
 		, m_request_large_blocks(false)
 		, m_non_prioritized(false)
 		, m_refs(0)
@@ -189,6 +190,7 @@ namespace libtorrent
 		, m_writing(false)
 		, m_reading(false)
 		, m_prefer_whole_pieces(false)
+		, m_on_parole(false)
 		, m_request_large_blocks(false)
 		, m_non_prioritized(false)
 		, m_refs(0)
@@ -404,6 +406,8 @@ namespace libtorrent
 		}
 #endif
 
+		m_on_parole = false;
+
 		m_trust_points++;
 		// TODO: make this limit user settable
 		if (m_trust_points > 20) m_trust_points = 20;
@@ -420,6 +424,8 @@ namespace libtorrent
 			try { (*i)->on_piece_failed(index); } catch (std::exception&) {}
 		}
 #endif
+
+		m_on_parole = true;
 
 		// we decrease more than we increase, to keep the
 		// allowed failed/passed ratio low.
@@ -2140,11 +2146,12 @@ namespace libtorrent
 				std::vector<char>(m_packet_size).swap(m_recv_buffer);
 			}
 
-			if (m_bandwidth_limit[download_channel].quota_left() == 0) break;
-
 			int max_receive = std::min(
 				m_bandwidth_limit[download_channel].quota_left()
 				, m_packet_size - m_recv_pos);
+
+			if (max_receive == 0) break;
+
 			asio::error_code ec;
 			bytes_transferred = m_socket->read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
 				, max_receive), ec);
@@ -2424,7 +2431,7 @@ namespace libtorrent
 					}
 					else
 					{
-						assert(i->info[j].peer != m_remote || i->finished_blocks[j]);
+						assert(i->info[j].peer != m_remote || i->info[j].finished);
 					}
 				}
 			}

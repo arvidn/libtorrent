@@ -774,7 +774,7 @@ namespace libtorrent { namespace detail
 #ifndef NDEBUG
 		std::string err = exc.what();
 #endif
-	}
+	};
 	
 	void session_impl::connection_failed(boost::shared_ptr<socket_type> const& s
 		, tcp::endpoint const& a, char const* message)
@@ -1075,9 +1075,18 @@ namespace libtorrent { namespace detail
 		m_natpmp.close();
 		m_upnp.close();
 
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " locking mutex\n";
+#endif
 		session_impl::mutex_t::scoped_lock l(m_mutex);
 
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " aborting all tracker requests\n";
+#endif
 		m_tracker_manager.abort_all_requests();
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " sending stopped to all torrent's trackers\n";
+#endif
 		for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i =
 			m_torrents.begin(); i != m_torrents.end(); ++i)
 		{
@@ -1109,6 +1118,10 @@ namespace libtorrent { namespace detail
 		ptime start(time_now());
 		l.unlock();
 
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " waiting for trackers to respond\n";
+#endif
+
 		while (time_now() - start < seconds(
 			m_settings.stop_tracker_timeout)
 			&& !m_tracker_manager.empty())
@@ -1121,10 +1134,17 @@ namespace libtorrent { namespace detail
 			m_io_service.run();
 		}
 
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " tracker shutdown complete, locking mutex\n";
+#endif
+
 		l.lock();
 		assert(m_abort);
 		m_abort = true;
 
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " cleaning up connections\n";
+#endif
 		while (!m_connections.empty())
 			m_connections.begin()->second->disconnect();
 
@@ -1136,6 +1156,9 @@ namespace libtorrent { namespace detail
 		}
 #endif
 
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " cleaning up torrents\n";
+#endif
 		m_torrents.clear();
 
 		assert(m_torrents.empty());

@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
+#include <libtorrent/kademlia/observer.hpp>
+#include <libtorrent/kademlia/msg.hpp>
 
 #include <boost/function.hpp>
 
@@ -96,6 +98,59 @@ private:
 	done_callback m_done_callback;
 	
 	std::vector<result>::iterator m_leftover_nodes_iterator;
+};
+
+class refresh_observer : public observer
+{
+public:
+	refresh_observer(
+		boost::intrusive_ptr<refresh> const& algorithm
+		, node_id self
+		, node_id target)
+		: observer(algorithm->allocator())
+		, m_target(target) 
+		, m_self(self)
+		, m_algorithm(algorithm)
+	{}
+	~refresh_observer();
+
+	void send(msg& m)
+	{
+		m.info_hash = m_target;
+	}
+
+	void timeout();
+	void reply(msg const& m);
+	void abort() { m_algorithm = 0; }
+
+
+private:
+	node_id const m_target;
+	node_id const m_self;
+	boost::intrusive_ptr<refresh> m_algorithm;
+};
+
+class ping_observer : public observer
+{
+public:
+	ping_observer(
+		boost::intrusive_ptr<refresh> const& algorithm
+		, node_id self)
+		: observer(algorithm->allocator())
+		, m_self(self)
+		, m_algorithm(algorithm)
+	{}
+	~ping_observer();
+
+	void send(msg& p) {}
+	void timeout();
+	void reply(msg const& m);
+	void abort() { m_algorithm = 0; }
+
+
+private:
+	node_id const m_self;
+	boost::intrusive_ptr<refresh> m_algorithm;
 };
 
 template<class InIt>

@@ -17,6 +17,7 @@ test-suite libtorrent :
 #	[ run test_entry.cpp ]
 	[ run test_pe_crypto.cpp ]
 	[ run test_bencoding.cpp ]
+	[ run test_primitives.cpp ]
 	[ run test_ip_filter.cpp ]
 	[ run test_hasher.cpp ]
 	[ run test_metadata_extension.cpp ]

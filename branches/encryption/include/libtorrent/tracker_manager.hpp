@@ -76,7 +76,7 @@ namespace libtorrent
 	// returns -1 if gzip header is invalid or the header size in bytes
 	TORRENT_EXPORT int gzip_header(const char* buf, int size);
 
-	TORRENT_EXPORT boost::tuple<std::string, std::string, int, std::string>
+	TORRENT_EXPORT boost::tuple<std::string, std::string, std::string, int, std::string>
 		parse_url_components(std::string url);
 
 	struct TORRENT_EXPORT tracker_request
@@ -154,8 +154,8 @@ namespace libtorrent
 	struct TORRENT_EXPORT timeout_handler
 		: boost::noncopyable
 	{
-		friend void intrusive_ptr_add_ref(timeout_handler const*);
-		friend void intrusive_ptr_release(timeout_handler const*);
+		friend TORRENT_EXPORT void intrusive_ptr_add_ref(timeout_handler const*);
+		friend TORRENT_EXPORT void intrusive_ptr_release(timeout_handler const*);
 
 		timeout_handler(asio::strand& str);
 
@@ -224,7 +224,8 @@ namespace libtorrent
 
 		tracker_manager(session_settings const& s, proxy_settings const& ps)
 			: m_settings(s)
-			, m_proxy(ps) {}
+			, m_proxy(ps)
+	  		, m_abort(false) {}
 
 		void queue_request(
 			asio::strand& str
@@ -249,6 +250,7 @@ namespace libtorrent
 		tracker_connections_t m_connections;
 		session_settings const& m_settings;
 		proxy_settings const& m_proxy;
+		bool m_abort;
 	};
 }
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,26 +30,63 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_METADATA_TRANSFER_HPP_INCLUDED
-#define TORRENT_METADATA_TRANSFER_HPP_INCLUDED
+#ifndef OBSERVER_HPP
+#define OBSERVER_HPP
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
+#include <boost/pool/pool.hpp>
+#include <boost/detail/atomic_count.hpp>
+#include <boost/intrusive_ptr.hpp>
 
-#include <boost/shared_ptr.hpp>
-#include "libtorrent/config.hpp"
+namespace libtorrent {
+namespace dht {
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+struct observer;
+struct msg;
 
-namespace libtorrent
+// defined in rpc_manager.cpp
+TORRENT_EXPORT void intrusive_ptr_add_ref(observer const*);
+TORRENT_EXPORT void intrusive_ptr_release(observer const*);
+
+struct observer : boost::noncopyable
 {
-	struct torrent_plugin;
-	class torrent;
-	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_metadata_plugin(torrent*);
-}
+	friend TORRENT_EXPORT void intrusive_ptr_add_ref(observer const*);
+	friend TORRENT_EXPORT void intrusive_ptr_release(observer const*);
 
-#endif // TORRENT_METADATA_TRANSFER_HPP_INCLUDED
+	observer(boost::pool<>& p)
+		: sent(time_now())
+		, pool_allocator(p)
+		, m_refs(0)
+	{}
 
+	virtual ~observer() {}
+
+	// these two callbacks lets the observer add
+	// information to the message before it's sent
+	virtual void send(msg& m) = 0;
+
+	// this is called when a reply is received
+	virtual void reply(msg const& m) = 0;
+
+	// this is called when no reply has been received within
+	// some timeout
+	virtual void timeout() = 0;
+	
+	// if this is called the destructor should
+	// not invoke any new messages, and should
+	// only clean up. It means the rpc-manager
+	// is being destructed
+	virtual void abort() = 0;
+
+	udp::endpoint target_addr;
+	ptime sent;
+private:
+	boost::pool<>& pool_allocator;
+	// reference counter for intrusive_ptr
+	mutable boost::detail::atomic_count m_refs;
+};
+
+typedef boost::intrusive_ptr<observer> observer_ptr;
+
+} }
+
+#endif

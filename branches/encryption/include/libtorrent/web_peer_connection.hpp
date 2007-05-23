@@ -148,6 +148,7 @@ namespace libtorrent
 
 		std::string m_server_string;
 		http_parser m_parser;
+		std::string m_auth;
 		std::string m_host;
 		int m_port;
 		std::string m_path;

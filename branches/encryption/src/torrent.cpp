@@ -201,6 +201,7 @@ namespace libtorrent
 		, m_resolve_countries(false)
 #endif
 		, m_announce_timer(ses.m_io_service)
+		, m_last_dht_announce(time_now() - minutes(15))
 		, m_policy()
 		, m_ses(ses)
 		, m_checker(checker)
@@ -284,6 +285,7 @@ namespace libtorrent
 		, m_resolve_countries(false)
 #endif
 		, m_announce_timer(ses.m_io_service)
+		, m_last_dht_announce(time_now() - minutes(15))
 		, m_policy()
 		, m_ses(ses)
 		, m_checker(checker)
@@ -439,7 +441,8 @@ namespace libtorrent
 	{
 		boost::weak_ptr<torrent> self(shared_from_this());
 
-		m_announce_timer.expires_from_now(minutes(30));
+		// announce on local network every 5 minutes
+		m_announce_timer.expires_from_now(minutes(5));
 		m_announce_timer.async_wait(m_ses.m_strand.wrap(
 			bind(&torrent::on_announce_disp, self, _1)));
 
@@ -448,8 +451,10 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_DHT
 		if (!m_ses.m_dht) return;
-		if (should_announce_dht())
+		ptime now = time_now();
+		if (should_announce_dht() && now - m_last_dht_announce > minutes(14))
 		{
+			m_last_dht_announce = now;
 			// TODO: There should be a way to abort an announce operation on the dht.
 			// when the torrent is destructed
 			assert(m_ses.m_external_listen_port > 0);
@@ -464,7 +469,7 @@ namespace libtorrent
 	{
 		std::cerr << e.what() << std::endl;
 		assert(false);
-	}
+	};
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
@@ -1378,11 +1383,14 @@ namespace libtorrent
 		else
 		{
 			std::string protocol;
+			std::string auth;
 			std::string hostname;
 			int port;
 			std::string path;
-			boost::tie(protocol, hostname, port, path)
+			boost::tie(protocol, auth, hostname, port, path)
 				= parse_url_components(url);
+
+			// TODO: should auth be used here?
 
 			tcp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
 			m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
@@ -1422,11 +1430,11 @@ namespace libtorrent
 		if (m_ses.is_aborted()) return;
 
 		tcp::endpoint a(host->endpoint());
-		std::string protocol;
+
+		using boost::tuples::ignore;
 		std::string hostname;
 		int port;
-		std::string path;
-		boost::tie(protocol, hostname, port, path)
+		boost::tie(ignore, ignore, hostname, port, ignore)
 			= parse_url_components(url);
 
 		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
@@ -2017,6 +2025,8 @@ namespace libtorrent
 			// only start the announce if we want to announce with the dht
 			if (should_announce_dht())
 			{
+				// force the DHT to reannounce
+				m_last_dht_announce = time_now() - minutes(15);
 				boost::weak_ptr<torrent> self(shared_from_this());
 				m_announce_timer.expires_from_now(seconds(1));
 				m_announce_timer.async_wait(m_ses.m_strand.wrap(

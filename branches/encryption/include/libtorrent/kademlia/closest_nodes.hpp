@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
+#include <libtorrent/kademlia/observer.hpp>
+#include <libtorrent/kademlia/msg.hpp>
 
 #include <boost/function.hpp>
 
@@ -78,6 +80,35 @@ private:
 	);
 
 	done_callback m_done_callback;
+};
+
+class closest_nodes_observer : public observer
+{
+public:
+	closest_nodes_observer(
+		boost::intrusive_ptr<traversal_algorithm> const& algorithm
+		, node_id self
+		, node_id target)
+		: observer(algorithm->allocator())
+		, m_algorithm(algorithm)
+		, m_target(target) 
+		, m_self(self)
+	{}
+	~closest_nodes_observer();
+
+	void send(msg& p)
+	{
+		p.info_hash = m_target;
+	}
+
+	void timeout();
+	void reply(msg const&);
+	void abort() { m_algorithm = 0; }
+
+private:
+	boost::intrusive_ptr<traversal_algorithm> m_algorithm;
+	node_id const m_target;
+	node_id const m_self;
 };
 
 } } // namespace libtorrent::dht

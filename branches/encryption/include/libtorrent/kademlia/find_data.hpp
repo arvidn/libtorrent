@@ -40,8 +40,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/packet_iterator.hpp>
-#include <boost/optional.hpp>
+#include <libtorrent/kademlia/observer.hpp>
+#include <libtorrent/kademlia/msg.hpp>
 
+#include <boost/optional.hpp>
 #include <boost/function.hpp>
 
 namespace libtorrent { namespace dht
@@ -87,6 +89,37 @@ private:
 	done_callback m_done_callback;
 	boost::shared_ptr<packet_t> m_packet;
 	bool m_done;
+};
+
+class find_data_observer : public observer
+{
+public:
+	find_data_observer(
+		boost::intrusive_ptr<find_data> const& algorithm
+		, node_id self
+		, node_id target)
+		: observer(algorithm->allocator())
+		, m_algorithm(algorithm)
+		, m_target(target) 
+		, m_self(self)
+	{}
+	~find_data_observer();
+
+	void send(msg& m)
+	{
+		m.reply = false;
+		m.message_id = messages::get_peers;
+		m.info_hash = m_target;
+	}
+
+	void timeout();
+	void reply(msg const&);
+	void abort() { m_algorithm = 0; }
+
+private:
+	boost::intrusive_ptr<find_data> m_algorithm;
+	node_id const m_target;
+	node_id const m_self;
 };
 
 } } // namespace libtorrent::dht

@@ -186,7 +186,9 @@ namespace libtorrent
 		std::vector<piece_block> interesting_pieces;
 		interesting_pieces.reserve(100);
 
-		bool prefer_whole_pieces = c.prefer_whole_pieces();
+		bool prefer_whole_pieces = c.prefer_whole_pieces()
+			|| c.on_parole();
+
 		if (!prefer_whole_pieces)
 		{
 			prefer_whole_pieces = c.statistics().download_payload_rate()

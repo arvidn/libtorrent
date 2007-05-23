@@ -42,9 +42,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <asio/ip/multicast.hpp>
 #include <boost/thread/mutex.hpp>
 #include <cstdlib>
+#include <boost/config.hpp>
 
 using boost::bind;
 using namespace libtorrent;
+
+namespace libtorrent
+{
+	// defined in upnp.cpp
+	address_v4 guess_local_address(asio::io_service&);
+}
 
 address_v4 lsd::lsd_multicast_address;
 udp::endpoint lsd::lsd_multicast_endpoint;
@@ -72,32 +79,10 @@ lsd::~lsd() {}
 
 void lsd::rebind(address const& listen_interface)
 {
-	address_v4 local_ip;
-	if (listen_interface.is_v4() && listen_interface != address_v4::from_string("0.0.0.0"))
+	address_v4 local_ip = address_v4::any();
+	if (listen_interface.is_v4() && listen_interface != address_v4::any())
 	{
 		local_ip = listen_interface.to_v4();
-	}
-	else
-	{
-		// make a best guess of the interface we're using and its IP
-		udp::resolver r(m_socket.io_service());
-		udp::resolver::iterator i = r.resolve(udp::resolver::query(asio::ip::host_name(), "0"));
-		for (;i != udp::resolver_iterator(); ++i)
-		{
-			if (i->endpoint().address().is_v4()) break;
-		}
-
-		if (i == udp::resolver_iterator())
-		{
-	#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-			m_log << "local host name did not resolve to an IPv4 address. "
-				"disabling local service discovery" << std::endl;
-	#endif
-			m_disabled = true;
-			return;
-		}
-
-		local_ip = i->endpoint().address().to_v4();
 	}
 
 	try
@@ -120,8 +105,8 @@ void lsd::rebind(address const& listen_interface)
 #endif
 
 		m_socket.set_option(join_group(lsd_multicast_address));
-		m_socket.set_option(outbound_interface(address_v4()));
-		m_socket.set_option(enable_loopback(false));
+		m_socket.set_option(outbound_interface(local_ip));
+		m_socket.set_option(enable_loopback(true));
 		m_socket.set_option(hops(255));
 	}
 	catch (std::exception& e)
@@ -189,10 +174,6 @@ catch (std::exception&)
 void lsd::on_announce(asio::error_code const& e
 	, std::size_t bytes_transferred)
 {
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << time_now_string()
-			<< " <== on_announce" << std::endl;
-#endif
 	using namespace libtorrent::detail;
 	if (e) return;
 
@@ -200,11 +181,15 @@ void lsd::on_announce(asio::error_code const& e
 	char* end = m_receive_buffer + bytes_transferred;
 	char* line = std::find(p, end, '\n');
 	for (char* i = p; i < line; ++i) *i = std::tolower(*i);
-	if (line == end || std::strcmp("bt-search", p))
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+	m_log << time_now_string()
+		<< " <== announce: " << std::string(p, line) << std::endl;
+#endif
+	if (line == end || (line - p >= 9 && std::memcmp("bt-search", p, 9)))
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 		m_log << time_now_string()
-			<< " <== Got incorrect method in announce" << std::string(p, line) << std::endl;
+			<< " *** assumed 'bt-search', ignoring" << std::endl;
 #endif
 		setup_receive();
 		return;
@@ -218,13 +203,19 @@ void lsd::on_announce(asio::error_code const& e
 		if (line == end) break;
 		*line = 0;
 		for (char* i = p; i < line; ++i) *i = std::tolower(*i);
-		if (!strcmp(p, "port:"))
+		if (line - p >= 5 && memcmp(p, "port:", 5) == 0)
 		{
-			port = atoi(p + 5);
+			p += 5;
+			while (*p == ' ') ++p;
+			port = atoi(p);
 		}
-		else if (!strcmp(p, "infohash:"))
+		else if (line - p >= 9 && memcmp(p, "infohash:", 9) == 0)
 		{
-			ih = boost::lexical_cast<sha1_hash>(p + 9);
+			p += 9;
+			while (*p == ' ') ++p;
+			if (line - p > 40) p[40] = 0;
+			try { ih = boost::lexical_cast<sha1_hash>(p); }
+			catch (std::exception&) {}
 		}
 		p = line + 1;
 	}
@@ -233,7 +224,7 @@ void lsd::on_announce(asio::error_code const& e
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 		m_log << time_now_string()
-			<< " <== Got incoming local announce " << m_remote.address()
+			<< " *** incoming local announce " << m_remote.address()
 			<< ":" << port << " ih: " << ih << std::endl;
 #endif
 		// we got an announce, pass it on through the callback
@@ -245,10 +236,6 @@ void lsd::on_announce(asio::error_code const& e
 
 void lsd::setup_receive() try
 {
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << time_now_string()
-		<< " *** setup_receive" << std::endl;
-#endif
 	assert(m_socket.is_open());
 	m_socket.async_receive_from(asio::buffer(m_receive_buffer
 		, sizeof(m_receive_buffer)), m_remote, bind(&lsd::on_announce, this, _1, _2));

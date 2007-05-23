@@ -94,9 +94,12 @@ namespace libtorrent
 #endif
 
 		std::string protocol;
-		boost::tie(protocol, m_host, m_port, m_path)
+		boost::tie(protocol, m_auth, m_host, m_port, m_path)
 			= parse_url_components(url);
-			
+		
+		if (!m_auth.empty())
+			m_auth = base64encode(m_auth);
+
 		m_server_string = "URL seed @ ";
 		m_server_string += m_host;
 	}
@@ -171,6 +174,7 @@ namespace libtorrent
 		torrent_info const& info = t->torrent_file();
 		
 		std::string request;
+		request.reserve(400);
 
 		int size = r.length;
 		const int block_size = t->block_size();
@@ -200,6 +204,11 @@ namespace libtorrent
 			{
 				request += "\r\nUser-Agent: ";
 				request += m_ses.settings().user_agent;
+			}
+			if (!m_auth.empty())
+			{
+				request += "\r\nAuthorization: Basic ";
+				request += m_auth;
 			}
 			if (ps.type == proxy_settings::http_pw)
 			{
@@ -252,6 +261,11 @@ namespace libtorrent
 				{
 					request += "\r\nUser-Agent: ";
 					request += m_ses.settings().user_agent;
+				}
+				if (!m_auth.empty())
+				{
+					request += "\r\nAuthorization: Basic ";
+					request += m_auth;
 				}
 				if (ps.type == proxy_settings::http_pw)
 				{
@@ -413,6 +427,8 @@ namespace libtorrent
 			}
 
 			recv_buffer.begin += m_body_start;
+			// we only received the header, no data
+			if (recv_buffer.left() == 0) break;
 
 			size_type range_start;
 			size_type range_end;
@@ -548,12 +564,15 @@ namespace libtorrent
 					int copy_size = std::min(std::min(m_requests.front().length - piece_size
 						, recv_buffer.left()), int(range_end - range_start - m_received_body));
 					assert(copy_size >= 0);
-					m_piece.resize(piece_size + copy_size);
-					std::memcpy(&m_piece[0] + piece_size, recv_buffer.begin, copy_size);
-					recv_buffer.begin += copy_size;
-					m_received_body += copy_size;
-					m_body_start += copy_size;
-					assert(m_received_body <= range_end - range_start);
+					if (copy_size > 0)
+					{
+						m_piece.resize(piece_size + copy_size);
+						std::memcpy(&m_piece[0] + piece_size, recv_buffer.begin, copy_size);
+						recv_buffer.begin += copy_size;
+						m_received_body += copy_size;
+						m_body_start += copy_size;
+					}
+					assert(m_received_body == range_end - range_start);
 				}
 			}
 

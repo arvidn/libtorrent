@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/logging.hpp>
+#include <libtorrent/kademlia/msg.hpp>
 
 #include <libtorrent/io.hpp>
 
@@ -51,38 +52,6 @@ using asio::ip::udp;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DEFINE_LOG(refresh)
 #endif
-
-typedef boost::shared_ptr<observer> observer_ptr;
-
-class refresh_observer : public observer
-{
-public:
-	refresh_observer(
-		boost::intrusive_ptr<refresh> const& algorithm
-		, node_id self
-		, node_id target
-	)
-		: m_target(target) 
-		, m_self(self)
-		, m_algorithm(algorithm)
-	{}
-	~refresh_observer();
-
-	void send(msg& m)
-	{
-		m.info_hash = m_target;
-	}
-
-	void timeout();
-	void reply(msg const& m);
-	void abort() { m_algorithm = 0; }
-
-
-private:
-	node_id const m_target;
-	node_id const m_self;
-	boost::intrusive_ptr<refresh> m_algorithm;
-};
 
 refresh_observer::~refresh_observer()
 {
@@ -112,29 +81,6 @@ void refresh_observer::timeout()
 	m_algorithm = 0;
 }
 
-class ping_observer : public observer
-{
-public:
-	ping_observer(
-		boost::intrusive_ptr<refresh> const& algorithm
-		, node_id self
-	)
-		: m_self(self)
-		, m_algorithm(algorithm)
-	{}
-	~ping_observer();
-
-	void send(msg& p) {}
-	void timeout();
-	void reply(msg const& m);
-	void abort() { m_algorithm = 0; }
-
-
-private:
-	node_id const m_self;
-	boost::intrusive_ptr<refresh> m_algorithm;
-};
-
 ping_observer::~ping_observer()
 {
 	if (m_algorithm) m_algorithm->ping_timeout(m_self, true);
@@ -157,13 +103,10 @@ void ping_observer::timeout()
 
 void refresh::invoke(node_id const& nid, udp::endpoint addr)
 {
-	observer_ptr p(new refresh_observer(
-		this
-		, nid
-		, m_target
-	));
+	observer_ptr o(new (m_rpc.allocator().malloc()) refresh_observer(
+		this, nid, m_target));
 
-	m_rpc.invoke(messages::find_node, addr, p);
+	m_rpc.invoke(messages::find_node, addr, o);
 }
 
 void refresh::done()
@@ -211,8 +154,9 @@ void refresh::invoke_pings_or_finish(bool prevent_request)
 
 			try
 			{
-				observer_ptr p(new ping_observer(this, node.id));
-				m_rpc.invoke(messages::ping, node.addr, p);
+				observer_ptr o(new (m_rpc.allocator().malloc()) ping_observer(
+					this, node.id));
+				m_rpc.invoke(messages::ping, node.addr, o);
 				++m_active_pings;
 				++m_leftover_nodes_iterator;
 			}

@@ -46,11 +46,45 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/thread/mutex.hpp>
 #include <cstdlib>
 
+#if (defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)) && !defined(TORRENT_UPNP_LOGGING)
+#define TORRENT_UPNP_LOGGING
+#endif
+
 using boost::bind;
 using namespace libtorrent;
 
 address_v4 upnp::upnp_multicast_address;
 udp::endpoint upnp::upnp_multicast_endpoint;
+
+namespace libtorrent
+{
+	bool is_local(address const& a)
+	{
+		if (a.is_v6()) return false;
+		address_v4 a4 = a.to_v4();
+		return ((a4.to_ulong() & 0xff000000) == 0x0a000000
+			|| (a4.to_ulong() & 0xfff00000) == 0xac100000
+			|| (a4.to_ulong() & 0xffff0000) == 0xc0a80000);
+	}
+
+	address_v4 guess_local_address(asio::io_service& ios)
+	{
+		// make a best guess of the interface we're using and its IP
+		udp::resolver r(ios);
+		udp::resolver::iterator i = r.resolve(udp::resolver::query(asio::ip::host_name(), "0"));
+		for (;i != udp::resolver_iterator(); ++i)
+		{
+			// ignore the loopback
+			if (i->endpoint().address() == address_v4((127 << 24) + 1)) continue;
+			// ignore addresses that are not on a local network
+			if (!is_local(i->endpoint().address())) continue;
+			// ignore non-IPv4 addresses
+			if (i->endpoint().address().is_v4()) break;
+		}
+		if (i == udp::resolver_iterator()) return address_v4::any();
+		return i->endpoint().address().to_v4();
+	}
+}
 
 upnp::upnp(io_service& ios, connection_queue& cc
 	, address const& listen_interface, std::string const& user_agent
@@ -84,43 +118,36 @@ upnp::~upnp()
 
 void upnp::rebind(address const& listen_interface) try
 {
-	if (listen_interface.is_v4() && listen_interface != address_v4::from_string("0.0.0.0"))
+	address_v4 bind_to = address_v4::any();
+	if (listen_interface.is_v4() && listen_interface != address_v4::any())
 	{
 		m_local_ip = listen_interface.to_v4();
+		bind_to = listen_interface.to_v4();
+		if (!is_local(m_local_ip))
+		{
+			// the local address seems to be an external
+			// internet address. Assume it is not behind a NAT
+			throw std::runtime_error("local IP is not on a local network");
+		}
 	}
 	else
 	{
-		// make a best guess of the interface we're using and its IP
-		udp::resolver r(m_socket.io_service());
-		udp::resolver::iterator i = r.resolve(udp::resolver::query(asio::ip::host_name(), "0"));
-		for (;i != udp::resolver_iterator(); ++i)
-		{
-			if (i->endpoint().address().is_v4()) break;
-		}
+		m_local_ip = guess_local_address(m_socket.io_service());
+		bind_to = address_v4::any();
+	}
 
-		if (i == udp::resolver_iterator())
-		{
-			throw std::runtime_error("local host name did not resolve to an "
-				"IPv4 address. disabling NAT-PMP");
-		}
-
-		m_local_ip = i->endpoint().address().to_v4();
+	if (!is_local(m_local_ip))
+	{
+		throw std::runtime_error("local host is probably not on a NATed "
+			"network. disabling UPnP");
 	}
 
 #ifdef TORRENT_UPNP_LOGGING
 	m_log << time_now_string()
-		<< " local ip: " << m_local_ip.to_string() << std::endl;
+		<< " local ip: " << m_local_ip.to_string()
+		<< " bind to: " << bind_to.to_string() << std::endl;
 #endif
 
-	if ((m_local_ip.to_ulong() & 0xff000000) != 0x0a000000
-		&& (m_local_ip.to_ulong() & 0xfff00000) != 0xac100000
-		&& (m_local_ip.to_ulong() & 0xffff0000) != 0xc0a80000)
-	{
-		// the local address seems to be an external
-		// internet address. Assume it is not behind a NAT
-		throw std::runtime_error("local IP is not on a local network");
-	}
-	
 	// the local interface hasn't changed
 	if (m_socket.is_open()
 		&& m_socket.local_endpoint().address() == m_local_ip)
@@ -132,10 +159,10 @@ void upnp::rebind(address const& listen_interface) try
 
 	m_socket.open(udp::v4());
 	m_socket.set_option(datagram_socket::reuse_address(true));
-	m_socket.bind(udp::endpoint(m_local_ip, 0));
+	m_socket.bind(udp::endpoint(bind_to, 0));
 
 	m_socket.set_option(join_group(upnp_multicast_address));
-	m_socket.set_option(outbound_interface(m_local_ip));
+	m_socket.set_option(outbound_interface(bind_to));
 	m_socket.set_option(hops(255));
 	m_disabled = false;
 
@@ -367,9 +394,13 @@ try
 	{
 
 		std::string protocol;
+		std::string auth;
 		// we don't have this device in our list. Add it
-		boost::tie(protocol, d.hostname, d.port, d.path)
+		boost::tie(protocol, auth, d.hostname, d.port, d.path)
 			= parse_url_components(d.url);
+
+		// ignore the auth here. It will be re-parsed
+		// by the http connection later
 
 		if (protocol != "http")
 		{
@@ -453,7 +484,7 @@ try
 catch (std::exception&)
 {
 	assert(false);
-}
+};
 #endif
 
 void upnp::post(rootdevice& d, std::stringstream const& soap
@@ -687,7 +718,7 @@ void upnp::on_upnp_xml(asio::error_code const& e
 catch (std::exception&)
 {
 	disable();
-}
+};
 
 void upnp::disable()
 {
@@ -890,7 +921,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 catch (std::exception&)
 {
 	disable();
-}
+};
 
 void upnp::on_upnp_unmap_response(asio::error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d, int mapping) try
@@ -938,7 +969,7 @@ void upnp::on_upnp_unmap_response(asio::error_code const& e
 catch (std::exception&)
 {
 	disable();
-}
+};
 
 void upnp::on_expire(asio::error_code const& e) try
 {
@@ -976,7 +1007,7 @@ void upnp::on_expire(asio::error_code const& e) try
 catch (std::exception&)
 {
 	disable();
-}
+};
 
 void upnp::close()
 {

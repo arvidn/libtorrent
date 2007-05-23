@@ -89,7 +89,7 @@ namespace libtorrent
 	}
 
 	TORRENT_EXPORT void intrusive_ptr_add_ref(peer_connection const*);
-	TORRENT_EXPORT void intrusive_ptr_release(peer_connection const*);	
+	TORRENT_EXPORT void intrusive_ptr_release(peer_connection const*);
 
 	struct TORRENT_EXPORT protocol_error: std::runtime_error
 	{
@@ -100,8 +100,8 @@ namespace libtorrent
 		: public boost::noncopyable
 	{
 	friend class invariant_access;
-	friend void intrusive_ptr_add_ref(peer_connection const*);
-	friend void intrusive_ptr_release(peer_connection const*);
+	friend TORRENT_EXPORT void intrusive_ptr_add_ref(peer_connection const*);
+	friend TORRENT_EXPORT void intrusive_ptr_release(peer_connection const*);
 	public:
 
 		enum channels
@@ -173,6 +173,9 @@ namespace libtorrent
 
 		void set_non_prioritized(bool b)
 		{ m_non_prioritized = b; }
+
+		bool on_parole() const
+		{ return m_on_parole; }
 
 		// this adds an announcement in the announcement queue
 		// it will let the peer know that we have the given piece
@@ -474,7 +477,7 @@ namespace libtorrent
 
 		// the time when we last got a part of a
 		// piece packet from this peer
-		ptime		m_last_piece;
+		ptime m_last_piece;
 
 		int m_packet_size;
 		int m_recv_pos;
@@ -639,6 +642,14 @@ namespace libtorrent
 		// will be used to determine if whole pieces
 		// are preferred.
 		bool m_prefer_whole_pieces;
+		
+		// if this is true, the peer has previously participated
+		// in a piece that failed the piece hash check. This will
+		// put the peer on parole and only request entire pieces.
+		// if a piece pass that was partially requested from this
+		// peer it will leave parole mode and continue download
+		// pieces as normal peers.
+		bool m_on_parole;
 		
 		// if this is true, the blocks picked by the piece
 		// picker will be merged before passed to the
