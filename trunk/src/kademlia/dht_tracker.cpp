@@ -628,7 +628,7 @@ namespace libtorrent { namespace dht
 				m.error_msg = list.back().string();
 				m.error_code = list.front().integer();
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-				TORRENT_LOG(dht_tracker) << "   error: " << m.error_code << " "
+				TORRENT_LOG(dht_tracker) << "   incoming error: " << m.error_code << " "
 					<< m.error_msg;
 #endif
 				throw std::runtime_error("DHT error message");
@@ -658,9 +658,9 @@ namespace libtorrent { namespace dht
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			int current_buffer = (m_buffer + 1) & 1;
 			std::string msg(m_in_buf[current_buffer].begin()
-				, m_in_buf[current_buffer].end());
+				, m_in_buf[current_buffer].begin() + bytes_transferred);
 			TORRENT_LOG(dht_tracker) << "invalid incoming packet: "
-				<< e.what() << "\n" << msg.c_str() << "\n";
+				<< e.what() << "\n" << msg << "\n";
 #endif
 		}
 	}
@@ -794,6 +794,7 @@ namespace libtorrent { namespace dht
 		using libtorrent::bencode;
 		using libtorrent::entry;
 		entry e(entry::dictionary_t);
+		assert(!m.transaction_id.empty() || m.message_id == messages::error);
 		e["t"] = m.transaction_id;
 		static char const version_str[] = {'L', 'T'
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR};
@@ -816,7 +817,7 @@ namespace libtorrent { namespace dht
 			e["e"] = error_list;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(dht_tracker) << time_now_string()
-				<< "   error: " << m.error_code << " " << m.error_msg;
+				<< "   outgoing error: " << m.error_code << " " << m.error_msg;
 #endif
 		}
 		else if (m.reply)

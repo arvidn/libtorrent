@@ -76,6 +76,11 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 	}
 }
 
+boost::pool<>& traversal_algorithm::allocator() const
+{
+	return m_rpc.allocator();
+}
+
 void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
 {
 	add_entry(id, addr, 0);

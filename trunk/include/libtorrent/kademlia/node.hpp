@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
+#include <libtorrent/kademlia/msg.hpp>
 
 #include <libtorrent/io.hpp>
 #include <libtorrent/session_settings.hpp>
@@ -84,6 +85,75 @@ inline bool operator<(peer_entry const& lhs, peer_entry const& rhs)
 }
 
 struct null_type {};
+
+class announce_observer : public observer
+{
+public:
+	announce_observer(boost::pool<>& allocator
+		, sha1_hash const& info_hash
+		, int listen_port
+		, entry const& write_token)
+		: observer(allocator)
+		, m_info_hash(info_hash)
+		, m_listen_port(listen_port)
+		, m_token(write_token)
+	{}
+
+	void send(msg& m)
+	{
+		m.port = m_listen_port;
+		m.info_hash = m_info_hash;
+		m.write_token = m_token;
+	}
+
+	void timeout() {}
+	void reply(msg const&) {}
+	void abort() {}
+
+private:
+	sha1_hash m_info_hash;
+	int m_listen_port;
+	entry m_token;
+};
+
+class get_peers_observer : public observer
+{
+public:
+	get_peers_observer(sha1_hash const& info_hash
+		, int listen_port
+		, rpc_manager& rpc
+		, boost::function<void(std::vector<tcp::endpoint> const&, sha1_hash const&)> f)
+		: observer(rpc.allocator())
+		, m_info_hash(info_hash)
+		, m_listen_port(listen_port)
+		, m_rpc(rpc)
+		, m_fun(f)
+	{}
+
+	void send(msg& m)
+	{
+		m.port = m_listen_port;
+		m.info_hash = m_info_hash;
+	}
+
+	void timeout() {}
+	void reply(msg const& r)
+	{
+		m_rpc.invoke(messages::announce_peer, r.addr
+			, observer_ptr(new (m_rpc.allocator().malloc()) announce_observer(
+				m_rpc.allocator(), m_info_hash, m_listen_port, r.write_token)));
+		m_fun(r.peers, m_info_hash);
+	}
+	void abort() {}
+
+private:
+	sha1_hash m_info_hash;
+	int m_listen_port;
+	rpc_manager& m_rpc;
+	boost::function<void(std::vector<tcp::endpoint> const&, sha1_hash const&)> m_fun;
+};
+
+
 
 class node_impl : boost::noncopyable
 {

@@ -63,8 +63,6 @@ namespace
 }
 #endif
 
-typedef boost::shared_ptr<observer> observer_ptr;
-
 // TODO: configurable?
 enum { announce_interval = 30 };
 
@@ -267,70 +265,6 @@ void node_impl::incoming(msg const& m)
 
 namespace
 {
-
-	class announce_observer : public observer
-	{
-	public:
-		announce_observer(sha1_hash const& info_hash, int listen_port
-			, entry const& write_token)
-			: m_info_hash(info_hash)
-			, m_listen_port(listen_port)
-			, m_token(write_token)
-		{}
-
-		void send(msg& m)
-		{
-			m.port = m_listen_port;
-			m.info_hash = m_info_hash;
-			m.write_token = m_token;
-		}
-
-		void timeout() {}
-		void reply(msg const&) {}
-		void abort() {}
-
-	private:
-		sha1_hash m_info_hash;
-		int m_listen_port;
-		entry m_token;
-	};
-
-	class get_peers_observer : public observer
-	{
-	public:
-		get_peers_observer(sha1_hash const& info_hash, int listen_port
-			, rpc_manager& rpc
-			, boost::function<void(std::vector<tcp::endpoint> const&, sha1_hash const&)> f)
-			: m_info_hash(info_hash)
-			, m_listen_port(listen_port)
-			, m_rpc(rpc)
-			, m_fun(f)
-		{}
-
-		void send(msg& m)
-		{
-			m.port = m_listen_port;
-			m.info_hash = m_info_hash;
-		}
-
-		void timeout() {}
-		void reply(msg const& r)
-		{
-			m_rpc.invoke(messages::announce_peer, r.addr
-				, boost::shared_ptr<observer>(
-				new announce_observer(m_info_hash, m_listen_port, r.write_token)));
-			m_fun(r.peers, m_info_hash);
-		}
-		void abort() {}
-
-	private:
-		sha1_hash m_info_hash;
-		int m_listen_port;
-		rpc_manager& m_rpc;
-		boost::function<void(std::vector<tcp::endpoint> const&, sha1_hash const&)> m_fun;
-	};
-
-
 	void announce_fun(std::vector<node_entry> const& v, rpc_manager& rpc
 		, int listen_port, sha1_hash const& ih
 		, boost::function<void(std::vector<tcp::endpoint> const&, sha1_hash const&)> f)
@@ -340,23 +274,11 @@ namespace
 		for (std::vector<node_entry>::const_iterator i = v.begin()
 			, end(v.end()); i != end; ++i)
 		{
-			rpc.invoke(messages::get_peers, i->addr, boost::shared_ptr<observer>(
-				new get_peers_observer(ih, listen_port, rpc, f)));
+			rpc.invoke(messages::get_peers, i->addr, observer_ptr(
+				new (rpc.allocator().malloc()) get_peers_observer(ih, listen_port, rpc, f)));
 			nodes = true;
 		}
 	}
-
-}
-
-namespace
-{
-	struct dummy_observer : observer
-	{
-		virtual void reply(msg const&) {}
-		virtual void timeout() {}
-		virtual void send(msg&) {}
-		virtual void abort() {}
-	};
 }
 
 void node_impl::add_router_node(udp::endpoint router)
@@ -368,8 +290,8 @@ void node_impl::add_node(udp::endpoint node)
 {
 	// ping the node, and if we get a reply, it
 	// will be added to the routing table
-	observer_ptr p(new dummy_observer());
-	m_rpc.invoke(messages::ping, node, p);
+	observer_ptr o(new (m_rpc.allocator().malloc()) null_observer(m_rpc.allocator()));
+	m_rpc.invoke(messages::ping, node, o);
 }
 
 void node_impl::announce(sha1_hash const& info_hash, int listen_port
