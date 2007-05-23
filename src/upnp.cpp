@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/thread/mutex.hpp>
 #include <cstdlib>
 
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#if (defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)) && !defined(TORRENT_UPNP_LOGGING)
 #define TORRENT_UPNP_LOGGING
 #endif
 
@@ -118,10 +118,11 @@ upnp::~upnp()
 
 void upnp::rebind(address const& listen_interface) try
 {
-	m_local_ip = address_v4::any();
+	address_v4 bind_to = address_v4::any();
 	if (listen_interface.is_v4() && listen_interface != address_v4::any())
 	{
 		m_local_ip = listen_interface.to_v4();
+		bind_to = listen_interface.to_v4();
 		if (!is_local(m_local_ip))
 		{
 			// the local address seems to be an external
@@ -131,18 +132,20 @@ void upnp::rebind(address const& listen_interface) try
 	}
 	else
 	{
-		address_v4 local_ip = guess_local_address(m_socket.io_service());
+		m_local_ip = guess_local_address(m_socket.io_service());
+		bind_to = address_v4::any();
+	}
 
-		if (local_ip == address_v4::any())
-		{
-			throw std::runtime_error("local host is probably not on a NATed "
-				"network. disabling UPnP");
-		}
+	if (!is_local(m_local_ip))
+	{
+		throw std::runtime_error("local host is probably not on a NATed "
+			"network. disabling UPnP");
 	}
 
 #ifdef TORRENT_UPNP_LOGGING
 	m_log << time_now_string()
-		<< " local ip: " << m_local_ip.to_string() << std::endl;
+		<< " local ip: " << m_local_ip.to_string()
+		<< " bind to: " << bind_to.to_string() << std::endl;
 #endif
 
 	// the local interface hasn't changed
@@ -156,10 +159,10 @@ void upnp::rebind(address const& listen_interface) try
 
 	m_socket.open(udp::v4());
 	m_socket.set_option(datagram_socket::reuse_address(true));
-	m_socket.bind(udp::endpoint(m_local_ip, 0));
+	m_socket.bind(udp::endpoint(bind_to, 0));
 
 	m_socket.set_option(join_group(upnp_multicast_address));
-	m_socket.set_option(outbound_interface(m_local_ip));
+	m_socket.set_option(outbound_interface(bind_to));
 	m_socket.set_option(hops(255));
 	m_disabled = false;
 
