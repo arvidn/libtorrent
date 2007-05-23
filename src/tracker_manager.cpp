@@ -507,6 +507,10 @@ namespace libtorrent
 		if (req.event == tracker_request::stopped)
 			req.num_want = 0;
 
+		assert(!m_abort || req.event == tracker_request::stopped);
+		if (m_abort && req.event != tracker_request::stopped)
+			return;
+
 		try
 		{
 			std::string protocol;
@@ -572,6 +576,7 @@ namespace libtorrent
 		// 'event=stopped'-requests)
 		mutex_t::scoped_lock l(m_mutex);
 
+		m_abort = true;
 		tracker_connections_t keep_connections;
 
 		for (tracker_connections_t::const_iterator i =

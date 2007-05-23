@@ -224,7 +224,8 @@ namespace libtorrent
 
 		tracker_manager(session_settings const& s, proxy_settings const& ps)
 			: m_settings(s)
-			, m_proxy(ps) {}
+			, m_proxy(ps)
+	  		, m_abort(false) {}
 
 		void queue_request(
 			asio::strand& str
@@ -249,6 +250,7 @@ namespace libtorrent
 		tracker_connections_t m_connections;
 		session_settings const& m_settings;
 		proxy_settings const& m_proxy;
+		bool m_abort;
 	};
 }
 
