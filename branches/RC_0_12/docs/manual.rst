@@ -1984,6 +1984,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		std::string user_agent;
 		int tracker_completion_timeout;
 		int tracker_receive_timeout;
+		int stop_tracker_timeout;
 		int tracker_maximum_response_length;
 
 		int piece_timeout;
@@ -2025,6 +2026,10 @@ any data from the tracker. If no data is received for this number of
 seconds, the tracker will be considered as having timed out. If a tracker
 is down, this is the kind of timeout that will occur. The default value
 is 20 seconds.
+
+``stop_tracker_timeout`` is the time to wait for tracker responses when
+shutting down the session object. This is given in seconds. Default is
+10 seconds.
 
 ``tracker_maximum_response_length`` is the maximum number of bytes in a
 tracker response. If a response size passes this number it will be rejected
