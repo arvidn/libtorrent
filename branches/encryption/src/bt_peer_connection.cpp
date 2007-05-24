@@ -1503,7 +1503,7 @@ namespace libtorrent
 			{
 				std::size_t bytes_processed = recv_buffer.left() - 20;
 				m_sync_bytes_read += bytes_processed;
-				if (m_sync_bytes_read > 512)
+				if (m_sync_bytes_read >= 512)
 					throw protocol_error("sync hash not found within 532 bytes");
 
 				cut_receive_buffer(bytes_processed, std::min(packet_size(), (512+20) - m_sync_bytes_read));
@@ -1641,7 +1641,7 @@ namespace libtorrent
 			{
 				std::size_t bytes_processed = recv_buffer.left() - 8;
 				m_sync_bytes_read += bytes_processed;
-				if (m_sync_bytes_read > 512)
+				if (m_sync_bytes_read >= 512)
 					throw protocol_error("sync verification constant not found within 520 bytes");
 
 				cut_receive_buffer(bytes_processed, std::min(packet_size(), (512+8) - m_sync_bytes_read));
