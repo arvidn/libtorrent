@@ -300,7 +300,6 @@ namespace libtorrent
 			try
 			{
 				path f = p / i->path;
-std::cerr << f.string() << " ";
 #if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
 				size = file_size_win(f);
 				time = last_write_time_win(f);
