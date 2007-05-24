@@ -176,7 +176,7 @@ std::string to_string(int v, int width)
 	std::stringstream s;
 	s.flags(std::ios_base::right);
 	s.width(width);
-	s.fill('0');
+	s.fill(' ');
 	s << v;
 	return s.str();
 }
@@ -269,7 +269,11 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
-	out << " down    (total)   up      (total)  q  r  flags  source fail block-progress country client \n";
+	out << " down    (total)   up      (total)   q  r flags  source fail block-progress "
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
+		"country "
+#endif
+		"client \n";
 
 	for (std::vector<peer_info>::const_iterator i = peers.begin();
 		i != peers.end(); ++i)
@@ -283,8 +287,8 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			<< "(" << add_suffix(i->total_download) << ") " << esc("0")
 			<< esc("31") << (i->up_speed > 0 ? add_suffix(i->up_speed) + "/s ": "         ")
 			<< "(" << add_suffix(i->total_upload) << ") " << esc("0")
-			<< to_string(i->download_queue_length, 2, 2) << " "
-			<< to_string(i->upload_queue_length, 2, 2) << " "
+			<< to_string(i->download_queue_length, 2) << " "
+			<< to_string(i->upload_queue_length, 2) << " "
 			<< ((i->flags & peer_info::interesting)?'I':'.')
 			<< ((i->flags & peer_info::choked)?'C':'.')
 			<< ((i->flags & peer_info::remote_interested)?'i':'.')
@@ -296,9 +300,7 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			<< ((i->source & peer_info::dht)?"D":"_")
 			<< ((i->source & peer_info::lsd)?"L":"_")
 			<< ((i->source & peer_info::resume_data)?"R":"_") << "  ";
-		out.width(2);
-		out.fill(' ');
-		out << (i->failcount) << "   ";
+		out << to_string(i->failcount, 4) << " ";
 
 		if (i->downloading_piece_index >= 0)
 		{
@@ -310,6 +312,7 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			out << progress_bar(0.f, 15);
 		}
 
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		if (i->country[0] == 0)
 		{
 			out << " ..";
@@ -318,7 +321,7 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 		{
 			out << " " << i->country[0] << i->country[1];
 		}
-
+#endif
 		if (i->flags & peer_info::handshake)
 		{
 			out << esc("31") << " waiting for handshake" << esc("0") << "\n";
@@ -391,7 +394,9 @@ void add_torrent(libtorrent::session& ses
 	h.set_max_uploads(-1);
 	h.set_ratio(preferred_ratio);
 	h.set_sequenced_download_threshold(15);
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 	h.resolve_countries(true);
+#endif
 }
 catch (std::exception&) {};
 
@@ -983,9 +988,7 @@ int main(int ac, char* av[])
 					for (std::vector<partial_piece_info>::iterator i = queue.begin();
 						i != queue.end(); ++i)
 					{
-						out.width(4);
-						out.fill(' ');
-						out << i->piece_index << ": [";
+						out << to_string(i->piece_index, 4) << ": [";
 						for (int j = 0; j < i->blocks_in_piece; ++j)
 						{
 							int index = peer_index(i->peer[j], peers);
