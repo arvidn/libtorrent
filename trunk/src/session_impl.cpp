@@ -949,7 +949,18 @@ namespace libtorrent { namespace detail
 				continue;
 			}
 
-			c.keep_alive();
+			try
+			{
+				c.keep_alive();
+			}
+			catch (std::exception& exc)
+			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*c.m_logger) << "**ERROR**: " << exc.what() << "\n";
+#endif
+				c.set_failed();
+				c.disconnect();
+			}
 		}
 
 		// check each torrent for tracker updates
@@ -981,7 +992,6 @@ namespace libtorrent { namespace detail
 		}
 
 		m_stat.second_tick(tick_interval);
-
 		// distribute the maximum upload rate among the torrents
 
 		assert(m_max_uploads >= -1);

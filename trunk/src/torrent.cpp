@@ -2454,13 +2454,25 @@ namespace libtorrent
 		}
 		
 		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
+			i != m_connections.end();)
 		{
 			peer_connection* p = i->second;
+			++i;
 			m_stat += p->statistics();
 			// updates the peer connection's ul/dl bandwidth
 			// resource requests
-			p->second_tick(tick_interval);
+			try
+			{
+				p->second_tick(tick_interval);
+			}
+			catch (std::exception& e)
+			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*p->m_logger) << "**ERROR**: " << e.what() << "\n";
+#endif
+				p->set_failed();
+				p->disconnect();
+			}
 		}
 		accumulator += m_stat;
 		m_stat.second_tick(tick_interval);
