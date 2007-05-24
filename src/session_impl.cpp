@@ -1129,7 +1129,8 @@ namespace libtorrent { namespace detail
 		l.unlock();
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " waiting for trackers to respond\n";
+		(*m_logger) << time_now_string() << " waiting for trackers to respond ("
+			<< m_settings.stop_tracker_timeout << " seconds timeout)\n";
 #endif
 
 		while (time_now() - start < seconds(
@@ -1733,12 +1734,19 @@ namespace libtorrent { namespace detail
 #ifndef TORRENT_DISABLE_DHT
 		stop_dht();
 #endif
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << "\n\n *** shutting down session *** \n\n";
+#endif
 		// lock the main thread and abort it
 		mutex_t::scoped_lock l(m_mutex);
 		m_abort = true;
 		m_io_service.stop();
 		l.unlock();
 
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " waiting for main thread\n";
+#endif
 		m_thread->join();
 
 		assert(m_torrents.empty());
@@ -1763,10 +1771,16 @@ namespace libtorrent { namespace detail
 			m_checker_impl.m_cond.notify_one();
 		}
 
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " waiting for checker thread\n";
+#endif
 		m_checker_thread->join();
 
 		assert(m_torrents.empty());
 		assert(m_connections.empty());
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " shutdown complete!\n";
+#endif
 	}
 
 	void session_impl::set_max_uploads(int limit)
