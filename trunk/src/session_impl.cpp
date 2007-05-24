@@ -478,10 +478,10 @@ namespace libtorrent { namespace detail
 		, char const* listen_interface)
 		: m_strand(m_io_service)
 		, m_files(40)
+		, m_half_open(m_io_service)
 		, m_dl_bandwidth_manager(m_io_service, peer_connection::download_channel)
 		, m_ul_bandwidth_manager(m_io_service, peer_connection::upload_channel)
 		, m_tracker_manager(m_settings, m_tracker_proxy)
-		, m_half_open(m_io_service)
 		, m_listen_port_range(listen_port_range)
 		, m_listen_interface(address::from_string(listen_interface), listen_port_range.first)
 		, m_external_listen_port(0)
@@ -2026,7 +2026,6 @@ namespace libtorrent { namespace detail
 				}
 			}
 
-			// verify file sizes
 			if (!torrent_ptr->verify_resume_data(rd, error))
 				return;
 

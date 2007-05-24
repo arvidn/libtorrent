@@ -320,6 +320,12 @@ namespace libtorrent
 			// when they are destructed.
 			file_pool m_files;
 
+			// this is a list of half-open tcp connections
+			// (only outgoing connections)
+			// this has to be one of the last
+			// members to be destructed
+			connection_queue m_half_open;
+
 			// the bandwidth manager is responsible for
 			// handing out bandwidth to connections that
 			// asks for it, it can also throttle the
@@ -335,10 +341,6 @@ namespace libtorrent
 			// peers.
 			connection_map m_connections;
 			
-			// this is a list of half-open tcp connections
-			// (only outgoing connections)
-			connection_queue m_half_open;
-
 			// filters incoming connections
 			ip_filter m_ip_filter;
 			

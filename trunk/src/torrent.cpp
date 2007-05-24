@@ -1702,9 +1702,11 @@ namespace libtorrent
 		assert(peerinfo);
 		assert(peerinfo->connection == 0);
 #ifndef NDEBUG
+		// this asserts that we don't have duplicates in the policy's peer list
 		peer_iterator i_ = m_connections.find(peerinfo->ip);
 		assert(i_ == m_connections.end()
-			|| (i_->second->is_disconnecting()));
+			|| i_->second->is_disconnecting()
+			|| dynamic_cast<bt_peer_connection*>(i_->second) == 0);
 #endif
 
 		assert(want_more_peers());

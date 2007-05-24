@@ -78,6 +78,7 @@ namespace libtorrent
 		torrent_info const& t
 		, boost::filesystem::path p
 		, std::vector<std::pair<size_type, std::time_t> > const& sizes
+		, bool compact_mode
 		, std::string* error = 0);
 
 	struct TORRENT_EXPORT file_allocation_failed: std::exception
@@ -104,7 +105,11 @@ namespace libtorrent
 
 		virtual bool move_storage(boost::filesystem::path save_path) = 0;
 
+		// verify storage dependent fast resume entries
 		virtual bool verify_resume_data(entry& rd, std::string& error) = 0;
+
+		// write storage dependent fast resume entries
+		virtual void write_resume_data(entry& rd) const = 0;
 
 		// moves (or copies) the content in src_slot to dst_slot
 		virtual void move_slot(int src_slot, int dst_slot) = 0;
@@ -153,6 +158,7 @@ namespace libtorrent
 
 		void release_files();
 
+		void write_resume_data(entry& rd) const;
 		bool verify_resume_data(entry& rd, std::string& error);
 
 		bool is_allocating() const;
