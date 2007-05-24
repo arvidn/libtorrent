@@ -149,8 +149,17 @@ void clear_home()
 
 char const* esc(char const* code)
 {
-	static char ret[20] = "\033[";
 #ifdef ANSI_TERMINAL_COLORS
+	// this is a silly optimization
+	// to avoid copying of strings
+	enum { num_strings = 20 };
+	static char buf[num_strings][20];
+	static int round_robin = 0;
+	char* ret = buf[round_robin];
+	++round_robin;
+	if (round_robin >= num_strings) round_robin = 0;
+	ret[0] = '\033';
+	ret[1] = '[';
 	int i = 2;
 	int j = 0;
 	while (code[j]) ret[i++] = code[j++];
