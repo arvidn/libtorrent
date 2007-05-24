@@ -270,10 +270,17 @@ namespace libtorrent
 		return sizes;
 	}
 
+	// matches the sizes and timestamps of the files passed in
+	// in non-compact mode, actual file sizes and timestamps
+	// are allowed to be bigger and more recent than the fast
+	// resume data. This is because full allocation will not move
+	// pieces, so any older version of the resume data will
+	// still be a correct subset of the actual data on disk.
 	bool match_filesizes(
 		torrent_info const& t
 		, path p
 		, std::vector<std::pair<size_type, std::time_t> > const& sizes
+		, bool compact_mode
 		, std::string* error)
 	{
 		if ((int)sizes.size() != t.num_files())
@@ -293,6 +300,7 @@ namespace libtorrent
 			try
 			{
 				path f = p / i->path;
+std::cerr << f.string() << " ";
 #if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
 				size = file_size_win(f);
 				time = last_write_time_win(f);
@@ -302,19 +310,23 @@ namespace libtorrent
 #endif
 			}
 			catch (std::exception&) {}
-			if (size != s->first)
+			if (size != s->first
+				|| (!compact_mode && size < s->first))
 			{
 				if (error) *error = "filesize mismatch for file '"
 					+ i->path.native_file_string()
-					+ "', expected to be " + boost::lexical_cast<std::string>(s->first)
+					+ "', size: " + boost::lexical_cast<std::string>(size)
+					+ ", expected to be " + boost::lexical_cast<std::string>(s->first)
 					+ " bytes";
 				return false;
 			}
-			if (time != s->second)
+			if (time != s->second
+				|| (!compact_mode && time < s->second))
 			{
 				if (error) *error = "timestamp mismatch for file '"
 					+ i->path.native_file_string()
-					+ "', expected to have modification date "
+					+ "', modification date: " + boost::lexical_cast<std::string>(time)
+					+ ", expected to have modification date "
 					+ boost::lexical_cast<std::string>(s->second);
 				return false;
 			}
@@ -379,6 +391,7 @@ namespace libtorrent
 		void swap_slots(int slot1, int slot2);
 		void swap_slots3(int slot1, int slot2, int slot3);
 		bool verify_resume_data(entry& rd, std::string& error);
+		void write_resume_data(entry& rd) const;
 
 		size_type read_impl(char* buf, int slot, int offset, int size, bool fill_zero);
 
@@ -442,6 +455,23 @@ namespace libtorrent
 		std::vector<char>().swap(m_scratch_buffer);
 	}
 
+	void storage::write_resume_data(entry& rd) const
+	{
+		std::vector<std::pair<size_type, std::time_t> > file_sizes
+			= get_filesizes(m_info, m_save_path);
+
+		rd["file sizes"] = entry::list_type();
+		entry::list_type& fl = rd["file sizes"].list();
+		for (std::vector<std::pair<size_type, std::time_t> >::iterator i
+			= file_sizes.begin(), end(file_sizes.end()); i != end; ++i)
+		{
+			entry::list_type p;
+			p.push_back(entry(i->first));
+			p.push_back(entry(i->second));
+			fl.push_back(entry(p));
+		}
+	}
+
 	bool storage::verify_resume_data(entry& rd, std::string& error)
 	{
 		std::vector<std::pair<size_type, std::time_t> > file_sizes;
@@ -453,6 +483,12 @@ namespace libtorrent
 			file_sizes.push_back(std::pair<size_type, std::time_t>(
 				i->list().front().integer()
 				, i->list().back().integer()));
+		}
+
+		if (file_sizes.empty())
+		{
+			error = "the number of files in resume data is 0";
+			return false;
 		}
 
 		entry::list_type& slots = rd["slots"].list();
@@ -497,9 +533,8 @@ namespace libtorrent
 			return true;
 		}
 
-		if (full_allocation_mode) return true;
-
-		return match_filesizes(m_info, m_save_path, file_sizes, &error);
+		return match_filesizes(m_info, m_save_path, file_sizes
+			, !full_allocation_mode, &error);
 	}
 
 	// returns true on success
@@ -1147,6 +1182,11 @@ namespace libtorrent
 
 	piece_manager::~piece_manager()
 	{
+	}
+
+	void piece_manager::write_resume_data(entry& rd) const
+	{
+		m_pimpl->m_storage->write_resume_data(rd);
 	}
 
 	bool piece_manager::verify_resume_data(entry& rd, std::string& error)
