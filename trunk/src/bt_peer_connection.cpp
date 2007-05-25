@@ -1215,7 +1215,11 @@ namespace libtorrent
 						throw protocol_error("duplicate peer-id, connection closed");
 					}
 				}
-				
+			}
+
+			if (pid == m_ses.get_peer_id())
+			{
+				throw protocol_error("closing connection to ourself");
 			}
  
 #ifndef TORRENT_DISABLE_DHT
