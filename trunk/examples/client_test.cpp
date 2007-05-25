@@ -269,7 +269,7 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
-	out << " down    (total)   up      (total)   q  r flags  source fail block-progress "
+	out << " down    (total)   up      (total)  que req flags    source fail hshf sndb inactive wait block-progress "
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		"country "
 #endif
@@ -287,20 +287,27 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			<< "(" << add_suffix(i->total_download) << ") " << esc("0")
 			<< esc("31") << (i->up_speed > 0 ? add_suffix(i->up_speed) + "/s ": "         ")
 			<< "(" << add_suffix(i->total_upload) << ") " << esc("0")
-			<< to_string(i->download_queue_length, 2) << " "
-			<< to_string(i->upload_queue_length, 2) << " "
+			<< to_string(i->download_queue_length, 3) << " "
+			<< to_string(i->upload_queue_length, 3) << " "
 			<< ((i->flags & peer_info::interesting)?'I':'.')
 			<< ((i->flags & peer_info::choked)?'C':'.')
 			<< ((i->flags & peer_info::remote_interested)?'i':'.')
 			<< ((i->flags & peer_info::remote_choked)?'c':'.')
 			<< ((i->flags & peer_info::supports_extensions)?'e':'.')
-			<< ((i->flags & peer_info::local_connection)?'l':'r') << " "
+			<< ((i->flags & peer_info::local_connection)?'l':'r')
+			<< ((i->flags & peer_info::seed)?'s':'.')
+			<< ((i->flags & peer_info::on_parole)?'p':'.')
+		  	<< " "
 			<< ((i->source & peer_info::tracker)?"T":"_")
 			<< ((i->source & peer_info::pex)?"P":"_")
 			<< ((i->source & peer_info::dht)?"D":"_")
 			<< ((i->source & peer_info::lsd)?"L":"_")
-			<< ((i->source & peer_info::resume_data)?"R":"_") << "  ";
-		out << to_string(i->failcount, 4) << " ";
+			<< ((i->source & peer_info::resume_data)?"R":"_") << "  "
+			<< to_string(i->failcount, 4) << " "
+			<< to_string(i->num_hashfails, 4) << " "
+			<< to_string(i->send_buffer_size, 4) << " "
+			<< to_string(total_seconds(i->last_active), 8) << " "
+			<< to_string(total_seconds(i->last_request), 4) << " ";
 
 		if (i->downloading_piece_index >= 0)
 		{

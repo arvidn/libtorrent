@@ -903,13 +903,16 @@ namespace libtorrent
 			, end(peers.end()); i != end; ++i)
 		{
 			peer_iterator p = m_connections.find(*i);
+			peer_connection& peer = *p->second;
 			if (p == m_connections.end()) continue;
-			p->second->received_invalid_data(index);
+			peer.received_invalid_data(index);
 
 			// either, we have received too many failed hashes
 			// or this was the only peer that sent us this piece.
 			// TODO: make this a changable setting
-			if (p->second->trust_points() <= -7 || peers.size() == 1)
+			if ((peer.peer_info_struct()
+					&& peer.peer_info_struct()->trust_points <= -7)
+				|| peers.size() == 1)
 			{
 				// we don't trust this peer anymore
 				// ban it.
