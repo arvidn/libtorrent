@@ -338,7 +338,8 @@ namespace libtorrent
 	{
 		// optimization, don't send have messages
 		// to peers that already have the piece
-		if (has_piece(index)) return;
+		if (!m_ses.settings().send_redundant_have
+			&& has_piece(index)) return;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string()
