@@ -2484,10 +2484,10 @@ namespace libtorrent
 		m_stat.second_tick(tick_interval);
 	}
 
-	void torrent::try_connect_peer()
+	bool torrent::try_connect_peer()
 	{
 		assert(want_more_peers());
-		m_policy->connect_one_peer();
+		return m_policy->connect_one_peer();
 	}
 
 	void torrent::distribute_resources(float tick_interval)

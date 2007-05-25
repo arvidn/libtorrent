@@ -622,6 +622,8 @@ namespace libtorrent { namespace detail
 	void session_impl::set_settings(session_settings const& s)
 	{
 		mutex_t::scoped_lock l(m_mutex);
+		assert(s.connection_speed > 0);
+		assert(s.file_pool_size > 0);
 		m_settings = s;
 		m_files.resize(m_settings.file_pool_size);
 		// replace all occurances of '\n' with ' '.
@@ -891,29 +893,52 @@ namespace libtorrent { namespace detail
 	
 		// let torrents connect to peers if they want to
 		// if there are any torrents and any free slots
+
+		// this loop will "hand out" max(connection_speed
+		// , half_open.free_slots()) to the torrents, in a
+		// round robin fashion, so that every torrent is
+		// equallt likely to connect to a peer
+
 		if (!m_torrents.empty() && m_half_open.free_slots())
 		{
-			torrent_map::iterator next_connect_torrent = m_torrents.begin();
+			// this is the maximum number of connections we will
+			// attempt this tick
+			int max_connections = m_settings.connection_speed;
+
+			torrent_map::iterator i = m_torrents.begin();
 			if (m_next_connect_torrent < int(m_torrents.size()))
-				std::advance(next_connect_torrent, m_next_connect_torrent);
+				std::advance(i, m_next_connect_torrent);
 			else
 				m_next_connect_torrent = 0;
-			torrent_map::iterator i = next_connect_torrent;
-			do
+			int steps_since_last_connect = 0;
+			int num_torrents = int(m_torrents.size());
+			for (;;)
 			{
 				torrent& t = *i->second;
 				if (t.want_more_peers())
-					t.try_connect_peer();
+					if (t.try_connect_peer())
+					{
+						--max_connections;
+						steps_since_last_connect = 0;
+					}
 				++m_next_connect_torrent;
-				if (!m_half_open.free_slots()) break;
+				++steps_since_last_connect;
 				++i;
 				if (i == m_torrents.end())
 				{
-					assert(m_next_connect_torrent == int(m_torrents.size()));
+					assert(m_next_connect_torrent == num_torrents);
 					i = m_torrents.begin();
 					m_next_connect_torrent = 0;
 				}
-			} while (i != next_connect_torrent);
+				// if we have gone one whole loop without
+				// handing out a single connection, break
+				if (steps_since_last_connect > num_torrents) break;
+				// if there are no more free connection slots, abort
+				if (m_half_open.free_slots() == 0) break;
+				// if we should not make any more connections
+				// attempts this tick, abort
+				if (max_connections == 0) break;
+			}
 		}
 
 		// do the second_tick() on each connection

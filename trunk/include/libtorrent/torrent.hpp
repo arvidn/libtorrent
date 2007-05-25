@@ -250,7 +250,7 @@ namespace libtorrent
 		void remove_peer(peer_connection* p);
 
 		bool want_more_peers() const;
-		void try_connect_peer();
+		bool try_connect_peer();
 
 		peer_connection* connection_for(tcp::endpoint const& a)
 		{
