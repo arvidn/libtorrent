@@ -90,6 +90,7 @@ namespace libtorrent
 		, m_max_out_request_queue(m_ses.settings().max_out_request_queue)
 		, m_timeout(m_ses.settings().peer_timeout)
 		, m_last_piece(time_now())
+		, m_last_request(time_now())
 		, m_packet_size(0)
 		, m_recv_pos(0)
 		, m_current_send_buffer(0)
@@ -109,7 +110,6 @@ namespace libtorrent
 		, m_num_pieces(0)
 		, m_desired_queue_size(2)
 		, m_free_upload(0)
-		, m_trust_points(0)
 		, m_assume_fifo(false)
 		, m_num_invalid_requests(0)
 		, m_disconnecting(false)
@@ -120,7 +120,6 @@ namespace libtorrent
 		, m_writing(false)
 		, m_reading(false)
 		, m_prefer_whole_pieces(false)
-		, m_on_parole(false)
 		, m_request_large_blocks(false)
 		, m_non_prioritized(false)
 		, m_refs(0)
@@ -164,6 +163,7 @@ namespace libtorrent
 		, m_max_out_request_queue(m_ses.settings().max_out_request_queue)
 		, m_timeout(m_ses.settings().peer_timeout)
 		, m_last_piece(time_now())
+		, m_last_request(time_now())
 		, m_packet_size(0)
 		, m_recv_pos(0)
 		, m_current_send_buffer(0)
@@ -181,7 +181,6 @@ namespace libtorrent
 		, m_num_pieces(0)
 		, m_desired_queue_size(2)
 		, m_free_upload(0)
-		, m_trust_points(0)
 		, m_assume_fifo(false)
 		, m_num_invalid_requests(0)
 		, m_disconnecting(false)
@@ -192,7 +191,6 @@ namespace libtorrent
 		, m_writing(false)
 		, m_reading(false)
 		, m_prefer_whole_pieces(false)
-		, m_on_parole(false)
 		, m_request_large_blocks(false)
 		, m_non_prioritized(false)
 		, m_refs(0)
@@ -405,11 +403,14 @@ namespace libtorrent
 		}
 #endif
 
-		m_on_parole = false;
-
-		m_trust_points++;
-		// TODO: make this limit user settable
-		if (m_trust_points > 20) m_trust_points = 20;
+		if (peer_info_struct())
+		{
+			peer_info_struct()->on_parole = false;
+			int& trust_points = peer_info_struct()->trust_points;
+			trust_points++;
+			// TODO: make this limit user settable
+			if (trust_points > 20) trust_points = 20;
+		}
 	}
 
 	void peer_connection::received_invalid_data(int index)
@@ -424,20 +425,20 @@ namespace libtorrent
 		}
 #endif
 
-		m_on_parole = true;
+		if (peer_info_struct())
+		{
+			peer_info_struct()->on_parole = true;
+			++peer_info_struct()->hashfails;
+			int& trust_points = peer_info_struct()->trust_points;
 
-		// we decrease more than we increase, to keep the
-		// allowed failed/passed ratio low.
-		// TODO: make this limit user settable
-		m_trust_points -= 2;
-		if (m_trust_points < -7) m_trust_points = -7;
+			// we decrease more than we increase, to keep the
+			// allowed failed/passed ratio low.
+			// TODO: make this limit user settable
+			trust_points -= 2;
+			if (trust_points < -7) trust_points = -7;
+		}
 	}
 	
-	int peer_connection::trust_points() const
-	{
-		return m_trust_points;
-	}
-
 	size_type peer_connection::total_free_upload() const
 	{
 		return m_free_upload;
@@ -1557,9 +1558,14 @@ namespace libtorrent
 			{
 				if (handled = (*i)->write_request(r)) break;
 			}
-			if (!handled) write_request(r);
+			if (!handled)
+			{
+				write_request(r);
+				m_last_request = time_now();
+			}
 #else
 			write_request(r);
+			m_last_request = time_now();
 #endif
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -1678,6 +1684,81 @@ namespace libtorrent
 		return false;
 	}
 
+	void peer_connection::get_peer_info(peer_info& p) const
+	{
+		assert(!associated_torrent().expired());
+
+		p.down_speed = statistics().download_rate();
+		p.up_speed = statistics().upload_rate();
+		p.payload_down_speed = statistics().download_payload_rate();
+		p.payload_up_speed = statistics().upload_payload_rate();
+		p.pid = pid();
+		p.ip = remote();
+		
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
+		p.country[0] = m_country[0];
+		p.country[1] = m_country[1];
+#endif
+
+		p.total_download = statistics().total_payload_download();
+		p.total_upload = statistics().total_payload_upload();
+
+		if (m_bandwidth_limit[upload_channel].throttle() == bandwidth_limit::inf)
+			p.upload_limit = -1;
+		else
+			p.upload_limit = m_bandwidth_limit[upload_channel].throttle();
+
+		if (m_bandwidth_limit[download_channel].throttle() == bandwidth_limit::inf)
+			p.download_limit = -1;
+		else
+			p.download_limit = m_bandwidth_limit[download_channel].throttle();
+
+		p.load_balancing = total_free_upload();
+
+		p.download_queue_length = (int)download_queue().size();
+		p.upload_queue_length = (int)upload_queue().size();
+
+		if (boost::optional<piece_block_progress> ret = downloading_piece_progress())
+		{
+			p.downloading_piece_index = ret->piece_index;
+			p.downloading_block_index = ret->block_index;
+			p.downloading_progress = ret->bytes_downloaded;
+			p.downloading_total = ret->full_block_bytes;
+		}
+		else
+		{
+			p.downloading_piece_index = -1;
+			p.downloading_block_index = -1;
+			p.downloading_progress = 0;
+			p.downloading_total = 0;
+		}
+
+		p.pieces = get_bitfield();
+		ptime now = time_now();
+		p.last_request = now - m_last_request;
+		p.last_active = now - std::max(m_last_sent, m_last_receive);
+
+		// this will set the flags so that we can update them later
+		p.flags = 0;
+		get_specific_peer_info(p);
+
+		p.flags |= is_seed() ? peer_info::seed : 0;
+		if (peer_info_struct())
+		{
+			p.source = peer_info_struct()->source;
+			p.failcount = peer_info_struct()->failcount;
+			p.num_hashfails = peer_info_struct()->hashfails;
+			p.flags |= peer_info_struct()->on_parole ? peer_info::on_parole : 0;
+		}
+		else
+		{
+			p.source = 0;
+			p.failcount = 0;
+			p.num_hashfails = 0;
+		}
+
+		p.send_buffer_size = send_buffer_size();
+	}
 
 	void peer_connection::cut_receive_buffer(int size, int packet_size)
 	{
@@ -2131,10 +2212,6 @@ namespace libtorrent
 		assert(m_reading);
 		m_reading = false;
 
-#ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << "read " << bytes_transferred << " bytes\n";
-#endif
-
 		if (error)
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -2146,6 +2223,9 @@ namespace libtorrent
 
 		do
 		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << "read " << bytes_transferred << " bytes\n";
+#endif
 			// correct the dl quota usage, if not all of the buffer was actually read
 			if (!m_ignore_bandwidth_limits)
 				m_bandwidth_limit[download_channel].use_quota(bytes_transferred);
@@ -2185,9 +2265,6 @@ namespace libtorrent
 				, max_receive), ec);
 			if (ec && ec != asio::error::would_block)
 				throw asio::system_error(ec);
-#ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << "read_some " << bytes_transferred << " bytes\n";
-#endif
 		}
 		while (bytes_transferred > 0);
 

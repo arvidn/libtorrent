@@ -174,9 +174,6 @@ namespace libtorrent
 		void set_non_prioritized(bool b)
 		{ m_non_prioritized = b; }
 
-		bool on_parole() const
-		{ return m_on_parole; }
-
 		// this adds an announcement in the announcement queue
 		// it will let the peer know that we have the given piece
 		void announce_piece(int index);
@@ -208,6 +205,8 @@ namespace libtorrent
 		bool has_peer_choked() const { return m_peer_choked; }
 
 		void update_interest();
+
+		virtual void get_peer_info(peer_info& p) const;
 
 		// returns the torrent this connection is a part of
 		// may be zero if the connection is an incoming connection
@@ -264,7 +263,6 @@ namespace libtorrent
 		// trust management.
 		void received_valid_data(int index);
 		void received_invalid_data(int index);
-		int trust_points() const;
 
 		size_type share_diff() const;
 
@@ -335,7 +333,6 @@ namespace libtorrent
 		ptime m_last_choke;
 #endif
 
-		virtual void get_peer_info(peer_info& p) const = 0;
 
 		// is true until we can be sure that the other end
 		// speaks our protocol (be it bittorrent or http).
@@ -370,6 +367,8 @@ namespace libtorrent
 #endif
 
 	protected:
+
+		virtual void get_specific_peer_info(peer_info& p) const = 0;
 
 		virtual void write_choke() = 0;
 		virtual void write_unchoke() = 0;
@@ -475,6 +474,9 @@ namespace libtorrent
 		// the time when we last got a part of a
 		// piece packet from this peer
 		ptime m_last_piece;
+		// the time we sent a request to
+		// this peer the last time
+		ptime m_last_request;
 
 		int m_packet_size;
 		int m_recv_pos;
@@ -582,14 +584,6 @@ namespace libtorrent
 		// that we give the free upload, to keep the balance.
 		size_type m_free_upload;
 
-		// for every valid piece we receive where this
-		// peer was one of the participants, we increase
-		// this value. For every invalid piece we receive
-		// where this peer was a participant, we decrease
-		// this value. If it sinks below a threshold, its
-		// considered a bad peer and will be banned.
-		int m_trust_points;
-
 		// if this is true, this peer is assumed to handle all piece
 		// requests in fifo order. All skipped blocks are re-requested
 		// immediately instead of having a looser requirement
@@ -644,14 +638,6 @@ namespace libtorrent
 		// will be used to determine if whole pieces
 		// are preferred.
 		bool m_prefer_whole_pieces;
-		
-		// if this is true, the peer has previously participated
-		// in a piece that failed the piece hash check. This will
-		// put the peer on parole and only request entire pieces.
-		// if a piece pass that was partially requested from this
-		// peer it will leave parole mode and continue download
-		// pieces as normal peers.
-		bool m_on_parole;
 		
 		// if this is true, the blocks picked by the piece
 		// picker will be merged before passed to the
