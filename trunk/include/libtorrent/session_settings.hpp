@@ -100,6 +100,7 @@ namespace libtorrent
 			, peer_connect_timeout(10)
 			, ignore_limits_on_local_network(true)
 			, connection_speed(20)
+			, send_redundant_have(false)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(true)
 #endif
@@ -211,6 +212,12 @@ namespace libtorrent
 		// the number of connection attempts that
 		// are made per second.
 		int connection_speed;
+
+		// if this is set to true, have messages will be sent
+		// to peers that already have the piece. This is
+		// typically not necessary, but it might be necessary
+		// for collecting statistics in some cases. Default is false.
+		bool send_redundant_have;
 
 #ifndef TORRENT_DISABLE_DHT
 		// while this is true, the dht will note be used unless the
