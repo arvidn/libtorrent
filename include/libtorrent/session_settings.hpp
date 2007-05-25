@@ -99,6 +99,7 @@ namespace libtorrent
 			, min_reconnect_time(60)
 			, peer_connect_timeout(10)
 			, ignore_limits_on_local_network(true)
+			, connection_speed(20)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(true)
 #endif
@@ -204,8 +205,12 @@ namespace libtorrent
 		int peer_connect_timeout;
 
 		// if set to true, upload, download and unchoke limits
-		// are ignored for peers on the local network
+		// are ignored for peers on the local network.
 		bool ignore_limits_on_local_network;
+
+		// the number of connection attempts that
+		// are made per second.
+		int connection_speed;
 
 #ifndef TORRENT_DISABLE_DHT
 		// while this is true, the dht will note be used unless the
