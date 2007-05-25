@@ -1346,7 +1346,8 @@ namespace libtorrent
 		for (const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
-			assert(unique_test.find(i->ip.address()) == unique_test.end());
+			if (!m_torrent->settings().allow_multiple_connections_per_ip)
+				assert(unique_test.find(i->ip.address()) == unique_test.end());
 			unique_test.insert(i->ip.address());
 			++total_connections;
 			if (!i->connection) continue;
@@ -1379,12 +1380,13 @@ namespace libtorrent
 		// When there's an outgoing connection, it will first
 		// be added to the torrent and then to the policy.
 		// that's why the two second cases are in there.
-
+/*
 		assert(connected_peers == num_torrent_peers
 			|| (connected_peers == num_torrent_peers + 1
 				&& connected_peers > 0)
 			|| (connected_peers + 1 == num_torrent_peers
 				&& num_torrent_peers > 0));
+*/
 	}
 #endif
 

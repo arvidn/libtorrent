@@ -105,6 +105,7 @@ namespace libtorrent
 		, m_interesting(false)
 		, m_choked(true)
 		, m_failed(false)
+		, m_ignore_bandwidth_limits(false)
 		, m_num_pieces(0)
 		, m_desired_queue_size(2)
 		, m_free_upload(0)
@@ -176,6 +177,7 @@ namespace libtorrent
 		, m_interesting(false)
 		, m_choked(true)
 		, m_failed(false)
+		, m_ignore_bandwidth_limits(false)
 		, m_num_pieces(0)
 		, m_desired_queue_size(2)
 		, m_free_upload(0)
@@ -1667,6 +1669,16 @@ namespace libtorrent
 			- m_statistics.total_payload_upload();
 	}
 
+	// defined in upnp.cpp
+	bool is_local(address const& a);
+
+	bool peer_connection::on_local_network() const
+	{
+		if (libtorrent::is_local(m_remote.address())) return true;
+		return false;
+	}
+
+
 	void peer_connection::cut_receive_buffer(int size, int packet_size)
 	{
 		INVARIANT_CHECK;
@@ -1706,6 +1718,9 @@ namespace libtorrent
 			(*i)->tick();
 		}
 #endif
+
+		m_ignore_bandwidth_limits = m_ses.settings().ignore_limits_on_local_network
+			&& on_local_network();
 
 		m_statistics.second_tick(tick_interval);
 
@@ -1949,12 +1964,13 @@ namespace libtorrent
 		if (m_writing) return;
 		
 		shared_ptr<torrent> t = m_torrent.lock();
-		
+
 		if (m_bandwidth_limit[upload_channel].quota_left() == 0
 			&& (!m_send_buffer[m_current_send_buffer].empty()
 				|| !m_send_buffer[(m_current_send_buffer + 1) & 1].empty())
 			&& !m_connecting
-			&& t)
+			&& t
+			&& !m_ignore_bandwidth_limits)
 		{
 			// in this case, we have data to send, but no
 			// bandwidth. So, we simply request bandwidth
@@ -1990,13 +2006,17 @@ namespace libtorrent
 		// send the actual buffer
 		if (!m_send_buffer[sending_buffer].empty())
 		{
-			int amount_to_send
-				= std::min(m_bandwidth_limit[upload_channel].quota_left()
-				, (int)m_send_buffer[sending_buffer].size() - m_write_pos);
+			int amount_to_send = (int)m_send_buffer[sending_buffer].size() - m_write_pos;
+			int quota_left = m_bandwidth_limit[upload_channel].quota_left();
+			if (!m_ignore_bandwidth_limits && amount_to_send > quota_left)
+				amount_to_send = quota_left;
 
 			assert(amount_to_send > 0);
 
 			assert(m_write_pos < (int)m_send_buffer[sending_buffer].size());
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << "async_write " << amount_to_send << " bytes\n";
+#endif
 			m_socket->async_write_some(asio::buffer(
 				&m_send_buffer[sending_buffer][m_write_pos], amount_to_send)
 				, bind(&peer_connection::on_send_data, self(), _1, _2));
@@ -2017,7 +2037,8 @@ namespace libtorrent
 		
 		if (m_bandwidth_limit[download_channel].quota_left() == 0
 			&& !m_connecting
-			&& t)
+			&& t
+			&& !m_ignore_bandwidth_limits)
 		{
 			if (m_bandwidth_limit[download_channel].max_assignable() > 0)
 			{
@@ -2033,9 +2054,11 @@ namespace libtorrent
 		if (!can_read()) return;
 
 		assert(m_packet_size > 0);
-		int max_receive = std::min(
-			m_bandwidth_limit[download_channel].quota_left()
-			, m_packet_size - m_recv_pos);
+		int max_receive = m_packet_size - m_recv_pos;
+		int quota_left = m_bandwidth_limit[download_channel].quota_left();
+		if (!m_ignore_bandwidth_limits && max_receive > quota_left)
+			max_receive = quota_left;
+
 		assert(max_receive > 0);
 
 		assert(m_recv_pos >= 0);
@@ -2043,6 +2066,9 @@ namespace libtorrent
 		assert(max_receive > 0);
 
 		assert(can_read());
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << "async_read " << max_receive << " bytes\n";
+#endif
 		m_socket->async_read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
 			, max_receive), bind(&peer_connection::on_receive_data, self(), _1, _2));
 		m_reading = true;
@@ -2105,6 +2131,10 @@ namespace libtorrent
 		assert(m_reading);
 		m_reading = false;
 
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << "read " << bytes_transferred << " bytes\n";
+#endif
+
 		if (error)
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -2117,7 +2147,8 @@ namespace libtorrent
 		do
 		{
 			// correct the dl quota usage, if not all of the buffer was actually read
-			m_bandwidth_limit[download_channel].use_quota(bytes_transferred);
+			if (!m_ignore_bandwidth_limits)
+				m_bandwidth_limit[download_channel].use_quota(bytes_transferred);
 
 			if (m_disconnecting) return;
 	
@@ -2142,17 +2173,21 @@ namespace libtorrent
 				std::vector<char>(m_packet_size).swap(m_recv_buffer);
 			}
 
-			int max_receive = std::min(
-				m_bandwidth_limit[download_channel].quota_left()
-				, m_packet_size - m_recv_pos);
+			int max_receive = m_packet_size - m_recv_pos;
+			int quota_left = m_bandwidth_limit[download_channel].quota_left();
+			if (!m_ignore_bandwidth_limits && max_receive > quota_left)
+				max_receive = quota_left;
 
 			if (max_receive == 0) break;
 
-			asio::error_code ec;
+			asio::error_code ec;	
 			bytes_transferred = m_socket->read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
 				, max_receive), ec);
 			if (ec && ec != asio::error::would_block)
 				throw asio::system_error(ec);
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << "read_some " << bytes_transferred << " bytes\n";
+#endif
 		}
 		while (bytes_transferred > 0);
 
@@ -2198,7 +2233,8 @@ namespace libtorrent
 		// we want to send data
 		return (!m_send_buffer[m_current_send_buffer].empty()
 			|| !m_send_buffer[(m_current_send_buffer + 1) & 1].empty())
-			&& m_bandwidth_limit[upload_channel].quota_left() > 0
+			&& (m_bandwidth_limit[upload_channel].quota_left() > 0
+				|| m_ignore_bandwidth_limits)
 			&& !m_connecting;
 	}
 
@@ -2206,7 +2242,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		return m_bandwidth_limit[download_channel].quota_left() > 0
+		return (m_bandwidth_limit[download_channel].quota_left() > 0
+				|| m_ignore_bandwidth_limits)
 			&& !m_connecting;
 	}
 
@@ -2215,7 +2252,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_ses.m_logger) << "CONNECTING: " << m_remote.address().to_string() << "\n";
+		(*m_ses.m_logger) << "CONNECTING: " << m_remote.address().to_string()
+			<< ":" << m_remote.port() << "\n";
 #endif
 
 		m_connection_ticket = ticket;
@@ -2303,7 +2341,13 @@ namespace libtorrent
 		assert(m_writing);
 		m_writing = false;
 
-		m_bandwidth_limit[upload_channel].use_quota(bytes_transferred);
+		if (!m_ignore_bandwidth_limits)
+			m_bandwidth_limit[upload_channel].use_quota(bytes_transferred);
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << "wrote " << bytes_transferred << " bytes\n";
+#endif
+
 		m_write_pos += bytes_transferred;
 
 		if (error)
@@ -2382,7 +2426,8 @@ namespace libtorrent
 			return;
 		}
 
-		if (!m_in_constructor && t->connection_for(remote()) != this)
+		if (!m_in_constructor && t->connection_for(remote()) != this
+			&& !m_ses.settings().allow_multiple_connections_per_ip)
 		{
 			assert(false);
 		}

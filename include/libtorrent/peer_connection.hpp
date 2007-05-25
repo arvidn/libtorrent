@@ -272,6 +272,10 @@ namespace libtorrent
 		// if it was an incoming connection, it is remote
 		bool is_local() const { return m_active; }
 
+		bool on_local_network() const;
+		bool ignore_bandwidth_limits() const
+		{ return m_ignore_bandwidth_limits; }
+
 		void set_failed() { m_failed = true; }
 		bool failed() const { return m_failed; }
 
@@ -539,6 +543,11 @@ namespace libtorrent
 		// case we will not try to reconnect to
 		// this peer
 		bool m_failed;
+
+		// if this is set to true, the peer will not
+		// request bandwidth from the limiter, but instead
+		// just send and receive as much as possible.
+		bool m_ignore_bandwidth_limits;
 
 		// the pieces the other end have
 		std::vector<bool> m_have_piece;

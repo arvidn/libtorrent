@@ -1706,7 +1706,8 @@ namespace libtorrent
 		peer_iterator i_ = m_connections.find(peerinfo->ip);
 		assert(i_ == m_connections.end()
 			|| i_->second->is_disconnecting()
-			|| dynamic_cast<bt_peer_connection*>(i_->second) == 0);
+			|| dynamic_cast<bt_peer_connection*>(i_->second) == 0
+			|| m_ses.settings().allow_multiple_connections_per_ip);
 #endif
 
 		assert(want_more_peers());

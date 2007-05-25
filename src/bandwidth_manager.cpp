@@ -71,6 +71,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		assert(!peer->ignore_bandwidth_limits());
+
 		// make sure this peer isn't already in line
 		// waiting for bandwidth
 #ifndef NDEBUG
