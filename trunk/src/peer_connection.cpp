@@ -2581,6 +2581,10 @@ namespace libtorrent
 		d = time_now() - m_last_receive;
 		if (d > seconds(m_timeout)) return true;
 
+		// TODO: as long as we have less than 95% of the
+		// global (or local) connection limit, connections should
+		// never time out for another reason
+
 		// if the peer hasn't become interested and we haven't
 		// become interested in the peer for 10 minutes, it
 		// has also timed out.
@@ -2636,7 +2640,7 @@ namespace libtorrent
 	bool peer_connection::is_seed() const
 	{
 		INVARIANT_CHECK;
-		// if m_num_pieces == 0, we probably doesn't have the
+		// if m_num_pieces == 0, we probably don't have the
 		// metadata yet.
 		return m_num_pieces == (int)m_have_piece.size() && m_num_pieces > 0;
 	}

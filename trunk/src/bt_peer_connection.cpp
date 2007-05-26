@@ -775,19 +775,46 @@ namespace libtorrent
 		assert(m_sent_bitfield == false);
 		assert(t->valid_metadata());
 
+		int num_pieces = bitfield.size();
+		int lazy_pieces[50];
+		int num_lazy_pieces = 0;
+		int lazy_piece = 0;
+
+		assert(t->is_seed() == (std::count(bitfield.begin(), bitfield.end(), true) == num_pieces));
+		if (t->is_seed() && m_ses.settings().lazy_bitfields)
+		{
+			num_lazy_pieces = std::min(50, num_pieces / 10);
+			if (num_lazy_pieces < 1) num_lazy_pieces = 1;
+			for (int i = 0; i < num_pieces; ++i)
+			{
+				if (rand() % (num_pieces - i) >= num_lazy_pieces - lazy_piece) continue;
+				lazy_pieces[lazy_piece++] = i;
+			}
+			assert(lazy_piece == num_lazy_pieces);
+			lazy_piece = 0;
+		}
+
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " ==> BITFIELD ";
 
 		std::stringstream bitfield_string;
 		for (int i = 0; i < (int)get_bitfield().size(); ++i)
 		{
+			if (lazy_piece < num_lazy_pieces
+				&& lazy_pieces[lazy_piece] == i)
+			{
+				bitfield_string << "0";
+				++lazy_piece;
+				continue;
+			}
 			if (bitfield[i]) bitfield_string << "1";
 			else bitfield_string << "0";
 		}
 		bitfield_string << "\n";
 		(*m_logger) << bitfield_string.str();
+		lazy_piece = 0;
 #endif
-		const int packet_size = ((int)bitfield.size() + 7) / 8 + 5;
+		const int packet_size = (num_pieces + 7) / 8 + 5;
 	
 		buffer::interval i = allocate_send_buffer(packet_size);	
 
@@ -795,12 +822,31 @@ namespace libtorrent
 		detail::write_uint8(msg_bitfield, i.begin);
 
 		std::fill(i.begin, i.end, 0);
-		for (int c = 0; c < (int)bitfield.size(); ++c)
+		for (int c = 0; c < num_pieces; ++c)
 		{
+			if (lazy_piece < num_lazy_pieces
+				&& lazy_pieces[lazy_piece])
+			{
+				++lazy_piece;
+				continue;
+			}
 			if (bitfield[c])
 				i.begin[c >> 3] |= 1 << (7 - (c & 7));
 		}
-		assert(i.end - i.begin == ((int)bitfield.size() + 7) / 8);
+		assert(i.end - i.begin == (num_pieces + 7) / 8);
+		
+		if (num_lazy_pieces > 0)
+		{
+			for (int i = 0; i < num_lazy_pieces; ++i)
+			{
+				write_have(lazy_pieces[i]);
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << time_now_string()
+					<< " ==> HAVE    [ piece: " << lazy_pieces[i] << "]\n";
+#endif
+			}
+		}
+
 #ifndef NDEBUG
 		m_sent_bitfield = true;
 #endif
