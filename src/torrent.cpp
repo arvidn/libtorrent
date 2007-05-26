@@ -903,8 +903,8 @@ namespace libtorrent
 			, end(peers.end()); i != end; ++i)
 		{
 			peer_iterator p = m_connections.find(*i);
-			peer_connection& peer = *p->second;
 			if (p == m_connections.end()) continue;
+			peer_connection& peer = *p->second;
 			peer.received_invalid_data(index);
 
 			// either, we have received too many failed hashes
