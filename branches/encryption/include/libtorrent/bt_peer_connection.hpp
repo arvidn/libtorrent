@@ -137,7 +137,7 @@ namespace libtorrent
 		void on_receive(asio::error_code const& error
 			, std::size_t bytes_transferred);
 		
-		virtual void get_peer_info(peer_info& p) const;
+		virtual void get_specific_peer_info(peer_info& p) const;
 		virtual bool in_handshake() const;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

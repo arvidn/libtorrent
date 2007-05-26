@@ -238,56 +238,10 @@ namespace libtorrent
 		setup_send();
 	}
 
-	void bt_peer_connection::get_peer_info(peer_info& p) const
+	void bt_peer_connection::get_specific_peer_info(peer_info& p) const
 	{
 		assert(!associated_torrent().expired());
 
-		p.down_speed = statistics().download_rate();
-		p.up_speed = statistics().upload_rate();
-		p.payload_down_speed = statistics().download_payload_rate();
-		p.payload_up_speed = statistics().upload_payload_rate();
-		p.pid = pid();
-		p.ip = remote();
-		
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
-		p.country[0] = m_country[0];
-		p.country[1] = m_country[1];
-#endif
-
-		p.total_download = statistics().total_payload_download();
-		p.total_upload = statistics().total_payload_upload();
-
-		if (m_bandwidth_limit[upload_channel].throttle() == bandwidth_limit::inf)
-			p.upload_limit = -1;
-		else
-			p.upload_limit = m_bandwidth_limit[upload_channel].throttle();
-
-		if (m_bandwidth_limit[download_channel].throttle() == bandwidth_limit::inf)
-			p.download_limit = -1;
-		else
-			p.download_limit = m_bandwidth_limit[download_channel].throttle();
-
-		p.load_balancing = total_free_upload();
-
-		p.download_queue_length = (int)download_queue().size();
-		p.upload_queue_length = (int)upload_queue().size();
-
-		if (boost::optional<piece_block_progress> ret = downloading_piece_progress())
-		{
-			p.downloading_piece_index = ret->piece_index;
-			p.downloading_block_index = ret->block_index;
-			p.downloading_progress = ret->bytes_downloaded;
-			p.downloading_total = ret->full_block_bytes;
-		}
-		else
-		{
-			p.downloading_piece_index = -1;
-			p.downloading_block_index = -1;
-			p.downloading_progress = 0;
-			p.downloading_total = 0;
-		}
-
-		p.flags = 0;
 		if (is_interesting()) p.flags |= peer_info::interesting;
 		if (is_choked()) p.flags |= peer_info::choked;
 		if (is_peer_interested()) p.flags |= peer_info::remote_interested;
@@ -309,23 +263,9 @@ namespace libtorrent
 		if (is_connecting() && !is_queued()) p.flags |= peer_info::connecting;
 		if (is_queued()) p.flags |= peer_info::queued;
 
-		p.pieces = get_bitfield();
-		p.seed = is_seed();
-		
 		p.client = m_client_version;
 		p.connection_type = peer_info::standard_bittorrent;
 
-		if (peer_info_struct())
-		{
-			p.source = peer_info_struct()->source;
-			p.failcount = peer_info_struct()->failcount;
-		}
-		else
-		{
-			assert(!is_local());
-			p.source = 0;
-			p.failcount = 0;
-		}
 	}
 	
 	bool bt_peer_connection::in_handshake() const
@@ -587,6 +527,7 @@ namespace libtorrent
 
 		int traverse_limit = target_size - src_size;
 
+		// TODO: this could be optimized using knuth morris pratt
 		for (int i = 0; i < traverse_limit; ++i)
 		{
 			char const* target_ptr = target + i;
@@ -1193,19 +1134,46 @@ namespace libtorrent
 		assert(m_sent_bitfield == false);
 		assert(t->valid_metadata());
 
+		int num_pieces = bitfield.size();
+		int lazy_pieces[50];
+		int num_lazy_pieces = 0;
+		int lazy_piece = 0;
+
+		assert(t->is_seed() == (std::count(bitfield.begin(), bitfield.end(), true) == num_pieces));
+		if (t->is_seed() && m_ses.settings().lazy_bitfields)
+		{
+			num_lazy_pieces = std::min(50, num_pieces / 10);
+			if (num_lazy_pieces < 1) num_lazy_pieces = 1;
+			for (int i = 0; i < num_pieces; ++i)
+			{
+				if (rand() % (num_pieces - i) >= num_lazy_pieces - lazy_piece) continue;
+				lazy_pieces[lazy_piece++] = i;
+			}
+			assert(lazy_piece == num_lazy_pieces);
+			lazy_piece = 0;
+		}
+
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " ==> BITFIELD ";
 
 		std::stringstream bitfield_string;
 		for (int i = 0; i < (int)get_bitfield().size(); ++i)
 		{
+			if (lazy_piece < num_lazy_pieces
+				&& lazy_pieces[lazy_piece] == i)
+			{
+				bitfield_string << "0";
+				++lazy_piece;
+				continue;
+			}
 			if (bitfield[i]) bitfield_string << "1";
 			else bitfield_string << "0";
 		}
 		bitfield_string << "\n";
 		(*m_logger) << bitfield_string.str();
+		lazy_piece = 0;
 #endif
-		const int packet_size = ((int)bitfield.size() + 7) / 8 + 5;
+		const int packet_size = (num_pieces + 7) / 8 + 5;
 	
 		buffer::interval i = allocate_send_buffer(packet_size);	
 
@@ -1213,12 +1181,31 @@ namespace libtorrent
 		detail::write_uint8(msg_bitfield, i.begin);
 
 		std::fill(i.begin, i.end, 0);
-		for (int c = 0; c < (int)bitfield.size(); ++c)
+		for (int c = 0; c < num_pieces; ++c)
 		{
+			if (lazy_piece < num_lazy_pieces
+				&& lazy_pieces[lazy_piece])
+			{
+				++lazy_piece;
+				continue;
+			}
 			if (bitfield[c])
 				i.begin[c >> 3] |= 1 << (7 - (c & 7));
 		}
-		assert(i.end - i.begin == ((int)bitfield.size() + 7) / 8);
+		assert(i.end - i.begin == (num_pieces + 7) / 8);
+		
+		if (num_lazy_pieces > 0)
+		{
+			for (int i = 0; i < num_lazy_pieces; ++i)
+			{
+				write_have(lazy_pieces[i]);
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << time_now_string()
+					<< " ==> HAVE    [ piece: " << lazy_pieces[i] << "]\n";
+#endif
+			}
+		}
+
 #ifndef NDEBUG
 		m_sent_bitfield = true;
 #endif
@@ -1496,7 +1483,7 @@ namespace libtorrent
 			}
 
 			int syncoffset = get_syncoffset((char*)m_sync_hash->begin(), 20
-											,recv_buffer.begin, recv_buffer.left());
+				, recv_buffer.begin, recv_buffer.left());
 
 			// No sync 
 			if (syncoffset == -1)
@@ -1517,7 +1504,7 @@ namespace libtorrent
 				std::size_t bytes_processed = syncoffset + 20;
 #ifdef TORRENT_VERBOSE_LOGGING
 				(*m_logger) << " sync point (hash) found at offset " 
-							<< m_sync_bytes_read + bytes_processed - 20 << "\n";
+					<< m_sync_bytes_read + bytes_processed - 20 << "\n";
 #endif
 				m_state = read_pe_skey_vc;
 				// skey,vc - 28 bytes
@@ -2079,7 +2066,11 @@ namespace libtorrent
 						throw protocol_error("duplicate peer-id, connection closed");
 					}
 				}
-				
+			}
+
+			if (pid == m_ses.get_peer_id())
+			{
+				throw protocol_error("closing connection to ourself");
 			}
  
 #ifndef TORRENT_DISABLE_DHT

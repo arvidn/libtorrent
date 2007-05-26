@@ -47,6 +47,7 @@ libtorrent/socket_type.hpp \
 libtorrent/socks5_stream.hpp \
 libtorrent/stat.hpp \
 libtorrent/storage.hpp \
+libtorrent/time.hpp \
 libtorrent/torrent.hpp \
 libtorrent/torrent_handle.hpp \
 libtorrent/torrent_info.hpp \

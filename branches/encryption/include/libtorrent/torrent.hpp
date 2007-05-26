@@ -250,7 +250,7 @@ namespace libtorrent
 		void remove_peer(peer_connection* p);
 
 		bool want_more_peers() const;
-		void try_connect_peer();
+		bool try_connect_peer();
 
 		peer_connection* connection_for(tcp::endpoint const& a)
 		{
@@ -729,16 +729,6 @@ namespace libtorrent
 		// is started. i.e.
 		// total_done - m_initial_done <= total_payload_download
 		size_type m_initial_done;
-#endif
-
-#ifdef TORRENT_LOGGING
-		boost::shared_ptr<logger> m_log;
-		boost::shared_ptr<logger> m_peer_log;
-		int m_second_count;
-		
-		enum { debug_bw_history_size = 10 };
-		int m_ul_history[debug_bw_history_size];
-		int m_dl_history[debug_bw_history_size];
 #endif
 	};
 

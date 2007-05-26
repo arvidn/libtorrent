@@ -54,7 +54,9 @@ namespace libtorrent
 			local_connection = 0x20,
 			handshake = 0x40,
 			connecting = 0x80,
-			queued = 0x100
+			queued = 0x100,
+			on_parole = 0x200,
+			seed = 0x400
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			, rc4_encrypted = 0x200,
 			plaintext_encrypted = 0x400
@@ -83,9 +85,20 @@ namespace libtorrent
 		size_type total_upload;
 		peer_id pid;
 		std::vector<bool> pieces;
-		bool seed; // true if this is a seed
 		int upload_limit;
 		int download_limit;
+
+		// time since last request
+		time_duration last_request;
+
+		// time since last download or upload
+		time_duration last_active;
+
+		// the size of the send buffer for this peer
+		int send_buffer_size;
+
+		// the number of failed hashes for this peer
+		int num_hashfails;
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		// in case the session settings is set

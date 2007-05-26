@@ -149,6 +149,10 @@ namespace libtorrent
 			// the number of failed connection attempts this peer has
 			int failcount;
 
+			// the number of times this peer has been
+			// part of a piece that failed the hash check
+			int hashfails;
+
 			// this is true if the peer is a seed
 			bool seed;
 
@@ -159,6 +163,22 @@ namespace libtorrent
 			// the time when the peer connected to us
 			// or disconnected if it isn't connected right now
 			libtorrent::ptime connected;
+
+			// for every valid piece we receive where this
+			// peer was one of the participants, we increase
+			// this value. For every invalid piece we receive
+			// where this peer was a participant, we decrease
+			// this value. If it sinks below a threshold, its
+			// considered a bad peer and will be banned.
+			int trust_points;
+
+			// if this is true, the peer has previously participated
+			// in a piece that failed the piece hash check. This will
+			// put the peer on parole and only request entire pieces.
+			// if a piece pass that was partially requested from this
+			// peer it will leave parole mode and continue download
+			// pieces as normal peers.
+			bool on_parole;
 
 			// this is the accumulated amount of
 			// uploaded and downloaded data to this

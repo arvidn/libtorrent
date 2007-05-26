@@ -98,6 +98,10 @@ namespace libtorrent
 			, max_failcount(3)
 			, min_reconnect_time(60)
 			, peer_connect_timeout(10)
+			, ignore_limits_on_local_network(true)
+			, connection_speed(20)
+			, send_redundant_have(false)
+			, lazy_bitfields(true)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(true)
 #endif
@@ -201,6 +205,26 @@ namespace libtorrent
 		// the connect does not succeed within this time, the
 		// connection is dropped. The time is specified in seconds.
 		int peer_connect_timeout;
+
+		// if set to true, upload, download and unchoke limits
+		// are ignored for peers on the local network.
+		bool ignore_limits_on_local_network;
+
+		// the number of connection attempts that
+		// are made per second.
+		int connection_speed;
+
+		// if this is set to true, have messages will be sent
+		// to peers that already have the piece. This is
+		// typically not necessary, but it might be necessary
+		// for collecting statistics in some cases. Default is false.
+		bool send_redundant_have;
+
+		// if this is true, outgoing bitfields will never be fuil. If the
+		// client is seed, a few bits will be set to 0, and later filled
+		// in with have messages. This is to prevent certain ISPs
+		// from stopping people from seeding.
+		bool lazy_bitfields;
 
 #ifndef TORRENT_DISABLE_DHT
 		// while this is true, the dht will note be used unless the

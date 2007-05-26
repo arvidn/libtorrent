@@ -187,7 +187,7 @@ namespace libtorrent
 		interesting_pieces.reserve(100);
 
 		bool prefer_whole_pieces = c.prefer_whole_pieces()
-			|| c.on_parole();
+			|| (c.peer_info_struct() && c.peer_info_struct()->on_parole);
 
 		if (!prefer_whole_pieces)
 		{
@@ -1349,7 +1349,8 @@ namespace libtorrent
 		for (const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
-			assert(unique_test.find(i->ip.address()) == unique_test.end());
+			if (!m_torrent->settings().allow_multiple_connections_per_ip)
+				assert(unique_test.find(i->ip.address()) == unique_test.end());
 			unique_test.insert(i->ip.address());
 			++total_connections;
 			if (!i->connection) continue;
@@ -1382,12 +1383,13 @@ namespace libtorrent
 		// When there's an outgoing connection, it will first
 		// be added to the torrent and then to the policy.
 		// that's why the two second cases are in there.
-
+/*
 		assert(connected_peers == num_torrent_peers
 			|| (connected_peers == num_torrent_peers + 1
 				&& connected_peers > 0)
 			|| (connected_peers + 1 == num_torrent_peers
 				&& num_torrent_peers > 0));
+*/
 	}
 #endif
 
@@ -1398,9 +1400,12 @@ namespace libtorrent
 		, pe_support(true)
 #endif
 		, failcount(0)
+		, hashfails(0)
 		, seed(false)
 		, last_optimistically_unchoked(min_time())
 		, connected(min_time())
+		, trust_points(0)
+		, on_parole(false)
 		, prev_amount_upload(0)
 		, prev_amount_download(0)
 		, banned(false)

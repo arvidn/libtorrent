@@ -143,33 +143,6 @@ namespace
 
 		peer_id const& pid;
 	};
-	
-#ifdef TORRENT_LOGGING
-	void print_legend(boost::shared_ptr<logger> l)
-	{
-		(*l) << "1. time, seconds\n"
-			<< "2. hard send quota, bytes\n"
-			<< "3. soft send quota, bytes\n"
-			<< "4. excess bytes sent\n"
-			<< "5. excess bytes sent last time slice\n"
-			<< "6. hard receive quota, bytes\n"
-			<< "7. soft receive quota, bytes\n"
-			<< "8. excess bytes received\n"
-			<< "9. excess bytes received last time slice\n"
-			<< "10. num peers\n"
-			<< "11. max ul quota limit\n"
-			<< "12. max dl quota limit\n"
-			<< "13. bytes sent\n"
-			<< "14. bytes sent 10 seconds mean\n"
-			<< "15. bytes received\n"
-			<< "16. bytes received 10 seconds mean\n"
-			<< "17. total payload download\n"
-			<< "18. total web seed payload download\n"
-			<< "19. total redundant bytes downloaded\n"
-			<< "\n";
-	}
-#endif
-
 }
 
 namespace libtorrent
@@ -228,20 +201,7 @@ namespace libtorrent
 #ifndef NDEBUG
 		m_initial_done = 0;
 #endif
-#ifdef TORRENT_LOGGING
-		m_log = ses.create_log("torrent_"
-			+ boost::lexical_cast<std::string>(tf.info_hash())
-			, m_ses.listen_port(), false);
-		print_legend(m_log);
-		m_second_count = 0;
-		std::fill_n(m_ul_history, 10, 0);
-		std::fill_n(m_dl_history, 10, 0);
 
-		m_peer_log = ses.create_log("torrent_peers_"
-			+ boost::lexical_cast<std::string>(tf.info_hash())
-			, m_ses.listen_port(), false);
-
-#endif
 		INVARIANT_CHECK;
 
 		m_uploads_quota.min = 2;
@@ -310,16 +270,6 @@ namespace libtorrent
 	{
 #ifndef NDEBUG
 		m_initial_done = 0;
-#endif
-
-#ifdef TORRENT_LOGGING
-		m_log = ses.create_log("torrent_"
-			+ boost::lexical_cast<std::string>(info_hash)
-			, m_ses.listen_port(), true);
-		print_legend(m_log);
-		m_second_count = 0;
-		std::fill_n(m_ul_history, 10, 0);
-		std::fill_n(m_dl_history, 10, 0);
 #endif
 
 		INVARIANT_CHECK;
@@ -904,12 +854,15 @@ namespace libtorrent
 		{
 			peer_iterator p = m_connections.find(*i);
 			if (p == m_connections.end()) continue;
-			p->second->received_invalid_data(index);
+			peer_connection& peer = *p->second;
+			peer.received_invalid_data(index);
 
 			// either, we have received too many failed hashes
 			// or this was the only peer that sent us this piece.
 			// TODO: make this a changable setting
-			if (p->second->trust_points() <= -7 || peers.size() == 1)
+			if ((peer.peer_info_struct()
+					&& peer.peer_info_struct()->trust_points <= -7)
+				|| peers.size() == 1)
 			{
 				// we don't trust this peer anymore
 				// ban it.
@@ -1702,9 +1655,12 @@ namespace libtorrent
 		assert(peerinfo);
 		assert(peerinfo->connection == 0);
 #ifndef NDEBUG
+		// this asserts that we don't have duplicates in the policy's peer list
 		peer_iterator i_ = m_connections.find(peerinfo->ip);
 		assert(i_ == m_connections.end()
-			|| (i_->second->is_disconnecting()));
+			|| i_->second->is_disconnecting()
+			|| dynamic_cast<bt_peer_connection*>(i_->second) == 0
+			|| m_ses.settings().allow_multiple_connections_per_ip);
 #endif
 
 		assert(want_more_peers());
@@ -2454,22 +2410,34 @@ namespace libtorrent
 		}
 		
 		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
+			i != m_connections.end();)
 		{
 			peer_connection* p = i->second;
+			++i;
 			m_stat += p->statistics();
 			// updates the peer connection's ul/dl bandwidth
 			// resource requests
-			p->second_tick(tick_interval);
+			try
+			{
+				p->second_tick(tick_interval);
+			}
+			catch (std::exception& e)
+			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*p->m_logger) << "**ERROR**: " << e.what() << "\n";
+#endif
+				p->set_failed();
+				p->disconnect();
+			}
 		}
 		accumulator += m_stat;
 		m_stat.second_tick(tick_interval);
 	}
 
-	void torrent::try_connect_peer()
+	bool torrent::try_connect_peer()
 	{
 		assert(want_more_peers());
-		m_policy->connect_one_peer();
+		return m_policy->connect_one_peer();
 	}
 
 	void torrent::distribute_resources(float tick_interval)
