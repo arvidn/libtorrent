@@ -1818,7 +1818,8 @@ namespace libtorrent
 	bool torrent::want_more_peers() const
 	{
 		return int(m_connections.size()) < m_connections_quota.given
-			&& m_ses.m_half_open.free_slots();
+			&& m_ses.m_half_open.free_slots()
+			&& !m_paused;
 	}
 
 	void torrent::disconnect_all()
