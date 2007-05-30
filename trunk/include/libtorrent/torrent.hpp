@@ -184,6 +184,8 @@ namespace libtorrent
 		void filter_files(std::vector<bool> const& files);
 		// ============ end deprecation =============
 
+		void piece_availability(std::vector<int>& avail) const;
+		
 		void set_piece_priority(int index, int priority);
 		int piece_priority(int index) const;
 
