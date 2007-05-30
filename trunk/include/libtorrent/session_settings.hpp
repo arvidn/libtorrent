@@ -54,6 +54,8 @@ namespace libtorrent
 			// a plain tcp socket is used, and
 			// the other settings are ignored.
 			none,
+			// socks4 server, requires username.
+			socks4,
 			// the hostname and port settings are
 			// used to connect to the proxy. No
 			// username or password is sent.

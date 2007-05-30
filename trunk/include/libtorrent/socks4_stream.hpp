@@ -30,55 +30,62 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
+#ifndef TORRENT_SOCKS4_STREAM_HPP_INCLUDED
+#define TORRENT_SOCKS4_STREAM_HPP_INCLUDED
 
-#include "libtorrent/socket.hpp"
-#include "libtorrent/session_settings.hpp"
-#include "libtorrent/socket_type.hpp"
-#include <boost/shared_ptr.hpp>
-#include <stdexcept>
-#include <asio/io_service.hpp>
+#include "libtorrent/proxy_base.hpp"
 
-namespace libtorrent
+namespace libtorrent {
+
+class socks4_stream : public proxy_base
 {
+public:
 
-	boost::shared_ptr<socket_type> instantiate_connection(
-		asio::io_service& ios, proxy_settings const& ps)
+	explicit socks4_stream(asio::io_service& io_service)
+		: proxy_base(io_service)
+	{}
+
+	void set_username(std::string const& user)
 	{
-		boost::shared_ptr<socket_type> s(new socket_type(ios));
-
-		if (ps.type == proxy_settings::none)
-		{
-			s->instantiate<stream_socket>();
-		}
-		else if (ps.type == proxy_settings::http
-			|| ps.type == proxy_settings::http_pw)
-		{
-			s->instantiate<http_stream>();
-			s->get<http_stream>().set_proxy(ps.hostname, ps.port);
-			if (ps.type == proxy_settings::socks5_pw)
-				s->get<http_stream>().set_username(ps.username, ps.password);
-		}
-		else if (ps.type == proxy_settings::socks5
-			|| ps.type == proxy_settings::socks5_pw)
-		{
-			s->instantiate<socks5_stream>();
-			s->get<socks5_stream>().set_proxy(ps.hostname, ps.port);
-			if (ps.type == proxy_settings::socks5_pw)
-				s->get<socks5_stream>().set_username(ps.username, ps.password);
-		}
-		else if (ps.type == proxy_settings::socks4)
-		{
-			s->instantiate<socks4_stream>();
-			s->get<socks4_stream>().set_proxy(ps.hostname, ps.port);
-			s->get<socks4_stream>().set_username(ps.username);
-		}
-		else
-		{
-			throw std::runtime_error("unsupported proxy type");
-		}
-		return s;
+		m_user = user;
 	}
+
+	typedef boost::function<void(asio::error_code const&)> handler_type;
+
+	template <class Handler>
+	void async_connect(endpoint_type const& endpoint, Handler const& handler)
+	{
+		m_remote_endpoint = endpoint;
+
+		// the connect is split up in the following steps:
+		// 1. resolve name of proxy server
+		// 2. connect to proxy server
+		// 3. send SOCKS4 CONNECT message
+
+		// to avoid unnecessary copying of the handler,
+		// store it in a shaed_ptr
+		boost::shared_ptr<handler_type> h(new handler_type(handler));
+
+		tcp::resolver::query q(m_hostname
+			, boost::lexical_cast<std::string>(m_port));
+		m_resolver.async_resolve(q, boost::bind(
+			&socks4_stream::name_lookup, this, _1, _2, h));
+	}
+
+private:
+
+	void name_lookup(asio::error_code const& e, tcp::resolver::iterator i
+		, boost::shared_ptr<handler_type> h);
+	void connected(asio::error_code const& e, boost::shared_ptr<handler_type> h);
+	void handshake1(asio::error_code const& e, boost::shared_ptr<handler_type> h);
+	void handshake2(asio::error_code const& e, boost::shared_ptr<handler_type> h);
+
+	// send and receive buffer
+	std::vector<char> m_buffer;
+	// proxy authentication
+	std::string m_user;
+};
 
 }
 
+#endif

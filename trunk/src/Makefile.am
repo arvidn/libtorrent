@@ -21,7 +21,8 @@ torrent_info.cpp tracker_manager.cpp http_connection.cpp \
 http_tracker_connection.cpp udp_tracker_connection.cpp \
 alert.cpp identify_client.cpp ip_filter.cpp file.cpp metadata_transfer.cpp \
 logger.cpp file_pool.cpp ut_pex.cpp lsd.cpp upnp.cpp instantiate_connection.cpp \
-socks5_stream.cpp http_stream.cpp connection_queue.cpp $(kademlia_sources)
+socks5_stream.cpp socks4_stream.cpp http_stream.cpp connection_queue.cpp \
+$(kademlia_sources)
 
 noinst_HEADERS = \
 $(top_srcdir)/include/libtorrent/alert.hpp \
@@ -71,6 +72,7 @@ $(top_srcdir)/include/libtorrent/session.hpp \
 $(top_srcdir)/include/libtorrent/size_type.hpp \
 $(top_srcdir)/include/libtorrent/socket.hpp \
 $(top_srcdir)/include/libtorrent/socket_type.hpp \
+$(top_srcdir)/include/libtorrent/socks4_stream.hpp \
 $(top_srcdir)/include/libtorrent/socks5_stream.hpp \
 $(top_srcdir)/include/libtorrent/stat.hpp \
 $(top_srcdir)/include/libtorrent/storage.hpp \
