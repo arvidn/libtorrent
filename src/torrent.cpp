@@ -981,7 +981,19 @@ namespace libtorrent
 		return m_username + ":" + m_password;
 	}
 
+	void torrent::piece_availability(std::vector<int>& avail) const
+	{
+		INVARIANT_CHECK;
 
+		assert(valid_metadata());
+		if (is_seed())
+		{
+			avail.clear();
+			return;
+		}
+
+		m_picker->get_availability(avail);
+	}
 
 	void torrent::set_piece_priority(int index, int priority)
 	{

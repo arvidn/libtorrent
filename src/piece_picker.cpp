@@ -1292,6 +1292,17 @@ namespace libtorrent
 		}
 	}
 
+	void piece_picker::get_availability(std::vector<int>& avail) const
+	{
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+	
+		avail.resize(m_piece_map.size());
+		std::vector<int>::iterator j = avail.begin();
+		for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin()
+			, end(m_piece_map.end()); i != end; ++i, ++j)
+			*j = i->peer_count;
+	}
+
 	void piece_picker::mark_as_finished(piece_block block, const tcp::endpoint& peer)
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
