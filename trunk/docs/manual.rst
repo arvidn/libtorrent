@@ -2180,6 +2180,11 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int max_failcount;
 		int min_reconnect_time;
 		int peer_connect_timeout;
+		bool ignore_limits_on_local_network;
+		int connection_speed;
+		int send_redundant_have;
+		bool lazy_bitfields;
+		int inactivity_timeout;
 		bool use_dht_as_fallback;
 	};
 
@@ -2279,6 +2284,26 @@ attempt is initiated to a peer until it is considered as having timed out.
 The default is 10 seconds. This setting is especially important in case
 the number of half-open connections are limited, since stale half-open
 connection may delay the connection of other peers considerably.
+
+``ignore_limits_on_local_network``, if set to true, upload, download and
+unchoke limits are ignored for peers on the local network.
+
+``connection_speed`` is the number of connection attempts that
+are made per second.
+
+``send_redundant_have`` controls if have messages will be sent
+to peers that already have the piece. This is typically not necessary,
+but it might be necessary for collecting statistics in some cases.
+Default is false.
+
+``lazy_bitfields`` prevents outgoing bitfields from being full. If the
+client is seed, a few bits will be set to 0, and later filled in with
+have-messages. This is to prevent certain ISPs from stopping people
+from seeding.
+
+``inactivity_timeout``, if a peer is uninteresting and uninterested
+for longer than this number of seconds, it will be disconnected.
+Default is 10 minutes
 
 ``use_dht_as_fallback`` determines how the DHT is used. If this is true
 (which it is by default), the DHT will only be used for torrents where

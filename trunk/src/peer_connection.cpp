@@ -2592,11 +2592,13 @@ namespace libtorrent
 		time_duration d2;
 		d1 = now - m_became_uninterested;
 		d2 = now - m_became_uninteresting;
-		// TODO: these timeouts should be user settable
+		time_duration time_limit = seconds(
+			m_ses.settings().inactivity_timeout);
+
 		if (!m_interesting
 			&& !m_peer_interested
-			&& d1 > minutes(10)
-			&& d2 > minutes(10))
+			&& d1 > time_limit
+			&& d2 > time_limit)
 		{
 			return true;
 		}
