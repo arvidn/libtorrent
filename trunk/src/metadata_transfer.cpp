@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/metadata_transfer.hpp"
+#include "libtorrent/alert_types.hpp"
 
 namespace libtorrent { namespace
 {
@@ -176,14 +177,13 @@ namespace libtorrent { namespace
 					, false);
 				m_metadata_progress = 0;
 				m_metadata_size = 0;
-				// TODO: allow plugins to post alerts
-/*
-				if (m_ses.m_alerts.should_post(alert::info))
+
+				if (m_torrent.alerts().should_post(alert::info))
 				{
-					m_ses.m_alerts.post_alert(metadata_failed_alert(
-						get_handle(), "invalid metadata received from swarm"));
+					m_torrent.alerts().post_alert(metadata_failed_alert(
+						m_torrent.get_handle(), "invalid metadata received from swarm"));
 				}
-*/
+
 				return false;
 			}
 
