@@ -174,7 +174,9 @@ namespace libtorrent
 		, m_resolve_countries(false)
 #endif
 		, m_announce_timer(ses.m_io_service)
+#ifndef TORRENT_DISABLE_DHT
 		, m_last_dht_announce(time_now() - minutes(15))
+#endif
 		, m_policy()
 		, m_ses(ses)
 		, m_checker(checker)
@@ -245,7 +247,9 @@ namespace libtorrent
 		, m_resolve_countries(false)
 #endif
 		, m_announce_timer(ses.m_io_service)
+#ifndef TORRENT_DISABLE_DHT
 		, m_last_dht_announce(time_now() - minutes(15))
+#endif
 		, m_policy()
 		, m_ses(ses)
 		, m_checker(checker)
