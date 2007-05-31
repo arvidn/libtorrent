@@ -412,6 +412,7 @@ namespace libtorrent
 
 	void storage::initialize(bool allocate_files)
 	{
+		std::cerr << "storage initialize" << std::endl;
 		// first, create all missing directories
 		path last_path;
 		for (torrent_info::file_iterator file_iter = m_info.begin_files(),
@@ -436,6 +437,7 @@ namespace libtorrent
 			// the directory exits.
 			if (file_iter->size == 0)
 			{
+				std::cerr << "creating empty file: " << file_iter->path.string() << std::endl;
 				file(m_save_path / file_iter->path, file::out);
 				continue;
 			}
@@ -1613,50 +1615,45 @@ namespace libtorrent
 				m_unallocated_slots.push_back(i);
 			}
 
-			if (m_unallocated_slots.empty())
-			{
-				m_state = state_finished;
-				return true;
-			}
-
-			if (m_compact_mode)
+			if (m_compact_mode || m_unallocated_slots.empty())
 			{
 				m_state = state_create_files;
+				std::cerr << "storage: -> create_files" << std::endl;
 				return false;
 			}
 		}
 
 		m_current_slot = 0;
 		m_state = state_full_check;
+		std::cerr << "storage: -> full_check" << std::endl;
 		return false;
 	}
 
 /*
 	state chart:
 
-   check_fastresume()  ----+
-                           |
-      |        |           |
-      |        v           |
-      |  +------------+    |
-      |  | full_check |    |
-      |  +------------+    |
-      |        |           |
-      |        v           |
-      |  +------------+    |
-      |  | allocating |    |
-      |  +------------+    |
-      |        |           |
-      |        v           |
-      |  +--------------+  |
-      |  | create_files |<-+
-      |  +--------------+  |
-      |        |           |
-      |        v           |
-      |     +----------+   |
-      +---->| finished |<--+
-            +----------+
- 
+   check_fastresume()
+
+      |        |
+      |        v
+      |  +------------+
+      |  | full_check |
+      |  +------------+
+      |        |
+      |        v
+      |  +------------+
+      |  | allocating |
+      |  +------------+
+      |        |
+      |        v
+      |  +--------------+
+      |->| create_files |
+         +--------------+
+               |
+               v
+         +----------+
+         | finished |
+         +----------+
 */
 
 
@@ -1676,7 +1673,7 @@ namespace libtorrent
 			if (m_compact_mode || m_unallocated_slots.empty())
 			{
 				m_state = state_create_files;
-				return std::make_pair(true, 1.f);
+				return std::make_pair(false, 1.f);
 			}
 		
 			if (int(m_unallocated_slots.size()) == m_info.num_pieces()
@@ -1716,7 +1713,7 @@ namespace libtorrent
 		{
 			m_storage->initialize(!m_fill_mode && !m_compact_mode);
 
-			if (!m_unallocated_slots.empty())
+			if (!m_unallocated_slots.empty() && !m_compact_mode)
 			{
 				assert(!m_fill_mode);
 				assert(!m_compact_mode);
