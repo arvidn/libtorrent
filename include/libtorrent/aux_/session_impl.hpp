@@ -299,6 +299,14 @@ namespace libtorrent
 			{ return m_dht_proxy; }
 #endif
 
+			void start_lsd();
+			void start_natpmp();
+			void start_upnp();
+
+			void stop_lsd();
+			void stop_natpmp();
+			void stop_upnp();
+
 			// handles delayed alerts
 			alert_manager m_alerts;
 			
@@ -417,9 +425,9 @@ namespace libtorrent
 			// but for the udp port used by the DHT.
 			int m_external_udp_port;
 #endif
-			natpmp m_natpmp;
-			upnp m_upnp;
-			lsd m_lsd;
+			boost::shared_ptr<natpmp> m_natpmp;
+			boost::shared_ptr<upnp> m_upnp;
+			boost::shared_ptr<lsd> m_lsd;
 
 			// the timer used to fire the second_tick
 			deadline_timer m_timer;
