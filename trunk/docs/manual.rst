@@ -2331,6 +2331,7 @@ direct certain traffic to a proxy.
 			enum proxy_type
 			{
 				none,
+				socks4,
 				socks5,
 				socks5_pw,
 				http,
@@ -2350,6 +2351,9 @@ options are available:
  * ``none`` - This is the default, no proxy server is used, all other fields
    are ignored.
 
+ * ``socks4`` - The server is assumed to be a `SOCKS4 server`_ that
+   requires a username.
+
  * ``socks5`` - The server is assumed to be a SOCKS5 server (`RFC 1928`_) that
    does not require any authentication. The username and password are ignored.
 
@@ -2366,7 +2370,7 @@ options are available:
  * ``http_pw`` - The server is assumed to be an HTTP proxy that requires
    user authorization. The username and password will be sent to the proxy.
 
-
+.. _`SOCKS4 server`: http://www.ufasoft.com/doc/socks4_protocol.htm
 .. _`RFC 1928`: http://www.faqs.org/rfcs/rfc1928.html
 .. _`RFC 1929`: http://www.faqs.org/rfcs/rfc1929.html
 .. _CONNECT: draft-luotonen-web-proxy-tunneling-01.txt
