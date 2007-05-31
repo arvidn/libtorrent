@@ -16,7 +16,7 @@ using namespace boost::filesystem;
 
 const int piece_size = 16;
 
-void run_storage_tests(torrent_info& info)
+void run_storage_tests(torrent_info& info, bool compact_allocation = true)
 {
 	const int half = piece_size / 2;
 
@@ -81,7 +81,8 @@ void run_storage_tests(torrent_info& info)
 
 	std::vector<bool> pieces;
 	num_pieces = 0;
-	TEST_CHECK(pm.check_fastresume(d, pieces, num_pieces, true) == false);
+	TEST_CHECK(pm.check_fastresume(d, pieces, num_pieces
+		, compact_allocation) == false);
 	bool finished = false;
 	float progress;
 	num_pieces = 0;
@@ -140,6 +141,15 @@ int test_main()
 
 	// 48 = piece_size * 3
 	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test1.tmp") == 48);
+	remove_all(initial_path() / "temp_storage");
+
+	// make sure full allocation mode actually allocates the files
+	// and creates the directories
+	run_storage_tests(info, false);
+
+	std::cerr << file_size(initial_path() / "temp_storage" / "test1.tmp") << std::endl;
+	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test1.tmp") == 17 + 612 + 1);
+
 	remove_all(initial_path() / "temp_storage");
 
 	return 0;

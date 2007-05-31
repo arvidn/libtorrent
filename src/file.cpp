@@ -248,10 +248,10 @@ namespace libtorrent
 		void set_size(size_type s)
 		{
 			size_type pos = tell();
-			seek(s);
+			seek(s - 1);
 			char dummy = 0;
 			read(&dummy, 1);
-			seek(s);
+			seek(s - 1);
 			write(&dummy, 1);
 			seek(pos);
 		}
