@@ -582,6 +582,12 @@ namespace libtorrent { namespace detail
 		m_checker_impl.m_abort = true;
 	}
 
+	void session_impl::set_port_filter(port_filter const& f)
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		m_port_filter = f;
+	}
+
 	void session_impl::set_ip_filter(ip_filter const& f)
 	{
 		mutex_t::scoped_lock l(m_mutex);

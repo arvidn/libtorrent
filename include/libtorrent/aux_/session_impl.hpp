@@ -224,6 +224,7 @@ namespace libtorrent
 			bool is_aborted() const { return m_abort; }
 
 			void set_ip_filter(ip_filter const& f);
+			void set_port_filter(port_filter const& f);
 
 			bool listen_on(
 				std::pair<int, int> const& port_range
@@ -351,6 +352,9 @@ namespace libtorrent
 			
 			// filters incoming connections
 			ip_filter m_ip_filter;
+
+			// filters outgoing connections
+			port_filter m_port_filter;
 			
 			// the peer id that is generated at the start of the session
 			peer_id m_peer_id;
