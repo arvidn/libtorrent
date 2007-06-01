@@ -412,7 +412,6 @@ namespace libtorrent
 
 	void storage::initialize(bool allocate_files)
 	{
-		std::cerr << "storage initialize" << std::endl;
 		// first, create all missing directories
 		path last_path;
 		for (torrent_info::file_iterator file_iter = m_info.begin_files(),
@@ -437,7 +436,6 @@ namespace libtorrent
 			// the directory exits.
 			if (file_iter->size == 0)
 			{
-				std::cerr << "creating empty file: " << file_iter->path.string() << std::endl;
 				file(m_save_path / file_iter->path, file::out);
 				continue;
 			}
@@ -1618,14 +1616,12 @@ namespace libtorrent
 			if (m_compact_mode || m_unallocated_slots.empty())
 			{
 				m_state = state_create_files;
-				std::cerr << "storage: -> create_files" << std::endl;
 				return false;
 			}
 		}
 
 		m_current_slot = 0;
 		m_state = state_full_check;
-		std::cerr << "storage: -> full_check" << std::endl;
 		return false;
 	}
 
