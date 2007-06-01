@@ -71,20 +71,82 @@ struct ip_range
 namespace detail
 {
 
+	template<class Addr>
+	Addr zero()
+	{
+		typename Addr::bytes_type zero;
+		std::fill(zero.begin(), zero.end(), 0);
+		return Addr(zero);
+	}
+
+	template<>
+	inline boost::uint16_t zero<boost::uint16_t>() { return 0; }
+
+	template<class Addr>
+	Addr plus_one(Addr const& a)
+	{
+		typename Addr::bytes_type tmp(a.to_bytes());
+		typedef typename Addr::bytes_type::reverse_iterator iter;
+		for (iter i = tmp.rbegin()
+			, end(tmp.rend()); i != end; ++i)
+		{
+			if (*i < (std::numeric_limits<typename iter::value_type>::max)())
+			{
+				*i += 1;
+				break;
+			}
+			*i = 0;
+		}
+		return Addr(tmp);
+	}
+
+	inline boost::uint16_t plus_one(boost::uint16_t val) { return val + 1; }
+	
+	template<class Addr>
+	Addr minus_one(Addr const& a)
+	{
+		typename Addr::bytes_type tmp(a.to_bytes());
+		typedef typename Addr::bytes_type::reverse_iterator iter;
+		for (iter i = tmp.rbegin()
+			, end(tmp.rend()); i != end; ++i)
+		{
+			if (*i > 0)
+			{
+				*i -= 1;
+				break;
+			}
+			*i = (std::numeric_limits<typename iter::value_type>::max)();
+		}
+		return Addr(tmp);
+	}
+
+	inline boost::uint16_t minus_one(boost::uint16_t val) { return val - 1; }
+
+	template<class Addr>
+	Addr max_addr()
+	{
+		typename Addr::bytes_type tmp;
+		std::fill(tmp.begin(), tmp.end()
+			, (std::numeric_limits<typename Addr::bytes_type::value_type>::max)());
+		return Addr(tmp);
+	}
+
+	template<>
+	inline boost::uint16_t max_addr<boost::uint16_t>()
+	{ return std::numeric_limits<boost::uint16_t>::max(); }
+
 	// this is the generic implementation of
 	// a filter for a specific address type.
 	// it works with IPv4 and IPv6
 	template<class Addr>
-	class TORRENT_EXPORT filter_impl
+	class filter_impl
 	{
 	public:
 
 		filter_impl()
 		{
-			typename Addr::bytes_type zero;
-			std::fill(zero.begin(), zero.end(), 0);
 			// make the entire ip-range non-blocked
-			m_access_list.insert(range(Addr(zero), 0));
+			m_access_list.insert(range(zero<Addr>(), 0));
 		}
 
 		void add_rule(Addr first, Addr last, int flags)
@@ -134,7 +196,7 @@ namespace detail
 			if ((j != m_access_list.end()
 					&& minus_one(j->start) != last)
 				|| (j == m_access_list.end()
-					&& last != max_addr()))
+					&& last != max_addr<Addr>()))
 			{
 				assert(j == m_access_list.end() || last < minus_one(j->start));
 				if (last_access != flags)
@@ -170,7 +232,7 @@ namespace detail
 
 				++i;
 				if (i == end)
-					r.last = max_addr();
+					r.last = max_addr<Addr>();
 				else
 					r.last = minus_one(i->start);
 			
@@ -180,48 +242,6 @@ namespace detail
 		}
 
 	private:
-	
-		Addr plus_one(Addr const& a) const
-		{
-			typename Addr::bytes_type tmp(a.to_bytes());
-			typedef typename Addr::bytes_type::reverse_iterator iter;
-			for (iter i = tmp.rbegin()
-				, end(tmp.rend()); i != end; ++i)
-			{
-				if (*i < (std::numeric_limits<typename iter::value_type>::max)())
-				{
-					*i += 1;
-					break;
-				}
-				*i = 0;
-			}
-			return Addr(tmp);
-		}
-		
-		Addr minus_one(Addr const& a) const
-		{
-			typename Addr::bytes_type tmp(a.to_bytes());
-			typedef typename Addr::bytes_type::reverse_iterator iter;
-			for (iter i = tmp.rbegin()
-				, end(tmp.rend()); i != end; ++i)
-			{
-				if (*i > 0)
-				{
-					*i -= 1;
-					break;
-				}
-				*i = (std::numeric_limits<typename iter::value_type>::max)();
-			}
-			return Addr(tmp);
-		}
-
-		Addr max_addr() const
-		{
-			typename Addr::bytes_type tmp;
-			std::fill(tmp.begin(), tmp.end()
-				, (std::numeric_limits<typename Addr::bytes_type::value_type>::max)());
-			return Addr(tmp);
-		}
 	
 		struct range
 		{
@@ -268,6 +288,24 @@ private:
 
 	detail::filter_impl<address_v4> m_filter4;
 	detail::filter_impl<address_v6> m_filter6;
+};
+
+class TORRENT_EXPORT port_filter
+{
+public:
+
+	enum access_flags
+	{
+		blocked = 1
+	};
+
+	void add_rule(boost::uint16_t first, boost::uint16_t last, int flags);
+	int access(boost::uint16_t port) const;
+
+private:
+
+	detail::filter_impl<boost::uint16_t> m_filter;
+
 };
 
 }

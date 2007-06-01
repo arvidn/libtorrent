@@ -69,6 +69,15 @@ namespace libtorrent
 			, m_filter6.export_filter());
 	}
 	
+	void port_filter::add_rule(boost::uint16_t first, boost::uint16_t last, int flags)
+	{
+		m_filter.add_rule(first, last, flags);
+	}
+
+	int port_filter::access(boost::uint16_t port) const
+	{
+		return m_filter.access(port);
+	}
 /*
 	void ip_filter::print() const
 	{

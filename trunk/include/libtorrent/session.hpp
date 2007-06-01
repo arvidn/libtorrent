@@ -72,6 +72,7 @@ namespace libtorrent
 	struct torrent_plugin;
 	class torrent;
 	class ip_filter;
+	class port_filter;
 	class connection_queue;
 
 	namespace aux
@@ -182,6 +183,7 @@ namespace libtorrent
 #endif
 
 		void set_ip_filter(ip_filter const& f);
+		void set_port_filter(port_filter const& f);
 		void set_peer_id(peer_id const& pid);
 		void set_key(int key);
 

@@ -143,6 +143,11 @@ namespace libtorrent
 		m_impl->set_ip_filter(f);
 	}
 
+	void session::set_port_filter(port_filter const& f)
+	{
+		m_impl->set_port_filter(f);
+	}
+
 	void session::set_peer_id(peer_id const& id)
 	{
 		m_impl->set_peer_id(id);
