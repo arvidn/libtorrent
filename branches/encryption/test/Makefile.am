@@ -26,7 +26,7 @@ test_metadata_extension_SOURCES = main.cpp setup_transfer.cpp test_metadata_exte
 test_metadata_extension_LDADD = $(top_builddir)/src/libtorrent.la
 
 test_pe_crypto_SOURCES = main.cpp test_pe_crypto.cpp
-test_pe_crypto_LDADD = $(top_builddir)/src/libtorrent.la
+test_pe_crypto_LDADD = $(top_builddir)/src/libtorrent.la $(top_builddir)/test/setup_transfer.o
 
 noinst_HEADERS = test.hpp setup_transfer.hpp
 

@@ -179,6 +179,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		void set_pe_settings(pe_settings const& settings);
+		pe_settings const& get_pe_settings() const;
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

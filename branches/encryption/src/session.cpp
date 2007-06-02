@@ -252,6 +252,11 @@ namespace libtorrent
 	{
 		m_impl->set_pe_settings(settings);
 	}
+
+	pe_settings const& session::get_pe_settings() const
+	{
+		return m_impl->get_pe_settings();
+	}
 #endif
 
 	bool session::is_listening() const

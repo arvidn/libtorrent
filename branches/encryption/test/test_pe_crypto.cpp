@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <algorithm>
+#include <iostream>
 
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/pe_crypto.hpp"
@@ -39,19 +40,64 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "test.hpp"
 
-void test_transfer(libtorrent::pe_settings::enc_level level)
+void display_pe_policy(libtorrent::pe_settings::enc_policy policy)
 {
 	using namespace libtorrent;
+	using std::cerr;
+	
+	if (policy == pe_settings::disabled) cerr << "disabled ";
+	else if (policy == pe_settings::enabled) cerr << "enabled ";
+	else if (policy == pe_settings::forced) cerr << "forced ";
+}
+
+void display_pe_settings(libtorrent::pe_settings s)
+{
+	using namespace libtorrent;
+	using std::cerr;
+	
+	cerr << "out_enc_policy - ";
+	display_pe_policy(s.out_enc_policy);
+	cerr << "\nin_enc_policy - ";
+	display_pe_policy(s.in_enc_policy);
+	
+	cerr << "\nenc_level - ";
+	if (s.allowed_enc_level == pe_settings::plaintext) cerr << "plaintext ";
+	else if (s.allowed_enc_level == pe_settings::rc4) cerr << "rc4 ";
+	else if (s.allowed_enc_level == pe_settings::both) cerr << "both ";
+	
+	cerr << "\nprefer_rc4 - ";
+	(s.prefer_rc4) ? cerr << "true" : cerr << "false";
+	cerr << "\n\n";
+}
+
+void test_transfer(libtorrent::pe_settings::enc_policy policy,
+		   libtorrent::pe_settings::enc_level level = libtorrent::pe_settings::both,
+		   bool pref_rc4 = false)
+{
+	using namespace libtorrent;
+	using std::cerr;
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000));
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000));
 	pe_settings s;
-	s.out_enc_policy = pe_settings::forced;
-	s.in_enc_policy = pe_settings::forced;
+	
+	s.out_enc_policy = policy;
+	s.in_enc_policy = policy;
+	
 	s.allowed_enc_level = pe_settings::both;
 	ses1.set_pe_settings(s);
+
 	s.allowed_enc_level = level;
+	s.prefer_rc4 = pref_rc4;
 	ses2.set_pe_settings(s);
+
+	s = ses1.get_pe_settings();
+	cerr << " Session1 \n";
+	display_pe_settings(s);
+	s = ses2.get_pe_settings();
+	cerr << " Session2 \n";
+	display_pe_settings(s);
+
 	torrent_handle tor1;
 	torrent_handle tor2;
 
@@ -83,21 +129,31 @@ void test_transfer(libtorrent::pe_settings::enc_level level)
 int test_main()
 {
 	using namespace libtorrent;
+	int repcount = 64;
+
+	for (int rep = 0; rep < repcount; ++rep)
+	{
+		DH_key_exchange DH1, DH2;
+		
+		DH1.compute_secret(DH2.get_local_key());
+		DH2.compute_secret(DH1.get_local_key());
+		
+		TEST_CHECK(std::equal(DH1.get_secret(), DH1.get_secret() + 96, DH2.get_secret()));
+	}
 
 	DH_key_exchange DH1, DH2;
-
 	DH1.compute_secret(DH2.get_local_key());
 	DH2.compute_secret(DH1.get_local_key());
 
 	TEST_CHECK(std::equal(DH1.get_secret(), DH1.get_secret() + 96, DH2.get_secret()));
-	
+
 	sha1_hash test1_key = hasher("test1_key",8).final();
 	sha1_hash test2_key = hasher("test2_key",8).final();
 
 	RC4_handler RC41 (test2_key, test1_key);
 	RC4_handler RC42 (test1_key, test2_key);
 
-	for (int rep = 0; rep < 64; ++rep)
+	for (int rep = 0; rep < repcount; ++rep)
 	{
 		std::size_t buf_len = rand() % (512 * 1024);
 		char* buf = new char[buf_len];
@@ -118,9 +174,19 @@ int test_main()
 		delete[] zero_buf;
 	}
 
-	test_transfer(pe_settings::plaintext);
-	test_transfer(pe_settings::rc4);
-	test_transfer(pe_settings::both);
+	
+	test_transfer(pe_settings::disabled);
+
+	test_transfer(pe_settings::forced, pe_settings::plaintext);
+	test_transfer(pe_settings::forced, pe_settings::rc4);
+	test_transfer(pe_settings::forced, pe_settings::both, false);
+	test_transfer(pe_settings::forced, pe_settings::both, true);
+
+	test_transfer(pe_settings::enabled, pe_settings::plaintext);
+	test_transfer(pe_settings::enabled, pe_settings::rc4);
+	test_transfer(pe_settings::enabled, pe_settings::both, false);
+	test_transfer(pe_settings::enabled, pe_settings::both, true);
+
 	return 0;
 }
 
