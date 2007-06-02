@@ -62,6 +62,15 @@ void test_transfer(libtorrent::pe_settings::enc_level level)
 	for (int i = 0; i < 50; ++i)
 	{
 		tor2.status();
+		std::auto_ptr<alert> a;
+		a = ses1.pop_alert();
+		if (a.get())
+			std::cerr << "ses1: " << a->msg() << "\n";
+
+		a = ses2.pop_alert();
+		if (a.get())
+			std::cerr << "ses2: " << a->msg() << "\n";
+
 		if (tor2.is_seed()) break;
 		sleep(100);
 	}
