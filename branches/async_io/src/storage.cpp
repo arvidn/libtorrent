@@ -390,7 +390,7 @@ namespace libtorrent
 		void swap_slots3(int slot1, int slot2, int slot3);
 		bool verify_resume_data(entry& rd, std::string& error);
 		void write_resume_data(entry& rd) const;
-		sha1_hash hash_for_slot(int slot);
+		sha1_hash hash_for_slot(int slot, partial_hash& ph);
 
 		size_type read_impl(char* buf, int slot, int offset, int size, bool fill_zero);
 
@@ -410,14 +410,28 @@ namespace libtorrent
 		std::vector<char> m_scratch_buffer;
 	};
 
-	sha1_hash storage::hash_for_slot(int slot)
+	sha1_hash storage::hash_for_slot(int slot, partial_hash& ph)
 	{
-		hasher h;
-		int slot_size = m_info.piece_size(slot);
+#ifndef NDEBUG
+		hasher partial;
+		hasher whole;
+		int slot_size1 = m_info.piece_size(slot);
+		m_scratch_buffer.resize(slot_size1);
+		read_impl(&m_scratch_buffer[0], slot, 0, slot_size1, true);
+		if (ph.offset > 0)
+			partial.update(&m_scratch_buffer[0], ph.offset);
+		whole.update(&m_scratch_buffer[0], slot_size1);
+		hasher partial_copy = ph.h;
+		assert(ph.offset == 0 || partial_copy.final() == partial.final());
+#endif
+		int slot_size = m_info.piece_size(slot) - ph.offset;
+		if (slot_size == 0) return ph.h.final();
 		m_scratch_buffer.resize(slot_size);
-		read_impl(&m_scratch_buffer[0], slot, 0, slot_size, true);
-		h.update(&m_scratch_buffer[0], slot_size);
-		return h.final();
+		read_impl(&m_scratch_buffer[0], slot, ph.offset, slot_size, true);
+		ph.h.update(&m_scratch_buffer[0], slot_size);
+		sha1_hash ret = ph.h.final();
+		assert(whole.final() == ret);
+		return ret;
 	}
 
 	void storage::initialize(bool allocate_files)
@@ -1082,6 +1096,7 @@ namespace libtorrent
 		, boost::function<void(int, disk_io_job const&)> const& f)
 	{
 		assert(r.length <= 16 * 1024);
+
 		disk_io_job j;
 		j.storage = this;
 		j.action = disk_io_job::write;
@@ -1103,6 +1118,7 @@ namespace libtorrent
 		j.action = disk_io_job::hash;
 		j.piece = piece;
 		j.callback = f;
+
 		m_io_thread.add_job(j);
 	}
 
@@ -1114,19 +1130,22 @@ namespace libtorrent
 
 	sha1_hash piece_manager::hash_for_piece_impl(int piece)
 	{
-		// synchronization ------------------------------------------------------
-		boost::recursive_mutex::scoped_lock lock(m_mutex);
-		// ----------------------------------------------------------------------
+		partial_hash ph;
+
+		std::map<int, partial_hash>::iterator i = m_piece_hasher.find(piece);
+		if (i != m_piece_hasher.end())
+		{
+			ph = i->second;
+			m_piece_hasher.erase(i);
+		}
+
 		int slot = m_piece_to_slot[piece];
-		return m_storage->hash_for_slot(slot);
+		assert(slot != has_no_slot);
+		return m_storage->hash_for_slot(slot, ph);
 	}
 
 	void piece_manager::release_files_impl()
 	{
-		// synchronization ------------------------------------------------------
-		boost::recursive_mutex::scoped_lock lock(m_mutex);
-		// ----------------------------------------------------------------------
-
 		m_storage->release_files();
 	}
 
@@ -1142,9 +1161,7 @@ namespace libtorrent
 	void piece_manager::export_piece_map(
 			std::vector<int>& p) const
 	{
-		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
-		// ----------------------------------------------------------------------
 
 		INVARIANT_CHECK;
 
@@ -1166,9 +1183,7 @@ namespace libtorrent
 
 	void piece_manager::mark_failed(int piece_index)
 	{
-		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
-		// ----------------------------------------------------------------------
 
 		INVARIANT_CHECK;
 
@@ -1259,6 +1274,28 @@ namespace libtorrent
 		assert(offset >= 0);
 		assert(size > 0);
 		assert(piece_index >= 0 && piece_index < (int)m_piece_to_slot.size());
+
+		if (offset == 0)
+		{
+			partial_hash& ph = m_piece_hasher[piece_index];
+			assert(ph.offset == 0);
+			ph.offset = size;
+			ph.h.update(buf, size);
+		}
+		else
+		{
+			std::map<int, partial_hash>::iterator i = m_piece_hasher.find(piece_index);
+			if (i != m_piece_hasher.end())
+			{
+				assert(i->second.offset > 0);
+				if (offset == i->second.offset)
+				{
+					i->second.offset += size;
+					i->second.h.update(buf, size);
+				}
+			}
+		}
+		
 		int slot = allocate_slot_for_piece(piece_index);
 		assert(slot >= 0 && slot < (int)m_slot_to_piece.size());
 		m_storage->write(buf, slot, offset, size);
@@ -1328,6 +1365,8 @@ namespace libtorrent
 			, matching_pieces.end()
 			, current_slot) != matching_pieces.end())
 		{
+			// the current slot is among the matching pieces, so
+			// we will assume that the piece is in the right place
 			const int piece_index = current_slot;
 
 			// lock because we're writing to have_pieces
@@ -1428,12 +1467,11 @@ namespace libtorrent
 		, std::vector<bool>& pieces
 		, int& num_pieces, bool compact_mode)
 	{
-		assert(m_info.piece_length() > 0);
-		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
-		// ----------------------------------------------------------------------
 
 		INVARIANT_CHECK;
+
+		assert(m_info.piece_length() > 0);
 
 		m_compact_mode = compact_mode;
 
@@ -1507,7 +1545,6 @@ namespace libtorrent
 			}
 		}
 
-		m_current_slot = 0;
 		m_state = state_full_check;
 		return false;
 	}
@@ -1618,6 +1655,16 @@ namespace libtorrent
 
 		try
 		{
+			// initialization for the full check
+			if (m_hash_to_piece.empty())
+			{
+				m_current_slot = 0;
+				for (int i = 0; i < m_info.num_pieces(); ++i)
+				{
+					m_hash_to_piece.insert(std::make_pair(m_info.hash_for_piece(i), i));
+				}
+				std::fill(pieces.begin(), pieces.end(), false);
+			}
 
 			m_piece_data.resize(int(m_info.piece_length()));
 			int piece_size = int(m_info.piece_size(m_current_slot));
@@ -1627,14 +1674,6 @@ namespace libtorrent
 			// if the file is incomplete, skip the rest of it
 			if (num_read != piece_size)
 				throw file_error("");
-
-			if (m_hash_to_piece.empty())
-			{
-				for (int i = 0; i < m_info.num_pieces(); ++i)
-				{
-					m_hash_to_piece.insert(std::make_pair(m_info.hash_for_piece(i), i));
-				}
-			}
 
 			int piece_index = identify_data(m_piece_data, m_current_slot
 				, pieces, num_pieces, m_hash_to_piece, mutex);
@@ -1874,9 +1913,7 @@ namespace libtorrent
 
 	int piece_manager::allocate_slot_for_piece(int piece_index)
 	{
-		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
-		// ----------------------------------------------------------------------
 
 //		INVARIANT_CHECK;
 
@@ -1987,9 +2024,7 @@ namespace libtorrent
 	{
 		assert(num_slots > 0);
 
-		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
-		// ----------------------------------------------------------------------
 
 //		INVARIANT_CHECK;
 
@@ -2043,9 +2078,7 @@ namespace libtorrent
 #ifndef NDEBUG
 	void piece_manager::check_invariant() const
 	{
-		// synchronization ------------------------------------------------------
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
-		// ----------------------------------------------------------------------
 		if (m_piece_to_slot.empty()) return;
 
 		assert((int)m_piece_to_slot.size() == m_info.num_pieces());

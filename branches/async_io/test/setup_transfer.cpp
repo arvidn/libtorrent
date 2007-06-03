@@ -11,10 +11,11 @@
 using boost::filesystem::remove_all;
 using boost::filesystem::create_directory;
 
-void sleep(int millisec)
+void test_sleep(int millisec)
 {
 	boost::xtime xt;
 	boost::xtime_get(&xt, boost::TIME_UTC);
+	xt.nsec += millisec * 1000000;
 	boost::uint64_t nanosec = (millisec % 1000) * 1000000 + xt.nsec;
 	int sec = millisec / 1000;
 	if (nanosec > 1000000000)
@@ -70,7 +71,7 @@ boost::tuple<torrent_handle, torrent_handle> setup_transfer(
 	torrent_handle tor2 = ses2.add_torrent(tracker_url
 		, t.info_hash(), 0, "./tmp2");
 
-	sleep(100);
+	test_sleep(100);
 
 	std::cerr << "connecting peer\n";
 	tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1")

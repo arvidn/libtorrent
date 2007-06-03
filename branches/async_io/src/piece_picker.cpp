@@ -256,6 +256,7 @@ namespace libtorrent
 			int num_blocks = blocks_in_piece(i->index);
 			int num_requested = 0;
 			int num_finished = 0;
+			int num_writing = 0;
 			for (int k = 0; k < num_blocks; ++k)
 			{
 				if (i->info[k].state == block_info::state_finished)
@@ -268,9 +269,14 @@ namespace libtorrent
 					++num_requested;
 					blocks_requested = true;
 				}
+				if (i->info[k].state == block_info::state_writing)
+				{
+					++num_writing;
+				}
 			}
 			assert(blocks_requested == (i->state != none));
 			assert(num_requested == i->requested);
+			assert(num_writing == i->writing);
 			assert(num_finished == i->finished);
 		}
 
@@ -1216,11 +1222,18 @@ namespace libtorrent
 		int max_blocks = blocks_in_piece(index);
 		if ((int)i->finished < max_blocks) return false;
 
+#ifndef NDEBUG
+		for (int k = 0; k < max_blocks; ++k)
+		{
+			assert(i->info[k].state == block_info::state_finished);
+		}
+#endif
+
 		assert((int)i->finished == max_blocks);
 		return true;
 	}
 
-	bool piece_picker::is_downloading(piece_block block) const
+	bool piece_picker::is_requested(piece_block block) const
 	{
 		assert(block.piece_index >= 0);
 		assert(block.block_index >= 0);
@@ -1235,6 +1248,21 @@ namespace libtorrent
 
 		assert(i != m_downloads.end());
 		return i->info[block.block_index].state == block_info::state_requested;
+	}
+
+	bool piece_picker::is_downloaded(piece_block block) const
+	{
+		assert(block.piece_index >= 0);
+		assert(block.block_index >= 0);
+		assert(block.piece_index < (int)m_piece_map.size());
+
+		if (m_piece_map[block.piece_index].index == piece_pos::we_have_index) return true;
+		if (m_piece_map[block.piece_index].downloading == 0) return false;
+		std::vector<downloading_piece>::const_iterator i
+			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
+		assert(i != m_downloads.end());
+		return i->info[block.block_index].state == block_info::state_finished
+			|| i->info[block.block_index].state == block_info::state_writing;
 	}
 
 	bool piece_picker::is_finished(piece_block block) const
@@ -1302,37 +1330,7 @@ namespace libtorrent
 			*j = i->peer_count;
 	}
 
-	void piece_picker::mark_as_writing(piece_block block)
-	{
-		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
-
-		assert(block.piece_index >= 0);
-		assert(block.block_index >= 0);
-		assert(block.piece_index < (int)m_piece_map.size());
-		assert(block.block_index < blocks_in_piece(block.piece_index));
-
-		assert(m_piece_map[block.piece_index].downloading);
-
-		std::vector<downloading_piece>::iterator i
-			= std::find_if(m_downloads.begin(), m_downloads.end()
-			, has_index(block.piece_index));
-		assert(i != m_downloads.end());
-		block_info& info = i->info[block.block_index];
-		assert(info.state == block_info::state_requested);
-		assert(info.peer != tcp::endpoint());
-		if (info.state == block_info::state_requested) --i->requested;
-		assert(i->requested >= 0);
-		info.state = block_info::state_writing;
-
-		if (i->requested == 0)
-		{
-			// there are no blocks requested in this piece.
-			// remove the fast/slow state from it
-			i->state = none;
-		}
-	}
-	
-	void piece_picker::mark_as_finished(piece_block block, const tcp::endpoint& peer)
+	void piece_picker::mark_as_writing(piece_block block, tcp::endpoint const& peer)
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 
@@ -1342,10 +1340,11 @@ namespace libtorrent
 		assert(block.block_index < blocks_in_piece(block.piece_index));
 
 		piece_pos& p = m_piece_map[block.piece_index];
-		int prio = p.priority(m_sequenced_download_threshold);
+		assert(p.downloading);
 
-		if (p.downloading == 0)
+/*		if (p.downloading == 0)
 		{
+			int prio = p.priority(m_sequenced_download_threshold);
 			p.downloading = 1;
 			if (prio > 0) move(prio, p.index);
 			else assert(p.priority(m_sequenced_download_threshold) == 0);
@@ -1357,19 +1356,78 @@ namespace libtorrent
 			info.peer = peer;
 			if (info.state == block_info::state_requested) --dp.requested;
 			assert(dp.requested >= 0);
+			assert (info.state != block_info::state_finished);
+			assert (info.state != block_info::state_writing);
+			if (info.state != block_info::state_requested) ++dp.writing;
+			info.state = block_info::state_writing;
+		}
+		else
+*/		{
+			std::vector<downloading_piece>::iterator i
+				= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
+			assert(i != m_downloads.end());
+			block_info& info = i->info[block.block_index];
+			info.peer == peer;
+			assert(info.state == block_info::state_requested);
+			if (info.state == block_info::state_requested) --i->requested;
+			assert(i->requested >= 0);
+			assert (info.state != block_info::state_writing);
+			++i->writing;
+			info.state = block_info::state_writing;
+
+			if (i->requested == 0)
+			{
+				// there are no blocks requested in this piece.
+				// remove the fast/slow state from it
+				i->state = none;
+			}
+		}
+	}
+	
+	void piece_picker::mark_as_finished(piece_block block, tcp::endpoint const& peer)
+	{
+		assert(block.piece_index >= 0);
+		assert(block.block_index >= 0);
+		assert(block.piece_index < (int)m_piece_map.size());
+		assert(block.block_index < blocks_in_piece(block.piece_index));
+
+		piece_pos& p = m_piece_map[block.piece_index];
+
+		if (p.downloading == 0)
+		{
+			TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+			
+			assert(peer == tcp::endpoint());
+			int prio = p.priority(m_sequenced_download_threshold);
+			p.downloading = 1;
+			if (prio > 0) move(prio, p.index);
+			else assert(p.priority(m_sequenced_download_threshold) == 0);
+
+			downloading_piece& dp = add_download_piece();
+			dp.state = none;
+			dp.index = block.piece_index;
+			block_info& info = dp.info[block.block_index];
+			info.peer = peer;
+			assert(info.state == block_info::state_none);
+//			if (info.state == block_info::state_writing) --dp.writing;
+//			assert(dp.writing >= 0);
 			if (info.state != block_info::state_finished) ++dp.finished;
 			info.state = block_info::state_finished;
 		}
 		else
 		{
+			TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+			
 			std::vector<downloading_piece>::iterator i
 				= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
 			assert(i != m_downloads.end());
 			block_info& info = i->info[block.block_index];
 			info.peer = peer;
-			if (info.state == block_info::state_requested) --i->requested;
-			assert(i->requested >= 0);
-			if (info.state != block_info::state_finished) ++i->finished;
+			assert(info.state == block_info::state_writing
+				|| peer == tcp::endpoint());
+			if (info.state == block_info::state_writing) --i->writing;
+			assert(i->writing >= 0);
+			++i->finished;
 			info.state = block_info::state_finished;
 
 			if (i->requested == 0)
@@ -1433,7 +1491,8 @@ namespace libtorrent
 			, m_downloads.end(), has_index(block.piece_index));
 		assert(i != m_downloads.end());
 
-		if (i->info[block.block_index].state == block_info::state_finished)
+		if (i->info[block.block_index].state == block_info::state_finished
+			|| i->info[block.block_index].state == block_info::state_writing)
 		{
 			return;
 		}
@@ -1450,7 +1509,7 @@ namespace libtorrent
 
 		// if there are no other blocks in this piece
 		// that's being downloaded, remove it from the list
-		if (i->requested == 0)
+		if (i->requested + i->finished + i->writing == 0)
 		{
 			erase_download_piece(i);
 			piece_pos& p = m_piece_map[block.piece_index];

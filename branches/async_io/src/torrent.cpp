@@ -818,8 +818,6 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
-		std::cerr << "piece finished: " << index << (passed_hash_check?" passed":" FAILED!") << std::endl;
-
 		bool was_seed = is_seed();
 		bool was_finished = m_picker->num_filtered() + num_pieces()
 			== torrent_file().num_pieces();
@@ -2577,6 +2575,7 @@ namespace libtorrent
 		, boost::function<void(bool)> f)
 	{
 		sha1_hash h(j.str);
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		f(m_torrent_file.hash_for_piece(j.piece) == h);
 	}
 

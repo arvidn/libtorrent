@@ -891,6 +891,12 @@ int main(int ac, char* av[])
 				{
 					event_string << "(" << p->ip << ") " << p->msg();
 				}
+				else if (torrent_alert* p = dynamic_cast<torrent_alert*>(a.get()))
+				{
+					std::string name;
+					try { name = p->handle.name(); } catch (std::exception&) {}
+					event_string << "(" << name << ") " << p->msg();
+				}
 				else
 				{
 					event_string << a->msg();
@@ -998,6 +1004,8 @@ int main(int ac, char* av[])
 				if (print_downloads && s.state != torrent_status::seeding)
 				{
 					h.get_download_queue(queue);
+					std::sort(queue.begin(), queue.end(), bind(&partial_piece_info::piece_index, _1)
+						< bind(&partial_piece_info::piece_index, _2));
 					for (std::vector<partial_piece_info>::iterator i = queue.begin();
 						i != queue.end(); ++i)
 					{

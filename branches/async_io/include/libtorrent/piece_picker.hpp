@@ -109,7 +109,7 @@ namespace libtorrent
 
 		struct downloading_piece
 		{
-			downloading_piece(): finished(0), requested(0) {}
+			downloading_piece(): finished(0), writing(0), requested(0) {}
 			piece_state_t state;
 
 			// the index of the piece
@@ -120,6 +120,8 @@ namespace libtorrent
 			block_info* info;
 			// the number of blocks in the finished state
 			boost::int16_t finished;
+			// the number of blocks in the writing state
+			boost::int16_t writing;
 			// the number of blocks in the requested state
 			boost::int16_t requested;
 		};
@@ -193,13 +195,16 @@ namespace libtorrent
 		// returns true if any client is currently downloading this
 		// piece-block, or if it's queued for downloading by some client
 		// or if it already has been successfully downloaded
-		bool is_downloading(piece_block block) const;
+		bool is_requested(piece_block block) const;
+		// returns true if the block has been downloaded
+		bool is_downloaded(piece_block block) const;
+		// returns true if the block has been downloaded and written to disk
 		bool is_finished(piece_block block) const;
 
 		// marks this piece-block as queued for downloading
 		void mark_as_downloading(piece_block block, tcp::endpoint const& peer
 			, piece_state_t s);
-		void mark_as_writing(piece_block block);
+		void mark_as_writing(piece_block block, tcp::endpoint const& peer);
 		void mark_as_finished(piece_block block, tcp::endpoint const& peer);
 
 		// if a piece had a hash-failure, it must be restored and

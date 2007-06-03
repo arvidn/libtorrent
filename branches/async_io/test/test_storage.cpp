@@ -10,6 +10,7 @@
 #include <boost/thread/mutex.hpp>
 
 #include "test.hpp"
+#include "setup_transfer.hpp"
 
 using namespace libtorrent;
 using namespace boost::filesystem;
@@ -103,11 +104,11 @@ void run_storage_tests(torrent_info& info, bool compact_allocation = true)
 
 	TEST_CHECK(exists("temp_storage"));
 	pm->async_move_storage("temp_storage2");
-	sleep(1000);
+	test_sleep(2000);
 	TEST_CHECK(!exists("temp_storage"));
 	TEST_CHECK(exists("temp_storage2/temp_storage"));
 	pm->async_move_storage(".");
-	sleep(1000);
+	test_sleep(2000);
 	TEST_CHECK(!exists("temp_storage2/temp_storage"));	
 	remove_all("temp_storage2");
 

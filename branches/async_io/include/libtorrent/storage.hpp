@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/peer_request.hpp"
+#include "libtorrent/hasher.hpp"
 #include "libtorrent/config.hpp"
 
 namespace libtorrent
@@ -94,6 +95,15 @@ namespace libtorrent
 		std::string m_msg;
 	};
 
+	struct TORRENT_EXPORT partial_hash
+	{
+		partial_hash(): offset(0) {}
+		// the number of bytes in the piece that has been hashed
+		int offset;
+		// the sha-1 context
+		hasher h;
+	};
+
 	struct TORRENT_EXPORT storage_interface
 	{
 		// create directories and set file sizes
@@ -127,7 +137,7 @@ namespace libtorrent
 		virtual void swap_slots3(int slot1, int slot2, int slot3) = 0;
 
 		// returns the sha1-hash for the data at the given slot
-		virtual sha1_hash hash_for_slot(int slot) = 0;
+		virtual sha1_hash hash_for_slot(int slot, partial_hash& h) = 0;
 
 		// this will close all open files that are opened for
 		// writing. This is called when a torrent has finished
@@ -320,6 +330,8 @@ namespace libtorrent
 		// build the first time it is used (to save time if it
 		// isn't needed) 				
 		std::multimap<sha1_hash, int> m_hash_to_piece;
+	
+		std::map<int, partial_hash> m_piece_hasher;
 
 		disk_io_thread& m_io_thread;
 	};

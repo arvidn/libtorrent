@@ -145,7 +145,7 @@ namespace libtorrent
 						{
 							sha1_hash h = j.storage->hash_for_piece_impl(j.piece);
 							j.str.resize(20);
-							std::copy(h.begin(), h.end(), j.str.begin());
+							std::memcpy(&j.str[0], &h[0], 20);
 						}
 						break;
 					case disk_io_job::move_storage:

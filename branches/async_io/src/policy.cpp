@@ -230,7 +230,7 @@ namespace libtorrent
 		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
 			i != interesting_pieces.end(); ++i)
 		{
-			if (p.is_downloading(*i))
+			if (p.is_requested(*i))
 			{
 				busy_pieces.push_back(*i);
 				continue;

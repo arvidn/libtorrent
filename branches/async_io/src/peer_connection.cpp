@@ -1106,11 +1106,11 @@ namespace libtorrent
 		}
 		else
 		{
-			// cancel the block from the
+/*			// cancel the block from the
 			// peer that has taken over it.
 			boost::optional<tcp::endpoint> peer
 				= t->picker().get_downloader(block_finished);
-			if (peer && t->picker().is_downloading(block_finished))
+			if (peer && t->picker().is_requested(block_finished))
 			{
 				peer_connection* pc = t->connection_for(*peer);
 				if (pc && pc != this)
@@ -1120,7 +1120,7 @@ namespace libtorrent
 				}
 			}
 			else
-			{
+*/			{
 				if (t->alerts().should_post(alert::debug))
 				{
 					t->alerts().post_alert(
@@ -1133,15 +1133,28 @@ namespace libtorrent
 				(*m_logger) << " *** The block we just got was not in the "
 					"request queue ***\n";
 #endif
+				t->received_redundant_data(p.length);
+				if (!has_peer_choked())
+				{
+					request_a_block(*t, *this);
+					send_block_requests();
+				}
+				return;
 			}
 		}
 
+		assert(picker.is_requested(block_finished));
+
 		// if the block we got is already finished, then ignore it
-		if (picker.is_finished(block_finished))
+		if (picker.is_downloaded(block_finished))
 		{
-			t->received_redundant_data(t->block_size());
-			request_a_block(*t, *this);
-			send_block_requests();
+			t->received_redundant_data(p.length);
+
+			if (!has_peer_choked())
+			{
+				request_a_block(*t, *this);
+				send_block_requests();
+			}
 
 			if (request_peer && !request_peer->has_peer_choked() && !t->is_seed())
 			{
@@ -1153,7 +1166,7 @@ namespace libtorrent
 		
 		fs.async_write(p, data, bind(&peer_connection::on_disk_write_complete
 			, self(), _1, _2, p, t));
-		picker.mark_as_writing(block_finished);
+		picker.mark_as_writing(block_finished, m_remote);
 	
 		if (request_peer && !request_peer->has_peer_choked() && !t->is_seed())
 		{
@@ -1189,6 +1202,8 @@ namespace libtorrent
 
 		piece_picker& picker = t->picker();
 
+		assert(p.piece == j.piece);
+		assert(p.start == j.offset);
 		piece_block block_finished(p.piece, p.start / t->block_size());
 		picker.mark_as_finished(block_finished, m_remote);
 
@@ -1294,7 +1309,7 @@ namespace libtorrent
 		assert(block.piece_index < t->torrent_file().num_pieces());
 		assert(block.block_index >= 0);
 		assert(block.block_index < t->torrent_file().piece_size(block.piece_index));
-		assert(!t->picker().is_downloading(block));
+		assert(!t->picker().is_requested(block));
 
 		piece_picker::piece_state_t state;
 		peer_speed_t speed = peer_speed();
@@ -1320,7 +1335,7 @@ namespace libtorrent
 		assert(block.piece_index < t->torrent_file().num_pieces());
 		assert(block.block_index >= 0);
 		assert(block.block_index < t->torrent_file().piece_size(block.piece_index));
-		assert(t->picker().is_downloading(block));
+		assert(t->picker().is_requested(block));
 
 		t->picker().abort_download(block);
 
@@ -1547,6 +1562,8 @@ namespace libtorrent
 
 	void peer_connection::disconnect()
 	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
 		boost::intrusive_ptr<peer_connection> me(this);
 
 		INVARIANT_CHECK;
@@ -1811,8 +1828,11 @@ namespace libtorrent
 				
 				m_assume_fifo = true;
 
-				request_a_block(*t, *this);
-				send_block_requests();
+				if (!has_peer_choked())
+				{
+					request_a_block(*t, *this);
+					send_block_requests();
+				}
 			}
 		}
 
@@ -1951,7 +1971,7 @@ namespace libtorrent
 
 		m_reading_bytes -= r.length;
 
-		if (ret != r.length)
+		if (ret != r.length || m_torrent.expired())
 		{
 			boost::shared_ptr<torrent> t = m_torrent.lock();
 			if (!t)
