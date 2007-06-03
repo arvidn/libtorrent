@@ -78,10 +78,71 @@ namespace libtorrent
 		m_signal.notify_all();
 	}
 
+	bool range_overlap(int start1, int length1, int start2, int length2)
+	{
+		return (start1 <= start2 && start1 + length1 > start2)
+			|| (start2 <= start1 && start2 + length2 > start1);
+	}
+	
+	namespace
+	{
+		bool operator<(disk_io_job const& lhs, disk_io_job const& rhs)
+		{
+			if (lhs.storage.get() < rhs.storage.get()) return true;
+			if (lhs.storage.get() > rhs.storage.get()) return false;
+			if (lhs.piece < rhs.piece) return true;
+			if (lhs.piece > rhs.piece) return false;
+			if (lhs.offset < rhs.offset) return true;
+//			if (lhs.offset > rhs.offset) return false;
+			return false;
+		}
+	}
+	
 	void disk_io_thread::add_job(disk_io_job const& j)
 	{
 		boost::mutex::scoped_lock l(m_mutex);
-		m_jobs.push_back(j);
+		
+		std::deque<disk_io_job>::reverse_iterator i = m_jobs.rbegin();
+		if (j.action == disk_io_job::read)
+		{
+			// when we're reading, we may not skip
+			// ahead of any write operation that overlaps
+			// the region we're reading
+			for (; i != m_jobs.rend(); ++i)
+			{
+				if (i->action == disk_io_job::read && *i < j)
+					break;
+				if (i->action == disk_io_job::write
+					&& i->storage == j.storage
+					&& i->piece == j.piece
+					&& range_overlap(i->offset, i->buffer_size
+						, j.offset, j.buffer_size))
+				{
+					// we have to stop, and we haven't
+					// found a suitable place for this job
+					// so just queue it up at the end
+					i = m_jobs.rbegin();
+					break;
+				}
+			}
+		}
+		else if (j.action == disk_io_job::write)
+		{
+			for (; i != m_jobs.rend(); ++i)
+			{
+				if (i->action == disk_io_job::write && *i < j)
+				{
+					if (i != m_jobs.rbegin()
+						&& i.base()->storage.get() != j.storage.get())
+						i = m_jobs.rbegin();
+					break;
+				}
+			}
+		}
+		
+		if (i == m_jobs.rend()) i = m_jobs.rbegin();
+
+		m_jobs.insert(i.base(), j);
 		if (j.action == disk_io_job::write)
 			m_queue_buffer_size += j.buffer_size;
 		assert(j.storage.get());
@@ -158,7 +219,7 @@ namespace libtorrent
 			}
 			catch (std::exception& e)
 			{
-				std::cerr << "DISK THREAD: exception: " << e.what() << std::endl;
+//				std::cerr << "DISK THREAD: exception: " << e.what() << std::endl;
 				j.str = e.what();
 				ret = -1;
 			}

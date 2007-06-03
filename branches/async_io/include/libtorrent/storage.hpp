@@ -221,6 +221,10 @@ namespace libtorrent
 		bool compact_allocation() const
 		{ return m_compact_mode; }
 
+#ifndef NDEBUG
+		std::string name() const { return m_info.name(); }
+#endif
+		
 	private:
 
 		bool allocate_slots(int num_slots, bool abort_on_disk = false);
