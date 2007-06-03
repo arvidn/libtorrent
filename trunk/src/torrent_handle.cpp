@@ -727,7 +727,7 @@ namespace libtorrent
 		{
 			peer_connection* peer = i->second;
 
-			// peers that haven't finished the handshake should
+			// incoming peers that haven't finished the handshake should
 			// not be included in this list
 			if (peer->associated_torrent().expired()) continue;
 

@@ -2549,8 +2549,8 @@ namespace libtorrent
 		torrent_status st;
 
 		st.num_peers = (int)std::count_if(m_connections.begin(), m_connections.end(),
-			boost::bind<bool>(std::logical_not<bool>(), boost::bind(&peer_connection::is_connecting,
-			boost::bind(&std::map<tcp::endpoint,peer_connection*>::value_type::second, _1))));
+			!boost::bind(&peer_connection::is_connecting
+			, boost::bind(&std::map<tcp::endpoint,peer_connection*>::value_type::second, _1)));
 
 		st.num_complete = m_complete;
 		st.num_incomplete = m_incomplete;
@@ -2671,10 +2671,10 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		return (int)std::count_if(m_connections.begin(),	m_connections.end(),
-			boost::bind(&peer_connection::is_seed,
-				boost::bind(&std::map<tcp::endpoint
-					,peer_connection*>::value_type::second, _1)));
+		return (int)std::count_if(m_connections.begin(), m_connections.end()
+			, boost::bind(&peer_connection::is_seed
+				, boost::bind(&std::map<tcp::endpoint
+					, peer_connection*>::value_type::second, _1)));
 	}
 
 	void torrent::tracker_request_timed_out(
