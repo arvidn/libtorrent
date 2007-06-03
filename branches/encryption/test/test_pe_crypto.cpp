@@ -57,7 +57,7 @@ void display_pe_settings(libtorrent::pe_settings s)
 	
 	cerr << "out_enc_policy - ";
 	display_pe_policy(s.out_enc_policy);
-	cerr << "\nin_enc_policy - ";
+	cerr << "\tin_enc_policy - ";
 	display_pe_policy(s.in_enc_policy);
 	
 	cerr << "\nenc_level - ";
@@ -65,7 +65,7 @@ void display_pe_settings(libtorrent::pe_settings s)
 	else if (s.allowed_enc_level == pe_settings::rc4) cerr << "rc4 ";
 	else if (s.allowed_enc_level == pe_settings::both) cerr << "both ";
 	
-	cerr << "\nprefer_rc4 - ";
+	cerr << "\t\tprefer_rc4 - ";
 	(s.prefer_rc4) ? cerr << "true" : cerr << "false";
 	cerr << "\n\n";
 }
