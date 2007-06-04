@@ -82,8 +82,6 @@ BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 #endif
 
 
-namespace fs = boost::filesystem;
-
 namespace
 {
 	enum { mode_in = 1, mode_out = 2 };
@@ -129,6 +127,8 @@ namespace
 
 namespace libtorrent
 {
+
+	namespace fs = boost::filesystem;
 
 	const file::open_mode file::in(mode_in);
 	const file::open_mode file::out(mode_out);
@@ -303,13 +303,13 @@ namespace libtorrent
 
 	file::file() : m_impl(new impl()) {}
 
-	file::file(boost::filesystem::path const& p, file::open_mode m)
+	file::file(fs::path const& p, file::open_mode m)
 		: m_impl(new impl(p, m.m_mask))
 	{}
 
 	file::~file() {}
 
-	void file::open(boost::filesystem::path const& p, file::open_mode m)
+	void file::open(fs::path const& p, file::open_mode m)
 	{
 		m_impl->open(p, m.m_mask);
 	}

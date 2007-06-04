@@ -62,10 +62,12 @@ namespace pt = boost::posix_time;
 namespace gr = boost::gregorian;
 
 using namespace libtorrent;
-using namespace boost::filesystem;
 
 namespace
 {
+	
+	namespace fs = boost::filesystem;
+
 	void convert_to_utf8(std::string& str, unsigned char chr)
 	{
 		str += 0xc0 | ((chr & 0xff) >> 6);
@@ -153,7 +155,7 @@ namespace
 		// encoded string
 		if (!valid_encoding)
 		{
-			target.orig_path.reset(new path(target.path));
+			target.orig_path.reset(new fs::path(target.path));
 			target.path = tmp_path;
 		}
 	}
@@ -203,8 +205,8 @@ namespace
 			offset += target.back().size;
 		}
 	}
-
-	void remove_dir(path& p)
+/*
+	void remove_dir(fs::path& p)
 	{
 		assert(p.begin() != p.end());
 		path tmp;
@@ -212,6 +214,7 @@ namespace
 			tmp /= *i;
 		p = tmp;
 	}
+*/
 }
 
 namespace libtorrent
@@ -323,7 +326,7 @@ namespace libtorrent
 		else
 		{ m_name = info["name"].string(); }
 		
-		path tmp = m_name;
+		fs::path tmp = m_name;
 		if (tmp.is_complete()) throw std::runtime_error("torrent contains "
 			"a file with an absolute path: '" + m_name + "'");
 		if (tmp.has_branch_path()) throw std::runtime_error(
@@ -526,9 +529,9 @@ namespace libtorrent
 			, bind(&announce_entry::tier, _1), bind(&announce_entry::tier, _2)));
 	}
 
-	void torrent_info::add_file(boost::filesystem::path file, size_type size)
+	void torrent_info::add_file(fs::path file, size_type size)
 	{
-		assert(file.begin() != file.end());
+//		assert(file.begin() != file.end());
 
 		if (!file.has_branch_path())
 		{
@@ -589,8 +592,6 @@ namespace libtorrent
 
 	entry torrent_info::create_info_metadata() const
 	{
-		namespace fs = boost::filesystem;
-
 		// you have to add files to the torrent first
 		assert(!m_files.empty());
 	
@@ -649,8 +650,6 @@ namespace libtorrent
 	entry torrent_info::create_torrent() const
 	{
 		assert(m_piece_length > 0);
-
-		namespace fs = boost::filesystem;
 
 		if ((m_urls.empty() && m_nodes.empty()) || m_files.empty())
 		{

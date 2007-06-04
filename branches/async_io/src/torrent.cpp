@@ -152,7 +152,7 @@ namespace libtorrent
 		session_impl& ses
 		, aux::checker_impl& checker
 		, torrent_info const& tf
-		, boost::filesystem::path const& save_path
+		, fs::path const& save_path
 		, tcp::endpoint const& net_interface
 		, bool compact_mode
 		, int block_size
@@ -225,7 +225,7 @@ namespace libtorrent
 		, char const* tracker_url
 		, sha1_hash const& info_hash
 		, char const* name
-		, boost::filesystem::path const& save_path
+		, fs::path const& save_path
 		, tcp::endpoint const& net_interface
 		, bool compact_mode
 		, int block_size

@@ -80,6 +80,8 @@ using libtorrent::aux::session_impl;
 
 namespace libtorrent
 {
+	namespace fs = boost::filesystem;
+
 	namespace
 	{
 		void throw_invalid_handle()
@@ -619,11 +621,11 @@ namespace libtorrent
 	}
 
 
-	boost::filesystem::path torrent_handle::save_path() const
+	fs::path torrent_handle::save_path() const
 	{
 		INVARIANT_CHECK;
 
-		return call_member<boost::filesystem::path>(m_ses, m_chk, m_info_hash
+		return call_member<fs::path>(m_ses, m_chk, m_info_hash
 			, bind(&torrent::save_path, _1));
 	}
 

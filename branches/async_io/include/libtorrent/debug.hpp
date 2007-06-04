@@ -53,15 +53,16 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	// DEBUG API
+	
+	namespace fs = boost::filesystem;
 
 	struct logger
 	{
-		logger(boost::filesystem::path const& filename, int instance, bool append = true)
+		logger(fs::path const& filename, int instance, bool append = true)
 		{
-			using namespace boost::filesystem;
-			path dir(complete("libtorrent_logs" + boost::lexical_cast<std::string>(instance)));
-			if (!exists(dir)) create_directories(dir);
-			m_file.open(dir / filename, std::ios_base::out | (append ? std::ios_base::app : std::ios_base::out));
+			fs::path dir(fs::complete("libtorrent_logs" + boost::lexical_cast<std::string>(instance)));
+			if (!fs::exists(dir)) fs::create_directories(dir);
+			m_file.open((dir / filename).string().c_str(), std::ios_base::out | (append ? std::ios_base::app : std::ios_base::out));
 			*this << "\n\n\n*** starting log ***\n";
 		}
 
@@ -73,7 +74,7 @@ namespace libtorrent
 			return *this;
 		}
 
-		boost::filesystem::ofstream m_file;
+		std::ofstream m_file;
 	};
 
 }

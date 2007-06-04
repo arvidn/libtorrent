@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/exception.hpp>
 #include <boost/bind.hpp>

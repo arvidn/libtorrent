@@ -53,17 +53,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/peer_connection.hpp"
 
-namespace libtorrent { namespace
+namespace libtorrent {
+
+namespace fs = boost::filesystem;
+
+namespace
 {
 
 	struct logger_peer_plugin : peer_plugin
 	{
 		logger_peer_plugin(std::string const& filename)
 		{
-			using namespace boost::filesystem;
-			path dir(complete("libtorrent_ext_logs"));
-			if (!exists(dir)) create_directories(dir);
-			m_file.open(dir / filename, std::ios_base::out | std::ios_base::out);
+			fs::path dir(fs::complete("libtorrent_ext_logs"));
+			if (!fs::exists(dir)) fs::create_directories(dir);
+			m_file.open((dir / filename).string().c_str(), std::ios_base::out | std::ios_base::out);
 			m_file << "\n\n\n";
 			log_timestamp();
 			m_file << "*** starting log ***\n";
@@ -201,7 +204,7 @@ namespace libtorrent { namespace
 		}
 
 	private:
-		boost::filesystem::ofstream m_file;
+		std::ofstream m_file;
 	};
 
 	struct logger_plugin : torrent_plugin

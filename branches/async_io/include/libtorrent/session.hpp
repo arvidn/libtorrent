@@ -75,6 +75,8 @@ namespace libtorrent
 	class port_filter;
 	class connection_queue;
 
+	namespace fs = boost::filesystem;
+
 	namespace aux
 	{
 		// workaround for microsofts
@@ -136,7 +138,7 @@ namespace libtorrent
 		// all torrent_handles must be destructed before the session is destructed!
 		torrent_handle add_torrent(
 			torrent_info const& ti
-			, boost::filesystem::path const& save_path
+			, fs::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
 			, int block_size = 16 * 1024
@@ -145,7 +147,7 @@ namespace libtorrent
 		// TODO: deprecated, this is for backwards compatibility only
 		torrent_handle add_torrent(
 			entry const& e
-			, boost::filesystem::path const& save_path
+			, fs::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
 			, int block_size = 16 * 1024
@@ -159,7 +161,7 @@ namespace libtorrent
 			char const* tracker_url
 			, sha1_hash const& info_hash
 			, char const* name
-			, boost::filesystem::path const& save_path
+			, fs::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
 			, int block_size = 16 * 1024

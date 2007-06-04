@@ -38,8 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/shared_ptr.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/filesystem/fstream.hpp>
-#include <boost/filesystem/convenience.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)

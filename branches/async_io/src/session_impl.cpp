@@ -81,7 +81,11 @@ using boost::bind;
 using boost::mutex;
 using libtorrent::aux::session_impl;
 
-namespace libtorrent { namespace detail
+namespace libtorrent {
+
+namespace fs = boost::filesystem;
+
+namespace detail
 {
 
 	std::string generate_auth_string(std::string const& user
@@ -1273,7 +1277,7 @@ namespace libtorrent { namespace detail
 
 	torrent_handle session_impl::add_torrent(
 		torrent_info const& ti
-		, boost::filesystem::path const& save_path
+		, fs::path const& save_path
 		, entry const& resume_data
 		, bool compact_mode
 		, int block_size
@@ -1364,7 +1368,7 @@ namespace libtorrent { namespace detail
 		char const* tracker_url
 		, sha1_hash const& info_hash
 		, char const* name
-		, boost::filesystem::path const& save_path
+		, fs::path const& save_path
 		, entry const&
 		, bool compact_mode
 		, int block_size
