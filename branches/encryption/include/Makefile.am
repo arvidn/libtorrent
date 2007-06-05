@@ -44,6 +44,7 @@ libtorrent/session_status.hpp \
 libtorrent/size_type.hpp \
 libtorrent/socket.hpp \
 libtorrent/socket_type.hpp \
+libtorrent/socks4_stream.hpp \
 libtorrent/socks5_stream.hpp \
 libtorrent/stat.hpp \
 libtorrent/storage.hpp \

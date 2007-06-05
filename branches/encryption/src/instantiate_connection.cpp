@@ -67,6 +67,12 @@ namespace libtorrent
 			if (ps.type == proxy_settings::socks5_pw)
 				s->get<socks5_stream>().set_username(ps.username, ps.password);
 		}
+		else if (ps.type == proxy_settings::socks4)
+		{
+			s->instantiate<socks4_stream>();
+			s->get<socks4_stream>().set_proxy(ps.hostname, ps.port);
+			s->get<socks4_stream>().set_username(ps.username);
+		}
 		else
 		{
 			throw std::runtime_error("unsupported proxy type");

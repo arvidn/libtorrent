@@ -143,6 +143,11 @@ namespace libtorrent
 		m_impl->set_ip_filter(f);
 	}
 
+	void session::set_port_filter(port_filter const& f)
+	{
+		m_impl->set_port_filter(f);
+	}
+
 	void session::set_peer_id(peer_id const& id)
 	{
 		m_impl->set_peer_id(id);
@@ -372,6 +377,36 @@ namespace libtorrent
 		m_impl->set_severity_level(s);
 	}
 
+	void session::start_lsd()
+	{
+		m_impl->start_lsd();
+	}
+	
+	void session::start_natpmp()
+	{
+		m_impl->start_natpmp();
+	}
+	
+	void session::start_upnp()
+	{
+		m_impl->start_upnp();
+	}
+	
+	void session::stop_lsd()
+	{
+		m_impl->stop_lsd();
+	}
+	
+	void session::stop_natpmp()
+	{
+		m_impl->stop_natpmp();
+	}
+	
+	void session::stop_upnp()
+	{
+		m_impl->stop_upnp();
+	}
+	
 	connection_queue& session::get_connection_queue()
 	{
 		return m_impl->m_half_open;

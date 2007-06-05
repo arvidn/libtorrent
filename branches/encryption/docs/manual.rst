@@ -2194,6 +2194,11 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int max_failcount;
 		int min_reconnect_time;
 		int peer_connect_timeout;
+		bool ignore_limits_on_local_network;
+		int connection_speed;
+		int send_redundant_have;
+		bool lazy_bitfields;
+		int inactivity_timeout;
 		bool use_dht_as_fallback;
 	};
 
@@ -2294,6 +2299,26 @@ The default is 10 seconds. This setting is especially important in case
 the number of half-open connections are limited, since stale half-open
 connection may delay the connection of other peers considerably.
 
+``ignore_limits_on_local_network``, if set to true, upload, download and
+unchoke limits are ignored for peers on the local network.
+
+``connection_speed`` is the number of connection attempts that
+are made per second.
+
+``send_redundant_have`` controls if have messages will be sent
+to peers that already have the piece. This is typically not necessary,
+but it might be necessary for collecting statistics in some cases.
+Default is false.
+
+``lazy_bitfields`` prevents outgoing bitfields from being full. If the
+client is seed, a few bits will be set to 0, and later filled in with
+have-messages. This is to prevent certain ISPs from stopping people
+from seeding.
+
+``inactivity_timeout``, if a peer is uninteresting and uninterested
+for longer than this number of seconds, it will be disconnected.
+Default is 10 minutes
+
 ``use_dht_as_fallback`` determines how the DHT is used. If this is true
 (which it is by default), the DHT will only be used for torrents where
 all trackers in its tracker list has failed. Either by an explicit error
@@ -2380,6 +2405,7 @@ direct certain traffic to a proxy.
 			enum proxy_type
 			{
 				none,
+				socks4,
 				socks5,
 				socks5_pw,
 				http,
@@ -2399,6 +2425,9 @@ options are available:
  * ``none`` - This is the default, no proxy server is used, all other fields
    are ignored.
 
+ * ``socks4`` - The server is assumed to be a `SOCKS4 server`_ that
+   requires a username.
+
  * ``socks5`` - The server is assumed to be a SOCKS5 server (`RFC 1928`_) that
    does not require any authentication. The username and password are ignored.
 
@@ -2415,7 +2444,7 @@ options are available:
  * ``http_pw`` - The server is assumed to be an HTTP proxy that requires
    user authorization. The username and password will be sent to the proxy.
 
-
+.. _`SOCKS4 server`: http://www.ufasoft.com/doc/socks4_protocol.htm
 .. _`RFC 1928`: http://www.faqs.org/rfcs/rfc1928.html
 .. _`RFC 1929`: http://www.faqs.org/rfcs/rfc1929.html
 .. _CONNECT: draft-luotonen-web-proxy-tunneling-01.txt

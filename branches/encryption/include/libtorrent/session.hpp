@@ -72,6 +72,7 @@ namespace libtorrent
 	struct torrent_plugin;
 	class torrent;
 	class ip_filter;
+	class port_filter;
 	class connection_queue;
 
 	namespace aux
@@ -187,6 +188,7 @@ namespace libtorrent
 #endif
 
 		void set_ip_filter(ip_filter const& f);
+		void set_port_filter(port_filter const& f);
 		void set_peer_id(peer_id const& pid);
 		void set_key(int key);
 
@@ -249,6 +251,16 @@ namespace libtorrent
 
 		connection_queue& get_connection_queue();
 
+		// starts/stops UPnP, NATPMP or LSD port mappers
+		// they are stopped by default
+		void start_lsd();
+		void start_natpmp();
+		void start_upnp();
+
+		void stop_lsd();
+		void stop_natpmp();
+		void stop_upnp();
+		
 		// Resource management used for global limits.
 		resource_request m_ul_bandwidth_quota;
 		resource_request m_dl_bandwidth_quota;

@@ -524,6 +524,8 @@ namespace libtorrent
 		int max_failcount = m_torrent->settings().max_failcount;
 		int min_reconnect_time = m_torrent->settings().min_reconnect_time;
 
+		aux::session_impl& ses = m_torrent->session();
+
 		for (iterator i = m_peers.begin(); i != m_peers.end(); ++i)
 		{
 			if (i->connection) continue;
@@ -532,6 +534,8 @@ namespace libtorrent
 			if (i->seed && m_torrent->is_seed()) continue;
 			if (i->failcount >= max_failcount) continue;
 			if (now - i->connected < seconds(i->failcount * min_reconnect_time))
+				continue;
+			if (ses.m_port_filter.access(i->ip.port()) & port_filter::blocked)
 				continue;
 
 			assert(i->connected <= now);
@@ -968,6 +972,19 @@ namespace libtorrent
 		if(remote.address() == address() || remote.port() == 0)
 			return;
 
+		aux::session_impl& ses = m_torrent->session();
+
+		port_filter const& pf = ses.m_port_filter;
+		if (pf.access(remote.port()) & port_filter::blocked)
+		{
+			if (ses.m_alerts.should_post(alert::info))
+			{
+				ses.m_alerts.post_alert(peer_blocked_alert(remote.address()
+				, "outgoing port blocked, peer not added to peer list"));
+			}
+			return;
+		}
+
 		try
 		{
 			iterator i;
@@ -986,8 +1003,6 @@ namespace libtorrent
 			
 			if (i == m_peers.end())
 			{
-				aux::session_impl& ses = m_torrent->session();
-
 				// if the IP is blocked, don't add it
 				if (ses.m_ip_filter.access(remote.address()) & ip_filter::blocked)
 				{

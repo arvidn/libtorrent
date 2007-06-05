@@ -174,7 +174,9 @@ namespace libtorrent
 		, m_resolve_countries(false)
 #endif
 		, m_announce_timer(ses.m_io_service)
+#ifndef TORRENT_DISABLE_DHT
 		, m_last_dht_announce(time_now() - minutes(15))
+#endif
 		, m_policy()
 		, m_ses(ses)
 		, m_checker(checker)
@@ -245,7 +247,9 @@ namespace libtorrent
 		, m_resolve_countries(false)
 #endif
 		, m_announce_timer(ses.m_io_service)
+#ifndef TORRENT_DISABLE_DHT
 		, m_last_dht_announce(time_now() - minutes(15))
+#endif
 		, m_policy()
 		, m_ses(ses)
 		, m_checker(checker)
@@ -981,7 +985,19 @@ namespace libtorrent
 		return m_username + ":" + m_password;
 	}
 
+	void torrent::piece_availability(std::vector<int>& avail) const
+	{
+		INVARIANT_CHECK;
 
+		assert(valid_metadata());
+		if (is_seed())
+		{
+			avail.clear();
+			return;
+		}
+
+		m_picker->get_availability(avail);
+	}
 
 	void torrent::set_piece_priority(int index, int priority)
 	{
@@ -1806,7 +1822,8 @@ namespace libtorrent
 	bool torrent::want_more_peers() const
 	{
 		return int(m_connections.size()) < m_connections_quota.given
-			&& m_ses.m_half_open.free_slots();
+			&& m_ses.m_half_open.free_slots()
+			&& !m_paused;
 	}
 
 	void torrent::disconnect_all()
@@ -2532,8 +2549,8 @@ namespace libtorrent
 		torrent_status st;
 
 		st.num_peers = (int)std::count_if(m_connections.begin(), m_connections.end(),
-			boost::bind<bool>(std::logical_not<bool>(), boost::bind(&peer_connection::is_connecting,
-			boost::bind(&std::map<tcp::endpoint,peer_connection*>::value_type::second, _1))));
+			!boost::bind(&peer_connection::is_connecting
+			, boost::bind(&std::map<tcp::endpoint,peer_connection*>::value_type::second, _1)));
 
 		st.num_complete = m_complete;
 		st.num_incomplete = m_incomplete;
@@ -2654,10 +2671,10 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		return (int)std::count_if(m_connections.begin(),	m_connections.end(),
-			boost::bind(&peer_connection::is_seed,
-				boost::bind(&std::map<tcp::endpoint
-					,peer_connection*>::value_type::second, _1)));
+		return (int)std::count_if(m_connections.begin(), m_connections.end()
+			, boost::bind(&peer_connection::is_seed
+				, boost::bind(&std::map<tcp::endpoint
+					, peer_connection*>::value_type::second, _1)));
 	}
 
 	void torrent::tracker_request_timed_out(

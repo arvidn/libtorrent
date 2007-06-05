@@ -54,6 +54,8 @@ namespace libtorrent
 			// a plain tcp socket is used, and
 			// the other settings are ignored.
 			none,
+			// socks4 server, requires username.
+			socks4,
 			// the hostname and port settings are
 			// used to connect to the proxy. No
 			// username or password is sent.
@@ -102,6 +104,7 @@ namespace libtorrent
 			, connection_speed(20)
 			, send_redundant_have(false)
 			, lazy_bitfields(true)
+			, inactivity_timeout(600)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(true)
 #endif
@@ -225,6 +228,11 @@ namespace libtorrent
 		// in with have messages. This is to prevent certain ISPs
 		// from stopping people from seeding.
 		bool lazy_bitfields;
+
+		// if a peer is uninteresting and uninterested for longer
+		// than this number of seconds, it will be disconnected.
+		// default is 10 minutes
+		int inactivity_timeout;
 
 #ifndef TORRENT_DISABLE_DHT
 		// while this is true, the dht will note be used unless the

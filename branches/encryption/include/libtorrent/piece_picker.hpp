@@ -125,6 +125,8 @@ namespace libtorrent
 		piece_picker(int blocks_per_piece
 			, int total_num_blocks);
 
+		void get_availability(std::vector<int>& avail) const;
+
 		void set_sequenced_download_threshold(int sequenced_download_threshold);
 
 		// the vector tells which pieces we already have

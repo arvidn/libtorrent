@@ -229,6 +229,7 @@ namespace libtorrent
 			bool is_aborted() const { return m_abort; }
 
 			void set_ip_filter(ip_filter const& f);
+			void set_port_filter(port_filter const& f);
 
 			bool listen_on(
 				std::pair<int, int> const& port_range
@@ -304,6 +305,14 @@ namespace libtorrent
 			{ return m_dht_proxy; }
 #endif
 
+			void start_lsd();
+			void start_natpmp();
+			void start_upnp();
+
+			void stop_lsd();
+			void stop_natpmp();
+			void stop_upnp();
+
 			// handles delayed alerts
 			alert_manager m_alerts;
 			
@@ -348,6 +357,9 @@ namespace libtorrent
 			
 			// filters incoming connections
 			ip_filter m_ip_filter;
+
+			// filters outgoing connections
+			port_filter m_port_filter;
 			
 			// the peer id that is generated at the start of the session
 			peer_id m_peer_id;
@@ -427,9 +439,9 @@ namespace libtorrent
 			pe_settings m_pe_settings;
 #endif
 
-			natpmp m_natpmp;
-			upnp m_upnp;
-			lsd m_lsd;
+			boost::shared_ptr<natpmp> m_natpmp;
+			boost::shared_ptr<upnp> m_upnp;
+			boost::shared_ptr<lsd> m_lsd;
 
 			// the timer used to fire the second_tick
 			deadline_timer m_timer;

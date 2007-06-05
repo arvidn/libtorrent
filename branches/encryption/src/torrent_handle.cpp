@@ -352,6 +352,14 @@ namespace libtorrent
 	}
 
 
+	void torrent_handle::piece_availability(std::vector<int>& avail) const
+	{
+		INVARIANT_CHECK;
+
+		call_member<void>(m_ses, m_chk, m_info_hash
+			, bind(&torrent::piece_availability, _1, boost::ref(avail)));
+	}
+
 	void torrent_handle::piece_priority(int index, int priority) const
 	{
 		INVARIANT_CHECK;
@@ -556,9 +564,11 @@ namespace libtorrent
 				for (int j = 0; j < num_bitmask_bytes; ++j)
 				{
 					unsigned char v = 0;
-					for (int k = 0; k < 8; ++k)
+					int bits = std::min(num_blocks_per_piece - j*8, 8);
+					for (int k = 0; k < bits; ++k)
 						v |= i->info[j*8+k].finished?(1 << k):0;
 					bitmask.insert(bitmask.end(), v);
+					assert(bits == 8 || j == num_bitmask_bytes - 1);
 				}
 				piece_struct["bitmask"] = bitmask;
 
@@ -717,7 +727,7 @@ namespace libtorrent
 		{
 			peer_connection* peer = i->second;
 
-			// peers that haven't finished the handshake should
+			// incoming peers that haven't finished the handshake should
 			// not be included in this list
 			if (peer->associated_torrent().expired()) continue;
 

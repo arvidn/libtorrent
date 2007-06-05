@@ -171,6 +171,25 @@ int test_main()
 
 	}	
 
+	port_filter pf;
+
+	// default contructed port filter should allow any port
+	TEST_CHECK(pf.access(0) == 0);
+	TEST_CHECK(pf.access(65535) == 0);
+	TEST_CHECK(pf.access(6881) == 0);
+
+	// block port 100 - 300
+	pf.add_rule(100, 300, port_filter::blocked);
+
+	TEST_CHECK(pf.access(0) == 0);
+	TEST_CHECK(pf.access(99) == 0);
+	TEST_CHECK(pf.access(100) == port_filter::blocked);
+	TEST_CHECK(pf.access(150) == port_filter::blocked);
+	TEST_CHECK(pf.access(300) == port_filter::blocked);
+	TEST_CHECK(pf.access(301) == 0);
+	TEST_CHECK(pf.access(6881) == 0);
+	TEST_CHECK(pf.access(65535) == 0);
+
 	return 0;
 }
 

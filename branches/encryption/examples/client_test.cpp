@@ -644,6 +644,12 @@ int main(int ac, char* av[])
 		// monitor when they're not in the directory anymore.
 		handles_t handles;
 		session ses;
+		// UPnP port mapping
+		ses.start_upnp();
+		// NAT-PMP port mapping
+		ses.start_natpmp();
+		// Local service discovery (finds peers on the local network)
+		ses.start_lsd();
 		ses.add_extension(&create_metadata_plugin);
 		ses.add_extension(&create_ut_pex_plugin);
 
