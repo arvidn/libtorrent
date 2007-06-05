@@ -77,7 +77,6 @@ using namespace libtorrent;
 using boost::tuples::tuple;
 using boost::tuples::get;
 using boost::tuples::make_tuple;
-using boost::filesystem::complete;
 using boost::bind;
 using boost::mutex;
 using libtorrent::aux::session_impl;

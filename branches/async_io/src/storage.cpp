@@ -1086,14 +1086,13 @@ namespace libtorrent
 		j.piece = r.piece;
 		j.offset = r.start;
 		j.buffer_size = r.length;
-		j.callback = handler;
-		m_io_thread.add_job(j);
+		m_io_thread.add_job(j, handler);
 	}
 
 	void piece_manager::async_write(
 		peer_request const& r
 		, char const* buffer
-		, boost::function<void(int, disk_io_job const&)> const& f)
+		, boost::function<void(int, disk_io_job const&)> const& handler)
 	{
 		assert(r.length <= 16 * 1024);
 
@@ -1105,21 +1104,19 @@ namespace libtorrent
 		j.buffer_size = r.length;
 		j.buffer = m_io_thread.allocate_buffer();
 		if (j.buffer == 0) throw file_error("out of memory");
-		j.callback = f;
 		std::memcpy(j.buffer, buffer, j.buffer_size);
-		m_io_thread.add_job(j);
+		m_io_thread.add_job(j, handler);
 	}
 
 	void piece_manager::async_hash(int piece
-		, boost::function<void(int, disk_io_job const&)> const& f)
+		, boost::function<void(int, disk_io_job const&)> const& handler)
 	{
 		disk_io_job j;
 		j.storage = this;
 		j.action = disk_io_job::hash;
 		j.piece = piece;
-		j.callback = f;
 
-		m_io_thread.add_job(j);
+		m_io_thread.add_job(j, handler);
 	}
 
 	fs::path piece_manager::save_path() const

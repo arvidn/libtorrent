@@ -98,8 +98,10 @@ namespace libtorrent
 		}
 	}
 	
-	void disk_io_thread::add_job(disk_io_job const& j)
+	void disk_io_thread::add_job(disk_io_job const& j
+		, boost::function<void(int, disk_io_job const&)> const& f)
 	{
+		assert(!j.callback);
 		boost::mutex::scoped_lock l(m_mutex);
 		
 		std::deque<disk_io_job>::reverse_iterator i = m_jobs.rbegin();
@@ -142,7 +144,8 @@ namespace libtorrent
 		
 		if (i == m_jobs.rend()) i = m_jobs.rbegin();
 
-		m_jobs.insert(i.base(), j);
+		std::deque<disk_io_job>::iterator k = m_jobs.insert(i.base(), j);
+		k->callback.swap(const_cast<boost::function<void(int, disk_io_job const&)>&>(f));
 		if (j.action == disk_io_job::write)
 			m_queue_buffer_size += j.buffer_size;
 		assert(j.storage.get());
@@ -164,6 +167,8 @@ namespace libtorrent
 				m_signal.wait(l);
 			if (m_abort && m_jobs.empty()) return;
 
+			boost::function<void(int, disk_io_job const&)> handler;
+			handler.swap(m_jobs.front().callback);
 			disk_io_job j = m_jobs.front();
 			m_jobs.pop_front();
 			m_queue_buffer_size -= j.buffer_size;
@@ -224,9 +229,9 @@ namespace libtorrent
 				ret = -1;
 			}
 
-//			if (!j.callback) std::cerr << "DISK THREAD: no callback specified" << std::endl;
+//			if (!handler) std::cerr << "DISK THREAD: no callback specified" << std::endl;
 //			else std::cerr << "DISK THREAD: invoking callback" << std::endl;
-			try { if (j.callback) j.callback(ret, j); }
+			try { if (handler) handler(ret, j); }
 			catch (std::exception&) {}
 			
 			if (j.buffer) m_pool.ordered_free(j.buffer);

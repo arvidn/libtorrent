@@ -85,7 +85,9 @@ namespace libtorrent
 
 		// aborts read operations
 		void stop(boost::intrusive_ptr<piece_manager> s);
-		void add_job(disk_io_job const& j);
+		void add_job(disk_io_job const& j
+			, boost::function<void(int, disk_io_job const&)> const& f
+			= boost::function<void(int, disk_io_job const&)>());
 
 		// keep track of the number of bytes in the job queue
 		// at any given time. i.e. the sum of all buffer_size.
