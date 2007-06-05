@@ -81,22 +81,24 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000));
 	pe_settings s;
 	
-	s.out_enc_policy = policy;
-	s.in_enc_policy = policy;
+	s.out_enc_policy = libtorrent::pe_settings::enabled;
+	s.in_enc_policy = libtorrent::pe_settings::enabled;
 	
 	s.allowed_enc_level = pe_settings::both;
-	ses1.set_pe_settings(s);
-
-	s.allowed_enc_level = level;
-	s.prefer_rc4 = pref_rc4;
 	ses2.set_pe_settings(s);
 
-	s = ses1.get_pe_settings();
-	cerr << " Session1 \n";
-	display_pe_settings(s);
-	s = ses2.get_pe_settings();
-	cerr << " Session2 \n";
-	display_pe_settings(s);
+	s.out_enc_policy = policy;
+	s.in_enc_policy = policy;
+	s.allowed_enc_level = level;
+	s.prefer_rc4 = pref_rc4;
+	ses1.set_pe_settings(s);
+
+// 	s = ses1.get_pe_settings();
+// 	cerr << " Session1 \n";
+// 	display_pe_settings(s);
+// 	s = ses2.get_pe_settings();
+// 	cerr << " Session2 \n";
+// 	display_pe_settings(s);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
@@ -122,7 +124,7 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 	}
 
 	TEST_CHECK(tor2.is_seed());
-	if (tor2.is_seed()) std::cerr << "done\n";
+ 	if (tor2.is_seed()) std::cerr << "done\n";
 }
 
 
@@ -159,16 +161,16 @@ int test_main()
 		char* buf = new char[buf_len];
 		char* zero_buf = new char[buf_len];
 		
-		std::fill(buf, buf + sizeof(buf), 0);
-		std::fill(zero_buf, zero_buf + sizeof(zero_buf), 0);
+		std::fill(buf, buf + buf_len, 0);
+		std::fill(zero_buf, zero_buf + buf_len, 0);
 		
 		RC41.encrypt(buf, buf_len);
 		RC42.decrypt(buf, buf_len);
-		TEST_CHECK(std::equal(buf, buf + sizeof(buf), zero_buf));
+		TEST_CHECK(std::equal(buf, buf + buf_len, zero_buf));
 		
 		RC42.encrypt(buf, buf_len);
 		RC41.decrypt(buf, buf_len);
-		TEST_CHECK(std::equal(buf, buf + sizeof(buf), zero_buf));
+		TEST_CHECK(std::equal(buf, buf + buf_len, zero_buf));
 		
 		delete[] buf;
 		delete[] zero_buf;

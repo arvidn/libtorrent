@@ -1184,7 +1184,7 @@ namespace libtorrent
 		for (int c = 0; c < num_pieces; ++c)
 		{
 			if (lazy_piece < num_lazy_pieces
-				&& lazy_pieces[lazy_piece])
+				&& lazy_pieces[lazy_piece] == c)
 			{
 				++lazy_piece;
 				continue;
