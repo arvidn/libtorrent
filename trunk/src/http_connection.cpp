@@ -237,7 +237,7 @@ void http_connection::on_read(asio::error_code const& e
 			data = m_parser.get_body().begin;
 			size = m_parser.get_body().left();
 		}
-		m_handler(asio::error_code(), m_parser, data, size);
+		m_handler(e, m_parser, data, size);
 		return;
 	}
 
