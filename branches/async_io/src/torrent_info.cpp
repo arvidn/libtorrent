@@ -280,6 +280,29 @@ namespace libtorrent
 	torrent_info::~torrent_info()
 	{}
 
+	void torrent_info::swap(torrent_info& ti)
+	{
+		using std::swap;
+		m_urls.swap(ti.m_urls);
+		m_url_seeds.swap(ti.m_url_seeds);
+		swap(m_piece_length, ti.m_piece_length);
+		m_piece_hash.swap(ti.m_piece_hash);
+		m_files.swap(ti.m_files);
+		m_nodes.swap(ti.m_nodes);
+		swap(m_num_pieces, ti.m_num_pieces);
+		swap(m_info_hash, ti.m_info_hash);
+		m_name.swap(ti.m_name);
+		swap(m_creation_date, ti.m_creation_date);
+		m_comment.swap(ti.m_comment);
+		m_created_by.swap(ti.m_created_by);
+		swap(m_multifile, ti.m_multifile);
+		swap(m_private, ti.m_private);
+		m_extra_info.swap(ti.m_extra_info);
+#ifndef NDEBUG
+		swap(m_half_metadata, ti.m_half_metadata);
+#endif
+	}
+
 	void torrent_info::set_piece_size(int size)
 	{
 		// make sure the size is an even power of 2

@@ -57,6 +57,8 @@ namespace libtorrent
 				delete static_cast<T const*>(s);
 		}
 
+		int refcount() const { return m_refs; }
+
 		intrusive_ptr_base(): m_refs(0) {}
 	private:
 		// reference counter for intrusive_ptr

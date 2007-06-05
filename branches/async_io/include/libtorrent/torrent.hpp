@@ -516,7 +516,7 @@ namespace libtorrent
 		bool ready_for_connections() const
 		{ return m_connections_initialized; }
 		bool valid_metadata() const
-		{ return m_storage.get() != 0; }
+		{ return m_torrent_file.is_valid(); }
 
 		// parses the info section from the given
 		// bencoded tree and moves the torrent
@@ -561,7 +561,27 @@ namespace libtorrent
 		// if this pointer is 0, the torrent is in
 		// a state where the metadata hasn't been
 		// received yet.
-		boost::intrusive_ptr<piece_manager> m_storage;
+		// the piece_manager keeps the torrent object
+		// alive by holding a shared_ptr to it and
+		// the torrent keeps the piece manager alive
+		// with this intrusive_ptr. This cycle is
+		// broken when torrent::abort() is called
+		// Then the torrent releases the piece_manager
+		// and when the piece_manager is complete with all
+		// outstanding disk io jobs (that keeps
+		// the piece_manager alive) it will destruct
+		// and release the torrent file. The reason for
+		// this is that the torrent_info is used by
+		// the piece_manager, and stored in the
+		// torrent, so the torrent cannot destruct
+		// before the piece_manager.
+		boost::intrusive_ptr<piece_manager> m_owning_storage;
+
+		// this is a weak (non owninig) pointer to
+		// the piece_manager. This is used after the torrent
+		// has been aborted, and it can no longer own
+		// the object.
+		piece_manager* m_storage;
 
 		// the time of next tracker request
 		ptime m_next_request;

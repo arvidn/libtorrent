@@ -204,8 +204,6 @@ namespace libtorrent
 		m_initial_done = 0;
 #endif
 
-		INVARIANT_CHECK;
-
 		m_uploads_quota.min = 2;
 		m_connections_quota.min = 2;
 		// this will be corrected the next time the main session
@@ -214,7 +212,6 @@ namespace libtorrent
 		m_uploads_quota.max = std::numeric_limits<int>::max();
 		m_connections_quota.max = std::numeric_limits<int>::max();
 		m_policy.reset(new policy(this));
-		init();
 	}
 
 
@@ -299,6 +296,7 @@ namespace libtorrent
 	void torrent::start()
 	{
 		boost::weak_ptr<torrent> self(shared_from_this());
+		if (m_torrent_file.is_valid()) init();
 		m_announce_timer.expires_from_now(seconds(1));
 		m_announce_timer.async_wait(m_ses.m_strand.wrap(
 			bind(&torrent::on_announce_disp, self, _1)));
@@ -331,8 +329,7 @@ namespace libtorrent
 		
 		INVARIANT_CHECK;
 
-		if (m_ses.is_aborted())
-			m_abort = true;
+		assert(m_abort);
 		if (!m_connections.empty())
 			disconnect_all();
 	}
@@ -351,17 +348,20 @@ namespace libtorrent
 	}
 #endif
 
+	// this may not be called from a constructor because of the call to
+	// shared_from_this()
 	void torrent::init()
 	{
-		INVARIANT_CHECK;
-
 		assert(m_torrent_file.is_valid());
 		assert(m_torrent_file.num_files() > 0);
 		assert(m_torrent_file.total_size() >= 0);
 
 		m_have_pieces.resize(m_torrent_file.num_pieces(), false);
-		m_storage = new piece_manager(m_torrent_file, m_save_path
+		// the shared_from_this() will create an intentional
+		// cycle of ownership, se the hpp file for description.
+		m_owning_storage = new piece_manager(shared_from_this(), m_save_path
 			, m_ses.m_files, m_ses.m_disk_thread, m_storage_constructor);
+		m_storage = m_owning_storage.get();
 		m_block_size = calculate_block_size(m_torrent_file, m_default_block_size);
 		m_picker.reset(new piece_picker(
 			static_cast<int>(m_torrent_file.piece_length() / m_block_size)
@@ -900,7 +900,7 @@ namespace libtorrent
 		// (total_done == m_torrent_file.total_size()) => is_seed()
 //		INVARIANT_CHECK;
 
-		assert(m_storage.get());
+		assert(m_storage->refcount() > 0);
 		assert(m_picker.get());
 		assert(index >= 0);
 	  	assert(index < m_torrent_file.num_pieces());
@@ -1006,7 +1006,8 @@ namespace libtorrent
 		// disconnect all peers and close all
 		// files belonging to the torrents
 		disconnect_all();
-		if (m_storage.get()) m_storage->async_release_files();
+		if (m_owning_storage.get()) m_storage->async_release_files();
+		m_owning_storage = 0;
 	}
 
 	void torrent::announce_piece(int index)
@@ -2098,14 +2099,14 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (!m_storage.get())
+		if (!valid_metadata())
 		{
 			// this means we have received the metadata through the
 			// metadata extension, and we have to initialize
 			init();
 		}
 
-		assert(m_storage.get());
+		assert(valid_metadata());
 		bool done = true;
 		try
 		{
@@ -2137,7 +2138,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		assert(m_storage.get());
+		assert(m_owning_storage.get());
 
 		std::pair<bool, float> progress(true, 1.f);
 		try
@@ -2243,8 +2244,8 @@ namespace libtorrent
 
 	fs::path torrent::save_path() const
 	{
-		if (m_storage.get())
-			return m_storage->save_path();
+		if (m_owning_storage.get())
+			return m_owning_storage->save_path();
 		else
 			return m_save_path;
 	}
@@ -2253,9 +2254,9 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (m_storage.get())
+		if (m_owning_storage.get())
 		{
-			m_storage->async_move_storage(save_path);
+			m_owning_storage->async_move_storage(save_path);
 		}
 		else
 		{
@@ -2267,8 +2268,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		assert(m_storage.get());
-		return *m_storage;
+		assert(m_owning_storage.get());
+		return *m_owning_storage;
 	}
 
 
@@ -2302,11 +2303,11 @@ namespace libtorrent
 
 		if (valid_metadata())
 		{
-			assert(int(m_have_pieces.size()) == m_torrent_file.num_pieces());
+			assert(m_abort || int(m_have_pieces.size()) == m_torrent_file.num_pieces());
 		}
 		else
 		{
-			assert(m_have_pieces.empty());
+			assert(m_abort || m_have_pieces.empty());
 		}
 
 		size_type total_done = quantized_bytes_done();
@@ -2425,7 +2426,12 @@ namespace libtorrent
 		m_just_paused = true;
 		// this will make the storage close all
 		// files and flush all cached data
-		if (m_storage.get()) m_storage->async_release_files();
+		if (m_owning_storage.get())
+		{
+			// TOOD: add a callback which posts
+			// an alert for the client to sync. with
+			m_storage->async_release_files();
+		}
 	}
 
 	void torrent::resume()
@@ -2561,7 +2567,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		assert(m_storage.get());
+		assert(m_storage->refcount() > 0);
 		assert(piece_index >= 0);
 		assert(piece_index < m_torrent_file.num_pieces());
 		assert(piece_index < (int)m_have_pieces.size());
@@ -2584,7 +2590,7 @@ namespace libtorrent
 	}
 
 	bool torrent::is_allocating() const
-	{ return m_storage.get() && m_storage->is_allocating(); }
+	{ return m_owning_storage.get() && m_owning_storage->is_allocating(); }
 	
 	void torrent::file_progress(std::vector<float>& fp) const
 	{

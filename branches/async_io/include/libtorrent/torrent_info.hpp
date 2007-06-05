@@ -194,6 +194,8 @@ namespace libtorrent
 		// used by seeds
 		void seed_free();
 
+		void swap(torrent_info& ti);
+
 	private:
 
 		void read_torrent_info(const entry& libtorrent);

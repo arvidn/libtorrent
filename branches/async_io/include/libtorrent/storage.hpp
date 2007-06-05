@@ -168,7 +168,7 @@ namespace libtorrent
 	public:
 
 		piece_manager(
-			torrent_info const& info
+			boost::shared_ptr<torrent> const& torrent
 			, fs::path const& path
 			, file_pool& fp
 			, disk_io_thread& io
@@ -338,6 +338,8 @@ namespace libtorrent
 		std::map<int, partial_hash> m_piece_hasher;
 
 		disk_io_thread& m_io_thread;
+
+		boost::shared_ptr<torrent> m_torrent;
 	};
 
 }
