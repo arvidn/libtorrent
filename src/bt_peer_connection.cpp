@@ -825,7 +825,7 @@ namespace libtorrent
 		for (int c = 0; c < num_pieces; ++c)
 		{
 			if (lazy_piece < num_lazy_pieces
-				&& lazy_pieces[lazy_piece])
+				&& lazy_pieces[lazy_piece] == c)
 			{
 				++lazy_piece;
 				continue;
@@ -834,7 +834,12 @@ namespace libtorrent
 				i.begin[c >> 3] |= 1 << (7 - (c & 7));
 		}
 		assert(i.end - i.begin == (num_pieces + 7) / 8);
-		
+
+#ifndef NDEBUG
+		m_sent_bitfield = true;
+#endif
+		setup_send();
+
 		if (num_lazy_pieces > 0)
 		{
 			for (int i = 0; i < num_lazy_pieces; ++i)
@@ -846,11 +851,6 @@ namespace libtorrent
 #endif
 			}
 		}
-
-#ifndef NDEBUG
-		m_sent_bitfield = true;
-#endif
-		setup_send();
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
