@@ -395,6 +395,14 @@ namespace libtorrent
 				- m_write_pos;
 		}
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		buffer::interval wr_recv_buffer()
+		{
+			return buffer::interval(&m_recv_buffer[0]
+				, &m_recv_buffer[0] + m_recv_pos);
+		}
+#endif
+		
 		buffer::const_interval receive_buffer() const
 		{
 			return buffer::const_interval(&m_recv_buffer[0]
@@ -408,7 +416,6 @@ namespace libtorrent
 
 		bool packet_finished() const
 		{
-			assert(m_recv_pos <= m_packet_size);
 			return m_packet_size <= m_recv_pos;
 		}
 

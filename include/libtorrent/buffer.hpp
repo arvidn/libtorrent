@@ -74,6 +74,12 @@ public:
             return begin[index];
         }
 
+        bool operator==(const const_interval& p_interval)
+        {
+            return (begin == p_interval.begin
+                && end == p_interval.end);
+        }
+
         int left() const { assert(end >= begin); return end - begin; }
 
         char const* begin;

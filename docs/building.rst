@@ -208,6 +208,16 @@ Build features:
 |                        |   logging of the DHT protocol traffic.             |
 |                        | * ``off`` - build without DHT support.             |
 +------------------------+----------------------------------------------------+
+| ``zlib``               | * ``system`` - links against the zlib supplied     |
+|                        |   with your operating system.                      |
+|                        | * ``shipped`` - links against the zlib bundled     |
+|                        |   with the libtorrent package.                     |
++------------------------+----------------------------------------------------+
+| ``pe-support``         | * ``on`` - turns on support for encrypted          |
+|                        |   connections. requires openssl (libcrypto)        |
+|                        | * ``off`` - turns off support for encrypted        |
+|                        |   connections. openssl is not linked in.           |
++------------------------+----------------------------------------------------+
 | ``link``               | * ``static`` - builds libtorrent as a static       |
 |                        |   library (.a / .lib)                              |
 |                        | * ``shared`` - builds libtorrent as a shared       |
@@ -261,7 +271,9 @@ To build all possible variants of libtorrent (good for testing when making
 sure all build variants will actually compile), you can invoke this command::
 
 	bjam debug release link=shared link=static logging=verbose logging=default \
-	logging=none dht-support=on dht-support=logging dht-support=off
+	logging=none dht-support=on dht-support=logging dht-support=off pe-support=on \
+	pe-support=off zlib=shipped zlib=system openssl=on openssl=off \
+	character-set=ansi character-set=unicode
 
 building with autotools
 -----------------------
@@ -471,6 +483,12 @@ defines you can use to control the build.
 +---------------------------------+-------------------------------------------------+
 | ``TORRENT_DHT_VERBOSE_LOGGING`` | This will enable verbose logging of the DHT     |
 |                                 | protocol traffic.                               |
++---------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_ENCRYPTION``  | This will disable any encryption support and    |
+|                                 | the openssl dependency that comes with it.      |
+|                                 | Encryption support is the peer connection       |
+|                                 | encrypted supported by clients such as          |
+|                                 | uTorrent, Azureus and KTorrent.                 |
 +---------------------------------+-------------------------------------------------+
 
 

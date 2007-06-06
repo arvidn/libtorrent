@@ -19,11 +19,11 @@
 <td>Arvid Norberg, <a class="last reference" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 </tbody>
 </table>
-<div class="section" id="mainline-dht-extensions">
-<h1>Mainline DHT extensions</h1>
+<div class="section">
+<h1><a id="mainline-dht-extensions" name="mainline-dht-extensions">Mainline DHT extensions</a></h1>
 <p>libtorrent implements a few extensions to the Mainline DHT protocol.</p>
-<div class="section" id="client-identification">
-<h2>client identification</h2>
+<div class="section">
+<h2><a id="client-identification" name="client-identification">client identification</a></h2>
 <p>In each DHT packet, an extra key is inserted named &quot;v&quot;. This is a string
 describing the client and version used. This can help alot when debugging
 and finding errors in client implementations. The string is encoded as four
@@ -51,8 +51,8 @@ as a binary number describing the client version.</p>
 </tbody>
 </table>
 </div>
-<div class="section" id="ipv6-support">
-<h2>IPv6 support</h2>
+<div class="section">
+<h2><a id="ipv6-support" name="ipv6-support">IPv6 support</a></h2>
 <p>The DHT messages that don't support IPv6 are the <tt class="docutils literal"><span class="pre">nodes</span></tt> replies.
 They encode all the contacts as 6 bytes packed together in sequence in a
 string. The problem is that IPv6 endpoints cannot be encoded as 6 bytes, but

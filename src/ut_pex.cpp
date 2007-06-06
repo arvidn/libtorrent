@@ -117,14 +117,21 @@ namespace libtorrent { namespace
 				if (di == dropped.end())
 				{
 					// don't write too big of a package
-					if (num_added >= max_peer_entries) continue;
+					if (num_added >= max_peer_entries) break;
+
+					// only send proper bittorrent peers
+					bt_peer_connection* p = dynamic_cast<bt_peer_connection*>(i->second);
+					if (!p) continue;
 
 					// i->first was added since the last time
 					detail::write_endpoint(i->first, pla_out);
 					// no supported flags to set yet
 					// 0x01 - peer supports encryption
 					// 0x02 - peer is a seed
-					int flags = i->second->is_seed() ? 2 : 0;
+					int flags = p->is_seed() ? 2 : 0;
+#ifndef TORRENT_DISABLE_ENCRYPTION
+					flags |= p->supports_encryption() ? 1 : 0;
+#endif
 					detail::write_uint8(flags, plf_out);
 					++num_added;
 				}
@@ -280,14 +287,21 @@ namespace libtorrent { namespace
 				if (!send_peer(*i->second)) continue;
 
 				// don't write too big of a package
-				if (num_added >= max_peer_entries) continue;
+				if (num_added >= max_peer_entries) break;
+
+				// only send proper bittorrent peers
+				bt_peer_connection* p = dynamic_cast<bt_peer_connection*>(i->second);
+				if (!p) continue;
 
 				// i->first was added since the last time
 				detail::write_endpoint(i->first, pla_out);
 				// no supported flags to set yet
 				// 0x01 - peer supports encryption
 				// 0x02 - peer is a seed
-				int flags = i->second->is_seed() ? 2 : 0;
+				int flags = p->is_seed() ? 2 : 0;
+#ifndef TORRENT_DISABLE_ENCRYPTION
+				flags |= p->supports_encryption() ? 1 : 0;
+#endif
 				detail::write_uint8(flags, plf_out);
 				++num_added;
 			}

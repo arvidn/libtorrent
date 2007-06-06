@@ -135,6 +135,17 @@ namespace libtorrent
 			tcp::endpoint ip;
 			connection_type type;
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			// Hints encryption support of peer. Only effective for
+			// and when the outgoing encryption policy allows both
+			// encrypted and non encrypted connections
+			// (pe_settings::out_enc_policy == enabled). The initial
+			// state of this flag determines the initial connection
+			// attempt type (true = encrypted, false = standard).
+			// This will be toggled everytime either an encrypted or
+			// non-encrypted handshake fails.
+			bool pe_support;
+#endif
 			// the number of failed connection attempts this peer has
 			int failcount;
 

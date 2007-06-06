@@ -206,6 +206,24 @@ logging of the DHT protocol traffic.</li>
 </ul>
 </td>
 </tr>
+<tr><td><tt class="docutils literal"><span class="pre">zlib</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">system</span></tt> - links against the zlib supplied
+with your operating system.</li>
+<li><tt class="docutils literal"><span class="pre">shipped</span></tt> - links against the zlib bundled
+with the libtorrent package.</li>
+</ul>
+</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">pe-support</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">on</span></tt> - turns on support for encrypted
+connections. requires openssl (libcrypto)</li>
+<li><tt class="docutils literal"><span class="pre">off</span></tt> - turns off support for encrypted
+connections. openssl is not linked in.</li>
+</ul>
+</td>
+</tr>
 <tr><td><tt class="docutils literal"><span class="pre">link</span></tt></td>
 <td><ul class="first last simple">
 <li><tt class="docutils literal"><span class="pre">static</span></tt> - builds libtorrent as a static
@@ -273,7 +291,8 @@ boost.program-options symbols.</p>
 sure all build variants will actually compile), you can invoke this command:</p>
 <pre class="literal-block">
 bjam debug release link=shared link=static logging=verbose logging=default \
-logging=none dht-support=on dht-support=logging dht-support=off
+logging=none dht-support=on dht-support=logging dht-support=off pe-support=on \
+pe-support=off zlib=shipped zlib=system
 </pre>
 </div>
 </div>

@@ -297,7 +297,11 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			<< ((i->flags & peer_info::local_connection)?'l':'r')
 			<< ((i->flags & peer_info::seed)?'s':'.')
 			<< ((i->flags & peer_info::on_parole)?'p':'.')
-		  	<< " "
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			<< ((i->flags & peer_info::rc4_encrypted)?'E':
+				(i->flags & peer_info::plaintext_encrypted)?'e':'.')
+#endif
+			<< " "
 			<< ((i->source & peer_info::tracker)?"T":"_")
 			<< ((i->source & peer_info::pex)?"P":"_")
 			<< ((i->source & peer_info::dht)?"D":"_")

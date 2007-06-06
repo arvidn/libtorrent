@@ -178,6 +178,11 @@ namespace libtorrent
 		void add_dht_router(std::pair<std::string, int> const& node);
 #endif
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		void set_pe_settings(pe_settings const& settings);
+		pe_settings const& get_pe_settings() const;
+#endif
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*)> ext);
 #endif

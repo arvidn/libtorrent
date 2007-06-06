@@ -22,7 +22,7 @@ void sleep(int msec)
 using namespace libtorrent;
 
 boost::tuple<torrent_handle, torrent_handle> setup_transfer(
-	session& ses1, session& ses2, bool clear_files)
+	session& ses1, session& ses2, bool clear_files, bool use_metadata_transfer)
 {
 	using namespace boost::filesystem;
 
@@ -59,8 +59,12 @@ boost::tuple<torrent_handle, torrent_handle> setup_transfer(
 	// file pool will complain if two torrents are trying to
 	// use the same files
 	torrent_handle tor1 = ses1.add_torrent(t, "./tmp1");
-	torrent_handle tor2 = ses2.add_torrent(tracker_url
+	torrent_handle tor2;
+  	if (use_metadata_transfer)
+		tor2 = ses2.add_torrent(tracker_url
 		, t.info_hash(), 0, "./tmp2");
+	else
+		tor2 = ses2.add_torrent(t, "./tmp2");
 
 	sleep(100);
 
