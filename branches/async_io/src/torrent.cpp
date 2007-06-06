@@ -359,8 +359,8 @@ namespace libtorrent
 		m_have_pieces.resize(m_torrent_file.num_pieces(), false);
 		// the shared_from_this() will create an intentional
 		// cycle of ownership, se the hpp file for description.
-		m_owning_storage = new piece_manager(shared_from_this(), m_save_path
-			, m_ses.m_files, m_ses.m_disk_thread, m_storage_constructor);
+		m_owning_storage = new piece_manager(shared_from_this(), m_torrent_file
+			, m_save_path, m_ses.m_files, m_ses.m_disk_thread, m_storage_constructor);
 		m_storage = m_owning_storage.get();
 		m_block_size = calculate_block_size(m_torrent_file, m_default_block_size);
 		m_picker.reset(new piece_picker(
@@ -900,6 +900,7 @@ namespace libtorrent
 		// (total_done == m_torrent_file.total_size()) => is_seed()
 //		INVARIANT_CHECK;
 
+		assert(m_storage);
 		assert(m_storage->refcount() > 0);
 		assert(m_picker.get());
 		assert(index >= 0);
@@ -989,6 +990,7 @@ namespace libtorrent
 		// start with redownloading the pieces that the client
 		// that has sent the least number of pieces
 		m_picker->restore_piece(index);
+		assert(m_storage);
 		m_storage->mark_failed(index);
 
 		assert(m_have_pieces[index] == false);
@@ -1808,7 +1810,12 @@ namespace libtorrent
 
 	void torrent::set_metadata(entry const& metadata)
 	{
+		INVARIANT_CHECK;
+
+		assert(!m_torrent_file.is_valid());
 		m_torrent_file.parse_info_section(metadata);
+
+		init();
 
 		boost::mutex::scoped_lock(m_checker.m_mutex);
 
@@ -2023,6 +2030,7 @@ namespace libtorrent
 		std::for_each(seeds.begin(), seeds.end()
 			, bind(&peer_connection::disconnect, _1));
 
+		assert(m_storage);
 		m_storage->async_release_files();
 	}
 	
@@ -2099,17 +2107,12 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (!valid_metadata())
-		{
-			// this means we have received the metadata through the
-			// metadata extension, and we have to initialize
-			init();
-		}
-
 		assert(valid_metadata());
 		bool done = true;
 		try
 		{
+			assert(m_storage);
+			assert(m_owning_storage.get());
 			done = m_storage->check_fastresume(data, m_have_pieces, m_num_pieces
 				, m_compact_mode);
 		}
@@ -2143,6 +2146,7 @@ namespace libtorrent
 		std::pair<bool, float> progress(true, 1.f);
 		try
 		{
+			assert(m_storage);
 			progress = m_storage->check_files(m_have_pieces, m_num_pieces
 				, m_ses.m_mutex);
 		}
@@ -2428,6 +2432,7 @@ namespace libtorrent
 		// files and flush all cached data
 		if (m_owning_storage.get())
 		{
+			assert(m_storage);
 			// TOOD: add a callback which posts
 			// an alert for the client to sync. with
 			m_storage->async_release_files();
@@ -2567,6 +2572,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		assert(m_storage);
 		assert(m_storage->refcount() > 0);
 		assert(piece_index >= 0);
 		assert(piece_index < m_torrent_file.num_pieces());

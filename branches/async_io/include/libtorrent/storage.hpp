@@ -168,7 +168,8 @@ namespace libtorrent
 	public:
 
 		piece_manager(
-			boost::shared_ptr<torrent> const& torrent
+			boost::shared_ptr<void> const& torrent
+			, torrent_info const& ti
 			, fs::path const& path
 			, file_pool& fp
 			, disk_io_thread& io
@@ -339,7 +340,13 @@ namespace libtorrent
 
 		disk_io_thread& m_io_thread;
 
-		boost::shared_ptr<torrent> m_torrent;
+		// the reason for this to be a void pointer
+		// is to avoid creating a dependency on the
+		// torrent. This shared_ptr is here only
+		// to keep the torrent object alive until
+		// the piece_manager destructs. This is because
+		// the torrent_info object is owned by the torrent.
+		boost::shared_ptr<void> m_torrent;
 	};
 
 }

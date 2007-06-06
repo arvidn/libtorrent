@@ -1029,15 +1029,16 @@ namespace libtorrent
 	// -- piece_manager -----------------------------------------------------
 
 	piece_manager::piece_manager(
-		boost::shared_ptr<torrent> const& torrent
+		boost::shared_ptr<void> const& torrent
+		, torrent_info const& ti
 		, fs::path const& save_path
 		, file_pool& fp
 		, disk_io_thread& io
 		, storage_constructor_type sc)
-		: m_storage(sc(torrent->torrent_file(), save_path, fp))
+		: m_storage(sc(ti, save_path, fp))
 		, m_compact_mode(false)
 		, m_fill_mode(true)
-		, m_info(torrent->torrent_file())
+		, m_info(ti)
 		, m_save_path(complete(save_path))
 		, m_allocating(false)
 		, m_io_thread(io)

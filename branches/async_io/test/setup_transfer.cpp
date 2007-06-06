@@ -67,15 +67,22 @@ boost::tuple<torrent_handle, torrent_handle> setup_transfer(
 	// they should not use the same save dir, because the
 	// file pool will complain if two torrents are trying to
 	// use the same files
+	sha1_hash info_hash = t.info_hash();
 	torrent_handle tor1 = ses1.add_torrent(t, "./tmp1");
+	assert(info_hash == t.info_hash());
 	torrent_handle tor2 = ses2.add_torrent(tracker_url
 		, t.info_hash(), 0, "./tmp2");
+	assert(ses1.get_torrents().size() == 1);
+	assert(ses2.get_torrents().size() == 1);
 
 	test_sleep(100);
 
 	std::cerr << "connecting peer\n";
 	tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1")
 		, ses2.listen_port()));
+
+	assert(ses1.get_torrents().size() == 1);
+	assert(ses2.get_torrents().size() == 1);
 
 	return boost::make_tuple(tor1, tor2);
 }

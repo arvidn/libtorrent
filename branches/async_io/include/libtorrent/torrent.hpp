@@ -462,7 +462,7 @@ namespace libtorrent
 		}
 		bool has_picker() const
 		{
-			assert((valid_metadata() && !is_seed()) == bool(m_picker.get() != 0));
+			assert((m_storage && !is_seed()) == bool(m_picker.get() != 0));
 			return m_picker.get() != 0;
 		}
 		policy& get_policy()

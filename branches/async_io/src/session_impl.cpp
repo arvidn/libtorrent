@@ -416,7 +416,6 @@ namespace detail
 		for (std::deque<boost::shared_ptr<piece_checker_data> >::iterator i
 			= m_processing.begin(); i != m_processing.end(); ++i)
 		{
-			
 			if ((*i)->info_hash == info_hash) return i->get();
 		}
 

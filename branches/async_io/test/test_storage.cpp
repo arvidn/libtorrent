@@ -83,7 +83,8 @@ void run_storage_tests(torrent_info& info, bool compact_allocation = true)
 	{
 	file_pool fp;
 	disk_io_thread io;
-	boost::intrusive_ptr<piece_manager> pm = new piece_manager(info
+	boost::shared_ptr<int> dummy(new int);
+	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
 		, initial_path(), fp, io, default_storage_constructor);
 	boost::mutex lock;
 	libtorrent::aux::piece_checker_data d;

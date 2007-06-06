@@ -163,10 +163,10 @@ int test_main()
 		TEST_CHECK(downloads[1].info[2].state == piece_picker::block_info::state_none);
 		TEST_CHECK(downloads[1].info[3].state == piece_picker::block_info::state_none);
 
-		TEST_CHECK(p.is_downloading(piece_block(1, 1)));
-		TEST_CHECK(p.is_downloading(piece_block(1, 3)));
-		TEST_CHECK(p.is_downloading(piece_block(2, 0)));
-		TEST_CHECK(!p.is_downloading(piece_block(2, 1)));
+		TEST_CHECK(p.is_requested(piece_block(1, 1)));
+		TEST_CHECK(p.is_requested(piece_block(1, 3)));
+		TEST_CHECK(p.is_requested(piece_block(2, 0)));
+		TEST_CHECK(!p.is_requested(piece_block(2, 1)));
 
 		picked.clear();
 		p.pick_pieces(peer1, picked, 1, false, tcp::endpoint(), piece_picker::fast);
