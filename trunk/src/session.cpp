@@ -252,6 +252,18 @@ namespace libtorrent
 
 #endif
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
+	void session::set_pe_settings(pe_settings const& settings)
+	{
+		m_impl->set_pe_settings(settings);
+	}
+
+	pe_settings const& session::get_pe_settings() const
+	{
+		return m_impl->get_pe_settings();
+	}
+#endif
+
 	bool session::is_listening() const
 	{
 		return m_impl->is_listening();

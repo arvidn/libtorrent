@@ -1755,6 +1755,14 @@ namespace libtorrent { namespace detail
 
 #endif
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
+	void session_impl::set_pe_settings(pe_settings const& settings)
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		m_pe_settings = settings;
+	}
+#endif
+
 	void session_impl::set_download_rate_limit(int bytes_per_second)
 	{
 		assert(bytes_per_second > 0 || bytes_per_second == -1);

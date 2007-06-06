@@ -92,8 +92,8 @@ The ``session`` class has the following synopsis::
 		torrent_handle find_torrent(sha_hash const& ih);
 		std::vector<torrent_handle> get_torrents() const;
 
-		void set_settings(
-			session_settings const& settings);
+		void set_settings(session_settings const& settings);
+		void set_pe_settings(pe_settings const& settings);
 
 		void set_upload_rate_limit(int bytes_per_second);
 		int upload_rate_limit() const;
@@ -250,9 +250,9 @@ about the torrent's progress, its peers etc. It is also used to abort a torrent.
 The second overload that takes a tracker url and an info-hash instead of metadata
 (``torrent_info``) can be used with torrents where (at least some) peers support
 the metadata extension. For the overload to be available, libtorrent must be built
-with extensions enabled (``TORRENT_ENABLE_EXTENSIONS`` defined). It also takes an
-optional ``name`` argument. This may be 0 in case no name should be assigned to the
-torrent. In case it's not 0, the name is used for the torrent as long as it doesn't
+with extensions enabled (``TORRENT_DISABLE_EXTENSIONS`` must not be defined). It also
+takes an optional ``name`` argument. This may be 0 in case no name should be assigned
+to the torrent. In case it's not 0, the name is used for the torrent as long as it doesn't
 have metadata. See ``torrent_handle::name``.
 
 remove_torrent() find_torrent() get_torrents()
@@ -515,6 +515,19 @@ e.g.
 
 .. _`libtorrent plugins`: libtorrent_plugins.html
 
+set_settings() set_pe_settings()
+--------------------------------
+
+	::
+
+		void set_settings(session_settings const& settings);
+		void set_pe_settings(pe_settings const& settings);
+		
+Sets the session settings and the packet encryption settings respectively.
+See session_settings_ and pe_settings_ for more information on available
+options.
+
+
 set_peer_proxy() set_web_seed_proxy() set_tracker_proxy() set_dht_proxy()
 -------------------------------------------------------------------------
 
@@ -555,6 +568,7 @@ peer_proxy() web_seed_proxy() tracker_proxy() dht_proxy()
 These functions returns references to their respective current settings.
 
 The ``dht_proxy`` is not available when DHT is disabled.
+
 
 start_dht() stop_dht() set_dht_settings() dht_state()
 -----------------------------------------------------
@@ -2309,6 +2323,66 @@ Default is 10 minutes
 (which it is by default), the DHT will only be used for torrents where
 all trackers in its tracker list has failed. Either by an explicit error
 message or a time out.
+
+pe_settings
+===========
+
+The ``pe_settings`` structure is used to control the settings related
+to peer protocol encryption::
+
+	struct pe_settings
+	{
+		pe_settings();
+
+		enum enc_policy
+		{
+			forced,
+			enabled,
+			disabled
+		};
+
+		enum enc_level
+		{
+			plaintext,
+			rc4, 
+			both
+		};
+
+		enc_policy out_enc_policy;
+		enc_policy in_enc_policy;
+		enc_level allowed_enc_level;
+		bool prefer_rc4;
+	};
+
+
+``in_enc_policy`` and ``out_enc_policy`` control the settings for incoming
+and outgoing connections respectively. The settings for these are:
+
+ * ``forced`` - Only encrypted connections are allowed. Incoming connections
+   that are not encrypted are closed and if the encrypted outgoing connection
+   fails, a non-encrypted retry will not be made.
+
+ * ``enabled`` - encrypted connections are enabled, but non-encrypted
+   connections are allowed. An incoming non-encrypted connection will
+   be accepted, and if an outgoing encrypted connection fails, a non-
+   encrypted connection will be tried.
+
+ * ``disabled`` - only non-encrypted connections are allowed.
+
+``allowed_enc_level`` determines the encryption level of the
+connections.  This setting will adjust which encryption scheme is
+offered to the other peer, as well as which encryption scheme is
+selected by the client. The settings are:
+
+ * ``plaintext`` - only the handshake is encrypted, the bulk of the traffic
+   remains unchanged.
+
+ * ``rc4`` - the entire stream is encrypted with RC4
+
+ * ``both`` - both RC4 and plaintext connections are allowed.
+
+``prefer_rc4`` can be set to true if you want to prefer the RC4 encrypted stream.
+
 
 proxy_settings
 ==============

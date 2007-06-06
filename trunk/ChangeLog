@@ -1,3 +1,4 @@
+	* added encryption support
 	* added parole mode for peers whose data fails the hash check.
 	* optimized heap usage in piece-picker and web seed downloader.
 	* fixed bug in DHT where older write tokens weren't accepted.

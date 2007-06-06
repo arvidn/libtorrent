@@ -269,6 +269,42 @@ namespace libtorrent
 	};
 #endif
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
+
+	struct pe_settings
+	{
+		pe_settings()
+			: out_enc_policy(enabled)
+			, in_enc_policy(enabled)
+			, allowed_enc_level(both)
+			, prefer_rc4(false)
+		{}
+
+		enum enc_policy
+		{
+			forced,  // disallow non encrypted connections
+			enabled, // allow encrypted and non encrypted connections
+			disabled // disallow encrypted connections
+		};
+
+		enum enc_level
+		{
+			plaintext, // use only plaintext encryption
+			rc4, // use only rc4 encryption 
+			both // allow both
+		};
+
+		enc_policy out_enc_policy;
+		enc_policy in_enc_policy;
+
+		enc_level allowed_enc_level;
+		// if the allowed encryption level is both, setting this to
+		// true will prefer rc4 if both methods are offered, plaintext
+		// otherwise
+		bool prefer_rc4;
+	};
+#endif
+
 }
 
 #endif

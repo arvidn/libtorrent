@@ -412,6 +412,10 @@ namespace libtorrent
 				m_send_buffer += '&';
 			}
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			m_send_buffer += "supportcrypto=1&";
+#endif
+
 			// extension that tells the tracker that
 			// we don't need any peer_id's in the response
 			if (!url_has_argument(request, "no_peer_id"))
