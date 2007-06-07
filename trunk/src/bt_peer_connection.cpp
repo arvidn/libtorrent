@@ -1399,7 +1399,7 @@ namespace libtorrent
 	
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		assert(in_handshake() || !m_rc4_encrypted || m_encrypted);
-		if (m_rc4_encrypted)
+		if (m_rc4_encrypted && m_encrypted)
 		{
 			buffer::interval wr_buf = wr_recv_buffer();
 			m_RC4_handler->decrypt((wr_buf.end - bytes_transferred), bytes_transferred);
@@ -1798,6 +1798,9 @@ namespace libtorrent
 			{
 				recv_buffer.begin += pad_size;
 				int len_ia = detail::read_int16(recv_buffer.begin);
+				
+				if (len_ia < 0) throw protocol_error("invalid len_ia in handshake");
+
 #ifdef TORRENT_VERBOSE_LOGGING
 				(*m_logger) << " len(IA) : " << len_ia << "\n";
 #endif
