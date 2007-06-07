@@ -623,6 +623,9 @@ namespace libtorrent { namespace detail
 		mutex_t::scoped_lock l(m_mutex);
 		assert(s.connection_speed > 0);
 		assert(s.file_pool_size > 0);
+
+		// less than 5 seconds unchoke interval is insane
+		assert(s.unchoke_interval >= 5);
 		m_settings = s;
 		m_files.resize(m_settings.file_pool_size);
 		// replace all occurances of '\n' with ' '.

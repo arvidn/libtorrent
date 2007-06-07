@@ -850,12 +850,13 @@ namespace libtorrent
 						--m_num_unchoked;
 					} while (m_num_unchoked > m_torrent->m_uploads_quota.given);
 				}
-				else
+				// this should prevent the choke/unchoke
+				// problem, since it will not unchoke unless
+				// there actually are any choked peers
+				else if (count_choked() > 0)
 				{
 					// optimistic unchoke. trade the 'worst'
 					// unchoked peer with one of the choked
-					// TODO: This rotation should happen
-					// far less frequent than this!
 					assert(m_num_unchoked <= m_torrent->num_peers());
 					iterator p = find_unchoke_candidate();
 					if (p != m_peers.end())
@@ -873,6 +874,22 @@ namespace libtorrent
 			while (m_num_unchoked < m_torrent->m_uploads_quota.given
 				&& unchoke_one_peer());
 		}
+	}
+
+	int policy::count_choked() const
+	{
+		int ret = 0;
+		for (const_iterator i = m_peers.begin();
+			i != m_peers.end(); ++i)
+		{
+			if (!i->connection
+				|| i->connection->is_connecting()
+				|| i->connection->is_disconnecting()
+				|| !i->connection->is_peer_interested())
+				continue;
+			if (i->connection->is_choked()) ++ret;
+		}
+		return ret;
 	}
 
 	void policy::new_connection(peer_connection& c)

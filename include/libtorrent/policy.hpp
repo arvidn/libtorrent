@@ -104,6 +104,8 @@ namespace libtorrent
 		// the peer choked us
 		void choked(peer_connection& c);
 
+		int count_choked() const;
+
 		// the peer unchoked us
 		void unchoked(peer_connection& c);
 
