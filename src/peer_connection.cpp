@@ -746,11 +746,11 @@ namespace libtorrent
 					&& !is_interesting()
 					&& t->picker().piece_priority(index) != 0)
 					t->get_policy().peer_is_interesting(*this);
+
+				// update bytes downloaded since last timer
+				m_remote_bytes_dled += t->torrent_file().piece_size(index);
 			}
 			
-			// update bytes downloaded since last timer
-			m_remote_bytes_dled += t->torrent_file().piece_size(index);
-
 			if (is_seed())
 			{
 				assert(m_peer_info);
@@ -1933,7 +1933,7 @@ namespace libtorrent
 		if(m_remote_dl_rate == 0) {
 			factor = 0.0f;
 		}
-						
+
 		m_remote_dl_rate = 
 			(m_remote_dl_rate * factor) + 
 			((m_remote_bytes_dled * (1.0f-factor)) * (1.f/60.f));
