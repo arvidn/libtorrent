@@ -105,6 +105,7 @@ namespace libtorrent
 			, send_redundant_have(false)
 			, lazy_bitfields(true)
 			, inactivity_timeout(600)
+			, unchoke_interval(20)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(true)
 #endif
@@ -233,6 +234,9 @@ namespace libtorrent
 		// than this number of seconds, it will be disconnected.
 		// default is 10 minutes
 		int inactivity_timeout;
+
+		// the number of seconds between chokes/unchokes
+		int unchoke_interval;
 
 #ifndef TORRENT_DISABLE_DHT
 		// while this is true, the dht will note be used unless the

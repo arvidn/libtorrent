@@ -562,7 +562,6 @@ namespace libtorrent
 					bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i->pid)));
 			}	
 		}
-		m_policy->pulse();
 
 		if (m_ses.m_alerts.should_post(alert::info))
 		{
@@ -2464,7 +2463,7 @@ namespace libtorrent
 		m_time_scaler--;
 		if (m_time_scaler <= 0)
 		{
-			m_time_scaler = 10;
+			m_time_scaler = settings().unchoke_interval;
 			m_policy->pulse();
 		}
 	}
