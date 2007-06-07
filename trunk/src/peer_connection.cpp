@@ -128,6 +128,8 @@ namespace libtorrent
 		, m_peer_info(peerinfo)
 		, m_speed(slow)
 		, m_connection_ticket(-1)
+		, m_remote_bytes_dled(0)
+		, m_remote_dl_rate(0)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif
@@ -198,6 +200,8 @@ namespace libtorrent
 		, m_download_limit(resource_request::inf)
 		, m_peer_info(peerinfo)
 		, m_speed(slow)
+		, m_remote_bytes_dled(0)
+		, m_remote_dl_rate(0)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif
@@ -743,6 +747,9 @@ namespace libtorrent
 					&& t->picker().piece_priority(index) != 0)
 					t->get_policy().peer_is_interesting(*this);
 			}
+			
+			// update bytes downloaded since last timer
+			m_remote_bytes_dled += t->torrent_file().piece_size(index);
 
 			if (is_seed())
 			{
@@ -1753,12 +1760,14 @@ namespace libtorrent
 			p.failcount = peer_info_struct()->failcount;
 			p.num_hashfails = peer_info_struct()->hashfails;
 			p.flags |= peer_info_struct()->on_parole ? peer_info::on_parole : 0;
+			p.remote_dl_rate = m_remote_dl_rate;
 		}
 		else
 		{
 			p.source = 0;
 			p.failcount = 0;
 			p.num_hashfails = 0;
+			p.remote_dl_rate = 0;
 		}
 
 		p.send_buffer_size = send_buffer_size();
@@ -1915,6 +1924,24 @@ namespace libtorrent
 				, m_upload_limit));
 		}
 
+		// note the 1/60 multiplication here - this is per second of the
+		// minute; but since timers are not exact this makes this
+		// calculation REALLY approximate.
+		
+		float factor = 0.6666666666667f;
+			
+		if(m_remote_dl_rate == 0) {
+			factor = 0.0f;
+		}
+						
+		m_remote_dl_rate = 
+			(m_remote_dl_rate * factor) + 
+			((m_remote_bytes_dled * (1.0f-factor)) * (1.f/60.f));
+			
+		m_remote_bytes_dled = 0;
+
+
+		//
 		fill_send_buffer();
 /*
 		size_type diff = share_diff();
