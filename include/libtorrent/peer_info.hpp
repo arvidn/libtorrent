@@ -141,6 +141,9 @@ namespace libtorrent
 			web_seed = 1
 		};
 		int connection_type;
+		
+		// approximate peer download rate
+		int remote_dl_rate;
 	};
 
 }

@@ -681,6 +681,15 @@ namespace libtorrent
 		// so that it can be removed from the queue
 		// once the connection completes
 		int m_connection_ticket;
+		
+		// bytes downloaded since last second
+		// timer timeout; used for determining 
+		// approx download rate
+		int m_remote_bytes_dled;
+
+		// approximate peer download rate
+		int m_remote_dl_rate;
+		
 #ifndef NDEBUG
 	public:
 		bool m_in_constructor;
