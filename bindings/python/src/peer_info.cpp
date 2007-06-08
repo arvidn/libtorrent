@@ -21,7 +21,6 @@ void bind_peer_info()
         .def_readonly("total_upload", &peer_info::total_upload)
         .def_readonly("pid", &peer_info::pid)
         .def_readonly("pieces", &peer_info::pieces)
-        .def_readonly("seed", &peer_info::seed)
         .def_readonly("upload_limit", &peer_info::upload_limit)
         .def_readonly("download_limit", &peer_info::download_limit)
         .def_readonly("load_balancing", &peer_info::load_balancing)
@@ -45,6 +44,12 @@ void bind_peer_info()
     pi.attr("handshake") = (int)peer_info::handshake;
     pi.attr("connecting") = (int)peer_info::connecting;
     pi.attr("queued") = (int)peer_info::queued;
+    pi.attr("on_parole") = (int)peer_info::on_parole;
+    pi.attr("seed") = (int)peer_info::seed;
+#ifndef TORRENT_DISABLE_ENCRYPTION
+    pi.attr("rc4_encrypted") = (int)peer_info::rc4_encrypted;
+    pi.attr("plaintext_encrypted") = (int)peer_info::plaintext_encrypted;
+#endif
 
     pi.attr("standard_bittorrent") = 0;
     pi.attr("web_seed") = 1;
