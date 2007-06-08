@@ -1373,10 +1373,11 @@ namespace libtorrent
 				return p.connection != m_pc
 					&& p.connection
 					&& p.connection->pid() == m_id
-					&& !p.connection->pid().is_all_zeros();
+					&& !p.connection->pid().is_all_zeros()
+					&& p.ip.address() == m_pc->remote().address();
 			}
 
-			peer_id m_id;
+			peer_id const& m_id;
 			peer_connection const* m_pc;
 		};
 	}

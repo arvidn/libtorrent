@@ -9,6 +9,7 @@
 #include "libtorrent/extensions/metadata_transfer.hpp"
 
 using boost::filesystem::remove_all;
+using boost::tuples::ignore;
 
 void test_transfer(bool clear_files = true, bool disconnect = false)
 {
@@ -21,7 +22,7 @@ void test_transfer(bool clear_files = true, bool disconnect = false)
 	torrent_handle tor1;
 	torrent_handle tor2;
 
-	boost::tie(tor1, tor2) = setup_transfer(ses1, ses2, clear_files);	
+	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0, clear_files);	
 
 	for (int i = 0; i < 50; ++i)
 	{

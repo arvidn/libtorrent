@@ -152,6 +152,11 @@ namespace libtorrent
 	{
 		m_impl->set_peer_id(id);
 	}
+	
+	peer_id session::id() const
+	{
+		return m_impl->get_peer_id();
+	}
 
 	void session::set_key(int key)
 	{
