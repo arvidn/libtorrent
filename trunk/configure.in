@@ -139,6 +139,34 @@ case "$dht" in
 esac
 AM_CONDITIONAL(USE_DHT, test "x$dht" != "xoff")
 
+dnl encryption support.
+AC_ARG_WITH(
+       [encryption],
+       AS_HELP_STRING([--with-encryption=on|off],[Specify how to use encryption support. Default is on.]),
+       [[encryption=$withval]],
+       [[encryption=on]]
+)
+
+dnl Check the value for the --with-encryption switch
+AC_MSG_CHECKING([how to use encryption])
+case "$encryption" in
+       "on")
+               AC_MSG_RESULT(on)
+                CHECK_SSL()
+               AC_DEFINE(TORRENT_USE_OPENSSL,,[define to use openssl with libtorrent])
+
+               ;;
+       "off")
+               AC_MSG_RESULT(off)
+               AC_DEFINE(TORRENT_DISABLE_ENCRYPTION,,[define not to use encryption support])
+               ;;
+       *)
+               AC_MSG_RESULT()
+               AC_MSG_ERROR([Unknown encryption option "$encryption". Use either "on" or "off".])
+               ;;
+esac
+AM_CONDITIONAL(USE_ENCRYPTION, test "x$encryption" != "xoff")
+
 dnl the user can choose which zlib to use
 AC_ARG_WITH(
 	[zlib],
