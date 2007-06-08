@@ -6,9 +6,10 @@
 
 
 void sleep(int msec);
-boost::tuple<libtorrent::torrent_handle, libtorrent::torrent_handle>
-	setup_transfer(libtorrent::session& ses1, libtorrent::session& ses2
-	, bool clear_files, bool use_metadata_transfer = true);
+boost::tuple<libtorrent::torrent_handle, libtorrent::torrent_handle
+	, libtorrent::torrent_handle>
+setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2
+	, libtorrent::session* ses3, bool clear_files, bool use_metadata_transfer = true);
 
 #endif
 

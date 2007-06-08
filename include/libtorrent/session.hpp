@@ -191,6 +191,7 @@ namespace libtorrent
 		void set_port_filter(port_filter const& f);
 		void set_peer_id(peer_id const& pid);
 		void set_key(int key);
+		peer_id id() const;
 
 		bool is_listening() const;
 

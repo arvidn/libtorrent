@@ -75,6 +75,7 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 		   bool pref_rc4 = false)
 {
 	using namespace libtorrent;
+	using boost::tuples::ignore;
 	using std::cerr;
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000));
@@ -103,7 +104,7 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 	torrent_handle tor1;
 	torrent_handle tor2;
 
-	boost::tie(tor1, tor2) = setup_transfer(ses1, ses2, true, false);	
+	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0, true, false);	
 
 	std::cerr << "waiting for transfer to complete\n";
 

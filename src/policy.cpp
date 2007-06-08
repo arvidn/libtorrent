@@ -142,7 +142,19 @@ namespace
 		bool operator()(policy::peer const& p) const
 		{ return p.ip.address() == m_ip.address(); }
 
-		tcp::endpoint m_ip;
+		tcp::endpoint const& m_ip;
+	};
+
+	struct match_peer_id
+	{
+		match_peer_id(peer_id const& id_)
+			: m_id(id_)
+		{}
+
+		bool operator()(policy::peer const& p) const
+		{ return p.connection && p.connection->pid() == m_id; }
+
+		peer_id const& m_id;
 	};
 
 	struct match_peer_connection
@@ -152,9 +164,13 @@ namespace
 		{}
 
 		bool operator()(policy::peer const& p) const
-		{ return p.connection == &m_conn; }
+		{
+			return p.connection == &m_conn
+				|| (p.ip == m_conn.remote()
+					&& p.type == policy::peer::connectable);
+		}
 
-		const peer_connection& m_conn;
+		peer_connection const& m_conn;
 	};
 
 
@@ -923,7 +939,10 @@ namespace libtorrent
 
 		if (m_torrent->settings().allow_multiple_connections_per_ip)
 		{
-			i = m_peers.end();
+			i = std::find_if(
+				m_peers.begin()
+				, m_peers.end()
+				, match_peer_connection(c));
 		}
 		else
 		{
@@ -1008,7 +1027,10 @@ namespace libtorrent
 			
 			if (m_torrent->settings().allow_multiple_connections_per_ip)
 			{
-				i = m_peers.end();
+				i = std::find_if(
+					m_peers.begin()
+					, m_peers.end()
+					, match_peer_id(pid));
 			}
 			else
 			{
@@ -1199,6 +1221,7 @@ namespace libtorrent
 				c.add_free_upload(-diff);
 			}
 		}
+/*
 		if (!c.is_choked())
 		{
 			c.send_choke();
@@ -1207,6 +1230,7 @@ namespace libtorrent
 			if (m_torrent->is_seed()) seed_unchoke_one_peer();
 			else unchoke_one_peer();
 		}
+*/
 	}
 
 	bool policy::unchoke_one_peer()
