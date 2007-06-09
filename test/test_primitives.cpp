@@ -40,6 +40,12 @@ int test_main()
 	TEST_CHECK(parse_url_components("http://host.com/path?foo:bar@foo:")
 		== make_tuple("http", "", "host.com", 80, "/path?foo:bar@foo:"));
 
+	TEST_CHECK(parse_url_components("http://192.168.0.1/path/to/file")
+		== make_tuple("http", "", "192.168.0.1", 80, "/path/to/file"));
+
+	TEST_CHECK(parse_url_components("http://[::1]/path/to/file")
+		== make_tuple("http", "", "[::1]", 80, "/path/to/file"));
+
 	// base64 test vectors from http://www.faqs.org/rfcs/rfc4648.html
 
 	TEST_CHECK(base64encode("") == "");

@@ -467,8 +467,19 @@ namespace libtorrent
 			++start;
 		}
 
-		std::string::iterator port_pos
-			= std::find(start, url.end(), ':');
+		std::string::iterator port_pos;
+
+		// this is for IPv6 addresses
+		if (start != url.end() && *start == '[')
+		{
+			port_pos = std::find(start, url.end(), ']');
+			if (port_pos == url.end()) throw std::runtime_error("invalid hostname syntax");
+			port_pos = std::find(port_pos, url.end(), ':');
+		}
+		else
+		{
+			port_pos = std::find(start, url.end(), ':');
+		}
 
 		if (port_pos < end)
 		{

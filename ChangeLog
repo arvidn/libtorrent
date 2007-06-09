@@ -1,3 +1,8 @@
+	* Fixed bug in URL parser that failed to parse IPv6 addresses
+	* added peer download rate approximation
+	* added port filter for outgoing connection (to prevent
+	  triggering firewalls)
+	* made most parameters configurable via session_settings
 	* added encryption support
 	* added parole mode for peers whose data fails the hash check.
 	* optimized heap usage in piece-picker and web seed downloader.
@@ -8,7 +13,7 @@
 	* added a half-open tcp connection limit that takes all connections
 	  in to account, not just peer connections.
 	* added alerts for filtered IPs.
-	* added support for SOCKS5 proxies and HTTP CONNECT proxies.
+	* added support for SOCKS4 and 5 proxies and HTTP CONNECT proxies.
 	* fixed proper distributed copies calculation.
 	* added option to use openssl for sha-1 calculations.
 	* optimized the piece picker in the case where a peer is a seed.
