@@ -1990,7 +1990,11 @@ It contains the following fields::
 			local_connection = 0x20,
 			handshake = 0x40,
 			connecting = 0x80,
-			queued = 0x100
+			queued = 0x100,
+			on_parole = 0x200,
+			seed = 0x400,
+			rc4_encrypted = 0x800,
+			plaintext_encrypted = 0x1000
 		};
 
 		unsigned int flags;
@@ -2014,7 +2018,6 @@ It contains the following fields::
 		size_type total_upload;
 		peer_id pid;
 		std::vector<bool> pieces;
-		bool seed;
 		int upload_limit;
 		int download_limit;
 
