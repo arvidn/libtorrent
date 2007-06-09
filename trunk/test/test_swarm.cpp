@@ -114,9 +114,10 @@ int test_main()
 	using namespace libtorrent;
 	using namespace boost::filesystem;
 
-	remove_all("./tmp1");
-	remove_all("./tmp2");
-	remove_all("./tmp3");
+	// in case the previous run was terminated
+	try { remove_all("./tmp1"); } catch (std::exception&) {}
+	try { remove_all("./tmp2"); } catch (std::exception&) {}
+	try { remove_all("./tmp3"); } catch (std::exception&) {}
 
 	test_swarm();
 	
