@@ -192,7 +192,7 @@ namespace libtorrent
 		void write_cancel(peer_request const& r);
 		void write_bitfield(std::vector<bool> const& bitfield);
 		void write_have(int index);
-		void write_piece(peer_request const& r);
+		void write_piece(peer_request const& r, char const* buffer);
 		void write_handshake();
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void write_extensions();

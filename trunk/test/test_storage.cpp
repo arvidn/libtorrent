@@ -10,11 +10,18 @@
 #include <boost/thread/mutex.hpp>
 
 #include "test.hpp"
+#include "setup_transfer.hpp"
 
 using namespace libtorrent;
 using namespace boost::filesystem;
 
 const int piece_size = 16;
+
+void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
+{
+	TEST_CHECK(ret == size);
+	TEST_CHECK(std::equal(j.buffer, j.buffer + ret, data));
+}
 
 void run_storage_tests(torrent_info& info, bool compact_allocation = true)
 {
@@ -75,41 +82,47 @@ void run_storage_tests(torrent_info& info, bool compact_allocation = true)
 	// make sure the piece_manager can identify the pieces
 	{
 	file_pool fp;
-	piece_manager pm(info, initial_path(), fp, default_storage_constructor);
+	disk_io_thread io;
+	boost::shared_ptr<int> dummy(new int);
+	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
+		, initial_path(), fp, io, default_storage_constructor);
 	boost::mutex lock;
 	libtorrent::aux::piece_checker_data d;
 
 	std::vector<bool> pieces;
 	num_pieces = 0;
-	TEST_CHECK(pm.check_fastresume(d, pieces, num_pieces
+	TEST_CHECK(pm->check_fastresume(d, pieces, num_pieces
 		, compact_allocation) == false);
 	bool finished = false;
 	float progress;
 	num_pieces = 0;
 	boost::recursive_mutex mutex;
 	while (!finished)
-		boost::tie(finished, progress) = pm.check_files(pieces, num_pieces, mutex);
+		boost::tie(finished, progress) = pm->check_files(pieces, num_pieces, mutex);
 
 	TEST_CHECK(num_pieces == std::count(pieces.begin(), pieces.end()
 		, true));
 
 	TEST_CHECK(exists("temp_storage"));
-	pm.move_storage("temp_storage2");
+	pm->async_move_storage("temp_storage2");
+	test_sleep(2000);
 	TEST_CHECK(!exists("temp_storage"));
 	TEST_CHECK(exists("temp_storage2/temp_storage"));
-	pm.move_storage(".");
+	pm->async_move_storage(".");
+	test_sleep(2000);
 	TEST_CHECK(!exists("temp_storage2/temp_storage"));	
 	remove_all("temp_storage2");
 
-	TEST_CHECK(pm.read(piece, 0, 0, piece_size) == piece_size);
-	TEST_CHECK(std::equal(piece, piece + piece_size, piece0));
-
-	TEST_CHECK(pm.read(piece, 1, 0, piece_size) == piece_size);
-	TEST_CHECK(std::equal(piece, piece + piece_size, piece1));
-
-	TEST_CHECK(pm.read(piece, 2, 0, piece_size) == piece_size);
-	TEST_CHECK(std::equal(piece, piece + piece_size, piece2));
-	pm.release_files();
+	peer_request r;
+	r.piece = 0;
+	r.start = 0;
+	r.length = piece_size;
+	pm->async_read(r, bind(&on_read_piece, _1, _2, piece0, piece_size));
+	r.piece = 1;
+	pm->async_read(r, bind(&on_read_piece, _1, _2, piece1, piece_size));
+	r.piece = 2;
+	pm->async_read(r, bind(&on_read_piece, _1, _2, piece2, piece_size));
+	pm->async_release_files();
 
 	}
 }

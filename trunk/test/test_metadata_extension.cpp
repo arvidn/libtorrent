@@ -40,7 +40,7 @@ void test_transfer(bool clear_files = true, bool disconnect = false)
 
 		if (disconnect && tor2.is_valid()) ses2.remove_torrent(tor2);
 		if (!disconnect && tor2.has_metadata()) break;
-		sleep(100);
+		test_sleep(100);
 	}
 
 	if (disconnect) return;
@@ -52,7 +52,7 @@ void test_transfer(bool clear_files = true, bool disconnect = false)
 	{
 		tor2.status();
 		if (tor2.is_seed()) break;
-		sleep(100);
+		test_sleep(100);
 	}
 
 	TEST_CHECK(tor2.is_seed());

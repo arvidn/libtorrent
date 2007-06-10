@@ -177,7 +177,7 @@ namespace libtorrent
 	// if the torrent already exists, this will throw duplicate_torrent
 	torrent_handle session::add_torrent(
 		torrent_info const& ti
-		, boost::filesystem::path const& save_path
+		, fs::path const& save_path
 		, entry const& resume_data
 		, bool compact_mode
 		, int block_size
@@ -191,7 +191,7 @@ namespace libtorrent
 		char const* tracker_url
 		, sha1_hash const& info_hash
 		, char const* name
-		, boost::filesystem::path const& save_path
+		, fs::path const& save_path
 		, entry const& e
 		, bool compact_mode
 		, int block_size

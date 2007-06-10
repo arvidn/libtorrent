@@ -289,28 +289,6 @@ namespace libtorrent
 		return ret;
 	}
 
-	void intrusive_ptr_add_ref(timeout_handler const* c)
-	{
-		assert(c != 0);
-		assert(c->m_refs >= 0);
-		timeout_handler::mutex_t::scoped_lock l(c->m_mutex);
-		++c->m_refs;
-	}
-
-	void intrusive_ptr_release(timeout_handler const* c)
-	{
-		assert(c != 0);
-		assert(c->m_refs > 0);
-		timeout_handler::mutex_t::scoped_lock l(c->m_mutex);
-		--c->m_refs;
-		if (c->m_refs == 0)
-		{
-			l.unlock();
-			delete c;
-		}
-	}
-
-
 	timeout_handler::timeout_handler(asio::strand& str)
 		: m_strand(str)
 		, m_start_time(time_now())
@@ -318,7 +296,6 @@ namespace libtorrent
 		, m_timeout(str.io_service())
 		, m_completion_timeout(0)
 		, m_read_timeout(0)
-		, m_refs(0)
 	{}
 
 	void timeout_handler::set_timeout(int completion_timeout, int read_timeout)

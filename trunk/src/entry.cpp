@@ -278,6 +278,12 @@ namespace libtorrent
 		}
 	}
 
+	void entry::swap(entry& e)
+	{
+		// not implemented
+		assert(false);
+	}
+
 	void entry::print(std::ostream& os, int indent) const
 	{
 		assert(indent >= 0);

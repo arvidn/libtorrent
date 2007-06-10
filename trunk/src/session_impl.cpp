@@ -81,7 +81,11 @@ using boost::bind;
 using boost::mutex;
 using libtorrent::aux::session_impl;
 
-namespace libtorrent { namespace detail
+namespace libtorrent {
+
+namespace fs = boost::filesystem;
+
+namespace detail
 {
 
 	std::string generate_auth_string(std::string const& user
@@ -412,7 +416,6 @@ namespace libtorrent { namespace detail
 		for (std::deque<boost::shared_ptr<piece_checker_data> >::iterator i
 			= m_processing.begin(); i != m_processing.end(); ++i)
 		{
-			
 			if ((*i)->info_hash == info_hash) return i->get();
 		}
 
@@ -1276,7 +1279,7 @@ namespace libtorrent { namespace detail
 
 	torrent_handle session_impl::add_torrent(
 		torrent_info const& ti
-		, boost::filesystem::path const& save_path
+		, fs::path const& save_path
 		, entry const& resume_data
 		, bool compact_mode
 		, int block_size
@@ -1367,7 +1370,7 @@ namespace libtorrent { namespace detail
 		char const* tracker_url
 		, sha1_hash const& info_hash
 		, char const* name
-		, boost::filesystem::path const& save_path
+		, fs::path const& save_path
 		, entry const&
 		, bool compact_mode
 		, int block_size
@@ -2108,12 +2111,13 @@ namespace libtorrent { namespace detail
 					for (int j = 0; j < num_bitmask_bytes; ++j)
 					{
 						unsigned char bits = bitmask[j];
-						for (int k = 0; k < 8; ++k)
+						int num_bits = std::min(num_blocks_per_piece - j*8, 8);
+						for (int k = 0; k < num_bits; ++k)
 						{
 							const int bit = j * 8 + k;
 							if (bits & (1 << k))
 							{
-								p.info[bit].finished = true;
+								p.info[bit].state = piece_picker::block_info::state_finished;
 								++p.finished;
 							}
 						}

@@ -51,7 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/array.hpp>
 #include <boost/optional.hpp>
 #include <boost/cstdint.hpp>
-#include <boost/detail/atomic_count.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -73,6 +72,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bandwidth_manager.hpp"
 #include "libtorrent/policy.hpp"
 #include "libtorrent/socket_type.hpp"
+#include "libtorrent/intrusive_ptr_base.hpp"
 
 // TODO: each time a block is 'taken over'
 // from another peer. That peer must be given
@@ -88,20 +88,16 @@ namespace libtorrent
 		struct session_impl;
 	}
 
-	TORRENT_EXPORT void intrusive_ptr_add_ref(peer_connection const*);
-	TORRENT_EXPORT void intrusive_ptr_release(peer_connection const*);
-
 	struct TORRENT_EXPORT protocol_error: std::runtime_error
 	{
 		protocol_error(const std::string& msg): std::runtime_error(msg) {};
 	};
 
 	class TORRENT_EXPORT peer_connection
-		: public boost::noncopyable
+		: public intrusive_ptr_base<peer_connection>
+		, public boost::noncopyable
 	{
 	friend class invariant_access;
-	friend TORRENT_EXPORT void intrusive_ptr_add_ref(peer_connection const*);
-	friend TORRENT_EXPORT void intrusive_ptr_release(peer_connection const*);
 	public:
 
 		enum channels
@@ -378,7 +374,7 @@ namespace libtorrent
 		virtual void write_cancel(peer_request const& r) = 0;
 		virtual void write_have(int index) = 0;
 		virtual void write_keepalive() = 0;
-		virtual void write_piece(peer_request const& r) = 0;
+		virtual void write_piece(peer_request const& r, char const* buffer) = 0;
 		
 		virtual void on_connected() = 0;
 		virtual void on_tick() {}
@@ -474,6 +470,9 @@ namespace libtorrent
 	private:
 
 		void fill_send_buffer();
+		void on_disk_read_complete(int ret, disk_io_job const& j, peer_request r);
+		void on_disk_write_complete(int ret, disk_io_job const& j
+			, peer_request r, boost::shared_ptr<torrent> t);
 
 		// the timeout in seconds
 		int m_timeout;
@@ -503,6 +502,11 @@ namespace libtorrent
 		// (m_current_send_buffer + 1) % 2 is the
 		// buffer we're currently waiting for.
 		int m_current_send_buffer;
+
+		// the number of bytes we are currently reading
+		// from disk, that will be added to the send
+		// buffer as soon as they complete
+		int m_reading_bytes;
 		
 		// if the sending buffer doesn't finish in one send
 		// operation, this is the position within that buffer
@@ -660,9 +664,6 @@ namespace libtorrent
 		// the left-over bandwidth (suitable for web seeds).
 		bool m_non_prioritized;
 
-		// reference counter for intrusive_ptr
-		mutable boost::detail::atomic_count m_refs;
-		
 		int m_upload_limit;
 		int m_download_limit;
 

@@ -11,11 +11,20 @@
 using boost::filesystem::remove_all;
 using boost::filesystem::create_directory;
 
-void sleep(int msec)
+void test_sleep(int millisec)
 {
 	boost::xtime xt;
 	boost::xtime_get(&xt, boost::TIME_UTC);
-	xt.nsec += msec * 1000000;
+	xt.nsec += millisec * 1000000;
+	boost::uint64_t nanosec = (millisec % 1000) * 1000000 + xt.nsec;
+	int sec = millisec / 1000;
+	if (nanosec > 1000000000)
+	{
+		nanosec -= 1000000000;
+		sec++;
+	}
+	xt.nsec = nanosec;
+	xt.sec += sec;
 	boost::thread::sleep(xt);
 }
 
@@ -70,6 +79,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	// they should not use the same save dir, because the
 	// file pool will complain if two torrents are trying to
 	// use the same files
+	sha1_hash info_hash = t.info_hash();
 	torrent_handle tor1 = ses1->add_torrent(t, "./tmp1");
 	torrent_handle tor2;
 	torrent_handle tor3;
@@ -81,7 +91,10 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	else
 		tor2 = ses2->add_torrent(t, "./tmp2");
 
-	sleep(100);
+	assert(ses1->get_torrents().size() == 1);
+	assert(ses2->get_torrents().size() == 1);
+
+	test_sleep(100);
 
 	std::cerr << "connecting peer\n";
 	tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1")
@@ -91,7 +104,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	{
 		// give the other peers some time to get an initial
 		// set of pieces before they start sharing with each-other
-		sleep(10000);
+		test_sleep(10000);
 		tor3.connect_peer(tcp::endpoint(
 			address::from_string("127.0.0.1")
 			, ses2->listen_port()));

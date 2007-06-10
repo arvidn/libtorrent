@@ -62,10 +62,12 @@ namespace pt = boost::posix_time;
 namespace gr = boost::gregorian;
 
 using namespace libtorrent;
-using namespace boost::filesystem;
 
 namespace
 {
+	
+	namespace fs = boost::filesystem;
+
 	void convert_to_utf8(std::string& str, unsigned char chr)
 	{
 		str += 0xc0 | ((chr & 0xff) >> 6);
@@ -153,7 +155,7 @@ namespace
 		// encoded string
 		if (!valid_encoding)
 		{
-			target.orig_path.reset(new path(target.path));
+			target.orig_path.reset(new fs::path(target.path));
 			target.path = tmp_path;
 		}
 	}
@@ -203,8 +205,8 @@ namespace
 			offset += target.back().size;
 		}
 	}
-
-	void remove_dir(path& p)
+/*
+	void remove_dir(fs::path& p)
 	{
 		assert(p.begin() != p.end());
 		path tmp;
@@ -212,6 +214,7 @@ namespace
 			tmp /= *i;
 		p = tmp;
 	}
+*/
 }
 
 namespace libtorrent
@@ -277,6 +280,29 @@ namespace libtorrent
 	torrent_info::~torrent_info()
 	{}
 
+	void torrent_info::swap(torrent_info& ti)
+	{
+		using std::swap;
+		m_urls.swap(ti.m_urls);
+		m_url_seeds.swap(ti.m_url_seeds);
+		swap(m_piece_length, ti.m_piece_length);
+		m_piece_hash.swap(ti.m_piece_hash);
+		m_files.swap(ti.m_files);
+		m_nodes.swap(ti.m_nodes);
+		swap(m_num_pieces, ti.m_num_pieces);
+		swap(m_info_hash, ti.m_info_hash);
+		m_name.swap(ti.m_name);
+		swap(m_creation_date, ti.m_creation_date);
+		m_comment.swap(ti.m_comment);
+		m_created_by.swap(ti.m_created_by);
+		swap(m_multifile, ti.m_multifile);
+		swap(m_private, ti.m_private);
+		m_extra_info.swap(ti.m_extra_info);
+#ifndef NDEBUG
+		swap(m_half_metadata, ti.m_half_metadata);
+#endif
+	}
+
 	void torrent_info::set_piece_size(int size)
 	{
 		// make sure the size is an even power of 2
@@ -323,7 +349,7 @@ namespace libtorrent
 		else
 		{ m_name = info["name"].string(); }
 		
-		path tmp = m_name;
+		fs::path tmp = m_name;
 		if (tmp.is_complete()) throw std::runtime_error("torrent contains "
 			"a file with an absolute path: '" + m_name + "'");
 		if (tmp.has_branch_path()) throw std::runtime_error(
@@ -526,9 +552,9 @@ namespace libtorrent
 			, bind(&announce_entry::tier, _1), bind(&announce_entry::tier, _2)));
 	}
 
-	void torrent_info::add_file(boost::filesystem::path file, size_type size)
+	void torrent_info::add_file(fs::path file, size_type size)
 	{
-		assert(file.begin() != file.end());
+//		assert(file.begin() != file.end());
 
 		if (!file.has_branch_path())
 		{
@@ -589,8 +615,6 @@ namespace libtorrent
 
 	entry torrent_info::create_info_metadata() const
 	{
-		namespace fs = boost::filesystem;
-
 		// you have to add files to the torrent first
 		assert(!m_files.empty());
 	
@@ -649,8 +673,6 @@ namespace libtorrent
 	entry torrent_info::create_torrent() const
 	{
 		assert(m_piece_length > 0);
-
-		namespace fs = boost::filesystem;
 
 		if ((m_urls.empty() && m_nodes.empty()) || m_files.empty())
 		{

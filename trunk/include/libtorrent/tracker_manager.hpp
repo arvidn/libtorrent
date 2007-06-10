@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/connection_queue.hpp"
+#include "libtorrent/intrusive_ptr_base.hpp"
 
 namespace libtorrent
 {
@@ -148,15 +149,10 @@ namespace libtorrent
 		, request_callback* requester
 		, int maximum_tracker_response_length);
 
-	TORRENT_EXPORT void intrusive_ptr_add_ref(timeout_handler const*);
-	TORRENT_EXPORT void intrusive_ptr_release(timeout_handler const*);
-
 	struct TORRENT_EXPORT timeout_handler
-		: boost::noncopyable
+		: intrusive_ptr_base<timeout_handler>
+		, boost::noncopyable
 	{
-		friend TORRENT_EXPORT void intrusive_ptr_add_ref(timeout_handler const*);
-		friend TORRENT_EXPORT void intrusive_ptr_release(timeout_handler const*);
-
 		timeout_handler(asio::strand& str);
 
 		void set_timeout(int completion_timeout, int read_timeout);
@@ -187,7 +183,6 @@ namespace libtorrent
 
 		typedef boost::mutex mutex_t;
 		mutable mutex_t m_mutex;
-		mutable int m_refs;
 	};
 
 	struct TORRENT_EXPORT tracker_connection
