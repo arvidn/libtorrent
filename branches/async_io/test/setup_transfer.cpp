@@ -30,60 +30,89 @@ void test_sleep(int millisec)
 
 using namespace libtorrent;
 
-boost::tuple<torrent_handle, torrent_handle> setup_transfer(
-	session& ses1, session& ses2, bool clear_files)
+boost::tuple<torrent_handle, torrent_handle, torrent_handle>
+setup_transfer(session* ses1, session* ses2, session* ses3
+	, bool clear_files, bool use_metadata_transfer)
 {
 	using namespace boost::filesystem;
+
+	assert(ses1);
+	assert(ses2);
+
+	assert(ses1->id() != ses2->id());
+	if (ses3)
+		assert(ses3->id() != ses2->id());
 
 	char const* tracker_url = "http://non-existent-name.com/announce";
 	
 	torrent_info t;
-	t.add_file(path("temporary"), 42);
-	t.set_piece_size(256 * 1024);
+	int total_size = 2 * 1024 * 1024;
+	t.add_file(path("temporary"), total_size);
+	t.set_piece_size(16 * 1024);
 	t.add_tracker(tracker_url);
 
-	std::vector<char> piece(42);
+	std::vector<char> piece(16 * 1024);
 	std::fill(piece.begin(), piece.end(), 0xfe);
 	
 	// calculate the hash for all pieces
 	int num = t.num_pieces();
+	sha1_hash ph = hasher(&piece[0], piece.size()).final();
 	for (int i = 0; i < num; ++i)
-	{
-		t.set_hash(i, hasher(&piece[0], piece.size()).final());
-	}
+		t.set_hash(i, ph);
 	
 	create_directory("./tmp1");
 	std::ofstream file("./tmp1/temporary");
-	file.write(&piece[0], piece.size());
+	while (total_size > 0)
+	{
+		file.write(&piece[0], std::min(int(piece.size()), total_size));
+		total_size -= piece.size();
+	}
 	file.close();
 	if (clear_files) remove_all("./tmp2/temporary");
 	
 	t.create_torrent();
 
 
-	ses1.set_severity_level(alert::debug);
-	ses2.set_severity_level(alert::debug);
+	ses1->set_severity_level(alert::debug);
+	ses2->set_severity_level(alert::debug);
 	
 	// they should not use the same save dir, because the
 	// file pool will complain if two torrents are trying to
 	// use the same files
 	sha1_hash info_hash = t.info_hash();
-	torrent_handle tor1 = ses1.add_torrent(t, "./tmp1");
-	assert(info_hash == t.info_hash());
-	torrent_handle tor2 = ses2.add_torrent(tracker_url
+	torrent_handle tor1 = ses1->add_torrent(t, "./tmp1");
+	torrent_handle tor2;
+	torrent_handle tor3;
+	if (ses3) tor3 = ses3->add_torrent(t, "./tmp3");
+
+  	if (use_metadata_transfer)
+		tor2 = ses2->add_torrent(tracker_url
 		, t.info_hash(), 0, "./tmp2");
-	assert(ses1.get_torrents().size() == 1);
-	assert(ses2.get_torrents().size() == 1);
+	else
+		tor2 = ses2->add_torrent(t, "./tmp2");
+
+	assert(ses1->get_torrents().size() == 1);
+	assert(ses2->get_torrents().size() == 1);
 
 	test_sleep(100);
 
 	std::cerr << "connecting peer\n";
 	tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1")
-		, ses2.listen_port()));
+		, ses2->listen_port()));
 
-	assert(ses1.get_torrents().size() == 1);
-	assert(ses2.get_torrents().size() == 1);
+	if (ses3)
+	{
+		// give the other peers some time to get an initial
+		// set of pieces before they start sharing with each-other
+		test_sleep(10000);
+		tor3.connect_peer(tcp::endpoint(
+			address::from_string("127.0.0.1")
+			, ses2->listen_port()));
+		tor3.connect_peer(tcp::endpoint(
+			address::from_string("127.0.0.1")
+			, ses1->listen_port()));
+	}
 
-	return boost::make_tuple(tor1, tor2);
+	return boost::make_tuple(tor1, tor2, tor3);
 }
 

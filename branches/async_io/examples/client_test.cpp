@@ -270,11 +270,11 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
-	out << " down    (total)   up      (total)  que req flags    source fail hshf sndb inactive wait block-progress "
+	out << " down    (total)   up      (total)  que req flags      source fail hshf sndb inactive wait block-progress "
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		"country "
 #endif
-		"client \n";
+		"peer-rate client \n";
 
 	for (std::vector<peer_info>::const_iterator i = peers.begin();
 		i != peers.end(); ++i)
@@ -298,7 +298,13 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			<< ((i->flags & peer_info::local_connection)?'l':'r')
 			<< ((i->flags & peer_info::seed)?'s':'.')
 			<< ((i->flags & peer_info::on_parole)?'p':'.')
-		  	<< " "
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			<< ((i->flags & peer_info::rc4_encrypted)?'E':
+				(i->flags & peer_info::plaintext_encrypted)?'e':'.')
+#else
+			<< "  "
+#endif
+			<< " "
 			<< ((i->source & peer_info::tracker)?"T":"_")
 			<< ((i->source & peer_info::pex)?"P":"_")
 			<< ((i->source & peer_info::dht)?"D":"_")
@@ -330,6 +336,8 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			out << " " << i->country[0] << i->country[1];
 		}
 #endif
+		out << (i->remote_dl_rate > 0 ? add_suffix(i->remote_dl_rate) + "/s ": "         ") << " ";
+
 		if (i->flags & peer_info::handshake)
 		{
 			out << esc("31") << " waiting for handshake" << esc("0") << "\n";

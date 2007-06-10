@@ -390,7 +390,7 @@ namespace libtorrent
 		void swap_slots3(int slot1, int slot2, int slot3);
 		bool verify_resume_data(entry& rd, std::string& error);
 		void write_resume_data(entry& rd) const;
-		sha1_hash hash_for_slot(int slot, partial_hash& ph);
+		sha1_hash hash_for_slot(int slot, partial_hash& ph, int piece_size);
 
 		size_type read_impl(char* buf, int slot, int offset, int size, bool fill_zero);
 
@@ -410,12 +410,12 @@ namespace libtorrent
 		std::vector<char> m_scratch_buffer;
 	};
 
-	sha1_hash storage::hash_for_slot(int slot, partial_hash& ph)
+	sha1_hash storage::hash_for_slot(int slot, partial_hash& ph, int piece_size)
 	{
 #ifndef NDEBUG
 		hasher partial;
 		hasher whole;
-		int slot_size1 = m_info.piece_size(slot);
+		int slot_size1 = piece_size;
 		m_scratch_buffer.resize(slot_size1);
 		read_impl(&m_scratch_buffer[0], slot, 0, slot_size1, true);
 		if (ph.offset > 0)
@@ -424,7 +424,7 @@ namespace libtorrent
 		hasher partial_copy = ph.h;
 		assert(ph.offset == 0 || partial_copy.final() == partial.final());
 #endif
-		int slot_size = m_info.piece_size(slot) - ph.offset;
+		int slot_size = piece_size - ph.offset;
 		if (slot_size == 0) return ph.h.final();
 		m_scratch_buffer.resize(slot_size);
 		read_impl(&m_scratch_buffer[0], slot, ph.offset, slot_size, true);
@@ -1140,7 +1140,7 @@ namespace libtorrent
 
 		int slot = m_piece_to_slot[piece];
 		assert(slot != has_no_slot);
-		return m_storage->hash_for_slot(slot, ph);
+		return m_storage->hash_for_slot(slot, ph, m_info.piece_size(piece));
 	}
 
 	void piece_manager::release_files_impl()

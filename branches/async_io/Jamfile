@@ -28,6 +28,10 @@ feature dht-support : on off logging : composite propagated symmetric link-incom
 feature.compose <dht-support>off : <define>TORRENT_DISABLE_DHT ;
 feature.compose <dht-support>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 
+feature pe-support : on off : composite propagated symmetric ;
+feature.compose <pe-support>on : ;
+feature.compose <pe-support>off : <define>TORRENT_DISABLE_ENCRYPTION ;
+
 feature openssl : off on : composite propagated symmetric link-incompatible ;
 feature.compose <openssl>on : <define>TORRENT_USE_OPENSSL ;
 
@@ -36,6 +40,8 @@ feature.compose <resolve-countries>off : <define>TORRENT_DISABLE_RESOLVE_COUNTRI
 
 feature character-set : ansi unicode : composite propagated link-incompatible ;
 feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
+
+feature zlib : shipped system : composite ;
 
 feature statistics : off on : composite propagated symmetric link-incompatible ;
 feature.compose <statistics>on : <define>TORRENT_STATS ;
@@ -137,7 +143,7 @@ project torrent
 
 	<include>./include
 	<include>./include/libtorrent
-	<include>./zlib
+	<zlib>shipped:<include>./zlib
 	<include>$(BOOST_ROOT)
 	<variant>release:<define>NDEBUG
 	<define>BOOST_ALL_NO_LIB
@@ -180,13 +186,16 @@ project torrent
 lib torrent
 	:
 	src/$(SOURCES).cpp
-	zlib/$(ZLIB_SOURCES).c
 	$(LIBS)
 #	pch
 	:
 	<dht-support>on:<source>src/$(KADEMLIA_SOURCES).cpp
 	<dht-support>logging:<source>src/$(KADEMLIA_SOURCES).cpp
-	<openssl>off:<source>src/sha1.cpp
+	<zlib>shipped:<source>zlib/$(ZLIB_SOURCES).c
+	<zlib>system:<library>z
+	<pe-support>on:<source>src/pe_crypto.cpp
+	<pe-support>on:<library>crypt
 	<openssl>on:<library>crypt
+	<openssl>off,<pe-support>off:<source>src/sha1.cpp
 	;
 

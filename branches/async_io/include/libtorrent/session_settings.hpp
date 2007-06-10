@@ -105,6 +105,7 @@ namespace libtorrent
 			, send_redundant_have(false)
 			, lazy_bitfields(true)
 			, inactivity_timeout(600)
+			, unchoke_interval(20)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(true)
 #endif
@@ -234,6 +235,9 @@ namespace libtorrent
 		// default is 10 minutes
 		int inactivity_timeout;
 
+		// the number of seconds between chokes/unchokes
+		int unchoke_interval;
+
 #ifndef TORRENT_DISABLE_DHT
 		// while this is true, the dht will note be used unless the
 		// tracker is online
@@ -266,6 +270,42 @@ namespace libtorrent
 		// the maximum number of times a node can fail
 		// in a row before it is removed from the table.
 		int max_fail_count;
+	};
+#endif
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+
+	struct pe_settings
+	{
+		pe_settings()
+			: out_enc_policy(enabled)
+			, in_enc_policy(enabled)
+			, allowed_enc_level(both)
+			, prefer_rc4(false)
+		{}
+
+		enum enc_policy
+		{
+			forced,  // disallow non encrypted connections
+			enabled, // allow encrypted and non encrypted connections
+			disabled // disallow encrypted connections
+		};
+
+		enum enc_level
+		{
+			plaintext, // use only plaintext encryption
+			rc4, // use only rc4 encryption 
+			both // allow both
+		};
+
+		enc_policy out_enc_policy;
+		enc_policy in_enc_policy;
+
+		enc_level allowed_enc_level;
+		// if the allowed encryption level is both, setting this to
+		// true will prefer rc4 if both methods are offered, plaintext
+		// otherwise
+		bool prefer_rc4;
 	};
 #endif
 

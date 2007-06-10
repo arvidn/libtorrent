@@ -1,6 +1,7 @@
 /*
 
-Copyright (c) 2003, Arvid Norberg
+Copyright (c) 2003 - 2006, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg, Un Shyam
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,13 +51,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
+#include "libtorrent/pe_crypto.hpp"
+#include "libtorrent/hasher.hpp"
+#endif
+
 using boost::bind;
 using boost::shared_ptr;
 using libtorrent::aux::session_impl;
 
 namespace libtorrent
 {
-
 	const bt_peer_connection::message_handler
 	bt_peer_connection::m_message_handler[] =
 	{
@@ -83,11 +88,17 @@ namespace libtorrent
 		, policy::peer* peerinfo)
 		: peer_connection(ses, tor, s, remote
 			, peerinfo)
-		, m_state(read_protocol_length)
+		, m_state(read_protocol_identifier)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_supports_extensions(false)
 #endif
 		, m_supports_dht_port(false)
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		, m_encrypted(false)
+		, m_rc4_encrypted(false)
+		, m_sync_bytes_read(0)
+		, m_enc_send_buffer(0, 0)
+#endif
 #ifndef NDEBUG
 		, m_sent_bitfield(false)
 		, m_in_constructor(true)
@@ -97,21 +108,57 @@ namespace libtorrent
 		(*m_logger) << "*** bt_peer_connection\n";
 #endif
 
-		write_handshake();
-
-		// start in the state where we are trying to read the
-		// handshake from the other side
-		reset_recv_buffer(1);
-
-		// assume the other end has no pieces
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		assert(t);
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		
-		if (t->ready_for_connections())
-			write_bitfield(t->pieces());
+		pe_settings::enc_policy const& out_enc_policy = m_ses.get_pe_settings().out_enc_policy;
 
-		setup_send();
-		setup_receive();
+		if (out_enc_policy == pe_settings::forced)
+		{
+			write_pe1_2_dhkey();
+
+			m_state = read_pe_dhkey;
+			reset_recv_buffer(dh_key_len);
+			setup_receive();
+		}
+		else if (out_enc_policy == pe_settings::enabled)
+		{
+			assert(peer_info_struct());
+
+			policy::peer* pi = peer_info_struct();
+			if (pi->pe_support == true)
+			{
+				// toggle encryption support flag, toggled back to
+				// true if encrypted portion of the handshake
+				// completes correctly
+				pi->pe_support = !(pi->pe_support);
+
+				write_pe1_2_dhkey();
+				m_state = read_pe_dhkey;
+				reset_recv_buffer(dh_key_len);
+				setup_receive();
+			}
+			else // pi->pe_support == false
+			{
+				// toggled back to false if standard handshake
+				// completes correctly (without encryption)
+				pi->pe_support = !(pi->pe_support);
+
+				write_handshake();
+				reset_recv_buffer(20);
+				setup_receive();
+			}
+		}
+		else if (out_enc_policy == pe_settings::disabled)
+#endif
+		{
+			write_handshake();
+			
+			// start in the state where we are trying to read the
+			// handshake from the other side
+			reset_recv_buffer(20);
+			setup_receive();
+		}
+		
 #ifndef NDEBUG
 		m_in_constructor = false;
 #endif
@@ -122,16 +169,23 @@ namespace libtorrent
 		, boost::shared_ptr<socket_type> s
 		, policy::peer* peerinfo)
 		: peer_connection(ses, s, peerinfo)
-		, m_state(read_protocol_length)
+		, m_state(read_protocol_identifier)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_supports_extensions(false)
 #endif
 		, m_supports_dht_port(false)
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		, m_encrypted(false)
+		, m_rc4_encrypted(false)
+		, m_sync_bytes_read(0)
+		, m_enc_send_buffer(0, 0)
+#endif		
 #ifndef NDEBUG
 		, m_sent_bitfield(false)
 		, m_in_constructor(true)
 #endif
 	{
+
 		// we are not attached to any torrent yet.
 		// we have to wait for the handshake to see
 		// which torrent the connector want's to connect to
@@ -141,12 +195,17 @@ namespace libtorrent
 		// that are part of a torrent. Since this is an incoming
 		// connection, we have to give it some initial bandwidth
 		// to send the handshake.
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		m_bandwidth_limit[download_channel].assign(2048);
+		m_bandwidth_limit[upload_channel].assign(2048);
+#else
 		m_bandwidth_limit[download_channel].assign(80);
 		m_bandwidth_limit[upload_channel].assign(80);
+#endif
 
 		// start in the state where we are trying to read the
 		// handshake from the other side
-		reset_recv_buffer(1);
+		reset_recv_buffer(20);
 		setup_receive();
 #ifndef NDEBUG
 		m_in_constructor = false;
@@ -189,11 +248,21 @@ namespace libtorrent
 		if (has_peer_choked()) p.flags |= peer_info::remote_choked;
 		if (support_extensions()) p.flags |= peer_info::supports_extensions;
 		if (is_local()) p.flags |= peer_info::local_connection;
-		if (!is_connecting() && m_state < read_packet_size)
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		if (m_encrypted)
+		{
+			m_rc4_encrypted ? 
+				p.flags |= peer_info::rc4_encrypted :
+				p.flags |= peer_info::plaintext_encrypted;
+		}
+#endif
+
+		if (!is_connecting() && in_handshake())
 			p.flags |= peer_info::handshake;
 		if (is_connecting() && !is_queued()) p.flags |= peer_info::connecting;
 		if (is_queued()) p.flags |= peer_info::queued;
-		
+
 		p.client = m_client_version;
 		p.connection_type = peer_info::standard_bittorrent;
 
@@ -204,6 +273,311 @@ namespace libtorrent
 		return m_state < read_packet_size;
 	}
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
+
+	void bt_peer_connection::write_pe1_2_dhkey()
+	{
+		INVARIANT_CHECK;
+
+		assert(!m_encrypted);
+		assert(!m_rc4_encrypted);
+		assert(!m_DH_key_exchange.get());
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		if (is_local())
+			(*m_logger) << " initiating encrypted handshake\n";
+#endif
+
+		m_DH_key_exchange.reset(new DH_key_exchange);
+
+		int pad_size = std::rand() % 512;
+		buffer::interval send_buf = allocate_send_buffer(dh_key_len + pad_size);
+
+		std::copy (m_DH_key_exchange->get_local_key(),
+				   m_DH_key_exchange->get_local_key() + dh_key_len,
+				   send_buf.begin);
+
+		std::generate(send_buf.begin + dh_key_len, send_buf.end, std::rand);
+		setup_send();
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << " sent DH key\n";
+#endif
+	}
+
+	void bt_peer_connection::write_pe3_sync()
+	{
+		INVARIANT_CHECK;
+
+		assert (!m_encrypted);
+		assert (!m_rc4_encrypted);
+		assert (is_local());
+		
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		assert(t);
+		
+		hasher h;
+		sha1_hash const& info_hash = t->torrent_file().info_hash();
+		char const* const secret = m_DH_key_exchange->get_secret();
+
+		int pad_size = 0; // rand() % 512; // Keep 0 for now
+
+		// synchash,skeyhash,vc,crypto_provide,len(pad),pad,len(ia)
+		buffer::interval send_buf = 
+			allocate_send_buffer (20 + 20 + 8 + 4 + 2 + pad_size + 2);
+
+		// sync hash (hash('req1',S))
+		h.reset();
+		h.update("req1",4);
+		h.update(secret, dh_key_len);
+		sha1_hash sync_hash = h.final();
+
+		std::copy (sync_hash.begin(), sync_hash.end(), send_buf.begin);
+		send_buf.begin += 20;
+
+		// stream key obfuscated hash [ hash('req2',SKEY) xor hash('req3',S) ]
+		h.reset();
+		h.update("req2",4);
+		h.update((const char*)info_hash.begin(), 20);
+		sha1_hash streamkey_hash = h.final();
+
+		h.reset();
+		h.update("req3",4);
+		h.update(secret, dh_key_len);
+		sha1_hash obfsc_hash = h.final();
+		obfsc_hash ^= streamkey_hash;
+
+		std::copy (obfsc_hash.begin(), obfsc_hash.end(), send_buf.begin);
+		send_buf.begin += 20;
+
+		// Discard DH key exchange data, setup RC4 keys
+		init_pe_RC4_handler(secret, info_hash);
+		m_DH_key_exchange.reset(); // secret should be invalid at this point
+	
+		// write the verification constant and crypto field
+		assert(send_buf.left() == 8 + 4 + 2 + pad_size + 2);
+		int encrypt_size = send_buf.left();
+
+		int crypto_provide = 0;
+		pe_settings::enc_level const& allowed_enc_level = m_ses.get_pe_settings().allowed_enc_level;
+
+		if (allowed_enc_level == pe_settings::both) 
+			crypto_provide = 0x03;
+		else if (allowed_enc_level == pe_settings::rc4) 
+			crypto_provide = 0x02;
+		else if (allowed_enc_level == pe_settings::plaintext)
+			crypto_provide = 0x01;
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << " crypto provide : [ ";
+		if (allowed_enc_level == pe_settings::both)
+			(*m_logger) << "plaintext rc4 ]\n";
+		else if (allowed_enc_level == pe_settings::rc4)
+			(*m_logger) << "rc4 ]\n";
+		else if (allowed_enc_level == pe_settings::plaintext)
+			(*m_logger) << "plaintext ]\n";
+#endif
+
+		write_pe_vc_cryptofield(send_buf, crypto_provide, pad_size);
+		m_RC4_handler->encrypt(send_buf.end - encrypt_size, encrypt_size);
+
+		assert(send_buf.begin == send_buf.end);
+		setup_send();
+	}
+
+	void bt_peer_connection::write_pe4_sync(int crypto_select)
+	{
+		INVARIANT_CHECK;
+
+		assert(!is_local());
+		assert(!m_encrypted);
+		assert(!m_rc4_encrypted);
+		assert(crypto_select == 0x02 || crypto_select == 0x01);
+
+		int pad_size = 0; // rand() % 512; // Keep 0 for now
+
+		const int buf_size = 8+4+2+pad_size;
+		buffer::interval send_buf = allocate_send_buffer(buf_size);
+		write_pe_vc_cryptofield(send_buf, crypto_select, pad_size);
+
+		m_RC4_handler->encrypt(send_buf.end - buf_size, buf_size);
+		setup_send();
+
+		// encryption method has been negotiated
+		if (crypto_select == 0x02) 
+			m_rc4_encrypted = true;
+		else // 0x01
+			m_rc4_encrypted = false;
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << " crypto select : [ ";
+		if (crypto_select == 0x01)
+			(*m_logger) << "plaintext ]\n";
+		else
+			(*m_logger) << "rc4 ]\n";
+#endif
+	}
+
+ 	void bt_peer_connection::write_pe_vc_cryptofield(buffer::interval& write_buf,
+													 int crypto_field, int pad_size)
+ 	{
+		INVARIANT_CHECK;
+
+		assert(crypto_field <= 0x03 && crypto_field > 0);
+		assert(pad_size == 0); // pad not used yet
+		// vc,crypto_field,len(pad),pad, (len(ia))
+		assert( (write_buf.left() == 8+4+2+pad_size+2 && is_local()) ||
+				(write_buf.left() == 8+4+2+pad_size   && !is_local()) );
+
+		// encrypt(vc, crypto_provide/select, len(Pad), len(IA))
+		// len(pad) is zero for now, len(IA) only for outgoing connections
+		
+		// vc
+		std::fill(write_buf.begin, write_buf.begin + 8, 0);
+		write_buf.begin += 8;
+
+		detail::write_uint32(crypto_field, write_buf.begin);
+		detail::write_uint16(pad_size, write_buf.begin); // len (pad)
+
+		// fill pad with zeroes
+		// std::fill(write_buf.begin, write_buf.begin+pad_size, 0);
+		// write_buf.begin += pad_size;
+
+		// append len(ia) if we are initiating
+		if (is_local())
+			detail::write_uint16(handshake_len, write_buf.begin); // len(IA)
+		
+		assert (write_buf.begin == write_buf.end);
+ 	}
+
+	void bt_peer_connection::init_pe_RC4_handler(char const* secret, sha1_hash const& stream_key)
+	{
+		INVARIANT_CHECK;
+
+		assert(secret);
+		
+		hasher h;
+		const char keyA[] = "keyA";
+		const char keyB[] = "keyB";
+
+		// encryption rc4 longkeys
+		// outgoing connection : hash ('keyA',S,SKEY)
+		// incoming connection : hash ('keyB',S,SKEY)
+		
+		is_local() ? h.update(keyA, 4) : h.update(keyB, 4);
+		h.update(secret, dh_key_len);
+		h.update((char const*)stream_key.begin(), 20);
+		const sha1_hash local_key = h.final();
+
+		h.reset();
+
+		// decryption rc4 longkeys
+		// outgoing connection : hash ('keyB',S,SKEY)
+		// incoming connection : hash ('keyA',S,SKEY)
+		
+		is_local() ? h.update(keyB, 4) : h.update(keyA, 4);
+		h.update(secret, dh_key_len);
+		h.update((char const*)stream_key.begin(), 20);
+		const sha1_hash remote_key = h.final();
+		
+		assert(!m_RC4_handler.get());
+		m_RC4_handler.reset (new RC4_handler (local_key, remote_key));
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << " computed RC4 keys\n";
+#endif
+	}
+
+	void bt_peer_connection::send_buffer(char* begin, char* end)
+	{
+		assert (begin);
+		assert (end);
+		assert (end > begin);
+		assert (!m_rc4_encrypted || m_encrypted);
+
+		if (m_rc4_encrypted)
+			m_RC4_handler->encrypt(begin, end - begin);
+		
+		peer_connection::send_buffer(begin, end);
+	}
+
+	buffer::interval bt_peer_connection::allocate_send_buffer(int size)
+	{
+		assert(!m_rc4_encrypted || m_encrypted);
+
+		if (m_rc4_encrypted)
+		{
+			m_enc_send_buffer = peer_connection::allocate_send_buffer(size);
+			return m_enc_send_buffer;
+		}
+		else
+		{
+			buffer::interval i = peer_connection::allocate_send_buffer(size);
+			return i;
+		}
+	}
+	
+	void bt_peer_connection::setup_send()
+	{
+		assert(!m_rc4_encrypted || m_encrypted);
+
+ 		if (m_rc4_encrypted)
+		{
+			assert (m_enc_send_buffer.begin);
+			assert (m_enc_send_buffer.end);
+			assert (m_enc_send_buffer.left() > 0);
+			
+ 			m_RC4_handler->encrypt (m_enc_send_buffer.begin, m_enc_send_buffer.left());
+		}
+		peer_connection::setup_send();
+	}
+
+	int bt_peer_connection::get_syncoffset(char const* src, int src_size,
+										   char const* target, int target_size) const
+	{
+		assert (target_size >= src_size);
+		assert (src_size > 0);
+		assert (src);
+		assert (target);
+
+		int traverse_limit = target_size - src_size;
+
+		// TODO: this could be optimized using knuth morris pratt
+		for (int i = 0; i < traverse_limit; ++i)
+		{
+			char const* target_ptr = target + i;
+			if (std::equal(src, src+src_size, target_ptr))
+				return i;
+		}
+
+//	    // Partial sync
+// 		for (int i = 0; i < target_size; ++i)
+// 		{
+// 			// first is iterator in src[] at which mismatch occurs
+// 			// second is iterator in target[] at which mismatch occurs
+// 			std::pair<const char*, const char*> ret;
+// 			int src_sync_size;
+//  			if (i > traverse_limit) // partial sync test
+//  			{
+//  				ret = std::mismatch(src, src + src_size - (i - traverse_limit), &target[i]);
+//  				src_sync_size = ret.first - src;
+//  				if (src_sync_size == (src_size - (i - traverse_limit)))
+//  					return i;
+//  			}
+//  			else // complete sync test
+// 			{
+// 				ret = std::mismatch(src, src + src_size, &target[i]);
+// 				src_sync_size = ret.first - src;
+// 				if (src_sync_size == src_size)
+// 					return i;
+// 			}
+// 		}
+
+        // no complete sync
+		return -1;
+	}
+#endif // #ifndef TORRENT_DISABLE_ENCRYPTION
+	
 	void bt_peer_connection::write_handshake()
 	{
 		INVARIANT_CHECK;
@@ -770,6 +1144,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		assert(!in_handshake());
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		assert(t);
 		assert(m_sent_bitfield == false);
@@ -825,7 +1200,7 @@ namespace libtorrent
 		for (int c = 0; c < num_pieces; ++c)
 		{
 			if (lazy_piece < num_lazy_pieces
-				&& lazy_pieces[lazy_piece])
+				&& lazy_pieces[lazy_piece] == c)
 			{
 				++lazy_piece;
 				continue;
@@ -834,7 +1209,12 @@ namespace libtorrent
 				i.begin[c >> 3] |= 1 << (7 - (c & 7));
 		}
 		assert(i.end - i.begin == (num_pieces + 7) / 8);
-		
+
+#ifndef NDEBUG
+		m_sent_bitfield = true;
+#endif
+		setup_send();
+
 		if (num_lazy_pieces > 0)
 		{
 			for (int i = 0; i < num_lazy_pieces; ++i)
@@ -846,11 +1226,6 @@ namespace libtorrent
 #endif
 			}
 		}
-
-#ifndef NDEBUG
-		m_sent_bitfield = true;
-#endif
-		setup_send();
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -996,10 +1371,11 @@ namespace libtorrent
 				return p.connection != m_pc
 					&& p.connection
 					&& p.connection->pid() == m_id
-					&& !p.connection->pid().is_all_zeros();
+					&& !p.connection->pid().is_all_zeros()
+					&& p.ip.address() == m_pc->remote().address();
 			}
 
-			peer_id m_id;
+			peer_id const& m_id;
 			peer_connection const* m_pc;
 		};
 	}
@@ -1015,69 +1391,569 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (error) return;
-	
-		buffer::const_interval recv_buffer = receive_buffer();
-	
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
-	
-		switch(m_state)
-		{
-		case read_protocol_length:
-		{
+
+		if (in_handshake()) 
 			m_statistics.received_bytes(0, bytes_transferred);
-			if (!packet_finished()) break;
+	
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		assert(in_handshake() || !m_rc4_encrypted || m_encrypted);
+		if (m_rc4_encrypted && m_encrypted)
+		{
+			buffer::interval wr_buf = wr_recv_buffer();
+			m_RC4_handler->decrypt((wr_buf.end - bytes_transferred), bytes_transferred);
+		}
+#endif
+
+		buffer::const_interval recv_buffer = receive_buffer();
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		// m_state is set to read_pe_dhkey in initial state
+		// (read_protocol_identifier) for incoming, or in constructor
+		// for outgoing
+		if (m_state == read_pe_dhkey)
+		{
+			assert (!m_encrypted);
+			assert (!m_rc4_encrypted);
+			assert (packet_size() == dh_key_len);
+			assert (recv_buffer == receive_buffer());
+
+			if (!packet_finished()) return;
+			
+			// write our dh public key. m_DH_key_exchange is
+			// initialized in write_pe1_2_dhkey()
+			if (!is_local())
+				write_pe1_2_dhkey();
+			
+			// read dh key, generate shared secret
+			m_DH_key_exchange->compute_secret (recv_buffer.begin); // TODO handle errors
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << " received DH key\n";
+#endif
+						
+			// PadA/B can be a max of 512 bytes, and 20 bytes more for
+			// the sync hash (if incoming), or 8 bytes more for the
+			// encrypted verification constant (if outgoing). Instead
+			// of requesting the maximum possible, request the maximum
+			// possible to ensure we do not overshoot the standard
+			// handshake.
+
+			if (is_local())
+			{
+				m_state = read_pe_syncvc;
+				write_pe3_sync();
+
+				// initial payload is the standard handshake, this is
+				// always rc4 if sent here. m_rc4_encrypted is flagged
+				// again according to peer selection.
+				m_rc4_encrypted = true;
+				m_encrypted = true;
+				write_handshake();
+				m_rc4_encrypted = false;
+				m_encrypted = false;
+
+				// vc,crypto_select,len(pad),pad, encrypt(handshake)
+				// 8+4+2+0+handshake_len
+			   	reset_recv_buffer(8+4+2+0+handshake_len);
+			}
+			else
+			{
+				// already written dh key
+				m_state = read_pe_synchash;
+				// synchash,skeyhash,vc,crypto_provide,len(pad),pad,encrypt(handshake)
+				reset_recv_buffer(20+20+8+4+2+0+handshake_len);
+			}
+			assert(!packet_finished());
+			return;
+		}
+
+		// cannot fall through into
+		if (m_state == read_pe_synchash)
+		{
+			assert(!m_encrypted);
+			assert(!m_rc4_encrypted);
+			assert(!is_local());
+			assert(recv_buffer == receive_buffer());
+		   
+ 			if (recv_buffer.left() < 20)
+			{
+				if (packet_finished())
+				{
+					throw protocol_error ("sync hash not found");
+				}
+				// else 
+				return;
+			}
+
+			if (!m_sync_hash.get())
+			{
+				assert(m_sync_bytes_read == 0);
+				hasher h;
+
+				// compute synchash (hash('req1',S))
+				h.update("req1", 4);
+				h.update(m_DH_key_exchange->get_secret(), dh_key_len);
+
+				m_sync_hash.reset(new sha1_hash(h.final()));
+			}
+
+			int syncoffset = get_syncoffset((char*)m_sync_hash->begin(), 20
+				, recv_buffer.begin, recv_buffer.left());
+
+			// No sync 
+			if (syncoffset == -1)
+			{
+				std::size_t bytes_processed = recv_buffer.left() - 20;
+				m_sync_bytes_read += bytes_processed;
+				if (m_sync_bytes_read >= 512)
+					throw protocol_error("sync hash not found within 532 bytes");
+
+				cut_receive_buffer(bytes_processed, std::min(packet_size(), (512+20) - m_sync_bytes_read));
+
+				assert(!packet_finished());
+				return;
+			}
+			// found complete sync
+			else
+			{
+				std::size_t bytes_processed = syncoffset + 20;
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << " sync point (hash) found at offset " 
+					<< m_sync_bytes_read + bytes_processed - 20 << "\n";
+#endif
+				m_state = read_pe_skey_vc;
+				// skey,vc - 28 bytes
+				m_sync_hash.reset();
+				cut_receive_buffer(bytes_processed, 28);
+			}
+		}
+
+		if (m_state == read_pe_skey_vc)
+		{
+			assert(!m_encrypted);
+			assert(!m_rc4_encrypted);
+			assert(!is_local());
+			assert(packet_size() == 28);
+
+			if (!packet_finished()) return;
+
+			recv_buffer = receive_buffer();
+
+			// only calls info_hash() on the torrent_handle's, which
+			// never throws.
+			session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+			
+			std::vector<torrent_handle> active_torrents = m_ses.get_torrents();
+			std::vector<torrent_handle>::const_iterator i;
+			hasher h;
+			sha1_hash skey_hash, obfs_hash;
+
+			for (i = active_torrents.begin(); i != active_torrents.end(); ++i)
+			{
+				torrent_handle const& t_h = *i; // TODO possible errors
+				sha1_hash const& info_hash = t_h.info_hash();
+				// TODO Does info_hash need to be checked for validity?
+				
+				h.reset();
+				h.update("req2", 4);
+				h.update((char*)info_hash.begin(), 20);
+
+			    skey_hash = h.final();
+				
+				h.reset();
+				h.update("req3", 4);
+				h.update(m_DH_key_exchange->get_secret(), dh_key_len);
+
+				obfs_hash = h.final();
+				obfs_hash ^= skey_hash;
+
+				if (std::equal (recv_buffer.begin, recv_buffer.begin + 20,
+								(char*)obfs_hash.begin()))
+				{
+					if (!t)
+					{
+						attach_to_torrent(info_hash);
+						t = associated_torrent().lock();
+						assert(t);
+					}
+
+					init_pe_RC4_handler(m_DH_key_exchange->get_secret(), info_hash);
+#ifdef TORRENT_VERBOSE_LOGGING
+					(*m_logger) << " stream key found, torrent located.\n";
+#endif
+					continue; // TODO Check flow control with multiple torrents
+				}
+			}
+
+			if (!m_RC4_handler.get())
+				throw protocol_error("invalid streamkey identifier (info hash) in encrypted handshake");
+
+			// verify constant
+			buffer::interval wr_recv_buf = wr_recv_buffer();
+			m_RC4_handler->decrypt(wr_recv_buf.begin + 20, 8);
+			wr_recv_buf.begin += 28;
+
+			const char sh_vc[] = {0,0,0,0, 0,0,0,0};
+			if (!std::equal(sh_vc, sh_vc+8, recv_buffer.begin + 20))
+			{
+				throw protocol_error("unable to verify constant");
+			}
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << " verification constant found\n";
+#endif
+			m_state = read_pe_cryptofield;
+			reset_recv_buffer(4 + 2);
+		}
+
+		// cannot fall through into
+		if (m_state == read_pe_syncvc)
+		{
+			assert(is_local());
+			assert(!m_encrypted);
+			assert(!m_rc4_encrypted);
+ 			assert(recv_buffer == receive_buffer());
+			
+			if (recv_buffer.left() < 8)
+			{
+				if (packet_finished())
+				{
+					throw protocol_error ("sync verification constant not found");
+				}
+				// else 
+				return;
+			}
+
+			// generate the verification constant
+			if (!m_sync_vc.get()) 
+			{
+				assert(m_sync_bytes_read == 0);
+
+				m_sync_vc.reset (new char[8]);
+				std::fill(m_sync_vc.get(), m_sync_vc.get() + 8, 0);
+				m_RC4_handler->decrypt(m_sync_vc.get(), 8);
+			}
+
+			assert(m_sync_vc.get());
+			int syncoffset = get_syncoffset(m_sync_vc.get(), 8
+				, recv_buffer.begin, recv_buffer.left());
+
+			// No sync 
+			if (syncoffset == -1)
+			{
+				std::size_t bytes_processed = recv_buffer.left() - 8;
+				m_sync_bytes_read += bytes_processed;
+				if (m_sync_bytes_read >= 512)
+					throw protocol_error("sync verification constant not found within 520 bytes");
+
+				cut_receive_buffer(bytes_processed, std::min(packet_size(), (512+8) - m_sync_bytes_read));
+
+				assert(!packet_finished());
+				return;
+			}
+			// found complete sync
+			else
+			{
+				std::size_t bytes_processed = syncoffset + 8;
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << " sync point (verification constant) found at offset " 
+							<< m_sync_bytes_read + bytes_processed - 8 << "\n";
+#endif
+				cut_receive_buffer (bytes_processed, 4 + 2);
+
+				// delete verification constant
+				m_sync_vc.reset();
+				m_state = read_pe_cryptofield;
+				// fall through
+			}
+		}
+
+		if (m_state == read_pe_cryptofield) // local/remote
+		{
+			assert(!m_encrypted);
+			assert(!m_rc4_encrypted);
+			assert(packet_size() == 4+2);
+			
+			if (!packet_finished()) return;
+
+			buffer::interval wr_buf = wr_recv_buffer();
+			m_RC4_handler->decrypt(wr_buf.begin, packet_size());
+
+			recv_buffer = receive_buffer();
+			
+			int crypto_field = detail::read_int32(recv_buffer.begin);
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			if (!is_local())
+				(*m_logger) << " crypto provide : [ ";
+			else
+				(*m_logger) << " crypto select : [ ";
+
+			if (crypto_field & 0x01)
+				(*m_logger) << "plaintext ";
+			if (crypto_field & 0x02)
+				(*m_logger) << "rc4 ";
+			(*m_logger) << "]\n";
+#endif
+
+			if (!is_local())
+			{
+				int crypto_select = 0;
+				// select a crypto method
+				switch (m_ses.get_pe_settings().allowed_enc_level)
+				{
+				case (pe_settings::plaintext):
+				{
+					if (!(crypto_field & 0x01))
+						throw protocol_error("plaintext not provided");
+					crypto_select = 0x01;
+				}
+				break;
+				case (pe_settings::rc4):
+				{
+					if (!(crypto_field & 0x02))
+						throw protocol_error("rc4 not provided");
+					crypto_select = 0x02;
+				}
+				break;
+				case (pe_settings::both):
+				{
+					if (m_ses.get_pe_settings().prefer_rc4)
+					{
+						if (crypto_field & 0x02) 
+							crypto_select = 0x02;
+						else if (crypto_field & 0x01)
+							crypto_select = 0x01;
+					}
+					else
+					{
+						if (crypto_field & 0x01)
+							crypto_select = 0x01;
+						else if (crypto_field & 0x02)
+							crypto_select = 0x02;
+					}
+					if (!crypto_select)
+						throw protocol_error("rc4/plaintext not provided");
+				}
+				} // switch
+				
+				// write the pe4 step
+				write_pe4_sync(crypto_select);
+			}
+			else // is_local()
+			{
+				// check if crypto select is valid
+				pe_settings::enc_level const& allowed_enc_level = m_ses.get_pe_settings().allowed_enc_level;
+
+				if (crypto_field == 0x02)
+				{
+					if (allowed_enc_level == pe_settings::plaintext)
+						throw protocol_error("rc4 selected by peer when not provided");
+					m_rc4_encrypted = true;
+				}
+				else if (crypto_field == 0x01)
+				{
+					if (allowed_enc_level == pe_settings::rc4)
+						throw protocol_error("plaintext selected by peer when not provided");
+					m_rc4_encrypted = false;
+				}
+				else
+					throw protocol_error("unsupported crypto method selected by peer");
+			}
+
+			int len_pad = detail::read_int16(recv_buffer.begin);
+			if (len_pad < 0 || len_pad > 512)
+				throw protocol_error("invalid pad length");
+			
+			m_state = read_pe_pad;
+			if (!is_local())
+				reset_recv_buffer(len_pad + 2); // len(IA) at the end of pad
+			else
+			{
+				if (len_pad == 0)
+				{
+					m_encrypted = true;
+					m_state = init_bt_handshake;
+				}
+				else
+					reset_recv_buffer(len_pad);
+			}
+		}
+
+		if (m_state == read_pe_pad)
+		{
+			assert(!m_encrypted);
+			if (!packet_finished()) return;
+
+			int pad_size = is_local() ? packet_size() : packet_size() - 2;
+
+			buffer::interval wr_buf = wr_recv_buffer();
+			m_RC4_handler->decrypt(wr_buf.begin, packet_size());
+
+			recv_buffer = receive_buffer();
+				
+			if (!is_local())
+			{
+				recv_buffer.begin += pad_size;
+				int len_ia = detail::read_int16(recv_buffer.begin);
+				
+				if (len_ia < 0) throw protocol_error("invalid len_ia in handshake");
+
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << " len(IA) : " << len_ia << "\n";
+#endif
+				if (len_ia == 0)
+				{
+					// everything after this is Encrypt2
+					m_encrypted = true;
+					m_state = init_bt_handshake;
+				}
+				else
+				{
+					m_state = read_pe_ia;
+					reset_recv_buffer(len_ia);
+				}
+			}
+			else // is_local()
+			{
+				// everything that arrives after this is Encrypt2
+				m_encrypted = true;
+				m_state = init_bt_handshake;
+			}
+		}
+
+		if (m_state == read_pe_ia)
+		{
+			assert(!is_local());
+			assert(!m_encrypted);
+
+			if (!packet_finished()) return;
+
+			// ia is always rc4, so decrypt it
+			buffer::interval wr_buf = wr_recv_buffer();
+			m_RC4_handler->decrypt(wr_buf.begin, packet_size());
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << " decrypted ia : " << packet_size() << " bytes\n";
+#endif
+
+			if (!m_rc4_encrypted)
+			{
+				m_RC4_handler.reset();
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << " destroyed rc4 keys\n";
+#endif
+			}
+
+			// everything that arrives after this is Encrypt2
+			m_encrypted = true;
+
+			m_state = read_protocol_identifier;
+			cut_receive_buffer(0, 20);
+		}
+
+		if (m_state == init_bt_handshake)
+		{
+			assert(m_encrypted);
+
+			// decrypt remaining received bytes
+			if (m_rc4_encrypted)
+			{
+				buffer::interval wr_buf = wr_recv_buffer();
+				wr_buf.begin += packet_size();
+				m_RC4_handler->decrypt(wr_buf.begin, wr_buf.left());
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << " decrypted remaining " << wr_buf.left() << " bytes\n";
+#endif
+			}
+			else // !m_rc4_encrypted
+			{
+				m_RC4_handler.reset();
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << " destroyed rc4 keys\n";
+#endif
+			}
+
+			// payload stream, start with 20 handshake bytes
+			m_state = read_protocol_identifier;
+			reset_recv_buffer(20);
+
+			// encrypted portion of handshake completed, toggle
+			// peer_info pe_support flag back to true
+			if (is_local() &&
+				m_ses.get_pe_settings().out_enc_policy == pe_settings::enabled)
+			{
+				policy::peer* pi = peer_info_struct();
+				assert(pi);
+				assert(pi->pe_support == false);
+				
+				pi->pe_support = !(pi->pe_support);
+			}
+		}
+
+#endif // #ifndef TORRENT_DISABLE_ENCRYPTION
+		
+		if (m_state == read_protocol_identifier)
+		{
+			assert (packet_size() == 20);
+
+			if (!packet_finished()) return;
+			recv_buffer = receive_buffer();
 
 			int packet_size = recv_buffer[0];
-
-#ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << " protocol length: " << packet_size << "\n";
-#endif
-			if (packet_size > 100 || packet_size <= 0)
-			{
-				std::stringstream s;
-				s << "incorrect protocol length ("
-					<< packet_size
-					<< ") should be 19.";
-				throw std::runtime_error(s.str());
-			}
-			m_state = read_protocol_string;
-			reset_recv_buffer(packet_size);
-		}
-		break;
-
-		case read_protocol_string:
-		{
-			m_statistics.received_bytes(0, bytes_transferred);
-			if (!packet_finished()) break;
-
-#ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << " protocol: '" << std::string(recv_buffer.begin
-				, recv_buffer.end) << "'\n";
-#endif
 			const char protocol_string[] = "BitTorrent protocol";
-			if (recv_buffer.end - recv_buffer.begin != 19
-				|| !std::equal(recv_buffer.begin, recv_buffer.end
-					, protocol_string))
+
+			if (packet_size != 19 ||
+				!std::equal(recv_buffer.begin + 1, recv_buffer.begin + 19, protocol_string))
 			{
+#ifndef TORRENT_DISABLE_ENCRYPTION
+				if (!is_local() && m_ses.get_pe_settings().in_enc_policy == pe_settings::disabled)
+					throw protocol_error("encrypted incoming connections disabled");
+
+				// Don't attempt to perform an encrypted handshake
+				// within an encrypted connection
+				if (!m_encrypted && !is_local())
+				{
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << "incorrect protocol name\n";
+ 					(*m_logger) << " attempting encrypted connection\n";
 #endif
-				std::stringstream s;
-				s << "got invalid protocol name: '"
-					<< std::string(recv_buffer.begin, recv_buffer.end)
-					<< "'";
-				throw std::runtime_error(s.str());
+ 					m_state = read_pe_dhkey;
+					cut_receive_buffer(0, dh_key_len);
+					assert(!packet_finished());
+ 					return;
+				}
+				
+				assert ((!is_local() && m_encrypted) || is_local());
+#endif // #ifndef TORRENT_DISABLE_ENCRYPTION
+				throw protocol_error("incorrect protocol identifier");
 			}
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			assert (m_state != read_pe_dhkey);
+
+			if (!is_local() && 
+				(m_ses.get_pe_settings().in_enc_policy == pe_settings::forced) &&
+				!m_encrypted) 
+				throw protocol_error("non encrypted incoming connections disabled");
+#endif
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << " BitTorrent protocol\n";
+#endif
 
 			m_state = read_info_hash;
 			reset_recv_buffer(28);
 		}
-		break;
 
-		case read_info_hash:
+		// fall through
+		if (m_state == read_info_hash)
 		{
-			m_statistics.received_bytes(0, bytes_transferred);
-			if (!packet_finished()) break;
+			assert(packet_size() == 28);
+
+			if (!packet_finished()) return;
+			recv_buffer = receive_buffer();
+
 
 #ifdef TORRENT_VERBOSE_LOGGING	
 			for (int i=0; i < 8; ++i)
@@ -1091,7 +1967,7 @@ namespace libtorrent
 			(*m_logger) << "\n";
 			if (recv_buffer[7] & 0x01)
 				(*m_logger) << "supports DHT port message\n";
-			if (recv_buffer[7] & 0x02)
+			if (recv_buffer[7] & 0x04)
 				(*m_logger) << "supports FAST extensions\n";
 			if (recv_buffer[5] & 0x10)
 				(*m_logger) << "supports extensions protocol\n";
@@ -1115,14 +1991,6 @@ namespace libtorrent
 					, (char*)info_hash.begin());
 
 				attach_to_torrent(info_hash);
-				t = associated_torrent().lock();
-				assert(t);
-
-				// yes, we found the torrent
-				// reply with our handshake
-				write_handshake();
-				if (t->valid_metadata())
-					write_bitfield(t->pieces());
 			}
 			else
 			{
@@ -1135,24 +2003,38 @@ namespace libtorrent
 #endif
 					throw protocol_error("invalid info-hash in handshake");
 				}
+
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << " info_hash received\n";
+#endif
+			}
+
+			t = associated_torrent().lock();
+			assert(t);
+			
+			if (!is_local())
+			{
+				write_handshake();
 			}
 
 			assert(t->get_policy().has_connection(this));
 
 			m_state = read_peer_id;
-			reset_recv_buffer(20);
-#ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << " info_hash received\n";
-#endif
+ 			reset_recv_buffer(20);
 		}
-		break;
 
-		case read_peer_id:
+		// fall through
+		if (m_state == read_peer_id)
 		{
-			if (!t) return;
-			m_statistics.received_bytes(0, bytes_transferred);
-			if (!packet_finished()) break;
+  			if (!t)
+			{
+				assert(!packet_finished()); // TODO
+				return;
+			}
 			assert(packet_size() == 20);
+			
+ 			if (!packet_finished()) return;
+			recv_buffer = receive_buffer();
 
 #ifdef TORRENT_VERBOSE_LOGGING
 			{
@@ -1241,18 +2123,44 @@ namespace libtorrent
 			if (m_supports_extensions) write_extensions();
 #endif
 
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string() << " <== HANDSHAKE\n";
+#endif
 			// consider this a successful connection, reset the failcount
 			if (peer_info_struct()) peer_info_struct()->failcount = 0;
+			
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			// Toggle pe_support back to false if this is a
+			// standard successful connection
+			if (is_local() && !m_encrypted &&
+				m_ses.get_pe_settings().out_enc_policy == pe_settings::enabled)
+			{
+				policy::peer* pi = peer_info_struct();
+				assert(pi);
+				assert(pi->pe_support == true);
+
+				pi->pe_support = !(pi->pe_support);
+			}
+#endif
+
 			m_state = read_packet_size;
 			reset_recv_buffer(4);
-		}
-		break;
+			if (t->valid_metadata())
+				write_bitfield(t->pieces());
 
-		case read_packet_size:
+			assert(!packet_finished());
+			return;
+		}
+
+		// cannot fall through into
+		if (m_state == read_packet_size)
 		{
+			// Make sure this is not fallen though into
+			assert (recv_buffer == receive_buffer());
+
 			if (!t) return;
 			m_statistics.received_bytes(0, bytes_transferred);
-			if (!packet_finished()) break;
+			if (!packet_finished()) return;
 
 			const char* ptr = recv_buffer.begin;
 			int packet_size = detail::read_int32(ptr);
@@ -1278,22 +2186,25 @@ namespace libtorrent
 				m_state = read_packet;
 				reset_recv_buffer(packet_size);
 			}
+			assert(!packet_finished());
+			return;
 		}
-		break;
 
-		case read_packet:
+		if (m_state == read_packet)
 		{
+			assert(recv_buffer == receive_buffer());
 			if (!t) return;
 			if (dispatch_message(bytes_transferred))
 			{
 				m_state = read_packet_size;
 				reset_recv_buffer(4);
 			}
+			assert(!packet_finished());
+			return;
 		}
-		break;
-
-		}
-	}
+		
+		assert(!packet_finished());
+	}	
 
 	// --------------------------
 	// SEND DATA
@@ -1344,6 +2255,12 @@ namespace libtorrent
 #ifndef NDEBUG
 	void bt_peer_connection::check_invariant() const
 	{
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		assert( (bool(m_state != read_pe_dhkey) || m_DH_key_exchange.get())
+				|| !is_local());
+
+		assert(!m_rc4_encrypted || m_RC4_handler.get());
+#endif
 		if (!m_in_constructor)
 			peer_connection::check_invariant();
 

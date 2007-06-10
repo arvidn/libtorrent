@@ -27,6 +27,7 @@ libtorrent/peer.hpp \
 libtorrent/peer_connection.hpp \
 libtorrent/bt_peer_connection.hpp \
 libtorrent/web_peer_connection.hpp \
+libtorrent/pe_crypto.hpp \
 libtorrent/natpmp.hpp \
 libtorrent/pch.hpp \
 libtorrent/peer_id.hpp \
@@ -57,6 +58,7 @@ libtorrent/utf8.hpp \
 libtorrent/xml_parse.hpp \
 libtorrent/variant_stream.hpp \
 libtorrent/version.hpp \
+libtorrent/time.hpp \
 libtorrent/aux_/allocate_resources_impl.hpp \
 libtorrent/aux_/session_impl.hpp \
 libtorrent/extensions/metadata_transfer.hpp \

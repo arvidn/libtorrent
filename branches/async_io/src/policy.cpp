@@ -142,7 +142,19 @@ namespace
 		bool operator()(policy::peer const& p) const
 		{ return p.ip.address() == m_ip.address(); }
 
-		tcp::endpoint m_ip;
+		tcp::endpoint const& m_ip;
+	};
+
+	struct match_peer_id
+	{
+		match_peer_id(peer_id const& id_)
+			: m_id(id_)
+		{}
+
+		bool operator()(policy::peer const& p) const
+		{ return p.connection && p.connection->pid() == m_id; }
+
+		peer_id const& m_id;
 	};
 
 	struct match_peer_connection
@@ -152,9 +164,13 @@ namespace
 		{}
 
 		bool operator()(policy::peer const& p) const
-		{ return p.connection == &m_conn; }
+		{
+			return p.connection == &m_conn
+				|| (p.ip == m_conn.remote()
+					&& p.type == policy::peer::connectable);
+		}
 
-		const peer_connection& m_conn;
+		peer_connection const& m_conn;
 	};
 
 
@@ -850,12 +866,13 @@ namespace libtorrent
 						--m_num_unchoked;
 					} while (m_num_unchoked > m_torrent->m_uploads_quota.given);
 				}
-				else
+				// this should prevent the choke/unchoke
+				// problem, since it will not unchoke unless
+				// there actually are any choked peers
+				else if (count_choked() > 0)
 				{
 					// optimistic unchoke. trade the 'worst'
 					// unchoked peer with one of the choked
-					// TODO: This rotation should happen
-					// far less frequent than this!
 					assert(m_num_unchoked <= m_torrent->num_peers());
 					iterator p = find_unchoke_candidate();
 					if (p != m_peers.end())
@@ -873,6 +890,22 @@ namespace libtorrent
 			while (m_num_unchoked < m_torrent->m_uploads_quota.given
 				&& unchoke_one_peer());
 		}
+	}
+
+	int policy::count_choked() const
+	{
+		int ret = 0;
+		for (const_iterator i = m_peers.begin();
+			i != m_peers.end(); ++i)
+		{
+			if (!i->connection
+				|| i->connection->is_connecting()
+				|| i->connection->is_disconnecting()
+				|| !i->connection->is_peer_interested())
+				continue;
+			if (i->connection->is_choked()) ++ret;
+		}
+		return ret;
 	}
 
 	void policy::new_connection(peer_connection& c)
@@ -906,7 +939,10 @@ namespace libtorrent
 
 		if (m_torrent->settings().allow_multiple_connections_per_ip)
 		{
-			i = m_peers.end();
+			i = std::find_if(
+				m_peers.begin()
+				, m_peers.end()
+				, match_peer_connection(c));
 		}
 		else
 		{
@@ -991,7 +1027,10 @@ namespace libtorrent
 			
 			if (m_torrent->settings().allow_multiple_connections_per_ip)
 			{
-				i = m_peers.end();
+				i = std::find_if(
+					m_peers.begin()
+					, m_peers.end()
+					, match_peer_id(pid));
 			}
 			else
 			{
@@ -1021,7 +1060,10 @@ namespace libtorrent
 				// the iterator is invalid
 				// because of the push_back()
 				i = boost::prior(m_peers.end());
-				if (flags & 0x02) p.seed = true;
+#ifndef TORRENT_DISABLE_ENCRYPTION
+				if (flags & 0x01) p.pe_support = true;
+#endif
+				if (flags & 0x02) i->seed = true;
 
 				// try to send a DHT ping to this peer
 				// as well, to figure out if it supports
@@ -1167,6 +1209,7 @@ namespace libtorrent
 				c.add_free_upload(-diff);
 			}
 		}
+/*
 		if (!c.is_choked())
 		{
 			c.send_choke();
@@ -1175,6 +1218,7 @@ namespace libtorrent
 			if (m_torrent->is_seed()) seed_unchoke_one_peer();
 			else unchoke_one_peer();
 		}
+*/
 	}
 
 	bool policy::unchoke_one_peer()
@@ -1396,6 +1440,9 @@ namespace libtorrent
 	policy::peer::peer(const tcp::endpoint& ip_, peer::connection_type t, int src)
 		: ip(ip_)
 		, type(t)
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		, pe_support(true)
+#endif
 		, failcount(0)
 		, hashfails(0)
 		, seed(false)

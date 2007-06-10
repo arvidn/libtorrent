@@ -57,6 +57,10 @@ namespace libtorrent
 			queued = 0x100,
 			on_parole = 0x200,
 			seed = 0x400
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			, rc4_encrypted = 0x800,
+			plaintext_encrypted = 0x1000
+#endif
 		};
 
 		unsigned int flags;
@@ -137,6 +141,9 @@ namespace libtorrent
 			web_seed = 1
 		};
 		int connection_type;
+		
+		// approximate peer download rate
+		int remote_dl_rate;
 	};
 
 }

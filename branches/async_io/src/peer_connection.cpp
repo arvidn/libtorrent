@@ -113,6 +113,8 @@ namespace libtorrent
 		, m_peer_info(peerinfo)
 		, m_speed(slow)
 		, m_connection_ticket(-1)
+		, m_remote_bytes_dled(0)
+		, m_remote_dl_rate(0)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif
@@ -183,6 +185,8 @@ namespace libtorrent
 		, m_download_limit(resource_request::inf)
 		, m_peer_info(peerinfo)
 		, m_speed(slow)
+		, m_remote_bytes_dled(0)
+		, m_remote_dl_rate(0)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif
@@ -321,6 +325,9 @@ namespace libtorrent
 
 	void peer_connection::announce_piece(int index)
 	{
+		// dont announce during handshake
+		if (in_handshake()) return;
+		
 		// optimization, don't send have messages
 		// to peers that already have the piece
 		if (!m_ses.settings().send_redundant_have
@@ -724,8 +731,11 @@ namespace libtorrent
 					&& !is_interesting()
 					&& t->picker().piece_priority(index) != 0)
 					t->get_policy().peer_is_interesting(*this);
-			}
 
+				// update bytes downloaded since last timer
+				m_remote_bytes_dled += t->torrent_file().piece_size(index);
+			}
+			
 			if (is_seed())
 			{
 				assert(m_peer_info);
@@ -1714,12 +1724,14 @@ namespace libtorrent
 			p.failcount = peer_info_struct()->failcount;
 			p.num_hashfails = peer_info_struct()->hashfails;
 			p.flags |= peer_info_struct()->on_parole ? peer_info::on_parole : 0;
+			p.remote_dl_rate = m_remote_dl_rate;
 		}
 		else
 		{
 			p.source = 0;
 			p.failcount = 0;
 			p.num_hashfails = 0;
+			p.remote_dl_rate = 0;
 		}
 
 		p.send_buffer_size = send_buffer_size();
@@ -1733,8 +1745,9 @@ namespace libtorrent
 		assert(int(m_recv_buffer.size()) >= size);
 		assert(int(m_recv_buffer.size()) >= m_recv_pos);
 		assert(m_recv_pos >= size);
-		
-		std::memmove(&m_recv_buffer[0], &m_recv_buffer[0] + size, m_recv_pos - size);
+
+		if (size > 0)		
+			std::memmove(&m_recv_buffer[0], &m_recv_buffer[0] + size, m_recv_pos - size);
 
 		m_recv_pos -= size;
 
@@ -1836,6 +1849,8 @@ namespace libtorrent
 			}
 		}
 
+		m_statistics.second_tick(tick_interval);
+
 		// If the client sends more data
 		// we send it data faster, otherwise, slower.
 		// It will also depend on how much data the
@@ -1876,6 +1891,24 @@ namespace libtorrent
 				, m_upload_limit));
 		}
 
+		// note the 1/60 multiplication here - this is per second of the
+		// minute; but since timers are not exact this makes this
+		// calculation REALLY approximate.
+		
+		float factor = 0.6666666666667f;
+			
+		if(m_remote_dl_rate == 0) {
+			factor = 0.0f;
+		}
+
+		m_remote_dl_rate = 
+			(m_remote_dl_rate * factor) + 
+			((m_remote_bytes_dled * (1.0f-factor)) * (1.f/60.f));
+			
+		m_remote_bytes_dled = 0;
+
+
+		//
 		fill_send_buffer();
 /*
 		size_type diff = share_diff();
@@ -2074,7 +2107,7 @@ namespace libtorrent
 			}
 			return;
 		}
-		
+
 		if (!can_write()) return;
 
 		assert(!m_writing);
@@ -2148,7 +2181,6 @@ namespace libtorrent
 
 		assert(m_recv_pos >= 0);
 		assert(m_packet_size > 0);
-		assert(max_receive > 0);
 
 		assert(can_read());
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -2172,7 +2204,7 @@ namespace libtorrent
 		if (int(m_recv_buffer.size()) < m_packet_size)
 			m_recv_buffer.resize(m_packet_size);
 	}
-	
+
 	void peer_connection::send_buffer(char const* begin, char const* end)
 	{
 		std::vector<char>& buf = m_send_buffer[m_current_send_buffer];
@@ -2216,10 +2248,11 @@ namespace libtorrent
 		assert(m_reading);
 		m_reading = false;
 
+		
 		if (error)
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << "**ERROR**: " << error.message() << "\n";
+			(*m_logger) << "**ERROR**: " << error.message() << "[in peer_connection::on_receive_data]\n";
 #endif
 			on_receive(error, bytes_transferred);
 			throw std::runtime_error(error.message());
@@ -2303,7 +2336,7 @@ namespace libtorrent
 		// all exceptions should derive from std::exception
 		assert(false);
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		m_ses.connection_failed(m_socket, remote(), "connection failed for unkown reason");
+		m_ses.connection_failed(m_socket, remote(), "connection failed for unknown reason");
 	}
 
 	bool peer_connection::can_write() const
@@ -2431,10 +2464,11 @@ namespace libtorrent
 
 		m_write_pos += bytes_transferred;
 
+		
 		if (error)
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << "**ERROR**: " << error.message() << "\n";
+			(*m_logger) << "**ERROR**: " << error.message() << " [in peer_connection::on_send_data]\n";
 #endif
 			throw std::runtime_error(error.message());
 		}
@@ -2483,7 +2517,7 @@ namespace libtorrent
 		// all exceptions should derive from std::exception
 		assert(false);
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		m_ses.connection_failed(m_socket, remote(), "connection failed for unkown reason");
+		m_ses.connection_failed(m_socket, remote(), "connection failed for unknown reason");
 	}
 
 
@@ -2636,9 +2670,19 @@ namespace libtorrent
 		time_duration d;
 		d = time_now() - m_last_sent;
 		if (total_seconds(d) < m_timeout / 2) return;
-
+		
 		if (m_connecting) return;
+		if (in_handshake()) return;
 
+		// if the last send has not completed yet, do not send a keep
+		// alive
+		if (m_writing) return;
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		using namespace	boost::posix_time;
+		(*m_logger) << time_now_string() << " ==> KEEPALIVE\n";
+#endif
+		
 		write_keepalive();
 	}
 

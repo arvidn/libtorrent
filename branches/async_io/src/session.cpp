@@ -152,6 +152,11 @@ namespace libtorrent
 	{
 		m_impl->set_peer_id(id);
 	}
+	
+	peer_id session::id() const
+	{
+		return m_impl->get_peer_id();
+	}
 
 	void session::set_key(int key)
 	{
@@ -250,6 +255,18 @@ namespace libtorrent
 		m_impl->add_dht_router(node);
 	}
 
+#endif
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+	void session::set_pe_settings(pe_settings const& settings)
+	{
+		m_impl->set_pe_settings(settings);
+	}
+
+	pe_settings const& session::get_pe_settings() const
+	{
+		return m_impl->get_pe_settings();
+	}
 #endif
 
 	bool session::is_listening() const

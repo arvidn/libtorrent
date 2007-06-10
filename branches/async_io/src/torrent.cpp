@@ -562,7 +562,6 @@ namespace libtorrent
 					bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i->pid)));
 			}	
 		}
-		m_policy->pulse();
 
 		if (m_ses.m_alerts.should_post(alert::info))
 		{
@@ -723,8 +722,8 @@ namespace libtorrent
 				wanted_done += corr;
 		}
 
-		assert(total_done < m_torrent_file.total_size());
-		assert(wanted_done < m_torrent_file.total_size());
+		assert(total_done <= m_torrent_file.total_size());
+		assert(wanted_done <= m_torrent_file.total_size());
 
 		std::map<piece_block, int> downloading_piece;
 		for (const_peer_iterator i = begin(); i != end(); ++i)
@@ -804,8 +803,8 @@ namespace libtorrent
 
 		}
 
-		assert(total_done < m_torrent_file.total_size());
-		assert(wanted_done < m_torrent_file.total_size());
+		assert(total_done <= m_torrent_file.total_size());
+		assert(wanted_done <= m_torrent_file.total_size());
 
 #endif
 
@@ -2563,7 +2562,7 @@ namespace libtorrent
 		m_time_scaler--;
 		if (m_time_scaler <= 0)
 		{
-			m_time_scaler = 10;
+			m_time_scaler = settings().unchoke_interval;
 			m_policy->pulse();
 		}
 	}
@@ -2646,8 +2645,8 @@ namespace libtorrent
 		torrent_status st;
 
 		st.num_peers = (int)std::count_if(m_connections.begin(), m_connections.end(),
-			boost::bind<bool>(std::logical_not<bool>(), boost::bind(&peer_connection::is_connecting,
-			boost::bind(&std::map<tcp::endpoint,peer_connection*>::value_type::second, _1))));
+			!boost::bind(&peer_connection::is_connecting
+			, boost::bind(&std::map<tcp::endpoint,peer_connection*>::value_type::second, _1)));
 
 		st.num_complete = m_complete;
 		st.num_incomplete = m_incomplete;
@@ -2768,10 +2767,10 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		return (int)std::count_if(m_connections.begin(),	m_connections.end(),
-			boost::bind(&peer_connection::is_seed,
-				boost::bind(&std::map<tcp::endpoint
-					,peer_connection*>::value_type::second, _1)));
+		return (int)std::count_if(m_connections.begin(), m_connections.end()
+			, boost::bind(&peer_connection::is_seed
+				, boost::bind(&std::map<tcp::endpoint
+					, peer_connection*>::value_type::second, _1)));
 	}
 
 	void torrent::tracker_request_timed_out(

@@ -137,7 +137,7 @@ namespace libtorrent
 		virtual void swap_slots3(int slot1, int slot2, int slot3) = 0;
 
 		// returns the sha1-hash for the data at the given slot
-		virtual sha1_hash hash_for_slot(int slot, partial_hash& h) = 0;
+		virtual sha1_hash hash_for_slot(int slot, partial_hash& h, int piece_size) = 0;
 
 		// this will close all open files that are opened for
 		// writing. This is called when a torrent has finished

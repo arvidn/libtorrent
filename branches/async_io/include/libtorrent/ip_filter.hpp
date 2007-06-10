@@ -133,7 +133,7 @@ namespace detail
 
 	template<>
 	inline boost::uint16_t max_addr<boost::uint16_t>()
-	{ return std::numeric_limits<boost::uint16_t>::max(); }
+	{ return (std::numeric_limits<boost::uint16_t>::max)(); }
 
 	// this is the generic implementation of
 	// a filter for a specific address type.
