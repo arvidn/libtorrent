@@ -54,6 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	namespace fs = boost::filesystem;
+
 	namespace aux
 	{
 		struct session_impl;
@@ -202,15 +204,22 @@ namespace libtorrent
 		int block_size;
 	};
 
+	struct TORRENT_EXPORT block_info
+	{
+		enum block_state_t
+		{ none, requested, writing, finished };
+
+		tcp::endpoint peer;
+		unsigned state:2;
+		unsigned num_downloads:14;
+	};
+
 	struct TORRENT_EXPORT partial_piece_info
 	{
 		enum { max_blocks_per_piece = 256 };
 		int piece_index;
 		int blocks_in_piece;
-		std::bitset<max_blocks_per_piece> requested_blocks;
-		std::bitset<max_blocks_per_piece> finished_blocks;
-		tcp::endpoint peer[max_blocks_per_piece];
-		int num_downloads[max_blocks_per_piece];
+		block_info blocks[max_blocks_per_piece];
 		enum state_t { none, slow, medium, fast };
 		state_t piece_state;
 	};
@@ -323,7 +332,7 @@ namespace libtorrent
 		// the ratio is uploaded / downloaded. less than 1 is not allowed
 		void set_ratio(float up_down_ratio) const;
 
-		boost::filesystem::path save_path() const;
+		fs::path save_path() const;
 
 		// -1 means unlimited unchokes
 		void set_max_uploads(int max_uploads) const;
@@ -335,7 +344,7 @@ namespace libtorrent
 			, std::string const& password) const;
 
 		// post condition: save_path() == save_path if true is returned
-		bool move_storage(boost::filesystem::path const& save_path) const;
+		void move_storage(fs::path const& save_path) const;
 
 		const sha1_hash& info_hash() const
 		{ return m_info_hash; }

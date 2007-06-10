@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	namespace fs = boost::filesystem;
 
 	struct TORRENT_EXPORT file_error: std::runtime_error
 	{
@@ -105,10 +106,10 @@ namespace libtorrent
 		static const open_mode out;
 
 		file();
-		file(boost::filesystem::path const& p, open_mode m);
+		file(fs::path const& p, open_mode m);
 		~file();
 
-		void open(boost::filesystem::path const& p, open_mode m);
+		void open(fs::path const& p, open_mode m);
 		void close();
 		void set_size(size_type size);
 

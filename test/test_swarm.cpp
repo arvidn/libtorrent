@@ -92,7 +92,7 @@ void test_swarm()
 			<< std::endl;
 
 		if (tor2.is_seed() && tor3.is_seed()) break;
-		sleep(1000);
+		test_sleep(1000);
 	}
 
 	TEST_CHECK(tor2.is_seed());

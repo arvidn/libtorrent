@@ -1335,7 +1335,7 @@ namespace libtorrent
 		send_buffer(msg, msg + packet_size);
 	}
 
-	void bt_peer_connection::write_piece(peer_request const& r)
+	void bt_peer_connection::write_piece(peer_request const& r, char const* buffer)
 	{
 		INVARIANT_CHECK;
 
@@ -1350,9 +1350,7 @@ namespace libtorrent
 		detail::write_uint8(msg_piece, i.begin);
 		detail::write_int32(r.piece, i.begin);
 		detail::write_int32(r.start, i.begin);
-
-		t->filesystem().read(
-			i.begin, r.piece, r.start, r.length);
+		std::memcpy(i.begin, buffer, r.length);
 
 		assert(i.begin + r.length == i.end);
 

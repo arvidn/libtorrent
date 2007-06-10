@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/exception.hpp>
 #include <boost/bind.hpp>
@@ -899,6 +900,12 @@ int main(int ac, char* av[])
 				{
 					event_string << "(" << p->ip << ") " << p->msg();
 				}
+				else if (torrent_alert* p = dynamic_cast<torrent_alert*>(a.get()))
+				{
+					std::string name;
+					try { name = p->handle.name(); } catch (std::exception&) {}
+					event_string << "(" << name << ") " << p->msg();
+				}
 				else
 				{
 					event_string << a->msg();
@@ -1006,13 +1013,15 @@ int main(int ac, char* av[])
 				if (print_downloads && s.state != torrent_status::seeding)
 				{
 					h.get_download_queue(queue);
+					std::sort(queue.begin(), queue.end(), bind(&partial_piece_info::piece_index, _1)
+						< bind(&partial_piece_info::piece_index, _2));
 					for (std::vector<partial_piece_info>::iterator i = queue.begin();
 						i != queue.end(); ++i)
 					{
 						out << to_string(i->piece_index, 4) << ": [";
 						for (int j = 0; j < i->blocks_in_piece; ++j)
 						{
-							int index = peer_index(i->peer[j], peers);
+							int index = peer_index(i->blocks[j].peer, peers);
 							char str[] = "+";
 							bool currently_downloading = false;
 							if (index >= 0)
@@ -1025,8 +1034,9 @@ int main(int ac, char* av[])
 #ifdef ANSI_TERMINAL_COLORS
 							if (currently_downloading)
 								out << esc("33;7") << str << esc("0");
-							else if (i->finished_blocks[j]) out << esc("32;7") << str << esc("0");
-							else if (i->requested_blocks[j]) out << str;
+							else if (i->blocks[j].state == block_info::finished) out << esc("32;7") << str << esc("0");
+							else if (i->blocks[j].state == block_info::writing) out << esc("35;7") << str << esc("0");
+							else if (i->blocks[j].state == block_info::requested) out << str;
 							else out << " ";
 #else
 							if (i->finished_blocks[j]) out << "#";

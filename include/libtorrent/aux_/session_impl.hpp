@@ -82,9 +82,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lsd.hpp"
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/connection_queue.hpp"
+#include "libtorrent/disk_io_thread.hpp"
 
 namespace libtorrent
 {
+
+	namespace fs = boost::filesystem;
 
 	namespace aux
 	{
@@ -98,7 +101,7 @@ namespace libtorrent
 				: processing(false), progress(0.f), abort(false) {}
 
 			boost::shared_ptr<torrent> torrent_ptr;
-			boost::filesystem::path save_path;
+			fs::path save_path;
 
 			sha1_hash info_hash;
 
@@ -238,7 +241,7 @@ namespace libtorrent
 
 			torrent_handle add_torrent(
 				torrent_info const& ti
-				, boost::filesystem::path const& save_path
+				, fs::path const& save_path
 				, entry const& resume_data
 				, bool compact_mode
 				, int block_size
@@ -248,7 +251,7 @@ namespace libtorrent
 				char const* tracker_url
 				, sha1_hash const& info_hash
 				, char const* name
-				, boost::filesystem::path const& save_path
+				, fs::path const& save_path
 				, entry const& resume_data
 				, bool compact_mode
 				, int block_size
@@ -333,6 +336,9 @@ namespace libtorrent
 			// since they will still have references to it
 			// when they are destructed.
 			file_pool m_files;
+
+			// handles disk io requests asynchronously
+			disk_io_thread m_disk_thread;
 
 			// this is a list of half-open tcp connections
 			// (only outgoing connections)

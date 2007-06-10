@@ -26,13 +26,14 @@ int test_main()
 
 		partial.index = 1;
 		partial.info = blocks;
-		partial.info[0].finished = true;
-		partial.info[2].finished = true;
+		partial.info[0].state = piece_picker::block_info::state_finished;
+		partial.info[2].state = piece_picker::block_info::state_finished;
 		unfinished.push_back(partial);
 		
-		p.files_checked(have, unfinished);
-		TEST_CHECK(p.is_downloading(piece_block(1, 0)));
-		TEST_CHECK(p.is_downloading(piece_block(1, 2)));
+		std::vector<int> verify_pieces;
+		p.files_checked(have, unfinished, verify_pieces);
+		TEST_CHECK(p.is_finished(piece_block(1, 0)));
+		TEST_CHECK(p.is_finished(piece_block(1, 2)));
 
 		p.set_piece_priority(4, 0);
 	
@@ -151,27 +152,21 @@ int test_main()
 		std::vector<piece_picker::downloading_piece> const& downloads = p.get_download_queue();
 		TEST_CHECK(downloads.size() == 2);
 		TEST_CHECK(downloads[0].index == 1);
-		TEST_CHECK(downloads[0].info[0].finished == 1);
-		TEST_CHECK(downloads[0].info[1].finished == 0);
-		TEST_CHECK(downloads[0].info[2].finished == 1);
-		TEST_CHECK(downloads[0].info[3].finished == 0);
-		TEST_CHECK(downloads[0].info[1].requested == 1);
-		TEST_CHECK(downloads[0].info[3].requested == 1);
+		TEST_CHECK(downloads[0].info[0].state == piece_picker::block_info::state_finished);
+		TEST_CHECK(downloads[0].info[1].state == piece_picker::block_info::state_requested);
+		TEST_CHECK(downloads[0].info[2].state == piece_picker::block_info::state_finished);
+		TEST_CHECK(downloads[0].info[3].state == piece_picker::block_info::state_requested);
 
 		TEST_CHECK(downloads[1].index == 2);
-		TEST_CHECK(downloads[1].info[0].finished == 0);
-		TEST_CHECK(downloads[1].info[1].finished == 0);
-		TEST_CHECK(downloads[1].info[2].finished == 0);
-		TEST_CHECK(downloads[1].info[3].finished == 0);
-		TEST_CHECK(downloads[1].info[0].requested == 1);
-		TEST_CHECK(downloads[1].info[1].requested == 0);
-		TEST_CHECK(downloads[1].info[2].requested == 0);
-		TEST_CHECK(downloads[1].info[3].requested == 0);
+		TEST_CHECK(downloads[1].info[0].state == piece_picker::block_info::state_requested);
+		TEST_CHECK(downloads[1].info[1].state == piece_picker::block_info::state_none);
+		TEST_CHECK(downloads[1].info[2].state == piece_picker::block_info::state_none);
+		TEST_CHECK(downloads[1].info[3].state == piece_picker::block_info::state_none);
 
-		TEST_CHECK(p.is_downloading(piece_block(1, 1)));
-		TEST_CHECK(p.is_downloading(piece_block(1, 3)));
-		TEST_CHECK(p.is_downloading(piece_block(2, 0)));
-		TEST_CHECK(!p.is_downloading(piece_block(2, 1)));
+		TEST_CHECK(p.is_requested(piece_block(1, 1)));
+		TEST_CHECK(p.is_requested(piece_block(1, 3)));
+		TEST_CHECK(p.is_requested(piece_block(2, 0)));
+		TEST_CHECK(!p.is_requested(piece_block(2, 1)));
 
 		picked.clear();
 		p.pick_pieces(peer1, picked, 1, false, tcp::endpoint(), piece_picker::fast);

@@ -58,6 +58,7 @@ namespace libtorrent
 
 		big_number(std::string const& s)
 		{
+			assert(s.size() >= 20);
 			int sl = int(s.size()) < size ? int(s.size()) : size;
 			std::memcpy(m_number, &s[0], sl);
 		}

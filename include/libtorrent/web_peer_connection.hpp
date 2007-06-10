@@ -123,7 +123,7 @@ namespace libtorrent
 		void write_request(peer_request const& r);
 		void write_cancel(peer_request const& r) {}
 		void write_have(int index) {}
-		void write_piece(peer_request const& r) {}
+		void write_piece(peer_request const& r, char const* buffer) { assert(false); }
 		void write_keepalive() {}
 		void on_connected();
 

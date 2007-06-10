@@ -86,6 +86,7 @@ SOURCES =
 	logger
 	file_pool
 	lsd
+	disk_io_thread
 	;
 
 KADEMLIA_SOURCES =

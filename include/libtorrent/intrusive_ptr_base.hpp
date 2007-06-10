@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,53 +30,42 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_DEBUG_HPP_INCLUDED
-#define TORRENT_DEBUG_HPP_INCLUDED
+#ifndef TORRENT_INTRUSIVE_PTR_BASE
+#define TORRENT_INTRUSIVE_PTR_BASE
 
-#include <string>
-#include <fstream>
-#include <iostream>
-
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
-
-#include <boost/lexical_cast.hpp>
-#include <boost/filesystem/fstream.hpp>
-#include <boost/filesystem/convenience.hpp>
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
+#include <boost/detail/atomic_count.hpp>
+#include <cassert>
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
-	// DEBUG API
-	
-	namespace fs = boost::filesystem;
-
-	struct logger
+	template<class T>
+	struct intrusive_ptr_base
 	{
-		logger(fs::path const& filename, int instance, bool append = true)
+		friend void intrusive_ptr_add_ref(intrusive_ptr_base<T> const* s)
 		{
-			fs::path dir(fs::complete("libtorrent_logs" + boost::lexical_cast<std::string>(instance)));
-			if (!fs::exists(dir)) fs::create_directories(dir);
-			m_file.open((dir / filename).string().c_str(), std::ios_base::out | (append ? std::ios_base::app : std::ios_base::out));
-			*this << "\n\n\n*** starting log ***\n";
+			assert(s->m_refs >= 0);
+			assert(s != 0);
+			++s->m_refs;
 		}
 
-		template <class T>
-		logger& operator<<(T const& v)
+		friend void intrusive_ptr_release(intrusive_ptr_base<T> const* s)
 		{
-			m_file << v;
-			m_file.flush();
-			return *this;
+			assert(s->m_refs > 0);
+			assert(s != 0);
+			if (--s->m_refs == 0)
+				delete static_cast<T const*>(s);
 		}
 
-		std::ofstream m_file;
+		int refcount() const { return m_refs; }
+
+		intrusive_ptr_base(): m_refs(0) {}
+	private:
+		// reference counter for intrusive_ptr
+		mutable boost::detail::atomic_count m_refs;
 	};
 
 }
 
-#endif // TORRENT_DEBUG_HPP_INCLUDED
+#endif
+

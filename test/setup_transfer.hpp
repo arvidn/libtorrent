@@ -5,7 +5,8 @@
 #include <boost/tuple/tuple.hpp>
 
 
-void sleep(int msec);
+void test_sleep(int millisec);
+
 boost::tuple<libtorrent::torrent_handle, libtorrent::torrent_handle
 	, libtorrent::torrent_handle>
 setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2

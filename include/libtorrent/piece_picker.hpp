@@ -90,14 +90,14 @@ namespace libtorrent
 
 		struct block_info
 		{
-			block_info(): num_downloads(0), requested(0), finished(0) {}
+			block_info(): num_downloads(0), state(state_none) {}
 			// the peer this block was requested or
 			// downloaded from
 			tcp::endpoint peer;
 			// the number of times this block has been downloaded
 			unsigned num_downloads:14;
-			unsigned requested:1;
-			unsigned finished:1;
+			enum { state_none, state_requested, state_writing, state_finished };
+			unsigned state:2;
 		};
 
 		// the peers that are downloading this piece
@@ -109,7 +109,7 @@ namespace libtorrent
 
 		struct downloading_piece
 		{
-			downloading_piece(): finished(0), requested(0) {}
+			downloading_piece(): finished(0), writing(0), requested(0) {}
 			piece_state_t state;
 
 			// the index of the piece
@@ -118,8 +118,12 @@ namespace libtorrent
 			// this is a pointer into the m_block_info
 			// vector owned by the piece_picker
 			block_info* info;
-			boost::uint16_t finished;
-			boost::uint16_t requested;
+			// the number of blocks in the finished state
+			boost::int16_t finished;
+			// the number of blocks in the writing state
+			boost::int16_t writing;
+			// the number of blocks in the requested state
+			boost::int16_t requested;
 		};
 
 		piece_picker(int blocks_per_piece
@@ -132,8 +136,9 @@ namespace libtorrent
 		// the vector tells which pieces we already have
 		// and which we don't have.
 		void files_checked(
-			const std::vector<bool>& pieces
-			, const std::vector<downloading_piece>& unfinished);
+			std::vector<bool> const& pieces
+			, std::vector<downloading_piece> const& unfinished
+			, std::vector<int>& verify_pieces);
 
 		// increases the peer count for the given piece
 		// (is used when a HAVE or BITFIELD message is received)
@@ -190,12 +195,16 @@ namespace libtorrent
 		// returns true if any client is currently downloading this
 		// piece-block, or if it's queued for downloading by some client
 		// or if it already has been successfully downloaded
-		bool is_downloading(piece_block block) const;
+		bool is_requested(piece_block block) const;
+		// returns true if the block has been downloaded
+		bool is_downloaded(piece_block block) const;
+		// returns true if the block has been downloaded and written to disk
 		bool is_finished(piece_block block) const;
 
 		// marks this piece-block as queued for downloading
 		void mark_as_downloading(piece_block block, tcp::endpoint const& peer
 			, piece_state_t s);
+		void mark_as_writing(piece_block block, tcp::endpoint const& peer);
 		void mark_as_finished(piece_block block, tcp::endpoint const& peer);
 
 		// if a piece had a hash-failure, it must be restored and

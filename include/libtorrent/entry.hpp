@@ -155,6 +155,8 @@ namespace libtorrent
 		dictionary_type& dict();
 		const dictionary_type& dict() const;
 
+		void swap(entry& e);
+
 		// these functions requires that the entry
 		// is a dictionary, otherwise they will throw	
 		entry& operator[](char const* key);

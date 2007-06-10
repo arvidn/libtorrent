@@ -246,7 +246,7 @@ namespace libtorrent
 		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
 			i != interesting_pieces.end(); ++i)
 		{
-			if (p.is_downloading(*i))
+			if (p.is_requested(*i))
 			{
 				busy_pieces.push_back(*i);
 				continue;
@@ -1147,18 +1147,6 @@ namespace libtorrent
 				i->connection->update_interest();
 			}
 		}
-	}
-
-	// TODO: we must be able to get interested
-	// in a peer again, if a piece fails that
-	// this peer has.
-	void policy::block_finished(peer_connection& c, piece_block)
-	{
-		INVARIANT_CHECK;
-
-		// if the peer hasn't choked us, ask for another piece
-		if (!c.has_peer_choked() && !m_torrent->is_seed())
-			request_a_block(*m_torrent, c);
 	}
 
 	// this is called when we are unchoked by a peer

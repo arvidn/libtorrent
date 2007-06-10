@@ -62,16 +62,18 @@ namespace libtorrent
 	namespace pt = boost::posix_time;
 	namespace gr = boost::gregorian;
 
+	namespace fs = boost::filesystem;
+
 	struct TORRENT_EXPORT file_entry
 	{
-		boost::filesystem::path path;
+		fs::path path;
 		size_type offset; // the offset of this file inside the torrent
 		size_type size; // the size of this file
 		// if the path was incorrectly encoded, this is
 		// the origianal corrupt encoded string. It is
 		// preserved in order to be able to reproduce
 		// the correct info-hash
-		boost::shared_ptr<const boost::filesystem::path> orig_path;
+		boost::shared_ptr<const fs::path> orig_path;
 	};
 
 	struct TORRENT_EXPORT file_slice
@@ -109,7 +111,7 @@ namespace libtorrent
 		void set_piece_size(int size);
 		void set_hash(int index, sha1_hash const& h);
 		void add_tracker(std::string const& url, int tier = 0);
-		void add_file(boost::filesystem::path file, size_type size);
+		void add_file(fs::path file, size_type size);
 		void add_url_seed(std::string const& url);
 
 		std::vector<file_slice> map_block(int piece, size_type offset, int size) const;
@@ -191,6 +193,8 @@ namespace libtorrent
 		// frees parts of the metadata that isn't
 		// used by seeds
 		void seed_free();
+
+		void swap(torrent_info& ti);
 
 	private:
 

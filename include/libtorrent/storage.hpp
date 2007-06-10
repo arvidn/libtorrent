@@ -41,9 +41,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/limits.hpp>
-#include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/filesystem/path.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -52,6 +52,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/piece_picker.hpp"
+#include "libtorrent/intrusive_ptr_base.hpp"
+#include "libtorrent/peer_request.hpp"
+#include "libtorrent/hasher.hpp"
 #include "libtorrent/config.hpp"
 
 namespace libtorrent
@@ -61,8 +64,11 @@ namespace libtorrent
 		struct piece_checker_data;
 	}
 
+	namespace fs = boost::filesystem;
+
 	class session;
 	struct file_pool;
+	struct disk_io_job;
 
 #if defined(_WIN32) && defined(UNICODE)
 
@@ -72,11 +78,11 @@ namespace libtorrent
 	
 	TORRENT_EXPORT std::vector<std::pair<size_type, std::time_t> > get_filesizes(
 		torrent_info const& t
-		, boost::filesystem::path p);
+		, fs::path p);
 
 	TORRENT_EXPORT bool match_filesizes(
 		torrent_info const& t
-		, boost::filesystem::path p
+		, fs::path p
 		, std::vector<std::pair<size_type, std::time_t> > const& sizes
 		, bool compact_mode
 		, std::string* error = 0);
@@ -87,6 +93,15 @@ namespace libtorrent
 		virtual const char* what() const throw() { return m_msg.c_str(); }
 		virtual ~file_allocation_failed() throw() {}
 		std::string m_msg;
+	};
+
+	struct TORRENT_EXPORT partial_hash
+	{
+		partial_hash(): offset(0) {}
+		// the number of bytes in the piece that has been hashed
+		int offset;
+		// the sha-1 context
+		hasher h;
 	};
 
 	struct TORRENT_EXPORT storage_interface
@@ -103,7 +118,7 @@ namespace libtorrent
 		// may throw file_error if storage for slot hasn't been allocated
 		virtual void write(const char* buf, int slot, int offset, int size) = 0;
 
-		virtual bool move_storage(boost::filesystem::path save_path) = 0;
+		virtual bool move_storage(fs::path save_path) = 0;
 
 		// verify storage dependent fast resume entries
 		virtual bool verify_resume_data(entry& rd, std::string& error) = 0;
@@ -121,6 +136,9 @@ namespace libtorrent
 		// in slot3 and the data in slot3 in slot1
 		virtual void swap_slots3(int slot1, int slot2, int slot3) = 0;
 
+		// returns the sha1-hash for the data at the given slot
+		virtual sha1_hash hash_for_slot(int slot, partial_hash& h, int piece_size) = 0;
+
 		// this will close all open files that are opened for
 		// writing. This is called when a torrent has finished
 		// downloading.
@@ -129,24 +147,32 @@ namespace libtorrent
 	};
 
 	typedef storage_interface* (&storage_constructor_type)(
-		torrent_info const&, boost::filesystem::path const&
+		torrent_info const&, fs::path const&
 		, file_pool&);
 
 	TORRENT_EXPORT storage_interface* default_storage_constructor(torrent_info const& ti
-		, boost::filesystem::path const& path, file_pool& fp);
+		, fs::path const& path, file_pool& fp);
 
 	// returns true if the filesystem the path relies on supports
 	// sparse files or automatic zero filling of files.
-	TORRENT_EXPORT bool supports_sparse_files(boost::filesystem::path const& p);
+	TORRENT_EXPORT bool supports_sparse_files(fs::path const& p);
 
-	class TORRENT_EXPORT piece_manager : boost::noncopyable
+	struct disk_io_thread;
+
+	class TORRENT_EXPORT piece_manager
+		: public intrusive_ptr_base<piece_manager>
+		, boost::noncopyable
 	{
+	friend class invariant_access;
+	friend struct disk_io_thread;
 	public:
 
 		piece_manager(
-			const torrent_info& info
-			, const boost::filesystem::path& path
+			boost::shared_ptr<void> const& torrent
+			, torrent_info const& ti
+			, fs::path const& path
 			, file_pool& fp
+			, disk_io_thread& io
 			, storage_constructor_type sc);
 
 		~piece_manager();
@@ -156,35 +182,36 @@ namespace libtorrent
 		std::pair<bool, float> check_files(std::vector<bool>& pieces
 			, int& num_pieces, boost::recursive_mutex& mutex);
 
-		void release_files();
-
 		void write_resume_data(entry& rd) const;
 		bool verify_resume_data(entry& rd, std::string& error);
 
-		bool is_allocating() const;
-		bool allocate_slots(int num_slots, bool abort_on_disk = false);
+		bool is_allocating() const
+		{ return m_state == state_allocating; }
+	
 		void mark_failed(int index);
 
 		unsigned long piece_crc(
 			int slot_index
 			, int block_size
 			, piece_picker::block_info const* bi);
+
 		int slot_for_piece(int piece_index) const;
 
-		size_type read(
-			char* buf
-			, int piece_index
-			, int offset
-			, int size);
+		void async_read(
+			peer_request const& r
+			, boost::function<void(int, disk_io_job const&)> const& handler);
 
-		void write(
-			const char* buf
-			, int piece_index
-			, int offset
-			, int size);
+		void async_write(
+			peer_request const& r
+			, char const* buffer
+			, boost::function<void(int, disk_io_job const&)> const& f);
 
-		boost::filesystem::path const& save_path() const;
-		bool move_storage(boost::filesystem::path const&);
+		void async_hash(int piece, boost::function<void(int, disk_io_job const&)> const& f);
+
+		fs::path save_path() const;
+
+		void async_release_files();
+		void async_move_storage(fs::path const& p);
 
 		// fills the vector that maps all allocated
 		// slots to the piece that is stored (or
@@ -192,11 +219,134 @@ namespace libtorrent
 		// of unassigned pieces and -1 is unallocated
 		void export_piece_map(std::vector<int>& pieces) const;
 
-		bool compact_allocation() const;
+		bool compact_allocation() const
+		{ return m_compact_mode; }
 
+#ifndef NDEBUG
+		std::string name() const { return m_info.name(); }
+#endif
+		
 	private:
-		class impl;
-		std::auto_ptr<impl> m_pimpl;
+
+		bool allocate_slots(int num_slots, bool abort_on_disk = false);
+
+		int identify_data(
+			const std::vector<char>& piece_data
+			, int current_slot
+			, std::vector<bool>& have_pieces
+			, int& num_pieces
+			, const std::multimap<sha1_hash, int>& hash_to_piece
+			, boost::recursive_mutex& mutex);
+
+		size_type read_impl(
+			char* buf
+			, int piece_index
+			, int offset
+			, int size);
+
+		void write_impl(
+			const char* buf
+			, int piece_index
+			, int offset
+			, int size);
+
+		sha1_hash hash_for_piece_impl(int piece);
+
+		void release_files_impl();
+
+		bool move_storage_impl(fs::path const& save_path);
+
+		int allocate_slot_for_piece(int piece_index);
+#ifndef NDEBUG
+		void check_invariant() const;
+#ifdef TORRENT_STORAGE_DEBUG
+		void debug_log() const;
+#endif
+#endif
+		boost::scoped_ptr<storage_interface> m_storage;
+
+		// if this is true, pieces are always allocated at the
+		// lowest possible slot index. If it is false, pieces
+		// are always written to their final place immediately
+		bool m_compact_mode;
+
+		// if this is true, pieces that haven't been downloaded
+		// will be filled with zeroes. Not filling with zeroes
+		// will not work in some cases (where a seek cannot pass
+		// the end of the file).
+		bool m_fill_mode;
+
+		// a bitmask representing the pieces we have
+		std::vector<bool> m_have_piece;
+
+		torrent_info const& m_info;
+
+		// slots that haven't had any file storage allocated
+		std::vector<int> m_unallocated_slots;
+		// slots that have file storage, but isn't assigned to a piece
+		std::vector<int> m_free_slots;
+
+		enum
+		{
+			has_no_slot = -3 // the piece has no storage
+		};
+
+		// maps piece indices to slots. If a piece doesn't
+		// have any storage, it is set to 'has_no_slot'
+		std::vector<int> m_piece_to_slot;
+
+		enum
+		{
+			unallocated = -1, // the slot is unallocated
+			unassigned = -2   // the slot is allocated but not assigned to a piece
+		};
+
+		// maps slots to piece indices, if a slot doesn't have a piece
+		// it can either be 'unassigned' or 'unallocated'
+		std::vector<int> m_slot_to_piece;
+
+		fs::path m_save_path;
+
+		mutable boost::recursive_mutex m_mutex;
+
+		bool m_allocating;
+		boost::mutex m_allocating_monitor;
+		boost::condition m_allocating_condition;
+
+		// these states are used while checking/allocating the torrent
+
+		enum {
+			// the default initial state
+			state_none,
+			// the file checking is complete
+			state_finished,
+			// creating the directories
+			state_create_files,
+			// checking the files
+			state_full_check,
+			// allocating files (in non-compact mode)
+			state_allocating
+		} m_state;
+		int m_current_slot;
+		
+		std::vector<char> m_piece_data;
+		
+		// this maps a piece hash to piece index. It will be
+		// build the first time it is used (to save time if it
+		// isn't needed) 				
+		std::multimap<sha1_hash, int> m_hash_to_piece;
+	
+		std::map<int, partial_hash> m_piece_hasher;
+
+		disk_io_thread& m_io_thread;
+
+		// the reason for this to be a void pointer
+		// is to avoid creating a dependency on the
+		// torrent. This shared_ptr is here only
+		// to keep the torrent object alive until
+		// the piece_manager destructs. This is because
+		// the torrent_info object is owned by the torrent.
+		boost::shared_ptr<void> m_torrent;
 	};
 
 }
