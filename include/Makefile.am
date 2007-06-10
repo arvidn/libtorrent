@@ -36,6 +36,7 @@ libtorrent/peer_request.hpp \
 libtorrent/piece_block_progress.hpp \
 libtorrent/piece_picker.hpp \
 libtorrent/policy.hpp \
+libtorrent/proxy_base.hpp \
 libtorrent/random_sample.hpp \
 libtorrent/resource_request.hpp \
 libtorrent/session.hpp \
