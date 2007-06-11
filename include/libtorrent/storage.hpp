@@ -210,8 +210,10 @@ namespace libtorrent
 
 		fs::path save_path() const;
 
-		void async_release_files();
-		void async_move_storage(fs::path const& p);
+		void async_release_files(
+			boost::function<void(int, disk_io_job const&)> const& handler);
+		void async_move_storage(fs::path const& p
+			, boost::function<void(int, disk_io_job const&)> const& handler);
 
 		// fills the vector that maps all allocated
 		// slots to the piece that is stored (or

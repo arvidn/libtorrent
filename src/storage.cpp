@@ -1090,21 +1090,23 @@ namespace libtorrent
 		return m_storage->verify_resume_data(rd, error);
 	}
 
-	void piece_manager::async_release_files()
+	void piece_manager::async_release_files(
+		boost::function<void(int, disk_io_job const&)> const& handler)
 	{
 		disk_io_job j;
 		j.storage = this;
 		j.action = disk_io_job::release_files;
-		m_io_thread.add_job(j);
+		m_io_thread.add_job(j, handler);
 	}
 
-	void piece_manager::async_move_storage(fs::path const& p)
+	void piece_manager::async_move_storage(fs::path const& p
+		, boost::function<void(int, disk_io_job const&)> const& handler)
 	{
 		disk_io_job j;
 		j.storage = this;
 		j.action = disk_io_job::move_storage;
 		j.str = p.string();
-		m_io_thread.add_job(j);
+		m_io_thread.add_job(j, handler);
 	}
 
 	void piece_manager::async_read(

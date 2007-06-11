@@ -103,12 +103,14 @@ void run_storage_tests(torrent_info& info, bool compact_allocation = true)
 	TEST_CHECK(num_pieces == std::count(pieces.begin(), pieces.end()
 		, true));
 
+
+	boost::function<void(int, disk_io_job const&)> none;
 	TEST_CHECK(exists("temp_storage"));
-	pm->async_move_storage("temp_storage2");
+	pm->async_move_storage("temp_storage2", none);
 	test_sleep(2000);
 	TEST_CHECK(!exists("temp_storage"));
 	TEST_CHECK(exists("temp_storage2/temp_storage"));
-	pm->async_move_storage(".");
+	pm->async_move_storage(".", none);
 	test_sleep(2000);
 	TEST_CHECK(!exists("temp_storage2/temp_storage"));	
 	remove_all("temp_storage2");
@@ -122,7 +124,7 @@ void run_storage_tests(torrent_info& info, bool compact_allocation = true)
 	pm->async_read(r, bind(&on_read_piece, _1, _2, piece1, piece_size));
 	r.piece = 2;
 	pm->async_read(r, bind(&on_read_piece, _1, _2, piece2, piece_size));
-	pm->async_release_files();
+	pm->async_release_files(none);
 
 	}
 }
