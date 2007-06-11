@@ -101,18 +101,16 @@ list get_download_queue(torrent_handle& handle)
 		dict partial_piece;
 		partial_piece["piece_index"] = i->piece_index;
 		partial_piece["blocks_in_piece"] = i->blocks_in_piece;
-		list requested;
-		list finished;
-//		list peer;
+		list block_list;
 		for (int k = 0; k < i->blocks_in_piece; ++k)
 		{
-			requested.append(bool(i->requested_blocks[k]));
-			finished.append(bool(i->finished_blocks[k]));
-//			peer.append(i->peer[k]);
+			dict block_info;
+			block_info["state"] = i->blocks[k].state;
+			block_info["num_downloads"] = i->blocks[k].num_downloads;
+//			block_info["peer"] = i->info[k].peer;
+			block_list.append(block_info);
 		}
-		partial_piece["requested_blocks"] = requested;
-		partial_piece["finished_blocks"] = finished;
-//		partial_piece["peer"] = peer;
+		partial_piece["blocks"] = block_list;
 
 		ret.append(partial_piece);
 	}

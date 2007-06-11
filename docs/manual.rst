@@ -1709,33 +1709,16 @@ requested. The entry in the vector (``partial_piece_info``) looks like this::
 
 	struct partial_piece_info
 	{
-		enum { max_blocks_per_piece };
 		int piece_index;
 		int blocks_in_piece;
-		std::bitset<max_blocks_per_piece> requested_blocks;
-		std::bitset<max_blocks_per_piece> finished_blocks;
-		address peer[max_blocks_per_piece];
-		int num_downloads[max_blocks_per_piece];
-		enum state_t { none, slow. medium, fast };
+		block_info blocks[256];
+		enum state_t { none, slow, medium, fast };
 		state_t piece_state;
 	};
 
 ``piece_index`` is the index of the piece in question. ``blocks_in_piece`` is the
 number of blocks in this particular piece. This number will be the same for most pieces, but
 the last piece may have fewer blocks than the standard pieces.
-
-``requested_blocks`` is a bitset with one bit per block in the piece. If a bit is set, it
-means that that block has been requested, but not necessarily fully downloaded yet. To know
-from whom the block has been requested, have a look in the ``peer`` array. The bit-index
-in the ``requested_blocks`` and ``finished_blocks`` corresponds to the array-index into
-``peers`` and ``num_downloads``. The array of peers is contains the address of the
-peer the piece was requested from. If a piece hasn't been requested (the bit in
-``requested_blocks`` is not set) the peer array entry will be undefined.
-
-The ``finished_blocks`` is a bitset where each bit says if the block is fully downloaded
-or not. And the ``num_downloads`` array says how many times that block has been downloaded.
-When a piece fails a hash verification, single blocks may be re-downloaded to
-see if the hash test may pass then.
 
 ``piece_state`` is set to either ``fast``, ``medium``, ``slow`` or ``none``. It tells which
 download rate category the peers downloading this piece falls into. ``none`` means that no
@@ -1744,6 +1727,29 @@ the same category as themselves. The reason for this is to keep the number of pa
 downloaded pieces down. Pieces set to ``none`` can be converted into any of ``fast``,
 ``medium`` or ``slow`` as soon as a peer want to download from it.
 
+::
+
+	struct block_info
+	{
+		enum block_state_t
+		{ none, requested, writing, finished };
+
+		tcp::endpoint peer;
+		unsigned state:2;
+		unsigned num_downloads:14;
+	};
+
+
+The ``block_info`` array contains data for each individual block in the piece. Each block has
+a state (``state``) which is any of:
+
+* ``none`` - This block has not been downloaded or requested form any peer.
+* ``requested`` - The block has been requested, but not completely downloaded yet.
+* ``writing`` - The block has been downloaded and is currently queued for being written to disk.
+* ``finished`` - The block has been written to disk.
+
+The ``peer`` field is the ip address of the peer this block was downloaded from.
+``num_downloads`` is the number of times this block has been downloaded.
 
 get_peer_info()
 ---------------

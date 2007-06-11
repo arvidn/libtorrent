@@ -37,8 +37,16 @@ void bind_session_settings()
 #ifndef TORRENT_DISABLE_DHT
         .def_readwrite("use_dht_as_fallback", &session_settings::use_dht_as_fallback)
 #endif
-        ;
+    ;
     
+    enum_<proxy_settings::proxy_type>("proxy_type")
+        .value("none", proxy_settings::none)
+        .value("socks4", proxy_settings::socks4)
+        .value("socks5", proxy_settings::socks5)
+        .value("socks5_pw", proxy_settings::socks5_pw)
+        .value("http", proxy_settings::http)
+        .value("http_pw", proxy_settings::http_pw)
+    ;
     scope ps = class_<proxy_settings>("proxy_settings")
         .def_readwrite("hostname", &proxy_settings::hostname)
         .def_readwrite("port", &proxy_settings::port)
@@ -47,11 +55,16 @@ void bind_session_settings()
         .def_readwrite("type", &proxy_settings::type)
     ;
 
-    ps.attr("none") = (int)proxy_settings::none;
-    ps.attr("socks5") = (int)proxy_settings::socks5;
-    ps.attr("socks5_pw") = (int)proxy_settings::socks5_pw;
-    ps.attr("http") = (int)proxy_settings::http;
-    ps.attr("http_pw") = (int)proxy_settings::http_pw;
+    enum_<pe_settings::enc_policy>("enc_policy")
+        .value("forced", pe_settings::forced)
+        .value("enabled", pe_settings::enabled)
+        .value("disabled", pe_settings::disabled)
+    ;
+	 
+    enum_<pe_settings::enc_level>("enc_level")
+        .value("rc4", pe_settings::rc4)
+        .value("plaintext", pe_settings::plaintext)
+    ;
 
     scope pes = class_<pe_settings>("pe_settings")
         .def_readwrite("out_enc_policy", &pe_settings::out_enc_policy)
@@ -60,10 +73,5 @@ void bind_session_settings()
         .def_readwrite("prefer_rc4", &pe_settings::prefer_rc4)
     ;
 
-    pes.attr("forced") = pe_settings::forced;
-    pes.attr("enabled") = pe_settings::enabled;
-    pes.attr("disabled") = pe_settings::disabled;
-    pes.attr("plaintext") = pe_settings::plaintext;
-    pes.attr("rc4") = pe_settings::rc4;
 }
 
