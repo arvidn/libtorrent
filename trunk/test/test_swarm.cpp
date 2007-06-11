@@ -1,4 +1,5 @@
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_settings.hpp"
 #include "libtorrent/hasher.hpp"
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
@@ -33,12 +34,14 @@ void test_swarm()
 	ses2.set_settings(settings);
 	ses3.set_settings(settings);
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
 	pes.out_enc_policy = pe_settings::disabled;
 	pes.in_enc_policy = pe_settings::disabled;
 	ses1.set_pe_settings(pes);
 	ses2.set_pe_settings(pes);
 	ses3.set_pe_settings(pes);
+#endif
 
 	torrent_handle tor1;
 	torrent_handle tor2;
