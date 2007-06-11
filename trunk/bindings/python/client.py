@@ -153,13 +153,16 @@ def print_download_queue(console, download_queue):
 
     for e in download_queue:
         out += '%4d: [' % e['piece_index'];
-        for fin, req in zip(e['finished_blocks'], e['requested_blocks']):
-            if fin:
+        for b in e['blocks']:
+            s = b['state']
+            if s == 3:
                 out += '#'
-            elif req:
-                out += '+'
-            else:
+            elif s == 2:
+                out += '='
+            elif s == 1:
                 out += '-'
+            else:
+                out += ' '
         out += ']\n'
 
     write_line(console, out)

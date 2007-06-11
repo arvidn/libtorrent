@@ -535,6 +535,7 @@ struct session_status
         int dht_nodes;
         int dht_cache_nodes;
         int dht_torrents;
+        int dht_global_nodes;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">has_incoming_connections</span></tt> is false as long as no incoming connections have been
@@ -555,6 +556,8 @@ table. This number only includes <em>active</em> nodes, not cache nodes. The
 are used to replace the regular nodes in the routing table in case any of them
 becomes unresponsive.</p>
 <p><tt class="docutils literal"><span class="pre">dht_torrents</span></tt> are the number of torrents tracked by the DHT at the moment.</p>
+<p><tt class="docutils literal"><span class="pre">dht_global_nodes</span></tt> is an estimation of the total number of nodes in the DHT
+network.</p>
 </div>
 <div class="section">
 <h2><a id="is-listening-listen-port-listen-on" name="is-listening-listen-port-listen-on">is_listening() listen_port() listen_on()</a></h2>
@@ -1735,37 +1738,43 @@ requested. The entry in the vector (<tt class="docutils literal"><span class="pr
 <pre class="literal-block">
 struct partial_piece_info
 {
-        enum { max_blocks_per_piece };
         int piece_index;
         int blocks_in_piece;
-        std::bitset&lt;max_blocks_per_piece&gt; requested_blocks;
-        std::bitset&lt;max_blocks_per_piece&gt; finished_blocks;
-        address peer[max_blocks_per_piece];
-        int num_downloads[max_blocks_per_piece];
-        enum state_t { none, slow. medium, fast };
+        block_info blocks[256];
+        enum state_t { none, slow, medium, fast };
         state_t piece_state;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">piece_index</span></tt> is the index of the piece in question. <tt class="docutils literal"><span class="pre">blocks_in_piece</span></tt> is the
 number of blocks in this particular piece. This number will be the same for most pieces, but
 the last piece may have fewer blocks than the standard pieces.</p>
-<p><tt class="docutils literal"><span class="pre">requested_blocks</span></tt> is a bitset with one bit per block in the piece. If a bit is set, it
-means that that block has been requested, but not necessarily fully downloaded yet. To know
-from whom the block has been requested, have a look in the <tt class="docutils literal"><span class="pre">peer</span></tt> array. The bit-index
-in the <tt class="docutils literal"><span class="pre">requested_blocks</span></tt> and <tt class="docutils literal"><span class="pre">finished_blocks</span></tt> corresponds to the array-index into
-<tt class="docutils literal"><span class="pre">peers</span></tt> and <tt class="docutils literal"><span class="pre">num_downloads</span></tt>. The array of peers is contains the address of the
-peer the piece was requested from. If a piece hasn't been requested (the bit in
-<tt class="docutils literal"><span class="pre">requested_blocks</span></tt> is not set) the peer array entry will be undefined.</p>
-<p>The <tt class="docutils literal"><span class="pre">finished_blocks</span></tt> is a bitset where each bit says if the block is fully downloaded
-or not. And the <tt class="docutils literal"><span class="pre">num_downloads</span></tt> array says how many times that block has been downloaded.
-When a piece fails a hash verification, single blocks may be re-downloaded to
-see if the hash test may pass then.</p>
 <p><tt class="docutils literal"><span class="pre">piece_state</span></tt> is set to either <tt class="docutils literal"><span class="pre">fast</span></tt>, <tt class="docutils literal"><span class="pre">medium</span></tt>, <tt class="docutils literal"><span class="pre">slow</span></tt> or <tt class="docutils literal"><span class="pre">none</span></tt>. It tells which
 download rate category the peers downloading this piece falls into. <tt class="docutils literal"><span class="pre">none</span></tt> means that no
 peer is currently downloading any part of the piece. Peers prefer picking pieces from
 the same category as themselves. The reason for this is to keep the number of partially
 downloaded pieces down. Pieces set to <tt class="docutils literal"><span class="pre">none</span></tt> can be converted into any of <tt class="docutils literal"><span class="pre">fast</span></tt>,
 <tt class="docutils literal"><span class="pre">medium</span></tt> or <tt class="docutils literal"><span class="pre">slow</span></tt> as soon as a peer want to download from it.</p>
+<pre class="literal-block">
+struct block_info
+{
+        enum block_state_t
+        { none, requested, writing, finished };
+
+        tcp::endpoint peer;
+        unsigned state:2;
+        unsigned num_downloads:14;
+};
+</pre>
+<p>The <tt class="docutils literal"><span class="pre">block_info</span></tt> array contains data for each individual block in the piece. Each block has
+a state (<tt class="docutils literal"><span class="pre">state</span></tt>) which is any of:</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">none</span></tt> - This block has not been downloaded or requested form any peer.</li>
+<li><tt class="docutils literal"><span class="pre">requested</span></tt> - The block has been requested, but not completely downloaded yet.</li>
+<li><tt class="docutils literal"><span class="pre">writing</span></tt> - The block has been downloaded and is currently queued for being written to disk.</li>
+<li><tt class="docutils literal"><span class="pre">finished</span></tt> - The block has been written to disk.</li>
+</ul>
+<p>The <tt class="docutils literal"><span class="pre">peer</span></tt> field is the ip address of the peer this block was downloaded from.
+<tt class="docutils literal"><span class="pre">num_downloads</span></tt> is the number of times this block has been downloaded.</p>
 </div>
 <div class="section">
 <h2><a id="get-peer-info" name="get-peer-info">get_peer_info()</a></h2>
@@ -1999,7 +2008,11 @@ struct peer_info
                 local_connection = 0x20,
                 handshake = 0x40,
                 connecting = 0x80,
-                queued = 0x100
+                queued = 0x100,
+                on_parole = 0x200,
+                seed = 0x400,
+                rc4_encrypted = 0x800,
+                plaintext_encrypted = 0x1000
         };
 
         unsigned int flags;
@@ -2023,7 +2036,6 @@ struct peer_info
         size_type total_upload;
         peer_id pid;
         std::vector&lt;bool&gt; pieces;
-        bool seed;
         int upload_limit;
         int download_limit;
 
@@ -2188,6 +2200,7 @@ struct session_settings
         std::string user_agent;
         int tracker_completion_timeout;
         int tracker_receive_timeout;
+        int stop_tracker_timeout;
         int tracker_maximum_response_length;
 
         int piece_timeout;
@@ -2202,6 +2215,12 @@ struct session_settings
         bool allow_multiple_connections_per_ip;
         int max_failcount;
         int min_reconnect_time;
+        int peer_connect_timeout;
+        bool ignore_limits_on_local_network;
+        int connection_speed;
+        int send_redundant_have;
+        bool lazy_bitfields;
+        int inactivity_timeout;
         bool use_dht_as_fallback;
 };
 </pre>
@@ -2218,6 +2237,9 @@ any data from the tracker. If no data is received for this number of
 seconds, the tracker will be considered as having timed out. If a tracker
 is down, this is the kind of timeout that will occur. The default value
 is 20 seconds.</p>
+<p><tt class="docutils literal"><span class="pre">stop_tracker_timeout</span></tt> is the time to wait for tracker responses when
+shutting down the session object. This is given in seconds. Default is
+10 seconds.</p>
 <p><tt class="docutils literal"><span class="pre">tracker_maximum_response_length</span></tt> is the maximum number of bytes in a
 tracker response. If a response size passes this number it will be rejected
 and the connection will be closed. On gzipped responses this size is measured
@@ -2276,6 +2298,26 @@ a peer is retrieved from a peer source (other than DHT) the failcount is
 decremented by one, allowing another try.</p>
 <p><tt class="docutils literal"><span class="pre">min_reconnect_time</span></tt> is the time to wait between connection attempts. If
 the peer fails, the time is multiplied by fail counter.</p>
+<p><tt class="docutils literal"><span class="pre">peer_connect_timeout</span></tt> the number of seconds to wait after a connection
+attempt is initiated to a peer until it is considered as having timed out.
+The default is 10 seconds. This setting is especially important in case
+the number of half-open connections are limited, since stale half-open
+connection may delay the connection of other peers considerably.</p>
+<p><tt class="docutils literal"><span class="pre">ignore_limits_on_local_network</span></tt>, if set to true, upload, download and
+unchoke limits are ignored for peers on the local network.</p>
+<p><tt class="docutils literal"><span class="pre">connection_speed</span></tt> is the number of connection attempts that
+are made per second.</p>
+<p><tt class="docutils literal"><span class="pre">send_redundant_have</span></tt> controls if have messages will be sent
+to peers that already have the piece. This is typically not necessary,
+but it might be necessary for collecting statistics in some cases.
+Default is false.</p>
+<p><tt class="docutils literal"><span class="pre">lazy_bitfields</span></tt> prevents outgoing bitfields from being full. If the
+client is seed, a few bits will be set to 0, and later filled in with
+have-messages. This is to prevent certain ISPs from stopping people
+from seeding.</p>
+<p><tt class="docutils literal"><span class="pre">inactivity_timeout</span></tt>, if a peer is uninteresting and uninterested
+for longer than this number of seconds, it will be disconnected.
+Default is 10 minutes</p>
 <p><tt class="docutils literal"><span class="pre">use_dht_as_fallback</span></tt> determines how the DHT is used. If this is true
 (which it is by default), the DHT will only be used for torrents where
 all trackers in its tracker list has failed. Either by an explicit error
@@ -2357,6 +2399,7 @@ struct proxy_settings
         enum proxy_type
         {
                 none,
+                socks4,
                 socks5,
                 socks5_pw,
                 http,
@@ -2376,6 +2419,8 @@ options are available:</p>
 <ul class="simple">
 <li><tt class="docutils literal"><span class="pre">none</span></tt> - This is the default, no proxy server is used, all other fields
 are ignored.</li>
+<li><tt class="docutils literal"><span class="pre">socks4</span></tt> - The server is assumed to be a <a class="reference" href="http://www.ufasoft.com/doc/socks4_protocol.htm">SOCKS4 server</a> that
+requires a username.</li>
 <li><tt class="docutils literal"><span class="pre">socks5</span></tt> - The server is assumed to be a SOCKS5 server (<a class="reference" href="http://www.faqs.org/rfcs/rfc1928.html">RFC 1928</a>) that
 does not require any authentication. The username and password are ignored.</li>
 <li><tt class="docutils literal"><span class="pre">socks5_pw</span></tt> - The server is assumed to be a SOCKS5 server that supports
