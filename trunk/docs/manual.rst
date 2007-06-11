@@ -1307,7 +1307,7 @@ Its declaration looks like this::
 		bool has_metadata() const;
 
 		boost::filesystem::path save_path() const;
-		bool move_storage(boost::filesystem::path const& save_path) const;
+		void move_storage(boost::filesystem::path const& save_path) const;
 
 		sha1_hash info_hash() const;
 
@@ -1404,14 +1404,13 @@ move_storage()
 
 	::
 
-		bool move_storage(boost::filesystem::path const& save_path) const;
+		void move_storage(boost::filesystem::path const& save_path) const;
 
 Moves the file(s) that this torrent are currently seeding from or downloading to. This
 operation will only have the desired effect if the given ``save_path`` is located on
-the same drive as the original save path. If the move operation fails, this function
-returns false, otherwise true. Post condition for successful operation is:
-``save_path() == save_path``.
-
+the same drive as the original save path. Since disk IO is performed in a separate
+thread, this operation is also asynchronous. Once the operation completes, the
+``storage_moved_alert`` is generated, with the new path as the message.
 
 force_reannounce()
 ------------------
@@ -1677,7 +1676,9 @@ There are three cases where this function will just return an empty ``entry``:
 
 Note that by the time this function returns, the resume data may already be invalid if the torrent
 is still downloading! The recommended practice is to first pause the torrent, then generate the
-fast resume data, and then close it down.
+fast resume data, and then close it down. Since the disk IO is done in a separate thread, in order
+to synchronize, you shoule to wait for the ``torrent_paused_alert`` before you write the resume
+data.
 
 It is still a good idea to save resume data periodically during download as well as when
 closing down. In full allocation mode the reume data is never invalidated by subsequent
@@ -3237,6 +3238,36 @@ This alert is generated when a peer is blocked by the IP filter. It has the seve
 		
 		address ip;
 
+		virtual std::auto_ptr<alert> clone() const;
+	};
+
+storage_moved_alert
+-------------------
+
+The ``storage_moved_alert`` is generated when all the disk IO has completed and the
+files have been moved, as an effect of a call to ``torrent_handle::move_storage``. This
+is useful to synchronize with the actual disk.
+
+::
+
+	struct storage_moved_alert: torrent_alert
+	{
+		storage_moved_alert(torrent_handle const& h, std::string const& path);
+		virtual std::auto_ptr<alert> clone() const;
+	};
+
+torrent_paused_alert
+--------------------
+
+This alert is generated as a response to a ``torrent_handle::pause`` request. It is
+generated once all disk IO is complete and the files in the torrent have been closed.
+This is useful for synchronizing with the disk.
+
+::
+
+	struct torrent_paused_alert: torrent_alert
+	{
+		torrent_paused_alert(torrent_handle const& h, std::string const& msg);
 		virtual std::auto_ptr<alert> clone() const;
 	};
 

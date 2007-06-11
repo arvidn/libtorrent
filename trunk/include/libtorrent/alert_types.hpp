@@ -81,8 +81,6 @@ namespace libtorrent
 		{ return std::auto_ptr<alert>(new tracker_warning_alert(*this)); }
 	};
 
-
-	
 	struct TORRENT_EXPORT tracker_reply_alert: torrent_alert
 	{
 		tracker_reply_alert(torrent_handle const& h
@@ -184,6 +182,26 @@ namespace libtorrent
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new torrent_finished_alert(*this)); }
+	};
+
+	struct TORRENT_EXPORT storage_moved_alert: torrent_alert
+	{
+		storage_moved_alert(torrent_handle const& h, std::string const& path)
+			: torrent_alert(h, alert::warning, path)
+		{}
+	
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new storage_moved_alert(*this)); }
+	};
+
+	struct TORRENT_EXPORT torrent_paused_alert: torrent_alert
+	{
+		torrent_paused_alert(torrent_handle const& h, std::string const& msg)
+			: torrent_alert(h, alert::warning, msg)
+		{}
+	
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new torrent_paused_alert(*this)); }
 	};
 
 	struct TORRENT_EXPORT url_seed_alert: torrent_alert
