@@ -2771,7 +2771,6 @@ namespace libtorrent
 		}
 		else if (st.total_wanted_done == st.total_wanted)
 		{
-			assert(st.total_done != m_torrent_file.total_size());
 			st.state = torrent_status::finished;
 		}
 		else

@@ -456,13 +456,11 @@ namespace libtorrent
 		alert_manager& alerts() const;
 		piece_picker& picker()
 		{
-			assert(!is_seed());
 			assert(m_picker.get());
 			return *m_picker;
 		}
 		bool has_picker() const
 		{
-			assert((m_storage && !is_seed()) == bool(m_picker.get() != 0));
 			return m_picker.get() != 0;
 		}
 		policy& get_policy()
