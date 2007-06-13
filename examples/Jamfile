@@ -6,13 +6,14 @@ use-project /torrent : .. ;
 use-project /boost : $(BOOST_ROOT) ;
 
 project client_test
-   : requirements <threading>multi <library>/torrent
+   : requirements
+	<threading>multi <library>/torrent//torrent
+	: default-build
+	<link>static
    ;  
 
 exe client_test : client_test.cpp /boost/program_options /boost/regex ;
 exe simple_client : simple_client.cpp ;
 exe dump_torrent : dump_torrent.cpp ;
 exe make_torrent : make_torrent.cpp ;
-
-#stage . : dump_torrent make_torrent simple_client client_test ;
 

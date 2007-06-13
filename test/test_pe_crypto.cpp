@@ -40,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "test.hpp"
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
+
 void display_pe_policy(libtorrent::pe_settings::enc_policy policy)
 {
 	using namespace libtorrent;
@@ -192,4 +194,14 @@ int test_main()
 
 	return 0;
 }
+
+#else
+
+int test_main()
+{
+	std::cerr << "PE test not run because it's disabled" << std::endl;
+	return 0;
+}
+
+#endif
 

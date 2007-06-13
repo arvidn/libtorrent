@@ -213,10 +213,16 @@ Build features:
 |                        | * ``shipped`` - links against the zlib bundled     |
 |                        |   with the libtorrent package.                     |
 +------------------------+----------------------------------------------------+
-| ``pe-support``         | * ``on`` - turns on support for encrypted          |
+| ``openssl``            | * ``pe`` - turns on support for encrypted          |
 |                        |   connections. requires openssl (libcrypto)        |
+|                        | * ``sha-1`` - openssl will be used instead of the  |
+|                        |   public domain SHA-1 implementation shipped with  |
+|                        |   libtorrent. ``libcrypto.a`` will be required for |
+|                        |   linking. Encryption support is still turned off. |
 |                        | * ``off`` - turns off support for encrypted        |
-|                        |   connections. openssl is not linked in.           |
+|                        |   connections. openssl is not linked in. The       |
+|                        |   shipped public domain SHA-1 implementation is    |
+|                        |   used.                                            |
 +------------------------+----------------------------------------------------+
 | ``link``               | * ``static`` - builds libtorrent as a static       |
 |                        |   library (.a / .lib)                              |
@@ -235,14 +241,6 @@ Build features:
 |                        |   without invariant checks and with optimization.  |
 |                        | * ``profile`` - builds libtorrent with profile     |
 |                        |   information.                                     |
-+------------------------+----------------------------------------------------+
-| ``openssl``            | * ``on`` - openssl will be used instead of the     |
-|                        |   public domain SHA-1 implementation shipped with  |
-|                        |   libtorrent. ``crypto.lib`` or ``libcrypto.a``    |
-|                        |   will be required for linking.                    |
-|                        | * ``off`` - the shipped SHA-1 implementation will  |
-|                        |   be used, and there will be no dependency on      |
-|                        |   openssl.                                         |
 +------------------------+----------------------------------------------------+
 | ``character-set``      | This setting will only have an affect on windows.  |
 |                        | Other platforms are expected to support UTF-8.     |
