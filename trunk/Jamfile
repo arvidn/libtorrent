@@ -1,10 +1,10 @@
-#This Jamfile requires boost-build v2 to build.
+# This Jamfile requires boost-build v2 to build.
+# The version shipped with boost 1.34.0
 
 import modules ;
 import os ;
 import errors ;
 import feature : feature ;
-#import pch ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 
@@ -19,6 +19,45 @@ if ! $(BOOST_ROOT)
 
 use-project /boost : $(BOOST_ROOT) ;
 
+# rule for linking the correct library when using openssl
+rule link-openssl ( properties * )
+{
+	local result ;
+
+	if <openssl>sha-1 in $(properties) || <openssl>pe in $(properties)
+	{
+		if [ os.name ] = NT
+		{
+			result += <library>ssleay <library>libeay ;
+		}
+		else
+		{
+			result += <library>crypto ;
+		}
+	}
+
+	return $(result) ;
+}
+
+# rule for adding the right source files when using openssl and/or PE
+rule use-openssl ( properties * )
+{
+	local result ;
+
+	if <openssl>off in $(properties)
+	{
+		result += <source>src/sha1.cpp ;
+	}
+	else
+	{
+		if <openssl>pe in $(properties)
+		{
+			result += <source>src/pe_crypto.cpp ;
+		}
+	}
+
+	return $(result) ;
+}
 
 feature logging : none default verbose : composite propagated symmetric link-incompatible ;
 feature.compose <logging>default : <define>TORRENT_LOGGING ;
@@ -28,12 +67,10 @@ feature dht-support : on off logging : composite propagated symmetric link-incom
 feature.compose <dht-support>off : <define>TORRENT_DISABLE_DHT ;
 feature.compose <dht-support>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 
-feature pe-support : on off : composite propagated symmetric ;
-feature.compose <pe-support>on : ;
-feature.compose <pe-support>off : <define>TORRENT_DISABLE_ENCRYPTION ;
-
-feature openssl : off on : composite propagated symmetric link-incompatible ;
-feature.compose <openssl>on : <define>TORRENT_USE_OPENSSL ;
+feature openssl : pe sha-1 off : composite propagated symmetric link-incompatible ;
+feature.compose <openssl>pe : <define>TORRENT_USE_OPENSSL ;
+feature.compose <openssl>sha-1 : <define>TORRENT_USE_OPENSSL <define>TORRENT_DISABLE_ENCRYPTION ;
+feature.compose <openssl>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 
 feature resolve-countries : on off : composite propagated symmetric link-incompatible ;
 feature.compose <resolve-countries>off : <define>TORRENT_DISABLE_RESOLVE_COUNTRIES ;
@@ -41,13 +78,20 @@ feature.compose <resolve-countries>off : <define>TORRENT_DISABLE_RESOLVE_COUNTRI
 feature character-set : ansi unicode : composite propagated link-incompatible ;
 feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
 
-feature zlib : shipped system : composite ;
+feature zlib : shipped system : composite propagated link-incompatible ;
+feature.compose <zlib>shipped : ;
+feature.compose <zlib>system : ;
 
 feature statistics : off on : composite propagated symmetric link-incompatible ;
 feature.compose <statistics>on : <define>TORRENT_STATS ;
 
 feature upnp-logging : off on : composite propagated link-incompatible ;
 feature.compose <upnp-logging>on : <define>TORRENT_UPNP_LOGGING ;
+
+lib ssleay : : <name>ssleay32 ;
+lib libeay : : <name>libeay32 ;
+lib crypto : : <name>crypto ;
+lib zlib-target : : <name>z ;
 
 SOURCES =
 	allocate_resources
@@ -116,18 +160,19 @@ ZLIB_SOURCES =
 	zutil
 	;
 
-DEFINES = ;
-LIBS = ;
+local defines ;
+local libs ;
 
 if [ os.name ] = CYGWIN || [ os.name ] = NT
 {
 	lib wsock32 : : <name>wsock32 ;
 	lib ws2_32 : : <name>ws2_32 ;
-	LIBS += ws2_32 wsock32 ;
-	DEFINES += WIN32_LEAN_AND_MEAN ;
-	DEFINES += _WIN32_WINNT=0x0500 ;
-	DEFINES += __USE_W32_SOCKETS ;
-	DEFINES += WIN32 ;
+	libs += ws2_32 wsock32 ;
+	defines += WIN32_LEAN_AND_MEAN ;
+	defines += _WIN32_WINNT=0x0500 ;
+	defines += __USE_W32_SOCKETS ;
+	defines += WIN32 ;
+	defines += _WIN32 ;
 	SOURCES += file_win ;
 }
 else
@@ -135,12 +180,7 @@ else
 	SOURCES += file ;
 }
 
-lib crypt : : <name>crypto ;
-
-project torrent
-
-	: requirements
-
+local usage-requirements = 
 	<include>./include
 	<include>./include/libtorrent
 	<zlib>shipped:<include>./zlib
@@ -148,54 +188,39 @@ project torrent
 	<variant>release:<define>NDEBUG
 	<define>BOOST_ALL_NO_LIB
 	<define>_FILE_OFFSET_BITS=64
-	<define>BOOST_THREAD_USE_LIB
-	<define>$(DEFINES)
+	<define>$(defines)
 	<library>/boost/thread//boost_thread #/<link>static
 	<library>/boost/filesystem//boost_filesystem #/<link>static
-	<threading>multi
-
-# ======= compiler settings =======
-
+	<conditional>@link-openssl
+	<zlib>system:<library>zlib-target
 # these compiler settings just makes the compiler standard conforming
 	<toolset>msvc:<cxxflags>/Zc:wchar_t
 	<toolset>msvc:<cxxflags>/Zc:forScope
 # disable bogus deprecation warnings on msvc8
 	<toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
 	<toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
-
-# this should be defined when libtorrent is built as
-# a dll. It will make sure the functions and classes
-# are exported (GCC 4 and msvc)
-	<link>shared:<define>TORRENT_BUILDING_SHARED
-
-	<link>shared:<define>TORRENT_LINKING_SHARED
-
-	: usage-requirements 
-
-	<include>./include
-	<include>./include/libtorrent
-	<include>$(BOOST_ROOT)
-	<variant>release:<define>NDEBUG
-	<define>BOOST_ALL_NO_LIB
-	<define>$(DEFINES)
-	<link>shared:<define>TORRENT_LINKING_SHARED
 	;
 
-#cpp-pch pch : include/libtorrent/pch.hpp ;
-
 lib torrent
-	:
+
+	: # sources
 	src/$(SOURCES).cpp
-	$(LIBS)
-#	pch
-	:
+	$(libs)
+
+	: # requirements
+	<define>BOOST_THREAD_USE_LIB
+	<threading>multi
+	<link>shared:<define>TORRENT_BUILDING_SHARED
 	<dht-support>on:<source>src/$(KADEMLIA_SOURCES).cpp
 	<dht-support>logging:<source>src/$(KADEMLIA_SOURCES).cpp
 	<zlib>shipped:<source>zlib/$(ZLIB_SOURCES).c
-	<zlib>system:<library>z
-	<pe-support>on:<source>src/pe_crypto.cpp
-	<pe-support>on:<library>crypt
-	<openssl>on:<library>crypt
-	<openssl>off,<pe-support>off:<source>src/sha1.cpp
+	<conditional>@use-openssl
+	$(usage-requirements)
+
+	: # default build
+	<link>static
+
+	: # usage requirements
+	$(usage-requirements)
 	;
 

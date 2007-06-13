@@ -7,6 +7,7 @@ libtorrent/buffer.hpp \
 libtorrent/connection_queue.hpp \
 libtorrent/config.hpp \
 libtorrent/debug.hpp \
+libtorrent/disk_io_thread.hpp \
 libtorrent/entry.hpp \
 libtorrent/escape_string.hpp \
 libtorrent/extensions.hpp \
@@ -19,6 +20,7 @@ libtorrent/http_stream.hpp \
 libtorrent/http_tracker_connection.hpp \
 libtorrent/identify_client.hpp \
 libtorrent/instantiate_connection.hpp \
+libtorrent/intrusive_ptr_base.hpp \
 libtorrent/invariant_check.hpp \
 libtorrent/io.hpp \
 libtorrent/ip_filter.hpp \

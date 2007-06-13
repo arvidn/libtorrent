@@ -13,7 +13,7 @@ test_ip_filter_LDADD = $(top_builddir)/src/libtorrent.la
 test_piece_picker_SOURCES = main.cpp test_piece_picker.cpp
 test_piece_picker_LDADD = $(top_builddir)/src/libtorrent.la
 
-test_storage_SOURCES = main.cpp test_storage.cpp
+test_storage_SOURCES = main.cpp setup_transfer.cpp test_storage.cpp
 test_storage_LDADD = $(top_builddir)/src/libtorrent.la
 
 test_buffer_SOURCES = main.cpp test_buffer.cpp
@@ -24,6 +24,9 @@ test_allocate_resources_LDADD = $(top_builddir)/src/libtorrent.la
 
 test_metadata_extension_SOURCES = main.cpp setup_transfer.cpp test_metadata_extension.cpp
 test_metadata_extension_LDADD = $(top_builddir)/src/libtorrent.la
+
+test_swarm_SOURCES = main.cpp setup_transfer.cpp test_swarm.cpp
+test_swarm_LDADD = $(top_builddir)/src/libtorrent.la
 
 test_pe_crypto_SOURCES = main.cpp test_pe_crypto.cpp
 test_pe_crypto_LDADD = $(top_builddir)/src/libtorrent.la $(top_builddir)/test/setup_transfer.o
