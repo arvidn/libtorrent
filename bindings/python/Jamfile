@@ -1,5 +1,7 @@
 import python ;
 
+use-project /torrent : ../.. ;
+
 python-extension libtorrent 
   : src/module.cpp
     src/big_number.cpp
