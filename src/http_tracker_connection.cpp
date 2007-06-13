@@ -411,6 +411,12 @@ namespace libtorrent
 					std::min(req.num_want, 999));
 				m_send_buffer += '&';
 			}
+			if (m_settings.announce_ip != address() && !url_has_argument(request, "ip"))
+			{
+				m_send_buffer += "ip=";
+				m_send_buffer += m_settings.announce_ip.to_string();
+				m_send_buffer += '&';
+			}
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			m_send_buffer += "supportcrypto=1&";

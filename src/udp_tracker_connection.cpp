@@ -307,7 +307,10 @@ namespace libtorrent
 		// event
 		detail::write_int32(req.event, out);
 		// ip address
-		detail::write_int32(0, out);
+		if (m_settings.announce_ip != address() && m_settings.announce_ip.is_v4())
+			detail::write_uint32(m_settings.announce_ip.to_v4().to_ulong(), out);
+		else
+			detail::write_int32(0, out);
 		// key
 		detail::write_int32(req.key, out);
 		// num_want
