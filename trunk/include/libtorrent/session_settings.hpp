@@ -238,6 +238,10 @@ namespace libtorrent
 		// the number of seconds between chokes/unchokes
 		int unchoke_interval;
 
+		// if this is set, this IP will be reported do the
+		// tracker in the ip= parameter.
+		address announce_ip;
+
 #ifndef TORRENT_DISABLE_DHT
 		// while this is true, the dht will note be used unless the
 		// tracker is online
