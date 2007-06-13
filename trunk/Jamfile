@@ -19,16 +19,24 @@ if ! $(BOOST_ROOT)
 
 use-project /boost : $(BOOST_ROOT) ;
 
-# rule for linking the correct library when using openssl
-rule link-openssl ( properties * )
+# rule for linking the correct libraries depending
+# on features and target-os
+rule linking ( properties * )
 {
 	local result ;
 
+	# openssl libraries, if enabled
 	if <openssl>sha-1 in $(properties) || <openssl>pe in $(properties)
 	{
-		if [ os.name ] = NT
+		if <target-os>windows in $(properties)
 		{
-			result += <library>ssleay <library>libeay ;
+			result += <library>ssleay32
+				<library>libeay32
+				<library>advapi32
+				<library>user32
+				<library>shell32
+				<library>gdi32
+			;
 		}
 		else
 		{
@@ -36,11 +44,31 @@ rule link-openssl ( properties * )
 		}
 	}
 
+	# socket functions on windows require winsock libraries
+	if <target-os>windows in $(properties) || <target-os>cygwin in $(properties)
+	{
+		result += <library>ws2_32
+			<library>wsock32
+			<define>WIN32_LEAN_AND_MEAN
+			<define>_WIN32_WINNT=0x0500
+			<define>__USE_W32_SOCKETS
+			<define>WIN32
+			<define>_WIN32
+		;
+	}
+
+	# clock_gettime on linux requires librt
+	if <target-os>linux in $(properties)
+	{
+		result += <library>rt ;
+	}
+
 	return $(result) ;
 }
 
-# rule for adding the right source files when using openssl and/or PE
-rule use-openssl ( properties * )
+# rule for adding the right source files
+# depending on target-os and features
+rule building ( properties * )
 {
 	local result ;
 
@@ -54,6 +82,15 @@ rule use-openssl ( properties * )
 		{
 			result += <source>src/pe_crypto.cpp ;
 		}
+	}
+
+	if <target-os>windows in $(properties)
+	{
+		result += <source>src/file_win.cpp ;
+	}
+	else
+	{
+		result += <source>src/file.cpp ;
 	}
 
 	return $(result) ;
@@ -88,10 +125,26 @@ feature.compose <statistics>on : <define>TORRENT_STATS ;
 feature upnp-logging : off on : composite propagated link-incompatible ;
 feature.compose <upnp-logging>on : <define>TORRENT_UPNP_LOGGING ;
 
-lib ssleay : : <name>ssleay32 ;
-lib libeay : : <name>libeay32 ;
+# required for openssl on windows
+lib ssleay32 : : <name>ssleay32 ;
+lib libeay32 : : <name>libeay32 ;
+lib advapi32 : : <name>Advapi32 ;
+lib user32 : : <name>User32 ;
+lib shell32 : : <name>shell32 ;
+lib gdi32 : : <name>gdi32 ;
+
+# openssl on linux/bsd/macos etc.
 lib crypto : : <name>crypto ;
+
+# time functions used on linux require librt
+lib librt : : <name>rt ;
+
+# libz
 lib zlib-target : : <name>z ;
+
+# socket libraries on windows
+lib wsock32 : : <name>wsock32 ;
+lib ws2_32 : : <name>ws2_32 ;
 
 SOURCES =
 	allocate_resources
@@ -160,26 +213,6 @@ ZLIB_SOURCES =
 	zutil
 	;
 
-local defines ;
-local libs ;
-
-if [ os.name ] = CYGWIN || [ os.name ] = NT
-{
-	lib wsock32 : : <name>wsock32 ;
-	lib ws2_32 : : <name>ws2_32 ;
-	libs += ws2_32 wsock32 ;
-	defines += WIN32_LEAN_AND_MEAN ;
-	defines += _WIN32_WINNT=0x0500 ;
-	defines += __USE_W32_SOCKETS ;
-	defines += WIN32 ;
-	defines += _WIN32 ;
-	SOURCES += file_win ;
-}
-else
-{
-	SOURCES += file ;
-}
-
 local usage-requirements = 
 	<include>./include
 	<include>./include/libtorrent
@@ -188,10 +221,9 @@ local usage-requirements =
 	<variant>release:<define>NDEBUG
 	<define>BOOST_ALL_NO_LIB
 	<define>_FILE_OFFSET_BITS=64
-	<define>$(defines)
 	<library>/boost/thread//boost_thread #/<link>static
 	<library>/boost/filesystem//boost_filesystem #/<link>static
-	<conditional>@link-openssl
+	<conditional>@linking
 	<zlib>system:<library>zlib-target
 # these compiler settings just makes the compiler standard conforming
 	<toolset>msvc:<cxxflags>/Zc:wchar_t
@@ -201,11 +233,12 @@ local usage-requirements =
 	<toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
 	;
 
+project torrent ;
+
 lib torrent
 
 	: # sources
 	src/$(SOURCES).cpp
-	$(libs)
 
 	: # requirements
 	<define>BOOST_THREAD_USE_LIB
@@ -214,7 +247,7 @@ lib torrent
 	<dht-support>on:<source>src/$(KADEMLIA_SOURCES).cpp
 	<dht-support>logging:<source>src/$(KADEMLIA_SOURCES).cpp
 	<zlib>shipped:<source>zlib/$(ZLIB_SOURCES).c
-	<conditional>@use-openssl
+	<conditional>@building
 	$(usage-requirements)
 
 	: # default build

@@ -1039,8 +1039,9 @@ int main(int ac, char* av[])
 							else if (i->blocks[j].state == block_info::requested) out << str;
 							else out << " ";
 #else
-							if (i->finished_blocks[j]) out << "#";
-							else if (i->requested_blocks[j]) out << str;
+							if (i->blocks[j].state == block_info::finished) out << "#";
+							else if (i->blocks[j].state == block_info::writing) out << "+";
+							else if (i->blocks[j].state == block_info::requested) out << str;
 							else out << " ";
 #endif
 						}
