@@ -690,6 +690,10 @@ namespace libtorrent
 
 		// approximate peer download rate
 		int m_remote_dl_rate;
+
+		// a timestamp when the remote download rate
+		// was last updated
+		ptime m_remote_dl_update;
 		
 #ifndef NDEBUG
 	public:

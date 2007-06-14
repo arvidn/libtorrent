@@ -336,7 +336,7 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			out << " " << i->country[0] << i->country[1];
 		}
 #endif
-		out << (i->remote_dl_rate > 0 ? add_suffix(i->remote_dl_rate) + "/s ": "         ") << " ";
+		out << " " << (i->remote_dl_rate > 0 ? add_suffix(i->remote_dl_rate) + "/s ": "         ") << " ";
 
 		if (i->flags & peer_info::handshake)
 		{
