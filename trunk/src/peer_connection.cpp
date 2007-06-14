@@ -1905,10 +1905,7 @@ namespace libtorrent
 		{
 			float factor = 0.6666666666667f;
 			
-			if (m_remote_dl_rate == 0)
-			{
-				factor = 0.0f;
-			}
+			if (m_remote_dl_rate == 0) factor = 0.0f;
 
 			m_remote_dl_rate = 
 				(m_remote_dl_rate * factor) + 

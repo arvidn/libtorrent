@@ -51,7 +51,8 @@ namespace libtorrent
 	}
 }
 
-#if (!defined (__MACH__) && !defined (_WIN32) && (!defined(_POSIX_MONOTONIC_CLOCK) || _POSIX_MONOTONIC_CLOCK < 0)) || defined (TORRENT_USE_BOOST_DATE_TIME)
+#if (!defined (__MACH__) && !defined (_WIN32) && (!defined(_POSIX_MONOTONIC_CLOCK) \
+	|| _POSIX_MONOTONIC_CLOCK < 0)) || defined (TORRENT_USE_BOOST_DATE_TIME)
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
@@ -99,8 +100,12 @@ namespace libtorrent
 	inline bool is_negative(time_duration dt) { return dt.diff < 0; }
 	inline bool operator<(time_duration lhs, time_duration rhs)
 	{ return lhs.diff < rhs.diff; }
+	inline bool operator<=(time_duration lhs, time_duration rhs)
+	{ return lhs.diff <= rhs.diff; }
 	inline bool operator>(time_duration lhs, time_duration rhs)
 	{ return lhs.diff > rhs.diff; }
+	inline bool operator>=(time_duration lhs, time_duration rhs)
+	{ return lhs.diff >= rhs.diff; }
 
 	// libtorrent time type
 	struct ptime
