@@ -25,6 +25,5 @@ python-extension libtorrent
     /torrent//torrent
     /boost/python//boost_python
   : <include>src
-  : <link>static
   ;
 
