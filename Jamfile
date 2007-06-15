@@ -60,7 +60,8 @@ rule linking ( properties * )
 	# clock_gettime on linux requires librt
 	if <target-os>linux in $(properties)
 	{
-		result += <library>rt ;
+# when do one need to link against librt?
+#		result += <library>rt ;
 	}
 
 	return $(result) ;
