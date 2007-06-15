@@ -1,0 +1,30 @@
+use-project /torrent : .. ;
+
+exe test_upnp : test_upnp.cpp /torrent//torrent : <threading>multi <logging>verbose <upnp-logging>on ;
+
+project
+   : requirements
+	<threading>multi
+	<library>/torrent//torrent
+	<source>main.cpp
+	<source>setup_transfer.cpp
+	: default-build
+	<link>static
+   ;
+
+test-suite libtorrent : 
+	[ run test_buffer.cpp ]
+	[ run test_storage.cpp ]
+	[ run test_piece_picker.cpp ]
+#	[ run test_entry.cpp ]
+	[ run test_pe_crypto.cpp ]
+	[ run test_bencoding.cpp ]
+	[ run test_primitives.cpp ]
+	[ run test_ip_filter.cpp ]
+	[ run test_hasher.cpp ]
+	[ run test_metadata_extension.cpp ]
+	[ run test_swarm.cpp ]
+	[ run test_allocate_resources.cpp ]
+	[ run test_web_seed.cpp ]
+	; 
+
