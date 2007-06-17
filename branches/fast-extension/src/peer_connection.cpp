@@ -93,6 +93,7 @@ namespace libtorrent
 		, m_choked(true)
 		, m_failed(false)
 		, m_ignore_bandwidth_limits(false)
+		, m_have_all(false)
 		, m_num_pieces(0)
 		, m_desired_queue_size(2)
 		, m_free_upload(0)
@@ -167,6 +168,7 @@ namespace libtorrent
 		, m_choked(true)
 		, m_failed(false)
 		, m_ignore_bandwidth_limits(false)
+		, m_have_all(false)
 		, m_num_pieces(0)
 		, m_desired_queue_size(2)
 		, m_free_upload(0)
@@ -258,7 +260,7 @@ namespace libtorrent
 		assert(t->valid_metadata());
 		assert(t->ready_for_connections());
 
-		m_have_piece.resize(t->torrent_file().num_pieces(), false);
+		m_have_piece.resize(t->torrent_file().num_pieces(), m_have_all);
 
 		// now that we have a piece_picker,
 		// update it with this peers pieces
@@ -865,11 +867,12 @@ namespace libtorrent
 		{
 			m_have_piece = bitfield;
 			m_num_pieces = std::count(bitfield.begin(), bitfield.end(), true);
-
-			if (m_peer_info) m_peer_info->seed = true;
+			if (m_peer_info) m_peer_info->seed = (m_num_pieces == int(bitfield.size()));
 			return;
 		}
 
+		assert(t->valid_metadata());
+		
 		int num_pieces = std::count(bitfield.begin(), bitfield.end(), true);
 		if (num_pieces == int(m_have_piece.size()))
 		{
@@ -973,6 +976,7 @@ namespace libtorrent
 				"t: " << (int)t->torrent_file().piece_size(r.piece) << " | "
 				"n: " << t->torrent_file().num_pieces() << " ]\n";
 #endif
+			write_reject_request(r);
 			return;
 		}
 
@@ -1033,6 +1037,8 @@ namespace libtorrent
 				"n: " << t->torrent_file().num_pieces() << " | "
 				"h: " << t->have_piece(r.piece) << " ]\n";
 #endif
+
+			write_reject_request(r);
 
 			write_reject_request(r);
 
@@ -1377,6 +1383,87 @@ namespace libtorrent
 		m_ses.add_dht_node(udp::endpoint(
 			m_remote.address(), listen_port));
 #endif
+	}
+
+	// -----------------------------
+	// --------- HAVE ALL ----------
+	// -----------------------------
+
+	void peer_connection::incoming_have_all()
+	{
+		INVARIANT_CHECK;
+
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		assert(t);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_have_all()) return;
+		}
+#endif
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string() << " <== HAVE_ALL\n";
+#endif
+		m_have_all = true;
+
+		if (m_peer_info) m_peer_info->seed = true;
+
+		// if we don't have metadata yet
+		// just remember the bitmask
+		// don't update the piecepicker
+		// (since it doesn't exist yet)
+		if (!t->ready_for_connections())
+		{
+			// TODO: this might need something more
+			// so that once we have the metadata
+			// we can construct a full bitfield
+			return;
+		}
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << " *** THIS IS A SEED ***\n";
+#endif
+
+		// if we're a seed too, disconnect
+		if (t->is_seed())
+			throw protocol_error("seed to seed connection redundant, disconnecting");
+
+		assert(!m_have_piece.empty());
+		std::fill(m_have_piece.begin(), m_have_piece.end(), true);
+		
+		t->peer_has_all();
+		if (!t->is_finished())
+			t->get_policy().peer_is_interesting(*this);
+	}
+	
+	// -----------------------------
+	// --------- HAVE NONE ---------
+	// -----------------------------
+
+	void peer_connection::incoming_have_none()
+	{
+		INVARIANT_CHECK;
+
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		assert(t);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_have_none()) return;
+		}
+#endif
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string() << " <== HAVE_NONE\n";
+#endif
+
+		if (m_peer_info) m_peer_info->seed = false;
+		assert(!m_have_piece.empty() || !t->ready_for_connections());
 	}
 
 	void peer_connection::add_request(piece_block const& block)

@@ -189,10 +189,14 @@ namespace libtorrent
 	{
 		assert(!t.is_seed());
 		assert(!c.has_peer_choked());
+		assert(t.valid_metadata());
 		int num_requests = c.desired_queue_size()
 			- (int)c.download_queue().size()
 			- (int)c.request_queue().size();
 
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*c.m_logger) << time_now_string() << " PIECE_PICKER [ req: " << num_requests << " ]\n";
+#endif
 		assert(c.desired_queue_size() > 0);
 		// if our request queue is already full, we
 		// don't have to make any new requests yet
@@ -243,6 +247,9 @@ namespace libtorrent
 		std::vector<piece_block> busy_pieces;
 		busy_pieces.reserve(10);
 
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*c.m_logger) << time_now_string() << " PIECE_PICKER [ picked: " << interesting_pieces.size() << " ]\n";
+#endif
 		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
 			i != interesting_pieces.end(); ++i)
 		{
@@ -1005,7 +1012,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		// just ignore the obviously invalid entries
-		if(remote.address() == address() || remote.port() == 0)
+		if (remote.address() == address() || remote.port() == 0)
 			return;
 
 		aux::session_impl& ses = m_torrent->session();
@@ -1091,7 +1098,10 @@ namespace libtorrent
 				if (i->failcount > 0 && src != peer_info::dht)
 					--i->failcount;
 
-				if (flags & 0x02) i->seed = true;
+				// if we're connected to this peer
+				// we already know if it's a seed or not
+				// so we don't have to trust this source
+				if ((flags & 0x02) && !i->connection) i->seed = true;
 
 				if (i->connection)
 				{

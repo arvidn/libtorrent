@@ -298,8 +298,12 @@ namespace libtorrent
 		void incoming_piece(peer_request const& p, char const* data);
 		void incoming_piece_fragment();
 		void incoming_cancel(peer_request const& r);
+
 		void incoming_dht_port(int listen_port);
+		
 		void incoming_reject_request(peer_request const& r);
+		void incoming_have_all();
+		void incoming_have_none();
 
 		// the following functions appends messages
 		// to the send buffer
@@ -567,6 +571,10 @@ namespace libtorrent
 
 		// the pieces the other end have
 		std::vector<bool> m_have_piece;
+		// this is set to true when a have_all
+		// message is received. This information
+		// is used to fill the bitmask in init()
+		bool m_have_all;
 
 		// the number of pieces this peer
 		// has. Must be the same as

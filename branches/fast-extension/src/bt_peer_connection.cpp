@@ -1034,7 +1034,8 @@ namespace libtorrent
 
 		if (!m_supports_fast)
 			throw protocol_error("got 'have_all' without FAST extension support");
-	
+		m_statistics.received_bytes(0, received);
+		incoming_have_all();
 	}
 
 	void bt_peer_connection::on_have_none(int received)
@@ -1043,6 +1044,8 @@ namespace libtorrent
 
 		if (!m_supports_fast)
 			throw protocol_error("got 'have_none' without FAST extension support");
+		m_statistics.received_bytes(0, received);
+		incoming_have_none();
 	}
 
 	void bt_peer_connection::on_reject_request(int received)

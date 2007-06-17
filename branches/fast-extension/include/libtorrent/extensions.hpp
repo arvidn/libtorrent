@@ -131,6 +131,12 @@ namespace libtorrent
 		virtual bool on_bitfield(std::vector<bool> const& bitfield)
 		{ return false; }
 
+		virtual bool on_have_all()
+		{ return false; }
+
+		virtual bool on_have_none()
+		{ return false; }
+
 		virtual bool on_request(peer_request const& req)
 		{ return false; }
 
