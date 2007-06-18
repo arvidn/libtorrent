@@ -291,6 +291,11 @@ namespace libtorrent
 		m_DH_key_exchange.reset(new DH_key_exchange);
 
 		int pad_size = std::rand() % 512;
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << " pad size: " << pad_size << "\n";
+#endif
+
 		buffer::interval send_buf = allocate_send_buffer(dh_key_len + pad_size);
 
 		std::copy (m_DH_key_exchange->get_local_key(),
