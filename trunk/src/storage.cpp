@@ -1253,7 +1253,7 @@ namespace libtorrent
 
 		for (int i = 0; i < num_blocks-1; ++i)
 		{
-			if (!bi[i].state == piece_picker::block_info::state_finished) continue;
+			if (bi[i].state != piece_picker::block_info::state_finished) continue;
 			m_storage->read(
 				&buf[0]
 				, slot_index
