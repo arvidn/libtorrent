@@ -52,7 +52,8 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	t.add_tracker(tracker_url);
 
 	std::vector<char> piece(16 * 1024);
-	std::fill(piece.begin(), piece.end(), 0xfe);
+	for (int i = 0; i < piece.size(); ++i)
+		piece[i] = (i % 26) + 'A';
 	
 	// calculate the hash for all pieces
 	int num = t.num_pieces();
@@ -71,7 +72,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	if (clear_files) remove_all("./tmp2/temporary");
 	
 	t.create_torrent();
-
+	std::cerr << "generated torrent: " << t.info_hash() << std::endl;
 
 	ses1->set_severity_level(alert::debug);
 	ses2->set_severity_level(alert::debug);

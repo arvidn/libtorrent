@@ -1779,7 +1779,7 @@ namespace libtorrent
 			= instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy());
 		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
 			m_ses, shared_from_this(), s, a, peerinfo));
-			
+
 #ifndef NDEBUG
 		c->m_in_constructor = false;
 #endif
