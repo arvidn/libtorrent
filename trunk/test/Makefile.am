@@ -1,4 +1,4 @@
-noinst_PROGRAMS = test_hasher test_bencoding test_ip_filter test_piece_picker test_storage test_metadata_extension test_buffer test_allocate_resources test_pe_crypto
+noinst_PROGRAMS = test_hasher test_bencoding test_ip_filter test_piece_picker test_storage test_metadata_extension test_buffer test_allocate_resources test_swarm test_pe_crypto
 EXTRA_DIST = Jamfile
 
 test_hasher_SOURCES = main.cpp test_hasher.cpp
