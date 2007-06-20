@@ -499,7 +499,7 @@ namespace libtorrent
 		{
 			// we couldn't find the torrent!
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << " couldn't find a torrent with the given info_hash\n";
+			(*m_logger) << " couldn't find a torrent with the given info_hash: " << ih << "\n";
 #endif
 			throw std::runtime_error("got info-hash that is not in our session");
 		}
@@ -2254,7 +2254,6 @@ namespace libtorrent
 		assert(m_reading);
 		m_reading = false;
 
-		
 		if (error)
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
