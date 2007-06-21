@@ -1100,6 +1100,7 @@ namespace libtorrent
 	void bt_peer_connection::write_cancel(peer_request const& r)
 	{
 		INVARIANT_CHECK;
+		assert(m_sent_bitfield == true);
 
 		assert(associated_torrent().lock()->valid_metadata());
 
@@ -1124,6 +1125,7 @@ namespace libtorrent
 	void bt_peer_connection::write_request(peer_request const& r)
 	{
 		INVARIANT_CHECK;
+		assert(m_sent_bitfield == true);
 
 		assert(associated_torrent().lock()->valid_metadata());
 
@@ -1149,7 +1151,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		assert(!in_handshake());
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		assert(t);
 		assert(m_sent_bitfield == false);
@@ -1296,6 +1297,7 @@ namespace libtorrent
 	void bt_peer_connection::write_choke()
 	{
 		INVARIANT_CHECK;
+		assert(m_sent_bitfield == true);
 
 		if (is_choked()) return;
 		char msg[] = {0,0,0,1,msg_choke};
@@ -1305,6 +1307,7 @@ namespace libtorrent
 	void bt_peer_connection::write_unchoke()
 	{
 		INVARIANT_CHECK;
+		assert(m_sent_bitfield == true);
 
 		char msg[] = {0,0,0,1,msg_unchoke};
 		send_buffer(msg, msg + sizeof(msg));
@@ -1313,6 +1316,7 @@ namespace libtorrent
 	void bt_peer_connection::write_interested()
 	{
 		INVARIANT_CHECK;
+		assert(m_sent_bitfield == true);
 
 		char msg[] = {0,0,0,1,msg_interested};
 		send_buffer(msg, msg + sizeof(msg));
@@ -1321,6 +1325,7 @@ namespace libtorrent
 	void bt_peer_connection::write_not_interested()
 	{
 		INVARIANT_CHECK;
+		assert(m_sent_bitfield == true);
 
 		char msg[] = {0,0,0,1,msg_not_interested};
 		send_buffer(msg, msg + sizeof(msg));
@@ -1328,10 +1333,11 @@ namespace libtorrent
 
 	void bt_peer_connection::write_have(int index)
 	{
+		INVARIANT_CHECK;
 		assert(associated_torrent().lock()->valid_metadata());
 		assert(index >= 0);
 		assert(index < associated_torrent().lock()->torrent_file().num_pieces());
-		INVARIANT_CHECK;
+		assert(m_sent_bitfield == true);
 
 		const int packet_size = 9;
 		char msg[packet_size] = {0,0,0,5,msg_have};
@@ -1343,6 +1349,7 @@ namespace libtorrent
 	void bt_peer_connection::write_piece(peer_request const& r, char const* buffer)
 	{
 		INVARIANT_CHECK;
+		assert(m_sent_bitfield == true);
 
 		const int packet_size = 4 + 5 + 4 + r.length;
 
@@ -1574,7 +1581,7 @@ namespace libtorrent
 				obfs_hash ^= skey_hash;
 
 				if (std::equal (recv_buffer.begin, recv_buffer.begin + 20,
-								(char*)obfs_hash.begin()))
+					(char*)obfs_hash.begin()))
 				{
 					if (!t)
 					{
@@ -2017,10 +2024,11 @@ namespace libtorrent
 			t = associated_torrent().lock();
 			assert(t);
 			
-			if (!is_local())
-			{
-				write_handshake();
-			}
+			// if this is a local connection, we have already
+			// send the handshake
+			if (!is_local()) write_handshake();
+			if (t->valid_metadata())
+				write_bitfield(t->pieces());
 
 			assert(t->get_policy().has_connection(this));
 
@@ -2150,8 +2158,6 @@ namespace libtorrent
 
 			m_state = read_packet_size;
 			reset_recv_buffer(4);
-			if (t->valid_metadata())
-				write_bitfield(t->pieces());
 
 			assert(!packet_finished());
 			return;
