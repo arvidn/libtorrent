@@ -2232,8 +2232,8 @@ namespace libtorrent
 			{
 				try
 				{
-					i->second->init();
 					i->second->on_metadata();
+					i->second->init();
 					++i;
 				}
 				catch (std::exception& e)
