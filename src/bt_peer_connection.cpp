@@ -130,7 +130,7 @@ namespace libtorrent
 				// toggle encryption support flag, toggled back to
 				// true if encrypted portion of the handshake
 				// completes correctly
-				pi->pe_support = !(pi->pe_support);
+				pi->pe_support = false;
 
 				write_pe1_2_dhkey();
 				m_state = read_pe_dhkey;
@@ -141,7 +141,7 @@ namespace libtorrent
 			{
 				// toggled back to false if standard handshake
 				// completes correctly (without encryption)
-				pi->pe_support = !(pi->pe_support);
+				pi->pe_support = true;
 
 				write_handshake();
 				reset_recv_buffer(20);
@@ -1898,9 +1898,8 @@ namespace libtorrent
 			{
 				policy::peer* pi = peer_info_struct();
 				assert(pi);
-				assert(pi->pe_support == false);
 				
-				pi->pe_support = !(pi->pe_support);
+				pi->pe_support = true;
 			}
 		}
 
@@ -2150,9 +2149,8 @@ namespace libtorrent
 			{
 				policy::peer* pi = peer_info_struct();
 				assert(pi);
-				assert(pi->pe_support == true);
 
-				pi->pe_support = !(pi->pe_support);
+				pi->pe_support = false;
 			}
 #endif
 
