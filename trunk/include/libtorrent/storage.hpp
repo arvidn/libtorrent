@@ -211,7 +211,9 @@ namespace libtorrent
 		fs::path save_path() const;
 
 		void async_release_files(
-			boost::function<void(int, disk_io_job const&)> const& handler);
+			boost::function<void(int, disk_io_job const&)> const& handler
+			= boost::function<void(int, disk_io_job const&)>());
+
 		void async_move_storage(fs::path const& p
 			, boost::function<void(int, disk_io_job const&)> const& handler);
 
