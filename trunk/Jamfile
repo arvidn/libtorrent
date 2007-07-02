@@ -150,7 +150,6 @@ lib ws2_32 : : <name>ws2_32 ;
 SOURCES =
 	allocate_resources
 	alert
-	bandwidth_manager
 	connection_queue
 	entry
 	escape_string

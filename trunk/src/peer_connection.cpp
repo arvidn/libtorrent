@@ -1907,9 +1907,8 @@ namespace libtorrent
 			
 			if (m_remote_dl_rate == 0) factor = 0.0f;
 
-			m_remote_dl_rate = 
-				(m_remote_dl_rate * factor) + 
-				((m_remote_bytes_dled * (1.0f-factor)) / 60.f);
+			m_remote_dl_rate = int((m_remote_dl_rate * factor) + 
+				((m_remote_bytes_dled * (1.0f-factor)) / 60.f));
 			
 			m_remote_bytes_dled = 0;
 			m_remote_dl_update = now;

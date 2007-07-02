@@ -47,8 +47,8 @@ namespace libtorrent
 	class TORRENT_EXPORT stat
 	{
 	friend class invariant_access;
-	enum { history = 10 };
 	public:
+		enum { history = 10 };
 
 		stat()
 			: m_downloaded_payload(0)

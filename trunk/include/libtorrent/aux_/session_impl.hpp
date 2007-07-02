@@ -350,8 +350,10 @@ namespace libtorrent
 			// handing out bandwidth to connections that
 			// asks for it, it can also throttle the
 			// rate.
-			bandwidth_manager m_dl_bandwidth_manager;
-			bandwidth_manager m_ul_bandwidth_manager;
+			bandwidth_manager<peer_connection, torrent> m_download_channel;
+			bandwidth_manager<peer_connection, torrent> m_upload_channel;
+
+			bandwidth_manager<peer_connection, torrent>* m_bandwidth_manager[2];
 
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
