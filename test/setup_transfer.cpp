@@ -52,7 +52,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	t.add_tracker(tracker_url);
 
 	std::vector<char> piece(16 * 1024);
-	for (int i = 0; i < piece.size(); ++i)
+	for (int i = 0; i < int(piece.size()); ++i)
 		piece[i] = (i % 26) + 'A';
 	
 	// calculate the hash for all pieces

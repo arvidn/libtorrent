@@ -26,5 +26,6 @@ test-suite libtorrent :
 	[ run test_swarm.cpp ]
 	[ run test_allocate_resources.cpp ]
 	[ run test_web_seed.cpp ]
+	[ run test_bandwidth_limiter.cpp ]
 	; 
 

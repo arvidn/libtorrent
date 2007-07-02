@@ -482,8 +482,8 @@ namespace detail
 		: m_strand(m_io_service)
 		, m_files(40)
 		, m_half_open(m_io_service)
-		, m_dl_bandwidth_manager(m_io_service, peer_connection::download_channel)
-		, m_ul_bandwidth_manager(m_io_service, peer_connection::upload_channel)
+		, m_download_channel(m_io_service, peer_connection::download_channel)
+		, m_upload_channel(m_io_service, peer_connection::upload_channel)
 		, m_tracker_manager(m_settings, m_tracker_proxy)
 		, m_listen_port_range(listen_port_range)
 		, m_listen_interface(address::from_string(listen_interface), listen_port_range.first)
@@ -501,13 +501,12 @@ namespace detail
 		, m_next_connect_torrent(0)
 		, m_checker_impl(*this)
 	{
+		m_bandwidth_manager[peer_connection::download_channel] = &m_download_channel;
+		m_bandwidth_manager[peer_connection::upload_channel] = &m_upload_channel;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		m_logger = create_log("main_session", listen_port(), false);
 		(*m_logger) << time_now_string() << "\n";
-		
-		m_dl_bandwidth_manager.m_ses = this;
-		m_ul_bandwidth_manager.m_ses = this;
 #endif
 
 #ifdef TORRENT_STATS
@@ -1771,14 +1770,6 @@ namespace detail
 	}
 #endif
 
-	void session_impl::set_download_rate_limit(int bytes_per_second)
-	{
-		assert(bytes_per_second > 0 || bytes_per_second == -1);
-		mutex_t::scoped_lock l(m_mutex);
-		if (bytes_per_second == -1) bytes_per_second = bandwidth_limit::inf;
-		m_dl_bandwidth_manager.throttle(bytes_per_second);
-	}
-
 	bool session_impl::is_listening() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
@@ -1861,12 +1852,20 @@ namespace detail
 		m_half_open.limit(limit);
 	}
 
+	void session_impl::set_download_rate_limit(int bytes_per_second)
+	{
+		assert(bytes_per_second > 0 || bytes_per_second == -1);
+		mutex_t::scoped_lock l(m_mutex);
+		if (bytes_per_second == -1) bytes_per_second = bandwidth_limit::inf;
+		m_bandwidth_manager[peer_connection::download_channel]->throttle(bytes_per_second);
+	}
+
 	void session_impl::set_upload_rate_limit(int bytes_per_second)
 	{
 		assert(bytes_per_second > 0 || bytes_per_second == -1);
 		mutex_t::scoped_lock l(m_mutex);
 		if (bytes_per_second == -1) bytes_per_second = bandwidth_limit::inf;
-		m_ul_bandwidth_manager.throttle(bytes_per_second);
+		m_bandwidth_manager[peer_connection::upload_channel]->throttle(bytes_per_second);
 	}
 
 	int session_impl::num_uploads() const
@@ -1887,7 +1886,6 @@ namespace detail
 		return  m_connections.size();
 	}
 
-
 	std::auto_ptr<alert> session_impl::pop_alert()
 	{
 		mutex_t::scoped_lock l(m_mutex);
@@ -1905,15 +1903,14 @@ namespace detail
 	int session_impl::upload_rate_limit() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		return m_ul_bandwidth_manager.throttle();
+		return m_bandwidth_manager[peer_connection::upload_channel]->throttle();
 	}
 
 	int session_impl::download_rate_limit() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		return m_dl_bandwidth_manager.throttle();
+		return m_bandwidth_manager[peer_connection::download_channel]->throttle();
 	}
-	
 
 	void session_impl::start_lsd()
 	{

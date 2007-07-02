@@ -1946,35 +1946,29 @@ namespace libtorrent
 		}
 	}
 
-	bool torrent::request_bandwidth_from_session(int channel) const
-	{
-		int max_assignable = m_bandwidth_limit[channel].max_assignable();
-		return max_assignable > max_bandwidth_block_size
-			|| (m_bandwidth_limit[channel].throttle() < max_bandwidth_block_size
-				&& max_assignable == m_bandwidth_limit[channel].throttle());
-	}
-
 	int torrent::bandwidth_throttle(int channel) const
 	{
 		return m_bandwidth_limit[channel].throttle();
 	}
 
 	void torrent::request_bandwidth(int channel
-		, boost::intrusive_ptr<peer_connection> p
+		, boost::intrusive_ptr<peer_connection> const& p
 		, bool non_prioritized)
 	{
-		if (request_bandwidth_from_session(channel))
+		int block_size = m_bandwidth_limit[channel].throttle() / 10;
+
+		if (m_bandwidth_limit[channel].max_assignable() > 0)
 		{
-			if (channel == peer_connection::upload_channel)
-				m_ses.m_ul_bandwidth_manager.request_bandwidth(p, non_prioritized);
-			else if (channel == peer_connection::download_channel)
-				m_ses.m_dl_bandwidth_manager.request_bandwidth(p, non_prioritized);
-			
-			m_bandwidth_limit[channel].assign(max_bandwidth_block_size);
+			perform_bandwidth_request(channel, p, block_size, non_prioritized);
 		}
 		else
 		{
-			m_bandwidth_queue[channel].push_back(bw_queue_entry(p, non_prioritized));
+			// skip forward in the queue until we find a prioritized peer
+			// or hit the front of it.
+			queue_t::reverse_iterator i = m_bandwidth_queue[channel].rbegin();
+			while (i != m_bandwidth_queue[channel].rend() && i->non_prioritized) ++i;
+			m_bandwidth_queue[channel].insert(i.base(), bw_queue_entry<peer_connection>(
+				p, block_size, non_prioritized));
 		}
 	}
 
@@ -1982,30 +1976,40 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
-		assert(amount >= -1);
-		if (amount == -1) amount = max_bandwidth_block_size;
+		assert(amount > 0);
 		m_bandwidth_limit[channel].expire(amount);
 		
-		while (!m_bandwidth_queue[channel].empty()
-			&& request_bandwidth_from_session(channel))
+		while (!m_bandwidth_queue[channel].empty())
 		{
-			bw_queue_entry qe = m_bandwidth_queue[channel].front();
+			bw_queue_entry<peer_connection> qe = m_bandwidth_queue[channel].front();
+			if (m_bandwidth_limit[channel].max_assignable() == 0)
+				break;
 			m_bandwidth_queue[channel].pop_front();
-			if (channel == peer_connection::upload_channel)
-				m_ses.m_ul_bandwidth_manager.request_bandwidth(qe.peer, qe.non_prioritized);
-			else if (channel == peer_connection::download_channel)
-				m_ses.m_dl_bandwidth_manager.request_bandwidth(qe.peer, qe.non_prioritized);
-			m_bandwidth_limit[channel].assign(max_bandwidth_block_size);
+			perform_bandwidth_request(channel, qe.peer
+				, qe.max_block_size, qe.non_prioritized);
 		}
 	}
 
-	void torrent::assign_bandwidth(int channel, int amount)
+	void torrent::perform_bandwidth_request(int channel
+		, boost::intrusive_ptr<peer_connection> const& p
+		, int block_size
+		, bool non_prioritized)
+	{
+		assert(m_bandwidth_limit[channel].max_assignable() >= block_size);
+
+		m_ses.m_bandwidth_manager[channel]->request_bandwidth(p
+			, block_size, non_prioritized);
+		m_bandwidth_limit[channel].assign(block_size);
+	}
+
+	void torrent::assign_bandwidth(int channel, int amount, int blk)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
-		assert(amount >= 0);
-		if (amount < max_bandwidth_block_size)
-			expire_bandwidth(channel, max_bandwidth_block_size - amount);
+		assert(amount > 0);
+		assert(amount <= blk);
+		if (amount < blk)
+			expire_bandwidth(channel, blk - amount);
 	}
 
 	// called when torrent is finished (all interested pieces downloaded)

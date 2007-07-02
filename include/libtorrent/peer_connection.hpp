@@ -317,10 +317,11 @@ namespace libtorrent
 		void send_block_requests();
 
 		int max_assignable_bandwidth(int channel) const
-		{
-			return m_bandwidth_limit[channel].max_assignable();
-		}
+		{ return m_bandwidth_limit[channel].max_assignable(); }
 		
+		int bandwidth_throttle(int channel) const
+		{ return m_bandwidth_limit[channel].throttle(); }
+
 		void assign_bandwidth(int channel, int amount);
 		void expire_bandwidth(int channel, int amount);
 
