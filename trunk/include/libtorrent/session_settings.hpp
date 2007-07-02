@@ -106,6 +106,7 @@ namespace libtorrent
 			, lazy_bitfields(true)
 			, inactivity_timeout(600)
 			, unchoke_interval(20)
+			, num_want(200)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(true)
 #endif
@@ -241,6 +242,9 @@ namespace libtorrent
 		// if this is set, this IP will be reported do the
 		// tracker in the ip= parameter.
 		address announce_ip;
+
+		// the num want sent to trackers
+		int num_want;
 
 #ifndef TORRENT_DISABLE_DHT
 		// while this is true, the dht will note be used unless the

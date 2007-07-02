@@ -1352,7 +1352,7 @@ namespace libtorrent
 		if (m_event != tracker_request::stopped)
 			m_event = tracker_request::none;
 		req.url = m_trackers[m_currently_trying_tracker].url;
-		req.num_want = 50;
+		req.num_want = m_settings.num_want;
 		// if we are aborting. we don't want any new peers
 		if (req.event == tracker_request::stopped)
 			req.num_want = 0;
