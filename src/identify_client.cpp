@@ -193,7 +193,7 @@ namespace
 		, {"TT", "TuoTu"}
 		, {"U",  "UPnP"}
 		, {"UL", "uLeecher"}
-		, {"UT", "MicroTorrent"}
+		, {"UT", "uTorrent"}
 		, {"XT", "XanTorrent"}
 		, {"XX", "Xtorrent"}
 		, {"ZT", "ZipTorrent"}
