@@ -1007,8 +1007,7 @@ namespace libtorrent
 		// disconnect all peers and close all
 		// files belonging to the torrents
 		disconnect_all();
-		if (m_owning_storage.get()) m_storage->async_release_files(
-			bind(&torrent::on_files_released, shared_from_this(), _1, _2));
+		if (m_owning_storage.get()) m_storage->async_release_files();
 		m_owning_storage = 0;
 	}
 
@@ -2041,8 +2040,7 @@ namespace libtorrent
 			, bind(&peer_connection::disconnect, _1));
 
 		assert(m_storage);
-		m_storage->async_release_files(
-			bind(&torrent::on_files_released, shared_from_this(), _1, _2));
+		m_storage->async_release_files();
 	}
 	
 	// called when torrent is complete (all pieces downloaded)
