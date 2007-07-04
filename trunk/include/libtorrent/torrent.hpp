@@ -272,6 +272,16 @@ namespace libtorrent
 			return i->second;
 		}
 
+		peer_connection* connection_for(address const& a)
+		{
+			for (peer_iterator i = m_connections.begin()
+				, end(m_connections.end()); i != end; ++i)
+			{
+				if (i->first.address() == a) return i->second;
+			}
+			return 0;
+		}
+
 		// the number of peers that belong to this torrent
 		int num_peers() const { return (int)m_connections.size(); }
 		int num_seeds() const;

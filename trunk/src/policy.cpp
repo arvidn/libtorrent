@@ -56,6 +56,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/piece_picker.hpp"
 
+#ifndef NDEBUG
+#include "libtorrent/bt_peer_connection.hpp"
+#endif
+
 namespace libtorrent
 {
 	class peer_connection;
@@ -190,6 +194,7 @@ namespace libtorrent
 	{
 		assert(!t.is_seed());
 		assert(!c.has_peer_choked());
+		assert(c.peer_info_struct() != 0 || !dynamic_cast<bt_peer_connection*>(&c));
 		int num_requests = c.desired_queue_size()
 			- (int)c.download_queue().size()
 			- (int)c.request_queue().size();
@@ -1399,17 +1404,20 @@ namespace libtorrent
 		for (const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
+			peer const& p = *i;
 			if (!m_torrent->settings().allow_multiple_connections_per_ip)
-				assert(unique_test.find(i->ip.address()) == unique_test.end());
-			unique_test.insert(i->ip.address());
+				assert(unique_test.find(p.ip.address()) == unique_test.end());
+			unique_test.insert(p.ip.address());
 			++total_connections;
-			if (!i->connection) continue;
-			assert(i->connection->peer_info_struct() == 0
-				|| i->connection->peer_info_struct() == &*i);
+			if (!p.connection) continue;
+			if (!m_torrent->settings().allow_multiple_connections_per_ip)
+				assert(p.connection == m_torrent->connection_for(p.ip.address()));
+			assert(p.connection->peer_info_struct() == 0
+				|| p.connection->peer_info_struct() == &p);
 			++nonempty_connections;
-			if (!i->connection->is_disconnecting())
+			if (!p.connection->is_disconnecting())
 				++connected_peers;
-			if (!i->connection->is_choked()) ++actual_unchoked;
+			if (!p.connection->is_choked()) ++actual_unchoked;
 		}
 //		assert(actual_unchoked <= m_torrent->m_uploads_quota.given);
 		assert(actual_unchoked == m_num_unchoked);

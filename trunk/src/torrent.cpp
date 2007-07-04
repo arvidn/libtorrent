@@ -937,8 +937,8 @@ namespace libtorrent
 			policy::peer* p = static_cast<policy::peer*>(*i);
 			if (p == 0) continue;
 #ifndef NDEBUG
-			peer_iterator pi = m_connections.find(p->ip);
-			assert((pi != m_connections.end()) == bool(p->connection));
+			if (!settings().allow_multiple_connections_per_ip)
+				assert(p->connection == 0 || p->connection == connection_for(p->ip.address()));
 #endif
 			if (p->connection) p->connection->received_invalid_data(index);
 
@@ -1897,6 +1897,8 @@ namespace libtorrent
 				if (pp) p->add_extension(pp);
 			}
 #endif
+			assert(connection_for(p->remote()) == p);
+			assert(ci->second == p);
 			m_policy->new_connection(*ci->second);
 		}
 		catch (std::exception& e)
