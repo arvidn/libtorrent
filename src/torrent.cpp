@@ -914,13 +914,13 @@ namespace libtorrent
 		// increase the total amount of failed bytes
 		m_total_failed_bytes += m_torrent_file.piece_size(index);
 
-		std::vector<tcp::endpoint> downloaders;
+		std::vector<void*> downloaders;
 		m_picker->get_downloaders(downloaders, index);
 
 		// decrease the trust point of all peers that sent
 		// parts of this piece.
 		// first, build a set of all peers that participated
-		std::set<tcp::endpoint> peers;
+		std::set<void*> peers;
 		std::copy(downloaders.begin(), downloaders.end(), std::inserter(peers, peers.begin()));
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -931,19 +931,21 @@ namespace libtorrent
 		}
 #endif
 
-		for (std::set<tcp::endpoint>::iterator i = peers.begin()
+		for (std::set<void*>::iterator i = peers.begin()
 			, end(peers.end()); i != end; ++i)
 		{
-			peer_iterator p = m_connections.find(*i);
-			if (p == m_connections.end()) continue;
-			peer_connection& peer = *p->second;
-			peer.received_invalid_data(index);
+			policy::peer* p = static_cast<policy::peer*>(*i);
+			if (p == 0) continue;
+#ifndef NDEBUG
+			peer_iterator pi = m_connections.find(p->ip);
+			assert((pi != m_connections.end()) == bool(p->connection));
+#endif
+			if (p->connection) p->connection->received_invalid_data(index);
 
 			// either, we have received too many failed hashes
 			// or this was the only peer that sent us this piece.
 			// TODO: make this a changable setting
-			if ((peer.peer_info_struct()
-					&& peer.peer_info_struct()->trust_points <= -7)
+			if (p->trust_points <= -7
 				|| peers.size() == 1)
 			{
 				// we don't trust this peer anymore
@@ -951,31 +953,22 @@ namespace libtorrent
 				if (m_ses.m_alerts.should_post(alert::info))
 				{
 					m_ses.m_alerts.post_alert(peer_ban_alert(
-						p->first
+						p->ip
 						, get_handle()
 						, "banning peer because of too many corrupt pieces"));
 				}
 
 				// mark the peer as banned
-				policy::peer* peerinfo = p->second->peer_info_struct();
-				if (peerinfo)
-				{
-					peerinfo->banned = true;
-				}
-				else
-				{
-					// it might be a web seed
-					if (web_peer_connection const* wpc
-						= dynamic_cast<web_peer_connection const*>(p->second))
-					{
-						remove_url_seed(wpc->url());
-					}
-				}
+				p->banned = true;
 
+				if (p->connection)
+				{
 #if defined(TORRENT_VERBOSE_LOGGING)
-				(*p->second->m_logger) << "*** BANNING PEER 'too many corrupt pieces'\n";
+					(*p->connection->m_logger) << "*** BANNING PEER [ " << p->ip
+						<< " ] 'too many corrupt pieces'\n";
 #endif
-				p->second->disconnect();
+					p->connection->disconnect();
+				}
 			}
 		}
 
@@ -1028,12 +1021,12 @@ namespace libtorrent
 		assert(index >= 0);
 		assert(index < m_torrent_file.num_pieces());
 
-		std::vector<tcp::endpoint> downloaders;
+		std::vector<void*> downloaders;
 		m_picker->get_downloaders(downloaders, index);
 
 		// increase the trust point of all peers that sent
 		// parts of this piece.
-		std::set<tcp::endpoint> peers;
+		std::set<void*> peers;
 		std::copy(downloaders.begin(), downloaders.end(), std::inserter(peers, peers.begin()));
 
 		if (!m_have_pieces[index])
@@ -1047,12 +1040,16 @@ namespace libtorrent
 		for (peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
 			try { i->second->announce_piece(index); } catch (std::exception&) {}
 
-		for (std::set<tcp::endpoint>::iterator i = peers.begin()
+		for (std::set<void*>::iterator i = peers.begin()
 			, end(peers.end()); i != end; ++i)
 		{
-			peer_iterator p = m_connections.find(*i);
-			if (p == m_connections.end()) continue;
-			p->second->received_valid_data(index);
+			policy::peer* p = static_cast<policy::peer*>(*i);
+			if (p == 0) continue;
+			p->on_parole = false;
+			++p->trust_points;
+			// TODO: make this limit user settable
+			if (p->trust_points > 20) p->trust_points = 20;
+			if (p->connection) p->connection->received_valid_data(index);
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

@@ -397,15 +397,6 @@ namespace libtorrent
 			try { (*i)->on_piece_pass(index); } catch (std::exception&) {}
 		}
 #endif
-
-		if (peer_info_struct())
-		{
-			peer_info_struct()->on_parole = false;
-			int& trust_points = peer_info_struct()->trust_points;
-			trust_points++;
-			// TODO: make this limit user settable
-			if (trust_points > 20) trust_points = 20;
-		}
 	}
 
 	void peer_connection::received_invalid_data(int index)
@@ -1185,7 +1176,7 @@ namespace libtorrent
 		
 		fs.async_write(p, data, bind(&peer_connection::on_disk_write_complete
 			, self(), _1, _2, p, t));
-		picker.mark_as_writing(block_finished, m_remote);
+		picker.mark_as_writing(block_finished, peer_info_struct());
 	
 		if (request_peer && !request_peer->has_peer_choked() && !t->is_seed())
 		{
@@ -1224,7 +1215,7 @@ namespace libtorrent
 		assert(p.piece == j.piece);
 		assert(p.start == j.offset);
 		piece_block block_finished(p.piece, p.start / t->block_size());
-		picker.mark_as_finished(block_finished, m_remote);
+		picker.mark_as_finished(block_finished, peer_info_struct());
 
 		if (!has_peer_choked() && !t->is_seed() && !m_torrent.expired())
 		{
@@ -1336,7 +1327,7 @@ namespace libtorrent
 		else if (speed == medium) state = piece_picker::medium;
 		else state = piece_picker::slow;
 
-		t->picker().mark_as_downloading(block, m_remote, state);
+		t->picker().mark_as_downloading(block, peer_info_struct(), state);
 
 		m_request_queue.push_back(block);
 	}

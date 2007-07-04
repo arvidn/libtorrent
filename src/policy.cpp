@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/piece_picker.hpp"
 
 namespace libtorrent
 {
@@ -233,7 +234,7 @@ namespace libtorrent
 		// for this peer. If we're downloading one piece in 20 seconds
 		// then use this mode.
 		p.pick_pieces(c.get_bitfield(), interesting_pieces
-			, num_requests, prefer_whole_pieces, c.remote(), state);
+			, num_requests, prefer_whole_pieces, c.peer_info_struct(), state);
 
 		// this vector is filled with the interesting pieces
 		// that some other peer is currently downloading
@@ -680,6 +681,10 @@ namespace libtorrent
 
 		if (m_torrent->is_paused()) return;
 
+		piece_picker* p = 0;
+		if (m_torrent->has_picker())
+			p = &m_torrent->picker();
+
 		ptime now = time_now();
 		// remove old disconnected peers from the list
 		for (iterator i = m_peers.begin(); i != m_peers.end();)
@@ -689,6 +694,7 @@ namespace libtorrent
 				&& i->connected != min_time()
 				&& now - i->connected > minutes(120))
 			{
+				if (p) p->clear_peer(&(*i));
 				m_peers.erase(i++);
 			}
 			else
@@ -1417,6 +1423,33 @@ namespace libtorrent
 			// by the policy class
 			if (dynamic_cast<web_peer_connection*>(i->second)) continue;
 			++num_torrent_peers;
+		}
+
+		if (m_torrent->has_picker())
+		{
+			piece_picker& p = m_torrent->picker();
+			std::vector<piece_picker::downloading_piece> downloaders = p.get_download_queue();
+
+			std::set<void*> peer_set;
+			std::vector<void*> peers;
+			for (std::vector<piece_picker::downloading_piece>::iterator i = downloaders.begin()
+				, end(downloaders.end()); i != end; ++i)
+			{
+				p.get_downloaders(peers, i->index);
+				std::copy(peers.begin(), peers.end()
+					, std::insert_iterator<std::set<void*> >(peer_set, peer_set.begin()));
+			}
+			
+			for (std::set<void*>::iterator i = peer_set.begin()
+				, end(peer_set.end()); i != end; ++i)
+			{
+				policy::peer* p = static_cast<policy::peer*>(*i);
+				if (p == 0) continue;
+				std::list<peer>::const_iterator k = m_peers.begin();
+				for (; k != m_peers.end(); ++k)
+					if (&(*k) == p) break;
+				assert(k != m_peers.end());
+			}
 		}
 
 		// this invariant is a bit complicated.
