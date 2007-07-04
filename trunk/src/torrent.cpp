@@ -938,7 +938,8 @@ namespace libtorrent
 			if (p == 0) continue;
 #ifndef NDEBUG
 			if (!settings().allow_multiple_connections_per_ip)
-				assert(p->connection == 0 || p->connection == connection_for(p->ip.address()));
+				assert(p->connection == 0 || p->connection == connection_for(p->ip.address())
+					|| p->connection == connection_for(p->ip));
 #endif
 			if (p->connection) p->connection->received_invalid_data(index);
 
