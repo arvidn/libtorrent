@@ -134,7 +134,7 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 int test_main()
 {
 	using namespace libtorrent;
-	int repcount = 64;
+	int repcount = 1024;
 
 	for (int rep = 0; rep < repcount; ++rep)
 	{
