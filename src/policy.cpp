@@ -1411,7 +1411,8 @@ namespace libtorrent
 			++total_connections;
 			if (!p.connection) continue;
 			if (!m_torrent->settings().allow_multiple_connections_per_ip)
-				assert(p.connection == m_torrent->connection_for(p.ip.address()));
+				assert(p.connection == m_torrent->connection_for(p.ip.address())
+					|| p.connection == m_torrent->connection_for(p.ip));
 			assert(p.connection->peer_info_struct() == 0
 				|| p.connection->peer_info_struct() == &p);
 			++nonempty_connections;
