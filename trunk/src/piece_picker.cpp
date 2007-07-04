@@ -116,11 +116,10 @@ namespace libtorrent
 			for (std::vector<downloading_piece>::const_iterator i
 				= unfinished.begin(); i != unfinished.end(); ++i)
 			{
-				tcp::endpoint peer;
 				for (int j = 0; j < m_blocks_per_piece; ++j)
 				{
 					if (i->info[j].state == block_info::state_finished)
-						mark_as_finished(piece_block(i->index, j), peer);
+						mark_as_finished(piece_block(i->index, j), 0);
 				}
 				if (is_piece_finished(i->index))
 				{
@@ -212,7 +211,7 @@ namespace libtorrent
 		{
 			ret.info[i].num_downloads = 0;
 			ret.info[i].state = block_info::state_none;
-			ret.info[i].peer = tcp::endpoint();
+			ret.info[i].peer = 0;
 		}
 		return ret;
 	}
@@ -1001,10 +1000,10 @@ namespace libtorrent
 	// prefer_whole_pieces can be set if this peer should download
 	// whole pieces rather than trying to download blocks from the
 	// same piece as other peers.
-	//	the endpoint is the address of the peer we're picking pieces
-	// from. This is used when downloading whole pieces, to only
-	// pick from the same piece the same peer is downloading from.
-	// state is supposed to be set to fast if the peer is downloading
+	//	the void* is the pointer to the policy::peer of the peer we're
+	// picking pieces from. This is used when downloading whole pieces,
+	// to only pick from the same piece the same peer is downloading
+	// from. state is supposed to be set to fast if the peer is downloading
 	// relatively fast, by some notion. Slow peers will prefer not
 	// to pick blocks from the same pieces as fast peers, and vice
 	// versa. Downloading pieces are marked as being fast, medium
@@ -1012,7 +1011,7 @@ namespace libtorrent
 	void piece_picker::pick_pieces(const std::vector<bool>& pieces
 		, std::vector<piece_block>& interesting_blocks
 		, int num_blocks, bool prefer_whole_pieces
-		, tcp::endpoint peer, piece_state_t speed) const
+		, void* peer, piece_state_t speed) const
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 		assert(num_blocks > 0);
@@ -1063,17 +1062,25 @@ namespace libtorrent
 				+ (std::min)(num_blocks, (int)backup_blocks.size()));
 	}
 
+	void piece_picker::clear_peer(void* peer)
+	{
+		for (std::vector<block_info>::iterator i = m_block_info.begin()
+			, end(m_block_info.end()); i != end; ++i)
+			if (i->peer == peer) i->peer = 0;
+	}
+
 	namespace
 	{
 		bool exclusively_requested_from(piece_picker::downloading_piece const& p
-			, int num_blocks_in_piece, tcp::endpoint peer)
+			, int num_blocks_in_piece, void* peer)
 		{
 			for (int j = 0; j < num_blocks_in_piece; ++j)
 			{
 				piece_picker::block_info const& info = p.info[j];
 				if (info.state != piece_picker::block_info::state_none
 					&& info.peer != peer
-					&& info.peer != tcp::endpoint())
+					&& info.peer != 0
+					&& static_cast<policy::peer*>(info.peer)->connection)
 				{
 					return false;
 				}
@@ -1087,7 +1094,7 @@ namespace libtorrent
 		, std::vector<piece_block>& interesting_blocks
 		, std::vector<piece_block>& backup_blocks
 		, int num_blocks, bool prefer_whole_pieces
-		, tcp::endpoint peer, piece_state_t speed) const
+		, void* peer, piece_state_t speed) const
 	{
 		// if we have less than 1% of the pieces, ignore speed priorities and just try
 		// to finish any downloading piece
@@ -1281,7 +1288,7 @@ namespace libtorrent
 
 
 	void piece_picker::mark_as_downloading(piece_block block
-		, const tcp::endpoint& peer, piece_state_t state)
+		, void* peer, piece_state_t state)
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 
@@ -1330,7 +1337,7 @@ namespace libtorrent
 			*j = i->peer_count;
 	}
 
-	void piece_picker::mark_as_writing(piece_block block, tcp::endpoint const& peer)
+	void piece_picker::mark_as_writing(piece_block block, void* peer)
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 
@@ -1367,7 +1374,7 @@ namespace libtorrent
 				= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
 			assert(i != m_downloads.end());
 			block_info& info = i->info[block.block_index];
-			info.peer == peer;
+			info.peer = peer;
 			assert(info.state == block_info::state_requested);
 			if (info.state == block_info::state_requested) --i->requested;
 			assert(i->requested >= 0);
@@ -1384,7 +1391,7 @@ namespace libtorrent
 		}
 	}
 	
-	void piece_picker::mark_as_finished(piece_block block, tcp::endpoint const& peer)
+	void piece_picker::mark_as_finished(piece_block block, void* peer)
 	{
 		assert(block.piece_index >= 0);
 		assert(block.block_index >= 0);
@@ -1397,7 +1404,7 @@ namespace libtorrent
 		{
 			TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 			
-			assert(peer == tcp::endpoint());
+			assert(peer == 0);
 			int prio = p.priority(m_sequenced_download_threshold);
 			p.downloading = 1;
 			if (prio > 0) move(prio, p.index);
@@ -1424,7 +1431,7 @@ namespace libtorrent
 			block_info& info = i->info[block.block_index];
 			info.peer = peer;
 			assert(info.state == block_info::state_writing
-				|| peer == tcp::endpoint());
+				|| peer == 0);
 			if (info.state == block_info::state_writing) --i->writing;
 			assert(i->writing >= 0);
 			++i->finished;
@@ -1439,7 +1446,7 @@ namespace libtorrent
 		}
 	}
 
-	void piece_picker::get_downloaders(std::vector<tcp::endpoint>& d, int index) const
+	void piece_picker::get_downloaders(std::vector<void*>& d, int index) const
 	{
 		assert(index >= 0 && index <= (int)m_piece_map.size());
 		std::vector<downloading_piece>::const_iterator i
@@ -1453,22 +1460,21 @@ namespace libtorrent
 		}
 	}
 
-	boost::optional<tcp::endpoint> piece_picker::get_downloader(piece_block block) const
+	void* piece_picker::get_downloader(piece_block block) const
 	{
 		std::vector<downloading_piece>::const_iterator i = std::find_if(
 			m_downloads.begin()
 			, m_downloads.end()
 			, has_index(block.piece_index));
 
-		if (i == m_downloads.end())
-			return boost::optional<tcp::endpoint>();
+		if (i == m_downloads.end()) return 0;
 
 		assert(block.block_index >= 0);
 
 		if (i->info[block.block_index].state == block_info::state_none)
-			return boost::optional<tcp::endpoint>();
+			return 0;
 
-		return boost::optional<tcp::endpoint>(i->info[block.block_index].peer);
+		return i->info[block.block_index].peer;
 	}
 
 	void piece_picker::abort_download(piece_block block)
@@ -1505,7 +1511,7 @@ namespace libtorrent
 		--i->requested;
 		
 		// clear the downloader of this block
-		i->info[block.block_index].peer = tcp::endpoint();
+		i->info[block.block_index].peer = 0;
 
 		// if there are no other blocks in this piece
 		// that's being downloaded, remove it from the list
