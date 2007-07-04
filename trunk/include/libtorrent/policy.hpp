@@ -121,9 +121,9 @@ namespace libtorrent
 
 		struct peer
 		{
-			enum connection_type { not_connectable,connectable };
+			enum connection_type { not_connectable, connectable };
 
-			peer(const tcp::endpoint& ip, connection_type t, int src);
+			peer(tcp::endpoint const& ip, connection_type t, int src);
 
 			size_type total_download() const;
 			size_type total_upload() const;
