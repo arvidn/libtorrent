@@ -149,7 +149,7 @@ struct peer_connection
 	bool m_prioritized;
 	bool m_ignore_limits;
 	bool m_abort;
-	stat m_stats;
+	libtorrent::stat m_stats;
 	io_service& m_ios;
 	std::string m_name;
 	int m_refs;
@@ -192,7 +192,7 @@ void run_test(io_service& ios, connections_t& v)
 	tick.async_wait(boost::bind(&do_tick, _1, boost::ref(tick), boost::ref(v)));
 
 	deadline_timer complete(ios);
-	complete.expires_from_now(seconds(stat::history * 2));
+	complete.expires_from_now(seconds(libtorrent::stat::history * 2));
 	complete.async_wait(boost::bind(&do_stop, boost::ref(tick), boost::ref(v)));
 
 	std::for_each(v.begin(), v.end()
