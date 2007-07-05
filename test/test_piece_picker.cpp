@@ -188,9 +188,10 @@ int test_main()
 
 	piece_block expected4[] =
 	{
-		piece_block(2, 0), piece_block(2, 1)
-		, piece_block(2, 2), piece_block(2, 3)
+		piece_block(3, 0), piece_block(3, 1)
+		, piece_block(3, 2), piece_block(3, 3)
 	};
+
 	TEST_CHECK(std::equal(picked.begin()
 		, picked.end(), expected4));
 
@@ -204,12 +205,12 @@ int test_main()
 
 	piece_block expected5[] =
 	{
-		piece_block(2, 0), piece_block(2, 1)
-		, piece_block(2, 2), piece_block(2, 3)
-		, piece_block(3, 0), piece_block(3, 1)
+		piece_block(3, 0), piece_block(3, 1)
 		, piece_block(3, 2), piece_block(3, 3)
 		, piece_block(5, 0), piece_block(5, 1)
 		, piece_block(5, 2), piece_block(5, 3)
+		, piece_block(2, 0), piece_block(2, 1)
+		, piece_block(2, 2), piece_block(2, 3)
 	};
 
 	TEST_CHECK(std::equal(picked.begin()

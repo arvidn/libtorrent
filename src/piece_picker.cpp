@@ -1071,21 +1071,31 @@ namespace libtorrent
 
 	namespace
 	{
-		bool exclusively_requested_from(piece_picker::downloading_piece const& p
+		// the first bool is true if this is the only peer that has requested and downloaded
+		// blocks from this piece.
+		// the second bool is true if this is the only active peer that is requesting
+		// and downloading blocks from this piece. Active means having a connection.
+		boost::tuple<bool, bool> requested_from(piece_picker::downloading_piece const& p
 			, int num_blocks_in_piece, void* peer)
 		{
+			bool exclusive = true;
+			bool exclusive_active = true;
 			for (int j = 0; j < num_blocks_in_piece; ++j)
 			{
 				piece_picker::block_info const& info = p.info[j];
 				if (info.state != piece_picker::block_info::state_none
-					&& info.peer != peer
-					&& info.peer != 0
-					&& static_cast<policy::peer*>(info.peer)->connection)
+					&& info.peer != peer)
 				{
-					return false;
+					exclusive = false;
+					if (info.peer == 0
+						|| static_cast<policy::peer*>(info.peer)->connection == 0)
+					{
+						exclusive_active = false;
+						return boost::make_tuple(exclusive, exclusive_active);
+					}
 				}
 			}
-			return true;
+			return boost::make_tuple(exclusive, exclusive_active);
 		}
 	}
 
@@ -1120,8 +1130,10 @@ namespace libtorrent
 				// is true if all the other pieces that are currently
 				// requested from this piece are from the same
 				// peer as 'peer'.
-				bool only_same_peer = exclusively_requested_from(*p
-					, num_blocks_in_piece, peer);
+				bool exclusive;
+				bool exclusive_active;
+				boost::tie(exclusive, exclusive_active)
+					= requested_from(*p, num_blocks_in_piece, peer);
 
 				// this means that this partial piece has
 				// been downloaded/requested partially from
@@ -1130,7 +1142,7 @@ namespace libtorrent
 				// blocks to the backup list. If the prioritized
 				// blocks aren't enough, blocks from this list
 				// will be picked.
-				if (prefer_whole_pieces && !only_same_peer)
+				if (prefer_whole_pieces && !exclusive)
 				{
 					if (int(backup_blocks.size()) >= num_blocks) continue;
 					for (int j = 0; j < num_blocks_in_piece; ++j)
@@ -1164,7 +1176,7 @@ namespace libtorrent
 					// if the state of the piece is none (the
 					// piece will in that case change state).
 					if (p->state != none && p->state != speed
-						&& !only_same_peer
+						&& !exclusive_active
 						&& !ignore_speed_categories)
 					{
 						if (int(backup_blocks.size()) >= num_blocks) continue;
