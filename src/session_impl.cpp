@@ -75,6 +75,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
+
+#include <openssl/crypto.h>
+
+namespace
+{
+	// openssl requires this to clean up internal
+	// structures it allocates
+	struct openssl_cleanup
+	{
+		~openssl_cleanup() { CRYPTO_cleanup_all_ex_data(); }
+	} openssl_global_destructor;
+}
+
+#endif
+
 using boost::shared_ptr;
 using boost::weak_ptr;
 using boost::bind;
