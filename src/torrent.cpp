@@ -1362,6 +1362,15 @@ namespace libtorrent
 		return req;
 	}
 
+	void torrent::cancel_block(piece_block block)
+	{
+		for (peer_iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
+		{
+			i->second->cancel_request(block);
+		}
+	}
+
 	void torrent::remove_peer(peer_connection* p) try
 	{
 		INVARIANT_CHECK;

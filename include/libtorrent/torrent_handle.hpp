@@ -211,7 +211,7 @@ namespace libtorrent
 
 		tcp::endpoint peer;
 		unsigned state:2;
-		unsigned num_downloads:14;
+		unsigned num_peers:14;
 	};
 
 	struct TORRENT_EXPORT partial_piece_info

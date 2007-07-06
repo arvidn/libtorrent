@@ -262,6 +262,8 @@ namespace libtorrent
 		// decreased in the piece_picker
 		void remove_peer(peer_connection* p);
 
+		void cancel_block(piece_block block);
+
 		bool want_more_peers() const;
 		bool try_connect_peer();
 

@@ -68,10 +68,7 @@ namespace libtorrent
 		free_upload_amount = 4 * 16 * 1024
 	};
 
-	void request_a_block(
-		torrent& t
-		, peer_connection& c
-		, std::vector<peer_connection*> ignore = std::vector<peer_connection*>());
+	void request_a_block(torrent& t, peer_connection& c);
 
 	class TORRENT_EXPORT policy
 	{

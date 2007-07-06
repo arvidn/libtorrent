@@ -1081,10 +1081,6 @@ namespace libtorrent
 				, m_download_queue.end()
 				, block_finished);
 
-		// if there's another peer that needs to do another
-		// piece request, this will point to it
-		peer_connection* request_peer = 0;
-
 		if (b != m_download_queue.end())
 		{
 			if (m_assume_fifo)
@@ -1113,47 +1109,31 @@ namespace libtorrent
 			{
 				m_download_queue.erase(b);
 			}
+
+			t->cancel_block(block_finished);
 		}
 		else
 		{
-/*			// cancel the block from the
-			// peer that has taken over it.
-			boost::optional<tcp::endpoint> peer
-				= t->picker().get_downloader(block_finished);
-			if (peer && t->picker().is_requested(block_finished))
+			if (t->alerts().should_post(alert::debug))
 			{
-				peer_connection* pc = t->connection_for(*peer);
-				if (pc && pc != this)
-				{
-					pc->cancel_request(block_finished);
-					request_peer = pc;
-				}
+				t->alerts().post_alert(
+					peer_error_alert(
+						m_remote
+						, m_peer_id
+						, "got a block that was not in the request queue"));
 			}
-			else
-*/			{
-				if (t->alerts().should_post(alert::debug))
-				{
-					t->alerts().post_alert(
-						peer_error_alert(
-							m_remote
-							, m_peer_id
-							, "got a block that was not requested"));
-				}
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << " *** The block we just got was not in the "
-					"request queue ***\n";
+			(*m_logger) << " *** The block we just got was not in the "
+				"request queue ***\n";
 #endif
-				t->received_redundant_data(p.length);
-				if (!has_peer_choked())
-				{
-					request_a_block(*t, *this);
-					send_block_requests();
-				}
-				return;
+			t->received_redundant_data(p.length);
+			if (!has_peer_choked())
+			{
+				request_a_block(*t, *this);
+				send_block_requests();
 			}
+			return;
 		}
-
-		assert(picker.is_requested(block_finished));
 
 		// if the block we got is already finished, then ignore it
 		if (picker.is_downloaded(block_finished))
@@ -1165,25 +1145,12 @@ namespace libtorrent
 				request_a_block(*t, *this);
 				send_block_requests();
 			}
-
-			if (request_peer && !request_peer->has_peer_choked() && !t->is_seed())
-			{
-				request_a_block(*t, *request_peer);
-				request_peer->send_block_requests();
-			}
 			return;
 		}
 		
 		fs.async_write(p, data, bind(&peer_connection::on_disk_write_complete
 			, self(), _1, _2, p, t));
 		picker.mark_as_writing(block_finished, peer_info_struct());
-	
-		if (request_peer && !request_peer->has_peer_choked() && !t->is_seed())
-		{
-			request_a_block(*t, *request_peer);
-			request_peer->send_block_requests();
-		}
-
 	}
 
 	void peer_connection::on_disk_write_complete(int ret, disk_io_job const& j
@@ -1319,7 +1286,7 @@ namespace libtorrent
 		assert(block.piece_index < t->torrent_file().num_pieces());
 		assert(block.block_index >= 0);
 		assert(block.block_index < t->torrent_file().piece_size(block.piece_index));
-		assert(!t->picker().is_requested(block));
+		assert(!t->picker().is_requested(block) || (t->picker().num_peers(block) > 0));
 
 		piece_picker::piece_state_t state;
 		peer_speed_t speed = peer_speed();
@@ -1345,17 +1312,22 @@ namespace libtorrent
 		assert(block.piece_index < t->torrent_file().num_pieces());
 		assert(block.block_index >= 0);
 		assert(block.block_index < t->torrent_file().piece_size(block.piece_index));
-		assert(t->picker().is_requested(block));
 
-		t->picker().abort_download(block);
+		// if all the peers that requested this block has been
+		// cancelled, then just ignore the cancel.
+		if (!t->picker().is_requested(block)) return;
 
 		std::deque<piece_block>::iterator it
 			= std::find(m_download_queue.begin(), m_download_queue.end(), block);
 		if (it == m_download_queue.end())
 		{
 			it = std::find(m_request_queue.begin(), m_request_queue.end(), block);
-			assert(it != m_request_queue.end());
+			// when a multi block is received, it is cancelled
+			// from all peers, so if this one hasn't requested
+			// the block, just ignore to cancel it.
 			if (it == m_request_queue.end()) return;
+
+			t->picker().abort_download(block);
 			m_request_queue.erase(it);
 			// since we found it in the request queue, it means it hasn't been
 			// sent yet, so we don't have to send a cancel.
@@ -1364,6 +1336,7 @@ namespace libtorrent
 		else
 		{	
 			m_download_queue.erase(it);
+			t->picker().abort_download(block);
 		}
 
 		int block_offset = block.block_index * t->block_size();
