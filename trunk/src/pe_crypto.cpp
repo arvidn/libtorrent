@@ -50,6 +50,7 @@ namespace libtorrent {
 
 		m_DH->p = BN_bin2bn (m_dh_prime, sizeof(m_dh_prime), NULL);
 		m_DH->g = BN_bin2bn (m_dh_generator, sizeof(m_dh_generator), NULL);
+		m_DH->length = 160l;
 
 		assert (sizeof(m_dh_prime) == DH_size(m_DH));
 		
@@ -81,7 +82,7 @@ namespace libtorrent {
 		DH_free (m_DH);
 	}
 
-	char const*	DH_key_exchange::get_local_key () const
+	char const* DH_key_exchange::get_local_key () const
 	{
 		return m_dh_local_key;
 	}	
@@ -92,9 +93,17 @@ namespace libtorrent {
 	{
 		assert (remote_pubkey);
 		BIGNUM* bn_remote_pubkey = BN_bin2bn ((unsigned char*)remote_pubkey, 96, NULL);
+		char dh_secret[96];
 
-		int ret = 
-			DH_compute_key ( (unsigned char*)m_dh_secret, bn_remote_pubkey, m_DH); // TODO Check for errors
+		int secret_size = DH_compute_key ( (unsigned char*)dh_secret, 
+						   bn_remote_pubkey, m_DH); // TODO Check for errors
+
+		if (secret_size != 96)
+		{
+			assert(secret_size < 96 && secret_size > 0);
+			std::fill(m_dh_secret, m_dh_secret + 96 - secret_size, 0);
+		}
+		std::copy(dh_secret, dh_secret + secret_size, m_dh_secret + 96 - secret_size);
 
 		BN_free (bn_remote_pubkey);
 	}
