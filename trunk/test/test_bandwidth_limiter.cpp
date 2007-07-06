@@ -230,7 +230,7 @@ void test_equal_connections(int num, int limit)
 	run_test(ios, v);
 
 	float sum = 0.f;
-	float err = std::max(limit / num * 0.3f, 1000.f);
+	float err = (std::max)(limit / num * 0.3f, 1000.f);
 	for (connections_t::iterator i = v.begin()
 		, end(v.end()); i != end; ++i)
 	{
