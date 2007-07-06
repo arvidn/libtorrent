@@ -15,7 +15,6 @@ void test_sleep(int millisec)
 {
 	boost::xtime xt;
 	boost::xtime_get(&xt, boost::TIME_UTC);
-	xt.nsec += millisec * 1000000;
 	boost::uint64_t nanosec = (millisec % 1000) * 1000000 + xt.nsec;
 	int sec = millisec / 1000;
 	if (nanosec > 1000000000)
