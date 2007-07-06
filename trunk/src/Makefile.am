@@ -13,7 +13,7 @@ kademlia/traversal_algorithm.cpp
 endif
 
 libtorrent_la_SOURCES = allocate_resources.cpp \
-bandwidth_manager.cpp entry.cpp escape_string.cpp \
+entry.cpp escape_string.cpp \
 peer_connection.cpp bt_peer_connection.cpp web_peer_connection.cpp \
 natpmp.cpp piece_picker.cpp policy.cpp session.cpp session_impl.cpp sha1.cpp \
 stat.cpp storage.cpp torrent.cpp torrent_handle.cpp pe_crypto.cpp \
