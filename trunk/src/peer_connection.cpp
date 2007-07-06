@@ -1822,8 +1822,6 @@ namespace libtorrent
 			}
 		}
 
-		m_statistics.second_tick(tick_interval);
-
 		// If the client sends more data
 		// we send it data faster, otherwise, slower.
 		// It will also depend on how much data the

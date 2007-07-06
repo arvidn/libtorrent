@@ -3,15 +3,22 @@ use-project /torrent : .. ;
 exe test_upnp : test_upnp.cpp /torrent//torrent
 	: <link>static <threading>multi <logging>verbose <upnp-logging>on ;
 
-project
-   : requirements
+lib test_common
+	:
+	main.cpp
+	setup_transfer.cpp
+	:
+	<link>static
+	:
 	<threading>multi
 	<library>/torrent//torrent
-	<source>main.cpp
-	<source>setup_transfer.cpp
-	: default-build
-	<link>static
+	;
+
+project
+   : requirements
+	<library>test_common
    ;
+
 
 test-suite libtorrent : 
 	[ run test_buffer.cpp ]
