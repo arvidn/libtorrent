@@ -189,8 +189,7 @@ namespace libtorrent
 	// infinite loop, fighting to request the same blocks.
 	void request_a_block(
 		torrent& t
-		, peer_connection& c
-		, std::vector<peer_connection*> ignore)
+		, peer_connection& c)
 	{
 		assert(!t.is_seed());
 		assert(!c.has_peer_choked());
@@ -254,6 +253,13 @@ namespace libtorrent
 		{
 			if (p.is_requested(*i))
 			{
+				// don't request pieces we already have in our request queue
+				const std::deque<piece_block>& dq = c.download_queue();
+				const std::deque<piece_block>& rq = c.request_queue();
+				if (std::find(dq.begin(), dq.end(), *i) != dq.end()
+					|| std::find(rq.begin(), rq.end(), *i) != rq.end())
+					continue;
+	
 				busy_pieces.push_back(*i);
 				continue;
 			}
@@ -265,139 +271,26 @@ namespace libtorrent
 			num_requests--;
 		}
 
-		c.send_block_requests();
-
 		// in this case, we could not find any blocks
 		// that was free. If we couldn't find any busy
 		// blocks as well, we cannot download anything
 		// more from this peer.
 
-		if (busy_pieces.empty()) return;
-
-		// first look for blocks that are just queued
-		// and not actually sent to us yet
-		// (then we can cancel those and request them
-		// from this peer instead)
-
-		while (num_requests > 0)
+		if (busy_pieces.empty())
 		{
-			peer_connection* peer = 0;
-
-			const int initial_queue_size = (int)c.download_queue().size()
-				+ (int)c.request_queue().size();
-
-			// This peer's weight will be the minimum, to prevent
-			// cancelling requests from a faster peer.
-			float min_weight = initial_queue_size == 0
-				? std::numeric_limits<float>::max()
-				: c.statistics().download_payload_rate() / initial_queue_size;
-
-			// find the peer with the lowest download
-			// speed that also has a piece that this
-			// peer could send us
-			for (torrent::peer_iterator i = t.begin();
-				i != t.end(); ++i)
-			{
-				// don't try to take over blocks from ourself
-				if (i->second == &c)
-					continue;
-
-				// ignore all peers in the ignore list
-				if (std::find(ignore.begin(), ignore.end(), i->second) != ignore.end())
-					continue;
-
-				const std::deque<piece_block>& download_queue = i->second->download_queue();
-				const std::deque<piece_block>& request_queue = i->second->request_queue();
-				const int queue_size = (int)i->second->download_queue().size()
-					+ (int)i->second->request_queue().size();
-
-				bool in_request_queue = std::find_first_of(
-						busy_pieces.begin()
-						, busy_pieces.end()
-						, request_queue.begin()
-						, request_queue.end()) != busy_pieces.end();
-						
-				bool in_download_queue = std::find_first_of(
-						busy_pieces.begin()
-						, busy_pieces.end()
-						, download_queue.begin()
-						, download_queue.end()) != busy_pieces.end();
-
-				// if the block is in the request queue rather than the download queue
-				// (i.e. the request message hasn't been sent yet) lower the weight in
-				// order to prioritize it. Taking over a block in the request queue is
-				// free in terms of redundant download. A block that already has been
-				// requested is likely to be in transit already, and would in that case
-				// mean redundant data to receive.
-				const float weight = (queue_size == 0)
-					? std::numeric_limits<float>::max()
-					: i->second->statistics().download_payload_rate() / queue_size
-						* in_request_queue ? .1f : 1.f;
-
-				// if the peer's (i) weight is less than the lowest we've found so
-				// far (weight == priority) and it has blocks in its request-
-				// or download queue that we could request from this peer (c),
-				// replace the currently lowest ranking peer.
-				if (weight < min_weight && (in_request_queue || in_download_queue))
-				{
-					peer = i->second;
-					min_weight = weight;
-				}
-			}
-
-			if (peer == 0)
-			{
-				// we probably couldn't request the block because
-				// we are ignoring some peers
-				break;
-			}
-
-			// find a suitable block to take over from this peer
-
-			std::deque<piece_block>::const_reverse_iterator common_block =
-				std::find_first_of(
-					peer->request_queue().rbegin()
-					, peer->request_queue().rend()
-					, busy_pieces.begin()
-					, busy_pieces.end());
-
-			if (common_block == peer->request_queue().rend())
-			{
-				common_block = std::find_first_of(
-					peer->download_queue().rbegin()
-					, peer->download_queue().rend()
-					, busy_pieces.begin()
-					, busy_pieces.end());
-				assert(common_block != peer->download_queue().rend());
-			}
-
-			piece_block block = *common_block;
-
-			// the one we interrupted may need to request a new piece.
-			// make sure it doesn't take over a block from the peer
-			// that just took over its block (that would cause an
-			// infinite recursion)
-			peer->cancel_request(block);
-			c.add_request(block);
-			ignore.push_back(&c);
-			if (!peer->has_peer_choked() && !t.is_seed())
-			{
-				request_a_block(t, *peer, ignore);
-				peer->send_block_requests();
-			}
-
-			num_requests--;
-
-			const int queue_size = (int)c.download_queue().size()
-				+ (int)c.request_queue().size();
-			const float weight = queue_size == 0
-				? std::numeric_limits<float>::max()
-				: c.statistics().download_payload_rate() / queue_size;
-
-			// this peer doesn't have a faster connection than the
-			// slowest peer. Don't take over any blocks
-			if (weight <= min_weight) break;
+			c.send_block_requests();
+			return;
 		}
+
+		std::random_shuffle(busy_pieces.begin(), busy_pieces.end());
+		
+		// find the block with the fewest requests to it
+		std::vector<piece_block>::iterator i = std::min_element(
+			busy_pieces.begin(), busy_pieces.end()
+			, bind(&piece_picker::num_peers, boost::cref(p), _1) <
+			bind(&piece_picker::num_peers, boost::cref(p), _2));
+
+		c.add_request(*i);
 		c.send_block_requests();
 	}
 

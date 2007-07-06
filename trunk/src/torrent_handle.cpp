@@ -784,7 +784,7 @@ namespace libtorrent
 						pi.blocks[j].peer = p->ip;
 				}
 
-				pi.blocks[j].num_downloads = i->info[j].num_downloads;
+				pi.blocks[j].num_peers = i->info[j].num_peers;
 				pi.blocks[j].state = i->info[j].state;
 			}
 			pi.piece_index = i->index;

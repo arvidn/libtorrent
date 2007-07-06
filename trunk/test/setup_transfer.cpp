@@ -105,7 +105,6 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	{
 		// give the other peers some time to get an initial
 		// set of pieces before they start sharing with each-other
-		test_sleep(10000);
 		tor3.connect_peer(tcp::endpoint(
 			address::from_string("127.0.0.1")
 			, ses2->listen_port()));

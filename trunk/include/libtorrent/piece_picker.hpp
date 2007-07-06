@@ -89,13 +89,15 @@ namespace libtorrent
 
 		struct block_info
 		{
-			block_info(): peer(0), num_downloads(0), state(state_none) {}
+			block_info(): peer(0), num_peers(0), state(state_none) {}
 			// the peer this block was requested or
 			// downloaded from. This is a pointer to
 			// a policy::peer object
 			void* peer;
-			// the number of times this block has been downloaded
-			unsigned num_downloads:14;
+			// the number of peers that has this block in their
+			// download or request queues
+			unsigned num_peers:14;
+			// the state of this block
 			enum { state_none, state_requested, state_writing, state_finished };
 			unsigned state:2;
 		};
@@ -210,6 +212,7 @@ namespace libtorrent
 			, piece_state_t s);
 		void mark_as_writing(piece_block block, void* peer);
 		void mark_as_finished(piece_block block, void* peer);
+		int num_peers(piece_block block) const;
 
 		// if a piece had a hash-failure, it must be restored and
 		// made available for redownloading
