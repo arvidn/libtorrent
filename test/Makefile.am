@@ -1,4 +1,7 @@
-noinst_PROGRAMS = test_hasher test_bencoding test_ip_filter test_piece_picker test_storage test_metadata_extension test_buffer test_allocate_resources test_swarm test_pe_crypto
+noinst_PROGRAMS = test_hasher test_bencoding test_ip_filter test_piece_picker \
+test_storage test_metadata_extension test_buffer test_allocate_resources \
+ test_swarm test_pe_crypto test_primitives \
+ test_bandwidth_limiter
 EXTRA_DIST = Jamfile
 
 test_hasher_SOURCES = main.cpp test_hasher.cpp
@@ -30,6 +33,12 @@ test_swarm_LDADD = $(top_builddir)/src/libtorrent.la
 
 test_pe_crypto_SOURCES = main.cpp test_pe_crypto.cpp
 test_pe_crypto_LDADD = $(top_builddir)/src/libtorrent.la $(top_builddir)/test/setup_transfer.o
+
+test_primitives_SOURCES = main.cpp test_primitives.cpp
+test_primitives_LDADD = $(top_builddir)/src/libtorrent.la
+
+test_bandwidth_limiter_SOURCES = main.cpp test_bandwidth_limiter.cpp
+test_bandwidth_limiter_LDADD = $(top_builddir)/src/libtorrent.la
 
 noinst_HEADERS = test.hpp setup_transfer.hpp
 
