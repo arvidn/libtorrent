@@ -11,13 +11,10 @@ BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 ECHO "BOOST_ROOT =" $(BOOST_ROOT) ;
 ECHO "OS =" [ os.name ] ;
 
-if ! $(BOOST_ROOT)
+if $(BOOST_ROOT)
 {
-    errors.user-error
-        "BOOST_ROOT must be set to your boost installation path." ;
+	use-project /boost : $(BOOST_ROOT) ;
 }
-
-use-project /boost : $(BOOST_ROOT) ;
 
 # rule for linking the correct libraries depending
 # on features and target-os
@@ -62,6 +59,22 @@ rule linking ( properties * )
 	{
 # when do one need to link against librt?
 #		result += <library>rt ;
+	}
+
+	if <boost>system in $(properties)
+	{
+		result += <library>filesystem
+			<library>thread
+		;
+	}
+
+	if <boost>source in $(properties)
+	{
+		result += <library>/boost/thread//boost_thread
+			<library>/boost/filesystem//boost_filesystem
+			<include>$(BOOST_ROOT)
+			<define>BOOST_ALL_NO_LIB
+			;
 	}
 
 	return $(result) ;
@@ -126,6 +139,8 @@ feature.compose <statistics>on : <define>TORRENT_STATS ;
 feature upnp-logging : off on : composite propagated link-incompatible ;
 feature.compose <upnp-logging>on : <define>TORRENT_UPNP_LOGGING ;
 
+feature boost : system source : link-incompatible propagated ;
+
 # required for openssl on windows
 lib ssleay32 : : <name>ssleay32 ;
 lib libeay32 : : <name>libeay32 ;
@@ -133,6 +148,9 @@ lib advapi32 : : <name>Advapi32 ;
 lib user32 : : <name>User32 ;
 lib shell32 : : <name>shell32 ;
 lib gdi32 : : <name>gdi32 ;
+
+lib filesystem : : <name>boost_filesystem ;
+lib thread : : <name>boost_thread ;
 
 # openssl on linux/bsd/macos etc.
 lib crypto : : <name>crypto ;
@@ -217,12 +235,9 @@ local usage-requirements =
 	<include>./include
 	<include>./include/libtorrent
 	<zlib>shipped:<include>./zlib
-	<include>$(BOOST_ROOT)
 	<variant>release:<define>NDEBUG
-	<define>BOOST_ALL_NO_LIB
 	<define>_FILE_OFFSET_BITS=64
-	<library>/boost/thread//boost_thread #/<link>static
-	<library>/boost/filesystem//boost_filesystem #/<link>static
+	<define>BOOST_MULTI_INDEX_DISABLE_SERIALIZATION
 	<conditional>@linking
 	<zlib>system:<library>zlib-target
 # these compiler settings just makes the compiler standard conforming
