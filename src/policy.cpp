@@ -210,6 +210,8 @@ namespace libtorrent
 		bool prefer_whole_pieces = c.prefer_whole_pieces()
 			|| (c.peer_info_struct() && c.peer_info_struct()->on_parole);
 
+		bool rarest_first = t.num_pieces() >= t.settings().initial_picker_threshold;
+
 		if (!prefer_whole_pieces)
 		{
 			prefer_whole_pieces = c.statistics().download_payload_rate()
@@ -238,7 +240,8 @@ namespace libtorrent
 		// for this peer. If we're downloading one piece in 20 seconds
 		// then use this mode.
 		p.pick_pieces(c.get_bitfield(), interesting_pieces
-			, num_requests, prefer_whole_pieces, c.peer_info_struct(), state);
+			, num_requests, prefer_whole_pieces, c.peer_info_struct()
+			, state, rarest_first);
 
 		// this vector is filled with the interesting pieces
 		// that some other peer is currently downloading
