@@ -192,7 +192,8 @@ namespace libtorrent
 		void pick_pieces(const std::vector<bool>& pieces
 			, std::vector<piece_block>& interesting_blocks
 			, int num_pieces, bool prefer_whole_pieces
-			, void* peer, piece_state_t speed) const;
+			, void* peer, piece_state_t speed
+			, bool rarest_first) const;
 
 		// clears the peer pointer in all downloading pieces with this
 		// peer pointer

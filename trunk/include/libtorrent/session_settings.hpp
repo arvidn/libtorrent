@@ -107,6 +107,7 @@ namespace libtorrent
 			, inactivity_timeout(600)
 			, unchoke_interval(20)
 			, num_want(200)
+			, initial_picker_threshold(4)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(true)
 #endif
@@ -245,6 +246,10 @@ namespace libtorrent
 
 		// the num want sent to trackers
 		int num_want;
+
+		// while we have fewer pieces than this, pick
+		// random pieces instead of rarest first.
+		int initial_picker_threshold;
 
 #ifndef TORRENT_DISABLE_DHT
 		// while this is true, the dht will note be used unless the
