@@ -1257,7 +1257,7 @@ namespace libtorrent
 		std::string remote_address;
 		std::back_insert_iterator<std::string> out(remote_address);
 		detail::write_address(remote().address(), out);
-		handshake["ip"] = remote_address;
+		handshake["yourip"] = remote_address;
 		handshake["reqq"] = m_ses.settings().max_allowed_in_request_queue;
 
 		// loop backwards, to make the first extension be the last
