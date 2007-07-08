@@ -210,7 +210,15 @@ namespace libtorrent
 		{ none, requested, writing, finished };
 
 		tcp::endpoint peer;
+		// number of bytes downloaded in this block
+		unsigned bytes_progress:16;
+		// the total number of bytes in this block
+		unsigned block_size:16;
+		// the state this block is in (see block_state_t)
 		unsigned state:2;
+		// the number of peers that has requested this block
+		// typically 0 or 1. If > 1, this block is in
+		// end game mode
 		unsigned num_peers:14;
 	};
 
