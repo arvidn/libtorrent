@@ -267,6 +267,7 @@ namespace libtorrent
 				continue;
 			}
 
+			assert(p.num_peers(*i) == 0);
 			// ok, we found a piece that's not being downloaded
 			// by somebody else. request it from this peer
 			// and return
@@ -279,7 +280,7 @@ namespace libtorrent
 		// blocks as well, we cannot download anything
 		// more from this peer.
 
-		if (busy_pieces.empty())
+		if (busy_pieces.empty() || num_requests == 0)
 		{
 			c.send_block_requests();
 			return;
