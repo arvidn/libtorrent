@@ -149,8 +149,10 @@ lib user32 : : <name>User32 ;
 lib shell32 : : <name>shell32 ;
 lib gdi32 : : <name>gdi32 ;
 
-lib filesystem : : <name>boost_filesystem ;
-lib thread : : <name>boost_thread ;
+local library-search-path = <search>/opt/local/lib <search>/usr/lib <search>/usr/local/lib <search>/sw/lib ;
+
+lib filesystem : : <name>boost_filesystem $(library-search-path) ;
+lib thread : : <name>boost_thread $(library-search-path) ;
 
 # openssl on linux/bsd/macos etc.
 lib crypto : : <name>crypto ;
