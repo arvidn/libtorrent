@@ -1023,17 +1023,19 @@ int main(int ac, char* av[])
 						{
 							int index = peer_index(i->blocks[j].peer, peers);
 							char str[] = "+";
-							bool currently_downloading = false;
 							if (index >= 0)
-							{
 								str[0] = (index < 10)?'0' + index:'A' + index - 10;
-								currently_downloading = peers[index].downloading_piece_index == i->piece_index
-									&& peers[index].downloading_block_index == j;
-							}
 
 #ifdef ANSI_TERMINAL_COLORS
-							if (currently_downloading)
-								out << esc("33;7") << str << esc("0");
+							if (i->blocks[j].bytes_progress > 0
+								&& i->blocks[j].state == block_info::requested)
+							{
+								if (i->blocks[j].num_peers > 1)
+									out << esc("1;7");
+								else
+									out << esc("33;7");
+								out << to_string(i->blocks[j].bytes_progress / float(i->blocks[j].block_size) * 10, 1) << esc("0");
+							}
 							else if (i->blocks[j].state == block_info::finished) out << esc("32;7") << str << esc("0");
 							else if (i->blocks[j].state == block_info::writing) out << esc("35;7") << str << esc("0");
 							else if (i->blocks[j].state == block_info::requested) out << str;

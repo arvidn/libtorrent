@@ -2330,12 +2330,28 @@ namespace libtorrent
 //		size_type download = m_stat.total_payload_download();
 //		size_type done = boost::get<0>(bytes_done());
 //		assert(download >= done - m_initial_done);
+		std::map<piece_block, int> num_requests;
 		for (const_peer_iterator i = begin(); i != end(); ++i)
 		{
 			peer_connection const& p = *i->second;
+			for (std::deque<piece_block>::const_iterator i = p.request_queue().begin()
+				, end(p.request_queue().end()); i != end; ++i)
+				++num_requests[*i];
+			for (std::deque<piece_block>::const_iterator i = p.download_queue().begin()
+				, end(p.download_queue().end()); i != end; ++i)
+				++num_requests[*i];
 			torrent* associated_torrent = p.associated_torrent().lock().get();
 			if (associated_torrent != this)
 				assert(false);
+		}
+
+		if (has_picker())
+		{
+			for (std::map<piece_block, int>::iterator i = num_requests.begin()
+				, end(num_requests.end()); i != end; ++i)
+			{
+				assert(m_picker->num_peers(i->first) == i->second);
+			}
 		}
 
 		if (valid_metadata())
