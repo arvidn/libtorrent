@@ -202,7 +202,7 @@ namespace libtorrent
 		void write_metadata_request(std::pair<int, int> req);
 		void write_keepalive();
 		void write_dht_port(int listen_port);
-		void on_connected() {}
+		void on_connected();
 		void on_metadata();
 
 #ifndef NDEBUG
@@ -370,6 +370,8 @@ namespace libtorrent
 		bool m_sent_bitfield;
 
 		bool m_in_constructor;
+		
+		bool m_sent_handshake;
 #endif
 
 	};
