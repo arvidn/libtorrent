@@ -102,12 +102,73 @@ namespace libtorrent
 #ifndef NDEBUG
 		, m_sent_bitfield(false)
 		, m_in_constructor(true)
+		, m_sent_handshake(false)
 #endif
 	{
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << "*** bt_peer_connection\n";
 #endif
 
+#ifndef NDEBUG
+		m_in_constructor = false;
+#endif
+	}
+
+	bt_peer_connection::bt_peer_connection(
+		session_impl& ses
+		, boost::shared_ptr<socket_type> s
+		, policy::peer* peerinfo)
+		: peer_connection(ses, s, peerinfo)
+		, m_state(read_protocol_identifier)
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		, m_supports_extensions(false)
+#endif
+		, m_supports_dht_port(false)
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		, m_encrypted(false)
+		, m_rc4_encrypted(false)
+		, m_sync_bytes_read(0)
+		, m_enc_send_buffer(0, 0)
+#endif		
+#ifndef NDEBUG
+		, m_sent_bitfield(false)
+		, m_in_constructor(true)
+		, m_sent_handshake(false)
+#endif
+	{
+
+		// we are not attached to any torrent yet.
+		// we have to wait for the handshake to see
+		// which torrent the connector want's to connect to
+
+
+		// upload bandwidth will only be given to connections
+		// that are part of a torrent. Since this is an incoming
+		// connection, we have to give it some initial bandwidth
+		// to send the handshake.
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		m_bandwidth_limit[download_channel].assign(2048);
+		m_bandwidth_limit[upload_channel].assign(2048);
+#else
+		m_bandwidth_limit[download_channel].assign(80);
+		m_bandwidth_limit[upload_channel].assign(80);
+#endif
+
+		// start in the state where we are trying to read the
+		// handshake from the other side
+		reset_recv_buffer(20);
+		setup_receive();
+#ifndef NDEBUG
+		m_in_constructor = false;
+#endif
+	}
+
+	bt_peer_connection::~bt_peer_connection()
+	{
+	}
+
+	void bt_peer_connection::on_connected()
+	{
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		
 		pe_settings::enc_policy const& out_enc_policy = m_ses.get_pe_settings().out_enc_policy;
@@ -158,64 +219,8 @@ namespace libtorrent
 			reset_recv_buffer(20);
 			setup_receive();
 		}
-		
-#ifndef NDEBUG
-		m_in_constructor = false;
-#endif
 	}
-
-	bt_peer_connection::bt_peer_connection(
-		session_impl& ses
-		, boost::shared_ptr<socket_type> s
-		, policy::peer* peerinfo)
-		: peer_connection(ses, s, peerinfo)
-		, m_state(read_protocol_identifier)
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		, m_supports_extensions(false)
-#endif
-		, m_supports_dht_port(false)
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		, m_encrypted(false)
-		, m_rc4_encrypted(false)
-		, m_sync_bytes_read(0)
-		, m_enc_send_buffer(0, 0)
-#endif		
-#ifndef NDEBUG
-		, m_sent_bitfield(false)
-		, m_in_constructor(true)
-#endif
-	{
-
-		// we are not attached to any torrent yet.
-		// we have to wait for the handshake to see
-		// which torrent the connector want's to connect to
-
-
-		// upload bandwidth will only be given to connections
-		// that are part of a torrent. Since this is an incoming
-		// connection, we have to give it some initial bandwidth
-		// to send the handshake.
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		m_bandwidth_limit[download_channel].assign(2048);
-		m_bandwidth_limit[upload_channel].assign(2048);
-#else
-		m_bandwidth_limit[download_channel].assign(80);
-		m_bandwidth_limit[upload_channel].assign(80);
-#endif
-
-		// start in the state where we are trying to read the
-		// handshake from the other side
-		reset_recv_buffer(20);
-		setup_receive();
-#ifndef NDEBUG
-		m_in_constructor = false;
-#endif
-	}
-
-	bt_peer_connection::~bt_peer_connection()
-	{
-	}
-
+	
 	void bt_peer_connection::on_metadata()
 	{
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
@@ -226,6 +231,9 @@ namespace libtorrent
 	void bt_peer_connection::write_dht_port(int listen_port)
 	{
 		INVARIANT_CHECK;
+
+		assert(m_sent_handshake && m_sent_bitfield);
+		
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string()
 			<< " ==> DHT_PORT [ " << listen_port << " ]\n";
@@ -282,6 +290,7 @@ namespace libtorrent
 		assert(!m_encrypted);
 		assert(!m_rc4_encrypted);
 		assert(!m_DH_key_exchange.get());
+		assert(!m_sent_handshake);
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		if (is_local())
@@ -314,9 +323,10 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		assert (!m_encrypted);
-		assert (!m_rc4_encrypted);
-		assert (is_local());
+		assert(!m_encrypted);
+		assert(!m_rc4_encrypted);
+		assert(is_local());
+		assert(!m_sent_handshake);
 		
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		assert(t);
@@ -398,6 +408,7 @@ namespace libtorrent
 		assert(!m_encrypted);
 		assert(!m_rc4_encrypted);
 		assert(crypto_select == 0x02 || crypto_select == 0x01);
+		assert(!m_sent_handshake);
 
 		int pad_size = 0; // rand() % 512; // Keep 0 for now
 
@@ -423,8 +434,8 @@ namespace libtorrent
 #endif
 	}
 
- 	void bt_peer_connection::write_pe_vc_cryptofield(buffer::interval& write_buf,
-													 int crypto_field, int pad_size)
+ 	void bt_peer_connection::write_pe_vc_cryptofield(buffer::interval& write_buf
+		, int crypto_field, int pad_size)
  	{
 		INVARIANT_CHECK;
 
@@ -433,6 +444,7 @@ namespace libtorrent
 		// vc,crypto_field,len(pad),pad, (len(ia))
 		assert( (write_buf.left() == 8+4+2+pad_size+2 && is_local()) ||
 				(write_buf.left() == 8+4+2+pad_size   && !is_local()) );
+		assert(!m_sent_handshake);
 
 		// encrypt(vc, crypto_provide/select, len(Pad), len(IA))
 		// len(pad) is zero for now, len(IA) only for outgoing connections
@@ -586,6 +598,11 @@ namespace libtorrent
 	void bt_peer_connection::write_handshake()
 	{
 		INVARIANT_CHECK;
+
+		assert(!m_sent_handshake);
+#ifndef NDEBUG
+		m_sent_handshake = true;
+#endif
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		assert(t);
@@ -1093,6 +1110,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		assert(m_sent_handshake && m_sent_bitfield);
+
 		char buf[] = {0,0,0,0};
 		send_buffer(buf, buf + sizeof(buf));
 	}
@@ -1100,8 +1119,8 @@ namespace libtorrent
 	void bt_peer_connection::write_cancel(peer_request const& r)
 	{
 		INVARIANT_CHECK;
-		assert(m_sent_bitfield == true);
 
+		assert(m_sent_handshake && m_sent_bitfield);
 		assert(associated_torrent().lock()->valid_metadata());
 
 		char buf[] = {0,0,0,13, msg_cancel};
@@ -1125,8 +1144,8 @@ namespace libtorrent
 	void bt_peer_connection::write_request(peer_request const& r)
 	{
 		INVARIANT_CHECK;
-		assert(m_sent_bitfield == true);
 
+		assert(m_sent_handshake && m_sent_bitfield);
 		assert(associated_torrent().lock()->valid_metadata());
 
 		char buf[] = {0,0,0,13, msg_request};
@@ -1153,7 +1172,7 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		assert(t);
-		assert(m_sent_bitfield == false);
+		assert(m_sent_handshake && !m_sent_bitfield);
 		assert(t->valid_metadata());
 
 		int num_pieces = bitfield.size();
@@ -1243,6 +1262,7 @@ namespace libtorrent
 		(*m_logger) << time_now_string() << " ==> EXTENSIONS\n";
 #endif
 		assert(m_supports_extensions);
+		assert(m_sent_handshake && m_sent_bitfield);
 
 		entry handshake(entry::dictionary_t);
 		entry extension_list(entry::dictionary_t);
@@ -1297,7 +1317,8 @@ namespace libtorrent
 	void bt_peer_connection::write_choke()
 	{
 		INVARIANT_CHECK;
-		assert(m_sent_bitfield == true);
+
+		assert(m_sent_handshake && m_sent_bitfield);
 
 		if (is_choked()) return;
 		char msg[] = {0,0,0,1,msg_choke};
@@ -1307,7 +1328,8 @@ namespace libtorrent
 	void bt_peer_connection::write_unchoke()
 	{
 		INVARIANT_CHECK;
-		assert(m_sent_bitfield == true);
+
+		assert(m_sent_handshake && m_sent_bitfield);
 
 		char msg[] = {0,0,0,1,msg_unchoke};
 		send_buffer(msg, msg + sizeof(msg));
@@ -1316,7 +1338,8 @@ namespace libtorrent
 	void bt_peer_connection::write_interested()
 	{
 		INVARIANT_CHECK;
-		assert(m_sent_bitfield == true);
+
+		assert(m_sent_handshake && m_sent_bitfield);
 
 		char msg[] = {0,0,0,1,msg_interested};
 		send_buffer(msg, msg + sizeof(msg));
@@ -1325,7 +1348,8 @@ namespace libtorrent
 	void bt_peer_connection::write_not_interested()
 	{
 		INVARIANT_CHECK;
-		assert(m_sent_bitfield == true);
+
+		assert(m_sent_handshake && m_sent_bitfield);
 
 		char msg[] = {0,0,0,1,msg_not_interested};
 		send_buffer(msg, msg + sizeof(msg));
@@ -1337,7 +1361,7 @@ namespace libtorrent
 		assert(associated_torrent().lock()->valid_metadata());
 		assert(index >= 0);
 		assert(index < associated_torrent().lock()->torrent_file().num_pieces());
-		assert(m_sent_bitfield == true);
+		assert(m_sent_handshake && m_sent_bitfield);
 
 		const int packet_size = 9;
 		char msg[packet_size] = {0,0,0,5,msg_have};
@@ -1349,7 +1373,8 @@ namespace libtorrent
 	void bt_peer_connection::write_piece(peer_request const& r, char const* buffer)
 	{
 		INVARIANT_CHECK;
-		assert(m_sent_bitfield == true);
+
+		assert(m_sent_handshake && m_sent_bitfield);
 
 		const int packet_size = 4 + 5 + 4 + r.length;
 
