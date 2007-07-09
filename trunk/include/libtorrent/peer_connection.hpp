@@ -406,7 +406,7 @@ namespace libtorrent
 		buffer::const_interval receive_buffer() const
 		{
 #ifndef NDEBUG
-			if (m_recv_buffer.empty()) return buffer::interval(0,0);
+			if (m_recv_buffer.empty()) return buffer::const_interval(0,0);
 #endif
 			return buffer::const_interval(&m_recv_buffer[0]
 				, &m_recv_buffer[0] + m_recv_pos);
