@@ -140,14 +140,14 @@ namespace
 
 	struct match_peer_ip
 	{
-		match_peer_ip(tcp::endpoint const& ip)
+		match_peer_ip(address const& ip)
 			: m_ip(ip)
 		{}
 
 		bool operator()(policy::peer const& p) const
-		{ return p.ip.address() == m_ip.address(); }
+		{ return p.ip.address() == m_ip; }
 
-		tcp::endpoint const& m_ip;
+		address const& m_ip;
 	};
 
 	struct match_peer_id
@@ -857,7 +857,7 @@ namespace libtorrent
 			i = std::find_if(
 				m_peers.begin()
 				, m_peers.end()
-				, match_peer_ip(c.remote()));
+				, match_peer_ip(c.remote().address()));
 		}
 
 		if (i != m_peers.end())
@@ -882,19 +882,27 @@ namespace libtorrent
 					"connection in favour of this one");
 #endif
 					i->connection->disconnect();
+#ifndef NDEBUG
+					check_invariant();
+#endif
 				}
 			}
 		}
 		else
 		{
-			// we don't have ny info about this peer.
+			// we don't have any info about this peer.
 			// add a new entry
 			assert(c.remote() == c.get_socket()->remote_endpoint());
 
 			peer p(c.remote(), peer::not_connectable, 0);
 			m_peers.push_back(p);
 			i = boost::prior(m_peers.end());
+#ifndef NDEBUG
+			check_invariant();
+#endif
 		}
+	
+		assert(m_torrent->connection_for(c.remote()) == &c);
 		
 		c.set_peer_info(&*i);
 		assert(i->connection == 0);
@@ -945,7 +953,7 @@ namespace libtorrent
 				i = std::find_if(
 					m_peers.begin()
 					, m_peers.end()
-					, match_peer_ip(remote));
+					, match_peer_ip(remote.address()));
 			}
 			
 			if (i == m_peers.end())
@@ -1232,7 +1240,7 @@ namespace libtorrent
 		if (c.failed())
 		{
 			++i->failcount;
-			i->connected = time_now();
+//			i->connected = time_now();
 		}
 
 		// if the share ratio is 0 (infinite), the
@@ -1308,8 +1316,13 @@ namespace libtorrent
 			++total_connections;
 			if (!p.connection) continue;
 			if (!m_torrent->settings().allow_multiple_connections_per_ip)
-				assert(p.connection == m_torrent->connection_for(p.ip.address())
-					|| p.connection == m_torrent->connection_for(p.ip));
+			{
+				std::vector<peer_connection*> conns;
+				m_torrent->connection_for(p.ip.address(), conns);
+				assert(std::find_if(conns.begin(), conns.end()
+					, boost::bind(std::equal_to<peer_connection*>(), _1, p.connection))
+					!= conns.end());
+			}
 			assert(p.connection->peer_info_struct() == 0
 				|| p.connection->peer_info_struct() == &p);
 			++nonempty_connections;

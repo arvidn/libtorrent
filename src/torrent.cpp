@@ -938,8 +938,14 @@ namespace libtorrent
 			if (p == 0) continue;
 #ifndef NDEBUG
 			if (!settings().allow_multiple_connections_per_ip)
-				assert(p->connection == 0 || p->connection == connection_for(p->ip.address())
-					|| p->connection == connection_for(p->ip));
+			{
+				std::vector<peer_connection*> conns;
+				connection_for(p->ip.address(), conns);
+				assert(p->connection == 0
+					|| std::find_if(conns.begin(), conns.end()
+					, boost::bind(std::equal_to<peer_connection*>(), _1, p->connection))
+					!= conns.end());
+			}
 #endif
 			if (p->connection) p->connection->received_invalid_data(index);
 
