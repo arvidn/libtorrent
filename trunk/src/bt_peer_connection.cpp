@@ -1262,7 +1262,7 @@ namespace libtorrent
 		(*m_logger) << time_now_string() << " ==> EXTENSIONS\n";
 #endif
 		assert(m_supports_extensions);
-		assert(m_sent_handshake && m_sent_bitfield);
+		assert(m_sent_handshake);
 
 		entry handshake(entry::dictionary_t);
 		entry extension_list(entry::dictionary_t);
