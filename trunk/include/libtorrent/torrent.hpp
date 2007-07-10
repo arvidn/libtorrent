@@ -274,15 +274,17 @@ namespace libtorrent
 			return i->second;
 		}
 
-		peer_connection* connection_for(address const& a)
+#ifndef NDEBUG
+		void connection_for(address const& a, std::vector<peer_connection*>& pc)
 		{
 			for (peer_iterator i = m_connections.begin()
 				, end(m_connections.end()); i != end; ++i)
 			{
-				if (i->first.address() == a) return i->second;
+				if (i->first.address() == a) pc.push_back(i->second);
 			}
-			return 0;
+			return;
 		}
+#endif
 
 		// the number of peers that belong to this torrent
 		int num_peers() const { return (int)m_connections.size(); }
