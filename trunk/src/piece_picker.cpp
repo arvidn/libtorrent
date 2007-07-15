@@ -1066,9 +1066,9 @@ namespace libtorrent
 					|| m_piece_map[piece].priority(m_sequenced_download_threshold) < 2)
 				{
 					++piece;
+					if (piece == int(m_piece_map.size())) piece = 0;
 					// could not find any more pieces
 					if (piece == start_piece) return;
-					if (piece == int(m_piece_map.size())) piece = 0;
 				}
 
 				assert(m_piece_map[piece].downloading == false);
