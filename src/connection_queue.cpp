@@ -42,6 +42,9 @@ namespace libtorrent
 		, m_num_connecting(0)
 		, m_half_open_limit(0)
 		, m_timer(ios)
+#ifndef NDEBUG
+		, m_in_timeout_function(false)
+#endif
 	{}
 
 	bool connection_queue::free_slots() const
@@ -133,9 +136,22 @@ namespace libtorrent
 		}
 	}
 
+#ifndef NDEBUG
+	struct function_guard
+	{
+		function_guard(bool& v): val(v) { assert(!val); val = true; }
+		~function_guard() { val = false; }
+
+		bool& val;
+	};
+#endif
+	
 	void connection_queue::on_timeout(asio::error_code const& e)
 	{
 		INVARIANT_CHECK;
+#ifndef NDEBUG
+		function_guard guard_(m_in_timeout_function);
+#endif
 
 		assert(!e || e == asio::error::operation_aborted);
 		if (e) return;
