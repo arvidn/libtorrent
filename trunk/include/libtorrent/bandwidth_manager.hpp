@@ -398,6 +398,7 @@ private:
 				, amount);
 			assert(hand_out_amount > 0);
 			amount -= hand_out_amount;
+			assert(hand_out_amount <= qe.max_block_size);
 			t->assign_bandwidth(m_channel, hand_out_amount, qe.max_block_size);
 			qe.peer->assign_bandwidth(m_channel, hand_out_amount);
 			add_history_entry(history_entry<PeerConnection, Torrent>(
