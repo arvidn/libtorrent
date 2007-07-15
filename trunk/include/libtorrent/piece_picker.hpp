@@ -279,7 +279,8 @@ namespace libtorrent
 				assert(index_ >= 0);
 			}
 
-			// selects which vector to look in
+			// the number of peers that has this piece
+			// (availability)
 			unsigned peer_count : 10;
 			// is 1 if the piece is marked as being downloaded
 			unsigned downloading : 1;
@@ -350,13 +351,15 @@ namespace libtorrent
 
 		void add(int index);
 		void move(int vec_index, int elem_index);
+		void sort_piece(std::vector<downloading_piece>::iterator dp);
 
 		int add_interesting_blocks(const std::vector<int>& piece_list
 			, const std::vector<bool>& pieces
 			, std::vector<piece_block>& interesting_blocks
 			, std::vector<piece_block>& backup_blocks
 			, int num_blocks, bool prefer_whole_pieces
-			, void* peer, piece_state_t speed) const;
+			, void* peer, piece_state_t speed
+			, bool ignore_downloading_pieces) const;
 
 		downloading_piece& add_download_piece();
 		void erase_download_piece(std::vector<downloading_piece>::iterator i);
