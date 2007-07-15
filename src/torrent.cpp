@@ -2010,8 +2010,6 @@ namespace libtorrent
 		, int block_size
 		, bool non_prioritized)
 	{
-		assert(m_bandwidth_limit[channel].max_assignable() >= block_size);
-
 		m_ses.m_bandwidth_manager[channel]->request_bandwidth(p
 			, block_size, non_prioritized);
 		m_bandwidth_limit[channel].assign(block_size);
