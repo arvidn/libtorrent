@@ -391,10 +391,6 @@ private:
 				break;
 			}
 
-			// don't hand out chunks larger than the throttle
-			// per second on the torrent
-			assert(qe.max_block_size <= t->bandwidth_throttle(m_channel));
-
 			// so, hand out max_assignable, but no more than
 			// the available bandwidth (amount) and no more
 			// than the max_bandwidth_block_size
