@@ -22,7 +22,7 @@ void test_swarm()
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
 	float rate_limit = 40000;
-	ses1.set_upload_rate_limit(int(rate_limit * 1.1));
+	ses1.set_upload_rate_limit(int(rate_limit));
 	ses2.set_download_rate_limit(int(rate_limit));
 	ses3.set_download_rate_limit(int(rate_limit));
 	ses2.set_upload_rate_limit(int(rate_limit / 2));
@@ -54,7 +54,7 @@ void test_swarm()
 	int count_dl_rates2 = 0;
 	int count_dl_rates3 = 0;
 
-	for (int i = 0; i < 100; ++i)
+	for (int i = 0; i < 60; ++i)
 	{
 		std::auto_ptr<alert> a;
 		a = ses1.pop_alert();
@@ -107,8 +107,8 @@ void test_swarm()
 	std::cerr << "average rate: " << (average2 / 1000.f) << "kB/s - "
 		<< (average3 / 1000.f) << "kB/s" << std::endl;
 
-//	TEST_CHECK(std::fabs(average2 - float(rate_limit)) < 5000.f);
-//	TEST_CHECK(std::fabs(average3 - float(rate_limit)) < 5000.f);
+	TEST_CHECK(std::fabs(average2 - float(rate_limit)) < 3000.f);
+	TEST_CHECK(std::fabs(average3 - float(rate_limit)) < 3000.f);
 	if (tor2.is_seed() && tor3.is_seed()) std::cerr << "done\n";
 }
 

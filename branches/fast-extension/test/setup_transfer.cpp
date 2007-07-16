@@ -15,7 +15,6 @@ void test_sleep(int millisec)
 {
 	boost::xtime xt;
 	boost::xtime_get(&xt, boost::TIME_UTC);
-	xt.nsec += millisec * 1000000;
 	boost::uint64_t nanosec = (millisec % 1000) * 1000000 + xt.nsec;
 	int sec = millisec / 1000;
 	if (nanosec > 1000000000)
@@ -52,7 +51,8 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	t.add_tracker(tracker_url);
 
 	std::vector<char> piece(16 * 1024);
-	std::fill(piece.begin(), piece.end(), 0xfe);
+	for (int i = 0; i < int(piece.size()); ++i)
+		piece[i] = (i % 26) + 'A';
 	
 	// calculate the hash for all pieces
 	int num = t.num_pieces();
@@ -71,7 +71,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	if (clear_files) remove_all("./tmp2/temporary");
 	
 	t.create_torrent();
-
+	std::cerr << "generated torrent: " << t.info_hash() << std::endl;
 
 	ses1->set_severity_level(alert::debug);
 	ses2->set_severity_level(alert::debug);
@@ -104,7 +104,6 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	{
 		// give the other peers some time to get an initial
 		// set of pieces before they start sharing with each-other
-		test_sleep(10000);
 		tor3.connect_peer(tcp::endpoint(
 			address::from_string("127.0.0.1")
 			, ses2->listen_port()));

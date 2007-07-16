@@ -1019,7 +1019,11 @@ namespace libtorrent
 			return true;
 		}
 
-		return true;
+		if (!strcmp(fsinfo.f_fstypename, "hfs")
+			|| !strcmp(fsinfo.f_fstypename, "ufs"))
+			return true;
+
+		return false;
 #endif
 
 #if defined(__linux__)
@@ -1037,6 +1041,7 @@ namespace libtorrent
 				case 0xEF53: // EXT2 and EXT3
 				case 0x00011954: // UFS
 				case 0x52654973: // ReiserFS
+				case 0x52345362: // Reiser4
 				case 0x58465342: // XFS
 					return true;
 			}
@@ -1253,7 +1258,7 @@ namespace libtorrent
 
 		for (int i = 0; i < num_blocks-1; ++i)
 		{
-			if (!bi[i].state == piece_picker::block_info::state_finished) continue;
+			if (bi[i].state != piece_picker::block_info::state_finished) continue;
 			m_storage->read(
 				&buf[0]
 				, slot_index

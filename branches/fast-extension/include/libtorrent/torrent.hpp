@@ -225,13 +225,21 @@ namespace libtorrent
 		bandwidth_limit m_bandwidth_limit[2];
 
 		void request_bandwidth(int channel
-			, boost::intrusive_ptr<peer_connection> p
+			, boost::intrusive_ptr<peer_connection> const& p
+			, bool non_prioritized);
+
+		void perform_bandwidth_request(int channel
+			, boost::intrusive_ptr<peer_connection> const& p
+			, int block_size
 			, bool non_prioritized);
 		
 		void expire_bandwidth(int channel, int amount);
-		void assign_bandwidth(int channel, int amount);
+		void assign_bandwidth(int channel, int amount, int blk);
 		
 		int bandwidth_throttle(int channel) const;
+
+		int max_assignable_bandwidth(int channel) const
+		{ return m_bandwidth_limit[channel].max_assignable(); }
 
 // --------------------------------------------
 		// PEER MANAGEMENT
@@ -254,6 +262,8 @@ namespace libtorrent
 		// decreased in the piece_picker
 		void remove_peer(peer_connection* p);
 
+		void cancel_block(piece_block block);
+
 		bool want_more_peers() const;
 		bool try_connect_peer();
 
@@ -263,6 +273,18 @@ namespace libtorrent
 			if (i == m_connections.end()) return 0;
 			return i->second;
 		}
+
+#ifndef NDEBUG
+		void connection_for(address const& a, std::vector<peer_connection*>& pc)
+		{
+			for (peer_iterator i = m_connections.begin()
+				, end(m_connections.end()); i != end; ++i)
+			{
+				if (i->first.address() == a) pc.push_back(i->second);
+			}
+			return;
+		}
+#endif
 
 		// the number of peers that belong to this torrent
 		int num_peers() const { return (int)m_connections.size(); }
@@ -668,10 +690,12 @@ namespace libtorrent
 		boost::scoped_ptr<piece_picker> m_picker;
 
 		// the queue of peer_connections that want more bandwidth
-		std::deque<bw_queue_entry> m_bandwidth_queue[2];
+		typedef std::deque<bw_queue_entry<peer_connection> > queue_t;
+		queue_t m_bandwidth_queue[2];
 
 		std::vector<announce_entry> m_trackers;
-		// this is an index into m_torrent_file.trackers()
+		// this is an index into m_trackers
+
 		int m_last_working_tracker;
 		int m_currently_trying_tracker;
 		// the number of connection attempts that has

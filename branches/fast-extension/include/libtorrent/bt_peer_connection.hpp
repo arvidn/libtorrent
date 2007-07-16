@@ -226,8 +226,9 @@ namespace libtorrent
 		void write_have_all();
 		void write_have_none();
 		void write_reject_request(peer_request const&);
+		void write_allow_fast(int piece);
 		
-		void on_connected() {}
+		void on_connected();
 		void on_metadata();
 
 #ifndef NDEBUG
@@ -396,6 +397,8 @@ namespace libtorrent
 		bool m_sent_bitfield;
 
 		bool m_in_constructor;
+		
+		bool m_sent_handshake;
 #endif
 
 	};

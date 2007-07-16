@@ -68,10 +68,7 @@ namespace libtorrent
 		free_upload_amount = 4 * 16 * 1024
 	};
 
-	void request_a_block(
-		torrent& t
-		, peer_connection& c
-		, std::vector<peer_connection*> ignore = std::vector<peer_connection*>());
+	void request_a_block(torrent& t, peer_connection& c);
 
 	class TORRENT_EXPORT policy
 	{
@@ -121,9 +118,9 @@ namespace libtorrent
 
 		struct peer
 		{
-			enum connection_type { not_connectable,connectable };
+			enum connection_type { not_connectable, connectable };
 
-			peer(const tcp::endpoint& ip, connection_type t, int src);
+			peer(tcp::endpoint const& ip, connection_type t, int src);
 
 			size_type total_download() const;
 			size_type total_upload() const;

@@ -234,7 +234,11 @@ namespace libtorrent
 			try { if (handler) handler(ret, j); }
 			catch (std::exception&) {}
 			
-			if (j.buffer) m_pool.ordered_free(j.buffer);
+			if (j.buffer)
+			{
+				l.lock();
+				m_pool.ordered_free(j.buffer);
+			}
 		}
 	}
 }

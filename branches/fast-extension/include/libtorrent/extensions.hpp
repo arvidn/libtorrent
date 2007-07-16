@@ -137,6 +137,9 @@ namespace libtorrent
 		virtual bool on_have_none()
 		{ return false; }
 
+		virtual bool on_allowed_fast(int index)
+		{ return false; }
+
 		virtual bool on_request(peer_request const& req)
 		{ return false; }
 

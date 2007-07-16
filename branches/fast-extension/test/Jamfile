@@ -1,16 +1,24 @@
 use-project /torrent : .. ;
 
-exe test_upnp : test_upnp.cpp /torrent//torrent : <threading>multi <logging>verbose <upnp-logging>on ;
+exe test_upnp : test_upnp.cpp /torrent//torrent
+	: <link>static <threading>multi <logging>verbose <upnp-logging>on ;
+
+lib test_common
+	:
+	main.cpp
+	setup_transfer.cpp
+	:
+	<link>static
+	:
+	<threading>multi
+	<library>/torrent//torrent
+	;
 
 project
    : requirements
-	<threading>multi
-	<library>/torrent//torrent
-	<source>main.cpp
-	<source>setup_transfer.cpp
-	: default-build
-	<link>static
+	<library>test_common
    ;
+
 
 test-suite libtorrent : 
 	[ run test_buffer.cpp ]
@@ -26,5 +34,6 @@ test-suite libtorrent :
 	[ run test_swarm.cpp ]
 	[ run test_allocate_resources.cpp ]
 	[ run test_web_seed.cpp ]
+	[ run test_bandwidth_limiter.cpp ]
 	; 
 

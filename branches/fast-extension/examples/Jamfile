@@ -3,7 +3,14 @@ import modules ;
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 
 use-project /torrent : .. ;
-use-project /boost : $(BOOST_ROOT) ;
+
+if $(BOOST_ROOT)
+{
+	use-project /boost : $(BOOST_ROOT) ;
+}
+
+lib program-options : : <name>boost_program_options ;
+lib regex : : <name>boost_regex ;
 
 project client_test
    : requirements
@@ -12,7 +19,13 @@ project client_test
 	<link>static
    ;  
 
-exe client_test : client_test.cpp /boost/program_options /boost/regex ;
+exe client_test : client_test.cpp
+	: <boost>source:<library>/boost/program_options
+	<boost>source:<library>/boost/regex
+	<boost>system:<library>program-options
+	<boost>system:<library>regex
+	;
+
 exe simple_client : simple_client.cpp ;
 exe dump_torrent : dump_torrent.cpp ;
 exe make_torrent : make_torrent.cpp ;

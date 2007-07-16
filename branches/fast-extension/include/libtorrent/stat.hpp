@@ -47,8 +47,8 @@ namespace libtorrent
 	class TORRENT_EXPORT stat
 	{
 	friend class invariant_access;
-	enum { history = 10 };
 	public:
+		enum { history = 10 };
 
 		stat()
 			: m_downloaded_payload(0)
@@ -131,6 +131,8 @@ namespace libtorrent
 		// transfers from earlier connections.
 		void add_stat(size_type downloaded, size_type uploaded)
 		{
+			assert(downloaded >= 0);
+			assert(uploaded >= 0);
 			m_total_download_payload += downloaded;
 			m_total_upload_payload += uploaded;
 		}

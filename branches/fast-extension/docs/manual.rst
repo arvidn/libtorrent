@@ -1737,7 +1737,7 @@ downloaded pieces down. Pieces set to ``none`` can be converted into any of ``fa
 
 		tcp::endpoint peer;
 		unsigned state:2;
-		unsigned num_downloads:14;
+		unsigned num_peers:14;
 	};
 
 
@@ -1750,7 +1750,9 @@ a state (``state``) which is any of:
 * ``finished`` - The block has been written to disk.
 
 The ``peer`` field is the ip address of the peer this block was downloaded from.
-``num_downloads`` is the number of times this block has been downloaded.
+``num_peers`` is the number of peers that is currently requesting this block. Typically this
+is 0 or 1, but at the end of the torrent blocks may be requested by more peers in parallel to
+speed things up.
 
 get_peer_info()
 ---------------

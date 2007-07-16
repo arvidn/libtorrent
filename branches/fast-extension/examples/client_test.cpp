@@ -103,6 +103,7 @@ void clear_home()
 
 #include <termios.h>
 #include <string.h>
+#include <sys/ttycom.h>
 
 #define ANSI_TERMINAL_COLORS
 
@@ -241,6 +242,38 @@ std::string const& add_suffix(float val)
 	ret = to_string(val, 4);
 	ret += "PB";
 	return ret;
+}
+
+std::string const& piece_bar(std::vector<bool> const& p, int width)
+{
+	static const char* lookup[] =
+	{
+		// black, blue, cyan, white
+		"40", "44", "46", "47"
+	};
+	
+	double piece_per_char = p.size() / double(width);
+	static std::string bar;
+	bar.clear();
+	bar.reserve(width * 6);
+	bar += "[";
+
+	// the [piece, piece + pieces_per_char) range is the pieces that are represented by each character
+	double piece = 0;
+	for (int i = 0; i < width; ++i, piece += piece_per_char)
+	{
+		int num_pieces = 0;
+		int num_have = 0;
+		int end = std::max(int(piece + piece_per_char), int(piece) + 1);
+		for (int k = int(piece); k < end; ++k, ++num_pieces)
+			if (p[k]) ++num_have;
+		int color = int(std::ceil(num_have / float(num_pieces) * (sizeof(lookup) / sizeof(lookup[0]) - 1)));
+		bar += esc(lookup[color]);
+		bar += " ";
+	}
+	bar += esc("0");
+	bar += "]";
+	return bar;
 }
 
 std::string const& progress_bar(float progress, int width, char const* code = "33")
@@ -789,6 +822,7 @@ int main(int ac, char* av[])
 		bool print_peers = false;
 		bool print_log = false;
 		bool print_downloads = false;
+		bool print_piece_bar = false;
 		bool print_file_progress = false;
 
 		for (;;)
@@ -845,7 +879,18 @@ int main(int ac, char* av[])
 				if (c == 'l') print_log = !print_log;
 				if (c == 'd') print_downloads = !print_downloads;
 				if (c == 'f') print_file_progress = !print_file_progress;
+				if (c == 'a') print_piece_bar = !print_piece_bar;
 			}
+
+			int terminal_width = 80;
+
+#ifndef _WIN32
+			{
+				winsize size;
+				ioctl(STDOUT_FILENO, TIOCGWINSZ, (char*)&size);
+				terminal_width = size.ws_col;
+			}
+#endif
 
 			// loop through the alert queue to see if anything has happened.
 			std::auto_ptr<alert> a;
@@ -981,7 +1026,7 @@ int main(int ac, char* av[])
 					out.width(5);
 					out.fill(' ');
 					out << (s.progress*100) << "% ";
-					out << progress_bar(s.progress, 49, progress_bar_color);
+					out << progress_bar(s.progress, terminal_width - 63, progress_bar_color);
 					out << "\n";
 					out << "  total downloaded: " << esc("32") << s.total_done << esc("0") << " Bytes ";
 					out	<< "peers: " << s.num_peers << " "
@@ -1005,6 +1050,8 @@ int main(int ac, char* av[])
 						<< to_string(t.minutes(),2) << ":"
 						<< to_string(t.seconds(), 2) << esc("0") << " ";
 					out << "tracker: " << s.current_tracker << "\n";
+					if (print_piece_bar && s.progress < 1.f && s.pieces)
+						out << piece_bar(*s.pieces, terminal_width - 3) << "\n";
 				}
 
 				if (print_peers && !peers.empty())
@@ -1023,17 +1070,19 @@ int main(int ac, char* av[])
 						{
 							int index = peer_index(i->blocks[j].peer, peers);
 							char str[] = "+";
-							bool currently_downloading = false;
 							if (index >= 0)
-							{
 								str[0] = (index < 10)?'0' + index:'A' + index - 10;
-								currently_downloading = peers[index].downloading_piece_index == i->piece_index
-									&& peers[index].downloading_block_index == j;
-							}
 
 #ifdef ANSI_TERMINAL_COLORS
-							if (currently_downloading)
-								out << esc("33;7") << str << esc("0");
+							if (i->blocks[j].bytes_progress > 0
+								&& i->blocks[j].state == block_info::requested)
+							{
+								if (i->blocks[j].num_peers > 1)
+									out << esc("1;7");
+								else
+									out << esc("33;7");
+								out << to_string(i->blocks[j].bytes_progress / float(i->blocks[j].block_size) * 10, 1) << esc("0");
+							}
 							else if (i->blocks[j].state == block_info::finished) out << esc("32;7") << str << esc("0");
 							else if (i->blocks[j].state == block_info::writing) out << esc("35;7") << str << esc("0");
 							else if (i->blocks[j].state == block_info::requested) out << str;

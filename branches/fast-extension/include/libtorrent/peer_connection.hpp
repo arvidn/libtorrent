@@ -135,6 +135,8 @@ namespace libtorrent
 		enum peer_speed_t { slow, medium, fast };
 		peer_speed_t peer_speed();
 
+		void send_allowed_set();
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<peer_plugin>);
 #endif
@@ -221,6 +223,7 @@ namespace libtorrent
 		tcp::endpoint const& remote() const { return m_remote; }
 
 		std::vector<bool> const& get_bitfield() const;
+		std::vector<int> const& allowed_fast();
 
 		void timed_out();
 		// this will cause this peer_connection to be disconnected.
@@ -304,6 +307,7 @@ namespace libtorrent
 		void incoming_reject_request(peer_request const& r);
 		void incoming_have_all();
 		void incoming_have_none();
+		void incoming_allowed_fast(int index);
 
 		// the following functions appends messages
 		// to the send buffer
@@ -322,10 +326,11 @@ namespace libtorrent
 		void send_block_requests();
 
 		int max_assignable_bandwidth(int channel) const
-		{
-			return m_bandwidth_limit[channel].max_assignable();
-		}
+		{ return m_bandwidth_limit[channel].max_assignable(); }
 		
+		int bandwidth_throttle(int channel) const
+		{ return m_bandwidth_limit[channel].throttle(); }
+
 		void assign_bandwidth(int channel, int amount);
 		void expire_bandwidth(int channel, int amount);
 
@@ -382,6 +387,7 @@ namespace libtorrent
 		virtual void write_piece(peer_request const& r, char const* buffer) = 0;
 		
 		virtual void write_reject_request(peer_request const& r) = 0;
+		virtual void write_allow_fast(int piece) = 0;
 
 		virtual void on_connected() = 0;
 		virtual void on_tick() {}
@@ -401,6 +407,9 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		buffer::interval wr_recv_buffer()
 		{
+#ifndef NDEBUG
+			if (m_recv_buffer.empty()) return buffer::interval(0,0);
+#endif
 			return buffer::interval(&m_recv_buffer[0]
 				, &m_recv_buffer[0] + m_recv_pos);
 		}
@@ -408,6 +417,9 @@ namespace libtorrent
 		
 		buffer::const_interval receive_buffer() const
 		{
+#ifndef NDEBUG
+			if (m_recv_buffer.empty()) return buffer::const_interval(0,0);
+#endif
 			return buffer::const_interval(&m_recv_buffer[0]
 				, &m_recv_buffer[0] + m_recv_pos);
 		}
@@ -537,7 +549,7 @@ namespace libtorrent
 		// set to the torrent it belongs to.
 		boost::weak_ptr<torrent> m_torrent;
 		// is true if it was we that connected to the peer
-		// and false if we got an incomming connection
+		// and false if we got an incoming connection
 		// could be considered: true = local, false = remote
 		bool m_active;
 
@@ -705,6 +717,14 @@ namespace libtorrent
 		// a timestamp when the remote download rate
 		// was last updated
 		ptime m_remote_dl_update;
+
+		// the pieces we will send to the peer
+		// if requested (regardless of choke state)
+		std::set<int> m_accept_fast;
+
+		// the pieces the peer will send us if
+		// requested (regardless of choke state)
+		std::vector<int> m_allowed_fast;
 		
 #ifndef NDEBUG
 	public:

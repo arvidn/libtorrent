@@ -106,6 +106,9 @@ namespace libtorrent
 			, lazy_bitfields(true)
 			, inactivity_timeout(600)
 			, unchoke_interval(20)
+			, num_want(200)
+			, initial_picker_threshold(4)
+			, allowed_fast_set_size(10)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(true)
 #endif
@@ -241,6 +244,17 @@ namespace libtorrent
 		// if this is set, this IP will be reported do the
 		// tracker in the ip= parameter.
 		address announce_ip;
+
+		// the num want sent to trackers
+		int num_want;
+
+		// while we have fewer pieces than this, pick
+		// random pieces instead of rarest first.
+		int initial_picker_threshold;
+
+		// the number of allowed pieces to send to peers
+		// that supports the fast extensions
+		int allowed_fast_set_size;
 
 #ifndef TORRENT_DISABLE_DHT
 		// while this is true, the dht will note be used unless the

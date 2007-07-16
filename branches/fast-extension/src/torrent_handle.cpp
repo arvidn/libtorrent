@@ -765,17 +765,61 @@ namespace libtorrent
 		const std::vector<piece_picker::downloading_piece>& q
 			= p.get_download_queue();
 
+		int block_size = t->block_size();
+
 		for (std::vector<piece_picker::downloading_piece>::const_iterator i
 			= q.begin(); i != q.end(); ++i)
 		{
 			partial_piece_info pi;
 			pi.piece_state = (partial_piece_info::state_t)i->state;
 			pi.blocks_in_piece = p.blocks_in_piece(i->index);
+			int piece_size = t->torrent_file().piece_size(i->index);
 			for (int j = 0; j < pi.blocks_in_piece; ++j)
 			{
-				pi.blocks[j].peer = i->info[j].peer;
-				pi.blocks[j].num_downloads = i->info[j].num_downloads;
-				pi.blocks[j].state = i->info[j].state;
+				block_info& bi = pi.blocks[j];
+				bi.state = i->info[j].state;
+				bi.block_size = j < pi.blocks_in_piece - 1 ? block_size
+					: piece_size - (j * block_size);
+				bool complete = bi.state == block_info::writing
+					|| bi.state == block_info::finished;
+				if (i->info[j].peer == 0)
+				{
+					bi.peer = tcp::endpoint();
+					bi.bytes_progress = complete ? bi.block_size : 0;
+				}
+				else
+				{
+					policy::peer* p = static_cast<policy::peer*>(i->info[j].peer);
+					if (p->connection)
+					{
+						bi.peer = p->connection->remote();
+						if (bi.state == block_info::requested)
+						{
+							boost::optional<piece_block_progress> pbp
+								= p->connection->downloading_piece_progress();
+							if (pbp && pbp->piece_index == i->index && pbp->block_index == j)
+							{
+								bi.bytes_progress = pbp->bytes_downloaded;
+								assert(bi.bytes_progress <= bi.block_size);
+							}
+							else
+							{
+								bi.bytes_progress = 0;
+							}
+						}
+						else
+						{
+							bi.bytes_progress = complete ? bi.block_size : 0;
+						}
+					}
+					else
+					{
+						bi.peer = p->ip;
+						bi.bytes_progress = complete ? bi.block_size : 0;
+					}
+				}
+
+				pi.blocks[j].num_peers = i->info[j].num_peers;
 			}
 			pi.piece_index = i->index;
 			queue.push_back(pi);
