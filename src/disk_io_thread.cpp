@@ -216,7 +216,7 @@ namespace libtorrent
 						break;
 					case disk_io_job::move_storage:
 						ret = j.storage->move_storage_impl(j.str) ? 1 : 0;
-						if (ret) j.str = j.storage->save_path().string();
+						j.str = j.storage->save_path().string();
 						break;
 					case disk_io_job::release_files:
 						j.storage->release_files_impl();
