@@ -1514,14 +1514,16 @@ namespace libtorrent
 
 		// if we already have the piece, we can
 		// ignore this message
-		if (t->have_piece(index)) return;
+		if (t->valid_metadata()
+			&& t->have_piece(index))
+			return;
 
 		m_allowed_fast.push_back(index);
 
 		// if the peer has the piece and we want
 		// to download it, request it
-		if (m_have_piece[index]
-			&& !t->have_piece(index)
+		if (m_have_piece.size() > index
+			&& m_have_piece[index]
 			&& t->has_picker()
 			&& t->picker().piece_priority(index) > 0)
 		{
