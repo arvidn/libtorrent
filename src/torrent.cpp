@@ -204,7 +204,7 @@ namespace libtorrent
 		m_initial_done = 0;
 #endif
 
-		m_uploads_quota.min = 2;
+		m_uploads_quota.min = 0;
 		m_connections_quota.min = 2;
 		// this will be corrected the next time the main session
 		// distributes resources, i.e. on average in 0.5 seconds
@@ -277,7 +277,7 @@ namespace libtorrent
 
 		if (name) m_name.reset(new std::string(name));
 
-		m_uploads_quota.min = 2;
+		m_uploads_quota.min = 0;
 		m_connections_quota.min = 2;
 		// this will be corrected the next time the main session
 		// distributes resources, i.e. on average in 0.5 seconds
@@ -2508,7 +2508,7 @@ namespace libtorrent
 #endif
 
 		m_paused = false;
-		m_uploads_quota.min = 2;
+		m_uploads_quota.min = 0;
 		m_connections_quota.min = 2;
 		m_uploads_quota.max = std::numeric_limits<int>::max();
 		m_connections_quota.max = std::numeric_limits<int>::max();
@@ -2527,6 +2527,7 @@ namespace libtorrent
 
 		m_connections_quota.used = (int)m_connections.size();
 		m_uploads_quota.used = m_policy->num_uploads();
+		m_uploads_quota.max = (int)m_connections.size();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -2741,6 +2742,10 @@ namespace libtorrent
 				= m_trackers[m_last_working_tracker].url;
 		}
 
+		st.num_uploads = m_uploads_quota.used;
+		st.uploads_limit = m_uploads_quota.given;
+		st.num_connections = m_connections_quota.used;
+		st.connections_limit = m_connections_quota.given;
 		// if we don't have any metadata, stop here
 
 		if (!valid_metadata())
