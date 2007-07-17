@@ -235,6 +235,10 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		assert(t);
 		write_bitfield(t->pieces());
+#ifndef TORRENT_DISABLE_DHT
+		if (m_supports_dht_port && m_ses.m_dht)
+			write_dht_port(m_ses.get_dht_settings().service_port);
+#endif
 	}
 
 	void bt_peer_connection::write_dht_port(int listen_port)
@@ -2313,11 +2317,6 @@ namespace libtorrent
 				throw protocol_error("closing connection to ourself");
 			}
  
-#ifndef TORRENT_DISABLE_DHT
-			if (m_supports_dht_port && m_ses.m_dht)
-				write_dht_port(m_ses.get_dht_settings().service_port);
-#endif
-
 			m_client_version = identify_client(pid);
 			boost::optional<fingerprint> f = client_fingerprint(pid);
 			if (f && std::equal(f->name, f->name + 2, "BC"))
@@ -2370,7 +2369,13 @@ namespace libtorrent
 			m_state = read_packet_size;
 			reset_recv_buffer(4);
 			if (t->valid_metadata())
+			{
 				write_bitfield(t->pieces());
+#ifndef TORRENT_DISABLE_DHT
+				if (m_supports_dht_port && m_ses.m_dht)
+					write_dht_port(m_ses.get_dht_settings().service_port);
+#endif
+			}
 
 			assert(!packet_finished());
 			return;

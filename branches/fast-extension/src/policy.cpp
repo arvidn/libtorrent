@@ -1327,7 +1327,7 @@ namespace libtorrent
 
 		int total_connections = 0;
 		int nonempty_connections = 0;
-		
+
 		std::set<address> unique_test;
 		for (const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
