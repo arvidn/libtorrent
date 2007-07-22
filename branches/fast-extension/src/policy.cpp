@@ -248,7 +248,8 @@ namespace libtorrent
 
 			p.add_interesting_blocks(allowed_fast, c.get_bitfield()
 				, interesting_pieces, busy_pieces, num_requests
-				, prefer_whole_pieces, c.peer_info_struct(), state);
+				, prefer_whole_pieces, c.peer_info_struct(), state
+				, false);
 		}
 		else
 		{
