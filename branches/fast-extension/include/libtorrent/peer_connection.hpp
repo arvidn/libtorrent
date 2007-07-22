@@ -407,7 +407,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		buffer::interval wr_recv_buffer()
 		{
-#ifndef NDEBUG
+#if defined _SECURE_SCL && _SECURE_SCL > 0
 			if (m_recv_buffer.empty()) return buffer::interval(0,0);
 #endif
 			return buffer::interval(&m_recv_buffer[0]
@@ -417,7 +417,7 @@ namespace libtorrent
 		
 		buffer::const_interval receive_buffer() const
 		{
-#ifndef NDEBUG
+#if defined _SECURE_SCL && _SECURE_SCL > 0
 			if (m_recv_buffer.empty()) return buffer::const_interval(0,0);
 #endif
 			return buffer::const_interval(&m_recv_buffer[0]

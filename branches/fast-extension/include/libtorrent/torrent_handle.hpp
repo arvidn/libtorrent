@@ -101,6 +101,10 @@ namespace libtorrent
 			, num_seeds(0)
 			, distributed_copies(0.f)
 			, block_size(0)
+			, num_uploads(0)
+			, num_connections(0)
+			, uploads_limit(0)
+			, connections_limit(0)
 		{}
 
 		enum state_t
@@ -202,6 +206,11 @@ namespace libtorrent
 		// the number of bytes each piece request asks for
 		// and each bit in the download queue bitfield represents
 		int block_size;
+
+		int num_uploads;
+		int num_connections;
+		int uploads_limit;
+		int connections_limit;
 	};
 
 	struct TORRENT_EXPORT block_info

@@ -88,6 +88,9 @@ private:
 	int m_half_open_limit;
 
 	deadline_timer m_timer;
+#ifndef NDEBUG
+	bool m_in_timeout_function;
+#endif
 };
 
 }
