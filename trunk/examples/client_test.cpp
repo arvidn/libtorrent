@@ -103,7 +103,7 @@ void clear_home()
 
 #include <termios.h>
 #include <string.h>
-#include <sys/ttycom.h>
+#include <sys/ioctl.h>
 
 #define ANSI_TERMINAL_COLORS
 
