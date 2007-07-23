@@ -70,7 +70,8 @@ void bind_torrent_info()
 
         .def("hash_for_piece", &torrent_info::hash_for_piece, copy)
         .def("piece_size", &torrent_info::piece_size)
-
+        
+	.def("num_files", &torrent_info::num_files)
         .def("file_at", &torrent_info::file_at, return_internal_reference<>())
         .def("files", range(&torrent_info::begin_files, &torrent_info::end_files))
 

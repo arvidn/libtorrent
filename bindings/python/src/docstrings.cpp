@@ -130,6 +130,10 @@ char const* session_remove_torrent_doc =
     "Close all peer connections associated with the torrent and tell the\n"
     "tracker that we've stopped participating in the swarm.";
 
+char const* session_download_rate_limit_doc = 
+    "";
+char const* session_upload_rate_limit_doc = 
+    "";
 char const* session_set_download_rate_limit_doc = 
     "";
 char const* session_set_upload_rate_limit_doc = 

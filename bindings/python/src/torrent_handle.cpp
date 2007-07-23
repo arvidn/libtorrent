@@ -64,6 +64,30 @@ list get_peer_info(torrent_handle const& handle)
     return result;
 }
 
+
+void prioritize_files(torrent_handle& info, object o)
+{
+
+	std::vector<int> result;
+  try
+  {
+		object iter_obj = object( handle<>( PyObject_GetIter( o.ptr() ) ));
+		while( 1 )
+		{
+			object obj = extract<object>( iter_obj.attr( "next" )() );
+      result.push_back(extract<int const>( obj ));
+		}
+	}
+  catch( error_already_set )
+	{
+		PyErr_Clear();
+  	info.prioritize_files(result);
+		return;
+	}
+
+}
+
+
 void replace_trackers(torrent_handle& info, object trackers)
 {
     object iter(trackers.attr("__iter__")());
@@ -106,7 +130,9 @@ list get_download_queue(torrent_handle& handle)
 		{
 			dict block_info;
 			block_info["state"] = i->blocks[k].state;
-			block_info["num_downloads"] = i->blocks[k].num_downloads;
+			block_info["num_peers"] = i->blocks[k].num_peers;
+			block_info["bytes_progress"] = i->blocks[k].bytes_progress;
+			block_info["block_size"] = i->blocks[k].block_size;
 //			block_info["peer"] = i->info[k].peer;
 			block_list.append(block_info);
 		}
@@ -124,6 +150,9 @@ void bind_torrent_handle()
     void (torrent_handle::*force_reannounce1)(boost::posix_time::time_duration) const 
         = &torrent_handle::force_reannounce;
 
+    int (torrent_handle::*piece_priority0)(int) const = &torrent_handle::piece_priority;
+    void (torrent_handle::*piece_priority1)(int, int) const = &torrent_handle::piece_priority;
+    
     return_value_policy<copy_const_reference> copy;
 
 #define _ allow_threads
@@ -148,6 +177,8 @@ void bind_torrent_handle()
         .def("is_paused", _(&torrent_handle::is_paused))
         .def("is_seed", _(&torrent_handle::is_seed))
         .def("filter_piece", _(&torrent_handle::filter_piece))
+        .def("piece_priority", _(piece_priority0))
+        .def("piece_priority", _(piece_priority1))
         .def("is_piece_filtered", _(&torrent_handle::is_piece_filtered))
         .def("has_metadata", _(&torrent_handle::has_metadata))
         .def("save_path", _(&torrent_handle::save_path))
@@ -156,6 +187,7 @@ void bind_torrent_handle()
         .def("file_progress", file_progress)
         .def("trackers", range(begin_trackers, end_trackers))
         .def("replace_trackers", replace_trackers)
+        .def("prioritize_files", prioritize_files)
         .def("get_peer_info", get_peer_info)
         .def("get_download_queue", get_download_queue)
         ;
