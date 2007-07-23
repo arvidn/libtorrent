@@ -2713,6 +2713,8 @@ namespace libtorrent
 			!boost::bind(&peer_connection::is_connecting
 			, boost::bind(&std::map<tcp::endpoint,peer_connection*>::value_type::second, _1)));
 
+		st.compact_mode = m_compact_mode;
+
 		st.num_complete = m_complete;
 		st.num_incomplete = m_incomplete;
 		st.paused = m_paused;

@@ -105,6 +105,7 @@ namespace libtorrent
 			, num_connections(0)
 			, uploads_limit(0)
 			, connections_limit(0)
+			, compact_mode(false)
 		{}
 
 		enum state_t
@@ -211,6 +212,10 @@ namespace libtorrent
 		int num_connections;
 		int uploads_limit;
 		int connections_limit;
+
+		// true if the torrent is saved in compact mode
+		// false if it is saved in full allocation mode
+		bool compact_mode;
 	};
 
 	struct TORRENT_EXPORT block_info
