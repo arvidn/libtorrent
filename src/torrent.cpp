@@ -395,13 +395,22 @@ namespace libtorrent
 	{
 		boost::weak_ptr<torrent> self(shared_from_this());
 
-		// announce on local network every 5 minutes
-		m_announce_timer.expires_from_now(minutes(5));
-		m_announce_timer.async_wait(m_ses.m_strand.wrap(
-			bind(&torrent::on_announce_disp, self, _1)));
+		if (!m_torrent_file.priv())
+		{
+			// announce on local network every 5 minutes
+			m_announce_timer.expires_from_now(minutes(5));
+			m_announce_timer.async_wait(m_ses.m_strand.wrap(
+				bind(&torrent::on_announce_disp, self, _1)));
 
-		// announce with the local discovery service
-		m_ses.announce_lsd(m_torrent_file.info_hash());
+			// announce with the local discovery service
+			m_ses.announce_lsd(m_torrent_file.info_hash());
+		}
+		else
+		{
+			m_announce_timer.expires_from_now(minutes(15));
+			m_announce_timer.async_wait(m_ses.m_strand.wrap(
+				bind(&torrent::on_announce_disp, self, _1)));
+		}
 
 #ifndef TORRENT_DISABLE_DHT
 		if (!m_ses.m_dht) return;

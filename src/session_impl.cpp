@@ -1600,6 +1600,8 @@ namespace detail
 
 		boost::shared_ptr<torrent> t = find_torrent(ih).lock();
 		if (!t) return;
+		// don't add peers from lsd to private torrents
+		if (t->torrent_file().priv()) return;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string()

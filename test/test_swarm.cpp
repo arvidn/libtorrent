@@ -54,7 +54,7 @@ void test_swarm()
 	int count_dl_rates2 = 0;
 	int count_dl_rates3 = 0;
 
-	for (int i = 0; i < 60; ++i)
+	for (int i = 0; i < 65; ++i)
 	{
 		std::auto_ptr<alert> a;
 		a = ses1.pop_alert();
