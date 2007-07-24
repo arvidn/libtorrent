@@ -196,7 +196,13 @@ namespace libtorrent
 		int block_index = num_downloads * m_blocks_per_piece;
 		if (int(m_block_info.size()) < block_index + m_blocks_per_piece)
 		{
+#if defined _SECURE_SCL && _SECURE_SCL > 0
+			block_info* base = 0;
+			if (!m_block_info.empty())
+				base = &m_block_info[0];
+#else
 			block_info* base = &m_block_info[0];
+#endif
 			m_block_info.resize(block_index + m_blocks_per_piece);
 			if (!m_downloads.empty() && &m_block_info[0] != base)
 			{
@@ -605,6 +611,9 @@ namespace libtorrent
 	void piece_picker::sort_piece(std::vector<downloading_piece>::iterator dp)
 	{
 		assert(m_piece_map[dp->index].downloading);
+#if defined _SECURE_SCL && _SECURE_SCL > 0
+		if (dp == m_downloads.begin()) return;
+#endif
 		int complete = dp->writing + dp->finished;
 		for (std::vector<downloading_piece>::iterator i = dp, j(dp-1);
 			i != m_downloads.begin(); --i, --j)
@@ -613,6 +622,9 @@ namespace libtorrent
 			if (j->finished + j->writing >= complete) return;
 			using std::swap;
 			swap(*j, *i);
+#if defined _SECURE_SCL && _SECURE_SCL > 0
+			if (j == m_downloads.begin()) return;
+#endif
 		}
 	}
 
