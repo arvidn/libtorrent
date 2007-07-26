@@ -175,6 +175,8 @@ namespace libtorrent
 		boost::tuples::tuple<size_type, size_type> bytes_done() const;
 		size_type quantized_bytes_done() const;
 
+		void ip_filter_updated() { m_policy->ip_filter_updated(); }
+
 		void pause();
 		void resume();
 		bool is_paused() const { return m_paused; }
