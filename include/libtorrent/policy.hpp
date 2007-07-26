@@ -110,6 +110,8 @@ namespace libtorrent
 		// the peer is not interested in our pieces
 		void not_interested(peer_connection& c);
 
+		void ip_filter_updated();
+
 #ifndef NDEBUG
 		bool has_connection(const peer_connection* p);
 

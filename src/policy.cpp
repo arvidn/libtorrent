@@ -304,6 +304,47 @@ namespace libtorrent
 		, m_available_free_upload(0)
 		, m_last_optimistic_disconnect(min_time())
 	{ assert(t); }
+
+	// disconnects and removes all peers that are now filtered
+	void policy::ip_filter_updated()
+	{
+		aux::session_impl& ses = m_torrent->session();
+		piece_picker* p = 0;
+		if (m_torrent->has_picker())
+			p = &m_torrent->picker();
+		for (std::list<peer>::iterator i = m_peers.begin()
+			, end(m_peers.end()); i != end;)
+		{
+			if ((ses.m_ip_filter.access(i->ip.address()) & ip_filter::blocked) == 0)
+			{
+				++i;
+				continue;
+			}
+		
+			if (i->connection)
+			{
+				i->connection->disconnect();
+				if (ses.m_alerts.should_post(alert::info))
+				{
+					ses.m_alerts.post_alert(peer_blocked_alert(i->ip.address()
+					, "disconnected blocked peer"));
+				}
+				assert(i->connection == 0
+					|| i->connection->peer_info_struct() == 0);
+			}
+			else
+			{
+				if (ses.m_alerts.should_post(alert::info))
+				{
+					ses.m_alerts.post_alert(peer_blocked_alert(i->ip.address()
+					, "blocked peer removed from peer list"));
+				}
+			}
+			if (p) p->clear_peer(&(*i));
+			m_peers.erase(i++);
+		}
+	}
+	
 	// finds the peer that has the worst download rate
 	// and returns it. May return 0 if all peers are
 	// choked.

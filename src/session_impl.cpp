@@ -613,29 +613,9 @@ namespace detail
 
 		// Close connections whose endpoint is filtered
 		// by the new ip-filter
-		for (session_impl::connection_map::iterator i
-			= m_connections.begin(); i != m_connections.end();)
-		{
-			tcp::endpoint sender;
-			try { sender = i->first->remote_endpoint(); }
-			catch (std::exception&) { sender = i->second->remote(); }
-			if (m_ip_filter.access(sender.address()) & ip_filter::blocked)
-			{
-#if defined(TORRENT_VERBOSE_LOGGING)
-				(*i->second->m_logger) << "*** CONNECTION FILTERED\n";
-#endif
-				if (m_alerts.should_post(alert::info))
-				{
-					m_alerts.post_alert(peer_blocked_alert(sender.address()
-						, "peer connection closed by IP filter"));
-				}
-
-				session_impl::connection_map::iterator j = i;
-				++i;
-				j->second->disconnect();
-			}
-			else ++i;
-		}
+		for (torrent_map::iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+			i->second->ip_filter_updated();
 	}
 
 	void session_impl::set_settings(session_settings const& s)
