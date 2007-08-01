@@ -2330,15 +2330,11 @@ namespace libtorrent
 
 	torrent_handle torrent::get_handle() const
 	{
-		INVARIANT_CHECK;
-
 		return torrent_handle(&m_ses, &m_checker, m_torrent_file.info_hash());
 	}
 
 	session_settings const& torrent::settings() const
 	{
-//		INVARIANT_CHECK;
-
 		return m_ses.settings();
 	}
 
