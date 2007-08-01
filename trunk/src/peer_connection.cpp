@@ -1652,6 +1652,7 @@ namespace libtorrent
 		p.payload_up_speed = statistics().upload_payload_rate();
 		p.pid = pid();
 		p.ip = remote();
+		p.pending_disk_bytes = m_outstanding_writing_bytes;
 		
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		p.country[0] = m_country[0];
