@@ -2178,7 +2178,7 @@ namespace libtorrent
 		if (!m_ignore_bandwidth_limits && max_receive > quota_left)
 			max_receive = quota_left;
 
-		assert(max_receive > 0);
+		if (max_receive == 0) return;
 
 		assert(m_recv_pos >= 0);
 		assert(m_packet_size > 0);
@@ -2276,10 +2276,7 @@ namespace libtorrent
 			m_recv_pos += bytes_transferred;
 			assert(m_recv_pos <= int(m_recv_buffer.size()));
 		
-			{
-				INVARIANT_CHECK;
-				on_receive(error, bytes_transferred);
-			}
+			on_receive(error, bytes_transferred);
 
 			assert(m_packet_size > 0);
 
