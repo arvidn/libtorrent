@@ -773,6 +773,9 @@ namespace libtorrent
 			partial_piece_info pi;
 			pi.piece_state = (partial_piece_info::state_t)i->state;
 			pi.blocks_in_piece = p.blocks_in_piece(i->index);
+			pi.finished = (int)i->finished;
+			pi.writing = (int)i->writing;
+			pi.requested = (int)i->requested;
 			int piece_size = t->torrent_file().piece_size(i->index);
 			for (int j = 0; j < pi.blocks_in_piece; ++j)
 			{

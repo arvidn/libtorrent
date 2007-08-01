@@ -831,6 +831,11 @@ namespace libtorrent
 
 		if (passed_hash_check)
 		{
+                        if (m_ses.m_alerts.should_post(alert::info))
+			{
+				m_ses.m_alerts.post_alert(piece_finished_alert(get_handle()
+					, index, "piece finished"));
+			}
 			// the following call may cause picker to become invalid
 			// in case we just became a seed
 			announce_piece(index);
