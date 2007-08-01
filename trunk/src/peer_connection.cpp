@@ -116,6 +116,7 @@ namespace libtorrent
 		, m_remote_bytes_dled(0)
 		, m_remote_dl_rate(0)
 		, m_remote_dl_update(time_now())
+		, m_outstanding_writing_bytes(0)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif
@@ -189,6 +190,7 @@ namespace libtorrent
 		, m_remote_bytes_dled(0)
 		, m_remote_dl_rate(0)
 		, m_remote_dl_update(time_now())
+		, m_outstanding_writing_bytes(0)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif
@@ -1150,6 +1152,7 @@ namespace libtorrent
 		
 		fs.async_write(p, data, bind(&peer_connection::on_disk_write_complete
 			, self(), _1, _2, p, t));
+		m_outstanding_writing_bytes += p.length;
 		picker.mark_as_writing(block_finished, peer_info_struct());
 	}
 
@@ -1157,6 +1160,13 @@ namespace libtorrent
 		, peer_request p, boost::shared_ptr<torrent> t)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+		m_outstanding_writing_bytes -= p.length;
+		assert(m_outstanding_writing_bytes >= 0);
+
+		// in case the outstanding bytes just dropped down
+		// to allow to receive more data
+		setup_receive();
 
 		if (ret == -1 || !t)
 		{
@@ -2324,7 +2334,9 @@ namespace libtorrent
 
 		return (m_bandwidth_limit[download_channel].quota_left() > 0
 				|| m_ignore_bandwidth_limits)
-			&& !m_connecting;
+			&& !m_connecting
+			&& m_outstanding_writing_bytes <
+				m_ses.settings().max_outstanding_disk_bytes_per_connection;
 	}
 
 	void peer_connection::connect(int ticket)

@@ -74,10 +74,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 
-// TODO: each time a block is 'taken over'
-// from another peer. That peer must be given
-// a chance to become not-interested.
-
 namespace libtorrent
 {
 	class torrent;
@@ -701,6 +697,10 @@ namespace libtorrent
 		// a timestamp when the remote download rate
 		// was last updated
 		ptime m_remote_dl_update;
+
+		// the number of bytes send to the disk-io
+		// thread that hasn't yet been completely written.
+		int m_outstanding_writing_bytes;
 		
 #ifndef NDEBUG
 	public:
