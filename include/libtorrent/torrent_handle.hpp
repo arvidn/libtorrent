@@ -241,6 +241,12 @@ namespace libtorrent
 		enum { max_blocks_per_piece = 256 };
 		int piece_index;
 		int blocks_in_piece;
+		// the number of blocks in the finished state
+		int finished;
+		// the number of blocks in the writing state
+		int writing;
+		// the number of blocks in the requested state
+		int requested;
 		block_info blocks[max_blocks_per_piece];
 		enum state_t { none, slow, medium, fast };
 		state_t piece_state;

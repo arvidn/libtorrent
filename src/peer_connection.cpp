@@ -1193,6 +1193,11 @@ namespace libtorrent
 		assert(p.start == j.offset);
 		piece_block block_finished(p.piece, p.start / t->block_size());
 		picker.mark_as_finished(block_finished, peer_info_struct());
+		if (t->alerts().should_post(alert::info))
+		{
+			t->alerts().post_alert(block_finished_alert(t->get_handle(), 
+				block_finished.block_index, block_finished.piece_index, "block finished"));
+		}
 
 		if (!has_peer_choked() && !t->is_seed() && !m_torrent.expired())
 		{
@@ -1300,11 +1305,29 @@ namespace libtorrent
 
 		piece_picker::piece_state_t state;
 		peer_speed_t speed = peer_speed();
-		if (speed == fast) state = piece_picker::fast;
-		else if (speed == medium) state = piece_picker::medium;
-		else state = piece_picker::slow;
+		std::string speedmsg;
+		if (speed == fast)
+		{
+			speedmsg = "fast";
+			state = piece_picker::fast;
+		}
+		else if (speed == medium)
+		{
+			speedmsg = "medium";
+			state = piece_picker::medium;
+		}
+		else
+		{
+			speedmsg = "slow";
+			state = piece_picker::slow;
+		}
 
 		t->picker().mark_as_downloading(block, peer_info_struct(), state);
+                if (t->alerts().should_post(alert::info))
+		{
+			t->alerts().post_alert(block_downloading_alert(t->get_handle(), 
+				speedmsg, block.block_index, block.piece_index, "block downloading"));
+		}
 
 		m_request_queue.push_back(block);
 	}
