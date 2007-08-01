@@ -144,6 +144,10 @@ namespace libtorrent
 		
 		// approximate peer download rate
 		int remote_dl_rate;
+
+		// number of bytes this peer has in
+		// the disk write queue
+		int pending_disk_bytes;
 	};
 
 }
