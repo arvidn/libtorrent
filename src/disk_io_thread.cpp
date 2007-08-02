@@ -41,6 +41,9 @@ namespace libtorrent
 		: m_abort(false)
 		, m_queue_buffer_size(0)
 		, m_pool(block_size)
+#ifndef NDEBUG
+		, m_block_size(block_size)
+#endif
 		, m_disk_io_thread(boost::ref(*this))
 	{}
 
@@ -192,6 +195,7 @@ namespace libtorrent
 						}
 						else
 						{
+							assert(j.buffer_size <= m_block_size);
 							ret = j.storage->read_impl(j.buffer, j.piece, j.offset
 								, j.buffer_size);
 
@@ -201,6 +205,7 @@ namespace libtorrent
 						break;
 					case disk_io_job::write:
 						assert(j.buffer);
+						assert(j.buffer_size <= m_block_size);
 						j.storage->write_impl(j.buffer, j.piece, j.offset
 							, j.buffer_size);
 						
