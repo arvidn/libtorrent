@@ -77,6 +77,12 @@ rule linking ( properties * )
 			;
 	}
 
+	if ( <toolset>gcc in $(properties) || <toolset>darwin in $(properties) ) && <variant>debug in $(properties)
+	{
+		# enable debug iterators for gcc in debug mode
+		result += <define>_GLIBCXX_DEBUG ;
+	}
+
 	return $(result) ;
 }
 
