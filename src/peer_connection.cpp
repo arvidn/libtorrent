@@ -938,7 +938,8 @@ namespace libtorrent
 			&& r.start < t->torrent_file().piece_size(r.piece)
 			&& r.length > 0
 			&& r.length + r.start <= t->torrent_file().piece_size(r.piece)
-			&& m_peer_interested)
+			&& m_peer_interested
+			&& r.length <= t->block_size())
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << time_now_string()
@@ -963,7 +964,8 @@ namespace libtorrent
 				"i: " << m_peer_interested << " | "
 				"t: " << (int)t->torrent_file().piece_size(r.piece) << " | "
 				"n: " << t->torrent_file().num_pieces() << " | "
-				"h: " << t->have_piece(r.piece) << " ]\n";
+				"h: " << t->have_piece(r.piece) << " | "
+				"block_limit: " << t->block_size() << " ]\n";
 #endif
 
 			++m_num_invalid_requests;
