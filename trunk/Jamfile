@@ -77,12 +77,6 @@ rule linking ( properties * )
 			;
 	}
 
-	if ( <toolset>gcc in $(properties) || <toolset>darwin in $(properties) ) && <variant>debug in $(properties)
-	{
-		# enable debug iterators for gcc in debug mode
-		result += <define>_GLIBCXX_DEBUG ;
-	}
-
 	return $(result) ;
 }
 
@@ -146,6 +140,9 @@ feature upnp-logging : off on : composite propagated link-incompatible ;
 feature.compose <upnp-logging>on : <define>TORRENT_UPNP_LOGGING ;
 
 feature boost : system source : link-incompatible propagated ;
+
+feature debug-iterators : off on : composite propagated link-incompatible ;
+feature.compose <debug-iterators>on : <define>_SCL_SECURE=1 <define>_GLIBCXX_DEBUG ;
 
 # required for openssl on windows
 lib ssleay32 : : <name>ssleay32 ;

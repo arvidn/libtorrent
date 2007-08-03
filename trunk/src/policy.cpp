@@ -249,7 +249,7 @@ namespace libtorrent
 		// with the other's, to see if we should abort another
 		// peer_connection in favour of this one
 		std::vector<piece_block> busy_pieces;
-		busy_pieces.reserve(10);
+		busy_pieces.reserve(num_requests);
 
 		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
 			i != interesting_pieces.end(); ++i)
@@ -272,6 +272,8 @@ namespace libtorrent
 			// by somebody else. request it from this peer
 			// and return
 			c.add_request(*i);
+			assert(p.num_peers(*i) == 1);
+			assert(p.is_requested(*i));
 			num_requests--;
 		}
 
@@ -286,6 +288,8 @@ namespace libtorrent
 			return;
 		}
 
+		// if all blocks has the same number of peers on them
+		// we want to pick a random block
 		std::random_shuffle(busy_pieces.begin(), busy_pieces.end());
 		
 		// find the block with the fewest requests to it
@@ -293,7 +297,11 @@ namespace libtorrent
 			busy_pieces.begin(), busy_pieces.end()
 			, bind(&piece_picker::num_peers, boost::cref(p), _1) <
 			bind(&piece_picker::num_peers, boost::cref(p), _2));
-
+#ifndef NDEBUG
+		piece_picker::downloading_piece st;
+		p.piece_info(i->piece_index, st);
+		assert(st.requested + st.finished + st.writing == p.blocks_in_piece(i->piece_index));
+#endif
 		c.add_request(*i);
 		c.send_block_requests();
 	}
