@@ -1125,6 +1125,7 @@ namespace libtorrent
 		j.piece = r.piece;
 		j.offset = r.start;
 		j.buffer_size = r.length;
+		assert(r.length <= 16 * 1024);
 		m_io_thread.add_job(j, handler);
 	}
 
