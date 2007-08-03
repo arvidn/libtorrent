@@ -638,7 +638,8 @@ namespace libtorrent
 		bool m_queued;
 
 		// these are true when there's a asynchronous write
-		// or read operation running.
+		// or read operation in progress. Or an asyncronous bandwidth
+		// request is in progress.
 		bool m_writing;
 		bool m_reading;
 
