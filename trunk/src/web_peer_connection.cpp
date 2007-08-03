@@ -315,7 +315,14 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (error) return;
+		if (error)
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << "*** web_peer_connection error: "
+				<< error.message() << "\n";
+#endif
+			return;
+		}
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		assert(t);

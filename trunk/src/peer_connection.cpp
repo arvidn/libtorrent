@@ -1153,6 +1153,7 @@ namespace libtorrent
 		fs.async_write(p, data, bind(&peer_connection::on_disk_write_complete
 			, self(), _1, _2, p, t));
 		m_outstanding_writing_bytes += p.length;
+		assert(!m_reading);
 		picker.mark_as_writing(block_finished, peer_info_struct());
 	}
 
@@ -1164,6 +1165,9 @@ namespace libtorrent
 		m_outstanding_writing_bytes -= p.length;
 		assert(m_outstanding_writing_bytes >= 0);
 
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << " *** on_disk_write_complete() " << p.length << "\n";
+#endif
 		// in case the outstanding bytes just dropped down
 		// to allow to receive more data
 		setup_receive();
@@ -2049,11 +2053,13 @@ namespace libtorrent
 		m_bandwidth_limit[channel].assign(amount);
 		if (channel == upload_channel)
 		{
+			assert(m_writing);
 			m_writing = false;
 			setup_send();
 		}
 		else if (channel == download_channel)
 		{
+			assert(m_reading);
 			m_reading = false;
 			setup_receive();
 		}
@@ -2101,10 +2107,11 @@ namespace libtorrent
 				(*m_logger) << "req bandwidth [ " << upload_channel << " ]\n";
 #endif
 
+				assert(!m_writing);
 				// peers that we are not interested in are non-prioritized
+				m_writing = true;
 				t->request_bandwidth(upload_channel, self()
 					, !(is_interesting() && !has_peer_choked()));
-				m_writing = true;
 			}
 			return;
 		}
@@ -2150,6 +2157,9 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << "setup_receive: reading = " << m_reading << "\n";
+#endif
 		if (m_reading) return;
 
 		shared_ptr<torrent> t = m_torrent.lock();
@@ -2164,8 +2174,8 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 				(*m_logger) << "req bandwidth [ " << download_channel << " ]\n";
 #endif
-				t->request_bandwidth(download_channel, self(), m_non_prioritized);
 				m_reading = true;
+				t->request_bandwidth(download_channel, self(), m_non_prioritized);
 			}
 			return;
 		}
@@ -2353,11 +2363,17 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		return (m_bandwidth_limit[download_channel].quota_left() > 0
+		bool ret = (m_bandwidth_limit[download_channel].quota_left() > 0
 				|| m_ignore_bandwidth_limits)
 			&& !m_connecting
 			&& m_outstanding_writing_bytes <
 				m_ses.settings().max_outstanding_disk_bytes_per_connection;
+		
+#if defined(TORRENT_VERBOSE_LOGGING)
+		(*m_logger) << "*** can_read() " << ret << " reading: " << m_reading << "\n";
+#endif
+		
+		return ret;
 	}
 
 	void peer_connection::connect(int ticket)
@@ -2682,6 +2698,7 @@ namespace libtorrent
 		(*m_logger) << time_now_string() << " ==> KEEPALIVE\n";
 #endif
 		
+		m_last_sent = time_now();
 		write_keepalive();
 	}
 

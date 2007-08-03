@@ -108,7 +108,7 @@ namespace libtorrent
 			, unchoke_interval(20)
 			, num_want(200)
 			, initial_picker_threshold(4)
-			, max_outstanding_disk_bytes_per_connection(128 * 1024)
+			, max_outstanding_disk_bytes_per_connection(64 * 1024)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(true)
 #endif
