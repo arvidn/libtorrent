@@ -37,11 +37,14 @@ namespace libtorrent
 {
 	enum
 	{
-		xml_start_tag = 0,
-		xml_end_tag = 1,
-		xml_empty_tag = 2,
-		xml_string = 3,
-		xml_attribute = 4
+		xml_start_tag,
+		xml_end_tag,
+		xml_empty_tag,
+		xml_declaration_tag,
+		xml_string,
+		xml_attribute,
+		xml_comment,
+		xml_parse_error
 	};
 
 	// callback(int type, char const* str, char const* str2)
@@ -84,7 +87,13 @@ namespace libtorrent
 			for (; p != end && *p != '>'; ++p);
 
 			// parse error
-			if (p == end) break;
+			if (p == end)
+			{
+				token = xml_parse_error;
+				start = "unexpected end of file";
+				callback(token, start, val_start);
+				break;
+			}
 			
 			assert(*p == '>');
 			// save the character that terminated the tag name
@@ -107,6 +116,24 @@ namespace libtorrent
 				*(p-1) = '/';
 				tag_end = p - 1;
 			}
+			else if (*start == '?' && *(p-1) == '?')
+			{
+				*(p-1) = 0;
+				++start;
+				token = xml_declaration_tag;
+				callback(token, start, val_start);
+				*(p-1) = '?';
+				tag_end = p - 1;
+			}
+			else if (start + 5 < p && memcmp(start, "!--", 3) == 0 && memcmp(p-2, "--", 2) == 0)
+			{
+				start += 3;
+				*(p-2) = 0;
+				token = xml_comment;
+				callback(token, start, val_start);
+				*(p-2) = '-';
+				tag_end = p - 2;
+			}
 			else
 			{
 				token = xml_start_tag;
@@ -116,24 +143,59 @@ namespace libtorrent
 			*tag_name_end = save;
 
 			// parse attributes
-			start = tag_name_end;
 			for (char* i = tag_name_end; i < tag_end; ++i)
 			{
-				if (*i != '=') continue;
-				assert(*start == ' ');
-				++start;
+				// find start of attribute name
+				for (; i != tag_end && (*i == ' ' || *i == '\t'); ++i);
+				if (i == tag_end) break;
+				start = i;
+				// find end of attribute name
+				for (; i != tag_end && *i != '=' && *i != ' ' && *i != '\t'; ++i);
+				char* name_end = i;
+
+				// look for equality sign
+				for (; i != tag_end && *i != '='; ++i);
+
+				if (i == tag_end)
+				{
+					token = xml_parse_error;
+					val_start = 0;
+					start = "garbage inside element brackets";
+					callback(token, start, val_start);
+					break;
+				}
+
+				++i;
+				for (; i != tag_end && (*i == ' ' || *i == '\t'); ++i);
+				// check for parse error (values must be quoted)
+				if (i == tag_end || (*i != '\'' && *i != '\"'))
+				{
+					token = xml_parse_error;
+					val_start = 0;
+					start = "unquoted attribute value";
+					callback(token, start, val_start);
+					break;
+				}
+				char quote = *i;
+				++i;
 				val_start = i;
-				for (; i != tag_end && *i != ' '; ++i);
+				for (; i != tag_end && *i != quote; ++i);
+				// parse error (missing end quote)
+				if (i == tag_end)
+				{
+					token = xml_parse_error;
+					val_start = 0;
+					start = "missing end quote on attribute";
+					callback(token, start, val_start);
+					break;
+				}
 				save = *i;
 				*i = 0;
-				const_cast<char&>(*val_start) = 0;
-				++val_start;
+				*name_end = 0;
 				token = xml_attribute;
 				callback(token, start, val_start);
-				--val_start;
-				const_cast<char&>(*val_start) = '=';
+				*name_end = '=';
 				*i = save;
-				start = i;
 			}
 		}
 	
