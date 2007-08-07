@@ -34,14 +34,23 @@ void parser_callback(std::string& out, int token, char const* s, char const* val
 		case xml_start_tag: out += "B"; break;
 		case xml_end_tag: out += "F"; break;
 		case xml_empty_tag: out += "E"; break;
+		case xml_declaration_tag: out += "D"; break;
+		case xml_comment: out += "C"; break;
 		case xml_string: out += "S"; break;
 		case xml_attribute: out += "A"; break;
+		case xml_parse_error: out += "P"; break;
+		default: TEST_CHECK(false);
 	}
 	out += s;
 	if (token == xml_attribute)
 	{
+		TEST_CHECK(val != 0);
 		out += "V";
 		out += val;
+	}
+	else
+	{
+		TEST_CHECK(val == 0);
 	}
 }
 
@@ -127,13 +136,29 @@ int test_main()
 	std::cerr << out1 << std::endl;
 	TEST_CHECK(out1 == "BaSfooEbSbarFa");
 
-	char xml2[] = "<c x=1 y=3/><d foo=bar></d boo=foo>";
+	char xml2[] = "<?xml version = \"1.0\"?><c x=\"1\" \t y=\"3\"/><d foo='bar'></d boo='foo'><!--comment-->";
 	std::string out2;
 
 	xml_parse(xml2, xml2 + sizeof(xml2) - 1, bind(&parser_callback
 		, boost::ref(out2), _1, _2, _3));
 	std::cerr << out2 << std::endl;
-	TEST_CHECK(out2 == "EcAxV1AyV3BdAfooVbarFdAbooVfoo");
+	TEST_CHECK(out2 == "DxmlAversionV1.0EcAxV1AyV3BdAfooVbarFdAbooVfooCcomment");
+
+	char xml3[] = "<a f=1>foo</a f='b>";
+	std::string out3;
+
+	xml_parse(xml3, xml3 + sizeof(xml3) - 1, bind(&parser_callback
+		, boost::ref(out3), _1, _2, _3));
+	std::cerr << out3 << std::endl;
+	TEST_CHECK(out3 == "BaPunquoted attribute valueSfooFaPmissing end quote on attribute");
+
+	char xml4[] = "<a  f>foo</a  v  >";
+	std::string out4;
+
+	xml_parse(xml4, xml4 + sizeof(xml4) - 1, bind(&parser_callback
+		, boost::ref(out4), _1, _2, _3));
+	std::cerr << out4 << std::endl;
+	TEST_CHECK(out4 == "BaPgarbage inside element bracketsSfooFaPgarbage inside element brackets");
 	return 0;
 }
 
