@@ -659,7 +659,7 @@ void upnp::on_upnp_xml(asio::error_code const& e
 		d.upnp_connection.reset();
 	}
 
-	if (e)
+	if (e && e != asio::error::eof)
 	{
 #ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
@@ -672,7 +672,16 @@ void upnp::on_upnp_xml(asio::error_code const& e
 	{
 #ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
-			<< " <== incomplete http message" << std::endl;
+			<< " <== error while fetching control url: incomplete http message" << std::endl;
+#endif
+		return;
+	}
+
+	if (p.status_code() != 200)
+	{
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " <== error while fetching control url: " << p.message() << std::endl;
 #endif
 		return;
 	}
@@ -791,7 +800,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 		d.upnp_connection.reset();
 	}
 
-	if (e)
+	if (e && e != asio::error::eof)
 	{
 #ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
@@ -824,12 +833,22 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 	{
 #ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
-			<< " <== incomplete http message" << std::endl;
+			<< " <== error while adding portmap: incomplete http message" << std::endl;
 #endif
 		m_devices.erase(d);
 		return;
 	}
 	
+	if (p.status_code() != 200)
+	{
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " <== error while adding portmap: " << p.message() << std::endl;
+#endif
+		m_devices.erase(d);
+		return;
+	}
+
 	error_code_parse_state s;
 	xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
 		, m_strand.wrap(bind(&find_error_code, _1, _2, boost::ref(s))));
@@ -933,7 +952,7 @@ void upnp::on_upnp_unmap_response(asio::error_code const& e
 		d.upnp_connection.reset();
 	}
 
-	if (e)
+	if (e && e != asio::error::eof)
 	{
 #ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
@@ -945,8 +964,18 @@ void upnp::on_upnp_unmap_response(asio::error_code const& e
 	{
 #ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
-			<< " <== incomplete http message" << std::endl;
+			<< " <== error while deleting portmap: incomplete http message" << std::endl;
 #endif
+		return;
+	}
+
+	if (p.status_code() != 200)
+	{
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " <== error while deleting portmap: " << p.message() << std::endl;
+#endif
+		m_devices.erase(d);
 		return;
 	}
 
