@@ -1044,6 +1044,7 @@ namespace libtorrent
 				case 0x52345362: // Reiser4
 				case 0x58465342: // XFS
 				case 0x65735546: // NTFS-3G
+				case 0x19540119: // UFS2
 					return true;
 			}
 		}
