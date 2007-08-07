@@ -62,9 +62,10 @@ namespace libtorrent
 	{
 		if (a.is_v6()) return false;
 		address_v4 a4 = a.to_v4();
-		return ((a4.to_ulong() & 0xff000000) == 0x0a000000
-			|| (a4.to_ulong() & 0xfff00000) == 0xac100000
-			|| (a4.to_ulong() & 0xffff0000) == 0xc0a80000);
+		unsigned long ip = htonl(a4.to_ulong());
+		return ((ip & 0xff000000) == 0x0a000000
+			|| (ip & 0xfff00000) == 0xac100000
+			|| (ip & 0xffff0000) == 0xc0a80000);
 	}
 
 	address_v4 guess_local_address(asio::io_service& ios)
