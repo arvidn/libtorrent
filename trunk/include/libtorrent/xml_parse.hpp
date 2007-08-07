@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_XML_PARSE_HPP
 #define TORRENT_XML_PARSE_HPP
 
+#include <cctype>
+
 namespace libtorrent
 {
 	enum
@@ -47,8 +49,9 @@ namespace libtorrent
 		xml_parse_error
 	};
 
-	// callback(int type, char const* str, char const* str2)
-	// str2 is only used for attributes. str is name and str2 is value
+	// callback(int type, char const* name, char const* val)
+	// str2 is only used for attributes. name is element or attribute
+	// name and val is attribute value
 
 	template <class CallbackType>	
 	void xml_parse(char* p, char* end, CallbackType callback)
@@ -79,7 +82,7 @@ namespace libtorrent
 			++p;	
 
 			// parse the name of the tag.
-			for (start = p; p != end && *p != '>' && *p != ' '; ++p);
+			for (start = p; p != end && *p != '>' && !std::isspace(*p); ++p);
 
 			char* tag_name_end = p;
 
@@ -146,11 +149,11 @@ namespace libtorrent
 			for (char* i = tag_name_end; i < tag_end; ++i)
 			{
 				// find start of attribute name
-				for (; i != tag_end && (*i == ' ' || *i == '\t'); ++i);
+				for (; i != tag_end && std::isspace(*i); ++i);
 				if (i == tag_end) break;
 				start = i;
 				// find end of attribute name
-				for (; i != tag_end && *i != '=' && *i != ' ' && *i != '\t'; ++i);
+				for (; i != tag_end && *i != '=' && !std::isspace(*i); ++i);
 				char* name_end = i;
 
 				// look for equality sign
@@ -166,7 +169,7 @@ namespace libtorrent
 				}
 
 				++i;
-				for (; i != tag_end && (*i == ' ' || *i == '\t'); ++i);
+				for (; i != tag_end && std::isspace(*i); ++i);
 				// check for parse error (values must be quoted)
 				if (i == tag_end || (*i != '\'' && *i != '\"'))
 				{
