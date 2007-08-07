@@ -2,6 +2,7 @@
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/xml_parse.hpp"
+#include "libtorrent/upnp.hpp"
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/bind.hpp>
@@ -159,6 +160,13 @@ int test_main()
 		, boost::ref(out4), _1, _2, _3));
 	std::cerr << out4 << std::endl;
 	TEST_CHECK(out4 == "BaPgarbage inside element bracketsSfooFaPgarbage inside element brackets");
+
+	// test network functions
+
+	TEST_CHECK(is_local(address::from_string("192.168.0.1")));
+	TEST_CHECK(is_local(address::from_string("10.1.1.56")));
+	TEST_CHECK(!is_local(address::from_string("14.14.251.63")));
+	
 	return 0;
 }
 
