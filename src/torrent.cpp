@@ -1658,17 +1658,26 @@ namespace libtorrent
 	};
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
+	namespace
+	{
+		unsigned long swap_bytes(unsigned long a)
+		{
+			return (a >> 24) | ((a & 0xff0000) >> 8) | ((a & 0xff00) << 8) | (a << 24);
+		}
+	}
+	
 	void torrent::resolve_peer_country(boost::intrusive_ptr<peer_connection> const& p) const
 	{
 		if (m_resolving_country
 			|| p->has_country()
 			|| p->is_connecting()
 			|| p->is_queued()
-			|| p->in_handshake()) return;
+			|| p->in_handshake()
+			|| p->remote().address().is_v6()) return;
 
 		m_resolving_country = true;
-		tcp::resolver::query q(boost::lexical_cast<std::string>(p->remote().address())
-			+ ".zz.countries.nerd.dk", "0");
+		asio::ip::address_v4 reversed(swap_bytes(p->remote().address().to_v4().to_ulong()));
+		tcp::resolver::query q(reversed.to_string() + ".zz.countries.nerd.dk", "0");
 		m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
 			bind(&torrent::on_country_lookup, shared_from_this(), _1, _2, p)));
 	}
