@@ -1,13 +1,16 @@
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/buffer.hpp"
+#include "libtorrent/xml_parse.hpp"
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
+#include <boost/bind.hpp>
 
 #include "test.hpp"
 
 using namespace libtorrent;
 using namespace boost::tuples;
+using boost::bind;
 
 tuple<int, int> feed_bytes(http_parser& parser, char const* str)
 {
@@ -22,6 +25,24 @@ tuple<int, int> feed_bytes(http_parser& parser, char const* str)
 		ret.get<1>() += protocol;
 	}
 	return ret;
+}
+
+void parser_callback(std::string& out, int token, char const* s, char const* val)
+{
+	switch (token)
+	{
+		case xml_start_tag: out += "B"; break;
+		case xml_end_tag: out += "F"; break;
+		case xml_empty_tag: out += "E"; break;
+		case xml_string: out += "S"; break;
+		case xml_attribute: out += "A"; break;
+	}
+	out += s;
+	if (token == xml_attribute)
+	{
+		out += "V";
+		out += val;
+	}
 }
 
 int test_main()
@@ -96,6 +117,23 @@ int test_main()
 	TEST_CHECK(parser.header<std::string>("ext") == "");
 	TEST_CHECK(parser.header<std::string>("date") == "Fri, 02 Jan 1970 08:10:38 GMT");
 
+	// test xml parser
+
+	char xml1[] = "<a>foo<b/>bar</a>";
+	std::string out1;
+
+	xml_parse(xml1, xml1 + sizeof(xml1) - 1, bind(&parser_callback
+		, boost::ref(out1), _1, _2, _3));
+	std::cerr << out1 << std::endl;
+	TEST_CHECK(out1 == "BaSfooEbSbarFa");
+
+	char xml2[] = "<c x=1 y=3/><d foo=bar></d boo=foo>";
+	std::string out2;
+
+	xml_parse(xml2, xml2 + sizeof(xml2) - 1, bind(&parser_callback
+		, boost::ref(out2), _1, _2, _3));
+	std::cerr << out2 << std::endl;
+	TEST_CHECK(out2 == "EcAxV1AyV3BdAfooVbarFdAbooVfoo");
 	return 0;
 }
 

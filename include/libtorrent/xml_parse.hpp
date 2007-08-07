@@ -35,9 +35,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	const int xml_start_tag = 0;
-	const int xml_end_tag = 1;
-	const int xml_string = 2;
+	enum
+	{
+		xml_start_tag = 0,
+		xml_end_tag = 1,
+		xml_empty_tag = 2,
+		xml_string = 3,
+		xml_attribute = 4
+	};
+
+	// callback(int type, char const* str, char const* str2)
+	// str2 is only used for attributes. str is name and str2 is value
 
 	template <class CallbackType>	
 	void xml_parse(char* p, char* end, CallbackType callback)
@@ -45,6 +53,8 @@ namespace libtorrent
 		for(;p != end; ++p)
 		{
 			char const* start = p;
+			char const* val_start = 0;
+			int token;
 			// look for tag start
 			for(; *p != '<' && p != end; ++p);
 
@@ -55,39 +65,76 @@ namespace libtorrent
 					assert(*p == '<');
 					*p = 0;
 				}
-				callback(xml_string, start);
+				token = xml_string;
+				callback(token, start, val_start);
 				if (p != end) *p = '<';
 			}
-		
+
 			if (p == end) break;
 		
 			// skip '<'
 			++p;	
 
-			// parse the name of the tag. Ignore attributes
-			for (start = p; p != end && *p != '>'; ++p)
-			{
-				// terminate the string at the first space
-				// to ignore tag attributes
-				if (*p == ' ') *p = 0;
-			}
+			// parse the name of the tag.
+			for (start = p; p != end && *p != '>' && *p != ' '; ++p);
+
+			char* tag_name_end = p;
+
+			// skip the attributes for now
+			for (; p != end && *p != '>'; ++p);
 
 			// parse error
 			if (p == end) break;
 			
 			assert(*p == '>');
-			*p = 0;
+			// save the character that terminated the tag name
+			// it could be both '>' and ' '.
+			char save = *tag_name_end;
+			*tag_name_end = 0;
 
+			char* tag_end = p;
 			if (*start == '/')
 			{
 				++start;
-				callback(xml_end_tag, start);
+				token = xml_end_tag;
+				callback(token, start, val_start);
+			}
+			else if (*(p-1) == '/')
+			{
+				*(p-1) = 0;
+				token = xml_empty_tag;
+				callback(token, start, val_start);
+				*(p-1) = '/';
+				tag_end = p - 1;
 			}
 			else
 			{
-				callback(xml_start_tag, start);
+				token = xml_start_tag;
+				callback(token, start, val_start);
 			}
-			*p = '>';
+
+			*tag_name_end = save;
+
+			// parse attributes
+			start = tag_name_end;
+			for (char* i = tag_name_end; i < tag_end; ++i)
+			{
+				if (*i != '=') continue;
+				assert(*start == ' ');
+				++start;
+				val_start = i;
+				for (; i != tag_end && *i != ' '; ++i);
+				save = *i;
+				*i = 0;
+				const_cast<char&>(*val_start) = 0;
+				++val_start;
+				token = xml_attribute;
+				callback(token, start, val_start);
+				--val_start;
+				const_cast<char&>(*val_start) = '=';
+				*i = save;
+				start = i;
+			}
 		}
 	
 	}
