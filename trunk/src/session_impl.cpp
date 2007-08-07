@@ -1901,13 +1901,15 @@ namespace detail
 	int session_impl::upload_rate_limit() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		return m_bandwidth_manager[peer_connection::upload_channel]->throttle();
+		int ret = m_bandwidth_manager[peer_connection::upload_channel]->throttle();
+		return ret == std::numeric_limits<int>::max() ? -1 : ret;
 	}
 
 	int session_impl::download_rate_limit() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		return m_bandwidth_manager[peer_connection::download_channel]->throttle();
+		int ret = m_bandwidth_manager[peer_connection::download_channel]->throttle();
+		return ret == std::numeric_limits<int>::max() ? -1 : ret;
 	}
 
 	void session_impl::start_lsd()
