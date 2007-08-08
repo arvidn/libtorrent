@@ -21,11 +21,13 @@ void test_transfer(bool clear_files = true, bool disconnect = false)
 	ses2.add_extension(&create_metadata_plugin);
 	torrent_handle tor1;
 	torrent_handle tor2;
+#ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
 	pes.out_enc_policy = pe_settings::disabled;
 	pes.in_enc_policy = pe_settings::disabled;
 	ses1.set_pe_settings(pes);
 	ses2.set_pe_settings(pes);
+#endif
 
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0, clear_files);	
 
