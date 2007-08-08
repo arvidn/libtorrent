@@ -90,47 +90,47 @@ struct bandwidth_limit
 {
 	static const int inf = boost::integer_traits<int>::const_max;
 
-	bandwidth_limit()
+	bandwidth_limit() throw()
 		: m_quota_left(0)
 		, m_local_limit(inf)
 		, m_current_rate(0)
 	{}
 
-	void throttle(int limit)
+	void throttle(int limit) throw()
 	{
 		m_local_limit = limit;
 	}
 	
-	int throttle() const
+	int throttle() const throw()
 	{
 		return m_local_limit;
 	}
 
-	void assign(int amount)
+	void assign(int amount) throw()
 	{
 		assert(amount > 0);
 		m_current_rate += amount;
 		m_quota_left += amount;
 	}
 
-	void use_quota(int amount)
+	void use_quota(int amount) throw()
 	{
 		assert(amount <= m_quota_left);
 		m_quota_left -= amount;
 	}
 
-	int quota_left() const
+	int quota_left() const throw()
 	{
 		return (std::max)(m_quota_left, 0);
 	}
 
-	void expire(int amount)
+	void expire(int amount) throw()
 	{
 		assert(amount >= 0);
 		m_current_rate -= amount;
 	}
 
-	int max_assignable() const
+	int max_assignable() const throw()
 	{
 		if (m_local_limit == inf) return inf;
 		if (m_local_limit <= m_current_rate) return 0;
@@ -160,7 +160,7 @@ private:
 };
 
 template<class T>
-T clamp(T val, T ceiling, T floor)
+T clamp(T val, T ceiling, T floor) throw()
 {
 	assert(ceiling >= floor);
 	if (val >= ceiling) return ceiling;
@@ -171,7 +171,7 @@ T clamp(T val, T ceiling, T floor)
 template<class PeerConnection, class Torrent>
 struct bandwidth_manager
 {
-	bandwidth_manager(io_service& ios, int channel)
+	bandwidth_manager(io_service& ios, int channel) throw()
 		: m_ios(ios)
 		, m_history_timer(m_ios)
 		, m_limit(bandwidth_limit::inf)
@@ -179,14 +179,14 @@ struct bandwidth_manager
 		, m_channel(channel)
 	{}
 
-	void throttle(int limit)
+	void throttle(int limit) throw()
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		assert(limit >= 0);
 		m_limit = limit;
 	}
 	
-	int throttle() const
+	int throttle() const throw()
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		return m_limit;
@@ -197,7 +197,7 @@ struct bandwidth_manager
 	// this is used by web seeds
 	void request_bandwidth(intrusive_ptr<PeerConnection> peer
 		, int blk
-		, bool non_prioritized)
+		, bool non_prioritized) throw()
 	{
 		INVARIANT_CHECK;
 		assert(blk > 0);
@@ -257,8 +257,11 @@ struct bandwidth_manager
 
 private:
 
-	void add_history_entry(history_entry<PeerConnection, Torrent> const& e) try
+	void add_history_entry(history_entry<PeerConnection, Torrent> const& e) throw()
 	{
+#ifndef NDEBUG
+		try {
+#endif
 		INVARIANT_CHECK;
 		m_history.push_front(e);
 		m_current_quota += e.amount;
@@ -268,11 +271,17 @@ private:
 
 		m_history_timer.expires_at(e.expires_at);
 		m_history_timer.async_wait(bind(&bandwidth_manager::on_history_expire, this, _1));
+#ifndef NDEBUG
+		}
+		catch (std::exception&) { assert(false); }
+#endif
 	}
-	catch (std::exception&) { assert(false); }
 	
-	void on_history_expire(asio::error_code const& e) try
+	void on_history_expire(asio::error_code const& e) throw()
 	{
+#ifndef NDEBUG
+		try {
+#endif
 		INVARIANT_CHECK;
 
 		if (e) return;
@@ -303,14 +312,20 @@ private:
 		// means we can hand out more (in case there
 		// are still consumers in line)
 		if (!m_queue.empty()) hand_out_bandwidth();
+#ifndef NDEBUG
+		}
+		catch (std::exception&)
+		{
+			assert(false);
+		}
+#endif
 	}
-	catch (std::exception&)
-	{
-		assert(false);
-	};
 
-	void hand_out_bandwidth() try
+	void hand_out_bandwidth() throw()
 	{
+#ifndef NDEBUG
+		try {
+#endif
 		INVARIANT_CHECK;
 
 		ptime now(time_now());
@@ -404,9 +419,12 @@ private:
 			add_history_entry(history_entry<PeerConnection, Torrent>(
 				qe.peer, t, hand_out_amount, now + bw_window_size));
 		}
+#ifndef NDEBUG
+		}
+		catch (std::exception& e)
+		{ assert(false); };
+#endif
 	}
-	catch (std::exception& e)
-	{ assert(false); };
 
 
 	typedef boost::mutex mutex_t;
