@@ -981,7 +981,7 @@ namespace libtorrent
 			return true;
 #endif
 
-#if defined(__APPLE__) || defined(__linux__)
+#if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__)
 		// find the last existing directory of the save path
 		fs::path query_path = p;
 		while (!query_path.empty() && !exists(query_path))
@@ -1019,6 +1019,7 @@ namespace libtorrent
 			return true;
 		}
 
+		// workaround for bugs in Mac OS X where zero run is not reported
 		if (!strcmp(fsinfo.f_fstypename, "hfs")
 			|| !strcmp(fsinfo.f_fstypename, "ufs"))
 			return true;
@@ -1026,7 +1027,7 @@ namespace libtorrent
 		return false;
 #endif
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
 		struct statfs buf;
 		int err = statfs(query_path.native_directory_string().c_str(), &buf);
 		if (err == 0)
