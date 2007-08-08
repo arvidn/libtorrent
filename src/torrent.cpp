@@ -1109,7 +1109,7 @@ namespace libtorrent
 
 	void torrent::set_piece_priority(int index, int priority)
 	{
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		assert(valid_metadata());
 		if (is_seed()) return;
@@ -1125,7 +1125,7 @@ namespace libtorrent
 
 	int torrent::piece_priority(int index) const
 	{
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		assert(valid_metadata());
 		if (is_seed()) return 1;
