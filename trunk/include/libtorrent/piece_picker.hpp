@@ -163,7 +163,9 @@ namespace libtorrent
 		void we_have(int index);
 
 		// sets the priority of a piece.
-		void set_piece_priority(int index, int prio);
+		// returns true if the priority was changed from 0 to non-0
+		// or vice versa
+		bool set_piece_priority(int index, int prio);
 
 		// returns the priority for the piece at 'index'
 		int piece_priority(int index) const;

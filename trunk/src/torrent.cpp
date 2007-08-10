@@ -1119,8 +1119,8 @@ namespace libtorrent
 		assert(index >= 0);
 		assert(index < m_torrent_file.num_pieces());
 
-		m_picker->set_piece_priority(index, priority);
-		update_peer_interest();
+		bool filter_updated = m_picker->set_piece_priority(index, priority);
+		if (filter_updated) update_peer_interest();
 	}
 
 	int torrent::piece_priority(int index) const
@@ -1149,14 +1149,15 @@ namespace libtorrent
 		assert(m_picker.get());
 
 		int index = 0;
+		bool filter_updated = false;
 		for (std::vector<int>::const_iterator i = pieces.begin()
 			, end(pieces.end()); i != end; ++i, ++index)
 		{
 			assert(*i >= 0);
 			assert(*i <= 7);
-			m_picker->set_piece_priority(index, *i);
+			filter_updated |= m_picker->set_piece_priority(index, *i);
 		}
-		update_peer_interest();
+		if (filter_updated) update_peer_interest();
 	}
 
 	void torrent::piece_priorities(std::vector<int>& pieces) const
