@@ -966,7 +966,7 @@ namespace libtorrent
 	}
 
 
-	void piece_picker::set_piece_priority(int index, int new_piece_priority)
+	bool piece_picker::set_piece_priority(int index, int new_piece_priority)
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 		assert(new_piece_priority >= 0);
@@ -977,16 +977,18 @@ namespace libtorrent
 		piece_pos& p = m_piece_map[index];
 
 		// if the priority isn't changed, don't do anything
-		if (new_piece_priority == int(p.piece_priority)) return;
+		if (new_piece_priority == int(p.piece_priority)) return false;
 		
 		int prev_priority = p.priority(m_sequenced_download_threshold);
 
+		bool ret = false;
 		if (new_piece_priority == piece_pos::filter_priority
 			&& p.piece_priority != piece_pos::filter_priority)
 		{
 			// the piece just got filtered
 			if (p.have()) ++m_num_have_filtered;
 			else ++m_num_filtered;
+			ret = true;
 		}
 		else if (new_piece_priority != piece_pos::filter_priority
 			&& p.piece_priority == piece_pos::filter_priority)
@@ -994,6 +996,7 @@ namespace libtorrent
 			// the piece just got unfiltered
 			if (p.have()) --m_num_have_filtered;
 			else --m_num_filtered;
+			ret = true;
 		}
 		assert(m_num_filtered >= 0);
 		assert(m_num_have_filtered >= 0);
@@ -1001,7 +1004,7 @@ namespace libtorrent
 		p.piece_priority = new_piece_priority;
 		int new_priority = p.priority(m_sequenced_download_threshold);
 
-		if (new_priority == prev_priority) return;
+		if (new_priority == prev_priority) return false;
 		
 		if (prev_priority == 0)
 		{
@@ -1011,6 +1014,7 @@ namespace libtorrent
 		{
 			move(prev_priority, p.index);
 		}
+		return ret;
 	}
 
 	int piece_picker::piece_priority(int index) const
