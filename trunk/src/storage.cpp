@@ -1572,16 +1572,12 @@ namespace libtorrent
 			}
 
 			if (m_unallocated_slots.empty())
-			{
 				m_state = state_create_files;
-				return false;
-			}
-
-			if (m_compact_mode)
-			{
+			else if (m_compact_mode)
 				m_state = state_create_files;
-				return false;
-			}
+			else
+				m_state = state_allocating;
+			return false;
 		}
 
 		m_state = state_full_check;
@@ -1601,7 +1597,7 @@ namespace libtorrent
       |        |
       |        v
       |  +------------+
-      |  | allocating |
+      |->| allocating |
       |  +------------+
       |        |
       |        v
