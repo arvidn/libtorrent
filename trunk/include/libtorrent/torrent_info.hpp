@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <vector>
+#include <iosfwd>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -146,7 +147,8 @@ namespace libtorrent
 		const std::string& name() const { assert(m_piece_length > 0); return m_name; }
 
 // ------- start deprecation -------
-		void print(std::ostream& os) const;
+// this functionaily will be removed in a future version
+		void print(std::ostream& os) const TORRENT_DEPRECATED;
 // ------- end deprecation -------
 
 		bool is_valid() const { return m_piece_length > 0; }
