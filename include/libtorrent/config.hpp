@@ -35,6 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/config.hpp>
 
+#if defined(__GNUC__)
+#define TORRENT_DEPRECATED __attribute__ ((deprecated))
+#else
+#define TORRENT_DEPRECATED
+#endif
+
 #if defined(__GNUC__) && __GNUC__ >= 4
 
 # if defined(TORRENT_BUILDING_SHARED) || defined(TORRENT_LINKING_SHARED)
