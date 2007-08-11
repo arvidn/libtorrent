@@ -248,11 +248,17 @@ namespace libtorrent
 		void set_size(size_type s)
 		{
 			size_type pos = tell();
-			seek(s - 1);
-			char dummy = 0;
-			read(&dummy, 1);
-			seek(s - 1);
-			write(&dummy, 1);
+			// Only set size if current file size not equals s.
+			// 2 as "m" argument is to be sure seek() sets SEEK_END on
+			// all compilers.
+			if(s != seek(0, 2))
+			{
+				seek(s - 1);
+				char dummy = 0;
+				read(&dummy, 1);
+				seek(s - 1);
+				write(&dummy, 1);
+			}
 			seek(pos);
 		}
 
