@@ -87,11 +87,15 @@ int main(int argc, char* argv[])
 		std::cout << "comment: " << t.comment() << "\n";
 		std::cout << "created by: " << t.creator() << "\n";
 		std::cout << "files:\n";
+		int index = 0;
 		for (torrent_info::file_iterator i = t.begin_files();
-			i != t.end_files(); ++i)
+			i != t.end_files(); ++i, ++index)
 		{
+			int first = t.map_file(index, 0, 1).piece;
+			int last = t.map_file(index, i->size - 1, 1).piece;
 			std::cout << "  " << std::setw(11) << i->size
-			<< " " << i->path.string() << "\n";
+				<< " " << i->path.string() << "[ " << first << ", "
+				<< last << " ]\n";
 		}
 		
 	}

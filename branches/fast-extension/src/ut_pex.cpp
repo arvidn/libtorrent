@@ -197,39 +197,41 @@ namespace libtorrent { namespace
 		}
 
 		virtual bool on_extended(int length, int msg, buffer::const_interval body)
-			try
 		{
 			if (msg != extension_index) return false;
 			if (m_message_index == 0) return false;
 
 			if (length > 500 * 1024)
-				throw protocol_error("ut peer exchange message larger than 500 kB");
+				throw protocol_error("uT peer exchange message larger than 500 kB");
 
 			if (body.left() < length) return true;
 
-			entry pex_msg = bdecode(body.begin, body.end);
-			std::string const& peers = pex_msg["added"].string();
-			std::string const& peer_flags = pex_msg["added.f"].string();
-
-			int num_peers = peers.length() / 6;
-			char const* in = peers.c_str();
-			char const* fin = peer_flags.c_str();
-
-			if (int(peer_flags.size()) != num_peers)
-				return true;
-
-			peer_id pid(0);
-			policy& p = m_torrent.get_policy();
-			for (int i = 0; i < num_peers; ++i)
+			try
 			{
-				tcp::endpoint adr = detail::read_v4_endpoint<tcp::endpoint>(in);
-				char flags = detail::read_uint8(fin);
-				p.peer_from_tracker(adr, pid, peer_info::pex, flags);
-			} 
-			return true;
-		}
-		catch (std::exception&)
-		{
+				entry pex_msg = bdecode(body.begin, body.end);
+				std::string const& peers = pex_msg["added"].string();
+				std::string const& peer_flags = pex_msg["added.f"].string();
+
+				int num_peers = peers.length() / 6;
+				char const* in = peers.c_str();
+				char const* fin = peer_flags.c_str();
+
+				if (int(peer_flags.size()) != num_peers)
+					return true;
+
+				peer_id pid(0);
+				policy& p = m_torrent.get_policy();
+				for (int i = 0; i < num_peers; ++i)
+				{
+					tcp::endpoint adr = detail::read_v4_endpoint<tcp::endpoint>(in);
+					char flags = detail::read_uint8(fin);
+					p.peer_from_tracker(adr, pid, peer_info::pex, flags);
+				} 
+			}
+			catch (std::exception&)
+			{
+				throw protocol_error("invalid uT peer exchange message");
+			}
 			return true;
 		}
 

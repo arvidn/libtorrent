@@ -33,11 +33,25 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_XML_PARSE_HPP
 #define TORRENT_XML_PARSE_HPP
 
+#include <cctype>
+
 namespace libtorrent
 {
-	const int xml_start_tag = 0;
-	const int xml_end_tag = 1;
-	const int xml_string = 2;
+	enum
+	{
+		xml_start_tag,
+		xml_end_tag,
+		xml_empty_tag,
+		xml_declaration_tag,
+		xml_string,
+		xml_attribute,
+		xml_comment,
+		xml_parse_error
+	};
+
+	// callback(int type, char const* name, char const* val)
+	// str2 is only used for attributes. name is element or attribute
+	// name and val is attribute value
 
 	template <class CallbackType>	
 	void xml_parse(char* p, char* end, CallbackType callback)
@@ -45,6 +59,8 @@ namespace libtorrent
 		for(;p != end; ++p)
 		{
 			char const* start = p;
+			char const* val_start = 0;
+			int token;
 			// look for tag start
 			for(; *p != '<' && p != end; ++p);
 
@@ -55,39 +71,135 @@ namespace libtorrent
 					assert(*p == '<');
 					*p = 0;
 				}
-				callback(xml_string, start);
+				token = xml_string;
+				callback(token, start, val_start);
 				if (p != end) *p = '<';
 			}
-		
+
 			if (p == end) break;
 		
 			// skip '<'
 			++p;	
 
-			// parse the name of the tag. Ignore attributes
-			for (start = p; p != end && *p != '>'; ++p)
-			{
-				// terminate the string at the first space
-				// to ignore tag attributes
-				if (*p == ' ') *p = 0;
-			}
+			// parse the name of the tag.
+			for (start = p; p != end && *p != '>' && !std::isspace(*p); ++p);
+
+			char* tag_name_end = p;
+
+			// skip the attributes for now
+			for (; p != end && *p != '>'; ++p);
 
 			// parse error
-			if (p == end) break;
+			if (p == end)
+			{
+				token = xml_parse_error;
+				start = "unexpected end of file";
+				callback(token, start, val_start);
+				break;
+			}
 			
 			assert(*p == '>');
-			*p = 0;
+			// save the character that terminated the tag name
+			// it could be both '>' and ' '.
+			char save = *tag_name_end;
+			*tag_name_end = 0;
 
+			char* tag_end = p;
 			if (*start == '/')
 			{
 				++start;
-				callback(xml_end_tag, start);
+				token = xml_end_tag;
+				callback(token, start, val_start);
+			}
+			else if (*(p-1) == '/')
+			{
+				*(p-1) = 0;
+				token = xml_empty_tag;
+				callback(token, start, val_start);
+				*(p-1) = '/';
+				tag_end = p - 1;
+			}
+			else if (*start == '?' && *(p-1) == '?')
+			{
+				*(p-1) = 0;
+				++start;
+				token = xml_declaration_tag;
+				callback(token, start, val_start);
+				*(p-1) = '?';
+				tag_end = p - 1;
+			}
+			else if (start + 5 < p && memcmp(start, "!--", 3) == 0 && memcmp(p-2, "--", 2) == 0)
+			{
+				start += 3;
+				*(p-2) = 0;
+				token = xml_comment;
+				callback(token, start, val_start);
+				*(p-2) = '-';
+				tag_end = p - 2;
 			}
 			else
 			{
-				callback(xml_start_tag, start);
+				token = xml_start_tag;
+				callback(token, start, val_start);
 			}
-			*p = '>';
+
+			*tag_name_end = save;
+
+			// parse attributes
+			for (char* i = tag_name_end; i < tag_end; ++i)
+			{
+				// find start of attribute name
+				for (; i != tag_end && std::isspace(*i); ++i);
+				if (i == tag_end) break;
+				start = i;
+				// find end of attribute name
+				for (; i != tag_end && *i != '=' && !std::isspace(*i); ++i);
+				char* name_end = i;
+
+				// look for equality sign
+				for (; i != tag_end && *i != '='; ++i);
+
+				if (i == tag_end)
+				{
+					token = xml_parse_error;
+					val_start = 0;
+					start = "garbage inside element brackets";
+					callback(token, start, val_start);
+					break;
+				}
+
+				++i;
+				for (; i != tag_end && std::isspace(*i); ++i);
+				// check for parse error (values must be quoted)
+				if (i == tag_end || (*i != '\'' && *i != '\"'))
+				{
+					token = xml_parse_error;
+					val_start = 0;
+					start = "unquoted attribute value";
+					callback(token, start, val_start);
+					break;
+				}
+				char quote = *i;
+				++i;
+				val_start = i;
+				for (; i != tag_end && *i != quote; ++i);
+				// parse error (missing end quote)
+				if (i == tag_end)
+				{
+					token = xml_parse_error;
+					val_start = 0;
+					start = "missing end quote on attribute";
+					callback(token, start, val_start);
+					break;
+				}
+				save = *i;
+				*i = 0;
+				*name_end = 0;
+				token = xml_attribute;
+				callback(token, start, val_start);
+				*name_end = '=';
+				*i = save;
+			}
 		}
 	
 	}

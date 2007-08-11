@@ -141,6 +141,9 @@ feature.compose <upnp-logging>on : <define>TORRENT_UPNP_LOGGING ;
 
 feature boost : system source : link-incompatible propagated ;
 
+feature debug-iterators : off on : composite propagated link-incompatible ;
+feature.compose <debug-iterators>on : <define>_SCL_SECURE=1 <define>_GLIBCXX_DEBUG ;
+
 # required for openssl on windows
 lib ssleay32 : : <name>ssleay32 ;
 lib libeay32 : : <name>libeay32 ;

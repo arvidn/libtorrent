@@ -38,7 +38,9 @@ extern char const* session_dht_state_doc;
 extern char const* session_add_torrent_doc;
 extern char const* session_remove_torrent_doc;
 extern char const* session_set_download_rate_limit_doc;
+extern char const* session_download_rate_limit_doc;
 extern char const* session_set_upload_rate_limit_doc;
+extern char const* session_upload_rate_limit_doc;
 extern char const* session_set_max_uploads_doc;
 extern char const* session_set_max_connections_doc;
 extern char const* session_set_max_half_open_connections_doc;
@@ -177,9 +179,19 @@ void bind_session()
           , session_set_download_rate_limit_doc
         )
         .def(
+            "download_rate_limit", allow_threads(&session::download_rate_limit)
+          , session_download_rate_limit_doc
+        )
+
+        .def(
             "set_upload_rate_limit", allow_threads(&session::set_upload_rate_limit)
           , session_set_upload_rate_limit_doc
         )
+        .def(
+            "upload_rate_limit", allow_threads(&session::upload_rate_limit)
+          , session_upload_rate_limit_doc
+        )
+
         .def(
             "set_max_uploads", allow_threads(&session::set_max_uploads)
           , session_set_max_uploads_doc

@@ -238,6 +238,7 @@ namespace libtorrent
 		// with the other's, to see if we should abort another
 		// peer_connection in favour of this one
 		std::vector<piece_block> busy_pieces;
+		busy_pieces.reserve(num_requests);
 
 		if (c.has_peer_choked())
 		{
@@ -291,6 +292,8 @@ namespace libtorrent
 			// by somebody else. request it from this peer
 			// and return
 			c.add_request(*i);
+			assert(p.num_peers(*i) == 1);
+			assert(p.is_requested(*i));
 			num_requests--;
 		}
 
@@ -305,6 +308,8 @@ namespace libtorrent
 			return;
 		}
 
+		// if all blocks has the same number of peers on them
+		// we want to pick a random block
 		std::random_shuffle(busy_pieces.begin(), busy_pieces.end());
 		
 		// find the block with the fewest requests to it
@@ -312,7 +317,11 @@ namespace libtorrent
 			busy_pieces.begin(), busy_pieces.end()
 			, bind(&piece_picker::num_peers, boost::cref(p), _1) <
 			bind(&piece_picker::num_peers, boost::cref(p), _2));
-
+#ifndef NDEBUG
+		piece_picker::downloading_piece st;
+		p.piece_info(i->piece_index, st);
+		assert(st.requested + st.finished + st.writing == p.blocks_in_piece(i->piece_index));
+#endif
 		c.add_request(*i);
 		c.send_block_requests();
 	}
@@ -323,6 +332,47 @@ namespace libtorrent
 		, m_available_free_upload(0)
 		, m_last_optimistic_disconnect(min_time())
 	{ assert(t); }
+
+	// disconnects and removes all peers that are now filtered
+	void policy::ip_filter_updated()
+	{
+		aux::session_impl& ses = m_torrent->session();
+		piece_picker* p = 0;
+		if (m_torrent->has_picker())
+			p = &m_torrent->picker();
+		for (std::list<peer>::iterator i = m_peers.begin()
+			, end(m_peers.end()); i != end;)
+		{
+			if ((ses.m_ip_filter.access(i->ip.address()) & ip_filter::blocked) == 0)
+			{
+				++i;
+				continue;
+			}
+		
+			if (i->connection)
+			{
+				i->connection->disconnect();
+				if (ses.m_alerts.should_post(alert::info))
+				{
+					ses.m_alerts.post_alert(peer_blocked_alert(i->ip.address()
+					, "disconnected blocked peer"));
+				}
+				assert(i->connection == 0
+					|| i->connection->peer_info_struct() == 0);
+			}
+			else
+			{
+				if (ses.m_alerts.should_post(alert::info))
+				{
+					ses.m_alerts.post_alert(peer_blocked_alert(i->ip.address()
+					, "blocked peer removed from peer list"));
+				}
+			}
+			if (p) p->clear_peer(&(*i));
+			m_peers.erase(i++);
+		}
+	}
+	
 	// finds the peer that has the worst download rate
 	// and returns it. May return 0 if all peers are
 	// choked.

@@ -163,7 +163,9 @@ namespace libtorrent
 		void we_have(int index);
 
 		// sets the priority of a piece.
-		void set_piece_priority(int index, int prio);
+		// returns true if the priority was changed from 0 to non-0
+		// or vice versa
+		bool set_piece_priority(int index, int prio);
 
 		// returns the priority for the piece at 'index'
 		int piece_priority(int index) const;
@@ -228,6 +230,9 @@ namespace libtorrent
 		void mark_as_finished(piece_block block, void* peer);
 		int num_peers(piece_block block) const;
 
+		// returns information about the given piece
+		void piece_info(int index, piece_picker::downloading_piece& st) const;
+		
 		// if a piece had a hash-failure, it must be restored and
 		// made available for redownloading
 		void restore_piece(int index);

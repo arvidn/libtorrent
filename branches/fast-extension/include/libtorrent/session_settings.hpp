@@ -109,6 +109,7 @@ namespace libtorrent
 			, num_want(200)
 			, initial_picker_threshold(4)
 			, allowed_fast_set_size(10)
+			, max_outstanding_disk_bytes_per_connection(64 * 1024)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(true)
 #endif
@@ -255,6 +256,14 @@ namespace libtorrent
 		// the number of allowed pieces to send to peers
 		// that supports the fast extensions
 		int allowed_fast_set_size;
+
+		// the maximum number of bytes a connection may have
+		// pending in the disk write queue before its download
+		// rate is being throttled. This prevents fast downloads
+		// to slow medias to allocate more and more memory
+		// indefinitely. This should be set to at least 32 kB
+		// to not completely disrupt normal downloads.
+		int max_outstanding_disk_bytes_per_connection;
 
 #ifndef TORRENT_DISABLE_DHT
 		// while this is true, the dht will note be used unless the

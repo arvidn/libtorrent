@@ -159,7 +159,7 @@ namespace libtorrent
 		ptime next_expire = max_time();
 		ptime now = time_now();
 		for (std::list<entry>::iterator i = m_queue.begin();
-			i != m_queue.end();)
+			!m_queue.empty() && i != m_queue.end();)
 		{
 			if (i->connecting && i->expires < now)
 			{

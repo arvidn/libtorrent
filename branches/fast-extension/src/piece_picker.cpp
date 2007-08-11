@@ -129,6 +129,35 @@ namespace libtorrent
 		}
 	}
 
+	void piece_picker::piece_info(int index, piece_picker::downloading_piece& st) const
+	{
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+		
+		assert(index >= 0);
+		assert(index < int(m_piece_map.size()));
+
+		if (m_piece_map[index].downloading)
+		{
+			std::vector<downloading_piece>::const_iterator piece = std::find_if(
+				m_downloads.begin(), m_downloads.end()
+				, bind(&downloading_piece::index, _1) == index);
+			assert(piece != m_downloads.end());
+			st = *piece;
+			st.info = 0;
+			return;
+		}
+		st.info = 0;
+		st.index = index;
+		st.writing = 0;
+		st.requested = 0;
+		if (m_piece_map[index].have())
+		{
+			st.finished = blocks_in_piece(index);
+			return;
+		}
+		st.finished = 0;
+	}
+
 	void piece_picker::set_sequenced_download_threshold(
 		int sequenced_download_threshold)
 	{
@@ -196,7 +225,8 @@ namespace libtorrent
 		int block_index = num_downloads * m_blocks_per_piece;
 		if (int(m_block_info.size()) < block_index + m_blocks_per_piece)
 		{
-			block_info* base = &m_block_info[0];
+			block_info* base = 0;
+			if (!m_block_info.empty()) base = &m_block_info[0];
 			m_block_info.resize(block_index + m_blocks_per_piece);
 			if (!m_downloads.empty() && &m_block_info[0] != base)
 			{
@@ -605,9 +635,10 @@ namespace libtorrent
 	void piece_picker::sort_piece(std::vector<downloading_piece>::iterator dp)
 	{
 		assert(m_piece_map[dp->index].downloading);
+		if (dp == m_downloads.begin()) return;
 		int complete = dp->writing + dp->finished;
 		for (std::vector<downloading_piece>::iterator i = dp, j(dp-1);
-			i != m_downloads.begin(); --i, --j)
+			i != m_downloads.begin() && j != m_downloads.begin(); --i, --j)
 		{
 			assert(j >= m_downloads.begin());
 			if (j->finished + j->writing >= complete) return;
@@ -935,7 +966,7 @@ namespace libtorrent
 	}
 
 
-	void piece_picker::set_piece_priority(int index, int new_piece_priority)
+	bool piece_picker::set_piece_priority(int index, int new_piece_priority)
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 		assert(new_piece_priority >= 0);
@@ -946,16 +977,18 @@ namespace libtorrent
 		piece_pos& p = m_piece_map[index];
 
 		// if the priority isn't changed, don't do anything
-		if (new_piece_priority == int(p.piece_priority)) return;
+		if (new_piece_priority == int(p.piece_priority)) return false;
 		
 		int prev_priority = p.priority(m_sequenced_download_threshold);
 
+		bool ret = false;
 		if (new_piece_priority == piece_pos::filter_priority
 			&& p.piece_priority != piece_pos::filter_priority)
 		{
 			// the piece just got filtered
 			if (p.have()) ++m_num_have_filtered;
 			else ++m_num_filtered;
+			ret = true;
 		}
 		else if (new_piece_priority != piece_pos::filter_priority
 			&& p.piece_priority == piece_pos::filter_priority)
@@ -963,6 +996,7 @@ namespace libtorrent
 			// the piece just got unfiltered
 			if (p.have()) --m_num_have_filtered;
 			else --m_num_filtered;
+			ret = true;
 		}
 		assert(m_num_filtered >= 0);
 		assert(m_num_have_filtered >= 0);
@@ -970,7 +1004,7 @@ namespace libtorrent
 		p.piece_priority = new_piece_priority;
 		int new_priority = p.priority(m_sequenced_download_threshold);
 
-		if (new_priority == prev_priority) return;
+		if (new_priority == prev_priority) return false;
 		
 		if (prev_priority == 0)
 		{
@@ -980,6 +1014,7 @@ namespace libtorrent
 		{
 			move(prev_priority, p.index);
 		}
+		return ret;
 	}
 
 	int piece_picker::piece_priority(int index) const
@@ -1051,8 +1086,12 @@ namespace libtorrent
 		// downloaded to
 		std::vector<piece_block> backup_blocks;
 	
+		// When prefer_whole_pieces is set (usually set when downloading from
+		// fast peers) the partial pieces will not be prioritized, but actually
+		// ignored as long as possible. All blocks found in downloading
+		// pieces are regarded as backup blocks
 		bool ignore_downloading_pieces = false;
-		if (!prefer_whole_pieces)
+		if (prefer_whole_pieces)
 		{
 			std::vector<int> downloading_pieces;
 			downloading_pieces.reserve(m_downloads.size());
@@ -1061,8 +1100,8 @@ namespace libtorrent
 			{
 				downloading_pieces.push_back(i->index);
 			}
-			num_blocks = add_interesting_blocks(downloading_pieces, pieces
-				, interesting_blocks, backup_blocks, num_blocks
+			add_interesting_blocks(downloading_pieces, pieces
+				, backup_blocks, backup_blocks, num_blocks
 				, prefer_whole_pieces, peer, speed, ignore_downloading_pieces);
 			ignore_downloading_pieces = true;
 		}
@@ -1071,10 +1110,6 @@ namespace libtorrent
 		// until we either reach the end of the piece list or
 		// has filled the interesting_blocks with num_blocks
 		// blocks.
-
-		// When prefer_whole_pieces is set (usually set when downloading from
-		// fast peers) the partial pieces will not be prioritized, but actually
-		// ignored as long as possible.
 
 		// +1 is to ignore pieces that no peer has. The bucket with index 0 contains
 		// pieces that 0 other peers have. bucket will point to a bucket with
@@ -1128,8 +1163,7 @@ namespace libtorrent
 
 		if (!backup_blocks.empty())
 			interesting_blocks.insert(interesting_blocks.end()
-				, backup_blocks.begin(), backup_blocks.begin()
-				+ (std::min)(num_blocks, (int)backup_blocks.size()));
+				, backup_blocks.begin(), backup_blocks.end());
 	}
 
 	void piece_picker::clear_peer(void* peer)
@@ -1216,7 +1250,6 @@ namespace libtorrent
 				// will be picked.
 				if (prefer_whole_pieces && !exclusive)
 				{
-					if (int(backup_blocks.size()) >= num_blocks) continue;
 					for (int j = 0; j < num_blocks_in_piece; ++j)
 					{
 						block_info const& info = p->info[j];
@@ -1251,7 +1284,6 @@ namespace libtorrent
 						&& !exclusive_active
 						&& !ignore_speed_categories)
 					{
-						if (int(backup_blocks.size()) >= num_blocks) continue;
 						backup_blocks.push_back(piece_block(*i, j));
 						continue;
 					}
@@ -1264,9 +1296,9 @@ namespace libtorrent
 					// to look for blocks until we have num_blocks
 					// blocks that have not been requested from any
 					// other peer.
-					interesting_blocks.push_back(piece_block(*i, j));
 					if (p->info[j].state == block_info::state_none)
 					{
+						interesting_blocks.push_back(piece_block(*i, j));
 						// we have found a block that's free to download
 						num_blocks--;
 						// if we prefer whole pieces, continue picking from this
@@ -1274,6 +1306,10 @@ namespace libtorrent
 						if (prefer_whole_pieces) continue;
 						assert(num_blocks >= 0);
 						if (num_blocks == 0) return num_blocks;
+					}
+					else
+					{
+						backup_blocks.push_back(piece_block(*i, j));
 					}
 				}
 				assert(num_blocks >= 0 || prefer_whole_pieces);

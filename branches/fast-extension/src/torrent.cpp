@@ -395,13 +395,22 @@ namespace libtorrent
 	{
 		boost::weak_ptr<torrent> self(shared_from_this());
 
-		// announce on local network every 5 minutes
-		m_announce_timer.expires_from_now(minutes(5));
-		m_announce_timer.async_wait(m_ses.m_strand.wrap(
-			bind(&torrent::on_announce_disp, self, _1)));
+		if (!m_torrent_file.priv())
+		{
+			// announce on local network every 5 minutes
+			m_announce_timer.expires_from_now(minutes(5));
+			m_announce_timer.async_wait(m_ses.m_strand.wrap(
+				bind(&torrent::on_announce_disp, self, _1)));
 
-		// announce with the local discovery service
-		m_ses.announce_lsd(m_torrent_file.info_hash());
+			// announce with the local discovery service
+			m_ses.announce_lsd(m_torrent_file.info_hash());
+		}
+		else
+		{
+			m_announce_timer.expires_from_now(minutes(15));
+			m_announce_timer.async_wait(m_ses.m_strand.wrap(
+				bind(&torrent::on_announce_disp, self, _1)));
+		}
 
 #ifndef TORRENT_DISABLE_DHT
 		if (!m_ses.m_dht) return;
@@ -822,6 +831,11 @@ namespace libtorrent
 
 		if (passed_hash_check)
 		{
+                        if (m_ses.m_alerts.should_post(alert::info))
+			{
+				m_ses.m_alerts.post_alert(piece_finished_alert(get_handle()
+					, index, "piece finished"));
+			}
 			// the following call may cause picker to become invalid
 			// in case we just became a seed
 			announce_piece(index);
@@ -1095,7 +1109,7 @@ namespace libtorrent
 
 	void torrent::set_piece_priority(int index, int priority)
 	{
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		assert(valid_metadata());
 		if (is_seed()) return;
@@ -1105,13 +1119,13 @@ namespace libtorrent
 		assert(index >= 0);
 		assert(index < m_torrent_file.num_pieces());
 
-		m_picker->set_piece_priority(index, priority);
-		update_peer_interest();
+		bool filter_updated = m_picker->set_piece_priority(index, priority);
+		if (filter_updated) update_peer_interest();
 	}
 
 	int torrent::piece_priority(int index) const
 	{
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		assert(valid_metadata());
 		if (is_seed()) return 1;
@@ -1135,14 +1149,15 @@ namespace libtorrent
 		assert(m_picker.get());
 
 		int index = 0;
+		bool filter_updated = false;
 		for (std::vector<int>::const_iterator i = pieces.begin()
 			, end(pieces.end()); i != end; ++i, ++index)
 		{
 			assert(*i >= 0);
 			assert(*i <= 7);
-			m_picker->set_piece_priority(index, *i);
+			filter_updated |= m_picker->set_piece_priority(index, *i);
 		}
-		update_peer_interest();
+		if (filter_updated) update_peer_interest();
 	}
 
 	void torrent::piece_priorities(std::vector<int>& pieces) const
@@ -1644,17 +1659,26 @@ namespace libtorrent
 	};
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
+	namespace
+	{
+		unsigned long swap_bytes(unsigned long a)
+		{
+			return (a >> 24) | ((a & 0xff0000) >> 8) | ((a & 0xff00) << 8) | (a << 24);
+		}
+	}
+	
 	void torrent::resolve_peer_country(boost::intrusive_ptr<peer_connection> const& p) const
 	{
 		if (m_resolving_country
 			|| p->has_country()
 			|| p->is_connecting()
 			|| p->is_queued()
-			|| p->in_handshake()) return;
+			|| p->in_handshake()
+			|| p->remote().address().is_v6()) return;
 
 		m_resolving_country = true;
-		tcp::resolver::query q(boost::lexical_cast<std::string>(p->remote().address())
-			+ ".zz.countries.nerd.dk", "0");
+		asio::ip::address_v4 reversed(swap_bytes(p->remote().address().to_v4().to_ulong()));
+		tcp::resolver::query q(reversed.to_string() + ".zz.countries.nerd.dk", "0");
 		m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
 			bind(&torrent::on_country_lookup, shared_from_this(), _1, _2, p)));
 	}
@@ -2316,15 +2340,11 @@ namespace libtorrent
 
 	torrent_handle torrent::get_handle() const
 	{
-		INVARIANT_CHECK;
-
 		return torrent_handle(&m_ses, &m_checker, m_torrent_file.info_hash());
 	}
 
 	session_settings const& torrent::settings() const
 	{
-//		INVARIANT_CHECK;
-
 		return m_ses.settings();
 	}
 
@@ -2703,6 +2723,8 @@ namespace libtorrent
 		st.num_peers = (int)std::count_if(m_connections.begin(), m_connections.end(),
 			!boost::bind(&peer_connection::is_connecting
 			, boost::bind(&std::map<tcp::endpoint,peer_connection*>::value_type::second, _1)));
+
+		st.compact_mode = m_compact_mode;
 
 		st.num_complete = m_complete;
 		st.num_incomplete = m_incomplete;

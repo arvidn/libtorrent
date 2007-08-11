@@ -59,7 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
  */
 
 
-#include <iostream>
+#include <iosfwd>
 #include <map>
 #include <list>
 #include <string>

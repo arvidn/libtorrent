@@ -111,6 +111,10 @@ namespace libtorrent
 		// memory pool for read and write operations
 		boost::pool<> m_pool;
 
+#ifndef NDEBUG
+		int m_block_size;
+#endif
+
 		// thread for performing blocking disk io operations
 		boost::thread m_disk_io_thread;
 	};

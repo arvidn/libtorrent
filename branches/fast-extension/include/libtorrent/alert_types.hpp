@@ -184,6 +184,63 @@ namespace libtorrent
 		{ return std::auto_ptr<alert>(new torrent_finished_alert(*this)); }
 	};
 
+	struct TORRENT_EXPORT piece_finished_alert: torrent_alert
+	{
+		piece_finished_alert(
+			const torrent_handle& h
+			, int piece_num
+			, const std::string& msg)
+			: torrent_alert(h, alert::warning, msg)
+			, piece_index(piece_num)
+		{ assert(piece_index >= 0);}
+
+		int piece_index;
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new piece_finished_alert(*this)); }
+	};
+
+	struct TORRENT_EXPORT block_finished_alert: torrent_alert
+	{
+		block_finished_alert(
+			const torrent_handle& h
+			, int block_num
+			, int piece_num
+			, const std::string& msg)
+			: torrent_alert(h, alert::warning, msg)
+			, block_index(block_num)
+			, piece_index(piece_num)
+		{ assert(block_index >= 0 && piece_index >= 0);}
+
+		int block_index;
+		int piece_index;
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new block_finished_alert(*this)); }
+	};
+
+	struct TORRENT_EXPORT block_downloading_alert: torrent_alert
+	{
+		block_downloading_alert(
+			const torrent_handle& h
+			, std::string& speedmsg
+			, int block_num
+			, int piece_num
+			, const std::string& msg)
+			: torrent_alert(h, alert::warning, msg)
+			, peer_speedmsg(speedmsg)
+			, block_index(block_num)
+			, piece_index(piece_num)
+		{ assert(block_index >= 0 && piece_index >= 0);}
+
+		std::string peer_speedmsg;
+		int block_index;
+		int piece_index;
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new block_downloading_alert(*this)); }
+	};
+
 	struct TORRENT_EXPORT storage_moved_alert: torrent_alert
 	{
 		storage_moved_alert(torrent_handle const& h, std::string const& path)

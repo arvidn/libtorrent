@@ -613,29 +613,9 @@ namespace detail
 
 		// Close connections whose endpoint is filtered
 		// by the new ip-filter
-		for (session_impl::connection_map::iterator i
-			= m_connections.begin(); i != m_connections.end();)
-		{
-			tcp::endpoint sender;
-			try { sender = i->first->remote_endpoint(); }
-			catch (std::exception&) { sender = i->second->remote(); }
-			if (m_ip_filter.access(sender.address()) & ip_filter::blocked)
-			{
-#if defined(TORRENT_VERBOSE_LOGGING)
-				(*i->second->m_logger) << "*** CONNECTION FILTERED\n";
-#endif
-				if (m_alerts.should_post(alert::info))
-				{
-					m_alerts.post_alert(peer_blocked_alert(sender.address()
-						, "peer connection closed by IP filter"));
-				}
-
-				session_impl::connection_map::iterator j = i;
-				++i;
-				j->second->disconnect();
-			}
-			else ++i;
-		}
+		for (torrent_map::iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+			i->second->ip_filter_updated();
 	}
 
 	void session_impl::set_settings(session_settings const& s)
@@ -1600,6 +1580,8 @@ namespace detail
 
 		boost::shared_ptr<torrent> t = find_torrent(ih).lock();
 		if (!t) return;
+		// don't add peers from lsd to private torrents
+		if (t->torrent_file().priv()) return;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string()
@@ -1919,13 +1901,15 @@ namespace detail
 	int session_impl::upload_rate_limit() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		return m_bandwidth_manager[peer_connection::upload_channel]->throttle();
+		int ret = m_bandwidth_manager[peer_connection::upload_channel]->throttle();
+		return ret == std::numeric_limits<int>::max() ? -1 : ret;
 	}
 
 	int session_impl::download_rate_limit() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		return m_bandwidth_manager[peer_connection::download_channel]->throttle();
+		int ret = m_bandwidth_manager[peer_connection::download_channel]->throttle();
+		return ret == std::numeric_limits<int>::max() ? -1 : ret;
 	}
 
 	void session_impl::start_lsd()
