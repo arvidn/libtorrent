@@ -247,7 +247,7 @@ namespace libtorrent
 			// in ascending priority order
 			std::vector<int> const& allowed_fast = c.allowed_fast();
 
-			num_requests = p.add_interesting_blocks(allowed_fast, c.get_bitfield()
+			p.add_interesting_blocks(allowed_fast, c.get_bitfield()
 				, interesting_pieces, busy_pieces, num_requests
 				, prefer_whole_pieces, c.peer_info_struct(), state
 				, false);
@@ -297,13 +297,13 @@ namespace libtorrent
 			num_requests--;
 		}
 
-		// in this case, we could not find any blocks
-		// that was free. If we couldn't find any busy
-		// blocks as well, we cannot download anything
-		// more from this peer.
-
 		if (busy_pieces.empty() || num_requests == 0)
 		{
+			// in this case, we could not find any blocks
+			// that was free. If we couldn't find any busy
+			// blocks as well, we cannot download anything
+			// more from this peer.
+
 			c.send_block_requests();
 			return;
 		}
