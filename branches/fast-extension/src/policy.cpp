@@ -247,7 +247,7 @@ namespace libtorrent
 			// in ascending priority order
 			std::vector<int> const& allowed_fast = c.allowed_fast();
 
-			p.add_interesting_blocks(allowed_fast, c.get_bitfield()
+			num_requests = p.add_interesting_blocks(allowed_fast, c.get_bitfield()
 				, interesting_pieces, busy_pieces, num_requests
 				, prefer_whole_pieces, c.peer_info_struct(), state
 				, false);
