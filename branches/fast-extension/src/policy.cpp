@@ -251,6 +251,9 @@ namespace libtorrent
 				, interesting_pieces, busy_pieces, num_requests
 				, prefer_whole_pieces, c.peer_info_struct(), state
 				, false);
+			interesting_pieces.insert(interesting_pieces.end()
+				, busy_pieces.begin(), busy_pieces.end());
+			busy_pieces.clear();
 		}
 		else
 		{
