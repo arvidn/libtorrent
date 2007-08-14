@@ -197,6 +197,19 @@ namespace libtorrent
 			, void* peer, piece_state_t speed
 			, bool rarest_first) const;
 
+		// picks blocks from each of the pieces in the piece_list
+		// vector that is also in the piece bitmask. The blocks
+		// are added to interesting_blocks, and busy blocks are
+		// added to backup_blocks. num blocks is the number of
+		// blocks to be picked.
+		int add_interesting_blocks(const std::vector<int>& piece_list
+			, const std::vector<bool>& pieces
+			, std::vector<piece_block>& interesting_blocks
+			, std::vector<piece_block>& backup_blocks
+			, int num_blocks, bool prefer_whole_pieces
+			, void* peer, piece_state_t speed
+			, bool ignore_downloading_pieces) const;
+
 		// clears the peer pointer in all downloading pieces with this
 		// peer pointer
 		void clear_peer(void* peer);
@@ -357,14 +370,6 @@ namespace libtorrent
 		void add(int index);
 		void move(int vec_index, int elem_index);
 		void sort_piece(std::vector<downloading_piece>::iterator dp);
-
-		int add_interesting_blocks(const std::vector<int>& piece_list
-			, const std::vector<bool>& pieces
-			, std::vector<piece_block>& interesting_blocks
-			, std::vector<piece_block>& backup_blocks
-			, int num_blocks, bool prefer_whole_pieces
-			, void* peer, piece_state_t speed
-			, bool ignore_downloading_pieces) const;
 
 		downloading_piece& add_download_piece();
 		void erase_download_piece(std::vector<downloading_piece>::iterator i);

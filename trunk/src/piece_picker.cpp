@@ -1419,6 +1419,7 @@ namespace libtorrent
 		if (p.downloading == 0)
 		{
 			int prio = p.priority(m_sequenced_download_threshold);
+			assert(prio > 0);
 			p.downloading = 1;
 			move(prio, p.index);
 
