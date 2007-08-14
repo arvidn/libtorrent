@@ -131,6 +131,8 @@ namespace libtorrent
 		enum peer_speed_t { slow, medium, fast };
 		peer_speed_t peer_speed();
 
+		void send_allowed_set();
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<peer_plugin>);
 #endif
@@ -186,9 +188,9 @@ namespace libtorrent
 		void set_pid(const peer_id& pid) { m_peer_id = pid; }
 		bool has_piece(int i) const;
 
-		const std::deque<piece_block>& download_queue() const;
-		const std::deque<piece_block>& request_queue() const;
-		const std::deque<peer_request>& upload_queue() const;
+		std::deque<piece_block> const& download_queue() const;
+		std::deque<piece_block> const& request_queue() const;
+		std::deque<peer_request> const& upload_queue() const;
 
 		bool is_interesting() const { return m_interesting; }
 		bool is_choked() const { return m_choked; }
@@ -217,6 +219,7 @@ namespace libtorrent
 		tcp::endpoint const& remote() const { return m_remote; }
 
 		std::vector<bool> const& get_bitfield() const;
+		std::vector<int> const& allowed_fast();
 
 		void timed_out();
 		// this will cause this peer_connection to be disconnected.
@@ -294,7 +297,13 @@ namespace libtorrent
 		void incoming_piece(peer_request const& p, char const* data);
 		void incoming_piece_fragment();
 		void incoming_cancel(peer_request const& r);
+
 		void incoming_dht_port(int listen_port);
+		
+		void incoming_reject_request(peer_request const& r);
+		void incoming_have_all();
+		void incoming_have_none();
+		void incoming_allowed_fast(int index);
 
 		// the following functions appends messages
 		// to the send buffer
@@ -373,6 +382,9 @@ namespace libtorrent
 		virtual void write_keepalive() = 0;
 		virtual void write_piece(peer_request const& r, char const* buffer) = 0;
 		
+		virtual void write_reject_request(peer_request const& r) = 0;
+		virtual void write_allow_fast(int piece) = 0;
+
 		virtual void on_connected() = 0;
 		virtual void on_tick() {}
 	
@@ -529,7 +541,7 @@ namespace libtorrent
 		// set to the torrent it belongs to.
 		boost::weak_ptr<torrent> m_torrent;
 		// is true if it was we that connected to the peer
-		// and false if we got an incomming connection
+		// and false if we got an incoming connection
 		// could be considered: true = local, false = remote
 		bool m_active;
 
@@ -563,6 +575,10 @@ namespace libtorrent
 
 		// the pieces the other end have
 		std::vector<bool> m_have_piece;
+		// this is set to true when a have_all
+		// message is received. This information
+		// is used to fill the bitmask in init()
+		bool m_have_all;
 
 		// the number of pieces this peer
 		// has. Must be the same as
@@ -694,6 +710,14 @@ namespace libtorrent
 		// a timestamp when the remote download rate
 		// was last updated
 		ptime m_remote_dl_update;
+
+		// the pieces we will send to the peer
+		// if requested (regardless of choke state)
+		std::set<int> m_accept_fast;
+
+		// the pieces the peer will send us if
+		// requested (regardless of choke state)
+		std::vector<int> m_allowed_fast;
 
 		// the number of bytes send to the disk-io
 		// thread that hasn't yet been completely written.

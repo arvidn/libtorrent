@@ -108,6 +108,7 @@ namespace libtorrent
 			, unchoke_interval(20)
 			, num_want(200)
 			, initial_picker_threshold(4)
+			, allowed_fast_set_size(10)
 			, max_outstanding_disk_bytes_per_connection(64 * 1024)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(true)
@@ -251,6 +252,10 @@ namespace libtorrent
 		// while we have fewer pieces than this, pick
 		// random pieces instead of rarest first.
 		int initial_picker_threshold;
+
+		// the number of allowed pieces to send to peers
+		// that supports the fast extensions
+		int allowed_fast_set_size;
 
 		// the maximum number of bytes a connection may have
 		// pending in the disk write queue before its download
