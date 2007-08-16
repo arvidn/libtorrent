@@ -2126,7 +2126,7 @@ namespace libtorrent
 		if ((unsigned)m_currently_trying_tracker >= m_trackers.size())
 		{
 			int delay = tracker_retry_delay_min
-				+ std::min(m_failed_trackers, (int)tracker_failed_max)
+				+ (std::min)(m_failed_trackers, (int)tracker_failed_max)
 				* (tracker_retry_delay_max - tracker_retry_delay_min)
 				/ tracker_failed_max;
 
@@ -2691,7 +2691,7 @@ namespace libtorrent
 			size_type done = 0;
 			while (size > 0)
 			{
-				size_type bytes_step = std::min(m_torrent_file.piece_size(ret.piece)
+				size_type bytes_step = (std::min)(m_torrent_file.piece_size(ret.piece)
 					- ret.start, size);
 				if (m_have_pieces[ret.piece]) done += bytes_step;
 				++ret.piece;
@@ -2775,7 +2775,7 @@ namespace libtorrent
 // TODO: add a progress member to the torrent that will be used in this case
 // and that may be set by a plugin
 //			if (m_metadata_size == 0) st.progress = 0.f;
-//			else st.progress = std::min(1.f, m_metadata_progress / (float)m_metadata_size);
+//			else st.progress = (std::min)(1.f, m_metadata_progress / (float)m_metadata_size);
 			st.progress = 0.f;
 
 			st.block_size = 0;

@@ -180,7 +180,7 @@ namespace libtorrent
 		const int block_size = t->block_size();
 		while (size > 0)
 		{
-			int request_size = std::min(block_size, size);
+			int request_size = (std::min)(block_size, size);
 			peer_request pr = {r.piece, r.start + r.length - size
 				,  request_size};
 			m_requests.push_back(pr);
@@ -510,7 +510,7 @@ namespace libtorrent
 				// m_piece as buffer.
 				
 				int piece_size = int(m_piece.size());
-				int copy_size = std::min(std::min(front_request.length - piece_size
+				int copy_size = (std::min)(std::min(front_request.length - piece_size
 					, recv_buffer.left()), int(range_end - range_start - m_received_body));
 				m_piece.resize(piece_size + copy_size);
 				assert(copy_size > 0);
@@ -568,7 +568,7 @@ namespace libtorrent
 					&& (m_received_body + recv_buffer.left() >= range_end - range_start))
 				{
 					int piece_size = int(m_piece.size());
-					int copy_size = std::min(std::min(m_requests.front().length - piece_size
+					int copy_size = (std::min)(std::min(m_requests.front().length - piece_size
 						, recv_buffer.left()), int(range_end - range_start - m_received_body));
 					assert(copy_size >= 0);
 					if (copy_size > 0)

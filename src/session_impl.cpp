@@ -2220,7 +2220,7 @@ namespace detail
 
 					const std::string& bitmask = (*i)["bitmask"].string();
 
-					const int num_bitmask_bytes = std::max(num_blocks_per_piece / 8, 1);
+					const int num_bitmask_bytes = (std::max)(num_blocks_per_piece / 8, 1);
 					if ((int)bitmask.size() != num_bitmask_bytes)
 					{
 						error = "invalid size of bitmask (" + boost::lexical_cast<std::string>(bitmask.size()) + ")";
@@ -2229,7 +2229,7 @@ namespace detail
 					for (int j = 0; j < num_bitmask_bytes; ++j)
 					{
 						unsigned char bits = bitmask[j];
-						int num_bits = std::min(num_blocks_per_piece - j*8, 8);
+						int num_bits = (std::min)(num_blocks_per_piece - j*8, 8);
 						for (int k = 0; k < num_bits; ++k)
 						{
 							const int bit = j * 8 + k;

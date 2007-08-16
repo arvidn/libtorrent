@@ -561,12 +561,12 @@ namespace libtorrent
 
 				std::string bitmask;
 				const int num_bitmask_bytes
-					= std::max(num_blocks_per_piece / 8, 1);
+					= (std::max)(num_blocks_per_piece / 8, 1);
 
 				for (int j = 0; j < num_bitmask_bytes; ++j)
 				{
 					unsigned char v = 0;
-					int bits = std::min(num_blocks_per_piece - j*8, 8);
+					int bits = (std::min)(num_blocks_per_piece - j*8, 8);
 					for (int k = 0; k < bits; ++k)
 						v |= (i->info[j*8+k].state == piece_picker::block_info::state_finished)
 						? (1 << k) : 0;

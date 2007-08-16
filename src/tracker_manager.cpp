@@ -256,7 +256,7 @@ namespace libtorrent
 		{
 			// available input is 1,2 or 3 bytes
 			// since we read 3 bytes at a time at most
-			int available_input = std::min(3, (int)std::distance(i, s.end()));
+			int available_input = (std::min)(3, (int)std::distance(i, s.end()));
 
 			// clear input buffer
 			std::fill(inbuf, inbuf+3, 0);
@@ -305,7 +305,7 @@ namespace libtorrent
 		m_start_time = time_now();
 		m_read_time = time_now();
 
-		m_timeout.expires_at(std::min(
+		m_timeout.expires_at((std::min)(
 			m_read_time + seconds(m_read_timeout)
 			, m_start_time + seconds(m_completion_timeout)));
 		m_timeout.async_wait(m_strand.wrap(bind(
@@ -341,7 +341,7 @@ namespace libtorrent
 			return;
 		}
 
-		m_timeout.expires_at(std::min(
+		m_timeout.expires_at((std::min)(
 			m_read_time + seconds(m_read_timeout)
 			, m_start_time + seconds(m_completion_timeout)));
 		m_timeout.async_wait(m_strand.wrap(
