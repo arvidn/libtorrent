@@ -1314,35 +1314,30 @@ namespace libtorrent
 	}
 
 	// this is called whenever a peer connection is closed
-	void policy::connection_closed(const peer_connection& c) try
+	void policy::connection_closed(const peer_connection& c) throw()
 	{
 		INVARIANT_CHECK;
 
-//		assert(c.is_disconnecting());
-		bool unchoked = false;
+		peer* p = c.peer_info_struct();
+		// if we couldn't find the connection in our list, just ignore it.
+		if (p == 0) return;
 
-#warning extract policy::peer pointer from c
-		iterator i = std::find_if(
+		assert(std::find_if(
 			m_peers.begin()
 			, m_peers.end()
-			, match_peer_connection(c));
+			, match_peer_connection(c))
+			!= m_peers.end());
+		assert(p->connection == &c);
 
-		// if we couldn't find the connection in our list, just ignore it.
-		if (i == m_peers.end()) return;
-		assert(i->connection == &c);
-		i->connection = 0;
-		i->optimistically_unchoked = false;
+		p->connection = 0;
+		p->optimistically_unchoked = false;
 
-		i->connected = time_now();
-		if (!c.is_choked() && !m_torrent->is_aborted())
-		{
-			unchoked = true;
-		}
+		p->connected = time_now();
 
 		if (c.failed())
 		{
-			++i->failcount;
-//			i->connected = time_now();
+			++p->failcount;
+//			p->connected = time_now();
 		}
 
 		// if the share ratio is 0 (infinite), the
@@ -1354,25 +1349,8 @@ namespace libtorrent
 			assert(c.share_diff() < std::numeric_limits<size_type>::max());
 			m_available_free_upload += c.share_diff();
 		}
-		i->prev_amount_download += c.statistics().total_payload_download();
-		i->prev_amount_upload += c.statistics().total_payload_upload();
-
-//		if (unchoked)
-//		{
-			// if the peer that is diconnecting is unchoked
-			// then unchoke another peer in order to maintain
-			// the total number of unchoked peers
-//			--m_num_unchoked;
-//			if (m_torrent->is_seed()) seed_unchoke_one_peer();
-//			else unchoke_one_peer();
-//		}
-	}
-	catch (std::exception& e)
-	{
-#ifndef NDEBUG
-		std::string err = e.what();
-#endif
-		assert(false);
+		p->prev_amount_download += c.statistics().total_payload_download();
+		p->prev_amount_upload += c.statistics().total_payload_upload();
 	}
 
 	void policy::peer_is_interesting(peer_connection& c)
