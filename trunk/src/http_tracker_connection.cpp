@@ -250,7 +250,7 @@ namespace libtorrent
 		assert(m_state == read_body);
 		if (m_content_length >= 0)
 			return buffer::const_interval(m_recv_buffer.begin + m_body_start_pos
-				, m_recv_buffer.begin + std::min(m_recv_pos
+				, m_recv_buffer.begin + (std::min)(m_recv_pos
 				, m_body_start_pos + m_content_length));
 		else
 			return buffer::const_interval(m_recv_buffer.begin + m_body_start_pos
@@ -408,7 +408,7 @@ namespace libtorrent
 			{
 				m_send_buffer += "numwant=";
 				m_send_buffer += boost::lexical_cast<std::string>(
-					std::min(req.num_want, 999));
+					(std::min)(req.num_want, 999));
 				m_send_buffer += '&';
 			}
 			if (m_settings.announce_ip != address() && !url_has_argument(request, "ip"))

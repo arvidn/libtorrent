@@ -1369,7 +1369,7 @@ namespace libtorrent
 		assert(t->is_seed() == (std::count(bitfield.begin(), bitfield.end(), true) == num_pieces));
 		if (t->is_seed() && m_ses.settings().lazy_bitfields)
 		{
-			num_lazy_pieces = std::min(50, num_pieces / 10);
+			num_lazy_pieces = (std::min)(50, num_pieces / 10);
 			if (num_lazy_pieces < 1) num_lazy_pieces = 1;
 			for (int i = 0; i < num_pieces; ++i)
 			{
@@ -1735,7 +1735,7 @@ namespace libtorrent
 				if (m_sync_bytes_read >= 512)
 					throw protocol_error("sync hash not found within 532 bytes");
 
-				cut_receive_buffer(bytes_processed, std::min(packet_size(), (512+20) - m_sync_bytes_read));
+				cut_receive_buffer(bytes_processed, (std::min)(packet_size(), (512+20) - m_sync_bytes_read));
 
 				assert(!packet_finished());
 				return;
@@ -1873,7 +1873,7 @@ namespace libtorrent
 				if (m_sync_bytes_read >= 512)
 					throw protocol_error("sync verification constant not found within 520 bytes");
 
-				cut_receive_buffer(bytes_processed, std::min(packet_size(), (512+8) - m_sync_bytes_read));
+				cut_receive_buffer(bytes_processed, (std::min)(packet_size(), (512+8) - m_sync_bytes_read));
 
 				assert(!packet_finished());
 				return;

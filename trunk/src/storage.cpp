@@ -2096,7 +2096,7 @@ namespace libtorrent
 					, offset += stack_buffer_size)
 				{
 					m_storage->write(zeroes, pos, offset
-						, std::min(piece_size, stack_buffer_size));
+						, (std::min)(piece_size, stack_buffer_size));
 				}
 				written = true;
 			}
