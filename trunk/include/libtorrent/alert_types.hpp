@@ -261,6 +261,17 @@ namespace libtorrent
 		{ return std::auto_ptr<alert>(new torrent_paused_alert(*this)); }
 	};
 
+	struct TORRENT_EXPORT torrent_checked_alert: torrent_alert
+	{
+		torrent_checked_alert(torrent_handle const& h, std::string const& msg)
+			: torrent_alert(h, alert::info, msg)
+		{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new torrent_checked_alert(*this)); }
+  };
+
+
 	struct TORRENT_EXPORT url_seed_alert: torrent_alert
 	{
 		url_seed_alert(
