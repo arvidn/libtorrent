@@ -155,6 +155,13 @@ namespace libtorrent
 			// this is true if the peer is a seed
 			bool seed;
 
+			// true if this peer currently is unchoked
+			// because of an optimistic unchoke.
+			// when the optimistic unchoke is moved to
+			// another peer, this peer will be choked
+			// if this is true
+			bool optimistically_unchoked;
+
 			// the time when this peer was optimistically unchoked
 			// the last time.
 			libtorrent::ptime last_optimistically_unchoked;
@@ -203,25 +210,18 @@ namespace libtorrent
 			peer_connection* connection;
 		};
 
-		int num_peers() const
-		{
-			return m_peers.size();
-		}
+		int num_peers() const { return m_peers.size(); }
 
-		int num_uploads() const
-		{
-			return m_num_unchoked;
-		}
-		
 		typedef std::list<peer>::iterator iterator;
 		typedef std::list<peer>::const_iterator const_iterator;
 		iterator begin_peer() { return m_peers.begin(); }
 		iterator end_peer() { return m_peers.end(); }
 
 		bool connect_one_peer();
+		bool disconnect_one_peer();
 
 	private:
-
+/*
 		bool unchoke_one_peer();
 		void choke_one_peer();
 		iterator find_choke_candidate();
@@ -233,18 +233,13 @@ namespace libtorrent
 		void seed_choke_one_peer();
 		iterator find_seed_choke_candidate();
 		iterator find_seed_unchoke_candidate();
-
-		bool disconnect_one_peer();
+*/
 		iterator find_disconnect_candidate();
 		iterator find_connect_candidate();
 
 		std::list<peer> m_peers;
 
 		torrent* m_torrent;
-
-		// the number of unchoked peers
-		// at any given time
-		int m_num_unchoked;
 
 		// free download we have got that hasn't
 		// been distributed yet.
@@ -253,7 +248,7 @@ namespace libtorrent
 		// if there is a connection limit,
 		// we disconnect one peer every minute in hope of
 		// establishing a connection with a better peer
-		ptime m_last_optimistic_disconnect;
+//		ptime m_last_optimistic_disconnect;
 	};
 
 }

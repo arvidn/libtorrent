@@ -273,8 +273,18 @@ namespace libtorrent
 			void set_max_connections(int limit);
 			void set_max_uploads(int limit);
 
-			int num_uploads() const;
-			int num_connections() const;
+			int max_connections() const { return m_max_connections; }
+			int max_uploads() const { return m_max_uploads; }
+
+			int num_uploads() const { return m_num_unchoked; }
+			int num_connections() const
+			{ return m_connections.size(); }
+
+			void unchoke_peer(peer_connection& c)
+			{
+				c.send_unchoke();
+				++m_num_unchoked;
+			}
 
 			session_status status() const;
 			void set_peer_id(peer_id const& id);
@@ -416,6 +426,28 @@ namespace libtorrent
 
 			int m_max_uploads;
 			int m_max_connections;
+
+			// the number of unchoked peers
+			int m_num_unchoked;
+
+			// this is initialized to the unchoke_interval
+			// session_setting and decreased every second.
+			// when it reaches zero, it is reset to the
+			// unchoke_interval and the unchoke set is
+			// recomputed.
+			int m_unchoke_time_scaler;
+
+			// works like unchoke_time_scaler but it
+			// is only decresed when the unchoke set
+			// is recomputed, and when it reaches zero,
+			// the optimistic unchoke is moved to another peer.
+			int m_optimistic_unchoke_time_scaler;
+
+			// works like unchoke_time_scaler. Each time
+			// it reaches 0, and all the connections are
+			// used, the worst connection will be disconnected
+			// from the torrent with the most peers
+			int m_disconnect_time_scaler;
 
 			// statistics gathered from all torrents.
 			stat m_stat;

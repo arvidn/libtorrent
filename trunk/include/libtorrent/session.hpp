@@ -61,7 +61,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/version.hpp"
 #include "libtorrent/fingerprint.hpp"
 
-#include "libtorrent/resource_request.hpp"
 #include "libtorrent/storage.hpp"
 
 #ifdef _MSC_VER
@@ -266,12 +265,6 @@ namespace libtorrent
 		void stop_natpmp();
 		void stop_upnp();
 		
-		// Resource management used for global limits.
-		resource_request m_ul_bandwidth_quota;
-		resource_request m_dl_bandwidth_quota;
-		resource_request m_uploads_quota;
-		resource_request m_connections_quota;
-
 	private:
 
 		// just a way to initialize boost.filesystem

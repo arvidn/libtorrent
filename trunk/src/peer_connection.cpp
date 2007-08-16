@@ -109,8 +109,8 @@ namespace libtorrent
 		, m_prefer_whole_pieces(false)
 		, m_request_large_blocks(false)
 		, m_non_prioritized(false)
-		, m_upload_limit(resource_request::inf)
-		, m_download_limit(resource_request::inf)
+		, m_upload_limit(bandwidth_limit::inf)
+		, m_download_limit(bandwidth_limit::inf)
 		, m_peer_info(peerinfo)
 		, m_speed(slow)
 		, m_connection_ticket(-1)
@@ -185,8 +185,8 @@ namespace libtorrent
 		, m_prefer_whole_pieces(false)
 		, m_request_large_blocks(false)
 		, m_non_prioritized(false)
-		, m_upload_limit(resource_request::inf)
-		, m_download_limit(resource_request::inf)
+		, m_upload_limit(bandwidth_limit::inf)
+		, m_download_limit(bandwidth_limit::inf)
 		, m_peer_info(peerinfo)
 		, m_speed(slow)
 		, m_remote_bytes_dled(0)
@@ -526,30 +526,18 @@ namespace libtorrent
 			&& p.start + p.length <= t->torrent_file().piece_size(p.piece)
 			&& (p.start % t->block_size() == 0);
 	}
-	
-	struct disconnect_torrent
-	{
-		disconnect_torrent(boost::weak_ptr<torrent>& t): m_t(&t) {}
-		~disconnect_torrent() { if (m_t) m_t->reset(); }
-		void cancel() { m_t = 0; }
-	private:
-		boost::weak_ptr<torrent>* m_t;
-	};
-	
+
 	void peer_connection::attach_to_torrent(sha1_hash const& ih)
 	{
 		INVARIANT_CHECK;
 
 		assert(!m_disconnecting);
-		m_torrent = m_ses.find_torrent(ih);
-
+		assert(m_torrent.expired());
+		boost::weak_ptr<torrent> wpt = m_ses.find_torrent(ih);
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
 		if (t && t->is_aborted())
-		{
-			m_torrent.reset();
 			t.reset();
-		}
 
 		if (!t)
 		{
@@ -560,7 +548,6 @@ namespace libtorrent
 			throw std::runtime_error("got info-hash that is not in our session");
 		}
 
-		disconnect_torrent disconnect(m_torrent);
 		if (t->is_paused())
 		{
 			// paused torrents will not accept
@@ -571,21 +558,27 @@ namespace libtorrent
 			throw std::runtime_error("connection rejected by paused torrent");
 		}
 
+		assert(m_torrent.expired());
 		// check to make sure we don't have another connection with the same
 		// info_hash and peer_id. If we do. close this connection.
 		t->attach_peer(this);
+		m_torrent = wpt;
+
+		assert(!m_torrent.expired());
 
 		// if the torrent isn't ready to accept
 		// connections yet, we'll have to wait with
 		// our initialization
 		if (t->ready_for_connections()) init();
 
+		assert(!m_torrent.expired());
+
 		// assume the other end has no pieces
 		// if we don't have valid metadata yet,
 		// leave the vector unallocated
 		assert(m_num_pieces == 0);
 		std::fill(m_have_piece.begin(), m_have_piece.end(), false);
-		disconnect.cancel();
+		assert(!m_torrent.expired());
 	}
 
 	// message handlers
@@ -1543,7 +1536,7 @@ namespace libtorrent
 
 		// if the peer has the piece and we want
 		// to download it, request it
-		if (m_have_piece.size() > index
+		if (int(m_have_piece.size()) > index
 			&& m_have_piece[index]
 			&& t->has_picker()
 			&& t->picker().piece_priority(index) > 0)
@@ -1900,7 +1893,7 @@ namespace libtorrent
 	void peer_connection::set_upload_limit(int limit)
 	{
 		assert(limit >= -1);
-		if (limit == -1) limit = resource_request::inf;
+		if (limit == -1) limit = std::numeric_limits<int>::max();
 		if (limit < 10) limit = 10;
 		m_upload_limit = limit;
 		m_bandwidth_limit[upload_channel].throttle(m_upload_limit);
@@ -1909,7 +1902,7 @@ namespace libtorrent
 	void peer_connection::set_download_limit(int limit)
 	{
 		assert(limit >= -1);
-		if (limit == -1) limit = resource_request::inf;
+		if (limit == -1) limit = std::numeric_limits<int>::max();
 		if (limit < 10) limit = 10;
 		m_download_limit = limit;
 		m_bandwidth_limit[download_channel].throttle(m_download_limit);
@@ -2044,9 +2037,12 @@ namespace libtorrent
 		if (m_packet_size >= m_recv_pos) m_recv_buffer.resize(m_packet_size);
 	}
 
-	void peer_connection::second_tick(float tick_interval)
+	void peer_connection::second_tick(float tick_interval) throw()
 	{
 		INVARIANT_CHECK;
+
+		try
+		{
 
 		ptime now(time_now());
 
@@ -2186,43 +2182,14 @@ namespace libtorrent
 		}
 
 		fill_send_buffer();
-/*
-		size_type diff = share_diff();
-
-		enum { block_limit = 2 }; // how many blocks difference is considered unfair
-
-		// if the peer has been choked, send the current piece
-		// as fast as possible
-		if (diff > block_limit*m_torrent->block_size() || m_torrent->is_seed() || is_choked())
-		{
-			// if we have downloaded more than one piece more
-			// than we have uploaded OR if we are a seed
-			// have an unlimited upload rate
-			m_ul_bandwidth_quota.wanted = std::numeric_limits<int>::max();
 		}
-		else
+		catch (std::exception& e)
 		{
-			float ratio = m_torrent->ratio();
-			// if we have downloaded too much, response with an
-			// upload rate of 10 kB/s more than we dowlload
-			// if we have uploaded too much, send with a rate of
-			// 10 kB/s less than we receive
-			int bias = 0;
-			if (diff > -block_limit*m_torrent->block_size())
-			{
-				bias = static_cast<int>(m_statistics.download_rate() * ratio) / 2;
-				if (bias < 10*1024) bias = 10*1024;
-			}
-			else
-			{
-				bias = -static_cast<int>(m_statistics.download_rate() * ratio) / 2;
-			}
-			m_ul_bandwidth_quota.wanted = static_cast<int>(m_statistics.download_rate()) + bias;
-
-			// the maximum send_quota given our download rate from this peer
-			if (m_ul_bandwidth_quota.wanted < 256) m_ul_bandwidth_quota.wanted = 256;
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << "**ERROR**: " << e.what() << "\n";
+#endif
+			m_ses.connection_failed(m_socket, remote(), e.what());
 		}
-*/
 	}
 
 	void peer_connection::fill_send_buffer()

@@ -171,7 +171,6 @@ lib wsock32 : : <name>wsock32 ;
 lib ws2_32 : : <name>ws2_32 ;
 
 SOURCES =
-	allocate_resources
 	alert
 	connection_queue
 	entry
