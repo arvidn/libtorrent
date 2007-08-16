@@ -441,8 +441,6 @@ namespace libtorrent
 
 	void peer_connection::add_stat(size_type downloaded, size_type uploaded)
 	{
-		INVARIANT_CHECK;
-
 		m_statistics.add_stat(downloaded, uploaded);
 	}
 
@@ -534,16 +532,28 @@ namespace libtorrent
 		assert(!m_disconnecting);
 		assert(m_torrent.expired());
 		boost::weak_ptr<torrent> wpt = m_ses.find_torrent(ih);
-		boost::shared_ptr<torrent> t = m_torrent.lock();
+		boost::shared_ptr<torrent> t = wpt.lock();
 
 		if (t && t->is_aborted())
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << " *** the torrent has been aborted\n";
+#endif
 			t.reset();
+		}
 
 		if (!t)
 		{
 			// we couldn't find the torrent!
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << " couldn't find a torrent with the given info_hash: " << ih << "\n";
+			(*m_logger) << " *** couldn't find a torrent with the given info_hash: " << ih << "\n";
+			(*m_logger) << " torrents:\n";
+			session_impl::torrent_map const& torrents = m_ses.m_torrents;
+			for (session_impl::torrent_map::const_iterator i = torrents.begin()
+				, end(torrents.end()); i != end; ++i)
+			{
+				(*m_logger) << "   " << i->second->torrent_file().info_hash() << "\n";
+			}
 #endif
 			throw std::runtime_error("got info-hash that is not in our session");
 		}
@@ -1649,7 +1659,7 @@ namespace libtorrent
 
 		int block_offset = block.block_index * t->block_size();
 		int block_size
-			= std::min((int)t->torrent_file().piece_size(block.piece_index)-block_offset,
+			= (std::min)((int)t->torrent_file().piece_size(block.piece_index)-block_offset,
 			t->block_size());
 		assert(block_size > 0);
 		assert(block_size <= t->block_size());
@@ -1750,7 +1760,7 @@ namespace libtorrent
 			piece_block block = m_request_queue.front();
 
 			int block_offset = block.block_index * t->block_size();
-			int block_size = std::min((int)t->torrent_file().piece_size(
+			int block_size = (std::min)((int)t->torrent_file().piece_size(
 				block.piece_index) - block_offset, t->block_size());
 			assert(block_size > 0);
 			assert(block_size <= t->block_size());
@@ -1790,7 +1800,7 @@ namespace libtorrent
 #endif
 */
 					block_offset = block.block_index * t->block_size();
-					block_size = std::min((int)t->torrent_file().piece_size(
+					block_size = (std::min)((int)t->torrent_file().piece_size(
 						block.piece_index) - block_offset, t->block_size());
 					assert(block_size > 0);
 					assert(block_size <= t->block_size());
@@ -1989,7 +1999,7 @@ namespace libtorrent
 		p.pieces = get_bitfield();
 		ptime now = time_now();
 		p.last_request = now - m_last_request;
-		p.last_active = now - std::max(m_last_sent, m_last_receive);
+		p.last_active = now - (std::max)(m_last_sent, m_last_receive);
 
 		// this will set the flags so that we can update them later
 		p.flags = 0;
@@ -2156,14 +2166,14 @@ namespace libtorrent
 			if (t->ratio() != 1.f)
 				soon_downloaded = (size_type)(soon_downloaded*(double)t->ratio());
 
-			double upload_speed_limit = std::min((soon_downloaded - have_uploaded
+			double upload_speed_limit = (std::min)((soon_downloaded - have_uploaded
 				+ bias) / break_even_time, double(m_upload_limit));
 
-			upload_speed_limit = std::min(upload_speed_limit,
+			upload_speed_limit = (std::min)(upload_speed_limit,
 				(double)std::numeric_limits<int>::max());
 
 			m_bandwidth_limit[upload_channel].throttle(
-				std::min(std::max((int)upload_speed_limit, 20)
+				(std::min)((std::max)((int)upload_speed_limit, 20)
 				, m_upload_limit));
 		}
 
