@@ -189,7 +189,8 @@ namespace libtorrent
 	// infinite loop, fighting to request the same blocks.
 	void request_a_block(torrent& t, peer_connection& c)
 	{
-		assert(!t.is_seed());
+		if (t.is_seed()) return;
+
 		assert(t.valid_metadata());
 		assert(c.peer_info_struct() != 0 || !dynamic_cast<bt_peer_connection*>(&c));
 		int num_requests = c.desired_queue_size()
