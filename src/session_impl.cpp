@@ -222,6 +222,12 @@ namespace detail
 						if (!m_ses.is_aborted())
 						{
 							m_ses.m_torrents.insert(std::make_pair(t->info_hash, t->torrent_ptr));
+							if (m_ses.m_alerts.should_post(alert::info))
+							{
+				  				m_ses.m_alerts.post_alert(torrent_checked_alert(
+					 				processing->torrent_ptr->get_handle()
+					 				, "torrent finished checking"));
+							}
 							if (t->torrent_ptr->is_seed() && m_ses.m_alerts.should_post(alert::info))
 							{
 								m_ses.m_alerts.post_alert(torrent_finished_alert(
@@ -344,6 +350,12 @@ namespace detail
 						processing->torrent_ptr->files_checked(processing->unfinished_pieces);
 						m_ses.m_torrents.insert(std::make_pair(
 							processing->info_hash, processing->torrent_ptr));
+						if (m_ses.m_alerts.should_post(alert::info))
+						{
+							m_ses.m_alerts.post_alert(torrent_checked_alert(
+								processing->torrent_ptr->get_handle()
+								, "torrent finished checking"));
+	 					}
 						if (processing->torrent_ptr->is_seed()
 							&& m_ses.m_alerts.should_post(alert::info))
 						{
