@@ -32,7 +32,6 @@ test-suite libtorrent :
 	[ run test_hasher.cpp ]
 	[ run test_metadata_extension.cpp ]
 	[ run test_swarm.cpp ]
-	[ run test_allocate_resources.cpp ]
 	[ run test_web_seed.cpp ]
 	[ run test_bandwidth_limiter.cpp ]
 	; 

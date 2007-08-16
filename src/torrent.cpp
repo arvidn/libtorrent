@@ -199,18 +199,12 @@ namespace libtorrent
 		, m_connections_initialized(true)
 		, m_settings(s)
 		, m_storage_constructor(sc)
+		, m_max_uploads(std::numeric_limits<int>::max())
+		, m_max_connections(std::numeric_limits<int>::max())
 	{
 #ifndef NDEBUG
 		m_initial_done = 0;
 #endif
-
-		m_uploads_quota.min = 0;
-		m_connections_quota.min = 2;
-		// this will be corrected the next time the main session
-		// distributes resources, i.e. on average in 0.5 seconds
-		m_connections_quota.given = 100;
-		m_uploads_quota.max = std::numeric_limits<int>::max();
-		m_connections_quota.max = std::numeric_limits<int>::max();
 		m_policy.reset(new policy(this));
 	}
 
@@ -277,13 +271,6 @@ namespace libtorrent
 
 		if (name) m_name.reset(new std::string(name));
 
-		m_uploads_quota.min = 0;
-		m_connections_quota.min = 2;
-		// this will be corrected the next time the main session
-		// distributes resources, i.e. on average in 0.5 seconds
-		m_connections_quota.given = 100;
-		m_uploads_quota.max = std::numeric_limits<int>::max();
-		m_connections_quota.max = std::numeric_limits<int>::max();
 		if (tracker_url)
 		{
 			m_trackers.push_back(announce_entry(tracker_url));
@@ -328,6 +315,14 @@ namespace libtorrent
 		assert(m_connections.empty());
 		
 		INVARIANT_CHECK;
+
+#if defined(TORRENT_VERBOSE_LOGGING)
+		for (peer_iterator i = m_connections.begin();
+			i != m_connections.end(); ++i)
+		{
+			(*i->second->m_logger) << "*** DESTRUCTING TORRENT\n";
+		}
+#endif
 
 		assert(m_abort);
 		if (!m_connections.empty())
@@ -1020,6 +1015,15 @@ namespace libtorrent
 			m_event = tracker_request::stopped;
 		// disconnect all peers and close all
 		// files belonging to the torrents
+
+#if defined(TORRENT_VERBOSE_LOGGING)
+		for (peer_iterator i = m_connections.begin();
+			i != m_connections.end(); ++i)
+		{
+			(*i->second->m_logger) << "*** ABORTING TORRENT\n";
+		}
+#endif
+
 		disconnect_all();
 		if (m_owning_storage.get()) m_storage->async_release_files();
 		m_owning_storage = 0;
@@ -1890,7 +1894,7 @@ namespace libtorrent
 
 	void torrent::attach_peer(peer_connection* p)
 	{
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		assert(p != 0);
 		assert(!p->is_local());
@@ -1955,7 +1959,7 @@ namespace libtorrent
 
 	bool torrent::want_more_peers() const
 	{
-		return int(m_connections.size()) < m_connections_quota.given
+		return int(m_connections.size()) < m_max_connections
 			&& m_ses.m_half_open.free_slots()
 			&& !m_paused;
 	}
@@ -2425,15 +2429,15 @@ namespace libtorrent
 	void torrent::set_max_uploads(int limit)
 	{
 		assert(limit >= -1);
-		if (limit == -1) limit = std::numeric_limits<int>::max();
-		m_uploads_quota.max = std::max(m_uploads_quota.min, limit);
+		if (limit < 0) limit = std::numeric_limits<int>::max();
+		m_max_uploads = limit;
 	}
 
 	void torrent::set_max_connections(int limit)
 	{
 		assert(limit >= -1);
-		if (limit == -1) limit = std::numeric_limits<int>::max();
-		m_connections_quota.max = std::max(m_connections_quota.min, limit);
+		if (limit < -1) limit = std::numeric_limits<int>::max();
+		m_max_connections = limit;
 	}
 
 	void torrent::set_peer_upload_limit(tcp::endpoint ip, int limit)
@@ -2496,6 +2500,14 @@ namespace libtorrent
 		}
 #endif
 
+#if defined(TORRENT_VERBOSE_LOGGING)
+		for (peer_iterator i = m_connections.begin();
+			i != m_connections.end(); ++i)
+		{
+			(*i->second->m_logger) << "*** PAUSING TORRENT\n";
+		}
+#endif
+
 		disconnect_all();
 		m_paused = true;
 		// tell the tracker that we stopped
@@ -2528,10 +2540,6 @@ namespace libtorrent
 #endif
 
 		m_paused = false;
-		m_uploads_quota.min = 0;
-		m_connections_quota.min = 2;
-		m_uploads_quota.max = std::numeric_limits<int>::max();
-		m_connections_quota.max = std::numeric_limits<int>::max();
 
 		// tell the tracker that we're back
 		m_event = tracker_request::started;
@@ -2545,10 +2553,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		m_connections_quota.used = (int)m_connections.size();
-		m_uploads_quota.used = m_policy->num_uploads();
-		m_uploads_quota.max = (int)m_connections.size();
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
@@ -2561,10 +2565,6 @@ namespace libtorrent
 		{
 			// let the stats fade out to 0
  			m_stat.second_tick(tick_interval);
-			m_connections_quota.min = 0;
-			m_connections_quota.max = 0;
-			m_uploads_quota.min = 0;
-			m_uploads_quota.max = 0;
 			return;
 		}
 
@@ -2623,24 +2623,19 @@ namespace libtorrent
 		}
 		accumulator += m_stat;
 		m_stat.second_tick(tick_interval);
+
+		m_time_scaler--;
+		if (m_time_scaler <= 0)
+		{
+			m_time_scaler = 10;
+			m_policy->pulse();
+		}
 	}
 
 	bool torrent::try_connect_peer()
 	{
 		assert(want_more_peers());
 		return m_policy->connect_one_peer();
-	}
-
-	void torrent::distribute_resources(float tick_interval)
-	{
-		INVARIANT_CHECK;
-
-		m_time_scaler--;
-		if (m_time_scaler <= 0)
-		{
-			m_time_scaler = settings().unchoke_interval;
-			m_policy->pulse();
-		}
 	}
 
 	void torrent::async_verify_piece(int piece_index, boost::function<void(bool)> const& f)
@@ -2764,10 +2759,10 @@ namespace libtorrent
 				= m_trackers[m_last_working_tracker].url;
 		}
 
-		st.num_uploads = m_uploads_quota.used;
-		st.uploads_limit = m_uploads_quota.given;
-		st.num_connections = m_connections_quota.used;
-		st.connections_limit = m_connections_quota.given;
+		st.num_uploads = -1;
+		st.uploads_limit = m_max_uploads;
+		st.num_connections = int(m_connections.size());
+		st.connections_limit = m_max_connections;
 		// if we don't have any metadata, stop here
 
 		if (!valid_metadata())
