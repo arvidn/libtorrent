@@ -68,7 +68,6 @@ $(top_srcdir)/include/libtorrent/peer_request.hpp \
 $(top_srcdir)/include/libtorrent/piece_block_progress.hpp \
 $(top_srcdir)/include/libtorrent/piece_picker.hpp \
 $(top_srcdir)/include/libtorrent/policy.hpp \
-$(top_srcdir)/include/libtorrent/resource_request.hpp \
 $(top_srcdir)/include/libtorrent/session.hpp \
 $(top_srcdir)/include/libtorrent/size_type.hpp \
 $(top_srcdir)/include/libtorrent/socket.hpp \
