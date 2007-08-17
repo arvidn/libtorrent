@@ -1046,14 +1046,15 @@ namespace detail
 				peer_connection* p = i->second.get();
 				torrent* t = p->associated_torrent().lock().get();
 				if (!p->peer_info_struct()
+					|| t == 0
 					|| !p->is_peer_interested()
 					|| p->is_disconnecting()
 					|| p->is_connecting()
 					|| (p->share_diff() < -free_upload_amount
-						&& t && !t->is_seed()))
+						&& !t->is_seed()))
 				{
-					if (!i->second->is_choked())
-						i->second->send_choke();
+					if (!i->second->is_choked() && t)
+						t->choke_peer(*i->second);
 					continue;
 				}
 				peers.push_back(i->second.get());
@@ -1082,9 +1083,24 @@ namespace detail
 			{
 				peer_connection* p = *i;
 				assert(p);
+				torrent* t = p->associated_torrent().lock().get();
+				assert(t);
 				if (unchoke_set_size > 0)
 				{
-					if (p->is_choked()) p->send_unchoke();
+					if (p->is_choked())
+					{
+						if (t->unchoke_peer(*p))
+						{
+							--unchoke_set_size;
+							++m_num_unchoked;
+						}
+					}
+					else
+					{
+						--unchoke_set_size;
+						++m_num_unchoked;
+					}
+
 					assert(p->peer_info_struct());
 					if (p->peer_info_struct()->optimistically_unchoked)
 					{
@@ -1092,13 +1108,11 @@ namespace detail
 						m_optimistic_unchoke_time_scaler = 0;
 						p->peer_info_struct()->optimistically_unchoked = false;
 					}
-					--unchoke_set_size;
-					++m_num_unchoked;
 				}
 				else
 				{
 					if (!p->is_choked() && !p->peer_info_struct()->optimistically_unchoked)
-						p->send_choke();
+						t->choke_peer(*p);
 				}
 			}
 
@@ -1121,15 +1135,21 @@ namespace detail
 					assert(p);
 					policy::peer* pi = p->peer_info_struct();
 					if (!pi) continue;
+					torrent* t = p->associated_torrent().lock().get();
+					if (!t) continue;
+
 					if (pi->optimistically_unchoked)
 					{
 						assert(current_optimistic_unchoke == m_connections.end());
 						current_optimistic_unchoke = i;
 					}
+
 					if (pi->last_optimistically_unchoked < last_unchoke
 						&& !p->is_connecting()
 						&& !p->is_disconnecting()
-						&& p->is_peer_interested())
+						&& p->is_peer_interested()
+						&& t->free_upload_slots()
+						&& p->is_choked())
 					{
 						last_unchoke = pi->last_optimistically_unchoked;
 						optimistic_unchoke_candidate = i;
@@ -1141,11 +1161,16 @@ namespace detail
 				{
 					if (current_optimistic_unchoke != m_connections.end())
 					{
-						current_optimistic_unchoke->second->send_choke();
+						torrent* t = current_optimistic_unchoke->second->associated_torrent().lock().get();
+						assert(t);
+						t->choke_peer(*current_optimistic_unchoke->second);
 						current_optimistic_unchoke->second->peer_info_struct()->optimistically_unchoked = false;
 					}
 
-					optimistic_unchoke_candidate->second->send_unchoke();
+					torrent* t = optimistic_unchoke_candidate->second->associated_torrent().lock().get();
+					assert(t);
+					bool ret = t->unchoke_peer(*optimistic_unchoke_candidate->second);
+					assert(ret);
 					optimistic_unchoke_candidate->second->peer_info_struct()->optimistically_unchoked = true;
 				}
 
@@ -2090,6 +2115,8 @@ namespace detail
 #ifndef NDEBUG
 	void session_impl::check_invariant(const char *place)
 	{
+		assert(m_max_connections > 0);
+		assert(m_max_uploads > 0);
 		assert(place);
 		int unchokes = 0;
 		int num_optimistic = 0;
