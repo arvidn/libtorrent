@@ -249,6 +249,8 @@ namespace libtorrent
 		void remove_url_seed(std::string const& url)
 		{ m_web_seeds.erase(url); }
 
+		std::set<std::string> url_seeds() const
+		{ return m_web_seeds; }
 
 		bool free_upload_slots() const
 		{ return m_num_uploads < m_max_uploads; }

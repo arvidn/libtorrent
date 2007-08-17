@@ -1090,8 +1090,8 @@ The input range is assumed to be valid within the torrent. ``file_offset``
 must refer to a valid file, i.e. it cannot be >= ``num_files()``.
 
 
-url_seeds()
------------
+url_seeds() add_url_seed()
+--------------------------
 
 	::
 
@@ -1266,6 +1266,8 @@ Its declaration looks like this::
 		void replace_trackers(std::vector<announce_entry> const&);
 
 		void add_url_seed(std::string const& url);
+		void remove_url_seed(std::string const& url);
+		std::set<std::string> url_seeds() const;
 
 		void set_ratio(float ratio) const;
 		void set_max_uploads(int max_uploads) const;
@@ -1601,17 +1603,22 @@ replace it. If you want an immediate effect, you have to call
 `force_reannounce()`_.
 
 
-add_url_seed()
---------------
+add_url_seed() remove_url_seed() url_seeds()
+--------------------------------------------
 
 	::
 
 		void add_url_seed(std::string const& url);
+		void remove_url_seed(std::string const& url);
+		std::set<std::string> url_seeds() const;
 
 ``add_url_seed()`` adds another url to the torrent's list of url seeds. If the
 given url already exists in that list, the call has no effect. The torrent
 will connect to the server and try to download pieces from it, unless it's
-paused, queued, checking or seeding.
+paused, queued, checking or seeding. ``remove_url_seed()`` removes the given
+url if it exists already. ``url_seeds()`` return a set of the url seeds
+currently in this torrent. Note that urls that fails may be removed
+automatically from the list.
 
 See `HTTP seeding`_ for more information.
 
