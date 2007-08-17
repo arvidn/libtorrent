@@ -453,12 +453,28 @@ namespace libtorrent
 			, m_chk, m_info_hash, bind(&torrent::trackers, _1));
 	}
 
-	void torrent_handle::add_url_seed(std::string const& url)
+	void torrent_handle::add_url_seed(std::string const& url) const
 	{
 		INVARIANT_CHECK;
 
-		return call_member<void>(m_ses, m_chk, m_info_hash
+		call_member<void>(m_ses, m_chk, m_info_hash
 			, bind(&torrent::add_url_seed, _1, url));
+	}
+
+	void torrent_handle::remove_url_seed(std::string const& url) const
+	{
+		INVARIANT_CHECK;
+
+		call_member<void>(m_ses, m_chk, m_info_hash
+			, bind(&torrent::remove_url_seed, _1, url));
+	}
+
+	std::set<std::string> torrent_handle::url_seeds() const
+	{
+		INVARIANT_CHECK;
+
+		return call_member<std::set<std::string> >(m_ses, m_chk, m_info_hash
+			, bind(&torrent::url_seeds, _1));
 	}
 
 	void torrent_handle::replace_trackers(
