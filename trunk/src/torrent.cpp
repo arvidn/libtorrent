@@ -1398,7 +1398,7 @@ namespace libtorrent
 
 	void torrent::remove_peer(peer_connection* p) try
 	{
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		assert(p != 0);
 
