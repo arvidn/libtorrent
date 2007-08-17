@@ -12,8 +12,7 @@ kademlia/rpc_manager.cpp \
 kademlia/traversal_algorithm.cpp
 endif
 
-libtorrent_la_SOURCES = allocate_resources.cpp \
-entry.cpp escape_string.cpp \
+libtorrent_la_SOURCES = entry.cpp escape_string.cpp \
 peer_connection.cpp bt_peer_connection.cpp web_peer_connection.cpp \
 natpmp.cpp piece_picker.cpp policy.cpp session.cpp session_impl.cpp sha1.cpp \
 stat.cpp storage.cpp torrent.cpp torrent_handle.cpp pe_crypto.cpp \
@@ -28,8 +27,6 @@ $(kademlia_sources)
 noinst_HEADERS = \
 $(top_srcdir)/include/libtorrent/alert.hpp \
 $(top_srcdir)/include/libtorrent/alert_types.hpp \
-$(top_srcdir)/include/libtorrent/allocate_resources.hpp \
-$(top_srcdir)/include/libtorrent/aux_/allocate_resources_impl.hpp \
 $(top_srcdir)/include/libtorrent/aux_/session_impl.hpp \
 $(top_srcdir)/include/libtorrent/bandwidth_manager.hpp \
 $(top_srcdir)/include/libtorrent/bencode.hpp \
