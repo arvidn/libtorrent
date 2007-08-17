@@ -1,6 +1,5 @@
 nobase_include_HEADERS = libtorrent/alert.hpp \
 libtorrent/alert_types.hpp \
-libtorrent/allocate_resources.hpp \
 libtorrent/bandwidth_manager.hpp \
 libtorrent/bencode.hpp \
 libtorrent/buffer.hpp \
@@ -40,7 +39,6 @@ libtorrent/piece_picker.hpp \
 libtorrent/policy.hpp \
 libtorrent/proxy_base.hpp \
 libtorrent/random_sample.hpp \
-libtorrent/resource_request.hpp \
 libtorrent/session.hpp \
 libtorrent/session_settings.hpp \
 libtorrent/session_status.hpp \
@@ -62,7 +60,6 @@ libtorrent/xml_parse.hpp \
 libtorrent/variant_stream.hpp \
 libtorrent/version.hpp \
 libtorrent/time.hpp \
-libtorrent/aux_/allocate_resources_impl.hpp \
 libtorrent/aux_/session_impl.hpp \
 libtorrent/extensions/metadata_transfer.hpp \
 libtorrent/extensions/ut_pex.hpp \
