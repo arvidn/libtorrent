@@ -299,6 +299,7 @@ namespace libtorrent
 			assert(p.num_peers(*i) == 1);
 			assert(p.is_requested(*i));
 			num_requests--;
+			if (num_requests == 0) break;
 		}
 
 		if (busy_pieces.empty() || num_requests == 0)
