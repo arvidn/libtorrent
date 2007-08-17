@@ -1961,6 +1961,7 @@ namespace detail
 	{
 		assert(limit > 0 || limit == -1);
 		mutex_t::scoped_lock l(m_mutex);
+		if (limit <= 0) limit = std::numeric_limits<int>::max();
 		m_max_uploads = limit;
 	}
 
@@ -1968,6 +1969,7 @@ namespace detail
 	{
 		assert(limit > 0 || limit == -1);
 		mutex_t::scoped_lock l(m_mutex);
+		if (limit <= 0) limit = std::numeric_limits<int>::max();
 		m_max_connections = limit;
 	}
 
@@ -1975,7 +1977,7 @@ namespace detail
 	{
 		assert(limit > 0 || limit == -1);
 		mutex_t::scoped_lock l(m_mutex);
-   
+		if (limit <= 0) limit = std::numeric_limits<int>::max();
 		m_half_open.limit(limit);
 	}
 
@@ -1983,7 +1985,7 @@ namespace detail
 	{
 		assert(bytes_per_second > 0 || bytes_per_second == -1);
 		mutex_t::scoped_lock l(m_mutex);
-		if (bytes_per_second == -1) bytes_per_second = bandwidth_limit::inf;
+		if (bytes_per_second <= 0) bytes_per_second = bandwidth_limit::inf;
 		m_bandwidth_manager[peer_connection::download_channel]->throttle(bytes_per_second);
 	}
 
@@ -1991,7 +1993,7 @@ namespace detail
 	{
 		assert(bytes_per_second > 0 || bytes_per_second == -1);
 		mutex_t::scoped_lock l(m_mutex);
-		if (bytes_per_second == -1) bytes_per_second = bandwidth_limit::inf;
+		if (bytes_per_second <= 0) bytes_per_second = bandwidth_limit::inf;
 		m_bandwidth_manager[peer_connection::upload_channel]->throttle(bytes_per_second);
 	}
 
