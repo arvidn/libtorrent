@@ -249,6 +249,13 @@ namespace libtorrent
 		void remove_url_seed(std::string const& url)
 		{ m_web_seeds.erase(url); }
 
+
+		bool free_upload_slots() const
+		{ return m_num_uploads < m_max_uploads; }
+
+		void choke_peer(peer_connection& c);
+		bool unchoke_peer(peer_connection& c);
+
 		// used by peer_connection to attach itself to a torrent
 		// since incoming connections don't know what torrent
 		// they're a part of until they have received an info_hash.
@@ -769,6 +776,9 @@ namespace libtorrent
 
 		// the maximum number of uploads for this torrent
 		int m_max_uploads;
+
+		// the number of unchoked peers in this torrent
+		int m_num_uploads;
 
 		// the maximum number of connections for this torrent
 		int m_max_connections;

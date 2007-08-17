@@ -282,7 +282,9 @@ namespace libtorrent
 
 			void unchoke_peer(peer_connection& c)
 			{
-				c.send_unchoke();
+				torrent* t = c.associated_torrent().lock().get();
+				assert(t);
+				t->unchoke_peer(c);
 				++m_num_unchoked;
 			}
 
