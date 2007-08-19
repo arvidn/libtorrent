@@ -1089,17 +1089,12 @@ namespace detail
 				{
 					if (p->is_choked())
 					{
-						if (t->unchoke_peer(*p))
-						{
-							--unchoke_set_size;
-							++m_num_unchoked;
-						}
+						if (!t->unchoke_peer(*p))
+							continue;
 					}
-					else
-					{
-						--unchoke_set_size;
-						++m_num_unchoked;
-					}
+	
+					--unchoke_set_size;
+					++m_num_unchoked;
 
 					assert(p->peer_info_struct());
 					if (p->peer_info_struct()->optimistically_unchoked)
