@@ -1140,6 +1140,7 @@ namespace detail
 
 					if (pi->optimistically_unchoked)
 					{
+						assert(!p->is_choked());
 						assert(current_optimistic_unchoke == m_connections.end());
 						current_optimistic_unchoke = i;
 					}
@@ -2129,7 +2130,10 @@ namespace detail
 			if (!i->second->is_choked()) ++unchokes;
 			if (i->second->peer_info_struct()
 				&& i->second->peer_info_struct()->optimistically_unchoked)
+			{
 				++num_optimistic;
+				assert(!i->second->is_choked());
+			}
 			if (t)
 			{
 				assert(t->get_policy().has_connection(boost::get_pointer(i->second)));
