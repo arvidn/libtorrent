@@ -828,6 +828,8 @@ namespace libtorrent
 			, end(m_piece_map.end()); i != end; ++i)
 		{
 			int prev_prio = i->priority(m_sequenced_download_threshold);
+			assert(prev_prio < m_piece_info.size());
+			assert(pushed_out_index < m_piece_info.size());
 			assert(i->peer_count > 0);
 			--i->peer_count;
 			// if the assumption that the priority would
