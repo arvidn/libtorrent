@@ -23,7 +23,8 @@ rule linking ( properties * )
 	local result ;
 
 	# openssl libraries, if enabled
-	if <openssl>sha-1 in $(properties) || <openssl>pe in $(properties)
+	if <openssl>sha-1 in $(properties)
+		|| <openssl>pe in $(properties)
 	{
 		if <target-os>windows in $(properties)
 		{
@@ -42,7 +43,8 @@ rule linking ( properties * )
 	}
 
 	# socket functions on windows require winsock libraries
-	if <target-os>windows in $(properties) || <target-os>cygwin in $(properties)
+	if <target-os>windows in $(properties)
+		|| <target-os>cygwin in $(properties)
 	{
 		result += <library>ws2_32
 			<library>wsock32
@@ -66,6 +68,15 @@ rule linking ( properties * )
 		result += <library>filesystem
 			<library>thread
 		;
+	}
+
+	if <toolset>gcc in $(properties)
+		&& <target-os>linux in $(properties)
+		&& <variant>debug in $(properties)
+	{
+		# for backtraces in assertion failures
+		# which only works on ELF targets with gcc
+		result += <cxxflags>-rdynamic <source>src/assert.cpp ;
 	}
 
 	if <boost>source in $(properties)
