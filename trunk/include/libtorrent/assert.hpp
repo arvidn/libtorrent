@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,54 +30,26 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_DEBUG_HPP_INCLUDED
-#define TORRENT_DEBUG_HPP_INCLUDED
+#ifndef TORRENT_ASSERT_HPP_INCLUDED
+#define TORRENT_ASSERT_HPP_INCLUDED
 
-#include <string>
-#include <fstream>
-#include <iostream>
-
-#ifdef _MSC_VER
-#pragma warning(push, 1)
+#ifndef NDEBUG
+#if defined __linux__ && defined _GNUC
+#ifdef assert
+#undef assert
 #endif
 
-#include <boost/lexical_cast.hpp>
-#include <boost/filesystem/fstream.hpp>
-#include <boost/filesystem/convenience.hpp>
+void assert_fail(int line, char const* file);
 
-#ifdef _MSC_VER
-#pragma warning(pop)
+#define assert(x) if (!(x)) assert_fail(__LINE__, __FILE__)
+
 #endif
 
+#else
+#ifndef assert
+#define assert(x) (void)
+#endif
+#endif
 
-namespace libtorrent
-{
-	// DEBUG API
-	
-	namespace fs = boost::filesystem;
-
-	struct logger
-	{
-		logger(fs::path const& filename, int instance, bool append = true)
-		{
-			fs::path dir(fs::complete("libtorrent_logs" + boost::lexical_cast<std::string>(instance)));
-			if (!fs::exists(dir)) fs::create_directories(dir);
-			m_file.open((dir / filename).string().c_str(), std::ios_base::out | (append ? std::ios_base::app : std::ios_base::out));
-			*this << "\n\n\n*** starting log ***\n";
-		}
-
-		template <class T>
-		logger& operator<<(T const& v)
-		{
-			m_file << v;
-			m_file.flush();
-			return *this;
-		}
-
-		std::ofstream m_file;
-	};
-
-}
-
-#endif // TORRENT_DEBUG_HPP_INCLUDED
+#endif
 
