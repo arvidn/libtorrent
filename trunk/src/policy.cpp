@@ -1370,7 +1370,8 @@ namespace libtorrent
 #ifndef NDEBUG
 	bool policy::has_connection(const peer_connection* c)
 	{
-		INVARIANT_CHECK;
+// too expensive
+//		INVARIANT_CHECK;
 
 		assert(c);
 		try { assert(c->remote() == c->get_socket()->remote_endpoint()); }
