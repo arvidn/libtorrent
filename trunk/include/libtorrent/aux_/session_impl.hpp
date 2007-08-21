@@ -493,7 +493,7 @@ namespace libtorrent
 			// This implements a round robin.
 			int m_next_connect_torrent;
 #ifndef NDEBUG
-			void check_invariant(const char *place = 0);
+			void check_invariant() const;
 #endif
 
 #ifdef TORRENT_STATS
