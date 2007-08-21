@@ -1233,6 +1233,9 @@ namespace libtorrent
 			// skip it
 			if (!pieces[*i]) continue;
 
+			// skip the piece is the priority is 0
+			if (m_piece_map[*i].priority(m_sequenced_download_threshold) == 0) continue;
+
 			int num_blocks_in_piece = blocks_in_piece(*i);
 
 			if (m_piece_map[*i].downloading == 1)
