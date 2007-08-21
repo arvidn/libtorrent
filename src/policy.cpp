@@ -1373,7 +1373,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		assert(c);
-		assert(c->remote() == c->get_socket()->remote_endpoint());
+		try { assert(c->remote() == c->get_socket()->remote_endpoint()); }
+		catch (std::exception&) {}
 
 		return std::find_if(
 			m_peers.begin()
