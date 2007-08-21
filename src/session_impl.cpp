@@ -624,6 +624,9 @@ namespace detail
 	void session_impl::set_ip_filter(ip_filter const& f)
 	{
 		mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
+
 		m_ip_filter = f;
 
 		// Close connections whose endpoint is filtered
@@ -636,6 +639,9 @@ namespace detail
 	void session_impl::set_settings(session_settings const& s)
 	{
 		mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
+
 		assert(s.connection_speed > 0);
 		assert(s.file_pool_size > 0);
 
@@ -802,6 +808,8 @@ namespace detail
 #endif
 	{
 		mutex_t::scoped_lock l(m_mutex);
+	
+		INVARIANT_CHECK;
 		
 		connection_map::iterator p = m_connections.find(s);
 
@@ -833,6 +841,8 @@ namespace detail
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
+		INVARIANT_CHECK;
+
 		assert(p->is_disconnecting());
 		connection_map::iterator i = m_connections.find(p->get_socket());
 		if (i != m_connections.end())
@@ -857,6 +867,8 @@ namespace detail
 	void session_impl::second_tick(asio::error_code const& e) try
 	{
 		session_impl::mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
 
 		if (e)
 		{
@@ -1458,6 +1470,8 @@ namespace detail
 		mutex_t::scoped_lock l(m_mutex);
 		mutex::scoped_lock l2(m_checker_impl.m_mutex);
 
+		INVARIANT_CHECK;
+
 		if (is_aborted())
 			throw std::runtime_error("session is closing");
 		
@@ -1550,6 +1564,8 @@ namespace detail
 		// lock the session
 		session_impl::mutex_t::scoped_lock l(m_mutex);
 
+		INVARIANT_CHECK;
+
 		// is the torrent already active?
 		if (!find_torrent(info_hash).expired())
 			throw duplicate_torrent();
@@ -1588,6 +1604,9 @@ namespace detail
 		assert(h.m_ses != 0);
 
 		mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
+
 		session_impl::torrent_map::iterator i =
 			m_torrents.find(h.m_info_hash);
 		if (i != m_torrents.end())
@@ -1649,6 +1668,8 @@ namespace detail
 		, const char* net_interface)
 	{
 		session_impl::mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
 
 		tcp::endpoint new_interface;
 		if (net_interface && std::strlen(net_interface) > 0)
@@ -1729,6 +1750,8 @@ namespace detail
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
+		INVARIANT_CHECK;
+
 		boost::shared_ptr<torrent> t = find_torrent(ih).lock();
 		if (!t) return;
 		// don't add peers from lsd to private torrents
@@ -1783,6 +1806,9 @@ namespace detail
 	session_status session_impl::status() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
+
 		session_status s;
 		s.has_incoming_connections = m_incoming_connection;
 		s.num_peers = (int)m_connections.size();
@@ -1824,6 +1850,9 @@ namespace detail
 	void session_impl::start_dht(entry const& startup_state)
 	{
 		mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
+
 		if (m_dht)
 		{
 			m_dht->stop();
@@ -1983,6 +2012,9 @@ namespace detail
 	{
 		assert(limit > 0 || limit == -1);
 		mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
+
 		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
 		m_max_uploads = limit;
 	}
@@ -1991,6 +2023,9 @@ namespace detail
 	{
 		assert(limit > 0 || limit == -1);
 		mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
+
 		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
 		m_max_connections = limit;
 	}
@@ -1999,6 +2034,9 @@ namespace detail
 	{
 		assert(limit > 0 || limit == -1);
 		mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
+
 		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
 		m_half_open.limit(limit);
 	}
@@ -2007,6 +2045,9 @@ namespace detail
 	{
 		assert(bytes_per_second > 0 || bytes_per_second == -1);
 		mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
+
 		if (bytes_per_second <= 0) bytes_per_second = bandwidth_limit::inf;
 		m_bandwidth_manager[peer_connection::download_channel]->throttle(bytes_per_second);
 	}
@@ -2015,6 +2056,9 @@ namespace detail
 	{
 		assert(bytes_per_second > 0 || bytes_per_second == -1);
 		mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
+
 		if (bytes_per_second <= 0) bytes_per_second = bandwidth_limit::inf;
 		m_bandwidth_manager[peer_connection::upload_channel]->throttle(bytes_per_second);
 	}
@@ -2022,6 +2066,9 @@ namespace detail
 	std::auto_ptr<alert> session_impl::pop_alert()
 	{
 		mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
+
 		if (m_alerts.pending())
 			return m_alerts.get();
 		return std::auto_ptr<alert>(0);
@@ -2036,6 +2083,9 @@ namespace detail
 	int session_impl::upload_rate_limit() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
+
 		int ret = m_bandwidth_manager[peer_connection::upload_channel]->throttle();
 		return ret == (std::numeric_limits<int>::max)() ? -1 : ret;
 	}
@@ -2050,6 +2100,9 @@ namespace detail
 	void session_impl::start_lsd()
 	{
 		mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
+
 		m_lsd.reset(new lsd(m_io_service
 			, m_listen_interface.address()
 			, bind(&session_impl::on_lsd_peer, this, _1, _2)));
@@ -2058,6 +2111,9 @@ namespace detail
 	void session_impl::start_natpmp()
 	{
 		mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
+
 		m_natpmp.reset(new natpmp(m_io_service
 			, m_listen_interface.address()
 			, bind(&session_impl::on_port_mapping
@@ -2073,6 +2129,9 @@ namespace detail
 	void session_impl::start_upnp()
 	{
 		mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
+
 		m_upnp.reset(new upnp(m_io_service, m_half_open
 			, m_listen_interface.address()
 			, m_settings.user_agent
@@ -2110,14 +2169,13 @@ namespace detail
 	
 
 #ifndef NDEBUG
-	void session_impl::check_invariant(const char *place)
+	void session_impl::check_invariant() const
 	{
 		assert(m_max_connections > 0);
 		assert(m_max_uploads > 0);
-		assert(place);
 		int unchokes = 0;
 		int num_optimistic = 0;
-		for (connection_map::iterator i = m_connections.begin();
+		for (connection_map::const_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
 		{
 			assert(i->second);
@@ -2130,7 +2188,7 @@ namespace detail
 				++num_optimistic;
 				assert(!i->second->is_choked());
 			}
-			if (t)
+			if (t && i->second->peer_info_struct())
 			{
 				assert(t->get_policy().has_connection(boost::get_pointer(i->second)));
 			}
