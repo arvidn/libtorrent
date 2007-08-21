@@ -1982,7 +1982,7 @@ namespace detail
 	{
 		assert(limit > 0 || limit == -1);
 		mutex_t::scoped_lock l(m_mutex);
-		if (limit <= 0) limit = std::numeric_limits<int>::max();
+		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
 		m_max_uploads = limit;
 	}
 
@@ -1990,7 +1990,7 @@ namespace detail
 	{
 		assert(limit > 0 || limit == -1);
 		mutex_t::scoped_lock l(m_mutex);
-		if (limit <= 0) limit = std::numeric_limits<int>::max();
+		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
 		m_max_connections = limit;
 	}
 
@@ -1998,7 +1998,7 @@ namespace detail
 	{
 		assert(limit > 0 || limit == -1);
 		mutex_t::scoped_lock l(m_mutex);
-		if (limit <= 0) limit = std::numeric_limits<int>::max();
+		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
 		m_half_open.limit(limit);
 	}
 
@@ -2036,14 +2036,14 @@ namespace detail
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		int ret = m_bandwidth_manager[peer_connection::upload_channel]->throttle();
-		return ret == std::numeric_limits<int>::max() ? -1 : ret;
+		return ret == (std::numeric_limits<int>::max)() ? -1 : ret;
 	}
 
 	int session_impl::download_rate_limit() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		int ret = m_bandwidth_manager[peer_connection::download_channel]->throttle();
-		return ret == std::numeric_limits<int>::max() ? -1 : ret;
+		return ret == (std::numeric_limits<int>::max)() ? -1 : ret;
 	}
 
 	void session_impl::start_lsd()

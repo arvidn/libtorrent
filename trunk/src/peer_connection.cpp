@@ -1903,7 +1903,7 @@ namespace libtorrent
 	void peer_connection::set_upload_limit(int limit)
 	{
 		assert(limit >= -1);
-		if (limit == -1) limit = std::numeric_limits<int>::max();
+		if (limit == -1) limit = (std::numeric_limits<int>::max)();
 		if (limit < 10) limit = 10;
 		m_upload_limit = limit;
 		m_bandwidth_limit[upload_channel].throttle(m_upload_limit);
@@ -1912,7 +1912,7 @@ namespace libtorrent
 	void peer_connection::set_download_limit(int limit)
 	{
 		assert(limit >= -1);
-		if (limit == -1) limit = std::numeric_limits<int>::max();
+		if (limit == -1) limit = (std::numeric_limits<int>::max)();
 		if (limit < 10) limit = 10;
 		m_download_limit = limit;
 		m_bandwidth_limit[download_channel].throttle(m_download_limit);
@@ -1930,7 +1930,7 @@ namespace libtorrent
 		// if we have an infinite ratio, just say we have downloaded
 		// much more than we have uploaded. And we'll keep uploading.
 		if (ratio == 0.f)
-			return std::numeric_limits<size_type>::max();
+			return (std::numeric_limits<size_type>::max)();
 
 		return m_free_upload
 			+ static_cast<size_type>(m_statistics.total_payload_download() * ratio)
@@ -2170,7 +2170,7 @@ namespace libtorrent
 				+ bias) / break_even_time, double(m_upload_limit));
 
 			upload_speed_limit = (std::min)(upload_speed_limit,
-				(double)std::numeric_limits<int>::max());
+				(double)(std::numeric_limits<int>::max)());
 
 			m_bandwidth_limit[upload_channel].throttle(
 				(std::min)((std::max)((int)upload_speed_limit, 20)

@@ -523,7 +523,7 @@ namespace libtorrent { namespace
 		if (num_blocks < 1) num_blocks = 1;
 		assert(num_blocks <= 128);
 
-		int min_element = std::numeric_limits<int>::max();
+		int min_element = (std::numeric_limits<int>::max)();
 		int best_index = 0;
 		for (int i = 0; i < 256 - num_blocks + 1; ++i)
 		{
