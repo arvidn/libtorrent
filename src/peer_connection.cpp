@@ -1562,8 +1562,8 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		assert(t);
 
-		for (std::vector<int>::iterator i = m_allowed_fast.begin()
-			, end(m_allowed_fast.end()); i != end; ++i)
+		for (std::vector<int>::iterator i = m_allowed_fast.begin();
+			i != m_allowed_fast.end(); ++i)
 		{
 			if (!t->have_piece(*i)) continue;
 			*i = m_allowed_fast.back();
