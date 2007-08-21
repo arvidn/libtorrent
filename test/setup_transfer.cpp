@@ -64,7 +64,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	std::ofstream file("./tmp1/temporary");
 	while (total_size > 0)
 	{
-		file.write(&piece[0], std::min(int(piece.size()), total_size));
+		file.write(&piece[0], (std::min)(int(piece.size()), total_size));
 		total_size -= piece.size();
 	}
 	file.close();

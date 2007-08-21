@@ -83,7 +83,7 @@ namespace
 			// (and we should not consider it free). If the share diff is
 			// negative, there's no free download to get from this peer.
 			size_type diff = i->second->share_diff();
-			assert(diff < std::numeric_limits<size_type>::max());
+			assert(diff < (std::numeric_limits<size_type>::max)());
 			if (i->second->is_peer_interested() || diff <= 0)
 				continue;
 
@@ -110,7 +110,7 @@ namespace
 		for (torrent::peer_iterator i = start; i != end; ++i)
 		{
 			size_type d = i->second->share_diff();
-			assert(d < std::numeric_limits<size_type>::max());
+			assert(d < (std::numeric_limits<size_type>::max)());
 			total_diff += d;
 			if (!i->second->is_peer_interested() || i->second->share_diff() >= 0) continue;
 			++num_peers;
@@ -120,7 +120,7 @@ namespace
 		size_type upload_share;
 		if (total_diff >= 0)
 		{
-			upload_share = std::min(free_upload, total_diff) / num_peers;
+			upload_share = (std::min)(free_upload, total_diff) / num_peers;
 		}
 		else
 		{
@@ -385,7 +385,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		iterator worst_peer = m_peers.end();
-		size_type min_weight = std::numeric_limits<int>::min();
+		size_type min_weight = (std::numeric_limits<int>::min)();
 
 #ifndef NDEBUG
 		int unchoked_counter = m_num_unchoked;
@@ -464,7 +464,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		iterator disconnect_peer = m_peers.end();
-		double slowest_transfer_rate = std::numeric_limits<double>::max();
+		double slowest_transfer_rate = (std::numeric_limits<double>::max)();
 
 		ptime now = time_now();
 
@@ -693,7 +693,7 @@ namespace libtorrent
 				++num_connected_peers;
 		}
 
-		if (m_torrent->max_connections() != std::numeric_limits<int>::max())
+		if (m_torrent->max_connections() != (std::numeric_limits<int>::max)())
 		{
 			int max_connections = m_torrent->max_connections();
 
@@ -1215,7 +1215,7 @@ namespace libtorrent
 
 		if (m_torrent->ratio() != 0.f)
 		{
-			assert(c.share_diff() < std::numeric_limits<size_type>::max());
+			assert(c.share_diff() < (std::numeric_limits<size_type>::max)());
 			size_type diff = c.share_diff();
 			if (diff > 0 && c.is_seed())
 			{
@@ -1347,7 +1347,7 @@ namespace libtorrent
 		if (m_torrent->ratio() != 0.f)
 		{
 			assert(c.associated_torrent().lock().get() == m_torrent);
-			assert(c.share_diff() < std::numeric_limits<size_type>::max());
+			assert(c.share_diff() < (std::numeric_limits<size_type>::max)());
 			m_available_free_upload += c.share_diff();
 		}
 		p->prev_amount_download += c.statistics().total_payload_download();
