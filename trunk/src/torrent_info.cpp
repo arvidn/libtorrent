@@ -674,7 +674,7 @@ namespace libtorrent
 	{
 		assert(m_piece_length > 0);
 
-		if ((m_urls.empty() && m_nodes.empty()) || m_files.empty())
+		if (m_files.empty())
 		{
 			// TODO: throw something here
 			// throw
