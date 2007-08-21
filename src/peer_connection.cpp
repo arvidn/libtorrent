@@ -1480,6 +1480,7 @@ namespace libtorrent
 
 		assert(!m_have_piece.empty());
 		std::fill(m_have_piece.begin(), m_have_piece.end(), true);
+		m_num_pieces = m_have_piece.size();
 		
 		t->peer_has_all();
 		if (!t->is_finished())
