@@ -199,9 +199,9 @@ namespace libtorrent
 		, m_connections_initialized(true)
 		, m_settings(s)
 		, m_storage_constructor(sc)
-		, m_max_uploads(std::numeric_limits<int>::max())
+		, m_max_uploads((std::numeric_limits<int>::max)())
 		, m_num_uploads(0)
-		, m_max_connections(std::numeric_limits<int>::max())
+		, m_max_connections((std::numeric_limits<int>::max)())
 	{
 #ifndef NDEBUG
 		m_initial_done = 0;
@@ -262,9 +262,9 @@ namespace libtorrent
 		, m_connections_initialized(false)
 		, m_settings(s)
 		, m_storage_constructor(sc)
-		, m_max_uploads(std::numeric_limits<int>::max())
+		, m_max_uploads((std::numeric_limits<int>::max)())
 		, m_num_uploads(0)
-		, m_max_connections(std::numeric_limits<int>::max())
+		, m_max_connections((std::numeric_limits<int>::max)())
 	{
 #ifndef NDEBUG
 		m_initial_done = 0;
@@ -2459,14 +2459,14 @@ namespace libtorrent
 	void torrent::set_max_uploads(int limit)
 	{
 		assert(limit >= -1);
-		if (limit <= 0) limit = std::numeric_limits<int>::max();
+		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
 		m_max_uploads = limit;
 	}
 
 	void torrent::set_max_connections(int limit)
 	{
 		assert(limit >= -1);
-		if (limit <= 0) limit = std::numeric_limits<int>::max();
+		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
 		m_max_connections = limit;
 	}
 
@@ -2489,7 +2489,7 @@ namespace libtorrent
 	void torrent::set_upload_limit(int limit)
 	{
 		assert(limit >= -1);
-		if (limit <= 0) limit = std::numeric_limits<int>::max();
+		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
 		if (limit < num_peers() * 10) limit = num_peers() * 10;
 		m_bandwidth_limit[peer_connection::upload_channel].throttle(limit);
 	}
@@ -2497,14 +2497,14 @@ namespace libtorrent
 	int torrent::upload_limit() const
 	{
 		int limit = m_bandwidth_limit[peer_connection::upload_channel].throttle();
-		if (limit == std::numeric_limits<int>::max()) limit = -1;
+		if (limit == (std::numeric_limits<int>::max)()) limit = -1;
 		return limit;
 	}
 
 	void torrent::set_download_limit(int limit)
 	{
 		assert(limit >= -1);
-		if (limit <= 0) limit = std::numeric_limits<int>::max();
+		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
 		if (limit < num_peers() * 10) limit = num_peers() * 10;
 		m_bandwidth_limit[peer_connection::download_channel].throttle(limit);
 	}
@@ -2512,7 +2512,7 @@ namespace libtorrent
 	int torrent::download_limit() const
 	{
 		int limit = m_bandwidth_limit[peer_connection::download_channel].throttle();
-		if (limit == std::numeric_limits<int>::max()) limit = -1;
+		if (limit == (std::numeric_limits<int>::max)()) limit = -1;
 		return limit;
 	}
 
