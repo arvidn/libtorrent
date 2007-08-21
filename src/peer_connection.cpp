@@ -1562,17 +1562,9 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		assert(t);
 
-		for (std::vector<int>::iterator i = m_allowed_fast.begin();
-			i != m_allowed_fast.end();)
-		{
-			if (!t->have_piece(*i))
-			{
-				++i;
-				continue;
-			}
-			*i = m_allowed_fast.back();
-			m_allowed_fast.pop_back();
-		}
+		m_allowed_fast.erase(std::remove_if(m_allowed_fast.begin()
+			, m_allowed_fast.end(), bind(&torrent::have_piece, t, _1))
+			, m_allowed_fast.end());
 
 		// TODO: sort the allowed fast set in priority order
 		return m_allowed_fast;
