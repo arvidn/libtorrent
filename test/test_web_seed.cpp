@@ -2,9 +2,11 @@
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/storage.hpp"
+#include "libtorrent/bencode.hpp"
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <fstream>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -55,7 +57,11 @@ void test_transfer()
 	}
 	
 	// to calculate the info_hash
-	torrent_file.create_torrent();
+	entry te = torrent_file.create_torrent();
+
+	te.print(std::cout);
+//	std::ofstream torrent("web_seed.torrent", std::ios::binary | std::ios::trunc);
+//	bencode(std::ostream_iterator<char>(torrent), te);
 
 	session ses;
 	ses.set_severity_level(alert::debug);

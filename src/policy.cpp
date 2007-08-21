@@ -280,6 +280,7 @@ namespace libtorrent
 		{
 			if (p.is_requested(*i))
 			{
+				if (num_requests <= 0) break;
 				// don't request pieces we already have in our request queue
 				const std::deque<piece_block>& dq = c.download_queue();
 				const std::deque<piece_block>& rq = c.request_queue();
@@ -299,10 +300,9 @@ namespace libtorrent
 			assert(p.num_peers(*i) == 1);
 			assert(p.is_requested(*i));
 			num_requests--;
-			if (num_requests == 0) break;
 		}
 
-		if (busy_pieces.empty() || num_requests == 0)
+		if (busy_pieces.empty() || num_requests <= 0)
 		{
 			// in this case, we could not find any blocks
 			// that was free. If we couldn't find any busy
@@ -1404,6 +1404,11 @@ namespace libtorrent
 				assert(std::find_if(conns.begin(), conns.end()
 					, boost::bind(std::equal_to<peer_connection*>(), _1, p.connection))
 					!= conns.end());
+			}
+			if (p.optimistically_unchoked)
+			{
+				assert(p.connection);
+				assert(!p.connection->is_choked());
 			}
 			assert(p.connection->peer_info_struct() == 0
 				|| p.connection->peer_info_struct() == &p);

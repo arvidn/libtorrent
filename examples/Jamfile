@@ -20,10 +20,8 @@ project client_test
    ;  
 
 exe client_test : client_test.cpp
-	: <boost>source:<library>/boost/program_options
-	<boost>source:<library>/boost/regex
-	<boost>system:<library>program-options
-	<boost>system:<library>regex
+	: <library>/boost/program_options
+	<library>/boost/regex
 	;
 
 exe simple_client : simple_client.cpp ;
