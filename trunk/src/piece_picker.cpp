@@ -394,6 +394,7 @@ namespace libtorrent
 					assert(!t->have_piece(index));
 
 				int prio = i->priority(m_sequenced_download_threshold);
+				assert(prio < int(m_piece_info.size()));
 				if (prio > 0)
 				{
 					const std::vector<int>& vec = m_piece_info[prio];
@@ -739,6 +740,7 @@ namespace libtorrent
 			, end(m_piece_map.end()); i != end; ++i)
 		{
 			int prev_prio = i->priority(m_sequenced_download_threshold);
+			assert(prev_prio < int(m_piece_info.size()));
 			++i->peer_count;
 			// if the assumption that the priority would
 			// increase by 2 when increasing the availability
@@ -828,8 +830,8 @@ namespace libtorrent
 			, end(m_piece_map.end()); i != end; ++i)
 		{
 			int prev_prio = i->priority(m_sequenced_download_threshold);
-			assert(prev_prio < m_piece_info.size());
-			assert(pushed_out_index < m_piece_info.size());
+			assert(prev_prio < int(m_piece_info.size()));
+			assert(pushed_out_index < int(m_piece_info.size()));
 			assert(i->peer_count > 0);
 			--i->peer_count;
 			// if the assumption that the priority would
@@ -881,6 +883,7 @@ namespace libtorrent
 		piece_pos& p = m_piece_map[i];
 		int index = p.index;
 		int prev_priority = p.priority(m_sequenced_download_threshold);
+		assert(prev_priority < int(m_piece_info.size()));
 
 		assert(p.peer_count < piece_pos::max_peer_count);
 		p.peer_count++;
@@ -915,6 +918,7 @@ namespace libtorrent
 
 		piece_pos& p = m_piece_map[i];
 		int prev_priority = p.priority(m_sequenced_download_threshold);
+		assert(prev_priority < int(m_piece_info.size()));
 		int index = p.index;
 		assert(p.peer_count > 0);
 
@@ -939,6 +943,7 @@ namespace libtorrent
 		piece_pos& p = m_piece_map[index];
 		int info_index = p.index;
 		int priority = p.priority(m_sequenced_download_threshold);
+		assert(priority < int(m_piece_info.size()));
 
 		assert(p.downloading == 1);
 		assert(!p.have());
@@ -982,6 +987,7 @@ namespace libtorrent
 		if (new_piece_priority == int(p.piece_priority)) return false;
 		
 		int prev_priority = p.priority(m_sequenced_download_threshold);
+		assert(prev_priority < int(m_piece_info.size()));
 
 		bool ret = false;
 		if (new_piece_priority == piece_pos::filter_priority
@@ -1005,6 +1011,7 @@ namespace libtorrent
 		
 		p.piece_priority = new_piece_priority;
 		int new_priority = p.priority(m_sequenced_download_threshold);
+		assert(prev_priority < int(m_piece_info.size()));
 
 		if (new_priority == prev_priority) return false;
 		
@@ -1421,6 +1428,7 @@ namespace libtorrent
 		if (p.downloading == 0)
 		{
 			int prio = p.priority(m_sequenced_download_threshold);
+			assert(prio < int(m_piece_info.size()));
 			assert(prio > 0);
 			p.downloading = 1;
 			move(prio, p.index);
@@ -1532,6 +1540,7 @@ namespace libtorrent
 			
 			assert(peer == 0);
 			int prio = p.priority(m_sequenced_download_threshold);
+			assert(prio < int(m_piece_info.size()));
 			p.downloading = 1;
 			if (prio > 0) move(prio, p.index);
 			else assert(p.priority(m_sequenced_download_threshold) == 0);
@@ -1654,6 +1663,7 @@ namespace libtorrent
 			erase_download_piece(i);
 			piece_pos& p = m_piece_map[block.piece_index];
 			int prio = p.priority(m_sequenced_download_threshold);
+			assert(prio < int(m_piece_info.size()));
 			p.downloading = 0;
 			if (prio > 0) move(prio, p.index);
 
