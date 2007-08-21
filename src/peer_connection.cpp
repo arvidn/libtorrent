@@ -1679,6 +1679,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		assert(!m_peer_info || !m_peer_info->optimistically_unchoked);
+
 		if (m_choked) return;
 		write_choke();
 		m_choked = true;
@@ -1696,14 +1698,6 @@ namespace libtorrent
 	void peer_connection::send_unchoke()
 	{
 		INVARIANT_CHECK;
-
-#ifndef NDEBUG
-		// TODO: once the policy lowers the interval for optimistic
-		// unchoke, increase this value that interval
-		// this condition cannot be guaranteed since if peers disconnect
-		// a new one will be unchoked ignoring when it was last choked
-		//assert(time_now() - m_last_choke > seconds(9));
-#endif
 
 		if (!m_choked) return;
 		write_unchoke();
@@ -2009,6 +2003,7 @@ namespace libtorrent
 			p.failcount = peer_info_struct()->failcount;
 			p.num_hashfails = peer_info_struct()->hashfails;
 			p.flags |= peer_info_struct()->on_parole ? peer_info::on_parole : 0;
+			p.flags |= peer_info_struct()->optimistically_unchoked ? peer_info::optimistic_unchoke : 0;
 			p.remote_dl_rate = m_remote_dl_rate;
 		}
 		else
@@ -2231,20 +2226,6 @@ namespace libtorrent
 			m_reading_bytes += r.length;
 
 			m_requests.erase(m_requests.begin());
-/*
-			if (m_requests.empty()
-				&& m_num_invalid_requests > 0
-				&& is_peer_interested()
-				&& !is_seed())
-			{
-				// this will make the peer clear
-				// its download queue and re-request
-				// pieces. Hopefully it will not
-				// send invalid requests then
-				send_choke();
-				send_unchoke();
-			}
-*/
 		}
 	}
 
@@ -2785,9 +2766,14 @@ namespace libtorrent
 	void peer_connection::check_invariant() const
 	{
 		if (m_peer_info)
+		{
 			assert(m_peer_info->connection == this
 				|| m_peer_info->connection == 0);
-	
+
+			if (m_peer_info->optimistically_unchoked)
+				assert(!is_choked());
+		}
+
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t)
 		{

@@ -1320,14 +1320,16 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		peer* p = c.peer_info_struct();
-		// if we couldn't find the connection in our list, just ignore it.
-		if (p == 0) return;
 
-		assert(std::find_if(
+		assert((std::find_if(
 			m_peers.begin()
 			, m_peers.end()
 			, match_peer_connection(c))
-			!= m_peers.end());
+			!= m_peers.end()) == (p != 0));
+		
+		// if we couldn't find the connection in our list, just ignore it.
+		if (p == 0) return;
+
 		assert(p->connection == &c);
 
 		p->connection = 0;

@@ -1106,6 +1106,7 @@ namespace detail
 				}
 				else
 				{
+					assert(p->peer_info_struct());
 					if (!p->is_choked() && !p->peer_info_struct()->optimistically_unchoked)
 						t->choke_peer(*p);
 				}
@@ -1159,8 +1160,8 @@ namespace detail
 					{
 						torrent* t = current_optimistic_unchoke->second->associated_torrent().lock().get();
 						assert(t);
-						t->choke_peer(*current_optimistic_unchoke->second);
 						current_optimistic_unchoke->second->peer_info_struct()->optimistically_unchoked = false;
+						t->choke_peer(*current_optimistic_unchoke->second);
 					}
 
 					torrent* t = optimistic_unchoke_candidate->second->associated_torrent().lock().get();

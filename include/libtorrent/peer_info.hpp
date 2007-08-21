@@ -56,10 +56,11 @@ namespace libtorrent
 			connecting = 0x80,
 			queued = 0x100,
 			on_parole = 0x200,
-			seed = 0x400
+			seed = 0x400,
+			optimistic_unchoke = 0x800
 #ifndef TORRENT_DISABLE_ENCRYPTION
-			, rc4_encrypted = 0x800,
-			plaintext_encrypted = 0x1000
+			, rc4_encrypted = 0x100000,
+			plaintext_encrypted = 0x200000
 #endif
 		};
 
