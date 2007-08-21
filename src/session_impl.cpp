@@ -809,7 +809,8 @@ namespace detail
 	{
 		mutex_t::scoped_lock l(m_mutex);
 	
-		INVARIANT_CHECK;
+// too expensive
+//		INVARIANT_CHECK;
 		
 		connection_map::iterator p = m_connections.find(s);
 
@@ -841,7 +842,8 @@ namespace detail
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
-		INVARIANT_CHECK;
+// too expensive
+//		INVARIANT_CHECK;
 
 		assert(p->is_disconnecting());
 		connection_map::iterator i = m_connections.find(p->get_socket());
@@ -2067,7 +2069,8 @@ namespace detail
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
-		INVARIANT_CHECK;
+// too expensive
+//		INVARIANT_CHECK;
 
 		if (m_alerts.pending())
 			return m_alerts.get();
