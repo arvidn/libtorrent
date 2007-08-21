@@ -1563,9 +1563,13 @@ namespace libtorrent
 		assert(t);
 
 		for (std::vector<int>::iterator i = m_allowed_fast.begin();
-			i != m_allowed_fast.end(); ++i)
+			i != m_allowed_fast.end();)
 		{
-			if (!t->have_piece(*i)) continue;
+			if (!t->have_piece(*i))
+			{
+				++i;
+				continue;
+			}
 			*i = m_allowed_fast.back();
 			m_allowed_fast.pop_back();
 		}
