@@ -1123,6 +1123,8 @@ namespace detail
 					assert(p->peer_info_struct());
 					if (!p->is_choked() && !p->peer_info_struct()->optimistically_unchoked)
 						t->choke_peer(*p);
+					if (!p->is_choked())
+						++m_num_unchoked;
 				}
 			}
 
@@ -1177,6 +1179,10 @@ namespace detail
 						current_optimistic_unchoke->second->peer_info_struct()->optimistically_unchoked = false;
 						t->choke_peer(*current_optimistic_unchoke->second);
 					}
+					else
+					{
+						++m_num_unchoked;
+					}
 
 					torrent* t = optimistic_unchoke_candidate->second->associated_torrent().lock().get();
 					assert(t);
@@ -1184,9 +1190,6 @@ namespace detail
 					assert(ret);
 					optimistic_unchoke_candidate->second->peer_info_struct()->optimistically_unchoked = true;
 				}
-
-				if (optimistic_unchoke_candidate != m_connections.end())
-					++m_num_unchoked;
 			}
 		}
 
@@ -2197,7 +2200,10 @@ namespace detail
 			}
 		}
 		assert(num_optimistic == 0 || num_optimistic == 1);
-		assert(m_num_unchoked == unchokes);
+		if (m_num_unchoked != unchokes)
+		{
+			assert(false);
+		}
 	}
 #endif
 
