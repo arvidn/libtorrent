@@ -179,11 +179,11 @@ namespace libtorrent
 		, fs::path const& save_path
 		, entry const& resume_data
 		, bool compact_mode
-		, int block_size
+		, bool paused
 		, storage_constructor_type sc)
 	{
 		return m_impl->add_torrent(ti, save_path, resume_data
-			, compact_mode, block_size, sc);
+			, compact_mode, sc, paused);
 	}
 
 	torrent_handle session::add_torrent(
@@ -193,11 +193,11 @@ namespace libtorrent
 		, fs::path const& save_path
 		, entry const& e
 		, bool compact_mode
-		, int block_size
+		, bool paused
 		, storage_constructor_type sc)
 	{
 		return m_impl->add_torrent(tracker_url, info_hash, name, save_path, e
-			, compact_mode, block_size, sc);
+			, compact_mode, sc, paused);
 	}
 
 	void session::remove_torrent(const torrent_handle& h)

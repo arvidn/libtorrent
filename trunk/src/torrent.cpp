@@ -155,11 +155,11 @@ namespace libtorrent
 		, tcp::endpoint const& net_interface
 		, bool compact_mode
 		, int block_size
-		, session_settings const& s
-		, storage_constructor_type sc)
+		, storage_constructor_type sc
+		, bool paused)
 		: m_torrent_file(tf)
 		, m_abort(false)
-		, m_paused(false)
+		, m_paused(paused)
 		, m_just_paused(false)
 		, m_event(tracker_request::started)
 		, m_block_size(0)
@@ -197,7 +197,7 @@ namespace libtorrent
 		, m_compact_mode(compact_mode)
 		, m_default_block_size(block_size)
 		, m_connections_initialized(true)
-		, m_settings(s)
+		, m_settings(ses.settings())
 		, m_storage_constructor(sc)
 		, m_max_uploads((std::numeric_limits<int>::max)())
 		, m_num_uploads(0)
@@ -219,11 +219,11 @@ namespace libtorrent
 		, tcp::endpoint const& net_interface
 		, bool compact_mode
 		, int block_size
-		, session_settings const& s
-		, storage_constructor_type sc)
+		, storage_constructor_type sc
+		, bool paused)
 		: m_torrent_file(info_hash)
 		, m_abort(false)
-		, m_paused(false)
+		, m_paused(paused)
 		, m_just_paused(false)
 		, m_event(tracker_request::started)
 		, m_block_size(0)
@@ -260,7 +260,7 @@ namespace libtorrent
 		, m_compact_mode(compact_mode)
 		, m_default_block_size(block_size)
 		, m_connections_initialized(false)
-		, m_settings(s)
+		, m_settings(ses.settings())
 		, m_storage_constructor(sc)
 		, m_max_uploads((std::numeric_limits<int>::max)())
 		, m_num_uploads(0)

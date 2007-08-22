@@ -75,7 +75,7 @@ The ``session`` class has the following synopsis::
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
-			, int block_size = 16 * 1024);
+			, bool paused = false);
 
 		torrent_handle add_torrent(
 			char const* tracker_url
@@ -84,7 +84,7 @@ The ``session`` class has the following synopsis::
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
-			, int block_size = 16 * 1024);
+			, bool paused = true);
 
 		session_proxy abort();
 
@@ -208,7 +208,7 @@ add_torrent()
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
-			, int block_size = 16 * 1024);
+			, bool paused = false);
 
 		torrent_handle add_torrent(
 			char const* tracker_url
@@ -217,7 +217,7 @@ add_torrent()
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
-			, int block_size = 16 * 1024);
+			, bool paused = false);
 
 You add torrents through the ``add_torrent()`` function where you give an
 object representing the information found in the torrent file and the path where you
@@ -239,10 +239,10 @@ downloaded. If it is false, the entire storage is allocated before download begi
 the files contained in the torrent are filled with zeros, and each downloaded piece
 is put in its final place directly when downloaded. For more info, see `storage allocation`_.
 
-``block_size`` sets the preferred request size, i.e. the number of bytes to request from
-a peer at a time. This block size must be a divisor of the piece size, and since the piece
-size is an even power of 2, so must the block size be. If the block size given here turns
-out to be greater than the piece size, it will simply be clamped to the piece size.
+``paused`` is a boolean that specifies whether or not the torrent is to be started in
+a paused state. I.e. it won't connect to the tracker or any of the peers until it's
+resumed. This is typically a good way of avoiding race conditions when setting
+configuration options on torrents before starting them.
 
 The torrent_handle_ returned by ``add_torrent()`` can be used to retrieve information
 about the torrent's progress, its peers etc. It is also used to abort a torrent.
@@ -2009,8 +2009,9 @@ It contains the following fields::
 			queued = 0x100,
 			on_parole = 0x200,
 			seed = 0x400,
-			rc4_encrypted = 0x800,
-			plaintext_encrypted = 0x1000
+			optimistic_unchoke = 0x800,
+			rc4_encrypted = 0x100000,
+			plaintext_encrypted = 0x200000
 		};
 
 		unsigned int flags;
@@ -2090,6 +2091,20 @@ any combination of the enums above. The following table describes each flag:
 | ``queued``              | The connection is currently queued for a connection   |
 |                         | attempt. This may happen if there is a limit set on   |
 |                         | the number of half-open TCP connections.              |
++-------------------------+-------------------------------------------------------+
+| ``on_parole``           | The peer has participated in a piece that failed the  |
+|                         | hash check, and is now "on parole", which means we're |
+|                         | only requesting whole pieces from this peer until     |
+|                         | it either fails that piece or proves that it doesn't  |
+|                         | send bad data.                                        |
++-------------------------+-------------------------------------------------------+
+| ``seed``                | This peer is a seed (it has all the pieces).          |
++-------------------------+-------------------------------------------------------+
+| ``optimistic_unchoke``  | This peer is subject to an optimistic unchoke. It has |
+|                         | been unchoked for a while to see if it might unchoke  |
+|                         | us in return an earn an upload/unchoke slot. If it    |
+|                         | doesn't within some period of time, it will be choked |
+|                         | and another peer will be optimistically unchoked.     |
 +-------------------------+-------------------------------------------------------+
 
 __ extension_protocol.html

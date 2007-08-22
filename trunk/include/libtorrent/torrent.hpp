@@ -102,8 +102,8 @@ namespace libtorrent
 			, tcp::endpoint const& net_interface
 			, bool compact_mode
 			, int block_size
-			, session_settings const& s
-			, storage_constructor_type sc);
+			, storage_constructor_type sc
+			, bool paused);
 
 		// used with metadata-less torrents
 		// (the metadata is downloaded from the peers)
@@ -117,8 +117,8 @@ namespace libtorrent
 			, tcp::endpoint const& net_interface
 			, bool compact_mode
 			, int block_size
-			, session_settings const& s
-			, storage_constructor_type sc);
+			, storage_constructor_type sc
+			, bool paused);
 
 		~torrent();
 
