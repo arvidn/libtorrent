@@ -437,7 +437,7 @@ void add_torrent(libtorrent::session& ses
 	catch (boost::filesystem::filesystem_error&) {}
 
 	torrent_handle h = ses.add_torrent(t, save_path, resume_data
-		, compact_mode, 16 * 1024);
+		, compact_mode, false);
 	handles.insert(std::make_pair(
 		monitored_dir?std::string(torrent):std::string(), h));
 
