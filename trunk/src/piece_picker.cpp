@@ -639,7 +639,7 @@ namespace libtorrent
 		if (dp == m_downloads.begin()) return;
 		int complete = dp->writing + dp->finished;
 		for (std::vector<downloading_piece>::iterator i = dp, j(dp-1);
-			i != m_downloads.begin() && j != m_downloads.begin(); --i, --j)
+			i != m_downloads.begin(); --i, --j)
 		{
 			assert(j >= m_downloads.begin());
 			if (j->finished + j->writing >= complete) return;
