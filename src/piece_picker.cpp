@@ -1575,9 +1575,15 @@ namespace libtorrent
 			assert(i->writing >= 0);
 			++i->finished;
 			if (info.state == block_info::state_writing)
+			{
 				--i->writing;
-			info.state = block_info::state_finished;
-			sort_piece(i);
+				info.state = block_info::state_finished;
+			}
+			else
+			{
+				info.state = block_info::state_finished;
+				sort_piece(i);
+			}
 		}
 	}
 
