@@ -1068,7 +1068,16 @@ namespace detail
 						&& !t->is_seed()))
 				{
 					if (!i->second->is_choked() && t)
+					{
+						policy::peer* pi = p->peer_info_struct();
+						if (pi && pi->optimistically_unchoked)
+						{
+							pi->optimistically_unchoked = false;
+							// force a new optimistic unchoke
+							m_optimistic_unchoke_time_scaler = 0;
+						}
 						t->choke_peer(*i->second);
+					}
 					continue;
 				}
 				peers.push_back(i->second.get());
