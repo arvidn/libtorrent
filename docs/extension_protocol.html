@@ -116,8 +116,8 @@ i.e. The IDs are local to this particular peer.</p>
 <p>Here are some other items that an implementation may choose to support:</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="11%" />
-<col width="89%" />
+<col width="12%" />
+<col width="88%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">name</th>
@@ -133,9 +133,16 @@ this extension message, since its port number is already
 known.</td>
 </tr>
 <tr><td>v</td>
-<td>Client name and version (as an utf-8 string).
+<td>Client name and version (as a utf-8 string).
 This is a much more reliable way of identifying the
 client than relying on the peer id encoding.</td>
+</tr>
+<tr><td>yourip</td>
+<td>A string containing the compact representation of the ip
+address this peer sees you as. i.e. this is the
+receiver's external ip address (no port is included).
+This may be both an IPv4 (4 bytes) or an IPv6 (16 bytes)
+address.</td>
 </tr>
 <tr><td>reqq</td>
 <td>An integer, the number of outstanding request messages

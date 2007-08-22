@@ -1447,25 +1447,12 @@ namespace detail
 		, fs::path const& save_path
 		, entry const& resume_data
 		, bool compact_mode
-		, int block_size
-		, storage_constructor_type sc)
+		, storage_constructor_type sc
+		, bool paused)
 	{
 		// if you get this assert, you haven't managed to
 		// open a listen port. call listen_on() first.
 		assert(m_external_listen_port > 0);
-
-		// make sure the block_size is an even power of 2
-#ifndef NDEBUG
-		for (int i = 0; i < 32; ++i)
-		{
-			if (block_size & (1 << i))
-			{
-				assert((block_size & ~(1 << i)) == 0);
-				break;
-			}
-		}
-#endif
-	
 		assert(!save_path.empty());
 
 		if (ti.begin_files() == ti.end_files())
@@ -1493,8 +1480,8 @@ namespace detail
 		// the thread
 		boost::shared_ptr<torrent> torrent_ptr(
 			new torrent(*this, m_checker_impl, ti, save_path
-				, m_listen_interface, compact_mode, block_size
-				, settings(), sc));
+				, m_listen_interface, compact_mode, 16 * 1024
+				, sc, paused));
 		torrent_ptr->start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -1540,20 +1527,9 @@ namespace detail
 		, fs::path const& save_path
 		, entry const&
 		, bool compact_mode
-		, int block_size
-		, storage_constructor_type sc)
+		, storage_constructor_type sc
+		, bool paused)
 	{
-		// make sure the block_size is an even power of 2
-#ifndef NDEBUG
-		for (int i = 0; i < 32; ++i)
-		{
-			if (block_size & (1 << i))
-			{
-				assert((block_size & ~(1 << i)) == 0);
-				break;
-			}
-		}
-#endif
 	
 		// TODO: support resume data in this case
 		assert(!save_path.empty());
@@ -1583,8 +1559,8 @@ namespace detail
 		// the thread
 		boost::shared_ptr<torrent> torrent_ptr(
 			new torrent(*this, m_checker_impl, tracker_url, info_hash, name
-			, save_path, m_listen_interface, compact_mode, block_size
-			, settings(), sc));
+			, save_path, m_listen_interface, compact_mode, 16 * 1024
+			, sc, paused));
 		torrent_ptr->start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

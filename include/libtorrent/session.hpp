@@ -141,22 +141,8 @@ namespace libtorrent
 			, fs::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
-			, int block_size = 16 * 1024
+			, bool paused = false
 			, storage_constructor_type sc = default_storage_constructor);
-
-		// ==== deprecated, this is for backwards compatibility only
-		// instead, use one of the other add_torrent overloads
-		torrent_handle add_torrent(
-			entry const& e
-			, fs::path const& save_path
-			, entry const& resume_data = entry()
-			, bool compact_mode = true
-			, int block_size = 16 * 1024
-			, storage_constructor_type sc = default_storage_constructor) TORRENT_DEPRECATED
-		{
-			return add_torrent(torrent_info(e), save_path, resume_data
-				, compact_mode, block_size, sc);
-		}
 
 		torrent_handle add_torrent(
 			char const* tracker_url
@@ -165,7 +151,7 @@ namespace libtorrent
 			, fs::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
-			, int block_size = 16 * 1024
+			, bool paused = true
 			, storage_constructor_type sc = default_storage_constructor);
 
 		session_proxy abort() { return session_proxy(m_impl); }
