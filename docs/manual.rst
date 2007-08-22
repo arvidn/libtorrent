@@ -403,7 +403,11 @@ versions is the payload download only.
 uploaded to and from all torrents. ``total_payload_download`` and ``total_payload_upload``
 are the same thing but where only the payload is considered.
 
-``num_peers`` is the total number of peer connections this session have.
+``num_peers`` is the total number of peer connections this session has. This includes
+incoming connections that still hasn't sent their handshake or outgoing connections
+that still hasn't completed the TCP connection. This number may be slightly higher
+than the sum of all peers of all torrents because the incoming connections may not
+be assigned a torrent yet.
 
 ``dht_nodes``, ``dht_cache_nodes`` and ``dht_torrents`` are only available when
 built with DHT support. They are all set to 0 if the DHT isn't running. When
