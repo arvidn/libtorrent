@@ -151,7 +151,7 @@ namespace libtorrent
 			, fs::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
-			, bool paused = true
+			, bool paused = false
 			, storage_constructor_type sc = default_storage_constructor);
 
 		session_proxy abort() { return session_proxy(m_impl); }
