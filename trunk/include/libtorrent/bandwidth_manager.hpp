@@ -398,6 +398,7 @@ private:
 					block_size = m_limit
 						/ (m_limit / max_bandwidth_block_size);
 				}
+				if (block_size > qe.max_block_size) block_size = qe.max_block_size;
 			}
 
 			if (amount < block_size / 2)
