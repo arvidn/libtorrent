@@ -374,9 +374,8 @@ private:
 			// block size must be smaller for lower rates. This is because
 			// the history window is one second, and the block will be forgotten
 			// after one second.
-			int block_size = (std::min)(qe.max_block_size
-				, (std::min)(qe.peer->bandwidth_throttle(m_channel)
-				, m_limit / 10));
+			int block_size = (std::min)(qe.peer->bandwidth_throttle(m_channel)
+				, m_limit / 10);
 
 			if (block_size < min_bandwidth_block_size)
 			{
@@ -398,8 +397,8 @@ private:
 					block_size = m_limit
 						/ (m_limit / max_bandwidth_block_size);
 				}
-				if (block_size > qe.max_block_size) block_size = qe.max_block_size;
 			}
+			if (block_size > qe.max_block_size) block_size = qe.max_block_size;
 
 			if (amount < block_size / 2)
 			{
