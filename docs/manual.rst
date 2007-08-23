@@ -1867,6 +1867,13 @@ It contains the following fields::
 		float distributed_copies;
 
 		int block_size;
+
+		int num_uploads;
+		int num_connections;
+		int uploads_limit;
+		int connections_limit;
+
+		bool compact_mode;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -1992,6 +1999,19 @@ is the number of bytes that each piece request asks for and the number of
 bytes that each bit in the ``partial_piece_info``'s bitset represents
 (see `get_download_queue()`_). This is typically 16 kB, but it may be
 larger if the pieces are larger.
+
+``num_uploads`` is the number of unchoked peers in this torrent.
+
+``num_connections`` is the number of peer connections this torrent has, including
+half-open connections that hasn't completed the bittorrent handshake yet. This is
+always <= ``num_peers``.
+
+``uploads_limit`` is the set limit of upload slots (unchoked peers) for this torrent.
+
+``connections_limit`` is the set limit of number of connections for this torrent.
+
+``compact_mode`` is true if this torrent was started with compact allocation mode
+for its storage. False means it was started in full allocation mode.
 
 peer_info
 =========
