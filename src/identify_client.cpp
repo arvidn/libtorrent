@@ -184,6 +184,7 @@ namespace
 		, {"SB", "Swiftbit"}
 		, {"SN", "ShareNet"}
 		, {"SS", "SwarmScope"}
+		, {"ST", "SymTorrent"}
 		, {"SZ", "Shareaza"}
 		, {"S~",  "Shareaza (beta)"}
 		, {"T",  "BitTornado"}
@@ -194,12 +195,57 @@ namespace
 		, {"U",  "UPnP"}
 		, {"UL", "uLeecher"}
 		, {"UT", "uTorrent"}
+		, {"XL", "Xunlei"}
 		, {"XT", "XanTorrent"}
 		, {"XX", "Xtorrent"}
 		, {"ZT", "ZipTorrent"}
 		, {"lt", "rTorrent"}
 		, {"pX", "pHoeniX"}
 		, {"qB", "qBittorrent"}
+		, {"st", "SharkTorrent"}
+	};
+
+	struct generic_map_entry
+	{
+		int offset;
+		char const* id;
+		char const* name;
+	};
+	// non-standard names
+	generic_map_entry generic_mappings[] =
+	{
+		{0, "Deadman Walking-", "Deadman"}
+		, {5, "Azureus", "Azureus 2.0.3.2"}
+		, {0, "DansClient", "XanTorrent"}
+		, {4, "btfans", "SimpleBT"}
+		, {0, "PRC.P---", "Bittorrent Plus! II"}
+		, {0, "P87.P---", "Bittorrent Plus!"}
+		, {0, "S587Plus", "Bittorrent Plus!"}
+		, {0, "martini", "Martini Man"}
+		, {0, "Plus---", "Bittorrent Plus"}
+		, {0, "turbobt", "TurboBT"}
+		, {0, "a00---0", "Swarmy"}
+		, {0, "a02---0", "Swarmy"}
+		, {0, "T00---0", "Teeweety"}
+		, {0, "BTDWV-", "Deadman Walking"}
+		, {2, "BS", "BitSpirit"}
+		, {0, "Pando-", "Pando"}
+		, {0, "LIME", "LimeWire"}
+		, {0, "btuga", "BTugaXP"}
+		, {0, "oernu", "BTugaXP"}
+		, {0, "Mbrst", "Burst!"}
+		, {0, "PEERAPP", "PeerApp"}
+		, {0, "Plus", "Plus!"}
+		, {0, "-Qt-", "Qt"}
+		, {0, "exbc", "BitComet"}
+		, {0, "DNA", "BitTorrent DNA"}
+		, {0, "-G3", "G3 Torrent"}
+		, {0, "-FG", "FlashGet"}
+		, {0, "-ML", "MLdonkey"}
+		, {0, "XBT", "XBT"}
+		, {0, "OP", "Opera"}
+		, {2, "RS", "Rufus"}
+		, {0, "AZ2500BT", "BitTyrant"}
 	};
 
 	bool compare_id(map_entry const& lhs, map_entry const& rhs)
@@ -281,33 +327,13 @@ namespace libtorrent
 		// non standard encodings
 		// ----------------------
 
-		if (find_string(PID, "Deadman Walking-")) return "Deadman";
-		if (find_string(PID + 5, "Azureus")) return "Azureus 2.0.3.2";
-		if (find_string(PID, "DansClient")) return "XanTorrent";
-		if (find_string(PID + 4, "btfans")) return "SimpleBT";
-		if (find_string(PID, "PRC.P---")) return "Bittorrent Plus! II";
-		if (find_string(PID, "P87.P---")) return "Bittorrent Plus!";
-		if (find_string(PID, "S587Plus")) return "Bittorrent Plus!";
-		if (find_string(PID, "martini")) return "Martini Man";
-		if (find_string(PID, "Plus---")) return "Bittorrent Plus";
-		if (find_string(PID, "turbobt")) return "TurboBT";
-		if (find_string(PID, "a00---0")) return "Swarmy";
-		if (find_string(PID, "a02---0")) return "Swarmy";
-		if (find_string(PID, "T00---0")) return "Teeweety";
-		if (find_string(PID, "BTDWV-")) return "Deadman Walking";
-		if (find_string(PID + 2, "BS")) return "BitSpirit";
-		if (find_string(PID, "Pando-")) return "Pando";
-		if (find_string(PID, "LIME")) return "LimeWire";
-		if (find_string(PID, "btuga")) return "BTugaXP";
-		if (find_string(PID, "oernu")) return "BTugaXP";
-		if (find_string(PID, "Mbrst")) return "Burst!";
-		if (find_string(PID, "Plus")) return "Plus!";
-		if (find_string(PID, "-Qt-")) return "Qt";
-		if (find_string(PID, "exbc")) return "BitComet";
-		if (find_string(PID, "DNA")) return "BitTorrent DNA";
-		if (find_string(PID, "-G3")) return "G3 Torrent";
-		if (find_string(PID, "XBT")) return "XBT";
-		if (find_string(PID, "OP")) return "Opera";
+		int num_generic_mappings = sizeof(generic_mappings) / sizeof(generic_mappings[0]);
+
+		for (int i = 0; i < num_generic_mappings; ++i)
+		{
+			generic_map_entry const& e = generic_mappings[i];
+			if (find_string(PID + e.offset, e.id)) return e.name;
+		}
 
 		if (find_string(PID, "-BOW") && PID[7] == '-')
 			return "Bits on Wheels " + std::string(PID + 4, PID + 7);
