@@ -247,8 +247,8 @@ namespace libtorrent
 	{
 		p = complete(p);
 		std::vector<std::pair<size_type, std::time_t> > sizes;
-		for (torrent_info::file_iterator i = t.begin_files();
-			i != t.end_files(); ++i)
+		for (torrent_info::file_iterator i = t.begin_files(true);
+			i != t.end_files(true); ++i)
 		{
 			size_type size = 0;
 			std::time_t time = 0;
@@ -287,7 +287,7 @@ namespace libtorrent
 		, bool compact_mode
 		, std::string* error)
 	{
-		if ((int)sizes.size() != t.num_files())
+		if ((int)sizes.size() != t.num_files(true))
 		{
 			if (error) *error = "mismatching number of files";
 			return false;
@@ -296,8 +296,8 @@ namespace libtorrent
 
 		std::vector<std::pair<size_type, std::time_t> >::const_iterator s
 			= sizes.begin();
-		for (torrent_info::file_iterator i = t.begin_files();
-			i != t.end_files(); ++i, ++s)
+		for (torrent_info::file_iterator i = t.begin_files(true);
+			i != t.end_files(true); ++i, ++s)
 		{
 			size_type size = 0;
 			std::time_t time = 0;
@@ -349,7 +349,7 @@ namespace libtorrent
 			: m_info(info)
 			, m_files(fp)
 		{
-			assert(info.begin_files() != info.end_files());
+			assert(info.begin_files(true) != info.end_files(true));
 			m_save_path = fs::complete(path);
 			assert(m_save_path.is_complete());
 		}
@@ -412,8 +412,8 @@ namespace libtorrent
 	{
 		// first, create all missing directories
 		fs::path last_path;
-		for (torrent_info::file_iterator file_iter = m_info.begin_files(),
-			end_iter = m_info.end_files(); file_iter != end_iter; ++file_iter)
+		for (torrent_info::file_iterator file_iter = m_info.begin_files(true),
+			end_iter = m_info.end_files(true); file_iter != end_iter; ++file_iter)
 		{
 			fs::path dir = (m_save_path / file_iter->path).branch_path();
 
@@ -510,11 +510,11 @@ namespace libtorrent
 
 		if (seed)
 		{
-			if (m_info.num_files() != (int)file_sizes.size())
+			if (m_info.num_files(true) != (int)file_sizes.size())
 			{
 				error = "the number of files does not match the torrent (num: "
 					+ boost::lexical_cast<std::string>(file_sizes.size()) + " actual: "
-					+ boost::lexical_cast<std::string>(m_info.num_files()) + ")";
+					+ boost::lexical_cast<std::string>(m_info.num_files(true)) + ")";
 				return false;
 			}
 
@@ -522,8 +522,8 @@ namespace libtorrent
 				fs = file_sizes.begin();
 			// the resume data says we have the entire torrent
 			// make sure the file sizes are the right ones
-			for (torrent_info::file_iterator i = m_info.begin_files()
-					, end(m_info.end_files()); i != end; ++i, ++fs)
+			for (torrent_info::file_iterator i = m_info.begin_files(true)
+					, end(m_info.end_files(true)); i != end; ++i, ++fs)
 			{
 				if (i->size != fs->first)
 				{
@@ -688,7 +688,7 @@ namespace libtorrent
 
 #ifndef NDEBUG
 		std::vector<file_slice> slices
-			= m_info.map_block(slot, offset, size);
+			= m_info.map_block(slot, offset, size, true);
 		assert(!slices.empty());
 #endif
 
@@ -699,7 +699,7 @@ namespace libtorrent
 		size_type file_offset = start;
 		std::vector<file_entry>::const_iterator file_iter;
 
-		for (file_iter = m_info.begin_files();;)
+		for (file_iter = m_info.begin_files(true);;)
 		{
 			if (file_offset < file_iter->size)
 				break;
@@ -757,7 +757,7 @@ namespace libtorrent
 				assert(int(slices.size()) > counter);
 				size_type slice_size = slices[counter].size;
 				assert(slice_size == read_bytes);
-				assert(m_info.file_at(slices[counter].file_index).path
+				assert(m_info.file_at(slices[counter].file_index, true).path
 					== file_iter->path);
 #endif
 
@@ -813,7 +813,7 @@ namespace libtorrent
 
 #ifndef NDEBUG
 		std::vector<file_slice> slices
-			= m_info.map_block(slot, offset, size);
+			= m_info.map_block(slot, offset, size, true);
 		assert(!slices.empty());
 #endif
 
@@ -823,14 +823,14 @@ namespace libtorrent
 		size_type file_offset = start;
 		std::vector<file_entry>::const_iterator file_iter;
 
-		for (file_iter = m_info.begin_files();;)
+		for (file_iter = m_info.begin_files(true);;)
 		{
 			if (file_offset < file_iter->size)
 				break;
 
 			file_offset -= file_iter->size;
 			++file_iter;
-			assert(file_iter != m_info.end_files());
+			assert(file_iter != m_info.end_files(true));
 		}
 
 		fs::path p(m_save_path / file_iter->path);
@@ -874,7 +874,7 @@ namespace libtorrent
 			{
 				assert(int(slices.size()) > counter);
 				assert(slices[counter].size == write_bytes);
-				assert(m_info.file_at(slices[counter].file_index).path
+				assert(m_info.file_at(slices[counter].file_index, true).path
 					== file_iter->path);
 
 				assert(buf_pos >= 0);
@@ -902,7 +902,7 @@ namespace libtorrent
 #endif
 				++file_iter;
 
-				assert(file_iter != m_info.end_files());
+				assert(file_iter != m_info.end_files(true));
 				fs::path p = m_save_path / file_iter->path;
 				file_offset = 0;
 				out = m_files.open_file(
@@ -1866,8 +1866,8 @@ namespace libtorrent
 			// find the file that failed, and skip all the blocks in that file
 			size_type file_offset = 0;
 			size_type current_offset = m_current_slot * m_info.piece_length();
-			for (torrent_info::file_iterator i = m_info.begin_files();
-					i != m_info.end_files(); ++i)
+			for (torrent_info::file_iterator i = m_info.begin_files(true);
+					i != m_info.end_files(true); ++i)
 			{
 				file_offset += i->size;
 				if (file_offset > current_offset) break;

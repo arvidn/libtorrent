@@ -824,8 +824,33 @@ namespace libtorrent
 		m_nodes.push_back(node);
 	}
 
+	bool torrent_info::remap_files(std::vector<std::pair<std::string
+		, libtorrent::size_type> > const& map)
+	{
+		typedef std::vector<std::pair<std::string, size_type> > files_t;
+
+		size_type offset = 0;
+		m_remapped_files.resize(map.size());
+
+		for (int i = 0; i < int(map.size()); ++i)
+		{
+			file_entry& fe = m_remapped_files[i];
+			fe.path = map[i].first;
+			fe.offset = offset;
+			fe.size = map[i].second;
+			offset += fe.size;
+		}
+		if (offset != total_size())
+		{
+			m_remapped_files.clear();
+			return false;
+		}
+
+		return true;
+	}
+
 	std::vector<file_slice> torrent_info::map_block(int piece, size_type offset
-		, int size) const
+		, int size, bool storage) const
 	{
 		assert(num_files() > 0);
 		std::vector<file_slice> ret;
@@ -839,9 +864,9 @@ namespace libtorrent
 		std::vector<file_entry>::const_iterator file_iter;
 
 		int counter = 0;
-		for (file_iter = begin_files();; ++counter, ++file_iter)
+		for (file_iter = begin_files(storage);; ++counter, ++file_iter)
 		{
-			assert(file_iter != end_files());
+			assert(file_iter != end_files(storage));
 			if (file_offset < file_iter->size)
 			{
 				file_slice f;
@@ -862,11 +887,11 @@ namespace libtorrent
 	}
 	
 	peer_request torrent_info::map_file(int file_index, size_type file_offset
-		, int size) const
+		, int size, bool storage) const
 	{
-		assert(file_index < (int)m_files.size());
+		assert(file_index < num_files(storage));
 		assert(file_index >= 0);
-		size_type offset = file_offset + m_files[file_index].offset;
+		size_type offset = file_offset + file_at(file_index, storage).offset;
 
 		peer_request ret;
 		ret.piece = offset / piece_length();
