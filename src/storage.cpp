@@ -342,47 +342,11 @@ namespace libtorrent
 		return true;
 	}
 
-	struct thread_safe_storage
-	{
-		thread_safe_storage(std::size_t n)
-			: slots(n, false)
-		{}
-
-		boost::mutex mutex;
-		boost::condition condition;
-		std::vector<bool> slots;
-	};
-
-	struct slot_lock
-	{
-		slot_lock(thread_safe_storage& s, int slot_)
-			: storage_(s)
-			, slot(slot_)
-		{
-			assert(slot_>=0 && slot_ < (int)s.slots.size());
-			boost::mutex::scoped_lock lock(storage_.mutex);
-
-			while (storage_.slots[slot])
-				storage_.condition.wait(lock);
-			storage_.slots[slot] = true;
-		}
-
-		~slot_lock()
-		{
-			storage_.slots[slot] = false;
-			storage_.condition.notify_all();
-		}
-
-		thread_safe_storage& storage_;
-		int slot;
-	};
-
-	class storage : public storage_interface, thread_safe_storage, boost::noncopyable
+	class storage : public storage_interface, boost::noncopyable
 	{
 	public:
 		storage(torrent_info const& info, fs::path const& path, file_pool& fp)
-			: thread_safe_storage(info.num_pieces())
-			, m_info(info)
+			: m_info(info)
 			, m_files(fp)
 		{
 			assert(info.begin_files() != info.end_files());
@@ -722,8 +686,6 @@ namespace libtorrent
 		assert(offset < m_info.piece_size(slot));
 		assert(size > 0);
 
-		slot_lock lock(*this, slot);
-
 #ifndef NDEBUG
 		std::vector<file_slice> slices
 			= m_info.map_block(slot, offset, size);
@@ -849,8 +811,6 @@ namespace libtorrent
 		assert(offset >= 0);
 		assert(size > 0);
 
-		slot_lock lock(*this, slot);
-		
 #ifndef NDEBUG
 		std::vector<file_slice> slices
 			= m_info.map_block(slot, offset, size);
