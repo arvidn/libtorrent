@@ -855,6 +855,8 @@ The ``torrent_info`` has the following synopsis::
 		typedef std::vector<file_entry>::const_reverse_iterator
 			reverse_file_iterator;
 
+		bool remap_files(std::vector<std::pair<std::string, libtorrent::size_type> > const& map);
+
 		file_iterator begin_files(bool storage = false) const;
 		file_iterator end_files(bool storage = false) const;
 		reverse_file_iterator rbegin_files(bool storage = false) const;
@@ -1038,7 +1040,7 @@ The filenames are encoded with UTF-8.
 
 ``size`` is the size of the file (in bytes) and ``offset`` is the byte offset
 of the file within the torrent. i.e. the sum of all the sizes of the files
-before this one in the file list this one in the file list.
+before it in the list.
 
 ``orig_path`` is set to 0 in case the path element is an exact copy of that
 found in the metadata. In case the path in the original metadata was

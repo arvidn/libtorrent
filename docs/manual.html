@@ -956,6 +956,8 @@ public:
         typedef std::vector&lt;file_entry&gt;::const_reverse_iterator
                 reverse_file_iterator;
 
+        bool remap_files(std::vector&lt;std::pair&lt;std::string, libtorrent::size_type&gt; &gt; const&amp; map);
+
         file_iterator begin_files(bool storage = false) const;
         file_iterator end_files(bool storage = false) const;
         reverse_file_iterator rbegin_files(bool storage = false) const;
@@ -1117,7 +1119,7 @@ torrent, all the files starts with a directory with the same name as <tt class="
 The filenames are encoded with UTF-8.</p>
 <p><tt class="docutils literal"><span class="pre">size</span></tt> is the size of the file (in bytes) and <tt class="docutils literal"><span class="pre">offset</span></tt> is the byte offset
 of the file within the torrent. i.e. the sum of all the sizes of the files
-before this one in the file list this one in the file list.</p>
+before it in the list.</p>
 <p><tt class="docutils literal"><span class="pre">orig_path</span></tt> is set to 0 in case the path element is an exact copy of that
 found in the metadata. In case the path in the original metadata was
 incorrectly encoded, and had to be fixed in order to be acceptable utf-8,
