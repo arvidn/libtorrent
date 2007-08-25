@@ -987,16 +987,18 @@ remap_files()
 
 	::
 
-		bool remap_files(std::vector<std::string, libtorrent::size_type> const& map);
+		bool remap_files(std::vector<std::pair<std::string, libtorrent::size_type> > const& map);
 
 This call will create a new mapping of the data in this torrent to other files. The
 ``torrent_info`` maintains 2 views of the file storage. One that is true to the torrent
 file, and one that represents what is actually saved on disk. This call will change
 what the files on disk are called.
 
+The each entry in the vector ``map`` is a pair of a (relative) file path and the file's size.
+
 The return value indicates if the remap was successful or not. True means success and
-false means failure. The only reason for failure is if the sum of all the files passed
-in through ``map`` has to be exactly the same as the total_size of the torrent.
+false means failure. The sum of all the files passed in through ``map`` has to be exactly
+the same as the total_size of the torrent.
 
 
 begin_files() end_files() rbegin_files() rend_files()
