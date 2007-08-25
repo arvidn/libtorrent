@@ -189,6 +189,7 @@ namespace libtorrent
 		, m_download_limit(bandwidth_limit::inf)
 		, m_peer_info(peerinfo)
 		, m_speed(slow)
+		, m_connection_ticket(-1)
 		, m_remote_bytes_dled(0)
 		, m_remote_dl_rate(0)
 		, m_remote_dl_update(time_now())
