@@ -645,6 +645,7 @@ namespace libtorrent
 			if (j->finished + j->writing >= complete) return;
 			using std::swap;
 			swap(*j, *i);
+			if (j == m_downloads.begin()) break;
 		}
 	}
 

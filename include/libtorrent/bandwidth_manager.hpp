@@ -341,7 +341,7 @@ private:
 		{
 			assert(amount == limit - m_current_quota);
 			bw_queue_entry<PeerConnection> qe = m_queue.front();
-			assert(qe.max_bock_size > 0);
+			assert(qe.max_block_size > 0);
 			m_queue.pop_front();
 
 			shared_ptr<Torrent> t = qe.peer->associated_torrent().lock();
