@@ -142,12 +142,31 @@ int test_main()
 	run_storage_tests(info);
 
 	// make sure the files have the correct size
+	std::cerr << file_size(initial_path() / "temp_storage" / "test1.tmp") << std::endl;
 	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test1.tmp") == 17);
+	std::cerr << file_size(initial_path() / "temp_storage" / "test2.tmp") << std::endl;
 	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test2.tmp") == 31);
 	TEST_CHECK(exists("temp_storage/test3.tmp"));
 	TEST_CHECK(exists("temp_storage/test4.tmp"));
 	remove_all(initial_path() / "temp_storage");
 
+// ==============================================
+
+	// make sure remap_files works
+	std::vector<std::pair<std::string, libtorrent::size_type> > map;
+	map.push_back(std::make_pair(std::string("temp_storage/test.tmp"), 17 + 612 + 1));
+	bool ret = info.remap_files(map);
+	TEST_CHECK(ret);
+
+	run_storage_tests(info, false);
+
+	std::cerr << file_size(initial_path() / "temp_storage" / "test.tmp") << std::endl;
+	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test.tmp") == 17 + 612 + 1);
+
+	remove_all(initial_path() / "temp_storage");
+
+// ==============================================
+	
 	info = torrent_info();
 	info.set_piece_size(piece_size);
 	info.add_file("temp_storage/test1.tmp", 17 + 612 + 1);
@@ -157,6 +176,8 @@ int test_main()
 	// 48 = piece_size * 3
 	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test1.tmp") == 48);
 	remove_all(initial_path() / "temp_storage");
+
+// ==============================================
 
 	// make sure full allocation mode actually allocates the files
 	// and creates the directories
