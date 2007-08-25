@@ -1072,16 +1072,17 @@ least one tracker url or at least one DHT node.</p>
 <h2><a id="remap-files" name="remap-files">remap_files()</a></h2>
 <blockquote>
 <pre class="literal-block">
-bool remap_files(std::vector&lt;std::string, libtorrent::size_type&gt; const&amp; map);
+bool remap_files(std::vector&lt;std::pair&lt;std::string, libtorrent::size_type&gt; &gt; const&amp; map);
 </pre>
 </blockquote>
 <p>This call will create a new mapping of the data in this torrent to other files. The
 <tt class="docutils literal"><span class="pre">torrent_info</span></tt> maintains 2 views of the file storage. One that is true to the torrent
 file, and one that represents what is actually saved on disk. This call will change
 what the files on disk are called.</p>
+<p>The each entry in the vector <tt class="docutils literal"><span class="pre">map</span></tt> is a pair of a (relative) file path and the file's size.</p>
 <p>The return value indicates if the remap was successful or not. True means success and
-false means failure. The only reason for failure is if the sum of all the files passed
-in through <tt class="docutils literal"><span class="pre">map</span></tt> has to be exactly the same as the total_size of the torrent.</p>
+false means failure. The sum of all the files passed in through <tt class="docutils literal"><span class="pre">map</span></tt> has to be exactly
+the same as the total_size of the torrent.</p>
 </div>
 <div class="section">
 <h2><a id="begin-files-end-files-rbegin-files-rend-files" name="begin-files-end-files-rbegin-files-rend-files">begin_files() end_files() rbegin_files() rend_files()</a></h2>
