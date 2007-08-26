@@ -12,6 +12,8 @@ struct peer_connection;
 
 using namespace libtorrent;
 
+const float sample_time = 6.f; // seconds
+
 struct torrent
 {
 	torrent(bandwidth_manager<peer_connection, torrent>& m)
@@ -23,6 +25,7 @@ struct torrent
 //		std::cerr << time_now_string()
 //			<< ": assign bandwidth, " << amount << " blk: " << max_block_size << std::endl;
 		assert(amount > 0);
+		assert(amount <= max_block_size);
 		if (amount < max_block_size)
 			expire_bandwidth(channel, max_block_size - amount);
 	}
@@ -40,7 +43,9 @@ struct torrent
 //		std::cerr << time_now_string()
 //			<< ": request bandwidth" << std::endl;
 
+		assert(m_bandwidth_limit[channel].throttle() > 0);
 		int block_size = m_bandwidth_limit[channel].throttle() / 10;
+		if (block_size <= 0) block_size = 1;
 
 		if (m_bandwidth_limit[channel].max_assignable() > 0)
 		{
@@ -192,7 +197,7 @@ void run_test(io_service& ios, connections_t& v)
 	tick.async_wait(boost::bind(&do_tick, _1, boost::ref(tick), boost::ref(v)));
 
 	deadline_timer complete(ios);
-	complete.expires_from_now(seconds(libtorrent::stat::history * 2));
+	complete.expires_from_now(milliseconds(int(sample_time * 1000)));
 	complete.async_wait(boost::bind(&do_stop, boost::ref(tick), boost::ref(v)));
 
 	std::for_each(v.begin(), v.end()
@@ -234,12 +239,13 @@ void test_equal_connections(int num, int limit)
 	for (connections_t::iterator i = v.begin()
 		, end(v.end()); i != end; ++i)
 	{
-		sum += (*i)->m_stats.upload_rate();
+		sum += (*i)->m_stats.total_payload_upload();
 
-		std::cerr << (*i)->m_stats.upload_rate()
+		std::cerr << (*i)->m_stats.total_payload_upload() / sample_time
 			<< " target: " << (limit / num) << " eps: " << err << std::endl;
-		TEST_CHECK(close_to((*i)->m_stats.upload_rate(), limit / num, err));
+		TEST_CHECK(close_to((*i)->m_stats.total_payload_upload() / sample_time, limit / num, err));
 	}
+	sum /= sample_time;
 	std::cerr << "sum: " << sum << " target: " << limit << std::endl;
 	TEST_CHECK(close_to(sum, limit, 50));
 }
@@ -264,23 +270,26 @@ void test_single_peer(int limit, bool torrent_limit)
 	for (connections_t::iterator i = v.begin()
 		, end(v.end()); i != end; ++i)
 	{
-		sum += (*i)->m_stats.upload_rate();
+		sum += (*i)->m_stats.total_payload_upload();
 	}
+	sum /= sample_time;
 	std::cerr << sum << " target: " << limit << std::endl;
 	TEST_CHECK(close_to(sum, limit, 1000));
 }
 
-void test_equal_torrents(int num, int limit)
+void test_torrents(int num, int limit1, int limit2, int global_limit)
 {
-	std::cerr << "test equal torrents " << num << " " << limit << std::endl;
+	std::cerr << "test equal torrents " << num << " " << limit1 << " " << limit2 << std::endl;
 	io_service ios;
 	bandwidth_manager<peer_connection, torrent> manager(ios, 0);
+	if (global_limit > 0)
+		manager.throttle(global_limit);
 
 	boost::shared_ptr<torrent> t1(new torrent(manager));
 	boost::shared_ptr<torrent> t2(new torrent(manager));
 
-	t1->m_bandwidth_limit[0].throttle(limit);
-	t2->m_bandwidth_limit[0].throttle(limit);
+	t1->m_bandwidth_limit[0].throttle(limit1);
+	t2->m_bandwidth_limit[0].throttle(limit2);
 
 	connections_t v1;
 	spawn_connections(v1, ios, t1, num, "t1p");
@@ -295,19 +304,21 @@ void test_equal_torrents(int num, int limit)
 	for (connections_t::iterator i = v1.begin()
 		, end(v1.end()); i != end; ++i)
 	{
-		sum += (*i)->m_stats.upload_rate();
+		sum += (*i)->m_stats.total_payload_upload();
 	}
-	std::cerr << sum << " target: " << limit << std::endl;
-	TEST_CHECK(close_to(sum, limit, 1000));
+	sum /= sample_time;
+	std::cerr << sum << " target: " << limit1 << std::endl;
+	TEST_CHECK(close_to(sum, limit1, 1000));
 
 	sum = 0.f;
 	for (connections_t::iterator i = v2.begin()
 		, end(v2.end()); i != end; ++i)
 	{
-		sum += (*i)->m_stats.upload_rate();
+		sum += (*i)->m_stats.total_payload_upload();
 	}
-	std::cerr << sum << " target: " << limit << std::endl;
-	TEST_CHECK(close_to(sum, limit, 1000));
+	sum /= sample_time;
+	std::cerr << sum << " target: " << limit2 << std::endl;
+	TEST_CHECK(close_to(sum, limit2, 1000));
 }
 
 void test_peer_priority(int limit, bool torrent_limit)
@@ -335,13 +346,14 @@ void test_peer_priority(int limit, bool torrent_limit)
 	for (connections_t::iterator i = v1.begin()
 		, end(v1.end()); i != end; ++i)
 	{
-		sum += (*i)->m_stats.upload_rate();
+		sum += (*i)->m_stats.total_payload_upload();
 	}
+	sum /= sample_time;
 	std::cerr << sum << " target: " << limit << std::endl;
 	TEST_CHECK(close_to(sum, limit, 50));
 
-	std::cerr << "non-prioritized rate: " << p->m_stats.upload_rate() << std::endl;
-	TEST_CHECK(p->m_stats.upload_rate() < 10);
+	std::cerr << "non-prioritized rate: " << p->m_stats.total_payload_upload() / sample_time << std::endl;
+	TEST_CHECK(p->m_stats.total_payload_upload() / sample_time < 10);
 }
 
 void test_no_starvation(int limit)
@@ -369,27 +381,33 @@ void test_no_starvation(int limit)
 	for (connections_t::iterator i = v.begin()
 		, end(v.end()); i != end; ++i)
 	{
-		sum += (*i)->m_stats.upload_rate();
+		sum += (*i)->m_stats.total_payload_upload();
 	}
+	sum /= sample_time;
 	std::cerr << sum << " target: " << limit << std::endl;
 	TEST_CHECK(close_to(sum, limit, 50));
 
-	std::cerr << "non-prioritized rate: " << p->m_stats.upload_rate() << std::endl;
-	TEST_CHECK(close_to(p->m_stats.upload_rate(), limit / (num_peers + 1), 1000));
+	std::cerr << "non-prioritized rate: " << p->m_stats.total_payload_upload() / sample_time << std::endl;
+	TEST_CHECK(close_to(p->m_stats.total_payload_upload() / sample_time, limit / (num_peers + 1), 1000));
 }
 
 int test_main()
 {
 	using namespace libtorrent;
 
+	test_equal_connections(2, 20);
+	test_equal_connections(2, 2000);
 	test_equal_connections(2, 20000);
 	test_equal_connections(3, 20000);
 	test_equal_connections(5, 20000);
 	test_equal_connections(7, 20000);
 	test_equal_connections(33, 60000);
 	test_equal_connections(33, 500000);
-	test_equal_torrents(1, 40000);
-	test_equal_torrents(24, 50000);
+	test_torrents(2, 400, 400, 0);
+	test_torrents(2, 100, 500, 0);
+	test_torrents(2, 3000, 3000, 6000);
+	test_torrents(1, 40000, 40000, 0);
+	test_torrents(24, 50000, 50000, 0);
 	test_single_peer(40000, true);
 	test_single_peer(40000, false);
 	test_peer_priority(40000, false);
