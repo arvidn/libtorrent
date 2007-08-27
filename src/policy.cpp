@@ -507,7 +507,8 @@ namespace libtorrent
 
 	policy::iterator policy::find_connect_candidate()
 	{
-		INVARIANT_CHECK;
+// too expensive
+//		INVARIANT_CHECK;
 
 		ptime now = time_now();
 		ptime min_connect_time(now);
@@ -992,7 +993,8 @@ namespace libtorrent
 	void policy::peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid
 		, int src, char flags)
 	{
-		INVARIANT_CHECK;
+// too expensive
+//		INVARIANT_CHECK;
 
 		// just ignore the obviously invalid entries
 		if (remote.address() == address() || remote.port() == 0)
@@ -1317,7 +1319,8 @@ namespace libtorrent
 	// this is called whenever a peer connection is closed
 	void policy::connection_closed(const peer_connection& c) throw()
 	{
-		INVARIANT_CHECK;
+// too expensive
+//		INVARIANT_CHECK;
 
 		peer* p = c.peer_info_struct();
 
