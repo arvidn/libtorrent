@@ -400,7 +400,9 @@ namespace libtorrent
 		{
 			if (i->first == "pieces"
 				|| i->first == "piece length"
-				|| i->first == "length")
+				|| i->first == "length"
+				|| i->first == "files"
+				|| i->first == "name")
 				continue;
 			m_extra_info[i->first] = i->second;
 		}
