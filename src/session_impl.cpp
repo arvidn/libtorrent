@@ -976,6 +976,8 @@ namespace detail
 				// if we should not make any more connections
 				// attempts this tick, abort
 				if (max_connections == 0) break;
+				// maintain the global limit on number of connections
+				if (num_connections() >= m_max_connections) break;
 			}
 		}
 
