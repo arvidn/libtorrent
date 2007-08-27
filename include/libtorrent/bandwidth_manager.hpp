@@ -49,6 +49,8 @@ using boost::shared_ptr;
 using boost::intrusive_ptr;
 using boost::bind;
 
+//#define TORRENT_VERBOSE_BANDWIDTH_LIMIT
+
 namespace libtorrent {
 
 // the maximum block of bandwidth quota to
@@ -237,8 +239,10 @@ struct bandwidth_manager
 				i = j;
 			}
 		}
-
-		if (m_queue.size() == 1) hand_out_bandwidth();
+#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
+		std::cerr << " req_bandwidht. m_queue.size() = " << m_queue.size() << std::endl;
+#endif
+		if (!m_queue.empty()) hand_out_bandwidth();
 	}
 
 #ifndef NDEBUG
@@ -337,6 +341,13 @@ private:
 		// available bandwidth to hand out
 		int amount = limit - m_current_quota;
 
+#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
+		std::cerr << " hand_out_bandwidht. m_queue.size() = " << m_queue.size()
+			<< " amount = " << amount
+			<< " limit = " << limit
+			<< " m_current_quota = " << m_current_quota << std::endl;
+#endif
+
 		while (!m_queue.empty() && amount > 0)
 		{
 			assert(amount == limit - m_current_quota);
@@ -380,7 +391,7 @@ private:
 
 			if (block_size < min_bandwidth_block_size)
 			{
-				block_size = min_bandwidth_block_size;
+				block_size = (std::min)(int(min_bandwidth_block_size), m_limit);
 			}
 			else if (block_size > max_bandwidth_block_size)
 			{
@@ -401,6 +412,9 @@ private:
 			}
 			if (block_size > qe.max_block_size) block_size = qe.max_block_size;
 
+#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
+		std::cerr << " block_size = " << block_size << " amount = " << amount << std::endl;
+#endif
 			if (amount < block_size / 2)
 			{
 				m_queue.push_front(qe);
