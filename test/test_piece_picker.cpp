@@ -60,9 +60,9 @@ boost::shared_ptr<piece_picker> setup_picker(
 		if (blocks & 2)
 			pp.info[1].state = piece_picker::block_info::state_finished;
 		if (blocks & 4)
-			pp.info[3].state = piece_picker::block_info::state_finished;
+			pp.info[2].state = piece_picker::block_info::state_finished;
 		if (blocks & 8)
-			pp.info[4].state = piece_picker::block_info::state_finished;
+			pp.info[3].state = piece_picker::block_info::state_finished;
 		unfinished.push_back(pp);
 	}
 
@@ -127,13 +127,10 @@ boost::shared_ptr<piece_picker> setup_picker(
 bool verify_pick(boost::shared_ptr<piece_picker> p
 	, std::vector<piece_block> const& picked)
 {
-	if (picked.empty()) return true;
-
-	int last_peer_count = p->num_peers(picked.front());
-	for (std::vector<piece_block>::const_iterator i = picked.begin() + 1
+	for (std::vector<piece_block>::const_iterator i = picked.begin()
 		, end(picked.end()); i != end; ++i)
 	{
-		if (last_peer_count > p->num_peers(*i)) return false;
+		if (p->num_peers(*i) > 0) return false;
 	}
 	return true;
 }
@@ -160,6 +157,7 @@ int test_main()
 	p = setup_picker("2223333", "* * *  ", "", "");
 	picked.clear();
 	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true);
+	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() > 0);
 	TEST_CHECK(picked.front().piece_index == 1);
 	
@@ -170,6 +168,7 @@ int test_main()
 	p = setup_picker("1111111", "* * *  ", "1111122", "");
 	picked.clear();
 	p->pick_pieces(string2vec("****** "), picked, 1, false, 0, piece_picker::fast, true);
+	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() > 0);
 	TEST_CHECK(picked.front().piece_index == 5);
 
@@ -180,6 +179,7 @@ int test_main()
 	p = setup_picker("1111111", "       ", "1111111", "1023460");
 	picked.clear();
 	p->pick_pieces(string2vec("****** "), picked, 1, true, 0, piece_picker::fast, true);
+	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() >= 4);
 	for (int i = 0; i < 4 && i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i].piece_index == 1);
@@ -199,8 +199,28 @@ int test_main()
 	p = setup_picker("1111111", "       ", "0010000", "");
 	picked.clear();
 	p->pick_pieces(string2vec("*** ** "), picked, 1, false, 0, piece_picker::fast, true);
+	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() > 0);
 	TEST_CHECK(picked.front().piece_index == 2);
+
+// ========================================================
+	
+	// make sure requested blocks aren't picked
+	p = setup_picker("1234567", "       ", "", "");
+	picked.clear();
+	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true);
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_CHECK(picked.size() > 0);
+	TEST_CHECK(picked.front().piece_index == 0);
+	piece_block first = picked.front();
+	p->mark_as_downloading(picked.front(), &peer_struct, piece_picker::fast);
+	TEST_CHECK(p->num_peers(picked.front()) == 1);
+	picked.clear();
+	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true);
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_CHECK(picked.size() > 0);
+	TEST_CHECK(picked.front() != first);
+	TEST_CHECK(picked.front().piece_index == 0);
 
 // ========================================================
 
@@ -209,6 +229,7 @@ int test_main()
 	picked.clear();
 	p->set_sequenced_download_threshold(2);
 	p->pick_pieces(string2vec(" * **  "), picked, 4 * 3, false, 0, piece_picker::fast, true);
+	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() >= 4 * 3);
 	print_pick(picked);
 	for (int i = 0; i < 4 && i < int(picked.size()); ++i)
@@ -224,6 +245,7 @@ int test_main()
 	p = setup_picker("1234567", "* * *  ", "1111122", "");
 	picked.clear();
 	p->pick_pieces(string2vec("****** "), picked, 5 * 4, false, 0, piece_picker::fast, false);
+	TEST_CHECK(verify_pick(p, picked));
 	print_pick(picked);
 	TEST_CHECK(picked.size() == 4 * 4);
 
@@ -268,9 +290,47 @@ int test_main()
 	picked.clear();
 	// make sure it won't pick the piece we just got
 	p->pick_pieces(string2vec(" * ****"), picked, 1, false, 0, piece_picker::fast, false);
+	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() >= 1);
 	print_pick(picked);
 	TEST_CHECK(picked.front().piece_index == 3);
+	
+// ========================================================
+	
+	// test unverified_blocks, marking blocks and get_downloader
+	p = setup_picker("1111111", "       ", "", "0300700");
+	TEST_CHECK(p->unverified_blocks() == 2 + 3);
+	TEST_CHECK(p->get_downloader(piece_block(4, 0)) == 0);
+	TEST_CHECK(p->get_downloader(piece_block(4, 1)) == 0);
+	TEST_CHECK(p->get_downloader(piece_block(4, 2)) == 0);
+	TEST_CHECK(p->get_downloader(piece_block(4, 3)) == 0);
+	p->mark_as_downloading(piece_block(4, 3), &peer_struct, piece_picker::fast);
+	TEST_CHECK(p->get_downloader(piece_block(4, 3)) == &peer_struct);
+	piece_picker::downloading_piece st;
+	p->piece_info(4, st);
+	TEST_CHECK(st.requested == 1);
+	TEST_CHECK(st.writing == 0);
+	TEST_CHECK(st.finished == 3);
+	TEST_CHECK(p->unverified_blocks() == 2 + 3);
+	p->mark_as_writing(piece_block(4, 3), &peer_struct);
+	TEST_CHECK(p->get_downloader(piece_block(4, 3)) == &peer_struct);
+	p->piece_info(4, st);
+	TEST_CHECK(st.requested == 0);
+	TEST_CHECK(st.writing == 1);
+	TEST_CHECK(st.finished == 3);
+	TEST_CHECK(p->unverified_blocks() == 2 + 3);
+	p->mark_as_finished(piece_block(4, 3), &peer_struct);
+	TEST_CHECK(p->get_downloader(piece_block(4, 3)) == &peer_struct);
+	p->piece_info(4, st);
+	TEST_CHECK(st.requested == 0);
+	TEST_CHECK(st.writing == 0);
+	TEST_CHECK(st.finished == 4);
+	TEST_CHECK(p->unverified_blocks() == 2 + 4);
+	p->we_have(4);
+	TEST_CHECK(p->get_downloader(piece_block(4, 3)) == 0);
+	TEST_CHECK(p->unverified_blocks() == 2);
+
+
 
 /*
 
