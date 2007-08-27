@@ -14,6 +14,8 @@ using namespace libtorrent;
 
 const float sample_time = 6.f; // seconds
 
+//#define VERBOSE_LOGGING
+
 struct torrent
 {
 	torrent(bandwidth_manager<peer_connection, torrent>& m)
@@ -22,8 +24,10 @@ struct torrent
 
 	void assign_bandwidth(int channel, int amount, int max_block_size)
 	{
-//		std::cerr << time_now_string()
-//			<< ": assign bandwidth, " << amount << " blk: " << max_block_size << std::endl;
+#ifdef VERBOSE_LOGGING
+		std::cerr << time_now_string()
+			<< ": assign bandwidth, " << amount << " blk: " << max_block_size << std::endl;
+#endif
 		assert(amount > 0);
 		assert(amount <= max_block_size);
 		if (amount < max_block_size)
@@ -40,19 +44,26 @@ struct torrent
 		, boost::intrusive_ptr<peer_connection> const& p
 		, bool non_prioritized)
 	{
-//		std::cerr << time_now_string()
-//			<< ": request bandwidth" << std::endl;
-
 		assert(m_bandwidth_limit[channel].throttle() > 0);
 		int block_size = m_bandwidth_limit[channel].throttle() / 10;
 		if (block_size <= 0) block_size = 1;
 
 		if (m_bandwidth_limit[channel].max_assignable() > 0)
 		{
+#ifdef VERBOSE_LOGGING
+			std::cerr << time_now_string()
+				<< ": request bandwidth " << block_size << std::endl;
+#endif
+
 			perform_bandwidth_request(channel, p, block_size, non_prioritized);
 		}
 		else
 		{
+#ifdef VERBOSE_LOGGING
+			std::cerr << time_now_string()
+				<< ": queue bandwidth request" << block_size << std::endl;
+#endif
+
 			// skip forward in the queue until we find a prioritized peer
 			// or hit the front of it.
 			queue_t::reverse_iterator i = m_bandwidth_queue[channel].rbegin();
@@ -64,8 +75,10 @@ struct torrent
 
 	void expire_bandwidth(int channel, int amount)
 	{
-//		std::cerr << time_now_string()
-//			<< ": expire bandwidth, " << amount << std::endl;
+#ifdef VERBOSE_LOGGING
+		std::cerr << time_now_string()
+			<< ": expire bandwidth, " << amount << std::endl;
+#endif
 		assert(amount > 0);
 		m_bandwidth_limit[channel].expire(amount);
 		while (!m_bandwidth_queue[channel].empty())
@@ -115,8 +128,10 @@ struct peer_connection
 	bool is_disconnecting() const { return m_abort; }
 	void assign_bandwidth(int channel, int amount)
 	{
-//		std::cerr << time_now_string() << ": [" << m_name
-//			<< "] assign bandwidth, " << amount << std::endl;
+#ifdef VERBOSE_LOGGING
+		std::cerr << time_now_string() << ": [" << m_name
+			<< "] assign bandwidth, " << amount << std::endl;
+#endif
 		assert(amount > 0);
 		m_bandwidth_limit[channel].assign(amount);
 		boost::shared_ptr<torrent> t = m_torrent.lock();
@@ -135,14 +150,18 @@ struct peer_connection
 	void expire_bandwidth(int channel, int amount)
 	{
 		assert(amount > 0);
-//		std::cerr << time_now_string() << ": [" << m_name
-//			<< "] expire bandwidth, " << amount << std::endl;
+#ifdef VERBOSE_LOGGING
+		std::cerr << time_now_string() << ": [" << m_name
+			<< "] expire bandwidth, " << amount << std::endl;
+#endif
 		m_bandwidth_limit[channel].expire(amount);
 	}
 	void tick()
 	{
-//		std::cerr << time_now_string() << ": [" << m_name
-//			<< "] tick, rate: " << m_stats.upload_rate() << std::endl;
+#ifdef VERBOSE_LOGGING
+		std::cerr << time_now_string() << ": [" << m_name
+			<< "] tick, rate: " << m_stats.upload_rate() << std::endl;
+#endif
 		m_stats.second_tick(1.f);
 	}
 
@@ -173,9 +192,15 @@ void intrusive_ptr_release(peer_connection* p)
 
 typedef std::vector<boost::intrusive_ptr<peer_connection> > connections_t;
 
+bool abort_tick = false;
+
 void do_tick(asio::error_code const&e, deadline_timer& tick, connections_t& v)
 {
-	if (e) return;
+	if (e || abort_tick)
+	{
+		std::cerr << " tick aborted" << std::endl;
+		return;
+	}
 	std::for_each(v.begin(), v.end()
 		, boost::bind(&peer_connection::tick, _1));
 	tick.expires_from_now(seconds(1));
@@ -184,13 +209,16 @@ void do_tick(asio::error_code const&e, deadline_timer& tick, connections_t& v)
 
 void do_stop(deadline_timer& tick, connections_t& v)
 {
+	abort_tick = true;
 	tick.cancel();
 	std::for_each(v.begin(), v.end()
 		, boost::bind(&peer_connection::stop, _1));
+	std::cerr << " stopping..." << std::endl;
 }
 
 void run_test(io_service& ios, connections_t& v)
 {
+	abort_tick = false;
 	std::cerr << "-------------\n" << std::endl;
 	deadline_timer tick(ios);
 	tick.expires_from_now(seconds(1));
@@ -247,6 +275,7 @@ void test_equal_connections(int num, int limit)
 	}
 	sum /= sample_time;
 	std::cerr << "sum: " << sum << " target: " << limit << std::endl;
+	TEST_CHECK(sum > 0);
 	TEST_CHECK(close_to(sum, limit, 50));
 }
 
@@ -274,6 +303,7 @@ void test_single_peer(int limit, bool torrent_limit)
 	}
 	sum /= sample_time;
 	std::cerr << sum << " target: " << limit << std::endl;
+	TEST_CHECK(sum > 0);
 	TEST_CHECK(close_to(sum, limit, 1000));
 }
 
@@ -308,6 +338,7 @@ void test_torrents(int num, int limit1, int limit2, int global_limit)
 	}
 	sum /= sample_time;
 	std::cerr << sum << " target: " << limit1 << std::endl;
+	TEST_CHECK(sum > 0);
 	TEST_CHECK(close_to(sum, limit1, 1000));
 
 	sum = 0.f;
@@ -318,6 +349,7 @@ void test_torrents(int num, int limit1, int limit2, int global_limit)
 	}
 	sum /= sample_time;
 	std::cerr << sum << " target: " << limit2 << std::endl;
+	TEST_CHECK(sum > 0);
 	TEST_CHECK(close_to(sum, limit2, 1000));
 }
 
@@ -350,6 +382,7 @@ void test_peer_priority(int limit, bool torrent_limit)
 	}
 	sum /= sample_time;
 	std::cerr << sum << " target: " << limit << std::endl;
+	TEST_CHECK(sum > 0);
 	TEST_CHECK(close_to(sum, limit, 50));
 
 	std::cerr << "non-prioritized rate: " << p->m_stats.total_payload_upload() / sample_time << std::endl;
@@ -385,6 +418,7 @@ void test_no_starvation(int limit)
 	}
 	sum /= sample_time;
 	std::cerr << sum << " target: " << limit << std::endl;
+	TEST_CHECK(sum > 0);
 	TEST_CHECK(close_to(sum, limit, 50));
 
 	std::cerr << "non-prioritized rate: " << p->m_stats.total_payload_upload() / sample_time << std::endl;
