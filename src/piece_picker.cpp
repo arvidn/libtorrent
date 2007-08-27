@@ -167,6 +167,7 @@ namespace libtorrent
 			return;
 			
 		assert(sequenced_download_threshold > 0);
+		if (sequenced_download_threshold <= 0) return;
 			
 		int old_limit = m_sequenced_download_threshold;
 		m_sequenced_download_threshold = sequenced_download_threshold;
@@ -191,9 +192,9 @@ namespace libtorrent
 			// the previous max availability was reached
 			// we need to shuffle that bucket, if not, we
 			// don't have to do anything
-			if (int(m_piece_info.size()) > old_limit)
+			if (int(m_piece_info.size()) > old_limit * 2)
 			{
-				info_t& in = m_piece_info[old_limit];
+				info_t& in = m_piece_info[old_limit * 2];
 				std::random_shuffle(in.begin(), in.end());
 				int c = 0;
 				for (info_t::iterator i = in.begin()
@@ -204,9 +205,9 @@ namespace libtorrent
 				}
 			}
 		}
-		else if (int(m_piece_info.size()) > sequenced_download_threshold)
+		else if (int(m_piece_info.size()) > sequenced_download_threshold * 2)
 		{
-			info_t& in = m_piece_info[sequenced_download_threshold];
+			info_t& in = m_piece_info[sequenced_download_threshold * 2];
 			std::sort(in.begin(), in.end());
 			int c = 0;
 			for (info_t::iterator i = in.begin()
@@ -214,7 +215,7 @@ namespace libtorrent
 			{
 				m_piece_map[*i].index = c++;
 				assert(m_piece_map[*i].priority(
-					sequenced_download_threshold) == sequenced_download_threshold);
+					sequenced_download_threshold) == sequenced_download_threshold * 2);
 			}
 		}
 	}
@@ -448,7 +449,7 @@ namespace libtorrent
 			if (i->have()) ++peer_count;
 			if (min_availability > peer_count)
 			{
-				min_availability = i->peer_count;
+				min_availability = peer_count;
 				fraction_part += integer_part;
 				integer_part = 1;
 			}
@@ -1141,10 +1142,10 @@ namespace libtorrent
 			// we're not using rarest first (only for the first
 			// bucket, since that's where the currently downloading
 			// pieces are)
+			int start_piece = rand() % m_piece_map.size();
+			int piece = start_piece;
 			while (num_blocks > 0)
 			{
-				int start_piece = rand() % m_piece_map.size();
-				int piece = start_piece;
 				while (!pieces[piece]
 					|| m_piece_map[piece].index == piece_pos::we_have_index
 					|| m_piece_map[piece].priority(m_sequenced_download_threshold) < 2)
@@ -1164,6 +1165,10 @@ namespace libtorrent
 				for (int j = 0; j < num_blocks_in_piece; ++j)
 					interesting_blocks.push_back(piece_block(piece, j));
 				num_blocks -= (std::min)(num_blocks_in_piece, num_blocks);
+				++piece;
+				if (piece == int(m_piece_map.size())) piece = 0;
+				// could not find any more pieces
+				if (piece == start_piece) return;
 			}
 			if (num_blocks == 0) return;
 			break;
