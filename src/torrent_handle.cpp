@@ -89,26 +89,22 @@ namespace libtorrent
 			throw invalid_handle();
 		}
 			  
-		template<class Ret, class F>
-		Ret call_member(
+		boost::shared_ptr<torrent> find_torrent(
 			session_impl* ses
 			, aux::checker_impl* chk
-			, sha1_hash const& hash
-			, F f)
+			, sha1_hash const& hash)
 		{
 			if (ses == 0) throw_invalid_handle();
 
 			if (chk)
 			{
-				mutex::scoped_lock l(chk->m_mutex);
 				aux::piece_checker_data* d = chk->find_torrent(hash);
-				if (d != 0) return f(*d->torrent_ptr);
+				if (d != 0) return d->torrent_ptr;
 			}
 
 			{
-				session_impl::mutex_t::scoped_lock l(ses->m_mutex);
 				boost::shared_ptr<torrent> t = ses->find_torrent(hash).lock();
-				if (t) return f(*t);
+				if (t) return t;
 			}
 
 			// throwing directly instead of calling
@@ -133,16 +129,18 @@ namespace libtorrent
 
 		assert(max_uploads >= 2 || max_uploads == -1);
 
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::set_max_uploads, _1, max_uploads));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->set_max_uploads(max_uploads);
 	}
 
 	void torrent_handle::use_interface(const char* net_interface) const
 	{
 		INVARIANT_CHECK;
 
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::use_interface, _1, net_interface));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->use_interface(net_interface);
 	}
 
 	void torrent_handle::set_max_connections(int max_connections) const
@@ -151,8 +149,9 @@ namespace libtorrent
 
 		assert(max_connections >= 2 || max_connections == -1);
 
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::set_max_connections, _1, max_connections));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->set_max_connections(max_connections);
 	}
 
 	void torrent_handle::set_peer_upload_limit(tcp::endpoint ip, int limit) const
@@ -160,8 +159,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		assert(limit >= -1);
 
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::set_peer_upload_limit, _1, ip, limit));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->set_peer_upload_limit(ip, limit);
 	}
 
 	void torrent_handle::set_peer_download_limit(tcp::endpoint ip, int limit) const
@@ -169,8 +169,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		assert(limit >= -1);
 
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::set_peer_download_limit, _1, ip, limit));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->set_peer_download_limit(ip, limit);
 	}
 
 	void torrent_handle::set_upload_limit(int limit) const
@@ -179,15 +180,17 @@ namespace libtorrent
 
 		assert(limit >= -1);
 
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::set_upload_limit, _1, limit));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->set_upload_limit(limit);
 	}
 
 	int torrent_handle::upload_limit() const
 	{
 		INVARIANT_CHECK;
-		return call_member<int>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::upload_limit, _1));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		return find_torrent(m_ses, m_chk, m_info_hash)->upload_limit();
 	}
 
 	void torrent_handle::set_download_limit(int limit) const
@@ -196,15 +199,18 @@ namespace libtorrent
 
 		assert(limit >= -1);
 
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::set_download_limit, _1, limit));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->set_download_limit(limit);
 	}
 
 	int torrent_handle::download_limit() const
 	{
 		INVARIANT_CHECK;
-		return call_member<int>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::download_limit, _1));
+
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		return find_torrent(m_ses, m_chk, m_info_hash)->download_limit();
 	}
 
 	void torrent_handle::move_storage(
@@ -212,48 +218,54 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::move_storage, _1, save_path));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->move_storage(save_path);
 	}
 
 	bool torrent_handle::has_metadata() const
 	{
 		INVARIANT_CHECK;
 
-		return call_member<bool>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::valid_metadata, _1));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		return find_torrent(m_ses, m_chk, m_info_hash)->valid_metadata();
 	}
 
 	bool torrent_handle::is_seed() const
 	{
 		INVARIANT_CHECK;
 
-		return call_member<bool>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::is_seed, _1));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		return find_torrent(m_ses, m_chk, m_info_hash)->is_seed();
 	}
 
 	bool torrent_handle::is_paused() const
 	{
 		INVARIANT_CHECK;
 
-		return call_member<bool>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::is_paused, _1));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		return find_torrent(m_ses, m_chk, m_info_hash)->is_paused();
 	}
 
 	void torrent_handle::pause() const
 	{
 		INVARIANT_CHECK;
 
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::pause, _1));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->pause();
 	}
 
 	void torrent_handle::resume() const
 	{
 		INVARIANT_CHECK;
 
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::resume, _1));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->resume();
 	}
 
 	void torrent_handle::set_tracker_login(std::string const& name
@@ -261,8 +273,9 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::set_tracker_login, _1, name, password));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->set_tracker_login(name, password);
 	}
 
 	void torrent_handle::file_progress(std::vector<float>& progress)
@@ -342,15 +355,18 @@ namespace libtorrent
 	void torrent_handle::set_sequenced_download_threshold(int threshold) const
 	{
 		INVARIANT_CHECK;
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::set_sequenced_download_threshold, _1, threshold));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->set_sequenced_download_threshold(threshold);
 	}
 
 	std::string torrent_handle::name() const
 	{
 		INVARIANT_CHECK;
-		return call_member<std::string>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::name, _1));
+
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		return find_torrent(m_ses, m_chk, m_info_hash)->name();
 	}
 
 
@@ -358,40 +374,45 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::piece_availability, _1, boost::ref(avail)));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->piece_availability(avail);
 	}
 
 	void torrent_handle::piece_priority(int index, int priority) const
 	{
 		INVARIANT_CHECK;
 	
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::set_piece_priority, _1, index, priority));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->set_piece_priority(index, priority);
 	}
 
 	int torrent_handle::piece_priority(int index) const
 	{
 		INVARIANT_CHECK;
 	
-		return call_member<int>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::piece_priority, _1, index));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		return find_torrent(m_ses, m_chk, m_info_hash)->piece_priority(index);
 	}
 
 	void torrent_handle::prioritize_pieces(std::vector<int> const& pieces) const
 	{
 		INVARIANT_CHECK;
 
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::prioritize_pieces, _1, boost::cref(pieces)));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->prioritize_pieces(pieces);
 	}
 
 	std::vector<int> torrent_handle::piece_priorities() const
 	{
 		INVARIANT_CHECK;
 		std::vector<int> ret;
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::piece_priorities, _1, boost::ref(ret)));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->piece_priorities(ret);
 		return ret;
 	}
 
@@ -399,8 +420,9 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 	
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::prioritize_files, _1, boost::cref(files)));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->prioritize_files(files);
 	}
 
 // ============ start deprecation ===============
@@ -408,38 +430,43 @@ namespace libtorrent
 	void torrent_handle::filter_piece(int index, bool filter) const
 	{
 		INVARIANT_CHECK;
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::filter_piece, _1, index, filter));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->filter_piece(index, filter);
 	}
 
 	void torrent_handle::filter_pieces(std::vector<bool> const& pieces) const
 	{
 		INVARIANT_CHECK;
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::filter_pieces, _1, boost::cref(pieces)));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->filter_pieces(pieces);
 	}
 
 	bool torrent_handle::is_piece_filtered(int index) const
 	{
 		INVARIANT_CHECK;
-		return call_member<bool>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::is_piece_filtered, _1, index));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		return find_torrent(m_ses, m_chk, m_info_hash)->is_piece_filtered(index);
 	}
 
 	std::vector<bool> torrent_handle::filtered_pieces() const
 	{
 		INVARIANT_CHECK;
 		std::vector<bool> ret;
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::filtered_pieces, _1, boost::ref(ret)));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->filtered_pieces(ret);
 		return ret;
 	}
 
 	void torrent_handle::filter_files(std::vector<bool> const& files) const
 	{
 		INVARIANT_CHECK;
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::filter_files, _1, files));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->filter_files(files);
 	}
 
 // ============ end deprecation ===============
@@ -449,32 +476,36 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		return call_member<std::vector<announce_entry> const&>(m_ses
-			, m_chk, m_info_hash, bind(&torrent::trackers, _1));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		return find_torrent(m_ses, m_chk, m_info_hash)->trackers();
 	}
 
 	void torrent_handle::add_url_seed(std::string const& url) const
 	{
 		INVARIANT_CHECK;
 
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::add_url_seed, _1, url));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->add_url_seed(url);
 	}
 
 	void torrent_handle::remove_url_seed(std::string const& url) const
 	{
 		INVARIANT_CHECK;
 
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::remove_url_seed, _1, url));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->remove_url_seed(url);
 	}
 
 	std::set<std::string> torrent_handle::url_seeds() const
 	{
 		INVARIANT_CHECK;
 
-		return call_member<std::set<std::string> >(m_ses, m_chk, m_info_hash
-			, bind(&torrent::url_seeds, _1));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		return find_torrent(m_ses, m_chk, m_info_hash)->url_seeds();
 	}
 
 	void torrent_handle::replace_trackers(
@@ -482,17 +513,19 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::replace_trackers, _1, urls));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->replace_trackers(urls);
 	}
 
 	torrent_info const& torrent_handle::get_torrent_info() const
 	{
 		INVARIANT_CHECK;
-
-		if (!has_metadata()) throw_invalid_handle();
-		return call_member<torrent_info const&>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::torrent_file, _1));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		boost::shared_ptr<torrent> t = find_torrent(m_ses, m_chk, m_info_hash);
+		if (!t->valid_metadata()) throw_invalid_handle();
+		return t->torrent_file();
 	}
 
 	bool torrent_handle::is_valid() const
@@ -641,8 +674,9 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		return call_member<fs::path>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::save_path, _1));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		return find_torrent(m_ses, m_chk, m_info_hash)->save_path();
 	}
 
 	void torrent_handle::connect_peer(tcp::endpoint const& adr, int source) const
@@ -709,23 +743,26 @@ namespace libtorrent
 		if (ratio < 1.f && ratio > 0.f)
 			ratio = 1.f;
 
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::set_ratio, _1, ratio));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->set_ratio(ratio);
 	}
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 	void torrent_handle::resolve_countries(bool r)
 	{
 		INVARIANT_CHECK;
-		call_member<void>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::resolve_countries, _1, r));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		find_torrent(m_ses, m_chk, m_info_hash)->resolve_countries(r);
 	}
 
 	bool torrent_handle::resolve_countries() const
 	{
 		INVARIANT_CHECK;
-		return call_member<bool>(m_ses, m_chk, m_info_hash
-			, bind(&torrent::resolving_countries, _1));
+		mutex::scoped_lock l1(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l2(m_ses->m_mutex);
+		return find_torrent(m_ses, m_chk, m_info_hash)->resolving_countries();
 	}
 #endif
 
