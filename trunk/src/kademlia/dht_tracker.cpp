@@ -237,6 +237,7 @@ namespace libtorrent { namespace dht
 		try
 	{
 		if (e) return;
+		if (!m_socket.is_open()) return;
 		time_duration d = m_dht.connection_timeout();
 		m_connection_timer.expires_from_now(d);
 		m_connection_timer.async_wait(m_strand.wrap(bind(&dht_tracker::connection_timeout, self(), _1)));
@@ -254,6 +255,7 @@ namespace libtorrent { namespace dht
 		try
 	{
 		if (e) return;
+		if (!m_socket.is_open()) return;
 		time_duration d = m_dht.refresh_timeout();
 		m_refresh_timer.expires_from_now(d);
 		m_refresh_timer.async_wait(m_strand.wrap(
@@ -276,8 +278,9 @@ namespace libtorrent { namespace dht
 		try
 	{
 		if (e) return;
+		if (!m_socket.is_open()) return;
 		m_timer.expires_from_now(minutes(tick_period));
-		m_timer.async_wait(m_strand.wrap(bind(&dht_tracker::tick, this, _1)));
+		m_timer.async_wait(m_strand.wrap(bind(&dht_tracker::tick, self(), _1)));
 
 		ptime now = time_now();
 		if (now - m_last_new_key > minutes(key_refresh))
@@ -388,6 +391,7 @@ namespace libtorrent { namespace dht
 		try
 	{
 		if (error == asio::error::operation_aborted) return;
+		if (!m_socket.is_open()) return;
 	
 		int current_buffer = m_buffer;
 		m_buffer = (m_buffer + 1) & 1;
@@ -716,6 +720,7 @@ namespace libtorrent { namespace dht
 		, udp::resolver::iterator host) try
 	{
 		if (e || host == udp::resolver::iterator()) return;
+		if (!m_socket.is_open()) return;
 		add_node(host->endpoint());
 	}
 	catch (std::exception&)
@@ -734,6 +739,7 @@ namespace libtorrent { namespace dht
 		, udp::resolver::iterator host) try
 	{
 		if (e || host == udp::resolver::iterator()) return;
+		if (!m_socket.is_open()) return;
 		m_dht.add_router_node(host->endpoint());
 	}
 	catch (std::exception&)
