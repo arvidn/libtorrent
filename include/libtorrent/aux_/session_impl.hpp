@@ -284,8 +284,8 @@ namespace libtorrent
 			{
 				torrent* t = c.associated_torrent().lock().get();
 				assert(t);
-				t->unchoke_peer(c);
-				++m_num_unchoked;
+				if (t->unchoke_peer(c))
+					++m_num_unchoked;
 			}
 
 			session_status status() const;
