@@ -80,11 +80,10 @@ namespace
 
   torrent_handle add_torrent(session& s, torrent_info const& ti
     , boost::filesystem::path const& save, entry const& resume
-    , bool compact, int block_size)
+    , bool compact, bool paused)
   {
     allow_threading_guard guard;
-    return s.add_torrent(ti, save, resume, compact, block_size
-      , default_storage_constructor);
+    return s.add_torrent(ti, save, resume, compact, paused, default_storage_constructor);
   }
   
 } // namespace unnamed
@@ -169,7 +168,7 @@ void bind_session()
             "add_torrent", &add_torrent
           , (
                 arg("torrent_info"), "save_path", arg("resume_data") = entry()
-              , arg("compact_mode") = true, arg("block_size") = 16 * 1024
+              , arg("compact_mode") = true, arg("paused") = false
             )
           , session_add_torrent_doc
         )

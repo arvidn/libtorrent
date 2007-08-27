@@ -25,6 +25,8 @@ extern char const* peer_error_alert_doc;
 extern char const* invalid_request_alert_doc;
 extern char const* peer_request_doc;
 extern char const* torrent_finished_alert_doc;
+extern char const* torrent_paused_alert_doc;
+extern char const* storage_moved_alert_doc;
 extern char const* metadata_failed_alert_doc;
 extern char const* metadata_received_alert_doc;
 extern char const* fastresume_rejected_alert_doc;
@@ -140,7 +142,18 @@ void bind_alert()
     )
         .def_readonly("handle", &torrent_finished_alert::handle)
         ;
-
+    
+    class_<torrent_paused_alert, bases<alert>, noncopyable>(
+        "torrent_paused_alert", torrent_paused_alert_doc, no_init
+    )
+        .def_readonly("handle", &torrent_paused_alert::handle)
+        ;
+    
+    class_<storage_moved_alert, bases<alert>, noncopyable>(
+        "storage_moved_alert", storage_moved_alert_doc, no_init
+    )
+        .def_readonly("handle", &storage_moved_alert::handle)
+        ;
     class_<metadata_failed_alert, bases<alert>, noncopyable>(
         "metadata_failed_alert", metadata_failed_alert_doc, no_init
     )
