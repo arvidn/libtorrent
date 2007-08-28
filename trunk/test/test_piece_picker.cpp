@@ -39,16 +39,16 @@ boost::shared_ptr<piece_picker> setup_picker(
 
 	std::vector<piece_picker::downloading_piece> unfinished;
 	piece_picker::downloading_piece pp;
-	piece_picker::block_info blocks[blocks_per_piece * num_pieces];
+	std::vector<piece_picker::block_info> blocks(blocks_per_piece * num_pieces);
 
 	for (int i = 0; i < num_pieces; ++i)
 	{
 		if (partial[i] == 0) break;
 
-		pp.index = i;
-		pp.info = blocks + i * blocks_per_piece;
-
 		if (partial[i] == ' ') continue;
+		pp.index = i;
+		pp.info = &blocks[i * blocks_per_piece];
+
 		int blocks = 0;
 		if (partial[i] >= '0' && partial[i] <= '9')
 			blocks = partial[i] - '0';
