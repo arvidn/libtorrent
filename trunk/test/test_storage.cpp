@@ -23,7 +23,7 @@ void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
 	TEST_CHECK(std::equal(j.buffer, j.buffer + ret, data));
 }
 
-void run_storage_tests(torrent_info& info, bool compact_allocation = true)
+void run_storage_tests(boost::intrusive_ptr<torrent_info> info, bool compact_allocation = true)
 {
 	const int half = piece_size / 2;
 
@@ -39,16 +39,16 @@ void run_storage_tests(torrent_info& info, bool compact_allocation = true)
 	{ 0, 0, 1, 0, 0, 0, 0, 0
 	, 1, 1, 1, 1, 1, 1, 1, 1};
 
-	info.set_hash(0, hasher(piece0, piece_size).final());
-	info.set_hash(1, hasher(piece1, piece_size).final());
-	info.set_hash(2, hasher(piece2, piece_size).final());
+	info->set_hash(0, hasher(piece0, piece_size).final());
+	info->set_hash(1, hasher(piece1, piece_size).final());
+	info->set_hash(2, hasher(piece2, piece_size).final());
 	
-	info.create_torrent();
+	info->create_torrent();
 
 	create_directory(initial_path() / "temp_storage");
 
 	int num_pieces = (1 + 612 + 17 + piece_size - 1) / piece_size;
-	TEST_CHECK(info.num_pieces() == num_pieces);
+	TEST_CHECK(info->num_pieces() == num_pieces);
 
 	char piece[piece_size];
 
@@ -131,13 +131,13 @@ void run_storage_tests(torrent_info& info, bool compact_allocation = true)
 
 int test_main()
 {
-	torrent_info info;
-	info.set_piece_size(piece_size);
-	info.add_file("temp_storage/test1.tmp", 17);
-	info.add_file("temp_storage/test2.tmp", 612);
-	info.add_file("temp_storage/test3.tmp", 0);
-	info.add_file("temp_storage/test4.tmp", 0);
-	info.add_file("temp_storage/test5.tmp", 1);
+	boost::intrusive_ptr<torrent_info> info(new torrent_info());
+	info->set_piece_size(piece_size);
+	info->add_file("temp_storage/test1.tmp", 17);
+	info->add_file("temp_storage/test2.tmp", 612);
+	info->add_file("temp_storage/test3.tmp", 0);
+	info->add_file("temp_storage/test4.tmp", 0);
+	info->add_file("temp_storage/test5.tmp", 1);
 
 	run_storage_tests(info);
 
@@ -155,7 +155,7 @@ int test_main()
 	// make sure remap_files works
 	std::vector<std::pair<std::string, libtorrent::size_type> > map;
 	map.push_back(std::make_pair(std::string("temp_storage/test.tmp"), 17 + 612 + 1));
-	bool ret = info.remap_files(map);
+	bool ret = info->remap_files(map);
 	TEST_CHECK(ret);
 
 	run_storage_tests(info, false);
@@ -167,9 +167,9 @@ int test_main()
 
 // ==============================================
 	
-	info = torrent_info();
-	info.set_piece_size(piece_size);
-	info.add_file("temp_storage/test1.tmp", 17 + 612 + 1);
+	info = new torrent_info();
+	info->set_piece_size(piece_size);
+	info->add_file("temp_storage/test1.tmp", 17 + 612 + 1);
 
 	run_storage_tests(info);
 

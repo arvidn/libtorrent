@@ -87,39 +87,39 @@ int main(int argc, char* argv[])
 
 	try
 	{
-		torrent_info t;
+		boost::intrusive_ptr<torrent_info> t(new torrent_info);
 		path full_path = complete(path(argv[3]));
 		ofstream out(complete(path(argv[1])), std::ios_base::binary);
 
 		int piece_size = 256 * 1024;
 		char const* creator_str = "libtorrent";
 
-		add_files(t, full_path.branch_path(), full_path.leaf());
-		t.set_piece_size(piece_size);
+		add_files(*t, full_path.branch_path(), full_path.leaf());
+		t->set_piece_size(piece_size);
 
 		file_pool fp;
 		boost::scoped_ptr<storage_interface> st(
 			default_storage_constructor(t, full_path.branch_path(), fp));
-		t.add_tracker(argv[2]);
+		t->add_tracker(argv[2]);
 
 		// calculate the hash for all pieces
-		int num = t.num_pieces();
+		int num = t->num_pieces();
 		std::vector<char> buf(piece_size);
 		for (int i = 0; i < num; ++i)
 		{
-			st->read(&buf[0], i, 0, t.piece_size(i));
-			hasher h(&buf[0], t.piece_size(i));
-			t.set_hash(i, h.final());
+			st->read(&buf[0], i, 0, t->piece_size(i));
+			hasher h(&buf[0], t->piece_size(i));
+			t->set_hash(i, h.final());
 			std::cerr << (i+1) << "/" << num << "\r";
 		}
 
-		t.set_creator(creator_str);
+		t->set_creator(creator_str);
 
 		if (argc == 5)
-			t.add_url_seed(argv[4]);
+			t->add_url_seed(argv[4]);
 
 		// create the torrent and print it to out
-		entry e = t.create_torrent();
+		entry e = t->create_torrent();
 		libtorrent::bencode(std::ostream_iterator<char>(out), e);
 	}
 	catch (std::exception& e)

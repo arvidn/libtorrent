@@ -182,6 +182,19 @@ namespace libtorrent
 		, bool paused
 		, storage_constructor_type sc)
 	{
+		boost::intrusive_ptr<torrent_info> tip(new torrent_info(ti));
+		return m_impl->add_torrent(tip, save_path, resume_data
+			, compact_mode, sc, paused);
+	}
+
+	torrent_handle session::add_torrent(
+		boost::intrusive_ptr<torrent_info> ti
+		, fs::path const& save_path
+		, entry const& resume_data
+		, bool compact_mode
+		, bool paused
+		, storage_constructor_type sc)
+	{
 		return m_impl->add_torrent(ti, save_path, resume_data
 			, compact_mode, sc, paused);
 	}

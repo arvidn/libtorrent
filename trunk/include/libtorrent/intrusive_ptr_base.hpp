@@ -42,6 +42,9 @@ namespace libtorrent
 	template<class T>
 	struct intrusive_ptr_base
 	{
+		intrusive_ptr_base(const intrusive_ptr_base<T>& b)
+			: m_refs(0) {}
+
 		friend void intrusive_ptr_add_ref(intrusive_ptr_base<T> const* s)
 		{
 			assert(s->m_refs >= 0);

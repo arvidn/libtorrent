@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/intrusive_ptr_base.hpp"
 
 namespace libtorrent
 {
@@ -96,7 +97,7 @@ namespace libtorrent
 		virtual const char* what() const throw() { return "invalid torrent file"; }
 	};
 
-	class TORRENT_EXPORT torrent_info
+	class TORRENT_EXPORT torrent_info : public intrusive_ptr_base<torrent_info>
 	{
 	public:
 

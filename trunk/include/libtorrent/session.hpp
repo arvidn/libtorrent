@@ -142,6 +142,14 @@ namespace libtorrent
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
 			, bool paused = false
+			, storage_constructor_type sc = default_storage_constructor) TORRENT_DEPRECATED;
+
+		torrent_handle add_torrent(
+			boost::intrusive_ptr<torrent_info> ti
+			, fs::path const& save_path
+			, entry const& resume_data = entry()
+			, bool compact_mode = true
+			, bool paused = false
 			, storage_constructor_type sc = default_storage_constructor);
 
 		torrent_handle add_torrent(
