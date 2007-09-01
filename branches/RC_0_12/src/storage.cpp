@@ -104,7 +104,9 @@ namespace libtorrent
 		}
 	}
 }
+#endif
 
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
 namespace
 {
 	using libtorrent::safe_convert;
@@ -211,6 +213,7 @@ using boost::bind;
 using namespace ::boost::multi_index;
 using boost::multi_index::multi_index_container;
 
+#if !defined(NDEBUG) && defined(TORRENT_STORAGE_DEBUG)
 namespace
 {
 	using namespace libtorrent;
@@ -223,6 +226,7 @@ namespace
 	}
 
 }
+#endif
 
 namespace libtorrent
 {
