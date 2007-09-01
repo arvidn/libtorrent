@@ -33,15 +33,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ASSERT_HPP_INCLUDED
 #define TORRENT_ASSERT_HPP_INCLUDED
 
+#include <cassert>
+
 #ifndef NDEBUG
-#if defined __linux__ && defined _GNUC
+#if defined __linux__ && defined __GNUC__
 #ifdef assert
 #undef assert
 #endif
 
-void assert_fail(int line, char const* file);
+void assert_fail(const char* expr, int line, char const* file, char const* function);
 
-#define assert(x) if (!(x)) assert_fail(__LINE__, __FILE__)
+#define assert(x) if (!(x)) assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__)
 
 #endif
 

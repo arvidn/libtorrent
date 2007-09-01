@@ -35,12 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 #include <iomanip>
-#include <cassert>
 #include <cctype>
 #include <algorithm>
 #include <string>
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {

@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CONFIG_HPP_INCLUDED
 
 #include <boost/config.hpp>
+#include "libtorrent/assert.hpp"
 
 #if defined(__GNUC__) && __GNUC__ >= 4
 

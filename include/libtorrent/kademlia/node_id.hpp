@@ -33,10 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define NODE_ID_HPP
 
 #include <algorithm>
-#include <cassert>
 
 #include <boost/cstdint.hpp>
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent { namespace dht
 {

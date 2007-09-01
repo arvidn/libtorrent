@@ -5,7 +5,7 @@
 #ifndef TORRENT_INVARIANT_ACCESS_HPP_INCLUDED
 #define TORRENT_INVARIANT_ACCESS_HPP_INCLUDED
 
-#include <cassert>
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {
