@@ -258,6 +258,21 @@ namespace libtorrent
 		}
 		else
 		{
+			if (!c.suggested_pieces().empty())
+			{
+				// if the peer has suggested us to download certain pieces
+				// try to pick among those primarily
+				std::vector<int> const& suggested = c.suggested_pieces();
+
+				p.add_interesting_blocks(suggested, c.get_bitfield()
+						, interesting_pieces, busy_pieces, num_requests
+						, prefer_whole_pieces, c.peer_info_struct(), state
+						, false);
+				interesting_pieces.insert(interesting_pieces.end()
+						, busy_pieces.begin(), busy_pieces.end());
+				busy_pieces.clear();
+			}
+
 			// picks the interesting pieces from this peer
 			// the integer is the number of pieces that
 			// should be guaranteed to be available for download
@@ -266,9 +281,11 @@ namespace libtorrent
 			// the last argument is if we should prefer whole pieces
 			// for this peer. If we're downloading one piece in 20 seconds
 			// then use this mode.
-			p.pick_pieces(c.get_bitfield(), interesting_pieces
-				, num_requests, prefer_whole_pieces, c.peer_info_struct()
-				, state, rarest_first);
+			if (int(interesting_pieces.size()) < num_requests)
+				p.pick_pieces(c.get_bitfield(), interesting_pieces
+					, num_requests, prefer_whole_pieces, c.peer_info_struct()
+					, state, rarest_first);
+	
 			busy_pieces.reserve(10);
 		}
 

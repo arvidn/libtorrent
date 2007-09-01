@@ -1062,8 +1062,14 @@ namespace libtorrent
 		if (!m_supports_fast)
 			throw protocol_error("got 'suggest_piece' without FAST extension support");
 
-		// just ignore for now
-		return;	
+		m_statistics.received_bytes(0, received);
+		if (!packet_finished()) return;
+
+		buffer::const_interval recv_buffer = receive_buffer();
+
+		const char* ptr = recv_buffer.begin + 1;
+		int piece = detail::read_uint32(ptr);
+		incoming_suggest(piece);
 	}
 
 	void bt_peer_connection::on_have_all(int received)

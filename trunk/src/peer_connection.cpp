@@ -77,6 +77,8 @@ namespace libtorrent
 		, m_timeout(m_ses.settings().peer_timeout)
 		, m_last_piece(time_now())
 		, m_last_request(time_now())
+		, m_last_incoming_request(min_time())
+		, m_last_unchoke(min_time())
 		, m_packet_size(0)
 		, m_recv_pos(0)
 		, m_current_send_buffer(0)
@@ -155,6 +157,8 @@ namespace libtorrent
 		, m_timeout(m_ses.settings().peer_timeout)
 		, m_last_piece(time_now())
 		, m_last_request(time_now())
+		, m_last_incoming_request(min_time())
+		, m_last_unchoke(min_time())
 		, m_packet_size(0)
 		, m_recv_pos(0)
 		, m_current_send_buffer(0)
@@ -396,7 +400,12 @@ namespace libtorrent
 	{
 		// dont announce during handshake
 		if (in_handshake()) return;
-		
+
+		// remove suggested pieces that we have		
+		std::vector<int>::iterator i = std::find(
+			m_suggested_pieces.begin(), m_suggested_pieces.end(), index);
+		if (i != m_suggested_pieces.end()) m_suggested_pieces.erase(i);
+
 		// optimization, don't send have messages
 		// to peers that already have the piece
 		if (!m_ses.settings().send_redundant_have
@@ -724,6 +733,33 @@ namespace libtorrent
 		}
 	}
 	
+	// -----------------------------
+	// -------- REJECT PIECE -------
+	// -----------------------------
+
+	void peer_connection::incoming_suggest(int index)
+	{
+		INVARIANT_CHECK;
+		
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string()
+			<< " <== SUGGEST_PIECE [ piece: " << index << " ]\n";
+#endif
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (!t) return;
+
+		if (t->have_piece(index)) return;
+		
+		if (m_suggested_pieces.size() > 9)
+			m_suggested_pieces.erase(m_suggested_pieces.begin());
+		m_suggested_pieces.push_back(index);
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string()
+			<< " ** SUGGEST_PIECE [ piece: " << index << " added to set: " << m_suggested_pieces.size() << " ]\n";
+#endif
+	}
+
 	// -----------------------------
 	// ---------- UNCHOKE ----------
 	// -----------------------------
@@ -1097,6 +1133,7 @@ namespace libtorrent
 			else
 			{
 				m_requests.push_back(r);
+				m_last_incoming_request = time_now();
 				fill_send_buffer();
 			}
 		}
@@ -1702,6 +1739,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (!m_choked) return;
+		m_last_unchoke = time_now();
 		write_unchoke();
 		m_choked = false;
 
@@ -2863,8 +2901,19 @@ namespace libtorrent
 		// if the peer hasn't said a thing for a certain
 		// time, it is considered to have timed out
 		time_duration d;
-		d = time_now() - m_last_receive;
+		d = now - m_last_receive;
 		if (d > seconds(m_timeout)) return true;
+
+		// disconnect peers that we unchoked, but
+		// they didn't send a request within 20 seconds.
+		// but only if we're a seed
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		d = now - (std::max)(m_last_unchoke, m_last_incoming_request);
+		if (m_requests.empty()
+			&& !m_choked
+			&& m_peer_interested
+			&& t && t->is_seed()
+			&& d > seconds(20)) return true;
 
 		// TODO: as long as we have less than 95% of the
 		// global (or local) connection limit, connections should
