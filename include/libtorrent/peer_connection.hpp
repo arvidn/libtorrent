@@ -219,6 +219,7 @@ namespace libtorrent
 
 		std::vector<bool> const& get_bitfield() const;
 		std::vector<int> const& allowed_fast();
+		std::vector<int> const& suggested_pieces() const { return m_suggested_pieces; }
 
 		void timed_out();
 		// this will cause this peer_connection to be disconnected.
@@ -303,6 +304,7 @@ namespace libtorrent
 		void incoming_have_all();
 		void incoming_have_none();
 		void incoming_allowed_fast(int index);
+		void incoming_suggest(int index);
 
 		// the following functions appends messages
 		// to the send buffer
@@ -493,6 +495,11 @@ namespace libtorrent
 		// the time we sent a request to
 		// this peer the last time
 		ptime m_last_request;
+		// the time we received the last
+		// piece request from the peer
+		ptime m_last_incoming_request;
+		// the time when we unchoked this peer
+		ptime m_last_unchoke;
 
 		int m_packet_size;
 		int m_recv_pos;
@@ -590,7 +597,7 @@ namespace libtorrent
 		std::deque<peer_request> m_requests;
 
 		// the blocks we have reserved in the piece
-		// picker and will send to this peer.
+		// picker and will request from this peer.
 		std::deque<piece_block> m_request_queue;
 		
 		// the queue of blocks we have requested
@@ -717,6 +724,10 @@ namespace libtorrent
 		// the pieces the peer will send us if
 		// requested (regardless of choke state)
 		std::vector<int> m_allowed_fast;
+
+		// pieces that has been suggested to be
+		// downloaded from this peer
+		std::vector<int> m_suggested_pieces;
 
 		// the number of bytes send to the disk-io
 		// thread that hasn't yet been completely written.
