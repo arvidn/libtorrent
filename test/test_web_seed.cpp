@@ -37,27 +37,27 @@ void test_transfer()
 {
 	using namespace libtorrent;
 	
-	torrent_info torrent_file;
-	torrent_file.add_url_seed("http://127.0.0.1/bravia_paint_ad_70sec_1280x720.mov");
+	boost::intrusive_ptr<torrent_info> torrent_file(new torrent_info);
+	torrent_file->add_url_seed("http://127.0.0.1/bravia_paint_ad_70sec_1280x720.mov");
 
 	path full_path = "/Library/WebServer/Documents/bravia_paint_ad_70sec_1280x720.mov";
-	add_files(torrent_file, full_path.branch_path(), full_path.leaf());
+	add_files(*torrent_file, full_path.branch_path(), full_path.leaf());
 
 	file_pool fp;
 	boost::scoped_ptr<storage_interface> s(default_storage_constructor(
 		torrent_file, full_path.branch_path(), fp));
 	// calculate the hash for all pieces
-	int num = torrent_file.num_pieces();
-	std::vector<char> buf(torrent_file.piece_length());
+	int num = torrent_file->num_pieces();
+	std::vector<char> buf(torrent_file->piece_length());
 	for (int i = 0; i < num; ++i)
 	{
-		s->read(&buf[0], i, 0, torrent_file.piece_size(i));
-		hasher h(&buf[0], torrent_file.piece_size(i));
-		torrent_file.set_hash(i, h.final());
+		s->read(&buf[0], i, 0, torrent_file->piece_size(i));
+		hasher h(&buf[0], torrent_file->piece_size(i));
+		torrent_file->set_hash(i, h.final());
 	}
 	
 	// to calculate the info_hash
-	entry te = torrent_file.create_torrent();
+	entry te = torrent_file->create_torrent();
 
 	te.print(std::cout);
 //	std::ofstream torrent("web_seed.torrent", std::ios::binary | std::ios::trunc);

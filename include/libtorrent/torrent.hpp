@@ -97,7 +97,7 @@ namespace libtorrent
 		torrent(
 			aux::session_impl& ses
 			, aux::checker_impl& checker
-			, torrent_info const& tf
+			, boost::intrusive_ptr<torrent_info> tf
 			, fs::path const& save_path
 			, tcp::endpoint const& net_interface
 			, bool compact_mode
@@ -469,14 +469,14 @@ namespace libtorrent
 		bool is_seed() const
 		{
 			return valid_metadata()
-				&& m_num_pieces == m_torrent_file.num_pieces();
+				&& m_num_pieces == m_torrent_file->num_pieces();
 		}
 
 		// this is true if we have all the pieces that we want
 		bool is_finished() const
 		{
 			if (is_seed()) return true;
-			return valid_metadata() && m_torrent_file.num_pieces()
+			return valid_metadata() && m_torrent_file->num_pieces()
 				- m_num_pieces - m_picker->num_filtered() == 0;
 		}
 
@@ -498,7 +498,7 @@ namespace libtorrent
 		}
 		piece_manager& filesystem();
 		torrent_info const& torrent_file() const
-		{ return m_torrent_file; }
+		{ return *m_torrent_file; }
 
 		std::vector<announce_entry> const& trackers() const
 		{ return m_trackers; }
@@ -539,7 +539,7 @@ namespace libtorrent
 		bool ready_for_connections() const
 		{ return m_connections_initialized; }
 		bool valid_metadata() const
-		{ return m_torrent_file.is_valid(); }
+		{ return m_torrent_file->is_valid(); }
 
 		// parses the info section from the given
 		// bencoded tree and moves the torrent
@@ -563,7 +563,7 @@ namespace libtorrent
 
 		void update_peer_interest();
 
-		torrent_info m_torrent_file;
+		boost::intrusive_ptr<torrent_info> m_torrent_file;
 
 		// is set to true when the torrent has
 		// been aborted.

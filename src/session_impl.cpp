@@ -1454,7 +1454,7 @@ namespace detail
 	}
 
 	torrent_handle session_impl::add_torrent(
-		torrent_info const& ti
+		boost::intrusive_ptr<torrent_info> ti
 		, fs::path const& save_path
 		, entry const& resume_data
 		, bool compact_mode
@@ -1466,7 +1466,7 @@ namespace detail
 		assert(m_external_listen_port > 0);
 		assert(!save_path.empty());
 
-		if (ti.begin_files() == ti.end_files())
+		if (ti->begin_files() == ti->end_files())
 			throw std::runtime_error("no files in torrent");
 
 		// lock the session and the checker thread (the order is important!)
@@ -1479,11 +1479,11 @@ namespace detail
 			throw std::runtime_error("session is closing");
 		
 		// is the torrent already active?
-		if (!find_torrent(ti.info_hash()).expired())
+		if (!find_torrent(ti->info_hash()).expired())
 			throw duplicate_torrent();
 
 		// is the torrent currently being checked?
-		if (m_checker_impl.find_torrent(ti.info_hash()))
+		if (m_checker_impl.find_torrent(ti->info_hash()))
 			throw duplicate_torrent();
 
 		// create the torrent and the data associated with
@@ -1508,13 +1508,13 @@ namespace detail
 			new aux::piece_checker_data);
 		d->torrent_ptr = torrent_ptr;
 		d->save_path = save_path;
-		d->info_hash = ti.info_hash();
+		d->info_hash = ti->info_hash();
 		d->resume_data = resume_data;
 
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht)
 		{
-			torrent_info::nodes_t const& nodes = ti.nodes();
+			torrent_info::nodes_t const& nodes = ti->nodes();
 			std::for_each(nodes.begin(), nodes.end(), bind(
 				(void(dht::dht_tracker::*)(std::pair<std::string, int> const&))
 				&dht::dht_tracker::add_node
@@ -1528,7 +1528,7 @@ namespace detail
 		// job in its queue
 		m_checker_impl.m_cond.notify_one();
 
-		return torrent_handle(this, &m_checker_impl, ti.info_hash());
+		return torrent_handle(this, &m_checker_impl, ti->info_hash());
 	}
 
 	torrent_handle session_impl::add_torrent(
