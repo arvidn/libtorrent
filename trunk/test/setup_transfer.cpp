@@ -29,6 +29,12 @@ void test_sleep(int millisec)
 
 using namespace libtorrent;
 
+template <class T>
+boost::intrusive_ptr<T> clone_ptr(boost::intrusive_ptr<T> const& ptr)
+{
+	return boost::intrusive_ptr<T>(new T(*ptr));
+}
+
 boost::tuple<torrent_handle, torrent_handle, torrent_handle>
 setup_transfer(session* ses1, session* ses2, session* ses3
 	, bool clear_files, bool use_metadata_transfer)
@@ -44,21 +50,21 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 
 	char const* tracker_url = "http://non-existent-name.com/announce";
 	
-	torrent_info t;
+	boost::intrusive_ptr<torrent_info> t(new torrent_info);
 	int total_size = 2 * 1024 * 1024;
-	t.add_file(path("temporary"), total_size);
-	t.set_piece_size(16 * 1024);
-	t.add_tracker(tracker_url);
+	t->add_file(path("temporary"), total_size);
+	t->set_piece_size(16 * 1024);
+	t->add_tracker(tracker_url);
 
 	std::vector<char> piece(16 * 1024);
 	for (int i = 0; i < int(piece.size()); ++i)
 		piece[i] = (i % 26) + 'A';
 	
 	// calculate the hash for all pieces
-	int num = t.num_pieces();
+	int num = t->num_pieces();
 	sha1_hash ph = hasher(&piece[0], piece.size()).final();
 	for (int i = 0; i < num; ++i)
-		t.set_hash(i, ph);
+		t->set_hash(i, ph);
 	
 	create_directory("./tmp1");
 	std::ofstream file("./tmp1/temporary");
@@ -70,8 +76,8 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	file.close();
 	if (clear_files) remove_all("./tmp2/temporary");
 	
-	t.create_torrent();
-	std::cerr << "generated torrent: " << t.info_hash() << std::endl;
+	t->create_torrent();
+	std::cerr << "generated torrent: " << t->info_hash() << std::endl;
 
 	ses1->set_severity_level(alert::debug);
 	ses2->set_severity_level(alert::debug);
@@ -79,17 +85,17 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	// they should not use the same save dir, because the
 	// file pool will complain if two torrents are trying to
 	// use the same files
-	sha1_hash info_hash = t.info_hash();
+	sha1_hash info_hash = t->info_hash();
 	torrent_handle tor1 = ses1->add_torrent(t, "./tmp1");
 	torrent_handle tor2;
 	torrent_handle tor3;
-	if (ses3) tor3 = ses3->add_torrent(t, "./tmp3");
+	if (ses3) tor3 = ses3->add_torrent(clone_ptr(t), "./tmp3");
 
   	if (use_metadata_transfer)
 		tor2 = ses2->add_torrent(tracker_url
-		, t.info_hash(), 0, "./tmp2");
+		, t->info_hash(), 0, "./tmp2");
 	else
-		tor2 = ses2->add_torrent(t, "./tmp2");
+		tor2 = ses2->add_torrent(clone_ptr(t), "./tmp2");
 
 	assert(ses1->get_torrents().size() == 1);
 	assert(ses2->get_torrents().size() == 1);
