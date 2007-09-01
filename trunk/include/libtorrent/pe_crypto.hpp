@@ -35,13 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PE_CRYPTO_HPP_INCLUDED
 #define TORRENT_PE_CRYPTO_HPP_INCLUDED
 
-#include <cassert>
-
 #include <openssl/dh.h>
 #include <openssl/engine.h>
 #include <openssl/rc4.h>
 
-#include "peer_id.hpp" // For sha1_hash
+#include "libtorrent/peer_id.hpp" // For sha1_hash
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {

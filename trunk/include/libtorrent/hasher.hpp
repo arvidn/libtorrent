@@ -33,11 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HASHER_HPP_INCLUDED
 #define TORRENT_HASHER_HPP_INCLUDED
 
-#include <cassert>
 #include <boost/cstdint.hpp>
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/assert.hpp"
 #include "zlib.h"
 
 #ifdef TORRENT_USE_OPENSSL

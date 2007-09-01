@@ -32,13 +32,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 
-#include <cassert>
 #include <algorithm>
 
 #include <openssl/dh.h>
 #include <openssl/engine.h>
 
 #include "libtorrent/pe_crypto.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent {
 

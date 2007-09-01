@@ -34,8 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_INTRUSIVE_PTR_BASE
 
 #include <boost/detail/atomic_count.hpp>
-#include <cassert>
 #include "libtorrent/config.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {

@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/policy.hpp"
 #include "libtorrent/socket_type.hpp"
+#include "libtorrent/assert.hpp"
 
 using boost::bind;
 using boost::shared_ptr;

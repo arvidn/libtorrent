@@ -64,10 +64,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <string>
 #include <stdexcept>
-#include <cassert>
 
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {

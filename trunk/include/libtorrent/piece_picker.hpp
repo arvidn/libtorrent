@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <vector>
 #include <bitset>
-#include <cassert>
 #include <utility>
 
 #ifdef _MSC_VER
@@ -52,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {
