@@ -528,6 +528,7 @@ namespace libtorrent
 
 		int max_failcount = m_torrent->settings().max_failcount;
 		int min_reconnect_time = m_torrent->settings().min_reconnect_time;
+		bool finished = m_torrent->is_finished();
 
 		aux::session_impl& ses = m_torrent->session();
 
@@ -536,7 +537,7 @@ namespace libtorrent
 			if (i->connection) continue;
 			if (i->banned) continue;
 			if (i->type == peer::not_connectable) continue;
-			if (i->seed && m_torrent->is_seed()) continue;
+			if (i->seed && finished) continue;
 			if (i->failcount >= max_failcount) continue;
 			if (now - i->connected < seconds(i->failcount * min_reconnect_time))
 				continue;
@@ -1191,7 +1192,7 @@ namespace libtorrent
 			&& m_torrent->session().num_uploads() < m_torrent->session().max_uploads()
 			&& (m_torrent->ratio() == 0
 				|| c.share_diff() >= -free_upload_amount
-				|| m_torrent->is_seed()))
+				|| m_torrent->is_finished()))
 		{
 			m_torrent->session().unchoke_peer(c);
 		}
