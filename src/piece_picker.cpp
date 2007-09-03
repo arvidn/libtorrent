@@ -201,7 +201,7 @@ namespace libtorrent
 					, end(in.end()); i != end; ++i)
 				{
 					m_piece_map[*i].index = c++;
-					assert(m_piece_map[*i].priority(old_limit) == old_limit);
+					assert(m_piece_map[*i].priority(old_limit) == old_limit * 2);
 				}
 			}
 		}
@@ -1102,7 +1102,7 @@ namespace libtorrent
 		// ignored as long as possible. All blocks found in downloading
 		// pieces are regarded as backup blocks
 		bool ignore_downloading_pieces = false;
-		if (prefer_whole_pieces)
+		if (prefer_whole_pieces || !rarest_first)
 		{
 			std::vector<int> downloading_pieces;
 			downloading_pieces.reserve(m_downloads.size());
@@ -1111,34 +1111,46 @@ namespace libtorrent
 			{
 				downloading_pieces.push_back(i->index);
 			}
-			add_interesting_blocks(downloading_pieces, pieces
-				, backup_blocks, backup_blocks, num_blocks
-				, prefer_whole_pieces, peer, speed, ignore_downloading_pieces);
+			if (prefer_whole_pieces)
+			{
+				add_interesting_blocks(downloading_pieces, pieces
+					, backup_blocks, backup_blocks, num_blocks
+					, prefer_whole_pieces, peer, speed, ignore_downloading_pieces);
+			}
+			else
+			{
+				num_blocks = add_interesting_blocks(downloading_pieces, pieces
+					, interesting_blocks, backup_blocks, num_blocks
+					, prefer_whole_pieces, peer, speed, ignore_downloading_pieces);
+			}
 			ignore_downloading_pieces = true;
 		}
 		
-		// this loop will loop from pieces with priority 1 and up
-		// until we either reach the end of the piece list or
-		// has filled the interesting_blocks with num_blocks
-		// blocks.
-
-		// +1 is to ignore pieces that no peer has. The bucket with index 0 contains
-		// pieces that 0 other peers have. bucket will point to a bucket with
-		// pieces with the same priority. It will be iterated in priority
-		// order (high priority/rare pices first). The content of each
-		// bucket is randomized
-		for (std::vector<std::vector<int> >::const_iterator bucket
-			= m_piece_info.begin() + 1; bucket != m_piece_info.end();
-			++bucket)
+		if (rarest_first)
 		{
-			if (bucket->empty()) continue;
-			num_blocks = add_interesting_blocks(*bucket, pieces
-				, interesting_blocks, backup_blocks, num_blocks
-				, prefer_whole_pieces, peer, speed, ignore_downloading_pieces);
-			assert(num_blocks >= 0);
-			if (num_blocks == 0) return;
-			if (rarest_first) continue;
+			// this loop will loop from pieces with priority 1 and up
+			// until we either reach the end of the piece list or
+			// has filled the interesting_blocks with num_blocks
+			// blocks.
 
+			// +1 is to ignore pieces that no peer has. The bucket with index 0 contains
+			// pieces that 0 other peers have. bucket will point to a bucket with
+			// pieces with the same priority. It will be iterated in priority
+			// order (high priority/rare pices first). The content of each
+			// bucket is randomized
+			for (std::vector<std::vector<int> >::const_iterator bucket
+				= m_piece_info.begin() + 1; num_blocks > 0 && bucket != m_piece_info.end();
+				++bucket)
+			{
+				if (bucket->empty()) continue;
+				num_blocks = add_interesting_blocks(*bucket, pieces
+					, interesting_blocks, backup_blocks, num_blocks
+					, prefer_whole_pieces, peer, speed, ignore_downloading_pieces);
+				assert(num_blocks >= 0);
+			}
+		}
+		else
+		{
 			// we're not using rarest first (only for the first
 			// bucket, since that's where the currently downloading
 			// pieces are)
@@ -1148,7 +1160,7 @@ namespace libtorrent
 			{
 				while (!pieces[piece]
 					|| m_piece_map[piece].index == piece_pos::we_have_index
-					|| m_piece_map[piece].priority(m_sequenced_download_threshold) < 2)
+					|| m_piece_map[piece].downloading)
 				{
 					++piece;
 					if (piece == int(m_piece_map.size())) piece = 0;
@@ -1170,11 +1182,10 @@ namespace libtorrent
 				// could not find any more pieces
 				if (piece == start_piece) return;
 			}
-			if (num_blocks == 0) return;
-			break;
+		
 		}
 
-		assert(num_blocks > 0);
+		if (num_blocks <= 0) return;
 
 		if (!backup_blocks.empty())
 			interesting_blocks.insert(interesting_blocks.end()
