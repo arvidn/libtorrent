@@ -343,7 +343,7 @@ namespace libtorrent
 			// if this is a web seed. we don't have a peer_info struct
 			if (m_peer_info) m_peer_info->seed = true;
 			// if we're a seed too, disconnect
-			if (t->is_seed())
+			if (t->is_finished())
 			{
 				throw std::runtime_error("seed to seed connection redundant, disconnecting");
 			}
@@ -917,7 +917,7 @@ namespace libtorrent
 			{
 				assert(m_peer_info);
 				m_peer_info->seed = true;
-				if (t->is_seed())
+				if (t->is_finished())
 				{
 					throw protocol_error("seed to seed connection redundant, disconnecting");
 				}
@@ -988,7 +988,7 @@ namespace libtorrent
 			// if this is a web seed. we don't have a peer_info struct
 			if (m_peer_info) m_peer_info->seed = true;
 			// if we're a seed too, disconnect
-			if (t->is_seed())
+			if (t->is_finished())
 			{
 				throw protocol_error("seed to seed connection redundant, disconnecting");
 			}
@@ -1517,7 +1517,7 @@ namespace libtorrent
 #endif
 
 		// if we're a seed too, disconnect
-		if (t->is_seed())
+		if (t->is_finished())
 			throw protocol_error("seed to seed connection redundant, disconnecting");
 
 		assert(!m_have_piece.empty());
@@ -2186,7 +2186,7 @@ namespace libtorrent
 		// maintain the share ratio given by m_ratio
 		// with all peers.
 
-		if (t->is_seed() || is_choked() || t->ratio() == 0.0f)
+		if (t->is_finished() || is_choked() || t->ratio() == 0.0f)
 		{
 			// if we have downloaded more than one piece more
 			// than we have uploaded OR if we are a seed
@@ -2922,7 +2922,7 @@ namespace libtorrent
 		if (m_requests.empty()
 			&& !m_choked
 			&& m_peer_interested
-			&& t && t->is_seed()
+			&& t && t->is_finished()
 			&& d > seconds(20)) return true;
 
 		// TODO: as long as we have less than 95% of the
