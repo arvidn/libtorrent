@@ -152,11 +152,15 @@ namespace libtorrent
 		int upload_limit() const { return m_upload_limit; }
 		int download_limit() const { return m_download_limit; }
 
-		bool prefer_whole_pieces() const
-		{ return m_prefer_whole_pieces; }
+		int prefer_whole_pieces() const
+		{
+			if (m_prefer_whole_pieces == 0)
+				return peer_info_struct() && peer_info_struct()->on_parole ? 1 : 0;
+			return m_prefer_whole_pieces;
+		}
 
-		void prefer_whole_pieces(bool b)
-		{ m_prefer_whole_pieces = b; }
+		void prefer_whole_pieces(int num)
+		{ m_prefer_whole_pieces = num; }
 
 		bool request_large_blocks() const
 		{ return m_request_large_blocks; }
@@ -665,12 +669,13 @@ namespace libtorrent
 		bool m_writing;
 		bool m_reading;
 
-		// if set to true, this peer will always prefer
-		// to request entire pieces, rather than blocks.
-		// if it is false, the download rate limit setting
+		// if set to non-zero, this peer will always prefer
+		// to request entire n pieces, rather than blocks.
+		// where n is the value of this variable.
+		// if it is 0, the download rate limit setting
 		// will be used to determine if whole pieces
 		// are preferred.
-		bool m_prefer_whole_pieces;
+		int m_prefer_whole_pieces;
 		
 		// if this is true, the blocks picked by the piece
 		// picker will be merged before passed to the

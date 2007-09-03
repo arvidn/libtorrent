@@ -209,16 +209,15 @@ namespace libtorrent
 		std::vector<piece_block> interesting_pieces;
 		interesting_pieces.reserve(100);
 
-		bool prefer_whole_pieces = c.prefer_whole_pieces()
-			|| (c.peer_info_struct() && c.peer_info_struct()->on_parole);
+		int prefer_whole_pieces = c.prefer_whole_pieces();
 
 		bool rarest_first = t.num_pieces() >= t.settings().initial_picker_threshold;
 
-		if (!prefer_whole_pieces)
+		if (prefer_whole_pieces == 0)
 		{
 			prefer_whole_pieces = c.statistics().download_payload_rate()
 				* t.settings().whole_pieces_threshold
-				> t.torrent_file().piece_length();
+				> t.torrent_file().piece_length() ? 1 : 0;
 		}
 	
 		// if we prefer whole pieces, the piece picker will pick at least
@@ -265,12 +264,9 @@ namespace libtorrent
 				std::vector<int> const& suggested = c.suggested_pieces();
 
 				p.add_interesting_blocks(suggested, c.get_bitfield()
-						, interesting_pieces, busy_pieces, num_requests
-						, prefer_whole_pieces, c.peer_info_struct(), state
-						, false);
-				interesting_pieces.insert(interesting_pieces.end()
-						, busy_pieces.begin(), busy_pieces.end());
-				busy_pieces.clear();
+					, interesting_pieces, busy_pieces, num_requests
+					, prefer_whole_pieces, c.peer_info_struct(), state
+					, false);
 			}
 
 			// picks the interesting pieces from this peer
@@ -285,13 +281,14 @@ namespace libtorrent
 				p.pick_pieces(c.get_bitfield(), interesting_pieces
 					, num_requests, prefer_whole_pieces, c.peer_info_struct()
 					, state, rarest_first);
-	
-			busy_pieces.reserve(10);
 		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*c.m_logger) << time_now_string() << " PIECE_PICKER [ picked: " << interesting_pieces.size() << " ]\n";
+		(*c.m_logger) << time_now_string() << " PIECE_PICKER [ php: " << prefer_whole_pieces
+			<< " picked: " << interesting_pieces.size() << " ]\n";
 #endif
+		std::deque<piece_block> const& dq = c.download_queue();
+		std::deque<piece_block> const& rq = c.request_queue();
 		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
 			i != interesting_pieces.end(); ++i)
 		{
@@ -299,8 +296,6 @@ namespace libtorrent
 			{
 				if (num_requests <= 0) break;
 				// don't request pieces we already have in our request queue
-				const std::deque<piece_block>& dq = c.download_queue();
-				const std::deque<piece_block>& rq = c.request_queue();
 				if (std::find(dq.begin(), dq.end(), *i) != dq.end()
 					|| std::find(rq.begin(), rq.end(), *i) != rq.end())
 					continue;

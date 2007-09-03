@@ -521,6 +521,7 @@ namespace libtorrent
 		assert(t);
 
 		assert(t->valid_metadata());
+		torrent_info const& ti = t->torrent_file();
 
 		return p.piece >= 0
 			&& p.piece < t->torrent_file().num_pieces()
@@ -528,11 +529,13 @@ namespace libtorrent
 			&& p.start >= 0
 			&& (p.length == t->block_size()
 				|| (p.length < t->block_size()
-					&& p.piece == t->torrent_file().num_pieces()-1
-					&& p.start + p.length == t->torrent_file().piece_size(p.piece))
+					&& p.piece == ti.num_pieces()-1
+					&& p.start + p.length == ti.piece_size(p.piece))
 				|| (m_request_large_blocks
-					&& p.length <= t->torrent_file().piece_size(p.piece)))
-			&& p.start + p.length <= t->torrent_file().piece_size(p.piece)
+					&& p.length <= ti.piece_length() * m_prefer_whole_pieces == 0 ?
+					1 : m_prefer_whole_pieces))
+			&& p.piece * int64_t(ti.piece_length()) + p.start + p.length
+				<= ti.total_size()
 			&& (p.start % t->block_size() == 0);
 	}
 
@@ -1623,6 +1626,7 @@ namespace libtorrent
 		assert(block.block_index >= 0);
 		assert(block.block_index < t->torrent_file().piece_size(block.piece_index));
 		assert(!t->picker().is_requested(block) || (t->picker().num_peers(block) > 0));
+		assert(!t->have_piece(block.piece_index));
 
 		piece_picker::piece_state_t state;
 		peer_speed_t speed = peer_speed();
@@ -1815,21 +1819,27 @@ namespace libtorrent
 			// blocks that are in the same piece into larger requests
 			if (m_request_large_blocks)
 			{
-				while (!m_request_queue.empty()
-					&& m_request_queue.front().piece_index == r.piece
-					&& m_request_queue.front().block_index == block.block_index + 1)
+				int blocks_per_piece = t->torrent_file().piece_length() / t->block_size();
+
+				while (!m_request_queue.empty())
 				{
+					// check to see if this block is connected to the previous one
+					// if it is, merge them, otherwise, break this merge loop
+					piece_block const& front = m_request_queue.front();
+					if (front.piece_index * blocks_per_piece + front.block_index
+						!= block.piece_index * blocks_per_piece + block.block_index + 1)
+						break;
 					block = m_request_queue.front();
 					m_request_queue.pop_front();
 					m_download_queue.push_back(block);
-/*
+
 #ifdef TORRENT_VERBOSE_LOGGING
 					(*m_logger) << time_now_string()
-						<< " *** REQUEST-QUEUE** [ "
+						<< " *** MERGING REQUEST ** [ "
 						"piece: " << block.piece_index << " | "
 						"block: " << block.block_index << " ]\n";
 #endif
-*/
+
 					block_offset = block.block_index * t->block_size();
 					block_size = (std::min)((int)t->torrent_file().piece_size(
 						block.piece_index) - block_offset, t->block_size());
