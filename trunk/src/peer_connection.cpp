@@ -534,7 +534,7 @@ namespace libtorrent
 				|| (m_request_large_blocks
 					&& p.length <= ti.piece_length() * m_prefer_whole_pieces == 0 ?
 					1 : m_prefer_whole_pieces))
-			&& p.piece * int64_t(ti.piece_length()) + p.start + p.length
+			&& p.piece * size_type(ti.piece_length()) + p.start + p.length
 				<= ti.total_size()
 			&& (p.start % t->block_size() == 0);
 	}
