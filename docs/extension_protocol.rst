@@ -90,8 +90,8 @@ Here are some other items that an implementation may choose to support:
 | yourip | A string containing the compact representation of the ip  |
 |        | address this peer sees you as. i.e. this is the           |
 |        | receiver's external ip address (no port is included).     |
-|        | This may be both an IPv4 (4 bytes) or an IPv6 (16 bytes)  |
-|        | address.                                                  |
+|        | This may be either an IPv4 (4 bytes) or an IPv6           |
+|        | (16 bytes) address.                                       |
 +--------+-----------------------------------------------------------+
 | reqq   | An integer, the number of outstanding request messages    |
 |        | this client supports without dropping any. The default in |
