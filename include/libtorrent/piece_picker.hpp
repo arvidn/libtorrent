@@ -195,20 +195,30 @@ namespace libtorrent
 			, std::vector<piece_block>& interesting_blocks
 			, int num_pieces, int prefer_whole_pieces
 			, void* peer, piece_state_t speed
-			, bool rarest_first) const;
+			, bool rarest_first, bool on_parole
+			, std::vector<int> const& suggested_pieces) const;
 
 		// picks blocks from each of the pieces in the piece_list
 		// vector that is also in the piece bitmask. The blocks
 		// are added to interesting_blocks, and busy blocks are
 		// added to backup_blocks. num blocks is the number of
-		// blocks to be picked.
-		int add_interesting_blocks(std::vector<int> const& piece_list
+		// blocks to be picked. Blocks are not picked from pieces
+		// that are being downloaded
+		int add_blocks(std::vector<int> const& piece_list
 			, const std::vector<bool>& pieces
 			, std::vector<piece_block>& interesting_blocks
 			, std::vector<piece_block>& backup_blocks
 			, int num_blocks, int prefer_whole_pieces
+			, void* peer, std::vector<int> const& ignore) const;
+
+		// picks blocks only from downloading pieces
+		int piece_picker::add_blocks_downloading(
+			std::vector<bool> const& pieces
+			, std::vector<piece_block>& interesting_blocks
+			, std::vector<piece_block>& backup_blocks
+			, int num_blocks, int prefer_whole_pieces
 			, void* peer, piece_state_t speed
-			, bool ignore_downloading_pieces) const;
+			, bool on_parole) const;
 
 		// clears the peer pointer in all downloading pieces with this
 		// peer pointer
@@ -336,9 +346,9 @@ namespace libtorrent
 			
 			int priority(int limit) const
 			{
-				if (filtered() || have()) return 0;
+				if (downloading || filtered() || have()) return 0;
 				// pieces we are currently downloading have high priority
-				int prio = downloading ? (std::min)(1, int(peer_count)) : peer_count * 2;
+				int prio = peer_count * 2;
 				// if the peer_count is 0 or 1, the priority cannot be higher
 				if (prio <= 1) return prio;
 				if (prio >= limit * 2) prio = limit * 2;

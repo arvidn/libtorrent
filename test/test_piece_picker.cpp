@@ -157,12 +157,13 @@ int test_main()
 	policy::peer peer_struct(endp, policy::peer::connectable, 0);
 	std::vector<piece_block> picked;
 	boost::shared_ptr<piece_picker> p;
+	const std::vector<int> empty_vector;
 
 	// make sure the block that is picked is from piece 1, since it
 	// it is the piece with the lowest availability
 	p = setup_picker("2223333", "* * *  ", "", "");
 	picked.clear();
-	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true);
+	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true, false, empty_vector);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() > 0);
 	TEST_CHECK(picked.front().piece_index == 1);
@@ -173,7 +174,7 @@ int test_main()
 	// has the highest priority among the available pieces
 	p = setup_picker("1111111", "* * *  ", "1111122", "");
 	picked.clear();
-	p->pick_pieces(string2vec("****** "), picked, 1, false, 0, piece_picker::fast, true);
+	p->pick_pieces(string2vec("****** "), picked, 1, false, 0, piece_picker::fast, true, false, empty_vector);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() > 0);
 	TEST_CHECK(picked.front().piece_index == 5);
@@ -184,7 +185,7 @@ int test_main()
 	// whole pieces are preferred. The only whole piece is 1.
 	p = setup_picker("1111111", "       ", "1111111", "1023460");
 	picked.clear();
-	p->pick_pieces(string2vec("****** "), picked, 1, 1, 0, piece_picker::fast, true);
+	p->pick_pieces(string2vec("****** "), picked, 1, 1, &peer_struct, piece_picker::fast, true, true, empty_vector);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(int(picked.size()) >= blocks_per_piece);
 	for (int i = 0; i < blocks_per_piece && i < int(picked.size()); ++i)
@@ -204,7 +205,7 @@ int test_main()
 	// make sure filtered pieces are ignored
 	p = setup_picker("1111111", "       ", "0010000", "");
 	picked.clear();
-	p->pick_pieces(string2vec("*** ** "), picked, 1, false, 0, piece_picker::fast, true);
+	p->pick_pieces(string2vec("*** ** "), picked, 1, false, 0, piece_picker::fast, true, false, empty_vector);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() > 0);
 	TEST_CHECK(picked.front().piece_index == 2);
@@ -214,7 +215,7 @@ int test_main()
 	// make sure requested blocks aren't picked
 	p = setup_picker("1234567", "       ", "", "");
 	picked.clear();
-	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true);
+	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true, false, empty_vector);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() > 0);
 	TEST_CHECK(picked.front().piece_index == 0);
@@ -222,7 +223,7 @@ int test_main()
 	p->mark_as_downloading(picked.front(), &peer_struct, piece_picker::fast);
 	TEST_CHECK(p->num_peers(picked.front()) == 1);
 	picked.clear();
-	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true);
+	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true, false, empty_vector);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() > 0);
 	TEST_CHECK(picked.front() != first);
@@ -234,7 +235,7 @@ int test_main()
 	p = setup_picker("7654321", "       ", "", "");
 	picked.clear();
 	p->set_sequenced_download_threshold(3);
-	p->pick_pieces(string2vec("*****  "), picked, 5 * blocks_per_piece, false, 0, piece_picker::fast, true);
+	p->pick_pieces(string2vec("*****  "), picked, 5 * blocks_per_piece, false, 0, piece_picker::fast, true, false, empty_vector);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() == 5 * blocks_per_piece);
@@ -243,7 +244,7 @@ int test_main()
 
 	picked.clear();
 	p->set_sequenced_download_threshold(4);
-	p->pick_pieces(string2vec("****   "), picked, 5 * blocks_per_piece, false, 0, piece_picker::fast, true);
+	p->pick_pieces(string2vec("****   "), picked, 5 * blocks_per_piece, false, 0, piece_picker::fast, true, false, empty_vector);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() == 4 * blocks_per_piece);
@@ -252,7 +253,7 @@ int test_main()
 
 	picked.clear();
 	p->set_sequenced_download_threshold(2);
-	p->pick_pieces(string2vec("****** "), picked, 6 * blocks_per_piece, false, 0, piece_picker::fast, true);
+	p->pick_pieces(string2vec("****** "), picked, 6 * blocks_per_piece, false, 0, piece_picker::fast, true, false, empty_vector);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() == 6 * blocks_per_piece);
@@ -261,7 +262,7 @@ int test_main()
 	
 	picked.clear();
 	p->set_piece_priority(0, 0);
-	p->pick_pieces(string2vec("****** "), picked, 6 * blocks_per_piece, false, 0, piece_picker::fast, true);
+	p->pick_pieces(string2vec("****** "), picked, 6 * blocks_per_piece, false, 0, piece_picker::fast, true, false, empty_vector);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() == 5 * blocks_per_piece);
@@ -270,7 +271,7 @@ int test_main()
 
 	picked.clear();
 	p->set_piece_priority(0, 1);
-	p->pick_pieces(string2vec("****** "), picked, 6 * blocks_per_piece, false, 0, piece_picker::fast, true);
+	p->pick_pieces(string2vec("****** "), picked, 6 * blocks_per_piece, false, 0, piece_picker::fast, true, false, empty_vector);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() == 6 * blocks_per_piece);
@@ -292,7 +293,7 @@ int test_main()
 	TEST_CHECK(p->num_have_filtered() == 1);
 	
 	picked.clear();
-	p->pick_pieces(string2vec("*******"), picked, 6 * blocks_per_piece, false, 0, piece_picker::fast, true);
+	p->pick_pieces(string2vec("*******"), picked, 6 * blocks_per_piece, false, 0, piece_picker::fast, true, false, empty_vector);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() == 6 * blocks_per_piece);
@@ -320,7 +321,7 @@ int test_main()
 	p->mark_as_finished(piece_block(0,3), 0);
 
 	picked.clear();
-	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true);
+	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true, false, empty_vector);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() >= 1);
@@ -328,7 +329,7 @@ int test_main()
 
 	p->restore_piece(0);	
 	picked.clear();
-	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true);
+	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true, false, empty_vector);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() >= 1);
@@ -336,10 +337,12 @@ int test_main()
 
 	p->mark_as_finished(piece_block(0,0), 0);
 	p->mark_as_finished(piece_block(0,1), 0);
+	p->mark_as_finished(piece_block(0,2), 0);
+	p->mark_as_finished(piece_block(0,3), 0);
 	p->set_piece_priority(0, 0);
 
 	picked.clear();
-	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true);
+	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true, false, empty_vector);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() >= 1);
@@ -347,7 +350,7 @@ int test_main()
 
 	p->restore_piece(0);	
 	picked.clear();
-	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true);
+	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true, false, empty_vector);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() >= 1);
@@ -355,7 +358,7 @@ int test_main()
 
 	p->set_piece_priority(0, 1);
 	picked.clear();
-	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true);
+	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true, false, empty_vector);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() >= 1);
@@ -366,7 +369,7 @@ int test_main()
 	// test non-rarest-first mode
 	p = setup_picker("1234567", "* * *  ", "1111122", "");
 	picked.clear();
-	p->pick_pieces(string2vec("****** "), picked, 5 * blocks_per_piece, false, 0, piece_picker::fast, false);
+	p->pick_pieces(string2vec("****** "), picked, 5 * blocks_per_piece, false, 0, piece_picker::fast, false, false, empty_vector);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() == 3 * blocks_per_piece);
@@ -415,7 +418,7 @@ int test_main()
 	TEST_CHECK(fabs(dc - (2.f + 5.f / 7.f)) < 0.01f);
 	picked.clear();
 	// make sure it won't pick the piece we just got
-	p->pick_pieces(string2vec(" * ****"), picked, 100, false, 0, piece_picker::fast, true);
+	p->pick_pieces(string2vec(" * ****"), picked, 100, false, 0, piece_picker::fast, true, false, empty_vector);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() >= 4 * blocks_per_piece);
@@ -468,7 +471,7 @@ int test_main()
 	// test prefer_whole_pieces
 	p = setup_picker("1111111", "       ", "", "");
 	picked.clear();
-	p->pick_pieces(string2vec("*******"), picked, 1, 3, 0, piece_picker::fast, true);
+	p->pick_pieces(string2vec("*******"), picked, 1, 3, 0, piece_picker::fast, true, false, empty_vector);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() >= 3 * blocks_per_piece);
@@ -481,7 +484,7 @@ int test_main()
 	}
 
 	picked.clear();
-	p->pick_pieces(string2vec("*******"), picked, 1, 3, 0, piece_picker::fast, false);
+	p->pick_pieces(string2vec("*******"), picked, 1, 3, 0, piece_picker::fast, false, false, empty_vector);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
 	TEST_CHECK(picked.size() >= 3 * blocks_per_piece);
@@ -493,6 +496,35 @@ int test_main()
 		b = picked[i];
 	}
 	
+// ========================================================
+
+	// test parole mode
+	p = setup_picker("3333133", "       ", "", "");
+	p->mark_as_finished(piece_block(0, 0), 0);
+	picked.clear();
+	p->pick_pieces(string2vec("*******"), picked, 1, 1, 0, piece_picker::fast, true, true, empty_vector);
+	print_pick(picked);
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_CHECK(picked.size() >= blocks_per_piece - 1);
+	for (int i = 1; i < int(picked.size()); ++i)
+	{
+		TEST_CHECK(picked[i].piece_index == 0);
+		TEST_CHECK(picked[i].block_index == i + 1);
+	}
+
+	//	make sure that the partial piece is not picked by a
+	// peer that is has not downloaded/requested the other blocks
+	picked.clear();
+	p->pick_pieces(string2vec("*******"), picked, 1, 1, &peer_struct, piece_picker::fast, true, true, empty_vector);
+	print_pick(picked);
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_CHECK(picked.size() >= blocks_per_piece);
+	for (int i = 1; i < int(picked.size()); ++i)
+	{
+		TEST_CHECK(picked[i].piece_index == 4);
+		TEST_CHECK(picked[i].block_index == i);
+	}
+
 // MISSING TESTS:
 // 2. inc_ref() from 0 to 1 while sequenced download threshold is 1
 // 4. filtered_pieces

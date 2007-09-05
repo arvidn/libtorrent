@@ -159,6 +159,9 @@ namespace libtorrent
 			return m_prefer_whole_pieces;
 		}
 
+		bool on_parole() const
+		{ return peer_info_struct() && peer_info_struct()->on_parole; }
+
 		void prefer_whole_pieces(int num)
 		{ m_prefer_whole_pieces = num; }
 
