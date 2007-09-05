@@ -493,7 +493,7 @@ namespace libtorrent
 			// skip the http header and the blocks we've already read. The
 			// http_body.begin is now in sync with the request at the front
 			// of the request queue
-			assert(in_range.start - int(m_piece.size()) <= front_request.start);
+//			assert(in_range.start - int(m_piece.size()) <= front_request.start);
 
 			// the http response body consists of 3 parts
 			// 1. the middle of a block or the ending of a block
