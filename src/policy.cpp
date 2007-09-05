@@ -241,6 +241,7 @@ namespace libtorrent
 		busy_pieces.reserve(num_requests);
 
 		std::vector<int> const& suggested = c.suggested_pieces();
+		std::vector<bool> const& bitfield = c.get_bitfield();
 
 		if (c.has_peer_choked())
 		{
@@ -253,7 +254,7 @@ namespace libtorrent
 			std::vector<bool> mask(c.get_bitfield().size(), false);
 			for (std::vector<int>::const_iterator i = allowed_fast.begin()
 				, end(allowed_fast.end()); i != end; ++i)
-				mask[*i] = true;
+				if (bitfield[*i]) mask[*i] = true;
 
 			p.pick_pieces(mask, interesting_pieces
 				, num_requests, prefer_whole_pieces, c.peer_info_struct()
@@ -269,7 +270,7 @@ namespace libtorrent
 			// the last argument is if we should prefer whole pieces
 			// for this peer. If we're downloading one piece in 20 seconds
 			// then use this mode.
-			p.pick_pieces(c.get_bitfield(), interesting_pieces
+			p.pick_pieces(bitfield, interesting_pieces
 				, num_requests, prefer_whole_pieces, c.peer_info_struct()
 				, state, rarest_first, c.on_parole(), suggested);
 		}

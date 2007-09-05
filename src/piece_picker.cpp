@@ -1136,6 +1136,13 @@ namespace libtorrent
 					for (std::vector<int>::const_iterator i = suggested_pieces.begin()
 						, end(suggested_pieces.end()); i != end; ++i)
 					{
+						assert(*i >= 0);
+						assert(*i < int(m_piece_map.size()));
+						if (!pieces[*i]
+							|| m_piece_map[*i].have()
+							|| m_piece_map[*i].downloading
+							|| m_piece_map[*i].filtered())
+							continue;
 						if (m_piece_map[*i].priority(m_sequenced_download_threshold) == bucket_index)
 							suggested_bucket.push_back(*i);
 					}
