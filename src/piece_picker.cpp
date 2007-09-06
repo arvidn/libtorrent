@@ -1763,7 +1763,6 @@ namespace libtorrent
 
 			assert(std::find_if(m_downloads.begin(), m_downloads.end()
 				, has_index(block.piece_index)) == m_downloads.end());
-			check_invariant();
 		}
 		else if (i->requested == 0)
 		{
