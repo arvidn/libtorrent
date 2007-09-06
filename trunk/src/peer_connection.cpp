@@ -1630,7 +1630,7 @@ namespace libtorrent
 
 		piece_picker::piece_state_t state;
 		peer_speed_t speed = peer_speed();
-		std::string speedmsg;
+		char const* speedmsg = 0;
 		if (speed == fast)
 		{
 			speedmsg = "fast";
@@ -1648,7 +1648,7 @@ namespace libtorrent
 		}
 
 		t->picker().mark_as_downloading(block, peer_info_struct(), state);
-                if (t->alerts().should_post(alert::info))
+		if (t->alerts().should_post(alert::info))
 		{
 			t->alerts().post_alert(block_downloading_alert(t->get_handle(), 
 				speedmsg, block.block_index, block.piece_index, "block downloading"));
