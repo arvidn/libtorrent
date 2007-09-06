@@ -207,7 +207,6 @@ namespace libtorrent
 		int add_blocks(std::vector<int> const& piece_list
 			, const std::vector<bool>& pieces
 			, std::vector<piece_block>& interesting_blocks
-			, std::vector<piece_block>& backup_blocks
 			, int num_blocks, int prefer_whole_pieces
 			, void* peer, std::vector<int> const& ignore) const;
 
