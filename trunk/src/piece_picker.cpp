@@ -1149,13 +1149,13 @@ namespace libtorrent
 					if (!suggested_bucket.empty())
 					{
 						num_blocks = add_blocks(suggested_bucket, pieces
-							, interesting_blocks, backup_blocks, num_blocks
+							, interesting_blocks, num_blocks
 							, prefer_whole_pieces, peer, empty_vector);
 						if (num_blocks == 0) break;
 					}
 				}
 				num_blocks = add_blocks(*bucket, pieces
-					, interesting_blocks, backup_blocks, num_blocks
+					, interesting_blocks, num_blocks
 					, prefer_whole_pieces, peer, suggested_bucket);
 				assert(num_blocks >= 0);
 			}
@@ -1263,7 +1263,6 @@ namespace libtorrent
 	int piece_picker::add_blocks(std::vector<int> const& piece_list
 		, std::vector<bool> const& pieces
 		, std::vector<piece_block>& interesting_blocks
-		, std::vector<piece_block>& backup_blocks
 		, int num_blocks, int prefer_whole_pieces
 		, void* peer, std::vector<int> const& ignore) const
 	{
@@ -1381,6 +1380,7 @@ namespace libtorrent
 	
 		assert(num_blocks >= 0 || prefer_whole_pieces > 0);
 		if (num_blocks <= 0) return 0;
+		if (on_parole) return num_blocks;
 
 		interesting_blocks.insert(interesting_blocks.end()
 			, backup_blocks.begin(), backup_blocks.end());
