@@ -212,7 +212,7 @@ namespace libtorrent
 			, void* peer, std::vector<int> const& ignore) const;
 
 		// picks blocks only from downloading pieces
-		int piece_picker::add_blocks_downloading(
+		int add_blocks_downloading(
 			std::vector<bool> const& pieces
 			, std::vector<piece_block>& interesting_blocks
 			, std::vector<piece_block>& backup_blocks
