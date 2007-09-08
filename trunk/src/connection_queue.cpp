@@ -54,6 +54,8 @@ namespace libtorrent
 		, boost::function<void()> const& on_timeout
 		, time_duration timeout)
 	{
+		mutex_t::scoped_lock l(m_mutex);
+
 		INVARIANT_CHECK;
 
 		m_queue.push_back(entry());
@@ -68,6 +70,8 @@ namespace libtorrent
 
 	void connection_queue::done(int ticket)
 	{
+		mutex_t::scoped_lock l(m_mutex);
+
 		INVARIANT_CHECK;
 
 		std::list<entry>::iterator i = std::find_if(m_queue.begin()
@@ -105,6 +109,8 @@ namespace libtorrent
 
 	void connection_queue::try_connect()
 	{
+		mutex_t::scoped_lock l(m_mutex);
+
 		INVARIANT_CHECK;
 
 		if (!free_slots() || m_queue.empty())
@@ -148,6 +154,8 @@ namespace libtorrent
 	
 	void connection_queue::on_timeout(asio::error_code const& e)
 	{
+		mutex_t::scoped_lock l(m_mutex);
+
 		INVARIANT_CHECK;
 #ifndef NDEBUG
 		function_guard guard_(m_in_timeout_function);
