@@ -1239,7 +1239,8 @@ namespace detail
 			if (num_connections() >= max_connections() && !m_torrents.empty())
 			{
 				torrent_map::iterator i = std::max_element(m_torrents.begin(), m_torrents.end()
-					, bind(&torrent::num_peers, bind(&torrent_map::value_type::second, _1)));
+					, bind(&torrent::num_peers, bind(&torrent_map::value_type::second, _1))
+					< bind(&torrent::num_peers, bind(&torrent_map::value_type::second, _2)));
 			
 				assert(i != m_torrents.end());
 				i->second->get_policy().disconnect_one_peer();
