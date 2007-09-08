@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 #include "libtorrent/socket.hpp"
 #include "libtorrent/time.hpp"
 
@@ -88,6 +89,10 @@ private:
 	int m_half_open_limit;
 
 	deadline_timer m_timer;
+
+	typedef boost::recursive_mutex mutex_t;
+	mutable mutex_t m_mutex;
+
 #ifndef NDEBUG
 	bool m_in_timeout_function;
 #endif
