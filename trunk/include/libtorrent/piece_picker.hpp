@@ -275,6 +275,8 @@ namespace libtorrent
 #ifndef NDEBUG
 		// used in debug mode
 		void check_invariant(const torrent* t = 0) const;
+		void verify_pick(std::vector<piece_block> const& picked
+			, std::vector<bool> const& bitfield) const;
 #endif
 
 		// functor that compares indices on downloading_pieces
@@ -293,6 +295,7 @@ namespace libtorrent
 
 	private:
 
+		bool can_pick(int piece, std::vector<bool> const& bitmask) const;
 		std::pair<int, int> expand_piece(int piece, int whole_pieces
 			, std::vector<bool> const& have) const;
 
