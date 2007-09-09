@@ -109,8 +109,6 @@ namespace libtorrent
 
 	void connection_queue::try_connect()
 	{
-		mutex_t::scoped_lock l(m_mutex);
-
 		INVARIANT_CHECK;
 
 		if (!free_slots() || m_queue.empty())
@@ -166,21 +164,35 @@ namespace libtorrent
 
 		ptime next_expire = max_time();
 		ptime now = time_now();
+		std::list<entry> timed_out;
 		for (std::list<entry>::iterator i = m_queue.begin();
 			!m_queue.empty() && i != m_queue.end();)
 		{
 			if (i->connecting && i->expires < now)
 			{
-				boost::function<void()> on_timeout = i->on_timeout;
-				m_queue.erase(i++);
+				std::list<entry>::iterator j = i;
+				++i;
+				timed_out.splice(timed_out.end(), m_queue, j, i);
 				--m_num_connecting;
-				try { on_timeout(); } catch (std::exception&) {}
 				continue;
 			}
 			if (i->expires < next_expire)
 				next_expire = i->expires;
 			++i;
 		}
+
+		// we don't want to call the timeout callback while we're locked
+		// since that is a recepie for dead-locks
+		l.unlock();
+
+		for (std::list<entry>::iterator i = timed_out.begin()
+			, end(timed_out.end()); i != end; ++i)
+		{
+			try { i->on_timeout(); } catch (std::exception&) {}
+		}
+		
+		l.lock();
+		
 		if (next_expire < max_time())
 		{
 			m_timer.expires_at(next_expire);
