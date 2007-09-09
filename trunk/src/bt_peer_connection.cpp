@@ -710,16 +710,16 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_DHT
 		// indicate that we support the DHT messages
-		*(i.begin + 7) = 0x01;
+		*(i.begin + 7) |= 0x01;
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		// we support extensions
-		*(i.begin + 5) = 0x10;
+		*(i.begin + 5) |= 0x10;
 #endif
 
 		// we support FAST extension
-		*(i.begin + 7) = 0x04;
+		*(i.begin + 7) |= 0x04;
 
 		i.begin += 8;
 
