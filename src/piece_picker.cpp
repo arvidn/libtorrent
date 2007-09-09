@@ -263,8 +263,23 @@ namespace libtorrent
 		}
 		m_downloads.erase(i);
 	}
+
 #ifndef NDEBUG
 
+	void piece_picker::verify_pick(std::vector<piece_block> const& picked
+		, std::vector<bool> const& bitfield) const
+	{
+		assert(bitfield.size() == m_piece_map.size());
+		for (std::vector<piece_block>::const_iterator i = picked.begin()
+			, end(picked.end()); i != end; ++i)
+		{
+			assert(i->piece_index >= 0);
+			assert(i->piece_index < int(bitfield.size()));
+			assert(bitfield[i->piece_index]);
+			assert(!m_piece_map[i->piece_index].have());
+		}
+	}
+	
 	void piece_picker::check_invariant(const torrent* t) const
 	{
 		assert(sizeof(piece_pos) == 4);
@@ -1138,11 +1153,7 @@ namespace libtorrent
 					{
 						assert(*i >= 0);
 						assert(*i < int(m_piece_map.size()));
-						if (!pieces[*i]
-							|| m_piece_map[*i].have()
-							|| m_piece_map[*i].downloading
-							|| m_piece_map[*i].filtered())
-							continue;
+						if (!can_pick(*i, pieces)) continue;
 						if (m_piece_map[*i].priority(m_sequenced_download_threshold) == bucket_index)
 							suggested_bucket.push_back(*i);
 					}
@@ -1171,21 +1182,14 @@ namespace libtorrent
 			for (std::vector<int>::const_iterator i = suggested_pieces.begin()
 				, end(suggested_pieces.end()); i != end; ++i)
 			{
-				if (!pieces[*i]
-					|| m_piece_map[*i].have()
-					|| m_piece_map[*i].downloading
-					|| m_piece_map[*i].filtered())
-					continue;
+				if (!can_pick(*i, pieces)) continue;
 				start_piece = *i;
 				break;
 			}
 			int piece = start_piece;
 			while (num_blocks > 0)
 			{
-				while (!pieces[piece]
-					|| m_piece_map[piece].have()
-					|| m_piece_map[piece].downloading
-					|| m_piece_map[piece].filtered())
+				while (!can_pick(piece, pieces))
 				{
 					++piece;
 					if (piece == int(m_piece_map.size())) piece = 0;
@@ -1221,6 +1225,14 @@ namespace libtorrent
 		if (!backup_blocks.empty())
 			interesting_blocks.insert(interesting_blocks.end()
 				, backup_blocks.begin(), backup_blocks.end());
+	}
+
+	bool piece_picker::can_pick(int piece, std::vector<bool> const& bitmask) const
+	{
+		return bitmask[piece]
+			&& !m_piece_map[piece].have()
+			&& !m_piece_map[piece].downloading
+			&& !m_piece_map[piece].filtered();
 	}
 
 	void piece_picker::clear_peer(void* peer)
@@ -1311,8 +1323,17 @@ namespace libtorrent
 					}
 				}
 			}
-			if (num_blocks <= 0) return 0;
+			if (num_blocks <= 0)
+			{
+#ifndef NDEBUG
+				verify_pick(interesting_blocks, pieces);
+#endif
+				return 0;
+			}
 		}
+#ifndef NDEBUG
+		verify_pick(interesting_blocks, pieces);
+#endif
 		return num_blocks;
 	}
 
@@ -1325,6 +1346,8 @@ namespace libtorrent
 		for (std::vector<downloading_piece>::const_iterator i = m_downloads.begin()
 			, end(m_downloads.end()); i != end; ++i)
 		{
+			if (!pieces[i->index]) continue;
+
 			int num_blocks_in_piece = blocks_in_piece(i->index);
 
 			// is true if all the other pieces that are currently
@@ -1374,21 +1397,33 @@ namespace libtorrent
 				// piece even though we have num_blocks
 				if (prefer_whole_pieces > 0) continue;
 				assert(num_blocks >= 0);
-				if (num_blocks == 0) return num_blocks;
+				if (num_blocks <= 0) break;
 			}
+			if (num_blocks <= 0) break;
 		}
 	
 		assert(num_blocks >= 0 || prefer_whole_pieces > 0);
+
+#ifndef NDEBUG
+		verify_pick(interesting_blocks, pieces);
+		verify_pick(backup_blocks, pieces);
+#endif
+
 		if (num_blocks <= 0) return 0;
 		if (on_parole) return num_blocks;
 
 		interesting_blocks.insert(interesting_blocks.end()
 			, backup_blocks.begin(), backup_blocks.end());
+		num_blocks -= int(backup_blocks.size());
 		backup_blocks.clear();
+
+		if (num_blocks <= 0) return 0;
 
 		for (std::vector<downloading_piece>::const_iterator i = m_downloads.begin()
 			, end(m_downloads.end()); i != end; ++i)
 		{
+			if (!pieces[i->index]) continue;
+
 			int num_blocks_in_piece = blocks_in_piece(i->index);
 
 			// fill in with blocks requested from other peers
@@ -1402,6 +1437,9 @@ namespace libtorrent
 				backup_blocks.push_back(piece_block(i->index, j));
 			}
 		}
+#ifndef NDEBUG
+		verify_pick(backup_blocks, pieces);
+#endif
 		return num_blocks;
 	}
 	
@@ -1414,10 +1452,7 @@ namespace libtorrent
 		int lower_limit = piece - whole_pieces;
 		if (lower_limit < -1) lower_limit = -1;
 		while (start > lower_limit
-			&& have[start]
-			&& !m_piece_map[start].downloading
-			&& !m_piece_map[start].filtered()
-			&& !m_piece_map[start].have())
+			&& can_pick(start, have))
 			--start;
 		++start;
 		assert(start >= 0);
@@ -1425,10 +1460,7 @@ namespace libtorrent
 		int upper_limit = start + whole_pieces;
 		if (upper_limit > int(m_piece_map.size())) upper_limit = int(m_piece_map.size());
 		while (end < upper_limit
-			&& have[end]
-			&& !m_piece_map[end].downloading
-			&& !m_piece_map[end].filtered()
-			&& !m_piece_map[end].have())
+			&& can_pick(end, have))
 			++end;
 		return std::make_pair(start, end);
 	}
