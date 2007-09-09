@@ -235,6 +235,8 @@ SOURCES =
 	file_pool
 	lsd
 	disk_io_thread
+	enum_net
+	broadcast_socket
 	;
 
 KADEMLIA_SOURCES =

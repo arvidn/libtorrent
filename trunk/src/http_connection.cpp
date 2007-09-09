@@ -165,6 +165,7 @@ void http_connection::on_connect(asio::error_code const& e
 	if (!e)
 	{ 
 		m_last_receive = time_now();
+		if (m_connect_handler) m_connect_handler(*this);
 		asio::async_write(m_sock, asio::buffer(sendbuffer)
 			, bind(&http_connection::on_write, shared_from_this(), _1));
 	}

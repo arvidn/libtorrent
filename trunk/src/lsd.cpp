@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lsd.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
+
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 #include <asio/ip/host_name.hpp>
@@ -52,75 +53,21 @@ namespace libtorrent
 	address_v4 guess_local_address(asio::io_service&);
 }
 
-address_v4 lsd::lsd_multicast_address;
-udp::endpoint lsd::lsd_multicast_endpoint;
-
 lsd::lsd(io_service& ios, address const& listen_interface
 	, peer_callback_t const& cb)
 	: m_callback(cb)
 	, m_retry_count(0)
-	, m_socket(ios)
+	, m_socket(ios, udp::endpoint(address_v4::from_string("239.192.152.143"), 6771)
+		, bind(&lsd::on_announce, this, _1, _2, _3))
 	, m_broadcast_timer(ios)
 	, m_disabled(false)
 {
-	// Bittorrent Local discovery multicast address and port
-	lsd_multicast_address = address_v4::from_string("239.192.152.143");
-	lsd_multicast_endpoint = udp::endpoint(lsd_multicast_address, 6771);
-
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log.open("lsd.log", std::ios::in | std::ios::out | std::ios::trunc);
 #endif
-	assert(lsd_multicast_address.is_multicast());
-	rebind(listen_interface);
 }
 
 lsd::~lsd() {}
-
-void lsd::rebind(address const& listen_interface)
-{
-	address_v4 local_ip = address_v4::any();
-	if (listen_interface.is_v4() && listen_interface != address_v4::any())
-	{
-		local_ip = listen_interface.to_v4();
-	}
-
-	try
-	{
-		// the local interface hasn't changed
-		if (m_socket.is_open()
-			&& m_socket.local_endpoint().address() == local_ip)
-			return;
-		
-		m_socket.close();
-		
-		using namespace asio::ip::multicast;
-
-		m_socket.open(udp::v4());
-		m_socket.set_option(datagram_socket::reuse_address(true));
-		m_socket.bind(udp::endpoint(local_ip, 6771));
-
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << "local ip: " << local_ip << std::endl;
-#endif
-
-		m_socket.set_option(join_group(lsd_multicast_address));
-		m_socket.set_option(outbound_interface(local_ip));
-		m_socket.set_option(enable_loopback(true));
-		m_socket.set_option(hops(255));
-	}
-	catch (std::exception& e)
-	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << "socket multicast error " << e.what()
-			<< ". disabling local service discovery" << std::endl;
-#endif
-		m_disabled = true;
-		return;
-	}
-	m_disabled = false;
-
-	setup_receive();
-}
 
 void lsd::announce(sha1_hash const& ih, int listen_port)
 {
@@ -136,8 +83,7 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 
 	m_retry_count = 0;
 	asio::error_code ec;
-	m_socket.send_to(asio::buffer(msg.c_str(), msg.size() - 1)
-		, lsd_multicast_endpoint, 0, ec);
+	m_socket.send(msg.c_str(), int(msg.size()), ec);
 	if (ec)
 	{
 		m_disabled = true;
@@ -157,8 +103,8 @@ void lsd::resend_announce(asio::error_code const& e, std::string msg) try
 {
 	if (e) return;
 
-	m_socket.send_to(asio::buffer(msg, msg.size() - 1)
-		, lsd_multicast_endpoint);
+	asio::error_code ec;
+	m_socket.send(msg.c_str(), int(msg.size()), ec);
 
 	++m_retry_count;
 	if (m_retry_count >= 5)
@@ -170,14 +116,13 @@ void lsd::resend_announce(asio::error_code const& e, std::string msg) try
 catch (std::exception&)
 {}
 
-void lsd::on_announce(asio::error_code const& e
+void lsd::on_announce(udp::endpoint const& from, char* buffer
 	, std::size_t bytes_transferred)
 {
 	using namespace libtorrent::detail;
-	if (e) return;
 
-	char* p = m_receive_buffer;
-	char* end = m_receive_buffer + bytes_transferred;
+	char* p = buffer;
+	char* end = buffer + bytes_transferred;
 	char* line = std::find(p, end, '\n');
 	for (char* i = p; i < line; ++i) *i = std::tolower(*i);
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
@@ -190,7 +135,6 @@ void lsd::on_announce(asio::error_code const& e
 		m_log << time_now_string()
 			<< " *** assumed 'bt-search', ignoring" << std::endl;
 #endif
-		setup_receive();
 		return;
 	}
 	p = line + 1;
@@ -223,24 +167,14 @@ void lsd::on_announce(asio::error_code const& e
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 		m_log << time_now_string()
-			<< " *** incoming local announce " << m_remote.address()
+			<< " *** incoming local announce " << from.address()
 			<< ":" << port << " ih: " << ih << std::endl;
 #endif
 		// we got an announce, pass it on through the callback
-		try { m_callback(tcp::endpoint(m_remote.address(), port), ih); }
+		try { m_callback(tcp::endpoint(from.address(), port), ih); }
 		catch (std::exception&) {}
 	}
-	setup_receive();
 }
-
-void lsd::setup_receive() try
-{
-	assert(m_socket.is_open());
-	m_socket.async_receive_from(asio::buffer(m_receive_buffer
-		, sizeof(m_receive_buffer)), m_remote, bind(&lsd::on_announce, this, _1, _2));
-}
-catch (std::exception&)
-{}
 
 void lsd::close()
 {

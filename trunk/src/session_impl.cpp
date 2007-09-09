@@ -1709,16 +1709,6 @@ namespace detail
 
 		bool new_listen_address = m_listen_interface.address() != new_interface.address();
 
-		if (new_listen_address)
-		{
-			if (m_natpmp.get())
-				m_natpmp->rebind(new_interface.address());
-			if (m_upnp.get())
-				m_upnp->rebind(new_interface.address());
-			if (m_lsd.get())
-				m_lsd->rebind(new_interface.address());
-		}
-
 		if (m_natpmp.get())
 			m_natpmp->set_mappings(m_listen_interface.port(), 0);
 		if (m_upnp.get())
