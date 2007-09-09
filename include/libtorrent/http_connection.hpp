@@ -48,8 +48,12 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+struct http_connection;
+	
 typedef boost::function<void(asio::error_code const&
 	, http_parser const&, char const* data, int size)> http_handler;
+
+typedef boost::function<void(http_connection&)> http_connect_handler;
 
 // TODO: add bind interface
 
@@ -58,11 +62,13 @@ typedef boost::function<void(asio::error_code const&
 struct http_connection : boost::enable_shared_from_this<http_connection>, boost::noncopyable
 {
 	http_connection(asio::io_service& ios, connection_queue& cc
-		, http_handler handler, bool bottled = true)
+		, http_handler const& handler, bool bottled = true
+		, http_connect_handler const& ch = http_connect_handler())
 		: m_sock(ios)
 		, m_read_pos(0)
 		, m_resolver(ios)
 		, m_handler(handler)
+		, m_connect_handler(ch)
 		, m_timer(ios)
 		, m_last_receive(time_now())
 		, m_bottled(bottled)
@@ -92,6 +98,8 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 		, time_duration timeout, bool handle_redirect = true);
 	void close();
 
+	tcp::socket const& socket() const { return m_sock; }
+
 private:
 
 	void on_resolve(asio::error_code const& e
@@ -112,6 +120,7 @@ private:
 	tcp::resolver m_resolver;
 	http_parser m_parser;
 	http_handler m_handler;
+	http_connect_handler m_connect_handler;
 	deadline_timer m_timer;
 	time_duration m_timeout;
 	ptime m_last_receive;

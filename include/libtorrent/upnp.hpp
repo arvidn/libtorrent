@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_UPNP_HPP
 
 #include "libtorrent/socket.hpp"
+#include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/connection_queue.hpp"
 
@@ -56,9 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-bool is_local(address const& a);
-address_v4 guess_local_address(asio::io_service&);
-
 // int: external tcp port
 // int: external udp port
 // std::string: error message
@@ -71,8 +69,6 @@ public:
 		, address const& listen_interface, std::string const& user_agent
 		, portmap_callback_t const& cb);
 	~upnp();
-
-	void rebind(address const& listen_interface);
 
 	// maps the ports, if a port is set to 0
 	// it will not be mapped
@@ -90,7 +86,7 @@ private:
 	
 	void update_mapping(int i, int port);
 	void resend_request(asio::error_code const& e);
-	void on_reply(asio::error_code const& e
+	void on_reply(udp::endpoint const& from, char* buffer
 		, std::size_t bytes_transferred);
 	void discover_device();
 
@@ -106,11 +102,14 @@ private:
 		, int mapping);
 	void on_expire(asio::error_code const& e);
 
-	void post(rootdevice& d, std::stringstream const& s
-		, std::string const& soap_action);
 	void map_port(rootdevice& d, int i);
 	void unmap_port(rootdevice& d, int i);
 	void disable();
+
+	void delete_port_mapping(rootdevice& d, int i);
+	void create_port_mapping(http_connection& c, rootdevice& d, int i);
+	void post(upnp::rootdevice const& d, std::string const& soap
+		, std::string const& soap_action);
 
 	struct mapping_t
 	{
@@ -198,18 +197,13 @@ private:
 	// current retry count
 	int m_retry_count;
 
-	// used to receive responses in	
-	char m_receive_buffer[1024];
+	asio::io_service& m_io_service;
 
-	// the endpoint we received the message from
-	udp::endpoint m_remote;
+	asio::strand m_strand;	
 
-	// the local address we're listening on
-	address_v4 m_local_ip;
-	
 	// the udp socket used to send and receive
 	// multicast messages on the network
-	datagram_socket m_socket;
+	broadcast_socket m_socket;
 
 	// used to resend udp packets in case
 	// they time out
@@ -217,8 +211,6 @@ private:
 
 	// timer used to refresh mappings
 	deadline_timer m_refresh_timer;
-
-	asio::strand m_strand;	
 	
 	bool m_disabled;
 	bool m_closing;

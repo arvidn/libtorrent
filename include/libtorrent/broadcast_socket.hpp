@@ -30,68 +30,51 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_LSD_HPP
-#define TORRENT_LSD_HPP
+#ifndef TORRENT_BROADCAST_SOCKET_HPP_INCLUDED
+#define TORRENT_BROADCAST_SOCKET_HPP_INCLUDED
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/broadcast_socket.hpp"
-
-#include <boost/function.hpp>
-#include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition.hpp>
-
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-#include <fstream>
-#endif
+#include <boost/function.hpp>
+#include <list>
 
 namespace libtorrent
 {
 
-typedef boost::function<void(tcp::endpoint, sha1_hash)> peer_callback_t;
+	bool is_local(address const& a);
+	address_v4 guess_local_address(asio::io_service&);
 
-class lsd : boost::noncopyable
-{
-public:
-	lsd(io_service& ios, address const& listen_interface
-		, peer_callback_t const& cb);
-	~lsd();
+	typedef boost::function<void(udp::endpoint const& from
+		, char* buffer, int size)> receive_handler_t;
 
-//	void rebind(address const& listen_interface);
+	class broadcast_socket
+	{
+	public:
+		broadcast_socket(asio::io_service& ios, udp::endpoint const& multicast_endpoint
+			, receive_handler_t const& handler);
 
-	void announce(sha1_hash const& ih, int listen_port);
-	void close();
+		void send(char const* buffer, int size, asio::error_code& ec);
+		void close();
 
-private:
+	private:
 
-	void resend_announce(asio::error_code const& e, std::string msg);
-	void on_announce(udp::endpoint const& from, char* buffer
-		, std::size_t bytes_transferred);
-//	void setup_receive();
+		struct socket_entry
+		{
+			socket_entry(boost::shared_ptr<datagram_socket> const& s): socket(s) {}
+			boost::shared_ptr<datagram_socket> socket;
+			char buffer[1024];
+			udp::endpoint remote;
+		};
+	
+		void on_receive(socket_entry* s, asio::error_code const& ec
+			, std::size_t bytes_transferred);
 
-	peer_callback_t m_callback;
-
-	// current retry count
-	int m_retry_count;
-
-	// the udp socket used to send and receive
-	// multicast messages on
-	broadcast_socket m_socket;
-
-	// used to resend udp packets in case
-	// they time out
-	deadline_timer m_broadcast_timer;
-
-	bool m_disabled;
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	std::ofstream m_log;
-#endif
-};
-
+		std::list<socket_entry> m_sockets;
+		udp::endpoint m_multicast_endpoint;
+		receive_handler_t m_on_receive;
+		
+	};
 }
-
-
+	
 #endif
 

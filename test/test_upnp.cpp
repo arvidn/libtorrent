@@ -16,9 +16,9 @@ int main(int argc, char* argv[])
 	io_service ios;
 	std::string user_agent = "test agent";
 
-	if (argc != 4)
+	if (argc != 3)
 	{
-		std::cerr << "usage: " << argv[0] << " bind-address tcp-port udp-port" << std::endl;
+		std::cerr << "usage: " << argv[0] << " tcp-port udp-port" << std::endl;
 		return 1;
 	}
 
@@ -34,20 +34,11 @@ int main(int argc, char* argv[])
 	ios.reset();
 	ios.run();
 
-	upnp_handler.rebind(address_v4::from_string(argv[1]));
-	timer.expires_from_now(seconds(2));
-	timer.async_wait(boost::bind(&io_service::stop, boost::ref(ios)));
-
-	std::cerr << "rebinding to IP " << argv[1]
-		<< " broadcasting for UPnP device" << std::endl;
-	
-	ios.reset();
-	ios.run();
-	upnp_handler.set_mappings(atoi(argv[2]), atoi(argv[3]));
+	upnp_handler.set_mappings(atoi(argv[1]), atoi(argv[2]));
 	timer.expires_from_now(seconds(5));
 	timer.async_wait(boost::bind(&io_service::stop, boost::ref(ios)));
-	std::cerr << "mapping ports TCP: " << argv[2]
-		<< " UDP: " << argv[3] << std::endl;
+	std::cerr << "mapping ports TCP: " << argv[1]
+		<< " UDP: " << argv[2] << std::endl;
 
 	ios.reset();
 	ios.run();

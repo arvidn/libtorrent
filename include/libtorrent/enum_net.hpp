@@ -30,68 +30,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_LSD_HPP
-#define TORRENT_LSD_HPP
+#ifndef TORRENT_ENUM_NET_HPP_INCLUDED
+#define TORRENT_ENUM_NET_HPP_INCLUDED
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/broadcast_socket.hpp"
-
-#include <boost/function.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition.hpp>
-
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-#include <fstream>
-#endif
 
 namespace libtorrent
 {
-
-typedef boost::function<void(tcp::endpoint, sha1_hash)> peer_callback_t;
-
-class lsd : boost::noncopyable
-{
-public:
-	lsd(io_service& ios, address const& listen_interface
-		, peer_callback_t const& cb);
-	~lsd();
-
-//	void rebind(address const& listen_interface);
-
-	void announce(sha1_hash const& ih, int listen_port);
-	void close();
-
-private:
-
-	void resend_announce(asio::error_code const& e, std::string msg);
-	void on_announce(udp::endpoint const& from, char* buffer
-		, std::size_t bytes_transferred);
-//	void setup_receive();
-
-	peer_callback_t m_callback;
-
-	// current retry count
-	int m_retry_count;
-
-	// the udp socket used to send and receive
-	// multicast messages on
-	broadcast_socket m_socket;
-
-	// used to resend udp packets in case
-	// they time out
-	deadline_timer m_broadcast_timer;
-
-	bool m_disabled;
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	std::ofstream m_log;
-#endif
-};
-
+	std::vector<address> const& enum_net_interfaces(asio::io_service& ios, asio::error_code& ec);
 }
-
 
 #endif
 
