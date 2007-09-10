@@ -1341,6 +1341,9 @@ namespace detail
 			}
 		}
 
+		// close listen socket
+		m_listen_socket.reset();
+
 		ptime start(time_now());
 		l.unlock();
 
