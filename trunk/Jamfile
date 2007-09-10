@@ -26,7 +26,9 @@ rule linking ( properties * )
 	if <openssl>sha-1 in $(properties)
 		|| <openssl>pe in $(properties)
 	{
-		if <target-os>windows in $(properties)
+		# exclude gcc from a regular windows build to make mingw
+		# link against the regular unix library name
+		if <target-os>windows in $(properties) && ! <toolset>gcc in $(properties)
 		{
 			result += <library>ssleay32
 				<library>libeay32
@@ -286,6 +288,9 @@ local usage-requirements =
 	<toolset>msvc,<variant>release:<linkflags>/OPT:REF
 # disable warning C4503: decorated name length exceeded, name was truncated
 	<toolset>msvc:<cxxflags>/wd4503
+# disable some warnings for gcc
+	<toolset>gcc:<cxxflags>-fno-strict-aliasing
+	<toolset>gcc:<cxxflags>-Wno-missing-braces
 	;
 
 project torrent ;
