@@ -117,6 +117,11 @@ namespace libtorrent
 		// for yet
 		int download_queue_length;
 
+		// the number of requests that is
+		// tried to be maintained (this is
+		// typically a function of download speed)
+		int target_dl_queue_length;
+
 		// this is the number of requests
 		// the peer has sent to us
 		// that we haven't sent yet

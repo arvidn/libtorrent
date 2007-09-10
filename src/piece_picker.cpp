@@ -1125,7 +1125,7 @@ namespace libtorrent
 			, interesting_blocks, backup_blocks, num_blocks
 			, prefer_whole_pieces, peer, speed, on_parole);
 
-		if (num_blocks == 0) return;
+		if (num_blocks <= 0) return;
 
 		if (rarest_first)
 		{
@@ -1364,6 +1364,13 @@ namespace libtorrent
 
 			if (prefer_whole_pieces > 0 && !exclusive_active) continue;
 
+			// don't pick too many back-up blocks
+			if (i->state != none
+				&& i->state != speed
+				&& !exclusive_active
+				&& int(backup_blocks.size()) >= num_blocks)
+				continue;
+
 			for (int j = 0; j < num_blocks_in_piece; ++j)
 			{
 				// ignore completed blocks and already requested blocks
@@ -1412,9 +1419,15 @@ namespace libtorrent
 		if (num_blocks <= 0) return 0;
 		if (on_parole) return num_blocks;
 
+		int to_copy;
+		if (prefer_whole_pieces == 0)
+			to_copy = (std::min)(int(backup_blocks.size()), num_blocks);
+		else
+			to_copy = int(backup_blocks.size());
+
 		interesting_blocks.insert(interesting_blocks.end()
-			, backup_blocks.begin(), backup_blocks.end());
-		num_blocks -= int(backup_blocks.size());
+			, backup_blocks.begin(), backup_blocks.begin() + to_copy);
+		num_blocks -= to_copy;
 		backup_blocks.clear();
 
 		if (num_blocks <= 0) return 0;
