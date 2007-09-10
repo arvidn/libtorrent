@@ -129,7 +129,7 @@ void upnp::discover_device() try
 catch (std::exception&)
 {
 	disable();
-}
+};
 
 void upnp::set_mappings(int tcp, int udp)
 {
@@ -223,7 +223,7 @@ try
 catch (std::exception&)
 {
 	assert(false);
-}
+};
 #endif
 
 void upnp::on_reply(udp::endpoint const& from, char* buffer
