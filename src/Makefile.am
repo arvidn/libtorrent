@@ -13,6 +13,7 @@ kademlia/traversal_algorithm.cpp
 endif
 
 libtorrent_la_SOURCES = entry.cpp escape_string.cpp \
+enum_net.cpp broadcast_socket.cpp \
 peer_connection.cpp bt_peer_connection.cpp web_peer_connection.cpp \
 natpmp.cpp piece_picker.cpp policy.cpp session.cpp session_impl.cpp sha1.cpp \
 stat.cpp storage.cpp torrent.cpp torrent_handle.cpp pe_crypto.cpp \
@@ -30,11 +31,13 @@ $(top_srcdir)/include/libtorrent/alert_types.hpp \
 $(top_srcdir)/include/libtorrent/aux_/session_impl.hpp \
 $(top_srcdir)/include/libtorrent/bandwidth_manager.hpp \
 $(top_srcdir)/include/libtorrent/bencode.hpp \
+$(top_srcdir)/include/libtorrent/broadcast_socket.hpp \
 $(top_srcdir)/include/libtorrent/buffer.hpp \
 $(top_srcdir)/include/libtorrent/connection_queue.hpp \
 $(top_srcdir)/include/libtorrent/debug.hpp \
 $(top_srcdir)/include/libtorrent/disk_io_thread.hpp \
 $(top_srcdir)/include/libtorrent/entry.hpp \
+$(top_srcdir)/include/libtorrent/enum_net.hpp \
 $(top_srcdir)/include/libtorrent/escape_string.hpp \
 $(top_srcdir)/include/libtorrent/extensions.hpp \
 $(top_srcdir)/include/libtorrent/extensions/metadata_transfer.hpp \
