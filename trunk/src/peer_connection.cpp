@@ -2019,8 +2019,9 @@ namespace libtorrent
 
 		p.load_balancing = total_free_upload();
 
-		p.download_queue_length = (int)download_queue().size();
-		p.upload_queue_length = (int)upload_queue().size();
+		p.download_queue_length = int(download_queue().size() + m_request_queue.size());
+		p.target_dl_queue_length = int(desired_queue_size());
+		p.upload_queue_length = int(upload_queue().size());
 
 		if (boost::optional<piece_block_progress> ret = downloading_piece_progress())
 		{

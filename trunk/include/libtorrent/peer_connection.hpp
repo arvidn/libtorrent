@@ -155,8 +155,7 @@ namespace libtorrent
 
 		int prefer_whole_pieces() const
 		{
-			if (m_prefer_whole_pieces == 0)
-				return peer_info_struct() && peer_info_struct()->on_parole ? 1 : 0;
+			if (on_parole()) return 1;
 			return m_prefer_whole_pieces;
 		}
 

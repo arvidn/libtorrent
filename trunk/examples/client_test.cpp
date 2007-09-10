@@ -303,7 +303,7 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
-	out << " down    (total)   up      (total)  que req flags       source fail hshf sndb inactive wait disk block-progress "
+	out << " down    (total)   up      (total)  sent-req recv flags       source fail hshf sndb inactive wait disk block-progress "
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		"country "
 #endif
@@ -321,7 +321,8 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			<< "(" << add_suffix(i->total_download) << ") " << esc("0")
 			<< esc("31") << (i->up_speed > 0 ? add_suffix(i->up_speed) + "/s ": "         ")
 			<< "(" << add_suffix(i->total_upload) << ") " << esc("0")
-			<< to_string(i->download_queue_length, 3) << " "
+			<< to_string(i->download_queue_length, 3) << " ("
+			<< to_string(i->target_dl_queue_length, 3) << ") "
 			<< to_string(i->upload_queue_length, 3) << " "
 			<< ((i->flags & peer_info::interesting)?'I':'.')
 			<< ((i->flags & peer_info::choked)?'C':'.')

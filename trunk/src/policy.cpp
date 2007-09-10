@@ -284,6 +284,8 @@ namespace libtorrent
 		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
 			i != interesting_pieces.end(); ++i)
 		{
+			if (prefer_whole_pieces == 0 && num_requests <= 0) break;
+
 			if (p.is_requested(*i))
 			{
 				if (num_requests <= 0) break;
