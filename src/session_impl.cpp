@@ -666,7 +666,8 @@ namespace detail
 		try
 		{
 			// create listener socket
-			m_listen_socket = boost::shared_ptr<socket_acceptor>(new socket_acceptor(m_io_service));
+			m_listen_socket.reset(new socket_acceptor(m_io_service));
+			m_listen_socket->set_option(socket_acceptor::reuse_address(true));
 
 			for(;;)
 			{
