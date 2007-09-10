@@ -2,12 +2,14 @@ nobase_include_HEADERS = libtorrent/alert.hpp \
 libtorrent/alert_types.hpp \
 libtorrent/bandwidth_manager.hpp \
 libtorrent/bencode.hpp \
+libtorrent/broadcast_socket.hpp \
 libtorrent/buffer.hpp \
 libtorrent/connection_queue.hpp \
 libtorrent/config.hpp \
 libtorrent/debug.hpp \
 libtorrent/disk_io_thread.hpp \
 libtorrent/entry.hpp \
+libtorrent/enum_net.hpp \
 libtorrent/escape_string.hpp \
 libtorrent/extensions.hpp \
 libtorrent/file.hpp \

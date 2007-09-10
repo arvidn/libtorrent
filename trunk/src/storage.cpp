@@ -88,6 +88,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/statfs.h>
 #endif
 
+#if defined(__FreeBSD__)
+// for statfs()
+#include <sys/param.h>
+#include <sys/mount.h>
+#endif
+
 #if defined(_WIN32) && defined(UNICODE)
 
 #include <windows.h>
