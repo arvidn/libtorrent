@@ -237,6 +237,7 @@ namespace libtorrent
 
 		int upload_rate_limit() const;
 		int download_rate_limit() const;
+		int max_half_open_connections() const;
 
 		void set_upload_rate_limit(int bytes_per_second);
 		void set_download_rate_limit(int bytes_per_second);
