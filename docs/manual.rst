@@ -102,6 +102,7 @@ The ``session`` class has the following synopsis::
 		void set_max_uploads(int limit);
 		void set_max_connections(int limit);
 		void set_max_half_open_connections(int limit);
+		int max_half_open_connections() const;
 
 		void set_peer_proxy(proxy_settings const& s);
 		void set_web_seed_proxy(proxy_settings const& s);
@@ -323,12 +324,13 @@ Returns the number of currently unchoked peers and the number of connections
 (including half-open ones) respectively.
 
 
-set_max_half_open_connections()
--------------------------------
+set_max_half_open_connections() max_half_open_connections()
+-----------------------------------------------------------
 
 	::
 		
 		void set_max_half_open_connections(int limit);
+		int max_half_open_connections() const;
 
 Sets the maximum number of half-open connections libtorrent will have when
 connecting to peers. A half-open connection is one where connect() has been
@@ -339,6 +341,9 @@ other network applications on that system. The default is to have no limit,
 and passing -1 as the limit, means to have no limit. When limiting the number
 of simultaneous connection attempts, peers will be put in a queue waiting for
 their turn to get connected.
+
+``max_half_open_connections()`` returns the set limit. This limit defaults
+to 8 on windows.
 
 
 set_ip_filter()

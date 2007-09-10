@@ -532,6 +532,11 @@ namespace detail
 		, m_next_connect_torrent(0)
 		, m_checker_impl(*this)
 	{
+#ifdef WIN32
+		// windows XP has a limit of 10 simultaneous connections
+		m_half_open.limit(8);
+#endif
+
 		m_bandwidth_manager[peer_connection::download_channel] = &m_download_channel;
 		m_bandwidth_manager[peer_connection::upload_channel] = &m_upload_channel;
 
@@ -1254,29 +1259,7 @@ namespace detail
 		assert(false);
 #endif
 	}; // msvc 7.1 seems to require this
-/*
-	void session_impl::connection_completed(
-		boost::intrusive_ptr<peer_connection> const& p) try
-	{
-		mutex_t::scoped_lock l(m_mutex);
 
-		connection_map::iterator i = m_half_open.find(p->get_socket());
-		m_connections.insert(std::make_pair(p->get_socket(), p));
-		assert(i != m_half_open.end());
-		if (i != m_half_open.end()) m_half_open.erase(i);
-
-		if (m_abort) return;
-
-		process_connection_queue();
-	}
-	catch (std::exception& e)
-	{
-#ifndef NDEBUG
-		std::cerr << e.what() << std::endl;
-		assert(false);
-#endif
-	};
-*/
 	void session_impl::operator()()
 	{
 		eh_initializer();

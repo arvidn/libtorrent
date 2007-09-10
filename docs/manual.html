@@ -35,7 +35,7 @@
 <li><a class="reference" href="#set-upload-rate-limit-set-download-rate-limit-upload-rate-limit-download-rate-limit" id="id24" name="id24">set_upload_rate_limit() set_download_rate_limit() upload_rate_limit() download_rate_limit()</a></li>
 <li><a class="reference" href="#set-max-uploads-set-max-connections" id="id25" name="id25">set_max_uploads() set_max_connections()</a></li>
 <li><a class="reference" href="#num-uploads-num-connections" id="id26" name="id26">num_uploads() num_connections()</a></li>
-<li><a class="reference" href="#set-max-half-open-connections" id="id27" name="id27">set_max_half_open_connections()</a></li>
+<li><a class="reference" href="#set-max-half-open-connections-max-half-open-connections" id="id27" name="id27">set_max_half_open_connections() max_half_open_connections()</a></li>
 <li><a class="reference" href="#set-ip-filter" id="id28" name="id28">set_ip_filter()</a></li>
 <li><a class="reference" href="#status" id="id29" name="id29">status()</a></li>
 <li><a class="reference" href="#is-listening-listen-port-listen-on" id="id30" name="id30">is_listening() listen_port() listen_on()</a></li>
@@ -272,6 +272,7 @@ class session: public boost::noncopyable
         void set_max_uploads(int limit);
         void set_max_connections(int limit);
         void set_max_half_open_connections(int limit);
+        int max_half_open_connections() const;
 
         void set_peer_proxy(proxy_settings const&amp; s);
         void set_web_seed_proxy(proxy_settings const&amp; s);
@@ -477,10 +478,11 @@ int num_connections() const;
 (including half-open ones) respectively.</p>
 </div>
 <div class="section">
-<h2><a id="set-max-half-open-connections" name="set-max-half-open-connections">set_max_half_open_connections()</a></h2>
+<h2><a id="set-max-half-open-connections-max-half-open-connections" name="set-max-half-open-connections-max-half-open-connections">set_max_half_open_connections() max_half_open_connections()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void set_max_half_open_connections(int limit);
+int max_half_open_connections() const;
 </pre>
 </blockquote>
 <p>Sets the maximum number of half-open connections libtorrent will have when
@@ -492,6 +494,8 @@ other network applications on that system. The default is to have no limit,
 and passing -1 as the limit, means to have no limit. When limiting the number
 of simultaneous connection attempts, peers will be put in a queue waiting for
 their turn to get connected.</p>
+<p><tt class="docutils literal"><span class="pre">max_half_open_connections()</span></tt> returns the set limit. This limit defaults
+to 8 on windows.</p>
 </div>
 <div class="section">
 <h2><a id="set-ip-filter" name="set-ip-filter">set_ip_filter()</a></h2>

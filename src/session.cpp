@@ -349,6 +349,11 @@ namespace libtorrent
 		m_impl->set_max_connections(limit);
 	}
 
+	int session::max_half_open_connections() const
+	{
+		return m_impl->max_half_open_connections();
+	}
+
 	void session::set_max_half_open_connections(int limit)
 	{
 		m_impl->set_max_half_open_connections(limit);
