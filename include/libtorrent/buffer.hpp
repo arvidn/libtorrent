@@ -34,8 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 //#define TORRENT_BUFFER_DEBUG
 
-#include "libtorrent/invariant_check.hpp"
 #include <memory>
+#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent {
 

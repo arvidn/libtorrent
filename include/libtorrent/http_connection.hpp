@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {

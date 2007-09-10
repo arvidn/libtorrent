@@ -72,6 +72,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/instantiate_connection.hpp"
+#include "libtorrent/assert.hpp"
 
 using namespace libtorrent;
 using boost::tuples::tuple;
@@ -203,9 +204,6 @@ namespace libtorrent
 		, m_num_uploads(0)
 		, m_max_connections((std::numeric_limits<int>::max)())
 	{
-#ifndef NDEBUG
-		m_initial_done = 0;
-#endif
 		m_policy.reset(new policy(this));
 	}
 
@@ -266,10 +264,6 @@ namespace libtorrent
 		, m_num_uploads(0)
 		, m_max_connections((std::numeric_limits<int>::max)())
 	{
-#ifndef NDEBUG
-		m_initial_done = 0;
-#endif
-
 		INVARIANT_CHECK;
 
 		if (name) m_name.reset(new std::string(name));
@@ -2215,14 +2209,12 @@ namespace libtorrent
 			}
 			pause();
 		}
-#ifndef NDEBUG
-		m_initial_done = boost::get<0>(bytes_done());
-#endif
 		return done;
 	}
 	
 	std::pair<bool, float> torrent::check_files()
 	{
+		assert(m_torrent_file->is_valid());
 		INVARIANT_CHECK;
 
 		assert(m_owning_storage.get());
@@ -2250,9 +2242,6 @@ namespace libtorrent
 			pause();
 		}
 
-#ifndef NDEBUG
-		m_initial_done = boost::get<0>(bytes_done());
-#endif
 		return progress;
 	}
 
@@ -2261,6 +2250,7 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		
+		assert(m_torrent_file->is_valid());
 		INVARIANT_CHECK;
 
 		if (!is_seed())
@@ -2320,9 +2310,6 @@ namespace libtorrent
 				}
 			}
 		}
-#ifndef NDEBUG
-		m_initial_done = boost::get<0>(bytes_done());
-#endif
 	}
 
 	alert_manager& torrent::alerts() const
@@ -2385,9 +2372,6 @@ namespace libtorrent
 #ifndef NDEBUG
 	void torrent::check_invariant() const
 	{
-//		size_type download = m_stat.total_payload_download();
-//		size_type done = boost::get<0>(bytes_done());
-//		assert(download >= done - m_initial_done);
 		int num_uploads = 0;
 		std::map<piece_block, int> num_requests;
 		for (const_peer_iterator i = begin(); i != end(); ++i)

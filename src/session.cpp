@@ -182,6 +182,7 @@ namespace libtorrent
 		, bool paused
 		, storage_constructor_type sc)
 	{
+		assert(!ti.m_half_metadata);
 		boost::intrusive_ptr<torrent_info> tip(new torrent_info(ti));
 		return m_impl->add_torrent(tip, save_path, resume_data
 			, compact_mode, sc, paused);
@@ -195,6 +196,7 @@ namespace libtorrent
 		, bool paused
 		, storage_constructor_type sc)
 	{
+		assert(!ti->m_half_metadata);
 		return m_impl->add_torrent(ti, save_path, resume_data
 			, compact_mode, sc, paused);
 	}

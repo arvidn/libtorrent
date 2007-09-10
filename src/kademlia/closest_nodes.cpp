@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/closest_nodes.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent { namespace dht
 {

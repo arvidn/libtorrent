@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {
@@ -321,8 +322,10 @@ namespace libtorrent
 		entry m_extra_info;
 
 #ifndef NDEBUG
+	public:
 		// this is set to true when seed_free() is called
 		bool m_half_metadata;
+	private:
 #endif
 	};
 

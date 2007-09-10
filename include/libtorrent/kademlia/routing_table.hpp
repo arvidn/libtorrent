@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node_entry.hpp>
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/size_type.hpp>
+#include <libtorrent/assert.hpp>
 
 namespace libtorrent { namespace dht
 {

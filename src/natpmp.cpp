@@ -32,10 +32,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/pch.hpp"
 
-#include <libtorrent/natpmp.hpp>
-#include <libtorrent/io.hpp>
 #include <boost/bind.hpp>
 #include <asio/ip/host_name.hpp>
+
+#include "libtorrent/natpmp.hpp"
+#include "libtorrent/io.hpp"
+#include "libtorrent/assert.hpp"
 
 using boost::bind;
 using namespace libtorrent;

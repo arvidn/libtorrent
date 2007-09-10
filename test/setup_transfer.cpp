@@ -1,12 +1,15 @@
+#include <fstream>
+
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
-#include <fstream>
+
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
 
 #include "test.hpp"
+#include "libtorrent/assert.hpp"
 
 using boost::filesystem::remove_all;
 using boost::filesystem::create_directory;
@@ -86,7 +89,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	// file pool will complain if two torrents are trying to
 	// use the same files
 	sha1_hash info_hash = t->info_hash();
-	torrent_handle tor1 = ses1->add_torrent(t, "./tmp1");
+	torrent_handle tor1 = ses1->add_torrent(clone_ptr(t), "./tmp1");
 	torrent_handle tor2;
 	torrent_handle tor3;
 	if (ses3) tor3 = ses3->add_torrent(clone_ptr(t), "./tmp3");

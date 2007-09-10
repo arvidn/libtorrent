@@ -55,6 +55,7 @@ namespace libtorrent
 	|| _POSIX_MONOTONIC_CLOCK < 0)) || defined (TORRENT_USE_BOOST_DATE_TIME)
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {
@@ -85,6 +86,7 @@ namespace libtorrent
 
 #include <asio/time_traits.hpp>
 #include <boost/cstdint.hpp>
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {
@@ -170,6 +172,7 @@ namespace asio
 
 #include <mach/mach_time.h>
 #include <boost/cstdint.hpp>
+#include "libtorrent/assert.hpp"
 
 // high precision timer for darwin intel and ppc
 
@@ -249,6 +252,7 @@ namespace libtorrent
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <Windows.h>
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {
@@ -335,6 +339,7 @@ namespace libtorrent
 #elif defined(_POSIX_MONOTONIC_CLOCK) && _POSIX_MONOTONIC_CLOCK >= 0
 
 #include <time.h>
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {
@@ -385,4 +390,4 @@ namespace libtorrent
 
 #endif
 #endif
-	
+

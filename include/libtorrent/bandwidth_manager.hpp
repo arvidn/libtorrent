@@ -33,9 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BANDWIDTH_MANAGER_HPP_INCLUDED
 #define TORRENT_BANDWIDTH_MANAGER_HPP_INCLUDED
 
-#include "libtorrent/socket.hpp"
-#include "libtorrent/invariant_check.hpp"
-
 #include <boost/shared_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/function.hpp>
@@ -43,6 +40,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/integer_traits.hpp>
 #include <boost/thread/mutex.hpp>
 #include <deque>
+
+#include "libtorrent/socket.hpp"
+#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/assert.hpp"
 
 using boost::weak_ptr;
 using boost::shared_ptr;

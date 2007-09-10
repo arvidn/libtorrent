@@ -83,6 +83,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/disk_io_thread.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {
