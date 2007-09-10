@@ -30,9 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_ASSERT_HPP_INCLUDED
-#define TORRENT_ASSERT_HPP_INCLUDED
-
 #include <cassert>
 
 #ifndef NDEBUG
@@ -43,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 void assert_fail(const char* expr, int line, char const* file, char const* function);
 
-#define assert(x) if (!(x)) assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__)
+#define assert(x) if (x) {} else assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__)
 
 #endif
 
@@ -51,7 +48,5 @@ void assert_fail(const char* expr, int line, char const* file, char const* funct
 #ifndef assert
 #define assert(x) (void)
 #endif
-#endif
-
 #endif
 

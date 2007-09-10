@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {

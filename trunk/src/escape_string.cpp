@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/pch.hpp"
-#include "libtorrent/assert.hpp"
 
 #include <string>
 #include <stdexcept>
@@ -39,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #include <cctype>
 #include <algorithm>
+
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {

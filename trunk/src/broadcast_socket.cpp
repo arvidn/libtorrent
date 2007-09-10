@@ -30,12 +30,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/socket.hpp"
-#include "libtorrent/enum_net.hpp"
-#include "libtorrent/broadcast_socket.hpp"
 #include <asio/ip/host_name.hpp>
 #include <asio/ip/multicast.hpp>
 #include <boost/bind.hpp>
+
+#include "libtorrent/socket.hpp"
+#include "libtorrent/enum_net.hpp"
+#include "libtorrent/broadcast_socket.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {

@@ -68,6 +68,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bandwidth_manager.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {

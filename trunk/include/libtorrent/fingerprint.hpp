@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sstream>
 
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {
@@ -91,3 +92,4 @@ namespace libtorrent
 }
 
 #endif // TORRENT_FINGERPRINT_HPP_INCLUDED
+
