@@ -676,13 +676,15 @@ namespace detail
 					m_listen_socket->set_option(socket_acceptor::reuse_address(true));
 					m_listen_socket->bind(m_listen_interface);
 					m_listen_socket->listen();
+					m_listen_interface = m_listen_socket->local_endpoint();
 					m_external_listen_port = m_listen_interface.port();
 					break;
 				}
 				catch (asio::system_error& e)
 				{
 					// TODO: make sure this is correct
-					if (e.code() == asio::error::host_not_found)
+					if (e.code() == asio::error::host_not_found
+						|| m_listen_interface.port() == 0)
 					{
 						if (m_alerts.should_post(alert::fatal))
 						{
@@ -727,14 +729,18 @@ namespace detail
 			}
 		}
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (m_listen_socket)
 		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			(*m_logger) << "listening on port: " << m_listen_interface.port()
 				<< " external port: " << m_external_listen_port << "\n";
-		}
 #endif
-		if (m_listen_socket) async_accept();
+			async_accept();
+			if (m_natpmp.get())
+				m_natpmp->set_mappings(m_listen_interface.port(), 0);
+			if (m_upnp.get())
+				m_upnp->set_mappings(m_listen_interface.port(), 0);
+		}
 	}
 
 	void session_impl::async_accept()
@@ -760,7 +766,6 @@ namespace detail
 
 		if (m_abort) return;
 
-		async_accept();
 		if (e)
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -769,8 +774,12 @@ namespace detail
 			(*m_logger) << msg << "\n";
 #endif
 			assert(m_listen_socket.unique());
+			// try any random port
+			m_listen_interface.port(0);
+			open_listen_port();
 			return;
 		}
+		async_accept();
 
 		// we got a connection request!
 		m_incoming_connection = true;
@@ -1269,10 +1278,6 @@ namespace detail
 		{
 			session_impl::mutex_t::scoped_lock l(m_mutex);
 			open_listen_port();
-			if (m_natpmp.get())
-				m_natpmp->set_mappings(m_listen_interface.port(), 0);
-			if (m_upnp.get())
-				m_upnp->set_mappings(m_listen_interface.port(), 0);
 		}
 
 		ptime timer = time_now();
@@ -1695,11 +1700,6 @@ namespace detail
 		open_listen_port();
 
 		bool new_listen_address = m_listen_interface.address() != new_interface.address();
-
-		if (m_natpmp.get())
-			m_natpmp->set_mappings(m_listen_interface.port(), 0);
-		if (m_upnp.get())
-			m_upnp->set_mappings(m_listen_interface.port(), 0);
 
 #ifndef TORRENT_DISABLE_DHT
 		if ((new_listen_address || m_dht_same_port) && m_dht)
