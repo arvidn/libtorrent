@@ -42,6 +42,8 @@ using boost::bind;
 namespace libtorrent
 {
 
+	enum { max_bottled_buffer = 1024 * 1024 };
+
 void http_connection::get(std::string const& url, time_duration timeout
 	, bool handle_redirect)
 {
@@ -311,8 +313,8 @@ void http_connection::on_read(asio::error_code const& e
 	}
 
 	if (int(m_recvbuffer.size()) == m_read_pos)
-		m_recvbuffer.resize((std::min)(m_read_pos + 2048, 1024*500));
-	if (m_read_pos == 1024 * 500)
+		m_recvbuffer.resize((std::min)(m_read_pos + 2048, int(max_bottled_buffer)));
+	if (m_read_pos == max_bottled_buffer)
 	{
 		close();
 		if (m_bottled && m_called) return;
