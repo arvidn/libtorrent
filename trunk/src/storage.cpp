@@ -1083,7 +1083,8 @@ namespace libtorrent
 
 	void piece_manager::async_read(
 		peer_request const& r
-		, boost::function<void(int, disk_io_job const&)> const& handler)
+		, boost::function<void(int, disk_io_job const&)> const& handler
+		, char* buffer)
 	{
 		disk_io_job j;
 		j.storage = this;
@@ -1091,7 +1092,10 @@ namespace libtorrent
 		j.piece = r.piece;
 		j.offset = r.start;
 		j.buffer_size = r.length;
-		assert(r.length <= 16 * 1024);
+		j.buffer = buffer;
+		// if a buffer is not specified, only one block can be read
+		// since that is the size of the pool allocator's buffers
+		assert(r.length <= 16 * 1024 || buffer != 0);
 		m_io_thread.add_job(j, handler);
 	}
 

@@ -179,29 +179,35 @@ namespace libtorrent
 
 			int ret = 0;
 
+			bool free_buffer = true;
 			try
 			{
 //				std::cerr << "DISK THREAD: executing job: " << j.action << std::endl;
 				switch (j.action)
 				{
 					case disk_io_job::read:
-						l.lock();
-						j.buffer = (char*)m_pool.ordered_malloc();
-						l.unlock();
 						if (j.buffer == 0)
 						{
-							ret = -1;
-							j.str = "out of memory";
+							l.lock();
+							j.buffer = (char*)m_pool.ordered_malloc();
+							l.unlock();
+							assert(j.buffer_size <= m_block_size);
+							if (j.buffer == 0)
+							{
+								ret = -1;
+								j.str = "out of memory";
+								break;
+							}
 						}
 						else
 						{
-							assert(j.buffer_size <= m_block_size);
-							ret = j.storage->read_impl(j.buffer, j.piece, j.offset
-								, j.buffer_size);
-
-							// simulates slow drives
-							// usleep(300);
+							free_buffer = false;
 						}
+						ret = j.storage->read_impl(j.buffer, j.piece, j.offset
+							, j.buffer_size);
+
+						// simulates slow drives
+						// usleep(300);
 						break;
 					case disk_io_job::write:
 						assert(j.buffer);
@@ -240,7 +246,7 @@ namespace libtorrent
 			try { if (handler) handler(ret, j); }
 			catch (std::exception&) {}
 			
-			if (j.buffer)
+			if (j.buffer && free_buffer)
 			{
 				l.lock();
 				m_pool.ordered_free(j.buffer);
