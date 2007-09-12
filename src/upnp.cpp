@@ -339,6 +339,8 @@ try
 		{
 			d.mapping[0].need_update = true;
 			d.mapping[0].local_port = m_tcp_local_port;
+			if (d.mapping[0].external_port == 0)
+				d.mapping[0].external_port = d.mapping[0].local_port;
 #ifdef TORRENT_UPNP_LOGGING
 			m_log << time_now_string() << " *** Mapping 0 will be updated" << std::endl;
 #endif
@@ -347,6 +349,8 @@ try
 		{
 			d.mapping[1].need_update = true;
 			d.mapping[1].local_port = m_udp_local_port;
+			if (d.mapping[1].external_port == 0)
+				d.mapping[1].external_port = d.mapping[1].local_port;
 #ifdef TORRENT_UPNP_LOGGING
 			m_log << time_now_string() << " *** Mapping 1 will be updated" << std::endl;
 #endif
