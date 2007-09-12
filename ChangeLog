@@ -1,3 +1,4 @@
+	* Made it build with boost 1.34 on windows
 	* Fixed bug in URL parser that failed to parse IPv6 addresses
 	* Fixed bug in DHT, related to IPv6 nodes
 	* DHT accepts transaction IDs that have garbage appended to them
