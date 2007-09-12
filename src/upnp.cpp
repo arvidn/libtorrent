@@ -411,7 +411,7 @@ void upnp::post(upnp::rootdevice const& d, std::string const& soap
 
 #ifdef TORRENT_UPNP_LOGGING
 	m_log << time_now_string()
-		<< " ==> sending: " << soap << std::endl;
+		<< " ==> sending: " << header.str() << std::endl;
 #endif
 	
 }
