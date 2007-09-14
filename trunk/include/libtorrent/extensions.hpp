@@ -149,6 +149,12 @@ namespace libtorrent
 		virtual bool on_cancel(peer_request const& req)
 		{ return false; }
 	
+		virtual bool on_reject(peer_request const& req)
+		{ return false; }
+
+		virtual bool on_suggest(int index)
+		{ return false; }
+
 		// called when an extended message is received. If returning true,
 		// the message is not processed by any other plugin and if false
 		// is returned the next plugin in the chain will receive it to

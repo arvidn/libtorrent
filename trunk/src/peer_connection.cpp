@@ -687,6 +687,14 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		assert(t);
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_reject(r)) return;
+		}
+#endif
+
 		std::deque<piece_block>::iterator i = std::find_if(
 			m_download_queue.begin(), m_download_queue.end()
 			, bind(match_request, boost::cref(r), _1, t->block_size()));
@@ -743,13 +751,21 @@ namespace libtorrent
 	void peer_connection::incoming_suggest(int index)
 	{
 		INVARIANT_CHECK;
-		
+
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string()
 			<< " <== SUGGEST_PIECE [ piece: " << index << " ]\n";
 #endif
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_suggest(index)) return;
+		}
+#endif
 
 		if (t->have_piece(index)) return;
 		
