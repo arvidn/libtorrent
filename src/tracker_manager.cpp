@@ -365,23 +365,22 @@ namespace libtorrent
 		, m_req(req)
 	{}
 
-	request_callback& tracker_connection::requester()
+	boost::shared_ptr<request_callback> tracker_connection::requester()
 	{
-		boost::shared_ptr<request_callback> r = m_requester.lock();
-		assert(r);
-		return *r;
+		return m_requester.lock();
 	}
 
 	void tracker_connection::fail(int code, char const* msg)
 	{
-		if (has_requester()) requester().tracker_request_error(
-			m_req, code, msg);
+		boost::shared_ptr<request_callback> cb = requester();
+		if (cb) cb->tracker_request_error(m_req, code, msg);
 		close();
 	}
 
 	void tracker_connection::fail_timeout()
 	{
-		if (has_requester()) requester().tracker_request_timed_out(m_req);
+		boost::shared_ptr<request_callback> cb = requester();
+		if (cb) cb->tracker_request_timed_out(m_req);
 		close();
 	}
 	
@@ -548,7 +547,8 @@ namespace libtorrent
 
 			m_connections.push_back(con);
 
-			if (con->has_requester()) con->requester().m_manager = this;
+			boost::shared_ptr<request_callback> cb = con->requester();
+			if (cb) cb->m_manager = this;
 		}
 		catch (std::exception& e)
 		{
