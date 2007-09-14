@@ -132,7 +132,7 @@ namespace libtorrent
 			m_impl->abort();
 	}
 
-	void session::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*)> ext)
+	void session::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext)
 	{
 		m_impl->add_extension(ext);
 	}
@@ -185,7 +185,7 @@ namespace libtorrent
 		assert(!ti.m_half_metadata);
 		boost::intrusive_ptr<torrent_info> tip(new torrent_info(ti));
 		return m_impl->add_torrent(tip, save_path, resume_data
-			, compact_mode, sc, paused);
+			, compact_mode, sc, paused, 0);
 	}
 
 	torrent_handle session::add_torrent(
@@ -194,11 +194,12 @@ namespace libtorrent
 		, entry const& resume_data
 		, bool compact_mode
 		, bool paused
-		, storage_constructor_type sc)
+		, storage_constructor_type sc
+		, void* userdata)
 	{
 		assert(!ti->m_half_metadata);
 		return m_impl->add_torrent(ti, save_path, resume_data
-			, compact_mode, sc, paused);
+			, compact_mode, sc, paused, userdata);
 	}
 
 	torrent_handle session::add_torrent(
@@ -209,10 +210,11 @@ namespace libtorrent
 		, entry const& e
 		, bool compact_mode
 		, bool paused
-		, storage_constructor_type sc)
+		, storage_constructor_type sc
+		, void* userdata)
 	{
 		return m_impl->add_torrent(tracker_url, info_hash, name, save_path, e
-			, compact_mode, sc, paused);
+			, compact_mode, sc, paused, userdata);
 	}
 
 	void session::remove_torrent(const torrent_handle& h)

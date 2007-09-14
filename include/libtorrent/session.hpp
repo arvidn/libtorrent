@@ -150,7 +150,8 @@ namespace libtorrent
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
 			, bool paused = false
-			, storage_constructor_type sc = default_storage_constructor);
+			, storage_constructor_type sc = default_storage_constructor
+			, void* userdata = 0);
 
 		torrent_handle add_torrent(
 			char const* tracker_url
@@ -160,7 +161,8 @@ namespace libtorrent
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
 			, bool paused = false
-			, storage_constructor_type sc = default_storage_constructor);
+			, storage_constructor_type sc = default_storage_constructor
+			, void* userdata = 0);
 
 		session_proxy abort() { return session_proxy(m_impl); }
 
@@ -181,7 +183,7 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*)> ext);
+		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext);
 #endif
 
 		void set_ip_filter(ip_filter const& f);

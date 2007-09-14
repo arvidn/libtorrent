@@ -48,7 +48,7 @@ namespace libtorrent
 {
 	struct torrent_plugin;
 	class torrent;
-	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_metadata_plugin(torrent*);
+	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_metadata_plugin(torrent*, void*);
 }
 
 #endif // TORRENT_METADATA_TRANSFER_HPP_INCLUDED
