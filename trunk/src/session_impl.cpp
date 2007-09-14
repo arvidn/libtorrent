@@ -593,7 +593,7 @@ namespace detail
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void session_impl::add_extension(
-		boost::function<boost::shared_ptr<torrent_plugin>(torrent*)> ext)
+		boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext)
 	{
 		m_extensions.push_back(ext);
 	}
@@ -1474,7 +1474,8 @@ namespace detail
 		, entry const& resume_data
 		, bool compact_mode
 		, storage_constructor_type sc
-		, bool paused)
+		, bool paused
+		, void* userdata)
 	{
 		// if you get this assert, you haven't managed to
 		// open a listen port. call listen_on() first.
@@ -1514,7 +1515,7 @@ namespace detail
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
-			boost::shared_ptr<torrent_plugin> tp((*i)(torrent_ptr.get()));
+			boost::shared_ptr<torrent_plugin> tp((*i)(torrent_ptr.get(), userdata));
 			if (tp) torrent_ptr->add_extension(tp);
 		}
 #endif
@@ -1554,7 +1555,8 @@ namespace detail
 		, entry const&
 		, bool compact_mode
 		, storage_constructor_type sc
-		, bool paused)
+		, bool paused
+		, void* userdata)
 	{
 	
 		// TODO: support resume data in this case
@@ -1593,7 +1595,7 @@ namespace detail
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
-			boost::shared_ptr<torrent_plugin> tp((*i)(torrent_ptr.get()));
+			boost::shared_ptr<torrent_plugin> tp((*i)(torrent_ptr.get(), userdata));
 			if (tp) torrent_ptr->add_extension(tp);
 		}
 #endif

@@ -185,7 +185,7 @@ namespace libtorrent
 			~session_impl();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*)> ext);
+			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext);
 #endif
 			void operator()();
 
@@ -246,7 +246,8 @@ namespace libtorrent
 				, entry const& resume_data
 				, bool compact_mode
 				, storage_constructor_type sc
-				, bool paused);
+				, bool paused
+				, void* userdata);
 
 			torrent_handle add_torrent(
 				char const* tracker_url
@@ -256,7 +257,8 @@ namespace libtorrent
 				, entry const& resume_data
 				, bool compact_mode
 				, storage_constructor_type sc
-				, bool paused);
+				, bool paused
+				, void* userdata);
 
 			void remove_torrent(torrent_handle const& h);
 
@@ -519,7 +521,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			typedef std::list<boost::function<boost::shared_ptr<
-				torrent_plugin>(torrent*)> > extension_list_t;
+				torrent_plugin>(torrent*, void*)> > extension_list_t;
 
 			extension_list_t m_extensions;
 #endif

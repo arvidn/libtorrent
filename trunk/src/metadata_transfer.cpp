@@ -556,7 +556,7 @@ namespace libtorrent { namespace
 namespace libtorrent
 {
 
-	boost::shared_ptr<torrent_plugin> create_metadata_plugin(torrent* t)
+	boost::shared_ptr<torrent_plugin> create_metadata_plugin(torrent* t, void*)
 	{
 		return boost::shared_ptr<torrent_plugin>(new metadata_plugin(*t));
 	}
