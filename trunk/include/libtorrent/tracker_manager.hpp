@@ -194,11 +194,10 @@ namespace libtorrent
 			, address bind_interface
 			, boost::weak_ptr<request_callback> r);
 
-		request_callback& requester();
+		boost::shared_ptr<request_callback> requester();
 		virtual ~tracker_connection() {}
 
 		tracker_request const& tracker_req() const { return m_req; }
-		bool has_requester() const { return !m_requester.expired(); }
 
 		void fail(int code, char const* msg);
 		void fail_timeout();
