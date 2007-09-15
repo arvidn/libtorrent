@@ -94,7 +94,7 @@ namespace libtorrent
 			if (ec) continue;
 			s->set_option(datagram_socket::reuse_address(true), ec);
 			if (ec) continue;
-			s->bind(udp::endpoint(*i, multicast_endpoint.port()), ec);
+			s->bind(udp::endpoint(address_v4::any(), multicast_endpoint.port()), ec);
 			if (ec) continue;
 			s->set_option(join_group(multicast_endpoint.address()), ec);
 			if (ec) continue;
