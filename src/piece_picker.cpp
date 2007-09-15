@@ -1229,6 +1229,7 @@ namespace libtorrent
 
 	bool piece_picker::can_pick(int piece, std::vector<bool> const& bitmask) const
 	{
+		assert(piece >= 0 && piece < int(m_piece_map.size()));
 		return bitmask[piece]
 			&& !m_piece_map[piece].have()
 			&& !m_piece_map[piece].downloading
