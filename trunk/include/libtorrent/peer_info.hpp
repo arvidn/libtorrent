@@ -72,7 +72,8 @@ namespace libtorrent
 			dht = 0x2,
 			pex = 0x4,
 			lsd = 0x8,
-			resume_data = 0x10
+			resume_data = 0x10,
+			incoming = 0x20
 		};
 
 		int source;

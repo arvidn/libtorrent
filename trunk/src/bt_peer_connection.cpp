@@ -1221,7 +1221,7 @@ namespace libtorrent
 			{
 				tcp::endpoint adr(remote().address()
 					, (unsigned short)listen_port->integer());
-				t->get_policy().peer_from_tracker(adr, pid(), 0, 0);
+				t->get_policy().peer_from_tracker(adr, pid(), peer_info::incoming, 0);
 			}
 		}
 		// there should be a version too
