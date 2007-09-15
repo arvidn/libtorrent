@@ -1555,7 +1555,7 @@ namespace libtorrent
 	}
 
 
-	void piece_picker::mark_as_downloading(piece_block block
+	bool piece_picker::mark_as_downloading(piece_block block
 		, void* peer, piece_state_t state)
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
@@ -1590,6 +1590,9 @@ namespace libtorrent
 				= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
 			assert(i != m_downloads.end());
 			block_info& info = i->info[block.block_index];
+			if (info.state == block_info::state_writing
+				|| info.state == block_info::state_finished)
+				return false;
 			assert(info.state == block_info::state_none
 				|| (info.state == block_info::state_requested
 					&& (info.num_peers > 0)));
@@ -1602,6 +1605,7 @@ namespace libtorrent
 			++info.num_peers;
 			if (i->state == none) i->state = state;
 		}
+		return true;
 	}
 
 	int piece_picker::num_peers(piece_block block) const

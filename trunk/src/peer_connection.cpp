@@ -1663,7 +1663,9 @@ namespace libtorrent
 			state = piece_picker::slow;
 		}
 
-		t->picker().mark_as_downloading(block, peer_info_struct(), state);
+		if (!t->picker().mark_as_downloading(block, peer_info_struct(), state))
+			return;
+
 		if (t->alerts().should_post(alert::info))
 		{
 			t->alerts().post_alert(block_downloading_alert(t->get_handle(), 

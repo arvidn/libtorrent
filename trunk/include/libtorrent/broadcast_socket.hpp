@@ -52,6 +52,7 @@ namespace libtorrent
 	public:
 		broadcast_socket(asio::io_service& ios, udp::endpoint const& multicast_endpoint
 			, receive_handler_t const& handler);
+		~broadcast_socket() { close(); }
 
 		void send(char const* buffer, int size, asio::error_code& ec);
 		void close();

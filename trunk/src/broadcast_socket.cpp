@@ -60,8 +60,6 @@ namespace libtorrent
 		{
 			// ignore the loopback
 			if (i->endpoint().address() == address_v4((127 << 24) + 1)) continue;
-			// ignore addresses that are not on a local network
-			if (!is_local(i->endpoint().address())) continue;
 			// ignore non-IPv4 addresses
 			if (i->endpoint().address().is_v4()) break;
 		}
@@ -96,17 +94,24 @@ namespace libtorrent
 			if (ec) continue;
 			s->set_option(datagram_socket::reuse_address(true), ec);
 			if (ec) continue;
-			s->bind(udp::endpoint(*i, 0), ec);
+			s->bind(udp::endpoint(*i, multicast_endpoint.port()), ec);
 			if (ec) continue;
 			s->set_option(join_group(multicast_endpoint.address()), ec);
 			if (ec) continue;
 			s->set_option(outbound_interface(i->to_v4()), ec);
 			if (ec) continue;
-			s->set_option(hops(255));
+			s->set_option(hops(255), ec);
+			if (ec) continue;
+			s->set_option(enable_loopback(true), ec);
+			if (ec) continue;
 			m_sockets.push_back(socket_entry(s));
 			socket_entry& se = m_sockets.back();
 			s->async_receive_from(asio::buffer(se.buffer, sizeof(se.buffer))
 				, se.remote, bind(&broadcast_socket::on_receive, this, &se, _1, _2));
+#ifndef NDEBUG
+//			std::cerr << "broadcast socket [ if: " << i->to_v4().to_string()
+//				<< " group: " << multicast_endpoint.address() << " ]" << std::endl;
+#endif
 		}
 	}
 
@@ -117,7 +122,9 @@ namespace libtorrent
 		{
 			asio::error_code e;
 			i->socket->send_to(asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
+#ifndef NDEBUG
 //			std::cerr << " sending on " << i->socket->local_endpoint().address().to_string() << std::endl;
+#endif
 			if (e) ec = e;
 		}
 	}
