@@ -233,7 +233,7 @@ namespace libtorrent
 		bool is_finished(piece_block block) const;
 
 		// marks this piece-block as queued for downloading
-		void mark_as_downloading(piece_block block, void* peer
+		bool mark_as_downloading(piece_block block, void* peer
 			, piece_state_t s);
 		void mark_as_writing(piece_block block, void* peer);
 		void mark_as_finished(piece_block block, void* peer);
