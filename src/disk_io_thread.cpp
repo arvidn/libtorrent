@@ -89,8 +89,15 @@ namespace libtorrent
 	
 	namespace
 	{
+		// The semantic of this operator is:
+		// shouls lhs come before rhs in the job queue
 		bool operator<(disk_io_job const& lhs, disk_io_job const& rhs)
 		{
+			// NOTE: comparison inverted to make higher priority
+			// skip _in_front_of_ lower priority
+			if (lhs.priority > rhs.priority) return true;
+			if (lhs.priority < rhs.priority) return false;
+
 			if (lhs.storage.get() < rhs.storage.get()) return true;
 			if (lhs.storage.get() > rhs.storage.get()) return false;
 			if (lhs.piece < rhs.piece) return true;
