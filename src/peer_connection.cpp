@@ -2915,11 +2915,6 @@ namespace libtorrent
 		// TODO: the timeout should be called by an event
 		INVARIANT_CHECK;
 
-#ifndef NDEBUG
-		// allow step debugging without timing out
-		return false;
-#endif
-
 		ptime now(time_now());
 		
 		// if the socket is still connecting, don't
@@ -2932,6 +2927,10 @@ namespace libtorrent
 		time_duration d;
 		d = now - m_last_receive;
 		if (d > seconds(m_timeout)) return true;
+
+		// if it takes more than 5 seconds to receive
+		// handshake, disconnect
+		if (in_handshake() && d > seconds(5)) return true;
 
 		// disconnect peers that we unchoked, but
 		// they didn't send a request within 20 seconds.
