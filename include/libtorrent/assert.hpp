@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cassert>
 
 #ifndef NDEBUG
-#if defined __linux__ && defined __GNUC__
+#if (defined __linux__ || defined __MACH__) && defined __GNUC__
 #ifdef assert
 #undef assert
 #endif

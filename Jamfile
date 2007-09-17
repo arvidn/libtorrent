@@ -106,12 +106,12 @@ rule building ( properties * )
 {
 	local result ;
 
-	if <toolset>gcc in $(properties)
-		&& <target-os>linux in $(properties)
-		&& <variant>debug in $(properties)
+	if <variant>debug in $(properties)
+		&& ( <target-os>linux in $(properties)
+		|| <target-os>darwin in $(properties) )
+		&& ( <toolset>gcc in $(properties)
+		|| <toolset>darwin in $(properties) )
 	{
-		# for backtraces in assertion failures
-		# which only works on ELF targets with gcc
 		result += <source>src/assert.cpp ;
 	}
 
