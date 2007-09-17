@@ -1478,7 +1478,7 @@ namespace libtorrent
 				
 				k = std::find(backup_blocks.begin()
 					, backup_blocks.end(), piece_block(i->index, j));
-				if (k != interesting_blocks.end()) continue;
+				if (k != backup_blocks.end()) continue;
 
 				std::cerr << "interesting blocks:" << std::endl;
 				for (k = interesting_blocks.begin(); k != interesting_blocks.end(); ++k)
