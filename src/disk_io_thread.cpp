@@ -34,6 +34,24 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <deque>
 #include "libtorrent/disk_io_thread.hpp"
 
+#ifdef TORRENT_DISK_STATS
+
+#include "libtorrent/time.hpp"
+#include <boost/lexical_cast.hpp>
+
+namespace
+{
+	std::string log_time()
+	{
+		using namespace libtorrent;
+		static ptime start = time_now();
+		return boost::lexical_cast<std::string>(
+			total_milliseconds(time_now() - start));
+	}
+}
+
+#endif
+
 namespace libtorrent
 {
 
@@ -45,7 +63,12 @@ namespace libtorrent
 		, m_block_size(block_size)
 #endif
 		, m_disk_io_thread(boost::ref(*this))
-	{}
+	{
+	
+#ifdef TORRENT_DISK_STATS
+		m_log.open("disk_io_thread.log", std::ios::trunc);
+#endif
+	}
 
 	disk_io_thread::~disk_io_thread()
 	{
@@ -172,6 +195,9 @@ namespace libtorrent
 	{
 		for (;;)
 		{
+#ifdef TORRENT_DISK_STATS
+			m_log << log_time() << " idle" << std::endl;
+#endif
 			boost::mutex::scoped_lock l(m_mutex);
 			while (m_jobs.empty() && !m_abort)
 				m_signal.wait(l);
@@ -189,10 +215,16 @@ namespace libtorrent
 			bool free_buffer = true;
 			try
 			{
+#ifdef TORRENT_DISK_STATS
+				ptime start = time_now();
+#endif
 //				std::cerr << "DISK THREAD: executing job: " << j.action << std::endl;
 				switch (j.action)
 				{
 					case disk_io_job::read:
+#ifdef TORRENT_DISK_STATS
+						m_log << log_time() << " read " << j.buffer_size << std::endl;
+#endif
 						if (j.buffer == 0)
 						{
 							l.lock();
@@ -217,6 +249,9 @@ namespace libtorrent
 						// usleep(300);
 						break;
 					case disk_io_job::write:
+#ifdef TORRENT_DISK_STATS
+						m_log << log_time() << " write " << j.buffer_size << std::endl;
+#endif
 						assert(j.buffer);
 						assert(j.buffer_size <= m_block_size);
 						j.storage->write_impl(j.buffer, j.piece, j.offset
@@ -227,16 +262,25 @@ namespace libtorrent
 						break;
 					case disk_io_job::hash:
 						{
+#ifdef TORRENT_DISK_STATS
+							m_log << log_time() << " hash" << std::endl;
+#endif
 							sha1_hash h = j.storage->hash_for_piece_impl(j.piece);
 							j.str.resize(20);
 							std::memcpy(&j.str[0], &h[0], 20);
 						}
 						break;
 					case disk_io_job::move_storage:
+#ifdef TORRENT_DISK_STATS
+						m_log << log_time() << " move" << std::endl;
+#endif
 						ret = j.storage->move_storage_impl(j.str) ? 1 : 0;
 						j.str = j.storage->save_path().string();
 						break;
 					case disk_io_job::release_files:
+#ifdef TORRENT_DISK_STATS
+						m_log << log_time() << " release" << std::endl;
+#endif
 						j.storage->release_files_impl();
 						break;
 				}
