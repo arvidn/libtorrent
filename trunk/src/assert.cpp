@@ -34,7 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <signal.h>
+#if defined __linux__ && defined __GNUC__
 #include <execinfo.h>
+#endif
 
 void assert_fail(char const* expr, int line, char const* file, char const* function)
 {
@@ -48,6 +51,7 @@ void assert_fail(char const* expr, int line, char const* file, char const* funct
 		"expression: %s\n"
 		"stack:\n", file, line, function, expr);
 
+#if defined __linux__ && defined __GNUC__
 	void* stack[50];
 	int size = backtrace(stack, 50);
 	char** symbols = backtrace_symbols(stack, size);
@@ -58,7 +62,11 @@ void assert_fail(char const* expr, int line, char const* file, char const* funct
 	}
 
 	free(symbols);
-	exit(1);
+#endif
+ 	// send SIGINT to the current process
+ 	// to break into the debugger
+ 	raise(SIGINT);
+ 	abort();
 }
 
 #endif
