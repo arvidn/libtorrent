@@ -42,7 +42,7 @@ namespace libtorrent
 	template<class T>
 	struct intrusive_ptr_base
 	{
-		intrusive_ptr_base(const intrusive_ptr_base<T>& b)
+		intrusive_ptr_base(intrusive_ptr_base<T> const&)
 			: m_refs(0) {}
 
 		friend void intrusive_ptr_add_ref(intrusive_ptr_base<T> const* s)
