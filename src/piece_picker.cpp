@@ -1376,10 +1376,8 @@ namespace libtorrent
 			{
 				// ignore completed blocks and already requested blocks
 				block_info const& info = i->info[j];
-				if (info.state == block_info::state_finished
-					|| info.state == block_info::state_writing
-					|| info.state == block_info::state_requested)
-				continue;
+				if (info.state != block_info::state_none)
+					continue;
 
 				assert(i->info[j].state == block_info::state_none);
 
@@ -1432,6 +1430,80 @@ namespace libtorrent
 		backup_blocks.clear();
 
 		if (num_blocks <= 0) return 0;
+
+		if (prefer_whole_pieces > 0)
+		{
+			for (std::vector<downloading_piece>::const_iterator i = m_downloads.begin()
+				, end(m_downloads.end()); i != end; ++i)
+			{
+				if (!pieces[i->index]) continue;
+				int num_blocks_in_piece = blocks_in_piece(i->index);
+				bool exclusive;
+				bool exclusive_active;
+				boost::tie(exclusive, exclusive_active)
+					= requested_from(*i, num_blocks_in_piece, peer);
+
+				if (exclusive_active) continue;
+				
+				for (int j = 0; j < num_blocks_in_piece; ++j)
+				{
+					block_info const& info = i->info[j];
+					if (info.state != block_info::state_none) continue;
+					backup_blocks.push_back(piece_block(i->index, j));
+				}
+			}
+		}
+
+		if (int(backup_blocks.size()) >= num_blocks) return num_blocks;
+
+
+#ifndef NDEBUG
+//		make sure that we at this point has added requests to all unrequested blocks
+//		in all downloading pieces
+
+		for (std::vector<downloading_piece>::const_iterator i = m_downloads.begin()
+			, end(m_downloads.end()); i != end; ++i)
+		{
+			if (!pieces[i->index]) continue;
+				
+			int num_blocks_in_piece = blocks_in_piece(i->index);
+			for (int j = 0; j < num_blocks_in_piece; ++j)
+			{
+				block_info const& info = i->info[j];
+				if (info.state != block_info::state_none) continue;
+				std::vector<piece_block>::iterator k = std::find(
+					interesting_blocks.begin(), interesting_blocks.end()
+					, piece_block(i->index, j));
+				if (k != interesting_blocks.end()) continue;
+				
+				k = std::find(backup_blocks.begin()
+					, backup_blocks.end(), piece_block(i->index, j));
+				if (k != interesting_blocks.end()) continue;
+
+				std::cerr << "interesting blocks:" << std::endl;
+				for (k = interesting_blocks.begin(); k != interesting_blocks.end(); ++k)
+					std::cerr << "(" << k->piece_index << ", " << k->block_index << ") ";
+				std::cerr << std::endl;
+				std::cerr << "backup blocks:" << std::endl;
+				for (k = backup_blocks.begin(); k != backup_blocks.end(); ++k)
+					std::cerr << "(" << k->piece_index << ", " << k->block_index << ") ";
+				std::cerr << std::endl;
+				std::cerr << "num_blocks: " << num_blocks << std::endl;
+				
+				for (std::vector<downloading_piece>::const_iterator l = m_downloads.begin()
+					, end(m_downloads.end()); l != end; ++l)
+				{
+					std::cerr << l->index << " : ";
+					int num_blocks_in_piece = blocks_in_piece(l->index);
+					for (int m = 0; m < num_blocks_in_piece; ++m)
+						std::cerr << l->info[m].state;
+					std::cerr << std::endl;
+				}
+
+				assert(false);
+			}
+		}
+#endif
 
 		for (std::vector<downloading_piece>::const_iterator i = m_downloads.begin()
 			, end(m_downloads.end()); i != end; ++i)
