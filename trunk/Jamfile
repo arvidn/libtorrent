@@ -139,6 +139,9 @@ rule building ( properties * )
 	return $(result) ;
 }
 
+feature disk-stats : off on : composite propagated symmetric link-incompatible ;
+feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
+
 feature logging : none default verbose : composite propagated symmetric link-incompatible ;
 feature.compose <logging>default : <define>TORRENT_LOGGING ;
 feature.compose <logging>verbose : <define>TORRENT_VERBOSE_LOGGING ;

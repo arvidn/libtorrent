@@ -30,6 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifdef TORRENT_DISK_STATS
+#include <fstream>
+#endif
+
 #include "libtorrent/storage.hpp"
 #include <boost/thread/thread.hpp>
 #include <boost/function.hpp>
@@ -120,6 +124,10 @@ namespace libtorrent
 
 #ifndef NDEBUG
 		int m_block_size;
+#endif
+
+#ifdef TORRENT_DISK_STATS
+		std::ofstream m_log;
 #endif
 
 		// thread for performing blocking disk io operations
