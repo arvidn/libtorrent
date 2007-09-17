@@ -258,7 +258,7 @@ try
 	{
 #ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
-			<< " <== Rootdevice responded with incorrect HTTP packet. Ignoring device" << std::endl;
+			<< " <== Rootdevice responded with incorrect HTTP packet. Ignoring device (" << e.what() << ")" << std::endl;
 #endif
 		return;
 	}
@@ -759,23 +759,9 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 		m_devices.erase(d);
 		return;
 	}
-	
-	if (p.status_code() != 200)
-	{
-#ifdef TORRENT_UPNP_LOGGING
-		m_log << time_now_string()
-			<< " <== error while adding portmap: " << p.status_code() << " " << p.message() << std::endl;
-#endif
-		for (int i = 0; i < num_mappings; ++i)
-		{
-			if (d.mapping[i].need_update)
-			{
-				map_port(d, i);
-				return;
-			}
-		}
-		return;
-	}
+
+	// We don't want to ignore responses with return codes other than 200
+	// since those might contain valid UPnP error codes
 
 	error_code_parse_state s;
 	xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
