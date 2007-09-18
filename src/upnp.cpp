@@ -70,7 +70,7 @@ upnp::upnp(io_service& ios, connection_queue& cc
 	, m_io_service(ios)
 	, m_strand(ios)
 	, m_socket(ios, udp::endpoint(address_v4::from_string("239.255.255.250"), 1900)
-		, m_strand.wrap(bind(&upnp::on_reply, this, _1, _2, _3)))
+		, m_strand.wrap(bind(&upnp::on_reply, this, _1, _2, _3)), false)
 	, m_broadcast_timer(ios)
 	, m_refresh_timer(ios)
 	, m_disabled(false)

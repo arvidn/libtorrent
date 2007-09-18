@@ -69,7 +69,8 @@ namespace libtorrent
 
 	broadcast_socket::broadcast_socket(asio::io_service& ios
 		, udp::endpoint const& multicast_endpoint
-		, receive_handler_t const& handler)
+		, receive_handler_t const& handler
+		, bool loopback)
 		: m_multicast_endpoint(multicast_endpoint)
 		, m_on_receive(handler)
 	{
@@ -102,7 +103,7 @@ namespace libtorrent
 			if (ec) continue;
 			s->set_option(hops(255), ec);
 			if (ec) continue;
-			s->set_option(enable_loopback(true), ec);
+			s->set_option(enable_loopback(loopback), ec);
 			if (ec) continue;
 			m_sockets.push_back(socket_entry(s));
 			socket_entry& se = m_sockets.back();
