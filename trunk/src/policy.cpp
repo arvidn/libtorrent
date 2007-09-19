@@ -138,28 +138,28 @@ namespace
 		return free_upload;
 	}
 
-	struct match_peer_ip
+	struct match_peer_address
 	{
-		match_peer_ip(address const& ip)
-			: m_ip(ip)
+		match_peer_address(address const& addr)
+			: m_addr(addr)
 		{}
 
 		bool operator()(policy::peer const& p) const
-		{ return p.ip.address() == m_ip; }
+		{ return p.ip.address() == m_addr; }
 
-		address const& m_ip;
+		address const& m_addr;
 	};
 
-	struct match_peer_id
+	struct match_peer_endpoint
 	{
-		match_peer_id(peer_id const& id_)
-			: m_id(id_)
+		match_peer_endpoint(tcp::endpoint const& ep)
+			: m_ep(ep)
 		{}
 
 		bool operator()(policy::peer const& p) const
-		{ return p.connection && p.connection->pid() == m_id; }
+		{ return p.ip == m_ep; }
 
-		peer_id const& m_id;
+		tcp::endpoint const& m_ep;
 	};
 
 	struct match_peer_connection
@@ -939,7 +939,7 @@ namespace libtorrent
 			i = std::find_if(
 				m_peers.begin()
 				, m_peers.end()
-				, match_peer_ip(c.remote().address()));
+				, match_peer_address(c.remote().address()));
 		}
 
 		if (i != m_peers.end())
@@ -1029,14 +1029,14 @@ namespace libtorrent
 				i = std::find_if(
 					m_peers.begin()
 					, m_peers.end()
-					, match_peer_id(pid));
+					, match_peer_endpoint(remote));
 			}
 			else
 			{
 				i = std::find_if(
 					m_peers.begin()
 					, m_peers.end()
-					, match_peer_ip(remote.address()));
+					, match_peer_address(remote.address()));
 			}
 			
 			if (i == m_peers.end())
@@ -1291,9 +1291,15 @@ namespace libtorrent
 
 		try
 		{
+			INVARIANT_CHECK;
 			p->connected = time_now();
 			p->connection = m_torrent->connect_to_peer(&*p);
-			if (p->connection == 0) return false;
+			assert(p->connection == m_torrent->connection_for(p->ip));
+			if (p->connection == 0)
+			{
+				++p->failcount;
+				return false;
+			}
 			p->connection->add_stat(p->prev_amount_download, p->prev_amount_upload);
 			p->prev_amount_download = 0;
 			p->prev_amount_upload = 0;
@@ -1305,6 +1311,7 @@ namespace libtorrent
 			(*m_torrent->session().m_logger) << "*** CONNECTION FAILED '"
 				<< e.what() << "'\n";
 #endif
+			std::cerr << e.what() << std::endl;
 			++p->failcount;
 			return false;
 		}
@@ -1402,15 +1409,22 @@ namespace libtorrent
 		int nonempty_connections = 0;
 
 		std::set<address> unique_test;
+		std::set<tcp::endpoint> unique_test2;
 		for (const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
 			peer const& p = *i;
 			if (!m_torrent->settings().allow_multiple_connections_per_ip)
 				assert(unique_test.find(p.ip.address()) == unique_test.end());
+			assert(unique_test2.find(p.ip) == unique_test2.end());
 			unique_test.insert(p.ip.address());
+			unique_test2.insert(p.ip);
 			++total_connections;
-			if (!p.connection) continue;
+			if (!p.connection)
+			{
+				assert(m_torrent->connection_for(p.ip) == 0);
+				continue;
+			}
 			if (!m_torrent->settings().allow_multiple_connections_per_ip)
 			{
 				std::vector<peer_connection*> conns;

@@ -1952,7 +1952,6 @@ namespace libtorrent
 			}
 
 			t->remove_peer(this);
-
 			m_torrent.reset();
 		}
 
@@ -2855,6 +2854,8 @@ namespace libtorrent
 			}
 			return;
 		}
+
+		assert(t->connection_for(remote()) != 0 || m_in_constructor);
 
 		if (!m_in_constructor && t->connection_for(remote()) != this
 			&& !m_ses.settings().allow_multiple_connections_per_ip)

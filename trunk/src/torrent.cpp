@@ -1653,6 +1653,7 @@ namespace libtorrent
 			assert(m_connections.find(a) == m_connections.end());
 
 			// add the newly connected peer to this torrent's peer list
+			assert(m_connections.find(a) == m_connections.end());
 			m_connections.insert(
 				std::make_pair(a, boost::get_pointer(c)));
 			m_ses.m_connections.insert(std::make_pair(s, c));
@@ -1669,8 +1670,8 @@ namespace libtorrent
 #endif
 
 			// TODO: post an error alert!
-			std::map<tcp::endpoint, peer_connection*>::iterator i = m_connections.find(a);
-			if (i != m_connections.end()) m_connections.erase(i);
+//			std::map<tcp::endpoint, peer_connection*>::iterator i = m_connections.find(a);
+//			if (i != m_connections.end()) m_connections.erase(i);
 			m_ses.connection_failed(s, a, e.what());
 			c->disconnect();
 		}
@@ -1857,6 +1858,8 @@ namespace libtorrent
 
 		try
 		{
+			assert(m_connections.find(a) == m_connections.end());
+
 			// add the newly connected peer to this torrent's peer list
 			m_connections.insert(
 				std::make_pair(a, boost::get_pointer(c)));
@@ -1869,6 +1872,7 @@ namespace libtorrent
 		}
 		catch (std::exception& e)
 		{
+			assert(false);
 			// TODO: post an error alert!
 			std::map<tcp::endpoint, peer_connection*>::iterator i = m_connections.find(a);
 			if (i != m_connections.end()) m_connections.erase(i);
@@ -1925,6 +1929,7 @@ namespace libtorrent
 			= m_connections.find(p->remote());
 		if (c != m_connections.end())
 		{
+			assert(p != c->second);
 			// we already have a peer_connection to this ip.
 			// It may currently be waiting for completing a
 			// connection attempt that might fail. So,
@@ -1948,6 +1953,7 @@ namespace libtorrent
 			throw protocol_error("session is closing");
 		}
 
+		assert(m_connections.find(p->remote()) == m_connections.end());
 		peer_iterator ci = m_connections.insert(
 			std::make_pair(p->remote(), p)).first;
 		try
@@ -2408,6 +2414,12 @@ namespace libtorrent
 			assert(m_abort || m_have_pieces.empty());
 		}
 
+/*		for (policy::const_iterator i = m_policy->begin_peer()
+			, end(m_policy->end_peer()); i != end; ++i)
+		{
+			assert(i->connection == const_cast<torrent*>(this)->connection_for(i->ip));
+		}
+*/
 		size_type total_done = quantized_bytes_done();
 		if (m_torrent_file->is_valid())
 		{
