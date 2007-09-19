@@ -67,8 +67,6 @@ namespace libtorrent { namespace
 		if (!p.is_local()) return false;
 		// don't send out peers that we haven't successfully connected to
 		if (p.is_connecting()) return false;
-		// ut pex does not support IPv6
-		if (!p.remote().address().is_v4()) return false;
 		return true;
 	}
 
@@ -98,9 +96,15 @@ namespace libtorrent { namespace
 			std::string& pla = pex["added"].string();
 			std::string& pld = pex["dropped"].string();
 			std::string& plf = pex["added.f"].string();
+			std::string& pla6 = pex["added6"].string();
+			std::string& pld6 = pex["dropped6"].string();
+			std::string& plf6 = pex["added6.f"].string();
 			std::back_insert_iterator<std::string> pla_out(pla);
 			std::back_insert_iterator<std::string> pld_out(pld);
 			std::back_insert_iterator<std::string> plf_out(plf);
+			std::back_insert_iterator<std::string> pla6_out(pla6);
+			std::back_insert_iterator<std::string> pld6_out(pld6);
+			std::back_insert_iterator<std::string> plf6_out(plf6);
 
 			std::set<tcp::endpoint> dropped;
 			m_old_peers.swap(dropped);
@@ -123,8 +127,6 @@ namespace libtorrent { namespace
 					bt_peer_connection* p = dynamic_cast<bt_peer_connection*>(i->second);
 					if (!p) continue;
 
-					// i->first was added since the last time
-					detail::write_endpoint(i->first, pla_out);
 					// no supported flags to set yet
 					// 0x01 - peer supports encryption
 					// 0x02 - peer is a seed
@@ -132,7 +134,17 @@ namespace libtorrent { namespace
 #ifndef TORRENT_DISABLE_ENCRYPTION
 					flags |= p->supports_encryption() ? 1 : 0;
 #endif
-					detail::write_uint8(flags, plf_out);
+					// i->first was added since the last time
+					if (i->first.address().is_v4())
+					{
+						detail::write_endpoint(i->first, pla_out);
+						detail::write_uint8(flags, plf_out);
+					}
+					else
+					{
+						detail::write_endpoint(i->first, pla6_out);
+						detail::write_uint8(flags, plf6_out);
+					}
 					++num_added;
 				}
 				else
@@ -146,8 +158,10 @@ namespace libtorrent { namespace
 			for (std::set<tcp::endpoint>::const_iterator i = dropped.begin()
 				, end(dropped.end());i != end; ++i)
 			{	
-				if (!i->address().is_v4()) continue;
-				detail::write_endpoint(*i, pld_out);
+				if (i->address().is_v4())
+					detail::write_endpoint(*i, pld_out);
+				else
+					detail::write_endpoint(*i, pld6_out);
 			}
 
 			m_ut_pex_msg.clear();
@@ -227,6 +241,28 @@ namespace libtorrent { namespace
 					char flags = detail::read_uint8(fin);
 					p.peer_from_tracker(adr, pid, peer_info::pex, flags);
 				} 
+
+				if (entry const* p6 = pex_msg.find_key("added6"))
+				{
+					std::string const& peers6 = p6->string();
+					std::string const& peer6_flags = pex_msg["added6.f"].string();
+					
+					int num_peers = peers6.length() / 18;
+					char const* in = peers6.c_str();
+					char const* fin = peer6_flags.c_str();
+
+					if (int(peer6_flags.size()) != num_peers)
+						return true;
+
+					peer_id pid(0);
+					policy& p = m_torrent.get_policy();
+					for (int i = 0; i < num_peers; ++i)
+					{
+						tcp::endpoint adr = detail::read_v6_endpoint<tcp::endpoint>(in);
+						char flags = detail::read_uint8(fin);
+						p.peer_from_tracker(adr, pid, peer_info::pex, flags);
+					} 
+				}
 			}
 			catch (std::exception&)
 			{
@@ -279,8 +315,13 @@ namespace libtorrent { namespace
 			pex["dropped"].string();
 			std::string& pla = pex["added"].string();
 			std::string& plf = pex["added.f"].string();
+			pex["dropped6"].string();
+			std::string& pla6 = pex["added6"].string();
+			std::string& plf6 = pex["added6.f"].string();
 			std::back_insert_iterator<std::string> pla_out(pla);
 			std::back_insert_iterator<std::string> plf_out(plf);
+			std::back_insert_iterator<std::string> pla6_out(pla6);
+			std::back_insert_iterator<std::string> plf6_out(plf6);
 
 			int num_added = 0;
 			for (torrent::peer_iterator i = m_torrent.begin()
@@ -295,8 +336,6 @@ namespace libtorrent { namespace
 				bt_peer_connection* p = dynamic_cast<bt_peer_connection*>(i->second);
 				if (!p) continue;
 
-				// i->first was added since the last time
-				detail::write_endpoint(i->first, pla_out);
 				// no supported flags to set yet
 				// 0x01 - peer supports encryption
 				// 0x02 - peer is a seed
@@ -304,7 +343,17 @@ namespace libtorrent { namespace
 #ifndef TORRENT_DISABLE_ENCRYPTION
 				flags |= p->supports_encryption() ? 1 : 0;
 #endif
-				detail::write_uint8(flags, plf_out);
+				// i->first was added since the last time
+				if (i->first.address().is_v4())
+				{
+					detail::write_endpoint(i->first, pla_out);
+					detail::write_uint8(flags, plf_out);
+				}
+				else
+				{
+					detail::write_endpoint(i->first, pla6_out);
+					detail::write_uint8(flags, plf6_out);
+				}
 				++num_added;
 			}
 			std::vector<char> pex_msg;

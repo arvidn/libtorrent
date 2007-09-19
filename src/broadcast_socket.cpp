@@ -43,7 +43,7 @@ namespace libtorrent
 {
 	bool is_local(address const& a)
 	{
-		if (a.is_v6()) return false;
+		if (a.is_v6()) return a.to_v6().is_link_local();
 		address_v4 a4 = a.to_v4();
 		unsigned long ip = a4.to_ulong();
 		return ((ip & 0xff000000) == 0x0a000000
@@ -58,13 +58,30 @@ namespace libtorrent
 		udp::resolver::iterator i = r.resolve(udp::resolver::query(asio::ip::host_name(), "0"));
 		for (;i != udp::resolver_iterator(); ++i)
 		{
-			// ignore the loopback
-			if (i->endpoint().address() == address_v4((127 << 24) + 1)) continue;
+			address const& a = i->endpoint().address();
 			// ignore non-IPv4 addresses
-			if (i->endpoint().address().is_v4()) break;
+			if (!a.is_v4()) break;
+			// ignore the loopback
+			if (a.to_v4() == address_v4::loopback()) continue;
 		}
 		if (i == udp::resolver_iterator()) return address_v4::any();
 		return i->endpoint().address().to_v4();
+	}
+
+	bool is_loopback(address const& addr)
+	{
+		if (addr.is_v4())
+		  return addr.to_v4() == address_v4::loopback();
+		else
+			return addr.to_v6() == address_v6::loopback();
+	}
+
+	bool is_multicast(address const& addr)
+	{
+		if (addr.is_v4())
+			return addr.to_v4().is_multicast();
+		else
+			return addr.to_v6().is_multicast();
 	}
 
 	broadcast_socket::broadcast_socket(asio::io_service& ios
@@ -74,8 +91,7 @@ namespace libtorrent
 		: m_multicast_endpoint(multicast_endpoint)
 		, m_on_receive(handler)
 	{
-		assert(m_multicast_endpoint.address().is_v4());
-		assert(m_multicast_endpoint.address().to_v4().is_multicast());
+		assert(is_multicast(m_multicast_endpoint.address()));
 
 		using namespace asio::ip::multicast;
 	
@@ -86,21 +102,39 @@ namespace libtorrent
 			, end(interfaces.end()); i != end; ++i)
 		{
 			// only broadcast to IPv4 addresses that are not local
-			if (!i->is_v4() || !is_local(*i)) continue;
-			// ignore the loopback interface
-			if (i->to_v4() == address_v4((127 << 24) + 1)) continue;
+			if (!is_local(*i)) continue;
+			// only multicast on compatible networks
+			if (i->is_v4() != multicast_endpoint.address().is_v4()) continue;
+			// ignore any loopback interface
+			if (is_loopback(*i)) continue;
 
 			boost::shared_ptr<datagram_socket> s(new datagram_socket(ios));
-			s->open(udp::v4(), ec);
-			if (ec) continue;
-			s->set_option(datagram_socket::reuse_address(true), ec);
-			if (ec) continue;
-			s->bind(udp::endpoint(address_v4::any(), multicast_endpoint.port()), ec);
-			if (ec) continue;
-			s->set_option(join_group(multicast_endpoint.address()), ec);
-			if (ec) continue;
-			s->set_option(outbound_interface(i->to_v4()), ec);
-			if (ec) continue;
+			if (i->is_v4())
+			{
+				s->open(udp::v4(), ec);
+				if (ec) continue;
+				s->set_option(datagram_socket::reuse_address(true), ec);
+				if (ec) continue;
+				s->bind(udp::endpoint(address_v4::any(), multicast_endpoint.port()), ec);
+				if (ec) continue;
+				s->set_option(join_group(multicast_endpoint.address()), ec);
+				if (ec) continue;
+				s->set_option(outbound_interface(i->to_v4()), ec);
+				if (ec) continue;
+			}
+			else
+			{
+				s->open(udp::v6(), ec);
+				if (ec) continue;
+				s->set_option(datagram_socket::reuse_address(true), ec);
+				if (ec) continue;
+				s->bind(udp::endpoint(address_v6::any(), multicast_endpoint.port()), ec);
+				if (ec) continue;
+				s->set_option(join_group(multicast_endpoint.address()), ec);
+				if (ec) continue;
+//				s->set_option(outbound_interface(i->to_v6()), ec);
+//				if (ec) continue;
+			}
 			s->set_option(hops(255), ec);
 			if (ec) continue;
 			s->set_option(enable_loopback(loopback), ec);

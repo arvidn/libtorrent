@@ -890,12 +890,7 @@ namespace libtorrent
 
 					peer_entry p;
 					p.pid.clear();
-					std::stringstream ip_str;
-					ip_str << (int)detail::read_uint8(i) << ".";
-					ip_str << (int)detail::read_uint8(i) << ".";
-					ip_str << (int)detail::read_uint8(i) << ".";
-					ip_str << (int)detail::read_uint8(i);
-					p.ip = ip_str.str();
+					p.ip = detail::read_v4_address(i).to_string();
 					p.port = detail::read_uint16(i);
 					peer_list.push_back(p);
 				}
@@ -906,6 +901,22 @@ namespace libtorrent
 				for(entry::list_type::const_iterator i = l.begin(); i != l.end(); ++i)
 				{
 					peer_entry p = extract_peer_info(*i);
+					peer_list.push_back(p);
+				}
+			}
+
+			if (entry const* ipv6_peers = e.find_key("peers6"))
+			{
+				std::string const& peers = ipv6_peers->string();
+				for (std::string::const_iterator i = peers.begin();
+					i != peers.end();)
+				{
+					if (std::distance(i, peers.end()) < 18) break;
+					
+					peer_entry p;
+					p.pid.clear();
+					p.ip = detail::read_v6_address(i).to_string();
+					p.port = detail::read_uint16(i);
 					peer_list.push_back(p);
 				}
 			}
