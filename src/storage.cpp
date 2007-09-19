@@ -400,16 +400,20 @@ namespace libtorrent
 			partial.update(&m_scratch_buffer[0], ph.offset);
 		whole.update(&m_scratch_buffer[0], slot_size1);
 		hasher partial_copy = ph.h;
+		std::cerr << partial_copy.final() << " " << partial.final() << std::endl;
 		assert(ph.offset == 0 || partial_copy.final() == partial.final());
 #endif
 		int slot_size = piece_size - ph.offset;
-		if (slot_size == 0) return ph.h.final();
+		if (slot_size == 0)
+		{
+			assert(ph.h.final() == whole.final());
+			return ph.h.final();
+		}
 		m_scratch_buffer.resize(slot_size);
 		read_impl(&m_scratch_buffer[0], slot, ph.offset, slot_size, true);
 		ph.h.update(&m_scratch_buffer[0], slot_size);
-		sha1_hash ret = ph.h.final();
-		assert(whole.final() == ret);
-		return ret;
+		assert(whole.final() == ph.h.final());
+		return ph.h.final();
 	}
 
 	void storage::initialize(bool allocate_files)
@@ -996,9 +1000,6 @@ namespace libtorrent
 		int err = statfs(query_path.native_directory_string().c_str(), &buf);
 		if (err == 0)
 		{
-#ifndef NDEBUG
-			std::cerr << "buf.f_type " << std::hex << buf.f_type << std::endl;
-#endif
 			switch (buf.f_type)
 			{
 				case 0x5346544e: // NTFS
@@ -1297,6 +1298,7 @@ namespace libtorrent
 			if (i != m_piece_hasher.end())
 			{
 				assert(i->second.offset > 0);
+				assert(offset >= i->second.offset);
 				if (offset == i->second.offset)
 				{
 					i->second.offset += size;
