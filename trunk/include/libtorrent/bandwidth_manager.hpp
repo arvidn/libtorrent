@@ -180,7 +180,12 @@ struct bandwidth_manager
 		, m_limit(bandwidth_limit::inf)
 		, m_current_quota(0)
 		, m_channel(channel)
-	{}
+	{
+	
+#ifndef NDEBUG
+		m_in_hand_out_bandwidth = false;
+#endif
+	}
 
 	void throttle(int limit) throw()
 	{
@@ -329,6 +334,9 @@ private:
 	void hand_out_bandwidth() throw()
 	{
 #ifndef NDEBUG
+		assert(m_in_hand_out_bandwidth == false);
+
+		m_in_hand_out_bandwidth = true;
 		try {
 #endif
 		INVARIANT_CHECK;
@@ -361,6 +369,7 @@ private:
 			if (qe.peer->is_disconnecting())
 			{
 				t->expire_bandwidth(m_channel, qe.max_block_size);
+				assert(amount == limit - m_current_quota);
 				continue;
 			}
 
@@ -374,6 +383,7 @@ private:
 			if (max_assignable == 0)
 			{
 				t->expire_bandwidth(m_channel, qe.max_block_size);
+				assert(amount == limit - m_current_quota);
 				continue;
 			}
 
@@ -388,15 +398,15 @@ private:
 			// the history window is one second, and the block will be forgotten
 			// after one second.
 			int block_size = (std::min)(qe.peer->bandwidth_throttle(m_channel)
-				, m_limit / 10);
+				, limit / 10);
 
 			if (block_size < min_bandwidth_block_size)
 			{
-				block_size = (std::min)(int(min_bandwidth_block_size), m_limit);
+				block_size = (std::min)(int(min_bandwidth_block_size), limit);
 			}
 			else if (block_size > max_bandwidth_block_size)
 			{
-				if (m_limit == bandwidth_limit::inf)
+				if (limit == bandwidth_limit::inf)
 				{
 					block_size = max_bandwidth_block_size;
 				}
@@ -407,8 +417,8 @@ private:
 					// as possible
 					// TODO: move this calculcation to where the limit
 					// is changed
-					block_size = m_limit
-						/ (m_limit / max_bandwidth_block_size);
+					block_size = limit
+						/ (limit / max_bandwidth_block_size);
 				}
 			}
 			if (block_size > qe.max_block_size) block_size = qe.max_block_size;
@@ -428,17 +438,21 @@ private:
 			int hand_out_amount = (std::min)((std::min)(block_size, max_assignable)
 				, amount);
 			assert(hand_out_amount > 0);
+			assert(amount == limit - m_current_quota);
 			amount -= hand_out_amount;
 			assert(hand_out_amount <= qe.max_block_size);
 			t->assign_bandwidth(m_channel, hand_out_amount, qe.max_block_size);
 			qe.peer->assign_bandwidth(m_channel, hand_out_amount);
 			add_history_entry(history_entry<PeerConnection, Torrent>(
 				qe.peer, t, hand_out_amount, now + bw_window_size));
+			assert(amount == limit - m_current_quota);
 		}
 #ifndef NDEBUG
 		}
 		catch (std::exception& e)
 		{ assert(false); };
+
+		m_in_hand_out_bandwidth = false;
 #endif
 	}
 
@@ -472,6 +486,11 @@ private:
 	// this is the channel within the consumers
 	// that bandwidth is assigned to (upload or download)
 	int m_channel;
+
+#ifndef NDEBUG
+	bool m_in_hand_out_bandwidth;
+#endif
+
 };
 
 }
