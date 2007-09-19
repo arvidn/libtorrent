@@ -180,12 +180,8 @@ struct bandwidth_manager
 		, m_limit(bandwidth_limit::inf)
 		, m_current_quota(0)
 		, m_channel(channel)
-	{
-	
-#ifndef NDEBUG
-		m_in_hand_out_bandwidth = false;
-#endif
-	}
+		, m_in_hand_out_bandwidth(false)
+	{}
 
 	void throttle(int limit) throw()
 	{
@@ -333,10 +329,11 @@ private:
 
 	void hand_out_bandwidth() throw()
 	{
-#ifndef NDEBUG
-		assert(m_in_hand_out_bandwidth == false);
-
+		// if we're already handing out bandwidth, just return back
+		// to the loop further down on the callstack
+		if (m_in_hand_out_bandwidth) return;
 		m_in_hand_out_bandwidth = true;
+#ifndef NDEBUG
 		try {
 #endif
 		INVARIANT_CHECK;
@@ -451,9 +448,8 @@ private:
 		}
 		catch (std::exception& e)
 		{ assert(false); };
-
-		m_in_hand_out_bandwidth = false;
 #endif
+		m_in_hand_out_bandwidth = false;
 	}
 
 
@@ -487,9 +483,9 @@ private:
 	// that bandwidth is assigned to (upload or download)
 	int m_channel;
 
-#ifndef NDEBUG
+	// this is true while we're in the hand_out_bandwidth loop
+	// to prevent recursive invocations to interfere
 	bool m_in_hand_out_bandwidth;
-#endif
 
 };
 
