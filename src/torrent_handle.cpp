@@ -93,20 +93,16 @@ namespace libtorrent
 			, F f)
 		{
 			if (ses == 0) throw_invalid_handle();
+			assert(chk);
 
 			session_impl::mutex_t::scoped_lock l(ses->m_mutex);
 			mutex::scoped_lock l2(chk->m_mutex);
 
-			if (chk)
-			{
-				aux::piece_checker_data* d = chk->find_torrent(hash);
-				if (d != 0) return f(*d->torrent_ptr);
-			}
+			aux::piece_checker_data* d = chk->find_torrent(hash);
+			if (d != 0) return f(*d->torrent_ptr);
 
-			{
-				boost::shared_ptr<torrent> t = ses->find_torrent(hash).lock();
-				if (t) return f(*t);
-			}
+			boost::shared_ptr<torrent> t = ses->find_torrent(hash).lock();
+			if (t) return f(*t);
 
 			// throwing directly instead of calling
 			// the throw_invalid_handle() function
@@ -119,7 +115,7 @@ namespace libtorrent
 
 	void torrent_handle::check_invariant() const
 	{
-		assert((m_ses == 0 && m_chk == 0) || (m_ses != 0));
+		assert((m_ses == 0 && m_chk == 0) || (m_ses != 0 && m_chk != 0));
 	}
 
 #endif
@@ -254,30 +250,25 @@ namespace libtorrent
 		
 		if (m_ses == 0) throw_invalid_handle();
 
-		if (m_chk)
-		{
-			mutex::scoped_lock l(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
+		mutex::scoped_lock l2(m_chk->m_mutex);
 
-			aux::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
-			if (d != 0)
+		aux::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
+		if (d != 0)
+		{
+			if (!d->processing)
 			{
-				if (!d->processing)
-				{
-					torrent_info const& info = d->torrent_ptr->torrent_file();
-					progress.clear();
-					progress.resize(info.num_files(), 0.f);
-					return;
-				}
-				d->torrent_ptr->file_progress(progress);
+				torrent_info const& info = d->torrent_ptr->torrent_file();
+				progress.clear();
+				progress.resize(info.num_files(), 0.f);
 				return;
 			}
+			d->torrent_ptr->file_progress(progress);
+			return;
 		}
 
-		{
-			session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
-			boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
-			if (t) return t->file_progress(progress);
-		}
+		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
+		if (t) return t->file_progress(progress);
 
 		throw_invalid_handle();
 	}
@@ -288,35 +279,30 @@ namespace libtorrent
 
 		if (m_ses == 0) throw_invalid_handle();
 
-		if (m_chk)
-		{
-			mutex::scoped_lock l(m_chk->m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
+		mutex::scoped_lock l2(m_chk->m_mutex);
 
-			aux::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
-			if (d != 0)
+		aux::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
+		if (d != 0)
+		{
+			torrent_status st;
+
+			if (d->processing)
 			{
-				torrent_status st;
-
-				if (d->processing)
-				{
-					if (d->torrent_ptr->is_allocating())
-						st.state = torrent_status::allocating;
-					else
-						st.state = torrent_status::checking_files;
-				}
+				if (d->torrent_ptr->is_allocating())
+					st.state = torrent_status::allocating;
 				else
-					st.state = torrent_status::queued_for_checking;
-				st.progress = d->progress;
-				st.paused = d->torrent_ptr->is_paused();
-				return st;
+					st.state = torrent_status::checking_files;
 			}
+			else
+				st.state = torrent_status::queued_for_checking;
+			st.progress = d->progress;
+			st.paused = d->torrent_ptr->is_paused();
+			return st;
 		}
 
-		{
-			session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
-			boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
-			if (t) return t->status();
-		}
+		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
+		if (t) return t->status();
 
 		throw_invalid_handle();
 		return torrent_status();
@@ -413,18 +399,14 @@ namespace libtorrent
 
 		if (m_ses == 0) return false;
 
-		if (m_chk)
-		{
-			mutex::scoped_lock l(m_chk->m_mutex);
-			aux::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
-			if (d != 0) return true;
-		}
+		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
+		mutex::scoped_lock l2(m_chk->m_mutex);
 
-		{
-			session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
-			boost::weak_ptr<torrent> t = m_ses->find_torrent(m_info_hash);
-			if (!t.expired()) return true;
-		}
+		aux::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
+		if (d != 0) return true;
+
+		boost::weak_ptr<torrent> t = m_ses->find_torrent(m_info_hash);
+		if (!t.expired()) return true;
 
 		return false;
 	}
