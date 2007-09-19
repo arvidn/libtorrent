@@ -1422,7 +1422,7 @@ namespace libtorrent
 			++total_connections;
 			if (!p.connection)
 			{
-				assert(m_torrent->connection_for(p.ip) == 0);
+//				assert(m_torrent->connection_for(p.ip) == 0);
 				continue;
 			}
 			if (!m_torrent->settings().allow_multiple_connections_per_ip)
