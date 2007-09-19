@@ -94,15 +94,16 @@ namespace libtorrent
 		{
 			if (ses == 0) throw_invalid_handle();
 
+			session_impl::mutex_t::scoped_lock l(ses->m_mutex);
+			mutex::scoped_lock l2(chk->m_mutex);
+
 			if (chk)
 			{
-				mutex::scoped_lock l(chk->m_mutex);
 				aux::piece_checker_data* d = chk->find_torrent(hash);
 				if (d != 0) return f(*d->torrent_ptr);
 			}
 
 			{
-				session_impl::mutex_t::scoped_lock l(ses->m_mutex);
 				boost::shared_ptr<torrent> t = ses->find_torrent(hash).lock();
 				if (t) return f(*t);
 			}
