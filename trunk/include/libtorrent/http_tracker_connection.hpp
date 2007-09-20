@@ -73,6 +73,8 @@ namespace libtorrent
 		T header(char const* key) const;
 		std::string const& protocol() const { return m_protocol; }
 		int status_code() const { return m_status_code; }
+		std::string const& method() const { return m_method; }
+		std::string const& path() const { return m_path; }
 		std::string message() const { return m_server_message; }
 		buffer::const_interval get_body() const;
 		bool header_finished() const { return m_state == read_body; }
@@ -85,6 +87,8 @@ namespace libtorrent
 	private:
 		int m_recv_pos;
 		int m_status_code;
+		std::string m_method;
+		std::string m_path;
 		std::string m_protocol;
 		std::string m_server_message;
 

@@ -127,6 +127,25 @@ int test_main()
 	TEST_CHECK(parser.header<std::string>("ext") == "");
 	TEST_CHECK(parser.header<std::string>("date") == "Fri, 02 Jan 1970 08:10:38 GMT");
 
+	parser.reset();
+	TEST_CHECK(!parser.finished());
+
+	char const* upnp_notify =
+		"NOTIFY * HTTP/1.1\r\n"
+		"Host:239.255.255.250:1900\r\n"
+		"NT:urn:schemas-upnp-org:device:MediaServer:1\r\n"
+		"NTS:ssdp:alive\r\n"
+		"Location:http://10.0.1.15:2353/upnphost/udhisapi.dll?content=uuid:c17f2c31-d19b-4912-af94-651945c8a84e\r\n"
+		"USN:uuid:c17f0c32-d1db-4be8-ae94-25f94583026e::urn:schemas-upnp-org:device:MediaServer:1\r\n"
+		"Cache-Control:max-age=900\r\n"
+		"Server:Microsoft-Windows-NT/5.1 UPnP/1.0 UPnP-Device-Host/1.0\r\n";
+
+	received = feed_bytes(parser, upnp_notify);
+
+	TEST_CHECK(received == make_tuple(0, int(strlen(upnp_notify))));
+	TEST_CHECK(parser.method() == "notify");
+	TEST_CHECK(parser.path() == "*");
+
 	// test xml parser
 
 	char xml1[] = "<a>foo<b/>bar</a>";
