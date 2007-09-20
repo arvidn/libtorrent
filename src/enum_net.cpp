@@ -72,8 +72,17 @@ namespace libtorrent
 			ifreq const& item = *reinterpret_cast<ifreq*>(ifr);
 			if (item.ifr_addr.sa_family == AF_INET)
 			{
-				ret.push_back(address::from_string(
-					inet_ntoa(((sockaddr_in const*)&item.ifr_addr)->sin_addr)));
+				typedef asio::ip::address_v4::bytes_type bytes_t;
+				bytes_t b;
+				memcpy(&b[0], &((sockaddr_in const*)&item.ifr_addr)->sin_addr, b.size());
+				ret.push_back(address_v4(b));
+			}
+			else if (item.ifr_addr.sa_family == AF_INET6)
+			{
+				typedef asio::ip::address_v6::bytes_type bytes_t;
+				bytes_t b;
+				memcpy(&b[0], &((sockaddr_in6 const*)&item.ifr_addr)->sin6_addr, b.size());
+				ret.push_back(address_v6(b));
 			}
 
 #if defined __MACH__ || defined(__FreeBSD__)

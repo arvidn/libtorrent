@@ -42,6 +42,9 @@ namespace libtorrent
 {
 
 	bool is_local(address const& a);
+	bool is_loopback(address const& addr);
+	bool is_multicast(address const& addr);
+
 	address_v4 guess_local_address(asio::io_service&);
 
 	typedef boost::function<void(udp::endpoint const& from
