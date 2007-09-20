@@ -247,6 +247,18 @@ try
 	EXT:
 	Cache-Control:max-age=180
 	DATE: Fri, 02 Jan 1970 08:10:38 GMT
+
+	a notification looks like this:
+
+	NOTIFY * HTTP/1.1
+	Host:239.255.255.250:1900
+	NT:urn:schemas-upnp-org:device:MediaServer:1
+	NTS:ssdp:alive
+	Location:http://10.0.3.169:2869/upnphost/udhisapi.dll?content=uuid:c17f0c32-d19b-4938-ae94-65f945c3a26e
+	USN:uuid:c17f0c32-d19b-4938-ae94-65f945c3a26e::urn:schemas-upnp-org:device:MediaServer:1
+	Cache-Control:max-age=900
+	Server:Microsoft-Windows-NT/5.1 UPnP/1.0 UPnP-Device-Host/1.0
+
 */
 	http_parser p;
 	try
@@ -263,12 +275,17 @@ try
 		return;
 	}
 
-	if (p.status_code() != 200)
+	if (p.status_code() != 200 && p.method() != "notify")
 	{
 #ifdef TORRENT_UPNP_LOGGING
-		m_log << time_now_string()
-			<< " <== Rootdevice responded with HTTP status: " << p.status_code()
-			<< ". Ignoring device" << std::endl;
+		if (p.method().empty())
+			m_log << time_now_string()
+				<< " <== Device responded with HTTP status: " << p.status_code()
+				<< ". Ignoring device" << std::endl;
+		else
+			m_log << time_now_string()
+				<< " <== Device with HTTP method: " << p.method()
+				<< ". Ignoring device" << std::endl;
 #endif
 		return;
 	}
