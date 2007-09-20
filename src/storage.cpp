@@ -400,7 +400,6 @@ namespace libtorrent
 			partial.update(&m_scratch_buffer[0], ph.offset);
 		whole.update(&m_scratch_buffer[0], slot_size1);
 		hasher partial_copy = ph.h;
-		std::cerr << partial_copy.final() << " " << partial.final() << std::endl;
 		assert(ph.offset == 0 || partial_copy.final() == partial.final());
 #endif
 		int slot_size = piece_size - ph.offset;
