@@ -85,13 +85,16 @@ void test_swarm()
 		}
 
 		std::cerr
-			<< "\033[33m" << int(st1.upload_payload_rate / 1000.f) << "kB/s: "
+			<< "\033[33m" << int(st1.upload_payload_rate / 1000.f) << "kB/s "
+			<< st1.num_peers << ": "
 			<< "\033[32m" << int(st2.download_payload_rate / 1000.f) << "kB/s "
 			<< "\033[31m" << int(st2.upload_payload_rate / 1000.f) << "kB/s "
-			<< "\033[0m" << int(st2.progress * 100) << "% - "
+			<< "\033[0m" << int(st2.progress * 100) << "% "
+			<< st2.num_peers << " - "
 			<< "\033[32m" << int(st3.download_payload_rate / 1000.f) << "kB/s "
 			<< "\033[31m" << int(st3.upload_payload_rate / 1000.f) << "kB/s "
 			<< "\033[0m" << int(st3.progress * 100) << "% "
+			<< st3.num_peers
 			<< std::endl;
 
 		if (tor2.is_seed() && tor3.is_seed()) break;
