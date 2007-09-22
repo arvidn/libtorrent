@@ -98,6 +98,16 @@ namespace libtorrent
 	
 	typedef asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
 	
+	inline std::ostream& operator<<(std::ostream& os, tcp::endpoint const& ep)
+	{
+		address const& a = ep.address();
+		if (a.is_v6())
+			os << "[" << a.to_string() << "]:" << ep.port();
+		else
+			os << a.to_string() << ":" << ep.port();
+		return os;
+	}
+
 	namespace detail
 	{
 		template<class OutIt>

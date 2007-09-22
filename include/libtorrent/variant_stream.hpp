@@ -232,18 +232,18 @@ namespace aux
 
 // -------------- remote_endpoint -----------
 
-  template <class EndpointType, class Error_Handler = boost::mpl::void_>
-  struct remote_endpoint_visitor
+  template <class EndpointType>
+  struct remote_endpoint_visitor_ec
     : boost::static_visitor<EndpointType>
   {
-      remote_endpoint_visitor(Error_Handler const& error_handler)
-        : error_handler(error_handler)
+      remote_endpoint_visitor_ec(asio::error_code& ec)
+        : error_code(ec)
       {}
 
       template <class T>
       EndpointType operator()(T* p) const
       {
-          return p->remote_endpoint(error_handler);
+          return p->remote_endpoint(error_code);
       }
 
       EndpointType operator()(boost::blank) const
@@ -251,11 +251,11 @@ namespace aux
           return EndpointType();
       }
 
-      Error_Handler const& error_handler;
+		asio::error_code& error_code;
   };
 
   template <class EndpointType>
-  struct remote_endpoint_visitor<EndpointType, boost::mpl::void_>
+  struct remote_endpoint_visitor
     : boost::static_visitor<EndpointType>
   {
       template <class T>
@@ -272,18 +272,18 @@ namespace aux
 
 // -------------- local_endpoint -----------
 
-  template <class EndpointType, class Error_Handler = boost::mpl::void_>
-  struct local_endpoint_visitor
+  template <class EndpointType>
+  struct local_endpoint_visitor_ec
     : boost::static_visitor<EndpointType>
   {
-      local_endpoint_visitor(Error_Handler const& error_handler)
-        : error_handler(error_handler)
+      local_endpoint_visitor_ec(asio::error_code& ec)
+        : error_code(ec)
       {}
 
       template <class T>
       EndpointType operator()(T* p) const
       {
-          return p->local_endpoint(error_handler);
+          return p->local_endpoint(error_code);
       }
 
       EndpointType operator()(boost::blank) const
@@ -291,11 +291,11 @@ namespace aux
           return EndpointType();
       }
 
-      Error_Handler const& error_handler;
+		asio::error_code& error_code;
   };
 
   template <class EndpointType>
-  struct local_endpoint_visitor<EndpointType, boost::mpl::void_>
+  struct local_endpoint_visitor
     : boost::static_visitor<EndpointType>
   {
       template <class T>
@@ -665,12 +665,11 @@ public:
         return boost::apply_visitor(aux::remote_endpoint_visitor<endpoint_type>(), m_variant);
     }
 
-    template <class Error_Handler>
-    endpoint_type remote_endpoint(Error_Handler const& error_handler)
+    endpoint_type remote_endpoint(asio::error_code& ec)
     {
         assert(instantiated());
         return boost::apply_visitor(
-            aux::remote_endpoint_visitor<endpoint_type, Error_Handler>(error_handler), m_variant
+            aux::remote_endpoint_visitor_ec<endpoint_type>(ec), m_variant
         );
     }
 
@@ -680,12 +679,11 @@ public:
         return boost::apply_visitor(aux::local_endpoint_visitor<endpoint_type>(), m_variant);
     }
 
-    template <class Error_Handler>
-    endpoint_type local_endpoint(Error_Handler const& error_handler)
+    endpoint_type local_endpoint(asio::error_code& ec)
     {
         assert(instantiated());
         return boost::apply_visitor(
-            aux::local_endpoint_visitor<endpoint_type, Error_Handler>(error_handler), m_variant
+            aux::local_endpoint_visitor_ec<endpoint_type>(ec), m_variant
         );
     }
 
