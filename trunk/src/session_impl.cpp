@@ -793,15 +793,26 @@ namespace detail
 			tcp::endpoint ep = i->sock->local_endpoint(ec);
 			if (ec || ep.address().is_v4()) continue;
 
-			std::vector<address> const& ifs = enum_net_interfaces(m_io_service, ec);
-			for (std::vector<address>::const_iterator i = ifs.begin()
-				, end(ifs.end()); i != end; ++i)
+			if (ep.address().to_v6() != address_v6::any())
 			{
-				if (i->is_v4() || i->to_v6().is_link_local() || i->to_v6().is_loopback()) continue;
-				m_ipv6_interface = tcp::endpoint(*i, ep.port());
+				// if we're listening on a specific address
+				// pick it
+				m_ipv6_interface = ep;
+			}
+			else
+			{
+				// if we're listening on any IPv6 address, enumerate them and
+				// pick the first non-local address
+				std::vector<address> const& ifs = enum_net_interfaces(m_io_service, ec);
+				for (std::vector<address>::const_iterator i = ifs.begin()
+					, end(ifs.end()); i != end; ++i)
+				{
+					if (i->is_v4() || i->to_v6().is_link_local() || i->to_v6().is_loopback()) continue;
+					m_ipv6_interface = tcp::endpoint(*i, ep.port());
+					break;
+				}
 				break;
 			}
-			break;
 		}
 
 		if (!m_listen_sockets.empty())
