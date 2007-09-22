@@ -84,6 +84,14 @@ namespace libtorrent
 			return addr.to_v6().is_multicast();
 	}
 
+	bool is_any(address const& addr)
+	{
+		if (addr.is_v4())
+			return addr.to_v4() == address_v4::any();
+		else
+			return addr.to_v6() == address_v6::any();
+	}
+
 	broadcast_socket::broadcast_socket(asio::io_service& ios
 		, udp::endpoint const& multicast_endpoint
 		, receive_handler_t const& handler
