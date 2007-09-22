@@ -40,10 +40,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	std::vector<address> const& enum_net_interfaces(asio::io_service& ios, asio::error_code& ec)
+	std::vector<address> enum_net_interfaces(asio::io_service& ios, asio::error_code& ec)
 	{
-		static std::vector<address> ret;
-		if (!ret.empty()) return ret;
+		std::vector<address> ret;
 
 #if defined __linux__ || defined __MACH__ || defined(__FreeBSD__)
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
