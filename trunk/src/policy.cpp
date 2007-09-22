@@ -162,6 +162,18 @@ namespace
 		tcp::endpoint const& m_ep;
 	};
 
+	struct match_peer_id
+	{
+		match_peer_id(peer_id const& id_)
+			: m_id(id_)
+		{}
+
+		bool operator()(policy::peer const& p) const
+		{ return p.connection && p.connection->pid() == m_id; }
+
+		peer_id const& m_id;
+	};
+
 	struct match_peer_connection
 	{
 		match_peer_connection(peer_connection const& c)
@@ -1030,6 +1042,12 @@ namespace libtorrent
 					m_peers.begin()
 					, m_peers.end()
 					, match_peer_endpoint(remote));
+	
+				if (i == m_peers.end())
+					i = std::find_if(
+						m_peers.begin()
+						, m_peers.end()
+						, match_peer_id(pid));
 			}
 			else
 			{
@@ -1156,7 +1174,7 @@ namespace libtorrent
 	// data from now on
 	void policy::unchoked(peer_connection& c)
 	{
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 		if (c.is_interesting())
 		{
 			request_a_block(*m_torrent, c);
@@ -1166,7 +1184,7 @@ namespace libtorrent
 	// called when a peer is interested in us
 	void policy::interested(peer_connection& c)
 	{
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		assert(std::find_if(m_peers.begin(), m_peers.end()
 			, boost::bind<bool>(std::equal_to<peer_connection*>(), bind(&peer::connection, _1)
@@ -1278,7 +1296,7 @@ namespace libtorrent
 */
 	bool policy::connect_one_peer()
 	{
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		assert(m_torrent->want_more_peers());
 		
@@ -1291,7 +1309,6 @@ namespace libtorrent
 
 		try
 		{
-			INVARIANT_CHECK;
 			p->connected = time_now();
 			p->connection = m_torrent->connect_to_peer(&*p);
 			assert(p->connection == m_torrent->connection_for(p->ip));
@@ -1375,7 +1392,7 @@ namespace libtorrent
 
 	void policy::peer_is_interesting(peer_connection& c)
 	{
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		c.send_interested();
 		if (c.has_peer_choked()
