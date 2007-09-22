@@ -412,9 +412,9 @@ namespace libtorrent
 			m_last_dht_announce = now;
 			// TODO: There should be a way to abort an announce operation on the dht.
 			// when the torrent is destructed
-			assert(m_ses.m_external_listen_port > 0);
+			if (m_ses.m_listen_sockets.empty()) return;
 			m_ses.m_dht->announce(m_torrent_file->info_hash()
-				, m_ses.m_external_listen_port
+				, m_ses.m_listen_sockets.front().external_port
 				, m_ses.m_strand.wrap(bind(&torrent::on_dht_announce_response_disp, self, _1)));
 		}
 #endif
@@ -1367,6 +1367,9 @@ namespace libtorrent
 		req.left = bytes_left();
 		if (req.left == -1) req.left = 16*1024;
 		req.event = m_event;
+		tcp::endpoint ep = m_ses.get_ipv6_interface();
+		if (ep != tcp::endpoint())
+			req.ipv6 = ep.address().to_string();
 
 		if (m_event != tracker_request::stopped)
 			m_event = tracker_request::none;

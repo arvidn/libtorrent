@@ -50,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/version.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
-#include "libtorrent/enum_net.hpp"
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 #include "libtorrent/pe_crypto.hpp"
@@ -1475,18 +1474,14 @@ namespace libtorrent
 		detail::write_address(remote().address(), out);
 		handshake["yourip"] = remote_address;
 		handshake["reqq"] = m_ses.settings().max_allowed_in_request_queue;
-		asio::error_code ec;
-		std::vector<address> const& interfaces = enum_net_interfaces(get_socket()->io_service(), ec);
-		for (std::vector<address>::const_iterator i = interfaces.begin()
-			, end(interfaces.end()); i != end; ++i)
+
+		tcp::endpoint ep = m_ses.get_ipv6_interface();
+		if (ep != tcp::endpoint())
 		{
-			// TODO: only use global IPv6 addresses
-			if (!i->is_v6() || i->to_v6().is_link_local()) continue;
 			std::string ipv6_address;
 			std::back_insert_iterator<std::string> out(ipv6_address);
-			detail::write_address(*i, out);
+			detail::write_address(ep.address(), out);
 			handshake["ipv6"] = ipv6_address;
-			break;
 		}
 
 		// loop backwards, to make the first extension be the last

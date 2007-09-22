@@ -189,11 +189,16 @@ namespace libtorrent
 #endif
 			void operator()();
 
-			void open_listen_port();
+			void open_listen_port() throw();
 
-			void async_accept();
+			// if we are listening on an IPv6 interface
+			// this will return one of the IPv6 addresses on this
+			// machine, otherwise just an empty endpoint
+			tcp::endpoint get_ipv6_interface() const;
+
+			void async_accept(boost::shared_ptr<socket_acceptor> const& listener);
 			void on_incoming_connection(boost::shared_ptr<socket_type> const& s
-				, boost::weak_ptr<socket_acceptor> const& as, asio::error_code const& e);
+				, boost::weak_ptr<socket_acceptor> listener, asio::error_code const& e);
 		
 			// must be locked to access the data
 			// in this struct
@@ -393,8 +398,10 @@ namespace libtorrent
 			// at startup
 			int m_key;
 
-			// the range of ports we try to listen on
-			std::pair<int, int> m_listen_port_range;
+			// the number of retries we make when binding the
+			// listen socket. For each retry the port number
+			// is incremented by one
+			int m_listen_port_retries;
 
 			// the ip-address of the interface
 			// we are supposed to listen on.
@@ -402,17 +409,32 @@ namespace libtorrent
 			// that we should let the os decide which
 			// interface to listen on
 			tcp::endpoint m_listen_interface;
-			
-			// this is typically set to the same as the local
-			// listen port. In case a NAT port forward was
-			// successfully opened, this will be set to the
-			// port that is open on the external (NAT) interface
-			// on the NAT box itself. This is the port that has
-			// to be published to peers, since this is the port
-			// the client is reachable through.
-			int m_external_listen_port;
 
-			boost::shared_ptr<socket_acceptor> m_listen_socket;
+			// if we're listening on an IPv6 interface
+			// this is one of the non local IPv6 interfaces
+			// on this machine
+			tcp::endpoint m_ipv6_interface;
+			
+			struct listen_socket_t
+			{
+				listen_socket_t(): external_port(0) {}
+				// this is typically set to the same as the local
+				// listen port. In case a NAT port forward was
+				// successfully opened, this will be set to the
+				// port that is open on the external (NAT) interface
+				// on the NAT box itself. This is the port that has
+				// to be published to peers, since this is the port
+				// the client is reachable through.
+				int external_port;
+
+				// the actual socket
+				boost::shared_ptr<socket_acceptor> sock;
+			};
+			// since we might be listening on multiple interfaces
+			// we might need more than one listen socket
+			std::list<listen_socket_t> m_listen_sockets;
+
+			listen_socket_t setup_listener(tcp::endpoint ep, int retries);
 
 			// the settings for the client
 			session_settings m_settings;
