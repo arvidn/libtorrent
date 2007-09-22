@@ -113,6 +113,7 @@ namespace libtorrent
 		std::string url;
 		int key;
 		int num_want;
+		std::string ipv6;
 	};
 
 	struct TORRENT_EXPORT request_callback

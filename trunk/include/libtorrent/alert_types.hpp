@@ -328,12 +328,31 @@ namespace libtorrent
 	struct TORRENT_EXPORT listen_failed_alert: alert
 	{
 		listen_failed_alert(
-			const std::string& msg)
+			tcp::endpoint const& ep
+			, std::string const& msg)
 			: alert(alert::fatal, msg)
+			, endpoint(ep)
 		{}
+
+		tcp::endpoint endpoint;
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new listen_failed_alert(*this)); }
+	};
+
+	struct TORRENT_EXPORT listen_succeeded_alert: alert
+	{
+		listen_succeeded_alert(
+			tcp::endpoint const& ep
+			, std::string const& msg)
+			: alert(alert::fatal, msg)
+			, endpoint(ep)
+		{}
+
+		tcp::endpoint endpoint;
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new listen_succeeded_alert(*this)); }
 	};
 
 	struct TORRENT_EXPORT portmap_error_alert: alert

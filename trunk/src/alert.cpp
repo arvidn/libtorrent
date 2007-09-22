@@ -65,7 +65,7 @@ namespace libtorrent {
 
 
 	alert_manager::alert_manager()
-		: m_severity(alert::none)
+		: m_severity(alert::fatal)
 	{}
 
 	alert_manager::~alert_manager()
