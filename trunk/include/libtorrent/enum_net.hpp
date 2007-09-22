@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	std::vector<address> const& enum_net_interfaces(asio::io_service& ios, asio::error_code& ec);
+	std::vector<address> enum_net_interfaces(asio::io_service& ios, asio::error_code& ec);
 }
 
 #endif
