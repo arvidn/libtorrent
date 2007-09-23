@@ -432,6 +432,7 @@ namespace libtorrent
 			{
 				m_send_buffer += "ipv6=";
 				m_send_buffer += req.ipv6;
+				m_send_buffer += '&';
 			}
 
 			// extension that tells the tracker that
