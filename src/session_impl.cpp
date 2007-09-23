@@ -695,14 +695,16 @@ namespace detail
 			// not even that worked, give up
 			if (m_alerts.should_post(alert::fatal))
 			{
-				std::string msg = "cannot bind to the given interface '"
-					+ boost::lexical_cast<std::string>(ep) + "' " + ec.message();
-				m_alerts.post_alert(listen_failed_alert(ep, msg));
+				std::stringstream msg;
+				msg << "cannot bind to interface '";
+				print_endpoint(msg, ep) << "' " << ec.message();
+				m_alerts.post_alert(listen_failed_alert(ep, msg.str()));
 			}
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			std::string msg = "cannot bind to the given interface '"
-				+ boost::lexical_cast<std::string>(ep) + "' " + ec.message();
-			(*m_logger) << msg << "\n";
+			std::stringstream msg;
+			msg << "cannot bind to interface '";
+			print_endpoint(msg, ep) << "' " << ec.message();
+			(*m_logger) << msg.str() << "\n";
 #endif
 			return listen_socket_t();
 		}
@@ -712,14 +714,16 @@ namespace detail
 		{
 			if (m_alerts.should_post(alert::fatal))
 			{
-				std::string msg = "cannot listen the given interface '"
-					+ boost::lexical_cast<std::string>(ep) + "' " + ec.message();
-				m_alerts.post_alert(listen_failed_alert(ep, msg));
+				std::stringstream msg;
+				msg << "cannot listen on interface '";
+				print_endpoint(msg, ep) << "' " << ec.message();
+				m_alerts.post_alert(listen_failed_alert(ep, msg.str()));
 			}
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			std::string msg = "cannot listen the given interface '"
-				+ boost::lexical_cast<std::string>(ep) + "' " + ec.message();
-			(*m_logger) << msg << "\n";
+			std::stringstream msg;
+			msg << "cannot listen on interface '";
+			print_endpoint(msg, ep) << "' " << ec.message();
+			(*m_logger) << msg.str() << "\n";
 #endif
 			return listen_socket_t();
 		}
@@ -732,7 +736,7 @@ namespace detail
 		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << "listening on: " << ep.address().to_string() << ":" << ep.port()
+		(*m_logger) << "listening on: " << ep
 			<< " external port: " << s.external_port << "\n";
 #endif
 		return s;
