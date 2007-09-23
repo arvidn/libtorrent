@@ -2082,7 +2082,8 @@ namespace libtorrent
 			p.remote_dl_rate = 0;
 		}
 
-		p.send_buffer_size = send_buffer_size();
+		p.send_buffer_size = int(m_send_buffer[0].capacity()
+			+ m_send_buffer[1].capacity());
 	}
 
 	void peer_connection::cut_receive_buffer(int size, int packet_size)
@@ -2512,7 +2513,7 @@ namespace libtorrent
 
 	void peer_connection::send_buffer(char const* begin, char const* end)
 	{
-		std::vector<char>& buf = m_send_buffer[m_current_send_buffer];
+		buffer& buf = m_send_buffer[m_current_send_buffer];
 		buf.insert(buf.end(), begin, end);
 		setup_send();
 	}
@@ -2521,7 +2522,7 @@ namespace libtorrent
 // return value is destructed
 	buffer::interval peer_connection::allocate_send_buffer(int size)
 	{
-		std::vector<char>& buf = m_send_buffer[m_current_send_buffer];
+		buffer& buf = m_send_buffer[m_current_send_buffer];
 		buf.resize(buf.size() + size);
 		buffer::interval ret(&buf[0] + buf.size() - size, &buf[0] + buf.size());
 		return ret;
@@ -2588,7 +2589,7 @@ namespace libtorrent
 				&& m_recv_pos == 0
 				&& (m_recv_buffer.capacity() - m_packet_size) > 128)
 			{
-				std::vector<char>(m_packet_size).swap(m_recv_buffer);
+				buffer(m_packet_size).swap(m_recv_buffer);
 			}
 
 			int max_receive = m_packet_size - m_recv_pos;
@@ -2807,7 +2808,7 @@ namespace libtorrent
 				if (int(m_send_buffer[i].size()) < 64
 					&& int(m_send_buffer[i].capacity()) > 128)
 				{
-					std::vector<char> tmp(m_send_buffer[i]);
+					buffer tmp(m_send_buffer[i]);
 					tmp.swap(m_send_buffer[i]);
 					assert(m_send_buffer[i].capacity() == m_send_buffer[i].size());
 				}

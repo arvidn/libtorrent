@@ -510,7 +510,7 @@ namespace libtorrent
 
 		int m_packet_size;
 		int m_recv_pos;
-		std::vector<char> m_recv_buffer;
+		buffer m_recv_buffer;
 
 		// this is the buffer where data that is
 		// to be sent is stored until it gets
@@ -521,7 +521,7 @@ namespace libtorrent
 		// waiting for a async_write operation on one
 		// buffer, the other is used to write data to
 		// be queued up.
-		std::vector<char> m_send_buffer[2];
+		buffer m_send_buffer[2];
 		// the current send buffer is the one to write to.
 		// (m_current_send_buffer + 1) % 2 is the
 		// buffer we're currently waiting for.

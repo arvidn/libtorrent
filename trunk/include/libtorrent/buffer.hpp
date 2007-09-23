@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2003 - 2005, Arvid Norberg, Daniel Wallin
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef LIBTORRENT_BUFFER_HPP
 #define LIBTORRENT_BUFFER_HPP
 
-//#define TORRENT_BUFFER_DEBUG
-
 #include <memory>
+#include <cstring>
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/assert.hpp"
 
@@ -43,410 +42,157 @@ namespace libtorrent {
 class buffer
 {
 public:
-    struct interval
-    {
-       interval(char* begin, char* end)
-          : begin(begin)
-          , end(end)
-        {}
+	struct interval
+	{
+	   interval(char* begin, char* end)
+		  : begin(begin)
+		  , end(end)
+		{}
 
-        char operator[](int index) const
-        {
-            assert(begin + index < end);
-            return begin[index];
-        }
+		char operator[](int index) const
+		{
+			assert(begin + index < end);
+			return begin[index];
+		}
 		  
-        int left() const { assert(end >= begin); return end - begin; }
+		int left() const { assert(end >= begin); return end - begin; }
 
-        char* begin;
-        char* end;
-    };
+		char* begin;
+		char* end;
+	};
 
-    struct const_interval
-    {
-       const_interval(char const* begin, char const* end)
-          : begin(begin)
-          , end(end)
-        {}
+	struct const_interval
+	{
+	   const_interval(char const* begin, char const* end)
+		  : begin(begin)
+		  , end(end)
+		{}
 
-        char operator[](int index) const
-        {
-            assert(begin + index < end);
-            return begin[index];
-        }
+		char operator[](int index) const
+		{
+			assert(begin + index < end);
+			return begin[index];
+		}
 
-        bool operator==(const const_interval& p_interval)
-        {
-            return (begin == p_interval.begin
-                && end == p_interval.end);
-        }
+		bool operator==(const const_interval& p_interval)
+		{
+			return (begin == p_interval.begin
+				&& end == p_interval.end);
+		}
 
-        int left() const { assert(end >= begin); return end - begin; }
+		int left() const { assert(end >= begin); return end - begin; }
 
-        char const* begin;
-        char const* end;
-    };
+		char const* begin;
+		char const* end;
+	};
 
-    typedef std::pair<const_interval, const_interval> interval_type;
+	buffer(std::size_t n = 0)
+		: m_begin(0)
+		, m_end(0)
+		, m_last(0)
+	{
+		if (n) resize(n);
+	}
 
-    buffer(std::size_t n = 0);
-    ~buffer();
+	buffer(buffer const& b)
+		: m_begin(0)
+		, m_end(0)
+		, m_last(0)
+	{
+		if (b.size() == 0) return;
+		resize(b.size());
+		std::memcpy(m_begin, b.begin(), b.size());
+	}
 
-    interval allocate(std::size_t n);
-    void insert(char const* first, char const* last);
-    void erase(std::size_t n);
-    std::size_t size() const;
-    std::size_t capacity() const;
-    void reserve(std::size_t n);
-    interval_type data() const;
-    bool empty() const;
+	buffer& operator=(buffer const& b)
+	{
+		resize(b.size());
+		std::memcpy(m_begin, b.begin(), b.size());
+		return *this;
+	}
 
-    std::size_t space_left() const;
+	~buffer()
+	{
+		::operator delete (m_begin);
+	}
 
-    char const* raw_data() const
-    {
-        return m_first;
-    }
+	buffer::interval data() { return interval(m_begin, m_end); }
+	buffer::const_interval data() const { return const_interval(m_begin, m_end); }
+	
+	void resize(std::size_t n)
+	{
+		reserve(n);
+		m_end = m_begin + n;
+	}
 
-#ifndef NDEBUG
-    void check_invariant() const;
-#endif
-	 
+	void insert(char* point, char const* first, char const* last)
+	{
+		std::size_t p = point - m_begin;
+		if (point == m_end)
+		{
+			resize(size() + last - first);
+			std::memcpy(m_begin + p, first, last - first);
+			return;
+		}
+		
+		resize(size() + last - first);
+		std::memmove(m_begin + p + (last - first), m_begin + p, last - first);
+		std::memcpy(m_begin + p, first, last - first);
+	}
+
+	void erase(char* begin, char* end)
+	{
+		assert(end <= m_end);
+		assert(begin >= m_begin);
+		assert(begin <= end);
+	 	if (end == m_end)
+		{
+			resize(begin - m_begin);
+			return;
+		}
+		std::memmove(begin, end, m_end - end);
+		m_end = begin + (m_end - end);
+	 }
+
+	void clear() { m_end = m_begin; }
+	std::size_t size() const { return m_end - m_begin; }
+	std::size_t capacity() const { return m_last - m_begin; }
+	void reserve(std::size_t n)
+	{
+		if (n <= capacity()) return;
+		assert(n > 0);
+
+		char* buf = (char*)::operator new(n);
+		std::size_t s = size();
+		std::memcpy(buf, m_begin, s);
+		::operator delete (m_begin);
+		m_begin = buf;
+		m_end = buf + s;
+		m_last = m_begin + n;
+	}
+
+	bool empty() const { return m_begin == m_end; }
+	char& operator[](std::size_t i) { assert(i >= 0 && i < size()); return m_begin[i]; }
+	char const& operator[](std::size_t i) const { assert(i >= 0 && i < size()); return m_begin[i]; }
+
+	char* begin() { return m_begin; }
+	char const* begin() const { return m_begin; }
+	char* end() { return m_end; }
+	char const* end() const { return m_end; }
+
+	void swap(buffer& b)
+	{
+		using std::swap;
+		swap(m_begin, b.m_begin);
+		swap(m_end, b.m_end);
+		swap(m_last, b.m_last);
+	}
 private:
-    char* m_first;
-    char* m_last;
-    char* m_write_cursor;
-    char* m_read_cursor;
-    char* m_read_end;
-    bool m_empty;
-#ifdef TORRENT_BUFFER_DEBUG
-    mutable std::vector<char> m_debug;
-    mutable int m_pending_copy;
-#endif
+	char* m_begin; // first
+	char* m_end; // one passed end of size
+	char* m_last; // one passed end of allocation
 };
 
-inline buffer::buffer(std::size_t n)
-	: m_first((char*)::operator new(n))
-	, m_last(m_first + n)
-	, m_write_cursor(m_first)
-	, m_read_cursor(m_first)
-	, m_read_end(m_last)
-	, m_empty(true)
-{
-#ifdef TORRENT_BUFFER_DEBUG
-	m_pending_copy = 0;
-#endif
-}
-
-inline buffer::~buffer()
-{
-    ::operator delete (m_first);
-}
-
-inline buffer::interval buffer::allocate(std::size_t n)
-{
-	assert(m_read_cursor <= m_read_end || m_empty);
-
-	INVARIANT_CHECK;
-	
-#ifdef TORRENT_BUFFER_DEBUG
-	if (m_pending_copy)
-	{
-		std::copy(m_write_cursor - m_pending_copy, m_write_cursor
-			, m_debug.end() - m_pending_copy);
-		m_pending_copy = 0;
-	}
-	m_debug.resize(m_debug.size() + n);
-	m_pending_copy = n;
-#endif
-	if (m_read_cursor < m_write_cursor || m_empty)
-	{
-	// ..R***W..
-		if (m_last - m_write_cursor >= (std::ptrdiff_t)n)
-		{
-			interval ret(m_write_cursor, m_write_cursor + n);
-			m_write_cursor += n;
-			m_read_end = m_write_cursor;
-			assert(m_read_cursor <= m_read_end);
-			if (n) m_empty = false;
-			return ret;
-		}
-
-		if (m_read_cursor - m_first >= (std::ptrdiff_t)n)
-		{
-			m_read_end = m_write_cursor;
-			interval ret(m_first, m_first + n);
-			m_write_cursor = m_first + n;
-			assert(m_read_cursor <= m_read_end);
-			if (n) m_empty = false;
-			return ret;
-		}
-
-		reserve(capacity() + n - (m_last - m_write_cursor));
-		assert(m_last - m_write_cursor >= (std::ptrdiff_t)n);
-		interval ret(m_write_cursor, m_write_cursor + n);
-		m_write_cursor += n;
-		m_read_end = m_write_cursor;
-		if (n) m_empty = false;
-		assert(m_read_cursor <= m_read_end);
-		return ret;
-
-	}
-	//**W...R**
-	if (m_read_cursor - m_write_cursor >= (std::ptrdiff_t)n)
-	{
-		interval ret(m_write_cursor, m_write_cursor + n);
-		m_write_cursor += n;
-		if (n) m_empty = false;
-		return ret;
-	}
-	reserve(capacity() + n - (m_read_cursor - m_write_cursor));
-	assert(m_read_cursor - m_write_cursor >= (std::ptrdiff_t)n);
-	interval ret(m_write_cursor, m_write_cursor + n);
-	m_write_cursor += n;
-	if (n) m_empty = false;
-	return ret;
-}
-
-inline void buffer::insert(char const* first, char const* last)
-{
-    INVARIANT_CHECK;
-
-    std::size_t n = last - first;
-
-#ifdef TORRENT_BUFFER_DEBUG
-	if (m_pending_copy)
-	{
-		std::copy(m_write_cursor - m_pending_copy, m_write_cursor
-			, m_debug.end() - m_pending_copy);
-		m_pending_copy = 0;
-	}
-	m_debug.insert(m_debug.end(), first, last);
-#endif
-
-    if (space_left() < n)
-    {
-        reserve(capacity() + n);
-    }
-
-    m_empty = false;
-
-    char const* end = (m_last - m_write_cursor) < (std::ptrdiff_t)n ? 
-        m_last : m_write_cursor + n;
-
-    std::size_t copied = end - m_write_cursor;
-    std::memcpy(m_write_cursor, first, copied);
-
-    m_write_cursor += copied;
-	 if (m_write_cursor > m_read_end) m_read_end = m_write_cursor;
-    first += copied;
-    n -= copied;
-
-    if (n == 0) return;
-
-	 assert(m_write_cursor == m_last);
-    m_write_cursor = m_first;
-
-    memcpy(m_write_cursor, first, n);
-    m_write_cursor += n;
-}
-
-inline void buffer::erase(std::size_t n)
-{
-	INVARIANT_CHECK;
-
-	if (n == 0) return;
-	assert(!m_empty);
-	 
-#ifndef NDEBUG
-	int prev_size = size();
-#endif
-	assert(m_read_cursor <= m_read_end);
-	m_read_cursor += n;
-	if (m_read_cursor > m_read_end)
-	{
-		m_read_cursor = m_first + (m_read_cursor - m_read_end);
-		assert(m_read_cursor <= m_write_cursor);
-	}
-
-	m_empty = m_read_cursor == m_write_cursor;
-
-	assert(prev_size - n == size());
-
-#ifdef TORRENT_BUFFER_DEBUG
-	m_debug.erase(m_debug.begin(), m_debug.begin() + n);
-#endif
-}
-
-inline std::size_t buffer::size() const
-{
-    // ...R***W.
-    if (m_read_cursor < m_write_cursor)
-    {
-        return m_write_cursor - m_read_cursor;
-    }
-    // ***W..R*
-    else
-    {
-        if (m_empty) return 0;
-        return (m_write_cursor - m_first) + (m_read_end - m_read_cursor);
-    }
-}
-
-inline std::size_t buffer::capacity() const
-{
-    return m_last - m_first;
-}
-
-inline void buffer::reserve(std::size_t size)
-{
-    std::size_t n = (std::size_t)(capacity() * 1.f);
-    if (n < size) n = size;
-
-    char* buf = (char*)::operator new(n);
-    char* old = m_first;
-
-    if (m_read_cursor < m_write_cursor)
-    {
-    // ...R***W.<>.
-        std::memcpy(
-            buf + (m_read_cursor - m_first)
-          , m_read_cursor
-          , m_write_cursor - m_read_cursor
-        );
-
-        m_write_cursor = buf + (m_write_cursor - m_first);
-        m_read_cursor = buf + (m_read_cursor - m_first);
-		  m_read_end = m_write_cursor;
-        m_first = buf;
-        m_last = buf + n;
-    }
-    else
-    {
-    // **W..<>.R**
-        std::size_t skip = n - (m_last - m_first);
-
-        std::memcpy(buf, m_first, m_write_cursor - m_first);
-        std::memcpy(
-            buf + (m_read_cursor - m_first) + skip
-          , m_read_cursor
-          , m_last - m_read_cursor
-        );
-
-        m_write_cursor = buf + (m_write_cursor - m_first);
-
-        if (!m_empty)
-		  {
-            m_read_cursor = buf + (m_read_cursor - m_first) + skip;
-            m_read_end = buf + (m_read_end - m_first) + skip;
-		  }
-        else
-		  {
-            m_read_cursor = m_write_cursor;
-				m_read_end = m_write_cursor;
-		  }
-
-        m_first = buf;
-        m_last = buf + n;
-    }
-
-    ::operator delete (old);
-}
-
-#ifndef NDEBUG
-inline void buffer::check_invariant() const
-{
-	assert(m_read_end >= m_read_cursor);
-	assert(m_last >= m_read_cursor);
-	assert(m_last >= m_write_cursor);
-	assert(m_last >= m_first);
-	assert(m_first <= m_read_cursor);
-	assert(m_first <= m_write_cursor);
-#ifdef TORRENT_BUFFER_DEBUG
-	int a = m_debug.size();
-	int b = size();
-	(void)a;
-	(void)b;
-	assert(m_debug.size() == size());
-#endif
-}
-#endif
-
-inline buffer::interval_type buffer::data() const
-{
-	INVARIANT_CHECK;
-
-#ifdef TORRENT_BUFFER_DEBUG
-	if (m_pending_copy)
-	{
-		std::copy(m_write_cursor - m_pending_copy, m_write_cursor
-			, m_debug.end() - m_pending_copy);
-		m_pending_copy = 0;
-	}
-#endif
-
-    // ...R***W.
-    if (m_read_cursor < m_write_cursor)
-    {
-#ifdef TORRENT_BUFFER_DEBUG
-        assert(m_debug.size() == size());
-        assert(std::equal(m_debug.begin(), m_debug.end(), m_read_cursor));
-#endif
-        return interval_type(
-            const_interval(m_read_cursor, m_write_cursor)
-          , const_interval(m_last, m_last)
-        );
-    }
-    // **W...R**
-    else
-    {
-        if (m_read_cursor == m_read_end)
-		  {
-#ifdef TORRENT_BUFFER_DEBUG
-	        assert(m_debug.size() == size());
-	        assert(std::equal(m_debug.begin(), m_debug.end(), m_first));
-#endif
-
-            return interval_type(
-                const_interval(m_first, m_write_cursor)
-                , const_interval(m_last, m_last));
-		  }
-#ifdef TORRENT_BUFFER_DEBUG
-        assert(m_debug.size() == size());
-        assert(std::equal(m_debug.begin(), m_debug.begin() + (m_read_end
-            - m_read_cursor), m_read_cursor));
-        assert(std::equal(m_debug.begin() + (m_read_end - m_read_cursor), m_debug.end()
-            , m_first));
-#endif
-
-        assert(m_read_cursor <= m_read_end || m_empty);
-        return interval_type(
-            const_interval(m_read_cursor, m_read_end)
-          , const_interval(m_first, m_write_cursor)
-        );
-    }
-}
-
-inline bool buffer::empty() const
-{
-    return m_empty;
-}
-
-inline std::size_t buffer::space_left() const
-{
-    if (m_empty) return m_last - m_first;
-
-    // ...R***W.
-    if (m_read_cursor < m_write_cursor)
-    {
-        return (m_last - m_write_cursor) + (m_read_cursor - m_first);
-    }
-    // ***W..R*
-    else
-    {
-        return m_read_cursor - m_write_cursor;
-    }
-}
 
 }
 
