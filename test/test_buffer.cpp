@@ -123,43 +123,40 @@ int test_main()
 	TEST_CHECK(b.capacity() == 0);
 	TEST_CHECK(b.empty());
 	
-	buffer::interval i = b.allocate(1);
-	memcpy(i.begin, data, 1);
-
-	TEST_CHECK(b.size() == 1);
-	TEST_CHECK(b.capacity() >= 1);
+	b.resize(10);
+	TEST_CHECK(b.size() == 10);
+	TEST_CHECK(b.capacity() == 10);
 	
-	i = b.allocate(4);
-	memcpy(i.begin, data + 1, 4);
-	TEST_CHECK(b.size() == 5);
-	TEST_CHECK(b.capacity() >= 5);
-
-	i = b.allocate(4);
-	memcpy(i.begin, data + 5, 4);
-	TEST_CHECK(b.size() == 9);
-	TEST_CHECK(b.capacity() >= 9);
-
-	TEST_CHECK(!b.empty());
-
-	buffer::interval_type read_data = b.data();
-	TEST_CHECK(std::equal(read_data.first.begin, read_data.first.end, data));
-
-	b.erase(5);
-
-	TEST_CHECK(b.space_left() == 5);
-
-	i = b.allocate(3);
-	memcpy(i.begin, data, 3);
-	TEST_CHECK(b.space_left() == 2);
-	TEST_CHECK(b.size() == 7);
-
-	read_data = b.data();
-	TEST_CHECK(std::equal(read_data.first.begin, read_data.first.end, data + 5));
-	TEST_CHECK(std::equal(read_data.second.begin, read_data.second.end, data));
-
-	b.erase(7);
+	std::memcpy(b.begin(), data, 10);
+	b.reserve(50);
+	TEST_CHECK(std::memcmp(b.begin(), data, 10) == 0);
+	TEST_CHECK(b.capacity() == 50);
 	
-	TEST_CHECK(b.empty());
+	b.erase(b.begin() + 6, b.end());
+	TEST_CHECK(std::memcmp(b.begin(), data, 6) == 0);
+	TEST_CHECK(b.capacity() == 50);
+	TEST_CHECK(b.size() == 6);
+
+	b.insert(b.begin(), data + 5, data + 10);
+	TEST_CHECK(b.capacity() == 50);
+	TEST_CHECK(b.size() == 11);
+	TEST_CHECK(std::memcmp(b.begin(), data + 5, 5) == 0);
+
+	b.clear();
+	TEST_CHECK(b.size() == 0);
+	TEST_CHECK(b.capacity() == 50);
+
+	b.insert(b.end(), data, data + 10);
+	TEST_CHECK(b.size() == 10);
+	TEST_CHECK(std::memcmp(b.begin(), data, 10) == 0);
+	
+	b.erase(b.begin(), b.end());
+	TEST_CHECK(b.capacity() == 50);
+	TEST_CHECK(b.size() == 0);
+
+	buffer().swap(b);
+	TEST_CHECK(b.capacity() == 0);
+
 	return 0;
 }
 
