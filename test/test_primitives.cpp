@@ -3,6 +3,8 @@
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/xml_parse.hpp"
 #include "libtorrent/upnp.hpp"
+#include "libtorrent/entry.hpp"
+#include "libtorrent/torrent_info.hpp"
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/bind.hpp>
@@ -185,6 +187,22 @@ int test_main()
 	TEST_CHECK(is_local(address::from_string("192.168.0.1")));
 	TEST_CHECK(is_local(address::from_string("10.1.1.56")));
 	TEST_CHECK(!is_local(address::from_string("14.14.251.63")));
+
+	// test torrent parsing
+
+	entry info;
+	info["pieces"] = "aaaaaaaaaaaaaaaaaaaa";
+	info["name.utf-8"] = "test1";
+	info["name"] = "test__";
+	info["piece length"] = 16 * 1024;
+	info["length"] = 3245;
+	entry torrent;
+	torrent["info"] = info;
+
+	torrent_info ti(torrent);
+
+	TEST_CHECK(ti.name() == "test1");
+
 	
 	return 0;
 }
