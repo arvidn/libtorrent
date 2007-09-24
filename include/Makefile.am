@@ -113,6 +113,7 @@ libtorrent/asio/detail/consuming_buffers.hpp \
 libtorrent/asio/detail/deadline_timer_service.hpp \
 libtorrent/asio/detail/epoll_reactor.hpp \
 libtorrent/asio/detail/epoll_reactor_fwd.hpp \
+libtorrent/asio/detail/handler_queue.hpp \
 libtorrent/asio/detail/event.hpp \
 libtorrent/asio/detail/fd_set_adapter.hpp \
 libtorrent/asio/detail/handler_alloc_helpers.hpp \
