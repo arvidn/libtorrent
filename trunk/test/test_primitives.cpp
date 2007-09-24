@@ -184,9 +184,15 @@ int test_main()
 
 	// test network functions
 
-	TEST_CHECK(is_local(address::from_string("192.168.0.1")));
-	TEST_CHECK(is_local(address::from_string("10.1.1.56")));
-	TEST_CHECK(!is_local(address::from_string("14.14.251.63")));
+	asio::error_code ec;
+	TEST_CHECK(is_local(address::from_string("192.168.0.1", ec)));
+	TEST_CHECK(is_local(address::from_string("10.1.1.56", ec)));
+	TEST_CHECK(!is_local(address::from_string("14.14.251.63", ec)));
+	TEST_CHECK(is_loopback(address::from_string("127.0.0.1", ec)));
+	TEST_CHECK(is_loopback(address::from_string("::1", ec)));
+	TEST_CHECK(is_any(address_v6::any()));
+	TEST_CHECK(is_any(address_v4::any()));
+	TEST_CHECK(!is_any(address::from_string("31.53.21.64", ec)));
 
 	// test torrent parsing
 
