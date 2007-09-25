@@ -139,33 +139,31 @@ rule building ( properties * )
 	return $(result) ;
 }
 
-feature disk-stats : off on : composite propagated symmetric link-incompatible ;
+feature disk-stats : off on : composite propagated link-incompatible ;
 feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
 
-feature logging : none default verbose : composite propagated symmetric link-incompatible ;
+feature logging : none default verbose : composite propagated link-incompatible ;
 feature.compose <logging>default : <define>TORRENT_LOGGING ;
 feature.compose <logging>verbose : <define>TORRENT_VERBOSE_LOGGING ;
 
-feature dht-support : on off logging : composite propagated symmetric link-incompatible ;
+feature dht-support : on off logging : composite propagated link-incompatible ;
 feature.compose <dht-support>off : <define>TORRENT_DISABLE_DHT ;
 feature.compose <dht-support>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 
-feature openssl : pe sha-1 off : composite propagated symmetric link-incompatible ;
+feature openssl : pe sha-1 off : composite propagated link-incompatible ;
 feature.compose <openssl>pe : <define>TORRENT_USE_OPENSSL ;
 feature.compose <openssl>sha-1 : <define>TORRENT_USE_OPENSSL <define>TORRENT_DISABLE_ENCRYPTION ;
 feature.compose <openssl>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 
-feature resolve-countries : on off : composite propagated symmetric link-incompatible ;
+feature resolve-countries : on off : composite propagated link-incompatible ;
 feature.compose <resolve-countries>off : <define>TORRENT_DISABLE_RESOLVE_COUNTRIES ;
 
 feature character-set : ansi unicode : composite propagated link-incompatible ;
 feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
 
 feature zlib : shipped system : composite propagated link-incompatible ;
-feature.compose <zlib>shipped : ;
-feature.compose <zlib>system : ;
 
-feature statistics : off on : composite propagated symmetric link-incompatible ;
+feature statistics : off on : composite propagated link-incompatible ;
 feature.compose <statistics>on : <define>TORRENT_STATS ;
 
 feature upnp-logging : off on : composite propagated link-incompatible ;
