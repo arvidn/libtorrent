@@ -263,7 +263,7 @@ void http_connection::on_read(asio::error_code const& e
 		if (code >= 300 && code < 400)
 		{
 			// attempt a redirect
-			std::string url = m_parser.header<std::string>("location");
+			std::string const& url = m_parser.header("location");
 			if (url.empty())
 			{
 				// missing location header

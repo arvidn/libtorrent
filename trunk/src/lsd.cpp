@@ -121,47 +121,52 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 {
 	using namespace libtorrent::detail;
 
-	char* p = buffer;
-	char* end = buffer + bytes_transferred;
-	char* line = std::find(p, end, '\n');
-	for (char* i = p; i < line; ++i) *i = std::tolower(*i);
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << time_now_string()
-		<< " <== announce: " << std::string(p, line) << std::endl;
-#endif
-	if (line == end || (line - p >= 9 && std::memcmp("bt-search", p, 9)))
+	http_parser p;
+
+	p.incoming(buffer::const_interval(buffer, buffer + bytes_transferred));
+
+	if (!p.header_finished())
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << time_now_string()
-			<< " *** assumed 'bt-search', ignoring" << std::endl;
+	m_log << time_now_string()
+		<< " <== announce: incomplete HTTP message\n";
 #endif
 		return;
 	}
-	p = line + 1;
-	int port = 0;
-	sha1_hash ih(0);
-	while (p != end)
+
+	if (p.method() != "bt-search")
 	{
-		line = std::find(p, end, '\n');
-		if (line == end) break;
-		*line = 0;
-		for (char* i = p; i < line; ++i) *i = std::tolower(*i);
-		if (line - p >= 5 && memcmp(p, "port:", 5) == 0)
-		{
-			p += 5;
-			while (*p == ' ') ++p;
-			port = atoi(p);
-		}
-		else if (line - p >= 9 && memcmp(p, "infohash:", 9) == 0)
-		{
-			p += 9;
-			while (*p == ' ') ++p;
-			if (line - p > 40) p[40] = 0;
-			try { ih = boost::lexical_cast<sha1_hash>(p); }
-			catch (std::exception&) {}
-		}
-		p = line + 1;
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+	m_log << time_now_string()
+		<< " <== announce: invalid HTTP method: " << p.method() << std::endl;
+#endif
+		return;
 	}
+
+	std::string const& port_str = p.header("port");
+	if (port_str.empty())
+	{
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+	m_log << time_now_string()
+		<< " <== announce: invalid BT-SEARCH, missing port" << std::endl;
+#endif
+		return;
+	}
+
+	std::string const& ih_str = p.header("infohash");
+	if (ih_str.empty())
+	{
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+	m_log << time_now_string()
+		<< " <== announce: invalid BT-SEARCH, missing infohash" << std::endl;
+#endif
+		return;
+	}
+
+	sha1_hash ih(0);
+	std::istringstream ih_sstr(ih_str);
+	ih_sstr >> ih;
+	int port = atoi(port_str.c_str());
 
 	if (!ih.is_all_zeros() && port != 0)
 	{

@@ -300,7 +300,7 @@ try
 		return;
 	}
 
-	std::string url = p.header<std::string>("location");
+	std::string url = p.header("location");
 	if (url.empty())
 	{
 #ifdef TORRENT_UPNP_LOGGING
