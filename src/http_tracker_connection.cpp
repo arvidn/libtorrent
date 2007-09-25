@@ -679,7 +679,7 @@ namespace libtorrent
 
 		if (m_parser.header_finished())
 		{
-			int cl = m_parser.header<int>("content-length");
+			int cl = atoi(m_parser.header("content-length").c_str());
 			if (cl > m_settings.tracker_maximum_response_length)
 			{
 				fail(-1, "content-length is greater than maximum response length");
@@ -718,7 +718,7 @@ namespace libtorrent
 			return;
 		}
 	
-		std::string location = m_parser.header<std::string>("location");
+		std::string location = m_parser.header("location");
 
 		boost::shared_ptr<request_callback> cb = requester();
 		
@@ -763,7 +763,7 @@ namespace libtorrent
 	
 		buffer::const_interval buf(&m_buffer[0] + m_parser.body_start(), &m_buffer[0] + m_recv_pos);
 
-		std::string content_encoding = m_parser.header<std::string>("content-encoding");
+		std::string content_encoding = m_parser.header("content-encoding");
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (cb) cb->debug_log("content-encoding: \"" + content_encoding + "\"");

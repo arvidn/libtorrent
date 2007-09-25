@@ -102,8 +102,8 @@ int test_main()
 	TEST_CHECK(received == make_tuple(4, 64));
 	TEST_CHECK(parser.finished());
 	TEST_CHECK(std::equal(parser.get_body().begin, parser.get_body().end, "test"));
-	TEST_CHECK(parser.header<std::string>("content-type") == "text/plain");
-	TEST_CHECK(parser.header<int>("content-length") == 4);
+	TEST_CHECK(parser.header("content-type") == "text/plain");
+	TEST_CHECK(atoi(parser.header("content-length").c_str()) == 4);
 
 	parser.reset();
 
@@ -123,11 +123,11 @@ int test_main()
 
 	TEST_CHECK(received == make_tuple(0, int(strlen(upnp_response))));
 	TEST_CHECK(parser.get_body().left() == 0);
-	TEST_CHECK(parser.header<std::string>("st") == "upnp:rootdevice");
-	TEST_CHECK(parser.header<std::string>("location")
+	TEST_CHECK(parser.header("st") == "upnp:rootdevice");
+	TEST_CHECK(parser.header("location")
 		== "http://192.168.1.1:5431/dyndev/uuid:000f-66d6-7296000099dc");
-	TEST_CHECK(parser.header<std::string>("ext") == "");
-	TEST_CHECK(parser.header<std::string>("date") == "Fri, 02 Jan 1970 08:10:38 GMT");
+	TEST_CHECK(parser.header("ext") == "");
+	TEST_CHECK(parser.header("date") == "Fri, 02 Jan 1970 08:10:38 GMT");
 
 	parser.reset();
 	TEST_CHECK(!parser.finished());
@@ -147,6 +147,41 @@ int test_main()
 	TEST_CHECK(received == make_tuple(0, int(strlen(upnp_notify))));
 	TEST_CHECK(parser.method() == "notify");
 	TEST_CHECK(parser.path() == "*");
+
+	parser.reset();
+	TEST_CHECK(!parser.finished());
+
+	char const* bt_lsd = "BT-SEARCH * HTTP/1.1\r\n"
+		"Host: 239.192.152.143:6771\r\n"
+		"Port: 6881\r\n"
+		"Infohash: 12345678901234567890\r\n"
+		"\r\n\r\n";
+
+	received = feed_bytes(parser, bt_lsd);
+
+	TEST_CHECK(received == make_tuple(2, int(strlen(bt_lsd) - 2)));
+	TEST_CHECK(parser.method() == "bt-search");
+	TEST_CHECK(parser.path() == "*");
+	TEST_CHECK(atoi(parser.header("port").c_str()) == 6881);
+	TEST_CHECK(parser.header("infohash") == "12345678901234567890");
+
+	TEST_CHECK(!parser.finished());
+
+	parser.reset();
+	TEST_CHECK(!parser.finished());
+
+	// make sure we support trackers with incorrect line endings
+	char const* tracker_response =
+		"HTTP/1.1 200 OK\n"
+		"content-length: 5\n"
+		"content-type: test/plain\n"
+		"\n"
+		"\ntest";
+
+	received = feed_bytes(parser, tracker_response);
+
+	TEST_CHECK(received == make_tuple(5, int(strlen(tracker_response) - 5)));
+	TEST_CHECK(parser.get_body().left() == 5);
 
 	// test xml parser
 

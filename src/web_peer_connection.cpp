@@ -387,7 +387,7 @@ namespace libtorrent
 				{
 					// this means we got a redirection request
 					// look for the location header
-					std::string location = m_parser.header<std::string>("location");
+					std::string location = m_parser.header("location");
 
 					if (location.empty())
 					{
@@ -423,7 +423,7 @@ namespace libtorrent
 					throw std::runtime_error("redirecting to " + location);
 				}
 
-				std::string server_version = m_parser.header<std::string>("server");
+				std::string const& server_version = m_parser.header("server");
 				if (!server_version.empty())
 				{
 					m_server_string = "URL seed @ ";
@@ -445,7 +445,7 @@ namespace libtorrent
 			size_type range_end;
 			if (m_parser.status_code() == 206)
 			{
-				std::stringstream range_str(m_parser.header<std::string>("content-range"));
+				std::stringstream range_str(m_parser.header("content-range"));
 				char dummy;
 				std::string bytes;
 				range_str >> bytes >> range_start >> dummy >> range_end;
@@ -461,7 +461,7 @@ namespace libtorrent
 			else
 			{
 				range_start = 0;
-				range_end = m_parser.header<size_type>("content-length");
+				range_end = atol(m_parser.header("content-length").c_str());
 				if (range_end == -1)
 				{
 					// we should not try this server again.
