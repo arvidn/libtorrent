@@ -1731,7 +1731,7 @@ namespace libtorrent
 		m_resolving_country = false;
 
 		// must be ordered in increasing order
-		country_entry country_map[] =
+		static const country_entry country_map[] =
 		{
 			  {  4,  "AF"}, {  8,  "AL"}, { 10,  "AQ"}, { 12,  "DZ"}, { 16,  "AS"}
 			, { 20,  "AD"}, { 24,  "AO"}, { 28,  "AG"}, { 31,  "AZ"}, { 32,  "AR"}
