@@ -488,16 +488,18 @@ void scan_dir(path const& dir_path
 
 	// remove the torrents that are no longer in the directory
 
-	for (handles_t::iterator i = handles.begin()
-		, end(handles.end()); i != end; ++i)
+	for (handles_t::iterator i = handles.begin(); !handles.empty() && i != handles.end();)
 	{
-		if (i->first.empty()) continue;
-		if (valid.find(i->first) != valid.end()) continue;
+		if (i->first.empty() || valid.find(i->first) != valid.end())
+		{
+			++i;
+			continue;
+		}
 
 		torrent_handle& h = i->second;
 		if (!h.is_valid())
 		{
-			handles.erase(i--);
+			handles.erase(i);
 			continue;
 		}
 		
@@ -512,7 +514,7 @@ void scan_dir(path const& dir_path
 			bencode(std::ostream_iterator<char>(out), data);
 		}
 		ses.remove_torrent(h);
-		handles.erase(i--);
+		handles.erase(i);
 	}
 }
 
