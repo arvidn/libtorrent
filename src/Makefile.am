@@ -58,6 +58,7 @@ $(top_srcdir)/include/libtorrent/intrusive_ptr_base.hpp \
 $(top_srcdir)/include/libtorrent/invariant_check.hpp \
 $(top_srcdir)/include/libtorrent/io.hpp \
 $(top_srcdir)/include/libtorrent/ip_filter.hpp \
+$(top_srcdir)/include/libtorrent/chained_buffer.hpp \
 $(top_srcdir)/include/libtorrent/lsd.hpp \
 $(top_srcdir)/include/libtorrent/peer.hpp \
 $(top_srcdir)/include/libtorrent/peer_connection.hpp \

@@ -26,6 +26,7 @@ libtorrent/intrusive_ptr_base.hpp \
 libtorrent/invariant_check.hpp \
 libtorrent/io.hpp \
 libtorrent/ip_filter.hpp \
+libtorrent/chained_buffer.hpp \
 libtorrent/lsd.hpp \
 libtorrent/peer.hpp \
 libtorrent/peer_connection.hpp \
