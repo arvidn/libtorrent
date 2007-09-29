@@ -161,7 +161,7 @@ void natpmp::update_mapping(int i, int port)
 		m_retry_count = 0;
 		send_map_request(i);
 		m_socket.async_receive_from(asio::buffer(&m_response_buffer, 16)
-			, m_remote, bind(&natpmp::on_reply, this, _1, _2));
+			, m_remote, bind(&natpmp::on_reply, self(), _1, _2));
 	}
 }
 
@@ -194,7 +194,7 @@ void natpmp::send_map_request(int i) try
 	// linear back-off instead of exponential
 	++m_retry_count;
 	m_send_timer.expires_from_now(milliseconds(250 * m_retry_count));
-	m_send_timer.async_wait(bind(&natpmp::resend_request, this, i, _1));
+	m_send_timer.async_wait(bind(&natpmp::resend_request, self(), i, _1));
 }
 catch (std::exception& e)
 {
@@ -227,7 +227,7 @@ void natpmp::on_reply(asio::error_code const& e
 		if (m_remote != m_nat_endpoint)
 		{
 			m_socket.async_receive_from(asio::buffer(&m_response_buffer, 16)
-				, m_remote, bind(&natpmp::on_reply, this, _1, _2));
+				, m_remote, bind(&natpmp::on_reply, self(), _1, _2));
 			return;
 		}
 		
@@ -346,7 +346,7 @@ void natpmp::update_expiration_timer()
 	if (min_index >= 0)
 	{
 		m_refresh_timer.expires_from_now(min_expire - now);
-		m_refresh_timer.async_wait(bind(&natpmp::mapping_expired, this, _1, min_index));
+		m_refresh_timer.async_wait(bind(&natpmp::mapping_expired, self(), _1, min_index));
 	}
 }
 
@@ -369,7 +369,7 @@ void natpmp::refresh_mapping(int i)
 		m_retry_count = 0;
 		send_map_request(i);
 		m_socket.async_receive_from(asio::buffer(&m_response_buffer, 16)
-			, m_remote, bind(&natpmp::on_reply, this, _1, _2));
+			, m_remote, bind(&natpmp::on_reply, self(), _1, _2));
 	}
 }
 
