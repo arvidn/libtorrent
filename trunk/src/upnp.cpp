@@ -70,7 +70,7 @@ upnp::upnp(io_service& ios, connection_queue& cc
 	, m_io_service(ios)
 	, m_strand(ios)
 	, m_socket(ios, udp::endpoint(address_v4::from_string("239.255.255.250"), 1900)
-		, m_strand.wrap(bind(&upnp::on_reply, this, _1, _2, _3)), false)
+		, m_strand.wrap(bind(&upnp::on_reply, self(), _1, _2, _3)), false)
 	, m_broadcast_timer(ios)
 	, m_refresh_timer(ios)
 	, m_disabled(false)
@@ -119,7 +119,7 @@ void upnp::discover_device() try
 	++m_retry_count;
 	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count));
 	m_broadcast_timer.async_wait(m_strand.wrap(bind(&upnp::resend_request
-		, this, _1)));
+		, self(), _1)));
 
 #ifdef TORRENT_UPNP_LOGGING
 	m_log << time_now_string()
@@ -203,7 +203,7 @@ try
 			try
 			{
 				d.upnp_connection.reset(new http_connection(m_io_service
-					, m_cc, m_strand.wrap(bind(&upnp::on_upnp_xml, this, _1, _2
+					, m_cc, m_strand.wrap(bind(&upnp::on_upnp_xml, self(), _1, _2
 					, boost::ref(d)))));
 				d.upnp_connection->get(d.url);
 			}
@@ -393,7 +393,7 @@ try
 				try
 				{
 					d.upnp_connection.reset(new http_connection(m_io_service
-						, m_cc, m_strand.wrap(bind(&upnp::on_upnp_xml, this, _1, _2
+						, m_cc, m_strand.wrap(bind(&upnp::on_upnp_xml, self(), _1, _2
 						, boost::ref(d)))));
 					d.upnp_connection->get(d.url);
 				}
@@ -480,9 +480,9 @@ void upnp::map_port(rootdevice& d, int i)
 	assert(d.service_namespace);
 
 	d.upnp_connection.reset(new http_connection(m_io_service
-		, m_cc, m_strand.wrap(bind(&upnp::on_upnp_map_response, this, _1, _2
+		, m_cc, m_strand.wrap(bind(&upnp::on_upnp_map_response, self(), _1, _2
 		, boost::ref(d), i)), true
-		, bind(&upnp::create_port_mapping, this, _1, boost::ref(d), i)));
+		, bind(&upnp::create_port_mapping, self(), _1, boost::ref(d), i)));
 
 	d.upnp_connection->start(d.hostname, boost::lexical_cast<std::string>(d.port)
 		, seconds(10));
@@ -523,9 +523,9 @@ void upnp::unmap_port(rootdevice& d, int i)
 		return;
 	}
 	d.upnp_connection.reset(new http_connection(m_io_service
-		, m_cc, m_strand.wrap(bind(&upnp::on_upnp_unmap_response, this, _1, _2
+		, m_cc, m_strand.wrap(bind(&upnp::on_upnp_unmap_response, self(), _1, _2
 		, boost::ref(d), i)), true
-		, bind(&upnp::delete_port_mapping, this, boost::ref(d), i)));
+		, bind(&upnp::delete_port_mapping, self(), boost::ref(d), i)));
 
 	d.upnp_connection->start(d.hostname, boost::lexical_cast<std::string>(d.port)
 		, seconds(10));
@@ -851,7 +851,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 				|| next_expire > d.mapping[mapping].expires)
 			{
 				m_refresh_timer.expires_at(d.mapping[mapping].expires);
-				m_refresh_timer.async_wait(m_strand.wrap(bind(&upnp::on_expire, this, _1)));
+				m_refresh_timer.async_wait(m_strand.wrap(bind(&upnp::on_expire, self(), _1)));
 			}
 		}
 		else
@@ -962,7 +962,7 @@ void upnp::on_expire(asio::error_code const& e) try
 	if (next_expire != max_time())
 	{
 		m_refresh_timer.expires_at(next_expire);
-		m_refresh_timer.async_wait(m_strand.wrap(bind(&upnp::on_expire, this, _1)));
+		m_refresh_timer.async_wait(m_strand.wrap(bind(&upnp::on_expire, self(), _1)));
 	}
 }
 catch (std::exception&)

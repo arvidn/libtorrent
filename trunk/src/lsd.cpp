@@ -58,7 +58,7 @@ lsd::lsd(io_service& ios, address const& listen_interface
 	: m_callback(cb)
 	, m_retry_count(0)
 	, m_socket(ios, udp::endpoint(address_v4::from_string("239.192.152.143"), 6771)
-		, bind(&lsd::on_announce, this, _1, _2, _3))
+		, bind(&lsd::on_announce, self(), _1, _2, _3))
 	, m_broadcast_timer(ios)
 	, m_disabled(false)
 {
@@ -96,7 +96,7 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 #endif
 
 	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count));
-	m_broadcast_timer.async_wait(bind(&lsd::resend_announce, this, _1, msg));
+	m_broadcast_timer.async_wait(bind(&lsd::resend_announce, self(), _1, msg));
 }
 
 void lsd::resend_announce(asio::error_code const& e, std::string msg) try
@@ -111,7 +111,7 @@ void lsd::resend_announce(asio::error_code const& e, std::string msg) try
 		return;
 
 	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count));
-	m_broadcast_timer.async_wait(bind(&lsd::resend_announce, this, _1, msg));
+	m_broadcast_timer.async_wait(bind(&lsd::resend_announce, self(), _1, msg));
 }
 catch (std::exception&)
 {}

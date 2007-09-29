@@ -2200,9 +2200,9 @@ namespace detail
 
 		INVARIANT_CHECK;
 
-		m_lsd.reset(new lsd(m_io_service
+		m_lsd = new lsd(m_io_service
 			, m_listen_interface.address()
-			, bind(&session_impl::on_lsd_peer, this, _1, _2)));
+			, bind(&session_impl::on_lsd_peer, this, _1, _2));
 	}
 	
 	void session_impl::start_natpmp()
@@ -2211,10 +2211,10 @@ namespace detail
 
 		INVARIANT_CHECK;
 
-		m_natpmp.reset(new natpmp(m_io_service
+		m_natpmp = new natpmp(m_io_service
 			, m_listen_interface.address()
 			, bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3)));
+				, this, _1, _2, _3));
 
 		m_natpmp->set_mappings(m_listen_interface.port(),
 #ifndef TORRENT_DISABLE_DHT
@@ -2229,11 +2229,11 @@ namespace detail
 
 		INVARIANT_CHECK;
 
-		m_upnp.reset(new upnp(m_io_service, m_half_open
+		m_upnp = new upnp(m_io_service, m_half_open
 			, m_listen_interface.address()
 			, m_settings.user_agent
 			, bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3)));
+				, this, _1, _2, _3));
 
 		m_upnp->set_mappings(m_listen_interface.port(), 
 #ifndef TORRENT_DISABLE_DHT
@@ -2245,7 +2245,7 @@ namespace detail
 	void session_impl::stop_lsd()
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		m_lsd.reset();
+		m_lsd = 0;
 	}
 	
 	void session_impl::stop_natpmp()
@@ -2253,7 +2253,7 @@ namespace detail
 		mutex_t::scoped_lock l(m_mutex);
 		if (m_natpmp.get())
 			m_natpmp->close();
-		m_natpmp.reset();
+		m_natpmp = 0;
 	}
 	
 	void session_impl::stop_upnp()
@@ -2261,7 +2261,7 @@ namespace detail
 		mutex_t::scoped_lock l(m_mutex);
 		if (m_upnp.get())
 			m_upnp->close();
-		m_upnp.reset();
+		m_upnp = 0;
 	}
 	
 	void session_impl::free_disk_buffer(char* buf)

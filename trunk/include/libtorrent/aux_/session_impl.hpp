@@ -540,9 +540,9 @@ namespace libtorrent
 			pe_settings m_pe_settings;
 #endif
 
-			boost::shared_ptr<natpmp> m_natpmp;
-			boost::shared_ptr<upnp> m_upnp;
-			boost::shared_ptr<lsd> m_lsd;
+			boost::intrusive_ptr<natpmp> m_natpmp;
+			boost::intrusive_ptr<upnp> m_upnp;
+			boost::intrusive_ptr<lsd> m_lsd;
 
 			// the timer used to fire the second_tick
 			deadline_timer m_timer;

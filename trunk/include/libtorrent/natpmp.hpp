@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_NATPMP_HPP
 
 #include "libtorrent/socket.hpp"
+#include "libtorrent/intrusive_ptr_base.hpp"
 
 #include <boost/function.hpp>
 
@@ -49,7 +50,7 @@ namespace libtorrent
 // std::string: error message
 typedef boost::function<void(int, int, std::string const&)> portmap_callback_t;
 
-class natpmp
+class natpmp : public intrusive_ptr_base<natpmp>
 {
 public:
 	natpmp(io_service& ios, address const& listen_interface, portmap_callback_t const& cb);

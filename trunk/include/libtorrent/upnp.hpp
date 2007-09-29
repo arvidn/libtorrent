@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/connection_queue.hpp"
+#include "libtorrent/intrusive_ptr_base.hpp"
 
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
@@ -62,7 +63,7 @@ namespace libtorrent
 // std::string: error message
 typedef boost::function<void(int, int, std::string const&)> portmap_callback_t;
 
-class upnp : boost::noncopyable
+class upnp : public intrusive_ptr_base<upnp>
 {
 public:
 	upnp(io_service& ios, connection_queue& cc

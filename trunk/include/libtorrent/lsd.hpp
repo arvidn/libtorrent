@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/broadcast_socket.hpp"
+#include "libtorrent/intrusive_ptr_base.hpp"
 
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
@@ -52,7 +53,7 @@ namespace libtorrent
 
 typedef boost::function<void(tcp::endpoint, sha1_hash)> peer_callback_t;
 
-class lsd : boost::noncopyable
+class lsd : public intrusive_ptr_base<lsd>
 {
 public:
 	lsd(io_service& ios, address const& listen_interface
