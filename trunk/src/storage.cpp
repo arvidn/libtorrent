@@ -1065,6 +1065,11 @@ namespace libtorrent
 		return m_storage->verify_resume_data(rd, error);
 	}
 
+	void piece_manager::free_buffer(char* buf)
+	{
+		m_io_thread.free_buffer(buf);
+	}
+
 	void piece_manager::async_release_files(
 		boost::function<void(int, disk_io_job const&)> const& handler)
 	{

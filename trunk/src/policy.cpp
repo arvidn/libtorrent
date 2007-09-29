@@ -1426,16 +1426,16 @@ namespace libtorrent
 		int nonempty_connections = 0;
 
 		std::set<address> unique_test;
-		std::set<tcp::endpoint> unique_test2;
+//		std::set<tcp::endpoint> unique_test2;
 		for (const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
 			peer const& p = *i;
-			if (!m_torrent->settings().allow_multiple_connections_per_ip)
-				assert(unique_test.find(p.ip.address()) == unique_test.end());
-			assert(unique_test2.find(p.ip) == unique_test2.end());
-			unique_test.insert(p.ip.address());
-			unique_test2.insert(p.ip);
+//			if (!m_torrent->settings().allow_multiple_connections_per_ip)
+//				assert(unique_test.find(p.ip.address()) == unique_test.end());
+//			assert(unique_test2.find(p.ip) == unique_test2.end());
+//			unique_test.insert(p.ip.address());
+//			unique_test2.insert(p.ip);
 			++total_connections;
 			if (!p.connection)
 			{

@@ -297,7 +297,7 @@ namespace libtorrent
 		(*m_logger) << request << "\n";
 #endif
 
-		send_buffer(request.c_str(), request.c_str() + request.size());
+		send_buffer(request.c_str(), request.size());
 	}
 
 	// --------------------------

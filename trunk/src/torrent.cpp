@@ -1464,9 +1464,6 @@ namespace libtorrent
 		m_policy->connection_closed(*p);
 		p->set_peer_info(0);
 		m_connections.erase(i);
-#ifndef NDEBUG
-		m_policy->check_invariant();
-#endif
 	}
 	catch (std::exception& e)
 	{

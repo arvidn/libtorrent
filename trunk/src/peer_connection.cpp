@@ -81,9 +81,7 @@ namespace libtorrent
 		, m_last_unchoke(min_time())
 		, m_packet_size(0)
 		, m_recv_pos(0)
-		, m_current_send_buffer(0)
 		, m_reading_bytes(0)
-		, m_write_pos(0)
 		, m_last_receive(time_now())
 		, m_last_sent(time_now())
 		, m_socket(s)
@@ -161,9 +159,7 @@ namespace libtorrent
 		, m_last_unchoke(min_time())
 		, m_packet_size(0)
 		, m_recv_pos(0)
-		, m_current_send_buffer(0)
 		, m_reading_bytes(0)
-		, m_write_pos(0)
 		, m_last_receive(time_now())
 		, m_last_sent(time_now())
 		, m_socket(s)
@@ -2082,8 +2078,7 @@ namespace libtorrent
 			p.remote_dl_rate = 0;
 		}
 
-		p.send_buffer_size = int(m_send_buffer[0].capacity()
-			+ m_send_buffer[1].capacity());
+		p.send_buffer_size = m_send_buffer.capacity();
 	}
 
 	void peer_connection::cut_receive_buffer(int size, int packet_size)
@@ -2386,8 +2381,7 @@ namespace libtorrent
 		shared_ptr<torrent> t = m_torrent.lock();
 
 		if (m_bandwidth_limit[upload_channel].quota_left() == 0
-			&& (!m_send_buffer[m_current_send_buffer].empty()
-				|| !m_send_buffer[(m_current_send_buffer + 1) & 1].empty())
+			&& !m_send_buffer.empty()
 			&& !m_connecting
 			&& t
 			&& !m_ignore_bandwidth_limits)
@@ -2415,32 +2409,21 @@ namespace libtorrent
 
 		assert(!m_writing);
 
-		int sending_buffer = (m_current_send_buffer + 1) & 1;
-		if (m_send_buffer[sending_buffer].empty())
-		{
-			// this means we have to swap buffer, because there's no
-			// previous buffer we're still waiting for.
-			std::swap(m_current_send_buffer, sending_buffer);
-			m_write_pos = 0;
-		}
-
 		// send the actual buffer
-		if (!m_send_buffer[sending_buffer].empty())
+		if (!m_send_buffer.empty())
 		{
-			int amount_to_send = (int)m_send_buffer[sending_buffer].size() - m_write_pos;
+			int amount_to_send = m_send_buffer.size();
 			int quota_left = m_bandwidth_limit[upload_channel].quota_left();
 			if (!m_ignore_bandwidth_limits && amount_to_send > quota_left)
 				amount_to_send = quota_left;
 
 			assert(amount_to_send > 0);
 
-			assert(m_write_pos < (int)m_send_buffer[sending_buffer].size());
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << "async_write " << amount_to_send << " bytes\n";
 #endif
-			m_socket->async_write_some(asio::buffer(
-				&m_send_buffer[sending_buffer][m_write_pos], amount_to_send)
-				, bind(&peer_connection::on_send_data, self(), _1, _2));
+			std::list<asio::const_buffer> const& vec = m_send_buffer.build_iovec(amount_to_send);
+			m_socket->async_write_some(vec, bind(&peer_connection::on_send_data, self(), _1, _2));
 
 			m_writing = true;
 		}
@@ -2511,10 +2494,32 @@ namespace libtorrent
 			m_recv_buffer.resize(m_packet_size);
 	}
 
-	void peer_connection::send_buffer(char const* begin, char const* end)
+	void peer_connection::send_buffer(char const* buf, int size)
 	{
-		buffer& buf = m_send_buffer[m_current_send_buffer];
-		buf.insert(buf.end(), begin, end);
+		int free_space = m_send_buffer.space_in_last_buffer();
+		if (free_space > size) free_space = size;
+		if (free_space > 0)
+		{
+			m_send_buffer.append(buf, free_space);
+			size -= free_space;
+			buf += free_space;
+#ifdef TORRENT_STATS
+			m_ses.m_buffer_usage_logger << log_time() << " send_buffer: "
+				<< free_space << std::endl;
+			m_ses.log_buffer_usage();
+#endif
+		}
+		if (size <= 0) return;
+
+		std::pair<char*, int> buffer = m_ses.allocate_buffer(size);
+		assert(buffer.second >= size);
+		std::memcpy(buffer.first, buf, size);
+		m_send_buffer.append_buffer(buffer.first, buffer.second, size
+			, bind(&session_impl::free_buffer, boost::ref(m_ses), _1, buffer.second));
+#ifdef TORRENT_STATS
+		m_ses.m_buffer_usage_logger << log_time() << " send_buffer_alloc: " << size << std::endl;
+		m_ses.log_buffer_usage();
+#endif
 		setup_send();
 	}
 
@@ -2522,10 +2527,29 @@ namespace libtorrent
 // return value is destructed
 	buffer::interval peer_connection::allocate_send_buffer(int size)
 	{
-		buffer& buf = m_send_buffer[m_current_send_buffer];
-		buf.resize(buf.size() + size);
-		buffer::interval ret(&buf[0] + buf.size() - size, &buf[0] + buf.size());
-		return ret;
+		char* insert = m_send_buffer.allocate_appendix(size);
+		if (insert == 0)
+		{
+			std::pair<char*, int> buffer = m_ses.allocate_buffer(size);
+			assert(buffer.second >= size);
+			m_send_buffer.append_buffer(buffer.first, buffer.second, size
+				, bind(&session_impl::free_buffer, boost::ref(m_ses), _1, buffer.second));
+			buffer::interval ret(buffer.first, buffer.first + size);
+#ifdef TORRENT_STATS
+			m_ses.m_buffer_usage_logger << log_time() << " allocate_buffer_alloc: " << size << std::endl;
+			m_ses.log_buffer_usage();
+#endif
+			return ret;
+		}
+		else
+		{
+#ifdef TORRENT_STATS
+			m_ses.m_buffer_usage_logger << log_time() << " allocate_buffer: " << size << std::endl;
+			m_ses.log_buffer_usage();
+#endif
+			buffer::interval ret(insert, insert + size);
+			return ret;
+		}
 	}
 
 	template<class T>
@@ -2647,8 +2671,7 @@ namespace libtorrent
 
 		// if we have requests or pending data to be sent or announcements to be made
 		// we want to send data
-		return (!m_send_buffer[m_current_send_buffer].empty()
-			|| !m_send_buffer[(m_current_send_buffer + 1) & 1].empty())
+		return !m_send_buffer.empty()
 			&& (m_bandwidth_limit[upload_channel].quota_left() > 0
 				|| m_ignore_bandwidth_limits)
 			&& !m_connecting;
@@ -2763,6 +2786,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		assert(m_writing);
+
+		m_send_buffer.pop_front(bytes_transferred);
+		
 		m_writing = false;
 
 		if (!m_ignore_bandwidth_limits)
@@ -2772,9 +2798,6 @@ namespace libtorrent
 		(*m_logger) << "wrote " << bytes_transferred << " bytes\n";
 #endif
 
-		m_write_pos += bytes_transferred;
-
-		
 		if (error)
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -2787,33 +2810,10 @@ namespace libtorrent
 		assert(!m_connecting);
 		assert(bytes_transferred > 0);
 
-		int sending_buffer = (m_current_send_buffer + 1) & 1;
-
-		assert(int(m_send_buffer[sending_buffer].size()) >= m_write_pos);
-		if (int(m_send_buffer[sending_buffer].size()) == m_write_pos)
-		{
-			m_send_buffer[sending_buffer].clear();
-			m_write_pos = 0;
-		}
-
 		m_last_sent = time_now();
 
 		on_sent(error, bytes_transferred);
 		fill_send_buffer();
-
-		if (m_choked)
-		{
-			for (int i = 0; i < 2; ++i)
-			{
-				if (int(m_send_buffer[i].size()) < 64
-					&& int(m_send_buffer[i].capacity()) > 128)
-				{
-					buffer tmp(m_send_buffer[i]);
-					tmp.swap(m_send_buffer[i]);
-					assert(m_send_buffer[i].capacity() == m_send_buffer[i].size());
-				}
-			}
-		}
 
 		setup_send();
 	}
@@ -2876,8 +2876,6 @@ namespace libtorrent
 			}
 		}
 */
-		assert(m_write_pos <= int(m_send_buffer[
-			(m_current_send_buffer + 1) & 1].size()));
 
 // extremely expensive invariant check
 /*

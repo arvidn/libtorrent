@@ -37,18 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_DISK_STATS
 
 #include "libtorrent/time.hpp"
-#include <boost/lexical_cast.hpp>
-
-namespace
-{
-	std::string log_time()
-	{
-		using namespace libtorrent;
-		static ptime start = time_now();
-		return boost::lexical_cast<std::string>(
-			total_milliseconds(time_now() - start));
-	}
-}
 
 #endif
 
@@ -64,7 +52,9 @@ namespace libtorrent
 #endif
 		, m_disk_io_thread(boost::ref(*this))
 	{
-	
+#ifdef TORRENT_STATS
+		m_allocations = 0;
+#endif
 #ifdef TORRENT_DISK_STATS
 		m_log.open("disk_io_thread.log", std::ios::trunc);
 #endif
@@ -188,7 +178,19 @@ namespace libtorrent
 	char* disk_io_thread::allocate_buffer()
 	{
 		boost::mutex::scoped_lock l(m_mutex);
+#ifdef TORRENT_STATS
+		++m_allocations;
+#endif
 		return (char*)m_pool.ordered_malloc();
+	}
+
+	void disk_io_thread::free_buffer(char* buf)
+	{
+		boost::mutex::scoped_lock l(m_mutex);
+#ifdef TORRENT_STATS
+		--m_allocations;
+#endif
+		m_pool.ordered_free(buf);
 	}
 
 	void disk_io_thread::operator()()
@@ -225,10 +227,14 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 						m_log << log_time() << " read " << j.buffer_size << std::endl;
 #endif
+						free_buffer = false;
 						if (j.buffer == 0)
 						{
 							l.lock();
 							j.buffer = (char*)m_pool.ordered_malloc();
+#ifdef TORRENT_STATS
+							++m_allocations;
+#endif
 							l.unlock();
 							assert(j.buffer_size <= m_block_size);
 							if (j.buffer == 0)
@@ -237,10 +243,6 @@ namespace libtorrent
 								j.str = "out of memory";
 								break;
 							}
-						}
-						else
-						{
-							free_buffer = false;
 						}
 						ret = j.storage->read_impl(j.buffer, j.piece, j.offset
 							, j.buffer_size);
@@ -301,6 +303,9 @@ namespace libtorrent
 			{
 				l.lock();
 				m_pool.ordered_free(j.buffer);
+#ifdef TORRENT_STATS
+				--m_allocations;
+#endif
 			}
 		}
 	}
