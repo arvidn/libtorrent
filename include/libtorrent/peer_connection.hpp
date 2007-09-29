@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/array.hpp>
 #include <boost/optional.hpp>
 #include <boost/cstdint.hpp>
+#include <boost/pool/pool.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -73,6 +74,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/chained_buffer.hpp"
 
 namespace libtorrent
 {
@@ -356,14 +358,23 @@ namespace libtorrent
 		virtual boost::optional<piece_block_progress>
 		downloading_piece_progress() const
 		{
-			#ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << "downloading_piece_progress() dispatched to the base class!\n";
-			#endif
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << "downloading_piece_progress() dispatched to the base class!\n";
+#endif
 			return boost::optional<piece_block_progress>();
 		}
 
-		void send_buffer(char const* begin, char const* end);
+		void send_buffer(char const* begin, int size);
 		buffer::interval allocate_send_buffer(int size);
+		template <class Destructor>
+		void append_send_buffer(char* buffer, int size, Destructor const& destructor)
+		{
+			m_send_buffer.append_buffer(buffer, size, size, destructor);
+#ifdef TORRENT_STATS
+			m_ses.m_buffer_usage_logger << log_time() << " append_send_buffer: " << size << std::endl;
+			m_ses.log_buffer_usage();
+#endif
+		}
 		void setup_send();
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
@@ -375,6 +386,12 @@ namespace libtorrent
 		}
 		bool has_country() const { return m_country[0] != 0; }
 #endif
+
+		int send_buffer_size() const
+		{ return m_send_buffer.size(); }
+
+		int send_buffer_capacity() const
+		{ return m_send_buffer.capacity(); }
 
 	protected:
 
@@ -388,7 +405,7 @@ namespace libtorrent
 		virtual void write_cancel(peer_request const& r) = 0;
 		virtual void write_have(int index) = 0;
 		virtual void write_keepalive() = 0;
-		virtual void write_piece(peer_request const& r, char const* buffer) = 0;
+		virtual void write_piece(peer_request const& r, char* buffer) = 0;
 		
 		virtual void write_reject_request(peer_request const& r) = 0;
 		virtual void write_allow_fast(int piece) = 0;
@@ -400,13 +417,6 @@ namespace libtorrent
 			, std::size_t bytes_transferred) = 0;
 		virtual void on_sent(asio::error_code const& error
 			, std::size_t bytes_transferred) = 0;
-
-		int send_buffer_size() const
-		{
-			return (int)m_send_buffer[0].size()
-				+ (int)m_send_buffer[1].size()
-				- m_write_pos;
-		}
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		buffer::interval wr_recv_buffer()
@@ -512,31 +522,13 @@ namespace libtorrent
 		int m_recv_pos;
 		buffer m_recv_buffer;
 
-		// this is the buffer where data that is
-		// to be sent is stored until it gets
-		// consumed by send(). Since asio requires
-		// the memory buffer that is given to async.
-		// operations to remain valid until the operation
-		// finishes, there has to be two buffers. While
-		// waiting for a async_write operation on one
-		// buffer, the other is used to write data to
-		// be queued up.
-		buffer m_send_buffer[2];
-		// the current send buffer is the one to write to.
-		// (m_current_send_buffer + 1) % 2 is the
-		// buffer we're currently waiting for.
-		int m_current_send_buffer;
+		chained_buffer m_send_buffer;
 
 		// the number of bytes we are currently reading
 		// from disk, that will be added to the send
 		// buffer as soon as they complete
 		int m_reading_bytes;
 		
-		// if the sending buffer doesn't finish in one send
-		// operation, this is the position within that buffer
-		// where the next operation should continue
-		int m_write_pos;
-
 		// timeouts
 		ptime m_last_receive;
 		ptime m_last_sent;

@@ -251,12 +251,10 @@ namespace libtorrent
 		(*m_logger) << time_now_string()
 			<< " ==> DHT_PORT [ " << listen_port << " ]\n";
 #endif
-		buffer::interval packet = allocate_send_buffer(7);
-		detail::write_uint32(3, packet.begin);
-		detail::write_uint8(msg_dht_port, packet.begin);
-		detail::write_uint16(listen_port, packet.begin);
-		assert(packet.begin == packet.end);
-		setup_send();
+		char msg[] = {0,0,0,3, msg_dht_port, 0, 0};
+		char* ptr = msg + 5;
+		detail::write_uint16(listen_port, ptr);
+		send_buffer(msg, sizeof(msg));
 	}
 
 	void bt_peer_connection::write_have_all()
@@ -270,8 +268,8 @@ namespace libtorrent
 		(*m_logger) << time_now_string()
 			<< " ==> HAVE_ALL\n";
 #endif
-		char buf[] = {0,0,0,1, msg_have_all};
-		send_buffer(buf, buf + sizeof(buf));
+		char msg[] = {0,0,0,1, msg_have_all};
+		send_buffer(msg, sizeof(msg));
 	}
 
 	void bt_peer_connection::write_have_none()
@@ -285,8 +283,8 @@ namespace libtorrent
 		(*m_logger) << time_now_string()
 			<< " ==> HAVE_NONE\n";
 #endif
-		char buf[] = {0,0,0,1, msg_have_none};
-		send_buffer(buf, buf + sizeof(buf));
+		char msg[] = {0,0,0,1, msg_have_none};
+		send_buffer(msg, sizeof(msg));
 	}
 
 	void bt_peer_connection::write_reject_request(peer_request const& r)
@@ -296,22 +294,12 @@ namespace libtorrent
 		assert(m_sent_handshake && m_sent_bitfield);
 		assert(associated_torrent().lock()->valid_metadata());
 
-		char buf[] = {0,0,0,13, msg_reject_request};
-
-		buffer::interval i = allocate_send_buffer(17);
-
-		std::copy(buf, buf + 5, i.begin);
-		i.begin += 5;
-
-		// index
-		detail::write_int32(r.piece, i.begin);
-		// begin
-		detail::write_int32(r.start, i.begin);
-		// length
-		detail::write_int32(r.length, i.begin);
-		assert(i.begin == i.end);
-
-		setup_send();
+		char msg[] = {0,0,0,13, msg_reject_request,0,0,0,0, 0,0,0,0, 0,0,0,0};
+		char* ptr = msg + 5;
+		detail::write_int32(r.piece, ptr); // index
+		detail::write_int32(r.start, ptr); // begin
+		detail::write_int32(r.length, ptr); // length
+		send_buffer(msg, sizeof(msg));
 	}
 
 	void bt_peer_connection::write_allow_fast(int piece)
@@ -321,11 +309,10 @@ namespace libtorrent
 		assert(m_sent_handshake && m_sent_bitfield);
 		assert(associated_torrent().lock()->valid_metadata());
 
-		char buf[] = {0,0,0,5, msg_allowed_fast, 0, 0, 0, 0};
-
-		char* ptr = buf + 5;
+		char msg[] = {0,0,0,5, msg_allowed_fast, 0, 0, 0, 0};
+		char* ptr = msg + 5;
 		detail::write_int32(piece, ptr);
-		send_buffer(buf, buf + sizeof(buf));
+		send_buffer(msg, sizeof(msg));
 	}
 
 	void bt_peer_connection::get_specific_peer_info(peer_info& p) const
@@ -556,8 +543,8 @@ namespace libtorrent
 		assert(secret);
 		
 		hasher h;
-		const char keyA[] = "keyA";
-		const char keyB[] = "keyB";
+		static const char keyA[] = "keyA";
+		static const char keyB[] = "keyB";
 
 		// encryption rc4 longkeys
 		// outgoing connection : hash ('keyA',S,SKEY)
@@ -587,17 +574,16 @@ namespace libtorrent
 #endif
 	}
 
-	void bt_peer_connection::send_buffer(char* begin, char* end)
+	void bt_peer_connection::send_buffer(char* buf, int size)
 	{
-		assert (begin);
-		assert (end);
-		assert (end > begin);
-		assert (!m_rc4_encrypted || m_encrypted);
+		assert(buf);
+		assert(size > 0);
+		assert(!m_rc4_encrypted || m_encrypted);
 
 		if (m_rc4_encrypted)
-			m_RC4_handler->encrypt(begin, end - begin);
+			m_RC4_handler->encrypt(buf, size);
 		
-		peer_connection::send_buffer(begin, end);
+		peer_connection::send_buffer(buf, size);
 	}
 
 	buffer::interval bt_peer_connection::allocate_send_buffer(int size)
@@ -606,6 +592,7 @@ namespace libtorrent
 
 		if (m_rc4_encrypted)
 		{
+			assert(m_enc_send_buffer.left() == 0);
 			m_enc_send_buffer = peer_connection::allocate_send_buffer(size);
 			return m_enc_send_buffer;
 		}
@@ -620,24 +607,24 @@ namespace libtorrent
 	{
 		assert(!m_rc4_encrypted || m_encrypted);
 
- 		if (m_rc4_encrypted)
+ 		if (m_rc4_encrypted && m_enc_send_buffer.left())
 		{
-			assert (m_enc_send_buffer.begin);
-			assert (m_enc_send_buffer.end);
-			assert (m_enc_send_buffer.left() > 0);
+			assert(m_enc_send_buffer.begin);
+			assert(m_enc_send_buffer.end);
 			
- 			m_RC4_handler->encrypt (m_enc_send_buffer.begin, m_enc_send_buffer.left());
+ 			m_RC4_handler->encrypt(m_enc_send_buffer.begin, m_enc_send_buffer.left());
+			m_enc_send_buffer.end = m_enc_send_buffer.begin;
 		}
 		peer_connection::setup_send();
 	}
 
 	int bt_peer_connection::get_syncoffset(char const* src, int src_size,
-										   char const* target, int target_size) const
+		char const* target, int target_size) const
 	{
-		assert (target_size >= src_size);
-		assert (src_size > 0);
-		assert (src);
-		assert (target);
+		assert(target_size >= src_size);
+		assert(src_size > 0);
+		assert(src);
+		assert(target);
 
 		int traverse_limit = target_size - src_size;
 
@@ -1288,8 +1275,8 @@ namespace libtorrent
 
 		assert(m_sent_handshake && m_sent_bitfield);
 
-		char buf[] = {0,0,0,0};
-		send_buffer(buf, buf + sizeof(buf));
+		char msg[] = {0,0,0,0};
+		send_buffer(msg, sizeof(msg));
 	}
 
 	void bt_peer_connection::write_cancel(peer_request const& r)
@@ -1299,22 +1286,12 @@ namespace libtorrent
 		assert(m_sent_handshake && m_sent_bitfield);
 		assert(associated_torrent().lock()->valid_metadata());
 
-		char buf[] = {0,0,0,13, msg_cancel};
-
-		buffer::interval i = allocate_send_buffer(17);
-
-		std::copy(buf, buf + 5, i.begin);
-		i.begin += 5;
-
-		// index
-		detail::write_int32(r.piece, i.begin);
-		// begin
-		detail::write_int32(r.start, i.begin);
-		// length
-		detail::write_int32(r.length, i.begin);
-		assert(i.begin == i.end);
-
-		setup_send();
+		char msg[17] = {0,0,0,13, msg_cancel};
+		char* ptr = msg + 5;
+		detail::write_int32(r.piece, ptr); // index
+		detail::write_int32(r.start, ptr); // begin
+		detail::write_int32(r.length, ptr); // length
+		send_buffer(msg, sizeof(msg));
 	}
 
 	void bt_peer_connection::write_request(peer_request const& r)
@@ -1324,22 +1301,13 @@ namespace libtorrent
 		assert(m_sent_handshake && m_sent_bitfield);
 		assert(associated_torrent().lock()->valid_metadata());
 
-		char buf[] = {0,0,0,13, msg_request};
+		char msg[17] = {0,0,0,13, msg_request};
+		char* ptr = msg + 5;
 
-		buffer::interval i = allocate_send_buffer(17);
-
-		std::copy(buf, buf + 5, i.begin);
-		i.begin += 5;
-
-		// index
-		detail::write_int32(r.piece, i.begin);
-		// begin
-		detail::write_int32(r.start, i.begin);
-		// length
-		detail::write_int32(r.length, i.begin);
-		assert(i.begin == i.end);
-
-		setup_send();
+		detail::write_int32(r.piece, ptr); // index
+		detail::write_int32(r.start, ptr); // begin
+		detail::write_int32(r.length, ptr); // length
+		send_buffer(msg, sizeof(msg));
 	}
 
 	void bt_peer_connection::write_bitfield(std::vector<bool> const& bitfield)
@@ -1526,7 +1494,7 @@ namespace libtorrent
 
 		if (is_choked()) return;
 		char msg[] = {0,0,0,1,msg_choke};
-		send_buffer(msg, msg + sizeof(msg));
+		send_buffer(msg, sizeof(msg));
 	}
 
 	void bt_peer_connection::write_unchoke()
@@ -1536,7 +1504,7 @@ namespace libtorrent
 		assert(m_sent_handshake && m_sent_bitfield);
 
 		char msg[] = {0,0,0,1,msg_unchoke};
-		send_buffer(msg, msg + sizeof(msg));
+		send_buffer(msg, sizeof(msg));
 	}
 
 	void bt_peer_connection::write_interested()
@@ -1546,7 +1514,7 @@ namespace libtorrent
 		assert(m_sent_handshake && m_sent_bitfield);
 
 		char msg[] = {0,0,0,1,msg_interested};
-		send_buffer(msg, msg + sizeof(msg));
+		send_buffer(msg, sizeof(msg));
 	}
 
 	void bt_peer_connection::write_not_interested()
@@ -1556,7 +1524,7 @@ namespace libtorrent
 		assert(m_sent_handshake && m_sent_bitfield);
 
 		char msg[] = {0,0,0,1,msg_not_interested};
-		send_buffer(msg, msg + sizeof(msg));
+		send_buffer(msg, sizeof(msg));
 	}
 
 	void bt_peer_connection::write_have(int index)
@@ -1567,34 +1535,39 @@ namespace libtorrent
 		assert(index < associated_torrent().lock()->torrent_file().num_pieces());
 		assert(m_sent_handshake && m_sent_bitfield);
 
-		const int packet_size = 9;
-		char msg[packet_size] = {0,0,0,5,msg_have};
+		char msg[] = {0,0,0,5,msg_have,0,0,0,0};
 		char* ptr = msg + 5;
 		detail::write_int32(index, ptr);
-		send_buffer(msg, msg + packet_size);
+		send_buffer(msg, sizeof(msg));
 	}
 
-	void bt_peer_connection::write_piece(peer_request const& r, char const* buffer)
+	void bt_peer_connection::write_piece(peer_request const& r, char* buffer)
 	{
 		INVARIANT_CHECK;
 
 		assert(m_sent_handshake && m_sent_bitfield);
 
-		const int packet_size = 4 + 5 + 4 + r.length;
-
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		assert(t);
 
-		buffer::interval i = allocate_send_buffer(packet_size);
-		
-		detail::write_int32(packet_size-4, i.begin);
-		detail::write_uint8(msg_piece, i.begin);
-		detail::write_int32(r.piece, i.begin);
-		detail::write_int32(r.start, i.begin);
+		char msg[4 + 1 + 4 + 4];
+		char* ptr = msg;
+		assert(r.length <= 16 * 1024);
+		detail::write_int32(r.length + 1 + 4 + 4, ptr);
+		detail::write_uint8(msg_piece, ptr);
+		detail::write_int32(r.piece, ptr);
+		detail::write_int32(r.start, ptr);
+		send_buffer(msg, sizeof(msg));
+
+		append_send_buffer(buffer, r.length
+			, boost::bind(&session_impl::free_disk_buffer
+			, boost::ref(m_ses), _1));
+
+/*
+		buffer::interval i = allocate_send_buffer(r.length);
 		std::memcpy(i.begin, buffer, r.length);
-
-		assert(i.begin + r.length == i.end);
-
+		t->filesystem().free_buffer(buffer);
+*/	
 		m_payloads.push_back(range(send_buffer_size() - r.length, r.length));
 		setup_send();
 	}

@@ -507,7 +507,8 @@ namespace detail
 		std::pair<int, int> listen_port_range
 		, fingerprint const& cl_fprint
 		, char const* listen_interface)
-		: m_strand(m_io_service)
+		: m_send_buffers(send_buffer_size)
+		, m_strand(m_io_service)
 		, m_files(40)
 		, m_half_open(m_io_service)
 		, m_download_channel(m_io_service, peer_connection::download_channel)
@@ -546,7 +547,7 @@ namespace detail
 #endif
 
 #ifdef TORRENT_STATS
-		m_stats_logger.open("session_stats.log");
+		m_stats_logger.open("session_stats.log", std::ios::trunc);
 		m_stats_logger <<
 			"1. second\n"
 			"2. upload rate\n"
@@ -555,7 +556,9 @@ namespace detail
 			"5. seeding torrents\n"
 			"6. peers\n"
 			"7. connecting peers\n"
+			"8. disk block buffers\n"
 			"\n";
+		m_buffer_usage_logger.open("buffer_stats.log", std::ios::trunc);
 		m_second_counter = 0;
 #endif
 
@@ -999,7 +1002,8 @@ namespace detail
 	{
 		session_impl::mutex_t::scoped_lock l(m_mutex);
 
-		INVARIANT_CHECK;
+// too expensive
+//		INVARIANT_CHECK;
 
 		if (e)
 		{
@@ -1031,7 +1035,7 @@ namespace detail
 			else
 				++downloading_torrents;
 		}
-		int num_connections = 0;
+		int num_complete_connections = 0;
 		int num_half_open = 0;
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
@@ -1039,7 +1043,7 @@ namespace detail
 			if (i->second->is_connecting())
 				++num_half_open;
 			else
-				++num_connections;
+				++num_complete_connections;
 		}
 		
 		m_stats_logger
@@ -1048,8 +1052,9 @@ namespace detail
 			<< m_stat.download_rate() << "\t"
 			<< downloading_torrents << "\t"
 			<< seeding_torrents << "\t"
-			<< num_connections << "\t"
+			<< num_complete_connections << "\t"
 			<< num_half_open << "\t"
+			<< m_disk_thread.disk_allocations() << "\t"
 			<< std::endl;
 #endif
 
@@ -2259,6 +2264,35 @@ namespace detail
 		m_upnp.reset();
 	}
 	
+	void session_impl::free_disk_buffer(char* buf)
+	{
+		m_disk_thread.free_buffer(buf);
+	}
+	
+	std::pair<char*, int> session_impl::allocate_buffer(int size)
+	{
+		int num_buffers = (size + send_buffer_size - 1) / send_buffer_size;
+#ifdef TORRENT_STATS
+		m_buffer_allocations += num_buffers;
+		m_buffer_usage_logger << log_time() << " protocol_buffer: "
+			<< (m_buffer_allocations * send_buffer_size) << std::endl;
+#endif
+		return std::make_pair((char*)m_send_buffers.ordered_malloc(num_buffers)
+			, num_buffers * send_buffer_size);
+	}
+
+	void session_impl::free_buffer(char* buf, int size)
+	{
+		assert(size % send_buffer_size == 0);
+		int num_buffers = size / send_buffer_size;
+#ifdef TORRENT_STATS
+		m_buffer_allocations -= num_buffers;
+		assert(m_buffer_allocations >= 0);
+		m_buffer_usage_logger << log_time() << " protocol_buffer: "
+			<< (m_buffer_allocations * send_buffer_size) << std::endl;
+#endif
+		m_send_buffers.ordered_free(buf, num_buffers);
+	}	
 
 #ifndef NDEBUG
 	void session_impl::check_invariant() const

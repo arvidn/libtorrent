@@ -94,6 +94,11 @@ namespace libtorrent
 		disk_io_thread(int block_size = 16 * 1024);
 		~disk_io_thread();
 
+#ifdef TORRENT_STATS
+		int disk_allocations() const
+		{ return m_allocations; }
+#endif
+	
 		// aborts read operations
 		void stop(boost::intrusive_ptr<piece_manager> s);
 		void add_job(disk_io_job const& j
@@ -110,6 +115,7 @@ namespace libtorrent
 		void operator()();
 
 		char* allocate_buffer();
+		void free_buffer(char* buf);
 
 	private:
 
@@ -128,6 +134,9 @@ namespace libtorrent
 
 #ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;
+#endif
+#ifdef TORRENT_STATS
+		int m_allocations;
 #endif
 
 		// thread for performing blocking disk io operations

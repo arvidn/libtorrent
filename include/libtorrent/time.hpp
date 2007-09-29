@@ -389,5 +389,18 @@ namespace libtorrent
 #endif
 
 #endif
+
+namespace libtorrent
+{
+	inline std::string log_time()
+	{
+		static ptime start = time_now();
+		char ret[200];
+		std::sprintf(ret, "%d", total_milliseconds(time_now() - start));
+		return ret;
+	}
+}
+
+
 #endif
 

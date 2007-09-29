@@ -184,6 +184,9 @@ namespace libtorrent
 		std::pair<bool, float> check_files(std::vector<bool>& pieces
 			, int& num_pieces, boost::recursive_mutex& mutex);
 
+		// frees a buffer that was returned from a read operation
+		void free_buffer(char* buf);
+
 		void write_resume_data(entry& rd) const;
 		bool verify_resume_data(entry& rd, std::string& error);
 

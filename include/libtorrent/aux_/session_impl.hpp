@@ -168,6 +168,10 @@ namespace libtorrent
 		// thread started to run the main downloader loop
 		struct session_impl: boost::noncopyable
 		{
+
+			// the size of each allocation that is chained in the send buffer
+			enum { send_buffer_size = 200 };
+
 #ifndef NDEBUG
 			friend class ::libtorrent::peer_connection;
 #endif
@@ -329,6 +333,24 @@ namespace libtorrent
 			{ return m_dht_proxy; }
 #endif
 
+#ifdef TORRENT_STATS
+			void log_buffer_usage()
+			{
+				int send_buffer_capacity = 0;
+				int used_send_buffer = 0;
+				for (connection_map::const_iterator i = m_connections.begin()
+					, end(m_connections.end()); i != end; ++i)
+				{
+					send_buffer_capacity += i->second->send_buffer_capacity();
+					used_send_buffer += i->second->send_buffer_size();
+				}
+				assert(send_buffer_capacity >= used_send_buffer);
+				m_buffer_usage_logger << log_time() << " send_buffer_size: " << send_buffer_capacity << std::endl;
+				m_buffer_usage_logger << log_time() << " used_send_buffer: " << used_send_buffer << std::endl;
+				m_buffer_usage_logger << log_time() << " send_buffer_utilization: "
+					<< (used_send_buffer * 100.f / send_buffer_capacity) << std::endl;
+			}
+#endif
 			void start_lsd();
 			void start_natpmp();
 			void start_upnp();
@@ -339,10 +361,24 @@ namespace libtorrent
 
 			// handles delayed alerts
 			alert_manager m_alerts;
+
+			std::pair<char*, int> allocate_buffer(int size);
+			void free_buffer(char* buf, int size);
+			void free_disk_buffer(char* buf);
 			
 //		private:
 
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
+
+			// handles disk io requests asynchronously
+			// peers have pointers into the disk buffer
+			// pool, and must be destructed before this
+			// object.
+			disk_io_thread m_disk_thread;
+
+			// this pool is used to allocate and recycle send
+			// buffers from.
+			boost::pool<> m_send_buffers;
 
 			// this is where all active sockets are stored.
 			// the selector can sleep while there's no activity on
@@ -357,9 +393,6 @@ namespace libtorrent
 			// since they will still have references to it
 			// when they are destructed.
 			file_pool m_files;
-
-			// handles disk io requests asynchronously
-			disk_io_thread m_disk_thread;
 
 			// this is a list of half-open tcp connections
 			// (only outgoing connections)
@@ -526,6 +559,10 @@ namespace libtorrent
 			// logger used to write bandwidth usage statistics
 			std::ofstream m_stats_logger;
 			int m_second_counter;
+			// used to log send buffer usage statistics
+			std::ofstream m_buffer_usage_logger;
+			// the number of send buffers that are allocated
+			int m_buffer_allocations;
 #endif
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			boost::shared_ptr<logger> create_log(std::string const& name
