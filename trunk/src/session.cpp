@@ -83,6 +83,14 @@ using libtorrent::aux::session_impl;
 namespace libtorrent
 {
 
+	std::string log_time()
+	{
+		static const ptime start = time_now();
+		char ret[200];
+		std::sprintf(ret, "%d", total_milliseconds(time_now() - start));
+		return ret;
+	}
+
 	namespace aux
 	{
 		filesystem_init::filesystem_init()
