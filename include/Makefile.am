@@ -204,6 +204,8 @@ libtorrent/asio/ip/resolver_query_base.hpp \
 libtorrent/asio/ip/resolver_service.hpp \
 libtorrent/asio/ip/tcp.hpp \
 libtorrent/asio/ip/udp.hpp \
+libtorrent/asio/ip/unicast.hpp \
+libtorrent/asio/ip/v6_only.hpp \
 libtorrent/asio/is_read_buffered.hpp \
 libtorrent/asio/is_write_buffered.hpp \
 libtorrent/asio/placeholders.hpp \
@@ -230,5 +232,6 @@ libtorrent/asio/streambuf.hpp \
 libtorrent/asio/system_error.hpp \
 libtorrent/asio/thread.hpp \
 libtorrent/asio/time_traits.hpp \
+libtorrent/asio/version.hpp \
 libtorrent/asio/write.hpp
 
