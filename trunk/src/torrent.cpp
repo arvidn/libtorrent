@@ -775,6 +775,8 @@ namespace libtorrent
 
 		if (total_done >= m_torrent_file->total_size())
 		{
+			// Thist happens when a piece has been downloaded completely
+			// but not yet verified against the hash
 			std::copy(m_have_pieces.begin(), m_have_pieces.end()
 				, std::ostream_iterator<bool>(std::cerr, " "));
 			std::cerr << std::endl;

@@ -10,7 +10,8 @@ void test_sleep(int millisec);
 boost::tuple<libtorrent::torrent_handle, libtorrent::torrent_handle
 	, libtorrent::torrent_handle>
 setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2
-	, libtorrent::session* ses3, bool clear_files, bool use_metadata_transfer = true);
+	, libtorrent::session* ses3, bool clear_files, bool use_metadata_transfer = true
+	, bool connect = true);
 
 #endif
 

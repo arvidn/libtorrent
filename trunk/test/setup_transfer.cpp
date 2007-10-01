@@ -40,7 +40,7 @@ boost::intrusive_ptr<T> clone_ptr(boost::intrusive_ptr<T> const& ptr)
 
 boost::tuple<torrent_handle, torrent_handle, torrent_handle>
 setup_transfer(session* ses1, session* ses2, session* ses3
-	, bool clear_files, bool use_metadata_transfer)
+	, bool clear_files, bool use_metadata_transfer, bool connect_peers)
 {
 	using namespace boost::filesystem;
 
@@ -105,20 +105,23 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 
 	test_sleep(100);
 
-	std::cerr << "connecting peer\n";
-	tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1")
-		, ses2->listen_port()));
-
-	if (ses3)
+	if (connect_peers)
 	{
-		// give the other peers some time to get an initial
-		// set of pieces before they start sharing with each-other
-		tor3.connect_peer(tcp::endpoint(
-			address::from_string("127.0.0.1")
+		std::cerr << "connecting peer\n";
+		tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1")
 			, ses2->listen_port()));
-		tor3.connect_peer(tcp::endpoint(
-			address::from_string("127.0.0.1")
-			, ses1->listen_port()));
+
+		if (ses3)
+		{
+			// give the other peers some time to get an initial
+			// set of pieces before they start sharing with each-other
+			tor3.connect_peer(tcp::endpoint(
+				address::from_string("127.0.0.1")
+				, ses2->listen_port()));
+			tor3.connect_peer(tcp::endpoint(
+				address::from_string("127.0.0.1")
+				, ses1->listen_port()));
+		}
 	}
 
 	return boost::make_tuple(tor1, tor2, tor3);
