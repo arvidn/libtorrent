@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CHAINED_BUFFER_HPP_INCLUDED
 
 #include <boost/function.hpp>
-#include <asio.hpp>
+#include <asio/buffer.hpp>
 #include <list>
 #include <cstring>
 
