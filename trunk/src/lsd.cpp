@@ -49,8 +49,8 @@ using namespace libtorrent;
 
 namespace libtorrent
 {
-	// defined in upnp.cpp
-	address_v4 guess_local_address(asio::io_service&);
+	// defined in broadcast_socket.cpp
+	address guess_local_address(asio::io_service&);
 }
 
 lsd::lsd(io_service& ios, address const& listen_interface
