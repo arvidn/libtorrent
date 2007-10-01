@@ -69,7 +69,7 @@ namespace libtorrent
 			}
 			catch (std::exception& e)
 			{
-				std::cerr << "failed to create log '" << filename << "': " << e.what() << std::endl;
+				std::cerr << "failed to create log '" << filename.string() << "': " << e.what() << std::endl;
 			}
 		}
 
