@@ -363,7 +363,7 @@ namespace libtorrent
 		aux::piece_checker_data* d = m_chk->find_torrent(m_info_hash);
 		if (d != 0)
 		{
-			torrent_status st;
+			torrent_status st = d->torrent_ptr->status();
 
 			if (d->processing)
 			{
