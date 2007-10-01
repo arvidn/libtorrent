@@ -83,7 +83,7 @@ void intrusive_ptr_release(observer const* o)
 	{
 		boost::pool<>& p = o->pool_allocator;
 		o->~observer();
-		p.ordered_free(const_cast<observer*>(o));
+		p.free(const_cast<observer*>(o));
 	}
 }
 
