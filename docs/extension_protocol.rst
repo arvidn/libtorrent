@@ -93,6 +93,14 @@ Here are some other items that an implementation may choose to support:
 |        | This may be either an IPv4 (4 bytes) or an IPv6           |
 |        | (16 bytes) address.                                       |
 +--------+-----------------------------------------------------------+
+| ipv6   | If this peer has an IPv6 interface, this is the compact   |
+|        | representation of that address (16 bytes). The client may |
+|        | prefer to connect back via the IPv6 address.              |
++--------+-----------------------------------------------------------+
+| ipv4   | If this peer has an IPv4 interface, this is the compact   |
+|        | representation of that address (4 bytes). The client may  |
+|        | prefer to connect back via this interface.                |
++--------+-----------------------------------------------------------+
 | reqq   | An integer, the number of outstanding request messages    |
 |        | this client supports without dropping any. The default in |
 |        | in libtorrent is 250.                                     |
