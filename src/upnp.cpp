@@ -56,7 +56,7 @@ using namespace libtorrent;
 namespace libtorrent
 {
 	bool is_local(address const& a);
-	address_v4 guess_local_address(asio::io_service&);
+	address guess_local_address(asio::io_service&);
 }
 
 upnp::upnp(io_service& ios, connection_queue& cc

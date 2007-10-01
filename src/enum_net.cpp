@@ -34,6 +34,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <net/if.h>
+#elif defined WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <iphlpapi.h>
 #endif
 
 #include "libtorrent/enum_net.hpp"
@@ -134,6 +140,77 @@ namespace libtorrent
 		}
 #endif
 		return ret;
+	}
+
+	address router_for_interface(address const interface, asio::error_code& ec)
+	{
+#ifdef WIN32
+
+		// Load Iphlpapi library
+		HMODULE iphlp = LoadLibraryA("Iphlpapi.dll");
+		if (!iphlp)
+		{
+			ec = asio::error::fault;
+			return address_v4::any();
+		}
+
+		// Get GetAdaptersInfo() pointer
+		typedef DWORD (WINAPI *GetAdaptersInfo_t)(PIP_ADAPTER_INFO, PULONG);
+		GetAdaptersInfo_t GetAdaptersInfo = (GetAdaptersInfo_t)GetProcAddress(iphlp, "GetAdaptersInfo");
+		if (!GetAdaptersInfo)
+		{
+			FreeLibrary(iphlp);
+			ec = asio::error::fault;
+			return address_v4::any();
+		}
+
+		PIP_ADAPTER_INFO adapter_info = 0;
+		ULONG out_buf_size = 0;
+		if (GetAdaptersInfo(adapter_info, &out_buf_size) != ERROR_BUFFER_OVERFLOW)
+		{
+			FreeLibrary(iphlp);
+			ec = asio::error::fault;
+			return address_v4::any();
+		}
+
+		adapter_info = (IP_ADAPTER_INFO*)malloc(out_buf_size);
+		if (!adapter_info)
+		{
+			FreeLibrary(iphlp);
+			ec = asio::error::fault;
+			return address_v4::any();
+		}
+
+		address ret;
+		if (GetAdaptersInfo(adapter_info, &out_buf_size) == NO_ERROR)
+		{
+			PIP_ADAPTER_INFO adapter = adapter_info;
+			while (adapter != 0)
+			{
+				if (interface == address::from_string(adapter->IpAddressList.IpAddress.String, ec))
+				{
+					ret = address::from_string(adapter->GatewayList.IpAddress.String, ec);
+					break;
+				}
+				adapter = adapter->Next;
+			}
+		}
+   
+		// Free memory
+		free(adapter_info);
+		FreeLibrary(iphlp);
+
+		return ret;
+
+#else
+		// TODO: temporary implementation
+		if (!interface.is_v4())
+		{
+			ec = asio::error::fault;
+			return address_v4::any();
+		}
+		return address_v4((interface.to_v4().to_ulong() & 0xffffff00) | 1);
+#endif
 	}
 
 }

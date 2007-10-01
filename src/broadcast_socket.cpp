@@ -51,23 +51,6 @@ namespace libtorrent
 			|| (ip & 0xffff0000) == 0xc0a80000);
 	}
 
-	address_v4 guess_local_address(asio::io_service& ios)
-	{
-		// make a best guess of the interface we're using and its IP
-		udp::resolver r(ios);
-		udp::resolver::iterator i = r.resolve(udp::resolver::query(asio::ip::host_name(), "0"));
-		for (;i != udp::resolver_iterator(); ++i)
-		{
-			address const& a = i->endpoint().address();
-			// ignore non-IPv4 addresses
-			if (!a.is_v4()) break;
-			// ignore the loopback
-			if (a.to_v4() == address_v4::loopback()) continue;
-		}
-		if (i == udp::resolver_iterator()) return address_v4::any();
-		return i->endpoint().address().to_v4();
-	}
-
 	bool is_loopback(address const& addr)
 	{
 		if (addr.is_v4())
@@ -90,6 +73,30 @@ namespace libtorrent
 			return addr.to_v4() == address_v4::any();
 		else
 			return addr.to_v6() == address_v6::any();
+	}
+
+	address guess_local_address(asio::io_service& ios)
+	{
+		// make a best guess of the interface we're using and its IP
+		asio::error_code ec;
+		std::vector<address> const& interfaces = enum_net_interfaces(ios, ec);
+		address ret = address_v4::any();
+		for (std::vector<address>::const_iterator i = interfaces.begin()
+			, end(interfaces.end()); i != end; ++i)
+		{
+			address const& a = *i;
+			if (is_loopback(a)
+				|| is_multicast(a)
+				|| is_any(a)) continue;
+
+			// prefer a v4 address, but return a v6 if
+			// there are no v4
+			if (a.is_v4()) return a;
+
+			if (ret != address_v4::any())
+				ret = a;
+		}
+		return ret;
 	}
 
 	broadcast_socket::broadcast_socket(asio::io_service& ios

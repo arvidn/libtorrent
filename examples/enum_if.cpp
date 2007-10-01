@@ -18,7 +18,12 @@ int main()
 		if (is_multicast(*i)) std::cout << "multicast ";
 		if (is_local(*i)) std::cout << "local ";
 		if (is_loopback(*i)) std::cout << "loopback ";
+		std::cout << "router: " << router_for_interface(*i, ec);
 		std::cout << std::endl;
 	}
+
+	address local = guess_local_address(ios);
+
+	std::cout << "Local address: " << local << std::endl;
 }
 
