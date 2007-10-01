@@ -188,7 +188,7 @@ std::string const& to_string(float v, int width, int precision = 3)
 	static std::string ret;
 	ret.resize(20);
 	int size = std::sprintf(&ret[0], "%*.*f", width, precision, v);
-	ret.resize(std::min(size, width));
+	ret.resize((std::min)(size, width));
 	return ret;
 }
 
@@ -264,7 +264,7 @@ std::string const& piece_bar(std::vector<bool> const& p, int width)
 	{
 		int num_pieces = 0;
 		int num_have = 0;
-		int end = std::max(int(piece + piece_per_char), int(piece) + 1);
+		int end = (std::max)(int(piece + piece_per_char), int(piece) + 1);
 		for (int k = int(piece); k < end; ++k, ++num_pieces)
 			if (p[k]) ++num_have;
 		int color = int(std::ceil(num_have / float(num_pieces) * (sizeof(lookup) / sizeof(lookup[0]) - 1)));
