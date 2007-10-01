@@ -50,7 +50,7 @@ namespace libtorrent
 		return str;
 	}
 
-	inline std::string log_time();
+	std::string log_time();
 }
 
 #if (!defined (__MACH__) && !defined (_WIN32) && (!defined(_POSIX_MONOTONIC_CLOCK) \
