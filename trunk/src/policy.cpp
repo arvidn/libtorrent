@@ -988,7 +988,7 @@ namespace libtorrent
 //		m_last_optimistic_disconnect = time_now();
 	}
 
-	void policy::peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid
+	policy::peer* policy::peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid
 		, int src, char flags)
 	{
 // too expensive
@@ -996,7 +996,7 @@ namespace libtorrent
 
 		// just ignore the obviously invalid entries
 		if (remote.address() == address() || remote.port() == 0)
-			return;
+			return 0;
 
 		aux::session_impl& ses = m_torrent->session();
 
@@ -1008,7 +1008,7 @@ namespace libtorrent
 				ses.m_alerts.post_alert(peer_blocked_alert(remote.address()
 				, "outgoing port blocked, peer not added to peer list"));
 			}
-			return;
+			return 0;
 		}
 
 		try
@@ -1038,16 +1038,13 @@ namespace libtorrent
 						ses.m_alerts.post_alert(peer_blocked_alert(remote.address()
 						, "blocked peer not added to peer list"));
 					}
-					return;
+					return 0;
 				}
 			
 				// we don't have any info about this peer.
 				// add a new entry
 				peer p(remote, peer::connectable, src);
-				m_peers.insert(std::make_pair(remote.address(), p));
-				// the iterator is invalid
-				// because of the push_back()
-				i = boost::prior(m_peers.end());
+				i = m_peers.insert(std::make_pair(remote.address(), p));
 #ifndef TORRENT_DISABLE_ENCRYPTION
 				if (flags & 0x01) p.pe_support = true;
 #endif
@@ -1084,22 +1081,22 @@ namespace libtorrent
 				// so we don't have to trust this source
 				if ((flags & 0x02) && !i->second.connection) i->second.seed = true;
 
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 				if (i->second.connection)
 				{
 					// this means we're already connected
 					// to this peer. don't connect to
 					// it again.
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 					m_torrent->debug_log("already connected to peer: " + remote.address().to_string() + ":"
 						+ boost::lexical_cast<std::string>(remote.port()) + " "
 						+ boost::lexical_cast<std::string>(i->second.connection->pid()));
-#endif
 
 					assert(i->second.connection->associated_torrent().lock().get() == m_torrent);
-					return;
 				}
+#endif
 			}
+			return &i->second;
 		}
 		catch(std::exception& e)
 		{
@@ -1109,6 +1106,7 @@ namespace libtorrent
 					peer_error_alert(remote, pid, e.what()));
 			}
 		}
+		return 0;
 	}
 
 	// this is called when we are choked by a peer
