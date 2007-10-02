@@ -80,9 +80,10 @@ namespace libtorrent
 		// for peer choking management
 		void pulse();
 
+		struct peer;
 		// this is called once for every peer we get from
 		// the tracker, pex, lsd or dht.
-		void peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid
+		policy::peer* peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid
 			, int source, char flags);
 
 		// called when an incoming connection is accepted
