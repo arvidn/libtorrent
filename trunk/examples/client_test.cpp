@@ -692,13 +692,13 @@ int main(int ac, char* av[])
 		handles_t handles;
 		session ses;
 		// UPnP port mapping
-		ses.start_upnp();
+//		ses.start_upnp();
 		// NAT-PMP port mapping
-		ses.start_natpmp();
+//		ses.start_natpmp();
 		// Local service discovery (finds peers on the local network)
-		ses.start_lsd();
-		ses.add_extension(&create_metadata_plugin);
-		ses.add_extension(&create_ut_pex_plugin);
+//		ses.start_lsd();
+//		ses.add_extension(&create_metadata_plugin);
+//		ses.add_extension(&create_ut_pex_plugin);
 
 		ses.set_max_uploads(upload_slots_limit);
 		ses.set_max_half_open_connections(half_open_limit);
@@ -721,7 +721,7 @@ int main(int ac, char* av[])
 			ses.set_severity_level(alert::info);
 
 #ifndef TORRENT_DISABLE_DHT
-		settings.use_dht_as_fallback = false;
+/*		settings.use_dht_as_fallback = false;
 
 		boost::filesystem::ifstream dht_state_file(".dht_state"
 			, std::ios_base::binary);
@@ -741,6 +741,7 @@ int main(int ac, char* av[])
 			, 6881));
 		ses.add_dht_router(std::make_pair(std::string("router.bitcomet.com")
 			, 6881));
+*/
 #endif
 
 		// look for ipfilter.dat
@@ -1154,11 +1155,12 @@ int main(int ac, char* av[])
 		}
 
 #ifndef TORRENT_DISABLE_DHT
-		dht_state = ses.dht_state();
+/*		dht_state = ses.dht_state();
 		boost::filesystem::ofstream out(".dht_state"
 			, std::ios_base::binary);
 		out.unsetf(std::ios_base::skipws);
 		bencode(std::ostream_iterator<char>(out), dht_state);
+*/
 #endif
 	}
 	catch (std::exception& e)

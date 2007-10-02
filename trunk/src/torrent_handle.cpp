@@ -752,10 +752,10 @@ namespace libtorrent
 			// so, if the peer is not connectable (i.e. we
 			// don't know its listen port) or if it has
 			// been banned, don't save it.
-			if (i->type == policy::peer::not_connectable
-				|| i->banned) continue;
+			if (i->second.type == policy::peer::not_connectable
+				|| i->second.banned) continue;
 
-			tcp::endpoint ip = i->ip;
+			tcp::endpoint ip = i->second.ip;
 			entry peer(entry::dictionary_t);
 			peer["ip"] = ip.address().to_string();
 			peer["port"] = ip.port();
