@@ -212,8 +212,8 @@ namespace libtorrent
 
 		int num_peers() const { return m_peers.size(); }
 
-		typedef std::list<peer>::iterator iterator;
-		typedef std::list<peer>::const_iterator const_iterator;
+		typedef std::multimap<address, peer>::iterator iterator;
+		typedef std::multimap<address, peer>::const_iterator const_iterator;
 		iterator begin_peer() { return m_peers.begin(); }
 		iterator end_peer() { return m_peers.end(); }
 
@@ -237,7 +237,7 @@ namespace libtorrent
 		iterator find_disconnect_candidate();
 		iterator find_connect_candidate();
 
-		std::list<peer> m_peers;
+		std::multimap<address, peer> m_peers;
 
 		torrent* m_torrent;
 
