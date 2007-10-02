@@ -499,7 +499,7 @@ void scan_dir(path const& dir_path
 		torrent_handle& h = i->second;
 		if (!h.is_valid())
 		{
-			handles.erase(i);
+			handles.erase(i++);
 			continue;
 		}
 		
@@ -514,7 +514,7 @@ void scan_dir(path const& dir_path
 			bencode(std::ostream_iterator<char>(out), data);
 		}
 		ses.remove_torrent(h);
-		handles.erase(i);
+		handles.erase(i++);
 	}
 }
 
