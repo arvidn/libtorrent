@@ -1024,11 +1024,26 @@ namespace libtorrent
 #endif
 
 		disconnect_all();
-		if (m_owning_storage.get()) m_storage->async_release_files();
+		if (m_owning_storage.get())
+			m_storage->async_release_files(
+				bind(&torrent::on_files_released, shared_from_this(), _1, _2));
+			
 		m_owning_storage = 0;
 	}
 
 	void torrent::on_files_released(int ret, disk_io_job const& j)
+	{
+/*
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+		if (alerts().should_post(alert::warning))
+		{
+			alerts().post_alert(torrent_paused_alert(get_handle(), "torrent paused"));
+		}
+*/
+	}
+
+	void torrent::on_torrent_paused(int ret, disk_io_job const& j)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
@@ -2117,7 +2132,9 @@ namespace libtorrent
 			, bind(&peer_connection::disconnect, _1));
 
 		assert(m_storage);
-		m_storage->async_release_files();
+		// we need to keep the object alive during this operation
+		m_storage->async_release_files(
+			bind(&torrent::on_files_released, shared_from_this(), _1, _2));
 	}
 	
 	// called when torrent is complete (all pieces downloaded)
@@ -2549,10 +2566,8 @@ namespace libtorrent
 		if (m_owning_storage.get())
 		{
 			assert(m_storage);
-			// TOOD: add a callback which posts
-			// an alert for the client to sync. with
 			m_storage->async_release_files(
-				bind(&torrent::on_files_released, shared_from_this(), _1, _2));
+				bind(&torrent::on_torrent_paused, shared_from_this(), _1, _2));
 		}
 	}
 

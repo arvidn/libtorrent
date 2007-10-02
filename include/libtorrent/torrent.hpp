@@ -551,6 +551,7 @@ namespace libtorrent
 	private:
 
 		void on_files_released(int ret, disk_io_job const& j);
+		void on_torrent_paused(int ret, disk_io_job const& j);
 		void on_storage_moved(int ret, disk_io_job const& j);
 
 		void on_piece_verified(int ret, disk_io_job const& j
