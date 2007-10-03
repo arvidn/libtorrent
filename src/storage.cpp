@@ -1015,7 +1015,7 @@ namespace libtorrent
 				, block_size);
 			crc.update(&buf[0], block_size);
 		}
-		if (bitmask[num_blocks - 1])
+		if (num_blocks > 0 && bitmask[num_blocks - 1])
 		{
 			m_storage.read(
 				&buf[0]
