@@ -2233,6 +2233,7 @@ namespace libtorrent
 #ifndef NDEBUG
 	void torrent::check_invariant() const
 	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 //		size_type download = m_stat.total_payload_download();
 //		size_type done = boost::get<0>(bytes_done());
 //		assert(download >= done - m_initial_done);
