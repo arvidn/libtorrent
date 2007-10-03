@@ -673,8 +673,11 @@ namespace libtorrent
 		for (iterator i = m_peers.begin(); i != m_peers.end();)
 		{
 			// this timeout has to be customizable!
+			// don't remove banned peers, they should
+			// remain banned
 			if (i->second.connection == 0
 				&& i->second.connected != min_time()
+				&& !i->second.banned
 				&& now - i->second.connected > minutes(120))
 			{
 				if (p) p->clear_peer(&i->second);

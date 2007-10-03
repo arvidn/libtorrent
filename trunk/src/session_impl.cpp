@@ -254,6 +254,14 @@ namespace detail
 								t->torrent_ptr->get_policy().peer_from_tracker(*i, id
 									, peer_info::resume_data, 0);
 							}
+
+							for (std::vector<tcp::endpoint>::const_iterator i = t->banned_peers.begin();
+								i != t->banned_peers.end(); ++i)
+							{
+								policy::peer* p = t->torrent_ptr->get_policy().peer_from_tracker(*i, id
+									, peer_info::resume_data, 0);
+								if (p) p->banned = true;
+							}
 						}
 						else
 						{
@@ -2371,9 +2379,9 @@ namespace detail
 
 			// the peers
 
-			if (rd.find_key("peers"))
+			if (entry* peers_entry = rd.find_key("peers"))
 			{
-				entry::list_type& peer_list = rd["peers"].list();
+				entry::list_type& peer_list = peers_entry->list();
 
 				std::vector<tcp::endpoint> tmp_peers;
 				tmp_peers.reserve(peer_list.size());
@@ -2387,6 +2395,24 @@ namespace detail
 				}
 
 				peers.swap(tmp_peers);
+			}
+
+			if (entry* banned_peers_entry = rd.find_key("banned_peers"))
+			{
+				entry::list_type& peer_list = banned_peers_entry->list();
+
+				std::vector<tcp::endpoint> tmp_peers;
+				tmp_peers.reserve(peer_list.size());
+				for (entry::list_type::iterator i = peer_list.begin();
+					i != peer_list.end(); ++i)
+				{
+					tcp::endpoint a(
+						address::from_string((*i)["ip"].string())
+						, (unsigned short)(*i)["port"].integer());
+					tmp_peers.push_back(a);
+				}
+
+				banned_peers.swap(tmp_peers);
 			}
 
 			// read piece map
