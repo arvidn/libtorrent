@@ -133,29 +133,27 @@ namespace libtorrent
 			// when we're reading, we may not skip
 			// ahead of any write operation that overlaps
 			// the region we're reading
-			for (; i != m_jobs.rend(); ++i)
+			for (; i != m_jobs.rend(); i++)
 			{
-				if (i->action == disk_io_job::read && *i < j)
-					break;
+				// if *i should come before j, stop
+				// and insert j before i
+				if (*i < j) break;
+				// if we come across a write operation that
+				// overlaps the region we're reading, we need
+				// to stop
 				if (i->action == disk_io_job::write
 					&& i->storage == j.storage
 					&& i->piece == j.piece
 					&& range_overlap(i->offset, i->buffer_size
 						, j.offset, j.buffer_size))
-				{
-					// we have to stop, and we haven't
-					// found a suitable place for this job
-					// so just queue it up at the end
-					i = m_jobs.rbegin();
 					break;
-				}
 			}
 		}
 		else if (j.action == disk_io_job::write)
 		{
 			for (; i != m_jobs.rend(); ++i)
 			{
-				if (i->action == disk_io_job::write && *i < j)
+				if (*i < j)
 				{
 					if (i != m_jobs.rbegin()
 						&& i.base()->storage.get() != j.storage.get())
@@ -165,7 +163,12 @@ namespace libtorrent
 			}
 		}
 		
-		if (i == m_jobs.rend()) i = m_jobs.rbegin();
+		// if we are placed in front of all other jobs, put it on the back of
+		// the queue, to sweep the disk in the same direction, and to avoid
+		// starvation. The exception is if the priority is higher than the
+		// job at the front of the queue
+		if (i == m_jobs.rend() && (m_jobs.empty() || j.priority <= m_jobs.back().priority))
+			i = m_jobs.rbegin();
 
 		std::deque<disk_io_job>::iterator k = m_jobs.insert(i.base(), j);
 		k->callback.swap(const_cast<boost::function<void(int, disk_io_job const&)>&>(f));
