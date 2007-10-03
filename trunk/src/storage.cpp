@@ -1248,7 +1248,7 @@ namespace libtorrent
 				, block_size);
 			crc.update(&buf[0], block_size);
 		}
-		if (bi[num_blocks - 1].state == piece_picker::block_info::state_finished)
+		if (num_blocks > 0 && bi[num_blocks - 1].state == piece_picker::block_info::state_finished)
 		{
 			m_storage->read(
 				&buf[0]
