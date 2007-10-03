@@ -730,6 +730,15 @@ namespace libtorrent
 				<< " *** PIECE NOT IN REQUEST QUEUE\n";
 		}
 #endif
+		if (has_peer_choked())
+		{
+			// if we're choked and we got a rejection of
+			// a piece in the allowed fast set, remove it
+			// from the allow fast set.
+			std::vector<int>::iterator i = std::find(
+				m_allowed_fast.begin(), m_allowed_fast.end(), r.piece);
+			if (i != m_allowed_fast.end()) m_allowed_fast.erase(i);
+		}
 		if (m_request_queue.empty())
 		{
 			if (m_download_queue.size() < 2)
