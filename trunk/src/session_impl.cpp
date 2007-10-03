@@ -205,6 +205,15 @@ namespace detail
 					// lock the session to add the new torrent
 					session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 					mutex::scoped_lock l2(m_mutex);
+
+					if (m_torrents.empty() || m_torrents.front() != t)
+					{
+						// this means the torrent was removed right after it was
+						// added. Abort the checking.
+						t.reset();
+						continue;
+					}
+					
 					// clear the resume data now that it has been used
 					// (the fast resume data is now parsed and stored in t)
 					t->resume_data = entry();
@@ -214,6 +223,7 @@ namespace detail
 					{
 						INVARIANT_CHECK;
 
+						assert(!m_torrents.empty());
 						assert(m_torrents.front() == t);
 
 						t->torrent_ptr->files_checked(t->unfinished_pieces);
@@ -1760,7 +1770,6 @@ namespace detail
 			assert(m_torrents.find(i_hash) == m_torrents.end());
 			return;
 		}
-		l.unlock();
 
 		if (h.m_chk)
 		{
