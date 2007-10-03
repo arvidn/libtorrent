@@ -1402,7 +1402,7 @@ namespace libtorrent
 		assert(p.start == j.offset);
 		piece_block block_finished(p.piece, p.start / t->block_size());
 		picker.mark_as_finished(block_finished, peer_info_struct());
-		if (t->alerts().should_post(alert::info))
+		if (t->alerts().should_post(alert::debug))
 		{
 			t->alerts().post_alert(block_finished_alert(t->get_handle(), 
 				block_finished.block_index, block_finished.piece_index, "block finished"));
@@ -1680,7 +1680,7 @@ namespace libtorrent
 		if (!t->picker().mark_as_downloading(block, peer_info_struct(), state))
 			return;
 
-		if (t->alerts().should_post(alert::info))
+		if (t->alerts().should_post(alert::debug))
 		{
 			t->alerts().post_alert(block_downloading_alert(t->get_handle(), 
 				speedmsg, block.block_index, block.piece_index, "block downloading"));

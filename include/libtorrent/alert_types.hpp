@@ -208,7 +208,7 @@ namespace libtorrent
 			, int block_num
 			, int piece_num
 			, const std::string& msg)
-			: torrent_alert(h, alert::warning, msg)
+			: torrent_alert(h, alert::debug, msg)
 			, block_index(block_num)
 			, piece_index(piece_num)
 		{ assert(block_index >= 0 && piece_index >= 0);}
@@ -228,7 +228,7 @@ namespace libtorrent
 			, int block_num
 			, int piece_num
 			, const std::string& msg)
-			: torrent_alert(h, alert::warning, msg)
+			: torrent_alert(h, alert::debug, msg)
 			, peer_speedmsg(speedmsg)
 			, block_index(block_num)
 			, piece_index(piece_num)
