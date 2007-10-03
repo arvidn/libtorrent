@@ -971,8 +971,7 @@ namespace libtorrent
 			assert(c.remote() == c.get_socket()->remote_endpoint());
 
 			peer p(c.remote(), peer::not_connectable, 0);
-			m_peers.insert(std::make_pair(c.remote().address(), p));
-			i = boost::prior(m_peers.end());
+			i = m_peers.insert(std::make_pair(c.remote().address(), p));
 		}
 	
 		assert(m_torrent->connection_for(c.remote()) == &c);
