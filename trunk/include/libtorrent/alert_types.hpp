@@ -191,7 +191,7 @@ namespace libtorrent
 			const torrent_handle& h
 			, int piece_num
 			, const std::string& msg)
-			: torrent_alert(h, alert::warning, msg)
+			: torrent_alert(h, alert::debug, msg)
 			, piece_index(piece_num)
 		{ assert(piece_index >= 0);}
 

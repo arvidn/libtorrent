@@ -825,7 +825,7 @@ namespace libtorrent
 
 		if (passed_hash_check)
 		{
-                        if (m_ses.m_alerts.should_post(alert::info))
+			if (m_ses.m_alerts.should_post(alert::debug))
 			{
 				m_ses.m_alerts.post_alert(piece_finished_alert(get_handle()
 					, index, "piece finished"));
