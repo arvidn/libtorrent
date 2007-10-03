@@ -737,14 +737,23 @@ namespace libtorrent
 		}
 		// write local peers
 
-		ret["peers"] = entry::list_type();
 		entry::list_type& peer_list = ret["peers"].list();
+		entry::list_type& banned_peer_list = ret["banned_peers"].list();
 		
 		policy& pol = t->get_policy();
 
 		for (policy::iterator i = pol.begin_peer()
 			, end(pol.end_peer()); i != end; ++i)
 		{
+			if (i->second.banned)
+			{
+				tcp::endpoint ip = i->second.ip;
+				entry peer(entry::dictionary_t);
+				peer["ip"] = ip.address().to_string();
+				peer["port"] = ip.port();
+				banned_peer_list.push_back(peer);
+				continue;
+			}
 			// we cannot save remote connection
 			// since we don't know their listen port
 			// unless they gave us their listen port
@@ -752,8 +761,7 @@ namespace libtorrent
 			// so, if the peer is not connectable (i.e. we
 			// don't know its listen port) or if it has
 			// been banned, don't save it.
-			if (i->second.type == policy::peer::not_connectable
-				|| i->second.banned) continue;
+			if (i->second.type == policy::peer::not_connectable) continue;
 
 			tcp::endpoint ip = i->second.ip;
 			entry peer(entry::dictionary_t);

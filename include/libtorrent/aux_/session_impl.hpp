@@ -115,6 +115,7 @@ namespace libtorrent
 			std::vector<piece_picker::downloading_piece> unfinished_pieces;
 			std::vector<piece_picker::block_info> block_info;
 			std::vector<tcp::endpoint> peers;
+			std::vector<tcp::endpoint> banned_peers;
 			entry resume_data;
 
 			// this is true if this torrent is being processed (checked)
