@@ -2397,6 +2397,8 @@ namespace libtorrent
 #ifndef NDEBUG
 	void torrent::check_invariant() const
 	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
 		int num_uploads = 0;
 		std::map<piece_block, int> num_requests;
 		for (const_peer_iterator i = begin(); i != end(); ++i)
