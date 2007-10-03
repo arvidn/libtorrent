@@ -235,7 +235,7 @@ void http_connection::on_read(asio::error_code const& e
 		m_called = true;
 		char const* data = 0;
 		std::size_t size = 0;
-		if (m_bottled)
+		if (m_bottled && m_parser.header_finished())
 		{
 			data = m_parser.get_body().begin;
 			size = m_parser.get_body().left();
