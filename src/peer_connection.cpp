@@ -739,6 +739,14 @@ namespace libtorrent
 				m_allowed_fast.begin(), m_allowed_fast.end(), r.piece);
 			if (i != m_allowed_fast.end()) m_allowed_fast.erase(i);
 		}
+		else
+		{
+			std::vector<int>::iterator i = std::find(m_suggested_pieces.begin()
+				, m_suggested_pieces.end(), r.piece);
+			if (i != m_suggested_pieces.end())
+				m_suggested_pieces.erase(i);
+		}
+
 		if (m_request_queue.empty())
 		{
 			if (m_download_queue.size() < 2)

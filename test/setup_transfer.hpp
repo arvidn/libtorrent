@@ -7,6 +7,8 @@
 
 void test_sleep(int millisec);
 
+boost::intrusive_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0);
+
 boost::tuple<libtorrent::torrent_handle, libtorrent::torrent_handle
 	, libtorrent::torrent_handle>
 setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2

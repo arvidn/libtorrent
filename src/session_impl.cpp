@@ -1597,11 +1597,6 @@ namespace detail
 	{
 		assert(!save_path.empty());
 
-		// if you get this assert, you haven't managed to
-		// open a listen port. call listen_on() first.
-		if (m_listen_sockets.empty())
-			throw std::runtime_error("no listen socket opened");
-
 		if (ti->begin_files() == ti->end_files())
 			throw std::runtime_error("no files in torrent");
 
