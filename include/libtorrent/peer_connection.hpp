@@ -176,6 +176,9 @@ namespace libtorrent
 		void set_non_prioritized(bool b)
 		{ m_non_prioritized = b; }
 
+		void fast_reconnect(bool r) { m_fast_reconnect = r; }
+		bool fast_reconnect() const { return m_fast_reconnect; }
+
 		// this adds an announcement in the announcement queue
 		// it will let the peer know that we have the given piece
 		void announce_piece(int index);
@@ -732,6 +735,13 @@ namespace libtorrent
 		// the number of bytes send to the disk-io
 		// thread that hasn't yet been completely written.
 		int m_outstanding_writing_bytes;
+
+		// if this is true, the disconnection
+		// timestamp is not updated when the connection
+		// is closed. This means the time until we can
+		// reconnect to this peer is shorter, and likely
+		// immediate.
+		bool m_fast_reconnect;
 		
 #ifndef NDEBUG
 	public:

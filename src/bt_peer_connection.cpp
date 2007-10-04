@@ -205,6 +205,7 @@ namespace libtorrent
 				// if this fails, we need to reconnect
 				// fast.
 				pi->connected = time_now() - seconds(m_ses.settings().min_reconnect_time);
+				fast_reconnect(true);
 
 				write_pe1_2_dhkey();
 				m_state = read_pe_dhkey;
@@ -380,7 +381,7 @@ namespace libtorrent
 
 		buffer::interval send_buf = allocate_send_buffer(dh_key_len + pad_size);
 
-		std::copy (m_DH_key_exchange->get_local_key(),
+		std::copy(m_DH_key_exchange->get_local_key(),
 				   m_DH_key_exchange->get_local_key() + dh_key_len,
 				   send_buf.begin);
 
@@ -571,7 +572,7 @@ namespace libtorrent
 		const sha1_hash remote_key = h.final();
 		
 		assert(!m_RC4_handler.get());
-		m_RC4_handler.reset (new RC4_handler (local_key, remote_key));
+		m_RC4_handler.reset(new RC4_handler (local_key, remote_key));
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << " computed RC4 keys\n";
