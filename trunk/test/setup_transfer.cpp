@@ -38,21 +38,12 @@ boost::intrusive_ptr<T> clone_ptr(boost::intrusive_ptr<T> const& ptr)
 	return boost::intrusive_ptr<T>(new T(*ptr));
 }
 
-boost::tuple<torrent_handle, torrent_handle, torrent_handle>
-setup_transfer(session* ses1, session* ses2, session* ses3
-	, bool clear_files, bool use_metadata_transfer, bool connect_peers)
+boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file)
 {
-	using namespace boost::filesystem;
-
-	assert(ses1);
-	assert(ses2);
-
-	assert(ses1->id() != ses2->id());
-	if (ses3)
-		assert(ses3->id() != ses2->id());
-
 	char const* tracker_url = "http://non-existent-name.com/announce";
 	
+	using namespace boost::filesystem;
+
 	boost::intrusive_ptr<torrent_info> t(new torrent_info);
 	int total_size = 2 * 1024 * 1024;
 	t->add_file(path("temporary"), total_size);
@@ -68,18 +59,40 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	sha1_hash ph = hasher(&piece[0], piece.size()).final();
 	for (int i = 0; i < num; ++i)
 		t->set_hash(i, ph);
+	t->create_torrent();
+
+	if (file)
+	{
+		while (total_size > 0)
+		{
+			file->write(&piece[0], (std::min)(int(piece.size()), total_size));
+			total_size -= piece.size();
+		}
+	}
+	
+	return t;
+}
+
+boost::tuple<torrent_handle, torrent_handle, torrent_handle>
+setup_transfer(session* ses1, session* ses2, session* ses3
+	, bool clear_files, bool use_metadata_transfer, bool connect_peers)
+{
+	using namespace boost::filesystem;
+
+	assert(ses1);
+	assert(ses2);
+
+	assert(ses1->id() != ses2->id());
+	if (ses3)
+		assert(ses3->id() != ses2->id());
+
 	
 	create_directory("./tmp1");
 	std::ofstream file("./tmp1/temporary");
-	while (total_size > 0)
-	{
-		file.write(&piece[0], (std::min)(int(piece.size()), total_size));
-		total_size -= piece.size();
-	}
+	boost::intrusive_ptr<torrent_info> t = create_torrent(&file);
 	file.close();
 	if (clear_files) remove_all("./tmp2/temporary");
 	
-	t->create_torrent();
 	std::cerr << "generated torrent: " << t->info_hash() << std::endl;
 
 	ses1->set_severity_level(alert::debug);
@@ -95,7 +108,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	if (ses3) tor3 = ses3->add_torrent(clone_ptr(t), "./tmp3");
 
   	if (use_metadata_transfer)
-		tor2 = ses2->add_torrent(tracker_url
+		tor2 = ses2->add_torrent("http://non-existent-name.com/announce"
 		, t->info_hash(), 0, "./tmp2");
 	else
 		tor2 = ses2->add_torrent(clone_ptr(t), "./tmp2");
