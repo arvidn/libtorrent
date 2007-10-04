@@ -391,6 +391,14 @@ namespace detail
 							processing->torrent_ptr->get_policy().peer_from_tracker(*i, id
 								, peer_info::resume_data, 0);
 						}
+
+						for (std::vector<tcp::endpoint>::const_iterator i = processing->banned_peers.begin();
+							i != processing->banned_peers.end(); ++i)
+						{
+							policy::peer* p = processing->torrent_ptr->get_policy().peer_from_tracker(*i, id
+								, peer_info::resume_data, 0);
+							if (p) p->banned = true;
+						}
 					}
 					else
 					{
