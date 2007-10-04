@@ -119,6 +119,7 @@ namespace libtorrent
 		, m_remote_dl_rate(0)
 		, m_remote_dl_update(time_now())
 		, m_outstanding_writing_bytes(0)
+		, m_fast_reconnect(false)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif
@@ -195,6 +196,7 @@ namespace libtorrent
 		, m_remote_dl_rate(0)
 		, m_remote_dl_update(time_now())
 		, m_outstanding_writing_bytes(0)
+		, m_fast_reconnect(false)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif

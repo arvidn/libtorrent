@@ -1340,7 +1340,11 @@ namespace libtorrent
 		p->connection = 0;
 		p->optimistically_unchoked = false;
 
-		p->connected = time_now();
+		// if fast reconnect is true, we won't
+		// update the timestamp, and it will remain
+		// the time when we initiated the connection.
+		if (!c.fast_reconnect())
+			p->connected = time_now();
 
 		if (c.failed())
 		{
