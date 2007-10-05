@@ -115,7 +115,7 @@ namespace libtorrent
 			, std::string const& msg)
 			: torrent_alert(h, alert::info, msg)
 			, piece_index(index)
-		{ assert(index >= 0);}
+		{ TORRENT_ASSERT(index >= 0);}
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new hash_failed_alert(*this)); }
@@ -193,7 +193,7 @@ namespace libtorrent
 			, const std::string& msg)
 			: torrent_alert(h, alert::debug, msg)
 			, piece_index(piece_num)
-		{ assert(piece_index >= 0);}
+		{ TORRENT_ASSERT(piece_index >= 0);}
 
 		int piece_index;
 
@@ -211,7 +211,7 @@ namespace libtorrent
 			: torrent_alert(h, alert::debug, msg)
 			, block_index(block_num)
 			, piece_index(piece_num)
-		{ assert(block_index >= 0 && piece_index >= 0);}
+		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}
 
 		int block_index;
 		int piece_index;
@@ -232,7 +232,7 @@ namespace libtorrent
 			, peer_speedmsg(speedmsg)
 			, block_index(block_num)
 			, piece_index(piece_num)
-		{ assert(block_index >= 0 && piece_index >= 0);}
+		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}
 
 		std::string peer_speedmsg;
 		int block_index;

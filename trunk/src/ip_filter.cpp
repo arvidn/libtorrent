@@ -43,23 +43,23 @@ namespace libtorrent
 	{
 		if (first.is_v4())
 		{
-			assert(last.is_v4());
+			TORRENT_ASSERT(last.is_v4());
 			m_filter4.add_rule(first.to_v4(), last.to_v4(), flags);
 		}
 		else if (first.is_v6())
 		{
-			assert(last.is_v6());
+			TORRENT_ASSERT(last.is_v6());
 			m_filter6.add_rule(first.to_v6(), last.to_v6(), flags);
 		}
 		else
-			assert(false);
+			TORRENT_ASSERT(false);
 	}
 
 	int ip_filter::access(address const& addr) const
 	{
 		if (addr.is_v4())
 			return m_filter4.access(addr.to_v4());
-		assert(addr.is_v6());
+		TORRENT_ASSERT(addr.is_v6());
 		return m_filter6.access(addr.to_v6());
 	}
 

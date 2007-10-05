@@ -82,7 +82,7 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 		, m_connection_ticket(-1)
 		, m_cc(cc)
 	{
-		assert(!m_handler.empty());
+		TORRENT_ASSERT(!m_handler.empty());
 	}
 
 	void rate_limit(int limit);

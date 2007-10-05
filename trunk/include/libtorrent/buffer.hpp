@@ -51,11 +51,11 @@ public:
 
 		char operator[](int index) const
 		{
-			assert(begin + index < end);
+			TORRENT_ASSERT(begin + index < end);
 			return begin[index];
 		}
 		  
-		int left() const { assert(end >= begin); return end - begin; }
+		int left() const { TORRENT_ASSERT(end >= begin); return end - begin; }
 
 		char* begin;
 		char* end;
@@ -70,7 +70,7 @@ public:
 
 		char operator[](int index) const
 		{
-			assert(begin + index < end);
+			TORRENT_ASSERT(begin + index < end);
 			return begin[index];
 		}
 
@@ -80,7 +80,7 @@ public:
 				&& end == p_interval.end);
 		}
 
-		int left() const { assert(end >= begin); return end - begin; }
+		int left() const { TORRENT_ASSERT(end >= begin); return end - begin; }
 
 		char const* begin;
 		char const* end;
@@ -142,9 +142,9 @@ public:
 
 	void erase(char* begin, char* end)
 	{
-		assert(end <= m_end);
-		assert(begin >= m_begin);
-		assert(begin <= end);
+		TORRENT_ASSERT(end <= m_end);
+		TORRENT_ASSERT(begin >= m_begin);
+		TORRENT_ASSERT(begin <= end);
 	 	if (end == m_end)
 		{
 			resize(begin - m_begin);
@@ -160,7 +160,7 @@ public:
 	void reserve(std::size_t n)
 	{
 		if (n <= capacity()) return;
-		assert(n > 0);
+		TORRENT_ASSERT(n > 0);
 
 		char* buf = (char*)::operator new(n);
 		std::size_t s = size();
@@ -172,8 +172,8 @@ public:
 	}
 
 	bool empty() const { return m_begin == m_end; }
-	char& operator[](std::size_t i) { assert(i >= 0 && i < size()); return m_begin[i]; }
-	char const& operator[](std::size_t i) const { assert(i >= 0 && i < size()); return m_begin[i]; }
+	char& operator[](std::size_t i) { TORRENT_ASSERT(i >= 0 && i < size()); return m_begin[i]; }
+	char const& operator[](std::size_t i) const { TORRENT_ASSERT(i >= 0 && i < size()); return m_begin[i]; }
 
 	char* begin() { return m_begin; }
 	char const* begin() const { return m_begin; }

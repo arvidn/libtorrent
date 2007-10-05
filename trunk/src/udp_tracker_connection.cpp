@@ -126,7 +126,7 @@ namespace libtorrent
 			!= bind_interface().is_v4(); ++target);
 		if (target == end)
 		{
-			assert(target_address.address().is_v4() != bind_interface().is_v4());
+			TORRENT_ASSERT(target_address.address().is_v4() != bind_interface().is_v4());
 			if (cb)
 			{
 				std::string tracker_address_type = target_address.address().is_v4() ? "IPv4" : "IPv6";

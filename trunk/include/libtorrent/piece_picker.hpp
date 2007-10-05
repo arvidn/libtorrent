@@ -282,7 +282,7 @@ namespace libtorrent
 		// functor that compares indices on downloading_pieces
 		struct has_index
 		{
-			has_index(int i): index(i) { assert(i >= 0); }
+			has_index(int i): index(i) { TORRENT_ASSERT(i >= 0); }
 			bool operator()(const downloading_piece& p) const
 			{ return p.index == index; }
 			int index;
@@ -308,8 +308,8 @@ namespace libtorrent
 				, piece_priority(1)
 				, index(index_)
 			{
-				assert(peer_count_ >= 0);
-				assert(index_ >= 0);
+				TORRENT_ASSERT(peer_count_ >= 0);
+				TORRENT_ASSERT(index_ >= 0);
 			}
 
 			// the number of peers that has this piece
@@ -341,7 +341,7 @@ namespace libtorrent
 			};
 			
 			bool have() const { return index == we_have_index; }
-			void set_have() { index = we_have_index; assert(have()); }
+			void set_have() { index = we_have_index; TORRENT_ASSERT(have()); }
 			
 			bool filtered() const { return piece_priority == filter_priority; }
 			void filtered(bool f) { piece_priority = f ? filter_priority : 0; }
@@ -447,8 +447,8 @@ namespace libtorrent
 
 	inline int piece_picker::blocks_in_piece(int index) const
 	{
-		assert(index >= 0);
-		assert(index < (int)m_piece_map.size());
+		TORRENT_ASSERT(index >= 0);
+		TORRENT_ASSERT(index < (int)m_piece_map.size());
 		if (index+1 == (int)m_piece_map.size())
 			return m_blocks_in_last_piece;
 		else

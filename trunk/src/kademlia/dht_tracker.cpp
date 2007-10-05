@@ -126,15 +126,15 @@ namespace libtorrent { namespace dht
 
 	void intrusive_ptr_add_ref(dht_tracker const* c)
 	{
-		assert(c != 0);
-		assert(c->m_refs >= 0);
+		TORRENT_ASSERT(c != 0);
+		TORRENT_ASSERT(c->m_refs >= 0);
 		++c->m_refs;
 	}
 
 	void intrusive_ptr_release(dht_tracker const* c)
 	{
-		assert(c != 0);
-		assert(c->m_refs > 0);
+		TORRENT_ASSERT(c != 0);
+		TORRENT_ASSERT(c->m_refs > 0);
 		if (--c->m_refs == 0)
 			delete c;
 	}
@@ -247,7 +247,7 @@ namespace libtorrent { namespace dht
 #ifndef NDEBUG
 		std::cerr << "exception-type: " << typeid(exc).name() << std::endl;
 		std::cerr << "what: " << exc.what() << std::endl;
-		assert(false);
+		TORRENT_ASSERT(false);
 #endif
 	};
 
@@ -263,7 +263,7 @@ namespace libtorrent { namespace dht
 	}
 	catch (std::exception&)
 	{
-		assert(false);
+		TORRENT_ASSERT(false);
 	};
 
 	void dht_tracker::rebind(asio::ip::address listen_interface, int listen_port)
@@ -375,7 +375,7 @@ namespace libtorrent { namespace dht
 	}
 	catch (std::exception&)
 	{
-		assert(false);
+		TORRENT_ASSERT(false);
 	};
 
 	void dht_tracker::announce(sha1_hash const& ih, int listen_port
@@ -411,7 +411,7 @@ namespace libtorrent { namespace dht
 			using libtorrent::entry;
 			using libtorrent::bdecode;
 			
-			assert(bytes_transferred > 0);
+			TORRENT_ASSERT(bytes_transferred > 0);
 
 			entry e = bdecode(m_in_buf[current_buffer].begin()
 				, m_in_buf[current_buffer].end());
@@ -654,7 +654,7 @@ namespace libtorrent { namespace dht
 			}
 			TORRENT_LOG(dht_tracker) << e;
 #endif
-			assert(m.message_id != messages::error);
+			TORRENT_ASSERT(m.message_id != messages::error);
 			m_dht.incoming(m);
 		}
 		catch (std::exception& e)
@@ -670,7 +670,7 @@ namespace libtorrent { namespace dht
 	}
 	catch (std::exception& e)
 	{
-		assert(false);
+		TORRENT_ASSERT(false);
 	};
 
 	entry dht_tracker::state() const
@@ -725,7 +725,7 @@ namespace libtorrent { namespace dht
 	}
 	catch (std::exception&)
 	{
-		assert(false);
+		TORRENT_ASSERT(false);
 	};
 
 	void dht_tracker::add_router_node(std::pair<std::string, int> const& node)
@@ -744,7 +744,7 @@ namespace libtorrent { namespace dht
 	}
 	catch (std::exception&)
 	{
-		assert(false);
+		TORRENT_ASSERT(false);
 	};
 
 	void dht_tracker::on_bootstrap()
@@ -800,7 +800,7 @@ namespace libtorrent { namespace dht
 		using libtorrent::bencode;
 		using libtorrent::entry;
 		entry e(entry::dictionary_t);
-		assert(!m.transaction_id.empty() || m.message_id == messages::error);
+		TORRENT_ASSERT(!m.transaction_id.empty() || m.message_id == messages::error);
 		e["t"] = m.transaction_id;
 		static char const version_str[] = {'L', 'T'
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR};
@@ -814,10 +814,10 @@ namespace libtorrent { namespace dht
 
 		if (m.message_id == messages::error)
 		{
-			assert(m.reply);
+			TORRENT_ASSERT(m.reply);
 			e["y"] = "e";
 			entry error_list(entry::list_t);
-			assert(m.error_code > 200 && m.error_code <= 204);
+			TORRENT_ASSERT(m.error_code > 200 && m.error_code <= 204);
 			error_list.list().push_back(entry(m.error_code));
 			error_list.list().push_back(entry(m.error_msg));
 			e["e"] = error_list;
@@ -891,7 +891,7 @@ namespace libtorrent { namespace dht
 
 			if (m.write_token.type() != entry::undefined_t)
 				a["token"] = m.write_token;
-			assert(m.message_id <= messages::error);
+			TORRENT_ASSERT(m.message_id <= messages::error);
 			e["q"] = messages::ids[m.message_id];
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -973,7 +973,7 @@ namespace libtorrent { namespace dht
 		// m_send may fail with "no route to host"
 		// but it shouldn't throw since an error code
 		// is passed in instead
-		assert(false);
+		TORRENT_ASSERT(false);
 	}
 
 }}

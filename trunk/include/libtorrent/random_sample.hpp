@@ -49,7 +49,7 @@ namespace libtorrent
 		Distance m = 0;
 		Distance N = std::distance(start, end);
 
-		assert(N >= n);
+		TORRENT_ASSERT(N >= n);
 
 		while (m < n)
 		{

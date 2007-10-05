@@ -123,7 +123,7 @@ namespace aux
 
 		void increment()
 		{
-			assert(m_bucket_iterator != m_bucket_end);
+			TORRENT_ASSERT(m_bucket_iterator != m_bucket_end);
 			++m_iterator;
 			while (m_iterator == m_bucket_iterator->first.end())
 			{
@@ -135,7 +135,7 @@ namespace aux
 
 		node_entry const& dereference() const
 		{
-			assert(m_bucket_iterator != m_bucket_end);
+			TORRENT_ASSERT(m_bucket_iterator != m_bucket_end);
 			return *m_iterator;
 		}
 
@@ -194,7 +194,7 @@ public:
 	
 	int bucket_size(int bucket)
 	{
-		assert(bucket >= 0 && bucket < 160);
+		TORRENT_ASSERT(bucket >= 0 && bucket < 160);
 		return (int)m_buckets[bucket].first.size();
 	}
 	int bucket_size() const { return m_bucket_size; }

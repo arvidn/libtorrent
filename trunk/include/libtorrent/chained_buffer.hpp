@@ -60,7 +60,7 @@ namespace libtorrent
 
 		void pop_front(int bytes_to_pop)
 		{
-			assert(bytes_to_pop <= m_bytes);
+			TORRENT_ASSERT(bytes_to_pop <= m_bytes);
 			while (bytes_to_pop > 0 && !m_vec.empty())
 			{
 				buffer_t& b = m_vec.front();
@@ -69,9 +69,9 @@ namespace libtorrent
 					b.start += bytes_to_pop;
 					b.used_size -= bytes_to_pop;
 					m_bytes -= bytes_to_pop;
-					assert(m_bytes <= m_capacity);
-					assert(m_bytes >= 0);
-					assert(m_capacity >= 0);
+					TORRENT_ASSERT(m_bytes <= m_capacity);
+					TORRENT_ASSERT(m_bytes >= 0);
+					TORRENT_ASSERT(m_capacity >= 0);
 					break;
 				}
 
@@ -79,9 +79,9 @@ namespace libtorrent
 				m_bytes -= b.used_size;
 				m_capacity -= b.size;
 				bytes_to_pop -= b.used_size;
-				assert(m_bytes >= 0);
-				assert(m_capacity >= 0);
-				assert(m_bytes <= m_capacity);
+				TORRENT_ASSERT(m_bytes >= 0);
+				TORRENT_ASSERT(m_capacity >= 0);
+				TORRENT_ASSERT(m_bytes <= m_capacity);
 				m_vec.pop_front();
 			}
 		}
@@ -89,7 +89,7 @@ namespace libtorrent
 		template <class D>
 		void append_buffer(char* buffer, int size, int used_size, D const& destructor)
 		{
-			assert(size >= used_size);
+			TORRENT_ASSERT(size >= used_size);
 			buffer_t b;
 			b.buf = buffer;
 			b.size = size;
@@ -100,7 +100,7 @@ namespace libtorrent
 
 			m_bytes += used_size;
 			m_capacity += size;
-			assert(m_bytes <= m_capacity);
+			TORRENT_ASSERT(m_bytes <= m_capacity);
 		}
 
 		// returns the number of bytes available at the
@@ -134,7 +134,7 @@ namespace libtorrent
 			if (insert + size > b.buf + b.size) return 0;
 			b.used_size += size;
 			m_bytes += size;
-			assert(m_bytes <= m_capacity);
+			TORRENT_ASSERT(m_bytes <= m_capacity);
 			return insert;
 		}
 
@@ -147,11 +147,11 @@ namespace libtorrent
 			{
 				if (i->used_size > to_send)
 				{
-					assert(to_send > 0);
+					TORRENT_ASSERT(to_send > 0);
 					m_tmp_vec.push_back(asio::const_buffer(i->start, to_send));
 					break;
 				}
-				assert(i->used_size > 0);
+				TORRENT_ASSERT(i->used_size > 0);
 				m_tmp_vec.push_back(asio::const_buffer(i->start, i->used_size));
 				to_send -= i->used_size;
 			}

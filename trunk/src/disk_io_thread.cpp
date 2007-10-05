@@ -124,7 +124,7 @@ namespace libtorrent
 	void disk_io_thread::add_job(disk_io_job const& j
 		, boost::function<void(int, disk_io_job const&)> const& f)
 	{
-		assert(!j.callback);
+		TORRENT_ASSERT(!j.callback);
 		boost::mutex::scoped_lock l(m_mutex);
 		
 		std::deque<disk_io_job>::reverse_iterator i = m_jobs.rbegin();
@@ -174,7 +174,7 @@ namespace libtorrent
 		k->callback.swap(const_cast<boost::function<void(int, disk_io_job const&)>&>(f));
 		if (j.action == disk_io_job::write)
 			m_queue_buffer_size += j.buffer_size;
-		assert(j.storage.get());
+		TORRENT_ASSERT(j.storage.get());
 		m_signal.notify_all();
 	}
 
@@ -239,7 +239,7 @@ namespace libtorrent
 							++m_allocations;
 #endif
 							l.unlock();
-							assert(j.buffer_size <= m_block_size);
+							TORRENT_ASSERT(j.buffer_size <= m_block_size);
 							if (j.buffer == 0)
 							{
 								ret = -1;
@@ -257,8 +257,8 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 						m_log << log_time() << " write " << j.buffer_size << std::endl;
 #endif
-						assert(j.buffer);
-						assert(j.buffer_size <= m_block_size);
+						TORRENT_ASSERT(j.buffer);
+						TORRENT_ASSERT(j.buffer_size <= m_block_size);
 						j.storage->write_impl(j.buffer, j.piece, j.offset
 							, j.buffer_size);
 						

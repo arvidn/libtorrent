@@ -43,9 +43,9 @@ namespace libtorrent
 
 	boost::shared_ptr<file> file_pool::open_file(void* st, fs::path const& p, file::open_mode m)
 	{
-		assert(st != 0);
-		assert(p.is_complete());
-		assert(m == file::in || m == (file::in | file::out));
+		TORRENT_ASSERT(st != 0);
+		TORRENT_ASSERT(p.is_complete());
+		TORRENT_ASSERT(m == file::in || m == (file::in | file::out));
 		boost::mutex::scoped_lock l(m_mutex);
 		typedef nth_index<file_set, 0>::type path_view;
 		path_view& pt = get<0>(m_files);
@@ -69,7 +69,7 @@ namespace libtorrent
 				// close the file before we open it with
 				// the new read/write privilages
 				i->file_ptr.reset();
-				assert(e.file_ptr.unique());
+				TORRENT_ASSERT(e.file_ptr.unique());
 				e.file_ptr.reset();
 				e.file_ptr.reset(new file(p, m));
 				e.mode = m;
@@ -86,7 +86,7 @@ namespace libtorrent
 			lru_view& lt = get<1>(m_files);
 			lru_view::iterator i = lt.begin();
 			// the first entry in this view is the least recently used
-			assert(lt.size() == 1 || (i->last_use <= boost::next(i)->last_use));
+			TORRENT_ASSERT(lt.size() == 1 || (i->last_use <= boost::next(i)->last_use));
 			lt.erase(i);
 		}
 		lru_file_entry e(boost::shared_ptr<file>(new file(p, m)));
@@ -100,7 +100,7 @@ namespace libtorrent
 	void file_pool::release(void* st)
 	{
 		boost::mutex::scoped_lock l(m_mutex);
-		assert(st != 0);
+		TORRENT_ASSERT(st != 0);
 		using boost::tie;
 
 		typedef nth_index<file_set, 2>::type key_view;
@@ -113,7 +113,7 @@ namespace libtorrent
 
 	void file_pool::resize(int size)
 	{
-		assert(size > 0);
+		TORRENT_ASSERT(size > 0);
 		if (size == m_size) return;
 		boost::mutex::scoped_lock l(m_mutex);
 		m_size = size;
@@ -126,7 +126,7 @@ namespace libtorrent
 		while (int(m_files.size()) > m_size)
 		{
 			// the first entry in this view is the least recently used
-			assert(lt.size() == 1 || (i->last_use <= boost::next(i)->last_use));
+			TORRENT_ASSERT(lt.size() == 1 || (i->last_use <= boost::next(i)->last_use));
 			lt.erase(i++);
 		}
 	}

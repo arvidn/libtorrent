@@ -87,8 +87,8 @@ namespace libtorrent
 
 	std::string escape_string(const char* str, int len)
 	{
-		assert(str != 0);
-		assert(len >= 0);
+		TORRENT_ASSERT(str != 0);
+		TORRENT_ASSERT(len >= 0);
 		// http://www.ietf.org/rfc/rfc2396.txt
 		// section 2.3
 		// some trackers seems to require that ' is escaped
@@ -121,8 +121,8 @@ namespace libtorrent
 	
 	std::string escape_path(const char* str, int len)
 	{
-		assert(str != 0);
-		assert(len >= 0);
+		TORRENT_ASSERT(str != 0);
+		TORRENT_ASSERT(len >= 0);
 		static const char unreserved_chars[] = "/-_.!~*()"
 			"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 			"0123456789";

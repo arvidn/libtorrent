@@ -50,12 +50,12 @@ namespace libtorrent
 			, revision_version(revision)
 			, tag_version(tag)
 		{
-			assert(id_string);
-			assert(major >= 0);
-			assert(minor >= 0);
-			assert(revision >= 0);
-			assert(tag >= 0);
-			assert(std::strlen(id_string) == 2);
+			TORRENT_ASSERT(id_string);
+			TORRENT_ASSERT(major >= 0);
+			TORRENT_ASSERT(minor >= 0);
+			TORRENT_ASSERT(revision >= 0);
+			TORRENT_ASSERT(tag >= 0);
+			TORRENT_ASSERT(std::strlen(id_string) == 2);
 			name[0] = id_string[0];
 			name[1] = id_string[1];
 		}
@@ -83,7 +83,7 @@ namespace libtorrent
 		{
 			if (v >= 0 && v < 10) return '0' + v;
 			else if (v >= 10) return 'A' + (v - 10);
-			assert(false);
+			TORRENT_ASSERT(false);
 			return '0';
 		}
 

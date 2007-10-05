@@ -70,8 +70,8 @@ namespace libtorrent
 
 		void update(const char* data, int len)
 		{
-			assert(data != 0);
-			assert(len > 0);
+			TORRENT_ASSERT(data != 0);
+			TORRENT_ASSERT(len > 0);
 			m_adler = adler32(m_adler, (const Bytef*)data, len);
 		}
 		unsigned long final() const { return m_adler; }
@@ -91,14 +91,14 @@ namespace libtorrent
 		hasher(const char* data, int len)
 		{
 			SHA1_Init(&m_context);
-			assert(data != 0);
-			assert(len > 0);
+			TORRENT_ASSERT(data != 0);
+			TORRENT_ASSERT(len > 0);
 			SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
 		}
 		void update(const char* data, int len)
 		{
-			assert(data != 0);
-			assert(len > 0);
+			TORRENT_ASSERT(data != 0);
+			TORRENT_ASSERT(len > 0);
 			SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
 		}
 

@@ -342,8 +342,8 @@ namespace libtorrent
 				: start(s)
 				, length(l)
 			{
-				assert(s >= 0);
-				assert(l > 0);
+				TORRENT_ASSERT(s >= 0);
+				TORRENT_ASSERT(l > 0);
 			}
 			int start;
 			int length;

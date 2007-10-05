@@ -119,7 +119,7 @@ namespace libtorrent
 
 	boost::tuple<int, int> http_parser::incoming(buffer::const_interval recv_buffer)
 	{
-		assert(recv_buffer.left() >= m_recv_buffer.left());
+		TORRENT_ASSERT(recv_buffer.left() >= m_recv_buffer.left());
 		boost::tuple<int, int> ret(0, 0);
 
 		// early exit if there's nothing new in the receive buffer
@@ -129,7 +129,7 @@ namespace libtorrent
 		char const* pos = recv_buffer.begin + m_recv_pos;
 		if (m_state == read_status)
 		{
-			assert(!m_finished);
+			TORRENT_ASSERT(!m_finished);
 			char const* newline = std::find(pos, recv_buffer.end, '\n');
 			// if we don't have a full line yet, wait.
 			if (newline == recv_buffer.end) return ret;
@@ -166,7 +166,7 @@ namespace libtorrent
 
 		if (m_state == read_header)
 		{
-			assert(!m_finished);
+			TORRENT_ASSERT(!m_finished);
 			char const* newline = std::find(pos, recv_buffer.end, '\n');
 			std::string line;
 
@@ -226,7 +226,7 @@ namespace libtorrent
 					m_content_length = range_end - range_start + 1;
 				}
 
-				assert(m_recv_pos <= (int)recv_buffer.left());
+				TORRENT_ASSERT(m_recv_pos <= (int)recv_buffer.left());
 				newline = std::find(pos, recv_buffer.end, '\n');
 			}
 		}
@@ -238,7 +238,7 @@ namespace libtorrent
 				&& m_content_length >= 0)
 				incoming = m_content_length - m_recv_pos + m_body_start_pos;
 
-			assert(incoming >= 0);
+			TORRENT_ASSERT(incoming >= 0);
 			m_recv_pos += incoming;
 			boost::get<0>(ret) += incoming;
 
@@ -253,7 +253,7 @@ namespace libtorrent
 	
 	buffer::const_interval http_parser::get_body() const
 	{
-		assert(m_state == read_body);
+		TORRENT_ASSERT(m_state == read_body);
 		if (m_content_length >= 0)
 			return buffer::const_interval(m_recv_buffer.begin + m_body_start_pos
 				, m_recv_buffer.begin + (std::min)(m_recv_pos
@@ -534,7 +534,7 @@ namespace libtorrent
 			!= bind_interface().is_v4(); ++target);
 		if (target == end)
 		{
-			assert(target_address.address().is_v4() != bind_interface().is_v4());
+			TORRENT_ASSERT(target_address.address().is_v4() != bind_interface().is_v4());
 			if (cb)
 			{
 				std::string tracker_address_type = target_address.address().is_v4() ? "IPv4" : "IPv6";
@@ -619,7 +619,7 @@ namespace libtorrent
 		if (cb) cb->debug_log("tracker send data completed");
 #endif
 		restart_read_timeout();
-		assert(m_buffer.size() - m_recv_pos > 0);
+		TORRENT_ASSERT(m_buffer.size() - m_recv_pos > 0);
 		m_socket->async_read_some(asio::buffer(&m_buffer[m_recv_pos]
 			, m_buffer.size() - m_recv_pos), bind(&http_tracker_connection::receive
 			, self(), _1, _2));
@@ -650,7 +650,7 @@ namespace libtorrent
 		}
 
 		restart_read_timeout();
-		assert(bytes_transferred > 0);
+		TORRENT_ASSERT(bytes_transferred > 0);
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb) cb->debug_log("tracker connection reading "
@@ -669,7 +669,7 @@ namespace libtorrent
 				fail(200, "too large tracker response");
 				return;
 			}
-			assert(http_buffer_size > 0);
+			TORRENT_ASSERT(http_buffer_size > 0);
 			if ((int)m_buffer.size() + http_buffer_size
 				> m_settings.tracker_maximum_response_length)
 				m_buffer.resize(m_settings.tracker_maximum_response_length);
@@ -700,7 +700,7 @@ namespace libtorrent
 			return;
 		}
 
-		assert(m_buffer.size() - m_recv_pos > 0);
+		TORRENT_ASSERT(m_buffer.size() - m_recv_pos > 0);
 		m_socket->async_read_some(asio::buffer(&m_buffer[m_recv_pos]
 			, m_buffer.size() - m_recv_pos), bind(&http_tracker_connection::receive
 			, self(), _1, _2));
@@ -816,7 +816,7 @@ namespace libtorrent
 		#ifndef NDEBUG
 		catch (...)
 		{
-			assert(false);
+			TORRENT_ASSERT(false);
 		}
 		#endif
 	}

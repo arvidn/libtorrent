@@ -69,5 +69,9 @@ void assert_fail(char const* expr, int line, char const* file, char const* funct
  	abort();
 }
 
+#else
+
+void assert_fail(char const* expr, int line, char const* file, char const* function) {}
+
 #endif
 

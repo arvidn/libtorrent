@@ -49,15 +49,15 @@ namespace libtorrent
 
 		friend void intrusive_ptr_add_ref(intrusive_ptr_base<T> const* s)
 		{
-			assert(s->m_refs >= 0);
-			assert(s != 0);
+			TORRENT_ASSERT(s->m_refs >= 0);
+			TORRENT_ASSERT(s != 0);
 			++s->m_refs;
 		}
 
 		friend void intrusive_ptr_release(intrusive_ptr_base<T> const* s)
 		{
-			assert(s->m_refs > 0);
-			assert(s != 0);
+			TORRENT_ASSERT(s->m_refs > 0);
+			TORRENT_ASSERT(s != 0);
 			if (--s->m_refs == 0)
 				delete static_cast<T const*>(s);
 		}

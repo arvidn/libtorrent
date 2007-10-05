@@ -168,7 +168,7 @@ void natpmp::send_map_request(int i) try
 {
 	using namespace libtorrent::detail;
 
-	assert(m_currently_mapping == -1
+	TORRENT_ASSERT(m_currently_mapping == -1
 		|| m_currently_mapping == i);
 	m_currently_mapping = i;
 	mapping& m = m_mappings[i];
@@ -232,7 +232,7 @@ void natpmp::on_reply(asio::error_code const& e
 		
 		m_send_timer.cancel();
 
-		assert(m_currently_mapping >= 0);
+		TORRENT_ASSERT(m_currently_mapping >= 0);
 		int i = m_currently_mapping;
 		mapping& m = m_mappings[i];
 

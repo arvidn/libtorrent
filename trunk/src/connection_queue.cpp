@@ -102,7 +102,7 @@ namespace libtorrent
 		{
 			if (i->connecting) ++num_connecting;
 		}
-		assert(num_connecting == m_num_connecting);
+		TORRENT_ASSERT(num_connecting == m_num_connecting);
 	}
 
 #endif
@@ -118,7 +118,7 @@ namespace libtorrent
 			, m_queue.end(), boost::bind(&entry::connecting, _1) == false);
 		while (i != m_queue.end())
 		{
-			assert(i->connecting == false);
+			TORRENT_ASSERT(i->connecting == false);
 			ptime expire = time_now() + i->timeout;
 			if (m_num_connecting == 0)
 			{
@@ -143,7 +143,7 @@ namespace libtorrent
 #ifndef NDEBUG
 	struct function_guard
 	{
-		function_guard(bool& v): val(v) { assert(!val); val = true; }
+		function_guard(bool& v): val(v) { TORRENT_ASSERT(!val); val = true; }
 		~function_guard() { val = false; }
 
 		bool& val;
@@ -159,7 +159,7 @@ namespace libtorrent
 		function_guard guard_(m_in_timeout_function);
 #endif
 
-		assert(!e || e == asio::error::operation_aborted);
+		TORRENT_ASSERT(!e || e == asio::error::operation_aborted);
 		if (e) return;
 
 		ptime next_expire = max_time();

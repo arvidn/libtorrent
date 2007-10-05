@@ -75,7 +75,7 @@ namespace libtorrent
 		// we only want left-over bandwidth
 		set_non_prioritized(true);
 		shared_ptr<torrent> tor = t.lock();
-		assert(tor);
+		TORRENT_ASSERT(tor);
 		int blocks_per_piece = tor->torrent_file().piece_length() / tor->block_size();
 
 		// we always prefer downloading 1 MB chunks
@@ -115,7 +115,7 @@ namespace libtorrent
 			return boost::optional<piece_block_progress>();
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		assert(t);
+		TORRENT_ASSERT(t);
 
 		piece_block_progress ret;
 
@@ -148,7 +148,7 @@ namespace libtorrent
 	void web_peer_connection::on_connected()
 	{
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		assert(t);
+		TORRENT_ASSERT(t);
 	
 		// this is always a seed
 		incoming_bitfield(std::vector<bool>(
@@ -164,9 +164,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		assert(t);
+		TORRENT_ASSERT(t);
 
-		assert(t->valid_metadata());
+		TORRENT_ASSERT(t->valid_metadata());
 
 		bool single_file_request = false;
 		if (!m_path.empty() && m_path[m_path.size() - 1] != '/')
@@ -288,7 +288,7 @@ namespace libtorrent
 					request += "\r\nConnection: keep-alive";
 				request += "\r\n\r\n";
 				m_first_request = false;
-				assert(f.file_index >= 0);
+				TORRENT_ASSERT(f.file_index >= 0);
 				m_file_requests.push_back(f.file_index);
 			}
 		}
@@ -329,7 +329,7 @@ namespace libtorrent
 		}
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		assert(t);
+		TORRENT_ASSERT(t);
 
 		incoming_piece_fragment();
 
@@ -345,9 +345,9 @@ namespace libtorrent
 				boost::tie(payload, protocol) = m_parser.incoming(recv_buffer);
 				m_statistics.received_bytes(payload, protocol);
 
-				assert(recv_buffer.left() == 0 || *recv_buffer.begin == 'H');
+				TORRENT_ASSERT(recv_buffer.left() == 0 || *recv_buffer.begin == 'H');
 			
-				assert(recv_buffer.left() <= packet_size());
+				TORRENT_ASSERT(recv_buffer.left() <= packet_size());
 				
 				// this means the entire status line hasn't been received yet
 				if (m_parser.status_code() == -1) break;
@@ -403,7 +403,7 @@ namespace libtorrent
 					// add the redirected url and remove the current one
 					if (!single_file_request)
 					{
-						assert(!m_file_requests.empty());
+						TORRENT_ASSERT(!m_file_requests.empty());
 						int file_index = m_file_requests.front();
 
 						torrent_info const& info = t->torrent_file();
@@ -493,7 +493,7 @@ namespace libtorrent
 			// skip the http header and the blocks we've already read. The
 			// http_body.begin is now in sync with the request at the front
 			// of the request queue
-//			assert(in_range.start - int(m_piece.size()) <= front_request.start);
+//			TORRENT_ASSERT(in_range.start - int(m_piece.size()) <= front_request.start);
 
 			// the http response body consists of 3 parts
 			// 1. the middle of a block or the ending of a block
@@ -520,14 +520,14 @@ namespace libtorrent
 				int copy_size = (std::min)((std::min)(front_request.length - piece_size
 					, recv_buffer.left()), int(range_end - range_start - m_received_body));
 				m_piece.resize(piece_size + copy_size);
-				assert(copy_size > 0);
+				TORRENT_ASSERT(copy_size > 0);
 				std::memcpy(&m_piece[0] + piece_size, recv_buffer.begin, copy_size);
-				assert(int(m_piece.size()) <= front_request.length);
+				TORRENT_ASSERT(int(m_piece.size()) <= front_request.length);
 				recv_buffer.begin += copy_size;
 				m_received_body += copy_size;
 				m_body_start += copy_size;
-				assert(m_received_body <= range_end - range_start);
-				assert(int(m_piece.size()) <= front_request.length);
+				TORRENT_ASSERT(m_received_body <= range_end - range_start);
+				TORRENT_ASSERT(int(m_piece.size()) <= front_request.length);
 				if (int(m_piece.size()) == front_request.length)
 				{
 					// each call to incoming_piece() may result in us becoming
@@ -541,9 +541,9 @@ namespace libtorrent
 					cut_receive_buffer(m_body_start, t->block_size() + 1024);
 					m_body_start = 0;
 					recv_buffer = receive_buffer();
-					assert(m_received_body <= range_end - range_start);
+					TORRENT_ASSERT(m_received_body <= range_end - range_start);
 					m_piece.clear();
-					assert(m_piece.empty());
+					TORRENT_ASSERT(m_piece.empty());
 				}
 			}
 
@@ -554,13 +554,13 @@ namespace libtorrent
 			{
 				peer_request r = m_requests.front();
 				m_requests.pop_front();
-				assert(recv_buffer.left() >= r.length);
+				TORRENT_ASSERT(recv_buffer.left() >= r.length);
 
 				incoming_piece(r, recv_buffer.begin);
 				if (associated_torrent().expired()) return;
 				m_received_body += r.length;
-				assert(receive_buffer().begin + m_body_start == recv_buffer.begin);
-				assert(m_received_body <= range_end - range_start);
+				TORRENT_ASSERT(receive_buffer().begin + m_body_start == recv_buffer.begin);
+				TORRENT_ASSERT(m_received_body <= range_end - range_start);
 				cut_receive_buffer(r.length + m_body_start, t->block_size() + 1024);
 				m_body_start = 0;
 				recv_buffer = receive_buffer();
@@ -577,7 +577,7 @@ namespace libtorrent
 					int piece_size = int(m_piece.size());
 					int copy_size = (std::min)((std::min)(m_requests.front().length - piece_size
 						, recv_buffer.left()), int(range_end - range_start - m_received_body));
-					assert(copy_size >= 0);
+					TORRENT_ASSERT(copy_size >= 0);
 					if (copy_size > 0)
 					{
 						m_piece.resize(piece_size + copy_size);
@@ -586,11 +586,11 @@ namespace libtorrent
 						m_received_body += copy_size;
 						m_body_start += copy_size;
 					}
-					assert(m_received_body == range_end - range_start);
+					TORRENT_ASSERT(m_received_body == range_end - range_start);
 				}
 			}
 
-			assert(m_received_body <= range_end - range_start);
+			TORRENT_ASSERT(m_received_body <= range_end - range_start);
 			if (m_received_body == range_end - range_start)
 			{
 				cut_receive_buffer(recv_buffer.begin - receive_buffer().begin
@@ -642,7 +642,7 @@ namespace libtorrent
 	void web_peer_connection::check_invariant() const
 	{
 /*
-		assert(m_num_pieces == std::count(
+		TORRENT_ASSERT(m_num_pieces == std::count(
 			m_have_piece.begin()
 			, m_have_piece.end()
 			, true));

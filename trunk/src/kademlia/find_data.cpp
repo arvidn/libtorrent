@@ -49,7 +49,7 @@ void find_data_observer::reply(msg const& m)
 {
 	if (!m_algorithm)
 	{
-		assert(false);
+		TORRENT_ASSERT(false);
 		return;
 	}
 

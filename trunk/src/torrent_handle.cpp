@@ -111,7 +111,7 @@ namespace libtorrent
 
 	void torrent_handle::check_invariant() const
 	{
-		assert((m_ses == 0 && m_chk == 0) || (m_ses != 0 && m_chk != 0));
+		TORRENT_ASSERT((m_ses == 0 && m_chk == 0) || (m_ses != 0 && m_chk != 0));
 	}
 
 #endif
@@ -121,9 +121,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 
-		assert(max_uploads >= 2 || max_uploads == -1);
+		TORRENT_ASSERT(max_uploads >= 2 || max_uploads == -1);
 
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -135,7 +135,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -147,9 +147,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 
-		assert(max_connections >= 2 || max_connections == -1);
+		TORRENT_ASSERT(max_connections >= 2 || max_connections == -1);
 
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -159,10 +159,10 @@ namespace libtorrent
 	void torrent_handle::set_peer_upload_limit(tcp::endpoint ip, int limit) const
 	{
 		INVARIANT_CHECK;
-		assert(limit >= -1);
+		TORRENT_ASSERT(limit >= -1);
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -172,10 +172,10 @@ namespace libtorrent
 	void torrent_handle::set_peer_download_limit(tcp::endpoint ip, int limit) const
 	{
 		INVARIANT_CHECK;
-		assert(limit >= -1);
+		TORRENT_ASSERT(limit >= -1);
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -187,9 +187,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 
-		assert(limit >= -1);
+		TORRENT_ASSERT(limit >= -1);
 
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -201,7 +201,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -213,9 +213,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 
-		assert(limit >= -1);
+		TORRENT_ASSERT(limit >= -1);
 
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -227,7 +227,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -240,7 +240,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -252,7 +252,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -264,7 +264,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -276,7 +276,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -288,7 +288,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -300,7 +300,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -313,7 +313,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -325,7 +325,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -355,7 +355,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -391,7 +391,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -403,7 +403,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -416,7 +416,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -428,7 +428,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 	
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -440,7 +440,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 	
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -452,7 +452,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -464,7 +464,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		std::vector<int> ret;
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
@@ -478,7 +478,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 	
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -492,7 +492,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -504,7 +504,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -516,7 +516,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -528,7 +528,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		std::vector<bool> ret;
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
@@ -542,7 +542,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -557,7 +557,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -569,7 +569,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -581,7 +581,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -593,7 +593,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -606,7 +606,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -618,7 +618,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -632,7 +632,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) return false;
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 
 		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -653,7 +653,7 @@ namespace libtorrent
 
 		std::vector<int> piece_index;
 		if (m_ses == 0) return entry();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 
 		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
@@ -718,11 +718,11 @@ namespace libtorrent
 						v |= (i->info[j*8+k].state == piece_picker::block_info::state_finished)
 						? (1 << k) : 0;
 					bitmask.insert(bitmask.end(), v);
-					assert(bits == 8 || j == num_bitmask_bytes - 1);
+					TORRENT_ASSERT(bits == 8 || j == num_bitmask_bytes - 1);
 				}
 				piece_struct["bitmask"] = bitmask;
 
-				assert(t->filesystem().slot_for_piece(i->index) >= 0);
+				TORRENT_ASSERT(t->filesystem().slot_for_piece(i->index) >= 0);
 				unsigned long adler
 					= t->filesystem().piece_crc(
 						t->filesystem().slot_for_piece(i->index)
@@ -781,7 +781,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -793,7 +793,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
@@ -822,7 +822,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
@@ -837,7 +837,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
@@ -851,9 +851,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
-		assert(ratio >= 0.f);
+		TORRENT_ASSERT(ratio >= 0.f);
 		if (ratio < 1.f && ratio > 0.f)
 			ratio = 1.f;
 
@@ -868,7 +868,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -880,7 +880,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
@@ -893,7 +893,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		v.clear();
 
@@ -927,7 +927,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_ses == 0) throw_invalid_handle();
-		assert(m_chk);
+		TORRENT_ASSERT(m_chk);
 	
 		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
@@ -981,7 +981,7 @@ namespace libtorrent
 							if (pbp && pbp->piece_index == i->index && pbp->block_index == j)
 							{
 								bi.bytes_progress = pbp->bytes_downloaded;
-								assert(bi.bytes_progress <= bi.block_size);
+								TORRENT_ASSERT(bi.bytes_progress <= bi.block_size);
 							}
 							else
 							{

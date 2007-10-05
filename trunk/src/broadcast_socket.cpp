@@ -106,7 +106,7 @@ namespace libtorrent
 		: m_multicast_endpoint(multicast_endpoint)
 		, m_on_receive(handler)
 	{
-		assert(is_multicast(m_multicast_endpoint.address()));
+		TORRENT_ASSERT(is_multicast(m_multicast_endpoint.address()));
 
 		using namespace asio::ip::multicast;
 	

@@ -50,7 +50,7 @@ namespace
 	template <class T>
 	void call_destructor(T* o)
 	{
-		assert(o);
+		TORRENT_ASSERT(o);
 		o->~T();
 	}
 
@@ -206,7 +206,7 @@ namespace libtorrent
 		case dictionary_t:
 			return dict() == e.dict();
 		default:
-			assert(m_type == undefined_t);
+			TORRENT_ASSERT(m_type == undefined_t);
 			return true;
 		}
 	}
@@ -229,7 +229,7 @@ namespace libtorrent
 			new (data) dictionary_type;
 			break;
 		default:
-			assert(m_type == undefined_t);
+			TORRENT_ASSERT(m_type == undefined_t);
 			m_type = undefined_t;
 		}
 	}
@@ -273,7 +273,7 @@ namespace libtorrent
 			call_destructor(reinterpret_cast<dictionary_type*>(data));
 			break;
 		default:
-			assert(m_type == undefined_t);
+			TORRENT_ASSERT(m_type == undefined_t);
 			break;
 		}
 	}
@@ -281,12 +281,12 @@ namespace libtorrent
 	void entry::swap(entry& e)
 	{
 		// not implemented
-		assert(false);
+		TORRENT_ASSERT(false);
 	}
 
 	void entry::print(std::ostream& os, int indent) const
 	{
-		assert(indent >= 0);
+		TORRENT_ASSERT(indent >= 0);
 		for (int i = 0; i < indent; ++i) os << " ";
 		switch (m_type)
 		{

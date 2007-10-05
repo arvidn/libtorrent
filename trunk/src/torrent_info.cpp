@@ -208,7 +208,7 @@ namespace
 /*
 	void remove_dir(fs::path& p)
 	{
-		assert(p.begin() != p.end());
+		TORRENT_ASSERT(p.begin() != p.end());
 		path tmp;
 		for (path::iterator i = boost::next(p.begin()); i != p.end(); ++i)
 			tmp /= *i;
@@ -311,12 +311,12 @@ namespace libtorrent
 		{
 			if (size & (1 << i))
 			{
-				assert((size & ~(1 << i)) == 0);
+				TORRENT_ASSERT((size & ~(1 << i)) == 0);
 				break;
 			}
 		}
 #endif
-		assert(!m_half_metadata);
+		TORRENT_ASSERT(!m_half_metadata);
 		m_piece_length = size;
 
 		m_num_pieces = static_cast<int>(
@@ -420,7 +420,7 @@ namespace libtorrent
 		std::vector<char> info_section_buf;
 		entry gen_info_section = create_info_metadata();
 		bencode(std::back_inserter(info_section_buf), gen_info_section);
-		assert(hasher(&info_section_buf[0], info_section_buf.size()).final()
+		TORRENT_ASSERT(hasher(&info_section_buf[0], info_section_buf.size()).final()
 			== m_info_hash);
 #endif
 	}
@@ -554,7 +554,7 @@ namespace libtorrent
 
 	void torrent_info::add_file(fs::path file, size_type size)
 	{
-//		assert(file.begin() != file.end());
+//		TORRENT_ASSERT(file.begin() != file.end());
 
 		if (!file.has_branch_path())
 		{
@@ -562,15 +562,15 @@ namespace libtorrent
 			// path to the file (branch_path), which means that
 			// all the other files need to be in the same top
 			// directory as the first file.
-			assert(m_files.empty());
-			assert(!m_multifile);
+			TORRENT_ASSERT(m_files.empty());
+			TORRENT_ASSERT(!m_multifile);
 			m_name = file.string();
 		}
 		else
 		{
 #ifndef NDEBUG
 			if (!m_files.empty())
-				assert(m_name == *file.begin());
+				TORRENT_ASSERT(m_name == *file.begin());
 #endif
 			m_multifile = true;
 			m_name = *file.begin();
@@ -616,7 +616,7 @@ namespace libtorrent
 	entry torrent_info::create_info_metadata() const
 	{
 		// you have to add files to the torrent first
-		assert(!m_files.empty());
+		TORRENT_ASSERT(!m_files.empty());
 	
 		entry info(m_extra_info);
 
@@ -644,8 +644,8 @@ namespace libtorrent
 					fs::path const* file_path;
 					if (i->orig_path) file_path = &(*i->orig_path);
 					else file_path = &i->path;
-					assert(file_path->has_branch_path());
-					assert(*file_path->begin() == m_name);
+					TORRENT_ASSERT(file_path->has_branch_path());
+					TORRENT_ASSERT(*file_path->begin() == m_name);
 
 					for (fs::path::iterator j = boost::next(file_path->begin());
 						j != file_path->end(); ++j)
@@ -672,7 +672,7 @@ namespace libtorrent
 
 	entry torrent_info::create_torrent() const
 	{
-		assert(m_piece_length > 0);
+		TORRENT_ASSERT(m_piece_length > 0);
 
 		if (m_files.empty())
 		{
@@ -760,14 +760,14 @@ namespace libtorrent
 
 	void torrent_info::set_hash(int index, const sha1_hash& h)
 	{
-		assert(index >= 0);
-		assert(index < (int)m_piece_hash.size());
+		TORRENT_ASSERT(index >= 0);
+		TORRENT_ASSERT(index < (int)m_piece_hash.size());
 		m_piece_hash[index] = h;
 	}
 
 	void torrent_info::convert_file_names()
 	{
-		assert(false);
+		TORRENT_ASSERT(false);
 	}
 
 	void torrent_info::seed_free()
@@ -806,13 +806,13 @@ namespace libtorrent
 
 	size_type torrent_info::piece_size(int index) const
 	{
-		assert(index >= 0 && index < num_pieces());
+		TORRENT_ASSERT(index >= 0 && index < num_pieces());
 		if (index == num_pieces()-1)
 		{
 			size_type size = total_size()
 				- (num_pieces() - 1) * piece_length();
-			assert(size > 0);
-			assert(size <= piece_length());
+			TORRENT_ASSERT(size > 0);
+			TORRENT_ASSERT(size <= piece_length());
 			return size;
 		}
 		else
@@ -852,11 +852,11 @@ namespace libtorrent
 	std::vector<file_slice> torrent_info::map_block(int piece, size_type offset
 		, int size, bool storage) const
 	{
-		assert(num_files() > 0);
+		TORRENT_ASSERT(num_files() > 0);
 		std::vector<file_slice> ret;
 
 		size_type start = piece * (size_type)m_piece_length + offset;
-		assert(start + size <= m_total_size);
+		TORRENT_ASSERT(start + size <= m_total_size);
 
 		// find the file iterator and file offset
 		// TODO: make a vector that can map piece -> file index in O(1)
@@ -866,7 +866,7 @@ namespace libtorrent
 		int counter = 0;
 		for (file_iter = begin_files(storage);; ++counter, ++file_iter)
 		{
-			assert(file_iter != end_files(storage));
+			TORRENT_ASSERT(file_iter != end_files(storage));
 			if (file_offset < file_iter->size)
 			{
 				file_slice f;
@@ -878,7 +878,7 @@ namespace libtorrent
 				ret.push_back(f);
 			}
 			
-			assert(size >= 0);
+			TORRENT_ASSERT(size >= 0);
 			if (size <= 0) break;
 
 			file_offset -= file_iter->size;
@@ -889,8 +889,8 @@ namespace libtorrent
 	peer_request torrent_info::map_file(int file_index, size_type file_offset
 		, int size, bool storage) const
 	{
-		assert(file_index < num_files(storage));
-		assert(file_index >= 0);
+		TORRENT_ASSERT(file_index < num_files(storage));
+		TORRENT_ASSERT(file_index >= 0);
 		size_type offset = file_offset + file_at(file_index, storage).offset;
 
 		peer_request ret;
