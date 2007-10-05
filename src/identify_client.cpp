@@ -267,7 +267,7 @@ namespace
 #ifndef NDEBUG
 		for (int i = 1; i < size; ++i)
 		{
-			assert(compare_id(name_map[i-1]
+			TORRENT_ASSERT(compare_id(name_map[i-1]
 				, name_map[i]));
 		}
 #endif

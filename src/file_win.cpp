@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/file.hpp"
 #include "libtorrent/utf8.hpp"
+#include "libtorrent/assert.hpp"
 
 #ifdef UNICODE
 #include "libtorrent/storage.hpp"
@@ -136,8 +137,8 @@ namespace libtorrent
 
 		void open(const char *file_name, open_flags flags)
 		{
-			assert(file_name);
-			assert(flags & (read_flag | write_flag));
+			TORRENT_ASSERT(file_name);
+			TORRENT_ASSERT(flags & (read_flag | write_flag));
 
 			DWORD access_mask = 0;
 			if (flags & read_flag)
@@ -145,7 +146,7 @@ namespace libtorrent
 			if (flags & write_flag)
 				access_mask |= GENERIC_WRITE;
 
-			assert(access_mask & (GENERIC_READ | GENERIC_WRITE));
+			TORRENT_ASSERT(access_mask & (GENERIC_READ | GENERIC_WRITE));
 
 		#ifdef UNICODE
 			std::wstring wfile_name(safe_convert(file_name));
@@ -198,8 +199,8 @@ namespace libtorrent
 
 		size_type write(const char* buffer, size_type num_bytes)
 		{
-			assert(buffer);
-			assert((DWORD)num_bytes == num_bytes);
+			TORRENT_ASSERT(buffer);
+			TORRENT_ASSERT((DWORD)num_bytes == num_bytes);
 			DWORD bytes_written = 0;
 			if (num_bytes != 0)
 			{
@@ -218,9 +219,9 @@ namespace libtorrent
 		
 		size_type read(char* buffer, size_type num_bytes)
 		{
-			assert(buffer);
-			assert(num_bytes >= 0);
-			assert((DWORD)num_bytes == num_bytes);
+			TORRENT_ASSERT(buffer);
+			TORRENT_ASSERT(num_bytes >= 0);
+			TORRENT_ASSERT((DWORD)num_bytes == num_bytes);
 
 			DWORD bytes_read = 0;
 			if (num_bytes != 0)
@@ -250,8 +251,8 @@ namespace libtorrent
 
 		size_type seek(size_type pos, seek_mode from_where)
 		{
-			assert(pos >= 0 || from_where != seek_begin);
-			assert(pos <= 0 || from_where != seek_end);
+			TORRENT_ASSERT(pos >= 0 || from_where != seek_begin);
+			TORRENT_ASSERT(pos <= 0 || from_where != seek_end);
 			LARGE_INTEGER offs;
 			offs.QuadPart = pos;
 			if (FALSE == SetFilePointerEx(
@@ -281,7 +282,7 @@ namespace libtorrent
 			}
 
 			size_type pos = offs.QuadPart;
-			assert(pos >= 0);
+			TORRENT_ASSERT(pos >= 0);
 			return pos;
 		}
 /*
@@ -294,7 +295,7 @@ namespace libtorrent
 			}
 			
 			size_type size = s.QuadPart;
-			assert(size >= 0);
+			TORRENT_ASSERT(size >= 0);
 			return size;
 		}
 */
@@ -330,7 +331,7 @@ namespace libtorrent
 
 	void file::open(boost::filesystem::path const& p, open_mode m)
 	{
-		assert(p.is_complete());
+		TORRENT_ASSERT(p.is_complete());
 		m_impl->open(p.native_file_string().c_str(), impl::open_flags(m.m_mask));
 	}
 

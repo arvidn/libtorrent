@@ -151,7 +151,7 @@ namespace libtorrent
 		template<class InIt>
 		void read_string(InIt& in, InIt end, int len, std::string& str)
 		{
-			assert(len >= 0);
+			TORRENT_ASSERT(len >= 0);
 			for (int i = 0; i < len; ++i)
 			{
 				if (in == end) throw invalid_encoding();
@@ -214,7 +214,7 @@ namespace libtorrent
 				{
 				++in; // 'i' 
 				std::string val = read_until(in, end, 'e');
-				assert(*in == 'e');
+				TORRENT_ASSERT(*in == 'e');
 				++in; // 'e' 
 				ret = entry(entry::int_t);
 				ret.integer() = boost::lexical_cast<entry::integer_type>(val);
@@ -233,7 +233,7 @@ namespace libtorrent
 					bdecode_recursive(in, end, e);
 					if (in == end) throw invalid_encoding();
 				}
-				assert(*in == 'e');
+				TORRENT_ASSERT(*in == 'e');
 				++in; // 'e'
 				} break;
 
@@ -251,7 +251,7 @@ namespace libtorrent
 					bdecode_recursive(in, end, e);
 					if (in == end) throw invalid_encoding();
 				}
-				assert(*in == 'e');
+				TORRENT_ASSERT(*in == 'e');
 				++in; // 'e'
 				} break;
 
@@ -261,7 +261,7 @@ namespace libtorrent
 				if (isdigit((unsigned char)*in))
 				{
 					std::string len_s = read_until(in, end, ':');
-					assert(*in == ':');
+					TORRENT_ASSERT(*in == ':');
 					++in; // ':'
 					int len = std::atoi(len_s.c_str());
 					ret = entry(entry::string_t);

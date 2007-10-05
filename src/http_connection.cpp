@@ -148,7 +148,7 @@ void http_connection::on_resolve(asio::error_code const& e
 		m_handler(e, m_parser, 0, 0);
 		return;
 	}
-	assert(i != tcp::resolver::iterator());
+	TORRENT_ASSERT(i != tcp::resolver::iterator());
 	m_cc.enqueue(bind(&http_connection::connect, shared_from_this(), _1, *i)
 		, bind(&http_connection::on_connect_timeout, shared_from_this())
 		, m_timeout);
@@ -225,7 +225,7 @@ void http_connection::on_read(asio::error_code const& e
 	if (m_rate_limit)
 	{
 		m_download_quota -= bytes_transferred;
-		assert(m_download_quota >= 0);
+		TORRENT_ASSERT(m_download_quota >= 0);
 	}
 
 	if (e == asio::error::eof)
@@ -254,7 +254,7 @@ void http_connection::on_read(asio::error_code const& e
 	}
 
 	m_read_pos += bytes_transferred;
-	assert(m_read_pos <= int(m_recvbuffer.size()));
+	TORRENT_ASSERT(m_read_pos <= int(m_recvbuffer.size()));
 
 	// having a nonempty path means we should handle redirects
 	if (m_redirect && m_parser.header_finished())
@@ -306,7 +306,7 @@ void http_connection::on_read(asio::error_code const& e
 	}
 	else
 	{
-		assert(!m_bottled);
+		TORRENT_ASSERT(!m_bottled);
 		m_handler(e, m_parser, &m_recvbuffer[0], m_read_pos);
 		m_read_pos = 0;
 		m_last_receive = time_now();

@@ -66,7 +66,7 @@ namespace libtorrent {
 		int len_dh = sizeof(m_dh_prime); // must equal DH_size(m_DH)
 		if (key_size != len_dh)
 		{
-			assert(key_size > 0 && key_size < len_dh);
+			TORRENT_ASSERT(key_size > 0 && key_size < len_dh);
 
 			int pad_zero_size = len_dh - key_size;
 			std::fill(m_dh_local_key, m_dh_local_key + pad_zero_size, 0);
@@ -100,7 +100,7 @@ namespace libtorrent {
 
 		if (secret_size != 96)
 		{
-			assert(secret_size < 96 && secret_size > 0);
+			TORRENT_ASSERT(secret_size < 96 && secret_size > 0);
 			std::fill(m_dh_secret, m_dh_secret + 96 - secret_size, 0);
 		}
 		std::copy(dh_secret, dh_secret + secret_size, m_dh_secret + 96 - secret_size);

@@ -222,7 +222,7 @@ try
 #ifndef NDEBUG
 catch (std::exception&)
 {
-	assert(false);
+	TORRENT_ASSERT(false);
 };
 #endif
 
@@ -413,7 +413,7 @@ try
 #ifndef NDEBUG
 catch (std::exception&)
 {
-	assert(false);
+	TORRENT_ASSERT(false);
 };
 #endif
 
@@ -476,8 +476,8 @@ void upnp::map_port(rootdevice& d, int i)
 		return;
 	}
 	d.mapping[i].need_update = false;
-	assert(!d.upnp_connection);
-	assert(d.service_namespace);
+	TORRENT_ASSERT(!d.upnp_connection);
+	TORRENT_ASSERT(d.service_namespace);
 
 	d.upnp_connection.reset(new http_connection(m_io_service
 		, m_cc, m_strand.wrap(bind(&upnp::on_upnp_map_response, self(), _1, _2

@@ -40,7 +40,7 @@ namespace libtorrent
 			}
 			catch (...)
 			{
-				assert(false);
+				TORRENT_ASSERT(false);
 			}
 		}
 
@@ -52,7 +52,7 @@ namespace libtorrent
 			}
 			catch (...)
 			{
-				assert(false);
+				TORRENT_ASSERT(false);
 			}
 		}
 

@@ -398,8 +398,8 @@ namespace libtorrent
 			, m_chk(c)
 			, m_info_hash(h)
 		{
-			assert(m_ses != 0);
-			assert(m_chk != 0);
+			TORRENT_ASSERT(m_ses != 0);
+			TORRENT_ASSERT(m_chk != 0);
 		}
 
 #ifndef NDEBUG

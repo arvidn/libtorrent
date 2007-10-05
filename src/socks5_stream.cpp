@@ -211,7 +211,7 @@ namespace libtorrent
 		write_uint8(m_remote_endpoint.address().is_v4()?1:4, p); // address type
 		write_address(m_remote_endpoint.address(), p);
 		write_uint16(m_remote_endpoint.port(), p);
-		assert(p - &m_buffer[0] == int(m_buffer.size()));
+		TORRENT_ASSERT(p - &m_buffer[0] == int(m_buffer.size()));
 
 		asio::async_write(m_sock, asio::buffer(m_buffer)
 			, boost::bind(&socks5_stream::connect1, this, _1, h));

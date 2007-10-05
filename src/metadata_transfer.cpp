@@ -65,10 +65,10 @@ namespace libtorrent { namespace
 
 	std::pair<int, int> req_to_offset(std::pair<int, int> req, int total_size)
 	{
-		assert(req.first >= 0);
-		assert(req.second > 0);
-		assert(req.second <= 256);
-		assert(req.first + req.second <= 256);
+		TORRENT_ASSERT(req.first >= 0);
+		TORRENT_ASSERT(req.second > 0);
+		TORRENT_ASSERT(req.second <= 256);
+		TORRENT_ASSERT(req.first + req.second <= 256);
 
 		int start = div_round_up(req.first * total_size, 256);
 		int size = div_round_up((req.first + req.second) * total_size, 256) - start;
@@ -82,15 +82,15 @@ namespace libtorrent { namespace
 
 		std::pair<int, int> ret(start, size);
 	
-		assert(start >= 0);
-		assert(size > 0);
-		assert(start <= 256);
-		assert(start + size <= 256);
+		TORRENT_ASSERT(start >= 0);
+		TORRENT_ASSERT(size > 0);
+		TORRENT_ASSERT(start <= 256);
+		TORRENT_ASSERT(start + size <= 256);
 
 		// assert the identity of this function
 #ifndef NDEBUG
 		std::pair<int, int> identity = req_to_offset(ret, total_size);
-		assert(offset == identity);
+		TORRENT_ASSERT(offset == identity);
 #endif
 		return ret;
 	}
@@ -124,10 +124,10 @@ namespace libtorrent { namespace
 				bencode(std::back_inserter(m_metadata)
 					, m_torrent.torrent_file().create_info_metadata());
 
-				assert(hasher(&m_metadata[0], m_metadata.size()).final()
+				TORRENT_ASSERT(hasher(&m_metadata[0], m_metadata.size()).final()
 					== m_torrent.torrent_file().info_hash());
 			}
-			assert(!m_metadata.empty());
+			TORRENT_ASSERT(!m_metadata.empty());
 			return m_metadata;
 		}
 
@@ -149,7 +149,7 @@ namespace libtorrent { namespace
 			std::pair<int, int> req = offset_to_req(std::make_pair(offset, size)
 				, total_size);
 
-			assert(req.first + req.second <= (int)m_have_metadata.size());
+			TORRENT_ASSERT(req.first + req.second <= (int)m_have_metadata.size());
 
 			std::fill(
 				m_have_metadata.begin() + req.first
@@ -203,7 +203,7 @@ namespace libtorrent { namespace
 		{
 			for (int i = req.first; i < req.first + req.second; ++i)
 			{
-				assert(m_requested_metadata[i] > 0);
+				TORRENT_ASSERT(m_requested_metadata[i] > 0);
 				if (m_requested_metadata[i] > 0)
 					--m_requested_metadata[i];
 			}
@@ -288,11 +288,11 @@ namespace libtorrent { namespace
 
 		void write_metadata_request(std::pair<int, int> req)
 		{
-			assert(req.first >= 0);
-			assert(req.second > 0);
-			assert(req.first + req.second <= 256);
-			assert(!m_pc.associated_torrent().expired());
-			assert(!m_pc.associated_torrent().lock()->valid_metadata());
+			TORRENT_ASSERT(req.first >= 0);
+			TORRENT_ASSERT(req.second > 0);
+			TORRENT_ASSERT(req.first + req.second <= 256);
+			TORRENT_ASSERT(!m_pc.associated_torrent().expired());
+			TORRENT_ASSERT(!m_pc.associated_torrent().lock()->valid_metadata());
 
 			int start = req.first;
 			int size = req.second;
@@ -309,17 +309,17 @@ namespace libtorrent { namespace
 			detail::write_uint8(0, i.begin);
 			detail::write_uint8(start, i.begin);
 			detail::write_uint8(size - 1, i.begin);
-			assert(i.begin == i.end);
+			TORRENT_ASSERT(i.begin == i.end);
 			m_pc.setup_send();
 		}
 
 		void write_metadata(std::pair<int, int> req)
 		{
-			assert(req.first >= 0);
-			assert(req.second > 0);
-			assert(req.second <= 256);
-			assert(req.first + req.second <= 256);
-			assert(!m_pc.associated_torrent().expired());
+			TORRENT_ASSERT(req.first >= 0);
+			TORRENT_ASSERT(req.second > 0);
+			TORRENT_ASSERT(req.second <= 256);
+			TORRENT_ASSERT(req.first + req.second <= 256);
+			TORRENT_ASSERT(!m_pc.associated_torrent().expired());
 
 			// abort if the peer doesn't support the metadata extension
 			if (m_message_index == 0) return;
@@ -344,7 +344,7 @@ namespace libtorrent { namespace
 				std::copy(metadata.begin() + offset.first
 					, metadata.begin() + offset.first + offset.second, i.begin);
 				i.begin += offset.second;
-				assert(i.begin == i.end);
+				TORRENT_ASSERT(i.begin == i.end);
 			}
 			else
 			{
@@ -356,7 +356,7 @@ namespace libtorrent { namespace
 				detail::write_uint8(m_message_index, i.begin);
 				// means 'have no data'
 				detail::write_uint8(2, i.begin);
-				assert(i.begin == i.end);
+				TORRENT_ASSERT(i.begin == i.end);
 			}
 			m_pc.setup_send();
 		}
@@ -521,7 +521,7 @@ namespace libtorrent { namespace
 		// the number of blocks to request
 		int num_blocks = 256 / (peers + 1);
 		if (num_blocks < 1) num_blocks = 1;
-		assert(num_blocks <= 128);
+		TORRENT_ASSERT(num_blocks <= 128);
 
 		int min_element = (std::numeric_limits<int>::max)();
 		int best_index = 0;
@@ -543,10 +543,10 @@ namespace libtorrent { namespace
 		for (int i = ret.first; i < ret.first + ret.second; ++i)
 			m_requested_metadata[i]++;
 
-		assert(ret.first >= 0);
-		assert(ret.second > 0);
-		assert(ret.second <= 256);
-		assert(ret.first + ret.second <= 256);
+		TORRENT_ASSERT(ret.first >= 0);
+		TORRENT_ASSERT(ret.second > 0);
+		TORRENT_ASSERT(ret.second <= 256);
+		TORRENT_ASSERT(ret.first + ret.second <= 256);
 
 		return ret;
 	}

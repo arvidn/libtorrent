@@ -58,7 +58,7 @@ namespace libtorrent
 
 		big_number(std::string const& s)
 		{
-			assert(s.size() >= 20);
+			TORRENT_ASSERT(s.size() >= 20);
 			int sl = int(s.size()) < size ? int(s.size()) : size;
 			std::memcpy(m_number, &s[0], sl);
 		}
@@ -126,10 +126,10 @@ namespace libtorrent
 		}
 		
 		unsigned char& operator[](int i)
-		{ assert(i >= 0 && i < number_size); return m_number[i]; }
+		{ TORRENT_ASSERT(i >= 0 && i < number_size); return m_number[i]; }
 
 		unsigned char const& operator[](int i) const
-		{ assert(i >= 0 && i < number_size); return m_number[i]; }
+		{ TORRENT_ASSERT(i >= 0 && i < number_size); return m_number[i]; }
 
 		typedef const unsigned char* const_iterator;
 		typedef unsigned char* iterator;

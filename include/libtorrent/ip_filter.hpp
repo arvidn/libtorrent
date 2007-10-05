@@ -156,16 +156,16 @@ namespace detail
 			using boost::next;
 			using boost::prior;
 
-			assert(!m_access_list.empty());
-			assert(first < last || first == last);
+			TORRENT_ASSERT(!m_access_list.empty());
+			TORRENT_ASSERT(first < last || first == last);
 			
 			typename range_t::iterator i = m_access_list.upper_bound(first);
 			typename range_t::iterator j = m_access_list.upper_bound(last);
 
 			if (i != m_access_list.begin()) --i;
 			
-			assert(j != m_access_list.begin());
-			assert(j != i);
+			TORRENT_ASSERT(j != m_access_list.begin());
+			TORRENT_ASSERT(j != i);
 			
 			int first_access = i->access;
 			int last_access = prior(j)->access;
@@ -179,8 +179,8 @@ namespace detail
 				--i;
 				first_access = i->access;
 			}
-			assert(!m_access_list.empty());
-			assert(i != m_access_list.end());
+			TORRENT_ASSERT(!m_access_list.empty());
+			TORRENT_ASSERT(i != m_access_list.end());
 
 			if (i != j) m_access_list.erase(next(i), j);
 			if (i->start == first)
@@ -200,22 +200,22 @@ namespace detail
 				|| (j == m_access_list.end()
 					&& last != max_addr<Addr>()))
 			{
-				assert(j == m_access_list.end() || last < minus_one(j->start));
+				TORRENT_ASSERT(j == m_access_list.end() || last < minus_one(j->start));
 				if (last_access != flags)
 					j = m_access_list.insert(j, range(plus_one(last), last_access));
 			}
 
 			if (j != m_access_list.end() && j->access == flags) m_access_list.erase(j);
-			assert(!m_access_list.empty());
+			TORRENT_ASSERT(!m_access_list.empty());
 		}
 
 		int access(Addr const& addr) const
 		{
-			assert(!m_access_list.empty());
+			TORRENT_ASSERT(!m_access_list.empty());
 			typename range_t::const_iterator i = m_access_list.upper_bound(addr);
 			if (i != m_access_list.begin()) --i;
-			assert(i != m_access_list.end());
-			assert(i->start <= addr && (boost::next(i) == m_access_list.end()
+			TORRENT_ASSERT(i != m_access_list.end());
+			TORRENT_ASSERT(i->start <= addr && (boost::next(i) == m_access_list.end()
 				|| addr < boost::next(i)->start));
 			return i->access;
 		}

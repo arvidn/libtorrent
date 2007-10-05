@@ -297,7 +297,7 @@ namespace libtorrent
 			void unchoke_peer(peer_connection& c)
 			{
 				torrent* t = c.associated_torrent().lock().get();
-				assert(t);
+				TORRENT_ASSERT(t);
 				if (t->unchoke_peer(c))
 					++m_num_unchoked;
 			}
@@ -345,7 +345,7 @@ namespace libtorrent
 					send_buffer_capacity += i->second->send_buffer_capacity();
 					used_send_buffer += i->second->send_buffer_size();
 				}
-				assert(send_buffer_capacity >= used_send_buffer);
+				TORRENT_ASSERT(send_buffer_capacity >= used_send_buffer);
 				m_buffer_usage_logger << log_time() << " send_buffer_size: " << send_buffer_capacity << std::endl;
 				m_buffer_usage_logger << log_time() << " used_send_buffer: " << used_send_buffer << std::endl;
 				m_buffer_usage_logger << log_time() << " send_buffer_utilization: "

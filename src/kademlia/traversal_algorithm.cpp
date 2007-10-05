@@ -67,7 +67,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 
 	if (i == m_results.end() || i->id != id)
 	{
-		assert(std::find_if(m_results.begin(), m_results.end()
+		TORRENT_ASSERT(std::find_if(m_results.begin(), m_results.end()
 			, bind(&result::id, _1) == id) == m_results.end());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(traversal) << "adding result: " << id << " " << addr;
@@ -110,11 +110,11 @@ void traversal_algorithm::failed(node_id const& id, bool prevent_request)
 		)
 	);
 
-	assert(i != m_results.end());
+	TORRENT_ASSERT(i != m_results.end());
 
 	if (i != m_results.end())
 	{
-		assert(i->flags & result::queried);
+		TORRENT_ASSERT(i->flags & result::queried);
 		m_failed.insert(i->addr);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(traversal) << "failed: " << i->id << " " << i->addr;

@@ -30,25 +30,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <cassert>
-
-#ifndef NDEBUG
-#if (defined __linux__ || defined __MACH__) && defined __GNUC__
-#ifdef assert
-#undef assert
-#endif
+#ifndef TORRENT_ASSERT
 
 #include "libtorrent/config.hpp"
+#include <cassert>
+
+#if (defined __linux__ || defined __MACH__) && defined __GNUC__ && !defined(NDEBUG)
 
 TORRENT_EXPORT void assert_fail(const char* expr, int line, char const* file, char const* function);
-
-#define assert(x) if (x) {} else assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__)
-
-#endif
+#define TORRENT_ASSERT(x) if (x) {} else assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__)
 
 #else
-#ifndef assert
-#define assert(x) (void)
+#define TORRENT_ASSERT(x) assert(x)
 #endif
+
 #endif
 

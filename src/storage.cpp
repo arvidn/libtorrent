@@ -355,9 +355,9 @@ namespace libtorrent
 			: m_info(info)
 			, m_files(fp)
 		{
-			assert(info->begin_files(true) != info->end_files(true));
+			TORRENT_ASSERT(info->begin_files(true) != info->end_files(true));
 			m_save_path = fs::complete(path);
-			assert(m_save_path.is_complete());
+			TORRENT_ASSERT(m_save_path.is_complete());
 		}
 
 		void release_files();
@@ -400,7 +400,7 @@ namespace libtorrent
 			partial.update(&m_scratch_buffer[0], ph.offset);
 		whole.update(&m_scratch_buffer[0], slot_size1);
 		hasher partial_copy = ph.h;
-		assert(ph.offset == 0 || partial_copy.final() == partial.final());
+		TORRENT_ASSERT(ph.offset == 0 || partial_copy.final() == partial.final());
 #endif
 		int slot_size = piece_size - ph.offset;
 		if (slot_size > 0)
@@ -411,7 +411,7 @@ namespace libtorrent
 		}
 #ifndef NDEBUG
 		sha1_hash ret = ph.h.final();
-		assert(ret == whole.final());
+		TORRENT_ASSERT(ret == whole.final());
 		return ret;
 #else
 		return ph.h.final();
@@ -690,20 +690,20 @@ namespace libtorrent
 		, int size
 		, bool fill_zero)
 	{
-		assert(buf != 0);
-		assert(slot >= 0 && slot < m_info->num_pieces());
-		assert(offset >= 0);
-		assert(offset < m_info->piece_size(slot));
-		assert(size > 0);
+		TORRENT_ASSERT(buf != 0);
+		TORRENT_ASSERT(slot >= 0 && slot < m_info->num_pieces());
+		TORRENT_ASSERT(offset >= 0);
+		TORRENT_ASSERT(offset < m_info->piece_size(slot));
+		TORRENT_ASSERT(size > 0);
 
 #ifndef NDEBUG
 		std::vector<file_slice> slices
 			= m_info->map_block(slot, offset, size, true);
-		assert(!slices.empty());
+		TORRENT_ASSERT(!slices.empty());
 #endif
 
 		size_type start = slot * (size_type)m_info->piece_length() + offset;
-		assert(start + size <= m_info->total_size());
+		TORRENT_ASSERT(start + size <= m_info->total_size());
 
 		// find the file iterator and file offset
 		size_type file_offset = start;
@@ -722,9 +722,9 @@ namespace libtorrent
 		boost::shared_ptr<file> in(m_files.open_file(
 					this, m_save_path / file_iter->path, file::in));
 
-		assert(file_offset < file_iter->size);
+		TORRENT_ASSERT(file_offset < file_iter->size);
 
-		assert(slices[0].offset == file_offset);
+		TORRENT_ASSERT(slices[0].offset == file_offset);
 
 		size_type new_pos = in->seek(file_offset);
 		if (new_pos != file_offset)
@@ -738,7 +738,7 @@ namespace libtorrent
 
 #ifndef NDEBUG
 		size_type in_tell = in->tell();
-		assert(in_tell == file_offset);
+		TORRENT_ASSERT(in_tell == file_offset);
 #endif
 
 		int left_to_read = size;
@@ -747,7 +747,7 @@ namespace libtorrent
 		if (offset + left_to_read > slot_size)
 			left_to_read = slot_size - offset;
 
-		assert(left_to_read >= 0);
+		TORRENT_ASSERT(left_to_read >= 0);
 
 		size_type result = left_to_read;
 
@@ -764,10 +764,10 @@ namespace libtorrent
 			if (read_bytes > 0)
 			{
 #ifndef NDEBUG
-				assert(int(slices.size()) > counter);
+				TORRENT_ASSERT(int(slices.size()) > counter);
 				size_type slice_size = slices[counter].size;
-				assert(slice_size == read_bytes);
-				assert(m_info->file_at(slices[counter].file_index, true).path
+				TORRENT_ASSERT(slice_size == read_bytes);
+				TORRENT_ASSERT(m_info->file_at(slices[counter].file_index, true).path
 					== file_iter->path);
 #endif
 
@@ -785,7 +785,7 @@ namespace libtorrent
 
 				left_to_read -= read_bytes;
 				buf_pos += read_bytes;
-				assert(buf_pos >= 0);
+				TORRENT_ASSERT(buf_pos >= 0);
 				file_offset += read_bytes;
 			}
 
@@ -815,16 +815,16 @@ namespace libtorrent
 		, int offset
 		, int size)
 	{
-		assert(buf != 0);
-		assert(slot >= 0);
-		assert(slot < m_info->num_pieces());
-		assert(offset >= 0);
-		assert(size > 0);
+		TORRENT_ASSERT(buf != 0);
+		TORRENT_ASSERT(slot >= 0);
+		TORRENT_ASSERT(slot < m_info->num_pieces());
+		TORRENT_ASSERT(offset >= 0);
+		TORRENT_ASSERT(size > 0);
 
 #ifndef NDEBUG
 		std::vector<file_slice> slices
 			= m_info->map_block(slot, offset, size, true);
-		assert(!slices.empty());
+		TORRENT_ASSERT(!slices.empty());
 #endif
 
 		size_type start = slot * (size_type)m_info->piece_length() + offset;
@@ -840,15 +840,15 @@ namespace libtorrent
 
 			file_offset -= file_iter->size;
 			++file_iter;
-			assert(file_iter != m_info->end_files(true));
+			TORRENT_ASSERT(file_iter != m_info->end_files(true));
 		}
 
 		fs::path p(m_save_path / file_iter->path);
 		boost::shared_ptr<file> out = m_files.open_file(
 			this, p, file::out | file::in);
 
-		assert(file_offset < file_iter->size);
-		assert(slices[0].offset == file_offset);
+		TORRENT_ASSERT(file_offset < file_iter->size);
+		TORRENT_ASSERT(slices[0].offset == file_offset);
 
 		size_type pos = out->seek(file_offset);
 
@@ -865,7 +865,7 @@ namespace libtorrent
 		if (offset + left_to_write > slot_size)
 			left_to_write = slot_size - offset;
 
-		assert(left_to_write >= 0);
+		TORRENT_ASSERT(left_to_write >= 0);
 
 		int buf_pos = 0;
 #ifndef NDEBUG
@@ -876,19 +876,19 @@ namespace libtorrent
 			int write_bytes = left_to_write;
 			if (file_offset + write_bytes > file_iter->size)
 			{
-				assert(file_iter->size >= file_offset);
+				TORRENT_ASSERT(file_iter->size >= file_offset);
 				write_bytes = static_cast<int>(file_iter->size - file_offset);
 			}
 
 			if (write_bytes > 0)
 			{
-				assert(int(slices.size()) > counter);
-				assert(slices[counter].size == write_bytes);
-				assert(m_info->file_at(slices[counter].file_index, true).path
+				TORRENT_ASSERT(int(slices.size()) > counter);
+				TORRENT_ASSERT(slices[counter].size == write_bytes);
+				TORRENT_ASSERT(m_info->file_at(slices[counter].file_index, true).path
 					== file_iter->path);
 
-				assert(buf_pos >= 0);
-				assert(write_bytes >= 0);
+				TORRENT_ASSERT(buf_pos >= 0);
+				TORRENT_ASSERT(write_bytes >= 0);
 				size_type written = out->write(buf + buf_pos, write_bytes);
 
 				if (written != write_bytes)
@@ -900,9 +900,9 @@ namespace libtorrent
 
 				left_to_write -= write_bytes;
 				buf_pos += write_bytes;
-				assert(buf_pos >= 0);
+				TORRENT_ASSERT(buf_pos >= 0);
 				file_offset += write_bytes;
-				assert(file_offset <= file_iter->size);
+				TORRENT_ASSERT(file_offset <= file_iter->size);
 			}
 
 			if (left_to_write > 0)
@@ -912,7 +912,7 @@ namespace libtorrent
 #endif
 				++file_iter;
 
-				assert(file_iter != m_info->end_files(true));
+				TORRENT_ASSERT(file_iter != m_info->end_files(true));
 				fs::path p = m_save_path / file_iter->path;
 				file_offset = 0;
 				out = m_files.open_file(
@@ -931,7 +931,7 @@ namespace libtorrent
 
 	bool supports_sparse_files(fs::path const& p)
 	{
-		assert(p.is_complete());
+		TORRENT_ASSERT(p.is_complete());
 #if defined(_WIN32)
 		// assume windows API is available
 		DWORD max_component_len = 0;
@@ -1105,7 +1105,7 @@ namespace libtorrent
 		j.priority = priority;
 		// if a buffer is not specified, only one block can be read
 		// since that is the size of the pool allocator's buffers
-		assert(r.length <= 16 * 1024 || buffer != 0);
+		TORRENT_ASSERT(r.length <= 16 * 1024 || buffer != 0);
 		m_io_thread.add_job(j, handler);
 	}
 
@@ -1114,7 +1114,7 @@ namespace libtorrent
 		, char const* buffer
 		, boost::function<void(int, disk_io_job const&)> const& handler)
 	{
-		assert(r.length <= 16 * 1024);
+		TORRENT_ASSERT(r.length <= 16 * 1024);
 
 		disk_io_job j;
 		j.storage = this;
@@ -1157,7 +1157,7 @@ namespace libtorrent
 		}
 
 		int slot = m_piece_to_slot[piece];
-		assert(slot != has_no_slot);
+		TORRENT_ASSERT(slot != has_no_slot);
 		return m_storage->hash_for_slot(slot, ph, m_info->piece_size(piece));
 	}
 
@@ -1204,12 +1204,12 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-		assert(piece_index >= 0 && piece_index < (int)m_piece_to_slot.size());
-		assert(m_piece_to_slot[piece_index] >= 0);
+		TORRENT_ASSERT(piece_index >= 0 && piece_index < (int)m_piece_to_slot.size());
+		TORRENT_ASSERT(m_piece_to_slot[piece_index] >= 0);
 
 		int slot_index = m_piece_to_slot[piece_index];
 
-		assert(slot_index >= 0);
+		TORRENT_ASSERT(slot_index >= 0);
 
 		m_slot_to_piece[slot_index] = unassigned;
 		m_piece_to_slot[piece_index] = has_no_slot;
@@ -1218,7 +1218,7 @@ namespace libtorrent
 
 	int piece_manager::slot_for_piece(int piece_index) const
 	{
-		assert(piece_index >= 0 && piece_index < m_info->num_pieces());
+		TORRENT_ASSERT(piece_index >= 0 && piece_index < m_info->num_pieces());
 		return m_piece_to_slot[piece_index];
 	}
 
@@ -1228,9 +1228,9 @@ namespace libtorrent
 		, piece_picker::block_info const* bi)
 	try
 	{
-		assert(slot_index >= 0);
-		assert(slot_index < m_info->num_pieces());
-		assert(block_size > 0);
+		TORRENT_ASSERT(slot_index >= 0);
+		TORRENT_ASSERT(slot_index < m_info->num_pieces());
+		TORRENT_ASSERT(block_size > 0);
 
 		adler32_crc crc;
 		std::vector<char> buf(block_size);
@@ -1270,14 +1270,14 @@ namespace libtorrent
 		, int offset
 		, int size)
 	{
-		assert(buf);
-		assert(offset >= 0);
-		assert(size > 0);
-		assert(piece_index >= 0 && piece_index < (int)m_piece_to_slot.size());
-		assert(m_piece_to_slot[piece_index] >= 0
+		TORRENT_ASSERT(buf);
+		TORRENT_ASSERT(offset >= 0);
+		TORRENT_ASSERT(size > 0);
+		TORRENT_ASSERT(piece_index >= 0 && piece_index < (int)m_piece_to_slot.size());
+		TORRENT_ASSERT(m_piece_to_slot[piece_index] >= 0
 			&& m_piece_to_slot[piece_index] < (int)m_slot_to_piece.size());
 		int slot = m_piece_to_slot[piece_index];
-		assert(slot >= 0 && slot < (int)m_slot_to_piece.size());
+		TORRENT_ASSERT(slot >= 0 && slot < (int)m_slot_to_piece.size());
 		return m_storage->read(buf, slot, offset, size);
 	}
 
@@ -1287,15 +1287,15 @@ namespace libtorrent
 	  , int offset
 	  , int size)
 	{
-		assert(buf);
-		assert(offset >= 0);
-		assert(size > 0);
-		assert(piece_index >= 0 && piece_index < (int)m_piece_to_slot.size());
+		TORRENT_ASSERT(buf);
+		TORRENT_ASSERT(offset >= 0);
+		TORRENT_ASSERT(size > 0);
+		TORRENT_ASSERT(piece_index >= 0 && piece_index < (int)m_piece_to_slot.size());
 
 		if (offset == 0)
 		{
 			partial_hash& ph = m_piece_hasher[piece_index];
-			assert(ph.offset == 0);
+			TORRENT_ASSERT(ph.offset == 0);
 			ph.offset = size;
 			ph.h.update(buf, size);
 		}
@@ -1304,8 +1304,8 @@ namespace libtorrent
 			std::map<int, partial_hash>::iterator i = m_piece_hasher.find(piece_index);
 			if (i != m_piece_hasher.end())
 			{
-				assert(i->second.offset > 0);
-				assert(offset >= i->second.offset);
+				TORRENT_ASSERT(i->second.offset > 0);
+				TORRENT_ASSERT(offset >= i->second.offset);
 				if (offset == i->second.offset)
 				{
 					i->second.offset += size;
@@ -1315,7 +1315,7 @@ namespace libtorrent
 		}
 		
 		int slot = allocate_slot_for_piece(piece_index);
-		assert(slot >= 0 && slot < (int)m_slot_to_piece.size());
+		TORRENT_ASSERT(slot >= 0 && slot < (int)m_slot_to_piece.size());
 		m_storage->write(buf, slot, offset, size);
 	}
 
@@ -1329,13 +1329,13 @@ namespace libtorrent
 	{
 //		INVARIANT_CHECK;
 
-		assert((int)have_pieces.size() == m_info->num_pieces());
+		TORRENT_ASSERT((int)have_pieces.size() == m_info->num_pieces());
 
 		const int piece_size = static_cast<int>(m_info->piece_length());
 		const int last_piece_size = static_cast<int>(m_info->piece_size(
 			m_info->num_pieces() - 1));
 
-		assert((int)piece_data.size() >= last_piece_size);
+		TORRENT_ASSERT((int)piece_data.size() >= last_piece_size);
 
 		// calculate a small digest, with the same
 		// size as the last piece. And a large digest
@@ -1343,7 +1343,7 @@ namespace libtorrent
 		hasher small_digest;
 		small_digest.update(&piece_data[0], last_piece_size);
 		hasher large_digest(small_digest);
-		assert(piece_size - last_piece_size >= 0);
+		TORRENT_ASSERT(piece_size - last_piece_size >= 0);
 		if (piece_size - last_piece_size > 0)
 		{
 			large_digest.update(
@@ -1395,7 +1395,7 @@ namespace libtorrent
 				// we have already found a piece with
 				// this index.
 				int other_slot = m_piece_to_slot[piece_index];
-				assert(other_slot >= 0);
+				TORRENT_ASSERT(other_slot >= 0);
 
 				// take one of the other matching pieces
 				// that hasn't already been assigned
@@ -1410,7 +1410,7 @@ namespace libtorrent
 				if (other_piece >= 0)
 				{
 					// replace the old slot with 'other_piece'
-					assert(have_pieces[other_piece] == false);
+					TORRENT_ASSERT(have_pieces[other_piece] == false);
 					have_pieces[other_piece] = true;
 					m_slot_to_piece[other_slot] = other_piece;
 					m_piece_to_slot[other_piece] = other_slot;
@@ -1426,8 +1426,8 @@ namespace libtorrent
 					m_slot_to_piece[other_slot] = unassigned;
 					m_free_slots.push_back(other_slot);
 				}
-				assert(m_piece_to_slot[piece_index] != current_slot);
-				assert(m_piece_to_slot[piece_index] >= 0);
+				TORRENT_ASSERT(m_piece_to_slot[piece_index] != current_slot);
+				TORRENT_ASSERT(m_piece_to_slot[piece_index] >= 0);
 				m_piece_to_slot[piece_index] = has_no_slot;
 #ifndef NDEBUG
 				// to make the assert happy, a few lines down
@@ -1439,8 +1439,8 @@ namespace libtorrent
 				++num_pieces;
 			}
 			
-			assert(have_pieces[piece_index] == false);
-			assert(m_piece_to_slot[piece_index] == has_no_slot);
+			TORRENT_ASSERT(have_pieces[piece_index] == false);
+			TORRENT_ASSERT(m_piece_to_slot[piece_index] == has_no_slot);
 			have_pieces[piece_index] = true;
 
 			return piece_index;
@@ -1462,8 +1462,8 @@ namespace libtorrent
 			// lock because we're writing to have_pieces
 			boost::recursive_mutex::scoped_lock l(mutex);
 
-			assert(have_pieces[free_piece] == false);
-			assert(m_piece_to_slot[free_piece] == has_no_slot);
+			TORRENT_ASSERT(have_pieces[free_piece] == false);
+			TORRENT_ASSERT(m_piece_to_slot[free_piece] == has_no_slot);
 			have_pieces[free_piece] = true;
 			++num_pieces;
 
@@ -1471,7 +1471,7 @@ namespace libtorrent
 		}
 		else
 		{
-			assert(free_piece == unassigned);
+			TORRENT_ASSERT(free_piece == unassigned);
 			return unassigned;
 		}
 	}
@@ -1489,7 +1489,7 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-		assert(m_info->piece_length() > 0);
+		TORRENT_ASSERT(m_info->piece_length() > 0);
 
 		m_compact_mode = compact_mode;
 
@@ -1539,7 +1539,7 @@ namespace libtorrent
 				}
 				else
 				{
-					assert(data.piece_map[i] == unallocated);
+					TORRENT_ASSERT(data.piece_map[i] == unallocated);
 					m_unallocated_slots.push_back(i);
 				}
 			}
@@ -1600,7 +1600,7 @@ namespace libtorrent
 	std::pair<bool, float> piece_manager::check_files(
 		std::vector<bool>& pieces, int& num_pieces, boost::recursive_mutex& mutex)
 	{
-		assert(num_pieces == std::count(pieces.begin(), pieces.end(), true));
+		TORRENT_ASSERT(num_pieces == std::count(pieces.begin(), pieces.end(), true));
 
 		if (m_state == state_allocating)
 		{
@@ -1622,7 +1622,7 @@ namespace libtorrent
 			// if we're not in compact mode, make sure the
 			// pieces are spread out and placed at their
 			// final position.
-			assert(!m_unallocated_slots.empty());
+			TORRENT_ASSERT(!m_unallocated_slots.empty());
 
 			if (!m_fill_mode)
 			{
@@ -1649,7 +1649,7 @@ namespace libtorrent
 
 			if (!m_unallocated_slots.empty() && !m_compact_mode)
 			{
-				assert(!m_fill_mode);
+				TORRENT_ASSERT(!m_fill_mode);
 				std::vector<int>().swap(m_unallocated_slots);
 				std::fill(m_slot_to_piece.begin(), m_slot_to_piece.end(), int(unassigned));
 				m_free_slots.resize(m_info->num_pieces());
@@ -1661,7 +1661,7 @@ namespace libtorrent
 			return std::make_pair(true, 1.f);
 		}
 
-		assert(m_state == state_full_check);
+		TORRENT_ASSERT(m_state == state_full_check);
 
 		// ------------------------
 		//    DO THE FULL CHECK
@@ -1692,8 +1692,8 @@ namespace libtorrent
 			int piece_index = identify_data(m_piece_data, m_current_slot
 				, pieces, num_pieces, m_hash_to_piece, mutex);
 
-			assert(num_pieces == std::count(pieces.begin(), pieces.end(), true));
-			assert(piece_index == unassigned || piece_index >= 0);
+			TORRENT_ASSERT(num_pieces == std::count(pieces.begin(), pieces.end(), true));
+			TORRENT_ASSERT(piece_index == unassigned || piece_index >= 0);
 
 			const bool this_should_move = piece_index >= 0 && m_slot_to_piece[piece_index] != unallocated;
 			const bool other_should_move = m_piece_to_slot[m_current_slot] != has_no_slot;
@@ -1727,10 +1727,10 @@ namespace libtorrent
 			// case 1
 			if (this_should_move && !other_should_move)
 			{
-				assert(piece_index != m_current_slot);
+				TORRENT_ASSERT(piece_index != m_current_slot);
 
 				const int other_slot = piece_index;
-				assert(other_slot >= 0);
+				TORRENT_ASSERT(other_slot >= 0);
 				int other_piece = m_slot_to_piece[other_slot];
 
 				m_slot_to_piece[other_slot] = piece_index;
@@ -1742,7 +1742,7 @@ namespace libtorrent
 				{
 					std::vector<int>::iterator i =
 						std::find(m_free_slots.begin(), m_free_slots.end(), other_slot);
-					assert(i != m_free_slots.end());
+					TORRENT_ASSERT(i != m_free_slots.end());
 					m_free_slots.erase(i);
 					m_free_slots.push_back(m_current_slot);
 				}
@@ -1752,17 +1752,17 @@ namespace libtorrent
 				else
 					m_storage->move_slot(m_current_slot, other_slot);
 
-				assert(m_slot_to_piece[m_current_slot] == unassigned
+				TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unassigned
 						|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);
 			}
 			// case 2
 			else if (!this_should_move && other_should_move)
 			{
-				assert(piece_index != m_current_slot);
+				TORRENT_ASSERT(piece_index != m_current_slot);
 
 				const int other_piece = m_current_slot;
 				const int other_slot = m_piece_to_slot[other_piece];
-				assert(other_slot >= 0);
+				TORRENT_ASSERT(other_slot >= 0);
 
 				m_slot_to_piece[m_current_slot] = other_piece;
 				m_slot_to_piece[other_slot] = piece_index;
@@ -1780,27 +1780,27 @@ namespace libtorrent
 				{
 					m_storage->move_slot(other_slot, m_current_slot);
 				}
-				assert(m_slot_to_piece[m_current_slot] == unassigned
+				TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unassigned
 						|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);
 			}
 			else if (this_should_move && other_should_move)
 			{
-				assert(piece_index != m_current_slot);
-				assert(piece_index >= 0);
+				TORRENT_ASSERT(piece_index != m_current_slot);
+				TORRENT_ASSERT(piece_index >= 0);
 
 				const int piece1 = m_slot_to_piece[piece_index];
 				const int piece2 = m_current_slot;
 				const int slot1 = piece_index;
 				const int slot2 = m_piece_to_slot[piece2];
 
-				assert(slot1 >= 0);
-				assert(slot2 >= 0);
-				assert(piece2 >= 0);
+				TORRENT_ASSERT(slot1 >= 0);
+				TORRENT_ASSERT(slot2 >= 0);
+				TORRENT_ASSERT(piece2 >= 0);
 
 				if (slot1 == slot2)
 				{
 					// this means there are only two pieces involved in the swap
-					assert(piece1 >= 0);
+					TORRENT_ASSERT(piece1 >= 0);
 
 					// movement diagram:
 					// +-------------------------------+
@@ -1813,18 +1813,18 @@ namespace libtorrent
 					m_piece_to_slot[piece_index] = slot1;
 					m_piece_to_slot[piece1] = m_current_slot;
 
-					assert(piece1 == m_current_slot);
-					assert(piece_index == slot1);
+					TORRENT_ASSERT(piece1 == m_current_slot);
+					TORRENT_ASSERT(piece_index == slot1);
 
 					m_storage->swap_slots(m_current_slot, slot1);
 
-					assert(m_slot_to_piece[m_current_slot] == unassigned
+					TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unassigned
 							|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);
 				}
 				else
 				{
-					assert(slot1 != slot2);
-					assert(piece1 != piece2);
+					TORRENT_ASSERT(slot1 != slot2);
+					TORRENT_ASSERT(piece1 != piece2);
 
 					// movement diagram:
 					// +-----------------------------------------+
@@ -1842,7 +1842,7 @@ namespace libtorrent
 					{
 						std::vector<int>::iterator i =
 							std::find(m_free_slots.begin(), m_free_slots.end(), slot1);
-						assert(i != m_free_slots.end());
+						TORRENT_ASSERT(i != m_free_slots.end());
 						m_free_slots.erase(i);
 						m_free_slots.push_back(slot2);
 					}
@@ -1858,15 +1858,15 @@ namespace libtorrent
 						m_storage->move_slot(slot2, m_current_slot);
 					}
 
-					assert(m_slot_to_piece[m_current_slot] == unassigned
+					TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unassigned
 						|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);
 				}
 			}
 			else
 			{
-				assert(m_piece_to_slot[m_current_slot] == has_no_slot || piece_index != m_current_slot);
-				assert(m_slot_to_piece[m_current_slot] == unallocated);
-				assert(piece_index == unassigned || m_piece_to_slot[piece_index] == has_no_slot);
+				TORRENT_ASSERT(m_piece_to_slot[m_current_slot] == has_no_slot || piece_index != m_current_slot);
+				TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unallocated);
+				TORRENT_ASSERT(piece_index == unassigned || m_piece_to_slot[piece_index] == has_no_slot);
 
 				// the slot was identified as piece 'piece_index'
 				if (piece_index != unassigned)
@@ -1876,7 +1876,7 @@ namespace libtorrent
 
 				m_slot_to_piece[m_current_slot] = piece_index;
 
-				assert(m_slot_to_piece[m_current_slot] == unassigned
+				TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unassigned
 						|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);
 			}
 		}
@@ -1892,14 +1892,14 @@ namespace libtorrent
 				if (file_offset > current_offset) break;
 			}
 
-			assert(file_offset > current_offset);
+			TORRENT_ASSERT(file_offset > current_offset);
 			int skip_blocks = static_cast<int>(
 					(file_offset - current_offset + m_info->piece_length() - 1)
 					/ m_info->piece_length());
 
 			for (int i = m_current_slot; i < m_current_slot + skip_blocks; ++i)
 			{
-				assert(m_slot_to_piece[i] == unallocated);
+				TORRENT_ASSERT(m_slot_to_piece[i] == unallocated);
 				m_unallocated_slots.push_back(i);
 			}
 
@@ -1910,17 +1910,17 @@ namespace libtorrent
 
 		if (m_current_slot >=  m_info->num_pieces())
 		{
-			assert(m_current_slot == m_info->num_pieces());
+			TORRENT_ASSERT(m_current_slot == m_info->num_pieces());
 
 			// clear the memory we've been using
 			std::vector<char>().swap(m_piece_data);
 			std::multimap<sha1_hash, int>().swap(m_hash_to_piece);
 			m_state = state_allocating;
-			assert(num_pieces == std::count(pieces.begin(), pieces.end(), true));
+			TORRENT_ASSERT(num_pieces == std::count(pieces.begin(), pieces.end(), true));
 			return std::make_pair(false, 1.f);
 		}
 
-		assert(num_pieces == std::count(pieces.begin(), pieces.end(), true));
+		TORRENT_ASSERT(num_pieces == std::count(pieces.begin(), pieces.end(), true));
 
 		return std::make_pair(false, (float)m_current_slot / m_info->num_pieces());
 	}
@@ -1931,23 +1931,23 @@ namespace libtorrent
 
 //		INVARIANT_CHECK;
 
-		assert(piece_index >= 0);
-		assert(piece_index < (int)m_piece_to_slot.size());
-		assert(m_piece_to_slot.size() == m_slot_to_piece.size());
+		TORRENT_ASSERT(piece_index >= 0);
+		TORRENT_ASSERT(piece_index < (int)m_piece_to_slot.size());
+		TORRENT_ASSERT(m_piece_to_slot.size() == m_slot_to_piece.size());
 
 		int slot_index = m_piece_to_slot[piece_index];
 
 		if (slot_index != has_no_slot)
 		{
-			assert(slot_index >= 0);
-			assert(slot_index < (int)m_slot_to_piece.size());
+			TORRENT_ASSERT(slot_index >= 0);
+			TORRENT_ASSERT(slot_index < (int)m_slot_to_piece.size());
 			return slot_index;
 		}
 
 		if (m_free_slots.empty())
 		{
 			allocate_slots(1);
-			assert(!m_free_slots.empty());
+			TORRENT_ASSERT(!m_free_slots.empty());
 		}
 
 		std::vector<int>::iterator iter(
@@ -1958,8 +1958,8 @@ namespace libtorrent
 
 		if (iter == m_free_slots.end())
 		{
-			assert(m_slot_to_piece[piece_index] != unassigned);
-			assert(!m_free_slots.empty());
+			TORRENT_ASSERT(m_slot_to_piece[piece_index] != unassigned);
+			TORRENT_ASSERT(!m_free_slots.empty());
 			iter = m_free_slots.end() - 1;
 
 			// special case to make sure we don't use the last slot
@@ -1968,7 +1968,7 @@ namespace libtorrent
 			{
 				if (m_free_slots.size() == 1)
 					allocate_slots(1);
-				assert(m_free_slots.size() > 1);
+				TORRENT_ASSERT(m_free_slots.size() > 1);
 				// assumes that all allocated slots
 				// are put at the end of the free_slots vector
 				iter = m_free_slots.end() - 1;
@@ -1978,7 +1978,7 @@ namespace libtorrent
 		slot_index = *iter;
 		m_free_slots.erase(iter);
 
-		assert(m_slot_to_piece[slot_index] == unassigned);
+		TORRENT_ASSERT(m_slot_to_piece[slot_index] == unassigned);
 
 		m_slot_to_piece[slot_index] = piece_index;
 		m_piece_to_slot[piece_index] = slot_index;
@@ -2007,7 +2007,7 @@ namespace libtorrent
 #endif
 
 			int piece_at_our_slot = m_slot_to_piece[piece_index];
-			assert(m_piece_to_slot[piece_at_our_slot] == piece_index);
+			TORRENT_ASSERT(m_piece_to_slot[piece_at_our_slot] == piece_index);
 
 			std::swap(
 				m_slot_to_piece[piece_index]
@@ -2019,8 +2019,8 @@ namespace libtorrent
 
 			m_storage->move_slot(piece_index, slot_index);
 
-			assert(m_slot_to_piece[piece_index] == piece_index);
-			assert(m_piece_to_slot[piece_index] == piece_index);
+			TORRENT_ASSERT(m_slot_to_piece[piece_index] == piece_index);
+			TORRENT_ASSERT(m_piece_to_slot[piece_index] == piece_index);
 
 			slot_index = piece_index;
 
@@ -2029,20 +2029,20 @@ namespace libtorrent
 #endif
 		}
 
-		assert(slot_index >= 0);
-		assert(slot_index < (int)m_slot_to_piece.size());
+		TORRENT_ASSERT(slot_index >= 0);
+		TORRENT_ASSERT(slot_index < (int)m_slot_to_piece.size());
 		return slot_index;
 	}
 
 	bool piece_manager::allocate_slots(int num_slots, bool abort_on_disk)
 	{
-		assert(num_slots > 0);
+		TORRENT_ASSERT(num_slots > 0);
 
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 
 //		INVARIANT_CHECK;
 
-		assert(!m_unallocated_slots.empty());
+		TORRENT_ASSERT(!m_unallocated_slots.empty());
 
 		const int stack_buffer_size = 16*1024;
 		char zeroes[stack_buffer_size];
@@ -2055,8 +2055,8 @@ namespace libtorrent
 //			INVARIANT_CHECK;
 
 			int pos = m_unallocated_slots.front();
-			assert(m_slot_to_piece[pos] == unallocated);
-			assert(m_piece_to_slot[pos] != pos);
+			TORRENT_ASSERT(m_slot_to_piece[pos] == unallocated);
+			TORRENT_ASSERT(m_piece_to_slot[pos] != pos);
 
 			int new_free_slot = pos;
 			if (m_piece_to_slot[pos] != has_no_slot)
@@ -2085,7 +2085,7 @@ namespace libtorrent
 			if (abort_on_disk && written) return true;
 		}
 
-		assert(m_free_slots.size() > 0);
+		TORRENT_ASSERT(m_free_slots.size() > 0);
 		return written;
 	}
 
@@ -2095,26 +2095,26 @@ namespace libtorrent
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		if (m_piece_to_slot.empty()) return;
 
-		assert((int)m_piece_to_slot.size() == m_info->num_pieces());
-		assert((int)m_slot_to_piece.size() == m_info->num_pieces());
+		TORRENT_ASSERT((int)m_piece_to_slot.size() == m_info->num_pieces());
+		TORRENT_ASSERT((int)m_slot_to_piece.size() == m_info->num_pieces());
 
 		for (std::vector<int>::const_iterator i = m_free_slots.begin();
 			i != m_free_slots.end(); ++i)
 		{
-			assert(*i < (int)m_slot_to_piece.size());
-			assert(*i >= 0);
-			assert(m_slot_to_piece[*i] == unassigned);
-			assert(std::find(i+1, m_free_slots.end(), *i)
+			TORRENT_ASSERT(*i < (int)m_slot_to_piece.size());
+			TORRENT_ASSERT(*i >= 0);
+			TORRENT_ASSERT(m_slot_to_piece[*i] == unassigned);
+			TORRENT_ASSERT(std::find(i+1, m_free_slots.end(), *i)
 				== m_free_slots.end());
 		}
 
 		for (std::vector<int>::const_iterator i = m_unallocated_slots.begin();
 			i != m_unallocated_slots.end(); ++i)
 		{
-			assert(*i < (int)m_slot_to_piece.size());
-			assert(*i >= 0);
-			assert(m_slot_to_piece[*i] == unallocated);
-			assert(std::find(i+1, m_unallocated_slots.end(), *i)
+			TORRENT_ASSERT(*i < (int)m_slot_to_piece.size());
+			TORRENT_ASSERT(*i >= 0);
+			TORRENT_ASSERT(m_slot_to_piece[*i] == unallocated);
+			TORRENT_ASSERT(std::find(i+1, m_unallocated_slots.end(), *i)
 				== m_unallocated_slots.end());
 		}
 
@@ -2123,46 +2123,46 @@ namespace libtorrent
 			// Check domain of piece_to_slot's elements
 			if (m_piece_to_slot[i] != has_no_slot)
 			{
-				assert(m_piece_to_slot[i] >= 0);
-				assert(m_piece_to_slot[i] < (int)m_slot_to_piece.size());
+				TORRENT_ASSERT(m_piece_to_slot[i] >= 0);
+				TORRENT_ASSERT(m_piece_to_slot[i] < (int)m_slot_to_piece.size());
 			}
 
 			// Check domain of slot_to_piece's elements
 			if (m_slot_to_piece[i] != unallocated
 				&& m_slot_to_piece[i] != unassigned)
 			{
-				assert(m_slot_to_piece[i] >= 0);
-				assert(m_slot_to_piece[i] < (int)m_piece_to_slot.size());
+				TORRENT_ASSERT(m_slot_to_piece[i] >= 0);
+				TORRENT_ASSERT(m_slot_to_piece[i] < (int)m_piece_to_slot.size());
 			}
 
 			// do more detailed checks on piece_to_slot
 			if (m_piece_to_slot[i] >= 0)
 			{
-				assert(m_slot_to_piece[m_piece_to_slot[i]] == i);
+				TORRENT_ASSERT(m_slot_to_piece[m_piece_to_slot[i]] == i);
 				if (m_piece_to_slot[i] != i)
 				{
-					assert(m_slot_to_piece[i] == unallocated);
+					TORRENT_ASSERT(m_slot_to_piece[i] == unallocated);
 				}
 			}
 			else
 			{
-				assert(m_piece_to_slot[i] == has_no_slot);
+				TORRENT_ASSERT(m_piece_to_slot[i] == has_no_slot);
 			}
 
 			// do more detailed checks on slot_to_piece
 
 			if (m_slot_to_piece[i] >= 0)
 			{
-				assert(m_slot_to_piece[i] < (int)m_piece_to_slot.size());
-				assert(m_piece_to_slot[m_slot_to_piece[i]] == i);
+				TORRENT_ASSERT(m_slot_to_piece[i] < (int)m_piece_to_slot.size());
+				TORRENT_ASSERT(m_piece_to_slot[m_slot_to_piece[i]] == i);
 #ifdef TORRENT_STORAGE_DEBUG
-				assert(
+				TORRENT_ASSERT(
 					std::find(
 						m_unallocated_slots.begin()
 						, m_unallocated_slots.end()
 						, i) == m_unallocated_slots.end()
 				);
-				assert(
+				TORRENT_ASSERT(
 					std::find(
 						m_free_slots.begin()
 						, m_free_slots.end()
@@ -2173,7 +2173,7 @@ namespace libtorrent
 			else if (m_slot_to_piece[i] == unallocated)
 			{
 #ifdef TORRENT_STORAGE_DEBUG
-				assert(m_unallocated_slots.empty()
+				TORRENT_ASSERT(m_unallocated_slots.empty()
 					|| (std::find(
 						m_unallocated_slots.begin()
 						, m_unallocated_slots.end()
@@ -2184,7 +2184,7 @@ namespace libtorrent
 			else if (m_slot_to_piece[i] == unassigned)
 			{
 #ifdef TORRENT_STORAGE_DEBUG
-				assert(
+				TORRENT_ASSERT(
 					std::find(
 						m_free_slots.begin()
 						, m_free_slots.end()
@@ -2194,7 +2194,7 @@ namespace libtorrent
 			}
 			else
 			{
-				assert(false && "m_slot_to_piece[i] is invalid");
+				TORRENT_ASSERT(false && "m_slot_to_piece[i] is invalid");
 			}
 		}
 	}

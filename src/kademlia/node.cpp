@@ -219,7 +219,7 @@ void node_impl::new_write_key()
 
 void node_impl::refresh_bucket(int bucket) try
 {
-	assert(bucket >= 0 && bucket < 160);
+	TORRENT_ASSERT(bucket >= 0 && bucket < 160);
 	
 	// generate a random node_id within the given bucket
 	node_id target = generate_id();
@@ -243,7 +243,7 @@ void node_impl::refresh_bucket(int bucket) try
 	target[(num_bits - 1) / 8] |=
 		(~(m_id[(num_bits - 1) / 8])) & (0x80 >> ((num_bits - 1) % 8));
 
-	assert(distance_exp(m_id, target) == bucket);
+	TORRENT_ASSERT(distance_exp(m_id, target) == bucket);
 
 	std::vector<node_entry> start;
 	start.reserve(m_table.bucket_size());
@@ -323,7 +323,7 @@ time_duration node_impl::refresh_timeout()
 		}
 		if (next < now)
 		{
-			assert(refresh > -1);
+			TORRENT_ASSERT(refresh > -1);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(node) << "refreshing bucket: " << refresh;
 #endif
@@ -484,7 +484,7 @@ void node_impl::incoming_request(msg const& m)
 		on_announce(m, reply);
 		break;
 	default:
-		assert(false);
+		TORRENT_ASSERT(false);
 	};
 
 	if (m_table.need_node(m.id))

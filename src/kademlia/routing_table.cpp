@@ -164,8 +164,8 @@ void routing_table::touch_bucket(int bucket)
 
 ptime routing_table::next_refresh(int bucket)
 {
-	assert(bucket < 160);
-	assert(bucket >= 0);
+	TORRENT_ASSERT(bucket < 160);
+	TORRENT_ASSERT(bucket >= 0);
 	// lower than or equal to since a refresh of bucket 0 will
 	// effectively refresh the lowest active bucket as well
 	if (bucket < m_lowest_active_bucket && bucket > 0)
@@ -186,8 +186,8 @@ void routing_table::replacement_cache(bucket_t& nodes) const
 bool routing_table::need_node(node_id const& id)
 {
 	int bucket_index = distance_exp(m_id, id);
-	assert(bucket_index < (int)m_buckets.size());
-	assert(bucket_index >= 0);
+	TORRENT_ASSERT(bucket_index < (int)m_buckets.size());
+	TORRENT_ASSERT(bucket_index >= 0);
 	bucket_t& b = m_buckets[bucket_index].first;
 	bucket_t& rb = m_buckets[bucket_index].second;
 
@@ -209,8 +209,8 @@ bool routing_table::need_node(node_id const& id)
 void routing_table::node_failed(node_id const& id)
 {
 	int bucket_index = distance_exp(m_id, id);
-	assert(bucket_index < (int)m_buckets.size());
-	assert(bucket_index >= 0);
+	TORRENT_ASSERT(bucket_index < (int)m_buckets.size());
+	TORRENT_ASSERT(bucket_index >= 0);
 	bucket_t& b = m_buckets[bucket_index].first;
 	bucket_t& rb = m_buckets[bucket_index].second;
 
@@ -228,7 +228,7 @@ void routing_table::node_failed(node_id const& id)
 		if (i->fail_count >= m_settings.max_fail_count)
 		{
 			b.erase(i);
-			assert(m_lowest_active_bucket <= bucket_index);
+			TORRENT_ASSERT(m_lowest_active_bucket <= bucket_index);
 			while (m_buckets[m_lowest_active_bucket].first.empty()
 				&& m_lowest_active_bucket < 160)
 			{
@@ -259,8 +259,8 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint addr)
 {
 	if (m_router_nodes.find(addr) != m_router_nodes.end()) return false;
 	int bucket_index = distance_exp(m_id, id);
-	assert(bucket_index < (int)m_buckets.size());
-	assert(bucket_index >= 0);
+	TORRENT_ASSERT(bucket_index < (int)m_buckets.size());
+	TORRENT_ASSERT(bucket_index >= 0);
 	bucket_t& b = m_buckets[bucket_index].first;
 
 	bucket_t::iterator i = std::find_if(b.begin(), b.end()
@@ -274,7 +274,7 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint addr)
 	{
 		// TODO: what do we do if we see a node with
 		// the same id as a node at a different address?
-//		assert(i->addr == addr);
+//		TORRENT_ASSERT(i->addr == addr);
 
 		// we already have the node in our bucket
 		// just move it to the back since it was
@@ -371,11 +371,11 @@ void routing_table::find_node(node_id const& target
 	// vector.
 	std::remove_copy_if(b.begin(), b.end(), std::back_inserter(l)
 		, bind(&node_entry::fail_count, _1));
-	assert((int)l.size() <= count);
+	TORRENT_ASSERT((int)l.size() <= count);
 
 	if ((int)l.size() == count)
 	{
-		assert(std::count_if(l.begin(), l.end()
+		TORRENT_ASSERT(std::count_if(l.begin(), l.end()
 			, boost::bind(&node_entry::fail_count, _1) != 0) == 0);
 		return;
 	}
@@ -399,7 +399,7 @@ void routing_table::find_node(node_id const& target
 	std::copy(tmpb.begin(), tmpb.begin() + to_copy
 		, std::back_inserter(l));
 		
-	assert((int)l.size() <= m_bucket_size);
+	TORRENT_ASSERT((int)l.size() <= m_bucket_size);
 
 	// return if we have enough nodes or if the bucket index
 	// is the biggest index available (there are no more buckets)
@@ -407,7 +407,7 @@ void routing_table::find_node(node_id const& target
 	if ((int)l.size() == count
 		|| bucket_index == (int)m_buckets.size() - 1)
 	{
-		assert(std::count_if(l.begin(), l.end()
+		TORRENT_ASSERT(std::count_if(l.begin(), l.end()
 			, boost::bind(&node_entry::fail_count, _1) != 0) == 0);
 		return;
 	}
@@ -421,16 +421,16 @@ void routing_table::find_node(node_id const& target
 		if ((int)l.size() >= count)
 		{
 			l.erase(l.begin() + count, l.end());
-			assert(std::count_if(l.begin(), l.end()
+			TORRENT_ASSERT(std::count_if(l.begin(), l.end()
 				, boost::bind(&node_entry::fail_count, _1) != 0) == 0);
 			return;
 		}
 	}
-	assert((int)l.size() == count
+	TORRENT_ASSERT((int)l.size() == count
 		|| std::distance(l.begin(), l.end()) < m_bucket_size);
-	assert((int)l.size() <= count);
+	TORRENT_ASSERT((int)l.size() <= count);
 
-	assert(std::count_if(l.begin(), l.end()
+	TORRENT_ASSERT(std::count_if(l.begin(), l.end()
 		, boost::bind(&node_entry::fail_count, _1) != 0) == 0);
 }
 

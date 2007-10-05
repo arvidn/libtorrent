@@ -534,7 +534,7 @@ public:
     template <class Mutable_Buffers>
     std::size_t read_some(Mutable_Buffers const& buffers, asio::error_code& ec)
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(
             aux::read_some_visitor_ec<Mutable_Buffers>(buffers, ec)
           , m_variant
@@ -544,7 +544,7 @@ public:
     template <class Mutable_Buffers>
     std::size_t read_some(Mutable_Buffers const& buffers)
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(
             aux::read_some_visitor<Mutable_Buffers>(buffers)
           , m_variant
@@ -554,7 +554,7 @@ public:
     template <class Mutable_Buffers, class Handler>
     void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         boost::apply_visitor(
             aux::async_read_some_visitor<Mutable_Buffers, Handler>(buffers, handler)
           , m_variant
@@ -564,7 +564,7 @@ public:
     template <class Const_Buffers, class Handler>
     void async_write_some(Const_Buffers const& buffers, Handler const& handler)
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         boost::apply_visitor(
             aux::async_write_some_visitor<Const_Buffers, Handler>(buffers, handler)
           , m_variant
@@ -574,7 +574,7 @@ public:
     template <class Handler>
     void async_connect(endpoint_type const& endpoint, Handler const& handler)
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         boost::apply_visitor(
             aux::async_connect_visitor<endpoint_type, Handler>(endpoint, handler), m_variant
         );
@@ -583,7 +583,7 @@ public:
     template <class IO_Control_Command>
     void io_control(IO_Control_Command& ioc)
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         boost::apply_visitor(
             aux::io_control_visitor<IO_Control_Command>(ioc), m_variant
         );
@@ -592,7 +592,7 @@ public:
     template <class IO_Control_Command>
     void io_control(IO_Control_Command& ioc, asio::error_code& ec)
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         boost::apply_visitor(
             aux::io_control_visitor_ec<IO_Control_Command>(ioc, ec)
             , m_variant
@@ -601,14 +601,14 @@ public:
 
     void bind(endpoint_type const& endpoint)
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         boost::apply_visitor(aux::bind_visitor<endpoint_type>(endpoint), m_variant);
     }
 
     template <class Error_Handler>
     void bind(endpoint_type const& endpoint, Error_Handler const& error_handler)
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         boost::apply_visitor(
             aux::bind_visitor<endpoint_type, Error_Handler>(endpoint, error_handler), m_variant
         );
@@ -616,14 +616,14 @@ public:
 
     void open(protocol_type const& p)
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         boost::apply_visitor(aux::open_visitor<protocol_type>(p), m_variant);
     }
 
     template <class Error_Handler>
     void open(protocol_type const& p, Error_Handler const& error_handler)
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         boost::apply_visitor(
             aux::open_visitor<protocol_type, Error_Handler>(p, error_handler), m_variant
         );
@@ -631,14 +631,14 @@ public:
 
     void close()
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         boost::apply_visitor(aux::close_visitor<>(), m_variant);
     }
 
     template <class Error_Handler>
     void close(Error_Handler const& error_handler)
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         boost::apply_visitor(
             aux::close_visitor<Error_Handler>(error_handler), m_variant
         );
@@ -646,14 +646,14 @@ public:
 
     std::size_t in_avail()
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(aux::in_avail_visitor<>(), m_variant);
     }
 
     template <class Error_Handler>
     std::size_t in_avail(Error_Handler const& error_handler)
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(
             aux::in_avail_visitor<Error_Handler>(error_handler), m_variant
         );
@@ -661,13 +661,13 @@ public:
 
     endpoint_type remote_endpoint()
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(aux::remote_endpoint_visitor<endpoint_type>(), m_variant);
     }
 
     endpoint_type remote_endpoint(asio::error_code& ec)
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(
             aux::remote_endpoint_visitor_ec<endpoint_type>(ec), m_variant
         );
@@ -675,13 +675,13 @@ public:
 
     endpoint_type local_endpoint()
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(aux::local_endpoint_visitor<endpoint_type>(), m_variant);
     }
 
     endpoint_type local_endpoint(asio::error_code& ec)
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(
             aux::local_endpoint_visitor_ec<endpoint_type>(ec), m_variant
         );
@@ -689,7 +689,7 @@ public:
 
 	 asio::io_service& io_service()
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(
             aux::io_service_visitor<asio::io_service>(), m_variant
         );
@@ -697,7 +697,7 @@ public:
 
     lowest_layer_type& lowest_layer()
     {
-        assert(instantiated());
+        TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(
             aux::lowest_layer_visitor<lowest_layer_type>(), m_variant
         );

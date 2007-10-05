@@ -51,7 +51,7 @@ void closest_nodes_observer::reply(msg const& in)
 {
 	if (!m_algorithm)
 	{
-		assert(false);
+		TORRENT_ASSERT(false);
 		return;
 	}
 

@@ -70,15 +70,15 @@ TORRENT_DEFINE_LOG(rpc)
 
 void intrusive_ptr_add_ref(observer const* o)
 {
-	assert(o->m_refs >= 0);
-	assert(o != 0);
+	TORRENT_ASSERT(o->m_refs >= 0);
+	TORRENT_ASSERT(o != 0);
 	++o->m_refs;
 }
 
 void intrusive_ptr_release(observer const* o)
 {
-	assert(o->m_refs > 0);
-	assert(o != 0);
+	TORRENT_ASSERT(o->m_refs > 0);
+	TORRENT_ASSERT(o != 0);
 	if (--o->m_refs == 0)
 	{
 		boost::pool<>& p = o->pool_allocator;
@@ -138,16 +138,16 @@ rpc_manager::~rpc_manager()
 #ifndef NDEBUG
 void rpc_manager::check_invariant() const
 {
-	assert(m_oldest_transaction_id >= 0);
-	assert(m_oldest_transaction_id < max_transactions);
-	assert(m_next_transaction_id >= 0);
-	assert(m_next_transaction_id < max_transactions);
-	assert(!m_transactions[m_next_transaction_id]);
+	TORRENT_ASSERT(m_oldest_transaction_id >= 0);
+	TORRENT_ASSERT(m_oldest_transaction_id < max_transactions);
+	TORRENT_ASSERT(m_next_transaction_id >= 0);
+	TORRENT_ASSERT(m_next_transaction_id < max_transactions);
+	TORRENT_ASSERT(!m_transactions[m_next_transaction_id]);
 
 	for (int i = (m_next_transaction_id + 1) % max_transactions;
 		i != m_oldest_transaction_id; i = (i + 1) % max_transactions)
 	{
-		assert(!m_transactions[i]);
+		TORRENT_ASSERT(!m_transactions[i]);
 	}
 }
 #endif
@@ -246,7 +246,7 @@ bool rpc_manager::incoming(msg const& m)
 	}
 	else
 	{
-		assert(m.message_id != messages::error);
+		TORRENT_ASSERT(m.message_id != messages::error);
 		// this is an incoming request
 		m_incoming(m);
 	}
@@ -268,8 +268,8 @@ time_duration rpc_manager::tick()
 	for (;m_next_transaction_id != m_oldest_transaction_id;
 		m_oldest_transaction_id = (m_oldest_transaction_id + 1) % max_transactions)
 	{
-		assert(m_oldest_transaction_id >= 0);
-		assert(m_oldest_transaction_id < max_transactions);
+		TORRENT_ASSERT(m_oldest_transaction_id >= 0);
+		TORRENT_ASSERT(m_oldest_transaction_id < max_transactions);
 
 		observer_ptr o = m_transactions[m_oldest_transaction_id];
 		if (!o) continue;
@@ -311,9 +311,9 @@ unsigned int rpc_manager::new_transaction_id(observer_ptr o)
 		// since that would break the invariant
 		m_aborted_transactions.push_back(m_transactions[m_next_transaction_id]);
 		m_transactions[m_next_transaction_id] = 0;
-		assert(m_oldest_transaction_id == m_next_transaction_id);
+		TORRENT_ASSERT(m_oldest_transaction_id == m_next_transaction_id);
 	}
-	assert(!m_transactions[tid]);
+	TORRENT_ASSERT(!m_transactions[tid]);
 	m_transactions[tid] = o;
 	if (m_oldest_transaction_id == m_next_transaction_id)
 	{
@@ -332,7 +332,7 @@ void rpc_manager::update_oldest_transaction_id()
 {
 	INVARIANT_CHECK;
 
-	assert(m_oldest_transaction_id != m_next_transaction_id);
+	TORRENT_ASSERT(m_oldest_transaction_id != m_next_transaction_id);
 	while (!m_transactions[m_oldest_transaction_id])
 	{
 		m_oldest_transaction_id = (m_oldest_transaction_id + 1)
@@ -358,7 +358,7 @@ void rpc_manager::invoke(int message_id, udp::endpoint target_addr
 	m.reply = false;
 	m.id = m_our_id;
 	m.addr = target_addr;
-	assert(!m_transactions[m_next_transaction_id]);
+	TORRENT_ASSERT(!m_transactions[m_next_transaction_id]);
 #ifndef NDEBUG
 	int potential_new_id = m_next_transaction_id;
 #endif
@@ -383,7 +383,7 @@ void rpc_manager::invoke(int message_id, udp::endpoint target_addr
 	catch (std::exception& e)
 	{
 		// m_send may fail with "no route to host"
-		assert(potential_new_id == m_next_transaction_id);
+		TORRENT_ASSERT(potential_new_id == m_next_transaction_id);
 		o->abort();
 	}
 }
@@ -394,7 +394,7 @@ void rpc_manager::reply(msg& m)
 
 	if (m_destructing) return;
 
-	assert(m.reply);
+	TORRENT_ASSERT(m.reply);
 	m.piggy_backed_ping = false;
 	m.id = m_our_id;
 	
@@ -406,7 +406,7 @@ void rpc_manager::reply_with_ping(msg& m)
 	INVARIANT_CHECK;
 
 	if (m_destructing) return;
-	assert(m.reply);
+	TORRENT_ASSERT(m.reply);
 
 	m.piggy_backed_ping = true;
 	m.id = m_our_id;
@@ -416,7 +416,7 @@ void rpc_manager::reply_with_ping(msg& m)
 	io::write_uint16(m_next_transaction_id, out);
 
 	observer_ptr o(new (allocator().malloc()) null_observer(allocator()));
-	assert(!m_transactions[m_next_transaction_id]);
+	TORRENT_ASSERT(!m_transactions[m_next_transaction_id]);
 	o->sent = time_now();
 	o->target_addr = m.addr;
 		

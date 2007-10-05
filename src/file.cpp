@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/pch.hpp"
+#include "libtorrent/assert.hpp"
 
 #ifdef _WIN32
 // windows part
@@ -91,7 +92,7 @@ namespace
 		if (m == (mode_in | mode_out)) return O_RDWR | O_CREAT | O_BINARY | O_RANDOM;
 		if (m == mode_out) return O_WRONLY | O_CREAT | O_BINARY | O_RANDOM;
 		if (m == mode_in) return O_RDONLY | O_BINARY | O_RANDOM;
-		assert(false);
+		TORRENT_ASSERT(false);
 		return 0;
 	}
 
@@ -157,7 +158,7 @@ namespace libtorrent
 
 		void open(fs::path const& path, int mode)
 		{
-			assert(path.is_complete());
+			TORRENT_ASSERT(path.is_complete());
 			close();
 #if defined(_WIN32) && defined(UNICODE)
 			std::wstring wpath(safe_convert(path.native_file_string()));
@@ -204,8 +205,8 @@ namespace libtorrent
 
 		size_type read(char* buf, size_type num_bytes)
 		{
-			assert(m_open_mode & mode_in);
-			assert(m_fd != -1);
+			TORRENT_ASSERT(m_open_mode & mode_in);
+			TORRENT_ASSERT(m_fd != -1);
 
 #ifdef _WIN32
 			size_type ret = ::_read(m_fd, buf, num_bytes);
@@ -223,8 +224,8 @@ namespace libtorrent
 
 		size_type write(const char* buf, size_type num_bytes)
 		{
-			assert(m_open_mode & mode_out);
-			assert(m_fd != -1);
+			TORRENT_ASSERT(m_open_mode & mode_out);
+			TORRENT_ASSERT(m_fd != -1);
 
 			// TODO: Test this a bit more, what happens with random failures in
 			// the files?
@@ -261,8 +262,8 @@ namespace libtorrent
 
 		size_type seek(size_type offset, int m = 1)
 		{
-			assert(m_open_mode);
-			assert(m_fd != -1);
+			TORRENT_ASSERT(m_open_mode);
+			TORRENT_ASSERT(m_fd != -1);
 
 			int seekdir = (m == 1)?SEEK_SET:SEEK_END;
 #ifdef _WIN32
@@ -288,8 +289,8 @@ namespace libtorrent
 
 		size_type tell()
 		{
-			assert(m_open_mode);
-			assert(m_fd != -1);
+			TORRENT_ASSERT(m_open_mode);
+			TORRENT_ASSERT(m_fd != -1);
 
 #ifdef _WIN32
 			return _telli64(m_fd);

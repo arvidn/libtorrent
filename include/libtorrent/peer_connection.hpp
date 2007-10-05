@@ -383,7 +383,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		void set_country(char const* c)
 		{
-			assert(strlen(c) == 2);
+			TORRENT_ASSERT(strlen(c) == 2);
 			m_country[0] = c[0];
 			m_country[1] = c[1];
 		}

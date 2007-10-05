@@ -84,8 +84,8 @@ namespace libtorrent
 	// returns -1 if gzip header is invalid or the header size in bytes
 	int gzip_header(const char* buf, int size)
 	{
-		assert(buf != 0);
-		assert(size > 0);
+		TORRENT_ASSERT(buf != 0);
+		TORRENT_ASSERT(size > 0);
 
 		const unsigned char* buffer = reinterpret_cast<const unsigned char*>(buf);
 		const int total_size = size;
@@ -162,7 +162,7 @@ namespace libtorrent
 		, request_callback* requester
 		, int maximum_tracker_response_length)
 	{
-		assert(maximum_tracker_response_length > 0);
+		TORRENT_ASSERT(maximum_tracker_response_length > 0);
 
 		int header_len = gzip_header(&buffer[0], (int)buffer.size());
 		if (header_len < 0)
@@ -349,7 +349,7 @@ namespace libtorrent
 	}
 	catch (std::exception& e)
 	{
-		assert(false);
+		TORRENT_ASSERT(false);
 	}
 
 	tracker_connection::tracker_connection(
@@ -490,11 +490,11 @@ namespace libtorrent
 		, boost::weak_ptr<request_callback> c)
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		assert(req.num_want >= 0);
+		TORRENT_ASSERT(req.num_want >= 0);
 		if (req.event == tracker_request::stopped)
 			req.num_want = 0;
 
-		assert(!m_abort || req.event == tracker_request::stopped);
+		TORRENT_ASSERT(!m_abort || req.event == tracker_request::stopped);
 		if (m_abort && req.event != tracker_request::stopped)
 			return;
 

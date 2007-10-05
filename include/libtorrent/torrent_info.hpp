@@ -126,7 +126,7 @@ namespace libtorrent
 		
 		std::vector<std::string> const& url_seeds() const
 		{
-			assert(!m_half_metadata);
+			TORRENT_ASSERT(!m_half_metadata);
 			return m_url_seeds;
 		}
 
@@ -168,7 +168,7 @@ namespace libtorrent
 
 		int num_files(bool storage = false) const
 		{
-			assert(m_piece_length > 0);
+			TORRENT_ASSERT(m_piece_length > 0);
 			if (!storage || m_remapped_files.empty())
 				return (int)m_files.size();
 			else
@@ -179,23 +179,23 @@ namespace libtorrent
 		{
 			if (!storage || m_remapped_files.empty())
 			{
-				assert(index >= 0 && index < (int)m_files.size());
+				TORRENT_ASSERT(index >= 0 && index < (int)m_files.size());
 				return m_files[index];
 			}
 			else
 			{
-				assert(index >= 0 && index < (int)m_remapped_files.size());
+				TORRENT_ASSERT(index >= 0 && index < (int)m_remapped_files.size());
 				return m_remapped_files[index];
 			}
 		}
 		
 		const std::vector<announce_entry>& trackers() const { return m_urls; }
 
-		size_type total_size() const { assert(m_piece_length > 0); return m_total_size; }
-		size_type piece_length() const { assert(m_piece_length > 0); return m_piece_length; }
-		int num_pieces() const { assert(m_piece_length > 0); return m_num_pieces; }
+		size_type total_size() const { TORRENT_ASSERT(m_piece_length > 0); return m_total_size; }
+		size_type piece_length() const { TORRENT_ASSERT(m_piece_length > 0); return m_piece_length; }
+		int num_pieces() const { TORRENT_ASSERT(m_piece_length > 0); return m_num_pieces; }
 		const sha1_hash& info_hash() const { return m_info_hash; }
-		const std::string& name() const { assert(m_piece_length > 0); return m_name; }
+		const std::string& name() const { TORRENT_ASSERT(m_piece_length > 0); return m_name; }
 
 // ------- start deprecation -------
 // this functionaily will be removed in a future version
@@ -213,9 +213,9 @@ namespace libtorrent
 
 		const sha1_hash& hash_for_piece(int index) const
 		{
-			assert(index >= 0);
-			assert(index < (int)m_piece_hash.size());
-			assert(!m_half_metadata);
+			TORRENT_ASSERT(index >= 0);
+			TORRENT_ASSERT(index < (int)m_piece_hash.size());
+			TORRENT_ASSERT(!m_half_metadata);
 			return m_piece_hash[index];
 		}
 
@@ -232,7 +232,7 @@ namespace libtorrent
 		
 		nodes_t const& nodes() const
 		{
-			assert(!m_half_metadata);
+			TORRENT_ASSERT(!m_half_metadata);
 			return m_nodes;
 		}
 		

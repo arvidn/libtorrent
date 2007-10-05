@@ -68,7 +68,7 @@ namespace libtorrent
 			{
 				if (p != end)
 				{
-					assert(*p == '<');
+					TORRENT_ASSERT(*p == '<');
 					*p = 0;
 				}
 				token = xml_string;
@@ -98,7 +98,7 @@ namespace libtorrent
 				break;
 			}
 			
-			assert(*p == '>');
+			TORRENT_ASSERT(*p == '>');
 			// save the character that terminated the tag name
 			// it could be both '>' and ' '.
 			char save = *tag_name_end;

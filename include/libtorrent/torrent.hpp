@@ -152,7 +152,7 @@ namespace libtorrent
 		void set_sequenced_download_threshold(int threshold);
 	
 		bool verify_resume_data(entry& rd, std::string& error)
-		{ assert(m_storage); return m_storage->verify_resume_data(rd, error); }
+		{ TORRENT_ASSERT(m_storage); return m_storage->verify_resume_data(rd, error); }
 
 		void second_tick(stat& accumulator, float tick_interval);
 
@@ -205,7 +205,7 @@ namespace libtorrent
 		peer_connection* connect_to_peer(policy::peer* peerinfo);
 
 		void set_ratio(float ratio)
-		{ assert(ratio >= 0.0f); m_ratio = ratio; }
+		{ TORRENT_ASSERT(ratio >= 0.0f); m_ratio = ratio; }
 
 		float ratio() const
 		{ return m_ratio; }
@@ -362,7 +362,7 @@ namespace libtorrent
 		// returns true if we have downloaded the given piece
 		bool have_piece(int index) const
 		{
-			assert(index >= 0 && index < (signed)m_have_pieces.size());
+			TORRENT_ASSERT(index >= 0 && index < (signed)m_have_pieces.size());
 			return m_have_pieces[index];
 		}
 
@@ -377,14 +377,14 @@ namespace libtorrent
 		{
 			if (m_picker.get())
 			{
-				assert(!is_seed());
-				assert(index >= 0 && index < (signed)m_have_pieces.size());
+				TORRENT_ASSERT(!is_seed());
+				TORRENT_ASSERT(index >= 0 && index < (signed)m_have_pieces.size());
 				m_picker->inc_refcount(index);
 			}
 #ifndef NDEBUG
 			else
 			{
-				assert(is_seed());
+				TORRENT_ASSERT(is_seed());
 			}
 #endif
 		}
@@ -393,13 +393,13 @@ namespace libtorrent
 		{
 			if (m_picker.get())
 			{
-				assert(!is_seed());
+				TORRENT_ASSERT(!is_seed());
 				m_picker->inc_refcount_all();
 			}
 #ifndef NDEBUG
 			else
 			{
-				assert(is_seed());
+				TORRENT_ASSERT(is_seed());
 			}
 #endif
 		}
@@ -409,19 +409,19 @@ namespace libtorrent
 		{
 			if (m_picker.get())
 			{
-				assert(!is_seed());
-				assert(index >= 0 && index < (signed)m_have_pieces.size());
+				TORRENT_ASSERT(!is_seed());
+				TORRENT_ASSERT(index >= 0 && index < (signed)m_have_pieces.size());
 				m_picker->dec_refcount(index);
 			}
 #ifndef NDEBUG
 			else
 			{
-				assert(is_seed());
+				TORRENT_ASSERT(is_seed());
 			}
 #endif
 		}
 
-		int block_size() const { assert(m_block_size > 0); return m_block_size; }
+		int block_size() const { TORRENT_ASSERT(m_block_size > 0); return m_block_size; }
 
 		// this will tell all peers that we just got his piece
 		// and also let the piece picker know that we have this piece
@@ -464,7 +464,7 @@ namespace libtorrent
 		void piece_finished(int index, bool passed_hash_check);
 		void piece_failed(int index);
 		void received_redundant_data(int num_bytes)
-		{ assert(num_bytes > 0); m_total_redundant_bytes += num_bytes; }
+		{ TORRENT_ASSERT(num_bytes > 0); m_total_redundant_bytes += num_bytes; }
 
 		// this is true if we have all the pieces
 		bool is_seed() const
@@ -485,7 +485,7 @@ namespace libtorrent
 		alert_manager& alerts() const;
 		piece_picker& picker()
 		{
-			assert(m_picker.get());
+			TORRENT_ASSERT(m_picker.get());
 			return *m_picker;
 		}
 		bool has_picker() const
@@ -494,7 +494,7 @@ namespace libtorrent
 		}
 		policy& get_policy()
 		{
-			assert(m_policy);
+			TORRENT_ASSERT(m_policy);
 			return *m_policy;
 		}
 		piece_manager& filesystem();

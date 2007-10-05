@@ -110,14 +110,14 @@ namespace libtorrent
 		: m_impl(new session_impl(listen_port_range, id, listen_interface))
 	{
 		// turn off the filename checking in boost.filesystem
-		assert(listen_port_range.first > 0);
-		assert(listen_port_range.first < listen_port_range.second);
+		TORRENT_ASSERT(listen_port_range.first > 0);
+		TORRENT_ASSERT(listen_port_range.first < listen_port_range.second);
 #ifndef NDEBUG
 		// this test was added after it came to my attention
 		// that devstudios managed c++ failed to generate
 		// correct code for boost.function
 		boost::function0<void> test = boost::ref(*m_impl);
-		assert(!test.empty());
+		TORRENT_ASSERT(!test.empty());
 #endif
 	}
 
@@ -126,13 +126,13 @@ namespace libtorrent
 	{
 #ifndef NDEBUG
 		boost::function0<void> test = boost::ref(*m_impl);
-		assert(!test.empty());
+		TORRENT_ASSERT(!test.empty());
 #endif
 	}
 
 	session::~session()
 	{
-		assert(m_impl);
+		TORRENT_ASSERT(m_impl);
 		// if there is at least one destruction-proxy
 		// abort the session and let the destructor
 		// of the proxy to syncronize
@@ -190,7 +190,7 @@ namespace libtorrent
 		, bool paused
 		, storage_constructor_type sc)
 	{
-		assert(!ti.m_half_metadata);
+		TORRENT_ASSERT(!ti.m_half_metadata);
 		boost::intrusive_ptr<torrent_info> tip(new torrent_info(ti));
 		return m_impl->add_torrent(tip, save_path, resume_data
 			, compact_mode, sc, paused, 0);
@@ -205,7 +205,7 @@ namespace libtorrent
 		, storage_constructor_type sc
 		, void* userdata)
 	{
-		assert(!ti->m_half_metadata);
+		TORRENT_ASSERT(!ti->m_half_metadata);
 		return m_impl->add_torrent(ti, save_path, resume_data
 			, compact_mode, sc, paused, userdata);
 	}

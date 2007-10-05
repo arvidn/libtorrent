@@ -304,7 +304,7 @@ namespace libtorrent { namespace
 			std::copy(pex_msg.begin(), pex_msg.end(), i.begin);
 			i.begin += pex_msg.size();
 
-			assert(i.begin == i.end);
+			TORRENT_ASSERT(i.begin == i.end);
 			m_pc.setup_send();
 		}
 
@@ -367,7 +367,7 @@ namespace libtorrent { namespace
 			std::copy(pex_msg.begin(), pex_msg.end(), i.begin);
 			i.begin += pex_msg.size();
 
-			assert(i.begin == i.end);
+			TORRENT_ASSERT(i.begin == i.end);
 			m_pc.setup_send();
 		}
 

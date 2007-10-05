@@ -188,7 +188,7 @@ namespace libtorrent
 			if (timebase_info.denom == 0)
 				mach_timebase_info(&timebase_info);
 			// make sure we don't overflow
-			assert((at >= 0 && at >= at / 1000 * timebase_info.numer / timebase_info.denom)
+			TORRENT_ASSERT((at >= 0 && at >= at / 1000 * timebase_info.numer / timebase_info.denom)
 				|| (at < 0 && at < at / 1000 * timebase_info.numer / timebase_info.denom));
 			return at / 1000 * timebase_info.numer / timebase_info.denom;
 		}
@@ -199,11 +199,11 @@ namespace libtorrent
 			if (timebase_info.denom == 0)
 			{
 				mach_timebase_info(&timebase_info);
-				assert(timebase_info.numer > 0);
-				assert(timebase_info.denom > 0);
+				TORRENT_ASSERT(timebase_info.numer > 0);
+				TORRENT_ASSERT(timebase_info.denom > 0);
 			}
 			// make sure we don't overflow
-			assert((ms >= 0 && ms <= ms * timebase_info.denom / timebase_info.numer * 1000)
+			TORRENT_ASSERT((ms >= 0 && ms <= ms * timebase_info.denom / timebase_info.numer * 1000)
 				|| (ms < 0 && ms > ms * timebase_info.denom / timebase_info.numer * 1000));
 			return ms * timebase_info.denom / timebase_info.numer * 1000;
 		}
@@ -269,7 +269,7 @@ namespace libtorrent
 #ifndef NDEBUG
 			// make sure we don't overflow
 			boost::int64_t ret = (pc * 1000 / performace_counter_frequency.QuadPart) * 1000;
-			assert((pc >= 0 && pc >= ret) || (pc < 0 && pc < ret));
+			TORRENT_ASSERT((pc >= 0 && pc >= ret) || (pc < 0 && pc < ret));
 #endif
 			return (pc * 1000 / performace_counter_frequency.QuadPart) * 1000;
 		}
@@ -282,7 +282,7 @@ namespace libtorrent
 #ifndef NDEBUG
 			// make sure we don't overflow
 			boost::int64_t ret = (ms / 1000) * performace_counter_frequency.QuadPart / 1000;
-			assert((ms >= 0 && ms <= ret)
+			TORRENT_ASSERT((ms >= 0 && ms <= ret)
 				|| (ms < 0 && ms > ret));
 #endif
 			return (ms / 1000) * performace_counter_frequency.QuadPart / 1000;
