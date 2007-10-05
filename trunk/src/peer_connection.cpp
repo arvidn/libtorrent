@@ -864,10 +864,6 @@ namespace libtorrent
 
 		m_became_uninterested = time_now();
 
-		// clear the request queue if the client isn't interested
-		m_requests.clear();
-//		setup_send();
-
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " <== NOT_INTERESTED\n";
 #endif
@@ -1777,6 +1773,10 @@ namespace libtorrent
 		m_last_choke = time_now();
 #endif
 		m_num_invalid_requests = 0;
+
+		// reject the requests we have in the queue
+		std::for_each(m_requests.begin(), m_requests.end()
+			, bind(&peer_connection::write_reject_request, this, _1));
 		m_requests.clear();
 	}
 
