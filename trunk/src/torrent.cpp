@@ -690,7 +690,7 @@ namespace libtorrent
 		{
 			int corr = 0;
 			int index = i->index;
-			TORRENT_ASSERT(!m_have_pieces[index]);
+			if (m_have_pieces[index]) continue;
 			TORRENT_ASSERT(i->finished <= m_picker->blocks_in_piece(index));
 
 #ifndef NDEBUG
