@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/pch.hpp"
-#include "libtorrent/assert.hpp"
 
 #ifdef _WIN32
 // windows part
@@ -82,6 +81,7 @@ BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 #include "libtorrent/storage.hpp"
 #endif
 
+#include "libtorrent/assert.hpp"
 
 namespace
 {
