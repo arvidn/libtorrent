@@ -1470,6 +1470,7 @@ namespace libtorrent
 			{
 				policy::peer* p = static_cast<policy::peer*>(*i);
 				if (p == 0) continue;
+				if (p->connection == 0) continue;
 				TORRENT_ASSERT(std::find_if(m_peers.begin(), m_peers.end()
 					, match_peer_connection(*p->connection)) != m_peers.end());
 			}
