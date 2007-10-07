@@ -201,6 +201,7 @@ int copy_buffers(T const& b, char* target)
 
 bool compare_chained_buffer(chained_buffer& b, char const* mem, int size)
 {
+	if (size == 0) return true;
 	std::vector<char> flat(size);
 	std::list<asio::const_buffer> const& iovec2 = b.build_iovec(size);
 	int copied = copy_buffers(iovec2, &flat[0]);
