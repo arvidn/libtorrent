@@ -1029,6 +1029,7 @@ namespace libtorrent
 				bind(&torrent::on_files_released, shared_from_this(), _1, _2));
 			
 		m_owning_storage = 0;
+		m_announce_timer.cancel();
 	}
 
 	void torrent::on_files_released(int ret, disk_io_job const& j)
