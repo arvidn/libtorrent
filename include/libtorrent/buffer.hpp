@@ -172,8 +172,8 @@ public:
 	}
 
 	bool empty() const { return m_begin == m_end; }
-	char& operator[](std::size_t i) { TORRENT_ASSERT(i >= 0 && i < size()); return m_begin[i]; }
-	char const& operator[](std::size_t i) const { TORRENT_ASSERT(i >= 0 && i < size()); return m_begin[i]; }
+	char& operator[](std::size_t i) { TORRENT_ASSERT(i < size()); return m_begin[i]; }
+	char const& operator[](std::size_t i) const { TORRENT_ASSERT(i < size()); return m_begin[i]; }
 
 	char* begin() { return m_begin; }
 	char const* begin() const { return m_begin; }
