@@ -234,6 +234,7 @@ namespace libtorrent
 
 		void remove_request(tracker_connection const*);
 		bool empty() const;
+		int num_requests() const;
 		
 	private:
 

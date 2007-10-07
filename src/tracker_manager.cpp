@@ -584,4 +584,9 @@ namespace libtorrent
 		return m_connections.empty();
 	}
 
+	int tracker_manager::num_requests() const
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		return m_connections.size();
+	}
 }

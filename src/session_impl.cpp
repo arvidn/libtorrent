@@ -638,11 +638,26 @@ namespace detail
 	void session_impl::abort()
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		TORRENT_ASSERT(!m_abort);
+		if (m_abort) return;
+		m_io_service.stop(); 
+#if defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " *** ABORT CALLED ***\n";
+#endif
 		// abort the main thread
 		m_abort = true;
-		m_io_service.stop();
-		l.unlock();
+		if (m_lsd) m_lsd->close();
+		if (m_upnp) m_upnp->close();
+		if (m_natpmp) m_natpmp->close();
+#ifndef TORRENT_DISABLE_DHT
+		if (m_dht) m_dht->stop();
+#endif
+		m_timer.cancel();
+		// abort all torrents
+		for (torrent_map::iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+		{
+			i->second->abort();
+		}
 
 		mutex::scoped_lock l2(m_checker_impl.m_mutex);
 		// abort the checker thread
@@ -1031,17 +1046,17 @@ namespace detail
 // too expensive
 //		INVARIANT_CHECK;
 
+		if (m_abort) return;
+
 		if (e)
 		{
 #if defined(TORRENT_LOGGING)
 			(*m_logger) << "*** SECOND TIMER FAILED " << e.message() << "\n";
 #endif
-			m_abort = true;
-			m_io_service.stop();
+			abort();
 			return;
 		}
 
-		if (m_abort) return;
 		float tick_interval = total_microseconds(time_now() - m_last_tick) / 1000000.f;
 		m_last_tick = time_now();
 
@@ -1488,6 +1503,10 @@ namespace detail
 			m_settings.stop_tracker_timeout)
 			&& !m_tracker_manager.empty())
 		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			(*m_logger) << time_now_string() << " " << m_tracker_manager.num_requests()
+				<< " tracker requests pending\n";
+#endif
 			tracker_timer.expires_from_now(milliseconds(100));
 			tracker_timer.async_wait(m_strand.wrap(
 				bind(&io_service::stop, &m_io_service)));
@@ -2072,9 +2091,7 @@ namespace detail
 
 	session_impl::~session_impl()
 	{
-#ifndef TORRENT_DISABLE_DHT
-		stop_dht();
-#endif
+		abort();
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << "\n\n *** shutting down session *** \n\n";
