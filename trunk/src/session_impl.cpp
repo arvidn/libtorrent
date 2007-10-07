@@ -337,11 +337,15 @@ namespace detail
 					{
 						TORRENT_ASSERT(!m_processing.empty());
 						TORRENT_ASSERT(m_processing.front() == processing);
+						m_processing.pop_front();
 
+						// make sure the lock order is correct
+						l.unlock();
+						session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+						l.lock();
 						processing->torrent_ptr->abort();
 
 						processing.reset();
-						m_processing.pop_front();
 						if (!m_processing.empty())
 						{
 							processing = m_processing.front();
@@ -426,12 +430,13 @@ namespace detail
 							processing->torrent_ptr->get_handle()
 							, e.what()));
 				}
-				TORRENT_ASSERT(!m_processing.empty());
 
 				processing->torrent_ptr->abort();
 
+				if (!m_processing.empty()
+					&& m_processing.front() == processing)
+					m_processing.pop_front();
 				processing.reset();
-				m_processing.pop_front();
 				if (!m_processing.empty())
 				{
 					processing = m_processing.front();
@@ -639,7 +644,6 @@ namespace detail
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		if (m_abort) return;
-		m_io_service.stop(); 
 #if defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " *** ABORT CALLED ***\n";
 #endif
@@ -658,6 +662,8 @@ namespace detail
 		{
 			i->second->abort();
 		}
+
+		m_io_service.stop(); 
 
 		mutex::scoped_lock l2(m_checker_impl.m_mutex);
 		// abort the checker thread
