@@ -460,6 +460,8 @@ namespace libtorrent
 					->set_size(file_iter->size);
 			}
 		}
+		// close files that were opened in write mode
+		m_files.release(this);
 	}
 
 	void storage::release_files()
