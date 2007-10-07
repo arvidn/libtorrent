@@ -291,11 +291,15 @@ namespace libtorrent { namespace detail
 					{
 						assert(!m_processing.empty());
 						assert(m_processing.front() == processing);
+						m_processing.pop_front();
 
+						// make sure the lock order is correct
+						l.unlock();
+						session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+						l.lock();
 						processing->torrent_ptr->abort();
 
 						processing.reset();
-						m_processing.pop_front();
 						if (!m_processing.empty())
 						{
 							processing = m_processing.front();
@@ -365,12 +369,13 @@ namespace libtorrent { namespace detail
 							processing->torrent_ptr->get_handle()
 							, e.what()));
 				}
-				assert(!m_processing.empty());
 
 				processing->torrent_ptr->abort();
 
+				if (!m_processing.empty()
+					&& m_processing.front() == processing)
+					m_processing.pop_front();
 				processing.reset();
-				m_processing.pop_front();
 				if (!m_processing.empty())
 				{
 					processing = m_processing.front();
