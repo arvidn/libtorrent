@@ -722,10 +722,10 @@ namespace libtorrent
 				}
 				piece_struct["bitmask"] = bitmask;
 
-				TORRENT_ASSERT(t->filesystem().slot_for_piece(i->index) >= 0);
+				TORRENT_ASSERT(t->filesystem().slot_for(i->index) >= 0);
 				unsigned long adler
 					= t->filesystem().piece_crc(
-						t->filesystem().slot_for_piece(i->index)
+						t->filesystem().slot_for(i->index)
 						, t->block_size()
 						, i->info);
 

@@ -115,7 +115,7 @@ namespace libtorrent
 			: m_impl(impl) {}
 		boost::shared_ptr<aux::session_impl> m_impl;
 	};
-	
+
 	class TORRENT_EXPORT session: public boost::noncopyable, aux::eh_initializer
 	{
 	public:
@@ -140,7 +140,7 @@ namespace libtorrent
 			torrent_info const& ti
 			, fs::path const& save_path
 			, entry const& resume_data = entry()
-			, bool compact_mode = true
+			, storage_mode_t storage_mode = storage_mode_sparse
 			, bool paused = false
 			, storage_constructor_type sc = default_storage_constructor) TORRENT_DEPRECATED;
 
@@ -148,7 +148,7 @@ namespace libtorrent
 			boost::intrusive_ptr<torrent_info> ti
 			, fs::path const& save_path
 			, entry const& resume_data = entry()
-			, bool compact_mode = true
+			, storage_mode_t storage_mode = storage_mode_sparse
 			, bool paused = false
 			, storage_constructor_type sc = default_storage_constructor
 			, void* userdata = 0);
@@ -159,7 +159,7 @@ namespace libtorrent
 			, char const* name
 			, fs::path const& save_path
 			, entry const& resume_data = entry()
-			, bool compact_mode = true
+			, storage_mode_t storage_mode = storage_mode_sparse
 			, bool paused = false
 			, storage_constructor_type sc = default_storage_constructor
 			, void* userdata = 0);

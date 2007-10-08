@@ -186,28 +186,28 @@ namespace libtorrent
 		torrent_info const& ti
 		, fs::path const& save_path
 		, entry const& resume_data
-		, bool compact_mode
+		, storage_mode_t storage_mode
 		, bool paused
 		, storage_constructor_type sc)
 	{
 		TORRENT_ASSERT(!ti.m_half_metadata);
 		boost::intrusive_ptr<torrent_info> tip(new torrent_info(ti));
 		return m_impl->add_torrent(tip, save_path, resume_data
-			, compact_mode, sc, paused, 0);
+			, storage_mode, sc, paused, 0);
 	}
 
 	torrent_handle session::add_torrent(
 		boost::intrusive_ptr<torrent_info> ti
 		, fs::path const& save_path
 		, entry const& resume_data
-		, bool compact_mode
+		, storage_mode_t storage_mode
 		, bool paused
 		, storage_constructor_type sc
 		, void* userdata)
 	{
 		TORRENT_ASSERT(!ti->m_half_metadata);
 		return m_impl->add_torrent(ti, save_path, resume_data
-			, compact_mode, sc, paused, userdata);
+			, storage_mode, sc, paused, userdata);
 	}
 
 	torrent_handle session::add_torrent(
@@ -216,13 +216,13 @@ namespace libtorrent
 		, char const* name
 		, fs::path const& save_path
 		, entry const& e
-		, bool compact_mode
+		, storage_mode_t storage_mode
 		, bool paused
 		, storage_constructor_type sc
 		, void* userdata)
 	{
 		return m_impl->add_torrent(tracker_url, info_hash, name, save_path, e
-			, compact_mode, sc, paused, userdata);
+			, storage_mode, sc, paused, userdata);
 	}
 
 	void session::remove_torrent(const torrent_handle& h)
