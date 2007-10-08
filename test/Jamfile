@@ -9,7 +9,9 @@ lib test_common
 	setup_transfer.cpp
 	:
 	<link>static
+	<threading>multi
 	:
+	<link>static
 	<threading>multi
 	<library>/torrent//torrent
 	;
