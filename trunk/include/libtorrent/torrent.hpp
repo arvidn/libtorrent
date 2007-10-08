@@ -101,7 +101,7 @@ namespace libtorrent
 			, boost::intrusive_ptr<torrent_info> tf
 			, fs::path const& save_path
 			, tcp::endpoint const& net_interface
-			, bool compact_mode
+			, storage_mode_t m_storage_mode
 			, int block_size
 			, storage_constructor_type sc
 			, bool paused);
@@ -116,7 +116,7 @@ namespace libtorrent
 			, char const* name
 			, fs::path const& save_path
 			, tcp::endpoint const& net_interface
-			, bool compact_mode
+			, storage_mode_t m_storage_mode
 			, int block_size
 			, storage_constructor_type sc
 			, bool paused);
@@ -751,7 +751,7 @@ namespace libtorrent
 		fs::path m_save_path;
 
 		// determines the storage state for this torrent.
-		const bool m_compact_mode;
+		storage_mode_t m_storage_mode;
 
 		// defaults to 16 kiB, but can be set by the user
 		// when creating the torrent

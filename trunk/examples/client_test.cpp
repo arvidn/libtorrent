@@ -442,7 +442,7 @@ void add_torrent(libtorrent::session& ses
 	catch (boost::filesystem::filesystem_error&) {}
 
 	torrent_handle h = ses.add_torrent(t, save_path, resume_data
-		, compact_mode, false);
+		, compact_mode ? storage_mode_compact : storage_mode_sparse, false);
 	handles.insert(std::make_pair(
 		monitored_dir?std::string(torrent):std::string(), h));
 
@@ -481,7 +481,8 @@ void scan_dir(path const& dir_path
 
 		// the file has been added to the dir, start
 		// downloading it.
-		add_torrent(ses, handles, file, preferred_ratio, compact_mode
+		add_torrent(ses, handles, file, preferred_ratio, compact_mode ? storage_mode_compact
+			: storage_mode_sparse
 			, save_path, true);
 		valid.insert(file);
 	}
@@ -805,7 +806,8 @@ int main(int ac, char* av[])
 					sha1_hash info_hash = boost::lexical_cast<sha1_hash>(what[1]);
 
 					torrent_handle h = ses.add_torrent(std::string(what[2]).c_str()
-						, info_hash, 0, save_path, entry(), compact_allocation_mode);
+						, info_hash, 0, save_path, entry(), compact_allocation_mode ? storage_mode_compact
+						: storage_mode_sparse);
 					handles.insert(std::make_pair(std::string(), h));
 
 					h.set_max_connections(60);
@@ -816,7 +818,7 @@ int main(int ac, char* av[])
 				}
 				// if it's a torrent file, open it as usual
 				add_torrent(ses, handles, i->c_str(), preferred_ratio
-					, compact_allocation_mode, save_path, false);
+					, compact_allocation_mode ? storage_mode_compact : storage_mode_sparse, save_path, false);
 			}
 			catch (std::exception& e)
 			{

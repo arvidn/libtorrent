@@ -254,7 +254,7 @@ namespace libtorrent
 				boost::intrusive_ptr<torrent_info> ti
 				, fs::path const& save_path
 				, entry const& resume_data
-				, bool compact_mode
+				, storage_mode_t storage_mode
 				, storage_constructor_type sc
 				, bool paused
 				, void* userdata);
@@ -265,7 +265,7 @@ namespace libtorrent
 				, char const* name
 				, fs::path const& save_path
 				, entry const& resume_data
-				, bool compact_mode
+				, storage_mode_t storage_mode
 				, storage_constructor_type sc
 				, bool paused
 				, void* userdata);

@@ -19,11 +19,14 @@ const int piece_size = 16;
 
 void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
 {
+	std::cerr << "on_read_piece piece: " << j.piece << std::endl;
 	TEST_CHECK(ret == size);
 	TEST_CHECK(std::equal(j.buffer, j.buffer + ret, data));
 }
 
-void run_storage_tests(boost::intrusive_ptr<torrent_info> info, bool compact_allocation = true)
+void run_storage_tests(boost::intrusive_ptr<torrent_info> info
+	, path const& test_path
+	, libtorrent::storage_mode_t storage_mode)
 {
 	const int half = piece_size / 2;
 
@@ -45,7 +48,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info, bool compact_all
 	
 	info->create_torrent();
 
-	create_directory(initial_path() / "temp_storage");
+	create_directory(test_path / "temp_storage");
 
 	int num_pieces = (1 + 612 + 17 + piece_size - 1) / piece_size;
 	TEST_CHECK(info->num_pieces() == num_pieces);
@@ -55,7 +58,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info, bool compact_all
 	{ // avoid having two storages use the same files	
 	file_pool fp;
 	boost::scoped_ptr<storage_interface> s(
-		default_storage_constructor(info, initial_path(), fp));
+		default_storage_constructor(info, test_path, fp));
 
 	// write piece 1 (in slot 0)
 	s->write(piece1, 0, 0, half);
@@ -85,14 +88,14 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info, bool compact_all
 	disk_io_thread io;
 	boost::shared_ptr<int> dummy(new int);
 	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
-		, initial_path(), fp, io, default_storage_constructor);
+		, test_path, fp, io, default_storage_constructor);
 	boost::mutex lock;
 	libtorrent::aux::piece_checker_data d;
 
 	std::vector<bool> pieces;
 	num_pieces = 0;
 	TEST_CHECK(pm->check_fastresume(d, pieces, num_pieces
-		, compact_allocation) == false);
+		, storage_mode) == false);
 	bool finished = false;
 	float progress;
 	num_pieces = 0;
@@ -105,15 +108,15 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info, bool compact_all
 
 
 	boost::function<void(int, disk_io_job const&)> none;
-	TEST_CHECK(exists("temp_storage"));
-	pm->async_move_storage("temp_storage2", none);
+	TEST_CHECK(exists(test_path / "temp_storage"));
+	pm->async_move_storage(test_path / "temp_storage2", none);
 	test_sleep(2000);
-	TEST_CHECK(!exists("temp_storage"));
-	TEST_CHECK(exists("temp_storage2/temp_storage"));
-	pm->async_move_storage(".", none);
+	TEST_CHECK(!exists(test_path / "temp_storage"));
+	TEST_CHECK(exists(test_path / "temp_storage2/temp_storage"));
+	pm->async_move_storage(test_path , none);
 	test_sleep(2000);
-	TEST_CHECK(!exists("temp_storage2/temp_storage"));	
-	remove_all("temp_storage2");
+	TEST_CHECK(!exists(test_path / "temp_storage2/temp_storage"));	
+	remove_all(test_path / "temp_storage2");
 
 	peer_request r;
 	r.piece = 0;
@@ -129,8 +132,10 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info, bool compact_all
 	}
 }
 
-int test_main()
+void run_test(path const& test_path)
 {
+	std::cerr << "\n=== " << test_path << " ===\n" << std::endl;
+
 	boost::intrusive_ptr<torrent_info> info(new torrent_info());
 	info->set_piece_size(piece_size);
 	info->add_file("temp_storage/test1.tmp", 17);
@@ -139,16 +144,18 @@ int test_main()
 	info->add_file("temp_storage/test4.tmp", 0);
 	info->add_file("temp_storage/test5.tmp", 1);
 
-	run_storage_tests(info);
+	std::cerr << "=== test 1 ===" << std::endl;
+
+	run_storage_tests(info, test_path, storage_mode_compact);
 
 	// make sure the files have the correct size
-	std::cerr << file_size(initial_path() / "temp_storage" / "test1.tmp") << std::endl;
-	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test1.tmp") == 17);
-	std::cerr << file_size(initial_path() / "temp_storage" / "test2.tmp") << std::endl;
-	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test2.tmp") == 31);
-	TEST_CHECK(exists("temp_storage/test3.tmp"));
-	TEST_CHECK(exists("temp_storage/test4.tmp"));
-	remove_all(initial_path() / "temp_storage");
+	std::cerr << file_size(test_path / "temp_storage" / "test1.tmp") << std::endl;
+	TEST_CHECK(file_size(test_path / "temp_storage" / "test1.tmp") == 17);
+	std::cerr << file_size(test_path / "temp_storage" / "test2.tmp") << std::endl;
+	TEST_CHECK(file_size(test_path / "temp_storage" / "test2.tmp") == 31);
+	TEST_CHECK(exists(test_path / "temp_storage/test3.tmp"));
+	TEST_CHECK(exists(test_path / "temp_storage/test4.tmp"));
+	remove_all(test_path / "temp_storage");
 
 // ==============================================
 
@@ -158,12 +165,14 @@ int test_main()
 	bool ret = info->remap_files(map);
 	TEST_CHECK(ret);
 
-	run_storage_tests(info, false);
+	std::cerr << "=== test 2 ===" << std::endl;
 
-	std::cerr << file_size(initial_path() / "temp_storage" / "test.tmp") << std::endl;
-	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test.tmp") == 17 + 612 + 1);
+	run_storage_tests(info, test_path, storage_mode_compact);
 
-	remove_all(initial_path() / "temp_storage");
+	std::cerr << file_size(test_path / "temp_storage" / "test.tmp") << std::endl;
+	TEST_CHECK(file_size(test_path / "temp_storage" / "test.tmp") == 48);
+
+	remove_all(test_path / "temp_storage");
 
 // ==============================================
 	
@@ -171,23 +180,45 @@ int test_main()
 	info->set_piece_size(piece_size);
 	info->add_file("temp_storage/test1.tmp", 17 + 612 + 1);
 
-	run_storage_tests(info);
+	std::cerr << "=== test 3 ===" << std::endl;
+
+	run_storage_tests(info, test_path, storage_mode_compact);
 
 	// 48 = piece_size * 3
-	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test1.tmp") == 48);
-	remove_all(initial_path() / "temp_storage");
+	TEST_CHECK(file_size(test_path / "temp_storage" / "test1.tmp") == 48);
+	remove_all(test_path / "temp_storage");
 
 // ==============================================
 
-	// make sure full allocation mode actually allocates the files
-	// and creates the directories
-	run_storage_tests(info, false);
+	std::cerr << "=== test 4 ===" << std::endl;
 
-	std::cerr << file_size(initial_path() / "temp_storage" / "test1.tmp") << std::endl;
-	TEST_CHECK(file_size(initial_path() / "temp_storage" / "test1.tmp") == 17 + 612 + 1);
+	run_storage_tests(info, test_path, storage_mode_allocate);
 
-	remove_all(initial_path() / "temp_storage");
+	std::cerr << file_size(test_path / "temp_storage" / "test1.tmp") << std::endl;
+	TEST_CHECK(file_size(test_path / "temp_storage" / "test1.tmp") == 17 + 612 + 1);
 
+	remove_all(test_path / "temp_storage");
+}
+
+int test_main()
+{
+	std::vector<path> test_paths;
+	char* env = std::getenv("TORRENT_TEST_PATHS");
+	if (env == 0)
+	{
+		test_paths.push_back(initial_path());
+	}
+	else
+	{
+		char* p = std::strtok(env, ";");
+		while (p != 0)
+		{
+			test_paths.push_back(complete(p));
+			p = std::strtok(0, ";");
+		}
+	}
+
+	std::for_each(test_paths.begin(), test_paths.end(), bind(&run_test, _1));
 	return 0;
 }
 
