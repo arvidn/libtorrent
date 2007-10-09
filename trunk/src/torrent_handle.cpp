@@ -661,7 +661,7 @@ namespace libtorrent
 
 		if (!t->valid_metadata()) return entry();
 
-		t->filesystem().export_piece_map(piece_index, t->pieces());
+		std::vector<bool> have_pieces = t->pieces();
 
 		entry ret(entry::dictionary_t);
 
@@ -702,12 +702,7 @@ namespace libtorrent
 				// the unfinished piece's index
 				piece_struct["piece"] = i->index;
 
-				// if the unfinished piece is not in the exported piece map, it means
-				// we're in full or sparse storage mode, in which case we have
-				// to insert the unfinished piece where it's stored
-				if (std::find(piece_index.begin(), piece_index.end(), i->index)
-					== piece_index.end() && i->index < int(piece_index.size()))
-					piece_index[i->index] = i->index;
+				have_pieces[i->index] = true;
 
 				std::string bitmask;
 				const int num_bitmask_bytes
@@ -739,6 +734,7 @@ namespace libtorrent
 			}
 		}
 
+		t->filesystem().export_piece_map(piece_index, have_pieces);
 		entry::list_type& slots = ret["slots"].list();
 		std::copy(piece_index.begin(), piece_index.end(), std::back_inserter(slots));
 
