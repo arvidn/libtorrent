@@ -189,9 +189,11 @@ namespace detail
 					t->parse_resume_data(t->resume_data, t->torrent_ptr->torrent_file()
 						, error_msg);
 
+					// lock the session to add the new torrent
+					session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
 					if (!error_msg.empty() && m_ses.m_alerts.should_post(alert::warning))
 					{
-						session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 						m_ses.m_alerts.post_alert(fastresume_rejected_alert(
 							t->torrent_ptr->get_handle()
 							, error_msg));
@@ -202,8 +204,6 @@ namespace detail
 #endif
 					}
 
-					// lock the session to add the new torrent
-					session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 					mutex::scoped_lock l2(m_mutex);
 
 					if (m_torrents.empty() || m_torrents.front() != t)

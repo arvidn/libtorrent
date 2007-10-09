@@ -1078,25 +1078,37 @@ namespace libtorrent
 		return false;
 	}
 	void piece_manager::export_piece_map(
-			std::vector<int>& p) const
+			std::vector<int>& p, std::vector<bool> const& have) const
 	{
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 
 		INVARIANT_CHECK;
 
-		p.clear();
-		std::vector<int>::const_reverse_iterator last; 
-		for (last = m_slot_to_piece.rbegin();
-			last != m_slot_to_piece.rend(); ++last)
+		if (m_storage_mode == storage_mode_compact)
 		{
-			if (*last != unallocated) break;
-		}
+			p.clear();
+			p.reserve(m_info->num_pieces());
+			std::vector<int>::const_reverse_iterator last; 
+			for (last = m_slot_to_piece.rbegin();
+				last != m_slot_to_piece.rend(); ++last)
+			{
+				if (*last != unallocated) break;
+			}
 
-		for (std::vector<int>::const_iterator i =
-			m_slot_to_piece.begin();
-			i != last.base(); ++i)
+			for (std::vector<int>::const_iterator i =
+				m_slot_to_piece.begin();
+				i != last.base(); ++i)
+			{
+				p.push_back(*i);
+			}
+		}
+		else
 		{
-			p.push_back(*i);
+			p.reserve(m_info->num_pieces());
+			for (int i = 0; i < m_info->num_pieces(); ++i)
+			{
+				p.push_back(have[i] ? i : unassigned);
+			}
 		}
 	}
 
@@ -1374,7 +1386,8 @@ namespace libtorrent
 	bool piece_manager::check_fastresume(
 		aux::piece_checker_data& data
 		, std::vector<bool>& pieces
-		, int& num_pieces, storage_mode_t storage_mode)
+		, int& num_pieces, storage_mode_t storage_mode
+		, std::string& error_msg)
 	{
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 
@@ -1473,6 +1486,7 @@ namespace libtorrent
 					// we're resuming a compact allocated storage
 					m_state = state_expand_pieces;
 					m_current_slot = 0;
+					error_msg = "pieces needs to be reordered";
 					return false;
 				}
 			}
@@ -1481,6 +1495,7 @@ namespace libtorrent
 			return false;
 		}
 
+		error_msg = "empty piece map";
 		m_state = state_full_check;
 		return false;
 	}

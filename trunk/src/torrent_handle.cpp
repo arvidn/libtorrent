@@ -661,7 +661,7 @@ namespace libtorrent
 
 		if (!t->valid_metadata()) return entry();
 
-		t->filesystem().export_piece_map(piece_index);
+		t->filesystem().export_piece_map(piece_index, t->pieces());
 
 		entry ret(entry::dictionary_t);
 
@@ -672,10 +672,6 @@ namespace libtorrent
 
 		const sha1_hash& info_hash = t->torrent_file().info_hash();
 		ret["info-hash"] = std::string((char*)info_hash.begin(), (char*)info_hash.end());
-
-		ret["slots"] = entry(entry::list_t);
-		entry::list_type& slots = ret["slots"].list();
-		std::copy(piece_index.begin(), piece_index.end(), std::back_inserter(slots));
 
 		// blocks per piece
 		int num_blocks_per_piece =
@@ -706,6 +702,13 @@ namespace libtorrent
 				// the unfinished piece's index
 				piece_struct["piece"] = i->index;
 
+				// if the unfinished piece is not in the exported piece map, it means
+				// we're in full or sparse storage mode, in which case we have
+				// to insert the unfinished piece where it's stored
+				if (std::find(piece_index.begin(), piece_index.end(), i->index)
+					== piece_index.end() && i->index < int(piece_index.size()))
+					piece_index[i->index] = i->index;
+
 				std::string bitmask;
 				const int num_bitmask_bytes
 					= (std::max)(num_blocks_per_piece / 8, 1);
@@ -735,6 +738,10 @@ namespace libtorrent
 				up.push_back(piece_struct);
 			}
 		}
+
+		entry::list_type& slots = ret["slots"].list();
+		std::copy(piece_index.begin(), piece_index.end(), std::back_inserter(slots));
+
 		// write local peers
 
 		entry::list_type& peer_list = ret["peers"].list();

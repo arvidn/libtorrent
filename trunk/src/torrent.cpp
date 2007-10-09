@@ -2215,10 +2215,22 @@ namespace libtorrent
 		bool done = true;
 		try
 		{
+			std::string error_msg;
 			TORRENT_ASSERT(m_storage);
 			TORRENT_ASSERT(m_owning_storage.get());
 			done = m_storage->check_fastresume(data, m_have_pieces, m_num_pieces
-				, m_storage_mode);
+				, m_storage_mode, error_msg);
+
+			if (!error_msg.empty() && m_ses.m_alerts.should_post(alert::warning))
+			{
+				m_ses.m_alerts.post_alert(fastresume_rejected_alert(
+					get_handle(), error_msg));
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+				(*m_ses.m_logger) << "fastresume data for "
+					<< torrent_file().name() << " rejected: "
+					<< error_msg << "\n";
+#endif
+			}
 		}
 		catch (std::exception& e)
 		{

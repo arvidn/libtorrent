@@ -187,7 +187,8 @@ namespace libtorrent
 		~piece_manager();
 
 		bool check_fastresume(aux::piece_checker_data& d
-			, std::vector<bool>& pieces, int& num_pieces, storage_mode_t storage_mode);
+			, std::vector<bool>& pieces, int& num_pieces, storage_mode_t storage_mode
+			, std::string& error_msg);
 		std::pair<bool, float> check_files(std::vector<bool>& pieces
 			, int& num_pieces, boost::recursive_mutex& mutex);
 
@@ -236,7 +237,8 @@ namespace libtorrent
 		// slots to the piece that is stored (or
 		// partially stored) there. -2 is the index
 		// of unassigned pieces and -1 is unallocated
-		void export_piece_map(std::vector<int>& pieces) const;
+		void export_piece_map(std::vector<int>& pieces
+			, std::vector<bool> const& have) const;
 
 		bool compact_allocation() const
 		{ return m_storage_mode == storage_mode_compact; }
