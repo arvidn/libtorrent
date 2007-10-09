@@ -371,12 +371,6 @@ namespace libtorrent
 
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 
-			// handles disk io requests asynchronously
-			// peers have pointers into the disk buffer
-			// pool, and must be destructed before this
-			// object.
-			disk_io_thread m_disk_thread;
-
 			// this pool is used to allocate and recycle send
 			// buffers from.
 			boost::pool<> m_send_buffers;
@@ -394,6 +388,12 @@ namespace libtorrent
 			// since they will still have references to it
 			// when they are destructed.
 			file_pool m_files;
+
+			// handles disk io requests asynchronously
+			// peers have pointers into the disk buffer
+			// pool, and must be destructed before this
+			// object.
+			disk_io_thread m_disk_thread;
 
 			// this is a list of half-open tcp connections
 			// (only outgoing connections)
