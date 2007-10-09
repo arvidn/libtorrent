@@ -94,8 +94,9 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 
 	std::vector<bool> pieces;
 	num_pieces = 0;
+	std::string error_msg;
 	TEST_CHECK(pm->check_fastresume(d, pieces, num_pieces
-		, storage_mode) == false);
+		, storage_mode, error_msg) == false);
 	bool finished = false;
 	float progress;
 	num_pieces = 0;
