@@ -1732,7 +1732,6 @@ namespace libtorrent
 		++i->writing;
 		info.state = block_info::state_writing;
 		if (info.num_peers > 0) --info.num_peers;
-		TORRENT_ASSERT(info.num_peers >= 0);
 
 		if (i->requested == 0)
 		{
@@ -1855,7 +1854,6 @@ namespace libtorrent
 
 		block_info& info = i->info[block.block_index];
 		--info.num_peers;
-		TORRENT_ASSERT(info.num_peers >= 0);
 		if (info.num_peers > 0) return;
 
 		if (i->info[block.block_index].state == block_info::state_finished
