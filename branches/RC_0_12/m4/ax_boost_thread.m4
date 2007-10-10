@@ -40,10 +40,18 @@ if test "$ax_cv_boost_thread" = yes; then
     ax_thread_lib=$with_boost_thread
     ax_boost_thread_lib=boost_thread-$with_boost_thread
   fi])
-  for ax_lib in $ax_thread_lib $ax_boost_thread_lib boost_thread; do
-    AC_CHECK_LIB($ax_lib, main, [BOOST_THREAD_LIB=$ax_lib
-break])
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  for ax_lib in $ax_thread_lib $ax_boost_thread_lib boost_thread-mt boost_thread; do
+    ax_save_LIBS="$LIBS"
+    LIBS="$LIBS -l$ax_lib"
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <boost/thread/thread.hpp>]],
+				    [[return 0;]])],
+               [BOOST_THREAD_LIB=$ax_lib
+               break])
+    LIBS="$ax_save_LIBS"
   done
+  AC_LANG_RESTORE
   AC_SUBST(BOOST_THREAD_LIB)
 fi
 ])dnl

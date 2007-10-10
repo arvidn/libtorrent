@@ -37,10 +37,18 @@ if test "$ax_cv_boost_filesystem" = yes; then
     ax_filesystem_lib=$with_boost_filesystem
     ax_boost_filesystem_lib=boost_filesystem-$with_boost_filesystem
   fi])
-  for ax_lib in $ax_filesystem_lib $ax_boost_filesystem_lib boost_filesystem; do
-    AC_CHECK_LIB($ax_lib, main, [BOOST_FILESYSTEM_LIB=$ax_lib
-break])
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  for ax_lib in $ax_filesystem_lib $ax_boost_filesystem_lib boost_filesystem-mt boost_filesystem; do
+    ax_save_LIBS="$LIBS"
+    LIBS="$LIBS -l$ax_lib"
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <boost/filesystem/path.hpp>]],
+				    [[return 0;]])],
+               [BOOST_FILESYSTEM_LIB=$ax_lib
+               break])
+    LIBS="$ax_save_LIBS"
   done
+  AC_LANG_RESTORE
   AC_SUBST(BOOST_FILESYSTEM_LIB)
 fi
 ])dnl
