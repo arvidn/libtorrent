@@ -643,27 +643,23 @@ namespace libtorrent
 		m_peer_choked = true;
 		t->get_policy().choked(*this);
 		
-		if (!t->is_seed())
+		if (peer_info_struct() == 0 || !peer_info_struct()->on_parole)
 		{
-			piece_picker& p = t->picker();
-			// remove all pieces from this peers download queue and
-			// remove the 'downloading' flag from piece_picker.
-			for (std::deque<piece_block>::iterator i = m_download_queue.begin();
-				i != m_download_queue.end(); ++i)
+			// if the peer is not in parole mode, clear the queued
+			// up block requests
+			if (!t->is_seed())
 			{
-				p.abort_download(*i);
+				piece_picker& p = t->picker();
+				for (std::deque<piece_block>::const_iterator i = m_request_queue.begin()
+					, end(m_request_queue.end()); i != end; ++i)
+				{
+					// since this piece was skipped, clear it and allow it to
+					// be requested from other peers
+					p.abort_download(*i);
+				}
 			}
-			for (std::deque<piece_block>::const_iterator i = m_request_queue.begin()
-				, end(m_request_queue.end()); i != end; ++i)
-			{
-				// since this piece was skipped, clear it and allow it to
-				// be requested from other peers
-				p.abort_download(*i);
-			}
+			m_request_queue.clear();
 		}
-		
-		m_download_queue.clear();
-		m_request_queue.clear();
 	}
 
 	bool match_request(peer_request const& r, piece_block const& b, int block_size)
@@ -707,23 +703,17 @@ namespace libtorrent
 		{
 	  		b = *i;
 			m_download_queue.erase(i);
-		}
-		else
-		{
-			i = std::find_if(m_request_queue.begin(), m_request_queue.end()
-				, bind(match_request, boost::cref(r), _1, t->block_size()));
-
-			if (i != m_request_queue.end())
+			
+			// if the peer is in parole mode, keep the request
+			if (peer_info_struct() && peer_info_struct()->on_parole)
 			{
-				b = *i;
-				m_request_queue.erase(i);
+				m_request_queue.push_front(b);
 			}
-		}
-		
-		if (b.piece_index != -1 && !t->is_seed())
-		{
-			piece_picker& p = t->picker();
-			p.abort_download(b);
+			else if (!t->is_seed())
+			{
+				piece_picker& p = t->picker();
+				p.abort_download(b);
+			}
 		}
 #ifdef TORRENT_VERBOSE_LOGGING
 		else
