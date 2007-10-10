@@ -802,9 +802,9 @@ namespace libtorrent
 		{
 			boost::shared_ptr<torrent> t = associated_torrent().lock();
 			TORRENT_ASSERT(t);
-			while (!request_queue().empty())
+			while (!download_queue().empty())
 			{
-				piece_block const& b = request_queue().front();
+				piece_block const& b = download_queue().front();
 				peer_request r;
 				r.piece = b.piece_index;
 				r.start = b.block_index * t->block_size();
