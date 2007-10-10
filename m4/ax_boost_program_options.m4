@@ -33,10 +33,18 @@ if test "$ax_cv_boost_program_options" = yes; then
     ax_program_options_lib=$with_boost_program_options
     ax_boost_program_options_lib=boost_program_options-$with_boost_program_options
   fi])
-  for ax_lib in $ax_program_options_lib $ax_boost_program_options_lib boost_program_options; do
-    AC_CHECK_LIB($ax_lib, main, [BOOST_PROGRAM_OPTIONS_LIB=$ax_lib
-break])
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  for ax_lib in $ax_program_options_lib $ax_boost_program_options_lib boost_program_options-mt boost_program_options; do
+    ax_save_LIBS="$LIBS"
+    LIBS="$LIBS -l$ax_lib"
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <boost/program_options.hpp>]],
+				    [[return 0;]])],
+               [BOOST_PROGRAM_OPTIONS_LIB=$ax_lib
+               break])
+    LIBS="$ax_save_LIBS"
   done
+  AC_LANG_RESTORE
   AC_SUBST(BOOST_PROGRAM_OPTIONS_LIB)
 fi
 ])dnl

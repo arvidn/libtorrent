@@ -33,10 +33,18 @@ if test "$ax_cv_boost_regex" = yes; then
     ax_regex_lib=$with_boost_regex
     ax_boost_regex_lib=boost_regex-$with_boost_regex
   fi])
-  for ax_lib in $ax_regex_lib $ax_boost_regex_lib boost_regex; do
-    AC_CHECK_LIB($ax_lib, main, [BOOST_REGEX_LIB=$ax_lib
-break])
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  for ax_lib in $ax_regex_lib $ax_boost_regex_lib boost_regex-mt boost_regex; do
+    ax_save_LIBS="$LIBS"
+    LIBS="$LIBS -l$ax_lib"
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <boost/regex.hpp>]],
+				    [[return 0;]])],
+               [BOOST_REGEX_LIB=$ax_lib
+               break])
+    LIBS="$ax_save_LIBS"
   done
+  AC_LANG_RESTORE
   AC_SUBST(BOOST_REGEX_LIB)
 fi
 ])dnl
