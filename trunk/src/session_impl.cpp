@@ -328,7 +328,7 @@ namespace detail
 				boost::tie(finished, progress) = processing->torrent_ptr->check_files();
 
 				{
-					mutex::scoped_lock l(m_mutex);
+					mutex::scoped_lock l2(m_mutex);
 
 					INVARIANT_CHECK;
 
@@ -340,9 +340,9 @@ namespace detail
 						m_processing.pop_front();
 
 						// make sure the lock order is correct
-						l.unlock();
+						l2.unlock();
 						session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-						l.lock();
+						l2.lock();
 						processing->torrent_ptr->abort();
 
 						processing.reset();
