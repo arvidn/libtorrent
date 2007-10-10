@@ -35,10 +35,18 @@ if test "$ax_cv_boost_date_time" = yes; then
     ax_date_time_lib=$with_boost_date_time
     ax_boost_date_time_lib=boost_date_time-$with_boost_date_time
   fi])
-  for ax_lib in $ax_date_time_lib $ax_boost_date_time_lib boost_date_time; do
-    AC_CHECK_LIB($ax_lib, main, [BOOST_DATE_TIME_LIB=$ax_lib
-break])
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  for ax_lib in $ax_date_time_lib $ax_boost_date_time_lib boost_date_time-mt boost_date_time; do
+    ax_save_LIBS="$LIBS"
+    LIBS="$LIBS -l$ax_lib"
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <boost/date_time/gregorian/gregorian_types.hpp>]],
+				    [[return 0;]])],
+               [BOOST_DATE_TIME_LIB=$ax_lib
+               break])
+    LIBS="$ax_save_LIBS"
   done
+  AC_LANG_RESTORE
   AC_SUBST(BOOST_DATE_TIME_LIB)
 fi
 ])dnl
