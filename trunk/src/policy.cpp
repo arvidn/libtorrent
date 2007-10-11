@@ -1045,10 +1045,10 @@ namespace libtorrent
 			
 				// we don't have any info about this peer.
 				// add a new entry
-				peer p(remote, peer::connectable, src);
-				i = m_peers.insert(std::make_pair(remote.address(), p));
+				i = m_peers.insert(std::make_pair(remote.address()
+					, peer(remote, peer::connectable, src)));
 #ifndef TORRENT_DISABLE_ENCRYPTION
-				if (flags & 0x01) p.pe_support = true;
+				if (flags & 0x01) i->second.pe_support = true;
 #endif
 				if (flags & 0x02) i->second.seed = true;
 
