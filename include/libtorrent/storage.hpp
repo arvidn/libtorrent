@@ -162,10 +162,6 @@ namespace libtorrent
 		boost::intrusive_ptr<torrent_info const> ti
 		, fs::path const& path, file_pool& fp);
 
-	// returns true if the filesystem the path relies on supports
-	// sparse files or automatic zero filling of files.
-	TORRENT_EXPORT bool supports_sparse_files(fs::path const& p);
-
 	struct disk_io_thread;
 
 	class TORRENT_EXPORT piece_manager
@@ -288,9 +284,6 @@ namespace libtorrent
 		boost::scoped_ptr<storage_interface> m_storage;
 
 		storage_mode_t m_storage_mode;
-
-		// a bitmask representing the pieces we have
-		std::vector<bool> m_have_piece;
 
 		boost::intrusive_ptr<torrent_info const> m_info;
 
