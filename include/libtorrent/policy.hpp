@@ -156,6 +156,8 @@ namespace libtorrent
 			// this is true if the peer is a seed
 			bool seed;
 
+			int fast_reconnects;
+
 			// true if this peer currently is unchoked
 			// because of an optimistic unchoke.
 			// when the optimistic unchoke is moved to
