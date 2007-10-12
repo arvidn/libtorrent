@@ -1503,6 +1503,7 @@ namespace libtorrent
 		, failcount(0)
 		, hashfails(0)
 		, seed(false)
+		, fast_reconnects(0)
 		, optimistically_unchoked(false)
 		, last_optimistically_unchoked(min_time())
 		, connected(min_time())
