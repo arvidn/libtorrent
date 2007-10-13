@@ -112,6 +112,8 @@ libtorrent/asio/detail/call_stack.hpp \
 libtorrent/asio/detail/const_buffers_iterator.hpp \
 libtorrent/asio/detail/consuming_buffers.hpp \
 libtorrent/asio/detail/deadline_timer_service.hpp \
+libtorrent/asio/detail/dev_poll_reactor.hpp \
+libtorrent/asio/detail/dev_poll_reactor_fwd.hpp \
 libtorrent/asio/detail/epoll_reactor.hpp \
 libtorrent/asio/detail/epoll_reactor_fwd.hpp \
 libtorrent/asio/detail/handler_queue.hpp \
