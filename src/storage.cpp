@@ -1533,7 +1533,6 @@ namespace libtorrent
 			return false;
 		}
 
-		error_msg = "empty piece map";
 		m_state = state_full_check;
 		return false;
 	}
