@@ -135,7 +135,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 
 void run_test(path const& test_path)
 {
-	std::cerr << "\n=== " << test_path << " ===\n" << std::endl;
+	std::cerr << "\n=== " << test_path.string() << " ===\n" << std::endl;
 
 	boost::intrusive_ptr<torrent_info> info(new torrent_info());
 	info->set_piece_size(piece_size);
