@@ -177,6 +177,8 @@ namespace libtorrent
 		void resume();
 		bool is_paused() const { return m_paused; }
 
+		void delete_files();
+
 		// ============ start deprecation =============
 		void filter_piece(int index, bool filter);
 		void filter_pieces(std::vector<bool> const& bitmask);
@@ -550,6 +552,7 @@ namespace libtorrent
 		
 	private:
 
+		void on_files_deleted(int ret, disk_io_job const& j);
 		void on_files_released(int ret, disk_io_job const& j);
 		void on_torrent_paused(int ret, disk_io_job const& j);
 		void on_storage_moved(int ret, disk_io_job const& j);

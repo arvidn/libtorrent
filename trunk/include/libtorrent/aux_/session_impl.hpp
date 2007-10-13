@@ -140,7 +140,7 @@ namespace libtorrent
 			checker_impl(session_impl& s): m_ses(s), m_abort(false) {}
 			void operator()();
 			piece_checker_data* find_torrent(const sha1_hash& info_hash);
-			void remove_torrent(sha1_hash const& info_hash);
+			void remove_torrent(sha1_hash const& info_hash, int options);
 
 #ifndef NDEBUG
 			void check_invariant() const;
@@ -270,7 +270,7 @@ namespace libtorrent
 				, bool paused
 				, void* userdata);
 
-			void remove_torrent(torrent_handle const& h);
+			void remove_torrent(torrent_handle const& h, int options);
 
 			std::vector<torrent_handle> get_torrents();
 			

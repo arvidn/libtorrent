@@ -1032,6 +1032,16 @@ namespace libtorrent
 		m_announce_timer.cancel();
 	}
 
+	void torrent::on_files_deleted(int ret, disk_io_job const& j)
+	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+		if (alerts().should_post(alert::warning))
+		{
+			alerts().post_alert(torrent_deleted_alert(get_handle(), "files deleted"));
+		}
+	}
+
 	void torrent::on_files_released(int ret, disk_io_job const& j)
 	{
 /*
@@ -2547,6 +2557,29 @@ namespace libtorrent
 		int limit = m_bandwidth_limit[peer_connection::download_channel].throttle();
 		if (limit == (std::numeric_limits<int>::max)()) limit = -1;
 		return limit;
+	}
+
+	void torrent::delete_files()
+	{
+#if defined(TORRENT_VERBOSE_LOGGING)
+		for (peer_iterator i = m_connections.begin();
+			i != m_connections.end(); ++i)
+		{
+			(*i->second->m_logger) << "*** DELETING FILES IN TORRENT\n";
+		}
+#endif
+
+		disconnect_all();
+		m_paused = true;
+		// tell the tracker that we stopped
+		m_event = tracker_request::stopped;
+
+		if (m_owning_storage.get())
+		{
+			TORRENT_ASSERT(m_storage);
+			m_storage->async_delete_files(
+				bind(&torrent::on_files_deleted, shared_from_this(), _1, _2));
+		}
 	}
 
 	void torrent::pause()

@@ -225,9 +225,9 @@ namespace libtorrent
 			, storage_mode, sc, paused, userdata);
 	}
 
-	void session::remove_torrent(const torrent_handle& h)
+	void session::remove_torrent(const torrent_handle& h, int options)
 	{
-		m_impl->remove_torrent(h);
+		m_impl->remove_torrent(h, options);
 	}
 
 	bool session::listen_on(
