@@ -64,6 +64,7 @@ namespace libtorrent
 			, hash
 			, move_storage
 			, release_files
+			, delete_files
 		};
 
 		action_t action;

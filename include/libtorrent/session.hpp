@@ -219,7 +219,13 @@ namespace libtorrent
 		// number of half open connections.
 		int num_connections() const;
 
-		void remove_torrent(const torrent_handle& h);
+		enum options_t
+		{
+			none = 0,
+			delete_files = 1
+		};
+
+		void remove_torrent(const torrent_handle& h, int options = none);
 
 		void set_settings(session_settings const& s);
 		session_settings const& settings();

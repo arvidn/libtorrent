@@ -481,7 +481,7 @@ namespace detail
 		return 0;
 	}
 
-	void checker_impl::remove_torrent(sha1_hash const& info_hash)
+	void checker_impl::remove_torrent(sha1_hash const& info_hash, int options)
 	{
 		INVARIANT_CHECK;
 		for (std::deque<boost::shared_ptr<piece_checker_data> >::iterator i
@@ -490,6 +490,8 @@ namespace detail
 			if ((*i)->info_hash == info_hash)
 			{
 				TORRENT_ASSERT((*i)->processing == false);
+				if (options & session::delete_files)
+					(*i)->torrent_ptr->delete_files();
 				m_torrents.erase(i);
 				return;
 			}
@@ -500,6 +502,8 @@ namespace detail
 			if ((*i)->info_hash == info_hash)
 			{
 				TORRENT_ASSERT((*i)->processing == false);
+				if (options & session::delete_files)
+					(*i)->torrent_ptr->delete_files();
 				m_processing.erase(i);
 				return;
 			}
@@ -1754,7 +1758,7 @@ namespace detail
 		return torrent_handle(this, &m_checker_impl, info_hash);
 	}
 
-	void session_impl::remove_torrent(const torrent_handle& h)
+	void session_impl::remove_torrent(const torrent_handle& h, int options)
 	{
 		if (h.m_ses != this) return;
 		TORRENT_ASSERT(h.m_chk == &m_checker_impl || h.m_chk == 0);
@@ -1769,6 +1773,8 @@ namespace detail
 		if (i != m_torrents.end())
 		{
 			torrent& t = *i->second;
+			if (options & session::delete_files)
+				t.delete_files();
 			t.abort();
 
 			if ((!t.is_paused() || t.should_request())
@@ -1815,7 +1821,7 @@ namespace detail
 			if (d != 0)
 			{
 				if (d->processing) d->abort = true;
-				else m_checker_impl.remove_torrent(h.m_info_hash);
+				else m_checker_impl.remove_torrent(h.m_info_hash, options);
 				return;
 			}
 		}

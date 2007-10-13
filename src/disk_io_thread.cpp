@@ -125,6 +125,7 @@ namespace libtorrent
 		, boost::function<void(int, disk_io_job const&)> const& f)
 	{
 		TORRENT_ASSERT(!j.callback);
+		TORRENT_ASSERT(j.storage);
 		boost::mutex::scoped_lock l(m_mutex);
 		
 		std::deque<disk_io_job>::reverse_iterator i = m_jobs.rbegin();
@@ -220,6 +221,7 @@ namespace libtorrent
 			bool free_buffer = true;
 			try
 			{
+				TORRENT_ASSERT(j.storage);
 #ifdef TORRENT_DISK_STATS
 				ptime start = time_now();
 #endif
@@ -287,6 +289,12 @@ namespace libtorrent
 						m_log << log_time() << " release" << std::endl;
 #endif
 						j.storage->release_files_impl();
+						break;
+					case disk_io_job::delete_files:
+#ifdef TORRENT_DISK_STATS
+						m_log << log_time() << " delete" << std::endl;
+#endif
+						j.storage->delete_files_impl();
 						break;
 				}
 			}

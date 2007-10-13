@@ -361,6 +361,7 @@ namespace libtorrent
 		}
 
 		void release_files();
+		void delete_files();
 		void initialize(bool allocate_files);
 		bool move_storage(fs::path save_path);
 		size_type read(char* buf, int slot, int offset, int size);
@@ -468,6 +469,38 @@ namespace libtorrent
 	{
 		m_files.release(this);
 		std::vector<char>().swap(m_scratch_buffer);
+	}
+
+	void storage::delete_files()
+	{
+		// make sure we don't have the files open
+		m_files.release(this);
+		std::vector<char>().swap(m_scratch_buffer);
+
+		// delete the files from disk
+		std::set<std::string> directories;
+		typedef std::set<std::string>::iterator iter_t;
+		for (torrent_info::file_iterator i = m_info->begin_files(true)
+			, end(m_info->end_files(true)); i != end; ++i)
+		{
+			std::string p = (m_save_path / i->path).string();
+			fs::path bp = i->path.branch_path();
+			std::pair<iter_t, bool> ret = directories.insert(bp.string());
+			while (ret.second && !bp.empty())
+			{
+				bp = bp.branch_path();
+				std::pair<iter_t, bool> ret = directories.insert(bp.string());
+			}
+			std::remove(p.c_str());
+		}
+
+		// remove the directories. Reverse order to delete
+		// subdirectories first
+		std::for_each(directories.rbegin(), directories.rend()
+			, bind((int(*)(char const*))&std::remove, bind(&std::string::c_str, _1)));
+
+		std::string p = (m_save_path / m_info->name()).string();
+		std::remove(p.c_str());
 	}
 
 	void storage::write_resume_data(entry& rd) const
@@ -981,6 +1014,15 @@ namespace libtorrent
 		m_io_thread.add_job(j, handler);
 	}
 
+	void piece_manager::async_delete_files(
+		boost::function<void(int, disk_io_job const&)> const& handler)
+	{
+		disk_io_job j;
+		j.storage = this;
+		j.action = disk_io_job::delete_files;
+		m_io_thread.add_job(j, handler);
+	}
+
 	void piece_manager::async_move_storage(fs::path const& p
 		, boost::function<void(int, disk_io_job const&)> const& handler)
 	{
@@ -1063,11 +1105,6 @@ namespace libtorrent
 		return m_storage->hash_for_slot(slot, ph, m_info->piece_size(piece));
 	}
 
-	void piece_manager::release_files_impl()
-	{
-		m_storage->release_files();
-	}
-
 	bool piece_manager::move_storage_impl(fs::path const& save_path)
 	{
 		if (m_storage->move_storage(save_path))
@@ -1077,6 +1114,7 @@ namespace libtorrent
 		}
 		return false;
 	}
+
 	void piece_manager::export_piece_map(
 			std::vector<int>& p, std::vector<bool> const& have) const
 	{

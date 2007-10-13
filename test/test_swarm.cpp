@@ -9,6 +9,7 @@
 #include "setup_transfer.hpp"
 
 using boost::filesystem::remove_all;
+using boost::filesystem::exists;
 
 void test_swarm()
 {
@@ -113,6 +114,11 @@ void test_swarm()
 	TEST_CHECK(std::fabs(average2 - float(rate_limit)) < 3000.f);
 	TEST_CHECK(std::fabs(average3 - float(rate_limit)) < 3000.f);
 	if (tor2.is_seed() && tor3.is_seed()) std::cerr << "done\n";
+
+	// make sure the files are deleted
+	ses1.remove_torrent(tor1, session::delete_files);
+	ses2.remove_torrent(tor2, session::delete_files);
+	ses3.remove_torrent(tor3, session::delete_files);
 }
 
 int test_main()
@@ -127,6 +133,11 @@ int test_main()
 
 	test_swarm();
 	
+	test_sleep(2000);
+	TEST_CHECK(!exists("./tmp1/temporary"));
+	TEST_CHECK(!exists("./tmp2/temporary"));
+	TEST_CHECK(!exists("./tmp3/temporary"));
+
 	remove_all("./tmp1");
 	remove_all("./tmp2");
 	remove_all("./tmp3");

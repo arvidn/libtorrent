@@ -151,6 +151,10 @@ namespace libtorrent
 		// writing. This is called when a torrent has finished
 		// downloading.
 		virtual void release_files() = 0;
+
+		// this will close all open files and delete them
+		virtual void delete_files() = 0;
+
 		virtual ~storage_interface() {}
 	};
 
@@ -226,6 +230,10 @@ namespace libtorrent
 			boost::function<void(int, disk_io_job const&)> const& handler
 			= boost::function<void(int, disk_io_job const&)>());
 
+		void async_delete_files(
+			boost::function<void(int, disk_io_job const&)> const& handler
+			= boost::function<void(int, disk_io_job const&)>());
+
 		void async_move_storage(fs::path const& p
 			, boost::function<void(int, disk_io_job const&)> const& handler);
 
@@ -270,7 +278,8 @@ namespace libtorrent
 		void switch_to_full_mode();
 		sha1_hash hash_for_piece_impl(int piece);
 
-		void release_files_impl();
+		void release_files_impl() { m_storage->release_files(); }
+		void delete_files_impl() { m_storage->delete_files(); }
 
 		bool move_storage_impl(fs::path const& save_path);
 
