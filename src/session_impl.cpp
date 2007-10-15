@@ -569,8 +569,19 @@ namespace detail
 		, m_checker_impl(*this)
 	{
 #ifdef WIN32
-		// windows XP has a limit of 10 simultaneous connections
-		m_half_open.limit(8);
+		// windows XP has a limit on the number of
+		// simultaneous half-open TCP connections
+		DWORD windows_version = ::GetVersion();
+		if ((windows_version & 0xff) >= 6)
+		{
+			// on vista the limit is 5 (in home edition)
+			m_half_open.limit(4);
+		}
+		else
+		{
+			// on XP SP2 it's 10	
+			m_half_open.limit(8);
+		}
 #endif
 
 		m_bandwidth_manager[peer_connection::download_channel] = &m_download_channel;
