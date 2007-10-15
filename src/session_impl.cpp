@@ -90,6 +90,10 @@ namespace
 }
 
 #endif
+#ifdef _WIN32
+// for ERROR_SEM_TIMEOUT
+#include <winerror.h>
+#endif
 
 using boost::shared_ptr;
 using boost::weak_ptr;
@@ -924,6 +928,15 @@ namespace detail
 			std::string msg = "error accepting connection on '"
 				+ boost::lexical_cast<std::string>(ep) + "' " + e.message();
 			(*m_logger) << msg << "\n";
+#endif
+#ifdef _WIN32
+			// Windows sometimes generates this error. It seems to be
+			// non-fatal and we have to do another async_accept.
+			if (e.value() == ERROR_SEM_TIMEOUT)
+			{
+				async_accept(listener);
+				return;
+			}
 #endif
 			if (m_alerts.should_post(alert::fatal))
 			{
