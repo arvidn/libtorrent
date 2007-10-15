@@ -47,7 +47,7 @@ void bind_session_settings()
         .value("http", proxy_settings::http)
         .value("http_pw", proxy_settings::http_pw)
     ;
-    scope ps = class_<proxy_settings>("proxy_settings")
+    class_<proxy_settings>("proxy_settings") 
         .def_readwrite("hostname", &proxy_settings::hostname)
         .def_readwrite("port", &proxy_settings::port)
         .def_readwrite("password", &proxy_settings::password)
@@ -64,9 +64,10 @@ void bind_session_settings()
     enum_<pe_settings::enc_level>("enc_level")
         .value("rc4", pe_settings::rc4)
         .value("plaintext", pe_settings::plaintext)
+        .value("both", pe_settings::both) 
     ;
 
-    scope pes = class_<pe_settings>("pe_settings")
+    class_<pe_settings>("pe_settings")
         .def_readwrite("out_enc_policy", &pe_settings::out_enc_policy)
         .def_readwrite("in_enc_policy", &pe_settings::in_enc_policy)
         .def_readwrite("allowed_enc_level", &pe_settings::allowed_enc_level)
@@ -74,4 +75,5 @@ void bind_session_settings()
     ;
 
 }
+
 

@@ -109,6 +109,15 @@ namespace
 
 } // namespace unnamed
 
+
+boost::shared_ptr<torrent_plugin> create_metadata_plugin_wrapper(torrent* t) {
+    return create_metadata_plugin(t, NULL);
+}
+
+boost::shared_ptr<torrent_plugin> create_ut_pex_plugin_wrapper(torrent* t) {
+    return create_ut_pex_plugin(t, NULL);
+}
+
 void bind_extensions()
 {
     class_<
@@ -142,7 +151,9 @@ void bind_extensions()
     // TODO move to it's own file
     class_<peer_connection, boost::noncopyable>("peer_connection", no_init);
 
-    def("create_ut_pex_plugin", create_ut_pex_plugin);
-    def("create_metadata_plugin", create_metadata_plugin);
+    class_<torrent_plugin, boost::shared_ptr<torrent_plugin> >("torrent_plugin", no_init);
+    def("create_ut_pex_plugin", create_ut_pex_plugin_wrapper);
+    def("create_metadata_plugin", create_metadata_plugin_wrapper);
 }
+
 
