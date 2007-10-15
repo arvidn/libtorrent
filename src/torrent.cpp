@@ -1678,8 +1678,6 @@ namespace libtorrent
 
 		try
 		{
-			TORRENT_ASSERT(m_connections.find(a) == m_connections.end());
-
 			// add the newly connected peer to this torrent's peer list
 			TORRENT_ASSERT(m_connections.find(a) == m_connections.end());
 			m_connections.insert(
@@ -1893,10 +1891,13 @@ namespace libtorrent
 				std::make_pair(a, boost::get_pointer(c)));
 			m_ses.m_connections.insert(std::make_pair(s, c));
 
+			int timeout = settings().peer_connect_timeout;
+			if (peerinfo) timeout += 3 * peerinfo->failcount;
+
 			m_ses.m_half_open.enqueue(
 				bind(&peer_connection::connect, c, _1)
 				, bind(&peer_connection::timed_out, c)
-				, seconds(settings().peer_connect_timeout));
+				, seconds(timeout));
 		}
 		catch (std::exception& e)
 		{
@@ -2400,8 +2401,6 @@ namespace libtorrent
 
 	piece_manager& torrent::filesystem()
 	{
-		INVARIANT_CHECK;
-
 		TORRENT_ASSERT(m_owning_storage.get());
 		return *m_owning_storage;
 	}

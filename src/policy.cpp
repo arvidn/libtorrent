@@ -986,7 +986,8 @@ namespace libtorrent
 		i->second.prev_amount_upload = 0;
 		i->second.connection = &c;
 		TORRENT_ASSERT(i->second.connection);
-		i->second.connected = time_now();
+		if (!c.fast_reconnect())
+			i->second.connected = time_now();
 //		m_last_optimistic_disconnect = time_now();
 	}
 

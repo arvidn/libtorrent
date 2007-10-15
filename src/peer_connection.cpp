@@ -394,6 +394,16 @@ namespace libtorrent
 #endif
 	}
 
+	void peer_connection::fast_reconnect(bool r)
+	{
+		if (peer_info_struct() && peer_info_struct()->fast_reconnects > 1) return;
+		m_fast_reconnect = r;
+		peer_info_struct()->connected = time_now()
+			- seconds(m_ses.settings().min_reconnect_time
+			* m_ses.settings().max_failcount);
+		if (peer_info_struct()) ++peer_info_struct()->fast_reconnects;
+	}
+
 	void peer_connection::announce_piece(int index)
 	{
 		// dont announce during handshake
@@ -1922,7 +1932,6 @@ namespace libtorrent
 
 	void peer_connection::timed_out()
 	{
-		if (m_peer_info) ++m_peer_info->failcount;
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_ses.m_logger) << "CONNECTION TIMED OUT: " << m_remote.address().to_string()
 			<< "\n";

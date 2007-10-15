@@ -204,7 +204,6 @@ namespace libtorrent
 
 				// if this fails, we need to reconnect
 				// fast.
-				pi->connected = time_now() - seconds(m_ses.settings().min_reconnect_time);
 				fast_reconnect(true);
 
 				write_pe1_2_dhkey();

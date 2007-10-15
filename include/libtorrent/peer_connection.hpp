@@ -176,13 +176,7 @@ namespace libtorrent
 		void set_non_prioritized(bool b)
 		{ m_non_prioritized = b; }
 
-		void fast_reconnect(bool r)
-		{
-			if (peer_info_struct() && peer_info_struct()->fast_reconnects > 0) return;
-			m_fast_reconnect = r;
-			if (peer_info_struct()) ++peer_info_struct()->fast_reconnects;
-
-		}
+		void fast_reconnect(bool r);
 		bool fast_reconnect() const { return m_fast_reconnect; }
 
 		// this adds an announcement in the announcement queue
