@@ -99,7 +99,7 @@ namespace libtorrent
 			, allow_multiple_connections_per_ip(false)
 			, max_failcount(3)
 			, min_reconnect_time(60)
-			, peer_connect_timeout(10)
+			, peer_connect_timeout(7)
 			, ignore_limits_on_local_network(true)
 			, connection_speed(20)
 			, send_redundant_have(false)
