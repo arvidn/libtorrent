@@ -2482,7 +2482,7 @@ namespace libtorrent
 			TORRENT_ASSERT(total_done == 0);
 		}
 
-		if (m_picker)
+		if (m_picker && !m_abort)
 		{
 			// make sure that pieces that have completed the download
 			// of all their blocks are in the disk io thread's queue
