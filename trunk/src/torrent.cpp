@@ -819,6 +819,11 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_ses.m_logger) << time_now_string() << " *** PIECE_FINISHED [ p: "
+			<< index << " chk: " << (passed_hash_check?"passed":"failed") << " ]\n";
+#endif
+
 		bool was_seed = is_seed();
 		bool was_finished = m_picker->num_filtered() + num_pieces()
 			== torrent_file().num_pieces();
@@ -2112,7 +2117,8 @@ namespace libtorrent
 			expire_bandwidth(channel, blk - amount);
 	}
 
-	// called when torrent is finished (all interested pieces downloaded)
+	// called when torrent is finished (all interesting
+	// pieces have been downloaded)
 	void torrent::finished()
 	{
 		INVARIANT_CHECK;
@@ -2476,6 +2482,36 @@ namespace libtorrent
 			TORRENT_ASSERT(total_done == 0);
 		}
 
+		if (m_picker)
+		{
+			// make sure that pieces that have completed the download
+			// of all their blocks are in the disk io thread's queue
+			// to be checked.
+			const std::vector<piece_picker::downloading_piece>& dl_queue
+				= m_picker->get_download_queue();
+			for (std::vector<piece_picker::downloading_piece>::const_iterator i =
+				dl_queue.begin(); i != dl_queue.end(); ++i)
+			{
+				const int blocks_per_piece = m_picker->blocks_in_piece(i->index);
+
+				bool complete = true;
+				for (int j = 0; j < blocks_per_piece; ++j)
+				{
+					if (i->info[j].state == piece_picker::block_info::state_finished)
+						continue;
+					complete = false;
+					break;
+				}
+				if (complete)
+				{
+					disk_io_job ret = m_ses.m_disk_thread.find_job(
+						m_owning_storage, -1, i->index);
+					TORRENT_ASSERT(ret.action == disk_io_job::hash || ret.action == disk_io_job::write);
+					TORRENT_ASSERT(ret.piece == i->index);
+				}
+			}
+		}
+			
 // This check is very expensive.
 		TORRENT_ASSERT(m_num_pieces
 			== std::count(m_have_pieces.begin(), m_have_pieces.end(), true));
@@ -2733,7 +2769,7 @@ namespace libtorrent
 
 	void torrent::async_verify_piece(int piece_index, boost::function<void(bool)> const& f)
 	{
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(m_storage);
 		TORRENT_ASSERT(m_storage->refcount() > 0);
@@ -2743,6 +2779,9 @@ namespace libtorrent
 
 		m_storage->async_hash(piece_index, bind(&torrent::on_piece_verified
 			, shared_from_this(), _1, _2, f));
+#ifndef NDEBUG
+		check_invariant();
+#endif
 	}
 
 	void torrent::on_piece_verified(int ret, disk_io_job const& j

@@ -106,6 +106,10 @@ namespace libtorrent
 			, boost::function<void(int, disk_io_job const&)> const& f
 			= boost::function<void(int, disk_io_job const&)>());
 
+#ifndef NDEBUG
+		disk_io_job find_job(boost::intrusive_ptr<piece_manager> s
+			, int action, int piece) const;
+#endif
 		// keep track of the number of bytes in the job queue
 		// at any given time. i.e. the sum of all buffer_size.
 		// this is used to slow down the download global download
@@ -120,7 +124,7 @@ namespace libtorrent
 
 	private:
 
-		boost::mutex m_mutex;
+		mutable boost::mutex m_mutex;
 		boost::condition m_signal;
 		bool m_abort;
 		std::deque<disk_io_job> m_jobs;
@@ -131,6 +135,7 @@ namespace libtorrent
 
 #ifndef NDEBUG
 		int m_block_size;
+		disk_io_job m_current;
 #endif
 
 #ifdef TORRENT_DISK_STATS
