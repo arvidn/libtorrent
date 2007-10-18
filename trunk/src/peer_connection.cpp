@@ -1925,7 +1925,8 @@ namespace libtorrent
 				"s: " << r.start << " | "
 				"l: " << r.length << " | "
 				"ds: " << statistics().download_rate() << " B/s | "
-				"qs: " << m_desired_queue_size << " ]\n";
+				"qs: " << m_desired_queue_size << " "
+				"blk: " << (m_request_large_blocks?"large":"single") << " ]\n";
 #endif
 		}
 		m_last_piece = time_now();
@@ -2898,7 +2899,7 @@ namespace libtorrent
 			TORRENT_ASSERT(false);
 		}
 
-		if (t->has_picker())
+		if (t->has_picker() && !t->is_aborted())
 		{
 			// make sure that pieces that have completed the download
 			// of all their blocks are in the disk io thread's queue
