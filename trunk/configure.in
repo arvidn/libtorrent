@@ -27,7 +27,7 @@ AC_PROG_LIBTOOL
 
 dnl Make sure that the asio header files are added.
 ASIO_DIR=$srcdir/include/libtorrent/asio
-AC_CHECK_FILES([$ASIO_DIR/../asio.hpp $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp ],,AC_MSG_ERROR([ ASIO header files not found. Get them from asio.sourceforge.net and include or symlink them. Example: ln -s ../../../asio/include/asio.hpp include/libtorrent/asio.hpp && ln -s ../../../asio/include/asio include/libtorrent/asio ]) )
+AC_CHECK_FILES([$ASIO_DIR/../asio.hpp $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp ],,AC_MSG_ERROR([ ASIO header files not found. Get them from asio.sourceforge.net (use CVS head) and include or symlink them. Example: ln -s ../../../asio/include/asio.hpp include/libtorrent/asio.hpp && ln -s ../../../asio/include/asio include/libtorrent/asio ]) )
 dnl check asio version
 
 dnl Check for pthreads and boost libraries.
