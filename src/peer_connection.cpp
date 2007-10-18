@@ -1373,18 +1373,25 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
+		INVARIANT_CHECK;
+
 		m_outstanding_writing_bytes -= p.length;
 		TORRENT_ASSERT(m_outstanding_writing_bytes >= 0);
 
-#ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << " *** on_disk_write_complete() " << p.length << "\n";
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_ses.m_logger) << time_now_string() << " *** DISK_WRITE_COMPLETE [ p: "
+			<< p.piece << " o: " << p.start << " ]\n";
 #endif
 		// in case the outstanding bytes just dropped down
 		// to allow to receive more data
 		setup_receive();
 
+		piece_block block_finished(p.piece, p.start / t->block_size());
+
 		if (ret == -1 || !t)
 		{
+			if (t->has_picker()) t->picker().abort_download(block_finished);
+
 			if (!t)
 			{
 				m_ses.connection_failed(m_socket, remote(), j.str.c_str());
@@ -1406,19 +1413,11 @@ namespace libtorrent
 
 		TORRENT_ASSERT(p.piece == j.piece);
 		TORRENT_ASSERT(p.start == j.offset);
-		piece_block block_finished(p.piece, p.start / t->block_size());
 		picker.mark_as_finished(block_finished, peer_info_struct());
 		if (t->alerts().should_post(alert::debug))
 		{
 			t->alerts().post_alert(block_finished_alert(t->get_handle(), 
 				block_finished.block_index, block_finished.piece_index, "block finished"));
-		}
-
-		if (!t->is_seed() && !m_torrent.expired())
-		{
-			// this is a free function defined in policy.cpp
-			request_a_block(*t, *this);
-			send_block_requests();
 		}
 
 #ifndef NDEBUG
@@ -1444,6 +1443,14 @@ namespace libtorrent
 			TORRENT_ASSERT(false);
 		}
 #endif
+
+		if (!t->is_seed() && !m_torrent.expired())
+		{
+			// this is a free function defined in policy.cpp
+			request_a_block(*t, *this);
+			send_block_requests();
+		}
+
 	}
 
 	// -----------------------------
@@ -2891,6 +2898,35 @@ namespace libtorrent
 			TORRENT_ASSERT(false);
 		}
 
+		if (t->has_picker())
+		{
+			// make sure that pieces that have completed the download
+			// of all their blocks are in the disk io thread's queue
+			// to be checked.
+			const std::vector<piece_picker::downloading_piece>& dl_queue
+				= t->picker().get_download_queue();
+			for (std::vector<piece_picker::downloading_piece>::const_iterator i =
+				dl_queue.begin(); i != dl_queue.end(); ++i)
+			{
+				const int blocks_per_piece = t->picker().blocks_in_piece(i->index);
+
+				bool complete = true;
+				for (int j = 0; j < blocks_per_piece; ++j)
+				{
+					if (i->info[j].state == piece_picker::block_info::state_finished)
+						continue;
+					complete = false;
+					break;
+				}
+				if (complete)
+				{
+					disk_io_job ret = m_ses.m_disk_thread.find_job(
+						&t->filesystem(), -1, i->index);
+					TORRENT_ASSERT(ret.action == disk_io_job::hash || ret.action == disk_io_job::write);
+					TORRENT_ASSERT(ret.piece == i->index);
+				}
+			}
+		}
 // expensive when using checked iterators
 /*
 		if (t->valid_metadata())

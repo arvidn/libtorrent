@@ -70,6 +70,31 @@ namespace libtorrent
 		m_disk_io_thread.join();
 	}
 
+#ifndef NDEBUG
+	disk_io_job disk_io_thread::find_job(boost::intrusive_ptr<piece_manager> s
+		, int action, int piece) const
+	{
+		boost::mutex::scoped_lock l(m_mutex);
+		for (std::deque<disk_io_job>::const_iterator i = m_jobs.begin();
+			i != m_jobs.end(); ++i)
+		{
+			if (i->storage != s)
+				continue;
+			if ((i->action == action || action == -1) && i->piece == piece)
+				return *i;
+		}
+		if ((m_current.action == action || action == -1)
+			&& m_current.piece == piece)
+			return m_current;
+
+		disk_io_job ret;
+		ret.action = (disk_io_job::action_t)-1;
+		ret.piece = -1;
+		return ret;
+	}
+
+#endif
+
 	// aborts read operations
 	void disk_io_thread::stop(boost::intrusive_ptr<piece_manager> s)
 	{
@@ -205,12 +230,19 @@ namespace libtorrent
 			m_log << log_time() << " idle" << std::endl;
 #endif
 			boost::mutex::scoped_lock l(m_mutex);
+#ifndef NDEBUG
+			m_current.action = (disk_io_job::action_t)-1;
+			m_current.piece = -1;
+#endif
 			while (m_jobs.empty() && !m_abort)
 				m_signal.wait(l);
 			if (m_abort && m_jobs.empty()) return;
 
 			boost::function<void(int, disk_io_job const&)> handler;
 			handler.swap(m_jobs.front().callback);
+#ifndef NDEBUG
+			m_current = m_jobs.front();
+#endif
 			disk_io_job j = m_jobs.front();
 			m_jobs.pop_front();
 			m_queue_buffer_size -= j.buffer_size;
