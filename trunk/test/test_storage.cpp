@@ -133,6 +133,37 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	}
 }
 
+void test_remove(path const& test_path)
+{
+	boost::intrusive_ptr<torrent_info> info(new torrent_info());
+	info->set_piece_size(4);
+	info->add_file("temp_storage/test1.tmp", 8);
+	info->add_file("temp_storage/folder1/test2.tmp", 8);
+	info->add_file("temp_storage/folder2/test3.tmp", 0);
+	info->add_file("temp_storage/_folder3/test4.tmp", 0);
+	info->add_file("temp_storage/_folder3/subfolder/test5.tmp", 8);
+
+	char buf[4] = {0, 0, 0, 0};
+	sha1_hash h = hasher(buf, 4).final();
+	for (int i = 0; i < 6; ++i) info->set_hash(i, h);
+	
+	info->create_torrent();
+
+	file_pool fp;
+	boost::scoped_ptr<storage_interface> s(
+		default_storage_constructor(info, test_path, fp));
+
+	// allocate the files and create the directories
+	s->initialize(true);
+
+	TEST_CHECK(exists(test_path / "temp_storage/_folder3/subfolder/test5.tmp"));	
+	TEST_CHECK(exists(test_path / "temp_storage/folder2/test3.tmp"));	
+
+	s->delete_files();
+
+	TEST_CHECK(!exists(test_path / "temp_storage"));	
+}
+
 void run_test(path const& test_path)
 {
 	std::cerr << "\n=== " << test_path.string() << " ===\n" << std::endl;
@@ -199,6 +230,13 @@ void run_test(path const& test_path)
 	TEST_CHECK(file_size(test_path / "temp_storage" / "test1.tmp") == 17 + 612 + 1);
 
 	remove_all(test_path / "temp_storage");
+
+
+// ==============================================
+
+	std::cerr << "=== test 5 ===" << std::endl;
+	test_remove(test_path);
+
 }
 
 int test_main()
@@ -220,6 +258,7 @@ int test_main()
 	}
 
 	std::for_each(test_paths.begin(), test_paths.end(), bind(&run_test, _1));
+
 	return 0;
 }
 

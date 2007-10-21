@@ -485,11 +485,12 @@ namespace libtorrent
 		{
 			std::string p = (m_save_path / i->path).string();
 			fs::path bp = i->path.branch_path();
-			std::pair<iter_t, bool> ret = directories.insert(bp.string());
+			std::pair<iter_t, bool> ret;
+			ret.second = true;
 			while (ret.second && !bp.empty())
 			{
+				std::pair<iter_t, bool> ret = directories.insert((m_save_path / bp).string());
 				bp = bp.branch_path();
-				std::pair<iter_t, bool> ret = directories.insert(bp.string());
 			}
 			std::remove(p.c_str());
 		}
@@ -498,9 +499,6 @@ namespace libtorrent
 		// subdirectories first
 		std::for_each(directories.rbegin(), directories.rend()
 			, bind((int(*)(char const*))&std::remove, bind(&std::string::c_str, _1)));
-
-		std::string p = (m_save_path / m_info->name()).string();
-		std::remove(p.c_str());
 	}
 
 	void storage::write_resume_data(entry& rd) const
