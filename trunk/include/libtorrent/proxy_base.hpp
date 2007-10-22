@@ -104,10 +104,9 @@ public:
 		m_sock.bind(endpoint);
 	}
 
-	template <class Error_Handler>
-	void bind(endpoint_type const& endpoint, Error_Handler const& error_handler)
+	void bind(endpoint_type const& endpoint, asio::error_code& ec)
 	{
-		m_sock.bind(endpoint, error_handler);
+		m_sock.bind(endpoint, ec);
 	}
 
 	void open(protocol_type const& p)
@@ -115,10 +114,9 @@ public:
 		m_sock.open(p);
 	}
 
-	template <class Error_Handler>
-	void open(protocol_type const& p, Error_Handler const& error_handler)
+	void open(protocol_type const& p, asio::error_code& ec)
 	{
-		m_sock.open(p, error_handler);
+		m_sock.open(p, ec);
 	}
 
 	void close()
@@ -127,10 +125,9 @@ public:
 		m_sock.close();
 	}
 
-	template <class Error_Handler>
-	void close(Error_Handler const& error_handler)
+	void close(asio::error_code& ec)
 	{
-		m_sock.close(error_handler);
+		m_sock.close(ec);
 	}
 
 	endpoint_type remote_endpoint()
@@ -138,8 +135,7 @@ public:
 		return m_remote_endpoint;
 	}
 
-	template <class Error_Handler>
-	endpoint_type remote_endpoint(Error_Handler const& error_handler)
+	endpoint_type remote_endpoint(asio::error_code& ec)
 	{
 		return m_remote_endpoint;
 	}
@@ -149,10 +145,9 @@ public:
 		return m_sock.local_endpoint();
 	}
 
-	template <class Error_Handler>
-	endpoint_type local_endpoint(Error_Handler const& error_handler)
+	endpoint_type local_endpoint(asio::error_code& ec)
 	{
-		return m_sock.local_endpoint(error_handler);
+		return m_sock.local_endpoint(ec);
 	}
 
 	asio::io_service& io_service()
