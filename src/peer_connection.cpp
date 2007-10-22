@@ -2990,11 +2990,25 @@ namespace libtorrent
 		// time, it is considered to have timed out
 		time_duration d;
 		d = now - m_last_receive;
-		if (d > seconds(m_timeout)) return true;
+		if (d > seconds(m_timeout))
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string() << " *** LAST ACTIVITY [ "
+				<< total_seconds(d) << " seconds ago ] ***\n";
+#endif
+			return true;
+		}
 
 		// if it takes more than 5 seconds to receive
 		// handshake, disconnect
-		if (in_handshake() && d > seconds(5)) return true;
+		if (in_handshake() && d > seconds(5))
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string() << " *** NO HANDSHAKE [ "
+				<< total_seconds(d) << " seconds ago ] ***\n";
+#endif
+			return true;
+		}
 
 		// disconnect peers that we unchoked, but
 		// they didn't send a request within 20 seconds.
@@ -3005,7 +3019,14 @@ namespace libtorrent
 			&& !m_choked
 			&& m_peer_interested
 			&& t && t->is_finished()
-			&& d > seconds(20)) return true;
+			&& d > seconds(20))
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string() << " *** NO REQUEST [ t: "
+				<< total_seconds(d) << " ] ***\n";
+#endif
+			return true;
+		}
 
 		// TODO: as long as we have less than 95% of the
 		// global (or local) connection limit, connections should
@@ -3021,11 +3042,21 @@ namespace libtorrent
 		time_duration time_limit = seconds(
 			m_ses.settings().inactivity_timeout);
 
+		// don't bother disconnect peers we haven't been intersted
+		// in (and that hasn't been interested in us) for a while
+		// unless we have used up all our connection slots
 		if (!m_interesting
 			&& !m_peer_interested
 			&& d1 > time_limit
-			&& d2 > time_limit)
+			&& d2 > time_limit
+			&& (m_ses.num_connections() >= m_ses.max_connections()
+			|| (t && t->num_peers() >= t->max_connections())))
 		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string() << " *** MUTUAL NO INTEREST [ "
+				"t1: " << total_seconds(d1) << " | "
+				"t2: " << total_seconds(d2) << " ] ***\n";
+#endif
 			return true;
 		}
 
@@ -3068,10 +3099,9 @@ namespace libtorrent
 		if (m_writing) return;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		using namespace	boost::posix_time;
 		(*m_logger) << time_now_string() << " ==> KEEPALIVE\n";
 #endif
-		
+
 		m_last_sent = time_now();
 		write_keepalive();
 	}
