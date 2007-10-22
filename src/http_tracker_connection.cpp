@@ -496,7 +496,7 @@ namespace libtorrent
 	void http_tracker_connection::on_timeout()
 	{
 		m_timed_out = true;
-		m_socket.reset();
+		m_socket.close();
 		m_name_lookup.cancel();
 		if (m_connection_ticket > -1) m_cc.done(m_connection_ticket);
 		m_connection_ticket = -1;
@@ -550,18 +550,20 @@ namespace libtorrent
 		}
 
 		if (cb) cb->m_tracker_address = target_address;
-		m_socket = instantiate_connection(m_name_lookup.io_service(), m_proxy);
+		bool ret = instantiate_connection(m_strand.io_service(), m_proxy, m_socket);
+
+		TORRENT_ASSERT(ret);
 
 		if (m_proxy.type == proxy_settings::http
 			|| m_proxy.type == proxy_settings::http_pw)
 		{
 			// the tracker connection will talk immediately to
 			// the proxy, without requiring CONNECT support
-			m_socket->get<http_stream>().set_no_connect(true);
+			m_socket.get<http_stream>().set_no_connect(true);
 		}
 
-		m_socket->open(target_address.protocol());
-		m_socket->bind(tcp::endpoint(bind_interface(), 0));
+		m_socket.open(target_address.protocol());
+		m_socket.bind(tcp::endpoint(bind_interface(), 0));
 		m_cc.enqueue(bind(&http_tracker_connection::connect, self(), _1, target_address)
 			, bind(&http_tracker_connection::on_timeout, self())
 			, seconds(m_settings.tracker_receive_timeout));
@@ -574,7 +576,7 @@ namespace libtorrent
 	void http_tracker_connection::connect(int ticket, tcp::endpoint target_address)
 	{
 		m_connection_ticket = ticket;
-		m_socket->async_connect(target_address, bind(&http_tracker_connection::connected, self(), _1));
+		m_socket.async_connect(target_address, bind(&http_tracker_connection::connected, self(), _1));
 	}
 
 	void http_tracker_connection::connected(asio::error_code const& error) try
@@ -595,7 +597,7 @@ namespace libtorrent
 #endif
 
 		restart_read_timeout();
-		async_write(*m_socket, asio::buffer(m_send_buffer.c_str()
+		async_write(m_socket, asio::buffer(m_send_buffer.c_str()
 			, m_send_buffer.size()), bind(&http_tracker_connection::sent
 			, self(), _1));
 	}
@@ -620,7 +622,7 @@ namespace libtorrent
 #endif
 		restart_read_timeout();
 		TORRENT_ASSERT(m_buffer.size() - m_recv_pos > 0);
-		m_socket->async_read_some(asio::buffer(&m_buffer[m_recv_pos]
+		m_socket.async_read_some(asio::buffer(&m_buffer[m_recv_pos]
 			, m_buffer.size() - m_recv_pos), bind(&http_tracker_connection::receive
 			, self(), _1, _2));
 	}
@@ -701,7 +703,7 @@ namespace libtorrent
 		}
 
 		TORRENT_ASSERT(m_buffer.size() - m_recv_pos > 0);
-		m_socket->async_read_some(asio::buffer(&m_buffer[m_recv_pos]
+		m_socket.async_read_some(asio::buffer(&m_buffer[m_recv_pos]
 			, m_buffer.size() - m_recv_pos), bind(&http_tracker_connection::receive
 			, self(), _1, _2));
 	}
