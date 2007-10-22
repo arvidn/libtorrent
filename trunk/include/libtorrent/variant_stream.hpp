@@ -108,30 +108,27 @@ namespace aux
 
 // -------------- bind -----------
 
-  template <class EndpointType, class Error_Handler = boost::mpl::void_>
-  struct bind_visitor
+  template <class EndpointType>
+  struct bind_visitor_ec
     : boost::static_visitor<>
   {
-      bind_visitor(EndpointType const& ep, Error_Handler const& error_handler)
+      bind_visitor_ec(EndpointType const& ep, asio::error_code& ec_)
         : endpoint(ep)
-        , error_handler(error_handler)
+        , ec(ec_)
       {}
 
       template <class T>
       void operator()(T* p) const
-      {
-          p->bind(endpoint, error_handler);
-      }
+      { p->bind(endpoint, ec); }
 
-      void operator()(boost::blank) const
-      {}
+      void operator()(boost::blank) const {}
 
       EndpointType const& endpoint;
-      Error_Handler const& error_handler;
+		asio::error_code& ec;
   };
 
   template <class EndpointType>
-  struct bind_visitor<EndpointType, boost::mpl::void_>
+  struct bind_visitor
     : boost::static_visitor<>
   {
       bind_visitor(EndpointType const& ep)
@@ -140,42 +137,36 @@ namespace aux
 
       template <class T>
       void operator()(T* p) const
-      {
-          p->bind(endpoint);
-      }
+      { p->bind(endpoint); }
 
-      void operator()(boost::blank) const
-      {}
+      void operator()(boost::blank) const {}
 
       EndpointType const& endpoint;
   };
 
 // -------------- open -----------
 
-  template <class Protocol, class Error_Handler = boost::mpl::void_>
-  struct open_visitor
+  template <class Protocol>
+  struct open_visitor_ec
     : boost::static_visitor<>
   {
-      open_visitor(Protocol const& p, Error_Handler const& error_handler)
+      open_visitor_ec(Protocol const& p, asio::error_code& ec_)
         : proto(p)
-        , error_handler(error_handler)
+        , ec(ec_)
       {}
 
       template <class T>
       void operator()(T* p) const
-      {
-          p->open(proto, error_handler);
-      }
+      { p->open(proto, ec); }
 
-      void operator()(boost::blank) const
-      {}
+      void operator()(boost::blank) const {}
 
       Protocol const& proto;
-      Error_Handler const& error_handler;
+		asio::error_code& ec;
   };
 
   template <class Protocol>
-  struct open_visitor<Protocol, boost::mpl::void_>
+  struct open_visitor
     : boost::static_visitor<>
   {
       open_visitor(Protocol const& p)
@@ -184,50 +175,39 @@ namespace aux
 
       template <class T>
       void operator()(T* p) const
-      {
-          p->open(proto);
-      }
+      { p->open(proto); }
 
-      void operator()(boost::blank) const
-      {}
+      void operator()(boost::blank) const {}
 
       Protocol const& proto;
   };
 
 // -------------- close -----------
 
-  template <class Error_Handler = boost::mpl::void_>
+  struct close_visitor_ec
+    : boost::static_visitor<>
+  {
+      close_visitor_ec(asio::error_code& ec_)
+        : ec(ec)
+      {}
+
+      template <class T>
+      void operator()(T* p) const
+      { p->close(ec); }
+
+      void operator()(boost::blank) const {}
+
+		asio::error_code& ec;
+  };
+
   struct close_visitor
     : boost::static_visitor<>
   {
-      close_visitor(Error_Handler const& error_handler)
-        : error_handler(error_handler)
-      {}
-
       template <class T>
       void operator()(T* p) const
-      {
-          p->close(error_handler);
-      }
+      { p->close(); }
 
-      void operator()(boost::blank) const
-      {}
-
-      Error_Handler const& error_handler;
-  };
-
-  template <>
-  struct close_visitor<boost::mpl::void_>
-    : boost::static_visitor<>
-  {
-      template <class T>
-      void operator()(T* p) const
-      {
-          p->close();
-      }
-
-      void operator()(boost::blank) const
-      {}
+      void operator()(boost::blank) const {}
   };
 
 // -------------- remote_endpoint -----------
@@ -242,14 +222,10 @@ namespace aux
 
       template <class T>
       EndpointType operator()(T* p) const
-      {
-          return p->remote_endpoint(error_code);
-      }
+      { return p->remote_endpoint(error_code); }
 
       EndpointType operator()(boost::blank) const
-      {
-          return EndpointType();
-      }
+      { return EndpointType(); }
 
 		asio::error_code& error_code;
   };
@@ -260,14 +236,10 @@ namespace aux
   {
       template <class T>
       EndpointType operator()(T* p) const
-      {
-          return p->remote_endpoint();
-      }
+      { return p->remote_endpoint(); }
 
       EndpointType operator()(boost::blank) const
-      {
-          return EndpointType();
-      }
+      { return EndpointType(); }
   };
 
 // -------------- local_endpoint -----------
@@ -399,18 +371,17 @@ namespace aux
 
 // -------------- in_avail -----------
 
-  template <class Error_Handler = boost::mpl::void_>
-  struct in_avail_visitor
+  struct in_avail_visitor_ec
     : boost::static_visitor<std::size_t>
   {
-      in_avail_visitor(Error_Handler const& error_handler)
-        : error_handler(error_handler)
+      in_avail_visitor_ec(asio::error_code& ec_)
+        : ec(ec_)
       {}
 
       template <class T>
       std::size_t operator()(T* p) const
       {
-          return p->in_avail(error_handler);
+          return p->in_avail(ec);
       }
 
       std::size_t operator()(boost::blank) const
@@ -418,11 +389,10 @@ namespace aux
           return 0;
       }
 
-      Error_Handler const& error_handler;
+		asio::error_code& ec;
   };
 
-  template <>
-  struct in_avail_visitor<boost::mpl::void_>
+  struct in_avail_visitor
     : boost::static_visitor<std::size_t>
   {
       template <class T>
@@ -602,12 +572,11 @@ public:
         boost::apply_visitor(aux::bind_visitor<endpoint_type>(endpoint), m_variant);
     }
 
-    template <class Error_Handler>
-    void bind(endpoint_type const& endpoint, Error_Handler const& error_handler)
+    void bind(endpoint_type const& endpoint, asio::error_code& ec)
     {
         TORRENT_ASSERT(instantiated());
         boost::apply_visitor(
-            aux::bind_visitor<endpoint_type, Error_Handler>(endpoint, error_handler), m_variant
+            aux::bind_visitor_ec<endpoint_type>(endpoint, ec), m_variant
         );
     }
 
@@ -617,42 +586,39 @@ public:
         boost::apply_visitor(aux::open_visitor<protocol_type>(p), m_variant);
     }
 
-    template <class Error_Handler>
-    void open(protocol_type const& p, Error_Handler const& error_handler)
+    void open(protocol_type const& p, asio::error_code& ec)
     {
         TORRENT_ASSERT(instantiated());
         boost::apply_visitor(
-            aux::open_visitor<protocol_type, Error_Handler>(p, error_handler), m_variant
+            aux::open_visitor_ec<protocol_type>(p, ec), m_variant
         );
     }
 
     void close()
     {
-        TORRENT_ASSERT(instantiated());
-        boost::apply_visitor(aux::close_visitor<>(), m_variant);
+        if (!instantiated()) return;
+        boost::apply_visitor(aux::close_visitor(), m_variant);
     }
 
-    template <class Error_Handler>
-    void close(Error_Handler const& error_handler)
+    void close(asio::error_code& ec)
     {
-        TORRENT_ASSERT(instantiated());
+        if (!instantiated()) return;
         boost::apply_visitor(
-            aux::close_visitor<Error_Handler>(error_handler), m_variant
+            aux::close_visitor_ec(ec), m_variant
         );
     }
 
     std::size_t in_avail()
     {
         TORRENT_ASSERT(instantiated());
-        return boost::apply_visitor(aux::in_avail_visitor<>(), m_variant);
+        return boost::apply_visitor(aux::in_avail_visitor(), m_variant);
     }
 
-    template <class Error_Handler>
-    std::size_t in_avail(Error_Handler const& error_handler)
+    std::size_t in_avail(asio::error_code& ec)
     {
         TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(
-            aux::in_avail_visitor<Error_Handler>(error_handler), m_variant
+            aux::in_avail_visitor_ec(ec), m_variant
         );
     }
 
