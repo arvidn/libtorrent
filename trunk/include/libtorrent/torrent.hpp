@@ -424,6 +424,7 @@ namespace libtorrent
 		}
 
 		int block_size() const { TORRENT_ASSERT(m_block_size > 0); return m_block_size; }
+		peer_request to_req(piece_block const& p);
 
 		// this will tell all peers that we just got his piece
 		// and also let the piece picker know that we have this piece
