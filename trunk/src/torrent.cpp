@@ -1656,8 +1656,11 @@ namespace libtorrent
 			else return;
 		}
 
-		boost::shared_ptr<socket_type> s
-			= instantiate_connection(m_ses.m_io_service, m_ses.web_seed_proxy());
+		boost::shared_ptr<socket_type> s(new socket_type);
+	
+		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.web_seed_proxy(), *s);
+		TORRENT_ASSERT(ret);
+
 		if (m_ses.web_seed_proxy().type == proxy_settings::http
 			|| m_ses.web_seed_proxy().type == proxy_settings::http_pw)
 		{
@@ -1869,8 +1872,11 @@ namespace libtorrent
 		tcp::endpoint const& a(peerinfo->ip);
 		TORRENT_ASSERT((m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked) == 0);
 
-		boost::shared_ptr<socket_type> s
-			= instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy());
+		boost::shared_ptr<socket_type> s(new socket_type);
+
+		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy(), *s);
+		TORRENT_ASSERT(ret);
+
 		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
 			m_ses, shared_from_this(), s, a, peerinfo));
 

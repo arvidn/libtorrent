@@ -168,7 +168,6 @@ public:
 protected:
 
 	stream_socket m_sock;
-	// the socks5 proxy
 	std::string m_hostname;
 	int m_port;
 

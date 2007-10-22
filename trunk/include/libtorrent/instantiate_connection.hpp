@@ -41,8 +41,8 @@ namespace libtorrent
 {
 	struct proxy_settings;
 
-	boost::shared_ptr<socket_type> instantiate_connection(
-		asio::io_service& ios, proxy_settings const& ps);
+	bool instantiate_connection(asio::io_service& ios
+		, proxy_settings const& ps, socket_type& s);
 }
 
 #endif

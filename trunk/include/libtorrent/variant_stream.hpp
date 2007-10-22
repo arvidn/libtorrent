@@ -501,15 +501,12 @@ public:
     typedef typename S0::endpoint_type endpoint_type;
     typedef typename S0::protocol_type protocol_type;
 
-    explicit variant_stream(asio::io_service& io_service)
-      : m_io_service(io_service)
-      , m_variant(boost::blank())
-    {}
+    explicit variant_stream() : m_variant(boost::blank()) {}
 
     template <class S>
-    void instantiate()
+    void instantiate(asio::io_service& ios)
     {
-        std::auto_ptr<S> owned(new S(m_io_service));
+        std::auto_ptr<S> owned(new S(ios));
         boost::apply_visitor(aux::delete_visitor(), m_variant);
         m_variant = owned.get();
         owned.release();
@@ -704,7 +701,6 @@ public:
     }
 
 private:
-	 asio::io_service& m_io_service;
     variant_type m_variant;
 };
 

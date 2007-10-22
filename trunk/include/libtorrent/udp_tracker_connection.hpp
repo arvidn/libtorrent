@@ -105,7 +105,7 @@ namespace libtorrent
 
 		asio::strand& m_strand;
 		udp::resolver m_name_lookup;
-		boost::shared_ptr<datagram_socket> m_socket;
+		datagram_socket m_socket;
 		udp::endpoint m_target;
 		udp::endpoint m_sender;
 

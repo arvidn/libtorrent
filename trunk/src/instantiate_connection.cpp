@@ -42,42 +42,40 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	boost::shared_ptr<socket_type> instantiate_connection(
-		asio::io_service& ios, proxy_settings const& ps)
+	bool instantiate_connection(asio::io_service& ios
+		, proxy_settings const& ps, socket_type& s)
 	{
-		boost::shared_ptr<socket_type> s(new socket_type(ios));
-
 		if (ps.type == proxy_settings::none)
 		{
-			s->instantiate<stream_socket>();
+			s.instantiate<stream_socket>(ios);
 		}
 		else if (ps.type == proxy_settings::http
 			|| ps.type == proxy_settings::http_pw)
 		{
-			s->instantiate<http_stream>();
-			s->get<http_stream>().set_proxy(ps.hostname, ps.port);
+			s.instantiate<http_stream>(ios);
+			s.get<http_stream>().set_proxy(ps.hostname, ps.port);
 			if (ps.type == proxy_settings::socks5_pw)
-				s->get<http_stream>().set_username(ps.username, ps.password);
+				s.get<http_stream>().set_username(ps.username, ps.password);
 		}
 		else if (ps.type == proxy_settings::socks5
 			|| ps.type == proxy_settings::socks5_pw)
 		{
-			s->instantiate<socks5_stream>();
-			s->get<socks5_stream>().set_proxy(ps.hostname, ps.port);
+			s.instantiate<socks5_stream>(ios);
+			s.get<socks5_stream>().set_proxy(ps.hostname, ps.port);
 			if (ps.type == proxy_settings::socks5_pw)
-				s->get<socks5_stream>().set_username(ps.username, ps.password);
+				s.get<socks5_stream>().set_username(ps.username, ps.password);
 		}
 		else if (ps.type == proxy_settings::socks4)
 		{
-			s->instantiate<socks4_stream>();
-			s->get<socks4_stream>().set_proxy(ps.hostname, ps.port);
-			s->get<socks4_stream>().set_username(ps.username);
+			s.instantiate<socks4_stream>(ios);
+			s.get<socks4_stream>().set_proxy(ps.hostname, ps.port);
+			s.get<socks4_stream>().set_username(ps.username);
 		}
 		else
 		{
-			throw std::runtime_error("unsupported proxy type");
+			return false;
 		}
-		return s;
+		return true;
 	}
 
 }
