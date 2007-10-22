@@ -326,6 +326,21 @@ namespace libtorrent
 			disconnect_all();
 	}
 
+	peer_request torrent::to_req(piece_block const& p)
+	{
+		int block_offset = p.block_index * m_block_size;
+		int block_size = (std::min)((int)torrent_file().piece_size(
+			p.piece_index) - block_offset, m_block_size);
+		TORRENT_ASSERT(block_size > 0);
+		TORRENT_ASSERT(block_size <= m_block_size);
+
+		peer_request r;
+		r.piece = p.piece_index;
+		r.start = block_offset;
+		r.length = block_size;
+		return r;
+	}
+
 	std::string torrent::name() const
 	{
 		if (valid_metadata()) return m_torrent_file->name();

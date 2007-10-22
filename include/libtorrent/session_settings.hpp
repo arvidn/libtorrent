@@ -87,7 +87,7 @@ namespace libtorrent
 			, tracker_receive_timeout(20)
 			, stop_tracker_timeout(5)
 			, tracker_maximum_response_length(1024*1024)
-			, piece_timeout(120)
+			, piece_timeout(10)
 			, request_queue_time(3.f)
 			, max_allowed_in_request_queue(250)
 			, max_out_request_queue(200)

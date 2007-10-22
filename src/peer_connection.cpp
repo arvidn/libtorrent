@@ -2209,18 +2209,19 @@ namespace libtorrent
 				piece_picker& picker = t->picker();
 				while (!m_download_queue.empty())
 				{
-					picker.abort_download(m_download_queue.back());
+					piece_block const& r = m_download_queue.back();
+					picker.abort_download(r);
+					write_cancel(t->to_req(r));
 					m_download_queue.pop_back();
 				}
 				while (!m_request_queue.empty())
 				{
-					picker.abort_download(m_request_queue.back());
+					piece_block const& r = m_request_queue.back();
+					picker.abort_download(r);
+					write_cancel(t->to_req(r));
 					m_request_queue.pop_back();
 				}
 
-				// TODO: If we have a limited number of upload
-				// slots, choke this peer
-				
 				m_assume_fifo = true;
 
 				request_a_block(*t, *this);
