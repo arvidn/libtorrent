@@ -341,6 +341,10 @@ namespace libtorrent
 //			else std::cerr << "DISK THREAD: invoking callback" << std::endl;
 			try { if (handler) handler(ret, j); }
 			catch (std::exception&) {}
+
+#ifndef NDEBUG
+			m_current.storage = 0;
+#endif
 			
 			if (j.buffer && free_buffer)
 			{
