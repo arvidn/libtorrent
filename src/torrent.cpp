@@ -1526,7 +1526,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_ses.m_logger) << time_now_string() << " resolving: " << url << "\n";
+		(*m_ses.m_logger) << time_now_string() << " resolving web seed: " << url << "\n";
 #endif
 
 		m_resolving_web_seeds.insert(url);
