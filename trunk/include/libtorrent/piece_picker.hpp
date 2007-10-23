@@ -357,11 +357,12 @@ namespace libtorrent
 				// the different priority levels
 				switch (piece_priority)
 				{
+					case 1: return prio;
 					case 2: return prio - 1;
 					case 3: return (std::max)(prio / 2, 1);
 					case 4: return (std::max)(prio / 2 - 1, 1);
-					case 5:
-					case 6: return (std::min)(prio / 2 - 1, 2);
+					case 5: return (std::max)(prio / 3, 1);
+					case 6: return (std::max)(prio / 3 - 1, 1);
 					case 7: return 1;
 				}
 				return prio;
