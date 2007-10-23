@@ -3000,13 +3000,12 @@ namespace libtorrent
 			return true;
 		}
 
-		// if it takes more than 5 seconds to receive
-		// handshake, disconnect
-		if (in_handshake() && d > seconds(5))
+		// do not stall waiting for a handshake
+		if (in_handshake() && d > seconds(m_ses.settings().handshake_timeout))
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " *** NO HANDSHAKE [ "
-				<< total_seconds(d) << " seconds ago ] ***\n";
+			(*m_logger) << time_now_string() << " *** NO HANDSHAKE [ waited "
+				<< total_seconds(d) << " seconds ] ***\n";
 #endif
 			return true;
 		}

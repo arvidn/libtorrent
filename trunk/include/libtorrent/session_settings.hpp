@@ -111,6 +111,7 @@ namespace libtorrent
 			, initial_picker_threshold(4)
 			, allowed_fast_set_size(10)
 			, max_outstanding_disk_bytes_per_connection(64 * 1024)
+			, handshake_timeout(10)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(true)
 #endif
@@ -269,6 +270,11 @@ namespace libtorrent
 		// indefinitely. This should be set to at least 32 kB
 		// to not completely disrupt normal downloads.
 		int max_outstanding_disk_bytes_per_connection;
+
+		// the number of seconds to wait for a handshake
+		// response from a peer. If no response is received
+		// within this time, the peer is disconnected.
+		int handshake_timeout;
 
 #ifndef TORRENT_DISABLE_DHT
 		// while this is true, the dht will note be used unless the
