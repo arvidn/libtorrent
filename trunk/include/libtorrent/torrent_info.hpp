@@ -240,8 +240,8 @@ namespace libtorrent
 
 		void parse_info_section(entry const& e);
 
-		entry extra(char const* key) const
-		{ return m_extra_info[key]; }
+		entry const* extra(char const* key) const
+		{ return m_extra_info.find_key(key); }
 
 		// frees parts of the metadata that isn't
 		// used by seeds
