@@ -48,8 +48,8 @@ namespace aux
   template<class IO_Control_Command>
   struct io_control_visitor_ec: boost::static_visitor<>
   {
-      io_control_visitor_ec(IO_Control_Command& ioc, asio::error_code& ec)
-          : ioc(ioc), ec(ec) {}
+      io_control_visitor_ec(IO_Control_Command& ioc, asio::error_code& ec_)
+          : ioc(ioc), ec(ec_) {}
 
       template <class T>
       void operator()(T* p) const
@@ -188,7 +188,7 @@ namespace aux
     : boost::static_visitor<>
   {
       close_visitor_ec(asio::error_code& ec_)
-        : ec(ec)
+        : ec(ec_)
       {}
 
       template <class T>
@@ -329,9 +329,9 @@ namespace aux
   struct read_some_visitor_ec
     : boost::static_visitor<std::size_t>
   {
-      read_some_visitor_ec(Mutable_Buffers const& buffers, asio::error_code& ec)
+      read_some_visitor_ec(Mutable_Buffers const& buffers, asio::error_code& ec_)
         : buffers(buffers)
-        , ec(ec)
+        , ec(ec_)
       {}
 
       template <class T>
