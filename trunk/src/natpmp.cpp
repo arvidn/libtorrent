@@ -382,6 +382,8 @@ void natpmp::try_next_mapping(int i)
 
 void natpmp::close()
 {
+	asio::error_code ec;
+	m_socket.close(ec);
 	if (m_disabled) return;
 	for (int i = 0; i < num_mappings; ++i)
 	{
@@ -390,5 +392,7 @@ void natpmp::close()
 		m_mappings[i].external_port = 0;
 		refresh_mapping(i);
 	}
+	m_refresh_timer.cancel();
+	m_send_timer.cancel();
 }
 
