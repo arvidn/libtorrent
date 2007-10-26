@@ -302,12 +302,12 @@ namespace libtorrent
 	{
 		m_completion_timeout = completion_timeout;
 		m_read_timeout = read_timeout;
-		m_start_time = time_now();
-		m_read_time = time_now();
+		m_start_time = m_read_time = time_now();
 
 		m_timeout.expires_at((std::min)(
 			m_read_time + seconds(m_read_timeout)
-			, m_start_time + seconds(m_completion_timeout)));
+			, m_start_time + seconds((std::min)(m_completion_timeout
+			, m_read_timeout))));
 		m_timeout.async_wait(m_strand.wrap(bind(
 			&timeout_handler::timeout_callback, self(), _1)));
 	}
@@ -343,7 +343,8 @@ namespace libtorrent
 
 		m_timeout.expires_at((std::min)(
 			m_read_time + seconds(m_read_timeout)
-			, m_start_time + seconds(m_completion_timeout)));
+			, m_start_time + seconds((std::min)(m_completion_timeout
+			, m_read_timeout))));
 		m_timeout.async_wait(m_strand.wrap(
 			bind(&timeout_handler::timeout_callback, self(), _1)));
 	}
@@ -570,9 +571,12 @@ namespace libtorrent
 		for (tracker_connections_t::const_iterator i =
 			m_connections.begin(); i != m_connections.end(); ++i)
 		{
+			if (!*i) continue;
 			tracker_request const& req = (*i)->tracker_req();
 			if (req.event == tracker_request::stopped)
 				keep_connections.push_back(*i);
+			else
+				(*i)->close();
 		}
 
 		std::swap(m_connections, keep_connections);

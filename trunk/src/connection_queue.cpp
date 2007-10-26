@@ -86,6 +86,11 @@ namespace libtorrent
 		try_connect();
 	}
 
+	void connection_queue::close()
+	{
+		m_timer.cancel();
+	}
+
 	void connection_queue::limit(int limit)
 	{ m_half_open_limit = limit; }
 
