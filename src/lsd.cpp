@@ -183,8 +183,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 
 void lsd::close()
 {
-	asio::error_code ec;
-	m_socket.close(ec);
+	m_socket.close();
 	m_broadcast_timer.cancel();
 }
 
