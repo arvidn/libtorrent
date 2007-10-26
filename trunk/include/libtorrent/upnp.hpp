@@ -148,7 +148,18 @@ private:
 		{
 			mapping[0].protocol = 0;
 			mapping[1].protocol = 1;
+#ifndef NDEBUG
+			magic = 1337;
+#endif
 		}
+
+#ifndef NDEBUG
+		~rootdevice()
+		{
+			TORRENT_ASSERT(magic == 1337);
+			magic = 0;
+		}
+#endif
 		
 		// the interface url, through which the list of
 		// supported interfaces are fetched
@@ -174,8 +185,12 @@ private:
 
 		mutable boost::shared_ptr<http_connection> upnp_connection;
 
+#ifndef NDEBUG
+		int magic;
+#endif
 		void close() const
 		{
+			TORRENT_ASSERT(magic == 1337);
 			if (!upnp_connection) return;
 			upnp_connection->close();
 			upnp_connection.reset();

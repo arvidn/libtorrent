@@ -148,6 +148,7 @@ void upnp::set_mappings(int tcp, int udp)
 		, end(m_devices.end()); i != end; ++i)
 	{
 		rootdevice& d = const_cast<rootdevice&>(*i);
+		TORRENT_ASSERT(d.magic == 1337);
 		if (d.mapping[0].local_port != m_tcp_local_port)
 		{
 			if (d.mapping[0].external_port == 0)
@@ -200,8 +201,13 @@ try
 			// we don't have a WANIP or WANPPP url for this device,
 			// ask for it
 			rootdevice& d = const_cast<rootdevice&>(*i);
+			TORRENT_ASSERT(d.magic == 1337);
 			try
 			{
+#ifdef TORRENT_UPNP_LOGGING
+				m_log << time_now_string()
+					<< " ==> connecting to " << d.url << std::endl;
+#endif
 				d.upnp_connection.reset(new http_connection(m_io_service
 					, m_cc, m_strand.wrap(bind(&upnp::on_upnp_xml, self(), _1, _2
 					, boost::ref(d)))));
@@ -270,7 +276,7 @@ try
 	{
 #ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
-			<< " <== Rootdevice responded with incorrect HTTP packet. Ignoring device (" << e.what() << ")" << std::endl;
+			<< " <== (" << from << ") Rootdevice responded with incorrect HTTP packet. Ignoring device (" << e.what() << ")" << std::endl;
 #endif
 		return;
 	}
@@ -280,11 +286,11 @@ try
 #ifdef TORRENT_UPNP_LOGGING
 		if (p.method().empty())
 			m_log << time_now_string()
-				<< " <== Device responded with HTTP status: " << p.status_code()
+				<< " <== (" << from << ") Device responded with HTTP status: " << p.status_code()
 				<< ". Ignoring device" << std::endl;
 		else
 			m_log << time_now_string()
-				<< " <== Device with HTTP method: " << p.method()
+				<< " <== (" << from << ") Device with HTTP method: " << p.method()
 				<< ". Ignoring device" << std::endl;
 #endif
 		return;
@@ -294,7 +300,7 @@ try
 	{
 #ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
-			<< " <== Rootdevice responded with incomplete HTTP "
+			<< " <== (" << from << ") Rootdevice responded with incomplete HTTP "
 			"packet. Ignoring device" << std::endl;
 #endif
 		return;
@@ -305,7 +311,7 @@ try
 	{
 #ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
-			<< " <== Rootdevice response is missing a location header. "
+			<< " <== (" << from << ") Rootdevice response is missing a location header. "
 			"Ignoring device" << std::endl;
 #endif
 		return;
@@ -332,7 +338,7 @@ try
 		{
 #ifdef TORRENT_UPNP_LOGGING
 			m_log << time_now_string()
-				<< " <== Rootdevice uses unsupported protocol: '" << protocol
+				<< " <== (" << from << ") Rootdevice uses unsupported protocol: '" << protocol
 				<< "'. Ignoring device" << std::endl;
 #endif
 			return;
@@ -342,15 +348,26 @@ try
 		{
 #ifdef TORRENT_UPNP_LOGGING
 			m_log << time_now_string()
-				<< " <== Rootdevice responded with a url with port 0. "
+				<< " <== (" << from << ") Rootdevice responded with a url with port 0. "
 				"Ignoring device" << std::endl;
 #endif
 			return;
 		}
 #ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
-			<< " <== Found rootdevice: " << d.url << std::endl;
+			<< " <== (" << from << ") Found rootdevice: " << d.url
+			<< " total: " << m_devices.size() << std::endl;
 #endif
+
+		if (m_devices.size() >= 50)
+		{
+#ifdef TORRENT_UPNP_LOGGING
+			m_log << time_now_string()
+				<< " <== (" << from << ") Too many devices (" << m_devices.size() << "), "
+				"ignoring: " << d.url << std::endl;
+#endif
+			return;
+		}
 
 		if (m_tcp_local_port != 0)
 		{
@@ -390,8 +407,13 @@ try
 				// we don't have a WANIP or WANPPP url for this device,
 				// ask for it
 				rootdevice& d = const_cast<rootdevice&>(*i);
+				TORRENT_ASSERT(d.magic == 1337);
 				try
 				{
+#ifdef TORRENT_UPNP_LOGGING
+					m_log << time_now_string()
+						<< " ==> connecting to " << d.url << std::endl;
+#endif
 					d.upnp_connection.reset(new http_connection(m_io_service
 						, m_cc, m_strand.wrap(bind(&upnp::on_upnp_xml, self(), _1, _2
 						, boost::ref(d)))));
@@ -420,6 +442,7 @@ catch (std::exception&)
 void upnp::post(upnp::rootdevice const& d, std::string const& soap
 	, std::string const& soap_action)
 {
+	TORRENT_ASSERT(d.magic == 1337);
 	std::stringstream header;
 	
 	header << "POST " << d.control_url << " HTTP/1.1\r\n"
@@ -439,6 +462,7 @@ void upnp::post(upnp::rootdevice const& d, std::string const& soap
 
 void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 {
+	TORRENT_ASSERT(d.magic == 1337);
 	std::string soap_action = "AddPortMapping";
 
 	std::stringstream soap;
@@ -463,6 +487,7 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 
 void upnp::map_port(rootdevice& d, int i)
 {
+	TORRENT_ASSERT(d.magic == 1337);
 	if (d.upnp_connection) return;
 
 	if (!d.mapping[i].need_update)
@@ -479,6 +504,10 @@ void upnp::map_port(rootdevice& d, int i)
 	TORRENT_ASSERT(!d.upnp_connection);
 	TORRENT_ASSERT(d.service_namespace);
 
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " ==> connecting to " << d.hostname << std::endl;
+#endif
 	d.upnp_connection.reset(new http_connection(m_io_service
 		, m_cc, m_strand.wrap(bind(&upnp::on_upnp_map_response, self(), _1, _2
 		, boost::ref(d), i)), true
@@ -490,6 +519,7 @@ void upnp::map_port(rootdevice& d, int i)
 
 void upnp::delete_port_mapping(rootdevice& d, int i)
 {
+	TORRENT_ASSERT(d.magic == 1337);
 	std::stringstream soap;
 	
 	std::string soap_action = "DeletePortMapping";
@@ -510,23 +540,24 @@ void upnp::delete_port_mapping(rootdevice& d, int i)
 // requires the mutex to be locked
 void upnp::unmap_port(rootdevice& d, int i)
 {
-	if (d.mapping[i].external_port == 0)
+	TORRENT_ASSERT(d.magic == 1337);
+	if (d.mapping[i].external_port == 0
+		|| d.disabled)
 	{
 		if (i < num_mappings - 1)
 		{
 			unmap_port(d, i + 1);
 		}
-		else
-		{
-			m_devices.erase(d);
-		}
 		return;
 	}
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " ==> connecting to " << d.hostname << std::endl;
+#endif
 	d.upnp_connection.reset(new http_connection(m_io_service
 		, m_cc, m_strand.wrap(bind(&upnp::on_upnp_unmap_response, self(), _1, _2
 		, boost::ref(d), i)), true
 		, bind(&upnp::delete_port_mapping, self(), boost::ref(d), i)));
-
 	d.upnp_connection->start(d.hostname, boost::lexical_cast<std::string>(d.port)
 		, seconds(10));
 }
@@ -591,6 +622,7 @@ namespace
 void upnp::on_upnp_xml(asio::error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d) try
 {
+	TORRENT_ASSERT(d.magic == 1337);
 	if (d.upnp_connection)
 	{
 		d.upnp_connection->close();
@@ -601,8 +633,10 @@ void upnp::on_upnp_xml(asio::error_code const& e
 	{
 #ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
-			<< " <== error while fetching control url: " << e.message() << std::endl;
+			<< " <== (" << d.url << ") error while fetching control url: "
+			<< e.message() << std::endl;
 #endif
+		d.disabled = true;
 		return;
 	}
 
@@ -610,8 +644,9 @@ void upnp::on_upnp_xml(asio::error_code const& e
 	{
 #ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
-			<< " <== error while fetching control url: incomplete http message" << std::endl;
+			<< " <== (" << d.url << ") error while fetching control url: incomplete http message" << std::endl;
 #endif
+		d.disabled = true;
 		return;
 	}
 
@@ -619,8 +654,9 @@ void upnp::on_upnp_xml(asio::error_code const& e
 	{
 #ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
-			<< " <== error while fetching control url: " << p.message() << std::endl;
+			<< " <== (" << d.url << ") error while fetching control url: " << p.message() << std::endl;
 #endif
+		d.disabled = true;
 		return;
 	}
 
@@ -647,15 +683,17 @@ void upnp::on_upnp_xml(asio::error_code const& e
 		{
 #ifdef TORRENT_UPNP_LOGGING
 			m_log << time_now_string()
-				<< " <== Rootdevice response, did not find a port mapping interface" << std::endl;
+				<< " <== (" << d.url << ") Rootdevice response, did not find "
+				"a port mapping interface" << std::endl;
 #endif
+			d.disabled = true;
 			return;
 		}
 	}
 	
 #ifdef TORRENT_UPNP_LOGGING
 	m_log << time_now_string()
-		<< " <== Rootdevice response, found control URL: " << s.control_url
+		<< " <== (" << d.url << ") Rootdevice response, found control URL: " << s.control_url
 		<< " namespace: " << d.service_namespace << std::endl;
 #endif
 
@@ -732,6 +770,7 @@ namespace
 void upnp::on_upnp_map_response(asio::error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d, int mapping) try
 {
+	TORRENT_ASSERT(d.magic == 1337);
 	if (d.upnp_connection)
 	{
 		d.upnp_connection->close();
@@ -744,7 +783,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 		m_log << time_now_string()
 			<< " <== error while adding portmap: " << e.message() << std::endl;
 #endif
-		m_devices.erase(d);
+		d.disabled = true;
 		return;
 	}
 	
@@ -773,7 +812,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 		m_log << time_now_string()
 			<< " <== error while adding portmap: incomplete http message" << std::endl;
 #endif
-		m_devices.erase(d);
+		d.disabled = true;
 		return;
 	}
 
@@ -877,6 +916,7 @@ catch (std::exception&)
 void upnp::on_upnp_unmap_response(asio::error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d, int mapping) try
 {
+	TORRENT_ASSERT(d.magic == 1337);
 	if (d.upnp_connection)
 	{
 		d.upnp_connection->close();
@@ -906,7 +946,7 @@ void upnp::on_upnp_unmap_response(asio::error_code const& e
 		m_log << time_now_string()
 			<< " <== error while deleting portmap: " << p.message() << std::endl;
 #endif
-		m_devices.erase(d);
+		d.disabled = true;
 		return;
 	}
 
@@ -922,10 +962,6 @@ void upnp::on_upnp_unmap_response(asio::error_code const& e
 		unmap_port(d, mapping + 1);
 		return;
 	}
-
-	// the main thread is likely to be waiting for
-	// all the unmap operations to complete
-	m_devices.erase(d);
 }
 catch (std::exception&)
 {
@@ -943,6 +979,7 @@ void upnp::on_expire(asio::error_code const& e) try
 		, end(m_devices.end()); i != end; ++i)
 	{
 		rootdevice& d = const_cast<rootdevice&>(*i);
+		TORRENT_ASSERT(d.magic == 1337);
 		for (int m = 0; m < num_mappings; ++m)
 		{
 			if (d.mapping[m].expires != max_time())
@@ -984,15 +1021,11 @@ void upnp::close()
 	}
 
 	for (std::set<rootdevice>::iterator i = m_devices.begin()
-		, end(m_devices.end()); i != end;)
+		, end(m_devices.end()); i != end; ++i)
 	{
 		rootdevice& d = const_cast<rootdevice&>(*i);
-		if (d.control_url.empty())
-		{
-			m_devices.erase(i++);
-			continue;
-		}
-		++i;
+		TORRENT_ASSERT(d.magic == 1337);
+		if (d.control_url.empty()) continue;
 		unmap_port(d, 0);
 	}
 }
