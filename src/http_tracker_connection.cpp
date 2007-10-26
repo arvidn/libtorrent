@@ -489,7 +489,9 @@ namespace libtorrent
 			, boost::lexical_cast<std::string>(m_port));
 		m_name_lookup.async_resolve(q, m_strand.wrap(
 			boost::bind(&http_tracker_connection::name_lookup, self(), _1, _2)));
-		set_timeout(m_settings.tracker_completion_timeout
+		set_timeout(req.event == tracker_request::stopped
+			? m_settings.stop_tracker_timeout
+			: m_settings.tracker_completion_timeout
 			, m_settings.tracker_receive_timeout);
 	}
 
@@ -501,6 +503,17 @@ namespace libtorrent
 		if (m_connection_ticket > -1) m_cc.done(m_connection_ticket);
 		m_connection_ticket = -1;
 		fail_timeout();
+	}
+
+	void http_tracker_connection::close()
+	{
+		asio::error_code ec;
+		m_socket.close(ec);
+		m_name_lookup.cancel();
+		if (m_connection_ticket > -1) m_cc.done(m_connection_ticket);
+		m_connection_ticket = -1;
+		m_timed_out = true;
+		tracker_connection::close();
 	}
 
 	void http_tracker_connection::name_lookup(asio::error_code const& error
@@ -759,7 +772,6 @@ namespace libtorrent
 		if (m_parser.status_code() != 200)
 		{
 			fail(m_parser.status_code(), m_parser.message().c_str());
-			close();
 			return;
 		}
 	
@@ -821,6 +833,7 @@ namespace libtorrent
 			TORRENT_ASSERT(false);
 		}
 		#endif
+		close();
 	}
 
 	peer_entry http_tracker_connection::extract_peer_info(const entry& info)

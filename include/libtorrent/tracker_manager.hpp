@@ -202,7 +202,7 @@ namespace libtorrent
 
 		void fail(int code, char const* msg);
 		void fail_timeout();
-		void close();
+		virtual void close();
 		address const& bind_interface() const { return m_bind_interface; }
 
 	protected:

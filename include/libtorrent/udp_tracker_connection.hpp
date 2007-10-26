@@ -74,6 +74,8 @@ namespace libtorrent
 			, boost::weak_ptr<request_callback> c
 			, session_settings const& stn);
 
+		void close();
+
 	private:
 
 		enum action_t

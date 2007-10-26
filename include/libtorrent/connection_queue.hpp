@@ -56,6 +56,7 @@ public:
 	void done(int ticket);
 	void limit(int limit);
 	int limit() const;
+	void close();
 
 #ifndef NDEBUG
 

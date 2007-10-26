@@ -547,8 +547,8 @@ namespace detail
 		, fingerprint const& cl_fprint
 		, char const* listen_interface)
 		: m_send_buffers(send_buffer_size)
-		, m_strand(m_io_service)
 		, m_files(40)
+		, m_strand(m_io_service)
 		, m_half_open(m_io_service)
 		, m_download_channel(m_io_service, peer_connection::download_channel)
 		, m_upload_channel(m_io_service, peer_connection::upload_channel)
@@ -675,6 +675,14 @@ namespace detail
 		if (m_dht) m_dht->stop();
 #endif
 		m_timer.cancel();
+
+		// close the listen sockets
+		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
+			, end(m_listen_sockets.end()); i != end; ++i)
+		{
+			i->sock->close();
+		}
+
 		// abort all torrents
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
@@ -682,7 +690,15 @@ namespace detail
 			i->second->abort();
 		}
 
-		m_io_service.stop(); 
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " aborting all tracker requests\n";
+#endif
+		m_tracker_manager.abort_all_requests();
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " shutting down connection queue\n";
+#endif
+		m_half_open.close();
 
 		mutex::scoped_lock l2(m_checker_impl.m_mutex);
 		// abort the checker thread
@@ -1474,20 +1490,12 @@ namespace detail
 		while (!m_abort);
 
 		deadline_timer tracker_timer(m_io_service);
-		// this will remove the port mappings
-		if (m_natpmp.get())
-			m_natpmp->close();
-		if (m_upnp.get())
-			m_upnp->close();
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " locking mutex\n";
 #endif
 		session_impl::mutex_t::scoped_lock l(m_mutex);
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " aborting all tracker requests\n";
-#endif
 		m_tracker_manager.abort_all_requests();
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " sending stopped to all torrent's trackers\n";
@@ -2127,16 +2135,10 @@ namespace detail
 
 	session_impl::~session_impl()
 	{
-		abort();
-
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << "\n\n *** shutting down session *** \n\n";
 #endif
-		// lock the main thread and abort it
-		mutex_t::scoped_lock l(m_mutex);
-		m_abort = true;
-		m_io_service.stop();
-		l.unlock();
+		abort();
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " waiting for main thread\n";
