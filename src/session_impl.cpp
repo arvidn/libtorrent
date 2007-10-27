@@ -993,6 +993,17 @@ namespace detail
 			return;
 		}
 
+		// don't allow more connections than the max setting
+		if (m_connections.size() > max_connections())
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			(*m_logger) << "number of connections limit exceeded (conns: "
+				<< num_connections() << ", limit: " << max_connections()
+				<< "), connection rejected\n";
+#endif
+			return;
+		}
+
 		// check if we have any active torrents
 		// if we don't reject the connection
 		if (m_torrents.empty()) return;
