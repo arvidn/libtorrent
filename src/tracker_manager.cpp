@@ -568,15 +568,24 @@ namespace libtorrent
 		m_abort = true;
 		tracker_connections_t keep_connections;
 
-		for (tracker_connections_t::const_iterator i =
-			m_connections.begin(); i != m_connections.end(); ++i)
+		while (!m_connections.empty())
 		{
-			if (!*i) continue;
-			tracker_request const& req = (*i)->tracker_req();
+			boost::intrusive_ptr<tracker_connection>& c = m_connections.back();
+			if (!c)
+			{
+				m_connections.pop_back();
+				continue;
+			}
+			tracker_request const& req = c->tracker_req();
 			if (req.event == tracker_request::stopped)
-				keep_connections.push_back(*i);
-			else
-				(*i)->close();
+			{
+				keep_connections.push_back(c);
+				m_connections.pop_back();
+				continue;
+			}
+			// close will remove the entry from m_connections
+			// so no need to pop
+			c->close();
 		}
 
 		std::swap(m_connections, keep_connections);
