@@ -683,6 +683,9 @@ namespace detail
 			i->sock->close();
 		}
 
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " aborting all torrents\n";
+#endif
 		// abort all torrents
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
@@ -690,6 +693,16 @@ namespace detail
 			i->second->abort();
 		}
 
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " aborting all connections\n";
+#endif
+		// abort all connections
+		for (connection_map::iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
+		{
+			i->second->disconnect();
+		}
+		
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " aborting all tracker requests\n";
 #endif
