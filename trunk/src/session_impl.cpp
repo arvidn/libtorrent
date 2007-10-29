@@ -2122,8 +2122,8 @@ namespace detail
 
 	entry session_impl::dht_state() const
 	{
-		TORRENT_ASSERT(m_dht);
 		mutex_t::scoped_lock l(m_mutex);
+		if (!m_dht) return entry();
 		return m_dht->state();
 	}
 
