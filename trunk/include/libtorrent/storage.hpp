@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/buffer.hpp"
 
 namespace libtorrent
 {
@@ -344,8 +345,8 @@ namespace libtorrent
 		// used to move pieces while expanding
 		// the storage from compact allocation
 		// to full allocation
-		std::vector<char> m_scratch_buffer;
-		std::vector<char> m_scratch_buffer2;
+		buffer m_scratch_buffer;
+		buffer m_scratch_buffer2;
 		// the piece that is in the scratch buffer
 		int m_scratch_piece;
 		
