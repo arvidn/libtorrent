@@ -975,6 +975,7 @@ namespace libtorrent
 		, m_storage_mode(storage_mode_sparse)
 		, m_info(ti)
 		, m_save_path(complete(save_path))
+		, m_state(state_none)
 		, m_current_slot(0)
 		, m_out_of_place(false)
 		, m_scratch_piece(-1)
