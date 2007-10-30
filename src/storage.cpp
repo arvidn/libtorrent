@@ -99,6 +99,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <windows.h>
 #include <boost/filesystem/exception.hpp>
 #include "libtorrent/utf8.hpp"
+#include "libtorrent/buffer.hpp"
 
 namespace libtorrent
 {
@@ -386,7 +387,7 @@ namespace libtorrent
 		file_pool& m_files;
 		
 		// temporary storage for moving pieces
-		std::vector<char> m_scratch_buffer;
+		buffer m_scratch_buffer;
 	};
 
 	sha1_hash storage::hash_for_slot(int slot, partial_hash& ph, int piece_size)
@@ -468,14 +469,14 @@ namespace libtorrent
 	void storage::release_files()
 	{
 		m_files.release(this);
-		std::vector<char>().swap(m_scratch_buffer);
+		buffer().swap(m_scratch_buffer);
 	}
 
 	void storage::delete_files()
 	{
 		// make sure we don't have the files open
 		m_files.release(this);
-		std::vector<char>().swap(m_scratch_buffer);
+		buffer().swap(m_scratch_buffer);
 
 		// delete the files from disk
 		std::set<std::string> directories;
@@ -1623,8 +1624,8 @@ namespace libtorrent
 			if (m_current_slot == m_info->num_pieces())
 			{
 				m_state = state_create_files;
-				std::vector<char>().swap(m_scratch_buffer);
-				std::vector<char>().swap(m_scratch_buffer2);
+				buffer().swap(m_scratch_buffer);
+				buffer().swap(m_scratch_buffer2);
 				if (m_storage_mode != storage_mode_compact)
 				{
 					std::vector<int>().swap(m_piece_to_slot);
