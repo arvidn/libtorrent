@@ -190,6 +190,8 @@ namespace libtorrent
 
 	void broadcast_socket::close()
 	{
+		m_on_receive.clear();
+
 		for (std::list<socket_entry>::iterator i = m_sockets.begin()
 			, end(m_sockets.end()); i != end; ++i)
 		{
