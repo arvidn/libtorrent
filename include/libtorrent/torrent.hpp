@@ -171,7 +171,7 @@ namespace libtorrent
 		boost::tuples::tuple<size_type, size_type> bytes_done() const;
 		size_type quantized_bytes_done() const;
 
-		void ip_filter_updated() { m_policy->ip_filter_updated(); }
+		void ip_filter_updated() { m_policy.ip_filter_updated(); }
 
 		void pause();
 		void resume();
@@ -204,7 +204,7 @@ namespace libtorrent
 		tcp::endpoint const& get_interface() const { return m_net_interface; }
 		
 		void connect_to_url_seed(std::string const& url);
-		peer_connection* connect_to_peer(policy::peer* peerinfo);
+		bool connect_to_peer(policy::peer* peerinfo) throw();
 
 		void set_ratio(float ratio)
 		{ TORRENT_ASSERT(ratio >= 0.0f); m_ratio = ratio; }
@@ -276,31 +276,12 @@ namespace libtorrent
 		bool want_more_peers() const;
 		bool try_connect_peer();
 
-		peer_connection* connection_for(tcp::endpoint const& a)
-		{
-			peer_iterator i = m_connections.find(a);
-			if (i == m_connections.end()) return 0;
-			return i->second;
-		}
-
-#ifndef NDEBUG
-		void connection_for(address const& a, std::vector<peer_connection*>& pc)
-		{
-			for (peer_iterator i = m_connections.begin()
-				, end(m_connections.end()); i != end; ++i)
-			{
-				if (i->first.address() == a) pc.push_back(i->second);
-			}
-			return;
-		}
-#endif
-
 		// the number of peers that belong to this torrent
 		int num_peers() const { return (int)m_connections.size(); }
 		int num_seeds() const;
 
-		typedef std::map<tcp::endpoint, peer_connection*>::iterator peer_iterator;
-		typedef std::map<tcp::endpoint, peer_connection*>::const_iterator const_peer_iterator;
+		typedef std::set<peer_connection*>::iterator peer_iterator;
+		typedef std::set<peer_connection*>::const_iterator const_peer_iterator;
 
 		const_peer_iterator begin() const { return m_connections.begin(); }
 		const_peer_iterator end() const { return m_connections.end(); }
@@ -495,11 +476,7 @@ namespace libtorrent
 		{
 			return m_picker.get() != 0;
 		}
-		policy& get_policy()
-		{
-			TORRENT_ASSERT(m_policy);
-			return *m_policy;
-		}
+		policy& get_policy() { return m_policy; }
 		piece_manager& filesystem();
 		torrent_info const& torrent_file() const
 		{ return *m_torrent_file; }
@@ -550,7 +527,7 @@ namespace libtorrent
 		// to the checker thread for initial checking
 		// of the storage.
 		void set_metadata(entry const&);
-		
+
 	private:
 
 		void on_files_deleted(int ret, disk_io_job const& j);
@@ -633,7 +610,7 @@ namespace libtorrent
 #ifndef NDEBUG
 	public:
 #endif
-		std::map<tcp::endpoint, peer_connection*> m_connections;
+		std::set<peer_connection*> m_connections;
 #ifndef NDEBUG
 	private:
 #endif
@@ -688,8 +665,6 @@ namespace libtorrent
 		libtorrent::stat m_stat;
 
 		// -----------------------------
-
-		boost::shared_ptr<policy> m_policy;
 
 		// a back reference to the session
 		// this torrent belongs to.
@@ -802,6 +777,8 @@ namespace libtorrent
 		// total_done - m_initial_done <= total_payload_download
 		size_type m_initial_done;
 #endif
+
+		policy m_policy;
 	};
 
 	inline ptime torrent::next_announce() const

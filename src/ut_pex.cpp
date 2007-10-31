@@ -113,18 +113,20 @@ namespace libtorrent { namespace
 			for (torrent::peer_iterator i = m_torrent.begin()
 				, end(m_torrent.end()); i != end; ++i)
 			{
-				if (!send_peer(*i->second)) continue;
+				peer_connection* peer = *i;
+				if (!send_peer(*peer)) continue;
 
-				m_old_peers.insert(i->first);
+				tcp::endpoint const& remote = peer->remote();
+				m_old_peers.insert(remote);
 
-				std::set<tcp::endpoint>::iterator di = dropped.find(i->first);
+				std::set<tcp::endpoint>::iterator di = dropped.find(remote);
 				if (di == dropped.end())
 				{
 					// don't write too big of a package
 					if (num_added >= max_peer_entries) break;
 
 					// only send proper bittorrent peers
-					bt_peer_connection* p = dynamic_cast<bt_peer_connection*>(i->second);
+					bt_peer_connection* p = dynamic_cast<bt_peer_connection*>(peer);
 					if (!p) continue;
 
 					// no supported flags to set yet
@@ -135,14 +137,14 @@ namespace libtorrent { namespace
 					flags |= p->supports_encryption() ? 1 : 0;
 #endif
 					// i->first was added since the last time
-					if (i->first.address().is_v4())
+					if (remote.address().is_v4())
 					{
-						detail::write_endpoint(i->first, pla_out);
+						detail::write_endpoint(remote, pla_out);
 						detail::write_uint8(flags, plf_out);
 					}
 					else
 					{
-						detail::write_endpoint(i->first, pla6_out);
+						detail::write_endpoint(remote, pla6_out);
 						detail::write_uint8(flags, plf6_out);
 					}
 					++num_added;
@@ -156,7 +158,7 @@ namespace libtorrent { namespace
 			}
 
 			for (std::set<tcp::endpoint>::const_iterator i = dropped.begin()
-				, end(dropped.end());i != end; ++i)
+				, end(dropped.end()); i != end; ++i)
 			{	
 				if (i->address().is_v4())
 					detail::write_endpoint(*i, pld_out);
@@ -327,13 +329,14 @@ namespace libtorrent { namespace
 			for (torrent::peer_iterator i = m_torrent.begin()
 				, end(m_torrent.end()); i != end; ++i)
 			{
-				if (!send_peer(*i->second)) continue;
+				peer_connection* peer = *i;
+				if (!send_peer(*peer)) continue;
 
 				// don't write too big of a package
 				if (num_added >= max_peer_entries) break;
 
 				// only send proper bittorrent peers
-				bt_peer_connection* p = dynamic_cast<bt_peer_connection*>(i->second);
+				bt_peer_connection* p = dynamic_cast<bt_peer_connection*>(peer);
 				if (!p) continue;
 
 				// no supported flags to set yet
@@ -343,15 +346,16 @@ namespace libtorrent { namespace
 #ifndef TORRENT_DISABLE_ENCRYPTION
 				flags |= p->supports_encryption() ? 1 : 0;
 #endif
+				tcp::endpoint const& remote = peer->remote();
 				// i->first was added since the last time
-				if (i->first.address().is_v4())
+				if (remote.address().is_v4())
 				{
-					detail::write_endpoint(i->first, pla_out);
+					detail::write_endpoint(remote, pla_out);
 					detail::write_uint8(flags, plf_out);
 				}
 				else
 				{
-					detail::write_endpoint(i->first, pla6_out);
+					detail::write_endpoint(remote, pla6_out);
 					detail::write_uint8(flags, plf6_out);
 				}
 				++num_added;

@@ -1208,11 +1208,11 @@ namespace libtorrent
 		// there is supposed to be a remote listen port
 		if (entry* listen_port = root.find_key("p"))
 		{
-			if (listen_port->type() == entry::int_t)
+			if (listen_port->type() == entry::int_t
+				&& peer_info_struct() != 0)
 			{
-				tcp::endpoint adr(remote().address()
-					, (unsigned short)listen_port->integer());
-				t->get_policy().peer_from_tracker(adr, pid(), peer_info::incoming, 0);
+				t->get_policy().update_peer_port(listen_port->integer()
+					, peer_info_struct(), peer_info::incoming);
 			}
 		}
 		// there should be a version too

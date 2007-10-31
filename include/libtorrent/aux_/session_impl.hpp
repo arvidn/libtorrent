@@ -178,9 +178,7 @@ namespace libtorrent
 #endif
 			friend struct checker_impl;
 			friend class invariant_access;
-			typedef std::map<boost::shared_ptr<socket_type>
-				, boost::intrusive_ptr<peer_connection> >
-				connection_map;
+			typedef std::set<boost::intrusive_ptr<peer_connection> > connection_map;
 			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
 
 			session_impl(
@@ -190,7 +188,8 @@ namespace libtorrent
 			~session_impl();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext);
+			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
+				torrent*, void*)> ext);
 #endif
 			void operator()();
 
@@ -214,7 +213,7 @@ namespace libtorrent
 			peer_id const& get_peer_id() const { return m_peer_id; }
 
 			void close_connection(boost::intrusive_ptr<peer_connection> const& p);
-			void connection_failed(boost::shared_ptr<socket_type> const& s
+			void connection_failed(boost::intrusive_ptr<peer_connection> const& p
 				, tcp::endpoint const& a, char const* message);
 
 			void set_settings(session_settings const& s);
@@ -342,8 +341,8 @@ namespace libtorrent
 				for (connection_map::const_iterator i = m_connections.begin()
 					, end(m_connections.end()); i != end; ++i)
 				{
-					send_buffer_capacity += i->second->send_buffer_capacity();
-					used_send_buffer += i->second->send_buffer_size();
+					send_buffer_capacity += (*i)->send_buffer_capacity();
+					used_send_buffer += (*i)->send_buffer_size();
 				}
 				TORRENT_ASSERT(send_buffer_capacity >= used_send_buffer);
 				m_buffer_usage_logger << log_time() << " send_buffer_size: " << send_buffer_capacity << std::endl;
@@ -386,7 +385,9 @@ namespace libtorrent
 			// handles disk io requests asynchronously
 			// peers have pointers into the disk buffer
 			// pool, and must be destructed before this
-			// object.
+			// object. The disk thread relies on the file
+			// pool object, and must be destructed before
+			// m_files.
 			disk_io_thread m_disk_thread;
 
 			// this is where all active sockets are stored.

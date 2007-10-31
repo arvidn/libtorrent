@@ -504,11 +504,10 @@ namespace libtorrent { namespace
 		// extension and that has metadata
 		int peers = 0;
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		typedef std::map<tcp::endpoint, peer_connection*> conn_map;
-		for (conn_map::iterator i = m_torrent.begin()
+		for (torrent::peer_iterator i = m_torrent.begin()
 			, end(m_torrent.end()); i != end; ++i)
 		{
-			bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(i->second);
+			bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(*i);
 			if (c == 0) continue;
 			metadata_peer_plugin* p
 				= c->supports_extension<metadata_peer_plugin>();
