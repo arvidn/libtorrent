@@ -390,7 +390,6 @@ namespace libtorrent
 			TORRENT_ASSERT(m_peer_info->connection == 0);
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (t) TORRENT_ASSERT(t->connection_for(remote()) != this);
 #endif
 	}
 
@@ -1394,7 +1393,7 @@ namespace libtorrent
 
 			if (!t)
 			{
-				m_ses.connection_failed(m_socket, remote(), j.str.c_str());
+				m_ses.connection_failed(self(), remote(), j.str.c_str());
 				return;
 			}
 		
@@ -1944,7 +1943,7 @@ namespace libtorrent
 		(*m_ses.m_logger) << "CONNECTION TIMED OUT: " << m_remote.address().to_string()
 			<< "\n";
 #endif
-		m_ses.connection_failed(m_socket, m_remote, "timed out");
+		m_ses.connection_failed(self(), m_remote, "timed out");
 	}
 
 	void peer_connection::disconnect()
@@ -2290,7 +2289,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << "**ERROR**: " << e.what() << "\n";
 #endif
-			m_ses.connection_failed(m_socket, remote(), e.what());
+			m_ses.connection_failed(self(), remote(), e.what());
 		}
 	}
 
@@ -2340,7 +2339,7 @@ namespace libtorrent
 			boost::shared_ptr<torrent> t = m_torrent.lock();
 			if (!t)
 			{
-				m_ses.connection_failed(m_socket, remote(), j.str.c_str());
+				m_ses.connection_failed(self(), remote(), j.str.c_str());
 				return;
 			}
 		
@@ -2676,7 +2675,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t)
 		{
-			m_ses.connection_failed(m_socket, remote(), e.what());
+			m_ses.connection_failed(self(), remote(), e.what());
 			return;
 		}
 		
@@ -2691,14 +2690,14 @@ namespace libtorrent
 	catch (std::exception& e)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		m_ses.connection_failed(m_socket, remote(), e.what());
+		m_ses.connection_failed(self(), remote(), e.what());
 	}
 	catch (...)
 	{
 		// all exceptions should derive from std::exception
 		TORRENT_ASSERT(false);
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		m_ses.connection_failed(m_socket, remote(), "connection failed for unknown reason");
+		m_ses.connection_failed(self(), remote(), "connection failed for unknown reason");
 	}
 
 	bool peer_connection::can_write() const
@@ -2779,7 +2778,7 @@ namespace libtorrent
 			(*m_ses.m_logger) << "CONNECTION FAILED: " << m_remote.address().to_string()
 				<< ": " << e.message() << "\n";
 #endif
-			m_ses.connection_failed(m_socket, m_remote, e.message().c_str());
+			m_ses.connection_failed(self(), m_remote, e.message().c_str());
 			return;
 		}
 
@@ -2799,14 +2798,14 @@ namespace libtorrent
 	catch (std::exception& ex)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		m_ses.connection_failed(m_socket, remote(), ex.what());
+		m_ses.connection_failed(self(), remote(), ex.what());
 	}
 	catch (...)
 	{
 		// all exceptions should derive from std::exception
 		TORRENT_ASSERT(false);
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		m_ses.connection_failed(m_socket, remote(), "connection failed for unkown reason");
+		m_ses.connection_failed(self(), remote(), "connection failed for unkown reason");
 	}
 	
 	// --------------------------
@@ -2856,14 +2855,14 @@ namespace libtorrent
 	catch (std::exception& e)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		m_ses.connection_failed(m_socket, remote(), e.what());
+		m_ses.connection_failed(self(), remote(), e.what());
 	}
 	catch (...)
 	{
 		// all exceptions should derive from std::exception
 		TORRENT_ASSERT(false);
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		m_ses.connection_failed(m_socket, remote(), "connection failed for unknown reason");
+		m_ses.connection_failed(self(), remote(), "connection failed for unknown reason");
 	}
 
 
@@ -2880,26 +2879,18 @@ namespace libtorrent
 		}
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (!t)
+		if (!t) return;
+
+		if (m_peer_info)
 		{
-			typedef session_impl::torrent_map torrent_map;
-			torrent_map& m = m_ses.m_torrents;
-			for (torrent_map::iterator i = m.begin(), end(m.end()); i != end; ++i)
+			policy::const_iterator i;
+			for (i = t->get_policy().begin_peer();
+				i != t->get_policy().end_peer(); ++i)
 			{
-				torrent& t = *i->second;
-				TORRENT_ASSERT(t.connection_for(m_remote) != this);
+				if (&i->second == m_peer_info) break;
 			}
-			return;
+			TORRENT_ASSERT(i != t->get_policy().end_peer());
 		}
-
-		TORRENT_ASSERT(t->connection_for(remote()) != 0 || m_in_constructor);
-
-		if (!m_in_constructor && t->connection_for(remote()) != this
-			&& !m_ses.settings().allow_multiple_connections_per_ip)
-		{
-			TORRENT_ASSERT(false);
-		}
-
 		if (t->has_picker() && !t->is_aborted())
 		{
 			// make sure that pieces that have completed the download

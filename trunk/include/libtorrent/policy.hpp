@@ -85,6 +85,7 @@ namespace libtorrent
 		// the tracker, pex, lsd or dht.
 		policy::peer* peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid
 			, int source, char flags);
+		void update_peer_port(int port, policy::peer* p, int src);
 
 		// called when an incoming connection is accepted
 		void new_connection(peer_connection& c);
@@ -219,6 +220,8 @@ namespace libtorrent
 		typedef std::multimap<address, peer>::const_iterator const_iterator;
 		iterator begin_peer() { return m_peers.begin(); }
 		iterator end_peer() { return m_peers.end(); }
+		const_iterator begin_peer() const { return m_peers.begin(); }
+		const_iterator end_peer() const { return m_peers.end(); }
 
 		bool connect_one_peer();
 		bool disconnect_one_peer();
