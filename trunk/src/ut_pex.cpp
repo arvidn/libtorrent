@@ -72,7 +72,7 @@ namespace libtorrent { namespace
 
 	struct ut_pex_plugin: torrent_plugin
 	{
-		ut_pex_plugin(torrent& t): m_torrent(t), m_1_minute(0) {}
+		ut_pex_plugin(torrent& t): m_torrent(t), m_1_minute(55) {}
 	
 		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection* pc);
 
@@ -185,7 +185,7 @@ namespace libtorrent { namespace
 			: m_torrent(t)
 			, m_pc(pc)
 			, m_tp(tp)
-			, m_1_minute(0)
+			, m_1_minute(55)
 			, m_message_index(0)
 			, m_first_time(true)
 		{}
