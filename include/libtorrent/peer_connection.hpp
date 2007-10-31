@@ -466,9 +466,6 @@ namespace libtorrent
 		// the peer belongs to.
 		aux::session_impl& m_ses;
 
-		boost::intrusive_ptr<peer_connection> self()
-		{ return boost::intrusive_ptr<peer_connection>(this); }
-		
 		// called from the main loop when this connection has any
 		// work to do.
 		void on_send_data(asio::error_code const& error
