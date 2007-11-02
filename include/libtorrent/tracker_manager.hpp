@@ -184,6 +184,7 @@ namespace libtorrent
 
 		typedef boost::mutex mutex_t;
 		mutable mutex_t m_mutex;
+		bool m_abort;
 	};
 
 	struct TORRENT_EXPORT tracker_connection

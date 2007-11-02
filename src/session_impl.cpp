@@ -694,19 +694,59 @@ namespace detail
 		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " aborting all connections\n";
-#endif
-		// abort all connections
-		for (connection_map::iterator i = m_connections.begin()
-			, end(m_connections.end()); i != end; ++i)
-		{
-			(*i)->disconnect();
-		}
-		
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " aborting all tracker requests\n";
 #endif
 		m_tracker_manager.abort_all_requests();
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " sending event=stopped to trackers\n";
+		int counter = 0;
+#endif
+		for (torrent_map::iterator i = m_torrents.begin();
+			i != m_torrents.end(); ++i)
+		{
+			torrent& t = *i->second;
+
+			if ((!t.is_paused() || t.should_request())
+				&& !t.trackers().empty())
+			{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+				++counter;
+#endif
+				tracker_request req = t.generate_tracker_request();
+				TORRENT_ASSERT(req.event == tracker_request::stopped);
+				req.listen_port = 0;
+				if (!m_listen_sockets.empty())
+					req.listen_port = m_listen_sockets.front().external_port;
+				req.key = m_key;
+				std::string login = i->second->tracker_login();
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+				boost::shared_ptr<tracker_logger> tl(new tracker_logger(*this));
+				m_tracker_loggers.push_back(tl);
+				m_tracker_manager.queue_request(m_strand, m_half_open, req, login
+					, m_listen_interface.address(), tl);
+#else
+				m_tracker_manager.queue_request(m_strand, m_half_open, req, login
+					, m_listen_interface.address());
+#endif
+			}
+		}
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " sent " << counter << " tracker stop requests\n";
+#endif
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " aborting all connections (" << m_connections.size() << ")\n";
+#endif
+		// abort all connections
+		while (!m_connections.empty())
+		{
+#ifndef NDEBUG
+			int conn = m_connections.size();
+#endif
+			(*m_connections.begin())->disconnect();
+			TORRENT_ASSERT(conn == m_connections.size() + 1);
+		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " shutting down connection queue\n";
@@ -1513,87 +1553,10 @@ namespace detail
 		}
 		while (!m_abort);
 
-		deadline_timer tracker_timer(m_io_service);
-
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " locking mutex\n";
 #endif
 		session_impl::mutex_t::scoped_lock l(m_mutex);
-
-		m_tracker_manager.abort_all_requests();
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " sending stopped to all torrent's trackers\n";
-#endif
-		for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i =
-			m_torrents.begin(); i != m_torrents.end(); ++i)
-		{
-			i->second->abort();
-			// generate a tracker request in case the torrent is not paused
-			// (in which case it's not currently announced with the tracker)
-			// or if the torrent itself thinks we should request. Do not build
-			// a request in case the torrent doesn't have any trackers
-			if ((!i->second->is_paused() || i->second->should_request())
-				&& !i->second->trackers().empty())
-			{
-				tracker_request req = i->second->generate_tracker_request();
-				TORRENT_ASSERT(!m_listen_sockets.empty());
-				req.listen_port = 0;
-				if (!m_listen_sockets.empty())
-					req.listen_port = m_listen_sockets.front().external_port;
-				req.key = m_key;
-				std::string login = i->second->tracker_login();
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-				boost::shared_ptr<tracker_logger> tl(new tracker_logger(*this));
-				m_tracker_loggers.push_back(tl);
-				m_tracker_manager.queue_request(m_strand, m_half_open, req, login
-					, m_listen_interface.address(), tl);
-#else
-				m_tracker_manager.queue_request(m_strand, m_half_open, req, login
-					, m_listen_interface.address());
-#endif
-			}
-		}
-
-		// close the listen sockets
-		m_listen_sockets.clear();
-
-		ptime start(time_now());
-		l.unlock();
-
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " waiting for trackers to respond ("
-			<< m_settings.stop_tracker_timeout << " seconds timeout)\n";
-#endif
-
-		while (time_now() - start < seconds(
-			m_settings.stop_tracker_timeout)
-			&& !m_tracker_manager.empty())
-		{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			(*m_logger) << time_now_string() << " " << m_tracker_manager.num_requests()
-				<< " tracker requests pending\n";
-#endif
-			tracker_timer.expires_from_now(milliseconds(100));
-			tracker_timer.async_wait(m_strand.wrap(
-				bind(&io_service::stop, &m_io_service)));
-
-			m_io_service.reset();
-			m_io_service.run();
-		}
-
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " tracker shutdown complete, locking mutex\n";
-#endif
-
-		l.lock();
-		TORRENT_ASSERT(m_abort);
-		m_abort = true;
-
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " cleaning up connections\n";
-#endif
-		while (!m_connections.empty())
-			(*m_connections.begin())->disconnect();
 
 #ifndef NDEBUG
 		for (torrent_map::iterator i = m_torrents.begin();
