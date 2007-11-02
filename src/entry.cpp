@@ -126,6 +126,7 @@ namespace libtorrent
 		return &i->second;
 	}
 	
+#ifndef BOOST_NO_EXCEPTIONS
 	const entry& entry::operator[](char const* key) const
 	{
 		dictionary_type::const_iterator i = dict().find(key);
@@ -138,6 +139,7 @@ namespace libtorrent
 	{
 		return (*this)[key.c_str()];
 	}
+#endif
 
 	entry::entry(dictionary_type const& v)
 	{
