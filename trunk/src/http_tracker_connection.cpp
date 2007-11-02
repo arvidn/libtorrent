@@ -514,6 +514,12 @@ namespace libtorrent
 		m_connection_ticket = -1;
 		m_timed_out = true;
 		tracker_connection::close();
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		boost::shared_ptr<request_callback> cb = requester();
+		std::stringstream msg;
+		msg << "http_tracker_connection::close() " << m_man.num_requests();
+		if (cb) cb->debug_log(msg.str());
+#endif
 	}
 
 	void http_tracker_connection::name_lookup(asio::error_code const& error
