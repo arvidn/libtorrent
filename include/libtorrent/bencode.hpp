@@ -135,26 +135,38 @@ namespace libtorrent
 		}
 
 		template <class InIt>
-		std::string read_until(InIt& in, InIt end, char end_token)
+		std::string read_until(InIt& in, InIt end, char end_token, bool& err)
 		{
-			if (in == end) throw invalid_encoding();
 			std::string ret;
+			if (in == end)
+			{
+				err = true;
+				return ret;
+			}
 			while (*in != end_token)
 			{
 				ret += *in;
 				++in;
-				if (in == end) throw invalid_encoding();
+				if (in == end)
+				{
+					err = true;
+					return ret;
+				}
 			}
 			return ret;
 		}
 
 		template<class InIt>
-		void read_string(InIt& in, InIt end, int len, std::string& str)
+		void read_string(InIt& in, InIt end, int len, std::string& str, bool& err)
 		{
 			TORRENT_ASSERT(len >= 0);
 			for (int i = 0; i < len; ++i)
 			{
-				if (in == end) throw invalid_encoding();
+				if (in == end)
+				{
+					err = true;
+					return;
+				}
 				str += *in;
 				++in;
 			}
@@ -202,9 +214,13 @@ namespace libtorrent
 		}
 
 		template<class InIt>
-		void bdecode_recursive(InIt& in, InIt end, entry& ret)
+		void bdecode_recursive(InIt& in, InIt end, entry& ret, bool& err)
 		{
-			if (in == end) throw invalid_encoding();
+			if (in == end)
+			{
+				err = true;
+				return;
+			}
 			switch (*in)
 			{
 
@@ -213,7 +229,8 @@ namespace libtorrent
 			case 'i':
 				{
 				++in; // 'i' 
-				std::string val = read_until(in, end, 'e');
+				std::string val = read_until(in, end, 'e', err);
+				if (err) return;
 				TORRENT_ASSERT(*in == 'e');
 				++in; // 'e' 
 				ret = entry(entry::int_t);
@@ -230,8 +247,13 @@ namespace libtorrent
 				{
 					ret.list().push_back(entry());
 					entry& e = ret.list().back();
-					bdecode_recursive(in, end, e);
-					if (in == end) throw invalid_encoding();
+					bdecode_recursive(in, end, e, err);
+					if (err) return;
+					if (in == end)
+					{
+						err = true;
+						return;
+					}
 				}
 				TORRENT_ASSERT(*in == 'e');
 				++in; // 'e'
@@ -246,10 +268,16 @@ namespace libtorrent
 				while (*in != 'e')
 				{
 					entry key;
-					bdecode_recursive(in, end, key);
+					bdecode_recursive(in, end, key, err);
+					if (err) return;
 					entry& e = ret[key.string()];
-					bdecode_recursive(in, end, e);
-					if (in == end) throw invalid_encoding();
+					bdecode_recursive(in, end, e, err);
+					if (err) return;
+					if (in == end)
+					{
+						err = true;
+						return;
+					}
 				}
 				TORRENT_ASSERT(*in == 'e');
 				++in; // 'e'
@@ -260,16 +288,19 @@ namespace libtorrent
 			default:
 				if (isdigit((unsigned char)*in))
 				{
-					std::string len_s = read_until(in, end, ':');
+					std::string len_s = read_until(in, end, ':', err);
+					if (err) return;
 					TORRENT_ASSERT(*in == ':');
 					++in; // ':'
 					int len = std::atoi(len_s.c_str());
 					ret = entry(entry::string_t);
-					read_string(in, end, len, ret.string());
+					read_string(in, end, len, ret.string(), err);
+					if (err) return;
 				}
 				else
 				{
-					throw invalid_encoding();
+					err = true;
+					return;
 				}
 			}
 		}
@@ -284,16 +315,18 @@ namespace libtorrent
 	template<class InIt>
 	entry bdecode(InIt start, InIt end)
 	{
-		try
+		entry e;
+		bool err = false;
+		detail::bdecode_recursive(start, end, e, err);
+		if (err)
 		{
-			entry e;
-			detail::bdecode_recursive(start, end, e);
-			return e;
-		}
-		catch(type_error&)
-		{
+#ifdef BOOST_NO_EXCEPTIONS
+			return entry();
+#else
 			throw invalid_encoding();
+#endif
 		}
+		return e;
 	}
 
 }
