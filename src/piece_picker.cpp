@@ -962,16 +962,16 @@ namespace libtorrent
 		int priority = p.priority(m_sequenced_download_threshold);
 		TORRENT_ASSERT(priority < int(m_piece_info.size()));
 
-		TORRENT_ASSERT(p.downloading == 1);
-		TORRENT_ASSERT(!p.have());
-
-		std::vector<downloading_piece>::iterator i
-			= std::find_if(m_downloads.begin()
-			, m_downloads.end()
-			, has_index(index));
-		TORRENT_ASSERT(i != m_downloads.end());
-		erase_download_piece(i);
-		p.downloading = 0;
+		if (p.downloading)
+		{
+			std::vector<downloading_piece>::iterator i
+				= std::find_if(m_downloads.begin()
+				, m_downloads.end()
+				, has_index(index));
+			TORRENT_ASSERT(i != m_downloads.end());
+			erase_download_piece(i);
+			p.downloading = 0;
+		}
 
 		TORRENT_ASSERT(std::find_if(m_downloads.begin(), m_downloads.end()
 			, has_index(index)) == m_downloads.end());
