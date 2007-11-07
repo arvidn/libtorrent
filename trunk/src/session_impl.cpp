@@ -745,7 +745,7 @@ namespace detail
 			int conn = m_connections.size();
 #endif
 			(*m_connections.begin())->disconnect();
-			TORRENT_ASSERT(conn == m_connections.size() + 1);
+			TORRENT_ASSERT(conn == int(m_connections.size()) + 1);
 		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
