@@ -181,6 +181,7 @@ struct bandwidth_manager
 		, m_current_quota(0)
 		, m_channel(channel)
 		, m_in_hand_out_bandwidth(false)
+		, m_abort(false)
 	{}
 
 	void throttle(int limit) throw()
@@ -194,6 +195,12 @@ struct bandwidth_manager
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		return m_limit;
+	}
+
+	void close()
+	{
+		m_abort = true;
+		m_history_timer.cancel();
 	}
 
 	// non prioritized means that, if there's a line for bandwidth,
@@ -275,6 +282,8 @@ private:
 		// active that will be invoked, no need to set one up
 		if (m_history.size() > 1) return;
 
+		if (m_abort) return;
+
 		m_history_timer.expires_at(e.expires_at);
 		m_history_timer.async_wait(bind(&bandwidth_manager::on_history_expire, this, _1));
 #ifndef NDEBUG
@@ -308,7 +317,7 @@ private:
 		}
 		
 		// now, wait for the next chunk to expire
-		if (!m_history.empty())
+		if (!m_history.empty() && !m_abort)
 		{
 			m_history_timer.expires_at(m_history.back().expires_at);
 			m_history_timer.async_wait(bind(&bandwidth_manager::on_history_expire, this, _1));
@@ -487,6 +496,7 @@ private:
 	// to prevent recursive invocations to interfere
 	bool m_in_hand_out_bandwidth;
 
+	bool m_abort;
 };
 
 }

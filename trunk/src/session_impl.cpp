@@ -753,6 +753,9 @@ namespace detail
 #endif
 		m_half_open.close();
 
+		m_download_channel.close();
+		m_upload_channel.close();
+
 		mutex::scoped_lock l2(m_checker_impl.m_mutex);
 		// abort the checker thread
 		m_checker_impl.m_abort = true;
