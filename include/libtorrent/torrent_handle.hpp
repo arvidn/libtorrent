@@ -64,6 +64,8 @@ namespace libtorrent
 		struct checker_impl;
 	}
 
+	struct torrent_plugin;
+
 	struct TORRENT_EXPORT duplicate_torrent: std::exception
 	{
 		virtual const char* what() const throw()
@@ -278,6 +280,11 @@ namespace libtorrent
 		void add_url_seed(std::string const& url) const;
 		void remove_url_seed(std::string const& url) const;
 		std::set<std::string> url_seeds() const;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
+			, void* userdata = 0);
+#endif
 
 		bool has_metadata() const;
 		const torrent_info& get_torrent_info() const;

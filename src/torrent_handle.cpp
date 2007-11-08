@@ -247,6 +247,20 @@ namespace libtorrent
 		find_torrent(m_ses, m_chk, m_info_hash)->move_storage(save_path);
 	}
 
+	void torrent_handle::add_extension(
+		boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
+		, void* userdata)
+	{
+		INVARIANT_CHECK;
+
+		if (m_ses == 0) throw_invalid_handle();
+		TORRENT_ASSERT(m_chk);
+
+		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
+		mutex::scoped_lock l2(m_chk->m_mutex);
+		return find_torrent(m_ses, m_chk, m_info_hash)->add_extension(ext, userdata);
+	}
+
 	bool torrent_handle::has_metadata() const
 	{
 		INVARIANT_CHECK;

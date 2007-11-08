@@ -346,10 +346,34 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+
 	void torrent::add_extension(boost::shared_ptr<torrent_plugin> ext)
 	{
 		m_extensions.push_back(ext);
 	}
+
+	void torrent::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
+		, void* userdata)
+	{
+		boost::shared_ptr<torrent_plugin> tp(ext(this, userdata));
+		if (!tp) return;
+
+		add_extension(tp);
+		
+		for (peer_iterator i = m_connections.begin();
+			i != m_connections.end(); ++i)
+		{
+			peer_connection* p = *i;
+			boost::shared_ptr<peer_plugin> pp(tp->new_connection(p));
+			if (pp) p->add_extension(pp);
+		}
+
+		// if files are checked for this torrent, call the extension
+		// to let it initialize itself
+		if (m_connections_initialized)
+			tp->on_files_checked();
+	}
+
 #endif
 
 	// this may not be called from a constructor because of the call to
