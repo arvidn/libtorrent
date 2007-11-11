@@ -128,6 +128,7 @@ public:
 	void close(asio::error_code& ec)
 	{
 		m_sock.close(ec);
+		m_resolver.cancel();
 	}
 
 	endpoint_type remote_endpoint()
