@@ -278,6 +278,7 @@ namespace libtorrent
 	{
 		boost::weak_ptr<torrent> self(shared_from_this());
 		if (m_torrent_file->is_valid()) init();
+		if (m_abort) return;
 		m_announce_timer.expires_from_now(seconds(1));
 		m_announce_timer.async_wait(m_ses.m_strand.wrap(
 			bind(&torrent::on_announce_disp, self, _1)));
@@ -421,6 +422,8 @@ namespace libtorrent
 	try
 #endif
 	{
+		if (m_abort) return;
+
 		boost::weak_ptr<torrent> self(shared_from_this());
 
 		if (!m_torrent_file->priv())
@@ -1060,6 +1063,7 @@ namespace libtorrent
 			
 		m_owning_storage = 0;
 		m_announce_timer.cancel();
+		m_host_resolver.cancel();
 	}
 
 	void torrent::on_files_deleted(int ret, disk_io_job const& j)
@@ -2206,6 +2210,7 @@ namespace libtorrent
 			// only start the announce if we want to announce with the dht
 			if (should_announce_dht())
 			{
+				if (m_abort) return;
 				// force the DHT to reannounce
 				m_last_dht_announce = time_now() - minutes(15);
 				boost::weak_ptr<torrent> self(shared_from_this());

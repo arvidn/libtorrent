@@ -224,6 +224,7 @@ namespace libtorrent { namespace dht
 		m_connection_timer.cancel();
 		m_refresh_timer.cancel();
 		m_socket.close();
+		m_host_resolver.cancel();
 	}
 
 	void dht_tracker::dht_status(session_status& s)
