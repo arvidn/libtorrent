@@ -69,6 +69,9 @@ void test_transfer()
 	remove_all("./tmp1");
 	torrent_handle th = ses.add_torrent(torrent_file, "./tmp1");
 
+	std::vector<announce_entry> empty;
+	th.replace_trackers(empty);
+
 	for (int i = 0; i < 30; ++i)
 	{
 		torrent_status s = th.status();
