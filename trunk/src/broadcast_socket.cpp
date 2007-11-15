@@ -182,7 +182,7 @@ namespace libtorrent
 	void broadcast_socket::on_receive(socket_entry* s, asio::error_code const& ec
 		, std::size_t bytes_transferred)
 	{
-		if (ec || bytes_transferred == 0) return;
+		if (ec || bytes_transferred == 0 || !m_on_receive) return;
 		m_on_receive(s->remote, s->buffer, bytes_transferred);
 		s->socket->async_receive_from(asio::buffer(s->buffer, sizeof(s->buffer))
 			, s->remote, bind(&broadcast_socket::on_receive, this, s, _1, _2));
