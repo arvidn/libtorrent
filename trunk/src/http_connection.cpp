@@ -121,6 +121,8 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 		return;
 	}
 
+	if (!c->m_sock.is_open()) return;
+
 	c->m_timer.expires_at(c->m_last_receive + c->m_timeout);
 	c->m_timer.async_wait(bind(&http_connection::on_timeout, p, _1));
 }
@@ -135,6 +137,10 @@ void http_connection::close()
 
 	if (m_connection_ticket > -1) m_cc.done(m_connection_ticket);
 	m_connection_ticket = -1;
+
+	if (m_called) return;
+	m_called = true;
+	m_handler(asio::error::operation_aborted, m_parser, 0, 0);
 }
 
 void http_connection::on_resolve(asio::error_code const& e
@@ -360,6 +366,8 @@ void http_connection::on_assign_bandwidth(asio::error_code const& e)
 	if (amount_to_read > m_download_quota)
 		amount_to_read = m_download_quota;
 
+	if (!m_sock.is_open()) return;
+
 	m_sock.async_read_some(asio::buffer(&m_recvbuffer[0] + m_read_pos
 		, amount_to_read)
 		, bind(&http_connection::on_read
@@ -373,6 +381,8 @@ void http_connection::on_assign_bandwidth(asio::error_code const& e)
 
 void http_connection::rate_limit(int limit)
 {
+	if (!m_sock.is_open()) return;
+
 	if (!m_limiter_timer_active)
 	{
 		m_limiter_timer_active = true;
