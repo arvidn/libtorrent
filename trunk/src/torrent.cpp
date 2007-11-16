@@ -1072,7 +1072,14 @@ namespace libtorrent
 
 		if (alerts().should_post(alert::warning))
 		{
-			alerts().post_alert(torrent_deleted_alert(get_handle(), "files deleted"));
+			if (ret != 0)
+			{
+				alerts().post_alert(torrent_deleted_alert(get_handle(), "delete files failed: " + j.str));
+			}
+			else
+			{
+				alerts().post_alert(torrent_deleted_alert(get_handle(), "files deleted"));
+			}
 		}
 	}
 
