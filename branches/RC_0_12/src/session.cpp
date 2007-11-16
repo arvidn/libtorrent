@@ -96,8 +96,16 @@ namespace libtorrent
 	session::session(
 		fingerprint const& id
 		, std::pair<int, int> listen_port_range
-		, char const* listen_interface)
-		: m_impl(new session_impl(listen_port_range, id, listen_interface))
+		, char const* listen_interface
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		, boost::filesystem::path logpath
+#endif
+		)
+		: m_impl(new session_impl(listen_port_range, id, listen_interface
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+					, logpath
+#endif
+					))
 	{
 		// turn off the filename checking in boost.filesystem
 		assert(listen_port_range.first > 0);
@@ -111,8 +119,16 @@ namespace libtorrent
 #endif
 	}
 
-	session::session(fingerprint const& id)
+	session::session(fingerprint const& id
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		, boost::filesystem::path logpath
+#endif
+		)
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		: m_impl(new session_impl(std::make_pair(0, 0), id, "0.0.0.0", logpath))
+#else
 		: m_impl(new session_impl(std::make_pair(0, 0), id))
+#endif
 	{
 #ifndef NDEBUG
 		boost::function0<void> test = boost::ref(*m_impl);

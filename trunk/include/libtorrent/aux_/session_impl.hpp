@@ -184,7 +184,11 @@ namespace libtorrent
 			session_impl(
 				std::pair<int, int> listen_port_range
 				, fingerprint const& cl_fprint
-				, char const* listen_interface = "0.0.0.0");
+				, char const* listen_interface
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+				, fs::path const& logpath
+#endif
+				);
 			~session_impl();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -575,6 +579,7 @@ namespace libtorrent
 			// whe shutting down process
 			std::list<boost::shared_ptr<tracker_logger> > m_tracker_loggers;
 
+			fs::path m_logpath;
 		public:
 			boost::shared_ptr<logger> m_logger;
 		private:

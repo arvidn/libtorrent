@@ -173,7 +173,11 @@ namespace libtorrent
 			session_impl(
 				std::pair<int, int> listen_port_range
 				, fingerprint const& cl_fprint
-				, char const* listen_interface = "0.0.0.0");
+				, char const* listen_interface = "0.0.0.0"
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+				, boost::filesystem::path logpath = "."
+#endif
+				);
 			~session_impl();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -386,6 +390,7 @@ namespace libtorrent
 			// logger used to write bandwidth usage statistics
 			boost::shared_ptr<logger> m_stats_logger;
 			int m_second_counter;
+			boost::filesystem::path m_logpath;
 		public:
 			boost::shared_ptr<logger> m_logger;
 		private:

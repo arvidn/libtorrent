@@ -545,7 +545,11 @@ namespace detail
 	session_impl::session_impl(
 		std::pair<int, int> listen_port_range
 		, fingerprint const& cl_fprint
-		, char const* listen_interface)
+		, char const* listen_interface
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		, fs::path const& logpath
+#endif
+		)
 		: m_send_buffers(send_buffer_size)
 		, m_files(40)
 		, m_strand(m_io_service)
@@ -570,6 +574,9 @@ namespace detail
 #endif
 		, m_timer(m_io_service)
 		, m_next_connect_torrent(0)
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		, m_logpath(logpath)
+#endif
 		, m_checker_impl(*this)
 	{
 #ifdef WIN32
@@ -1602,7 +1609,7 @@ namespace detail
 		, int instance, bool append)
 	{
 		// current options are file_logger, cout_logger and null_logger
-		return boost::shared_ptr<logger>(new logger(name + ".log", instance, append));
+		return boost::shared_ptr<logger>(new logger(m_logpath, name + ".log", instance, append));
 	}
 #endif
 
