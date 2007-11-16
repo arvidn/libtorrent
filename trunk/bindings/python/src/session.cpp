@@ -51,6 +51,8 @@ extern char const* session_get_pe_settings_doc;
 extern char const* session_set_severity_level_doc;
 extern char const* session_pop_alert_doc;
 extern char const* session_start_upnp_doc;
+extern char const* session_start_lsd_doc;
+extern char const* session_stop_lsd_doc;
 extern char const* session_stop_upnp_doc;
 extern char const* session_start_natpmp_doc;
 extern char const* session_stop_natpmp_doc;
@@ -242,6 +244,8 @@ void bind_session()
 #endif
         .def("start_upnp", allow_threads(&session::start_upnp), session_start_upnp_doc)
         .def("stop_upnp", allow_threads(&session::stop_upnp), session_stop_upnp_doc)
+        .def("start_lsd", allow_threads(&session::start_lsd), session_start_lsd_doc)
+        .def("stop_lsd", allow_threads(&session::stop_lsd), session_stop_lsd_doc)
         .def("start_natpmp", allow_threads(&session::start_natpmp), session_start_natpmp_doc)
         .def("stop_natpmp", allow_threads(&session::stop_natpmp), session_stop_natpmp_doc)
         ;
