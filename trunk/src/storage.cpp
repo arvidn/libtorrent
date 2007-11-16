@@ -503,7 +503,7 @@ namespace libtorrent
 		// subdirectories first
 
 		for (std::set<std::string>::reverse_iterator i = directories.rbegin()
-			, end(directories.end()); i != end; ++i)
+			, end(directories.rend()); i != end; ++i)
 		{
 			if (std::remove(i->c_str()) != 0 && errno != ENOENT)
 				error = std::strerror(errno);
