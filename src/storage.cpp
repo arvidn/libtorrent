@@ -478,6 +478,8 @@ namespace libtorrent
 		m_files.release(this);
 		buffer().swap(m_scratch_buffer);
 
+		std::string error;
+
 		// delete the files from disk
 		std::set<std::string> directories;
 		typedef std::set<std::string>::iterator iter_t;
@@ -493,13 +495,21 @@ namespace libtorrent
 				std::pair<iter_t, bool> ret = directories.insert((m_save_path / bp).string());
 				bp = bp.branch_path();
 			}
-			std::remove(p.c_str());
+			if (std::remove(p.c_str()) != 0 && errno != ENOENT)
+				error = std::strerror(errno);
 		}
 
 		// remove the directories. Reverse order to delete
 		// subdirectories first
-		std::for_each(directories.rbegin(), directories.rend()
-			, bind((int(*)(char const*))&std::remove, bind(&std::string::c_str, _1)));
+
+		for (std::set<std::string>::reverse_iterator i = directories.rbegin()
+			, end(directories.end()); i != end; ++i)
+		{
+			if (std::remove(i->c_str()) != 0 && errno != ENOENT)
+				error = std::strerror(errno);
+		}
+
+		if (!error.empty()) throw std::runtime_error(error);
 	}
 
 	void storage::write_resume_data(entry& rd) const
