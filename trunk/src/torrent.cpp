@@ -498,7 +498,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		
-		if (m_torrent_file->trackers().empty()) return false;
+		if (m_trackers.empty()) return false;
 
 		if (m_just_paused)
 		{
