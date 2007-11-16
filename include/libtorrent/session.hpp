@@ -117,11 +117,19 @@ namespace libtorrent
 	public:
 
 		session(fingerprint const& print = fingerprint("LT"
-			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0));
+			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			, boost::filesystem::path logpath = "."
+#endif
+				);
 		session(
 			fingerprint const& print
 			, std::pair<int, int> listen_port_range
-			, char const* listen_interface = "0.0.0.0");
+			, char const* listen_interface = "0.0.0.0"
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			, boost::filesystem::path logpath = "."
+#endif
+			);
 			
 		~session();
 

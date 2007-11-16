@@ -67,12 +67,12 @@ namespace libtorrent
 
 	struct logger
 	{
-		logger(boost::filesystem::path const& filename, int instance, bool append = true)
+ 		logger(boost::filesystem::path const& logpath, boost::filesystem::path const& filename, int instance, bool append = true)
 		{
 			try
 			{
 				using namespace boost::filesystem;
-				path dir(complete("libtorrent_logs" + boost::lexical_cast<std::string>(instance)));
+ 				path dir(complete(logpath / ("libtorrent_logs" + boost::lexical_cast<std::string>(instance))));
 				if (!exists(dir)) create_directories(dir);
 				m_file.open(dir / filename, std::ios_base::out | (append ? std::ios_base::app : std::ios_base::out));
 				*this << "\n\n\n*** starting log ***\n";

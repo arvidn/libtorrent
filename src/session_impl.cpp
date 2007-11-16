@@ -478,7 +478,11 @@ namespace libtorrent { namespace detail
 	session_impl::session_impl(
 		std::pair<int, int> listen_port_range
 		, fingerprint const& cl_fprint
-		, char const* listen_interface)
+		, char const* listen_interface
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		, boost::filesystem::path logpath
+#endif
+		)
 		: m_strand(m_io_service)
 		, m_files(40)
 		, m_dl_bandwidth_manager(m_io_service, peer_connection::download_channel)
@@ -493,6 +497,9 @@ namespace libtorrent { namespace detail
 		, m_incoming_connection(false)
 		, m_last_tick(microsec_clock::universal_time())
 		, m_timer(m_io_service)
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		, m_logpath(logpath)
+#endif
 		, m_checker_impl(*this)
 	{
 
@@ -1165,7 +1172,7 @@ namespace libtorrent { namespace detail
 		, int instance, bool append)
 	{
 		// current options are file_logger, cout_logger and null_logger
-		return boost::shared_ptr<logger>(new logger(name + ".log", instance, append));
+		return boost::shared_ptr<logger>(new logger(m_logpath, name + ".log", instance, append));
 	}
 #endif
 
