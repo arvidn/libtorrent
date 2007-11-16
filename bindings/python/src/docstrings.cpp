@@ -169,6 +169,10 @@ char const* session_start_upnp_doc =
     "";
 char const* session_stop_upnp_doc =
     "";
+char const* session_start_lsd_doc =  
+    "";
+char const* session_stop_lsd_doc =
+    "";
 char const* session_start_natpmp_doc =
     "";
 char const* session_stop_natpmp_doc =
