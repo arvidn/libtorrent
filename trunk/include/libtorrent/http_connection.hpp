@@ -115,6 +115,8 @@ private:
 		, asio::error_code const& e);
 	void on_assign_bandwidth(asio::error_code const& e);
 
+	void callback(asio::error_code const& e, char const* data = 0, int size = 0);
+
 	std::vector<char> m_recvbuffer;
 	tcp::socket m_sock;
 	int m_read_pos;
