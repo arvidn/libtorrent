@@ -37,6 +37,18 @@
 	* added support for NAT-PMP
 	* added support for piece priorities. Piece filtering is now set as
 	  a priority
+	* Fixed crash when last piece was smaller than one block and reading
+	  fastresume data for that piece
+	* Makefiles should do a better job detecting boost
+	* Fixed crash when all tracker urls are removed
+	* Log files can now be created at user supplied path
+	* Log files failing to create is no longer fatal
+	* Fixed dead-lock in torrent_handle
+	* Made it build with boost 1.34 on windows
+	* Fixed bug in URL parser that failed to parse IPv6 addresses
+	* Fixed bug in DHT, related to IPv6 nodes
+	* DHT accepts transaction IDs that have garbage appended to them
+	* DHT logs messages that it fails to decode
 
 release 0.12
 
