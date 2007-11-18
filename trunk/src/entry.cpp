@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <algorithm>
+#include <iostream>
 #include <iomanip>
 #include "libtorrent/entry.hpp"
 #include "libtorrent/config.hpp"
