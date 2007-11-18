@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cctype>
 #include <algorithm>
 #include <string>
+#include <cstring>
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
