@@ -91,6 +91,9 @@ namespace libtorrent
 		int content_length() const { return m_content_length; }
 
 		void reset();
+
+		std::map<std::string, std::string> const& headers() const { return m_header; }
+		
 	private:
 		int m_recv_pos;
 		int m_status_code;
