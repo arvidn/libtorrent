@@ -68,6 +68,7 @@ BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 #include <boost/filesystem/operations.hpp>
 #include "libtorrent/file.hpp"
 #include <sstream>
+#include <cstring>
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -184,7 +185,7 @@ namespace libtorrent
 			{
 				std::stringstream msg;
 				msg << "open failed: '" << path.native_file_string() << "'. "
-					<< strerror(errno);
+					<< std::strerror(errno);
 				throw file_error(msg.str());
 			}
 			m_open_mode = mode;
@@ -216,7 +217,7 @@ namespace libtorrent
 			if (ret == -1)
 			{
 				std::stringstream msg;
-				msg << "read failed: " << strerror(errno);
+				msg << "read failed: " << std::strerror(errno);
 				throw file_error(msg.str());
 			}
 			return ret;
@@ -240,7 +241,7 @@ namespace libtorrent
 			if (ret == -1)
 			{
 				std::stringstream msg;
-				msg << "write failed: " << strerror(errno);
+				msg << "write failed: " << std::strerror(errno);
 				throw file_error(msg.str());
 			}
 			return ret;
@@ -254,7 +255,7 @@ namespace libtorrent
 			if (ftruncate(m_fd, s) < 0)
 			{
 				std::stringstream msg;
-				msg << "ftruncate failed: '" << strerror(errno);
+				msg << "ftruncate failed: '" << std::strerror(errno);
 				throw file_error(msg.str());
 			}
 #endif
@@ -278,7 +279,7 @@ namespace libtorrent
 			if (ret == -1)
 			{
 				std::stringstream msg;
-				msg << "seek failed: '" << strerror(errno)
+				msg << "seek failed: '" << std::strerror(errno)
 					<< "' fd: " << m_fd
 					<< " offset: " << offset
 					<< " seekdir: " << seekdir;
