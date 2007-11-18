@@ -185,5 +185,7 @@ void lsd::close()
 {
 	m_socket.close();
 	m_broadcast_timer.cancel();
+	m_disabled = true;
+	m_callback.clear();
 }
 
