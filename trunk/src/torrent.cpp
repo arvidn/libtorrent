@@ -1153,7 +1153,8 @@ namespace libtorrent
 		if (is_seed())
 		{
 			m_picker.reset();
-			m_torrent_file->seed_free();
+			if (m_ses.settings().free_torrent_hashes)
+				m_torrent_file->seed_free();
 		}
 	}
 
@@ -2347,7 +2348,8 @@ namespace libtorrent
 		if (is_seed())
 		{
 			m_picker.reset();
-			m_torrent_file->seed_free();
+			if (m_ses.settings().free_torrent_hashes)
+				m_torrent_file->seed_free();
 		}
 
 		if (!m_connections_initialized)
