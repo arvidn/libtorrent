@@ -115,6 +115,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(true)
 #endif
+			, free_torrent_hashes(true)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -281,6 +282,12 @@ namespace libtorrent
 		// tracker is online
 		bool use_dht_as_fallback;
 #endif
+
+		// if this is true, the piece hashes will be freed, in order
+		// to save memory, once the torrent is seeding. This will
+		// make the get_torrent_info() function to return an incomplete
+		// torrent object that cannot be passed back to add_torrent()
+		bool free_torrent_hashes;
 	};
 	
 #ifndef TORRENT_DISABLE_DHT
