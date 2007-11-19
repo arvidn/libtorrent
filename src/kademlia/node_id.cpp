@@ -87,7 +87,7 @@ int distance_exp(node_id const& n1, node_id const& n2)
 		// return the bit-number of the first bit
 		// that differs
 		int bit = byte * 8;
-		for (int b = 7; b > 0; --b)
+		for (int b = 7; b >= 0; --b)
 			if (t >= (1 << b)) return bit + b;
 		return bit;
 	}
