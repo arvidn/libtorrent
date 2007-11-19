@@ -1272,7 +1272,13 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
+		// Don't require the bitfield to have been sent at this point
+		// the case where m_sent_bitfield may not be true is if the
+		// torrent doesn't have any metadata, and a peer is timimg out.
+		// then the keep-alive message will be sent before the bitfield
+		// this is a violation to the original protocol, but necessary
+		// for the metadata extension.
+		TORRENT_ASSERT(m_sent_handshake);
 
 		char msg[] = {0,0,0,0};
 		send_buffer(msg, sizeof(msg));
@@ -2477,6 +2483,11 @@ namespace libtorrent
 
 		TORRENT_ASSERT(!m_rc4_encrypted || m_RC4_handler.get());
 #endif
+		if (!in_handshake())
+		{
+			TORRENT_ASSERT(m_sent_handshake);
+		}
+
 		if (!m_in_constructor)
 			peer_connection::check_invariant();
 
