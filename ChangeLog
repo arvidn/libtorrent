@@ -1,3 +1,4 @@
+	* Fixed invalid calculation in DHT node distance
 	* Fixed crash when last piece was smaller than one block and reading
 	  fastresume data for that piece
 	* Makefiles should do a better job detecting boost
