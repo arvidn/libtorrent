@@ -2317,6 +2317,8 @@ namespace detail
 	void session_impl::stop_lsd()
 	{
 		mutex_t::scoped_lock l(m_mutex);
+		if (m_lsd.get())
+			m_lsd->close();
 		m_lsd = 0;
 	}
 	
