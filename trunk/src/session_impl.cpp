@@ -1028,7 +1028,6 @@ namespace detail
 		async_accept(listener);
 
 		// we got a connection request!
-		m_incoming_connection = true;
 		tcp::endpoint endp = s->remote_endpoint(ec);
 
 		if (ec)
@@ -1043,6 +1042,14 @@ namespace detail
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << endp << " <== INCOMING CONNECTION\n";
 #endif
+
+		// local addresses do not count, since it's likely
+		// coming from our own client through local service discovery
+		// and it does not reflect whether or not a router is open
+		// for incoming connections or not.
+		if (!is_local(endp.address()))
+			m_incoming_connection = true;
+
 		if (m_ip_filter.access(endp.address()) & ip_filter::blocked)
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
