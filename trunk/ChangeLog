@@ -1,3 +1,4 @@
+	* Fixed invalid calculation in DHT node distance
 	* Fixed bug in URL parser that failed to parse IPv6 addresses
 	* added peer download rate approximation
 	* added port filter for outgoing connection (to prevent
