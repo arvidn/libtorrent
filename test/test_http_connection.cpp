@@ -30,6 +30,7 @@ void http_connect_handler(http_connection& c)
 {
 	++connect_handler_called;
 	TEST_CHECK(c.socket().is_open());
+	std::cerr << "connected to: " << c.socket().remote_endpoint() << std::endl;
 	TEST_CHECK(c.socket().remote_endpoint().address() == address::from_string("127.0.0.1"));
 }
 
@@ -54,7 +55,7 @@ void reset_globals()
 	error_code = asio::error_code();
 }
 
-void run_test(char const* url, int size, int status, asio::error_code const& ec)
+void run_test(char const* url, int size, int status, int connected, asio::error_code const& ec)
 {
 	reset_globals();
 
@@ -71,17 +72,18 @@ void run_test(char const* url, int size, int status, asio::error_code const& ec)
 	std::cerr << "status: " << http_status << std::endl;
 	std::cerr << "size: " << data_size << std::endl;
 	std::cerr << "error_code: " << error_code.message() << std::endl;
-	TEST_CHECK(connect_handler_called == 1);	
+	TEST_CHECK(connect_handler_called == connected);
 	TEST_CHECK(handler_called == 1);	
 	TEST_CHECK(data_size == size || size == -1);
 	TEST_CHECK(error_code == ec);
-	TEST_CHECK(http_status == status);
+	TEST_CHECK(http_status == status || status == -1);
 }
 
 int test_main()
 {
-	run_test("http://127.0.0.1/disk_io.png", 17809, 200, asio::error_code());
-	run_test("http://127.0.0.1/non-existing-file", -1, 404, asio::error::eof);
+	run_test("http://127.0.0.1/disk_io.png", 17809, 200, 1, asio::error_code());
+	run_test("http://127.0.0.1/non-existing-file", -1, 404, 1, asio::error::eof);
+	run_test("http://non-existent-domain.se/non-existing-file", -1, -1, 0, asio::error::host_not_found);
 	return 0;
 }
 
