@@ -208,7 +208,7 @@ add_torrent()
 			torrent_info const& ti
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
-			, bool compact_mode = true
+			, storage_mode_t storage_mode = storage_mode_sparse
 			, bool paused = false);
 
 		torrent_handle add_torrent(
@@ -217,7 +217,7 @@ add_torrent()
 			, char const* name
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
-			, bool compact_mode = true
+			, storage_mode_t storage_mode = storage_mode_sparse
 			, bool paused = false);
 
 You add torrents through the ``add_torrent()`` function where you give an
@@ -233,12 +233,24 @@ The optional parameter, ``resume_data`` can be given if up to date fast-resume d
 is available. The fast-resume data can be acquired from a running torrent by calling
 ``torrent_handle::write_resume_data()``. See `fast resume`_.
 
-The ``compact_mode`` parameter refers to the layout of the storage for this torrent. If
-set to true (default), the storage will grow as more pieces are downloaded, and pieces
-are rearranged to finally be in their correct places once the entire torrent has been
-downloaded. If it is false, the entire storage is allocated before download begins. I.e.
-the files contained in the torrent are filled with zeros, and each downloaded piece
-is put in its final place directly when downloaded. For more info, see `storage allocation`_.
+The ``storage_mode`` parameter refers to the layout of the storage for this torrent.
+There are 3 different modes:
+
+storage_mode_sparse
+	All pieces will be written to the place where they belong and sparse files
+	will be used. This is the recommended, and default mode.
+
+storage_mode_allocate
+	All pieces will be allocated, zeroes will be written to the files, before
+	the data is downloaded and written to the file. This might be useful for
+	filesystems that don't support sparse files.
+
+storage_mode_compact
+	The storage will grow as more pieces are downloaded, and pieces
+	are rearranged to finally be in their correct places once the entire torrent has been
+	downloaded.
+
+For more information, see `storage allocation`_.
 
 ``paused`` is a boolean that specifies whether or not the torrent is to be started in
 a paused state. I.e. it won't connect to the tracker or any of the peers until it's
@@ -255,6 +267,10 @@ with extensions enabled (``TORRENT_DISABLE_EXTENSIONS`` must not be defined). It
 takes an optional ``name`` argument. This may be 0 in case no name should be assigned
 to the torrent. In case it's not 0, the name is used for the torrent as long as it doesn't
 have metadata. See ``torrent_handle::name``.
+
+If the torrent doesn't have a tracker, but relies on the DHT to find peers, the
+``tracker_url`` can be 0.
+
 
 remove_torrent() find_torrent() get_torrents()
 ----------------------------------------------
@@ -3618,26 +3634,38 @@ libtorrent starts 2 or 3 threads.
 storage allocation
 ==================
 
-There are two modes in which storage (files on disk) are allocated in libtorrent.
+There are three modes in which storage (files on disk) are allocated in libtorrent.
 
- * The traditional *full allocation* mode, where the entire files are filled up with
+1. The traditional *full allocation* mode, where the entire files are filled up with
    zeros before anything is downloaded. libtorrent will look for sparse files support
    in the filesystem that is used for storage, and use sparse files or file system
    zero fill support if present. This means that on NTFS, full allocation mode will
    only allocate storage for the downloaded pieces.
 
- * And the *compact allocation* mode, where only files are allocated for actual
+2. The *compact allocation* mode, where only files are allocated for actual
    pieces that have been downloaded. This is the default allocation mode in libtorrent.
 
-The allocation mode is selected when a torrent is started. It is passed as a boolean
-argument to ``session::add_torrent()`` (see `add_torrent()`_). These two modes have
-different drawbacks and benefits.
+3. The *sparce allocation*, sparse files are used, and pieces are downloaded directly
+   to where they belong. This is the recommended (and default) mode.
+
+The allocation mode is selected when a torrent is started. It is passed as an
+argument to ``session::add_torrent()`` (see `add_torrent()`_).
 
 The decision to use full allocation or compact allocation typically depends on whether
 any files are filtered and if the filesystem supports sparse files.
 
-To know if the filesystem supports sparse files (and to know if libtorrent believes the
-filesystem supports sparse files), see `supports_sparse_files()`_.
+sparse allocation
+-----------------
+
+On filesystems that supports sparse files, this allocation mode will only use
+as much space as has been downloaded.
+
+ * It does not require an allocation pass on startup.
+
+ * It supports skipping files (setting prioirty to 0 to not download).
+
+ * Fast resume data will remain valid even when file time stamps are out of date.
+
 
 full allocation
 ---------------
