@@ -797,7 +797,7 @@ namespace libtorrent
 				return;
 			}
 			m_buffer.erase(m_buffer.begin(), m_buffer.begin() + m_parser.body_start());
-			if (inflate_gzip(m_buffer, tracker_request(), cb.get(),
+			if (inflate_gzip(m_buffer, tracker_req(), cb.get(),
 				m_settings.tracker_maximum_response_length))
 			{
 				close();
@@ -897,21 +897,35 @@ namespace libtorrent
 			}
 			catch(type_error const&) {}
 			
-			std::vector<peer_entry> peer_list;
-
 			if (tracker_req().kind == tracker_request::scrape_request)
 			{
 				std::string ih;
 				std::copy(tracker_req().info_hash.begin(), tracker_req().info_hash.end()
 					, std::back_inserter(ih));
 				entry scrape_data = e["files"][ih];
-				int complete = scrape_data["complete"].integer();
-				int incomplete = scrape_data["incomplete"].integer();
-				cb->tracker_response(tracker_request(), peer_list, 0, complete
-					, incomplete);
+
+				int complete = -1;
+				int incomplete = -1;
+				int downloaded = -1;
+
+				entry const* complete_ent = scrape_data.find_key("complete");
+				if (complete_ent && complete_ent->type() == entry::int_t)
+					complete = complete_ent->integer();
+		
+				entry const* incomplete_ent = scrape_data.find_key("incomplete");
+				if (incomplete_ent && incomplete_ent->type() == entry::int_t)
+					incomplete = incomplete_ent->integer();
+
+				entry const* downloaded_ent = scrape_data.find_key("downloaded");
+				if (downloaded_ent && downloaded_ent->type() == entry::int_t)
+					downloaded = downloaded_ent->integer();
+
+				cb->tracker_scrape_response(tracker_req(), complete
+					, incomplete, downloaded);
 				return;
 			}
 
+			std::vector<peer_entry> peer_list;
 			int interval = (int)e["interval"].integer();
 
 			if (e["peers"].type() == entry::string_t)
@@ -965,16 +979,16 @@ namespace libtorrent
 			try { incomplete = e["incomplete"].integer(); }
 			catch(type_error&) {}
 			
-			cb->tracker_response(tracker_request(), peer_list, interval, complete
+			cb->tracker_response(tracker_req(), peer_list, interval, complete
 				, incomplete);
 		}
 		catch(type_error& e)
 		{
-			cb->tracker_request_error(tracker_request(), m_parser.status_code(), e.what());
+			cb->tracker_request_error(tracker_req(), m_parser.status_code(), e.what());
 		}
 		catch(std::runtime_error& e)
 		{
-			cb->tracker_request_error(tracker_request(), m_parser.status_code(), e.what());
+			cb->tracker_request_error(tracker_req(), m_parser.status_code(), e.what());
 		}
 	}
 

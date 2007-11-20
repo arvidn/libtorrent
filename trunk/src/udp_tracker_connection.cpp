@@ -548,7 +548,7 @@ namespace libtorrent
 		}
 
 		int complete = detail::read_int32(buf);
-		/*int downloaded = */detail::read_int32(buf);
+		int downloaded = detail::read_int32(buf);
 		int incomplete = detail::read_int32(buf);
 
 		boost::shared_ptr<request_callback> cb = requester();
@@ -559,9 +559,8 @@ namespace libtorrent
 			return;
 		}
 		
-		std::vector<peer_entry> peer_list;
-		cb->tracker_response(tracker_req(), peer_list, 0
-			, complete, incomplete);
+		cb->tracker_scrape_response(tracker_req()
+			, complete, incomplete, downloaded);
 
 		m_man.remove_request(this);
 		close();

@@ -492,6 +492,21 @@ namespace libtorrent
 
 #endif
 
+	void torrent::scrape_tracker()
+	{
+		if (m_trackers.empty()) return;
+
+		TORRENT_ASSERT(m_currently_trying_tracker >= 0);
+		TORRENT_ASSERT(m_currently_trying_tracker < int(m_trackers.size()));
+		
+		tracker_request req;
+		req.info_hash = m_torrent_file->info_hash();
+		req.kind = tracker_request::scrape_request;
+		req.url = m_trackers[m_currently_trying_tracker].url;
+		m_ses.m_tracker_manager.queue_request(m_ses.m_strand, m_ses.m_half_open, req
+			, tracker_login(), m_ses.m_listen_interface.address(), shared_from_this());
+	}
+
 	// returns true if it is time for this torrent to make another
 	// tracker request
 	bool torrent::should_request()
@@ -520,6 +535,26 @@ namespace libtorrent
 		}
 	}
 	
+ 	void torrent::tracker_scrape_response(tracker_request const& req
+ 		, int complete, int incomplete, int downloaded)
+ 	{
+ 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+ 
+ 		INVARIANT_CHECK;
+		TORRENT_ASSERT(req.kind == tracker_request::scrape_request);
+ 
+ 		if (complete >= 0) m_complete = complete;
+ 		if (incomplete >= 0) m_incomplete = incomplete;
+ 
+ 		if (m_ses.m_alerts.should_post(alert::info))
+ 		{
+ 			std::stringstream s;
+ 			s << "Got scrape response from tracker: " << req.url;
+ 			m_ses.m_alerts.post_alert(scrape_reply_alert(
+ 				get_handle(), m_incomplete, m_complete, s.str()));
+ 		}
+ 	}
+ 
 	void torrent::tracker_response(
 		tracker_request const&
 		, std::vector<peer_entry>& peer_list
@@ -530,6 +565,7 @@ namespace libtorrent
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
+		TORRENT_ASSERT(r.kind == tracker_request::announce_request);
 
 		m_failed_trackers = 0;
 		// announce intervals less than 5 minutes
@@ -606,8 +642,7 @@ namespace libtorrent
 		if (m_ses.m_alerts.should_post(alert::info))
 		{
 			std::stringstream s;
-			s << "Got response from tracker: "
-				<< m_trackers[m_last_working_tracker].url;
+			s << "Got response from tracker: " << r.url;
 			m_ses.m_alerts.post_alert(tracker_reply_alert(
 				get_handle(), peer_list.size(), s.str()));
 		}
@@ -2860,8 +2895,12 @@ namespace libtorrent
 
 		torrent_status st;
 
-		st.num_peers = (int)std::count_if(m_connections.begin(), m_connections.end(),
-			!boost::bind(&peer_connection::is_connecting, _1));
+		st.num_peers = (int)std::count_if(m_connections.begin(), m_connections.end()
+			, !boost::bind(&peer_connection::is_connecting, _1));
+
+		st.list_peers = std::distance(m_policy.begin_peer(), m_policy.end_peer());
+		st.list_seeds = (int)std::count_if(m_policy.begin_peer(), m_policy.end_peer()
+			, boost::bind(&policy::peer::seed, bind(&policy::iterator::value_type::second, _1)));
 
 		st.storage_mode = m_storage_mode;
 
@@ -2992,7 +3031,7 @@ namespace libtorrent
 	}
 
 	void torrent::tracker_request_timed_out(
-		tracker_request const&)
+		tracker_request const& r)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
@@ -3005,19 +3044,26 @@ namespace libtorrent
 		if (m_ses.m_alerts.should_post(alert::warning))
 		{
 			std::stringstream s;
-			s << "tracker: \""
-				<< m_trackers[m_currently_trying_tracker].url
-				<< "\" timed out";
-			m_ses.m_alerts.post_alert(tracker_alert(get_handle()
-				, m_failed_trackers + 1, 0, s.str()));
+			s << "tracker: \"" << r.url << "\" timed out";
+			if (r.kind == tracker_request::announce_request)
+			{
+				m_ses.m_alerts.post_alert(tracker_alert(get_handle()
+					, m_failed_trackers + 1, 0, s.str()));
+			}
+			else if (r.kind == tracker_request::scrape_request)
+			{
+				m_ses.m_alerts.post_alert(scrape_failed_alert(get_handle(), s.str()));
+			}
 		}
-		try_next_tracker();
+
+		if (r.kind == tracker_request::announce_request)
+			try_next_tracker();
 	}
 
 	// TODO: with some response codes, we should just consider
 	// the tracker as a failure and not retry
 	// it anymore
-	void torrent::tracker_request_error(tracker_request const&
+	void torrent::tracker_request_error(tracker_request const& r
 		, int response_code, const std::string& str)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
@@ -3030,14 +3076,20 @@ namespace libtorrent
 		if (m_ses.m_alerts.should_post(alert::warning))
 		{
 			std::stringstream s;
-			s << "tracker: \""
-				<< m_trackers[m_currently_trying_tracker].url
-				<< "\" " << str;
-			m_ses.m_alerts.post_alert(tracker_alert(get_handle()
-				, m_failed_trackers + 1, response_code, s.str()));
+			s << "tracker: \"" << r.url << "\" " << str;
+			if (r.kind == tracker_request::announce_request)
+			{
+				m_ses.m_alerts.post_alert(tracker_alert(get_handle()
+					, m_failed_trackers + 1, response_code, s.str()));
+			}
+			else if (r.kind == tracker_request::scrape_request)
+			{
+				m_ses.m_alerts.post_alert(scrape_failed_alert(get_handle(), s.str()));
+			}
 		}
 
-		try_next_tracker();
+		if (r.kind == tracker_request::announce_request)
+			try_next_tracker();
 	}
 
 

@@ -94,15 +94,17 @@ namespace libtorrent
 			, upload_rate(0)
 			, download_payload_rate(0)
 			, upload_payload_rate(0)
+			, num_seeds(0)
 			, num_peers(0)
 			, num_complete(-1)
 			, num_incomplete(-1)
+			, list_seeds(0)
+			, list_peers(0)
 			, pieces(0)
 			, num_pieces(0)
 			, total_done(0)
 			, total_wanted_done(0)
 			, total_wanted(0)
-			, num_seeds(0)
 			, distributed_copies(0.f)
 			, block_size(0)
 			, num_uploads(0)
@@ -159,8 +161,12 @@ namespace libtorrent
 		float download_payload_rate;
 		float upload_payload_rate;
 
+		// the number of peers this torrent is connected to
+		// that are seeding.
+		int num_seeds;
+
 		// the number of peers this torrent
-		// is connected to.
+		// is connected to (including seeds).
 		int num_peers;
 
 		// if the tracker sends scrape info in its
@@ -171,6 +177,15 @@ namespace libtorrent
 		int num_complete;
 		int num_incomplete;
 
+		// this is the number of seeds whose IP we know
+		// but are not necessarily connected to
+		int list_seeds;
+
+		// this is the number of peers whose IP we know
+		// (including seeds), but are not necessarily
+		// connected to
+		int list_peers;
+		
 		const std::vector<bool>* pieces;
 		
 		// this is the number of pieces the client has
@@ -192,10 +207,6 @@ namespace libtorrent
 		// this may be smaller than the total torrent size
 		// in case any pieces are filtered as not wanted
 		size_type total_wanted;
-
-		// the number of peers this torrent is connected to
-		// that are seeding.
-		int num_seeds;
 
 		// the number of distributed copies of the file.
 		// note that one copy may be spread out among many peers.
@@ -344,6 +355,9 @@ namespace libtorrent
 		// announce will take place until the given time has
 		// timed out.
 		void force_reannounce(boost::posix_time::time_duration) const;
+
+		// performs a scrape request
+		void scrape_tracker() const;
 
 		// returns the name of this torrent, in case it doesn't
 		// have metadata it returns the name assigned to it

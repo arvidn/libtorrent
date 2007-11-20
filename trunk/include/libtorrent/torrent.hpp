@@ -309,6 +309,8 @@ namespace libtorrent
 		virtual void tracker_request_error(tracker_request const& r
 			, int response_code, const std::string& str);
 		virtual void tracker_warning(std::string const& msg);
+		virtual void tracker_scrape_response(tracker_request const& req
+			, int complete, int incomplete, int downloaded);
 
 		// generates a request string for sending
 		// to the tracker
@@ -332,6 +334,7 @@ namespace libtorrent
 		// forcefully sets next_announce to the current time
 		void force_tracker_request();
 		void force_tracker_request(ptime);
+		void scrape_tracker();
 
 		// sets the username and password that will be sent to
 		// the tracker
