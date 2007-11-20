@@ -122,6 +122,8 @@ namespace libtorrent
 		request_callback(): m_manager(0) {}
 		virtual ~request_callback() {}
 		virtual void tracker_warning(std::string const& msg) = 0;
+		virtual void tracker_scrape_response(tracker_request const& req
+			, int complete, int incomplete, int downloads) {}
 		virtual void tracker_response(
 			tracker_request const&
 			, std::vector<peer_entry>& peers
@@ -191,7 +193,7 @@ namespace libtorrent
 		: timeout_handler
 	{
 		tracker_connection(tracker_manager& man
-			, tracker_request req
+			, tracker_request const& req
 			, asio::strand& str
 			, address bind_interface
 			, boost::weak_ptr<request_callback> r);

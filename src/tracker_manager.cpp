@@ -359,7 +359,7 @@ namespace libtorrent
 
 	tracker_connection::tracker_connection(
 		tracker_manager& man
-		, tracker_request req
+		, tracker_request const& req
 		, asio::strand& str
 		, address bind_interface_
 		, boost::weak_ptr<request_callback> r)

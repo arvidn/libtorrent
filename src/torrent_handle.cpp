@@ -863,6 +863,20 @@ namespace libtorrent
 		t->force_tracker_request();
 	}
 
+	void torrent_handle::scrape_tracker() const
+	{
+		INVARIANT_CHECK;
+
+		if (m_ses == 0) throw_invalid_handle();
+		TORRENT_ASSERT(m_chk);
+	
+		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
+		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
+		if (!t) throw_invalid_handle();
+
+		t->scrape_tracker();
+	}
+
 	void torrent_handle::set_ratio(float ratio) const
 	{
 		INVARIANT_CHECK;
