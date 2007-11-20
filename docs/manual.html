@@ -1781,9 +1781,15 @@ is still downloading! The recommended practice is to first pause the torrent, th
 fast resume data, and then close it down. Since the disk IO is done in a separate thread, in order
 to synchronize, you shoule to wait for the <tt class="docutils literal"><span class="pre">torrent_paused_alert</span></tt> before you write the resume
 data.</p>
+<p>In full allocation mode the reume data is never invalidated by subsequent
+writes to the files, since pieces won't move around. This means that you don't need to
+pause before writing resume data in full or sparse mode. If you don't, however, any data written to
+disk after you saved resume data and before the session closed is lost.</p>
+<p>It also means that if the resume data is out dated, libtorrent will not re-check the files, but assume
+that it is fairly recent. The assumption is that it's better to loose a little bit than to re-check
+the entire file.</p>
 <p>It is still a good idea to save resume data periodically during download as well as when
-closing down. In full allocation mode the reume data is never invalidated by subsequent
-writes to the files, since pieces won't move around.</p>
+closing down.</p>
 </div>
 <div class="section">
 <h2><a id="id6" name="id6">status()</a></h2>

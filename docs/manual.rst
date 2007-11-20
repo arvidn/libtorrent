@@ -1759,9 +1759,17 @@ fast resume data, and then close it down. Since the disk IO is done in a separat
 to synchronize, you shoule to wait for the ``torrent_paused_alert`` before you write the resume
 data.
 
+In full allocation mode the reume data is never invalidated by subsequent
+writes to the files, since pieces won't move around. This means that you don't need to
+pause before writing resume data in full or sparse mode. If you don't, however, any data written to
+disk after you saved resume data and before the session closed is lost.
+
+It also means that if the resume data is out dated, libtorrent will not re-check the files, but assume
+that it is fairly recent. The assumption is that it's better to loose a little bit than to re-check
+the entire file.
+
 It is still a good idea to save resume data periodically during download as well as when
-closing down. In full allocation mode the reume data is never invalidated by subsequent
-writes to the files, since pieces won't move around.
+closing down.
 
 
 status()
