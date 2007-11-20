@@ -164,17 +164,18 @@
 </li>
 <li><a class="reference" href="#threads" id="id136" name="id136">threads</a></li>
 <li><a class="reference" href="#storage-allocation" id="id137" name="id137">storage allocation</a><ul>
-<li><a class="reference" href="#full-allocation" id="id138" name="id138">full allocation</a></li>
-<li><a class="reference" href="#compact-allocation" id="id139" name="id139">compact allocation</a></li>
+<li><a class="reference" href="#sparse-allocation" id="id138" name="id138">sparse allocation</a></li>
+<li><a class="reference" href="#full-allocation" id="id139" name="id139">full allocation</a></li>
+<li><a class="reference" href="#compact-allocation" id="id140" name="id140">compact allocation</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#extensions" id="id140" name="id140">extensions</a><ul>
-<li><a class="reference" href="#metadata-from-peers" id="id141" name="id141">metadata from peers</a></li>
-<li><a class="reference" href="#http-seeding" id="id142" name="id142">HTTP seeding</a></li>
+<li><a class="reference" href="#extensions" id="id141" name="id141">extensions</a><ul>
+<li><a class="reference" href="#metadata-from-peers" id="id142" name="id142">metadata from peers</a></li>
+<li><a class="reference" href="#http-seeding" id="id143" name="id143">HTTP seeding</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#filename-checks" id="id143" name="id143">filename checks</a></li>
-<li><a class="reference" href="#acknowledgments" id="id144" name="id144">acknowledgments</a></li>
+<li><a class="reference" href="#filename-checks" id="id144" name="id144">filename checks</a></li>
+<li><a class="reference" href="#acknowledgments" id="id145" name="id145">acknowledgments</a></li>
 </ul>
 </div>
 <div class="section">
@@ -373,7 +374,7 @@ torrent_handle add_torrent(
         torrent_info const&amp; ti
         , boost::filesystem::path const&amp; save_path
         , entry const&amp; resume_data = entry()
-        , bool compact_mode = true
+        , storage_mode_t storage_mode = storage_mode_sparse
         , bool paused = false);
 
 torrent_handle add_torrent(
@@ -382,7 +383,7 @@ torrent_handle add_torrent(
         , char const* name
         , boost::filesystem::path const&amp; save_path
         , entry const&amp; resume_data = entry()
-        , bool compact_mode = true
+        , storage_mode_t storage_mode = storage_mode_sparse
         , bool paused = false);
 </pre>
 </blockquote>
@@ -396,12 +397,22 @@ for checking, being checked or downloading) <tt class="docutils literal"><span c
 <p>The optional parameter, <tt class="docutils literal"><span class="pre">resume_data</span></tt> can be given if up to date fast-resume data
 is available. The fast-resume data can be acquired from a running torrent by calling
 <tt class="docutils literal"><span class="pre">torrent_handle::write_resume_data()</span></tt>. See <a class="reference" href="#fast-resume">fast resume</a>.</p>
-<p>The <tt class="docutils literal"><span class="pre">compact_mode</span></tt> parameter refers to the layout of the storage for this torrent. If
-set to true (default), the storage will grow as more pieces are downloaded, and pieces
+<p>The <tt class="docutils literal"><span class="pre">storage_mode</span></tt> parameter refers to the layout of the storage for this torrent.
+There are 3 different modes:</p>
+<dl class="docutils">
+<dt>storage_mode_sparse</dt>
+<dd>All pieces will be written to the place where they belong and sparse files
+will be used. This is the recommended, and default mode.</dd>
+<dt>storage_mode_allocate</dt>
+<dd>All pieces will be allocated, zeroes will be written to the files, before
+the data is downloaded and written to the file. This might be useful for
+filesystems that don't support sparse files.</dd>
+<dt>storage_mode_compact</dt>
+<dd>The storage will grow as more pieces are downloaded, and pieces
 are rearranged to finally be in their correct places once the entire torrent has been
-downloaded. If it is false, the entire storage is allocated before download begins. I.e.
-the files contained in the torrent are filled with zeros, and each downloaded piece
-is put in its final place directly when downloaded. For more info, see <a class="reference" href="#storage-allocation">storage allocation</a>.</p>
+downloaded.</dd>
+</dl>
+<p>For more information, see <a class="reference" href="#storage-allocation">storage allocation</a>.</p>
 <p><tt class="docutils literal"><span class="pre">paused</span></tt> is a boolean that specifies whether or not the torrent is to be started in
 a paused state. I.e. it won't connect to the tracker or any of the peers until it's
 resumed. This is typically a good way of avoiding race conditions when setting
@@ -415,6 +426,8 @@ with extensions enabled (<tt class="docutils literal"><span class="pre">TORRENT_
 takes an optional <tt class="docutils literal"><span class="pre">name</span></tt> argument. This may be 0 in case no name should be assigned
 to the torrent. In case it's not 0, the name is used for the torrent as long as it doesn't
 have metadata. See <tt class="docutils literal"><span class="pre">torrent_handle::name</span></tt>.</p>
+<p>If the torrent doesn't have a tracker, but relies on the DHT to find peers, the
+<tt class="docutils literal"><span class="pre">tracker_url</span></tt> can be 0.</p>
 </div>
 <div class="section">
 <h2><a id="remove-torrent-find-torrent-get-torrents" name="remove-torrent-find-torrent-get-torrents">remove_torrent() find_torrent() get_torrents()</a></h2>
@@ -3498,25 +3511,34 @@ non-blocking host name resolution to simulate non-blocking behavior.</li>
 </div>
 <div class="section">
 <h1><a id="storage-allocation" name="storage-allocation">storage allocation</a></h1>
-<p>There are two modes in which storage (files on disk) are allocated in libtorrent.</p>
-<blockquote>
-<ul class="simple">
+<p>There are three modes in which storage (files on disk) are allocated in libtorrent.</p>
+<ol class="arabic simple">
 <li>The traditional <em>full allocation</em> mode, where the entire files are filled up with
 zeros before anything is downloaded. libtorrent will look for sparse files support
 in the filesystem that is used for storage, and use sparse files or file system
 zero fill support if present. This means that on NTFS, full allocation mode will
 only allocate storage for the downloaded pieces.</li>
-<li>And the <em>compact allocation</em> mode, where only files are allocated for actual
+<li>The <em>compact allocation</em> mode, where only files are allocated for actual
 pieces that have been downloaded. This is the default allocation mode in libtorrent.</li>
-</ul>
-</blockquote>
-<p>The allocation mode is selected when a torrent is started. It is passed as a boolean
-argument to <tt class="docutils literal"><span class="pre">session::add_torrent()</span></tt> (see <a class="reference" href="#add-torrent">add_torrent()</a>). These two modes have
-different drawbacks and benefits.</p>
+<li>The <em>sparce allocation</em>, sparse files are used, and pieces are downloaded directly
+to where they belong. This is the recommended (and default) mode.</li>
+</ol>
+<p>The allocation mode is selected when a torrent is started. It is passed as an
+argument to <tt class="docutils literal"><span class="pre">session::add_torrent()</span></tt> (see <a class="reference" href="#add-torrent">add_torrent()</a>).</p>
 <p>The decision to use full allocation or compact allocation typically depends on whether
 any files are filtered and if the filesystem supports sparse files.</p>
-<p>To know if the filesystem supports sparse files (and to know if libtorrent believes the
-filesystem supports sparse files), see <a class="reference" href="#supports-sparse-files">supports_sparse_files()</a>.</p>
+<div class="section">
+<h2><a id="sparse-allocation" name="sparse-allocation">sparse allocation</a></h2>
+<p>On filesystems that supports sparse files, this allocation mode will only use
+as much space as has been downloaded.</p>
+<blockquote>
+<ul class="simple">
+<li>It does not require an allocation pass on startup.</li>
+<li>It supports skipping files (setting prioirty to 0 to not download).</li>
+<li>Fast resume data will remain valid even when file time stamps are out of date.</li>
+</ul>
+</blockquote>
+</div>
 <div class="section">
 <h2><a id="full-allocation" name="full-allocation">full allocation</a></h2>
 <p>When a torrent is started in full allocation mode, the checker thread (see <a class="reference" href="#threads">threads</a>)
