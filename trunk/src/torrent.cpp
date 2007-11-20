@@ -556,7 +556,7 @@ namespace libtorrent
  	}
  
 	void torrent::tracker_response(
-		tracker_request const&
+		tracker_request const& r
 		, std::vector<peer_entry>& peer_list
 		, int interval
 		, int complete
