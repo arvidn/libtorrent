@@ -174,6 +174,7 @@ namespace
 		, {"ML", "MLDonkey"}
 		, {"MO", "Mono Torrent"}
 		, {"MP", "MooPolice"}
+		, {"MR", "Miro"}
 		, {"MT", "Moonlight Torrent"}
 		, {"O",  "Osprey Permaseed"}
 		, {"PD",  "Pando"}
