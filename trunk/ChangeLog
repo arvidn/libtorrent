@@ -1,3 +1,27 @@
+
+release 0.13
+	
+	* Added scrape support
+	* Added add_extension() to torrent_handle. Can instantiate
+	  extensions for torrents while downloading
+	* Added support for remove_torrent to delete the files as well
+	* Fixed issue with failing async_accept on windows
+	* DHT improvements, proper error messages are now returned when
+	  nodes sends bad packets
+	* Optimized the country table used to resolve country of peers
+	* Copying optimization for sending data. Data is no longer copied from
+	  the disk I/O buffer to the send buffer.
+	* Buffer optimization to use a raw buffer instead of std::vector<char>
+	* Improved file storage to use sparse files
+	* Updated python bindings
+	* Added more clients to the identifiable clients list.
+	* Torrents can now be started in paused state (to better support queuing)
+	* Improved IPv6 support (support for IPv6 extension to trackers and
+	  listens on both IPv6 and IPv4 interfaces).
+	* Improved asserts used. Generates a stacktrace on linux
+	* Piece picker optimizations and improvements
+	* Improved unchoker, connection limit and rate limiter
+	* Support for FAST extension
 	* Fixed invalid calculation in DHT node distance
 	* Fixed bug in URL parser that failed to parse IPv6 addresses
 	* added peer download rate approximation
