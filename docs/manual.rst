@@ -71,7 +71,7 @@ The ``session`` class has the following synopsis::
 			, char const* listen_interface = 0);
 
 		torrent_handle add_torrent(
-			torrent_info const& ti
+			boost::intrusive_ptr<torrent_info> const& ti
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
 			, bool compact_mode = true
@@ -204,12 +204,17 @@ add_torrent()
 
 	::
 
+		typedef storage_interface* (&storage_constructor_type)(
+			boost::intrusive_ptr<torrent_info const>, fs::path const&
+			, file_pool&);
+
 		torrent_handle add_torrent(
-			torrent_info const& ti
+			boost::intrusive_ptr<torrent_info> const& ti
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
 			, storage_mode_t storage_mode = storage_mode_sparse
-			, bool paused = false);
+			, bool paused = false
+			, storage_constructor_type sc = default_storage_constructor);
 
 		torrent_handle add_torrent(
 			char const* tracker_url
@@ -218,7 +223,8 @@ add_torrent()
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
 			, storage_mode_t storage_mode = storage_mode_sparse
-			, bool paused = false);
+			, bool paused = false
+			, storage_constructor_type sc = default_storage_constructor);
 
 You add torrents through the ``add_torrent()`` function where you give an
 object representing the information found in the torrent file and the path where you
@@ -256,6 +262,12 @@ For more information, see `storage allocation`_.
 a paused state. I.e. it won't connect to the tracker or any of the peers until it's
 resumed. This is typically a good way of avoiding race conditions when setting
 configuration options on torrents before starting them.
+
+``storage_constructor`` can be used to customize how the data is stored. The default
+storage will simply write the data to the files it belongs to, but it could be
+overridden to save everything to a single file at a specific location or encrypt the
+content on disk for instance. For more information about the ``storage_interface``
+that needs to be implemented for a custom storage, see `storage_interface`_.
 
 The torrent_handle_ returned by ``add_torrent()`` can be used to retrieve information
 about the torrent's progress, its peers etc. It is also used to abort a torrent.
@@ -1022,6 +1034,9 @@ The each entry in the vector ``map`` is a pair of a (relative) file path and the
 The return value indicates if the remap was successful or not. True means success and
 false means failure. The sum of all the files passed in through ``map`` has to be exactly
 the same as the total_size of the torrent.
+
+Changing this mapping for an existing torrent will not move or rename files. If some files
+should be renamed, this can be done before the torrent is added.
 
 
 begin_files() end_files() rbegin_files() rend_files()
@@ -3519,6 +3534,195 @@ doesn't meet the requirements on what information has to be present in a torrent
 	{
 		const char* what() const throw();
 	};
+
+
+storage_interface
+=================
+
+The storage interface is a pure virtual class that can be implemented to
+change the behavior of the actual file storage. The interface looks like
+this::
+
+	struct storage_interface
+	{
+		virtual void initialize(bool allocate_files) = 0;
+		virtual size_type read(char* buf, int slot, int offset, int size) = 0;
+		virtual void write(const char* buf, int slot, int offset, int size) = 0;
+		virtual bool move_storage(fs::path save_path) = 0;
+		virtual bool verify_resume_data(entry& rd, std::string& error) = 0;
+		virtual void write_resume_data(entry& rd) const = 0;
+		virtual void move_slot(int src_slot, int dst_slot) = 0;
+		virtual void swap_slots(int slot1, int slot2) = 0;
+		virtual void swap_slots3(int slot1, int slot2, int slot3) = 0;
+		virtual sha1_hash hash_for_slot(int slot, partial_hash& h, int piece_size) = 0;
+		virtual void release_files() = 0;
+		virtual void delete_files() = 0;
+		virtual ~storage_interface() {}
+	};
+
+
+initialize()
+------------
+
+	::
+
+		void initialize(bool allocate_files) = 0;
+
+This function is called when the storage is to be initialized. The default storage
+will create directories and empty files at this point. If ``allocate_files`` is true,
+it will also ``ftruncate`` all files to their target size.
+
+
+read()
+------
+
+	::
+
+		size_type read(char* buf, int slot, int offset, int size) = 0;
+
+This function should read the data in the given slot and at the given offset
+and ``size`` number of bytes. The data is to be copied to ``buf``.
+
+The return value is the number of bytes actually read.
+
+
+write()
+-------
+
+	::
+
+		void write(const char* buf, int slot, int offset, int size) = 0;
+
+This function should write the data in ``buf`` to the given slot (``slot``) at offset
+``offset`` in that slot. The buffer size is ``size``.
+
+
+move_storage()
+--------------
+
+	::
+
+		bool move_storage(fs::path save_path) = 0;
+
+This function should move all the files belonging to the storage to the new save_path.
+The default storage moves the single file or the directory of the torrent.
+
+Before moving the files, any open file handles may have to be closed, like
+``release_files()``.
+
+
+verify_resume_data()
+--------------------
+
+	::
+
+		bool verify_resume_data(entry& rd, std::string& error) = 0;
+
+This function should verify the resume data ``rd`` with the files
+on disk. If the resume data seems to be up-to-date, return true. If
+not, set ``error`` to a description of what mismatched and return false.
+
+The default storage may compare file sizes and time stamps of the files.
+
+
+write_resume_data()
+-------------------
+
+	::
+
+		void write_resume_data(entry& rd) const = 0;
+
+This function should fill in resume data, the current state of the
+storage, in ``rd``. The default storage adds file timestamps and
+sizes.
+
+
+move_slot()
+-----------
+
+	::
+
+		void move_slot(int src_slot, int dst_slot) = 0;
+
+This function should copy or move the data in slot ``src_slot`` to
+the slot ``dst_slot``. This is only used in compact mode.
+
+If the storage caches slots, this could be implemented more
+efficient than reading and writing the data.
+
+
+swap_slots()
+------------
+
+	::
+
+		void swap_slots(int slot1, int slot2) = 0;
+
+This function should swap the data in ``slot1`` and ``slot2``. The default
+storage uses a scratch buffer to read the data into, then moving the other
+slot and finally writing back the temporary slot's data
+
+This is only used in compact mode.
+
+
+swap_slots3()
+-------------
+
+	::
+
+		void swap_slots3(int slot1, int slot2, int slot3) = 0;
+
+This function should do a 3-way swap, or shift of the slots. ``slot1``
+should move to ``slot2``, which should be moved to ``slot3`` which in turn
+should be moved to ``slot1``.
+
+This is only used in compact mode.
+
+
+hash_for_slot()
+---------------
+
+	::
+
+		sha1_hash hash_for_slot(int slot, partial_hash& h, int piece_size) = 0;
+
+The function should read the remaining bytes of the slot and hash it with the
+sha-1 state in ``partion_hash``. The ``partial_hash`` struct looks like this::
+
+	struct partial_hash
+	{
+		partial_hash();
+		int offset;
+		hasher h;
+	};
+
+``offset`` is the number of bytes in the slot that has already been hashed, and
+``h`` is the sha-1 state of that hash. ``piece_size`` is the size of the piece
+that is stored in the given slot.
+
+The function should return the hash of the piece stored in the slot.
+
+
+release_files()
+---------------
+
+	::
+
+		void release_files() = 0;
+
+This function should release all the file handles that it keeps open to files
+belonging to this storage. The default implementation just calls
+``file_pool::release_files(this)``.
+
+
+delete_files()
+--------------
+
+	::
+
+		void delete_files() = 0;
+
+This function should delete all files and directories belonging to this storage.
 
 
 fast resume
