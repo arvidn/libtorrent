@@ -2279,6 +2279,8 @@ namespace detail
 
 		INVARIANT_CHECK;
 
+		if (m_lsd) return;
+
 		m_lsd = new lsd(m_io_service
 			, m_listen_interface.address()
 			, bind(&session_impl::on_lsd_peer, this, _1, _2));
@@ -2289,6 +2291,8 @@ namespace detail
 		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
+
+		if (m_natpmp) return;
 
 		m_natpmp = new natpmp(m_io_service
 			, m_listen_interface.address()
@@ -2307,6 +2311,8 @@ namespace detail
 		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
+
+		if (m_upnp) return;
 
 		m_upnp = new upnp(m_io_service, m_half_open
 			, m_listen_interface.address()
