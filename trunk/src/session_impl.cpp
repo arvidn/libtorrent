@@ -814,13 +814,15 @@ namespace detail
 		return m_ipv6_interface;
 	}
 
-	session_impl::listen_socket_t session_impl::setup_listener(tcp::endpoint ep, int retries)
+	session_impl::listen_socket_t session_impl::setup_listener(tcp::endpoint ep
+		, int retries, bool v6_only)
 	{
 		asio::error_code ec;
 		listen_socket_t s;
 		s.sock.reset(new socket_acceptor(m_io_service));
 		s.sock->open(ep.protocol(), ec);
 		s.sock->set_option(socket_acceptor::reuse_address(true), ec);
+		if (ep.protocol() == tcp::v6()) s.sock->set_option(v6only(v6_only), ec);
 		s.sock->bind(ep, ec);
 		while (ec && retries > 0)
 		{
@@ -913,7 +915,7 @@ namespace detail
 
 			s = setup_listener(
 				tcp::endpoint(address_v6::any(), m_listen_interface.port())
-				, m_listen_port_retries);
+				, m_listen_port_retries, true);
 
 			if (s.sock)
 			{

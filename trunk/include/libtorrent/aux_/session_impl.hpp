@@ -473,7 +473,7 @@ namespace libtorrent
 			// we might need more than one listen socket
 			std::list<listen_socket_t> m_listen_sockets;
 
-			listen_socket_t setup_listener(tcp::endpoint ep, int retries);
+			listen_socket_t setup_listener(tcp::endpoint ep, int retries, bool v6_only = false);
 
 			// the settings for the client
 			session_settings m_settings;
