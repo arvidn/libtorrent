@@ -88,7 +88,13 @@ The ``session`` class has the following synopsis::
 
 		session_proxy abort();
 
-		void remove_torrent(torrent_handle const& h);
+		enum options_t
+		{
+			none = 0,
+			delete_files = 1
+		};
+
+		void remove_torrent(torrent_handle const& h, int options = none);
 		torrent_handle find_torrent(sha_hash const& ih);
 		std::vector<torrent_handle> get_torrents() const;
 
@@ -289,12 +295,16 @@ remove_torrent() find_torrent() get_torrents()
 
 	::
 
-		void remove_torrent(torrent_handle const& h);
+		void remove_torrent(torrent_handle const& h, int options = none);
 		torrent_handle find_torrent(sha_hash const& ih);
 		std::vector<torrent_handle> get_torrents() const;
 
 ``remove_torrent()`` will close all peer connections associated with the torrent and tell
-the tracker that we've stopped participating in the swarm.
+the tracker that we've stopped participating in the swarm. The optional second argument
+``options`` can be used to delete all the files downloaded by this torrent. To do this, pass
+in the value ``session::delete_files``. The removal of the torrent is asyncronous, there is
+no guarantee that adding the same torrent immediately after it was removed will not throw
+a ``duplicate_torrent`` exception.
 
 ``find_torrent()`` looks for a torrent with the given info-hash. In case there
 is such a torrent in the session, a torrent_handle to that torrent is returned.
