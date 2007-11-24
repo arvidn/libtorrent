@@ -3635,8 +3635,8 @@ not, set ``error`` to a description of what mismatched and return false.
 The default storage may compare file sizes and time stamps of the files.
 
 
-write_resume_data()
--------------------
+write_resume_data( )
+--------------------
 
 	::
 
