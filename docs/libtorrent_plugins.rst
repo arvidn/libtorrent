@@ -50,6 +50,25 @@ both found in the ``<libtorrent/extensions.hpp>`` header.
 These plugins are instantiated for each torrent and possibly each peer,
 respectively.
 
+This is done by passing in a function or function object to
+``session::add_extension()`` or ``torrent_handle::add_extension()`` (if the
+torrent has already been started and you want to hook in the extension at
+run-time).
+
+The signature of the function is::
+
+	boost::shared_ptr<torrent_plugin> (*)(torrent*, void*);
+
+The first argument is the internal torrent object, the second argument
+is the userdata passed to ``session::add_torrent()`` or
+``torrent_handle::add_extension()``.
+
+The function should return a ``boost::shared_ptr<torrent_plugin>`` which
+may or may not be 0. If it is a null pointer, the extension is simply ignored
+for this torrent. If it is a valid pointer (to a class inheriting
+``torrent_plugin``), it will be associated with this torrent and callbacks
+will be made on torrent events.
+
 
 torrent_plugin
 ==============
@@ -68,6 +87,8 @@ The synopsis for ``torrent_plugin`` follows::
 
 		virtual bool on_pause();
 		virtual bool on_resume();
+
+		virtual void on_files_checked();
 	};
 
 This is the base class for a torrent_plugin. Your derived class is (if added
@@ -142,6 +163,19 @@ handler it will recurse back into your handler, so in order to invoke the
 standard handler, you have to keep your own state on whether you want standard
 behavior or overridden behavior.
 
+on_files_checked()
+------------------
+
+::
+
+	void on_files_checked();
+
+This function is called when the initial files of the torrent have been
+checked. If there are no files to check, this function is called immediately.
+
+i.e. This function is always called when the torrent is in a state where it
+can start downloading.
+
 
 peer_plugin
 ===========
@@ -162,9 +196,14 @@ peer_plugin
 		virtual bool on_not_interested();
 		virtual bool on_have(int index);
 		virtual bool on_bitfield(std::vector<bool> const& bitfield);
+		virtual bool on_have_all();
+		virtual bool on_have_none();
+		virtual bool on_allowed_fast(int index);
 		virtual bool on_request(peer_request const& req);
 		virtual bool on_piece(peer_request const& piece, char const* data);
 		virtual bool on_cancel(peer_request const& req);
+		virtual bool on_reject(peer_request const& req);
+		virtual bool on_suggest(int index);
 		virtual bool on_extended(int length
 			, int msg, buffer::const_interval body);
 		virtual bool on_unknown_message(int length, int msg

@@ -265,8 +265,10 @@ class session: public boost::noncopyable
                 boost::intrusive_ptr&lt;torrent_info&gt; const&amp; ti
                 , boost::filesystem::path const&amp; save_path
                 , entry const&amp; resume_data = entry()
-                , bool compact_mode = true
-                , bool paused = false);
+                , storage_mode_t storage_mode = storage_mode_sparse
+                , bool paused = false
+                , storage_constructor_type sc = default_storage_constructor
+                , void* userdata = 0);
 
         torrent_handle add_torrent(
                 char const* tracker_url
@@ -274,8 +276,10 @@ class session: public boost::noncopyable
                 , char const* name
                 , boost::filesystem::path const&amp; save_path
                 , entry const&amp; resume_data = entry()
-                , bool compact_mode = true
-                , bool paused = true);
+                , storage_mode_t storage_mode = storage_mode_sparse
+                , bool paused = false
+                , storage_constructor_type sc = default_storage_constructor
+                , void* userdata = 0);
 
         session_proxy abort();
 
@@ -406,7 +410,8 @@ torrent_handle add_torrent(
         , entry const&amp; resume_data = entry()
         , storage_mode_t storage_mode = storage_mode_sparse
         , bool paused = false
-        , storage_constructor_type sc = default_storage_constructor);
+        , storage_constructor_type sc = default_storage_constructor
+        , void* userdata = 0);
 
 torrent_handle add_torrent(
         char const* tracker_url
@@ -416,7 +421,8 @@ torrent_handle add_torrent(
         , entry const&amp; resume_data = entry()
         , storage_mode_t storage_mode = storage_mode_sparse
         , bool paused = false
-        , storage_constructor_type sc = default_storage_constructor);
+        , storage_constructor_type sc = default_storage_constructor
+        , void* userdata = 0);
 </pre>
 </blockquote>
 <p>You add torrents through the <tt class="docutils literal"><span class="pre">add_torrent()</span></tt> function where you give an
@@ -456,6 +462,8 @@ content on disk for instance. For more information about the <tt class="docutils
 that needs to be implemented for a custom storage, see <a class="reference" href="#storage-interface">storage_interface</a>.</p>
 <p>The <a class="reference" href="#torrent-handle">torrent_handle</a> returned by <tt class="docutils literal"><span class="pre">add_torrent()</span></tt> can be used to retrieve information
 about the torrent's progress, its peers etc. It is also used to abort a torrent.</p>
+<p>The <tt class="docutils literal"><span class="pre">userdata</span></tt> parameter is optional and will be passed on to the extension
+constructor functions, if any (see <a class="reference" href="#add-extension">add_extension()</a>).</p>
 <p>The second overload that takes a tracker url and an info-hash instead of metadata
 (<tt class="docutils literal"><span class="pre">torrent_info</span></tt>) can be used with torrents where (at least some) peers support
 the metadata extension. For the overload to be available, libtorrent must be built
@@ -692,7 +700,7 @@ receive it through <tt class="docutils literal"><span class="pre">pop_alert()</s
 <blockquote>
 <pre class="literal-block">
 void add_extension(boost::function&lt;
-        boost::shared_ptr&lt;torrent_plugin&gt;(torrent*)&gt; ext);
+        boost::shared_ptr&lt;torrent_plugin&gt;(torrent*, void*)&gt; ext);
 </pre>
 </blockquote>
 <p>This function adds an extension to this session. The argument is a function
