@@ -18,7 +18,7 @@ the ``session``, it contains the main loop that serves all torrents.
 The basic usage is as follows:
 
 * construct a session
-* parse .torrent-files and add them to the session (see `bdecode() bencode()`_)
+* parse .torrent-files and add them to the session (see `bdecode() bencode()`_ and `add_torrent()`_)
 * main loop (see session_)
 
 	* query the torrent_handles for progress (see torrent_handle_)
@@ -31,8 +31,8 @@ The basic usage is as follows:
 
 Each class and function is described in this manual.
 
-primitive network types
-=======================
+network primitives
+==================
 
 There are a few typedefs in the ``libtorrent`` namespace which pulls
 in network types from the ``asio`` namespace. These are::
@@ -52,6 +52,11 @@ The ``using`` statements will give easy access to::
 
 Which are the endpoint types used in libtorrent. An endpoint is an address
 with an associated port.
+
+For documentation on these types, please refer to the `asio documentation`_.
+
+.. _`asio documentation`: http://asio.sourceforge.net/asio-0.3.8/doc/asio/reference.html
+
 
 session
 =======
@@ -290,21 +295,27 @@ If the torrent doesn't have a tracker, but relies on the DHT to find peers, the
 ``tracker_url`` can be 0.
 
 
-remove_torrent() find_torrent() get_torrents()
-----------------------------------------------
+remove_torrent()
+----------------
 
 	::
 
 		void remove_torrent(torrent_handle const& h, int options = none);
-		torrent_handle find_torrent(sha_hash const& ih);
-		std::vector<torrent_handle> get_torrents() const;
 
 ``remove_torrent()`` will close all peer connections associated with the torrent and tell
 the tracker that we've stopped participating in the swarm. The optional second argument
 ``options`` can be used to delete all the files downloaded by this torrent. To do this, pass
 in the value ``session::delete_files``. The removal of the torrent is asyncronous, there is
 no guarantee that adding the same torrent immediately after it was removed will not throw
-a ``duplicate_torrent`` exception.
+a duplicate_torrent_ exception.
+
+find_torrent() get_torrents()
+-----------------------------
+
+	::
+
+		torrent_handle find_torrent(sha_hash const& ih);
+		std::vector<torrent_handle> get_torrents() const;
 
 ``find_torrent()`` looks for a torrent with the given info-hash. In case there
 is such a torrent in the session, a torrent_handle to that torrent is returned.
@@ -3563,7 +3574,8 @@ duplicate_torrent
 -----------------
 
 This is thrown by `add_torrent()`_ if the torrent already has been added to
-the session.
+the session. Since `remove_torrent()`_ is asynchronous, this exception may
+be thrown if the torrent is removed and then immediately added again.
 
 ::
 
