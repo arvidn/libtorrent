@@ -119,7 +119,6 @@ namespace libtorrent
 			queued_for_checking,
 			checking_files,
 			connecting_to_tracker,
-			downloading_metadata,
 			downloading,
 			finished,
 			seeding,
