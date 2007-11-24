@@ -79,8 +79,10 @@ The ``session`` class has the following synopsis::
 			boost::intrusive_ptr<torrent_info> const& ti
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
-			, bool compact_mode = true
-			, bool paused = false);
+			, storage_mode_t storage_mode = storage_mode_sparse
+			, bool paused = false
+			, storage_constructor_type sc = default_storage_constructor
+			, void* userdata = 0);
 
 		torrent_handle add_torrent(
 			char const* tracker_url
@@ -88,8 +90,10 @@ The ``session`` class has the following synopsis::
 			, char const* name
 			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
-			, bool compact_mode = true
-			, bool paused = true);
+			, storage_mode_t storage_mode = storage_mode_sparse
+			, bool paused = false
+			, storage_constructor_type sc = default_storage_constructor
+			, void* userdata = 0);
 
 		session_proxy abort();
 
@@ -225,7 +229,8 @@ add_torrent()
 			, entry const& resume_data = entry()
 			, storage_mode_t storage_mode = storage_mode_sparse
 			, bool paused = false
-			, storage_constructor_type sc = default_storage_constructor);
+			, storage_constructor_type sc = default_storage_constructor
+			, void* userdata = 0);
 
 		torrent_handle add_torrent(
 			char const* tracker_url
@@ -235,7 +240,8 @@ add_torrent()
 			, entry const& resume_data = entry()
 			, storage_mode_t storage_mode = storage_mode_sparse
 			, bool paused = false
-			, storage_constructor_type sc = default_storage_constructor);
+			, storage_constructor_type sc = default_storage_constructor
+			, void* userdata = 0);
 
 You add torrents through the ``add_torrent()`` function where you give an
 object representing the information found in the torrent file and the path where you
@@ -282,6 +288,9 @@ that needs to be implemented for a custom storage, see `storage_interface`_.
 
 The torrent_handle_ returned by ``add_torrent()`` can be used to retrieve information
 about the torrent's progress, its peers etc. It is also used to abort a torrent.
+
+The ``userdata`` parameter is optional and will be passed on to the extension
+constructor functions, if any (see `add_extension()`_).
 
 The second overload that takes a tracker url and an info-hash instead of metadata
 (``torrent_info``) can be used with torrents where (at least some) peers support
@@ -544,7 +553,7 @@ add_extension()
 	::
 
 		void add_extension(boost::function<
-			boost::shared_ptr<torrent_plugin>(torrent*)> ext);
+			boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext);
 
 This function adds an extension to this session. The argument is a function
 object that is called with a ``torrent*`` and which should return a
