@@ -1940,6 +1940,7 @@ It contains the following fields::
 			queued_for_checking,
 			checking_files,
 			connecting_to_tracker,
+			downloading_metadata,
 			downloading,
 			finished,
 			seeding,
@@ -2008,6 +2009,9 @@ current task is in the ``state`` member, it will be one of the following:
 +--------------------------+----------------------------------------------------------+
 |``connecting_to_tracker`` |The torrent has sent a request to the tracker and is      |
 |                          |currently waiting for a response                          |
++--------------------------+----------------------------------------------------------+
+|``downloading_metadata``  |The torrent is trying to download metadata from peers.    |
+|                          |This assumes the metadata_transfer extension is in use.   |
 +--------------------------+----------------------------------------------------------+
 |``downloading``           |The torrent is being downloaded. This is the state        |
 |                          |most torrents will be in most of the time. The progress   |
