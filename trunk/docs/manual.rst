@@ -2376,6 +2376,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		bool lazy_bitfields;
 		int inactivity_timeout;
 		bool use_dht_as_fallback;
+		bool free_torrent_hashes;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -2499,6 +2500,14 @@ Default is 10 minutes
 (which it is by default), the DHT will only be used for torrents where
 all trackers in its tracker list has failed. Either by an explicit error
 message or a time out.
+
+``free_torrent_hashes`` determines whether or not the torrent's piece hashes
+are kept in memory after the torrent becomes a seed or not. If it is set to
+``true`` the hashes are freed once the torrent is a seed (they're not
+needed anymore since the torrent won't download anything more). If it's set
+to false they are not freed. If they are freed, the torrent_info_ returned
+by get_torrent_info() will return an object that may be incomplete, that
+cannot be passed back to `add_torrent()`_ for instance.
 
 pe_settings
 ===========
