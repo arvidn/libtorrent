@@ -1354,6 +1354,8 @@ Its declaration looks like this::
 
 		entry write_resume_data() const;
 		void force_reannounce() const;
+		void force_reannounce(boost::posix_time::time_duration) const;
+		void scrape_tracker() const;
 		void connect_peer(asio::ip::tcp::endpoint const& adr, int source = 0) const;
 
 		void set_tracker_login(std::string const& username
@@ -1517,11 +1519,26 @@ force_reannounce()
 	::
 
 		void force_reannounce() const;
+		void force_reannounce(boost::posix_time::time_duration) const;
 
 ``force_reannounce()`` will force this torrent to do another tracker request, to receive new
-peers. If the torrent is invalid, queued or in checking mode, this functions will throw
-invalid_handle_.
+peers. The second overload of ``force_reannounce`` that takes a ``time_duration`` as
+argument will schedule a reannounce in that amount of time from now.
 
+scrape_tracker()
+----------------
+
+	::
+
+		void scrape_tracker() const;
+
+``scrape_tracker()`` will send a scrape request to the tracker. A scrape request queries the
+tracker for statistics such as total number of incomplete peers, complete peers, number of
+downloads etc.
+
+This request will specifically update the ``num_complete`` and ``num_incomplete`` fields in
+the torrent_status_ struct once it completes. When it completes, it will generate a
+scrape_reply_alert_. If it fails, it will generate a scrape_failed_alert_.
 
 connect_peer()
 --------------
@@ -3167,6 +3184,44 @@ the tracker. It is generated with severity level ``warning``.
 		virtual std::auto_ptr<alert> clone() const;
 	};
 
+scrape_reply_alert
+------------------
+
+::
+
+	struct scrape_reply_alert: torrent_alert
+	{
+		scrape_reply_alert(torrent_handle const& h
+			, int incomplete_
+			, int complete_
+			, std::string const& msg);
+
+		int incomplete;
+		int complete;
+
+		virtual std::auto_ptr<alert> clone() const;
+	};
+
+This alert is generated when a scrape request succeeds. ``incomplete``
+and ``complete`` is the data returned in the scrape response. These numbers
+may be -1 if the reponse was malformed.
+
+scrape_failed_alert
+-------------------
+
+::
+
+	struct scrape_failed_alert: torrent_alert
+	{
+		scrape_failed_alert(torrent_handle const& h
+			, std::string const& msg);
+
+		virtual std::auto_ptr<alert> clone() const;
+	};
+
+If a scrape request fails, this alert is generated. This might be due
+to the tracker timing out, refusing connection or returning an http response
+code indicating an error.
 
 url_seed_alert
 --------------
