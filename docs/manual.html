@@ -1029,7 +1029,7 @@ public:
         typedef std::vector&lt;file_entry&gt;::const_reverse_iterator
                 reverse_file_iterator;
 
-        bool remap_files(std::vector&lt;std::pair&lt;std::string, libtorrent::size_type&gt; &gt; const&amp; map);
+        bool remap_files(std::vector&lt;file_entry&gt; const&amp; map);
 
         file_iterator begin_files(bool storage = false) const;
         file_iterator end_files(bool storage = false) const;
@@ -1147,17 +1147,19 @@ least one tracker url or at least one DHT node.</p>
 <h2><a id="remap-files" name="remap-files">remap_files()</a></h2>
 <blockquote>
 <pre class="literal-block">
-bool remap_files(std::vector&lt;std::pair&lt;std::string, libtorrent::size_type&gt; &gt; const&amp; map);
+bool remap_files(std::vector&lt;file_entry&gt; const&amp; map);
 </pre>
 </blockquote>
 <p>This call will create a new mapping of the data in this torrent to other files. The
 <tt class="docutils literal"><span class="pre">torrent_info</span></tt> maintains 2 views of the file storage. One that is true to the torrent
 file, and one that represents what is actually saved on disk. This call will change
 what the files on disk are called.</p>
-<p>The each entry in the vector <tt class="docutils literal"><span class="pre">map</span></tt> is a pair of a (relative) file path and the file's size.</p>
+<p>The each entry in the vector <tt class="docutils literal"><span class="pre">map</span></tt> is a <tt class="docutils literal"><span class="pre">file_entry</span></tt>. The only fields in this struct
+that are used in this case are <tt class="docutils literal"><span class="pre">path</span></tt>, <tt class="docutils literal"><span class="pre">size</span></tt> and <tt class="docutils literal"><span class="pre">file_base</span></tt>.</p>
 <p>The return value indicates if the remap was successful or not. True means success and
 false means failure. The sum of all the files passed in through <tt class="docutils literal"><span class="pre">map</span></tt> has to be exactly
-the same as the total_size of the torrent.</p>
+the same as the total_size of the torrent. If the number of bytes that are mapped do not
+match, false will be returned (this is the only case this function may fail).</p>
 <p>Changing this mapping for an existing torrent will not move or rename files. If some files
 should be renamed, this can be done before the torrent is added.</p>
 </div>
@@ -1186,6 +1188,7 @@ struct file_entry
         boost::filesystem::path path;
         size_type offset;
         size_type size;
+        size_type file_base;
         boost::shared_ptr&lt;const boost::filesystem::path&gt; orig_path;
 };
 </pre>
@@ -1195,6 +1198,12 @@ The filenames are encoded with UTF-8.</p>
 <p><tt class="docutils literal"><span class="pre">size</span></tt> is the size of the file (in bytes) and <tt class="docutils literal"><span class="pre">offset</span></tt> is the byte offset
 of the file within the torrent. i.e. the sum of all the sizes of the files
 before it in the list.</p>
+<p><tt class="docutils literal"><span class="pre">file_base</span></tt> is the offset in the file where the storage should start. The normal
+case is to have this set to 0, so that the storage starts saving data at the start
+if the file. In cases where multiple files are mapped into the same file though,
+the <tt class="docutils literal"><span class="pre">file_base</span></tt> should be set to an offset so that the different regions do
+not overlap. This is used when mapping &quot;unselected&quot; files into a so-called part
+file.</p>
 <p><tt class="docutils literal"><span class="pre">orig_path</span></tt> is set to 0 in case the path element is an exact copy of that
 found in the metadata. In case the path in the original metadata was
 incorrectly encoded, and had to be fixed in order to be acceptable utf-8,
