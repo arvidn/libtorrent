@@ -44,7 +44,8 @@ namespace libtorrent
 		if (e || i == tcp::resolver::iterator())
 		{
 			(*h)(e);
-			close();
+			asio::error_code ec;
+			close(ec);
 			return;
 		}
 
@@ -57,7 +58,8 @@ namespace libtorrent
 		if (e)
 		{
 			(*h)(e);
-			close();
+			asio::error_code ec;
+			close(ec);
 			return;
 		}
 
@@ -86,7 +88,8 @@ namespace libtorrent
 		if (e)
 		{
 			(*h)(e);
-			close();
+			asio::error_code ec;
+			close(ec);
 			return;
 		}
 
@@ -100,7 +103,8 @@ namespace libtorrent
 		if (e)
 		{
 			(*h)(e);
-			close();
+			asio::error_code ec;
+			close(ec);
 			return;
 		}
 
@@ -113,7 +117,8 @@ namespace libtorrent
 		if (version < 5)
 		{
 			(*h)(asio::error::operation_not_supported);
-			close();
+			asio::error_code ec;
+			close(ec);
 			return;
 		}
 
@@ -126,7 +131,8 @@ namespace libtorrent
 			if (m_user.empty())
 			{
 				(*h)(asio::error::operation_not_supported);
-				close();
+				asio::error_code ec;
+				close(ec);
 				return;
 			}
 
@@ -144,7 +150,8 @@ namespace libtorrent
 		else
 		{
 			(*h)(asio::error::operation_not_supported);
-			close();
+			asio::error_code ec;
+			close(ec);
 			return;
 		}
 	}
@@ -155,7 +162,8 @@ namespace libtorrent
 		if (e)
 		{
 			(*h)(e);
-			close();
+			asio::error_code ec;
+			close(ec);
 			return;
 		}
 
@@ -170,7 +178,8 @@ namespace libtorrent
 		if (e)
 		{
 			(*h)(e);
-			close();
+			asio::error_code ec;
+			close(ec);
 			return;
 		}
 
@@ -183,14 +192,16 @@ namespace libtorrent
 		if (version != 1)
 		{
 			(*h)(asio::error::operation_not_supported);
-			close();
+			asio::error_code ec;
+			close(ec);
 			return;
 		}
 
 		if (status != 0)
 		{
 			(*h)(asio::error::operation_not_supported);
-			close();
+			asio::error_code ec;
+			close(ec);
 			return;
 		}
 
@@ -222,7 +233,8 @@ namespace libtorrent
 		if (e)
 		{
 			(*h)(e);
-			close();
+			asio::error_code ec;
+			close(ec);
 			return;
 		}
 
@@ -236,7 +248,8 @@ namespace libtorrent
 		if (e)
 		{
 			(*h)(e);
-			close();
+			asio::error_code ec;
+			close(ec);
 			return;
 		}
 
@@ -248,7 +261,8 @@ namespace libtorrent
 		if (version < 5)
 		{
 			(*h)(asio::error::operation_not_supported);
-			close();
+			asio::error_code ec;
+			close(ec);
 			return;
 		}
 		int response = read_uint8(p);
@@ -267,7 +281,8 @@ namespace libtorrent
 				case 8: e = asio::error::address_family_not_supported; break;
 			}
 			(*h)(e);
-			close();
+			asio::error_code ec;
+			close(ec);
 			return;
 		}
 		p += 1; // reserved
@@ -291,7 +306,8 @@ namespace libtorrent
 		else
 		{
 			(*h)(asio::error::operation_not_supported);
-			close();
+			asio::error_code ec;
+			close(ec);
 			return;
 		}
 		m_buffer.resize(skip_bytes);
@@ -305,7 +321,8 @@ namespace libtorrent
 		if (e)
 		{
 			(*h)(e);
-			close();
+			asio::error_code ec;
+			close(ec);
 			return;
 		}
 
