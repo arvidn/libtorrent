@@ -272,6 +272,9 @@ namespace libtorrent { namespace dht
 		udp::endpoint ep(listen_interface, listen_port);
 		m_socket.open(ep.protocol());
 		m_socket.bind(ep);
+		m_socket.async_receive_from(asio::buffer(&m_in_buf[m_buffer][0]
+			, m_in_buf[m_buffer].size()), m_remote_endpoint[m_buffer]
+			, m_strand.wrap(bind(&dht_tracker::on_receive, self(), _1, _2)));
 	}
 
 	void dht_tracker::tick(asio::error_code const& e)
