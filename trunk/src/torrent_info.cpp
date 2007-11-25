@@ -165,7 +165,7 @@ namespace
 	{
 		target.size = dict["length"].integer();
 		target.path = root_dir;
-
+		target.file_base = 0;
 
 		// prefer the name.utf-8
 		// because if it exists, it is more
@@ -824,20 +824,19 @@ namespace libtorrent
 		m_nodes.push_back(node);
 	}
 
-	bool torrent_info::remap_files(std::vector<std::pair<std::string
-		, libtorrent::size_type> > const& map)
+	bool torrent_info::remap_files(std::vector<file_entry> const& map)
 	{
-		typedef std::vector<std::pair<std::string, size_type> > files_t;
-
 		size_type offset = 0;
 		m_remapped_files.resize(map.size());
 
 		for (int i = 0; i < int(map.size()); ++i)
 		{
 			file_entry& fe = m_remapped_files[i];
-			fe.path = map[i].first;
+			fe.path = map[i].path;
 			fe.offset = offset;
-			fe.size = map[i].second;
+			fe.size = map[i].size;
+			fe.file_base = map[i].file_base;
+			fe.orig_path.reset();
 			offset += fe.size;
 		}
 		if (offset != total_size())
@@ -845,6 +844,26 @@ namespace libtorrent
 			m_remapped_files.clear();
 			return false;
 		}
+
+#ifndef NDEBUG
+		std::vector<file_entry> map2(m_remapped_files);
+		std::sort(map2.begin(), map2.end()
+			, bind(&file_entry::file_base, _1) < bind(&file_entry::file_base, _2));
+		std::stable_sort(map2.begin(), map2.end()
+			, bind(&file_entry::path, _1) < bind(&file_entry::path, _2));
+		fs::path last_path;
+		size_type last_end = 0;
+		for (std::vector<file_entry>::iterator i = map2.begin(), end(map2.end());
+			i != end; ++i)
+		{
+			if (last_path == i->path)
+			{
+				assert(last_end <= i->file_base);
+			}
+			last_end = i->file_base + i->size;
+			last_path = i->path;
+		}
+#endif
 
 		return true;
 	}
@@ -871,7 +890,7 @@ namespace libtorrent
 			{
 				file_slice f;
 				f.file_index = counter;
-				f.offset = file_offset;
+				f.offset = file_offset + file_iter->file_base;
 				f.size = (std::min)(file_iter->size - file_offset, (size_type)size);
 				size -= f.size;
 				file_offset += f.size;

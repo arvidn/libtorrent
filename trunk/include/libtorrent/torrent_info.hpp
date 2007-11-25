@@ -69,9 +69,15 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT file_entry
 	{
+		file_entry(): offset(0), size(0), file_base(0) {}
+
 		fs::path path;
 		size_type offset; // the offset of this file inside the torrent
 		size_type size; // the size of this file
+		// the offset in the file where the storage starts.
+		// This is always 0 unless parts of the torrent is
+		// compressed into a single file, such as a so-called part file.
+		size_type file_base;
 		// if the path was incorrectly encoded, this is
 		// the original corrupt encoded string. It is
 		// preserved in order to be able to reproduce
@@ -117,7 +123,7 @@ namespace libtorrent
 		void add_file(fs::path file, size_type size);
 		void add_url_seed(std::string const& url);
 
-		bool remap_files(std::vector<std::pair<std::string, libtorrent::size_type> > const& map);
+		bool remap_files(std::vector<file_entry> const& map);
 
 		std::vector<file_slice> map_block(int piece, size_type offset
 			, int size, bool storage = false) const;
@@ -271,7 +277,7 @@ namespace libtorrent
 
 		// this vector is typically empty. If it is not
 		// empty, it means the user has re-mapped the
-		// files in this torrent to diffefrent names
+		// files in this torrent to different names
 		// on disk. This is only used when reading and
 		// writing the disk.
 		std::vector<file_entry> m_remapped_files;
