@@ -2112,7 +2112,7 @@ that are still downloading (incomplete) this torrent.
 
 ``total_done`` is the total number of bytes of the file(s) that we have. All
 this does not necessarily has to be downloaded during this session (that's
-``total_download_payload``).
+``total_payload_download``).
 
 ``total_wanted_done`` is the number of bytes we have downloaded, only counting the
 pieces that we actually want to download. i.e. excluding any pieces that we have but
