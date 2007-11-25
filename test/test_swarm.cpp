@@ -60,7 +60,7 @@ void test_swarm()
 	int count_dl_rates2 = 0;
 	int count_dl_rates3 = 0;
 
-	for (int i = 0; i < 25; ++i)
+	for (int i = 0; i < 26; ++i)
 	{
 		std::auto_ptr<alert> a;
 		a = ses1.pop_alert();
@@ -116,8 +116,8 @@ void test_swarm()
 	std::cerr << "average rate: " << (average2 / 1000.f) << "kB/s - "
 		<< (average3 / 1000.f) << "kB/s" << std::endl;
 
-	TEST_CHECK(std::fabs(average2 - float(rate_limit)) < 5000.f);
-	TEST_CHECK(std::fabs(average3 - float(rate_limit)) < 5000.f);
+	TEST_CHECK(std::fabs(average2 - float(rate_limit)) < rate_limit / 11.f);
+	TEST_CHECK(std::fabs(average3 - float(rate_limit)) < rate_limit / 11.f);
 	if (tor2.is_seed() && tor3.is_seed()) std::cerr << "done\n";
 
 	// make sure the files are deleted
@@ -137,11 +137,14 @@ void test_swarm()
 		a = ses1.pop_alert();
 		assert(a.get());
 		std::cerr << a->msg() << std::endl;
-		if (dynamic_cast<torrent_deleted_alert*>(a.get()) != 0) break;
 	}
 
 	TEST_CHECK(dynamic_cast<torrent_deleted_alert*>(a.get()) != 0);
 
+	// there shouldn't be any alerts generated from now on
+	// make sure that the timer in wait_for_alert() works
+	// this should time out (ret == 0) and it should take
+	// about 2 seconds
 	ptime start = time_now();
 	alert const* ret = ses1.wait_for_alert(seconds(2));
 	TEST_CHECK(ret == 0);
