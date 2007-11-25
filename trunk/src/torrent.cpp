@@ -287,6 +287,10 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_DHT
 	bool torrent::should_announce_dht() const
 	{
+		if (m_ses.m_listen_sockets.empty()) return false;
+
+		if (!m_ses.m_dht) return false;
+
 		// don't announce private torrents
 		if (m_torrent_file->is_valid() && m_torrent_file->priv()) return false;
 	
@@ -434,7 +438,8 @@ namespace libtorrent
 				bind(&torrent::on_announce_disp, self, _1)));
 
 			// announce with the local discovery service
-			m_ses.announce_lsd(m_torrent_file->info_hash());
+			if (!m_paused)
+				m_ses.announce_lsd(m_torrent_file->info_hash());
 		}
 		else
 		{
@@ -444,14 +449,12 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_DHT
+		if (m_paused) return;
 		if (!m_ses.m_dht) return;
 		ptime now = time_now();
 		if (should_announce_dht() && now - m_last_dht_announce > minutes(14))
 		{
 			m_last_dht_announce = now;
-			// TODO: There should be a way to abort an announce operation on the dht.
-			// when the torrent is destructed
-			if (m_ses.m_listen_sockets.empty()) return;
 			m_ses.m_dht->announce(m_torrent_file->info_hash()
 				, m_ses.m_listen_sockets.front().external_port
 				, m_ses.m_strand.wrap(bind(&torrent::on_dht_announce_response_disp, self, _1)));
@@ -2249,16 +2252,18 @@ namespace libtorrent
 			m_next_request = time_now() + seconds(delay);
 
 #ifndef TORRENT_DISABLE_DHT
+			if (m_abort) return;
+
 			// only start the announce if we want to announce with the dht
-			if (should_announce_dht())
+			ptime now = time_now();
+			if (should_announce_dht() && now - m_last_dht_announce > minutes(14))
 			{
-				if (m_abort) return;
 				// force the DHT to reannounce
-				m_last_dht_announce = time_now() - minutes(15);
+				m_last_dht_announce = now;
 				boost::weak_ptr<torrent> self(shared_from_this());
-				m_announce_timer.expires_from_now(seconds(1));
-				m_announce_timer.async_wait(m_ses.m_strand.wrap(
-					bind(&torrent::on_announce_disp, self, _1)));
+				m_ses.m_dht->announce(m_torrent_file->info_hash()
+					, m_ses.m_listen_sockets.front().external_port
+					, m_ses.m_strand.wrap(bind(&torrent::on_dht_announce_response_disp, self, _1)));
 			}
 #endif
 
