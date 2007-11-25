@@ -322,7 +322,7 @@ unsigned int rpc_manager::new_transaction_id(observer_ptr o)
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(rpc) << "[new_transaction_id] Aborting message with transaction id: " 
 			<< m_next_transaction_id << " sent to " << o->target_addr
-			<< " at " << o->sent;
+			<< " " << total_seconds(time_now() - o->sent) << " seconds ago";
 #endif
 		m_transactions[m_next_transaction_id] = 0;
 		TORRENT_ASSERT(m_oldest_transaction_id == m_next_transaction_id);
