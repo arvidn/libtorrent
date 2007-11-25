@@ -768,10 +768,10 @@ namespace libtorrent
 
 		TORRENT_ASSERT(file_offset < file_iter->size);
 
-		TORRENT_ASSERT(slices[0].offset == file_offset);
+		TORRENT_ASSERT(slices[0].offset == file_offset + file_iter->file_base);
 
-		size_type new_pos = in->seek(file_offset);
-		if (new_pos != file_offset)
+		size_type new_pos = in->seek(file_offset + file_iter->file_base);
+		if (new_pos != file_offset + file_iter->file_base)
 		{
 			// the file was not big enough
 			if (!fill_zero)
@@ -782,7 +782,7 @@ namespace libtorrent
 
 #ifndef NDEBUG
 		size_type in_tell = in->tell();
-		TORRENT_ASSERT(in_tell == file_offset);
+		TORRENT_ASSERT(in_tell == file_offset + file_iter->file_base);
 #endif
 
 		int left_to_read = size;
@@ -846,7 +846,7 @@ namespace libtorrent
 				file_offset = 0;
 				in = m_files.open_file(
 					this, path, file::in);
-				in->seek(0);
+				in->seek(file_iter->file_base);
 			}
 		}
 		return result;
@@ -892,11 +892,11 @@ namespace libtorrent
 			this, p, file::out | file::in);
 
 		TORRENT_ASSERT(file_offset < file_iter->size);
-		TORRENT_ASSERT(slices[0].offset == file_offset);
+		TORRENT_ASSERT(slices[0].offset == file_offset + file_iter->file_base);
 
-		size_type pos = out->seek(file_offset);
+		size_type pos = out->seek(file_offset + file_iter->file_base);
 
-		if (pos != file_offset)
+		if (pos != file_offset + file_iter->file_base)
 		{
 			std::stringstream s;
 			s << "no storage for slot " << slot;
@@ -962,7 +962,7 @@ namespace libtorrent
 				out = m_files.open_file(
 					this, p, file::out | file::in);
 
-				out->seek(0);
+				out->seek(file_iter->file_base);
 			}
 		}
 	}

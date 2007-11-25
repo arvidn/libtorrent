@@ -918,7 +918,7 @@ The ``torrent_info`` has the following synopsis::
 		typedef std::vector<file_entry>::const_reverse_iterator
 			reverse_file_iterator;
 
-		bool remap_files(std::vector<std::pair<std::string, libtorrent::size_type> > const& map);
+		bool remap_files(std::vector<file_entry> const& map);
 
 		file_iterator begin_files(bool storage = false) const;
 		file_iterator end_files(bool storage = false) const;
@@ -1052,18 +1052,20 @@ remap_files()
 
 	::
 
-		bool remap_files(std::vector<std::pair<std::string, libtorrent::size_type> > const& map);
+		bool remap_files(std::vector<file_entry> const& map);
 
 This call will create a new mapping of the data in this torrent to other files. The
 ``torrent_info`` maintains 2 views of the file storage. One that is true to the torrent
 file, and one that represents what is actually saved on disk. This call will change
 what the files on disk are called.
 
-The each entry in the vector ``map`` is a pair of a (relative) file path and the file's size.
+The each entry in the vector ``map`` is a ``file_entry``. The only fields in this struct
+that are used in this case are ``path``, ``size`` and ``file_base``.
 
 The return value indicates if the remap was successful or not. True means success and
 false means failure. The sum of all the files passed in through ``map`` has to be exactly
-the same as the total_size of the torrent.
+the same as the total_size of the torrent. If the number of bytes that are mapped do not
+match, false will be returned (this is the only case this function may fail).
 
 Changing this mapping for an existing torrent will not move or rename files. If some files
 should be renamed, this can be done before the torrent is added.
@@ -1097,6 +1099,7 @@ remapped, they may differ. For more info, see `remap_files()`_.
 		boost::filesystem::path path;
 		size_type offset;
 		size_type size;
+		size_type file_base;
 		boost::shared_ptr<const boost::filesystem::path> orig_path;
 	};
 
@@ -1107,6 +1110,13 @@ The filenames are encoded with UTF-8.
 ``size`` is the size of the file (in bytes) and ``offset`` is the byte offset
 of the file within the torrent. i.e. the sum of all the sizes of the files
 before it in the list.
+
+``file_base`` is the offset in the file where the storage should start. The normal
+case is to have this set to 0, so that the storage starts saving data at the start
+if the file. In cases where multiple files are mapped into the same file though,
+the ``file_base`` should be set to an offset so that the different regions do
+not overlap. This is used when mapping "unselected" files into a so-called part
+file.
 
 ``orig_path`` is set to 0 in case the path element is an exact copy of that
 found in the metadata. In case the path in the original metadata was

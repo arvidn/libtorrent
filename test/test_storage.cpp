@@ -192,8 +192,17 @@ void run_test(path const& test_path)
 // ==============================================
 
 	// make sure remap_files works
-	std::vector<std::pair<std::string, libtorrent::size_type> > map;
-	map.push_back(std::make_pair(std::string("temp_storage/test.tmp"), 17 + 612 + 1));
+	std::vector<file_entry> map;
+	file_entry fe;
+	fe.path = "temp_storage/test.tmp";
+	fe.size = 17;
+	fe.file_base = 612 + 1;
+	map.push_back(fe);
+	fe.path = "temp_storage/test.tmp";
+	fe.size = 612 + 1;
+	fe.file_base = 0;
+	map.push_back(fe);
+
 	bool ret = info->remap_files(map);
 	TEST_CHECK(ret);
 
@@ -202,7 +211,7 @@ void run_test(path const& test_path)
 	run_storage_tests(info, test_path, storage_mode_compact);
 
 	std::cerr << file_size(test_path / "temp_storage" / "test.tmp") << std::endl;
-	TEST_CHECK(file_size(test_path / "temp_storage" / "test.tmp") == 48);
+	TEST_CHECK(file_size(test_path / "temp_storage" / "test.tmp") == 17 + 612 + 1);
 
 	remove_all(test_path / "temp_storage");
 
