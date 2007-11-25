@@ -1916,7 +1916,101 @@ namespace libtorrent
 	}
 #endif
 
-	bool torrent::connect_to_peer(policy::peer* peerinfo) throw()
+	void torrent::get_peer_info(std::vector<peer_info>& v)
+	{
+		v.clear();
+		for (peer_iterator i = begin();
+			i != end(); ++i)
+		{
+			peer_connection* peer = *i;
+
+			// incoming peers that haven't finished the handshake should
+			// not be included in this list
+			if (peer->associated_torrent().expired()) continue;
+
+			v.push_back(peer_info());
+			peer_info& p = v.back();
+			
+			peer->get_peer_info(p);
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
+			if (resolving_countries())
+				resolve_peer_country(intrusive_ptr<peer_connection>(peer));
+#endif
+		}
+	}
+
+	void torrent::get_download_queue(std::vector<partial_piece_info>& queue)
+	{
+		queue.clear();
+		if (!valid_metadata() || is_seed()) return;
+		piece_picker const& p = picker();
+		std::vector<piece_picker::downloading_piece> const& q
+			= p.get_download_queue();
+
+		for (std::vector<piece_picker::downloading_piece>::const_iterator i
+			= q.begin(); i != q.end(); ++i)
+		{
+			partial_piece_info pi;
+			pi.piece_state = (partial_piece_info::state_t)i->state;
+			pi.blocks_in_piece = p.blocks_in_piece(i->index);
+			pi.finished = (int)i->finished;
+			pi.writing = (int)i->writing;
+			pi.requested = (int)i->requested;
+			int piece_size = torrent_file().piece_size(i->index);
+			for (int j = 0; j < pi.blocks_in_piece; ++j)
+			{
+				block_info& bi = pi.blocks[j];
+				bi.state = i->info[j].state;
+				bi.block_size = j < pi.blocks_in_piece - 1 ? m_block_size
+					: piece_size - (j * m_block_size);
+				bool complete = bi.state == block_info::writing
+					|| bi.state == block_info::finished;
+				if (i->info[j].peer == 0)
+				{
+					bi.peer = tcp::endpoint();
+					bi.bytes_progress = complete ? bi.block_size : 0;
+				}
+				else
+				{
+					policy::peer* p = static_cast<policy::peer*>(i->info[j].peer);
+					if (p->connection)
+					{
+						bi.peer = p->connection->remote();
+						if (bi.state == block_info::requested)
+						{
+							boost::optional<piece_block_progress> pbp
+								= p->connection->downloading_piece_progress();
+							if (pbp && pbp->piece_index == i->index && pbp->block_index == j)
+							{
+								bi.bytes_progress = pbp->bytes_downloaded;
+								TORRENT_ASSERT(bi.bytes_progress <= bi.block_size);
+							}
+							else
+							{
+								bi.bytes_progress = 0;
+							}
+						}
+						else
+						{
+							bi.bytes_progress = complete ? bi.block_size : 0;
+						}
+					}
+					else
+					{
+						bi.peer = p->ip;
+						bi.bytes_progress = complete ? bi.block_size : 0;
+					}
+				}
+
+				pi.blocks[j].num_peers = i->info[j].num_peers;
+			}
+			pi.piece_index = i->index;
+			queue.push_back(pi);
+		}
+	
+	}
+	
+	bool torrent::connect_to_peer(policy::peer* peerinfo)
 	{
 		INVARIANT_CHECK;
 

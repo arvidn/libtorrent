@@ -206,7 +206,7 @@ namespace libtorrent
 		tcp::endpoint const& get_interface() const { return m_net_interface; }
 		
 		void connect_to_url_seed(std::string const& url);
-		bool connect_to_peer(policy::peer* peerinfo) throw();
+		bool connect_to_peer(policy::peer* peerinfo);
 
 		void set_ratio(float ratio)
 		{ TORRENT_ASSERT(ratio >= 0.0f); m_ratio = ratio; }
@@ -292,6 +292,9 @@ namespace libtorrent
 		peer_iterator end() { return m_connections.end(); }
 
 		void resolve_peer_country(boost::intrusive_ptr<peer_connection> const& p) const;
+
+		void get_peer_info(std::vector<peer_info>& v);
+		void get_download_queue(std::vector<partial_piece_info>& queue);
 
 // --------------------------------------------
 		// TRACKER MANAGEMENT
