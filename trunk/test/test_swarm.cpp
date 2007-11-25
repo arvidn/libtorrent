@@ -1,6 +1,7 @@
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/alert_types.hpp"
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -19,10 +20,14 @@ void test_swarm()
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000));
 	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50000, 51000));
 
+	ses1.set_severity_level(alert::debug);
+	ses2.set_severity_level(alert::debug);
+	ses3.set_severity_level(alert::debug);
+	
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
-	float rate_limit = 40000;
+	float rate_limit = 100000;
 	ses1.set_upload_rate_limit(int(rate_limit));
 	ses2.set_download_rate_limit(int(rate_limit));
 	ses3.set_download_rate_limit(int(rate_limit));
@@ -55,7 +60,7 @@ void test_swarm()
 	int count_dl_rates2 = 0;
 	int count_dl_rates3 = 0;
 
-	for (int i = 0; i < 65; ++i)
+	for (int i = 0; i < 25; ++i)
 	{
 		std::auto_ptr<alert> a;
 		a = ses1.pop_alert();
@@ -74,12 +79,12 @@ void test_swarm()
 		torrent_status st2 = tor2.status();
 		torrent_status st3 = tor3.status();
 
-		if (st2.progress < 1.f && st2.progress > 0.3f)
+		if (st2.progress < 1.f && st2.progress > 0.5f)
 		{
 			sum_dl_rate2 += st2.download_payload_rate;
 			++count_dl_rates2;
 		}
-		if (st3.progress < 1.f && st3.progress > 0.3f)
+		if (st3.progress < 1.f && st3.progress > 0.5f)
 		{
 			sum_dl_rate3 += st3.download_rate;
 			++count_dl_rates3;
@@ -111,14 +116,38 @@ void test_swarm()
 	std::cerr << "average rate: " << (average2 / 1000.f) << "kB/s - "
 		<< (average3 / 1000.f) << "kB/s" << std::endl;
 
-	TEST_CHECK(std::fabs(average2 - float(rate_limit)) < 3000.f);
-	TEST_CHECK(std::fabs(average3 - float(rate_limit)) < 3000.f);
+	TEST_CHECK(std::fabs(average2 - float(rate_limit)) < 5000.f);
+	TEST_CHECK(std::fabs(average3 - float(rate_limit)) < 5000.f);
 	if (tor2.is_seed() && tor3.is_seed()) std::cerr << "done\n";
 
 	// make sure the files are deleted
 	ses1.remove_torrent(tor1, session::delete_files);
 	ses2.remove_torrent(tor2, session::delete_files);
 	ses3.remove_torrent(tor3, session::delete_files);
+
+	std::auto_ptr<alert> a = ses1.pop_alert();
+	ptime end = time_now() + seconds(20);
+	while (a.get() == 0 || dynamic_cast<torrent_deleted_alert*>(a.get()) == 0)
+	{
+		if (ses1.wait_for_alert(end - time_now()) == 0)
+		{
+			std::cerr << "wait_for_alert() expired" << std::endl;
+			break;
+		}
+		a = ses1.pop_alert();
+		assert(a.get());
+		std::cerr << a->msg() << std::endl;
+		if (dynamic_cast<torrent_deleted_alert*>(a.get()) != 0) break;
+	}
+
+	TEST_CHECK(dynamic_cast<torrent_deleted_alert*>(a.get()) != 0);
+
+	ptime start = time_now();
+	alert const* ret = ses1.wait_for_alert(seconds(2));
+	TEST_CHECK(ret == 0);
+	if (ret != 0) std::cerr << ret->msg() << std::endl;
+	TEST_CHECK(time_now() - start < seconds(3));
+	TEST_CHECK(time_now() - start > seconds(2));
 }
 
 int test_main()

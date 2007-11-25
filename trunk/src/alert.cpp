@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include "libtorrent/alert.hpp"
+#include <boost/thread/xtime.hpp>
 
 namespace libtorrent {
 
@@ -77,6 +78,30 @@ namespace libtorrent {
 		}
 	}
 
+	alert const* alert_manager::wait_for_alert(time_duration max_wait)
+	{
+		boost::mutex::scoped_lock lock(m_mutex);
+
+		if (!m_alerts.empty()) return m_alerts.front();
+		
+		int secs = total_seconds(max_wait);
+		max_wait -= seconds(secs);
+		boost::xtime xt;
+		boost::xtime_get(&xt, boost::TIME_UTC);
+		xt.sec += secs;
+		boost::int64_t nsec = xt.nsec + total_microseconds(max_wait) * 1000;
+		if (nsec > 1000000000)
+		{
+			nsec -= 1000000000;
+			xt.sec += 1;
+		}
+		xt.nsec = nsec;
+		if (!m_condition.timed_wait(lock, xt)) return 0;
+		TORRENT_ASSERT(!m_alerts.empty());
+		if (m_alerts.empty()) return 0;
+		return m_alerts.front();
+	}
+
 	void alert_manager::post_alert(const alert& alert_)
 	{
 		boost::mutex::scoped_lock lock(m_mutex);
@@ -90,6 +115,7 @@ namespace libtorrent {
 			delete result;
 		}
 		m_alerts.push(alert_.clone().release());
+		m_condition.notify_all();
 	}
 
 	std::auto_ptr<alert> alert_manager::get()

@@ -2251,6 +2251,11 @@ namespace detail
 			return m_alerts.get();
 		return std::auto_ptr<alert>(0);
 	}
+	
+	alert const* session_impl::wait_for_alert(time_duration max_wait)
+	{
+		return m_alerts.wait_for_alert(max_wait);
+	}
 
 	void session_impl::set_severity_level(alert::severity_t s)
 	{

@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/condition.hpp>
 
 #include <boost/preprocessor/repetition/enum_params_with_a_default.hpp>
 #include <boost/preprocessor/repetition/enum.hpp>
@@ -99,10 +100,13 @@ namespace libtorrent {
 		void set_severity(alert::severity_t severity);
 		bool should_post(alert::severity_t severity) const;
 
+		alert const* wait_for_alert(time_duration max_wait);
+
 	private:
 		std::queue<alert*> m_alerts;
 		alert::severity_t m_severity;
 		mutable boost::mutex m_mutex;
+		boost::condition m_condition;
 	};
 
 	struct TORRENT_EXPORT unhandled_alert : std::exception
