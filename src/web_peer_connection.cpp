@@ -306,10 +306,12 @@ namespace libtorrent
 
 	namespace
 	{
-		bool range_contains(peer_request const& range, peer_request const& req)
+		bool range_contains(peer_request const& range, peer_request const& req, int piece_size)
 		{
-			return range.start <= req.start
-				&& range.start + range.length >= req.start + req.length;
+			size_type range_start = size_type(range.piece) * piece_size + range.start;
+			size_type req_start = size_type(req.piece) * piece_size + req.start;
+			return range_start <= req_start
+				&& range_start + range.length >= req_start + req.length;
 		}
 	}
 
@@ -470,6 +472,9 @@ namespace libtorrent
 				}
 			}
 
+//			std::cerr << "REQUESTS: m_requests: " << m_requests.size()
+//				<< " file_requests: " << m_file_requests.size() << std::endl;
+
 			torrent_info const& info = t->torrent_file();
 
 			if (m_requests.empty() || m_file_requests.empty())
@@ -480,16 +485,16 @@ namespace libtorrent
 				, range_end - range_start);
 
 			peer_request front_request = m_requests.front();
-
+/*
 			size_type rs = size_type(in_range.piece) * info.piece_length() + in_range.start;
 			size_type re = rs + in_range.length;
 			size_type fs = size_type(front_request.piece) * info.piece_length() + front_request.start;
 			size_type fe = fs + front_request.length;
-			if (fs < rs || fe > re)
-			{
-				throw std::runtime_error("invalid range in HTTP response");
-			}
 
+			std::cerr << "RANGE: r = (" << rs << ", " << re << " ) "
+				"f = (" << fs << ", " << fe << ") "
+				"file_index = " << file_index << " received_body = " << m_received_body << std::endl;
+*/
 			// skip the http header and the blocks we've already read. The
 			// http_body.begin is now in sync with the request at the front
 			// of the request queue
@@ -504,11 +509,16 @@ namespace libtorrent
 			bool range_overlaps_request = in_range.start + in_range.length
 				> front_request.start + int(m_piece.size());
 
+			if (!range_overlaps_request)
+			{
+				throw std::runtime_error("invalid range in HTTP response");
+			}
+
 			// if the request is contained in the range (i.e. the entire request
 			// fits in the range) we should not start a partial piece, since we soon
 			// will receive enough to call incoming_piece() and pass the read buffer
 			// directly (in the next loop below).
-			if (range_overlaps_request && !range_contains(in_range, front_request))
+			if (range_overlaps_request && !range_contains(in_range, front_request, info.piece_length()))
 			{
 				// the start of the next block to receive is stored
 				// in m_piece. We need to append the rest of that
@@ -549,7 +559,7 @@ namespace libtorrent
 
 			// report all received blocks to the bittorrent engine
 			while (!m_requests.empty()
-				&& range_contains(in_range, m_requests.front())
+				&& range_contains(in_range, m_requests.front(), info.piece_length())
 				&& recv_buffer.left() >= m_requests.front().length)
 			{
 				peer_request r = m_requests.front();
