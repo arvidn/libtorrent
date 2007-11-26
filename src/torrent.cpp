@@ -729,16 +729,17 @@ namespace libtorrent
 			return tuple<size_type, size_type>(0,0);
 
 		const int last_piece = m_torrent_file->num_pieces() - 1;
+		const int piece_size = m_torrent_file->piece_length();
 
 		if (is_seed())
 			return make_tuple(m_torrent_file->total_size()
 				, m_torrent_file->total_size());
 
 		size_type wanted_done = (m_num_pieces - m_picker->num_have_filtered())
-			* m_torrent_file->piece_length();
+			* piece_size;
 		
 		size_type total_done
-			= m_num_pieces * m_torrent_file->piece_length();
+			= m_num_pieces * piece_size;
 		TORRENT_ASSERT(m_num_pieces < m_torrent_file->num_pieces());
 
 		// if we have the last piece, we have to correct
@@ -746,11 +747,17 @@ namespace libtorrent
 		// assumed all pieces were of equal size
 		if (m_have_pieces[last_piece])
 		{
+			TORRENT_ASSERT(total_done >= piece_size);
 			int corr = m_torrent_file->piece_size(last_piece)
-				- m_torrent_file->piece_length();
+				- piece_size;
+			TORRENT_ASSERT(corr <= 0);
+			TORRENT_ASSERT(corr > -piece_size);
 			total_done += corr;
 			if (m_picker->piece_priority(last_piece) != 0)
+			{
+				TORRENT_ASSERT(wanted_done >= piece_size);
 				wanted_done += corr;
+			}
 		}
 
 		TORRENT_ASSERT(total_done <= m_torrent_file->total_size());
@@ -760,7 +767,7 @@ namespace libtorrent
 			= m_picker->get_download_queue();
 
 		const int blocks_per_piece = static_cast<int>(
-			m_torrent_file->piece_length() / m_block_size);
+			piece_size / m_block_size);
 
 		for (std::vector<piece_picker::downloading_piece>::const_iterator i =
 			dl_queue.begin(); i != dl_queue.end(); ++i)
@@ -782,6 +789,7 @@ namespace libtorrent
 			{
 				TORRENT_ASSERT(m_picker->is_finished(piece_block(index, j)) == (i->info[j].state == piece_picker::block_info::state_finished));
 				corr += (i->info[j].state == piece_picker::block_info::state_finished) * m_block_size;
+				TORRENT_ASSERT(corr >= 0);
 				TORRENT_ASSERT(index != last_piece || j < m_picker->blocks_in_last_piece()
 					|| i->info[j].state != piece_picker::block_info::state_finished);
 			}
