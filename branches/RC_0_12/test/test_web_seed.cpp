@@ -5,6 +5,7 @@
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <fstream>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -30,19 +31,50 @@ void add_files(
 		t.add_file(l, file_size(f));
 	}
 }
+void start_web_server()
+{
+	std::ofstream f("./lighty_config");
+	f << "server.modules = (\"mod_access\")\n"
+		"server.document-root = \"" << initial_path().string() << "\"\n"
+		"server.range-requests = \"enable\"\n"
+		"server.port = 8000\n"
+		"server.pid-file = \"./lighty.pid\"\n";
+	f.close();
+	
+	system("lighttpd -f lighty_config &");
+}
+
+void stop_web_server()
+{
+	system("kill `cat ./lighty.pid`");
+}
 
 void test_transfer()
 {
 	using namespace libtorrent;
 	
 	torrent_info torrent_file;
-	torrent_file.add_url_seed("http://127.0.0.1/bravia_paint_ad_70sec_1280x720.mov");
 
-	path full_path = "/Library/WebServer/Documents/bravia_paint_ad_70sec_1280x720.mov";
-	add_files(torrent_file, full_path.branch_path(), full_path.leaf());
+	torrent_file.add_url_seed("http://127.0.0.1:8000/");
+
+	create_directory("test_torrent");
+	char random_data[300000];
+	std::srand(std::time(0));
+	std::generate(random_data, random_data + sizeof(random_data), &std::rand);
+	std::ofstream("./test_torrent/test1").write(random_data, 35);
+	std::ofstream("./test_torrent/test2").write(random_data, 16536 - 35);
+	std::ofstream("./test_torrent/test3").write(random_data, 16536);
+	std::ofstream("./test_torrent/test4").write(random_data, 17);
+	std::ofstream("./test_torrent/test5").write(random_data, 16536);
+	std::ofstream("./test_torrent/test6").write(random_data, 300000);
+	std::ofstream("./test_torrent/test7").write(random_data, 300000);
+
+	add_files(torrent_file, complete("."), "test_torrent");
+
+	start_web_server();
 
 	file_pool fp;
-	storage st(torrent_file, full_path.branch_path(), fp);
+	storage st(torrent_file, ".", fp);
 	// calculate the hash for all pieces
 	int num = torrent_file.num_pieces();
 	std::vector<char> buf(torrent_file.piece_length());
@@ -74,6 +106,9 @@ void test_transfer()
 	}
 
 	TEST_CHECK(th.is_seed());
+
+	remove_all("./test_torrent");
+	stop_web_server();
 }
 
 int test_main()
