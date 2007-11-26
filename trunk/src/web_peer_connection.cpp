@@ -485,20 +485,17 @@ namespace libtorrent
 				, range_end - range_start);
 
 			peer_request front_request = m_requests.front();
-/*
+
 			size_type rs = size_type(in_range.piece) * info.piece_length() + in_range.start;
 			size_type re = rs + in_range.length;
 			size_type fs = size_type(front_request.piece) * info.piece_length() + front_request.start;
+/*
 			size_type fe = fs + front_request.length;
 
 			std::cerr << "RANGE: r = (" << rs << ", " << re << " ) "
 				"f = (" << fs << ", " << fe << ") "
 				"file_index = " << file_index << " received_body = " << m_received_body << std::endl;
 */
-			// skip the http header and the blocks we've already read. The
-			// http_body.begin is now in sync with the request at the front
-			// of the request queue
-//			TORRENT_ASSERT(in_range.start - int(m_piece.size()) <= front_request.start);
 
 			// the http response body consists of 3 parts
 			// 1. the middle of a block or the ending of a block
@@ -506,11 +503,12 @@ namespace libtorrent
 			// 3. the start of a block
 			// in that order, these parts are parsed.
 
-			bool range_overlaps_request = in_range.start + in_range.length
-				> front_request.start + int(m_piece.size());
+			bool range_overlaps_request = re > fs + int(m_piece.size());
 
 			if (!range_overlaps_request)
 			{
+				// this means the end of the incoming request ends _before_ the
+				// first expected byte (fs + m_piece.size())
 				throw std::runtime_error("invalid range in HTTP response");
 			}
 
