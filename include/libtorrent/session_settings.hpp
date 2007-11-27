@@ -95,6 +95,7 @@ namespace libtorrent
 			, peer_timeout(120)
 			, urlseed_timeout(20)
 			, urlseed_pipeline_size(5)
+			, urlseed_wait_retry(30)
 			, file_pool_size(40)
 			, allow_multiple_connections_per_ip(false)
 			, max_failcount(3)
@@ -185,6 +186,9 @@ namespace libtorrent
 		
 		// controls the pipelining size of url-seeds
 		int urlseed_pipeline_size;
+
+		// time to wait until a new retry takes place
+		int urlseed_wait_retry;
 		
 		// sets the upper limit on the total number of files this
 		// session will keep open. The reason why files are
