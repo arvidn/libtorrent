@@ -542,6 +542,7 @@ int main(int ac, char* av[])
 	std::string proxy_login;
 	std::string proxy_type;
 	int poll_interval;
+	int wait_retry;
 
 	namespace po = boost::program_options;
 	try
@@ -582,6 +583,9 @@ int main(int ac, char* av[])
 		("poll-interval,t", po::value<int>(&poll_interval)->default_value(2)
 			, "if a directory is being monitored, this is the interval (given "
 			"in seconds) between two refreshes of the directory listing")
+		("wait-retry,w", po::value<int>(&wait_retry)->default_value(30)
+			, "if the download of a url seed failes, this is the interval (given "
+			"in seconds) to wait until the next retry")
 		("half-open-limit,o", po::value<int>(&half_open_limit)->default_value(-1)
 			, "Sets the maximum number of simultaneous half-open tcp connections")
 		("bind,b", po::value<std::string>(&bind_to_interface)->default_value("")
@@ -615,6 +619,7 @@ int main(int ac, char* av[])
 		if (download_limit <= 0) download_limit = -1;
 		if (upload_limit <= 0) upload_limit = -1;
 		if (poll_interval < 2) poll_interval = 2;
+		if (wait_retry < 0) wait_retry = 0;
 		if (half_open_limit < 1) half_open_limit = -1;
 		if (upload_slots_limit <= 0) upload_slots_limit = -1;
 		if (!monitor_dir.empty() && !exists(monitor_dir))
@@ -681,6 +686,7 @@ int main(int ac, char* av[])
 		}
 
 		settings.user_agent = "client_test/" LIBTORRENT_VERSION;
+		settings.urlseed_wait_retry = wait_retry;
 
 		std::deque<std::string> events;
 

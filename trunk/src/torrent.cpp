@@ -2857,6 +2857,18 @@ namespace libtorrent
 		// if we have everything we want we don't need to connect to any web-seed
 		if (!is_finished() && !m_web_seeds.empty())
 		{
+			// re-insert urls that are to be retries into the m_web_seeds
+			typedef std::map<std::string, ptime>::iterator iter_t;
+			for (iter_t i = m_web_seeds_next_retry.begin(); i != m_web_seeds_next_retry.end();)
+			{
+				iter_t erase_element = i++;
+				if (erase_element->second <= time_now())
+				{
+					m_web_seeds.insert(erase_element->first);
+					m_web_seeds_next_retry.erase(erase_element);
+				}
+			}
+
 			// keep trying web-seeds if there are any
 			// first find out which web seeds we are connected to
 			std::set<std::string> web_seeds;
@@ -2914,6 +2926,12 @@ namespace libtorrent
 			m_time_scaler = 10;
 			m_policy.pulse();
 		}
+	}
+
+	void torrent::retry_url_seed(std::string const& url)
+	{
+		m_web_seeds_next_retry[url] = time_now()
+			+ seconds(m_ses.settings().urlseed_wait_retry);
 	}
 
 	bool torrent::try_connect_peer()

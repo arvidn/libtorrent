@@ -360,7 +360,11 @@ namespace libtorrent
 					&& !(m_parser.status_code() >= 300 // redirect
 						&& m_parser.status_code() < 400))
 				{
-					// we should not try this server again.
+					if (m_parser.status_code() == 503)
+					{
+						// temporarily unavailable, retry later
+						t->retry_url_seed(m_url);
+					}
 					t->remove_url_seed(m_url);
 					std::string error_msg = boost::lexical_cast<std::string>(m_parser.status_code())
 						+ " " + m_parser.message();
