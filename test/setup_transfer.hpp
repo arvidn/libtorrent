@@ -15,5 +15,8 @@ setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2
 	, libtorrent::session* ses3, bool clear_files, bool use_metadata_transfer = true
 	, bool connect = true);
 
+void start_web_server(int port);
+void stop_web_server(int port);
+
 #endif
 

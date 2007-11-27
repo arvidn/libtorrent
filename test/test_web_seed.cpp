@@ -33,24 +33,6 @@ void add_files(
 	}
 }
 
-void start_web_server()
-{
-	std::ofstream f("./lighty_config");
-	f << "server.modules = (\"mod_access\")\n"
-		"server.document-root = \"" << initial_path().string() << "\"\n"
-		"server.range-requests = \"enable\"\n"
-		"server.port = 8000\n"
-		"server.pid-file = \"./lighty.pid\"\n";
-	f.close();
-	
-	system("lighttpd -f lighty_config &");
-}
-
-void stop_web_server()
-{
-	system("kill `cat ./lighty.pid`");
-}
-
 void test_transfer()
 {
 	using namespace libtorrent;
@@ -72,7 +54,7 @@ void test_transfer()
 
 	add_files(*torrent_file, complete("."), "test_torrent");
 
-	start_web_server();
+	start_web_server(8000);
 
 	file_pool fp;
 	boost::scoped_ptr<storage_interface> s(default_storage_constructor(
@@ -115,7 +97,7 @@ void test_transfer()
 	TEST_CHECK(th.is_seed());
 
 	remove_all("./test_torrent");
-	stop_web_server();
+	stop_web_server(8000);
 }
 
 int test_main()

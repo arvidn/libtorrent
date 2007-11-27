@@ -1,4 +1,5 @@
 #include <fstream>
+#include <sstream>
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
@@ -28,6 +29,27 @@ void test_sleep(int millisec)
 	xt.nsec = nanosec;
 	xt.sec += sec;
 	boost::thread::sleep(xt);
+}
+
+void start_web_server(int port)
+{
+	std::ofstream f("./lighty_config");
+	f << "server.modules = (\"mod_access\")\n"
+		"server.document-root = \"" << boost::filesystem::initial_path().string() << "\"\n"
+		"server.range-requests = \"enable\"\n"
+		"server.port = " << port << "\n"
+		"server.pid-file = \"./lighty" << port << ".pid\"\n";
+	f.close();
+	
+	system("lighttpd -f lighty_config &");
+	test_sleep(1000);
+}
+
+void stop_web_server(int port)
+{
+	std::stringstream cmd;
+	cmd << "kill `cat ./lighty" << port << ".pid`";
+	system(cmd.str().c_str());
 }
 
 using namespace libtorrent;
