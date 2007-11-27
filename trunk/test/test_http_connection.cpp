@@ -2,6 +2,10 @@
 #include "libtorrent/socket.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/http_connection.hpp"
+#include "setup_transfer.hpp"
+
+#include <fstream>
+#include <boost/optional.hpp>
 
 using namespace libtorrent;
 
@@ -13,17 +17,17 @@ int handler_called = 0;
 int data_size = 0;
 int http_status = 0;
 asio::error_code error_code;
+char data_buffer[4000];
 
 void print_http_header(http_parser const& p)
 {
-	std::cerr << p.status_code() << " " << p.message() << std::endl;
+	std::cerr << " < " << p.status_code() << " " << p.message() << std::endl;
 
 	for (std::map<std::string, std::string>::const_iterator i
 		= p.headers().begin(), end(p.headers().end()); i != end; ++i)
 	{
-		std::cerr << i->first << ": " << i->second << std::endl;
+		std::cerr << " < " << i->first << ": " << i->second << std::endl;
 	}
-	
 }
 
 void http_connect_handler(http_connection& c)
@@ -40,7 +44,14 @@ void http_handler(asio::error_code const& ec, http_parser const& parser, char co
 	data_size = size;
 	error_code = ec;
 
-	if (parser.header_finished()) http_status = parser.status_code();
+	if (parser.header_finished())
+	{
+		http_status = parser.status_code();
+		if (http_status == 200)
+		{
+			TEST_CHECK(memcmp(data, data_buffer, size) == 0);
+		}
+	}
 	print_http_header(parser);
 
 	cq.close();
@@ -55,7 +66,7 @@ void reset_globals()
 	error_code = asio::error_code();
 }
 
-void run_test(char const* url, int size, int status, int connected, asio::error_code const& ec)
+void run_test(char const* url, int size, int status, int connected, boost::optional<asio::error_code> ec)
 {
 	reset_globals();
 
@@ -75,15 +86,22 @@ void run_test(char const* url, int size, int status, int connected, asio::error_
 	TEST_CHECK(connect_handler_called == connected);
 	TEST_CHECK(handler_called == 1);	
 	TEST_CHECK(data_size == size || size == -1);
-	TEST_CHECK(error_code == ec);
+	TEST_CHECK(!ec || error_code == ec);
 	TEST_CHECK(http_status == status || status == -1);
 }
 
 int test_main()
 {
-	run_test("http://127.0.0.1/disk_io.png", 17809, 200, 1, asio::error_code());
-	run_test("http://127.0.0.1/non-existing-file", -1, 404, 1, asio::error::eof);
-	run_test("http://non-existent-domain.se/non-existing-file", -1, -1, 0, asio::error::host_not_found);
+	typedef boost::optional<asio::error_code> err;
+	start_web_server(8001);
+	std::srand(std::time(0));
+	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
+	std::ofstream("test_file").write(data_buffer, 3216);
+	run_test("http://127.0.0.1:8001/test_file", 3216, 200, 1, asio::error_code());
+	run_test("http://127.0.0.1:8001/non-existing-file", -1, 404, 1, err());
+	run_test("http://non-existent-domain.se/non-existing-file", -1, -1, 0, err(asio::error::host_not_found));
+	stop_web_server(8001);
+	std::remove("test_file");
 	return 0;
 }
 
