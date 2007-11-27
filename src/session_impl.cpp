@@ -2419,6 +2419,11 @@ namespace detail
 		{
 			TORRENT_ASSERT(false);
 		}
+		for (std::map<sha1_hash, boost::shared_ptr<torrent> >::const_iterator j
+			= m_torrents.begin(); j != m_torrents.end(); ++j)
+		{
+			TORRENT_ASSERT(boost::get_pointer(j->second));
+		}
 	}
 #endif
 
