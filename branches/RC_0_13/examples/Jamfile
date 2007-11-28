@@ -1,0 +1,31 @@
+import modules ;
+
+BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
+
+use-project /torrent : .. ;
+
+if $(BOOST_ROOT)
+{
+	use-project /boost : $(BOOST_ROOT) ;
+}
+
+lib program-options : : <name>boost_program_options ;
+lib regex : : <name>boost_regex ;
+
+project client_test
+   : requirements
+	<threading>multi <library>/torrent//torrent
+	: default-build
+	<link>static
+   ;  
+
+exe client_test : client_test.cpp
+	: <library>/boost/program_options
+	<library>/boost/regex
+	;
+
+exe simple_client : simple_client.cpp ;
+exe dump_torrent : dump_torrent.cpp ;
+exe make_torrent : make_torrent.cpp ;
+exe enum_if : enum_if.cpp ;
+
