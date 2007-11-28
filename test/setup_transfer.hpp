@@ -17,6 +17,8 @@ setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2
 
 void start_web_server(int port);
 void stop_web_server(int port);
+void start_proxy(int port, int type);
+void stop_proxy(int port);
 
 #endif
 
