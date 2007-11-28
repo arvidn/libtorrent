@@ -766,6 +766,8 @@ namespace detail
 		mutex::scoped_lock l2(m_checker_impl.m_mutex);
 		// abort the checker thread
 		m_checker_impl.m_abort = true;
+
+		m_io_service.stop();
 	}
 
 	void session_impl::set_port_filter(port_filter const& f)
@@ -1572,6 +1574,24 @@ namespace detail
 		}
 		while (!m_abort);
 
+		ptime end = time_now() + seconds(m_settings.stop_tracker_timeout);
+		while (time_now() < end && !m_tracker_manager.empty())
+		{
+			m_io_service.reset();
+			m_io_service.poll();
+			// sleep 200 milliseconds
+			boost::xtime xt;
+			boost::xtime_get(&xt, boost::TIME_UTC);
+			boost::int64_t nsec = xt.nsec + 200 * 1000000;
+			if (nsec > 1000000000)
+			{
+				nsec -= 1000000000;
+				xt.sec += 1;
+			}
+			xt.nsec = nsec;
+			boost::thread::sleep(xt);
+		}
+		
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " locking mutex\n";
 #endif
