@@ -33,10 +33,62 @@ void add_files(
 	}
 }
 
-void test_transfer()
+// proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
+void test_transfer(torrent_info torrent_file, int proxy)
 {
 	using namespace libtorrent;
+
+	session ses;
+	ses.set_severity_level(alert::debug);
+	ses.listen_on(std::make_pair(49000, 50000));
+	remove_all("./tmp1");
+
+	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
+
+	std::cerr << "  ==== TESTING " << test_name[proxy] << " proxy ====" << std::endl;
 	
+	if (proxy)
+	{
+		start_proxy(8002, proxy);
+		proxy_settings ps;
+		ps.hostname = "127.0.0.1";
+		ps.port = 8002;
+		ps.username = "testuser";
+		ps.password = "testpass";
+		ps.type = (proxy_settings::proxy_type)proxy;
+		ses.set_web_seed_proxy(ps);
+	}
+
+	torrent_handle th = ses.add_torrent(torrent_file, "./tmp1");
+
+	std::vector<announce_entry> empty;
+	th.replace_trackers(empty);
+
+	for (int i = 0; i < 30; ++i)
+	{
+		torrent_status s = th.status();
+		std::cerr << s.progress << " " << (s.download_rate / 1000.f) << std::endl;
+		std::auto_ptr<alert> a;
+		a = ses.pop_alert();
+		if (a.get())
+			std::cerr << a->msg() << "\n";
+
+		if (th.is_seed()) break;
+		test_sleep(1000);
+	}
+
+	TEST_CHECK(th.is_seed());
+
+	if (proxy) stop_proxy(8002);
+
+	remove_all("./tmp1");
+}
+
+int test_main()
+{
+	using namespace libtorrent;
+	using namespace boost::filesystem;
+
 	boost::intrusive_ptr<torrent_info> torrent_file(new torrent_info);
 	torrent_file->add_url_seed("http://127.0.0.1:8000/");
 
@@ -72,44 +124,14 @@ void test_transfer()
 	// to calculate the info_hash
 	entry te = torrent_file->create_torrent();
 
-	session ses;
-	ses.set_severity_level(alert::debug);
-	ses.listen_on(std::make_pair(49000, 50000));
-	remove_all("./tmp1");
-	torrent_handle th = ses.add_torrent(torrent_file, "./tmp1");
 
-	std::vector<announce_entry> empty;
-	th.replace_trackers(empty);
+	for (int i = 0; i < 6; ++i)
+		test_transfer(*torrent_file, i);
 
-	for (int i = 0; i < 30; ++i)
-	{
-		torrent_status s = th.status();
-		std::cerr << s.progress << " " << (s.download_rate / 1000.f) << std::endl;
-		std::auto_ptr<alert> a;
-		a = ses.pop_alert();
-		if (a.get())
-			std::cerr << a->msg() << "\n";
 
-		if (th.is_seed()) break;
-		test_sleep(1000);
-	}
-
-	TEST_CHECK(th.is_seed());
-
-	remove_all("./test_torrent");
+	
 	stop_web_server(8000);
-}
-
-int test_main()
-{
-	using namespace libtorrent;
-	using namespace boost::filesystem;
-
-	test_transfer();
-
-	remove_all("./tmp1");
-	remove_all("./tmp2");
-
+	remove_all("./test_torrent");
 	return 0;
 }
 

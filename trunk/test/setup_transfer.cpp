@@ -31,8 +31,16 @@ void test_sleep(int millisec)
 	boost::thread::sleep(xt);
 }
 
+void stop_web_server(int port)
+{
+	std::stringstream cmd;
+	cmd << "kill `cat ./lighty" << port << ".pid` >/dev/null";
+	system(cmd.str().c_str());
+}
+
 void start_web_server(int port)
 {
+	stop_web_server(port);
 	std::ofstream f("./lighty_config");
 	f << "server.modules = (\"mod_access\")\n"
 		"server.document-root = \"" << boost::filesystem::initial_path().string() << "\"\n"
@@ -45,10 +53,39 @@ void start_web_server(int port)
 	test_sleep(1000);
 }
 
-void stop_web_server(int port)
+void stop_proxy(int port)
 {
 	std::stringstream cmd;
-	cmd << "kill `cat ./lighty" << port << ".pid`";
+	cmd << "delegated -P" << port << " -Fkill";
+	system(cmd.str().c_str());
+}
+
+void start_proxy(int port, int proxy_type)
+{
+	using namespace libtorrent;
+
+	stop_proxy(port);
+	std::stringstream cmd;
+	// we need to echo n since dg will ask us to configure it
+	cmd << "echo n | delegated -P" << port << " ADMIN=test@test.com";
+	switch (proxy_type)
+	{
+		case proxy_settings::socks4:
+			cmd << " SERVER=socks4";
+			break;
+		case proxy_settings::socks5:
+			cmd << " SERVER=socks5";
+			break;
+		case proxy_settings::socks5_pw:
+			cmd << " SERVER=socks5 AUTHORIZER=-list{testuser:testpass}";
+			break;
+		case proxy_settings::http:
+			cmd << " SERVER=http";
+			break;
+		case proxy_settings::http_pw:
+			cmd << " SERVER=http AUTHORIZER=-list{testuser:testpass}";
+			break;
+	}
 	system(cmd.str().c_str());
 }
 
