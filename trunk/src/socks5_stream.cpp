@@ -206,7 +206,7 @@ namespace libtorrent
 		}
 
 		std::vector<char>().swap(m_buffer);
-		(*h)(e);	
+		socks_connect(h);
 	}
 
 	void socks5_stream::socks_connect(boost::shared_ptr<handler_type> h)
