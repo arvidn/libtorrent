@@ -3,6 +3,7 @@
 #include "libtorrent/connection_queue.hpp"
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
+#include <boost/intrusive_ptr.hpp>
 
 using namespace libtorrent;
 
@@ -23,7 +24,7 @@ int main(int argc, char* argv[])
 	}
 
 	connection_queue cc(ios);
-	upnp upnp_handler(ios, cc, address_v4(), user_agent, &callback);
+	boost::intrusive_ptr<upnp> upnp_handler = new upnp(ios, cc, address_v4(), user_agent, &callback);
 
 	deadline_timer timer(ios);
 	timer.expires_from_now(seconds(2));
@@ -34,7 +35,7 @@ int main(int argc, char* argv[])
 	ios.reset();
 	ios.run();
 
-	upnp_handler.set_mappings(atoi(argv[1]), atoi(argv[2]));
+	upnp_handler->set_mappings(atoi(argv[1]), atoi(argv[2]));
 	timer.expires_from_now(seconds(5));
 	timer.async_wait(boost::bind(&io_service::stop, boost::ref(ios)));
 	std::cerr << "mapping ports TCP: " << argv[1]
@@ -43,7 +44,7 @@ int main(int argc, char* argv[])
 	ios.reset();
 	ios.run();
 	std::cerr << "removing mappings" << std::endl;
-	upnp_handler.close();
+	upnp_handler->close();
 
 	ios.reset();
 	ios.run();
