@@ -45,7 +45,7 @@ namespace libtorrent
 			: proxy_port(0)
 			, user_agent(user_agent_)
 			, tracker_completion_timeout(60)
-			, tracker_receive_timeout(20)
+			, tracker_receive_timeout(40)
 			, stop_tracker_timeout(10)
 			, tracker_maximum_response_length(1024*1024)
 			, piece_timeout(120)
