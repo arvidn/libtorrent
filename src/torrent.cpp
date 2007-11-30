@@ -704,7 +704,7 @@ namespace libtorrent
 		const int last_piece = m_torrent_file->num_pieces() - 1;
 
 		size_type total_done
-			= m_num_pieces * m_torrent_file->piece_length();
+			= size_type(m_num_pieces) * m_torrent_file->piece_length();
 
 		// if we have the last piece, we have to correct
 		// the amount we have, since the first calculation
@@ -735,11 +735,11 @@ namespace libtorrent
 			return make_tuple(m_torrent_file->total_size()
 				, m_torrent_file->total_size());
 
-		size_type wanted_done = (m_num_pieces - m_picker->num_have_filtered())
+		size_type wanted_done = size_type(m_num_pieces - m_picker->num_have_filtered())
 			* piece_size;
 		
 		size_type total_done
-			= m_num_pieces * piece_size;
+			= size_type(m_num_pieces) * piece_size;
 		TORRENT_ASSERT(m_num_pieces < m_torrent_file->num_pieces());
 
 		// if we have the last piece, we have to correct
