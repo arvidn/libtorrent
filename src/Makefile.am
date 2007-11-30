@@ -16,7 +16,7 @@ libtorrent_la_SOURCES = entry.cpp escape_string.cpp \
 assert.cpp enum_net.cpp broadcast_socket.cpp \
 peer_connection.cpp bt_peer_connection.cpp web_peer_connection.cpp \
 natpmp.cpp piece_picker.cpp policy.cpp session.cpp session_impl.cpp sha1.cpp \
-stat.cpp storage.cpp torrent.cpp torrent_handle.cpp pe_crypto.cpp \
+stat.cpp storage.cpp mapped_storage.cpp torrent.cpp torrent_handle.cpp pe_crypto.cpp \
 torrent_info.cpp tracker_manager.cpp http_connection.cpp \
 http_tracker_connection.cpp udp_tracker_connection.cpp \
 alert.cpp identify_client.cpp ip_filter.cpp file.cpp metadata_transfer.cpp \

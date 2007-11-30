@@ -167,6 +167,10 @@ namespace libtorrent
 		boost::intrusive_ptr<torrent_info const> ti
 		, fs::path const& path, file_pool& fp);
 
+	TORRENT_EXPORT storage_interface* mapped_storage_constructor(
+		boost::intrusive_ptr<torrent_info const> ti
+		, fs::path const& path, file_pool& fp);
+
 	struct disk_io_thread;
 
 	class TORRENT_EXPORT piece_manager

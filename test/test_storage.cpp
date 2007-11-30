@@ -114,7 +114,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	test_sleep(2000);
 	TEST_CHECK(!exists(test_path / "temp_storage"));
 	TEST_CHECK(exists(test_path / "temp_storage2/temp_storage"));
-	pm->async_move_storage(test_path , none);
+	pm->async_move_storage(test_path, none);
 	test_sleep(2000);
 	TEST_CHECK(!exists(test_path / "temp_storage2/temp_storage"));	
 	remove_all(test_path / "temp_storage2");
