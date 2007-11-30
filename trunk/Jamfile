@@ -74,8 +74,8 @@ rule linking ( properties * )
 
 	if <boost>system in $(properties)
 	{
-		result += <library>filesystem
-			<library>thread
+		result += <library>boost_filesystem
+			<library>boost_thread <library>boost_iostreams
 		;
 	}
 
@@ -92,6 +92,7 @@ rule linking ( properties * )
 	{
 		result += <library>/boost/thread//boost_thread
 			<library>/boost/filesystem//boost_filesystem
+			<library>/boost/iostreams//boost_iostreams
 			<include>$(BOOST_ROOT)
 			<define>BOOST_ALL_NO_LIB
 			;
@@ -224,6 +225,7 @@ SOURCES =
 	socks5_stream
 	stat
 	storage
+	mapped_storage
 	torrent
 	torrent_handle
 	torrent_info
