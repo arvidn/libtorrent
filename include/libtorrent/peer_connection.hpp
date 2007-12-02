@@ -399,6 +399,11 @@ namespace libtorrent
 		int send_buffer_capacity() const
 		{ return m_send_buffer.capacity(); }
 
+		int packet_size() const { return m_packet_size; }
+
+		bool packet_finished() const
+		{ return m_packet_size <= m_recv_pos; }
+
 	protected:
 
 		virtual void get_specific_peer_info(peer_info& p) const = 0;
@@ -443,12 +448,6 @@ namespace libtorrent
 		void cut_receive_buffer(int size, int packet_size);
 
 		void reset_recv_buffer(int packet_size);
-		int packet_size() const { return m_packet_size; }
-
-		bool packet_finished() const
-		{
-			return m_packet_size <= m_recv_pos;
-		}
 
 		void setup_receive();
 
