@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/http_connection.hpp"
+#include "libtorrent/escape_string.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>

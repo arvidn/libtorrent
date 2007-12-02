@@ -71,9 +71,6 @@ namespace libtorrent
 	struct timeout_handler;
 	struct tracker_connection;
 
-	// encodes a string using the base64 scheme
-	TORRENT_EXPORT std::string base64encode(const std::string& s);
-
 	// returns -1 if gzip header is invalid or the header size in bytes
 	TORRENT_EXPORT int gzip_header(const char* buf, int size);
 

@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #include <cctype>
 #include <algorithm>
+#include <iostream>
 
 #include "libtorrent/assert.hpp"
 
@@ -148,4 +149,120 @@ namespace libtorrent
 		}
 		return ret.str();
 	}
+
+	std::string base64encode(const std::string& s)
+	{
+		static const char base64_table[] =
+		{
+			'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+			'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+			'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+			'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+			'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+			'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+			'w', 'x', 'y', 'z', '0', '1', '2', '3',
+			'4', '5', '6', '7', '8', '9', '+', '/'
+		};
+
+		unsigned char inbuf[3];
+		unsigned char outbuf[4];
+	
+		std::string ret;
+		for (std::string::const_iterator i = s.begin(); i != s.end();)
+		{
+			// available input is 1,2 or 3 bytes
+			// since we read 3 bytes at a time at most
+			int available_input = (std::min)(3, (int)std::distance(i, s.end()));
+
+			// clear input buffer
+			std::fill(inbuf, inbuf+3, 0);
+
+			// read a chunk of input into inbuf
+			for (int j = 0; j < available_input; ++j)
+			{
+				inbuf[j] = *i;
+				++i;
+			}
+
+			// encode inbuf to outbuf
+			outbuf[0] = (inbuf[0] & 0xfc) >> 2;
+			outbuf[1] = ((inbuf[0] & 0x03) << 4) | ((inbuf [1] & 0xf0) >> 4);
+			outbuf[2] = ((inbuf[1] & 0x0f) << 2) | ((inbuf [2] & 0xc0) >> 6);
+			outbuf[3] = inbuf[2] & 0x3f;
+
+			// write output
+			for (int j = 0; j < available_input+1; ++j)
+			{
+				ret += base64_table[outbuf[j]];
+			}
+
+			// write pad
+			for (int j = 0; j < 3 - available_input; ++j)
+			{
+				ret += '=';
+			}
+		}
+		return ret;
+	}
+
+	std::string base32encode(std::string const& s)
+	{
+		static const char base32_table[] =
+		{
+			'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+			'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+			'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+			'Y', 'Z', '2', '3', '4', '5', '6', '7'
+		};
+
+		int input_output_mapping[] = {0, 2, 4, 5, 7, 8};
+		
+		unsigned char inbuf[5];
+		unsigned char outbuf[8];
+	
+		std::cerr << "base32(" << s << ") = ";
+		std::string ret;
+		for (std::string::const_iterator i = s.begin(); i != s.end();)
+		{
+			// available input is 1,2 or 3 bytes
+			// since we read 3 bytes at a time at most
+			int available_input = (std::min)(5, (int)std::distance(i, s.end()));
+
+			// clear input buffer
+			std::fill(inbuf, inbuf+5, 0);
+
+			// read a chunk of input into inbuf
+			for (int j = 0; j < available_input; ++j)
+			{
+				inbuf[j] = *i;
+				++i;
+			}
+
+			// encode inbuf to outbuf
+			outbuf[0] = (inbuf[0] & 0xf8) >> 3;
+			outbuf[1] = ((inbuf[0] & 0x07) << 2) | ((inbuf[1] & 0xc0) >> 6);
+			outbuf[2] = ((inbuf[1] & 0x3e) >> 1);
+			outbuf[3] = ((inbuf[1] & 0x01) << 4) | ((inbuf[2] & 0xf0) >> 4);
+			outbuf[4] = ((inbuf[2] & 0x0f) << 1) | ((inbuf[3] & 0x80) >> 7);
+			outbuf[5] = ((inbuf[3] & 0x7c) >> 2);
+			outbuf[6] = ((inbuf[3] & 0x03) << 3) | ((inbuf[4] & 0xe0) >> 5);
+			outbuf[7] = inbuf[4] & 0x1f;
+
+			// write output
+			int num_out = input_output_mapping[available_input];
+			for (int j = 0; j < num_out; ++j)
+			{
+				ret += base32_table[outbuf[j]];
+			}
+
+			// write pad
+			for (int j = 0; j < 8 - num_out; ++j)
+			{
+				ret += '=';
+			}
+		}
+		std::cerr << ret << std::endl;
+		return ret;
+	}
 }
+
