@@ -234,61 +234,6 @@ namespace libtorrent
 		return false;
 	}
 
-	std::string base64encode(const std::string& s)
-	{
-		static const char base64_table[] =
-		{
-			'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-			'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-			'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-			'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
-			'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-			'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-			'w', 'x', 'y', 'z', '0', '1', '2', '3',
-			'4', '5', '6', '7', '8', '9', '+', '/'
-		};
-
-		unsigned char inbuf[3];
-		unsigned char outbuf[4];
-	
-		std::string ret;
-		for (std::string::const_iterator i = s.begin(); i != s.end();)
-		{
-			// available input is 1,2 or 3 bytes
-			// since we read 3 bytes at a time at most
-			int available_input = (std::min)(3, (int)std::distance(i, s.end()));
-
-			// clear input buffer
-			std::fill(inbuf, inbuf+3, 0);
-
-			// read a chunk of input into inbuf
-			for (int j = 0; j < available_input; ++j)
-			{
-				inbuf[j] = *i;
-				++i;
-			}
-
-			// encode inbuf to outbuf
-			outbuf[0] = (inbuf[0] & 0xfc) >> 2;
-			outbuf[1] = ((inbuf[0] & 0x03) << 4) | ((inbuf [1] & 0xf0) >> 4);
-			outbuf[2] = ((inbuf[1] & 0x0f) << 2) | ((inbuf [2] & 0xc0) >> 6);
-			outbuf[3] = inbuf[2] & 0x3f;
-
-			// write output
-			for (int j = 0; j < available_input+1; ++j)
-			{
-				ret += base64_table[outbuf[j]];
-			}
-
-			// write pad
-			for (int j = 0; j < 3 - available_input; ++j)
-			{
-				ret += '=';
-			}
-		}
-		return ret;
-	}
-
 	timeout_handler::timeout_handler(asio::strand& str)
 		: m_strand(str)
 		, m_start_time(time_now())

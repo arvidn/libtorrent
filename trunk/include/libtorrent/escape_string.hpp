@@ -41,6 +41,12 @@ namespace libtorrent
 	std::string TORRENT_EXPORT unescape_string(std::string const& s);
 	std::string TORRENT_EXPORT escape_string(const char* str, int len);
 	std::string TORRENT_EXPORT escape_path(const char* str, int len);
+
+	// encodes a string using the base64 scheme
+	TORRENT_EXPORT std::string base64encode(const std::string& s);
+	// encodes a string using the base32 scheme
+	TORRENT_EXPORT std::string base32encode(const std::string& s);
+
 }
 
 #endif // TORRENT_ESCAPE_STRING_HPP_INCLUDED

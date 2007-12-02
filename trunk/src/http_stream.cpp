@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include "libtorrent/http_stream.hpp"
-#include "libtorrent/tracker_manager.hpp" // for base64encode
+#include "libtorrent/escape_string.hpp" // for base64encode
 
 namespace libtorrent
 {

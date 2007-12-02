@@ -5,6 +5,8 @@
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/escape_string.hpp"
+
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/bind.hpp>
@@ -88,6 +90,14 @@ int test_main()
 	TEST_CHECK(base64encode("foob") == "Zm9vYg==");
 	TEST_CHECK(base64encode("fooba") == "Zm9vYmE=");
 	TEST_CHECK(base64encode("foobar") == "Zm9vYmFy");
+
+   TEST_CHECK(base32encode("") == "");
+   TEST_CHECK(base32encode("f") == "MY======");
+   TEST_CHECK(base32encode("fo") == "MZXQ====");
+   TEST_CHECK(base32encode("foo") == "MZXW6===");
+   TEST_CHECK(base32encode("foob") == "MZXW6YQ=");
+   TEST_CHECK(base32encode("fooba") == "MZXW6YTB");
+   TEST_CHECK(base32encode("foobar") == "MZXW6YTBOI======");
 
 	// HTTP request parser
 
