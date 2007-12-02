@@ -236,6 +236,7 @@ SOURCES =
 	metadata_transfer
 	upnp
 	ut_pex
+	ut_metadata
 	logger
 	file_pool
 	lsd

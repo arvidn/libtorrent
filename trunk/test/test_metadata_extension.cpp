@@ -7,18 +7,20 @@
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "libtorrent/extensions/metadata_transfer.hpp"
+#include "libtorrent/extensions/ut_metadata.hpp"
 
 using boost::filesystem::remove_all;
 using boost::tuples::ignore;
 
-void test_transfer(bool clear_files = true, bool disconnect = false)
+void test_transfer(bool clear_files, bool disconnect
+	, boost::shared_ptr<libtorrent::torrent_plugin> (*constructor)(libtorrent::torrent*, void*))
 {
 	using namespace libtorrent;
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000));
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000));
-	ses1.add_extension(&create_metadata_plugin);
-	ses2.add_extension(&create_metadata_plugin);
+	ses1.add_extension(constructor);
+	ses2.add_extension(constructor);
 	torrent_handle tor1;
 	torrent_handle tor2;
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -72,13 +74,18 @@ int test_main()
 	using namespace boost::filesystem;
 
 	// test to disconnect one client prematurely
-	test_transfer(true, true);
-	
+	test_transfer(true, true, &create_metadata_plugin);
 	// test where one has data and one doesn't
-	test_transfer(true);
-
+	test_transfer(true, false, &create_metadata_plugin);
 	// test where both have data (to trigger the file check)
-	test_transfer(false);
+	test_transfer(false, false, &create_metadata_plugin);
+
+	// test to disconnect one client prematurely
+	test_transfer(true, true, &create_ut_metadata_plugin);
+	// test where one has data and one doesn't
+	test_transfer(true, false, &create_ut_metadata_plugin);
+	// test where both have data (to trigger the file check)
+	test_transfer(false, false, &create_ut_metadata_plugin);
 
 	remove_all("./tmp1");
 	remove_all("./tmp2");
