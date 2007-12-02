@@ -38,7 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #include <cctype>
 #include <algorithm>
-#include <iostream>
+
+#include <boost/optional.hpp>
 
 #include "libtorrent/assert.hpp"
 
@@ -84,7 +85,6 @@ namespace libtorrent
 		}
 		return ret;
 	}
-
 
 	std::string escape_string(const char* str, int len)
 	{
@@ -220,7 +220,6 @@ namespace libtorrent
 		unsigned char inbuf[5];
 		unsigned char outbuf[8];
 	
-		std::cerr << "base32(" << s << ") = ";
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end();)
 		{
@@ -261,8 +260,29 @@ namespace libtorrent
 				ret += '=';
 			}
 		}
-		std::cerr << ret << std::endl;
 		return ret;
 	}
+
+	boost::optional<std::string> url_has_argument(
+		std::string const& url, std::string argument)
+	{
+		size_t i = url.find('?');
+		if (i == std::string::npos) return boost::optional<std::string>();
+		++i;
+
+		argument += '=';
+
+		if (url.compare(i, argument.size(), argument) == 0)
+		{
+			size_t pos = i + argument.size();
+			return url.substr(pos, url.find('&', pos) - pos);
+		}
+		argument.insert(0, "&");
+		i = url.find(argument, i);
+		if (i == std::string::npos) return boost::optional<std::string>();
+		size_t pos = i + argument.size();
+		return url.substr(pos, url.find('&', pos) - pos);
+	}
+
 }
 

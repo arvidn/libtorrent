@@ -89,19 +89,6 @@ namespace
 
 namespace
 {
-	bool url_has_argument(std::string const& url, std::string argument)
-	{
-		size_t i = url.find('?');
-		if (i == std::string::npos) return false;
-
-		argument += '=';
-
-		if (url.compare(i + 1, argument.size(), argument) == 0) return true;
-		argument.insert(0, "&");
-		return url.find(argument, i)
-			!= std::string::npos;
-	}
-
 	char to_lower(char c) { return std::tolower(c); }
 }
 

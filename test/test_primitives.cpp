@@ -91,6 +91,8 @@ int test_main()
 	TEST_CHECK(base64encode("fooba") == "Zm9vYmE=");
 	TEST_CHECK(base64encode("foobar") == "Zm9vYmFy");
 
+	// base32 test vectors from http://www.faqs.org/rfcs/rfc4648.html
+
    TEST_CHECK(base32encode("") == "");
    TEST_CHECK(base32encode("f") == "MY======");
    TEST_CHECK(base32encode("fo") == "MZXQ====");
@@ -98,6 +100,17 @@ int test_main()
    TEST_CHECK(base32encode("foob") == "MZXW6YQ=");
    TEST_CHECK(base32encode("fooba") == "MZXW6YTB");
    TEST_CHECK(base32encode("foobar") == "MZXW6YTBOI======");
+
+	// url_has_argument
+
+	TEST_CHECK(!url_has_argument("http://127.0.0.1/test", "test"));
+	TEST_CHECK(!url_has_argument("http://127.0.0.1/test?foo=24", "bar"));
+	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24", "foo") == "24");
+	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "foo") == "24");
+	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "bar") == "23");
+	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "bar") == "23");
+	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "a") == "e");
+	TEST_CHECK(!url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "b"));
 
 	// HTTP request parser
 
