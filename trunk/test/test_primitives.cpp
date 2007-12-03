@@ -101,6 +101,25 @@ int test_main()
    TEST_CHECK(base32encode("fooba") == "MZXW6YTB");
    TEST_CHECK(base32encode("foobar") == "MZXW6YTBOI======");
 
+   TEST_CHECK(base32decode("") == "");
+   TEST_CHECK(base32decode("MY======") == "f");
+   TEST_CHECK(base32decode("MZXQ====") == "fo");
+   TEST_CHECK(base32decode("MZXW6===") == "foo");
+   TEST_CHECK(base32decode("MZXW6YQ=") == "foob");
+   TEST_CHECK(base32decode("MZXW6YTB") == "fooba");
+   TEST_CHECK(base32decode("MZXW6YTBOI======") == "foobar");
+
+   TEST_CHECK(base32decode("MY") == "f");
+   TEST_CHECK(base32decode("MZXW6YQ") == "foob");
+   TEST_CHECK(base32decode("MZXW6YTBOI") == "foobar");
+   TEST_CHECK(base32decode("mZXw6yTBO1======") == "foobar");
+
+	std::string test;
+	for (int i = 0; i < 255; ++i)
+		test += char(i);
+
+	TEST_CHECK(base32decode(base32encode(test)) == test);
+
 	// url_has_argument
 
 	TEST_CHECK(!url_has_argument("http://127.0.0.1/test", "test"));

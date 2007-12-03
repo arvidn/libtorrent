@@ -243,6 +243,7 @@ SOURCES =
 	disk_io_thread
 	enum_net
 	broadcast_socket
+	magnet_uri
 	;
 
 KADEMLIA_SOURCES =

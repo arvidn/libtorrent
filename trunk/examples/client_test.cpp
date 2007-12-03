@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/ip_filter.hpp"
+#include "libtorrent/magnet_uri.hpp"
 
 using boost::bind;
 
@@ -1049,6 +1050,7 @@ int main(int ac, char* av[])
 					out	<< "peers: " << s.num_peers << " "
 						<< "seeds: " << s.num_seeds << " "
 						<< "distributed copies: " << s.distributed_copies << "\n"
+						<< "  magnet-link: " << make_magnet_uri(h) << "\n"
 						<< "  download: " << esc("32") << (s.download_rate > 0 ? add_suffix(s.download_rate) + "/s ": "         ") << esc("0")
 						<< "(" << esc("32") << add_suffix(s.total_download) << esc("0") << ") ";
 				}

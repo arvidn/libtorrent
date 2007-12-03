@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #include <cctype>
 #include <algorithm>
+#include <iostream>
 
 #include <boost/optional.hpp>
 
@@ -178,11 +179,8 @@ namespace libtorrent
 			std::fill(inbuf, inbuf+3, 0);
 
 			// read a chunk of input into inbuf
-			for (int j = 0; j < available_input; ++j)
-			{
-				inbuf[j] = *i;
-				++i;
-			}
+			std::copy(i, i + available_input, inbuf);
+			i += available_input;
 
 			// encode inbuf to outbuf
 			outbuf[0] = (inbuf[0] & 0xfc) >> 2;
@@ -223,19 +221,14 @@ namespace libtorrent
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end();)
 		{
-			// available input is 1,2 or 3 bytes
-			// since we read 3 bytes at a time at most
 			int available_input = (std::min)(5, (int)std::distance(i, s.end()));
 
 			// clear input buffer
 			std::fill(inbuf, inbuf+5, 0);
 
 			// read a chunk of input into inbuf
-			for (int j = 0; j < available_input; ++j)
-			{
-				inbuf[j] = *i;
-				++i;
-			}
+			std::copy(i, i + available_input, inbuf);
+			i += available_input;
 
 			// encode inbuf to outbuf
 			outbuf[0] = (inbuf[0] & 0xf8) >> 3;
@@ -260,6 +253,64 @@ namespace libtorrent
 				ret += '=';
 			}
 		}
+		return ret;
+	}
+
+	std::string base32decode(std::string const& s)
+	{
+		unsigned char inbuf[8];
+		unsigned char outbuf[5];
+	
+		std::string ret;
+		for (std::string::const_iterator i = s.begin(); i != s.end();)
+		{
+			int available_input = (std::min)(8, (int)std::distance(i, s.end()));
+
+			int pad_start = 0;
+			if (available_input < 8) pad_start = available_input;
+
+			// clear input buffer
+			std::fill(inbuf, inbuf+8, 0);
+			for (int j = 0; j < available_input; ++j)
+			{
+				char in = std::toupper(*i++);
+				if (in >= 'A' && in <= 'Z')
+					inbuf[j] = in - 'A';
+				else if (in >= '2' && in <= '7')
+					inbuf[j] = in - '2' + ('Z' - 'A') + 1;
+				else if (in == '=')
+				{
+					inbuf[j] = 0;
+					if (pad_start == 0) pad_start = j;
+				}
+				else if (in == '1')
+					inbuf[j] = 'I' - 'A';
+				else
+					return std::string();
+				TORRENT_ASSERT(inbuf[j] == (inbuf[j] & 0x1f));
+			}
+
+			// decode inbuf to outbuf
+			outbuf[0] = inbuf[0] << 3;
+			outbuf[0] |= inbuf[1] >> 2;
+			outbuf[1] = (inbuf[1] & 0x3) << 6;
+			outbuf[1] |= inbuf[2] << 1;
+			outbuf[1] |= (inbuf[3] & 0x10) >> 4;
+			outbuf[2] = (inbuf[3] & 0x0f) << 4;
+			outbuf[2] |= (inbuf[4] & 0x1e) >> 1;
+			outbuf[3] = (inbuf[4] & 0x01) << 7;
+			outbuf[3] |= (inbuf[5] & 0x1f) << 2;
+			outbuf[3] |= (inbuf[6] & 0x18) >> 3;
+			outbuf[4] = (inbuf[6] & 0x07) << 5;
+			outbuf[4] |= inbuf[7];
+
+			int input_output_mapping[] = {5, 1, 1, 2, 2, 3, 4, 4, 5};
+			int num_out = input_output_mapping[pad_start];
+
+			// write output
+			std::copy(outbuf, outbuf + num_out, std::back_inserter(ret));
+		}
+		std::cerr << " base32decode(): " << ret << std::endl;
 		return ret;
 	}
 

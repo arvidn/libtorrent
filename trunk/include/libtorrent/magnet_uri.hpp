@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,27 +30,30 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_ESCAPE_STRING_HPP_INCLUDED
-#define TORRENT_ESCAPE_STRING_HPP_INCLUDED
+#ifndef TORRENT_MAGNET_URI_HPP_INCLUDED
+#define TORRENT_MAGNET_URI_HPP_INCLUDED
 
 #include <string>
-#include <boost/optional.hpp>
 #include "libtorrent/config.hpp"
+#include "libtorrent/torrent_handle.hpp"
+#include "libtorrent/session.hpp"
+#include <boost/filesystem/path.hpp>
 
 namespace libtorrent
 {
-	std::string TORRENT_EXPORT unescape_string(std::string const& s);
-	std::string TORRENT_EXPORT escape_string(const char* str, int len);
-	std::string TORRENT_EXPORT escape_path(const char* str, int len);
+	namespace fs = boost::filesystem;
 
-	// encodes a string using the base64 scheme
-	TORRENT_EXPORT std::string base64encode(std::string const& s);
-	// encodes a string using the base32 scheme
-	TORRENT_EXPORT std::string base32encode(std::string const& s);
-	TORRENT_EXPORT std::string base32decode(std::string const& s);
+	struct torrent_handle;
 
-	TORRENT_EXPORT boost::optional<std::string> url_has_argument(
-		std::string const& url, std::string argument);
+	std::string TORRENT_EXPORT make_magnet_uri(torrent_handle const& handle);
+
+	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
+		, fs::path const& save_path
+		, storage_mode_t storage_mode = storage_mode_sparse
+		, bool paused = false
+		, storage_constructor_type sc = default_storage_constructor
+		, void* userdata = 0);
 }
 
-#endif // TORRENT_ESCAPE_STRING_HPP_INCLUDED
+#endif
+
