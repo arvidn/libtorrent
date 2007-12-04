@@ -405,6 +405,54 @@ namespace libtorrent { namespace dht
 
 		if (error) return;
 
+		node_ban_entry* match = 0;
+		node_ban_entry* min = m_ban_nodes;
+		ptime now = time_now();
+		for (node_ban_entry* i = m_ban_nodes; i < m_ban_nodes + num_ban_nodes; ++i)
+		{
+			if (i->src == m_remote_endpoint[current_buffer])
+			{
+				match = i;
+				break;
+			}
+			if (i->count < min->count) min = i;
+		}
+
+		if (match)
+		{
+			++match->count;
+			if (match->count >= 20)
+			{
+				if (now < match->limit)
+				{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+					if (match->count == 20)
+					{
+						TORRENT_LOG(dht_tracker) << time_now_string() << " BANNING PEER [ ip: "
+							<< m_remote_endpoint[current_buffer] << " | "
+							"time: " << total_seconds((now - match->limit) + seconds(5))
+							<< " | count: " << match->count << " ]";
+					}
+#endif
+					// we've received 20 messages in less than 5 seconds from
+					// this node. Ignore it until it's silent for 5 minutes
+					match->limit = now + minutes(5);
+					return;
+				}
+
+				// we got 50 messages from this peer, but it was in
+				// more than 5 seconds. Reset the counter and the timer
+				match->count = 0;
+				match->limit = now + seconds(5);
+			}
+		}
+		else
+		{
+			min->count = 1;
+			min->limit = now + seconds(5);
+			min->src = m_remote_endpoint[current_buffer];
+		}
+
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		++m_total_message_input;
 		m_total_in_bytes += bytes_transferred;
