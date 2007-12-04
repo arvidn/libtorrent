@@ -127,7 +127,20 @@ namespace libtorrent { namespace dht
 
 		// used to resolve hostnames for nodes
 		udp::resolver m_host_resolver;
-		
+
+		// used to ignore abusive dht nodes
+		struct node_ban_entry
+		{
+			node_ban_entry(): count(0) {}
+			udp::endpoint src;
+			ptime limit;
+			int count;
+		};
+
+		enum { num_ban_nodes = 20 };
+
+		node_ban_entry m_ban_nodes[num_ban_nodes];
+
 		// reference counter for intrusive_ptr
 		mutable boost::detail::atomic_count m_refs;
 
