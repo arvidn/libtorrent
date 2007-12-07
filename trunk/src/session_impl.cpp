@@ -1816,7 +1816,7 @@ namespace detail
 			t.abort();
 
 			if ((!t.is_paused() || t.should_request())
-				&& !t.torrent_file().trackers().empty())
+				&& !t.trackers().empty())
 			{
 				tracker_request req = t.generate_tracker_request();
 				TORRENT_ASSERT(req.event == tracker_request::stopped);
