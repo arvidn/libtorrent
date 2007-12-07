@@ -2760,6 +2760,8 @@ namespace libtorrent
 #endif
 
 		disconnect_all();
+		if (!m_paused)
+			m_just_paused = true;
 		m_paused = true;
 		// tell the tracker that we stopped
 		m_event = tracker_request::stopped;
