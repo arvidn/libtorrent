@@ -75,7 +75,6 @@ namespace libtorrent
 			bool open(fs::path const& path, std::ios::openmode openmode
 				, size_type start, size_type size, void* key_, size_type file_size = 0)
 			{
-				std::cerr << "OPEN: " << path << std::endl;
 #ifndef NDEBUG
 				if (file_size > 0)
 				{
@@ -492,14 +491,15 @@ namespace libtorrent
 				rename(old_path, new_path);
 #else
 				rename(old_path, new_path);
-				std::cerr << "moving: " << old_path << " to " << new_path << std::endl;
 #endif
 				m_save_path = save_path;
 				return true;
 			}
 			catch (std::exception& e)
 			{
+#ifndef NDEBUG
 				std::cerr << "ERROR: " << e.what() << std::endl;
+#endif
 			}
 			return false;
 		}
