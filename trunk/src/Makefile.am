@@ -22,7 +22,7 @@ http_tracker_connection.cpp udp_tracker_connection.cpp \
 alert.cpp identify_client.cpp ip_filter.cpp file.cpp metadata_transfer.cpp \
 logger.cpp file_pool.cpp ut_pex.cpp lsd.cpp upnp.cpp instantiate_connection.cpp \
 socks5_stream.cpp socks4_stream.cpp http_stream.cpp connection_queue.cpp \
-disk_io_thread.cpp \
+disk_io_thread.cpp ut_metadata.cpp \
 $(kademlia_sources)
 
 noinst_HEADERS = \
@@ -94,8 +94,8 @@ $(top_srcdir)/include/libtorrent/version.hpp
 
 
 libtorrent_la_LDFLAGS = $(LDFLAGS) -release @VERSION@
-libtorrent_la_LIBADD = @ZLIB@ -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -l@BOOST_THREAD_LIB@ @PTHREAD_LIBS@
+libtorrent_la_LIBADD = @ZLIB@ -l@BOOST_IOSTREAMS_LIB@ -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -l@BOOST_THREAD_LIB@ @PTHREAD_LIBS@
 
 AM_CXXFLAGS= -ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @ZLIBINCL@ @DEBUGFLAGS@ @PTHREAD_CFLAGS@ -DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION
-AM_LDFLAGS= $(LDFLAGS) -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -l@BOOST_THREAD_LIB@ @PTHREAD_LIBS@
+AM_LDFLAGS= $(LDFLAGS) -l@BOOST_IOSTREAMS_LIB@ -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -l@BOOST_THREAD_LIB@ @PTHREAD_LIBS@
 

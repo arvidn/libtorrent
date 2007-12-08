@@ -53,6 +53,7 @@ libtorrent/socks4_stream.hpp \
 libtorrent/socks5_stream.hpp \
 libtorrent/stat.hpp \
 libtorrent/storage.hpp \
+libtorrent/mapped_storage.hpp \
 libtorrent/time.hpp \
 libtorrent/torrent.hpp \
 libtorrent/torrent_handle.hpp \
@@ -67,6 +68,7 @@ libtorrent/time.hpp \
 libtorrent/aux_/session_impl.hpp \
 libtorrent/extensions/metadata_transfer.hpp \
 libtorrent/extensions/ut_pex.hpp \
+libtorrent/extensions/ut_metadata.hpp \
 libtorrent/extensions/logger.hpp \
 \
 libtorrent/kademlia/closest_nodes.hpp \
