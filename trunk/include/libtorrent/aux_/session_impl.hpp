@@ -334,7 +334,10 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_DHT
 			void set_dht_proxy(proxy_settings const& s)
-			{ m_dht_proxy = s; }
+			{
+				m_dht_proxy = s;
+				m_dht_socket.set_proxy_settings(s);
+			}
 			proxy_settings const& dht_proxy() const
 			{ return m_dht_proxy; }
 #endif
@@ -542,6 +545,10 @@ namespace libtorrent
 			// see m_external_listen_port. This is the same
 			// but for the udp port used by the DHT.
 			int m_external_udp_port;
+
+			udp_socket m_dht_socket;
+
+			void on_receive_udp(udp::endpoint const& ep, char const* buf, int len);
 #endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION

@@ -145,26 +145,22 @@ namespace libtorrent { namespace dht
 
 	// class that puts the networking and the kademlia node in a single
 	// unit and connecting them together.
-	dht_tracker::dht_tracker(asio::io_service& ios, dht_settings const& settings
-		, asio::ip::address listen_interface, entry const& bootstrap)
-		: m_strand(ios)
-		, m_socket(ios, udp::endpoint(listen_interface, settings.service_port))
-		, m_dht(bind(&dht_tracker::send_packet, this, _1), settings
+	dht_tracker::dht_tracker(udp_socket& sock, dht_settings const& settings
+		, entry const& bootstrap)
+		: m_dht(bind(&dht_tracker::send_packet, this, _1), settings
 			, read_id(bootstrap))
-		, m_buffer(0)
+		, m_sock(sock)
 		, m_last_new_key(time_now() - minutes(key_refresh))
-		, m_timer(ios)
-		, m_connection_timer(ios)
-		, m_refresh_timer(ios)
+		, m_timer(sock.get_io_service())
+		, m_connection_timer(sock.get_io_service())
+		, m_refresh_timer(sock.get_io_service())
 		, m_settings(settings)
 		, m_refresh_bucket(160)
-		, m_host_resolver(ios)
+		, m_host_resolver(sock.get_io_service())
 		, m_refs(0)
 	{
 		using boost::bind;
 
-		m_in_buf[0].resize(1000);
-		m_in_buf[1].resize(1000);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		m_counter = 0;
 		std::fill_n(m_replies_bytes_sent, 5, 0);
@@ -202,18 +198,15 @@ namespace libtorrent { namespace dht
 			} catch (std::exception&) {}
 		}
 
-		m_socket.async_receive_from(asio::buffer(&m_in_buf[m_buffer][0]
-			, m_in_buf[m_buffer].size()), m_remote_endpoint[m_buffer]
-			, m_strand.wrap(bind(&dht_tracker::on_receive, self(), _1, _2)));
 		m_timer.expires_from_now(seconds(1));
-		m_timer.async_wait(m_strand.wrap(bind(&dht_tracker::tick, self(), _1)));
+		m_timer.async_wait(bind(&dht_tracker::tick, self(), _1));
 
 		m_connection_timer.expires_from_now(seconds(10));
-		m_connection_timer.async_wait(m_strand.wrap(
-			bind(&dht_tracker::connection_timeout, self(), _1)));
+		m_connection_timer.async_wait(
+			bind(&dht_tracker::connection_timeout, self(), _1));
 
 		m_refresh_timer.expires_from_now(seconds(5));
-		m_refresh_timer.async_wait(m_strand.wrap(bind(&dht_tracker::refresh_timeout, self(), _1)));
+		m_refresh_timer.async_wait(bind(&dht_tracker::refresh_timeout, self(), _1));
 
 		m_dht.bootstrap(initial_nodes, bind(&dht_tracker::on_bootstrap, self()));
 	}
@@ -223,7 +216,6 @@ namespace libtorrent { namespace dht
 		m_timer.cancel();
 		m_connection_timer.cancel();
 		m_refresh_timer.cancel();
-		m_socket.close();
 		m_host_resolver.cancel();
 	}
 
@@ -238,10 +230,9 @@ namespace libtorrent { namespace dht
 		try
 	{
 		if (e) return;
-		if (!m_socket.is_open()) return;
 		time_duration d = m_dht.connection_timeout();
 		m_connection_timer.expires_from_now(d);
-		m_connection_timer.async_wait(m_strand.wrap(bind(&dht_tracker::connection_timeout, self(), _1)));
+		m_connection_timer.async_wait(bind(&dht_tracker::connection_timeout, self(), _1));
 	}
 	catch (std::exception& exc)
 	{
@@ -256,35 +247,22 @@ namespace libtorrent { namespace dht
 		try
 	{
 		if (e) return;
-		if (!m_socket.is_open()) return;
 		time_duration d = m_dht.refresh_timeout();
 		m_refresh_timer.expires_from_now(d);
-		m_refresh_timer.async_wait(m_strand.wrap(
-			bind(&dht_tracker::refresh_timeout, self(), _1)));
+		m_refresh_timer.async_wait(
+			bind(&dht_tracker::refresh_timeout, self(), _1));
 	}
 	catch (std::exception&)
 	{
 		TORRENT_ASSERT(false);
 	};
 
-	void dht_tracker::rebind(asio::ip::address listen_interface, int listen_port)
-	{
-		m_socket.close();
-		udp::endpoint ep(listen_interface, listen_port);
-		m_socket.open(ep.protocol());
-		m_socket.bind(ep);
-		m_socket.async_receive_from(asio::buffer(&m_in_buf[m_buffer][0]
-			, m_in_buf[m_buffer].size()), m_remote_endpoint[m_buffer]
-			, m_strand.wrap(bind(&dht_tracker::on_receive, self(), _1, _2)));
-	}
-
 	void dht_tracker::tick(asio::error_code const& e)
 		try
 	{
 		if (e) return;
-		if (!m_socket.is_open()) return;
 		m_timer.expires_from_now(minutes(tick_period));
-		m_timer.async_wait(m_strand.wrap(bind(&dht_tracker::tick, self(), _1)));
+		m_timer.async_wait(bind(&dht_tracker::tick, self(), _1));
 
 		ptime now = time_now();
 		if (now - m_last_new_key > minutes(key_refresh))
@@ -391,26 +369,15 @@ namespace libtorrent { namespace dht
 
 	// translate bittorrent kademlia message into the generice kademlia message
 	// used by the library
-	void dht_tracker::on_receive(asio::error_code const& error, size_t bytes_transferred)
+	void dht_tracker::on_receive(udp::endpoint const& ep, char const* buf, int bytes_transferred)
 		try
 	{
-		if (error == asio::error::operation_aborted) return;
-		if (!m_socket.is_open()) return;
-	
-		int current_buffer = m_buffer;
-		m_buffer = (m_buffer + 1) & 1;
-		m_socket.async_receive_from(asio::buffer(&m_in_buf[m_buffer][0]
-			, m_in_buf[m_buffer].size()), m_remote_endpoint[m_buffer]
-			, m_strand.wrap(bind(&dht_tracker::on_receive, self(), _1, _2)));
-
-		if (error) return;
-
 		node_ban_entry* match = 0;
 		node_ban_entry* min = m_ban_nodes;
 		ptime now = time_now();
 		for (node_ban_entry* i = m_ban_nodes; i < m_ban_nodes + num_ban_nodes; ++i)
 		{
-			if (i->src == m_remote_endpoint[current_buffer])
+			if (i->src == ep)
 			{
 				match = i;
 				break;
@@ -429,8 +396,7 @@ namespace libtorrent { namespace dht
 					if (match->count == 20)
 					{
 						TORRENT_LOG(dht_tracker) << time_now_string() << " BANNING PEER [ ip: "
-							<< m_remote_endpoint[current_buffer] << " | "
-							"time: " << total_seconds((now - match->limit) + seconds(5))
+							<< ep << " | time: " << total_milliseconds((now - match->limit) + seconds(5)) / 1000.f
 							<< " | count: " << match->count << " ]";
 					}
 #endif
@@ -450,7 +416,7 @@ namespace libtorrent { namespace dht
 		{
 			min->count = 1;
 			min->limit = now + seconds(5);
-			min->src = m_remote_endpoint[current_buffer];
+			min->src = ep;
 		}
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -465,17 +431,16 @@ namespace libtorrent { namespace dht
 			
 			TORRENT_ASSERT(bytes_transferred > 0);
 
-			entry e = bdecode(m_in_buf[current_buffer].begin()
-				, m_in_buf[current_buffer].end());
+			entry e = bdecode(buf, buf + bytes_transferred);
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(dht_tracker) << time_now_string() << " RECEIVED ["
-				<< m_remote_endpoint[current_buffer] << "]:";
+				<< ep << "]:";
 #endif
 
 			libtorrent::dht::msg m;
 			m.message_id = 0;
-			m.addr = m_remote_endpoint[current_buffer];
+			m.addr = ep;
 			m.transaction_id = e["t"].string();
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -712,9 +677,7 @@ namespace libtorrent { namespace dht
 		catch (std::exception& e)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			int current_buffer = (m_buffer + 1) & 1;
-			std::string msg(m_in_buf[current_buffer].begin()
-				, m_in_buf[current_buffer].begin() + bytes_transferred);
+			std::string msg(buf, buf + bytes_transferred);
 			TORRENT_LOG(dht_tracker) << "invalid incoming packet: "
 				<< e.what() << "\n" << msg << "\n";
 #endif
@@ -764,15 +727,14 @@ namespace libtorrent { namespace dht
 	void dht_tracker::add_node(std::pair<std::string, int> const& node)
 	{
 		udp::resolver::query q(node.first, lexical_cast<std::string>(node.second));
-		m_host_resolver.async_resolve(q, m_strand.wrap(
-			bind(&dht_tracker::on_name_lookup, self(), _1, _2)));
+		m_host_resolver.async_resolve(q,
+			bind(&dht_tracker::on_name_lookup, self(), _1, _2));
 	}
 
 	void dht_tracker::on_name_lookup(asio::error_code const& e
 		, udp::resolver::iterator host) try
 	{
 		if (e || host == udp::resolver::iterator()) return;
-		if (!m_socket.is_open()) return;
 		add_node(host->endpoint());
 	}
 	catch (std::exception&)
@@ -783,15 +745,14 @@ namespace libtorrent { namespace dht
 	void dht_tracker::add_router_node(std::pair<std::string, int> const& node)
 	{
 		udp::resolver::query q(node.first, lexical_cast<std::string>(node.second));
-		m_host_resolver.async_resolve(q, m_strand.wrap(
-			bind(&dht_tracker::on_router_name_lookup, self(), _1, _2)));
+		m_host_resolver.async_resolve(q,
+			bind(&dht_tracker::on_router_name_lookup, self(), _1, _2));
 	}
 
 	void dht_tracker::on_router_name_lookup(asio::error_code const& e
 		, udp::resolver::iterator host) try
 	{
 		if (e || host == udp::resolver::iterator()) return;
-		if (!m_socket.is_open()) return;
 		m_dht.add_router_node(host->endpoint());
 	}
 	catch (std::exception&)
@@ -989,9 +950,7 @@ namespace libtorrent { namespace dht
 		m_send_buf.clear();
 		bencode(std::back_inserter(m_send_buf), e);
 		asio::error_code ec;
-		m_socket.send_to(asio::buffer(&m_send_buf[0]
-			, (int)m_send_buf.size()), m.addr, 0, ec);
-		if (ec) return;
+		m_sock.send(m.addr, &m_send_buf[0], (int)m_send_buf.size());
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		m_total_out_bytes += m_send_buf.size();
