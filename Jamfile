@@ -234,6 +234,7 @@ SOURCES =
 	udp_tracker_connection
 	sha1
 	metadata_transfer
+	udp_socket
 	upnp
 	ut_pex
 	ut_metadata

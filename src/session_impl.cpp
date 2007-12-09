@@ -571,6 +571,8 @@ namespace detail
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_same_port(true)
 		, m_external_udp_port(0)
+		, m_dht_socket(m_io_service, bind(&session_impl::on_receive_udp, this, _1, _2, _3)
+			, m_half_open)
 #endif
 		, m_timer(m_io_service)
 		, m_next_connect_torrent(0)
@@ -680,6 +682,7 @@ namespace detail
 		if (m_natpmp) m_natpmp->close();
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht) m_dht->stop();
+		m_dht_socket.close();
 #endif
 		m_timer.cancel();
 
@@ -981,6 +984,15 @@ namespace detail
 		}
 	}
 
+	void session_impl::on_receive_udp(udp::endpoint const& ep, char const* buf, int len)
+	{
+		if (len > 20 && *buf == 'd' && m_dht)
+		{
+			// this is probably a dht message
+			m_dht->on_receive(ep, buf, len);
+		}
+	}
+	
 	void session_impl::async_accept(boost::shared_ptr<socket_acceptor> const& listener)
 	{
 		shared_ptr<socket_type> c(new socket_type);
@@ -1898,8 +1910,7 @@ namespace detail
 			if (m_dht_same_port)
 				m_dht_settings.service_port = new_interface.port();
 			// the listen interface changed, rebind the dht listen socket as well
-			m_dht->rebind(new_interface.address()
-				, m_dht_settings.service_port);
+			m_dht_socket.bind(m_dht_settings.service_port);
 			if (m_natpmp.get())
 				m_natpmp->set_mappings(0, m_dht_settings.service_port);
 			if (m_upnp.get())
@@ -2062,9 +2073,11 @@ namespace detail
 			m_natpmp->set_mappings(0, m_dht_settings.service_port);
 		if (m_upnp.get())
 			m_upnp->set_mappings(0, m_dht_settings.service_port);
-		m_dht = new dht::dht_tracker(m_io_service
-			, m_dht_settings, m_listen_interface.address()
-			, startup_state);
+		m_dht = new dht::dht_tracker(m_dht_socket, m_dht_settings, startup_state);
+		if (!m_dht_socket.is_open() || m_dht_socket.local_port() != m_dht_settings.service_port)
+		{
+			m_dht_socket.bind(m_dht_settings.service_port);
+		}
 	}
 
 	void session_impl::stop_dht()
@@ -2089,8 +2102,8 @@ namespace detail
 			&& settings.service_port != m_dht_settings.service_port
 			&& m_dht)
 		{
-			m_dht->rebind(m_listen_interface.address()
-				, settings.service_port);
+			m_dht_socket.bind(settings.service_port);
+
 			if (m_natpmp.get())
 				m_natpmp->set_mappings(0, m_dht_settings.service_port);
 			if (m_upnp.get())

@@ -22,7 +22,7 @@ http_tracker_connection.cpp udp_tracker_connection.cpp \
 alert.cpp identify_client.cpp ip_filter.cpp file.cpp metadata_transfer.cpp \
 logger.cpp file_pool.cpp ut_pex.cpp lsd.cpp upnp.cpp instantiate_connection.cpp \
 socks5_stream.cpp socks4_stream.cpp http_stream.cpp connection_queue.cpp \
-disk_io_thread.cpp ut_metadata.cpp magnet_uri.cpp \
+disk_io_thread.cpp ut_metadata.cpp magnet_uri.cpp udp_socket.cpp \
 $(kademlia_sources)
 
 noinst_HEADERS = \
