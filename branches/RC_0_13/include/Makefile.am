@@ -60,6 +60,7 @@ libtorrent/torrent_info.hpp \
 libtorrent/tracker_manager.hpp \
 libtorrent/udp_tracker_connection.hpp \
 libtorrent/utf8.hpp \
+libtorrent/upnp.hpp \
 libtorrent/xml_parse.hpp \
 libtorrent/variant_stream.hpp \
 libtorrent/version.hpp \
