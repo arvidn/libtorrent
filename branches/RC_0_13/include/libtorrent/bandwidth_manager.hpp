@@ -225,8 +225,14 @@ struct bandwidth_manager
 		}
 #endif
 
-		TORRENT_ASSERT(peer->max_assignable_bandwidth(m_channel) > 0);
 		boost::shared_ptr<Torrent> t = peer->associated_torrent().lock();
+
+		if (peer->max_assignable_bandwidth(m_channel) == 0)
+		{
+			t->expire_bandwidth(m_channel, blk);
+			peer->assign_bandwidth(m_channel, 0);
+			return;
+		}
 		m_queue.push_back(bw_queue_entry<PeerConnection>(peer, blk, non_prioritized));
 		if (!non_prioritized)
 		{
@@ -389,6 +395,7 @@ private:
 			if (max_assignable == 0)
 			{
 				t->expire_bandwidth(m_channel, qe.max_block_size);
+				qe.peer->assign_bandwidth(m_channel, 0);
 				TORRENT_ASSERT(amount == limit - m_current_quota);
 				continue;
 			}
@@ -430,7 +437,7 @@ private:
 			if (block_size > qe.max_block_size) block_size = qe.max_block_size;
 
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
-		std::cerr << " block_size = " << block_size << " amount = " << amount << std::endl;
+			std::cerr << " block_size = " << block_size << " amount = " << amount << std::endl;
 #endif
 			if (amount < block_size / 2)
 			{
