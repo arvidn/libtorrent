@@ -735,8 +735,10 @@ namespace libtorrent
 			return make_tuple(m_torrent_file->total_size()
 				, m_torrent_file->total_size());
 
+		TORRENT_ASSERT(m_num_pieces >= m_picker->num_have_filtered());
 		size_type wanted_done = size_type(m_num_pieces - m_picker->num_have_filtered())
 			* piece_size;
+		TORRENT_ASSERT(wanted_done >= 0);
 		
 		size_type total_done
 			= size_type(m_num_pieces) * piece_size;
@@ -762,6 +764,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(total_done <= m_torrent_file->total_size());
 		TORRENT_ASSERT(wanted_done <= m_torrent_file->total_size());
+		TORRENT_ASSERT(total_done >= wanted_done);
 
 		const std::vector<piece_picker::downloading_piece>& dl_queue
 			= m_picker->get_download_queue();
@@ -3035,6 +3038,7 @@ namespace libtorrent
 		st.num_incomplete = m_incomplete;
 		st.paused = m_paused;
 		boost::tie(st.total_done, st.total_wanted_done) = bytes_done();
+		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);
 
 		// payload transfer
 		st.total_payload_download = m_stat.total_payload_download();
