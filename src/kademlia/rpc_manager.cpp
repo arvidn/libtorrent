@@ -217,7 +217,7 @@ bool rpc_manager::incoming(msg const& m)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(rpc) << "Reply with incorrect address and valid transaction id: " 
-				<< tid << " from " << m.addr;
+				<< tid << " from " << m.addr << " expected: " << o->target_addr;
 #endif
 			return false;
 		}
