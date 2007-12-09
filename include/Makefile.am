@@ -33,6 +33,7 @@ libtorrent/peer_connection.hpp \
 libtorrent/bt_peer_connection.hpp \
 libtorrent/web_peer_connection.hpp \
 libtorrent/pe_crypto.hpp \
+libtorrent/magnet_uri.hpp \
 libtorrent/natpmp.hpp \
 libtorrent/pch.hpp \
 libtorrent/peer_id.hpp \
@@ -53,7 +54,6 @@ libtorrent/socks4_stream.hpp \
 libtorrent/socks5_stream.hpp \
 libtorrent/stat.hpp \
 libtorrent/storage.hpp \
-libtorrent/mapped_storage.hpp \
 libtorrent/time.hpp \
 libtorrent/torrent.hpp \
 libtorrent/torrent_handle.hpp \
@@ -61,6 +61,7 @@ libtorrent/torrent_info.hpp \
 libtorrent/tracker_manager.hpp \
 libtorrent/udp_tracker_connection.hpp \
 libtorrent/utf8.hpp \
+libtorrent/upnp.hpp \
 libtorrent/xml_parse.hpp \
 libtorrent/variant_stream.hpp \
 libtorrent/version.hpp \
