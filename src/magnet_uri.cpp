@@ -47,7 +47,8 @@ namespace libtorrent
 
 		std::string name = handle.name();
 
-		ret << "magnet:?xt=urn:btih:" << base32encode((char*)handle.info_hash().begin());
+		ret << "magnet:?xt=urn:btih:" << base32encode(
+			std::string((char*)handle.info_hash().begin(), 20));
 		if (!name.empty())
 			ret << "&dn=" << escape_string(name.c_str(), name.length());
 		torrent_status st = handle.status();
