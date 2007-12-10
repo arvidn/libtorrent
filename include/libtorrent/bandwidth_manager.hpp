@@ -111,7 +111,7 @@ struct bandwidth_limit
 
 	void assign(int amount) throw()
 	{
-		TORRENT_ASSERT(amount > 0);
+		TORRENT_ASSERT(amount >= 0);
 		m_current_rate += amount;
 		m_quota_left += amount;
 	}
