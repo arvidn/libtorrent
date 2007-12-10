@@ -213,7 +213,7 @@ bool rpc_manager::incoming(msg const& m)
 			return false;
 		}
 		
-		if (m.addr != o->target_addr)
+		if (m.addr.address() != o->target_addr.address())
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(rpc) << "Reply with incorrect address and valid transaction id: " 
