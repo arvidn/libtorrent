@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/extensions/metadata_transfer.hpp"
+#include "libtorrent/extensions/ut_metadata.hpp"
 #include "libtorrent/extensions/ut_pex.hpp"
 
 #include "libtorrent/entry.hpp"
@@ -707,6 +708,7 @@ int main(int ac, char* av[])
 		ses.start_lsd();
 		ses.add_extension(&create_metadata_plugin);
 		ses.add_extension(&create_ut_pex_plugin);
+		ses.add_extension(&create_ut_metadata_plugin);
 
 		ses.set_max_uploads(upload_slots_limit);
 		ses.set_max_half_open_connections(half_open_limit);
@@ -807,6 +809,21 @@ int main(int ac, char* av[])
 			try
 			{
 				// first see if this is a torrentless download
+				if (i->substr(0, 7) == "magnet:")
+				{
+					std::cout << "adding MANGET link: " << *i << std::endl;
+					torrent_handle h = add_magnet_uri(ses, *i, save_path
+						, compact_allocation_mode ? storage_mode_compact
+						: storage_mode_sparse);
+
+					handles.insert(std::make_pair(std::string(), h));
+
+					h.set_max_connections(60);
+					h.set_max_uploads(-1);
+					h.set_ratio(preferred_ratio);
+					h.set_sequenced_download_threshold(15);
+					continue;
+				}
 				boost::cmatch what;
 				if (boost::regex_match(i->c_str(), what, ex))
 				{
