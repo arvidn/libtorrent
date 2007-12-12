@@ -284,7 +284,17 @@ void http_connection::on_read(asio::error_code const& e
 	{
 		libtorrent::buffer::const_interval rcv_buf(&m_recvbuffer[0]
 			, &m_recvbuffer[0] + m_read_pos);
-		m_parser.incoming(rcv_buf);
+		try
+		{
+			m_parser.incoming(rcv_buf);
+		}
+		catch (std::exception& e)
+		{
+			m_timer.cancel();
+			m_handler(asio::error::fault, m_parser, 0, 0);
+			m_handler.clear();
+			return;
+		}
 		if (!m_bottled && m_parser.header_finished())
 		{
 			if (m_read_pos > m_parser.body_start())
