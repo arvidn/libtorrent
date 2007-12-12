@@ -217,7 +217,11 @@ namespace libtorrent
 					char dummy;
 					std::string bytes;
 					size_type range_start, range_end;
-					range_str >> bytes >> range_start >> dummy >> range_end;
+					// apparently some web servers do not send the "bytes"
+					// in their content-range
+					if (value.find(' ') != std::string::npos)
+						range_str >> bytes;
+					range_str >> range_start >> dummy >> range_end;
 					if (!range_str || range_end < range_start)
 					{
 						throw std::runtime_error("invalid content-range in HTTP response: " + range_str.str());
