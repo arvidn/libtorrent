@@ -124,7 +124,8 @@ namespace libtorrent
 
 	private:
 
-		mutable boost::mutex m_mutex;
+		typedef boost::recursive_mutex mutex_t;
+		mutable mutex_t m_mutex;
 		boost::condition m_signal;
 		bool m_abort;
 		std::deque<disk_io_job> m_jobs;
