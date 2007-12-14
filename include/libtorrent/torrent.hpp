@@ -779,6 +779,10 @@ namespace libtorrent
 
 		// the maximum number of connections for this torrent
 		int m_max_connections;
+
+#ifndef NDEBUG
+		bool m_files_checked;
+#endif
 		
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::list<boost::shared_ptr<torrent_plugin> > extension_list_t;
