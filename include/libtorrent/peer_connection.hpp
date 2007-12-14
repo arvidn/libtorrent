@@ -665,6 +665,10 @@ namespace libtorrent
 		// request is in progress.
 		bool m_writing;
 		bool m_reading;
+#ifndef NDEBUG
+		bool m_requested_write_quota;
+		bool m_requested_read_quota;
+#endif
 
 		// if set to non-zero, this peer will always prefer
 		// to request entire n pieces, rather than blocks.

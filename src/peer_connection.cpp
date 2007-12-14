@@ -132,6 +132,10 @@ namespace libtorrent
 			+ boost::lexical_cast<std::string>(m_remote.port()), m_ses.listen_port());
 		(*m_logger) << "*** OUTGOING CONNECTION\n";
 #endif
+#ifndef NDEBUG
+		m_requested_read_quota = false;
+		m_requested_write_quota = false;
+#endif
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
@@ -215,6 +219,10 @@ namespace libtorrent
 		(*m_logger) << "*** INCOMING CONNECTION\n";
 #endif
 		
+#ifndef NDEBUG
+		m_requested_read_quota = false;
+		m_requested_write_quota = false;
+#endif
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
 	}
 
@@ -2380,12 +2388,20 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(m_writing);
 			m_writing = false;
+#ifndef NDEBUG
+			TORRENT_ASSERT(m_requested_write_quota);
+			m_requested_write_quota = false;
+#endif
 			setup_send();
 		}
 		else if (channel == download_channel)
 		{
 			TORRENT_ASSERT(m_reading);
 			m_reading = false;
+#ifndef NDEBUG
+			TORRENT_ASSERT(m_requested_read_quota);
+			m_requested_read_quota = false;
+#endif
 			setup_receive();
 		}
 	}
@@ -2434,6 +2450,10 @@ namespace libtorrent
 				TORRENT_ASSERT(!m_writing);
 				// peers that we are not interested in are non-prioritized
 				m_writing = true;
+#ifndef NDEBUG
+				TORRENT_ASSERT(!m_requested_write_quota);
+				m_requested_write_quota = true;
+#endif
 				t->request_bandwidth(upload_channel, self()
 					, !(is_interesting() && !has_peer_choked()));
 			}
@@ -2488,6 +2508,10 @@ namespace libtorrent
 				(*m_logger) << "req bandwidth [ " << download_channel << " ]\n";
 #endif
 				m_reading = true;
+#ifndef NDEBUG
+				TORRENT_ASSERT(!m_requested_read_quota);
+				m_requested_read_quota = true;
+#endif
 				t->request_bandwidth(download_channel, self(), m_non_prioritized);
 			}
 			return;

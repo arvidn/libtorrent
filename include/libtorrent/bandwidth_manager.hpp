@@ -203,10 +203,23 @@ struct bandwidth_manager
 		m_history_timer.cancel();
 	}
 
+#ifndef NDEBUG
+	bool is_queued(PeerConnection const* peer)
+	{
+		for (typename queue_t::iterator i = m_queue.begin()
+			, end(m_queue.end()); i != end; ++i)
+		{
+			if (i->peer.get() == peer) return true;
+		}
+		return false;
+	}
+#endif
+
+	
 	// non prioritized means that, if there's a line for bandwidth,
 	// others will cut in front of the non-prioritized peers.
 	// this is used by web seeds
-	void request_bandwidth(intrusive_ptr<PeerConnection> peer
+	void request_bandwidth(intrusive_ptr<PeerConnection> const& peer
 		, int blk
 		, bool non_prioritized) throw()
 	{
@@ -217,13 +230,7 @@ struct bandwidth_manager
 
 		// make sure this peer isn't already in line
 		// waiting for bandwidth
-#ifndef NDEBUG
-		for (typename queue_t::iterator i = m_queue.begin()
-			, end(m_queue.end()); i != end; ++i)
-		{
-			TORRENT_ASSERT(i->peer < peer || peer < i->peer);
-		}
-#endif
+		TORRENT_ASSERT(!is_queued(peer.get()));
 
 		boost::shared_ptr<Torrent> t = peer->associated_torrent().lock();
 
