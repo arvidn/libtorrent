@@ -204,6 +204,9 @@ namespace libtorrent
 		, m_max_connections((std::numeric_limits<int>::max)())
 		, m_policy(this)
 	{
+#ifndef NDEBUG
+		m_files_checked = false;
+#endif
 	}
 
 	torrent::torrent(
@@ -263,6 +266,9 @@ namespace libtorrent
 		, m_max_connections((std::numeric_limits<int>::max)())
 		, m_policy(this)
 	{
+#ifndef NDEBUG
+		m_files_checked = false;
+#endif
 		INVARIANT_CHECK;
 
 		if (name) m_name.reset(new std::string(name));
@@ -2521,6 +2527,9 @@ namespace libtorrent
 				}
 			}
 		}
+#ifndef NDEBUG
+		m_files_checked = true;
+#endif
 	}
 
 	alert_manager& torrent::alerts() const
@@ -2658,7 +2667,7 @@ namespace libtorrent
 					complete = false;
 					break;
 				}
-				if (complete)
+				if (complete && m_files_checked)
 				{
 					disk_io_job ret = m_ses.m_disk_thread.find_job(
 						m_owning_storage, -1, i->index);
