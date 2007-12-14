@@ -30,6 +30,8 @@ ASIO_DIR=$srcdir/include/libtorrent/asio
 AC_CHECK_FILES([$ASIO_DIR/../asio.hpp $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp ],,AC_MSG_ERROR([ ASIO header files not found. Get them from asio.sourceforge.net (use CVS head) and include or symlink them. Example: ln -s ../../../asio/include/asio.hpp include/libtorrent/asio.hpp && ln -s ../../../asio/include/asio include/libtorrent/asio ]) )
 dnl check asio version
 
+SAVED_LIBS="$LIBS"
+
 dnl Check for pthreads and boost libraries.
 ACX_PTHREAD
 
@@ -75,6 +77,8 @@ if test -z "$BOOST_PROGRAM_OPTIONS_LIB"; then
    AC_MSG_RESULT([Unable to find Boost.Program_options library, example test_client will not be build.])
    BUILD_TESTCLIENT=no;
 fi
+
+LIBS="$SAVED_LIBS"
 
 if [[ "x$BUILD_TESTCLIENT" != "xno" ]]; then
 	CLIENT_TEST_BIN=client_test;
@@ -158,7 +162,7 @@ AC_MSG_CHECKING([how to use encryption])
 case "$encryption" in
        "on")
                AC_MSG_RESULT(on)
-                CHECK_SSL()
+               CHECK_SSL()
                AC_DEFINE(TORRENT_USE_OPENSSL,,[define to use openssl with libtorrent])
 
                ;;

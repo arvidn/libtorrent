@@ -39,4 +39,4 @@ test_bandwidth_limiter_LDADD = $(top_builddir)/src/libtorrent.la
 noinst_HEADERS = test.hpp setup_transfer.hpp
 
 AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @DEBUGFLAGS@ @PTHREAD_CFLAGS@ -DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION
-AM_LDFLAGS= -l@BOOST_IOSTREAMS_LIB@ -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -l@BOOST_THREAD_LIB@ @PTHREAD_LIBS@ 
+AM_LDFLAGS= -l@BOOST_IOSTREAMS_LIB@ -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -l@BOOST_THREAD_LIB@ @PTHREAD_LIBS@ @SSL_LDFLAGS@ @SSL_LIBS@
