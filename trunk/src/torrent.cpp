@@ -1246,6 +1246,7 @@ namespace libtorrent
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 
 		bool filter_updated = m_picker->set_piece_priority(index, priority);
+		TORRENT_ASSERT(m_num_pieces >= m_picker->num_have_filtered());
 		if (filter_updated) update_peer_interest();
 	}
 
@@ -1282,6 +1283,7 @@ namespace libtorrent
 			TORRENT_ASSERT(*i >= 0);
 			TORRENT_ASSERT(*i <= 7);
 			filter_updated |= m_picker->set_piece_priority(index, *i);
+			TORRENT_ASSERT(m_num_pieces >= m_picker->num_have_filtered());
 		}
 		if (filter_updated) update_peer_interest();
 	}
@@ -2617,6 +2619,7 @@ namespace libtorrent
 			{
 				TORRENT_ASSERT(m_picker->num_peers(i->first) == i->second);
 			}
+			TORRENT_ASSERT(m_num_pieces >= m_picker->num_have_filtered());
 		}
 
 		if (valid_metadata())
