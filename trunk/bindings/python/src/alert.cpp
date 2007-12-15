@@ -39,6 +39,8 @@ extern char const* portmap_error_alert_doc;
 extern char const* portmap_alert_doc;
 extern char const* fastresume_rejected_alert_doc;
 extern char const* peer_blocked_alert_doc;
+extern char const* scrape_reply_alert_doc;
+extern char const* scrape_failed_alert_doc;
 
 void bind_alert()
 {
@@ -210,4 +212,15 @@ void bind_alert()
     )
         .def_readonly("ip", &peer_blocked_alert::ip)
         ;
+        
+    class_<scrape_reply_alert, bases<torrent_alert>, noncopyable>(
+        "scrape_reply_alert", scrape_reply_alert_doc, no_init
+    )
+        .def_readonly("incomplete", &scrape_reply_alert::incomplete)
+        .def_readonly("complete", &scrape_reply_alert::complete)
+        ;
+    
+    class_<scrape_failed_alert, bases<torrent_alert>, noncopyable>(
+        "scrape_failed_alert", scrape_failed_alert_doc, no_init
+    );
 }

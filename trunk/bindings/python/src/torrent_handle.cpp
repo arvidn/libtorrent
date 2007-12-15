@@ -190,6 +190,7 @@ void bind_torrent_handle()
         .def("prioritize_files", prioritize_files)
         .def("get_peer_info", get_peer_info)
         .def("get_download_queue", get_download_queue)
+        .def("scrape_tracker", (&torrent_handle::scrape_tracker))
         ;
 }
 
