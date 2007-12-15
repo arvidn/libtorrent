@@ -310,7 +310,6 @@ namespace libtorrent
 			// write output
 			std::copy(outbuf, outbuf + num_out, std::back_inserter(ret));
 		}
-		std::cerr << " base32decode(): " << ret << std::endl;
 		return ret;
 	}
 
