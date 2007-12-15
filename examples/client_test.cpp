@@ -425,15 +425,15 @@ void add_torrent(libtorrent::session& ses
 	std::ifstream in(torrent.c_str(), std::ios_base::binary);
 	in.unsetf(std::ios_base::skipws);
 	entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
-	torrent_info t(e);
+	boost::intrusive_ptr<torrent_info> t(new torrent_info(e));
 
-	std::cout << t.name() << "\n";
+	std::cout << t->name() << "\n";
 
 	entry resume_data;
 	try
 	{
 		std::stringstream s;
-		s << t.name() << ".fastresume";
+		s << t->name() << ".fastresume";
 		boost::filesystem::ifstream resume_file(save_path / s.str(), std::ios_base::binary);
 		resume_file.unsetf(std::ios_base::skipws);
 		resume_data = bdecode(
