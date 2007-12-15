@@ -28,6 +28,12 @@ rule linking ( properties * )
 	{
 		# exclude gcc from a regular windows build to make mingw
 		# link against the regular unix library name
+
+		if <target-os>windows in $(properties)
+		{
+			result += <library>gdi32 ;
+		}
+
 		if <target-os>windows in $(properties) && ! <toolset>gcc in $(properties)
 		{
 			result += <library>ssleay32
@@ -35,7 +41,6 @@ rule linking ( properties * )
 				<library>advapi32
 				<library>user32
 				<library>shell32
-				<library>gdi32
 			;
 		}
 		else
