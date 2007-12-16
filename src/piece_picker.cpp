@@ -80,10 +80,10 @@ namespace libtorrent
 		TORRENT_ASSERT(m_blocks_in_last_piece <= m_blocks_per_piece);
 
 		// allocate the piece_map to cover all pieces
-		// and make them invalid (as if though we already had every piece)
+		// and make them invalid (as if we don't have a single piece)
 		std::fill(m_piece_map.begin(), m_piece_map.end()
-			, piece_pos(0, piece_pos::we_have_index));
-		m_num_have = m_piece_map.size();
+			, piece_pos(0, 0));
+		m_num_have = 0;
 	}
 
 	// pieces is a bitmask with the pieces we have
@@ -92,20 +92,29 @@ namespace libtorrent
 		, std::vector<downloading_piece> const& unfinished
 		, std::vector<int>& verify_pieces)
 	{
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 #ifndef NDEBUG
 		m_files_checked_called = true;
 #endif
 		for (std::vector<bool>::const_iterator i = pieces.begin();
 			i != pieces.end(); ++i)
 		{
-			if (*i) continue;
 			int index = static_cast<int>(i - pieces.begin());
-			m_piece_map[index].index = 0;
-			--m_num_have;
-			if (m_piece_map[index].filtered())
+			piece_pos& p = m_piece_map[index];
+			if (*i)
 			{
-				++m_num_filtered;
-				--m_num_have_filtered;
+				++m_num_have;
+				p.set_have();
+				if (p.filtered())
+				{
+					++m_num_have_filtered;
+					TORRENT_ASSERT(m_num_filtered > 0);
+					--m_num_filtered;
+				}
+			}
+			else
+			{
+				p.index = 0;
 			}
 		}
 
@@ -283,6 +292,9 @@ namespace libtorrent
 	void piece_picker::check_invariant(const torrent* t) const
 	{
 		TORRENT_ASSERT(sizeof(piece_pos) == 4);
+		TORRENT_ASSERT(m_num_have >= 0);
+		TORRENT_ASSERT(m_num_have_filtered >= 0);
+		TORRENT_ASSERT(m_num_filtered >= 0);
 
 		TORRENT_ASSERT(m_piece_info.empty() || m_piece_info[0].empty());
 

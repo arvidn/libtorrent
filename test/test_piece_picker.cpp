@@ -123,12 +123,18 @@ boost::shared_ptr<piece_picker> setup_picker(
 		TEST_CHECK(avail == availability_vec[i]);
 	}
 
+#ifndef NDEBUG
+	p->check_invariant();
+#endif
 	return p;
 }
 
 bool verify_pick(boost::shared_ptr<piece_picker> p
 	, std::vector<piece_block> const& picked)
 {
+#ifndef NDEBUG
+	p->check_invariant();
+#endif
 	for (std::vector<piece_block>::const_iterator i = picked.begin()
 		, end(picked.end()); i != end; ++i)
 	{
