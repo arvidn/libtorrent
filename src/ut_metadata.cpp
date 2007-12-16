@@ -167,7 +167,7 @@ namespace libtorrent { namespace
 			m_metadata_size = total_size;
 		}
 
-		void piece_pass(int)
+		void on_piece_pass(int)
 		{
 			// if we became a seed, copy the metadata from
 			// the torrent before it is deallocated
