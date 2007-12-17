@@ -30,6 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifndef TORRENT_DISK_IO_THREAD
+#define TORRENT_DISK_IO_THREAD
+
 #ifdef TORRENT_DISK_STATS
 #include <fstream>
 #endif
@@ -151,4 +154,6 @@ namespace libtorrent
 	};
 
 }
+
+#endif
 
