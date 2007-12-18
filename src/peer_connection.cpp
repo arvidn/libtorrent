@@ -1612,12 +1612,6 @@ namespace libtorrent
 		}
 #endif
 
-		// if we already have the piece, we can
-		// ignore this message
-		if (t->valid_metadata()
-			&& t->have_piece(index))
-			return;
-
 		if (index < 0 || index >= int(m_have_piece.size()))
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -1626,6 +1620,12 @@ namespace libtorrent
 #endif
 			return;
 		}
+
+		// if we already have the piece, we can
+		// ignore this message
+		if (t->valid_metadata()
+			&& t->have_piece(index))
+			return;
 
 		m_allowed_fast.push_back(index);
 
