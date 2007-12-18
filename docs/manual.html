@@ -712,17 +712,36 @@ object that is called with a <tt class="docutils literal"><span class="pre">torr
 <dd>Allows peers to download the metadata (.torren files) from the swarm
 directly. Makes it possible to join a swarm with just a tracker and
 info-hash.</dd>
+</dl>
+<pre class="literal-block">
+#include &lt;libtorrent/extensions/metadata_transfer.hpp&gt;
+ses.add_extension(&amp;libtorrent::create_metadata_plugin);
+</pre>
+<dl class="docutils">
+<dt>uTorrent metadata</dt>
+<dd>Same as <tt class="docutils literal"><span class="pre">metadata</span> <span class="pre">extension</span></tt> but compatible with uTorrent.</dd>
+</dl>
+<pre class="literal-block">
+#include &lt;libtorrent/extensions/ut_metadata.hpp&gt;
+ses.add_extension(&amp;libtorrent::create_ut_metadata_plugin);
+</pre>
+<dl class="docutils">
 <dt>uTorrent peer exchange</dt>
 <dd>Exchanges peers between clients.</dd>
 </dl>
-<p>To use these, imclude <tt class="docutils literal"><span class="pre">&lt;libtorrent/extensions/metadata_transfer.hpp&gt;</span></tt>
-or <tt class="docutils literal"><span class="pre">&lt;libtorrent/extensions/ut_pex.hpp&gt;</span></tt>. The functions to pass in to
-<tt class="docutils literal"><span class="pre">add_extension()</span></tt> are <tt class="docutils literal"><span class="pre">libtorrent::create_metadata_plugin</span></tt> and
-<tt class="docutils literal"><span class="pre">libtorrent::create_ut_pex_plugin</span></tt> respectively.</p>
-<p>e.g.</p>
 <pre class="literal-block">
-ses.add_extension(&amp;libtorrent::create_metadata_plugin);
+#include &lt;libtorrent/extensions/ut_pex.hpp&gt;
 ses.add_extension(&amp;libtorrent::create_ut_pex_plugin);
+</pre>
+<dl class="docutils">
+<dt>smart ban plugin</dt>
+<dd>A plugin that, with a small overhead, can ban peers
+that sends bad data with very high accuracy. Should
+eliminate most problems on poisoned torrents.</dd>
+</dl>
+<pre class="literal-block">
+#include &lt;libtorrent/extensions/smart_ban.hpp&gt;
+ses.add_extension(&amp;libtorrent::create_smart_ban_plugin);
 </pre>
 </div>
 <div class="section">

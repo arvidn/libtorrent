@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions/metadata_transfer.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
 #include "libtorrent/extensions/ut_pex.hpp"
+#include "libtorrent/extensions/smart_ban.hpp"
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
@@ -483,8 +484,7 @@ void scan_dir(path const& dir_path
 
 		// the file has been added to the dir, start
 		// downloading it.
-		add_torrent(ses, handles, file, preferred_ratio, compact_mode ? storage_mode_compact
-			: storage_mode_sparse
+		add_torrent(ses, handles, file, preferred_ratio, compact_mode
 			, save_path, true);
 		valid.insert(file);
 	}
@@ -571,7 +571,7 @@ int main(int ac, char* av[])
 		("ip-filter,f", po::value<std::string>(&ip_filter_file)->default_value("")
 			, "sets the path to the ip-filter file used to block access from certain "
 			"ips. ")
-		("allocation-mode,a", po::value<std::string>(&allocation_mode)->default_value("compact")
+		("allocation-mode,a", po::value<std::string>(&allocation_mode)->default_value("full")
 			, "sets mode used for allocating the downloaded files on disk. "
 			"Possible options are [full | compact]")
 		("input-file,i", po::value<std::vector<std::string> >()
@@ -709,6 +709,7 @@ int main(int ac, char* av[])
 		ses.add_extension(&create_metadata_plugin);
 		ses.add_extension(&create_ut_pex_plugin);
 		ses.add_extension(&create_ut_metadata_plugin);
+		ses.add_extension(&create_smart_ban_plugin);
 
 		ses.set_max_uploads(upload_slots_limit);
 		ses.set_max_half_open_connections(half_open_limit);

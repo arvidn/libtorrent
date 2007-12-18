@@ -72,6 +72,7 @@ libtorrent/extensions/metadata_transfer.hpp \
 libtorrent/extensions/ut_pex.hpp \
 libtorrent/extensions/ut_metadata.hpp \
 libtorrent/extensions/logger.hpp \
+libtorrent/extensions/smart_ban.hpp \
 \
 libtorrent/kademlia/closest_nodes.hpp \
 libtorrent/kademlia/dht_tracker.hpp \

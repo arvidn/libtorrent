@@ -565,20 +565,37 @@ metadata extension
 	directly. Makes it possible to join a swarm with just a tracker and
 	info-hash.
 
-uTorrent peer exchange
-	Exchanges peers between clients.
+::
 
-To use these, imclude ``<libtorrent/extensions/metadata_transfer.hpp>``
-or ``<libtorrent/extensions/ut_pex.hpp>``. The functions to pass in to
-``add_extension()`` are ``libtorrent::create_metadata_plugin`` and
-``libtorrent::create_ut_pex_plugin`` respectively.
+	#include <libtorrent/extensions/metadata_transfer.hpp>
+	ses.add_extension(&libtorrent::create_metadata_plugin);
 
-e.g.
+uTorrent metadata
+	Same as ``metadata extension`` but compatible with uTorrent.
 
 ::
 
-	ses.add_extension(&libtorrent::create_metadata_plugin);
+	#include <libtorrent/extensions/ut_metadata.hpp>
+	ses.add_extension(&libtorrent::create_ut_metadata_plugin);
+
+uTorrent peer exchange
+	Exchanges peers between clients.
+
+::
+
+	#include <libtorrent/extensions/ut_pex.hpp>
 	ses.add_extension(&libtorrent::create_ut_pex_plugin);
+
+smart ban plugin
+	A plugin that, with a small overhead, can ban peers
+	that sends bad data with very high accuracy. Should
+	eliminate most problems on poisoned torrents.
+
+::
+
+	#include <libtorrent/extensions/smart_ban.hpp>
+	ses.add_extension(&libtorrent::create_smart_ban_plugin);
+
 
 .. _`libtorrent plugins`: libtorrent_plugins.html
 
