@@ -238,11 +238,8 @@ SOURCES =
 	http_tracker_connection
 	udp_tracker_connection
 	sha1
-	metadata_transfer
 	udp_socket
 	upnp
-	ut_pex
-	ut_metadata
 	logger
 	file_pool
 	lsd
@@ -250,6 +247,12 @@ SOURCES =
 	enum_net
 	broadcast_socket
 	magnet_uri
+
+# -- extensions --
+	metadata_transfer
+	ut_pex
+	ut_metadata
+	smart_ban
 	;
 
 KADEMLIA_SOURCES =

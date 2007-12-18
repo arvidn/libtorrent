@@ -133,6 +133,7 @@ namespace libtorrent
 		(*m_logger) << "*** OUTGOING CONNECTION\n";
 #endif
 #ifndef NDEBUG
+		piece_failed = false;
 		m_requested_read_quota = false;
 		m_requested_write_quota = false;
 #endif
@@ -220,6 +221,7 @@ namespace libtorrent
 #endif
 		
 #ifndef NDEBUG
+		piece_failed = false;
 		m_requested_read_quota = false;
 		m_requested_write_quota = false;
 #endif
@@ -2935,7 +2937,7 @@ namespace libtorrent
 					complete = false;
 					break;
 				}
-				if (complete)
+				if (complete && !piece_failed)
 				{
 					disk_io_job ret = m_ses.m_disk_thread.find_job(
 						&t->filesystem(), -1, i->index);

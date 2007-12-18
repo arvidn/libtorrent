@@ -404,6 +404,10 @@ namespace libtorrent
 		bool packet_finished() const
 		{ return m_packet_size <= m_recv_pos; }
 
+#ifndef NDEBUG
+		bool piece_failed;
+#endif
+
 	protected:
 
 		virtual void get_specific_peer_info(peer_info& p) const = 0;

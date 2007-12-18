@@ -1030,6 +1030,18 @@ namespace libtorrent
 		std::set<void*> peers;
 		std::copy(downloaders.begin(), downloaders.end(), std::inserter(peers, peers.begin()));
 
+#ifndef NDEBUG
+		for (std::vector<void*>::iterator i = downloaders.begin()
+			, end(downloaders.end()); i != end; ++i)
+		{
+			policy::peer* p = (policy::peer*)*i;
+			if (p && p->connection)
+			{
+				p->connection->piece_failed = true;
+			}
+		}
+#endif
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
@@ -1089,6 +1101,18 @@ namespace libtorrent
 		m_storage->mark_failed(index);
 
 		TORRENT_ASSERT(m_have_pieces[index] == false);
+
+#ifndef NDEBUG
+		for (std::vector<void*>::iterator i = downloaders.begin()
+			, end(downloaders.end()); i != end; ++i)
+		{
+			policy::peer* p = (policy::peer*)*i;
+			if (p && p->connection)
+			{
+				p->connection->piece_failed = false;
+			}
+		}
+#endif
 	}
 
 	void torrent::abort()
