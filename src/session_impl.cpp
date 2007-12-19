@@ -1054,7 +1054,7 @@ namespace detail
 		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << endp << " <== INCOMING CONNECTION\n";
+		(*m_logger) << time_now_string() << " <== INCOMING CONNECTION " << endp << "\n";
 #endif
 
 		// local addresses do not count, since it's likely
@@ -1162,6 +1162,10 @@ namespace detail
 
 // too expensive
 //		INVARIANT_CHECK;
+
+#if defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " CLOSING CONNECTION " << p->remote() << "\n";
+#endif
 
 		TORRENT_ASSERT(p->is_disconnecting());
 		connection_map::iterator i = m_connections.find(p);
