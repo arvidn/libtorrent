@@ -124,6 +124,7 @@ namespace libtorrent
 		, m_in_constructor(true)
 #endif
 	{
+		TORRENT_ASSERT(peerinfo->banned == false);
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		std::fill(m_country, m_country + 2, 0);
 #endif
@@ -1950,7 +1951,7 @@ namespace libtorrent
 	void peer_connection::timed_out()
 	{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_ses.m_logger) << "CONNECTION TIMED OUT: " << m_remote.address().to_string()
+		(*m_ses.m_logger) << time_now_string() << " CONNECTION TIMED OUT: " << m_remote.address().to_string()
 			<< "\n";
 #endif
 		m_ses.connection_failed(self(), m_remote, "timed out");
@@ -2642,7 +2643,8 @@ namespace libtorrent
 		if (error)
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << "**ERROR**: " << error.message() << "[in peer_connection::on_receive_data]\n";
+			(*m_logger) << time_now_string() << " **ERROR**: "
+				<< error.message() << "[in peer_connection::on_receive_data]\n";
 #endif
 			on_receive(error, bytes_transferred);
 			throw std::runtime_error(error.message());
@@ -2665,7 +2667,7 @@ namespace libtorrent
 			m_last_receive = time_now();
 			m_recv_pos += bytes_transferred;
 			TORRENT_ASSERT(m_recv_pos <= int(m_recv_buffer.size()));
-		
+
 			on_receive(error, bytes_transferred);
 
 			TORRENT_ASSERT(m_packet_size > 0);
@@ -2760,7 +2762,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_ses.m_logger) << "CONNECTING: " << m_remote.address().to_string()
+		(*m_ses.m_logger) << time_now_string() << " CONNECTING: " << m_remote.address().to_string()
 			<< ":" << m_remote.port() << "\n";
 #endif
 
@@ -2801,7 +2803,7 @@ namespace libtorrent
 		if (e)
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			(*m_ses.m_logger) << "CONNECTION FAILED: " << m_remote.address().to_string()
+			(*m_ses.m_logger) << time_now_string() << " CONNECTION FAILED: " << m_remote.address().to_string()
 				<< ": " << e.message() << "\n";
 #endif
 			m_ses.connection_failed(self(), m_remote, e.message().c_str());
@@ -2814,7 +2816,7 @@ namespace libtorrent
 		// this means the connection just succeeded
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_ses.m_logger) << "COMPLETED: " << m_remote.address().to_string() << "\n";
+		(*m_ses.m_logger) << time_now_string() << " COMPLETED: " << m_remote.address().to_string() << "\n";
 #endif
 
 		on_connected();

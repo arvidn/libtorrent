@@ -1078,9 +1078,13 @@ namespace libtorrent
 
 				if (p->connection)
 				{
+#ifdef TORRENT_LOGGING
+					(*m_ses.m_logger) << time_now_string() << " *** BANNING PEER [ " << p->ip
+						<< " ] 'too many corrupt pieces'\n";
 #if defined(TORRENT_VERBOSE_LOGGING)
 					(*p->connection->m_logger) << "*** BANNING PEER [ " << p->ip
 						<< " ] 'too many corrupt pieces'\n";
+#endif
 #endif
 					p->connection->disconnect();
 				}
@@ -2194,6 +2198,10 @@ namespace libtorrent
 		}
 		catch (std::exception& e)
 		{
+#if defined(TORRENT_LOGGING)
+			(*m_ses.m_logger) << time_now_string() << " CLOSING CONNECTION "
+				<< p->remote() << " policy::new_connection threw: " << e.what() << "\n";
+#endif
 			m_connections.erase(ci);
 			throw;
 		}
