@@ -124,7 +124,7 @@ namespace libtorrent
 		, m_in_constructor(true)
 #endif
 	{
-		TORRENT_ASSERT(peerinfo->banned == false);
+		TORRENT_ASSERT(peerinfo == 0 || peerinfo->banned == false);
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		std::fill(m_country, m_country + 2, 0);
 #endif
