@@ -1339,6 +1339,11 @@ namespace libtorrent
 			send_allowed_set();
 			return;
 		}
+		else if (t->num_pieces() == 0)
+		{
+			// don't send a bitfield if we don't have any pieces
+			return;
+		}
 	
 		int num_pieces = bitfield.size();
 		int lazy_pieces[50];
