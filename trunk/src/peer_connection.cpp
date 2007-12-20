@@ -909,8 +909,26 @@ namespace libtorrent
 			<< " <== HAVE    [ piece: " << index << "]\n";
 #endif
 
+		if (!t->valid_metadata() && index > int(m_have_piece.size()))
+		{
+			if (index < 65536)
+			{
+				// if we don't have metadata
+				// and we might not have received a bitfield
+				// extend the bitmask to fit the new
+				// have message
+				m_have_piece.resize(index + 1, false);
+			}
+			else
+			{
+				// unless the index > 64k, in which case
+				// we just ignore it
+				return;
+			}
+		}
+
 		// if we got an invalid message, abort
-		if (index >= (int)m_have_piece.size() || index < 0)
+		if (index >= int(m_have_piece.size()) || index < 0)
 			throw protocol_error("got 'have'-message with higher index "
 				"than the number of pieces");
 
