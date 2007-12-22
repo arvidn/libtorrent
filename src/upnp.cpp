@@ -663,7 +663,7 @@ void upnp::on_upnp_xml(asio::error_code const& e
 	parse_state s;
 	s.reset("urn:schemas-upnp-org:service:WANIPConnection:1");
 	xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
-		, m_strand.wrap(bind(&find_control_url, _1, _2, boost::ref(s))));
+		, bind(&find_control_url, _1, _2, boost::ref(s)));
 	if (s.found_service)
 	{
 		d.service_namespace = s.service_type;
@@ -674,7 +674,7 @@ void upnp::on_upnp_xml(asio::error_code const& e
 		// a PPP connection
 		s.reset("urn:schemas-upnp-org:service:WANPPPConnection:1");
 		xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
-			, m_strand.wrap(bind(&find_control_url, _1, _2, boost::ref(s))));
+			, bind(&find_control_url, _1, _2, boost::ref(s)));
 		if (s.found_service)
 		{
 			d.service_namespace = s.service_type;
@@ -821,7 +821,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 
 	error_code_parse_state s;
 	xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
-		, m_strand.wrap(bind(&find_error_code, _1, _2, boost::ref(s))));
+		, bind(&find_error_code, _1, _2, boost::ref(s)));
 
 #ifdef TORRENT_UPNP_LOGGING
 	if (s.error_code != -1)
