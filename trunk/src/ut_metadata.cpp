@@ -255,13 +255,9 @@ namespace libtorrent { namespace
 			// abort if the peer doesn't support the metadata extension
 			if (m_message_index == 0) return;
 
-			int total_size = 4; // msg_extended, m_message_index, 'd', ... , 'e'
-			char pkt_header[7];
-			
-			char prefix[200];
-			int prefix_len = 0;
-			char suffix[200];
-			int suffix_len = std::sprintf(suffix, "8:msg_typei%de5:piecei%de", type, piece);
+			entry e;
+			e["msg_type"] = type;
+			e["piece"] = piece;
 
 			char const* metadata = 0;
 			int metadata_piece_size = 0;
@@ -269,35 +265,29 @@ namespace libtorrent { namespace
 			if (type == 1)
 			{
 				TORRENT_ASSERT(m_pc.associated_torrent().lock()->valid_metadata());
+				e["total_size"] = m_tp.metadata().size();
 				int offset = piece * 16 * 1024;
 				metadata = &m_tp.metadata()[0] + offset;
-				metadata_piece_size = (std::min)(int(m_tp.metadata().size() - offset), 16 * 1024);
+				metadata_piece_size = (std::min)(
+					int(m_tp.metadata().size() - offset), 16 * 1024);
 				TORRENT_ASSERT(metadata_piece_size > 0);
 				TORRENT_ASSERT(offset >= 0);
 				TORRENT_ASSERT(offset + metadata_piece_size <= int(m_tp.metadata().size()));
-
-				prefix_len = std::sprintf(prefix, "8:metadata%d:", metadata_piece_size);
-				total_size += prefix_len + metadata_piece_size;
-
-				suffix_len += std::sprintf(suffix + suffix_len, "10:total_sizei%de", int(m_tp.metadata().size()));
 			}
 
-			total_size += suffix_len;
-
-			suffix[suffix_len++] = 'e';
-			suffix[suffix_len] = 0;
-
-			char* p = pkt_header;
+			char msg[200];
+			char* header = msg;
+			char* p = &msg[6];
+			int len = bencode(p, e);
+			int total_size = 2 + len + metadata_piece_size;
 			namespace io = detail;
-			io::write_uint32(total_size, p);
-			io::write_uint8(bt_peer_connection::msg_extended, p);
-			io::write_uint8(m_message_index, p);
-			io::write_uint8('d', p);
+			io::write_uint32(total_size, header);
+			io::write_uint8(bt_peer_connection::msg_extended, header);
+			io::write_uint8(m_message_index, header);
 
-			m_pc.send_buffer(pkt_header, 7);
-			if (prefix_len) m_pc.send_buffer(prefix, prefix_len);
-			if (metadata_piece_size) m_pc.append_send_buffer((char*)metadata, metadata_piece_size, &nop);
-			m_pc.send_buffer(suffix, suffix_len);
+			m_pc.send_buffer(msg, len + 6);
+			if (metadata_piece_size) m_pc.append_send_buffer(
+				(char*)metadata, metadata_piece_size, &nop);
 		}
 
 		virtual bool on_extended(int length
@@ -311,7 +301,8 @@ namespace libtorrent { namespace
 
 			if (!m_pc.packet_finished()) return true;
 
-			entry msg = bdecode(body.begin, body.end);
+			int len;
+			entry msg = bdecode(body.begin, body.end, len);
 
 			int type = msg["msg_type"].integer();
 			int piece = msg["piece"].integer();
@@ -343,9 +334,8 @@ namespace libtorrent { namespace
 					if (i == m_sent_requests.end()) return true;
 
 					m_sent_requests.erase(i);
-					std::string const& d = msg["metadata"].string();
 					entry const* total_size = msg.find_key("total_size");
-					m_tp.received_metadata(d.c_str(), d.size(), piece
+					m_tp.received_metadata(body.begin + len, body.left() - len, piece
 						, (total_size && total_size->type() == entry::int_t) ? total_size->integer() : 0);
 				}
 				break;
