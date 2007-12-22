@@ -540,6 +540,14 @@ namespace libtorrent
 
 			TORRENT_ASSERT(i->second.connected <= now);
 
+			// don't replace a candidate that is on the local
+			// network with one that isn't. Local peers should
+			// always be tried first
+			if (candidate != m_peers.end()
+				&& is_local(candidate->second.ip.address())
+				&& !is_local(i->second.ip.address()))
+				continue;
+
 			if (i->second.connected <= min_connect_time)
 			{
 				min_connect_time = i->second.connected;
