@@ -1342,6 +1342,9 @@ namespace libtorrent
 		else if (t->num_pieces() == 0)
 		{
 			// don't send a bitfield if we don't have any pieces
+#ifndef NDEBUG
+			m_sent_bitfield = true;
+#endif
 			return;
 		}
 	
