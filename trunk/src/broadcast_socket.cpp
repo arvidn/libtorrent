@@ -163,12 +163,29 @@ namespace libtorrent
 //				<< " group: " << multicast_endpoint.address() << " ]" << std::endl;
 #endif
 		}
+
+		open_unicast_socket(ios, address_v4::any());
+		open_unicast_socket(ios, address_v6::any());
+	}
+
+	void broadcast_socket::open_unicast_socket(io_service& ios, address const& addr)
+	{
+		asio::error_code ec;
+		boost::shared_ptr<datagram_socket> s(new datagram_socket(ios));
+		s->open(addr.is_v4() ? udp::v4() : udp::v6(), ec);
+		if (ec) return;
+		s->bind(udp::endpoint(addr, 0), ec);
+		if (ec) return;
+		m_unicast_sockets.push_back(socket_entry(s));
+		socket_entry& se = m_unicast_sockets.back();
+		s->async_receive_from(asio::buffer(se.buffer, sizeof(se.buffer))
+			, se.remote, bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 	}
 
 	void broadcast_socket::send(char const* buffer, int size, asio::error_code& ec)
 	{
-		for (std::list<socket_entry>::iterator i = m_sockets.begin()
-			, end(m_sockets.end()); i != end; ++i)
+		for (std::list<socket_entry>::iterator i = m_unicast_sockets.begin()
+			, end(m_unicast_sockets.end()); i != end; ++i)
 		{
 			asio::error_code e;
 			i->socket->send_to(asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
@@ -192,11 +209,8 @@ namespace libtorrent
 	{
 		m_on_receive.clear();
 
-		for (std::list<socket_entry>::iterator i = m_sockets.begin()
-			, end(m_sockets.end()); i != end; ++i)
-		{
-			i->socket->close();
-		}
+		std::for_each(m_sockets.begin(), m_sockets.end(), bind(&socket_entry::close, _1));
+		std::for_each(m_unicast_sockets.begin(), m_unicast_sockets.end(), bind(&socket_entry::close, _1));
 	}
 }
 
