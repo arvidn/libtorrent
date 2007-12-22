@@ -77,6 +77,8 @@ public:
 
 	void close();
 
+	std::string router_model() { return m_model; }
+
 private:
 
 	static address_v4 upnp_multicast_address;
@@ -232,6 +234,8 @@ private:
 	bool m_closing;
 
 	connection_queue& m_cc;
+
+	std::string m_model;
 
 #ifdef TORRENT_UPNP_LOGGING
 	std::ofstream m_log;
