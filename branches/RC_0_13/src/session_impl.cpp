@@ -2352,6 +2352,7 @@ namespace detail
 			, bind(&session_impl::on_port_mapping
 				, this, _1, _2, _3));
 
+		m_upnp->discover_device();
 		m_upnp->set_mappings(m_listen_interface.port(), 
 #ifndef TORRENT_DISABLE_DHT
 			m_dht ? m_dht_settings.service_port : 

@@ -81,7 +81,6 @@ upnp::upnp(io_service& ios, connection_queue& cc
 	m_log.open("upnp.log", std::ios::in | std::ios::out | std::ios::trunc);
 #endif
 	m_retry_count = 0;
-	discover_device();
 }
 
 upnp::~upnp()
