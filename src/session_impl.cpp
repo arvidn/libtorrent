@@ -2195,6 +2195,11 @@ namespace detail
 #endif
 		m_checker_thread->join();
 
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " waiting for disk io thread\n";
+#endif
+		m_disk_thread.join();
+
 		TORRENT_ASSERT(m_torrents.empty());
 		TORRENT_ASSERT(m_connections.empty());
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)

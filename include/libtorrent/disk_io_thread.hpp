@@ -102,7 +102,9 @@ namespace libtorrent
 		int disk_allocations() const
 		{ return m_allocations; }
 #endif
-	
+
+		void join();
+
 		// aborts read operations
 		void stop(boost::intrusive_ptr<piece_manager> s);
 		void add_job(disk_io_job const& j
