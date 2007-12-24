@@ -75,6 +75,7 @@ public:
 	// it will not be mapped
 	void set_mappings(int tcp, int udp);
 
+	void discover_device();
 	void close();
 
 	std::string router_model() { return m_model; }
@@ -91,7 +92,6 @@ private:
 	void resend_request(asio::error_code const& e);
 	void on_reply(udp::endpoint const& from, char* buffer
 		, std::size_t bytes_transferred);
-	void discover_device();
 
 	struct rootdevice;
 	
