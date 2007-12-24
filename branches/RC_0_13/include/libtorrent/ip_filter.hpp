@@ -76,9 +76,9 @@ namespace detail
 	template<class Addr>
 	Addr zero()
 	{
-		typename Addr::bytes_type zero;
+		Addr zero;
 		std::fill(zero.begin(), zero.end(), 0);
-		return Addr(zero);
+		return zero;
 	}
 
 	template<>
@@ -87,8 +87,8 @@ namespace detail
 	template<class Addr>
 	Addr plus_one(Addr const& a)
 	{
-		typename Addr::bytes_type tmp(a.to_bytes());
-		typedef typename Addr::bytes_type::reverse_iterator iter;
+		Addr tmp(a);
+		typedef typename Addr::reverse_iterator iter;
 		for (iter i = tmp.rbegin()
 			, end(tmp.rend()); i != end; ++i)
 		{
@@ -99,7 +99,7 @@ namespace detail
 			}
 			*i = 0;
 		}
-		return Addr(tmp);
+		return tmp;
 	}
 
 	inline boost::uint16_t plus_one(boost::uint16_t val) { return val + 1; }
@@ -107,8 +107,8 @@ namespace detail
 	template<class Addr>
 	Addr minus_one(Addr const& a)
 	{
-		typename Addr::bytes_type tmp(a.to_bytes());
-		typedef typename Addr::bytes_type::reverse_iterator iter;
+		Addr tmp(a);
+		typedef typename Addr::reverse_iterator iter;
 		for (iter i = tmp.rbegin()
 			, end(tmp.rend()); i != end; ++i)
 		{
@@ -119,7 +119,7 @@ namespace detail
 			}
 			*i = (std::numeric_limits<typename iter::value_type>::max)();
 		}
-		return Addr(tmp);
+		return tmp;
 	}
 
 	inline boost::uint16_t minus_one(boost::uint16_t val) { return val - 1; }
@@ -127,9 +127,9 @@ namespace detail
 	template<class Addr>
 	Addr max_addr()
 	{
-		typename Addr::bytes_type tmp;
+		Addr tmp;
 		std::fill(tmp.begin(), tmp.end()
-			, (std::numeric_limits<typename Addr::bytes_type::value_type>::max)());
+			, (std::numeric_limits<typename Addr::value_type>::max)());
 		return Addr(tmp);
 	}
 
@@ -220,23 +220,24 @@ namespace detail
 			return i->access;
 		}
 
-		std::vector<ip_range<Addr> > export_filter() const
+		template <class ExternalAddressType>
+		std::vector<ip_range<ExternalAddressType> > export_filter() const
 		{
-			std::vector<ip_range<Addr> > ret;
+			std::vector<ip_range<ExternalAddressType> > ret;
 			ret.reserve(m_access_list.size());
 
 			for (typename range_t::const_iterator i = m_access_list.begin()
 				, end(m_access_list.end()); i != end;)
 			{
-				ip_range<Addr> r;
-				r.first = i->start;
+				ip_range<ExternalAddressType> r;
+				r.first = ExternalAddressType(i->start);
 				r.flags = i->access;
 
 				++i;
 				if (i == end)
-					r.last = max_addr<Addr>();
+					r.last = ExternalAddressType(max_addr<Addr>());
 				else
-					r.last = minus_one(i->start);
+					r.last = ExternalAddressType(minus_one(i->start));
 			
 				ret.push_back(r);
 			}
@@ -288,8 +289,8 @@ public:
 	
 private:
 
-	detail::filter_impl<address_v4> m_filter4;
-	detail::filter_impl<address_v6> m_filter6;
+	detail::filter_impl<address_v4::bytes_type> m_filter4;
+	detail::filter_impl<address_v6::bytes_type> m_filter6;
 };
 
 class TORRENT_EXPORT port_filter
