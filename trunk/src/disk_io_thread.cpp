@@ -62,12 +62,7 @@ namespace libtorrent
 
 	disk_io_thread::~disk_io_thread()
 	{
-		mutex_t::scoped_lock l(m_mutex);
-		m_abort = true;
-		m_signal.notify_all();
-		l.unlock();
-
-		m_disk_io_thread.join();
+		TORRENT_ASSERT(m_abort == true);
 	}
 
 #ifndef NDEBUG
@@ -94,6 +89,16 @@ namespace libtorrent
 	}
 
 #endif
+
+	void disk_io_thread::join()
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		m_abort = true;
+		m_signal.notify_all();
+		l.unlock();
+
+		m_disk_io_thread.join();
+	}
 
 	// aborts read operations
 	void disk_io_thread::stop(boost::intrusive_ptr<piece_manager> s)

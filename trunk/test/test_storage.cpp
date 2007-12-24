@@ -130,6 +130,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	pm->async_read(r, bind(&on_read_piece, _1, _2, piece2, piece_size));
 	pm->async_release_files(none);
 
+	io.join();
 	}
 }
 
