@@ -142,11 +142,18 @@ rule building ( properties * )
 		result += <source>src/file.cpp ;
 	}
 
+	if <memdebug>on in $(properties)
+	{
+		result += <source>src/memdebug.cpp ;
+	}
+
 	return $(result) ;
 }
 
 feature disk-stats : off on : composite propagated link-incompatible ;
 feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
+
+feature memdebug : off on : ;
 
 feature logging : none default verbose : composite propagated link-incompatible ;
 feature.compose <logging>default : <define>TORRENT_LOGGING ;
