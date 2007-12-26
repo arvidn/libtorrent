@@ -36,6 +36,11 @@ POSSIBILITY OF SUCH DAMAGE.
 // Prototypes for __malloc_hook, __free_hook
 #include <malloc.h>
 #include <boost/array.hpp>
+#include <fstream>
+#include <utility>
+#include <map>
+#include <boost/cstdint.hpp>
+#include <boost/multi_index_container.hpp>
 
 namespace
 {
@@ -50,7 +55,7 @@ namespace
 	{
 		allocation_point_t(): allocated(0) {}
 		int index;
-		size_type allocated;
+		boost::int64_t allocated;
 	};
 
 	typedef boost::array<void*, 10> stacktrace_t;
@@ -62,6 +67,8 @@ namespace
 	// the original library functions
 	void* (*old_malloc_hook)(size_t, const void *);
 	void (*old_free_hook)(void*, const void *);
+
+	void my_free_hook(void *ptr, const void *caller);
 
 	void* my_malloc_hook(size_t size, const void *caller)
 	{
@@ -79,17 +86,17 @@ namespace
 		int stacksize = backtrace(&stack[0], 10);
 
 		allocation_map_t::iterator i = allocation_points.lower_bound(stack);
-		if (i == allocation_points.end() || i.first != stack)
+		if (i == allocation_points.end() || i->first != stack)
 		{
 			i = allocation_points.insert(i, std::make_pair(stack, allocation_point_t()));
 			i->second.index = allocation_point_index++;
 			i->second.allocated = size;
 
-			memory_index_log << "#" << i->second.index << " ";
-			char** symbols = backtrace_symbols(stack, stacksize);
+			malloc_index_log << "#" << i->second.index << " ";
+			char** symbols = backtrace_symbols(&stack[0], stacksize);
 			for (int j = 0; j < stacksize; ++j)
-				memory_index_log << symbols[j] << " ";
-			memory_index_log << std::endl;
+				malloc_index_log << symbols[j] << " ";
+			malloc_index_log << std::endl;
 		}
 		else
 		{
