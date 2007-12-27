@@ -62,7 +62,7 @@ namespace libtorrent
 	private:
 		int get_local_key_size () const
 		{
-			assert (m_DH);
+			TORRENT_ASSERT(m_DH);
 			return BN_num_bytes (m_DH->pub_key);
 		}
 
@@ -97,8 +97,8 @@ namespace libtorrent
 
 		void encrypt (char* pos, int len)
 		{
-			assert (len >= 0);
-			assert (pos);
+			TORRENT_ASSERT(len >= 0);
+			TORRENT_ASSERT(pos);
 
 			RC4 (&m_local_key, len, reinterpret_cast<unsigned char const*>(pos),
 				 reinterpret_cast<unsigned char*>(pos));
@@ -106,8 +106,8 @@ namespace libtorrent
 
 		void decrypt (char* pos, int len)
 		{
-			assert (len >= 0);
-			assert (pos);
+			TORRENT_ASSERT(len >= 0);
+			TORRENT_ASSERT(pos);
 
 			RC4 (&m_remote_key, len, reinterpret_cast<unsigned char const*>(pos),
 				 reinterpret_cast<unsigned char*>(pos));
