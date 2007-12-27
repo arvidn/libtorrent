@@ -33,7 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ASSERT
 
 #include "libtorrent/config.hpp"
-#include <cassert>
+#include <string>
+
+#ifdef __GNUC__
+std::string demangle(char const* name);
+#endif
 
 #if (defined __linux__ || defined __MACH__) && defined __GNUC__ && !defined(NDEBUG)
 
