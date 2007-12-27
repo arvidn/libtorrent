@@ -226,6 +226,8 @@ namespace libtorrent
 		bool connect_one_peer();
 		bool disconnect_one_peer();
 
+		bool has_peer(policy::peer const* p) const;
+
 	private:
 /*
 		bool unchoke_one_peer();

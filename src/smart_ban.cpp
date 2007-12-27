@@ -186,8 +186,8 @@ namespace libtorrent { namespace
 					// from the first time it sent it
 					// at least one of them must be bad
 
-					// TODO: make sure p is still a valid pointer
 					if (p == 0) return;
+					if (!m_torrent.get_policy().has_peer(p)) return;
 
 #ifdef TORRENT_LOGGING
 					char const* client = "-";
@@ -248,8 +248,8 @@ namespace libtorrent { namespace
 
 			policy::peer* p = b.second.peer;
 
-			// TODO: make sure p is still a valid pointer
 			if (p == 0) return;
+			if (!m_torrent.get_policy().has_peer(p)) return;
 
 #ifdef TORRENT_LOGGING
 			char const* client = "-";

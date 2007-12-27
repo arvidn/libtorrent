@@ -1035,6 +1035,17 @@ namespace libtorrent
 		p->source |= src;
 	}
 
+	bool policy::has_peer(policy::peer const* p) const
+	{
+		// find p in m_peers
+		for (std::multimap<address, peer>::const_iterator i = m_peers.begin()
+			, end(m_peers.end()); i != end; ++i)
+		{
+			if (&i->second == p) return true;
+		}
+		return false;
+	}
+
 	policy::peer* policy::peer_from_tracker(tcp::endpoint const& remote, peer_id const& pid
 		, int src, char flags)
 	{
