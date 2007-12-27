@@ -2391,7 +2391,11 @@ namespace detail
 	
 	std::pair<char*, int> session_impl::allocate_buffer(int size)
 	{
+		TORRENT_ASSERT(size > 0);
 		int num_buffers = (size + send_buffer_size - 1) / send_buffer_size;
+		TORRENT_ASSERT(num_buffers > 0);
+
+		boost::mutex::scoped_lock l(m_send_buffer_mutex);
 #ifdef TORRENT_STATS
 		m_buffer_allocations += num_buffers;
 		m_buffer_usage_logger << log_time() << " protocol_buffer: "
@@ -2403,8 +2407,12 @@ namespace detail
 
 	void session_impl::free_buffer(char* buf, int size)
 	{
+		TORRENT_ASSERT(size > 0);
 		TORRENT_ASSERT(size % send_buffer_size == 0);
 		int num_buffers = size / send_buffer_size;
+		TORRENT_ASSERT(num_buffers > 0);
+
+		boost::mutex::scoped_lock l(m_send_buffer_mutex);
 #ifdef TORRENT_STATS
 		m_buffer_allocations -= num_buffers;
 		TORRENT_ASSERT(m_buffer_allocations >= 0);
