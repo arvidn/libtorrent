@@ -379,6 +379,7 @@ namespace libtorrent
 			// this pool is used to allocate and recycle send
 			// buffers from.
 			boost::pool<> m_send_buffers;
+			boost::mutex m_send_buffer_mutex;
 
 			// the file pool that all storages in this session's
 			// torrents uses. It sets a limit on the number of
