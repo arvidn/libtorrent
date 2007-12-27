@@ -2147,6 +2147,11 @@ namespace libtorrent
 			throw protocol_error("session is closing");
 		}
 
+		if (int(m_connections.size()) >= m_max_connections)
+		{
+			throw protocol_error("reached connection limit");
+		}
+
 		TORRENT_ASSERT(m_connections.find(p) == m_connections.end());
 		peer_iterator ci = m_connections.insert(p).first;
 		try
