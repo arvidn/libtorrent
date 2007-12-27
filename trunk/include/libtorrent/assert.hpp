@@ -45,6 +45,7 @@ TORRENT_EXPORT void assert_fail(const char* expr, int line, char const* file, ch
 #define TORRENT_ASSERT(x) if (x) {} else assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__)
 
 #else
+#include <cassert>
 #define TORRENT_ASSERT(x) assert(x)
 #endif
 
