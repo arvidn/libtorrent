@@ -52,11 +52,11 @@ namespace libtorrent {
 		m_DH->g = BN_bin2bn (m_dh_generator, sizeof(m_dh_generator), NULL);
 		m_DH->length = 160l;
 
-		assert (sizeof(m_dh_prime) == DH_size(m_DH));
+		TORRENT_ASSERT(sizeof(m_dh_prime) == DH_size(m_DH));
 		
 		DH_generate_key (m_DH); // TODO Check != 0
 
-		assert (m_DH->pub_key);
+		TORRENT_ASSERT(m_DH->pub_key);
 
 		// DH can generate key sizes that are smaller than the size of
 		// P with exponentially decreasing probability, in which case
@@ -78,7 +78,7 @@ namespace libtorrent {
 
 	DH_key_exchange::~DH_key_exchange ()
 	{
-		assert (m_DH);
+		TORRENT_ASSERT(m_DH);
 		DH_free (m_DH);
 	}
 
@@ -91,7 +91,7 @@ namespace libtorrent {
 	// compute shared secret given remote public key
 	void DH_key_exchange::compute_secret (char const* remote_pubkey)
 	{
-		assert (remote_pubkey);
+		TORRENT_ASSERT(remote_pubkey);
 		BIGNUM* bn_remote_pubkey = BN_bin2bn ((unsigned char*)remote_pubkey, 96, NULL);
 		char dh_secret[96];
 
