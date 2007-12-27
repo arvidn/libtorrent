@@ -1194,9 +1194,6 @@ int main(int ac, char* av[])
   		std::cout << e.what() << "\n";
 	}
 
-#ifdef TORRENT_PROFILE
-	print_checkpoints();
-#endif
 	return 0;
 }
 
