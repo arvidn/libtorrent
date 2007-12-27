@@ -2607,6 +2607,7 @@ namespace libtorrent
 // return value is destructed
 	buffer::interval peer_connection::allocate_send_buffer(int size)
 	{
+		TORRENT_ASSERT(size > 0);
 		char* insert = m_send_buffer.allocate_appendix(size);
 		if (insert == 0)
 		{
