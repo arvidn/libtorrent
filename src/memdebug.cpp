@@ -41,122 +41,184 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <boost/cstdint.hpp>
 #include <boost/multi_index_container.hpp>
+#include <boost/thread/mutex.hpp>
+#include "libtorrent/time.hpp"
+#include "libtorrent/assert.hpp"
 
-namespace
+using boost::multi_index_container;
+using namespace boost::multi_index;
+using libtorrent::time_now;
+
+struct memdebug
 {
+	memdebug()
+	{
+		malloc_log.open("memory.log");
+		malloc_index_log.open("memory_index.log");
+	
+		assert(old_malloc_hook == 0);
+		assert(old_free_hook == 0);
+		old_malloc_hook = __malloc_hook;
+		old_free_hook = __free_hook;
+		__malloc_hook = my_malloc_hook;
+		__free_hook = my_free_hook;
+	}
 
-	std::ofstream malloc_log;
-	std::ofstream malloc_index_log;
+	static void my_free_hook(void *ptr, const void *caller);
+	static void* my_malloc_hook(size_t size, const void *caller);
 
-	using boost::multi_index_container;
-	using namespace boost::multi_index;
+	static boost::mutex mutex;
+	static std::ofstream malloc_log;
+	static std::ofstream malloc_index_log;
+
+	// the original library functions
+	static void* (*old_malloc_hook)(size_t, const void *);
+	static void (*old_free_hook)(void*, const void *);
 
 	struct allocation_point_t
 	{
-		allocation_point_t(): allocated(0) {}
+		allocation_point_t()
+			: allocated(0)
+			, peak_allocated(0)
+			, spacetime(0)
+			, last_update(time_now()) {}
+
 		int index;
-		boost::int64_t allocated;
+		// total number of bytes allocated from this point
+		int allocated;
+		// the maximum total number of bytes allocated
+		// from this point
+		int peak_allocated;
+		// total number of bytes allocated times the number of
+		// milliseconds they were allocated from this point
+		boost::int64_t spacetime;
+		// the last malloc or free operation on
+		// this allocation point. The spacetime
+		// should be updated from this point to
+		// the current operation
+		libtorrent::ptime last_update;
 	};
 
-	typedef boost::array<void*, 10> stacktrace_t;
+	typedef boost::array<void*, 15> stacktrace_t;
 	typedef std::map<stacktrace_t, allocation_point_t> allocation_map_t;
-	allocation_map_t allocation_points;
-	std::map<void*, std::pair<allocation_map_t::iterator, int> > allocations;
-	int allocation_point_index = 0;
+	static allocation_map_t allocation_points;
+	static std::map<void*, std::pair<allocation_map_t::iterator, int> > allocations;
+	static int allocation_point_index;
+	static libtorrent::ptime start_time;
+};
 
-	// the original library functions
-	void* (*old_malloc_hook)(size_t, const void *);
-	void (*old_free_hook)(void*, const void *);
+boost::mutex memdebug::mutex;
+int memdebug::allocation_point_index = 0;
+std::ofstream memdebug::malloc_log;
+std::ofstream memdebug::malloc_index_log;
+void* (*memdebug::old_malloc_hook)(size_t, const void *) = 0;
+void (*memdebug::old_free_hook)(void*, const void *) = 0;
+memdebug::allocation_map_t memdebug::allocation_points;
+std::map<void*, std::pair<memdebug::allocation_map_t::iterator, int> > memdebug::allocations;
+libtorrent::ptime memdebug::start_time = time_now();
 
-	void my_free_hook(void *ptr, const void *caller);
+void* memdebug::my_malloc_hook(size_t size, const void *caller)
+{
+	boost::mutex::scoped_lock l(mutex);
+	/* Restore all old hooks */
+	__malloc_hook = old_malloc_hook;
+	__free_hook = old_free_hook;
+	/* Call recursively */
+	void* result = malloc(size);
+	/* Save underlying hooks */
+	old_malloc_hook = __malloc_hook;
+	old_free_hook = __free_hook;
 
-	void* my_malloc_hook(size_t size, const void *caller)
+	stacktrace_t stack;
+	int stacksize = backtrace(&stack[0], stack.size());
+	libtorrent::ptime now = time_now();
+
+	allocation_map_t::iterator i = allocation_points.lower_bound(stack);
+	if (i == allocation_points.end() || i->first != stack)
 	{
-		void *result;
-		/* Restore all old hooks */
-		__malloc_hook = old_malloc_hook;
-		__free_hook = old_free_hook;
-		/* Call recursively */
-		result = malloc (size);
-		/* Save underlying hooks */
-		old_malloc_hook = __malloc_hook;
-		old_free_hook = __free_hook;
+		i = allocation_points.insert(i, std::make_pair(stack, allocation_point_t()));
+		i->second.index = allocation_point_index++;
+		i->second.allocated = size;
 
-		stacktrace_t stack;
-		int stacksize = backtrace(&stack[0], 10);
-
-		allocation_map_t::iterator i = allocation_points.lower_bound(stack);
-		if (i == allocation_points.end() || i->first != stack)
-		{
-			i = allocation_points.insert(i, std::make_pair(stack, allocation_point_t()));
-			i->second.index = allocation_point_index++;
-			i->second.allocated = size;
-
-			malloc_index_log << "#" << i->second.index << " ";
-			char** symbols = backtrace_symbols(&stack[0], stacksize);
-			for (int j = 0; j < stacksize; ++j)
-				malloc_index_log << symbols[j] << " ";
-			malloc_index_log << std::endl;
-		}
-		else
-		{
-			i->second.allocated += size;
-		}
-
-		allocations[result] = std::make_pair(i, size);
-		malloc_log << "#" << i->second.index << " " << time(0) << " MALLOC "
-			<< result << " " << size << " (" << i->second.allocated << ")" << std::endl;
-
-		/* Restore our own hooks */
-		__malloc_hook = my_malloc_hook;
-		__free_hook = my_free_hook;
-		return result;
+		malloc_index_log << i->second.index << "#";
+		char** symbols = backtrace_symbols(&stack[0], stacksize);
+		for (int j = 2; j < stacksize; ++j)
+			malloc_index_log << demangle(symbols[j]) << "#";
+		malloc_index_log << std::endl;
 	}
-
-	void my_free_hook(void *ptr, const void *caller)
+	else
 	{
-		/* Restore all old hooks */
-		__malloc_hook = old_malloc_hook;
-		__free_hook = old_free_hook;
-		/* Call recursively */
-		free (ptr);
-		/* Save underlying hooks */
-		old_malloc_hook = __malloc_hook;
-		old_free_hook = __free_hook;
-
-		std::map<void*, std::pair<allocation_map_t::iterator, int> >::iterator i
-			= allocations.find(ptr);
-
-		if (i != allocations.end())
-		{
-			allocation_point_t& ap = i->second.first->second;
-			int size = i->second.second;
-			ap.allocated -= size;
-			malloc_log << "#" << ap.index << " " << time(0) << " FREE "
-				<< ptr << " " << size << " (" << ap.allocated << ")" << std::endl;
-			allocations.erase(i);
-		}
-
-		/* Restore our own hooks */
-		__malloc_hook = my_malloc_hook;
-		__free_hook = my_free_hook;
+		allocation_point_t& ap = i->second;
+		ap.spacetime += libtorrent::total_milliseconds(now - ap.last_update) * ap.allocated;
+		ap.allocated += size;
+		if (ap.allocated > ap.peak_allocated) ap.peak_allocated = ap.allocated;
+		ap.last_update = now;
 	}
+	allocation_point_t& ap = i->second;
 
-	void my_init_hook(void)
-	{
-		old_malloc_hook = __malloc_hook;
-		old_free_hook = __free_hook;
-		__malloc_hook = my_malloc_hook;
-		__free_hook = my_free_hook;
+	allocations[result] = std::make_pair(i, size);
+	malloc_log << "#" << ap.index << " "
+		<< libtorrent::total_milliseconds(time_now() - start_time) << " A "
+		<< result << " " << size << " " << ap.allocated << " " << ap.spacetime
+		<< " " << ap.peak_allocated << std::endl;
 
-		malloc_log.open("memory.log");
-		malloc_index_log.open("memory_index.log");
-	}
-
+	/* Restore our own hooks */
+	__malloc_hook = my_malloc_hook;
+	__free_hook = my_free_hook;
+	return result;
 }
 
-// Override initializing hook from the C library.
-void (*__malloc_initialize_hook) (void) = my_init_hook;
+void memdebug::my_free_hook(void *ptr, const void *caller)
+{
+	boost::mutex::scoped_lock l(mutex);
+	/* Restore all old hooks */
+	__malloc_hook = old_malloc_hook;
+	__free_hook = old_free_hook;
+	/* Call recursively */
+	free(ptr);
+	/* Save underlying hooks */
+	old_malloc_hook = __malloc_hook;
+	old_free_hook = __free_hook;
+
+	std::map<void*, std::pair<allocation_map_t::iterator, int> >::iterator i
+		= allocations.find(ptr);
+
+	if (i != allocations.end())
+	{
+		allocation_point_t& ap = i->second.first->second;
+		int size = i->second.second;
+		ap.allocated -= size;
+		malloc_log << "#" << ap.index << " "
+			<< libtorrent::total_milliseconds(time_now() - start_time) << " F "
+			<< ptr << " " << size << " " << ap.allocated << " " << ap.spacetime
+			<< " " << ap.peak_allocated << std::endl;
+
+		allocations.erase(i);
+	}
+
+	/* Restore our own hooks */
+	__malloc_hook = my_malloc_hook;
+	__free_hook = my_free_hook;
+}
+
+static int ref_count = 0;
+
+void start_malloc_debug()
+{
+	boost::mutex::scoped_lock l(memdebug::mutex);
+	static memdebug mi;
+	++ref_count;
+}
+
+void stop_malloc_debug()
+{
+	boost::mutex::scoped_lock l(memdebug::mutex);
+	if (--ref_count == 0)
+	{
+		__malloc_hook = memdebug::old_malloc_hook;
+		__free_hook = memdebug::old_free_hook;
+	}
+}
 
 #endif
 

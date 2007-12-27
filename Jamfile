@@ -153,7 +153,8 @@ rule building ( properties * )
 feature disk-stats : off on : composite propagated link-incompatible ;
 feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
 
-feature memdebug : off on : propagated ;
+feature memdebug : off on : composite propagated ;
+feature.compose <memdebug>on : <define>TORRENT_MEMDEBUG ;
 
 feature logging : none default verbose : composite propagated link-incompatible ;
 feature.compose <logging>default : <define>TORRENT_LOGGING ;

@@ -80,6 +80,11 @@ using boost::bind;
 using boost::mutex;
 using libtorrent::aux::session_impl;
 
+#ifdef TORRENT_MEMDEBUG
+void start_malloc_debug();
+void stop_malloc_debug();
+#endif
+
 namespace libtorrent
 {
 
@@ -117,6 +122,9 @@ namespace libtorrent
 #endif
 					))
 	{
+#ifdef TORRENT_MEMDEBUG
+		start_malloc_debug();
+#endif
 		// turn off the filename checking in boost.filesystem
 		TORRENT_ASSERT(listen_port_range.first > 0);
 		TORRENT_ASSERT(listen_port_range.first < listen_port_range.second);
@@ -140,6 +148,9 @@ namespace libtorrent
 		: m_impl(new session_impl(std::make_pair(0, 0), id, "0.0.0.0"))
 #endif
 	{
+#ifdef TORRENT_MEMDEBUG
+		start_malloc_debug();
+#endif
 #ifndef NDEBUG
 		boost::function0<void> test = boost::ref(*m_impl);
 		TORRENT_ASSERT(!test.empty());
@@ -148,6 +159,9 @@ namespace libtorrent
 
 	session::~session()
 	{
+#ifdef TORRENT_MEMDEBUG
+		stop_malloc_debug();
+#endif
 		TORRENT_ASSERT(m_impl);
 		// if there is at least one destruction-proxy
 		// abort the session and let the destructor
