@@ -11,5 +11,6 @@ package=@PACKAGE@
 Name: libtorrent
 Description: Bittorrent library.
 Version: @VERSION@
-Libs: -L${libdir} @LIBS@ -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -l@BOOST_THREAD_LIB@ @ZLIB@ -ltorrent
+Libs: -L${libdir} -ltorrent
+Libs.private: @LIBS@ -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -l@BOOST_THREAD_LIB@ @ZLIB@
 Cflags: -I${includedir} -I${includedir}/libtorrent @CPPFLAGS@

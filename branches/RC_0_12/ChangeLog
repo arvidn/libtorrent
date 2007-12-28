@@ -1,3 +1,5 @@
+release 0.12.1
+
 	* Fixed bug in web seed downloader
 	* Fixed invalid calculation in DHT node distance
 	* Fixed crash when last piece was smaller than one block and reading
