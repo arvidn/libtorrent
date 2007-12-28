@@ -75,6 +75,7 @@ public:
 		return m_sock.read_some(buffers, ec);
 	}
 
+#ifndef BOOST_NO_EXCEPTIONS
 	template <class Mutable_Buffers>
 	std::size_t read_some(Mutable_Buffers const& buffers)
 	{
@@ -86,6 +87,7 @@ public:
 	{
 		m_sock.io_control(ioc);
 	}
+#endif
 
 	template <class IO_Control_Command>
 	void io_control(IO_Control_Command& ioc, asio::error_code& ec)
@@ -99,32 +101,38 @@ public:
 		m_sock.async_write_some(buffers, handler);
 	}
 
+#ifndef BOOST_NO_EXCEPTIONS
 	void bind(endpoint_type const& endpoint)
 	{
 		m_sock.bind(endpoint);
 	}
+#endif
 
 	void bind(endpoint_type const& endpoint, asio::error_code& ec)
 	{
 		m_sock.bind(endpoint, ec);
 	}
 
+#ifndef BOOST_NO_EXCEPTIONS
 	void open(protocol_type const& p)
 	{
 		m_sock.open(p);
 	}
+#endif
 
 	void open(protocol_type const& p, asio::error_code& ec)
 	{
 		m_sock.open(p, ec);
 	}
 
+#ifndef BOOST_NO_EXCEPTIONS
 	void close()
 	{
 		m_remote_endpoint = endpoint_type();
 		m_sock.close();
 		m_resolver.cancel();
 	}
+#endif
 
 	void close(asio::error_code& ec)
 	{
@@ -132,20 +140,24 @@ public:
 		m_resolver.cancel();
 	}
 
+#ifndef BOOST_NO_EXCEPTIONS
 	endpoint_type remote_endpoint()
 	{
 		return m_remote_endpoint;
 	}
+#endif
 
 	endpoint_type remote_endpoint(asio::error_code& ec)
 	{
 		return m_remote_endpoint;
 	}
 
+#ifndef BOOST_NO_EXCEPTIONS
 	endpoint_type local_endpoint()
 	{
 		return m_sock.local_endpoint();
 	}
+#endif
 
 	endpoint_type local_endpoint(asio::error_code& ec)
 	{
