@@ -234,6 +234,9 @@ namespace libtorrent
 			if (in == end)
 			{
 				err = true;
+#ifndef NDEBUG
+				ret.m_type_queried = false;
+#endif
 				return;
 			}
 			switch (*in)
@@ -250,6 +253,9 @@ namespace libtorrent
 				++in; // 'e' 
 				ret = entry(entry::int_t);
 				ret.integer() = boost::lexical_cast<entry::integer_type>(val);
+#ifndef NDEBUG
+				ret.m_type_queried = false;
+#endif
 				} break;
 
 			// ----------------------------------------------
@@ -263,13 +269,25 @@ namespace libtorrent
 					ret.list().push_back(entry());
 					entry& e = ret.list().back();
 					bdecode_recursive(in, end, e, err);
-					if (err) return;
+					if (err)
+					{
+#ifndef NDEBUG
+						ret.m_type_queried = false;
+#endif
+						return;
+					}
 					if (in == end)
 					{
 						err = true;
+#ifndef NDEBUG
+						ret.m_type_queried = false;
+#endif
 						return;
 					}
 				}
+#ifndef NDEBUG
+				ret.m_type_queried = false;
+#endif
 				TORRENT_ASSERT(*in == 'e');
 				++in; // 'e'
 				} break;
@@ -284,16 +302,34 @@ namespace libtorrent
 				{
 					entry key;
 					bdecode_recursive(in, end, key, err);
-					if (err) return;
+					if (err || key.type() != entry::string_t)
+					{	
+#ifndef NDEBUG
+						ret.m_type_queried = false;
+#endif
+						return;
+					}
 					entry& e = ret[key.string()];
 					bdecode_recursive(in, end, e, err);
-					if (err) return;
+					if (err)
+					{
+#ifndef NDEBUG
+						ret.m_type_queried = false;
+#endif
+						return;
+					}
 					if (in == end)
 					{
 						err = true;
+#ifndef NDEBUG
+						ret.m_type_queried = false;
+#endif
 						return;
 					}
 				}
+#ifndef NDEBUG
+				ret.m_type_queried = false;
+#endif
 				TORRENT_ASSERT(*in == 'e');
 				++in; // 'e'
 				} break;
@@ -304,19 +340,37 @@ namespace libtorrent
 				if (isdigit((unsigned char)*in))
 				{
 					std::string len_s = read_until(in, end, ':', err);
-					if (err) return;
+					if (err)
+					{
+#ifndef NDEBUG
+						ret.m_type_queried = false;
+#endif
+						return;
+					}
 					TORRENT_ASSERT(*in == ':');
 					++in; // ':'
 					int len = std::atoi(len_s.c_str());
 					ret = entry(entry::string_t);
 					read_string(in, end, len, ret.string(), err);
-					if (err) return;
+					if (err)
+					{
+#ifndef NDEBUG
+						ret.m_type_queried = false;
+#endif
+						return;
+					}
 				}
 				else
 				{
 					err = true;
+#ifndef NDEBUG
+					ret.m_type_queried = false;
+#endif
 					return;
 				}
+#ifndef NDEBUG
+				ret.m_type_queried = false;
+#endif
 			}
 		}
 	}
@@ -333,6 +387,7 @@ namespace libtorrent
 		entry e;
 		bool err = false;
 		detail::bdecode_recursive(start, end, e, err);
+		TORRENT_ASSERT(e.m_type_queried == false);
 		if (err)
 		{
 #ifdef BOOST_NO_EXCEPTIONS
