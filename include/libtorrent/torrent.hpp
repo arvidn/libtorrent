@@ -536,7 +536,8 @@ namespace libtorrent
 		// bencoded tree and moves the torrent
 		// to the checker thread for initial checking
 		// of the storage.
-		void set_metadata(entry const&);
+		// a return value of false indicates an error
+		bool set_metadata(entry const& metadata, std::string& error);
 
 	private:
 
