@@ -58,7 +58,6 @@ using libtorrent::dht::node_impl;
 using libtorrent::dht::node_id;
 using libtorrent::dht::packet_t;
 using libtorrent::dht::msg;
-using libtorrent::dht::packet_iterator;
 namespace messages = libtorrent::dht::messages;
 using namespace libtorrent::detail;
 

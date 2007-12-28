@@ -49,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/traversal_algorithm.hpp"
-#include "libtorrent/kademlia/packet_iterator.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/udp_socket.hpp"
