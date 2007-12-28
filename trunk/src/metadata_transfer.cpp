@@ -185,7 +185,16 @@ namespace libtorrent { namespace
 			}
 
 			entry metadata = bdecode(m_metadata.begin(), m_metadata.end());
-			m_torrent.set_metadata(metadata);
+			std::string error;
+			if (!m_torrent.set_metadata(metadata, error))
+			{
+				// this means the metadata is correct, since we
+				// verified it against the info-hash, but we
+				// failed to parse it. Pause the torrent
+				// TODO: Post an alert!
+				m_torrent.pause();
+				return false;
+			}
 
 			// clear the storage for the bitfield
 			std::vector<bool>().swap(m_have_metadata);

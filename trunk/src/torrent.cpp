@@ -2126,12 +2126,16 @@ namespace libtorrent
 		return true;
 	}
 
-	void torrent::set_metadata(entry const& metadata)
+	bool torrent::set_metadata(entry const& metadata, std::string& error)
 	{
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(!m_torrent_file->is_valid());
-		m_torrent_file->parse_info_section(metadata);
+		if (!m_torrent_file->parse_info_section(metadata, error))
+		{
+			// parse failed
+			return false;
+		}
 
 		init();
 
