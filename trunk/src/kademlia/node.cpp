@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random_sample.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/rpc_manager.hpp"
-#include "libtorrent/kademlia/packet_iterator.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/kademlia/node.hpp"
 
