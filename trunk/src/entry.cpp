@@ -144,24 +144,36 @@ namespace libtorrent
 
 	entry::entry(dictionary_type const& v)
 	{
+#ifndef NDEBUG
+		m_type_queried = true;
+#endif
 		new(data) dictionary_type(v);
 		m_type = dictionary_t;
 	}
 
 	entry::entry(string_type const& v)
 	{
+#ifndef NDEBUG
+		m_type_queried = true;
+#endif
 		new(data) string_type(v);
 		m_type = string_t;
 	}
 
 	entry::entry(list_type const& v)
 	{
+#ifndef NDEBUG
+		m_type_queried = true;
+#endif
 		new(data) list_type(v);
 		m_type = list_t;
 	}
 
 	entry::entry(integer_type const& v)
 	{
+#ifndef NDEBUG
+		m_type_queried = true;
+#endif
 		new(data) integer_type(v);
 		m_type = int_t;
 	}
@@ -171,6 +183,9 @@ namespace libtorrent
 		destruct();
 		new(data) dictionary_type(v);
 		m_type = dictionary_t;
+#ifndef NDEBUG
+		m_type_queried = true;
+#endif
 	}
 
 	void entry::operator=(string_type const& v)
@@ -178,6 +193,9 @@ namespace libtorrent
 		destruct();
 		new(data) string_type(v);
 		m_type = string_t;
+#ifndef NDEBUG
+		m_type_queried = true;
+#endif
 	}
 
 	void entry::operator=(list_type const& v)
@@ -185,6 +203,9 @@ namespace libtorrent
 		destruct();
 		new(data) list_type(v);
 		m_type = list_t;
+#ifndef NDEBUG
+		m_type_queried = true;
+#endif
 	}
 
 	void entry::operator=(integer_type const& v)
@@ -192,6 +213,9 @@ namespace libtorrent
 		destruct();
 		new(data) integer_type(v);
 		m_type = int_t;
+#ifndef NDEBUG
+		m_type_queried = true;
+#endif
 	}
 
 	bool entry::operator==(entry const& e) const
@@ -235,11 +259,14 @@ namespace libtorrent
 			TORRENT_ASSERT(m_type == undefined_t);
 			m_type = undefined_t;
 		}
+#ifndef NDEBUG
+		m_type_queried = true;
+#endif
 	}
 
 	void entry::copy(entry const& e)
 	{
-		m_type = e.m_type;
+		m_type = e.type();
 		switch(m_type)
 		{
 		case int_t:
@@ -257,6 +284,9 @@ namespace libtorrent
 		default:
 			m_type = undefined_t;
 		}
+#ifndef NDEBUG
+		m_type_queried = true;
+#endif
 	}
 
 	void entry::destruct()
@@ -279,6 +309,9 @@ namespace libtorrent
 			TORRENT_ASSERT(m_type == undefined_t);
 			break;
 		}
+#ifndef NDEBUG
+		m_type_queried = false;
+#endif
 	}
 
 	void entry::swap(entry& e)
