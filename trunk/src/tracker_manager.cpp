@@ -254,7 +254,8 @@ namespace libtorrent
 
 		int timeout = (std::min)(
 			m_read_timeout, (std::min)(m_completion_timeout, m_read_timeout));
-		m_timeout.expires_at(m_read_time + seconds(timeout));
+		asio::error_code ec;
+		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
 		m_timeout.async_wait(m_strand.wrap(bind(
 			&timeout_handler::timeout_callback, self(), _1)));
 	}
@@ -268,10 +269,11 @@ namespace libtorrent
 	{
 		m_abort = true;
 		m_completion_timeout = 0;
-		m_timeout.cancel();
+		asio::error_code ec;
+		m_timeout.cancel(ec);
 	}
 
-	void timeout_handler::timeout_callback(asio::error_code const& error) try
+	void timeout_handler::timeout_callback(asio::error_code const& error)
 	{
 		if (error) return;
 		if (m_completion_timeout == 0) return;
@@ -293,13 +295,10 @@ namespace libtorrent
 
 		int timeout = (std::min)(
 			m_read_timeout, (std::min)(m_completion_timeout, m_read_timeout));
-		m_timeout.expires_at(m_read_time + seconds(timeout));
+		asio::error_code ec;
+		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
 		m_timeout.async_wait(m_strand.wrap(
 			bind(&timeout_handler::timeout_callback, self(), _1)));
-	}
-	catch (std::exception& e)
-	{
-		TORRENT_ASSERT(false);
 	}
 
 	tracker_connection::tracker_connection(
@@ -360,6 +359,10 @@ namespace libtorrent
 		std::string protocol; // should be http
 		int port = 80;
 
+		std::string::iterator at;
+		std::string::iterator colon;
+		std::string::iterator port_pos;
+
 		// PARSE URL
 		std::string::iterator start = url.begin();
 		// remove white spaces in front of the url
@@ -369,18 +372,18 @@ namespace libtorrent
 			= std::find(url.begin(), url.end(), ':');
 		protocol.assign(start, end);
 
-		if (end == url.end()) throw std::runtime_error("invalid url");
+		if (end == url.end()) goto exit;
 		++end;
-		if (end == url.end()) throw std::runtime_error("invalid url");
-		if (*end != '/') throw std::runtime_error("invalid url");
+		if (end == url.end()) goto exit;
+		if (*end != '/') goto exit;
 		++end;
-		if (end == url.end()) throw std::runtime_error("invalid url");
-		if (*end != '/') throw std::runtime_error("invalid url");
+		if (end == url.end()) goto exit;
+		if (*end != '/') goto exit;
 		++end;
 		start = end;
 
-		std::string::iterator at = std::find(start, url.end(), '@');
-		std::string::iterator colon = std::find(start, url.end(), ':');
+		at = std::find(start, url.end(), '@');
+		colon = std::find(start, url.end(), ':');
 		end = std::find(start, url.end(), '/');
 
 		if (at != url.end()
@@ -393,13 +396,11 @@ namespace libtorrent
 			++start;
 		}
 
-		std::string::iterator port_pos;
-
 		// this is for IPv6 addresses
 		if (start != url.end() && *start == '[')
 		{
 			port_pos = std::find(start, url.end(), ']');
-			if (port_pos == url.end()) throw std::runtime_error("invalid hostname syntax");
+			if (port_pos == url.end()) goto exit;
 			port_pos = std::find(port_pos, url.end(), ':');
 		}
 		else
@@ -411,15 +412,7 @@ namespace libtorrent
 		{
 			hostname.assign(start, port_pos);
 			++port_pos;
-			try
-			{
-				port = boost::lexical_cast<int>(std::string(port_pos, end));
-			}
-			catch(boost::bad_lexical_cast&)
-			{
-				throw std::runtime_error("invalid url: \"" + url
-					+ "\", port number expected");
-			}
+			port = atoi(std::string(port_pos, end).c_str());
 		}
 		else
 		{
@@ -427,6 +420,7 @@ namespace libtorrent
 		}
 
 		start = end;
+exit:
 		return make_tuple(protocol, auth, hostname, port
 			, std::string(start, url.end()));
 	}
@@ -448,63 +442,57 @@ namespace libtorrent
 		if (m_abort && req.event != tracker_request::stopped)
 			return;
 
-		try
+		std::string protocol;
+		std::string hostname;
+		int port;
+		std::string request_string;
+
+		using boost::tuples::ignore;
+		// TODO: should auth be used here?
+		boost::tie(protocol, ignore, hostname, port, request_string)
+			= parse_url_components(req.url);
+
+		boost::intrusive_ptr<tracker_connection> con;
+
+		if (protocol == "http")
 		{
-			std::string protocol;
-			std::string hostname;
-			int port;
-			std::string request_string;
-
-			using boost::tuples::ignore;
-			// TODO: should auth be used here?
-			boost::tie(protocol, ignore, hostname, port, request_string)
-				= parse_url_components(req.url);
-
-			boost::intrusive_ptr<tracker_connection> con;
-
-			if (protocol == "http")
-			{
-				con = new http_tracker_connection(
-					str
-					, cc
-					, *this
-					, req
-					, hostname
-					, port
-					, request_string
-					, bind_infc
-					, c
-					, m_settings
-					, m_proxy
-					, auth);
-			}
-			else if (protocol == "udp")
-			{
-				con = new udp_tracker_connection(
-					str
-					, *this
-					, req
-					, hostname
-					, port
-					, bind_infc
-					, c
-					, m_settings);
-			}
-			else
-			{
-				throw std::runtime_error("unkown protocol in tracker url");
-			}
-
-			m_connections.push_back(con);
-
-			boost::shared_ptr<request_callback> cb = con->requester();
-			if (cb) cb->m_manager = this;
+			con = new http_tracker_connection(
+				str
+				, cc
+				, *this
+				, req
+				, hostname
+				, port
+				, request_string
+				, bind_infc
+				, c
+				, m_settings
+				, m_proxy
+				, auth);
 		}
-		catch (std::exception& e)
+		else if (protocol == "udp")
+		{
+			con = new udp_tracker_connection(
+				str
+				, *this
+				, req
+				, hostname
+				, port
+				, bind_infc
+				, c
+				, m_settings);
+		}
+		else
 		{
 			if (boost::shared_ptr<request_callback> r = c.lock())
-				r->tracker_request_error(req, -1, e.what());
+				r->tracker_request_error(req, -1, "unknown protocol in tracker url: "
+					+ protocol);
 		}
+
+		m_connections.push_back(con);
+
+		boost::shared_ptr<request_callback> cb = con->requester();
+		if (cb) cb->m_manager = this;
 	}
 
 	void tracker_manager::abort_all_requests()
