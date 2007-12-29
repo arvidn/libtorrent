@@ -60,17 +60,21 @@ namespace libtorrent
 	{
 		logger(fs::path const& logpath, fs::path const& filename, int instance, bool append = true)
 		{
+#ifndef BOOST_NO_EXCEPTIONS
 			try
 			{
+#endif
 				fs::path dir(fs::complete(logpath / ("libtorrent_logs" + boost::lexical_cast<std::string>(instance))));
 				if (!fs::exists(dir)) fs::create_directories(dir);
 				m_file.open((dir / filename).string().c_str(), std::ios_base::out | (append ? std::ios_base::app : std::ios_base::out));
 				*this << "\n\n\n*** starting log ***\n";
+#ifndef BOOST_NO_EXCEPTIONS
 			}
 			catch (std::exception& e)
 			{
 				std::cerr << "failed to create log '" << filename.string() << "': " << e.what() << std::endl;
 			}
+#endif
 		}
 
 		template <class T>
