@@ -75,6 +75,8 @@ private:
 	void refresh_mapping(int i);
 	void mapping_expired(asio::error_code const& e, int i);
 
+	void disable(char const* message);
+
 	struct mapping
 	{
 		mapping()
