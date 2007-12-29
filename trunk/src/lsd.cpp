@@ -95,11 +95,11 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 		<< " ==> announce: ih: " << ih << " port: " << listen_port << std::endl;
 #endif
 
-	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count));
+	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
 	m_broadcast_timer.async_wait(bind(&lsd::resend_announce, self(), _1, msg));
 }
 
-void lsd::resend_announce(asio::error_code const& e, std::string msg) try
+void lsd::resend_announce(asio::error_code const& e, std::string msg)
 {
 	if (e) return;
 
@@ -110,11 +110,9 @@ void lsd::resend_announce(asio::error_code const& e, std::string msg) try
 	if (m_retry_count >= 5)
 		return;
 
-	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count));
+	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
 	m_broadcast_timer.async_wait(bind(&lsd::resend_announce, self(), _1, msg));
 }
-catch (std::exception&)
-{}
 
 void lsd::on_announce(udp::endpoint const& from, char* buffer
 	, std::size_t bytes_transferred)
@@ -178,15 +176,22 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 			<< ":" << port << " ih: " << ih << std::endl;
 #endif
 		// we got an announce, pass it on through the callback
-		try { m_callback(tcp::endpoint(from.address(), port), ih); }
+#ifndef BOOST_NO_EXCEPTIONS
+		try {
+#endif
+			m_callback(tcp::endpoint(from.address(), port), ih);
+#ifndef BOOST_NO_EXCEPTIONS
+		}
 		catch (std::exception&) {}
+#endif
 	}
 }
 
 void lsd::close()
 {
 	m_socket.close();
-	m_broadcast_timer.cancel();
+	asio::error_code ec;
+	m_broadcast_timer.cancel(ec);
 	m_disabled = true;
 	m_callback.clear();
 }
