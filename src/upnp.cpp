@@ -87,7 +87,7 @@ upnp::~upnp()
 {
 }
 
-void upnp::discover_device() try
+void upnp::discover_device()
 {
 	const char msearch[] = 
 		"M-SEARCH * HTTP/1.1\r\n"
@@ -116,7 +116,7 @@ void upnp::discover_device() try
 	}
 
 	++m_retry_count;
-	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count));
+	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
 	m_broadcast_timer.async_wait(m_strand.wrap(bind(&upnp::resend_request
 		, self(), _1)));
 
@@ -125,10 +125,6 @@ void upnp::discover_device() try
 		<< " ==> Broadcasting search for rootdevice" << std::endl;
 #endif
 }
-catch (std::exception&)
-{
-	disable();
-};
 
 void upnp::set_mappings(int tcp, int udp)
 {
@@ -169,9 +165,6 @@ void upnp::set_mappings(int tcp, int udp)
 }
 
 void upnp::resend_request(asio::error_code const& e)
-#ifndef NDEBUG
-try
-#endif
 {
 	if (e) return;
 	if (m_retry_count < 9
@@ -224,18 +217,9 @@ try
 		}
 	}
 }
-#ifndef NDEBUG
-catch (std::exception&)
-{
-	TORRENT_ASSERT(false);
-};
-#endif
 
 void upnp::on_reply(udp::endpoint const& from, char* buffer
 	, std::size_t bytes_transferred)
-#ifndef NDEBUG
-try
-#endif
 {
 	using namespace libtorrent::detail;
 
@@ -394,7 +378,8 @@ try
 	// just to make sure we find all devices
 	if (m_retry_count >= 4 && !m_devices.empty())
 	{
-		m_broadcast_timer.cancel();
+		asio::error_code ec;
+		m_broadcast_timer.cancel(ec);
 
 		for (std::set<rootdevice>::iterator i = m_devices.begin()
 			, end(m_devices.end()); i != end; ++i)
@@ -405,8 +390,10 @@ try
 				// ask for it
 				rootdevice& d = const_cast<rootdevice&>(*i);
 				TORRENT_ASSERT(d.magic == 1337);
+#ifndef BOOST_NO_EXCEPTIONS
 				try
 				{
+#endif
 #ifdef TORRENT_UPNP_LOGGING
 					m_log << time_now_string()
 						<< " ==> connecting to " << d.url << std::endl;
@@ -415,6 +402,7 @@ try
 						, m_cc, m_strand.wrap(bind(&upnp::on_upnp_xml, self(), _1, _2
 						, boost::ref(d)))));
 					d.upnp_connection->get(d.url);
+#ifndef BOOST_NO_EXCEPTIONS
 				}
 				catch (std::exception& e)
 				{
@@ -425,16 +413,11 @@ try
 #endif
 					d.disabled = true;
 				}
+#endif
 			}
 		}
 	}
 }
-#ifndef NDEBUG
-catch (std::exception&)
-{
-	TORRENT_ASSERT(false);
-};
-#endif
 
 void upnp::post(upnp::rootdevice const& d, std::string const& soap
 	, std::string const& soap_action)
@@ -469,11 +452,12 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
 		"<s:Body><u:" << soap_action << " xmlns:u=\"" << d.service_namespace << "\">";
 
+	asio::error_code ec;
 	soap << "<NewRemoteHost></NewRemoteHost>"
 		"<NewExternalPort>" << d.mapping[i].external_port << "</NewExternalPort>"
 		"<NewProtocol>" << (d.mapping[i].protocol ? "UDP" : "TCP") << "</NewProtocol>"
 		"<NewInternalPort>" << d.mapping[i].local_port << "</NewInternalPort>"
-		"<NewInternalClient>" << c.socket().local_endpoint().address().to_string() << "</NewInternalClient>"
+		"<NewInternalClient>" << c.socket().local_endpoint(ec).address() << "</NewInternalClient>"
 		"<NewEnabled>1</NewEnabled>"
 		"<NewPortMappingDescription>" << m_user_agent << "</NewPortMappingDescription>"
 		"<NewLeaseDuration>" << d.lease_duration << "</NewLeaseDuration>";
@@ -626,7 +610,7 @@ namespace
 }
 
 void upnp::on_upnp_xml(asio::error_code const& e
-	, libtorrent::http_parser const& p, rootdevice& d) try
+	, libtorrent::http_parser const& p, rootdevice& d)
 {
 	TORRENT_ASSERT(d.magic == 1337);
 	if (d.upnp_connection)
@@ -709,17 +693,14 @@ void upnp::on_upnp_xml(asio::error_code const& e
 
 	map_port(d, 0);
 }
-catch (std::exception&)
-{
-	disable();
-};
 
 void upnp::disable()
 {
 	m_disabled = true;
 	m_devices.clear();
-	m_broadcast_timer.cancel();
-	m_refresh_timer.cancel();
+	asio::error_code ec;
+	m_broadcast_timer.cancel(ec);
+	m_refresh_timer.cancel(ec);
 	m_socket.close();
 }
 
@@ -776,7 +757,7 @@ namespace
 }
 
 void upnp::on_upnp_map_response(asio::error_code const& e
-	, libtorrent::http_parser const& p, rootdevice& d, int mapping) try
+	, libtorrent::http_parser const& p, rootdevice& d, int mapping)
 {
 	TORRENT_ASSERT(d.magic == 1337);
 	if (d.upnp_connection)
@@ -897,7 +878,8 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 			if (next_expire < time_now()
 				|| next_expire > d.mapping[mapping].expires)
 			{
-				m_refresh_timer.expires_at(d.mapping[mapping].expires);
+				asio::error_code ec;
+				m_refresh_timer.expires_at(d.mapping[mapping].expires, ec);
 				m_refresh_timer.async_wait(m_strand.wrap(bind(&upnp::on_expire, self(), _1)));
 			}
 		}
@@ -916,13 +898,9 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 		}
 	}
 }
-catch (std::exception&)
-{
-	disable();
-};
 
 void upnp::on_upnp_unmap_response(asio::error_code const& e
-	, libtorrent::http_parser const& p, rootdevice& d, int mapping) try
+	, libtorrent::http_parser const& p, rootdevice& d, int mapping)
 {
 	TORRENT_ASSERT(d.magic == 1337);
 	if (d.upnp_connection)
@@ -971,12 +949,8 @@ void upnp::on_upnp_unmap_response(asio::error_code const& e
 		return;
 	}
 }
-catch (std::exception&)
-{
-	disable();
-};
 
-void upnp::on_expire(asio::error_code const& e) try
+void upnp::on_expire(asio::error_code const& e)
 {
 	if (e) return;
 
@@ -1006,19 +980,17 @@ void upnp::on_expire(asio::error_code const& e) try
 	}
 	if (next_expire != max_time())
 	{
-		m_refresh_timer.expires_at(next_expire);
+		asio::error_code ec;
+		m_refresh_timer.expires_at(next_expire, ec);
 		m_refresh_timer.async_wait(m_strand.wrap(bind(&upnp::on_expire, self(), _1)));
 	}
 }
-catch (std::exception&)
-{
-	disable();
-};
 
 void upnp::close()
 {
-	m_refresh_timer.cancel();
-	m_broadcast_timer.cancel();
+	asio::error_code ec;
+	m_refresh_timer.cancel(ec);
+	m_broadcast_timer.cancel(ec);
 	m_closing = true;
 	m_socket.close();
 
