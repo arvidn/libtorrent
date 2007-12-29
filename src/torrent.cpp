@@ -2162,6 +2162,7 @@ namespace libtorrent
 			m_ses.m_alerts.post_alert(metadata_received_alert(
 				get_handle(), "metadata successfully received from swarm"));
 		}
+		return true;
 	}
 
 	void torrent::attach_peer(peer_connection* p)
