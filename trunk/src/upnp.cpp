@@ -266,16 +266,14 @@ try
 
 */
 	http_parser p;
-	try
-	{
-		p.incoming(buffer::const_interval(buffer
-			, buffer + bytes_transferred));
-	}
-	catch (std::exception& e)
+	bool error = false;
+	p.incoming(buffer::const_interval(buffer
+		, buffer + bytes_transferred), error);
+	if (error)
 	{
 #ifdef TORRENT_UPNP_LOGGING
-		m_log << time_now_string()
-			<< " <== (" << from << ") Rootdevice responded with incorrect HTTP packet. Ignoring device (" << e.what() << ")" << std::endl;
+		m_log << time_now_string() << " <== (" << from << ") Rootdevice "
+			"responded with incorrect HTTP packet. Ignoring device" << std::endl;
 #endif
 		return;
 	}

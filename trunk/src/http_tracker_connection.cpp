@@ -104,7 +104,8 @@ namespace libtorrent
 		, m_finished(false)
 	{}
 
-	boost::tuple<int, int> http_parser::incoming(buffer::const_interval recv_buffer)
+	boost::tuple<int, int> http_parser::incoming(
+		buffer::const_interval recv_buffer, bool& error)
 	{
 		TORRENT_ASSERT(recv_buffer.left() >= m_recv_buffer.left());
 		boost::tuple<int, int> ret(0, 0);
@@ -112,6 +113,12 @@ namespace libtorrent
 		// early exit if there's nothing new in the receive buffer
 		if (recv_buffer.left() == m_recv_buffer.left()) return ret;
 		m_recv_buffer = recv_buffer;
+
+		if (m_state == error_state)
+		{
+			error = true;
+			return ret;
+		}
 
 		char const* pos = recv_buffer.begin + m_recv_pos;
 		if (m_state == read_status)
@@ -122,7 +129,11 @@ namespace libtorrent
 			if (newline == recv_buffer.end) return ret;
 
 			if (newline == pos)
-				throw std::runtime_error("unexpected newline in HTTP response");
+			{
+				m_state = error_state;
+				error = true;
+				return ret;
+			}
 
 			char const* line_end = newline;
 			if (pos != line_end && *(line_end - 1) == '\r') --line_end;
@@ -211,7 +222,9 @@ namespace libtorrent
 					range_str >> range_start >> dummy >> range_end;
 					if (!range_str || range_end < range_start)
 					{
-						throw std::runtime_error("invalid content-range in HTTP response: " + range_str.str());
+						m_state = error_state;
+						error = true;
+						return ret;
 					}
 					// the http range is inclusive
 					m_content_length = range_end - range_start + 1;
@@ -316,8 +329,11 @@ namespace libtorrent
 
 			std::size_t pos = request.find("announce");
 			if (pos == std::string::npos)
-				throw std::runtime_error("scrape is not available on url: '"
-				+ tracker_req().url +"'");
+			{
+				fail(-1, ("scrape is not available on url: '"
+				+ tracker_req().url +"'").c_str());
+				return;
+			}
 			request.replace(pos, 8, "scrape");
 		}
 
@@ -670,8 +686,13 @@ namespace libtorrent
 #endif
 
 		m_recv_pos += bytes_transferred;
+		bool e = false;
 		m_parser.incoming(buffer::const_interval(&m_buffer[0]
-			, &m_buffer[0] + m_recv_pos));
+			, &m_buffer[0] + m_recv_pos), e);
+		if (e)
+		{
+			fail(-1, "incorrect http response");
+		}
 
 		// if the receive buffer is full, expand it with http_buffer_size
 		if ((int)m_buffer.size() == m_recv_pos)

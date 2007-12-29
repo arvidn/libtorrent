@@ -315,7 +315,6 @@ namespace libtorrent
 		}
 	}
 
-	// throws exception when the client should be disconnected
 	void web_peer_connection::on_receive(asio::error_code const& error
 		, std::size_t bytes_transferred)
 	{
@@ -344,8 +343,12 @@ namespace libtorrent
 			bool header_finished = m_parser.header_finished();
 			if (!header_finished)
 			{
-				boost::tie(payload, protocol) = m_parser.incoming(recv_buffer);
+				bool error = false;
+				boost::tie(payload, protocol) = m_parser.incoming(recv_buffer, error);
 				m_statistics.received_bytes(payload, protocol);
+
+				if (error)
+					throw std::runtime_error("failed to parse HTTP response");
 
 				TORRENT_ASSERT(recv_buffer.left() == 0 || *recv_buffer.begin == 'H');
 			
