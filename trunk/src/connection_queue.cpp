@@ -88,7 +88,8 @@ namespace libtorrent
 
 	void connection_queue::close()
 	{
-		m_timer.cancel();
+		asio::error_code ec;
+		m_timer.cancel(ec);
 	}
 
 	void connection_queue::limit(int limit)
@@ -121,7 +122,8 @@ namespace libtorrent
 	
 		if (m_queue.empty())
 		{
-			m_timer.cancel();
+			asio::error_code ec;
+			m_timer.cancel(ec);
 			return;
 		}
 
@@ -133,7 +135,8 @@ namespace libtorrent
 			ptime expire = time_now() + i->timeout;
 			if (m_num_connecting == 0)
 			{
-				m_timer.expires_at(expire);
+				asio::error_code ec;
+				m_timer.expires_at(expire, ec);
 				m_timer.async_wait(boost::bind(&connection_queue::on_timeout, this, _1));
 			}
 			i->connecting = true;
@@ -144,7 +147,13 @@ namespace libtorrent
 
 			entry& ent = *i;
 			++i;
-			try { ent.on_connect(ent.ticket); } catch (std::exception&) {}
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+				ent.on_connect(ent.ticket);
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception&) {}
+#endif
 
 			if (!free_slots()) break;
 			i = std::find_if(i, m_queue.end(), boost::bind(&entry::connecting, _1) == false);
@@ -206,7 +215,8 @@ namespace libtorrent
 		
 		if (next_expire < max_time())
 		{
-			m_timer.expires_at(next_expire);
+			asio::error_code ec;
+			m_timer.expires_at(next_expire, ec);
 			m_timer.async_wait(boost::bind(&connection_queue::on_timeout, this, _1));
 		}
 		try_connect();
