@@ -69,7 +69,11 @@ namespace libtorrent
 			boost::shared_ptr<datagram_socket> socket;
 			char buffer[1024];
 			udp::endpoint remote;
-			void close() { socket->close(); }
+			void close()
+			{
+				asio::error_code ec;
+				socket->close(ec);
+			}
 		};
 	
 		void on_receive(socket_entry* s, asio::error_code const& ec
