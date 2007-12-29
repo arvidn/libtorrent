@@ -86,7 +86,8 @@ namespace libtorrent
 		buffer::const_interval get_body() const;
 		bool header_finished() const { return m_state == read_body; }
 		bool finished() const { return m_finished; }
-		boost::tuple<int, int> incoming(buffer::const_interval recv_buffer);
+		boost::tuple<int, int> incoming(buffer::const_interval recv_buffer
+			, bool& error);
 		int body_start() const { return m_body_start_pos; }
 		int content_length() const { return m_content_length; }
 
@@ -104,7 +105,7 @@ namespace libtorrent
 
 		int m_content_length;
 
-		enum { read_status, read_header, read_body } m_state;
+		enum { read_status, read_header, read_body, error_state } m_state;
 
 		std::map<std::string, std::string> m_header;
 		buffer::const_interval m_recv_buffer;

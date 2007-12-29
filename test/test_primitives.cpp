@@ -18,17 +18,19 @@ using namespace libtorrent;
 using namespace boost::tuples;
 using boost::bind;
 
-tuple<int, int> feed_bytes(http_parser& parser, char const* str)
+tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 {
-	tuple<int, int> ret(0, 0);
+	tuple<int, int, bool> ret(0, 0, false);
 	buffer::const_interval recv_buf(str, str + 1);
 	for (; *str; ++str)
 	{
 		recv_buf.end = str + 1;
 		int payload, protocol;
-		tie(payload, protocol) = parser.incoming(recv_buf);
+		bool error = false;
+		tie(payload, protocol) = parser.incoming(recv_buf, error);
 		ret.get<0>() += payload;
 		ret.get<1>() += protocol;
+		ret.get<2>() += error;
 	}
 	return ret;
 }
@@ -135,14 +137,14 @@ int test_main()
 	// HTTP request parser
 
 	http_parser parser;
-	boost::tuple<int, int> received = feed_bytes(parser
+	boost::tuple<int, int, bool> received = feed_bytes(parser
 		, "HTTP/1.1 200 OK\r\n"
 		"Content-Length: 4\r\n"
 		"Content-Type: text/plain\r\n"
 		"\r\n"
 		"test");
 
-	TEST_CHECK(received == make_tuple(4, 64));
+	TEST_CHECK(received == make_tuple(4, 64, false));
 	TEST_CHECK(parser.finished());
 	TEST_CHECK(std::equal(parser.get_body().begin, parser.get_body().end, "test"));
 	TEST_CHECK(parser.header("content-type") == "text/plain");
@@ -164,7 +166,7 @@ int test_main()
 
 	received = feed_bytes(parser, upnp_response);
 
-	TEST_CHECK(received == make_tuple(0, int(strlen(upnp_response))));
+	TEST_CHECK(received == make_tuple(0, int(strlen(upnp_response)), false));
 	TEST_CHECK(parser.get_body().left() == 0);
 	TEST_CHECK(parser.header("st") == "upnp:rootdevice");
 	TEST_CHECK(parser.header("location")
@@ -187,7 +189,7 @@ int test_main()
 
 	received = feed_bytes(parser, upnp_notify);
 
-	TEST_CHECK(received == make_tuple(0, int(strlen(upnp_notify))));
+	TEST_CHECK(received == make_tuple(0, int(strlen(upnp_notify)), false));
 	TEST_CHECK(parser.method() == "notify");
 	TEST_CHECK(parser.path() == "*");
 
@@ -202,7 +204,7 @@ int test_main()
 
 	received = feed_bytes(parser, bt_lsd);
 
-	TEST_CHECK(received == make_tuple(2, int(strlen(bt_lsd) - 2)));
+	TEST_CHECK(received == make_tuple(2, int(strlen(bt_lsd) - 2), false));
 	TEST_CHECK(parser.method() == "bt-search");
 	TEST_CHECK(parser.path() == "*");
 	TEST_CHECK(atoi(parser.header("port").c_str()) == 6881);
@@ -223,7 +225,7 @@ int test_main()
 
 	received = feed_bytes(parser, tracker_response);
 
-	TEST_CHECK(received == make_tuple(5, int(strlen(tracker_response) - 5)));
+	TEST_CHECK(received == make_tuple(5, int(strlen(tracker_response) - 5), false));
 	TEST_CHECK(parser.get_body().left() == 5);
 
 	// test xml parser

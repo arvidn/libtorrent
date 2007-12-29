@@ -123,9 +123,11 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 
 	http_parser p;
 
-	p.incoming(buffer::const_interval(buffer, buffer + bytes_transferred));
+	bool error = false;
+	p.incoming(buffer::const_interval(buffer, buffer + bytes_transferred)
+		, error);
 
-	if (!p.header_finished())
+	if (!p.header_finished() || error)
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log << time_now_string()
