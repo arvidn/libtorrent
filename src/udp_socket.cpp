@@ -143,9 +143,10 @@ void udp_socket::unwrap(char const* buf, int size)
 
 void udp_socket::close()
 {
-	m_ipv4_sock.close();
-	m_ipv6_sock.close();
-	m_socks5_sock.close();
+	asio::error_code ec;
+	m_ipv4_sock.close(ec);
+	m_ipv6_sock.close(ec);
+	m_socks5_sock.close(ec);
 	m_callback.clear();
 	if (m_connection_ticket >= 0)
 	{
@@ -158,8 +159,8 @@ void udp_socket::bind(int port)
 {
 	asio::error_code ec;
 
-	if (m_ipv4_sock.is_open()) m_ipv4_sock.close();
-	if (m_ipv6_sock.is_open()) m_ipv6_sock.close();
+	if (m_ipv4_sock.is_open()) m_ipv4_sock.close(ec);
+	if (m_ipv6_sock.is_open()) m_ipv6_sock.close(ec);
 
 	m_ipv4_sock.open(udp::v4(), ec);
 	if (!ec)
@@ -181,7 +182,8 @@ void udp_socket::bind(int port)
 
 void udp_socket::set_proxy_settings(proxy_settings const& ps)
 {
-	m_socks5_sock.close();
+	asio::error_code ec;
+	m_socks5_sock.close(ec);
 	m_tunnel_packets = false;
 	
 	m_proxy_settings = ps;
@@ -208,7 +210,8 @@ void udp_socket::on_name_lookup(asio::error_code const& e, tcp::resolver::iterat
 
 void udp_socket::on_timeout()
 {
-	m_socks5_sock.close();
+	asio::error_code ec;
+	m_socks5_sock.close(ec);
 	m_connection_ticket = -1;
 }
 
@@ -276,7 +279,8 @@ void udp_socket::handshake2(asio::error_code const& e)
 	{
 		if (m_proxy_settings.username.empty())
 		{
-			m_socks5_sock.close();
+			asio::error_code ec;
+			m_socks5_sock.close(ec);
 			return;
 		}
 
@@ -292,7 +296,8 @@ void udp_socket::handshake2(asio::error_code const& e)
 	}
 	else
 	{
-		m_socks5_sock.close();
+		asio::error_code ec;
+		m_socks5_sock.close(ec);
 		return;
 	}
 }
