@@ -71,7 +71,8 @@ void http_connection::start(std::string const& hostname, std::string const& port
 {
 	m_redirect = handle_redirect;
 	m_timeout = timeout;
-	m_timer.expires_from_now(m_timeout);
+	asio::error_code ec;
+	m_timer.expires_from_now(m_timeout, ec);
 	m_timer.async_wait(bind(&http_connection::on_timeout
 		, boost::weak_ptr<http_connection>(shared_from_this()), _1));
 	m_called = false;
@@ -83,7 +84,8 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	}
 	else
 	{
-		m_sock.close();
+		asio::error_code ec;
+		m_sock.close(ec);
 		tcp::resolver::query query(hostname, port);
 		m_resolver.async_resolve(query, bind(&http_connection::on_resolve
 			, shared_from_this(), _1, _2));
@@ -119,16 +121,17 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 	}
 
 	if (!c->m_sock.is_open()) return;
-
-	c->m_timer.expires_at(c->m_last_receive + c->m_timeout);
+	asio::error_code ec;
+	c->m_timer.expires_at(c->m_last_receive + c->m_timeout, ec);
 	c->m_timer.async_wait(bind(&http_connection::on_timeout, p, _1));
 }
 
 void http_connection::close()
 {
-	m_timer.cancel();
-	m_limiter_timer.cancel();
-	m_sock.close();
+	asio::error_code ec;
+	m_timer.cancel(ec);
+	m_limiter_timer.cancel(ec);
+	m_sock.close(ec);
 	m_hostname.clear();
 	m_port.clear();
 
@@ -190,6 +193,7 @@ void http_connection::callback(asio::error_code const& e, char const* data, int 
 	if (!m_bottled || !m_called)
 	{
 		m_called = true;
+		m_timer.cancel();
 		if (m_handler) m_handler(e, m_parser, data, size);
 	}
 }
@@ -304,7 +308,8 @@ void http_connection::on_read(asio::error_code const& e
 		}
 		else if (m_bottled && m_parser.finished())
 		{
-			m_timer.cancel();
+			asio::error_code ec;
+			m_timer.cancel(ec);
 			callback(e, m_parser.get_body().begin, m_parser.get_body().left());
 		}
 	}
@@ -368,8 +373,9 @@ void http_connection::on_assign_bandwidth(asio::error_code const& e)
 		, bind(&http_connection::on_read
 		, shared_from_this(), _1, _2));
 
+	asio::error_code ec;
 	m_limiter_timer_active = true;
-	m_limiter_timer.expires_from_now(milliseconds(250));
+	m_limiter_timer.expires_from_now(milliseconds(250), ec);
 	m_limiter_timer.async_wait(bind(&http_connection::on_assign_bandwidth
 		, shared_from_this(), _1));
 }
@@ -380,8 +386,9 @@ void http_connection::rate_limit(int limit)
 
 	if (!m_limiter_timer_active)
 	{
+		asio::error_code ec;
 		m_limiter_timer_active = true;
-		m_limiter_timer.expires_from_now(milliseconds(250));
+		m_limiter_timer.expires_from_now(milliseconds(250), ec);
 		m_limiter_timer.async_wait(bind(&http_connection::on_assign_bandwidth
 			, shared_from_this(), _1));
 	}
