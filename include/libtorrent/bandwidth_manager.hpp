@@ -285,10 +285,8 @@ private:
 
 	void add_history_entry(history_entry<PeerConnection, Torrent> const& e) throw()
 	{
-#ifndef NDEBUG
-		try {
-#endif
 		INVARIANT_CHECK;
+
 		m_history.push_front(e);
 		m_current_quota += e.amount;
 		// in case the size > 1 there is already a timer
@@ -297,19 +295,13 @@ private:
 
 		if (m_abort) return;
 
-		m_history_timer.expires_at(e.expires_at);
+		asio::error_code ec;
+		m_history_timer.expires_at(e.expires_at, ec);
 		m_history_timer.async_wait(bind(&bandwidth_manager::on_history_expire, this, _1));
-#ifndef NDEBUG
-		}
-		catch (std::exception&) { TORRENT_ASSERT(false); }
-#endif
 	}
 	
 	void on_history_expire(asio::error_code const& e) throw()
 	{
-#ifndef NDEBUG
-		try {
-#endif
 		INVARIANT_CHECK;
 
 		if (e) return;
@@ -332,7 +324,8 @@ private:
 		// now, wait for the next chunk to expire
 		if (!m_history.empty() && !m_abort)
 		{
-			m_history_timer.expires_at(m_history.back().expires_at);
+			asio::error_code ec;
+			m_history_timer.expires_at(m_history.back().expires_at, ec);
 			m_history_timer.async_wait(bind(&bandwidth_manager::on_history_expire, this, _1));
 		}
 
@@ -340,24 +333,15 @@ private:
 		// means we can hand out more (in case there
 		// are still consumers in line)
 		if (!m_queue.empty()) hand_out_bandwidth();
-#ifndef NDEBUG
-		}
-		catch (std::exception&)
-		{
-			TORRENT_ASSERT(false);
-		}
-#endif
 	}
 
-	void hand_out_bandwidth() throw()
+	void hand_out_bandwidth()
 	{
 		// if we're already handing out bandwidth, just return back
 		// to the loop further down on the callstack
 		if (m_in_hand_out_bandwidth) return;
 		m_in_hand_out_bandwidth = true;
-#ifndef NDEBUG
-		try {
-#endif
+
 		INVARIANT_CHECK;
 
 		ptime now(time_now());
@@ -467,11 +451,6 @@ private:
 				qe.peer, t, hand_out_amount, now + bw_window_size));
 			TORRENT_ASSERT(amount == limit - m_current_quota);
 		}
-#ifndef NDEBUG
-		}
-		catch (std::exception& e)
-		{ TORRENT_ASSERT(false); };
-#endif
 		m_in_hand_out_bandwidth = false;
 	}
 
