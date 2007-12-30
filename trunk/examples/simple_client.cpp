@@ -35,9 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iterator>
 #include <exception>
 
-#include <boost/format.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
-
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
@@ -57,7 +54,9 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+#ifndef BOOST_NO_EXCEPTIONS
 	try
+#endif
 	{
 		session s;
 		s.listen_on(std::make_pair(6881, 6889));
@@ -72,9 +71,12 @@ int main(int argc, char* argv[])
 		std::cin.unsetf(std::ios_base::skipws);
 		std::cin >> a;
 	}
+#ifndef BOOST_NO_EXCEPTIONS
 	catch (std::exception& e)
 	{
   		std::cout << e.what() << "\n";
 	}
+#endif
 	return 0;
 }
+
