@@ -103,7 +103,7 @@ namespace libtorrent
 	}
 
 	void udp_tracker_connection::name_lookup(asio::error_code const& error
-		, udp::resolver::iterator i) try
+		, udp::resolver::iterator i)
 	{
 		if (error == asio::error::operation_aborted) return;
 		if (!m_socket.is_open()) return; // the operation was aborted
@@ -146,15 +146,27 @@ namespace libtorrent
 		
 		if (cb) cb->m_tracker_address = tcp::endpoint(target_address.address(), target_address.port());
 		m_target = target_address;
-		m_socket.open(target_address.protocol());
-		m_socket.bind(udp::endpoint(bind_interface(), 0));
-		m_socket.connect(target_address);
+		asio::error_code ec;
+		m_socket.open(target_address.protocol(), ec);
+		if (ec)
+		{
+			fail(-1, ec.message().c_str());
+			return;
+		}
+		m_socket.bind(udp::endpoint(bind_interface(), 0), ec);
+		if (ec)
+		{
+			fail(-1, ec.message().c_str());
+			return;
+		}
+		m_socket.connect(target_address, ec);
+		if (ec)
+		{
+			fail(-1, ec.message().c_str());
+			return;
+		}
 		send_udp_connect();
 	}
-	catch (std::exception& e)
-	{
-		fail(-1, e.what());
-	};
 
 	void udp_tracker_connection::on_timeout()
 	{
@@ -198,15 +210,21 @@ namespace libtorrent
 		// transaction_id
 		detail::write_int32(m_transaction_id, ptr);
 
-		m_socket.send(asio::buffer((void*)send_buf, 16), 0);
+		asio::error_code ec;
+		m_socket.send(asio::buffer((void*)send_buf, 16), 0, ec);
 		++m_attempts;
+		if (ec)
+		{
+			fail(-1, ec.message().c_str());
+			return;
+		}
 		m_buffer.resize(udp_buffer_size);
 		m_socket.async_receive_from(asio::buffer(m_buffer), m_sender
 			, boost::bind(&udp_tracker_connection::connect_response, self(), _1, _2));
 	}
 
 	void udp_tracker_connection::connect_response(asio::error_code const& error
-		, std::size_t bytes_transferred) try
+		, std::size_t bytes_transferred)
 	{
 		if (error == asio::error::operation_aborted) return;
 		if (!m_socket.is_open()) return; // the operation was aborted
@@ -275,8 +293,9 @@ namespace libtorrent
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb)
 		{
-			cb->debug_log("<== UDP_TRACKER_CONNECT_RESPONSE ["
-				+ lexical_cast<std::string>(m_connection_id) + "]");
+			std::stringstream msg;
+			msg << "<== UDP_TRACKER_CONNECT_RESPONSE [" << m_connection_id << "]";
+			cb->debug_log(msg.str());
 		}
 #endif
 
@@ -284,10 +303,6 @@ namespace libtorrent
 			send_udp_announce();
 		else if (tracker_req().kind == tracker_request::scrape_request)
 			send_udp_scrape();
-	}
-	catch (std::exception& e)
-	{
-		fail(-1, e.what());
 	}
 	
 	void udp_tracker_connection::send_udp_announce()
@@ -343,8 +358,14 @@ namespace libtorrent
 		}
 #endif
 
-		m_socket.send(asio::buffer(buf), 0);
+		asio::error_code ec;
+		m_socket.send(asio::buffer(buf), 0, ec);
 		++m_attempts;
+		if (ec)
+		{
+			fail(-1, ec.message().c_str());
+			return;
+		}
 
 		m_socket.async_receive_from(asio::buffer(m_buffer), m_sender
 			, bind(&udp_tracker_connection::announce_response, self(), _1, _2));
@@ -369,15 +390,21 @@ namespace libtorrent
 		// info_hash
 		std::copy(tracker_req().info_hash.begin(), tracker_req().info_hash.end(), out);
 
-		m_socket.send(asio::buffer(&buf[0], buf.size()), 0);
+		asio::error_code ec;
+		m_socket.send(asio::buffer(&buf[0], buf.size()), 0, ec);
 		++m_attempts;
+		if (ec)
+		{
+			fail(-1, ec.message().c_str());
+			return;
+		}
 
 		m_socket.async_receive_from(asio::buffer(m_buffer), m_sender
 			, bind(&udp_tracker_connection::scrape_response, self(), _1, _2));
 	}
 
 	void udp_tracker_connection::announce_response(asio::error_code const& error
-		, std::size_t bytes_transferred) try
+		, std::size_t bytes_transferred)
 	{
 		if (error == asio::error::operation_aborted) return;
 		if (!m_socket.is_open()) return; // the operation was aborted
@@ -480,15 +507,10 @@ namespace libtorrent
 
 		m_man.remove_request(this);
 		close();
-		return;
 	}
-	catch (std::exception& e)
-	{
-		fail(-1, e.what());
-	}; // msvc 7.1 seems to require this
 
 	void udp_tracker_connection::scrape_response(asio::error_code const& error
-		, std::size_t bytes_transferred) try
+		, std::size_t bytes_transferred)
 	{
 		if (error == asio::error::operation_aborted) return;
 		if (!m_socket.is_open()) return; // the operation was aborted
@@ -554,7 +576,6 @@ namespace libtorrent
 		boost::shared_ptr<request_callback> cb = requester();
 		if (!cb)
 		{
-			m_man.remove_request(this);
 			close();
 			return;
 		}
@@ -565,10 +586,5 @@ namespace libtorrent
 		m_man.remove_request(this);
 		close();
 	}
-	catch (std::exception& e)
-	{
-		fail(-1, e.what());
-	}
-
 }
 

@@ -157,7 +157,7 @@ namespace libtorrent
 		virtual void on_timeout();
 
 		void parse(const entry& e);
-		peer_entry extract_peer_info(const entry& e);
+		bool extract_peer_info(const entry& e, peer_entry& ret);
 
 		tracker_manager& m_man;
 		http_parser m_parser;
