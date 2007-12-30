@@ -10,18 +10,18 @@
 
 using boost::filesystem::remove_all;
 
-void test_swarm()
+void test_lsd()
 {
 	using namespace libtorrent;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000));
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000));
-	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50000, 51000));
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000));
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000));
+	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50100, 51000));
 
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
-	float rate_limit = 90000;
+	float rate_limit = 180000;
 	ses1.set_upload_rate_limit(int(rate_limit));
 	ses2.set_download_rate_limit(int(rate_limit));
 	ses3.set_download_rate_limit(int(rate_limit));
@@ -30,6 +30,7 @@ void test_swarm()
 
 	session_settings settings;
 	settings.allow_multiple_connections_per_ip = true;
+	settings.ignore_limits_on_local_network = false;
 	ses1.set_settings(settings);
 	ses2.set_settings(settings);
 	ses3.set_settings(settings);
@@ -40,8 +41,8 @@ void test_swarm()
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
-	pes.out_enc_policy = pe_settings::disabled;
-	pes.in_enc_policy = pe_settings::disabled;
+	pes.out_enc_policy = pe_settings::forced;
+	pes.in_enc_policy = pe_settings::forced;
 	ses1.set_pe_settings(pes);
 	ses2.set_pe_settings(pes);
 	ses3.set_pe_settings(pes);
@@ -51,22 +52,31 @@ void test_swarm()
 	torrent_handle tor2;
 	torrent_handle tor3;
 
-	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, false);
+	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, false, "_lsd");
 
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < 30; ++i)
 	{
 		std::auto_ptr<alert> a;
 		a = ses1.pop_alert();
-		if (a.get())
+		while(a.get())
+		{
 			std::cerr << "ses1: " << a->msg() << "\n";
+			a = ses1.pop_alert();
+		}
 
 		a = ses2.pop_alert();
-		if (a.get())
+		while (a.get())
+		{
 			std::cerr << "ses2: " << a->msg() << "\n";
+			a = ses2.pop_alert();
+		}
 
 		a = ses3.pop_alert();
-		if (a.get())
+		while (a.get())
+		{
 			std::cerr << "ses3: " << a->msg() << "\n";
+			a = ses3.pop_alert();
+		}
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
@@ -101,15 +111,15 @@ int test_main()
 	using namespace boost::filesystem;
 
 	// in case the previous run was terminated
-	try { remove_all("./tmp1"); } catch (std::exception&) {}
-	try { remove_all("./tmp2"); } catch (std::exception&) {}
-	try { remove_all("./tmp3"); } catch (std::exception&) {}
+	try { remove_all("./tmp1_lsd"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_lsd"); } catch (std::exception&) {}
+	try { remove_all("./tmp3_lsd"); } catch (std::exception&) {}
 
-	test_swarm();
+	test_lsd();
 	
-	remove_all("./tmp1");
-	remove_all("./tmp2");
-	remove_all("./tmp3");
+	remove_all("./tmp1_lsd");
+	remove_all("./tmp2_lsd");
+	remove_all("./tmp3_lsd");
 
 	return 0;
 }

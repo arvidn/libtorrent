@@ -36,14 +36,15 @@ void test_swarm()
 
 	session_settings settings;
 	settings.allow_multiple_connections_per_ip = true;
+	settings.ignore_limits_on_local_network = false;
 	ses1.set_settings(settings);
 	ses2.set_settings(settings);
 	ses3.set_settings(settings);
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
-	pes.out_enc_policy = pe_settings::disabled;
-	pes.in_enc_policy = pe_settings::disabled;
+	pes.out_enc_policy = pe_settings::forced;
+	pes.in_enc_policy = pe_settings::forced;
 	ses1.set_pe_settings(pes);
 	ses2.set_pe_settings(pes);
 	ses3.set_pe_settings(pes);
@@ -53,7 +54,7 @@ void test_swarm()
 	torrent_handle tor2;
 	torrent_handle tor3;
 
-	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false);	
+	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, true, "_swarm");	
 
 	float sum_dl_rate2 = 0.f;
 	float sum_dl_rate3 = 0.f;
@@ -64,16 +65,25 @@ void test_swarm()
 	{
 		std::auto_ptr<alert> a;
 		a = ses1.pop_alert();
-		if (a.get())
+		while(a.get())
+		{
 			std::cerr << "ses1: " << a->msg() << "\n";
+			a = ses1.pop_alert();
+		}
 
 		a = ses2.pop_alert();
-		if (a.get())
+		while (a.get())
+		{
 			std::cerr << "ses2: " << a->msg() << "\n";
+			a = ses2.pop_alert();
+		}
 
 		a = ses3.pop_alert();
-		if (a.get())
+		while (a.get())
+		{
 			std::cerr << "ses3: " << a->msg() << "\n";
+			a = ses3.pop_alert();
+		}
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
@@ -113,6 +123,7 @@ void test_swarm()
 	float average2 = sum_dl_rate2 / float(count_dl_rates2);
 	float average3 = sum_dl_rate3 / float(count_dl_rates3);
 
+	std::cerr << average2 << std::endl;
 	std::cerr << "average rate: " << (average2 / 1000.f) << "kB/s - "
 		<< (average3 / 1000.f) << "kB/s" << std::endl;
 
@@ -159,20 +170,20 @@ int test_main()
 	using namespace boost::filesystem;
 
 	// in case the previous run was terminated
-	try { remove_all("./tmp1"); } catch (std::exception&) {}
-	try { remove_all("./tmp2"); } catch (std::exception&) {}
-	try { remove_all("./tmp3"); } catch (std::exception&) {}
+	try { remove_all("./tmp1_swarm"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_swarm"); } catch (std::exception&) {}
+	try { remove_all("./tmp3_swarm"); } catch (std::exception&) {}
 
 	test_swarm();
 	
 	test_sleep(2000);
-	TEST_CHECK(!exists("./tmp1/temporary"));
-	TEST_CHECK(!exists("./tmp2/temporary"));
-	TEST_CHECK(!exists("./tmp3/temporary"));
+	TEST_CHECK(!exists("./tmp1_swarm/temporary"));
+	TEST_CHECK(!exists("./tmp2_swarm/temporary"));
+	TEST_CHECK(!exists("./tmp3_swarm/temporary"));
 
-	remove_all("./tmp1");
-	remove_all("./tmp2");
-	remove_all("./tmp3");
+	remove_all("./tmp1_swarm");
+	remove_all("./tmp2_swarm");
+	remove_all("./tmp3_swarm");
 
 	return 0;
 }

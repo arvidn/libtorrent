@@ -40,7 +40,7 @@ void test_transfer(torrent_info torrent_file, int proxy)
 
 	session ses;
 	ses.set_severity_level(alert::debug);
-	ses.listen_on(std::make_pair(49000, 50000));
+	ses.listen_on(std::make_pair(51000, 52000));
 	remove_all("./tmp1");
 
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
