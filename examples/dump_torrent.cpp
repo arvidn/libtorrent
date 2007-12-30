@@ -53,8 +53,10 @@ int main(int argc, char* argv[])
 	boost::filesystem::path::default_name_check(boost::filesystem::no_check);
 #endif
 
+#ifndef BOOST_NO_EXCEPTIONS
 	try
 	{
+#endif
 		std::ifstream in(argv[1], std::ios_base::binary);
 		in.unsetf(std::ios_base::skipws);
 		entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
@@ -98,11 +100,13 @@ int main(int argc, char* argv[])
 				<< last << " ]\n";
 		}
 		
+#ifndef BOOST_NO_EXCEPTIONS
 	}
 	catch (std::exception& e)
 	{
   		std::cout << e.what() << "\n";
 	}
+#endif
 
 	return 0;
 }

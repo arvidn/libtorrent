@@ -85,8 +85,10 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+#ifndef BOOST_NO_EXCEPTIONS
 	try
 	{
+#endif
 		boost::intrusive_ptr<torrent_info> t(new torrent_info);
 		path full_path = complete(path(argv[3]));
 		ofstream out(complete(path(argv[1])), std::ios_base::binary);
@@ -121,11 +123,13 @@ int main(int argc, char* argv[])
 		// create the torrent and print it to out
 		entry e = t->create_torrent();
 		libtorrent::bencode(std::ostream_iterator<char>(out), e);
+#ifndef BOOST_NO_EXCEPTIONS
 	}
 	catch (std::exception& e)
 	{
 		std::cerr << e.what() << "\n";
 	}
+#endif
 
 	return 0;
 }
