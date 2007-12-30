@@ -1,6 +1,7 @@
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/extensions/ut_pex.hpp"
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -10,23 +11,28 @@
 
 using boost::filesystem::remove_all;
 
-void test_lsd()
+void test_pex()
 {
 	using namespace libtorrent;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000));
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000));
-	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50100, 51000));
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48200, 49000));
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49200, 50000));
+	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50200, 51000));
 
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
-	float rate_limit = 180000;
+	float rate_limit = 500000;
 	ses1.set_upload_rate_limit(int(rate_limit));
 	ses2.set_download_rate_limit(int(rate_limit));
 	ses3.set_download_rate_limit(int(rate_limit));
-	ses2.set_upload_rate_limit(int(rate_limit / 2));
+	// make the peer connecting the two worthless to transfer
+	// data, to force peer 3 to connect directly to peer 1 through pex
+	ses2.set_upload_rate_limit(200);
 	ses3.set_upload_rate_limit(int(rate_limit / 2));
+
+	ses1.add_extension(&create_ut_pex_plugin);
+	ses2.add_extension(&create_ut_pex_plugin);
 
 	session_settings settings;
 	settings.allow_multiple_connections_per_ip = true;
@@ -34,10 +40,6 @@ void test_lsd()
 	ses1.set_settings(settings);
 	ses2.set_settings(settings);
 	ses3.set_settings(settings);
-
-	ses1.start_lsd();
-	ses2.start_lsd();
-	ses3.start_lsd();
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
@@ -52,9 +54,14 @@ void test_lsd()
 	torrent_handle tor2;
 	torrent_handle tor3;
 
-	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, false, "_lsd");
+	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, false, "_pex");
 
-	for (int i = 0; i < 30; ++i)
+	test_sleep(1000);
+
+	tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1"), ses1.listen_port()));
+	tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1"), ses3.listen_port()));
+
+	for (int i = 0; i < 40; ++i)
 	{
 		std::auto_ptr<alert> a;
 		a = ses1.pop_alert();
@@ -95,14 +102,13 @@ void test_lsd()
 			<< st3.num_peers
 			<< std::endl;
 
-		if (tor2.is_seed() && tor3.is_seed()) break;
 		test_sleep(1000);
 	}
 
 	TEST_CHECK(tor2.is_seed());
 	TEST_CHECK(tor3.is_seed());
 
-	if (tor2.is_seed() && tor3.is_seed()) std::cerr << "done\n";
+	if (!tor2.is_seed() && tor3.is_seed()) std::cerr << "done\n";
 }
 
 int test_main()
@@ -111,18 +117,16 @@ int test_main()
 	using namespace boost::filesystem;
 
 	// in case the previous run was terminated
-	try { remove_all("./tmp1_lsd"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_lsd"); } catch (std::exception&) {}
-	try { remove_all("./tmp3_lsd"); } catch (std::exception&) {}
+	try { remove_all("./tmp1_pex"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_pex"); } catch (std::exception&) {}
+	try { remove_all("./tmp3_pex"); } catch (std::exception&) {}
 
-	test_lsd();
+	test_pex();
 	
-	remove_all("./tmp1_lsd");
-	remove_all("./tmp2_lsd");
-	remove_all("./tmp3_lsd");
+	remove_all("./tmp1_pex");
+	remove_all("./tmp2_pex");
+	remove_all("./tmp3_pex");
 
 	return 0;
 }
-
-
 

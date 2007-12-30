@@ -134,7 +134,8 @@ boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file)
 
 boost::tuple<torrent_handle, torrent_handle, torrent_handle>
 setup_transfer(session* ses1, session* ses2, session* ses3
-	, bool clear_files, bool use_metadata_transfer, bool connect_peers)
+	, bool clear_files, bool use_metadata_transfer, bool connect_peers
+	, std::string suffix)
 {
 	using namespace boost::filesystem;
 
@@ -146,11 +147,15 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 		assert(ses3->id() != ses2->id());
 
 	
-	create_directory("./tmp1");
-	std::ofstream file("./tmp1/temporary");
+	create_directory("./tmp1" + suffix);
+	std::ofstream file(("./tmp1" + suffix + "/temporary").c_str());
 	boost::intrusive_ptr<torrent_info> t = create_torrent(&file);
 	file.close();
-	if (clear_files) remove_all("./tmp2/temporary");
+	if (clear_files)
+	{
+		remove_all("./tmp2" + suffix + "/temporary");
+		remove_all("./tmp3" + suffix + "/temporary");
+	}
 	
 	std::cerr << "generated torrent: " << t->info_hash() << std::endl;
 
@@ -161,16 +166,16 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	// file pool will complain if two torrents are trying to
 	// use the same files
 	sha1_hash info_hash = t->info_hash();
-	torrent_handle tor1 = ses1->add_torrent(clone_ptr(t), "./tmp1");
+	torrent_handle tor1 = ses1->add_torrent(clone_ptr(t), "./tmp1" + suffix);
 	torrent_handle tor2;
 	torrent_handle tor3;
-	if (ses3) tor3 = ses3->add_torrent(clone_ptr(t), "./tmp3");
+	if (ses3) tor3 = ses3->add_torrent(clone_ptr(t), "./tmp3" + suffix);
 
   	if (use_metadata_transfer)
 		tor2 = ses2->add_torrent("http://non-existent-name.com/announce"
-		, t->info_hash(), 0, "./tmp2");
+		, t->info_hash(), 0, "./tmp2" + suffix);
 	else
-		tor2 = ses2->add_torrent(clone_ptr(t), "./tmp2");
+		tor2 = ses2->add_torrent(clone_ptr(t), "./tmp2" + suffix);
 
 	assert(ses1->get_torrents().size() == 1);
 	assert(ses2->get_torrents().size() == 1);
