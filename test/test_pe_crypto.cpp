@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/session.hpp"
+#include <boost/filesystem/convenience.hpp>
 
 #include "setup_transfer.hpp"
 #include "test.hpp"
@@ -79,8 +80,8 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 	using namespace libtorrent;
 	using std::cerr;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000));
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000));
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48800, 49000));
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49800, 50000));
 	pe_settings s;
 	
 	s.out_enc_policy = libtorrent::pe_settings::enabled;
@@ -106,7 +107,7 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 	torrent_handle tor2;
 
 	using boost::tuples::ignore;
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0, true, false);	
+	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0, true, false, true, "_pe");	
 
 	std::cerr << "waiting for transfer to complete\n";
 
@@ -115,12 +116,18 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 		tor2.status();
 		std::auto_ptr<alert> a;
 		a = ses1.pop_alert();
-		if (a.get())
+		while(a.get())
+		{
 			std::cerr << "ses1: " << a->msg() << "\n";
+			a = ses1.pop_alert();
+		}
 
 		a = ses2.pop_alert();
-		if (a.get())
+		while (a.get())
+		{
 			std::cerr << "ses2: " << a->msg() << "\n";
+			a = ses2.pop_alert();
+		}
 
 		if (tor2.is_seed()) break;
 		test_sleep(100);
@@ -128,6 +135,11 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 
 	TEST_CHECK(tor2.is_seed());
  	if (tor2.is_seed()) std::cerr << "done\n";
+
+	using boost::filesystem::remove_all;
+	remove_all("./tmp1_pe");
+	remove_all("./tmp2_pe");
+	remove_all("./tmp3_pe");
 }
 
 
