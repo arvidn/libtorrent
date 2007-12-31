@@ -2916,6 +2916,12 @@ namespace libtorrent
 #ifndef NDEBUG
 	void peer_connection::check_invariant() const
 	{
+		for (int i = 0; i < 2; ++i)
+		{
+			// this peer is in the bandwidth history iff max_assignable < limit
+			TORRENT_ASSERT((m_bandwidth_limit[i].max_assignable() < m_bandwidth_limit[i].throttle())
+				== m_ses.m_bandwidth_manager[i]->is_in_history(this));
+		}
 		if (m_peer_info)
 		{
 			TORRENT_ASSERT(m_peer_info->connection == this
