@@ -44,6 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/bandwidth_limit.hpp"
+#include "libtorrent/bandwidth_queue_entry.hpp"
 
 using boost::weak_ptr;
 using boost::shared_ptr;
@@ -75,91 +77,6 @@ struct history_entry
 	int amount;
 	intrusive_ptr<PeerConnection> peer;
 	weak_ptr<Torrent> tor;
-};
-
-template<class PeerConnection>
-struct bw_queue_entry
-{
-	bw_queue_entry(boost::intrusive_ptr<PeerConnection> const& pe
-		, int blk, bool no_prio)
-		: peer(pe), max_block_size(blk), non_prioritized(no_prio) {}
-	boost::intrusive_ptr<PeerConnection> peer;
-	int max_block_size;
-	bool non_prioritized;
-};
-
-// member of peer_connection
-struct bandwidth_limit
-{
-	static const int inf = boost::integer_traits<int>::const_max;
-
-	bandwidth_limit() throw()
-		: m_quota_left(0)
-		, m_local_limit(inf)
-		, m_current_rate(0)
-	{}
-
-	void throttle(int limit) throw()
-	{
-		m_local_limit = limit;
-	}
-	
-	int throttle() const throw()
-	{
-		return m_local_limit;
-	}
-
-	void assign(int amount) throw()
-	{
-		TORRENT_ASSERT(amount >= 0);
-		m_current_rate += amount;
-		m_quota_left += amount;
-	}
-
-	void use_quota(int amount) throw()
-	{
-		TORRENT_ASSERT(amount <= m_quota_left);
-		m_quota_left -= amount;
-	}
-
-	int quota_left() const throw()
-	{
-		return (std::max)(m_quota_left, 0);
-	}
-
-	void expire(int amount) throw()
-	{
-		TORRENT_ASSERT(amount >= 0);
-		m_current_rate -= amount;
-	}
-
-	int max_assignable() const throw()
-	{
-		if (m_local_limit == inf) return inf;
-		if (m_local_limit <= m_current_rate) return 0;
-		return m_local_limit - m_current_rate;
-	}
-
-private:
-
-	// this is the amount of bandwidth we have
-	// been assigned without using yet. i.e.
-	// the bandwidth that we use up every time
-	// we receive or send a message. Once this
-	// hits zero, we need to request more
-	// bandwidth from the torrent which
-	// in turn will request bandwidth from
-	// the bandwidth manager
-	int m_quota_left;
-
-	// the local limit is the number of bytes
-	// per window size we are allowed to use.
-	int m_local_limit;
-
-	// the current rate is the number of
-	// bytes we have been assigned within
-	// the window size.
-	int m_current_rate;
 };
 
 template<class T>
@@ -204,10 +121,20 @@ struct bandwidth_manager
 	}
 
 #ifndef NDEBUG
-	bool is_queued(PeerConnection const* peer)
+	bool is_queued(PeerConnection const* peer) const
 	{
-		for (typename queue_t::iterator i = m_queue.begin()
+		for (typename queue_t::const_iterator i = m_queue.begin()
 			, end(m_queue.end()); i != end; ++i)
+		{
+			if (i->peer.get() == peer) return true;
+		}
+		return false;
+	}
+
+	bool is_in_history(PeerConnection const* peer) const
+	{
+		for (typename history_t::const_iterator i
+			= m_history.begin(), end(m_history.end()); i != end; ++i)
 		{
 			if (i->peer.get() == peer) return true;
 		}
@@ -231,15 +158,9 @@ struct bandwidth_manager
 		// make sure this peer isn't already in line
 		// waiting for bandwidth
 		TORRENT_ASSERT(!is_queued(peer.get()));
+		TORRENT_ASSERT(peer->max_assignable_bandwidth(m_channel) > 0);
 
 		boost::shared_ptr<Torrent> t = peer->associated_torrent().lock();
-
-		if (peer->max_assignable_bandwidth(m_channel) == 0)
-		{
-			t->expire_bandwidth(m_channel, blk);
-			peer->assign_bandwidth(m_channel, 0);
-			return;
-		}
 		m_queue.push_back(bw_queue_entry<PeerConnection>(peer, blk, non_prioritized));
 		if (!non_prioritized)
 		{
@@ -360,12 +281,21 @@ private:
 			<< " m_current_quota = " << m_current_quota << std::endl;
 #endif
 
-		while (!m_queue.empty() && amount > 0)
+		if (amount <= 0)
+		{
+			m_in_hand_out_bandwidth = false;
+			return;
+		}
+
+		queue_t q;
+		queue_t tmp;
+		m_queue.swap(q);
+		while (!q.empty() && amount > 0)
 		{
 			TORRENT_ASSERT(amount == limit - m_current_quota);
-			bw_queue_entry<PeerConnection> qe = m_queue.front();
+			bw_queue_entry<PeerConnection> qe = q.front();
 			TORRENT_ASSERT(qe.max_block_size > 0);
-			m_queue.pop_front();
+			q.pop_front();
 
 			shared_ptr<Torrent> t = qe.peer->associated_torrent().lock();
 			if (!t) continue;
@@ -377,17 +307,13 @@ private:
 			}
 
 			// at this point, max_assignable may actually be zero. Since
-			// the bandwidth quota is subtracted once the data has been
-			// sent. If the peer was added to the queue while the data was
-			// still being sent, max_assignable may have been > 0 at that time.
-			int max_assignable = (std::min)(
-				qe.peer->max_assignable_bandwidth(m_channel)
-				, t->max_assignable_bandwidth(m_channel));
+			// the rate limit of the peer might have changed while it
+			// was in the queue.
+			int max_assignable = qe.peer->max_assignable_bandwidth(m_channel);
 			if (max_assignable == 0)
 			{
-				t->expire_bandwidth(m_channel, qe.max_block_size);
-				qe.peer->assign_bandwidth(m_channel, 0);
-				TORRENT_ASSERT(amount == limit - m_current_quota);
+				TORRENT_ASSERT(is_in_history(qe.peer.get()));
+				tmp.push_back(qe);
 				continue;
 			}
 
@@ -432,7 +358,7 @@ private:
 #endif
 			if (amount < block_size / 2)
 			{
-				m_queue.push_front(qe);
+				tmp.push_back(qe);
 				break;
 			}
 
@@ -451,6 +377,8 @@ private:
 				qe.peer, t, hand_out_amount, now + bw_window_size));
 			TORRENT_ASSERT(amount == limit - m_current_quota);
 		}
+		if (!q.empty()) m_queue.insert(m_queue.begin(), q.begin(), q.end());
+		if (!tmp.empty()) m_queue.insert(m_queue.begin(), tmp.begin(), tmp.end());
 		m_in_hand_out_bandwidth = false;
 	}
 

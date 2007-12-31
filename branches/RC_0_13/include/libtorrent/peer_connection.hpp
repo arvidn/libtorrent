@@ -69,7 +69,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
-#include "libtorrent/bandwidth_manager.hpp"
+#include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/policy.hpp"
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
