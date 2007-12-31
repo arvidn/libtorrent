@@ -2920,7 +2920,8 @@ namespace libtorrent
 		{
 			// this peer is in the bandwidth history iff max_assignable < limit
 			TORRENT_ASSERT((m_bandwidth_limit[i].max_assignable() < m_bandwidth_limit[i].throttle())
-				== m_ses.m_bandwidth_manager[i]->is_in_history(this));
+				== m_ses.m_bandwidth_manager[i]->is_in_history(this)
+				|| m_bandwidth_limit[i].throttle() == bandwidth_limit::inf);
 		}
 		if (m_peer_info)
 		{
