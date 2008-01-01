@@ -31,6 +31,8 @@ $(top_srcdir)/include/libtorrent/alert_types.hpp \
 $(top_srcdir)/include/libtorrent/assert.hpp \
 $(top_srcdir)/include/libtorrent/aux_/session_impl.hpp \
 $(top_srcdir)/include/libtorrent/bandwidth_manager.hpp \
+$(top_srcdir)/include/libtorrent/bandwidth_limit.hpp \
+$(top_srcdir)/include/libtorrent/bandwidth_queue_entry.hpp \
 $(top_srcdir)/include/libtorrent/bencode.hpp \
 $(top_srcdir)/include/libtorrent/broadcast_socket.hpp \
 $(top_srcdir)/include/libtorrent/buffer.hpp \
