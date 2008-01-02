@@ -85,7 +85,7 @@ namespace libtorrent { namespace
 			if (i == m_block_crc.end() || i->first.piece_index != p) return;
 
 			int size = m_torrent.torrent_file().piece_size(p);
-			peer_request r = {p, 0, std::min(16*1024, size)};
+			peer_request r = {p, 0, (std::min)(16*1024, size)};
 			piece_block pb(p, 0);
 			while (size > 0)
 			{
@@ -105,7 +105,7 @@ namespace libtorrent { namespace
 
 				r.start += 16*1024;
 				size -= 16*1024;
-				r.length = std::min(16*1024, size);
+				r.length = (std::min)(16*1024, size);
 				++pb.block_index;
 			}
 
@@ -131,7 +131,7 @@ namespace libtorrent { namespace
 			m_torrent.picker().get_downloaders(downloaders, p);
 
 			int size = m_torrent.torrent_file().piece_size(p);
-			peer_request r = {p, 0, std::min(16*1024, size)};
+			peer_request r = {p, 0, (std::min)(16*1024, size)};
 			piece_block pb(p, 0);
 			for (std::vector<void*>::iterator i = downloaders.begin()
 				, end(downloaders.end()); i != end; ++i)
@@ -144,7 +144,7 @@ namespace libtorrent { namespace
 
 				r.start += 16*1024;
 				size -= 16*1024;
-				r.length = std::min(16*1024, size);
+				r.length = (std::min)(16*1024, size);
 				++pb.block_index;
 			}
 			TORRENT_ASSERT(size <= 0);
