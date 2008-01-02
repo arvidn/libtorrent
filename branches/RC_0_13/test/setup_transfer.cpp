@@ -11,9 +11,32 @@
 
 #include "test.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/alert_types.hpp"
 
 using boost::filesystem::remove_all;
 using boost::filesystem::create_directory;
+using namespace libtorrent;
+
+void print_alerts(libtorrent::session& ses, char const* name, bool allow_disconnects, bool allow_no_torrents)
+{
+	std::vector<torrent_handle> handles = ses.get_torrents();
+	TEST_CHECK(!handles.empty() || allow_no_torrents);
+	torrent_handle h;
+	if (!handles.empty()) h = handles[0];
+	std::auto_ptr<alert> a;
+	a = ses.pop_alert();
+	while (a.get())
+	{
+		std::cerr << name << ": " << a->msg() << "\n";
+		TEST_CHECK(dynamic_cast<peer_error_alert*>(a.get()) == 0
+			|| (!handles.empty() && h.is_seed())
+			|| a->msg() == "connecting to peer"
+			|| a->msg() == "closing connection to ourself"
+			|| a->msg() == "duplicate connection"
+			|| (allow_disconnects && a->msg() == "End of file."));
+		a = ses.pop_alert();
+	}
+}
 
 void test_sleep(int millisec)
 {
@@ -167,15 +190,21 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	// use the same files
 	sha1_hash info_hash = t->info_hash();
 	torrent_handle tor1 = ses1->add_torrent(clone_ptr(t), "./tmp1" + suffix);
+	TEST_CHECK(!ses1->get_torrents().empty());
 	torrent_handle tor2;
 	torrent_handle tor3;
-	if (ses3) tor3 = ses3->add_torrent(clone_ptr(t), "./tmp3" + suffix);
+	if (ses3)
+	{
+		tor3 = ses3->add_torrent(clone_ptr(t), "./tmp3" + suffix);
+		TEST_CHECK(!ses3->get_torrents().empty());
+	}
 
   	if (use_metadata_transfer)
 		tor2 = ses2->add_torrent("http://non-existent-name.com/announce"
 		, t->info_hash(), 0, "./tmp2" + suffix);
 	else
 		tor2 = ses2->add_torrent(clone_ptr(t), "./tmp2" + suffix);
+	TEST_CHECK(!ses2->get_torrents().empty());
 
 	assert(ses1->get_torrents().size() == 1);
 	assert(ses2->get_torrents().size() == 1);

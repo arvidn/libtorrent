@@ -295,6 +295,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		if (!m_supports_fast) return;
+
 		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 
@@ -312,6 +314,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
+		TORRENT_ASSERT(m_supports_fast);
 
 		char msg[] = {0,0,0,5, msg_allowed_fast, 0, 0, 0, 0};
 		char* ptr = msg + 5;
@@ -1297,6 +1300,9 @@ namespace libtorrent
 		detail::write_int32(r.start, ptr); // begin
 		detail::write_int32(r.length, ptr); // length
 		send_buffer(msg, sizeof(msg));
+
+		if (!m_supports_fast)
+			incoming_reject_request(r);
 	}
 
 	void bt_peer_connection::write_request(peer_request const& r)

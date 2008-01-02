@@ -2628,7 +2628,8 @@ namespace libtorrent
 			for (std::map<piece_block, int>::iterator i = num_requests.begin()
 				, end(num_requests.end()); i != end; ++i)
 			{
-				TORRENT_ASSERT(m_picker->num_peers(i->first) == i->second);
+				if (!m_picker->is_downloaded(i->first))
+					TORRENT_ASSERT(m_picker->num_peers(i->first) == i->second);
 			}
 		}
 

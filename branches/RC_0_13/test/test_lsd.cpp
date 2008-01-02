@@ -56,27 +56,9 @@ void test_lsd()
 
 	for (int i = 0; i < 30; ++i)
 	{
-		std::auto_ptr<alert> a;
-		a = ses1.pop_alert();
-		while(a.get())
-		{
-			std::cerr << "ses1: " << a->msg() << "\n";
-			a = ses1.pop_alert();
-		}
-
-		a = ses2.pop_alert();
-		while (a.get())
-		{
-			std::cerr << "ses2: " << a->msg() << "\n";
-			a = ses2.pop_alert();
-		}
-
-		a = ses3.pop_alert();
-		while (a.get())
-		{
-			std::cerr << "ses3: " << a->msg() << "\n";
-			a = ses3.pop_alert();
-		}
+		print_alerts(ses1, "ses1", true);
+		print_alerts(ses2, "ses2", true);
+		print_alerts(ses3, "ses3", true);
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();

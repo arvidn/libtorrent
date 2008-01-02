@@ -5,6 +5,9 @@
 #include <boost/tuple/tuple.hpp>
 
 
+void print_alerts(libtorrent::session& ses, char const* name
+	, bool allow_disconnects = false
+	, bool allow_no_torrents = false);
 void test_sleep(int millisec);
 
 boost::intrusive_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0);
