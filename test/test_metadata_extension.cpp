@@ -39,20 +39,8 @@ void test_transfer(bool clear_files, bool disconnect
 		// make sure this function can be called on
 		// torrents without metadata
 		if (!disconnect) tor2.status();
-		std::auto_ptr<alert> a;
-		a = ses1.pop_alert();
-		while(a.get())
-		{
-			std::cerr << "ses1: " << a->msg() << "\n";
-			a = ses1.pop_alert();
-		}
-
-		a = ses2.pop_alert();
-		while (a.get())
-		{
-			std::cerr << "ses2: " << a->msg() << "\n";
-			a = ses2.pop_alert();
-		}
+		print_alerts(ses1, "ses1", false, true);
+		print_alerts(ses2, "ses2", false, true);
 
 		if (disconnect && tor2.is_valid()) ses2.remove_torrent(tor2);
 		if (!disconnect && tor2.has_metadata()) break;

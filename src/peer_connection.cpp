@@ -770,7 +770,7 @@ namespace libtorrent
 	}
 	
 	// -----------------------------
-	// -------- REJECT PIECE -------
+	// ------- SUGGEST PIECE -------
 	// -----------------------------
 
 	void peer_connection::incoming_suggest(int index)
@@ -1136,6 +1136,12 @@ namespace libtorrent
 				"i: " << m_peer_interested << " | "
 				"t: " << (int)t->torrent_file().piece_size(r.piece) << " | "
 				"n: " << t->torrent_file().num_pieces() << " ]\n";
+
+			(*m_logger) << time_now_string()
+				<< " ==> REJECT_PIECE [ "
+				"piece: " << r.piece << " | "
+				"s: " << r.start << " | "
+				"l: " << r.length << " ]\n";
 #endif
 			write_reject_request(r);
 			return;
@@ -1156,6 +1162,12 @@ namespace libtorrent
 				"i: " << m_peer_interested << " | "
 				"t: " << (int)t->torrent_file().piece_size(r.piece) << " | "
 				"n: " << t->torrent_file().num_pieces() << " ]\n";
+
+			(*m_logger) << time_now_string()
+				<< " ==> REJECT_PIECE [ "
+				"piece: " << r.piece << " | "
+				"s: " << r.start << " | "
+				"l: " << r.length << " ]\n";
 #endif
 			write_reject_request(r);
 			return;
@@ -1184,8 +1196,13 @@ namespace libtorrent
 			{
 				write_reject_request(r);
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string()
-				<< " *** REJECTING REQUEST [ peer choked and piece not in allowed fast set ]\n";
+				(*m_logger) << time_now_string()
+					<< " *** REJECTING REQUEST [ peer choked and piece not in allowed fast set ]\n";
+				(*m_logger) << time_now_string()
+					<< " ==> REJECT_PIECE [ "
+					"piece: " << r.piece << " | "
+					"s: " << r.start << " | "
+					"l: " << r.length << " ]\n";
 #endif
 			}
 			else
@@ -1208,6 +1225,12 @@ namespace libtorrent
 				"n: " << t->torrent_file().num_pieces() << " | "
 				"h: " << t->have_piece(r.piece) << " | "
 				"block_limit: " << t->block_size() << " ]\n";
+
+			(*m_logger) << time_now_string()
+				<< " ==> REJECT_PIECE [ "
+				"piece: " << r.piece << " | "
+				"s: " << r.start << " | "
+				"l: " << r.length << " ]\n";
 #endif
 
 			write_reject_request(r);
@@ -1394,6 +1417,9 @@ namespace libtorrent
 		m_outstanding_writing_bytes += p.length;
 		TORRENT_ASSERT(!m_reading);
 		picker.mark_as_writing(block_finished, peer_info_struct());
+#ifndef NDEBUG
+		t->check_invariant();
+#endif
 	}
 
 	void peer_connection::on_disk_write_complete(int ret, disk_io_job const& j
@@ -1508,6 +1534,14 @@ namespace libtorrent
 		if (i != m_requests.end())
 		{
 			m_requests.erase(i);
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string()
+				<< " ==> REJECT_PIECE [ "
+				"piece: " << r.piece << " | "
+				"s: " << r.start << " | "
+				"l: " << r.length << " ]\n";
+#endif
+			write_reject_request(r);
 		}
 		else
 		{
@@ -1764,11 +1798,6 @@ namespace libtorrent
 			// sent yet, so we don't have to send a cancel.
 			return;
 		}
-		else
-		{	
-			m_download_queue.erase(it);
-			t->picker().abort_download(block);
-		}
 
 		int block_offset = block.block_index * t->block_size();
 		int block_size
@@ -1782,13 +1811,12 @@ namespace libtorrent
 		r.start = block_offset;
 		r.length = block_size;
 
-		write_cancel(r);
-
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string()
 				<< " ==> CANCEL  [ piece: " << block.piece_index << " | s: "
 				<< block_offset << " | l: " << block_size << " | " << block.block_index << " ]\n";
 #endif
+		write_cancel(r);
 	}
 
 	void peer_connection::send_choke()
@@ -1812,6 +1840,19 @@ namespace libtorrent
 		// reject the requests we have in the queue
 		std::for_each(m_requests.begin(), m_requests.end()
 			, bind(&peer_connection::write_reject_request, this, _1));
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		for (std::deque<peer_request>::iterator i = m_requests.begin()
+			, end(m_requests.end()); i != end; ++i)
+		{
+			peer_request const& r = *i;
+			(*m_logger) << time_now_string()
+				<< " ==> REJECT_PIECE [ "
+				"piece: " << r.piece << " | "
+				"s: " << r.start << " | "
+				"l: " << r.length << " ]\n";
+		}
+#endif
 		m_requests.clear();
 	}
 
@@ -2235,18 +2276,24 @@ namespace libtorrent
 			else
 			{
 				piece_picker& picker = t->picker();
-				while (!m_download_queue.empty())
+
+				std::deque<piece_block> dl(m_download_queue);
+				for (std::deque<piece_block>::iterator i = dl.begin()
+					, end(dl.end()); i != end; ++i)
 				{
 					piece_block const& r = m_download_queue.back();
-					picker.abort_download(r);
+#ifdef TORRENT_VERBOSE_LOGGING
+					(*m_logger) << time_now_string()
+						<< " ==> CANCEL  [ piece: " << r.piece_index
+						<< " | block: " << r.block_index
+						<< " ]\n";
+#endif
 					write_cancel(t->to_req(r));
-					m_download_queue.pop_back();
 				}
 				while (!m_request_queue.empty())
 				{
 					piece_block const& r = m_request_queue.back();
 					picker.abort_download(r);
-					write_cancel(t->to_req(r));
 					m_request_queue.pop_back();
 				}
 
@@ -2923,6 +2970,10 @@ namespace libtorrent
 				== m_ses.m_bandwidth_manager[i]->is_in_history(this)
 				|| m_bandwidth_limit[i].throttle() == bandwidth_limit::inf);
 		}
+		std::set<piece_block> unique;
+		std::copy(m_download_queue.begin(), m_download_queue.end(), std::inserter(unique, unique.begin()));
+		std::copy(m_request_queue.begin(), m_request_queue.end(), std::inserter(unique, unique.begin()));
+		TORRENT_ASSERT(unique.size() == m_download_queue.size() + m_request_queue.size());
 		if (m_peer_info)
 		{
 			TORRENT_ASSERT(m_peer_info->connection == this

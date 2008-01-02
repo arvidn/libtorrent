@@ -114,20 +114,8 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 	for (int i = 0; i < 50; ++i)
 	{
 		tor2.status();
-		std::auto_ptr<alert> a;
-		a = ses1.pop_alert();
-		while(a.get())
-		{
-			std::cerr << "ses1: " << a->msg() << "\n";
-			a = ses1.pop_alert();
-		}
-
-		a = ses2.pop_alert();
-		while (a.get())
-		{
-			std::cerr << "ses2: " << a->msg() << "\n";
-			a = ses2.pop_alert();
-		}
+		print_alerts(ses1, "ses1");
+		print_alerts(ses2, "ses2");
 
 		if (tor2.is_seed()) break;
 		test_sleep(100);
