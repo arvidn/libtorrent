@@ -85,7 +85,6 @@ libtorrent/kademlia/node.hpp \
 libtorrent/kademlia/node_entry.hpp \
 libtorrent/kademlia/node_id.hpp \
 libtorrent/kademlia/observer.hpp \
-libtorrent/kademlia/packet_iterator.hpp \
 libtorrent/kademlia/refresh.hpp \
 libtorrent/kademlia/routing_table.hpp \
 libtorrent/kademlia/rpc_manager.hpp \
