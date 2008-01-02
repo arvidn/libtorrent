@@ -71,6 +71,8 @@ check: test
 	&& test/test_piece_picker \
 	&& test/test_storage \
 	&& test/test_buffer \
+	&& test/test_swarm \
+	&& test/test_primitives \
 	&& echo && echo && echo "  **** all tests passed ****" && echo && echo
 
 deb:
