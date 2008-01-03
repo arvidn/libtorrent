@@ -170,15 +170,6 @@ namespace libtorrent
 		
 		void print(std::ostream& os, int indent = 0) const;
 
-#ifndef NDEBUG
-		// in debug mode this is set to false by bdecode
-		// to indicate that the program has not yet queried
-		// the type of this entry, and sould not assume
-		// that it has a certain type. This is asserted in
-		// the accessor functions. This does not apply if
-		// exceptions are used.
-		mutable bool m_type_queried;
-#endif
 	private:
 
 		void construct(data_type t);
@@ -211,6 +202,16 @@ namespace libtorrent
 		};
 #endif
 
+#ifndef NDEBUG
+	public:
+		// in debug mode this is set to false by bdecode
+		// to indicate that the program has not yet queried
+		// the type of this entry, and sould not assume
+		// that it has a certain type. This is asserted in
+		// the accessor functions. This does not apply if
+		// exceptions are used.
+		mutable bool m_type_queried;
+#endif
 	};
 
 	inline std::ostream& operator<<(std::ostream& os, const entry& e)
@@ -227,14 +228,6 @@ namespace libtorrent
 		return m_type;
 	}
 
-	inline entry::entry(): m_type(undefined_t)
-	{
-#ifndef NDEBUG
-		m_type_queried = true;
-#endif
-	}
-	inline entry::entry(data_type t): m_type(t) { construct(t); }
-	inline entry::entry(const entry& e) { copy(e); }
 	inline entry::~entry() { destruct(); }
 
 	inline void entry::operator=(const entry& e)
@@ -242,7 +235,6 @@ namespace libtorrent
 		destruct();
 		copy(e);
 	}
-
 
 	inline entry::integer_type& entry::integer()
 	{

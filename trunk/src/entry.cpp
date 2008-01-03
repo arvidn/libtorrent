@@ -142,6 +142,29 @@ namespace libtorrent
 	}
 #endif
 
+	entry::entry(): m_type(undefined_t)
+	{
+#ifndef NDEBUG
+		m_type_queried = true;
+#endif
+	}
+
+	entry::entry(data_type t): m_type(t)
+	{
+		construct(t);
+#ifndef NDEBUG
+		m_type_queried = true;
+#endif
+	}
+
+	entry::entry(const entry& e)
+	{
+		copy(e);
+#ifndef NDEBUG
+		m_type_queried = e.m_type_queried;
+#endif
+	}
+
 	entry::entry(dictionary_type const& v)
 	{
 #ifndef NDEBUG
