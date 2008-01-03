@@ -25,6 +25,7 @@ int main(int argc, char* argv[])
 
 	connection_queue cc(ios);
 	boost::intrusive_ptr<upnp> upnp_handler = new upnp(ios, cc, address_v4(), user_agent, &callback);
+	upnp_handler->discover_device();
 
 	deadline_timer timer(ios);
 	timer.expires_from_now(seconds(2));
