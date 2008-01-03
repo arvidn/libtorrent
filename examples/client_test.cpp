@@ -623,6 +623,7 @@ int main(int ac, char* av[])
 		if (listen_port < 0 || listen_port > 65525) listen_port = 6881;
 		if (preferred_ratio != 0 && preferred_ratio < 1.f) preferred_ratio = 1.f;
 		upload_limit *= 1000;
+		torrent_upload_limit *= 1000;
 		download_limit *= 1000;
 		if (download_limit <= 0) download_limit = -1;
 		if (upload_limit <= 0) upload_limit = -1;
