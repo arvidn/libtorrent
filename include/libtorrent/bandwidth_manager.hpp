@@ -123,6 +123,7 @@ struct bandwidth_manager
 #ifndef NDEBUG
 	bool is_in_history(PeerConnection const* peer) const
 	{
+		mutex_t::scoped_lock l(m_mutex);
 		for (typename history_t::const_iterator i
 			= m_history.begin(), end(m_history.end()); i != end; ++i)
 		{
@@ -142,6 +143,7 @@ struct bandwidth_manager
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(blk > 0);
 
+		mutex_t::scoped_lock l(m_mutex);
 		TORRENT_ASSERT(!peer->ignore_bandwidth_limits());
 
 		// make sure this peer isn't already in line
@@ -187,7 +189,7 @@ struct bandwidth_manager
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
 		std::cerr << " req_bandwidht. m_queue.size() = " << m_queue.size() << std::endl;
 #endif
-		if (!m_queue.empty()) hand_out_bandwidth();
+		if (!m_queue.empty()) hand_out_bandwidth(l);
 	}
 
 #ifndef NDEBUG
@@ -239,6 +241,7 @@ private:
 
 		TORRENT_ASSERT(!m_history.empty());
 
+		mutex_t::scoped_lock l(m_mutex);
 		ptime now(time_now());
 		while (!m_history.empty() && m_history.back().expires_at <= now)
 		{
@@ -248,8 +251,10 @@ private:
 			TORRENT_ASSERT(m_current_quota >= 0);
 			intrusive_ptr<PeerConnection> c = e.peer;
 			shared_ptr<Torrent> t = e.tor.lock();
+			l.unlock();
 			if (!c->is_disconnecting()) c->expire_bandwidth(m_channel, e.amount);
 			if (t) t->expire_bandwidth(m_channel, e.amount);
+			l.lock();
 		}
 		
 		// now, wait for the next chunk to expire
@@ -262,7 +267,7 @@ private:
 		// since some bandwidth just expired, it
 		// means we can hand out more (in case there
 		// are still consumers in line)
-		if (!m_queue.empty()) hand_out_bandwidth();
+		if (!m_queue.empty()) hand_out_bandwidth(l);
 #ifndef NDEBUG
 		}
 		catch (std::exception&)
@@ -272,7 +277,7 @@ private:
 #endif
 	}
 
-	void hand_out_bandwidth() throw()
+	void hand_out_bandwidth(boost::mutex::scoped_lock& l) throw()
 	{
 		// if we're already handing out bandwidth, just return back
 		// to the loop further down on the callstack
@@ -285,9 +290,7 @@ private:
 
 		ptime now(time_now());
 
-		mutex_t::scoped_lock l(m_mutex);
 		int limit = m_limit;
-		l.unlock();
 
 		// available bandwidth to hand out
 		int amount = limit - m_current_quota;
@@ -319,7 +322,9 @@ private:
 			if (!t) continue;
 			if (qe.peer->is_disconnecting())
 			{
+				l.unlock();
 				t->expire_bandwidth(m_channel, qe.max_block_size);
+				l.lock();
 				TORRENT_ASSERT(amount == limit - m_current_quota);
 				continue;
 			}
@@ -389,8 +394,10 @@ private:
 			TORRENT_ASSERT(amount == limit - m_current_quota);
 			amount -= hand_out_amount;
 			TORRENT_ASSERT(hand_out_amount <= qe.max_block_size);
+			l.unlock();
 			t->assign_bandwidth(m_channel, hand_out_amount, qe.max_block_size);
 			qe.peer->assign_bandwidth(m_channel, hand_out_amount);
+			l.lock();
 			add_history_entry(history_entry<PeerConnection, Torrent>(
 				qe.peer, t, hand_out_amount, now + bw_window_size));
 			TORRENT_ASSERT(amount == limit - m_current_quota);
