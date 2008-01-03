@@ -170,12 +170,17 @@ namespace libtorrent
 		for (std::list<socket_entry>::iterator i = m_sockets.begin()
 			, end(m_sockets.end()); i != end; ++i)
 		{
+			if (!i->socket) continue;
 			asio::error_code e;
 			i->socket->send_to(asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
 #ifndef NDEBUG
 //			std::cerr << " sending on " << i->socket->local_endpoint().address().to_string() << std::endl;
 #endif
-			if (e) ec = e;
+			if (e)
+			{
+				i->socket->close(e);
+				i->socket.reset();
+			}
 		}
 	}
 
@@ -184,6 +189,7 @@ namespace libtorrent
 	{
 		if (ec || bytes_transferred == 0 || !m_on_receive) return;
 		m_on_receive(s->remote, s->buffer, bytes_transferred);
+		if (!s->socket) return;
 		s->socket->async_receive_from(asio::buffer(s->buffer, sizeof(s->buffer))
 			, s->remote, bind(&broadcast_socket::on_receive, this, s, _1, _2));
 	}
@@ -195,6 +201,7 @@ namespace libtorrent
 		for (std::list<socket_entry>::iterator i = m_sockets.begin()
 			, end(m_sockets.end()); i != end; ++i)
 		{
+			if (!socket) continue;
 			i->socket->close();
 		}
 	}

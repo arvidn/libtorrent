@@ -71,6 +71,7 @@ namespace libtorrent
 			udp::endpoint remote;
 			void close()
 			{
+				if (!socket) return;
 				asio::error_code ec;
 				socket->close(ec);
 			}
