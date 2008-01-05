@@ -27,7 +27,10 @@ void print_alerts(libtorrent::session& ses, char const* name, bool allow_disconn
 	a = ses.pop_alert();
 	while (a.get())
 	{
-		std::cerr << name << ": " << a->msg() << "\n";
+		if (a->msg() != "block downloading"
+			&& a->msg() != "block finished"
+			&& a->msg() != "piece finished")
+			std::cerr << name << ": " << a->msg() << "\n";
 		TEST_CHECK(dynamic_cast<peer_error_alert*>(a.get()) == 0
 			|| (!handles.empty() && h.is_seed())
 			|| a->msg() == "connecting to peer"
