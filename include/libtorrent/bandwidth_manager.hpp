@@ -308,7 +308,7 @@ private:
 				l.unlock();
 				t->expire_bandwidth(m_channel, qe.max_block_size);
 				l.lock();
-				TORRENT_ASSERT(amount == limit - m_current_quota);
+				amount = limit - m_current_quota;
 				continue;
 			}
 
@@ -383,7 +383,7 @@ private:
 			l.lock();
 			add_history_entry(history_entry<PeerConnection, Torrent>(
 				qe.peer, t, hand_out_amount, now + bw_window_size));
-			TORRENT_ASSERT(amount == limit - m_current_quota);
+			amount = limit - m_current_quota;
 		}
 		if (!q.empty()) m_queue.insert(m_queue.begin(), q.begin(), q.end());
 		if (!tmp.empty()) m_queue.insert(m_queue.begin(), tmp.begin(), tmp.end());
