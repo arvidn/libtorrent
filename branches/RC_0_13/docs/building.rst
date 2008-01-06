@@ -213,6 +213,10 @@ Build features:
 |                        | * ``shipped`` - links against the zlib bundled     |
 |                        |   with the libtorrent package.                     |
 +------------------------+----------------------------------------------------+
+| ``upnp-logging``       | * ``off`` - default. Does not log UPnP traffic.    |
+|                        | * ``on`` - creates "upnp.log" with the messages    |
+|                        |   sent to and received from UPnP devices.          |
++------------------------+----------------------------------------------------+
 | ``openssl``            | * ``pe`` - turns on support for encrypted          |
 |                        |   connections. requires openssl (libcrypto)        |
 |                        | * ``sha-1`` - openssl will be used instead of the  |
@@ -444,6 +448,10 @@ defines you can use to control the build.
 | ``TORRENT_STORAGE_DEBUG``       | This will enable extra expensive invariant      |
 |                                 | checks in the storage, including logging of     |
 |                                 | piece sorting.                                  |
++---------------------------------+-------------------------------------------------+
+| ``TORRENT_UPNP_LOGGING``        | Generates a "upnp.log" file with the UPnP       |
+|                                 | traffic. This is very useful when debugging     |
+|                                 | support for various UPnP routers.               |
 +---------------------------------+-------------------------------------------------+
 | ``UNICODE``                     | If building on windows this will make sure the  |
 |                                 | UTF-8 strings in pathnames are converted into   |

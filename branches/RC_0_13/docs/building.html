@@ -215,6 +215,14 @@ with the libtorrent package.</li>
 </ul>
 </td>
 </tr>
+<tr><td><tt class="docutils literal"><span class="pre">upnp-logging</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">off</span></tt> - default. Does not log UPnP traffic.</li>
+<li><tt class="docutils literal"><span class="pre">on</span></tt> - creates &quot;upnp.log&quot; with the messages
+sent to and received from UPnP devices.</li>
+</ul>
+</td>
+</tr>
 <tr><td><tt class="docutils literal"><span class="pre">openssl</span></tt></td>
 <td><ul class="first last simple">
 <li><tt class="docutils literal"><span class="pre">pe</span></tt> - turns on support for encrypted
@@ -455,6 +463,11 @@ the session log.</td>
 <td>This will enable extra expensive invariant
 checks in the storage, including logging of
 piece sorting.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">TORRENT_UPNP_LOGGING</span></tt></td>
+<td>Generates a &quot;upnp.log&quot; file with the UPnP
+traffic. This is very useful when debugging
+support for various UPnP routers.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">UNICODE</span></tt></td>
 <td>If building on windows this will make sure the
