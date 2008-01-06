@@ -1171,6 +1171,11 @@ int main(int ac, char* av[])
 
 			}
 
+			out << "conns: " << sess_stat.num_peers << " down: " << esc("32") << add_suffix(sess_stat.download_rate) << "/s" << esc("0")
+				<< " (" << esc("32") << add_suffix(sess_stat.total_download) << esc("0") << ") "
+				" up: " << esc("31") << add_suffix(sess_stat.upload_rate) << "/s " << esc("0")
+				<< " (" << esc("31") << add_suffix(sess_stat.total_upload) << esc("0") << ")" << std::endl;
+
 			if (print_log)
 			{
 				for (std::deque<std::string>::iterator i = events.begin();
