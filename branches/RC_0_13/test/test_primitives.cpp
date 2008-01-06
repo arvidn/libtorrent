@@ -5,6 +5,8 @@
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/kademlia/node_id.hpp"
+
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/bind.hpp>
@@ -256,6 +258,34 @@ int test_main()
  	std::cerr << ti3.name() << std::endl;
  	TEST_CHECK(ti3.name() == "test2/test3/test4");
 	
+	// test kademlia functions
+
+	using namespace libtorrent::dht;
+
+	for (int i = 0; i < 160; i += 4)
+	{
+		for (int j = 0; j < 160; j += 4)
+		{
+			node_id a(0);
+			a[(159-i) / 8] = 1 << (i & 7);
+			node_id b(0);
+			b[(159-j) / 8] = 1 << (j & 7);
+			int dist = distance_exp(a, b);
+
+			TEST_CHECK(dist >= 0 && dist < 160);
+			TEST_CHECK(dist == ((i == j)?0:std::max(i, j)));
+
+			for (int k = 0; k < 160; k += 4)
+			{
+				node_id c(0);
+				c[(159-k) / 8] = 1 << (k & 7);
+
+				bool cmp = compare_ref(a, b, c);
+				TEST_CHECK(cmp == (distance(a, c) < distance(b, c)));
+			}
+		}
+	}
+
 	return 0;
 }
 
