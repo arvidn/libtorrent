@@ -286,8 +286,20 @@ int test_main()
 	torrent["info"] = info;
 
 	torrent_info ti(torrent);
-
+	std::cerr << ti.name() << std::endl;
 	TEST_CHECK(ti.name() == "test1");
+
+	info["name.utf-8"] = "/test1/test2/test3";
+	torrent["info"] = info;
+	torrent_info ti2(torrent);
+	std::cerr << ti2.name() << std::endl;
+	TEST_CHECK(ti2.name() == "test3");
+
+	info["name.utf-8"] = "test2/../test3/.././../../test4";
+	torrent["info"] = info;
+	torrent_info ti3(torrent);
+	std::cerr << ti3.name() << std::endl;
+	TEST_CHECK(ti3.name() == "test2/test3/test4");
 
 	// test kademlia functions
 

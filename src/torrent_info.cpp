@@ -386,12 +386,23 @@ namespace libtorrent
 		fs::path tmp = m_name;
 		if (tmp.is_complete())
 		{
-			error = "torrent contains a file with an absolute path: '" + m_name + "'";
-			return false;
+			m_name = tmp.leaf();
 		}
-		if (tmp.has_branch_path())
+		else if (tmp.has_branch_path())
 		{
-			error = "torrent contains name with directories: '" + m_name + "'";
+			fs::path p;
+			for (fs::path::iterator i = tmp.begin()
+				, end(tmp.end()); i != end; ++i)
+			{
+				if (*i == "." || *i == "..") continue;
+				p /= *i;
+			}
+			m_name = p.string();
+		}
+		if (m_name == ".." || m_name == ".")
+		{
+		
+			error = "invalid 'name' of torrent (possible exploit attempt)";
 			return false;
 		}
 	
