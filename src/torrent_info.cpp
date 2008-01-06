@@ -350,10 +350,23 @@ namespace libtorrent
 		{ m_name = info["name"].string(); }
 		
 		fs::path tmp = m_name;
-		if (tmp.is_complete()) throw std::runtime_error("torrent contains "
-			"a file with an absolute path: '" + m_name + "'");
-		if (tmp.has_branch_path()) throw std::runtime_error(
-			"torrent contains name with directories: '" + m_name + "'");
+  		if (tmp.is_complete())
+  		{
+ 			m_name = tmp.leaf();
+  		}
+ 		else if (tmp.has_branch_path())
+  		{
+ 			fs::path p;
+ 			for (fs::path::iterator i = tmp.begin()
+ 				, end(tmp.end()); i != end; ++i)
+ 			{
+ 				if (*i == "." || *i == "..") continue;
+ 				p /= *i;
+ 			}
+ 			m_name = p.string();
+ 		}
+ 		if (m_name == ".." || m_name == ".")
+ 			throw std::runtime_error("invalid 'name' of torrent (possible exploit attempt)");
 	
 		// extract file list
 		entry const* i = info.find_key("files");
