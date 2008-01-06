@@ -1619,6 +1619,18 @@ namespace libtorrent
 		p->set_peer_info(0);
 		TORRENT_ASSERT(i != m_connections.end());
 		m_connections.erase(i);
+
+		// remove from bandwidth request-queue
+		for (int c = 0; c < 2; ++c)
+		{
+			for (queue_t::iterator i = m_bandwidth_queue[c].begin()
+				, end(m_bandwidth_queue[c].end()); i != end; ++i)
+			{
+				if (i->peer != p) continue;
+				m_bandwidth_queue[c].erase(i);
+				break;
+			}
+		}
 	}
 	catch (std::exception& e)
 	{
@@ -2643,6 +2655,9 @@ namespace libtorrent
 	void torrent::check_invariant() const
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+		TORRENT_ASSERT(m_bandwidth_queue[0].size() <= m_connections.size());
+		TORRENT_ASSERT(m_bandwidth_queue[1].size() <= m_connections.size());
 
 		int num_uploads = 0;
 		std::map<piece_block, int> num_requests;
