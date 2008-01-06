@@ -106,7 +106,6 @@ namespace libtorrent
 		, udp::resolver::iterator i)
 	{
 		if (error == asio::error::operation_aborted) return;
-		if (!m_socket.is_open()) return; // the operation was aborted
 		if (error || i == udp::resolver::iterator())
 		{
 			fail(-1, error.message().c_str());
