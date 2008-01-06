@@ -177,7 +177,7 @@ namespace libtorrent { namespace
 			aux::session_impl::mutex_t::scoped_lock l(m_torrent.session().m_mutex);
 			
 			std::map<piece_block, block_entry>::iterator i = m_block_crc.lower_bound(b);
-			if (i->first == b && i->second.peer == p)
+			if (i != m_block_crc.end() && i->first == b && i->second.peer == p)
 			{
 				// this peer has sent us this block before
 				if (i->second.crc != e.crc)
