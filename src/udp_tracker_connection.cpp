@@ -100,6 +100,10 @@ namespace libtorrent
 			? m_settings.stop_tracker_timeout
 			: m_settings.tracker_completion_timeout
 			, m_settings.tracker_receive_timeout);
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		boost::shared_ptr<request_callback> cb = requester();
+		if (cb) cb->debug_log(("*** UDP_TRACKER [ initiating name lookup: " + hostname + " ]").c_str());
+#endif
 	}
 
 	void udp_tracker_connection::name_lookup(asio::error_code const& error
@@ -114,7 +118,7 @@ namespace libtorrent
 
 		boost::shared_ptr<request_callback> cb = requester();
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		if (cb) cb->debug_log("udp tracker name lookup successful");
+		if (cb) cb->debug_log("*** UDP_TRACKER [ name lookup successful ]");
 #endif
 		restart_read_timeout();
 		
@@ -169,6 +173,10 @@ namespace libtorrent
 
 	void udp_tracker_connection::on_timeout()
 	{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		boost::shared_ptr<request_callback> cb = requester();
+		if (cb) cb->debug_log("*** UDP_TRACKER [ timed out ]");
+#endif
 		asio::error_code ec;
 		m_socket.close(ec);
 		m_name_lookup.cancel();
@@ -293,7 +301,7 @@ namespace libtorrent
 		if (cb)
 		{
 			std::stringstream msg;
-			msg << "<== UDP_TRACKER_CONNECT_RESPONSE [" << m_connection_id << "]";
+			msg << "<== UDP_TRACKER_CONNECT_RESPONSE [ cid: " << m_connection_id << " ]";
 			cb->debug_log(msg.str());
 		}
 #endif
