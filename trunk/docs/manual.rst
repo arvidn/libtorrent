@@ -2251,6 +2251,13 @@ It contains the following fields::
 			web_seed = 1
 		};
 		int connection_type;
+
+		int remote_dl_rate;
+
+		int pending_disk_bytes;
+
+		int send_quota;
+		int receive_quota;
 	};
 
 The ``flags`` attribute tells you in which state the peer is. It is set to
@@ -2388,6 +2395,17 @@ string.
 
 ``connection_type`` can currently be one of ``standard_bittorrent`` or
 ``web_seed``. These are currently the only implemented protocols.
+
+``remote_dl_rate`` is an estimate of the rate this peer is downloading at, in
+bytes per second.
+
+``pending_disk_bytes`` is the number of bytes this peer has pending in the
+disk-io thread. Downloaded and waiting to be written to disk. This is what
+is capped by ``session_settings::max_outstanding_disk_bytes_per_connection``.
+
+``send_quota`` and ``receive_quota`` are the number of bytes this peer has been
+assigned to be allowed to send and receive until it has to request more quota
+from the bandwidth manager.
 
 session_settings
 ================

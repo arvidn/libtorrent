@@ -2033,6 +2033,8 @@ namespace libtorrent
 
 	void peer_connection::timed_out()
 	{
+		TORRENT_ASSERT(m_connecting);
+		TORRENT_ASSERT(m_connection_ticket >= 0);
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_ses.m_logger) << time_now_string() << " CONNECTION TIMED OUT: " << m_remote.address().to_string()
 			<< "\n";
@@ -2152,6 +2154,8 @@ namespace libtorrent
 		p.pid = pid();
 		p.ip = remote();
 		p.pending_disk_bytes = m_outstanding_writing_bytes;
+		p.send_quota = m_bandwidth_limit[upload_channel].quota_left();
+		p.receive_quota = m_bandwidth_limit[download_channel].quota_left();
 		
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		p.country[0] = m_country[0];
@@ -2560,7 +2564,8 @@ namespace libtorrent
 				m_requested_write_quota = true;
 #endif
 				t->request_bandwidth(upload_channel, self()
-					, !(is_interesting() && !has_peer_choked()));
+					, !(is_interesting() && !has_peer_choked())
+					, m_send_buffer.size());
 			}
 			return;
 		}
@@ -2617,7 +2622,8 @@ namespace libtorrent
 				TORRENT_ASSERT(!m_requested_read_quota);
 				m_requested_read_quota = true;
 #endif
-				t->request_bandwidth(download_channel, self(), m_non_prioritized);
+				t->request_bandwidth(download_channel, self(), m_non_prioritized
+					, m_download_queue.size() * 16 * 1024 + 30);
 			}
 			return;
 		}
@@ -3031,6 +3037,7 @@ namespace libtorrent
 				== m_ses.m_bandwidth_manager[i]->is_in_history(this)
 				|| m_bandwidth_limit[i].throttle() == bandwidth_limit::inf);
 		}
+
 		std::set<piece_block> unique;
 		std::copy(m_download_queue.begin(), m_download_queue.end(), std::inserter(unique, unique.begin()));
 		std::copy(m_request_queue.begin(), m_request_queue.end(), std::inserter(unique, unique.begin()));

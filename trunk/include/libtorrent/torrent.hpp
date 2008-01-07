@@ -234,12 +234,11 @@ namespace libtorrent
 
 		void request_bandwidth(int channel
 			, boost::intrusive_ptr<peer_connection> const& p
-			, bool non_prioritized);
+			, bool non_prioritized, int max_block_size);
 
 		void perform_bandwidth_request(int channel
 			, boost::intrusive_ptr<peer_connection> const& p
-			, int block_size
-			, bool non_prioritized);
+			, int block_size, bool non_prioritized);
 		
 		void expire_bandwidth(int channel, int amount);
 		void assign_bandwidth(int channel, int amount, int blk);

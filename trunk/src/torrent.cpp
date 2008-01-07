@@ -2273,11 +2273,13 @@ namespace libtorrent
 
 	void torrent::request_bandwidth(int channel
 		, boost::intrusive_ptr<peer_connection> const& p
-		, bool non_prioritized)
+		, bool non_prioritized, int max_block_size)
 	{
+		TORRENT_ASSERT(max_block_size > 0);
 		TORRENT_ASSERT(m_bandwidth_limit[channel].throttle() > 0);
 		TORRENT_ASSERT(p->max_assignable_bandwidth(channel) > 0);
-		int block_size = m_bandwidth_limit[channel].throttle() / 10;
+		int block_size = (std::min)(m_bandwidth_limit[channel].throttle() / 10
+			, max_block_size);
 		if (block_size <= 0) block_size = 1;
 
 		if (m_bandwidth_limit[channel].max_assignable() > 0)

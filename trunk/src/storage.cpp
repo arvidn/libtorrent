@@ -1061,6 +1061,10 @@ namespace libtorrent
 		// since that is the size of the pool allocator's buffers
 		TORRENT_ASSERT(r.length <= 16 * 1024 || buffer != 0);
 		m_io_thread.add_job(j, handler);
+#ifndef NDEBUG
+		boost::recursive_mutex::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(slot_for(r.piece) >= 0);
+#endif
 	}
 
 	void piece_manager::async_write(
