@@ -471,6 +471,13 @@ void upnp::map_port(rootdevice& d, int i)
 	TORRENT_ASSERT(d.magic == 1337);
 	if (d.upnp_connection) return;
 
+	if (d.mapping[i].failcount > 5)
+	{
+		// giving up
+		if (i < num_mappings - 1)
+			map_port(d, i + 1);
+		return;
+	}
 	if (!d.mapping[i].need_update)
 	{
 #ifdef TORRENT_UPNP_LOGGING
@@ -825,32 +832,37 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 		// only permanent leases supported
 		d.lease_duration = 0;
 		d.mapping[mapping].need_update = true;
+		++d.mapping[mapping].failcount;
 		map_port(d, mapping);
 		return;
 	}
-	else if (s.error_code == 718)
+	else if (s.error_code == 718 || s.error_code == 727)
 	{
-		// conflict in mapping, try next external port
-		++d.mapping[mapping].external_port;
+		if (d.mapping[mapping].external_port != 0)
+		{
+			// conflict in mapping, set port to wildcard
+			// and let the router decide
+			d.mapping[mapping].external_port = 0;
+			d.mapping[mapping].need_update = true;
+			++d.mapping[mapping].failcount;
+			map_port(d, mapping);
+			return;
+		}
+		return_error(s.error_code);
+	}
+	else if (s.error_code == 716)
+	{
+		// The external port cannot be wildcarder
+		// pick a random port
+		d.mapping[mapping].external_port = 40000 + (rand() % 10000);
 		d.mapping[mapping].need_update = true;
+		++d.mapping[mapping].failcount;
 		map_port(d, mapping);
 		return;
 	}
 	else if (s.error_code != -1)
 	{
-		int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
-		error_code_t* end = error_codes + num_errors;
-		error_code_t tmp = {s.error_code, 0};
-		error_code_t* e = std::lower_bound(error_codes, end, tmp
-			, bind(&error_code_t::code, _1) < bind(&error_code_t::code, _2));
-		std::string error_string = "UPnP mapping error ";
-		error_string += boost::lexical_cast<std::string>(s.error_code);
-		if (e != end  && e->code == s.error_code)
-		{
-			error_string += ": ";
-			error_string += e->msg;
-		}
-		m_callback(0, 0, error_string);
+		return_error(s.error_code);
 	}
 
 #ifdef TORRENT_UPNP_LOGGING
@@ -887,6 +899,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 		{
 			d.mapping[mapping].expires = max_time();
 		}
+		d.mapping[mapping].failcount = 0;
 	}
 
 	for (int i = 0; i < num_mappings; ++i)
@@ -897,6 +910,23 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 			return;
 		}
 	}
+}
+
+void upnp::return_error(int code)
+{
+	int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
+	error_code_t* end = error_codes + num_errors;
+	error_code_t tmp = {code, 0};
+	error_code_t* e = std::lower_bound(error_codes, end, tmp
+		, bind(&error_code_t::code, _1) < bind(&error_code_t::code, _2));
+	std::string error_string = "UPnP mapping error ";
+	error_string += boost::lexical_cast<std::string>(code);
+	if (e != end && e->code == code)
+	{
+		error_string += ": ";
+		error_string += e->msg;
+	}
+	m_callback(0, 0, error_string);
 }
 
 void upnp::on_upnp_unmap_response(asio::error_code const& e

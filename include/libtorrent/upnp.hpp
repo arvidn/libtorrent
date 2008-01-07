@@ -108,6 +108,7 @@ private:
 	void map_port(rootdevice& d, int i);
 	void unmap_port(rootdevice& d, int i);
 	void disable();
+	void return_error(int code);
 
 	void delete_port_mapping(rootdevice& d, int i);
 	void create_port_mapping(http_connection& c, rootdevice& d, int i);
@@ -121,6 +122,7 @@ private:
 			, local_port(0)
 			, external_port(0)
 			, protocol(1)
+			, failcount(0)
 		{}
 
 		// the time the port mapping will expire
@@ -139,6 +141,9 @@ private:
 
 		// 1 = udp, 0 = tcp
 		int protocol;
+
+		// the number of times this mapping has failed
+		int failcount;
 	};
 
 	struct rootdevice
