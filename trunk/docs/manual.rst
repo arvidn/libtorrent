@@ -2446,6 +2446,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int inactivity_timeout;
 		bool use_dht_as_fallback;
 		bool free_torrent_hashes;
+		bool upnp_ignore_nonrouters;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -2577,6 +2578,11 @@ needed anymore since the torrent won't download anything more). If it's set
 to false they are not freed. If they are freed, the torrent_info_ returned
 by get_torrent_info() will return an object that may be incomplete, that
 cannot be passed back to `add_torrent()`_ for instance.
+
+``upnp_ignore_nonrouters`` indicates whether or not the UPnP implementation
+should ignore any broadcast response from a device whose address is not the
+configured router for this machine. i.e. it's a way to not talk to other
+people's routers by mistake.
 
 pe_settings
 ===========

@@ -117,6 +117,7 @@ namespace libtorrent
 			, use_dht_as_fallback(true)
 #endif
 			, free_torrent_hashes(true)
+			, upnp_ignore_nonrouters(true)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -292,6 +293,11 @@ namespace libtorrent
 		// make the get_torrent_info() function to return an incomplete
 		// torrent object that cannot be passed back to add_torrent()
 		bool free_torrent_hashes;
+
+		// when this is true, the upnp port mapper will ignore
+		// any upnp devices that don't have an address that matches
+		// our currently configured router.
+		bool upnp_ignore_nonrouters;
 	};
 	
 #ifndef TORRENT_DISABLE_DHT
