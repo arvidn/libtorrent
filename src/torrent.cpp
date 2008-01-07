@@ -1086,7 +1086,7 @@ namespace libtorrent
 						<< " ] 'too many corrupt pieces'\n";
 #endif
 #endif
-					p->connection->disconnect();
+					p->connection->disconnect("too many corrupt pieces, banning peer");
 				}
 			}
 		}
@@ -1828,10 +1828,7 @@ namespace libtorrent
 #endif
 
 			// TODO: post an error alert!
-//			std::map<tcp::endpoint, peer_connection*>::iterator i = m_connections.find(a);
-//			if (i != m_connections.end()) m_connections.erase(i);
-			m_ses.connection_failed(c, a, e.what());
-			c->disconnect();
+			c->disconnect(e.what());
 		}
 	}
 	catch (std::exception& exc)
@@ -2130,8 +2127,7 @@ namespace libtorrent
 			std::set<peer_connection*>::iterator i
 				= m_connections.find(boost::get_pointer(c));
 			if (i != m_connections.end()) m_connections.erase(i);
-			m_ses.connection_failed(c, a, e.what());
-			c->disconnect();
+			c->disconnect(e.what());
 			return false;
 		}
 		peerinfo->connection = c.get();
@@ -2216,7 +2212,11 @@ namespace libtorrent
 #endif
 			TORRENT_ASSERT(m_connections.find(p) == ci);
 			TORRENT_ASSERT(*ci == p);
-			m_policy.new_connection(**ci);
+			if (!m_policy.new_connection(**ci))
+			{
+				m_connections.erase(ci);
+				return;
+			}
 		}
 		catch (std::exception& e)
 		{
@@ -2261,7 +2261,7 @@ namespace libtorrent
 #ifndef NDEBUG
 			std::size_t size = m_connections.size();
 #endif
-			p->disconnect();
+			p->disconnect(m_abort?"stopping torrent":"pausing torrent");
 			TORRENT_ASSERT(m_connections.size() <= size);
 		}
 	}
@@ -2371,7 +2371,7 @@ namespace libtorrent
 			}
 		}
 		std::for_each(seeds.begin(), seeds.end()
-			, bind(&peer_connection::disconnect, _1));
+			, bind(&peer_connection::disconnect, _1, "torrent finished, disconnecting seed"));
 
 		TORRENT_ASSERT(m_storage);
 		// we need to keep the object alive during this operation
@@ -2586,7 +2586,7 @@ namespace libtorrent
 					// the connection failed, close it
 					torrent::peer_iterator j = i;
 					++j;
-					m_ses.connection_failed(*i, (*i)->remote(), e.what());
+					(*i)->disconnect(e.what());
 					i = j;
 				}
 			}
@@ -2663,6 +2663,8 @@ namespace libtorrent
 		std::map<piece_block, int> num_requests;
 		for (const_peer_iterator i = begin(); i != end(); ++i)
 		{
+			// make sure this peer is not a dangling pointer
+			TORRENT_ASSERT(m_ses.has_peer(*i));
 			peer_connection const& p = *(*i);
 			for (std::deque<piece_block>::const_iterator i = p.request_queue().begin()
 				, end(p.request_queue().end()); i != end; ++i)
@@ -2997,7 +2999,7 @@ namespace libtorrent
 				(*p->m_logger) << "**ERROR**: " << e.what() << "\n";
 #endif
 				p->set_failed();
-				p->disconnect();
+				p->disconnect(e.what());
 			}
 		}
 		accumulator += m_stat;

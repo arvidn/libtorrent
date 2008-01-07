@@ -85,10 +85,13 @@ namespace libtorrent
 		// the tracker, pex, lsd or dht.
 		policy::peer* peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid
 			, int source, char flags);
-		void update_peer_port(int port, policy::peer* p, int src);
+
+		// false means duplicate connection
+		bool update_peer_port(int port, policy::peer* p, int src);
 
 		// called when an incoming connection is accepted
-		void new_connection(peer_connection& c);
+		// false means the connection was refused or failed
+		bool new_connection(peer_connection& c);
 
 		// the given connection was just closed
 		void connection_closed(const peer_connection& c) throw();

@@ -754,7 +754,7 @@ namespace detail
 #ifndef NDEBUG
 			int conn = m_connections.size();
 #endif
-			(*m_connections.begin())->disconnect();
+			(*m_connections.begin())->disconnect("stopping torrent");
 			TORRENT_ASSERT(conn == int(m_connections.size()) + 1);
 		}
 
@@ -895,7 +895,7 @@ namespace detail
 		return s;
 	}
 	
-	void session_impl::open_listen_port() throw()
+	void session_impl::open_listen_port()
 	{
 		// close the open listen sockets
 		m_listen_sockets.clear();
@@ -1110,70 +1110,62 @@ namespace detail
 		c->m_in_constructor = false;
 #endif
 
-		m_connections.insert(c);
+		if (!c->is_disconnecting()) m_connections.insert(c);
 	}
 	catch (std::exception& exc)
 	{
 #ifndef NDEBUG
 		std::string err = exc.what();
 #endif
-	};
-	
-	void session_impl::connection_failed(boost::intrusive_ptr<peer_connection> const& peer
-		, tcp::endpoint const& a, char const* message)
-#ifndef NDEBUG
-		try
-#endif
-	{
-		mutex_t::scoped_lock l(m_mutex);
-	
-// too expensive
-//		INVARIANT_CHECK;
-		
-		connection_map::iterator p = m_connections.find(peer);
-
-		// the connection may have been disconnected in the receive or send phase
-		if (p == m_connections.end()) return;
-		if (m_alerts.should_post(alert::debug))
-		{
-			m_alerts.post_alert(
-				peer_error_alert(
-					a
-					, (*p)->pid()
-					, message));
-		}
-
-#if defined(TORRENT_VERBOSE_LOGGING)
-		(*(*p)->m_logger) << "*** CONNECTION FAILED " << message << "\n";
-#endif
-		(*p)->set_failed();
-		(*p)->disconnect();
 	}
-#ifndef NDEBUG
-	catch (...)
-	{
-		TORRENT_ASSERT(false);
-	};
-#endif
 
-	void session_impl::close_connection(boost::intrusive_ptr<peer_connection> const& p)
+/*
+	namespace
+	{
+		struct compare_peer_ptr
+		{
+			bool operator()(peer_connection const* lhs
+				, intrusive_ptr<peer_connection const> const& rhs)
+			{
+				return lhs < rhs.get();
+			}
+
+			bool operator()(intrusive_ptr<peer_connection const> const& lhs
+				, peer_connection const* rhs)
+			{
+				return lhs.get() < rhs;
+			}
+		};
+	}
+*/	
+	void session_impl::close_connection(peer_connection const* p
+		, char const* message)
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
 // too expensive
 //		INVARIANT_CHECK;
+
+#ifndef NDEBUG
+//		for (aux::session_impl::torrent_map::const_iterator i = m_torrents.begin()
+//			, end(m_torrents.end()); i != end; ++i)
+//			TORRENT_ASSERT(!i->second->has_peer((peer_connection*)p));
+#endif
 
 #if defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " CLOSING CONNECTION " << p->remote() << "\n";
+		(*m_logger) << time_now_string() << " CLOSING CONNECTION "
+			<< p->remote() << " : " << message << "\n";
 #endif
 
 		TORRENT_ASSERT(p->is_disconnecting());
-		connection_map::iterator i = m_connections.find(p);
-		if (i != m_connections.end())
-		{
-			if (!(*i)->is_choked()) --m_num_unchoked;
-			m_connections.erase(i);
-		}
+
+		if (!p->is_choked()) --m_num_unchoked;
+//		connection_map::iterator i = std::lower_bound(m_connections.begin(), m_connections.end()
+//			, p, bind(&boost::intrusive_ptr<peer_connection>::get, _1) < p);
+//		if (i->get() != p) i == m_connections.end();
+		connection_map::iterator i = std::find_if(m_connections.begin(), m_connections.end()
+			, bind(&boost::intrusive_ptr<peer_connection>::get, _1) == p);
+		if (i != m_connections.end()) m_connections.erase(i);
 	}
 
 	void session_impl::set_peer_id(peer_id const& id)
@@ -1334,7 +1326,7 @@ namespace detail
 #endif
 
 				c.set_failed();
-				c.disconnect();
+				c.disconnect("timed out");
 				continue;
 			}
 

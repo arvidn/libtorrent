@@ -205,7 +205,7 @@ namespace libtorrent { namespace
 						<< " | ip: " << p->ip << " ]\n";
 #endif
 					p->banned = true;
-					if (p->connection) p->connection->disconnect();
+					if (p->connection) p->connection->disconnect("banning peer for sending bad data");
 				}
 				// we already have this exact entry in the map
 				// we don't have to insert it
@@ -267,7 +267,7 @@ namespace libtorrent { namespace
 				<< " | ip: " << p->ip << " ]\n";
 #endif
 			p->banned = true;
-			if (p->connection) p->connection->disconnect();
+			if (p->connection) p->connection->disconnect("banning peer for sending bad data");
 		}
 		
 		torrent& m_torrent;

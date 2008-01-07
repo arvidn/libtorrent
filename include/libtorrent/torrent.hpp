@@ -133,6 +133,11 @@ namespace libtorrent
 			, void* userdata);
 #endif
 
+#ifndef NDEBUG
+		bool has_peer(peer_connection* p) const
+		{ return m_connections.find(p) != m_connections.end(); }
+#endif
+
 		// this is called when the torrent has metadata.
 		// it will initialize the storage and the piece-picker
 		void init();

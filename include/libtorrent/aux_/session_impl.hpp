@@ -195,9 +195,17 @@ namespace libtorrent
 			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
 				torrent*, void*)> ext);
 #endif
+#ifndef NDEBUG
+			bool has_peer(peer_connection const* p) const
+			{
+				return std::find_if(m_connections.begin(), m_connections.end()
+					, boost::bind(&boost::intrusive_ptr<peer_connection>::get, _1) == p)
+					!= m_connections.end();
+			}
+#endif
 			void operator()();
 
-			void open_listen_port() throw();
+			void open_listen_port();
 
 			// if we are listening on an IPv6 interface
 			// this will return one of the IPv6 addresses on this
@@ -216,9 +224,8 @@ namespace libtorrent
 			boost::weak_ptr<torrent> find_torrent(const sha1_hash& info_hash);
 			peer_id const& get_peer_id() const { return m_peer_id; }
 
-			void close_connection(boost::intrusive_ptr<peer_connection> const& p);
-			void connection_failed(boost::intrusive_ptr<peer_connection> const& p
-				, tcp::endpoint const& a, char const* message);
+			void close_connection(peer_connection const* p
+				, char const* message);
 
 			void set_settings(session_settings const& s);
 			session_settings const& settings() const { return m_settings; }

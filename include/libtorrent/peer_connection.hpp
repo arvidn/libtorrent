@@ -224,7 +224,7 @@ namespace libtorrent
 		void add_stat(size_type downloaded, size_type uploaded);
 
 		// is called once every second by the main loop
-		void second_tick(float tick_interval) throw();
+		void second_tick(float tick_interval);
 
 		boost::shared_ptr<socket_type> get_socket() const { return m_socket; }
 		tcp::endpoint const& remote() const { return m_remote; }
@@ -235,7 +235,7 @@ namespace libtorrent
 
 		void timed_out();
 		// this will cause this peer_connection to be disconnected.
-		void disconnect();
+		void disconnect(char const* message);
 		bool is_disconnecting() const { return m_disconnecting; }
 
 		// this is called when the connection attempt has succeeded
