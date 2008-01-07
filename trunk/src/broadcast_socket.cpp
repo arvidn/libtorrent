@@ -163,7 +163,6 @@ namespace libtorrent
 //				<< " group: " << multicast_endpoint.address() << " ]" << std::endl;
 #endif
 		}
-
 		open_unicast_socket(ios, address_v4::any());
 		open_unicast_socket(ios, address_v6::any());
 	}
@@ -191,7 +190,23 @@ namespace libtorrent
 			asio::error_code e;
 			i->socket->send_to(asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
 #ifndef NDEBUG
-//			std::cerr << " sending on " << i->socket->local_endpoint().address().to_string() << std::endl;
+//			std::cerr << " sending on " << i->socket->local_endpoint().address().to_string() << " to: " << m_multicast_endpoint << std::endl;
+#endif
+			if (e)
+			{
+				i->socket->close(e);
+				i->socket.reset();
+			}
+		}
+
+		for (std::list<socket_entry>::iterator i = m_sockets.begin()
+			, end(m_sockets.end()); i != end; ++i)
+		{
+			if (!i->socket) continue;
+			asio::error_code e;
+			i->socket->send_to(asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
+#ifndef NDEBUG
+//			std::cerr << " sending on " << i->socket->local_endpoint().address().to_string() << " to: " << m_multicast_endpoint << std::endl;
 #endif
 			if (e)
 			{
@@ -213,10 +228,10 @@ namespace libtorrent
 
 	void broadcast_socket::close()
 	{
-		m_on_receive.clear();
-
 		std::for_each(m_sockets.begin(), m_sockets.end(), bind(&socket_entry::close, _1));
 		std::for_each(m_unicast_sockets.begin(), m_unicast_sockets.end(), bind(&socket_entry::close, _1));
+
+		m_on_receive.clear();
 	}
 }
 
