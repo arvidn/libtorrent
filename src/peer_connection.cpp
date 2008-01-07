@@ -2037,6 +2037,7 @@ namespace libtorrent
 		(*m_ses.m_logger) << time_now_string() << " CONNECTION TIMED OUT: " << m_remote.address().to_string()
 			<< "\n";
 #endif
+		set_failed();
 		disconnect("timed out");
 	}
 
