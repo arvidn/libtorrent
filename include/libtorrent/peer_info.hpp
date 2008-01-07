@@ -155,6 +155,10 @@ namespace libtorrent
 		// number of bytes this peer has in
 		// the disk write queue
 		int pending_disk_bytes;
+
+		// numbers used for bandwidth limiting
+		int send_quota;
+		int receive_quota;
 	};
 
 }

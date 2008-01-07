@@ -2262,6 +2262,13 @@ struct peer_info
                 web_seed = 1
         };
         int connection_type;
+
+        int remote_dl_rate;
+
+        int pending_disk_bytes;
+
+        int send_quota;
+        int receive_quota;
 };
 </pre>
 <p>The <tt class="docutils literal"><span class="pre">flags</span></tt> attribute tells you in which state the peer is. It is set to
@@ -2406,6 +2413,14 @@ In the case of a web seed, the server type and version will be a part of this
 string.</p>
 <p><tt class="docutils literal"><span class="pre">connection_type</span></tt> can currently be one of <tt class="docutils literal"><span class="pre">standard_bittorrent</span></tt> or
 <tt class="docutils literal"><span class="pre">web_seed</span></tt>. These are currently the only implemented protocols.</p>
+<p><tt class="docutils literal"><span class="pre">remote_dl_rate</span></tt> is an estimate of the rate this peer is downloading at, in
+bytes per second.</p>
+<p><tt class="docutils literal"><span class="pre">pending_disk_bytes</span></tt> is the number of bytes this peer has pending in the
+disk-io thread. Downloaded and waiting to be written to disk. This is what
+is capped by <tt class="docutils literal"><span class="pre">session_settings::max_outstanding_disk_bytes_per_connection</span></tt>.</p>
+<p><tt class="docutils literal"><span class="pre">send_quota</span></tt> and <tt class="docutils literal"><span class="pre">receive_quota</span></tt> are the number of bytes this peer has been
+assigned to be allowed to send and receive until it has to request more quota
+from the bandwidth manager.</p>
 </div>
 <div class="section">
 <h1><a id="session-settings" name="session-settings">session_settings</a></h1>
