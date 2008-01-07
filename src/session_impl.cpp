@@ -2339,7 +2339,8 @@ namespace detail
 			, m_listen_interface.address()
 			, m_settings.user_agent
 			, bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3));
+				, this, _1, _2, _3)
+			, m_settings.upnp_ignore_nonrouters);
 
 		m_upnp->discover_device();
 		m_upnp->set_mappings(m_listen_interface.port(), 
