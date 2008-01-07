@@ -201,7 +201,7 @@ namespace libtorrent
 		for (std::list<socket_entry>::iterator i = m_sockets.begin()
 			, end(m_sockets.end()); i != end; ++i)
 		{
-			if (!socket) continue;
+			if (!i->socket) continue;
 			i->socket->close();
 		}
 	}
