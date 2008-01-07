@@ -329,6 +329,44 @@ int test_main()
 		}
 	}
 
+	// test peer_id/sha1_hash type
+
+	sha1_hash h1(0);
+	sha1_hash h2(0);
+	TEST_CHECK(h1 == h2);
+	TEST_CHECK(!(h1 != h2));
+	TEST_CHECK(!(h1 < h2));
+	TEST_CHECK(!(h1 < h2));
+	TEST_CHECK(h1.is_all_zeros());
+
+	h1 = boost::lexical_cast<sha1_hash>("0123456789012345678901234567890123456789");
+	h2 = boost::lexical_cast<sha1_hash>("0113456789012345678901234567890123456789");
+
+	TEST_CHECK(h2 < h1);
+	TEST_CHECK(h2 == h2);
+	TEST_CHECK(h1 == h1);
+	h2.clear();
+	TEST_CHECK(h2.is_all_zeros());
+	
+	h2 = boost::lexical_cast<sha1_hash>("ffffffffff0000000000ffffffffff0000000000");
+	h1 = boost::lexical_cast<sha1_hash>("fffff00000fffff00000fffff00000fffff00000");
+	h1 &= h2;
+	TEST_CHECK(h1 == boost::lexical_cast<sha1_hash>("fffff000000000000000fffff000000000000000"));
+
+	h2 = boost::lexical_cast<sha1_hash>("ffffffffff0000000000ffffffffff0000000000");
+	h1 = boost::lexical_cast<sha1_hash>("fffff00000fffff00000fffff00000fffff00000");
+	h1 |= h2;
+	TEST_CHECK(h1 == boost::lexical_cast<sha1_hash>("fffffffffffffff00000fffffffffffffff00000"));
+	
+	h2 = boost::lexical_cast<sha1_hash>("0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f");
+	h1 ^= h2;
+	std::cerr << h1 << std::endl;
+	TEST_CHECK(h1 == boost::lexical_cast<sha1_hash>("f0f0f0f0f0f0f0ff0f0ff0f0f0f0f0f0f0ff0f0f"));
+	TEST_CHECK(h1 != h2);
+
+	h2 = sha1_hash("                    ");
+	TEST_CHECK(h2 == boost::lexical_cast<sha1_hash>("2020202020202020202020202020202020202020"));
+	
 	return 0;
 }
 
