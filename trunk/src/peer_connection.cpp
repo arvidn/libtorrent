@@ -208,15 +208,26 @@ namespace libtorrent
 #endif
 	{
 		tcp::socket::non_blocking_io ioc(true);
-		m_socket->io_control(ioc);
+		asio::error_code ec;
+		m_socket->io_control(ioc, ec);
+		if (ec)
+		{
+			disconnect(ec.message().c_str());
+			return;
+		}
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		std::fill(m_country, m_country + 2, 0);
 #endif
-		m_remote = m_socket->remote_endpoint();
+		m_remote = m_socket->remote_endpoint(ec);
+		if (ec)
+		{
+			disconnect(ec.message().c_str());
+			return;
+		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		TORRENT_ASSERT(m_socket->remote_endpoint() == remote());
-		m_logger = m_ses.create_log(remote().address().to_string() + "_"
+		TORRENT_ASSERT(m_socket->remote_endpoint() == remote() || ec);
+		m_logger = m_ses.create_log(remote().address().to_string(ec) + "_"
 			+ boost::lexical_cast<std::string>(remote().port()), m_ses.listen_port());
 		(*m_logger) << "*** INCOMING CONNECTION\n";
 #endif
@@ -354,7 +365,8 @@ namespace libtorrent
 			// if we're a seed too, disconnect
 			if (t->is_finished())
 			{
-				throw std::runtime_error("seed to seed connection redundant, disconnecting");
+				disconnect("seed to seed connection redundant");
+				return;
 			}
 			m_num_pieces = num_pieces;
 			t->peer_has_all();
@@ -396,7 +408,11 @@ namespace libtorrent
 				<< " *** CONNECTION CLOSED\n";
 		}
 #endif
+		TORRENT_ASSERT(!m_ses.has_peer(this));
 #ifndef NDEBUG
+		for (aux::session_impl::torrent_map::const_iterator i = m_ses.m_torrents.begin()
+			, end(m_ses.m_torrents.end()); i != end; ++i)
+			TORRENT_ASSERT(!i->second->has_peer(this));
 		if (m_peer_info)
 			TORRENT_ASSERT(m_peer_info->connection == 0);
 
@@ -486,7 +502,11 @@ namespace libtorrent
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
+#ifdef BOOST_NO_EXCEPTIONS
+			(*i)->on_piece_pass(index);
+#else
 			try { (*i)->on_piece_pass(index); } catch (std::exception&) {}
+#endif
 		}
 #endif
 	}
@@ -499,7 +519,11 @@ namespace libtorrent
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
+#ifdef BOOST_NO_EXCEPTIONS
+			(*i)->on_piece_failed(index);
+#else
 			try { (*i)->on_piece_failed(index); } catch (std::exception&) {}
+#endif
 		}
 #endif
 
@@ -587,7 +611,8 @@ namespace libtorrent
 				(*m_logger) << "   " << i->second->torrent_file().info_hash() << "\n";
 			}
 #endif
-			throw std::runtime_error("got info-hash that is not in our session");
+			disconnect("got invalid info-hash");
+			return;
 		}
 
 		if (t->is_paused())
@@ -597,7 +622,8 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << " rejected connection to paused torrent\n";
 #endif
-			throw std::runtime_error("connection rejected by paused torrent");
+			disconnect("connection rejected bacause torrent is paused");
+			return;
 		}
 
 		TORRENT_ASSERT(m_torrent.expired());
@@ -929,8 +955,10 @@ namespace libtorrent
 
 		// if we got an invalid message, abort
 		if (index >= int(m_have_piece.size()) || index < 0)
-			throw protocol_error("got 'have'-message with higher index "
-				"than the number of pieces");
+		{
+			disconnect("got 'have'-message with higher index than the number of pieces");
+			return;
+		}
 
 		if (m_have_piece[index])
 		{
@@ -974,7 +1002,8 @@ namespace libtorrent
 				m_peer_info->seed = true;
 				if (t->is_finished())
 				{
-					throw protocol_error("seed to seed connection redundant, disconnecting");
+					disconnect("seed to seed connection redundant");
+					return;
 				}
 			}
 		}
@@ -1014,11 +1043,14 @@ namespace libtorrent
 		// verify the bitfield size
 		if (t->valid_metadata()
 			&& (bitfield.size() / 8) != (m_have_piece.size() / 8))
-			throw protocol_error("got bitfield with invalid size: "
-				+ boost::lexical_cast<std::string>(bitfield.size() / 8)
-				+ "bytes. expected: "
-				+ boost::lexical_cast<std::string>(m_have_piece.size() / 8)
-				+ "bytes");
+		{
+			std::stringstream msg;
+			msg << "got bitfield with invalid size: " << (bitfield.size() / 8)
+				<< "bytes. expected: " << (m_have_piece.size() / 8)
+				<< " bytes";
+			disconnect(msg.str().c_str());
+			return;
+		}
 
 		// if we don't have metadata yet
 		// just remember the bitmask
@@ -1045,7 +1077,8 @@ namespace libtorrent
 			// if we're a seed too, disconnect
 			if (t->is_finished())
 			{
-				throw protocol_error("seed to seed connection redundant, disconnecting");
+				disconnect("seed to seed connection redundant, disconnecting");
+				return;
 			}
 
 			std::fill(m_have_piece.begin(), m_have_piece.end(), true);
@@ -1325,7 +1358,8 @@ namespace libtorrent
 				"start: " << p.start << " | "
 				"length: " << p.length << " ]\n";
 #endif
-			throw protocol_error("got invalid piece packet");
+			disconnect("got invalid piece packet");
+			return;
 		}
 
 		// if we're already seeding, don't bother,
@@ -1433,8 +1467,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_outstanding_writing_bytes >= 0);
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_ses.m_logger) << time_now_string() << " *** DISK_WRITE_COMPLETE [ p: "
-			<< p.piece << " o: " << p.start << " ]\n";
+//		(*m_ses.m_logger) << time_now_string() << " *** DISK_WRITE_COMPLETE [ p: "
+//			<< p.piece << " o: " << p.start << " ]\n";
 #endif
 		// in case the outstanding bytes just dropped down
 		// to allow to receive more data
@@ -1448,7 +1482,7 @@ namespace libtorrent
 
 			if (!t)
 			{
-				m_ses.connection_failed(self(), remote(), j.str.c_str());
+				disconnect(j.str.c_str());
 				return;
 			}
 		
@@ -1474,11 +1508,6 @@ namespace libtorrent
 				block_finished.block_index, block_finished.piece_index, "block finished"));
 		}
 
-#ifndef NDEBUG
-		try
-		{
-#endif
-
 		// did we just finish the piece?
 		if (picker.is_piece_finished(p.piece))
 		{
@@ -1488,15 +1517,6 @@ namespace libtorrent
 			t->async_verify_piece(p.piece, bind(&torrent::piece_finished, t
 				, p.piece, _1));
 		}
-
-#ifndef NDEBUG
-		}
-		catch (std::exception const& e)
-		{
-			std::cerr << e.what() << std::endl;
-			TORRENT_ASSERT(false);
-		}
-#endif
 
 		if (!t->is_seed() && !m_torrent.expired())
 		{
@@ -1614,7 +1634,10 @@ namespace libtorrent
 
 		// if we're a seed too, disconnect
 		if (t->is_finished())
-			throw protocol_error("seed to seed connection redundant, disconnecting");
+		{
+			disconnect("seed to seed connection redundant, disconnecting");
+			return;
+		}
 
 		TORRENT_ASSERT(!m_have_piece.empty());
 		std::fill(m_have_piece.begin(), m_have_piece.end(), true);
@@ -2004,7 +2027,8 @@ namespace libtorrent
 
 	void close_socket_ignore_error(boost::shared_ptr<socket_type> s)
 	{
-		try { s->close(); } catch (std::exception& e) {}
+		asio::error_code ec;
+		s->close(ec);
 	}
 
 	void peer_connection::timed_out()
@@ -2013,14 +2037,17 @@ namespace libtorrent
 		(*m_ses.m_logger) << time_now_string() << " CONNECTION TIMED OUT: " << m_remote.address().to_string()
 			<< "\n";
 #endif
-		m_ses.connection_failed(self(), m_remote, "timed out");
+		disconnect("timed out");
 	}
 
-	void peer_connection::disconnect()
+	void peer_connection::disconnect(char const* message)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
-		boost::intrusive_ptr<peer_connection> me(this);
+#if defined(TORRENT_VERBOSE_LOGGING)
+		(*m_logger) << "*** CONNECTION FAILED " << message << "\n";
+#endif
+//		boost::intrusive_ptr<peer_connection> me(this);
 
 		INVARIANT_CHECK;
 
@@ -2032,6 +2059,15 @@ namespace libtorrent
 		m_ses.m_io_service.post(boost::bind(&close_socket_ignore_error, m_socket));
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
+
+		if (message && m_ses.m_alerts.should_post(alert::debug))
+		{
+			m_ses.m_alerts.post_alert(
+				peer_error_alert(
+					remote()
+					, pid()
+					, message));
+		}
 
 		if (t)
 		{
@@ -2055,7 +2091,7 @@ namespace libtorrent
 			m_torrent.reset();
 		}
 
-		m_ses.close_connection(me);
+		m_ses.close_connection(this, message);
 	}
 
 	void peer_connection::set_upload_limit(int limit)
@@ -2207,7 +2243,7 @@ namespace libtorrent
 		if (m_packet_size >= m_recv_pos) m_recv_buffer.resize(m_packet_size);
 	}
 
-	void peer_connection::second_tick(float tick_interval) throw()
+	void peer_connection::second_tick(float tick_interval)
 	{
 		INVARIANT_CHECK;
 
@@ -2365,7 +2401,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << "**ERROR**: " << e.what() << "\n";
 #endif
-			m_ses.connection_failed(self(), remote(), e.what());
+			disconnect(e.what());
 		}
 	}
 
@@ -2415,7 +2451,7 @@ namespace libtorrent
 			boost::shared_ptr<torrent> t = m_torrent.lock();
 			if (!t)
 			{
-				m_ses.connection_failed(self(), remote(), j.str.c_str());
+				disconnect(j.str.c_str());
 				return;
 			}
 		
@@ -2714,7 +2750,9 @@ namespace libtorrent
 #endif
 			set_failed();
 			on_receive(error, bytes_transferred);
-			throw std::runtime_error(error.message());
+			set_failed();
+			disconnect(error.message().c_str());
+			return;
 		}
 
 		do
@@ -2757,7 +2795,10 @@ namespace libtorrent
 			bytes_transferred = m_socket->read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
 				, max_receive), ec);
 			if (ec && ec != asio::error::would_block)
-				throw asio::system_error(ec);
+			{
+				disconnect(ec.message().c_str());
+				return;
+			}
 		}
 		while (bytes_transferred > 0);
 
@@ -2770,7 +2811,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t)
 		{
-			m_ses.connection_failed(self(), remote(), e.what());
+			disconnect(e.what());
 			return;
 		}
 		
@@ -2785,14 +2826,14 @@ namespace libtorrent
 	catch (std::exception& e)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		m_ses.connection_failed(self(), remote(), e.what());
+		disconnect(e.what());
 	}
 	catch (...)
 	{
 		// all exceptions should derive from std::exception
 		TORRENT_ASSERT(false);
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		m_ses.connection_failed(self(), remote(), "connection failed for unknown reason");
+		disconnect("connection failed for unknown reason");
 	}
 
 	bool peer_connection::can_write() const
@@ -2828,8 +2869,9 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		asio::error_code ec;
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_ses.m_logger) << time_now_string() << " CONNECTING: " << m_remote.address().to_string()
+		(*m_ses.m_logger) << time_now_string() << " CONNECTING: " << m_remote.address().to_string(ec)
 			<< ":" << m_remote.port() << "\n";
 #endif
 
@@ -2839,13 +2881,28 @@ namespace libtorrent
 
 		m_queued = false;
 		TORRENT_ASSERT(m_connecting);
-		m_socket->open(t->get_interface().protocol());
+		m_socket->open(t->get_interface().protocol(), ec);
+		if (ec)
+		{
+			disconnect(ec.message().c_str());
+			return;
+		}
 
 		// set the socket to non-blocking, so that we can
 		// read the entire buffer on each read event we get
 		tcp::socket::non_blocking_io ioc(true);
-		m_socket->io_control(ioc);
-		m_socket->bind(t->get_interface());
+		m_socket->io_control(ioc, ec);
+		if (ec)
+		{
+			disconnect(ec.message().c_str());
+			return;
+		}
+		m_socket->bind(t->get_interface(), ec);
+		if (ec)
+		{
+			disconnect(ec.message().c_str());
+			return;
+		}
 		m_socket->async_connect(m_remote
 			, bind(&peer_connection::on_connection_complete, self(), _1));
 
@@ -2874,7 +2931,7 @@ namespace libtorrent
 				<< ": " << e.message() << "\n";
 #endif
 			set_failed();
-			m_ses.connection_failed(self(), m_remote, e.message().c_str());
+			disconnect(e.message().c_str());
 			return;
 		}
 
@@ -2894,14 +2951,14 @@ namespace libtorrent
 	catch (std::exception& ex)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		m_ses.connection_failed(self(), remote(), ex.what());
+		disconnect(ex.what());
 	}
 	catch (...)
 	{
 		// all exceptions should derive from std::exception
 		TORRENT_ASSERT(false);
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		m_ses.connection_failed(self(), remote(), "connection failed for unkown reason");
+		disconnect("connection failed for unkown reason");
 	}
 	
 	// --------------------------
@@ -2935,7 +2992,8 @@ namespace libtorrent
 			(*m_logger) << "**ERROR**: " << error.message() << " [in peer_connection::on_send_data]\n";
 #endif
 			set_failed();
-			throw std::runtime_error(error.message());
+			disconnect(error.message().c_str());
+			return;
 		}
 		if (m_disconnecting) return;
 
@@ -2952,16 +3010,15 @@ namespace libtorrent
 	catch (std::exception& e)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		m_ses.connection_failed(self(), remote(), e.what());
+		disconnect(e.what());
 	}
 	catch (...)
 	{
 		// all exceptions should derive from std::exception
 		TORRENT_ASSERT(false);
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		m_ses.connection_failed(self(), remote(), "connection failed for unknown reason");
+		disconnect("connection failed for unknown reason");
 	}
-
 
 #ifndef NDEBUG
 	void peer_connection::check_invariant() const

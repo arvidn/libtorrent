@@ -361,7 +361,7 @@ namespace libtorrent
 		
 			if (i->second.connection)
 			{
-				i->second.connection->disconnect();
+				i->second.connection->disconnect("peer banned by IP filter");
 				if (ses.m_alerts.should_post(alert::info))
 				{
 					ses.m_alerts.post_alert(peer_blocked_alert(i->second.ip.address()
@@ -914,7 +914,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	void policy::new_connection(peer_connection& c)
+	bool policy::new_connection(peer_connection& c)
 	{
 		TORRENT_ASSERT(!c.is_local());
 
@@ -926,13 +926,15 @@ namespace libtorrent
 
 		// TODO: only allow _one_ connection to use this
 		// override at a time
-		TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint());
+		asio::error_code ec;
+		TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
 
 		if (m_torrent->num_peers() >= m_torrent->max_connections()
 			&& m_torrent->session().num_connections() >= m_torrent->session().max_connections()
 			&& c.remote().address() != m_torrent->current_tracker().address())
 		{
-			throw protocol_error("too many connections, refusing incoming connection"); // cause a disconnect
+			c.disconnect("too many connections, refusing incoming connection");
+			return false;
 		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -960,7 +962,10 @@ namespace libtorrent
 		if (i != m_peers.end())
 		{
 			if (i->second.banned)
-				throw protocol_error("ip address banned, closing");
+			{
+				c.disconnect("ip address banned, closing");
+				return false;
+			}
 
 			if (i->second.connection != 0)
 			{
@@ -969,7 +974,8 @@ namespace libtorrent
 				// or the current one is already connected
 				if (!i->second.connection->is_connecting() || c.is_local())
 				{
-					throw protocol_error("duplicate connection, closing");
+					c.disconnect("duplicate connection, closing");
+					return false;
 				}
 				else
 				{
@@ -978,7 +984,8 @@ namespace libtorrent
 					" is connecting and this connection is incoming. closing existing "
 					"connection in favour of this one");
 #endif
-					i->second.connection->disconnect();
+					i->second.connection->disconnect("incoming duplicate connection "
+						"with higher priority, closing");
 				}
 			}
 		}
@@ -986,7 +993,8 @@ namespace libtorrent
 		{
 			// we don't have any info about this peer.
 			// add a new entry
-			TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint());
+			asio::error_code ec;
+			TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
 
 			peer p(c.remote(), peer::not_connectable, 0);
 			i = m_peers.insert(std::make_pair(c.remote().address(), p));
@@ -1002,12 +1010,15 @@ namespace libtorrent
 		if (!c.fast_reconnect())
 			i->second.connected = time_now();
 //		m_last_optimistic_disconnect = time_now();
+		return true;
 	}
 
-	void policy::update_peer_port(int port, policy::peer* p, int src)
+	bool policy::update_peer_port(int port, policy::peer* p, int src)
 	{
 		TORRENT_ASSERT(p != 0);
-		if (p->ip.port() == port) return;
+		TORRENT_ASSERT(p->connection);
+
+		if (p->ip.port() == port) return true;
 
 		if (m_torrent->settings().allow_multiple_connections_per_ip)
 		{
@@ -1020,7 +1031,8 @@ namespace libtorrent
 				policy::peer& pp = i->second;
 				if (pp.connection)
 				{
-					throw protocol_error("duplicate connection");
+					p->connection->disconnect("duplicate connection");
+					return false;
 				}
 				if (m_torrent->has_picker())
 					m_torrent->picker().clear_peer(&i->second);
@@ -1033,6 +1045,7 @@ namespace libtorrent
 		}
 		p->ip.port(port);
 		p->source |= src;
+		return true;
 	}
 
 	bool policy::has_peer(policy::peer const* p) const
@@ -1362,7 +1375,7 @@ namespace libtorrent
 		(*p->second.connection->m_logger) << "*** CLOSING CONNECTION 'too many connections'\n";
 #endif
 
-		p->second.connection->disconnect();
+		p->second.connection->disconnect("too many connections, closing");
 		return true;
 	}
 

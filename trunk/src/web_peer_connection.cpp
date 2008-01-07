@@ -348,7 +348,10 @@ namespace libtorrent
 				m_statistics.received_bytes(payload, protocol);
 
 				if (error)
-					throw std::runtime_error("failed to parse HTTP response");
+				{
+					disconnect("failed to parse HTTP response");
+					return;
+				}
 
 				TORRENT_ASSERT(recv_buffer.left() == 0 || *recv_buffer.begin == 'H');
 			
@@ -377,7 +380,8 @@ namespace libtorrent
 						m_ses.m_alerts.post_alert(url_seed_alert(t->get_handle(), url()
 							, error_msg));
 					}
-					throw std::runtime_error(error_msg);
+					disconnect(error_msg.c_str());
+					return;
 				}
 				if (!m_parser.header_finished()) break;
 
@@ -402,7 +406,8 @@ namespace libtorrent
 					{
 						// we should not try this server again.
 						t->remove_url_seed(m_url);
-						throw std::runtime_error("got HTTP redirection status without location header");
+						disconnect("got HTTP redirection status without location header");
+						return;
 					}
 					
 					bool single_file_request = false;
@@ -422,14 +427,20 @@ namespace libtorrent
 						if (i == std::string::npos)
 						{
 							t->remove_url_seed(m_url);
-							throw std::runtime_error("got invalid HTTP redirection location (\"" + location + "\") "
-								"expected it to end with: " + path);
+							std::stringstream msg;
+							msg << "got invalid HTTP redirection location (\"" << location << "\") "
+								"expected it to end with: " << path;
+							disconnect(msg.str().c_str());
+							return;
 						}
 						location.resize(i);
 					}
 					t->add_url_seed(location);
 					t->remove_url_seed(m_url);
-					throw std::runtime_error("redirecting to " + location);
+					std::stringstream msg;
+					msg << "redirecting to \"" << location << "\"";
+					disconnect(msg.str().c_str());
+					return;
 				}
 
 				std::string const& server_version = m_parser.header("server");
@@ -462,7 +473,10 @@ namespace libtorrent
 				{
 					// we should not try this server again.
 					t->remove_url_seed(m_url);
-					throw std::runtime_error("invalid range in HTTP response: " + range_str.str());
+					std::stringstream msg;
+					msg << "invalid range in HTTP response: " << range_str;
+					disconnect(msg.str().c_str());
+					return;
 				}
 				// the http range is inclusive
 				range_end++;
@@ -475,7 +489,8 @@ namespace libtorrent
 				{
 					// we should not try this server again.
 					t->remove_url_seed(m_url);
-					throw std::runtime_error("no content-length in HTTP response");
+					disconnect("no content-length in HTTP response");
+					return;
 				}
 			}
 
@@ -485,7 +500,10 @@ namespace libtorrent
 			torrent_info const& info = t->torrent_file();
 
 			if (m_requests.empty() || m_file_requests.empty())
-				throw std::runtime_error("unexpected HTTP response");
+			{
+				disconnect("unexpected HTTP response");
+				return;
+			}
 
 			int file_index = m_file_requests.front();
 			peer_request in_range = info.map_file(file_index, range_start
@@ -516,7 +534,8 @@ namespace libtorrent
 			{
 				// this means the end of the incoming request ends _before_ the
 				// first expected byte (fs + m_piece.size())
-				throw std::runtime_error("invalid range in HTTP response");
+				disconnect("invalid range in HTTP response");
+				return;
 			}
 
 			// if the request is contained in the range (i.e. the entire request
