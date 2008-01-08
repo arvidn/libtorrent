@@ -2447,6 +2447,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		bool use_dht_as_fallback;
 		bool free_torrent_hashes;
 		bool upnp_ignore_nonrouters;
+		int send_buffer_watermark;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -2583,6 +2584,12 @@ cannot be passed back to `add_torrent()`_ for instance.
 should ignore any broadcast response from a device whose address is not the
 configured router for this machine. i.e. it's a way to not talk to other
 people's routers by mistake.
+
+``send_buffer_waterbark`` is the upper limit of the send buffer low-watermark.
+if the send buffer has fewer bytes than this, we'll read another 16kB block
+onto it. If set too small, upload rate capacity will suffer. If set too high,
+memory will be wasted. The actual watermark may be lower than this in case
+the upload rate is low, this is the upper limit.
 
 pe_settings
 ===========

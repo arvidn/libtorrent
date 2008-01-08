@@ -2421,8 +2421,9 @@ namespace libtorrent
 		// otherwise there will be no end to how large it will be!
 		
 		int buffer_size_watermark = int(m_statistics.upload_rate()) / 2;
-		if (buffer_size_watermark < 1024) buffer_size_watermark = 1024;
-		else if (buffer_size_watermark > 80 * 1024) buffer_size_watermark = 80 * 1024;
+		if (buffer_size_watermark < 512) buffer_size_watermark = 512;
+		else if (buffer_size_watermark > m_ses.settings().send_buffer_watermark)
+			buffer_size_watermark = m_ses.settings().send_buffer_watermark;
 
 		while (!m_requests.empty()
 			&& (send_buffer_size() + m_reading_bytes < buffer_size_watermark)

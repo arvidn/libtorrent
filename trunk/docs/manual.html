@@ -2459,6 +2459,7 @@ struct session_settings
         bool use_dht_as_fallback;
         bool free_torrent_hashes;
         bool upnp_ignore_nonrouters;
+        int send_buffer_watermark;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker.
@@ -2570,6 +2571,11 @@ cannot be passed back to <a class="reference" href="#add-torrent">add_torrent()<
 should ignore any broadcast response from a device whose address is not the
 configured router for this machine. i.e. it's a way to not talk to other
 people's routers by mistake.</p>
+<p><tt class="docutils literal"><span class="pre">send_buffer_waterbark</span></tt> is the upper limit of the send buffer low-watermark.
+if the send buffer has fewer bytes than this, we'll read another 16kB block
+onto it. If set too small, upload rate capacity will suffer. If set too high,
+memory will be wasted. The actual watermark may be lower than this in case
+the upload rate is low, this is the upper limit.</p>
 </div>
 <div class="section">
 <h1><a id="pe-settings" name="pe-settings">pe_settings</a></h1>
