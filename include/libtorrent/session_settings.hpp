@@ -118,6 +118,7 @@ namespace libtorrent
 #endif
 			, free_torrent_hashes(true)
 			, upnp_ignore_nonrouters(true)
+ 			, send_buffer_watermark(80 * 1024)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -298,6 +299,14 @@ namespace libtorrent
 		// any upnp devices that don't have an address that matches
 		// our currently configured router.
 		bool upnp_ignore_nonrouters;
+
+ 		// if the send buffer has fewer bytes than this, we'll
+ 		// read another 16kB block onto it. If set too small,
+ 		// upload rate capacity will suffer. If set too high,
+ 		// memory will be wasted.
+ 		// The actual watermark may be lower than this in case
+ 		// the upload rate is low, this is the upper limit.
+ 		int send_buffer_watermark;
 	};
 	
 #ifndef TORRENT_DISABLE_DHT
