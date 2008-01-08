@@ -552,7 +552,6 @@ namespace detail
 		)
 		: m_send_buffers(send_buffer_size)
 		, m_files(40)
-		, m_strand(m_io_service)
 		, m_half_open(m_io_service)
 		, m_download_channel(m_io_service, peer_connection::download_channel)
 		, m_upload_channel(m_io_service, peer_connection::upload_channel)
@@ -646,8 +645,8 @@ namespace detail
 		}
 
 		m_timer.expires_from_now(seconds(1));
-		m_timer.async_wait(m_strand.wrap(
-			bind(&session_impl::second_tick, this, _1)));
+		m_timer.async_wait(
+			bind(&session_impl::second_tick, this, _1));
 
 		m_thread.reset(new boost::thread(boost::ref(*this)));
 		m_checker_thread.reset(new boost::thread(boost::ref(m_checker_impl)));
@@ -733,10 +732,10 @@ namespace detail
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 				boost::shared_ptr<tracker_logger> tl(new tracker_logger(*this));
 				m_tracker_loggers.push_back(tl);
-				m_tracker_manager.queue_request(m_strand, m_half_open, req, login
+				m_tracker_manager.queue_request(m_io_service, m_half_open, req, login
 					, m_listen_interface.address(), tl);
 #else
-				m_tracker_manager.queue_request(m_strand, m_half_open, req, login
+				m_tracker_manager.queue_request(m_io_service, m_half_open, req, login
 					, m_listen_interface.address());
 #endif
 			}
@@ -1202,8 +1201,8 @@ namespace detail
 		m_last_tick = time_now();
 
 		m_timer.expires_from_now(seconds(1));
-		m_timer.async_wait(m_strand.wrap(
-			bind(&session_impl::second_tick, this, _1)));
+		m_timer.async_wait(
+			bind(&session_impl::second_tick, this, _1));
 
 #ifdef TORRENT_STATS
 		++m_second_counter;
@@ -1347,7 +1346,7 @@ namespace detail
 				if (!m_listen_sockets.empty())
 					req.listen_port = m_listen_sockets.front().external_port;
 				req.key = m_key;
-				m_tracker_manager.queue_request(m_strand, m_half_open, req
+				m_tracker_manager.queue_request(m_io_service, m_half_open, req
 					, t.tracker_login(), m_listen_interface.address(), i->second);
 
 				if (m_alerts.should_post(alert::info))
@@ -1837,10 +1836,10 @@ namespace detail
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 				boost::shared_ptr<tracker_logger> tl(new tracker_logger(*this));
 				m_tracker_loggers.push_back(tl);
-				m_tracker_manager.queue_request(m_strand, m_half_open, req
+				m_tracker_manager.queue_request(m_io_service, m_half_open, req
 					, t.tracker_login(), m_listen_interface.address(), tl);
 #else
-				m_tracker_manager.queue_request(m_strand, m_half_open, req
+				m_tracker_manager.queue_request(m_io_service, m_half_open, req
 					, t.tracker_login(), m_listen_interface.address());
 #endif
 

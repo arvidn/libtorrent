@@ -65,7 +65,7 @@ namespace libtorrent
 	public:
 
 		udp_tracker_connection(
-			asio::strand& str
+			io_service& ios
 			, tracker_manager& man
 			, tracker_request const& req
 			, std::string const& hostname
@@ -105,7 +105,6 @@ namespace libtorrent
 
 		tracker_manager& m_man;
 
-		asio::strand& m_strand;
 		udp::resolver m_name_lookup;
 		datagram_socket m_socket;
 		udp::endpoint m_target;

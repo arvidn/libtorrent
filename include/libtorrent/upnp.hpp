@@ -222,8 +222,6 @@ private:
 
 	asio::io_service& m_io_service;
 
-	asio::strand m_strand;	
-
 	// the udp socket used to send and receive
 	// multicast messages on the network
 	broadcast_socket m_socket;

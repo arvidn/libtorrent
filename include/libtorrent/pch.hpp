@@ -86,7 +86,6 @@
 #include <asio/io_service.hpp>
 #include <asio/deadline_timer.hpp>
 #include <asio/write.hpp>
-#include <asio/strand.hpp>
 
 #ifdef __OBJC__ 
 #undef Protocol

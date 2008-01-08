@@ -121,7 +121,7 @@ namespace libtorrent
 	public:
 
 		http_tracker_connection(
-			asio::strand& str
+			io_service& ios
 			, connection_queue& cc
 			, tracker_manager& man
 			, tracker_request const& req
@@ -162,7 +162,6 @@ namespace libtorrent
 		tracker_manager& m_man;
 		http_parser m_parser;
 
-		asio::strand& m_strand;
 		tcp::resolver m_name_lookup;
 		int m_port;
 		socket_type m_socket;

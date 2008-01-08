@@ -234,11 +234,10 @@ namespace libtorrent
 		return false;
 	}
 
-	timeout_handler::timeout_handler(asio::strand& str)
-		: m_strand(str)
-		, m_start_time(time_now())
+	timeout_handler::timeout_handler(io_service& ios)
+		: m_start_time(time_now())
 		, m_read_time(time_now())
-		, m_timeout(str.io_service())
+		, m_timeout(ios)
 		, m_completion_timeout(0)
 		, m_read_timeout(0)
 		, m_abort(false)
@@ -256,8 +255,8 @@ namespace libtorrent
 			m_read_timeout, (std::min)(m_completion_timeout, m_read_timeout));
 		asio::error_code ec;
 		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
-		m_timeout.async_wait(m_strand.wrap(bind(
-			&timeout_handler::timeout_callback, self(), _1)));
+		m_timeout.async_wait(bind(
+			&timeout_handler::timeout_callback, self(), _1));
 	}
 
 	void timeout_handler::restart_read_timeout()
@@ -297,17 +296,17 @@ namespace libtorrent
 			m_read_timeout, (std::min)(m_completion_timeout, m_read_timeout));
 		asio::error_code ec;
 		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
-		m_timeout.async_wait(m_strand.wrap(
-			bind(&timeout_handler::timeout_callback, self(), _1)));
+		m_timeout.async_wait(
+			bind(&timeout_handler::timeout_callback, self(), _1));
 	}
 
 	tracker_connection::tracker_connection(
 		tracker_manager& man
 		, tracker_request const& req
-		, asio::strand& str
+		, io_service& ios
 		, address bind_interface_
 		, boost::weak_ptr<request_callback> r)
-		: timeout_handler(str)
+		: timeout_handler(ios)
 		, m_requester(r)
 		, m_bind_interface(bind_interface_)
 		, m_man(man)
@@ -426,7 +425,7 @@ exit:
 	}
 
 	void tracker_manager::queue_request(
-		asio::strand& str
+		io_service& ios
 		, connection_queue& cc
 		, tracker_request req
 		, std::string const& auth
@@ -457,7 +456,7 @@ exit:
 		if (protocol == "http")
 		{
 			con = new http_tracker_connection(
-				str
+				ios
 				, cc
 				, *this
 				, req
@@ -473,7 +472,7 @@ exit:
 		else if (protocol == "udp")
 		{
 			con = new udp_tracker_connection(
-				str
+				ios
 				, *this
 				, req
 				, hostname
