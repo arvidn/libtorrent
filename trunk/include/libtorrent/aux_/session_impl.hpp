@@ -411,7 +411,6 @@ namespace libtorrent
 			// the selector can sleep while there's no activity on
 			// them
 			io_service m_io_service;
-			asio::strand m_strand;
 
 			// this is a list of half-open tcp connections
 			// (only outgoing connections)

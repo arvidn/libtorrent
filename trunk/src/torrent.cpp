@@ -286,8 +286,8 @@ namespace libtorrent
 		if (m_torrent_file->is_valid()) init();
 		if (m_abort) return;
 		m_announce_timer.expires_from_now(seconds(1));
-		m_announce_timer.async_wait(m_ses.m_strand.wrap(
-			bind(&torrent::on_announce_disp, self, _1)));
+		m_announce_timer.async_wait(
+			bind(&torrent::on_announce_disp, self, _1));
 	}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -440,8 +440,8 @@ namespace libtorrent
 		{
 			// announce on local network every 5 minutes
 			m_announce_timer.expires_from_now(minutes(5));
-			m_announce_timer.async_wait(m_ses.m_strand.wrap(
-				bind(&torrent::on_announce_disp, self, _1)));
+			m_announce_timer.async_wait(
+				bind(&torrent::on_announce_disp, self, _1));
 
 			// announce with the local discovery service
 			if (!m_paused)
@@ -450,8 +450,8 @@ namespace libtorrent
 		else
 		{
 			m_announce_timer.expires_from_now(minutes(15));
-			m_announce_timer.async_wait(m_ses.m_strand.wrap(
-				bind(&torrent::on_announce_disp, self, _1)));
+			m_announce_timer.async_wait(
+				bind(&torrent::on_announce_disp, self, _1));
 		}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -463,7 +463,7 @@ namespace libtorrent
 			m_last_dht_announce = now;
 			m_ses.m_dht->announce(m_torrent_file->info_hash()
 				, m_ses.m_listen_sockets.front().external_port
-				, m_ses.m_strand.wrap(bind(&torrent::on_dht_announce_response_disp, self, _1)));
+				, bind(&torrent::on_dht_announce_response_disp, self, _1));
 		}
 #endif
 	}
@@ -512,7 +512,7 @@ namespace libtorrent
 		req.info_hash = m_torrent_file->info_hash();
 		req.kind = tracker_request::scrape_request;
 		req.url = m_trackers[m_currently_trying_tracker].url;
-		m_ses.m_tracker_manager.queue_request(m_ses.m_strand, m_ses.m_half_open, req
+		m_ses.m_tracker_manager.queue_request(m_ses.m_io_service, m_ses.m_half_open, req
 			, tracker_login(), m_ses.m_listen_interface.address(), shared_from_this());
 	}
 
@@ -643,8 +643,8 @@ namespace libtorrent
 				// an ip address from the tracker
 
 				tcp::resolver::query q(i->ip, boost::lexical_cast<std::string>(i->port));
-				m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
-					bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i->pid)));
+				m_host_resolver.async_resolve(q,
+					bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i->pid));
 			}	
 		}
 
@@ -1656,8 +1656,8 @@ namespace libtorrent
 			// use proxy
 			tcp::resolver::query q(ps.hostname
 				, boost::lexical_cast<std::string>(ps.port));
-			m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
-				bind(&torrent::on_proxy_name_lookup, shared_from_this(), _1, _2, url)));
+			m_host_resolver.async_resolve(q,
+				bind(&torrent::on_proxy_name_lookup, shared_from_this(), _1, _2, url));
 		}
 		else
 		{
@@ -1672,9 +1672,9 @@ namespace libtorrent
 			// TODO: should auth be used here?
 
 			tcp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
-			m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
+			m_host_resolver.async_resolve(q,
 				bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, url
-					, tcp::endpoint())));
+					, tcp::endpoint()));
 		}
 
 	}
@@ -1727,8 +1727,8 @@ namespace libtorrent
 		}
 
 		tcp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
-		m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
-			bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, url, a)));
+		m_host_resolver.async_resolve(q,
+			bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, url, a));
 	}
 	catch (std::exception& exc)
 	{
@@ -1860,8 +1860,8 @@ namespace libtorrent
 		m_resolving_country = true;
 		asio::ip::address_v4 reversed(swap_bytes(p->remote().address().to_v4().to_ulong()));
 		tcp::resolver::query q(reversed.to_string() + ".zz.countries.nerd.dk", "0");
-		m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
-			bind(&torrent::on_country_lookup, shared_from_this(), _1, _2, p)));
+		m_host_resolver.async_resolve(q,
+			bind(&torrent::on_country_lookup, shared_from_this(), _1, _2, p));
 	}
 
 	namespace
@@ -2440,7 +2440,7 @@ namespace libtorrent
 				boost::weak_ptr<torrent> self(shared_from_this());
 				m_ses.m_dht->announce(m_torrent_file->info_hash()
 					, m_ses.m_listen_sockets.front().external_port
-					, m_ses.m_strand.wrap(bind(&torrent::on_dht_announce_response_disp, self, _1)));
+					, bind(&torrent::on_dht_announce_response_disp, self, _1));
 			}
 #endif
 

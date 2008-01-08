@@ -50,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <asio/io_service.hpp>
 #include <asio/deadline_timer.hpp>
 #include <asio/write.hpp>
-#include <asio/strand.hpp>
 #include <asio/time_traits.hpp>
 #include <asio/basic_deadline_timer.hpp>
 

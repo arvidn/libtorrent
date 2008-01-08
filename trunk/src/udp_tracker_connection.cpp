@@ -74,7 +74,7 @@ namespace libtorrent
 {
 
 	udp_tracker_connection::udp_tracker_connection(
-		asio::strand& str
+		io_service& ios
 		, tracker_manager& man
 		, tracker_request const& req
 		, std::string const& hostname
@@ -82,11 +82,10 @@ namespace libtorrent
 		, address bind_infc
 		, boost::weak_ptr<request_callback> c
 		, session_settings const& stn)
-		: tracker_connection(man, req, str, bind_infc, c)
+		: tracker_connection(man, req, ios, bind_infc, c)
 		, m_man(man)
-		, m_strand(str)
-		, m_name_lookup(m_strand.io_service())
-		, m_socket(m_strand.io_service())
+		, m_name_lookup(ios)
+		, m_socket(ios)
 		, m_transaction_id(0)
 		, m_connection_id(0)
 		, m_settings(stn)
@@ -94,8 +93,8 @@ namespace libtorrent
 	{
 		udp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
 		m_name_lookup.async_resolve(q
-			, m_strand.wrap(boost::bind(
-			&udp_tracker_connection::name_lookup, self(), _1, _2)));
+			, boost::bind(
+			&udp_tracker_connection::name_lookup, self(), _1, _2));
 		set_timeout(req.event == tracker_request::stopped
 			? m_settings.stop_tracker_timeout
 			: m_settings.tracker_completion_timeout
