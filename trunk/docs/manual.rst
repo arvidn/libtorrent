@@ -2203,6 +2203,10 @@ It contains the following fields::
 			on_parole = 0x200,
 			seed = 0x400,
 			optimistic_unchoke = 0x800,
+			writing = 0x1000,
+			reading = 0x2000,
+			waiting_write_quota = 0x4000,
+			waiting_read_quota = 0x8000,
 			rc4_encrypted = 0x100000,
 			plaintext_encrypted = 0x200000
 		};
@@ -2315,6 +2319,18 @@ any combination of the enums above. The following table describes each flag:
 |                         | us in return an earn an upload/unchoke slot. If it    |
 |                         | doesn't within some period of time, it will be choked |
 |                         | and another peer will be optimistically unchoked.     |
++-------------------------+-------------------------------------------------------+
+| ``writing``             | The peer is currently waiting for a write operation   |
+|                         | on the socket to complete.                            |
++-------------------------+-------------------------------------------------------+
+| ``reading``             | The peer is currently waiting for a read operation    |
+|                         | on the socket to complete.                            |
++-------------------------+-------------------------------------------------------+
+| ``waiting_write_quota`` | The peer is currently waiting for the bandwidth-      |
+|                         | manager to hand out more write quota to this peer.    |
++-------------------------+-------------------------------------------------------+
+| ``waiting_read_quota``  | The peer is currently waiting for the bandwidth-      |
+|                         | manager to hand out more read quota to this peer.     |
 +-------------------------+-------------------------------------------------------+
 
 __ extension_protocol.html
