@@ -22,10 +22,10 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first"><a name="table-of-contents">Table of contents</a></p>
 <ul class="simple">
-<li><a class="reference" href="#introduction" id="id6" name="id6">introduction</a></li>
-<li><a class="reference" href="#features" id="id7" name="id7">features</a></li>
-<li><a class="reference" href="#portability" id="id8" name="id8">portability</a></li>
-<li><a class="reference" href="#license" id="id9" name="id9">license</a></li>
+<li><a class="reference" href="#introduction" id="id4" name="id4">introduction</a></li>
+<li><a class="reference" href="#features" id="id5" name="id5">features</a></li>
+<li><a class="reference" href="#portability" id="id6" name="id6">portability</a></li>
+<li><a class="reference" href="#license" id="id7" name="id7">license</a></li>
 </ul>
 </div>
 <div class="section">
@@ -67,7 +67,7 @@ as well as all local peers in a separate fast-resume file.</li>
 This means it can download parts of the same piece from different peers.
 It will also prefer to download whole pieces from single peers if the
 download speed is high enough from that particular peer.</li>
-<li>supports the <a class="reference" href="extension_protocol.html">udp-tracker protocol</a> by Olaf van der Spek.</li>
+<li>supports the <a class="reference" href="udp_tracker_protocol.html">udp-tracker protocol</a> by Olaf van der Spek.</li>
 <li>queues torrents for file check, instead of checking all of them in parallel.</li>
 <li>supports http proxies and basic proxy authentication</li>
 <li>gzipped tracker-responses</li>
@@ -76,7 +76,7 @@ unchoked peers</li>
 <li>implements fair trade. User settable trade-ratio, must at least be 1:1,
 but one can choose to trade 1 for 2 or any other ratio that isn't unfair
 to the other party.</li>
-<li>supports an <a class="reference" href="udp_tracker_protocol.html">extension protocol</a>. See <a class="reference" href="manual.html#extensions">extensions</a>.</li>
+<li>supports an <a class="reference" href="extension_protocol.html">extension protocol</a>. See <a class="reference" href="manual.html#extensions">extensions</a>.</li>
 <li>supports the <tt class="docutils literal"><span class="pre">no_peer_id=1</span></tt> extension that will ease the load off trackers.</li>
 <li>possibility to limit the number of connections.</li>
 <li>delays have messages if there's no other outgoing traffic to the peer, and

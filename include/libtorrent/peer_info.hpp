@@ -96,8 +96,10 @@ namespace libtorrent
 		// time since last download or upload
 		time_duration last_active;
 
-		// the size of the send buffer for this peer
+		// the size of the send buffer for this peer, in bytes
 		int send_buffer_size;
+		// the number bytes that's actually used of the send buffer
+		int used_send_buffer;
 
 		// the number of failed hashes for this peer
 		int num_hashfails;

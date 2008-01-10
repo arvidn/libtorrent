@@ -2154,6 +2154,7 @@ namespace libtorrent
 		}
 
 		p.send_buffer_size = m_send_buffer.capacity();
+		p.used_send_buffer = m_send_buffer.size();
 	}
 
 	void peer_connection::cut_receive_buffer(int size, int packet_size)
