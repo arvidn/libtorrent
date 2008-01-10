@@ -423,7 +423,8 @@ void add_torrent(libtorrent::session& ses
 	, bool compact_mode
 	, path const& save_path
 	, bool monitored_dir
-	, int torrent_upload_limit) try
+	, int torrent_upload_limit
+	, int torrent_download_limit) try
 {
 	using namespace libtorrent;
 
@@ -458,6 +459,7 @@ void add_torrent(libtorrent::session& ses
 	h.set_ratio(preferred_ratio);
 	h.set_sequenced_download_threshold(15);
 	h.set_upload_limit(torrent_upload_limit);
+	h.set_download_limit(torrent_download_limit);
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 	h.resolve_countries(true);
 #endif
@@ -470,7 +472,8 @@ void scan_dir(path const& dir_path
 	, float preferred_ratio
 	, bool compact_mode
 	, path const& save_path
-	, int torrent_upload_limit)
+	, int torrent_upload_limit
+	, int torrent_download_limit)
 {
 	std::set<std::string> valid;
 
@@ -491,7 +494,7 @@ void scan_dir(path const& dir_path
 		// the file has been added to the dir, start
 		// downloading it.
 		add_torrent(ses, handles, file, preferred_ratio, compact_mode
-			, save_path, true, torrent_upload_limit);
+			, save_path, true, torrent_upload_limit, torrent_download_limit);
 		valid.insert(file);
 	}
 
@@ -539,6 +542,7 @@ int main(int ac, char* av[])
 	int download_limit;
 	int upload_limit;
 	int torrent_upload_limit;
+	int torrent_download_limit;
 	int upload_slots_limit;
 	int half_open_limit;
 	std::string save_path_str;
@@ -571,6 +575,8 @@ int main(int ac, char* av[])
 			, "the maximum upload rate given in kB/s. 0 means infinite.")
 		("max-torrent-upload-rate", po::value<int>(&torrent_upload_limit)->default_value(20)
 			, "the maximum upload rate for an individual torrent, given in kB/s. 0 means infinite.")
+		("max-torrent-download-rate", po::value<int>(&torrent_download_limit)->default_value(20)
+			, "the maximum download rate for an individual torrent, given in kB/s. 0 means infinite.")
 		("max-upload-slots", po::value<int>(&upload_slots_limit)->default_value(8)
 			, "the maximum number of upload slots. 0 means infinite.")
 		("save-path,s", po::value<std::string>(&save_path_str)->default_value("./")
@@ -627,10 +633,12 @@ int main(int ac, char* av[])
 		if (preferred_ratio != 0 && preferred_ratio < 1.f) preferred_ratio = 1.f;
 		upload_limit *= 1000;
 		torrent_upload_limit *= 1000;
+		torrent_download_limit *= 1000;
 		download_limit *= 1000;
 		if (download_limit <= 0) download_limit = -1;
 		if (upload_limit <= 0) upload_limit = -1;
 		if (torrent_upload_limit <= 0) torrent_upload_limit = -1;
+		if (torrent_download_limit <= 0) torrent_download_limit = -1;
 		if (poll_interval < 2) poll_interval = 2;
 		if (wait_retry < 0) wait_retry = 0;
 		if (half_open_limit < 1) half_open_limit = -1;
@@ -835,6 +843,7 @@ int main(int ac, char* av[])
 					h.set_ratio(preferred_ratio);
 					h.set_sequenced_download_threshold(15);
 					h.set_upload_limit(torrent_upload_limit);
+					h.set_download_limit(torrent_download_limit);
 					continue;
 				}
 				boost::cmatch what;
@@ -852,12 +861,13 @@ int main(int ac, char* av[])
 					h.set_ratio(preferred_ratio);
 					h.set_sequenced_download_threshold(15);
 					h.set_upload_limit(torrent_upload_limit);
+					h.set_download_limit(torrent_download_limit);
 					continue;
 				}
 				// if it's a torrent file, open it as usual
 				add_torrent(ses, handles, i->c_str(), preferred_ratio
 					, compact_allocation_mode ? storage_mode_compact : storage_mode_sparse
-					, save_path, false, torrent_upload_limit);
+					, save_path, false, torrent_upload_limit, torrent_download_limit);
 			}
 			catch (std::exception& e)
 			{
@@ -1195,7 +1205,8 @@ int main(int ac, char* av[])
 				&& next_dir_scan < time_now())
 			{
 				scan_dir(monitor_dir, ses, handles, preferred_ratio
-					, compact_allocation_mode, save_path, torrent_upload_limit);
+					, compact_allocation_mode, save_path, torrent_upload_limit
+					, torrent_download_limit);
 				next_dir_scan = time_now() + seconds(poll_interval);
 			}
 		}
