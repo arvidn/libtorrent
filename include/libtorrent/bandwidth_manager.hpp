@@ -124,6 +124,12 @@ struct bandwidth_manager
 	bool is_queued(PeerConnection const* peer) const
 	{
 		mutex_t::scoped_lock l(m_mutex);
+		return is_queued(peer);
+	}
+
+	bool is_queued(PeerConnection const* peer, boost::mutex::scoped_lock& l) const
+	{
+		TORRENT_ASSERT(l.locked());
 		for (typename queue_t::const_iterator i = m_queue.begin()
 			, end(m_queue.end()); i != end; ++i)
 		{
@@ -135,6 +141,12 @@ struct bandwidth_manager
 	bool is_in_history(PeerConnection const* peer) const
 	{
 		mutex_t::scoped_lock l(m_mutex);
+		return is_in_history(peer, l);
+	}
+
+	bool is_in_history(PeerConnection const* peer, boost::mutex::scoped_lock& l) const
+	{
+		TORRENT_ASSERT(l.locked());
 		for (typename history_t::const_iterator i
 			= m_history.begin(), end(m_history.end()); i != end; ++i)
 		{
@@ -152,11 +164,11 @@ struct bandwidth_manager
 		, int blk
 		, bool non_prioritized) throw()
 	{
+		mutex_t::scoped_lock l(m_mutex);
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(blk > 0);
-		TORRENT_ASSERT(!is_queued(peer.get()));
+		TORRENT_ASSERT(!is_queued(peer.get(), l));
 
-		mutex_t::scoped_lock l(m_mutex);
 		TORRENT_ASSERT(!peer->ignore_bandwidth_limits());
 
 		// make sure this peer isn't already in line
@@ -226,13 +238,12 @@ private:
 	
 	void on_history_expire(asio::error_code const& e) throw()
 	{
-		INVARIANT_CHECK;
-
 		if (e) return;
 
+		mutex_t::scoped_lock l(m_mutex);
+		INVARIANT_CHECK;
 		TORRENT_ASSERT(!m_history.empty());
 
-		mutex_t::scoped_lock l(m_mutex);
 		ptime now(time_now());
 		while (!m_history.empty() && m_history.back().expires_at <= now)
 		{
@@ -264,6 +275,7 @@ private:
 
 	void hand_out_bandwidth(boost::mutex::scoped_lock& l)
 	{
+		TORRENT_ASSERT(l.locked());
 		// if we're already handing out bandwidth, just return back
 		// to the loop further down on the callstack
 		if (m_in_hand_out_bandwidth) return;
@@ -296,7 +308,6 @@ private:
 		m_queue.swap(q);
 		while (!q.empty() && amount > 0)
 		{
-			TORRENT_ASSERT(amount == limit - m_current_quota);
 			bw_queue_entry<PeerConnection> qe = q.front();
 			TORRENT_ASSERT(qe.max_block_size > 0);
 			q.pop_front();
@@ -308,7 +319,6 @@ private:
 				l.unlock();
 				t->expire_bandwidth(m_channel, qe.max_block_size);
 				l.lock();
-				amount = limit - m_current_quota;
 				continue;
 			}
 
@@ -318,7 +328,7 @@ private:
 			int max_assignable = qe.peer->max_assignable_bandwidth(m_channel);
 			if (max_assignable == 0)
 			{
-				TORRENT_ASSERT(is_in_history(qe.peer.get()));
+				TORRENT_ASSERT(is_in_history(qe.peer.get(), l));
 				tmp.push_back(qe);
 				continue;
 			}
@@ -374,7 +384,6 @@ private:
 			int hand_out_amount = (std::min)((std::min)(block_size, max_assignable)
 				, amount);
 			TORRENT_ASSERT(hand_out_amount > 0);
-			TORRENT_ASSERT(amount == limit - m_current_quota);
 			amount -= hand_out_amount;
 			TORRENT_ASSERT(hand_out_amount <= qe.max_block_size);
 			l.unlock();
@@ -383,7 +392,6 @@ private:
 			l.lock();
 			add_history_entry(history_entry<PeerConnection, Torrent>(
 				qe.peer, t, hand_out_amount, now + bw_window_size));
-			amount = limit - m_current_quota;
 		}
 		if (!q.empty()) m_queue.insert(m_queue.begin(), q.begin(), q.end());
 		if (!tmp.empty()) m_queue.insert(m_queue.begin(), tmp.begin(), tmp.end());
