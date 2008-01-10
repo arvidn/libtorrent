@@ -2301,6 +2301,8 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
+		INVARIANT_CHECK;
+		
 		TORRENT_ASSERT(amount > 0);
 		m_bandwidth_limit[channel].expire(amount);
 		queue_t tmp;

@@ -107,6 +107,8 @@ namespace libtorrent
 		, m_queued(true)
 		, m_writing(false)
 		, m_reading(false)
+		, m_requested_write_quota(false)
+		, m_requested_read_quota(false)
 		, m_prefer_whole_pieces(false)
 		, m_request_large_blocks(false)
 		, m_non_prioritized(false)
@@ -135,8 +137,6 @@ namespace libtorrent
 #endif
 #ifndef NDEBUG
 		piece_failed = false;
-		m_requested_read_quota = false;
-		m_requested_write_quota = false;
 #endif
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
@@ -190,6 +190,8 @@ namespace libtorrent
 		, m_queued(false)
 		, m_writing(false)
 		, m_reading(false)
+		, m_requested_write_quota(false)
+		, m_requested_read_quota(false)
 		, m_prefer_whole_pieces(false)
 		, m_request_large_blocks(false)
 		, m_non_prioritized(false)
@@ -234,8 +236,6 @@ namespace libtorrent
 		
 #ifndef NDEBUG
 		piece_failed = false;
-		m_requested_read_quota = false;
-		m_requested_write_quota = false;
 #endif
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
 	}
@@ -2224,6 +2224,11 @@ namespace libtorrent
 		}
 
 		p.send_buffer_size = m_send_buffer.capacity();
+		p.used_send_buffer = m_send_buffer.size();
+		p.flags |= m_reading ? peer_info::reading : 0;
+		p.flags |= m_writing ? peer_info::writing : 0;
+		p.flags |= m_requested_write_quota ? peer_info::waiting_write_quota : 0;
+		p.flags |= m_requested_read_quota ? peer_info::waiting_read_quota : 0;
 	}
 
 	void peer_connection::cut_receive_buffer(int size, int packet_size)
@@ -2496,22 +2501,14 @@ namespace libtorrent
 		m_bandwidth_limit[channel].assign(amount);
 		if (channel == upload_channel)
 		{
-			TORRENT_ASSERT(m_writing);
-			m_writing = false;
-#ifndef NDEBUG
 			TORRENT_ASSERT(m_requested_write_quota);
 			m_requested_write_quota = false;
-#endif
 			setup_send();
 		}
 		else if (channel == download_channel)
 		{
-			TORRENT_ASSERT(m_reading);
-			m_reading = false;
-#ifndef NDEBUG
 			TORRENT_ASSERT(m_requested_read_quota);
 			m_requested_read_quota = false;
-#endif
 			setup_receive();
 		}
 	}
@@ -2537,7 +2534,7 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-		if (m_writing) return;
+		if (m_writing || m_requested_write_quota) return;
 		
 		shared_ptr<torrent> t = m_torrent.lock();
 
@@ -2559,11 +2556,8 @@ namespace libtorrent
 
 				TORRENT_ASSERT(!m_writing);
 				// peers that we are not interested in are non-prioritized
-				m_writing = true;
-#ifndef NDEBUG
 				TORRENT_ASSERT(!m_requested_write_quota);
 				m_requested_write_quota = true;
-#endif
 				t->request_bandwidth(upload_channel, self()
 					, !(is_interesting() && !has_peer_choked())
 					, m_send_buffer.size());
@@ -2604,7 +2598,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << "setup_receive: reading = " << m_reading << "\n";
 #endif
-		if (m_reading) return;
+		if (m_reading || m_requested_read_quota) return;
 
 		shared_ptr<torrent> t = m_torrent.lock();
 		
@@ -2618,11 +2612,8 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 				(*m_logger) << "req bandwidth [ " << download_channel << " ]\n";
 #endif
-				m_reading = true;
-#ifndef NDEBUG
 				TORRENT_ASSERT(!m_requested_read_quota);
 				m_requested_read_quota = true;
-#endif
 				t->request_bandwidth(download_channel, self(), m_non_prioritized
 					, m_download_queue.size() * 16 * 1024 + 30);
 			}
@@ -3038,6 +3029,9 @@ namespace libtorrent
 				== m_ses.m_bandwidth_manager[i]->is_in_history(this)
 				|| m_bandwidth_limit[i].throttle() == bandwidth_limit::inf);
 		}
+
+		TORRENT_ASSERT(int(m_reading) + int(m_requested_read_quota) <= 1);
+		TORRENT_ASSERT(int(m_writing) + int(m_requested_write_quota) <= 1);
 
 		std::set<piece_block> unique;
 		std::copy(m_download_queue.begin(), m_download_queue.end(), std::inserter(unique, unique.begin()));

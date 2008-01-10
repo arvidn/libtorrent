@@ -306,7 +306,7 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
-	out << "IP                      down    (total)   up      (total)  sent-req recv flags      source fail hshf sndb inactive wait disk quota block-progress "
+	out << "IP                      down    (total)   up      (total)  sent-req recv flags        source fail hshf sndb inactive wait disk quota block-progress "
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		"country "
 #endif
@@ -340,11 +340,13 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			<< ((i->flags & peer_info::seed)?'s':'.')
 			<< ((i->flags & peer_info::on_parole)?'p':'.')
 			<< ((i->flags & peer_info::optimistic_unchoke)?'O':'.')
+			<< ((i->flags & peer_info::reading)?'R':(i->flags & peer_info::waiting_read_quota)?'r':'.')
+			<< ((i->flags & peer_info::writing)?'W':(i->flags & peer_info::waiting_write_quota)?'w':'.')
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			<< ((i->flags & peer_info::rc4_encrypted)?'E':
 				(i->flags & peer_info::plaintext_encrypted)?'e':'.')
 #else
-			<< "  "
+			<< ".."
 #endif
 			<< " "
 			<< ((i->source & peer_info::tracker)?"T":"_")
@@ -354,10 +356,10 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			<< ((i->source & peer_info::resume_data)?"R":"_") << "  "
 			<< to_string(i->failcount, 2) << " "
 			<< to_string(i->num_hashfails, 2) << " "
-			<< to_string(i->send_buffer_size, 6) << " "
+			<< to_string(i->used_send_buffer, 6) << " ("<< add_suffix(i->send_buffer_size) << ") "
 			<< to_string(total_seconds(i->last_active), 8) << " "
 			<< to_string(total_seconds(i->last_request), 4) << " "
-			<< to_string(i->pending_disk_bytes, 6) << " "
+			<< add_suffix(i->pending_disk_bytes) << " "
 			<< to_string(i->send_quota, 5) << " ";
 
 		if (i->downloading_piece_index >= 0)
