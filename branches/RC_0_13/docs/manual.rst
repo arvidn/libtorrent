@@ -2214,12 +2214,22 @@ It contains the following fields::
 		int upload_limit;
 		int download_limit;
 
+		time_duration last_request;
+		time_duration last_active;
+
+		int send_buffer_size;
+		int used_send_buffer;
+
+		int num_hashfails;
+
 		char country[2];
 
 		size_type load_balancing;
 
 		int download_queue_length;
 		int upload_queue_length;
+
+		int failcount;
 
 		int downloading_piece_index;
 		int downloading_block_index;
@@ -2333,6 +2343,15 @@ limit and the torrent limit is always enforced anyway.
 ``download_limit`` is the number of bytes per second this peer is allowed to
 receive. -1 means it's unlimited.
 
+``last_request`` and ``last_active`` is the time since we last sent a request
+to this peer and since any transfer occurred with this peer, respectively.
+
+``send_buffer_size`` and ``used_send_buffer`` is the number of bytes allocated
+and used for the peer's send buffer, respectively.
+
+``num_hashfails`` is the number of pieces this peer has participated in
+sending us that turned out to fail the hash check.
+
 ``country`` is the two letter `ISO 3166 country code`__ for the country the peer
 is connected from. If the country hasn't been resolved yet, both chars are set
 to 0. If the resolution failed for some reason, the field is set to "--". If the
@@ -2353,6 +2372,10 @@ that hasn't been answered with a piece yet.
 
 ``upload_queue_length`` is the number of piece-requests we have received from this peer
 that we haven't answered with a piece yet.
+
+``failcount`` is the number of times this peer has "failed". i.e. failed to connect
+or disconnected us. The failcount is decremented when we see this peer in a tracker
+response or peer exchange message.
 
 You can know which piece, and which part of that piece, that is currently being
 downloaded from a specific peer by looking at the next four members.
