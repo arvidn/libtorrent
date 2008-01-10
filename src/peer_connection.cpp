@@ -3032,6 +3032,10 @@ namespace libtorrent
 
 		TORRENT_ASSERT(int(m_reading) + int(m_requested_read_quota) <= 1);
 		TORRENT_ASSERT(int(m_writing) + int(m_requested_write_quota) <= 1);
+		if (m_requested_read_quota)
+			TORRENT_ASSERT(m_bandwidth_limit[download_channel].quota_left() == 0);
+		if (m_requested_write_quota)
+			TORRENT_ASSERT(m_bandwidth_limit[upload_channel].quota_left() == 0);
 
 		std::set<piece_block> unique;
 		std::copy(m_download_queue.begin(), m_download_queue.end(), std::inserter(unique, unique.begin()));
