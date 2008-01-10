@@ -57,7 +57,11 @@ namespace libtorrent
 			queued = 0x100,
 			on_parole = 0x200,
 			seed = 0x400,
-			optimistic_unchoke = 0x800
+			optimistic_unchoke = 0x800,
+			writing = 0x1000,
+			reading = 0x2000,
+			waiting_write_quota = 0x4000,
+			waiting_read_quota = 0x8000
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			, rc4_encrypted = 0x100000,
 			plaintext_encrypted = 0x200000
@@ -96,8 +100,10 @@ namespace libtorrent
 		// time since last download or upload
 		time_duration last_active;
 
-		// the size of the send buffer for this peer
+		// the size of the send buffer for this peer, in bytes
 		int send_buffer_size;
+		// the number bytes that's actually used of the send buffer
+		int used_send_buffer;
 
 		// the number of failed hashes for this peer
 		int num_hashfails;
