@@ -30,10 +30,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#if defined __linux__ || defined BSD
+#if defined __linux__ || (defined __APPLE__ && __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
+	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__
 #include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <net/if.h>
+#include <net/route.h>
 #elif defined WIN32
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -66,6 +68,14 @@ namespace libtorrent
 				return address_v6(b);
 			}
 			return address();
+		}
+
+		bool verify_sockaddr(sockaddr_in* sin)
+		{
+			return (sin->sin_len == sizeof(sockaddr_in)
+				&& sin->sin_family == AF_INET)
+				|| (sin->sin_len == sizeof(sockaddr_in6)
+				&& sin->sin_family == AF_INET6);
 		}
 	}
 	
@@ -213,15 +223,117 @@ namespace libtorrent
 		return ret;
 	}
 
-	address router_for_interface(address const interface, asio::error_code& ec)
+	address get_default_gateway(asio::io_service& ios, address const& interface, asio::error_code& ec)
 	{
-#ifdef WIN32
+	
+#if defined __linux__ || (defined __APPLE__ && __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
+	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__
+
+		struct rt_msg
+		{
+			rt_msghdr m_rtm;
+			char buf[512];
+		};
+
+		rt_msg m;
+		int len = sizeof(rt_msg);
+		bzero(&m, len);
+		m.m_rtm.rtm_type = RTM_GET;
+		m.m_rtm.rtm_flags = RTF_UP | RTF_GATEWAY;
+		m.m_rtm.rtm_version = RTM_VERSION;
+		m.m_rtm.rtm_addrs = RTA_DST | RTA_GATEWAY;
+		m.m_rtm.rtm_seq = 0;
+		m.m_rtm.rtm_msglen = len;
+
+		int s = socket(PF_ROUTE, SOCK_RAW, AF_INET);
+		if (s == -1)
+		{
+			ec = asio::error_code(errno, asio::error::system_category);
+			return address_v4::any();
+		}
+
+		int n = write(s, &m, len);
+		if (n == -1)
+		{
+			ec = asio::error_code(errno, asio::error::system_category);
+			close(s);
+			return address_v4::any();
+		}
+		else if (n != len)
+		{
+			ec = asio::error::operation_not_supported;
+			close(s);
+			return address_v4::any();
+		}
+		bzero(&m, len);
+
+		n = read(s, &m, len);
+		if (n == -1)
+		{
+			ec = asio::error_code(errno, asio::error::system_category);
+			close(s);
+			return address_v4::any();
+		}
+		close(s);
+
+		TORRENT_ASSERT(m.m_rtm.rtm_seq == 0);
+		TORRENT_ASSERT(m.m_rtm.rtm_pid == getpid());
+		if (m.m_rtm.rtm_errno)
+		{
+			ec = asio::error_code(m.m_rtm.rtm_errno, asio::error::system_category);
+			return address_v4::any();
+		}
+		if (m.m_rtm.rtm_flags & RTF_UP == 0
+			|| m.m_rtm.rtm_flags & RTF_GATEWAY == 0)
+		{
+			ec = asio::error::operation_not_supported;
+			return address_v4::any();
+		}
+		if (m.m_rtm.rtm_addrs & RTA_DST == 0
+			|| m.m_rtm.rtm_addrs & RTA_GATEWAY == 0)
+		{
+			ec = asio::error::operation_not_supported;
+			return address_v4::any();
+		}
+		if (m.m_rtm.rtm_msglen > len)
+		{
+			ec = asio::error::operation_not_supported;
+			return address_v4::any();
+		}
+		int min_len = sizeof(rt_msghdr) + 2 * sizeof(struct sockaddr_in);
+		if (m.m_rtm.rtm_msglen < min_len)
+		{
+			ec = asio::error::operation_not_supported;
+			return address_v4::any();
+		}
+
+		// default route
+		char* p = m.buf;
+		sockaddr_in* sin = (sockaddr_in*)p;
+		if (!verify_sockaddr(sin))
+		{
+			ec = asio::error::operation_not_supported;
+			return address_v4::any();
+		}
+
+		// default gateway
+		p += sin->sin_len;
+		sin = (sockaddr_in*)p;
+		if (!verify_sockaddr(sin))
+		{
+			ec = asio::error::operation_not_supported;
+			return address_v4::any();
+		}
+
+		return sockaddr_to_address((sockaddr*)sin);
+
+#elif defined WIN32
 
 		// Load Iphlpapi library
 		HMODULE iphlp = LoadLibraryA("Iphlpapi.dll");
 		if (!iphlp)
 		{
-			ec = asio::error::fault;
+			ec = asio::error::operation_not_supported;
 			return address_v4::any();
 		}
 
@@ -231,7 +343,7 @@ namespace libtorrent
 		if (!GetAdaptersInfo)
 		{
 			FreeLibrary(iphlp);
-			ec = asio::error::fault;
+			ec = asio::error::operation_not_supported;
 			return address_v4::any();
 		}
 
@@ -240,7 +352,7 @@ namespace libtorrent
 		if (GetAdaptersInfo(adapter_info, &out_buf_size) != ERROR_BUFFER_OVERFLOW)
 		{
 			FreeLibrary(iphlp);
-			ec = asio::error::fault;
+			ec = asio::error::operation_not_supported;
 			return address_v4::any();
 		}
 
@@ -248,22 +360,29 @@ namespace libtorrent
 		if (!adapter_info)
 		{
 			FreeLibrary(iphlp);
-			ec = asio::error::fault;
+			ec = asio::error::no_memory;
 			return address_v4::any();
 		}
 
 		address ret;
 		if (GetAdaptersInfo(adapter_info, &out_buf_size) == NO_ERROR)
 		{
-			PIP_ADAPTER_INFO adapter = adapter_info;
-			while (adapter != 0)
+			
+			for (PIP_ADAPTER_INFO adapter = adapter_info;
+				adapter != 0; adapter = adapter->Next)
 			{
-				if (interface == address::from_string(adapter->IpAddressList.IpAddress.String, ec))
+				address iface = address::from_string(adapter->IpAddressList.IpAddress.String, ec);
+				if (ec)
+				{
+					ec = asio::error_code();
+					continue;
+				}
+				if (is_loopback(iface) || is_any(iface)) continue;
+				if (interface == address() || interface == iface)
 				{
 					ret = address::from_string(adapter->GatewayList.IpAddress.String, ec);
 					break;
 				}
-				adapter = adapter->Next;
 			}
 		}
    
@@ -274,10 +393,11 @@ namespace libtorrent
 		return ret;
 
 #else
-		// TODO: temporary implementation
+		address interface = guess_local_address(ios);
+
 		if (!interface.is_v4())
 		{
-			ec = asio::error::fault;
+			ec = asio::error::operation_not_supported;
 			return address_v4::any();
 		}
 		return address_v4((interface.to_v4().to_ulong() & 0xffffff00) | 1);

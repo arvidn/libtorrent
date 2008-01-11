@@ -45,13 +45,6 @@ using namespace libtorrent;
 
 enum { num_mappings = 2 };
 
-namespace libtorrent
-{
-	// defined in upnp.cpp
-	bool is_local(address const& a);
-	address guess_local_address(asio::io_service&);
-}
-
 natpmp::natpmp(io_service& ios, address const& listen_interface, portmap_callback_t const& cb)
 	: m_callback(cb)
 	, m_currently_mapping(-1)
@@ -72,51 +65,27 @@ natpmp::natpmp(io_service& ios, address const& listen_interface, portmap_callbac
 
 void natpmp::rebind(address const& listen_interface)
 {
-	address local = address_v4::any();
-	if (listen_interface != address_v4::any())
+	asio::error_code ec;
+	address gateway = get_default_gateway(m_socket.get_io_service(), listen_interface, ec);
+	if (ec)
 	{
-		local = listen_interface;
-	}
-	else
-	{
-		local = guess_local_address(m_socket.io_service());
-
-		if (local == address_v4::any())
-		{
-			disable("local host is probably not on a NATed "
-				"network. disabling NAT-PMP");
-			return;
-		}
-	}
-
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << time_now_string()
-		<< " local ip: " << local.to_string() << std::endl;
+		m_log << time_now_string() << " failed to find default router: "
+			<< ec.message() << std::endl;
 #endif
-
-	if (!is_local(local))
-	{
-		// the local address seems to be an external
-		// internet address. Assume it is not behind a NAT
-		disable("local IP is not on a local network");
+		disable("failed to find default router");
 		return;
 	}
 
 	m_disabled = false;
 
-	asio::error_code ec;
-	udp::endpoint nat_endpoint(router_for_interface(local, ec), 5351);
-	if (ec)
-	{
-		disable("cannot retrieve router address");
-		return;
-	}
-
+	udp::endpoint nat_endpoint(gateway, 5351);
 	if (nat_endpoint == m_nat_endpoint) return;
 	m_nat_endpoint = nat_endpoint;
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << "assuming router is at: " << m_nat_endpoint.address().to_string() << std::endl;
+	m_log << time_now_string() << " found router at: "
+		<< m_nat_endpoint.address() << std::endl;
 #endif
 
 	m_socket.open(udp::v4(), ec);
