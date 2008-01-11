@@ -210,7 +210,12 @@ namespace libtorrent
 			{
 				if (is_directory(st)) return file_view();
 				size_type s = fs::file_size(p);
+#ifdef WIN32
+				// TODO: SetFileSize()
+				if (s < file_size) {}
+#else
 				if (s < file_size) truncate(p.string().c_str(), file_size);
+#endif
 				ret = m_files.back().open(p, mode, start, view_size, key);
 			}
 			

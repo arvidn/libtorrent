@@ -1116,7 +1116,7 @@ namespace detail
 #ifndef NDEBUG
 		std::string err = exc.what();
 #endif
-	}
+	};
 
 /*
 	namespace
