@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/enum_net.hpp"
+#include "libtorrent/broadcast_socket.hpp"
 #include <asio/ip/host_name.hpp>
 
 namespace libtorrent
@@ -68,14 +69,6 @@ namespace libtorrent
 				return address_v6(b);
 			}
 			return address();
-		}
-
-		bool verify_sockaddr(sockaddr_in* sin)
-		{
-			return (sin->sin_len == sizeof(sockaddr_in)
-				&& sin->sin_family == AF_INET)
-				|| (sin->sin_len == sizeof(sockaddr_in6)
-				&& sin->sin_family == AF_INET6);
 		}
 	}
 	
@@ -226,8 +219,16 @@ namespace libtorrent
 	address get_default_gateway(asio::io_service& ios, address const& interface, asio::error_code& ec)
 	{
 	
-#if defined __linux__ || (defined __APPLE__ && __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
+#if (defined __APPLE__ && __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
 	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__
+
+		bool verify_sockaddr(sockaddr_in* sin)
+		{
+			return (sin->sin_len == sizeof(sockaddr_in)
+				&& sin->sin_family == AF_INET)
+				|| (sin->sin_len == sizeof(sockaddr_in6)
+				&& sin->sin_family == AF_INET6);
+		}
 
 		struct rt_msg
 		{
@@ -392,9 +393,9 @@ namespace libtorrent
 
 		return ret;
 
+//#elif defined __linux__
+// No linux implementation yet
 #else
-		address interface = guess_local_address(ios);
-
 		if (!interface.is_v4())
 		{
 			ec = asio::error::operation_not_supported;
