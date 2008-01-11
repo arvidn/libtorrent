@@ -24,7 +24,9 @@ int main()
 	}
 
 	address local = guess_local_address(ios);
-
 	std::cout << "Local address: " << local << std::endl;
+
+	address gateway = get_default_gateway(ios, local, ec);
+	std::cout << "Default gateway: " << gateway << std::endl;
 }
 
