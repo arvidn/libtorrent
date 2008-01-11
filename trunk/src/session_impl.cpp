@@ -959,12 +959,14 @@ namespace detail
 			{
 				// if we're listening on any IPv6 address, enumerate them and
 				// pick the first non-local address
-				std::vector<address> const& ifs = enum_net_interfaces(m_io_service, ec);
-				for (std::vector<address>::const_iterator i = ifs.begin()
+				std::vector<ip_interface> const& ifs = enum_net_interfaces(m_io_service, ec);
+				for (std::vector<ip_interface>::const_iterator i = ifs.begin()
 					, end(ifs.end()); i != end; ++i)
 				{
-					if (i->is_v4() || i->to_v6().is_link_local() || i->to_v6().is_loopback()) continue;
-					m_ipv6_interface = tcp::endpoint(*i, ep.port());
+					if (i->interface_address.is_v4()
+						|| i->interface_address.to_v6().is_link_local()
+						|| i->interface_address.to_v6().is_loopback()) continue;
+					m_ipv6_interface = tcp::endpoint(i->interface_address, ep.port());
 					break;
 				}
 				break;
