@@ -71,16 +71,16 @@ usually not set by the package installer).</p>
 <h3><a id="step-1-download-boost" name="step-1-download-boost">Step 1: Download boost</a></h3>
 <p>You'll find boost <a class="reference" href="http://sourceforge.net/project/showfiles.php?group_id=7586&amp;package_id=8041&amp;release_id=376197">here</a>.</p>
 <p>Extract the archive to some directory where you want it. For the sake of this
-guide, let's assume you extract the package to <tt class="docutils literal"><span class="pre">c:\boost_1_33_1</span></tt> (I'm using
+guide, let's assume you extract the package to <tt class="docutils literal"><span class="pre">c:\boost_1_34_0</span></tt> (I'm using
 a windows path in this example since if you're on linux/unix you're more likely
-to use the autotools). You'll need at least version 1.33.1 of the boost library
+to use the autotools). You'll need at least version 1.34 of the boost library
 in order to build libtorrent.</p>
 </div>
 <div class="section">
 <h3><a id="step-2-setup-bbv2" name="step-2-setup-bbv2">Step 2: Setup BBv2</a></h3>
 <p>First you need to build <tt class="docutils literal"><span class="pre">bjam</span></tt>. You do this by opening a terminal (In
 windows, run <tt class="docutils literal"><span class="pre">cmd</span></tt>). Change directory to
-<tt class="docutils literal"><span class="pre">c:\boost_1_33_1\tools\build\jam_src</span></tt>. Then run the script called
+<tt class="docutils literal"><span class="pre">c:\boost_1_34_0\tools\jam\src</span></tt>. Then run the script called
 <tt class="docutils literal"><span class="pre">build.bat</span></tt> or <tt class="docutils literal"><span class="pre">build.sh</span></tt> on a unix system. This will build <tt class="docutils literal"><span class="pre">bjam</span></tt> and
 place it in a directory starting with <tt class="docutils literal"><span class="pre">bin.</span></tt> and then have the name of your
 platform. Copy the <tt class="docutils literal"><span class="pre">bjam.exe</span></tt> (or <tt class="docutils literal"><span class="pre">bjam</span></tt> on a unix system) to a place
@@ -94,14 +94,14 @@ set the environment variable <tt class="docutils literal"><span class="pre">BOOS
 <tt class="docutils literal"><span class="pre">bjam</span></tt> where it can find boost-build, your configuration file and all the
 toolsets (descriptions used by boost-build to know how to use different
 compilers on different platforms). Assuming the boost install path above, set
-it to <tt class="docutils literal"><span class="pre">c:\boost_1_33_1\tools\build\v2</span></tt>.</p>
+it to <tt class="docutils literal"><span class="pre">c:\boost_1_34_0\tools\build\v2</span></tt>.</p>
 <p>To set an environment variable in windows, type for example:</p>
 <pre class="literal-block">
-set BOOST_BUILD_PATH=c:\boost_1_33_1\tools\build\v2
+set BOOST_BUILD_PATH=c:\boost_1_34_0\tools\build\v2
 </pre>
 <p>In a terminal window.</p>
 <p>The last thing to do to complete the setup of BBv2 is to modify your
-<tt class="docutils literal"><span class="pre">user-config.jam</span></tt> file. It is located in <tt class="docutils literal"><span class="pre">c:\boost_1_33_1\tools\build\v2</span></tt>.
+<tt class="docutils literal"><span class="pre">user-config.jam</span></tt> file. It is located in <tt class="docutils literal"><span class="pre">c:\boost_1_34_0\tools\build\v2</span></tt>.
 Depending on your platform and which compiler you're using, you should add a
 line for each compiler and compiler version you have installed on your system
 that you want to be able to use with BBv2. For example, if you're using
@@ -134,7 +134,7 @@ using darwin : 4.0 : g++-4.0 ;
 <p>When building libtorrent, the <tt class="docutils literal"><span class="pre">Jamfile</span></tt> expects the environment variable
 <tt class="docutils literal"><span class="pre">BOOST_ROOT</span></tt> to be set to the boost installation directory. It uses this to
 find the boost libraries it depends on, so they can be built and their headers
-files found. So, set this to <tt class="docutils literal"><span class="pre">c:\boost_1_33_1</span></tt>.</p>
+files found. So, set this to <tt class="docutils literal"><span class="pre">c:\boost_1_34_0</span></tt>.</p>
 <p>Then the only thing left is simply to invoke <tt class="docutils literal"><span class="pre">bjam</span></tt>. If you want to specify
 a specific toolset to use (compiler) you can just add that to the commandline.
 For example:</p>
@@ -172,8 +172,8 @@ from a cygwin terminal, you'll have to run it from a <tt class="docutils literal
 cygwin, if you're building with gcc in cygwin you'll have to run it from a cygwin terminal.
 Also, make sure the paths are correct in the different environments. In cygwin, the paths
 (<tt class="docutils literal"><span class="pre">BOOST_BUILD_PATH</span></tt> and <tt class="docutils literal"><span class="pre">BOOST_ROOT</span></tt>) should be in the typical unix-format (e.g.
-<tt class="docutils literal"><span class="pre">/cygdrive/c/boost_1_33_1</span></tt>). In the windows environment, they should have the typical
-windows format (<tt class="docutils literal"><span class="pre">c:/boost_1_33_1</span></tt>).</p>
+<tt class="docutils literal"><span class="pre">/cygdrive/c/boost_1_34_0</span></tt>). In the windows environment, they should have the typical
+windows format (<tt class="docutils literal"><span class="pre">c:/boost_1_34_0</span></tt>).</p>
 <p>The <tt class="docutils literal"><span class="pre">Jamfile</span></tt> will define <tt class="docutils literal"><span class="pre">NDEBUG</span></tt> when it's building a release build.
 For more build configuration flags see <a class="reference" href="#build-configurations">Build configurations</a>.</p>
 <p>Build features:</p>
@@ -188,6 +188,18 @@ For more build configuration flags see <a class="reference" href="#build-configu
 </tr>
 </thead>
 <tbody valign="top">
+<tr><td><tt class="docutils literal"><span class="pre">boost</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">system</span></tt> - default. Tells the Jamfile that
+boost is installed and should be linked against
+the system libraries.</li>
+<li><tt class="docutils literal"><span class="pre">source</span></tt> - Specifies that boost is to be built
+from source. The environment variable
+<tt class="docutils literal"><span class="pre">BOOST_ROOT</span></tt> must be defined to point to the
+boost directory.</li>
+</ul>
+</td>
+</tr>
 <tr><td><tt class="docutils literal"><span class="pre">logging</span></tt></td>
 <td><ul class="first last simple">
 <li><tt class="docutils literal"><span class="pre">none</span></tt> - no logging.</li>
