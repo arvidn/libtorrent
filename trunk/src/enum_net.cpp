@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/enum_net.hpp"
+#include <asio/ip/host_name.hpp>
 
 namespace libtorrent
 {
@@ -96,8 +97,9 @@ namespace libtorrent
 	std::vector<ip_interface> enum_net_interfaces(asio::io_service& ios, asio::error_code& ec)
 	{
 		std::vector<ip_interface> ret;
-
-#if defined __linux__ || defined BSD
+// covers linux, MacOS X and BSD distributions
+#if defined __linux__ || (defined __APPLE__ && __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
+	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
@@ -131,15 +133,27 @@ namespace libtorrent
 				ifreq netmask = item;
 				if (ioctl(s, SIOCGIFNETMASK, &netmask) < 0)
 				{
-					close(s);
-					ec = asio::error_code(errno, asio::error::system_category);
-					return ret;
+					if (iface.interface_address.is_v6())
+					{
+						// this is expected to fail (at least on MacOS X)
+						iface.netmask = address_v6::any();
+					}
+					else
+					{
+						close(s);
+						ec = asio::error_code(errno, asio::error::system_category);
+						return ret;
+					}
 				}
-				iface.netmask = sockaddr_to_address(&netmask.ifr_addr);
+				else
+				{
+					iface.netmask = sockaddr_to_address(&netmask.ifr_addr);
+				}
 				ret.push_back(iface);
 			}
 
-#if defined BSD
+#if (defined __APPLE__ && __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
+	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__
 			int current_size = item.ifr_addr.sa_len + IFNAMSIZ;
 #elif defined __linux__
 			int current_size = sizeof(ifreq);
@@ -154,7 +168,7 @@ namespace libtorrent
 		SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s == SOCKET_ERROR)
 		{
-			ec = asio::error::fault;
+			ec = asio::error_code(WSAGetLastError(), asio::error::system_category);
 			return ret;
 		}
 
@@ -164,8 +178,8 @@ namespace libtorrent
 		if (WSAIoctl(s, SIO_GET_INTERFACE_LIST, 0, 0, buffer,
 			sizeof(buffer), &size, 0, 0) != 0)
 		{
+			ec = asio::error_code(WSAGetLastError(), asio::error::system_category);
 			closesocket(s);
-			ec = asio::error::fault;
 			return ret;
 		}
 		closesocket(s);
@@ -185,13 +199,14 @@ namespace libtorrent
 #warning THIS OS IS NOT RECOGNIZED, enum_net_interfaces WILL PROBABLY NOT WORK
 		// make a best guess of the interface we're using and its IP
 		udp::resolver r(ios);
-		udp::resolver::iterator i = r.resolve(udp::resolver::query(asio::ip::host_name(), "0"));
+		udp::resolver::iterator i = r.resolve(udp::resolver::query(asio::ip::host_name(ec), "0"), ec);
+		if (ec) return ret;
 		ip_interface iface;
 		for (;i != udp::resolver_iterator(); ++i)
 		{
 			iface.interface_address = i->endpoint().address();
 			if (iface.interface_address.is_v4())
-				iface.netmask = iface.interface_address.to_v4().netmask();
+				iface.netmask = address_v4::netmask(iface.interface_address.to_v4());
 			ret.push_back(iface);
 		}
 #endif
