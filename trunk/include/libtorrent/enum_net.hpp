@@ -55,9 +55,11 @@ namespace libtorrent
 
 	// returns true if the specified address is on the same
 	// local network as us
-	bool in_local_network(asio::io_service& ios, address const& addr, asio::error_code& ec);
+	bool in_local_network(asio::io_service& ios, address const& addr
+		, asio::error_code& ec);
 	
-	address router_for_interface(address const interface, asio::error_code& ec);
+	address get_default_gateway(asio::io_service& ios, address const& addr
+		, asio::error_code& ec);
 }
 
 #endif
