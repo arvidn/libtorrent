@@ -2071,7 +2071,8 @@ namespace libtorrent
 
 	bool peer_connection::on_local_network() const
 	{
-		if (libtorrent::is_local(m_remote.address())) return true;
+		if (libtorrent::is_local(m_remote.address())
+			|| is_loopback(m_remote.address())) return true;
 		return false;
 	}
 
