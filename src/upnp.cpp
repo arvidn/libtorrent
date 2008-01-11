@@ -75,27 +75,13 @@ upnp::upnp(io_service& ios, connection_queue& cc
 	, m_refresh_timer(ios)
 	, m_disabled(false)
 	, m_closing(false)
+	, m_ignore_outside_network(ignore_nonrouters)
 	, m_cc(cc)
 {
 #ifdef TORRENT_UPNP_LOGGING
 	m_log.open("upnp.log", std::ios::in | std::ios::out | std::ios::trunc);
 #endif
 	m_retry_count = 0;
-
-	if (ignore_nonrouters)
-	{
-		asio::error_code ec;
-		std::vector<address> const& net = enum_net_interfaces(m_io_service, ec);
-		m_filter.reserve(net.size());
-		for (std::vector<address>::const_iterator i = net.begin()
-			, end(net.end()); i != end; ++i)
-		{
-			asio::error_code e;
-			address a = router_for_interface(*i, e);
-			if (e || is_loopback(a)) continue;
-			m_filter.push_back(a);
-		}
-	}
 }
 
 upnp::~upnp()
@@ -264,14 +250,14 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 	Server:Microsoft-Windows-NT/5.1 UPnP/1.0 UPnP-Device-Host/1.0
 
 */
-	if (!m_filter.empty() && std::find(m_filter.begin(), m_filter.end()
-		, from.address()) == m_filter.end())
+	asio::error_code ec;
+	if (m_ignore_outside_network && !in_local_network(m_io_service, from.address(), ec))
 	{
 		// this upnp device is filtered because it's not in the
 		// list of configured routers
 #ifdef TORRENT_UPNP_LOGGING
-		m_log << time_now_string() << " <== (" << from << ") Rootdevice "
-			"ignored because it's not out router" << std::endl;
+		m_log << time_now_string() << " <== (" << from << ") UPnP device "
+			"ignored because it's not on our network" << std::endl;
 #endif
 		return;
 	}

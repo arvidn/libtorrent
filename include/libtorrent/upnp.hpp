@@ -235,12 +235,11 @@ private:
 	
 	bool m_disabled;
 	bool m_closing;
+	bool m_ignore_outside_network;
 
 	connection_queue& m_cc;
 
 	std::string m_model;
-
-	std::vector<address> m_filter;
 
 #ifdef TORRENT_UPNP_LOGGING
 	std::ofstream m_log;

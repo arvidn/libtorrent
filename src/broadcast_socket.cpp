@@ -79,12 +79,12 @@ namespace libtorrent
 	{
 		// make a best guess of the interface we're using and its IP
 		asio::error_code ec;
-		std::vector<address> const& interfaces = enum_net_interfaces(ios, ec);
+		std::vector<ip_interface> const& interfaces = enum_net_interfaces(ios, ec);
 		address ret = address_v4::any();
-		for (std::vector<address>::const_iterator i = interfaces.begin()
+		for (std::vector<ip_interface>::const_iterator i = interfaces.begin()
 			, end(interfaces.end()); i != end; ++i)
 		{
-			address const& a = *i;
+			address const& a = i->interface_address;
 			if (is_loopback(a)
 				|| is_multicast(a)
 				|| is_any(a)) continue;
@@ -111,28 +111,28 @@ namespace libtorrent
 		using namespace asio::ip::multicast;
 	
 		asio::error_code ec;
-		std::vector<address> interfaces = enum_net_interfaces(ios, ec);
+		std::vector<ip_interface> interfaces = enum_net_interfaces(ios, ec);
 
 		if (multicast_endpoint.address().is_v4())
 			open_multicast_socket(ios, address_v4::any(), loopback);
 		else
 			open_multicast_socket(ios, address_v6::any(), loopback);
 
-		for (std::vector<address>::const_iterator i = interfaces.begin()
+		for (std::vector<ip_interface>::const_iterator i = interfaces.begin()
 			, end(interfaces.end()); i != end; ++i)
 		{
 			// only broadcast to IPv4 addresses that are not local
-			if (!is_local(*i)) continue;
+			if (!is_local(i->interface_address)) continue;
 			// only multicast on compatible networks
-			if (i->is_v4() != multicast_endpoint.address().is_v4()) continue;
+			if (i->interface_address.is_v4() != multicast_endpoint.address().is_v4()) continue;
 			// ignore any loopback interface
-			if (is_loopback(*i)) continue;
+			if (is_loopback(i->interface_address)) continue;
 
 #ifndef NDEBUG
 //			std::cerr << "broadcast socket [ if: " << i->to_v4().to_string()
 //				<< " group: " << multicast_endpoint.address() << " ]" << std::endl;
 #endif
-			open_unicast_socket(ios, *i);
+			open_unicast_socket(ios, i->interface_address);
 		}
 	}
 

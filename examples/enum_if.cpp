@@ -9,16 +9,19 @@ int main()
 {
 	io_service ios;
 	asio::error_code ec;
-	std::vector<address> const& net = enum_net_interfaces(ios, ec);
+	std::vector<ip_interface> const& net = enum_net_interfaces(ios, ec);
 
-	for (std::vector<address>::const_iterator i = net.begin()
+	for (std::vector<ip_interface>::const_iterator i = net.begin()
 		, end(net.end()); i != end; ++i)
 	{
-		std::cout << *i << " ";
-		if (is_multicast(*i)) std::cout << "multicast ";
-		if (is_local(*i)) std::cout << "local ";
-		if (is_loopback(*i)) std::cout << "loopback ";
-		std::cout << "router: " << router_for_interface(*i, ec);
+		std::cout << "address: " << i->interface_address << std::endl
+			<< "   mask: " << i->netmask << std::endl
+			<< "   flags: ";
+		if (is_multicast(i->interface_address)) std::cout << "multicast ";
+		if (is_local(i->interface_address)) std::cout << "local ";
+		if (is_loopback(i->interface_address)) std::cout << "loopback ";
+		std::cout << std::endl;
+		std::cout << "  router: " << router_for_interface(i->interface_address, ec);
 		std::cout << std::endl;
 	}
 
