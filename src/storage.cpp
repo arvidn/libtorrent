@@ -452,15 +452,27 @@ namespace libtorrent
 			// the directory exists.
 			if (file_iter->size == 0)
 			{
+#ifndef BOOST_NO_EXCEPTIONS
+				try {
+#endif
 				file(m_save_path / file_iter->path, file::out);
+#ifndef BOOST_NO_EXCEPTIONS
+				} catch (std::exception&) {}
+#endif
 				continue;
 			}
 
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
 			if (allocate_files)
 			{
 				m_files.open_file(this, m_save_path / file_iter->path, file::in | file::out)
 					->set_size(file_iter->size);
 			}
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception&) {}
+#endif
 		}
 		// close files that were opened in write mode
 		m_files.release(this);
