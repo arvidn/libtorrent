@@ -71,11 +71,13 @@ void start_web_server(int port)
 {
 	stop_web_server(port);
 	std::ofstream f("./lighty_config");
-	f << "server.modules = (\"mod_access\")\n"
+	f << "server.modules = (\"mod_access\", \"mod_redirect\")\n"
 		"server.document-root = \"" << boost::filesystem::initial_path().string() << "\"\n"
 		"server.range-requests = \"enable\"\n"
 		"server.port = " << port << "\n"
-		"server.pid-file = \"./lighty" << port << ".pid\"\n";
+		"server.pid-file = \"./lighty" << port << ".pid\"\n"
+		"url.redirect = (\"^/redirect$\" => \"http://127.0.0.1:" << port << "/test_file\", "
+			"\"^/infinite_redirect$\" => \"http://127.0.0.1:" << port << "/infinite_redirect\")";
 	f.close();
 	
 	system("lighttpd -f lighty_config &");
