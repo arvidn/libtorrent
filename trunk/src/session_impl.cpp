@@ -554,7 +554,11 @@ namespace detail
 		, m_files(40)
 		, m_half_open(m_io_service)
 		, m_download_channel(m_io_service, peer_connection::download_channel)
+#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
+		, m_upload_channel(m_io_service, peer_connection::upload_channel, true)
+#else
 		, m_upload_channel(m_io_service, peer_connection::upload_channel)
+#endif
 		, m_tracker_manager(m_settings, m_tracker_proxy)
 		, m_listen_port_retries(listen_port_range.second - listen_port_range.first)
 		, m_listen_interface(address::from_string(listen_interface), listen_port_range.first)
