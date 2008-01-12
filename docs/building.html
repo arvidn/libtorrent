@@ -446,8 +446,8 @@ invariant checks and asserts built into it. If you want to disable such checks
 defines you can use to control the build.</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="40%" />
-<col width="60%" />
+<col width="44%" />
+<col width="56%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">macro</th>
@@ -484,7 +484,20 @@ piece sorting.</td>
 <tr><td><tt class="docutils literal"><span class="pre">TORRENT_UPNP_LOGGING</span></tt></td>
 <td>Generates a &quot;upnp.log&quot; file with the UPnP
 traffic. This is very useful when debugging
+support for various UPnP routers.
 support for various UPnP routers.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">TORRENT_DISK_STATS</span></tt></td>
+<td>This will create a log of all disk activity
+which later can parsed and graphed using
+<tt class="docutils literal"><span class="pre">parse_disk_log.py</span></tt>.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">TORRENT_STATS</span></tt></td>
+<td>This will generate a log with transfer rates,
+downloading torrents, seeding torrents, peers,
+connecting peers and disk buffers in use. The
+log can be parsed and graphed with
+<tt class="docutils literal"><span class="pre">parse_session_stats.py</span></tt>.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">UNICODE</span></tt></td>
 <td>If building on windows this will make sure the
@@ -535,6 +548,15 @@ the openssl dependency that comes with it.
 Encryption support is the peer connection
 encrypted supported by clients such as
 uTorrent, Azureus and KTorrent.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">_UNICODE</span></tt></td>
+<td>On windows, this will cause the file IO
+use wide character API, to properly support
+non-ansi characters.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">TORRENT_DISABLE_RESOLVE_COUNTRIES</span></tt></td>
+<td>Defining this will disable the ability to
+resolve countries of origin for peer IPs.</td>
 </tr>
 </tbody>
 </table>
