@@ -61,59 +61,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/connection_queue.hpp"
+#include "libtorrent/http_parser.hpp"
 
 namespace libtorrent
 {
 	
-	class http_parser
-	{
-	public:
-		http_parser();
-		std::string const& header(char const* key) const
-		{
-			static std::string empty;
-			std::map<std::string, std::string>::const_iterator i
-				= m_header.find(key);
-			if (i == m_header.end()) return empty;
-			return i->second;
-		}
-
-		std::string const& protocol() const { return m_protocol; }
-		int status_code() const { return m_status_code; }
-		std::string const& method() const { return m_method; }
-		std::string const& path() const { return m_path; }
-		std::string const& message() const { return m_server_message; }
-		buffer::const_interval get_body() const;
-		bool header_finished() const { return m_state == read_body; }
-		bool finished() const { return m_finished; }
-		boost::tuple<int, int> incoming(buffer::const_interval recv_buffer
-			, bool& error);
-		int body_start() const { return m_body_start_pos; }
-		int content_length() const { return m_content_length; }
-
-		void reset();
-
-		std::map<std::string, std::string> const& headers() const { return m_header; }
-		
-	private:
-		int m_recv_pos;
-		int m_status_code;
-		std::string m_method;
-		std::string m_path;
-		std::string m_protocol;
-		std::string m_server_message;
-
-		int m_content_length;
-
-		enum { read_status, read_header, read_body, error_state } m_state;
-
-		std::map<std::string, std::string> m_header;
-		buffer::const_interval m_recv_buffer;
-		int m_body_start_pos;
-
-		bool m_finished;
-	};
-
 	class TORRENT_EXPORT http_tracker_connection
 		: public tracker_connection
 	{
