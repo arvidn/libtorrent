@@ -45,9 +45,8 @@ namespace libtorrent
 	enum { max_bottled_buffer = 1024 * 1024 };
 
 void http_connection::get(std::string const& url, time_duration timeout
-	, bool handle_redirect)
+	, int handle_redirects)
 {
-	m_redirect = handle_redirect;
 	std::string protocol;
 	std::string auth;
 	std::string hostname;
@@ -62,21 +61,23 @@ void http_connection::get(std::string const& url, time_duration timeout
 		headers << "Authorization: Basic " << base64encode(auth) << "\r\n";
 	headers << "\r\n";
 	sendbuffer = headers.str();
-	start(hostname, boost::lexical_cast<std::string>(port), timeout);
+ 	start(hostname, boost::lexical_cast<std::string>(port), timeout, handle_redirects);
 }
 
 void http_connection::start(std::string const& hostname, std::string const& port
-	, time_duration timeout, bool handle_redirect)
+ 	, time_duration timeout, int handle_redirects)
 {
-	m_redirect = handle_redirect;
+ 	m_redirects = handle_redirects;
 	m_timeout = timeout;
 	m_timer.expires_from_now(m_timeout);
 	m_timer.async_wait(bind(&http_connection::on_timeout
 		, boost::weak_ptr<http_connection>(shared_from_this()), _1));
 	m_called = false;
+ 	m_parser.reset();
+ 	m_recvbuffer.clear();
+ 	m_read_pos = 0;
 	if (m_sock.is_open() && m_hostname == hostname && m_port == port)
 	{
-		m_parser.reset();
 		asio::async_write(m_sock, asio::buffer(sendbuffer)
 			, bind(&http_connection::on_write, shared_from_this(), _1));
 	}
@@ -233,6 +234,7 @@ void http_connection::on_read(asio::error_code const& e
 
 	if (e == asio::error::eof)
 	{
+		TORRENT_ASSERT(bytes_transferred == 0);
 		char const* data = 0;
 		std::size_t size = 0;
 		if (m_bottled && m_parser.header_finished())
@@ -247,6 +249,7 @@ void http_connection::on_read(asio::error_code const& e
 
 	if (e)
 	{
+		TORRENT_ASSERT(bytes_transferred == 0);
 		callback(e);
 		close();
 		return;
@@ -254,31 +257,6 @@ void http_connection::on_read(asio::error_code const& e
 
 	m_read_pos += bytes_transferred;
 	TORRENT_ASSERT(m_read_pos <= int(m_recvbuffer.size()));
-
-	// having a nonempty path means we should handle redirects
-	if (m_redirect && m_parser.header_finished())
-	{
-		int code = m_parser.status_code();
-		if (code >= 300 && code < 400)
-		{
-			// attempt a redirect
-			std::string const& url = m_parser.header("location");
-			if (url.empty())
-			{
-				// missing location header
-				callback(e);
-				return;
-			}
-
-			m_limiter_timer_active = false;
-			close();
-
-			get(url, m_timeout);
-			return;
-		}
-	
-		m_redirect = false;
-	}
 
 	if (m_bottled || !m_parser.header_finished())
 	{
@@ -295,6 +273,32 @@ void http_connection::on_read(asio::error_code const& e
 			m_handler.clear();
 			return;
 		}
+
+		// having a nonempty path means we should handle redirects
+		if (m_redirects && m_parser.header_finished())
+		{
+			int code = m_parser.status_code();
+
+			if (code >= 300 && code < 400)
+			{
+				// attempt a redirect
+				std::string const& url = m_parser.header("location");
+				if (url.empty())
+				{
+					// missing location header
+					callback(e);
+					return;
+				}
+
+				asio::error_code ec;
+				m_sock.close(ec);
+				get(url, m_timeout, m_redirects - 1);
+				return;
+			}
+	
+			m_redirects = 0;
+		}
+
 		if (!m_bottled && m_parser.header_finished())
 		{
 			if (m_read_pos > m_parser.body_start())
