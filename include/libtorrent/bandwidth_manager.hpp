@@ -41,6 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/thread/mutex.hpp>
 #include <deque>
 
+#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
+#include <fstream>
+#endif
+
 #include "libtorrent/socket.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/assert.hpp"
@@ -52,7 +56,6 @@ using boost::shared_ptr;
 using boost::intrusive_ptr;
 using boost::bind;
 
-//#define TORRENT_VERBOSE_BANDWIDTH_LIMIT
 
 namespace libtorrent {
 
@@ -80,7 +83,7 @@ struct history_entry
 };
 
 template<class T>
-T clamp(T val, T ceiling, T floor) throw()
+T clamp(T val, T ceiling, T floor)
 {
 	TORRENT_ASSERT(ceiling >= floor);
 	if (val >= ceiling) return ceiling;
@@ -91,7 +94,11 @@ T clamp(T val, T ceiling, T floor) throw()
 template<class PeerConnection, class Torrent>
 struct bandwidth_manager
 {
-	bandwidth_manager(io_service& ios, int channel) throw()
+	bandwidth_manager(io_service& ios, int channel
+#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
+		, bool log = false
+#endif		
+		)
 		: m_ios(ios)
 		, m_history_timer(m_ios)
 		, m_limit(bandwidth_limit::inf)
@@ -99,16 +106,22 @@ struct bandwidth_manager
 		, m_channel(channel)
 		, m_in_hand_out_bandwidth(false)
 		, m_abort(false)
-	{}
+	{
+#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
+		if (log)
+			m_log.open("bandwidth_limiter.log");
+		m_start = time_now();
+#endif
+	}
 
-	void throttle(int limit) throw()
+	void throttle(int limit)
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		TORRENT_ASSERT(limit >= 0);
 		m_limit = limit;
 	}
 	
-	int throttle() const throw()
+	int throttle() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		return m_limit;
@@ -162,7 +175,7 @@ struct bandwidth_manager
 	// this is used by web seeds
 	void request_bandwidth(intrusive_ptr<PeerConnection> const& peer
 		, int blk
-		, bool non_prioritized) throw()
+		, bool non_prioritized)
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		INVARIANT_CHECK;
@@ -197,9 +210,6 @@ struct bandwidth_manager
 				i = j;
 			}
 		}
-#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
-		std::cerr << " req_bandwidht. m_queue.size() = " << m_queue.size() << std::endl;
-#endif
 		if (!m_queue.empty()) hand_out_bandwidth(l);
 	}
 
@@ -219,7 +229,7 @@ struct bandwidth_manager
 
 private:
 
-	void add_history_entry(history_entry<PeerConnection, Torrent> const& e) throw()
+	void add_history_entry(history_entry<PeerConnection, Torrent> const& e)
 	{
 		INVARIANT_CHECK;
 
@@ -227,6 +237,15 @@ private:
 		m_current_quota += e.amount;
 		// in case the size > 1 there is already a timer
 		// active that will be invoked, no need to set one up
+
+#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
+		m_log << std::setw(7) << total_milliseconds(time_now() - m_start) << " + "
+			" queue: " << std::setw(3) << m_queue.size()
+			<< " used: " << std::setw(7) << m_current_quota
+			<< " limit: " << std::setw(7) << m_limit
+			<< " history: " << std::setw(3) << m_history.size()
+			<< std::endl;
+#endif
 		if (m_history.size() > 1) return;
 
 		if (m_abort) return;
@@ -236,7 +255,7 @@ private:
 		m_history_timer.async_wait(bind(&bandwidth_manager::on_history_expire, this, _1));
 	}
 	
-	void on_history_expire(asio::error_code const& e) throw()
+	void on_history_expire(asio::error_code const& e)
 	{
 		if (e) return;
 
@@ -251,6 +270,15 @@ private:
 			m_history.pop_back();
 			m_current_quota -= e.amount;
 			TORRENT_ASSERT(m_current_quota >= 0);
+
+#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
+			m_log << std::setw(7) << total_milliseconds(time_now() - m_start) << " - "
+				" queue: " << std::setw(3) << m_queue.size()
+				<< " used: " << std::setw(7) << m_current_quota
+				<< " limit: " << std::setw(7) << m_limit
+				<< " history: " << std::setw(3) << m_history.size()
+				<< std::endl;
+#endif
 			intrusive_ptr<PeerConnection> c = e.peer;
 			shared_ptr<Torrent> t = e.tor.lock();
 			l.unlock();
@@ -289,13 +317,6 @@ private:
 
 		// available bandwidth to hand out
 		int amount = limit - m_current_quota;
-
-#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
-		std::cerr << " hand_out_bandwidht. m_queue.size() = " << m_queue.size()
-			<< " amount = " << amount
-			<< " limit = " << limit
-			<< " m_current_quota = " << m_current_quota << std::endl;
-#endif
 
 		if (amount <= 0)
 		{
@@ -369,9 +390,6 @@ private:
 			}
 			if (block_size > qe.max_block_size) block_size = qe.max_block_size;
 
-#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
-			std::cerr << " block_size = " << block_size << " amount = " << amount << std::endl;
-#endif
 			if (amount < block_size / 2)
 			{
 				tmp.push_back(qe);
@@ -434,6 +452,11 @@ private:
 	bool m_in_hand_out_bandwidth;
 
 	bool m_abort;
+
+#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
+	std::ofstream m_log;
+	ptime m_start;
+#endif
 };
 
 }

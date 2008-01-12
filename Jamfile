@@ -149,6 +149,9 @@ rule building ( properties * )
 	return $(result) ;
 }
 
+feature bandwidth-limit-logging : off on : composite propagated link-incompatible ;
+feature.compose <bandwidth-limit-logging>on : <define>TORRENT_VERBOSE_BANDWIDTH_LIMIT ;
+
 feature disk-stats : off on : composite propagated link-incompatible ;
 feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
 
