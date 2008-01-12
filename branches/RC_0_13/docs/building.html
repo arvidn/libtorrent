@@ -458,8 +458,13 @@ defines you can use to control the build.</p>
 <tr><td><tt class="docutils literal"><span class="pre">NDEBUG</span></tt></td>
 <td>If you define this macro, all asserts,
 invariant checks and general debug code will be
-removed. This option takes precedence over
-other debug settings.</td>
+removed. Since there is quite a lot of code in
+in header files in libtorrent, it may be
+important to define the symbol consistently
+across compilation units, including the clients
+files. Potential problems is different
+compilation units having different views of
+structs and class layouts and sizes.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">TORRENT_LOGGING</span></tt></td>
 <td>This macro will enable logging of the session
