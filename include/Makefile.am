@@ -21,6 +21,7 @@ libtorrent/fingerprint.hpp \
 libtorrent/hasher.hpp \
 libtorrent/http_connection.hpp \
 libtorrent/http_stream.hpp \
+libtorrent/http_parser.hpp \
 libtorrent/http_tracker_connection.hpp \
 libtorrent/identify_client.hpp \
 libtorrent/instantiate_connection.hpp \
