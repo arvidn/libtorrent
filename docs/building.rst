@@ -442,8 +442,13 @@ defines you can use to control the build.
 +=================================+=================================================+
 | ``NDEBUG``                      | If you define this macro, all asserts,          |
 |                                 | invariant checks and general debug code will be |
-|                                 | removed. This option takes precedence over      |
-|                                 | other debug settings.                           |
+|                                 | removed. Since there is quite a lot of code in  |
+|                                 | in header files in libtorrent, it may be        |
+|                                 | important to define the symbol consistently     |
+|                                 | across compilation units, including the clients |
+|                                 | files. Potential problems is different          |
+|                                 | compilation units having different views of     |
+|                                 | structs and class layouts and sizes.            |
 +---------------------------------+-------------------------------------------------+
 | ``TORRENT_LOGGING``             | This macro will enable logging of the session   |
 |                                 | events, such as tracker announces and incoming  |
