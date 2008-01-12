@@ -437,78 +437,96 @@ invariant checks and asserts built into it. If you want to disable such checks
 (you want to do that in a release build) you can see the table below for which
 defines you can use to control the build.
 
-+---------------------------------+-------------------------------------------------+
-| macro                           | description                                     |
-+=================================+=================================================+
-| ``NDEBUG``                      | If you define this macro, all asserts,          |
-|                                 | invariant checks and general debug code will be |
-|                                 | removed. Since there is quite a lot of code in  |
-|                                 | in header files in libtorrent, it may be        |
-|                                 | important to define the symbol consistently     |
-|                                 | across compilation units, including the clients |
-|                                 | files. Potential problems is different          |
-|                                 | compilation units having different views of     |
-|                                 | structs and class layouts and sizes.            |
-+---------------------------------+-------------------------------------------------+
-| ``TORRENT_LOGGING``             | This macro will enable logging of the session   |
-|                                 | events, such as tracker announces and incoming  |
-|                                 | connections (as well as blocked connections).   |
-+---------------------------------+-------------------------------------------------+
-| ``TORRENT_VERBOSE_LOGGING``     | If you define this macro, every peer connection |
-|                                 | will log its traffic to a log file as well as   |
-|                                 | the session log.                                |
-+---------------------------------+-------------------------------------------------+
-| ``TORRENT_STORAGE_DEBUG``       | This will enable extra expensive invariant      |
-|                                 | checks in the storage, including logging of     |
-|                                 | piece sorting.                                  |
-+---------------------------------+-------------------------------------------------+
-| ``TORRENT_UPNP_LOGGING``        | Generates a "upnp.log" file with the UPnP       |
-|                                 | traffic. This is very useful when debugging     |
-|                                 | support for various UPnP routers.               |
-+---------------------------------+-------------------------------------------------+
-| ``UNICODE``                     | If building on windows this will make sure the  |
-|                                 | UTF-8 strings in pathnames are converted into   |
-|                                 | UTF-16 before they are passed to the file       |
-|                                 | operations.                                     |
-+---------------------------------+-------------------------------------------------+
-| ``LITTLE_ENDIAN``               | This will use the little endian version of the  |
-|                                 | sha-1 code. If defined on a big-endian system   |
-|                                 | the sha-1 hashes will be incorrect and fail.    |
-|                                 | If it is not defined and ``__BIG_ENDIAN__``     |
-|                                 | isn't defined either (it is defined by Apple's  |
-|                                 | GCC) both little-endian and big-endian versions |
-|                                 | will be built and the correct code will be      |
-|                                 | chosen at run-time.                             |
-+---------------------------------+-------------------------------------------------+
-| ``TORRENT_LINKING_SHARED``      | If this is defined when including the           |
-|                                 | libtorrent headers, the classes and functions   |
-|                                 | will be tagged with ``__declspec(dllimport)``   |
-|                                 | on msvc and default visibility on GCC 4 and     |
-|                                 | later. Set this in your project if you're       |
-|                                 | linking against libtorrent as a shared library. |
-|                                 | (This is set by the Jamfile when                |
-|                                 | ``link=shared`` is set).                        |
-+---------------------------------+-------------------------------------------------+
-| ``TORRENT_BUILDING_SHARED``     | If this is defined, the functions and classes   |
-|                                 | in libtorrent are marked with                   |
-|                                 | ``__declspec(dllexport)`` on msvc, or with      |
-|                                 | default visibility on GCC 4 and later. This     |
-|                                 | should be defined when building libtorrent as   |
-|                                 | a shared library. (This is set by the Jamfile   |
-|                                 | when ``link=shared`` is set).                   |
-+---------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_DHT``         | If this is defined, the support for trackerless |
-|                                 | torrents will be disabled.                      |
-+---------------------------------+-------------------------------------------------+
-| ``TORRENT_DHT_VERBOSE_LOGGING`` | This will enable verbose logging of the DHT     |
-|                                 | protocol traffic.                               |
-+---------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_ENCRYPTION``  | This will disable any encryption support and    |
-|                                 | the openssl dependency that comes with it.      |
-|                                 | Encryption support is the peer connection       |
-|                                 | encrypted supported by clients such as          |
-|                                 | uTorrent, Azureus and KTorrent.                 |
-+---------------------------------+-------------------------------------------------+
++---------------------------------------+-------------------------------------------------+
+| macro                                 | description                                     |
++=======================================+=================================================+
+| ``NDEBUG``                            | If you define this macro, all asserts,          |
+|                                       | invariant checks and general debug code will be |
+|                                       | removed. Since there is quite a lot of code in  |
+|                                       | in header files in libtorrent, it may be        |
+|                                       | important to define the symbol consistently     |
+|                                       | across compilation units, including the clients |
+|                                       | files. Potential problems is different          |
+|                                       | compilation units having different views of     |
+|                                       | structs and class layouts and sizes.            |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_LOGGING``                   | This macro will enable logging of the session   |
+|                                       | events, such as tracker announces and incoming  |
+|                                       | connections (as well as blocked connections).   |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_VERBOSE_LOGGING``           | If you define this macro, every peer connection |
+|                                       | will log its traffic to a log file as well as   |
+|                                       | the session log.                                |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_STORAGE_DEBUG``             | This will enable extra expensive invariant      |
+|                                       | checks in the storage, including logging of     |
+|                                       | piece sorting.                                  |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_UPNP_LOGGING``              | Generates a "upnp.log" file with the UPnP       |
+|                                       | traffic. This is very useful when debugging     |
+|                                       | support for various UPnP routers.               |
+|                                       | support for various UPnP routers.               |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISK_STATS``                | This will create a log of all disk activity     |
+|                                       | which later can parsed and graphed using        |
+|                                       | ``parse_disk_log.py``.                          |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_STATS``                     | This will generate a log with transfer rates,   |
+|                                       | downloading torrents, seeding torrents, peers,  |
+|                                       | connecting peers and disk buffers in use. The   |
+|                                       | log can be parsed and graphed with              |
+|                                       | ``parse_session_stats.py``.                     |
++---------------------------------------+-------------------------------------------------+
+| ``UNICODE``                           | If building on windows this will make sure the  |
+|                                       | UTF-8 strings in pathnames are converted into   |
+|                                       | UTF-16 before they are passed to the file       |
+|                                       | operations.                                     |
++---------------------------------------+-------------------------------------------------+
+| ``LITTLE_ENDIAN``                     | This will use the little endian version of the  |
+|                                       | sha-1 code. If defined on a big-endian system   |
+|                                       | the sha-1 hashes will be incorrect and fail.    |
+|                                       | If it is not defined and ``__BIG_ENDIAN__``     |
+|                                       | isn't defined either (it is defined by Apple's  |
+|                                       | GCC) both little-endian and big-endian versions |
+|                                       | will be built and the correct code will be      |
+|                                       | chosen at run-time.                             |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_LINKING_SHARED``            | If this is defined when including the           |
+|                                       | libtorrent headers, the classes and functions   |
+|                                       | will be tagged with ``__declspec(dllimport)``   |
+|                                       | on msvc and default visibility on GCC 4 and     |
+|                                       | later. Set this in your project if you're       |
+|                                       | linking against libtorrent as a shared library. |
+|                                       | (This is set by the Jamfile when                |
+|                                       | ``link=shared`` is set).                        |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_BUILDING_SHARED``           | If this is defined, the functions and classes   |
+|                                       | in libtorrent are marked with                   |
+|                                       | ``__declspec(dllexport)`` on msvc, or with      |
+|                                       | default visibility on GCC 4 and later. This     |
+|                                       | should be defined when building libtorrent as   |
+|                                       | a shared library. (This is set by the Jamfile   |
+|                                       | when ``link=shared`` is set).                   |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_DHT``               | If this is defined, the support for trackerless |
+|                                       | torrents will be disabled.                      |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_DHT_VERBOSE_LOGGING``       | This will enable verbose logging of the DHT     |
+|                                       | protocol traffic.                               |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_ENCRYPTION``        | This will disable any encryption support and    |
+|                                       | the openssl dependency that comes with it.      |
+|                                       | Encryption support is the peer connection       |
+|                                       | encrypted supported by clients such as          |
+|                                       | uTorrent, Azureus and KTorrent.                 |
++---------------------------------------+-------------------------------------------------+
+| ``_UNICODE``                          | On windows, this will cause the file IO         |
+|                                       | use wide character API, to properly support     |
+|                                       | non-ansi characters.                            |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_RESOLVE_COUNTRIES`` | Defining this will disable the ability to       |
+|                                       | resolve countries of origin for peer IPs.       |
++---------------------------------------+-------------------------------------------------+
 
 
 If you experience that libtorrent uses unreasonable amounts of cpu, it will
