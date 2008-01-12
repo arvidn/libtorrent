@@ -70,6 +70,19 @@ namespace libtorrent
 			}
 			return address();
 		}
+
+#if (defined __APPLE__ && __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
+	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__
+
+		bool verify_sockaddr(sockaddr_in* sin)
+		{
+			return (sin->sin_len == sizeof(sockaddr_in)
+				&& sin->sin_family == AF_INET)
+				|| (sin->sin_len == sizeof(sockaddr_in6)
+				&& sin->sin_family == AF_INET6);
+		}
+#endif
+
 	}
 	
 	bool in_subnet(address const& addr, ip_interface const& iface)
@@ -221,14 +234,6 @@ namespace libtorrent
 	
 #if (defined __APPLE__ && __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
 	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__
-
-		bool verify_sockaddr(sockaddr_in* sin)
-		{
-			return (sin->sin_len == sizeof(sockaddr_in)
-				&& sin->sin_family == AF_INET)
-				|| (sin->sin_len == sizeof(sockaddr_in6)
-				&& sin->sin_family == AF_INET6);
-		}
 
 		struct rt_msg
 		{
