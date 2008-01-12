@@ -97,6 +97,8 @@ int test_main()
 	std::srand(std::time(0));
 	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
 	std::ofstream("test_file").write(data_buffer, 3216);
+	run_test("http://127.0.0.1:8001/redirect", 3216, 200, 2, asio::error_code());
+	run_test("http://127.0.0.1:8001/infinite_redirect", 0, 301, 6, asio::error_code());
 	run_test("http://127.0.0.1:8001/test_file", 3216, 200, 1, asio::error_code());
 	run_test("http://127.0.0.1:8001/non-existing-file", -1, 404, 1, err());
 	run_test("http://non-existent-domain.se/non-existing-file", -1, -1, 0, err(asio::error::host_not_found));
