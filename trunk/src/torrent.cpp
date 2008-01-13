@@ -2291,7 +2291,8 @@ namespace libtorrent
 			// skip forward in the queue until we find a prioritized peer
 			// or hit the front of it.
 			queue_t::reverse_iterator i = m_bandwidth_queue[channel].rbegin();
-			while (i != m_bandwidth_queue[channel].rend() && i->non_prioritized) ++i;
+			if (!non_prioritized)
+				while (i != m_bandwidth_queue[channel].rend() && i->non_prioritized) ++i;
 			m_bandwidth_queue[channel].insert(i.base(), bw_queue_entry<peer_connection>(
 				p, block_size, non_prioritized));
 		}
