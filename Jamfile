@@ -152,6 +152,9 @@ rule building ( properties * )
 feature bandwidth-limit-logging : off on : composite propagated link-incompatible ;
 feature.compose <bandwidth-limit-logging>on : <define>TORRENT_VERBOSE_BANDWIDTH_LIMIT ;
 
+feature invariant-checks : on off : composite propagated link-incompatible ;
+feature.compose <invariant-checks>off : <define>TORRENT_DISABLE_INVARIANT_CHECKS ;
+
 feature disk-stats : off on : composite propagated link-incompatible ;
 feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
 
