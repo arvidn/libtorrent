@@ -136,6 +136,12 @@ rpc_manager::~rpc_manager()
 }
 
 #ifndef NDEBUG
+size_t rpc_manager::allocation_size() const
+{
+	size_t s = sizeof(mpl::deref<max_observer_type_iter::base>::type);
+	return s;
+}
+
 void rpc_manager::check_invariant() const
 {
 	TORRENT_ASSERT(m_oldest_transaction_id >= 0);
@@ -429,6 +435,7 @@ void rpc_manager::reply_with_ping(msg& m)
 	std::back_insert_iterator<std::string> out(m.ping_transaction_id);
 	io::write_uint16(m_next_transaction_id, out);
 
+	TORRENT_ASSERT(allocation_size() >= sizeof(null_observer));
 	observer_ptr o(new (allocator().malloc()) null_observer(allocator()));
 	TORRENT_ASSERT(!m_transactions[m_next_transaction_id]);
 	o->sent = time_now();
