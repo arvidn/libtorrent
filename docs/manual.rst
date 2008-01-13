@@ -2208,10 +2208,6 @@ It contains the following fields::
 			on_parole = 0x200,
 			seed = 0x400,
 			optimistic_unchoke = 0x800,
-			writing = 0x1000,
-			reading = 0x2000,
-			waiting_write_quota = 0x4000,
-			waiting_read_quota = 0x8000,
 			rc4_encrypted = 0x100000,
 			plaintext_encrypted = 0x200000
 		};
@@ -2227,6 +2223,11 @@ It contains the following fields::
 		};
 
 		int source;
+
+		enum bw_state { bw_idle, bw_torrent, bw_global, bw_network };
+
+		char read_state;
+		char write_state;
 
 		asio::ip::tcp::endpoint ip;
 		float up_speed;
@@ -2355,6 +2356,31 @@ was received. The flags are:
 |                        | discovery (The peer is on the local network).          |
 +------------------------+--------------------------------------------------------+
 | ``resume_data``        | The peer was added from the fast resume data.          |
++------------------------+--------------------------------------------------------+
+
+``read_state`` and ``write_state`` indicates what state this peer is in with regards
+to sending and receiving data. The states are declared in the ``bw_state`` enum and
+defines as follows:
+
++------------------------+--------------------------------------------------------+
+| ``bw_idle``            | The peer is not waiting for any external events to     |
+|                        | send or receive data.                                  |
+|                        |                                                        |
++------------------------+--------------------------------------------------------+
+| ``bw_torrent``         | The peer is waiting for the torrent to receive         |
+|                        | bandwidth quota in order to forward the bandwidth      |
+|                        | request to the global manager.                         |
+|                        |                                                        |
++------------------------+--------------------------------------------------------+
+| ``bw_global``          | The peer is waiting for the global bandwidth manager   |
+|                        | to receive more quota in order to handle the request.  |
+|                        |                                                        |
++------------------------+--------------------------------------------------------+
+| ``bw_network``         | The peer has quota and is currently waiting for a      |
+|                        | network read or write operation to complete. This is   |
+|                        | the state all peers are in if there are no bandwidth   |
+|                        | limits.                                                |
+|                        |                                                        |
 +------------------------+--------------------------------------------------------+
 
 The ``ip`` field is the IP-address to this peer. The type is an asio endpoint. For

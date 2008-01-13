@@ -57,11 +57,7 @@ namespace libtorrent
 			queued = 0x100,
 			on_parole = 0x200,
 			seed = 0x400,
-			optimistic_unchoke = 0x800,
-			writing = 0x1000,
-			reading = 0x2000,
-			waiting_write_quota = 0x4000,
-			waiting_read_quota = 0x8000
+			optimistic_unchoke = 0x800
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			, rc4_encrypted = 0x100000,
 			plaintext_encrypted = 0x200000
@@ -82,6 +78,16 @@ namespace libtorrent
 
 		int source;
 
+		// bw_idle: the channel is not used
+		// bw_torrent: the channel is waiting for torrent quota
+		// bw_global: the channel is waiting for global quota
+		// bw_network: the channel is waiting for an async write
+		//   for read operation to complete
+		enum bw_state { bw_idle, bw_torrent, bw_global, bw_network };
+
+		char read_state;
+		char write_state;
+		
 		tcp::endpoint ip;
 		float up_speed;
 		float down_speed;

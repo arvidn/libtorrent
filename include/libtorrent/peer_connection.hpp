@@ -408,6 +408,10 @@ namespace libtorrent
 		bool piece_failed;
 #endif
 
+		// upload and download channel state
+		// enum from peer_info::bw_state
+		char m_channel_state[2];
+
 	protected:
 
 		virtual void get_specific_peer_info(peer_info& p) const = 0;
@@ -663,14 +667,6 @@ namespace libtorrent
 		// peer_connection's socket. It is false on incoming
 		// connections.
 		bool m_queued;
-
-		// these are true when there's a asynchronous write
-		// or read operation in progress. Or an asyncronous bandwidth
-		// request is in progress.
-		bool m_writing;
-		bool m_reading;
-		bool m_requested_write_quota;
-		bool m_requested_read_quota;
 
 		// if set to non-zero, this peer will always prefer
 		// to request entire n pieces, rather than blocks.

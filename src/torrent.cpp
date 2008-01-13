@@ -2278,6 +2278,7 @@ namespace libtorrent
 		TORRENT_ASSERT(max_block_size > 0);
 		TORRENT_ASSERT(m_bandwidth_limit[channel].throttle() > 0);
 		TORRENT_ASSERT(p->max_assignable_bandwidth(channel) > 0);
+		TORRENT_ASSERT(p->m_channel_state[channel] == peer_info::bw_torrent);
 		int block_size = (std::min)(m_bandwidth_limit[channel].throttle() / 10
 			, max_block_size);
 		if (block_size <= 0) block_size = 1;
@@ -2330,6 +2331,8 @@ namespace libtorrent
 		, int block_size
 		, bool non_prioritized)
 	{
+		TORRENT_ASSERT(p->m_channel_state[channel] == peer_info::bw_torrent);
+		p->m_channel_state[channel] = peer_info::bw_global;
 		m_ses.m_bandwidth_manager[channel]->request_bandwidth(p
 			, block_size, non_prioritized);
 		m_bandwidth_limit[channel].assign(block_size);
