@@ -2357,8 +2357,7 @@ namespace libtorrent
 		else if (buffer_size_watermark > 80 * 1024) buffer_size_watermark = 80 * 1024;
 
 		while (!m_requests.empty()
-			&& (send_buffer_size() + m_reading_bytes < buffer_size_watermark)
-			&& !m_choked)
+			&& (send_buffer_size() + m_reading_bytes < buffer_size_watermark))
 		{
 			TORRENT_ASSERT(t->valid_metadata());
 			peer_request& r = m_requests.front();
