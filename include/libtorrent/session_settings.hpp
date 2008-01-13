@@ -119,6 +119,7 @@ namespace libtorrent
 			, free_torrent_hashes(true)
 			, upnp_ignore_nonrouters(true)
  			, send_buffer_watermark(80 * 1024)
+			, auto_upload_slots(true)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -307,6 +308,15 @@ namespace libtorrent
  		// The actual watermark may be lower than this in case
  		// the upload rate is low, this is the upper limit.
  		int send_buffer_watermark;
+
+		// if auto_upload_slots is true, and a global upload
+		// limit is set and the upload rate is less than 90%
+		// of the upload limit, on new slot is opened up. If
+		// the upload rate is >= upload limit for an extended
+		// period of time, one upload slot is closed. The
+		// upload slots are never automatically decreased below
+		// the manual settings, through max_uploads.
+		bool auto_upload_slots;
 	};
 	
 #ifndef TORRENT_DISABLE_DHT

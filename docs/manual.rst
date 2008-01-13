@@ -447,6 +447,8 @@ struct has the following members::
 		size_type total_payload_upload;
 
 		int num_peers;
+		int num_unchoked;
+		int allowed_upload_slots;
 
 		int dht_nodes;
 		int dht_cache_nodes;
@@ -471,6 +473,9 @@ incoming connections that still hasn't sent their handshake or outgoing connecti
 that still hasn't completed the TCP connection. This number may be slightly higher
 than the sum of all peers of all torrents because the incoming connections may not
 be assigned a torrent yet.
+
+``num_unchoked`` is the current number of unchoked peers.
+``allowed_upload_slots`` is the current allowed number of unchoked peers.
 
 ``dht_nodes``, ``dht_cache_nodes`` and ``dht_torrents`` are only available when
 built with DHT support. They are all set to 0 if the DHT isn't running. When
@@ -2487,6 +2492,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		bool free_torrent_hashes;
 		bool upnp_ignore_nonrouters;
 		int send_buffer_watermark;
+		bool auto_upload_slots;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -2629,6 +2635,13 @@ if the send buffer has fewer bytes than this, we'll read another 16kB block
 onto it. If set too small, upload rate capacity will suffer. If set too high,
 memory will be wasted. The actual watermark may be lower than this in case
 the upload rate is low, this is the upper limit.
+
+``auto_upload_slots`` defaults to true. When true, if there is a global upload
+limit set and the current upload rate is less than 90% of that, another upload
+slot is opened. If the upload rate has been saturated for an extended period
+of time, on upload slot is closed. The number of upload slots will never be
+less than what has been set by ``session::set_max_uploads()``. To query the
+current number of upload slots, see ``session_status::allowed_upload_slots``.
 
 pe_settings
 ===========

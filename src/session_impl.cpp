@@ -564,6 +564,7 @@ namespace detail
 		, m_listen_interface(address::from_string(listen_interface), listen_port_range.first)
 		, m_abort(false)
 		, m_max_uploads(8)
+		, m_allowed_upload_slots(8)
 		, m_max_connections(200)
 		, m_num_unchoked(0)
 		, m_unchoke_time_scaler(0)
@@ -808,6 +809,7 @@ namespace detail
 		TORRENT_ASSERT(s.unchoke_interval >= 5);
 		m_settings = s;
 		m_files.resize(m_settings.file_pool_size);
+		if (!s.auto_upload_slots) m_allowed_upload_slots = m_max_uploads;
 		// replace all occurances of '\n' with ' '.
 		std::string::iterator i = m_settings.user_agent.begin();
 		while ((i = std::find(i, m_settings.user_agent.end(), '\n'))
@@ -1420,8 +1422,25 @@ namespace detail
 				, bind(&stat::download_payload_rate, bind(&peer_connection::statistics, _1))
 				> bind(&stat::download_payload_rate, bind(&peer_connection::statistics, _2)));
 
+			// auto unchoke
+			int upload_limit = m_bandwidth_manager[peer_connection::upload_channel]->throttle();
+			if (m_settings.auto_upload_slots && upload_limit != bandwidth_limit::inf)
+			{
+				// if our current upload rate is less than 90% of our 
+				if (m_stat.upload_rate() < upload_limit * 0.9f
+					&& m_allowed_upload_slots < m_num_unchoked + 2)
+				{
+					++m_allowed_upload_slots;
+				}
+				else if (m_stat.upload_rate() >= upload_limit
+					&& m_allowed_upload_slots > m_max_uploads)
+				{
+					--m_allowed_upload_slots;
+				}
+			}
+
 			// reserve one upload slot for optimistic unchokes
-			int unchoke_set_size = m_max_uploads - 1;
+			int unchoke_set_size = m_allowed_upload_slots - 1;
 
 			m_num_unchoked = 0;
 			// go through all the peers and unchoke the first ones and choke
@@ -2007,8 +2026,12 @@ namespace detail
 //		INVARIANT_CHECK;
 
 		session_status s;
-		s.has_incoming_connections = m_incoming_connection;
+
 		s.num_peers = (int)m_connections.size();
+		s.num_unchoked = m_num_unchoked;
+		s.allowed_upload_slots = m_allowed_upload_slots;
+
+		s.has_incoming_connections = m_incoming_connection;
 
 		s.download_rate = m_stat.download_rate();
 		s.upload_rate = m_stat.upload_rate();
@@ -2213,6 +2236,7 @@ namespace detail
 
 		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
 		m_max_uploads = limit;
+		if (m_allowed_upload_slots < limit) m_allowed_upload_slots = limit;
 	}
 
 	void session_impl::set_max_connections(int limit)
@@ -2422,6 +2446,7 @@ namespace detail
 	{
 		TORRENT_ASSERT(m_max_connections > 0);
 		TORRENT_ASSERT(m_max_uploads > 0);
+		TORRENT_ASSERT(m_allowed_upload_slots >= m_max_uploads);
 		int unchokes = 0;
 		int num_optimistic = 0;
 		for (connection_map::const_iterator i = m_connections.begin();

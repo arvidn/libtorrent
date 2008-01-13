@@ -54,6 +54,8 @@ namespace libtorrent
 		size_type total_payload_upload;
 
 		int num_peers;
+		int num_unchoked;
+		int allowed_upload_slots;
 
 #ifndef TORRENT_DISABLE_DHT
 		int dht_nodes;
