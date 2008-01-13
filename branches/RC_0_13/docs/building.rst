@@ -262,6 +262,19 @@ Build features:
 |                        | * ``unicode`` - The unicode version of the win32   |
 |                        |   API is used.                                     |
 +------------------------+----------------------------------------------------+
+| ``invariant-checks``   | This setting only affects debug builds (where      |
+|                        | ``NDEBUG`` is not defined). It defaults to ``on``. |
+|                        |                                                    |
+|                        | * ``on`` - internal invariant checks are enabled.  |
+|                        | * ``off`` - internal invariant checks are          |
+|                        |   disabled. The resulting executable will run      |
+|                        |   faster than a regular debug build.               |
++------------------------+----------------------------------------------------+
+| ``debug-symbols``      | * ``on`` - default for debug builds. This setting  |
+|                        |   is useful for building release builds with       |
+|                        |   symbols.                                         |
+|                        | * ``off`` - default for release builds.            |
++------------------------+----------------------------------------------------+
 
 The ``variant`` feature is *implicit*, which means you don't need to specify
 the name of the feature, just the value.
@@ -526,6 +539,13 @@ defines you can use to control the build.
 +---------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_RESOLVE_COUNTRIES`` | Defining this will disable the ability to       |
 |                                       | resolve countries of origin for peer IPs.       |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_INVARIANT_CHECKS``  | This will disable internal invariant checks in  |
+|                                       | libtorrent. The invariant checks can sometime   |
+|                                       | be quite expensive, they typically don't scale  |
+|                                       | very well. This option can be used to still     |
+|                                       | build in debug mode, with asserts enabled, but  |
+|                                       | make the resulting executable faster.           |
 +---------------------------------------+-------------------------------------------------+
 
 

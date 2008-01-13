@@ -66,7 +66,7 @@ namespace libtorrent
 	}
 }
 
-#ifndef NDEBUG
+#if !defined NDEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 #define INVARIANT_CHECK \
 	invariant_checker const& _invariant_check = make_invariant_checker(*this); \
 	(void)_invariant_check; \
