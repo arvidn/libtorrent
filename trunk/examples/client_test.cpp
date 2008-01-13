@@ -340,8 +340,12 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			<< ((i->flags & peer_info::seed)?'s':'.')
 			<< ((i->flags & peer_info::on_parole)?'p':'.')
 			<< ((i->flags & peer_info::optimistic_unchoke)?'O':'.')
-			<< ((i->flags & peer_info::reading)?'R':(i->flags & peer_info::waiting_read_quota)?'r':'.')
-			<< ((i->flags & peer_info::writing)?'W':(i->flags & peer_info::waiting_write_quota)?'w':'.')
+			<< ((i->read_state == peer_info::bw_torrent)?'t':
+				(i->read_state == peer_info::bw_global)?'r':
+				(i->read_state == peer_info::bw_network)?'R':'.')
+			<< ((i->write_state == peer_info::bw_torrent)?'t':
+				(i->write_state == peer_info::bw_global)?'w':
+				(i->write_state == peer_info::bw_network)?'W':'.')
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			<< ((i->flags & peer_info::rc4_encrypted)?'E':
 				(i->flags & peer_info::plaintext_encrypted)?'e':'.')
