@@ -607,6 +607,8 @@ struct session_status
         size_type total_payload_upload;
 
         int num_peers;
+        int num_unchoked;
+        int allowed_upload_slots;
 
         int dht_nodes;
         int dht_cache_nodes;
@@ -628,6 +630,8 @@ incoming connections that still hasn't sent their handshake or outgoing connecti
 that still hasn't completed the TCP connection. This number may be slightly higher
 than the sum of all peers of all torrents because the incoming connections may not
 be assigned a torrent yet.</p>
+<p><tt class="docutils literal"><span class="pre">num_unchoked</span></tt> is the current number of unchoked peers.
+<tt class="docutils literal"><span class="pre">allowed_upload_slots</span></tt> is the current allowed number of unchoked peers.</p>
 <p><tt class="docutils literal"><span class="pre">dht_nodes</span></tt>, <tt class="docutils literal"><span class="pre">dht_cache_nodes</span></tt> and <tt class="docutils literal"><span class="pre">dht_torrents</span></tt> are only available when
 built with DHT support. They are all set to 0 if the DHT isn't running. When
 the DHT is running, <tt class="docutils literal"><span class="pre">dht_nodes</span></tt> is set to the number of nodes in the routing
@@ -2499,6 +2503,7 @@ struct session_settings
         bool free_torrent_hashes;
         bool upnp_ignore_nonrouters;
         int send_buffer_watermark;
+        bool auto_upload_slots;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker.
@@ -2615,6 +2620,12 @@ if the send buffer has fewer bytes than this, we'll read another 16kB block
 onto it. If set too small, upload rate capacity will suffer. If set too high,
 memory will be wasted. The actual watermark may be lower than this in case
 the upload rate is low, this is the upper limit.</p>
+<p><tt class="docutils literal"><span class="pre">auto_upload_slots</span></tt> defaults to true. When true, if there is a global upload
+limit set and the current upload rate is less than 90% of that, another upload
+slot is opened. If the upload rate has been saturated for an extended period
+of time, on upload slot is closed. The number of upload slots will never be
+less than what has been set by <tt class="docutils literal"><span class="pre">session::set_max_uploads()</span></tt>. To query the
+current number of upload slots, see <tt class="docutils literal"><span class="pre">session_status::allowed_upload_slots</span></tt>.</p>
 </div>
 <div class="section">
 <h1><a id="pe-settings" name="pe-settings">pe_settings</a></h1>

@@ -1,3 +1,8 @@
+	* Auto Upload slots. Automtically opens up more slots if
+	  upload limit is not met.
+	* Improved NAT-PMP support by querying the default gateway (no
+	  linux support yet)
+	* Improved UPnP support by ignoring routers not on the clients subnet.
 
 release 0.13
 	

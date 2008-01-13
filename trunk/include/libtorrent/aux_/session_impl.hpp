@@ -503,7 +503,14 @@ namespace libtorrent
 			// should exit
 			volatile bool m_abort;
 
+			// the max number of unchoked peers as set by the user
 			int m_max_uploads;
+
+			// the number of unchoked peers as set by the auto-unchoker
+			// this should always be >= m_max_uploads
+			int m_allowed_upload_slots;
+
+			// the max number of connections, as set by the user
 			int m_max_connections;
 
 			// the number of unchoked peers
