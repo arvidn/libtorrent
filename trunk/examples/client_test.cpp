@@ -306,7 +306,7 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
-	out << "IP                      down    (total)   up      (total)  sent-req recv flags        source fail hshf sndb inactive wait disk quota block-progress "
+	out << "IP                      down    (total)   up      (total)  sent-req recv flags        source fail hshf sndb         inactive wait disk quota block-progress "
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		"country "
 #endif
