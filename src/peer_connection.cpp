@@ -2432,8 +2432,7 @@ namespace libtorrent
 			buffer_size_watermark = m_ses.settings().send_buffer_watermark;
 
 		while (!m_requests.empty()
-			&& (send_buffer_size() + m_reading_bytes < buffer_size_watermark)
-			&& !m_choked)
+			&& (send_buffer_size() + m_reading_bytes < buffer_size_watermark))
 		{
 			TORRENT_ASSERT(t->valid_metadata());
 			peer_request& r = m_requests.front();
