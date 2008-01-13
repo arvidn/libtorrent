@@ -93,6 +93,7 @@ public:
 	void reply_with_ping(msg& m);
 
 #ifndef NDEBUG
+	size_t allocation_size() const;
 	void check_invariant() const;
 #endif
 
