@@ -109,7 +109,7 @@ struct bandwidth_manager
 	{
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
 		if (log)
-			m_log.open("bandwidth_limiter.log");
+			m_log.open("bandwidth_limiter.log", std::ios::trunc);
 		m_start = time_now();
 #endif
 	}
