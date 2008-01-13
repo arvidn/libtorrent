@@ -291,6 +291,26 @@ API is used.</li>
 </ul>
 </td>
 </tr>
+<tr><td><tt class="docutils literal"><span class="pre">invariant-checks</span></tt></td>
+<td><p class="first">This setting only affects debug builds (where
+<tt class="docutils literal"><span class="pre">NDEBUG</span></tt> is not defined). It defaults to <tt class="docutils literal"><span class="pre">on</span></tt>.</p>
+<ul class="last simple">
+<li><tt class="docutils literal"><span class="pre">on</span></tt> - internal invariant checks are enabled.</li>
+<li><tt class="docutils literal"><span class="pre">off</span></tt> - internal invariant checks are
+disabled. The resulting executable will run
+faster than a regular debug build.</li>
+</ul>
+</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">debug-symbols</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">on</span></tt> - default for debug builds. This setting
+is useful for building release builds with
+symbols.</li>
+<li><tt class="docutils literal"><span class="pre">off</span></tt> - default for release builds.</li>
+</ul>
+</td>
+</tr>
 </tbody>
 </table>
 <p>The <tt class="docutils literal"><span class="pre">variant</span></tt> feature is <em>implicit</em>, which means you don't need to specify
@@ -557,6 +577,14 @@ non-ansi characters.</td>
 <tr><td><tt class="docutils literal"><span class="pre">TORRENT_DISABLE_RESOLVE_COUNTRIES</span></tt></td>
 <td>Defining this will disable the ability to
 resolve countries of origin for peer IPs.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">TORRENT_DISABLE_INVARIANT_CHECKS</span></tt></td>
+<td>This will disable internal invariant checks in
+libtorrent. The invariant checks can sometime
+be quite expensive, they typically don't scale
+very well. This option can be used to still
+build in debug mode, with asserts enabled, but
+make the resulting executable faster.</td>
 </tr>
 </tbody>
 </table>
