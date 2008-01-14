@@ -121,6 +121,7 @@ rpc_manager::rpc_manager(fun const& f, node_id const& our_id
 
 rpc_manager::~rpc_manager()
 {
+	TORRENT_ASSERT(!m_destructing);
 	m_destructing = true;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(rpc) << "Destructing";
@@ -308,7 +309,7 @@ time_duration rpc_manager::tick()
 	// clear the aborted transactions, will likely
 	// generate new requests. We need to swap, since the
 	// destrutors may add more observers to the m_aborted_transactions
-	std::vector<observer_ptr >().swap(m_aborted_transactions);
+	std::vector<observer_ptr>().swap(m_aborted_transactions);
 	return milliseconds(timeout_ms);
 }
 
