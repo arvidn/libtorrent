@@ -114,7 +114,7 @@ private:
 	typedef boost::array<observer_ptr, max_transactions>
 		transactions_t;
 	transactions_t m_transactions;
-	std::vector<observer_ptr > m_aborted_transactions;
+	std::vector<observer_ptr> m_aborted_transactions;
 	
 	// this is the next transaction id to be used
 	int m_next_transaction_id;
