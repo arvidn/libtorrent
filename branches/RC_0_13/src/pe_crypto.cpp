@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Un Shyam
+Copyright (c) 2007, Un Shyam & Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,23 +40,33 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent {
+namespace libtorrent
+{
 
-	
 	// Set the prime P and the generator, generate local public key
-	DH_key_exchange::DH_key_exchange ()
+	DH_key_exchange::DH_key_exchange()
 	{
-		m_DH = DH_new ();
+		m_DH = DH_new();
+		if (m_DH == 0) throw std::bad_alloc();
 
-		m_DH->p = BN_bin2bn (m_dh_prime, sizeof(m_dh_prime), NULL);
-		m_DH->g = BN_bin2bn (m_dh_generator, sizeof(m_dh_generator), NULL);
+		m_DH->p = BN_bin2bn(m_dh_prime, sizeof(m_dh_prime), NULL);
+		m_DH->g = BN_bin2bn(m_dh_generator, sizeof(m_dh_generator), NULL);
+		if (m_DH->p == 0 || m_DH->g == 0)
+		{
+			DH_free(m_DH);
+			throw std::bad_alloc();
+		}
+
 		m_DH->length = 160l;
 
 		TORRENT_ASSERT(sizeof(m_dh_prime) == DH_size(m_DH));
 		
-		DH_generate_key (m_DH); // TODO Check != 0
-
-		TORRENT_ASSERT(m_DH->pub_key);
+		DH_generate_key(m_DH);
+		if (m_DH->pub_key == 0)
+		{
+			DH_free(m_DH);
+			throw std::bad_alloc();
+		}
 
 		// DH can generate key sizes that are smaller than the size of
 		// P with exponentially decreasing probability, in which case
@@ -79,24 +89,25 @@ namespace libtorrent {
 	DH_key_exchange::~DH_key_exchange ()
 	{
 		TORRENT_ASSERT(m_DH);
-		DH_free (m_DH);
+		DH_free(m_DH);
 	}
 
-	char const* DH_key_exchange::get_local_key () const
+	char const* DH_key_exchange::get_local_key() const
 	{
 		return m_dh_local_key;
 	}	
 
 
 	// compute shared secret given remote public key
-	void DH_key_exchange::compute_secret (char const* remote_pubkey)
+	void DH_key_exchange::compute_secret(char const* remote_pubkey)
 	{
 		TORRENT_ASSERT(remote_pubkey);
 		BIGNUM* bn_remote_pubkey = BN_bin2bn ((unsigned char*)remote_pubkey, 96, NULL);
+		if (bn_remote_pubkey == 0) throw std::bad_alloc();
 		char dh_secret[96];
 
-		int secret_size = DH_compute_key ( (unsigned char*)dh_secret, 
-						   bn_remote_pubkey, m_DH); // TODO Check for errors
+		int secret_size = DH_compute_key((unsigned char*)dh_secret
+			, bn_remote_pubkey, m_DH);
 
 		if (secret_size != 96)
 		{
@@ -104,11 +115,10 @@ namespace libtorrent {
 			std::fill(m_dh_secret, m_dh_secret + 96 - secret_size, 0);
 		}
 		std::copy(dh_secret, dh_secret + secret_size, m_dh_secret + 96 - secret_size);
-
-		BN_free (bn_remote_pubkey);
+		BN_free(bn_remote_pubkey);
 	}
 
-	char const* DH_key_exchange::get_secret () const
+	char const* DH_key_exchange::get_secret() const
 	{
 		return m_dh_secret;
 	}

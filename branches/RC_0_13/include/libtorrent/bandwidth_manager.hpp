@@ -144,7 +144,7 @@ struct bandwidth_manager
 	// this is used by web seeds
 	void request_bandwidth(intrusive_ptr<PeerConnection> peer
 		, int blk
-		, bool non_prioritized) throw()
+		, bool non_prioritized)
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		INVARIANT_CHECK;
@@ -214,11 +214,9 @@ struct bandwidth_manager
 
 private:
 
-	void add_history_entry(history_entry<PeerConnection, Torrent> const& e) throw()
+	void add_history_entry(history_entry<PeerConnection, Torrent> const& e)
 	{
-#ifndef NDEBUG
 		try {
-#endif
 		INVARIANT_CHECK;
 		m_history.push_front(e);
 		m_current_quota += e.amount;
@@ -230,17 +228,13 @@ private:
 
 		m_history_timer.expires_at(e.expires_at);
 		m_history_timer.async_wait(bind(&bandwidth_manager::on_history_expire, this, _1));
-#ifndef NDEBUG
 		}
-		catch (std::exception&) { TORRENT_ASSERT(false); }
-#endif
+		catch (std::exception&) {}
 	}
 	
-	void on_history_expire(asio::error_code const& e) throw()
+	void on_history_expire(asio::error_code const& e)
 	{
-#ifndef NDEBUG
 		try {
-#endif
 		if (e) return;
 
 		mutex_t::scoped_lock l(m_mutex);
@@ -273,13 +267,8 @@ private:
 		// means we can hand out more (in case there
 		// are still consumers in line)
 		if (!m_queue.empty()) hand_out_bandwidth(l);
-#ifndef NDEBUG
 		}
-		catch (std::exception&)
-		{
-			TORRENT_ASSERT(false);
-		}
-#endif
+		catch (std::exception&) {}
 	}
 
 	void hand_out_bandwidth(boost::mutex::scoped_lock& l) throw()
@@ -289,9 +278,8 @@ private:
 		// to the loop further down on the callstack
 		if (m_in_hand_out_bandwidth) return;
 		m_in_hand_out_bandwidth = true;
-#ifndef NDEBUG
+
 		try {
-#endif
 		INVARIANT_CHECK;
 
 		ptime now(time_now());
@@ -406,11 +394,12 @@ private:
 		}
  		if (!q.empty()) m_queue.insert(m_queue.begin(), q.begin(), q.end());
  		if (!tmp.empty()) m_queue.insert(m_queue.begin(), tmp.begin(), tmp.end());
-#ifndef NDEBUG
 		}
 		catch (std::exception& e)
-		{ TORRENT_ASSERT(false); };
-#endif
+		{
+			m_in_hand_out_bandwidth = false;
+			throw;
+		}
 		m_in_hand_out_bandwidth = false;
 	}
 
