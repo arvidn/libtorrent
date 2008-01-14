@@ -2180,7 +2180,7 @@ namespace libtorrent
 		if (m_packet_size >= m_recv_pos) m_recv_buffer.resize(m_packet_size);
 	}
 
-	void peer_connection::second_tick(float tick_interval) throw()
+	void peer_connection::second_tick(float tick_interval)
 	{
 		INVARIANT_CHECK;
 

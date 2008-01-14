@@ -333,7 +333,11 @@ namespace libtorrent
 			catch (std::exception& e)
 			{
 //				std::cerr << "DISK THREAD: exception: " << e.what() << std::endl;
-				j.str = e.what();
+				try
+				{
+					j.str = e.what();
+				}
+				catch (std::exception&) {}
 				ret = -1;
 			}
 
