@@ -2271,6 +2271,11 @@ namespace libtorrent
 		return m_bandwidth_limit[channel].throttle();
 	}
 
+	int torrent::bandwidth_queue_size(int channel) const
+	{
+		return (int)m_bandwidth_queue[channel].size();
+	}
+
 	void torrent::request_bandwidth(int channel
 		, boost::intrusive_ptr<peer_connection> const& p
 		, bool non_prioritized, int max_block_size)

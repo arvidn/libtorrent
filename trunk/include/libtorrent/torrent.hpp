@@ -248,6 +248,8 @@ namespace libtorrent
 		int max_assignable_bandwidth(int channel) const
 		{ return m_bandwidth_limit[channel].max_assignable(); }
 
+		int bandwidth_queue_size(int channel) const;
+
 // --------------------------------------------
 		// PEER MANAGEMENT
 		
