@@ -1340,6 +1340,8 @@ namespace detail
 			c.keep_alive();
 		}
 
+		int congested_torrents = 0;
+		int uncongested_torrents = 0;
 		// check each torrent for tracker updates
 		// TODO: do this in a timer-event in each torrent instead
 		for (torrent_map::iterator i = m_torrents.begin();
@@ -1347,6 +1349,11 @@ namespace detail
 		{
 			torrent& t = *i->second;
 			TORRENT_ASSERT(!t.is_aborted());
+			if (t.bandwidth_queue_size(peer_connection::upload_channel))
+				++congested_torrents;
+			else
+				++uncongested_torrents;
+
 			if (t.should_request())
 			{
 				tracker_request req = t.generate_tracker_request();
@@ -1427,8 +1434,12 @@ namespace detail
 			if (m_settings.auto_upload_slots && upload_limit != bandwidth_limit::inf)
 			{
 				// if our current upload rate is less than 90% of our 
+ 				// limit AND most torrents are not "congested", i.e.
+ 				// they are not holding back because of a per-torrent
+ 				// limit
 				if (m_stat.upload_rate() < upload_limit * 0.9f
-					&& m_allowed_upload_slots < m_num_unchoked + 2)
+					&& m_allowed_upload_slots <= m_num_unchoked + 1
+ 					&& congested_torrents < uncongested_torrents)
 				{
 					++m_allowed_upload_slots;
 				}
@@ -2235,8 +2246,9 @@ namespace detail
 		INVARIANT_CHECK;
 
 		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
+		if (m_max_uploads == limit) return;
 		m_max_uploads = limit;
-		if (m_allowed_upload_slots < limit) m_allowed_upload_slots = limit;
+		m_allowed_upload_slots = limit;
 	}
 
 	void session_impl::set_max_connections(int limit)

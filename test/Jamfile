@@ -23,6 +23,7 @@ project
 
 
 test-suite libtorrent : 
+	[ run test_auto_unchoke.cpp ]
 	[ run test_http_connection.cpp ]
 	[ run test_buffer.cpp ]
 	[ run test_storage.cpp ]
