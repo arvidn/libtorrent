@@ -86,7 +86,7 @@ namespace libtorrent
 			BN_bn2bin(m_DH->pub_key, (unsigned char*)m_dh_local_key); // TODO Check return value
 	}
 
-	DH_key_exchange::~DH_key_exchange ()
+	DH_key_exchange::~DH_key_exchange()
 	{
 		TORRENT_ASSERT(m_DH);
 		DH_free(m_DH);
@@ -108,6 +108,7 @@ namespace libtorrent
 
 		int secret_size = DH_compute_key((unsigned char*)dh_secret
 			, bn_remote_pubkey, m_DH);
+		if (secret_size < 0 || secret_size > 96) throw std::bad_alloc();
 
 		if (secret_size != 96)
 		{
@@ -139,3 +140,4 @@ namespace libtorrent
 } // namespace libtorrent
 
 #endif // #ifndef TORRENT_DISABLE_ENCRYPTION
+

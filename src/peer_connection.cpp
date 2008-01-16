@@ -1789,7 +1789,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		TORRENT_ASSERT(t);
+		// this peer might be disconnecting
+		if (!t) return;
 
 		TORRENT_ASSERT(t->valid_metadata());
 
