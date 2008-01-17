@@ -2262,7 +2262,7 @@ namespace libtorrent
 			std::size_t size = m_connections.size();
 #endif
 			if (p->is_disconnecting())
-				m_connections.pop_front();
+				m_connections.erase(m_connections.begin());
 			else
 				p->disconnect(m_abort?"stopping torrent":"pausing torrent");
 			TORRENT_ASSERT(m_connections.size() <= size);
