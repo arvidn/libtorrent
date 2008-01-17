@@ -1105,8 +1105,9 @@ int main(int ac, char* av[])
 					out << "download: " << "(" << esc("32") << add_suffix(s.total_download) << esc("0") << ") ";
 				}
 				out << "upload: " << esc("31") << (s.upload_rate > 0 ? add_suffix(s.upload_rate) + "/s ": "         ") << esc("0")
-					<< "(" << esc("31") << add_suffix(s.total_upload) << esc("0") << ") "
-					<< "ratio: " << ratio(s.total_payload_download, s.total_payload_upload) << "\n";
+				<< "(" << esc("31") << add_suffix(s.total_upload) << esc("0") << ") "
+				<< "ratio: " << ratio(s.total_payload_download, s.total_payload_upload)
+				<< "  bw queue: (" << s.up_bandwidth_queue << " | " << s.down_bandwidth_queue << ")\n";
 				if (s.state != torrent_status::seeding)
 				{
 					boost::posix_time::time_duration t = s.next_announce;
@@ -1188,12 +1189,14 @@ int main(int ac, char* av[])
 
 			}
 
-			out << "==== conns: " << sess_stat.num_peers << " down: " << esc("32") << add_suffix(sess_stat.download_rate) << "/s" << esc("0")
+			out << "==== conns: " << sess_stat.num_peers
+				<< " down: " << esc("32") << add_suffix(sess_stat.download_rate) << "/s" << esc("0")
 				<< " (" << esc("32") << add_suffix(sess_stat.total_download) << esc("0") << ") "
 				" up: " << esc("31") << add_suffix(sess_stat.upload_rate) << "/s " << esc("0")
 				<< " (" << esc("31") << add_suffix(sess_stat.total_upload) << esc("0") << ")"
 				" unchoked: " << sess_stat.num_unchoked << " / " << sess_stat.allowed_upload_slots
-				<< " ====" << std::endl;
+				<< " bw queues: (" << sess_stat.up_bandwidth_queue
+				<< " | " << sess_stat.down_bandwidth_queue << ") ====" << std::endl;
 
 			if (print_log)
 			{
