@@ -1443,7 +1443,7 @@ namespace detail
 				{
 					++m_allowed_upload_slots;
 				}
-				else if (m_stat.upload_rate() >= upload_limit
+				else if (m_upload_channel.queue_size() > 1
 					&& m_allowed_upload_slots > m_max_uploads)
 				{
 					--m_allowed_upload_slots;
