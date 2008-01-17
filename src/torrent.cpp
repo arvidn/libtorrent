@@ -2224,9 +2224,9 @@ namespace libtorrent
 #endif
 
 			if (p->is_disconnecting())
-				m_connections.pop_front();
+				m_connections.erase(m_connections.begin());
 			else
-				p->disconnect(m_abort?"stopping torrent":"pausing torrent");
+				p->disconnect();
 			TORRENT_ASSERT(m_connections.size() <= size);
 		}
 	}
