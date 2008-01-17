@@ -2222,7 +2222,11 @@ namespace libtorrent
 #ifndef NDEBUG
 			std::size_t size = m_connections.size();
 #endif
-			p->disconnect();
+
+			if (p->is_disconnecting())
+				m_connections.pop_front();
+			else
+				p->disconnect(m_abort?"stopping torrent":"pausing torrent");
 			TORRENT_ASSERT(m_connections.size() <= size);
 		}
 	}
