@@ -55,6 +55,9 @@ namespace libtorrent
 
 		int num_peers;
 
+		int up_bandwidth_queue;
+		int down_bandwidth_queue;
+
 #ifndef TORRENT_DISABLE_DHT
 		int dht_nodes;
 		int dht_node_cache;

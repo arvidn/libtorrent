@@ -36,6 +36,7 @@ void print_alerts(libtorrent::session& ses, char const* name, bool allow_disconn
 			|| a->msg() == "connecting to peer"
 			|| a->msg() == "closing connection to ourself"
 			|| a->msg() == "duplicate connection"
+			|| a->msg() == "duplicate peer-id, connection closed"
 			|| (allow_disconnects && a->msg() == "Broken pipe")
 			|| (allow_disconnects && a->msg() == "Connection reset by peer")
 			|| (allow_disconnects && a->msg() == "End of file."));

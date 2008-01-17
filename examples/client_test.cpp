@@ -1056,8 +1056,9 @@ int main(int ac, char* av[])
 					out << "download: " << "(" << esc("32") << add_suffix(s.total_download) << esc("0") << ") ";
 				}
 				out << "upload: " << esc("31") << (s.upload_rate > 0 ? add_suffix(s.upload_rate) + "/s ": "         ") << esc("0")
-					<< "(" << esc("31") << add_suffix(s.total_upload) << esc("0") << ") "
-					<< "ratio: " << ratio(s.total_payload_download, s.total_payload_upload) << "\n";
+				<< "(" << esc("31") << add_suffix(s.total_upload) << esc("0") << ") "
+				<< "ratio: " << ratio(s.total_payload_download, s.total_payload_upload)
+				<< "  bw queue: (" << s.up_bandwidth_queue << " | " << s.down_bandwidth_queue << ")\n";
 				if (s.state != torrent_status::seeding)
 				{
 					boost::posix_time::time_duration t = s.next_announce;

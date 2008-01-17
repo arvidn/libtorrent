@@ -109,7 +109,7 @@ namespace libtorrent
 		, m_reading(false)
 		, m_prefer_whole_pieces(false)
 		, m_request_large_blocks(false)
-		, m_non_prioritized(false)
+		, m_priority(1)
 		, m_upload_limit(bandwidth_limit::inf)
 		, m_download_limit(bandwidth_limit::inf)
 		, m_peer_info(peerinfo)
@@ -186,7 +186,7 @@ namespace libtorrent
 		, m_reading(false)
 		, m_prefer_whole_pieces(false)
 		, m_request_large_blocks(false)
-		, m_non_prioritized(false)
+		, m_priority(1)
 		, m_upload_limit(bandwidth_limit::inf)
 		, m_download_limit(bandwidth_limit::inf)
 		, m_peer_info(peerinfo)
@@ -2484,7 +2484,7 @@ namespace libtorrent
 				// peers that we are not interested in are non-prioritized
 				m_writing = true;
 				t->request_bandwidth(upload_channel, self()
-					, !(is_interesting() && !has_peer_choked()));
+					, is_interesting() * 2);
 			}
 			return;
 		}
@@ -2537,7 +2537,7 @@ namespace libtorrent
 				(*m_logger) << "req bandwidth [ " << download_channel << " ]\n";
 #endif
 				m_reading = true;
-				t->request_bandwidth(download_channel, self(), m_non_prioritized);
+				t->request_bandwidth(download_channel, self(), m_priority);
 			}
 			return;
 		}
