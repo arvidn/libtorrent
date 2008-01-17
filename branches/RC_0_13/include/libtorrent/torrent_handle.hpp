@@ -112,6 +112,8 @@ namespace libtorrent
 			, uploads_limit(0)
 			, connections_limit(0)
 			, storage_mode(storage_mode_sparse)
+			, up_bandwidth_queue(0)
+			, down_bandwidth_queue(0)
 		{}
 
 		enum state_t
@@ -231,6 +233,9 @@ namespace libtorrent
 		// true if the torrent is saved in compact mode
 		// false if it is saved in full allocation mode
 		storage_mode_t storage_mode;
+
+		int up_bandwidth_queue;
+		int down_bandwidth_queue;
 	};
 
 	struct TORRENT_EXPORT block_info

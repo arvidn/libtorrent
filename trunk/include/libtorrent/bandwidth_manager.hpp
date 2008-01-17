@@ -91,6 +91,15 @@ T clamp(T val, T ceiling, T floor)
 	return val;
 }
 
+template<class T>
+struct assign_at_exit
+{
+	assign_at_exit(T& var, T val): var_(var), val_(val) {}
+	~assign_at_exit() { var_ = val_; }
+	T& var_;
+	T val_;
+};
+
 template<class PeerConnection, class Torrent>
 struct bandwidth_manager
 {
@@ -169,47 +178,35 @@ struct bandwidth_manager
 	}
 #endif
 
+	int queue_size() const
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		return m_queue.size();
+	}
 	
 	// non prioritized means that, if there's a line for bandwidth,
 	// others will cut in front of the non-prioritized peers.
 	// this is used by web seeds
 	void request_bandwidth(intrusive_ptr<PeerConnection> const& peer
-		, int blk
-		, bool non_prioritized)
+		, int blk, int priority)
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(blk > 0);
 		TORRENT_ASSERT(!is_queued(peer.get(), l));
-
 		TORRENT_ASSERT(!peer->ignore_bandwidth_limits());
 
 		// make sure this peer isn't already in line
 		// waiting for bandwidth
 		TORRENT_ASSERT(peer->max_assignable_bandwidth(m_channel) > 0);
 
-		boost::shared_ptr<Torrent> t = peer->associated_torrent().lock();
-		m_queue.push_back(bw_queue_entry<PeerConnection>(peer, blk, non_prioritized));
-		if (!non_prioritized)
+		typename queue_t::reverse_iterator i(m_queue.rbegin());
+		while (i != m_queue.rend() && priority > i->priority)
 		{
-			typename queue_t::reverse_iterator i = m_queue.rbegin();
-			typename queue_t::reverse_iterator j(i);
-			for (++j; j != m_queue.rend(); ++j)
-			{
-				// if the peer's torrent is not the same one
-				// continue looking for a peer from the same torrent
-				if (j->peer->associated_torrent().lock() != t)
-					continue;
-				// if we found a peer from the same torrent that
-				// is prioritized, there is no point looking
-				// any further.
-				if (!j->non_prioritized) break;
-
-				using std::swap;
-				swap(*i, *j);
-				i = j;
-			}
+			++i->priority;
+			++i;
 		}
+		m_queue.insert(i.base(), bw_queue_entry<PeerConnection>(peer, blk, priority));
 		if (!m_queue.empty()) hand_out_bandwidth(l);
 	}
 
@@ -222,8 +219,13 @@ struct bandwidth_manager
 		{
 			current_quota += i->amount;
 		}
-
 		TORRENT_ASSERT(current_quota == m_current_quota);
+
+		typename queue_t::const_iterator j = m_queue.begin();
+		++j;
+		for (typename queue_t::const_iterator i = m_queue.begin()
+			, end(m_queue.end()); i != end && j != end; ++i, ++j)
+			TORRENT_ASSERT(i->priority >= j->priority);
 	}
 #endif
 
@@ -308,6 +310,8 @@ private:
 		// to the loop further down on the callstack
 		if (m_in_hand_out_bandwidth) return;
 		m_in_hand_out_bandwidth = true;
+		// set it to false when exiting function
+		assign_at_exit<bool> sg(m_in_hand_out_bandwidth, false);
 
 		INVARIANT_CHECK;
 
@@ -318,22 +322,16 @@ private:
 		// available bandwidth to hand out
 		int amount = limit - m_current_quota;
 
-		if (amount <= 0)
-		{
-			m_in_hand_out_bandwidth = false;
-			return;
-		}
+		if (amount <= 0) return;
 
-		queue_t q;
 		queue_t tmp;
-		m_queue.swap(q);
-		while (!q.empty() && amount > 0)
+		while (!m_queue.empty() && amount > 0)
 		{
-			bw_queue_entry<PeerConnection> qe = q.front();
+			bw_queue_entry<PeerConnection> qe = m_queue.front();
 			TORRENT_ASSERT(qe.max_block_size > 0);
-			q.pop_front();
+			m_queue.pop_front();
 
-			shared_ptr<Torrent> t = qe.peer->associated_torrent().lock();
+			shared_ptr<Torrent> t = qe.torrent.lock();
 			if (!t) continue;
 			if (qe.peer->is_disconnecting())
 			{
@@ -390,9 +388,10 @@ private:
 			}
 			if (block_size > qe.max_block_size) block_size = qe.max_block_size;
 
-			if (amount < block_size / 2)
+			if (amount < block_size / 4)
 			{
 				tmp.push_back(qe);
+//				m_queue.push_front(qe);
 				break;
 			}
 
@@ -411,9 +410,7 @@ private:
 			add_history_entry(history_entry<PeerConnection, Torrent>(
 				qe.peer, t, hand_out_amount, now + bw_window_size));
 		}
-		if (!q.empty()) m_queue.insert(m_queue.begin(), q.begin(), q.end());
 		if (!tmp.empty()) m_queue.insert(m_queue.begin(), tmp.begin(), tmp.end());
-		m_in_hand_out_bandwidth = false;
 	}
 
 

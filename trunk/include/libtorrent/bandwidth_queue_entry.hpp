@@ -40,12 +40,15 @@ namespace libtorrent {
 template<class PeerConnection>
 struct bw_queue_entry
 {
+	typedef typename PeerConnection::torrent_type torrent_type;
 	bw_queue_entry(boost::intrusive_ptr<PeerConnection> const& pe
-		, int blk, bool no_prio)
-		: peer(pe), max_block_size(blk), non_prioritized(no_prio) {}
+		, int blk, int prio)
+		: peer(pe), torrent(peer->associated_torrent())
+		, max_block_size(blk), priority(prio) {}
 	boost::intrusive_ptr<PeerConnection> peer;
+	boost::weak_ptr<torrent_type> torrent;
 	int max_block_size;
-	bool non_prioritized;
+	int priority; // 0 is low prio
 };
 
 }

@@ -98,6 +98,8 @@ namespace libtorrent
 	friend class invariant_access;
 	public:
 
+		typedef torrent torrent_type;
+	
 		enum channels
 		{
 			upload_channel,
@@ -173,8 +175,8 @@ namespace libtorrent
 		void request_large_blocks(bool b)
 		{ m_request_large_blocks = b; }
 
-		void set_non_prioritized(bool b)
-		{ m_non_prioritized = b; }
+		void set_priority(int p)
+		{ m_priority = p; }
 
 		void fast_reconnect(bool r);
 		bool fast_reconnect() const { return m_fast_reconnect; }
@@ -684,11 +686,9 @@ namespace libtorrent
 		// at a time.
 		bool m_request_large_blocks;
 		
-		// if this is true, other (prioritized) peers will
-		// skip ahead of it in the queue for bandwidth. The
-		// effect is that non prioritized peers will only use
-		// the left-over bandwidth (suitable for web seeds).
-		bool m_non_prioritized;
+		// this is the priority with which this peer gets
+		// download bandwidth quota assigned to it.
+		int m_priority;
 
 		int m_upload_limit;
 		int m_download_limit;
