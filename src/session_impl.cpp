@@ -1068,7 +1068,7 @@ namespace detail
 		}
 
 		// don't allow more connections than the max setting
-		if (num_connections() > max_connections())
+		if (num_connections() >= max_connections())
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			(*m_logger) << "number of connections limit exceeded (conns: "
