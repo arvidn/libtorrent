@@ -991,6 +991,8 @@ namespace detail
 		}
 	}
 
+#ifndef TORRENT_DISABLE_DHT
+
 	void session_impl::on_receive_udp(udp::endpoint const& ep, char const* buf, int len)
 	{
 		if (len > 20 && *buf == 'd' && m_dht)
@@ -999,6 +1001,8 @@ namespace detail
 			m_dht->on_receive(ep, buf, len);
 		}
 	}
+
+#endif
 	
 	void session_impl::async_accept(boost::shared_ptr<socket_acceptor> const& listener)
 	{
