@@ -189,10 +189,13 @@ struct bandwidth_manager
 		TORRENT_ASSERT(current_quota == m_current_quota);
 
 		typename queue_t::const_iterator j = m_queue.begin();
-		++j;
-		for (typename queue_t::const_iterator i = m_queue.begin()
-			, end(m_queue.end()); i != end && j != end; ++i, ++j)
-			TORRENT_ASSERT(i->priority >= j->priority);
+		if (j != m_queue.end())
+		{
+			++j;
+			for (typename queue_t::const_iterator i = m_queue.begin()
+				, end(m_queue.end()); i != end && j != end; ++i, ++j)
+				TORRENT_ASSERT(i->priority >= j->priority);
+		}
 	}
 #endif
 

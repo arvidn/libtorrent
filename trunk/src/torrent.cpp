@@ -2681,6 +2681,7 @@ namespace libtorrent
 		for (int c = 0; c < 2; ++c)
 		{
 			queue_t::const_iterator j = m_bandwidth_queue[c].begin();
+			if (j == m_bandwidth_queue[c].end()) continue;
 			++j;
 			for (queue_t::const_iterator i = m_bandwidth_queue[c].begin()
 				, end(m_bandwidth_queue[c].end()); i != end && j != end; ++i, ++j)
