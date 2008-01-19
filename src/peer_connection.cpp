@@ -376,6 +376,7 @@ namespace libtorrent
 	peer_connection::~peer_connection()
 	{
 //		INVARIANT_CHECK;
+		TORRENT_ASSERT(!m_in_constructor);
 		TORRENT_ASSERT(m_disconnecting);
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -593,6 +594,7 @@ namespace libtorrent
 		// check to make sure we don't have another connection with the same
 		// info_hash and peer_id. If we do. close this connection.
 		t->attach_peer(this);
+		if (m_disconnecting) return;
 		m_torrent = wpt;
 
 		TORRENT_ASSERT(!m_torrent.expired());
@@ -1992,16 +1994,17 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
+		TORRENT_ASSERT(!m_in_constructor);
 		boost::intrusive_ptr<peer_connection> me(this);
 
 		INVARIANT_CHECK;
 
 		if (m_disconnecting) return;
-		m_disconnecting = true;
-		if (m_connecting)
+		if (m_connecting && m_connection_ticket >= 0)
+		{
 			m_ses.m_half_open.done(m_connection_ticket);
-
-		m_ses.m_io_service.post(boost::bind(&close_socket_ignore_error, m_socket));
+			m_connection_ticket = -1;
+		}
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
@@ -2027,7 +2030,9 @@ namespace libtorrent
 			m_torrent.reset();
 		}
 
+		m_disconnecting = true;
 		m_ses.close_connection(me);
+ 		m_ses.m_io_service.post(boost::bind(&close_socket_ignore_error, m_socket));
 	}
 
 	void peer_connection::set_upload_limit(int limit)
@@ -3163,7 +3168,6 @@ namespace libtorrent
 
 	bool peer_connection::is_seed() const
 	{
-		INVARIANT_CHECK;
 		// if m_num_pieces == 0, we probably don't have the
 		// metadata yet.
 		return m_num_pieces == (int)m_have_piece.size() && m_num_pieces > 0;
