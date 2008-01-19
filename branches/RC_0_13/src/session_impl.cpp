@@ -2441,6 +2441,7 @@ namespace detail
 			boost::shared_ptr<torrent> t = (*i)->associated_torrent().lock();
 
 			peer_connection* p = i->get();
+			TORRENT_ASSERT(!p->is_disconnecting());
 			if (!p->is_choked()) ++unchokes;
 			if (p->peer_info_struct()
 				&& p->peer_info_struct()->optimistically_unchoked)

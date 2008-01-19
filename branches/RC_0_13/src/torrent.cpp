@@ -2164,13 +2164,8 @@ namespace libtorrent
 			throw protocol_error("reached connection limit");
 		}
 
-		TORRENT_ASSERT(m_connections.find(p) == m_connections.end());
-		peer_iterator ci = m_connections.insert(p).first;
 		try
 		{
-			// if new_connection throws, we have to remove the
-			// it from the list.
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			for (extension_list_t::iterator i = m_extensions.begin()
 				, end(m_extensions.end()); i != end; ++i)
@@ -2179,15 +2174,14 @@ namespace libtorrent
 				if (pp) p->add_extension(pp);
 			}
 #endif
-			TORRENT_ASSERT(m_connections.find(p) == ci);
-			TORRENT_ASSERT(*ci == p);
-			m_policy.new_connection(**ci);
+			m_policy.new_connection(*p);
 		}
 		catch (std::exception& e)
 		{
-			m_connections.erase(ci);
 			throw;
 		}
+		TORRENT_ASSERT(m_connections.find(p) == m_connections.end());
+		peer_iterator ci = m_connections.insert(p).first;
 		TORRENT_ASSERT(p->remote() == p->get_socket()->remote_endpoint());
 
 #ifndef NDEBUG
