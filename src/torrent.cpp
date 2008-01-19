@@ -2195,8 +2195,6 @@ namespace libtorrent
 			throw protocol_error("reached connection limit");
 		}
 
-		TORRENT_ASSERT(m_connections.find(p) == m_connections.end());
-		peer_iterator ci = m_connections.insert(p).first;
 		try
 		{
 			// if new_connection throws, we have to remove the
@@ -2210,13 +2208,8 @@ namespace libtorrent
 				if (pp) p->add_extension(pp);
 			}
 #endif
-			TORRENT_ASSERT(m_connections.find(p) == ci);
-			TORRENT_ASSERT(*ci == p);
-			if (!m_policy.new_connection(**ci))
-			{
-				m_connections.erase(ci);
+			if (!m_policy.new_connection(*p))
 				return;
-			}
 		}
 		catch (std::exception& e)
 		{
@@ -2224,9 +2217,10 @@ namespace libtorrent
 			(*m_ses.m_logger) << time_now_string() << " CLOSING CONNECTION "
 				<< p->remote() << " policy::new_connection threw: " << e.what() << "\n";
 #endif
-			m_connections.erase(ci);
 			throw;
 		}
+		TORRENT_ASSERT(m_connections.find(p) == m_connections.end());
+		peer_iterator ci = m_connections.insert(p).first;
 		TORRENT_ASSERT(p->remote() == p->get_socket()->remote_endpoint());
 
 #ifndef NDEBUG
