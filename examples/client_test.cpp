@@ -249,11 +249,20 @@ std::string const& add_suffix(float val)
 
 std::string const& piece_bar(std::vector<bool> const& p, int width)
 {
+#ifdef ANSI_TERMINAL_COLORS
 	static const char* lookup[] =
 	{
 		// black, blue, cyan, white
 		"40", "44", "46", "47"
 	};
+
+	const int table_size = sizeof(lookup) / sizeof(lookup[0]);
+#else
+	static const char char_lookup[] =
+	{ ' ', '.', ':', '-', '+', '*', '#'};
+
+	const int table_size = sizeof(char_lookup) / sizeof(char_lookup[0]);
+#endif
 	
 	double piece_per_char = p.size() / double(width);
 	static std::string bar;
@@ -270,11 +279,17 @@ std::string const& piece_bar(std::vector<bool> const& p, int width)
 		int end = (std::max)(int(piece + piece_per_char), int(piece) + 1);
 		for (int k = int(piece); k < end; ++k, ++num_pieces)
 			if (p[k]) ++num_have;
-		int color = int(std::ceil(num_have / float(num_pieces) * (sizeof(lookup) / sizeof(lookup[0]) - 1)));
+		int color = int(std::ceil(num_have / float(num_pieces) * (table_size - 1)));
+#ifdef ANSI_TERMINAL_COLORS
 		bar += esc(lookup[color]);
 		bar += " ";
+#else
+		bar += char_lookup[color];
+#endif
 	}
+#ifdef ANSI_TERMINAL_COLORS
 	bar += esc("0");
+#endif
 	bar += "]";
 	return bar;
 }
