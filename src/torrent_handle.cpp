@@ -599,11 +599,13 @@ namespace libtorrent
 		for (policy::iterator i = pol.begin_peer()
 			, end(pol.end_peer()); i != end; ++i)
 		{
+			asio::error_code ec;
 			if (i->second.banned)
 			{
 				tcp::endpoint ip = i->second.ip;
 				entry peer(entry::dictionary_t);
-				peer["ip"] = ip.address().to_string();
+				peer["ip"] = ip.address().to_string(ec);
+				if (ec) continue;
 				peer["port"] = ip.port();
 				banned_peer_list.push_back(peer);
 				continue;
@@ -619,7 +621,8 @@ namespace libtorrent
 
 			tcp::endpoint ip = i->second.ip;
 			entry peer(entry::dictionary_t);
-			peer["ip"] = ip.address().to_string();
+			peer["ip"] = ip.address().to_string(ec);
+			if (ec) continue;
 			peer["port"] = ip.port();
 			peer_list.push_back(peer);
 		}
