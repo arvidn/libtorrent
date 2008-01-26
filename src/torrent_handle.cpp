@@ -503,7 +503,7 @@ namespace libtorrent
 		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
 
-		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
+		torrent* t = find_torrent(m_ses, m_chk, m_info_hash);
 		if (!t || !t->valid_metadata())
 #ifdef BOOST_NO_EXCEPTIONS
 			return entry();
