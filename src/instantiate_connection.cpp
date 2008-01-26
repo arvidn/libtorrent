@@ -54,7 +54,7 @@ namespace libtorrent
 		{
 			s.instantiate<http_stream>(ios);
 			s.get<http_stream>().set_proxy(ps.hostname, ps.port);
-			if (ps.type == proxy_settings::socks5_pw)
+			if (ps.type == proxy_settings::http_pw)
 				s.get<http_stream>().set_username(ps.username, ps.password);
 		}
 		else if (ps.type == proxy_settings::socks5
