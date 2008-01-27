@@ -67,17 +67,34 @@ void stop_web_server(int port)
 	system(cmd.str().c_str());
 }
 
-void start_web_server(int port)
+void start_web_server(int port, bool ssl)
 {
 	stop_web_server(port);
-	std::ofstream f("./lighty_config");
+
+	if (ssl)
+	{
+		system("echo -e \"AU\\ntest province\\ntest city\\ntest company\\n"
+			"test department\\ntester\\ntest@test.com\" | "
+			"openssl req -new -x509 -keyout server.pem -out server.pem "
+			"-days 365 -nodes");
+	}
+	
+	std::ofstream f("lighty_config");
 	f << "server.modules = (\"mod_access\", \"mod_redirect\")\n"
 		"server.document-root = \"" << boost::filesystem::initial_path().string() << "\"\n"
 		"server.range-requests = \"enable\"\n"
 		"server.port = " << port << "\n"
 		"server.pid-file = \"./lighty" << port << ".pid\"\n"
-		"url.redirect = (\"^/redirect$\" => \"http://127.0.0.1:" << port << "/test_file\", "
-			"\"^/infinite_redirect$\" => \"http://127.0.0.1:" << port << "/infinite_redirect\")";
+		"url.redirect = (\"^/redirect$\" => \""
+			<< (ssl?"https":"http") << "://127.0.0.1:" << port << "/test_file\", "
+			"\"^/infinite_redirect$\" => \""
+			<< (ssl?"https":"http") << "://127.0.0.1:" << port << "/infinite_redirect\")\n";
+	// this requires lighttpd to be built with ssl support.
+	// The port distribution for mac is not built with ssl
+	// support by default.
+	if (ssl)
+		f << "ssl.engine = \"enable\"\n"
+			"ssl.pemfile = \"server.pem\"\n";
 	f.close();
 	
 	system("lighttpd -f lighty_config &");
@@ -98,7 +115,8 @@ void start_proxy(int port, int proxy_type)
 	stop_proxy(port);
 	std::stringstream cmd;
 	// we need to echo n since dg will ask us to configure it
-	cmd << "echo n | delegated -P" << port << " ADMIN=test@test.com";
+	cmd << "echo n | delegated -P" << port << " ADMIN=test@test.com "
+		"PERMIT=\"*:*:localhost\" REMITTABLE=+,https RELAY=proxy,delegate";
 	switch (proxy_type)
 	{
 		case proxy_settings::socks4:
@@ -118,6 +136,7 @@ void start_proxy(int port, int proxy_type)
 			break;
 	}
 	system(cmd.str().c_str());
+	test_sleep(1000);
 }
 
 using namespace libtorrent;

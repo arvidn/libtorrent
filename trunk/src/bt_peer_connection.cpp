@@ -1742,7 +1742,7 @@ namespace libtorrent
 
 				// vc,crypto_select,len(pad),pad, encrypt(handshake)
 				// 8+4+2+0+handshake_len
-			   	reset_recv_buffer(8+4+2+0+handshake_len);
+				reset_recv_buffer(8+4+2+0+handshake_len);
 			}
 			else
 			{

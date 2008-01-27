@@ -698,7 +698,7 @@ namespace detail
 		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " aborting all torrents\n";
+		(*m_logger) << time_now_string() << " aborting all torrents (" << m_torrents.size() << ")\n";
 #endif
 		// abort all torrents
 		for (torrent_map::iterator i = m_torrents.begin()
@@ -1006,7 +1006,7 @@ namespace detail
 	
 	void session_impl::async_accept(boost::shared_ptr<socket_acceptor> const& listener)
 	{
-		shared_ptr<socket_type> c(new socket_type);
+		shared_ptr<socket_type> c(new socket_type(m_io_service));
 		c->instantiate<stream_socket>(m_io_service);
 		listener->async_accept(c->get<stream_socket>()
 			, bind(&session_impl::on_incoming_connection, this, c
@@ -1622,8 +1622,9 @@ namespace detail
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " locking mutex\n";
 #endif
-		session_impl::mutex_t::scoped_lock l(m_mutex);
 
+		session_impl::mutex_t::scoped_lock l(m_mutex);
+/*
 #ifndef NDEBUG
 		for (torrent_map::iterator i = m_torrents.begin();
 			i != m_torrents.end(); ++i)
@@ -1631,7 +1632,7 @@ namespace detail
 			TORRENT_ASSERT(i->second->num_peers() == 0);
 		}
 #endif
-
+*/
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " cleaning up torrents\n";
 #endif

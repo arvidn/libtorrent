@@ -45,7 +45,7 @@ rule linking ( properties * )
 		}
 		else
 		{
-			result += <library>crypto ;
+			result += <library>crypto <library>ssl ;
 		}
 	}
 
@@ -210,6 +210,7 @@ lib thread : : <name>boost_thread $(library-search-path) ;
 
 # openssl on linux/bsd/macos etc.
 lib crypto : : <name>crypto ;
+lib ssl : : <name>ssl ;
 
 # time functions used on linux require librt
 lib librt : : <name>rt ;

@@ -66,7 +66,8 @@ void reset_globals()
 	error_code = asio::error_code();
 }
 
-void run_test(char const* url, int size, int status, int connected, boost::optional<asio::error_code> ec)
+void run_test(std::string const& url, int size, int status, int connected
+	, boost::optional<asio::error_code> ec, proxy_settings const& ps)
 {
 	reset_globals();
 
@@ -74,7 +75,7 @@ void run_test(char const* url, int size, int status, int connected, boost::optio
 
 	boost::shared_ptr<http_connection> h(new http_connection(ios, cq
 		, &::http_handler, true, &::http_connect_handler));
-	h->get(url);
+	h->get(url, seconds(30), &ps);
 	ios.reset();
 	ios.run();
 
@@ -90,19 +91,63 @@ void run_test(char const* url, int size, int status, int connected, boost::optio
 	TEST_CHECK(http_status == status || status == -1);
 }
 
+void run_suite(std::string const& protocol, proxy_settings const& ps)
+{
+	if (ps.type != proxy_settings::none)
+	{
+		start_proxy(ps.port, ps.type);
+	}
+	char const* test_name[] = {"no", "SOCKS4", "SOCKS5"
+		, "SOCKS5 password protected", "HTTP", "HTTP password protected"};
+	std::cout << "\n\n********************** using " << test_name[ps.type]
+		<< " proxy **********************\n" << std::endl;
+
+	typedef boost::optional<asio::error_code> err;
+	run_test(protocol + "://127.0.0.1:8001/redirect", 3216, 200, 2, asio::error_code(), ps);
+	run_test(protocol + "://127.0.0.1:8001/infinite_redirect", 0, 301, 6, asio::error_code(), ps);
+	run_test(protocol + "://127.0.0.1:8001/test_file", 3216, 200, 1, asio::error_code(), ps);
+	run_test(protocol + "://127.0.0.1:8001/non-existing-file", -1, 404, 1, err(), ps);
+	// if we're going through an http proxy, we won't get the same error as if the hostname
+	// resolution failed
+	if ((ps.type == proxy_settings::http || ps.type == proxy_settings::http_pw) && protocol != "https")
+		run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, 502, 1, err(), ps);
+	else
+		run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, -1, 0, err(asio::error::host_not_found), ps);
+
+	if (ps.type != proxy_settings::none)
+		stop_proxy(ps.port);
+}
+
 int test_main()
 {
-	typedef boost::optional<asio::error_code> err;
-	start_web_server(8001);
 	std::srand(std::time(0));
 	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
 	std::ofstream("test_file").write(data_buffer, 3216);
-	run_test("http://127.0.0.1:8001/redirect", 3216, 200, 2, asio::error_code());
-	run_test("http://127.0.0.1:8001/infinite_redirect", 0, 301, 6, asio::error_code());
-	run_test("http://127.0.0.1:8001/test_file", 3216, 200, 1, asio::error_code());
-	run_test("http://127.0.0.1:8001/non-existing-file", -1, 404, 1, err());
-	run_test("http://non-existent-domain.se/non-existing-file", -1, -1, 0, err(asio::error::host_not_found));
+
+	proxy_settings ps;
+	ps.hostname = "127.0.0.1";
+	ps.port = 8034;
+	ps.username = "testuser";
+	ps.password = "testpass";
+	
+	start_web_server(8001);
+	for (int i = 0; i < 5; ++i)
+	{
+		ps.type = (proxy_settings::proxy_type)i;
+		run_suite("http", ps);
+	}
 	stop_web_server(8001);
+
+#ifdef TORRENT_USE_OPENSSL
+	start_web_server(8001, true);
+	for (int i = 0; i < 5; ++i)
+	{
+		ps.type = (proxy_settings::proxy_type)i;
+		run_suite("https", ps);
+	}
+	stop_web_server(8001);
+#endif
+
 	std::remove("test_file");
 	return 0;
 }
