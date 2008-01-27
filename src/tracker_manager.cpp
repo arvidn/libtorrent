@@ -486,6 +486,7 @@ exit:
 			if (boost::shared_ptr<request_callback> r = c.lock())
 				r->tracker_request_error(req, -1, "unknown protocol in tracker url: "
 					+ protocol);
+			return;
 		}
 
 		m_connections.push_back(con);
