@@ -84,10 +84,10 @@ void test_pex()
 			<< st3.num_peers
 			<< std::endl;
 
+		if (st3.state == torrent_status::seeding) break;
 		test_sleep(1000);
 	}
 
-	TEST_CHECK(tor2.is_seed());
 	TEST_CHECK(tor3.is_seed());
 
 	if (!tor2.is_seed() && tor3.is_seed()) std::cerr << "done\n";
