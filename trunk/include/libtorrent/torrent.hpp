@@ -696,7 +696,7 @@ namespace libtorrent
 		boost::scoped_ptr<piece_picker> m_picker;
 
 		// the queue of peer_connections that want more bandwidth
-		typedef std::deque<bw_queue_entry<peer_connection> > queue_t;
+		typedef std::deque<bw_queue_entry<peer_connection, torrent> > queue_t;
 		queue_t m_bandwidth_queue[2];
 
 		std::vector<announce_entry> m_trackers;
