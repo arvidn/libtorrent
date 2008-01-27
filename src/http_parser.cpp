@@ -157,7 +157,11 @@ namespace libtorrent
 
 				if (name == "content-length")
 				{
+#ifdef WIN32
+					m_content_length = _atoi64(value.c_str());
+#else
 					m_content_length = atoll(value.c_str());
+#endif
 				}
 				else if (name == "content-range")
 				{
