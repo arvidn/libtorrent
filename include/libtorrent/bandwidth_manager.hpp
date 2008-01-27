@@ -173,7 +173,7 @@ struct bandwidth_manager
  			++i->priority;
  			++i;
  		}
- 		m_queue.insert(i.base(), bw_queue_entry<PeerConnection>(peer, blk, priority));
+ 		m_queue.insert(i.base(), bw_queue_entry<PeerConnection, Torrent>(peer, blk, priority));
 		if (!m_queue.empty()) hand_out_bandwidth(l);
 	}
 
@@ -292,7 +292,7 @@ private:
 		queue_t tmp;
 		while (!m_queue.empty() && amount > 0)
 		{
-			bw_queue_entry<PeerConnection> qe = m_queue.front();
+			bw_queue_entry<PeerConnection, Torrent> qe = m_queue.front();
 			TORRENT_ASSERT(qe.max_block_size > 0);
 			m_queue.pop_front();
 
@@ -401,7 +401,7 @@ private:
 	int m_current_quota;
 
 	// these are the consumers that want bandwidth
-	typedef std::deque<bw_queue_entry<PeerConnection> > queue_t;
+	typedef std::deque<bw_queue_entry<PeerConnection, Torrent> > queue_t;
 	queue_t m_queue;
 
 	// these are the consumers that have received bandwidth

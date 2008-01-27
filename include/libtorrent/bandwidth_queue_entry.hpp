@@ -37,16 +37,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-template<class PeerConnection>
+template<class PeerConnection, class Torrent>
 struct bw_queue_entry
 {
-	typedef typename PeerConnection::torrent_type torrent_type;
 	bw_queue_entry(boost::intrusive_ptr<PeerConnection> const& pe
 		, int blk, int prio)
 		: peer(pe), torrent(peer->associated_torrent())
 		, max_block_size(blk), priority(prio) {}
 	boost::intrusive_ptr<PeerConnection> peer;
-	boost::weak_ptr<torrent_type> torrent;
+	boost::weak_ptr<Torrent> torrent;
 	int max_block_size;
 	int priority; // 0 is low prio
 };

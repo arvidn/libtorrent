@@ -2253,7 +2253,7 @@ namespace libtorrent
 				++i->priority;
 				++i;
 			}
-			m_bandwidth_queue[channel].insert(i.base(), bw_queue_entry<peer_connection>(
+			m_bandwidth_queue[channel].insert(i.base(), bw_queue_entry<peer_connection, torrent>(
 				p, block_size, priority));
 		}
 	}
@@ -2267,7 +2267,7 @@ namespace libtorrent
 		queue_t tmp;
 		while (!m_bandwidth_queue[channel].empty())
 		{
-			bw_queue_entry<peer_connection> qe = m_bandwidth_queue[channel].front();
+			bw_queue_entry<peer_connection, torrent> qe = m_bandwidth_queue[channel].front();
 			if (m_bandwidth_limit[channel].max_assignable() == 0)
 				break;
 			m_bandwidth_queue[channel].pop_front();
