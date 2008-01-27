@@ -182,6 +182,20 @@ namespace aux
       Protocol const& proto;
   };
 
+// -------------- is_open -----------
+
+  struct is_open_visitor
+    : boost::static_visitor<bool>
+  {
+      is_open_visitor() {}
+
+      template <class T>
+      bool operator()(T const* p) const
+      { return p->is_open(); }
+
+      bool operator()(boost::blank) const { return false; }
+  };
+
 // -------------- close -----------
 
   struct close_visitor_ec
@@ -221,7 +235,7 @@ namespace aux
       {}
 
       template <class T>
-      EndpointType operator()(T* p) const
+      EndpointType operator()(T const* p) const
       { return p->remote_endpoint(error_code); }
 
       EndpointType operator()(boost::blank) const
@@ -235,7 +249,7 @@ namespace aux
     : boost::static_visitor<EndpointType>
   {
       template <class T>
-      EndpointType operator()(T* p) const
+      EndpointType operator()(T const* p) const
       { return p->remote_endpoint(); }
 
       EndpointType operator()(boost::blank) const
@@ -253,7 +267,7 @@ namespace aux
       {}
 
       template <class T>
-      EndpointType operator()(T* p) const
+      EndpointType operator()(T const* p) const
       {
           return p->local_endpoint(error_code);
       }
@@ -271,7 +285,7 @@ namespace aux
     : boost::static_visitor<EndpointType>
   {
       template <class T>
-      EndpointType operator()(T* p) const
+      EndpointType operator()(T const* p) const
       {
           return p->local_endpoint();
       }
@@ -379,7 +393,7 @@ namespace aux
       {}
 
       template <class T>
-      std::size_t operator()(T* p) const
+      std::size_t operator()(T const* p) const
       {
           return p->in_avail(ec);
       }
@@ -396,7 +410,7 @@ namespace aux
     : boost::static_visitor<std::size_t>
   {
       template <class T>
-      std::size_t operator()(T* p) const
+      std::size_t operator()(T const* p) const
       {
           return p->in_avail();
       }
@@ -414,7 +428,7 @@ namespace aux
       template <class T>
       IOService& operator()(T* p) const
       {
-          return p->io_service();
+          return p->get_io_service();
       }
 
       IOService& operator()(boost::blank) const
@@ -471,11 +485,13 @@ public:
     typedef typename S0::endpoint_type endpoint_type;
     typedef typename S0::protocol_type protocol_type;
 
-    explicit variant_stream() : m_variant(boost::blank()) {}
+    explicit variant_stream(asio::io_service& ios)
+        : m_io_service(ios), m_variant(boost::blank()) {}
 
     template <class S>
     void instantiate(asio::io_service& ios)
     {
+        TORRENT_ASSERT(&ios == &m_io_service);
         std::auto_ptr<S> owned(new S(ios));
         boost::apply_visitor(aux::delete_visitor(), m_variant);
         m_variant = owned.get();
@@ -594,6 +610,11 @@ public:
         );
     }
 
+    bool is_open() const
+    {
+        return boost::apply_visitor(aux::is_open_visitor(), m_variant);
+    }
+
     void close()
     {
         if (!instantiated()) return;
@@ -608,13 +629,13 @@ public:
         );
     }
 
-    std::size_t in_avail()
+    std::size_t in_avail() const
     {
         TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(aux::in_avail_visitor(), m_variant);
     }
 
-    std::size_t in_avail(asio::error_code& ec)
+    std::size_t in_avail(asio::error_code& ec) const
     {
         TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(
@@ -622,13 +643,13 @@ public:
         );
     }
 
-    endpoint_type remote_endpoint()
+    endpoint_type remote_endpoint() const
     {
         TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(aux::remote_endpoint_visitor<endpoint_type>(), m_variant);
     }
 
-    endpoint_type remote_endpoint(asio::error_code& ec)
+    endpoint_type remote_endpoint(asio::error_code& ec) const
     {
         TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(
@@ -636,13 +657,13 @@ public:
         );
     }
 
-    endpoint_type local_endpoint()
+    endpoint_type local_endpoint() const
     {
         TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(aux::local_endpoint_visitor<endpoint_type>(), m_variant);
     }
 
-    endpoint_type local_endpoint(asio::error_code& ec)
+    endpoint_type local_endpoint(asio::error_code& ec) const
     {
         TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(
@@ -650,12 +671,9 @@ public:
         );
     }
 
-	 asio::io_service& io_service()
+	 asio::io_service& get_io_service()
     {
-        TORRENT_ASSERT(instantiated());
-        return boost::apply_visitor(
-            aux::io_service_visitor<asio::io_service>(), m_variant
-        );
+        return m_io_service;
     }
 
     lowest_layer_type& lowest_layer()
@@ -667,6 +685,7 @@ public:
     }
 
 private:
+    asio::io_service& m_io_service;
     variant_type m_variant;
 };
 

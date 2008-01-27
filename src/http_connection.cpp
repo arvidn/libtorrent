@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/escape_string.hpp"
+#include "libtorrent/instantiate_connection.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
@@ -46,7 +47,7 @@ namespace libtorrent
 	enum { max_bottled_buffer = 1024 * 1024 };
 
 void http_connection::get(std::string const& url, time_duration timeout
-	, int handle_redirects)
+	, proxy_settings const* ps, int handle_redirects)
 {
 	std::string protocol;
 	std::string auth;
@@ -54,21 +55,55 @@ void http_connection::get(std::string const& url, time_duration timeout
 	std::string path;
 	int port;
 	boost::tie(protocol, auth, hostname, port, path) = parse_url_components(url);
+
+	bool ssl = false;
+	if (protocol == "https") ssl = true;
+#ifndef TORRENT_USE_OPENSSL
+	if (ssl)
+	{
+		callback(asio::error::not_supported);
+		return;
+	}
+#endif
+	
 	std::stringstream headers;
-	headers << "GET " << path << " HTTP/1.0\r\n"
-		"Host:" << hostname <<
-		"\r\nConnection: close\r\n";
+	if (ps && (ps->type == proxy_settings::http
+		|| ps->type == proxy_settings::http_pw)
+		&& !ssl)
+	{
+		// if we're using an http proxy and not an ssl
+		// connection, just do a regular http proxy request
+		headers << "GET " << url << " HTTP/1.0\r\n"
+			"Connection: close\r\n";
+		if (ps->type == proxy_settings::http_pw)
+			headers << "Proxy-Authorization: Basic " << base64encode(
+				ps->username + ":" + ps->password) << "\r\n";
+		hostname = ps->hostname;
+		port = ps->port;
+		ps = 0;
+	}
+	else
+	{
+		headers << "GET " << path << " HTTP/1.0\r\n"
+			"Host:" << hostname << "\r\n"
+			"Connection: close\r\n";
+	}
+
 	if (!auth.empty())
 		headers << "Authorization: Basic " << base64encode(auth) << "\r\n";
 	headers << "\r\n";
 	sendbuffer = headers.str();
-	start(hostname, boost::lexical_cast<std::string>(port), timeout, handle_redirects);
+	start(hostname, boost::lexical_cast<std::string>(port), timeout, ps
+		, ssl, handle_redirects);
 }
 
 void http_connection::start(std::string const& hostname, std::string const& port
-	, time_duration timeout, int handle_redirects)
+	, time_duration timeout, proxy_settings const* ps, bool ssl, int handle_redirects)
 {
 	m_redirects = handle_redirects;
+	if (ps) m_proxy = *ps;
+
+	m_ssl = ssl;
 	m_timeout = timeout;
 	asio::error_code ec;
 	m_timer.expires_from_now(m_timeout, ec);
@@ -78,6 +113,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	m_parser.reset();
 	m_recvbuffer.clear();
 	m_read_pos = 0;
+
 	if (m_sock.is_open() && m_hostname == hostname && m_port == port)
 	{
 		asio::async_write(m_sock, asio::buffer(sendbuffer)
@@ -87,6 +123,27 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	{
 		asio::error_code ec;
 		m_sock.close(ec);
+
+#ifdef TORRENT_USE_OPENSSL
+		if (m_ssl)
+		{
+			m_sock.instantiate<ssl_stream<socket_type> >(m_resolver.get_io_service());
+			ssl_stream<socket_type>& s = m_sock.get<ssl_stream<socket_type> >();
+			bool ret = instantiate_connection(m_resolver.get_io_service(), m_proxy, s.next_layer());
+			TORRENT_ASSERT(ret);
+		}
+		else
+		{
+			m_sock.instantiate<socket_type>(m_resolver.get_io_service());
+			bool ret = instantiate_connection(m_resolver.get_io_service()
+				, m_proxy, m_sock.get<socket_type>());
+			TORRENT_ASSERT(ret);
+		}
+#else
+		bool ret = instantiate_connection(m_resolver.get_io_service(), m_proxy, m_sock);
+		TORRENT_ASSERT(ret);
+#endif
+
 		tcp::resolver::query query(hostname, port);
 		m_resolver.async_resolve(query, bind(&http_connection::on_resolve
 			, shared_from_this(), _1, _2));
@@ -295,7 +352,7 @@ void http_connection::on_read(asio::error_code const& e
 
 				asio::error_code ec;
 				m_sock.close(ec);
-				get(url, m_timeout, m_redirects - 1);
+				get(url, m_timeout, &m_proxy, m_redirects - 1);
 				return;
 			}
 	

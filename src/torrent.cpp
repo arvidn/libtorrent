@@ -520,7 +520,7 @@ namespace libtorrent
 	// tracker request
 	bool torrent::should_request()
 	{
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 		
 		if (m_trackers.empty()) return false;
 
@@ -1782,7 +1782,7 @@ namespace libtorrent
 			return;
 		}
 		
-		boost::shared_ptr<socket_type> s(new socket_type);
+		boost::shared_ptr<socket_type> s(new socket_type(m_ses.m_io_service));
 	
 		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.web_seed_proxy(), *s);
 		TORRENT_ASSERT(ret);
@@ -2087,7 +2087,7 @@ namespace libtorrent
 		tcp::endpoint const& a(peerinfo->ip);
 		TORRENT_ASSERT((m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked) == 0);
 
-		boost::shared_ptr<socket_type> s(new socket_type);
+		boost::shared_ptr<socket_type> s(new socket_type(m_ses.m_io_service));
 
 		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy(), *s);
 		TORRENT_ASSERT(ret);

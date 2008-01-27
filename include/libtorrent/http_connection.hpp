@@ -45,6 +45,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/socket_type.hpp"
+
+#ifdef TORRENT_USE_OPENSSL
+#include "libtorrent/ssl_stream.hpp"
+#include "libtorrent/variant_stream.hpp"
+#endif
 
 namespace libtorrent
 {
@@ -57,6 +63,7 @@ typedef boost::function<void(asio::error_code const&
 typedef boost::function<void(http_connection&)> http_connect_handler;
 
 // TODO: add bind interface
+// TODO: add gzip support
 
 // when bottled, the last two arguments to the handler
 // will always be 0
@@ -81,6 +88,7 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 		, m_redirects(5)
 		, m_connection_ticket(-1)
 		, m_cc(cc)
+		, m_ssl(false)
 	{
 		TORRENT_ASSERT(!m_handler.empty());
 	}
@@ -93,14 +101,20 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 	std::string sendbuffer;
 
 	void get(std::string const& url, time_duration timeout = seconds(30)
-		, int handle_redirects = 5);
+		, proxy_settings const* ps = 0, int handle_redirects = 5);
 
 	void start(std::string const& hostname, std::string const& port
-		, time_duration timeout, int handle_redirect = 5);
+		, time_duration timeout, proxy_settings const* ps = 0, bool ssl = false
+		, int handle_redirect = 5);
+
 	void close();
 
-	tcp::socket const& socket() const { return m_sock; }
-
+#ifdef TORRENT_USE_OPENSSL
+	variant_stream<socket_type, ssl_stream<socket_type> > const& socket() const { return m_sock; }
+#else
+	socket_type const& socket() const { return m_sock; }
+#endif
+	
 private:
 
 	void on_resolve(asio::error_code const& e
@@ -118,7 +132,11 @@ private:
 	void callback(asio::error_code const& e, char const* data = 0, int size = 0);
 
 	std::vector<char> m_recvbuffer;
-	tcp::socket m_sock;
+#ifdef TORRENT_USE_OPENSSL
+	variant_stream<socket_type, ssl_stream<socket_type> > m_sock;
+#else
+	socket_type m_sock;
+#endif
 	int m_read_pos;
 	tcp::resolver m_resolver;
 	http_parser m_parser;
@@ -158,6 +176,13 @@ private:
 
 	int m_connection_ticket;
 	connection_queue& m_cc;
+
+	// specifies whether or not the connection is
+	// configured to use a proxy
+	proxy_settings m_proxy;
+
+	// true if the connection is using ssl
+	bool m_ssl;
 };
 
 }

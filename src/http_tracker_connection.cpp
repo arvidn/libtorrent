@@ -100,6 +100,7 @@ namespace libtorrent
 		, connection_queue& cc
 		, tracker_manager& man
 		, tracker_request const& req
+		, std::string const& protocol
 		, std::string const& hostname
 		, unsigned short port
 		, std::string request
@@ -112,6 +113,10 @@ namespace libtorrent
 		, m_man(man)
 		, m_name_lookup(ios)
 		, m_port(port)
+		, m_socket(ios)
+#ifdef TORRENT_USE_OPENSSL
+		, m_ssl(protocol == "https")
+#endif
 		, m_recv_pos(0)
 		, m_buffer(http_buffer_size)
 		, m_settings(stn)
@@ -390,9 +395,25 @@ namespace libtorrent
 		}
 
 		if (cb) cb->m_tracker_address = target_address;
-		bool ret = instantiate_connection(m_name_lookup.get_io_service(), m_proxy, m_socket);
-
+		asio::io_service& ios = m_name_lookup.io_service();
+#ifdef TORRENT_USE_OPENSSL
+		if (m_ssl)
+		{
+			m_socket.instantiate<ssl_stream<socket_type> >(ios);
+			ssl_stream<socket_type>& s = m_socket.get<ssl_stream<socket_type> >();
+			bool ret = instantiate_connection(ios, m_proxy, s.next_layer());
+			TORRENT_ASSERT(ret);
+		}
+		else
+		{
+			m_socket.instantiate<socket_type>(ios);
+			bool ret = instantiate_connection(ios, m_proxy, m_socket.get<socket_type>());
+			TORRENT_ASSERT(ret);
+		}
+#else
+		bool ret = instantiate_connection(ios, m_proxy, m_socket);
 		TORRENT_ASSERT(ret);
+#endif
 
 		if (m_proxy.type == proxy_settings::http
 			|| m_proxy.type == proxy_settings::http_pw)

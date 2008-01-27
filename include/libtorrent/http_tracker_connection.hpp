@@ -63,6 +63,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/http_parser.hpp"
 
+#ifdef TORRENT_USE_OPENSSL
+#include "libtorrent/ssl_stream.hpp"
+#include "libtorrent/variant_stream.hpp"
+#endif
+
 namespace libtorrent
 {
 	
@@ -77,6 +82,7 @@ namespace libtorrent
 			, connection_queue& cc
 			, tracker_manager& man
 			, tracker_request const& req
+			, std::string const& protocol
 			, std::string const& hostname
 			, unsigned short port
 			, std::string request
@@ -116,7 +122,12 @@ namespace libtorrent
 
 		tcp::resolver m_name_lookup;
 		int m_port;
+#ifdef TORRENT_USE_OPENSSL
+		variant_stream<socket_type, ssl_stream<socket_type> > m_socket;
+		bool m_ssl;
+#else
 		socket_type m_socket;
+#endif
 		int m_recv_pos;
 		std::vector<char> m_buffer;
 		std::string m_send_buffer;
@@ -124,7 +135,7 @@ namespace libtorrent
 		session_settings const& m_settings;
 		proxy_settings const& m_proxy;
 		std::string m_password;
-
+	
 		bool m_timed_out;
 
 		int m_connection_ticket;

@@ -355,7 +355,7 @@ namespace libtorrent
 	{
 		std::string hostname; // hostname only
 		std::string auth; // user:pass
-		std::string protocol; // should be http
+		std::string protocol; // http or https for instance
 		int port = 80;
 
 		std::string::iterator at;
@@ -370,6 +370,8 @@ namespace libtorrent
 		std::string::iterator end
 			= std::find(url.begin(), url.end(), ':');
 		protocol.assign(start, end);
+
+		if (protocol == "https") port = 443;
 
 		if (end == url.end()) goto exit;
 		++end;
@@ -453,13 +455,18 @@ exit:
 
 		boost::intrusive_ptr<tracker_connection> con;
 
+#ifdef TORRENT_USE_OPENSSL
+		if (protocol == "http" || protocol == "https")
+#else
 		if (protocol == "http")
+#endif
 		{
 			con = new http_tracker_connection(
 				ios
 				, cc
 				, *this
 				, req
+				, protocol
 				, hostname
 				, port
 				, request_string
