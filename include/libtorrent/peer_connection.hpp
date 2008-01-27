@@ -98,8 +98,6 @@ namespace libtorrent
 	friend class invariant_access;
 	public:
 
-		typedef torrent torrent_type;
-	
 		enum channels
 		{
 			upload_channel,
