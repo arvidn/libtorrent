@@ -200,8 +200,9 @@ namespace libtorrent
 		}
 
 		template<class InIt>
-		void bdecode_recursive(InIt& in, InIt end, entry& ret)
+		void bdecode_recursive(InIt& in, InIt end, entry& ret, int depth)
 		{
+			if (depth >= 100) throw invalid_encoding();
 			if (in == end) throw invalid_encoding();
 			switch (*in)
 			{
@@ -228,7 +229,7 @@ namespace libtorrent
 				{
 					ret.list().push_back(entry());
 					entry& e = ret.list().back();
-					bdecode_recursive(in, end, e);
+					bdecode_recursive(in, end, e, depth + 1);
 					if (in == end) throw invalid_encoding();
 				}
 				assert(*in == 'e');
@@ -244,9 +245,9 @@ namespace libtorrent
 				while (*in != 'e')
 				{
 					entry key;
-					bdecode_recursive(in, end, key);
+					bdecode_recursive(in, end, key, depth + 1);
 					entry& e = ret[key.string()];
-					bdecode_recursive(in, end, e);
+					bdecode_recursive(in, end, e, depth + 1);
 					if (in == end) throw invalid_encoding();
 				}
 				assert(*in == 'e');
@@ -285,7 +286,7 @@ namespace libtorrent
 		try
 		{
 			entry e;
-			detail::bdecode_recursive(start, end, e);
+			detail::bdecode_recursive(start, end, e, 0);
 			return e;
 		}
 		catch(type_error&)
