@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 
 #include "libtorrent/config.hpp"
-#include "zlib.h"
+#include "libtorrent/gzip.hpp"
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -70,21 +70,6 @@ namespace
 		minimum_tracker_response_length = 3,
 		http_buffer_size = 2048
 	};
-
-
-	enum
-	{
-		FTEXT = 0x01,
-		FHCRC = 0x02,
-		FEXTRA = 0x04,
-		FNAME = 0x08,
-		FCOMMENT = 0x10,
-		FRESERVED = 0xe0,
-
-		GZIP_MAGIC0 = 0x1f,
-		GZIP_MAGIC1 = 0x8b
-	};
-
 }
 
 namespace
@@ -637,13 +622,16 @@ namespace libtorrent
 				close();
 				return;
 			}
-			m_buffer.erase(m_buffer.begin(), m_buffer.begin() + m_parser.body_start());
-			if (inflate_gzip(m_buffer, tracker_req(), cb.get(),
-				m_settings.tracker_maximum_response_length))
+			std::vector<char> buffer;
+			std::string error;
+			if (inflate_gzip(&m_buffer[0] + m_parser.body_start(), m_buffer.size(), buffer
+				, m_settings.tracker_maximum_response_length, error))
 			{
+				cb->tracker_request_error(tracker_req(), 200, error);
 				close();
 				return;
 			}
+			m_buffer.swap(buffer);
 			buf.begin = &m_buffer[0];
 			buf.end = &m_buffer[0] + m_buffer.size();
 		}

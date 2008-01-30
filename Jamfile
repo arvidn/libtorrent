@@ -228,6 +228,7 @@ SOURCES =
 	connection_queue
 	entry
 	escape_string
+	gzip
 	http_connection
 	http_stream
 	http_parser

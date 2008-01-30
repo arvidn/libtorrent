@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/instantiate_connection.hpp"
+#include "libtorrent/gzip.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
@@ -41,13 +42,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using boost::bind;
 
-namespace libtorrent
-{
+namespace libtorrent {
 
-	enum { max_bottled_buffer = 1024 * 1024 };
+namespace
+{
+	char to_lower(char c) { return std::tolower(c); }
+}
+
+enum { max_bottled_buffer = 1024 * 1024 };
+
 
 void http_connection::get(std::string const& url, time_duration timeout
-	, proxy_settings const* ps, int handle_redirects)
+	, proxy_settings const* ps, int handle_redirects, std::string const& user_agent)
 {
 	std::string protocol;
 	std::string auth;
@@ -73,8 +79,7 @@ void http_connection::get(std::string const& url, time_duration timeout
 	{
 		// if we're using an http proxy and not an ssl
 		// connection, just do a regular http proxy request
-		headers << "GET " << url << " HTTP/1.0\r\n"
-			"Connection: close\r\n";
+		headers << "GET " << url << " HTTP/1.0\r\n";
 		if (ps->type == proxy_settings::http_pw)
 			headers << "Proxy-Authorization: Basic " << base64encode(
 				ps->username + ":" + ps->password) << "\r\n";
@@ -85,13 +90,20 @@ void http_connection::get(std::string const& url, time_duration timeout
 	else
 	{
 		headers << "GET " << path << " HTTP/1.0\r\n"
-			"Host:" << hostname << "\r\n"
-			"Connection: close\r\n";
+			"Host:" << hostname << "\r\n";
 	}
 
 	if (!auth.empty())
 		headers << "Authorization: Basic " << base64encode(auth) << "\r\n";
-	headers << "\r\n";
+
+	if (!user_agent.empty())
+		headers << "User-Agent: " << user_agent << "\r\n";
+	
+	headers <<
+		"Connection: close\r\n"
+		"Accept-Encoding: gzip\r\n"
+		"\r\n";
+
 	sendbuffer = headers.str();
 	start(hostname, boost::lexical_cast<std::string>(port), timeout, ps
 		, ssl, handle_redirects);
@@ -250,6 +262,23 @@ void http_connection::callback(asio::error_code const& e, char const* data, int 
 {
 	if (!m_bottled || !m_called)
 	{
+		std::vector<char> buf;
+		if (m_bottled && m_parser.finished())
+		{
+			std::string const& encoding = m_parser.header("content-encoding");
+			if (encoding == "gzip" || encoding == "x-gzip")
+			{
+				std::string error;
+				if (inflate_gzip(data, size, buf, max_bottled_buffer, error))
+				{
+					callback(asio::error::fault, data, size);
+					close();
+					return;
+				}
+				data = &buf[0];
+				size = int(buf.size());
+			}
+		}
 		m_called = true;
 		m_timer.cancel();
 		if (m_handler) m_handler(e, m_parser, data, size);

@@ -63,7 +63,6 @@ typedef boost::function<void(asio::error_code const&
 typedef boost::function<void(http_connection&)> http_connect_handler;
 
 // TODO: add bind interface
-// TODO: add gzip support
 
 // when bottled, the last two arguments to the handler
 // will always be 0
@@ -101,7 +100,8 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 	std::string sendbuffer;
 
 	void get(std::string const& url, time_duration timeout = seconds(30)
-		, proxy_settings const* ps = 0, int handle_redirects = 5);
+		, proxy_settings const* ps = 0, int handle_redirects = 5
+		, std::string const& user_agent = "");
 
 	void start(std::string const& hostname, std::string const& port
 		, time_duration timeout, proxy_settings const* ps = 0, bool ssl = false
