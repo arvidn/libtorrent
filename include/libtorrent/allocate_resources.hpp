@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg
+Copyright (c) 2003, Magnus Jonsson
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,53 +30,49 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
+#ifndef TORRENT_ALLOCATE_RESOURCES_HPP_INCLUDED
+#define TORRENT_ALLOCATE_RESOURCES_HPP_INCLUDED
 
-#include "libtorrent/socket.hpp"
-#include "libtorrent/session_settings.hpp"
-#include "libtorrent/socket_type.hpp"
+#include <map>
+#include <utility>
+
 #include <boost/shared_ptr.hpp>
-#include <stdexcept>
-#include <asio/io_service.hpp>
+
+#include "libtorrent/resource_request.hpp"
+#include "libtorrent/peer_id.hpp"
+#include "libtorrent/socket.hpp"
+#include "libtorrent/session.hpp"
 
 namespace libtorrent
 {
+	class peer_connection;
+	class torrent;
 
-	bool instantiate_connection(asio::io_service& ios
-		, proxy_settings const& ps, socket_type& s)
-	{
-		if (ps.type == proxy_settings::none)
-		{
-			s.instantiate<stream_socket>(ios);
-		}
-		else if (ps.type == proxy_settings::http
-			|| ps.type == proxy_settings::http_pw)
-		{
-			s.instantiate<http_stream>(ios);
-			s.get<http_stream>().set_proxy(ps.hostname, ps.port);
-			if (ps.type == proxy_settings::http_pw)
-				s.get<http_stream>().set_username(ps.username, ps.password);
-		}
-		else if (ps.type == proxy_settings::socks5
-			|| ps.type == proxy_settings::socks5_pw)
-		{
-			s.instantiate<socks5_stream>(ios);
-			s.get<socks5_stream>().set_proxy(ps.hostname, ps.port);
-			if (ps.type == proxy_settings::socks5_pw)
-				s.get<socks5_stream>().set_username(ps.username, ps.password);
-		}
-		else if (ps.type == proxy_settings::socks4)
-		{
-			s.instantiate<socks4_stream>(ios);
-			s.get<socks4_stream>().set_proxy(ps.hostname, ps.port);
-			s.get<socks4_stream>().set_username(ps.username);
-		}
-		else
-		{
-			return false;
-		}
-		return true;
-	}
+	int saturated_add(int a, int b);
 
+	// Function to allocate a limited resource fairly among many consumers.
+	// It takes into account the current use, and the consumer's desired use.
+	// Should be invoked periodically to allow it adjust to the situation (make
+	// sure "used" is updated between calls!).
+	// If resources = std::numeric_limits<int>::max() it means there is an infinite
+	// supply of resources (so everyone can get what they want).
+
+	void allocate_resources(
+		int resources
+		, std::map<sha1_hash, boost::shared_ptr<torrent> >& torrents
+		, resource_request torrent::* res);
+
+	void allocate_resources(
+		int resources
+		, std::map<tcp::endpoint, peer_connection*>& connections
+		, resource_request peer_connection::* res);
+
+	// Used for global limits.
+	void allocate_resources(
+		int resources
+		, std::vector<session*>& _sessions
+		, resource_request session::* res);
 }
 
+
+#endif

@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {
@@ -48,8 +47,8 @@ namespace libtorrent
 	class TORRENT_EXPORT stat
 	{
 	friend class invariant_access;
+	enum { history = 10 };
 	public:
-		enum { history = 10 };
 
 		stat()
 			: m_downloaded_payload(0)
@@ -90,8 +89,8 @@ namespace libtorrent
 		{
 			INVARIANT_CHECK;
 
-			TORRENT_ASSERT(bytes_payload >= 0);
-			TORRENT_ASSERT(bytes_protocol >= 0);
+			assert(bytes_payload >= 0);
+			assert(bytes_protocol >= 0);
 
 			m_downloaded_payload += bytes_payload;
 			m_total_download_payload += bytes_payload;
@@ -103,8 +102,8 @@ namespace libtorrent
 		{
 			INVARIANT_CHECK;
 
-			TORRENT_ASSERT(bytes_payload >= 0);
-			TORRENT_ASSERT(bytes_protocol >= 0);
+			assert(bytes_payload >= 0);
+			assert(bytes_protocol >= 0);
 
 			m_uploaded_payload += bytes_payload;
 			m_total_upload_payload += bytes_payload;
@@ -132,8 +131,6 @@ namespace libtorrent
 		// transfers from earlier connections.
 		void add_stat(size_type downloaded, size_type uploaded)
 		{
-			TORRENT_ASSERT(downloaded >= 0);
-			TORRENT_ASSERT(uploaded >= 0);
 			m_total_download_payload += downloaded;
 			m_total_upload_payload += uploaded;
 		}
@@ -143,14 +140,14 @@ namespace libtorrent
 #ifndef NDEBUG
 		void check_invariant() const
 		{
-			TORRENT_ASSERT(m_mean_upload_rate >= 0);
-			TORRENT_ASSERT(m_mean_download_rate >= 0);
-			TORRENT_ASSERT(m_mean_upload_payload_rate >= 0);
-			TORRENT_ASSERT(m_mean_download_payload_rate >= 0);
-			TORRENT_ASSERT(m_total_upload_payload >= 0);
-			TORRENT_ASSERT(m_total_download_payload >= 0);
-			TORRENT_ASSERT(m_total_upload_protocol >= 0);
-			TORRENT_ASSERT(m_total_download_protocol >= 0);
+			assert(m_mean_upload_rate >= 0);
+			assert(m_mean_download_rate >= 0);
+			assert(m_mean_upload_payload_rate >= 0);
+			assert(m_mean_download_payload_rate >= 0);
+			assert(m_total_upload_payload >= 0);
+			assert(m_total_download_payload >= 0);
+			assert(m_total_upload_protocol >= 0);
+			assert(m_total_download_protocol >= 0);
 		}
 #endif
 

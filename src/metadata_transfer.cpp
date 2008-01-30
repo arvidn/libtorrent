@@ -30,14 +30,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
 
 #include <boost/shared_ptr.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/convenience.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -54,7 +55,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/metadata_transfer.hpp"
-#include "libtorrent/alert_types.hpp"
+
+using boost::posix_time::second_clock;
 
 namespace libtorrent { namespace
 {
@@ -65,10 +67,10 @@ namespace libtorrent { namespace
 
 	std::pair<int, int> req_to_offset(std::pair<int, int> req, int total_size)
 	{
-		TORRENT_ASSERT(req.first >= 0);
-		TORRENT_ASSERT(req.second > 0);
-		TORRENT_ASSERT(req.second <= 256);
-		TORRENT_ASSERT(req.first + req.second <= 256);
+		assert(req.first >= 0);
+		assert(req.second > 0);
+		assert(req.second <= 256);
+		assert(req.first + req.second <= 256);
 
 		int start = div_round_up(req.first * total_size, 256);
 		int size = div_round_up((req.first + req.second) * total_size, 256) - start;
@@ -82,18 +84,19 @@ namespace libtorrent { namespace
 
 		std::pair<int, int> ret(start, size);
 	
-		TORRENT_ASSERT(start >= 0);
-		TORRENT_ASSERT(size > 0);
-		TORRENT_ASSERT(start <= 256);
-		TORRENT_ASSERT(start + size <= 256);
+		assert(start >= 0);
+		assert(size > 0);
+		assert(start <= 256);
+		assert(start + size <= 256);
 
 		// assert the identity of this function
 #ifndef NDEBUG
 		std::pair<int, int> identity = req_to_offset(ret, total_size);
-		TORRENT_ASSERT(offset == identity);
+		assert(offset == identity);
 #endif
 		return ret;
 	}
+
 
 	struct metadata_plugin : torrent_plugin
 	{
@@ -104,15 +107,7 @@ namespace libtorrent { namespace
 		{
 			m_requested_metadata.resize(256, 0);
 		}
-
-		virtual void on_files_checked()
-		{
-			// if the torrent is a seed, copy the metadata from
-			// the torrent before it is deallocated
-			if (m_torrent.is_seed())
-				metadata();
-		}
-
+	
 		virtual boost::shared_ptr<peer_plugin> new_connection(
 			peer_connection* pc);
 		
@@ -123,10 +118,10 @@ namespace libtorrent { namespace
 				bencode(std::back_inserter(m_metadata)
 					, m_torrent.torrent_file().create_info_metadata());
 
-				TORRENT_ASSERT(hasher(&m_metadata[0], m_metadata.size()).final()
+				assert(hasher(&m_metadata[0], m_metadata.size()).final()
 					== m_torrent.torrent_file().info_hash());
 			}
-			TORRENT_ASSERT(!m_metadata.empty());
+			assert(!m_metadata.empty());
 			return m_metadata;
 		}
 
@@ -148,7 +143,7 @@ namespace libtorrent { namespace
 			std::pair<int, int> req = offset_to_req(std::make_pair(offset, size)
 				, total_size);
 
-			TORRENT_ASSERT(req.first + req.second <= (int)m_have_metadata.size());
+			assert(req.first + req.second <= (int)m_have_metadata.size());
 
 			std::fill(
 				m_have_metadata.begin() + req.first
@@ -174,27 +169,19 @@ namespace libtorrent { namespace
 					, false);
 				m_metadata_progress = 0;
 				m_metadata_size = 0;
-
-				if (m_torrent.alerts().should_post(alert::info))
+				// TODO: allow plugins to post alerts
+/*
+				if (m_ses.m_alerts.should_post(alert::info))
 				{
-					m_torrent.alerts().post_alert(metadata_failed_alert(
-						m_torrent.get_handle(), "invalid metadata received from swarm"));
+					m_ses.m_alerts.post_alert(metadata_failed_alert(
+						get_handle(), "invalid metadata received from swarm"));
 				}
-
+*/
 				return false;
 			}
 
 			entry metadata = bdecode(m_metadata.begin(), m_metadata.end());
-			std::string error;
-			if (!m_torrent.set_metadata(metadata, error))
-			{
-				// this means the metadata is correct, since we
-				// verified it against the info-hash, but we
-				// failed to parse it. Pause the torrent
-				// TODO: Post an alert!
-				m_torrent.pause();
-				return false;
-			}
+			m_torrent.set_metadata(metadata);
 
 			// clear the storage for the bitfield
 			std::vector<bool>().swap(m_have_metadata);
@@ -211,7 +198,7 @@ namespace libtorrent { namespace
 		{
 			for (int i = req.first; i < req.first + req.second; ++i)
 			{
-				TORRENT_ASSERT(m_requested_metadata[i] > 0);
+				assert(m_requested_metadata[i] > 0);
 				if (m_requested_metadata[i] > 0)
 					--m_requested_metadata[i];
 			}
@@ -223,14 +210,6 @@ namespace libtorrent { namespace
 		{
 			m_metadata_progress += received;
 			m_metadata_size = total_size;
-		}
-
-		void on_piece_pass(int)
-		{
-			// if we became a seed, copy the metadata from
-			// the torrent before it is deallocated
-			if (m_torrent.is_seed())
-				metadata();
 		}
 
 	private:
@@ -264,8 +243,12 @@ namespace libtorrent { namespace
 			: m_waiting_metadata_request(false)
 			, m_message_index(0)
 			, m_metadata_progress(0)
-			, m_no_metadata(min_time())
-			, m_metadata_request(min_time())
+			, m_no_metadata(
+				boost::gregorian::date(1970, boost::date_time::Jan, 1)
+				, boost::posix_time::seconds(0))
+			, m_metadata_request(
+				boost::gregorian::date(1970, boost::date_time::Jan, 1)
+				, boost::posix_time::seconds(0))
 			, m_torrent(t)
 			, m_pc(pc)
 			, m_tp(tp)
@@ -296,11 +279,11 @@ namespace libtorrent { namespace
 
 		void write_metadata_request(std::pair<int, int> req)
 		{
-			TORRENT_ASSERT(req.first >= 0);
-			TORRENT_ASSERT(req.second > 0);
-			TORRENT_ASSERT(req.first + req.second <= 256);
-			TORRENT_ASSERT(!m_pc.associated_torrent().expired());
-			TORRENT_ASSERT(!m_pc.associated_torrent().lock()->valid_metadata());
+			assert(req.first >= 0);
+			assert(req.second > 0);
+			assert(req.first + req.second <= 256);
+			assert(!m_pc.associated_torrent().expired());
+			assert(!m_pc.associated_torrent().lock()->valid_metadata());
 
 			int start = req.first;
 			int size = req.second;
@@ -317,17 +300,17 @@ namespace libtorrent { namespace
 			detail::write_uint8(0, i.begin);
 			detail::write_uint8(start, i.begin);
 			detail::write_uint8(size - 1, i.begin);
-			TORRENT_ASSERT(i.begin == i.end);
+			assert(i.begin == i.end);
 			m_pc.setup_send();
 		}
 
 		void write_metadata(std::pair<int, int> req)
 		{
-			TORRENT_ASSERT(req.first >= 0);
-			TORRENT_ASSERT(req.second > 0);
-			TORRENT_ASSERT(req.second <= 256);
-			TORRENT_ASSERT(req.first + req.second <= 256);
-			TORRENT_ASSERT(!m_pc.associated_torrent().expired());
+			assert(req.first >= 0);
+			assert(req.second > 0);
+			assert(req.second <= 256);
+			assert(req.first + req.second <= 256);
+			assert(!m_pc.associated_torrent().expired());
 
 			// abort if the peer doesn't support the metadata extension
 			if (m_message_index == 0) return;
@@ -352,7 +335,7 @@ namespace libtorrent { namespace
 				std::copy(metadata.begin() + offset.first
 					, metadata.begin() + offset.first + offset.second, i.begin);
 				i.begin += offset.second;
-				TORRENT_ASSERT(i.begin == i.end);
+				assert(i.begin == i.end);
 			}
 			else
 			{
@@ -364,7 +347,7 @@ namespace libtorrent { namespace
 				detail::write_uint8(m_message_index, i.begin);
 				// means 'have no data'
 				detail::write_uint8(2, i.begin);
-				TORRENT_ASSERT(i.begin == i.end);
+				assert(i.begin == i.end);
 			}
 			m_pc.setup_send();
 		}
@@ -428,7 +411,7 @@ namespace libtorrent { namespace
 				}
 				break;
 			case 2: // have no data
-				m_no_metadata = time_now();
+				m_no_metadata = second_clock::universal_time();
 				if (m_waiting_metadata_request)
 					m_tp.cancel_metadata_request(m_last_metadata_request);
 				m_waiting_metadata_request = false;
@@ -454,13 +437,14 @@ namespace libtorrent { namespace
 				m_last_metadata_request = m_tp.metadata_request();
 				write_metadata_request(m_last_metadata_request);
 				m_waiting_metadata_request = true;
-				m_metadata_request = time_now();
+				m_metadata_request = second_clock::universal_time();
 			}
 		}
 
 		bool has_metadata() const
 		{
-			return time_now() - m_no_metadata > minutes(5);
+			using namespace boost::posix_time;
+			return second_clock::universal_time() - m_no_metadata > minutes(5);
 		}
 
 	private:
@@ -483,11 +467,11 @@ namespace libtorrent { namespace
 
 		// this is set to the current time each time we get a
 		// "I don't have metadata" message.
-		ptime m_no_metadata;
+		boost::posix_time::ptime m_no_metadata;
 
 		// this is set to the time when we last sent
 		// a request for metadata to this peer
-		ptime m_metadata_request;
+		boost::posix_time::ptime m_metadata_request;
 
 		// if we're waiting for a metadata request
 		// this was the request we sent
@@ -501,8 +485,6 @@ namespace libtorrent { namespace
 	boost::shared_ptr<peer_plugin> metadata_plugin::new_connection(
 		peer_connection* pc)
 	{
-		bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(pc);
-		if (!c) return boost::shared_ptr<peer_plugin>();
 		return boost::shared_ptr<peer_plugin>(new metadata_peer_plugin(m_torrent, *pc, *this));
 	}
 
@@ -512,10 +494,11 @@ namespace libtorrent { namespace
 		// extension and that has metadata
 		int peers = 0;
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (torrent::peer_iterator i = m_torrent.begin()
+		typedef std::map<tcp::endpoint, peer_connection*> conn_map;
+		for (conn_map::iterator i = m_torrent.begin()
 			, end(m_torrent.end()); i != end; ++i)
 		{
-			bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(*i);
+			bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(i->second);
 			if (c == 0) continue;
 			metadata_peer_plugin* p
 				= c->supports_extension<metadata_peer_plugin>();
@@ -528,9 +511,9 @@ namespace libtorrent { namespace
 		// the number of blocks to request
 		int num_blocks = 256 / (peers + 1);
 		if (num_blocks < 1) num_blocks = 1;
-		TORRENT_ASSERT(num_blocks <= 128);
+		assert(num_blocks <= 128);
 
-		int min_element = (std::numeric_limits<int>::max)();
+		int min_element = std::numeric_limits<int>::max();
 		int best_index = 0;
 		for (int i = 0; i < 256 - num_blocks + 1; ++i)
 		{
@@ -550,10 +533,10 @@ namespace libtorrent { namespace
 		for (int i = ret.first; i < ret.first + ret.second; ++i)
 			m_requested_metadata[i]++;
 
-		TORRENT_ASSERT(ret.first >= 0);
-		TORRENT_ASSERT(ret.second > 0);
-		TORRENT_ASSERT(ret.second <= 256);
-		TORRENT_ASSERT(ret.first + ret.second <= 256);
+		assert(ret.first >= 0);
+		assert(ret.second > 0);
+		assert(ret.second <= 256);
+		assert(ret.first + ret.second <= 256);
 
 		return ret;
 	}
@@ -563,7 +546,7 @@ namespace libtorrent { namespace
 namespace libtorrent
 {
 
-	boost::shared_ptr<torrent_plugin> create_metadata_plugin(torrent* t, void*)
+	boost::shared_ptr<torrent_plugin> create_metadata_plugin(torrent* t)
 	{
 		return boost::shared_ptr<torrent_plugin>(new metadata_plugin(*t));
 	}

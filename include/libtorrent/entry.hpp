@@ -59,15 +59,15 @@ POSSIBILITY OF SUCH DAMAGE.
  */
 
 
-#include <iosfwd>
+#include <iostream>
 #include <map>
 #include <list>
 #include <string>
 #include <stdexcept>
+#include <cassert>
 
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {
@@ -155,16 +155,12 @@ namespace libtorrent
 		dictionary_type& dict();
 		const dictionary_type& dict() const;
 
-		void swap(entry& e);
-
 		// these functions requires that the entry
 		// is a dictionary, otherwise they will throw	
 		entry& operator[](char const* key);
 		entry& operator[](std::string const& key);
-#ifndef BOOST_NO_EXCEPTIONS
 		const entry& operator[](char const* key) const;
 		const entry& operator[](std::string const& key) const;
-#endif
 		entry* find_key(char const* key);
 		entry const* find_key(char const* key) const;
 		
@@ -202,16 +198,6 @@ namespace libtorrent
 		};
 #endif
 
-#ifndef NDEBUG
-	public:
-		// in debug mode this is set to false by bdecode
-		// to indicate that the program has not yet queried
-		// the type of this entry, and sould not assume
-		// that it has a certain type. This is asserted in
-		// the accessor functions. This does not apply if
-		// exceptions are used.
-		mutable bool m_type_queried;
-#endif
 	};
 
 	inline std::ostream& operator<<(std::ostream& os, const entry& e)
@@ -220,14 +206,11 @@ namespace libtorrent
 		return os;
 	}
 
-	inline entry::data_type entry::type() const
-	{
-#ifndef NDEBUG
-		m_type_queried = true;
-#endif
-		return m_type;
-	}
+	inline entry::data_type entry::type() const { return m_type; }
 
+	inline entry::entry(): m_type(undefined_t) {}
+	inline entry::entry(data_type t): m_type(t) { construct(t); }
+	inline entry::entry(const entry& e) { copy(e); }
 	inline entry::~entry() { destruct(); }
 
 	inline void entry::operator=(const entry& e)
@@ -239,92 +222,52 @@ namespace libtorrent
 	inline entry::integer_type& entry::integer()
 	{
 		if (m_type == undefined_t) construct(int_t);
-#ifndef BOOST_NO_EXCEPTIONS
 		if (m_type != int_t) throw type_error("invalid type requested from entry");
-#elif !defined NDEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == int_t);
 		return *reinterpret_cast<integer_type*>(data);
 	}
 
 	inline entry::integer_type const& entry::integer() const
 	{
-#ifndef BOOST_NO_EXCEPTIONS
 		if (m_type != int_t) throw type_error("invalid type requested from entry");
-#elif !defined NDEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == int_t);
 		return *reinterpret_cast<const integer_type*>(data);
 	}
 
 	inline entry::string_type& entry::string()
 	{
 		if (m_type == undefined_t) construct(string_t);
-#ifndef BOOST_NO_EXCEPTIONS
 		if (m_type != string_t) throw type_error("invalid type requested from entry");
-#elif !defined NDEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == string_t);
 		return *reinterpret_cast<string_type*>(data);
 	}
 
 	inline entry::string_type const& entry::string() const
 	{
-#ifndef BOOST_NO_EXCEPTIONS
 		if (m_type != string_t) throw type_error("invalid type requested from entry");
-#elif !defined NDEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == string_t);
 		return *reinterpret_cast<const string_type*>(data);
 	}
 
 	inline entry::list_type& entry::list()
 	{
 		if (m_type == undefined_t) construct(list_t);
-#ifndef BOOST_NO_EXCEPTIONS
 		if (m_type != list_t) throw type_error("invalid type requested from entry");
-#elif !defined NDEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == list_t);
 		return *reinterpret_cast<list_type*>(data);
 	}
 
 	inline entry::list_type const& entry::list() const
 	{
-#ifndef BOOST_NO_EXCEPTIONS
 		if (m_type != list_t) throw type_error("invalid type requested from entry");
-#elif !defined NDEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == list_t);
 		return *reinterpret_cast<const list_type*>(data);
 	}
 
 	inline entry::dictionary_type& entry::dict()
 	{
 		if (m_type == undefined_t) construct(dictionary_t);
-#ifndef BOOST_NO_EXCEPTIONS
 		if (m_type != dictionary_t) throw type_error("invalid type requested from entry");
-#elif !defined NDEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == dictionary_t);
 		return *reinterpret_cast<dictionary_type*>(data);
 	}
 
 	inline entry::dictionary_type const& entry::dict() const
 	{
-#ifndef BOOST_NO_EXCEPTIONS
 		if (m_type != dictionary_t) throw type_error("invalid type requested from entry");
-#elif !defined NDEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == dictionary_t);
 		return *reinterpret_cast<const dictionary_type*>(data);
 	}
 

@@ -53,16 +53,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/config.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/version.hpp"
 #include "libtorrent/fingerprint.hpp"
-#include "libtorrent/time.hpp"
 
-#include "libtorrent/storage.hpp"
+#include "libtorrent/resource_request.hpp"
 
 #ifdef _MSC_VER
 #	include <eh.h>
@@ -73,10 +71,7 @@ namespace libtorrent
 	struct torrent_plugin;
 	class torrent;
 	class ip_filter;
-	class port_filter;
-	class connection_queue;
 
-	namespace fs = boost::filesystem;
 
 	namespace aux
 	{
@@ -116,7 +111,7 @@ namespace libtorrent
 			: m_impl(impl) {}
 		boost::shared_ptr<aux::session_impl> m_impl;
 	};
-
+	
 	class TORRENT_EXPORT session: public boost::noncopyable, aux::eh_initializer
 	{
 	public:
@@ -124,7 +119,7 @@ namespace libtorrent
 		session(fingerprint const& print = fingerprint("LT"
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			, fs::path logpath = "."
+			, boost::filesystem::path logpath = "."
 #endif
 				);
 		session(
@@ -132,7 +127,7 @@ namespace libtorrent
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = "0.0.0.0"
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			, fs::path logpath = "."
+			, boost::filesystem::path logpath = "."
 #endif
 			);
 			
@@ -147,31 +142,31 @@ namespace libtorrent
 		// all torrent_handles must be destructed before the session is destructed!
 		torrent_handle add_torrent(
 			torrent_info const& ti
-			, fs::path const& save_path
+			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
-			, storage_mode_t storage_mode = storage_mode_sparse
-			, bool paused = false
-			, storage_constructor_type sc = default_storage_constructor) TORRENT_DEPRECATED;
+			, bool compact_mode = true
+			, int block_size = 16 * 1024);
 
+		// TODO: deprecated, this is for backwards compatibility only
 		torrent_handle add_torrent(
-			boost::intrusive_ptr<torrent_info> ti
-			, fs::path const& save_path
+			entry const& e
+			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
-			, storage_mode_t storage_mode = storage_mode_sparse
-			, bool paused = false
-			, storage_constructor_type sc = default_storage_constructor
-			, void* userdata = 0);
+			, bool compact_mode = true
+			, int block_size = 16 * 1024)
+		{
+			return add_torrent(torrent_info(e), save_path, resume_data
+				, compact_mode, block_size);
+		}
 
 		torrent_handle add_torrent(
 			char const* tracker_url
 			, sha1_hash const& info_hash
 			, char const* name
-			, fs::path const& save_path
+			, boost::filesystem::path const& save_path
 			, entry const& resume_data = entry()
-			, storage_mode_t storage_mode = storage_mode_sparse
-			, bool paused = false
-			, storage_constructor_type sc = default_storage_constructor
-			, void* userdata = 0);
+			, bool compact_mode = true
+			, int block_size = 16 * 1024);
 
 		session_proxy abort() { return session_proxy(m_impl); }
 
@@ -186,20 +181,15 @@ namespace libtorrent
 		void add_dht_router(std::pair<std::string, int> const& node);
 #endif
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		void set_pe_settings(pe_settings const& settings);
-		pe_settings const& get_pe_settings() const;
-#endif
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext);
+
+		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*)> ext);
+
 #endif
 
 		void set_ip_filter(ip_filter const& f);
-		void set_port_filter(port_filter const& f);
 		void set_peer_id(peer_id const& pid);
 		void set_key(int key);
-		peer_id id() const;
 
 		bool is_listening() const;
 
@@ -228,33 +218,13 @@ namespace libtorrent
 		// number of half open connections.
 		int num_connections() const;
 
-		enum options_t
-		{
-			none = 0,
-			delete_files = 1
-		};
-
-		void remove_torrent(const torrent_handle& h, int options = none);
+		void remove_torrent(const torrent_handle& h);
 
 		void set_settings(session_settings const& s);
 		session_settings const& settings();
 
-		void set_peer_proxy(proxy_settings const& s);
-		void set_web_seed_proxy(proxy_settings const& s);
-		void set_tracker_proxy(proxy_settings const& s);
-
-		proxy_settings const& peer_proxy() const;
-		proxy_settings const& web_seed_proxy() const;
-		proxy_settings const& tracker_proxy() const;
-
-#ifndef TORRENT_DISABLE_DHT
-		void set_dht_proxy(proxy_settings const& s);
-		proxy_settings const& dht_proxy() const;
-#endif
-
 		int upload_rate_limit() const;
 		int download_rate_limit() const;
-		int max_half_open_connections() const;
 
 		void set_upload_rate_limit(int bytes_per_second);
 		void set_download_rate_limit(int bytes_per_second);
@@ -265,20 +235,12 @@ namespace libtorrent
 		std::auto_ptr<alert> pop_alert();
 		void set_severity_level(alert::severity_t s);
 
-		alert const* wait_for_alert(time_duration max_wait);
+		// Resource management used for global limits.
+		resource_request m_ul_bandwidth_quota;
+		resource_request m_dl_bandwidth_quota;
+		resource_request m_uploads_quota;
+		resource_request m_connections_quota;
 
-		connection_queue& get_connection_queue();
-
-		// starts/stops UPnP, NATPMP or LSD port mappers
-		// they are stopped by default
-		void start_lsd();
-		void start_natpmp();
-		void start_upnp();
-
-		void stop_lsd();
-		void stop_natpmp();
-		void stop_upnp();
-		
 	private:
 
 		// just a way to initialize boost.filesystem

@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #ifdef _WIN32
 // windows part
 #include "libtorrent/utf8.hpp"
@@ -68,7 +66,6 @@ BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 #include <boost/filesystem/operations.hpp>
 #include "libtorrent/file.hpp"
 #include <sstream>
-#include <cstring>
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -82,7 +79,8 @@ BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 #include "libtorrent/storage.hpp"
 #endif
 
-#include "libtorrent/assert.hpp"
+
+namespace fs = boost::filesystem;
 
 namespace
 {
@@ -93,7 +91,7 @@ namespace
 		if (m == (mode_in | mode_out)) return O_RDWR | O_CREAT | O_BINARY | O_RANDOM;
 		if (m == mode_out) return O_WRONLY | O_CREAT | O_BINARY | O_RANDOM;
 		if (m == mode_in) return O_RDONLY | O_BINARY | O_RANDOM;
-		TORRENT_ASSERT(false);
+		assert(false);
 		return 0;
 	}
 
@@ -130,8 +128,6 @@ namespace
 namespace libtorrent
 {
 
-	namespace fs = boost::filesystem;
-
 	const file::open_mode file::in(mode_in);
 	const file::open_mode file::out(mode_out);
 
@@ -159,7 +155,7 @@ namespace libtorrent
 
 		void open(fs::path const& path, int mode)
 		{
-			TORRENT_ASSERT(path.is_complete());
+			assert(path.is_complete());
 			close();
 #if defined(_WIN32) && defined(UNICODE)
 			std::wstring wpath(safe_convert(path.native_file_string()));
@@ -185,7 +181,7 @@ namespace libtorrent
 			{
 				std::stringstream msg;
 				msg << "open failed: '" << path.native_file_string() << "'. "
-					<< std::strerror(errno);
+					<< strerror(errno);
 				throw file_error(msg.str());
 			}
 			m_open_mode = mode;
@@ -206,8 +202,8 @@ namespace libtorrent
 
 		size_type read(char* buf, size_type num_bytes)
 		{
-			TORRENT_ASSERT(m_open_mode & mode_in);
-			TORRENT_ASSERT(m_fd != -1);
+			assert(m_open_mode & mode_in);
+			assert(m_fd != -1);
 
 #ifdef _WIN32
 			size_type ret = ::_read(m_fd, buf, num_bytes);
@@ -217,7 +213,7 @@ namespace libtorrent
 			if (ret == -1)
 			{
 				std::stringstream msg;
-				msg << "read failed: " << std::strerror(errno);
+				msg << "read failed: " << strerror(errno);
 				throw file_error(msg.str());
 			}
 			return ret;
@@ -225,8 +221,8 @@ namespace libtorrent
 
 		size_type write(const char* buf, size_type num_bytes)
 		{
-			TORRENT_ASSERT(m_open_mode & mode_out);
-			TORRENT_ASSERT(m_fd != -1);
+			assert(m_open_mode & mode_out);
+			assert(m_fd != -1);
 
 			// TODO: Test this a bit more, what happens with random failures in
 			// the files?
@@ -241,30 +237,16 @@ namespace libtorrent
 			if (ret == -1)
 			{
 				std::stringstream msg;
-				msg << "write failed: " << std::strerror(errno);
+				msg << "write failed: " << strerror(errno);
 				throw file_error(msg.str());
 			}
 			return ret;
 		}
 
-		void set_size(size_type s)
+		size_type seek(size_type offset, int m)
 		{
-#ifdef _WIN32
-#error file.cpp is for posix systems only. use file_win.cpp on windows
-#else
-			if (ftruncate(m_fd, s) < 0)
-			{
-				std::stringstream msg;
-				msg << "ftruncate failed: '" << std::strerror(errno);
-				throw file_error(msg.str());
-			}
-#endif
-		}
-
-		size_type seek(size_type offset, int m = 1)
-		{
-			TORRENT_ASSERT(m_open_mode);
-			TORRENT_ASSERT(m_fd != -1);
+			assert(m_open_mode);
+			assert(m_fd != -1);
 
 			int seekdir = (m == 1)?SEEK_SET:SEEK_END;
 #ifdef _WIN32
@@ -279,7 +261,7 @@ namespace libtorrent
 			if (ret == -1)
 			{
 				std::stringstream msg;
-				msg << "seek failed: '" << std::strerror(errno)
+				msg << "seek failed: '" << strerror(errno)
 					<< "' fd: " << m_fd
 					<< " offset: " << offset
 					<< " seekdir: " << seekdir;
@@ -290,8 +272,8 @@ namespace libtorrent
 
 		size_type tell()
 		{
-			TORRENT_ASSERT(m_open_mode);
-			TORRENT_ASSERT(m_fd != -1);
+			assert(m_open_mode);
+			assert(m_fd != -1);
 
 #ifdef _WIN32
 			return _telli64(m_fd);
@@ -308,13 +290,13 @@ namespace libtorrent
 
 	file::file() : m_impl(new impl()) {}
 
-	file::file(fs::path const& p, file::open_mode m)
+	file::file(boost::filesystem::path const& p, file::open_mode m)
 		: m_impl(new impl(p, m.m_mask))
 	{}
 
 	file::~file() {}
 
-	void file::open(fs::path const& p, file::open_mode m)
+	void file::open(boost::filesystem::path const& p, file::open_mode m)
 	{
 		m_impl->open(p, m.m_mask);
 	}
@@ -332,11 +314,6 @@ namespace libtorrent
 	size_type file::read(char* buf, size_type num_bytes)
 	{
 		return m_impl->read(buf, num_bytes);
-	}
-
-	void file::set_size(size_type s)
-	{
-		m_impl->set_size(s);
 	}
 
 	size_type file::seek(size_type pos, file::seek_mode m)

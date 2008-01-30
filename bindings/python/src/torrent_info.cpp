@@ -16,6 +16,7 @@ namespace
       return i.trackers().begin();
   }
 
+
   std::vector<announce_entry>::const_iterator end_trackers(torrent_info& i)
   {
       return i.trackers().end();
@@ -39,29 +40,6 @@ namespace
 
       return result;
   }
-
-  std::vector<file_entry>::const_iterator begin_files(torrent_info& i, bool storage)
-  {
-      return i.begin_files(storage);
-  }
-  
-  std::vector<file_entry>::const_iterator end_files(torrent_info& i, bool storage)
-  {
-      return i.end_files(storage);
-  }
-  
-  //list files(torrent_info const& ti, bool storage) {
-  list files(torrent_info const& ti, bool storage) {
-      list result;
-
-      typedef std::vector<file_entry> list_type;
-
-      for (list_type::const_iterator i = ti.begin_files(storage); i != ti.end_files(storage); ++i)
-          result.append(*i);
-
-      return result;
-  }
-  
 
 } // namespace unnamed
 
@@ -92,10 +70,9 @@ void bind_torrent_info()
 
         .def("hash_for_piece", &torrent_info::hash_for_piece, copy)
         .def("piece_size", &torrent_info::piece_size)
-        
-	      .def("num_files", &torrent_info::num_files, (arg("storage")=false))
+
         .def("file_at", &torrent_info::file_at, return_internal_reference<>())
-        .def("files", &files, (arg("storage")=false))
+        .def("files", range(&torrent_info::begin_files, &torrent_info::end_files))
 
         .def("priv", &torrent_info::priv)
         .def("set_priv", &torrent_info::set_priv)
@@ -106,8 +83,9 @@ void bind_torrent_info()
         .def("add_node", &add_node)
         .def("nodes", &nodes)
         ;
+
     class_<file_entry>("file_entry")
-       .add_property(
+        .add_property(
             "path"
           , make_getter(
                 &file_entry::path, return_value_policy<copy_non_const_reference>()
@@ -122,5 +100,4 @@ void bind_torrent_info()
         .def_readwrite("tier", &announce_entry::tier)
         ;
 }
-
 

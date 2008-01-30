@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/file.hpp"
 #include "libtorrent/utf8.hpp"
-#include "libtorrent/assert.hpp"
 
 #ifdef UNICODE
 #include "libtorrent/storage.hpp"
@@ -40,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <sstream>
 #include <windows.h>
-#include <winioctl.h>
 
 namespace
 {
@@ -137,8 +135,8 @@ namespace libtorrent
 
 		void open(const char *file_name, open_flags flags)
 		{
-			TORRENT_ASSERT(file_name);
-			TORRENT_ASSERT(flags & (read_flag | write_flag));
+			assert(file_name);
+			assert(flags & (read_flag | write_flag));
 
 			DWORD access_mask = 0;
 			if (flags & read_flag)
@@ -146,7 +144,7 @@ namespace libtorrent
 			if (flags & write_flag)
 				access_mask |= GENERIC_WRITE;
 
-			TORRENT_ASSERT(access_mask & (GENERIC_READ | GENERIC_WRITE));
+			assert(access_mask & (GENERIC_READ | GENERIC_WRITE));
 
 		#ifdef UNICODE
 			std::wstring wfile_name(safe_convert(file_name));
@@ -170,13 +168,9 @@ namespace libtorrent
 		#endif
 
 			if (new_handle == INVALID_HANDLE_VALUE)
-				throw_exception(file_name);
-			// try to make the file sparse if supported
-			if (access_mask & GENERIC_WRITE)
 			{
-				DWORD temp;
-				::DeviceIoControl(new_handle, FSCTL_SET_SPARSE, 0, 0
-					, 0, 0, &temp, 0);
+				std::stringstream s;
+				throw_exception(file_name);
 			}
 			// will only close old file if the open succeeded
 			close();
@@ -199,8 +193,8 @@ namespace libtorrent
 
 		size_type write(const char* buffer, size_type num_bytes)
 		{
-			TORRENT_ASSERT(buffer);
-			TORRENT_ASSERT((DWORD)num_bytes == num_bytes);
+			assert(buffer);
+			assert((DWORD)num_bytes == num_bytes);
 			DWORD bytes_written = 0;
 			if (num_bytes != 0)
 			{
@@ -219,9 +213,9 @@ namespace libtorrent
 		
 		size_type read(char* buffer, size_type num_bytes)
 		{
-			TORRENT_ASSERT(buffer);
-			TORRENT_ASSERT(num_bytes >= 0);
-			TORRENT_ASSERT((DWORD)num_bytes == num_bytes);
+			assert(buffer);
+			assert(num_bytes >= 0);
+			assert((DWORD)num_bytes == num_bytes);
 
 			DWORD bytes_read = 0;
 			if (num_bytes != 0)
@@ -239,20 +233,10 @@ namespace libtorrent
 			return bytes_read;
 		}
 
-		void set_size(size_type s)
-		{
-			size_type pos = tell();
-			seek(s, seek_begin);
-			if (FALSE == ::SetEndOfFile(m_file_handle))
-				throw_exception("file::set_size");
-
-			seek(pos, seek_begin);
-		}
-
 		size_type seek(size_type pos, seek_mode from_where)
 		{
-			TORRENT_ASSERT(pos >= 0 || from_where != seek_begin);
-			TORRENT_ASSERT(pos <= 0 || from_where != seek_end);
+			assert(pos >= 0 || from_where != seek_begin);
+			assert(pos <= 0 || from_where != seek_end);
 			LARGE_INTEGER offs;
 			offs.QuadPart = pos;
 			if (FALSE == SetFilePointerEx(
@@ -282,7 +266,7 @@ namespace libtorrent
 			}
 
 			size_type pos = offs.QuadPart;
-			TORRENT_ASSERT(pos >= 0);
+			assert(pos >= 0);
 			return pos;
 		}
 /*
@@ -295,7 +279,7 @@ namespace libtorrent
 			}
 			
 			size_type size = s.QuadPart;
-			TORRENT_ASSERT(size >= 0);
+			assert(size >= 0);
 			return size;
 		}
 */
@@ -331,7 +315,7 @@ namespace libtorrent
 
 	void file::open(boost::filesystem::path const& p, open_mode m)
 	{
-		TORRENT_ASSERT(p.is_complete());
+		assert(p.is_complete());
 		m_impl->open(p.native_file_string().c_str(), impl::open_flags(m.m_mask));
 	}
 
@@ -348,11 +332,6 @@ namespace libtorrent
 	size_type file::read(char* buffer, size_type num_bytes)
 	{
 		return m_impl->read(buffer, num_bytes);
-	}
-
-	void file::set_size(size_type s)
-	{
-		m_impl->set_size(s);
 	}
 
 	size_type file::seek(size_type pos, seek_mode m)

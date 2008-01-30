@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <vector>
 #include <iostream>
 #include <iomanip>
@@ -50,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/version.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
+using namespace boost::posix_time;
 using boost::bind;
 using boost::shared_ptr;
 using libtorrent::aux::session_impl;
@@ -59,28 +58,27 @@ namespace libtorrent
 	web_peer_connection::web_peer_connection(
 		session_impl& ses
 		, boost::weak_ptr<torrent> t
-		, boost::shared_ptr<socket_type> s
+		, boost::shared_ptr<stream_socket> s
 		, tcp::endpoint const& remote
-		, std::string const& url
-		, policy::peer* peerinfo)
-		: peer_connection(ses, t, s, remote, peerinfo)
+		, tcp::endpoint const& proxy
+		, std::string const& url)
+		: peer_connection(ses, t, s, remote, proxy)
 		, m_url(url)
 		, m_first_request(true)
 	{
 		INVARIANT_CHECK;
 
+		// we always prefer downloading entire
+		// pieces from web seeds
+		prefer_whole_pieces(true);
 		// we want large blocks as well, so
 		// we can request more bytes at once
 		request_large_blocks(true);
 		// we only want left-over bandwidth
-		set_priority(0);
+		set_non_prioritized(true);
 		shared_ptr<torrent> tor = t.lock();
-		TORRENT_ASSERT(tor);
+		assert(tor);
 		int blocks_per_piece = tor->torrent_file().piece_length() / tor->block_size();
-
-		// we always prefer downloading 1 MB chunks
-		// from web seeds
-		prefer_whole_pieces((1024 * 1024) / tor->torrent_file().piece_length());
 		
 		// multiply with the blocks per piece since that many requests are
 		// merged into one http request
@@ -95,12 +93,9 @@ namespace libtorrent
 #endif
 
 		std::string protocol;
-		boost::tie(protocol, m_auth, m_host, m_port, m_path)
+		boost::tie(protocol, m_host, m_port, m_path)
 			= parse_url_components(url);
-		
-		if (!m_auth.empty())
-			m_auth = base64encode(m_auth);
-
+			
 		m_server_string = "URL seed @ ";
 		m_server_string += m_host;
 	}
@@ -115,7 +110,7 @@ namespace libtorrent
 			return boost::optional<piece_block_progress>();
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		TORRENT_ASSERT(t);
+		assert(t);
 
 		piece_block_progress ret;
 
@@ -148,7 +143,7 @@ namespace libtorrent
 	void web_peer_connection::on_connected()
 	{
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		TORRENT_ASSERT(t);
+		assert(t);
 	
 		// this is always a seed
 		incoming_bitfield(std::vector<bool>(
@@ -164,9 +159,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		TORRENT_ASSERT(t);
+		assert(t);
 
-		TORRENT_ASSERT(t->valid_metadata());
+		assert(t->valid_metadata());
 
 		bool single_file_request = false;
 		if (!m_path.empty() && m_path[m_path.size() - 1] != '/')
@@ -175,7 +170,6 @@ namespace libtorrent
 		torrent_info const& info = t->torrent_file();
 		
 		std::string request;
-		request.reserve(400);
 
 		int size = r.length;
 		const int block_size = t->block_size();
@@ -191,9 +185,9 @@ namespace libtorrent
 			size -= pr.length;
 		}
 
-		proxy_settings const& ps = m_ses.web_seed_proxy();
-		bool using_proxy = ps.type == proxy_settings::http
-			|| ps.type == proxy_settings::http_pw;
+		bool using_proxy = false;
+		if (!m_ses.settings().proxy_ip.empty())
+			using_proxy = true;
 
 		if (single_file_request)
 		{
@@ -209,15 +203,11 @@ namespace libtorrent
 				request += "\r\nUser-Agent: ";
 				request += m_ses.settings().user_agent;
 			}
-			if (!m_auth.empty())
-			{
-				request += "\r\nAuthorization: Basic ";
-				request += m_auth;
-			}
-			if (ps.type == proxy_settings::http_pw)
+			if (using_proxy && !m_ses.settings().proxy_login.empty())
 			{
 				request += "\r\nProxy-Authorization: Basic ";
-				request += base64encode(ps.username + ":" + ps.password);
+				request += base64encode(m_ses.settings().proxy_login + ":"
+					+ m_ses.settings().proxy_password);
 			}
 			if (using_proxy)
 			{
@@ -266,15 +256,11 @@ namespace libtorrent
 					request += "\r\nUser-Agent: ";
 					request += m_ses.settings().user_agent;
 				}
-				if (!m_auth.empty())
-				{
-					request += "\r\nAuthorization: Basic ";
-					request += m_auth;
-				}
-				if (ps.type == proxy_settings::http_pw)
+				if (using_proxy && !m_ses.settings().proxy_login.empty())
 				{
 					request += "\r\nProxy-Authorization: Basic ";
-					request += base64encode(ps.username + ":" + ps.password);
+					request += base64encode(m_ses.settings().proxy_login + ":"
+						+ m_ses.settings().proxy_password);
 				}
 				if (using_proxy)
 				{
@@ -288,7 +274,6 @@ namespace libtorrent
 					request += "\r\nConnection: keep-alive";
 				request += "\r\n\r\n";
 				m_first_request = false;
-				TORRENT_ASSERT(f.file_index >= 0);
 				m_file_requests.push_back(f.file_index);
 			}
 		}
@@ -297,7 +282,7 @@ namespace libtorrent
 		(*m_logger) << request << "\n";
 #endif
 
-		send_buffer(request.c_str(), request.size());
+		send_buffer(request.c_str(), request.c_str() + request.size());
 	}
 
 	// --------------------------
@@ -315,22 +300,16 @@ namespace libtorrent
 		}
 	}
 
+	// throws exception when the client should be disconnected
 	void web_peer_connection::on_receive(asio::error_code const& error
 		, std::size_t bytes_transferred)
 	{
 		INVARIANT_CHECK;
 
-		if (error)
-		{
-#ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << "*** web_peer_connection error: "
-				<< error.message() << "\n";
-#endif
-			return;
-		}
+		if (error) return;
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		TORRENT_ASSERT(t);
+		assert(t);
 
 		incoming_piece_fragment();
 
@@ -343,20 +322,12 @@ namespace libtorrent
 			bool header_finished = m_parser.header_finished();
 			if (!header_finished)
 			{
-				bool error = false;
-				boost::tie(payload, protocol) = m_parser.incoming(recv_buffer, error);
+				boost::tie(payload, protocol) = m_parser.incoming(recv_buffer);
 				m_statistics.received_bytes(payload, protocol);
 
-				if (error)
-				{
-					disconnect("failed to parse HTTP response");
-					return;
-				}
-
-				TORRENT_ASSERT(recv_buffer.left() == 0 || *recv_buffer.begin == 'H');
+				assert(recv_buffer.left() == 0 || *recv_buffer.begin == 'H');
+				assert(recv_buffer.left() <= packet_size());
 			
-				TORRENT_ASSERT(recv_buffer.left() <= packet_size());
-				
 				// this means the entire status line hasn't been received yet
 				if (m_parser.status_code() == -1) break;
 
@@ -366,11 +337,7 @@ namespace libtorrent
 					&& !(m_parser.status_code() >= 300 // redirect
 						&& m_parser.status_code() < 400))
 				{
-					if (m_parser.status_code() == 503)
-					{
-						// temporarily unavailable, retry later
-						t->retry_url_seed(m_url);
-					}
+					// we should not try this server again.
 					t->remove_url_seed(m_url);
 					std::string error_msg = boost::lexical_cast<std::string>(m_parser.status_code())
 						+ " " + m_parser.message();
@@ -380,8 +347,7 @@ namespace libtorrent
 						m_ses.m_alerts.post_alert(url_seed_alert(t->get_handle(), url()
 							, error_msg));
 					}
-					disconnect(error_msg.c_str());
-					return;
+					throw std::runtime_error(error_msg);
 				}
 				if (!m_parser.header_finished()) break;
 
@@ -400,14 +366,13 @@ namespace libtorrent
 				{
 					// this means we got a redirection request
 					// look for the location header
-					std::string location = m_parser.header("location");
+					std::string location = m_parser.header<std::string>("location");
 
 					if (location.empty())
 					{
 						// we should not try this server again.
 						t->remove_url_seed(m_url);
-						disconnect("got HTTP redirection status without location header");
-						return;
+						throw std::runtime_error("got HTTP redirection status without location header");
 					}
 					
 					bool single_file_request = false;
@@ -417,7 +382,7 @@ namespace libtorrent
 					// add the redirected url and remove the current one
 					if (!single_file_request)
 					{
-						TORRENT_ASSERT(!m_file_requests.empty());
+						assert(!m_file_requests.empty());
 						int file_index = m_file_requests.front();
 
 						torrent_info const& info = t->torrent_file();
@@ -427,23 +392,17 @@ namespace libtorrent
 						if (i == std::string::npos)
 						{
 							t->remove_url_seed(m_url);
-							std::stringstream msg;
-							msg << "got invalid HTTP redirection location (\"" << location << "\") "
-								"expected it to end with: " << path;
-							disconnect(msg.str().c_str());
-							return;
+							throw std::runtime_error("got invalid HTTP redirection location (\"" + location + "\") "
+								"expected it to end with: " + path);
 						}
 						location.resize(i);
 					}
 					t->add_url_seed(location);
 					t->remove_url_seed(m_url);
-					std::stringstream msg;
-					msg << "redirecting to \"" << location << "\"";
-					disconnect(msg.str().c_str());
-					return;
+					throw std::runtime_error("redirecting to " + location);
 				}
 
-				std::string const& server_version = m_parser.header("server");
+				std::string server_version = m_parser.header<std::string>("server");
 				if (!server_version.empty())
 				{
 					m_server_string = "URL seed @ ";
@@ -465,18 +424,16 @@ namespace libtorrent
 			size_type range_end;
 			if (m_parser.status_code() == 206)
 			{
-				std::stringstream range_str(m_parser.header("content-range"));
+				std::stringstream range_str(m_parser.header<std::string>("content-range"));
 				char dummy;
 				std::string bytes;
 				range_str >> bytes >> range_start >> dummy >> range_end;
 				if (!range_str)
 				{
+					std::cerr << "THROW: invalid range 0" << std::endl;
 					// we should not try this server again.
 					t->remove_url_seed(m_url);
-					std::stringstream msg;
-					msg << "invalid range in HTTP response: " << range_str;
-					disconnect(msg.str().c_str());
-					return;
+					throw std::runtime_error("invalid range in HTTP response: " + range_str.str());
 				}
 				// the http range is inclusive
 				range_end++;
@@ -484,13 +441,13 @@ namespace libtorrent
 			else
 			{
 				range_start = 0;
-				range_end = atol(m_parser.header("content-length").c_str());
+				range_end = m_parser.header<size_type>("content-length");
 				if (range_end == -1)
 				{
 					// we should not try this server again.
+					std::cerr << "THROW: no content-length" << std::endl;
 					t->remove_url_seed(m_url);
-					disconnect("no content-length in HTTP response");
-					return;
+					throw std::runtime_error("no content-length in HTTP response");
 				}
 			}
 
@@ -500,10 +457,7 @@ namespace libtorrent
 			torrent_info const& info = t->torrent_file();
 
 			if (m_requests.empty() || m_file_requests.empty())
-			{
-				disconnect("unexpected HTTP response");
-				return;
-			}
+				throw std::runtime_error("unexpected HTTP response");
 
 			int file_index = m_file_requests.front();
 			peer_request in_range = info.map_file(file_index, range_start
@@ -519,9 +473,8 @@ namespace libtorrent
 
 			std::cerr << "RANGE: r = (" << rs << ", " << re << " ) "
 				"f = (" << fs << ", " << fe << ") "
-				"file_index = " << file_index << " received_body = " << m_received_body << std::endl;
+				"file_index = " << file_index << " piece_size: " << m_piece.size() << std::endl;
 */
-
 			// the http response body consists of 3 parts
 			// 1. the middle of a block or the ending of a block
 			// 2. a number of whole blocks
@@ -534,8 +487,7 @@ namespace libtorrent
 			{
 				// this means the end of the incoming request ends _before_ the
 				// first expected byte (fs + m_piece.size())
-				disconnect("invalid range in HTTP response");
-				return;
+				throw std::runtime_error("invalid range in HTTP response");
 			}
 
 			// if the request is contained in the range (i.e. the entire request
@@ -554,14 +506,14 @@ namespace libtorrent
 				int copy_size = (std::min)((std::min)(front_request.length - piece_size
 					, recv_buffer.left()), int(range_end - range_start - m_received_body));
 				m_piece.resize(piece_size + copy_size);
-				TORRENT_ASSERT(copy_size > 0);
+				assert(copy_size > 0);
 				std::memcpy(&m_piece[0] + piece_size, recv_buffer.begin, copy_size);
-				TORRENT_ASSERT(int(m_piece.size()) <= front_request.length);
+				assert(int(m_piece.size()) <= front_request.length);
 				recv_buffer.begin += copy_size;
 				m_received_body += copy_size;
 				m_body_start += copy_size;
-				TORRENT_ASSERT(m_received_body <= range_end - range_start);
-				TORRENT_ASSERT(int(m_piece.size()) <= front_request.length);
+				assert(m_received_body <= range_end - range_start);
+				assert(int(m_piece.size()) <= front_request.length);
 				if (int(m_piece.size()) == front_request.length)
 				{
 					// each call to incoming_piece() may result in us becoming
@@ -575,9 +527,9 @@ namespace libtorrent
 					cut_receive_buffer(m_body_start, t->block_size() + 1024);
 					m_body_start = 0;
 					recv_buffer = receive_buffer();
-					TORRENT_ASSERT(m_received_body <= range_end - range_start);
+					assert(m_received_body <= range_end - range_start);
 					m_piece.clear();
-					TORRENT_ASSERT(m_piece.empty());
+					assert(m_piece.empty());
 				}
 			}
 
@@ -588,13 +540,13 @@ namespace libtorrent
 			{
 				peer_request r = m_requests.front();
 				m_requests.pop_front();
-				TORRENT_ASSERT(recv_buffer.left() >= r.length);
+				assert(recv_buffer.left() >= r.length);
 
 				incoming_piece(r, recv_buffer.begin);
 				if (associated_torrent().expired()) return;
 				m_received_body += r.length;
-				TORRENT_ASSERT(receive_buffer().begin + m_body_start == recv_buffer.begin);
-				TORRENT_ASSERT(m_received_body <= range_end - range_start);
+				assert(receive_buffer().begin + m_body_start == recv_buffer.begin);
+				assert(m_received_body <= range_end - range_start);
 				cut_receive_buffer(r.length + m_body_start, t->block_size() + 1024);
 				m_body_start = 0;
 				recv_buffer = receive_buffer();
@@ -611,7 +563,7 @@ namespace libtorrent
 					int piece_size = int(m_piece.size());
 					int copy_size = (std::min)((std::min)(m_requests.front().length - piece_size
 						, recv_buffer.left()), int(range_end - range_start - m_received_body));
-					TORRENT_ASSERT(copy_size >= 0);
+					assert(copy_size >= 0);
 					if (copy_size > 0)
 					{
 						m_piece.resize(piece_size + copy_size);
@@ -620,11 +572,11 @@ namespace libtorrent
 						m_received_body += copy_size;
 						m_body_start += copy_size;
 					}
-					TORRENT_ASSERT(m_received_body == range_end - range_start);
+					assert(m_received_body == range_end - range_start);
 				}
 			}
 
-			TORRENT_ASSERT(m_received_body <= range_end - range_start);
+			assert(m_received_body <= range_end - range_start);
 			if (m_received_body == range_end - range_start)
 			{
 				cut_receive_buffer(recv_buffer.begin - receive_buffer().begin
@@ -640,8 +592,54 @@ namespace libtorrent
 		}
 	}
 
-	void web_peer_connection::get_specific_peer_info(peer_info& p) const
+	void web_peer_connection::get_peer_info(peer_info& p) const
 	{
+		assert(!associated_torrent().expired());
+
+		p.down_speed = statistics().download_rate();
+		p.up_speed = statistics().upload_rate();
+		p.payload_down_speed = statistics().download_payload_rate();
+		p.payload_up_speed = statistics().upload_payload_rate();
+		p.pid = pid();
+		p.ip = remote();
+		
+		p.country[0] = m_country[0];
+		p.country[1] = m_country[1];
+
+		p.total_download = statistics().total_payload_download();
+		p.total_upload = statistics().total_payload_upload();
+
+		if (m_bandwidth_limit[upload_channel].throttle() == bandwidth_limit::inf)
+			p.upload_limit = -1;
+		else
+			p.upload_limit = m_bandwidth_limit[upload_channel].throttle();
+
+		if (m_bandwidth_limit[download_channel].throttle() == bandwidth_limit::inf)
+			p.download_limit = -1;
+		else
+			p.download_limit = m_bandwidth_limit[download_channel].throttle();
+
+		p.load_balancing = total_free_upload();
+
+		p.download_queue_length = (int)download_queue().size();
+		p.upload_queue_length = (int)upload_queue().size();
+
+		if (boost::optional<piece_block_progress> ret = downloading_piece_progress())
+		{
+			p.downloading_piece_index = ret->piece_index;
+			p.downloading_block_index = ret->block_index;
+			p.downloading_progress = ret->bytes_downloaded;
+			p.downloading_total = ret->full_block_bytes;
+		}
+		else
+		{
+			p.downloading_piece_index = -1;
+			p.downloading_block_index = -1;
+			p.downloading_progress = 0;
+			p.downloading_total = 0;
+		}
+
+		p.flags = 0;
 		if (is_interesting()) p.flags |= peer_info::interesting;
 		if (is_choked()) p.flags |= peer_info::choked;
 		if (is_peer_interested()) p.flags |= peer_info::remote_interested;
@@ -651,6 +649,9 @@ namespace libtorrent
 			p.flags |= peer_info::handshake;
 		if (is_connecting() && !is_queued()) p.flags |= peer_info::connecting;
 		if (is_queued()) p.flags |= peer_info::queued;
+		
+		p.pieces = get_bitfield();
+		p.seed = is_seed();
 
 		p.client = m_server_string;
 		p.connection_type = peer_info::web_seed;
@@ -676,7 +677,7 @@ namespace libtorrent
 	void web_peer_connection::check_invariant() const
 	{
 /*
-		TORRENT_ASSERT(m_num_pieces == std::count(
+		assert(m_num_pieces == std::count(
 			m_have_piece.begin()
 			, m_have_piece.end()
 			, true));

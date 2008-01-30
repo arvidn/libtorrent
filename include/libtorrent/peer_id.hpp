@@ -35,13 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 #include <iomanip>
+#include <cassert>
 #include <cctype>
 #include <algorithm>
 #include <string>
-#include <cstring>
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {
@@ -59,7 +58,6 @@ namespace libtorrent
 
 		big_number(std::string const& s)
 		{
-			TORRENT_ASSERT(s.size() >= 20);
 			int sl = int(s.size()) < size ? int(s.size()) : size;
 			std::memcpy(m_number, &s[0], sl);
 		}
@@ -119,18 +117,11 @@ namespace libtorrent
 			return *this;
 		}
 
-		big_number& operator ^= (big_number const& n)
-		{
-			for (int i = 0; i< number_size; ++i)
-				m_number[i] ^= n.m_number[i];
-			return *this;
-		}
-		
 		unsigned char& operator[](int i)
-		{ TORRENT_ASSERT(i >= 0 && i < number_size); return m_number[i]; }
+		{ assert(i >= 0 && i < number_size); return m_number[i]; }
 
 		unsigned char const& operator[](int i) const
-		{ TORRENT_ASSERT(i >= 0 && i < number_size); return m_number[i]; }
+		{ assert(i >= 0 && i < number_size); return m_number[i]; }
 
 		typedef const unsigned char* const_iterator;
 		typedef unsigned char* iterator;

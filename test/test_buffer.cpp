@@ -34,16 +34,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <vector>
 #include <utility>
-#include <set>
 
 #include "libtorrent/buffer.hpp"
-#include "libtorrent/chained_buffer.hpp"
 
 #include "test.hpp"
 
 using libtorrent::buffer;
-using libtorrent::chained_buffer;
-
 /*
 template<class T>
 T const& min_(T const& x, T const& y)
@@ -117,9 +113,7 @@ void test_speed()
 }
 */
 
-// -- test buffer --
-
-void test_buffer()
+int test_main()
 {
 	char data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
@@ -129,195 +123,43 @@ void test_buffer()
 	TEST_CHECK(b.capacity() == 0);
 	TEST_CHECK(b.empty());
 	
-	b.resize(10);
-	TEST_CHECK(b.size() == 10);
-	TEST_CHECK(b.capacity() == 10);
+	buffer::interval i = b.allocate(1);
+	memcpy(i.begin, data, 1);
+
+	TEST_CHECK(b.size() == 1);
+	TEST_CHECK(b.capacity() >= 1);
 	
-	std::memcpy(b.begin(), data, 10);
-	b.reserve(50);
-	TEST_CHECK(std::memcmp(b.begin(), data, 10) == 0);
-	TEST_CHECK(b.capacity() == 50);
+	i = b.allocate(4);
+	memcpy(i.begin, data + 1, 4);
+	TEST_CHECK(b.size() == 5);
+	TEST_CHECK(b.capacity() >= 5);
+
+	i = b.allocate(4);
+	memcpy(i.begin, data + 5, 4);
+	TEST_CHECK(b.size() == 9);
+	TEST_CHECK(b.capacity() >= 9);
+
+	TEST_CHECK(!b.empty());
+
+	buffer::interval_type read_data = b.data();
+	TEST_CHECK(std::equal(read_data.first.begin, read_data.first.end, data));
+
+	b.erase(5);
+
+	TEST_CHECK(b.space_left() == 5);
+
+	i = b.allocate(3);
+	memcpy(i.begin, data, 3);
+	TEST_CHECK(b.space_left() == 2);
+	TEST_CHECK(b.size() == 7);
+
+	read_data = b.data();
+	TEST_CHECK(std::equal(read_data.first.begin, read_data.first.end, data + 5));
+	TEST_CHECK(std::equal(read_data.second.begin, read_data.second.end, data));
+
+	b.erase(7);
 	
-	b.erase(b.begin() + 6, b.end());
-	TEST_CHECK(std::memcmp(b.begin(), data, 6) == 0);
-	TEST_CHECK(b.capacity() == 50);
-	TEST_CHECK(b.size() == 6);
-
-	b.insert(b.begin(), data + 5, data + 10);
-	TEST_CHECK(b.capacity() == 50);
-	TEST_CHECK(b.size() == 11);
-	TEST_CHECK(std::memcmp(b.begin(), data + 5, 5) == 0);
-
-	b.clear();
-	TEST_CHECK(b.size() == 0);
-	TEST_CHECK(b.capacity() == 50);
-
-	b.insert(b.end(), data, data + 10);
-	TEST_CHECK(b.size() == 10);
-	TEST_CHECK(std::memcmp(b.begin(), data, 10) == 0);
-	
-	b.erase(b.begin(), b.end());
-	TEST_CHECK(b.capacity() == 50);
-	TEST_CHECK(b.size() == 0);
-
-	buffer().swap(b);
-	TEST_CHECK(b.capacity() == 0);
-
-}
-
-// -- test chained buffer --
-
-std::set<char*> buffer_list;
-
-void free_buffer(char* m)
-{
-	std::set<char*>::iterator i = buffer_list.find(m);
-	TEST_CHECK(i != buffer_list.end());
-
-	buffer_list.erase(i);
-	std::free(m);
-}
-
-char* allocate_buffer(int size)
-{
-	char* mem = (char*)std::malloc(size);
-	buffer_list.insert(mem);
-	return mem;
-}
-
-template <class T>
-int copy_buffers(T const& b, char* target)
-{
-	int copied = 0;
-	for (typename T::const_iterator i = b.begin()
-		, end(b.end()); i != end; ++i)
-	{
-		memcpy(target, asio::buffer_cast<char const*>(*i), asio::buffer_size(*i));
-		target += asio::buffer_size(*i);
-		copied += asio::buffer_size(*i);
-	}
-	return copied;
-}
-
-bool compare_chained_buffer(chained_buffer& b, char const* mem, int size)
-{
-	if (size == 0) return true;
-	std::vector<char> flat(size);
-	std::list<asio::const_buffer> const& iovec2 = b.build_iovec(size);
-	int copied = copy_buffers(iovec2, &flat[0]);
-	TEST_CHECK(copied == size);
-	return std::memcmp(&flat[0], mem, size) == 0;
-}
-
-void test_chained_buffer()
-{
-	char data[] = "foobar";
-	{
-		chained_buffer b;
-		
-		TEST_CHECK(b.empty());
-		TEST_CHECK(b.capacity() == 0);
-		TEST_CHECK(b.size() == 0);
-		TEST_CHECK(b.space_in_last_buffer() == 0);
-		TEST_CHECK(buffer_list.empty());
-
-		char* b1 = allocate_buffer(512);
-		std::memcpy(b1, data, 6);
-		b.append_buffer(b1, 512, 6, (void(*)(char*))&free_buffer);
-		TEST_CHECK(buffer_list.size() == 1);
-
-		TEST_CHECK(b.capacity() == 512);
-		TEST_CHECK(b.size() == 6);
-		TEST_CHECK(!b.empty());
-		TEST_CHECK(b.space_in_last_buffer() == 512 - 6);
-
-		b.pop_front(3);
-
-		TEST_CHECK(b.capacity() == 512);
-		TEST_CHECK(b.size() == 3);
-		TEST_CHECK(!b.empty());
-		TEST_CHECK(b.space_in_last_buffer() == 512 - 6);
-
-		bool ret = b.append(data, 6);
-
-		TEST_CHECK(ret == true);
-		TEST_CHECK(b.capacity() == 512);
-		TEST_CHECK(b.size() == 9);
-		TEST_CHECK(!b.empty());
-		TEST_CHECK(b.space_in_last_buffer() == 512 - 12);
-
-		ret = b.append(data, 1024);
-
-		TEST_CHECK(ret == false);
-
-		char* b2 = allocate_buffer(512);
-		std::memcpy(b2, data, 6);
-		b.append_buffer(b2, 512, 6, (void(*)(char*))&free_buffer);
-		TEST_CHECK(buffer_list.size() == 2);
-
-		char* b3 = allocate_buffer(512);
-		std::memcpy(b3, data, 6);
-		b.append_buffer(b3, 512, 6, (void(*)(char*))&free_buffer);
-		TEST_CHECK(buffer_list.size() == 3);
-
-		TEST_CHECK(b.capacity() == 512 * 3);
-		TEST_CHECK(b.size() == 21);
-		TEST_CHECK(!b.empty());
-		TEST_CHECK(b.space_in_last_buffer() == 512 - 6);
-
-		TEST_CHECK(compare_chained_buffer(b, "barfoobar", 9));
-
-		for (int i = 1; i < 21; ++i)
-			TEST_CHECK(compare_chained_buffer(b, "barfoobarfoobarfoobar", i));
-
-		b.pop_front(5 + 6);
-
-		TEST_CHECK(buffer_list.size() == 2);
-		TEST_CHECK(b.capacity() == 512 * 2);
-		TEST_CHECK(b.size() == 10);
-		TEST_CHECK(!b.empty());
-		TEST_CHECK(b.space_in_last_buffer() == 512 - 6);
-
-		char const* str = "obarfooba";
-		TEST_CHECK(compare_chained_buffer(b, str, 9));
-
-		for (int i = 0; i < 9; ++i)
-		{
-			b.pop_front(1);
-			++str;
-			TEST_CHECK(compare_chained_buffer(b, str, 8 - i));
-			TEST_CHECK(b.size() == 9 - i);
-		}
-
-		char* b4 = allocate_buffer(20);
-		std::memcpy(b4, data, 6);
-		std::memcpy(b4 + 6, data, 6);
-		b.append_buffer(b4, 20, 12, (void(*)(char*))&free_buffer);
-		TEST_CHECK(b.space_in_last_buffer() == 8);
-
-		ret = b.append(data, 6);
-		TEST_CHECK(ret == true);
-		TEST_CHECK(b.space_in_last_buffer() == 2);
-		std::cout << b.space_in_last_buffer() << std::endl;
-		ret = b.append(data, 2);
-		TEST_CHECK(ret == true);
-		TEST_CHECK(b.space_in_last_buffer() == 0);
-		std::cout << b.space_in_last_buffer() << std::endl;
-		
-		char* b5 = allocate_buffer(20);
-		std::memcpy(b4, data, 6);
-		b.append_buffer(b5, 20, 6, (void(*)(char*))&free_buffer);
-
-		b.pop_front(22);
-		TEST_CHECK(b.size() == 5);
-	}
-	TEST_CHECK(buffer_list.empty());
-}
-
-int test_main()
-{
-	test_buffer();
-	test_chained_buffer();
+	TEST_CHECK(b.empty());
 	return 0;
 }
 

@@ -40,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
@@ -50,7 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
@@ -68,7 +69,10 @@ namespace libtorrent
 		free_upload_amount = 4 * 16 * 1024
 	};
 
-	void request_a_block(torrent& t, peer_connection& c);
+	void request_a_block(
+		torrent& t
+		, peer_connection& c
+		, std::vector<peer_connection*> ignore = std::vector<peer_connection*>());
 
 	class TORRENT_EXPORT policy
 	{
@@ -80,31 +84,34 @@ namespace libtorrent
 		// for peer choking management
 		void pulse();
 
-		struct peer;
 		// this is called once for every peer we get from
-		// the tracker, pex, lsd or dht.
-		policy::peer* peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid
-			, int source, char flags);
-
-		// false means duplicate connection
-		bool update_peer_port(int port, policy::peer* p, int src);
+		// the tracker
+		void peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid);
 
 		// called when an incoming connection is accepted
-		// false means the connection was refused or failed
-		bool new_connection(peer_connection& c);
+		void new_connection(peer_connection& c);
+
+		// this is called if a peer timed-out or
+		// forcefully closed the connection. This
+		// will mark the connection as non-reconnectale
+		void peer_failed(peer_connection const& c);
 
 		// the given connection was just closed
-		void connection_closed(const peer_connection& c) throw();
+		void connection_closed(const peer_connection& c);
+
+		// is called when a peer is believed to have
+		// sent invalid data
+		void ban_peer(const peer_connection& c);
 
 		// the peer has got at least one interesting piece
 		void peer_is_interesting(peer_connection& c);
 
 		void piece_finished(int index, bool successfully_verified);
 
+		void block_finished(peer_connection& c, piece_block b);
+
 		// the peer choked us
 		void choked(peer_connection& c);
-
-		int count_choked() const;
 
 		// the peer unchoked us
 		void unchoked(peer_connection& c);
@@ -115,8 +122,6 @@ namespace libtorrent
 		// the peer is not interested in our pieces
 		void not_interested(peer_connection& c);
 
-		void ip_filter_updated();
-
 #ifndef NDEBUG
 		bool has_connection(const peer_connection* p);
 
@@ -125,9 +130,9 @@ namespace libtorrent
 
 		struct peer
 		{
-			enum connection_type { not_connectable, connectable };
+			enum connection_type { not_connectable,connectable };
 
-			peer(tcp::endpoint const& ip, connection_type t, int src);
+			peer(const tcp::endpoint& ip, connection_type t);
 
 			size_type total_download() const;
 			size_type total_upload() const;
@@ -139,59 +144,13 @@ namespace libtorrent
 			tcp::endpoint ip;
 			connection_type type;
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
-			// Hints encryption support of peer. Only effective for
-			// and when the outgoing encryption policy allows both
-			// encrypted and non encrypted connections
-			// (pe_settings::out_enc_policy == enabled). The initial
-			// state of this flag determines the initial connection
-			// attempt type (true = encrypted, false = standard).
-			// This will be toggled everytime either an encrypted or
-			// non-encrypted handshake fails.
-			bool pe_support;
-#endif
-			// the number of failed connection attempts this peer has
-			int failcount;
-
-			// the number of times this peer has been
-			// part of a piece that failed the hash check
-			int hashfails;
-
-			// this is true if the peer is a seed
-			bool seed;
-
-			int fast_reconnects;
-
-			// true if this peer currently is unchoked
-			// because of an optimistic unchoke.
-			// when the optimistic unchoke is moved to
-			// another peer, this peer will be choked
-			// if this is true
-			bool optimistically_unchoked;
-
 			// the time when this peer was optimistically unchoked
 			// the last time.
-			libtorrent::ptime last_optimistically_unchoked;
+			boost::posix_time::ptime last_optimistically_unchoked;
 
 			// the time when the peer connected to us
 			// or disconnected if it isn't connected right now
-			libtorrent::ptime connected;
-
-			// for every valid piece we receive where this
-			// peer was one of the participants, we increase
-			// this value. For every invalid piece we receive
-			// where this peer was a participant, we decrease
-			// this value. If it sinks below a threshold, its
-			// considered a bad peer and will be banned.
-			int trust_points;
-
-			// if this is true, the peer has previously participated
-			// in a piece that failed the piece hash check. This will
-			// put the peer on parole and only request entire pieces.
-			// if a piece pass that was partially requested from this
-			// peer it will leave parole mode and continue download
-			// pieces as normal peers.
-			bool on_parole;
+			boost::posix_time::ptime connected;
 
 			// this is the accumulated amount of
 			// uploaded and downloaded data to this
@@ -208,49 +167,70 @@ namespace libtorrent
 			// is set to true if this peer has been banned
 			bool banned;
 
-			// a bitmap combining the peer_source flags
-			// from peer_info.
-			int source;
-
 			// if the peer is connected now, this
 			// will refer to a valid peer_connection
 			peer_connection* connection;
 		};
 
-		int num_peers() const { return m_peers.size(); }
+		int num_peers() const
+		{
+			return m_peers.size();
+		}
 
-		typedef std::multimap<address, peer>::iterator iterator;
-		typedef std::multimap<address, peer>::const_iterator const_iterator;
+		int num_uploads() const
+		{
+			return m_num_unchoked;
+		}
+		
+		typedef std::vector<peer>::iterator iterator;
 		iterator begin_peer() { return m_peers.begin(); }
 		iterator end_peer() { return m_peers.end(); }
-		const_iterator begin_peer() const { return m_peers.begin(); }
-		const_iterator end_peer() const { return m_peers.end(); }
-
-		bool connect_one_peer();
-		bool disconnect_one_peer();
-
-		bool has_peer(policy::peer const* p) const;
 
 	private:
-/*
+
 		bool unchoke_one_peer();
 		void choke_one_peer();
-		iterator find_choke_candidate();
-		iterator find_unchoke_candidate();
+		peer* find_choke_candidate();
+		peer* find_unchoke_candidate();
 
 		// the seed prefix means that the
 		// function is used while seeding.
 		bool seed_unchoke_one_peer();
 		void seed_choke_one_peer();
-		iterator find_seed_choke_candidate();
-		iterator find_seed_unchoke_candidate();
-*/
-		iterator find_disconnect_candidate();
-		iterator find_connect_candidate();
+		peer* find_seed_choke_candidate();
+		peer* find_seed_unchoke_candidate();
 
-		std::multimap<address, peer> m_peers;
+		bool connect_peer(peer *);
+		bool connect_one_peer();
+		bool disconnect_one_peer();
+		peer* find_disconnect_candidate();
+		peer* find_connect_candidate();
+
+		// a functor that identifies peers that have disconnected and that
+		// are too old for still being saved.
+		struct old_disconnected_peer
+		{
+			bool operator()(const peer& p)
+			{
+				using namespace boost::posix_time;
+
+				ptime not_tried_yet(boost::gregorian::date(1970,boost::gregorian::Jan,1));
+
+				// this timeout has to be customizable!
+				return p.connection == 0
+					&& p.connected != not_tried_yet
+					&& second_clock::universal_time() - p.connected > minutes(30);
+			}
+		};
+
+
+		std::vector<peer> m_peers;
 
 		torrent* m_torrent;
+
+		// the number of unchoked peers
+		// at any given time
+		int m_num_unchoked;
 
 		// free download we have got that hasn't
 		// been distributed yet.
@@ -259,7 +239,7 @@ namespace libtorrent
 		// if there is a connection limit,
 		// we disconnect one peer every minute in hope of
 		// establishing a connection with a better peer
-//		ptime m_last_optimistic_disconnect;
+		boost::posix_time::ptime m_last_optimistic_disconnect;
 	};
 
 }

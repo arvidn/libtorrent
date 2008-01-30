@@ -30,14 +30,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <algorithm>
 #include <iomanip>
+#include <cassert>
 #include <boost/bind.hpp>
 
 #include "libtorrent/kademlia/node_id.hpp"
-#include "libtorrent/assert.hpp"
 
 using boost::bind;
 
@@ -80,7 +78,7 @@ int distance_exp(node_id const& n1, node_id const& n2)
 	for (node_id::const_iterator i = n1.begin(), j = n2.begin()
 		, end(n1.end()); i != end; ++i, ++j, --byte)
 	{
-		TORRENT_ASSERT(byte >= 0);
+		assert(byte >= 0);
 		boost::uint8_t t = *i ^ *j;
 		if (t == 0) continue;
 		// we have found the first non-zero byte

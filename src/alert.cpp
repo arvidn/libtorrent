@@ -30,17 +30,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include "libtorrent/alert.hpp"
-#include <boost/thread/xtime.hpp>
 
 namespace libtorrent {
 
 	alert::alert(severity_t severity, const std::string& msg)
 		: m_msg(msg)
 		, m_severity(severity)
-		, m_timestamp(time_now())
+		, m_timestamp(boost::posix_time::second_clock::universal_time())
 	{
 	}
 
@@ -48,7 +45,7 @@ namespace libtorrent {
 	{
 	}
 
-	ptime alert::timestamp() const
+	boost::posix_time::ptime alert::timestamp() const
 	{
 		return m_timestamp;
 	}
@@ -66,7 +63,7 @@ namespace libtorrent {
 
 
 	alert_manager::alert_manager()
-		: m_severity(alert::fatal)
+		: m_severity(alert::none)
 	{}
 
 	alert_manager::~alert_manager()
@@ -76,30 +73,6 @@ namespace libtorrent {
 			delete m_alerts.front();
 			m_alerts.pop();
 		}
-	}
-
-	alert const* alert_manager::wait_for_alert(time_duration max_wait)
-	{
-		boost::mutex::scoped_lock lock(m_mutex);
-
-		if (!m_alerts.empty()) return m_alerts.front();
-		
-		int secs = total_seconds(max_wait);
-		max_wait -= seconds(secs);
-		boost::xtime xt;
-		boost::xtime_get(&xt, boost::TIME_UTC);
-		xt.sec += secs;
-		boost::int64_t nsec = xt.nsec + total_microseconds(max_wait) * 1000;
-		if (nsec > 1000000000)
-		{
-			nsec -= 1000000000;
-			xt.sec += 1;
-		}
-		xt.nsec = nsec;
-		if (!m_condition.timed_wait(lock, xt)) return 0;
-		TORRENT_ASSERT(!m_alerts.empty());
-		if (m_alerts.empty()) return 0;
-		return m_alerts.front();
 	}
 
 	void alert_manager::post_alert(const alert& alert_)
@@ -115,14 +88,13 @@ namespace libtorrent {
 			delete result;
 		}
 		m_alerts.push(alert_.clone().release());
-		m_condition.notify_all();
 	}
 
 	std::auto_ptr<alert> alert_manager::get()
 	{
 		boost::mutex::scoped_lock lock(m_mutex);
 		
-		TORRENT_ASSERT(!m_alerts.empty());
+		assert(!m_alerts.empty());
 
 		alert* result = m_alerts.front();
 		m_alerts.pop();

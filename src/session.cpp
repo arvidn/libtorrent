@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <ctime>
 #include <iostream>
 #include <fstream>
@@ -68,43 +66,30 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/allocate_resources.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 
+using namespace boost::posix_time;
 using boost::shared_ptr;
 using boost::weak_ptr;
 using boost::bind;
 using boost::mutex;
 using libtorrent::aux::session_impl;
 
-#ifdef TORRENT_MEMDEBUG
-void start_malloc_debug();
-void stop_malloc_debug();
-#endif
-
 namespace libtorrent
 {
-
-	std::string log_time()
-	{
-		static const ptime start = time_now();
-		char ret[200];
-		std::sprintf(ret, "%d", total_milliseconds(time_now() - start));
-		return ret;
-	}
 
 	namespace aux
 	{
 		filesystem_init::filesystem_init()
 		{
-#if BOOST_VERSION < 103400
 			using namespace boost::filesystem;
 			if (path::default_name_check_writable())
 				path::default_name_check(no_check);
-#endif
 		}
 	}
 
@@ -113,7 +98,7 @@ namespace libtorrent
 		, std::pair<int, int> listen_port_range
 		, char const* listen_interface
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		, fs::path logpath
+		, boost::filesystem::path logpath
 #endif
 		)
 		: m_impl(new session_impl(listen_port_range, id, listen_interface
@@ -122,47 +107,38 @@ namespace libtorrent
 #endif
 					))
 	{
-#ifdef TORRENT_MEMDEBUG
-		start_malloc_debug();
-#endif
 		// turn off the filename checking in boost.filesystem
-		TORRENT_ASSERT(listen_port_range.first > 0);
-		TORRENT_ASSERT(listen_port_range.first < listen_port_range.second);
+		assert(listen_port_range.first > 0);
+		assert(listen_port_range.first < listen_port_range.second);
 #ifndef NDEBUG
 		// this test was added after it came to my attention
 		// that devstudios managed c++ failed to generate
 		// correct code for boost.function
 		boost::function0<void> test = boost::ref(*m_impl);
-		TORRENT_ASSERT(!test.empty());
+		assert(!test.empty());
 #endif
 	}
 
 	session::session(fingerprint const& id
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		, fs::path logpath
+		, boost::filesystem::path logpath
 #endif
 		)
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		: m_impl(new session_impl(std::make_pair(0, 0), id, "0.0.0.0", logpath))
 #else
-		: m_impl(new session_impl(std::make_pair(0, 0), id, "0.0.0.0"))
+		: m_impl(new session_impl(std::make_pair(0, 0), id))
 #endif
 	{
-#ifdef TORRENT_MEMDEBUG
-		start_malloc_debug();
-#endif
 #ifndef NDEBUG
 		boost::function0<void> test = boost::ref(*m_impl);
-		TORRENT_ASSERT(!test.empty());
+		assert(!test.empty());
 #endif
 	}
 
 	session::~session()
 	{
-#ifdef TORRENT_MEMDEBUG
-		stop_malloc_debug();
-#endif
-		TORRENT_ASSERT(m_impl);
+		assert(m_impl);
 		// if there is at least one destruction-proxy
 		// abort the session and let the destructor
 		// of the proxy to syncronize
@@ -170,7 +146,7 @@ namespace libtorrent
 			m_impl->abort();
 	}
 
-	void session::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext)
+	void session::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*)> ext)
 	{
 		m_impl->add_extension(ext);
 	}
@@ -180,19 +156,9 @@ namespace libtorrent
 		m_impl->set_ip_filter(f);
 	}
 
-	void session::set_port_filter(port_filter const& f)
-	{
-		m_impl->set_port_filter(f);
-	}
-
 	void session::set_peer_id(peer_id const& id)
 	{
 		m_impl->set_peer_id(id);
-	}
-	
-	peer_id session::id() const
-	{
-		return m_impl->get_peer_id();
 	}
 
 	void session::set_key(int key)
@@ -214,50 +180,31 @@ namespace libtorrent
 	// if the torrent already exists, this will throw duplicate_torrent
 	torrent_handle session::add_torrent(
 		torrent_info const& ti
-		, fs::path const& save_path
+		, boost::filesystem::path const& save_path
 		, entry const& resume_data
-		, storage_mode_t storage_mode
-		, bool paused
-		, storage_constructor_type sc)
+		, bool compact_mode
+		, int block_size)
 	{
-		TORRENT_ASSERT(!ti.m_half_metadata);
-		boost::intrusive_ptr<torrent_info> tip(new torrent_info(ti));
-		return m_impl->add_torrent(tip, save_path, resume_data
-			, storage_mode, sc, paused, 0);
-	}
-
-	torrent_handle session::add_torrent(
-		boost::intrusive_ptr<torrent_info> ti
-		, fs::path const& save_path
-		, entry const& resume_data
-		, storage_mode_t storage_mode
-		, bool paused
-		, storage_constructor_type sc
-		, void* userdata)
-	{
-		TORRENT_ASSERT(!ti->m_half_metadata);
 		return m_impl->add_torrent(ti, save_path, resume_data
-			, storage_mode, sc, paused, userdata);
+			, compact_mode, block_size);
 	}
 
 	torrent_handle session::add_torrent(
 		char const* tracker_url
 		, sha1_hash const& info_hash
 		, char const* name
-		, fs::path const& save_path
+		, boost::filesystem::path const& save_path
 		, entry const& e
-		, storage_mode_t storage_mode
-		, bool paused
-		, storage_constructor_type sc
-		, void* userdata)
+		, bool compact_mode
+		, int block_size)
 	{
 		return m_impl->add_torrent(tracker_url, info_hash, name, save_path, e
-			, storage_mode, sc, paused, userdata);
+			, compact_mode, block_size);
 	}
 
-	void session::remove_torrent(const torrent_handle& h, int options)
+	void session::remove_torrent(const torrent_handle& h)
 	{
-		m_impl->remove_torrent(h, options);
+		m_impl->remove_torrent(h);
 	}
 
 	bool session::listen_on(
@@ -311,18 +258,6 @@ namespace libtorrent
 
 #endif
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
-	void session::set_pe_settings(pe_settings const& settings)
-	{
-		m_impl->set_pe_settings(settings);
-	}
-
-	pe_settings const& session::get_pe_settings() const
-	{
-		return m_impl->get_pe_settings();
-	}
-#endif
-
 	bool session::is_listening() const
 	{
 		return m_impl->is_listening();
@@ -338,49 +273,6 @@ namespace libtorrent
 		return m_impl->settings();
 	}
 
-	void session::set_peer_proxy(proxy_settings const& s)
-	{
-		m_impl->set_peer_proxy(s);
-	}
-
-	void session::set_web_seed_proxy(proxy_settings const& s)
-	{
-		m_impl->set_web_seed_proxy(s);
-	}
-
-	void session::set_tracker_proxy(proxy_settings const& s)
-	{
-		m_impl->set_tracker_proxy(s);
-	}
-
-	proxy_settings const& session::peer_proxy() const
-	{
-		return m_impl->peer_proxy();
-	}
-
-	proxy_settings const& session::web_seed_proxy() const
-	{
-		return m_impl->web_seed_proxy();
-	}
-
-	proxy_settings const& session::tracker_proxy() const
-	{
-		return m_impl->tracker_proxy();
-	}
-
-
-#ifndef TORRENT_DISABLE_DHT
-	void session::set_dht_proxy(proxy_settings const& s)
-	{
-		m_impl->set_dht_proxy(s);
-	}
-
-	proxy_settings const& session::dht_proxy() const
-	{
-		return m_impl->dht_proxy();
-	}
-#endif
-
 	void session::set_max_uploads(int limit)
 	{
 		m_impl->set_max_uploads(limit);
@@ -389,11 +281,6 @@ namespace libtorrent
 	void session::set_max_connections(int limit)
 	{
 		m_impl->set_max_connections(limit);
-	}
-
-	int session::max_half_open_connections() const
-	{
-		return m_impl->max_half_open_connections();
 	}
 
 	void session::set_max_half_open_connections(int limit)
@@ -436,49 +323,10 @@ namespace libtorrent
 		return m_impl->pop_alert();
 	}
 
-	alert const* session::wait_for_alert(time_duration max_wait)
-	{
-		return m_impl->wait_for_alert(max_wait);
-	}
-
 	void session::set_severity_level(alert::severity_t s)
 	{
 		m_impl->set_severity_level(s);
 	}
 
-	void session::start_lsd()
-	{
-		m_impl->start_lsd();
-	}
-	
-	void session::start_natpmp()
-	{
-		m_impl->start_natpmp();
-	}
-	
-	void session::start_upnp()
-	{
-		m_impl->start_upnp();
-	}
-	
-	void session::stop_lsd()
-	{
-		m_impl->stop_lsd();
-	}
-	
-	void session::stop_natpmp()
-	{
-		m_impl->stop_natpmp();
-	}
-	
-	void session::stop_upnp()
-	{
-		m_impl->stop_upnp();
-	}
-	
-	connection_queue& session::get_connection_queue()
-	{
-		return m_impl->m_half_open;
-	}
 }
 

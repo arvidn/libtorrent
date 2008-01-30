@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <vector>
 #include <iostream>
 #include <cctype>
@@ -81,11 +79,16 @@ namespace
 
 namespace libtorrent
 {
+	using boost::posix_time::second_clock;
+	using boost::posix_time::seconds;
+	using boost::posix_time::ptime;
+	using boost::posix_time::time_duration;
+
 	// returns -1 if gzip header is invalid or the header size in bytes
 	int gzip_header(const char* buf, int size)
 	{
-		TORRENT_ASSERT(buf != 0);
-		TORRENT_ASSERT(size > 0);
+		assert(buf != 0);
+		assert(size > 0);
 
 		const unsigned char* buffer = reinterpret_cast<const unsigned char*>(buf);
 		const int total_size = size;
@@ -162,7 +165,7 @@ namespace libtorrent
 		, request_callback* requester
 		, int maximum_tracker_response_length)
 	{
-		TORRENT_ASSERT(maximum_tracker_response_length > 0);
+		assert(maximum_tracker_response_length > 0);
 
 		int header_len = gzip_header(&buffer[0], (int)buffer.size());
 		if (header_len < 0)
@@ -234,101 +237,177 @@ namespace libtorrent
 		return false;
 	}
 
-	timeout_handler::timeout_handler(io_service& ios)
-		: m_start_time(time_now())
-		, m_read_time(time_now())
-		, m_timeout(ios)
+	std::string base64encode(const std::string& s)
+	{
+		static const char base64_table[] =
+		{
+			'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+			'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+			'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+			'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+			'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+			'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+			'w', 'x', 'y', 'z', '0', '1', '2', '3',
+			'4', '5', '6', '7', '8', '9', '+', '/'
+		};
+
+		unsigned char inbuf[3];
+		unsigned char outbuf[4];
+	
+		std::string ret;
+		for (std::string::const_iterator i = s.begin(); i != s.end();)
+		{
+			// available input is 1,2 or 3 bytes
+			// since we read 3 bytes at a time at most
+			int available_input = std::min(3, (int)std::distance(i, s.end()));
+
+			// clear input buffer
+			std::fill(inbuf, inbuf+3, 0);
+
+			// read a chunk of input into inbuf
+			for (int j = 0; j < available_input; ++j)
+			{
+				inbuf[j] = *i;
+				++i;
+			}
+
+			// encode inbuf to outbuf
+			outbuf[0] = (inbuf[0] & 0xfc) >> 2;
+			outbuf[1] = ((inbuf[0] & 0x03) << 4) | ((inbuf [1] & 0xf0) >> 4);
+			outbuf[2] = ((inbuf[1] & 0x0f) << 2) | ((inbuf [2] & 0xc0) >> 6);
+			outbuf[3] = inbuf[2] & 0x3f;
+
+			// write output
+			for (int j = 0; j < available_input+1; ++j)
+			{
+				ret += base64_table[outbuf[j]];
+			}
+
+			// write pad
+			for (int j = 0; j < 3 - available_input; ++j)
+			{
+				ret += '=';
+			}
+		}
+		return ret;
+	}
+
+	void intrusive_ptr_add_ref(timeout_handler const* c)
+	{
+		assert(c != 0);
+		assert(c->m_refs >= 0);
+		timeout_handler::mutex_t::scoped_lock l(c->m_mutex);
+		++c->m_refs;
+	}
+
+	void intrusive_ptr_release(timeout_handler const* c)
+	{
+		assert(c != 0);
+		assert(c->m_refs > 0);
+		timeout_handler::mutex_t::scoped_lock l(c->m_mutex);
+		--c->m_refs;
+		if (c->m_refs == 0)
+		{
+			l.unlock();
+			delete c;
+		}
+	}
+
+
+	timeout_handler::timeout_handler(asio::strand& str)
+		: m_strand(str)
+		, m_start_time(second_clock::universal_time())
+		, m_read_time(second_clock::universal_time())
+		, m_timeout(str.io_service())
 		, m_completion_timeout(0)
 		, m_read_timeout(0)
-		, m_abort(false)
+		, m_refs(0)
 	{}
 
 	void timeout_handler::set_timeout(int completion_timeout, int read_timeout)
 	{
 		m_completion_timeout = completion_timeout;
 		m_read_timeout = read_timeout;
-		m_start_time = m_read_time = time_now();
+		m_start_time = second_clock::universal_time();
+		m_read_time = second_clock::universal_time();
 
-		if (m_abort) return;
-
-		int timeout = (std::min)(
-			m_read_timeout, (std::min)(m_completion_timeout, m_read_timeout));
-		asio::error_code ec;
-		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
-		m_timeout.async_wait(bind(
-			&timeout_handler::timeout_callback, self(), _1));
+		m_timeout.expires_at(std::min(
+			m_read_time + seconds(m_read_timeout)
+			, m_start_time + seconds(m_completion_timeout)));
+		m_timeout.async_wait(m_strand.wrap(bind(
+			&timeout_handler::timeout_callback, self(), _1)));
 	}
 
 	void timeout_handler::restart_read_timeout()
 	{
-		m_read_time = time_now();
+		m_read_time = second_clock::universal_time();
 	}
 
 	void timeout_handler::cancel()
 	{
-		m_abort = true;
 		m_completion_timeout = 0;
-		asio::error_code ec;
-		m_timeout.cancel(ec);
+		m_timeout.cancel();
 	}
 
-	void timeout_handler::timeout_callback(asio::error_code const& error)
+	void timeout_handler::timeout_callback(asio::error_code const& error) try
 	{
 		if (error) return;
 		if (m_completion_timeout == 0) return;
 		
-		ptime now(time_now());
+		ptime now(second_clock::universal_time());
 		time_duration receive_timeout = now - m_read_time;
 		time_duration completion_timeout = now - m_start_time;
 		
 		if (m_read_timeout
-			< total_seconds(receive_timeout)
+			< receive_timeout.total_seconds()
 			|| m_completion_timeout
-			< total_seconds(completion_timeout))
+			< completion_timeout.total_seconds())
 		{
 			on_timeout();
 			return;
 		}
 
-		if (m_abort) return;
-
-		int timeout = (std::min)(
-			m_read_timeout, (std::min)(m_completion_timeout, m_read_timeout));
-		asio::error_code ec;
-		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
-		m_timeout.async_wait(
-			bind(&timeout_handler::timeout_callback, self(), _1));
+		m_timeout.expires_at(std::min(
+			m_read_time + seconds(m_read_timeout)
+			, m_start_time + seconds(m_completion_timeout)));
+		m_timeout.async_wait(m_strand.wrap(
+			bind(&timeout_handler::timeout_callback, self(), _1)));
+	}
+	catch (std::exception& e)
+	{
+		assert(false);
 	}
 
 	tracker_connection::tracker_connection(
 		tracker_manager& man
-		, tracker_request const& req
-		, io_service& ios
+		, tracker_request req
+		, asio::strand& str
 		, address bind_interface_
 		, boost::weak_ptr<request_callback> r)
-		: timeout_handler(ios)
+		: timeout_handler(str)
 		, m_requester(r)
 		, m_bind_interface(bind_interface_)
 		, m_man(man)
 		, m_req(req)
 	{}
 
-	boost::shared_ptr<request_callback> tracker_connection::requester()
+	request_callback& tracker_connection::requester()
 	{
-		return m_requester.lock();
+		boost::shared_ptr<request_callback> r = m_requester.lock();
+		assert(r);
+		return *r;
 	}
 
 	void tracker_connection::fail(int code, char const* msg)
 	{
-		boost::shared_ptr<request_callback> cb = requester();
-		if (cb) cb->tracker_request_error(m_req, code, msg);
+		if (has_requester()) requester().tracker_request_error(
+			m_req, code, msg);
 		close();
 	}
 
 	void tracker_connection::fail_timeout()
 	{
-		boost::shared_ptr<request_callback> cb = requester();
-		if (cb) cb->tracker_request_timed_out(m_req);
+		if (has_requester()) requester().tracker_request_timed_out(m_req);
 		close();
 	}
 	
@@ -348,19 +427,13 @@ namespace libtorrent
 
 		m_connections.erase(i);
 	}
-
-	// returns protocol, auth, hostname, port, path	
-	tuple<std::string, std::string, std::string, int, std::string>
+	
+	tuple<std::string, std::string, int, std::string>
 		parse_url_components(std::string url)
 	{
 		std::string hostname; // hostname only
-		std::string auth; // user:pass
-		std::string protocol; // http or https for instance
+		std::string protocol; // should be http
 		int port = 80;
-
-		std::string::iterator at;
-		std::string::iterator colon;
-		std::string::iterator port_pos;
 
 		// PARSE URL
 		std::string::iterator start = url.begin();
@@ -369,39 +442,27 @@ namespace libtorrent
 			++start;
 		std::string::iterator end
 			= std::find(url.begin(), url.end(), ':');
-		protocol.assign(start, end);
+		protocol = std::string(start, end);
 
-		if (protocol == "https") port = 443;
-
-		if (end == url.end()) goto exit;
+		if (end == url.end()) throw std::runtime_error("invalid url");
 		++end;
-		if (end == url.end()) goto exit;
-		if (*end != '/') goto exit;
+		if (end == url.end()) throw std::runtime_error("invalid url");
+		if (*end != '/') throw std::runtime_error("invalid url");
 		++end;
-		if (end == url.end()) goto exit;
-		if (*end != '/') goto exit;
+		if (end == url.end()) throw std::runtime_error("invalid url");
+		if (*end != '/') throw std::runtime_error("invalid url");
 		++end;
 		start = end;
 
-		at = std::find(start, url.end(), '@');
-		colon = std::find(start, url.end(), ':');
 		end = std::find(start, url.end(), '/');
 
-		if (at != url.end()
-			&& colon != url.end()
-			&& colon < at
-			&& at < end)
-		{
-			auth.assign(start, at);
-			start = at;
-			++start;
-		}
+		std::string::iterator port_pos;
 
 		// this is for IPv6 addresses
 		if (start != url.end() && *start == '[')
 		{
 			port_pos = std::find(start, url.end(), ']');
-			if (port_pos == url.end()) goto exit;
+			if (port_pos == url.end()) throw std::runtime_error("invalid hostname syntax");
 			port_pos = std::find(port_pos, url.end(), ':');
 		}
 		else
@@ -413,7 +474,15 @@ namespace libtorrent
 		{
 			hostname.assign(start, port_pos);
 			++port_pos;
-			port = atoi(std::string(port_pos, end).c_str());
+			try
+			{
+				port = boost::lexical_cast<int>(std::string(port_pos, end));
+			}
+			catch(boost::bad_lexical_cast&)
+			{
+				throw std::runtime_error("invalid url: \"" + url
+					+ "\", port number expected");
+			}
 		}
 		else
 		{
@@ -421,85 +490,74 @@ namespace libtorrent
 		}
 
 		start = end;
-exit:
-		return make_tuple(protocol, auth, hostname, port
+		return make_tuple(protocol, hostname, port
 			, std::string(start, url.end()));
 	}
 
 	void tracker_manager::queue_request(
-		io_service& ios
-		, connection_queue& cc
+		asio::strand& str
 		, tracker_request req
 		, std::string const& auth
 		, address bind_infc
 		, boost::weak_ptr<request_callback> c)
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		TORRENT_ASSERT(req.num_want >= 0);
+		assert(req.num_want >= 0);
 		if (req.event == tracker_request::stopped)
 			req.num_want = 0;
 
-		TORRENT_ASSERT(!m_abort || req.event == tracker_request::stopped);
-		if (m_abort && req.event != tracker_request::stopped)
-			return;
-
-		std::string protocol;
-		std::string hostname;
-		int port;
-		std::string request_string;
-
-		using boost::tuples::ignore;
-		// TODO: should auth be used here?
-		boost::tie(protocol, ignore, hostname, port, request_string)
-			= parse_url_components(req.url);
-
-		boost::intrusive_ptr<tracker_connection> con;
-
-#ifdef TORRENT_USE_OPENSSL
-		if (protocol == "http" || protocol == "https")
-#else
-		if (protocol == "http")
-#endif
+		try
 		{
-			con = new http_tracker_connection(
-				ios
-				, cc
-				, *this
-				, req
-				, protocol
-				, hostname
-				, port
-				, request_string
-				, bind_infc
-				, c
-				, m_settings
-				, m_proxy
-				, auth);
+			std::string protocol;
+			std::string hostname;
+			int port;
+			std::string request_string;
+
+			boost::tie(protocol, hostname, port, request_string)
+				= parse_url_components(req.url);
+
+			boost::intrusive_ptr<tracker_connection> con;
+
+			if (protocol == "http")
+			{
+				con = new http_tracker_connection(
+					str
+					, *this
+					, req
+					, hostname
+					, port
+					, request_string
+					, bind_infc
+					, c
+					, m_settings
+					, auth);
+			}
+			else if (protocol == "udp")
+			{
+				con = new udp_tracker_connection(
+					str
+					, *this
+					, req
+					, hostname
+					, port
+					, bind_infc
+					, c
+					, m_settings);
+			}
+			else
+			{
+				throw std::runtime_error("unkown protocol in tracker url");
+			}
+
+			m_connections.push_back(con);
+
+			if (con->has_requester()) con->requester().m_manager = this;
 		}
-		else if (protocol == "udp")
-		{
-			con = new udp_tracker_connection(
-				ios
-				, *this
-				, req
-				, hostname
-				, port
-				, bind_infc
-				, c
-				, m_settings);
-		}
-		else
+		catch (std::exception& e)
 		{
 			if (boost::shared_ptr<request_callback> r = c.lock())
-				r->tracker_request_error(req, -1, "unknown protocol in tracker url: "
-					+ protocol);
-			return;
+				r->tracker_request_error(req, -1, e.what());
 		}
-
-		m_connections.push_back(con);
-
-		boost::shared_ptr<request_callback> cb = con->requester();
-		if (cb) cb->m_manager = this;
 	}
 
 	void tracker_manager::abort_all_requests()
@@ -509,27 +567,14 @@ exit:
 		// 'event=stopped'-requests)
 		mutex_t::scoped_lock l(m_mutex);
 
-		m_abort = true;
 		tracker_connections_t keep_connections;
 
-		while (!m_connections.empty())
+		for (tracker_connections_t::const_iterator i =
+			m_connections.begin(); i != m_connections.end(); ++i)
 		{
-			boost::intrusive_ptr<tracker_connection>& c = m_connections.back();
-			if (!c)
-			{
-				m_connections.pop_back();
-				continue;
-			}
-			tracker_request const& req = c->tracker_req();
+			tracker_request const& req = (*i)->tracker_req();
 			if (req.event == tracker_request::stopped)
-			{
-				keep_connections.push_back(c);
-				m_connections.pop_back();
-				continue;
-			}
-			// close will remove the entry from m_connections
-			// so no need to pop
-			c->close();
+				keep_connections.push_back(*i);
 		}
 
 		std::swap(m_connections, keep_connections);
@@ -541,9 +586,4 @@ exit:
 		return m_connections.empty();
 	}
 
-	int tracker_manager::num_requests() const
-	{
-		mutex_t::scoped_lock l(m_mutex);
-		return m_connections.size();
-	}
 }

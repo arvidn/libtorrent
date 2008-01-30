@@ -37,8 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(__GNUC__) && __GNUC__ >= 4
 
-#define TORRENT_DEPRECATED __attribute__ ((deprecated))
-
 # if defined(TORRENT_BUILDING_SHARED) || defined(TORRENT_LINKING_SHARED)
 #  define TORRENT_EXPORT __attribute__ ((visibility("default")))
 # else
@@ -63,9 +61,6 @@ POSSIBILITY OF SUCH DAMAGE.
 # define TORRENT_EXPORT
 #endif
 
-#ifndef TORRENT_DEPRECATED
-#define TORRENT_DEPRECATED
-#endif
 
 #endif // TORRENT_CONFIG_HPP_INCLUDED
 

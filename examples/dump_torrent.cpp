@@ -49,14 +49,11 @@ int main(int argc, char* argv[])
 		std::cerr << "usage: dump_torrent torrent-file\n";
 		return 1;
 	}
-#if BOOST_VERSION < 103400
-	boost::filesystem::path::default_name_check(boost::filesystem::no_check);
-#endif
 
-#ifndef BOOST_NO_EXCEPTIONS
+	boost::filesystem::path::default_name_check(boost::filesystem::no_check);
+
 	try
 	{
-#endif
 		std::ifstream in(argv[1], std::ios_base::binary);
 		in.unsetf(std::ios_base::skipws);
 		entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
@@ -89,24 +86,18 @@ int main(int argc, char* argv[])
 		std::cout << "comment: " << t.comment() << "\n";
 		std::cout << "created by: " << t.creator() << "\n";
 		std::cout << "files:\n";
-		int index = 0;
 		for (torrent_info::file_iterator i = t.begin_files();
-			i != t.end_files(); ++i, ++index)
+			i != t.end_files(); ++i)
 		{
-			int first = t.map_file(index, 0, 1).piece;
-			int last = t.map_file(index, i->size - 1, 1).piece;
 			std::cout << "  " << std::setw(11) << i->size
-				<< " " << i->path.string() << "[ " << first << ", "
-				<< last << " ]\n";
+			<< " " << i->path.string() << "\n";
 		}
 		
-#ifndef BOOST_NO_EXCEPTIONS
 	}
 	catch (std::exception& e)
 	{
   		std::cout << e.what() << "\n";
 	}
-#endif
 
 	return 0;
 }

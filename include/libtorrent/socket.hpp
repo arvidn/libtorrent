@@ -50,15 +50,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <asio/io_service.hpp>
 #include <asio/deadline_timer.hpp>
 #include <asio/write.hpp>
-#include <asio/time_traits.hpp>
-#include <asio/basic_deadline_timer.hpp>
+#include <asio/strand.hpp>
 
 #ifdef __OBJC__ 
 #undef Protocol
 #endif
 
 #include "libtorrent/io.hpp"
-#include "libtorrent/time.hpp"
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -66,7 +64,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
 /*
 	namespace asio = boost::asio;
 
@@ -94,24 +91,8 @@ namespace libtorrent
 	typedef asio::io_service io_service;
 
 	using asio::async_write;
+	using asio::deadline_timer;
 	
-	typedef asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
-	
-	inline std::ostream& print_endpoint(std::ostream& os, tcp::endpoint const& ep)
-	{
-		address const& addr = ep.address();
-		asio::error_code ec;
-		std::string a = addr.to_string(ec);
-		if (ec) return os;
-
-		if (addr.is_v6())
-			os << "[" << a << "]:";
-		else
-			os << a << ":";
-		os << ep.port();
-		return os;
-	}
-
 	namespace detail
 	{
 		template<class OutIt>
@@ -170,21 +151,6 @@ namespace libtorrent
 			return Endpoint(addr, port);
 		}
 	}
-
-	struct v6only
-	{
-		v6only(bool enable): m_value(enable) {}
-		template<class Protocol>
-		int level(Protocol const&) const { return IPPROTO_IPV6; }
-		template<class Protocol>
-		int name(Protocol const&) const { return IPV6_V6ONLY; }
-		template<class Protocol>
-		int const* data(Protocol const&) const { return &m_value; }
-		template<class Protocol>
-		size_t size(Protocol const&) const { return sizeof(m_value); }
-		int m_value;
-	};
-	
 }
 
 #endif // TORRENT_SOCKET_HPP_INCLUDED

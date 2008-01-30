@@ -74,37 +74,23 @@ This is the defined item in the dictionary:
 
 Here are some other items that an implementation may choose to support:
 
-+--------+-----------------------------------------------------------+
-| name   | description                                               |
-+========+===========================================================+
-| p      | Local TCP listen port. Allows each side to learn about    |
-|        | the TCP port number of the other side. Note that there is |
-|        | no need for the receiving side of the connection to send  |
-|        | this extension message, since its port number is already  |
-|        | known.                                                    |
-+--------+-----------------------------------------------------------+
-| v      | Client name and version (as a utf-8 string).              |
-|        | This is a much more reliable way of identifying the       |
-|        | client than relying on the peer id encoding.              |
-+--------+-----------------------------------------------------------+
-| yourip | A string containing the compact representation of the ip  |
-|        | address this peer sees you as. i.e. this is the           |
-|        | receiver's external ip address (no port is included).     |
-|        | This may be either an IPv4 (4 bytes) or an IPv6           |
-|        | (16 bytes) address.                                       |
-+--------+-----------------------------------------------------------+
-| ipv6   | If this peer has an IPv6 interface, this is the compact   |
-|        | representation of that address (16 bytes). The client may |
-|        | prefer to connect back via the IPv6 address.              |
-+--------+-----------------------------------------------------------+
-| ipv4   | If this peer has an IPv4 interface, this is the compact   |
-|        | representation of that address (4 bytes). The client may  |
-|        | prefer to connect back via this interface.                |
-+--------+-----------------------------------------------------------+
-| reqq   | An integer, the number of outstanding request messages    |
-|        | this client supports without dropping any. The default in |
-|        | in libtorrent is 250.                                     |
-+--------+-----------------------------------------------------------+
++-------+-----------------------------------------------------------+
+| name  | description                                               |
++=======+===========================================================+
+| p     | Local TCP listen port. Allows each side to learn about    |
+|       | the TCP port number of the other side. Note that there is |
+|       | no need for the receiving side of the connection to send  |
+|       | this extension message, since its port number is already  |
+|       | known.                                                    |
++-------+-----------------------------------------------------------+
+| v     | Client name and version (as an utf-8 string).             |
+|       | This is a much more reliable way of identifying the       |
+|       | client than relying on the peer id encoding.              |
++-------+-----------------------------------------------------------+
+| reqq  | An integer, the number of outstanding request messages    |
+|       | this client supports without dropping any. The default in |
+|       | in libtorrent is 250.                                     |
++-------+-----------------------------------------------------------+
 
 The handshake dictionary could also include extended handshake
 information, such as support for encrypted headers or anything

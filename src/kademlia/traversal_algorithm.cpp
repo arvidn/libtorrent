@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
@@ -67,18 +65,14 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 
 	if (i == m_results.end() || i->id != id)
 	{
-		TORRENT_ASSERT(std::find_if(m_results.begin(), m_results.end()
-			, bind(&result::id, _1) == id) == m_results.end());
+		assert(std::find_if(m_results.begin(), m_results.end()
+			, bind(std::equal_to<node_id>()
+				, bind(&result::id, _1), id)) == m_results.end());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(traversal) << "adding result: " << id << " " << addr;
 #endif
 		m_results.insert(i, entry);
 	}
-}
-
-boost::pool<>& traversal_algorithm::allocator() const
-{
-	return m_rpc.allocator();
 }
 
 void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
@@ -110,11 +104,11 @@ void traversal_algorithm::failed(node_id const& id, bool prevent_request)
 		)
 	);
 
-	TORRENT_ASSERT(i != m_results.end());
+	assert(i != m_results.end());
 
 	if (i != m_results.end())
 	{
-		TORRENT_ASSERT(i->flags & result::queried);
+		assert(i->flags & result::queried);
 		m_failed.insert(i->addr);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(traversal) << "failed: " << i->id << " " << i->addr;

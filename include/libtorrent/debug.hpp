@@ -52,29 +52,35 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+
+	// PROFILING CODE
+#ifdef TORRENT_PROFILE
+
+	void add_checkpoint(std::string const& str);
+	void print_checkpoints();
+#define TORRENT_CHECKPOINT(str) libtorrent::add_checkpoint(str)
+#else
+#define TORRENT_CHECKPOINT(str) void(0)
+#endif
+
 	// DEBUG API
-	
-	namespace fs = boost::filesystem;
 
 	struct logger
 	{
-		logger(fs::path const& logpath, fs::path const& filename, int instance, bool append = true)
+ 		logger(boost::filesystem::path const& logpath, boost::filesystem::path const& filename, int instance, bool append = true)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
 			try
 			{
-#endif
-				fs::path dir(fs::complete(logpath / ("libtorrent_logs" + boost::lexical_cast<std::string>(instance))));
-				if (!fs::exists(dir)) fs::create_directories(dir);
-				m_file.open((dir / filename).string().c_str(), std::ios_base::out | (append ? std::ios_base::app : std::ios_base::out));
+				using namespace boost::filesystem;
+ 				path dir(complete(logpath / ("libtorrent_logs" + boost::lexical_cast<std::string>(instance))));
+				if (!exists(dir)) create_directories(dir);
+				m_file.open(dir / filename, std::ios_base::out | (append ? std::ios_base::app : std::ios_base::out));
 				*this << "\n\n\n*** starting log ***\n";
-#ifndef BOOST_NO_EXCEPTIONS
 			}
 			catch (std::exception& e)
 			{
 				std::cerr << "failed to create log '" << filename.string() << "': " << e.what() << std::endl;
 			}
-#endif
 		}
 
 		template <class T>
@@ -85,10 +91,9 @@ namespace libtorrent
 			return *this;
 		}
 
-		std::ofstream m_file;
+		boost::filesystem::ofstream m_file;
 	};
 
 }
 
 #endif // TORRENT_DEBUG_HPP_INCLUDED
-

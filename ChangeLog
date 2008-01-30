@@ -1,72 +1,7 @@
-	* Auto Upload slots. Automtically opens up more slots if
-	  upload limit is not met.
-	* Improved NAT-PMP support by querying the default gateway (no
-	  linux support yet)
-	* Improved UPnP support by ignoring routers not on the clients subnet.
+release 0.12.1
 
-release 0.13
-	
-	* Added scrape support
-	* Added add_extension() to torrent_handle. Can instantiate
-	  extensions for torrents while downloading
-	* Added support for remove_torrent to delete the files as well
-	* Fixed issue with failing async_accept on windows
-	* DHT improvements, proper error messages are now returned when
-	  nodes sends bad packets
-	* Optimized the country table used to resolve country of peers
-	* Copying optimization for sending data. Data is no longer copied from
-	  the disk I/O buffer to the send buffer.
-	* Buffer optimization to use a raw buffer instead of std::vector<char>
-	* Improved file storage to use sparse files
-	* Updated python bindings
-	* Added more clients to the identifiable clients list.
-	* Torrents can now be started in paused state (to better support queuing)
-	* Improved IPv6 support (support for IPv6 extension to trackers and
-	  listens on both IPv6 and IPv4 interfaces).
-	* Improved asserts used. Generates a stacktrace on linux
-	* Piece picker optimizations and improvements
-	* Improved unchoker, connection limit and rate limiter
-	* Support for FAST extension
+	* Fixed bug in web seed downloader
 	* Fixed invalid calculation in DHT node distance
-	* Fixed bug in URL parser that failed to parse IPv6 addresses
-	* added peer download rate approximation
-	* added port filter for outgoing connection (to prevent
-	  triggering firewalls)
-	* made most parameters configurable via session_settings
-	* added encryption support
-	* added parole mode for peers whose data fails the hash check.
-	* optimized heap usage in piece-picker and web seed downloader.
-	* fixed bug in DHT where older write tokens weren't accepted.
-	* added support for sparse files.
-	* introduced speed categories for peers and pieces, to separate
-	  slow and fast peers.
-	* added a half-open tcp connection limit that takes all connections
-	  in to account, not just peer connections.
-	* added alerts for filtered IPs.
-	* added support for SOCKS4 and 5 proxies and HTTP CONNECT proxies.
-	* fixed proper distributed copies calculation.
-	* added option to use openssl for sha-1 calculations.
-	* optimized the piece picker in the case where a peer is a seed.
-	* added support for local peer discovery
-	* removed the dependency on the compiled boost.date_time library
-	* deprecated torrent_info::print()
-	* added UPnP support
-	* fixed problem where peer interested flags were not updated correctly
-	  when pieces were filtered
-	* improvements to ut_pex messages, including support for seed flag
-	* prioritizes upload bandwidth to peers that might send back data
-	* the following functions have been deprecated:
-	  	void torrent_handle::filter_piece(int index, bool filter) const;
-	  	void torrent_handle::filter_pieces(std::vector<bool> const& pieces) const;
-	  	bool torrent_handle::is_piece_filtered(int index) const;
-	  	std::vector<bool> torrent_handle::filtered_pieces() const;
-	  	void torrent_handle::filter_files(std::vector<bool> const& files) const;
-	  
-	  instead, use the piece_priority functions.
-	  
-	* added support for NAT-PMP
-	* added support for piece priorities. Piece filtering is now set as
-	  a priority
 	* Fixed crash when last piece was smaller than one block and reading
 	  fastresume data for that piece
 	* Makefiles should do a better job detecting boost

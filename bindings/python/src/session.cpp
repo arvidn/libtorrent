@@ -1,10 +1,9 @@
-// Copyright Daniel Wallin, Arvid Norberg 2006. Use, modification and distribution is
+// Copyright Daniel Wallin 2006. Use, modification and distribution is
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include <libtorrent/session.hpp>
 #include <libtorrent/torrent.hpp>
-#include <libtorrent/storage.hpp>
 #include <boost/python.hpp>
 #include "gil.hpp"
 
@@ -38,24 +37,13 @@ extern char const* session_dht_state_doc;
 extern char const* session_add_torrent_doc;
 extern char const* session_remove_torrent_doc;
 extern char const* session_set_download_rate_limit_doc;
-extern char const* session_download_rate_limit_doc;
 extern char const* session_set_upload_rate_limit_doc;
-extern char const* session_upload_rate_limit_doc;
 extern char const* session_set_max_uploads_doc;
 extern char const* session_set_max_connections_doc;
 extern char const* session_set_max_half_open_connections_doc;
-extern char const* session_num_connections_doc;
 extern char const* session_set_settings_doc;
-extern char const* session_set_pe_settings_doc;
-extern char const* session_get_pe_settings_doc; 
 extern char const* session_set_severity_level_doc;
 extern char const* session_pop_alert_doc;
-extern char const* session_start_upnp_doc;
-extern char const* session_start_lsd_doc;
-extern char const* session_stop_lsd_doc;
-extern char const* session_stop_upnp_doc;
-extern char const* session_start_natpmp_doc;
-extern char const* session_stop_natpmp_doc;
 
 namespace
 {
@@ -72,7 +60,7 @@ namespace
         : cb(callback)
       {}
 
-      boost::shared_ptr<torrent_plugin> operator()(torrent* t, void*)
+      boost::shared_ptr<torrent_plugin> operator()(torrent* t)
       {
           lock_gil lock;
           return extract<boost::shared_ptr<torrent_plugin> >(cb(ptr(t)))();
@@ -83,18 +71,10 @@ namespace
 
   void add_extension(session& s, object const& e)
   {
-      allow_threading_guard guard;
+//      allow_threading_guard guard;
       s.add_extension(invoke_extension_factory(e));
   }
 
-  torrent_handle add_torrent(session& s, torrent_info const& ti
-    , boost::filesystem::path const& save, entry const& resume
-    , storage_mode_t storage_mode, bool paused)
-  {
-    allow_threading_guard guard;
-    return s.add_torrent(ti, save, resume, storage_mode, paused, default_storage_constructor);
-  }
-  
 } // namespace unnamed
 
 void bind_session()
@@ -156,17 +136,14 @@ void bind_session()
 #endif
         ;
 
-    enum_<storage_mode_t>("storage_mode_t")
-        .value("storage_mode_allocate", storage_mode_allocate)
-        .value("storage_mode_compact", storage_mode_compact)
-        .value("storage_mode_sparse", storage_mode_sparse)
-    ;
+    torrent_handle (session::*add_torrent0)(
+        torrent_info const&
+      , boost::filesystem::path const&
+      , entry const&
+      , bool
+      , int
+    ) = &session::add_torrent;
 
-    enum_<session::options_t>("options_t")
-        .value("none", session::none)
-        .value("delete_files", session::delete_files)
-    ;
-	 
     class_<session, boost::noncopyable>("session", session_doc, no_init)
         .def(
             init<fingerprint>(arg("fingerprint")=fingerprint("LT",0,1,0,0), session_init_doc)
@@ -185,10 +162,10 @@ void bind_session()
         .def("dht_state", allow_threads(&session::dht_state), session_dht_state_doc)
 #endif
         .def(
-            "add_torrent", &add_torrent
+            "add_torrent", allow_threads(add_torrent0)
           , (
-                arg("resume_data") = entry(), arg("storage_mode") = storage_mode_sparse,
-                arg("paused") = false
+                arg("torrent_info"), "save_path", arg("resume_data") = entry()
+              , arg("compact_mode") = true, arg("block_size") = 16 * 1024
             )
           , session_add_torrent_doc
         )
@@ -198,19 +175,9 @@ void bind_session()
           , session_set_download_rate_limit_doc
         )
         .def(
-            "download_rate_limit", allow_threads(&session::download_rate_limit)
-          , session_download_rate_limit_doc
-        )
-
-        .def(
             "set_upload_rate_limit", allow_threads(&session::set_upload_rate_limit)
           , session_set_upload_rate_limit_doc
         )
-        .def(
-            "upload_rate_limit", allow_threads(&session::upload_rate_limit)
-          , session_upload_rate_limit_doc
-        )
-
         .def(
             "set_max_uploads", allow_threads(&session::set_max_uploads)
           , session_set_max_uploads_doc
@@ -223,34 +190,15 @@ void bind_session()
             "set_max_half_open_connections", allow_threads(&session::set_max_half_open_connections)
           , session_set_max_half_open_connections_doc
         )
-        .def(
-            "num_connections", allow_threads(&session::num_connections)
-          , session_num_connections_doc
-        )
         .def("set_settings", allow_threads(&session::set_settings), session_set_settings_doc)
-        .def("set_pe_settings", allow_threads(&session::set_pe_settings), session_set_pe_settings_doc)
-        .def("get_pe_settings", allow_threads(&session::get_pe_settings), return_value_policy<copy_const_reference>())
         .def(
             "set_severity_level", allow_threads(&session::set_severity_level)
           , session_set_severity_level_doc
         )
         .def("pop_alert", allow_threads(&session::pop_alert), session_pop_alert_doc)
         .def("add_extension", &add_extension)
-        .def("set_peer_proxy", allow_threads(&session::set_peer_proxy))
-        .def("set_tracker_proxy", allow_threads(&session::set_tracker_proxy))
-        .def("set_web_seed_proxy", allow_threads(&session::set_web_seed_proxy))
-#ifndef TORRENT_DISABLE_DHT
-        .def("set_dht_proxy", allow_threads(&session::set_dht_proxy))
-#endif
-        .def("start_upnp", allow_threads(&session::start_upnp), session_start_upnp_doc)
-        .def("stop_upnp", allow_threads(&session::stop_upnp), session_stop_upnp_doc)
-        .def("start_lsd", allow_threads(&session::start_lsd), session_start_lsd_doc)
-        .def("stop_lsd", allow_threads(&session::stop_lsd), session_stop_lsd_doc)
-        .def("start_natpmp", allow_threads(&session::start_natpmp), session_start_natpmp_doc)
-        .def("stop_natpmp", allow_threads(&session::stop_natpmp), session_stop_natpmp_doc)
         ;
 
     register_ptr_to_python<std::auto_ptr<alert> >();
 }
-
 

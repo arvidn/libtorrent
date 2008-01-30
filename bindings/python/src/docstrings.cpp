@@ -130,10 +130,6 @@ char const* session_remove_torrent_doc =
     "Close all peer connections associated with the torrent and tell the\n"
     "tracker that we've stopped participating in the swarm.";
 
-char const* session_download_rate_limit_doc = 
-    "";
-char const* session_upload_rate_limit_doc = 
-    "";
 char const* session_set_download_rate_limit_doc = 
     "";
 char const* session_set_upload_rate_limit_doc = 
@@ -153,30 +149,14 @@ char const* session_set_max_half_open_connections_doc =
     "-1 as the limit, means to have no limit. When limiting the number of\n"
     "simultaneous connection attempts, peers will be put in a queue waiting\n"
     "for their turn to get connected.";
-char const* session_num_connections_doc =
-    "";
+
 char const* session_set_settings_doc = 
-    "";
-char const* session_set_pe_settings_doc = 
-    "";
-char const* session_get_pe_settings_doc = 
     "";
 char const* session_set_severity_level_doc = 
     "";
 char const* session_pop_alert_doc = 
     "";
-char const* session_start_upnp_doc =  
-    "";
-char const* session_stop_upnp_doc =
-    "";
-char const* session_start_lsd_doc =  
-    "";
-char const* session_stop_lsd_doc =
-    "";
-char const* session_start_natpmp_doc =
-    "";
-char const* session_stop_natpmp_doc =
-    "";
+
 // -- alert -----------------------------------------------------------------
 
 char const* alert_doc =
@@ -188,8 +168,19 @@ char const* alert_msg_doc =
 char const* alert_severity_doc =
     "Returns the severity level for this alert, one of `alert.severity_levels`.";
 
-char const* torrent_alert_doc =
-    "";
+char const* listen_failed_alert_doc =
+    "This alert is generated when none of the ports, given in the\n"
+    "port range, to `session` can be opened for listening. This alert\n"
+    "is generated as severity level `alert.severity_levels.fatal`.";
+
+char const* file_error_alert_doc =
+    "If the storage fails to read or write files that it needs access\n"
+    "to, this alert is generated and the torrent is paused. It is\n"
+    "generated as severity level `alert.severity_levels.fatal`.";
+
+char const* tracker_announce_alert_doc =
+    "This alert is generated each time a tracker announce is sent\n"
+    "(or attempted to be sent). It is generated at severity level `alert.severity_levels.info`.";
 
 char const* tracker_alert_doc =
     "This alert is generated on tracker time outs, premature\n"
@@ -198,21 +189,21 @@ char const* tracker_alert_doc =
     "the tracker belongs to. This alert is generated as severity level\n"
     "`alert.severity_levels.warning`.";
     
+char const* tracker_reply_alert_doc =
+    "This alert is only for informational purpose. It is generated when\n"
+    "a tracker announce succeeds. It is generated with severity level\n"
+    "`alert.severity_levels.info`.";
+
 char const* tracker_warning_alert_doc =
     "This alert is triggered if the tracker reply contains a warning\n"
     "field. Usually this means that the tracker announce was successful\n"
     ", but the tracker has a message to the client. The message string in\n"
     "the alert will contain the warning message from the tracker. It is\n"
     "generated with severity level `alert.severity_levels.warning`.";
-    
-char const* tracker_reply_alert_doc =
-    "This alert is only for informational purpose. It is generated when\n"
-    "a tracker announce succeeds. It is generated with severity level\n"
-    "`alert.severity_levels.info`.";
 
-char const* tracker_announce_alert_doc =
-    "This alert is generated each time a tracker announce is sent\n"
-    "(or attempted to be sent). It is generated at severity level `alert.severity_levels.info`.";
+char const* url_seed_alert_doc =
+    "This alert is generated when a HTTP seed name lookup fails. This\n"
+    "alert is generated as severity level `alert.severity_levels.warning`.";
 
 char const* hash_failed_alert_doc =
     "This alert is generated when a finished piece fails its hash check.\n"
@@ -251,38 +242,6 @@ char const* torrent_finished_alert_doc =
     "It contains a `torrent_handle` to the torrent in question. This alert\n"
     "is generated as severity level `alert.severity_levels.info`.";
 
-char const* piece_finished_alert_doc =
-    "";
-    
-char const* block_finished_alert_doc =
-    "";
-    
-char const* block_downloading_alert_doc =
-    "";
-
-char const* storage_moved_alert_doc =
-    "This alert is generated when a torrent moves storage.\n"
-    "It contains a `torrent_handle` to the torrent in question. This alert\n"
-    "is generated as severity level `alert.severity_levels.warning`.";
-
-char const* torrent_paused_alert_doc =
-    "This alert is generated when a torrent switches from being a\n"
-    "active to paused.\n"
-    "It contains a `torrent_handle` to the torrent in question. This alert\n"
-    "is generated as severity level `alert.severity_levels.warning`.";
-
-char const* torrent_checked_alert_doc =
-    "";   
-    
-char const* url_seed_alert_doc =
-    "This alert is generated when a HTTP seed name lookup fails. This\n"
-    "alert is generated as severity level `alert.severity_levels.warning`.";
-
-char const* file_error_alert_doc =
-    "If the storage fails to read or write files that it needs access\n"
-    "to, this alert is generated and the torrent is paused. It is\n"
-    "generated as severity level `alert.severity_levels.fatal`.";
-    
 char const* metadata_failed_alert_doc = 
     "This alert is generated when the metadata has been completely\n"
     "received and the info-hash failed to match it. i.e. the\n"
@@ -299,35 +258,9 @@ char const* metadata_received_alert_doc =
     "needs to download it from peers (when utilizing the libtorrent\n"
     "extension). It is generated at severity level `alert.severity_levels.info`.";
 
-char const* listen_failed_alert_doc =
-    "This alert is generated when none of the ports, given in the\n"
-    "port range, to `session` can be opened for listening. This alert\n"
-    "is generated as severity level `alert.severity_levels.fatal`.";
-    
-char const* listen_succeeded_alert_doc =
-    "";
-
-char const* portmap_error_alert_doc =
-    "";
-
-char const* portmap_alert_doc =
-    "";
-    
 char const* fastresume_rejected_alert_doc =
     "This alert is generated when a fastresume file has been passed\n"
     "to `session.add_torrent` but the files on disk did not match the\n"
     "fastresume file. The string explains the reason why the resume\n"
     "file was rejected. It is generated at severity level `alert.severity_levels.warning`.";
 
-char const* peer_blocked_alert_doc =
-    "";
-
-char const* scrape_reply_alert_doc =
-    "This alert is generated when a scrape request succeeds.\n"
-    "incomplete and complete is the data returned in the scrape\n"
-    "response. These numbers may be -1 if the reponse was malformed.";
-    
-char const* scrape_failed_alert_doc = 
-    "If a scrape request fails, this alert is generated. This might\n"
-    "be due to the tracker timing out, refusing connection or returning\n"
-    "an http response code indicating an error.";

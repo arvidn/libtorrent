@@ -34,24 +34,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #define NODE_HPP
 
 #include <algorithm>
+#include <cassert>
 #include <map>
 #include <set>
 
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
-#include <libtorrent/kademlia/msg.hpp>
 
 #include <libtorrent/io.hpp>
 #include <libtorrent/session_settings.hpp>
-#include <libtorrent/assert.hpp>
 
 #include <boost/cstdint.hpp>
 #include <boost/optional.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/iterator/transform_iterator.hpp>
 #include <boost/ref.hpp>
-
-#include "libtorrent/socket.hpp"
 
 namespace libtorrent { namespace dht
 {
@@ -68,7 +67,7 @@ TORRENT_DECLARE_LOG(node);
 struct peer_entry
 {
 	tcp::endpoint addr;
-	ptime added;
+	boost::posix_time::ptime added;
 };
 
 // this is a group. It contains a set of group members
@@ -85,75 +84,6 @@ inline bool operator<(peer_entry const& lhs, peer_entry const& rhs)
 }
 
 struct null_type {};
-
-class announce_observer : public observer
-{
-public:
-	announce_observer(boost::pool<>& allocator
-		, sha1_hash const& info_hash
-		, int listen_port
-		, entry const& write_token)
-		: observer(allocator)
-		, m_info_hash(info_hash)
-		, m_listen_port(listen_port)
-		, m_token(write_token)
-	{}
-
-	void send(msg& m)
-	{
-		m.port = m_listen_port;
-		m.info_hash = m_info_hash;
-		m.write_token = m_token;
-	}
-
-	void timeout() {}
-	void reply(msg const&) {}
-	void abort() {}
-
-private:
-	sha1_hash m_info_hash;
-	int m_listen_port;
-	entry m_token;
-};
-
-class get_peers_observer : public observer
-{
-public:
-	get_peers_observer(sha1_hash const& info_hash
-		, int listen_port
-		, rpc_manager& rpc
-		, boost::function<void(std::vector<tcp::endpoint> const&, sha1_hash const&)> f)
-		: observer(rpc.allocator())
-		, m_info_hash(info_hash)
-		, m_listen_port(listen_port)
-		, m_rpc(rpc)
-		, m_fun(f)
-	{}
-
-	void send(msg& m)
-	{
-		m.port = m_listen_port;
-		m.info_hash = m_info_hash;
-	}
-
-	void timeout() {}
-	void reply(msg const& r)
-	{
-		m_rpc.invoke(messages::announce_peer, r.addr
-			, observer_ptr(new (m_rpc.allocator().malloc()) announce_observer(
-				m_rpc.allocator(), m_info_hash, m_listen_port, r.write_token)));
-		m_fun(r.peers, m_info_hash);
-	}
-	void abort() {}
-
-private:
-	sha1_hash m_info_hash;
-	int m_listen_port;
-	rpc_manager& m_rpc;
-	boost::function<void(std::vector<tcp::endpoint> const&, sha1_hash const&)> m_fun;
-};
-
-
 
 class node_impl : boost::noncopyable
 {
@@ -186,18 +116,14 @@ public:
 
 	node_id const& nid() const { return m_id; }
 	boost::tuple<int, int> size() const{ return m_table.size(); }
-	size_type num_global_nodes() const
-	{ return m_table.num_global_nodes(); }
 
 	data_iterator begin_data() { return m_map.begin(); }
 	data_iterator end_data() { return m_map.end(); }
 	int data_size() const { return int(m_map.size()); }
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
 	void print_state(std::ostream& os) const
 	{ m_table.print_state(os); }
-#endif
-
+	
 	void announce(sha1_hash const& info_hash, int listen_port
 		, boost::function<void(std::vector<tcp::endpoint> const&
 			, sha1_hash const&)> f);
@@ -207,8 +133,8 @@ public:
 	
 	// the returned time is the delay until connection_timeout()
 	// should be called again the next time
-	time_duration connection_timeout();
-	time_duration refresh_timeout();
+	boost::posix_time::time_duration connection_timeout();
+	boost::posix_time::time_duration refresh_timeout();
 
 	// generates a new secret number used to generate write tokens
 	void new_write_key();
@@ -246,7 +172,7 @@ private:
 	rpc_manager m_rpc;
 	table_t m_map;
 	
-	ptime m_last_tracker_tick;
+	boost::posix_time::ptime m_last_tracker_tick;
 
 	// secret random numbers used to create write tokens
 	int m_secret[2];

@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <libtorrent/kademlia/find_data.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
@@ -39,6 +37,38 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace dht
 {
+
+typedef boost::shared_ptr<observer> observer_ptr;
+
+class find_data_observer : public observer
+{
+public:
+	find_data_observer(
+		boost::intrusive_ptr<find_data> const& algorithm
+		, node_id self
+		, node_id target)
+		: m_algorithm(algorithm)
+		, m_target(target) 
+		, m_self(self)
+	{}
+	~find_data_observer();
+
+	void send(msg& m)
+	{
+		m.reply = false;
+		m.message_id = messages::get_peers;
+		m.info_hash = m_target;
+	}
+
+	void timeout();
+	void reply(msg const&);
+	void abort() { m_algorithm = 0; }
+
+private:
+	boost::intrusive_ptr<find_data> m_algorithm;
+	node_id const m_target;
+	node_id const m_self;
+};
 
 find_data_observer::~find_data_observer()
 {
@@ -49,7 +79,7 @@ void find_data_observer::reply(msg const& m)
 {
 	if (!m_algorithm)
 	{
-		TORRENT_ASSERT(false);
+		assert(false);
 		return;
 	}
 
@@ -109,9 +139,8 @@ void find_data::invoke(node_id const& id, asio::ip::udp::endpoint addr)
 		return;
 	}
 
-	TORRENT_ASSERT(m_rpc.allocation_size() >= sizeof(find_data_observer));
-	observer_ptr o(new (m_rpc.allocator().malloc()) find_data_observer(this, id, m_target));
-	m_rpc.invoke(messages::get_peers, addr, o);
+	observer_ptr p(new find_data_observer(this, id, m_target));
+	m_rpc.invoke(messages::get_peers, addr, p);
 }
 
 void find_data::got_data(msg const* m)

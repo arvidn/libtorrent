@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg
+Copyright (c) 2003, Magnus Jonsson, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,63 +30,70 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef OBSERVER_HPP
-#define OBSERVER_HPP
+#ifndef TORRENT_RESOURCE_REQUEST_HPP_INCLUDED
+#define TORRENT_RESOURCE_REQUEST_HPP_INCLUDED
 
-#include <boost/pool/pool.hpp>
-#include <boost/detail/atomic_count.hpp>
-#include <boost/intrusive_ptr.hpp>
+#include <boost/integer_traits.hpp>
 
-namespace libtorrent {
-namespace dht {
+#ifdef min
+#undef min
+#endif
 
-struct observer;
-struct msg;
+#ifdef max
+#undef max
+#endif
 
-// defined in rpc_manager.cpp
-TORRENT_EXPORT void intrusive_ptr_add_ref(observer const*);
-TORRENT_EXPORT void intrusive_ptr_release(observer const*);
+#include "libtorrent/config.hpp"
 
-struct observer : boost::noncopyable
+namespace libtorrent
 {
-	friend TORRENT_EXPORT void intrusive_ptr_add_ref(observer const*);
-	friend TORRENT_EXPORT void intrusive_ptr_release(observer const*);
+	struct TORRENT_EXPORT resource_request
+	{
+		resource_request()
+			: used(0)
+			, min(0)
+			, max(0)
+			, given(0)
+			, leftovers(0)
+		{}
 
-	observer(boost::pool<>& p)
-		: sent(time_now())
-		, pool_allocator(p)
-		, m_refs(0)
-	{}
+		resource_request(int used_, int min_, int max_, int given_)
+			: used(used_)
+			, min(min_)
+			, max(max_)
+			, given(given_)
+			, leftovers(0)
+		{}
 
-	virtual ~observer() {}
+		int left() const
+		{
+			assert(given <= max);
+			assert(given >= min);
+			assert(used >= 0);
+			return (std::max)(given - used, 0);
+		}
+		
+		void reset() { used = leftovers; leftovers = 0; }
 
-	// these two callbacks lets the observer add
-	// information to the message before it's sent
-	virtual void send(msg& m) = 0;
+		static const int inf = boost::integer_traits<int>::const_max;
 
-	// this is called when a reply is received
-	virtual void reply(msg const& m) = 0;
+		// right now I'm actively using this amount
+		int used;
 
-	// this is called when no reply has been received within
-	// some timeout
-	virtual void timeout() = 0;
-	
-	// if this is called the destructor should
-	// not invoke any new messages, and should
-	// only clean up. It means the rpc-manager
-	// is being destructed
-	virtual void abort() = 0;
+		// given cannot be smaller than min
+		// and not greater than max.
+		int min;
+		int max;
 
-	udp::endpoint target_addr;
-	ptime sent;
-private:
-	boost::pool<>& pool_allocator;
-	// reference counter for intrusive_ptr
-	mutable boost::detail::atomic_count m_refs;
-};
+		// Reply: Okay, you're allowed to use this amount (a compromise):
+		int given;
 
-typedef boost::intrusive_ptr<observer> observer_ptr;
+		// this is the amount of resources that exceeded the
+		// given limit. When the used field is reset (after resources
+		// have been distributed), it is reset to this number.
+		int leftovers;
+	};
+}
 
-} }
 
 #endif

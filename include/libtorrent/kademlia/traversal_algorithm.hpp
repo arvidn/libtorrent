@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/noncopyable.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/bind.hpp>
-#include <boost/pool/pool.hpp>
 
 namespace libtorrent { namespace dht
 {
@@ -61,7 +60,6 @@ public:
 	void finished(node_id const& id);
 	void failed(node_id const& id, bool prevent_request = false);
 	virtual ~traversal_algorithm() {}
-	boost::pool<>& allocator() const;
 
 protected:
 	template<class InIt>

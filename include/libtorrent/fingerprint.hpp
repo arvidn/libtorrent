@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sstream>
 
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {
@@ -50,12 +49,12 @@ namespace libtorrent
 			, revision_version(revision)
 			, tag_version(tag)
 		{
-			TORRENT_ASSERT(id_string);
-			TORRENT_ASSERT(major >= 0);
-			TORRENT_ASSERT(minor >= 0);
-			TORRENT_ASSERT(revision >= 0);
-			TORRENT_ASSERT(tag >= 0);
-			TORRENT_ASSERT(std::strlen(id_string) == 2);
+			assert(id_string);
+			assert(major >= 0);
+			assert(minor >= 0);
+			assert(revision >= 0);
+			assert(tag >= 0);
+			assert(std::strlen(id_string) == 2);
 			name[0] = id_string[0];
 			name[1] = id_string[1];
 		}
@@ -83,7 +82,7 @@ namespace libtorrent
 		{
 			if (v >= 0 && v < 10) return '0' + v;
 			else if (v >= 10) return 'A' + (v - 10);
-			TORRENT_ASSERT(false);
+			assert(false);
 			return '0';
 		}
 
@@ -92,4 +91,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_FINGERPRINT_HPP_INCLUDED
-

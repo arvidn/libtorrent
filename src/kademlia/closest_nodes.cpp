@@ -30,17 +30,44 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <libtorrent/kademlia/closest_nodes.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
-#include "libtorrent/assert.hpp"
 
 namespace libtorrent { namespace dht
 {
 
 using asio::ip::udp;
+
+typedef boost::shared_ptr<observer> observer_ptr;
+
+class closest_nodes_observer : public observer
+{
+public:
+	closest_nodes_observer(
+		boost::intrusive_ptr<traversal_algorithm> const& algorithm
+		, node_id self
+		, node_id target)
+		: m_algorithm(algorithm)
+		, m_target(target) 
+		, m_self(self)
+	{}
+	~closest_nodes_observer();
+
+	void send(msg& p)
+	{
+		p.info_hash = m_target;
+	}
+
+	void timeout();
+	void reply(msg const&);
+	void abort() { m_algorithm = 0; }
+
+private:
+	boost::intrusive_ptr<traversal_algorithm> m_algorithm;
+	node_id const m_target;
+	node_id const m_self;
+};
 
 closest_nodes_observer::~closest_nodes_observer()
 {
@@ -51,7 +78,7 @@ void closest_nodes_observer::reply(msg const& in)
 {
 	if (!m_algorithm)
 	{
-		TORRENT_ASSERT(false);
+		assert(false);
 		return;
 	}
 
@@ -100,9 +127,8 @@ closest_nodes::closest_nodes(
 
 void closest_nodes::invoke(node_id const& id, udp::endpoint addr)
 {
-	TORRENT_ASSERT(m_rpc.allocation_size() >= sizeof(closest_nodes_observer));
-	observer_ptr o(new (m_rpc.allocator().malloc()) closest_nodes_observer(this, id, m_target));
-	m_rpc.invoke(messages::find_node, addr, o);
+	observer_ptr p(new closest_nodes_observer(this, id, m_target));
+	m_rpc.invoke(messages::find_node, addr, p);
 }
 
 void closest_nodes::done()

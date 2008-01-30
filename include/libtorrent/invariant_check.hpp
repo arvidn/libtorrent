@@ -5,7 +5,7 @@
 #ifndef TORRENT_INVARIANT_ACCESS_HPP_INCLUDED
 #define TORRENT_INVARIANT_ACCESS_HPP_INCLUDED
 
-#include "libtorrent/assert.hpp"
+#include <cassert>
 
 namespace libtorrent
 {
@@ -40,7 +40,7 @@ namespace libtorrent
 			}
 			catch (...)
 			{
-				TORRENT_ASSERT(false);
+				assert(false);
 			}
 		}
 
@@ -52,7 +52,7 @@ namespace libtorrent
 			}
 			catch (...)
 			{
-				TORRENT_ASSERT(false);
+				assert(false);
 			}
 		}
 
@@ -66,7 +66,7 @@ namespace libtorrent
 	}
 }
 
-#if !defined NDEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#ifndef NDEBUG
 #define INVARIANT_CHECK \
 	invariant_checker const& _invariant_check = make_invariant_checker(*this); \
 	(void)_invariant_check; \

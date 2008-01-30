@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {
@@ -82,35 +81,8 @@ namespace libtorrent
 		{ return std::auto_ptr<alert>(new tracker_warning_alert(*this)); }
 	};
 
-	struct TORRENT_EXPORT scrape_reply_alert: torrent_alert
-	{
-		scrape_reply_alert(torrent_handle const& h
-			, int incomplete_
-			, int complete_
-			, std::string const& msg)
-			: torrent_alert(h, alert::info, msg)
-			, incomplete(incomplete_)
-			, complete(complete_)
-		{}
 
-		int incomplete;
-		int complete;
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new scrape_reply_alert(*this)); }
-	};
-
-	struct TORRENT_EXPORT scrape_failed_alert: torrent_alert
-	{
-		scrape_failed_alert(torrent_handle const& h
-			, std::string const& msg)
-			: torrent_alert(h, alert::warning, msg)
-		{}
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new scrape_failed_alert(*this)); }
-	};
-
+	
 	struct TORRENT_EXPORT tracker_reply_alert: torrent_alert
 	{
 		tracker_reply_alert(torrent_handle const& h
@@ -144,7 +116,7 @@ namespace libtorrent
 			, std::string const& msg)
 			: torrent_alert(h, alert::info, msg)
 			, piece_index(index)
-		{ TORRENT_ASSERT(index >= 0);}
+		{ assert(index >= 0);}
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new hash_failed_alert(*this)); }
@@ -214,104 +186,6 @@ namespace libtorrent
 		{ return std::auto_ptr<alert>(new torrent_finished_alert(*this)); }
 	};
 
-	struct TORRENT_EXPORT piece_finished_alert: torrent_alert
-	{
-		piece_finished_alert(
-			const torrent_handle& h
-			, int piece_num
-			, const std::string& msg)
-			: torrent_alert(h, alert::debug, msg)
-			, piece_index(piece_num)
-		{ TORRENT_ASSERT(piece_index >= 0);}
-
-		int piece_index;
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new piece_finished_alert(*this)); }
-	};
-
-	struct TORRENT_EXPORT block_finished_alert: torrent_alert
-	{
-		block_finished_alert(
-			const torrent_handle& h
-			, int block_num
-			, int piece_num
-			, const std::string& msg)
-			: torrent_alert(h, alert::debug, msg)
-			, block_index(block_num)
-			, piece_index(piece_num)
-		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}
-
-		int block_index;
-		int piece_index;
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new block_finished_alert(*this)); }
-	};
-
-	struct TORRENT_EXPORT block_downloading_alert: torrent_alert
-	{
-		block_downloading_alert(
-			const torrent_handle& h
-			, char const* speedmsg
-			, int block_num
-			, int piece_num
-			, const std::string& msg)
-			: torrent_alert(h, alert::debug, msg)
-			, peer_speedmsg(speedmsg)
-			, block_index(block_num)
-			, piece_index(piece_num)
-		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}
-
-		std::string peer_speedmsg;
-		int block_index;
-		int piece_index;
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new block_downloading_alert(*this)); }
-	};
-
-	struct TORRENT_EXPORT storage_moved_alert: torrent_alert
-	{
-		storage_moved_alert(torrent_handle const& h, std::string const& path)
-			: torrent_alert(h, alert::warning, path)
-		{}
-	
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new storage_moved_alert(*this)); }
-	};
-
-	struct TORRENT_EXPORT torrent_deleted_alert: torrent_alert
-	{
-		torrent_deleted_alert(torrent_handle const& h, std::string const& msg)
-			: torrent_alert(h, alert::warning, msg)
-		{}
-	
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new torrent_deleted_alert(*this)); }
-	};
-
-	struct TORRENT_EXPORT torrent_paused_alert: torrent_alert
-	{
-		torrent_paused_alert(torrent_handle const& h, std::string const& msg)
-			: torrent_alert(h, alert::warning, msg)
-		{}
-	
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new torrent_paused_alert(*this)); }
-	};
-
-	struct TORRENT_EXPORT torrent_checked_alert: torrent_alert
-	{
-		torrent_checked_alert(torrent_handle const& h, std::string const& msg)
-			: torrent_alert(h, alert::info, msg)
-		{}
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new torrent_checked_alert(*this)); }
-  };
-
-
 	struct TORRENT_EXPORT url_seed_alert: torrent_alert
 	{
 		url_seed_alert(
@@ -367,51 +241,12 @@ namespace libtorrent
 	struct TORRENT_EXPORT listen_failed_alert: alert
 	{
 		listen_failed_alert(
-			tcp::endpoint const& ep
-			, std::string const& msg)
+			const std::string& msg)
 			: alert(alert::fatal, msg)
-			, endpoint(ep)
 		{}
-
-		tcp::endpoint endpoint;
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new listen_failed_alert(*this)); }
-	};
-
-	struct TORRENT_EXPORT listen_succeeded_alert: alert
-	{
-		listen_succeeded_alert(
-			tcp::endpoint const& ep
-			, std::string const& msg)
-			: alert(alert::fatal, msg)
-			, endpoint(ep)
-		{}
-
-		tcp::endpoint endpoint;
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new listen_succeeded_alert(*this)); }
-	};
-
-	struct TORRENT_EXPORT portmap_error_alert: alert
-	{
-		portmap_error_alert(const std::string& msg)
-			: alert(alert::warning, msg)
-		{}
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new portmap_error_alert(*this)); }
-	};
-
-	struct TORRENT_EXPORT portmap_alert: alert
-	{
-		portmap_alert(const std::string& msg)
-			: alert(alert::info, msg)
-		{}
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new portmap_alert(*this)); }
 	};
 
 	struct TORRENT_EXPORT fastresume_rejected_alert: torrent_alert
@@ -423,20 +258,6 @@ namespace libtorrent
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new fastresume_rejected_alert(*this)); }
-	};
-
-	struct TORRENT_EXPORT peer_blocked_alert: alert
-	{
-		peer_blocked_alert(address const& ip_
-			, std::string const& msg)
-			: alert(alert::info, msg)
-			, ip(ip_)
-		{}
-		
-		address ip;
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new peer_blocked_alert(*this)); }
 	};
 
 }

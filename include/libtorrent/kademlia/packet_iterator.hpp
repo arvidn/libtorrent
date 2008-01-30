@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,30 +30,66 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_MAGNET_URI_HPP_INCLUDED
-#define TORRENT_MAGNET_URI_HPP_INCLUDED
+#ifndef PACKET_ITERATOR_HPP
+#define PACKET_ITERATOR_HPP
 
-#include <string>
-#include "libtorrent/config.hpp"
-#include "libtorrent/torrent_handle.hpp"
-#include "libtorrent/session.hpp"
-#include <boost/filesystem/path.hpp>
+#include <boost/iterator/iterator_facade.hpp>
+#include <vector>
+#include <stdexcept>
 
-namespace libtorrent
+namespace libtorrent { namespace dht
 {
-	namespace fs = boost::filesystem;
 
-	struct torrent_handle;
+class packet_iterator: public boost::iterator_facade<
+	packet_iterator, const char, boost::forward_traversal_tag>
+{
+public:
+	typedef std::vector<char>::const_iterator base_iterator;
 
-	std::string TORRENT_EXPORT make_magnet_uri(torrent_handle const& handle);
+	packet_iterator() {}
+	
+	packet_iterator(std::vector<char>::const_iterator start
+		, std::vector<char>::const_iterator end
+		, std::string const& error_msg = "")
+		: m_base(start)
+		, m_end(end)
+		, m_msg(error_msg)
+	{}
 
-	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
-		, fs::path const& save_path
-		, storage_mode_t storage_mode = storage_mode_sparse
-		, bool paused = false
-		, storage_constructor_type sc = default_storage_constructor
-		, void* userdata = 0);
-}
+	base_iterator base() const
+	{ return m_base; }
+	
+	base_iterator end() const
+	{ return m_end; }
 
-#endif
+	int left() const { return int(m_end - m_base); }
+
+private:
+	friend class boost::iterator_core_access;
+
+	bool equal(packet_iterator const& other) const
+	{ return m_base == other.m_base; }
+
+	void advance(int n)
+	{
+		m_base += n;
+	}
+
+	void increment()
+	{ ++m_base; }
+
+	char const& dereference() const
+	{
+		if (m_base == m_end) throw std::runtime_error(m_msg);
+		return *m_base;
+	}
+
+	base_iterator m_base;
+	base_iterator m_end;
+	std::string m_msg;
+};
+
+} } // namespace libtorrent::dht
+
+#endif // PACKET_ITERATOR_HPP
 

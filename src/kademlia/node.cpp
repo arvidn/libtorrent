@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <utility>
 #include <boost/bind.hpp>
 #include <boost/optional.hpp>
@@ -43,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random_sample.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/rpc_manager.hpp"
+#include "libtorrent/kademlia/packet_iterator.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/kademlia/node.hpp"
 
@@ -51,6 +50,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/find_data.hpp"
 
 using boost::bind;
+using boost::posix_time::second_clock;
+using boost::posix_time::seconds;
+using boost::posix_time::minutes;
+using boost::posix_time::ptime;
+using boost::posix_time::time_duration;
 
 namespace libtorrent { namespace dht
 {
@@ -61,6 +65,8 @@ namespace
 	char rand() { return (char)std::rand(); }
 }
 #endif
+
+typedef boost::shared_ptr<observer> observer_ptr;
 
 // TODO: configurable?
 enum { announce_interval = 30 };
@@ -93,7 +99,7 @@ void purge_peers(std::set<peer_entry>& peers)
 		  , end(peers.end()); i != end;)
 	{
 		// the peer has timed out
-		if (i->added + minutes(int(announce_interval * 1.5f)) < time_now())
+		if (i->added + minutes(int(announce_interval * 1.5f)) < second_clock::universal_time())
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(node) << "peer timed out at: " << i->addr.address();
@@ -114,7 +120,7 @@ node_impl::node_impl(boost::function<void(msg const&)> const& f
 	, m_table(m_id, 8, settings)
 	, m_rpc(bind(&node_impl::incoming_request, this, _1)
 		, m_id, m_table, f)
-	, m_last_tracker_tick(time_now())
+	, m_last_tracker_tick(boost::posix_time::second_clock::universal_time())
 {
 	m_secret[0] = std::rand();
 	m_secret[1] = std::rand();
@@ -123,20 +129,9 @@ node_impl::node_impl(boost::function<void(msg const&)> const& f
 bool node_impl::verify_token(msg const& m)
 {
 	if (m.write_token.type() != entry::string_t)
-	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(node) << "token of incorrect type " << m.write_token.type();
-#endif
 		return false;
-	}
 	std::string const& token = m.write_token.string();
-	if (token.length() != 4)
-	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(node) << "token of incorrect length: " << token.length();
-#endif
-		return false;
-	}
+	if (token.length() != 4) return false;
 
 	hasher h1;
 	std::string address = m.addr.address().to_string();
@@ -147,7 +142,7 @@ bool node_impl::verify_token(msg const& m)
 	sha1_hash h = h1.final();
 	if (std::equal(token.begin(), token.end(), (signed char*)&h[0]))
 		return true;
-		
+
 	hasher h2;
 	h2.update(&address[0], address.length());
 	h2.update((char*)&m_secret[1], sizeof(m_secret[1]));
@@ -218,7 +213,7 @@ void node_impl::new_write_key()
 
 void node_impl::refresh_bucket(int bucket) try
 {
-	TORRENT_ASSERT(bucket >= 0 && bucket < 160);
+	assert(bucket >= 0 && bucket < 160);
 	
 	// generate a random node_id within the given bucket
 	node_id target = generate_id();
@@ -242,7 +237,7 @@ void node_impl::refresh_bucket(int bucket) try
 	target[(num_bits - 1) / 8] |=
 		(~(m_id[(num_bits - 1) / 8])) & (0x80 >> ((num_bits - 1) % 8));
 
-	TORRENT_ASSERT(distance_exp(m_id, target) == bucket);
+	assert(distance_exp(m_id, target) == bucket);
 
 	std::vector<node_entry> start;
 	start.reserve(m_table.bucket_size());
@@ -264,6 +259,70 @@ void node_impl::incoming(msg const& m)
 
 namespace
 {
+
+	class announce_observer : public observer
+	{
+	public:
+		announce_observer(sha1_hash const& info_hash, int listen_port
+			, entry const& write_token)
+			: m_info_hash(info_hash)
+			, m_listen_port(listen_port)
+			, m_token(write_token)
+		{}
+
+		void send(msg& m)
+		{
+			m.port = m_listen_port;
+			m.info_hash = m_info_hash;
+			m.write_token = m_token;
+		}
+
+		void timeout() {}
+		void reply(msg const&) {}
+		void abort() {}
+
+	private:
+		sha1_hash m_info_hash;
+		int m_listen_port;
+		entry m_token;
+	};
+
+	class get_peers_observer : public observer
+	{
+	public:
+		get_peers_observer(sha1_hash const& info_hash, int listen_port
+			, rpc_manager& rpc
+			, boost::function<void(std::vector<tcp::endpoint> const&, sha1_hash const&)> f)
+			: m_info_hash(info_hash)
+			, m_listen_port(listen_port)
+			, m_rpc(rpc)
+			, m_fun(f)
+		{}
+
+		void send(msg& m)
+		{
+			m.port = m_listen_port;
+			m.info_hash = m_info_hash;
+		}
+
+		void timeout() {}
+		void reply(msg const& r)
+		{
+			m_rpc.invoke(messages::announce_peer, r.addr
+				, boost::shared_ptr<observer>(
+				new announce_observer(m_info_hash, m_listen_port, r.write_token)));
+			m_fun(r.peers, m_info_hash);
+		}
+		void abort() {}
+
+	private:
+		sha1_hash m_info_hash;
+		int m_listen_port;
+		rpc_manager& m_rpc;
+		boost::function<void(std::vector<tcp::endpoint> const&, sha1_hash const&)> m_fun;
+	};
+
+
 	void announce_fun(std::vector<node_entry> const& v, rpc_manager& rpc
 		, int listen_port, sha1_hash const& ih
 		, boost::function<void(std::vector<tcp::endpoint> const&, sha1_hash const&)> f)
@@ -273,11 +332,23 @@ namespace
 		for (std::vector<node_entry>::const_iterator i = v.begin()
 			, end(v.end()); i != end; ++i)
 		{
-			rpc.invoke(messages::get_peers, i->addr, observer_ptr(
-				new (rpc.allocator().malloc()) get_peers_observer(ih, listen_port, rpc, f)));
+			rpc.invoke(messages::get_peers, i->addr, boost::shared_ptr<observer>(
+				new get_peers_observer(ih, listen_port, rpc, f)));
 			nodes = true;
 		}
 	}
+
+}
+
+namespace
+{
+	struct dummy_observer : observer
+	{
+		virtual void reply(msg const&) {}
+		virtual void timeout() {}
+		virtual void send(msg&) {}
+		virtual void abort() {}
+	};
 }
 
 void node_impl::add_router_node(udp::endpoint router)
@@ -289,8 +360,8 @@ void node_impl::add_node(udp::endpoint node)
 {
 	// ping the node, and if we get a reply, it
 	// will be added to the routing table
-	observer_ptr o(new (m_rpc.allocator().malloc()) null_observer(m_rpc.allocator()));
-	m_rpc.invoke(messages::ping, node, o);
+	observer_ptr p(new dummy_observer());
+	m_rpc.invoke(messages::ping, node, p);
 }
 
 void node_impl::announce(sha1_hash const& info_hash, int listen_port
@@ -307,44 +378,34 @@ void node_impl::announce(sha1_hash const& info_hash, int listen_port
 time_duration node_impl::refresh_timeout()
 {
 	int refresh = -1;
-	ptime now = time_now();
+	ptime now = second_clock::universal_time();
 	ptime next = now + minutes(15);
 	try
 	{
 		for (int i = 0; i < 160; ++i)
 		{
 			ptime r = m_table.next_refresh(i);
-			if (r <= next)
+			if (r <= now)
 			{
-				refresh = i;
+				if (refresh == -1) refresh = i;
+			}
+			else if (r < next)
+			{
 				next = r;
 			}
 		}
-		if (next < now)
+		if (refresh != -1)
 		{
-			TORRENT_ASSERT(refresh > -1);
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(node) << "refreshing bucket: " << refresh;
-#endif
+	#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			TORRENT_LOG(node) << "refreshing bucket: " << refresh;
+	#endif
 			refresh_bucket(refresh);
 		}
 	}
 	catch (std::exception&) {}
 
-	time_duration next_refresh = next - now;
-	time_duration min_next_refresh
-		= minutes(15) / (m_table.num_active_buckets());
-	if (min_next_refresh > seconds(40))
-		min_next_refresh = seconds(40);
-
-	if (next_refresh < min_next_refresh)
-		next_refresh = min_next_refresh;
-
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(node) << "next refresh: " << total_seconds(next_refresh) << " seconds";
-#endif
-
-	return next_refresh;
+	if (next < now + seconds(5)) return seconds(5);
+	return next - now;
 }
 
 time_duration node_impl::connection_timeout()
@@ -352,7 +413,7 @@ time_duration node_impl::connection_timeout()
 	time_duration d = m_rpc.tick();
 	try
 	{
-		ptime now(time_now());
+		ptime now(second_clock::universal_time());
 		if (now - m_last_tracker_tick < minutes(10)) return d;
 		m_last_tracker_tick = now;
 		
@@ -383,7 +444,7 @@ void node_impl::on_announce(msg const& m, msg& reply)
 	{
 		reply.message_id = messages::error;
 		reply.error_code = 203;
-		reply.error_msg = "Incorrect token in announce_peer";
+		reply.error_msg = "Incorrect write token in announce_peer message";
 		return;
 	}
 
@@ -395,7 +456,7 @@ void node_impl::on_announce(msg const& m, msg& reply)
 	torrent_entry& v = m_map[m.info_hash];
 	peer_entry e;
 	e.addr = tcp::endpoint(m.addr.address(), m.addr.port());
-	e.added = time_now();
+	e.added = second_clock::universal_time();
 	std::set<peer_entry>::iterator i = v.peers.find(e);
 	if (i != v.peers.end()) v.peers.erase(i++);
 	v.peers.insert(i, e);
@@ -436,11 +497,6 @@ bool node_impl::on_find(msg const& m, std::vector<tcp::endpoint>& peers) const
 void node_impl::incoming_request(msg const& m)
 {
 	msg reply;
-	reply.message_id = m.message_id;
-	reply.addr = m.addr;
-	reply.reply = true;
-	reply.transaction_id = m.transaction_id;
-
 	switch (m.message_id)
 	{
 	case messages::ping:
@@ -480,16 +536,16 @@ void node_impl::incoming_request(msg const& m)
 		}
 		break;
 	case messages::announce_peer:
-		on_announce(m, reply);
+		{
+			on_announce(m, reply);
+		}
 		break;
-	default:
-		TORRENT_ASSERT(false);
 	};
 
 	if (m_table.need_node(m.id))
-		m_rpc.reply_with_ping(reply);
+		m_rpc.reply_with_ping(reply, m);
 	else
-		m_rpc.reply(reply);
+		m_rpc.reply(reply, m);
 }
 
 

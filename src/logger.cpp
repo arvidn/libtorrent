@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -40,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/convenience.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -53,20 +52,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/peer_connection.hpp"
 
-namespace libtorrent {
-
-namespace fs = boost::filesystem;
-
-namespace
+namespace libtorrent { namespace
 {
 
 	struct logger_peer_plugin : peer_plugin
 	{
 		logger_peer_plugin(std::string const& filename)
 		{
-			fs::path dir(fs::complete("libtorrent_ext_logs"));
-			if (!fs::exists(dir)) fs::create_directories(dir);
-			m_file.open((dir / filename).string().c_str(), std::ios_base::out | std::ios_base::out);
+			using namespace boost::filesystem;
+			path dir(complete("libtorrent_ext_logs"));
+			if (!exists(dir)) create_directories(dir);
+			m_file.open(dir / filename, std::ios_base::out | std::ios_base::out);
 			m_file << "\n\n\n";
 			log_timestamp();
 			m_file << "*** starting log ***\n";
@@ -74,7 +70,9 @@ namespace
 
 		void log_timestamp()
 		{
-			m_file << time_now_string() << ": ";
+			using namespace boost::posix_time;
+			std::string now(to_simple_string(second_clock::universal_time()));
+			m_file << now << ": ";
 		}
 
 		// can add entries to the extension handshake
@@ -204,7 +202,7 @@ namespace
 		}
 
 	private:
-		std::ofstream m_file;
+		boost::filesystem::ofstream m_file;
 	};
 
 	struct logger_plugin : torrent_plugin

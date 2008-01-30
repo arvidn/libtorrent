@@ -2,7 +2,6 @@
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/storage.hpp"
-#include "libtorrent/bencode.hpp"
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -32,65 +31,31 @@ void add_files(
 		t.add_file(l, file_size(f));
 	}
 }
-
-// proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
-void test_transfer(torrent_info torrent_file, int proxy)
+void start_web_server()
 {
-	using namespace libtorrent;
-
-	session ses;
-	ses.set_severity_level(alert::debug);
-	ses.listen_on(std::make_pair(51000, 52000));
-	remove_all("./tmp1");
-
-	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
-
-	std::cerr << "  ==== TESTING " << test_name[proxy] << " proxy ====" << std::endl;
+	std::ofstream f("./lighty_config");
+	f << "server.modules = (\"mod_access\")\n"
+		"server.document-root = \"" << initial_path().string() << "\"\n"
+		"server.range-requests = \"enable\"\n"
+		"server.port = 8000\n"
+		"server.pid-file = \"./lighty.pid\"\n";
+	f.close();
 	
-	if (proxy)
-	{
-		start_proxy(8002, proxy);
-		proxy_settings ps;
-		ps.hostname = "127.0.0.1";
-		ps.port = 8002;
-		ps.username = "testuser";
-		ps.password = "testpass";
-		ps.type = (proxy_settings::proxy_type)proxy;
-		ses.set_web_seed_proxy(ps);
-	}
-
-	torrent_handle th = ses.add_torrent(torrent_file, "./tmp1");
-
-	std::vector<announce_entry> empty;
-	th.replace_trackers(empty);
-
-	for (int i = 0; i < 30; ++i)
-	{
-		torrent_status s = th.status();
-		std::cerr << s.progress << " " << (s.download_rate / 1000.f) << std::endl;
-		std::auto_ptr<alert> a;
-		a = ses.pop_alert();
-		if (a.get())
-			std::cerr << a->msg() << "\n";
-
-		if (th.is_seed()) break;
-		test_sleep(1000);
-	}
-
-	TEST_CHECK(th.is_seed());
-
-	if (proxy) stop_proxy(8002);
-
-	remove_all("./tmp1");
+	system("lighttpd -f lighty_config &");
 }
 
-int test_main()
+void stop_web_server()
+{
+	system("kill `cat ./lighty.pid`");
+}
+
+void test_transfer()
 {
 	using namespace libtorrent;
-	using namespace boost::filesystem;
+	
+	torrent_info torrent_file;
 
-	boost::intrusive_ptr<torrent_info> torrent_file(new torrent_info);
-	torrent_file->add_url_seed("http://127.0.0.1:8000/");
+	torrent_file.add_url_seed("http://127.0.0.1:8000/");
 
 	create_directory("test_torrent");
 	char random_data[300000];
@@ -104,34 +69,58 @@ int test_main()
 	std::ofstream("./test_torrent/test6").write(random_data, 300000);
 	std::ofstream("./test_torrent/test7").write(random_data, 300000);
 
-	add_files(*torrent_file, complete("."), "test_torrent");
+	add_files(torrent_file, complete("."), "test_torrent");
 
-	start_web_server(8000);
+	start_web_server();
 
 	file_pool fp;
-	boost::scoped_ptr<storage_interface> s(default_storage_constructor(
-		torrent_file, ".", fp));
+	storage st(torrent_file, ".", fp);
 	// calculate the hash for all pieces
-	int num = torrent_file->num_pieces();
-	std::vector<char> buf(torrent_file->piece_length());
+	int num = torrent_file.num_pieces();
+	std::vector<char> buf(torrent_file.piece_length());
 	for (int i = 0; i < num; ++i)
 	{
-		s->read(&buf[0], i, 0, torrent_file->piece_size(i));
-		hasher h(&buf[0], torrent_file->piece_size(i));
-		torrent_file->set_hash(i, h.final());
+		st.read(&buf[0], i, 0, torrent_file.piece_size(i));
+		hasher h(&buf[0], torrent_file.piece_size(i));
+		torrent_file.set_hash(i, h.final());
 	}
 	
 	// to calculate the info_hash
-	entry te = torrent_file->create_torrent();
+	torrent_file.create_torrent();
 
+	session ses;
+	remove_all("./tmp1");
+	torrent_handle th = ses.add_torrent(torrent_file, "./tmp1");
 
-	for (int i = 0; i < 6; ++i)
-		test_transfer(*torrent_file, i);
+	for (int i = 0; i < 70; ++i)
+	{
+		torrent_status s = th.status();
+		std::cerr << s.progress << " " << (s.download_rate / 1000.f) << "\r";
+		std::auto_ptr<alert> a;
+		a = ses.pop_alert();
+		if (a.get())
+			std::cerr << a->msg() << "\n";
 
+		if (th.is_seed()) break;
+		sleep(999);
+	}
 
-	
-	stop_web_server(8000);
+	TEST_CHECK(th.is_seed());
+
 	remove_all("./test_torrent");
+	stop_web_server();
+}
+
+int test_main()
+{
+	using namespace libtorrent;
+	using namespace boost::filesystem;
+
+	test_transfer();
+
+	remove_all("./tmp1");
+	remove_all("./tmp2");
+
 	return 0;
 }
 

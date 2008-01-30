@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/weak_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/array.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/optional.hpp>
 #include <boost/cstdint.hpp>
 
@@ -65,6 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent.hpp"
+#include "libtorrent/allocate_resources.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/config.hpp"
@@ -94,10 +96,10 @@ namespace libtorrent
 		web_peer_connection(
 			aux::session_impl& ses
 			, boost::weak_ptr<torrent> t
-			, boost::shared_ptr<socket_type> s
+			, boost::shared_ptr<stream_socket> s
 			, tcp::endpoint const& remote
-			, std::string const& url
-			, policy::peer* peerinfo);
+			, tcp::endpoint const& proxy
+			, std::string const& url);
 
 		~web_peer_connection();
 
@@ -110,7 +112,7 @@ namespace libtorrent
 			
 		std::string const& url() const { return m_url; }
 		
-		virtual void get_specific_peer_info(peer_info& p) const;
+		virtual void get_peer_info(peer_info& p) const;
 		virtual bool in_handshake() const;
 
 		// the following functions appends messages
@@ -120,14 +122,11 @@ namespace libtorrent
 		void write_interested() {}
 		void write_not_interested() {}
 		void write_request(peer_request const& r);
-		void write_cancel(peer_request const& r)
-		{ incoming_reject_request(r); }
+		void write_cancel(peer_request const& r) {}
 		void write_have(int index) {}
-		void write_piece(peer_request const& r, char* buffer) { TORRENT_ASSERT(false); }
+		void write_piece(peer_request const& r) {}
 		void write_keepalive() {}
 		void on_connected();
-		void write_reject_request(peer_request const&) {}
-		void write_allow_fast(int) {}
 
 #ifndef NDEBUG
 		void check_invariant() const;
@@ -150,7 +149,6 @@ namespace libtorrent
 
 		std::string m_server_string;
 		http_parser m_parser;
-		std::string m_auth;
 		std::string m_host;
 		int m_port;
 		std::string m_path;

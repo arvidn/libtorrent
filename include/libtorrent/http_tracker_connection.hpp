@@ -43,9 +43,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/shared_ptr.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/tuple/tuple.hpp>
-#include <boost/lexical_cast.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -59,18 +59,53 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/buffer.hpp"
-#include "libtorrent/socket_type.hpp"
-#include "libtorrent/connection_queue.hpp"
-#include "libtorrent/http_parser.hpp"
-
-#ifdef TORRENT_USE_OPENSSL
-#include "libtorrent/ssl_stream.hpp"
-#include "libtorrent/variant_stream.hpp"
-#endif
 
 namespace libtorrent
 {
 	
+	class http_parser
+	{
+	public:
+		http_parser();
+		template <class T>
+		T header(char const* key) const;
+		std::string const& protocol() const { return m_protocol; }
+		int status_code() const { return m_status_code; }
+		std::string message() const { return m_server_message; }
+		buffer::const_interval get_body() const;
+		bool header_finished() const { return m_state == read_body; }
+		bool finished() const { return m_finished; }
+		boost::tuple<int, int> incoming(buffer::const_interval recv_buffer);
+		int body_start() const { return m_body_start_pos; }
+		int content_length() const { return m_content_length; }
+
+		void reset();
+	private:
+		int m_recv_pos;
+		int m_status_code;
+		std::string m_protocol;
+		std::string m_server_message;
+
+		int m_content_length;
+
+		enum { read_status, read_header, read_body } m_state;
+
+		std::map<std::string, std::string> m_header;
+		buffer::const_interval m_recv_buffer;
+		int m_body_start_pos;
+
+		bool m_finished;
+	};
+
+	template <class T>
+	T http_parser::header(char const* key) const
+	{
+		std::map<std::string, std::string>::const_iterator i
+			= m_header.find(key);
+		if (i == m_header.end()) return T();
+		return boost::lexical_cast<T>(i->second);
+	}
+
 	class TORRENT_EXPORT http_tracker_connection
 		: public tracker_connection
 	{
@@ -78,21 +113,16 @@ namespace libtorrent
 	public:
 
 		http_tracker_connection(
-			io_service& ios
-			, connection_queue& cc
+			asio::strand& str
 			, tracker_manager& man
 			, tracker_request const& req
-			, std::string const& protocol
 			, std::string const& hostname
 			, unsigned short port
 			, std::string request
 			, address bind_infc
 			, boost::weak_ptr<request_callback> c
 			, session_settings const& stn
-			, proxy_settings const& ps
 			, std::string const& password = "");
-
-		void close();
 
 	private:
 
@@ -106,7 +136,6 @@ namespace libtorrent
 			, std::string const& request);
 
 		void name_lookup(asio::error_code const& error, tcp::resolver::iterator i);
-		void connect(int ticket, tcp::endpoint target_address);
 		void connected(asio::error_code const& error);
 		void sent(asio::error_code const& error);
 		void receive(asio::error_code const& error
@@ -115,31 +144,23 @@ namespace libtorrent
 		virtual void on_timeout();
 
 		void parse(const entry& e);
-		bool extract_peer_info(const entry& e, peer_entry& ret);
+		peer_entry extract_peer_info(const entry& e);
 
 		tracker_manager& m_man;
 		http_parser m_parser;
 
+		asio::strand& m_strand;
 		tcp::resolver m_name_lookup;
 		int m_port;
-#ifdef TORRENT_USE_OPENSSL
-		variant_stream<socket_type, ssl_stream<socket_type> > m_socket;
-		bool m_ssl;
-#else
-		socket_type m_socket;
-#endif
+		boost::shared_ptr<stream_socket> m_socket;
 		int m_recv_pos;
 		std::vector<char> m_buffer;
 		std::string m_send_buffer;
 
 		session_settings const& m_settings;
-		proxy_settings const& m_proxy;
 		std::string m_password;
-	
-		bool m_timed_out;
 
-		int m_connection_ticket;
-		connection_queue& m_cc;
+		bool m_timed_out;
 	};
 
 }

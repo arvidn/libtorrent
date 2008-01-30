@@ -54,40 +54,9 @@ namespace libtorrent
 			local_connection = 0x20,
 			handshake = 0x40,
 			connecting = 0x80,
-			queued = 0x100,
-			on_parole = 0x200,
-			seed = 0x400,
-			optimistic_unchoke = 0x800
-#ifndef TORRENT_DISABLE_ENCRYPTION
-			, rc4_encrypted = 0x100000,
-			plaintext_encrypted = 0x200000
-#endif
+			queued = 0x100
 		};
-
 		unsigned int flags;
-
-		enum peer_source_flags
-		{
-			tracker = 0x1,
-			dht = 0x2,
-			pex = 0x4,
-			lsd = 0x8,
-			resume_data = 0x10,
-			incoming = 0x20
-		};
-
-		int source;
-
-		// bw_idle: the channel is not used
-		// bw_torrent: the channel is waiting for torrent quota
-		// bw_global: the channel is waiting for global quota
-		// bw_network: the channel is waiting for an async write
-		//   for read operation to complete
-		enum bw_state { bw_idle, bw_torrent, bw_global, bw_network };
-
-		char read_state;
-		char write_state;
-		
 		tcp::endpoint ip;
 		float up_speed;
 		float down_speed;
@@ -97,30 +66,15 @@ namespace libtorrent
 		size_type total_upload;
 		peer_id pid;
 		std::vector<bool> pieces;
+		bool seed; // true if this is a seed
 		int upload_limit;
 		int download_limit;
-
-		// time since last request
-		time_duration last_request;
-
-		// time since last download or upload
-		time_duration last_active;
-
-		// the size of the send buffer for this peer, in bytes
-		int send_buffer_size;
-		// the number bytes that's actually used of the send buffer
-		int used_send_buffer;
-
-		// the number of failed hashes for this peer
-		int num_hashfails;
-
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
+		
 		// in case the session settings is set
 		// to resolve countries, this is set to
 		// the two character country code this
 		// peer resides in.
 		char country[2];
-#endif
 
 		size_type load_balancing;
 
@@ -130,19 +84,10 @@ namespace libtorrent
 		// for yet
 		int download_queue_length;
 
-		// the number of requests that is
-		// tried to be maintained (this is
-		// typically a function of download speed)
-		int target_dl_queue_length;
-
 		// this is the number of requests
 		// the peer has sent to us
 		// that we haven't sent yet
 		int upload_queue_length;
-
-		// the number of times this IP
-		// has failed to connect
-		int failcount;
 
 		// the currently downloading piece
 		// if piece index is -1 all associated
@@ -160,17 +105,6 @@ namespace libtorrent
 			web_seed = 1
 		};
 		int connection_type;
-		
-		// approximate peer download rate
-		int remote_dl_rate;
-
-		// number of bytes this peer has in
-		// the disk write queue
-		int pending_disk_bytes;
-
-		// numbers used for bandwidth limiting
-		int send_quota;
-		int receive_quota;
 	};
 
 }

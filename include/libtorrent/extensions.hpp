@@ -77,10 +77,6 @@ namespace libtorrent
 		// default behavior will be skipped
 		virtual bool on_pause() { return false; }
 		virtual bool on_resume() { return false;}
-
-		// this is called when the initial checking of
-		// files is completed.
-		virtual void on_files_checked() {}
 	};
 
 	struct TORRENT_EXPORT peer_plugin
@@ -88,7 +84,6 @@ namespace libtorrent
 		virtual ~peer_plugin() {}
 
 		// can add entries to the extension handshake
-		// this is not called for web seeds
 		virtual void add_handshake(entry&) {}
 		
 		// throwing an exception from any of the handlers (except add_handshake)
@@ -97,14 +92,12 @@ namespace libtorrent
 		// this is called when the initial BT handshake is received. Returning false
 		// means that the other end doesn't support this extension and will remove
 		// it from the list of plugins.
-		// this is not called for web seeds
 		virtual bool on_handshake() { return true; }
 		
 		// called when the extension handshake from the other end is received
 		// if this returns false, it means that this extension isn't
 		// supported by this peer. It will result in this peer_plugin
 		// being removed from the peer_connection and destructed. 
-		// this is not called for web seeds
 		virtual bool on_extension_handshake(entry const& h) { return true; }
 
 		// returning true from any of the message handlers
@@ -131,15 +124,6 @@ namespace libtorrent
 		virtual bool on_bitfield(std::vector<bool> const& bitfield)
 		{ return false; }
 
-		virtual bool on_have_all()
-		{ return false; }
-
-		virtual bool on_have_none()
-		{ return false; }
-
-		virtual bool on_allowed_fast(int index)
-		{ return false; }
-
 		virtual bool on_request(peer_request const& req)
 		{ return false; }
 
@@ -149,22 +133,14 @@ namespace libtorrent
 		virtual bool on_cancel(peer_request const& req)
 		{ return false; }
 	
-		virtual bool on_reject(peer_request const& req)
-		{ return false; }
-
-		virtual bool on_suggest(int index)
-		{ return false; }
-
 		// called when an extended message is received. If returning true,
 		// the message is not processed by any other plugin and if false
 		// is returned the next plugin in the chain will receive it to
 		// be able to handle it
-		// this is not called for web seeds
 		virtual bool on_extended(int length
 			, int msg, buffer::const_interval body)
 		{ return false; }
 
-		// this is not called for web seeds
 		virtual bool on_unknown_message(int length, int msg
 			, buffer::const_interval body)
 		{ return false; }

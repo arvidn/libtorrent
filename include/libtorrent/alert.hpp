@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <queue>
 #include <string>
+#include <cassert>
 #include <typeinfo>
 
 #ifdef _MSC_VER
@@ -43,24 +44,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/thread/mutex.hpp>
-#include <boost/thread/condition.hpp>
 
 #include <boost/preprocessor/repetition/enum_params_with_a_default.hpp>
 #include <boost/preprocessor/repetition/enum.hpp>
 #include <boost/preprocessor/repetition/enum_params.hpp>
 #include <boost/preprocessor/repetition/enum_shifted_params.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/time.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/assert.hpp"
 
-#ifndef TORRENT_MAX_ALERT_TYPES
-#define TORRENT_MAX_ALERT_TYPES 15
-#endif
+#define TORRENT_MAX_ALERT_TYPES 10
 
 namespace libtorrent {
 
@@ -73,9 +70,9 @@ namespace libtorrent {
 		virtual ~alert();
 
 		// a timestamp is automatically created in the constructor
-		ptime timestamp() const;
+		boost::posix_time::ptime timestamp() const;
 
-		std::string const& msg() const;
+		const std::string& msg() const;
 
 		severity_t severity() const;
 
@@ -84,7 +81,7 @@ namespace libtorrent {
 	private:
 		std::string m_msg;
 		severity_t m_severity;
-		ptime m_timestamp;
+		boost::posix_time::ptime m_timestamp;
 	};
 
 	class TORRENT_EXPORT alert_manager
@@ -100,13 +97,10 @@ namespace libtorrent {
 		void set_severity(alert::severity_t severity);
 		bool should_post(alert::severity_t severity) const;
 
-		alert const* wait_for_alert(time_duration max_wait);
-
 	private:
 		std::queue<alert*> m_alerts;
 		alert::severity_t m_severity;
 		mutable boost::mutex m_mutex;
-		boost::condition m_condition;
 	};
 
 	struct TORRENT_EXPORT unhandled_alert : std::exception
@@ -118,45 +112,57 @@ namespace libtorrent {
 
 		struct void_;
 
-		template<class Handler
-			, BOOST_PP_ENUM_PARAMS(TORRENT_MAX_ALERT_TYPES, class T)>
+		template<
+			class Handler
+		  , BOOST_PP_ENUM_PARAMS(TORRENT_MAX_ALERT_TYPES, class T)
+		  >
 		void handle_alert_dispatch(
-			const std::auto_ptr<alert>& alert_, const Handler& handler
-			, const std::type_info& typeid_
-			, BOOST_PP_ENUM_BINARY_PARAMS(TORRENT_MAX_ALERT_TYPES, T, *p))
+				const std::auto_ptr<alert>& alert_
+			  , const Handler& handler
+			  , const std::type_info& typeid_
+			  , BOOST_PP_ENUM_BINARY_PARAMS(TORRENT_MAX_ALERT_TYPES, T, *p))
 		{
 			if (typeid_ == typeid(T0))
 				handler(*static_cast<T0*>(alert_.get()));
 			else
-				handle_alert_dispatch(alert_, handler, typeid_
-					, BOOST_PP_ENUM_SHIFTED_PARAMS(
-					TORRENT_MAX_ALERT_TYPES, p), (void_*)0);
+				handle_alert_dispatch(
+					alert_
+				  , handler
+				  , typeid_
+				  , BOOST_PP_ENUM_SHIFTED_PARAMS(TORRENT_MAX_ALERT_TYPES, p), (void_*)0
+				);
 		}
 
 		template<class Handler>
 		void handle_alert_dispatch(
-			const std::auto_ptr<alert>& alert_
-			, const Handler& handler
-			, const std::type_info& typeid_
-			, BOOST_PP_ENUM_PARAMS(TORRENT_MAX_ALERT_TYPES, void_* BOOST_PP_INTERCEPT))
+				const std::auto_ptr<alert>& alert_
+			  , const Handler& handler
+			  , const std::type_info& typeid_
+			  , BOOST_PP_ENUM_PARAMS(TORRENT_MAX_ALERT_TYPES, void_* BOOST_PP_INTERCEPT))
 		{
 			throw unhandled_alert();
 		}
 
 	} // namespace detail
 
-	template<BOOST_PP_ENUM_PARAMS_WITH_A_DEFAULT(
-		TORRENT_MAX_ALERT_TYPES, class T, detail::void_)>
+	template<
+	  	BOOST_PP_ENUM_PARAMS_WITH_A_DEFAULT(TORRENT_MAX_ALERT_TYPES, class T, detail::void_)
+	  >
 	struct TORRENT_EXPORT handle_alert
 	{
 		template<class Handler>
-		handle_alert(const std::auto_ptr<alert>& alert_
-			, const Handler& handler)
+		handle_alert(
+			const std::auto_ptr<alert>& alert_
+		  , const Handler& handler)
 		{
 			#define ALERT_POINTER_TYPE(z, n, text) (BOOST_PP_CAT(T, n)*)0
 
-			detail::handle_alert_dispatch(alert_, handler, typeid(*alert_)
-				, BOOST_PP_ENUM(TORRENT_MAX_ALERT_TYPES, ALERT_POINTER_TYPE, _));
+			detail::handle_alert_dispatch(
+				alert_
+			  , handler
+			  , typeid(*alert_)
+			  , BOOST_PP_ENUM(TORRENT_MAX_ALERT_TYPES, ALERT_POINTER_TYPE, _)
+			);
 
 			#undef ALERT_POINTER_TYPE
 		}

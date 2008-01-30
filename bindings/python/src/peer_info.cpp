@@ -21,6 +21,7 @@ void bind_peer_info()
         .def_readonly("total_upload", &peer_info::total_upload)
         .def_readonly("pid", &peer_info::pid)
         .def_readonly("pieces", &peer_info::pieces)
+        .def_readonly("seed", &peer_info::seed)
         .def_readonly("upload_limit", &peer_info::upload_limit)
         .def_readonly("download_limit", &peer_info::download_limit)
         .def_readonly("load_balancing", &peer_info::load_balancing)
@@ -32,7 +33,6 @@ void bind_peer_info()
         .def_readonly("downloading_total", &peer_info::downloading_total)
         .def_readonly("client", &peer_info::client)
         .def_readonly("connection_type", &peer_info::connection_type)
-        .def_readonly("source", &peer_info::source)
         ;
 
     pi.attr("interesting") = (int)peer_info::interesting;
@@ -44,20 +44,8 @@ void bind_peer_info()
     pi.attr("handshake") = (int)peer_info::handshake;
     pi.attr("connecting") = (int)peer_info::connecting;
     pi.attr("queued") = (int)peer_info::queued;
-    pi.attr("on_parole") = (int)peer_info::on_parole;
-    pi.attr("seed") = (int)peer_info::seed;
-#ifndef TORRENT_DISABLE_ENCRYPTION
-    pi.attr("rc4_encrypted") = (int)peer_info::rc4_encrypted;
-    pi.attr("plaintext_encrypted") = (int)peer_info::plaintext_encrypted;
-#endif
 
     pi.attr("standard_bittorrent") = 0;
     pi.attr("web_seed") = 1;
-
-    pi.attr("tracker") = 0x1;
-    pi.attr("dht") = 0x2;
-    pi.attr("pex") = 0x4;
-    pi.attr("lsd") = 0x8;
-    pi.attr("resume_data") = 0x10;
 }
 

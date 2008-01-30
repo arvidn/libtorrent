@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/shared_ptr.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/cstdint.hpp>
 
 #ifdef _MSC_VER
@@ -65,7 +66,7 @@ namespace libtorrent
 	public:
 
 		udp_tracker_connection(
-			io_service& ios
+			asio::strand& str
 			, tracker_manager& man
 			, tracker_request const& req
 			, std::string const& hostname
@@ -73,8 +74,6 @@ namespace libtorrent
 			, address bind_infc
 			, boost::weak_ptr<request_callback> c
 			, session_settings const& stn);
-
-		void close();
 
 	private:
 
@@ -105,8 +104,9 @@ namespace libtorrent
 
 		tracker_manager& m_man;
 
+		asio::strand& m_strand;
 		udp::resolver m_name_lookup;
-		datagram_socket m_socket;
+		boost::shared_ptr<datagram_socket> m_socket;
 		udp::endpoint m_target;
 		udp::endpoint m_sender;
 

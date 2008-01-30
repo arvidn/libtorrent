@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include "libtorrent/file_pool.hpp"
 
 #include <iostream>
@@ -43,9 +41,8 @@ namespace libtorrent
 
 	boost::shared_ptr<file> file_pool::open_file(void* st, fs::path const& p, file::open_mode m)
 	{
-		TORRENT_ASSERT(st != 0);
-		TORRENT_ASSERT(p.is_complete());
-		TORRENT_ASSERT(m == file::in || m == (file::in | file::out));
+		assert(st != 0);
+		assert(p.is_complete());
 		boost::mutex::scoped_lock l(m_mutex);
 		typedef nth_index<file_set, 0>::type path_view;
 		path_view& pt = get<0>(m_files);
@@ -53,15 +50,11 @@ namespace libtorrent
 		if (i != pt.end())
 		{
 			lru_file_entry e = *i;
-			e.last_use = time_now();
+			e.last_use = pt::second_clock::universal_time();
 
-			if (e.key != st)
-			{
-				// this means that another instance of the storage
-				// is using the exact same file.
-				throw file_error("torrent uses the same file as another torrent "
-					"(" + p.string() + ")");
-			}
+			// if you hit this assert, you probably have more than one
+			// storage/torrent using the same file at the same time!
+			assert(e.key == st);
 
 			e.key = st;
 			if ((e.mode & m) != m)
@@ -69,7 +62,7 @@ namespace libtorrent
 				// close the file before we open it with
 				// the new read/write privilages
 				i->file_ptr.reset();
-				TORRENT_ASSERT(e.file_ptr.unique());
+				assert(e.file_ptr.unique());
 				e.file_ptr.reset();
 				e.file_ptr.reset(new file(p, m));
 				e.mode = m;
@@ -86,7 +79,7 @@ namespace libtorrent
 			lru_view& lt = get<1>(m_files);
 			lru_view::iterator i = lt.begin();
 			// the first entry in this view is the least recently used
-			TORRENT_ASSERT(lt.size() == 1 || (i->last_use <= boost::next(i)->last_use));
+			assert(lt.size() == 1 || (i->last_use <= boost::next(i)->last_use));
 			lt.erase(i);
 		}
 		lru_file_entry e(boost::shared_ptr<file>(new file(p, m)));
@@ -100,7 +93,7 @@ namespace libtorrent
 	void file_pool::release(void* st)
 	{
 		boost::mutex::scoped_lock l(m_mutex);
-		TORRENT_ASSERT(st != 0);
+		assert(st != 0);
 		using boost::tie;
 
 		typedef nth_index<file_set, 2>::type key_view;
@@ -113,7 +106,7 @@ namespace libtorrent
 
 	void file_pool::resize(int size)
 	{
-		TORRENT_ASSERT(size > 0);
+		assert(size > 0);
 		if (size == m_size) return;
 		boost::mutex::scoped_lock l(m_mutex);
 		m_size = size;
@@ -126,7 +119,7 @@ namespace libtorrent
 		while (int(m_files.size()) > m_size)
 		{
 			// the first entry in this view is the least recently used
-			TORRENT_ASSERT(lt.size() == 1 || (i->last_use <= boost::next(i)->last_use));
+			assert(lt.size() == 1 || (i->last_use <= boost::next(i)->last_use));
 			lt.erase(i++);
 		}
 	}
