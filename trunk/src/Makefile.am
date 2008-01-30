@@ -23,7 +23,7 @@ alert.cpp identify_client.cpp ip_filter.cpp file.cpp metadata_transfer.cpp \
 logger.cpp file_pool.cpp ut_pex.cpp lsd.cpp upnp.cpp instantiate_connection.cpp \
 socks5_stream.cpp socks4_stream.cpp http_stream.cpp connection_queue.cpp \
 disk_io_thread.cpp ut_metadata.cpp magnet_uri.cpp udp_socket.cpp smart_ban.cpp \
-http_parser.cpp $(kademlia_sources)
+http_parser.cpp gzip.cpp $(kademlia_sources)
 
 noinst_HEADERS = \
 $(top_srcdir)/include/libtorrent/alert.hpp \
@@ -49,6 +49,7 @@ $(top_srcdir)/include/libtorrent/extensions/ut_pex.hpp \
 $(top_srcdir)/include/libtorrent/file.hpp \
 $(top_srcdir)/include/libtorrent/file_pool.hpp \
 $(top_srcdir)/include/libtorrent/fingerprint.hpp \
+$(top_srcdir)/include/libtorrent/gzip.hpp \
 $(top_srcdir)/include/libtorrent/hasher.hpp \
 $(top_srcdir)/include/libtorrent/http_connection.hpp \
 $(top_srcdir)/include/libtorrent/http_stream.hpp \

@@ -143,12 +143,6 @@ namespace libtorrent
 		tracker_manager* m_manager;
 	};
 
-	TORRENT_EXPORT bool inflate_gzip(
-		std::vector<char>& buffer
-		, tracker_request const& req
-		, request_callback* requester
-		, int maximum_tracker_response_length);
-
 	struct TORRENT_EXPORT timeout_handler
 		: intrusive_ptr_base<timeout_handler>
 		, boost::noncopyable

@@ -18,6 +18,7 @@ libtorrent/extensions.hpp \
 libtorrent/file.hpp \
 libtorrent/file_pool.hpp \
 libtorrent/fingerprint.hpp \
+libtorrent/gzip.hpp \
 libtorrent/hasher.hpp \
 libtorrent/http_connection.hpp \
 libtorrent/http_stream.hpp \

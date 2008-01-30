@@ -106,6 +106,7 @@ void run_suite(std::string const& protocol, proxy_settings const& ps)
 	run_test(protocol + "://127.0.0.1:8001/redirect", 3216, 200, 2, asio::error_code(), ps);
 	run_test(protocol + "://127.0.0.1:8001/infinite_redirect", 0, 301, 6, asio::error_code(), ps);
 	run_test(protocol + "://127.0.0.1:8001/test_file", 3216, 200, 1, asio::error_code(), ps);
+	run_test(protocol + "://127.0.0.1:8001/test_file.gz", 3216, 200, 1, asio::error_code(), ps);
 	run_test(protocol + "://127.0.0.1:8001/non-existing-file", -1, 404, 1, err(), ps);
 	// if we're going through an http proxy, we won't get the same error as if the hostname
 	// resolution failed
@@ -123,7 +124,8 @@ int test_main()
 	std::srand(std::time(0));
 	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
 	std::ofstream("test_file").write(data_buffer, 3216);
-
+	std::system("gzip -9 -c test_file > test_file.gz");
+	
 	proxy_settings ps;
 	ps.hostname = "127.0.0.1";
 	ps.port = 8034;

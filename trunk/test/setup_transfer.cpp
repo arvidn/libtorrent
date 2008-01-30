@@ -80,7 +80,7 @@ void start_web_server(int port, bool ssl)
 	}
 	
 	std::ofstream f("lighty_config");
-	f << "server.modules = (\"mod_access\", \"mod_redirect\")\n"
+	f << "server.modules = (\"mod_access\", \"mod_redirect\", \"mod_setenv\")\n"
 		"server.document-root = \"" << boost::filesystem::initial_path().string() << "\"\n"
 		"server.range-requests = \"enable\"\n"
 		"server.port = " << port << "\n"
@@ -88,7 +88,11 @@ void start_web_server(int port, bool ssl)
 		"url.redirect = (\"^/redirect$\" => \""
 			<< (ssl?"https":"http") << "://127.0.0.1:" << port << "/test_file\", "
 			"\"^/infinite_redirect$\" => \""
-			<< (ssl?"https":"http") << "://127.0.0.1:" << port << "/infinite_redirect\")\n";
+			<< (ssl?"https":"http") << "://127.0.0.1:" << port << "/infinite_redirect\")\n"
+		"$HTTP[\"url\"] == \"/test_file.gz\" {\n"
+		"    setenv.add-response-header = ( \"Content-Encoding\" => \"gzip\" )\n"
+		"    mimetype.assign = ()\n"
+		"}\n";
 	// this requires lighttpd to be built with ssl support.
 	// The port distribution for mac is not built with ssl
 	// support by default.
