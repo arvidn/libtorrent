@@ -42,10 +42,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/http_tracker_connection.hpp"
+#include "libtorrent/http_parser.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/socket_type.hpp"
+#include "libtorrent/session_settings.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
@@ -56,6 +57,7 @@ namespace libtorrent
 {
 
 struct http_connection;
+struct connection_queue;
 	
 typedef boost::function<void(asio::error_code const&
 	, http_parser const&, char const* data, int size)> http_handler;
@@ -101,11 +103,11 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 
 	void get(std::string const& url, time_duration timeout = seconds(30)
 		, proxy_settings const* ps = 0, int handle_redirects = 5
-		, std::string const& user_agent = "");
+		, std::string const& user_agent = "", address const& bind_addr = address_v4::any());
 
 	void start(std::string const& hostname, std::string const& port
 		, time_duration timeout, proxy_settings const* ps = 0, bool ssl = false
-		, int handle_redirect = 5);
+		, int handle_redirect = 5, address const& bind_addr = address_v4::any());
 
 	void close();
 
@@ -183,6 +185,10 @@ private:
 
 	// true if the connection is using ssl
 	bool m_ssl;
+
+	// the address to bind to. address_v4::any()
+	// means do not bind
+	address m_bind_addr;
 };
 
 }
