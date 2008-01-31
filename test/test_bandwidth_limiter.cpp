@@ -113,7 +113,7 @@ struct torrent
 				++i->priority;
 				++i;
 			}
-			m_bandwidth_queue[channel].insert(i.base(), bw_queue_entry<peer_connection>(
+			m_bandwidth_queue[channel].insert(i.base(), bw_queue_entry<peer_connection, torrent>(
 				p, block_size, priority));
 		}
 	}
@@ -130,7 +130,7 @@ struct torrent
 		m_bandwidth_limit[channel].assign(block_size);
 	}
 	bandwidth_limit m_bandwidth_limit[1];
-	typedef std::deque<bw_queue_entry<peer_connection> > queue_t;
+	typedef std::deque<bw_queue_entry<peer_connection, torrent> > queue_t;
 	queue_t m_bandwidth_queue[1];
 	bandwidth_manager<peer_connection, torrent>& m_bandwidth_manager;
 };
@@ -220,7 +220,7 @@ void torrent::expire_bandwidth(int channel, int amount)
 	queue_t tmp;
 	while (!m_bandwidth_queue[channel].empty())
 	{
-		bw_queue_entry<peer_connection> qe = m_bandwidth_queue[channel].front();
+		bw_queue_entry<peer_connection, torrent> qe = m_bandwidth_queue[channel].front();
 		if (m_bandwidth_limit[channel].max_assignable() == 0)
 			break;
 		m_bandwidth_queue[channel].pop_front();
