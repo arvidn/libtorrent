@@ -335,10 +335,10 @@ namespace libtorrent
 		return torrent_status();
 	}
 
-	void torrent_handle::set_sequenced_download_threshold(int threshold) const
+	void torrent_handle::set_sequential_download(bool sd) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(set_sequenced_download_threshold(threshold));
+		TORRENT_FORWARD(set_sequential_download(sd));
 	}
 
 	std::string torrent_handle::name() const

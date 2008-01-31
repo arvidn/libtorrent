@@ -1,3 +1,5 @@
+	* New, more memory efficient, piece picker with sequential download
+	  support (instead of the more complicated sequential download threshold).
 	* Auto Upload slots. Automtically opens up more slots if
 	  upload limit is not met.
 	* Improved NAT-PMP support by querying the default gateway (no

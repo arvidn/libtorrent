@@ -156,6 +156,17 @@ void print_pick(std::vector<piece_block> const& picked)
 	std::cout << std::endl;
 }
 
+int test_pick(boost::shared_ptr<piece_picker> const& p)
+{
+	std::vector<piece_block> picked;
+	const std::vector<int> empty_vector;
+	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true, false, empty_vector);
+	print_pick(picked);
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_CHECK(int(picked.size()) == 1);
+	return picked[0].piece_index;
+}
+
 int test_main()
 {
 
@@ -236,7 +247,7 @@ int test_main()
 	TEST_CHECK(picked.front().piece_index == 0);
 
 // ========================================================
-
+/*
 	// test sequenced download
 	p = setup_picker("7654321", "       ", "", "");
 	picked.clear();
@@ -283,7 +294,7 @@ int test_main()
 	TEST_CHECK(int(picked.size()) == 6 * blocks_per_piece);
 	for (int i = 0; i < 6 * blocks_per_piece && i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i].piece_index == i / blocks_per_piece);
-
+*/
 // ========================================================
 
 	// test piece priorities
@@ -402,9 +413,30 @@ int test_main()
 	dc = p->distributed_copies();
 	std::cout << "distributed copies: " << dc << std::endl;
 	TEST_CHECK(fabs(dc - (1.f + 5.f / 7.f)) < 0.01f);
-	
+
 // ========================================================
+
+	// test inc_ref and dec_ref
+	p = setup_picker("1233333", "     * ", "", "");
+	TEST_CHECK(test_pick(p) == 0);
+
+	p->dec_refcount(0);
+	TEST_CHECK(test_pick(p) == 1);
+
+	p->dec_refcount(4);
+	p->dec_refcount(4);
+	TEST_CHECK(test_pick(p) == 4);
+
+	// decrease refcount on something that's not in the piece list
+	p->dec_refcount(5);
+	p->inc_refcount(5);
 	
+	p->inc_refcount(0);
+	p->dec_refcount(4);
+	TEST_CHECK(test_pick(p) == 0);
+
+// ========================================================
+/*	
 	// test have_all and have_none, with a sequenced download threshold
 	p = setup_picker("1233333", "*      ", "", "");
 	p->set_sequenced_download_threshold(3);
@@ -432,7 +464,7 @@ int test_main()
 	TEST_CHECK(picked[1 * blocks_per_piece].piece_index == 4);
 	TEST_CHECK(picked[2 * blocks_per_piece].piece_index == 5);
 	TEST_CHECK(picked[3 * blocks_per_piece].piece_index == 6);
-	
+*/	
 // ========================================================
 	
 	// test unverified_blocks, marking blocks and get_downloader
