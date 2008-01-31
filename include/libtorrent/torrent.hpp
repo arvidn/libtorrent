@@ -157,7 +157,7 @@ namespace libtorrent
 		
 		aux::session_impl& session() { return m_ses; }
 		
-		void set_sequenced_download_threshold(int threshold);
+		void set_sequential_download(bool sd);
 	
 		bool verify_resume_data(entry& rd, std::string& error)
 		{ TORRENT_ASSERT(m_storage); return m_storage->verify_resume_data(rd, error); }
@@ -371,8 +371,7 @@ namespace libtorrent
 
 		int num_pieces() const { return m_num_pieces; }
 
-		// when we get a have- or bitfield- messages, this is called for every
-		// piece a peer has gained.
+		// when we get a have message, this is called for that piece
 		void peer_has(int index)
 		{
 			if (m_picker.get())
@@ -389,6 +388,22 @@ namespace libtorrent
 #endif
 		}
 		
+		// when we get a bitfield message, this is called for that piece
+		void peer_has(std::vector<bool> const& bitfield)
+		{
+			if (m_picker.get())
+			{
+				TORRENT_ASSERT(!is_seed());
+				m_picker->inc_refcount(bitfield);
+			}
+#ifndef NDEBUG
+			else
+			{
+				TORRENT_ASSERT(is_seed());
+			}
+#endif
+		}
+
 		void peer_has_all()
 		{
 			if (m_picker.get())
@@ -404,7 +419,6 @@ namespace libtorrent
 #endif
 		}
 
-		// when peer disconnects, this is called for every piece it had
 		void peer_lost(int index)
 		{
 			if (m_picker.get())
@@ -725,7 +739,7 @@ namespace libtorrent
 		// in case the piece picker hasn't been constructed
 		// when this settings is set, this variable will keep
 		// its value until the piece picker is created
-		int m_sequenced_download_threshold;
+		bool m_sequential_download;
 
 		// is false by default and set to
 		// true when the first tracker reponse

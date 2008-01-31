@@ -1427,7 +1427,7 @@ Its declaration looks like this::
 		int upload_limit() const;
 		void set_download_limit(int limit) const;
 		int download_limit() const;
-		void set_sequenced_download_threshold(int threshold) const;
+		void set_sequential_download(bool sd) const;
 
 		void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
 		void set_peer_download_limit(asio::ip::tcp::endpoint ip, int limit) const;
@@ -1658,24 +1658,18 @@ limit.
 download, respectively.
 
 
-set_sequenced_download_threshold()
-----------------------------------
+set_sequential_download()
+-------------------------
 
 	::
 
-		void set_sequenced_download_threshold(int threshold);
+		void set_sequential_download(bool sd);
 
-sequenced-download threshold is the limit on how popular a piece has to be
-(popular == inverse of rarity) to be downloaded in sequence instead of in
-random (rarest first) order. It can be used to tweak disk performance in
-settings where the random download property is less necessary. For example, if
-the threshold is 10, all pieces which 10 or more peers have, will be downloaded
-in index order. This setting defaults to 100, which means that it is disabled
-in practice.
+Enables or disables *sequential download*. When enabled, the piece picker will pick pieces in sequence
+instead of rarest first.
 
-Setting this threshold to a very small value will affect the piece distribution
-negatively in the swarm. It should basically only be used in situations where
-the random seeks on the disk is the download bottleneck.
+Enabling sequential download will affect the piece distribution negatively in the swarm. It should be
+used sparingly.
 
 
 set_peer_upload_limit() set_peer_download_limit()

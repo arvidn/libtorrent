@@ -476,7 +476,6 @@ void add_torrent(libtorrent::session& ses
 	h.set_max_connections(50);
 	h.set_max_uploads(-1);
 	h.set_ratio(preferred_ratio);
-	h.set_sequenced_download_threshold(15);
 	h.set_upload_limit(torrent_upload_limit);
 	h.set_download_limit(torrent_download_limit);
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
@@ -860,7 +859,6 @@ int main(int ac, char* av[])
 					h.set_max_connections(50);
 					h.set_max_uploads(-1);
 					h.set_ratio(preferred_ratio);
-					h.set_sequenced_download_threshold(15);
 					h.set_upload_limit(torrent_upload_limit);
 					h.set_download_limit(torrent_download_limit);
 					continue;
@@ -878,7 +876,6 @@ int main(int ac, char* av[])
 					h.set_max_connections(50);
 					h.set_max_uploads(-1);
 					h.set_ratio(preferred_ratio);
-					h.set_sequenced_download_threshold(15);
 					h.set_upload_limit(torrent_upload_limit);
 					h.set_download_limit(torrent_download_limit);
 					continue;
@@ -903,6 +900,7 @@ int main(int ac, char* av[])
 		bool print_downloads = false;
 		bool print_piece_bar = false;
 		bool print_file_progress = false;
+		bool sequential_download = false;
 
 		for (;;)
 		{
@@ -930,7 +928,7 @@ int main(int ac, char* av[])
 					break;
 				}
 
-				if(c == 'r')
+				if (c == 'r')
 				{
 					// force reannounce on all torrents
 					std::for_each(handles.begin(), handles.end()
@@ -938,7 +936,16 @@ int main(int ac, char* av[])
 						, bind(&handles_t::value_type::second, _1)));
 				}
 
-				if(c == 'p')
+				if (c == 's')
+				{
+					// toggle torrents between sequential and rarest first mode
+					sequential_download = !sequential_download;
+					std::for_each(handles.begin(), handles.end()
+						, bind(&torrent_handle::set_sequential_download
+						, bind(&handles_t::value_type::second, _1), sequential_download));
+				}
+
+				if (c == 'p')
 				{
 					// pause all torrents
 					std::for_each(handles.begin(), handles.end()
@@ -946,7 +953,7 @@ int main(int ac, char* av[])
 						, bind(&handles_t::value_type::second, _1)));
 				}
 
-				if(c == 'u')
+				if (c == 'u')
 				{
 					// unpause all torrents
 					std::for_each(handles.begin(), handles.end()

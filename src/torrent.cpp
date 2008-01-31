@@ -187,7 +187,7 @@ namespace libtorrent
 		, m_failed_trackers(0)
 		, m_time_scaler(0)
 		, m_num_pieces(0)
-		, m_sequenced_download_threshold(0)
+		, m_sequential_download(false)
 		, m_got_tracker_response(false)
 		, m_ratio(0.f)
 		, m_total_failed_bytes(0)
@@ -249,7 +249,7 @@ namespace libtorrent
 		, m_failed_trackers(0)
 		, m_time_scaler(0)
 		, m_num_pieces(0)
-		, m_sequenced_download_threshold(0)
+		, m_sequential_download(false)
 		, m_got_tracker_response(false)
 		, m_ratio(0.f)
 		, m_total_failed_bytes(0)
@@ -1598,16 +1598,12 @@ namespace libtorrent
 			}
 			else
 			{
-				// if we're a seed, we don't keep track of piece availability
-				if (!is_seed())
+				if (m_picker.get())
 				{
 					const std::vector<bool>& pieces = p->get_bitfield();
-
-					for (std::vector<bool>::const_iterator i = pieces.begin();
-						i != pieces.end(); ++i)
-					{
-						if (*i) peer_lost(static_cast<int>(i - pieces.begin()));
-					}
+					TORRENT_ASSERT(std::count(pieces.begin(), pieces.end(), true)
+						< int(pieces.size()));
+					m_picker->dec_refcount(pieces);
 				}
 			}
 		}
@@ -2182,24 +2178,26 @@ namespace libtorrent
 
 		if (m_ses.m_connections.find(p) == m_ses.m_connections.end())
 		{
-			throw protocol_error("peer is not properly constructed");
+			p->disconnect("peer is not properly constructed");
+			return;
 		}
 
 		if (m_ses.is_aborted())
 		{
-			throw protocol_error("session is closing");
+			p->disconnect("session is closing");
+			return;
 		}
 
 		if (int(m_connections.size()) >= m_max_connections)
 		{
-			throw protocol_error("reached connection limit");
+			p->disconnect("reached connection limit");
+			return;
 		}
 
+#ifndef BOOST_NO_EXCEPTIONS
 		try
 		{
-			// if new_connection throws, we have to remove the
-			// it from the list.
-
+#endif
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			for (extension_list_t::iterator i = m_extensions.begin()
 				, end(m_extensions.end()); i != end; ++i)
@@ -2210,6 +2208,7 @@ namespace libtorrent
 #endif
 			if (!m_policy.new_connection(*p))
 				return;
+#ifndef BOOST_NO_EXCEPTIONS
 		}
 		catch (std::exception& e)
 		{
@@ -2217,13 +2216,18 @@ namespace libtorrent
 			(*m_ses.m_logger) << time_now_string() << " CLOSING CONNECTION "
 				<< p->remote() << " policy::new_connection threw: " << e.what() << "\n";
 #endif
-			throw;
+			p->disconnect(e.what());
+			return;
 		}
+#endif
 		TORRENT_ASSERT(m_connections.find(p) == m_connections.end());
 		peer_iterator ci = m_connections.insert(p).first;
-		TORRENT_ASSERT(p->remote() == p->get_socket()->remote_endpoint());
-
 #ifndef NDEBUG
+		asio::error_code ec;
+		TORRENT_ASSERT(p->remote() == p->get_socket()->remote_endpoint(ec) || ec);
+#endif
+
+#if !defined NDEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		m_policy.check_invariant();
 #endif
 	}
@@ -2554,8 +2558,8 @@ namespace libtorrent
 			// against its hashes.
 			std::vector<int> verify_pieces;
 			m_picker->files_checked(m_have_pieces, unfinished_pieces, verify_pieces);
-			if (m_sequenced_download_threshold > 0)
-				picker().set_sequenced_download_threshold(m_sequenced_download_threshold);
+			if (m_sequential_download)
+				picker().sequential_download(m_sequential_download);
 			while (!verify_pieces.empty())
 			{
 				int piece = verify_pieces.back();
@@ -2780,15 +2784,15 @@ namespace libtorrent
 	}
 #endif
 
-	void torrent::set_sequenced_download_threshold(int threshold)
+	void torrent::set_sequential_download(bool sd)
 	{
 		if (has_picker())
 		{
-			picker().set_sequenced_download_threshold(threshold);
+			picker().sequential_download(sd);
 		}
 		else
 		{
-			m_sequenced_download_threshold = threshold;
+			m_sequential_download = sd;
 		}
 	}
 
@@ -3060,7 +3064,7 @@ namespace libtorrent
 
 		m_storage->async_hash(piece_index, bind(&torrent::on_piece_verified
 			, shared_from_this(), _1, _2, f));
-#ifndef NDEBUG
+#if !defined NDEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		check_invariant();
 #endif
 	}

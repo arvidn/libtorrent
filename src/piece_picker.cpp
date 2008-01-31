@@ -48,20 +48,27 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #endif
 
-//#define TORRENT_PIECE_PICKER_INVARIANT_CHECK INVARIANT_CHECK
-#define TORRENT_PIECE_PICKER_INVARIANT_CHECK
+#define TORRENT_PIECE_PICKER_INVARIANT_CHECK INVARIANT_CHECK
+//#define TORRENT_PIECE_PICKER_INVARIANT_CHECK
+
+//#define TORRENT_PICKER_LOG
 
 namespace libtorrent
 {
 
 	piece_picker::piece_picker(int blocks_per_piece, int total_num_blocks)
-		: m_piece_info(2)
+		: m_seeds(0)
+		, m_priority_boundries(1, int(m_pieces.size()))
 		, m_piece_map((total_num_blocks + blocks_per_piece-1) / blocks_per_piece)
 		, m_num_filtered(0)
 		, m_num_have_filtered(0)
 		, m_num_have(0)
-		, m_sequenced_download_threshold(100)
+		, m_sequential_download(-1)
+		, m_dirty(false)
 	{
+#ifdef TORRENT_PICKER_LOG
+		std::cout << "new piece_picker" << std::endl;
+#endif
 		TORRENT_ASSERT(blocks_per_piece > 0);
 		TORRENT_ASSERT(total_num_blocks >= 0);
 #ifndef NDEBUG
@@ -84,6 +91,33 @@ namespace libtorrent
 		std::fill(m_piece_map.begin(), m_piece_map.end()
 			, piece_pos(0, 0));
 		m_num_have = 0;
+#ifndef NDEBUG
+		check_invariant();
+#endif
+	}
+
+	void piece_picker::sequential_download(bool sd)
+	{
+		if (sd == sequential_download()) return;
+
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+
+		if (sd)
+		{
+			std::vector<int>().swap(m_pieces);
+			std::vector<int>().swap(m_priority_boundries);
+		
+			// initialize m_sdquential_download
+			m_sequential_download = 0;
+			for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin()
+				, end(m_piece_map.end()); i != end && (i->have() || i->filtered());
+				++i, ++m_sequential_download);
+		}
+		else
+		{
+			m_sequential_download = -1;
+			m_dirty = true;
+		}
 	}
 
 	// pieces is a bitmask with the pieces we have
@@ -103,6 +137,7 @@ namespace libtorrent
 			piece_pos& p = m_piece_map[index];
 			if (*i)
 			{
+				if (m_sequential_download == index) ++m_sequential_download;
 				++m_num_have;
 				p.set_have();
 				if (p.filtered())
@@ -167,68 +202,6 @@ namespace libtorrent
 		st.finished = 0;
 	}
 
-	void piece_picker::set_sequenced_download_threshold(
-		int sequenced_download_threshold)
-	{
-		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
-
-		if (sequenced_download_threshold == m_sequenced_download_threshold)
-			return;
-			
-		TORRENT_ASSERT(sequenced_download_threshold > 0);
-		if (sequenced_download_threshold <= 0) return;
-			
-		int old_limit = m_sequenced_download_threshold;
-		m_sequenced_download_threshold = sequenced_download_threshold;
-
-		for (std::vector<piece_pos>::iterator i = m_piece_map.begin()
-			, end(m_piece_map.end()); i != end; ++i)
-		{
-			if (i->priority(old_limit) != i->priority(m_sequenced_download_threshold))
-			{
-				piece_pos& p = *i;
-				int prev_priority = p.priority(old_limit);
-				if (prev_priority == 0) continue;
-				move(prev_priority, p.index);
-			}
-		}
-		
-		typedef std::vector<int> info_t;
-
-		if (old_limit < sequenced_download_threshold)
-		{
-			// the threshold was incremented, in case
-			// the previous max availability was reached
-			// we need to shuffle that bucket, if not, we
-			// don't have to do anything
-			if (int(m_piece_info.size()) > old_limit * 2)
-			{
-				info_t& in = m_piece_info[old_limit * 2];
-				std::random_shuffle(in.begin(), in.end());
-				int c = 0;
-				for (info_t::iterator i = in.begin()
-					, end(in.end()); i != end; ++i)
-				{
-					m_piece_map[*i].index = c++;
-					TORRENT_ASSERT(m_piece_map[*i].priority(old_limit) == old_limit * 2);
-				}
-			}
-		}
-		else if (int(m_piece_info.size()) > sequenced_download_threshold * 2)
-		{
-			info_t& in = m_piece_info[sequenced_download_threshold * 2];
-			std::sort(in.begin(), in.end());
-			int c = 0;
-			for (info_t::iterator i = in.begin()
-				, end(in.end()); i != end; ++i)
-			{
-				m_piece_map[*i].index = c++;
-				TORRENT_ASSERT(m_piece_map[*i].priority(
-					sequenced_download_threshold) == sequenced_download_threshold * 2);
-			}
-		}
-	}
-
 	piece_picker::downloading_piece& piece_picker::add_download_piece()
 	{
 		int num_downloads = m_downloads.size();
@@ -289,14 +262,74 @@ namespace libtorrent
 		}
 	}
 	
+	void piece_picker::verify_priority(int range_start, int range_end, int prio) const
+	{
+		TORRENT_ASSERT(range_start <= range_end);
+		TORRENT_ASSERT(range_end <= int(m_pieces.size()));
+		for (std::vector<int>::const_iterator i = m_pieces.begin() + range_start
+			, end(m_pieces.begin() + range_end); i != end; ++i)
+		{
+			int index = *i;
+			TORRENT_ASSERT(index >= 0);
+			TORRENT_ASSERT(index < int(m_piece_map.size()));
+			int p = m_piece_map[index].priority(this);
+			TORRENT_ASSERT(p == prio);
+		}
+	}
+#ifndef NDEBUG
+	void piece_picker::print_pieces() const
+	{
+		for (std::vector<int>::const_iterator i = m_priority_boundries.begin()
+			, end(m_priority_boundries.end()); i != end; ++i)
+		{
+			std::cout << *i << " ";
+		}
+		std::cout << std::endl;
+		int index = 0;
+		std::vector<int>::const_iterator j = m_priority_boundries.begin();
+		for (std::vector<int>::const_iterator i = m_pieces.begin()
+			, end(m_pieces.end()); i != end; ++i, ++index)
+		{
+			if (*i == -1) break;
+			while (j != m_priority_boundries.end() && *j <= index)
+			{
+				std::cout << "| ";
+				++j;
+			}
+			std::cout << *i << "(" << m_piece_map[*i].index << ") ";
+		}
+		std::cout << std::endl;
+	}
+#endif
 	void piece_picker::check_invariant(const torrent* t) const
 	{
+		if (m_sequential_download == -1 && !m_dirty)
+		{
+			TORRENT_ASSERT(!m_priority_boundries.empty());
+			int prio = 0;
+			int start = 0;
+			for (std::vector<int>::const_iterator i = m_priority_boundries.begin()
+				, end(m_priority_boundries.end()); i != end; ++i)
+			{
+				verify_priority(start, *i, prio);
+				++prio;
+				start = *i;
+			}
+			TORRENT_ASSERT(m_priority_boundries.back() == int(m_pieces.size()));
+		}
+		else if (m_sequential_download >= 0)
+		{
+			int index = 0;
+			for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin()
+				, end(m_piece_map.end()); i != end && (i->have() || i->filtered());
+				++i, ++index);
+			TORRENT_ASSERT(m_sequential_download == index);
+		}
+
 		TORRENT_ASSERT(sizeof(piece_pos) == 4);
 		TORRENT_ASSERT(m_num_have >= 0);
 		TORRENT_ASSERT(m_num_have_filtered >= 0);
 		TORRENT_ASSERT(m_num_filtered >= 0);
-
-		TORRENT_ASSERT(m_piece_info.empty() || m_piece_info[0].empty());
 
 		if (!m_downloads.empty())
 		{
@@ -311,9 +344,6 @@ namespace libtorrent
 
 		if (t != 0)
 			TORRENT_ASSERT((int)m_piece_map.size() == t->torrent_file().num_pieces());
-
-		for (int i = m_sequenced_download_threshold * 2 + 1; i < int(m_piece_info.size()); ++i)
-			TORRENT_ASSERT(m_piece_info[i].empty());
 
 		for (std::vector<downloading_piece>::const_iterator i = m_downloads.begin()
 			, end(m_downloads.end()); i != end; ++i)
@@ -354,14 +384,16 @@ namespace libtorrent
 			i != m_piece_map.end(); ++i)
 		{
 			int index = static_cast<int>(i - m_piece_map.begin());
-			if (i->filtered())
+			piece_pos const& p = *i;
+
+			if (p.filtered())
 			{
-				if (i->index != piece_pos::we_have_index)
+				if (p.index != piece_pos::we_have_index)
 					++num_filtered;
 				else
 					++num_have_filtered;
 			}
-			if (i->index == piece_pos::we_have_index)
+			if (p.index == piece_pos::we_have_index)
 				++num_have;
 
 #if 0
@@ -399,46 +431,39 @@ namespace libtorrent
 			}
 #endif
 
-			if (i->index == piece_pos::we_have_index)
+			if (p.index == piece_pos::we_have_index)
 			{
 				TORRENT_ASSERT(t == 0 || t->have_piece(index));
-				TORRENT_ASSERT(i->downloading == 0);
-/*
-				// make sure there's no entry
-				// with this index. (there shouldn't
-				// be since the piece_map is piece_pos::we_have_index)
-				for (int i = 0; i < int(m_piece_info.size()); ++i)
-				{
-					for (int j = 0; j < int(m_piece_info[i].size()); ++j)
-					{
-						TORRENT_ASSERT(m_piece_info[i][j] != index);
-					}
-				}
-*/
+				TORRENT_ASSERT(p.downloading == 0);
 			}
-			else
-			{
-				if (t != 0)
-					TORRENT_ASSERT(!t->have_piece(index));
 
-				int prio = i->priority(m_sequenced_download_threshold);
-				TORRENT_ASSERT(prio < int(m_piece_info.size()));
-				if (prio > 0)
+			if (t != 0)
+				TORRENT_ASSERT(!t->have_piece(index));
+
+			if (m_sequential_download == -1 && !m_dirty)
+			{
+				int prio = p.priority(this);
+				TORRENT_ASSERT(prio < int(m_priority_boundries.size())
+					|| m_dirty);
+				if (prio >= 0)
 				{
-					const std::vector<int>& vec = m_piece_info[prio];
-					assert (i->index < vec.size());
-					TORRENT_ASSERT(vec[i->index] == index);
+					TORRENT_ASSERT(p.index < m_pieces.size());
+					TORRENT_ASSERT(m_pieces[p.index] == index);
 				}
-/*
-				for (int k = 0; k < int(m_piece_info.size()); ++k)
+				else
 				{
-					for (int j = 0; j < int(m_piece_info[k].size()); ++j)
-					{
-						TORRENT_ASSERT(int(m_piece_info[k][j]) != index
-							|| (prio > 0 && prio == k && int(i->index) == j));
-					}
+					TORRENT_ASSERT(prio == -1);
+					// make sure there's no entry
+					// with this index. (there shouldn't
+					// be since the priority is -1)
+					TORRENT_ASSERT(std::find(m_pieces.begin(), m_pieces.end(), index)
+						== m_pieces.end());
 				}
-*/
+			}
+			else if (m_sequential_download >= 0)
+			{
+				TORRENT_ASSERT(m_pieces.empty());
+				TORRENT_ASSERT(m_priority_boundries.empty());
 			}
 
 			int count = std::count_if(m_downloads.begin(), m_downloads.end()
@@ -455,6 +480,15 @@ namespace libtorrent
 		TORRENT_ASSERT(num_have == m_num_have);
 		TORRENT_ASSERT(num_filtered == m_num_filtered);
 		TORRENT_ASSERT(num_have_filtered == m_num_have_filtered);
+
+		if (!m_dirty)
+		{
+			for (std::vector<int>::const_iterator i = m_pieces.begin()
+				, end(m_pieces.end()); i != end; ++i)
+			{
+				TORRENT_ASSERT(m_piece_map[*i].priority(this) >= 0);
+			}
+		}
 	}
 #endif
 
@@ -491,174 +525,258 @@ namespace libtorrent
 			}
 		}
 		TORRENT_ASSERT(integer_part + fraction_part == num_pieces);
-		return float(min_availability) + (fraction_part / num_pieces);
+		return float(min_availability + m_seeds) + (fraction_part / num_pieces);
+	}
+
+	void piece_picker::priority_range(int prio, int* start, int* end)
+	{
+		TORRENT_ASSERT(prio >= 0);
+		TORRENT_ASSERT(prio < int(m_priority_boundries.size())
+			|| m_dirty);
+		if (prio == 0) *start = 0;
+		else *start = m_priority_boundries[prio - 1];
+		*end = m_priority_boundries[prio];
+		TORRENT_ASSERT(*start <= *end);
 	}
 
 	void piece_picker::add(int index)
 	{
+		TORRENT_ASSERT(!m_dirty);
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < int(m_piece_map.size()));
 		piece_pos& p = m_piece_map[index];
 		TORRENT_ASSERT(!p.filtered());
 		TORRENT_ASSERT(!p.have());
+		TORRENT_ASSERT(m_sequential_download == -1);
 
-		int priority = p.priority(m_sequenced_download_threshold);
-		TORRENT_ASSERT(priority > 0);
-		if (int(m_piece_info.size()) <= priority)
-			m_piece_info.resize(priority + 1);
+		int priority = p.priority(this);
+		TORRENT_ASSERT(priority >= 0);
+		if (int(m_priority_boundries.size()) <= priority)
+			m_priority_boundries.resize(priority + 1, m_pieces.size());
 
-		TORRENT_ASSERT(int(m_piece_info.size()) > priority);
+		TORRENT_ASSERT(int(m_priority_boundries.size()) >= priority);
 
-		if (is_ordered(priority))
+		int range_start, range_end;
+		priority_range(priority, &range_start, &range_end);
+		int new_index;
+		if (range_end == range_start) new_index = range_start;
+		else new_index = rand() % (range_end - range_start) + range_start;
+
+#ifdef TORRENT_PICKER_LOG
+		std::cout << "add " << index << " (" << priority << ")" << std::endl;
+		print_pieces();
+#endif
+		m_pieces.push_back(-1);
+
+		for (;;)
 		{
-			// the piece should be inserted ordered, not randomly
-			std::vector<int>& v = m_piece_info[priority];
-//			TORRENT_ASSERT(is_sorted(v.begin(), v.end()/*, std::greater<int>()*/));
-			std::vector<int>::iterator i = std::lower_bound(v.begin(), v.end()
-				, index/*, std::greater<int>()*/);
-			p.index = i - v.begin();
-			v.insert(i, index);
-			i = v.begin() + p.index + 1;
-			for (;i != v.end(); ++i)
+			TORRENT_ASSERT(new_index < int(m_pieces.size()));
+			int temp = m_pieces[new_index];
+			m_pieces[new_index] = index;
+			m_piece_map[index].index = new_index;
+			index = temp;
+			do
 			{
-				++m_piece_map[*i].index;
-				TORRENT_ASSERT(v[m_piece_map[*i].index] == *i);
-			}
-//			TORRENT_ASSERT(is_sorted(v.begin(), v.end()/*, std::greater<int>()*/));
+				temp = m_priority_boundries[priority]++;
+				++priority;
+			} while (temp == new_index && priority < int(m_priority_boundries.size()));
+			new_index = temp;
+#ifdef TORRENT_PICKER_LOG
+			print_pieces();
+			std::cout << " index: " << index
+				<< " prio: " << priority
+				<< " new_index: " << new_index
+				<< std::endl;
+#endif
+			if (priority >= int(m_priority_boundries.size())) break;
+			TORRENT_ASSERT(temp >= 0);
 		}
-		else if (m_piece_info[priority].size() < 2)
+		if (index != -1)
 		{
-			p.index = m_piece_info[priority].size();
-			m_piece_info[priority].push_back(index);
-		}
-		else
-		{
-			// find a random position in the destination vector where we will place
-			// this entry.
-			int dst_index = rand() % m_piece_info[priority].size();
-			
-			// copy the entry at that position to the back
-			m_piece_map[m_piece_info[priority][dst_index]].index
-				= m_piece_info[priority].size();
-			m_piece_info[priority].push_back(m_piece_info[priority][dst_index]);
+			TORRENT_ASSERT(new_index == int(m_pieces.size() - 1));
+			m_pieces[new_index] = index;
+			m_piece_map[index].index = new_index;
 
-			// and then replace the one at dst_index with the one we're moving.
-			// this procedure is to make sure there's no ordering when pieces
-			// are moved in sequenced order.
-			p.index = dst_index;
-			m_piece_info[priority][p.index] = index;
+#ifdef TORRENT_PICKER_LOG
+			print_pieces();
+#endif
 		}
 	}
 
-	// will update the piece with the given properties (priority, elem_index)
-	// to place it at the correct position in the vectors.
-	void piece_picker::move(int priority, int elem_index)
+	void piece_picker::remove(int priority, int elem_index)
 	{
-		TORRENT_ASSERT(priority > 0);
+		TORRENT_ASSERT(!m_dirty);
+		TORRENT_ASSERT(priority >= 0);
+		TORRENT_ASSERT(m_sequential_download == -1);
+
+#ifdef TORRENT_PICKER_LOG
+		std::cout << "remove " << m_pieces[elem_index] << " (" << priority << ")" << std::endl;
+#endif
+		int next_index = elem_index;
+		TORRENT_ASSERT(m_piece_map[m_pieces[elem_index]].priority(this) == -1);
+		for (;;)
+		{
+#ifdef TORRENT_PICKER_LOG
+			print_pieces();
+#endif
+			TORRENT_ASSERT(elem_index < int(m_pieces.size()));
+			int temp;
+			do
+			{
+				temp = --m_priority_boundries[priority];
+				++priority;
+			} while (next_index == temp && priority < int(m_priority_boundries.size()));
+			if (next_index == temp) break;
+			next_index = temp;
+
+			int piece = m_pieces[next_index];
+			m_pieces[elem_index] = piece;
+			m_piece_map[piece].index = elem_index;
+			TORRENT_ASSERT(m_piece_map[piece].priority(this) == priority - 1);
+			TORRENT_ASSERT(elem_index < int(m_pieces.size() - 1));
+			elem_index = next_index;
+
+			if (priority == int(m_priority_boundries.size()))
+				break;
+		}
+		m_pieces.pop_back();
+		TORRENT_ASSERT(next_index == int(m_pieces.size()));
+#ifdef TORRENT_PICKER_LOG
+		print_pieces();
+#endif
+	}
+
+	// will update the piece with the given properties (priority, elem_index)
+	// to place it at the correct position
+	void piece_picker::update(int priority, int elem_index)
+	{
+		TORRENT_ASSERT(!m_dirty);
+		TORRENT_ASSERT(priority >= 0);
 		TORRENT_ASSERT(elem_index >= 0);
 		TORRENT_ASSERT(m_files_checked_called);
+		TORRENT_ASSERT(m_sequential_download == -1);
 
-		TORRENT_ASSERT(int(m_piece_info.size()) > priority);
-		TORRENT_ASSERT(int(m_piece_info[priority].size()) > elem_index);
+		TORRENT_ASSERT(int(m_priority_boundries.size()) > priority);
 
-		int index = m_piece_info[priority][elem_index];
+		int index = m_pieces[elem_index];
 		// update the piece_map
 		piece_pos& p = m_piece_map[index];
 		TORRENT_ASSERT(int(p.index) == elem_index || p.have());		
 
-		int new_priority = p.priority(m_sequenced_download_threshold);
+		int new_priority = p.priority(this);
 
 		if (new_priority == priority) return;
 
-		if (int(m_piece_info.size()) <= new_priority
-			&& new_priority > 0)
+		if (new_priority == -1)
 		{
-			m_piece_info.resize(new_priority + 1);
-			TORRENT_ASSERT(int(m_piece_info.size()) > new_priority);
+			remove(priority, elem_index);
+			return;
 		}
 
-		if (new_priority == 0)
+		if (int(m_priority_boundries.size()) <= new_priority)
+			m_priority_boundries.resize(new_priority + 1, m_pieces.size());
+
+#ifdef TORRENT_PICKER_LOG
+		std::cout << "update " << index << " (" << priority << "->" << new_priority << ")" << std::endl;
+#endif
+		if (priority > new_priority)
 		{
-			// this means the piece should not have an entry
-		}
-		else if (is_ordered(new_priority))
-		{
-			// the piece should be inserted ordered, not randomly
-			std::vector<int>& v = m_piece_info[new_priority];
-//			TORRENT_ASSERT(is_sorted(v.begin(), v.end()/*, std::greater<int>()*/));
-			std::vector<int>::iterator i = std::lower_bound(v.begin(), v.end()
-				, index/*, std::greater<int>()*/);
-			p.index = i - v.begin();
-			v.insert(i, index);
-			i = v.begin() + p.index + 1;
-			for (;i != v.end(); ++i)
+			int new_index;
+			int temp = index;
+			for (;;)
 			{
-				++m_piece_map[*i].index;
-				TORRENT_ASSERT(v[m_piece_map[*i].index] == *i);
+#ifdef TORRENT_PICKER_LOG
+				print_pieces();
+#endif
+				--priority;
+				new_index = m_priority_boundries[priority]++;
+				TORRENT_ASSERT(new_index < int(m_pieces.size()));
+				if (temp != m_pieces[new_index])
+				{
+					temp = m_pieces[new_index];
+					m_pieces[elem_index] = temp;
+					m_piece_map[temp].index = elem_index;
+					TORRENT_ASSERT(elem_index < int(m_pieces.size()));
+				}
+				elem_index = new_index;
+				if (priority == new_priority) break;
 			}
-//			TORRENT_ASSERT(is_sorted(v.begin(), v.end()/*, std::greater<int>()*/));
-		}
-		else if (m_piece_info[new_priority].size() < 2)
-		{
-			p.index = m_piece_info[new_priority].size();
-			m_piece_info[new_priority].push_back(index);
+#ifdef TORRENT_PICKER_LOG
+			print_pieces();
+#endif
+			m_pieces[elem_index] = index;
+			m_piece_map[index].index = elem_index;
+			TORRENT_ASSERT(elem_index < int(m_pieces.size()));
+#ifdef TORRENT_PICKER_LOG
+			print_pieces();
+#endif
+			shuffle(priority, elem_index);
+#ifdef TORRENT_PICKER_LOG
+			print_pieces();
+#endif
+			TORRENT_ASSERT(m_piece_map[index].priority(this) == priority);
 		}
 		else
 		{
-			// find a random position in the destination vector where we will place
-			// this entry.
-			int dst_index = rand() % m_piece_info[new_priority].size();
-			
-			// copy the entry at that position to the back
-			m_piece_map[m_piece_info[new_priority][dst_index]].index
-				= m_piece_info[new_priority].size();
-			m_piece_info[new_priority].push_back(m_piece_info[new_priority][dst_index]);
-
-			// and then replace the one at dst_index with the one we're moving.
-			// this procedure is to make sure there's no ordering when pieces
-			// are moved in sequenced order.
-			p.index = dst_index;
-			m_piece_info[new_priority][p.index] = index;
-		}
-		TORRENT_ASSERT(new_priority == 0 || p.index < m_piece_info[p.priority(m_sequenced_download_threshold)].size());
-		TORRENT_ASSERT(new_priority == 0 || m_piece_info[p.priority(m_sequenced_download_threshold)][p.index] == index);
-
-		if (is_ordered(priority))
-		{
-			// remove the element from the source vector and preserve the order
-			std::vector<int>& v = m_piece_info[priority];
-			v.erase(v.begin() + elem_index);
-			for (std::vector<int>::iterator i = v.begin() + elem_index;
-				i != v.end(); ++i)
+			int new_index;
+			int temp = index;
+			for (;;)
 			{
-				--m_piece_map[*i].index;
-				TORRENT_ASSERT(v[m_piece_map[*i].index] == *i);
+#ifdef TORRENT_PICKER_LOG
+				print_pieces();
+#endif
+				new_index = --m_priority_boundries[priority];
+				TORRENT_ASSERT(new_index < int(m_pieces.size()));
+				if (temp != m_pieces[new_index])
+				{
+					temp = m_pieces[new_index];
+					m_pieces[elem_index] = temp;
+					m_piece_map[temp].index = elem_index;
+					TORRENT_ASSERT(elem_index < int(m_pieces.size()));
+				}
+				elem_index = new_index;
+				++priority;
+				if (priority == new_priority) break;
 			}
+#ifdef TORRENT_PICKER_LOG
+			print_pieces();
+#endif
+			m_pieces[elem_index] = index;
+			m_piece_map[index].index = elem_index;
+			TORRENT_ASSERT(elem_index < int(m_pieces.size()));
+#ifdef TORRENT_PICKER_LOG
+			print_pieces();
+#endif
+			shuffle(priority, elem_index);
+#ifdef TORRENT_PICKER_LOG
+			print_pieces();
+#endif
+			TORRENT_ASSERT(m_piece_map[index].priority(this) == priority);
 		}
-		else
-		{
-			// this will remove elem from the source vector without
-			// preserving order, but the order is random anyway
-			int replace_index = m_piece_info[priority][elem_index] = m_piece_info[priority].back();
-			if (index != replace_index)
-			{
-				// update the entry we moved from the back
-				m_piece_map[replace_index].index = elem_index;
+	}
 
-				TORRENT_ASSERT(int(m_piece_info[priority].size()) > elem_index);
-				// this may not necessarily be the case. If we've just updated the threshold and are updating
-				// the piece map
-//				TORRENT_ASSERT((int)m_piece_map[replace_index].priority(m_sequenced_download_threshold) == priority);
-				TORRENT_ASSERT(int(m_piece_map[replace_index].index) == elem_index);
-				TORRENT_ASSERT(m_piece_info[priority][elem_index] == replace_index);
-			}
-			else
-			{
-				TORRENT_ASSERT(int(m_piece_info[priority].size()) == elem_index+1);
-			}
+	void piece_picker::shuffle(int priority, int elem_index)
+	{
+		TORRENT_ASSERT(!m_dirty);
+		TORRENT_ASSERT(priority >= 0);
+		TORRENT_ASSERT(elem_index >= 0);
+		TORRENT_ASSERT(m_sequential_download == -1);
+		
+		int range_start, range_end;
+		priority_range(priority, &range_start, &range_end);
+		TORRENT_ASSERT(range_start < range_end);
+		int other_index = rand() % (range_end - range_start) + range_start;
 
-			m_piece_info[priority].pop_back();
-		}
+		if (other_index == elem_index) return;
+
+		// swap other_index with elem_index
+		piece_pos& p1 = m_piece_map[m_pieces[other_index]];
+		piece_pos& p2 = m_piece_map[m_pieces[elem_index]];
+
+		int temp = p1.index;
+		p1.index = p2.index;
+		p2.index = temp;
+		std::swap(m_pieces[other_index], m_pieces[elem_index]);
 	}
 
 	void piece_picker::sort_piece(std::vector<downloading_piece>::iterator dp)
@@ -695,19 +813,20 @@ namespace libtorrent
 		erase_download_piece(i);
 
 		piece_pos& p = m_piece_map[index];
-		int prev_priority = p.priority(m_sequenced_download_threshold);
+		int prev_priority = p.priority(this);
 		p.downloading = 0;
-		int new_priority = p.priority(m_sequenced_download_threshold);
+		int new_priority = p.priority(this);
 
 		if (new_priority == prev_priority) return;
-
-		if (prev_priority == 0)
+		if (m_sequential_download >= 0) return;
+		if (m_dirty) return;
+		if (prev_priority == -1)
 		{
 			add(index);
 		}
 		else
 		{
-			move(prev_priority, p.index);
+			update(prev_priority, p.index);
 		}
 	}
 
@@ -715,97 +834,14 @@ namespace libtorrent
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 		TORRENT_ASSERT(m_files_checked_called);
-		
-		// in general priority = availability * 2
-		// see piece_block::priority()
-		
-		// this will insert two empty vectors at the start of the
-		// piece_info vector. It is done like this as an optimization,
-		// to swap vectors instead of copying them
-		while (m_piece_info.size() < 3
-			|| (!m_piece_info.rbegin()->empty())
-			|| (!(m_piece_info.rbegin()+1)->empty()))
+		++m_seeds;
+		if (m_sequential_download >= 0) return;
+		if (m_seeds == 1)
 		{
-			m_piece_info.push_back(std::vector<int>());
-		}
-		TORRENT_ASSERT(m_piece_info.rbegin()->empty());
-		TORRENT_ASSERT((m_piece_info.rbegin()+1)->empty());
-		typedef std::vector<std::vector<int> > piece_info_t;
-		for (piece_info_t::reverse_iterator i = m_piece_info.rbegin(), j(i+1)
-			, k(j+1), end(m_piece_info.rend()); k != end; ++i, ++j, ++k)
-		{
-			k->swap(*i);
-		}
-		TORRENT_ASSERT(m_piece_info.begin()->empty());
-		TORRENT_ASSERT((m_piece_info.begin()+1)->empty());
-
-		// if we have some priorities that are clamped to the
-		// sequenced download, move that vector back down
-		int last_index = m_piece_info.size() - 1;
-		int cap_index = m_sequenced_download_threshold * 2;
-		if (last_index == cap_index)
-		{
-			// this is the case when the top bucket
-			// was moved up into the sequenced download bucket.
-			m_piece_info.push_back(std::vector<int>());
-			m_piece_info[cap_index].swap(m_piece_info[cap_index+1]);
-			++last_index;
-		}
-		else if (last_index > cap_index)
-		{
-			if (last_index - cap_index == 1)
-			{
-				m_piece_info.push_back(std::vector<int>());
-				++last_index;
-			}
-			m_piece_info[cap_index+1].swap(m_piece_info[cap_index+2]);
-			m_piece_info[cap_index].swap(m_piece_info[cap_index+1]);
-		}
-		
-		// now, increase the peer count of all the pieces.
-		// because of different priorities, some pieces may have
-		// ended up in the wrong priority bucket. Adjust that.
-		for (std::vector<piece_pos>::iterator i = m_piece_map.begin()
-			, end(m_piece_map.end()); i != end; ++i)
-		{
-			int prev_prio = i->priority(m_sequenced_download_threshold);
-			TORRENT_ASSERT(prev_prio < int(m_piece_info.size()));
-			++i->peer_count;
-			// if the assumption that the priority would
-			// increase by 2 when increasing the availability
-			// by one isn't true for this particular piece, correct it.
-			// that assumption is true for all pieces with priority 0 or 1
-			int new_prio = i->priority(m_sequenced_download_threshold);
-			TORRENT_ASSERT(new_prio <= cap_index);
-			if (prev_prio == 0 && new_prio > 0)
-			{
-				add(i - m_piece_map.begin());
-				continue;
-			}
-			if (new_prio == 0)
-			{
-				TORRENT_ASSERT(prev_prio == 0);
-				continue;
-			}
-			if (prev_prio == cap_index)
-			{
-				TORRENT_ASSERT(new_prio == cap_index);
-				continue;
-			}
-			if (new_prio == prev_prio + 2 && new_prio != cap_index)
-			{
-				TORRENT_ASSERT(new_prio != cap_index);
-				continue;
-			}
-			if (prev_prio + 2 >= cap_index)
-			{
-				// these two vectors will have moved one extra step
-				// passed the sequenced download threshold
-				++prev_prio;
-			}
-			TORRENT_ASSERT(prev_prio + 2 != cap_index);
-			TORRENT_ASSERT(prev_prio + 2 != new_prio);
-			move(prev_prio + 2, i->index);
+			// when m_seeds is increased from 0 to 1
+			// we may have to add pieces that previously
+			// didn't have any peers
+			m_dirty = true;
 		}
 	}
 
@@ -813,150 +849,188 @@ namespace libtorrent
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 		TORRENT_ASSERT(m_files_checked_called);
-		TORRENT_ASSERT(m_piece_info.size() >= 2);
-		TORRENT_ASSERT(m_piece_info.front().empty());
-		// swap all vectors two steps down
-		if (m_piece_info.size() > 2)
-		{
-			typedef std::vector<std::vector<int> > piece_info_t;
-			for (piece_info_t::iterator i = m_piece_info.begin(), j(i+1)
-				, k(j+1), end(m_piece_info.end()); k != end; ++i, ++j, ++k)
-			{
-				k->swap(*i);
-			}
-		}
-		else
-		{
-			m_piece_info.resize(3);
-		}
-		int last_index = m_piece_info.size() - 1;
-		if ((m_piece_info.size() & 1) == 0)
-		{
-			// if there's an even number of vectors, swap
-			// the last two to get the same layout in both cases
-			m_piece_info[last_index].swap(m_piece_info[last_index-1]);
-		}
-		TORRENT_ASSERT(m_piece_info.back().empty());
-		int pushed_out_index = m_piece_info.size() - 2;
 
-		int cap_index = m_sequenced_download_threshold * 2;
-		TORRENT_ASSERT(m_piece_info[last_index].empty());
-		if (last_index >= cap_index)
+		if (m_sequential_download >= 0)
 		{
-			TORRENT_ASSERT(pushed_out_index == cap_index - 1
-				|| m_piece_info[cap_index - 1].empty());
-			m_piece_info[cap_index].swap(m_piece_info[cap_index - 2]);
-			if (cap_index == pushed_out_index)
-				pushed_out_index = cap_index - 2;
+			--m_seeds;
+			return;
 		}
 		
-		// first is the vector that were
-		// bumped down to 0. The should always be moved
-		// since they have to be removed or reinserted
-		std::vector<int>().swap(m_piece_info.front());
+		if (m_seeds > 0)
+		{
+			--m_seeds;
+			if (m_seeds == 0)
+			{
+				// when m_seeds is decreased from 1 to 0
+				// we may have to remove pieces that previously
+				// didn't have any peers
+				m_dirty = true;
+			}
+			return;
+		}
 
 		for (std::vector<piece_pos>::iterator i = m_piece_map.begin()
 			, end(m_piece_map.end()); i != end; ++i)
 		{
-			int prev_prio = i->priority(m_sequenced_download_threshold);
-			TORRENT_ASSERT(prev_prio < int(m_piece_info.size()));
-			TORRENT_ASSERT(pushed_out_index < int(m_piece_info.size()));
 			TORRENT_ASSERT(i->peer_count > 0);
 			--i->peer_count;
-			// if the assumption that the priority would
-			// decrease by 2 when decreasing the availability
-			// by one isn't true for this particular piece, correct it.
-			// that assumption is true for all pieces with priority 0 or 1
-			if (prev_prio == 0)
-			{
-				TORRENT_ASSERT(i->priority(m_sequenced_download_threshold) == 0);
-				continue;
-			}
-
-			int new_prio = i->priority(m_sequenced_download_threshold);
-			if (prev_prio == cap_index)
-			{
-				if (new_prio == cap_index) continue;
-				prev_prio += 2;
-			}
-			else if (new_prio == prev_prio - 2)
-			{
-				continue;
-			}
-			else if (prev_prio == 2)
-			{
-				// if this piece was pushed down to priority 0, it was
-				// removed
-				TORRENT_ASSERT(new_prio > 0);
-				add(i - m_piece_map.begin());
-				continue;
-			}
-			else if (prev_prio == 1)
-			{
-				// if this piece was one of the vectors that was pushed to the
-				// top, adjust the prev_prio to point to that vector, so that
-				// the pieces are moved from there
-				prev_prio = pushed_out_index + 2;
-			}
-			move(prev_prio - 2, i->index);
 		}
+
+		m_dirty = true;
 	}
 
-	void piece_picker::inc_refcount(int i)
+	void piece_picker::inc_refcount(int index)
 	{
-//		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
-		TORRENT_ASSERT(i >= 0);
-		TORRENT_ASSERT(i < (int)m_piece_map.size());
-		TORRENT_ASSERT(m_files_checked_called);
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 
-		piece_pos& p = m_piece_map[i];
-		int index = p.index;
-		int prev_priority = p.priority(m_sequenced_download_threshold);
-		TORRENT_ASSERT(prev_priority < int(m_piece_info.size()));
-
-		TORRENT_ASSERT(p.peer_count < piece_pos::max_peer_count);
-		p.peer_count++;
-		TORRENT_ASSERT(p.peer_count != 0);	
-
-		// if we have the piece or if it's filtered
-		// we don't have to move any entries in the piece_info vector
-		if (p.priority(m_sequenced_download_threshold) == prev_priority) return;
-
-		if (prev_priority == 0)
+		piece_pos& p = m_piece_map[index];
+		if (m_sequential_download >= 0)
 		{
-			add(i);
+			++p.peer_count;
+			return;
 		}
+	
+		int prev_priority = p.priority(this);
+		++p.peer_count;
+		if (m_dirty) return;
+		int new_priority = p.priority(this);
+		if (prev_priority == new_priority) return;
+		if (prev_priority == -1)
+			add(index);
 		else
+			update(prev_priority, p.index);
+	}
+
+	void piece_picker::dec_refcount(int index)
+	{
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+
+		piece_pos& p = m_piece_map[index];
+		if (m_sequential_download >= 0)
 		{
-			move(prev_priority, index);
+			--p.peer_count;
+			return;
 		}
+		int prev_priority = p.priority(this);
+		TORRENT_ASSERT(p.peer_count > 0);
+		--p.peer_count;
+		if (m_dirty) return;
+		if (prev_priority >= 0) update(prev_priority, p.index);
+	}
+
+	void piece_picker::inc_refcount(std::vector<bool> const& bitmask)
+	{
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+		TORRENT_ASSERT(bitmask.size() == m_piece_map.size());
+
+		int index = 0;
+		bool updated = false;
+		for (std::vector<bool>::const_iterator i = bitmask.begin()
+			, end(bitmask.end()); i != end; ++i, ++index)
+		{
+			if (*i)
+			{
+				++m_piece_map[index].peer_count;
+				updated = true;
+			}
+		}
+
+		if (updated && m_sequential_download == -1) m_dirty = true;
+	}
+
+	void piece_picker::dec_refcount(std::vector<bool> const& bitmask)
+	{
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+		TORRENT_ASSERT(bitmask.size() == m_piece_map.size());
+
+		int index = 0;
+		bool updated = false;
+		for (std::vector<bool>::const_iterator i = bitmask.begin()
+			, end(bitmask.end()); i != end; ++i, ++index)
+		{
+			if (*i)
+			{
+				--m_piece_map[index].peer_count;
+				updated = true;
+			}
+		}
+
+		if (updated && m_sequential_download == -1) m_dirty = true;
+	}
+
+	void piece_picker::update_pieces() const
+	{
+		TORRENT_ASSERT(m_dirty);
+		TORRENT_ASSERT(m_sequential_download == -1);
+		if (m_priority_boundries.empty()) m_priority_boundries.resize(1, 0);
+#ifdef TORRENT_PICKER_LOG
+		std::cout << "update_pieces" << std::endl;
+#endif
+		std::fill(m_priority_boundries.begin(), m_priority_boundries.end(), 0);
+		for (std::vector<piece_pos>::iterator i = m_piece_map.begin()
+			, end(m_piece_map.end()); i != end; ++i)
+		{
+			int prio = i->priority(this);
+			if (prio == -1) continue;
+			if (prio >= int(m_priority_boundries.size()))
+				m_priority_boundries.resize(prio + 1, 0);
+			i->index = m_priority_boundries[prio];
+			++m_priority_boundries[prio];
+		}
+
+#ifdef TORRENT_PICKER_LOG
+		print_pieces();
+#endif
+
+		int index = 0;
+		for (std::vector<int>::iterator i = m_priority_boundries.begin()
+			, end(m_priority_boundries.end()); i != end; ++i)
+		{
+			*i += index;
+			index = *i;
+		}
+		m_pieces.resize(index, 0);
+
+#ifdef TORRENT_PICKER_LOG
+		print_pieces();
+#endif
+
+		index = 0;
+		for (std::vector<piece_pos>::iterator i = m_piece_map.begin()
+			, end(m_piece_map.end()); i != end; ++i, ++index)
+		{
+			piece_pos& p = *i;
+			int prio = p.priority(this);
+			if (prio == -1) continue;
+			int new_index = (prio == 0 ? 0 : m_priority_boundries[prio - 1]) + p.index;
+			m_pieces[new_index] = index;
+		}
+
+		int start = 0;
+		for (std::vector<int>::iterator i = m_priority_boundries.begin()
+			, end(m_priority_boundries.end()); i != end; ++i)
+		{
+			if (start == *i) continue;
+			std::random_shuffle(&m_pieces[0] + start, &m_pieces[0] + *i);
+			start = *i;
+		}
+
+		index = 0;
+		for (std::vector<int>::const_iterator i = m_pieces.begin()
+			, end(m_pieces.end()); i != end; ++i, ++index)
+		{
+			TORRENT_ASSERT(*i >= 0 && *i < int(m_piece_map.size()));
+			m_piece_map[*i].index = index;
+		}
+
+		m_dirty = false;
+#ifdef TORRENT_PICKER_LOG
+		print_pieces();
+#endif
 
 #ifndef NDEBUG
-//		integrity_check();
+		check_invariant();
 #endif
-		return;
-	}
-
-	void piece_picker::dec_refcount(int i)
-	{
-//		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
-
-		TORRENT_ASSERT(m_files_checked_called);
-		TORRENT_ASSERT(i >= 0);
-		TORRENT_ASSERT(i < (int)m_piece_map.size());
-
-		piece_pos& p = m_piece_map[i];
-		int prev_priority = p.priority(m_sequenced_download_threshold);
-		TORRENT_ASSERT(prev_priority < int(m_piece_info.size()));
-		int index = p.index;
-		TORRENT_ASSERT(p.peer_count > 0);
-
-		if (p.peer_count > 0)
-			p.peer_count--;
-
-		if (p.priority(m_sequenced_download_threshold) == prev_priority) return;
-
-		move(prev_priority, index);
 	}
 
 	// this is used to indicate that we succesfully have
@@ -971,8 +1045,8 @@ namespace libtorrent
 
 		piece_pos& p = m_piece_map[index];
 		int info_index = p.index;
-		int priority = p.priority(m_sequenced_download_threshold);
-		TORRENT_ASSERT(priority < int(m_piece_info.size()));
+		int priority = p.priority(this);
+		TORRENT_ASSERT(priority < int(m_priority_boundries.size()));
 
 		if (p.downloading)
 		{
@@ -988,6 +1062,13 @@ namespace libtorrent
 		TORRENT_ASSERT(std::find_if(m_downloads.begin(), m_downloads.end()
 			, has_index(index)) == m_downloads.end());
 
+		if (m_sequential_download == index)
+		{
+			++m_sequential_download;
+			for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin() + m_sequential_download
+				, end(m_piece_map.end()); i != end && (i->have() || i->filtered());
+				++i, ++m_sequential_download);
+		}
 		if (p.have()) return;
 		if (p.filtered())
 		{
@@ -996,11 +1077,11 @@ namespace libtorrent
 		}
 		++m_num_have;
 		p.set_have();
-		if (priority == 0) return;
-		TORRENT_ASSERT(p.priority(m_sequenced_download_threshold) == 0);
-		move(priority, info_index);
+		if (priority == -1) return;
+		if (m_dirty) return;
+		remove(priority, info_index);
+		TORRENT_ASSERT(p.priority(this) == -1);
 	}
-
 
 	bool piece_picker::set_piece_priority(int index, int new_piece_priority)
 	{
@@ -1015,8 +1096,8 @@ namespace libtorrent
 		// if the priority isn't changed, don't do anything
 		if (new_piece_priority == int(p.piece_priority)) return false;
 		
-		int prev_priority = p.priority(m_sequenced_download_threshold);
-		TORRENT_ASSERT(prev_priority < int(m_piece_info.size()));
+		int prev_priority = p.priority(this);
+		TORRENT_ASSERT(prev_priority < int(m_priority_boundries.size()));
 
 		bool ret = false;
 		if (new_piece_priority == piece_pos::filter_priority
@@ -1039,18 +1120,20 @@ namespace libtorrent
 		TORRENT_ASSERT(m_num_have_filtered >= 0);
 		
 		p.piece_priority = new_piece_priority;
-		int new_priority = p.priority(m_sequenced_download_threshold);
-		TORRENT_ASSERT(prev_priority < int(m_piece_info.size()));
+		int new_priority = p.priority(this);
 
-		if (new_priority == prev_priority) return false;
-		
-		if (prev_priority == 0)
+		if (prev_priority == new_priority) return false;
+
+		TORRENT_ASSERT(prev_priority < int(m_priority_boundries.size()));
+
+		if (m_dirty) return ret;
+		if (prev_priority == -1)
 		{
 			add(index);
 		}
 		else
 		{
-			move(prev_priority, p.index);
+			update(prev_priority, p.index);
 		}
 		return ret;
 	}
@@ -1115,7 +1198,9 @@ namespace libtorrent
 		TORRENT_ASSERT(pieces.size() == m_piece_map.size());
 		TORRENT_ASSERT(m_files_checked_called);
 
-		TORRENT_ASSERT(m_piece_info.begin() != m_piece_info.end());
+		TORRENT_ASSERT(!m_priority_boundries.empty()
+			|| m_sequential_download >= 0
+			|| m_dirty);
 
 		// this will be filled with blocks that we should not request
 		// unless we can't find num_blocks among the other ones.
@@ -1124,8 +1209,6 @@ namespace libtorrent
 		// blocks belonging to a piece that others have
 		// downloaded to
 		std::vector<piece_block> backup_blocks;
-		// suggested pieces for each vector is put in this vector
-		std::vector<int> suggested_bucket;
 		const std::vector<int> empty_vector;
 	
 		// When prefer_whole_pieces is set (usually set when downloading from
@@ -1139,49 +1222,37 @@ namespace libtorrent
 
 		if (num_blocks <= 0) return;
 
-		if (rarest_first)
+		if (!suggested_pieces.empty())
 		{
-			// this loop will loop from pieces with priority 1 and up
-			// until we either reach the end of the piece list or
-			// has filled the interesting_blocks with num_blocks
-			// blocks.
+			num_blocks = add_blocks(suggested_pieces, pieces
+				, interesting_blocks, num_blocks
+				, prefer_whole_pieces, peer, empty_vector);
+			if (num_blocks == 0) return;
+		}
 
-			// +1 is to ignore pieces that no peer has. The bucket with index 0 contains
-			// pieces that 0 other peers have. bucket will point to a bucket with
-			// pieces with the same priority. It will be iterated in priority
-			// order (high priority/rare pices first). The content of each
-			// bucket is randomized
-			for (std::vector<std::vector<int> >::const_iterator bucket
-				= m_piece_info.begin() + 1; num_blocks > 0 && bucket != m_piece_info.end();
-				++bucket)
+		if (m_sequential_download >= 0)
+		{
+			for (int i = m_sequential_download;
+				i < int(m_piece_map.size()) && num_blocks > 0; ++i)
 			{
-				if (bucket->empty()) continue;
-				if (!suggested_pieces.empty())
+				if (!can_pick(i, pieces)) continue;
+				int num_blocks_in_piece = blocks_in_piece(i);
+				if (prefer_whole_pieces == 0 && num_blocks_in_piece > num_blocks)
+					num_blocks_in_piece = num_blocks;
+				for (int j = 0; j < num_blocks_in_piece; ++j)
 				{
-					int bucket_index = bucket - m_piece_info.begin();
-					suggested_bucket.clear();
-					for (std::vector<int>::const_iterator i = suggested_pieces.begin()
-						, end(suggested_pieces.end()); i != end; ++i)
-					{
-						TORRENT_ASSERT(*i >= 0);
-						TORRENT_ASSERT(*i < int(m_piece_map.size()));
-						if (!can_pick(*i, pieces)) continue;
-						if (m_piece_map[*i].priority(m_sequenced_download_threshold) == bucket_index)
-							suggested_bucket.push_back(*i);
-					}
-					if (!suggested_bucket.empty())
-					{
-						num_blocks = add_blocks(suggested_bucket, pieces
-							, interesting_blocks, num_blocks
-							, prefer_whole_pieces, peer, empty_vector);
-						if (num_blocks == 0) break;
-					}
+					interesting_blocks.push_back(piece_block(i, j));
+					--num_blocks;
 				}
-				num_blocks = add_blocks(*bucket, pieces
-					, interesting_blocks, num_blocks
-					, prefer_whole_pieces, peer, suggested_bucket);
-				TORRENT_ASSERT(num_blocks >= 0);
 			}
+		}
+		else if (rarest_first)
+		{
+			if (m_dirty) update_pieces();
+			num_blocks = add_blocks(m_pieces, pieces
+				, interesting_blocks, num_blocks
+				, prefer_whole_pieces, peer, suggested_pieces);
+			TORRENT_ASSERT(num_blocks >= 0);
 		}
 		else
 		{
@@ -1214,7 +1285,7 @@ namespace libtorrent
 				for (int k = start; k < end; ++k)
 				{
 					TORRENT_ASSERT(m_piece_map[piece].downloading == false);
-					TORRENT_ASSERT(m_piece_map[k].priority(m_sequenced_download_threshold) > 0);
+					TORRENT_ASSERT(m_piece_map[k].priority(this) >= 0);
 					int num_blocks_in_piece = blocks_in_piece(k);
 					if (prefer_whole_pieces == 0 && num_blocks_in_piece > num_blocks)
 						num_blocks_in_piece = num_blocks;
@@ -1298,19 +1369,17 @@ namespace libtorrent
 			TORRENT_ASSERT(*i < (int)m_piece_map.size());
 
 			// if the peer doesn't have the piece
+			// or if it's set to 0 priority
 			// skip it
-			if (!pieces[*i]) continue;
+			if (!can_pick(*i, pieces)) continue;
 
 			// ignore pieces found in the ignore list
 			if (std::find(ignore.begin(), ignore.end(), *i) != ignore.end()) continue;
 
-			// skip the piece is the priority is 0
-			TORRENT_ASSERT(m_piece_map[*i].priority(m_sequenced_download_threshold) > 0);
-
-			int num_blocks_in_piece = blocks_in_piece(*i);
-
+			TORRENT_ASSERT(m_piece_map[*i].priority(this) >= 0);
 			TORRENT_ASSERT(m_piece_map[*i].downloading == 0);
-			TORRENT_ASSERT(m_piece_map[*i].priority(m_sequenced_download_threshold) > 0);
+	
+			int num_blocks_in_piece = blocks_in_piece(*i);
 
 			// pick a new piece
 			if (prefer_whole_pieces == 0)
@@ -1327,7 +1396,7 @@ namespace libtorrent
 				boost::tie(start, end) = expand_piece(*i, prefer_whole_pieces, pieces);
 				for (int k = start; k < end; ++k)
 				{
-					TORRENT_ASSERT(m_piece_map[k].priority(m_sequenced_download_threshold) > 0);
+					TORRENT_ASSERT(m_piece_map[k].priority(this) > 0);
 					num_blocks_in_piece = blocks_in_piece(k);
 					for (int j = 0; j < num_blocks_in_piece; ++j)
 					{
@@ -1638,12 +1707,9 @@ namespace libtorrent
 		return i->info[block.block_index].state == block_info::state_finished;
 	}
 
-
 	bool piece_picker::mark_as_downloading(piece_block block
 		, void* peer, piece_state_t state)
 	{
-		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
-
 		TORRENT_ASSERT(block.piece_index >= 0);
 		TORRENT_ASSERT(block.block_index >= 0);
 		TORRENT_ASSERT(block.piece_index < (int)m_piece_map.size());
@@ -1653,11 +1719,14 @@ namespace libtorrent
 		piece_pos& p = m_piece_map[block.piece_index];
 		if (p.downloading == 0)
 		{
-			int prio = p.priority(m_sequenced_download_threshold);
-			TORRENT_ASSERT(prio < int(m_piece_info.size()));
+			TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+			int prio = p.priority(this);
+			TORRENT_ASSERT(prio < int(m_priority_boundries.size())
+				|| m_sequential_download >= 0
+				|| m_dirty);
 			TORRENT_ASSERT(prio > 0);
 			p.downloading = 1;
-			move(prio, p.index);
+			if (prio >= 0 && m_sequential_download == -1 && !m_dirty) update(prio, p.index);
 
 			downloading_piece& dp = add_download_piece();
 			dp.state = state;
@@ -1670,6 +1739,7 @@ namespace libtorrent
 		}
 		else
 		{
+			TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 			std::vector<downloading_piece>::iterator i
 				= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
 			TORRENT_ASSERT(i != m_downloads.end());
@@ -1718,7 +1788,7 @@ namespace libtorrent
 		std::vector<int>::iterator j = avail.begin();
 		for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin()
 			, end(m_piece_map.end()); i != end; ++i, ++j)
-			*j = i->peer_count;
+			*j = i->peer_count + m_seeds;
 	}
 
 	void piece_picker::mark_as_writing(piece_block block, void* peer)
@@ -1768,11 +1838,11 @@ namespace libtorrent
 			TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 			
 			TORRENT_ASSERT(peer == 0);
-			int prio = p.priority(m_sequenced_download_threshold);
-			TORRENT_ASSERT(prio < int(m_piece_info.size()));
+			int prio = p.priority(this);
+			TORRENT_ASSERT(prio < int(m_priority_boundries.size())
+				|| m_dirty);
 			p.downloading = 1;
-			if (prio > 0) move(prio, p.index);
-			else TORRENT_ASSERT(p.priority(m_sequenced_download_threshold) == 0);
+			if (prio >= 0 && !m_dirty) update(prio, p.index);
 
 			downloading_piece& dp = add_download_piece();
 			dp.state = none;
@@ -1890,12 +1960,16 @@ namespace libtorrent
 		{
 			erase_download_piece(i);
 			piece_pos& p = m_piece_map[block.piece_index];
-			int prev_prio = p.priority(m_sequenced_download_threshold);
-			TORRENT_ASSERT(prev_prio < int(m_piece_info.size()));
+			int prev_prio = p.priority(this);
+			TORRENT_ASSERT(prev_prio < int(m_priority_boundries.size())
+				|| m_dirty);
 			p.downloading = 0;
-			int prio = p.priority(m_sequenced_download_threshold);
-			if (prev_prio == 0 && prio > 0) add(block.piece_index);
-			else if (prio > 0) move(prio, p.index);
+			if (m_sequential_download == -1 && !m_dirty)
+			{
+				int prio = p.priority(this);
+				if (prev_prio == -1 && prio >= 0) add(block.piece_index);
+				else if (prev_prio >= 0) update(prev_prio, p.index);
+			}
 
 			TORRENT_ASSERT(std::find_if(m_downloads.begin(), m_downloads.end()
 				, has_index(block.piece_index)) == m_downloads.end());

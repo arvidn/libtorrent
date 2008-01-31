@@ -349,10 +349,12 @@ namespace libtorrent
 		m_have_piece.resize(t->torrent_file().num_pieces(), m_have_all);
 
 		// now that we have a piece_picker,
-		// update it with this peers pieces
+		// update it with this peer's pieces
 
-		int num_pieces = std::count(m_have_piece.begin(), m_have_piece.end(), true);
-		if (num_pieces == int(m_have_piece.size()))
+		TORRENT_ASSERT(m_num_pieces == std::count(m_have_piece.begin()
+			, m_have_piece.end(), true));
+
+		if (m_num_pieces == int(m_have_piece.size()))
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << " *** THIS IS A SEED ***\n";
@@ -365,23 +367,21 @@ namespace libtorrent
 				disconnect("seed to seed connection redundant");
 				return;
 			}
-			m_num_pieces = num_pieces;
 			t->peer_has_all();
 			if (!t->is_finished())
 				t->get_policy().peer_is_interesting(*this);
 			return;
 		}
 
-		m_num_pieces = num_pieces;
 		// if we're a seed, we don't keep track of piece availability
 		if (!t->is_seed())
 		{
+			t->peer_has(m_have_piece);
 			bool interesting = false;
 			for (int i = 0; i < int(m_have_piece.size()); ++i)
 			{
 				if (m_have_piece[i])
 				{
-					t->peer_has(i);
 					// if the peer has a piece and we don't, the peer is interesting
 					if (!t->have_piece(i)
 						&& t->picker().piece_priority(i) != 0)
@@ -627,7 +627,19 @@ namespace libtorrent
 		TORRENT_ASSERT(m_torrent.expired());
 		// check to make sure we don't have another connection with the same
 		// info_hash and peer_id. If we do. close this connection.
+#ifndef NDEBUG
+		try
+		{
+#endif
 		t->attach_peer(this);
+#ifndef NDEBUG
+		}
+		catch (std::exception& e)
+		{
+			std::cout << e.what() << std::endl;
+			TORRENT_ASSERT(false);
+		}
+#endif
 		if (m_disconnecting) return;
 		m_torrent = wpt;
 
@@ -1091,49 +1103,31 @@ namespace libtorrent
 		// let the torrent know which pieces the
 		// peer has
 		// if we're a seed, we don't keep track of piece availability
+		bool interesting = false;
 		if (!t->is_seed())
 		{
-			bool interesting = false;
+			t->peer_has(bitfield);
+
 			for (int i = 0; i < (int)m_have_piece.size(); ++i)
 			{
 				bool have = bitfield[i];
 				if (have && !m_have_piece[i])
 				{
-					m_have_piece[i] = true;
-					++m_num_pieces;
-					t->peer_has(i);
 					if (!t->have_piece(i) && t->picker().piece_priority(i) != 0)
 						interesting = true;
 				}
 				else if (!have && m_have_piece[i])
 				{
 					// this should probably not be allowed
-					m_have_piece[i] = false;
-					--m_num_pieces;
 					t->peer_lost(i);
 				}
 			}
+		}
 
-			if (interesting) t->get_policy().peer_is_interesting(*this);
-		}
-		else
-		{
-			for (int i = 0; i < (int)m_have_piece.size(); ++i)
-			{
-				bool have = bitfield[i];
-				if (have && !m_have_piece[i])
-				{
-					m_have_piece[i] = true;
-					++m_num_pieces;
-				}
-				else if (!have && m_have_piece[i])
-				{
-					// this should probably not be allowed
-					m_have_piece[i] = false;
-					--m_num_pieces;
-				}
-			}
-		}
+		m_have_piece = bitfield;
+		m_num_pieces = num_pieces;
+
+		if (interesting) t->get_policy().peer_is_interesting(*this);
 	}
 
 	// -----------------------------
@@ -1337,7 +1331,9 @@ namespace libtorrent
 
 #ifndef NDEBUG
 		check_postcondition post_checker_(t);
+#if !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		t->check_invariant();
+#endif
 #endif
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -1450,7 +1446,7 @@ namespace libtorrent
 		m_outstanding_writing_bytes += p.length;
 		TORRENT_ASSERT(!m_channel_state[download_channel] != peer_info::bw_network);
 		picker.mark_as_writing(block_finished, peer_info_struct());
-#ifndef NDEBUG
+#if !defined NDEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		t->check_invariant();
 #endif
 	}
@@ -2096,6 +2092,14 @@ namespace libtorrent
 			t->remove_peer(this);
 			m_torrent.reset();
 		}
+
+#ifndef NDEBUG
+		// since this connection doesn't have a torrent reference
+		// no torrent should have a reference to this connection either
+		for (aux::session_impl::torrent_map::const_iterator i = m_ses.m_torrents.begin()
+			, end(m_ses.m_torrents.end()); i != end; ++i)
+			TORRENT_ASSERT(!i->second->has_peer(this));
+#endif
 
 		boost::shared_ptr<socket_type> sock = m_socket;
 		m_disconnecting = true;
@@ -3013,12 +3017,13 @@ namespace libtorrent
 #ifndef NDEBUG
 	void peer_connection::check_invariant() const
 	{
+		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (m_disconnecting)
 		{
 			for (aux::session_impl::torrent_map::const_iterator i = m_ses.m_torrents.begin()
 				, end(m_ses.m_torrents.end()); i != end; ++i)
 				TORRENT_ASSERT(!i->second->has_peer((peer_connection*)this));
-			TORRENT_ASSERT(!m_torrent.lock());
+			TORRENT_ASSERT(!t);
 		}
 		else if (!m_in_constructor)
 		{
@@ -3053,8 +3058,15 @@ namespace libtorrent
 				TORRENT_ASSERT(!is_choked());
 		}
 
-		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (!t) return;
+		if (!t)
+		{
+			// since this connection doesn't have a torrent reference
+			// no torrent should have a reference to this connection either
+			for (aux::session_impl::torrent_map::const_iterator i = m_ses.m_torrents.begin()
+				, end(m_ses.m_torrents.end()); i != end; ++i)
+				TORRENT_ASSERT(!i->second->has_peer((peer_connection*)this));
+			return;
+		}
 
 		if (m_peer_info)
 		{
@@ -3208,7 +3220,7 @@ namespace libtorrent
 		time_duration time_limit = seconds(
 			m_ses.settings().inactivity_timeout);
 
-		// don't bother disconnect peers we haven't been intersted
+		// don't bother disconnect peers we haven't been interested
 		// in (and that hasn't been interested in us) for a while
 		// unless we have used up all our connection slots
 		if (!m_interesting
