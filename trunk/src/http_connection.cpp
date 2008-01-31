@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/gzip.hpp"
+#include "libtorrent/tracker_manager.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
@@ -44,16 +45,12 @@ using boost::bind;
 
 namespace libtorrent {
 
-namespace
-{
-	char to_lower(char c) { return std::tolower(c); }
-}
-
 enum { max_bottled_buffer = 1024 * 1024 };
 
 
 void http_connection::get(std::string const& url, time_duration timeout
-	, proxy_settings const* ps, int handle_redirects, std::string const& user_agent)
+	, proxy_settings const* ps, int handle_redirects, std::string const& user_agent
+	, address const& bind_addr)
 {
 	std::string protocol;
 	std::string auth;
@@ -106,16 +103,16 @@ void http_connection::get(std::string const& url, time_duration timeout
 
 	sendbuffer = headers.str();
 	start(hostname, boost::lexical_cast<std::string>(port), timeout, ps
-		, ssl, handle_redirects);
+		, ssl, handle_redirects, bind_addr);
 }
 
 void http_connection::start(std::string const& hostname, std::string const& port
-	, time_duration timeout, proxy_settings const* ps, bool ssl, int handle_redirects)
+	, time_duration timeout, proxy_settings const* ps, bool ssl, int handle_redirects
+	, address const& bind_addr)
 {
 	m_redirects = handle_redirects;
 	if (ps) m_proxy = *ps;
 
-	m_ssl = ssl;
 	m_timeout = timeout;
 	asio::error_code ec;
 	m_timer.expires_from_now(m_timeout, ec);
@@ -126,13 +123,22 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	m_recvbuffer.clear();
 	m_read_pos = 0;
 
-	if (m_sock.is_open() && m_hostname == hostname && m_port == port)
+	if (ec)
+	{
+		callback(ec);
+		return;
+	}
+
+	if (m_sock.is_open() && m_hostname == hostname && m_port == port
+		&& m_ssl == ssl && m_bind_addr == bind_addr)
 	{
 		asio::async_write(m_sock, asio::buffer(sendbuffer)
 			, bind(&http_connection::on_write, shared_from_this(), _1));
 	}
 	else
 	{
+		m_ssl = ssl;
+		m_bind_addr = bind_addr;
 		asio::error_code ec;
 		m_sock.close(ec);
 
@@ -155,6 +161,16 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		bool ret = instantiate_connection(m_resolver.get_io_service(), m_proxy, m_sock);
 		TORRENT_ASSERT(ret);
 #endif
+		if (m_bind_addr != address_v4::any())
+		{
+			asio::error_code ec;
+			m_sock.bind(tcp::endpoint(m_bind_addr, 0), ec);
+			if (ec)
+			{
+				callback(ec);
+				return;
+			}
+		}
 
 		tcp::resolver::query query(hostname, port);
 		m_resolver.async_resolve(query, bind(&http_connection::on_resolve
@@ -212,7 +228,7 @@ void http_connection::close()
 }
 
 void http_connection::on_resolve(asio::error_code const& e
-		, tcp::resolver::iterator i)
+	, tcp::resolver::iterator i)
 {
 	if (e)
 	{
@@ -221,7 +237,22 @@ void http_connection::on_resolve(asio::error_code const& e
 		return;
 	}
 	TORRENT_ASSERT(i != tcp::resolver::iterator());
-	m_cc.enqueue(bind(&http_connection::connect, shared_from_this(), _1, *i)
+
+	// look for an address that has the same kind as the one
+	// we're binding to. To make sure a tracker get our
+	// correct listening address.
+	tcp::resolver::iterator target = i;
+	tcp::resolver::iterator end;
+	tcp::endpoint target_address = *i;
+	for (; target != end && target->endpoint().address().is_v4()
+		!= m_bind_addr.is_v4(); ++target);
+
+	if (target != end)
+	{
+		target_address = *target;
+	}
+	
+	m_cc.enqueue(bind(&http_connection::connect, shared_from_this(), _1, target_address)
 		, bind(&http_connection::on_connect_timeout, shared_from_this())
 		, m_timeout);
 }

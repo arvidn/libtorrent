@@ -33,44 +33,31 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HTTP_TRACKER_CONNECTION_HPP_INCLUDED
 #define TORRENT_HTTP_TRACKER_CONNECTION_HPP_INCLUDED
 
-#include <vector>
 #include <string>
-#include <utility>
-#include <ctime>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
 
 #include <boost/shared_ptr.hpp>
-#include <boost/cstdint.hpp>
-#include <boost/tuple/tuple.hpp>
-#include <boost/lexical_cast.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/socket.hpp"
-#include "libtorrent/entry.hpp"
-#include "libtorrent/session_settings.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/peer.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/buffer.hpp"
-#include "libtorrent/socket_type.hpp"
-#include "libtorrent/connection_queue.hpp"
-#include "libtorrent/http_parser.hpp"
-
-#ifdef TORRENT_USE_OPENSSL
-#include "libtorrent/ssl_stream.hpp"
-#include "libtorrent/variant_stream.hpp"
-#endif
 
 namespace libtorrent
 {
 	
+	class http_connection;
+	class entry;
+	class http_parser;
+	class connection_queue;
+	class session_settings;
+
 	class TORRENT_EXPORT http_tracker_connection
 		: public tracker_connection
 	{
@@ -99,47 +86,16 @@ namespace libtorrent
 		boost::intrusive_ptr<http_tracker_connection> self()
 		{ return boost::intrusive_ptr<http_tracker_connection>(this); }
 
-		void on_response();
-		
-		void init_send_buffer(
-			std::string const& hostname
-			, std::string const& request);
+		void on_response(asio::error_code const& ec, http_parser const& parser
+			, char const* data, int size);
 
-		void name_lookup(asio::error_code const& error, tcp::resolver::iterator i);
-		void connect(int ticket, tcp::endpoint target_address);
-		void connected(asio::error_code const& error);
-		void sent(asio::error_code const& error);
-		void receive(asio::error_code const& error
-			, std::size_t bytes_transferred);
+		virtual void on_timeout() {}
 
-		virtual void on_timeout();
-
-		void parse(const entry& e);
+		void parse(int status_code, const entry& e);
 		bool extract_peer_info(const entry& e, peer_entry& ret);
 
 		tracker_manager& m_man;
-		http_parser m_parser;
-
-		tcp::resolver m_name_lookup;
-		int m_port;
-#ifdef TORRENT_USE_OPENSSL
-		variant_stream<socket_type, ssl_stream<socket_type> > m_socket;
-		bool m_ssl;
-#else
-		socket_type m_socket;
-#endif
-		int m_recv_pos;
-		std::vector<char> m_buffer;
-		std::string m_send_buffer;
-
-		session_settings const& m_settings;
-		proxy_settings const& m_proxy;
-		std::string m_password;
-	
-		bool m_timed_out;
-
-		int m_connection_ticket;
-		connection_queue& m_cc;
+		boost::shared_ptr<http_connection> m_tracker_connection;
 	};
 
 }

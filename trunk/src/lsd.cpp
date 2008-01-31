@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lsd.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
+#include "libtorrent/buffer.hpp"
+#include "libtorrent/http_parser.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
