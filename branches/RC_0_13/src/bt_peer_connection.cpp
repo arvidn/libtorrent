@@ -411,11 +411,11 @@ namespace libtorrent
 		sha1_hash const& info_hash = t->torrent_file().info_hash();
 		char const* const secret = m_DH_key_exchange->get_secret();
 
-		int pad_size = 0; // rand() % 512; // Keep 0 for now
+		int pad_size = rand() % 512;
 
 		// synchash,skeyhash,vc,crypto_provide,len(pad),pad,len(ia)
 		buffer::interval send_buf = 
-			allocate_send_buffer (20 + 20 + 8 + 4 + 2 + pad_size + 2);
+			allocate_send_buffer(20 + 20 + 8 + 4 + 2 + pad_size + 2);
 
 		// sync hash (hash('req1',S))
 		h.reset();
@@ -423,7 +423,7 @@ namespace libtorrent
 		h.update(secret, dh_key_len);
 		sha1_hash sync_hash = h.final();
 
-		std::copy (sync_hash.begin(), sync_hash.end(), send_buf.begin);
+		std::copy(sync_hash.begin(), sync_hash.end(), send_buf.begin);
 		send_buf.begin += 20;
 
 		// stream key obfuscated hash [ hash('req2',SKEY) xor hash('req3',S) ]
@@ -438,7 +438,7 @@ namespace libtorrent
 		sha1_hash obfsc_hash = h.final();
 		obfsc_hash ^= streamkey_hash;
 
-		std::copy (obfsc_hash.begin(), obfsc_hash.end(), send_buf.begin);
+		std::copy(obfsc_hash.begin(), obfsc_hash.end(), send_buf.begin);
 		send_buf.begin += 20;
 
 		// Discard DH key exchange data, setup RC4 keys
@@ -486,9 +486,9 @@ namespace libtorrent
 		TORRENT_ASSERT(crypto_select == 0x02 || crypto_select == 0x01);
 		TORRENT_ASSERT(!m_sent_handshake);
 
-		int pad_size = 0; // rand() % 512; // Keep 0 for now
+		int pad_size =rand() % 512;
 
-		const int buf_size = 8+4+2+pad_size;
+		const int buf_size = 8 + 4 + 2 + pad_size;
 		buffer::interval send_buf = allocate_send_buffer(buf_size);
 		write_pe_vc_cryptofield(send_buf, crypto_select, pad_size);
 
@@ -516,7 +516,6 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(crypto_field <= 0x03 && crypto_field > 0);
-		TORRENT_ASSERT(pad_size == 0); // pad not used yet
 		// vc,crypto_field,len(pad),pad, (len(ia))
 		TORRENT_ASSERT( (write_buf.left() == 8+4+2+pad_size+2 && is_local()) ||
 				(write_buf.left() == 8+4+2+pad_size   && !is_local()) );
@@ -533,14 +532,14 @@ namespace libtorrent
 		detail::write_uint16(pad_size, write_buf.begin); // len (pad)
 
 		// fill pad with zeroes
-		// std::fill(write_buf.begin, write_buf.begin+pad_size, 0);
-		// write_buf.begin += pad_size;
+		std::generate(write_buf.begin, write_buf.begin + pad_size, &std::rand);
+		write_buf.begin += pad_size;
 
 		// append len(ia) if we are initiating
 		if (is_local())
 			detail::write_uint16(handshake_len, write_buf.begin); // len(IA)
 		
-		assert (write_buf.begin == write_buf.end);
+		TORRENT_ASSERT(write_buf.begin == write_buf.end);
  	}
 
 	void bt_peer_connection::init_pe_RC4_handler(char const* secret, sha1_hash const& stream_key)
