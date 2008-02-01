@@ -177,13 +177,9 @@ Client sends packet:
 +-------------+---------------------+----------------------------------------+
 | int32_t     | transaction_id      | Randomized by client.                  |
 +-------------+---------------------+----------------------------------------+
-| int16_t     | num_info_hashes     | The number of info-hashes that will    |
-|             |                     | follow.                                |
-+-------------+---------------------+----------------------------------------+
-| uint16_t    | extensions          | Optional field. See extensions_.       |
-+-------------+---------------------+----------------------------------------+
 
-The following structure is repeated ``num_info_hashes`` times:
+The following structure is repeated for each info-hash to scrape, but limited by
+the MTU.
 
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
