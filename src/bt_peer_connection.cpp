@@ -382,6 +382,7 @@ namespace libtorrent
 #endif
 
 		buffer::interval send_buf = allocate_send_buffer(dh_key_len + pad_size);
+		if (send_buf.begin == 0) return; // out of memory
 
 		std::copy(m_DH_key_exchange->get_local_key(),
 				   m_DH_key_exchange->get_local_key() + dh_key_len,
@@ -416,6 +417,7 @@ namespace libtorrent
 		// synchash,skeyhash,vc,crypto_provide,len(pad),pad,len(ia)
 		buffer::interval send_buf = 
 			allocate_send_buffer(20 + 20 + 8 + 4 + 2 + pad_size + 2);
+		if (send_buf.begin == 0) return; // out of memory
 
 		// sync hash (hash('req1',S))
 		h.reset();
@@ -490,6 +492,7 @@ namespace libtorrent
 
 		const int buf_size = 8 + 4 + 2 + pad_size;
 		buffer::interval send_buf = allocate_send_buffer(buf_size);
+		if (send_buf.begin == 0) return; // out of memory
 		write_pe_vc_cryptofield(send_buf, crypto_select, pad_size);
 
 		m_RC4_handler->encrypt(send_buf.end - buf_size, buf_size);
@@ -682,6 +685,7 @@ namespace libtorrent
 		const int string_len = sizeof(version_string)-1;
 
 		buffer::interval i = allocate_send_buffer(1 + string_len + 8 + 20 + 20);
+		if (i.begin == 0) return; // out of memory
 		// length of version string
 		*i.begin = string_len;
 		++i.begin;
@@ -1449,6 +1453,7 @@ namespace libtorrent
 		const int packet_size = (num_pieces + 7) / 8 + 5;
 	
 		buffer::interval i = allocate_send_buffer(packet_size);	
+		if (i.begin == 0) return; // out of memory
 
 		detail::write_int32(packet_size - 4, i.begin);
 		detail::write_uint8(msg_bitfield, i.begin);
@@ -1537,6 +1542,7 @@ namespace libtorrent
 
 		// make room for message
 		buffer::interval i = allocate_send_buffer(6 + msg.size());
+		if (i.begin == 0) return; // out of memory
 		
 		// write the length of the message
 		detail::write_int32((int)msg.size() + 2, i.begin);
@@ -1635,11 +1641,6 @@ namespace libtorrent
 			, boost::bind(&session_impl::free_disk_buffer
 			, boost::ref(m_ses), _1));
 
-/*
-		buffer::interval i = allocate_send_buffer(r.length);
-		std::memcpy(i.begin, buffer, r.length);
-		t->filesystem().free_buffer(buffer);
-*/	
 		m_payloads.push_back(range(send_buffer_size() - r.length, r.length));
 		setup_send();
 	}
