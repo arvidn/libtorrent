@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/socket.hpp"
+#include "libtorrent/udp_socket.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/peer_id.hpp"
@@ -66,13 +66,13 @@ namespace libtorrent
 
 		udp_tracker_connection(
 			io_service& ios
+			, connection_queue& cc
 			, tracker_manager& man
 			, tracker_request const& req
-			, std::string const& hostname
-			, unsigned short port
 			, address bind_infc
 			, boost::weak_ptr<request_callback> c
-			, session_settings const& stn);
+			, session_settings const& stn
+			, proxy_settings const& ps);
 
 		void close();
 
@@ -92,29 +92,29 @@ namespace libtorrent
 		void name_lookup(asio::error_code const& error, udp::resolver::iterator i);
 		void timeout(asio::error_code const& error);
 
+		void on_receive(udp::endpoint const& ep, char const* buf, int size);
+		void on_connect_response(char const* buf, int size);
+		void on_announce_response(char const* buf, int size);
+		void on_scrape_response(char const* buf, int size);
+
 		void send_udp_connect();
-		void connect_response(asio::error_code const& error, std::size_t bytes_transferred);
-
 		void send_udp_announce();
-		void announce_response(asio::error_code const& error, std::size_t bytes_transferred);
-
 		void send_udp_scrape();
-		void scrape_response(asio::error_code const& error, std::size_t bytes_transferred);
 
 		virtual void on_timeout();
 
 		tracker_manager& m_man;
 
 		udp::resolver m_name_lookup;
-		datagram_socket m_socket;
+		udp_socket m_socket;
 		udp::endpoint m_target;
-		udp::endpoint m_sender;
 
 		int m_transaction_id;
 		boost::int64_t m_connection_id;
 		session_settings const& m_settings;
 		int m_attempts;
-		std::vector<char> m_buffer;
+
+		action_t m_state;
 	};
 
 }

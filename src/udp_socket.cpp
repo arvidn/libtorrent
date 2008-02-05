@@ -22,16 +22,15 @@ udp_socket::udp_socket(asio::io_service& ios, udp_socket::callback_t const& c
 {
 }
 
-void udp_socket::send(udp::endpoint const& ep, char const* p, int len)
+void udp_socket::send(udp::endpoint const& ep, char const* p, int len, asio::error_code& ec)
 {
 	if (m_tunnel_packets)
 	{
 		// send udp packets through SOCKS5 server
-		wrap(ep, p, len);
+		wrap(ep, p, len, ec);
 		return;	
 	}
 
-	asio::error_code ec;
 	if (ep.address().is_v4() && m_ipv4_sock.is_open())
 		m_ipv4_sock.send_to(asio::buffer(p, len), ep, 0, ec);
 	else
@@ -79,7 +78,7 @@ void udp_socket::on_read(udp::socket* s, asio::error_code const& e, std::size_t 
 	}
 }
 
-void udp_socket::wrap(udp::endpoint const& ep, char const* p, int len)
+void udp_socket::wrap(udp::endpoint const& ep, char const* p, int len, asio::error_code& ec)
 {
 	using namespace libtorrent::detail;
 
@@ -96,7 +95,6 @@ void udp_socket::wrap(udp::endpoint const& ep, char const* p, int len)
 	iovec[0] = asio::const_buffer(header, h - header);
 	iovec[1] = asio::const_buffer(p, len);
 
-	asio::error_code ec;
 	if (m_proxy_addr.address().is_v4() && m_ipv4_sock.is_open())
 		m_ipv4_sock.send_to(iovec, m_proxy_addr, 0, ec);
 	else
@@ -153,6 +151,32 @@ void udp_socket::close()
 		m_cc.done(m_connection_ticket);
 		m_connection_ticket = -1;
 	}
+}
+
+void udp_socket::bind(udp::endpoint const& ep, asio::error_code& ec)
+{
+	if (m_ipv4_sock.is_open()) m_ipv4_sock.close(ec);
+	if (m_ipv6_sock.is_open()) m_ipv6_sock.close(ec);
+
+	if (ep.address().is_v4())
+	{
+		m_ipv4_sock.open(udp::v4(), ec);
+		if (ec) return;
+		m_ipv4_sock.bind(ep, ec);
+		if (ec) return;
+		m_ipv4_sock.async_receive_from(asio::buffer(m_v4_buf, sizeof(m_v4_buf))
+			, m_v4_ep, boost::bind(&udp_socket::on_read, this, &m_ipv4_sock, _1, _2));
+	}
+	else
+	{
+		m_ipv6_sock.set_option(v6only(true), ec);
+		if (ec) return;
+		m_ipv6_sock.bind(ep, ec);
+		if (ec) return;
+		m_ipv6_sock.async_receive_from(asio::buffer(m_v6_buf, sizeof(m_v6_buf))
+			, m_v6_ep, boost::bind(&udp_socket::on_read, this, &m_ipv6_sock, _1, _2));
+	}
+	m_bind_port = ep.port();
 }
 
 void udp_socket::bind(int port)
