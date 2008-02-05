@@ -347,6 +347,7 @@ namespace libtorrent
 		TORRENT_ASSERT(t->ready_for_connections());
 
 		m_have_piece.resize(t->torrent_file().num_pieces(), m_have_all);
+		if (m_have_all) m_num_pieces = t->torrent_file().num_pieces();
 
 		// now that we have a piece_picker,
 		// update it with this peer's pieces
