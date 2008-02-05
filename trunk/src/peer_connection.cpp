@@ -2673,6 +2673,11 @@ namespace libtorrent
 		if (size <= 0) return;
 
 		std::pair<char*, int> buffer = m_ses.allocate_buffer(size);
+		if (buffer.first == 0)
+		{
+			disconnect("out of memory");
+			return;
+		}
 		TORRENT_ASSERT(buffer.second >= size);
 		std::memcpy(buffer.first, buf, size);
 		m_send_buffer.append_buffer(buffer.first, buffer.second, size
@@ -2693,6 +2698,11 @@ namespace libtorrent
 		if (insert == 0)
 		{
 			std::pair<char*, int> buffer = m_ses.allocate_buffer(size);
+			if (buffer.first == 0)
+			{
+				disconnect("out of memory");
+				return buffer::interval(0, 0);
+			}
 			TORRENT_ASSERT(buffer.second >= size);
 			m_send_buffer.append_buffer(buffer.first, buffer.second, size
 				, bind(&session_impl::free_buffer, boost::ref(m_ses), _1, buffer.second));

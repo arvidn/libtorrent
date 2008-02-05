@@ -1280,10 +1280,21 @@ namespace detail
 				torrent& t = *i->second;
 				if (t.want_more_peers())
 				{
-					if (t.try_connect_peer())
+					try
 					{
-						--max_connections;
-						steps_since_last_connect = 0;
+						if (t.try_connect_peer())
+						{
+							--max_connections;
+							steps_since_last_connect = 0;
+						}
+					}
+					catch (std::bad_alloc&)
+					{
+						// we ran out of memory trying to connect to a peer
+						// lower the global limit to the number of peers
+						// we already have
+						m_max_connections = num_connections();
+						if (m_max_connections < 2) m_max_connections = 2;
 					}
 				}
 				++m_next_connect_torrent;
