@@ -53,7 +53,8 @@ namespace libtorrent
 		bool is_open() const { return m_ipv4_sock.is_open() || m_ipv6_sock.is_open(); }
 		asio::io_service& get_io_service() { return m_ipv4_sock.get_io_service(); }
 
-		void send(udp::endpoint const& ep, char const* p, int len);
+		void send(udp::endpoint const& ep, char const* p, int len, asio::error_code& ec);
+		void bind(udp::endpoint const& ep, asio::error_code& ec);
 		void bind(int port);
 		void close();
 		int local_port() const { return m_bind_port; }
@@ -78,7 +79,7 @@ namespace libtorrent
 		void connect1(asio::error_code const& e);
 		void connect2(asio::error_code const& e);
 
-		void wrap(udp::endpoint const& ep, char const* p, int len);
+		void wrap(udp::endpoint const& ep, char const* p, int len, asio::error_code& ec);
 		void unwrap(char const* buf, int size);
 
 		udp::socket m_ipv4_sock;

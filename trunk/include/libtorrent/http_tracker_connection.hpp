@@ -69,10 +69,6 @@ namespace libtorrent
 			, connection_queue& cc
 			, tracker_manager& man
 			, tracker_request const& req
-			, std::string const& protocol
-			, std::string const& hostname
-			, unsigned short port
-			, std::string request
 			, address bind_infc
 			, boost::weak_ptr<request_callback> c
 			, session_settings const& stn

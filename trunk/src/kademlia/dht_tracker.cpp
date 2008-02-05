@@ -949,7 +949,7 @@ namespace libtorrent { namespace dht
 		m_send_buf.clear();
 		bencode(std::back_inserter(m_send_buf), e);
 		asio::error_code ec;
-		m_sock.send(m.addr, &m_send_buf[0], (int)m_send_buf.size());
+		m_sock.send(m.addr, &m_send_buf[0], (int)m_send_buf.size(), ec);
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		m_total_out_bytes += m_send_buf.size();

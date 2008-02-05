@@ -274,15 +274,7 @@ exit:
 		if (m_abort && req.event != tracker_request::stopped)
 			return;
 
-		std::string protocol;
-		std::string hostname;
-		int port;
-		std::string request_string;
-
-		using boost::tuples::ignore;
-		// TODO: should auth be used here?
-		boost::tie(protocol, ignore, hostname, port, request_string)
-			= parse_url_components(req.url);
+		std::string protocol = req.url.substr(0, req.url.find(':'));
 
 		boost::intrusive_ptr<tracker_connection> con;
 
@@ -293,37 +285,20 @@ exit:
 #endif
 		{
 			con = new http_tracker_connection(
-				ios
-				, cc
-				, *this
-				, req
-				, protocol
-				, hostname
-				, port
-				, request_string
-				, bind_infc
-				, c
-				, m_settings
-				, m_proxy
-				, auth);
+				ios, cc, *this, req, bind_infc, c
+				, m_settings, m_proxy, auth);
 		}
 		else if (protocol == "udp")
 		{
 			con = new udp_tracker_connection(
-				ios
-				, *this
-				, req
-				, hostname
-				, port
-				, bind_infc
-				, c
-				, m_settings);
+				ios, cc, *this, req, bind_infc
+				, c, m_settings, m_proxy);
 		}
 		else
 		{
 			if (boost::shared_ptr<request_callback> r = c.lock())
 				r->tracker_request_error(req, -1, "unknown protocol in tracker url: "
-					+ protocol);
+					+ req.url);
 			return;
 		}
 
