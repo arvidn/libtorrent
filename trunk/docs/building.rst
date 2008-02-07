@@ -209,6 +209,7 @@ Build features:
 | ``logging``            | * ``none`` - no logging.                           |
 |                        | * ``default`` - basic session logging.             |
 |                        | * ``verbose`` - verbose peer wire logging.         |
+|                        | * ``errors`` - like verbose, but limited to errors.|
 +------------------------+----------------------------------------------------+
 | ``dht-support``        | * ``on`` - build with support for tracker less     |
 |                        |   torrents and DHT support.                        |

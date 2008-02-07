@@ -161,8 +161,9 @@ feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
 feature memdebug : off on : composite propagated ;
 feature.compose <memdebug>on : <define>TORRENT_MEMDEBUG ;
 
-feature logging : none default verbose : composite propagated link-incompatible ;
+feature logging : none default errors verbose : composite propagated link-incompatible ;
 feature.compose <logging>default : <define>TORRENT_LOGGING ;
+feature.compose <logging>errors : <define>TORRENT_ERRORLOGGING ;
 feature.compose <logging>verbose : <define>TORRENT_VERBOSE_LOGGING ;
 
 feature dht-support : on off logging : composite propagated link-incompatible ;

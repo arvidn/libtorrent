@@ -321,7 +321,7 @@ namespace libtorrent
 		
 		INVARIANT_CHECK;
 
-#if defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
 		{
@@ -594,7 +594,7 @@ namespace libtorrent
 		// connect to random peers from the list
 		std::random_shuffle(peer_list.begin(), peer_list.end());
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		std::stringstream s;
 		s << "TRACKER RESPONSE:\n"
 			"interval: " << m_duration << "\n"
@@ -623,7 +623,7 @@ namespace libtorrent
 
 				if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
 				{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 					debug_log("blocked ip from tracker: " + i->ip);
 #endif
 					if (m_ses.m_alerts.should_post(alert::info))
@@ -670,7 +670,7 @@ namespace libtorrent
 
 		if (m_ses.m_ip_filter.access(host->endpoint().address()) & ip_filter::blocked)
 		{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			debug_log("blocked ip from tracker: " + host->endpoint().address().to_string());
 #endif
 			if (m_ses.m_alerts.should_post(alert::info))
@@ -1081,10 +1081,10 @@ namespace libtorrent
 #ifdef TORRENT_LOGGING
 					(*m_ses.m_logger) << time_now_string() << " *** BANNING PEER [ " << p->ip
 						<< " ] 'too many corrupt pieces'\n";
-#if defined(TORRENT_VERBOSE_LOGGING)
+#endif
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 					(*p->connection->m_logger) << "*** BANNING PEER [ " << p->ip
 						<< " ] 'too many corrupt pieces'\n";
-#endif
 #endif
 					p->connection->disconnect("too many corrupt pieces, banning peer");
 				}
@@ -1131,7 +1131,7 @@ namespace libtorrent
 		// disconnect all peers and close all
 		// files belonging to the torrents
 
-#if defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
 		{
@@ -1640,7 +1640,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " resolving web seed: " << url << "\n";
 #endif
 
@@ -1682,7 +1682,7 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " completed resolve proxy hostname for: " << url << "\n";
 #endif
 
@@ -1738,7 +1738,7 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " completed resolve: " << url << "\n";
 #endif
 
@@ -1754,7 +1754,7 @@ namespace libtorrent
 				m_ses.m_alerts.post_alert(
 					url_seed_alert(get_handle(), url, msg.str()));
 			}
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_ses.m_logger) << " ** HOSTNAME LOOKUP FAILED!**: " << url << "\n";
 #endif
 
@@ -1819,7 +1819,7 @@ namespace libtorrent
 		}
 		catch (std::exception& e)
 		{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_ses.m_logger) << " ** HOSTNAME LOOKUP FAILED!**: " << e.what() << "\n";
 #endif
 
@@ -1957,7 +1957,7 @@ namespace libtorrent
 			{
 				// unknown country!
 				p->set_country("!!");
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 				(*m_ses.m_logger) << "IP " << p->remote().address() << " was mapped to unknown country: " << country << "\n";
 #endif
 				return;
@@ -2250,7 +2250,7 @@ namespace libtorrent
 			peer_connection* p = *m_connections.begin();
 			TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
 
-#if defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			if (m_abort)
 				(*p->m_logger) << "*** CLOSING CONNECTION 'aborting'\n";
 			else
@@ -2381,7 +2381,7 @@ namespace libtorrent
 			TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
 			if (p->is_seed())
 			{
-#if defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 				(*p->m_logger) << "*** SEED, CLOSING CONNECTION\n";
 #endif
 				seeds.push_back(p);
@@ -2486,7 +2486,7 @@ namespace libtorrent
 			{
 				m_ses.m_alerts.post_alert(fastresume_rejected_alert(
 					get_handle(), error_msg));
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 				(*m_ses.m_logger) << "fastresume data for "
 					<< torrent_file().name() << " rejected: "
 					<< error_msg << "\n";
@@ -2861,7 +2861,7 @@ namespace libtorrent
 
 	void torrent::delete_files()
 	{
-#if defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
 		{
@@ -2898,7 +2898,7 @@ namespace libtorrent
 		}
 #endif
 
-#if defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
 		{
@@ -3022,7 +3022,7 @@ namespace libtorrent
 			}
 			catch (std::exception& e)
 			{
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 				(*p->m_logger) << "**ERROR**: " << e.what() << "\n";
 #endif
 				p->set_failed();
@@ -3278,7 +3278,7 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		debug_log("*** tracker timed out");
 #endif
 
@@ -3311,7 +3311,7 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		debug_log(std::string("*** tracker error: ") + str);
 #endif
 		if (m_ses.m_alerts.should_post(alert::warning))
@@ -3334,7 +3334,7 @@ namespace libtorrent
 	}
 
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	void torrent::debug_log(const std::string& line)
 	{
 		(*m_ses.m_logger) << time_now_string() << " " << line << "\n";

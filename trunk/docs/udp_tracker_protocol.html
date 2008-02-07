@@ -312,18 +312,10 @@ scrape. See <a class="reference" href="#actions">actions</a>.</td>
 <td>transaction_id</td>
 <td>Randomized by client.</td>
 </tr>
-<tr><td>int16_t</td>
-<td>num_info_hashes</td>
-<td>The number of info-hashes that will
-follow.</td>
-</tr>
-<tr><td>uint16_t</td>
-<td>extensions</td>
-<td>Optional field. See <a class="reference" href="#extensions">extensions</a>.</td>
-</tr>
 </tbody>
 </table>
-<p>The following structure is repeated <tt class="docutils literal"><span class="pre">num_info_hashes</span></tt> times:</p>
+<p>The following structure is repeated for each info-hash to scrape, but limited by
+the MTU.</p>
 <table border="1" class="docutils">
 <colgroup>
 <col width="18%" />
