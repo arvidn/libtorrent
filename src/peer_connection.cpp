@@ -1705,6 +1705,9 @@ namespace libtorrent
 		TORRENT_ASSERT(block.block_index < t->torrent_file().piece_size(block.piece_index));
 		TORRENT_ASSERT(!t->picker().is_requested(block) || (t->picker().num_peers(block) > 0));
 		TORRENT_ASSERT(!t->have_piece(block.piece_index));
+		TORRENT_ASSERT(std::find(m_download_queue.begin(), m_download_queue.end(), block) == m_download_queue.end());
+		TORRENT_ASSERT(std::find(m_request_queue.begin(), m_request_queue.end(), block) == m_request_queue.end());
+
 
 		piece_picker::piece_state_t state;
 		peer_speed_t speed = peer_speed();
