@@ -192,6 +192,9 @@ namespace libtorrent
 	void http_tracker_connection::on_response(asio::error_code const& ec
 		, http_parser const& parser, char const* data, int size)
 	{
+		// keep this alive
+		boost::intrusive_ptr<http_tracker_connection> me(this);
+
 		if (!parser.header_finished())
 		{
 			fail(-1, "premature end of file");
