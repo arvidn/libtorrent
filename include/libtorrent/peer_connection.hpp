@@ -286,7 +286,7 @@ namespace libtorrent
 
 		int desired_queue_size() const { return m_desired_queue_size; }
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		boost::shared_ptr<logger> m_logger;
 #endif
 

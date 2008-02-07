@@ -86,7 +86,7 @@
 <li><a class="reference" href="#name" id="id71" name="id71">name()</a></li>
 <li><a class="reference" href="#set-ratio" id="id72" name="id72">set_ratio()</a></li>
 <li><a class="reference" href="#set-upload-limit-set-download-limit-upload-limit-download-limit" id="id73" name="id73">set_upload_limit() set_download_limit() upload_limit() download_limit()</a></li>
-<li><a class="reference" href="#set-sequenced-download-threshold" id="id74" name="id74">set_sequenced_download_threshold()</a></li>
+<li><a class="reference" href="#set-sequential-download" id="id74" name="id74">set_sequential_download()</a></li>
 <li><a class="reference" href="#set-peer-upload-limit-set-peer-download-limit" id="id75" name="id75">set_peer_upload_limit() set_peer_download_limit()</a></li>
 <li><a class="reference" href="#pause-resume-is-paused" id="id76" name="id76">pause() resume() is_paused()</a></li>
 <li><a class="reference" href="#resolve-countries" id="id77" name="id77">resolve_countries()</a></li>
@@ -1484,7 +1484,7 @@ struct torrent_handle
         int upload_limit() const;
         void set_download_limit(int limit) const;
         int download_limit() const;
-        void set_sequenced_download_threshold(int threshold) const;
+        void set_sequential_download(bool sd) const;
 
         void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
         void set_peer_download_limit(asio::ip::tcp::endpoint ip, int limit) const;
@@ -1705,22 +1705,16 @@ limit.</p>
 download, respectively.</p>
 </div>
 <div class="section">
-<h2><a id="set-sequenced-download-threshold" name="set-sequenced-download-threshold">set_sequenced_download_threshold()</a></h2>
+<h2><a id="set-sequential-download" name="set-sequential-download">set_sequential_download()</a></h2>
 <blockquote>
 <pre class="literal-block">
-void set_sequenced_download_threshold(int threshold);
+void set_sequential_download(bool sd);
 </pre>
 </blockquote>
-<p>sequenced-download threshold is the limit on how popular a piece has to be
-(popular == inverse of rarity) to be downloaded in sequence instead of in
-random (rarest first) order. It can be used to tweak disk performance in
-settings where the random download property is less necessary. For example, if
-the threshold is 10, all pieces which 10 or more peers have, will be downloaded
-in index order. This setting defaults to 100, which means that it is disabled
-in practice.</p>
-<p>Setting this threshold to a very small value will affect the piece distribution
-negatively in the swarm. It should basically only be used in situations where
-the random seeks on the disk is the download bottleneck.</p>
+<p>Enables or disables <em>sequential download</em>. When enabled, the piece picker will pick pieces in sequence
+instead of rarest first.</p>
+<p>Enabling sequential download will affect the piece distribution negatively in the swarm. It should be
+used sparingly.</p>
 </div>
 <div class="section">
 <h2><a id="set-peer-upload-limit-set-peer-download-limit" name="set-peer-upload-limit-set-peer-download-limit">set_peer_upload_limit() set_peer_download_limit()</a></h2>
