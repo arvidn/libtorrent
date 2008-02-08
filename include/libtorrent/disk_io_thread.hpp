@@ -44,11 +44,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/pool/pool.hpp>
 #include <boost/noncopyable.hpp>
+#include <boost/shared_array.hpp>
 #include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
 
+	struct cached_piece_info
+	{
+		int piece;
+		std::vector<bool> blocks;
+		ptime last_write;
+	};
+	
 	struct disk_io_job
 	{
 		disk_io_job()
@@ -91,11 +99,22 @@ namespace libtorrent
 		boost::function<void(int, disk_io_job const&)> callback;
 	};
 
+	struct cache_status
+	{
+		// the number of 16kB blocks written
+		size_type blocks_written;
+		// the number of write operations used
+		size_type writes;
+		// (blocks_written - writes) / blocks_written represents the
+		// "cache hit" ratio in the write cache
+		int write_size;
+	};
+	
 	// this is a singleton consisting of the thread and a queue
 	// of disk io jobs
 	struct disk_io_thread : boost::noncopyable
 	{
-		disk_io_thread(int block_size = 16 * 1024);
+		disk_io_thread(asio::io_service& ios, int block_size = 16 * 1024);
 		~disk_io_thread();
 
 #ifdef TORRENT_STATS
@@ -122,6 +141,12 @@ namespace libtorrent
 		size_type queue_buffer_size() const
 		{ return m_queue_buffer_size; }
 
+		void get_cache_info(sha1_hash const& ih
+			, std::vector<cached_piece_info>& ret) const;
+
+		cache_status status() const;
+		void set_cache_size(int s);
+
 		void operator()();
 
 		char* allocate_buffer();
@@ -130,13 +155,43 @@ namespace libtorrent
 	private:
 
 		typedef boost::recursive_mutex mutex_t;
+
+		struct cached_piece_entry
+		{
+			int piece;
+			// storage this piece belongs to
+			boost::intrusive_ptr<piece_manager> storage;
+			// the last time a block was writting to this piece
+			ptime last_write;
+			// the number of blocks in the cache for this piece
+			int num_blocks;
+			// the pointers to the block data
+			boost::shared_array<char*> blocks;
+		};
+
+		char* allocate_buffer(mutex_t::scoped_lock& l);
+		void free_buffer(char* buf, mutex_t::scoped_lock& l);
+
+		std::vector<cached_piece_entry>::iterator find_cached_piece(
+			disk_io_job const& j, mutex_t::scoped_lock& l);
+		void flush_oldest_piece(mutex_t::scoped_lock& l);
+		void flush_and_remove(std::vector<cached_piece_entry>::iterator i, mutex_t::scoped_lock& l);
+		void flush(std::vector<cached_piece_entry>::iterator i, mutex_t::scoped_lock& l);
+		void cache_block(disk_io_job& j, mutex_t::scoped_lock& l);
+
 		mutable mutex_t m_mutex;
 		boost::condition m_signal;
 		bool m_abort;
 		std::deque<disk_io_job> m_jobs;
 		size_type m_queue_buffer_size;
 
+		std::vector<cached_piece_entry> m_pieces;
+		int m_num_cached_blocks;
+		// in (16kB) blocks
+		int m_cache_size;
+
 		// memory pool for read and write operations
+		// and disk cache
 		boost::pool<> m_pool;
 
 #ifndef NDEBUG
@@ -150,6 +205,11 @@ namespace libtorrent
 #ifdef TORRENT_STATS
 		int m_allocations;
 #endif
+
+		size_type m_writes;
+		size_type m_blocks_written;
+
+		asio::io_service& m_ios;
 
 		// thread for performing blocking disk io operations
 		boost::thread m_disk_io_thread;

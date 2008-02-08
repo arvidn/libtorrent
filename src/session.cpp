@@ -277,6 +277,17 @@ namespace libtorrent
 		return m_impl->status();
 	}
 
+	void session::get_cache_info(sha1_hash const& ih
+		, std::vector<cached_piece_info>& ret) const
+	{
+		m_impl->m_disk_thread.get_cache_info(ih, ret);
+	}
+
+	cache_status session::get_cache_status() const
+	{
+		return m_impl->m_disk_thread.status();
+	}
+
 #ifndef TORRENT_DISABLE_DHT
 
 	void session::start_dht(entry const& startup_state)

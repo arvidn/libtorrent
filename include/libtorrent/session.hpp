@@ -61,6 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/version.hpp"
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/disk_io_thread.hpp"
 
 #include "libtorrent/storage.hpp"
 
@@ -176,6 +177,10 @@ namespace libtorrent
 		session_proxy abort() { return session_proxy(m_impl); }
 
 		session_status status() const;
+		cache_status get_cache_status() const;
+
+		void get_cache_info(sha1_hash const& ih
+			, std::vector<cached_piece_info>& ret) const;
 
 #ifndef TORRENT_DISABLE_DHT
 		void start_dht(entry const& startup_state = entry());

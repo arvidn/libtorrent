@@ -133,6 +133,7 @@ The ``session`` class has the following synopsis::
 		void set_ip_filter(ip_filter const& f);
       
 		session_status status() const;
+		cache_status get_cache_status() const;
 
 		bool is_listening() const;
 		unsigned short listen_port() const;
@@ -490,6 +491,65 @@ becomes unresponsive.
 ``dht_global_nodes`` is an estimation of the total number of nodes in the DHT
 network.
 
+get_cache_status()
+------------------
+
+	::
+
+		cache_status get_cache_status() const;
+
+Returns status of the disk cache for this session.
+
+	::
+
+		struct cache_status
+		{
+			size_type blocks_written;
+			size_type writes;
+			int write_size;
+		};
+
+``blocks_written`` is the total number of 16 KiB blocks written to disk
+since this session was started.
+
+``writes`` is the total number of write operations performed since this
+session was started.
+
+The ratio (``blocks_written`` - ``writes``) / ``blocks_written`` represents
+the number of saved write operations per total write operations. i.e. a kind
+of cache hit ratio for the write cahe.
+
+``write_size`` is the number of 16 KiB blocks currently in the write cache.
+
+get_cache_info()
+----------------
+
+	::
+
+		void get_cache_info(sha1_hash const& ih
+			, std::vector<cached_piece_info>& ret) const;
+
+``get_cache_info()`` fills out the supplied vector with information for
+each piece that is currently in the disk cache for the torrent with the
+specified info-hash (``ih``).
+
+	::
+
+		struct cached_piece_info
+		{
+			int piece;
+			std::vector<bool> blocks;
+			ptime last_write;
+		};
+
+``piece`` is the piece index for this cache entry.
+
+``blocks`` has one entry for each block in this piece. ``true`` represents
+the data for that block being in the disk cache and ``false`` means it's not.
+
+``last_write`` is the time when a block was last written to this piece. The older
+a piece is, the more likely it is to be flushed to disk.
+		
 is_listening() listen_port() listen_on()
 ----------------------------------------
 
@@ -2513,6 +2573,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		bool upnp_ignore_nonrouters;
 		int send_buffer_watermark;
 		bool auto_upload_slots;
+		int cache_size;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -2662,6 +2723,9 @@ slot is opened. If the upload rate has been saturated for an extended period
 of time, on upload slot is closed. The number of upload slots will never be
 less than what has been set by ``session::set_max_uploads()``. To query the
 current number of upload slots, see ``session_status::allowed_upload_slots``.
+
+``cache_size`` is the disk write cache. It is specified in units of 16 KiB blocks.
+It defaults to 128 (= 2 MB).
 
 pe_settings
 ===========
