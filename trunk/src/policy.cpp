@@ -224,7 +224,10 @@ namespace libtorrent
 		// the number of blocks we want, but it will try to make the picked
 		// blocks be from whole pieces, possibly by returning more blocks
 		// than we requested.
-		TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint());
+#ifndef NDEBUG
+		asio::error_code ec;
+		TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
+#endif
 
 		piece_picker::piece_state_t state;
 		peer_connection::peer_speed_t speed = c.peer_speed();

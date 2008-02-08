@@ -896,6 +896,7 @@ int main(int ac, char* av[])
 		std::vector<partial_piece_info> queue;
 
 		bool print_peers = false;
+		bool print_cache = false;
 		bool print_log = false;
 		bool print_downloads = false;
 		bool print_piece_bar = false;
@@ -962,6 +963,7 @@ int main(int ac, char* av[])
 				}
 
 				if (c == 'i') print_peers = !print_peers;
+				if (c == 'c') print_cache = !print_cache;
 				if (c == 'l') print_log = !print_log;
 				if (c == 'd') print_downloads = !print_downloads;
 				if (c == 'f') print_file_progress = !print_file_progress;
@@ -1150,9 +1152,18 @@ int main(int ac, char* av[])
 					h.get_download_queue(queue);
 					std::sort(queue.begin(), queue.end(), bind(&partial_piece_info::piece_index, _1)
 						< bind(&partial_piece_info::piece_index, _2));
+
+					std::vector<cached_piece_info> pieces;
+					ses.get_cache_info(h.info_hash(), pieces);
+
 					for (std::vector<partial_piece_info>::iterator i = queue.begin();
 						i != queue.end(); ++i)
 					{
+						cached_piece_info* cp = 0;
+						std::vector<cached_piece_info>::iterator cpi = std::find_if(pieces.begin(), pieces.end()
+							, bind(&cached_piece_info::piece, _1) == i->piece_index);
+						if (cpi != pieces.end()) cp = &*cpi;
+
 						out << to_string(i->piece_index, 4) << ": [";
 						for (int j = 0; j < i->blocks_in_piece; ++j)
 						{
@@ -1162,7 +1173,8 @@ int main(int ac, char* av[])
 								str[0] = (index < 10)?'0' + index:'A' + index - 10;
 
 #ifdef ANSI_TERMINAL_COLORS
-							if (i->blocks[j].bytes_progress > 0
+							if (cp && cp->blocks[j]) out << esc("36;7") << str << esc("0");
+							else if (i->blocks[j].bytes_progress > 0
 								&& i->blocks[j].state == block_info::requested)
 							{
 								if (i->blocks[j].num_peers > 1)
@@ -1176,7 +1188,8 @@ int main(int ac, char* av[])
 							else if (i->blocks[j].state == block_info::requested) out << str;
 							else out << " ";
 #else
-							if (i->blocks[j].state == block_info::finished) out << "#";
+							if (cp && cp->blocks[j]) out << "c";
+							else if (i->blocks[j].state == block_info::finished) out << "#";
 							else if (i->blocks[j].state == block_info::writing) out << "+";
 							else if (i->blocks[j].state == block_info::requested) out << str;
 							else out << " ";
@@ -1211,6 +1224,8 @@ int main(int ac, char* av[])
 
 			}
 
+			cache_status cs = ses.get_cache_status();
+
 			out << "==== conns: " << sess_stat.num_peers
 				<< " down: " << esc("32") << add_suffix(sess_stat.download_rate) << "/s" << esc("0")
 				<< " (" << esc("32") << add_suffix(sess_stat.total_download) << esc("0") << ") "
@@ -1218,7 +1233,10 @@ int main(int ac, char* av[])
 				<< " (" << esc("31") << add_suffix(sess_stat.total_upload) << esc("0") << ")"
 				" unchoked: " << sess_stat.num_unchoked << " / " << sess_stat.allowed_upload_slots
 				<< " bw queues: (" << sess_stat.up_bandwidth_queue
-				<< " | " << sess_stat.down_bandwidth_queue << ") ====" << std::endl;
+				<< " | " << sess_stat.down_bandwidth_queue << ") "
+				" write cache hits: " << ((cs.blocks_written - cs.writes) * 100 / cs.blocks_written) << "% "
+				" cache size: " << add_suffix(cs.write_size * 16 * 1024)
+				<< " ====" << std::endl;
 
 			if (print_log)
 			{

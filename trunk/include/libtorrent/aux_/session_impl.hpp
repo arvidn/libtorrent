@@ -399,18 +399,20 @@ namespace libtorrent
 			// when they are destructed.
 			file_pool m_files;
 
+			// this is where all active sockets are stored.
+			// the selector can sleep while there's no activity on
+			// them
+			io_service m_io_service;
+
 			// handles disk io requests asynchronously
 			// peers have pointers into the disk buffer
 			// pool, and must be destructed before this
 			// object. The disk thread relies on the file
 			// pool object, and must be destructed before
-			// m_files.
+			// m_files. The disk io thread posts completion
+			// events to the io service, and needs to be
+			// constructed after it.
 			disk_io_thread m_disk_thread;
-
-			// this is where all active sockets are stored.
-			// the selector can sleep while there's no activity on
-			// them
-			io_service m_io_service;
 
 			// this is a list of half-open tcp connections
 			// (only outgoing connections)

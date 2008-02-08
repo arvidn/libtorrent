@@ -120,6 +120,7 @@ namespace libtorrent
 			, upnp_ignore_nonrouters(true)
  			, send_buffer_watermark(80 * 1024)
 			, auto_upload_slots(true)
+			, cache_size(128)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -317,6 +318,10 @@ namespace libtorrent
 		// upload slots are never automatically decreased below
 		// the manual settings, through max_uploads.
 		bool auto_upload_slots;
+
+		// the disk write cache, specified in 16 KiB blocks.
+		// defaul is 128 (= 2 MB)
+		int cache_size;
 	};
 	
 #ifndef TORRENT_DISABLE_DHT

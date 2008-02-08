@@ -191,6 +191,8 @@ namespace libtorrent
 
 		~piece_manager();
 
+		torrent_info const* info() const { return m_info.get(); }
+
 		bool check_fastresume(aux::piece_checker_data& d
 			, std::vector<bool>& pieces, int& num_pieces, storage_mode_t storage_mode
 			, std::string& error_msg);

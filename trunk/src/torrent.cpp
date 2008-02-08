@@ -2765,6 +2765,9 @@ namespace libtorrent
 					complete = false;
 					break;
 				}
+				// this is no longer valid since the completion event
+				// may be queued in the io service
+/*
 				if (complete && m_files_checked)
 				{
 					disk_io_job ret = m_ses.m_disk_thread.find_job(
@@ -2772,6 +2775,7 @@ namespace libtorrent
 					TORRENT_ASSERT(ret.action == disk_io_job::hash || ret.action == disk_io_job::write);
 					TORRENT_ASSERT(ret.piece == i->index);
 				}
+*/
 			}
 		}
 			

@@ -3111,6 +3111,9 @@ namespace libtorrent
 					complete = false;
 					break;
 				}
+/*
+// this invariant is not valid anymore since the completion event
+// might be queued in the io service
 				if (complete && !piece_failed)
 				{
 					disk_io_job ret = m_ses.m_disk_thread.find_job(
@@ -3118,6 +3121,7 @@ namespace libtorrent
 					TORRENT_ASSERT(ret.action == disk_io_job::hash || ret.action == disk_io_job::write);
 					TORRENT_ASSERT(ret.piece == i->index);
 				}
+*/
 			}
 		}
 // expensive when using checked iterators

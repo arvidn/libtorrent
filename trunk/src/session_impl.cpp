@@ -552,6 +552,8 @@ namespace detail
 		)
 		: m_send_buffers(send_buffer_size)
 		, m_files(40)
+		, m_io_service()
+		, m_disk_thread(m_io_service)
 		, m_half_open(m_io_service)
 		, m_download_channel(m_io_service, peer_connection::download_channel)
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
@@ -807,6 +809,8 @@ namespace detail
 
 		// less than 5 seconds unchoke interval is insane
 		TORRENT_ASSERT(s.unchoke_interval >= 5);
+		if (m_settings.cache_size != s.cache_size)
+			m_disk_thread.set_cache_size(s.cache_size);
 		m_settings = s;
 		m_files.resize(m_settings.file_pool_size);
 		if (!s.auto_upload_slots) m_allowed_upload_slots = m_max_uploads;
