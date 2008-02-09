@@ -2332,6 +2332,8 @@ It contains the following fields::
 
 		int send_quota;
 		int receive_quota;
+
+		int rtt;
 	};
 
 The ``flags`` attribute tells you in which state the peer is. It is set to
@@ -2530,6 +2532,10 @@ is capped by ``session_settings::max_outstanding_disk_bytes_per_connection``.
 ``send_quota`` and ``receive_quota`` are the number of bytes this peer has been
 assigned to be allowed to send and receive until it has to request more quota
 from the bandwidth manager.
+
+``rtt`` is an estimated round trip time to this peer, in milliseconds. It is
+estimated by timing the the tcp ``connect()``. It may be 0 for incoming connections.
+
 
 session_settings
 ================

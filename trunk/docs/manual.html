@@ -2339,6 +2339,8 @@ struct peer_info
 
         int send_quota;
         int receive_quota;
+
+        int rtt;
 };
 </pre>
 <p>The <tt class="docutils literal"><span class="pre">flags</span></tt> attribute tells you in which state the peer is. It is set to
@@ -2546,6 +2548,8 @@ is capped by <tt class="docutils literal"><span class="pre">session_settings::ma
 <p><tt class="docutils literal"><span class="pre">send_quota</span></tt> and <tt class="docutils literal"><span class="pre">receive_quota</span></tt> are the number of bytes this peer has been
 assigned to be allowed to send and receive until it has to request more quota
 from the bandwidth manager.</p>
+<p><tt class="docutils literal"><span class="pre">rtt</span></tt> is an estimated round trip time to this peer, in milliseconds. It is
+estimated by timing the the tcp <tt class="docutils literal"><span class="pre">connect()</span></tt>. It may be 0 for incoming connections.</p>
 </div>
 <div class="section">
 <h1><a id="session-settings" name="session-settings">session_settings</a></h1>
