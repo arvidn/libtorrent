@@ -50,7 +50,7 @@ namespace libtorrent
 		: m_abort(false)
 		, m_queue_buffer_size(0)
 		, m_num_cached_blocks(0)
-		, m_cache_size(128) // 128 * 16kB = 2MB
+		, m_cache_size(512) // 512 * 16kB = 8MB
 		, m_pool(block_size)
 #ifndef NDEBUG
 		, m_block_size(block_size)
