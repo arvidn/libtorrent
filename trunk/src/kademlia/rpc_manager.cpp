@@ -438,6 +438,9 @@ void rpc_manager::reply_with_ping(msg& m)
 
 	TORRENT_ASSERT(allocation_size() >= sizeof(null_observer));
 	observer_ptr o(new (allocator().malloc()) null_observer(allocator()));
+#ifndef NDEBUG
+	o->m_in_constructor = false;
+#endif
 	TORRENT_ASSERT(!m_transactions[m_next_transaction_id]);
 	o->sent = time_now();
 	o->target_addr = m.addr;

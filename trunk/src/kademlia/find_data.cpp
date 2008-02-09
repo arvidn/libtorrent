@@ -111,6 +111,9 @@ void find_data::invoke(node_id const& id, asio::ip::udp::endpoint addr)
 
 	TORRENT_ASSERT(m_rpc.allocation_size() >= sizeof(find_data_observer));
 	observer_ptr o(new (m_rpc.allocator().malloc()) find_data_observer(this, id, m_target));
+#ifndef NDEBUG
+	o->m_in_constructor = false;
+#endif
 	m_rpc.invoke(messages::get_peers, addr, o);
 }
 

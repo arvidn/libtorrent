@@ -273,8 +273,11 @@ namespace
 		for (std::vector<node_entry>::const_iterator i = v.begin()
 			, end(v.end()); i != end; ++i)
 		{
-			rpc.invoke(messages::get_peers, i->addr, observer_ptr(
-				new (rpc.allocator().malloc()) get_peers_observer(ih, listen_port, rpc, f)));
+			observer_ptr o(new (rpc.allocator().malloc()) get_peers_observer(ih, listen_port, rpc, f));
+#ifndef NDEBUG
+			o->m_in_constructor = false;
+#endif
+			rpc.invoke(messages::get_peers, i->addr, o);
 			nodes = true;
 		}
 	}
@@ -290,6 +293,9 @@ void node_impl::add_node(udp::endpoint node)
 	// ping the node, and if we get a reply, it
 	// will be added to the routing table
 	observer_ptr o(new (m_rpc.allocator().malloc()) null_observer(m_rpc.allocator()));
+#ifndef NDEBUG
+	o->m_in_constructor = false;
+#endif
 	m_rpc.invoke(messages::ping, node, o);
 }
 
