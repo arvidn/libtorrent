@@ -120,7 +120,7 @@ namespace libtorrent
 			, upnp_ignore_nonrouters(true)
  			, send_buffer_watermark(80 * 1024)
 			, auto_upload_slots(true)
-			, cache_size(128)
+			, cache_size(512)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -320,7 +320,7 @@ namespace libtorrent
 		bool auto_upload_slots;
 
 		// the disk write cache, specified in 16 KiB blocks.
-		// defaul is 128 (= 2 MB)
+		// defaul is 512 (= 8 MB)
 		int cache_size;
 	};
 	
