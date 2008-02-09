@@ -56,9 +56,16 @@ struct observer : boost::noncopyable
 		: sent(time_now())
 		, pool_allocator(p)
 		, m_refs(0)
-	{}
+	{
+#ifndef NDEBUG
+		m_in_constructor = true;
+#endif
+	}
 
-	virtual ~observer() {}
+	virtual ~observer()
+	{
+		TORRENT_ASSERT(!m_in_constructor);
+	}
 
 	// these two callbacks lets the observer add
 	// information to the message before it's sent
@@ -79,6 +86,9 @@ struct observer : boost::noncopyable
 
 	udp::endpoint target_addr;
 	ptime sent;
+#ifndef NDEBUG
+	bool m_in_constructor;
+#endif
 private:
 	boost::pool<>& pool_allocator;
 	// reference counter for intrusive_ptr
