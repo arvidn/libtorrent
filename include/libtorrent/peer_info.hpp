@@ -171,6 +171,9 @@ namespace libtorrent
 		// numbers used for bandwidth limiting
 		int send_quota;
 		int receive_quota;
+
+		// estimated rtt to peer, in milliseconds
+		int rtt;
 	};
 
 }

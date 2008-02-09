@@ -742,6 +742,14 @@ namespace libtorrent
 		// immediate.
 		bool m_fast_reconnect;
 		
+		// the time when async_connect was called
+		ptime m_connect;
+
+		// estimated round trip time to this peer
+		// based on the time from when async_connect
+		// was called to when on_connection_complete
+		// was called. The rtt is specified in milliseconds
+		int m_rtt;
 #ifndef NDEBUG
 	public:
 		bool m_in_constructor;

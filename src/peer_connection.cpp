@@ -118,6 +118,7 @@ namespace libtorrent
 		, m_remote_dl_update(time_now())
 		, m_outstanding_writing_bytes(0)
 		, m_fast_reconnect(false)
+		, m_rtt(0)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif
@@ -200,6 +201,7 @@ namespace libtorrent
 		, m_remote_dl_update(time_now())
 		, m_outstanding_writing_bytes(0)
 		, m_fast_reconnect(false)
+		, m_rtt(0)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif
@@ -2162,6 +2164,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(!associated_torrent().expired());
 
+		p.rtt = m_rtt;
 		p.down_speed = statistics().download_rate();
 		p.up_speed = statistics().upload_rate();
 		p.payload_down_speed = statistics().download_payload_rate();
@@ -2912,6 +2915,7 @@ namespace libtorrent
 		}
 		m_socket->async_connect(m_remote
 			, bind(&peer_connection::on_connection_complete, self(), _1));
+		m_connect = time_now();
 
 		if (t->alerts().should_post(alert::debug))
 		{
@@ -2922,10 +2926,14 @@ namespace libtorrent
 	
 	void peer_connection::on_connection_complete(asio::error_code const& e) try
 	{
+		ptime completed = time_now();
+
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
 
+		m_rtt = total_milliseconds(completed - m_connect);
+		
 		if (m_disconnecting) return;
 
 		m_connecting = false;
@@ -2948,7 +2956,8 @@ namespace libtorrent
 		// this means the connection just succeeded
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-		(*m_ses.m_logger) << time_now_string() << " COMPLETED: " << m_remote.address().to_string() << "\n";
+		(*m_ses.m_logger) << time_now_string() << " COMPLETED: " << m_remote.address().to_string()
+			<< " rtt = " << m_rtt << "\n";
 #endif
 
 		on_connected();
