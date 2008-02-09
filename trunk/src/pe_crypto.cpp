@@ -61,8 +61,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(sizeof(m_dh_prime) == DH_size(m_DH));
 		
-		DH_generate_key(m_DH);
-		if (m_DH->pub_key == 0)
+		if (DH_generate_key(m_DH) == 0 || m_DH->pub_key == 0)
 		{
 			DH_free(m_DH);
 			throw std::bad_alloc();
