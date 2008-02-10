@@ -228,9 +228,10 @@ namespace libtorrent
 			std::vector<cached_piece_entry>::iterator i = std::min_element(
 				m_pieces.begin(), m_pieces.end()
 				, bind(&cached_piece_entry::last_write, _1)
-				< bind(&cached_piece_entry::last_write, _1));
+				< bind(&cached_piece_entry::last_write, _2));
 			if (i == m_pieces.end()) return;
-			if (total_seconds(now - i->last_write) < m_cache_expiry) return;
+			int age = total_seconds(now - i->last_write);
+			if (age < m_cache_expiry) return;
 			flush_and_remove(i, l);
 		}
 	}
@@ -241,7 +242,7 @@ namespace libtorrent
 		std::vector<cached_piece_entry>::iterator i = std::min_element(
 			m_pieces.begin(), m_pieces.end()
 			, bind(&cached_piece_entry::last_write, _1)
-			< bind(&cached_piece_entry::last_write, _1));
+			< bind(&cached_piece_entry::last_write, _2));
 		if (i == m_pieces.end()) return;
 		flush_and_remove(i, l);
 	}
