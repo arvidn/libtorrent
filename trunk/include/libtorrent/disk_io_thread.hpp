@@ -146,6 +146,7 @@ namespace libtorrent
 
 		cache_status status() const;
 		void set_cache_size(int s);
+		void set_cache_expiry(int ex);
 
 		void operator()();
 
@@ -175,6 +176,7 @@ namespace libtorrent
 		std::vector<cached_piece_entry>::iterator find_cached_piece(
 			disk_io_job const& j, mutex_t::scoped_lock& l);
 		void flush_oldest_piece(mutex_t::scoped_lock& l);
+		void flush_expired_pieces(mutex_t::scoped_lock& l);
 		void flush_and_remove(std::vector<cached_piece_entry>::iterator i, mutex_t::scoped_lock& l);
 		void flush(std::vector<cached_piece_entry>::iterator i, mutex_t::scoped_lock& l);
 		void cache_block(disk_io_job& j, mutex_t::scoped_lock& l);
@@ -189,6 +191,8 @@ namespace libtorrent
 		int m_num_cached_blocks;
 		// in (16kB) blocks
 		int m_cache_size;
+		// expiration time of cache entries in seconds
+		int m_cache_expiry;
 
 		// memory pool for read and write operations
 		// and disk cache

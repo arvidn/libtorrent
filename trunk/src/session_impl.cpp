@@ -811,6 +811,8 @@ namespace detail
 		TORRENT_ASSERT(s.unchoke_interval >= 5);
 		if (m_settings.cache_size != s.cache_size)
 			m_disk_thread.set_cache_size(s.cache_size);
+		if (m_settings.cache_expiry != s.cache_expiry)
+			m_disk_thread.set_cache_size(s.cache_expiry);
 		m_settings = s;
 		m_files.resize(m_settings.file_pool_size);
 		if (!s.auto_upload_slots) m_allowed_upload_slots = m_max_uploads;

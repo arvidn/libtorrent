@@ -389,7 +389,7 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 		}
 		else
 		{
-			out << progress_bar(0.f, 15);
+			out << progress_bar(0.f, 14);
 		}
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
@@ -1197,7 +1197,9 @@ int main(int ac, char* av[])
 #endif
 						}
 						char* piece_state[4] = {"", "slow", "medium", "fast"};
-						out << "] " << piece_state[i->piece_state] << "\n";
+						out << "] " << piece_state[i->piece_state];
+						if (cp) out << (i->piece_state > 0?" | ":"") << "cache age: " << total_seconds(time_now() - cp->last_write);
+						out << "\n";
 					}
 
 					out << "___________________________________\n";
