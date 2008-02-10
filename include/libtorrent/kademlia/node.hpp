@@ -139,9 +139,12 @@ public:
 	void timeout() {}
 	void reply(msg const& r)
 	{
-		m_rpc.invoke(messages::announce_peer, r.addr
-			, observer_ptr(new (m_rpc.allocator().malloc()) announce_observer(
-				m_rpc.allocator(), m_info_hash, m_listen_port, r.write_token)));
+		observer_ptr o(new (m_rpc.allocator().malloc()) announce_observer(
+			m_rpc.allocator(), m_info_hash, m_listen_port, r.write_token));
+#ifndef NDEBUG
+		o->m_in_constructor = false;
+#endif
+		m_rpc.invoke(messages::announce_peer, r.addr, o);
 		m_fun(r.peers, m_info_hash);
 	}
 	void abort() {}
