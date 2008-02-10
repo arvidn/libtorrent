@@ -51,6 +51,7 @@ namespace libtorrent
 		, m_queue_buffer_size(0)
 		, m_num_cached_blocks(0)
 		, m_cache_size(512) // 512 * 16kB = 8MB
+		, m_cache_expiry(60) // 1 minute
 		, m_pool(block_size)
 #ifndef NDEBUG
 		, m_block_size(block_size)
@@ -146,6 +147,13 @@ namespace libtorrent
 		m_cache_size = s;
 	}
 
+	void disk_io_thread::set_cache_expiry(int ex)
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(ex > 0);
+		m_cache_expiry = ex;
+	}
+
 	// aborts read operations
 	void disk_io_thread::stop(boost::intrusive_ptr<piece_manager> s)
 	{
@@ -210,6 +218,23 @@ namespace libtorrent
 		return m_pieces.end();
 	}
 	
+	void disk_io_thread::flush_expired_pieces(mutex_t::scoped_lock& l)
+	{
+		ptime now = time_now();
+
+		TORRENT_ASSERT(l.locked());
+		for (;;)
+		{
+			std::vector<cached_piece_entry>::iterator i = std::min_element(
+				m_pieces.begin(), m_pieces.end()
+				, bind(&cached_piece_entry::last_write, _1)
+				< bind(&cached_piece_entry::last_write, _1));
+			if (i == m_pieces.end()) return;
+			if (total_seconds(now - i->last_write) < m_cache_expiry) return;
+			flush_and_remove(i, l);
+		}
+	}
+
 	void disk_io_thread::flush_oldest_piece(mutex_t::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
@@ -234,6 +259,9 @@ namespace libtorrent
 		TORRENT_ASSERT(l.locked());
 		cached_piece_entry& p = *e;
 		int piece_size = p.storage->info()->piece_size(p.piece);
+#ifdef TORRENT_DISK_STATS
+		m_log << log_time() << " flushing " << piece_size << std::endl;
+#endif
 		TORRENT_ASSERT(piece_size > 0);
 //		char* buf = (char*)alloca(piece_size);
 		std::vector<char> temp(piece_size);
@@ -425,6 +453,8 @@ namespace libtorrent
 			disk_io_job j = m_jobs.front();
 			m_jobs.pop_front();
 			m_queue_buffer_size -= j.buffer_size;
+
+			flush_expired_pieces(l);
 			l.unlock();
 
 			int ret = 0;
@@ -457,9 +487,6 @@ namespace libtorrent
 						}
 						ret = j.storage->read_impl(j.buffer, j.piece, j.offset
 							, j.buffer_size);
-
-						// simulates slow drives
-						// usleep(300);
 						break;
 					case disk_io_job::write:
 					{
@@ -479,9 +506,6 @@ namespace libtorrent
 							++m_num_cached_blocks;
 							++p->num_blocks;
 							p->last_write = time_now();
-//							std::cerr << " adding cache entry for p: " << j.piece
-//								<< " block: " << block
-//								<< " cached_blocks: " << m_num_cached_blocks << std::endl;
 						}
 						else
 						{
@@ -490,9 +514,6 @@ namespace libtorrent
 						free_current_buffer = false;
 						if (m_num_cached_blocks >= m_cache_size)
 							flush_oldest_piece(l);
-
-						// simulates a slow drive
-						// usleep(300);
 						break;
 					}
 					case disk_io_job::hash:

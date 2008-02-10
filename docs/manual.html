@@ -2591,6 +2591,7 @@ struct session_settings
         int send_buffer_watermark;
         bool auto_upload_slots;
         int cache_size;
+        int cache_expiry;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker.
@@ -2715,6 +2716,8 @@ less than what has been set by <tt class="docutils literal"><span class="pre">se
 current number of upload slots, see <tt class="docutils literal"><span class="pre">session_status::allowed_upload_slots</span></tt>.</p>
 <p><tt class="docutils literal"><span class="pre">cache_size</span></tt> is the disk write cache. It is specified in units of 16 KiB blocks.
 It defaults to 128 (= 2 MB).</p>
+<p><tt class="docutils literal"><span class="pre">cache_expiry</span></tt> is the number of seconds from the last cached write to a piece
+in the write cache, to when it's forcefully flushed to disk. Default is 60 second.</p>
 </div>
 <div class="section">
 <h1><a id="pe-settings" name="pe-settings">pe_settings</a></h1>
