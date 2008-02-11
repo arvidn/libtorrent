@@ -2644,20 +2644,23 @@ namespace detail
 
 					TORRENT_ASSERT(*slot_iter == p.index);
 					int slot_index = static_cast<int>(slot_iter - tmp_pieces.begin());
-					unsigned long adler
-						= torrent_ptr->filesystem().piece_crc(
-							slot_index
-							, torrent_ptr->block_size()
-							, p.info);
-
-					const entry& ad = (*i)["adler32"];
+					const entry* ad = i->find_key("adler32");
 	
-					// crc's didn't match, don't use the resume data
-					if (ad.integer() != entry::integer_type(adler))
+					if (ad && ad->type() == entry::int_t)
 					{
-						error = "checksum mismatch on piece "
-							+ boost::lexical_cast<std::string>(p.index);
-						return;
+						unsigned long adler
+							= torrent_ptr->filesystem().piece_crc(
+								slot_index
+								, torrent_ptr->block_size()
+								, p.info);
+
+						// crc's didn't match, don't use the resume data
+						if (ad->integer() != entry::integer_type(adler))
+						{
+							error = "checksum mismatch on piece "
+								+ boost::lexical_cast<std::string>(p.index);
+							return;
+						}
 					}
 
 					tmp_unfinished.push_back(p);
