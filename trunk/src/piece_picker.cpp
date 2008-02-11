@@ -364,6 +364,7 @@ namespace libtorrent
 				{
 					++num_requested;
 					blocks_requested = true;
+					TORRENT_ASSERT(i->info[k].num_peers > 0);
 				}
 				if (i->info[k].state == block_info::state_writing)
 				{
