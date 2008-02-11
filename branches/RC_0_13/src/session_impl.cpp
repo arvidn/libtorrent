@@ -797,12 +797,13 @@ namespace detail
 
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(s.connection_speed > 0);
 		TORRENT_ASSERT(s.file_pool_size > 0);
 
 		// less than 5 seconds unchoke interval is insane
 		TORRENT_ASSERT(s.unchoke_interval >= 5);
 		m_settings = s;
+		if (m_settings.connection_speed <= 0) m_settings.connection_speed = 200;
+
 		m_files.resize(m_settings.file_pool_size);
 		// replace all occurances of '\n' with ' '.
 		std::string::iterator i = m_settings.user_agent.begin();

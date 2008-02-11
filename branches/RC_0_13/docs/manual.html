@@ -2528,7 +2528,8 @@ connection may delay the connection of other peers considerably.</p>
 <p><tt class="docutils literal"><span class="pre">ignore_limits_on_local_network</span></tt>, if set to true, upload, download and
 unchoke limits are ignored for peers on the local network.</p>
 <p><tt class="docutils literal"><span class="pre">connection_speed</span></tt> is the number of connection attempts that
-are made per second.</p>
+are made per second. If a number &lt;= 0 is specified, it will default to
+200 connections per second.</p>
 <p><tt class="docutils literal"><span class="pre">send_redundant_have</span></tt> controls if have messages will be sent
 to peers that already have the piece. This is typically not necessary,
 but it might be necessary for collecting statistics in some cases.

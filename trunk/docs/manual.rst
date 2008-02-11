@@ -2684,7 +2684,8 @@ connection may delay the connection of other peers considerably.
 unchoke limits are ignored for peers on the local network.
 
 ``connection_speed`` is the number of connection attempts that
-are made per second.
+are made per second. If a number <= 0 is specified, it will default to
+200 connections per second.
 
 ``send_redundant_have`` controls if have messages will be sent
 to peers that already have the piece. This is typically not necessary,

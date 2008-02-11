@@ -804,7 +804,6 @@ namespace detail
 
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(s.connection_speed > 0);
 		TORRENT_ASSERT(s.file_pool_size > 0);
 
 		// less than 5 seconds unchoke interval is insane
@@ -814,6 +813,8 @@ namespace detail
 		if (m_settings.cache_expiry != s.cache_expiry)
 			m_disk_thread.set_cache_size(s.cache_expiry);
 		m_settings = s;
+ 		if (m_settings.connection_speed <= 0) m_settings.connection_speed = 200;
+ 
 		m_files.resize(m_settings.file_pool_size);
 		if (!s.auto_upload_slots) m_allowed_upload_slots = m_max_uploads;
 		// replace all occurances of '\n' with ' '.
