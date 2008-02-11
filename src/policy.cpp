@@ -297,6 +297,7 @@ namespace libtorrent
 					|| std::find(rq.begin(), rq.end(), *i) != rq.end())
 					continue;
 	
+				TORRENT_ASSERT(p.num_peers(*i) > 0);
 				busy_pieces.push_back(*i);
 				continue;
 			}
@@ -336,6 +337,8 @@ namespace libtorrent
 		p.piece_info(i->piece_index, st);
 		TORRENT_ASSERT(st.requested + st.finished + st.writing == p.blocks_in_piece(i->piece_index));
 #endif
+		TORRENT_ASSERT(p.is_requested(*i));
+		TORRENT_ASSERT(p.num_peers(*i) > 0);
 		c.add_request(*i);
 		c.send_block_requests();
 	}
