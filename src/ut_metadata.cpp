@@ -56,6 +56,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/metadata_transfer.hpp"
 #include "libtorrent/alert_types.hpp"
+#ifdef TORRENT_STATS
+#include "libtorrent/aux_/session_impl.hpp"
+#endif
 
 namespace libtorrent { namespace
 {
