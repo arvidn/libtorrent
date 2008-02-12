@@ -24,7 +24,6 @@ exe client_test : client_test.cpp
 	<library>/boost/regex
 	;
 
-exe test : test.cpp ;
 exe simple_client : simple_client.cpp ;
 exe dump_torrent : dump_torrent.cpp ;
 exe make_torrent : make_torrent.cpp ;
