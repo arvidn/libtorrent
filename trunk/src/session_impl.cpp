@@ -625,6 +625,7 @@ namespace detail
 			"\n";
 		m_buffer_usage_logger.open("buffer_stats.log", std::ios::trunc);
 		m_second_counter = 0;
+		m_buffer_allocations = 0;
 #endif
 
 		// ---- generate a peer id ----
