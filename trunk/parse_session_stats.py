@@ -1,5 +1,7 @@
 import os, sys, time
 
+ignore = ['download rate', 'disk block buffers']
+
 keys = ['upload rate', 'download rate', 'downloading torrents', \
 	'seeding torrents', 'peers', 'connecting peers', 'disk block buffers']
 
@@ -19,7 +21,10 @@ print >>out, "set key box"
 print >>out, 'plot',
 column = 2
 for k in keys:
-   print >>out, ' "%s" using 1:%d title "%s" axes %s with lines,' % (sys.argv[1], column, k, axes[column-2]),
+   if k in ignore:
+      column = column + 1
+      continue
+   print >>out, ' "%s" using 1:%d title "%s" axes %s with steps,' % (sys.argv[1], column, k, axes[column-2]),
    column = column + 1
 print >>out, 'x=0'
 out.close()
