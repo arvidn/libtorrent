@@ -461,16 +461,27 @@ namespace libtorrent
 			int ret = 0;
 
 			bool free_current_buffer = true;
-			try
-			{
-				TORRENT_ASSERT(j.storage);
+			TORRENT_ASSERT(j.storage);
 #ifdef TORRENT_DISK_STATS
-				ptime start = time_now();
+			ptime start = time_now();
 #endif
-//				std::cerr << "DISK THREAD: executing job: " << j.action << std::endl;
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+			std::string const& error_string = j.storage->error();
+			if (!error_string.empty())
+			{
+				std::cout << "ERROR: " << error_string << std::endl;
+				j.str = error_string;
+				j.storage->clear_error();
+				ret = -1;
+			}
+			else
+			{
 				switch (j.action)
 				{
 					case disk_io_job::read:
+					{
 #ifdef TORRENT_DISK_STATS
 						m_log << log_time() << " read " << j.buffer_size << std::endl;
 #endif
@@ -488,7 +499,13 @@ namespace libtorrent
 						}
 						ret = j.storage->read_impl(j.buffer, j.piece, j.offset
 							, j.buffer_size);
+						if (ret < 0)
+						{
+							j.str = j.storage->error();
+							j.storage->clear_error();
+						}
 						break;
+					}
 					case disk_io_job::write:
 					{
 						mutex_t::scoped_lock l(m_mutex);
@@ -527,17 +544,33 @@ namespace libtorrent
 						if (i != m_pieces.end()) flush_and_remove(i, l);
 						l.unlock();
 						sha1_hash h = j.storage->hash_for_piece_impl(j.piece);
+						std::string const& e = j.storage->error();
+						if (!e.empty())
+						{
+							j.str = e;
+							ret = -1;
+							j.storage->clear_error();
+							break;
+						}
 						j.str.resize(20);
 						std::memcpy(&j.str[0], &h[0], 20);
 						break;
 					}
 					case disk_io_job::move_storage:
+					{
 #ifdef TORRENT_DISK_STATS
 						m_log << log_time() << " move" << std::endl;
 #endif
 						ret = j.storage->move_storage_impl(j.str) ? 1 : 0;
+						if (ret != 0)
+						{
+							j.str = j.storage->error();
+							j.storage->clear_error();
+							break;
+						}
 						j.str = j.storage->save_path().string();
 						break;
+					}
 					case disk_io_job::release_files:
 					{
 #ifdef TORRENT_DISK_STATS
@@ -553,7 +586,12 @@ namespace libtorrent
 						m_pieces.erase(i, m_pieces.end());
 						m_pool.release_memory();
 						l.unlock();
-						j.storage->release_files_impl();
+						ret = j.storage->release_files_impl();
+						if (ret != 0)
+						{
+							j.str = j.storage->error();
+							j.storage->clear_error();
+						}
 						break;
 					}
 					case disk_io_job::delete_files:
@@ -580,26 +618,38 @@ namespace libtorrent
 						m_pieces.erase(i, m_pieces.end());
 						m_pool.release_memory();
 						l.unlock();
-						j.storage->delete_files_impl();
+						ret = j.storage->delete_files_impl();
+						if (ret != 0)
+						{
+							j.str = j.storage->error();
+							j.storage->clear_error();
+						}
 						break;
 					}
 				}
 			}
-			catch (std::exception& e)
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception& e)
 			{
-//				std::cerr << "DISK THREAD: exception: " << e.what() << std::endl;
+				ret = -1;
 				try
 				{
 					j.str = e.what();
 				}
 				catch (std::exception&) {}
-				ret = -1;
 			}
+#endif
 
 //			if (!handler) std::cerr << "DISK THREAD: no callback specified" << std::endl;
 //			else std::cerr << "DISK THREAD: invoking callback" << std::endl;
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+				if (handler) m_ios.post(bind(handler, ret, j));
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception&) {}
+#endif
 
-			if (handler) m_ios.post(bind(handler, ret, j));
 
 #ifndef NDEBUG
 			m_current.storage = 0;
@@ -608,6 +658,7 @@ namespace libtorrent
 			
 			if (j.buffer && free_current_buffer) free_buffer(j.buffer);
 		}
+		TORRENT_ASSERT(false);
 	}
 }
 

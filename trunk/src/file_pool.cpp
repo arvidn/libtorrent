@@ -57,10 +57,14 @@ namespace libtorrent
 
 			if (e.key != st)
 			{
+#ifdef BOOST_NO_EXCEPTIONS
+				return boost::shared_ptr<file>();
+#else
 				// this means that another instance of the storage
 				// is using the exact same file.
 				throw file_error("torrent uses the same file as another torrent "
 					"(" + p.string() + ")");
+#endif
 			}
 
 			e.key = st;

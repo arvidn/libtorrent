@@ -111,13 +111,15 @@ namespace libtorrent
 
 		void open(fs::path const& p, open_mode m);
 		void close();
-		void set_size(size_type size);
+		bool set_size(size_type size);
 
 		size_type write(const char*, size_type num_bytes);
 		size_type read(char*, size_type num_bytes);
 
 		size_type seek(size_type pos, seek_mode m = begin);
 		size_type tell();
+
+		std::string const& error() const;
 
 	private:
 
