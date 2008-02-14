@@ -134,308 +134,174 @@ namespace detail
 		for (;;)
 		{
 			// temporary torrent used while checking fastresume data
-			try
+			t.reset();
 			{
-				t.reset();
+				boost::mutex::scoped_lock l(m_mutex);
+
+				INVARIANT_CHECK;
+
+				// if the job queue is empty and
+				// we shouldn't abort
+				// wait for a signal
+				while (m_torrents.empty() && !m_abort && !processing)
+					m_cond.wait(l);
+
+				if (m_abort)
 				{
-					boost::mutex::scoped_lock l(m_mutex);
-
-					INVARIANT_CHECK;
-
-					// if the job queue is empty and
-					// we shouldn't abort
-					// wait for a signal
-					while (m_torrents.empty() && !m_abort && !processing)
-						m_cond.wait(l);
-
-					if (m_abort)
-					{
-						// no lock is needed here, because the main thread
-						// has already been shut down by now
-						processing.reset();
-						t.reset();
-						std::for_each(m_torrents.begin(), m_torrents.end()
-							, boost::bind(&torrent::abort
+					// no lock is needed here, because the main thread
+					// has already been shut down by now
+					processing.reset();
+					t.reset();
+					std::for_each(m_torrents.begin(), m_torrents.end()
+						, boost::bind(&torrent::abort
 							, boost::bind(&shared_ptr<torrent>::get
-							, boost::bind(&piece_checker_data::torrent_ptr, _1))));
-						m_torrents.clear();
-						std::for_each(m_processing.begin(), m_processing.end()
-							, boost::bind(&torrent::abort
+								, boost::bind(&piece_checker_data::torrent_ptr, _1))));
+					m_torrents.clear();
+					std::for_each(m_processing.begin(), m_processing.end()
+						, boost::bind(&torrent::abort
 							, boost::bind(&shared_ptr<torrent>::get
-							, boost::bind(&piece_checker_data::torrent_ptr, _1))));
-						m_processing.clear();
-						return;
-					}
-
-					if (!m_torrents.empty())
-					{
-						t = m_torrents.front();
-						if (t->abort)
-						{
-							// make sure the locking order is
-							// consistent to avoid dead locks
-							// we need to lock the session because closing
-							// torrents assume to have access to it
-							l.unlock();
-							session_impl::mutex_t::scoped_lock l2(m_ses.m_mutex);
-							l.lock();
-
-							t->torrent_ptr->abort();
-							m_torrents.pop_front();
-							continue;
-						}
-					}
+								, boost::bind(&piece_checker_data::torrent_ptr, _1))));
+					m_processing.clear();
+					return;
 				}
 
-				if (t)
+				if (!m_torrents.empty())
 				{
-					std::string error_msg;
-					t->parse_resume_data(t->resume_data, t->torrent_ptr->torrent_file()
-						, error_msg);
-
-					// lock the session to add the new torrent
-					session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-
-					if (!error_msg.empty() && m_ses.m_alerts.should_post(alert::warning))
+					t = m_torrents.front();
+					if (t->abort)
 					{
-						m_ses.m_alerts.post_alert(fastresume_rejected_alert(
+						// make sure the locking order is
+						// consistent to avoid dead locks
+						// we need to lock the session because closing
+						// torrents assume to have access to it
+						l.unlock();
+						session_impl::mutex_t::scoped_lock l2(m_ses.m_mutex);
+						l.lock();
+
+						t->torrent_ptr->abort();
+						m_torrents.pop_front();
+						continue;
+					}
+				}
+			}
+
+			if (t)
+			{
+				std::string error_msg;
+				t->parse_resume_data(t->resume_data, t->torrent_ptr->torrent_file()
+					, error_msg);
+
+				// lock the session to add the new torrent
+				session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+				if (!error_msg.empty() && m_ses.m_alerts.should_post(alert::warning))
+				{
+					m_ses.m_alerts.post_alert(fastresume_rejected_alert(
 							t->torrent_ptr->get_handle()
 							, error_msg));
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-						(*m_ses.m_logger) << "fastresume data for "
-							<< t->torrent_ptr->torrent_file().name() << " rejected: "
-							<< error_msg << "\n";
+					(*m_ses.m_logger) << "fastresume data for "
+						<< t->torrent_ptr->torrent_file().name() << " rejected: "
+						<< error_msg << "\n";
 #endif
-					}
-
-					mutex::scoped_lock l2(m_mutex);
-
-					if (m_torrents.empty() || m_torrents.front() != t)
-					{
-						// this means the torrent was removed right after it was
-						// added. Abort the checking.
-						t.reset();
-						continue;
-					}
-					
-					// clear the resume data now that it has been used
-					// (the fast resume data is now parsed and stored in t)
-					t->resume_data = entry();
-					bool up_to_date = t->torrent_ptr->check_fastresume(*t);
-
-					if (up_to_date)
-					{
-						INVARIANT_CHECK;
-
-						TORRENT_ASSERT(!m_torrents.empty());
-						TORRENT_ASSERT(m_torrents.front() == t);
-
-						t->torrent_ptr->files_checked(t->unfinished_pieces);
-						m_torrents.pop_front();
-
-						// we cannot add the torrent if the session is aborted.
-						if (!m_ses.is_aborted())
-						{
-							m_ses.m_torrents.insert(std::make_pair(t->info_hash, t->torrent_ptr));
-							if (m_ses.m_alerts.should_post(alert::info))
-							{
-				  				m_ses.m_alerts.post_alert(torrent_checked_alert(
-					 				processing->torrent_ptr->get_handle()
-					 				, "torrent finished checking"));
-							}
-							if (t->torrent_ptr->is_seed() && m_ses.m_alerts.should_post(alert::info))
-							{
-								m_ses.m_alerts.post_alert(torrent_finished_alert(
-									t->torrent_ptr->get_handle()
-									, "torrent is complete"));
-							}
-
-							peer_id id;
-							std::fill(id.begin(), id.end(), 0);
-							for (std::vector<tcp::endpoint>::const_iterator i = t->peers.begin();
-								i != t->peers.end(); ++i)
-							{
-								t->torrent_ptr->get_policy().peer_from_tracker(*i, id
-									, peer_info::resume_data, 0);
-							}
-
-							for (std::vector<tcp::endpoint>::const_iterator i = t->banned_peers.begin();
-								i != t->banned_peers.end(); ++i)
-							{
-								policy::peer* p = t->torrent_ptr->get_policy().peer_from_tracker(*i, id
-									, peer_info::resume_data, 0);
-								if (p) p->banned = true;
-							}
-						}
-						else
-						{
-							t->torrent_ptr->abort();
-						}
-						t.reset();
-						continue;
-					}
-
-					l.unlock();
-
-					// move the torrent from
-					// m_torrents to m_processing
-					TORRENT_ASSERT(m_torrents.front() == t);
-
-					m_torrents.pop_front();
-					m_processing.push_back(t);
-					if (!processing)
-					{
-						processing = t;
-						processing->processing = true;
-						t.reset();
-					}
 				}
-			}
-			catch (const std::exception& e)
-			{
-				// This will happen if the storage fails to initialize
-				// for example if one of the files has an invalid filename.
-				session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
 				mutex::scoped_lock l2(m_mutex);
 
-				if (m_ses.m_alerts.should_post(alert::fatal))
+				if (m_torrents.empty() || m_torrents.front() != t)
 				{
-					m_ses.m_alerts.post_alert(
-						file_error_alert(
-							t->torrent_ptr->get_handle()
-							, e.what()));
+					// this means the torrent was removed right after it was
+					// added. Abort the checking.
+					t.reset();
+					continue;
 				}
-				t->torrent_ptr->abort();
 
-				TORRENT_ASSERT(!m_torrents.empty());
-				m_torrents.pop_front();
-			}
-			catch(...)
-			{
-#ifndef NDEBUG
-				std::cerr << "error while checking resume data\n";
-#endif
-				mutex::scoped_lock l(m_mutex);
-				TORRENT_ASSERT(!m_torrents.empty());
-				m_torrents.pop_front();
-				TORRENT_ASSERT(false);
-			}
+				// clear the resume data now that it has been used
+				// (the fast resume data is now parsed and stored in t)
+				t->resume_data = entry();
+				bool up_to_date = t->torrent_ptr->check_fastresume(*t);
 
-			if (!processing) continue;
-
-			try
-			{	
-				TORRENT_ASSERT(processing);
-	
-				float finished = false;
-				float progress = 0.f;
-				boost::tie(finished, progress) = processing->torrent_ptr->check_files();
-
+				if (up_to_date)
 				{
-					mutex::scoped_lock l2(m_mutex);
-
 					INVARIANT_CHECK;
 
-					processing->progress = progress;
-					if (processing->abort)
-					{
-						TORRENT_ASSERT(!m_processing.empty());
-						TORRENT_ASSERT(m_processing.front() == processing);
-						m_processing.pop_front();
+					TORRENT_ASSERT(!m_torrents.empty());
+					TORRENT_ASSERT(m_torrents.front() == t);
 
-						// make sure the lock order is correct
-						l2.unlock();
-						session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-						l2.lock();
-						processing->torrent_ptr->abort();
+					t->torrent_ptr->files_checked(t->unfinished_pieces);
+					m_torrents.pop_front();
 
-						processing.reset();
-						if (!m_processing.empty())
-						{
-							processing = m_processing.front();
-							processing->processing = true;
-						}
-						continue;
-					}
-				}
-				if (finished)
-				{
-					// lock the session to add the new torrent
-					session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-					mutex::scoped_lock l2(m_mutex);
-
-					INVARIANT_CHECK;
-
-					TORRENT_ASSERT(!m_processing.empty());
-					TORRENT_ASSERT(m_processing.front() == processing);
-
-					// TODO: factor out the adding of torrents to the session
-					// and to the checker thread to avoid duplicating the
-					// check for abortion.
+					// we cannot add the torrent if the session is aborted.
 					if (!m_ses.is_aborted())
 					{
-						processing->torrent_ptr->files_checked(processing->unfinished_pieces);
-						m_ses.m_torrents.insert(std::make_pair(
-							processing->info_hash, processing->torrent_ptr));
+						m_ses.m_torrents.insert(std::make_pair(t->info_hash, t->torrent_ptr));
 						if (m_ses.m_alerts.should_post(alert::info))
 						{
 							m_ses.m_alerts.post_alert(torrent_checked_alert(
-								processing->torrent_ptr->get_handle()
-								, "torrent finished checking"));
-	 					}
-						if (processing->torrent_ptr->is_seed()
-							&& m_ses.m_alerts.should_post(alert::info))
+									processing->torrent_ptr->get_handle()
+									, "torrent finished checking"));
+						}
+						if (t->torrent_ptr->is_seed() && m_ses.m_alerts.should_post(alert::info))
 						{
 							m_ses.m_alerts.post_alert(torrent_finished_alert(
-								processing->torrent_ptr->get_handle()
-								, "torrent is complete"));
+									t->torrent_ptr->get_handle()
+									, "torrent is complete"));
 						}
 
 						peer_id id;
 						std::fill(id.begin(), id.end(), 0);
-						for (std::vector<tcp::endpoint>::const_iterator i = processing->peers.begin();
-							i != processing->peers.end(); ++i)
+						for (std::vector<tcp::endpoint>::const_iterator i = t->peers.begin();
+							i != t->peers.end(); ++i)
 						{
-							processing->torrent_ptr->get_policy().peer_from_tracker(*i, id
+							t->torrent_ptr->get_policy().peer_from_tracker(*i, id
 								, peer_info::resume_data, 0);
 						}
 
-						for (std::vector<tcp::endpoint>::const_iterator i = processing->banned_peers.begin();
-							i != processing->banned_peers.end(); ++i)
+						for (std::vector<tcp::endpoint>::const_iterator i = t->banned_peers.begin();
+							i != t->banned_peers.end(); ++i)
 						{
-							policy::peer* p = processing->torrent_ptr->get_policy().peer_from_tracker(*i, id
+							policy::peer* p = t->torrent_ptr->get_policy().peer_from_tracker(*i, id
 								, peer_info::resume_data, 0);
 							if (p) p->banned = true;
 						}
 					}
 					else
 					{
-						processing->torrent_ptr->abort();
+						t->torrent_ptr->abort();
 					}
-					processing.reset();
-					m_processing.pop_front();
-					if (!m_processing.empty())
-					{
-						processing = m_processing.front();
-						processing->processing = true;
-					}
+					t.reset();
+					continue;
+				}
+
+				l.unlock();
+
+				// move the torrent from
+				// m_torrents to m_processing
+				TORRENT_ASSERT(m_torrents.front() == t);
+
+				m_torrents.pop_front();
+				m_processing.push_back(t);
+				if (!processing)
+				{
+					processing = t;
+					processing->processing = true;
+					t.reset();
 				}
 			}
-			catch(std::exception const& e)
+			if (!processing) continue;
+
+			TORRENT_ASSERT(processing);
+
+			bool finished = false;
+			bool error = false;
+			float progress = 0.f;
+			boost::tie(finished, progress) = processing->torrent_ptr->check_files(error);
+
+			if (error)
 			{
 				// This will happen if the storage fails to initialize
 				session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 				mutex::scoped_lock l2(m_mutex);
-
-				if (m_ses.m_alerts.should_post(alert::fatal))
-				{
-					m_ses.m_alerts.post_alert(
-						file_error_alert(
-							processing->torrent_ptr->get_handle()
-							, e.what()));
-				}
-
-				processing->torrent_ptr->abort();
 
 				if (!m_processing.empty()
 					&& m_processing.front() == processing)
@@ -446,15 +312,90 @@ namespace detail
 					processing = m_processing.front();
 					processing->processing = true;
 				}
+				continue;
 			}
-			catch(...)
-			{
-#ifndef NDEBUG
-				std::cerr << "error while checking files\n";
-#endif
-				mutex::scoped_lock l(m_mutex);
-				TORRENT_ASSERT(!m_processing.empty());
 
+			{
+				mutex::scoped_lock l2(m_mutex);
+
+				INVARIANT_CHECK;
+
+				processing->progress = progress;
+				if (processing->abort)
+				{
+					TORRENT_ASSERT(!m_processing.empty());
+					TORRENT_ASSERT(m_processing.front() == processing);
+					m_processing.pop_front();
+
+					// make sure the lock order is correct
+					l2.unlock();
+					session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+					l2.lock();
+					processing->torrent_ptr->abort();
+
+					processing.reset();
+					if (!m_processing.empty())
+					{
+						processing = m_processing.front();
+						processing->processing = true;
+					}
+					continue;
+				}
+			}
+			if (finished)
+			{
+				// lock the session to add the new torrent
+				session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+				mutex::scoped_lock l2(m_mutex);
+
+				INVARIANT_CHECK;
+
+				TORRENT_ASSERT(!m_processing.empty());
+				TORRENT_ASSERT(m_processing.front() == processing);
+
+				// TODO: factor out the adding of torrents to the session
+				// and to the checker thread to avoid duplicating the
+				// check for abortion.
+				if (!m_ses.is_aborted())
+				{
+					processing->torrent_ptr->files_checked(processing->unfinished_pieces);
+					m_ses.m_torrents.insert(std::make_pair(
+							processing->info_hash, processing->torrent_ptr));
+					if (m_ses.m_alerts.should_post(alert::info))
+					{
+						m_ses.m_alerts.post_alert(torrent_checked_alert(
+								processing->torrent_ptr->get_handle()
+								, "torrent finished checking"));
+					}
+					if (processing->torrent_ptr->is_seed()
+						&& m_ses.m_alerts.should_post(alert::info))
+					{
+						m_ses.m_alerts.post_alert(torrent_finished_alert(
+								processing->torrent_ptr->get_handle()
+								, "torrent is complete"));
+					}
+
+					peer_id id;
+					std::fill(id.begin(), id.end(), 0);
+					for (std::vector<tcp::endpoint>::const_iterator i = processing->peers.begin();
+						i != processing->peers.end(); ++i)
+					{
+						processing->torrent_ptr->get_policy().peer_from_tracker(*i, id
+							, peer_info::resume_data, 0);
+					}
+
+					for (std::vector<tcp::endpoint>::const_iterator i = processing->banned_peers.begin();
+						i != processing->banned_peers.end(); ++i)
+					{
+						policy::peer* p = processing->torrent_ptr->get_policy().peer_from_tracker(*i, id
+							, peer_info::resume_data, 0);
+						if (p) p->banned = true;
+					}
+				}
+				else
+				{
+					processing->torrent_ptr->abort();
+				}
 				processing.reset();
 				m_processing.pop_front();
 				if (!m_processing.empty())
@@ -462,8 +403,6 @@ namespace detail
 					processing = m_processing.front();
 					processing->processing = true;
 				}
-
-				TORRENT_ASSERT(false);
 			}
 		}
 	}
@@ -2455,6 +2394,7 @@ namespace detail
 
 		boost::mutex::scoped_lock l(m_send_buffer_mutex);
 #ifdef TORRENT_STATS
+		TORRENT_ASSERT(m_buffer_allocations >= 0);
 		m_buffer_allocations += num_buffers;
 		m_buffer_usage_logger << log_time() << " protocol_buffer: "
 			<< (m_buffer_allocations * send_buffer_size) << std::endl;

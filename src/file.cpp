@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/pch.hpp"
 
+#include <boost/scoped_ptr.hpp>
 #ifdef _WIN32
 // windows part
 #include "libtorrent/utf8.hpp"
@@ -186,7 +187,8 @@ namespace libtorrent
 				std::stringstream msg;
 				msg << "open failed: '" << path.native_file_string() << "'. "
 					<< std::strerror(errno);
-				throw file_error(msg.str());
+				if (!m_error) m_error.reset(new std::string);
+				*m_error = msg.str();
 			}
 			m_open_mode = mode;
 		}
@@ -218,7 +220,8 @@ namespace libtorrent
 			{
 				std::stringstream msg;
 				msg << "read failed: " << std::strerror(errno);
-				throw file_error(msg.str());
+				if (!m_error) m_error.reset(new std::string);
+				*m_error = msg.str();
 			}
 			return ret;
 		}
@@ -242,12 +245,13 @@ namespace libtorrent
 			{
 				std::stringstream msg;
 				msg << "write failed: " << std::strerror(errno);
-				throw file_error(msg.str());
+				if (!m_error) m_error.reset(new std::string);
+				*m_error = msg.str();
 			}
 			return ret;
 		}
 
-		void set_size(size_type s)
+		bool set_size(size_type s)
 		{
 #ifdef _WIN32
 #error file.cpp is for posix systems only. use file_win.cpp on windows
@@ -256,8 +260,11 @@ namespace libtorrent
 			{
 				std::stringstream msg;
 				msg << "ftruncate failed: '" << std::strerror(errno);
-				throw file_error(msg.str());
+				if (!m_error) m_error.reset(new std::string);
+				*m_error = msg.str();
+				return false;
 			}
+			return true;
 #endif
 		}
 
@@ -283,7 +290,9 @@ namespace libtorrent
 					<< "' fd: " << m_fd
 					<< " offset: " << offset
 					<< " seekdir: " << seekdir;
-				throw file_error(msg.str());
+				if (!m_error) m_error.reset(new std::string);
+				*m_error = msg.str();
+				return -1;
 			}
 			return ret;
 		}
@@ -300,8 +309,15 @@ namespace libtorrent
 #endif
 		}
 
+		std::string const& error() const
+		{
+			if (!m_error) m_error.reset(new std::string);
+			return *m_error;
+		}
+
 		int m_fd;
 		int m_open_mode;
+		mutable boost::scoped_ptr<std::string> m_error;
 	};
 
 	// pimpl forwardings
@@ -334,9 +350,9 @@ namespace libtorrent
 		return m_impl->read(buf, num_bytes);
 	}
 
-	void file::set_size(size_type s)
+	bool file::set_size(size_type s)
 	{
-		m_impl->set_size(s);
+		return m_impl->set_size(s);
 	}
 
 	size_type file::seek(size_type pos, file::seek_mode m)
@@ -347,6 +363,11 @@ namespace libtorrent
 	size_type file::tell()
 	{
 		return m_impl->tell();
+	}
+
+	std::string const& file::error() const
+	{
+		return m_impl->error();
 	}
 
 }

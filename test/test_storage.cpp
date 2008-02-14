@@ -102,8 +102,9 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	float progress;
 	num_pieces = 0;
 	boost::recursive_mutex mutex;
+	bool error;
 	while (!finished)
-		boost::tie(finished, progress) = pm->check_files(pieces, num_pieces, mutex);
+		boost::tie(finished, progress) = pm->check_files(pieces, num_pieces, mutex, error);
 
 	TEST_CHECK(num_pieces == std::count(pieces.begin(), pieces.end()
 		, true));

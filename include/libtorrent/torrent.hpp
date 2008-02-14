@@ -159,7 +159,7 @@ namespace libtorrent
 		
 		void set_sequential_download(bool sd);
 	
-		bool verify_resume_data(entry& rd, std::string& error)
+		bool verify_resume_data(entry const& rd, std::string& error)
 		{ TORRENT_ASSERT(m_storage); return m_storage->verify_resume_data(rd, error); }
 
 		void second_tick(stat& accumulator, float tick_interval);
@@ -170,7 +170,7 @@ namespace libtorrent
 		std::string name() const;
 
 		bool check_fastresume(aux::piece_checker_data&);
-		std::pair<bool, float> check_files();
+		std::pair<bool, float> check_files(bool& error);
 		void files_checked(std::vector<piece_picker::downloading_piece> const&
 			unfinished_pieces);
 

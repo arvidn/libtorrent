@@ -2511,7 +2511,7 @@ namespace libtorrent
 		return done;
 	}
 	
-	std::pair<bool, float> torrent::check_files()
+	std::pair<bool, float> torrent::check_files(bool& error)
 	{
 		TORRENT_ASSERT(m_torrent_file->is_valid());
 		INVARIANT_CHECK;
@@ -2519,13 +2519,11 @@ namespace libtorrent
 		TORRENT_ASSERT(m_owning_storage.get());
 
 		std::pair<bool, float> progress(true, 1.f);
-		try
-		{
-			TORRENT_ASSERT(m_storage);
-			progress = m_storage->check_files(m_have_pieces, m_num_pieces
-				, m_ses.m_mutex);
-		}
-		catch (std::exception& e)
+		TORRENT_ASSERT(m_storage);
+		progress = m_storage->check_files(m_have_pieces, m_num_pieces
+			, m_ses.m_mutex, error);
+
+		if (error)
 		{
 			// probably means file permission failure or invalid filename
 			std::fill(m_have_pieces.begin(), m_have_pieces.end(), false);
@@ -2536,7 +2534,7 @@ namespace libtorrent
 				m_ses.m_alerts.post_alert(
 					file_error_alert(
 						get_handle()
-						, e.what()));
+						, m_storage->error()));
 			}
 			pause();
 		}
@@ -2573,7 +2571,13 @@ namespace libtorrent
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
-			try { (*i)->on_files_checked(); } catch (std::exception&) {}
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+				(*i)->on_files_checked();
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception&) {}
+#endif
 		}
 #endif
 

@@ -119,31 +119,33 @@ namespace libtorrent
 		// if allocate_files is true. 
 		// allocate_files is true if allocation mode
 		// is set to full and sparse files are supported
-		virtual void initialize(bool allocate_files) = 0;
+		virtual bool initialize(bool allocate_files) = 0;
 
-		// may throw file_error if storage for slot does not exist
+		// negative return value indicates an error
 		virtual size_type read(char* buf, int slot, int offset, int size) = 0;
 
 		// may throw file_error if storage for slot hasn't been allocated
-		virtual void write(const char* buf, int slot, int offset, int size) = 0;
+		// negative return value indicates an error
+		virtual size_type write(const char* buf, int slot, int offset, int size) = 0;
 
+		// non-zero return value indicates an error
 		virtual bool move_storage(fs::path save_path) = 0;
 
 		// verify storage dependent fast resume entries
-		virtual bool verify_resume_data(entry& rd, std::string& error) = 0;
+		virtual bool verify_resume_data(entry const& rd, std::string& error) = 0;
 
 		// write storage dependent fast resume entries
-		virtual void write_resume_data(entry& rd) const = 0;
+		virtual bool write_resume_data(entry& rd) const = 0;
 
 		// moves (or copies) the content in src_slot to dst_slot
-		virtual void move_slot(int src_slot, int dst_slot) = 0;
+		virtual bool move_slot(int src_slot, int dst_slot) = 0;
 
 		// swaps the data in slot1 and slot2
-		virtual void swap_slots(int slot1, int slot2) = 0;
+		virtual bool swap_slots(int slot1, int slot2) = 0;
 
 		// swaps the puts the data in slot1 in slot2, the data in slot2
 		// in slot3 and the data in slot3 in slot1
-		virtual void swap_slots3(int slot1, int slot2, int slot3) = 0;
+		virtual bool swap_slots3(int slot1, int slot2, int slot3) = 0;
 
 		// returns the sha1-hash for the data at the given slot
 		virtual sha1_hash hash_for_slot(int slot, partial_hash& h, int piece_size) = 0;
@@ -151,10 +153,15 @@ namespace libtorrent
 		// this will close all open files that are opened for
 		// writing. This is called when a torrent has finished
 		// downloading.
-		virtual void release_files() = 0;
+		// non-zero return value indicates an error
+		virtual bool release_files() = 0;
 
 		// this will close all open files and delete them
-		virtual void delete_files() = 0;
+		// non-zero return value indicates an error
+		virtual bool delete_files() = 0;
+
+		virtual std::string const& error() const = 0;
+		virtual void clear_error() = 0;
 
 		virtual ~storage_interface() {}
 	};
@@ -197,18 +204,24 @@ namespace libtorrent
 			, std::vector<bool>& pieces, int& num_pieces, storage_mode_t storage_mode
 			, std::string& error_msg);
 		std::pair<bool, float> check_files(std::vector<bool>& pieces
-			, int& num_pieces, boost::recursive_mutex& mutex);
+			, int& num_pieces, boost::recursive_mutex& mutex, bool& error);
 
 		// frees a buffer that was returned from a read operation
 		void free_buffer(char* buf);
 
-		void write_resume_data(entry& rd) const;
-		bool verify_resume_data(entry& rd, std::string& error);
+		void write_resume_data(entry& rd) const
+		{ m_storage->write_resume_data(rd); }
+
+		bool verify_resume_data(entry const& rd, std::string& error)
+		{ return m_storage->verify_resume_data(rd, error); }
 
 		bool is_allocating() const
 		{ return m_state == state_expand_pieces; }
 
 		void mark_failed(int index);
+
+		std::string const& error() const { return m_storage->error(); }
+		void clear_error() { m_storage->clear_error(); }
 
 		unsigned long piece_crc(
 			int slot_index
@@ -276,17 +289,20 @@ namespace libtorrent
 			, int offset
 			, int size);
 
-		void write_impl(
+		size_type write_impl(
 			const char* buf
 			, int piece_index
 			, int offset
 			, int size);
 
+		bool check_one_piece(std::vector<bool>& pieces, int& num_pieces
+			, boost::recursive_mutex& mutex);
+
 		void switch_to_full_mode();
 		sha1_hash hash_for_piece_impl(int piece);
 
-		void release_files_impl() { m_storage->release_files(); }
-		void delete_files_impl() { m_storage->delete_files(); }
+		int release_files_impl() { return m_storage->release_files(); }
+		int delete_files_impl() { return m_storage->delete_files(); }
 
 		bool move_storage_impl(fs::path const& save_path);
 

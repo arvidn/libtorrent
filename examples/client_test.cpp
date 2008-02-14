@@ -470,7 +470,8 @@ void add_torrent(libtorrent::session& ses
 	catch (boost::filesystem::filesystem_error&) {}
 
 	torrent_handle h = ses.add_torrent(t, save_path, resume_data
-		, compact_mode ? storage_mode_compact : storage_mode_sparse, false);
+		, compact_mode ? storage_mode_compact : storage_mode_sparse, false
+		, mapped_storage_constructor);
 	handles.insert(std::make_pair(
 		monitored_dir?std::string(torrent):std::string(), h));
 
@@ -871,7 +872,7 @@ int main(int ac, char* av[])
 
 					torrent_handle h = ses.add_torrent(std::string(what[2]).c_str()
 						, info_hash, 0, save_path, entry(), compact_allocation_mode ? storage_mode_compact
-						: storage_mode_sparse);
+						: storage_mode_sparse, false, mapped_storage_constructor);
 					handles.insert(std::make_pair(std::string(), h));
 
 					h.set_max_connections(50);
