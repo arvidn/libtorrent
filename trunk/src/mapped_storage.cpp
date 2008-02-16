@@ -187,7 +187,7 @@ namespace libtorrent
 				}
 			}
 
-			if (m_files.size() >= m_size && min != m_files.end())
+			if (int(m_files.size()) >= m_size && min != m_files.end())
 			{
 				TORRENT_ASSERT(min->references == 0);
 				min->file.close();
@@ -264,6 +264,10 @@ namespace libtorrent
 			TORRENT_ASSERT(offset < m_info->piece_size(slot));
 			TORRENT_ASSERT(size > 0);
 
+			size_type result = -1;
+			try
+			{
+
 #ifndef NDEBUG
 			std::vector<file_slice> slices
 				= m_info->map_block(slot, offset, size, true);
@@ -290,7 +294,7 @@ namespace libtorrent
 				m_save_path / file_iter->path, std::ios::in
 				, file_offset + file_iter->file_base, size, this
 				, file_iter->size + file_iter->file_base);
-		
+
 			if (!view.valid())
 			{
 				m_error = "failed to open file '";
@@ -298,11 +302,11 @@ namespace libtorrent
 				m_error += "'for reading";
 				return -1;
 			}
+			TORRENT_ASSERT(view.const_addr() != 0);
 
 			int left_to_read = size;
-			int slot_size = static_cast<int>(m_info->piece_size(slot));
 			int buf_pos = 0;
-			size_type result = left_to_read;
+			result = left_to_read;
 #ifndef NDEBUG
 			int counter = 0;
 #endif
@@ -349,6 +353,7 @@ namespace libtorrent
 					fs::path path = m_save_path / file_iter->path;
 
 					file_offset = 0;
+
 					view = m_pool.open_file(path, std::ios::in, file_offset + file_iter->file_base
 						, left_to_read, this
 						, file_iter->size + file_iter->file_base);
@@ -360,8 +365,16 @@ namespace libtorrent
 						m_error += "'for reading";
 						return -1;
 					}
+					TORRENT_ASSERT(view.const_addr() != 0);
 				}
 			}
+			}
+			catch (std::exception& e)
+			{
+				m_error = e.what();
+				return -1;
+			}
+	
 			return result;
 		}
 
@@ -395,6 +408,9 @@ namespace libtorrent
 			}
 
 			TORRENT_ASSERT(file_iter->size > 0);
+			try
+			{
+
 			mapped_file_pool::file_view view = m_pool.open_file(
 				m_save_path / file_iter->path, std::ios::in | std::ios::out
 				, file_offset + file_iter->file_base, size, this
@@ -407,9 +423,9 @@ namespace libtorrent
 				m_error += "'for writing";
 				return -1;
 			}
+			TORRENT_ASSERT(view.addr() != 0);
 
 			int left_to_write = size;
-			int slot_size = static_cast<int>(m_info->piece_size(slot));
 			int buf_pos = 0;
 #ifndef NDEBUG
 			int counter = 0;
@@ -466,7 +482,14 @@ namespace libtorrent
 						m_error += "'for reading";
 						return -1;
 					}
+					TORRENT_ASSERT(view.addr() != 0);
 				}
+			}
+			}
+			catch (std::exception& e)
+			{
+				m_error = e.what();
+				return -1;
 			}
 			return size;
 		}
