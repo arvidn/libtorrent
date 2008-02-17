@@ -163,7 +163,7 @@ feature.compose <memdebug>on : <define>TORRENT_MEMDEBUG ;
 
 feature logging : none default errors verbose : composite propagated link-incompatible ;
 feature.compose <logging>default : <define>TORRENT_LOGGING ;
-feature.compose <logging>errors : <define>TORRENT_ERRORLOGGING ;
+feature.compose <logging>errors : <define>TORRENT_ERROR_LOGGING ;
 feature.compose <logging>verbose : <define>TORRENT_VERBOSE_LOGGING ;
 
 feature dht-support : on off logging : composite propagated link-incompatible ;
