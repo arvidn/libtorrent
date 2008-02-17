@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #include <cassert>
 #include <cctype>
+#include <cstring>
 #include <algorithm>
 #include <string>
 

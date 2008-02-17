@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/invariant_check.hpp"
 #include <memory>
+#include <cstring>
 
 namespace libtorrent {
 
