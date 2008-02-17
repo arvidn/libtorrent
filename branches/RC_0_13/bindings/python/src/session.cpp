@@ -5,6 +5,7 @@
 #include <libtorrent/session.hpp>
 #include <libtorrent/torrent.hpp>
 #include <libtorrent/storage.hpp>
+#include <libtorrent/ip_filter.hpp>
 #include <boost/python.hpp>
 #include "gil.hpp"
 
@@ -56,6 +57,7 @@ extern char const* session_stop_lsd_doc;
 extern char const* session_stop_upnp_doc;
 extern char const* session_start_natpmp_doc;
 extern char const* session_stop_natpmp_doc;
+extern char const* session_set_ip_filter_doc;
 
 namespace
 {
@@ -248,6 +250,7 @@ void bind_session()
         .def("stop_lsd", allow_threads(&session::stop_lsd), session_stop_lsd_doc)
         .def("start_natpmp", allow_threads(&session::start_natpmp), session_start_natpmp_doc)
         .def("stop_natpmp", allow_threads(&session::stop_natpmp), session_stop_natpmp_doc)
+        .def("set_ip_filter", allow_threads(&session::set_ip_filter), session_set_ip_filter_doc)
         ;
 
     register_ptr_to_python<std::auto_ptr<alert> >();

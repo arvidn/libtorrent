@@ -21,6 +21,7 @@ void bind_extensions();
 void bind_peer_plugin();
 void bind_torrent();
 void bind_peer_info();
+void bind_ip_filter();
 
 BOOST_PYTHON_MODULE(libtorrent)
 {
@@ -44,5 +45,6 @@ BOOST_PYTHON_MODULE(libtorrent)
     bind_peer_plugin();
     bind_torrent();
     bind_peer_info();
+    bind_ip_filter();
 }
 

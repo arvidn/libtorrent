@@ -177,6 +177,8 @@ char const* session_start_natpmp_doc =
     "";
 char const* session_stop_natpmp_doc =
     "";
+char const* session_set_ip_filter_doc =
+    "";
 // -- alert -----------------------------------------------------------------
 
 char const* alert_doc =
