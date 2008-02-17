@@ -125,7 +125,7 @@ namespace libtorrent
 				return *this;
 			}
 
-			bool valid() const { return m_entry; }
+			bool valid() const { return m_entry && m_entry->file.const_data(); }
 
 			char* addr() const
 			{
