@@ -64,7 +64,7 @@ void http_connection::get(std::string const& url, time_duration timeout
 #ifndef TORRENT_USE_OPENSSL
 	if (ssl)
 	{
-		callback(asio::error::not_supported);
+		callback(asio::error::socket_type_not_supported);
 		return;
 	}
 #endif
