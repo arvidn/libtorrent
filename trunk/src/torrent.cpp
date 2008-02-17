@@ -3030,7 +3030,7 @@ namespace libtorrent
 			}
 			catch (std::exception& e)
 			{
-#ifdef TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defiend TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 				(*p->m_logger) << "**ERROR**: " << e.what() << "\n";
 #endif
 				p->set_failed();
