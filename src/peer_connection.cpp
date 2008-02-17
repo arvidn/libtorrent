@@ -1447,7 +1447,7 @@ namespace libtorrent
 		fs.async_write(p, data, bind(&peer_connection::on_disk_write_complete
 			, self(), _1, _2, p, t));
 		m_outstanding_writing_bytes += p.length;
-		TORRENT_ASSERT(!m_channel_state[download_channel] != peer_info::bw_network);
+		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
 		picker.mark_as_writing(block_finished, peer_info_struct());
 #if !defined NDEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		t->check_invariant();
