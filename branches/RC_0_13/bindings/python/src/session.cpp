@@ -36,6 +36,7 @@ extern char const* session_status_m_doc;
 extern char const* session_start_dht_doc;
 extern char const* session_stop_dht_doc;
 extern char const* session_dht_state_doc;
+extern char const* session_add_dht_router_doc;
 extern char const* session_add_torrent_doc;
 extern char const* session_remove_torrent_doc;
 extern char const* session_set_download_rate_limit_doc;
@@ -66,6 +67,12 @@ namespace
   {
       allow_threading_guard guard;
       return s.listen_on(std::make_pair(min_, max_), interface);
+  }
+
+  void add_dht_router(session& s, std::string router_, int port_)
+  {
+      allow_threading_guard guard;
+      return s.add_dht_router(std::make_pair(router_, port_));
   }
 
   struct invoke_extension_factory
@@ -177,6 +184,11 @@ void bind_session()
             "listen_on", &listen_on
           , (arg("min"), "max", arg("interface") = (char const*)0)
           , session_listen_on_doc
+        )
+        .def(
+            "add_dht_router", &add_dht_router
+          , (arg("router"), "port")
+          , session_add_dht_router_doc
         )
         .def("is_listening", allow_threads(&session::is_listening), session_is_listening_doc)
         .def("listen_port", allow_threads(&session::listen_port), session_listen_port_doc)
