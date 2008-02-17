@@ -107,7 +107,7 @@ namespace libtorrent
 			? m_settings.stop_tracker_timeout
 			: m_settings.tracker_completion_timeout
 			, m_settings.tracker_receive_timeout);
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb) cb->debug_log(("*** UDP_TRACKER [ initiating name lookup: " + hostname + " ]").c_str());
 #endif
@@ -124,7 +124,7 @@ namespace libtorrent
 		}
 
 		boost::shared_ptr<request_callback> cb = requester();
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		if (cb) cb->debug_log("*** UDP_TRACKER [ name lookup successful ]");
 #endif
 		restart_read_timeout();
@@ -168,7 +168,7 @@ namespace libtorrent
 
 	void udp_tracker_connection::on_timeout()
 	{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb) cb->debug_log("*** UDP_TRACKER [ timed out ]");
 #endif
@@ -195,7 +195,7 @@ namespace libtorrent
 		// ignore packet not sent from the tracker
 		if (m_target != ep) return;
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb)
 		{
@@ -214,7 +214,7 @@ namespace libtorrent
 		int action = detail::read_int32(ptr);
 		int transaction = detail::read_int32(ptr);
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		if (cb)
 		{
 			std::stringstream msg;
@@ -235,7 +235,7 @@ namespace libtorrent
 		// ignore packets that's not a response to our message
 		if (action != m_state) return;
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		if (cb)
 		{
 			std::stringstream msg;
@@ -280,7 +280,7 @@ namespace libtorrent
 
 	void udp_tracker_connection::send_udp_connect()
 	{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb)
 		{
@@ -359,7 +359,7 @@ namespace libtorrent
 		}
 
 		boost::shared_ptr<request_callback> cb = requester();
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		if (cb)
 		{
 			cb->debug_log("<== UDP_TRACKER_ANNOUNCE_RESPONSE");
@@ -478,7 +478,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(out - buf == sizeof(buf));
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb)
 		{

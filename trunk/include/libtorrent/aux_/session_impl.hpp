@@ -161,7 +161,7 @@ namespace libtorrent
 			bool m_abort;
 		};
 
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		struct tracker_logger;
 #endif
 
@@ -185,7 +185,7 @@ namespace libtorrent
 				std::pair<int, int> listen_port_range
 				, fingerprint const& cl_fprint
 				, char const* listen_interface
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 				, fs::path const& logpath
 #endif
 				);
@@ -595,7 +595,7 @@ namespace libtorrent
 			// the number of send buffers that are allocated
 			int m_buffer_allocations;
 #endif
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			boost::shared_ptr<logger> create_log(std::string const& name
 				, int instance, bool append = true);
 			
@@ -629,7 +629,7 @@ namespace libtorrent
 			boost::scoped_ptr<boost::thread> m_checker_thread;
 		};
 		
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		struct tracker_logger : request_callback
 		{
 			tracker_logger(session_impl& ses): m_ses(ses) {}
