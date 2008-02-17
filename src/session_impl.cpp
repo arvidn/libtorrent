@@ -485,7 +485,7 @@ namespace detail
 		std::pair<int, int> listen_port_range
 		, fingerprint const& cl_fprint
 		, char const* listen_interface
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, fs::path const& logpath
 #endif
 		)
@@ -521,7 +521,7 @@ namespace detail
 #endif
 		, m_timer(m_io_service)
 		, m_next_connect_torrent(0)
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, m_logpath(logpath)
 #endif
 		, m_checker_impl(*this)
@@ -545,7 +545,7 @@ namespace detail
 		m_bandwidth_manager[peer_connection::download_channel] = &m_download_channel;
 		m_bandwidth_manager[peer_connection::upload_channel] = &m_upload_channel;
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
 		(*m_logger) << time_now_string() << "\n";
 #endif
@@ -1619,7 +1619,7 @@ namespace detail
 		return boost::weak_ptr<torrent>();
 	}
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	boost::shared_ptr<logger> session_impl::create_log(std::string const& name
 		, int instance, bool append)
 	{
@@ -1912,7 +1912,7 @@ namespace detail
 		}
 #endif
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
 		(*m_logger) << time_now_string() << "\n";
 #endif

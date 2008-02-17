@@ -112,12 +112,12 @@ namespace libtorrent
 		fingerprint const& id
 		, std::pair<int, int> listen_port_range
 		, char const* listen_interface
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, fs::path logpath
 #endif
 		)
 		: m_impl(new session_impl(listen_port_range, id, listen_interface
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 					, logpath
 #endif
 					))
@@ -138,11 +138,11 @@ namespace libtorrent
 	}
 
 	session::session(fingerprint const& id
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, fs::path logpath
 #endif
 		)
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		: m_impl(new session_impl(std::make_pair(0, 0), id, "0.0.0.0", logpath))
 #else
 		: m_impl(new session_impl(std::make_pair(0, 0), id, "0.0.0.0"))
