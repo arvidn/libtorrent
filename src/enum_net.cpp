@@ -30,11 +30,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#if defined __linux__ || defined __MACH__
+#include "libtorrent/config.hpp"
+
+#if defined TORRENT_BSD || defined TORRENT_LINUX
 #include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <net/if.h>
-#elif defined WIN32
+#elif defined TORRENT_WINDOWS
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -50,7 +52,7 @@ namespace libtorrent
 	{
 		std::vector<address> ret;
 
-#if defined __linux__ || defined __MACH__ || defined(__FreeBSD__)
+#if defined TORRENT_LINUX || defined TORRENT_BSD
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
@@ -90,16 +92,16 @@ namespace libtorrent
 				ret.push_back(address_v6(b));
 			}
 
-#if defined __MACH__ || defined(__FreeBSD__)
+#if defined TORRENT_BSD
 			int current_size = item.ifr_addr.sa_len + IFNAMSIZ;
-#elif defined __linux__
+#elif defined TORRENT_LINUX
 			int current_size = sizeof(ifreq);
 #endif
 			ifr += current_size;
 			remaining -= current_size;
 		}
 
-#elif defined WIN32
+#elif defined TORRENT_WINDOWS
 
 		SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s == SOCKET_ERROR)
@@ -144,7 +146,7 @@ namespace libtorrent
 
 	address router_for_interface(address const interface, asio::error_code& ec)
 	{
-#ifdef WIN32
+#ifdef TORRENT_WINDOWS
 
 		// Load Iphlpapi library
 		HMODULE iphlp = LoadLibraryA("Iphlpapi.dll");
