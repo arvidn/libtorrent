@@ -67,5 +67,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DEPRECATED
 #endif
 
+// set up defines for target environments
+#if (defined __APPLE__ && __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
+	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__ \
+	|| defined __FreeBSD_kernel__
+#define TORRENT_BSD
+#elif defined __linux__
+#define TORRENT_LINUX
+#elif defined WIN32
+#define TORRENT_WINDOWS
+#else
+#warning unkown OS, assuming BSD
+#define TORRENT_BSD
+#endif
+
+
+
 #endif // TORRENT_CONFIG_HPP_INCLUDED
 
