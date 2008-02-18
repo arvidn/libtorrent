@@ -1947,6 +1947,8 @@ namespace libtorrent
 		return i->info[block.block_index].peer;
 	}
 
+	// this is called when a request is rejected or when
+	// a peer disconnects. The piece might be in any state
 	void piece_picker::abort_download(piece_block block)
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
@@ -1969,26 +1971,15 @@ namespace libtorrent
 
 		block_info& info = i->info[block.block_index];
 
-		TORRENT_ASSERT(info.state == block_info::state_requested);
-		TORRENT_ASSERT(info.num_peers > 0);
+		if (i->info[block.block_index].state != block_info::state_requested)
+			return;
 
-		--info.num_peers;
+		if (info.num_peers > 0) --info.num_peers;
+
 		TORRENT_ASSERT(block.block_index < blocks_in_piece(block.piece_index));
 
-		// if there are other peers 
-		if (info.num_peers > 0)
-		{
-			if (i->info[block.block_index].state == block_info::state_writing)
-			{
-				++i->requested;
-				--i->writing;
-				i->info[block.block_index].state = block_info::state_requested;
-				// since we just cleared the writing state, we know that
-				// the peer for this block was the one we canceled
-				info.peer = 0;
-			}
-			return;
-		}
+		// if there are other peers, leave the block requested
+		if (info.num_peers > 0) return;
 
 		// clear the downloader of this block
 		info.peer = 0;
