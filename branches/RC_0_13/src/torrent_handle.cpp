@@ -596,6 +596,8 @@ namespace libtorrent
 		
 		policy& pol = t->get_policy();
 
+		int max_failcount = t->settings().max_failcount;
+
 		for (policy::iterator i = pol.begin_peer()
 			, end(pol.end_peer()); i != end; ++i)
 		{
@@ -618,6 +620,9 @@ namespace libtorrent
 			// don't know its listen port) or if it has
 			// been banned, don't save it.
 			if (i->second.type == policy::peer::not_connectable) continue;
+
+			// don't save peers that doesn't work
+			if (i->second.failcount >= max_failcount) continue;
 
 			tcp::endpoint ip = i->second.ip;
 			entry peer(entry::dictionary_t);
