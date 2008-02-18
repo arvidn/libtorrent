@@ -30,13 +30,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#if defined __linux__ || (defined __APPLE__ && __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
-	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__
+#include "libtorrent/config.hpp"
+	
+#if defined TORRENT_BSD || defined TORRENT_LINUX
 #include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <net/if.h>
 #include <net/route.h>
-#elif defined WIN32
+#elif defined TORRENT_WINDOWS
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -71,9 +72,7 @@ namespace libtorrent
 			return address();
 		}
 
-#if (defined __APPLE__ && __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
-	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__
-
+#ifdef TORRENT_BSD
 		bool verify_sockaddr(sockaddr_in* sin)
 		{
 			return (sin->sin_len == sizeof(sockaddr_in)
@@ -114,8 +113,7 @@ namespace libtorrent
 	{
 		std::vector<ip_interface> ret;
 // covers linux, MacOS X and BSD distributions
-#if defined __linux__ || (defined __APPLE__ && __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
-	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__
+#if defined TORRENT_LINUX || defined TORRENT_BSD
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
@@ -168,10 +166,9 @@ namespace libtorrent
 				ret.push_back(iface);
 			}
 
-#if (defined __APPLE__ && __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
-	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__
+#if defined TORRENT_BSD
 			int current_size = item.ifr_addr.sa_len + IFNAMSIZ;
-#elif defined __linux__
+#elif defined TORRENT_LINUX
 			int current_size = sizeof(ifreq);
 #endif
 			ifr += current_size;
@@ -179,7 +176,7 @@ namespace libtorrent
 		}
 		close(s);
 
-#elif defined WIN32
+#elif defined TORRENT_WINDOWS
 
 		SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s == SOCKET_ERROR)
@@ -232,8 +229,7 @@ namespace libtorrent
 	address get_default_gateway(asio::io_service& ios, address const& interface, asio::error_code& ec)
 	{
 	
-#if (defined __APPLE__ && __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
-	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__
+#if defined TORRENT_BSD
 
 		struct rt_msg
 		{
@@ -333,7 +329,7 @@ namespace libtorrent
 
 		return sockaddr_to_address((sockaddr*)sin);
 
-#elif defined WIN32
+#elif defined TORRENT_WINDOWS
 
 		// Load Iphlpapi library
 		HMODULE iphlp = LoadLibraryA("Iphlpapi.dll");
@@ -398,7 +394,7 @@ namespace libtorrent
 
 		return ret;
 
-//#elif defined __linux__
+//#elif defined TORRENT_LINUX
 // No linux implementation yet
 #else
 		if (!interface.is_v4())
