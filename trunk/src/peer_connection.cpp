@@ -1476,7 +1476,7 @@ namespace libtorrent
 
 		if (ret == -1 || !t)
 		{
-			if (t->has_picker()) t->picker().abort_download(block_finished);
+			if (t->has_picker()) t->picker().write_failed(block_finished);
 
 			if (!t)
 			{

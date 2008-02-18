@@ -1359,8 +1359,11 @@ namespace libtorrent
 			std::map<int, partial_hash>::iterator i = m_piece_hasher.find(piece_index);
 			if (i != m_piece_hasher.end())
 			{
+#ifndef NDEBUG
 				TORRENT_ASSERT(i->second.offset > 0);
-				TORRENT_ASSERT(offset >= i->second.offset);
+				int hash_offset = i->second.offset;
+				TORRENT_ASSERT(offset >= hash_offset);
+#endif
 				if (offset == i->second.offset)
 				{
 					i->second.offset += size;

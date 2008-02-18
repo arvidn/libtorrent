@@ -3069,6 +3069,16 @@ namespace libtorrent
 		TORRENT_ASSERT(piece_index >= 0);
 		TORRENT_ASSERT(piece_index < m_torrent_file->num_pieces());
 		TORRENT_ASSERT(piece_index < (int)m_have_pieces.size());
+#ifndef NDEBUG
+		if (m_picker)
+		{
+			int blocks_in_piece = m_picker->blocks_in_piece(piece_index);
+			for (int i = 0; i < blocks_in_piece; ++i)
+			{
+				TORRENT_ASSERT(m_picker->num_peers(piece_block(piece_index, i)) == 0);
+			}
+		}
+#endif
 
 		m_storage->async_hash(piece_index, bind(&torrent::on_piece_verified
 			, shared_from_this(), _1, _2, f));
