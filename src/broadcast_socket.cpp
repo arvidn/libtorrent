@@ -79,12 +79,12 @@ namespace libtorrent
 	{
 		// make a best guess of the interface we're using and its IP
 		asio::error_code ec;
-		std::vector<address> const& interfaces = enum_net_interfaces(ios, ec);
+		std::vector<ip_interface> const& interfaces = enum_net_interfaces(ios, ec);
 		address ret = address_v4::any();
-		for (std::vector<address>::const_iterator i = interfaces.begin()
+		for (std::vector<ip_interface>::const_iterator i = interfaces.begin()
 			, end(interfaces.end()); i != end; ++i)
 		{
-			address const& a = *i;
+			address const& a = i->interface_address;
 			if (is_loopback(a)
 				|| is_multicast(a)
 				|| is_any(a)) continue;
@@ -111,20 +111,20 @@ namespace libtorrent
 		using namespace asio::ip::multicast;
 	
 		asio::error_code ec;
-		std::vector<address> interfaces = enum_net_interfaces(ios, ec);
+		std::vector<ip_interface> interfaces = enum_net_interfaces(ios, ec);
 
-		for (std::vector<address>::const_iterator i = interfaces.begin()
+		for (std::vector<ip_interface>::const_iterator i = interfaces.begin()
 			, end(interfaces.end()); i != end; ++i)
 		{
 			// only broadcast to IPv4 addresses that are not local
-			if (!is_local(*i)) continue;
+			if (!is_local(i->interface_address)) continue;
 			// only multicast on compatible networks
-			if (i->is_v4() != multicast_endpoint.address().is_v4()) continue;
+			if (i->interface_address.is_v4() != multicast_endpoint.address().is_v4()) continue;
 			// ignore any loopback interface
-			if (is_loopback(*i)) continue;
+			if (is_loopback(i->interface_address)) continue;
 
 			boost::shared_ptr<datagram_socket> s(new datagram_socket(ios));
-			if (i->is_v4())
+			if (i->interface_address.is_v4())
 			{
 				s->open(udp::v4(), ec);
 				if (ec) continue;
@@ -134,7 +134,7 @@ namespace libtorrent
 				if (ec) continue;
 				s->set_option(join_group(multicast_endpoint.address()), ec);
 				if (ec) continue;
-				s->set_option(outbound_interface(i->to_v4()), ec);
+				s->set_option(outbound_interface(i->interface_address.to_v4()), ec);
 				if (ec) continue;
 			}
 			else
@@ -147,7 +147,7 @@ namespace libtorrent
 				if (ec) continue;
 				s->set_option(join_group(multicast_endpoint.address()), ec);
 				if (ec) continue;
-//				s->set_option(outbound_interface(i->to_v6()), ec);
+//				s->set_option(outbound_interface(i->interface_address.to_v6()), ec);
 //				if (ec) continue;
 			}
 			s->set_option(hops(255), ec);
