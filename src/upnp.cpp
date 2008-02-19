@@ -256,8 +256,23 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		// this upnp device is filtered because it's not in the
 		// list of configured routers
 #ifdef TORRENT_UPNP_LOGGING
-		m_log << time_now_string() << " <== (" << from << ") UPnP device "
-			"ignored because it's not on our network" << std::endl;
+		if (ec)
+		{
+			m_log << time_now_string() << " <== (" << from << ") error: "
+				<< ec.message() << std::endl;
+		}
+		else
+		{
+			std::vector<ip_interface> const& net = enum_net_interfaces(m_io_service, ec);
+			m_log << time_now_string() << " <== (" << from << ") UPnP device "
+				"ignored because it's not on our network ";
+			for (std::vector<ip_interface>::const_iterator i = net.begin()
+				, end(net.end()); i != end; ++i)
+			{
+				m_log << "(" << i->interface_address << ", " << i->netmask << ") ";
+			}
+			m_log << std::endl;
+		}
 #endif
 		return;
 	}

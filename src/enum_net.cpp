@@ -126,8 +126,8 @@ namespace libtorrent
 		ifc.ifc_buf = buf;
 		if (ioctl(s, SIOCGIFCONF, &ifc) < 0)
 		{
-			close(s);
 			ec = asio::error_code(errno, asio::error::system_category);
+			close(s);
 			return ret;
 		}
 
@@ -154,8 +154,8 @@ namespace libtorrent
 					}
 					else
 					{
-						close(s);
 						ec = asio::error_code(errno, asio::error::system_category);
+						close(s);
 						return ret;
 					}
 				}
@@ -369,7 +369,6 @@ namespace libtorrent
 		address ret;
 		if (GetAdaptersInfo(adapter_info, &out_buf_size) == NO_ERROR)
 		{
-			
 			for (PIP_ADAPTER_INFO adapter = adapter_info;
 				adapter != 0; adapter = adapter->Next)
 			{
