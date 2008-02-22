@@ -142,14 +142,16 @@ namespace libtorrent
 	}
 #endif
 
-	entry::entry(): m_type(undefined_t)
+	entry::entry()
+		: m_type(undefined_t)
 	{
 #ifndef NDEBUG
 		m_type_queried = true;
 #endif
 	}
 
-	entry::entry(data_type t): m_type(t)
+	entry::entry(data_type t)
+		: m_type(undefined_t)
 	{
 		construct(t);
 #ifndef NDEBUG
@@ -158,6 +160,7 @@ namespace libtorrent
 	}
 
 	entry::entry(const entry& e)
+		: m_type(undefined_t)
 	{
 		copy(e);
 #ifndef NDEBUG
@@ -166,6 +169,7 @@ namespace libtorrent
 	}
 
 	entry::entry(dictionary_type const& v)
+		: m_type(undefined_t)
 	{
 #ifndef NDEBUG
 		m_type_queried = true;
@@ -175,6 +179,7 @@ namespace libtorrent
 	}
 
 	entry::entry(string_type const& v)
+		: m_type(undefined_t)
 	{
 #ifndef NDEBUG
 		m_type_queried = true;
@@ -184,6 +189,7 @@ namespace libtorrent
 	}
 
 	entry::entry(list_type const& v)
+		: m_type(undefined_t)
 	{
 #ifndef NDEBUG
 		m_type_queried = true;
@@ -193,6 +199,7 @@ namespace libtorrent
 	}
 
 	entry::entry(integer_type const& v)
+		: m_type(undefined_t)
 	{
 #ifndef NDEBUG
 		m_type_queried = true;
@@ -263,8 +270,7 @@ namespace libtorrent
 
 	void entry::construct(data_type t)
 	{
-		m_type = t;
-		switch(m_type)
+		switch(t)
 		{
 		case int_t:
 			new(data) integer_type;
@@ -279,9 +285,9 @@ namespace libtorrent
 			new (data) dictionary_type;
 			break;
 		default:
-			TORRENT_ASSERT(m_type == undefined_t);
-			m_type = undefined_t;
+			TORRENT_ASSERT(t == undefined_t);
 		}
+		m_type = t;
 #ifndef NDEBUG
 		m_type_queried = true;
 #endif
@@ -289,8 +295,7 @@ namespace libtorrent
 
 	void entry::copy(entry const& e)
 	{
-		m_type = e.type();
-		switch(m_type)
+		switch (e.type())
 		{
 		case int_t:
 			new(data) integer_type(e.integer());
@@ -305,8 +310,9 @@ namespace libtorrent
 			new (data) dictionary_type(e.dict());
 			break;
 		default:
-			m_type = undefined_t;
+			TORRENT_ASSERT(e.type() == undefined_t);
 		}
+		m_type = e.type();
 #ifndef NDEBUG
 		m_type_queried = true;
 #endif
@@ -332,6 +338,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_type == undefined_t);
 			break;
 		}
+		m_type = undefined_t;
 #ifndef NDEBUG
 		m_type_queried = false;
 #endif
