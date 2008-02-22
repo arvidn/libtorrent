@@ -143,24 +143,28 @@ namespace libtorrent
 #endif
 
 	entry::entry(dictionary_type const& v)
+		: m_type(undefined_t)
 	{
 		new(data) dictionary_type(v);
 		m_type = dictionary_t;
 	}
 
 	entry::entry(string_type const& v)
+		: m_type(undefined_t)
 	{
 		new(data) string_type(v);
 		m_type = string_t;
 	}
 
 	entry::entry(list_type const& v)
+		: m_type(undefined_t)
 	{
 		new(data) list_type(v);
 		m_type = list_t;
 	}
 
 	entry::entry(integer_type const& v)
+		: m_type(undefined_t)
 	{
 		new(data) integer_type(v);
 		m_type = int_t;
@@ -216,8 +220,7 @@ namespace libtorrent
 
 	void entry::construct(data_type t)
 	{
-		m_type = t;
-		switch(m_type)
+		switch(t)
 		{
 		case int_t:
 			new(data) integer_type;
@@ -234,13 +237,14 @@ namespace libtorrent
 		default:
 			TORRENT_ASSERT(m_type == undefined_t);
 			m_type = undefined_t;
+			return;
 		}
+		m_type = t;
 	}
 
 	void entry::copy(entry const& e)
 	{
-		m_type = e.m_type;
-		switch(m_type)
+		switch(e.m_type)
 		{
 		case int_t:
 			new(data) integer_type(e.integer());
@@ -256,7 +260,9 @@ namespace libtorrent
 			break;
 		default:
 			m_type = undefined_t;
+			return;
 		}
+		m_type = e.m_type;
 	}
 
 	void entry::destruct()
@@ -279,6 +285,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_type == undefined_t);
 			break;
 		}
+		m_type = undefined_t;
 	}
 
 	void entry::swap(entry& e)
