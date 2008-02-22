@@ -1151,7 +1151,7 @@ namespace libtorrent
 				m_slot_to_piece.begin();
 				i != last.base(); ++i)
 			{
-				p.push_back(have[*i] ? *i : unassigned);
+				p.push_back((*i >= 0 && have[*i]) ? *i : unassigned);
 			}
 		}
 		else
