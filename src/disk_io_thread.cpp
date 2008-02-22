@@ -592,7 +592,8 @@ namespace libtorrent
 				if (!make_room(end_block - block, l)) return -2;
 				ret = read_into_piece(*p, block, l);
 				hit = false;
-				if (ret == -1) return ret;
+				if (ret < 0) return ret;
+				TORRENT_ASSERT(p->blocks[block]);
 			}
 			
 			p->last_use = time_now();
