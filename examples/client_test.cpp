@@ -1199,7 +1199,7 @@ int main(int ac, char* av[])
 						}
 						char* piece_state[4] = {"", "slow", "medium", "fast"};
 						out << "] " << piece_state[i->piece_state];
-						if (cp) out << (i->piece_state > 0?" | ":"") << "cache age: " << total_seconds(time_now() - cp->last_write);
+						if (cp) out << (i->piece_state > 0?" | ":"") << "cache age: " << total_seconds(time_now() - cp->last_use);
 						out << "\n";
 					}
 
@@ -1229,6 +1229,8 @@ int main(int ac, char* av[])
 			}
 
 			cache_status cs = ses.get_cache_status();
+			if (cs.blocks_read < 1) cs.blocks_read = 1;
+			if (cs.blocks_written < 1) cs.blocks_written = 1;
 
 			out << "==== conns: " << sess_stat.num_peers
 				<< " down: " << esc("32") << add_suffix(sess_stat.download_rate) << "/s" << esc("0")
@@ -1239,8 +1241,10 @@ int main(int ac, char* av[])
 				<< " bw queues: (" << sess_stat.up_bandwidth_queue
 				<< " | " << sess_stat.down_bandwidth_queue << ") "
 				" write cache hits: " << ((cs.blocks_written - cs.writes) * 100 / cs.blocks_written) << "% "
-				" cache size: " << add_suffix(cs.write_size * 16 * 1024)
-				<< " ====" << std::endl;
+				" read cache hits: " << (cs.blocks_read_hit * 100 / cs.blocks_read) << "% "
+				" cache size: " << add_suffix(cs.cache_size * 16 * 1024)
+				<< " (" << add_suffix(cs.read_cache_size * 16 * 1024) << ")"
+				" ====" << std::endl;
 
 			if (print_log)
 			{

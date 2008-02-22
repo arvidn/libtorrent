@@ -506,7 +506,11 @@ Returns status of the disk cache for this session.
 		{
 			size_type blocks_written;
 			size_type writes;
-			int write_size;
+			size_type blocks_read;
+			size_type blocks_read_hit;
+			size_type reads;
+			int cache_size;
+			int read_cache_size;
 		};
 
 ``blocks_written`` is the total number of 16 KiB blocks written to disk
@@ -519,7 +523,18 @@ The ratio (``blocks_written`` - ``writes``) / ``blocks_written`` represents
 the number of saved write operations per total write operations. i.e. a kind
 of cache hit ratio for the write cahe.
 
-``write_size`` is the number of 16 KiB blocks currently in the write cache.
+``blocks_read`` is the number of blocks that were requested from the
+bittorrent engine (from peers), that were served from disk or cache.
+
+``blocks_read_hit`` is the number of blocks that were served from cache.
+
+The ratio ``blocks_read_hit`` / ``blocks_read`` is the cache hit ratio
+for the read cache.
+
+``cache_size`` is the number of 16 KiB blocks currently in the disk cache.
+This includes both read and write cache.
+
+``read_cache_size`` is the number of 16KiB blocks in the read cache.
 
 get_cache_info()
 ----------------
@@ -539,7 +554,7 @@ specified info-hash (``ih``).
 		{
 			int piece;
 			std::vector<bool> blocks;
-			ptime last_write;
+			ptime last_use;
 		};
 
 ``piece`` is the piece index for this cache entry.
@@ -547,7 +562,7 @@ specified info-hash (``ih``).
 ``blocks`` has one entry for each block in this piece. ``true`` represents
 the data for that block being in the disk cache and ``false`` means it's not.
 
-``last_write`` is the time when a block was last written to this piece. The older
+``last_use`` is the time when a block was last written to this piece. The older
 a piece is, the more likely it is to be flushed to disk.
 		
 is_listening() listen_port() listen_on()
