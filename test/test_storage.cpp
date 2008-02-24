@@ -169,16 +169,6 @@ void test_remove(path const& test_path)
 	TEST_CHECK(!exists(test_path / "temp_storage"));	
 }
 
-void test_fastresume()
-{
-	std::ofstream tf("temporary");
-	boost::intrusive_ptr<torrent_info> info = create_torrent(&tf);
-
-	session ses;
-	torrent_handle h = ses.add_torrent(info, );
-
-}
-
 void run_test(path const& test_path)
 {
 	std::cerr << "\n=== " << test_path.string() << " ===\n" << std::endl;
