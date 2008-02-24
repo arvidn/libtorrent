@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/noncopyable.hpp>
 #include <boost/shared_array.hpp>
 #include <deque>
+#include <list>
 #include "libtorrent/config.hpp"
 
 namespace libtorrent
@@ -183,8 +184,6 @@ namespace libtorrent
 		
 	private:
 
-		typedef boost::recursive_mutex mutex_t;
-
 		struct cached_piece_entry
 		{
 			int piece;
@@ -198,27 +197,33 @@ namespace libtorrent
 			boost::shared_array<char*> blocks;
 		};
 
+		typedef boost::recursive_mutex mutex_t;
+		typedef std::list<cached_piece_entry> cache_t;
+
 		char* allocate_buffer(mutex_t::scoped_lock& l);
 		void free_buffer(char* buf, mutex_t::scoped_lock& l);
 
 		// cache operations
-		std::vector<cached_piece_entry>::iterator find_cached_piece(
-			std::vector<cached_piece_entry>& cache, disk_io_job const& j
+		cache_t::iterator find_cached_piece(
+			cache_t& cache, disk_io_job const& j
 			, mutex_t::scoped_lock& l);
 
 		// write cache operations
 		void flush_oldest_piece(mutex_t::scoped_lock& l);
 		void flush_expired_pieces(mutex_t::scoped_lock& l);
-		void flush_and_remove(std::vector<cached_piece_entry>::iterator i, mutex_t::scoped_lock& l);
-		void flush(std::vector<cached_piece_entry>::iterator i, mutex_t::scoped_lock& l);
+		void flush_and_remove(cache_t::iterator i, mutex_t::scoped_lock& l);
+		void flush(cache_t::iterator i, mutex_t::scoped_lock& l);
 		void cache_block(disk_io_job& j, mutex_t::scoped_lock& l);
 
 		// read cache operations
-		bool clear_oldest_read_piece(mutex_t::scoped_lock& l);
+		bool clear_oldest_read_piece(cache_t::iterator ignore
+			, mutex_t::scoped_lock& l);
 		int read_into_piece(cached_piece_entry& p, int start_block, mutex_t::scoped_lock& l);
 		int cache_read_block(disk_io_job const& j, mutex_t::scoped_lock& l);
 		void free_piece(cached_piece_entry& p, mutex_t::scoped_lock& l);
-		bool make_room(int num_blocks, mutex_t::scoped_lock& l);
+		bool make_room(int num_blocks
+			, cache_t::iterator ignore
+			, mutex_t::scoped_lock& l);
 		int try_read_from_cache(disk_io_job const& j, mutex_t::scoped_lock& l);
 
 		mutable mutex_t m_mutex;
@@ -228,10 +233,10 @@ namespace libtorrent
 		size_type m_queue_buffer_size;
 
 		// write cache
-		std::vector<cached_piece_entry> m_pieces;
+		cache_t m_pieces;
 		
 		// read cache
-		std::vector<cached_piece_entry> m_read_pieces;
+		cache_t m_read_pieces;
 
 		// total number of blocks in use by both the read
 		// and the write cache. This is not supposed to
