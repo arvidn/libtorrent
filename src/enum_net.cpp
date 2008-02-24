@@ -45,6 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/enum_net.hpp"
+// for is_loopback and is_any
+#include "libtorrent/broadcast_socket.hpp"
 
 namespace libtorrent
 {
