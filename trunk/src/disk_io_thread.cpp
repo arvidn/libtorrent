@@ -113,7 +113,7 @@ namespace libtorrent
 		mutex_t::scoped_lock l(m_mutex);
 		ret.clear();
 		ret.reserve(m_pieces.size());
-		for (std::vector<cached_piece_entry>::const_iterator i = m_pieces.begin()
+		for (cache_t::const_iterator i = m_pieces.begin()
 			, end(m_pieces.end()); i != end; ++i)
 		{
 			torrent_info const& ti = *i->storage->info();
@@ -200,12 +200,12 @@ namespace libtorrent
 		}
 	}
 
-	std::vector<disk_io_thread::cached_piece_entry>::iterator disk_io_thread::find_cached_piece(
-		std::vector<disk_io_thread::cached_piece_entry>& cache
+	disk_io_thread::cache_t::iterator disk_io_thread::find_cached_piece(
+		disk_io_thread::cache_t& cache
 		, disk_io_job const& j, mutex_t::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
-		for (std::vector<cached_piece_entry>::iterator i = cache.begin()
+		for (cache_t::iterator i = cache.begin()
 			, end(cache.end()); i != end; ++i)
 		{
 			if (i->storage != j.storage || i->piece != j.piece) continue;
@@ -222,7 +222,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		for (;;)
 		{
-			std::vector<cached_piece_entry>::iterator i = std::min_element(
+			cache_t::iterator i = std::min_element(
 				m_pieces.begin(), m_pieces.end()
 				, bind(&cached_piece_entry::last_use, _1)
 				< bind(&cached_piece_entry::last_use, _2));
@@ -250,16 +250,20 @@ namespace libtorrent
 		}
 	}
 
-	bool disk_io_thread::clear_oldest_read_piece(mutex_t::scoped_lock& l)
+	bool disk_io_thread::clear_oldest_read_piece(
+		cache_t::iterator ignore
+		, mutex_t::scoped_lock& l)
 	{
 		INVARIANT_CHECK;
 
-		std::vector<cached_piece_entry>::iterator i = std::min_element(
+		cache_t::iterator i = std::min_element(
 			m_read_pieces.begin(), m_read_pieces.end()
 			, bind(&cached_piece_entry::last_use, _1)
 			< bind(&cached_piece_entry::last_use, _2));
-		if (i != m_read_pieces.end())
+		if (i != m_read_pieces.end() && i != ignore)
 		{
+			// don't replace an entry that is less than one second old
+			if (time_now() - i->last_use < seconds(1)) return false;
 			free_piece(*i, l);
 			m_read_pieces.erase(i);
 			return true;
@@ -273,9 +277,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		// first look if there are any read cache entries that can
 		// be cleared
-		if (clear_oldest_read_piece(l)) return;
+		if (clear_oldest_read_piece(m_read_pieces.end(), l)) return;
 
-		std::vector<cached_piece_entry>::iterator i = std::min_element(
+		cache_t::iterator i = std::min_element(
 			m_pieces.begin(), m_pieces.end()
 			, bind(&cached_piece_entry::last_use, _1)
 			< bind(&cached_piece_entry::last_use, _2));
@@ -283,14 +287,14 @@ namespace libtorrent
 		flush_and_remove(i, l);
 	}
 
-	void disk_io_thread::flush_and_remove(std::vector<disk_io_thread::cached_piece_entry>::iterator e
+	void disk_io_thread::flush_and_remove(disk_io_thread::cache_t::iterator e
 		, mutex_t::scoped_lock& l)
 	{
 		flush(e, l);
 		m_pieces.erase(e);
 	}
 
-	void disk_io_thread::flush(std::vector<disk_io_thread::cached_piece_entry>::iterator e
+	void disk_io_thread::flush(disk_io_thread::cache_t::iterator e
 		, mutex_t::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
@@ -448,7 +452,9 @@ namespace libtorrent
 		return (ret != buffer_size) ? -1 : ret;
 	}
 	
-	bool disk_io_thread::make_room(int num_blocks, mutex_t::scoped_lock& l)
+	bool disk_io_thread::make_room(int num_blocks
+		, cache_t::iterator ignore
+		, mutex_t::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
 
@@ -456,7 +462,7 @@ namespace libtorrent
 		{
 			// there's not enough room in the cache, clear a piece
 			// from the read cache
-			if (!clear_oldest_read_piece(l)) return false;
+			if (!clear_oldest_read_piece(ignore, l)) return false;
 		}
 
 		return m_cache_size - m_cache_stats.cache_size >= num_blocks;
@@ -475,7 +481,8 @@ namespace libtorrent
 
 		int start_block = j.offset / m_block_size;
 
-		if (!make_room(blocks_in_piece - start_block, l)) return -2;
+		if (!make_room(blocks_in_piece - start_block
+			, m_read_pieces.end(), l)) return -2;
 
 		cached_piece_entry p;
 		p.piece = j.piece;
@@ -498,7 +505,7 @@ namespace libtorrent
 	void disk_io_thread::check_invariant() const
 	{
 		int cached_write_blocks = 0;
-		for (std::vector<cached_piece_entry>::const_iterator i = m_pieces.begin()
+		for (cache_t::const_iterator i = m_pieces.begin()
 			, end(m_pieces.end()); i != end; ++i)
 		{
 			cached_piece_entry const& p = *i;
@@ -520,7 +527,7 @@ namespace libtorrent
 		}
 	
 		int cached_read_blocks = 0;
-		for (std::vector<cached_piece_entry>::const_iterator i = m_read_pieces.begin()
+		for (cache_t::const_iterator i = m_read_pieces.begin()
 			, end(m_read_pieces.end()); i != end; ++i)
 		{
 			cached_piece_entry const& p = *i;
@@ -557,7 +564,7 @@ namespace libtorrent
 
 		if (!m_use_read_cache) return -2;
 
-		std::vector<cached_piece_entry>::iterator p
+		cache_t::iterator p
 			= find_cached_piece(m_read_pieces, j, l);
 
 		bool hit = true;
@@ -571,7 +578,9 @@ namespace libtorrent
 			ret = cache_read_block(j, l);
 			hit = false;
 			if (ret < 0) return ret;
-			p = m_read_pieces.end() - 1;
+			p = m_read_pieces.end();
+			--p;
+			TORRENT_ASSERT(!m_read_pieces.empty());
 			TORRENT_ASSERT(p->piece == j.piece);
 			TORRENT_ASSERT(p->storage == j.storage);
 		}
@@ -589,7 +598,7 @@ namespace libtorrent
 				int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 				int end_block = block;
 				while (end_block < blocks_in_piece && p->blocks[end_block] == 0) ++end_block;
-				if (!make_room(end_block - block, l)) return -2;
+				if (!make_room(end_block - block, p, l)) return -2;
 				ret = read_into_piece(*p, block, l);
 				hit = false;
 				if (ret < 0) return ret;
@@ -626,7 +635,7 @@ namespace libtorrent
 #ifndef NDEBUG
 		if (j.action == disk_io_job::write)
 		{
-			std::vector<cached_piece_entry>::iterator p
+			cache_t::iterator p
 				= find_cached_piece(m_pieces, j, l);
 			if (p != m_pieces.end())
 			{
@@ -822,7 +831,7 @@ namespace libtorrent
 						m_log << log_time() << " write " << j.buffer_size << std::endl;
 #endif
 						mutex_t::scoped_lock l(m_mutex);
-						std::vector<cached_piece_entry>::iterator p
+						cache_t::iterator p
 							= find_cached_piece(m_pieces, j, l);
 						int block = j.offset / m_block_size;
 						TORRENT_ASSERT(j.buffer);
@@ -854,7 +863,7 @@ namespace libtorrent
 						m_log << log_time() << " hash" << std::endl;
 #endif
 						mutex_t::scoped_lock l(m_mutex);
-						std::vector<cached_piece_entry>::iterator i
+						cache_t::iterator i
 							= find_cached_piece(m_pieces, j, l);
 						if (i != m_pieces.end()) flush_and_remove(i, l);
 						l.unlock();
@@ -893,10 +902,10 @@ namespace libtorrent
 #endif
 						mutex_t::scoped_lock l(m_mutex);
 
-						std::vector<cached_piece_entry>::iterator i = std::remove_if(
+						cache_t::iterator i = std::remove_if(
 							m_pieces.begin(), m_pieces.end(), bind(&cached_piece_entry::storage, _1) == j.storage);
 
-						for (std::vector<cached_piece_entry>::iterator k = i; k != m_pieces.end(); ++k)
+						for (cache_t::iterator k = i; k != m_pieces.end(); ++k)
 							flush(k, l);
 						m_pieces.erase(i, m_pieces.end());
 						m_pool.release_memory();
@@ -916,10 +925,10 @@ namespace libtorrent
 #endif
 						mutex_t::scoped_lock l(m_mutex);
 
-						std::vector<cached_piece_entry>::iterator i = std::remove_if(
+						cache_t::iterator i = std::remove_if(
 							m_pieces.begin(), m_pieces.end(), bind(&cached_piece_entry::storage, _1) == j.storage);
 
-						for (std::vector<cached_piece_entry>::iterator k = i; k != m_pieces.end(); ++k)
+						for (cache_t::iterator k = i; k != m_pieces.end(); ++k)
 						{
 							torrent_info const& ti = *k->storage->info();
 							int blocks_in_piece = (ti.piece_size(k->piece) + m_block_size - 1) / m_block_size;
