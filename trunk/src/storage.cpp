@@ -635,8 +635,9 @@ namespace libtorrent
 			// the resume data says we have the entire torrent
 			// make sure the file sizes are the right ones
 			for (torrent_info::file_iterator i = m_info->begin_files(true)
-					, end(m_info->end_files(true)); i != end; ++i, ++fs)
+				, end(m_info->end_files(true)); i != end; ++i, ++fs)
 			{
+				std::cerr << "filesize: " << i->size << std::endl;
 				if (i->size != fs->first)
 				{
 					error = "file size for '" + i->path.native_file_string()
@@ -645,7 +646,6 @@ namespace libtorrent
 					return false;
 				}
 			}
-			return true;
 		}
 
 		return match_filesizes(*m_info, m_save_path, file_sizes
@@ -1108,6 +1108,9 @@ namespace libtorrent
 		, m_io_thread(io)
 		, m_torrent(torrent)
 	{
+#ifndef NDEBUG
+		m_resume_data_verified = false;
+#endif
 	}
 
 	piece_manager::~piece_manager()
@@ -1578,6 +1581,7 @@ namespace libtorrent
 		if (!data.piece_map.empty()
 			&& int(data.piece_map.size()) <= m_info->num_pieces())
 		{
+			TORRENT_ASSERT(m_resume_data_verified);
 			for (int i = 0; i < (int)data.piece_map.size(); ++i)
 			{
 				m_slot_to_piece[i] = data.piece_map[i];

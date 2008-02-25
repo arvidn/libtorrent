@@ -376,6 +376,9 @@ namespace libtorrent
 		// the piece_manager destructs. This is because
 		// the torrent_info object is owned by the torrent.
 		boost::shared_ptr<void> m_torrent;
+#ifndef NDEBUG
+		bool m_resume_data_verified;
+#endif
 	};
 
 }
