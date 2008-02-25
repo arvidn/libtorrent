@@ -472,8 +472,10 @@ namespace libtorrent
 #endif
 			if (allocate_files)
 			{
+				std::string error;
 				boost::shared_ptr<file> f = m_files.open_file(this
-					, m_save_path / file_iter->path, file::in | file::out);
+					, m_save_path / file_iter->path, file::in | file::out
+					, error);
 				if (f && f->error().empty())
 					f->set_size(file_iter->size);
 			}
@@ -829,21 +831,20 @@ namespace libtorrent
 		}
 
 		int buf_pos = 0;
+		std::string error;
 		boost::shared_ptr<file> in(m_files.open_file(
-			this, m_save_path / file_iter->path, file::in));
+			this, m_save_path / file_iter->path, file::in
+			, error));
 		if (!in)
 		{
-			m_error = "failed to open file " + (m_save_path / file_iter->path).string();
+			m_error = "failed to open file ";
+			m_error += (m_save_path / file_iter->path).string();
+			m_error += ": ";
+			m_error += error;
 			return -1;
 		}
-		if (!in->error().empty())
-		{
-			m_error = in->error();
-			return -1;
-		}
-
+		TORRENT_ASSERT(in->error().empty());
 		TORRENT_ASSERT(file_offset < file_iter->size);
-
 		TORRENT_ASSERT(slices[0].offset == file_offset + file_iter->file_base);
 
 		size_type new_pos = in->seek(file_offset + file_iter->file_base);
@@ -927,18 +928,18 @@ namespace libtorrent
 				fs::path path = m_save_path / file_iter->path;
 
 				file_offset = 0;
+				std::string error;
 				in = m_files.open_file(
-					this, path, file::in);
+					this, path, file::in, error);
 				if (!in)
 				{
-					m_error = "failed to open file " + (m_save_path / file_iter->path).string();
+					m_error = "failed to open file ";
+					m_error += path.string();
+					m_error += ": ";
+					m_error += error;
 					return -1;
 				}
-				if (!in->error().empty())
-				{
-					m_error = in->error();
-					return -1;
-				}
+				TORRENT_ASSERT(in->error().empty());
 				in->seek(file_iter->file_base);
 			}
 		}
@@ -981,19 +982,19 @@ namespace libtorrent
 		}
 
 		fs::path p(m_save_path / file_iter->path);
+		std::string error;
 		boost::shared_ptr<file> out = m_files.open_file(
-			this, p, file::out | file::in);
+			this, p, file::out | file::in, error);
+
 		if (!out)
 		{
-			m_error = "failed to open file " + (m_save_path / file_iter->path).string();
+			m_error = "failed to open file ";
+			m_error += p.string();
+			m_error += ": ";
+			m_error += error;
 			return -1;
 		}
-		if (!out->error().empty())
-		{
-			m_error = out->error();
-			return -1;
-		}
-
+		TORRENT_ASSERT(out->error().empty());
 		TORRENT_ASSERT(file_offset < file_iter->size);
 		TORRENT_ASSERT(slices[0].offset == file_offset + file_iter->file_base);
 
@@ -1060,18 +1061,19 @@ namespace libtorrent
 				TORRENT_ASSERT(file_iter != m_info->end_files(true));
 				fs::path p = m_save_path / file_iter->path;
 				file_offset = 0;
+				std::string error;
 				out = m_files.open_file(
-					this, p, file::out | file::in);
+					this, p, file::out | file::in, error);
+
 				if (!out)
 				{
-					m_error = "failed to open file " + (m_save_path / file_iter->path).string();
+					m_error = "failed to open file ";
+					m_error += p.string();
+					m_error += ": ";
+					m_error += error;
 					return -1;
 				}
-				if (!out->error().empty())
-				{
-					m_error = out->error();
-					return -1;
-				}
+				TORRENT_ASSERT(out->error().empty());
 
 				out->seek(file_iter->file_base);
 			}
