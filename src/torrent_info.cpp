@@ -886,13 +886,13 @@ namespace libtorrent
 
 // ------- end deprecation -------
 
-	size_type torrent_info::piece_size(int index) const
+	int torrent_info::piece_size(int index) const
 	{
 		TORRENT_ASSERT(index >= 0 && index < num_pieces());
 		if (index == num_pieces()-1)
 		{
-			size_type size = total_size()
-				- (num_pieces() - 1) * piece_length();
+			int size = int(total_size()
+				- (num_pieces() - 1) * piece_length());
 			TORRENT_ASSERT(size > 0);
 			TORRENT_ASSERT(size <= piece_length());
 			return size;

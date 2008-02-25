@@ -1038,7 +1038,7 @@ The ``torrent_info`` has the following synopsis::
 		std::vector<std::string> const& url_seeds() const;
 
 		size_type total_size() const;
-		size_type piece_length() const;
+		int piece_length() const;
 		int num_pieces() const;
 		sha1_hash const& info_hash() const;
 		std::string const& name() const;
@@ -1053,7 +1053,7 @@ The ``torrent_info`` has the following synopsis::
 
 		void print(std::ostream& os) const;
 	
-		size_type piece_size(unsigned int index) const;
+		int piece_size(unsigned int index) const;
 		sha1_hash const& hash_for_piece(unsigned int index) const;
 	};
 
@@ -1370,8 +1370,8 @@ total_size() piece_length() piece_size() num_pieces()
 	::
 
 		size_type total_size() const;
-		size_type piece_length() const;
-		size_type piece_size(unsigned int index) const;
+		int piece_length() const;
+		int piece_size(unsigned int index) const;
 		int num_pieces() const;
 
 
