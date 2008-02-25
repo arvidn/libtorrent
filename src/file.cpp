@@ -158,7 +158,7 @@ namespace libtorrent
 			close();
 		}
 
-		void open(fs::path const& path, int mode)
+		bool open(fs::path const& path, int mode)
 		{
 			TORRENT_ASSERT(path.is_complete());
 			close();
@@ -189,8 +189,10 @@ namespace libtorrent
 					<< std::strerror(errno);
 				if (!m_error) m_error.reset(new std::string);
 				*m_error = msg.str();
+				return false;
 			}
 			m_open_mode = mode;
+			return true;
 		}
 
 		void close()
@@ -330,9 +332,9 @@ namespace libtorrent
 
 	file::~file() {}
 
-	void file::open(fs::path const& p, file::open_mode m)
+	bool file::open(fs::path const& p, file::open_mode m)
 	{
-		m_impl->open(p, m.m_mask);
+		return m_impl->open(p, m.m_mask);
 	}
 
 	void file::close()

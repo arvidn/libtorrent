@@ -81,36 +81,7 @@ namespace
 			return s;
 		}
 	}
-	
-	void throw_exception(const char* thrower)
-	{
-		DWORD err = GetLastError();
-
-#ifdef UNICODE
-		wchar_t *wbuffer = 0;
-		FormatMessage(
-			FORMAT_MESSAGE_FROM_SYSTEM
-			|FORMAT_MESSAGE_ALLOCATE_BUFFER
-			, 0, err, 0, (LPWSTR)&wbuffer, 0, 0);
-		auto_localfree auto_free(wbuffer);
-		std::string tmp_utf8;
-		libtorrent::wchar_utf8(wbuffer, tmp_utf8);
-		char const* buffer = tmp_utf8.c_str();
-#else
-		char* buffer = 0;
-		FormatMessage(
-			FORMAT_MESSAGE_FROM_SYSTEM
-			|FORMAT_MESSAGE_ALLOCATE_BUFFER
-			, 0, err, 0, (LPSTR)&buffer, 0, 0);
-		auto_localfree auto_free(buffer);
-#endif
-
-		std::stringstream s;
-		s << (thrower ? thrower : "NULL") << ": " << (buffer ? buffer : "NULL");
-
-		throw libtorrent::file_error(s.str());
 	}
-}
 
 namespace libtorrent
 {
@@ -130,12 +101,42 @@ namespace libtorrent
 			seek_end = FILE_END
 		};
 
+		void set_error(const char* thrower)
+		{
+			DWORD err = GetLastError();
+
+#ifdef UNICODE
+			wchar_t *wbuffer = 0;
+			FormatMessage(
+				FORMAT_MESSAGE_FROM_SYSTEM
+				|FORMAT_MESSAGE_ALLOCATE_BUFFER
+				, 0, err, 0, (LPWSTR)&wbuffer, 0, 0);
+			auto_localfree auto_free(wbuffer);
+			std::string tmp_utf8;
+			libtorrent::wchar_utf8(wbuffer, tmp_utf8);
+			char const* buffer = tmp_utf8.c_str();
+#else
+			char* buffer = 0;
+			FormatMessage(
+				FORMAT_MESSAGE_FROM_SYSTEM
+				|FORMAT_MESSAGE_ALLOCATE_BUFFER
+				, 0, err, 0, (LPSTR)&buffer, 0, 0);
+			auto_localfree auto_free(buffer);
+#endif
+
+			std::stringstream s;
+			s << (thrower ? thrower : "NULL") << ": " << (buffer ? buffer : "NULL");
+
+			if (!m_error) m_error.reset(new std::string);
+			*m_error = s.str();
+		}
+
 		impl()
 		{
 			m_file_handle = INVALID_HANDLE_VALUE;
 		}
 
-		void open(const char *file_name, open_flags flags)
+		bool open(const char *file_name, open_flags flags)
 		{
 			TORRENT_ASSERT(file_name);
 			TORRENT_ASSERT(flags & (read_flag | write_flag));
@@ -170,7 +171,10 @@ namespace libtorrent
 		#endif
 
 			if (new_handle == INVALID_HANDLE_VALUE)
-				throw_exception(file_name);
+			{
+				set_error(file_name);
+				return false;
+			}
 			// try to make the file sparse if supported
 			if (access_mask & GENERIC_WRITE)
 			{
@@ -181,6 +185,7 @@ namespace libtorrent
 			// will only close old file if the open succeeded
 			close();
 			m_file_handle = new_handle;
+			return true;
 		}
 
 		void close()
@@ -211,7 +216,8 @@ namespace libtorrent
 					, &bytes_written
 					, 0))
 				{
-					throw_exception("file::write");
+					set_error("file::write");
+					return -1;
 				}
 			}
 			return bytes_written;
@@ -233,20 +239,23 @@ namespace libtorrent
 					, &bytes_read
 					, 0))
 				{
-					throw_exception("file::read");
+					set_error("file::set_size");
+					return -1;
 				}
 			}
 			return bytes_read;
 		}
 
-		void set_size(size_type s)
+		bool set_size(size_type s)
 		{
 			size_type pos = tell();
 			seek(s, seek_begin);
 			if (FALSE == ::SetEndOfFile(m_file_handle))
-				throw_exception("file::set_size");
-
-			seek(pos, seek_begin);
+			{
+				set_error("file::set_size");
+				return false;
+			}
+			return true;
 		}
 
 		size_type seek(size_type pos, seek_mode from_where)
@@ -261,7 +270,8 @@ namespace libtorrent
 				, &offs
 				, from_where))
 			{
-				throw_exception("file::seek");
+				set_error("file::seek");
+				return -1;
 			}
 			return offs.QuadPart;
 		}
@@ -278,7 +288,8 @@ namespace libtorrent
 				, &offs
 				, FILE_CURRENT))
 			{
-				throw_exception("file::tell");
+				set_error("file::tell");
+				return -1;
 			}
 
 			size_type pos = offs.QuadPart;
@@ -299,9 +310,17 @@ namespace libtorrent
 			return size;
 		}
 */
+
+		std::string const& error() const
+		{
+			if (!m_error) m_error.reset(new std::string);
+			return *m_error;
+		}
+
 	private:
 
 		HANDLE m_file_handle;
+		mutable boost::scoped_ptr<std::string> m_error;
 
 	};
 }
@@ -329,10 +348,10 @@ namespace libtorrent
 	{
 	}
 
-	void file::open(boost::filesystem::path const& p, open_mode m)
+	bool file::open(boost::filesystem::path const& p, open_mode m)
 	{
 		TORRENT_ASSERT(p.is_complete());
-		m_impl->open(p.native_file_string().c_str(), impl::open_flags(m.m_mask));
+		return m_impl->open(p.native_file_string().c_str(), impl::open_flags(m.m_mask));
 	}
 
 	void file::close()
@@ -350,9 +369,9 @@ namespace libtorrent
 		return m_impl->read(buffer, num_bytes);
 	}
 
-	void file::set_size(size_type s)
+	bool file::set_size(size_type s)
 	{
-		m_impl->set_size(s);
+		return m_impl->set_size(s);
 	}
 
 	size_type file::seek(size_type pos, seek_mode m)
@@ -363,5 +382,10 @@ namespace libtorrent
 	size_type file::tell()
 	{
 		return m_impl->tell();
+	}
+
+	std::string const& file::error() const
+	{
+		return m_impl->error();
 	}
 }

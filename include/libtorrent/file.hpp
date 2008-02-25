@@ -109,7 +109,7 @@ namespace libtorrent
 		file(fs::path const& p, open_mode m);
 		~file();
 
-		void open(fs::path const& p, open_mode m);
+		bool open(fs::path const& p, open_mode m);
 		void close();
 		bool set_size(size_type size);
 
