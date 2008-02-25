@@ -195,6 +195,12 @@ namespace libtorrent
 		// keep this alive
 		boost::intrusive_ptr<http_tracker_connection> me(this);
 
+		if (ec && ec != asio::error::eof)
+		{
+			fail(-1, ec.message().c_str());
+			return;
+		}
+		
 		if (!parser.header_finished())
 		{
 			fail(-1, "premature end of file");
