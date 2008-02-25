@@ -637,7 +637,6 @@ namespace libtorrent
 			for (torrent_info::file_iterator i = m_info->begin_files(true)
 				, end(m_info->end_files(true)); i != end; ++i, ++fs)
 			{
-				std::cerr << "filesize: " << i->size << std::endl;
 				if (i->size != fs->first)
 				{
 					error = "file size for '" + i->path.native_file_string()
