@@ -2,6 +2,7 @@
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
 #include <boost/utility.hpp>
@@ -95,6 +96,8 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	std::vector<bool> pieces;
 	num_pieces = 0;
 	std::string error_msg;
+	entry frd;
+	pm->verify_resume_data(frd, error_msg);
 	TEST_CHECK(pm->check_fastresume(d, pieces, num_pieces
 		, storage_mode, error_msg) == false);
 	bool finished = false;
@@ -249,6 +252,63 @@ void run_test(path const& test_path)
 
 }
 
+void test_fastresume()
+{
+	std::cout << "=== test fastresume ===" << std::endl;
+	create_directory("tmp1");
+	std::ofstream file("tmp1/temporary");
+	boost::intrusive_ptr<torrent_info> t = create_torrent(&file);
+	file.close();
+	TEST_CHECK(exists("tmp1/temporary"));
+
+	entry resume;
+	{
+		session ses;
+
+		torrent_handle h = ses.add_torrent(boost::intrusive_ptr<torrent_info>(new torrent_info(*t))
+			, "tmp1", entry()
+			, storage_mode_compact);
+
+		for (int i = 0; i < 10; ++i)
+		{
+			test_sleep(1000);
+			torrent_status s = h.status();
+			if (s.progress == 1.0f) 
+			{
+				std::cout << "progress: 1.0f" << std::endl;
+				break;
+			}
+		}
+		resume = h.write_resume_data();
+		ses.remove_torrent(h, session::delete_files);
+	}
+	TEST_CHECK(!exists("tmp1/temporary"));
+	resume.print(std::cout);
+
+	{
+		session ses;
+		ses.set_severity_level(alert::debug);
+		torrent_handle h = ses.add_torrent(t, "tmp1", resume
+			, storage_mode_compact);
+	
+
+		std::auto_ptr<alert> a = ses.pop_alert();
+		ptime end = time_now() + seconds(20);
+		while (a.get() == 0 || dynamic_cast<fastresume_rejected_alert*>(a.get()) == 0)
+		{
+			if (ses.wait_for_alert(end - time_now()) == 0)
+			{
+				std::cerr << "wait_for_alert() expired" << std::endl;
+				break;
+			}
+			a = ses.pop_alert();
+			assert(a.get());
+			std::cerr << a->msg() << std::endl;
+		}
+		TEST_CHECK(dynamic_cast<fastresume_rejected_alert*>(a.get()) != 0);
+	}
+}
+
 int test_main()
 {
 	std::vector<path> test_paths;
@@ -268,6 +328,8 @@ int test_main()
 	}
 
 	std::for_each(test_paths.begin(), test_paths.end(), bind(&run_test, _1));
+
+	test_fastresume();
 
 	return 0;
 }
