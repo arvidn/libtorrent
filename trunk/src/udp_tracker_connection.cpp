@@ -328,6 +328,8 @@ namespace libtorrent
 		detail::write_int32(m_transaction_id, out); // transaction_id
 		// info_hash
 		std::copy(tracker_req().info_hash.begin(), tracker_req().info_hash.end(), out);
+		out += 20;
+		TORRENT_ASSERT(out - buf == sizeof(buf));
 
 		asio::error_code ec;
 		m_socket.send(m_target, buf, sizeof(buf), ec);
@@ -461,7 +463,9 @@ namespace libtorrent
 		detail::write_int32(action_announce, out); // action (announce)
 		detail::write_int32(m_transaction_id, out); // transaction_id
 		std::copy(req.info_hash.begin(), req.info_hash.end(), out); // info_hash
+		out += 20;
 		std::copy(req.pid.begin(), req.pid.end(), out); // peer_id
+		out += 20;
 		detail::write_int64(req.downloaded, out); // downloaded
 		detail::write_int64(req.left, out); // left
 		detail::write_int64(req.uploaded, out); // uploaded
