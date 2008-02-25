@@ -3126,8 +3126,8 @@ namespace libtorrent
 			size_type done = 0;
 			while (size > 0)
 			{
-				size_type bytes_step = (std::min)(m_torrent_file->piece_size(ret.piece)
-					- ret.start, size);
+				size_type bytes_step = (std::min)(size_type(m_torrent_file->piece_size(ret.piece)
+					- ret.start), size);
 				if (m_have_pieces[ret.piece]) done += bytes_step;
 				++ret.piece;
 				ret.start = 0;

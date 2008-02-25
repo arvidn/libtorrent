@@ -316,7 +316,7 @@ int test_main()
 			int dist = distance_exp(a, b);
 
 			TEST_CHECK(dist >= 0 && dist < 160);
-			TEST_CHECK(dist == ((i == j)?0:std::max(i, j)));
+			TEST_CHECK(dist == ((i == j)?0:(std::max)(i, j)));
 
 			for (int k = 0; k < 160; k += 4)
 			{

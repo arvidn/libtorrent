@@ -630,6 +630,8 @@ namespace detail
 		if (m_dht) m_dht->stop();
 		m_dht_socket.close();
 #endif
+		m_download_channel.close();
+		m_upload_channel.close();
 		m_timer.cancel();
 
 		// close the listen sockets

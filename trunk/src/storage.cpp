@@ -592,7 +592,7 @@ namespace libtorrent
 				|| pair.back().type() != entry::int_t)
 				break;
 			file_sizes.push_back(std::pair<size_type, std::time_t>(
-				pair.front().integer(), pair.back().integer()));
+				pair.front().integer(), std::time_t(pair.back().integer())));
 		}
 
 		if (file_sizes.empty())
@@ -1905,8 +1905,8 @@ namespace libtorrent
 			num_pieces = 0;
 		}
 
-		m_piece_data.resize(int(m_info->piece_length()));
-		int piece_size = int(m_info->piece_size(m_current_slot));
+		m_piece_data.resize(m_info->piece_length());
+		int piece_size = m_info->piece_size(m_current_slot);
 		int num_read = m_storage->read(&m_piece_data[0]
 			, m_current_slot, 0, piece_size);
 
@@ -2010,7 +2010,7 @@ namespace libtorrent
 			bool ret = false;
 			if (piece_index >= 0)
 			{
-				ret |= m_piece_to_slot[piece_index] = other_slot;
+				m_piece_to_slot[piece_index] = other_slot;
 				ret |= m_storage->swap_slots(other_slot, m_current_slot);
 			}
 			else

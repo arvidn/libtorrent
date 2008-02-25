@@ -139,6 +139,8 @@ struct bandwidth_manager
 	void close()
 	{
 		m_abort = true;
+		m_queue.clear();
+		m_history.clear();
 		m_history_timer.cancel();
 	}
 
@@ -192,6 +194,7 @@ struct bandwidth_manager
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		INVARIANT_CHECK;
+		if (m_abort) return;
 		TORRENT_ASSERT(blk > 0);
 		TORRENT_ASSERT(!is_queued(peer.get(), l));
 		TORRENT_ASSERT(!peer->ignore_bandwidth_limits());

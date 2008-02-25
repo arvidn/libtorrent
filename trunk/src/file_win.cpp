@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sstream>
 #include <windows.h>
 #include <winioctl.h>
+#include <boost/scoped_ptr.hpp>
 
 namespace
 {

@@ -57,7 +57,7 @@ namespace libtorrent
 {
 
 struct http_connection;
-struct connection_queue;
+class connection_queue;
 	
 typedef boost::function<void(asio::error_code const&
 	, http_parser const&, char const* data, int size)> http_handler;
