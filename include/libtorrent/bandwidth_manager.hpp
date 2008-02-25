@@ -141,6 +141,7 @@ struct bandwidth_manager
 		m_abort = true;
 		m_queue.clear();
 		m_history.clear();
+		m_current_quota = 0;
 		m_history_timer.cancel();
 	}
 
