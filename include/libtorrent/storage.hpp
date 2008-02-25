@@ -213,7 +213,12 @@ namespace libtorrent
 		{ m_storage->write_resume_data(rd); }
 
 		bool verify_resume_data(entry const& rd, std::string& error)
-		{ return m_storage->verify_resume_data(rd, error); }
+		{
+#ifndef NDEBUG
+			m_resume_data_verified = true;
+#endif
+			return m_storage->verify_resume_data(rd, error);
+		}
 
 		bool is_allocating() const
 		{ return m_state == state_expand_pieces; }
@@ -398,6 +403,9 @@ namespace libtorrent
 		// the piece_manager destructs. This is because
 		// the torrent_info object is owned by the torrent.
 		boost::shared_ptr<void> m_torrent;
+#ifndef NDEBUG
+		bool m_resume_data_verified;
+#endif
 	};
 
 }

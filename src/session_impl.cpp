@@ -1826,7 +1826,6 @@ namespace detail
 			{
 				tracker_request req = t.generate_tracker_request();
 				TORRENT_ASSERT(req.event == tracker_request::stopped);
-				TORRENT_ASSERT(!m_listen_sockets.empty());
 				req.listen_port = 0;
 				if (!m_listen_sockets.empty())
 					req.listen_port = m_listen_sockets.front().external_port;
