@@ -70,7 +70,7 @@ namespace libtorrent
 		, int action, int piece) const
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		for (std::deque<disk_io_job>::const_iterator i = m_jobs.begin();
+		for (std::list<disk_io_job>::const_iterator i = m_jobs.begin();
 			i != m_jobs.end(); ++i)
 		{
 			if (i->storage != s)
@@ -105,7 +105,7 @@ namespace libtorrent
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		// read jobs are aborted, write and move jobs are syncronized
-		for (std::deque<disk_io_job>::iterator i = m_jobs.begin();
+		for (std::list<disk_io_job>::iterator i = m_jobs.begin();
 			i != m_jobs.end();)
 		{
 			if (i->storage != s)
@@ -158,7 +158,7 @@ namespace libtorrent
 		TORRENT_ASSERT(j.storage);
 		mutex_t::scoped_lock l(m_mutex);
 		
-		std::deque<disk_io_job>::reverse_iterator i = m_jobs.rbegin();
+		std::list<disk_io_job>::reverse_iterator i = m_jobs.rbegin();
 		if (j.action == disk_io_job::read)
 		{
 			// when we're reading, we may not skip
@@ -201,7 +201,7 @@ namespace libtorrent
 		if (i == m_jobs.rend() && (m_jobs.empty() || j.priority <= m_jobs.back().priority))
 			i = m_jobs.rbegin();
 
-		std::deque<disk_io_job>::iterator k = m_jobs.insert(i.base(), j);
+		std::list<disk_io_job>::iterator k = m_jobs.insert(i.base(), j);
 		k->callback.swap(const_cast<boost::function<void(int, disk_io_job const&)>&>(f));
 		if (j.action == disk_io_job::write)
 			m_queue_buffer_size += j.buffer_size;
