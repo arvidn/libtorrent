@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/pool/pool.hpp>
 #include <boost/noncopyable.hpp>
+#include <list>
 #include "libtorrent/config.hpp"
 
 namespace libtorrent
@@ -133,7 +134,7 @@ namespace libtorrent
 		mutable mutex_t m_mutex;
 		boost::condition m_signal;
 		bool m_abort;
-		std::deque<disk_io_job> m_jobs;
+		std::list<disk_io_job> m_jobs;
 		size_type m_queue_buffer_size;
 
 		// memory pool for read and write operations
