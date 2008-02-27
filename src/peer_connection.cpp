@@ -1393,6 +1393,8 @@ namespace libtorrent
 #ifndef NDEBUG
 		t->check_invariant();
 #endif
+		request_a_block(*t, *this);
+		send_block_requests();
 	}
 
 	void peer_connection::on_disk_write_complete(int ret, disk_io_job const& j
@@ -2485,7 +2487,7 @@ namespace libtorrent
 			if (m_bandwidth_limit[upload_channel].max_assignable() > 0)
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << "req bandwidth [ " << upload_channel << " ]\n";
+				(*m_logger) << time_now_string() << " *** REQUEST_BANDWIDTH [ upload ]\n";
 #endif
 
 				TORRENT_ASSERT(!m_writing);
@@ -2497,7 +2499,18 @@ namespace libtorrent
 			return;
 		}
 
-		if (!can_write()) return;
+		if (!can_write())
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string() << " *** CANNOT WRITE ["
+				" quota: " << m_bandwidth_limit[download_channel].quota_left() <<
+				" ignore: " << (m_ignore_bandwidth_limits?"yes":"no") <<
+				" buf: " << m_send_buffer.size() <<
+				" connecting: " << (m_connecting?"yes":"no") <<
+				" ]\n";
+#endif
+			return;
+		}
 
 		TORRENT_ASSERT(!m_writing);
 
@@ -2512,7 +2525,7 @@ namespace libtorrent
 			TORRENT_ASSERT(amount_to_send > 0);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << "async_write " << amount_to_send << " bytes\n";
+			(*m_logger) << time_now_string() << " *** ASYNC_WRITE [ bytes: " << amount_to_send << " ]\n";
 #endif
 			std::list<asio::const_buffer> const& vec = m_send_buffer.build_iovec(amount_to_send);
 			m_socket->async_write_some(vec, bind(&peer_connection::on_send_data, self(), _1, _2));
@@ -2528,7 +2541,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << "setup_receive: reading = " << m_reading << "\n";
+		(*m_logger) << time_now_string() << " *** SETUP_RECEIVE [ reading: " << (m_reading?"yes":"no") << "]\n";
 #endif
 		if (m_reading) return;
 
@@ -2542,7 +2555,7 @@ namespace libtorrent
 			if (m_bandwidth_limit[download_channel].max_assignable() > 0)
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << "req bandwidth [ " << download_channel << " ]\n";
+				(*m_logger) << time_now_string() << " *** REQUEST_BANDWIDTH [ download ]\n";
 #endif
 				m_reading = true;
 				t->request_bandwidth(download_channel, self(), m_priority);
@@ -2550,7 +2563,18 @@ namespace libtorrent
 			return;
 		}
 		
-		if (!can_read()) return;
+		if (!can_read())
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string() << " *** CANNOT READ ["
+				" quota: " << m_bandwidth_limit[download_channel].quota_left() <<
+				" ignore: " << (m_ignore_bandwidth_limits?"yes":"no") <<
+				" outstanding: " << m_outstanding_writing_bytes <<
+				" outstanding-limit: " << m_ses.settings().max_outstanding_disk_bytes_per_connection <<
+				" ]\n";
+#endif
+			return;
+		}
 
 		TORRENT_ASSERT(m_packet_size > 0);
 		int max_receive = m_packet_size - m_recv_pos;
@@ -2565,7 +2589,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(can_read());
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << "async_read " << max_receive << " bytes\n";
+		(*m_logger) << time_now_string() << " *** ASYNC_READ [ max: " << max_receive << " bytes ]\n";
 #endif
 		m_socket->async_read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
 			, max_receive), bind(&peer_connection::on_receive_data, self(), _1, _2));
@@ -2782,7 +2806,7 @@ namespace libtorrent
 				m_ses.settings().max_outstanding_disk_bytes_per_connection;
 		
 #if defined(TORRENT_VERBOSE_LOGGING)
-		(*m_logger) << "*** can_read() " << ret << " reading: " << m_reading << "\n";
+		(*m_logger) << time_now_string() << " *** can_read() " << (ret?"yes":"no") << " reading: " << m_reading << "\n";
 #endif
 		
 		return ret;
