@@ -2432,6 +2432,14 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int send_redundant_have;
 		bool lazy_bitfields;
 		int inactivity_timeout;
+		int unchoke_interval;
+		int optimistic_unchoke_multiplier;
+		address announce_ip;
+		int num_want;
+		int initial_picker_threshold;
+		int allowed_fast_set_size;
+		int max_outstanding_disk_bytes_per_connection;
+		int handshake_timeout;
 		bool use_dht_as_fallback;
 		bool free_torrent_hashes;
 		bool upnp_ignore_nonrouters;
@@ -2554,6 +2562,38 @@ from seeding.
 ``inactivity_timeout``, if a peer is uninteresting and uninterested
 for longer than this number of seconds, it will be disconnected.
 Default is 10 minutes
+
+``unchoke_interval`` is the number of seconds between chokes/unchokes.
+On this interval, peers are re-evaluated for being choked/unchoked. This
+is defined as 30 seconds in the protocol, and it should be significantly
+longer than what it takes for TCP to ramp up to it's max rate.
+
+``optimistic_unchoke_multiplier`` is the number of unchoke intervals between
+each *optimistic* unchoke interval. On this timer, the currently optimistically
+unchoked peer will change.
+
+``announce_ip`` is the ip address passed along to trackers as the ``&ip=`` parameter.
+If left as the default (default constructed), that parameter is ommited.
+
+``num_want`` is the number of peers we want from each tracker request. It defines
+what is sent as the ``&num_want=`` parameter to the tracker.
+
+``initial_picker_threshold`` specifies the number of pieces we need before we
+switch to rarest first picking. This defaults to 4, which means the 4 first
+pieces in any torrent are picked at random, the following pieces are picked
+in rarest first order.
+
+``allowed_fast_set_size`` is the number of pieces we allow peers to download
+from us without being unchoked.
+
+``max_outstanding_disk_bytes_per_connection`` is the number of bytes each
+connection is allowed to have waiting in the disk I/O queue before it is
+throttled back. This limit is meant to stop fast internet connections to
+queue up bufferes indefinitely on slow hard-drives or storage.
+
+``handshake_timeout`` specifies the number of seconds we allow a peer to
+delay responding to a protocol handshake. If no response is received within
+this time, the connection is closed.
 
 ``use_dht_as_fallback`` determines how the DHT is used. If this is true
 (which it is by default), the DHT will only be used for torrents where
