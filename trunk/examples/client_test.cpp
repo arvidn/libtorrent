@@ -582,6 +582,8 @@ int main(int ac, char* av[])
 	std::string proxy_type;
 	int poll_interval;
 	int wait_retry;
+	int bind_port_start = 0;
+	int bind_port_end = 0;
 
 	namespace po = boost::program_options;
 	try
@@ -643,6 +645,10 @@ int main(int ac, char* av[])
 			"proxy. The string should be given in the form: <username>:<password>")
 		("proxy-type", po::value<std::string>(&proxy_type)->default_value("socks5")
 			, "Sets the type of proxy to use [socks5 | http] ")
+		("bind-port-start", po::value<int>(&bind_port_start)->default_value(0)
+			, "The lower port number that outgoing connections will be bound to")
+		("bind-port-end", po::value<int>(&bind_port_end)->default_value(0)
+			, "The upper port number that outgoing connections will be bound to")
 			;
 
 		po::positional_options_description p;
@@ -734,6 +740,9 @@ int main(int ac, char* av[])
 
 		settings.user_agent = "client_test/" LIBTORRENT_VERSION;
 		settings.urlseed_wait_retry = wait_retry;
+
+		settings.outgoing_ports.first = bind_port_start;
+		settings.outgoing_ports.second = bind_port_end;
 
 		std::deque<std::string> events;
 

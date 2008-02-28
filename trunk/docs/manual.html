@@ -1143,7 +1143,7 @@ public:
         std::vector&lt;std::string&gt; const&amp; url_seeds() const;
 
         size_type total_size() const;
-        size_type piece_length() const;
+        int piece_length() const;
         int num_pieces() const;
         sha1_hash const&amp; info_hash() const;
         std::string const&amp; name() const;
@@ -1158,7 +1158,7 @@ public:
 
         void print(std::ostream&amp; os) const;
 
-        size_type piece_size(unsigned int index) const;
+        int piece_size(unsigned int index) const;
         sha1_hash const&amp; hash_for_piece(unsigned int index) const;
 };
 </pre>
@@ -1432,8 +1432,8 @@ struct announce_entry
 <blockquote>
 <pre class="literal-block">
 size_type total_size() const;
-size_type piece_length() const;
-size_type piece_size(unsigned int index) const;
+int piece_length() const;
+int piece_size(unsigned int index) const;
 int num_pieces() const;
 </pre>
 </blockquote>
@@ -2596,6 +2596,14 @@ struct session_settings
         int send_redundant_have;
         bool lazy_bitfields;
         int inactivity_timeout;
+        int unchoke_interval;
+        int optimistic_unchoke_multiplier;
+        address announce_ip;
+        int num_want;
+        int initial_picker_threshold;
+        int allowed_fast_set_size;
+        int max_outstanding_disk_bytes_per_connection;
+        int handshake_timeout;
         bool use_dht_as_fallback;
         bool free_torrent_hashes;
         bool upnp_ignore_nonrouters;
@@ -2603,6 +2611,7 @@ struct session_settings
         bool auto_upload_slots;
         int cache_size;
         int cache_expiry;
+        std::pair&lt;int, int&gt; outgoing_ports;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker.
@@ -2700,6 +2709,30 @@ from seeding.</p>
 <p><tt class="docutils literal"><span class="pre">inactivity_timeout</span></tt>, if a peer is uninteresting and uninterested
 for longer than this number of seconds, it will be disconnected.
 Default is 10 minutes</p>
+<p><tt class="docutils literal"><span class="pre">unchoke_interval</span></tt> is the number of seconds between chokes/unchokes.
+On this interval, peers are re-evaluated for being choked/unchoked. This
+is defined as 30 seconds in the protocol, and it should be significantly
+longer than what it takes for TCP to ramp up to it's max rate.</p>
+<p><tt class="docutils literal"><span class="pre">optimistic_unchoke_multiplier</span></tt> is the number of unchoke intervals between
+each <em>optimistic</em> unchoke interval. On this timer, the currently optimistically
+unchoked peer will change.</p>
+<p><tt class="docutils literal"><span class="pre">announce_ip</span></tt> is the ip address passed along to trackers as the <tt class="docutils literal"><span class="pre">&amp;ip=</span></tt> parameter.
+If left as the default (default constructed), that parameter is ommited.</p>
+<p><tt class="docutils literal"><span class="pre">num_want</span></tt> is the number of peers we want from each tracker request. It defines
+what is sent as the <tt class="docutils literal"><span class="pre">&amp;num_want=</span></tt> parameter to the tracker.</p>
+<p><tt class="docutils literal"><span class="pre">initial_picker_threshold</span></tt> specifies the number of pieces we need before we
+switch to rarest first picking. This defaults to 4, which means the 4 first
+pieces in any torrent are picked at random, the following pieces are picked
+in rarest first order.</p>
+<p><tt class="docutils literal"><span class="pre">allowed_fast_set_size</span></tt> is the number of pieces we allow peers to download
+from us without being unchoked.</p>
+<p><tt class="docutils literal"><span class="pre">max_outstanding_disk_bytes_per_connection</span></tt> is the number of bytes each
+connection is allowed to have waiting in the disk I/O queue before it is
+throttled back. This limit is meant to stop fast internet connections to
+queue up bufferes indefinitely on slow hard-drives or storage.</p>
+<p><tt class="docutils literal"><span class="pre">handshake_timeout</span></tt> specifies the number of seconds we allow a peer to
+delay responding to a protocol handshake. If no response is received within
+this time, the connection is closed.</p>
 <p><tt class="docutils literal"><span class="pre">use_dht_as_fallback</span></tt> determines how the DHT is used. If this is true
 (which it is by default), the DHT will only be used for torrents where
 all trackers in its tracker list has failed. Either by an explicit error
@@ -2730,6 +2763,11 @@ current number of upload slots, see <tt class="docutils literal"><span class="pr
 It defaults to 128 (= 2 MB).</p>
 <p><tt class="docutils literal"><span class="pre">cache_expiry</span></tt> is the number of seconds from the last cached write to a piece
 in the write cache, to when it's forcefully flushed to disk. Default is 60 second.</p>
+<p><tt class="docutils literal"><span class="pre">outgoing_ports</span></tt>, if set to something other than (0, 0) is a range of ports
+used to bind outgoing sockets to. This may be useful for users whose router
+allows them to assign QoS classes to traffic based on its local port. It is
+a range instead of a single port because of the problems with failing to reconnect
+to peers if a previous socket to that peer and port is in <tt class="docutils literal"><span class="pre">TIME_WAIT</span></tt> state.</p>
 </div>
 <div class="section">
 <h1><a id="pe-settings" name="pe-settings">pe_settings</a></h1>

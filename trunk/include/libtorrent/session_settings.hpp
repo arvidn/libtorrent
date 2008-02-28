@@ -126,6 +126,7 @@ namespace libtorrent
 			, auto_upload_slots(true)
 			, cache_size(512)
 			, cache_expiry(60)
+			, outgoing_ports(0,0)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -332,6 +333,12 @@ namespace libtorrent
 		// idle in the cache before it's forcefully flushed
 		// to disk. Default is 60 seconds.
 		int cache_expiry;
+
+		// if != (0, 0), this is the range of ports that
+		// outgoing connections will be bound to. This
+		// is useful for users that have routers that
+		// allow QoS settings based on local port.
+		std::pair<int, int> outgoing_ports;
 	};
 	
 #ifndef TORRENT_DISABLE_DHT

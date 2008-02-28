@@ -2604,6 +2604,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		bool auto_upload_slots;
 		int cache_size;
 		int cache_expiry;
+		std::pair<int, int> outgoing_ports;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -2792,6 +2793,12 @@ It defaults to 128 (= 2 MB).
 
 ``cache_expiry`` is the number of seconds from the last cached write to a piece
 in the write cache, to when it's forcefully flushed to disk. Default is 60 second.
+
+``outgoing_ports``, if set to something other than (0, 0) is a range of ports
+used to bind outgoing sockets to. This may be useful for users whose router
+allows them to assign QoS classes to traffic based on its local port. It is
+a range instead of a single port because of the problems with failing to reconnect
+to peers if a previous socket to that peer and port is in ``TIME_WAIT`` state.
 
 
 pe_settings
