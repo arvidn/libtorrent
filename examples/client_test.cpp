@@ -157,7 +157,7 @@ char const* esc(char const* code)
 #ifdef ANSI_TERMINAL_COLORS
 	// this is a silly optimization
 	// to avoid copying of strings
-	enum { num_strings = 20 };
+	enum { num_strings = 200 };
 	static char buf[num_strings][20];
 	static int round_robin = 0;
 	char* ret = buf[round_robin];
