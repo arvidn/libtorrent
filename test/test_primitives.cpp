@@ -7,6 +7,7 @@
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
+#include "libtorrent/broadcast_socket.hpp"
 
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
@@ -367,6 +368,16 @@ int test_main()
 	h2 = sha1_hash("                    ");
 	TEST_CHECK(h2 == boost::lexical_cast<sha1_hash>("2020202020202020202020202020202020202020"));
 	
+	// CIDR distance test
+	h1 = boost::lexical_cast<sha1_hash>("0123456789abcdef01232456789abcdef0123456");
+	h2 = boost::lexical_cast<sha1_hash>("0123456789abcdef01232456789abcdef0123456");
+	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 160);
+	h2 = boost::lexical_cast<sha1_hash>("0120456789abcdef01232456789abcdef0123456");
+	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 14);
+	h2 = boost::lexical_cast<sha1_hash>("012f456789abcdef01232456789abcdef0123456");
+	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 12);
+	h2 = boost::lexical_cast<sha1_hash>("0123456789abcdef11232456789abcdef0123456");
+	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 16 * 4 + 3);
 	return 0;
 }
 
