@@ -45,6 +45,10 @@ namespace libtorrent
 	bool is_loopback(address const& addr);
 	bool is_multicast(address const& addr);
 	bool is_any(address const& addr);
+	int cidr_distance(address const& a1, address const& a2);
+
+	int common_bits(unsigned char const* b1
+		, unsigned char const* b2, int n);
 
 	address guess_local_address(asio::io_service&);
 

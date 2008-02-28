@@ -528,7 +528,18 @@ namespace libtorrent
 
 		int max_failcount = m_torrent->settings().max_failcount;
 		int min_reconnect_time = m_torrent->settings().min_reconnect_time;
+		int min_cidr_distance = (std::numeric_limits<int>::max)();
 		bool finished = m_torrent->is_finished();
+		address external_ip = m_torrent->session().m_external_address;
+
+		if (external_ip == address())
+		{
+			// set external_ip to a random value, to
+			// radomize which peers we prefer
+			address_v4::bytes_type bytes;
+			std::generate(bytes.begin(), bytes.end(), &std::rand);
+			external_ip = address_v4(bytes);
+		}
 
 		aux::session_impl& ses = m_torrent->session();
 
@@ -560,14 +571,28 @@ namespace libtorrent
 				&& !is_local(i->second.ip.address()))
 				continue;
 
-			if (i->second.connected <= min_connect_time)
-			{
-				min_connect_time = i->second.connected;
-				candidate = i;
-			}
+			if (i->second.connected > min_connect_time) continue;
+			int distance = cidr_distance(external_ip, i->second.ip.address());
+			if (distance > min_cidr_distance) continue;
+
+			min_cidr_distance = distance;
+			min_connect_time = i->second.connected;
+			candidate = i;
 		}
 		
 		TORRENT_ASSERT(min_connect_time <= now);
+
+#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
+		if (candidate != m_peers.end())
+		{
+			(*m_torrent->session().m_logger) << "*** FOUND CONNECTION CANDIDATE ["
+				" ip: " << candidate->second.ip <<
+				" d: " << min_cidr_distance <<
+				" external: " << external_ip <<
+				" t: " << total_seconds(time_now() - min_connect_time) <<
+				" ]\n";
+		}
+#endif
 
 		return candidate;
 	}
@@ -943,7 +968,7 @@ namespace libtorrent
 			return false;
 		}
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		if (c.remote().address() == m_torrent->current_tracker().address())
 		{
 			m_torrent->debug_log("overriding connection limit for tracker NAT-check");
@@ -985,7 +1010,7 @@ namespace libtorrent
 				}
 				else
 				{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 					m_torrent->debug_log("duplicate connection. existing connection"
 					" is connecting and this connection is incoming. closing existing "
 					"connection in favour of this one");
@@ -1153,7 +1178,7 @@ namespace libtorrent
 				// so we don't have to trust this source
 				if ((flags & 0x02) && !i->second.connection) i->second.seed = true;
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 				if (i->second.connection)
 				{
 					// this means we're already connected
@@ -1249,7 +1274,7 @@ namespace libtorrent
 		{
 			m_torrent->session().unchoke_peer(c);
 		}
-#if defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING
 		else if (c.is_choked())
 		{
 			std::string reason;
@@ -1362,7 +1387,7 @@ namespace libtorrent
 		}
 		catch (std::exception& e)
 		{
-#if defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_torrent->session().m_logger) << "*** CONNECTION FAILED '"
 				<< e.what() << "'\n";
 #endif
@@ -1377,7 +1402,7 @@ namespace libtorrent
 		iterator p = find_disconnect_candidate();
 		if (p == m_peers.end())
 			return false;
-#if defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		(*p->second.connection->m_logger) << "*** CLOSING CONNECTION 'too many connections'\n";
 #endif
 

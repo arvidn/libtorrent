@@ -382,6 +382,8 @@ namespace libtorrent
 			void free_buffer(char* buf, int size);
 			void free_disk_buffer(char* buf);
 			
+			address m_external_address;
+
 //		private:
 
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);

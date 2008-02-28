@@ -1228,6 +1228,27 @@ namespace libtorrent
 			if (m_max_out_request_queue < 1)
 				m_max_out_request_queue = 1;
 		}
+
+		if (entry* myip = root.find_key("yourip"))
+		{
+			// TODO: don't trust this blindly
+			if (myip->type() == entry::string_t)
+			{
+				std::string const& my_ip = myip->string().c_str();
+				if (my_ip.size() == address_v4::bytes_type::static_size)
+				{
+					address_v4::bytes_type bytes;
+					std::copy(my_ip.begin(), my_ip.end(), bytes.begin());
+					m_ses.m_external_address = address_v4(bytes);
+				}
+				else if (my_ip.size() == address_v6::bytes_type::static_size)
+				{
+					address_v6::bytes_type bytes;
+					std::copy(my_ip.begin(), my_ip.end(), bytes.begin());
+					m_ses.m_external_address = address_v6(bytes);
+				}
+			}
+		}
 	}
 
 	bool bt_peer_connection::dispatch_message(int received)
