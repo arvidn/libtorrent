@@ -1138,6 +1138,22 @@ namespace detail
 		m_key = key;
 	}
 
+	int session_impl::next_port()
+	{
+		std::pair<int, int> const& out_ports = m_settings.outgoing_ports;
+		if (m_next_port < out_ports.first || m_next_port > out_ports.second)
+			m_next_port = out_ports.first;
+	
+		int port = m_next_port;
+		++m_next_port;
+		if (m_next_port > out_ports.second) m_next_port = out_ports.first;
+#if defined TORRENT_LOGGING
+		(*m_logger) << time_now_string() << " *** BINDING OUTGOING CONNECTION [ "
+			"port: " << port << " ]\n";
+#endif
+		return port;
+	}
+
 	void session_impl::second_tick(asio::error_code const& e) try
 	{
 		session_impl::mutex_t::scoped_lock l(m_mutex);
@@ -1149,10 +1165,10 @@ namespace detail
 
 		if (e)
 		{
-#if defined(TORRENT_LOGGING)
+#if defined TORRENT_LOGGING
 			(*m_logger) << "*** SECOND TIMER FAILED " << e.message() << "\n";
 #endif
-			abort();
+			::abort();
 			return;
 		}
 

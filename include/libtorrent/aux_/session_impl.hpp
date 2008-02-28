@@ -375,6 +375,8 @@ namespace libtorrent
 			void stop_natpmp();
 			void stop_upnp();
 
+			int next_port();
+
 			// handles delayed alerts
 			alert_manager m_alerts;
 
@@ -550,6 +552,10 @@ namespace libtorrent
 			
 			void second_tick(asio::error_code const& e);
 			ptime m_last_tick;
+
+			// when outgoing_ports is configured, this is the
+			// port we'll bind the next outgoing socket to
+			int m_next_port;
 
 #ifndef TORRENT_DISABLE_DHT
 			boost::intrusive_ptr<dht::dht_tracker> m_dht;

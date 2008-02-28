@@ -585,7 +585,8 @@ namespace libtorrent
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 		if (candidate != m_peers.end())
 		{
-			(*m_torrent->session().m_logger) << "*** FOUND CONNECTION CANDIDATE ["
+			(*m_torrent->session().m_logger) << time_now_string()
+				<< " *** FOUND CONNECTION CANDIDATE ["
 				" ip: " << candidate->second.ip <<
 				" d: " << min_cidr_distance <<
 				" external: " << external_ip <<
