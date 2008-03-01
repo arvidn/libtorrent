@@ -2586,7 +2586,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int peer_connect_timeout;
 		bool ignore_limits_on_local_network;
 		int connection_speed;
-		int send_redundant_have;
+		bool send_redundant_have;
 		bool lazy_bitfields;
 		int inactivity_timeout;
 		int unchoke_interval;
