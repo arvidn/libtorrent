@@ -288,8 +288,8 @@ int test_main()
 	}
 
 	// CIDR distance test
-	h1 = boost::lexical_cast<sha1_hash>("0123456789abcdef01232456789abcdef0123456");
-	h2 = boost::lexical_cast<sha1_hash>("0123456789abcdef01232456789abcdef0123456");
+	sha1_hash h1 = boost::lexical_cast<sha1_hash>("0123456789abcdef01232456789abcdef0123456");
+	sha1_hash h2 = boost::lexical_cast<sha1_hash>("0123456789abcdef01232456789abcdef0123456");
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 160);
 	h2 = boost::lexical_cast<sha1_hash>("0120456789abcdef01232456789abcdef0123456");
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 14);
