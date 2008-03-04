@@ -1,7 +1,27 @@
 noinst_PROGRAMS = test_hasher test_bencoding test_ip_filter test_piece_picker \
 test_storage test_metadata_extension test_buffer test_swarm test_pe_crypto test_primitives \
- test_bandwidth_limiter
+test_bandwidth_limiter test_upnp test_fast_extension test_pex test_web_seed \
+test_http_connection test_lsd
+
 EXTRA_DIST = Jamfile
+
+test_lsd_SOURCES = main.cpp setup_transfer.cpp test_lsd.cpp
+test_lsd_LDADD = $(top_builddir)/src/libtorrent.la
+
+test_http_connection_SOURCES = main.cpp setup_transfer.cpp test_http_connection.cpp
+test_http_connection_LDADD = $(top_builddir)/src/libtorrent.la
+
+test_web_seed_SOURCES = main.cpp setup_transfer.cpp test_web_seed.cpp
+test_web_seed_LDADD = $(top_builddir)/src/libtorrent.la
+
+test_pex_SOURCES = main.cpp setup_transfer.cpp test_pex.cpp
+test_pex_LDADD = $(top_builddir)/src/libtorrent.la
+
+test_fast_extension_SOURCES = main.cpp setup_transfer.cpp test_fast_extension.cpp
+test_fast_extension_LDADD = $(top_builddir)/src/libtorrent.la
+
+test_upnp_SOURCES = test_upnp.cpp
+test_upnp_LDADD = $(top_builddir)/src/libtorrent.la
 
 test_hasher_SOURCES = main.cpp test_hasher.cpp
 test_hasher_LDADD = $(top_builddir)/src/libtorrent.la
