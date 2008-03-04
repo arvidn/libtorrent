@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined TORRENT_BSD || defined TORRENT_LINUX
 #include <sys/ioctl.h>
+#include <sys/socket.h>
 #include <netinet/in.h>
 #include <net/if.h>
 #elif defined TORRENT_WINDOWS
