@@ -1150,14 +1150,14 @@ namespace libtorrent
 			for (last = m_slot_to_piece.rbegin();
 				last != m_slot_to_piece.rend(); ++last)
 			{
-				if (*last != unallocated && have[*last]) break;
+				if (*last != unallocated) break;
 			}
 
 			for (std::vector<int>::const_iterator i =
 				m_slot_to_piece.begin();
 				i != last.base(); ++i)
 			{
-				p.push_back((*i >= 0 && have[*i]) ? *i : unassigned);
+				p.push_back((*i >= 0) ? *i : unassigned);
 			}
 		}
 		else
