@@ -505,10 +505,7 @@ namespace libtorrent
 				= transferred_amount / (connected_time_in_seconds + 1);
 
 			// prefer to disconnect uninteresting peers, and secondly slow peers
-			if (transfer_rate <= slowest_transfer_rate
-				|| (disconnect_peer != m_peers.end()
-				&& disconnect_peer->second.connection->is_interesting()
-				&& !c->is_interesting()))
+			if (transfer_rate <= slowest_transfer_rate)
 			{
 				slowest_transfer_rate = transfer_rate;
 				disconnect_peer = i;
