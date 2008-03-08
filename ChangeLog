@@ -1,3 +1,4 @@
+	* Optimized resource usage (removed the checking thread)
 	* Support to bind outgoing connections to specific ports
 	* Disk cache support.
 	* New, more memory efficient, piece picker with sequential download
