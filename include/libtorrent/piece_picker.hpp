@@ -138,10 +138,7 @@ namespace libtorrent
 
 		// the vector tells which pieces we already have
 		// and which we don't have.
-		void files_checked(
-			std::vector<bool> const& pieces
-			, std::vector<downloading_piece> const& unfinished
-			, std::vector<int>& verify_pieces);
+		void init(std::vector<bool> const& pieces);
 
 		// increases the peer count for the given piece
 		// (is used when a HAVE message is received)

@@ -94,73 +94,6 @@ namespace libtorrent
 	{
 		struct session_impl;
 
-		// this data is shared between the main thread and the
-		// thread that initialize pieces
-		struct piece_checker_data
-		{
-			piece_checker_data()
-				: processing(false), progress(0.f), abort(false) {}
-
-			boost::shared_ptr<torrent> torrent_ptr;
-			fs::path save_path;
-
-			sha1_hash info_hash;
-
-			void parse_resume_data(
-				const entry& rd
-				, const torrent_info& info
-				, std::string& error);
-
-			std::vector<int> piece_map;
-			std::vector<piece_picker::downloading_piece> unfinished_pieces;
-			std::vector<piece_picker::block_info> block_info;
-			std::vector<tcp::endpoint> peers;
-			std::vector<tcp::endpoint> banned_peers;
-			entry resume_data;
-
-			// this is true if this torrent is being processed (checked)
-			// if it is not being processed, then it can be removed from
-			// the queue without problems, otherwise the abort flag has
-			// to be set.
-			bool processing;
-
-			// is filled in by storage::initialize_pieces()
-			// and represents the progress. It should be a
-			// value in the range [0, 1]
-			float progress;
-
-			// abort defaults to false and is typically
-			// filled in by torrent_handle when the user
-			// aborts the torrent
-			bool abort;
-		};
-
-		struct checker_impl: boost::noncopyable
-		{
-			checker_impl(session_impl& s): m_ses(s), m_abort(false) {}
-			void operator()();
-			piece_checker_data* find_torrent(const sha1_hash& info_hash);
-			void remove_torrent(sha1_hash const& info_hash, int options);
-
-#ifndef NDEBUG
-			void check_invariant() const;
-#endif
-
-			// when the files has been checked
-			// the torrent is added to the session
-			session_impl& m_ses;
-
-			mutable boost::mutex m_mutex;
-			boost::condition m_cond;
-
-			// a list of all torrents that are currently in queue
-			// or checking their files
-			std::deque<boost::shared_ptr<piece_checker_data> > m_torrents;
-			std::deque<boost::shared_ptr<piece_checker_data> > m_processing;
-
-			bool m_abort;
-		};
-
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		struct tracker_logger;
 #endif
@@ -284,6 +217,9 @@ namespace libtorrent
 
 			std::vector<torrent_handle> get_torrents();
 			
+			void check_torrent(boost::shared_ptr<torrent> const& t);
+			void done_checking(boost::shared_ptr<torrent> const& t);
+
 			void set_severity_level(alert::severity_t s);
 			std::auto_ptr<alert> pop_alert();
 
@@ -435,6 +371,7 @@ namespace libtorrent
 
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
+			std::list<boost::shared_ptr<torrent> > m_queued_for_checking;
 
 			// this maps sockets to their peer_connection
 			// object. It is the complete list of all connected
@@ -625,16 +562,8 @@ namespace libtorrent
 			extension_list_t m_extensions;
 #endif
 
-			// data shared between the main thread
-			// and the checker thread
-			checker_impl m_checker_impl;
-
 			// the main working thread
 			boost::scoped_ptr<boost::thread> m_thread;
-
-			// the thread that calls initialize_pieces()
-			// on all torrents before they start downloading
-			boost::scoped_ptr<boost::thread> m_checker_thread;
 		};
 		
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING

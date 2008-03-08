@@ -122,10 +122,7 @@ namespace libtorrent
 	}
 
 	// pieces is a bitmask with the pieces we have
-	void piece_picker::files_checked(
-		std::vector<bool> const& pieces
-		, std::vector<downloading_piece> const& unfinished
-		, std::vector<int>& verify_pieces)
+	void piece_picker::init(std::vector<bool> const& pieces)
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 #ifndef NDEBUG
@@ -151,25 +148,6 @@ namespace libtorrent
 			else
 			{
 				p.index = 0;
-			}
-		}
-
-		// if we have fast resume info
-		// use it
-		if (!unfinished.empty())
-		{
-			for (std::vector<downloading_piece>::const_iterator i
-				= unfinished.begin(); i != unfinished.end(); ++i)
-			{
-				for (int j = 0; j < m_blocks_per_piece; ++j)
-				{
-					if (i->info[j].state == block_info::state_finished)
-						mark_as_finished(piece_block(i->index, j), 0);
-				}
-				if (is_piece_finished(i->index))
-				{
-					verify_pieces.push_back(i->index);
-				}
 			}
 		}
 	}

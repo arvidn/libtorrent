@@ -77,6 +77,8 @@ namespace libtorrent
 			, move_storage
 			, release_files
 			, delete_files
+			, check_fastresume
+			, check_files
 		};
 
 		action_t action;
@@ -154,10 +156,6 @@ namespace libtorrent
 			, boost::function<void(int, disk_io_job const&)> const& f
 			= boost::function<void(int, disk_io_job const&)>());
 
-#ifndef NDEBUG
-		disk_io_job find_job(boost::intrusive_ptr<piece_manager> s
-			, int action, int piece) const;
-#endif
 		// keep track of the number of bytes in the job queue
 		// at any given time. i.e. the sum of all buffer_size.
 		// this is used to slow down the download global download
@@ -268,9 +266,6 @@ namespace libtorrent
 		// number of bytes per block. The BitTorrent
 		// protocol defines the block size to 16 KiB.
 		int m_block_size;
-#ifndef NDEBUG
-		disk_io_job m_current;
-#endif
 
 #ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;

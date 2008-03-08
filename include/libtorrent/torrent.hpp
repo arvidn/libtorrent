@@ -98,20 +98,19 @@ namespace libtorrent
 
 		torrent(
 			aux::session_impl& ses
-			, aux::checker_impl& checker
 			, boost::intrusive_ptr<torrent_info> tf
 			, fs::path const& save_path
 			, tcp::endpoint const& net_interface
 			, storage_mode_t m_storage_mode
 			, int block_size
 			, storage_constructor_type sc
-			, bool paused);
+			, bool paused
+			, entry const& resume_data);
 
 		// used with metadata-less torrents
 		// (the metadata is downloaded from the peers)
 		torrent(
 			aux::session_impl& ses
-			, aux::checker_impl& checker
 			, char const* tracker_url
 			, sha1_hash const& info_hash
 			, char const* name
@@ -120,7 +119,8 @@ namespace libtorrent
 			, storage_mode_t m_storage_mode
 			, int block_size
 			, storage_constructor_type sc
-			, bool paused);
+			, bool paused
+			, entry const& resume_data);
 
 		~torrent();
 
@@ -142,6 +142,12 @@ namespace libtorrent
 		// it will initialize the storage and the piece-picker
 		void init();
 
+		void on_resume_data_checked(int ret, disk_io_job const& j);
+		void on_piece_checked(int ret, disk_io_job const& j);
+		void files_checked();
+		void start_checking();
+
+		storage_mode_t storage_mode() const { return m_storage_mode; }
 		// this will flag the torrent as aborted. The main
 		// loop in session_impl will check for this state
 		// on all torrents once every second, and take
@@ -149,30 +155,18 @@ namespace libtorrent
 		void abort();
 		bool is_aborted() const { return m_abort; }
 
-		// returns true if this torrent is being allocated
-		// by the checker thread.
-		bool is_allocating() const;
-		
 		session_settings const& settings() const;
 		
 		aux::session_impl& session() { return m_ses; }
 		
 		void set_sequential_download(bool sd);
 	
-		bool verify_resume_data(entry const& rd, std::string& error)
-		{ TORRENT_ASSERT(m_storage); return m_storage->verify_resume_data(rd, error); }
-
 		void second_tick(stat& accumulator, float tick_interval);
 
 		// debug purpose only
 		void print(std::ostream& os) const;
 
 		std::string name() const;
-
-		bool check_fastresume(aux::piece_checker_data&);
-		std::pair<bool, float> check_files(bool& error);
-		void files_checked(std::vector<piece_picker::downloading_piece> const&
-			unfinished_pieces);
 
 		stat statistics() const { return m_stat; }
 		size_type bytes_left() const;
@@ -705,7 +699,6 @@ namespace libtorrent
 		// a back reference to the session
 		// this torrent belongs to.
 		aux::session_impl& m_ses;
-		aux::checker_impl& m_checker;
 
 		boost::scoped_ptr<piece_picker> m_picker;
 
@@ -767,6 +760,12 @@ namespace libtorrent
 
 		// determines the storage state for this torrent.
 		storage_mode_t m_storage_mode;
+
+		// the state of this torrent (queued, checking, downloading)
+		torrent_status::state_t m_state;
+		float m_progress;
+
+		entry m_resume_data;
 
 		// defaults to 16 kiB, but can be set by the user
 		// when creating the torrent
