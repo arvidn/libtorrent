@@ -119,12 +119,12 @@ namespace libtorrent
 		// if allocate_files is true. 
 		// allocate_files is true if allocation mode
 		// is set to full and sparse files are supported
+		// false return value indicates an error
 		virtual bool initialize(bool allocate_files) = 0;
 
 		// negative return value indicates an error
 		virtual size_type read(char* buf, int slot, int offset, int size) = 0;
 
-		// may throw file_error if storage for slot hasn't been allocated
 		// negative return value indicates an error
 		virtual size_type write(const char* buf, int slot, int offset, int size) = 0;
 
@@ -194,48 +194,23 @@ namespace libtorrent
 			, fs::path const& path
 			, file_pool& fp
 			, disk_io_thread& io
-			, storage_constructor_type sc);
+			, storage_constructor_type sc
+			, storage_mode_t sm);
 
 		~piece_manager();
 
 		torrent_info const* info() const { return m_info.get(); }
 
-		bool check_fastresume(aux::piece_checker_data& d
-			, std::vector<bool>& pieces, int& num_pieces, storage_mode_t storage_mode
-			, std::string& error_msg);
-		std::pair<bool, float> check_files(std::vector<bool>& pieces
-			, int& num_pieces, boost::recursive_mutex& mutex, bool& error);
-
 		// frees a buffer that was returned from a read operation
 		void free_buffer(char* buf);
 
-		void write_resume_data(entry& rd) const
-		{ m_storage->write_resume_data(rd); }
+		void write_resume_data(entry& rd, std::vector<bool> const& have) const;
 
-		bool verify_resume_data(entry const& rd, std::string& error)
-		{
-#ifndef NDEBUG
-			m_resume_data_verified = true;
-#endif
-			return m_storage->verify_resume_data(rd, error);
-		}
-
-		bool is_allocating() const
-		{ return m_state == state_expand_pieces; }
-
-		void mark_failed(int index);
-
-		std::string const& error() const { return m_storage->error(); }
-		void clear_error() { m_storage->clear_error(); }
-
-		unsigned long piece_crc(
-			int slot_index
-			, int block_size
-			, piece_picker::block_info const* bi);
-
-		int slot_for(int piece) const;
-		int piece_for(int slot) const;
+		void async_check_fastresume(entry const* resume_data
+			, boost::function<void(int, disk_io_job const&)> const& handler);
 		
+		void async_check_files(boost::function<void(int, disk_io_job const&)> const& handler);
+
 		void async_read(
 			peer_request const& r
 			, boost::function<void(int, disk_io_job const&)> const& handler
@@ -249,8 +224,6 @@ namespace libtorrent
 
 		void async_hash(int piece, boost::function<void(int, disk_io_job const&)> const& f);
 
-		fs::path save_path() const;
-
 		void async_release_files(
 			boost::function<void(int, disk_io_job const&)> const& handler
 			= boost::function<void(int, disk_io_job const&)>());
@@ -262,12 +235,44 @@ namespace libtorrent
 		void async_move_storage(fs::path const& p
 			, boost::function<void(int, disk_io_job const&)> const& handler);
 
-		// fills the vector that maps all allocated
-		// slots to the piece that is stored (or
-		// partially stored) there. -2 is the index
-		// of unassigned pieces and -1 is unallocated
-		void export_piece_map(std::vector<int>& pieces
-			, std::vector<bool> const& have) const;
+		enum return_t
+		{
+			// return values from check_fastresume and check_files
+			no_error = 0,
+			need_full_check = -1,
+			fatal_disk_error = -2,
+		};
+
+	private:
+
+		fs::path save_path() const;
+
+		bool verify_resume_data(entry const& rd, std::string& error)
+		{ return m_storage->verify_resume_data(rd, error); }
+
+		bool is_allocating() const
+		{ return m_state == state_expand_pieces; }
+
+		void mark_failed(int index);
+
+		std::string const& error() const { return m_storage->error(); }
+		void clear_error() { m_storage->clear_error(); }
+
+		int slot_for(int piece) const;
+		int piece_for(int slot) const;
+	
+		// helper functions for check_dastresume	
+		int check_no_fastresume(std::string& error);
+		int check_init_storage(std::string& error);
+		
+		// if error is set and return value is 'no_error' or 'need_full_check'
+		// the error message indicates that the fast resume data was rejected
+		// if 'fatal_disk_error' is returned, the error message indicates what
+		// when wrong in the disk access
+		int check_fastresume(entry const& rd, std::string& error);
+
+		// this function returns true if the checking is complete
+		int check_files(int& current_slot, int& have_piece, std::string& error);
 
 		bool compact_allocation() const
 		{ return m_storage_mode == storage_mode_compact; }
@@ -275,18 +280,8 @@ namespace libtorrent
 #ifndef NDEBUG
 		std::string name() const { return m_info->name(); }
 #endif
-		
-	private:
 
 		bool allocate_slots(int num_slots, bool abort_on_disk = false);
-
-		int identify_data(
-			const std::vector<char>& piece_data
-			, int current_slot
-			, std::vector<bool>& have_pieces
-			, int& num_pieces
-			, const std::multimap<sha1_hash, int>& hash_to_piece
-			, boost::recursive_mutex& mutex);
 
 		size_type read_impl(
 			char* buf
@@ -300,8 +295,10 @@ namespace libtorrent
 			, int offset
 			, int size);
 
-		bool check_one_piece(std::vector<bool>& pieces, int& num_pieces
-			, boost::recursive_mutex& mutex);
+		bool check_one_piece(int& have_piece);
+		int identify_data(
+			const std::vector<char>& piece_data
+			, int current_slot);
 
 		void switch_to_full_mode();
 		sha1_hash hash_for_piece_impl(int piece);
@@ -357,8 +354,6 @@ namespace libtorrent
 			state_none,
 			// the file checking is complete
 			state_finished,
-			// creating the directories
-			state_create_files,
 			// checking the files
 			state_full_check,
 			// move pieces to their final position
@@ -403,9 +398,6 @@ namespace libtorrent
 		// the piece_manager destructs. This is because
 		// the torrent_info object is owned by the torrent.
 		boost::shared_ptr<void> m_torrent;
-#ifndef NDEBUG
-		bool m_resume_data_verified;
-#endif
 	};
 
 }

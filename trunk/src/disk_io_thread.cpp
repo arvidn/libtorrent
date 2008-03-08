@@ -73,31 +73,6 @@ namespace libtorrent
 		TORRENT_ASSERT(m_abort == true);
 	}
 
-#ifndef NDEBUG
-	disk_io_job disk_io_thread::find_job(boost::intrusive_ptr<piece_manager> s
-		, int action, int piece) const
-	{
-		mutex_t::scoped_lock l(m_mutex);
-		for (std::list<disk_io_job>::const_iterator i = m_jobs.begin();
-			i != m_jobs.end(); ++i)
-		{
-			if (i->storage != s)
-				continue;
-			if ((i->action == action || action == -1) && i->piece == piece)
-				return *i;
-		}
-		if ((m_current.action == action || action == -1)
-			&& m_current.piece == piece)
-			return m_current;
-
-		disk_io_job ret;
-		ret.action = (disk_io_job::action_t)-1;
-		ret.piece = -1;
-		return ret;
-	}
-
-#endif
-
 	void disk_io_thread::join()
 	{
 		mutex_t::scoped_lock l(m_mutex);
@@ -735,19 +710,14 @@ namespace libtorrent
 			m_log << log_time() << " idle" << std::endl;
 #endif
 			mutex_t::scoped_lock l(m_mutex);
-#ifndef NDEBUG
-			m_current.action = (disk_io_job::action_t)-1;
-			m_current.piece = -1;
-#endif
+
 			while (m_jobs.empty() && !m_abort)
 				m_signal.wait(l);
 			if (m_abort && m_jobs.empty()) return;
 
 			boost::function<void(int, disk_io_job const&)> handler;
 			handler.swap(m_jobs.front().callback);
-#ifndef NDEBUG
-			m_current = m_jobs.front();
-#endif
+
 			disk_io_job j = m_jobs.front();
 			m_jobs.pop_front();
 			m_queue_buffer_size -= j.buffer_size;
@@ -876,8 +846,8 @@ namespace libtorrent
 							j.storage->clear_error();
 							break;
 						}
-						j.str.resize(20);
-						std::memcpy(&j.str[0], &h[0], 20);
+						ret = (j.storage->info()->hash_for_piece(j.piece) == h)?0:-1;
+						if (ret == -1) j.storage->mark_failed(j.piece);
 						break;
 					}
 					case disk_io_job::move_storage:
@@ -950,6 +920,47 @@ namespace libtorrent
 						}
 						break;
 					}
+					case disk_io_job::check_fastresume:
+					{
+#ifdef TORRENT_DISK_STATS
+						m_log << log_time() << " check fastresume" << std::endl;
+#endif
+						entry const* rd = (entry const*)j.buffer;
+						TORRENT_ASSERT(rd != 0);
+						ret = j.storage->check_fastresume(*rd, j.str);
+						break;
+					}
+					case disk_io_job::check_files:
+					{
+#ifdef TORRENT_DISK_STATS
+						m_log << log_time() << " check files" << std::endl;
+#endif
+						int piece_size = j.storage->info()->piece_length();
+						for (int processed = 0; processed < 4 * 1024 * 1024; processed += piece_size)
+						{
+							ret = j.storage->check_files(j.piece, j.offset, j.str);
+
+#ifndef BOOST_NO_EXCEPTIONS
+							try {
+#endif
+								TORRENT_ASSERT(handler);
+								if (handler && ret == piece_manager::need_full_check)
+									m_ios.post(bind(handler, ret, j));
+#ifndef BOOST_NO_EXCEPTIONS
+							} catch (std::exception&) {}
+#endif
+							if (ret != piece_manager::need_full_check) break;
+						}
+						// if the check is not done, add it at the end of the job queue
+						if (ret == piece_manager::need_full_check)
+						{
+							mutex_t::scoped_lock l(m_mutex);
+							m_jobs.push_back(j);
+							m_jobs.back().callback.swap(handler);
+							continue;
+						}
+						break;
+					}
 				}
 			}
 #ifndef BOOST_NO_EXCEPTIONS
@@ -972,12 +983,6 @@ namespace libtorrent
 				if (handler) m_ios.post(bind(handler, ret, j));
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (std::exception&) {}
-#endif
-
-
-#ifndef NDEBUG
-			m_current.storage = 0;
-			m_current.callback.clear();
 #endif
 		}
 		TORRENT_ASSERT(false);

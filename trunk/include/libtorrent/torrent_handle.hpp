@@ -278,7 +278,7 @@ namespace libtorrent
 		friend struct aux::session_impl;
 		friend class torrent;
 
-		torrent_handle(): m_ses(0), m_chk(0), m_info_hash(0) {}
+		torrent_handle(): m_ses(0), m_info_hash(0) {}
 
 		void get_peer_info(std::vector<peer_info>& v) const;
 		bool send_chat_message(tcp::endpoint ip, std::string message) const;
@@ -418,15 +418,12 @@ namespace libtorrent
 
 	private:
 
-		torrent_handle(aux::session_impl* s,
-			aux::checker_impl* c,
-			const sha1_hash& h)
+		torrent_handle(aux::session_impl* s
+			, const sha1_hash& h)
 			: m_ses(s)
-			, m_chk(c)
 			, m_info_hash(h)
 		{
 			TORRENT_ASSERT(m_ses != 0);
-			TORRENT_ASSERT(m_chk != 0);
 		}
 
 #ifndef NDEBUG
@@ -434,7 +431,6 @@ namespace libtorrent
 #endif
 
 		aux::session_impl* m_ses;
-		aux::checker_impl* m_chk;
 		sha1_hash m_info_hash;
 
 	};
