@@ -61,6 +61,9 @@ source package. Having boost installed via some package system is usually not
 enough (and even if it is enough, the necessary environment variables are
 usually not set by the package installer).
 
+If you want to build against an installed copy of boost, you can skip directly
+to step 3 (assuming you also have boost build installed).
+
 
 Step 1: Download boost
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -143,29 +146,32 @@ Step 3: Building libtorrent
 When building libtorrent, the ``Jamfile`` expects the environment variable
 ``BOOST_ROOT`` to be set to the boost installation directory. It uses this to
 find the boost libraries it depends on, so they can be built and their headers
-files found. So, set this to ``c:\boost_1_34_0``.
+files found. So, set this to ``c:\boost_1_34_0``. You only need this if you're
+building against a source distribution of boost.
 
 Then the only thing left is simply to invoke ``bjam``. If you want to specify
 a specific toolset to use (compiler) you can just add that to the commandline.
 For example::
 
-  bjam msvc-7.1 link=static
-  bjam gcc-3.3 link=static
-  bjam darwin-4.0 link=static
+  bjam msvc-7.1 boost=source
+  bjam gcc-3.3 boost=source
+  bjam darwin-4.0 boost=source
+
+If you're building against a system installed boost, specify ``boost=system``.
 
 To build different versions you can also just add the name of the build
 variant. Some default build variants in BBv2 are ``release``, ``debug``,
 ``profile``.
 
 You can build libtorrent as a dll too, by typing ``link=shared``, or
-``link=static`` to build a static library. ``link=shared`` is the default.
+``link=static`` to build a static library.
 
 If you want to explicitly say how to link against the runtime library, you
 can set the ``runtime-link`` feature on the commandline, either to ``shared``
 or ``static``. Most operating systems will only allow linking shared against
 the runtime, but on windows you can do both. Example::
 
-  bjam msvc-7.1 link=static runtime-link=static
+  bjam msvc-7.1 link=static runtime-link=static boost=source
 
 .. warning::
 
@@ -173,7 +179,6 @@ the runtime, but on windows you can do both. Example::
   as a shared library (DLL), since you will get separate heaps in the library
   and in the client application. It will result in crashes and possibly link
   errors.
-
 
 The build targets are put in a directory called bin, and under it they are
 sorted in directories depending on the toolset and build variant used.

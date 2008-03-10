@@ -67,6 +67,8 @@ for some details on this issue).</p>
 source package. Having boost installed via some package system is usually not
 enough (and even if it is enough, the necessary environment variables are
 usually not set by the package installer).</p>
+<p>If you want to build against an installed copy of boost, you can skip directly
+to step 3 (assuming you also have boost build installed).</p>
 <div class="section">
 <h3><a id="step-1-download-boost" name="step-1-download-boost">Step 1: Download boost</a></h3>
 <p>You'll find boost <a class="reference" href="http://sourceforge.net/project/showfiles.php?group_id=7586&amp;package_id=8041&amp;release_id=376197">here</a>.</p>
@@ -134,26 +136,28 @@ using darwin : 4.0 : g++-4.0 ;
 <p>When building libtorrent, the <tt class="docutils literal"><span class="pre">Jamfile</span></tt> expects the environment variable
 <tt class="docutils literal"><span class="pre">BOOST_ROOT</span></tt> to be set to the boost installation directory. It uses this to
 find the boost libraries it depends on, so they can be built and their headers
-files found. So, set this to <tt class="docutils literal"><span class="pre">c:\boost_1_34_0</span></tt>.</p>
+files found. So, set this to <tt class="docutils literal"><span class="pre">c:\boost_1_34_0</span></tt>. You only need this if you're
+building against a source distribution of boost.</p>
 <p>Then the only thing left is simply to invoke <tt class="docutils literal"><span class="pre">bjam</span></tt>. If you want to specify
 a specific toolset to use (compiler) you can just add that to the commandline.
 For example:</p>
 <pre class="literal-block">
-bjam msvc-7.1 link=static
-bjam gcc-3.3 link=static
-bjam darwin-4.0 link=static
+bjam msvc-7.1 boost=source
+bjam gcc-3.3 boost=source
+bjam darwin-4.0 boost=source
 </pre>
+<p>If you're building against a system installed boost, specify <tt class="docutils literal"><span class="pre">boost=system</span></tt>.</p>
 <p>To build different versions you can also just add the name of the build
 variant. Some default build variants in BBv2 are <tt class="docutils literal"><span class="pre">release</span></tt>, <tt class="docutils literal"><span class="pre">debug</span></tt>,
 <tt class="docutils literal"><span class="pre">profile</span></tt>.</p>
 <p>You can build libtorrent as a dll too, by typing <tt class="docutils literal"><span class="pre">link=shared</span></tt>, or
-<tt class="docutils literal"><span class="pre">link=static</span></tt> to build a static library. <tt class="docutils literal"><span class="pre">link=shared</span></tt> is the default.</p>
+<tt class="docutils literal"><span class="pre">link=static</span></tt> to build a static library.</p>
 <p>If you want to explicitly say how to link against the runtime library, you
 can set the <tt class="docutils literal"><span class="pre">runtime-link</span></tt> feature on the commandline, either to <tt class="docutils literal"><span class="pre">shared</span></tt>
 or <tt class="docutils literal"><span class="pre">static</span></tt>. Most operating systems will only allow linking shared against
 the runtime, but on windows you can do both. Example:</p>
 <pre class="literal-block">
-bjam msvc-7.1 link=static runtime-link=static
+bjam msvc-7.1 link=static runtime-link=static boost=source
 </pre>
 <div class="warning">
 <p class="first admonition-title">Warning</p>
