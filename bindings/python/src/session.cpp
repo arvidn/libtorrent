@@ -209,7 +209,8 @@ void bind_session()
             )
           , session_add_torrent_doc
         )
-        .def("remove_torrent", allow_threads(&session::remove_torrent), session_remove_torrent_doc)
+        .def("remove_torrent", allow_threads(&session::remove_torrent), arg("option") = session::none
+			  , session_remove_torrent_doc)
         .def(
             "set_download_rate_limit", allow_threads(&session::set_download_rate_limit)
           , session_set_download_rate_limit_doc
