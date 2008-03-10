@@ -55,6 +55,7 @@ void bind_session_settings()
         .def_readwrite("type", &proxy_settings::type)
     ;
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
     enum_<pe_settings::enc_policy>("enc_policy")
         .value("forced", pe_settings::forced)
         .value("enabled", pe_settings::enabled)
@@ -73,6 +74,7 @@ void bind_session_settings()
         .def_readwrite("allowed_enc_level", &pe_settings::allowed_enc_level)
         .def_readwrite("prefer_rc4", &pe_settings::prefer_rc4)
     ;
+#endif
 
 }
 
