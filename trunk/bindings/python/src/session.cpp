@@ -69,11 +69,13 @@ namespace
       return s.listen_on(std::make_pair(min_, max_), interface);
   }
 
+#ifndef TORRENT_DISABLE_DHT
   void add_dht_router(session& s, std::string router_, int port_)
   {
       allow_threading_guard guard;
       return s.add_dht_router(std::make_pair(router_, port_));
   }
+#endif
 
   struct invoke_extension_factory
   {
@@ -185,18 +187,19 @@ void bind_session()
           , (arg("min"), "max", arg("interface") = (char const*)0)
           , session_listen_on_doc
         )
+        .def("is_listening", allow_threads(&session::is_listening), session_is_listening_doc)
+        .def("listen_port", allow_threads(&session::listen_port), session_listen_port_doc)
+        .def("status", allow_threads(&session::status), session_status_m_doc)
+#ifndef TORRENT_DISABLE_DHT
         .def(
             "add_dht_router", &add_dht_router
           , (arg("router"), "port")
           , session_add_dht_router_doc
         )
-        .def("is_listening", allow_threads(&session::is_listening), session_is_listening_doc)
-        .def("listen_port", allow_threads(&session::listen_port), session_listen_port_doc)
-        .def("status", allow_threads(&session::status), session_status_m_doc)
-#ifndef TORRENT_DISABLE_DHT
         .def("start_dht", allow_threads(&session::start_dht), session_start_dht_doc)
         .def("stop_dht", allow_threads(&session::stop_dht), session_stop_dht_doc)
         .def("dht_state", allow_threads(&session::dht_state), session_dht_state_doc)
+        .def("set_dht_proxy", allow_threads(&session::set_dht_proxy))
 #endif
         .def(
             "add_torrent", &add_torrent
@@ -242,8 +245,10 @@ void bind_session()
           , session_num_connections_doc
         )
         .def("set_settings", allow_threads(&session::set_settings), session_set_settings_doc)
+#ifndef TORRENT_DISABLE_ENCRYPTION
         .def("set_pe_settings", allow_threads(&session::set_pe_settings), session_set_pe_settings_doc)
         .def("get_pe_settings", allow_threads(&session::get_pe_settings), return_value_policy<copy_const_reference>())
+#endif
         .def(
             "set_severity_level", allow_threads(&session::set_severity_level)
           , session_set_severity_level_doc
@@ -253,9 +258,6 @@ void bind_session()
         .def("set_peer_proxy", allow_threads(&session::set_peer_proxy))
         .def("set_tracker_proxy", allow_threads(&session::set_tracker_proxy))
         .def("set_web_seed_proxy", allow_threads(&session::set_web_seed_proxy))
-#ifndef TORRENT_DISABLE_DHT
-        .def("set_dht_proxy", allow_threads(&session::set_dht_proxy))
-#endif
         .def("start_upnp", allow_threads(&session::start_upnp), session_start_upnp_doc)
         .def("stop_upnp", allow_threads(&session::stop_upnp), session_stop_upnp_doc)
         .def("start_lsd", allow_threads(&session::start_lsd), session_start_lsd_doc)

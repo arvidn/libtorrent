@@ -31,6 +31,7 @@ bindings/python/src/extensions.cpp \
 bindings/python/src/filesystem.cpp \
 bindings/python/src/fingerprint.cpp \
 bindings/python/src/gil.hpp \
+bindings/python/src/ip_filter.cpp \
 bindings/python/src/module.cpp \
 bindings/python/src/optional.hpp \
 bindings/python/src/peer_info.cpp \
