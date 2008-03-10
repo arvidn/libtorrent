@@ -753,6 +753,7 @@ namespace libtorrent
 						m_log << log_time() << " read " << j.buffer_size << std::endl;
 #endif
 						mutex_t::scoped_lock l(m_mutex);
+						INVARIANT_CHECK;
 						if (j.buffer == 0)
 						{
 							j.buffer = allocate_buffer();
@@ -801,6 +802,7 @@ namespace libtorrent
 						m_log << log_time() << " write " << j.buffer_size << std::endl;
 #endif
 						mutex_t::scoped_lock l(m_mutex);
+						INVARIANT_CHECK;
 						cache_t::iterator p
 							= find_cached_piece(m_pieces, j, l);
 						int block = j.offset / m_block_size;
@@ -833,6 +835,9 @@ namespace libtorrent
 						m_log << log_time() << " hash" << std::endl;
 #endif
 						mutex_t::scoped_lock l(m_mutex);
+
+						INVARIANT_CHECK;
+
 						cache_t::iterator i
 							= find_cached_piece(m_pieces, j, l);
 						if (i != m_pieces.end()) flush_and_remove(i, l);
@@ -872,6 +877,8 @@ namespace libtorrent
 #endif
 						mutex_t::scoped_lock l(m_mutex);
 
+						INVARIANT_CHECK;
+
 						cache_t::iterator i = std::remove_if(
 							m_pieces.begin(), m_pieces.end(), bind(&cached_piece_entry::storage, _1) == j.storage);
 
@@ -894,6 +901,8 @@ namespace libtorrent
 						m_log << log_time() << " delete" << std::endl;
 #endif
 						mutex_t::scoped_lock l(m_mutex);
+
+						INVARIANT_CHECK;
 
 						cache_t::iterator i = std::remove_if(
 							m_pieces.begin(), m_pieces.end(), bind(&cached_piece_entry::storage, _1) == j.storage);
