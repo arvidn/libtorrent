@@ -244,7 +244,7 @@ def main():
             resume_data = None
 
         h = ses.add_torrent(info, options.save_path, 
-                resume_data=resume_data, compact_mode=compact_allocation)
+                resume_data=resume_data, storage_mode=storage_mode_sparse)
 
         handles.append(h)
 
