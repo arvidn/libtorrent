@@ -51,7 +51,7 @@ directory and invoke <tt class="docutils literal"><span class="pre">bjam</span><
 build variants, see <a class="reference" href="building.html#step-3-building-libtorrent">libtorrent build options</a>.</p>
 <p>For example:</p>
 <pre class="literal-block">
-$ bjam dht-support=on release link=static
+$ bjam dht-support=on boost=source release link=static
 </pre>
 <p>On Mac OS X, this will produce the following python module:</p>
 <pre class="literal-block">
@@ -75,7 +75,7 @@ ses.listen_on(6881, 6891)
 e = lt.bdecode(open(&quot;test.torrent&quot;, 'rb').read())
 info = lt.torrent_info(e)
 
-h = ses.add_torrent(info, &quot;./&quot;, compact_mode = True)
+h = ses.add_torrent(info, &quot;./&quot;, storage_mode=storage_mode_sparse)
 
 while (not h.is_seed()):
         s = h.status()

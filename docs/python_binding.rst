@@ -43,7 +43,7 @@ build variants, see `libtorrent build options`_.
 
 For example::
 
-	$ bjam dht-support=on release link=static
+	$ bjam dht-support=on boost=source release link=static
 
 On Mac OS X, this will produce the following python module::
 
@@ -71,7 +71,7 @@ A very simple example usage of the module would be something like this::
 	e = lt.bdecode(open("test.torrent", 'rb').read())
 	info = lt.torrent_info(e)
 
-	h = ses.add_torrent(info, "./", compact_mode = True)
+	h = ses.add_torrent(info, "./", storage_mode=storage_mode_sparse)
 
 	while (not h.is_seed()):
 		s = h.status()
