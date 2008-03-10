@@ -119,6 +119,7 @@ namespace libtorrent
 		, m_outstanding_writing_bytes(0)
 		, m_fast_reconnect(false)
 		, m_rtt(0)
+		, m_downloaded_at_last_unchoke(0)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif
@@ -202,6 +203,7 @@ namespace libtorrent
 		, m_outstanding_writing_bytes(0)
 		, m_fast_reconnect(false)
 		, m_rtt(0)
+		, m_downloaded_at_last_unchoke(0)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif
@@ -237,6 +239,31 @@ namespace libtorrent
 		piece_failed = false;
 #endif
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
+	}
+
+	bool peer_connection::unchoke_compare(boost::intrusive_ptr<peer_connection const> const& p) const
+	{
+		TORRENT_ASSERT(p);
+		peer_connection const& rhs = *p;
+
+		// first compare how many bytes they've sent us
+		size_type c1 = m_statistics.total_payload_download() - m_downloaded_at_last_unchoke;
+		size_type c2 = rhs.m_statistics.total_payload_download() - rhs.m_downloaded_at_last_unchoke;
+		if (c1 > c2) return true;
+		if (c1 < c2) return false;
+
+		// if they are equal, compare how much we have uploaded
+		if (m_peer_info) c1 = m_peer_info->total_upload();
+		else c1 = m_statistics.total_payload_upload();
+		if (rhs.m_peer_info) c2 = rhs.m_peer_info->total_upload();
+		else c2 = rhs.m_statistics.total_payload_upload();
+
+		return c1 < c2;
+	}
+
+	void peer_connection::reset_choke_counters()
+	{
+		m_downloaded_at_last_unchoke = m_statistics.total_payload_download();
 	}
 
 	void peer_connection::update_interest()

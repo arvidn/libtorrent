@@ -1016,17 +1016,15 @@ namespace aux {
 				peers.push_back(i->get());
 			}
 
-			// sort the peers that are eligible for unchoke by download rate and secondary
+			// sorts the peers that are eligible for unchoke by download rate and secondary
 			// by total upload. The reason for this is, if all torrents are being seeded,
 			// the download rate will be 0, and the peers we have sent the least to should
 			// be unchoked
 			std::sort(peers.begin(), peers.end()
-				, bind(&stat::total_payload_upload, bind(&peer_connection::statistics, _1))
-				< bind(&stat::total_payload_upload, bind(&peer_connection::statistics, _2)));
+				, bind(&peer_connection::unchoke_compare, _1, _2));
 
-			std::stable_sort(peers.begin(), peers.end()
-				, bind(&stat::download_payload_rate, bind(&peer_connection::statistics, _1))
-				> bind(&stat::download_payload_rate, bind(&peer_connection::statistics, _2)));
+			std::for_each(m_connections.begin(), m_connections.end()
+				, bind(&peer_connection::reset_choke_counters, _1));
 
 			// auto unchoke
 			int upload_limit = m_bandwidth_manager[peer_connection::upload_channel]->throttle();

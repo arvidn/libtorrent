@@ -286,6 +286,15 @@ namespace libtorrent
 
 		int desired_queue_size() const { return m_desired_queue_size; }
 
+		// compares this connection against the given connection
+		// for which one is more eligible for an unchoke.
+		// returns true if this is more eligible
+		bool unchoke_compare(boost::intrusive_ptr<peer_connection const> const& p) const;
+
+		// resets the byte counters that are used to measure
+		// the number of bytes transferred within unchoke cycles
+		void reset_choke_counters();
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		boost::shared_ptr<logger> m_logger;
 #endif
@@ -750,6 +759,14 @@ namespace libtorrent
 		// was called to when on_connection_complete
 		// was called. The rtt is specified in milliseconds
 		int m_rtt;
+
+		// the total payload download bytes
+		// at the last unchoke cycle. This is used to
+		// measure the number of bytes transferred during
+		// an unchoke cycle, to unchoke peers the more bytes
+		// they sent us
+		size_type m_downloaded_at_last_unchoke;
+
 #ifndef NDEBUG
 	public:
 		bool m_in_constructor;
