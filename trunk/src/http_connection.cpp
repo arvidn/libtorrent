@@ -48,7 +48,7 @@ namespace libtorrent {
 enum { max_bottled_buffer = 1024 * 1024 };
 
 
-void http_connection::get(std::string const& url, time_duration timeout
+void http_connection::get(std::string const& url, time_duration timeout, int prio
 	, proxy_settings const* ps, int handle_redirects, std::string const& user_agent
 	, address const& bind_addr)
 {
@@ -102,12 +102,12 @@ void http_connection::get(std::string const& url, time_duration timeout
 		"\r\n";
 
 	sendbuffer = headers.str();
-	start(hostname, boost::lexical_cast<std::string>(port), timeout, ps
-		, ssl, handle_redirects, bind_addr);
+	start(hostname, boost::lexical_cast<std::string>(port), timeout, prio
+		, ps, ssl, handle_redirects, bind_addr);
 }
 
 void http_connection::start(std::string const& hostname, std::string const& port
-	, time_duration timeout, proxy_settings const* ps, bool ssl, int handle_redirects
+	, time_duration timeout, int prio, proxy_settings const* ps, bool ssl, int handle_redirects
 	, address const& bind_addr)
 {
 	m_redirects = handle_redirects;
@@ -122,6 +122,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	m_parser.reset();
 	m_recvbuffer.clear();
 	m_read_pos = 0;
+	m_priority = prio;
 
 	if (ec)
 	{
@@ -254,7 +255,7 @@ void http_connection::on_resolve(asio::error_code const& e
 	
 	m_cc.enqueue(bind(&http_connection::connect, shared_from_this(), _1, target_address)
 		, bind(&http_connection::on_connect_timeout, shared_from_this())
-		, m_timeout);
+		, m_timeout, m_priority);
 }
 
 void http_connection::connect(int ticket, tcp::endpoint target_address)
@@ -280,7 +281,7 @@ void http_connection::on_connect(asio::error_code const& e
 		m_sock.close();
 		m_cc.enqueue(bind(&http_connection::connect, shared_from_this(), _1, *i)
 			, bind(&http_connection::on_connect_timeout, shared_from_this())
-			, m_timeout);
+			, m_timeout, m_priority);
 	} 
 */	else
 	{ 

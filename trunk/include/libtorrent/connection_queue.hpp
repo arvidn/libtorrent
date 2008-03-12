@@ -52,7 +52,7 @@ public:
 
 	void enqueue(boost::function<void(int)> const& on_connect
 		, boost::function<void()> const& on_timeout
-		, time_duration timeout);
+		, time_duration timeout, int priority = 0);
 	void done(int ticket);
 	void limit(int limit);
 	int limit() const;
@@ -71,7 +71,7 @@ private:
 
 	struct entry
 	{
-		entry(): connecting(false), ticket(0), expires(max_time()) {}
+		entry(): connecting(false), ticket(0), expires(max_time()), priority(0) {}
 		// called when the connection is initiated
 		boost::function<void(int)> on_connect;
 		// called if done hasn't been called within the timeout
@@ -80,6 +80,7 @@ private:
 		int ticket;
 		ptime expires;
 		time_duration timeout;
+		int priority;
 	};
 
 	std::list<entry> m_queue;
