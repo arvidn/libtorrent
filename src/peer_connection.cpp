@@ -3141,6 +3141,28 @@ namespace libtorrent
 			return;
 		}
 
+		if (t->has_picker())
+		{
+			std::map<piece_block, int> num_requests;
+			for (torrent::const_peer_iterator i = t->begin(); i != t->end(); ++i)
+			{
+				// make sure this peer is not a dangling pointer
+				TORRENT_ASSERT(m_ses.has_peer(*i));
+				peer_connection const& p = *(*i);
+				for (std::deque<piece_block>::const_iterator i = p.request_queue().begin()
+					, end(p.request_queue().end()); i != end; ++i)
+					++num_requests[*i];
+				for (std::deque<piece_block>::const_iterator i = p.download_queue().begin()
+					, end(p.download_queue().end()); i != end; ++i)
+					++num_requests[*i];
+			}
+			for (std::map<piece_block, int>::iterator i = num_requests.begin()
+				, end(num_requests.end()); i != end; ++i)
+			{
+				if (!t->picker().is_downloaded(i->first))
+					TORRENT_ASSERT(t->picker().num_peers(i->first) == i->second);
+			}
+		}
 		if (m_peer_info)
 		{
 			policy::const_iterator i;
