@@ -235,6 +235,9 @@ namespace libtorrent
 		(*m_logger) << "*** INCOMING CONNECTION\n";
 #endif
 		
+		if (m_remote.address().is_v4())
+			m_socket->set_option(type_of_service(ses.settings().peer_tos), ec);
+
 #ifndef NDEBUG
 		piece_failed = false;
 #endif
@@ -3010,6 +3013,12 @@ namespace libtorrent
 		(*m_ses.m_logger) << time_now_string() << " COMPLETED: " << m_remote.address().to_string()
 			<< " rtt = " << m_rtt << "\n";
 #endif
+
+		if (m_remote.address().is_v4())
+		{
+			asio::error_code ec;
+			m_socket->set_option(type_of_service(m_ses.settings().peer_tos), ec);
+		}
 
 		on_connected();
 		setup_send();

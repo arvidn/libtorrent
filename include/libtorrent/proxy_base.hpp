@@ -102,6 +102,20 @@ public:
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
+	template <class SettableSocketOption>
+	void set_option(SettableSocketOption const& opt)
+	{
+		m_sock.set_option(opt);
+	}
+#endif
+
+	template <class SettableSocketOption>
+	asio::error_code set_option(SettableSocketOption const& opt, asio::error_code& ec)
+	{
+		return m_sock.set_option(opt, ec);
+	}
+
+#ifndef BOOST_NO_EXCEPTIONS
 	void bind(endpoint_type const& endpoint)
 	{
 		m_sock.bind(endpoint);

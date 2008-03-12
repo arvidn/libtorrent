@@ -2612,6 +2612,7 @@ struct session_settings
         int cache_size;
         int cache_expiry;
         std::pair&lt;int, int&gt; outgoing_ports;
+        char peer_tos;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker.
@@ -2768,6 +2769,10 @@ used to bind outgoing sockets to. This may be useful for users whose router
 allows them to assign QoS classes to traffic based on its local port. It is
 a range instead of a single port because of the problems with failing to reconnect
 to peers if a previous socket to that peer and port is in <tt class="docutils literal"><span class="pre">TIME_WAIT</span></tt> state.</p>
+<p><tt class="docutils literal"><span class="pre">peer_tos</span></tt> determines the TOS byte set in the IP header of every packet
+sent to peers (including web seeds). The default value for this is <tt class="docutils literal"><span class="pre">0x0</span></tt>
+(no marking). One potentially useful TOS mark is <tt class="docutils literal"><span class="pre">0x20</span></tt>, this represents
+the <em>QBone scavenger service</em>. For more details, see <a class="reference" href="http://qbone.internet2.edu/qbss/">QBSS</a>.</p>
 </div>
 <div class="section">
 <h1><a id="pe-settings" name="pe-settings">pe_settings</a></h1>

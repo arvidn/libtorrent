@@ -2605,6 +2605,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int cache_size;
 		int cache_expiry;
 		std::pair<int, int> outgoing_ports;
+		char peer_tos;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -2799,6 +2800,13 @@ used to bind outgoing sockets to. This may be useful for users whose router
 allows them to assign QoS classes to traffic based on its local port. It is
 a range instead of a single port because of the problems with failing to reconnect
 to peers if a previous socket to that peer and port is in ``TIME_WAIT`` state.
+
+``peer_tos`` determines the TOS byte set in the IP header of every packet
+sent to peers (including web seeds). The default value for this is ``0x0``
+(no marking). One potentially useful TOS mark is ``0x20``, this represents
+the *QBone scavenger service*. For more details, see QBSS_.
+
+.. _`QBSS`: http://qbone.internet2.edu/qbss/
 
 
 pe_settings
