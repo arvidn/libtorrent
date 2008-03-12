@@ -52,18 +52,34 @@ namespace libtorrent
 
 	void connection_queue::enqueue(boost::function<void(int)> const& on_connect
 		, boost::function<void()> const& on_timeout
-		, time_duration timeout)
+		, time_duration timeout, int priority)
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
 
-		m_queue.push_back(entry());
-		entry& e = m_queue.back();
-		e.on_connect = on_connect;
-		e.on_timeout = on_timeout;
-		e.ticket = m_next_ticket;
-		e.timeout = timeout;
+		TORRENT_ASSERT(priority >= 0);
+		TORRENT_ASSERT(priority < 2);
+
+		entry* e = 0;
+
+		switch (priority)
+		{
+			case 0:
+				m_queue.push_back(entry());
+				e = &m_queue.back();
+				break;
+			case 1:
+				m_queue.push_front(entry());
+				e = &m_queue.front();
+				break;
+		}
+
+		e->priority = priority;
+		e->on_connect = on_connect;
+		e->on_timeout = on_timeout;
+		e->ticket = m_next_ticket;
+		e->timeout = timeout;
 		++m_next_ticket;
 		try_connect();
 	}

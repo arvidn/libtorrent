@@ -204,7 +204,7 @@ void upnp::resend_request(asio::error_code const& e)
 				d.upnp_connection.reset(new http_connection(m_io_service
 					, m_cc, bind(&upnp::on_upnp_xml, self(), _1, _2
 					, boost::ref(d))));
-				d.upnp_connection->get(d.url);
+				d.upnp_connection->get(d.url, seconds(30), 1);
 			}
 			catch (std::exception& e)
 			{

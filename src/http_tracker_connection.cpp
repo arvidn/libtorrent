@@ -167,7 +167,7 @@ namespace libtorrent
 			, boost::bind(&http_tracker_connection::on_response, self(), _1, _2, _3, _4)));
 
 		m_tracker_connection->get(url, seconds(stn.tracker_completion_timeout)
-			, &ps, 5, stn.user_agent, bind_infc);
+			, 1, &ps, 5, stn.user_agent, bind_infc);
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 

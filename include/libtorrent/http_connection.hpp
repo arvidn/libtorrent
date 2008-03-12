@@ -90,6 +90,7 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 		, m_connection_ticket(-1)
 		, m_cc(cc)
 		, m_ssl(false)
+		, m_priority(0)
 	{
 		TORRENT_ASSERT(!m_handler.empty());
 	}
@@ -102,12 +103,13 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 	std::string sendbuffer;
 
 	void get(std::string const& url, time_duration timeout = seconds(30)
-		, proxy_settings const* ps = 0, int handle_redirects = 5
+		, int prio = 0, proxy_settings const* ps = 0, int handle_redirects = 5
 		, std::string const& user_agent = "", address const& bind_addr = address_v4::any());
 
 	void start(std::string const& hostname, std::string const& port
-		, time_duration timeout, proxy_settings const* ps = 0, bool ssl = false
-		, int handle_redirect = 5, address const& bind_addr = address_v4::any());
+		, time_duration timeout, int prio = 0, proxy_settings const* ps = 0
+		, bool ssl = false, int handle_redirect = 5
+		, address const& bind_addr = address_v4::any());
 
 	void close();
 
@@ -189,6 +191,10 @@ private:
 	// the address to bind to. address_v4::any()
 	// means do not bind
 	address m_bind_addr;
+
+	// the priority we have in the connection queue.
+	// 0 is normal, 1 is high
+	int m_priority;
 };
 
 }
