@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
+#include <iostream>
 #include "libtorrent/entry.hpp"
 #include "libtorrent/config.hpp"
 
