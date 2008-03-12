@@ -127,6 +127,7 @@ namespace libtorrent
 			, cache_size(512)
 			, cache_expiry(60)
 			, outgoing_ports(0,0)
+			, peer_tos(0)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -339,6 +340,13 @@ namespace libtorrent
 		// is useful for users that have routers that
 		// allow QoS settings based on local port.
 		std::pair<int, int> outgoing_ports;
+
+		// the TOS byte of all peer traffic (including
+		// web seeds) is set to this value. The default
+		// is the QBSS scavenger service
+		// http://qbone.internet2.edu/qbss/
+		// For unmarked packets, set to 0
+		char peer_tos;
 	};
 	
 #ifndef TORRENT_DISABLE_DHT

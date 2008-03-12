@@ -256,6 +256,45 @@ namespace aux
       { return EndpointType(); }
   };
 
+// -------------- set_option -----------
+
+  template <class SettableSocketOption>
+  struct set_option_visitor
+    : boost::static_visitor<>
+  {
+      set_option_visitor(SettableSocketOption const& opt)
+        : opt_(opt)
+      {}
+
+      template <class T>
+      void operator()(T* p) const
+      { p->set_option(opt_); }
+
+		std::size_t operator()(boost::blank) const {}
+
+      SettableSocketOption const& opt_;
+  };
+
+  template <class SettableSocketOption>
+  struct set_option_visitor_ec
+    : boost::static_visitor<asio::error_code>
+  {
+      set_option_visitor_ec(SettableSocketOption const& opt, asio::error_code& ec)
+        : opt_(opt)
+        , ec_(ec)
+      {}
+
+      template <class T>
+      asio::error_code operator()(T* p) const
+      { return p->set_option(opt_, ec_); }
+
+		asio::error_code operator()(boost::blank) const
+      { return ec_; }
+
+      SettableSocketOption const& opt_;
+      asio::error_code& ec_;
+  };
+
 // -------------- local_endpoint -----------
 
   template <class EndpointType>
@@ -657,6 +696,22 @@ public:
         );
     }
 
+    template <class SettableSocketOption>
+    void set_option(SettableSocketOption const& opt)
+    {
+        TORRENT_ASSERT(instantiated());
+        boost::apply_visitor(aux::set_option_visitor<SettableSocketOption>(opt)
+            , m_variant);
+    }
+
+    template <class SettableSocketOption>
+    asio::error_code set_option(SettableSocketOption const& opt, asio::error_code& ec)
+    {
+        TORRENT_ASSERT(instantiated());
+        return boost::apply_visitor(aux::set_option_visitor_ec<SettableSocketOption>(opt, ec)
+            , m_variant);
+    }
+	 
     endpoint_type local_endpoint() const
     {
         TORRENT_ASSERT(instantiated());
