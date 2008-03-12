@@ -413,7 +413,7 @@ void http_connection::on_read(asio::error_code const& e
 
 				asio::error_code ec;
 				m_sock.close(ec);
-				get(url, m_timeout, &m_proxy, m_redirects - 1);
+				get(url, m_timeout, m_priority, &m_proxy, m_redirects - 1);
 				return;
 			}
 	
