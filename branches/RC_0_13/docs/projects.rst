@@ -33,6 +33,12 @@ project listed here, let me_ know.
 | Written by Michael Wojciechowski                                              |                                     |
 | and Johan Stršm.                                                              |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
+| *Lince*                                                                       | .. image:: lince.jpg                |
+|                                                                               |                                     |
+| Lince_ is a bittorrent client using libtorrent to handle bittorrent protocol  |                                     |
+| and gtkmm for the interface, it has been designed to be a light and full      |                                     |
+| featured client.                                                              |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
 | **BitRocket**                                                                 | .. image:: bitrocket_thumb.png      |
 |                                                                               |                                     |
 | BitRocket_ is a MacOS X bittorrent client.                                    |                                     |
@@ -129,6 +135,7 @@ project listed here, let me_ know.
 .. _`electric sheep`: http://electricsheep.org
 .. _qBittorrent: http://www.qbittorrent.org/
 .. _btg: http://developer.berlios.de/projects/btg/
+.. _Lince: http://lincetorrent.sourceforge.net/
 .. _BitRocket: http://www.bitrocket.org/
 .. _Bitfox: http://code.google.com/p/bitfox/
 .. _Acquasition: http://www.acquisitionx.com
