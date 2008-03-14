@@ -59,6 +59,8 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	int port;
 	boost::tie(protocol, auth, hostname, port, path) = parse_url_components(url);
 
+	TORRENT_ASSERT(prio >= 0 && prio < 2);
+
 	bool ssl = false;
 	if (protocol == "https") ssl = true;
 #ifndef TORRENT_USE_OPENSSL
@@ -110,6 +112,8 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	, time_duration timeout, int prio, proxy_settings const* ps, bool ssl, int handle_redirects
 	, address const& bind_addr)
 {
+	TORRENT_ASSERT(prio >= 0 && prio < 2);
+
 	m_redirects = handle_redirects;
 	if (ps) m_proxy = *ps;
 

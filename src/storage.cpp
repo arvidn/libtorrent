@@ -1536,6 +1536,11 @@ namespace libtorrent
 				m_piece_to_slot.resize(m_info->num_pieces(), has_no_slot);
 				m_slot_to_piece.clear();
 				m_slot_to_piece.resize(m_info->num_pieces(), unallocated);
+				if (m_storage_mode == storage_mode_compact)
+				{
+					m_unallocated_slots.clear();
+					m_free_slots.clear();
+				}
 				return need_full_check;
 			}
 		}
@@ -1547,7 +1552,9 @@ namespace libtorrent
 			TORRENT_ASSERT(m_unallocated_slots.empty());
 			for (int i = 0, end(m_info->num_pieces()); i < end; ++i)
 				m_unallocated_slots.push_back(i);
+			m_piece_to_slot.clear();
 			m_piece_to_slot.resize(m_info->num_pieces(), has_no_slot);
+			m_slot_to_piece.clear();
 			m_slot_to_piece.resize(m_info->num_pieces(), unallocated);
 		}
 	

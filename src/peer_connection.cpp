@@ -1413,38 +1413,7 @@ namespace libtorrent
 				, m_download_queue.end()
 				, block_finished);
 
-		if (b != m_download_queue.end())
-		{
-			if (m_assume_fifo)
-			{
-				for (std::deque<piece_block>::iterator i = m_download_queue.begin();
-					i != b; ++i)
-				{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-					(*m_logger) << time_now_string()
-						<< " *** SKIPPED_PIECE [ piece: " << i->piece_index << " | "
-						"b: " << i->block_index << " ] ***\n";
-#endif
-					// since this piece was skipped, clear it and allow it to
-					// be requested from other peers
-					// TODO: send cancel?
-					picker.abort_download(*i);
-				}
-			
-				// remove the request that just finished
-				// from the download queue plus the
-				// skipped blocks.
-				m_download_queue.erase(m_download_queue.begin()
-					, boost::next(b));
-			}
-			else
-			{
-				m_download_queue.erase(b);
-			}
-
-			t->cancel_block(block_finished);
-		}
-		else
+		if (b == m_download_queue.end())
 		{
 			if (t->alerts().should_post(alert::debug))
 			{
@@ -1464,11 +1433,36 @@ namespace libtorrent
 			return;
 		}
 
+		if (m_assume_fifo)
+		{
+			for (std::deque<piece_block>::iterator i = m_download_queue.begin();
+				i != b; ++i)
+			{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+				(*m_logger) << time_now_string()
+					<< " *** SKIPPED_PIECE [ piece: " << i->piece_index << " | "
+					"b: " << i->block_index << " ] ***\n";
+#endif
+				// since this piece was skipped, clear it and allow it to
+				// be requested from other peers
+				// TODO: send cancel?
+				picker.abort_download(*i);
+			}
+		
+			// remove the request that just finished
+			// from the download queue plus the
+			// skipped blocks.
+			m_download_queue.erase(m_download_queue.begin(), b);
+			b = m_download_queue.begin();
+			TORRENT_ASSERT(*b == block_finished);
+		}
+
 		// if the block we got is already finished, then ignore it
 		if (picker.is_downloaded(block_finished))
 		{
 			t->received_redundant_data(p.length);
 
+			m_download_queue.erase(b);
 			request_a_block(*t, *this);
 			send_block_requests();
 			return;
@@ -1478,7 +1472,9 @@ namespace libtorrent
 			, self(), _1, _2, p, t));
 		m_outstanding_writing_bytes += p.length;
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
+		m_download_queue.erase(b);
 		picker.mark_as_writing(block_finished, peer_info_struct());
+		t->cancel_block(block_finished);
 #if !defined NDEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		t->check_invariant();
 #endif
