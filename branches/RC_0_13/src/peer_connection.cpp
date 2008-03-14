@@ -1345,15 +1345,10 @@ namespace libtorrent
 				// remove the request that just finished
 				// from the download queue plus the
 				// skipped blocks.
-				m_download_queue.erase(m_download_queue.begin()
-					, boost::next(b));
+				m_download_queue.erase(m_download_queue.begin(), b);
+				b = m_download_queue.begin();
+				TORRENT_ASSERT(*b == block_finished);
 			}
-			else
-			{
-				m_download_queue.erase(b);
-			}
-
-			t->cancel_block(block_finished);
 		}
 		else
 		{
@@ -1380,6 +1375,7 @@ namespace libtorrent
 		{
 			t->received_redundant_data(p.length);
 
+			m_download_queue.erase(b);
 			request_a_block(*t, *this);
 			send_block_requests();
 			return;
@@ -1389,7 +1385,9 @@ namespace libtorrent
 			, self(), _1, _2, p, t));
 		m_outstanding_writing_bytes += p.length;
 		TORRENT_ASSERT(!m_reading);
+		m_download_queue.erase(b);
 		picker.mark_as_writing(block_finished, peer_info_struct());
+		t->cancel_block(block_finished);
 #ifndef NDEBUG
 		t->check_invariant();
 #endif

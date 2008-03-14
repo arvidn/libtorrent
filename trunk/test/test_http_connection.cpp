@@ -75,7 +75,7 @@ void run_test(std::string const& url, int size, int status, int connected
 
 	boost::shared_ptr<http_connection> h(new http_connection(ios, cq
 		, &::http_handler, true, &::http_connect_handler));
-	h->get(url, seconds(30), &ps);
+	h->get(url, seconds(30), 0, &ps);
 	ios.reset();
 	ios.run();
 

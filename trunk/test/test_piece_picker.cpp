@@ -39,17 +39,11 @@ boost::shared_ptr<piece_picker> setup_picker(
 
 	std::vector<bool> have = string2vec(have_str);
 
-	std::vector<piece_picker::downloading_piece> unfinished;
-	piece_picker::downloading_piece pp;
-	std::vector<piece_picker::block_info> blocks(blocks_per_piece * num_pieces);
-
 	for (int i = 0; i < num_pieces; ++i)
 	{
 		if (partial[i] == 0) break;
 
 		if (partial[i] == ' ') continue;
-		pp.index = i;
-		pp.info = &blocks[i * blocks_per_piece];
 
 		int blocks = 0;
 		if (partial[i] >= '0' && partial[i] <= '9')
@@ -57,15 +51,35 @@ boost::shared_ptr<piece_picker> setup_picker(
 		else
 			blocks = partial[i] - 'a' + 10;
 
+		int counter = 0;
 		if (blocks & 1)
-			pp.info[0].state = piece_picker::block_info::state_finished;
+		{
+			++counter;
+			p->mark_as_finished(piece_block(i, 0), 0);
+		}
 		if (blocks & 2)
-			pp.info[1].state = piece_picker::block_info::state_finished;
+		{
+			++counter;
+			p->mark_as_finished(piece_block(i, 1), 0);
+		}
 		if (blocks & 4)
-			pp.info[2].state = piece_picker::block_info::state_finished;
+		{
+			++counter;
+			p->mark_as_finished(piece_block(i, 2), 0);
+		}
 		if (blocks & 8)
-			pp.info[3].state = piece_picker::block_info::state_finished;
-		unfinished.push_back(pp);
+		{
+			++counter;
+			p->mark_as_finished(piece_block(i, 3), 0);
+		}
+
+		piece_picker::downloading_piece st;
+		p->piece_info(i, st);
+		TEST_CHECK(st.writing == 0);
+		TEST_CHECK(st.requested == 0);
+		TEST_CHECK(st.index == i);
+
+		TEST_CHECK(st.finished == counter);
 	}
 
 	for (int i = 0; i < num_pieces; ++i)
@@ -78,26 +92,7 @@ boost::shared_ptr<piece_picker> setup_picker(
 		TEST_CHECK(p->piece_priority(i) == prio);
 	}
 
-	std::vector<int> verify_pieces;
-	p->files_checked(have, unfinished, verify_pieces);
-
-	for (std::vector<piece_picker::downloading_piece>::iterator i = unfinished.begin()
-		, end(unfinished.end()); i != end; ++i)
-	{
-		for (int j = 0; j < blocks_per_piece; ++j)
-			TEST_CHECK(p->is_finished(piece_block(i->index, j)) == (i->info[j].state == piece_picker::block_info::state_finished));
-
-		piece_picker::downloading_piece st;
-		p->piece_info(i->index, st);
-		TEST_CHECK(st.writing == 0);
-		TEST_CHECK(st.requested == 0);
-		TEST_CHECK(st.index == i->index);
-		int counter = 0;
-		for (int j = 0; j < blocks_per_piece; ++j)
-			if (i->info[j].state == piece_picker::block_info::state_finished) ++counter;
-			
-		TEST_CHECK(st.finished == counter);
-	}
+	p->init(have);
 
 	for (int i = 0; i < num_pieces; ++i)
 	{

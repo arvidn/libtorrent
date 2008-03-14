@@ -1795,6 +1795,8 @@ namespace libtorrent
 
 	void torrent::cancel_block(piece_block block)
 	{
+		INVARIANT_CHECK;
+
 		for (peer_iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
@@ -2400,8 +2402,9 @@ namespace libtorrent
 		TORRENT_ASSERT(p != 0);
 		TORRENT_ASSERT(!p->is_local());
 
-		if (m_state == torrent_status::queued_for_checking
+		if ((m_state == torrent_status::queued_for_checking
 			|| m_state == torrent_status::checking_files)
+			&& valid_metadata())
 		{
 			p->disconnect("torrent is not ready to accept peers");
 			return;

@@ -1534,6 +1534,8 @@ namespace libtorrent
 
 	void torrent::cancel_block(piece_block block)
 	{
+		INVARIANT_CHECK;
+
 		for (peer_iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
