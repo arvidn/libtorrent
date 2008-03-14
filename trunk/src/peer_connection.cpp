@@ -1473,8 +1473,14 @@ namespace libtorrent
 		m_outstanding_writing_bytes += p.length;
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
 		m_download_queue.erase(b);
+
+		// did we request this block from any other peers?
+		bool multi = picker.num_peers(block_finished) > 1;
 		picker.mark_as_writing(block_finished, peer_info_struct());
-		t->cancel_block(block_finished);
+
+		// if we requested this block from other peers, cancel it now
+		if (multi) t->cancel_block(block_finished);
+
 #if !defined NDEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		t->check_invariant();
 #endif
