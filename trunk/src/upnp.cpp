@@ -429,7 +429,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 					d.upnp_connection.reset(new http_connection(m_io_service
 						, m_cc, bind(&upnp::on_upnp_xml, self(), _1, _2
 						, boost::ref(d))));
-					d.upnp_connection->get(d.url);
+					d.upnp_connection->get(d.url, seconds(30), 1);
 #ifndef BOOST_NO_EXCEPTIONS
 				}
 				catch (std::exception& e)
@@ -451,6 +451,8 @@ void upnp::post(upnp::rootdevice const& d, std::string const& soap
 	, std::string const& soap_action)
 {
 	TORRENT_ASSERT(d.magic == 1337);
+	TORRENT_ASSERT(d.upnp_connection);
+
 	std::stringstream header;
 	
 	header << "POST " << d.control_url << " HTTP/1.1\r\n"
@@ -471,6 +473,17 @@ void upnp::post(upnp::rootdevice const& d, std::string const& soap
 void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 {
 	TORRENT_ASSERT(d.magic == 1337);
+
+	if (!d.upnp_connection)
+	{
+		TORRENT_ASSERT(d.disabled);
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string() << " *** mapping (" << i
+			<< ") aborted" << std::endl;
+#endif
+		return;
+	}
+	
 	std::string soap_action = "AddPortMapping";
 
 	std::stringstream soap;
@@ -530,12 +543,23 @@ void upnp::map_port(rootdevice& d, int i)
 		, bind(&upnp::create_port_mapping, self(), _1, boost::ref(d), i)));
 
 	d.upnp_connection->start(d.hostname, boost::lexical_cast<std::string>(d.port)
-		, seconds(10));
+		, seconds(10), 1);
 }
 
 void upnp::delete_port_mapping(rootdevice& d, int i)
 {
 	TORRENT_ASSERT(d.magic == 1337);
+
+	if (!d.upnp_connection)
+	{
+		TORRENT_ASSERT(d.disabled);
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string() << " *** unmapping (" << i
+			<< ") aborted" << std::endl;
+#endif
+		return;
+	}
+
 	std::stringstream soap;
 	
 	std::string soap_action = "DeletePortMapping";
@@ -575,7 +599,7 @@ void upnp::unmap_port(rootdevice& d, int i)
 		, boost::ref(d), i), true
 		, bind(&upnp::delete_port_mapping, self(), boost::ref(d), i)));
 	d.upnp_connection->start(d.hostname, boost::lexical_cast<std::string>(d.port)
-		, seconds(10));
+		, seconds(10), 1);
 }
 
 namespace
