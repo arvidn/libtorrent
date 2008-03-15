@@ -33,11 +33,17 @@ project listed here, let me_ know.
 | Written by Michael Wojciechowski                                              |                                     |
 | and Johan Stršm.                                                              |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
-| *Lince*                                                                       | .. image:: lince.jpg                |
+| **Lince**                                                                     | .. image:: lince.jpg                |
 |                                                                               |                                     |
 | Lince_ is a bittorrent client using libtorrent to handle bittorrent protocol  |                                     |
 | and gtkmm for the interface, it has been designed to be a light and full      |                                     |
 | featured client.                                                              |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **Miro**                                                                      | .. image:: miro.jpg                 |
+|                                                                               |                                     |
+| Miro_ is a free application for channels of internet video (also known as     |                                     |
+| video podcasts and video rss). Miro is designed to be easy to use and to give |                                     |
+| you an elegant fullscreen viewing experience.                                 |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
 | **BitRocket**                                                                 | .. image:: bitrocket_thumb.png      |
 |                                                                               |                                     |
@@ -136,6 +142,7 @@ project listed here, let me_ know.
 .. _qBittorrent: http://www.qbittorrent.org/
 .. _btg: http://developer.berlios.de/projects/btg/
 .. _Lince: http://lincetorrent.sourceforge.net/
+.. _Miro: http://getmiro.com
 .. _BitRocket: http://www.bitrocket.org/
 .. _Bitfox: http://code.google.com/p/bitfox/
 .. _Acquasition: http://www.acquisitionx.com
@@ -148,7 +155,7 @@ project listed here, let me_ know.
 .. _BitBuddy: http://www.btvampire.com
 .. _`Arctic Torrent`: http://www.int64.org/arctic.html
 .. _`deluge Torrent`: http://deluge-torrent.org/
-.. _Halite: http://www.binarynotions.com/halite.php
+.. _Halite: http://www.binarynotions.com/halite-bittorrent-client
 .. _DelCo: http://atm.tut.fi/delco/
 .. _ZipTorrent: http://www.ziptorrent.com/
 .. _FireANT: http://antisnottv.net/
