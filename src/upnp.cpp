@@ -471,6 +471,8 @@ void upnp::post(upnp::rootdevice const& d, std::string const& soap
 	, std::string const& soap_action)
 {
 	TORRENT_ASSERT(d.magic == 1337);
+	TORRENT_ASSERT(d.upnp_connection);
+
 	std::stringstream header;
 	
 	header << "POST " << d.control_url << " HTTP/1.1\r\n"
@@ -491,6 +493,17 @@ void upnp::post(upnp::rootdevice const& d, std::string const& soap
 void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 {
 	TORRENT_ASSERT(d.magic == 1337);
+
+	if (!d.upnp_connection)
+	{
+		TORRENT_ASSERT(d.disabled);
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string() << " *** mapping (" << i
+			<< ") aborted" << std::endl;
+#endif
+		return;
+	}
+	
 	std::string soap_action = "AddPortMapping";
 
 	std::stringstream soap;
@@ -548,6 +561,17 @@ void upnp::map_port(rootdevice& d, int i)
 void upnp::delete_port_mapping(rootdevice& d, int i)
 {
 	TORRENT_ASSERT(d.magic == 1337);
+
+	if (!d.upnp_connection)
+	{
+		TORRENT_ASSERT(d.disabled);
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string() << " *** unmapping (" << i
+			<< ") aborted" << std::endl;
+#endif
+		return;
+	}
+
 	std::stringstream soap;
 	
 	std::string soap_action = "DeletePortMapping";
