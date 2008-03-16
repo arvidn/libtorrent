@@ -844,8 +844,9 @@ namespace aux {
 		// round robin fashion, so that every torrent is
 		// equallt likely to connect to a peer
 
+		int free_slots = m_half_open.free_slots();
 		if (!m_torrents.empty()
-			&& m_half_open.free_slots()
+			&& free_slots > -m_half_open.limit()
 			&& num_connections() < m_max_connections)
 		{
 			// this is the maximum number of connections we will
@@ -869,6 +870,7 @@ namespace aux {
 						if (t.try_connect_peer())
 						{
 							--max_connections;
+							--free_slots;
 							steps_since_last_connect = 0;
 						}
 					}
@@ -894,7 +896,7 @@ namespace aux {
 				// handing out a single connection, break
 				if (steps_since_last_connect > num_torrents) break;
 				// if there are no more free connection slots, abort
-				if (m_half_open.free_slots() == 0) break;
+				if (free_slots <= -m_half_open.limit()) break;
 				// if we should not make any more connections
 				// attempts this tick, abort
 				if (max_connections == 0) break;
