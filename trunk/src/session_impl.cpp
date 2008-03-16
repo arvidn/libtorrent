@@ -632,7 +632,7 @@ namespace aux {
 			if (m_alerts.should_post(alert::fatal))
 			{
 				std::string msg = "error accepting connection on '"
-					+ boost::lexical_cast<std::string>(ep) + "' " + ec.message();
+					+ boost::lexical_cast<std::string>(ep) + "' " + e.message();
 				m_alerts.post_alert(listen_failed_alert(ep, msg));
 			}
 			return;
