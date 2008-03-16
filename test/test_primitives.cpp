@@ -7,6 +7,7 @@
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
+#include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 
 #include <boost/tuple/tuple.hpp>
@@ -60,6 +61,17 @@ void parser_callback(std::string& out, int token, char const* s, char const* val
 	else
 	{
 		TEST_CHECK(val == 0);
+	}
+}
+
+void add_and_replace(libtorrent::dht::node_id& dst, libtorrent::dht::node_id const& add)
+{
+	bool carry = false;
+	for (int k = 19; k >= 0; --k)
+	{
+		int sum = dst[k] + add[k] + (carry?1:0);
+		dst[k] = sum & 255;
+		carry = sum > 255;
 	}
 }
 
@@ -329,6 +341,80 @@ int test_main()
 			}
 		}
 	}
+
+	// test kademlia routing table
+	dht_settings s;
+	node_id id = boost::lexical_cast<sha1_hash>("6123456789abcdef01232456789abcdef0123456");
+	dht::routing_table table(id, 10, s);
+	table.node_seen(id, udp::endpoint(address_v4::any(), rand()));
+
+	node_id tmp;
+	node_id diff = boost::lexical_cast<sha1_hash>("00000f7459456a9453f8719b09547c11d5f34064");
+	std::vector<node_entry> nodes;
+	for (int i = 0; i < 1000000; ++i)
+	{
+		table.node_seen(tmp, udp::endpoint(address_v4::any(), rand()));
+		add_and_replace(tmp, diff);
+	}
+
+	std::copy(table.begin(), table.end(), std::back_inserter(nodes));
+
+	std::cout << "nodes: " << nodes.size() << std::endl;
+
+	std::vector<node_entry> temp;
+
+	std::generate(tmp.begin(), tmp.end(), &std::rand);
+	table.find_node(tmp, temp, false, nodes.size() + 1);
+	std::cout << "returned: " << temp.size() << std::endl;
+	TEST_CHECK(temp.size() == nodes.size() - 1);
+
+	std::generate(tmp.begin(), tmp.end(), &std::rand);
+	table.find_node(tmp, temp, true, nodes.size() + 1);
+	std::cout << "returned: " << temp.size() << std::endl;
+	TEST_CHECK(temp.size() == nodes.size());
+
+	std::generate(tmp.begin(), tmp.end(), &std::rand);
+	table.find_node(tmp, temp, false, 7);
+	std::cout << "returned: " << temp.size() << std::endl;
+	TEST_CHECK(temp.size() == 7);
+
+	std::sort(nodes.begin(), nodes.end(), bind(&compare_ref
+		, bind(&node_entry::id, _1)
+		, bind(&node_entry::id, _2), tmp));
+
+	int hits = 0;
+	for (std::vector<node_entry>::iterator i = temp.begin()
+		, end(temp.end()); i != end; ++i)
+	{
+		int hit = std::find_if(nodes.begin(), nodes.end()
+			, bind(&node_entry::id, _1) == i->id) - nodes.begin();
+		std::cerr << hit << std::endl;
+		if (hit < int(temp.size())) ++hits;
+	}
+	TEST_CHECK(hits > int(temp.size()) / 2);
+
+	std::generate(tmp.begin(), tmp.end(), &std::rand);
+	table.find_node(tmp, temp, false, 15);
+	std::cout << "returned: " << temp.size() << std::endl;
+	TEST_CHECK(temp.size() == 15);
+
+	std::sort(nodes.begin(), nodes.end(), bind(&compare_ref
+		, bind(&node_entry::id, _1)
+		, bind(&node_entry::id, _2), tmp));
+
+	hits = 0;
+	for (std::vector<node_entry>::iterator i = temp.begin()
+		, end(temp.end()); i != end; ++i)
+	{
+		int hit = std::find_if(nodes.begin(), nodes.end()
+			, bind(&node_entry::id, _1) == i->id) - nodes.begin();
+		std::cerr << hit << std::endl;
+		if (hit < int(temp.size())) ++hits;
+	}
+	TEST_CHECK(hits > int(temp.size()) / 2);
+
+
+
 
 	// test peer_id/sha1_hash type
 
