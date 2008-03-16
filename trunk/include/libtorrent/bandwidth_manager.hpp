@@ -270,6 +270,8 @@ private:
 
 		mutex_t::scoped_lock l(m_mutex);
 		INVARIANT_CHECK;
+		if (m_abort) return;
+
 		TORRENT_ASSERT(!m_history.empty());
 
 		ptime now(time_now());
