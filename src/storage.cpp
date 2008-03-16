@@ -1726,7 +1726,7 @@ namespace libtorrent
 				}
    
 				int index = int(i->integer());
-				if (index != slot)
+				if (index != slot && index >= 0)
 				{
 					error = "invalid slot index";
 					return check_no_fastresume(error);
