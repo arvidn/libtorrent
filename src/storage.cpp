@@ -1853,6 +1853,8 @@ namespace libtorrent
 				return check_init_storage(error);
 			}
 
+			TORRENT_ASSERT(m_current_slot < m_info->num_pieces());
+
 			int piece = m_slot_to_piece[m_current_slot];
 			TORRENT_ASSERT(piece >= 0);
 			int other_piece = m_slot_to_piece[piece];
@@ -1888,6 +1890,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_state == state_full_check);
 
 		bool skip = check_one_piece(have_piece);
+		TORRENT_ASSERT(m_current_slot <= m_info->num_pieces());
 
 		if (skip)
 		{
@@ -1896,7 +1899,7 @@ namespace libtorrent
 			// completely. We should skip all pieces belonging to that file.
 			// find the file that failed, and skip all the pieces in that file
 			size_type file_offset = 0;
-			size_type current_offset = m_current_slot * m_info->piece_length();
+			size_type current_offset = size_type(m_current_slot) * m_info->piece_length();
 			for (torrent_info::file_iterator i = m_info->begin_files(true);
 					i != m_info->end_files(true); ++i)
 			{
@@ -1920,6 +1923,7 @@ namespace libtorrent
 
 			// current slot will increase by one at the end of the for-loop too
 			m_current_slot += skip_blocks - 1;
+			TORRENT_ASSERT(m_current_slot <= m_info->num_pieces());
 		}
 
 		++m_current_slot;
@@ -2394,6 +2398,8 @@ namespace libtorrent
 	{
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 
+		TORRENT_ASSERT(m_current_slot <= m_info->num_pieces());
+		
 		if (m_unallocated_slots.empty() && m_state == state_finished)
 		{
 			TORRENT_ASSERT(m_storage_mode != storage_mode_compact);
