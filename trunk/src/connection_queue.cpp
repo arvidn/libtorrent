@@ -45,10 +45,18 @@ namespace libtorrent
 #ifndef NDEBUG
 		, m_in_timeout_function(false)
 #endif
-	{}
+	{
+#ifdef TORRENT_CONNECTION_LOGGING
+		m_log.open("connection_queue.log");
+#endif
+	}
 
-	bool connection_queue::free_slots() const
-	{ return m_num_connecting < m_half_open_limit || m_half_open_limit <= 0; }
+	int connection_queue::free_slots() const
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		return m_half_open_limit == 0 ? std::numeric_limits<int>::max()
+			: m_half_open_limit - m_queue.size();
+	}
 
 	void connection_queue::enqueue(boost::function<void(int)> const& on_connect
 		, boost::function<void()> const& on_timeout
@@ -109,7 +117,10 @@ namespace libtorrent
 	}
 
 	void connection_queue::limit(int limit)
-	{ m_half_open_limit = limit; }
+	{
+		TORRENT_ASSERT(limit >= 0);
+		m_half_open_limit = limit;
+	}
 
 	int connection_queue::limit() const
 	{ return m_half_open_limit; }
@@ -133,8 +144,11 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (!free_slots())
-			return;
+#ifdef TORRENT_CONNECTION_LOGGING
+		m_log << log_time() << " " << free_slots() << std::endl;
+#endif
+
+		if (m_num_connecting >= m_half_open_limit) return;
 	
 		if (m_queue.empty())
 		{
@@ -171,7 +185,11 @@ namespace libtorrent
 			} catch (std::exception&) {}
 #endif
 
-			if (!free_slots()) break;
+#ifdef TORRENT_CONNECTION_LOGGING
+			m_log << log_time() << " " << free_slots() << std::endl;
+#endif
+
+			if (m_num_connecting >= m_half_open_limit) break;
 			i = std::find_if(i, m_queue.end(), boost::bind(&entry::connecting, _1) == false);
 		}
 	}

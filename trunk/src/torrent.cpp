@@ -2469,7 +2469,6 @@ namespace libtorrent
 	bool torrent::want_more_peers() const
 	{
 		return int(m_connections.size()) < m_max_connections
-			&& m_ses.m_half_open.free_slots()
 			&& !m_paused
 			&& m_state != torrent_status::checking_files
 			&& m_state != torrent_status::queued_for_checking;

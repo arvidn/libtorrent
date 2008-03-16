@@ -2943,10 +2943,16 @@ namespace libtorrent
 
 		m_connection_ticket = ticket;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		TORRENT_ASSERT(t);
 
 		m_queued = false;
 		TORRENT_ASSERT(m_connecting);
+
+		if (!t)
+		{
+			disconnect("torrent aborted");
+			return;
+		}
+
 		m_socket->open(t->get_interface().protocol(), ec);
 		if (ec)
 		{

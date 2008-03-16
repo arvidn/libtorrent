@@ -40,6 +40,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/time.hpp"
 
+#ifdef TORRENT_CONNECTION_LOGGING
+#include <fstream>
+#endif
+
 namespace libtorrent
 {
 
@@ -48,7 +52,9 @@ class connection_queue : public boost::noncopyable
 public:
 	connection_queue(io_service& ios);
 
-	bool free_slots() const;
+	// if there are no free slots, returns the negative
+	// number of queued up connections
+	int free_slots() const;
 
 	void enqueue(boost::function<void(int)> const& on_connect
 		, boost::function<void()> const& on_timeout
@@ -59,9 +65,7 @@ public:
 	void close();
 
 #ifndef NDEBUG
-
 	void check_invariant() const;
-
 #endif
 
 private:
@@ -97,6 +101,9 @@ private:
 
 #ifndef NDEBUG
 	bool m_in_timeout_function;
+#endif
+#ifdef TORRENT_CONNECTION_LOGGING
+	std::ofstream m_log;
 #endif
 };
 
