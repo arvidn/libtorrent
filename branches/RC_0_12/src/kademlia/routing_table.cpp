@@ -369,7 +369,7 @@ void routing_table::find_node(node_id const& target
 	// [0, bucket_index) if we are to include ourself
 	// or [1, bucket_index) if not.
 	bucket_t tmpb;
-	for (int i = include_self?0:1; i < count; ++i)
+	for (int i = include_self?0:1; i < bucket_index; ++i)
 	{
 		bucket_t& b = m_buckets[i].first;
 		std::remove_copy_if(b.begin(), b.end(), std::back_inserter(tmpb)
