@@ -61,7 +61,7 @@ void test_swarm()
 	int count_dl_rates2 = 0;
 	int count_dl_rates3 = 0;
 
-	for (int i = 0; i < 26; ++i)
+	for (int i = 0; i < 27; ++i)
 	{
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
