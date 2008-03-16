@@ -270,7 +270,7 @@ namespace aux
       void operator()(T* p) const
       { p->set_option(opt_); }
 
-		std::size_t operator()(boost::blank) const {}
+		void operator()(boost::blank) const {}
 
       SettableSocketOption const& opt_;
   };
