@@ -879,12 +879,18 @@ namespace libtorrent
 
 						INVARIANT_CHECK;
 
-						cache_t::iterator i = std::remove_if(
-							m_pieces.begin(), m_pieces.end(), bind(&cached_piece_entry::storage, _1) == j.storage);
-
-						for (cache_t::iterator k = i; k != m_pieces.end(); ++k)
-							flush(k, l);
-						m_pieces.erase(i, m_pieces.end());
+						for (cache_t::iterator i = m_pieces.begin(); i != m_pieces.end();)
+						{
+							if (i->storage == j.storage)
+							{
+								flush(i, l);
+								i = m_pieces.erase(i);
+							}
+							else
+							{
+								++i;
+							}
+						}
 						m_pool.release_memory();
 						l.unlock();
 						ret = j.storage->release_files_impl();
