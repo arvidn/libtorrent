@@ -291,9 +291,11 @@ When building the example client on windows, you need to build with
 ``link=static`` otherwise you may get unresolved external symbols for some
 boost.program-options symbols.
 
-For more information, see the `Boost build v2 documentation`__.
+For more information, see the `Boost build v2 documentation`__, or more
+specifically `the section on builtin features`__.
 
 __ http://www.boost.org/tools/build/v2/index.html
+__ http://www.boost.org/doc/html/bbv2/reference.html#bbv2.advanced.builtins.features
 
 To build all possible variants of libtorrent (good for testing when making
 sure all build variants will actually compile), you can invoke this command::
