@@ -1,4 +1,4 @@
-bin_PROGRAMS = @CLIENT_TEST_BIN@ dump_torrent make_torrent simple_client
+bin_PROGRAMS = @CLIENT_TEST_BIN@ dump_torrent make_torrent simple_client enum_if
 EXTRA_PROGRAMS = client_test
 EXTRA_DIST = Jamfile
 
@@ -13,6 +13,9 @@ make_torrent_LDADD = $(top_builddir)/src/libtorrent.la
 
 simple_client_SOURCES = simple_client.cpp
 simple_client_LDADD = $(top_builddir)/src/libtorrent.la
+
+enum_if_SOURCES = enum_if.cpp
+enum_if_LDADD = $(top_builddir)/src/libtorrent.la
 
 AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @DEBUGFLAGS@ @PTHREAD_CFLAGS@ -DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION
 
