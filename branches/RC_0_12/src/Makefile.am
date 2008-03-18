@@ -76,6 +76,6 @@ $(top_srcdir)/include/libtorrent/version.hpp
 libtorrent_la_LDFLAGS = $(LDFLAGS) -release @VERSION@
 libtorrent_la_LIBADD = @ZLIB@ -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -l@BOOST_THREAD_LIB@ @PTHREAD_LIBS@
 
-AM_CXXFLAGS= -ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @ZLIBINCL@ @DEBUGFLAGS@ @PTHREAD_CFLAGS@
+AM_CXXFLAGS= -ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @ZLIBINCL@ @DEBUGFLAGS@ @PTHREAD_CFLAGS@ -DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION
 AM_LDFLAGS= $(LDFLAGS) -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -l@BOOST_THREAD_LIB@ @PTHREAD_LIBS@
 
