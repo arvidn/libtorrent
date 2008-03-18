@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.4: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" href="style.css" type="text/css" />
@@ -22,12 +22,12 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first"><a name="table-of-contents">Table of contents</a></p>
 <ul class="simple">
-<li><a class="reference" href="#downloading-and-building" id="id8" name="id8">downloading and building</a><ul>
-<li><a class="reference" href="#building-from-svn" id="id9" name="id9">building from svn</a></li>
-<li><a class="reference" href="#building-with-bbv2" id="id10" name="id10">building with BBv2</a></li>
-<li><a class="reference" href="#building-with-autotools" id="id11" name="id11">building with autotools</a></li>
-<li><a class="reference" href="#building-with-other-build-systems" id="id12" name="id12">building with other build systems</a></li>
-<li><a class="reference" href="#build-configurations" id="id13" name="id13">build configurations</a></li>
+<li><a class="reference" href="#downloading-and-building" id="id9" name="id9">downloading and building</a><ul>
+<li><a class="reference" href="#building-from-svn" id="id10" name="id10">building from svn</a></li>
+<li><a class="reference" href="#building-with-bbv2" id="id11" name="id11">building with BBv2</a></li>
+<li><a class="reference" href="#building-with-autotools" id="id12" name="id12">building with autotools</a></li>
+<li><a class="reference" href="#building-with-other-build-systems" id="id13" name="id13">building with other build systems</a></li>
+<li><a class="reference" href="#build-configurations" id="id14" name="id14">build configurations</a></li>
 </ul>
 </li>
 </ul>
@@ -324,7 +324,8 @@ the name of the feature, just the value.</p>
 <p>When building the example client on windows, you need to build with
 <tt class="docutils literal"><span class="pre">link=static</span></tt> otherwise you may get unresolved external symbols for some
 boost.program-options symbols.</p>
-<p>For more information, see the <a class="reference" href="http://www.boost.org/tools/build/v2/index.html">Boost build v2 documentation</a>.</p>
+<p>For more information, see the <a class="reference" href="http://www.boost.org/tools/build/v2/index.html">Boost build v2 documentation</a>, or more
+specifically <a class="reference" href="http://www.boost.org/doc/html/bbv2/reference.html#bbv2.advanced.builtins.features">the section on builtin features</a>.</p>
 <p>To build all possible variants of libtorrent (good for testing when making
 sure all build variants will actually compile), you can invoke this command:</p>
 <pre class="literal-block">
@@ -432,7 +433,7 @@ with the following option:</p>
 <p>The above option make use of -DNDEBUG, which is used throughout libtorrent.</p>
 </div>
 <div class="section">
-<h3><a id="id7" name="id7">Step 3: Building libtorrent</a></h3>
+<h3><a id="id8" name="id8">Step 3: Building libtorrent</a></h3>
 <p>Once the configure script is run successfully, you just type <tt class="docutils literal"><span class="pre">make</span></tt> and
 libtorrent, the examples and the tests will be built.</p>
 <p>When libtorrent is built it may be a good idea to run the tests, you do this
