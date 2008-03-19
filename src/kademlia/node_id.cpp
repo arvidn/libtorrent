@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 
 #include "libtorrent/kademlia/node_id.hpp"
+#include "libtorrent/hasher.hpp"
 #include "libtorrent/assert.hpp"
 
 using boost::bind;
@@ -93,6 +94,22 @@ int distance_exp(node_id const& n1, node_id const& n2)
 	}
 
 	return 0;
+}
+
+struct static_ { static_() { std::srand(std::time(0)); } } static__;
+	
+node_id generate_id()
+{
+	char random[20];
+#ifdef _MSC_VER
+	std::generate(random, random + 20, &rand);
+#else
+	std::generate(random, random + 20, &std::rand);
+#endif
+
+	hasher h;
+	h.update(random, 20);
+	return h.final();
 }
 
 } }  // namespace libtorrent::dht

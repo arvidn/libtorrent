@@ -72,21 +72,6 @@ using asio::ip::udp;
 TORRENT_DEFINE_LOG(node)
 #endif
 
-node_id generate_id()
-{
-	char random[20];
-	std::srand(std::time(0));
-#ifdef _MSC_VER
-	std::generate(random, random + 20, &rand);
-#else
-	std::generate(random, random + 20, &std::rand);
-#endif
-
-	hasher h;
-	h.update(random, 20);
-	return h.final();
-}
-
 // remove peers that have timed out
 void purge_peers(std::set<peer_entry>& peers)
 {
