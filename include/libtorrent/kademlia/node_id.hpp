@@ -54,6 +54,8 @@ bool compare_ref(node_id const& n1, node_id const& n2, node_id const& ref);
 // usefult for finding out which bucket a node belongs to
 int distance_exp(node_id const& n1, node_id const& n2);
 
+node_id generate_id();
+
 } } // namespace libtorrent::dht
 
 #endif // NODE_ID_HPP
