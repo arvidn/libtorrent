@@ -150,7 +150,7 @@ traversal_algorithm::traversal_algorithm(
 		for (routing_table::router_iterator i = table.router_begin()
 			, end(table.router_end()); i != end; ++i)
 		{
-			add_entry(node_id(0), *i, result::initial);
+			add_entry(generate_id(), *i, result::initial);
 		}
 	}
 
