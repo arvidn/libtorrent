@@ -148,7 +148,8 @@ namespace libtorrent
 		m_log << log_time() << " " << free_slots() << std::endl;
 #endif
 
-		if (m_num_connecting >= m_half_open_limit) return;
+		if (m_num_connecting >= m_half_open_limit
+			&& m_half_open_limit > 0) return;
 	
 		if (m_queue.empty())
 		{
@@ -189,7 +190,8 @@ namespace libtorrent
 			m_log << log_time() << " " << free_slots() << std::endl;
 #endif
 
-			if (m_num_connecting >= m_half_open_limit) break;
+			if (m_num_connecting >= m_half_open_limit
+				&& m_half_open_limit > 0) break;
 			i = std::find_if(i, m_queue.end(), boost::bind(&entry::connecting, _1) == false);
 		}
 	}
