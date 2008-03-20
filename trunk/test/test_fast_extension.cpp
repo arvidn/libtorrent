@@ -134,7 +134,7 @@ void test_reject_fast()
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000));
 	ses1.add_torrent(t, "./tmp1");
 
-	test_sleep(1000000);
+	test_sleep(2000);
 
 	io_service ios;
 	stream_socket s(ios);
