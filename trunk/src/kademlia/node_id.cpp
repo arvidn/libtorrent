@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <iomanip>
+#include <ctime>
 #include <boost/bind.hpp>
 
 #include "libtorrent/kademlia/node_id.hpp"
