@@ -14,12 +14,20 @@ int read_message(stream_socket& s, char* buffer)
 	using namespace libtorrent::detail;
 	asio::error_code ec;
 	asio::read(s, asio::buffer(buffer, 4), asio::transfer_all(), ec);
-	TEST_CHECK(!ec);
+	if (ec)
+	{
+		std::cout << ec.message() << std::endl;
+		exit(1);
+	}
 	char* ptr = buffer;
 	int length = read_int32(ptr);
 
 	asio::read(s, asio::buffer(buffer, length), asio::transfer_all(), ec);
-	TEST_CHECK(!ec);
+	if (ec)
+	{
+		std::cout << ec.message() << std::endl;
+		exit(1);
+	}
 	return length;
 }
 
@@ -29,32 +37,47 @@ char const* message_name[] = {"choke", "unchoke", "interested", "not_interested"
 
 void send_allow_fast(stream_socket& s, int piece)
 {
+	std::cout << "send allow fast: " << piece << std::endl;
 	using namespace libtorrent::detail;
 	char msg[] = "\0\0\0\x05\x11\0\0\0\0";
 	char* ptr = msg + 5;
 	write_int32(piece, ptr);
 	asio::error_code ec;
 	asio::write(s, asio::buffer(msg, 9), asio::transfer_all(), ec);
-	TEST_CHECK(!ec);
+	if (ec)
+	{
+		std::cout << ec.message() << std::endl;
+		exit(1);
+	}
 }
 
 void send_suggest_piece(stream_socket& s, int piece)
 {
+	std::cout << "send suggest piece: " << piece << std::endl;
 	using namespace libtorrent::detail;
 	char msg[] = "\0\0\0\x05\x0d\0\0\0\0";
 	char* ptr = msg + 5;
 	write_int32(piece, ptr);
 	asio::error_code ec;
 	asio::write(s, asio::buffer(msg, 9), asio::transfer_all(), ec);
-	TEST_CHECK(!ec);
+	if (ec)
+	{
+		std::cout << ec.message() << std::endl;
+		exit(1);
+	}
 }
 
 void send_unchoke(stream_socket& s)
 {
+	std::cout << "send unchoke" << std::endl;
 	char msg[] = "\0\0\0\x01\x01";
 	asio::error_code ec;
 	asio::write(s, asio::buffer(msg, 5), asio::transfer_all(), ec);
-	TEST_CHECK(!ec);
+	if (ec)
+	{
+		std::cout << ec.message() << std::endl;
+		exit(1);
+	}
 }
 
 void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
@@ -63,14 +86,24 @@ void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
 		"                    " // space for info-hash
 		"aaaaaaaaaaaaaaaaaaaa" // peer-id
 		"\0\0\0\x01\x0e"; // have_all
+	std::cout << "send handshake" << std::endl;
 	asio::error_code ec;
 	std::memcpy(handshake + 28, ih.begin(), 20);
 	asio::write(s, asio::buffer(handshake, sizeof(handshake) - 1), asio::transfer_all(), ec);
-	TEST_CHECK(!ec);
+	if (ec)
+	{
+		std::cout << ec.message() << std::endl;
+		exit(1);
+	}
 
 	// read handshake
 	asio::read(s, asio::buffer(buffer, 68), asio::transfer_all(), ec);
-	TEST_CHECK(!ec);
+	if (ec)
+	{
+		std::cout << ec.message() << std::endl;
+		exit(1);
+	}
+	std::cout << "received handshake" << std::endl;
 
 	TEST_CHECK(buffer[0] == 19);
 	TEST_CHECK(std::memcmp(buffer + 1, "BitTorrent protocol", 19) == 0);
@@ -101,7 +134,7 @@ void test_reject_fast()
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000));
 	ses1.add_torrent(t, "./tmp1");
 
-	test_sleep(2000);
+	test_sleep(1000000);
 
 	io_service ios;
 	stream_socket s(ios);
@@ -142,9 +175,18 @@ void test_reject_fast()
 		recv_buffer[0] = 0x10;
 		asio::error_code ec;
 		asio::write(s, asio::buffer("\0\0\0\x0d", 4), asio::transfer_all(), ec);
-		TEST_CHECK(!ec);
+		if (ec)
+		{
+			std::cout << ec.message() << std::endl;
+			exit(1);
+		}
 		asio::write(s, asio::buffer(recv_buffer, 13), asio::transfer_all(), ec);
-		TEST_CHECK(!ec);
+		std::cout << ec.message() << std::endl;
+		if (ec)
+		{
+			std::cout << ec.message() << std::endl;
+			exit(1);
+		}
 	}
 }
 
@@ -201,9 +243,17 @@ void test_respect_suggest()
 		recv_buffer[0] = 0x10;
 		asio::error_code ec;
 		asio::write(s, asio::buffer("\0\0\0\x0d", 4), asio::transfer_all(), ec);
-		TEST_CHECK(!ec);
+		if (ec)
+		{
+			std::cout << ec.message() << std::endl;
+			exit(1);
+		}
 		asio::write(s, asio::buffer(recv_buffer, 13), asio::transfer_all(), ec);
-		TEST_CHECK(!ec);
+		if (ec)
+		{
+			std::cout << ec.message() << std::endl;
+			exit(1);
+		}
 	}
 	TEST_CHECK(fail_counter > 0);
 }
