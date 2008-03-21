@@ -166,6 +166,14 @@ as a shared library (DLL), since you will get separate heaps in the library
 and in the client application. It will result in crashes and possibly link
 errors.</p>
 </div>
+<div class="warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">With boost-build V2 (Milestone 11), the darwin toolset uses the <tt class="docutils literal"><span class="pre">-s</span></tt> linker
+option to strip debug symbols. This option is buggy in Apple's GCC, and
+will make the executable crash on startup. On Mac OS X, instead build
+your release executables with the <tt class="docutils literal"><span class="pre">debug-symbols=on</span></tt> option, and
+later strip your executable with <tt class="docutils literal"><span class="pre">strip</span></tt>.</p>
+</div>
 <p>The build targets are put in a directory called bin, and under it they are
 sorted in directories depending on the toolset and build variant used.</p>
 <p>To build the examples, just change directory to the examples directory and
