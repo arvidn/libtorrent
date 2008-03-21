@@ -73,10 +73,15 @@ void start_web_server(int port, bool ssl)
 
 	if (ssl)
 	{
-		system("echo -e \"AU\\ntest province\\ntest city\\ntest company\\n"
-			"test department\\ntester\\ntest@test.com\" | "
-			"openssl req -new -x509 -keyout server.pem -out server.pem "
-			"-days 365 -nodes");
+		system("echo . > tmp");
+		system("echo test province >>tmp");
+		system("echo test city >> tmp");
+		system("echo test company >> tmp");
+		system("echo test department >> tmp");
+		system("echo tester >> tmp");
+		system("echo test@test.com >> tmp");	
+		system("openssl req -new -x509 -keyout server.pem -out server.pem "
+			"-days 365 -nodes <tmp");
 	}
 	
 	std::ofstream f("lighty_config");
