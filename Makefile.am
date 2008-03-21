@@ -4,6 +4,7 @@ EXTRA_DIST = docs/manual.html docs/manual.rst docs/extension_protocol.rst \
 docs/extension_protocol.html docs/udp_tracker_protocol.rst \
 docs/projects.rst docs/projects.html \
 docs/building.rst docs/building.html \
+docs/running_tests.rst docs/running_tests.html \
 docs/python_binding.rst docs/python_binding.html \
 docs/arctic_thumb.png \
 docs/bitbuddy_thumb.jpg \
