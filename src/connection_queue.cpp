@@ -54,7 +54,7 @@ namespace libtorrent
 	int connection_queue::free_slots() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		return m_half_open_limit == 0 ? std::numeric_limits<int>::max()
+		return m_half_open_limit == 0 ? (std::numeric_limits<int>::max)()
 			: m_half_open_limit - m_queue.size();
 	}
 
