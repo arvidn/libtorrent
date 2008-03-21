@@ -247,7 +247,11 @@ int test_main()
  	std::cerr << ti.name() << std::endl;
 	TEST_CHECK(ti.name() == "test1");
 
- 	info["name.utf-8"] = "/test1/test2/test3";
+#ifdef TORRENT_WINDOWS
+	info["name.utf-8"] = "c:/test1/test2/test3";
+#else
+	info["name.utf-8"] = "/test1/test2/test3";
+#endif
  	torrent["info"] = info;
  	torrent_info ti2(torrent);
  	std::cerr << ti2.name() << std::endl;
