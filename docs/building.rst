@@ -180,6 +180,14 @@ the runtime, but on windows you can do both. Example::
   and in the client application. It will result in crashes and possibly link
   errors.
 
+.. warning::
+
+  With boost-build V2 (Milestone 11), the darwin toolset uses the ``-s`` linker
+  option to strip debug symbols. This option is buggy in Apple's GCC, and
+  will make the executable crash on startup. On Mac OS X, instead build
+  your release executables with the ``debug-symbols=on`` option, and
+  later strip your executable with ``strip``.
+
 The build targets are put in a directory called bin, and under it they are
 sorted in directories depending on the toolset and build variant used.
 
