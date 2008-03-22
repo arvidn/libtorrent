@@ -257,7 +257,7 @@ namespace libtorrent
 		, std::string const& password) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(resume());
+		TORRENT_FORWARD(set_tracker_login(name, password));
 	}
 
 	void torrent_handle::file_progress(std::vector<float>& progress)
