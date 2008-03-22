@@ -86,7 +86,7 @@ void run_test(char const* url, int size, int status, int connected, boost::optio
 	TEST_CHECK(connect_handler_called == connected);
 	TEST_CHECK(handler_called == 1);	
 	TEST_CHECK(data_size == size || size == -1);
-	TEST_CHECK(!ec || error_code == ec);
+	TEST_CHECK(!ec || error_code == *ec);
 	TEST_CHECK(http_status == status || status == -1);
 }
 
