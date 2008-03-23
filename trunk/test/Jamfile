@@ -19,6 +19,8 @@ lib test_common
 project
    : requirements
 	<library>test_common
+   : default-build
+	<threading>multi
    ;
 
 
