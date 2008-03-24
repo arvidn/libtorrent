@@ -452,7 +452,8 @@ void routing_table::find_node(node_id const& target
 
 routing_table::iterator routing_table::begin() const
 {
-	return iterator(m_buckets.begin(), m_buckets.end());
+	// +1 to avoid ourself
+	return iterator(m_buckets.begin() + 1, m_buckets.end());
 }
 
 routing_table::iterator routing_table::end() const
