@@ -51,7 +51,12 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 {
 	if (m_failed.find(addr) != m_failed.end()) return;
 
-	result const entry(id, addr, flags);
+	result entry(id, addr, flags);
+	if (entry.id.is_all_zeros())
+	{
+		entry.id = generate_id();
+		entry.flags |= result::no_id;
+	}
 
 	std::vector<result>::iterator i = std::lower_bound(
 		m_results.begin()
@@ -83,6 +88,7 @@ boost::pool<>& traversal_algorithm::allocator() const
 
 void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
 {
+	TORRENT_ASSERT(!id.is_all_zeros());
 	add_entry(id, addr, 0);
 }
 
@@ -100,6 +106,7 @@ void traversal_algorithm::failed(node_id const& id, bool prevent_request)
 {
 	m_invoke_count--;
 
+	TORRENT_ASSERT(!id.is_all_zeros());
 	std::vector<result>::iterator i = std::find_if(
 		m_results.begin()
 		, m_results.end()
@@ -119,16 +126,16 @@ void traversal_algorithm::failed(node_id const& id, bool prevent_request)
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(traversal) << "failed: " << i->id << " " << i->addr;
 #endif
+		// don't tell the routing table about
+		// node ids that we just generated ourself
+		if ((i->flags & result::no_id) == 0)
+			m_table.node_failed(id);
 		m_results.erase(i);
 	}
 	if (prevent_request)
 	{
 		--m_branch_factor;
 		if (m_branch_factor <= 0) m_branch_factor = 1;
-	}
-	else
-	{
-		m_table.node_failed(id);
 	}
 	add_requests();
 	if (m_invoke_count == 0) done();

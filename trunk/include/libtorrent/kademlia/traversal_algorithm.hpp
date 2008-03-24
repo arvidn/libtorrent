@@ -84,12 +84,11 @@ protected:
 	struct result
 	{
 		result(node_id const& id, udp::endpoint addr, unsigned char f = 0) 
-			: id(id), addr(addr), flags(f)
-	 		{}
+			: id(id), addr(addr), flags(f) {}
 
 		node_id id;
 		udp::endpoint addr;
-		enum { queried = 1, initial = 2 };
+		enum { queried = 1, initial = 2, no_id = 4 };
 		unsigned char flags;
 	};
 
@@ -150,7 +149,7 @@ traversal_algorithm::traversal_algorithm(
 		for (routing_table::router_iterator i = table.router_begin()
 			, end(table.router_end()); i != end; ++i)
 		{
-			add_entry(generate_id(), *i, result::initial);
+			add_entry(node_id(0), *i, result::initial);
 		}
 	}
 
