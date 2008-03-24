@@ -240,7 +240,7 @@ namespace detail
 							if (m_ses.m_alerts.should_post(alert::info))
 							{
 				  				m_ses.m_alerts.post_alert(torrent_checked_alert(
-					 				processing->torrent_ptr->get_handle()
+					 				t->torrent_ptr->get_handle()
 					 				, "torrent finished checking"));
 							}
 							if (t->torrent_ptr->is_seed() && m_ses.m_alerts.should_post(alert::info))
