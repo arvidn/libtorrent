@@ -161,6 +161,7 @@ namespace libtorrent { namespace dht
 		, m_refresh_timer(ios)
 		, m_settings(settings)
 		, m_refresh_bucket(160)
+		, m_abort(false)
 		, m_host_resolver(ios)
 		, m_refs(0)
 	{
@@ -223,6 +224,8 @@ namespace libtorrent { namespace dht
 
 	void dht_tracker::stop()
 	{
+		mutex_t::scoped_lock l(m_mutex);
+		m_abort = true;
 		m_timer.cancel();
 		m_connection_timer.cancel();
 		m_refresh_timer.cancel();
@@ -238,7 +241,9 @@ namespace libtorrent { namespace dht
 	void dht_tracker::connection_timeout(asio::error_code const& e)
 		try
 	{
-		if (e) return;
+		mutex_t::scoped_lock l(m_mutex);
+		if (e || m_abort) return;
+
 		time_duration d = m_dht.connection_timeout();
 		m_connection_timer.expires_from_now(d);
 		m_connection_timer.async_wait(m_strand.wrap(bind(&dht_tracker::connection_timeout, self(), _1)));
@@ -255,7 +260,9 @@ namespace libtorrent { namespace dht
 	void dht_tracker::refresh_timeout(asio::error_code const& e)
 		try
 	{
-		if (e) return;
+		mutex_t::scoped_lock l(m_mutex);
+		if (e || m_abort) return;
+
 		time_duration d = m_dht.refresh_timeout();
 		m_refresh_timer.expires_from_now(d);
 		m_refresh_timer.async_wait(m_strand.wrap(
@@ -280,7 +287,9 @@ namespace libtorrent { namespace dht
 	void dht_tracker::tick(asio::error_code const& e)
 		try
 	{
-		if (e) return;
+		mutex_t::scoped_lock l(m_mutex);
+		if (e || m_abort) return;
+
 		m_timer.expires_from_now(minutes(tick_period));
 		m_timer.async_wait(m_strand.wrap(bind(&dht_tracker::tick, this, _1)));
 
