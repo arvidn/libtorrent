@@ -1594,11 +1594,6 @@ namespace libtorrent
 			, boost::bind(&session_impl::free_disk_buffer
 			, boost::ref(m_ses), _1));
 
-/*
-		buffer::interval i = allocate_send_buffer(r.length);
-		std::memcpy(i.begin, buffer, r.length);
-		t->filesystem().free_buffer(buffer);
-*/	
 		m_payloads.push_back(range(send_buffer_size() - r.length, r.length));
 		setup_send();
 	}

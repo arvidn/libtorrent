@@ -2508,6 +2508,7 @@ namespace libtorrent
 
 		if (ret != r.length || m_torrent.expired())
 		{
+			if (j.buffer) m_ses.free_disk_buffer(j.buffer);
 			boost::shared_ptr<torrent> t = m_torrent.lock();
 			if (!t)
 			{
