@@ -168,6 +168,12 @@ void node_impl::refresh(node_id const& id
 void node_impl::bootstrap(std::vector<udp::endpoint> const& nodes
 	, boost::function0<void> f)
 {
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(node) << "bootrapping: " << nodes.size();
+	for (std::vector<udp::endpoint>::const_iterator i = nodes.begin()
+		, end(nodes.end()); i != end; ++i)
+		TORRENT_LOG(node) << "  " << *i;
+#endif
 	std::vector<node_entry> start;
 	start.reserve(nodes.size());
 	std::copy(nodes.begin(), nodes.end(), std::back_inserter(start));
@@ -312,6 +318,11 @@ namespace
 		, int listen_port, sha1_hash const& ih
 		, boost::function<void(std::vector<tcp::endpoint> const&, sha1_hash const&)> f)
 	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(node) << "announce response [ ih: " << ih
+			<< " p: " << listen_port
+			<< " nodes: " << v.size() << " ]" ;
+#endif
 		bool nodes = false;
 		// only store on the first k nodes
 		for (std::vector<node_entry>::const_iterator i = v.begin()
@@ -338,6 +349,9 @@ namespace
 
 void node_impl::add_router_node(udp::endpoint router)
 {
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(node) << "adding router node: " << router;
+#endif
 	m_table.add_router_node(router);
 }
 
@@ -352,6 +366,9 @@ void node_impl::add_node(udp::endpoint node)
 void node_impl::announce(sha1_hash const& info_hash, int listen_port
 	, boost::function<void(std::vector<tcp::endpoint> const&, sha1_hash const&)> f)
 {
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(node) << "announcing [ ih: " << info_hash << " p: " << listen_port << " ]" ;
+#endif
 	// search for nodes with ids close to id, and then invoke the
 	// get_peers and then announce_peer rpc on them.
 	closest_nodes::initiate(info_hash, m_settings.search_branching
