@@ -509,7 +509,8 @@ namespace libtorrent
 
 			udp_socket m_dht_socket;
 
-			void on_receive_udp(udp::endpoint const& ep, char const* buf, int len);
+			void on_receive_udp(asio::error_code const& e
+				, udp::endpoint const& ep, char const* buf, int len);
 #endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
