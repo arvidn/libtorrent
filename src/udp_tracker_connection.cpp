@@ -84,7 +84,7 @@ namespace libtorrent
 		: tracker_connection(man, req, ios, bind_infc, c)
 		, m_man(man)
 		, m_name_lookup(ios)
-		, m_socket(ios, boost::bind(&udp_tracker_connection::on_receive, this, _1, _2, _3, _4), cc)
+		, m_socket(ios, boost::bind(&udp_tracker_connection::on_receive, this, _1, _2, _3), cc)
 		, m_transaction_id(0)
 		, m_connection_id(0)
 		, m_settings(stn)
@@ -185,8 +185,7 @@ namespace libtorrent
 		tracker_connection::close();
 	}
 
-	void udp_tracker_connection::on_receive(asio::error_code const& e
-		, udp::endpoint const& ep, char const* buf, int size)
+	void udp_tracker_connection::on_receive(udp::endpoint const& ep, char const* buf, int size)
 	{
 		// ignore resposes before we've sent any requests
 		if (m_state == action_error) return;
@@ -195,8 +194,6 @@ namespace libtorrent
 
 		// ignore packet not sent from the tracker
 		if (m_target != ep) return;
-		
-		if (e) fail(-1, e.message().c_str());
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
