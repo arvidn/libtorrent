@@ -31,7 +31,7 @@ project listed here, let me_ know.
 | (ncurses) and one web interface                                               |                                     |
 | (accessable through a web browser).                                           |                                     |
 | Written by Michael Wojciechowski                                              |                                     |
-| and Johan Stršm.                                                              |                                     |
+| and Johan Ström.                                                              |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
 | **Lince**                                                                     | .. image:: lince.jpg                |
 |                                                                               |                                     |
@@ -44,6 +44,12 @@ project listed here, let me_ know.
 | Miro_ is a free application for channels of internet video (also known as     |                                     |
 | video podcasts and video rss). Miro is designed to be easy to use and to give |                                     |
 | you an elegant fullscreen viewing experience.                                 |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **FatRat**                                                                    | .. image:: fatrat.jpg               |
+|                                                                               |                                     |
+| FatRat_ is an open source download manager for Linux/Unix systems written in  |                                     |
+| C++ with the help of the Trolltech Qt 4 library. It's simple to use and       |                                     |
+| install.                                                                      |                                     | 
 +-------------------------------------------------------------------------------+-------------------------------------+
 | **BitRocket**                                                                 | .. image:: bitrocket_thumb.png      |
 |                                                                               |                                     |
@@ -143,6 +149,7 @@ project listed here, let me_ know.
 .. _btg: http://developer.berlios.de/projects/btg/
 .. _Lince: http://lincetorrent.sourceforge.net/
 .. _Miro: http://getmiro.com
+.. _FatRat: http://fatrat.dolezel.info
 .. _BitRocket: http://www.bitrocket.org/
 .. _Bitfox: http://code.google.com/p/bitfox/
 .. _Acquasition: http://www.acquisitionx.com
