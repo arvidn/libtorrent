@@ -25,7 +25,7 @@ docs/bitfox.png \
 docs/acquasition.jpg \
 docs/im_thumb.jpg \
 docs/Linkage.jpg \
-docs/gtorrent_thumb.jpg \
+docs/deluge.png \
 docs/halite_thumb.png \
 docs/electric_sheep_thumb.jpg \
 docs/moopolice_thumb.gif \

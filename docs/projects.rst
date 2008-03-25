@@ -101,7 +101,7 @@ project listed here, let me_ know.
 | bittorrent client for windows.                                                |                                     |
 | Written by Cory Nelson.                                                       |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
-| **deluge torrent**                                                            | .. image:: gtorrent_thumb.jpg       |
+| **deluge torrent**                                                            | .. image:: deluge.png               |
 |                                                                               |                                     |
 | `deluge Torrent`_ is a more full-featured yet still lightweight bittorrent    |                                     |
 | client. It has the ability to automatically resume partial downloads and      |                                     |
