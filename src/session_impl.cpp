@@ -162,7 +162,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_same_port(true)
 		, m_external_udp_port(0)
-		, m_dht_socket(m_io_service, bind(&session_impl::on_receive_udp, this, _1, _2, _3)
+		, m_dht_socket(m_io_service, bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
 			, m_half_open)
 #endif
 		, m_timer(m_io_service)
@@ -580,8 +580,20 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_DHT
 
-	void session_impl::on_receive_udp(udp::endpoint const& ep, char const* buf, int len)
+	void session_impl::on_receive_udp(asio::error_code const& e
+		, udp::endpoint const& ep, char const* buf, int len)
 	{
+		if (e)
+		{
+			if (m_alerts.should_post(alert::info))
+			{
+				std::string msg = "UDP socket error from '"
+					+ boost::lexical_cast<std::string>(ep) + "' " + e.message();
+				m_alerts.post_alert(udp_error_alert(ep, msg));
+			}
+			return;
+		}
+
 		if (len > 20 && *buf == 'd' && m_dht)
 		{
 			// this is probably a dht message

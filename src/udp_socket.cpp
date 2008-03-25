@@ -39,7 +39,37 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len, asio::err
 
 void udp_socket::on_read(udp::socket* s, asio::error_code const& e, std::size_t bytes_transferred)
 {
-	if (e) return;
+	if (e)
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		try {
+#endif
+		if (s == &m_ipv4_sock)
+			m_callback(e, m_v4_ep, 0, 0);
+		else
+			m_callback(e, m_v6_ep, 0, 0);
+#ifndef BOOST_NO_EXCEPTIONS
+		} catch(std::exception&) {}
+#endif
+
+		// don't stop listening on recoverable errors
+		if (e != asio::error::host_unreachable
+			&& e != asio::error::fault
+			&& e != asio::error::connection_reset
+			&& e != asio::error::connection_refused
+			&& e != asio::error::connection_aborted
+			&& e != asio::error::message_size)
+			return;
+
+		if (s == &m_ipv4_sock)
+			s->async_receive_from(asio::buffer(m_v4_buf, sizeof(m_v4_buf))
+				, m_v4_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
+		else
+			s->async_receive_from(asio::buffer(m_v6_buf, sizeof(m_v6_buf))
+				, m_v6_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
+
+		return;
+	}
 	if (!m_callback) return;
 
 	if (s == &m_ipv4_sock)
@@ -49,9 +79,9 @@ void udp_socket::on_read(udp::socket* s, asio::error_code const& e, std::size_t 
 #endif
 
 		if (m_tunnel_packets && m_v4_ep == m_proxy_addr)
-			unwrap(m_v4_buf, bytes_transferred);
+			unwrap(e, m_v4_buf, bytes_transferred);
 		else
-			m_callback(m_v4_ep, m_v4_buf, bytes_transferred);
+			m_callback(e, m_v4_ep, m_v4_buf, bytes_transferred);
 
 #ifndef BOOST_NO_EXCEPTIONS
 		} catch(std::exception&) {}
@@ -66,9 +96,9 @@ void udp_socket::on_read(udp::socket* s, asio::error_code const& e, std::size_t 
 #endif
 
 		if (m_tunnel_packets && m_v6_ep == m_proxy_addr)
-			unwrap(m_v6_buf, bytes_transferred);
+			unwrap(e, m_v6_buf, bytes_transferred);
 		else
-			m_callback(m_v6_ep, m_v6_buf, bytes_transferred);
+			m_callback(e, m_v6_ep, m_v6_buf, bytes_transferred);
 
 #ifndef BOOST_NO_EXCEPTIONS
 		} catch(std::exception&) {}
@@ -102,7 +132,7 @@ void udp_socket::wrap(udp::endpoint const& ep, char const* p, int len, asio::err
 }
 
 // unwrap the UDP packet from the SOCKS5 header
-void udp_socket::unwrap(char const* buf, int size)
+void udp_socket::unwrap(asio::error_code const& e, char const* buf, int size)
 {
 	using namespace libtorrent::detail;
 
@@ -128,7 +158,6 @@ void udp_socket::unwrap(char const* buf, int size)
 	{
 		// IPv6
 		TORRENT_ASSERT(false && "not supported yet");
-	
 	}
 	else
 	{
@@ -136,7 +165,7 @@ void udp_socket::unwrap(char const* buf, int size)
 		return;
 	}
 
-	m_callback(sender, p, size - (p - buf));
+	m_callback(e, sender, p, size - (p - buf));
 }
 
 void udp_socket::close()
