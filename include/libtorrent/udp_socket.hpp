@@ -46,7 +46,8 @@ namespace libtorrent
 	class udp_socket
 	{
 	public:
-		typedef boost::function<void(udp::endpoint const&, char const* buf, int size)> callback_t;
+		typedef boost::function<void(asio::error_code const& ec
+			, udp::endpoint const&, char const* buf, int size)> callback_t;
 
 		udp_socket(asio::io_service& ios, callback_t const& c, connection_queue& cc);
 
@@ -80,7 +81,7 @@ namespace libtorrent
 		void connect2(asio::error_code const& e);
 
 		void wrap(udp::endpoint const& ep, char const* p, int len, asio::error_code& ec);
-		void unwrap(char const* buf, int size);
+		void unwrap(asio::error_code const& e, char const* buf, int size);
 
 		udp::socket m_ipv4_sock;
 		udp::socket m_ipv6_sock;

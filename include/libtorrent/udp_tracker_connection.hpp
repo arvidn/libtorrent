@@ -92,7 +92,8 @@ namespace libtorrent
 		void name_lookup(asio::error_code const& error, udp::resolver::iterator i);
 		void timeout(asio::error_code const& error);
 
-		void on_receive(udp::endpoint const& ep, char const* buf, int size);
+		void on_receive(asio::error_code const& e, udp::endpoint const& ep
+			, char const* buf, int size);
 		void on_connect_response(char const* buf, int size);
 		void on_announce_response(char const* buf, int size);
 		void on_scrape_response(char const* buf, int size);

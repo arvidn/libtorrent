@@ -364,6 +364,21 @@ namespace libtorrent
 		{ return std::auto_ptr<alert>(new metadata_received_alert(*this)); }
 	};
 
+	struct TORRENT_EXPORT udp_error_alert: alert
+	{
+		udp_error_alert(
+			udp::endpoint const& ep
+			, std::string const& msg)
+			: alert(alert::info, msg)
+			, endpoint(ep)
+		{}
+
+		udp::endpoint endpoint;
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new udp_error_alert(*this)); }
+	};
+
 	struct TORRENT_EXPORT listen_failed_alert: alert
 	{
 		listen_failed_alert(
