@@ -2212,7 +2212,6 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_storage_mode == storage_mode_compact);	
 		TORRENT_ASSERT(m_unallocated_slots.empty());	
-		TORRENT_ASSERT(m_free_slots.empty());	
 		// we have allocated all slots, switch to
 		// full allocation mode in order to free
 		// some unnecessary memory.
@@ -2331,8 +2330,10 @@ namespace libtorrent
 		TORRENT_ASSERT(slot_index >= 0);
 		TORRENT_ASSERT(slot_index < (int)m_slot_to_piece.size());
 
-		if (m_free_slots.empty() && m_unallocated_slots.empty())
+		if (m_unallocated_slots.empty())
+		{
 			switch_to_full_mode();
+		}
 		
 		return slot_index;
 	}
@@ -2399,9 +2400,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_current_slot <= m_info->num_pieces());
 		
-		if (m_unallocated_slots.empty()
-			&& m_free_slots.empty()
-			&& m_state == state_finished)
+		if (m_unallocated_slots.empty() && m_state == state_finished)
 		{
 			TORRENT_ASSERT(m_storage_mode != storage_mode_compact);
 		}
