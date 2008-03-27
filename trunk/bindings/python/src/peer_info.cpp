@@ -4,15 +4,33 @@
 
 #include <libtorrent/peer_info.hpp>
 #include <boost/python.hpp>
+#include <boost/python/iterator.hpp>
 
 using namespace boost::python;
 using namespace libtorrent;
+
+tuple get_ip(peer_info const& pi)
+{
+	return make_tuple(boost::lexical_cast<std::string>(pi.ip.address()), pi.ip.port());
+}
+
+list get_pieces(peer_info const& pi)
+{
+	list ret;
+
+	for (std::vector<bool>::const_iterator i = pi.pieces.begin()
+		, end(pi.pieces.end()); i != end; ++i)
+	{
+		ret.append(*i);
+	}
+	return ret;
+}
 
 void bind_peer_info()
 {
     scope pi = class_<peer_info>("peer_info")
         .def_readonly("flags", &peer_info::flags)
-        .def_readonly("ip", &peer_info::ip)
+        .add_property("ip", get_ip)
         .def_readonly("up_speed", &peer_info::up_speed)
         .def_readonly("down_speed", &peer_info::down_speed)
         .def_readonly("payload_up_speed", &peer_info::payload_up_speed)
@@ -20,7 +38,7 @@ void bind_peer_info()
         .def_readonly("total_download", &peer_info::total_download)
         .def_readonly("total_upload", &peer_info::total_upload)
         .def_readonly("pid", &peer_info::pid)
-        .def_readonly("pieces", &peer_info::pieces)
+        .add_property("pieces", get_pieces)
         .def_readonly("upload_limit", &peer_info::upload_limit)
         .def_readonly("download_limit", &peer_info::download_limit)
         .def_readonly("load_balancing", &peer_info::load_balancing)

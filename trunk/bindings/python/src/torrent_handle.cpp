@@ -4,6 +4,7 @@
 
 #include <libtorrent/torrent_handle.hpp>
 #include <boost/python.hpp>
+#include <boost/lexical_cast.hpp>
 #include "gil.hpp"
 
 using namespace boost::python;
@@ -133,7 +134,8 @@ list get_download_queue(torrent_handle& handle)
 			block_info["num_peers"] = i->blocks[k].num_peers;
 			block_info["bytes_progress"] = i->blocks[k].bytes_progress;
 			block_info["block_size"] = i->blocks[k].block_size;
-//			block_info["peer"] = i->info[k].peer;
+			block_info["peer"] = std::make_pair(
+				boost::lexical_cast<std::string>(i->blocks[k].peer.address()), i->blocks[k].peer.port());
 			block_list.append(block_info);
 		}
 		partial_piece["blocks"] = block_list;
@@ -142,6 +144,29 @@ list get_download_queue(torrent_handle& handle)
 	}
 
 	return ret;
+}
+
+namespace
+{
+	tcp::endpoint tuple_to_endpoint(tuple const& t)
+	{
+		return tcp::endpoint(address::from_string(extract<std::string>(t[0])), extract<int>(t[1]));
+	}
+}
+
+void connect_peer(torrent_handle& th, tuple ip, int source)
+{
+	th.connect_peer(tuple_to_endpoint(ip), source);
+}
+
+void set_peer_upload_limit(torrent_handle& th, tuple const& ip, int limit)
+{
+	th.set_peer_upload_limit(tuple_to_endpoint(ip), limit);
+}
+
+void set_peer_download_limit(torrent_handle& th, tuple const& ip, int limit)
+{
+	th.set_peer_download_limit(tuple_to_endpoint(ip), limit);
 }
 
 void bind_torrent_handle()
@@ -158,6 +183,7 @@ void bind_torrent_handle()
 #define _ allow_threads
 
     class_<torrent_handle>("torrent_handle")
+        .def("connect_peer", connect_peer)
         .def("status", _(&torrent_handle::status))
         .def("torrent_info", _(&torrent_handle::get_torrent_info), return_internal_reference<>())
         .def("is_valid", _(&torrent_handle::is_valid))
@@ -168,9 +194,13 @@ void bind_torrent_handle()
         .def("add_url_seed", _(&torrent_handle::add_url_seed))
         .def("set_ratio", _(&torrent_handle::set_ratio))
         .def("set_max_uploads", _(&torrent_handle::set_max_uploads))
+        .def("set_peer_upload_limit", set_peer_upload_limit)
+        .def("set_peer_download_limit", set_peer_download_limit)
         .def("set_max_connections", _(&torrent_handle::set_max_connections))
         .def("set_upload_limit", _(&torrent_handle::set_upload_limit))
         .def("set_download_limit", _(&torrent_handle::set_download_limit))
+        .def("upload_limit", _(&torrent_handle::upload_limit))
+        .def("download_limit", _(&torrent_handle::download_limit))        
         .def("set_sequential_download", _(&torrent_handle::set_sequential_download))
         .def("pause", _(&torrent_handle::pause))
         .def("resume", _(&torrent_handle::resume))
