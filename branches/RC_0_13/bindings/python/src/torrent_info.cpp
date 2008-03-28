@@ -44,12 +44,12 @@ namespace
   {
       return i.begin_files(storage);
   }
-  
+
   std::vector<file_entry>::const_iterator end_files(torrent_info& i, bool storage)
   {
       return i.end_files(storage);
   }
-  
+
   //list files(torrent_info const& ti, bool storage) {
   list files(torrent_info const& ti, bool storage) {
       list result;
@@ -61,7 +61,7 @@ namespace
 
       return result;
   }
-  
+
 
 } // namespace unnamed
 
@@ -92,8 +92,8 @@ void bind_torrent_info()
 
         .def("hash_for_piece", &torrent_info::hash_for_piece, copy)
         .def("piece_size", &torrent_info::piece_size)
-        
-	      .def("num_files", &torrent_info::num_files, (arg("storage")=false))
+
+        .def("num_files", &torrent_info::num_files, (arg("storage")=false))
         .def("file_at", &torrent_info::file_at, return_internal_reference<>())
         .def("files", &files, (arg("storage")=false))
 
@@ -106,6 +106,7 @@ void bind_torrent_info()
         .def("add_node", &add_node)
         .def("nodes", &nodes)
         ;
+
     class_<file_entry>("file_entry")
        .add_property(
             "path"

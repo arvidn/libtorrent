@@ -49,11 +49,28 @@ On Mac OS X, this will produce the following python module::
 
 	bin/darwin-4.0/release/dht-support-on/link-static/logging-none/threading-multi/libtorrent.so
 
-using
-=====
+using libtorrent in python
+==========================
 
 The python interface is nearly identical to the C++ interface. Please refer to
-the `main library reference`_.
+the `main library reference`_. The main differences are:
+
+asio::tcp::endpoint
+	The endpoint type is represented as a tuple of a string (as the address) and an int for
+	the port number. E.g. ``('127.0.0.1', 6881)`` represents the localhost port 6881.
+
+libtorrent::time_duration
+	The time duration is represented as a number of seconds in a regular integer.
+
+The following functions takes a reference to a container that is filled with
+entries by the function. The python equivalent of these functions instead returns
+a list of entries.
+
+* torrent_handle::get_peer_info
+* torrent_handle::file_progress
+* torrent_handle::get_download_queue
+* torrent_handle::piece_availability
+
 
 .. _`main library reference`: manual.html
 
