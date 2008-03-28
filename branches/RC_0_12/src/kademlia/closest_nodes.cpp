@@ -136,7 +136,7 @@ void closest_nodes::done()
 	std::vector<node_entry> results;
 	int num_results = m_max_results;
 	for (std::vector<result>::iterator i = m_results.begin()
-		, end(m_results.end()); i != end && num_results >= 0; ++i)
+		, end(m_results.end()); i != end && num_results > 0; ++i)
 	{
 		if (i->flags & result::no_id) continue;
 		if ((i->flags & result::queried) == 0) continue;
