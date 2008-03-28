@@ -151,13 +151,12 @@ void udp_socket::unwrap(asio::error_code const& e, char const* buf, int size)
 	if (atyp == 1)
 	{
 		// IPv4
-		sender.address(address_v4(read_uint32(p)));
-		sender.port(read_uint16(p));
+		sender = read_v4_endpoint<udp::endpoint>(p);
 	}
 	else if (atyp == 4)
 	{
 		// IPv6
-		TORRENT_ASSERT(false && "not supported yet");
+		sender = read_v6_endpoint<udp::endpoint>(p);
 	}
 	else
 	{
