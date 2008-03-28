@@ -220,8 +220,7 @@ namespace libtorrent
 		write_uint8(1, p); // CONNECT command
 		write_uint8(0, p); // reserved
 		write_uint8(m_remote_endpoint.address().is_v4()?1:4, p); // address type
-		write_address(m_remote_endpoint.address(), p);
-		write_uint16(m_remote_endpoint.port(), p);
+		write_endpoint(m_remote_endpoint, p);
 		TORRENT_ASSERT(p - &m_buffer[0] == int(m_buffer.size()));
 
 		asio::async_write(m_sock, asio::buffer(m_buffer)
