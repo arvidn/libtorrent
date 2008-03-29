@@ -1134,7 +1134,7 @@ int main(int ac, char* av[])
 					out << progress_bar(s.progress, terminal_width - 63, progress_bar_color);
 					out << "\n";
 					out << "  total downloaded: " << esc("32") << s.total_done << esc("0") << " Bytes ";
-					out	<< "peers: " << s.num_peers << " "
+					out	<< "peers: " << s.num_peers << " (" << s.connect_candidates << ") "
 						<< "seeds: " << s.num_seeds << " "
 						<< "distributed copies: " << s.distributed_copies << "\n"
 						<< "  magnet-link: " << make_magnet_uri(h) << "\n"

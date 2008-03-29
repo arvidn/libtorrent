@@ -187,6 +187,10 @@ namespace libtorrent
 		// (including seeds), but are not necessarily
 		// connected to
 		int list_peers;
+
+		// the number of peers in our peerlist that
+		// we potentially could connect to
+		int connect_candidates;
 		
 		const std::vector<bool>* pieces;
 		

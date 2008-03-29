@@ -1618,6 +1618,11 @@ namespace libtorrent
 	{
 		for (peer_iterator i = begin(); i != end(); ++i)
 			(*i)->update_interest();
+
+		// if we used to be finished, but we aren't anymore
+		// we may need to connect to peers again
+		if (!is_finished())
+			m_policy.recalculate_connect_candidates();
 	}
 
 	void torrent::filter_piece(int index, bool filter)
@@ -2471,7 +2476,8 @@ namespace libtorrent
 		return int(m_connections.size()) < m_max_connections
 			&& !m_paused
 			&& m_state != torrent_status::checking_files
-			&& m_state != torrent_status::queued_for_checking;
+			&& m_state != torrent_status::queued_for_checking
+			&& m_policy.num_connect_candidates() > 0;
 	}
 
 	void torrent::disconnect_all()
@@ -3361,6 +3367,7 @@ namespace libtorrent
 		st.list_peers = std::distance(m_policy.begin_peer(), m_policy.end_peer());
 		st.list_seeds = (int)std::count_if(m_policy.begin_peer(), m_policy.end_peer()
 			, boost::bind(&policy::peer::seed, bind(&policy::iterator::value_type::second, _1)));
+		st.connect_candidates = m_policy.num_connect_candidates();
 
 		st.storage_mode = m_storage_mode;
 
