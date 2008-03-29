@@ -847,7 +847,72 @@ namespace aux {
 			<< std::endl;
 #endif
 
+		// --------------------------------------------------------------
+		// second_tick every torrent
+		// --------------------------------------------------------------
+
+		int congested_torrents = 0;
+		int uncongested_torrents = 0;
+
+		// count the number of seeding torrents vs. downloading
+		// torrents we are running
+		int num_seeds = 0;
+		int num_downloads = 0;
+
+		// count the number of peers of downloading torrents
+		int num_downloads_peers = 0;
+
+		// check each torrent for tracker updates
+		// TODO: do this in a timer-event in each torrent instead
+		for (torrent_map::iterator i = m_torrents.begin();
+			i != m_torrents.end();)
+		{
+			torrent& t = *i->second;
+			TORRENT_ASSERT(!t.is_aborted());
+			if (t.bandwidth_queue_size(peer_connection::upload_channel))
+				++congested_torrents;
+			else
+				++uncongested_torrents;
+
+			if (t.is_finished())
+			{
+				++num_seeds;
+			}
+			else
+			{
+				++num_downloads;
+				num_downloads_peers += t.num_peers();
+			}
+
+			if (t.should_request())
+			{
+				tracker_request req = t.generate_tracker_request();
+				req.listen_port = 0;
+				if (!m_listen_sockets.empty())
+					req.listen_port = m_listen_sockets.front().external_port;
+				req.key = m_key;
+				m_tracker_manager.queue_request(m_io_service, m_half_open, req
+					, t.tracker_login(), m_listen_interface.address(), i->second);
+
+				if (m_alerts.should_post(alert::info))
+				{
+					m_alerts.post_alert(
+						tracker_announce_alert(
+							t.get_handle(), "tracker announce"));
+				}
+			}
+
+			t.second_tick(m_stat, tick_interval);
+			++i;
+		}
+
+		m_stat.second_tick(tick_interval);
+
 	
+		// --------------------------------------------------------------
+		// connect new peers
+		// --------------------------------------------------------------
+
 		// let torrents connect to peers if they want to
 		// if there are any torrents and any free slots
 
@@ -864,6 +929,9 @@ namespace aux {
 			// this is the maximum number of connections we will
 			// attempt this tick
 			int max_connections = m_settings.connection_speed;
+			int average_peers = 0;
+			if (num_downloads > 0)
+				average_peers = num_downloads_peers / num_downloads;
 
 			torrent_map::iterator i = m_torrents.begin();
 			if (m_next_connect_torrent < int(m_torrents.size()))
@@ -877,6 +945,21 @@ namespace aux {
 				torrent& t = *i->second;
 				if (t.want_more_peers())
 				{
+					int connect_points = 100;
+					// have a bias against torrents with more peers
+					// than average
+					if (!t.is_seed() && t.num_peers() > average_peers)
+						connect_points /= 2;
+					// if this is a seed and there is a torrent that
+					// is downloading, lower the rate at which this
+					// torrent gets connections.
+					// dividing by num_seeds will have the effect
+					// that all seed will get as many connections
+					// together, as a single downloading torrent.
+					if (t.is_seed() && num_downloads > 0)
+						connect_points /= num_seeds + 1;
+					if (connect_points <= 0) connect_points = 1;
+					t.give_connect_points(connect_points);
 					try
 					{
 						if (t.try_connect_peer())
@@ -904,9 +987,9 @@ namespace aux {
 					i = m_torrents.begin();
 					m_next_connect_torrent = 0;
 				}
-				// if we have gone one whole loop without
+				// if we have gone two whole loops without
 				// handing out a single connection, break
-				if (steps_since_last_connect > num_torrents) break;
+				if (steps_since_last_connect > num_torrents * 2) break;
 				// if there are no more free connection slots, abort
 				if (free_slots <= -m_half_open.limit()) break;
 				// if we should not make any more connections
@@ -952,45 +1035,6 @@ namespace aux {
 
 			c.keep_alive();
 		}
-
-		int congested_torrents = 0;
-		int uncongested_torrents = 0;
-		// check each torrent for tracker updates
-		// TODO: do this in a timer-event in each torrent instead
-		for (torrent_map::iterator i = m_torrents.begin();
-			i != m_torrents.end();)
-		{
-			torrent& t = *i->second;
-			TORRENT_ASSERT(!t.is_aborted());
-			if (t.bandwidth_queue_size(peer_connection::upload_channel))
-				++congested_torrents;
-			else
-				++uncongested_torrents;
-
-			if (t.should_request())
-			{
-				tracker_request req = t.generate_tracker_request();
-				req.listen_port = 0;
-				if (!m_listen_sockets.empty())
-					req.listen_port = m_listen_sockets.front().external_port;
-				req.key = m_key;
-				m_tracker_manager.queue_request(m_io_service, m_half_open, req
-					, t.tracker_login(), m_listen_interface.address(), i->second);
-
-				if (m_alerts.should_post(alert::info))
-				{
-					m_alerts.post_alert(
-						tracker_announce_alert(
-							t.get_handle(), "tracker announce"));
-				}
-			}
-
-			// second_tick() will set the used upload quota
-			t.second_tick(m_stat, tick_interval);
-			++i;
-		}
-
-		m_stat.second_tick(tick_interval);
 
 		// --------------------------------------------------------------
 		// unchoke set and optimistic unchoke calculations
