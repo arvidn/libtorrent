@@ -231,22 +231,19 @@ namespace libtorrent
 
 		bool has_peer(policy::peer const* p) const;
 
-	private:
-/*
-		bool unchoke_one_peer();
-		void choke_one_peer();
-		iterator find_choke_candidate();
-		iterator find_unchoke_candidate();
+		int num_connect_candidates() const { return m_num_connect_candidates; }
+		void recalculate_connect_candidates()
+		{
+			if (m_num_connect_candidates == 0)
+				m_num_connect_candidates = 1;
+		}
 
-		// the seed prefix means that the
-		// function is used while seeding.
-		bool seed_unchoke_one_peer();
-		void seed_choke_one_peer();
-		iterator find_seed_choke_candidate();
-		iterator find_seed_unchoke_candidate();
-*/
+	private:
+
 		iterator find_disconnect_candidate();
 		iterator find_connect_candidate();
+
+		bool is_connect_candidate(peer const& p, bool finished);
 
 		std::multimap<address, peer> m_peers;
 
@@ -256,10 +253,13 @@ namespace libtorrent
 		// been distributed yet.
 		size_type m_available_free_upload;
 
-		// if there is a connection limit,
-		// we disconnect one peer every minute in hope of
-		// establishing a connection with a better peer
-//		ptime m_last_optimistic_disconnect;
+		// The number of peers in our peer list
+		// that are connect candidates. i.e. they're
+		// not already connected and they have not
+		// yet reached their max try count and they
+		// have the connectable state (we have a listen
+		// port for them).
+		int m_num_connect_candidates;
 	};
 
 }
