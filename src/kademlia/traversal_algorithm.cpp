@@ -82,7 +82,9 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 
 void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
 {
-	TORRENT_ASSERT(!id.is_all_zeros());
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(traversal) << "node returned a list which included a node with id 0";
+#endif
 	add_entry(id, addr, 0);
 }
 
