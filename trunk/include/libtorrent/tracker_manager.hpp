@@ -126,7 +126,8 @@ namespace libtorrent
 			, std::vector<peer_entry>& peers
 			, int interval
 			, int complete
-			, int incomplete) = 0;
+			, int incomplete
+			, address const& external_ip) = 0;
 		virtual void tracker_request_timed_out(
 			tracker_request const&) = 0;
 		virtual void tracker_request_error(

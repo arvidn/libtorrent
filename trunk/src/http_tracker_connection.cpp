@@ -59,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/io.hpp"
+#include "libtorrent/socket.hpp"
 
 using namespace libtorrent;
 using boost::bind;
@@ -406,7 +407,19 @@ namespace libtorrent
 		// look for optional scrape info
 		int complete = -1;
 		int incomplete = -1;
+		address external_ip;
 
+		entry const* ip_ent = e.find_key("external ip");
+		if (ip_ent && ip_ent->type() == entry::string_t)
+		{
+			std::string const& ip = ip_ent->string();
+			char const* p = &ip[0];
+			if (ip.size() == address_v4::bytes_type::static_size)
+				external_ip = detail::read_v4_address(p);
+			else if (ip.size() == address_v6::bytes_type::static_size)
+				external_ip = detail::read_v6_address(p);
+		}
+		
 		entry const* complete_ent = e.find_key("complete");
 		if (complete_ent && complete_ent->type() == entry::int_t)
 			complete = complete_ent->integer();
@@ -416,7 +429,7 @@ namespace libtorrent
 			incomplete = incomplete_ent->integer();
 
 		cb->tracker_response(tracker_req(), peer_list, interval->integer(), complete
-			, incomplete);
+			, incomplete, external_ip);
 	}
 
 }

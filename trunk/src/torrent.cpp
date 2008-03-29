@@ -803,12 +803,16 @@ namespace libtorrent
 		, std::vector<peer_entry>& peer_list
 		, int interval
 		, int complete
-		, int incomplete)
+		, int incomplete
+		, address const& external_ip)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(r.kind == tracker_request::announce_request);
+
+		if (external_ip != address())
+			m_ses.set_external_address(external_ip);
 
 		m_failed_trackers = 0;
 		// announce intervals less than 5 minutes
@@ -841,6 +845,7 @@ namespace libtorrent
 			if (!i->pid.is_all_zeros()) s << " " << i->pid << " " << identify_client(i->pid);
 			s << "\n";
 		}
+		s << "external ip: " << external_ip << "\n";
 		debug_log(s.str());
 #endif
 		// for each of the peers we got from the tracker

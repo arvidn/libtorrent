@@ -2008,6 +2008,22 @@ namespace aux {
 		m_upnp = 0;
 	}
 	
+	void session_impl::set_external_address(address const& ip)
+	{
+		TORRENT_ASSERT(ip != address());
+
+		if (m_external_address == ip) return;
+
+		m_external_address = ip;
+		if (m_alerts.should_post(alert::info))
+		{
+			std::stringstream msg;
+			msg << "external address is '";
+			print_address(msg, ip) << "'";
+			m_alerts.post_alert(external_ip_alert(ip, msg.str()));
+		}
+	}
+
 	void session_impl::free_disk_buffer(char* buf)
 	{
 		m_disk_thread.free_buffer(buf);
