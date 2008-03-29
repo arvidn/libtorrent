@@ -1296,13 +1296,13 @@ namespace libtorrent
 				{
 					address_v4::bytes_type bytes;
 					std::copy(my_ip.begin(), my_ip.end(), bytes.begin());
-					m_ses.m_external_address = address_v4(bytes);
+					m_ses.set_external_address(address_v4(bytes));
 				}
 				else if (my_ip.size() == address_v6::bytes_type::static_size)
 				{
 					address_v6::bytes_type bytes;
 					std::copy(my_ip.begin(), my_ip.end(), bytes.begin());
-					m_ses.m_external_address = address_v6(bytes);
+					m_ses.set_external_address(address_v6(bytes));
 				}
 			}
 		}

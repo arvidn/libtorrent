@@ -319,8 +319,9 @@ namespace libtorrent
 			std::pair<char*, int> allocate_buffer(int size);
 			void free_buffer(char* buf, int size);
 			void free_disk_buffer(char* buf);
-			
-			address m_external_address;
+
+			void set_external_address(address const& ip);
+			address const& external_address() const { return m_external_address; }
 
 //		private:
 
@@ -554,7 +555,9 @@ namespace libtorrent
 		public:
 			boost::shared_ptr<logger> m_logger;
 		private:
+
 #endif
+			address m_external_address;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			typedef std::list<boost::function<boost::shared_ptr<

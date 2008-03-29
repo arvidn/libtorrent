@@ -459,7 +459,7 @@ namespace libtorrent
 		int min_reconnect_time = m_torrent->settings().min_reconnect_time;
 		int min_cidr_distance = (std::numeric_limits<int>::max)();
 		bool finished = m_torrent->is_finished();
-		address external_ip = m_torrent->session().m_external_address;
+		address external_ip = m_torrent->session().external_address();
 
 		if (external_ip == address())
 		{

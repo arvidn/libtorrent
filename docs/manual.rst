@@ -3344,6 +3344,24 @@ alerts that are generated for a specific torrent are derived from::
 
 The specific alerts, that all derives from ``alert``, are:
 
+external_ip_alert
+-----------------
+
+Whenever libtorrent learns about the machines external IP, this alert is
+generated. The external IP address can be acquired from the tracker (if it
+supports that) or from peers that supports the extension protocol.
+The address can be accessed through the ``external_address`` member.
+This alert is generated as severity level ``info``.
+
+::
+
+	struct external_ip_alert: alert
+	{
+		external_ip_alert(address const& ip, const std::string& msg);
+		address external_address;
+		virtual std::auto_ptr<alert> clone() const;
+	};
+
 
 listen_failed_alert
 -------------------
