@@ -39,6 +39,8 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len, asio::err
 
 void udp_socket::on_read(udp::socket* s, asio::error_code const& e, std::size_t bytes_transferred)
 {
+	if (!m_callback) return;
+
 	if (e)
 	{
 #ifndef BOOST_NO_EXCEPTIONS
@@ -70,7 +72,6 @@ void udp_socket::on_read(udp::socket* s, asio::error_code const& e, std::size_t 
 
 		return;
 	}
-	if (!m_callback) return;
 
 	if (s == &m_ipv4_sock)
 	{
