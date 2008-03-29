@@ -1,3 +1,5 @@
+	* Better bias to give connections to downloading torrents
+	  with fewer peers.
 	* Optimized resource usage (removed the checking thread)
 	* Support to bind outgoing connections to specific ports
 	* Disk cache support.

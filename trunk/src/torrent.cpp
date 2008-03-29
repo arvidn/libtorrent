@@ -204,6 +204,7 @@ namespace libtorrent
 		, m_max_uploads((std::numeric_limits<int>::max)())
 		, m_num_uploads(0)
 		, m_max_connections((std::numeric_limits<int>::max)())
+		, m_deficit_counter(0)
 		, m_policy(this)
 	{
 #ifndef NDEBUG
@@ -268,6 +269,7 @@ namespace libtorrent
 		, m_max_uploads((std::numeric_limits<int>::max)())
 		, m_num_uploads(0)
 		, m_max_connections((std::numeric_limits<int>::max)())
+		, m_deficit_counter(0)
 		, m_policy(this)
 	{
 #ifndef NDEBUG
@@ -2312,6 +2314,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(peerinfo);
 		TORRENT_ASSERT(peerinfo->connection == 0);
+
 		peerinfo->connected = time_now();
 #ifndef NDEBUG
 		// this asserts that we don't have duplicates in the policy's peer list
@@ -3269,7 +3272,18 @@ namespace libtorrent
 	bool torrent::try_connect_peer()
 	{
 		TORRENT_ASSERT(want_more_peers());
-		return m_policy.connect_one_peer();
+		if (m_deficit_counter < 100) return false;
+		m_deficit_counter -= 100;
+		bool ret = m_policy.connect_one_peer();
+		return ret;
+	}
+
+	void torrent::give_connect_points(int points)
+	{
+		TORRENT_ASSERT(points <= 100);
+		TORRENT_ASSERT(points > 0);
+		TORRENT_ASSERT(want_more_peers());
+		m_deficit_counter += points;
 	}
 
 	void torrent::async_verify_piece(int piece_index, boost::function<void(bool)> const& f)

@@ -280,6 +280,7 @@ namespace libtorrent
 
 		bool want_more_peers() const;
 		bool try_connect_peer();
+		void give_connect_points(int points);
 
 		// the number of peers that belong to this torrent
 		int num_peers() const { return (int)m_connections.size(); }
@@ -816,6 +817,19 @@ namespace libtorrent
 		// total_done - m_initial_done <= total_payload_download
 		size_type m_initial_done;
 #endif
+		// this is the deficit counter in the Deficit Round Robin
+		// used to determine which torrent gets the next
+		// connection attempt. See:
+		// http://www.ecs.umass.edu/ece/wolf/courses/ECE697J/papers/DRR.pdf
+		// The quanta assigned to each torrent depends on the torrents
+		// priority, whether it's seed and the number of connected
+		// peers it has. This has the effect that some torrents
+		// will have more connection attempts than other. Each
+		// connection attempt costs 100 points from the deficit
+		// counter. points are deducted in try_connect_peer and
+		// increased in give_connect_points. Outside of the
+		// torrent object, these points are called connect_points.
+		int m_deficit_counter;
 
 		policy m_policy;
 	};
