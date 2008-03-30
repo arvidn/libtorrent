@@ -2864,6 +2864,13 @@ namespace libtorrent
 			m_storage->async_release_files(
 				bind(&torrent::on_torrent_paused, shared_from_this(), _1, _2));
 		}
+		else
+		{
+			if (alerts().should_post(alert::warning))
+			{
+				alerts().post_alert(torrent_paused_alert(get_handle(), "torrent paused"));
+			}
+		}
 	}
 
 	void torrent::resume()
