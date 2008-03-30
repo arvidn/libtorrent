@@ -583,7 +583,8 @@ namespace libtorrent
 				, std::vector<peer_entry>& peers
 				, int interval
 				, int complete
-				, int incomplete)
+				, int incomplete
+				, address const& external_ip)
 			{
 				std::stringstream s;
 				s << "TRACKER RESPONSE:\n"
@@ -597,6 +598,7 @@ namespace libtorrent
 					if (!i->pid.is_all_zeros()) s << " " << i->pid;
 					s << "\n";
 				}
+				s << "external ip: " << external_ip << "\n";
 				debug_log(s.str());
 			}
 
