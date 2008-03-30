@@ -2096,6 +2096,9 @@ It contains the following fields::
 		int num_complete;
 		int num_incomplete;
 
+		int list_seeds;
+		int list_peers;
+
 		int connect_candidates;
 
 		const std::vector<bool>* pieces;
@@ -2212,6 +2215,12 @@ send any scrape data in its announce reply. This data is optional and may
 not be available from all trackers. If these are not -1, they are the total
 number of peers that are seeding (complete) and the total number of peers
 that are still downloading (incomplete) this torrent.
+
+``list_seeds`` and ``list_peers`` are the number of seeds in our peer list
+and the total number of peers (including seeds) respectively. We are not
+necessarily connected to all the peers in our peer list. This is the number
+of peers we know of in total, including banned peers and peers that we have
+failed to connect to.
 
 ``connect_candidates`` is the number of peers in this torrent's peer list
 that is a candidate to be connected to. i.e. It has fewer connect attempts
