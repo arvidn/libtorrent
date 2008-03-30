@@ -167,7 +167,11 @@ namespace libtorrent
 		m_tracker_connection.reset(new http_connection(ios, cc
 			, boost::bind(&http_tracker_connection::on_response, self(), _1, _2, _3, _4)));
 
-		m_tracker_connection->get(url, seconds(stn.tracker_completion_timeout)
+		int timeout = req.event==tracker_request::stopped
+			?stn.stop_tracker_timeout
+			:stn.tracker_completion_timeout;
+
+		m_tracker_connection->get(url, seconds(timeout)
 			, 1, &ps, 5, stn.user_agent, bind_infc);
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
