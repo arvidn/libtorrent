@@ -335,6 +335,11 @@ exit:
 			}
 			// close will remove the entry from m_connections
 			// so no need to pop
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			boost::shared_ptr<request_callback> rc = c->requester();
+			if (rc) rc->debug_log("aborting: " + req.url);
+#endif
 			c->close();
 		}
 
