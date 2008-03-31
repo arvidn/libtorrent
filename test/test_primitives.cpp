@@ -368,14 +368,14 @@ int test_main()
 	std::vector<node_entry> temp;
 
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
-	table.find_node(tmp, temp, false, nodes.size() + 1);
+	table.find_node(tmp, temp, false, nodes.size());
 	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_CHECK(temp.size() == nodes.size() - 1);
+	TEST_CHECK(temp.size() == nodes.size());
 
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
 	table.find_node(tmp, temp, true, nodes.size() + 1);
 	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_CHECK(temp.size() == nodes.size());
+	TEST_CHECK(temp.size() == nodes.size() + 1);
 
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
 	table.find_node(tmp, temp, false, 7);
