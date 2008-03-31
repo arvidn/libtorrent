@@ -720,7 +720,11 @@ namespace aux {
 		c->m_in_constructor = false;
 #endif
 
-		if (!c->is_disconnecting()) m_connections.insert(c);
+		if (!c->is_disconnecting())
+		{
+			m_connections.insert(c);
+			c->start();
+		}
 	}
 	catch (std::exception& exc)
 	{

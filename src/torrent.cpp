@@ -2047,6 +2047,7 @@ namespace libtorrent
 #ifndef NDEBUG
 		c->m_in_constructor = false;
 #endif
+		c->start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -2365,6 +2366,7 @@ namespace libtorrent
 			// add the newly connected peer to this torrent's peer list
 			m_connections.insert(boost::get_pointer(c));
 			m_ses.m_connections.insert(c);
+			c->start();
 
 			int timeout = settings().peer_connect_timeout;
 			if (peerinfo) timeout += 3 * peerinfo->failcount;
