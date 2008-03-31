@@ -368,7 +368,7 @@ int test_main()
 	std::vector<node_entry> temp;
 
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
-	table.find_node(tmp, temp, false, nodes.size());
+	table.find_node(tmp, temp, false, nodes.size() + 1);
 	std::cout << "returned: " << temp.size() << std::endl;
 	TEST_CHECK(temp.size() == nodes.size());
 
