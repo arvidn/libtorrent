@@ -122,6 +122,12 @@ namespace libtorrent
 			, boost::shared_ptr<socket_type> s
 			, policy::peer* peerinfo);
 
+		// this function is called after it has been constructed and properly
+		// reference counted. It is safe to call self() in this function
+		// and schedule events with references to itself (that is not safe to
+		// do in the constructor).
+		virtual void start();
+
 		virtual ~peer_connection();
 
 		void set_peer_info(policy::peer* pi)
@@ -513,6 +519,14 @@ namespace libtorrent
 		// the two character country code this
 		// peer resides in.
 		char m_country[2];
+#endif
+
+#ifndef NDEBUG
+		boost::intrusive_ptr<peer_connection> self()
+		{
+			TORRENT_ASSERT(!m_in_constructor);
+			return intrusive_ptr_base<peer_connection>::self();
+		}
 #endif
 
 	private:

@@ -163,13 +163,19 @@ namespace libtorrent
 		m_bandwidth_limit[upload_channel].assign(80);
 #endif
 
+#ifndef NDEBUG
+		m_in_constructor = false;
+#endif
+	}
+
+	void bt_peer_connection::start()
+	{
+		peer_connection::start();
+		
 		// start in the state where we are trying to read the
 		// handshake from the other side
 		reset_recv_buffer(20);
 		setup_receive();
-#ifndef NDEBUG
-		m_in_constructor = false;
-#endif
 	}
 
 	bt_peer_connection::~bt_peer_connection()

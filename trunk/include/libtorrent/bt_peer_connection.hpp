@@ -102,6 +102,8 @@ namespace libtorrent
 			, boost::shared_ptr<socket_type> s
 			, policy::peer* peerinfo);
 
+		void start();
+
 		~bt_peer_connection();
 		
 #ifndef TORRENT_DISABLE_ENCRYPTION

@@ -140,12 +140,7 @@ namespace libtorrent
 		piece_failed = false;
 #endif
 
-		boost::shared_ptr<torrent> t = m_torrent.lock();
-		TORRENT_ASSERT(t);
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
-
-		if (t->ready_for_connections())
-			init();
 	}
 
 	// incoming connection
@@ -267,6 +262,14 @@ namespace libtorrent
 	void peer_connection::reset_choke_counters()
 	{
 		m_downloaded_at_last_unchoke = m_statistics.total_payload_download();
+	}
+
+	void peer_connection::start()
+	{
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+
+		if (t && t->ready_for_connections())
+			init();
 	}
 
 	void peer_connection::update_interest()
