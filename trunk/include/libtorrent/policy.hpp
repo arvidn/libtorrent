@@ -139,43 +139,9 @@ namespace libtorrent
 			tcp::endpoint ip;
 			connection_type type;
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
-			// Hints encryption support of peer. Only effective for
-			// and when the outgoing encryption policy allows both
-			// encrypted and non encrypted connections
-			// (pe_settings::out_enc_policy == enabled). The initial
-			// state of this flag determines the initial connection
-			// attempt type (true = encrypted, false = standard).
-			// This will be toggled everytime either an encrypted or
-			// non-encrypted handshake fails.
-			bool pe_support;
-#endif
-			// the number of failed connection attempts this peer has
-			int failcount;
-
-			// the number of times this peer has been
-			// part of a piece that failed the hash check
-			int hashfails;
-
-			// this is true if the peer is a seed
-			bool seed;
-
-			int fast_reconnects;
-
-			// true if this peer currently is unchoked
-			// because of an optimistic unchoke.
-			// when the optimistic unchoke is moved to
-			// another peer, this peer will be choked
-			// if this is true
-			bool optimistically_unchoked;
-
-			// the time when this peer was optimistically unchoked
-			// the last time.
-			libtorrent::ptime last_optimistically_unchoked;
-
-			// the time when the peer connected to us
-			// or disconnected if it isn't connected right now
-			libtorrent::ptime connected;
+			// the number of failed connection attempts
+			// this peer has
+			boost::uint8_t failcount;
 
 			// for every valid piece we receive where this
 			// peer was one of the participants, we increase
@@ -183,15 +149,63 @@ namespace libtorrent
 			// where this peer was a participant, we decrease
 			// this value. If it sinks below a threshold, its
 			// considered a bad peer and will be banned.
-			int trust_points;
+			boost::int8_t trust_points;
 
-			// if this is true, the peer has previously participated
-			// in a piece that failed the piece hash check. This will
-			// put the peer on parole and only request entire pieces.
-			// if a piece pass that was partially requested from this
-			// peer it will leave parole mode and continue download
+			// a bitmap combining the peer_source flags
+			// from peer_info.
+			boost::uint8_t source;
+
+			// the number of times this peer has been
+			// part of a piece that failed the hash check
+			boost::uint8_t hashfails;
+
+			// the number of times we have allowed a fast
+			// reconnect for this peer.
+			boost::uint8_t fast_reconnects:4;
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			// Hints encryption support of peer. Only effective
+			// for and when the outgoing encryption policy
+			// allows both encrypted and non encrypted
+			// connections (pe_settings::out_enc_policy
+			// == enabled). The initial state of this flag
+			// determines the initial connection attempt
+			// type (true = encrypted, false = standard).
+			// This will be toggled everytime either an
+			// encrypted or non-encrypted handshake fails.
+			bool pe_support:1;
+#endif
+			// true if this peer currently is unchoked
+			// because of an optimistic unchoke.
+			// when the optimistic unchoke is moved to
+			// another peer, this peer will be choked
+			// if this is true
+			bool optimistically_unchoked:1;
+
+			// this is true if the peer is a seed
+			bool seed:1;
+
+			// if this is true, the peer has previously
+			// participated in a piece that failed the piece
+			// hash check. This will put the peer on parole
+			// and only request entire pieces. If a piece pass
+			// that was partially requested from this peer it
+			// will leave parole mode and continue download
 			// pieces as normal peers.
-			bool on_parole;
+			bool on_parole:1;
+
+			// is set to true if this peer has been banned
+			bool banned:1;
+
+#ifndef TORRENT_DISABLE_DHT
+			// this is set to true when this peer as been
+			// pinged by the DHT
+			bool added_to_dht:1;
+#endif
+
+			// if the peer is connected now, this
+			// will refer to a valid peer_connection
+			peer_connection* connection;
 
 			// this is the accumulated amount of
 			// uploaded and downloaded data to this
@@ -205,16 +219,13 @@ namespace libtorrent
 			size_type prev_amount_upload;
 			size_type prev_amount_download;
 
-			// is set to true if this peer has been banned
-			bool banned;
+			// the time when this peer was optimistically unchoked
+			// the last time.
+			libtorrent::ptime last_optimistically_unchoked;
 
-			// a bitmap combining the peer_source flags
-			// from peer_info.
-			int source;
-
-			// if the peer is connected now, this
-			// will refer to a valid peer_connection
-			peer_connection* connection;
+			// the time when the peer connected to us
+			// or disconnected if it isn't connected right now
+			libtorrent::ptime connected;
 		};
 
 		int num_peers() const { return m_peers.size(); }
@@ -231,6 +242,7 @@ namespace libtorrent
 
 		bool has_peer(policy::peer const* p) const;
 
+		int num_seeds() const { return m_num_seeds; }
 		int num_connect_candidates() const { return m_num_connect_candidates; }
 		void recalculate_connect_candidates()
 		{
@@ -260,6 +272,9 @@ namespace libtorrent
 		// have the connectable state (we have a listen
 		// port for them).
 		int m_num_connect_candidates;
+
+		// the number of seeds in the peer list
+		int m_num_seeds;
 	};
 
 }

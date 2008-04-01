@@ -456,12 +456,13 @@ namespace libtorrent
 
 	void peer_connection::fast_reconnect(bool r)
 	{
-		if (peer_info_struct() && peer_info_struct()->fast_reconnects > 1) return;
+		if (!peer_info_struct() || peer_info_struct()->fast_reconnects > 1)
+			return;
 		m_fast_reconnect = r;
 		peer_info_struct()->connected = time_now()
 			- seconds(m_ses.settings().min_reconnect_time
 			* m_ses.settings().max_failcount);
-		if (peer_info_struct()) ++peer_info_struct()->fast_reconnects;
+		++peer_info_struct()->fast_reconnects;
 	}
 
 	void peer_connection::announce_piece(int index)
@@ -565,7 +566,7 @@ namespace libtorrent
 		{
 			peer_info_struct()->on_parole = true;
 			++peer_info_struct()->hashfails;
-			int& trust_points = peer_info_struct()->trust_points;
+			boost::int8_t& trust_points = peer_info_struct()->trust_points;
 
 			// we decrease more than we increase, to keep the
 			// allowed failed/passed ratio low.

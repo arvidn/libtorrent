@@ -3392,9 +3392,8 @@ namespace libtorrent
 		st.num_peers = (int)std::count_if(m_connections.begin(), m_connections.end()
 			, !boost::bind(&peer_connection::is_connecting, _1));
 
-		st.list_peers = std::distance(m_policy.begin_peer(), m_policy.end_peer());
-		st.list_seeds = (int)std::count_if(m_policy.begin_peer(), m_policy.end_peer()
-			, boost::bind(&policy::peer::seed, bind(&policy::iterator::value_type::second, _1)));
+		st.list_peers = m_policy.num_peers();
+		st.list_seeds = m_policy.num_seeds();
 		st.connect_candidates = m_policy.num_connect_candidates();
 
 		st.storage_mode = m_storage_mode;
