@@ -385,6 +385,7 @@ namespace libtorrent
 				}
 			}
 			if (p) p->clear_peer(&i->second);
+			if (i->second.seed) --m_num_seeds;
 			m_peers.erase(i++);
 		}
 	}
@@ -471,8 +472,10 @@ namespace libtorrent
 		}
 
 		int connect_candidates = 0;
+		int seeds = 0;
 		for (iterator i = m_peers.begin(); i != m_peers.end(); ++i)
 		{
+			if (i->second.seed) ++seeds;
 			if (!is_connect_candidate(i->second, finished)) continue;
 			++connect_candidates;
 
@@ -504,6 +507,7 @@ namespace libtorrent
 		}
 		
 		m_num_connect_candidates = connect_candidates;
+		m_num_seeds = seeds;
 		TORRENT_ASSERT(min_connect_time <= now);
 
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
@@ -532,19 +536,37 @@ namespace libtorrent
 		if (m_torrent->has_picker())
 			p = &m_torrent->picker();
 
+		bool pinged = false;
+
 		ptime now = time_now();
 		// remove old disconnected peers from the list
 		for (iterator i = m_peers.begin(); i != m_peers.end();)
 		{
+			peer& pe = i->second;
+
+#ifndef TORRENT_DISABLE_DHT
+			// try to send a DHT ping to this peer
+			// as well, to figure out if it supports
+			// DHT (uTorrent and BitComet doesn't
+			// advertise support)
+			if (!pinged && !pe.added_to_dht)
+			{
+				udp::endpoint node(pe.ip.address(), pe.ip.port());
+				m_torrent->session().add_dht_node(node);
+				pe.added_to_dht = true;
+				pinged = true;
+			}
+#endif
 			// this timeout has to be customizable!
 			// don't remove banned peers, they should
 			// remain banned
-			if (i->second.connection == 0
-				&& i->second.connected != min_time()
-				&& !i->second.banned
-				&& now - i->second.connected > minutes(120))
+			if (pe.connection == 0
+				&& pe.connected != min_time()
+				&& !pe.banned
+				&& now - pe.connected > minutes(120))
 			{
-				if (p) p->clear_peer(&i->second);
+				if (p) p->clear_peer(&pe);
+				if (pe.seed) --m_num_seeds;
 				m_peers.erase(i++);
 			}
 			else
@@ -770,6 +792,7 @@ namespace libtorrent
 				}
 				if (m_torrent->has_picker())
 					m_torrent->picker().clear_peer(&i->second);
+				if (i->second.seed) --m_num_seeds;
 				m_peers.erase(i);	
 			}
 		}
@@ -851,16 +874,11 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 				if (flags & 0x01) i->second.pe_support = true;
 #endif
-				if (flags & 0x02) i->second.seed = true;
-
-				// try to send a DHT ping to this peer
-				// as well, to figure out if it supports
-				// DHT (uTorrent and BitComet doesn't
-				// advertise support)
-#ifndef TORRENT_DISABLE_DHT
-				udp::endpoint node(remote.address(), remote.port());
-				m_torrent->session().add_dht_node(node);
-#endif
+				if (flags & 0x02)
+				{
+					i->second.seed = true;
+					++m_num_seeds;
+				}
 			}
 			else
 			{
@@ -879,7 +897,11 @@ namespace libtorrent
 				// if we're connected to this peer
 				// we already know if it's a seed or not
 				// so we don't have to trust this source
-				if ((flags & 0x02) && !i->second.connection) i->second.seed = true;
+				if ((flags & 0x02) && !i->second.connection)
+				{
+					if (!i->second.seed) ++m_num_seeds;
+					i->second.seed = true;
+				}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 				if (i->second.connection)
@@ -1295,24 +1317,28 @@ namespace libtorrent
 	policy::peer::peer(const tcp::endpoint& ip_, peer::connection_type t, int src)
 		: ip(ip_)
 		, type(t)
+		, failcount(0)
+		, trust_points(0)
+		, source(src)
+		, hashfails(0)
+		, fast_reconnects(0)
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		, pe_support(true)
 #endif
-		, failcount(0)
-		, hashfails(0)
-		, seed(false)
-		, fast_reconnects(0)
 		, optimistically_unchoked(false)
-		, last_optimistically_unchoked(min_time())
-		, connected(min_time())
-		, trust_points(0)
+		, seed(false)
 		, on_parole(false)
+		, banned(false)
+#ifndef TORRENT_DISABLE_DHT
+		, added_to_dht(false)
+#endif
+		, connection(0)
 		, prev_amount_upload(0)
 		, prev_amount_download(0)
-		, banned(false)
-		, source(src)
-		, connection(0)
+		, last_optimistically_unchoked(min_time())
+		, connected(min_time())
 	{
+		TORRENT_ASSERT((src & 0xff) == src);
 		TORRENT_ASSERT(connected < time_now());
 	}
 
