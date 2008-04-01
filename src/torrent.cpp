@@ -2047,7 +2047,6 @@ namespace libtorrent
 #ifndef NDEBUG
 		c->m_in_constructor = false;
 #endif
-		c->start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -2063,6 +2062,7 @@ namespace libtorrent
 			// add the newly connected peer to this torrent's peer list
 			m_connections.insert(boost::get_pointer(c));
 			m_ses.m_connections.insert(c);
+			c->start();
 
 			m_ses.m_half_open.enqueue(
 				bind(&peer_connection::connect, c, _1)
