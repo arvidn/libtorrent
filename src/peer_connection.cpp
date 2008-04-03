@@ -120,6 +120,8 @@ namespace libtorrent
 		, m_fast_reconnect(false)
 		, m_rtt(0)
 		, m_downloaded_at_last_unchoke(0)
+		, m_download_rate_peak(0)
+		, m_upload_rate_peak(0)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif
@@ -199,6 +201,8 @@ namespace libtorrent
 		, m_fast_reconnect(false)
 		, m_rtt(0)
 		, m_downloaded_at_last_unchoke(0)
+		, m_download_rate_peak(0)
+		, m_upload_rate_peak(0)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 #endif
@@ -2202,6 +2206,8 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(!associated_torrent().expired());
 
+		p.download_rate_peak = m_download_rate_peak;
+		p.upload_rate_peak = m_upload_rate_peak;
 		p.rtt = m_rtt;
 		p.down_speed = statistics().download_rate();
 		p.up_speed = statistics().upload_rate();
@@ -2333,6 +2339,15 @@ namespace libtorrent
 			&& on_local_network();
 
 		m_statistics.second_tick(tick_interval);
+
+		if (m_statistics.upload_payload_rate() > m_upload_rate_peak)
+		{
+			m_upload_rate_peak = m_statistics.upload_payload_rate();
+		}
+		if (m_statistics.download_payload_rate() > m_download_rate_peak)
+		{
+			m_download_rate_peak = m_statistics.download_payload_rate();
+		}
 
 		if (!t->valid_metadata()) return;
 
