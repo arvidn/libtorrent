@@ -158,7 +158,6 @@ struct bandwidth_manager
 		INVARIANT_CHECK;
 		if (m_abort) return;
 		TORRENT_ASSERT(blk > 0);
-		TORRENT_ASSERT(!peer->ignore_bandwidth_limits());
 
 		// make sure this peer isn't already in line
 		// waiting for bandwidth
