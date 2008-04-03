@@ -16,18 +16,18 @@
 <col class="docinfo-content" />
 <tbody valign="top">
 <tr><th class="docinfo-name">Author:</th>
-<td>Arvid Norberg, <a class="last reference" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
-<p class="topic-title first"><a name="table-of-contents">Table of contents</a></p>
+<p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference" href="#building" id="id1" name="id1">building</a></li>
-<li><a class="reference" href="#using" id="id2" name="id2">using</a></li>
+<li><a class="reference internal" href="#building" id="id1">building</a></li>
+<li><a class="reference internal" href="#using-libtorrent-in-python" id="id2">using libtorrent in python</a></li>
 </ul>
 </div>
-<div class="section">
-<h1><a id="building" name="building">building</a></h1>
+<div class="section" id="building">
+<h1>building</h1>
 <p>Building the libtorrent python bindings will produce a shared library (DLL)
 which is a python module that can be imported in a python program.</p>
 <p>The only supported build system for the bindings are currently boost build. To
@@ -45,10 +45,10 @@ using python : 2.3 : /usr ;
 </pre>
 <p>The bindings require <em>at least</em> python version 2.2.</p>
 <p>For more information on how to install and set up boost-build, see the
-<a class="reference" href="building.html#step-2-setup-bbv2">building libtorrent</a> section.</p>
+<a class="reference external" href="building.html#step-2-setup-bbv2">building libtorrent</a> section.</p>
 <p>Once you have boost-build set up, you cd to the <tt class="docutils literal"><span class="pre">bindings/python</span></tt>
 directory and invoke <tt class="docutils literal"><span class="pre">bjam</span></tt> with the apropriate settings. For the available
-build variants, see <a class="reference" href="building.html#step-3-building-libtorrent">libtorrent build options</a>.</p>
+build variants, see <a class="reference external" href="building.html#step-3-building-libtorrent">libtorrent build options</a>.</p>
 <p>For example:</p>
 <pre class="literal-block">
 $ bjam dht-support=on boost=source release link=static
@@ -58,10 +58,26 @@ $ bjam dht-support=on boost=source release link=static
 bin/darwin-4.0/release/dht-support-on/link-static/logging-none/threading-multi/libtorrent.so
 </pre>
 </div>
-<div class="section">
-<h1><a id="using" name="using">using</a></h1>
+<div class="section" id="using-libtorrent-in-python">
+<h1>using libtorrent in python</h1>
 <p>The python interface is nearly identical to the C++ interface. Please refer to
-the <a class="reference" href="manual.html">main library reference</a>.</p>
+the <a class="reference external" href="manual.html">main library reference</a>. The main differences are:</p>
+<dl class="docutils">
+<dt>asio::tcp::endpoint</dt>
+<dd>The endpoint type is represented as a tuple of a string (as the address) and an int for
+the port number. E.g. <tt class="docutils literal"><span class="pre">('127.0.0.1',</span> <span class="pre">6881)</span></tt> represents the localhost port 6881.</dd>
+<dt>libtorrent::time_duration</dt>
+<dd>The time duration is represented as a number of seconds in a regular integer.</dd>
+</dl>
+<p>The following functions takes a reference to a container that is filled with
+entries by the function. The python equivalent of these functions instead returns
+a list of entries.</p>
+<ul class="simple">
+<li>torrent_handle::get_peer_info</li>
+<li>torrent_handle::file_progress</li>
+<li>torrent_handle::get_download_queue</li>
+<li>torrent_handle::piece_availability</li>
+</ul>
 <p>For an example python program, see <tt class="docutils literal"><span class="pre">client.py</span></tt> in the <tt class="docutils literal"><span class="pre">bindings/python</span></tt>
 directory.</p>
 <p>A very simple example usage of the module would be something like this:</p>
