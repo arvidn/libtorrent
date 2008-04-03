@@ -198,7 +198,6 @@ struct bandwidth_manager
 		if (m_abort) return;
 		TORRENT_ASSERT(blk > 0);
 		TORRENT_ASSERT(!is_queued(peer.get(), l));
-		TORRENT_ASSERT(!peer->ignore_bandwidth_limits());
 
 		// make sure this peer isn't already in line
 		// waiting for bandwidth
