@@ -174,6 +174,10 @@ namespace libtorrent
 
 		// estimated rtt to peer, in milliseconds
 		int rtt;
+
+		// the highest transfer rates seen for this peer
+		int download_rate_peak;
+		int upload_rate_peak;
 	};
 
 }

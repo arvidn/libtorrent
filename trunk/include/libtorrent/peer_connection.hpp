@@ -781,6 +781,11 @@ namespace libtorrent
 		// they sent us
 		size_type m_downloaded_at_last_unchoke;
 
+		// max transfer rates seen on this peer
+		int m_download_rate_peak;
+		int m_upload_rate_peak;
+
+
 #ifndef NDEBUG
 	public:
 		bool m_in_constructor;
