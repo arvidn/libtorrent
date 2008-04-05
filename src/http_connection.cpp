@@ -266,7 +266,7 @@ void http_connection::on_read(asio::error_code const& e
 		{
 			m_parser.incoming(rcv_buf);
 		}
-		catch (std::exception& e)
+		catch (std::exception&)
 		{
 			m_timer.cancel();
 			m_handler(asio::error::fault, m_parser, 0, 0);

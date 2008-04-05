@@ -486,7 +486,7 @@ namespace libtorrent
 
 			int file_index = m_file_requests.front();
 			peer_request in_range = info.map_file(file_index, range_start
-				, range_end - range_start);
+				, int(range_end - range_start));
 
 			peer_request front_request = m_requests.front();
 

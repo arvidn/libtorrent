@@ -352,7 +352,7 @@ namespace libtorrent
 		m_timeout.async_wait(m_strand.wrap(
 			bind(&timeout_handler::timeout_callback, self(), _1)));
 	}
-	catch (std::exception& e)
+	catch (std::exception&)
 	{
 		TORRENT_ASSERT(false);
 	}

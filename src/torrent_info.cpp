@@ -340,7 +340,7 @@ namespace libtorrent
 		m_info_hash = h.final();
 
 		// extract piece length
-		m_piece_length = (int)info["piece length"].integer();
+		m_piece_length = int(info["piece length"].integer());
 		if (m_piece_length <= 0) throw std::runtime_error("invalid torrent. piece length <= 0");
 
 		// extract file name (or the directory name if it's a multifile libtorrent)
@@ -497,7 +497,7 @@ namespace libtorrent
 				std::string const& hostname = iter->string();
 				++iter;
 				int port = 6881;
-				if (l.end() != iter) port = iter->integer();
+				if (l.end() != iter) port = int(iter->integer());
 				m_nodes.push_back(std::make_pair(hostname, port));
 			}
 		}
@@ -817,7 +817,7 @@ namespace libtorrent
 
 // ------- end deprecation -------
 
-	size_type torrent_info::piece_size(int index) const
+	int torrent_info::piece_size(int index) const
 	{
 		TORRENT_ASSERT(index >= 0 && index < num_pieces());
 		if (index == num_pieces()-1)
@@ -826,7 +826,7 @@ namespace libtorrent
 				- (num_pieces() - 1) * piece_length();
 			TORRENT_ASSERT(size > 0);
 			TORRENT_ASSERT(size <= piece_length());
-			return size;
+			return int(size);
 		}
 		else
 			return piece_length();
@@ -882,12 +882,13 @@ namespace libtorrent
 	}
 
 	std::vector<file_slice> torrent_info::map_block(int piece, size_type offset
-		, int size, bool storage) const
+		, int size_, bool storage) const
 	{
 		TORRENT_ASSERT(num_files() > 0);
 		std::vector<file_slice> ret;
 
 		size_type start = piece * (size_type)m_piece_length + offset;
+		size_type size = size_;
 		TORRENT_ASSERT(start + size <= m_total_size);
 
 		// find the file iterator and file offset
@@ -926,8 +927,8 @@ namespace libtorrent
 		size_type offset = file_offset + file_at(file_index, storage).offset;
 
 		peer_request ret;
-		ret.piece = offset / piece_length();
-		ret.start = offset - ret.piece * piece_length();
+		ret.piece = int(offset / piece_length());
+		ret.start = int(offset - ret.piece * piece_length());
 		ret.length = size;
 		return ret;
 	}

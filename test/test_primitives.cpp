@@ -262,7 +262,8 @@ int test_main()
  	torrent_info ti3(torrent);
  	std::cerr << ti3.name() << std::endl;
  	TEST_CHECK(ti3.name() == "test2/test3/test4");
-	
+
+#ifndef TORRENT_DISABLE_DHT	
 	// test kademlia functions
 
 	using namespace libtorrent::dht;
@@ -278,7 +279,7 @@ int test_main()
 			int dist = distance_exp(a, b);
 
 			TEST_CHECK(dist >= 0 && dist < 160);
-			TEST_CHECK(dist == ((i == j)?0:std::max(i, j)));
+			TEST_CHECK(dist == ((i == j)?0:(std::max)(i, j)));
 
 			for (int k = 0; k < 160; k += 4)
 			{
@@ -290,6 +291,7 @@ int test_main()
 			}
 		}
 	}
+#endif
 
 	// CIDR distance test
 	sha1_hash h1 = boost::lexical_cast<sha1_hash>("0123456789abcdef01232456789abcdef0123456");

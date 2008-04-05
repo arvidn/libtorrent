@@ -95,7 +95,7 @@ namespace libtorrent {
 			nsec -= 1000000000;
 			xt.sec += 1;
 		}
-		xt.nsec = nsec;
+		xt.nsec = boost::xtime::xtime_nsec_t(nsec);
 		if (!m_condition.timed_wait(lock, xt)) return 0;
 		TORRENT_ASSERT(!m_alerts.empty());
 		if (m_alerts.empty()) return 0;

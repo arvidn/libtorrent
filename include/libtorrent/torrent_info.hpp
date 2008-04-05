@@ -198,7 +198,7 @@ namespace libtorrent
 		const std::vector<announce_entry>& trackers() const { return m_urls; }
 
 		size_type total_size() const { TORRENT_ASSERT(m_piece_length > 0); return m_total_size; }
-		size_type piece_length() const { TORRENT_ASSERT(m_piece_length > 0); return m_piece_length; }
+		int piece_length() const { TORRENT_ASSERT(m_piece_length > 0); return m_piece_length; }
 		int num_pieces() const { TORRENT_ASSERT(m_piece_length > 0); return m_num_pieces; }
 		const sha1_hash& info_hash() const { return m_info_hash; }
 		const std::string& name() const { TORRENT_ASSERT(m_piece_length > 0); return m_name; }
@@ -215,7 +215,7 @@ namespace libtorrent
 
 		void convert_file_names();
 
-		size_type piece_size(int index) const;
+		int piece_size(int index) const;
 
 		const sha1_hash& hash_for_piece(int index) const
 		{
@@ -267,7 +267,7 @@ namespace libtorrent
 		// the length of one piece
 		// if this is 0, the torrent_info is
 		// in an uninitialized state
-		size_type m_piece_length;
+		int m_piece_length;
 
 		// the sha-1 hashes of each piece
 		std::vector<sha1_hash> m_piece_hash;

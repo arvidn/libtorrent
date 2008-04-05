@@ -485,7 +485,7 @@ namespace libtorrent
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		mutex::scoped_lock l2(m_chk->m_mutex);
 		torrent* t = find_torrent(m_ses, m_chk, m_info_hash);
-		return t;
+		return t != 0;
 	}
 
 	entry torrent_handle::write_resume_data() const

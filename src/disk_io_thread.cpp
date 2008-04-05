@@ -281,8 +281,8 @@ namespace libtorrent
 								break;
 							}
 						}
-						ret = j.storage->read_impl(j.buffer, j.piece, j.offset
-							, j.buffer_size);
+						ret = int(j.storage->read_impl(j.buffer, j.piece, j.offset
+							, j.buffer_size));
 
 						// simulates slow drives
 						// usleep(300);

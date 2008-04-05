@@ -1612,7 +1612,7 @@ namespace detail
 				nsec -= 1000000000;
 				xt.sec += 1;
 			}
-			xt.nsec = nsec;
+			xt.nsec = boost::xtime::xtime_nsec_t(nsec);
 			boost::thread::sleep(xt);
 		}
 		
