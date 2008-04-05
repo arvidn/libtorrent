@@ -250,6 +250,11 @@ void bind_session()
         .def("set_pe_settings", allow_threads(&session::set_pe_settings), session_set_pe_settings_doc)
         .def("get_pe_settings", allow_threads(&session::get_pe_settings), return_value_policy<copy_const_reference>())
 #endif
+#ifndef TORRENT_DISABLE_GEO_IP
+        .def("load_asnum_db", allow_threads(&session::load_asnum_db))
+#endif
+        .def("load_state", allow_threads(&session::load_state))
+        .def("state", allow_threads(&session::state))
         .def(
             "set_severity_level", allow_threads(&session::set_severity_level)
           , session_set_severity_level_doc

@@ -152,6 +152,21 @@ void clear_home()
 
 #endif
 
+bool print_peers = false;
+bool print_log = false;
+bool print_downloads = false;
+bool print_piece_bar = false;
+bool print_file_progress = false;
+bool sequential_download = false;
+
+bool print_ip = true;
+bool print_as = false;
+bool print_timers = false;
+bool print_block = false;
+bool print_peer_rate = false;
+bool print_fails = false;
+bool print_send_bufs = true;
+
 char const* esc(char const* code)
 {
 #ifdef ANSI_TERMINAL_COLORS
@@ -327,11 +342,21 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
-	out << "IP                      down    (total)   up      (total)  sent-req recv flags        source fail hshf sndb         inactive wait disk  quota  rtt block-progress "
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-		"country "
+	if (print_ip) out << "IP                     ";
+#ifndef TORRENT_DISABLE_GEO_IP
+	if (print_as) out << "AS                                         ";
 #endif
-		"peer-rate client \n";
+	out << "down     (total | peak   )  up      (total | peak   ) sent-req recv flags        source ";
+	if (print_fails) out << "fail hshf ";
+	if (print_send_bufs) out << "sndb            quota ";
+	if (print_timers) out << "inactive wait ";
+	out << "disk   rtt ";
+	if (print_block) out << "block-progress ";
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
+	out << "country ";
+#endif
+	if (print_peer_rate) out << "peer-rate ";
+	out << "client \n";
 
 	for (std::vector<peer_info>::const_iterator i = peers.begin();
 		i != peers.end(); ++i)
@@ -340,15 +365,30 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			continue;
 
 		out.fill(' ');
-		std::stringstream ip;
-		ip << i->ip.address().to_string() << ":" << i->ip.port();
-		out.width(22);
-		out << ip.str() << " ";
+		if (print_ip)
+		{
+			std::stringstream ip;
+			ip << i->ip.address().to_string() << ":" << i->ip.port();
+			out.width(22);
+			out << ip.str() << " ";
+		}
+
+#ifndef TORRENT_DISABLE_GEO_IP
+		if (print_as)
+		{
+			std::string as_name = i->inet_as_name;
+			if (as_name.size() > 42) as_name.resize(42);
+			out.width(42);
+			out << as_name << " ";
+		}
+#endif
 		out.width(2);
 		out << esc("32") << (i->down_speed > 0 ? add_suffix(i->down_speed) + "/s " : "         ")
-			<< "(" << add_suffix(i->total_download) << ") " << esc("0")
+			<< "(" << (i->total_download > 0 ? add_suffix(i->total_download) : "      ") << "|"
+			<< (i->download_rate_peak > 0 ? add_suffix(i->download_rate_peak) + "/s" : "        ") << ") " << esc("0")
 			<< esc("31") << (i->up_speed > 0 ? add_suffix(i->up_speed) + "/s ": "         ")
-			<< "(" << add_suffix(i->total_upload) << ") " << esc("0")
+			<< "(" << (i->total_upload > 0 ? add_suffix(i->total_upload) : "      ") << "|"
+			<< (i->upload_rate_peak > 0 ? add_suffix(i->upload_rate_peak) + "/s" : "        ") << ") " << esc("0")
 			<< to_string(i->download_queue_length, 3) << " ("
 			<< to_string(i->target_dl_queue_length, 3) << ") "
 			<< to_string(i->upload_queue_length, 3) << " "
@@ -378,24 +418,36 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			<< ((i->source & peer_info::pex)?"P":"_")
 			<< ((i->source & peer_info::dht)?"D":"_")
 			<< ((i->source & peer_info::lsd)?"L":"_")
-			<< ((i->source & peer_info::resume_data)?"R":"_") << "  "
-			<< to_string(i->failcount, 2) << " "
-			<< to_string(i->num_hashfails, 2) << " "
-			<< to_string(i->used_send_buffer, 6) << " ("<< add_suffix(i->send_buffer_size) << ") "
-			<< to_string(total_seconds(i->last_active), 8) << " "
-			<< to_string(total_seconds(i->last_request), 4) << " "
-			<< add_suffix(i->pending_disk_bytes) << " "
-			<< to_string(i->send_quota, 5) << " "
+			<< ((i->source & peer_info::resume_data)?"R":"_") << "  ";
+		if (print_fails)
+		{
+			out << to_string(i->failcount, 3) << " "
+				<< to_string(i->num_hashfails, 3) << " ";
+		}
+		if (print_send_bufs)
+		{
+			out << to_string(i->used_send_buffer, 6) << " ("<< add_suffix(i->send_buffer_size) << ") "
+				<< to_string(i->send_quota, 5) << " ";
+		}
+		if (print_timers)
+		{
+			out << to_string(total_seconds(i->last_active), 8) << " "
+				<< to_string(total_seconds(i->last_request), 4) << " ";
+		}
+		out << add_suffix(i->pending_disk_bytes) << " "
 			<< to_string(i->rtt, 4) << " ";
 
-		if (i->downloading_piece_index >= 0)
+		if (print_block)
 		{
-			out << progress_bar(
-				i->downloading_progress / float(i->downloading_total), 14);
-		}
-		else
-		{
-			out << progress_bar(0.f, 14);
+			if (i->downloading_piece_index >= 0)
+			{
+				out << progress_bar(
+					i->downloading_progress / float(i->downloading_total), 14);
+			}
+			else
+			{
+				out << progress_bar(0.f, 14);
+			}
 		}
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
@@ -408,7 +460,8 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			out << " " << i->country[0] << i->country[1];
 		}
 #endif
-		out << " " << (i->remote_dl_rate > 0 ? add_suffix(i->remote_dl_rate) + "/s ": "         ") << " ";
+		if (print_peer_rate) out << " " << (i->remote_dl_rate > 0 ? add_suffix(i->remote_dl_rate) + "/s ": "         ");
+		out << " ";
 
 		if (i->flags & peer_info::handshake)
 		{
@@ -754,6 +807,9 @@ int main(int ac, char* av[])
 		// monitor when they're not in the directory anymore.
 		handles_t handles;
 		session ses;
+#ifndef TORRENT_DISABLE_GEO_IP
+		ses.load_asnum_db("GeoIPASNum.dat");
+#endif
 		// UPnP port mapping
 		ses.start_upnp();
 		// NAT-PMP port mapping
@@ -784,6 +840,17 @@ int main(int ac, char* av[])
 			ses.set_severity_level(alert::fatal);
 		else
 			ses.set_severity_level(alert::info);
+
+		try
+		{
+			boost::filesystem::ifstream ses_state_file(".ses_state"
+				, std::ios_base::binary);
+			ses_state_file.unsetf(std::ios_base::skipws);
+			ses.load_state(bdecode(
+				std::istream_iterator<char>(ses_state_file)
+				, std::istream_iterator<char>()));
+		}
+		catch (std::exception&) {}
 
 #ifndef TORRENT_DISABLE_DHT
 		settings.use_dht_as_fallback = false;
@@ -912,14 +979,6 @@ int main(int ac, char* av[])
 		std::vector<peer_info> peers;
 		std::vector<partial_piece_info> queue;
 
-		bool print_peers = false;
-		bool print_cache = false;
-		bool print_log = false;
-		bool print_downloads = false;
-		bool print_piece_bar = false;
-		bool print_file_progress = false;
-		bool sequential_download = false;
-
 		for (;;)
 		{
 			char c;
@@ -979,12 +1038,20 @@ int main(int ac, char* av[])
 						, bind(&handles_t::value_type::second, _1)));
 				}
 
+				// toggle displays
 				if (c == 'i') print_peers = !print_peers;
-				if (c == 'c') print_cache = !print_cache;
 				if (c == 'l') print_log = !print_log;
 				if (c == 'd') print_downloads = !print_downloads;
 				if (c == 'f') print_file_progress = !print_file_progress;
 				if (c == 'a') print_piece_bar = !print_piece_bar;
+				// toggle columns
+				if (c == '1') print_ip = !print_ip;
+				if (c == '2') print_as = !print_as;
+				if (c == '3') print_timers = !print_timers;
+				if (c == '4') print_block = !print_block;
+				if (c == '5') print_peer_rate = !print_peer_rate;
+				if (c == '6') print_fails = !print_fails;
+				if (c == '7') print_send_bufs = !print_send_bufs;
 			}
 
 			int terminal_width = 80;
@@ -1260,13 +1327,17 @@ int main(int ac, char* av[])
 				" cache size: " << add_suffix(cs.cache_size * 16 * 1024)
 				<< " (" << add_suffix(cs.read_cache_size * 16 * 1024) << ")"
 				" ====" << std::endl;
+			out << "[q] quit [i] toggle peers [d] toggle downloading pieces [p] pause all "
+				"[u] unpause all [a] toggle piece bar [s] toggle download sequential [f] toggle files\n"
+				"[1] toggle IP [2] toggle AS [3] toggle timers [4] toggle block progress "
+				"[5] toggle peer rate [6] toggle failures [7] toggle send buffers";
 
 			if (print_log)
 			{
 				for (std::deque<std::string>::iterator i = events.begin();
 					i != events.end(); ++i)
 				{
-					out << *i << "\n";
+					out << "\n" << *i;
 				}
 			}
 
@@ -1281,6 +1352,14 @@ int main(int ac, char* av[])
 					, torrent_download_limit);
 				next_dir_scan = time_now() + seconds(poll_interval);
 			}
+		}
+
+		{	
+			entry session_state = ses.state();
+			boost::filesystem::ofstream out(".ses_state"
+				, std::ios_base::binary);
+			out.unsetf(std::ios_base::skipws);
+			bencode(std::ostream_iterator<char>(out), session_state);
 		}
 
 #ifndef TORRENT_DISABLE_DHT

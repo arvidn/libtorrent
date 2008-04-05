@@ -49,6 +49,11 @@ rule linking ( properties * )
 		}
 	}
 
+	if <geoip>shared in $(properties)
+	{
+		result += <library>GeoIP ;
+	}
+
 	# socket functions on windows require winsock libraries
 	if <target-os>windows in $(properties)
 		|| <target-os>cygwin in $(properties)
@@ -120,6 +125,11 @@ rule building ( properties * )
 		result += <source>src/assert.cpp ;
 	}
 
+	if <geoip>static in $(properties)
+	{
+		result += <source>src/GeoIP.c ;
+	}
+
 	if <openssl>off in $(properties)
 	{
 		result += <source>src/sha1.cpp ;
@@ -148,6 +158,9 @@ rule building ( properties * )
 
 	return $(result) ;
 }
+
+feature geoip : off static shared : composite propagated link-incompatible ;
+feature.compose <geoip>off : <define>TORRENT_DISABLE_GEO_IP ;
 
 feature bandwidth-limit-logging : off on : composite propagated link-incompatible ;
 feature.compose <bandwidth-limit-logging>on : <define>TORRENT_VERBOSE_BANDWIDTH_LIMIT ;

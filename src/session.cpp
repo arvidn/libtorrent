@@ -175,6 +175,23 @@ namespace libtorrent
 		m_impl->add_extension(ext);
 	}
 
+#ifndef TORRENT_DISABLE_GEO_IP
+	bool session::load_asnum_db(char const* file)
+	{
+		return m_impl->load_asnum_db(file);
+	}
+#endif
+
+	void session::load_state(entry const& ses_state)
+	{
+		m_impl->load_state(ses_state);
+	}
+
+	entry session::state() const
+	{
+		return m_impl->state();
+	}
+
 	void session::set_ip_filter(ip_filter const& f)
 	{
 		m_impl->set_ip_filter(f);

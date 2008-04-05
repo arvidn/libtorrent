@@ -781,10 +781,13 @@ namespace libtorrent
 		// they sent us
 		size_type m_downloaded_at_last_unchoke;
 
+#ifndef TORRENT_DISABLE_GEO_IP
+		std::string m_inet_as_name;
+#endif
+
 		// max transfer rates seen on this peer
 		int m_download_rate_peak;
 		int m_upload_rate_peak;
-
 
 #ifndef NDEBUG
 	public:

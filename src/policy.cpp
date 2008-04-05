@@ -458,11 +458,13 @@ namespace libtorrent
 		iterator candidate = m_peers.end();
 
 		int min_reconnect_time = m_torrent->settings().min_reconnect_time;
-		int min_cidr_distance = (std::numeric_limits<int>::max)();
 		bool finished = m_torrent->is_finished();
+
+		int min_cidr_distance = (std::numeric_limits<int>::max)();
 		address external_ip = m_torrent->session().external_address();
 
-		if (external_ip == address())
+		// don't bias any particular peers when seeding
+		if (finished || external_ip == address())
 		{
 			// set external_ip to a random value, to
 			// radomize which peers we prefer
@@ -470,6 +472,11 @@ namespace libtorrent
 			std::generate(bytes.begin(), bytes.end(), &std::rand);
 			external_ip = address_v4(bytes);
 		}
+
+#ifndef TORRENT_DISABLE_GEO_IP
+		int max_inet_as_rate = -1;
+		bool has_db = m_torrent->session().has_asnum_db();
+#endif
 
 		int connect_candidates = 0;
 		int seeds = 0;
@@ -498,10 +505,26 @@ namespace libtorrent
 				continue;
 
 			if (i->second.connected > min_connect_time) continue;
-			int distance = cidr_distance(external_ip, i->second.ip.address());
-			if (distance > min_cidr_distance) continue;
 
-			min_cidr_distance = distance;
+#ifndef TORRENT_DISABLE_GEO_IP
+			if (!finished && has_db)
+			{
+				// don't bias fast peers when seeding
+				std::pair<const int, int>* inet_as = i->second.inet_as;
+				int peak_rate = inet_as ? inet_as->second : 0;
+				if (peak_rate <= max_inet_as_rate) continue;
+				max_inet_as_rate = peak_rate;
+			}
+
+			if (max_inet_as_rate <= 0)
+#endif
+			{
+				int distance = cidr_distance(external_ip, i->second.ip.address());
+				if (distance > min_cidr_distance) continue;
+
+				min_cidr_distance = distance;
+			}
+
 			min_connect_time = i->second.connected;
 			candidate = i;
 		}
@@ -684,8 +707,10 @@ namespace libtorrent
 		asio::error_code ec;
 		TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
 
+		aux::session_impl& ses = m_torrent->session();
+		
 		if (m_torrent->num_peers() >= m_torrent->max_connections()
-			&& m_torrent->session().num_connections() >= m_torrent->session().max_connections()
+			&& ses.num_connections() >= ses.max_connections()
 			&& c.remote().address() != m_torrent->current_tracker().address())
 		{
 			c.disconnect("too many connections, refusing incoming connection");
@@ -753,6 +778,13 @@ namespace libtorrent
 
 			peer p(c.remote(), peer::not_connectable, 0);
 			i = m_peers.insert(std::make_pair(c.remote().address(), p));
+#ifndef TORRENT_DISABLE_GEO_IP
+			int as = ses.as_for_ip(c.remote().address());
+#ifndef NDEBUG
+			i->second.inet_as_num = as;
+#endif
+			i->second.inet_as = ses.lookup_as(as);
+#endif
 		}
 	
 		c.set_peer_info(&i->second);
@@ -879,6 +911,14 @@ namespace libtorrent
 					i->second.seed = true;
 					++m_num_seeds;
 				}
+
+#ifndef TORRENT_DISABLE_GEO_IP
+				int as = ses.as_for_ip(remote.address());
+#ifndef NDEBUG
+				i->second.inet_as_num = as;
+#endif
+				i->second.inet_as = ses.lookup_as(as);
+#endif
 			}
 			else
 			{
@@ -985,6 +1025,8 @@ namespace libtorrent
 			, boost::bind<bool>(std::equal_to<peer_connection*>(), bind(&peer::connection
 			, bind(&iterator::value_type::second, _1)), &c)) != m_peers.end());
 		
+		aux::session_impl& ses = m_torrent->session();
+
 		// if the peer is choked and we have upload slots left,
 		// then unchoke it. Another condition that has to be met
 		// is that the torrent doesn't keep track of the individual
@@ -996,23 +1038,23 @@ namespace libtorrent
 		// In that case we don't care if people are leeching, they
 		// can't pay for their downloads anyway.
 		if (c.is_choked()
-			&& m_torrent->session().num_uploads() < m_torrent->session().max_uploads()
+			&& ses.num_uploads() < ses.max_uploads()
 			&& (m_torrent->ratio() == 0
 				|| c.share_diff() >= -free_upload_amount
 				|| m_torrent->is_finished()))
 		{
-			m_torrent->session().unchoke_peer(c);
+			ses.unchoke_peer(c);
 		}
 #if defined TORRENT_VERBOSE_LOGGING
 		else if (c.is_choked())
 		{
 			std::string reason;
-			if (m_torrent->session().num_uploads() >= m_torrent->session().max_uploads())
+			if (ses.num_uploads() >= ses.max_uploads())
 			{
 				reason = "the number of uploads ("
-					+ boost::lexical_cast<std::string>(m_torrent->session().num_uploads())
+					+ boost::lexical_cast<std::string>(ses.num_uploads())
 					+ ") is more than or equal to the limit ("
-					+ boost::lexical_cast<std::string>(m_torrent->session().max_uploads())
+					+ boost::lexical_cast<std::string>(ses.max_uploads())
 					+ ")";
 			}
 			else
@@ -1231,6 +1273,9 @@ namespace libtorrent
 			i != m_peers.end(); ++i)
 		{
 			peer const& p = i->second;
+#ifndef TORRENT_DISABLE_GEO_IP
+			TORRENT_ASSERT(p.inet_as == 0 || p.inet_as->first == p.inet_as_num);
+#endif
 			if (!m_torrent->settings().allow_multiple_connections_per_ip)
 			{
 				TORRENT_ASSERT(m_peers.count(p.ip.address()) == 1);
@@ -1316,11 +1361,14 @@ namespace libtorrent
 
 	policy::peer::peer(const tcp::endpoint& ip_, peer::connection_type t, int src)
 		: ip(ip_)
-		, type(t)
+#ifndef TORRENT_DISABLE_GEO_IP
+		, inet_as(0)
+#endif
 		, failcount(0)
 		, trust_points(0)
 		, source(src)
 		, hashfails(0)
+		, type(t)
 		, fast_reconnects(0)
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		, pe_support(true)

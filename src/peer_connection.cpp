@@ -141,6 +141,9 @@ namespace libtorrent
 #ifndef NDEBUG
 		piece_failed = false;
 #endif
+#ifndef TORRENT_DISABLE_GEO_IP
+		m_inet_as_name = m_ses.as_name_for_ip(m_remote.address());
+#endif
 
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
 	}
@@ -237,6 +240,9 @@ namespace libtorrent
 		if (m_remote.address().is_v4())
 			m_socket->set_option(type_of_service(ses.settings().peer_tos), ec);
 
+#ifndef TORRENT_DISABLE_GEO_IP
+		m_inet_as_name = m_ses.as_name_for_ip(m_remote.address());
+#endif
 #ifndef NDEBUG
 		piece_failed = false;
 #endif
@@ -2218,6 +2224,9 @@ namespace libtorrent
 		p.pending_disk_bytes = m_outstanding_writing_bytes;
 		p.send_quota = m_bandwidth_limit[upload_channel].quota_left();
 		p.receive_quota = m_bandwidth_limit[download_channel].quota_left();
+#ifndef TORRENT_DISABLE_GEO_IP
+		p.inet_as_name = m_inet_as_name;
+#endif
 		
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		p.country[0] = m_country[0];
@@ -2270,12 +2279,15 @@ namespace libtorrent
 		p.flags |= is_seed() ? peer_info::seed : 0;
 		if (peer_info_struct())
 		{
-			p.source = peer_info_struct()->source;
-			p.failcount = peer_info_struct()->failcount;
-			p.num_hashfails = peer_info_struct()->hashfails;
-			p.flags |= peer_info_struct()->on_parole ? peer_info::on_parole : 0;
-			p.flags |= peer_info_struct()->optimistically_unchoked ? peer_info::optimistic_unchoke : 0;
-			p.remote_dl_rate = m_remote_dl_rate;
+			policy::peer* pi = peer_info_struct();
+			p.source = pi->source;
+			p.failcount = pi->failcount;
+			p.num_hashfails = pi->hashfails;
+			p.flags |= pi->on_parole ? peer_info::on_parole : 0;
+			p.flags |= pi->optimistically_unchoked ? peer_info::optimistic_unchoke : 0;
+#ifndef TORRENT_DISABLE_GEO_IP
+			p.inet_as = pi->inet_as->first;
+#endif
 		}
 		else
 		{
@@ -2283,8 +2295,12 @@ namespace libtorrent
 			p.failcount = 0;
 			p.num_hashfails = 0;
 			p.remote_dl_rate = 0;
+#ifndef TORRENT_DISABLE_GEO_IP
+			p.inet_as = 0xffff;
+#endif
 		}
 
+		p.remote_dl_rate = m_remote_dl_rate;
 		p.send_buffer_size = m_send_buffer.capacity();
 		p.used_send_buffer = m_send_buffer.size();
 		p.write_state = m_channel_state[upload_channel];
@@ -2347,6 +2363,14 @@ namespace libtorrent
 		if (m_statistics.download_payload_rate() > m_download_rate_peak)
 		{
 			m_download_rate_peak = m_statistics.download_payload_rate();
+#ifndef TORRENT_DISABLE_GEO_IP
+			if (peer_info_struct())
+			{
+				std::pair<const int, int>* as_stats = peer_info_struct()->inet_as;
+				if (as_stats && as_stats->second < m_download_rate_peak)
+					as_stats->second = m_download_rate_peak;
+			}
+#endif
 		}
 
 		if (!t->valid_metadata()) return;

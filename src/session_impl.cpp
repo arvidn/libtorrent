@@ -170,6 +170,9 @@ namespace aux {
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, m_logpath(logpath)
 #endif
+#ifndef TORRENT_DISABLE_GEO_IP
+		, m_geoip_db(0)
+#endif
 	{
 #ifdef WIN32
 		// windows XP has a limit on the number of
@@ -241,6 +244,99 @@ namespace aux {
 			bind(&session_impl::second_tick, this, _1));
 
 		m_thread.reset(new boost::thread(boost::ref(*this)));
+	}
+
+#ifndef TORRENT_DISABLE_GEO_IP
+	namespace
+	{
+		struct free_ptr
+		{
+			void* ptr_;
+			free_ptr(void* p): ptr_(p) {}
+			~free_ptr() { free(ptr_); }
+		};
+	}
+
+	int session_impl::as_for_ip(address const& a)
+	{
+		if (!a.is_v4() || m_geoip_db == 0) return 0;
+		char* name = GeoIP_name_by_ipnum(m_geoip_db, a.to_v4().to_ulong());
+		if (name == 0) return 0;
+		free_ptr p(name);
+		// GeoIP returns the name as AS??? where ? is the AS-number
+		return atoi(name + 2);
+	}
+
+	std::string session_impl::as_name_for_ip(address const& a)
+	{
+		if (!a.is_v4() || m_geoip_db == 0) return std::string();
+		char* name = GeoIP_name_by_ipnum(m_geoip_db, a.to_v4().to_ulong());
+		if (name == 0) return std::string();
+		free_ptr p(name);
+		char* tmp = std::strchr(name, ' ');
+		if (tmp == 0) return std::string();
+		return tmp + 1;
+	}
+
+	std::pair<const int, int>* session_impl::lookup_as(int as)
+	{
+		std::map<int, int>::iterator i = m_as_peak.lower_bound(as);
+
+		if (i == m_as_peak.end() || i->first != as)
+		{
+			// we don't have any data for this AS, insert a new entry
+			i = m_as_peak.insert(i, std::pair<int, int>(as, 0));
+		}
+		return &(*i);
+	}
+
+	bool session_impl::load_asnum_db(char const* file)
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		if (m_geoip_db) GeoIP_delete(m_geoip_db);
+		m_geoip_db = GeoIP_open(file, GEOIP_STANDARD);
+		return m_geoip_db;
+	}
+
+#endif
+
+	void session_impl::load_state(entry const& ses_state)
+	{
+		if (ses_state.type() != entry::dictionary_t) return;
+		mutex_t::scoped_lock l(m_mutex);
+#ifndef TORRENT_DISABLE_GEO_IP
+		entry const* as_map = ses_state.find_key("AS map");
+		if (as_map && as_map->type() == entry::dictionary_t)
+		{
+			entry::dictionary_type const& as_peak = as_map->dict();
+			for (entry::dictionary_type::const_iterator i = as_peak.begin()
+				, end(as_peak.end()); i != end; ++i)
+			{
+				int as_num = atoi(i->first.c_str());
+				if (i->second.type() != entry::int_t || i->second.integer() == 0) continue;
+				int& peak = m_as_peak[as_num];
+				if (peak < i->second.integer()) peak = i->second.integer();
+			}
+		}
+#endif
+	}
+
+	entry session_impl::state() const
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		entry ret;
+#ifndef TORRENT_DISABLE_GEO_IP
+		entry::dictionary_type& as_map = ret["AS map"].dict();
+		char buf[10];
+		for (std::map<int, int>::const_iterator i = m_as_peak.begin()
+			, end(m_as_peak.end()); i != end; ++i)
+		{
+			if (i->second == 0) continue;
+			sprintf(buf, "%05d", i->first);
+			as_map[buf] = i->second;
+		}
+#endif
+		return ret;
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -1825,6 +1921,9 @@ namespace aux {
 #endif
 		abort();
 
+#ifndef TORRENT_DISABLE_GEO_IP
+		if (m_geoip_db) GeoIP_delete(m_geoip_db);
+#endif
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " waiting for main thread\n";
 #endif
