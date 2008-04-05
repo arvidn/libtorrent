@@ -229,6 +229,12 @@ Build features:
 |                        |   logging of the DHT protocol traffic.             |
 |                        | * ``off`` - build without DHT support.             |
 +------------------------+----------------------------------------------------+
+| ``need-librt``         | * ``no`` - this platform does not need to link     |
+|                        |   against librt to have POSIX time functions.      |
+|                        | * ``yes`` - specify this if your linux system      |
+|                        |   requires you to link against librt.a. This is    |
+|                        |   typically the case on x86 64 bit systems.        |
++------------------------+----------------------------------------------------+
 | ``zlib``               | * ``system`` - links against the zlib supplied     |
 |                        |   with your operating system.                      |
 |                        | * ``shipped`` - links against the zlib bundled     |
