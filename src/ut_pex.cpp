@@ -205,7 +205,7 @@ namespace libtorrent { namespace
 			entry const* index = messages->find_key(extension_name);
 			if (!index || index->type() != entry::int_t) return false;
 
-			m_message_index = index->integer();
+			m_message_index = int(index->integer());
 			return true;
 		}
 

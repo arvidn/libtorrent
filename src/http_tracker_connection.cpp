@@ -341,8 +341,8 @@ namespace libtorrent
 				fail(-1, "missing 'complete' or 'incomplete' entries in scrape response");
 				return;
 			}
-			cb->tracker_scrape_response(tracker_req(), complete->integer()
-				, incomplete->integer(), downloaded->integer());
+			cb->tracker_scrape_response(tracker_req(), int(complete->integer())
+				, int(incomplete->integer()), int(downloaded->integer()));
 			return;
 		}
 
@@ -426,11 +426,11 @@ namespace libtorrent
 		
 		entry const* complete_ent = e.find_key("complete");
 		if (complete_ent && complete_ent->type() == entry::int_t)
-			complete = complete_ent->integer();
+			complete = int(complete_ent->integer());
 
 		entry const* incomplete_ent = e.find_key("incomplete");
 		if (incomplete_ent && incomplete_ent->type() == entry::int_t)
-			incomplete = incomplete_ent->integer();
+			incomplete = int(incomplete_ent->integer());
 
 		cb->tracker_response(tracker_req(), peer_list, interval->integer(), complete
 			, incomplete, external_ip);

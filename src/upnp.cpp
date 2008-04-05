@@ -208,6 +208,7 @@ void upnp::resend_request(asio::error_code const& e)
 			}
 			catch (std::exception& e)
 			{
+				(void)e;
 #ifdef TORRENT_UPNP_LOGGING
 				m_log << time_now_string()
 					<< " *** Connection failed to: " << d.url
@@ -434,6 +435,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 				}
 				catch (std::exception& e)
 				{
+					(void)e;
 #ifdef TORRENT_UPNP_LOGGING
 					m_log << time_now_string()
 						<< " *** Connection failed to: " << d.url

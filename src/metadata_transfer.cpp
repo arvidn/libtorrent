@@ -284,7 +284,7 @@ namespace libtorrent { namespace
 			entry const& messages = h["m"];
 			if (entry const* index = messages.find_key("LT_metadata"))
 			{
-				m_message_index = index->integer();
+				m_message_index = int(index->integer());
 				return true;
 			}
 			else
