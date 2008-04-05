@@ -126,18 +126,23 @@ namespace libtorrent
 		struct peer
 		{
 			enum connection_type { not_connectable, connectable };
-
 			peer(tcp::endpoint const& ip, connection_type t, int src);
 
 			size_type total_download() const;
 			size_type total_upload() const;
 
 			// the ip/port pair this peer is or was connected on
-			// if it was a remote (incoming) connection, type is
-			// set thereafter. If it was a peer we got from the
-			// tracker, type is set to local_connection.
 			tcp::endpoint ip;
-			connection_type type;
+
+#ifndef TORRENT_DISABLE_GEO_IP
+#ifndef NDEBUG
+			// only used in debug mode to assert that
+			// the first entry in the AS pair keeps the same
+			boost::uint16_t inet_as_num;
+#endif
+			// The AS this peer belongs to
+			std::pair<const int, int>* inet_as;
+#endif
 
 			// the number of failed connection attempts
 			// this peer has
@@ -159,9 +164,14 @@ namespace libtorrent
 			// part of a piece that failed the hash check
 			boost::uint8_t hashfails;
 
+			// type specifies if the connection was incoming
+			// or outgoing. If we ever saw this peer as connectable
+			// it will remain as connectable
+			unsigned type:4;
+
 			// the number of times we have allowed a fast
 			// reconnect for this peer.
-			boost::uint8_t fast_reconnects:4;
+			unsigned fast_reconnects:4;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			// Hints encryption support of peer. Only effective

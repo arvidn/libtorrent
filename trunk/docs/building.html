@@ -240,6 +240,18 @@ with the libtorrent package.</li>
 </ul>
 </td>
 </tr>
+<tr><td><tt class="docutils literal"><span class="pre">geoip</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">off</span></tt> - geo ip lookups disabled</li>
+<li><tt class="docutils literal"><span class="pre">static</span></tt> - <a class="reference external" href="http://www.maxmind.com/app/api">MaxMind</a> geo ip lookup code linked
+in statically. Note that this code is under
+LGPL license.</li>
+<li><tt class="docutils literal"><span class="pre">shared</span></tt> - The <a class="reference external" href="http://www.maxmind.com/app/api">MaxMind</a> geo ip lookup library
+is expected to be installed on the system and
+it will be used.</li>
+</ul>
+</td>
+</tr>
 <tr><td><tt class="docutils literal"><span class="pre">upnp-logging</span></tt></td>
 <td><ul class="first last simple">
 <li><tt class="docutils literal"><span class="pre">off</span></tt> - default. Does not log UPnP traffic.</li>
@@ -349,7 +361,7 @@ character-set=ansi character-set=unicode
 <h2>building with autotools</h2>
 <p>First of all, you need to install <tt class="docutils literal"><span class="pre">automake</span></tt> and <tt class="docutils literal"><span class="pre">autoconf</span></tt>. Many
 unix/linux systems comes with these preinstalled.</p>
-<p>The prerequisites for building libtorrent is boost.thread, boost.date_time
+<p>The prerequisites for building libtorrent are boost.thread, boost.date_time
 and boost.filesystem. Those are the <em>compiled</em> boost libraries needed. The
 headers-only libraries needed include (but is not necessarily limited to)
 boost.bind, boost.ref, boost.multi_index, boost.optional, boost.lexical_cast,
@@ -504,6 +516,11 @@ structs and class layouts and sizes.</td>
 <td>This macro will enable logging of the session
 events, such as tracker announces and incoming
 connections (as well as blocked connections).</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">TORRENT_DISABLE_GEO_IP</span></tt></td>
+<td>This is defined by default by the Jamfile. It
+disables the GeoIP features, and avoids linking
+against LGPL:ed code.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">TORRENT_VERBOSE_LOGGING</span></tt></td>
 <td>If you define this macro, every peer connection

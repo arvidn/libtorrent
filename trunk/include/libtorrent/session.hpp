@@ -200,6 +200,13 @@ namespace libtorrent
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext);
 #endif
 
+#ifndef TORRENT_DISABLE_GEO_IP
+		bool load_asnum_db(char const* file);
+#endif
+
+		void load_state(entry const& ses_state);
+		entry state() const;
+
 		void set_ip_filter(ip_filter const& f);
 		void set_port_filter(port_filter const& f);
 		void set_peer_id(peer_id const& pid);

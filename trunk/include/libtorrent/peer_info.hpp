@@ -122,6 +122,12 @@ namespace libtorrent
 		char country[2];
 #endif
 
+#ifndef TORRENT_DISABLE_GEO_IP
+		// atonomous system this peer belongs to
+		std::string inet_as_name;
+		int inet_as;
+#endif
+
 		size_type load_balancing;
 
 		// this is the number of requests

@@ -130,6 +130,11 @@ The ``session`` class has the following synopsis::
 		int num_uploads() const;
 		int num_connections() const;
 
+		bool load_asnum_db(char const* file);
+
+		void load_state(entry const& ses_state);
+		entry state() const;
+
 		void set_ip_filter(ip_filter const& f);
       
 		session_status status() const;
@@ -404,7 +409,31 @@ their turn to get connected.
 ``max_half_open_connections()`` returns the set limit. This limit defaults
 to 8 on windows.
 
+load_asnum_db()
+---------------
 
+	::
+
+		bool load_asnum_db(char const* file);
+
+This function is not available if ``TORRENT_DISABLE_GEO_IP`` is defined. This
+expects a path to the `MaxMind ASN database`_. This will be used to look up
+which AS peers belong to.
+
+.. _`MaxMind ASN database`: http://www.maxmind.com/app/asnum
+		
+load_state() state()
+--------------------
+
+	::
+	
+		void load_state(entry const& ses_state);
+		entry state() const;
+
+These functions loads and save session state. Currently, the only state
+that's stored is peak download rates for ASes. This map is used to
+determine which order to connect to peers.
+		
 set_ip_filter()
 ---------------
 
@@ -2336,6 +2365,9 @@ It contains the following fields::
 
 		char country[2];
 
+		std::string inet_as_name;
+		int inet_as;
+
 		size_type load_balancing;
 
 		int download_queue_length;
@@ -2522,6 +2554,11 @@ The ``countries.nerd.dk`` service is used to look up countries. This field will
 remain set to 0 unless the torrent is set to resolve countries, see `resolve_countries()`_.
 
 __ http://www.iso.org/iso/en/prods-services/iso3166ma/02iso-3166-code-lists/list-en1.html
+
+``inet_as_name`` is the name of the AS this peer is located in. This might be
+an empty string if there is no name in the geo ip database.
+
+``inet_as`` is the AS number the peer is located in.
 
 ``load_balancing`` is a measurement of the balancing of free download (that we get)
 and free upload that we give. Every peer gets a certain amount of free upload, but

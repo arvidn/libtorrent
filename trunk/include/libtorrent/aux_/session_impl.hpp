@@ -40,6 +40,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <deque>
 
+#ifndef TORRENT_DISABLE_GEO_IP
+#include "libtorrent/GeoIP.h"
+#endif
+
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -284,6 +288,17 @@ namespace libtorrent
 			proxy_settings const& dht_proxy() const
 			{ return m_dht_proxy; }
 #endif
+
+#ifndef TORRENT_DISABLE_GEO_IP
+			std::string as_name_for_ip(address const& a);
+			int as_for_ip(address const& a);
+			std::pair<const int, int>* lookup_as(int as);
+			bool load_asnum_db(char const* file);
+			bool has_asnum_db() const { return m_geoip_db; }
+#endif
+
+			void load_state(entry const& ses_state);
+			entry state() const;
 
 #ifdef TORRENT_STATS
 			void log_buffer_usage()
@@ -564,6 +579,16 @@ namespace libtorrent
 				torrent_plugin>(torrent*, void*)> > extension_list_t;
 
 			extension_list_t m_extensions;
+#endif
+
+#ifndef TORRENT_DISABLE_GEO_IP
+			GeoIP* m_geoip_db;
+
+			// maps AS number to the peak download rate
+			// we've seen from it. Entries are never removed
+			// from this map. Pointers to its elements
+			// are kept in the policy::peer structures.
+			std::map<int, int> m_as_peak;
 #endif
 
 			// the main working thread
