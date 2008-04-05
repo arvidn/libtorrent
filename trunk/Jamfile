@@ -76,10 +76,9 @@ rule linking ( properties * )
 	}
 
 	# clock_gettime on linux requires librt
-	if <target-os>linux in $(properties)
+	if <need-librt>yes in $(properties)
 	{
-# when do one need to link against librt?
-#		result += <library>rt ;
+		result += <library>rt ;
 	}
 
 	if <boost>system in $(properties)
@@ -158,6 +157,8 @@ rule building ( properties * )
 
 	return $(result) ;
 }
+
+feature need-librt : no yes : composite propagated link-incompatible ;
 
 feature geoip : off static shared : composite propagated link-incompatible ;
 feature.compose <geoip>off : <define>TORRENT_DISABLE_GEO_IP ;

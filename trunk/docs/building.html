@@ -231,6 +231,16 @@ logging of the DHT protocol traffic.</li>
 </ul>
 </td>
 </tr>
+<tr><td><tt class="docutils literal"><span class="pre">need-librt</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">no</span></tt> - this platform does not need to link
+against librt to have POSIX time functions.</li>
+<li><tt class="docutils literal"><span class="pre">yes</span></tt> - specify this if your linux system
+requires you to link against librt.a. This is
+typically the case on x86 64 bit systems.</li>
+</ul>
+</td>
+</tr>
 <tr><td><tt class="docutils literal"><span class="pre">zlib</span></tt></td>
 <td><ul class="first last simple">
 <li><tt class="docutils literal"><span class="pre">system</span></tt> - links against the zlib supplied
