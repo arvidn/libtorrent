@@ -102,7 +102,7 @@ namespace
 		// if pieces are too small, adjust the block size
 		if (i.piece_length() < default_block_size)
 		{
-			return static_cast<int>(i.piece_length());
+			return i.piece_length();
 		}
 
 		// otherwise, go with the default
@@ -337,7 +337,7 @@ namespace libtorrent
 	peer_request torrent::to_req(piece_block const& p)
 	{
 		int block_offset = p.block_index * m_block_size;
-		int block_size = (std::min)((int)torrent_file().piece_size(
+		int block_size = (std::min)(torrent_file().piece_size(
 			p.piece_index) - block_offset, m_block_size);
 		TORRENT_ASSERT(block_size > 0);
 		TORRENT_ASSERT(block_size <= m_block_size);
@@ -403,8 +403,8 @@ namespace libtorrent
 		m_storage = m_owning_storage.get();
 		m_block_size = calculate_block_size(*m_torrent_file, m_default_block_size);
 		m_picker.reset(new piece_picker(
-			static_cast<int>(m_torrent_file->piece_length() / m_block_size)
-			, static_cast<int>((m_torrent_file->total_size()+m_block_size-1)/m_block_size)));
+			m_torrent_file->piece_length() / m_block_size
+			, int((m_torrent_file->total_size()+m_block_size-1)/m_block_size)));
 
 		std::vector<std::string> const& url_seeds = m_torrent_file->url_seeds();
 		std::copy(url_seeds.begin(), url_seeds.end(), std::inserter(m_web_seeds
@@ -775,8 +775,7 @@ namespace libtorrent
 		const std::vector<piece_picker::downloading_piece>& dl_queue
 			= m_picker->get_download_queue();
 
-		const int blocks_per_piece = static_cast<int>(
-			piece_size / m_block_size);
+		const int blocks_per_piece = piece_size / m_block_size;
 
 		for (std::vector<piece_picker::downloading_piece>::const_iterator i =
 			dl_queue.begin(); i != dl_queue.end(); ++i)
@@ -1702,7 +1701,7 @@ namespace libtorrent
 		m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
 			bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, url, a)));
 	}
-	catch (std::exception& exc)
+	catch (std::exception&)
 	{
 		TORRENT_ASSERT(false);
 	};
@@ -1987,7 +1986,7 @@ namespace libtorrent
 			pi.finished = (int)i->finished;
 			pi.writing = (int)i->writing;
 			pi.requested = (int)i->requested;
-			int piece_size = torrent_file().piece_size(i->index);
+			int piece_size = int(torrent_file().piece_size(i->index));
 			for (int j = 0; j < pi.blocks_in_piece; ++j)
 			{
 				block_info& bi = pi.blocks[j];
@@ -2178,7 +2177,7 @@ namespace libtorrent
 #endif
 			m_policy.new_connection(*p);
 		}
-		catch (std::exception& e)
+		catch (std::exception&)
 		{
 			throw;
 		}
@@ -2974,6 +2973,7 @@ namespace libtorrent
 			}
 			catch (std::exception& e)
 			{
+				(void)e;
 #ifdef TORRENT_VERBOSE_LOGGING
 				(*p->m_logger) << "**ERROR**: " << e.what() << "\n";
 #endif
@@ -3060,8 +3060,8 @@ namespace libtorrent
 			size_type done = 0;
 			while (size > 0)
 			{
-				size_type bytes_step = (std::min)(m_torrent_file->piece_size(ret.piece)
-					- ret.start, size);
+				size_type bytes_step = (std::min)(size_type(m_torrent_file->piece_size(ret.piece)
+					- ret.start), size);
 				if (m_have_pieces[ret.piece]) done += bytes_step;
 				++ret.piece;
 				ret.start = 0;
@@ -3184,7 +3184,7 @@ namespace libtorrent
 
 		if (st.total_wanted == 0) st.progress = 1.f;
 		else st.progress = st.total_wanted_done
-			/ static_cast<double>(st.total_wanted);
+			/ static_cast<float>(st.total_wanted);
 
 		st.pieces = &m_have_pieces;
 		st.num_pieces = m_num_pieces;

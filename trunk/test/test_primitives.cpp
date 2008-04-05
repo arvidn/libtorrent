@@ -6,10 +6,11 @@
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/escape_string.hpp"
+#include "libtorrent/broadcast_socket.hpp"
+#ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
-#include "libtorrent/broadcast_socket.hpp"
-
+#endif
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/bind.hpp>
@@ -64,6 +65,7 @@ void parser_callback(std::string& out, int token, char const* s, char const* val
 	}
 }
 
+#ifndef TORRENT_DISABLE_DHT	
 void add_and_replace(libtorrent::dht::node_id& dst, libtorrent::dht::node_id const& add)
 {
 	bool carry = false;
@@ -74,6 +76,7 @@ void add_and_replace(libtorrent::dht::node_id& dst, libtorrent::dht::node_id con
 		carry = sum > 255;
 	}
 }
+#endif
 
 int test_main()
 {
@@ -318,6 +321,7 @@ int test_main()
 	std::cerr << ti3.name() << std::endl;
 	TEST_CHECK(ti3.name() == "test2/test3/test4");
 
+#ifndef TORRENT_DISABLE_DHT	
 	// test kademlia functions
 
 	using namespace libtorrent::dht;
@@ -417,6 +421,7 @@ int test_main()
 	}
 	TEST_CHECK(hits > int(temp.size()) / 2);
 
+#endif
 
 
 

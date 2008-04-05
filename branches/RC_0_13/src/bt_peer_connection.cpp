@@ -1177,6 +1177,7 @@ namespace libtorrent
 		}
 		catch (std::exception& exc)
 		{
+			(void)exc;
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << "invalid extended handshake: " << exc.what() << "\n";
 #endif
@@ -1208,7 +1209,7 @@ namespace libtorrent
 			if (listen_port->type() == entry::int_t
 				&& peer_info_struct() != 0)
 			{
-				t->get_policy().update_peer_port(listen_port->integer()
+				t->get_policy().update_peer_port(int(listen_port->integer())
 					, peer_info_struct(), peer_info::incoming);
 			}
 		}
@@ -1224,7 +1225,7 @@ namespace libtorrent
 		if (entry* reqq = root.find_key("reqq"))
 		{
 			if (reqq->type() == entry::int_t)
-				m_max_out_request_queue = reqq->integer();
+				m_max_out_request_queue = int(reqq->integer());
 			if (m_max_out_request_queue < 1)
 				m_max_out_request_queue = 1;
 		}

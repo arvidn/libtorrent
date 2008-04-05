@@ -433,7 +433,7 @@ namespace libtorrent
 		if (m_ses == 0) return false;
 		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
 		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
-		return t;
+		return t != 0;
 	}
 
 	entry torrent_handle::write_resume_data() const

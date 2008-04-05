@@ -293,13 +293,13 @@ namespace libtorrent
 
 	inline int total_seconds(time_duration td)
 	{
-		return aux::performance_counter_to_microseconds(td.diff)
-			/ 1000000;
+		return int(aux::performance_counter_to_microseconds(td.diff)
+			/ 1000000);
 	}
 	inline int total_milliseconds(time_duration td)
 	{
-		return aux::performance_counter_to_microseconds(td.diff)
-			/ 1000;
+		return int(aux::performance_counter_to_microseconds(td.diff)
+			/ 1000);
 	}
 	inline boost::int64_t total_microseconds(time_duration td)
 	{

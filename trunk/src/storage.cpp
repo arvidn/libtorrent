@@ -365,8 +365,8 @@ namespace libtorrent
 		bool delete_files();
 		bool initialize(bool allocate_files);
 		bool move_storage(fs::path save_path);
-		size_type read(char* buf, int slot, int offset, int size);
-		size_type write(const char* buf, int slot, int offset, int size);
+		int read(char* buf, int slot, int offset, int size);
+		int write(const char* buf, int slot, int offset, int size);
 		bool move_slot(int src_slot, int dst_slot);
 		bool swap_slots(int slot1, int slot2);
 		bool swap_slots3(int slot1, int slot2, int slot3);
@@ -377,7 +377,7 @@ namespace libtorrent
 		std::string const& error() const { return m_error; }
 		void clear_error() { m_error.clear(); }
 
-		size_type read_impl(char* buf, int slot, int offset, int size, bool fill_zero);
+		int read_impl(char* buf, int slot, int offset, int size, bool fill_zero);
 
 		~storage()
 		{ m_files.release(this); }
@@ -756,8 +756,8 @@ namespace libtorrent
 	{
 		int piece_size = m_info->piece_size(dst_slot);
 		m_scratch_buffer.resize(piece_size);
-		size_type ret1 = read_impl(&m_scratch_buffer[0], src_slot, 0, piece_size, true);
-		size_type ret2 = write(&m_scratch_buffer[0], dst_slot, 0, piece_size);
+		int ret1 = read_impl(&m_scratch_buffer[0], src_slot, 0, piece_size, true);
+		int ret2 = write(&m_scratch_buffer[0], dst_slot, 0, piece_size);
 		return ret1 != piece_size || ret2 != piece_size;
 	}
 
@@ -768,10 +768,10 @@ namespace libtorrent
 		int piece1_size = m_info->piece_size(slot2);
 		int piece2_size = m_info->piece_size(slot1);
 		m_scratch_buffer.resize(piece_size * 2);
-		size_type ret1 = read_impl(&m_scratch_buffer[0], slot1, 0, piece1_size, true);
-		size_type ret2 = read_impl(&m_scratch_buffer[piece_size], slot2, 0, piece2_size, true);
-		size_type ret3 = write(&m_scratch_buffer[0], slot2, 0, piece1_size);
-		size_type ret4 = write(&m_scratch_buffer[piece_size], slot1, 0, piece2_size);
+		int ret1 = read_impl(&m_scratch_buffer[0], slot1, 0, piece1_size, true);
+		int ret2 = read_impl(&m_scratch_buffer[piece_size], slot2, 0, piece2_size, true);
+		int ret3 = write(&m_scratch_buffer[0], slot2, 0, piece1_size);
+		int ret4 = write(&m_scratch_buffer[piece_size], slot1, 0, piece2_size);
 		return ret1 != piece1_size || ret2 != piece2_size
 			|| ret3 != piece1_size || ret4 != piece2_size;
 	}
@@ -784,18 +784,18 @@ namespace libtorrent
 		int piece2_size = m_info->piece_size(slot3);
 		int piece3_size = m_info->piece_size(slot1);
 		m_scratch_buffer.resize(piece_size * 2);
-		size_type ret1 = read_impl(&m_scratch_buffer[0], slot1, 0, piece1_size, true);
-		size_type ret2 = read_impl(&m_scratch_buffer[piece_size], slot2, 0, piece2_size, true);
-		size_type ret3 = write(&m_scratch_buffer[0], slot2, 0, piece1_size);
-		size_type ret4 = read_impl(&m_scratch_buffer[0], slot3, 0, piece3_size, true);
-		size_type ret5 = write(&m_scratch_buffer[piece_size], slot3, 0, piece2_size);
-		size_type ret6 = write(&m_scratch_buffer[0], slot1, 0, piece3_size);
+		int ret1 = read_impl(&m_scratch_buffer[0], slot1, 0, piece1_size, true);
+		int ret2 = read_impl(&m_scratch_buffer[piece_size], slot2, 0, piece2_size, true);
+		int ret3 = write(&m_scratch_buffer[0], slot2, 0, piece1_size);
+		int ret4 = read_impl(&m_scratch_buffer[0], slot3, 0, piece3_size, true);
+		int ret5 = write(&m_scratch_buffer[piece_size], slot3, 0, piece2_size);
+		int ret6 = write(&m_scratch_buffer[0], slot1, 0, piece3_size);
 		return ret1 != piece1_size || ret2 != piece2_size
 			|| ret3 != piece1_size || ret4 != piece3_size
 			|| ret5 != piece2_size || ret6 != piece3_size;
 	}
 
-	size_type storage::read(
+	int storage::read(
 		char* buf
 		, int slot
 		, int offset
@@ -804,7 +804,7 @@ namespace libtorrent
 		return read_impl(buf, slot, offset, size, false);
 	}
 
-	size_type storage::read_impl(
+	int storage::read_impl(
 		char* buf
 		, int slot
 		, int offset
@@ -904,7 +904,7 @@ namespace libtorrent
 					== file_iter->path);
 #endif
 
-				size_type actual_read = in->read(buf + buf_pos, read_bytes);
+				int actual_read = int(in->read(buf + buf_pos, read_bytes));
 
 				if (read_bytes != actual_read)
 				{
@@ -956,7 +956,7 @@ namespace libtorrent
 	}
 
 	// throws file_error if it fails to write
-	size_type storage::write(
+	int storage::write(
 		const char* buf
 		, int slot
 		, int offset
@@ -1317,7 +1317,7 @@ namespace libtorrent
 		m_free_slots.push_back(slot_index);
 	}
 
-	size_type piece_manager::read_impl(
+	int piece_manager::read_impl(
 		char* buf
 		, int piece_index
 		, int offset
@@ -1330,7 +1330,7 @@ namespace libtorrent
 		return m_storage->read(buf, slot, offset, size);
 	}
 
-	size_type piece_manager::write_impl(
+	int piece_manager::write_impl(
 		const char* buf
 	  , int piece_index
 	  , int offset

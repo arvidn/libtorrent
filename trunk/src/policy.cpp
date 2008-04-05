@@ -559,7 +559,9 @@ namespace libtorrent
 		if (m_torrent->has_picker())
 			p = &m_torrent->picker();
 
+#ifndef TORRENT_DISABLE_DHT
 		bool pinged = false;
+#endif
 
 		ptime now = time_now();
 		// remove old disconnected peers from the list

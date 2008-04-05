@@ -202,7 +202,7 @@ namespace libtorrent { namespace
 
 			if (entry const* index = messages.find_key(extension_name))
 			{
-				m_message_index = index->integer();
+				m_message_index = int(index->integer());
 				return true;
 			}
 			else

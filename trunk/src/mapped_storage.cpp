@@ -256,7 +256,7 @@ namespace libtorrent
 
 		bool initialize(bool allocate_files) { return false; }
 
-		size_type read(char* buf, int slot, int offset, int size)
+		int read(char* buf, int slot, int offset, int size)
 		{
 			TORRENT_ASSERT(buf != 0);
 			TORRENT_ASSERT(slot >= 0 && slot < m_info->num_pieces());
@@ -378,7 +378,7 @@ namespace libtorrent
 			return result;
 		}
 
-		size_type write(const char* buf, int slot, int offset, int size)
+		int write(const char* buf, int slot, int offset, int size)
 		{
 			TORRENT_ASSERT(buf != 0);
 			TORRENT_ASSERT(slot >= 0 && slot < m_info->num_pieces());

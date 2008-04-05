@@ -123,10 +123,10 @@ namespace libtorrent
 		virtual bool initialize(bool allocate_files) = 0;
 
 		// negative return value indicates an error
-		virtual size_type read(char* buf, int slot, int offset, int size) = 0;
+		virtual int read(char* buf, int slot, int offset, int size) = 0;
 
 		// negative return value indicates an error
-		virtual size_type write(const char* buf, int slot, int offset, int size) = 0;
+		virtual int write(const char* buf, int slot, int offset, int size) = 0;
 
 		// non-zero return value indicates an error
 		virtual bool move_storage(fs::path save_path) = 0;
@@ -283,13 +283,13 @@ namespace libtorrent
 
 		bool allocate_slots(int num_slots, bool abort_on_disk = false);
 
-		size_type read_impl(
+		int read_impl(
 			char* buf
 			, int piece_index
 			, int offset
 			, int size);
 
-		size_type write_impl(
+		int write_impl(
 			const char* buf
 			, int piece_index
 			, int offset

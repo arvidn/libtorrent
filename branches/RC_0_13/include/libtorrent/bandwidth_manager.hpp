@@ -263,7 +263,7 @@ private:
 		catch (std::exception&) {}
 	}
 
-	void hand_out_bandwidth(boost::mutex::scoped_lock& l) throw()
+	void hand_out_bandwidth(boost::mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
 		// if we're already handing out bandwidth, just return back
@@ -379,7 +379,7 @@ private:
 		}
  		if (!tmp.empty()) m_queue.insert(m_queue.begin(), tmp.begin(), tmp.end());
 		}
-		catch (std::exception& e)
+		catch (std::exception&)
 		{
 			m_in_hand_out_bandwidth = false;
 			throw;

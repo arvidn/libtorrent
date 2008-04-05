@@ -74,7 +74,7 @@ namespace libtorrent
 		action_t action;
 
 		char* buffer;
-		size_type buffer_size;
+		int buffer_size;
 		boost::intrusive_ptr<piece_manager> storage;
 		// arguments used for read and write
 		int piece, offset;

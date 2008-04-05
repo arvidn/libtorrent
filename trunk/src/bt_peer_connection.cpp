@@ -1240,6 +1240,7 @@ namespace libtorrent
 		}
 		catch (std::exception& exc)
 		{
+			(void)exc;
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << "invalid extended handshake: " << exc.what() << "\n";
 #endif

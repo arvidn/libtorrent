@@ -222,12 +222,13 @@ namespace libtorrent
 					if (value.find(' ') != std::string::npos)
 						range_str >> bytes;
 					range_str >> range_start >> dummy >> range_end;
-					if (!range_str || range_end < range_start)
+					if (!range_str || range_end < range_start
+						|| range_end - range_start + 1 >= (std::numeric_limits<int>::max)())
 					{
 						throw std::runtime_error("invalid content-range in HTTP response: " + range_str.str());
 					}
 					// the http range is inclusive
-					m_content_length = range_end - range_start + 1;
+					m_content_length = int(range_end - range_start + 1);
 				}
 
 				TORRENT_ASSERT(m_recv_pos <= (int)recv_buffer.left());
@@ -914,15 +915,15 @@ namespace libtorrent
 
 				entry const* complete_ent = scrape_data.find_key("complete");
 				if (complete_ent && complete_ent->type() == entry::int_t)
-					complete = complete_ent->integer();
+					complete = int(complete_ent->integer());
 		
 				entry const* incomplete_ent = scrape_data.find_key("incomplete");
 				if (incomplete_ent && incomplete_ent->type() == entry::int_t)
-					incomplete = incomplete_ent->integer();
+					incomplete = int(incomplete_ent->integer());
 
 				entry const* downloaded_ent = scrape_data.find_key("downloaded");
 				if (downloaded_ent && downloaded_ent->type() == entry::int_t)
-					downloaded = downloaded_ent->integer();
+					downloaded = int(downloaded_ent->integer());
 
 				cb->tracker_scrape_response(tracker_req(), complete
 					, incomplete, downloaded);
@@ -977,10 +978,10 @@ namespace libtorrent
 			int complete = -1;
 			int incomplete = -1;
 
-			try { complete = e["complete"].integer(); }
+			try { complete = int(e["complete"].integer()); }
 			catch(type_error&) {}
 
-			try { incomplete = e["incomplete"].integer(); }
+			try { incomplete = int(e["incomplete"].integer()); }
 			catch(type_error&) {}
 			
 			cb->tracker_response(tracker_req(), peer_list, interval, complete

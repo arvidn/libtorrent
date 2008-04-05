@@ -309,7 +309,7 @@ namespace libtorrent
 				t->get_policy().peer_is_interesting(*this);
 		}
 		// may throw an asio error if socket has disconnected
-		catch (std::exception& e) {}
+		catch (std::exception&) {}
 
 		TORRENT_ASSERT(is_interesting() == interested);
 	}
@@ -1207,7 +1207,7 @@ namespace libtorrent
 				"s: " << r.start << " | "
 				"l: " << r.length << " | "
 				"i: " << m_peer_interested << " | "
-				"t: " << (int)t->torrent_file().piece_size(r.piece) << " | "
+				"t: " << t->torrent_file().piece_size(r.piece) << " | "
 				"n: " << t->torrent_file().num_pieces() << " ]\n";
 
 			(*m_logger) << time_now_string()
@@ -1233,7 +1233,7 @@ namespace libtorrent
 				"s: " << r.start << " | "
 				"l: " << r.length << " | "
 				"i: " << m_peer_interested << " | "
-				"t: " << (int)t->torrent_file().piece_size(r.piece) << " | "
+				"t: " << t->torrent_file().piece_size(r.piece) << " | "
 				"n: " << t->torrent_file().num_pieces() << " ]\n";
 
 			(*m_logger) << time_now_string()
@@ -1294,7 +1294,7 @@ namespace libtorrent
 				"s: " << r.start << " | "
 				"l: " << r.length << " | "
 				"i: " << m_peer_interested << " | "
-				"t: " << (int)t->torrent_file().piece_size(r.piece) << " | "
+				"t: " << t->torrent_file().piece_size(r.piece) << " | "
 				"n: " << t->torrent_file().num_pieces() << " | "
 				"h: " << t->have_piece(r.piece) << " | "
 				"block_limit: " << t->block_size() << " ]\n";
@@ -1873,7 +1873,7 @@ namespace libtorrent
 
 		int block_offset = block.block_index * t->block_size();
 		int block_size
-			= (std::min)((int)t->torrent_file().piece_size(block.piece_index)-block_offset,
+			= (std::min)(t->torrent_file().piece_size(block.piece_index)-block_offset,
 			t->block_size());
 		TORRENT_ASSERT(block_size > 0);
 		TORRENT_ASSERT(block_size <= t->block_size());
@@ -1985,7 +1985,7 @@ namespace libtorrent
 			piece_block block = m_request_queue.front();
 
 			int block_offset = block.block_index * t->block_size();
-			int block_size = (std::min)((int)t->torrent_file().piece_size(
+			int block_size = (std::min)(t->torrent_file().piece_size(
 				block.piece_index) - block_offset, t->block_size());
 			TORRENT_ASSERT(block_size > 0);
 			TORRENT_ASSERT(block_size <= t->block_size());
@@ -2031,7 +2031,7 @@ namespace libtorrent
 #endif
 
 					block_offset = block.block_index * t->block_size();
-					block_size = (std::min)((int)t->torrent_file().piece_size(
+					block_size = (std::min)(t->torrent_file().piece_size(
 						block.piece_index) - block_offset, t->block_size());
 					TORRENT_ASSERT(block_size > 0);
 					TORRENT_ASSERT(block_size <= t->block_size());

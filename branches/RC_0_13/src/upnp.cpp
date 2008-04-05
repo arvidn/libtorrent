@@ -216,6 +216,7 @@ try
 			}
 			catch (std::exception& e)
 			{
+				(void)e;
 #ifdef TORRENT_UPNP_LOGGING
 				m_log << time_now_string()
 					<< " *** Connection failed to: " << d.url
@@ -302,6 +303,7 @@ try
 	}
 	catch (std::exception& e)
 	{
+		(void)e;
 #ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
 			<< " <== (" << from << ") Rootdevice responded with incorrect HTTP packet. Ignoring device (" << e.what() << ")" << std::endl;
@@ -449,6 +451,7 @@ try
 				}
 				catch (std::exception& e)
 				{
+					(void)e;
 #ifdef TORRENT_UPNP_LOGGING
 					m_log << time_now_string()
 						<< " *** Connection failed to: " << d.url

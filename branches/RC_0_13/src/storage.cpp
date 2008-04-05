@@ -541,9 +541,9 @@ namespace libtorrent
 		for (entry::list_type::iterator i = l.begin();
 			i != l.end(); ++i)
 		{
-			file_sizes.push_back(std::pair<size_type, std::time_t>(
+			file_sizes.push_back(std::make_pair(
 				i->list().front().integer()
-				, i->list().back().integer()));
+				, std::time_t(i->list().back().integer())));
 		}
 
 		if (file_sizes.empty())
@@ -818,7 +818,7 @@ namespace libtorrent
 					== file_iter->path);
 #endif
 
-				size_type actual_read = in->read(buf + buf_pos, read_bytes);
+				int actual_read = int(in->read(buf + buf_pos, read_bytes));
 
 				if (read_bytes != actual_read)
 				{
@@ -1702,8 +1702,8 @@ namespace libtorrent
 
 			m_piece_data.resize(int(m_info->piece_length()));
 			int piece_size = int(m_info->piece_size(m_current_slot));
-			int num_read = m_storage->read(&m_piece_data[0]
-				, m_current_slot, 0, piece_size);
+			int num_read = int(m_storage->read(&m_piece_data[0]
+				, m_current_slot, 0, piece_size));
 
 			// if the file is incomplete, skip the rest of it
 			if (num_read != piece_size)
