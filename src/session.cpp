@@ -479,14 +479,14 @@ namespace libtorrent
 		m_impl->start_lsd();
 	}
 	
-	void session::start_natpmp()
+	boost::intrusive_ptr<natpmp> session::start_natpmp()
 	{
-		m_impl->start_natpmp();
+		return m_impl->start_natpmp();
 	}
 	
-	void session::start_upnp()
+	boost::intrusive_ptr<upnp> session::start_upnp()
 	{
-		m_impl->start_upnp();
+		return m_impl->start_upnp();
 	}
 	
 	void session::stop_lsd()

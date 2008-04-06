@@ -174,6 +174,10 @@ namespace aux {
 		, m_geoip_db(0)
 #endif
 	{
+		m_tcp_mapping[0] = -1;
+		m_tcp_mapping[1] = -1;
+		m_udp_mapping[0] = -1;
+		m_udp_mapping[1] = -1;
 #ifdef WIN32
 		// windows XP has a limit on the number of
 		// simultaneous half-open TCP connections
@@ -668,8 +672,18 @@ namespace aux {
 			tcp::endpoint local = m_listen_sockets.front().sock->local_endpoint(ec);
 			if (!ec)
 			{
-				if (m_natpmp.get()) m_natpmp->set_mappings(local.port(), 0);
-				if (m_upnp.get()) m_upnp->set_mappings(local.port(), 0);
+				if (m_natpmp.get())
+				{
+					if (m_tcp_mapping[0] != -1) m_natpmp->delete_mapping(m_tcp_mapping[0]);
+					m_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp
+						, local.port(), local.port());
+				}
+				if (m_upnp.get())
+				{
+					if (m_tcp_mapping[1] != -1) m_upnp->delete_mapping(m_tcp_mapping[1]);
+					m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp
+						, local.port(), local.port());
+				}
 			}
 		}
 	}
@@ -1667,9 +1681,19 @@ namespace aux {
 			// the listen interface changed, rebind the dht listen socket as well
 			m_dht_socket.bind(m_dht_settings.service_port);
 			if (m_natpmp.get())
-				m_natpmp->set_mappings(0, m_dht_settings.service_port);
+			{
+				if (m_udp_mapping[0] != -1) m_natpmp->delete_mapping(m_udp_mapping[0]);
+				m_udp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp
+					, m_dht_settings.service_port
+					, m_dht_settings.service_port);
+			}
 			if (m_upnp.get())
-				m_upnp->set_mappings(0, m_dht_settings.service_port);
+			{
+				if (m_udp_mapping[1] != -1) m_upnp->delete_mapping(m_udp_mapping[1]);
+				m_udp_mapping[1] = m_upnp->add_mapping(upnp::tcp
+					, m_dht_settings.service_port
+					, m_dht_settings.service_port);
+			}
 		}
 #endif
 
@@ -1714,43 +1738,40 @@ namespace aux {
 		t->get_policy().peer_from_tracker(peer, peer_id(0), peer_info::lsd, 0);
 	}
 
-	void session_impl::on_port_mapping(int tcp_port, int udp_port
-		, std::string const& errmsg)
+	void session_impl::on_port_mapping(int mapping, int port
+		, std::string const& errmsg, int map_transport)
 	{
 #ifndef TORRENT_DISABLE_DHT
-		if (udp_port != 0)
+		if (mapping == m_udp_mapping[map_transport] && port != 0)
 		{
-			m_external_udp_port = udp_port;
-			m_dht_settings.service_port = udp_port;
+			m_external_udp_port = port;
+			m_dht_settings.service_port = port;
 			if (m_alerts.should_post(alert::info))
-			{
-				std::stringstream msg;
-				msg << "successfully mapped UDP port " << udp_port;
-				m_alerts.post_alert(portmap_alert(msg.str()));
-			}
+				m_alerts.post_alert(portmap_alert(mapping, port
+					, "successfully mapped UDP port"));
+			return;
 		}
 #endif
 
-		if (tcp_port != 0)
+		if (mapping == m_tcp_mapping[map_transport] && port != 0)
 		{
 			if (!m_listen_sockets.empty())
-				m_listen_sockets.front().external_port = tcp_port;
+				m_listen_sockets.front().external_port = port;
 			if (m_alerts.should_post(alert::info))
-			{
-				std::stringstream msg;
-				msg << "successfully mapped TCP port " << tcp_port;
-				m_alerts.post_alert(portmap_alert(msg.str()));
-			}
+				m_alerts.post_alert(portmap_alert(mapping, port
+					, "successfully mapped TCP port"));
+			return;
 		}
 
 		if (!errmsg.empty())
 		{
 			if (m_alerts.should_post(alert::warning))
-			{
-				std::stringstream msg;
-				msg << "Error while mapping ports on NAT router: " << errmsg;
-				m_alerts.post_alert(portmap_error_alert(msg.str()));
-			}
+				m_alerts.post_alert(portmap_error_alert(mapping, errmsg));
+		}
+		else
+		{
+			if (m_alerts.should_post(alert::warning))
+				m_alerts.post_alert(portmap_alert(mapping, port, "successfully mapped port"));
 		}
 	}
 
@@ -1831,10 +1852,18 @@ namespace aux {
 			m_dht_settings.service_port = m_listen_interface.port();
 		}
 		m_external_udp_port = m_dht_settings.service_port;
-		if (m_natpmp.get())
-			m_natpmp->set_mappings(0, m_dht_settings.service_port);
-		if (m_upnp.get())
-			m_upnp->set_mappings(0, m_dht_settings.service_port);
+		if (m_natpmp.get() && m_udp_mapping[0] == -1)
+		{
+			m_udp_mapping[0] = m_natpmp->add_mapping(natpmp::udp
+				, m_dht_settings.service_port
+				, m_dht_settings.service_port);
+		}
+		if (m_upnp.get() && m_udp_mapping[1] == -1)
+		{
+			m_udp_mapping[1] = m_upnp->add_mapping(upnp::udp
+				, m_dht_settings.service_port
+				, m_dht_settings.service_port);
+		}
 		m_dht = new dht::dht_tracker(m_dht_socket, m_dht_settings, startup_state);
 		if (!m_dht_socket.is_open() || m_dht_socket.local_port() != m_dht_settings.service_port)
 		{
@@ -1867,9 +1896,19 @@ namespace aux {
 			m_dht_socket.bind(settings.service_port);
 
 			if (m_natpmp.get())
-				m_natpmp->set_mappings(0, m_dht_settings.service_port);
+			{
+				if (m_udp_mapping[0] != -1) m_upnp->delete_mapping(m_udp_mapping[0]);
+				m_udp_mapping[0] = m_natpmp->add_mapping(natpmp::udp
+					, m_dht_settings.service_port
+					, m_dht_settings.service_port);
+			}
 			if (m_upnp.get())
-				m_upnp->set_mappings(0, m_dht_settings.service_port);
+			{
+				if (m_udp_mapping[1] != -1) m_upnp->delete_mapping(m_udp_mapping[1]);
+				m_udp_mapping[1] = m_upnp->add_mapping(upnp::udp
+					, m_dht_settings.service_port
+					, m_dht_settings.service_port);
+			}
 			m_external_udp_port = settings.service_port;
 		}
 		m_dht_settings = settings;
@@ -2053,47 +2092,55 @@ namespace aux {
 			, bind(&session_impl::on_lsd_peer, this, _1, _2));
 	}
 	
-	void session_impl::start_natpmp()
+	boost::intrusive_ptr<natpmp> session_impl::start_natpmp()
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
 
-		if (m_natpmp) return;
+		if (m_natpmp) return m_natpmp;
 
 		m_natpmp = new natpmp(m_io_service
 			, m_listen_interface.address()
 			, bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3));
+				, this, _1, _2, _3, 0));
 
-		m_natpmp->set_mappings(m_listen_interface.port(),
+		m_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp
+			, m_listen_interface.port(), m_listen_interface.port());
 #ifndef TORRENT_DISABLE_DHT
-			m_dht ? m_dht_settings.service_port : 
+		if (m_dht)
+			m_udp_mapping[0] = m_natpmp->add_mapping(natpmp::udp
+				, m_dht_settings.service_port 
+				, m_dht_settings.service_port);
 #endif
-			0);
+		return m_natpmp;
 	}
 
-	void session_impl::start_upnp()
+	boost::intrusive_ptr<upnp> session_impl::start_upnp()
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
 
-		if (m_upnp) return;
+		if (m_upnp) return m_upnp;
 
 		m_upnp = new upnp(m_io_service, m_half_open
 			, m_listen_interface.address()
 			, m_settings.user_agent
 			, bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3)
+				, this, _1, _2, _3, 1)
 			, m_settings.upnp_ignore_nonrouters);
 
 		m_upnp->discover_device();
-		m_upnp->set_mappings(m_listen_interface.port(), 
+		m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp
+			, m_listen_interface.port(), m_listen_interface.port());
 #ifndef TORRENT_DISABLE_DHT
-			m_dht ? m_dht_settings.service_port : 
+		if (m_dht)
+			m_udp_mapping[1] = m_upnp->add_mapping(upnp::udp
+				, m_dht_settings.service_port 
+				, m_dht_settings.service_port);
 #endif
-			0);
+		return m_upnp;
 	}
 
 	void session_impl::stop_lsd()
@@ -2116,7 +2163,11 @@ namespace aux {
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		if (m_upnp.get())
+		{
 			m_upnp->close();
+			m_udp_mapping[1] = -1;
+			m_tcp_mapping[1] = -1;
+		}
 		m_upnp = 0;
 	}
 	

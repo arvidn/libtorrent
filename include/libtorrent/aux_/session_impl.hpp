@@ -185,7 +185,8 @@ namespace libtorrent
 
 			// called when a port mapping is successful, or a router returns
 			// a failure to map a port
-			void on_port_mapping(int tcp_port, int udp_port, std::string const& errmsg);
+			void on_port_mapping(int mapping, int port, std::string const& errmsg
+				, int nat_transport);
 
 			bool is_aborted() const { return m_abort; }
 
@@ -319,8 +320,8 @@ namespace libtorrent
 			}
 #endif
 			void start_lsd();
-			void start_natpmp();
-			void start_upnp();
+			boost::intrusive_ptr<natpmp> start_natpmp();
+			boost::intrusive_ptr<upnp> start_upnp();
 
 			void stop_lsd();
 			void stop_natpmp();
@@ -536,6 +537,10 @@ namespace libtorrent
 			boost::intrusive_ptr<natpmp> m_natpmp;
 			boost::intrusive_ptr<upnp> m_upnp;
 			boost::intrusive_ptr<lsd> m_lsd;
+
+			// 0 is natpmp 1 is upnp
+			int m_tcp_mapping[2];
+			int m_udp_mapping[2];
 
 			// the timer used to fire the second_tick
 			deadline_timer m_timer;
