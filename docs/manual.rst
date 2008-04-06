@@ -155,6 +155,15 @@ The ``session`` class has the following synopsis::
 			, int> const& node);
 		void add_dht_router(std::pair<std::string
 			, int> const& node);
+
+		void start_lsd();
+		void stop_lsd();
+
+		void start_upnp();
+		void stop_upnp();
+
+		void start_natpmp();
+		void stop_natpmp();
 	};
 
 Once it's created, the session object will spawn the main thread that will do all the work.
@@ -727,6 +736,47 @@ for bootstrapping, to keep the load off them.
 
 An example routing node that you could typically add is
 ``router.bittorrent.com``.
+
+
+start_lsd() stop_lsd()
+----------------------
+
+	::
+
+		void start_lsd();
+		void stop_lsd();
+
+Starts and stops Local Service Discovery. This service will broadcast
+the infohashes of all the non-private torrents on the local network to
+look for peers on the same swarm within multicast reach.
+
+It is turned off by default.
+
+start_upnp() stop_upnp()
+------------------------
+
+	::
+	
+		void start_upnp();
+		void stop_upnp();
+
+Starts and stops the UPnP service. When started, the listen port and the DHT
+port are attempted to be forwarded on local UPnP router devices.
+
+It is off by default.
+
+start_natpmp() stop_natpmp()
+----------------------------
+
+	::
+		
+		void start_natpmp();
+		void stop_natpmp();
+
+Starts and stops the NAT-PMP service. When started, the listen port and the DHT
+port are attempted to be forwarded on the router through NAT-PMP.
+
+It is off by default.
 
 
 entry
