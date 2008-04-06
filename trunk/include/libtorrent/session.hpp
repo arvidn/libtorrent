@@ -76,6 +76,8 @@ namespace libtorrent
 	class ip_filter;
 	class port_filter;
 	class connection_queue;
+	class natpmp;
+	class upnp;
 
 	namespace fs = boost::filesystem;
 
@@ -284,8 +286,8 @@ namespace libtorrent
 		// starts/stops UPnP, NATPMP or LSD port mappers
 		// they are stopped by default
 		void start_lsd();
-		boost::intrusive_ptr<natpmp> start_natpmp();
-		boost::intrusive_ptr<upnp> start_upnp();
+		natpmp* start_natpmp();
+		upnp* start_upnp();
 
 		void stop_lsd();
 		void stop_natpmp();

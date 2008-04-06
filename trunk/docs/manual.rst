@@ -18,6 +18,7 @@ the ``session``, it contains the main loop that serves all torrents.
 The basic usage is as follows:
 
 * construct a session
+* start DHT, LSD, UPnP, NAT-PMP etc (see start_dht_, start_lsd_, start_upnp_ and start_natpmp_)
 * parse .torrent-files and add them to the session (see `bdecode() bencode()`_ and `add_torrent()`_)
 * main loop (see session_)
 
@@ -165,10 +166,10 @@ The ``session`` class has the following synopsis::
 		void start_lsd();
 		void stop_lsd();
 
-		boost::intrusive_ptr<upnp> start_upnp();
+		upnp* start_upnp();
 		void stop_upnp();
 
-		boost::intrusvice_ptr<natpmp> start_natpmp();
+		natpmp* start_natpmp();
 		void stop_natpmp();
 	};
 
@@ -883,11 +884,16 @@ start_upnp() stop_upnp()
 
 	::
 	
-		boost::intrusive_ptr<upnp> start_upnp();
+		upnp* start_upnp();
 		void stop_upnp();
 
 Starts and stops the UPnP service. When started, the listen port and the DHT
 port are attempted to be forwarded on local UPnP router devices.
+
+The upnp object returned by ``start_upnp()`` can be used to add and remove
+arbitrary port mappings. Mapping status is returned through the
+portmap_alert_ and the portmap_error_alert_. The object will be valid until
+stop_upnp_ is called. See `UPnP and NAT-PMP`_.
 
 It is off by default.
 
@@ -896,11 +902,16 @@ start_natpmp() stop_natpmp()
 
 	::
 		
-		boost::intrusvice_ptr<natpmp> start_natpmp();
+		natpmp* start_natpmp();
 		void stop_natpmp();
 
 Starts and stops the NAT-PMP service. When started, the listen port and the DHT
 port are attempted to be forwarded on the router through NAT-PMP.
+
+The natpmp object returned by ``start_natpmp()`` can be used to add and remove
+arbitrary port mappings. Mapping status is returned through the
+portmap_alert_ and the portmap_error_alert_. The object will be valid until
+stop_upnp_ is called. See `UPnP and NAT-PMP`_.
 
 It is off by default.
 
@@ -3257,6 +3268,90 @@ version of your client. All these numbers must be within the range [0, 9].
 ``to_string()`` will generate the actual string put in the peer-id, and return it.
 
 
+UPnP and NAT-PMP
+================
+
+The ``upnp`` and ``natpmp`` classes contains the state for all UPnP and NAT-PMP mappings,
+by default 1 or two mappings are made by libtorrent, one for the listen port and one
+for the DHT port (UDP).
+
+::
+
+	class upnp
+	{
+	public:
+
+		enum protocol_type { none = 0, udp = 1, tcp = 2 };
+		int add_mapping(protocol_type p, int external_port, int local_port);
+		void delete_mapping(int mapping_index);
+	
+		void discover_device();
+		void close();
+	
+		std::string router_model();
+	};
+
+	class natpmp
+	{
+	public:
+	
+		enum protocol_type { none = 0, udp = 1, tcp = 2 };
+		int add_mapping(protocol_type p, int external_port, int local_port);
+		void delete_mapping(int mapping_index);
+	
+		void close();
+		void rebind(address const& listen_interface);
+	};
+
+``discover_device()``, ``close()`` and ``rebind()`` are for internal uses and should
+not be called directly by clients.
+
+add_mapping
+-----------
+
+	::
+
+		int add_mapping(protocol_type p, int external_port, int local_port);
+
+Attempts to add a port mapping for the specified protocol. Valid protocols are
+``upnp::tcp`` and ``upnp::udp`` for the UPnP class and ``natpmp::tcp`` and
+``natpmp::udp`` for the NAT-PMP class.
+
+``external_port`` is the port on the external address that will be mapped. This
+is a hint, you are not guaranteed that this port will be available, and it may
+end up being something else. In the portmap_alert_ notification, the actual
+external port is reported.
+
+``local_port`` is the port in the local machine that the mapping should forward
+to.
+
+The return value is an index that identifies this port mapping. This is used
+to refer to mappings that fails or succeeds in the portmap_error_alert_ and
+portmap_alert_ respectively. If The mapping fails immediately, the return value
+is -1, which means failure. There will not be any error alert notification for
+mappings that fail with a -1 return value.
+
+delete_mapping
+--------------
+
+	::
+
+		void delete_mapping(int mapping_index);
+
+This function removes a port mapping. ``mapping_index`` is the index that refers
+to the mapping you want to remove, which was returned from add_mapping_.
+
+router_model()
+--------------
+
+	::
+
+		std::string router_model();
+
+This is only available for UPnP routers. If the model is advertized by
+the router, it can be queried through this function.
+
+
 free functions
 ==============
 
@@ -3494,11 +3589,18 @@ mappings.
 The alert is generated as severity ``warning``, since it should be displayed
 to the user somehow, and could mean reduced preformance.
 
+``mapping`` refers to the mapping index of the port map that failed, i.e.
+the index returned from add_mapping_.
+
+``type`` is 0 for NAT-PMP and 1 for UPnP.
+
 ::
 
 	struct portmap_error_alert: alert
 	{
-		portmap_error_alert(const std::string& msg);
+		portmap_error_alert(int mapping, int type, const std::string& msg);
+		int mapping;
+		int type;
 		virtual std::auto_ptr<alert> clone() const;
 	};
 
@@ -3511,11 +3613,21 @@ capable router, this is typically generated once when mapping the TCP
 port and, if DHT is enabled, when the UDP port is mapped. This is merely
 an informational alert, and is generated at severity level ``info``.
 
+``mapping`` refers to the mapping index of the port map that failed, i.e.
+the index returned from add_mapping_.
+
+``external_port`` is the external port allocated for the mapping.
+
+``type`` is 0 for NAT-PMP and 1 for UPnP.
+
 ::
 
 	struct portmap_alert: alert
 	{
-		portmap_alert(const std::string& msg);
+		portmap_alert(int mapping, int port, int type, const std::string& msg);
+		int mapping;
+		int external_port;
+		int type;
 		virtual std::auto_ptr<alert> clone() const;
 	};
 

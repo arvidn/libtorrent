@@ -320,8 +320,8 @@ namespace libtorrent
 			}
 #endif
 			void start_lsd();
-			boost::intrusive_ptr<natpmp> start_natpmp();
-			boost::intrusive_ptr<upnp> start_upnp();
+			natpmp* start_natpmp();
+			upnp* start_upnp();
 
 			void stop_lsd();
 			void stop_natpmp();

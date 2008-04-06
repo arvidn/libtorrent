@@ -72,9 +72,9 @@ public:
 		, portmap_callback_t const& cb, bool ignore_nonrouters);
 	~upnp();
 
-	enum protocol_type { none = 0, tcp = 1, udp = 2 };
+	enum protocol_type { none = 0, udp = 1, tcp = 2 };
 	int add_mapping(protocol_type p, int external_port, int local_port);
-	void delete_mapping(int index);
+	void delete_mapping(int mapping_index);
 
 	void discover_device();
 	void close();

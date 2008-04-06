@@ -1748,7 +1748,7 @@ namespace aux {
 			m_dht_settings.service_port = port;
 			if (m_alerts.should_post(alert::info))
 				m_alerts.post_alert(portmap_alert(mapping, port
-					, "successfully mapped UDP port"));
+					, map_transport, "successfully mapped UDP port"));
 			return;
 		}
 #endif
@@ -1759,19 +1759,21 @@ namespace aux {
 				m_listen_sockets.front().external_port = port;
 			if (m_alerts.should_post(alert::info))
 				m_alerts.post_alert(portmap_alert(mapping, port
-					, "successfully mapped TCP port"));
+					, map_transport, "successfully mapped TCP port"));
 			return;
 		}
 
 		if (!errmsg.empty())
 		{
 			if (m_alerts.should_post(alert::warning))
-				m_alerts.post_alert(portmap_error_alert(mapping, errmsg));
+				m_alerts.post_alert(portmap_error_alert(mapping
+					, map_transport, errmsg));
 		}
 		else
 		{
 			if (m_alerts.should_post(alert::warning))
-				m_alerts.post_alert(portmap_alert(mapping, port, "successfully mapped port"));
+				m_alerts.post_alert(portmap_alert(mapping, port
+					, map_transport, "successfully mapped port"));
 		}
 	}
 
@@ -2092,13 +2094,13 @@ namespace aux {
 			, bind(&session_impl::on_lsd_peer, this, _1, _2));
 	}
 	
-	boost::intrusive_ptr<natpmp> session_impl::start_natpmp()
+	natpmp* session_impl::start_natpmp()
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
 
-		if (m_natpmp) return m_natpmp;
+		if (m_natpmp) return m_natpmp.get();
 
 		m_natpmp = new natpmp(m_io_service
 			, m_listen_interface.address()
@@ -2113,16 +2115,16 @@ namespace aux {
 				, m_dht_settings.service_port 
 				, m_dht_settings.service_port);
 #endif
-		return m_natpmp;
+		return m_natpmp.get();
 	}
 
-	boost::intrusive_ptr<upnp> session_impl::start_upnp()
+	upnp* session_impl::start_upnp()
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
 
-		if (m_upnp) return m_upnp;
+		if (m_upnp) return m_upnp.get();
 
 		m_upnp = new upnp(m_io_service, m_half_open
 			, m_listen_interface.address()
@@ -2140,7 +2142,7 @@ namespace aux {
 				, m_dht_settings.service_port 
 				, m_dht_settings.service_port);
 #endif
-		return m_upnp;
+		return m_upnp.get();
 	}
 
 	void session_impl::stop_lsd()
