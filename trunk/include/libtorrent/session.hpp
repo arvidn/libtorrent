@@ -284,8 +284,8 @@ namespace libtorrent
 		// starts/stops UPnP, NATPMP or LSD port mappers
 		// they are stopped by default
 		void start_lsd();
-		void start_natpmp();
-		void start_upnp();
+		boost::intrusive_ptr<natpmp> start_natpmp();
+		boost::intrusive_ptr<upnp> start_upnp();
 
 		void stop_lsd();
 		void stop_natpmp();

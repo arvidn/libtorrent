@@ -1,4 +1,4 @@
-#include "libtorrent/upnp.hpp"
+#include "libtorrent/natpmp.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include <boost/bind.hpp>
@@ -24,30 +24,29 @@ int main(int argc, char* argv[])
 	}
 
 	connection_queue cc(ios);
-	boost::intrusive_ptr<upnp> upnp_handler = new upnp(ios, cc, address_v4(), user_agent, &callback, true);
-	upnp_handler->discover_device();
+	boost::intrusive_ptr<natpmp> natpmp_handler = new natpmp(ios, address_v4(), &callback);
 
 	deadline_timer timer(ios);
+
+	int tcp_map = natpmp_handler->add_mapping(natpmp::tcp, atoi(argv[1]), atoi(argv[1]));
+	int udp_map = natpmp_handler->add_mapping(natpmp::udp, atoi(argv[2]), atoi(argv[2]));
+
 	timer.expires_from_now(seconds(2));
-	timer.async_wait(boost::bind(&io_service::stop, boost::ref(ios)));
-
-	std::cerr << "broadcasting for UPnP device" << std::endl;
-
-	ios.reset();
-	ios.run();
-
-	upnp_handler->add_mapping(upnp::tcp, atoi(argv[1]), atoi(argv[1]));
-	upnp_handler->add_mapping(upnp::udp, atoi(argv[2]), atoi(argv[2]));
-	timer.expires_from_now(seconds(10));
 	timer.async_wait(boost::bind(&io_service::stop, boost::ref(ios)));
 	std::cerr << "mapping ports TCP: " << argv[1]
 		<< " UDP: " << argv[2] << std::endl;
 
 	ios.reset();
 	ios.run();
-	std::cerr << "router: " << upnp_handler->router_model() << std::endl;
+	timer.expires_from_now(seconds(2));
+	timer.async_wait(boost::bind(&io_service::stop, boost::ref(ios)));
+	std::cerr << "removing mapping " << tcp_map << std::endl;
+	natpmp_handler->delete_mapping(tcp_map);
+
+	ios.reset();
+	ios.run();
 	std::cerr << "removing mappings" << std::endl;
-	upnp_handler->close();
+	natpmp_handler->close();
 
 	ios.reset();
 	ios.run();
