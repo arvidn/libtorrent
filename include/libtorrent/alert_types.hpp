@@ -426,11 +426,12 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT portmap_error_alert: alert
 	{
-		portmap_error_alert(int i, const std::string& msg)
-			: mapping(i), alert(alert::warning, msg)
+		portmap_error_alert(int i, int t, const std::string& msg)
+			: alert(alert::warning, msg), mapping(i), type(t)
 		{}
 
 		int mapping;
+		int type;
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new portmap_error_alert(*this)); }
@@ -438,12 +439,13 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT portmap_alert: alert
 	{
-		portmap_alert(int i, int port, const std::string& msg)
-			: mapping(i), external_port(port), alert(alert::info, msg)
+		portmap_alert(int i, int port, int t, const std::string& msg)
+			: alert(alert::info, msg), mapping(i), external_port(port), type(t)
 		{}
 
 		int mapping;
 		int external_port;
+		int type;
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new portmap_alert(*this)); }

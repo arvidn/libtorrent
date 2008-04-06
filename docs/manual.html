@@ -128,81 +128,87 @@
 <li><a class="reference internal" href="#big-number" id="id109">big_number</a></li>
 <li><a class="reference internal" href="#hasher" id="id110">hasher</a></li>
 <li><a class="reference internal" href="#fingerprint" id="id111">fingerprint</a></li>
-<li><a class="reference internal" href="#free-functions" id="id112">free functions</a><ul>
-<li><a class="reference internal" href="#identify-client" id="id113">identify_client()</a></li>
-<li><a class="reference internal" href="#client-fingerprint" id="id114">client_fingerprint()</a></li>
-<li><a class="reference internal" href="#bdecode-bencode" id="id115">bdecode() bencode()</a></li>
-<li><a class="reference internal" href="#supports-sparse-files" id="id116">supports_sparse_files()</a></li>
+<li><a class="reference internal" href="#upnp-and-nat-pmp" id="id112">UPnP and NAT-PMP</a><ul>
+<li><a class="reference internal" href="#add-mapping" id="id113">add_mapping</a></li>
+<li><a class="reference internal" href="#delete-mapping" id="id114">delete_mapping</a></li>
+<li><a class="reference internal" href="#router-model" id="id115">router_model()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#alerts" id="id117">alerts</a><ul>
-<li><a class="reference internal" href="#external-ip-alert" id="id118">external_ip_alert</a></li>
-<li><a class="reference internal" href="#listen-failed-alert" id="id119">listen_failed_alert</a></li>
-<li><a class="reference internal" href="#portmap-error-alert" id="id120">portmap_error_alert</a></li>
-<li><a class="reference internal" href="#portmap-alert" id="id121">portmap_alert</a></li>
-<li><a class="reference internal" href="#file-error-alert" id="id122">file_error_alert</a></li>
-<li><a class="reference internal" href="#tracker-announce-alert" id="id123">tracker_announce_alert</a></li>
-<li><a class="reference internal" href="#tracker-alert" id="id124">tracker_alert</a></li>
-<li><a class="reference internal" href="#tracker-reply-alert" id="id125">tracker_reply_alert</a></li>
-<li><a class="reference internal" href="#tracker-warning-alert" id="id126">tracker_warning_alert</a></li>
-<li><a class="reference internal" href="#scrape-reply-alert" id="id127">scrape_reply_alert</a></li>
-<li><a class="reference internal" href="#scrape-failed-alert" id="id128">scrape_failed_alert</a></li>
-<li><a class="reference internal" href="#url-seed-alert" id="id129">url_seed_alert</a></li>
-<li><a class="reference internal" href="#hash-failed-alert" id="id130">hash_failed_alert</a></li>
-<li><a class="reference internal" href="#peer-ban-alert" id="id131">peer_ban_alert</a></li>
-<li><a class="reference internal" href="#peer-error-alert" id="id132">peer_error_alert</a></li>
-<li><a class="reference internal" href="#invalid-request-alert" id="id133">invalid_request_alert</a></li>
-<li><a class="reference internal" href="#torrent-finished-alert" id="id134">torrent_finished_alert</a></li>
-<li><a class="reference internal" href="#metadata-failed-alert" id="id135">metadata_failed_alert</a></li>
-<li><a class="reference internal" href="#metadata-received-alert" id="id136">metadata_received_alert</a></li>
-<li><a class="reference internal" href="#fastresume-rejected-alert" id="id137">fastresume_rejected_alert</a></li>
-<li><a class="reference internal" href="#peer-blocked-alert" id="id138">peer_blocked_alert</a></li>
-<li><a class="reference internal" href="#storage-moved-alert" id="id139">storage_moved_alert</a></li>
-<li><a class="reference internal" href="#torrent-paused-alert" id="id140">torrent_paused_alert</a></li>
-<li><a class="reference internal" href="#dispatcher" id="id141">dispatcher</a></li>
+<li><a class="reference internal" href="#free-functions" id="id116">free functions</a><ul>
+<li><a class="reference internal" href="#identify-client" id="id117">identify_client()</a></li>
+<li><a class="reference internal" href="#client-fingerprint" id="id118">client_fingerprint()</a></li>
+<li><a class="reference internal" href="#bdecode-bencode" id="id119">bdecode() bencode()</a></li>
+<li><a class="reference internal" href="#supports-sparse-files" id="id120">supports_sparse_files()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#exceptions" id="id142">exceptions</a><ul>
-<li><a class="reference internal" href="#invalid-handle" id="id143">invalid_handle</a></li>
-<li><a class="reference internal" href="#duplicate-torrent" id="id144">duplicate_torrent</a></li>
-<li><a class="reference internal" href="#invalid-encoding" id="id145">invalid_encoding</a></li>
-<li><a class="reference internal" href="#type-error" id="id146">type_error</a></li>
-<li><a class="reference internal" href="#invalid-torrent-file" id="id147">invalid_torrent_file</a></li>
+<li><a class="reference internal" href="#alerts" id="id121">alerts</a><ul>
+<li><a class="reference internal" href="#external-ip-alert" id="id122">external_ip_alert</a></li>
+<li><a class="reference internal" href="#listen-failed-alert" id="id123">listen_failed_alert</a></li>
+<li><a class="reference internal" href="#portmap-error-alert" id="id124">portmap_error_alert</a></li>
+<li><a class="reference internal" href="#portmap-alert" id="id125">portmap_alert</a></li>
+<li><a class="reference internal" href="#file-error-alert" id="id126">file_error_alert</a></li>
+<li><a class="reference internal" href="#tracker-announce-alert" id="id127">tracker_announce_alert</a></li>
+<li><a class="reference internal" href="#tracker-alert" id="id128">tracker_alert</a></li>
+<li><a class="reference internal" href="#tracker-reply-alert" id="id129">tracker_reply_alert</a></li>
+<li><a class="reference internal" href="#tracker-warning-alert" id="id130">tracker_warning_alert</a></li>
+<li><a class="reference internal" href="#scrape-reply-alert" id="id131">scrape_reply_alert</a></li>
+<li><a class="reference internal" href="#scrape-failed-alert" id="id132">scrape_failed_alert</a></li>
+<li><a class="reference internal" href="#url-seed-alert" id="id133">url_seed_alert</a></li>
+<li><a class="reference internal" href="#hash-failed-alert" id="id134">hash_failed_alert</a></li>
+<li><a class="reference internal" href="#peer-ban-alert" id="id135">peer_ban_alert</a></li>
+<li><a class="reference internal" href="#peer-error-alert" id="id136">peer_error_alert</a></li>
+<li><a class="reference internal" href="#invalid-request-alert" id="id137">invalid_request_alert</a></li>
+<li><a class="reference internal" href="#torrent-finished-alert" id="id138">torrent_finished_alert</a></li>
+<li><a class="reference internal" href="#metadata-failed-alert" id="id139">metadata_failed_alert</a></li>
+<li><a class="reference internal" href="#metadata-received-alert" id="id140">metadata_received_alert</a></li>
+<li><a class="reference internal" href="#fastresume-rejected-alert" id="id141">fastresume_rejected_alert</a></li>
+<li><a class="reference internal" href="#peer-blocked-alert" id="id142">peer_blocked_alert</a></li>
+<li><a class="reference internal" href="#storage-moved-alert" id="id143">storage_moved_alert</a></li>
+<li><a class="reference internal" href="#torrent-paused-alert" id="id144">torrent_paused_alert</a></li>
+<li><a class="reference internal" href="#dispatcher" id="id145">dispatcher</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#storage-interface" id="id148">storage_interface</a><ul>
-<li><a class="reference internal" href="#initialize" id="id149">initialize()</a></li>
-<li><a class="reference internal" href="#read" id="id150">read()</a></li>
-<li><a class="reference internal" href="#write" id="id151">write()</a></li>
-<li><a class="reference internal" href="#id11" id="id152">move_storage()</a></li>
-<li><a class="reference internal" href="#verify-resume-data" id="id153">verify_resume_data()</a></li>
-<li><a class="reference internal" href="#id12" id="id154">write_resume_data( )</a></li>
-<li><a class="reference internal" href="#move-slot" id="id155">move_slot()</a></li>
-<li><a class="reference internal" href="#swap-slots" id="id156">swap_slots()</a></li>
-<li><a class="reference internal" href="#swap-slots3" id="id157">swap_slots3()</a></li>
-<li><a class="reference internal" href="#hash-for-slot" id="id158">hash_for_slot()</a></li>
-<li><a class="reference internal" href="#release-files" id="id159">release_files()</a></li>
-<li><a class="reference internal" href="#delete-files" id="id160">delete_files()</a></li>
+<li><a class="reference internal" href="#exceptions" id="id146">exceptions</a><ul>
+<li><a class="reference internal" href="#invalid-handle" id="id147">invalid_handle</a></li>
+<li><a class="reference internal" href="#duplicate-torrent" id="id148">duplicate_torrent</a></li>
+<li><a class="reference internal" href="#invalid-encoding" id="id149">invalid_encoding</a></li>
+<li><a class="reference internal" href="#type-error" id="id150">type_error</a></li>
+<li><a class="reference internal" href="#invalid-torrent-file" id="id151">invalid_torrent_file</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#fast-resume" id="id161">fast resume</a><ul>
-<li><a class="reference internal" href="#file-format" id="id162">file format</a></li>
+<li><a class="reference internal" href="#storage-interface" id="id152">storage_interface</a><ul>
+<li><a class="reference internal" href="#initialize" id="id153">initialize()</a></li>
+<li><a class="reference internal" href="#read" id="id154">read()</a></li>
+<li><a class="reference internal" href="#write" id="id155">write()</a></li>
+<li><a class="reference internal" href="#id11" id="id156">move_storage()</a></li>
+<li><a class="reference internal" href="#verify-resume-data" id="id157">verify_resume_data()</a></li>
+<li><a class="reference internal" href="#id12" id="id158">write_resume_data( )</a></li>
+<li><a class="reference internal" href="#move-slot" id="id159">move_slot()</a></li>
+<li><a class="reference internal" href="#swap-slots" id="id160">swap_slots()</a></li>
+<li><a class="reference internal" href="#swap-slots3" id="id161">swap_slots3()</a></li>
+<li><a class="reference internal" href="#hash-for-slot" id="id162">hash_for_slot()</a></li>
+<li><a class="reference internal" href="#release-files" id="id163">release_files()</a></li>
+<li><a class="reference internal" href="#delete-files" id="id164">delete_files()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#threads" id="id163">threads</a></li>
-<li><a class="reference internal" href="#storage-allocation" id="id164">storage allocation</a><ul>
-<li><a class="reference internal" href="#sparse-allocation" id="id165">sparse allocation</a></li>
-<li><a class="reference internal" href="#full-allocation" id="id166">full allocation</a></li>
-<li><a class="reference internal" href="#compact-allocation" id="id167">compact allocation</a></li>
+<li><a class="reference internal" href="#fast-resume" id="id165">fast resume</a><ul>
+<li><a class="reference internal" href="#file-format" id="id166">file format</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#extensions" id="id168">extensions</a><ul>
-<li><a class="reference internal" href="#metadata-from-peers" id="id169">metadata from peers</a></li>
-<li><a class="reference internal" href="#http-seeding" id="id170">HTTP seeding</a></li>
+<li><a class="reference internal" href="#threads" id="id167">threads</a></li>
+<li><a class="reference internal" href="#storage-allocation" id="id168">storage allocation</a><ul>
+<li><a class="reference internal" href="#sparse-allocation" id="id169">sparse allocation</a></li>
+<li><a class="reference internal" href="#full-allocation" id="id170">full allocation</a></li>
+<li><a class="reference internal" href="#compact-allocation" id="id171">compact allocation</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#filename-checks" id="id171">filename checks</a></li>
-<li><a class="reference internal" href="#acknowledgments" id="id172">acknowledgments</a></li>
+<li><a class="reference internal" href="#extensions" id="id172">extensions</a><ul>
+<li><a class="reference internal" href="#metadata-from-peers" id="id173">metadata from peers</a></li>
+<li><a class="reference internal" href="#http-seeding" id="id174">HTTP seeding</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#filename-checks" id="id175">filename checks</a></li>
+<li><a class="reference internal" href="#acknowledgments" id="id176">acknowledgments</a></li>
 </ul>
 </div>
 <div class="section" id="overview">
@@ -212,6 +218,8 @@ the <tt class="docutils literal"><span class="pre">session</span></tt>, it conta
 <p>The basic usage is as follows:</p>
 <ul>
 <li><p class="first">construct a session</p>
+</li>
+<li><p class="first">start DHT, LSD, UPnP, NAT-PMP etc (see <a href="#id177"><span class="problematic" id="id178">start_dht_</span></a>, <a href="#id179"><span class="problematic" id="id180">start_lsd_</span></a>, <a href="#id181"><span class="problematic" id="id182">start_upnp_</span></a> and <a href="#id183"><span class="problematic" id="id184">start_natpmp_</span></a>)</p>
 </li>
 <li><p class="first">parse .torrent-files and add them to the session (see <a class="reference internal" href="#bdecode-bencode">bdecode() bencode()</a> and <a class="reference internal" href="#add-torrent">add_torrent()</a>)</p>
 </li>
@@ -359,10 +367,10 @@ class session: public boost::noncopyable
         void start_lsd();
         void stop_lsd();
 
-        boost::intrusive_ptr&lt;upnp&gt; start_upnp();
+        upnp* start_upnp();
         void stop_upnp();
 
-        boost::intrusvice_ptr&lt;natpmp&gt; start_natpmp();
+        natpmp* start_natpmp();
         void stop_natpmp();
 };
 </pre>
@@ -1003,24 +1011,32 @@ look for peers on the same swarm within multicast reach.</p>
 <h2>start_upnp() stop_upnp()</h2>
 <blockquote>
 <pre class="literal-block">
-boost::intrusive_ptr&lt;upnp&gt; start_upnp();
+upnp* start_upnp();
 void stop_upnp();
 </pre>
 </blockquote>
 <p>Starts and stops the UPnP service. When started, the listen port and the DHT
 port are attempted to be forwarded on local UPnP router devices.</p>
+<p>The upnp object returned by <tt class="docutils literal"><span class="pre">start_upnp()</span></tt> can be used to add and remove
+arbitrary port mappings. Mapping status is returned through the
+<a class="reference internal" href="#portmap-alert">portmap_alert</a> and the <a class="reference internal" href="#portmap-error-alert">portmap_error_alert</a>. The object will be valid until
+<a href="#id185"><span class="problematic" id="id186">stop_upnp_</span></a> is called. See <a class="reference internal" href="#upnp-and-nat-pmp">UPnP and NAT-PMP</a>.</p>
 <p>It is off by default.</p>
 </div>
 <div class="section" id="start-natpmp-stop-natpmp">
 <h2>start_natpmp() stop_natpmp()</h2>
 <blockquote>
 <pre class="literal-block">
-boost::intrusvice_ptr&lt;natpmp&gt; start_natpmp();
+natpmp* start_natpmp();
 void stop_natpmp();
 </pre>
 </blockquote>
 <p>Starts and stops the NAT-PMP service. When started, the listen port and the DHT
 port are attempted to be forwarded on the router through NAT-PMP.</p>
+<p>The natpmp object returned by <tt class="docutils literal"><span class="pre">start_natpmp()</span></tt> can be used to add and remove
+arbitrary port mappings. Mapping status is returned through the
+<a class="reference internal" href="#portmap-alert">portmap_alert</a> and the <a class="reference internal" href="#portmap-error-alert">portmap_error_alert</a>. The object will be valid until
+<a href="#id187"><span class="problematic" id="id188">stop_upnp_</span></a> is called. See <a class="reference internal" href="#upnp-and-nat-pmp">UPnP and NAT-PMP</a>.</p>
 <p>It is off by default.</p>
 </div>
 </div>
@@ -3195,6 +3211,83 @@ sure not to clash with anybody else. Here are some taken id's:</p>
 version of your client. All these numbers must be within the range [0, 9].</p>
 <p><tt class="docutils literal"><span class="pre">to_string()</span></tt> will generate the actual string put in the peer-id, and return it.</p>
 </div>
+<div class="section" id="upnp-and-nat-pmp">
+<h1>UPnP and NAT-PMP</h1>
+<p>The <tt class="docutils literal"><span class="pre">upnp</span></tt> and <tt class="docutils literal"><span class="pre">natpmp</span></tt> classes contains the state for all UPnP and NAT-PMP mappings,
+by default 1 or two mappings are made by libtorrent, one for the listen port and one
+for the DHT port (UDP).</p>
+<pre class="literal-block">
+class upnp
+{
+public:
+
+        enum protocol_type { none = 0, udp = 1, tcp = 2 };
+        int add_mapping(protocol_type p, int external_port, int local_port);
+        void delete_mapping(int mapping_index);
+
+        void discover_device();
+        void close();
+
+        std::string router_model();
+};
+
+class natpmp
+{
+public:
+
+        enum protocol_type { none = 0, udp = 1, tcp = 2 };
+        int add_mapping(protocol_type p, int external_port, int local_port);
+        void delete_mapping(int mapping_index);
+
+        void close();
+        void rebind(address const&amp; listen_interface);
+};
+</pre>
+<p><tt class="docutils literal"><span class="pre">discover_device()</span></tt>, <tt class="docutils literal"><span class="pre">close()</span></tt> and <tt class="docutils literal"><span class="pre">rebind()</span></tt> are for internal uses and should
+not be called directly by clients.</p>
+<div class="section" id="add-mapping">
+<h2>add_mapping</h2>
+<blockquote>
+<pre class="literal-block">
+int add_mapping(protocol_type p, int external_port, int local_port);
+</pre>
+</blockquote>
+<p>Attempts to add a port mapping for the specified protocol. Valid protocols are
+<tt class="docutils literal"><span class="pre">upnp::tcp</span></tt> and <tt class="docutils literal"><span class="pre">upnp::udp</span></tt> for the UPnP class and <tt class="docutils literal"><span class="pre">natpmp::tcp</span></tt> and
+<tt class="docutils literal"><span class="pre">natpmp::udp</span></tt> for the NAT-PMP class.</p>
+<p><tt class="docutils literal"><span class="pre">external_port</span></tt> is the port on the external address that will be mapped. This
+is a hint, you are not guaranteed that this port will be available, and it may
+end up being something else. In the <a class="reference internal" href="#portmap-alert">portmap_alert</a> notification, the actual
+external port is reported.</p>
+<p><tt class="docutils literal"><span class="pre">local_port</span></tt> is the port in the local machine that the mapping should forward
+to.</p>
+<p>The return value is an index that identifies this port mapping. This is used
+to refer to mappings that fails or succeeds in the <a class="reference internal" href="#portmap-error-alert">portmap_error_alert</a> and
+<a class="reference internal" href="#portmap-alert">portmap_alert</a> respectively. If The mapping fails immediately, the return value
+is -1, which means failure. There will not be any error alert notification for
+mappings that fail with a -1 return value.</p>
+</div>
+<div class="section" id="delete-mapping">
+<h2>delete_mapping</h2>
+<blockquote>
+<pre class="literal-block">
+void delete_mapping(int mapping_index);
+</pre>
+</blockquote>
+<p>This function removes a port mapping. <tt class="docutils literal"><span class="pre">mapping_index</span></tt> is the index that refers
+to the mapping you want to remove, which was returned from <a class="reference internal" href="#add-mapping">add_mapping</a>.</p>
+</div>
+<div class="section" id="router-model">
+<h2>router_model()</h2>
+<blockquote>
+<pre class="literal-block">
+std::string router_model();
+</pre>
+</blockquote>
+<p>This is only available for UPnP routers. If the model is advertized by
+the router, it can be queried through this function.</p>
+</div>
+</div>
 <div class="section" id="free-functions">
 <h1>free functions</h1>
 <div class="section" id="identify-client">
@@ -3406,10 +3499,15 @@ appears there is no NAT router that can be remote controlled to add port
 mappings.</p>
 <p>The alert is generated as severity <tt class="docutils literal"><span class="pre">warning</span></tt>, since it should be displayed
 to the user somehow, and could mean reduced preformance.</p>
+<p><tt class="docutils literal"><span class="pre">mapping</span></tt> refers to the mapping index of the port map that failed, i.e.
+the index returned from <a class="reference internal" href="#add-mapping">add_mapping</a>.</p>
+<p><tt class="docutils literal"><span class="pre">type</span></tt> is 0 for NAT-PMP and 1 for UPnP.</p>
 <pre class="literal-block">
 struct portmap_error_alert: alert
 {
-        portmap_error_alert(const std::string&amp; msg);
+        portmap_error_alert(int mapping, int type, const std::string&amp; msg);
+        int mapping;
+        int type;
         virtual std::auto_ptr&lt;alert&gt; clone() const;
 };
 </pre>
@@ -3421,10 +3519,17 @@ a port was successfully mapped on it. On a NAT:ed network with a NAT-PMP
 capable router, this is typically generated once when mapping the TCP
 port and, if DHT is enabled, when the UDP port is mapped. This is merely
 an informational alert, and is generated at severity level <tt class="docutils literal"><span class="pre">info</span></tt>.</p>
+<p><tt class="docutils literal"><span class="pre">mapping</span></tt> refers to the mapping index of the port map that failed, i.e.
+the index returned from <a class="reference internal" href="#add-mapping">add_mapping</a>.</p>
+<p><tt class="docutils literal"><span class="pre">external_port</span></tt> is the external port allocated for the mapping.</p>
+<p><tt class="docutils literal"><span class="pre">type</span></tt> is 0 for NAT-PMP and 1 for UPnP.</p>
 <pre class="literal-block">
 struct portmap_alert: alert
 {
-        portmap_alert(const std::string&amp; msg);
+        portmap_alert(int mapping, int port, int type, const std::string&amp; msg);
+        int mapping;
+        int external_port;
+        int type;
         virtual std::auto_ptr&lt;alert&gt; clone() const;
 };
 </pre>
@@ -4455,6 +4560,27 @@ scripts.</p>
 <p>Thanks to <a class="reference external" href="http://www.cs.umu.se">University of Umeå</a> for providing development and test hardware.</p>
 <p>Project is hosted by sourceforge.</p>
 <p><a class="reference external" href="http://sourceforge.net"><img alt="sf_logo" src="http://sourceforge.net/sflogo.php?group_id=7994" /></a></p>
+</div>
+<div class="system-messages section">
+<h1>Docutils System Messages</h1>
+<div class="system-message" id="id177">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 21); <em><a href="#id178">backlink</a></em></p>
+Unknown target name: &quot;start_dht&quot;.</div>
+<div class="system-message" id="id179">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 21); <em><a href="#id180">backlink</a></em></p>
+Unknown target name: &quot;start_lsd&quot;.</div>
+<div class="system-message" id="id181">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 21); <em><a href="#id182">backlink</a></em></p>
+Unknown target name: &quot;start_upnp&quot;.</div>
+<div class="system-message" id="id183">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 21); <em><a href="#id184">backlink</a></em></p>
+Unknown target name: &quot;start_natpmp&quot;.</div>
+<div class="system-message" id="id185">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 893); <em><a href="#id186">backlink</a></em></p>
+Unknown target name: &quot;stop_upnp&quot;.</div>
+<div class="system-message" id="id187">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 911); <em><a href="#id188">backlink</a></em></p>
+Unknown target name: &quot;stop_upnp&quot;.</div>
 </div>
 </div>
 </body>
