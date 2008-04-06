@@ -197,7 +197,6 @@ libtorrent/asio/detail/win_event.hpp \
 libtorrent/asio/detail/win_fd_set_adapter.hpp \
 libtorrent/asio/detail/win_iocp_io_service.hpp \
 libtorrent/asio/detail/win_iocp_io_service_fwd.hpp \
-libtorrent/asio/detail/win_iocp_operation.hpp \
 libtorrent/asio/detail/win_iocp_socket_service.hpp \
 libtorrent/asio/detail/win_mutex.hpp \
 libtorrent/asio/detail/win_signal_blocker.hpp \
