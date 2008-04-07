@@ -281,17 +281,14 @@ namespace libtorrent { namespace
 		// called when the extension handshake from the other end is received
 		virtual bool on_extension_handshake(entry const& h)
 		{
-			entry const& messages = h["m"];
-			if (entry const* index = messages.find_key("LT_metadata"))
-			{
-				m_message_index = int(index->integer());
-				return true;
-			}
-			else
-			{
-				m_message_index = 0;
-				return false;
-			}
+			m_message_index = 0;
+			entry const* messages = h.find_key("m");
+			if (!messages || messages->type() != entry::dictionary_t) return false;
+
+			entry const* index = messages->find_key("LT_metadata");
+			if (!index || index->type() != entry::int_t) return false;
+			m_message_index = int(index->integer());
+			return true;
 		}
 
 		void write_metadata_request(std::pair<int, int> req)
@@ -376,7 +373,10 @@ namespace libtorrent { namespace
 			if (m_message_index == 0) return false;
 
 			if (length > 500 * 1024)
-				throw protocol_error("LT_metadata message larger than 500 kB");
+			{
+				m_pc.disconnect("LT_metadata message larger than 500 kB");
+				return true;
+			}
 
 			if (body.left() < 1) return true;
 			int type = detail::read_uint8(body.begin);
@@ -392,7 +392,8 @@ namespace libtorrent { namespace
 					if (length != 3)
 					{
 						// invalid metadata request
-						throw protocol_error("invalid metadata request");
+						m_pc.disconnect("invalid metadata request");
+						return true;
 					}
 
 					write_metadata(std::make_pair(start, size));
@@ -407,13 +408,25 @@ namespace libtorrent { namespace
 					int data_size = length - 9;
 
 					if (total_size > 500 * 1024)
-						throw protocol_error("metadata size larger than 500 kB");
+					{
+						m_pc.disconnect("metadata size larger than 500 kB");
+						return true;
+					}
 					if (total_size <= 0)
-						throw protocol_error("invalid metadata size");
+					{
+						m_pc.disconnect("invalid metadata size");
+						return true;
+					}
 					if (offset > total_size || offset < 0)
-						throw protocol_error("invalid metadata offset");
+					{
+						m_pc.disconnect("invalid metadata offset");
+						return true;
+					}
 					if (offset + data_size > total_size)
-						throw protocol_error("invalid metadata message");
+					{
+						m_pc.disconnect("invalid metadata message");
+						return true;
+					}
 
 					m_tp.metadata_progress(total_size
 						, body.left() - m_metadata_progress);
@@ -434,8 +447,11 @@ namespace libtorrent { namespace
 				m_waiting_metadata_request = false;
 				break;
 			default:
-				throw protocol_error("unknown metadata extension message: "
-					+ boost::lexical_cast<std::string>(type));
+				{
+					std::stringstream msg;
+					msg << "unknown metadata extension message: " << type;
+					m_pc.disconnect(msg.str().c_str());
+				}
 			}
 			return true;
 		}

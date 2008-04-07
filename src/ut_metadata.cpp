@@ -241,17 +241,13 @@ namespace libtorrent { namespace
 			if (metadata_size && metadata_size->type() == entry::int_t)
 				m_tp.metadata_size(metadata_size->integer());
 
-			entry const& messages = h["m"];
-			if (entry const* index = messages.find_key("ut_metadata"))
-			{
-				m_message_index = index->integer();
-				return true;
-			}
-			else
-			{
-				m_message_index = 0;
-				return false;
-			}
+			entry const* messages = h.find_key("m");
+			if (!messages || messages->type() != entry::dictionary_t) return false;
+
+			entry const* index = messages->find_key("ut_metadata");
+			if (!index || index->type() != entry::int_t) return false;
+			m_message_index = int(index->integer());
+			return true;
 		}
 
 		void write_metadata_packet(int type, int piece)
@@ -309,7 +305,10 @@ namespace libtorrent { namespace
 			if (m_message_index == 0) return false;
 
 			if (length > 17 * 1024)
-				throw protocol_error("ut_metadata message larger than 17 kB");
+			{
+				m_pc.disconnect("ut_metadata message larger than 17 kB");
+				return true;
+			}
 
 			if (!m_pc.packet_finished()) return true;
 
@@ -362,8 +361,11 @@ namespace libtorrent { namespace
 				}
 				break;
 			default:
-				throw protocol_error("unknown metadata extension message: "
-					+ boost::lexical_cast<std::string>(type));
+				{
+					std::stringstream msg;
+					msg << "unknown ut_metadata extension message: " << type;
+					m_pc.disconnect(msg.str().c_str());
+				}
 			}
 			return true;
 		}
