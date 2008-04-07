@@ -18,11 +18,9 @@ libtorrent/extensions.hpp \
 libtorrent/file.hpp \
 libtorrent/file_pool.hpp \
 libtorrent/fingerprint.hpp \
-libtorrent/gzip.hpp \
 libtorrent/hasher.hpp \
 libtorrent/http_connection.hpp \
 libtorrent/http_stream.hpp \
-libtorrent/http_parser.hpp \
 libtorrent/http_tracker_connection.hpp \
 libtorrent/identify_client.hpp \
 libtorrent/instantiate_connection.hpp \
@@ -37,7 +35,6 @@ libtorrent/peer_connection.hpp \
 libtorrent/bt_peer_connection.hpp \
 libtorrent/web_peer_connection.hpp \
 libtorrent/pe_crypto.hpp \
-libtorrent/magnet_uri.hpp \
 libtorrent/natpmp.hpp \
 libtorrent/pch.hpp \
 libtorrent/peer_id.hpp \
@@ -64,7 +61,6 @@ libtorrent/torrent_handle.hpp \
 libtorrent/torrent_info.hpp \
 libtorrent/tracker_manager.hpp \
 libtorrent/udp_tracker_connection.hpp \
-libtorrent/udp_socket.hpp \
 libtorrent/utf8.hpp \
 libtorrent/upnp.hpp \
 libtorrent/xml_parse.hpp \
@@ -74,9 +70,7 @@ libtorrent/time.hpp \
 libtorrent/aux_/session_impl.hpp \
 libtorrent/extensions/metadata_transfer.hpp \
 libtorrent/extensions/ut_pex.hpp \
-libtorrent/extensions/ut_metadata.hpp \
 libtorrent/extensions/logger.hpp \
-libtorrent/extensions/smart_ban.hpp \
 \
 libtorrent/kademlia/closest_nodes.hpp \
 libtorrent/kademlia/dht_tracker.hpp \
@@ -87,6 +81,7 @@ libtorrent/kademlia/node.hpp \
 libtorrent/kademlia/node_entry.hpp \
 libtorrent/kademlia/node_id.hpp \
 libtorrent/kademlia/observer.hpp \
+libtorrent/kademlia/packet_iterator.hpp \
 libtorrent/kademlia/refresh.hpp \
 libtorrent/kademlia/routing_table.hpp \
 libtorrent/kademlia/rpc_manager.hpp \

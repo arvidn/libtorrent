@@ -31,13 +31,12 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-	
+
 #if defined TORRENT_BSD || defined TORRENT_LINUX
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <net/if.h>
-#include <net/route.h>
 #elif defined TORRENT_WINDOWS
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -47,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/enum_net.hpp"
+// for is_loopback and is_any
 #include "libtorrent/broadcast_socket.hpp"
-#include <asio/ip/host_name.hpp>
 
 namespace libtorrent
 {
@@ -72,17 +71,6 @@ namespace libtorrent
 			}
 			return address();
 		}
-
-#ifdef TORRENT_BSD
-		bool verify_sockaddr(sockaddr_in* sin)
-		{
-			return (sin->sin_len == sizeof(sockaddr_in)
-				&& sin->sin_family == AF_INET)
-				|| (sin->sin_len == sizeof(sockaddr_in6)
-				&& sin->sin_family == AF_INET6);
-		}
-#endif
-
 	}
 	
 	bool in_subnet(address const& addr, ip_interface const& iface)
@@ -113,7 +101,7 @@ namespace libtorrent
 	std::vector<ip_interface> enum_net_interfaces(asio::io_service& ios, asio::error_code& ec)
 	{
 		std::vector<ip_interface> ret;
-// covers linux, MacOS X and BSD distributions
+
 #if defined TORRENT_LINUX || defined TORRENT_BSD
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
@@ -213,7 +201,7 @@ namespace libtorrent
 #warning THIS OS IS NOT RECOGNIZED, enum_net_interfaces WILL PROBABLY NOT WORK
 		// make a best guess of the interface we're using and its IP
 		udp::resolver r(ios);
-		udp::resolver::iterator i = r.resolve(udp::resolver::query(asio::ip::host_name(ec), "0"), ec);
+		udp::resolver::iterator i = r.resolve(udp::resolver::query(asio::ip::host_name(ec), "0"));
 		if (ec) return ret;
 		ip_interface iface;
 		for (;i != udp::resolver_iterator(); ++i)
@@ -227,116 +215,15 @@ namespace libtorrent
 		return ret;
 	}
 
-	address get_default_gateway(asio::io_service& ios, address const& interface, asio::error_code& ec)
+	address router_for_interface(address const interface, asio::error_code& ec)
 	{
-	
-#if defined TORRENT_BSD
-
-		struct rt_msg
-		{
-			rt_msghdr m_rtm;
-			char buf[512];
-		};
-
-		rt_msg m;
-		int len = sizeof(rt_msg);
-		bzero(&m, len);
-		m.m_rtm.rtm_type = RTM_GET;
-		m.m_rtm.rtm_flags = RTF_UP | RTF_GATEWAY;
-		m.m_rtm.rtm_version = RTM_VERSION;
-		m.m_rtm.rtm_addrs = RTA_DST | RTA_GATEWAY;
-		m.m_rtm.rtm_seq = 0;
-		m.m_rtm.rtm_msglen = len;
-
-		int s = socket(PF_ROUTE, SOCK_RAW, AF_INET);
-		if (s == -1)
-		{
-			ec = asio::error_code(errno, asio::error::system_category);
-			return address_v4::any();
-		}
-
-		int n = write(s, &m, len);
-		if (n == -1)
-		{
-			ec = asio::error_code(errno, asio::error::system_category);
-			close(s);
-			return address_v4::any();
-		}
-		else if (n != len)
-		{
-			ec = asio::error::operation_not_supported;
-			close(s);
-			return address_v4::any();
-		}
-		bzero(&m, len);
-
-		n = read(s, &m, len);
-		if (n == -1)
-		{
-			ec = asio::error_code(errno, asio::error::system_category);
-			close(s);
-			return address_v4::any();
-		}
-		close(s);
-
-		TORRENT_ASSERT(m.m_rtm.rtm_seq == 0);
-		TORRENT_ASSERT(m.m_rtm.rtm_pid == getpid());
-		if (m.m_rtm.rtm_errno)
-		{
-			ec = asio::error_code(m.m_rtm.rtm_errno, asio::error::system_category);
-			return address_v4::any();
-		}
-		if (m.m_rtm.rtm_flags & RTF_UP == 0
-			|| m.m_rtm.rtm_flags & RTF_GATEWAY == 0)
-		{
-			ec = asio::error::operation_not_supported;
-			return address_v4::any();
-		}
-		if (m.m_rtm.rtm_addrs & RTA_DST == 0
-			|| m.m_rtm.rtm_addrs & RTA_GATEWAY == 0)
-		{
-			ec = asio::error::operation_not_supported;
-			return address_v4::any();
-		}
-		if (m.m_rtm.rtm_msglen > len)
-		{
-			ec = asio::error::operation_not_supported;
-			return address_v4::any();
-		}
-		int min_len = sizeof(rt_msghdr) + 2 * sizeof(struct sockaddr_in);
-		if (m.m_rtm.rtm_msglen < min_len)
-		{
-			ec = asio::error::operation_not_supported;
-			return address_v4::any();
-		}
-
-		// default route
-		char* p = m.buf;
-		sockaddr_in* sin = (sockaddr_in*)p;
-		if (!verify_sockaddr(sin))
-		{
-			ec = asio::error::operation_not_supported;
-			return address_v4::any();
-		}
-
-		// default gateway
-		p += sin->sin_len;
-		sin = (sockaddr_in*)p;
-		if (!verify_sockaddr(sin))
-		{
-			ec = asio::error::operation_not_supported;
-			return address_v4::any();
-		}
-
-		return sockaddr_to_address((sockaddr*)sin);
-
-#elif defined TORRENT_WINDOWS
+#ifdef TORRENT_WINDOWS
 
 		// Load Iphlpapi library
 		HMODULE iphlp = LoadLibraryA("Iphlpapi.dll");
 		if (!iphlp)
 		{
-			ec = asio::error::operation_not_supported;
+			ec = asio::error::fault;
 			return address_v4::any();
 		}
 
@@ -346,7 +233,7 @@ namespace libtorrent
 		if (!GetAdaptersInfo)
 		{
 			FreeLibrary(iphlp);
-			ec = asio::error::operation_not_supported;
+			ec = asio::error::fault;
 			return address_v4::any();
 		}
 
@@ -355,7 +242,7 @@ namespace libtorrent
 		if (GetAdaptersInfo(adapter_info, &out_buf_size) != ERROR_BUFFER_OVERFLOW)
 		{
 			FreeLibrary(iphlp);
-			ec = asio::error::operation_not_supported;
+			ec = asio::error::fault;
 			return address_v4::any();
 		}
 
@@ -363,13 +250,14 @@ namespace libtorrent
 		if (!adapter_info)
 		{
 			FreeLibrary(iphlp);
-			ec = asio::error::no_memory;
+			ec = asio::error::fault;
 			return address_v4::any();
 		}
 
 		address ret;
 		if (GetAdaptersInfo(adapter_info, &out_buf_size) == NO_ERROR)
 		{
+
 			for (PIP_ADAPTER_INFO adapter = adapter_info;
 				adapter != 0; adapter = adapter->Next)
 			{
@@ -394,12 +282,11 @@ namespace libtorrent
 
 		return ret;
 
-//#elif defined TORRENT_LINUX
-// No linux implementation yet
 #else
+		// TODO: temporary implementation
 		if (!interface.is_v4())
 		{
-			ec = asio::error::operation_not_supported;
+			ec = asio::error::fault;
 			return address_v4::any();
 		}
 		return address_v4((interface.to_v4().to_ulong() & 0xffffff00) | 1);

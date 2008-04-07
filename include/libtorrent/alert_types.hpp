@@ -364,36 +364,6 @@ namespace libtorrent
 		{ return std::auto_ptr<alert>(new metadata_received_alert(*this)); }
 	};
 
-	struct TORRENT_EXPORT udp_error_alert: alert
-	{
-		udp_error_alert(
-			udp::endpoint const& ep
-			, std::string const& msg)
-			: alert(alert::info, msg)
-			, endpoint(ep)
-		{}
-
-		udp::endpoint endpoint;
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new udp_error_alert(*this)); }
-	};
-
-	struct TORRENT_EXPORT external_ip_alert: alert
-	{
-		external_ip_alert(
-			address const& ip
-			, std::string const& msg)
-			: alert(alert::info, msg)
-			, external_address(ip)
-		{}
-
-		address external_address;
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new external_ip_alert(*this)); }
-	};
-
 	struct TORRENT_EXPORT listen_failed_alert: alert
 	{
 		listen_failed_alert(
@@ -426,12 +396,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT portmap_error_alert: alert
 	{
-		portmap_error_alert(int i, int t, const std::string& msg)
-			: alert(alert::warning, msg), mapping(i), type(t)
+		portmap_error_alert(const std::string& msg)
+			: alert(alert::warning, msg)
 		{}
-
-		int mapping;
-		int type;
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new portmap_error_alert(*this)); }
@@ -439,13 +406,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT portmap_alert: alert
 	{
-		portmap_alert(int i, int port, int t, const std::string& msg)
-			: alert(alert::info, msg), mapping(i), external_port(port), type(t)
+		portmap_alert(const std::string& msg)
+			: alert(alert::info, msg)
 		{}
-
-		int mapping;
-		int external_port;
-		int type;
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new portmap_alert(*this)); }

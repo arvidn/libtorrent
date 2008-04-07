@@ -1,15 +1,3 @@
-	* Better bias to give connections to downloading torrents
-	  with fewer peers.
-	* Optimized resource usage (removed the checking thread)
-	* Support to bind outgoing connections to specific ports
-	* Disk cache support.
-	* New, more memory efficient, piece picker with sequential download
-	  support (instead of the more complicated sequential download threshold).
-	* Auto Upload slots. Automtically opens up more slots if
-	  upload limit is not met.
-	* Improved NAT-PMP support by querying the default gateway (no
-	  linux support yet)
-	* Improved UPnP support by ignoring routers not on the clients subnet.
 
 release 0.13
 	

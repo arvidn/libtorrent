@@ -61,7 +61,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/version.hpp"
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/disk_io_thread.hpp"
 
 #include "libtorrent/storage.hpp"
 
@@ -76,8 +75,6 @@ namespace libtorrent
 	class ip_filter;
 	class port_filter;
 	class connection_queue;
-	class natpmp;
-	class upnp;
 
 	namespace fs = boost::filesystem;
 
@@ -126,7 +123,7 @@ namespace libtorrent
 
 		session(fingerprint const& print = fingerprint("LT"
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			, fs::path logpath = "."
 #endif
 				);
@@ -134,7 +131,7 @@ namespace libtorrent
 			fingerprint const& print
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = "0.0.0.0"
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			, fs::path logpath = "."
 #endif
 			);
@@ -179,10 +176,6 @@ namespace libtorrent
 		session_proxy abort() { return session_proxy(m_impl); }
 
 		session_status status() const;
-		cache_status get_cache_status() const;
-
-		void get_cache_info(sha1_hash const& ih
-			, std::vector<cached_piece_info>& ret) const;
 
 #ifndef TORRENT_DISABLE_DHT
 		void start_dht(entry const& startup_state = entry());
@@ -201,13 +194,6 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext);
 #endif
-
-#ifndef TORRENT_DISABLE_GEO_IP
-		bool load_asnum_db(char const* file);
-#endif
-
-		void load_state(entry const& ses_state);
-		entry state() const;
 
 		void set_ip_filter(ip_filter const& f);
 		void set_port_filter(port_filter const& f);
@@ -286,8 +272,8 @@ namespace libtorrent
 		// starts/stops UPnP, NATPMP or LSD port mappers
 		// they are stopped by default
 		void start_lsd();
-		natpmp* start_natpmp();
-		upnp* start_upnp();
+		void start_natpmp();
+		void start_upnp();
 
 		void stop_lsd();
 		void stop_natpmp();

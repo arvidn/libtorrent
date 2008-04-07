@@ -25,16 +25,6 @@ void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
 	TEST_CHECK(std::equal(j.buffer, j.buffer + ret, data));
 }
 
-void on_check_resume_data(int ret, disk_io_job const& j)
-{
-	std::cerr << "on_check_resume_data ret: " << ret << " " << j.piece << std::endl;
-}
-
-void on_check_files(int ret, disk_io_job const& j)
-{
-	std::cerr << "on_check_files ret: " << ret << " " << j.piece << std::endl;
-}
-
 void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	, path const& test_path
 	, libtorrent::storage_mode_t storage_mode)
@@ -96,19 +86,30 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	// make sure the piece_manager can identify the pieces
 	{
 	file_pool fp;
-	asio::io_service ios;
-	disk_io_thread io(ios);
+	disk_io_thread io;
 	boost::shared_ptr<int> dummy(new int);
 	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
-		, test_path, fp, io, default_storage_constructor, storage_mode);
+		, test_path, fp, io, default_storage_constructor);
 	boost::mutex lock;
+	libtorrent::aux::piece_checker_data d;
 
+	std::vector<bool> pieces;
+	num_pieces = 0;
+	std::string error_msg;
 	entry frd;
-	pm->async_check_fastresume(&frd, &on_check_resume_data);
-	test_sleep(2000);
+	pm->verify_resume_data(frd, error_msg);
+	TEST_CHECK(pm->check_fastresume(d, pieces, num_pieces
+		, storage_mode, error_msg) == false);
+	bool finished = false;
+	float progress;
+	num_pieces = 0;
+	boost::recursive_mutex mutex;
+	while (!finished)
+		boost::tie(finished, progress) = pm->check_files(pieces, num_pieces, mutex);
 
-	pm->async_check_files(&on_check_files);
-	test_sleep(2000);
+	TEST_CHECK(num_pieces == std::count(pieces.begin(), pieces.end()
+		, true));
+
 
 	boost::function<void(int, disk_io_job const&)> none;
 	TEST_CHECK(exists(test_path / "temp_storage"));
@@ -116,7 +117,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	test_sleep(2000);
 	TEST_CHECK(!exists(test_path / "temp_storage"));
 	TEST_CHECK(exists(test_path / "temp_storage2/temp_storage"));
-	pm->async_move_storage(test_path, none);
+	pm->async_move_storage(test_path , none);
 	test_sleep(2000);
 	TEST_CHECK(!exists(test_path / "temp_storage2/temp_storage"));	
 	remove_all(test_path / "temp_storage2");
@@ -131,8 +132,6 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	r.piece = 2;
 	pm->async_read(r, bind(&on_read_piece, _1, _2, piece2, piece_size));
 	pm->async_release_files(none);
-
-	ios.run();
 
 	io.join();
 	}

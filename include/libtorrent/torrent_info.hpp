@@ -244,7 +244,7 @@ namespace libtorrent
 		
 		void add_node(std::pair<std::string, int> const& node);
 
-		bool parse_info_section(entry const& e, std::string& error);
+		void parse_info_section(entry const& e);
 
 		entry const* extra(char const* key) const
 		{ return m_extra_info.find_key(key); }
@@ -257,7 +257,7 @@ namespace libtorrent
 
 	private:
 
-		bool read_torrent_info(const entry& libtorrent, std::string& error);
+		void read_torrent_info(const entry& libtorrent);
 
 		// the urls to the trackers
 		std::vector<announce_entry> m_urls;

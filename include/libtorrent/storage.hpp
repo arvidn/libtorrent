@@ -119,33 +119,31 @@ namespace libtorrent
 		// if allocate_files is true. 
 		// allocate_files is true if allocation mode
 		// is set to full and sparse files are supported
-		// false return value indicates an error
-		virtual bool initialize(bool allocate_files) = 0;
+		virtual void initialize(bool allocate_files) = 0;
 
-		// negative return value indicates an error
-		virtual int read(char* buf, int slot, int offset, int size) = 0;
+		// may throw file_error if storage for slot does not exist
+		virtual size_type read(char* buf, int slot, int offset, int size) = 0;
 
-		// negative return value indicates an error
-		virtual int write(const char* buf, int slot, int offset, int size) = 0;
+		// may throw file_error if storage for slot hasn't been allocated
+		virtual void write(const char* buf, int slot, int offset, int size) = 0;
 
-		// non-zero return value indicates an error
 		virtual bool move_storage(fs::path save_path) = 0;
 
 		// verify storage dependent fast resume entries
-		virtual bool verify_resume_data(entry const& rd, std::string& error) = 0;
+		virtual bool verify_resume_data(entry& rd, std::string& error) = 0;
 
 		// write storage dependent fast resume entries
-		virtual bool write_resume_data(entry& rd) const = 0;
+		virtual void write_resume_data(entry& rd) const = 0;
 
 		// moves (or copies) the content in src_slot to dst_slot
-		virtual bool move_slot(int src_slot, int dst_slot) = 0;
+		virtual void move_slot(int src_slot, int dst_slot) = 0;
 
 		// swaps the data in slot1 and slot2
-		virtual bool swap_slots(int slot1, int slot2) = 0;
+		virtual void swap_slots(int slot1, int slot2) = 0;
 
 		// swaps the puts the data in slot1 in slot2, the data in slot2
 		// in slot3 and the data in slot3 in slot1
-		virtual bool swap_slots3(int slot1, int slot2, int slot3) = 0;
+		virtual void swap_slots3(int slot1, int slot2, int slot3) = 0;
 
 		// returns the sha1-hash for the data at the given slot
 		virtual sha1_hash hash_for_slot(int slot, partial_hash& h, int piece_size) = 0;
@@ -153,15 +151,10 @@ namespace libtorrent
 		// this will close all open files that are opened for
 		// writing. This is called when a torrent has finished
 		// downloading.
-		// non-zero return value indicates an error
-		virtual bool release_files() = 0;
+		virtual void release_files() = 0;
 
 		// this will close all open files and delete them
-		// non-zero return value indicates an error
-		virtual bool delete_files() = 0;
-
-		virtual std::string const& error() const = 0;
-		virtual void clear_error() = 0;
+		virtual void delete_files() = 0;
 
 		virtual ~storage_interface() {}
 	};
@@ -171,10 +164,6 @@ namespace libtorrent
 		, file_pool&);
 
 	TORRENT_EXPORT storage_interface* default_storage_constructor(
-		boost::intrusive_ptr<torrent_info const> ti
-		, fs::path const& path, file_pool& fp);
-
-	TORRENT_EXPORT storage_interface* mapped_storage_constructor(
 		boost::intrusive_ptr<torrent_info const> ti
 		, fs::path const& path, file_pool& fp);
 
@@ -194,23 +183,35 @@ namespace libtorrent
 			, fs::path const& path
 			, file_pool& fp
 			, disk_io_thread& io
-			, storage_constructor_type sc
-			, storage_mode_t sm);
+			, storage_constructor_type sc);
 
 		~piece_manager();
 
-		torrent_info const* info() const { return m_info.get(); }
+		bool check_fastresume(aux::piece_checker_data& d
+			, std::vector<bool>& pieces, int& num_pieces, storage_mode_t storage_mode
+			, std::string& error_msg);
+		std::pair<bool, float> check_files(std::vector<bool>& pieces
+			, int& num_pieces, boost::recursive_mutex& mutex);
 
 		// frees a buffer that was returned from a read operation
 		void free_buffer(char* buf);
 
-		void write_resume_data(entry& rd, std::vector<bool> const& have) const;
+		void write_resume_data(entry& rd) const;
+		bool verify_resume_data(entry& rd, std::string& error);
 
-		void async_check_fastresume(entry const* resume_data
-			, boost::function<void(int, disk_io_job const&)> const& handler);
+		bool is_allocating() const
+		{ return m_state == state_expand_pieces; }
+
+		void mark_failed(int index);
+
+		unsigned long piece_crc(
+			int slot_index
+			, int block_size
+			, piece_picker::block_info const* bi);
+
+		int slot_for(int piece) const;
+		int piece_for(int slot) const;
 		
-		void async_check_files(boost::function<void(int, disk_io_job const&)> const& handler);
-
 		void async_read(
 			peer_request const& r
 			, boost::function<void(int, disk_io_job const&)> const& handler
@@ -224,6 +225,8 @@ namespace libtorrent
 
 		void async_hash(int piece, boost::function<void(int, disk_io_job const&)> const& f);
 
+		fs::path save_path() const;
+
 		void async_release_files(
 			boost::function<void(int, disk_io_job const&)> const& handler
 			= boost::function<void(int, disk_io_job const&)>());
@@ -235,44 +238,12 @@ namespace libtorrent
 		void async_move_storage(fs::path const& p
 			, boost::function<void(int, disk_io_job const&)> const& handler);
 
-		enum return_t
-		{
-			// return values from check_fastresume and check_files
-			no_error = 0,
-			need_full_check = -1,
-			fatal_disk_error = -2,
-		};
-
-	private:
-
-		fs::path save_path() const;
-
-		bool verify_resume_data(entry const& rd, std::string& error)
-		{ return m_storage->verify_resume_data(rd, error); }
-
-		bool is_allocating() const
-		{ return m_state == state_expand_pieces; }
-
-		void mark_failed(int index);
-
-		std::string const& error() const { return m_storage->error(); }
-		void clear_error() { m_storage->clear_error(); }
-
-		int slot_for(int piece) const;
-		int piece_for(int slot) const;
-	
-		// helper functions for check_dastresume	
-		int check_no_fastresume(std::string& error);
-		int check_init_storage(std::string& error);
-		
-		// if error is set and return value is 'no_error' or 'need_full_check'
-		// the error message indicates that the fast resume data was rejected
-		// if 'fatal_disk_error' is returned, the error message indicates what
-		// when wrong in the disk access
-		int check_fastresume(entry const& rd, std::string& error);
-
-		// this function returns true if the checking is complete
-		int check_files(int& current_slot, int& have_piece, std::string& error);
+		// fills the vector that maps all allocated
+		// slots to the piece that is stored (or
+		// partially stored) there. -2 is the index
+		// of unassigned pieces and -1 is unallocated
+		void export_piece_map(std::vector<int>& pieces
+			, std::vector<bool> const& have) const;
 
 		bool compact_allocation() const
 		{ return m_storage_mode == storage_mode_compact; }
@@ -280,31 +251,36 @@ namespace libtorrent
 #ifndef NDEBUG
 		std::string name() const { return m_info->name(); }
 #endif
+		
+	private:
 
 		bool allocate_slots(int num_slots, bool abort_on_disk = false);
 
-		int read_impl(
+		int identify_data(
+			const std::vector<char>& piece_data
+			, int current_slot
+			, std::vector<bool>& have_pieces
+			, int& num_pieces
+			, const std::multimap<sha1_hash, int>& hash_to_piece
+			, boost::recursive_mutex& mutex);
+
+		size_type read_impl(
 			char* buf
 			, int piece_index
 			, int offset
 			, int size);
 
-		int write_impl(
+		void write_impl(
 			const char* buf
 			, int piece_index
 			, int offset
 			, int size);
 
-		bool check_one_piece(int& have_piece);
-		int identify_data(
-			const std::vector<char>& piece_data
-			, int current_slot);
-
 		void switch_to_full_mode();
 		sha1_hash hash_for_piece_impl(int piece);
 
-		int release_files_impl() { return m_storage->release_files(); }
-		int delete_files_impl() { return m_storage->delete_files(); }
+		void release_files_impl() { m_storage->release_files(); }
+		void delete_files_impl() { m_storage->delete_files(); }
 
 		bool move_storage_impl(fs::path const& save_path);
 
@@ -354,6 +330,8 @@ namespace libtorrent
 			state_none,
 			// the file checking is complete
 			state_finished,
+			// creating the directories
+			state_create_files,
 			// checking the files
 			state_full_check,
 			// move pieces to their final position
@@ -398,6 +376,9 @@ namespace libtorrent
 		// the piece_manager destructs. This is because
 		// the torrent_info object is owned by the torrent.
 		boost::shared_ptr<void> m_torrent;
+#ifndef NDEBUG
+		bool m_resume_data_verified;
+#endif
 	};
 
 }

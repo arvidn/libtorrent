@@ -21,12 +21,12 @@ int main()
 		if (is_local(i->interface_address)) std::cout << "local ";
 		if (is_loopback(i->interface_address)) std::cout << "loopback ";
 		std::cout << std::endl;
+		std::cout << "  router: " << router_for_interface(i->interface_address, ec);
+		std::cout << std::endl;
 	}
 
 	address local = guess_local_address(ios);
-	std::cout << "Local address: " << local << std::endl;
 
-	address gateway = get_default_gateway(ios, local, ec);
-	std::cout << "Default gateway: " << gateway << std::endl;
+	std::cout << "Local address: " << local << std::endl;
 }
 

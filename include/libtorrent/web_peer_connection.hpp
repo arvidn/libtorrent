@@ -70,7 +70,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 // parse_url
 #include "libtorrent/tracker_manager.hpp"
-#include "libtorrent/http_parser.hpp"
+// http_parser
+#include "libtorrent/http_tracker_connection.hpp"
 
 namespace libtorrent
 {

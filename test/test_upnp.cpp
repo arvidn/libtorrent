@@ -7,9 +7,9 @@
 
 using namespace libtorrent;
 
-void callback(int mapping, int port, std::string const& err)
+void callback(int tcp, int udp, std::string const& err)
 {
-	std::cerr << "mapping: " << mapping << ", port: " << port << ", error: \"" << err << "\"\n";
+	std::cerr << "tcp: " << tcp << ", udp: " << udp << ", error: \"" << err << "\"\n";
 }
 
 int main(int argc, char* argv[])
@@ -36,16 +36,14 @@ int main(int argc, char* argv[])
 	ios.reset();
 	ios.run();
 
-	upnp_handler->add_mapping(upnp::tcp, atoi(argv[1]), atoi(argv[1]));
-	upnp_handler->add_mapping(upnp::udp, atoi(argv[2]), atoi(argv[2]));
-	timer.expires_from_now(seconds(10));
+	upnp_handler->set_mappings(atoi(argv[1]), atoi(argv[2]));
+	timer.expires_from_now(seconds(5));
 	timer.async_wait(boost::bind(&io_service::stop, boost::ref(ios)));
 	std::cerr << "mapping ports TCP: " << argv[1]
 		<< " UDP: " << argv[2] << std::endl;
 
 	ios.reset();
 	ios.run();
-	std::cerr << "router: " << upnp_handler->router_model() << std::endl;
 	std::cerr << "removing mappings" << std::endl;
 	upnp_handler->close();
 

@@ -102,11 +102,7 @@ namespace libtorrent
 			, min_reconnect_time(60)
 			, peer_connect_timeout(7)
 			, ignore_limits_on_local_network(true)
-#if !defined NDEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
-			, connection_speed(2)
-#else
 			, connection_speed(20)
-#endif
 			, send_redundant_have(false)
 			, lazy_bitfields(true)
 			, inactivity_timeout(600)
@@ -122,12 +118,6 @@ namespace libtorrent
 #endif
 			, free_torrent_hashes(true)
 			, upnp_ignore_nonrouters(true)
- 			, send_buffer_watermark(80 * 1024)
-			, auto_upload_slots(true)
-			, cache_size(512)
-			, cache_expiry(60)
-			, outgoing_ports(0,0)
-			, peer_tos(0)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -308,45 +298,6 @@ namespace libtorrent
 		// any upnp devices that don't have an address that matches
 		// our currently configured router.
 		bool upnp_ignore_nonrouters;
-
- 		// if the send buffer has fewer bytes than this, we'll
- 		// read another 16kB block onto it. If set too small,
- 		// upload rate capacity will suffer. If set too high,
- 		// memory will be wasted.
- 		// The actual watermark may be lower than this in case
- 		// the upload rate is low, this is the upper limit.
- 		int send_buffer_watermark;
-
-		// if auto_upload_slots is true, and a global upload
-		// limit is set and the upload rate is less than 90%
-		// of the upload limit, on new slot is opened up. If
-		// the upload rate is >= upload limit for an extended
-		// period of time, one upload slot is closed. The
-		// upload slots are never automatically decreased below
-		// the manual settings, through max_uploads.
-		bool auto_upload_slots;
-
-		// the disk write cache, specified in 16 KiB blocks.
-		// default is 512 (= 8 MB)
-		int cache_size;
-
-		// the number of seconds a write cache entry sits
-		// idle in the cache before it's forcefully flushed
-		// to disk. Default is 60 seconds.
-		int cache_expiry;
-
-		// if != (0, 0), this is the range of ports that
-		// outgoing connections will be bound to. This
-		// is useful for users that have routers that
-		// allow QoS settings based on local port.
-		std::pair<int, int> outgoing_ports;
-
-		// the TOS byte of all peer traffic (including
-		// web seeds) is set to this value. The default
-		// is the QBSS scavenger service
-		// http://qbone.internet2.edu/qbss/
-		// For unmarked packets, set to 0
-		char peer_tos;
 	};
 	
 #ifndef TORRENT_DISABLE_DHT

@@ -222,7 +222,6 @@ Build features:
 | ``logging``            | * ``none`` - no logging.                           |
 |                        | * ``default`` - basic session logging.             |
 |                        | * ``verbose`` - verbose peer wire logging.         |
-|                        | * ``errors`` - like verbose, but limited to errors.|
 +------------------------+----------------------------------------------------+
 | ``dht-support``        | * ``on`` - build with support for tracker less     |
 |                        |   torrents and DHT support.                        |
@@ -240,14 +239,6 @@ Build features:
 |                        |   with your operating system.                      |
 |                        | * ``shipped`` - links against the zlib bundled     |
 |                        |   with the libtorrent package.                     |
-+------------------------+----------------------------------------------------+
-| ``geoip``              | * ``off`` - geo ip lookups disabled                |
-|                        | * ``static`` - MaxMind_ geo ip lookup code linked  |
-|                        |   in statically. Note that this code is under      |
-|                        |   LGPL license.                                    |
-|                        | * ``shared`` - The MaxMind_ geo ip lookup library  |
-|                        |   is expected to be installed on the system and    |
-|                        |   it will be used.                                 |
 +------------------------+----------------------------------------------------+
 | ``upnp-logging``       | * ``off`` - default. Does not log UPnP traffic.    |
 |                        | * ``on`` - creates "upnp.log" with the messages    |
@@ -304,8 +295,6 @@ Build features:
 |                        | * ``off`` - default for release builds.            |
 +------------------------+----------------------------------------------------+
 
-.. _MaxMind: http://www.maxmind.com/app/api
-
 The ``variant`` feature is *implicit*, which means you don't need to specify
 the name of the feature, just the value.
 
@@ -336,7 +325,7 @@ building with autotools
 First of all, you need to install ``automake`` and ``autoconf``. Many
 unix/linux systems comes with these preinstalled.
 
-The prerequisites for building libtorrent are boost.thread, boost.date_time
+The prerequisites for building libtorrent is boost.thread, boost.date_time
 and boost.filesystem. Those are the *compiled* boost libraries needed. The
 headers-only libraries needed include (but is not necessarily limited to)
 boost.bind, boost.ref, boost.multi_index, boost.optional, boost.lexical_cast,
@@ -498,10 +487,6 @@ defines you can use to control the build.
 | ``TORRENT_LOGGING``                   | This macro will enable logging of the session   |
 |                                       | events, such as tracker announces and incoming  |
 |                                       | connections (as well as blocked connections).   |
-+---------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_GEO_IP``            | This is defined by default by the Jamfile. It   |
-|                                       | disables the GeoIP features, and avoids linking |
-|                                       | against LGPL:ed code.                           |
 +---------------------------------------+-------------------------------------------------+
 | ``TORRENT_VERBOSE_LOGGING``           | If you define this macro, every peer connection |
 |                                       | will log its traffic to a log file as well as   |

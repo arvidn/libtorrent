@@ -355,19 +355,6 @@ bool routing_table::need_bootstrap() const
 	return true;
 }
 
-template <class SrcIter, class DstIter, class Pred>
-DstIter copy_if_n(SrcIter begin, SrcIter end, DstIter target, size_t n, Pred p)
-{
-	for (; n > 0 && begin != end; ++begin)
-	{
-		if (!p(*begin)) continue;
-		*target = *begin;
-		--n;
-		++target;
-	}
-	return target;
-}
-
 // fills the vector with the k nodes from our buckets that
 // are nearest to the given id.
 void routing_table::find_node(node_id const& target
@@ -382,8 +369,8 @@ void routing_table::find_node(node_id const& target
 
 	// copy all nodes that hasn't failed into the target
 	// vector.
-	copy_if_n(b.begin(), b.end(), std::back_inserter(l)
-		, (std::min)(size_t(count), b.size()), bind(&node_entry::fail_count, _1) == 0);
+	std::remove_copy_if(b.begin(), b.end(), std::back_inserter(l)
+		, bind(&node_entry::fail_count, _1));
 	TORRENT_ASSERT((int)l.size() <= count);
 
 	if ((int)l.size() == count)
@@ -406,23 +393,19 @@ void routing_table::find_node(node_id const& target
 			, bind(&node_entry::fail_count, _1));
 	}
 
-	if (count - l.size() < tmpb.size())
-	{
-		std::random_shuffle(tmpb.begin(), tmpb.end());
-		size_t to_copy = count - l.size();
-		std::copy(tmpb.begin(), tmpb.begin() + to_copy, std::back_inserter(l));
-	}
-	else
-	{
-		std::copy(tmpb.begin(), tmpb.end(), std::back_inserter(l));
-	}
+	std::random_shuffle(tmpb.begin(), tmpb.end());
+	size_t to_copy = (std::min)(m_bucket_size - l.size()
+		, tmpb.size());
+	std::copy(tmpb.begin(), tmpb.begin() + to_copy
+		, std::back_inserter(l));
 		
-	TORRENT_ASSERT((int)l.size() <= count);
+	TORRENT_ASSERT((int)l.size() <= m_bucket_size);
 
 	// return if we have enough nodes or if the bucket index
 	// is the biggest index available (there are no more buckets)
 	// to look in.
-	if ((int)l.size() == count)
+	if ((int)l.size() == count
+		|| bucket_index == (int)m_buckets.size() - 1)
 	{
 		TORRENT_ASSERT(std::count_if(l.begin(), l.end()
 			, boost::bind(&node_entry::fail_count, _1) != 0) == 0);
@@ -433,17 +416,18 @@ void routing_table::find_node(node_id const& target
 	{
 		bucket_t& b = m_buckets[i].first;
 	
-		size_t to_copy = (std::min)(count - l.size(), b.size());
-		copy_if_n(b.begin(), b.end(), std::back_inserter(l)
-			, to_copy, bind(&node_entry::fail_count, _1) == 0);
-		TORRENT_ASSERT((int)l.size() <= count);
-		if ((int)l.size() == count)
+		std::remove_copy_if(b.begin(), b.end(), std::back_inserter(l)
+			, bind(&node_entry::fail_count, _1));
+		if ((int)l.size() >= count)
 		{
+			l.erase(l.begin() + count, l.end());
 			TORRENT_ASSERT(std::count_if(l.begin(), l.end()
 				, boost::bind(&node_entry::fail_count, _1) != 0) == 0);
 			return;
 		}
 	}
+	TORRENT_ASSERT((int)l.size() == count
+		|| std::distance(l.begin(), l.end()) < m_bucket_size);
 	TORRENT_ASSERT((int)l.size() <= count);
 
 	TORRENT_ASSERT(std::count_if(l.begin(), l.end()

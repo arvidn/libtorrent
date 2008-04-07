@@ -1,7 +1,7 @@
 AC_PREREQ(2.59)
 
 AC_INIT(src/torrent.cpp)
-AM_INIT_AUTOMAKE(libtorrent, 0.14)
+AM_INIT_AUTOMAKE(libtorrent, 0.13)
 
 # Nowhere in the source is config.h included, so make defines command line arguments
 # AM_CONFIG_HEADER(config.h)
@@ -27,24 +27,13 @@ AC_PROG_LIBTOOL
 
 dnl Make sure that the asio header files are added.
 ASIO_DIR=$srcdir/include/libtorrent/asio
-
-if test "$cross_compiling" == "no"; then
-  AC_CHECK_FILES([$ASIO_DIR/../asio.hpp $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp ],,AC_MSG_ERROR([ ASIO header files not found. Get them from asio.sourceforge.net (use CVS head) and include or symlink them. Example: ln -s ../../../asio/include/asio.hpp include/libtorrent/asio.hpp && ln -s ../../../asio/include/asio include/libtorrent/asio ]) )
+AC_CHECK_FILES([$ASIO_DIR/../asio.hpp $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp ],,AC_MSG_ERROR([ ASIO header files not found. Get them from asio.sourceforge.net (use CVS head) and include or symlink them. Example: ln -s ../../../asio/include/asio.hpp include/libtorrent/asio.hpp && ln -s ../../../asio/include/asio include/libtorrent/asio ]) )
 dnl check asio version
-else
-  AC_MSG_NOTICE([Cross compiling, not checking ASIO headers])
-fi
 
 SAVED_LIBS="$LIBS"
 
 dnl Check for pthreads and boost libraries.
 ACX_PTHREAD
-
-AX_BOOST_IOSTREAMS
-dnl check that Boost.IOStreams was found:
-if test -z "$BOOST_IOSTREAMS_LIB"; then
-   AC_MSG_ERROR([unable to find Boost.IOStreams library, currently this is required.])
-fi
 
 AX_BOOST_DATE_TIME
 

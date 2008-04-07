@@ -80,11 +80,6 @@ using boost::bind;
 using boost::mutex;
 using libtorrent::aux::session_impl;
 
-#ifdef TORRENT_MEMDEBUG
-void start_malloc_debug();
-void stop_malloc_debug();
-#endif
-
 namespace libtorrent
 {
 
@@ -112,19 +107,16 @@ namespace libtorrent
 		fingerprint const& id
 		, std::pair<int, int> listen_port_range
 		, char const* listen_interface
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		, fs::path logpath
 #endif
 		)
 		: m_impl(new session_impl(listen_port_range, id, listen_interface
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 					, logpath
 #endif
 					))
 	{
-#ifdef TORRENT_MEMDEBUG
-		start_malloc_debug();
-#endif
 		// turn off the filename checking in boost.filesystem
 		TORRENT_ASSERT(listen_port_range.first > 0);
 		TORRENT_ASSERT(listen_port_range.first < listen_port_range.second);
@@ -138,19 +130,16 @@ namespace libtorrent
 	}
 
 	session::session(fingerprint const& id
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		, fs::path logpath
 #endif
 		)
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		: m_impl(new session_impl(std::make_pair(0, 0), id, "0.0.0.0", logpath))
 #else
 		: m_impl(new session_impl(std::make_pair(0, 0), id, "0.0.0.0"))
 #endif
 	{
-#ifdef TORRENT_MEMDEBUG
-		start_malloc_debug();
-#endif
 #ifndef NDEBUG
 		boost::function0<void> test = boost::ref(*m_impl);
 		TORRENT_ASSERT(!test.empty());
@@ -159,9 +148,6 @@ namespace libtorrent
 
 	session::~session()
 	{
-#ifdef TORRENT_MEMDEBUG
-		stop_malloc_debug();
-#endif
 		TORRENT_ASSERT(m_impl);
 		// if there is at least one destruction-proxy
 		// abort the session and let the destructor
@@ -173,23 +159,6 @@ namespace libtorrent
 	void session::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext)
 	{
 		m_impl->add_extension(ext);
-	}
-
-#ifndef TORRENT_DISABLE_GEO_IP
-	bool session::load_asnum_db(char const* file)
-	{
-		return m_impl->load_asnum_db(file);
-	}
-#endif
-
-	void session::load_state(entry const& ses_state)
-	{
-		m_impl->load_state(ses_state);
-	}
-
-	entry session::state() const
-	{
-		return m_impl->state();
 	}
 
 	void session::set_ip_filter(ip_filter const& f)
@@ -292,17 +261,6 @@ namespace libtorrent
 	session_status session::status() const
 	{
 		return m_impl->status();
-	}
-
-	void session::get_cache_info(sha1_hash const& ih
-		, std::vector<cached_piece_info>& ret) const
-	{
-		m_impl->m_disk_thread.get_cache_info(ih, ret);
-	}
-
-	cache_status session::get_cache_status() const
-	{
-		return m_impl->m_disk_thread.status();
 	}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -479,14 +437,14 @@ namespace libtorrent
 		m_impl->start_lsd();
 	}
 	
-	natpmp* session::start_natpmp()
+	void session::start_natpmp()
 	{
-		return m_impl->start_natpmp();
+		m_impl->start_natpmp();
 	}
 	
-	upnp* session::start_upnp()
+	void session::start_upnp()
 	{
-		return m_impl->start_upnp();
+		m_impl->start_upnp();
 	}
 	
 	void session::stop_lsd()

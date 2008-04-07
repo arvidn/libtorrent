@@ -33,30 +33,85 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HTTP_TRACKER_CONNECTION_HPP_INCLUDED
 #define TORRENT_HTTP_TRACKER_CONNECTION_HPP_INCLUDED
 
+#include <vector>
 #include <string>
+#include <utility>
+#include <ctime>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
 
 #include <boost/shared_ptr.hpp>
+#include <boost/cstdint.hpp>
+#include <boost/tuple/tuple.hpp>
+#include <boost/lexical_cast.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
+#include "libtorrent/socket.hpp"
+#include "libtorrent/entry.hpp"
+#include "libtorrent/session_settings.hpp"
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/peer.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/buffer.hpp"
+#include "libtorrent/socket_type.hpp"
+#include "libtorrent/connection_queue.hpp"
 
 namespace libtorrent
 {
 	
-	struct http_connection;
-	class entry;
-	class http_parser;
-	class connection_queue;
-	struct session_settings;
+	class http_parser
+	{
+	public:
+		http_parser();
+		std::string const& header(char const* key) const
+		{
+			static std::string empty;
+			std::map<std::string, std::string>::const_iterator i
+				= m_header.find(key);
+			if (i == m_header.end()) return empty;
+			return i->second;
+		}
+
+		std::string const& protocol() const { return m_protocol; }
+		int status_code() const { return m_status_code; }
+		std::string const& method() const { return m_method; }
+		std::string const& path() const { return m_path; }
+		std::string const& message() const { return m_server_message; }
+		buffer::const_interval get_body() const;
+		bool header_finished() const { return m_state == read_body; }
+		bool finished() const { return m_finished; }
+		boost::tuple<int, int> incoming(buffer::const_interval recv_buffer);
+		int body_start() const { return m_body_start_pos; }
+		int content_length() const { return m_content_length; }
+
+		void reset();
+
+		std::map<std::string, std::string> const& headers() const { return m_header; }
+		
+	private:
+		int m_recv_pos;
+		int m_status_code;
+		std::string m_method;
+		std::string m_path;
+		std::string m_protocol;
+		std::string m_server_message;
+
+		int m_content_length;
+
+		enum { read_status, read_header, read_body } m_state;
+
+		std::map<std::string, std::string> m_header;
+		buffer::const_interval m_recv_buffer;
+		int m_body_start_pos;
+
+		bool m_finished;
+	};
 
 	class TORRENT_EXPORT http_tracker_connection
 		: public tracker_connection
@@ -65,10 +120,13 @@ namespace libtorrent
 	public:
 
 		http_tracker_connection(
-			io_service& ios
+			asio::strand& str
 			, connection_queue& cc
 			, tracker_manager& man
 			, tracker_request const& req
+			, std::string const& hostname
+			, unsigned short port
+			, std::string request
 			, address bind_infc
 			, boost::weak_ptr<request_callback> c
 			, session_settings const& stn
@@ -82,16 +140,43 @@ namespace libtorrent
 		boost::intrusive_ptr<http_tracker_connection> self()
 		{ return boost::intrusive_ptr<http_tracker_connection>(this); }
 
-		void on_response(asio::error_code const& ec, http_parser const& parser
-			, char const* data, int size);
+		void on_response();
+		
+		void init_send_buffer(
+			std::string const& hostname
+			, std::string const& request);
 
-		virtual void on_timeout() {}
+		void name_lookup(asio::error_code const& error, tcp::resolver::iterator i);
+		void connect(int ticket, tcp::endpoint target_address);
+		void connected(asio::error_code const& error);
+		void sent(asio::error_code const& error);
+		void receive(asio::error_code const& error
+			, std::size_t bytes_transferred);
 
-		void parse(int status_code, const entry& e);
-		bool extract_peer_info(const entry& e, peer_entry& ret);
+		virtual void on_timeout();
+
+		void parse(const entry& e);
+		peer_entry extract_peer_info(const entry& e);
 
 		tracker_manager& m_man;
-		boost::shared_ptr<http_connection> m_tracker_connection;
+		http_parser m_parser;
+
+		asio::strand& m_strand;
+		tcp::resolver m_name_lookup;
+		int m_port;
+		socket_type m_socket;
+		int m_recv_pos;
+		std::vector<char> m_buffer;
+		std::string m_send_buffer;
+
+		session_settings const& m_settings;
+		proxy_settings const& m_proxy;
+		std::string m_password;
+
+		bool m_timed_out;
+
+		int m_connection_ticket;
+		connection_queue& m_cc;
 	};
 
 }

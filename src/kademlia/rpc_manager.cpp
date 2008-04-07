@@ -121,7 +121,6 @@ rpc_manager::rpc_manager(fun const& f, node_id const& our_id
 
 rpc_manager::~rpc_manager()
 {
-	TORRENT_ASSERT(!m_destructing);
 	m_destructing = true;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(rpc) << "Destructing";
@@ -137,12 +136,6 @@ rpc_manager::~rpc_manager()
 }
 
 #ifndef NDEBUG
-size_t rpc_manager::allocation_size() const
-{
-	size_t s = sizeof(mpl::deref<max_observer_type_iter::base>::type);
-	return s;
-}
-
 void rpc_manager::check_invariant() const
 {
 	TORRENT_ASSERT(m_oldest_transaction_id >= 0);
@@ -309,7 +302,7 @@ time_duration rpc_manager::tick()
 	// clear the aborted transactions, will likely
 	// generate new requests. We need to swap, since the
 	// destrutors may add more observers to the m_aborted_transactions
-	std::vector<observer_ptr>().swap(m_aborted_transactions);
+	std::vector<observer_ptr >().swap(m_aborted_transactions);
 	return milliseconds(timeout_ms);
 }
 
@@ -436,7 +429,6 @@ void rpc_manager::reply_with_ping(msg& m)
 	std::back_insert_iterator<std::string> out(m.ping_transaction_id);
 	io::write_uint16(m_next_transaction_id, out);
 
-	TORRENT_ASSERT(allocation_size() >= sizeof(null_observer));
 	observer_ptr o(new (allocator().malloc()) null_observer(allocator()));
 #ifndef NDEBUG
 	o->m_in_constructor = false;

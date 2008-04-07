@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include "libtorrent/http_stream.hpp"
-#include "libtorrent/escape_string.hpp" // for base64encode
+#include "libtorrent/tracker_manager.hpp" // for base64encode
 
 namespace libtorrent
 {
@@ -44,8 +44,7 @@ namespace libtorrent
 		if (e || i == tcp::resolver::iterator())
 		{
 			(*h)(e);
-			asio::error_code ec;
-			close(ec);
+			close();
 			return;
 		}
 
@@ -58,8 +57,7 @@ namespace libtorrent
 		if (e)
 		{
 			(*h)(e);
-			asio::error_code ec;
-			close(ec);
+			close();
 			return;
 		}
 
@@ -91,8 +89,7 @@ namespace libtorrent
 		if (e)
 		{
 			(*h)(e);
-			asio::error_code ec;
-			close(ec);
+			close();
 			return;
 		}
 
@@ -107,8 +104,7 @@ namespace libtorrent
 		if (e)
 		{
 			(*h)(e);
-			asio::error_code ec;
-			close(ec);
+			close();
 			return;
 		}
 
@@ -138,8 +134,7 @@ namespace libtorrent
 			if (status == 0)
 			{
 				(*h)(asio::error::operation_not_supported);
-				asio::error_code ec;
-				close(ec);
+				close();
 				return;
 			}
 
@@ -148,8 +143,7 @@ namespace libtorrent
 			if (code != 200)
 			{
 				(*h)(asio::error::operation_not_supported);
-				asio::error_code ec;
-				close(ec);
+				close();
 				return;
 			}
 

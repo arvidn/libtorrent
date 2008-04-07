@@ -38,9 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #include <cctype>
 #include <algorithm>
-#include <iostream>
-
-#include <boost/optional.hpp>
 
 #include "libtorrent/assert.hpp"
 
@@ -63,47 +60,30 @@ namespace libtorrent
 			{
 				++i;
 				if (i == s.end())
-#ifdef BOOST_NO_EXCEPTIONS
-					return ret;
-#else
 					throw std::runtime_error("invalid escaped string");
-#endif
 
 				int high;
 				if(*i >= '0' && *i <= '9') high = *i - '0';
 				else if(*i >= 'A' && *i <= 'F') high = *i + 10 - 'A';
 				else if(*i >= 'a' && *i <= 'f') high = *i + 10 - 'a';
-				else
-#ifdef BOOST_NO_EXCEPTIONS
-					return ret;
-#else
-					throw std::runtime_error("invalid escaped string");
-#endif
+				else throw std::runtime_error("invalid escaped string");
 
 				++i;
 				if (i == s.end())
-#ifdef BOOST_NO_EXCEPTIONS
-					return ret;
-#else
 					throw std::runtime_error("invalid escaped string");
-#endif
 
 				int low;
 				if(*i >= '0' && *i <= '9') low = *i - '0';
 				else if(*i >= 'A' && *i <= 'F') low = *i + 10 - 'A';
 				else if(*i >= 'a' && *i <= 'f') low = *i + 10 - 'a';
-				else
-#ifdef BOOST_NO_EXCEPTIONS
-					return ret;
-#else
-					throw std::runtime_error("invalid escaped string");
-#endif
+				else throw std::runtime_error("invalid escaped string");
 
 				ret += char(high * 16 + low);
 			}
 		}
 		return ret;
 	}
+
 
 	std::string escape_string(const char* str, int len)
 	{
@@ -168,189 +148,4 @@ namespace libtorrent
 		}
 		return ret.str();
 	}
-
-	std::string base64encode(const std::string& s)
-	{
-		static const char base64_table[] =
-		{
-			'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-			'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-			'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-			'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
-			'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-			'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-			'w', 'x', 'y', 'z', '0', '1', '2', '3',
-			'4', '5', '6', '7', '8', '9', '+', '/'
-		};
-
-		unsigned char inbuf[3];
-		unsigned char outbuf[4];
-	
-		std::string ret;
-		for (std::string::const_iterator i = s.begin(); i != s.end();)
-		{
-			// available input is 1,2 or 3 bytes
-			// since we read 3 bytes at a time at most
-			int available_input = (std::min)(3, (int)std::distance(i, s.end()));
-
-			// clear input buffer
-			std::fill(inbuf, inbuf+3, 0);
-
-			// read a chunk of input into inbuf
-			std::copy(i, i + available_input, inbuf);
-			i += available_input;
-
-			// encode inbuf to outbuf
-			outbuf[0] = (inbuf[0] & 0xfc) >> 2;
-			outbuf[1] = ((inbuf[0] & 0x03) << 4) | ((inbuf [1] & 0xf0) >> 4);
-			outbuf[2] = ((inbuf[1] & 0x0f) << 2) | ((inbuf [2] & 0xc0) >> 6);
-			outbuf[3] = inbuf[2] & 0x3f;
-
-			// write output
-			for (int j = 0; j < available_input+1; ++j)
-			{
-				ret += base64_table[outbuf[j]];
-			}
-
-			// write pad
-			for (int j = 0; j < 3 - available_input; ++j)
-			{
-				ret += '=';
-			}
-		}
-		return ret;
-	}
-
-	std::string base32encode(std::string const& s)
-	{
-		static const char base32_table[] =
-		{
-			'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-			'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-			'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-			'Y', 'Z', '2', '3', '4', '5', '6', '7'
-		};
-
-		int input_output_mapping[] = {0, 2, 4, 5, 7, 8};
-		
-		unsigned char inbuf[5];
-		unsigned char outbuf[8];
-	
-		std::string ret;
-		for (std::string::const_iterator i = s.begin(); i != s.end();)
-		{
-			int available_input = (std::min)(5, (int)std::distance(i, s.end()));
-
-			// clear input buffer
-			std::fill(inbuf, inbuf+5, 0);
-
-			// read a chunk of input into inbuf
-			std::copy(i, i + available_input, inbuf);
-			i += available_input;
-
-			// encode inbuf to outbuf
-			outbuf[0] = (inbuf[0] & 0xf8) >> 3;
-			outbuf[1] = ((inbuf[0] & 0x07) << 2) | ((inbuf[1] & 0xc0) >> 6);
-			outbuf[2] = ((inbuf[1] & 0x3e) >> 1);
-			outbuf[3] = ((inbuf[1] & 0x01) << 4) | ((inbuf[2] & 0xf0) >> 4);
-			outbuf[4] = ((inbuf[2] & 0x0f) << 1) | ((inbuf[3] & 0x80) >> 7);
-			outbuf[5] = ((inbuf[3] & 0x7c) >> 2);
-			outbuf[6] = ((inbuf[3] & 0x03) << 3) | ((inbuf[4] & 0xe0) >> 5);
-			outbuf[7] = inbuf[4] & 0x1f;
-
-			// write output
-			int num_out = input_output_mapping[available_input];
-			for (int j = 0; j < num_out; ++j)
-			{
-				ret += base32_table[outbuf[j]];
-			}
-
-			// write pad
-			for (int j = 0; j < 8 - num_out; ++j)
-			{
-				ret += '=';
-			}
-		}
-		return ret;
-	}
-
-	std::string base32decode(std::string const& s)
-	{
-		unsigned char inbuf[8];
-		unsigned char outbuf[5];
-	
-		std::string ret;
-		for (std::string::const_iterator i = s.begin(); i != s.end();)
-		{
-			int available_input = (std::min)(8, (int)std::distance(i, s.end()));
-
-			int pad_start = 0;
-			if (available_input < 8) pad_start = available_input;
-
-			// clear input buffer
-			std::fill(inbuf, inbuf+8, 0);
-			for (int j = 0; j < available_input; ++j)
-			{
-				char in = std::toupper(*i++);
-				if (in >= 'A' && in <= 'Z')
-					inbuf[j] = in - 'A';
-				else if (in >= '2' && in <= '7')
-					inbuf[j] = in - '2' + ('Z' - 'A') + 1;
-				else if (in == '=')
-				{
-					inbuf[j] = 0;
-					if (pad_start == 0) pad_start = j;
-				}
-				else if (in == '1')
-					inbuf[j] = 'I' - 'A';
-				else
-					return std::string();
-				TORRENT_ASSERT(inbuf[j] == (inbuf[j] & 0x1f));
-			}
-
-			// decode inbuf to outbuf
-			outbuf[0] = inbuf[0] << 3;
-			outbuf[0] |= inbuf[1] >> 2;
-			outbuf[1] = (inbuf[1] & 0x3) << 6;
-			outbuf[1] |= inbuf[2] << 1;
-			outbuf[1] |= (inbuf[3] & 0x10) >> 4;
-			outbuf[2] = (inbuf[3] & 0x0f) << 4;
-			outbuf[2] |= (inbuf[4] & 0x1e) >> 1;
-			outbuf[3] = (inbuf[4] & 0x01) << 7;
-			outbuf[3] |= (inbuf[5] & 0x1f) << 2;
-			outbuf[3] |= (inbuf[6] & 0x18) >> 3;
-			outbuf[4] = (inbuf[6] & 0x07) << 5;
-			outbuf[4] |= inbuf[7];
-
-			int input_output_mapping[] = {5, 1, 1, 2, 2, 3, 4, 4, 5};
-			int num_out = input_output_mapping[pad_start];
-
-			// write output
-			std::copy(outbuf, outbuf + num_out, std::back_inserter(ret));
-		}
-		return ret;
-	}
-
-	boost::optional<std::string> url_has_argument(
-		std::string const& url, std::string argument)
-	{
-		size_t i = url.find('?');
-		if (i == std::string::npos) return boost::optional<std::string>();
-		++i;
-
-		argument += '=';
-
-		if (url.compare(i, argument.size(), argument) == 0)
-		{
-			size_t pos = i + argument.size();
-			return url.substr(pos, url.find('&', pos) - pos);
-		}
-		argument.insert(0, "&");
-		i = url.find(argument, i);
-		if (i == std::string::npos) return boost::optional<std::string>();
-		size_t pos = i + argument.size();
-		return url.substr(pos, url.find('&', pos) - pos);
-	}
-
 }
-

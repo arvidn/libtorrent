@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/intrusive_ptr_base.hpp"
 
 #include <boost/function.hpp>
-#include <boost/thread/mutex.hpp>
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 #include <fstream>
@@ -46,8 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-// int: port mapping index
-// int: external port
+// int: external tcp port
+// int: external udp port
 // std::string: error message
 typedef boost::function<void(int, int, std::string const&)> portmap_callback_t;
 
@@ -60,38 +59,34 @@ public:
 
 	// maps the ports, if a port is set to 0
 	// it will not be mapped
-	enum protocol_type { none = 0, udp = 1, tcp = 2 };
-	int add_mapping(protocol_type p, int external_port, int local_port);
-	void delete_mapping(int mapping_index);
+	void set_mappings(int tcp, int udp);
 
 	void close();
 
 private:
 	
-	void update_mapping(int i);
+	void update_mapping(int i, int port);
 	void send_map_request(int i);
 	void resend_request(int i, asio::error_code const& e);
 	void on_reply(asio::error_code const& e
 		, std::size_t bytes_transferred);
 	void try_next_mapping(int i);
 	void update_expiration_timer();
+	void refresh_mapping(int i);
 	void mapping_expired(asio::error_code const& e, int i);
 
-	void disable(char const* message);
-
-	struct mapping_t
+	struct mapping
 	{
-		enum action_t { action_none, action_add, action_delete };
-		mapping_t()
-			: action(action_none)
+		mapping()
+			: need_update(false)
 			, local_port(0)
 			, external_port(0)
-			, protocol(none)
+			, protocol(1)
 		{}
 
 		// indicates that the mapping has changed
 		// and needs an update
-		int action;
+		bool need_update;
 
 		// the time the port mapping will expire
 		ptime expires;
@@ -105,12 +100,14 @@ private:
 		// should announce to others
 		int external_port;
 
+		// 1 = udp, 2 = tcp
 		int protocol;
 	};
 
 	portmap_callback_t m_callback;
 
-	std::vector<mapping_t> m_mappings;
+	// 0 is tcp and 1 is udp
+	mapping m_mappings[2];
 	
 	// the endpoint to the nat router
 	udp::endpoint m_nat_endpoint;
@@ -139,16 +136,8 @@ private:
 
 	// timer used to refresh mappings
 	deadline_timer m_refresh_timer;
-
-	// the mapping index that will expire next
-	int m_next_refresh;
 	
 	bool m_disabled;
-
-	bool m_abort;
-
-	typedef boost::mutex mutex_t;
-	mutex_t m_mutex;
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	std::ofstream m_log;

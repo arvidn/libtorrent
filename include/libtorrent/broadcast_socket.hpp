@@ -74,29 +74,12 @@ namespace libtorrent
 			boost::shared_ptr<datagram_socket> socket;
 			char buffer[1024];
 			udp::endpoint remote;
-			void close()
-			{
-				if (!socket) return;
-				asio::error_code ec;
-				socket->close(ec);
-			}
 		};
 	
 		void on_receive(socket_entry* s, asio::error_code const& ec
 			, std::size_t bytes_transferred);
-		void open_unicast_socket(io_service& ios, address const& addr);
-		void open_multicast_socket(io_service& ios, address const& addr
-			, bool loopback);
 
-		// these sockets are used to
-		// join the multicast group (on each interface)
-		// and receive multicast messages
 		std::list<socket_entry> m_sockets;
-		// these sockets are not bound to any
-		// specific port and are used to
-		// send messages to the multicast group
-		// and receive unicast responses
-		std::list<socket_entry> m_unicast_sockets;
 		udp::endpoint m_multicast_endpoint;
 		receive_handler_t m_on_receive;
 		

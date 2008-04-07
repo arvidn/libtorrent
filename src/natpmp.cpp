@@ -43,6 +43,15 @@ POSSIBILITY OF SUCH DAMAGE.
 using boost::bind;
 using namespace libtorrent;
 
+enum { num_mappings = 2 };
+
+namespace libtorrent
+{
+	// defined in upnp.cpp
+	bool is_local(address const& a);
+	address guess_local_address(asio::io_service&);
+}
+
 natpmp::natpmp(io_service& ios, address const& listen_interface, portmap_callback_t const& cb)
 	: m_callback(cb)
 	, m_currently_mapping(-1)
@@ -50,180 +59,99 @@ natpmp::natpmp(io_service& ios, address const& listen_interface, portmap_callbac
 	, m_socket(ios)
 	, m_send_timer(ios)
 	, m_refresh_timer(ios)
-	, m_next_refresh(-1)
 	, m_disabled(false)
 {
+	m_mappings[0].protocol = 2; // tcp
+	m_mappings[1].protocol = 1; // udp
+
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log.open("natpmp.log", std::ios::in | std::ios::out | std::ios::trunc);
 #endif
 	rebind(listen_interface);
 }
 
-void natpmp::rebind(address const& listen_interface)
+void natpmp::rebind(address const& listen_interface) try
 {
-	mutex_t::scoped_lock l(m_mutex);
-
-	asio::error_code ec;
-	address gateway = get_default_gateway(m_socket.get_io_service(), listen_interface, ec);
-	if (ec)
+	address local = address_v4::any();
+	if (listen_interface != address_v4::any())
 	{
+		local = listen_interface;
+	}
+	else
+	{
+		local = guess_local_address(m_socket.io_service());
+
+		if (local == address_v4::any())
+		{
+			throw std::runtime_error("local host is probably not on a NATed "
+				"network. disabling NAT-PMP");
+		}
+	}
+
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << time_now_string() << " failed to find default router: "
-			<< ec.message() << std::endl;
+	m_log << time_now_string()
+		<< " local ip: " << local.to_string() << std::endl;
 #endif
-		disable("failed to find default router");
-		return;
+
+	if (!is_local(local))
+	{
+		// the local address seems to be an external
+		// internet address. Assume it is not behind a NAT
+		throw std::runtime_error("local IP is not on a local network");
 	}
 
 	m_disabled = false;
 
-	udp::endpoint nat_endpoint(gateway, 5351);
+	asio::error_code ec;
+	udp::endpoint nat_endpoint(router_for_interface(local, ec), 5351);
+	if (ec)
+		throw std::runtime_error("cannot retrieve router address");
+
 	if (nat_endpoint == m_nat_endpoint) return;
 	m_nat_endpoint = nat_endpoint;
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << time_now_string() << " found router at: "
-		<< m_nat_endpoint.address() << std::endl;
+	m_log << "assuming router is at: " << m_nat_endpoint.address().to_string() << std::endl;
 #endif
 
-	m_socket.open(udp::v4(), ec);
-	if (ec)
-	{
-		disable(ec.message().c_str());
-		return;
-	}
-	m_socket.bind(udp::endpoint(address_v4::any(), 0), ec);
-	if (ec)
-	{
-		disable(ec.message().c_str());
-		return;
-	}
+	m_socket.open(udp::v4());
+	m_socket.bind(udp::endpoint(address_v4::any(), 0));
 
-	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
-		, end(m_mappings.end()); i != end; ++i)
+	for (int i = 0; i < num_mappings; ++i)
 	{
-		if (i->protocol != none
-			|| i->action != mapping_t::action_none)
+		if (m_mappings[i].local_port == 0)
 			continue;
-		i->action = mapping_t::action_add;
-		update_mapping(i - m_mappings.begin());
+		refresh_mapping(i);
 	}
 }
-
-void natpmp::disable(char const* message)
+catch (std::exception& e)
 {
 	m_disabled = true;
-
-	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
-		, end(m_mappings.end()); i != end; ++i)
-	{
-		if (i->protocol == none) continue;
-		i->protocol = none;
-		m_callback(i - m_mappings.begin(), 0, message);
-	}
-
+	std::stringstream msg;
+	msg << "NAT-PMP disabled: " << e.what();
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << time_now_string() << " NAT-PMP disabled: " << message << std::endl;
+	m_log << msg.str() << std::endl;
 #endif
-	close();
-}
-void natpmp::delete_mapping(int index)
+	m_callback(0, 0, msg.str());
+};
+
+void natpmp::set_mappings(int tcp, int udp)
 {
-	TORRENT_ASSERT(index < int(m_mappings.size()) && index >= 0);
-	if (index >= int(m_mappings.size()) || index < 0) return;
-	mapping_t& m = m_mappings[index];
-
-	if (m.protocol == none) return;
-
-	m.action = mapping_t::action_delete;
-	update_mapping(index);
+	if (m_disabled) return;
+	update_mapping(0, tcp);
+	update_mapping(1, udp);
 }
 
-int natpmp::add_mapping(protocol_type p, int external_port, int local_port)
+void natpmp::update_mapping(int i, int port)
 {
-	mutex_t::scoped_lock l(m_mutex);
+	natpmp::mapping& m = m_mappings[i];
+	if (port <= 0) return;
+	if (m.local_port != port)
+		m.need_update = true;
 
-	if (m_disabled) return -1;
-
-	std::vector<mapping_t>::iterator i = std::find_if(m_mappings.begin()
-		, m_mappings.end(), boost::bind(&mapping_t::protocol, _1) == int(none));
-	if (i == m_mappings.end())
-	{
-		m_mappings.push_back(mapping_t());
-		i = m_mappings.end() - 1;
-	}
-	i->protocol = p;
-	i->external_port = external_port;
-	i->local_port = local_port;
-	i->action = mapping_t::action_add;
-
-	int mapping_index = i - m_mappings.begin();
-
-	update_mapping(mapping_index);
-	return mapping_index;
-}
-
-void natpmp::try_next_mapping(int i)
-{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << time_now_string() << " try_next_mapping [ " << i << " ]" << std::endl;
-#endif
-
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	ptime now = time_now();
-	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
-		, end(m_mappings.end()); i != end; ++i)
-	{
-		m_log << "     " << (i - m_mappings.begin()) << " [ "
-			"proto: " << (i->protocol == none ? "none" : i->protocol == tcp ? "tcp" : "udp")
-			<< " port: " << i->external_port
-			<< " local-port: " << i->local_port
-			<< " action: " << (i->action == mapping_t::action_none ? "none" : i->action == mapping_t::action_add ? "add" : "delete")
-			<< " ttl: " << total_seconds(i->expires - now)
-			<< " ]" << std::endl;
-	}
-#endif
-
-	if (i < int(m_mappings.size()) - 1)
-	{
-		update_mapping(i + 1);
-		return;
-	}
-
-	std::vector<mapping_t>::iterator m = std::find_if(
-		m_mappings.begin(), m_mappings.end()
-		, boost::bind(&mapping_t::action, _1) != int(mapping_t::action_none));
-
-	if (m == m_mappings.end())
-	{
-		if (m_abort)
-		{
-			asio::error_code ec;
-			m_send_timer.cancel(ec);
-			m_socket.close(ec);
-		}
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << "     done" << (m_abort?" shutting down":"") << std::endl;
-#endif
-		return;
-	}
-
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << "     updating " << (m - m_mappings.begin()) << std::endl;
-#endif
-
-	update_mapping(m - m_mappings.begin());
-}
-
-void natpmp::update_mapping(int i)
-{
-	natpmp::mapping_t& m = m_mappings[i];
-	if (m.action == mapping_t::action_none
-		|| m.protocol == none)
-	{
-		try_next_mapping(i);
-		return;
-	}
+	m.local_port = port;
+	// prefer the same external port as the local port
+	if (m.external_port == 0) m.external_port = port;
 
 	if (m_currently_mapping == -1)
 	{
@@ -236,15 +164,14 @@ void natpmp::update_mapping(int i)
 	}
 }
 
-void natpmp::send_map_request(int i)
+void natpmp::send_map_request(int i) try
 {
 	using namespace libtorrent::detail;
 
 	TORRENT_ASSERT(m_currently_mapping == -1
 		|| m_currently_mapping == i);
 	m_currently_mapping = i;
-	mapping_t& m = m_mappings[i];
-	TORRENT_ASSERT(m.action != mapping_t::action_none);
+	mapping& m = m_mappings[i];
 	char buf[12];
 	char* out = buf;
 	write_uint8(0, out); // NAT-PMP version
@@ -252,39 +179,36 @@ void natpmp::send_map_request(int i)
 	write_uint16(0, out); // reserved
 	write_uint16(m.local_port, out); // private port
 	write_uint16(m.external_port, out); // requested public port
-	int ttl = m.action == mapping_t::action_add ? 3600 : 0;
+	int ttl = m.external_port == 0 ? 0 : 3600;
 	write_uint32(ttl, out); // port mapping lifetime
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log << time_now_string()
-		<< " ==> port map ["
-		<< " action: " << (m.action == mapping_t::action_add ? "add" : "delete") << " "
-		<< " proto: " << (m.protocol == udp ? "udp" : "tcp")
+		<< " ==> port map request: " << (m.protocol == 1 ? "udp" : "tcp")
 		<< " local: " << m.local_port << " external: " << m.external_port
-		<< " ttl: " << ttl << " ]" << std::endl;
+		<< " ttl: " << ttl << std::endl;
 #endif
 
-	asio::error_code ec;
-	m_socket.send_to(asio::buffer(buf, 12), m_nat_endpoint, 0, ec);
+	m_socket.send_to(asio::buffer(buf, 12), m_nat_endpoint);
 	// linear back-off instead of exponential
 	++m_retry_count;
-	m_send_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
+	m_send_timer.expires_from_now(milliseconds(250 * m_retry_count));
 	m_send_timer.async_wait(bind(&natpmp::resend_request, self(), i, _1));
 }
+catch (std::exception& e)
+{
+	std::string err = e.what();
+};
 
 void natpmp::resend_request(int i, asio::error_code const& e)
 {
 	if (e) return;
-
-	mutex_t::scoped_lock l(m_mutex);
 	if (m_currently_mapping != i) return;
 	if (m_retry_count >= 9)
 	{
-		m_currently_mapping = -1;
-		m_mappings[i].action = mapping_t::action_none;
+		m_mappings[i].need_update = false;
 		// try again in two hours
 		m_mappings[i].expires = time_now() + hours(2);
-		try_next_mapping(i);
 		return;
 	}
 	send_map_request(i);
@@ -296,195 +220,179 @@ void natpmp::on_reply(asio::error_code const& e
 	using namespace libtorrent::detail;
 	if (e) return;
 
-	if (m_remote != m_nat_endpoint)
+	try
 	{
-		m_socket.async_receive_from(asio::buffer(&m_response_buffer, 16)
-			, m_remote, bind(&natpmp::on_reply, self(), _1, _2));
-		return;
-	}
 
-	mutex_t::scoped_lock l(m_mutex);
-
-	asio::error_code ec;
-	m_send_timer.cancel(ec);
-
-	TORRENT_ASSERT(m_currently_mapping >= 0);
-	int i = m_currently_mapping;
-	mapping_t& m = m_mappings[i];
-
-	char* in = m_response_buffer;
-	int version = read_uint8(in);
-	int cmd = read_uint8(in);
-	int result = read_uint16(in);
-	int time = read_uint32(in);
-	int private_port = read_uint16(in);
-	int public_port = read_uint16(in);
-	int lifetime = read_uint32(in);
-
-	(void)time; // to remove warning
-
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << time_now_string()
-		<< " <== port map ["
-		<< " protocol: " << (cmd - 128 == 1 ? "udp" : "tcp")
-		<< " local: " << private_port << " external: " << public_port
-		<< " ttl: " << lifetime << " ]" << std::endl;
-#endif
-
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	if (version != 0)
-	{
-		m_log << "*** unexpected version: " << version << std::endl;
-	}
-#endif
-
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	if (private_port != m.local_port)
-	{
-		m_log << "*** unexpected local port: " << private_port << std::endl;
-	}
-#endif
-
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	if (cmd != 128 + m.protocol)
-	{
-		m_log << "*** unexpected protocol: " << (cmd - 128) << std::endl;
-	}
-#endif
-
-	if (public_port == 0 || lifetime == 0)
-	{
-		// this means the mapping was
-		// successfully closed
-		m.protocol = none;
-	}
-	else
-	{
-		m.expires = time_now() + seconds(int(lifetime * 0.7f));
-		m.external_port = public_port;
-	}
-
-	if (result != 0)
-	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << "*** ERROR: " << result << std::endl;
-#endif
-		std::stringstream errmsg;
-		errmsg << "NAT router reports error (" << result << ") ";
-		switch (result)
+		if (m_remote != m_nat_endpoint)
 		{
-			case 1: errmsg << "Unsupported protocol version"; break;
-			case 2: errmsg << "Not authorized to create port map (enable NAT-PMP on your router)"; break;
-			case 3: errmsg << "Network failure"; break;
-			case 4: errmsg << "Out of resources"; break;
-			case 5: errmsg << "Unsupported opcode"; break;
+			m_socket.async_receive_from(asio::buffer(&m_response_buffer, 16)
+				, m_remote, bind(&natpmp::on_reply, self(), _1, _2));
+			return;
 		}
-		m.expires = time_now() + hours(2);
-		m_callback(i, 0, errmsg.str());
-	}
-	else if (m.action == mapping_t::action_add)
-	{
-		m_callback(i, m.external_port, "");
-	}
+		
+		m_send_timer.cancel();
 
+		TORRENT_ASSERT(m_currently_mapping >= 0);
+		int i = m_currently_mapping;
+		mapping& m = m_mappings[i];
+
+		char* in = m_response_buffer;
+		int version = read_uint8(in);
+		int cmd = read_uint8(in);
+		int result = read_uint16(in);
+		int time = read_uint32(in);
+		int private_port = read_uint16(in);
+		int public_port = read_uint16(in);
+		int lifetime = read_uint32(in);
+
+		(void)time; // to remove warning
+
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+		m_log << time_now_string()
+			<< " <== port map response: " << (cmd - 128 == 1 ? "udp" : "tcp")
+			<< " local: " << private_port << " external: " << public_port
+			<< " ttl: " << lifetime << std::endl;
+#endif
+
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+		if (version != 0)
+		{
+			m_log << "*** unexpected version: " << version << std::endl;
+		}
+#endif
+
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+		if (private_port != m.local_port)
+		{
+			m_log << "*** unexpected local port: " << private_port << std::endl;
+		}
+#endif
+
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+		if (cmd != 128 + m.protocol)
+		{
+			m_log << "*** unexpected protocol: " << (cmd - 128) << std::endl;
+		}
+#endif
+
+		if (public_port == 0 || lifetime == 0)
+		{
+			// this means the mapping was
+			// successfully closed
+			m.local_port = 0;
+		}
+		else
+		{
+			m.expires = time_now() + seconds(int(lifetime * 0.7f));
+			m.external_port = public_port;
+		}
+		
+		if (result != 0)
+		{
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+			m_log << "*** ERROR: " << result << std::endl;
+#endif
+			std::stringstream errmsg;
+			errmsg << "NAT router reports error (" << result << ") ";
+			switch (result)
+			{
+				case 1: errmsg << "Unsupported protocol version"; break;
+				case 2: errmsg << "Not authorized to create port map (enable NAT-PMP on your router)"; break;
+				case 3: errmsg << "Network failure"; break;
+				case 4: errmsg << "Out of resources"; break;
+				case 5: errmsg << "Unsupported opcode"; break;
+			}
+			throw std::runtime_error(errmsg.str());
+		}
+
+		// don't report when we remove mappings
+		if (m.local_port != 0)
+		{
+			int tcp_port = 0;
+			int udp_port = 0;
+			if (m.protocol == 1) udp_port = m.external_port;
+			else tcp_port = public_port;
+			m_callback(tcp_port, udp_port, "");
+		}
+	}
+	catch (std::exception& e)
+	{
+		// try again in two hours
+		m_mappings[m_currently_mapping].expires = time_now() + hours(2);
+		m_callback(0, 0, e.what());
+	}
+	int i = m_currently_mapping;
 	m_currently_mapping = -1;
-	m.action = mapping_t::action_none;
-	m_send_timer.cancel(ec);
+	m_mappings[i].need_update = false;
+	m_send_timer.cancel();
 	update_expiration_timer();
 	try_next_mapping(i);
 }
 
 void natpmp::update_expiration_timer()
 {
-	if (m_abort) return;
-
 	ptime now = time_now();
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << time_now_string() << " update_expiration_timer " << std::endl;
-	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
-		, end(m_mappings.end()); i != end; ++i)
-	{
-		m_log << "     " << (i - m_mappings.begin()) << " [ "
-			"proto: " << (i->protocol == none ? "none" : i->protocol == tcp ? "tcp" : "udp")
-			<< " port: " << i->external_port
-			<< " local-port: " << i->local_port
-			<< " action: " << (i->action == mapping_t::action_none ? "none" : i->action == mapping_t::action_add ? "add" : "delete")
-			<< " ttl: " << total_seconds(i->expires - now)
-			<< " ]" << std::endl;
-	}
-#endif
-
 	ptime min_expire = now + seconds(3600);
 	int min_index = -1;
-	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
-		, end(m_mappings.end()); i != end; ++i)
-	{
-		if (i->protocol == none
-			|| i->action != mapping_t::action_none) continue;
-		if (i->expires < min_expire)
+	for (int i = 0; i < num_mappings; ++i)
+		if (m_mappings[i].expires < min_expire
+			&& m_mappings[i].local_port != 0)
 		{
-			min_expire = i->expires;
-			min_index = i - m_mappings.begin();
+			min_expire = m_mappings[i].expires;
+			min_index = i;
 		}
-	}
-
-	// this is already the mapping we're waiting for
-	if (m_next_refresh == min_index) return;
 
 	if (min_index >= 0)
 	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << time_now_string() << " next expiration ["
-			" i: " << min_index
-			<< " ttl: " << total_seconds(min_expire - time_now())
-			<< " ]" << std::endl;
-#endif
-		asio::error_code ec;
-		if (m_next_refresh >= 0) m_refresh_timer.cancel(ec);
-		m_refresh_timer.expires_from_now(min_expire - now, ec);
+		m_refresh_timer.expires_from_now(min_expire - now);
 		m_refresh_timer.async_wait(bind(&natpmp::mapping_expired, self(), _1, min_index));
-		m_next_refresh = min_index;
 	}
 }
 
 void natpmp::mapping_expired(asio::error_code const& e, int i)
 {
 	if (e) return;
-	mutex_t::scoped_lock l(m_mutex);
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << time_now_string() << " mapping expired [ i: " << i << " ]" << std::endl;
+	m_log << "*** mapping " << i << " expired, updating" << std::endl;
 #endif
-	m_mappings[i].action = mapping_t::action_add;
-	if (m_next_refresh == i) m_next_refresh = -1;
-	update_mapping(i);
+	refresh_mapping(i);
+}
+
+void natpmp::refresh_mapping(int i)
+{
+	m_mappings[i].need_update = true;
+	if (m_currently_mapping == -1)
+	{
+		// the socket is not currently in use
+		// send out a mapping request
+		m_retry_count = 0;
+		send_map_request(i);
+		m_socket.async_receive_from(asio::buffer(&m_response_buffer, 16)
+			, m_remote, bind(&natpmp::on_reply, self(), _1, _2));
+	}
+}
+
+void natpmp::try_next_mapping(int i)
+{
+	++i;
+	if (i >= num_mappings) i = 0;
+	if (m_mappings[i].need_update)
+		refresh_mapping(i);
 }
 
 void natpmp::close()
 {
-	mutex_t::scoped_lock l(m_mutex);
-	m_abort = true;
 	asio::error_code ec;
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << time_now_string() << " close" << std::endl;
-#endif
+	m_socket.close(ec);
 	if (m_disabled) return;
-	ptime now = time_now();
-	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
-		, end(m_mappings.end()); i != end; ++i)
+	for (int i = 0; i < num_mappings; ++i)
 	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << "     " << (i - m_mappings.begin()) << " [ "
-			"proto: " << (i->protocol == none ? "none" : i->protocol == tcp ? "tcp" : "udp")
-			<< " port: " << i->external_port
-			<< " local-port: " << i->local_port
-			<< " action: " << (i->action == mapping_t::action_none ? "none" : i->action == mapping_t::action_add ? "add" : "delete")
-			<< " ttl: " << total_seconds(i->expires - now)
-			<< " ]" << std::endl;
-#endif
-		if (i->protocol == none) continue;
-		i->action = mapping_t::action_delete;
+		if (m_mappings[i].local_port == 0)
+			continue;
+		m_mappings[i].external_port = 0;
+		refresh_mapping(i);
 	}
-	m_refresh_timer.cancel(ec);
-	update_mapping(0);
+	m_refresh_timer.cancel();
+	m_send_timer.cancel();
 }
 

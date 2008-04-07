@@ -42,22 +42,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/http_parser.hpp"
+#include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/socket_type.hpp"
-#include "libtorrent/session_settings.hpp"
-
-#ifdef TORRENT_USE_OPENSSL
-#include "libtorrent/ssl_stream.hpp"
-#include "libtorrent/variant_stream.hpp"
-#endif
 
 namespace libtorrent
 {
 
 struct http_connection;
-class connection_queue;
 	
 typedef boost::function<void(asio::error_code const&
 	, http_parser const&, char const* data, int size)> http_handler;
@@ -89,8 +81,6 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 		, m_redirects(5)
 		, m_connection_ticket(-1)
 		, m_cc(cc)
-		, m_ssl(false)
-		, m_priority(0)
 	{
 		TORRENT_ASSERT(!m_handler.empty());
 	}
@@ -103,22 +93,14 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 	std::string sendbuffer;
 
 	void get(std::string const& url, time_duration timeout = seconds(30)
-		, int prio = 0, proxy_settings const* ps = 0, int handle_redirects = 5
-		, std::string const& user_agent = "", address const& bind_addr = address_v4::any());
+		, int handle_redirects = 5);
 
 	void start(std::string const& hostname, std::string const& port
-		, time_duration timeout, int prio = 0, proxy_settings const* ps = 0
-		, bool ssl = false, int handle_redirect = 5
-		, address const& bind_addr = address_v4::any());
-
+		, time_duration timeout, int handle_redirect = 5);
 	void close();
 
-#ifdef TORRENT_USE_OPENSSL
-	variant_stream<socket_type, ssl_stream<socket_type> > const& socket() const { return m_sock; }
-#else
-	socket_type const& socket() const { return m_sock; }
-#endif
-	
+	tcp::socket const& socket() const { return m_sock; }
+
 private:
 
 	void on_resolve(asio::error_code const& e
@@ -136,11 +118,7 @@ private:
 	void callback(asio::error_code const& e, char const* data = 0, int size = 0);
 
 	std::vector<char> m_recvbuffer;
-#ifdef TORRENT_USE_OPENSSL
-	variant_stream<socket_type, ssl_stream<socket_type> > m_sock;
-#else
-	socket_type m_sock;
-#endif
+	tcp::socket m_sock;
 	int m_read_pos;
 	tcp::resolver m_resolver;
 	http_parser m_parser;
@@ -180,21 +158,6 @@ private:
 
 	int m_connection_ticket;
 	connection_queue& m_cc;
-
-	// specifies whether or not the connection is
-	// configured to use a proxy
-	proxy_settings m_proxy;
-
-	// true if the connection is using ssl
-	bool m_ssl;
-
-	// the address to bind to. address_v4::any()
-	// means do not bind
-	address m_bind_addr;
-
-	// the priority we have in the connection queue.
-	// 0 is normal, 1 is high
-	int m_priority;
 };
 
 }

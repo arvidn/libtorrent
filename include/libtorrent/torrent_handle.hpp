@@ -187,10 +187,6 @@ namespace libtorrent
 		// (including seeds), but are not necessarily
 		// connected to
 		int list_peers;
-
-		// the number of peers in our peerlist that
-		// we potentially could connect to
-		int connect_candidates;
 		
 		const std::vector<bool>* pieces;
 		
@@ -282,7 +278,7 @@ namespace libtorrent
 		friend struct aux::session_impl;
 		friend class torrent;
 
-		torrent_handle(): m_ses(0), m_info_hash(0) {}
+		torrent_handle(): m_ses(0), m_chk(0), m_info_hash(0) {}
 
 		void get_peer_info(std::vector<peer_info>& v) const;
 		torrent_status status() const;
@@ -381,7 +377,7 @@ namespace libtorrent
 		void set_download_limit(int limit) const;
 		int download_limit() const;
 
-		void set_sequential_download(bool sd) const;
+		void set_sequenced_download_threshold(int threshold) const;
 
 		void set_peer_upload_limit(tcp::endpoint ip, int limit) const;
 		void set_peer_download_limit(tcp::endpoint ip, int limit) const;
@@ -421,12 +417,15 @@ namespace libtorrent
 
 	private:
 
-		torrent_handle(aux::session_impl* s
-			, const sha1_hash& h)
+		torrent_handle(aux::session_impl* s,
+			aux::checker_impl* c,
+			const sha1_hash& h)
 			: m_ses(s)
+			, m_chk(c)
 			, m_info_hash(h)
 		{
 			TORRENT_ASSERT(m_ses != 0);
+			TORRENT_ASSERT(m_chk != 0);
 		}
 
 #ifndef NDEBUG
@@ -434,6 +433,7 @@ namespace libtorrent
 #endif
 
 		aux::session_impl* m_ses;
+		aux::checker_impl* m_chk;
 		sha1_hash m_info_hash;
 
 	};

@@ -151,11 +151,6 @@ namespace libtorrent
 		asio::error_code ec;
 		std::vector<ip_interface> interfaces = enum_net_interfaces(ios, ec);
 
-		if (multicast_endpoint.address().is_v4())
-			open_multicast_socket(ios, address_v4::any(), loopback);
-		else
-			open_multicast_socket(ios, address_v6::any(), loopback);
-
 		for (std::vector<ip_interface>::const_iterator i = interfaces.begin()
 			, end(interfaces.end()); i != end; ++i)
 		{
@@ -166,70 +161,58 @@ namespace libtorrent
 			// ignore any loopback interface
 			if (is_loopback(i->interface_address)) continue;
 
+			boost::shared_ptr<datagram_socket> s(new datagram_socket(ios));
+			if (i->interface_address.is_v4())
+			{
+				s->open(udp::v4(), ec);
+				if (ec) continue;
+				s->set_option(datagram_socket::reuse_address(true), ec);
+				if (ec) continue;
+				s->bind(udp::endpoint(address_v4::any(), multicast_endpoint.port()), ec);
+				if (ec) continue;
+				s->set_option(join_group(multicast_endpoint.address()), ec);
+				if (ec) continue;
+				s->set_option(outbound_interface(i->interface_address.to_v4()), ec);
+				if (ec) continue;
+			}
+			else
+			{
+				s->open(udp::v6(), ec);
+				if (ec) continue;
+				s->set_option(datagram_socket::reuse_address(true), ec);
+				if (ec) continue;
+				s->bind(udp::endpoint(address_v6::any(), multicast_endpoint.port()), ec);
+				if (ec) continue;
+				s->set_option(join_group(multicast_endpoint.address()), ec);
+				if (ec) continue;
+//				s->set_option(outbound_interface(i->interface_address.to_v6()), ec);
+//				if (ec) continue;
+			}
+			s->set_option(hops(255), ec);
+			if (ec) continue;
+			s->set_option(enable_loopback(loopback), ec);
+			if (ec) continue;
+			m_sockets.push_back(socket_entry(s));
+			socket_entry& se = m_sockets.back();
+			s->async_receive_from(asio::buffer(se.buffer, sizeof(se.buffer))
+				, se.remote, bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 #ifndef NDEBUG
 //			std::cerr << "broadcast socket [ if: " << i->to_v4().to_string()
 //				<< " group: " << multicast_endpoint.address() << " ]" << std::endl;
 #endif
-			open_unicast_socket(ios, i->interface_address);
 		}
-	}
-
-	void broadcast_socket::open_multicast_socket(io_service& ios
-		, address const& addr, bool loopback)
-	{
-		using namespace asio::ip::multicast;
-
-		asio::error_code ec;
-		boost::shared_ptr<datagram_socket> s(new datagram_socket(ios));
-		if (addr.is_v4())
-			s->open(udp::v4(), ec);
-		else
-			s->open(udp::v6(), ec);
-		if (ec) return;
-		s->set_option(datagram_socket::reuse_address(true), ec);
-		if (ec) return;
-		s->bind(udp::endpoint(addr, m_multicast_endpoint.port()), ec);
-		if (ec) return;
-		s->set_option(join_group(m_multicast_endpoint.address()), ec);
-		if (ec) return;
-		s->set_option(hops(255), ec);
-		if (ec) return;
-		s->set_option(enable_loopback(loopback), ec);
-		if (ec) return;
-		m_sockets.push_back(socket_entry(s));
-		socket_entry& se = m_sockets.back();
-		s->async_receive_from(asio::buffer(se.buffer, sizeof(se.buffer))
-			, se.remote, bind(&broadcast_socket::on_receive, this, &se, _1, _2));
-	}
-
-	void broadcast_socket::open_unicast_socket(io_service& ios, address const& addr)
-	{
-		using namespace asio::ip::multicast;
-		asio::error_code ec;
-		boost::shared_ptr<datagram_socket> s(new datagram_socket(ios));
-		s->open(addr.is_v4() ? udp::v4() : udp::v6(), ec);
-		if (ec) return;
-		s->bind(udp::endpoint(addr, 0), ec);
-		if (ec) return;
-		if (addr.is_v4())
-			s->set_option(outbound_interface(addr.to_v4()), ec);
-		if (ec) return;
-		m_unicast_sockets.push_back(socket_entry(s));
-		socket_entry& se = m_unicast_sockets.back();
-		s->async_receive_from(asio::buffer(se.buffer, sizeof(se.buffer))
-			, se.remote, bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 	}
 
 	void broadcast_socket::send(char const* buffer, int size, asio::error_code& ec)
 	{
-		for (std::list<socket_entry>::iterator i = m_unicast_sockets.begin()
-			, end(m_unicast_sockets.end()); i != end; ++i)
+		for (std::list<socket_entry>::iterator i = m_sockets.begin()
+			, end(m_sockets.end()); i != end; ++i)
 		{
 			if (!i->socket) continue;
 			asio::error_code e;
 			i->socket->send_to(asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
 #ifndef NDEBUG
-//			std::cerr << " sending on " << i->socket->local_endpoint().address().to_string() << " to: " << m_multicast_endpoint << std::endl;
+//			std::cerr << " sending on " << i->socket->local_endpoint().address().to_string() << std::endl;
 #endif
 			if (e)
 			{
@@ -251,10 +234,14 @@ namespace libtorrent
 
 	void broadcast_socket::close()
 	{
-		std::for_each(m_sockets.begin(), m_sockets.end(), bind(&socket_entry::close, _1));
-		std::for_each(m_unicast_sockets.begin(), m_unicast_sockets.end(), bind(&socket_entry::close, _1));
-
 		m_on_receive.clear();
+
+		for (std::list<socket_entry>::iterator i = m_sockets.begin()
+			, end(m_sockets.end()); i != end; ++i)
+		{
+			if (!i->socket) continue;
+			i->socket->close();
+		}
 	}
 }
 

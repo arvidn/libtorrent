@@ -8,20 +8,18 @@
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "libtorrent/extensions/metadata_transfer.hpp"
-#include "libtorrent/extensions/ut_metadata.hpp"
 
 using boost::filesystem::remove_all;
 using boost::tuples::ignore;
 
-void test_transfer(bool clear_files, bool disconnect
-	, boost::shared_ptr<libtorrent::torrent_plugin> (*constructor)(libtorrent::torrent*, void*))
+void test_transfer(bool clear_files = true, bool disconnect = false)
 {
 	using namespace libtorrent;
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000));
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000));
-	ses1.add_extension(constructor);
-	ses2.add_extension(constructor);
+	ses1.add_extension(&create_metadata_plugin);
+	ses2.add_extension(&create_metadata_plugin);
 	torrent_handle tor1;
 	torrent_handle tor2;
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -32,7 +30,7 @@ void test_transfer(bool clear_files, bool disconnect
 	ses2.set_pe_settings(pes);
 #endif
 
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0, clear_files, true, true, "_meta");	
+ 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0, clear_files, true, true, "_meta");	
 
 	for (int i = 0; i < 50; ++i)
 	{
@@ -84,18 +82,13 @@ int test_main()
 	using namespace boost::filesystem;
 
 	// test to disconnect one client prematurely
-	test_transfer(true, true, &create_metadata_plugin);
+	test_transfer(true, true);
+	
 	// test where one has data and one doesn't
-	test_transfer(true, false, &create_metadata_plugin);
-	// test where both have data (to trigger the file check)
-	test_transfer(false, false, &create_metadata_plugin);
+	test_transfer(true);
 
-	// test to disconnect one client prematurely
-	test_transfer(true, true, &create_ut_metadata_plugin);
-	// test where one has data and one doesn't
-	test_transfer(true, false, &create_ut_metadata_plugin);
 	// test where both have data (to trigger the file check)
-	test_transfer(false, false, &create_ut_metadata_plugin);
+	test_transfer(false);
 
 	remove_all("./tmp1");
 	remove_all("./tmp2");

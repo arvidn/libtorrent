@@ -62,7 +62,8 @@ namespace
 		udp_connection_retries = 4,
 		udp_announce_retries = 15,
 		udp_connect_timeout = 15,
-		udp_announce_timeout = 10
+		udp_announce_timeout = 10,
+		udp_buffer_size = 2048
 	};
 }
 
@@ -73,48 +74,36 @@ namespace libtorrent
 {
 
 	udp_tracker_connection::udp_tracker_connection(
-		io_service& ios
-		, connection_queue& cc
+		asio::strand& str
 		, tracker_manager& man
 		, tracker_request const& req
+		, std::string const& hostname
+		, unsigned short port
 		, address bind_infc
 		, boost::weak_ptr<request_callback> c
-		, session_settings const& stn
-		, proxy_settings const& proxy)
-		: tracker_connection(man, req, ios, bind_infc, c)
+		, session_settings const& stn)
+		: tracker_connection(man, req, str, bind_infc, c)
 		, m_man(man)
-		, m_name_lookup(ios)
-		, m_socket(ios, boost::bind(&udp_tracker_connection::on_receive, this, _1, _2, _3, _4), cc)
+		, m_strand(str)
+		, m_name_lookup(m_strand.io_service())
+		, m_socket(m_strand.io_service())
 		, m_transaction_id(0)
 		, m_connection_id(0)
 		, m_settings(stn)
 		, m_attempts(0)
-		, m_state(action_error)
 	{
-		m_socket.set_proxy_settings(proxy);
-
-		std::string hostname;
-		int port;
-
-		using boost::tuples::ignore;
-		boost::tie(ignore, ignore, hostname, port, ignore) = parse_url_components(req.url);
-
 		udp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
 		m_name_lookup.async_resolve(q
-			, boost::bind(
-			&udp_tracker_connection::name_lookup, self(), _1, _2));
+			, m_strand.wrap(boost::bind(
+			&udp_tracker_connection::name_lookup, self(), _1, _2)));
 		set_timeout(req.event == tracker_request::stopped
 			? m_settings.stop_tracker_timeout
 			: m_settings.tracker_completion_timeout
 			, m_settings.tracker_receive_timeout);
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-		boost::shared_ptr<request_callback> cb = requester();
-		if (cb) cb->debug_log(("*** UDP_TRACKER [ initiating name lookup: " + hostname + " ]").c_str());
-#endif
 	}
 
 	void udp_tracker_connection::name_lookup(asio::error_code const& error
-		, udp::resolver::iterator i)
+		, udp::resolver::iterator i) try
 	{
 		if (error == asio::error::operation_aborted) return;
 		if (error || i == udp::resolver::iterator())
@@ -124,8 +113,8 @@ namespace libtorrent
 		}
 
 		boost::shared_ptr<request_callback> cb = requester();
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-		if (cb) cb->debug_log("*** UDP_TRACKER [ name lookup successful ]");
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		if (cb) cb->debug_log("udp tracker name lookup successful");
 #endif
 		restart_read_timeout();
 		
@@ -156,23 +145,20 @@ namespace libtorrent
 		
 		if (cb) cb->m_tracker_address = tcp::endpoint(target_address.address(), target_address.port());
 		m_target = target_address;
-		asio::error_code ec;
-		m_socket.bind(udp::endpoint(bind_interface(), 0), ec);
-		if (ec)
-		{
-			fail(-1, ec.message().c_str());
-			return;
-		}
+		m_socket.open(target_address.protocol());
+		m_socket.bind(udp::endpoint(bind_interface(), 0));
+		m_socket.connect(target_address);
 		send_udp_connect();
 	}
+	catch (std::exception& e)
+	{
+		fail(-1, e.what());
+	};
 
 	void udp_tracker_connection::on_timeout()
 	{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		boost::shared_ptr<request_callback> cb = requester();
-		if (cb) cb->debug_log("*** UDP_TRACKER [ timed out ]");
-#endif
-		m_socket.close();
+		asio::error_code ec;
+		m_socket.close(ec);
 		m_name_lookup.cancel();
 		fail_timeout();
 	}
@@ -180,110 +166,14 @@ namespace libtorrent
 	void udp_tracker_connection::close()
 	{
 		asio::error_code ec;
-		m_socket.close();
+		m_socket.close(ec);
 		m_name_lookup.cancel();
 		tracker_connection::close();
 	}
 
-	void udp_tracker_connection::on_receive(asio::error_code const& e
-		, udp::endpoint const& ep, char const* buf, int size)
-	{
-		// ignore resposes before we've sent any requests
-		if (m_state == action_error) return;
-
-		if (!m_socket.is_open()) return; // the operation was aborted
-
-		// ignore packet not sent from the tracker
-		if (m_target != ep) return;
-		
-		if (e) fail(-1, e.message().c_str());
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-		boost::shared_ptr<request_callback> cb = requester();
-		if (cb)
-		{
-			std::stringstream msg;
-			msg << "<== UDP_TRACKER_PACKET [ size: " << size << " ]";
-			cb->debug_log(msg.str());
-		}
-#endif
-
-		// ignore packets smaller than 8 bytes
-		if (size < 8) return;
-
-		restart_read_timeout();
-
-		const char* ptr = buf;
-		int action = detail::read_int32(ptr);
-		int transaction = detail::read_int32(ptr);
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-		if (cb)
-		{
-			std::stringstream msg;
-			msg << "*** UDP_TRACKER_PACKET [ acton: " << action << " ]";
-			cb->debug_log(msg.str());
-		}
-#endif
-
-		// ignore packets with incorrect transaction id
-		if (m_transaction_id != transaction) return;
-
-		if (action == action_error)
-		{
-			fail(-1, std::string(ptr, size - 8).c_str());
-			return;
-		}
-
-		// ignore packets that's not a response to our message
-		if (action != m_state) return;
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-		if (cb)
-		{
-			std::stringstream msg;
-			msg << "*** UDP_TRACKER_RESPONSE [ cid: " << m_connection_id << " ]";
-			cb->debug_log(msg.str());
-		}
-#endif
-
-		switch (m_state)
-		{
-			case action_connect:
-				on_connect_response(buf, size);
-				break;
-			case action_announce:
-				on_announce_response(buf, size);
-				break;
-			case action_scrape:
-				on_scrape_response(buf, size);
-				break;
-			default: break;
-		}
-	}
-	
-	void udp_tracker_connection::on_connect_response(char const* buf, int size)
-	{
-		// ignore packets smaller than 16 bytes
-		if (size < 16) return;
-
-		restart_read_timeout();
-		buf += 8; // skip header
-
-		// reset transaction
-		m_transaction_id = 0;
-		m_attempts = 0;
-		m_connection_id = detail::read_int64(buf);
-
-		if (tracker_req().kind == tracker_request::announce_request)
-			send_udp_announce();
-		else if (tracker_req().kind == tracker_request::scrape_request)
-			send_udp_scrape();
-	}
-
 	void udp_tracker_connection::send_udp_connect()
 	{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb)
 		{
@@ -293,27 +183,170 @@ namespace libtorrent
 #endif
 		if (!m_socket.is_open()) return; // the operation was aborted
 
-		char buf[16];
-		char* ptr = buf;
+		char send_buf[16];
+		char* ptr = send_buf;
 
 		if (m_transaction_id == 0)
 			m_transaction_id = rand() ^ (rand() << 16);
 
+		// connection_id
 		detail::write_uint32(0x417, ptr);
-		detail::write_uint32(0x27101980, ptr); // connection_id
-		detail::write_int32(action_connect, ptr); // action (connect)
-		detail::write_int32(m_transaction_id, ptr); // transaction_id
-		TORRENT_ASSERT(ptr - buf == sizeof(buf));
+		detail::write_uint32(0x27101980, ptr);
+		// action (connect)
+		detail::write_int32(action_connect, ptr);
+		// transaction_id
+		detail::write_int32(m_transaction_id, ptr);
 
-		asio::error_code ec;
-		m_socket.send(m_target, buf, 16, ec);
-		m_state = action_connect;
+		m_socket.send(asio::buffer((void*)send_buf, 16), 0);
 		++m_attempts;
-		if (ec)
+		m_buffer.resize(udp_buffer_size);
+		m_socket.async_receive_from(asio::buffer(m_buffer), m_sender
+			, boost::bind(&udp_tracker_connection::connect_response, self(), _1, _2));
+	}
+
+	void udp_tracker_connection::connect_response(asio::error_code const& error
+		, std::size_t bytes_transferred) try
+	{
+		if (error == asio::error::operation_aborted) return;
+		if (!m_socket.is_open()) return; // the operation was aborted
+		if (error)
 		{
-			fail(-1, ec.message().c_str());
+			fail(-1, error.message().c_str());
 			return;
 		}
+
+		if (m_target != m_sender)
+		{
+			// this packet was not received from the tracker
+			m_socket.async_receive_from(asio::buffer(m_buffer), m_sender
+				, boost::bind(&udp_tracker_connection::connect_response, self(), _1, _2));
+			return;
+		}
+
+		if (bytes_transferred >= udp_buffer_size)
+		{
+			fail(-1, "udp response too big");
+			return;
+		}
+
+		if (bytes_transferred < 8)
+		{
+			fail(-1, "got a message with size < 8");
+			return;
+		}
+
+		restart_read_timeout();
+
+		const char* ptr = &m_buffer[0];
+		int action = detail::read_int32(ptr);
+		int transaction = detail::read_int32(ptr);
+
+		if (action == action_error)
+		{
+			fail(-1, std::string(ptr, bytes_transferred - 8).c_str());
+			return;
+		}
+
+		if (action != action_connect)
+		{
+			fail(-1, "invalid action in connect reply");
+			return;
+		}
+
+		if (m_transaction_id != transaction)
+		{
+			fail(-1, "incorrect transaction id");
+			return;
+		}
+
+		if (bytes_transferred < 16)
+		{
+			fail(-1, "udp_tracker_connection: "
+				"got a message with size < 16");
+			return;
+		}
+		// reset transaction
+		m_transaction_id = 0;
+		m_attempts = 0;
+		m_connection_id = detail::read_int64(ptr);
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		boost::shared_ptr<request_callback> cb = requester();
+		if (cb)
+		{
+			cb->debug_log("<== UDP_TRACKER_CONNECT_RESPONSE ["
+				+ lexical_cast<std::string>(m_connection_id) + "]");
+		}
+#endif
+
+		if (tracker_req().kind == tracker_request::announce_request)
+			send_udp_announce();
+		else if (tracker_req().kind == tracker_request::scrape_request)
+			send_udp_scrape();
+	}
+	catch (std::exception& e)
+	{
+		fail(-1, e.what());
+	}
+	
+	void udp_tracker_connection::send_udp_announce()
+	{
+		if (m_transaction_id == 0)
+			m_transaction_id = rand() ^ (rand() << 16);
+
+		if (!m_socket.is_open()) return; // the operation was aborted
+
+		std::vector<char> buf;
+		std::back_insert_iterator<std::vector<char> > out(buf);
+		
+		tracker_request const& req = tracker_req();
+
+		// connection_id
+		detail::write_int64(m_connection_id, out);
+		// action (announce)
+		detail::write_int32(action_announce, out);
+		// transaction_id
+		detail::write_int32(m_transaction_id, out);
+		// info_hash
+		std::copy(req.info_hash.begin(), req.info_hash.end(), out);
+		// peer_id
+		std::copy(req.pid.begin(), req.pid.end(), out);
+		// downloaded
+		detail::write_int64(req.downloaded, out);
+		// left
+		detail::write_int64(req.left, out);
+		// uploaded
+		detail::write_int64(req.uploaded, out);
+		// event
+		detail::write_int32(req.event, out);
+		// ip address
+		if (m_settings.announce_ip != address() && m_settings.announce_ip.is_v4())
+			detail::write_uint32(m_settings.announce_ip.to_v4().to_ulong(), out);
+		else
+			detail::write_int32(0, out);
+		// key
+		detail::write_int32(req.key, out);
+		// num_want
+		detail::write_int32(req.num_want, out);
+		// port
+		detail::write_uint16(req.listen_port, out);
+		// extensions
+		detail::write_uint16(0, out);
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		boost::shared_ptr<request_callback> cb = requester();
+		if (cb)
+		{
+			cb->debug_log("==> UDP_TRACKER_ANNOUNCE ["
+				+ lexical_cast<std::string>(req.info_hash) + "]");
+		}
+#endif
+
+		m_socket.send(asio::buffer(buf), 0);
+		++m_attempts;
+
+		m_socket.async_receive_from(asio::buffer(m_buffer), m_sender
+			, bind(&udp_tracker_connection::announce_response, self(), _1, _2));
 	}
 
 	void udp_tracker_connection::send_udp_scrape()
@@ -323,48 +356,97 @@ namespace libtorrent
 
 		if (!m_socket.is_open()) return; // the operation was aborted
 
-		char buf[8 + 4 + 4 + 20];
-		char* out = buf;
+		std::vector<char> buf;
+		std::back_insert_iterator<std::vector<char> > out(buf);
 
-		detail::write_int64(m_connection_id, out); // connection_id
-		detail::write_int32(action_scrape, out); // action (scrape)
-		detail::write_int32(m_transaction_id, out); // transaction_id
+		// connection_id
+		detail::write_int64(m_connection_id, out);
+		// action (scrape)
+		detail::write_int32(action_scrape, out);
+		// transaction_id
+		detail::write_int32(m_transaction_id, out);
 		// info_hash
 		std::copy(tracker_req().info_hash.begin(), tracker_req().info_hash.end(), out);
-		out += 20;
-		TORRENT_ASSERT(out - buf == sizeof(buf));
 
-		asio::error_code ec;
-		m_socket.send(m_target, buf, sizeof(buf), ec);
-		m_state = action_scrape;
+		m_socket.send(asio::buffer(&buf[0], buf.size()), 0);
 		++m_attempts;
-		if (ec)
-		{
-			fail(-1, ec.message().c_str());
-			return;
-		}
+
+		m_socket.async_receive_from(asio::buffer(m_buffer), m_sender
+			, bind(&udp_tracker_connection::scrape_response, self(), _1, _2));
 	}
 
-	void udp_tracker_connection::on_announce_response(char const* buf, int size)
+	void udp_tracker_connection::announce_response(asio::error_code const& error
+		, std::size_t bytes_transferred) try
 	{
-		if (size < 20) return;
+		if (error == asio::error::operation_aborted) return;
+		if (!m_socket.is_open()) return; // the operation was aborted
+		if (error)
+		{
+			fail(-1, error.message().c_str());
+			return;
+		}
+
+		if (m_target != m_sender)
+		{
+			// this packet was not received from the tracker
+			m_socket.async_receive_from(asio::buffer(m_buffer), m_sender
+				, bind(&udp_tracker_connection::connect_response, self(), _1, _2));
+			return;
+		}
+
+		if (bytes_transferred >= udp_buffer_size)
+		{
+			fail(-1, "udp response too big");
+			return;
+		}
+
+		if (bytes_transferred < 8)
+		{
+			fail(-1, "got a message with size < 8");
+			return;
+		}
 
 		restart_read_timeout();
+		char* buf = &m_buffer[0];
+		int action = detail::read_int32(buf);
+		int transaction = detail::read_int32(buf);
 
-		buf += 8; // skip header
-		restart_read_timeout();
+		if (transaction != m_transaction_id)
+		{
+			fail(-1, "incorrect transaction id");
+			return;
+		}
+
+		if (action == action_error)
+		{
+			fail(-1, std::string(buf, bytes_transferred - 8).c_str());
+			return;
+		}
+
+		if (action != action_announce)
+		{
+			fail(-1, "invalid action in announce response");
+			return;
+		}
+
+		if (bytes_transferred < 20)
+		{
+			fail(-1, "got a message with size < 20");
+			return;
+		}
+
 		int interval = detail::read_int32(buf);
 		int incomplete = detail::read_int32(buf);
 		int complete = detail::read_int32(buf);
-		int num_peers = (size - 20) / 6;
-		if ((size - 20) % 6 != 0)
+		int num_peers = (bytes_transferred - 20) / 6;
+		if ((bytes_transferred - 20) % 6 != 0)
 		{
 			fail(-1, "invalid udp tracker response length");
 			return;
 		}
 
 		boost::shared_ptr<request_callback> cb = requester();
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (cb)
 		{
 			cb->debug_log("<== UDP_TRACKER_ANNOUNCE_RESPONSE");
@@ -380,7 +462,6 @@ namespace libtorrent
 		std::vector<peer_entry> peer_list;
 		for (int i = 0; i < num_peers; ++i)
 		{
-			// TODO: don't use a string here
 			peer_entry e;
 			std::stringstream s;
 			s << (int)detail::read_uint8(buf) << ".";
@@ -394,17 +475,50 @@ namespace libtorrent
 		}
 
 		cb->tracker_response(tracker_req(), peer_list, interval
-			, complete, incomplete, address());
+			, complete, incomplete);
 
 		m_man.remove_request(this);
 		close();
+		return;
 	}
-
-	void udp_tracker_connection::on_scrape_response(char const* buf, int size)
+	catch (std::exception& e)
 	{
-		buf += 8; // skip header
+		fail(-1, e.what());
+	}; // msvc 7.1 seems to require this
+
+	void udp_tracker_connection::scrape_response(asio::error_code const& error
+		, std::size_t bytes_transferred) try
+	{
+		if (error == asio::error::operation_aborted) return;
+		if (!m_socket.is_open()) return; // the operation was aborted
+		if (error)
+		{
+			fail(-1, error.message().c_str());
+			return;
+		}
+
+		if (m_target != m_sender)
+		{
+			// this packet was not received from the tracker
+			m_socket.async_receive_from(asio::buffer(m_buffer), m_sender
+				, bind(&udp_tracker_connection::connect_response, self(), _1, _2));
+			return;
+		}
+
+		if (bytes_transferred >= udp_buffer_size)
+		{
+			fail(-1, "udp response too big");
+			return;
+		}
+
+		if (bytes_transferred < 8)
+		{
+			fail(-1, "got a message with size < 8");
+			return;
+		}
 
 		restart_read_timeout();
+		char* buf = &m_buffer[0];
 		int action = detail::read_int32(buf);
 		int transaction = detail::read_int32(buf);
 
@@ -416,7 +530,7 @@ namespace libtorrent
 
 		if (action == action_error)
 		{
-			fail(-1, std::string(buf, size - 8).c_str());
+			fail(-1, std::string(buf, bytes_transferred - 8).c_str());
 			return;
 		}
 
@@ -426,7 +540,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (size < 20)
+		if (bytes_transferred < 20)
 		{
 			fail(-1, "got a message with size < 20");
 			return;
@@ -439,6 +553,7 @@ namespace libtorrent
 		boost::shared_ptr<request_callback> cb = requester();
 		if (!cb)
 		{
+			m_man.remove_request(this);
 			close();
 			return;
 		}
@@ -449,60 +564,9 @@ namespace libtorrent
 		m_man.remove_request(this);
 		close();
 	}
-
-	void udp_tracker_connection::send_udp_announce()
+	catch (std::exception& e)
 	{
-		if (m_transaction_id == 0)
-			m_transaction_id = rand() ^ (rand() << 16);
-
-		if (!m_socket.is_open()) return; // the operation was aborted
-
-		char buf[8 + 4 + 4 + 20 + 20 + 8 + 8 + 8 + 4 + 4 + 4 + 4 + 2 + 2];
-		char* out = buf;
-
-		tracker_request const& req = tracker_req();
-
-		detail::write_int64(m_connection_id, out); // connection_id
-		detail::write_int32(action_announce, out); // action (announce)
-		detail::write_int32(m_transaction_id, out); // transaction_id
-		std::copy(req.info_hash.begin(), req.info_hash.end(), out); // info_hash
-		out += 20;
-		std::copy(req.pid.begin(), req.pid.end(), out); // peer_id
-		out += 20;
-		detail::write_int64(req.downloaded, out); // downloaded
-		detail::write_int64(req.left, out); // left
-		detail::write_int64(req.uploaded, out); // uploaded
-		detail::write_int32(req.event, out); // event
-		// ip address
-		if (m_settings.announce_ip != address() && m_settings.announce_ip.is_v4())
-			detail::write_uint32(m_settings.announce_ip.to_v4().to_ulong(), out);
-		else
-			detail::write_int32(0, out);
-		detail::write_int32(req.key, out); // key
-		detail::write_int32(req.num_want, out); // num_want
-		detail::write_uint16(req.listen_port, out); // port
-		detail::write_uint16(0, out); // extensions
-
-		TORRENT_ASSERT(out - buf == sizeof(buf));
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-		boost::shared_ptr<request_callback> cb = requester();
-		if (cb)
-		{
-			cb->debug_log("==> UDP_TRACKER_ANNOUNCE ["
-				+ lexical_cast<std::string>(req.info_hash) + "]");
-		}
-#endif
-
-		asio::error_code ec;
-		m_socket.send(m_target, buf, sizeof(buf), ec);
-		m_state = action_announce;
-		++m_attempts;
-		if (ec)
-		{
-			fail(-1, ec.message().c_str());
-			return;
-		}
+		fail(-1, e.what());
 	}
 
 }

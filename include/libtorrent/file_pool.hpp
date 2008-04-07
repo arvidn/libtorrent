@@ -65,8 +65,7 @@ namespace libtorrent
 	{
 		file_pool(int size = 40): m_size(size) {}
 
-		boost::shared_ptr<file> open_file(void* st, fs::path const& p
-			, file::open_mode m, std::string& error);
+		boost::shared_ptr<file> open_file(void* st, fs::path const& p, file::open_mode m);
 		void release(void* st);
 		void resize(int size);
 
@@ -75,7 +74,9 @@ namespace libtorrent
 
 		struct lru_file_entry
 		{
-			lru_file_entry(): last_use(time_now()) {}
+			lru_file_entry(boost::shared_ptr<file> const& f)
+				: file_ptr(f)
+				, last_use(time_now()) {}
 			mutable boost::shared_ptr<file> file_ptr;
 			fs::path file_path;
 			void* key;

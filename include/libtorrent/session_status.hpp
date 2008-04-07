@@ -54,8 +54,6 @@ namespace libtorrent
 		size_type total_payload_upload;
 
 		int num_peers;
-		int num_unchoked;
-		int allowed_upload_slots;
 
 		int up_bandwidth_queue;
 		int down_bandwidth_queue;

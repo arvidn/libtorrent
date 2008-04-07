@@ -39,11 +39,17 @@ boost::shared_ptr<piece_picker> setup_picker(
 
 	std::vector<bool> have = string2vec(have_str);
 
+	std::vector<piece_picker::downloading_piece> unfinished;
+	piece_picker::downloading_piece pp;
+	std::vector<piece_picker::block_info> blocks(blocks_per_piece * num_pieces);
+
 	for (int i = 0; i < num_pieces; ++i)
 	{
 		if (partial[i] == 0) break;
 
 		if (partial[i] == ' ') continue;
+		pp.index = i;
+		pp.info = &blocks[i * blocks_per_piece];
 
 		int blocks = 0;
 		if (partial[i] >= '0' && partial[i] <= '9')
@@ -51,35 +57,15 @@ boost::shared_ptr<piece_picker> setup_picker(
 		else
 			blocks = partial[i] - 'a' + 10;
 
-		int counter = 0;
 		if (blocks & 1)
-		{
-			++counter;
-			p->mark_as_finished(piece_block(i, 0), 0);
-		}
+			pp.info[0].state = piece_picker::block_info::state_finished;
 		if (blocks & 2)
-		{
-			++counter;
-			p->mark_as_finished(piece_block(i, 1), 0);
-		}
+			pp.info[1].state = piece_picker::block_info::state_finished;
 		if (blocks & 4)
-		{
-			++counter;
-			p->mark_as_finished(piece_block(i, 2), 0);
-		}
+			pp.info[2].state = piece_picker::block_info::state_finished;
 		if (blocks & 8)
-		{
-			++counter;
-			p->mark_as_finished(piece_block(i, 3), 0);
-		}
-
-		piece_picker::downloading_piece st;
-		p->piece_info(i, st);
-		TEST_CHECK(st.writing == 0);
-		TEST_CHECK(st.requested == 0);
-		TEST_CHECK(st.index == i);
-
-		TEST_CHECK(st.finished == counter);
+			pp.info[3].state = piece_picker::block_info::state_finished;
+		unfinished.push_back(pp);
 	}
 
 	for (int i = 0; i < num_pieces; ++i)
@@ -92,7 +78,26 @@ boost::shared_ptr<piece_picker> setup_picker(
 		TEST_CHECK(p->piece_priority(i) == prio);
 	}
 
-	p->init(have);
+	std::vector<int> verify_pieces;
+	p->files_checked(have, unfinished, verify_pieces);
+
+	for (std::vector<piece_picker::downloading_piece>::iterator i = unfinished.begin()
+		, end(unfinished.end()); i != end; ++i)
+	{
+		for (int j = 0; j < blocks_per_piece; ++j)
+			TEST_CHECK(p->is_finished(piece_block(i->index, j)) == (i->info[j].state == piece_picker::block_info::state_finished));
+
+		piece_picker::downloading_piece st;
+		p->piece_info(i->index, st);
+		TEST_CHECK(st.writing == 0);
+		TEST_CHECK(st.requested == 0);
+		TEST_CHECK(st.index == i->index);
+		int counter = 0;
+		for (int j = 0; j < blocks_per_piece; ++j)
+			if (i->info[j].state == piece_picker::block_info::state_finished) ++counter;
+			
+		TEST_CHECK(st.finished == counter);
+	}
 
 	for (int i = 0; i < num_pieces; ++i)
 	{
@@ -149,17 +154,6 @@ void print_pick(std::vector<piece_block> const& picked)
 		std::cout << "(" << picked[i].piece_index << ", " << picked[i].block_index << ") ";
 	}
 	std::cout << std::endl;
-}
-
-int test_pick(boost::shared_ptr<piece_picker> const& p)
-{
-	std::vector<piece_block> picked;
-	const std::vector<int> empty_vector;
-	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true, false, empty_vector);
-	print_pick(picked);
-	TEST_CHECK(verify_pick(p, picked));
-	TEST_CHECK(int(picked.size()) == 1);
-	return picked[0].piece_index;
 }
 
 int test_main()
@@ -242,7 +236,7 @@ int test_main()
 	TEST_CHECK(picked.front().piece_index == 0);
 
 // ========================================================
-/*
+
 	// test sequenced download
 	p = setup_picker("7654321", "       ", "", "");
 	picked.clear();
@@ -289,7 +283,7 @@ int test_main()
 	TEST_CHECK(int(picked.size()) == 6 * blocks_per_piece);
 	for (int i = 0; i < 6 * blocks_per_piece && i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i].piece_index == i / blocks_per_piece);
-*/
+
 // ========================================================
 
 	// test piece priorities
@@ -408,30 +402,9 @@ int test_main()
 	dc = p->distributed_copies();
 	std::cout << "distributed copies: " << dc << std::endl;
 	TEST_CHECK(fabs(dc - (1.f + 5.f / 7.f)) < 0.01f);
-
-// ========================================================
-
-	// test inc_ref and dec_ref
-	p = setup_picker("1233333", "     * ", "", "");
-	TEST_CHECK(test_pick(p) == 0);
-
-	p->dec_refcount(0);
-	TEST_CHECK(test_pick(p) == 1);
-
-	p->dec_refcount(4);
-	p->dec_refcount(4);
-	TEST_CHECK(test_pick(p) == 4);
-
-	// decrease refcount on something that's not in the piece list
-	p->dec_refcount(5);
-	p->inc_refcount(5);
 	
-	p->inc_refcount(0);
-	p->dec_refcount(4);
-	TEST_CHECK(test_pick(p) == 0);
-
 // ========================================================
-/*	
+	
 	// test have_all and have_none, with a sequenced download threshold
 	p = setup_picker("1233333", "*      ", "", "");
 	p->set_sequenced_download_threshold(3);
@@ -459,7 +432,7 @@ int test_main()
 	TEST_CHECK(picked[1 * blocks_per_piece].piece_index == 4);
 	TEST_CHECK(picked[2 * blocks_per_piece].piece_index == 5);
 	TEST_CHECK(picked[3 * blocks_per_piece].piece_index == 6);
-*/	
+	
 // ========================================================
 	
 	// test unverified_blocks, marking blocks and get_downloader

@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/pch.hpp"
 
-#include <boost/scoped_ptr.hpp>
 #ifdef _WIN32
 // windows part
 #include "libtorrent/utf8.hpp"
@@ -158,7 +157,7 @@ namespace libtorrent
 			close();
 		}
 
-		bool open(fs::path const& path, int mode)
+		void open(fs::path const& path, int mode)
 		{
 			TORRENT_ASSERT(path.is_complete());
 			close();
@@ -187,12 +186,9 @@ namespace libtorrent
 				std::stringstream msg;
 				msg << "open failed: '" << path.native_file_string() << "'. "
 					<< std::strerror(errno);
-				if (!m_error) m_error.reset(new std::string);
-				*m_error = msg.str();
-				return false;
+				throw file_error(msg.str());
 			}
 			m_open_mode = mode;
-			return true;
 		}
 
 		void close()
@@ -222,8 +218,7 @@ namespace libtorrent
 			{
 				std::stringstream msg;
 				msg << "read failed: " << std::strerror(errno);
-				if (!m_error) m_error.reset(new std::string);
-				*m_error = msg.str();
+				throw file_error(msg.str());
 			}
 			return ret;
 		}
@@ -247,13 +242,12 @@ namespace libtorrent
 			{
 				std::stringstream msg;
 				msg << "write failed: " << std::strerror(errno);
-				if (!m_error) m_error.reset(new std::string);
-				*m_error = msg.str();
+				throw file_error(msg.str());
 			}
 			return ret;
 		}
 
-		bool set_size(size_type s)
+		void set_size(size_type s)
 		{
 #ifdef _WIN32
 #error file.cpp is for posix systems only. use file_win.cpp on windows
@@ -262,11 +256,8 @@ namespace libtorrent
 			{
 				std::stringstream msg;
 				msg << "ftruncate failed: '" << std::strerror(errno);
-				if (!m_error) m_error.reset(new std::string);
-				*m_error = msg.str();
-				return false;
+				throw file_error(msg.str());
 			}
-			return true;
 #endif
 		}
 
@@ -292,9 +283,7 @@ namespace libtorrent
 					<< "' fd: " << m_fd
 					<< " offset: " << offset
 					<< " seekdir: " << seekdir;
-				if (!m_error) m_error.reset(new std::string);
-				*m_error = msg.str();
-				return -1;
+				throw file_error(msg.str());
 			}
 			return ret;
 		}
@@ -311,15 +300,8 @@ namespace libtorrent
 #endif
 		}
 
-		std::string const& error() const
-		{
-			if (!m_error) m_error.reset(new std::string);
-			return *m_error;
-		}
-
 		int m_fd;
 		int m_open_mode;
-		mutable boost::scoped_ptr<std::string> m_error;
 	};
 
 	// pimpl forwardings
@@ -332,9 +314,9 @@ namespace libtorrent
 
 	file::~file() {}
 
-	bool file::open(fs::path const& p, file::open_mode m)
+	void file::open(fs::path const& p, file::open_mode m)
 	{
-		return m_impl->open(p, m.m_mask);
+		m_impl->open(p, m.m_mask);
 	}
 
 	void file::close()
@@ -352,9 +334,9 @@ namespace libtorrent
 		return m_impl->read(buf, num_bytes);
 	}
 
-	bool file::set_size(size_type s)
+	void file::set_size(size_type s)
 	{
-		return m_impl->set_size(s);
+		m_impl->set_size(s);
 	}
 
 	size_type file::seek(size_type pos, file::seek_mode m)
@@ -365,11 +347,6 @@ namespace libtorrent
 	size_type file::tell()
 	{
 		return m_impl->tell();
-	}
-
-	std::string const& file::error() const
-	{
-		return m_impl->error();
 	}
 
 }

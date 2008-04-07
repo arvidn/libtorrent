@@ -6,7 +6,7 @@ bool tests_failure = false;
 
 void report_failure(char const* err, char const* file, int line)
 {
-	std::cerr << "\033[31m" << file << ":" << line << " \"" << err << "\"\033[0m\n";
+	std::cerr << file << ":" << line << "\"" << err << "\"\n";
 	tests_failure = true;
 }
 

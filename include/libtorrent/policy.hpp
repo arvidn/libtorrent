@@ -85,16 +85,13 @@ namespace libtorrent
 		// the tracker, pex, lsd or dht.
 		policy::peer* peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid
 			, int source, char flags);
-
-		// false means duplicate connection
-		bool update_peer_port(int port, policy::peer* p, int src);
+		void update_peer_port(int port, policy::peer* p, int src);
 
 		// called when an incoming connection is accepted
-		// false means the connection was refused or failed
-		bool new_connection(peer_connection& c);
+		void new_connection(peer_connection& c);
 
 		// the given connection was just closed
-		void connection_closed(const peer_connection& c);
+		void connection_closed(const peer_connection& c) throw();
 
 		// the peer has got at least one interesting piece
 		void peer_is_interesting(peer_connection& c);
@@ -126,27 +123,56 @@ namespace libtorrent
 		struct peer
 		{
 			enum connection_type { not_connectable, connectable };
+
 			peer(tcp::endpoint const& ip, connection_type t, int src);
 
 			size_type total_download() const;
 			size_type total_upload() const;
 
 			// the ip/port pair this peer is or was connected on
+			// if it was a remote (incoming) connection, type is
+			// set thereafter. If it was a peer we got from the
+			// tracker, type is set to local_connection.
 			tcp::endpoint ip;
+			connection_type type;
 
-#ifndef TORRENT_DISABLE_GEO_IP
-#ifndef NDEBUG
-			// only used in debug mode to assert that
-			// the first entry in the AS pair keeps the same
-			boost::uint16_t inet_as_num;
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			// Hints encryption support of peer. Only effective for
+			// and when the outgoing encryption policy allows both
+			// encrypted and non encrypted connections
+			// (pe_settings::out_enc_policy == enabled). The initial
+			// state of this flag determines the initial connection
+			// attempt type (true = encrypted, false = standard).
+			// This will be toggled everytime either an encrypted or
+			// non-encrypted handshake fails.
+			bool pe_support;
 #endif
-			// The AS this peer belongs to
-			std::pair<const int, int>* inet_as;
-#endif
+			// the number of failed connection attempts this peer has
+			int failcount;
 
-			// the number of failed connection attempts
-			// this peer has
-			boost::uint8_t failcount;
+			// the number of times this peer has been
+			// part of a piece that failed the hash check
+			int hashfails;
+
+			// this is true if the peer is a seed
+			bool seed;
+
+			int fast_reconnects;
+
+			// true if this peer currently is unchoked
+			// because of an optimistic unchoke.
+			// when the optimistic unchoke is moved to
+			// another peer, this peer will be choked
+			// if this is true
+			bool optimistically_unchoked;
+
+			// the time when this peer was optimistically unchoked
+			// the last time.
+			libtorrent::ptime last_optimistically_unchoked;
+
+			// the time when the peer connected to us
+			// or disconnected if it isn't connected right now
+			libtorrent::ptime connected;
 
 			// for every valid piece we receive where this
 			// peer was one of the participants, we increase
@@ -154,68 +180,15 @@ namespace libtorrent
 			// where this peer was a participant, we decrease
 			// this value. If it sinks below a threshold, its
 			// considered a bad peer and will be banned.
-			boost::int8_t trust_points;
+			int trust_points;
 
-			// a bitmap combining the peer_source flags
-			// from peer_info.
-			boost::uint8_t source;
-
-			// the number of times this peer has been
-			// part of a piece that failed the hash check
-			boost::uint8_t hashfails;
-
-			// type specifies if the connection was incoming
-			// or outgoing. If we ever saw this peer as connectable
-			// it will remain as connectable
-			unsigned type:4;
-
-			// the number of times we have allowed a fast
-			// reconnect for this peer.
-			unsigned fast_reconnects:4;
-
-#ifndef TORRENT_DISABLE_ENCRYPTION
-			// Hints encryption support of peer. Only effective
-			// for and when the outgoing encryption policy
-			// allows both encrypted and non encrypted
-			// connections (pe_settings::out_enc_policy
-			// == enabled). The initial state of this flag
-			// determines the initial connection attempt
-			// type (true = encrypted, false = standard).
-			// This will be toggled everytime either an
-			// encrypted or non-encrypted handshake fails.
-			bool pe_support:1;
-#endif
-			// true if this peer currently is unchoked
-			// because of an optimistic unchoke.
-			// when the optimistic unchoke is moved to
-			// another peer, this peer will be choked
-			// if this is true
-			bool optimistically_unchoked:1;
-
-			// this is true if the peer is a seed
-			bool seed:1;
-
-			// if this is true, the peer has previously
-			// participated in a piece that failed the piece
-			// hash check. This will put the peer on parole
-			// and only request entire pieces. If a piece pass
-			// that was partially requested from this peer it
-			// will leave parole mode and continue download
+			// if this is true, the peer has previously participated
+			// in a piece that failed the piece hash check. This will
+			// put the peer on parole and only request entire pieces.
+			// if a piece pass that was partially requested from this
+			// peer it will leave parole mode and continue download
 			// pieces as normal peers.
-			bool on_parole:1;
-
-			// is set to true if this peer has been banned
-			bool banned:1;
-
-#ifndef TORRENT_DISABLE_DHT
-			// this is set to true when this peer as been
-			// pinged by the DHT
-			bool added_to_dht:1;
-#endif
-
-			// if the peer is connected now, this
-			// will refer to a valid peer_connection
-			peer_connection* connection;
+			bool on_parole;
 
 			// this is the accumulated amount of
 			// uploaded and downloaded data to this
@@ -229,13 +202,16 @@ namespace libtorrent
 			size_type prev_amount_upload;
 			size_type prev_amount_download;
 
-			// the time when this peer was optimistically unchoked
-			// the last time.
-			libtorrent::ptime last_optimistically_unchoked;
+			// is set to true if this peer has been banned
+			bool banned;
 
-			// the time when the peer connected to us
-			// or disconnected if it isn't connected right now
-			libtorrent::ptime connected;
+			// a bitmap combining the peer_source flags
+			// from peer_info.
+			int source;
+
+			// if the peer is connected now, this
+			// will refer to a valid peer_connection
+			peer_connection* connection;
 		};
 
 		int num_peers() const { return m_peers.size(); }
@@ -250,22 +226,22 @@ namespace libtorrent
 		bool connect_one_peer();
 		bool disconnect_one_peer();
 
-		bool has_peer(policy::peer const* p) const;
-
-		int num_seeds() const { return m_num_seeds; }
-		int num_connect_candidates() const { return m_num_connect_candidates; }
-		void recalculate_connect_candidates()
-		{
-			if (m_num_connect_candidates == 0)
-				m_num_connect_candidates = 1;
-		}
-
 	private:
+/*
+		bool unchoke_one_peer();
+		void choke_one_peer();
+		iterator find_choke_candidate();
+		iterator find_unchoke_candidate();
 
+		// the seed prefix means that the
+		// function is used while seeding.
+		bool seed_unchoke_one_peer();
+		void seed_choke_one_peer();
+		iterator find_seed_choke_candidate();
+		iterator find_seed_unchoke_candidate();
+*/
 		iterator find_disconnect_candidate();
 		iterator find_connect_candidate();
-
-		bool is_connect_candidate(peer const& p, bool finished);
 
 		std::multimap<address, peer> m_peers;
 
@@ -275,16 +251,10 @@ namespace libtorrent
 		// been distributed yet.
 		size_type m_available_free_upload;
 
-		// The number of peers in our peer list
-		// that are connect candidates. i.e. they're
-		// not already connected and they have not
-		// yet reached their max try count and they
-		// have the connectable state (we have a listen
-		// port for them).
-		int m_num_connect_candidates;
-
-		// the number of seeds in the peer list
-		int m_num_seeds;
+		// if there is a connection limit,
+		// we disconnect one peer every minute in hope of
+		// establishing a connection with a better peer
+//		ptime m_last_optimistic_disconnect;
 	};
 
 }

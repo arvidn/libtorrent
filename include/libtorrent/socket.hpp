@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <asio/io_service.hpp>
 #include <asio/deadline_timer.hpp>
 #include <asio/write.hpp>
+#include <asio/strand.hpp>
 #include <asio/time_traits.hpp>
 #include <asio/basic_deadline_timer.hpp>
 
@@ -97,15 +98,6 @@ namespace libtorrent
 	
 	typedef asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
 	
-	inline std::ostream& print_address(std::ostream& os, address const& addr)
-	{
-		asio::error_code ec;
-		std::string a = addr.to_string(ec);
-		if (ec) return os;
-		os << a;
-		return os;
-	}
-
 	inline std::ostream& print_endpoint(std::ostream& os, tcp::endpoint const& ep)
 	{
 		address const& addr = ep.address();
@@ -194,19 +186,6 @@ namespace libtorrent
 		int m_value;
 	};
 	
-	struct type_of_service
-	{
-		type_of_service(char val): m_value(val) {}
-		template<class Protocol>
-		int level(Protocol const&) const { return IPPROTO_IP; }
-		template<class Protocol>
-		int name(Protocol const&) const { return IP_TOS; }
-		template<class Protocol>
-		char const* data(Protocol const&) const { return &m_value; }
-		template<class Protocol>
-		size_t size(Protocol const&) const { return sizeof(m_value); }
-		char m_value;
-	};
 }
 
 #endif // TORRENT_SOCKET_HPP_INCLUDED

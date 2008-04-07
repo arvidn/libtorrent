@@ -18,8 +18,6 @@ the ``session``, it contains the main loop that serves all torrents.
 The basic usage is as follows:
 
 * construct a session
-* start DHT, LSD, UPnP, NAT-PMP etc (see `start_dht() stop_dht() set_dht_settings() dht_state()`_
-  `start_lsd() stop_lsd()`_, `start_upnp() stop_upnp()`_ and `start_natpmp() stop_natpmp()`_)
 * parse .torrent-files and add them to the session (see `bdecode() bencode()`_ and `add_torrent()`_)
 * main loop (see session_)
 
@@ -132,15 +130,9 @@ The ``session`` class has the following synopsis::
 		int num_uploads() const;
 		int num_connections() const;
 
-		bool load_asnum_db(char const* file);
-
-		void load_state(entry const& ses_state);
-		entry state() const;
-
 		void set_ip_filter(ip_filter const& f);
       
 		session_status status() const;
-		cache_status get_cache_status() const;
 
 		bool is_listening() const;
 		unsigned short listen_port() const;
@@ -167,10 +159,10 @@ The ``session`` class has the following synopsis::
 		void start_lsd();
 		void stop_lsd();
 
-		upnp* start_upnp();
+		void start_upnp();
 		void stop_upnp();
 
-		natpmp* start_natpmp();
+		void start_natpmp();
 		void stop_natpmp();
 	};
 
@@ -420,31 +412,7 @@ their turn to get connected.
 ``max_half_open_connections()`` returns the set limit. This limit defaults
 to 8 on windows.
 
-load_asnum_db()
----------------
 
-	::
-
-		bool load_asnum_db(char const* file);
-
-This function is not available if ``TORRENT_DISABLE_GEO_IP`` is defined. This
-expects a path to the `MaxMind ASN database`_. This will be used to look up
-which AS peers belong to.
-
-.. _`MaxMind ASN database`: http://www.maxmind.com/app/asnum
-		
-load_state() state()
---------------------
-
-	::
-	
-		void load_state(entry const& ses_state);
-		entry state() const;
-
-These functions loads and save session state. Currently, the only state
-that's stored is peak download rates for ASes. This map is used to
-determine which order to connect to peers.
-		
 set_ip_filter()
 ---------------
 
@@ -488,8 +456,6 @@ struct has the following members::
 		size_type total_payload_upload;
 
 		int num_peers;
-		int num_unchoked;
-		int allowed_upload_slots;
 
 		int dht_nodes;
 		int dht_cache_nodes;
@@ -515,9 +481,6 @@ that still hasn't completed the TCP connection. This number may be slightly high
 than the sum of all peers of all torrents because the incoming connections may not
 be assigned a torrent yet.
 
-``num_unchoked`` is the current number of unchoked peers.
-``allowed_upload_slots`` is the current allowed number of unchoked peers.
-
 ``dht_nodes``, ``dht_cache_nodes`` and ``dht_torrents`` are only available when
 built with DHT support. They are all set to 0 if the DHT isn't running. When
 the DHT is running, ``dht_nodes`` is set to the number of nodes in the routing
@@ -531,80 +494,6 @@ becomes unresponsive.
 ``dht_global_nodes`` is an estimation of the total number of nodes in the DHT
 network.
 
-get_cache_status()
-------------------
-
-	::
-
-		cache_status get_cache_status() const;
-
-Returns status of the disk cache for this session.
-
-	::
-
-		struct cache_status
-		{
-			size_type blocks_written;
-			size_type writes;
-			size_type blocks_read;
-			size_type blocks_read_hit;
-			size_type reads;
-			int cache_size;
-			int read_cache_size;
-		};
-
-``blocks_written`` is the total number of 16 KiB blocks written to disk
-since this session was started.
-
-``writes`` is the total number of write operations performed since this
-session was started.
-
-The ratio (``blocks_written`` - ``writes``) / ``blocks_written`` represents
-the number of saved write operations per total write operations. i.e. a kind
-of cache hit ratio for the write cahe.
-
-``blocks_read`` is the number of blocks that were requested from the
-bittorrent engine (from peers), that were served from disk or cache.
-
-``blocks_read_hit`` is the number of blocks that were served from cache.
-
-The ratio ``blocks_read_hit`` / ``blocks_read`` is the cache hit ratio
-for the read cache.
-
-``cache_size`` is the number of 16 KiB blocks currently in the disk cache.
-This includes both read and write cache.
-
-``read_cache_size`` is the number of 16KiB blocks in the read cache.
-
-get_cache_info()
-----------------
-
-	::
-
-		void get_cache_info(sha1_hash const& ih
-			, std::vector<cached_piece_info>& ret) const;
-
-``get_cache_info()`` fills out the supplied vector with information for
-each piece that is currently in the disk cache for the torrent with the
-specified info-hash (``ih``).
-
-	::
-
-		struct cached_piece_info
-		{
-			int piece;
-			std::vector<bool> blocks;
-			ptime last_use;
-		};
-
-``piece`` is the piece index for this cache entry.
-
-``blocks`` has one entry for each block in this piece. ``true`` represents
-the data for that block being in the disk cache and ``false`` means it's not.
-
-``last_use`` is the time when a block was last written to this piece. The older
-a piece is, the more likely it is to be flushed to disk.
-		
 is_listening() listen_port() listen_on()
 ----------------------------------------
 
@@ -685,37 +574,20 @@ metadata extension
 	directly. Makes it possible to join a swarm with just a tracker and
 	info-hash.
 
-::
-
-	#include <libtorrent/extensions/metadata_transfer.hpp>
-	ses.add_extension(&libtorrent::create_metadata_plugin);
-
-uTorrent metadata
-	Same as ``metadata extension`` but compatible with uTorrent.
-
-::
-
-	#include <libtorrent/extensions/ut_metadata.hpp>
-	ses.add_extension(&libtorrent::create_ut_metadata_plugin);
-
 uTorrent peer exchange
 	Exchanges peers between clients.
 
+To use these, imclude ``<libtorrent/extensions/metadata_transfer.hpp>``
+or ``<libtorrent/extensions/ut_pex.hpp>``. The functions to pass in to
+``add_extension()`` are ``libtorrent::create_metadata_plugin`` and
+``libtorrent::create_ut_pex_plugin`` respectively.
+
+e.g.
+
 ::
 
-	#include <libtorrent/extensions/ut_pex.hpp>
+	ses.add_extension(&libtorrent::create_metadata_plugin);
 	ses.add_extension(&libtorrent::create_ut_pex_plugin);
-
-smart ban plugin
-	A plugin that, with a small overhead, can ban peers
-	that sends bad data with very high accuracy. Should
-	eliminate most problems on poisoned torrents.
-
-::
-
-	#include <libtorrent/extensions/smart_ban.hpp>
-	ses.add_extension(&libtorrent::create_smart_ban_plugin);
-
 
 .. _`libtorrent plugins`: libtorrent_plugins.html
 
@@ -885,16 +757,11 @@ start_upnp() stop_upnp()
 
 	::
 	
-		upnp* start_upnp();
+		void start_upnp();
 		void stop_upnp();
 
 Starts and stops the UPnP service. When started, the listen port and the DHT
 port are attempted to be forwarded on local UPnP router devices.
-
-The upnp object returned by ``start_upnp()`` can be used to add and remove
-arbitrary port mappings. Mapping status is returned through the
-portmap_alert_ and the portmap_error_alert_. The object will be valid until
-``stop_upnp()`` is called. See `UPnP and NAT-PMP`_.
 
 It is off by default.
 
@@ -903,16 +770,11 @@ start_natpmp() stop_natpmp()
 
 	::
 		
-		natpmp* start_natpmp();
+		void start_natpmp();
 		void stop_natpmp();
 
 Starts and stops the NAT-PMP service. When started, the listen port and the DHT
 port are attempted to be forwarded on the router through NAT-PMP.
-
-The natpmp object returned by ``start_natpmp()`` can be used to add and remove
-arbitrary port mappings. Mapping status is returned through the
-portmap_alert_ and the portmap_error_alert_. The object will be valid until
-``stop_natpmp()`` is called. See `UPnP and NAT-PMP`_.
 
 It is off by default.
 
@@ -1129,7 +991,7 @@ The ``torrent_info`` has the following synopsis::
 		std::vector<std::string> const& url_seeds() const;
 
 		size_type total_size() const;
-		int piece_length() const;
+		size_type piece_length() const;
 		int num_pieces() const;
 		sha1_hash const& info_hash() const;
 		std::string const& name() const;
@@ -1144,7 +1006,7 @@ The ``torrent_info`` has the following synopsis::
 
 		void print(std::ostream& os) const;
 	
-		int piece_size(unsigned int index) const;
+		size_type piece_size(unsigned int index) const;
 		sha1_hash const& hash_for_piece(unsigned int index) const;
 	};
 
@@ -1461,8 +1323,8 @@ total_size() piece_length() piece_size() num_pieces()
 	::
 
 		size_type total_size() const;
-		int piece_length() const;
-		int piece_size(unsigned int index) const;
+		size_type piece_length() const;
+		size_type piece_size(unsigned int index) const;
 		int num_pieces() const;
 
 
@@ -1593,7 +1455,7 @@ Its declaration looks like this::
 		int upload_limit() const;
 		void set_download_limit(int limit) const;
 		int download_limit() const;
-		void set_sequential_download(bool sd) const;
+		void set_sequenced_download_threshold(int threshold) const;
 
 		void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
 		void set_peer_download_limit(asio::ip::tcp::endpoint ip, int limit) const;
@@ -1824,18 +1686,24 @@ limit.
 download, respectively.
 
 
-set_sequential_download()
--------------------------
+set_sequenced_download_threshold()
+----------------------------------
 
 	::
 
-		void set_sequential_download(bool sd);
+		void set_sequenced_download_threshold(int threshold);
 
-Enables or disables *sequential download*. When enabled, the piece picker will pick pieces in sequence
-instead of rarest first.
+sequenced-download threshold is the limit on how popular a piece has to be
+(popular == inverse of rarity) to be downloaded in sequence instead of in
+random (rarest first) order. It can be used to tweak disk performance in
+settings where the random download property is less necessary. For example, if
+the threshold is 10, all pieces which 10 or more peers have, will be downloaded
+in index order. This setting defaults to 100, which means that it is disabled
+in practice.
 
-Enabling sequential download will affect the piece distribution negatively in the swarm. It should be
-used sparingly.
+Setting this threshold to a very small value will affect the piece distribution
+negatively in the swarm. It should basically only be used in situations where
+the random seeks on the disk is the download bottleneck.
 
 
 set_peer_upload_limit() set_peer_download_limit()
@@ -2190,8 +2058,6 @@ It contains the following fields::
 		int list_seeds;
 		int list_peers;
 
-		int connect_candidates;
-
 		const std::vector<bool>* pieces;
 		int num_pieces;
 
@@ -2313,11 +2179,6 @@ necessarily connected to all the peers in our peer list. This is the number
 of peers we know of in total, including banned peers and peers that we have
 failed to connect to.
 
-``connect_candidates`` is the number of peers in this torrent's peer list
-that is a candidate to be connected to. i.e. It has fewer connect attempts
-than the max fail count, it is not a seed if we are a seed, it is not banned
-etc. If this is 0, it means we don't know of any more peers that we can try.
-
 ``total_done`` is the total number of bytes of the file(s) that we have. All
 this does not necessarily has to be downloaded during this session (that's
 ``total_payload_download``).
@@ -2400,11 +2261,6 @@ It contains the following fields::
 
 		int source;
 
-		enum bw_state { bw_idle, bw_torrent, bw_global, bw_network };
-
-		char read_state;
-		char write_state;
-
 		asio::ip::tcp::endpoint ip;
 		float up_speed;
 		float down_speed;
@@ -2427,9 +2283,6 @@ It contains the following fields::
 
 		char country[2];
 
-		std::string inet_as_name;
-		int inet_as;
-
 		size_type load_balancing;
 
 		int download_queue_length;
@@ -2450,19 +2303,6 @@ It contains the following fields::
 			web_seed = 1
 		};
 		int connection_type;
-
-		int remote_dl_rate;
-
-		int pending_disk_bytes;
-
-		int send_quota;
-		int receive_quota;
-
-		int rtt;
-
-		int download_rate_peak;
-		int upload_rate_peak;
-
 	};
 
 The ``flags`` attribute tells you in which state the peer is. It is set to
@@ -2511,18 +2351,6 @@ any combination of the enums above. The following table describes each flag:
 |                         | doesn't within some period of time, it will be choked |
 |                         | and another peer will be optimistically unchoked.     |
 +-------------------------+-------------------------------------------------------+
-| ``writing``             | The peer is currently waiting for a write operation   |
-|                         | on the socket to complete.                            |
-+-------------------------+-------------------------------------------------------+
-| ``reading``             | The peer is currently waiting for a read operation    |
-|                         | on the socket to complete.                            |
-+-------------------------+-------------------------------------------------------+
-| ``waiting_write_quota`` | The peer is currently waiting for the bandwidth-      |
-|                         | manager to hand out more write quota to this peer.    |
-+-------------------------+-------------------------------------------------------+
-| ``waiting_read_quota``  | The peer is currently waiting for the bandwidth-      |
-|                         | manager to hand out more read quota to this peer.     |
-+-------------------------+-------------------------------------------------------+
 
 __ extension_protocol.html
 
@@ -2541,31 +2369,6 @@ was received. The flags are:
 |                        | discovery (The peer is on the local network).          |
 +------------------------+--------------------------------------------------------+
 | ``resume_data``        | The peer was added from the fast resume data.          |
-+------------------------+--------------------------------------------------------+
-
-``read_state`` and ``write_state`` indicates what state this peer is in with regards
-to sending and receiving data. The states are declared in the ``bw_state`` enum and
-defines as follows:
-
-+------------------------+--------------------------------------------------------+
-| ``bw_idle``            | The peer is not waiting for any external events to     |
-|                        | send or receive data.                                  |
-|                        |                                                        |
-+------------------------+--------------------------------------------------------+
-| ``bw_torrent``         | The peer is waiting for the torrent to receive         |
-|                        | bandwidth quota in order to forward the bandwidth      |
-|                        | request to the global manager.                         |
-|                        |                                                        |
-+------------------------+--------------------------------------------------------+
-| ``bw_global``          | The peer is waiting for the global bandwidth manager   |
-|                        | to receive more quota in order to handle the request.  |
-|                        |                                                        |
-+------------------------+--------------------------------------------------------+
-| ``bw_network``         | The peer has quota and is currently waiting for a      |
-|                        | network read or write operation to complete. This is   |
-|                        | the state all peers are in if there are no bandwidth   |
-|                        | limits.                                                |
-|                        |                                                        |
 +------------------------+--------------------------------------------------------+
 
 The ``ip`` field is the IP-address to this peer. The type is an asio endpoint. For
@@ -2617,11 +2420,6 @@ remain set to 0 unless the torrent is set to resolve countries, see `resolve_cou
 
 __ http://www.iso.org/iso/en/prods-services/iso3166ma/02iso-3166-code-lists/list-en1.html
 
-``inet_as_name`` is the name of the AS this peer is located in. This might be
-an empty string if there is no name in the geo ip database.
-
-``inet_as`` is the AS number the peer is located in.
-
 ``load_balancing`` is a measurement of the balancing of free download (that we get)
 and free upload that we give. Every peer gets a certain amount of free upload, but
 this member says how much *extra* free upload this peer has got. If it is a negative
@@ -2655,24 +2453,6 @@ string.
 
 ``connection_type`` can currently be one of ``standard_bittorrent`` or
 ``web_seed``. These are currently the only implemented protocols.
-
-``remote_dl_rate`` is an estimate of the rate this peer is downloading at, in
-bytes per second.
-
-``pending_disk_bytes`` is the number of bytes this peer has pending in the
-disk-io thread. Downloaded and waiting to be written to disk. This is what
-is capped by ``session_settings::max_outstanding_disk_bytes_per_connection``.
-
-``send_quota`` and ``receive_quota`` are the number of bytes this peer has been
-assigned to be allowed to send and receive until it has to request more quota
-from the bandwidth manager.
-
-``rtt`` is an estimated round trip time to this peer, in milliseconds. It is
-estimated by timing the the tcp ``connect()``. It may be 0 for incoming connections.
-
-``download_rate_peak`` and ``upload_rate_peak`` are the highest download and upload
-rates seen on this connection. They are given in bytes per second. This number is
-reset to 0 on reconnect.
 
 session_settings
 ================
@@ -2722,12 +2502,6 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		bool use_dht_as_fallback;
 		bool free_torrent_hashes;
 		bool upnp_ignore_nonrouters;
-		int send_buffer_watermark;
-		bool auto_upload_slots;
-		int cache_size;
-		int cache_expiry;
-		std::pair<int, int> outgoing_ports;
-		char peer_tos;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -2897,39 +2671,6 @@ cannot be passed back to `add_torrent()`_ for instance.
 should ignore any broadcast response from a device whose address is not the
 configured router for this machine. i.e. it's a way to not talk to other
 people's routers by mistake.
-
-``send_buffer_waterbark`` is the upper limit of the send buffer low-watermark.
-if the send buffer has fewer bytes than this, we'll read another 16kB block
-onto it. If set too small, upload rate capacity will suffer. If set too high,
-memory will be wasted. The actual watermark may be lower than this in case
-the upload rate is low, this is the upper limit.
-
-``auto_upload_slots`` defaults to true. When true, if there is a global upload
-limit set and the current upload rate is less than 90% of that, another upload
-slot is opened. If the upload rate has been saturated for an extended period
-of time, on upload slot is closed. The number of upload slots will never be
-less than what has been set by ``session::set_max_uploads()``. To query the
-current number of upload slots, see ``session_status::allowed_upload_slots``.
-
-``cache_size`` is the disk write cache. It is specified in units of 16 KiB blocks.
-It defaults to 128 (= 2 MB).
-
-``cache_expiry`` is the number of seconds from the last cached write to a piece
-in the write cache, to when it's forcefully flushed to disk. Default is 60 second.
-
-``outgoing_ports``, if set to something other than (0, 0) is a range of ports
-used to bind outgoing sockets to. This may be useful for users whose router
-allows them to assign QoS classes to traffic based on its local port. It is
-a range instead of a single port because of the problems with failing to reconnect
-to peers if a previous socket to that peer and port is in ``TIME_WAIT`` state.
-
-``peer_tos`` determines the TOS byte set in the IP header of every packet
-sent to peers (including web seeds). The default value for this is ``0x0``
-(no marking). One potentially useful TOS mark is ``0x20``, this represents
-the *QBone scavenger service*. For more details, see QBSS_.
-
-.. _`QBSS`: http://qbone.internet2.edu/qbss/
-
 
 pe_settings
 ===========
@@ -3269,90 +3010,6 @@ version of your client. All these numbers must be within the range [0, 9].
 ``to_string()`` will generate the actual string put in the peer-id, and return it.
 
 
-UPnP and NAT-PMP
-================
-
-The ``upnp`` and ``natpmp`` classes contains the state for all UPnP and NAT-PMP mappings,
-by default 1 or two mappings are made by libtorrent, one for the listen port and one
-for the DHT port (UDP).
-
-::
-
-	class upnp
-	{
-	public:
-
-		enum protocol_type { none = 0, udp = 1, tcp = 2 };
-		int add_mapping(protocol_type p, int external_port, int local_port);
-		void delete_mapping(int mapping_index);
-	
-		void discover_device();
-		void close();
-	
-		std::string router_model();
-	};
-
-	class natpmp
-	{
-	public:
-	
-		enum protocol_type { none = 0, udp = 1, tcp = 2 };
-		int add_mapping(protocol_type p, int external_port, int local_port);
-		void delete_mapping(int mapping_index);
-	
-		void close();
-		void rebind(address const& listen_interface);
-	};
-
-``discover_device()``, ``close()`` and ``rebind()`` are for internal uses and should
-not be called directly by clients.
-
-add_mapping
------------
-
-	::
-
-		int add_mapping(protocol_type p, int external_port, int local_port);
-
-Attempts to add a port mapping for the specified protocol. Valid protocols are
-``upnp::tcp`` and ``upnp::udp`` for the UPnP class and ``natpmp::tcp`` and
-``natpmp::udp`` for the NAT-PMP class.
-
-``external_port`` is the port on the external address that will be mapped. This
-is a hint, you are not guaranteed that this port will be available, and it may
-end up being something else. In the portmap_alert_ notification, the actual
-external port is reported.
-
-``local_port`` is the port in the local machine that the mapping should forward
-to.
-
-The return value is an index that identifies this port mapping. This is used
-to refer to mappings that fails or succeeds in the portmap_error_alert_ and
-portmap_alert_ respectively. If The mapping fails immediately, the return value
-is -1, which means failure. There will not be any error alert notification for
-mappings that fail with a -1 return value.
-
-delete_mapping
---------------
-
-	::
-
-		void delete_mapping(int mapping_index);
-
-This function removes a port mapping. ``mapping_index`` is the index that refers
-to the mapping you want to remove, which was returned from add_mapping_.
-
-router_model()
---------------
-
-	::
-
-		std::string router_model();
-
-This is only available for UPnP routers. If the model is advertized by
-the router, it can be queried through this function.
-
-
 free functions
 ==============
 
@@ -3528,24 +3185,6 @@ alerts that are generated for a specific torrent are derived from::
 
 The specific alerts, that all derives from ``alert``, are:
 
-external_ip_alert
------------------
-
-Whenever libtorrent learns about the machines external IP, this alert is
-generated. The external IP address can be acquired from the tracker (if it
-supports that) or from peers that supports the extension protocol.
-The address can be accessed through the ``external_address`` member.
-This alert is generated as severity level ``info``.
-
-::
-
-	struct external_ip_alert: alert
-	{
-		external_ip_alert(address const& ip, const std::string& msg);
-		address external_address;
-		virtual std::auto_ptr<alert> clone() const;
-	};
-
 
 listen_failed_alert
 -------------------
@@ -3575,18 +3214,11 @@ mappings.
 The alert is generated as severity ``warning``, since it should be displayed
 to the user somehow, and could mean reduced preformance.
 
-``mapping`` refers to the mapping index of the port map that failed, i.e.
-the index returned from add_mapping_.
-
-``type`` is 0 for NAT-PMP and 1 for UPnP.
-
 ::
 
 	struct portmap_error_alert: alert
 	{
-		portmap_error_alert(int mapping, int type, const std::string& msg);
-		int mapping;
-		int type;
+		portmap_error_alert(const std::string& msg);
 		virtual std::auto_ptr<alert> clone() const;
 	};
 
@@ -3599,21 +3231,11 @@ capable router, this is typically generated once when mapping the TCP
 port and, if DHT is enabled, when the UDP port is mapped. This is merely
 an informational alert, and is generated at severity level ``info``.
 
-``mapping`` refers to the mapping index of the port map that failed, i.e.
-the index returned from add_mapping_.
-
-``external_port`` is the external port allocated for the mapping.
-
-``type`` is 0 for NAT-PMP and 1 for UPnP.
-
 ::
 
 	struct portmap_alert: alert
 	{
-		portmap_alert(int mapping, int port, int type, const std::string& msg);
-		int mapping;
-		int external_port;
-		int type;
+		portmap_alert(const std::string& msg);
 		virtual std::auto_ptr<alert> clone() const;
 	};
 
