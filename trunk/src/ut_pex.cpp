@@ -215,7 +215,10 @@ namespace libtorrent { namespace
 			if (m_message_index == 0) return false;
 
 			if (length > 500 * 1024)
-				throw protocol_error("uT peer exchange message larger than 500 kB");
+			{
+				m_pc.disconnect("peer exchange message larger than 500 kB");
+				return true;
+			}
 
 			if (body.left() < length) return true;
 
