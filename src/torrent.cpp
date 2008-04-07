@@ -2311,6 +2311,10 @@ namespace libtorrent
 		c->m_in_constructor = false;
 #endif
 
+ 		c->add_stat(peerinfo->prev_amount_download, peerinfo->prev_amount_upload);
+ 		peerinfo->prev_amount_download = 0;
+ 		peerinfo->prev_amount_upload = 0;
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)

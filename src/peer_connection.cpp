@@ -3185,6 +3185,8 @@ namespace libtorrent
 		TORRENT_ASSERT(unique.size() == m_download_queue.size() + m_request_queue.size());
 		if (m_peer_info)
 		{
+			TORRENT_ASSERT(m_peer_info->prev_amount_upload == 0);
+			TORRENT_ASSERT(m_peer_info->prev_amount_download == 0);
 			TORRENT_ASSERT(m_peer_info->connection == this
 				|| m_peer_info->connection == 0);
 
