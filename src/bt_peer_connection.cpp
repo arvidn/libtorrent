@@ -1234,15 +1234,11 @@ namespace libtorrent
 		buffer::const_interval recv_buffer = receive_buffer();
 
 		entry root;
-		try
+		root = bdecode(recv_buffer.begin + 2, recv_buffer.end);
+		if (root.type() == entry::undefined_t)
 		{
-			root = bdecode(recv_buffer.begin + 2, recv_buffer.end);
-		}
-		catch (std::exception& exc)
-		{
-			(void)exc;
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << "invalid extended handshake: " << exc.what() << "\n";
+			(*m_logger) << "invalid extended handshake\n";
 #endif
 			return;
 		}
