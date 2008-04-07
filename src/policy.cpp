@@ -1271,6 +1271,8 @@ namespace libtorrent
 			{
 				continue;
 			}
+			TORRENT_ASSERT(p.prev_amount_upload == 0);
+			TORRENT_ASSERT(p.prev_amount_download == 0);
 			if (p.optimistically_unchoked)
 			{
 				TORRENT_ASSERT(p.connection);
