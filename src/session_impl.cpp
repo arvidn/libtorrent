@@ -243,7 +243,8 @@ namespace aux {
 			*i = printable[rand() % (sizeof(printable)-1)];
 		}
 
-		m_timer.expires_from_now(seconds(1));
+		asio::error_code ec;
+		m_timer.expires_from_now(seconds(1), ec);
 		m_timer.async_wait(
 			bind(&session_impl::second_tick, this, _1));
 
@@ -374,13 +375,14 @@ namespace aux {
 		if (m_dht) m_dht->stop();
 		m_dht_socket.close();
 #endif
-		m_timer.cancel();
+		asio::error_code ec;
+		m_timer.cancel(ec);
 
 		// close the listen sockets
 		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
 			, end(m_listen_sockets.end()); i != end; ++i)
 		{
-			i->sock->close();
+			i->sock->close(ec);
 		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -723,7 +725,7 @@ namespace aux {
 	}
 
 	void session_impl::on_incoming_connection(shared_ptr<socket_type> const& s
-		, weak_ptr<socket_acceptor> listen_socket, asio::error_code const& e) try
+		, weak_ptr<socket_acceptor> listen_socket, asio::error_code const& e)
 	{
 		boost::shared_ptr<socket_acceptor> listener = listen_socket.lock();
 		if (!listener) return;
@@ -845,13 +847,6 @@ namespace aux {
 			c->start();
 		}
 	}
-	catch (std::exception& exc)
-	{
-#ifndef NDEBUG
-		std::string err = exc.what();
-#endif
-	};
-
 	void session_impl::close_connection(peer_connection const* p
 		, char const* message)
 	{
@@ -910,7 +905,7 @@ namespace aux {
 		return port;
 	}
 
-	void session_impl::second_tick(asio::error_code const& e) try
+	void session_impl::second_tick(asio::error_code const& e)
 	{
 		session_impl::mutex_t::scoped_lock l(m_mutex);
 
@@ -931,7 +926,8 @@ namespace aux {
 		float tick_interval = total_microseconds(time_now() - m_last_tick) / 1000000.f;
 		m_last_tick = time_now();
 
-		m_timer.expires_from_now(seconds(1));
+		asio::error_code ec;
+		m_timer.expires_from_now(seconds(1), ec);
 		m_timer.async_wait(
 			bind(&session_impl::second_tick, this, _1));
 
@@ -1356,13 +1352,6 @@ namespace aux {
 			}
 		}
 	}
-	catch (std::exception& exc)
-	{
-#ifndef NDEBUG
-		std::cerr << exc.what() << std::endl;
-		TORRENT_ASSERT(false);
-#endif
-	}; // msvc 7.1 seems to require this
 
 	void session_impl::operator()()
 	{
@@ -1377,10 +1366,13 @@ namespace aux {
 
 		do
 		{
+#ifndef BOOST_NO_EXCEPTIONS
 			try
 			{
+#endif
 				m_io_service.run();
 				TORRENT_ASSERT(m_abort == true);
+#ifndef BOOST_NO_EXCEPTIONS
 			}
 			catch (std::exception& e)
 			{
@@ -1390,6 +1382,7 @@ namespace aux {
 #endif
 				TORRENT_ASSERT(false);
 			}
+#endif
 		}
 		while (!m_abort);
 
@@ -1476,7 +1469,13 @@ namespace aux {
 		TORRENT_ASSERT(!save_path.empty());
 
 		if (ti->begin_files() == ti->end_files())
+		{
+#ifndef BOOST_NO_EXCEPTIONS
 			throw std::runtime_error("no files in torrent");
+#else
+			return torrent_handle();
+#endif
+		}
 
 		// lock the session and the checker thread (the order is important!)
 		mutex_t::scoped_lock l(m_mutex);
@@ -1484,11 +1483,23 @@ namespace aux {
 //		INVARIANT_CHECK;
 
 		if (is_aborted())
+		{
+#ifndef BOOST_NO_EXCEPTIONS
 			throw std::runtime_error("session is closing");
+#else
+			return torrent_handle();
+#endif
+		}
 		
 		// is the torrent already active?
 		if (!find_torrent(ti->info_hash()).expired())
+		{
+#ifndef BOOST_NO_EXCEPTIONS
 			throw duplicate_torrent();
+#else
+			return torrent_handle();
+#endif
+		}
 
 		// create the torrent and the data associated with
 		// the checker thread and store it before starting
@@ -1560,11 +1571,13 @@ namespace aux {
 
 		// is the torrent already active?
 		if (!find_torrent(info_hash).expired())
+		{
 #ifndef BOOST_NO_EXCEPTIONS
 			throw duplicate_torrent();
 #else
 			return torrent_handle();
 #endif
+		}
 
 		// you cannot add new torrents to a session that is closing down
 		TORRENT_ASSERT(!is_aborted());
