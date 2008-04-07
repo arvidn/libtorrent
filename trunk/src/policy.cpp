@@ -873,108 +873,101 @@ namespace libtorrent
 			return 0;
 		}
 
-		try
+		iterator i;
+
+		if (m_torrent->settings().allow_multiple_connections_per_ip)
 		{
-			iterator i;
-			
-			if (m_torrent->settings().allow_multiple_connections_per_ip)
+			std::pair<iterator, iterator> range = m_peers.equal_range(remote.address());
+			i = std::find_if(range.first, range.second, match_peer_endpoint(remote));
+			if (i == range.second) i = m_peers.end();
+		}
+		else
+		{
+			i = m_peers.find(remote.address());
+		}
+
+		if (i == m_peers.end())
+		{
+			// if the IP is blocked, don't add it
+			if (ses.m_ip_filter.access(remote.address()) & ip_filter::blocked)
 			{
-				std::pair<iterator, iterator> range = m_peers.equal_range(remote.address());
-				i = std::find_if(range.first, range.second, match_peer_endpoint(remote));
-				if (i == range.second) i = m_peers.end();
-			}
-			else
-			{
-				i = m_peers.find(remote.address());
-			}
-			
-			if (i == m_peers.end())
-			{
-				// if the IP is blocked, don't add it
-				if (ses.m_ip_filter.access(remote.address()) & ip_filter::blocked)
+				if (ses.m_alerts.should_post(alert::info))
 				{
-					if (ses.m_alerts.should_post(alert::info))
-					{
-						ses.m_alerts.post_alert(peer_blocked_alert(remote.address()
-						, "blocked peer not added to peer list"));
-					}
-					return 0;
+					ses.m_alerts.post_alert(peer_blocked_alert(remote.address()
+							, "blocked peer not added to peer list"));
 				}
-			
-				// we don't have any info about this peer.
-				// add a new entry
-				i = m_peers.insert(std::make_pair(remote.address()
+				return 0;
+			}
+
+			// we don't have any info about this peer.
+			// add a new entry
+			i = m_peers.insert(std::make_pair(remote.address()
 					, peer(remote, peer::connectable, src)));
 #ifndef TORRENT_DISABLE_ENCRYPTION
-				if (flags & 0x01) i->second.pe_support = true;
+			if (flags & 0x01) i->second.pe_support = true;
 #endif
-				if (flags & 0x02)
-				{
-					i->second.seed = true;
-					++m_num_seeds;
-				}
+			if (flags & 0x02)
+			{
+				i->second.seed = true;
+				++m_num_seeds;
+			}
 
 #ifndef TORRENT_DISABLE_GEO_IP
-				int as = ses.as_for_ip(remote.address());
+			int as = ses.as_for_ip(remote.address());
 #ifndef NDEBUG
-				i->second.inet_as_num = as;
+			i->second.inet_as_num = as;
 #endif
-				i->second.inet_as = ses.lookup_as(as);
+			i->second.inet_as = ses.lookup_as(as);
 #endif
-			}
-			else
-			{
-				i->second.type = peer::connectable;
-
-				i->second.ip = remote;
-				i->second.source |= src;
-				
-				// if this peer has failed before, decrease the
-				// counter to allow it another try, since somebody
-				// else is appearantly able to connect to it
-				// only trust this if it comes from the tracker
-				if (i->second.failcount > 0 && src == peer_info::tracker)
-					--i->second.failcount;
-
-				// if we're connected to this peer
-				// we already know if it's a seed or not
-				// so we don't have to trust this source
-				if ((flags & 0x02) && !i->second.connection)
-				{
-					if (!i->second.seed) ++m_num_seeds;
-					i->second.seed = true;
-				}
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-				if (i->second.connection)
-				{
-					// this means we're already connected
-					// to this peer. don't connect to
-					// it again.
-
-					m_torrent->debug_log("already connected to peer: " + remote.address().to_string() + ":"
-						+ boost::lexical_cast<std::string>(remote.port()) + " "
-						+ boost::lexical_cast<std::string>(i->second.connection->pid()));
-
-					TORRENT_ASSERT(i->second.connection->associated_torrent().lock().get() == m_torrent);
-				}
-#endif
-			}
-
 			if (is_connect_candidate(i->second, m_torrent->is_finished()))
 				++m_num_connect_candidates;
-
-			return &i->second;
 		}
-		catch(std::exception& e)
+		else
 		{
-			if (m_torrent->alerts().should_post(alert::debug))
+			bool was_conn_cand = is_connect_candidate(i->second, m_torrent->is_finished());
+
+			i->second.type = peer::connectable;
+
+			i->second.ip = remote;
+			i->second.source |= src;
+				
+			// if this peer has failed before, decrease the
+			// counter to allow it another try, since somebody
+			// else is appearantly able to connect to it
+			// only trust this if it comes from the tracker
+			if (i->second.failcount > 0 && src == peer_info::tracker)
+				--i->second.failcount;
+
+			// if we're connected to this peer
+			// we already know if it's a seed or not
+			// so we don't have to trust this source
+			if ((flags & 0x02) && !i->second.connection)
 			{
-				m_torrent->alerts().post_alert(
-					peer_error_alert(remote, pid, e.what()));
+				if (!i->second.seed) ++m_num_seeds;
+				i->second.seed = true;
 			}
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			if (i->second.connection)
+			{
+				// this means we're already connected
+				// to this peer. don't connect to
+				// it again.
+
+				m_torrent->debug_log("already connected to peer: " + remote.address().to_string() + ":"
+					+ boost::lexical_cast<std::string>(remote.port()) + " "
+					+ boost::lexical_cast<std::string>(i->second.connection->pid()));
+
+				TORRENT_ASSERT(i->second.connection->associated_torrent().lock().get() == m_torrent);
+			}
+#endif
+
+			if (was_conn_cand != is_connect_candidate(i->second, m_torrent->is_finished()))
+				if (was_conn_cand) --m_num_connect_candidates;
+				else ++m_num_connect_candidates;
 		}
-		return 0;
+
+		return &i->second;
 	}
 
 	// this is called when we are choked by a peer
@@ -1146,28 +1139,12 @@ namespace libtorrent
 		TORRENT_ASSERT(!p->second.connection);
 		TORRENT_ASSERT(p->second.type == peer::connectable);
 
-		try
+		if (!m_torrent->connect_to_peer(&p->second))
 		{
-			if (!m_torrent->connect_to_peer(&p->second))
-			{
-				++p->second.failcount;
-				return false;
-			}
-			p->second.connection->add_stat(p->second.prev_amount_download, p->second.prev_amount_upload);
-			p->second.prev_amount_download = 0;
-			p->second.prev_amount_upload = 0;
-			return true;
-		}
-		catch (std::exception& e)
-		{
-#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_torrent->session().m_logger) << "*** CONNECTION FAILED '"
-				<< e.what() << "'\n";
-#endif
-			std::cerr << e.what() << std::endl;
 			++p->second.failcount;
 			return false;
 		}
+		return true;
 	}
 
 	bool policy::disconnect_one_peer()
@@ -1184,7 +1161,7 @@ namespace libtorrent
 	}
 
 	// this is called whenever a peer connection is closed
-	void policy::connection_closed(const peer_connection& c) throw()
+	void policy::connection_closed(const peer_connection& c)
 	{
 // too expensive
 //		INVARIANT_CHECK;
@@ -1251,8 +1228,8 @@ namespace libtorrent
 //		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(c);
-		try { TORRENT_ASSERT(c->remote() == c->get_socket()->remote_endpoint()); }
-		catch (std::exception&) {}
+		asio::error_code ec;
+		TORRENT_ASSERT(c->remote() == c->get_socket()->remote_endpoint(ec) || ec);
 
 		return std::find_if(
 			m_peers.begin()
