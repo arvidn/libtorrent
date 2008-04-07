@@ -3433,21 +3433,6 @@ If ``bdecode()`` encounters invalid encoded data in the range given to it
 it will throw invalid_encoding_.
 
 
-supports_sparse_files()
------------------------
-
-	::
-
-		bool supports_sparse_files(boost::filesystem::path const&);
-
-The path is expected to be the path to the directory where you will want to
-store sparse files. The return value is true if the file system supports
-sparse files or if it supports automatic zero filling of files. The main
-characteristics that is tested by this function is not the storage aspects
-of sparse files, but rather the support for seeking passed end of file and
-write data there, with expected behavior.
-
-
 alerts
 ======
 
