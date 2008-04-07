@@ -18,7 +18,8 @@ the ``session``, it contains the main loop that serves all torrents.
 The basic usage is as follows:
 
 * construct a session
-* start DHT, LSD, UPnP, NAT-PMP etc (see start_dht_, start_lsd_, start_upnp_ and start_natpmp_)
+* start DHT, LSD, UPnP, NAT-PMP etc (see `start_dht() stop_dht() set_dht_settings() dht_state()`_
+  `start_lsd() stop_lsd()`_, `start_upnp() stop_upnp()`_ and `start_natpmp() stop_natpmp()`_)
 * parse .torrent-files and add them to the session (see `bdecode() bencode()`_ and `add_torrent()`_)
 * main loop (see session_)
 
@@ -893,7 +894,7 @@ port are attempted to be forwarded on local UPnP router devices.
 The upnp object returned by ``start_upnp()`` can be used to add and remove
 arbitrary port mappings. Mapping status is returned through the
 portmap_alert_ and the portmap_error_alert_. The object will be valid until
-stop_upnp_ is called. See `UPnP and NAT-PMP`_.
+``stop_upnp()`` is called. See `UPnP and NAT-PMP`_.
 
 It is off by default.
 
@@ -911,7 +912,7 @@ port are attempted to be forwarded on the router through NAT-PMP.
 The natpmp object returned by ``start_natpmp()`` can be used to add and remove
 arbitrary port mappings. Mapping status is returned through the
 portmap_alert_ and the portmap_error_alert_. The object will be valid until
-stop_upnp_ is called. See `UPnP and NAT-PMP`_.
+``stop_natpmp()`` is called. See `UPnP and NAT-PMP`_.
 
 It is off by default.
 

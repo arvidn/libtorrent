@@ -218,7 +218,8 @@ the <tt class="docutils literal"><span class="pre">session</span></tt>, it conta
 <ul>
 <li><p class="first">construct a session</p>
 </li>
-<li><p class="first">start DHT, LSD, UPnP, NAT-PMP etc (see <a href="#id176"><span class="problematic" id="id177">start_dht_</span></a>, <a href="#id178"><span class="problematic" id="id179">start_lsd_</span></a>, <a href="#id180"><span class="problematic" id="id181">start_upnp_</span></a> and <a href="#id182"><span class="problematic" id="id183">start_natpmp_</span></a>)</p>
+<li><p class="first">start DHT, LSD, UPnP, NAT-PMP etc (see <a class="reference internal" href="#start-dht-stop-dht-set-dht-settings-dht-state">start_dht() stop_dht() set_dht_settings() dht_state()</a>
+<a class="reference internal" href="#start-lsd-stop-lsd">start_lsd() stop_lsd()</a>, <a class="reference internal" href="#start-upnp-stop-upnp">start_upnp() stop_upnp()</a> and <a class="reference internal" href="#start-natpmp-stop-natpmp">start_natpmp() stop_natpmp()</a>)</p>
 </li>
 <li><p class="first">parse .torrent-files and add them to the session (see <a class="reference internal" href="#bdecode-bencode">bdecode() bencode()</a> and <a class="reference internal" href="#add-torrent">add_torrent()</a>)</p>
 </li>
@@ -1019,7 +1020,7 @@ port are attempted to be forwarded on local UPnP router devices.</p>
 <p>The upnp object returned by <tt class="docutils literal"><span class="pre">start_upnp()</span></tt> can be used to add and remove
 arbitrary port mappings. Mapping status is returned through the
 <a class="reference internal" href="#portmap-alert">portmap_alert</a> and the <a class="reference internal" href="#portmap-error-alert">portmap_error_alert</a>. The object will be valid until
-<a href="#id184"><span class="problematic" id="id185">stop_upnp_</span></a> is called. See <a class="reference internal" href="#upnp-and-nat-pmp">UPnP and NAT-PMP</a>.</p>
+<tt class="docutils literal"><span class="pre">stop_upnp()</span></tt> is called. See <a class="reference internal" href="#upnp-and-nat-pmp">UPnP and NAT-PMP</a>.</p>
 <p>It is off by default.</p>
 </div>
 <div class="section" id="start-natpmp-stop-natpmp">
@@ -1035,7 +1036,7 @@ port are attempted to be forwarded on the router through NAT-PMP.</p>
 <p>The natpmp object returned by <tt class="docutils literal"><span class="pre">start_natpmp()</span></tt> can be used to add and remove
 arbitrary port mappings. Mapping status is returned through the
 <a class="reference internal" href="#portmap-alert">portmap_alert</a> and the <a class="reference internal" href="#portmap-error-alert">portmap_error_alert</a>. The object will be valid until
-<a href="#id186"><span class="problematic" id="id187">stop_upnp_</span></a> is called. See <a class="reference internal" href="#upnp-and-nat-pmp">UPnP and NAT-PMP</a>.</p>
+<tt class="docutils literal"><span class="pre">stop_natpmp()</span></tt> is called. See <a class="reference internal" href="#upnp-and-nat-pmp">UPnP and NAT-PMP</a>.</p>
 <p>It is off by default.</p>
 </div>
 </div>
@@ -4545,27 +4546,6 @@ scripts.</p>
 <p>Thanks to <a class="reference external" href="http://www.cs.umu.se">University of Umeå</a> for providing development and test hardware.</p>
 <p>Project is hosted by sourceforge.</p>
 <p><a class="reference external" href="http://sourceforge.net"><img alt="sf_logo" src="http://sourceforge.net/sflogo.php?group_id=7994" /></a></p>
-</div>
-<div class="system-messages section">
-<h1>Docutils System Messages</h1>
-<div class="system-message" id="id176">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 21); <em><a href="#id177">backlink</a></em></p>
-Unknown target name: &quot;start_dht&quot;.</div>
-<div class="system-message" id="id178">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 21); <em><a href="#id179">backlink</a></em></p>
-Unknown target name: &quot;start_lsd&quot;.</div>
-<div class="system-message" id="id180">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 21); <em><a href="#id181">backlink</a></em></p>
-Unknown target name: &quot;start_upnp&quot;.</div>
-<div class="system-message" id="id182">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 21); <em><a href="#id183">backlink</a></em></p>
-Unknown target name: &quot;start_natpmp&quot;.</div>
-<div class="system-message" id="id184">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 893); <em><a href="#id185">backlink</a></em></p>
-Unknown target name: &quot;stop_upnp&quot;.</div>
-<div class="system-message" id="id186">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 911); <em><a href="#id187">backlink</a></em></p>
-Unknown target name: &quot;stop_upnp&quot;.</div>
 </div>
 </div>
 </body>
