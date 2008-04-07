@@ -94,7 +94,7 @@ namespace libtorrent
 		bool new_connection(peer_connection& c);
 
 		// the given connection was just closed
-		void connection_closed(const peer_connection& c) throw();
+		void connection_closed(const peer_connection& c);
 
 		// the peer has got at least one interesting piece
 		void peer_is_interesting(peer_connection& c);
