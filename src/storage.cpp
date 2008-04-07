@@ -259,23 +259,23 @@ namespace libtorrent
 		{
 			size_type size = 0;
 			std::time_t time = 0;
-			try
-			{
-#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
-				fs::path f = p / i->path;
-				size = file_size_win(f);
-				time = last_write_time_win(f);
-#elif defined(_WIN32) && defined(UNICODE)
-				fs::wpath f = safe_convert((p / i->path).string());
-				size = file_size(f);
-				time = last_write_time(f);
+#if defined(_WIN32) && defined(UNICODE)
+			fs::wpath f = safe_convert((p / i->path).string());
 #else
-				fs::path f = p / i->path;
+			fs::path f = p / i->path;
+#endif
+#ifndef BOOST_NO_EXCEPTIONS
+			try
+#else
+			if (exists(f))
+#endif
+			{
 				size = file_size(f);
 				time = last_write_time(f);
-#endif
 			}
+#ifndef BOOST_NO_EXCEPTIONS
 			catch (std::exception&) {}
+#endif
 			sizes.push_back(std::make_pair(size, time));
 		}
 		return sizes;
@@ -308,23 +308,24 @@ namespace libtorrent
 		{
 			size_type size = 0;
 			std::time_t time = 0;
-			try
-			{
-#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
-				fs::path f = p / i->path;
-				size = file_size_win(f);
-				time = last_write_time_win(f);
-#elif defined(_WIN32) && defined(UNICODE)
-				fs::wpath f = safe_convert((p / i->path).string());
-				size = file_size(f);
-				time = last_write_time(f);
+
+#if defined(_WIN32) && defined(UNICODE)
+			fs::wpath f = safe_convert((p / i->path).string());
 #else
-				fs::path f = p / i->path;
+			fs::path f = p / i->path;
+#endif
+#ifndef BOOST_NO_EXCEPTIONS
+			try
+#else
+			if (exists(f))
+#endif
+			{
 				size = file_size(f);
 				time = last_write_time(f);
-#endif
 			}
+#ifndef BOOST_NO_EXCEPTIONS
 			catch (std::exception&) {}
+#endif
 			if ((compact_mode && size != s->first)
 				|| (!compact_mode && size < s->first))
 			{
