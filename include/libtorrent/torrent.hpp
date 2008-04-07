@@ -269,7 +269,8 @@ namespace libtorrent
 		// used by peer_connection to attach itself to a torrent
 		// since incoming connections don't know what torrent
 		// they're a part of until they have received an info_hash.
-		void attach_peer(peer_connection* p);
+		// false means attach failed
+		bool attach_peer(peer_connection* p);
 
 		// this will remove the peer and make sure all
 		// the pieces it had have their reference counter
