@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BROADCAST_SOCKET_HPP_INCLUDED
 #define TORRENT_BROADCAST_SOCKET_HPP_INCLUDED
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/socket.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
@@ -41,21 +42,21 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	bool is_local(address const& a);
-	bool is_loopback(address const& addr);
-	bool is_multicast(address const& addr);
-	bool is_any(address const& addr);
-	int cidr_distance(address const& a1, address const& a2);
+	TORRENT_EXPORT bool is_local(address const& a);
+	TORRENT_EXPORT bool is_loopback(address const& addr);
+	TORRENT_EXPORT bool is_multicast(address const& addr);
+	TORRENT_EXPORT bool is_any(address const& addr);
+	TORRENT_EXPORT int cidr_distance(address const& a1, address const& a2);
 
 	int common_bits(unsigned char const* b1
 		, unsigned char const* b2, int n);
 
-	address guess_local_address(asio::io_service&);
+	TORRENT_EXPORT address guess_local_address(asio::io_service&);
 
 	typedef boost::function<void(udp::endpoint const& from
 		, char* buffer, int size)> receive_handler_t;
 
-	class broadcast_socket
+	class TORRENT_EXPORT broadcast_socket
 	{
 	public:
 		broadcast_socket(asio::io_service& ios, udp::endpoint const& multicast_endpoint

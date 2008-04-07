@@ -170,11 +170,13 @@ namespace libtorrent
 		
 		void print(std::ostream& os, int indent = 0) const;
 
-	private:
+	protected:
 
 		void construct(data_type t);
 		void copy(const entry& e);
 		void destruct();
+
+	private:
 
 		data_type m_type;
 
