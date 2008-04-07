@@ -2333,9 +2333,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		try
-		{
-
 		ptime now(time_now());
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
@@ -2498,14 +2495,6 @@ namespace libtorrent
 		}
 
 		fill_send_buffer();
-		}
-		catch (std::exception& e)
-		{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << "**ERROR**: " << e.what() << "\n";
-#endif
-			disconnect(e.what());
-		}
 	}
 
 	void peer_connection::fill_send_buffer()
@@ -2847,7 +2836,7 @@ namespace libtorrent
 
 	// throws exception when the client should be disconnected
 	void peer_connection::on_receive_data(const asio::error_code& error
-		, std::size_t bytes_transferred) try
+		, std::size_t bytes_transferred)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
@@ -2864,7 +2853,6 @@ namespace libtorrent
 #endif
 			set_failed();
 			on_receive(error, bytes_transferred);
-			set_failed();
 			disconnect(error.message().c_str());
 			return;
 		}
@@ -2918,6 +2906,7 @@ namespace libtorrent
 
 		setup_receive();	
 	}
+	/*
 	catch (file_error& e)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
@@ -2937,18 +2926,7 @@ namespace libtorrent
 		}
 		t->pause();
 	}
-	catch (std::exception& e)
-	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		disconnect(e.what());
-	}
-	catch (...)
-	{
-		// all exceptions should derive from std::exception
-		TORRENT_ASSERT(false);
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		disconnect("connection failed for unknown reason");
-	}
+*/
 
 	bool peer_connection::can_write() const
 	{
@@ -3030,7 +3008,7 @@ namespace libtorrent
 		}
 	}
 	
-	void peer_connection::on_connection_complete(asio::error_code const& e) try
+	void peer_connection::on_connection_complete(asio::error_code const& e)
 	{
 		ptime completed = time_now();
 
@@ -3076,18 +3054,6 @@ namespace libtorrent
 		setup_send();
 		setup_receive();
 	}
-	catch (std::exception& ex)
-	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		disconnect(ex.what());
-	}
-	catch (...)
-	{
-		// all exceptions should derive from std::exception
-		TORRENT_ASSERT(false);
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		disconnect("connection failed for unkown reason");
-	}
 	
 	// --------------------------
 	// SEND DATA
@@ -3095,7 +3061,7 @@ namespace libtorrent
 
 	// throws exception when the client should be disconnected
 	void peer_connection::on_send_data(asio::error_code const& error
-		, std::size_t bytes_transferred) try
+		, std::size_t bytes_transferred)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
@@ -3134,18 +3100,6 @@ namespace libtorrent
 		fill_send_buffer();
 
 		setup_send();
-	}
-	catch (std::exception& e)
-	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		disconnect(e.what());
-	}
-	catch (...)
-	{
-		// all exceptions should derive from std::exception
-		TORRENT_ASSERT(false);
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		disconnect("connection failed for unknown reason");
 	}
 
 #ifndef NDEBUG
