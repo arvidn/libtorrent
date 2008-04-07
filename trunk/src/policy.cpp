@@ -1206,6 +1206,8 @@ namespace libtorrent
 			TORRENT_ASSERT(c.share_diff() < (std::numeric_limits<size_type>::max)());
 			m_available_free_upload += c.share_diff();
 		}
+		TORRENT_ASSERT(p->prev_amount_upload == 0);
+		TORRENT_ASSERT(p->prev_amount_download == 0);
 		p->prev_amount_download += c.statistics().total_payload_download();
 		p->prev_amount_upload += c.statistics().total_payload_upload();
 	}
