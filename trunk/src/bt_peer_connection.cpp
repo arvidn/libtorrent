@@ -2020,28 +2020,23 @@ namespace libtorrent
 				// select a crypto method
 				switch (m_ses.get_pe_settings().allowed_enc_level)
 				{
-				case (pe_settings::plaintext):
-				{
+				case pe_settings::plaintext:
 					if (!(crypto_field & 0x01))
 					{
 						disconnect("plaintext not provided");
 						return;
 					}
 					crypto_select = 0x01;
-				}
-				break;
-				case (pe_settings::rc4):
-				{
+					break;
+				case pe_settings::rc4:
 					if (!(crypto_field & 0x02))
 					{
 						disconnect("rc4 not provided");
 						return;
 					}
 					crypto_select = 0x02;
-				}
-				break;
-				case (pe_settings::both):
-				{
+					break;
+				case pe_settings::both:
 					if (m_ses.get_pe_settings().prefer_rc4)
 					{
 						if (crypto_field & 0x02) 
@@ -2061,7 +2056,7 @@ namespace libtorrent
 						disconnect("rc4/plaintext not provided");
 						return;
 					}
-				}
+					break;
 				} // switch
 				
 				// write the pe4 step
