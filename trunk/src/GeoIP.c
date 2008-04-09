@@ -30,6 +30,7 @@
 
 #else
 #include <windows.h>
+#include <winsock2.h>
 #define snprintf _snprintf
 #endif
 #include <errno.h>
@@ -327,10 +328,13 @@ int _check_mtime(GeoIP *gi) {
 			if (buf.st_mtime != gi->mtime) {
 				/* GeoIP Database file updated */
 				if (gi->flags & (GEOIP_MEMORY_CACHE | GEOIP_MMAP_CACHE)) {
+#ifndef WIN32
 				    if ( gi->flags & GEOIP_MMAP_CACHE) {
 					munmap(gi->cache, gi->size);
 					gi->cache = NULL;
-				    } else {
+				    } else
+#endif
+					 {
 					/* reload database into memory cache */
 					if ((gi->cache = (unsigned char*) realloc(gi->cache, buf.st_size)) == NULL) {
 						fprintf(stderr,"Out of memory when reloading %s\n",gi->file_path);
@@ -348,6 +352,7 @@ int _check_mtime(GeoIP *gi) {
 				gi->mtime = buf.st_mtime;
 				gi->size = buf.st_size;
 
+#ifndef WIN32
 				if ( gi->flags & GEOIP_MMAP_CACHE) {
 				    gi->cache = mmap(NULL, buf.st_size, PROT_READ, MAP_PRIVATE, fileno(gi->GeoIPDatabase), 0);
 				    if ( gi->cache == MAP_FAILED ) {
@@ -356,7 +361,9 @@ int _check_mtime(GeoIP *gi) {
 					    gi->cache = 0;
 					    return -1;
 				    }
-				} else if ( gi->flags & GEOIP_MEMORY_CACHE ) {
+				} else
+#endif
+				if ( gi->flags & GEOIP_MEMORY_CACHE ) {
 				    if (fread(gi->cache, sizeof(unsigned char), buf.st_size, gi->GeoIPDatabase) != (size_t) buf.st_size) {
 					    fprintf(stderr,"Error reading file %s when reloading\n",gi->file_path);
 					    return -1;
@@ -522,12 +529,6 @@ GeoIP* GeoIP_open (const char * filename, int flags) {
 	GeoIP * gi;
 	size_t len;
 
-#ifdef WIN32
-	WSADATA wsa;
-	if (WSAStartup(MAKEWORD(1, 1), &wsa) != 0)
-		return NULL;
-#endif
-
 	gi = (GeoIP *)malloc(sizeof(GeoIP));
 	if (gi == NULL)
 		return NULL;
@@ -554,6 +555,7 @@ GeoIP* GeoIP_open (const char * filename, int flags) {
 			}
 			gi->mtime = buf.st_mtime;
 			gi->size = buf.st_size;
+#ifndef WIN32
 			/* MMAP added my Peter Shipley */
 			if ( flags & GEOIP_MMAP_CACHE) {
 			    gi->cache = mmap(NULL, buf.st_size, PROT_READ, MAP_PRIVATE, fileno(gi->GeoIPDatabase), 0);
@@ -563,7 +565,9 @@ GeoIP* GeoIP_open (const char * filename, int flags) {
 				free(gi);
 				return NULL;
 			    }
-			} else {
+			} else
+#endif
+			{
 			    gi->cache = (unsigned char *) malloc(sizeof(unsigned char) * buf.st_size);
 
 			    if (gi->cache != NULL) {
@@ -617,9 +621,12 @@ void GeoIP_delete (GeoIP *gi) {
 	if (gi->GeoIPDatabase != NULL)
 		fclose(gi->GeoIPDatabase);
 	if (gi->cache != NULL) {
+#ifndef WIN32
 	    if ( gi->flags & GEOIP_MMAP_CACHE) {
 		munmap(gi->cache, gi->size);
-	    } else {
+	    } else
+#endif 
+		 {
 		free(gi->cache);
 	    }
 	    gi->cache = NULL;
