@@ -135,8 +135,11 @@ namespace aux {
 		, fs::path const& logpath
 #endif
 		)
-		: m_send_buffers(send_buffer_size)
-		, m_files(40)
+		: 
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
+		m_send_buffers(send_buffer_size),
+#endif
+		  m_files(40)
 		, m_io_service()
 		, m_disk_thread(m_io_service)
 		, m_half_open(m_io_service)
@@ -2220,8 +2223,13 @@ namespace aux {
 		m_buffer_usage_logger << log_time() << " protocol_buffer: "
 			<< (m_buffer_allocations * send_buffer_size) << std::endl;
 #endif
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+		int num_bytes = num_buffers * send_buffer_size;
+		return std::make_pair((char*)malloc(num_bytes), num_bytes);
+#else
 		return std::make_pair((char*)m_send_buffers.ordered_malloc(num_buffers)
 			, num_buffers * send_buffer_size);
+#endif
 	}
 
 	void session_impl::free_buffer(char* buf, int size)
@@ -2238,7 +2246,11 @@ namespace aux {
 		m_buffer_usage_logger << log_time() << " protocol_buffer: "
 			<< (m_buffer_allocations * send_buffer_size) << std::endl;
 #endif
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+		free(buf);
+#else
 		m_send_buffers.ordered_free(buf, num_buffers);
+#endif
 	}	
 
 #ifndef NDEBUG

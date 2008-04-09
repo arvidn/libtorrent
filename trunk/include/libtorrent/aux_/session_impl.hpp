@@ -343,9 +343,11 @@ namespace libtorrent
 
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 			// this pool is used to allocate and recycle send
 			// buffers from.
 			boost::pool<> m_send_buffers;
+#endif
 			boost::mutex m_send_buffer_mutex;
 
 			// the file pool that all storages in this session's

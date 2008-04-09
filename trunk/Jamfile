@@ -160,6 +160,9 @@ rule building ( properties * )
 
 feature need-librt : no yes : composite propagated link-incompatible ;
 
+feature pool-allocators : off static shared : composite propagated link-incompatible ;
+feature.compose <pool-allocators>off : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
+
 feature geoip : off static shared : composite propagated link-incompatible ;
 feature.compose <geoip>off : <define>TORRENT_DISABLE_GEO_IP ;
 
