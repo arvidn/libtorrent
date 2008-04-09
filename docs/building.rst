@@ -264,6 +264,12 @@ Build features:
 |                        |   shipped public domain SHA-1 implementation is    |
 |                        |   used.                                            |
 +------------------------+----------------------------------------------------+
+| ``pool-allocators``    | * ``on`` - default, uses pool allocators for send  |
+|                        |   buffers.                                         |
+|                        | * ``off`` - uses ``malloc()`` and ``free()``       |
+|                        |   instead. Might be useful to debug buffer issues  |
+|                        |   with tools like electric fence or libgmalloc.    |
++------------------------+----------------------------------------------------+
 | ``link``               | * ``static`` - builds libtorrent as a static       |
 |                        |   library (.a / .lib)                              |
 |                        | * ``shared`` - builds libtorrent as a shared       |
@@ -539,6 +545,8 @@ defines you can use to control the build.
 |                                       | GCC) both little-endian and big-endian versions |
 |                                       | will be built and the correct code will be      |
 |                                       | chosen at run-time.                             |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_POOL_ALLOCATOR``    | Disables use of ``boost::pool<>``.              |
 +---------------------------------------+-------------------------------------------------+
 | ``TORRENT_LINKING_SHARED``            | If this is defined when including the           |
 |                                       | libtorrent headers, the classes and functions   |

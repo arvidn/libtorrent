@@ -42,11 +42,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/bind.hpp>
-#include <boost/pool/pool.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_array.hpp>
 #include <list>
 #include "libtorrent/config.hpp"
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
+#include <boost/pool/pool.hpp>
+#endif
 
 namespace libtorrent
 {
@@ -259,9 +261,11 @@ namespace libtorrent
 		bool m_coalesce_reads;
 		bool m_use_read_cache;
 
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		// memory pool for read and write operations
 		// and disk cache
 		boost::pool<> m_pool;
+#endif
 
 		// number of bytes per block. The BitTorrent
 		// protocol defines the block size to 16 KiB.

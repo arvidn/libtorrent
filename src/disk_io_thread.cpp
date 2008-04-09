@@ -55,7 +55,9 @@ namespace libtorrent
 		, m_coalesce_writes(true)
 		, m_coalesce_reads(true)
 		, m_use_read_cache(true)
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		, m_pool(block_size)
+#endif
 		, m_block_size(block_size)
 		, m_ios(ios)
 		, m_disk_io_thread(boost::ref(*this))
@@ -493,7 +495,9 @@ namespace libtorrent
 			{
 				if (p.blocks[k])
 				{
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 					TORRENT_ASSERT(m_pool.is_from(p.blocks[k]));
+#endif
 					++blocks;
 				}
 			}
@@ -515,7 +519,9 @@ namespace libtorrent
 			{
 				if (p.blocks[k])
 				{
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 					TORRENT_ASSERT(m_pool.is_from(p.blocks[k]));
+#endif
 					++blocks;
 				}
 			}
@@ -690,7 +696,11 @@ namespace libtorrent
 #ifdef TORRENT_STATS
 		++m_allocations;
 #endif
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+		return (char*)malloc(m_block_size);
+#else
 		return (char*)m_pool.ordered_malloc();
+#endif
 	}
 
 	void disk_io_thread::free_buffer(char* buf, mutex_t::scoped_lock& l)
@@ -699,7 +709,11 @@ namespace libtorrent
 #ifdef TORRENT_STATS
 		--m_allocations;
 #endif
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+		free(buf);
+#else
 		m_pool.ordered_free(buf);
+#endif
 	}
 
 	void disk_io_thread::operator()()
@@ -738,7 +752,9 @@ namespace libtorrent
 			std::string const& error_string = j.storage->error();
 			if (!error_string.empty())
 			{
+#ifndef NDEBUG
 				std::cout << "ERROR: " << error_string << std::endl;
+#endif
 				j.str = error_string;
 				j.storage->clear_error();
 				ret = -1;
@@ -891,7 +907,9 @@ namespace libtorrent
 								++i;
 							}
 						}
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 						m_pool.release_memory();
+#endif
 						l.unlock();
 						ret = j.storage->release_files_impl();
 						if (ret != 0)
@@ -925,7 +943,9 @@ namespace libtorrent
 							}
 						}
 						m_pieces.erase(i, m_pieces.end());
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 						m_pool.release_memory();
+#endif
 						l.unlock();
 						ret = j.storage->delete_files_impl();
 						if (ret != 0)
