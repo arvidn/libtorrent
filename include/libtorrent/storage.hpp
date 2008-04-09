@@ -161,6 +161,7 @@ namespace libtorrent
 		virtual bool delete_files() = 0;
 
 		virtual std::string const& error() const = 0;
+		virtual std::string const& error_file() const = 0;
 		virtual void clear_error() = 0;
 
 		virtual ~storage_interface() {}
@@ -200,9 +201,6 @@ namespace libtorrent
 		~piece_manager();
 
 		torrent_info const* info() const { return m_info.get(); }
-
-		// frees a buffer that was returned from a read operation
-		void free_buffer(char* buf);
 
 		void write_resume_data(entry& rd, std::vector<bool> const& have) const;
 

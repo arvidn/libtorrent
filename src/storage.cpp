@@ -376,7 +376,8 @@ namespace libtorrent
 		sha1_hash hash_for_slot(int slot, partial_hash& ph, int piece_size);
 
 		std::string const& error() const { return m_error; }
-		void clear_error() { m_error.clear(); }
+		std::string const& error_file() const { return m_error_file; }
+		void clear_error() { m_error.clear(); m_error_file.clear(); }
 
 		int read_impl(char* buf, int slot, int offset, int size, bool fill_zero);
 
@@ -394,6 +395,7 @@ namespace libtorrent
 		buffer m_scratch_buffer;
 
 		mutable std::string m_error;
+		mutable std::string m_error_file;
 	};
 
 	sha1_hash storage::hash_for_slot(int slot, partial_hash& ph, int piece_size)
@@ -466,6 +468,7 @@ namespace libtorrent
 				}
 				catch (std::exception& e)
 				{
+					m_error_file = (m_save_path / file_iter->path).string();
 					m_error = e.what();
 					return true;
 				}
@@ -489,6 +492,7 @@ namespace libtorrent
 			}
 			catch (std::exception& e)
 			{
+				m_error_file = (m_save_path / file_iter->path).string();
 				m_error = e.what();
 				return true;
 			}
@@ -514,6 +518,7 @@ namespace libtorrent
 
 		int result = 0;
 		std::string error;
+		std::string error_file;
 
 		// delete the files from disk
 		std::set<std::string> directories;
@@ -533,6 +538,7 @@ namespace libtorrent
 			if (std::remove(p.c_str()) != 0 && errno != ENOENT)
 			{
 				error = std::strerror(errno);
+				error_file = p;
 				result = errno;
 			}
 		}
@@ -546,11 +552,16 @@ namespace libtorrent
 			if (std::remove(i->c_str()) != 0 && errno != ENOENT)
 			{
 				error = std::strerror(errno);
+				error_file = *i;
 				result = errno;
 			}
 		}
 
-		if (!error.empty()) m_error.swap(error);
+		if (!error.empty())
+		{
+			m_error.swap(error);
+			m_error_file.swap(error_file);
+		}
 		return result != 0;
 	}
 
@@ -558,6 +569,7 @@ namespace libtorrent
 	{
 		if (rd.type() != entry::dictionary_t)
 		{
+			m_error_file.clear();
 			m_error = "invalid fastresume file";
 			return true;
 		}
@@ -847,13 +859,16 @@ namespace libtorrent
 			, error));
 		if (!in)
 		{
-			m_error = "failed to open file ";
-			m_error += (m_save_path / file_iter->path).string();
-			m_error += ": ";
-			m_error += error;
+			m_error_file = (m_save_path / file_iter->path).string();
+			m_error = error;
 			return -1;
 		}
-		TORRENT_ASSERT(in->error().empty());
+		if (!in->error().empty())
+		{
+			m_error_file = (m_save_path / file_iter->path).string();
+			m_error = in->error();
+			return -1;
+		}
 		TORRENT_ASSERT(file_offset < file_iter->size);
 		TORRENT_ASSERT(slices[0].offset == file_offset + file_iter->file_base);
 
@@ -863,7 +878,8 @@ namespace libtorrent
 			// the file was not big enough
 			if (!fill_zero)
 			{
-				m_error = "slot has no storage";
+				m_error_file = (m_save_path / file_iter->path).string();
+				m_error = "seek failed";
 				return -1;
 			}
 			std::memset(buf + buf_pos, 0, size - buf_pos);
@@ -913,8 +929,8 @@ namespace libtorrent
 					if (actual_read > 0) buf_pos += actual_read;
 					if (!fill_zero)
 					{
-						m_error = "failed to read file: "
-							+ (m_save_path / file_iter->path).string();
+						m_error_file = (m_save_path / file_iter->path).string();
+						m_error = "read failed";
 						return -1;
 					}
 					std::memset(buf + buf_pos, 0, size - buf_pos);
@@ -943,14 +959,28 @@ namespace libtorrent
 					this, path, file::in, error);
 				if (!in)
 				{
-					m_error = "failed to open file ";
-					m_error += path.string();
-					m_error += ": ";
-					m_error += error;
+					m_error_file = path.string();
+					m_error = error;
 					return -1;
 				}
-				TORRENT_ASSERT(in->error().empty());
-				in->seek(file_iter->file_base);
+				if (!in->error().empty())
+				{
+					m_error_file = (m_save_path / file_iter->path).string();
+					m_error = in->error();
+					return -1;
+				}
+				size_type pos = in->seek(file_iter->file_base);
+				if (pos != file_iter->file_base)
+				{
+					if (!fill_zero)
+					{
+						m_error_file = (m_save_path / file_iter->path).string();
+						m_error = "seek failed";
+						return -1;
+					}
+					std::memset(buf + buf_pos, 0, size - buf_pos);
+					return size;
+				}
 			}
 		}
 		return result;
@@ -998,13 +1028,16 @@ namespace libtorrent
 
 		if (!out)
 		{
-			m_error = "failed to open file ";
-			m_error += p.string();
-			m_error += ": ";
-			m_error += error;
+			m_error_file += p.string();
+			m_error = error;
 			return -1;
 		}
-		TORRENT_ASSERT(out->error().empty());
+		if (!out->error().empty())
+		{
+			m_error_file += p.string();
+			m_error = out->error();
+			return -1;
+		}
 		TORRENT_ASSERT(file_offset < file_iter->size);
 		TORRENT_ASSERT(slices[0].offset == file_offset + file_iter->file_base);
 
@@ -1012,7 +1045,8 @@ namespace libtorrent
 
 		if (pos != file_offset + file_iter->file_base)
 		{
-			m_error = "failed to seek " + (m_save_path / file_iter->path).string();
+			m_error_file = (m_save_path / file_iter->path).string();
+			m_error = "seek failed";
 			return -1;
 		}
 
@@ -1050,7 +1084,8 @@ namespace libtorrent
 
 				if (written != write_bytes)
 				{
-					m_error = "failed to write " + (m_save_path / file_iter->path).string();
+					m_error_file = (m_save_path / file_iter->path).string();
+					m_error = "write failed";
 					return -1;
 				}
 
@@ -1077,15 +1112,25 @@ namespace libtorrent
 
 				if (!out)
 				{
-					m_error = "failed to open file ";
-					m_error += p.string();
-					m_error += ": ";
-					m_error += error;
+					m_error_file = p.string();
+					m_error = error;
 					return -1;
 				}
-				TORRENT_ASSERT(out->error().empty());
+				if (!out->error().empty())
+				{
+					m_error_file += p.string();
+					m_error = out->error();
+					return -1;
+				}
 
-				out->seek(file_iter->file_base);
+				size_type pos = out->seek(file_iter->file_base);
+
+				if (pos != file_iter->file_base)
+				{
+					m_error_file = (m_save_path / file_iter->path).string();
+					m_error = "seek failed";
+					return -1;
+				}
 			}
 		}
 		return size;
@@ -1123,11 +1168,6 @@ namespace libtorrent
 
 	piece_manager::~piece_manager()
 	{
-	}
-
-	void piece_manager::free_buffer(char* buf)
-	{
-		m_io_thread.free_buffer(buf);
 	}
 
 	void piece_manager::async_release_files(

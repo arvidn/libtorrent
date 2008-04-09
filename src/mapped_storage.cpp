@@ -297,9 +297,8 @@ namespace libtorrent
 
 			if (!view.valid())
 			{
-				m_error = "failed to open file '";
-				m_error += (m_save_path / file_iter->path).string();
-				m_error += "'for reading";
+				m_error = "failed to open file for reading";
+				m_error_file = (m_save_path / file_iter->path).string();
 				return -1;
 			}
 			TORRENT_ASSERT(view.const_addr() != 0);
@@ -418,9 +417,8 @@ namespace libtorrent
 		
 			if (!view.valid())
 			{
-				m_error = "failed to open file '";
-				m_error += (m_save_path / file_iter->path).string();
-				m_error += "'for writing";
+				m_error = "failed to open file for writing";
+				m_error_file = (m_save_path / file_iter->path).string();
 				return -1;
 			}
 			TORRENT_ASSERT(view.addr() != 0);
@@ -477,9 +475,8 @@ namespace libtorrent
 
 					if (!view.valid())
 					{
-						m_error = "failed to open file '";
-						m_error += (m_save_path / file_iter->path).string();
-						m_error += "'for reading";
+						m_error = "failed to open file for reading";
+						m_error_file = (m_save_path / file_iter->path).string();
 						return -1;
 					}
 					TORRENT_ASSERT(view.addr() != 0);
@@ -489,6 +486,7 @@ namespace libtorrent
 			catch (std::exception& e)
 			{
 				m_error = e.what();
+				m_error_file = (m_save_path / file_iter->path).string();
 				return -1;
 			}
 			return size;
@@ -647,6 +645,7 @@ namespace libtorrent
 			if (rd.type() != entry::dictionary_t)
 			{
 				m_error = "invalid fastresume file";
+				m_error_file.clear();
 				return true;
 			}
 			std::vector<std::pair<size_type, std::time_t> > file_sizes
@@ -754,6 +753,7 @@ namespace libtorrent
 
 			int result = 0;
 			std::string error;
+			std::string error_file;
 
 			// delete the files from disk
 			std::set<std::string> directories;
@@ -773,6 +773,7 @@ namespace libtorrent
 				if (std::remove(p.c_str()) != 0 && errno != ENOENT)
 				{
 					error = std::strerror(errno);
+					error_file = p;
 					result = errno;
 				}
 			}
@@ -786,16 +787,22 @@ namespace libtorrent
 				if (std::remove(i->c_str()) != 0 && errno != ENOENT)
 				{
 					error = std::strerror(errno);
+					error_file = *i;
 					result = errno;
 				}
 			}
 
-			if (!error.empty()) m_error.swap(error);
+			if (!error.empty())
+			{
+				m_error.swap(error);
+				m_error_file.swap(error_file);
+			}
 			return result != 0;
 		}
 
 		std::string const& error() const { return m_error; }
-		void clear_error() { m_error.clear(); }
+		std::string const& error_file() const { return m_error_file; }
+		void clear_error() { m_error.clear(); m_error_file.clear(); }
 
 	private:
 
@@ -808,6 +815,7 @@ namespace libtorrent
 		static mapped_file_pool m_pool;
 
 		mutable std::string m_error;
+		mutable std::string m_error_file;
 	};
 
 	storage_interface* mapped_storage_constructor(boost::intrusive_ptr<torrent_info const> ti
