@@ -705,6 +705,8 @@ namespace libtorrent
 		if (!info.find_key("name"))
 			info["name"] = m_name;
 
+		if (m_private) info["private"] = 1;
+
 		if (!m_multifile)
 		{
 			info["length"] = m_files.front().size;
@@ -764,8 +766,6 @@ namespace libtorrent
 		}
 
 		entry dict;
-
-		if (m_private) dict["private"] = 1;
 
 		if (!m_urls.empty())
 			dict["announce"] = m_urls.front().url;
