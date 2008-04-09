@@ -2829,7 +2829,13 @@ namespace libtorrent
 
 		m_connection_ticket = ticket;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		TORRENT_ASSERT(t);
+		if (!t || m_disconnecting)
+		{
+			m_ses.m_half_open.done(m_connection_ticket);
+			m_connecting = false;
+			disconnect();
+			return;
+		}
 
 		m_queued = false;
 		TORRENT_ASSERT(m_connecting);
