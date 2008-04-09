@@ -212,34 +212,19 @@ namespace libtorrent
 	{
 		m_channel_state[upload_channel] = peer_info::bw_idle;
 		m_channel_state[download_channel] = peer_info::bw_idle;
-		tcp::socket::non_blocking_io ioc(true);
-		asio::error_code ec;
-		m_socket->io_control(ioc, ec);
-		if (ec)
-		{
-			disconnect(ec.message().c_str());
-			return;
-		}
+
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		std::fill(m_country, m_country + 2, 0);
 #endif
-		m_remote = m_socket->remote_endpoint(ec);
-		if (ec)
-		{
-			disconnect(ec.message().c_str());
-			return;
-		}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+		asio::error_code ec;
 		TORRENT_ASSERT(m_socket->remote_endpoint() == remote() || ec);
 		m_logger = m_ses.create_log(remote().address().to_string(ec) + "_"
 			+ boost::lexical_cast<std::string>(remote().port()), m_ses.listen_port());
 		(*m_logger) << "*** INCOMING CONNECTION\n";
 #endif
 		
-		if (m_remote.address().is_v4())
-			m_socket->set_option(type_of_service(ses.settings().peer_tos), ec);
-
 #ifndef TORRENT_DISABLE_GEO_IP
 		m_inet_as_name = m_ses.as_name_for_ip(m_remote.address());
 #endif
@@ -278,8 +263,29 @@ namespace libtorrent
 	{
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
-		if (t && t->ready_for_connections())
+		if (!t)
+		{
+			tcp::socket::non_blocking_io ioc(true);
+			asio::error_code ec;
+			m_socket->io_control(ioc, ec);
+			if (ec)
+			{
+				disconnect(ec.message().c_str());
+				return;
+			}
+			m_remote = m_socket->remote_endpoint(ec);
+			if (ec)
+			{
+				disconnect(ec.message().c_str());
+				return;
+			}
+			if (m_remote.address().is_v4())
+				m_socket->set_option(type_of_service(m_ses.settings().peer_tos), ec);
+		}
+		else if (t->ready_for_connections())
+		{
 			init();
+		}
 	}
 
 	void peer_connection::update_interest()
@@ -2074,12 +2080,6 @@ namespace libtorrent
 	}
 
 
-	void close_socket_ignore_error(boost::shared_ptr<socket_type> s)
-	{
-		asio::error_code ec;
-		s->close(ec);
-	}
-
 	void peer_connection::timed_out()
 	{
 		TORRENT_ASSERT(m_connecting);
@@ -2099,10 +2099,9 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		(*m_logger) << "*** CONNECTION FAILED " << message << "\n";
 #endif
-		// we cannot create an intrusive pointer to ourselves, since we
-		// might be calling disconnect from the constructor (which would
-		// delete ourselves before the constructor returns)
-//		boost::intrusive_ptr<peer_connection> me(this);
+		// we cannot do this in a constructor
+		TORRENT_ASSERT(m_in_constructor == false);
+		boost::intrusive_ptr<peer_connection> me(this);
 
 		INVARIANT_CHECK;
 
@@ -2154,11 +2153,10 @@ namespace libtorrent
 			TORRENT_ASSERT(!i->second->has_peer(this));
 #endif
 
-		boost::shared_ptr<socket_type> sock = m_socket;
 		m_disconnecting = true;
+		asio::error_code ec;
+		m_socket->close(ec);
 		m_ses.close_connection(this, message);
-
-		m_ses.m_io_service.post(boost::bind(&close_socket_ignore_error, sock));
 	}
 
 	void peer_connection::set_upload_limit(int limit)
