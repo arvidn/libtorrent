@@ -2844,9 +2844,9 @@ namespace libtorrent
 	}
 
 
-	torrent_handle torrent::get_handle() const
+	torrent_handle torrent::get_handle()
 	{
-		return torrent_handle(&m_ses, m_torrent_file->info_hash());
+		return torrent_handle(shared_from_this());
 	}
 
 	session_settings const& torrent::settings() const

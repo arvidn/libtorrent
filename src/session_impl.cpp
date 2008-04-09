@@ -1450,14 +1450,14 @@ namespace aux {
 			i != end; ++i)
 		{
 			if (i->second->is_aborted()) continue;
-			ret.push_back(torrent_handle(this, i->first));
+			ret.push_back(torrent_handle(i->second));
 		}
 		return ret;
 	}
 
 	torrent_handle session_impl::find_torrent_handle(sha1_hash const& info_hash)
 	{
-		return torrent_handle(this, info_hash);
+		return torrent_handle(find_torrent(info_hash));
 	}
 
 	torrent_handle session_impl::add_torrent(
@@ -1535,7 +1535,7 @@ namespace aux {
 
 		m_torrents.insert(std::make_pair(ti->info_hash(), torrent_ptr));
 
-		return torrent_handle(this, ti->info_hash());
+		return torrent_handle(torrent_ptr);
 	}
 
 	void session_impl::check_torrent(boost::shared_ptr<torrent> const& t)
@@ -1605,20 +1605,26 @@ namespace aux {
 
 		m_torrents.insert(std::make_pair(info_hash, torrent_ptr));
 
-		return torrent_handle(this, info_hash);
+		return torrent_handle(torrent_ptr);
 	}
 
 	void session_impl::remove_torrent(const torrent_handle& h, int options)
 	{
-		if (h.m_ses != this) return;
-		TORRENT_ASSERT(h.m_ses != 0);
+		boost::shared_ptr<torrent> tptr = h.m_torrent.lock();
+		if (!tptr)
+#ifdef BOOST_NO_EXCEPTIONS
+			return;
+#else
+			throw invalid_handle();
+#endif
 
 		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
 
 		session_impl::torrent_map::iterator i =
-			m_torrents.find(h.m_info_hash);
+			m_torrents.find(tptr->torrent_file().info_hash());
+
 		if (i != m_torrents.end())
 		{
 			torrent& t = *i->second;

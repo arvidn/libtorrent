@@ -81,47 +81,41 @@ using libtorrent::aux::session_impl;
 #ifdef BOOST_NO_EXCEPTIONS
 
 #define TORRENT_FORWARD(call) \
-	if (m_ses == 0) return; \
-	session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex); \
-	boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock(); \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
+	session_impl::mutex_t::scoped_lock l(t->session().m_mutex); \
 	t->call
 	
 #define TORRENT_FORWARD_RETURN(call, def) \
-	if (m_ses == 0) return def; \
-	session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex); \
-	boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock(); \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return def; \
+	session_impl::mutex_t::scoped_lock l(t->session().m_mutex); \
 	return t->call
 
 #define TORRENT_FORWARD_RETURN2(call, def) \
-	if (m_ses == 0) return def; \
-	session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex); \
-	boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock(); \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return def; \
+	session_impl::mutex_t::scoped_lock l(t->session().m_mutex); \
 	t->call
 
 #else
 
 #define TORRENT_FORWARD(call) \
-	if (m_ses == 0) throw_invalid_handle(); \
-	session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex); \
-	boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock(); \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) throw_invalid_handle(); \
+	session_impl::mutex_t::scoped_lock l(t->session().m_mutex); \
 	t->call
 	
 #define TORRENT_FORWARD_RETURN(call, def) \
-	if (m_ses == 0) throw_invalid_handle(); \
-	session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex); \
-	boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock(); \
-	if (!t) return def; \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (!t) throw_invalid_handle(); \
+	session_impl::mutex_t::scoped_lock l(t->session().m_mutex); \
 	return t->call
 
 #define TORRENT_FORWARD_RETURN2(call, def) \
-	if (m_ses == 0) throw_invalid_handle(); \
-	session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex); \
-	boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock(); \
-	if (!t) return def; \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (!t) throw_invalid_handle(); \
+	session_impl::mutex_t::scoped_lock l(t->session().m_mutex); \
 	t->call
 
 #endif
@@ -143,10 +137,16 @@ namespace libtorrent
 #ifndef NDEBUG
 
 	void torrent_handle::check_invariant() const
-	{
-	}
+	{}
 
 #endif
+
+	sha1_hash torrent_handle::info_hash() const
+	{
+		INVARIANT_CHECK;
+		const static sha1_hash empty;
+		TORRENT_FORWARD_RETURN(torrent_file().info_hash(), empty);
+	}
 
 	void torrent_handle::set_max_uploads(int max_uploads) const
 	{
@@ -269,22 +269,7 @@ namespace libtorrent
 	torrent_status torrent_handle::status() const
 	{
 		INVARIANT_CHECK;
-
-		if (m_ses == 0)
-#ifdef BOOST_NO_EXCEPTIONS
-			return torrent_status();
-#else
-			throw_invalid_handle();
-#endif
-
-		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
-		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
-		if (t) return t->status();
-
-#ifndef BOOST_NO_EXCEPTIONS
-		throw_invalid_handle();
-#endif
-		return torrent_status();
+		TORRENT_FORWARD_RETURN(status(), torrent_status());
 	}
 
 	void torrent_handle::set_sequential_download(bool sd) const
@@ -412,13 +397,16 @@ namespace libtorrent
 		INVARIANT_CHECK;
 #ifdef BOOST_NO_EXCEPTIONS
 		const static torrent_info empty;
-		if (m_ses == 0) return empty;
-#else
-		if (m_ses == 0) throw_invalid_handle();
 #endif
-		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
-		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
-		if (!t || !t->valid_metadata())
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (!t)
+#ifdef BOOST_NO_EXCEPTIONS
+			return empty;
+#else
+			throw_invalid_handle();
+#endif
+		session_impl::mutex_t::scoped_lock l(t->session().m_mutex);
+		if (!t->valid_metadata())
 #ifdef BOOST_NO_EXCEPTIONS
 			return empty;
 #else
@@ -430,25 +418,22 @@ namespace libtorrent
 	bool torrent_handle::is_valid() const
 	{
 		INVARIANT_CHECK;
-		if (m_ses == 0) return false;
-		session_impl::mutex_t::scoped_lock l1(m_ses->m_mutex);
-		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
-		return t != 0;
+		return !m_torrent.expired();
 	}
 
 	entry torrent_handle::write_resume_data() const
 	{
 		INVARIANT_CHECK;
 
-		if (m_ses == 0)
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (!t)
 #ifdef BOOST_NO_EXCEPTIONS
 			return entry();
 #else
 			throw_invalid_handle();
 #endif
-		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
-		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
-		if (!t || !t->valid_metadata())
+		session_impl::mutex_t::scoped_lock l(t->session().m_mutex);
+		if (!t->valid_metadata())
 #ifdef BOOST_NO_EXCEPTIONS
 			return entry();
 #else
@@ -580,24 +565,15 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (m_ses == 0)
-#ifdef BOOST_NO_EXCEPTIONS
-			return;
-#else
-			throw_invalid_handle();
-#endif
-		session_impl::mutex_t::scoped_lock l(m_ses->m_mutex);
-		boost::shared_ptr<torrent> t = m_ses->find_torrent(m_info_hash).lock();
-		
+		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t)
-		{
 #ifdef BOOST_NO_EXCEPTIONS
 			return;
 #else
 			throw_invalid_handle();
 #endif
-		}
-
+		session_impl::mutex_t::scoped_lock l(t->session().m_mutex);
+		
 		peer_id id;
 		std::fill(id.begin(), id.end(), 0);
 		t->get_policy().peer_from_tracker(adr, id, source, 0);

@@ -513,7 +513,7 @@ namespace libtorrent
 
 		void replace_trackers(std::vector<announce_entry> const& urls);
 
-		torrent_handle get_handle() const;
+		torrent_handle get_handle();
 
 		// LOGGING
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING

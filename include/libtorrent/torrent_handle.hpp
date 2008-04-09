@@ -282,7 +282,7 @@ namespace libtorrent
 		friend struct aux::session_impl;
 		friend class torrent;
 
-		torrent_handle(): m_ses(0), m_info_hash(0) {}
+		torrent_handle() {}
 
 		void get_peer_info(std::vector<peer_info>& v) const;
 		torrent_status status() const;
@@ -407,34 +407,28 @@ namespace libtorrent
 		// post condition: save_path() == save_path if true is returned
 		void move_storage(fs::path const& save_path) const;
 
-		const sha1_hash& info_hash() const
-		{ return m_info_hash; }
+		sha1_hash info_hash() const;
 
 		bool operator==(const torrent_handle& h) const
-		{ return m_info_hash == h.m_info_hash; }
+		{ return m_torrent.lock() == h.m_torrent.lock(); }
 
 		bool operator!=(const torrent_handle& h) const
-		{ return m_info_hash != h.m_info_hash; }
+		{ return m_torrent.lock() != h.m_torrent.lock(); }
 
 		bool operator<(const torrent_handle& h) const
-		{ return m_info_hash < h.m_info_hash; }
+		{ return m_torrent.lock() < h.m_torrent.lock(); }
 
 	private:
 
-		torrent_handle(aux::session_impl* s
-			, const sha1_hash& h)
-			: m_ses(s)
-			, m_info_hash(h)
-		{
-			TORRENT_ASSERT(m_ses != 0);
-		}
+		torrent_handle(boost::weak_ptr<torrent> const& t)
+			: m_torrent(t)
+		{}
 
 #ifndef NDEBUG
 		void check_invariant() const;
 #endif
 
-		aux::session_impl* m_ses;
-		sha1_hash m_info_hash;
+		boost::weak_ptr<torrent> m_torrent;
 
 	};
 
