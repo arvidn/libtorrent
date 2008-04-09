@@ -1619,6 +1619,54 @@ namespace libtorrent
 		(*m_ses.m_logger) << time_now_string() << " resolving web seed: " << url << "\n";
 #endif
 
+		std::string protocol;
+		std::string auth;
+		std::string hostname;
+		int port;
+		std::string path;
+		boost::tie(protocol, auth, hostname, port, path)
+			= parse_url_components(url);
+
+#ifdef TORRENT_USE_OPENSSL
+		if (protocol != "http" && protocol != "https")
+#else
+		if (protocol != "http")
+#endif
+		{
+			if (m_ses.m_alerts.should_post(alert::warning))
+			{
+				m_ses.m_alerts.post_alert(
+					url_seed_alert(get_handle(), url, "unknown protocol"));
+			}
+			// never try it again
+			remove_url_seed(url);
+			return;
+		}
+
+		if (hostname.empty())
+		{
+			if (m_ses.m_alerts.should_post(alert::warning))
+			{
+				m_ses.m_alerts.post_alert(
+					url_seed_alert(get_handle(), url, "invalid hostname"));
+			}
+			// never try it again
+			remove_url_seed(url);
+			return;
+		}
+
+		if (port == 0)
+		{
+			if (m_ses.m_alerts.should_post(alert::warning))
+			{
+				m_ses.m_alerts.post_alert(
+					url_seed_alert(get_handle(), url, "invalid port"));
+			}
+			// never try it again
+			remove_url_seed(url);
+			return;
+		}
+
 		m_resolving_web_seeds.insert(url);
 		proxy_settings const& ps = m_ses.web_seed_proxy();
 		if (ps.type == proxy_settings::http
@@ -1632,16 +1680,6 @@ namespace libtorrent
 		}
 		else
 		{
-			std::string protocol;
-			std::string auth;
-			std::string hostname;
-			int port;
-			std::string path;
-			boost::tie(protocol, auth, hostname, port, path)
-				= parse_url_components(url);
-
-			// TODO: should auth be used here?
-
 			tcp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
 			m_host_resolver.async_resolve(q, m_ses.m_strand.wrap(
 				bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, url
