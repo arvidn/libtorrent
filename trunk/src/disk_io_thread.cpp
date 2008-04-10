@@ -678,6 +678,18 @@ namespace libtorrent
 		m_signal.notify_all();
 	}
 
+#ifndef NDEBUG
+	bool disk_io_thread::is_disk_buffer(char* buffer) const
+	{
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+		return true;
+#else
+		mutex_t::scoped_lock l(m_mutex);
+		return m_pool.is_from(buffer);
+#endif
+	}
+#endif
+
 	char* disk_io_thread::allocate_buffer()
 	{
 		mutex_t::scoped_lock l(m_mutex);

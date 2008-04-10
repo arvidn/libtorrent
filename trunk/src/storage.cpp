@@ -67,6 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/disk_buffer_holder.hpp"
 
 #ifndef NDEBUG
 #include <ios>
@@ -1243,10 +1244,12 @@ namespace libtorrent
 
 	void piece_manager::async_write(
 		peer_request const& r
-		, char const* buffer
+		, disk_buffer_holder& buffer
 		, boost::function<void(int, disk_io_job const&)> const& handler)
 	{
 		TORRENT_ASSERT(r.length <= 16 * 1024);
+		// the buffer needs to be allocated through the io_thread
+		TORRENT_ASSERT(m_io_thread.is_disk_buffer(buffer.buffer()));
 
 		disk_io_job j;
 		j.storage = this;
@@ -1254,13 +1257,9 @@ namespace libtorrent
 		j.piece = r.piece;
 		j.offset = r.start;
 		j.buffer_size = r.length;
-		j.buffer = m_io_thread.allocate_buffer();
-#ifndef BOOST_NO_EXCEPTIONS
-		if (j.buffer == 0) throw file_error("out of memory");
-		// TODO: return error code instead of throwing
-#endif
-		std::memcpy(j.buffer, buffer, j.buffer_size);
+		j.buffer = buffer.buffer();
 		m_io_thread.add_job(j, handler);
+		buffer.release();
 	}
 
 	void piece_manager::async_hash(int piece

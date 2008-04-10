@@ -2429,6 +2429,9 @@ struct peer_info
         int send_buffer_size;
         int used_send_buffer;
 
+        int receive_buffer_size;
+        int used_receive_buffer;
+
         int num_hashfails;
 
         char country[2];
@@ -2633,6 +2636,8 @@ receive. -1 means it's unlimited.</p>
 to this peer and since any transfer occurred with this peer, respectively.</p>
 <p><tt class="docutils literal"><span class="pre">send_buffer_size</span></tt> and <tt class="docutils literal"><span class="pre">used_send_buffer</span></tt> is the number of bytes allocated
 and used for the peer's send buffer, respectively.</p>
+<p><tt class="docutils literal"><span class="pre">receive_buffer_size</span></tt> and <tt class="docutils literal"><span class="pre">used_receive_buffer</span></tt> are the number of bytes
+allocated and used as receive buffer, respectively.</p>
 <p><tt class="docutils literal"><span class="pre">num_hashfails</span></tt> is the number of pieces this peer has participated in
 sending us that turned out to fail the hash check.</p>
 <p><tt class="docutils literal"><span class="pre">country</span></tt> is the two letter <a class="reference external" href="http://www.iso.org/iso/en/prods-services/iso3166ma/02iso-3166-code-lists/list-en1.html">ISO 3166 country code</a> for the country the peer

@@ -200,7 +200,7 @@ peer_plugin
 		virtual bool on_have_none();
 		virtual bool on_allowed_fast(int index);
 		virtual bool on_request(peer_request const& req);
-		virtual bool on_piece(peer_request const& piece, char const* data);
+		virtual bool on_piece(peer_request const& piece, disk_buffer_holder& buffer);
 		virtual bool on_cancel(peer_request const& req);
 		virtual bool on_reject(peer_request const& req);
 		virtual bool on_suggest(int index);
@@ -215,4 +215,26 @@ peer_plugin
 
 		virtual bool write_request(peer_request const& r);
 	};
+
+disk_buffer_holder
+==================
+
+::
+
+	struct disk_buffer_holder
+	{
+		disk_buffer_holder(aux::session_impl& s, char* b);
+		~disk_buffer_holder();
+		char* release();
+		char* buffer();
+	};
+
+The disk buffer holder acts like a ``scoped_ptr`` that frees a disk buffer
+when it's destructed, unless it's released. ``release`` returns the disk
+buffer and transferres ownership and responsibility to free it to the caller.
+
+A disk buffer is freed by passing it to ``session_impl::free_disk_buffer()``.
+
+``buffer()`` returns the pointer without transferring responsibility. If
+this buffer has been released, ``buffer()`` will return 0.
 

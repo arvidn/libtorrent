@@ -71,6 +71,7 @@ namespace libtorrent
 	class session;
 	struct file_pool;
 	struct disk_io_job;
+	struct disk_buffer_holder;
 
 	enum storage_mode_t
 	{
@@ -216,7 +217,7 @@ namespace libtorrent
 
 		void async_write(
 			peer_request const& r
-			, char const* buffer
+			, disk_buffer_holder& buffer
 			, boost::function<void(int, disk_io_job const&)> const& f);
 
 		void async_hash(int piece, boost::function<void(int, disk_io_job const&)> const& f);

@@ -2423,6 +2423,9 @@ It contains the following fields::
 		int send_buffer_size;
 		int used_send_buffer;
 
+		int receive_buffer_size;
+		int used_receive_buffer;
+
 		int num_hashfails;
 
 		char country[2];
@@ -2604,6 +2607,9 @@ to this peer and since any transfer occurred with this peer, respectively.
 
 ``send_buffer_size`` and ``used_send_buffer`` is the number of bytes allocated
 and used for the peer's send buffer, respectively.
+
+``receive_buffer_size`` and ``used_receive_buffer`` are the number of bytes
+allocated and used as receive buffer, respectively.
 
 ``num_hashfails`` is the number of pieces this peer has participated in
 sending us that turned out to fail the hash check.

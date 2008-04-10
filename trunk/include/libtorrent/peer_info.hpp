@@ -111,6 +111,9 @@ namespace libtorrent
 		// the number bytes that's actually used of the send buffer
 		int used_send_buffer;
 
+		int receive_buffer_size;
+		int used_receive_buffer;
+
 		// the number of failed hashes for this peer
 		int num_hashfails;
 

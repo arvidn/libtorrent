@@ -285,6 +285,16 @@ used.</li>
 </ul>
 </td>
 </tr>
+<tr><td><tt class="docutils literal"><span class="pre">pool-allocators</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">on</span></tt> - default, uses pool allocators for send
+buffers.</li>
+<li><tt class="docutils literal"><span class="pre">off</span></tt> - uses <tt class="docutils literal"><span class="pre">malloc()</span></tt> and <tt class="docutils literal"><span class="pre">free()</span></tt>
+instead. Might be useful to debug buffer issues
+with tools like electric fence or libgmalloc.</li>
+</ul>
+</td>
+</tr>
 <tr><td><tt class="docutils literal"><span class="pre">link</span></tt></td>
 <td><ul class="first last simple">
 <li><tt class="docutils literal"><span class="pre">static</span></tt> - builds libtorrent as a static
@@ -575,6 +585,9 @@ isn't defined either (it is defined by Apple's
 GCC) both little-endian and big-endian versions
 will be built and the correct code will be
 chosen at run-time.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">TORRENT_DISABLE_POOL_ALLOCATOR</span></tt></td>
+<td>Disables use of <tt class="docutils literal"><span class="pre">boost::pool&lt;&gt;</span></tt>.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">TORRENT_LINKING_SHARED</span></tt></td>
 <td>If this is defined when including the
