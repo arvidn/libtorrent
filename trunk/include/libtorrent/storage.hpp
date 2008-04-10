@@ -212,7 +212,6 @@ namespace libtorrent
 		void async_read(
 			peer_request const& r
 			, boost::function<void(int, disk_io_job const&)> const& handler
-			, char* buffer = 0
 			, int priority = 0);
 
 		void async_write(

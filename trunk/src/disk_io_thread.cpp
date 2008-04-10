@@ -741,7 +741,6 @@ namespace libtorrent
 
 			int ret = 0;
 
-			bool allocated_buffer = false;
 			TORRENT_ASSERT(j.storage);
 #ifdef TORRENT_DISK_STATS
 			ptime start = time_now();
@@ -770,17 +769,14 @@ namespace libtorrent
 #endif
 						mutex_t::scoped_lock l(m_mutex);
 						INVARIANT_CHECK;
+						TORRENT_ASSERT(j.buffer == 0);
+						j.buffer = allocate_buffer();
+						TORRENT_ASSERT(j.buffer_size <= m_block_size);
 						if (j.buffer == 0)
 						{
-							j.buffer = allocate_buffer();
-							allocated_buffer = true;
-							TORRENT_ASSERT(j.buffer_size <= m_block_size);
-							if (j.buffer == 0)
-							{
-								ret = -1;
-								j.str = "out of memory";
-								break;
-							}
+							ret = -1;
+							j.str = "out of memory";
+							break;
 						}
 
 						ret = try_read_from_cache(j, l);
@@ -789,7 +785,7 @@ namespace libtorrent
 						// or that the read cache is disabled
 						if (ret == -1)
 						{
-							if (allocated_buffer) free_buffer(j.buffer, l);
+							free_buffer(j.buffer, l);
 							j.buffer = 0;
 							j.str = j.storage->error();
 							j.storage->clear_error();
@@ -802,7 +798,7 @@ namespace libtorrent
 								, j.buffer_size);
 							if (ret < 0)
 							{
-								if (allocated_buffer) free_buffer(j.buffer);
+								free_buffer(j.buffer);
 								j.str = j.storage->error();
 								j.storage->clear_error();
 								break;
@@ -876,6 +872,7 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 						m_log << log_time() << " move" << std::endl;
 #endif
+						TORRENT_ASSERT(j.buffer == 0);
 						ret = j.storage->move_storage_impl(j.str) ? 1 : 0;
 						if (ret != 0)
 						{
@@ -891,6 +888,7 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 						m_log << log_time() << " release" << std::endl;
 #endif
+						TORRENT_ASSERT(j.buffer == 0);
 						mutex_t::scoped_lock l(m_mutex);
 
 						INVARIANT_CHECK;
@@ -924,6 +922,7 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 						m_log << log_time() << " delete" << std::endl;
 #endif
+						TORRENT_ASSERT(j.buffer == 0);
 						mutex_t::scoped_lock l(m_mutex);
 
 						INVARIANT_CHECK;
@@ -1017,7 +1016,10 @@ namespace libtorrent
 #endif
 				if (handler) m_ios.post(bind(handler, ret, j));
 #ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
+			} catch (std::exception&)
+			{
+				if (j.buffer) free_buffer(j.buffer);
+			}
 #endif
 		}
 		TORRENT_ASSERT(false);
