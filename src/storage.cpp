@@ -1221,7 +1221,6 @@ namespace libtorrent
 	void piece_manager::async_read(
 		peer_request const& r
 		, boost::function<void(int, disk_io_job const&)> const& handler
-		, char* buffer
 		, int priority)
 	{
 		disk_io_job j;
@@ -1230,11 +1229,11 @@ namespace libtorrent
 		j.piece = r.piece;
 		j.offset = r.start;
 		j.buffer_size = r.length;
-		j.buffer = buffer;
+		j.buffer = 0;
 		j.priority = priority;
 		// if a buffer is not specified, only one block can be read
 		// since that is the size of the pool allocator's buffers
-		TORRENT_ASSERT(r.length <= 16 * 1024 || buffer != 0);
+		TORRENT_ASSERT(r.length <= 16 * 1024);
 		m_io_thread.add_job(j, handler);
 #ifndef NDEBUG
 		boost::recursive_mutex::scoped_lock l(m_mutex);
