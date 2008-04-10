@@ -44,6 +44,11 @@ class buffer
 public:
 	struct interval
 	{
+	   interval()
+		  : begin(0)
+		  , end(0)
+		{}
+
 	   interval(char* begin, char* end)
 		  : begin(begin)
 		  , end(end)

@@ -174,6 +174,10 @@ namespace libtorrent
 
 		void operator()();
 
+#ifndef NDEBUG
+		bool is_disk_buffer(char* buffer) const;
+#endif
+
 		char* allocate_buffer();
 		void free_buffer(char* buf);
 

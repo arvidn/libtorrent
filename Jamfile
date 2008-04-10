@@ -244,6 +244,7 @@ SOURCES =
 	alert
 	assert
 	connection_queue
+	disk_buffer_holder
 	entry
 	escape_string
 	gzip

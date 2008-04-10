@@ -75,6 +75,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/chained_buffer.hpp"
+#include "libtorrent/disk_buffer_holder.hpp"
 
 namespace libtorrent
 {
@@ -321,6 +322,7 @@ namespace libtorrent
 		void incoming_have(int piece_index);
 		void incoming_bitfield(std::vector<bool> const& bitfield);
 		void incoming_request(peer_request const& r);
+		void incoming_piece(peer_request const& p, disk_buffer_holder& data);
 		void incoming_piece(peer_request const& p, char const* data);
 		void incoming_piece_fragment();
 		void incoming_cancel(peer_request const& r);
@@ -439,7 +441,7 @@ namespace libtorrent
 		virtual void write_cancel(peer_request const& r) = 0;
 		virtual void write_have(int index) = 0;
 		virtual void write_keepalive() = 0;
-		virtual void write_piece(peer_request const& r, char* buffer) = 0;
+		virtual void write_piece(peer_request const& r, disk_buffer_holder& buffer) = 0;
 		
 		virtual void write_reject_request(peer_request const& r) = 0;
 		virtual void write_allow_fast(int piece) = 0;
@@ -455,10 +457,14 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		buffer::interval wr_recv_buffer()
 		{
+			TORRENT_ASSERT(m_disk_recv_buffer == 0);
+			TORRENT_ASSERT(m_disk_recv_buffer_size == 0);
 			if (m_recv_buffer.empty()) return buffer::interval(0,0);
 			return buffer::interval(&m_recv_buffer[0]
 				, &m_recv_buffer[0] + m_recv_pos);
 		}
+
+		std::pair<buffer::interval, buffer::interval> wr_recv_buffers(int bytes);
 #endif
 		
 		buffer::const_interval receive_buffer() const
@@ -468,8 +474,10 @@ namespace libtorrent
 				, &m_recv_buffer[0] + m_recv_pos);
 		}
 
+		bool allocate_disk_receive_buffer(int disk_buffer_size);
+		char* release_disk_receive_buffer();
+		bool has_disk_receive_buffer() const { return m_disk_recv_buffer; }
 		void cut_receive_buffer(int size, int packet_size);
-
 		void reset_recv_buffer(int packet_size);
 
 		void setup_receive();
@@ -554,6 +562,13 @@ namespace libtorrent
 		int m_packet_size;
 		int m_recv_pos;
 		buffer m_recv_buffer;
+
+		// if this peer is receiving a piece, this
+		// points to a disk buffer that the data is
+		// read into. This eliminates a memcopy from
+		// the receive buffer into the disk buffer
+		int m_disk_recv_buffer_size;
+		char* m_disk_recv_buffer;
 
 		chained_buffer m_send_buffer;
 

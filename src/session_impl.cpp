@@ -2215,6 +2215,11 @@ namespace aux {
 	{
 		m_disk_thread.free_buffer(buf);
 	}
+
+	char* session_impl::allocate_disk_buffer()
+	{
+		return m_disk_thread.allocate_buffer();
+	}
 	
 	std::pair<char*, int> session_impl::allocate_buffer(int size)
 	{
