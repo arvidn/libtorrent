@@ -2338,7 +2338,7 @@ namespace libtorrent
 		{
 			m_ses.m_half_open.done(m_connection_ticket);
 			m_connecting = false;
-			disconnect();
+			disconnect("torrent aborted");
 			return;
 		}
 
