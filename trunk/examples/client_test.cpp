@@ -810,6 +810,7 @@ int main(int ac, char* av[])
 		session ses;
 #ifndef TORRENT_DISABLE_GEO_IP
 		ses.load_asnum_db("GeoIPASNum.dat");
+		ses.load_country_db("GeoIP.dat");
 #endif
 		// UPnP port mapping
 		ses.start_upnp();
