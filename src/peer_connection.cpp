@@ -133,6 +133,17 @@ namespace libtorrent
 		TORRENT_ASSERT(peerinfo == 0 || peerinfo->banned == false);
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		std::fill(m_country, m_country + 2, 0);
+#ifndef TORRENT_DISABLE_GEO_IP
+		if (m_ses.has_country_db())
+		{
+			char const *country = m_ses.country_for_ip(m_remote.address());
+			if (country != 0)
+			{
+				m_country[0] = country[0];
+				m_country[1] = country[1];
+			}
+		}
+#endif
 #endif
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = m_ses.create_log(m_remote.address().to_string() + "_"
@@ -218,6 +229,17 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		std::fill(m_country, m_country + 2, 0);
+#ifndef TORRENT_DISABLE_GEO_IP
+		if (m_ses.has_country_db())
+		{
+			char const *country = m_ses.country_for_ip(m_remote.address());
+			if (country != 0)
+			{
+				m_country[0] = country[0];
+				m_country[1] = country[1];
+			}
+		}
+#endif
 #endif
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING

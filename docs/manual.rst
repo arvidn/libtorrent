@@ -133,6 +133,7 @@ The ``session`` class has the following synopsis::
 		int num_connections() const;
 
 		bool load_asnum_db(char const* file);
+		bool load_country_db(char const* file);
 
 		void load_state(entry const& ses_state);
 		entry state() const;
@@ -420,18 +421,20 @@ their turn to get connected.
 ``max_half_open_connections()`` returns the set limit. This limit defaults
 to 8 on windows.
 
-load_asnum_db()
----------------
+load_asnum_db() load_country_db()
+---------------------------------
 
 	::
 
 		bool load_asnum_db(char const* file);
+		bool load_country_db(char const* file);
 
-This function is not available if ``TORRENT_DISABLE_GEO_IP`` is defined. This
-expects a path to the `MaxMind ASN database`_. This will be used to look up
-which AS peers belong to.
+These functions are not available if ``TORRENT_DISABLE_GEO_IP`` is defined. They
+expects a path to the `MaxMind ASN database`_ and `MaxMind GeoIP database`_
+respectively. This will be used to look up which AS and country peers belong to.
 
 .. _`MaxMind ASN database`: http://www.maxmind.com/app/asnum
+.. _`MaxMind GeoIP database`: http://www.maxmind.com/app/geolitecountry
 		
 load_state() state()
 --------------------

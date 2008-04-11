@@ -37,7 +37,7 @@
 <li><a class="reference internal" href="#set-max-uploads-set-max-connections" id="id28">set_max_uploads() set_max_connections()</a></li>
 <li><a class="reference internal" href="#num-uploads-num-connections" id="id29">num_uploads() num_connections()</a></li>
 <li><a class="reference internal" href="#set-max-half-open-connections-max-half-open-connections" id="id30">set_max_half_open_connections() max_half_open_connections()</a></li>
-<li><a class="reference internal" href="#load-asnum-db" id="id31">load_asnum_db()</a></li>
+<li><a class="reference internal" href="#load-asnum-db-load-country-db" id="id31">load_asnum_db() load_country_db()</a></li>
 <li><a class="reference internal" href="#load-state-state" id="id32">load_state() state()</a></li>
 <li><a class="reference internal" href="#set-ip-filter" id="id33">set_ip_filter()</a></li>
 <li><a class="reference internal" href="#status" id="id34">status()</a></li>
@@ -333,6 +333,7 @@ class session: public boost::noncopyable
         int num_connections() const;
 
         bool load_asnum_db(char const* file);
+        bool load_country_db(char const* file);
 
         void load_state(entry const&amp; ses_state);
         entry state() const;
@@ -597,16 +598,17 @@ their turn to get connected.</p>
 <p><tt class="docutils literal"><span class="pre">max_half_open_connections()</span></tt> returns the set limit. This limit defaults
 to 8 on windows.</p>
 </div>
-<div class="section" id="load-asnum-db">
-<h2>load_asnum_db()</h2>
+<div class="section" id="load-asnum-db-load-country-db">
+<h2>load_asnum_db() load_country_db()</h2>
 <blockquote>
 <pre class="literal-block">
 bool load_asnum_db(char const* file);
+bool load_country_db(char const* file);
 </pre>
 </blockquote>
-<p>This function is not available if <tt class="docutils literal"><span class="pre">TORRENT_DISABLE_GEO_IP</span></tt> is defined. This
-expects a path to the <a class="reference external" href="http://www.maxmind.com/app/asnum">MaxMind ASN database</a>. This will be used to look up
-which AS peers belong to.</p>
+<p>These functions are not available if <tt class="docutils literal"><span class="pre">TORRENT_DISABLE_GEO_IP</span></tt> is defined. They
+expects a path to the <a class="reference external" href="http://www.maxmind.com/app/asnum">MaxMind ASN database</a> and <a class="reference external" href="http://www.maxmind.com/app/geolitecountry">MaxMind GeoIP database</a>
+respectively. This will be used to look up which AS and country peers belong to.</p>
 </div>
 <div class="section" id="load-state-state">
 <h2>load_state() state()</h2>

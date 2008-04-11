@@ -295,7 +295,11 @@ namespace libtorrent
 			int as_for_ip(address const& a);
 			std::pair<const int, int>* lookup_as(int as);
 			bool load_asnum_db(char const* file);
-			bool has_asnum_db() const { return m_geoip_db; }
+			bool has_asnum_db() const { return m_asnum_db; }
+
+			bool load_country_db(char const* file);
+			bool has_country_db() const { return m_country_db; }
+			char const* country_for_ip(address const& a);
 #endif
 
 			void load_state(entry const& ses_state);
@@ -591,7 +595,8 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_GEO_IP
-			GeoIP* m_geoip_db;
+			GeoIP* m_asnum_db;
+			GeoIP* m_country_db;
 
 			// maps AS number to the peak download rate
 			// we've seen from it. Entries are never removed

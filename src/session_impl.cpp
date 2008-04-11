@@ -174,7 +174,8 @@ namespace aux {
 		, m_logpath(logpath)
 #endif
 #ifndef TORRENT_DISABLE_GEO_IP
-		, m_geoip_db(0)
+		, m_asnum_db(0)
+		, m_country_db(0)
 #endif
 	{
 		m_tcp_mapping[0] = -1;
@@ -265,10 +266,16 @@ namespace aux {
 		};
 	}
 
+	char const* session_impl::country_for_ip(address const& a)
+	{
+		if (!a.is_v4() || m_country_db == 0) return 0;
+		return GeoIP_country_code_by_ipnum(m_country_db, a.to_v4().to_ulong());
+	}
+
 	int session_impl::as_for_ip(address const& a)
 	{
-		if (!a.is_v4() || m_geoip_db == 0) return 0;
-		char* name = GeoIP_name_by_ipnum(m_geoip_db, a.to_v4().to_ulong());
+		if (!a.is_v4() || m_asnum_db == 0) return 0;
+		char* name = GeoIP_name_by_ipnum(m_asnum_db, a.to_v4().to_ulong());
 		if (name == 0) return 0;
 		free_ptr p(name);
 		// GeoIP returns the name as AS??? where ? is the AS-number
@@ -277,8 +284,8 @@ namespace aux {
 
 	std::string session_impl::as_name_for_ip(address const& a)
 	{
-		if (!a.is_v4() || m_geoip_db == 0) return std::string();
-		char* name = GeoIP_name_by_ipnum(m_geoip_db, a.to_v4().to_ulong());
+		if (!a.is_v4() || m_asnum_db == 0) return std::string();
+		char* name = GeoIP_name_by_ipnum(m_asnum_db, a.to_v4().to_ulong());
 		if (name == 0) return std::string();
 		free_ptr p(name);
 		char* tmp = std::strchr(name, ' ');
@@ -301,9 +308,17 @@ namespace aux {
 	bool session_impl::load_asnum_db(char const* file)
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		if (m_geoip_db) GeoIP_delete(m_geoip_db);
-		m_geoip_db = GeoIP_open(file, GEOIP_STANDARD);
-		return m_geoip_db;
+		if (m_asnum_db) GeoIP_delete(m_asnum_db);
+		m_asnum_db = GeoIP_open(file, GEOIP_STANDARD);
+		return m_asnum_db;
+	}
+
+	bool session_impl::load_country_db(char const* file)
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		if (m_country_db) GeoIP_delete(m_country_db);
+		m_country_db = GeoIP_open(file, GEOIP_STANDARD);
+		return m_country_db;
 	}
 
 #endif
@@ -1985,7 +2000,8 @@ namespace aux {
 		abort();
 
 #ifndef TORRENT_DISABLE_GEO_IP
-		if (m_geoip_db) GeoIP_delete(m_geoip_db);
+		if (m_asnum_db) GeoIP_delete(m_asnum_db);
+		if (m_country_db) GeoIP_delete(m_country_db);
 #endif
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " waiting for main thread\n";
