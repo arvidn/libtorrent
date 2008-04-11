@@ -33,6 +33,7 @@ libtorrent/io.hpp \
 libtorrent/ip_filter.hpp \
 libtorrent/chained_buffer.hpp \
 libtorrent/lsd.hpp \
+libtorrent/lazy_entry.hpp \
 libtorrent/peer.hpp \
 libtorrent/peer_connection.hpp \
 libtorrent/bt_peer_connection.hpp \
