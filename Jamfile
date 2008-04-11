@@ -246,6 +246,7 @@ SOURCES =
 	connection_queue
 	disk_buffer_holder
 	entry
+	lazy_bdecode
 	escape_string
 	gzip
 	http_connection
