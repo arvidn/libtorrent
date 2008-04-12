@@ -331,10 +331,14 @@ namespace libtorrent
 	struct TORRENT_EXPORT file_error_alert: torrent_alert
 	{
 		file_error_alert(
-			const torrent_handle& h
+			std::string const& f
+			, const torrent_handle& h
 			, const std::string& msg)
 			: torrent_alert(h, alert::fatal, msg)
+			, file(f)
 		{}
+
+		std::string file;
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new file_error_alert(*this)); }

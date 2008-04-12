@@ -32,9 +32,23 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/disk_io_thread.hpp"
 
 namespace libtorrent
 {
+
+	disk_buffer_holder::disk_buffer_holder(aux::session_impl& ses, char* buf)
+		: m_iothread(ses.m_disk_thread), m_buf(buf)
+	{
+		TORRENT_ASSERT(buf == 0 || m_iothread.is_disk_buffer(buf));
+	}
+
+	disk_buffer_holder::disk_buffer_holder(disk_io_thread& iothread, char* buf)
+		: m_iothread(iothread), m_buf(buf)
+	{
+		TORRENT_ASSERT(buf == 0 || m_iothread.is_disk_buffer(buf));
+	}
+
 	char* disk_buffer_holder::release()
 	{
 		char* ret = m_buf;
@@ -44,7 +58,7 @@ namespace libtorrent
 
 	disk_buffer_holder::~disk_buffer_holder()
 	{
-		if (m_buf) m_ses.free_disk_buffer(m_buf);
+		if (m_buf) m_iothread.free_buffer(m_buf);
 	}
 }
 

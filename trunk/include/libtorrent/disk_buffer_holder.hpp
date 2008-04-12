@@ -39,19 +39,19 @@ namespace libtorrent
 {
 
 	namespace aux { class session_impl; }
+	class disk_io_thread;
 
 	struct TORRENT_EXPORT disk_buffer_holder
 	{
-		disk_buffer_holder(aux::session_impl& ses, char* buf)
-			: m_ses(ses), m_buf(buf) {}
+		disk_buffer_holder(aux::session_impl& ses, char* buf);
+		disk_buffer_holder(disk_io_thread& iothread, char* buf);
 		~disk_buffer_holder();
 		char* release();
 		char* buffer() const { return m_buf; }
 	private:
-		aux::session_impl& m_ses;
+		disk_io_thread& m_iothread;
 		char* m_buf;
 	};
-
 
 }
 

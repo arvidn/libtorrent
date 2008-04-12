@@ -467,12 +467,12 @@ namespace libtorrent
 		// completed() is called immediately after it.
 		void finished();
 
-		void async_verify_piece(int piece_index, boost::function<void(bool)> const&);
+		void async_verify_piece(int piece_index, boost::function<void(int)> const&);
 
 		// this is called from the peer_connection
 		// each time a piece has failed the hash
 		// test
-		void piece_finished(int index, bool passed_hash_check);
+		void piece_finished(int index, int passed_hash_check);
 		void piece_failed(int index);
 		void received_redundant_data(int num_bytes)
 		{ TORRENT_ASSERT(num_bytes > 0); m_total_redundant_bytes += num_bytes; }
@@ -564,7 +564,7 @@ namespace libtorrent
 		void on_storage_moved(int ret, disk_io_job const& j);
 
 		void on_piece_verified(int ret, disk_io_job const& j
-			, boost::function<void(bool)> f);
+			, boost::function<void(int)> f);
 	
 		void try_next_tracker();
 		int prioritize_tracker(int tracker_index);

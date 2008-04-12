@@ -1587,8 +1587,7 @@ namespace libtorrent
 		
 			if (t->alerts().should_post(alert::fatal))
 			{
-				std::string err = "torrent paused: disk write error, " + j.str;
-				t->alerts().post_alert(file_error_alert(t->get_handle(), err));
+				t->alerts().post_alert(file_error_alert(j.error_file, t->get_handle(), j.str));
 			}
 			t->pause();
 			return;
@@ -2641,13 +2640,7 @@ namespace libtorrent
 		
 			if (t->alerts().should_post(alert::fatal))
 			{
-				std::string err = "torrent paused: disk read error";
-				if (!j.str.empty())
-				{
-					err += ", ";
-					err += j.str;
-				}
-				t->alerts().post_alert(file_error_alert(t->get_handle(), err));
+				t->alerts().post_alert(file_error_alert(j.error_file, t->get_handle(), j.str));
 			}
 			t->pause();
 			return;
