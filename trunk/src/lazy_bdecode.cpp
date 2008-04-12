@@ -76,8 +76,7 @@ namespace libtorrent
 			if (stack.size() > depth_limit) return fail_bdecode();
 			if (start == end) return fail_bdecode();
 			char t = *start;
-			*start = 0; // null terminate any previous string
-			++start;
+			*start++ = 0; // null terminate any previous string
 			if (start == end && t != 'e') return fail_bdecode();
 
 			switch (top->type())
@@ -97,8 +96,7 @@ namespace libtorrent
 					start += len;
 					stack.push_back(ent);
 					t = *start;
-					*start = 0; // null terminate any previous string
-					++start;
+					*start++ = 0; // null terminate any previous string
 					break;
 				}
 				case lazy_entry::list_t:
@@ -140,7 +138,7 @@ namespace libtorrent
 					start = parse_int(start, end, ':', len);
 					if (start == 0 || start + len + 1 > end || *start != ':') return fail_bdecode();
 					++start;
-					top->construct_string(start);
+					top->construct_string(start, int(len));
 					stack.pop_back();
 					start += len;
 					continue;

@@ -71,11 +71,12 @@ namespace libtorrent
 		// ================
 
 		// start is a null terminated string
-		void construct_string(char* start)
+		void construct_string(char* start, int length)
 		{
 			TORRENT_ASSERT(m_type == none_t);
 			m_type = string_t;
 			m_data.start = start;
+			m_size =length;
 		}
 
 		char const* string_value() const
@@ -83,6 +84,9 @@ namespace libtorrent
 			TORRENT_ASSERT(m_type == string_t);
 			return m_data.start;
 		}
+
+		int string_length() const
+		{ return m_size; }
 
 		// dictionary functions
 		// ====================

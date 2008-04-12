@@ -86,6 +86,7 @@ int test_main()
 		TORRENT_ASSERT(ret == 0);
 		TORRENT_ASSERT(e.type() == lazy_entry::string_t);
 		TORRENT_ASSERT(e.string_value() == std::string("abcdefghijklmnopqrstuvwxyz"));
+		TORRENT_ASSERT(e.string_length() == 26);
 	}
 
 	{
@@ -99,6 +100,7 @@ int test_main()
 		TORRENT_ASSERT(e.list_at(1)->type() == lazy_entry::string_t);
 		TORRENT_ASSERT(e.list_at(0)->int_value() == 12453);
 		TORRENT_ASSERT(e.list_at(1)->string_value() == std::string("aaa"));
+		TORRENT_ASSERT(e.list_at(1)->string_length() == 3);
 	}
 
 	{
@@ -112,8 +114,10 @@ int test_main()
 		TORRENT_ASSERT(e.dict_find("a")->int_value() == 12453);
 		TORRENT_ASSERT(e.dict_find("b")->type() == lazy_entry::string_t);
 		TORRENT_ASSERT(e.dict_find("b")->string_value() == std::string("aaa"));
+		TORRENT_ASSERT(e.dict_find("b")->string_length() == 3);
 		TORRENT_ASSERT(e.dict_find("c")->type() == lazy_entry::string_t);
 		TORRENT_ASSERT(e.dict_find("c")->string_value() == std::string("bbb"));
+		TORRENT_ASSERT(e.dict_find("c")->string_length() == 3);
 	}
 	return 0;
 }
