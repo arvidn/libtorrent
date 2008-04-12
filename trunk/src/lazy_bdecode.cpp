@@ -44,7 +44,8 @@ namespace libtorrent
 	{
 		while (start < end && *start != delimiter)
 		{
-			if (!std::isdigit(*start)) { fail_bdecode(); return 0; }
+			using namespace std;
+			if (!isdigit(*start)) { fail_bdecode(); return 0; }
 			val *= 10;
 			val += *start - '0';
 			++start;
@@ -132,7 +133,8 @@ namespace libtorrent
 					continue;
 				default:
 				{
-					if (!std::isdigit(t)) return fail_bdecode();
+					using namespace std;
+					if (!isdigit(t)) return fail_bdecode();
 
 					boost::int64_t len = t - '0';
 					start = parse_int(start, end, ':', len);
