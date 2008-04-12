@@ -433,7 +433,7 @@ namespace libtorrent
 		{
 			if (m_ses.m_alerts.should_post(alert::fatal))
 			{
-				m_ses.m_alerts.post_alert(file_error_alert(get_handle(), j.str));
+				m_ses.m_alerts.post_alert(file_error_alert(j.error_file, get_handle(), j.str));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 				(*m_ses.m_logger) << time_now_string() << ": fatal disk error ["
 					" error: " << j.str <<
@@ -519,6 +519,7 @@ namespace libtorrent
 			std::fill(m_have_pieces.begin(), m_have_pieces.end(), false);
 			if (!fastresume_rejected)
 			{
+				TORRENT_ASSERT(m_resume_data.type() == entry::dictionary_t);
 				// parse slots
 				entry const* slots_ent = m_resume_data.find_key("slots");
 				if (slots_ent != 0 && slots_ent->type() == entry::list_t)
@@ -614,7 +615,7 @@ namespace libtorrent
 		{
 			if (m_ses.m_alerts.should_post(alert::fatal))
 			{
-				m_ses.m_alerts.post_alert(file_error_alert(get_handle(), j.str));
+				m_ses.m_alerts.post_alert(file_error_alert(j.error_file, get_handle(), j.str));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 				(*m_ses.m_logger) << time_now_string() << ": fatal disk error ["
 					" error: " << j.str <<
@@ -1138,7 +1139,11 @@ namespace libtorrent
 		return make_tuple(total_done, wanted_done);
 	}
 
-	void torrent::piece_finished(int index, bool passed_hash_check)
+	// passed_hash_check
+	// 0: success, piece passed check
+	// -1: disk failure
+	// -2: piece failed check
+	void torrent::piece_finished(int index, int passed_hash_check)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
@@ -1151,7 +1156,7 @@ namespace libtorrent
 		bool was_finished = m_picker->num_filtered() + num_pieces()
 			== torrent_file().num_pieces();
 
-		if (passed_hash_check)
+		if (passed_hash_check == 0)
 		{
 			if (m_ses.m_alerts.should_post(alert::debug))
 			{
@@ -1176,12 +1181,17 @@ namespace libtorrent
 				finished();
 			}
 		}
-		else
+		else if (passed_hash_check == -2)
 		{
 			piece_failed(index);
 		}
+		else
+		{
+			TORRENT_ASSERT(passed_hash_check == -1);
+			m_picker->restore_piece(index);
+		}
 
-		m_policy.piece_finished(index, passed_hash_check);
+		m_policy.piece_finished(index, passed_hash_check == 0);
 
 		if (!was_seed && is_seed())
 		{
@@ -2859,6 +2869,9 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
+		TORRENT_ASSERT(m_resume_data.type() == entry::dictionary_t
+			|| m_resume_data.type() == entry::undefined_t);
+
 		TORRENT_ASSERT(m_bandwidth_queue[0].size() <= m_connections.size());
 		TORRENT_ASSERT(m_bandwidth_queue[1].size() <= m_connections.size());
 
@@ -3271,7 +3284,7 @@ namespace libtorrent
 		m_deficit_counter += points;
 	}
 
-	void torrent::async_verify_piece(int piece_index, boost::function<void(bool)> const& f)
+	void torrent::async_verify_piece(int piece_index, boost::function<void(int)> const& f)
 	{
 //		INVARIANT_CHECK;
 
@@ -3299,10 +3312,24 @@ namespace libtorrent
 	}
 
 	void torrent::on_piece_verified(int ret, disk_io_job const& j
-		, boost::function<void(bool)> f)
+		, boost::function<void(int)> f)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		f(ret == 0);
+
+		// return value:
+		// 0: success, piece passed hash check
+		// -1: disk failure
+		// -2: hash check failed
+
+		if (ret == -1)
+		{
+			if (alerts().should_post(alert::fatal))
+			{
+				alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.str));
+			}
+			pause();
+		}
+		f(ret);
 	}
 
 	const tcp::endpoint& torrent::current_tracker() const

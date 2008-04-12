@@ -94,6 +94,10 @@ namespace libtorrent
 		// to the error message
 		std::string str;
 
+		// on error, this is set to the path of the
+		// file the disk operation failed on
+		std::string error_file;
+
 		// priority decides whether or not this
 		// job will skip entries in the queue or
 		// not. It always skips in front of entries

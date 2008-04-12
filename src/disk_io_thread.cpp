@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include <deque>
 #include "libtorrent/disk_io_thread.hpp"
+#include "libtorrent/disk_buffer_holder.hpp"
 #include <boost/scoped_array.hpp>
 
 #ifdef _WIN32
@@ -400,6 +401,7 @@ namespace libtorrent
 			l.unlock();
 			ret += p.storage->read_impl(buf.get(), p.piece, start_block * m_block_size, buffer_size);
 			l.lock();
+			if (!p.storage->error().empty()) { return -1; }
 			++m_cache_stats.reads;
 		}
 		
@@ -419,6 +421,7 @@ namespace libtorrent
 			{
 				l.unlock();
 				ret += p.storage->read_impl(p.blocks[i], p.piece, piece_offset, block_size);
+				if (!p.storage->error().empty()) { return -1; }
 				l.lock();
 				++m_cache_stats.reads;
 			}
@@ -741,6 +744,13 @@ namespace libtorrent
 				m_signal.wait(l);
 			if (m_abort && m_jobs.empty()) return;
 
+			// if there's a buffer in this job, it will be freed
+			// when this holder is destructed, unless it has been
+			// released.
+			disk_buffer_holder holder(*this
+				, m_jobs.front().action != disk_io_job::check_fastresume
+				? m_jobs.front().buffer : 0);
+
 			boost::function<void(int, disk_io_job const&)> handler;
 			handler.swap(m_jobs.front().callback);
 
@@ -763,12 +773,13 @@ namespace libtorrent
 			std::string const& error_string = j.storage->error();
 			if (!error_string.empty())
 			{
-#ifndef NDEBUG
-				std::cout << "ERROR: " << error_string << std::endl;
-#endif
 				j.str = error_string;
+				j.error_file = j.storage->error_file();
 				j.storage->clear_error();
 				ret = -1;
+#ifndef NDEBUG
+				std::cout << "ERROR: " << error_string << " " << j.error_file << std::endl;
+#endif
 			}
 			else
 			{
@@ -791,15 +802,16 @@ namespace libtorrent
 							break;
 						}
 
+						disk_buffer_holder read_holder(*this, j.buffer);
 						ret = try_read_from_cache(j, l);
 						
 						// -2 means there's no space in the read cache
 						// or that the read cache is disabled
 						if (ret == -1)
 						{
-							free_buffer(j.buffer, l);
 							j.buffer = 0;
 							j.str = j.storage->error();
+							j.error_file = j.storage->error_file();
 							j.storage->clear_error();
 							break;
 						}
@@ -810,14 +822,15 @@ namespace libtorrent
 								, j.buffer_size);
 							if (ret < 0)
 							{
-								free_buffer(j.buffer);
 								j.str = j.storage->error();
+								j.error_file = j.storage->error_file();
 								j.storage->clear_error();
 								break;
 							}
 							l.lock();
 							++m_cache_stats.blocks_read;
 						}
+						read_holder.release();
 						break;
 					}
 					case disk_io_job::write:
@@ -849,6 +862,10 @@ namespace libtorrent
 						{
 							cache_block(j, l);
 						}
+						// we've now inserted the buffer
+						// in the cache, we should not
+						// free it at the end
+						holder.release();
 						if (m_cache_stats.cache_size >= m_cache_size)
 							flush_oldest_piece(l);
 						break;
@@ -864,19 +881,34 @@ namespace libtorrent
 
 						cache_t::iterator i
 							= find_cached_piece(m_pieces, j, l);
-						if (i != m_pieces.end()) flush_and_remove(i, l);
+						if (i != m_pieces.end())
+						{
+							flush_and_remove(i, l);
+							std::string const& e = j.storage->error();
+							if (!e.empty())
+							{
+								j.str = e;
+								j.error_file = j.storage->error_file();
+								ret = -1;
+								j.storage->clear_error();
+								j.storage->mark_failed(j.piece);
+								break;
+							}
+						}
 						l.unlock();
 						sha1_hash h = j.storage->hash_for_piece_impl(j.piece);
 						std::string const& e = j.storage->error();
 						if (!e.empty())
 						{
 							j.str = e;
+							j.error_file = j.storage->error_file();
 							ret = -1;
 							j.storage->clear_error();
+							j.storage->mark_failed(j.piece);
 							break;
 						}
-						ret = (j.storage->info()->hash_for_piece(j.piece) == h)?0:-1;
-						if (ret == -1) j.storage->mark_failed(j.piece);
+						ret = (j.storage->info()->hash_for_piece(j.piece) == h)?0:-2;
+						if (ret == -2) j.storage->mark_failed(j.piece);
 						break;
 					}
 					case disk_io_job::move_storage:
@@ -889,6 +921,7 @@ namespace libtorrent
 						if (ret != 0)
 						{
 							j.str = j.storage->error();
+							j.error_file = j.storage->error_file();
 							j.storage->clear_error();
 							break;
 						}
@@ -925,6 +958,7 @@ namespace libtorrent
 						if (ret != 0)
 						{
 							j.str = j.storage->error();
+							j.error_file = j.storage->error_file();
 							j.storage->clear_error();
 						}
 						break;
@@ -962,6 +996,7 @@ namespace libtorrent
 						if (ret != 0)
 						{
 							j.str = j.storage->error();
+							j.error_file = j.storage->error_file();
 							j.storage->clear_error();
 						}
 						break;
@@ -1030,7 +1065,7 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (std::exception&)
 			{
-				if (j.buffer) free_buffer(j.buffer);
+				TORRENT_ASSERT(false);
 			}
 #endif
 		}

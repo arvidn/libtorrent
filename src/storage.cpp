@@ -376,10 +376,6 @@ namespace libtorrent
 		bool write_resume_data(entry& rd) const;
 		sha1_hash hash_for_slot(int slot, partial_hash& ph, int piece_size);
 
-		std::string const& error() const { return m_error; }
-		std::string const& error_file() const { return m_error_file; }
-		void clear_error() { m_error.clear(); m_error_file.clear(); }
-
 		int read_impl(char* buf, int slot, int offset, int size, bool fill_zero);
 
 		~storage()
@@ -394,9 +390,6 @@ namespace libtorrent
 		
 		// temporary storage for moving pieces
 		buffer m_scratch_buffer;
-
-		mutable std::string m_error;
-		mutable std::string m_error_file;
 	};
 
 	sha1_hash storage::hash_for_slot(int slot, partial_hash& ph, int piece_size)
@@ -406,7 +399,7 @@ namespace libtorrent
 		hasher whole;
 		int slot_size1 = piece_size;
 		m_scratch_buffer.resize(slot_size1);
-		read_impl(&m_scratch_buffer[0], slot, 0, slot_size1, true);
+		int read_result = read_impl(&m_scratch_buffer[0], slot, 0, slot_size1, true);
 		if (ph.offset > 0)
 			partial.update(&m_scratch_buffer[0], ph.offset);
 		whole.update(&m_scratch_buffer[0], slot_size1);
@@ -469,8 +462,7 @@ namespace libtorrent
 				}
 				catch (std::exception& e)
 				{
-					m_error_file = (m_save_path / file_iter->path).string();
-					m_error = e.what();
+					set_error((m_save_path / file_iter->path).string(), e.what());
 					return true;
 				}
 #endif
@@ -493,8 +485,7 @@ namespace libtorrent
 			}
 			catch (std::exception& e)
 			{
-				m_error_file = (m_save_path / file_iter->path).string();
-				m_error = e.what();
+				set_error((m_save_path / file_iter->path).string(), e.what());
 				return true;
 			}
 #endif
@@ -570,8 +561,7 @@ namespace libtorrent
 	{
 		if (rd.type() != entry::dictionary_t)
 		{
-			m_error_file.clear();
-			m_error = "invalid fastresume file";
+			set_error("", "invalid fastresume file");
 			return true;
 		}
 		std::vector<std::pair<size_type, std::time_t> > file_sizes
@@ -860,14 +850,12 @@ namespace libtorrent
 			, error));
 		if (!in)
 		{
-			m_error_file = (m_save_path / file_iter->path).string();
-			m_error = error;
+			set_error((m_save_path / file_iter->path).string(), error);
 			return -1;
 		}
 		if (!in->error().empty())
 		{
-			m_error_file = (m_save_path / file_iter->path).string();
-			m_error = in->error();
+			set_error((m_save_path / file_iter->path).string(), in->error());
 			return -1;
 		}
 		TORRENT_ASSERT(file_offset < file_iter->size);
@@ -879,8 +867,7 @@ namespace libtorrent
 			// the file was not big enough
 			if (!fill_zero)
 			{
-				m_error_file = (m_save_path / file_iter->path).string();
-				m_error = "seek failed";
+				set_error((m_save_path / file_iter->path).string(), "seek failed");
 				return -1;
 			}
 			std::memset(buf + buf_pos, 0, size - buf_pos);
@@ -930,8 +917,7 @@ namespace libtorrent
 					if (actual_read > 0) buf_pos += actual_read;
 					if (!fill_zero)
 					{
-						m_error_file = (m_save_path / file_iter->path).string();
-						m_error = "read failed";
+						set_error((m_save_path / file_iter->path).string(), "read failed");
 						return -1;
 					}
 					std::memset(buf + buf_pos, 0, size - buf_pos);
@@ -960,14 +946,12 @@ namespace libtorrent
 					this, path, file::in, error);
 				if (!in)
 				{
-					m_error_file = path.string();
-					m_error = error;
+					set_error(path.string(), error);
 					return -1;
 				}
 				if (!in->error().empty())
 				{
-					m_error_file = (m_save_path / file_iter->path).string();
-					m_error = in->error();
+					set_error((m_save_path / file_iter->path).string(), in->error());
 					return -1;
 				}
 				size_type pos = in->seek(file_iter->file_base);
@@ -975,8 +959,7 @@ namespace libtorrent
 				{
 					if (!fill_zero)
 					{
-						m_error_file = (m_save_path / file_iter->path).string();
-						m_error = "seek failed";
+						set_error((m_save_path / file_iter->path).string(), "seek failed");
 						return -1;
 					}
 					std::memset(buf + buf_pos, 0, size - buf_pos);
@@ -987,7 +970,6 @@ namespace libtorrent
 		return result;
 	}
 
-	// throws file_error if it fails to write
 	int storage::write(
 		const char* buf
 		, int slot
@@ -1029,14 +1011,12 @@ namespace libtorrent
 
 		if (!out)
 		{
-			m_error_file += p.string();
-			m_error = error;
+			set_error(p.string(), error);
 			return -1;
 		}
 		if (!out->error().empty())
 		{
-			m_error_file += p.string();
-			m_error = out->error();
+			set_error(p.string(), out->error());
 			return -1;
 		}
 		TORRENT_ASSERT(file_offset < file_iter->size);
@@ -1046,8 +1026,7 @@ namespace libtorrent
 
 		if (pos != file_offset + file_iter->file_base)
 		{
-			m_error_file = (m_save_path / file_iter->path).string();
-			m_error = "seek failed";
+			set_error((m_save_path / file_iter->path).string(), "seek failed");
 			return -1;
 		}
 
@@ -1085,8 +1064,7 @@ namespace libtorrent
 
 				if (written != write_bytes)
 				{
-					m_error_file = (m_save_path / file_iter->path).string();
-					m_error = "write failed";
+					set_error((m_save_path / file_iter->path).string(), "write failed");
 					return -1;
 				}
 
@@ -1113,14 +1091,12 @@ namespace libtorrent
 
 				if (!out)
 				{
-					m_error_file = p.string();
-					m_error = error;
+					set_error(p.string(), error);
 					return -1;
 				}
 				if (!out->error().empty())
 				{
-					m_error_file += p.string();
-					m_error = out->error();
+					set_error(p.string(), out->error());
 					return -1;
 				}
 
@@ -1128,8 +1104,7 @@ namespace libtorrent
 
 				if (pos != file_iter->file_base)
 				{
-					m_error_file = (m_save_path / file_iter->path).string();
-					m_error = "seek failed";
+					set_error((m_save_path / file_iter->path).string(), "seek failed");
 					return -1;
 				}
 			}
@@ -1380,12 +1355,28 @@ namespace libtorrent
 		TORRENT_ASSERT(size > 0);
 		TORRENT_ASSERT(piece_index >= 0 && piece_index < m_info->num_pieces());
 
+		int slot = allocate_slot_for_piece(piece_index);
+		int ret = m_storage->write(buf, slot, offset, size);
+		// only save the partial hash if the write succeeds
+		if (ret != size) return ret;
+
+//		std::ofstream out("partial_hash.log", std::ios::app);
+
 		if (offset == 0)
 		{
 			partial_hash& ph = m_piece_hasher[piece_index];
 			TORRENT_ASSERT(ph.offset == 0);
 			ph.offset = size;
 			ph.h.update(buf, size);
+/*
+			out << time_now_string() << " NEW ["
+				" s: " << this
+				<< " p: " << piece_index
+				<< " off: " << offset
+				<< " size: " << size
+				<< " entries: " << m_piece_hasher.size()
+				<< " ]" << std::endl;
+*/
 		}
 		else
 		{
@@ -1399,14 +1390,43 @@ namespace libtorrent
 #endif
 				if (offset == i->second.offset)
 				{
+/*
+					out << time_now_string() << " UPDATING ["
+						" s: " << this
+						<< " p: " << piece_index
+						<< " off: " << offset
+						<< " size: " << size
+						<< " entries: " << m_piece_hasher.size()
+						<< " ]" << std::endl;
+*/
 					i->second.offset += size;
 					i->second.h.update(buf, size);
 				}
+/*				else
+				{
+					out << time_now_string() << " SKIPPING (out of order) ["
+						" s: " << this
+						<< " p: " << piece_index
+						<< " off: " << offset
+						<< " size: " << size
+						<< " entries: " << m_piece_hasher.size()
+						<< " ]" << std::endl;
+				}
+*/			}
+/*			else
+			{
+				out << time_now_string() << " SKIPPING (no entry) ["
+					" s: " << this
+					<< " p: " << piece_index
+					<< " off: " << offset
+					<< " size: " << size
+					<< " entries: " << m_piece_hasher.size()
+					<< " ]" << std::endl;
 			}
+*/
 		}
 		
-		int slot = allocate_slot_for_piece(piece_index);
-		return m_storage->write(buf, slot, offset, size);
+		return ret;
 	}
 
 	int piece_manager::identify_data(

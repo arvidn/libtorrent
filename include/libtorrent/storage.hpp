@@ -161,9 +161,18 @@ namespace libtorrent
 		// non-zero return value indicates an error
 		virtual bool delete_files() = 0;
 
-		virtual std::string const& error() const = 0;
-		virtual std::string const& error_file() const = 0;
-		virtual void clear_error() = 0;
+		void set_error(std::string const& file, std::string const& msg) const
+		{
+			m_error_file = file;
+			m_error = msg;
+		}
+
+		std::string const& error() const { return m_error; }
+		std::string const& error_file() const { return m_error_file; }
+		void clear_error() { m_error.clear(); m_error_file.clear(); }
+
+		mutable std::string m_error;
+		mutable std::string m_error_file;
 
 		virtual ~storage_interface() {}
 	};
@@ -254,6 +263,7 @@ namespace libtorrent
 		void mark_failed(int index);
 
 		std::string const& error() const { return m_storage->error(); }
+		std::string const& error_file() const { return m_storage->error_file(); }
 		void clear_error() { m_storage->clear_error(); }
 
 		int slot_for(int piece) const;
