@@ -48,8 +48,6 @@ namespace libtorrent
 
 	class TORRENT_EXPORT big_number
 	{
-		// private type
-		struct private_pointer {};
 		// the number of bytes of the number
 		enum { number_size = 20 };
 	public:
@@ -57,15 +55,18 @@ namespace libtorrent
 
 		big_number() {}
 
-		big_number(std::string const& s)
+		explicit big_number(char const* s)
+		{
+			if (s == 0) clear();
+			else std::memcpy(m_number, s, size);
+		}
+
+		explicit big_number(std::string const& s)
 		{
 			TORRENT_ASSERT(s.size() >= 20);
 			int sl = int(s.size()) < size ? int(s.size()) : size;
 			std::memcpy(m_number, &s[0], sl);
 		}
-
-		// when initialized with 0
-		big_number(private_pointer*) { clear(); }
 
 		void clear()
 		{

@@ -31,6 +31,8 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/lazy_entry.hpp"
+#include <iostream>
+#include <iomanip>
 
 namespace libtorrent
 {
@@ -239,5 +241,67 @@ namespace libtorrent
 		m_capacity = 0;
 		m_type = none_t;
 	}
+
+	std::ostream& operator<<(std::ostream& os, lazy_entry const& e)
+	{
+		switch (e.type())
+		{
+			case lazy_entry::none_t: return os << "none";
+			case lazy_entry::int_t: return os << e.int_value();
+			case lazy_entry::string_t:
+			{
+				bool printable = true;
+				char const* str = e.string_value();
+				for (int i = 0; i < e.string_length(); ++i)
+				{
+					using namespace std;
+					if (isprint(str[i])) continue;
+					printable = false;
+					break;
+				}
+				if (printable) return os << str;
+				for (int i = 0; i < e.string_length(); ++i)
+					os << std::hex << (int)str[i];
+			}
+			case lazy_entry::list_t:
+			{
+				os << "[";
+				bool one_liner = e.list_size() == 0
+					|| e.list_at(0)->type() == lazy_entry::int_t
+					|| (e.list_at(0)->type() == lazy_entry::string_t
+						&& e.list_at(0)->string_length() < 5);
+				if (!one_liner) os << "\n";
+				for (int i = 0; i < e.list_size(); ++i)
+				{
+					if (i == 0 && one_liner) os << " ";
+					os << *e.list_at(i);
+					if (i < e.list_size() - 1) os << (one_liner?", ":",\n");
+					else os << (one_liner?" ":"\n");
+				}
+				return os << "]";
+			}
+			case lazy_entry::dict_t:
+			{
+				os << "{";
+				bool one_liner = e.dict_size() == 0
+					|| e.dict_at(0).second->type() == lazy_entry::int_t
+					|| (e.dict_at(0).second->type() == lazy_entry::string_t
+						&& e.dict_at(0).second->string_length() < 4)
+					|| strlen(e.dict_at(0).first) < 10;
+				if (!one_liner) os << "\n";
+				for (int i = 0; i < e.dict_size(); ++i)
+				{
+					if (i == 0 && one_liner) os << " ";
+					std::pair<char const*, lazy_entry const*> ent = e.dict_at(i);
+					os << "'" << ent.first << "': " << *ent.second;
+					if (i < e.dict_size() - 1) os << (one_liner?", ":",\n");
+					else os << (one_liner?" ":"\n");
+				}
+				return os << "}";
+			}
+		}
+		return os;
+	}
+
 };
 
