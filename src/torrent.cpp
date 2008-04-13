@@ -1244,8 +1244,9 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 
+		bool was_finished = is_finished();
 		bool filter_updated = m_picker->set_piece_priority(index, priority);
-		if (filter_updated) update_peer_interest();
+		if (filter_updated) update_peer_interest(was_finished);
 	}
 
 	int torrent::piece_priority(int index) const
@@ -1275,6 +1276,7 @@ namespace libtorrent
 
 		int index = 0;
 		bool filter_updated = false;
+		bool was_finished = is_finished();
 		for (std::vector<int>::const_iterator i = pieces.begin()
 			, end(pieces.end()); i != end; ++i, ++index)
 		{
@@ -1282,7 +1284,7 @@ namespace libtorrent
 			TORRENT_ASSERT(*i <= 7);
 			filter_updated |= m_picker->set_piece_priority(index, *i);
 		}
-		if (filter_updated) update_peer_interest();
+		if (filter_updated) update_peer_interest(was_finished);
 	}
 
 	void torrent::piece_priorities(std::vector<int>& pieces) const
@@ -1325,6 +1327,8 @@ namespace libtorrent
 
 		if (m_torrent_file->num_pieces() == 0) return;
 
+		bool was_finished = is_finished();
+
 		int piece_length = m_torrent_file->piece_length();
 		// initialize the piece priorities to 0, then only allow
 		// setting higher priorities
@@ -1348,14 +1352,19 @@ namespace libtorrent
 				, bind(&set_if_greater, _1, files[i]));
 		}
 		prioritize_pieces(pieces);
-		update_peer_interest();
+		update_peer_interest(was_finished);
 	}
 
+	// this is called when piece priorities have been updated
 	// updates the interested flag in peers
-	void torrent::update_peer_interest()
+	void torrent::update_peer_interest(bool was_finished)
 	{
 		for (peer_iterator i = begin(); i != end(); ++i)
 			(*i)->update_interest();
+		
+		// the torrent just became finished
+		if (is_finished() && !was_finished)
+			finished();
 	}
 
 	void torrent::filter_piece(int index, bool filter)
@@ -1370,8 +1379,9 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 
+		bool was_finished = is_finished();
 		m_picker->set_piece_priority(index, filter ? 1 : 0);
-		update_peer_interest();
+		update_peer_interest(was_finished);
 	}
 
 	void torrent::filter_pieces(std::vector<bool> const& bitmask)
@@ -1384,6 +1394,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_picker.get());
 
+		bool was_finished = is_finished();
 		int index = 0;
 		for (std::vector<bool>::const_iterator i = bitmask.begin()
 			, end(bitmask.end()); i != end; ++i, ++index)
@@ -1394,7 +1405,7 @@ namespace libtorrent
 			else
 				m_picker->set_piece_priority(index, 1);
 		}
-		update_peer_interest();
+		update_peer_interest(was_finished);
 	}
 
 	bool torrent::is_piece_filtered(int index) const

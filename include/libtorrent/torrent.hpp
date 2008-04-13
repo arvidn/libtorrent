@@ -554,7 +554,7 @@ namespace libtorrent
 			, boost::intrusive_ptr<peer_connection> p) const;
 		bool request_bandwidth_from_session(int channel) const;
 
-		void update_peer_interest();
+		void update_peer_interest(bool was_finished);
 
 		boost::intrusive_ptr<torrent_info> m_torrent_file;
 
