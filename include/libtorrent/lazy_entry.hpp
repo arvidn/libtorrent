@@ -43,9 +43,9 @@ namespace libtorrent
 {
 	struct lazy_entry;
 
-	char* parse_int(char* start, char* end, char delimiter, boost::int64_t& val);
+	char const* parse_int(char const* start, char const* end, char delimiter, boost::int64_t& val);
 	// return 0 = success
-	int lazy_bdecode(char* start, char* end, lazy_entry& ret, int depth_limit = 1000);
+	int lazy_bdecode(char const* start, char const* end, lazy_entry& ret, int depth_limit = 1000);
 
 	struct lazy_entry
 	{
@@ -54,16 +54,21 @@ namespace libtorrent
 			none_t, dict_t, list_t, string_t, int_t
 		};
 
-		lazy_entry() : m_type(none_t) { m_data.start = 0; }
+		lazy_entry() : m_type(none_t), m_begin(0), m_end(0)
+		{ m_data.start = 0; }
 
 		entry_type_t type() const { return m_type; }
 
-		// start is a null terminated string (decimal number)
-		void construct_int(char* start)
+		// start points to the first decimal digit
+		// length is the number of digits
+		void construct_int(char const* start, int length)
 		{
 			TORRENT_ASSERT(m_type == none_t);
 			m_type = int_t;
 			m_data.start = start;
+			m_size = length;
+			m_begin = start - 1; // include 'i'
+			m_end = start + length + 1; // include 'e'
 		}
 
 		boost::int64_t int_value() const;
@@ -71,19 +76,28 @@ namespace libtorrent
 		// string functions
 		// ================
 
-		// start is a null terminated string
-		void construct_string(char* start, int length)
-		{
-			TORRENT_ASSERT(m_type == none_t);
-			m_type = string_t;
-			m_data.start = start;
-			m_size =length;
-		}
+		void construct_string(char const* start, int length);
 
-		char const* string_value() const
+		// the string is not null-terminated!
+		char const* string_ptr() const
 		{
 			TORRENT_ASSERT(m_type == string_t);
 			return m_data.start;
+		}
+
+		// this will return a null terminated string
+		// it will write to the source buffer!
+		char const* string_cstr() const
+		{
+			TORRENT_ASSERT(m_type == string_t);
+			const_cast<char*>(m_data.start)[m_size] = 0;
+			return m_data.start;
+		}
+
+		std::string string_value() const
+		{
+			TORRENT_ASSERT(m_type == string_t);
+			return std::string(m_data.start, m_size);
 		}
 
 		int string_length() const
@@ -92,15 +106,16 @@ namespace libtorrent
 		// dictionary functions
 		// ====================
 
-		void construct_dict()
+		void construct_dict(char const* begin)
 		{
 			TORRENT_ASSERT(m_type == none_t);
 			m_type = dict_t;
 			m_size = 0;
 			m_capacity = 0;
+			m_begin = begin;
 		}
 
-		lazy_entry* dict_append(char* name);
+		lazy_entry* dict_append(char const* name);
 		lazy_entry* dict_find(char const* name);
 		lazy_entry const* dict_find(char const* name) const
 		{ return const_cast<lazy_entry*>(this)->dict_find(name); }
@@ -120,12 +135,13 @@ namespace libtorrent
 		// list functions
 		// ==============
 
-		void construct_list()
+		void construct_list(char const* begin)
 		{
 			TORRENT_ASSERT(m_type == none_t);
 			m_type = list_t;
 			m_size = 0;
 			m_capacity = 0;
+			m_begin = begin;
 		}
 
 		lazy_entry* list_append();
@@ -144,22 +160,37 @@ namespace libtorrent
 			return m_size;
 		}
 
+		// end points one byte passed end
+		void set_end(char const* end)
+		{
+			TORRENT_ASSERT(end > m_begin);
+			m_end = end;
+		}
+		
 		void clear();
 
 		~lazy_entry()
 		{ clear(); }
+
+		// returns pointers into the source buffer where
+		// this entry has its bencoded data
+		std::pair<char const*, int> data_section();
 
 	private:
 
 		entry_type_t m_type;
 		union data_t
 		{
-			std::pair<char*, lazy_entry>* dict;
+			std::pair<char const*, lazy_entry>* dict;
 			lazy_entry* list;
-			char* start;
+			char const* start;
 		} m_data;
 		int m_size; // if list or dictionary, the number of items
 		int m_capacity; // if list or dictionary, allocated number of items
+		// used for dictionaries and lists to record the range
+		// in the original buffer they are based on
+		char const* m_begin;
+		char const* m_end;
 	};
 
 	std::ostream& operator<<(std::ostream& os, lazy_entry const& e);
