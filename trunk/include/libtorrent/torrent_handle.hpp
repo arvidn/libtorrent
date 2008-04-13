@@ -284,6 +284,7 @@ namespace libtorrent
 
 		torrent_handle() {}
 
+		void get_full_peer_list(std::vector<peer_list_entry>& v) const;
 		void get_peer_info(std::vector<peer_info>& v) const;
 		torrent_status status() const;
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;

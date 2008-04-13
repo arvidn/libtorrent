@@ -2227,6 +2227,22 @@ namespace libtorrent
 	}
 #endif
 
+	void torrent::get_full_peer_list(std::vector<peer_list_entry>& v) const
+	{
+		v.clear();
+		v.reserve(m_policy.num_peers());
+		for (policy::const_iterator i = m_policy.begin_peer();
+			i != m_policy.end_peer(); ++i)
+		{
+			peer_list_entry e;
+			e.ip = i->second.ip;
+			e.flags = i->second.banned ? peer_list_entry::banned : 0;
+			e.failcount = i->second.failcount;
+			e.source = i->second.source;
+			v.push_back(e);
+		}
+	}
+
 	void torrent::get_peer_info(std::vector<peer_info>& v)
 	{
 		v.clear();
