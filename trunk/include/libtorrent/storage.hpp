@@ -212,7 +212,7 @@ namespace libtorrent
 
 		torrent_info const* info() const { return m_info.get(); }
 
-		void write_resume_data(entry& rd, std::vector<bool> const& have) const;
+		void write_resume_data(entry& rd) const;
 
 		void async_check_fastresume(entry const* resume_data
 			, boost::function<void(int, disk_io_job const&)> const& handler);
@@ -241,6 +241,9 @@ namespace libtorrent
 
 		void async_move_storage(fs::path const& p
 			, boost::function<void(int, disk_io_job const&)> const& handler);
+
+		void async_save_resume_data(
+			boost::function<void(int, disk_io_job const&)> const& handler);
 
 		enum return_t
 		{

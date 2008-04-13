@@ -559,11 +559,8 @@ namespace libtorrent
 
 	bool storage::write_resume_data(entry& rd) const
 	{
-		if (rd.type() != entry::dictionary_t)
-		{
-			set_error("", "invalid fastresume file");
-			return true;
-		}
+		TORRENT_ASSERT(rd.type() == entry::dictionary_t);
+
 		std::vector<std::pair<size_type, std::time_t> > file_sizes
 			= get_filesizes(*m_info, m_save_path);
 
@@ -583,7 +580,7 @@ namespace libtorrent
 	{
 		if (rd.type() != entry::dictionary_t)
 		{
-			error = "invalid fastresume file";
+			error = "invalid fastresume file (not a dictionary)";
 			return true;
 		}
 
@@ -1146,6 +1143,15 @@ namespace libtorrent
 	{
 	}
 
+	void piece_manager::async_save_resume_data(
+		boost::function<void(int, disk_io_job const&)> const& handler)
+	{
+		disk_io_job j;
+		j.storage = this;
+		j.action = disk_io_job::save_resume_data;
+		m_io_thread.add_job(j, handler);
+	}
+
 	void piece_manager::async_release_files(
 		boost::function<void(int, disk_io_job const&)> const& handler)
 	{
@@ -1280,8 +1286,7 @@ namespace libtorrent
 		return false;
 	}
 
-	void piece_manager::write_resume_data(entry& rd
-		, std::vector<bool> const& have) const
+	void piece_manager::write_resume_data(entry& rd) const
 	{
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 
@@ -1289,9 +1294,9 @@ namespace libtorrent
 
 		m_storage->write_resume_data(rd);
 
-		entry::list_type& slots = rd["slots"].list();
 		if (m_storage_mode == storage_mode_compact)
 		{
+			entry::list_type& slots = rd["slots"].list();
 			slots.clear();
 			std::vector<int>::const_reverse_iterator last; 
 			for (last = m_slot_to_piece.rbegin();
@@ -1305,13 +1310,6 @@ namespace libtorrent
 				i != last.base(); ++i)
 			{
 				slots.push_back((*i >= 0) ? *i : unassigned);
-			}
-		}
-		else
-		{
-			for (int i = 0; i < m_info->num_pieces(); ++i)
-			{
-				slots.push_back(have[i] ? i : unassigned);
 			}
 		}
 	}
@@ -1710,116 +1708,122 @@ namespace libtorrent
 			&& allocation->string() != "compact")
 			storage_mode = storage_mode_sparse;
 
-		// read piece map
-		entry const* slots = rd.find_key("slots");
-		if (slots == 0 || slots->type() != entry::list_t)
-		{
-			error = "missing slot list";
-			return check_no_fastresume(error);
-		}
-
-		if ((int)slots->list().size() > m_info->num_pieces())
-		{
-			error = "file has more slots than torrent (slots: "
-				+ boost::lexical_cast<std::string>(slots->list().size()) + " size: "
-				+ boost::lexical_cast<std::string>(m_info->num_pieces()) + " )";
-			return check_no_fastresume(error);
-		}
-   
 		// assume no piece is out of place (i.e. in a slot
 		// other than the one it should be in)
 		bool out_of_place = false;
-			
-		if (storage_mode == storage_mode_compact)
+
+		// if we don't have a piece map, we need the slots
+		// if we're in compact mode, we also need the slots map
+		if (storage_mode == storage_mode_compact || rd.find_key("pieces") == 0)
 		{
-			int num_pieces = int(m_info->num_pieces());
-			m_slot_to_piece.resize(num_pieces, unallocated);
-			m_piece_to_slot.resize(num_pieces, has_no_slot);
-			int slot = 0;
-			for (entry::list_type::const_iterator i = slots->list().begin();
-				i != slots->list().end(); ++i, ++slot)
+			// read slots map
+			entry const* slots = rd.find_key("slots");
+			if (slots == 0 || slots->type() != entry::list_t)
 			{
-				if (i->type() != entry::int_t)
+				error = "missing slot list";
+				return check_no_fastresume(error);
+			}
+
+			if ((int)slots->list().size() > m_info->num_pieces())
+			{
+				error = "file has more slots than torrent (slots: "
+					+ boost::lexical_cast<std::string>(slots->list().size()) + " size: "
+					+ boost::lexical_cast<std::string>(m_info->num_pieces()) + " )";
+				return check_no_fastresume(error);
+			}
+
+			if (storage_mode == storage_mode_compact)
+			{
+				int num_pieces = int(m_info->num_pieces());
+				m_slot_to_piece.resize(num_pieces, unallocated);
+				m_piece_to_slot.resize(num_pieces, has_no_slot);
+				int slot = 0;
+				for (entry::list_type::const_iterator i = slots->list().begin();
+					i != slots->list().end(); ++i, ++slot)
 				{
-					error = "invalid entry type in slot list";
-					return check_no_fastresume(error);
-				}
-   
-				int index = int(i->integer());
-				if (index >= num_pieces || index < -2)
-				{
-					error = "too high index number in slot map (index: "
-						+ boost::lexical_cast<std::string>(index) + " size: "
-						+ boost::lexical_cast<std::string>(num_pieces) + ")";
-					return check_no_fastresume(error);
-				}
-				if (index >= 0)
-				{
-					m_slot_to_piece[slot] = index;
-					m_piece_to_slot[index] = slot;
-					if (slot != index) out_of_place = true;
-				}
-				else if (index == unassigned)
-				{
-					if (m_storage_mode == storage_mode_compact)
-						m_free_slots.push_back(slot);
-				}
-				else
-				{
-					TORRENT_ASSERT(index == unallocated);
-					if (m_storage_mode == storage_mode_compact)
-						m_unallocated_slots.push_back(slot);
+					if (i->type() != entry::int_t)
+					{
+						error = "invalid entry type in slot list";
+						return check_no_fastresume(error);
+					}
+
+					int index = int(i->integer());
+					if (index >= num_pieces || index < -2)
+					{
+						error = "too high index number in slot map (index: "
+							+ boost::lexical_cast<std::string>(index) + " size: "
+							+ boost::lexical_cast<std::string>(num_pieces) + ")";
+						return check_no_fastresume(error);
+					}
+					if (index >= 0)
+					{
+						m_slot_to_piece[slot] = index;
+						m_piece_to_slot[index] = slot;
+						if (slot != index) out_of_place = true;
+					}
+					else if (index == unassigned)
+					{
+						if (m_storage_mode == storage_mode_compact)
+							m_free_slots.push_back(slot);
+					}
+					else
+					{
+						TORRENT_ASSERT(index == unallocated);
+						if (m_storage_mode == storage_mode_compact)
+							m_unallocated_slots.push_back(slot);
+					}
 				}
 			}
-		}
-		else
-		{
-			int slot = 0;
-			for (entry::list_type::const_iterator i = slots->list().begin();
-				i != slots->list().end(); ++i, ++slot)
+			else
 			{
-				if (i->type() != entry::int_t)
+				int slot = 0;
+				for (entry::list_type::const_iterator i = slots->list().begin();
+					i != slots->list().end(); ++i, ++slot)
 				{
-					error = "invalid entry type in slot list";
-					return check_no_fastresume(error);
-				}
-   
-				int index = int(i->integer());
-				if (index != slot && index >= 0)
-				{
-					error = "invalid slot index";
-					return check_no_fastresume(error);
+					if (i->type() != entry::int_t)
+					{
+						error = "invalid entry type in slot list";
+						return check_no_fastresume(error);
+					}
+
+					int index = int(i->integer());
+					if (index != slot && index >= 0)
+					{
+						error = "invalid slot index";
+						return check_no_fastresume(error);
+					}
 				}
 			}
-		}
 
-		if (!m_storage->verify_resume_data(rd, error))
-			return check_no_fastresume(error);
+			if (!m_storage->verify_resume_data(rd, error))
+				return check_no_fastresume(error);
 
-		// This will corrupt the storage
-		// use while debugging to find
-		// states that cannot be scanned
-		// by check_pieces.
-//		m_storage->shuffle();
+			// This will corrupt the storage
+			// use while debugging to find
+			// states that cannot be scanned
+			// by check_pieces.
+			//		m_storage->shuffle();
 
-		if (m_storage_mode == storage_mode_compact)
-		{
-			if (m_unallocated_slots.empty()) switch_to_full_mode();
-		}
-		else
-		{
-			TORRENT_ASSERT(m_free_slots.empty());
-			TORRENT_ASSERT(m_unallocated_slots.empty());
-
-			if (out_of_place)
+			if (m_storage_mode == storage_mode_compact)
 			{
-				// in this case we're in full allocation mode, but
-				// we're resuming a compact allocated storage
-				m_state = state_expand_pieces;
-				m_current_slot = 0;
-				error = "pieces needs to be reordered";
-				return need_full_check;
+				if (m_unallocated_slots.empty()) switch_to_full_mode();
 			}
+			else
+			{
+				TORRENT_ASSERT(m_free_slots.empty());
+				TORRENT_ASSERT(m_unallocated_slots.empty());
+
+				if (out_of_place)
+				{
+					// in this case we're in full allocation mode, but
+					// we're resuming a compact allocated storage
+					m_state = state_expand_pieces;
+					m_current_slot = 0;
+					error = "pieces needs to be reordered";
+					return need_full_check;
+				}
+			}
+
 		}
 
 		return check_init_storage(error);

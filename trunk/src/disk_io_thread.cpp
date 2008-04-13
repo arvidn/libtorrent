@@ -773,13 +773,13 @@ namespace libtorrent
 			std::string const& error_string = j.storage->error();
 			if (!error_string.empty())
 			{
+#ifndef NDEBUG
+				std::cout << "ERROR: '" << error_string << "' " << j.error_file << std::endl;
+#endif
 				j.str = error_string;
 				j.error_file = j.storage->error_file();
 				j.storage->clear_error();
 				ret = -1;
-#ifndef NDEBUG
-				std::cout << "ERROR: " << error_string << " " << j.error_file << std::endl;
-#endif
 			}
 			else
 			{
@@ -1040,6 +1040,16 @@ namespace libtorrent
 							m_jobs.back().callback.swap(handler);
 							continue;
 						}
+						break;
+					}
+					case disk_io_job::save_resume_data:
+					{
+#ifdef TORRENT_DISK_STATS
+						m_log << log_time() << " save resume data" << std::endl;
+#endif
+						j.resume_data.reset(new entry(entry::dictionary_t));
+						j.storage->write_resume_data(*j.resume_data);
+						ret = 0;
 						break;
 					}
 				}

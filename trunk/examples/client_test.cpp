@@ -596,16 +596,10 @@ void scan_dir(path const& dir_path
 		}
 		
 		h.pause();
-		if (h.has_metadata())
-		{
-			entry data = h.write_resume_data();
-			std::stringstream s;
-			s << h.get_torrent_info().name() << ".fastresume";
-			boost::filesystem::ofstream out(h.save_path() / s.str(), std::ios_base::binary);
-			out.unsetf(std::ios_base::skipws);
-			bencode(std::ostream_iterator<char>(out), data);
-		}
-		ses.remove_torrent(h);
+		// the alert handler for save_resume_data_alert
+		// will save it to disk and remove the torrent
+		h.save_resume_data();
+
 		handles.erase(i++);
 	}
 }
@@ -988,21 +982,49 @@ int main(int ac, char* av[])
 			{
 				if (c == 'q')
 				{
+					// keep track of the number of resume data
+					// alerts to wait for
+					int num_resume_data = 0;
 					for (handles_t::iterator i = handles.begin();
 						i != handles.end(); ++i)
 					{
 						torrent_handle& h = i->second;
 						if (!h.is_valid() || !h.has_metadata()) continue;
 
+						// pause
+						std::cout << "pausing " << h.name() << std::endl;
 						h.pause();
+						// save_resume_data will generate an alert when it's done
+						h.save_resume_data();
+						++num_resume_data;
+					}
+					std::cout << "waiting for resume data" << std::endl;
 
-						entry data = h.write_resume_data();
-						std::stringstream s;
-						s << h.get_torrent_info().name() << ".fastresume";
-						boost::filesystem::ofstream out(h.save_path() / s.str(), std::ios_base::binary);
+					while (num_resume_data > 0)
+					{
+						alert const* a = ses.wait_for_alert(seconds(10));
+						if (a == 0)
+						{
+							std::cout << " aborting with " << num_resume_data << " outstanding "
+								"torrents to save resume data for" << std::endl;
+							break;
+						}
+						
+						std::auto_ptr<alert> holder = ses.pop_alert();
+						save_resume_data_alert const* rd = dynamic_cast<save_resume_data_alert const*>(a);
+						if (rd == 0)
+						{
+							std::cout << a->msg() << std::endl;
+							continue;
+						}
+						
+						torrent_handle h = rd->handle;
+						boost::filesystem::ofstream out(h.save_path()
+							/ (h.get_torrent_info().name() + ".fastresume"), std::ios_base::binary);
 						out.unsetf(std::ios_base::skipws);
-						bencode(std::ostream_iterator<char>(out), data);
-						ses.remove_torrent(h);
+						bencode(std::ostream_iterator<char>(out), *rd->resume_data);
+						std::cout << "fast resume data saved for " << h.name() << std::endl;
+						--num_resume_data;
 					}
 					break;
 				}
@@ -1085,15 +1107,9 @@ int main(int ac, char* av[])
 
 					// write resume data for the finished torrent
 					torrent_handle h = p->handle;
-					entry data = h.write_resume_data();
-					std::stringstream s;
-					s << h.get_torrent_info().name() << ".fastresume";
-					boost::filesystem::ofstream out(h.save_path() / s.str(), std::ios_base::binary);
-					out.unsetf(std::ios_base::skipws);
-					bencode(std::ostream_iterator<char>(out), data);
+					h.save_resume_data();
 
-					event_string << p->handle.get_torrent_info().name() << ": "
-						<< a->msg();
+					event_string << h.name() << ": " << a->msg();
 				}
 				else if (peer_error_alert* p = dynamic_cast<peer_error_alert*>(a.get()))
 				{
@@ -1118,6 +1134,18 @@ int main(int ac, char* av[])
 				else if (peer_blocked_alert* p = dynamic_cast<peer_blocked_alert*>(a.get()))
 				{
 					event_string << "(" << p->ip << ") " << p->msg();
+				}
+				else if (save_resume_data_alert* p = dynamic_cast<save_resume_data_alert*>(a.get()))
+				{
+					torrent_handle h = p->handle;
+					if (p->resume_data)
+					{
+						boost::filesystem::ofstream out(h.save_path() / (h.name() + ".fastresume"), std::ios_base::binary);
+						out.unsetf(std::ios_base::skipws);
+						bencode(std::ostream_iterator<char>(out), *p->resume_data);
+						if (h.is_paused()) ses.remove_torrent(h);
+					}
+					event_string << "(" << h.name() << ") " << p->msg();
 				}
 				else if (torrent_alert* p = dynamic_cast<torrent_alert*>(a.get()))
 				{
@@ -1356,6 +1384,7 @@ int main(int ac, char* av[])
 			}
 		}
 
+		std::cout << "saving session state" << std::endl;
 		{	
 			entry session_state = ses.state();
 			boost::filesystem::ofstream out(".ses_state"
@@ -1365,12 +1394,14 @@ int main(int ac, char* av[])
 		}
 
 #ifndef TORRENT_DISABLE_DHT
+		std::cout << "saving DHT state" << std::endl;
 		dht_state = ses.dht_state();
 		boost::filesystem::ofstream out(".dht_state"
 			, std::ios_base::binary);
 		out.unsetf(std::ios_base::skipws);
 		bencode(std::ostream_iterator<char>(out), dht_state);
 #endif
+		std::cout << "closing session" << std::endl;
 	}
 	catch (std::exception& e)
 	{

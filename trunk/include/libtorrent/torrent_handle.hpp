@@ -315,6 +315,7 @@ namespace libtorrent
 		bool is_paused() const;
 		void pause() const;
 		void resume() const;
+		void save_resume_data() const;
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		void resolve_countries(bool r);
@@ -354,7 +355,9 @@ namespace libtorrent
 		// to.
 		void use_interface(const char* net_interface) const;
 
-		entry write_resume_data() const;
+		// use save_resume_data() instead. It is async. and
+		// will return the resume data in an alert
+		entry write_resume_data() const TORRENT_DEPRECATED;
 
 		// forces this torrent to reannounce
 		// (make a rerequest from the tracker)
