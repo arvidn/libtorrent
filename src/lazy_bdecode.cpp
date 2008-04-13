@@ -261,15 +261,17 @@ namespace libtorrent
 				}
 				if (printable) return os << str;
 				for (int i = 0; i < e.string_length(); ++i)
-					os << std::hex << (int)str[i];
+					os << std::hex << int((unsigned char)(str[i]));
+				return os;
 			}
 			case lazy_entry::list_t:
 			{
 				os << "[";
-				bool one_liner = e.list_size() == 0
+				bool one_liner = (e.list_size() == 0
 					|| e.list_at(0)->type() == lazy_entry::int_t
 					|| (e.list_at(0)->type() == lazy_entry::string_t
-						&& e.list_at(0)->string_length() < 5);
+						&& e.list_at(0)->string_length() < 5))
+					&& e.list_size() < 5;
 				if (!one_liner) os << "\n";
 				for (int i = 0; i < e.list_size(); ++i)
 				{
@@ -283,11 +285,13 @@ namespace libtorrent
 			case lazy_entry::dict_t:
 			{
 				os << "{";
-				bool one_liner = e.dict_size() == 0
+				bool one_liner = (e.dict_size() == 0
 					|| e.dict_at(0).second->type() == lazy_entry::int_t
 					|| (e.dict_at(0).second->type() == lazy_entry::string_t
 						&& e.dict_at(0).second->string_length() < 4)
-					|| strlen(e.dict_at(0).first) < 10;
+					|| strlen(e.dict_at(0).first) < 10)
+					&& e.dict_size() < 5;
+
 				if (!one_liner) os << "\n";
 				for (int i = 0; i < e.dict_size(); ++i)
 				{
