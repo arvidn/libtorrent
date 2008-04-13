@@ -81,6 +81,11 @@ rule linking ( properties * )
 		result += <library>rt ;
 	}
 
+	if <tcmalloc>yes in $(properties)
+	{
+		result += <library>tcmalloc ;
+	}
+
 	if <boost>system in $(properties)
 	{
 		result += <library>boost_filesystem
@@ -158,6 +163,8 @@ rule building ( properties * )
 	return $(result) ;
 }
 
+feature tcmalloc : no yes : composite propagated link-incompatible ;
+
 feature need-librt : no yes : composite propagated link-incompatible ;
 
 feature pool-allocators : on off : composite propagated link-incompatible ;
@@ -232,6 +239,8 @@ lib ssl : : <name>ssl ;
 
 # time functions used on linux require librt
 lib librt : : <name>rt ;
+
+lib tcmalloc : : <name>tcmalloc $(library-search-path) ;
 
 # libz
 lib zlib-target : : <name>z ;
