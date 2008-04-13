@@ -1195,7 +1195,7 @@ namespace libtorrent
 
 		if (!was_seed && is_seed())
 		{
-			TORRENT_ASSERT(passed_hash_check);
+			TORRENT_ASSERT(passed_hash_check == 0);
 			completed();
 		}
 	}
