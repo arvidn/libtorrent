@@ -306,6 +306,7 @@ namespace libtorrent
 		bool is_valid() const;
 
 		bool is_seed() const;
+		bool is_finished() const;
 		bool is_paused() const;
 		void pause() const;
 		void resume() const;
