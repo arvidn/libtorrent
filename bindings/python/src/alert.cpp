@@ -28,7 +28,6 @@ extern char const* block_finished_alert_doc;
 extern char const* block_downloading_alert_doc;
 extern char const* storage_moved_alert_doc;
 extern char const* torrent_paused_alert_doc;
-extern char const* torrent_resumed_alert_doc;
 extern char const* torrent_checked_alert_doc;
 extern char const* url_seed_alert_doc;
 extern char const* file_error_alert_doc;
