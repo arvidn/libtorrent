@@ -520,21 +520,18 @@ namespace libtorrent
 			if (!fastresume_rejected)
 			{
 				TORRENT_ASSERT(m_resume_data.type() == entry::dictionary_t);
-				// parse slots
-				entry const* slots_ent = m_resume_data.find_key("slots");
-				if (slots_ent != 0 && slots_ent->type() == entry::list_t)
+
+				// parse have bitmask
+				entry const* pieces = m_resume_data.find_key("pieces");
+				if (pieces && pieces->type() == entry::string_t
+					&& pieces->string().length() == m_torrent_file->num_pieces())
 				{
-					entry::list_type const& slots = slots_ent->list();
-				
-					for (entry::list_type::const_iterator i = slots.begin();
-						i != slots.end(); ++i)
+					std::string const& pieces_str = pieces->string();
+					for (int i = 0, end(pieces_str.size()); i < end; ++i)
 					{
-						if (i->type() != entry::int_t) continue;
-						int piece_index = int(i->integer());
-						if (piece_index < 0 || piece_index >= torrent_file().num_pieces())
-							continue;
-						m_have_pieces[piece_index] = true;
-						++m_num_pieces;
+						bool have = pieces_str[i] & 1;
+						m_have_pieces[i] = have;
+						m_num_pieces += have;
 					}
 				}
 
@@ -557,10 +554,11 @@ namespace libtorrent
 						if (piece_index < 0 || piece_index >= torrent_file().num_pieces())
 							continue;
 
-						// if this assert is hit, the resume data file was corrupt
-						TORRENT_ASSERT(m_have_pieces[piece_index]);
-						m_have_pieces[piece_index] = false;
-						--m_num_pieces;
+						if (m_have_pieces[piece_index])
+						{
+							m_have_pieces[piece_index] = false;
+							--m_num_pieces;
+						}
 
 						entry const* bitmask_ent = i->find_key("bitmask");
 						if (bitmask_ent == 0 || bitmask_ent->type() != entry::string_t) break;
@@ -1385,6 +1383,18 @@ namespace libtorrent
 			alerts().post_alert(torrent_paused_alert(get_handle(), "torrent paused"));
 		}
 */
+	}
+
+	void torrent::on_save_resume_data(int ret, disk_io_job const& j)
+	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+		if (alerts().should_post(alert::warning))
+		{
+			write_resume_data(*j.resume_data);
+			alerts().post_alert(save_resume_data_alert(j.resume_data
+				, get_handle(), "resume data generated"));
+		}
 	}
 
 	void torrent::on_torrent_paused(int ret, disk_io_job const& j)
@@ -2237,6 +2247,112 @@ namespace libtorrent
 		}
 	}
 #endif
+
+	void torrent::write_resume_data(entry& ret) const
+	{
+		ret["file-format"] = "libtorrent resume file";
+		ret["file-version"] = 1;
+
+		ret["allocation"] = m_storage_mode == storage_mode_sparse?"sparse"
+			:m_storage_mode == storage_mode_allocate?"full":"compact";
+
+		const sha1_hash& info_hash = torrent_file().info_hash();
+		ret["info-hash"] = std::string((char*)info_hash.begin(), (char*)info_hash.end());
+
+		// blocks per piece
+		int num_blocks_per_piece =
+			static_cast<int>(torrent_file().piece_length()) / block_size();
+		ret["blocks per piece"] = num_blocks_per_piece;
+
+		// if this torrent is a seed, we won't have a piece picker
+		// and there will be no half-finished pieces.
+		if (!is_seed())
+		{
+			const std::vector<piece_picker::downloading_piece>& q
+				= m_picker->get_download_queue();
+
+			// unfinished pieces
+			ret["unfinished"] = entry::list_type();
+			entry::list_type& up = ret["unfinished"].list();
+
+			// info for each unfinished piece
+			for (std::vector<piece_picker::downloading_piece>::const_iterator i
+				= q.begin(); i != q.end(); ++i)
+			{
+				if (i->finished == 0) continue;
+
+				entry piece_struct(entry::dictionary_t);
+
+				// the unfinished piece's index
+				piece_struct["piece"] = i->index;
+
+				std::string bitmask;
+				const int num_bitmask_bytes
+					= (std::max)(num_blocks_per_piece / 8, 1);
+
+				for (int j = 0; j < num_bitmask_bytes; ++j)
+				{
+					unsigned char v = 0;
+					int bits = (std::min)(num_blocks_per_piece - j*8, 8);
+					for (int k = 0; k < bits; ++k)
+						v |= (i->info[j*8+k].state == piece_picker::block_info::state_finished)
+						? (1 << k) : 0;
+					bitmask.insert(bitmask.end(), v);
+					TORRENT_ASSERT(bits == 8 || j == num_bitmask_bytes - 1);
+				}
+				piece_struct["bitmask"] = bitmask;
+				// push the struct onto the unfinished-piece list
+				up.push_back(piece_struct);
+			}
+		}
+
+		// write have bitmask
+		entry::string_type& pieces = ret["pieces"].string();
+		pieces.resize(m_torrent_file->num_pieces());
+		for (int i = 0, end(pieces.size()); i < end; ++i)
+			pieces[i] = m_have_pieces[i] ? 1 : 0;
+
+		// write local peers
+
+		entry::list_type& peer_list = ret["peers"].list();
+		entry::list_type& banned_peer_list = ret["banned_peers"].list();
+		
+		int max_failcount = m_ses.m_settings.max_failcount;
+
+		for (policy::const_iterator i = m_policy.begin_peer()
+			, end(m_policy.end_peer()); i != end; ++i)
+		{
+			asio::error_code ec;
+			if (i->second.banned)
+			{
+				tcp::endpoint ip = i->second.ip;
+				entry peer(entry::dictionary_t);
+				peer["ip"] = ip.address().to_string(ec);
+				if (ec) continue;
+				peer["port"] = ip.port();
+				banned_peer_list.push_back(peer);
+				continue;
+			}
+			// we cannot save remote connection
+			// since we don't know their listen port
+			// unless they gave us their listen port
+			// through the extension handshake
+			// so, if the peer is not connectable (i.e. we
+			// don't know its listen port) or if it has
+			// been banned, don't save it.
+			if (i->second.type == policy::peer::not_connectable) continue;
+
+			// don't save peers that doesn't work
+			if (i->second.failcount >= max_failcount) continue;
+
+			tcp::endpoint ip = i->second.ip;
+			entry peer(entry::dictionary_t);
+			peer["ip"] = ip.address().to_string(ec);
+			if (ec) continue;
+			peer["port"] = ip.port();
+			peer_list.push_back(peer);
+		}
+	}
 
 	void torrent::get_full_peer_list(std::vector<peer_list_entry>& v) const
 	{
@@ -3103,6 +3219,27 @@ namespace libtorrent
 		}
 	}
 
+	// this is an async operation triggered by the client	
+	void torrent::save_resume_data()
+	{
+		INVARIANT_CHECK;
+	
+		if (m_owning_storage.get())
+		{
+			TORRENT_ASSERT(m_storage);
+			m_storage->async_save_resume_data(
+				bind(&torrent::on_save_resume_data, shared_from_this(), _1, _2));
+		}
+		else
+		{
+			if (alerts().should_post(alert::warning))
+			{
+				alerts().post_alert(save_resume_data_alert(boost::shared_ptr<entry>()
+					, get_handle(), "save resume data failed, torrent is being destructed"));
+			}
+		}
+	}
+	
 	void torrent::pause()
 	{
 		INVARIANT_CHECK;

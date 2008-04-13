@@ -253,6 +253,12 @@ namespace libtorrent
 		TORRENT_FORWARD(pause());
 	}
 
+	void torrent_handle::save_resume_data() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(save_resume_data());
+	}
+
 	void torrent_handle::resume() const
 	{
 		INVARIANT_CHECK;
@@ -431,131 +437,9 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (!t)
-#ifdef BOOST_NO_EXCEPTIONS
-			return entry();
-#else
-			throw_invalid_handle();
-#endif
-		session_impl::mutex_t::scoped_lock l(t->session().m_mutex);
-		if (!t->valid_metadata())
-#ifdef BOOST_NO_EXCEPTIONS
-			return entry();
-#else
-			throw_invalid_handle();
-#endif
-
-		std::vector<bool> have_pieces = t->pieces();
-
 		entry ret(entry::dictionary_t);
-
-		ret["file-format"] = "libtorrent resume file";
-		ret["file-version"] = 1;
-
-		storage_mode_t sm = t->storage_mode();
-		ret["allocation"] = sm == storage_mode_sparse?"sparse"
-			:sm == storage_mode_allocate?"full":"compact";
-
-		const sha1_hash& info_hash = t->torrent_file().info_hash();
-		ret["info-hash"] = std::string((char*)info_hash.begin(), (char*)info_hash.end());
-
-		// blocks per piece
-		int num_blocks_per_piece =
-			static_cast<int>(t->torrent_file().piece_length()) / t->block_size();
-		ret["blocks per piece"] = num_blocks_per_piece;
-
-		// if this torrent is a seed, we won't have a piece picker
-		// and there will be no half-finished pieces.
-		if (!t->is_seed())
-		{
-			const piece_picker& p = t->picker();
-
-			const std::vector<piece_picker::downloading_piece>& q
-				= p.get_download_queue();
-
-			// unfinished pieces
-			ret["unfinished"] = entry::list_type();
-			entry::list_type& up = ret["unfinished"].list();
-
-			// info for each unfinished piece
-			for (std::vector<piece_picker::downloading_piece>::const_iterator i
-				= q.begin(); i != q.end(); ++i)
-			{
-				if (i->finished == 0) continue;
-
-				entry piece_struct(entry::dictionary_t);
-
-				// the unfinished piece's index
-				piece_struct["piece"] = i->index;
-
-				have_pieces[i->index] = true;
-
-				std::string bitmask;
-				const int num_bitmask_bytes
-					= (std::max)(num_blocks_per_piece / 8, 1);
-
-				for (int j = 0; j < num_bitmask_bytes; ++j)
-				{
-					unsigned char v = 0;
-					int bits = (std::min)(num_blocks_per_piece - j*8, 8);
-					for (int k = 0; k < bits; ++k)
-						v |= (i->info[j*8+k].state == piece_picker::block_info::state_finished)
-						? (1 << k) : 0;
-					bitmask.insert(bitmask.end(), v);
-					TORRENT_ASSERT(bits == 8 || j == num_bitmask_bytes - 1);
-				}
-				piece_struct["bitmask"] = bitmask;
-				// push the struct onto the unfinished-piece list
-				up.push_back(piece_struct);
-			}
-		}
-
-		std::vector<int> piece_index;
-		t->filesystem().write_resume_data(ret, have_pieces);
-
-		// write local peers
-
-		entry::list_type& peer_list = ret["peers"].list();
-		entry::list_type& banned_peer_list = ret["banned_peers"].list();
-		
-		policy& pol = t->get_policy();
-
-		int max_failcount = t->settings().max_failcount;
-
-		for (policy::iterator i = pol.begin_peer()
-			, end(pol.end_peer()); i != end; ++i)
-		{
-			asio::error_code ec;
-			if (i->second.banned)
-			{
-				tcp::endpoint ip = i->second.ip;
-				entry peer(entry::dictionary_t);
-				peer["ip"] = ip.address().to_string(ec);
-				if (ec) continue;
-				peer["port"] = ip.port();
-				banned_peer_list.push_back(peer);
-				continue;
-			}
-			// we cannot save remote connection
-			// since we don't know their listen port
-			// unless they gave us their listen port
-			// through the extension handshake
-			// so, if the peer is not connectable (i.e. we
-			// don't know its listen port) or if it has
-			// been banned, don't save it.
-			if (i->second.type == policy::peer::not_connectable) continue;
-
-			// don't save peers that doesn't work
-			if (i->second.failcount >= max_failcount) continue;
-
-			tcp::endpoint ip = i->second.ip;
-			entry peer(entry::dictionary_t);
-			peer["ip"] = ip.address().to_string(ec);
-			if (ec) continue;
-			peer["port"] = ip.port();
-			peer_list.push_back(peer);
-		}
+		TORRENT_FORWARD(write_resume_data(ret));
+		t->filesystem().write_resume_data(ret);
 
 		return ret;
 	}

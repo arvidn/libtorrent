@@ -178,6 +178,7 @@ namespace libtorrent
 		void pause();
 		void resume();
 		bool is_paused() const { return m_paused; }
+		void save_resume_data();
 
 		void delete_files();
 
@@ -516,6 +517,8 @@ namespace libtorrent
 
 		torrent_handle get_handle();
 
+		void write_resume_data(entry& rd) const;
+
 		// LOGGING
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		virtual void debug_log(const std::string& line);
@@ -563,6 +566,7 @@ namespace libtorrent
 		void on_files_released(int ret, disk_io_job const& j);
 		void on_torrent_paused(int ret, disk_io_job const& j);
 		void on_storage_moved(int ret, disk_io_job const& j);
+		void on_save_resume_data(int ret, disk_io_job const& j);
 
 		void on_piece_verified(int ret, disk_io_job const& j
 			, boost::function<void(int)> f);

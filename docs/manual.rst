@@ -28,7 +28,7 @@ The basic usage is as follows:
 	* add and remove torrents from the session at run-time
 
 * save resume data for all torrent_handles (optional, see
-  `write_resume_data()`_)
+  `save_resume_data()`_)
 * destruct session object
 
 Each class and function is described in this manual.
@@ -272,7 +272,7 @@ duplicate_torrent_ which derives from ``std::exception``.
 
 The optional parameter, ``resume_data`` can be given if up to date fast-resume data
 is available. The fast-resume data can be acquired from a running torrent by calling
-``torrent_handle::write_resume_data()``. See `fast resume`_.
+`save_resume_data()`_ on `torrent_handle`_. See `fast resume`_.
 
 The ``storage_mode`` parameter refers to the layout of the storage for this torrent.
 There are 3 different modes:
@@ -1573,7 +1573,7 @@ Its declaration looks like this::
 
 		std::string name() const;
 
-		entry write_resume_data() const;
+		void save_resume_data() const;
 		void force_reannounce() const;
 		void force_reannounce(boost::posix_time::time_duration) const;
 		void scrape_tracker() const;
@@ -1992,17 +1992,20 @@ This must be at least 2. The default is unlimited number of connections. If -1 i
 function, it means unlimited.
 
 
-write_resume_data()
--------------------
+save_resume_data()
+------------------
 
 	::
 
-		entry write_resume_data() const;
+		void save_resume_data() const;
 
-``write_resume_data()`` generates fast-resume data and returns it as an entry_. This entry_
+``save_resume_data()`` generates fast-resume data and returns it as an entry_. This entry_
 is suitable for being bencoded. For more information about how fast-resume works, see `fast resume`_.
 
-There are three cases where this function will just return an empty ``entry``:
+This operation is asynchronous, ``save_resume_data`` will return immediately. The resume data
+is delivered when it's done through an `save_resume_data_alert`_.
+
+The fast resume data will be empty in the following cases:
 
 	1. The torrent handle is invalid.
 	2. The torrent is checking (or is queued for checking) its storage, it will obviously
@@ -2010,16 +2013,17 @@ There are three cases where this function will just return an empty ``entry``:
 	3. The torrent hasn't received valid metadata and was started without metadata
 	   (see libtorrent's `metadata from peers`_ extension)
 
-Note that by the time this function returns, the resume data may already be invalid if the torrent
+Note that by the time you receive the fast resume data, it may already be invalid if the torrent
 is still downloading! The recommended practice is to first pause the torrent, then generate the
-fast resume data, and then close it down. Since the disk IO is done in a separate thread, in order
-to synchronize, you shoule to wait for the ``torrent_paused_alert`` before you write the resume
-data.
+fast resume data, and then close it down. Make sure to not `remove_torrent()`_ before you receive
+the `save_resume_data_alert`_ though. Only pause the torrent before you save the resume data
+if you will remove the torrent afterwards. There's no need to pause when saving intermittent
+resume data.
 
 In full allocation mode the reume data is never invalidated by subsequent
 writes to the files, since pieces won't move around. This means that you don't need to
 pause before writing resume data in full or sparse mode. If you don't, however, any data written to
-disk after you saved resume data and before the session closed is lost.
+disk after you saved resume data and before the session_ closed is lost.
 
 It also means that if the resume data is out dated, libtorrent will not re-check the files, but assume
 that it is fairly recent. The assumption is that it's better to loose a little bit than to re-check
@@ -2027,6 +2031,45 @@ the entire file.
 
 It is still a good idea to save resume data periodically during download as well as when
 closing down.
+
+Example code to pause and save resume data for all torrents and wait for the alerts::
+
+	int num_resume_data = 0;
+	std::vector<torrent_handle> handles = ses.get_torrents();
+	for (std::vector<torrent_handle>::iterator i = handles.begin();
+		i != handles.end(); ++i)
+	{
+		torrent_handle& h = *i;
+		if (!h.has_metadata()) continue;
+
+		h.pause();
+		h.save_resume_data();
+		++num_resume_data;
+	}
+
+	while (num_resume_data > 0)
+	{
+		alert const* a = ses.wait_for_alert(seconds(10));
+
+		// if we don't get an alert within 10 seconds, abort
+		if (a == 0) break;
+		
+		std::auto_ptr<alert> holder = ses.pop_alert();
+		save_resume_data_alert const* rd = dynamic_cast<save_resume_data_alert const*>(a);
+		if (rd == 0)
+		{
+			process_alert(a);
+			continue;
+		}
+		
+		torrent_handle h = rd->handle;
+		boost::filesystem::ofstream out(h.save_path()
+			/ (h.get_torrent_info().name() + ".fastresume"), std::ios_base::binary);
+		out.unsetf(std::ios_base::skipws);
+		bencode(std::ostream_iterator<char>(out), *rd->resume_data);
+		--num_resume_data;
+	}
+	
 
 
 status()
@@ -4019,6 +4062,24 @@ This is useful for synchronizing with the disk.
 		virtual std::auto_ptr<alert> clone() const;
 	};
 
+save_resume_data_alert
+----------------------
+
+This alert is generated as a response to a ``torrent_handle::save_resume_data`` request.
+It is generated once the disk IO thread is done writing the state for this torrent.
+The ``resume_data`` member points to the resume data or is 0 on errors.
+
+::
+
+	struct save_resume_data_alert: torrent_alert
+	{
+		save_resume_alert(torrent_handle const& h, std::string const& msg);
+
+		boost::shared_ptr<entry> resume_data;
+
+		virtual std::auto_ptr<alert> clone() const;
+	};
+
 
 dispatcher
 ----------
@@ -4235,8 +4296,8 @@ not, set ``error`` to a description of what mismatched and return false.
 The default storage may compare file sizes and time stamps of the files.
 
 
-write_resume_data( )
---------------------
+write_resume_data()
+-------------------
 
 	::
 
@@ -4340,7 +4401,7 @@ fast resume
 
 The fast resume mechanism is a way to remember which pieces are downloaded
 and where they are put between sessions. You can generate fast resume data by
-calling ``torrent_handle::write_resume_data()`` on torrent_handle_. You can
+calling `save_resume_data()`_ on torrent_handle_. You can
 then save this data to disk and use it when resuming the torrent. libtorrent
 will not check the piece hashes then, and rely on the information given in the
 fast-resume data. The fast-resume data also contains information about which
@@ -4373,6 +4434,9 @@ The file format is a bencoded dictionary containing the following fields:
 |                      | each block is 16 * 1024 bytes in size. But if piece size is  |
 |                      | greater than 4 megabytes, the block size will increase.      |
 |                      |                                                              |
++----------------------+--------------------------------------------------------------+
+| ``pieces``           | A string with piece flags, one character per piece.          |
+|                      | Bit 1 means we have that piece.                              |
 +----------------------+--------------------------------------------------------------+
 | ``slots``            | list of integers. The list maps slots to piece indices. It   |
 |                      | tells which piece is on which slot. If piece index is -2 it  |

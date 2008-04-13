@@ -81,6 +81,7 @@ namespace libtorrent
 			, delete_files
 			, check_fastresume
 			, check_files
+			, save_resume_data
 		};
 
 		action_t action;
@@ -103,6 +104,8 @@ namespace libtorrent
 		// not. It always skips in front of entries
 		// with lower priority
 		int priority;
+
+		boost::shared_ptr<entry> resume_data;
 
 		// this is called when operation completes
 		boost::function<void(int, disk_io_job const&)> callback;
