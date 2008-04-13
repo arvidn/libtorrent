@@ -270,6 +270,9 @@ char const* storage_moved_alert_doc =
     "It contains a `torrent_handle` to the torrent in question. This alert\n"
     "is generated as severity level `alert.severity_levels.warning`.";
 
+char const* torrent_deleted_alert_doc =
+    "";
+    
 char const* torrent_paused_alert_doc =
     "This alert is generated when a torrent switches from being a\n"
     "active to paused.\n"

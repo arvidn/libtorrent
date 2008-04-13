@@ -27,6 +27,7 @@ extern char const* piece_finished_alert_doc;
 extern char const* block_finished_alert_doc;
 extern char const* block_downloading_alert_doc;
 extern char const* storage_moved_alert_doc;
+extern char const* torrent_deleted_alert_doc;
 extern char const* torrent_paused_alert_doc;
 extern char const* torrent_checked_alert_doc;
 extern char const* url_seed_alert_doc;
@@ -159,6 +160,10 @@ void bind_alert()
         "storage_moved_alert", storage_moved_alert_doc, no_init
     );
 
+    class_<torrent_deleted_alert, bases<torrent_alert>, noncopyable>(
+        "torrent_deleted_alert", torrent_deleted_alert_doc, no_init
+    );
+    
     class_<torrent_paused_alert, bases<torrent_alert>, noncopyable>(
         "torrent_paused_alert", torrent_paused_alert_doc, no_init
     );
