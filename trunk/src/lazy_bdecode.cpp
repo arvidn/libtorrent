@@ -42,7 +42,7 @@ namespace libtorrent
 	// first occurance of the delimiter is interpreted as an int.
 	// return the pointer to the delimiter, or 0 if there is a
 	// parse error. val should be initialized to zero
-	char* parse_int(char* start, char* end, char delimiter, boost::int64_t& val)
+	char const* parse_int(char const* start, char const* end, char delimiter, boost::int64_t& val)
 	{
 		while (start < end && *start != delimiter)
 		{
@@ -55,14 +55,14 @@ namespace libtorrent
 		return start;
 	}
 
-	char* find_char(char* start, char* end, char delimiter)
+	char const* find_char(char const* start, char const* end, char delimiter)
 	{
 		while (start < end && *start != delimiter) ++start;
 		return start;
 	}
 
 	// return 0 = success
-	int lazy_bdecode(char* start, char* end, lazy_entry& ret, int depth_limit)
+	int lazy_bdecode(char const* start, char const* end, lazy_entry& ret, int depth_limit)
 	{
 		ret.clear();
 		if (start == end) return 0;
@@ -76,10 +76,10 @@ namespace libtorrent
 
 			lazy_entry* top = stack.back();
 
-			if (stack.size() > depth_limit) return fail_bdecode();
+			if (int(stack.size()) > depth_limit) return fail_bdecode();
 			if (start == end) return fail_bdecode();
 			char t = *start;
-			*start++ = 0; // null terminate any previous string
+			++start;
 			if (start == end && t != 'e') return fail_bdecode();
 
 			switch (top->type())
@@ -88,6 +88,7 @@ namespace libtorrent
 				{
 					if (t == 'e')
 					{
+						top->set_end(start);
 						stack.pop_back();
 						continue;
 					}
@@ -99,13 +100,14 @@ namespace libtorrent
 					start += len;
 					stack.push_back(ent);
 					t = *start;
-					*start++ = 0; // null terminate any previous string
+					++start;
 					break;
 				}
 				case lazy_entry::list_t:
 				{
 					if (t == 'e')
 					{
+						top->set_end(start);
 						stack.pop_back();
 						continue;
 					}
@@ -120,19 +122,22 @@ namespace libtorrent
 			switch (t)
 			{
 				case 'd':
-					top->construct_dict();
+					top->construct_dict(start - 1);
 					continue;
 				case 'l':
-					top->construct_list();
+					top->construct_list(start - 1);
 					continue;
 				case 'i':
-					top->construct_int(start);
+				{
+					char const* int_start = start;
 					start = find_char(start, end, 'e');
+					top->construct_int(int_start, start - int_start);
 					if (start == end) return fail_bdecode();
 					TORRENT_ASSERT(*start == 'e');
-					*start++ = 0;
+					++start;
 					stack.pop_back();
 					continue;
+				}
 				default:
 				{
 					using namespace std;
@@ -159,37 +164,81 @@ namespace libtorrent
 		boost::int64_t val = 0;
 		bool negative = false;
 		if (*m_data.start == '-') negative = true;
-		parse_int(negative?m_data.start+1:m_data.start, m_data.start + 100, 0, val);
+		parse_int(negative?m_data.start+1:m_data.start, m_data.start + m_size, 'e', val);
 		if (negative) val = -val;
 		return val;
 	}
 
-	lazy_entry* lazy_entry::dict_append(char* name)
+	lazy_entry* lazy_entry::dict_append(char const* name)
 	{
 		TORRENT_ASSERT(m_type == dict_t);
 		TORRENT_ASSERT(m_size <= m_capacity);
 		if (m_capacity == 0)
 		{
 			int capacity = 10;
-			m_data.dict = new (std::nothrow) std::pair<char*, lazy_entry>[capacity];
+			m_data.dict = new (std::nothrow) std::pair<char const*, lazy_entry>[capacity];
 			if (m_data.dict == 0) return 0;
 			m_capacity = capacity;
 		}
 		else if (m_size == m_capacity)
 		{
 			int capacity = m_capacity * 2;
-			std::pair<char*, lazy_entry>* tmp = new (std::nothrow) std::pair<char*, lazy_entry>[capacity];
+			std::pair<char const*, lazy_entry>* tmp = new (std::nothrow) std::pair<char const*, lazy_entry>[capacity];
 			if (tmp == 0) return 0;
-			std::memcpy(tmp, m_data.dict, sizeof(std::pair<char*, lazy_entry>) * m_size);
+			std::memcpy(tmp, m_data.dict, sizeof(std::pair<char const*, lazy_entry>) * m_size);
 			delete[] m_data.dict;
 			m_data.dict = tmp;
 			m_capacity = capacity;
 		}
 
 		TORRENT_ASSERT(m_size < m_capacity);
-		std::pair<char*, lazy_entry>& ret = m_data.dict[m_size++];
+		std::pair<char const*, lazy_entry>& ret = m_data.dict[m_size++];
 		ret.first = name;
 		return &ret.second;
+	}
+
+	namespace
+	{
+		// the number of decimal digits needed
+		// to represent the given value
+		int num_digits(int val)
+		{
+			int ret = 1;
+			while (val > 10)
+			{
+				++ret;
+				val /= 10;
+			}
+			return ret;
+		}
+	}
+
+	void lazy_entry::construct_string(char const* start, int length)
+	{
+		TORRENT_ASSERT(m_type == none_t);
+		m_type = string_t;
+		m_data.start = start;
+		m_size = length;
+		m_begin = start - 1 - num_digits(length);
+		m_end = start + length;
+	}
+
+	namespace
+	{
+		// str1 is null-terminated
+		// str2 is not, str2 is len2 chars
+		bool string_equal(char const* str1, char const* str2, int len2)
+		{
+			while (len2 > 0)
+			{
+				if (*str1 != *str2) return false;
+				if (*str1 == 0) return false;
+				++str1;
+				++str2;
+				--len2;
+			}
+			return true;
+		}
 	}
 
 	lazy_entry* lazy_entry::dict_find(char const* name)
@@ -197,7 +246,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type == dict_t);
 		for (int i = 0; i < m_size; ++i)
 		{
-			if (strcmp(name, m_data.dict[i].first) == 0)
+			std::pair<char const*, lazy_entry> const& e = m_data.dict[i];
+			if (string_equal(name, e.first, e.second.m_begin - e.first))
 				return &m_data.dict[i].second;
 		}
 		return 0;
@@ -242,6 +292,12 @@ namespace libtorrent
 		m_type = none_t;
 	}
 
+	std::pair<char const*, int> lazy_entry::data_section()
+	{
+		typedef std::pair<char const*, int> return_t;
+		return return_t(m_begin, m_end - m_begin);
+	}
+
 	std::ostream& operator<<(std::ostream& os, lazy_entry const& e)
 	{
 		switch (e.type())
@@ -251,7 +307,7 @@ namespace libtorrent
 			case lazy_entry::string_t:
 			{
 				bool printable = true;
-				char const* str = e.string_value();
+				char const* str = e.string_ptr();
 				for (int i = 0; i < e.string_length(); ++i)
 				{
 					using namespace std;
@@ -259,7 +315,7 @@ namespace libtorrent
 					printable = false;
 					break;
 				}
-				if (printable) return os << str;
+				if (printable) return os << e.string_value();
 				for (int i = 0; i < e.string_length(); ++i)
 					os << std::hex << int((unsigned char)(str[i]));
 				return os;
