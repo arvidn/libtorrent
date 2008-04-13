@@ -628,6 +628,12 @@ namespace libtorrent
 	}
 #endif
 
+	void torrent_handle::get_full_peer_list(std::vector<peer_list_entry>& v) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(get_full_peer_list(v));
+	}
+
 	void torrent_handle::get_peer_info(std::vector<peer_info>& v) const
 	{
 		INVARIANT_CHECK;

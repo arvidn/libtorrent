@@ -298,6 +298,7 @@ namespace libtorrent
 
 		void resolve_peer_country(boost::intrusive_ptr<peer_connection> const& p) const;
 
+		void get_full_peer_list(std::vector<peer_list_entry>& v) const;
 		void get_peer_info(std::vector<peer_info>& v);
 		void get_download_queue(std::vector<partial_piece_info>& queue);
 

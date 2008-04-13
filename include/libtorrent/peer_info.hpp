@@ -189,6 +189,18 @@ namespace libtorrent
 		int upload_rate_peak;
 	};
 
+	struct TORRENT_EXPORT peer_list_entry
+	{
+		enum flags_t
+		{
+			banned = 1,
+		};
+		
+		tcp::endpoint ip;
+		int flags;
+		boost::uint8_t failcount;
+		boost::uint8_t source;
+	};
 }
 
 #endif // TORRENT_PEER_INFO_HPP_INCLUDED
