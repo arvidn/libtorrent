@@ -2145,8 +2145,11 @@ namespace aux {
 			, bind(&session_impl::on_port_mapping
 				, this, _1, _2, _3, 0));
 
-		m_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp
-			, m_listen_interface.port(), m_listen_interface.port());
+		if (m_listen_interface.port() > 0)
+		{
+			m_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp
+				, m_listen_interface.port(), m_listen_interface.port());
+		}
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht)
 			m_udp_mapping[0] = m_natpmp->add_mapping(natpmp::udp
@@ -2172,8 +2175,11 @@ namespace aux {
 			, m_settings.upnp_ignore_nonrouters);
 
 		m_upnp->discover_device();
-		m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp
-			, m_listen_interface.port(), m_listen_interface.port());
+		if (m_listen_interface.port() > 0)
+		{
+			m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp
+				, m_listen_interface.port(), m_listen_interface.port());
+		}
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht)
 			m_udp_mapping[1] = m_upnp->add_mapping(upnp::udp
