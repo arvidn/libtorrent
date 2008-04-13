@@ -1391,9 +1391,18 @@ namespace libtorrent
 
 		if (alerts().should_post(alert::warning))
 		{
-			write_resume_data(*j.resume_data);
+			char const* msg;
+			if (j.resume_data)
+			{
+				write_resume_data(*j.resume_data);
+				msg = "resume data generated";
+			}
+			else
+			{
+				msg = j.str.c_str();
+			}
 			alerts().post_alert(save_resume_data_alert(j.resume_data
-				, get_handle(), "resume data generated"));
+				, get_handle(), msg));
 		}
 	}
 
