@@ -235,6 +235,12 @@ namespace libtorrent
 		TORRENT_FORWARD_RETURN(is_seed(), false);
 	}
 
+	bool torrent_handle::is_finished() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD_RETURN(is_finished(), false);
+	}
+
 	bool torrent_handle::is_paused() const
 	{
 		INVARIANT_CHECK;
