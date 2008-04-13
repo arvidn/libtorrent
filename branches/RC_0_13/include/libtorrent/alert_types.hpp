@@ -301,16 +301,6 @@ namespace libtorrent
 		{ return std::auto_ptr<alert>(new torrent_paused_alert(*this)); }
 	};
 
-	struct TORRENT_EXPORT torrent_resumed_alert: torrent_alert
-	{
-		torrent_resumed_alert(torrent_handle const& h, std::string const& msg)
-			: torrent_alert(h, alert::warning, msg)
-		{}
-	
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new torrent_resumed_alert(*this)); }
-	};
-
 	struct TORRENT_EXPORT torrent_checked_alert: torrent_alert
 	{
 		torrent_checked_alert(torrent_handle const& h, std::string const& msg)
