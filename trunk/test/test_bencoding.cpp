@@ -1,6 +1,7 @@
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/lazy_entry.hpp"
 #include <boost/lexical_cast.hpp>
+#include <iostream>
 
 #include "test.hpp"
 
@@ -75,6 +76,7 @@ int test_main()
 		lazy_entry e;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e);
 		TORRENT_ASSERT(ret == 0);
+		std::cout << e << std::endl;
 		TORRENT_ASSERT(e.type() == lazy_entry::int_t);
 		TORRENT_ASSERT(e.int_value() == 12453);
 	}
@@ -84,6 +86,7 @@ int test_main()
 		lazy_entry e;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e);
 		TORRENT_ASSERT(ret == 0);
+		std::cout << e << std::endl;
 		TORRENT_ASSERT(e.type() == lazy_entry::string_t);
 		TORRENT_ASSERT(e.string_value() == std::string("abcdefghijklmnopqrstuvwxyz"));
 		TORRENT_ASSERT(e.string_length() == 26);
@@ -94,6 +97,7 @@ int test_main()
 		lazy_entry e;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e);
 		TORRENT_ASSERT(ret == 0);
+		std::cout << e << std::endl;
 		TORRENT_ASSERT(e.type() == lazy_entry::list_t);
 		TORRENT_ASSERT(e.list_size() == 2);
 		TORRENT_ASSERT(e.list_at(0)->type() == lazy_entry::int_t);
@@ -108,6 +112,7 @@ int test_main()
 		lazy_entry e;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e);
 		TORRENT_ASSERT(ret == 0);
+		std::cout << e << std::endl;
 		TORRENT_ASSERT(e.type() == lazy_entry::dict_t);
 		TORRENT_ASSERT(e.dict_size() == 3);
 		TORRENT_ASSERT(e.dict_find("a")->type() == lazy_entry::int_t);

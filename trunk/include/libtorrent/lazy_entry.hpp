@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include "libtorrent/assert.hpp"
 #include <boost/cstdint.hpp>
+#include <iosfwd>
 
 namespace libtorrent
 {
@@ -103,6 +104,12 @@ namespace libtorrent
 		lazy_entry* dict_find(char const* name);
 		lazy_entry const* dict_find(char const* name) const
 		{ return const_cast<lazy_entry*>(this)->dict_find(name); }
+		std::pair<char const*, lazy_entry const*> dict_at(int i) const
+		{
+			TORRENT_ASSERT(m_type == dict_t);
+			TORRENT_ASSERT(i < m_size);
+			return std::make_pair(m_data.dict[i].first, &m_data.dict[i].second);
+		}
 
 		int dict_size() const
 		{
@@ -128,6 +135,8 @@ namespace libtorrent
 			TORRENT_ASSERT(i < m_size);
 			return &m_data.list[i];
 		}
+		lazy_entry const* list_at(int i) const
+		{ return const_cast<lazy_entry*>(this)->list_at(i); }
 
 		int list_size() const
 		{
@@ -152,6 +161,8 @@ namespace libtorrent
 		int m_size; // if list or dictionary, the number of items
 		int m_capacity; // if list or dictionary, allocated number of items
 	};
+
+	std::ostream& operator<<(std::ostream& os, lazy_entry const& e);
 
 };
 
