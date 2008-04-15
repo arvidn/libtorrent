@@ -5,6 +5,7 @@
 #include <libtorrent/extensions.hpp>
 #include <libtorrent/entry.hpp>
 #include <libtorrent/peer_request.hpp>
+#include <libtorrent/disk_buffer_holder.hpp>
 #include <boost/python.hpp>
 
 using namespace boost::python;
@@ -144,7 +145,7 @@ namespace
           return this->peer_plugin::on_request(req);
       }
 
-      bool on_piece(peer_request const& piece, char const* data)
+      bool on_piece(peer_request const& piece, disk_buffer_holder& data)
       {
           if (override f = this->get_override("on_piece"))
               return f(piece, data);
@@ -152,7 +153,7 @@ namespace
               return peer_plugin::on_piece(piece, data);
       }
 
-      bool default_on_piece(peer_request const& piece, char const* data)
+      bool default_on_piece(peer_request const& piece, disk_buffer_holder& data)
       {
           return this->peer_plugin::on_piece(piece, data);
       }
