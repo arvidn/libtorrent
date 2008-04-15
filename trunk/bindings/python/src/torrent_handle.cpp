@@ -301,7 +301,7 @@ void bind_torrent_handle()
         .def("set_max_connections", _(&torrent_handle::set_max_connections))
         .def("set_tracker_login", _(&torrent_handle::set_tracker_login))
         .def("move_storage", _(&torrent_handle::move_storage))
-        .def("info_hash", _(&torrent_handle::info_hash), copy)
+        .def("info_hash", _(&torrent_handle::info_hash))
         ;
 }
 
