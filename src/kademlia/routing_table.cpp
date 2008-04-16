@@ -229,8 +229,8 @@ void routing_table::node_failed(node_id const& id)
 		{
 			b.erase(i);
 			TORRENT_ASSERT(m_lowest_active_bucket <= bucket_index);
-			while (m_buckets[m_lowest_active_bucket].first.empty()
-				&& m_lowest_active_bucket < 160)
+			while (m_lowest_active_bucket < 160
+				&& m_buckets[m_lowest_active_bucket].first.empty())
 			{
 				++m_lowest_active_bucket;
 			}
