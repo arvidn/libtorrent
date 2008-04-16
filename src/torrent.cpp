@@ -420,7 +420,7 @@ namespace libtorrent
 
 		m_state = torrent_status::queued_for_checking;
 
-		read_resume_data(m_resume_data);
+		if (m_resume_data.type() == entry::dictionary_t) read_resume_data(m_resume_data);
 		
 		m_storage->async_check_fastresume(&m_resume_data
 			, bind(&torrent::on_resume_data_checked
