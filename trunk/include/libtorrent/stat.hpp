@@ -138,6 +138,9 @@ namespace libtorrent
 			m_total_upload_payload += uploaded;
 		}
 
+		size_type last_payload_downloaded() const { return m_downloaded_payload; }
+		size_type last_payload_uploaded() const { return m_uploaded_payload; }
+
 	private:
 
 #ifndef NDEBUG

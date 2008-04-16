@@ -114,6 +114,10 @@ namespace libtorrent
 			, storage_mode(storage_mode_sparse)
 			, up_bandwidth_queue(0)
 			, down_bandwidth_queue(0)
+			, all_time_upload(0)
+			, all_time_download(0)
+			, active_time(0)
+			, seeding_time(0)
 		{}
 
 		enum state_t
@@ -240,6 +244,17 @@ namespace libtorrent
 
 		int up_bandwidth_queue;
 		int down_bandwidth_queue;
+
+		// number of bytes downloaded since torrent was started
+		// saved and restored from resume data
+		size_type all_time_upload;
+		size_type all_time_download;
+
+		// the number of seconds of being active
+		// and as being a seed, saved and restored
+		// from resume data
+		int active_time;
+		int seeding_time;
 	};
 
 	struct TORRENT_EXPORT block_info

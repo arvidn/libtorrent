@@ -518,6 +518,7 @@ namespace libtorrent
 		torrent_handle get_handle();
 
 		void write_resume_data(entry& rd) const;
+		void read_resume_data(entry const& rd);
 
 		// LOGGING
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -838,6 +839,23 @@ namespace libtorrent
 		int m_deficit_counter;
 
 		policy m_policy;
+
+		// the sequence number for this torrent, this is a
+		// monotonically increasing number for each added torrent
+		int m_sequence_number;
+
+		// total time we've been available on this torrent
+		// does not count when the torrent is stopped or paused
+		time_duration m_active_time;
+
+		// total time we've been available as a seed on this torrent
+		// does not count when the torrent is stopped or paused
+		time_duration m_seeding_time;
+
+		// all time totals of uploaded and downloaded payload
+		// stored in resume data
+		size_type m_total_uploaded;
+		size_type m_total_downloaded;
 	};
 
 	inline ptime torrent::next_announce() const

@@ -2095,7 +2095,10 @@ struct torrent_status
         int uploads_limit;
         int connections_limit;
 
-        bool compact_mode;
+        storage_mode_t storage_mode;
+
+        int up_bandwidth_queue;
+        int down_bandwidth_queue;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">progress</span></tt> is a value in the range [0, 1], that represents the progress of the
@@ -2228,8 +2231,15 @@ half-open connections that hasn't completed the bittorrent handshake yet. This i
 always &lt;= <tt class="docutils literal"><span class="pre">num_peers</span></tt>.</p>
 <p><tt class="docutils literal"><span class="pre">uploads_limit</span></tt> is the set limit of upload slots (unchoked peers) for this torrent.</p>
 <p><tt class="docutils literal"><span class="pre">connections_limit</span></tt> is the set limit of number of connections for this torrent.</p>
-<p><tt class="docutils literal"><span class="pre">compact_mode</span></tt> is true if this torrent was started with compact allocation mode
-for its storage. False means it was started in full allocation mode.</p>
+<p><tt class="docutils literal"><span class="pre">storage_mode</span></tt> is one of <tt class="docutils literal"><span class="pre">storage_mode_allocate</span></tt>, <tt class="docutils literal"><span class="pre">storage_mode_sparse</span></tt> or
+<tt class="docutils literal"><span class="pre">storage_mode_compact</span></tt>. Identifies which storage mode this torrent is being saved
+with. See <a class="reference internal" href="#storage-allocation">Storage allocation</a>.</p>
+<p><tt class="docutils literal"><span class="pre">up_bandwidth_queue</span></tt> and <tt class="docutils literal"><span class="pre">down_bandwidth_queue</span></tt> are the number of peers in this
+torrent that are waiting for more bandwidth quota from the torrent rate limiter.
+This can determine if the rate you get from this torrent is bound by the torrents
+limit or not. If there is no limit set on this torrent, the peers might still be
+waiting for bandwidth quota from the global limiter, but then they are counted in
+the <tt class="docutils literal"><span class="pre">session_status</span></tt> object.</p>
 </div>
 <div class="section" id="peer-info">
 <h1>peer_info</h1>
