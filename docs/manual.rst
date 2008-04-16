@@ -2255,7 +2255,16 @@ It contains the following fields::
 		int uploads_limit;
 		int connections_limit;
 
-		bool compact_mode;
+		storage_mode_t storage_mode;
+
+		int up_bandwidth_queue;
+		int down_bandwidth_queue;
+
+		size_type all_time_upload;
+		size_type all_time_download;
+
+		int active_time;
+		int seeding_time;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -2406,8 +2415,26 @@ always <= ``num_peers``.
 
 ``connections_limit`` is the set limit of number of connections for this torrent.
 
-``compact_mode`` is true if this torrent was started with compact allocation mode
-for its storage. False means it was started in full allocation mode.
+``storage_mode`` is one of ``storage_mode_allocate``, ``storage_mode_sparse`` or
+``storage_mode_compact``. Identifies which storage mode this torrent is being saved
+with. See `Storage allocation`_.
+
+``up_bandwidth_queue`` and ``down_bandwidth_queue`` are the number of peers in this
+torrent that are waiting for more bandwidth quota from the torrent rate limiter.
+This can determine if the rate you get from this torrent is bound by the torrents
+limit or not. If there is no limit set on this torrent, the peers might still be
+waiting for bandwidth quota from the global limiter, but then they are counted in
+the ``session_status`` object.
+
+``all_time_upload`` and ``all_time_download`` are accumulated upload and download
+byte counters. They are saved in and restored from resume data to keep totals
+across sessions.
+
+``active_time`` and ``seeding_time`` are second counters. They keep track of the
+number of seconds this torrent has been active (not paused) and the number of
+seconds it has been active while being a seed. ``seeding_time`` should be >=
+``active_time`` They are saved in and restored from resume data, to keep totals
+across sessions.
 
 peer_info
 =========

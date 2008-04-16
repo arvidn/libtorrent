@@ -420,6 +420,8 @@ namespace libtorrent
 
 		m_state = torrent_status::queued_for_checking;
 
+		read_resume_data(m_resume_data);
+		
 		m_storage->async_check_fastresume(&m_resume_data
 			, bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1, _2));
@@ -2257,11 +2259,31 @@ namespace libtorrent
 	}
 #endif
 
+	void torrent::read_resume_data(entry const& rd)
+	{
+		entry const* e = 0;
+		e = rd.find_key("total_uploaded");
+		m_total_uploaded = (e != 0 && e->type() == entry::int_t)?e->integer():0;
+		e = rd.find_key("total_downloaded");
+		m_total_downloaded = (e != 0 && e->type() == entry::int_t)?e->integer():0;
+
+		e = rd.find_key("active_time");
+		m_active_time = seconds((e != 0 && e->type() == entry::int_t)?e->integer():0);
+		e = rd.find_key("seeding_time");
+		m_seeding_time = seconds((e != 0 && e->type() == entry::int_t)?e->integer():0);
+	}
+	
 	void torrent::write_resume_data(entry& ret) const
 	{
 		ret["file-format"] = "libtorrent resume file";
 		ret["file-version"] = 1;
 
+		ret["total_uploaded"] = m_total_uploaded;
+		ret["total_downloaded"] = m_total_downloaded;
+
+		ret["active_time"] = total_seconds(m_active_time);
+		ret["seeding_time"] = total_seconds(m_seeding_time);
+		
 		ret["allocation"] = m_storage_mode == storage_mode_sparse?"sparse"
 			:m_storage_mode == storage_mode_allocate?"full":"compact";
 
@@ -3354,6 +3376,10 @@ namespace libtorrent
 			return;
 		}
 
+		time_duration since_last_tick = microsec(tick_interval * 1000000L);
+		if (is_seed()) m_seeding_time += since_last_tick;
+		m_active_time += since_last_tick;
+
 		// ---- WEB SEEDS ----
 
 		// re-insert urls that are to be retries into the m_web_seeds
@@ -3424,6 +3450,8 @@ namespace libtorrent
 #endif
 		}
 		accumulator += m_stat;
+		m_total_uploaded += m_stat.last_payload_uploaded();
+		m_total_downloaded += m_stat.last_payload_downloaded();
 		m_stat.second_tick(tick_interval);
 
 		m_time_scaler--;
@@ -3566,6 +3594,12 @@ namespace libtorrent
 		st.list_peers = m_policy.num_peers();
 		st.list_seeds = m_policy.num_seeds();
 		st.connect_candidates = m_policy.num_connect_candidates();
+
+		st.all_time_upload = m_total_uploaded;
+		st.all_time_download = m_total_downloaded;
+
+		st.active_time = total_seconds(m_active_time);
+		st.seeding_time = total_seconds(m_seeding_time);
 
 		st.storage_mode = m_storage_mode;
 
