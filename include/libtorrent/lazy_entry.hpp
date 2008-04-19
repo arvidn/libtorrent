@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 #include <vector>
 #include "libtorrent/assert.hpp"
-#include <boost/cstdint.hpp>
+#include "libtorrent/size_type.hpp"
 #include <iosfwd>
 
 namespace libtorrent
@@ -71,7 +71,7 @@ namespace libtorrent
 			m_end = start + length + 1; // include 'e'
 		}
 
-		boost::int64_t int_value() const;
+		size_type int_value() const;
 
 		// string functions
 		// ================
@@ -119,6 +119,12 @@ namespace libtorrent
 		lazy_entry* dict_find(char const* name);
 		lazy_entry const* dict_find(char const* name) const
 		{ return const_cast<lazy_entry*>(this)->dict_find(name); }
+
+		std::string dict_find_string_value(char const* name) const;
+		size_type dict_find_int_value(char const* name, size_type default_val = 0) const;
+		lazy_entry const* dict_find_dict(char const* name) const;
+		lazy_entry const* dict_find_list(char const* name) const;
+
 		std::pair<char const*, lazy_entry const*> dict_at(int i) const
 		{
 			TORRENT_ASSERT(m_type == dict_t);
@@ -153,6 +159,9 @@ namespace libtorrent
 		}
 		lazy_entry const* list_at(int i) const
 		{ return const_cast<lazy_entry*>(this)->list_at(i); }
+
+		std::string list_string_value_at(int i) const;
+		size_type list_int_value_at(int i, size_type default_val = 0) const;
 
 		int list_size() const
 		{
