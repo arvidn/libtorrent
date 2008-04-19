@@ -158,7 +158,7 @@ namespace libtorrent
 		return 0;
 	}
 
-	boost::int64_t lazy_entry::int_value() const
+	size_type lazy_entry::int_value() const
 	{
 		TORRENT_ASSERT(m_type == int_t);
 		boost::int64_t val = 0;
@@ -241,6 +241,34 @@ namespace libtorrent
 		}
 	}
 
+	std::string lazy_entry::dict_find_string_value(char const* name) const
+	{
+		lazy_entry const* e = dict_find(name);
+		if (e == 0 || e->type() != lazy_entry::string_t) return std::string();
+		return e->string_value();
+	}
+
+	size_type lazy_entry::dict_find_int_value(char const* name, size_type default_val) const
+	{
+		lazy_entry const* e = dict_find(name);
+		if (e == 0 || e->type() != lazy_entry::int_t) return default_val;
+		return e->int_value();
+	}
+
+	lazy_entry const* lazy_entry::dict_find_dict(char const* name) const
+	{
+		lazy_entry const* e = dict_find(name);
+		if (e == 0 || e->type() != lazy_entry::dict_t) return 0;
+		return e;
+	}
+
+	lazy_entry const* lazy_entry::dict_find_list(char const* name) const
+	{
+		lazy_entry const* e = dict_find(name);
+		if (e == 0 || e->type() != lazy_entry::list_t) return 0;
+		return e;
+	}
+
 	lazy_entry* lazy_entry::dict_find(char const* name)
 	{
 		TORRENT_ASSERT(m_type == dict_t);
@@ -277,6 +305,20 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_size < m_capacity);
 		return m_data.list + (m_size++);
+	}
+
+	std::string lazy_entry::list_string_value_at(int i) const
+	{
+		lazy_entry const* e = list_at(i);
+		if (e == 0 || e->type() != lazy_entry::string_t) return std::string();
+		return e->string_value();
+	}
+
+	size_type lazy_entry::list_int_value_at(int i, size_type default_val) const
+	{
+		lazy_entry const* e = list_at(i);
+		if (e == 0 || e->type() != lazy_entry::int_t) return default_val;
+		return e->int_value();
 	}
 
 	void lazy_entry::clear()
