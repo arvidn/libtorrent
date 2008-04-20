@@ -125,11 +125,12 @@ namespace libtorrent
 		lazy_entry const* dict_find_dict(char const* name) const;
 		lazy_entry const* dict_find_list(char const* name) const;
 
-		std::pair<char const*, lazy_entry const*> dict_at(int i) const
+		std::pair<std::string, lazy_entry const*> dict_at(int i) const
 		{
 			TORRENT_ASSERT(m_type == dict_t);
 			TORRENT_ASSERT(i < m_size);
-			return std::make_pair(m_data.dict[i].first, &m_data.dict[i].second);
+			std::pair<char const*, lazy_entry> const& e = m_data.dict[i];
+			return std::make_pair(std::string(e.first, e.second.m_begin - e.first), &e.second);
 		}
 
 		int dict_size() const
@@ -183,7 +184,7 @@ namespace libtorrent
 
 		// returns pointers into the source buffer where
 		// this entry has its bencoded data
-		std::pair<char const*, int> data_section();
+		std::pair<char const*, int> data_section() const;
 
 	private:
 

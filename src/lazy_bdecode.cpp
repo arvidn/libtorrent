@@ -237,7 +237,7 @@ namespace libtorrent
 				++str2;
 				--len2;
 			}
-			return true;
+			return *str1 == 0;
 		}
 	}
 
@@ -334,7 +334,7 @@ namespace libtorrent
 		m_type = none_t;
 	}
 
-	std::pair<char const*, int> lazy_entry::data_section()
+	std::pair<char const*, int> lazy_entry::data_section() const
 	{
 		typedef std::pair<char const*, int> return_t;
 		return return_t(m_begin, m_end - m_begin);
@@ -357,10 +357,11 @@ namespace libtorrent
 					printable = false;
 					break;
 				}
-				if (printable) return os << e.string_value();
+				os << "'";
+				if (printable) return os << e.string_value() << "'";
 				for (int i = 0; i < e.string_length(); ++i)
 					os << std::hex << int((unsigned char)(str[i]));
-				return os;
+				return os << "'";
 			}
 			case lazy_entry::list_t:
 			{
@@ -368,7 +369,7 @@ namespace libtorrent
 				bool one_liner = (e.list_size() == 0
 					|| e.list_at(0)->type() == lazy_entry::int_t
 					|| (e.list_at(0)->type() == lazy_entry::string_t
-						&& e.list_at(0)->string_length() < 5))
+						&& e.list_at(0)->string_length() < 10))
 					&& e.list_size() < 5;
 				if (!one_liner) os << "\n";
 				for (int i = 0; i < e.list_size(); ++i)
@@ -386,15 +387,15 @@ namespace libtorrent
 				bool one_liner = (e.dict_size() == 0
 					|| e.dict_at(0).second->type() == lazy_entry::int_t
 					|| (e.dict_at(0).second->type() == lazy_entry::string_t
-						&& e.dict_at(0).second->string_length() < 4)
-					|| strlen(e.dict_at(0).first) < 10)
+						&& e.dict_at(0).second->string_length() < 10)
+					|| e.dict_at(0).first.size() < 10)
 					&& e.dict_size() < 5;
 
 				if (!one_liner) os << "\n";
 				for (int i = 0; i < e.dict_size(); ++i)
 				{
 					if (i == 0 && one_liner) os << " ";
-					std::pair<char const*, lazy_entry const*> ent = e.dict_at(i);
+					std::pair<std::string, lazy_entry const*> ent = e.dict_at(i);
 					os << "'" << ent.first << "': " << *ent.second;
 					if (i < e.dict_size() - 1) os << (one_liner?", ":",\n");
 					else os << (one_liner?" ":"\n");
