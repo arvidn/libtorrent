@@ -546,7 +546,7 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 	asio::error_code ec;
 	soap << "<NewRemoteHost></NewRemoteHost>"
 		"<NewExternalPort>" << d.mapping[i].external_port << "</NewExternalPort>"
-		"<NewProtocol>" << (d.mapping[i].protocol ? "UDP" : "TCP") << "</NewProtocol>"
+		"<NewProtocol>" << (d.mapping[i].protocol == udp ? "UDP" : "TCP") << "</NewProtocol>"
 		"<NewInternalPort>" << d.mapping[i].local_port << "</NewInternalPort>"
 		"<NewInternalClient>" << c.socket().local_endpoint(ec).address() << "</NewInternalClient>"
 		"<NewEnabled>1</NewEnabled>"
@@ -660,7 +660,7 @@ void upnp::delete_port_mapping(rootdevice& d, int i)
 
 	soap << "<NewRemoteHost></NewRemoteHost>"
 		"<NewExternalPort>" << d.mapping[i].external_port << "</NewExternalPort>"
-		"<NewProtocol>" << (d.mapping[i].protocol ? "UDP" : "TCP") << "</NewProtocol>";
+		"<NewProtocol>" << (d.mapping[i].protocol == udp ? "UDP" : "TCP") << "</NewProtocol>";
 	soap << "</u:" << soap_action << "></s:Body></s:Envelope>";
 	
 	post(d, soap.str(), soap_action);
