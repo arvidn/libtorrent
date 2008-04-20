@@ -106,6 +106,32 @@ namespace
     return s.add_torrent(ti, save, resume, storage_mode, paused, default_storage_constructor);
   }
   
+  list get_torrents(session& s)
+  {
+     list ret;
+     std::vector<torrent_handle> torrents = s.get_torrents();
+
+     for (std::vector<torrent_handle>::iterator i = torrents.begin(); i != torrents.end(); ++i)
+     {
+       ret.append(*i);
+     }
+     return ret;
+  }
+
+#ifndef TORRENT_DISABLE_GEO_IP
+  bool load_asnum_db(session& s, std::string file)
+  {
+    allow_threading_guard guard;
+    return s.load_asnum_db(file.c_str());
+  }
+
+  bool load_country_db(session& s, std::string file)
+  {
+    allow_threading_guard guard;
+    return s.load_country_db(file.c_str());
+  }
+#endif
+  
 } // namespace unnamed
 
 void bind_session()
@@ -252,6 +278,7 @@ void bind_session()
 #endif
 #ifndef TORRENT_DISABLE_GEO_IP
         .def("load_asnum_db", allow_threads(&session::load_asnum_db))
+        .def("load_country_db", &load_country_db)
 #endif
         .def("load_state", allow_threads(&session::load_state))
         .def("state", allow_threads(&session::state))
@@ -271,6 +298,8 @@ void bind_session()
         .def("start_natpmp", allow_threads(&session::start_natpmp), session_start_natpmp_doc)
         .def("stop_natpmp", allow_threads(&session::stop_natpmp), session_stop_natpmp_doc)
         .def("set_ip_filter", allow_threads(&session::set_ip_filter), session_set_ip_filter_doc)
+        .def("find_torrent", allow_threads(&session::find_torrent))
+        .def("get_torrents", &get_torrents)
         ;
 
     register_ptr_to_python<std::auto_ptr<alert> >();
