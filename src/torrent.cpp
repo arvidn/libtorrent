@@ -1149,7 +1149,9 @@ namespace libtorrent
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_ses.m_logger) << time_now_string() << " *** PIECE_FINISHED [ p: "
-			<< index << " chk: " << (passed_hash_check?"passed":"failed") << " ]\n";
+			<< index << " chk: " << ((passed_hash_check == 0)
+				?"passed":passed_hash_check == -1
+				?"disk failed":"failed") << " ]\n";
 #endif
 
 		bool was_seed = is_seed();
