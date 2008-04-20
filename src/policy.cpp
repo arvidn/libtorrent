@@ -450,8 +450,7 @@ namespace libtorrent
 
 	policy::iterator policy::find_connect_candidate()
 	{
-// too expensive
-//		INVARIANT_CHECK;
+		INVARIANT_CHECK;
 
 		ptime now = time_now();
 		ptime min_connect_time(now);
@@ -834,8 +833,15 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(m_peers.count(p->ip.address()) == 1);
 		}
+		bool was_conn_cand = is_connect_candidate(*p, m_torrent->is_finished());
 		p->ip.port(port);
 		p->source |= src;
+
+		if (was_conn_cand != is_connect_candidate(*p, m_torrent->is_finished()))
+		{
+			m_num_connect_candidates += was_conn_cand ? -1 : 1;
+			if (m_num_connect_candidates < 0) m_num_connect_candidates = 0;
+		}
 		return true;
 	}
 
@@ -853,8 +859,7 @@ namespace libtorrent
 	policy::peer* policy::peer_from_tracker(tcp::endpoint const& remote, peer_id const& pid
 		, int src, char flags)
 	{
-// too expensive
-//		INVARIANT_CHECK;
+		INVARIANT_CHECK;
 
 		// just ignore the obviously invalid entries
 		if (remote.address() == address() || remote.port() == 0)
@@ -963,8 +968,10 @@ namespace libtorrent
 #endif
 
 			if (was_conn_cand != is_connect_candidate(i->second, m_torrent->is_finished()))
-				if (was_conn_cand) --m_num_connect_candidates;
-				else ++m_num_connect_candidates;
+			{
+				m_num_connect_candidates += was_conn_cand ? -1 : 1;
+				if (m_num_connect_candidates < 0) m_num_connect_candidates = 0;
+			}
 		}
 
 		return &i->second;
