@@ -526,7 +526,14 @@ namespace libtorrent
 		// optimization, don't send have messages
 		// to peers that already have the piece
 		if (!m_ses.settings().send_redundant_have
-			&& has_piece(index)) return;
+			&& has_piece(index))
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string()
+				<< " ==> HAVE    [ piece: " << index << " ] SUPRESSED\n";
+#endif
+			return;
+		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string()
