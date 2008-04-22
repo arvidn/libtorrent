@@ -980,6 +980,24 @@ int main(int ac, char* av[])
 			char c;
 			if (sleep_and_input(&c))
 			{
+				if (c == 'm')
+				{
+					std::cout << "saving peers for torrents" << std::endl;
+				
+					std::vector<peer_list_entry> peers;
+					for (handles_t::iterator i = handles.begin();
+						i != handles.end(); ++i)
+					{
+						i->second.get_full_peer_list(peers);
+						std::ofstream f(("peers_" + i->second.name()).c_str());
+						for (std::vector<peer_list_entry>::iterator k = peers.begin()
+							, end(peers.end()); k != end; ++k)
+						{
+							f << k->ip.address() << "\t" << ses.as_for_ip(k->ip.address()) << std::endl;
+						}
+					}
+				}
+
 				if (c == 'q')
 				{
 					// keep track of the number of resume data

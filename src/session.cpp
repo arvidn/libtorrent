@@ -185,6 +185,13 @@ namespace libtorrent
 	{
 		return m_impl->load_country_db(file);
 	}
+
+	int session::as_for_ip(address const& addr)
+	{
+		aux::session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		return m_impl->as_for_ip(addr);
+	}
+
 #endif
 
 	void session::load_state(entry const& ses_state)
