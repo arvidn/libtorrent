@@ -993,7 +993,11 @@ int main(int ac, char* av[])
 						for (std::vector<peer_list_entry>::iterator k = peers.begin()
 							, end(peers.end()); k != end; ++k)
 						{
-							f << k->ip.address() << "\t" << ses.as_for_ip(k->ip.address()) << std::endl;
+							f << k->ip.address()
+#ifndef TORRENT_DISABLE_GEO_IP
+								<< "\t" << ses.as_for_ip(k->ip.address())
+#endif
+								<< std::endl;
 						}
 					}
 				}
