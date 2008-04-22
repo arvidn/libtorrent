@@ -206,6 +206,10 @@ namespace libtorrent
 		, m_max_connections((std::numeric_limits<int>::max)())
 		, m_deficit_counter(0)
 		, m_policy(this)
+		, m_active_time(seconds(0))
+		, m_seeding_time(seconds(0))
+		, m_total_uploaded(0)
+		, m_total_downloaded(0)
 	{
 #ifndef NDEBUG
 		m_files_checked = false;
@@ -271,6 +275,10 @@ namespace libtorrent
 		, m_max_connections((std::numeric_limits<int>::max)())
 		, m_deficit_counter(0)
 		, m_policy(this)
+		, m_active_time(seconds(0))
+		, m_seeding_time(seconds(0))
+		, m_total_uploaded(0)
+		, m_total_downloaded(0)
 	{
 #ifndef NDEBUG
 		m_files_checked = false;
