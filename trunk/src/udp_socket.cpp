@@ -24,6 +24,8 @@ udp_socket::udp_socket(asio::io_service& ios, udp_socket::callback_t const& c
 
 void udp_socket::send(udp::endpoint const& ep, char const* p, int len, asio::error_code& ec)
 {
+	if (e == asio::error::operation_aborted) return;
+
 	if (m_tunnel_packets)
 	{
 		// send udp packets through SOCKS5 server
@@ -39,6 +41,8 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len, asio::err
 
 void udp_socket::on_read(udp::socket* s, asio::error_code const& e, std::size_t bytes_transferred)
 {
+	if (e == asio::error::operation_aborted) return;
+
 	if (!m_callback) return;
 
 	if (e)
