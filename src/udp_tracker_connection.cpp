@@ -84,7 +84,7 @@ namespace libtorrent
 		: tracker_connection(man, req, ios, bind_infc, c)
 		, m_man(man)
 		, m_name_lookup(ios)
-		, m_socket(ios, boost::bind(&udp_tracker_connection::on_receive, this, _1, _2, _3, _4), cc)
+		, m_socket(ios, boost::bind(&udp_tracker_connection::on_receive, self(), _1, _2, _3, _4), cc)
 		, m_transaction_id(0)
 		, m_connection_id(0)
 		, m_settings(stn)
