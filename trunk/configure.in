@@ -25,6 +25,8 @@ AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 # AC_PROG_RANLIB is obsolete by AC_PROC_LIBTOOL
 
+AC_SYS_LARGEFILE
+
 dnl Make sure that the asio header files are added.
 ASIO_DIR=$srcdir/include/libtorrent/asio
 
