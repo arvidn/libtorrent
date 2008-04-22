@@ -24,7 +24,7 @@ udp_socket::udp_socket(asio::io_service& ios, udp_socket::callback_t const& c
 
 void udp_socket::send(udp::endpoint const& ep, char const* p, int len, asio::error_code& ec)
 {
-	if (e == asio::error::operation_aborted) return;
+	if (ec == asio::error::operation_aborted) return;
 
 	if (m_tunnel_packets)
 	{
