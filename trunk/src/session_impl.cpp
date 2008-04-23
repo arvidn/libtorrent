@@ -1566,13 +1566,6 @@ namespace aux {
 		m_queued_for_checking.pop_front();
 		if (!m_queued_for_checking.empty())
 			m_queued_for_checking.front()->start_checking();
-
-		if (m_alerts.should_post(alert::info))
-		{
-			m_alerts.post_alert(torrent_checked_alert(
-				t->get_handle()
-				, "torrent finished checking"));
-		}
 	}
 
 	torrent_handle session_impl::add_torrent(
