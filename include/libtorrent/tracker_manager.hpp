@@ -118,20 +118,21 @@ namespace libtorrent
 		friend class tracker_manager;
 		request_callback(): m_manager(0) {}
 		virtual ~request_callback() {}
-		virtual void tracker_warning(std::string const& msg) = 0;
+		virtual void tracker_warning(tracker_request const& req
+			, std::string const& msg) = 0;
 		virtual void tracker_scrape_response(tracker_request const& req
 			, int complete, int incomplete, int downloads) {}
 		virtual void tracker_response(
-			tracker_request const&
+			tracker_request const& req
 			, std::vector<peer_entry>& peers
 			, int interval
 			, int complete
 			, int incomplete
 			, address const& external_ip) = 0;
 		virtual void tracker_request_timed_out(
-			tracker_request const&) = 0;
+			tracker_request const& req) = 0;
 		virtual void tracker_request_error(
-			tracker_request const&
+			tracker_request const& req
 			, int response_code
 			, const std::string& description) = 0;
 

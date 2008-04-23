@@ -727,7 +727,7 @@ namespace libtorrent
 		if (m_ses.m_alerts.should_post(alert::info))
 		{
 			m_ses.m_alerts.post_alert(tracker_reply_alert(
-				get_handle(), peers.size(), "Got peers from DHT"));
+				get_handle(), peers.size(), "DHT", "Got peers from DHT"));
 		}
 		std::for_each(peers.begin(), peers.end(), bind(
 			&policy::peer_from_tracker, boost::ref(m_policy), _1, peer_id(0)
@@ -767,7 +767,7 @@ namespace libtorrent
 		return !m_paused && m_next_request < time_now();
 	}
 
-	void torrent::tracker_warning(std::string const& msg)
+	void torrent::tracker_warning(tracker_request const& req, std::string const& msg)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
@@ -775,7 +775,7 @@ namespace libtorrent
 
 		if (m_ses.m_alerts.should_post(alert::warning))
 		{
-			m_ses.m_alerts.post_alert(tracker_warning_alert(get_handle(), msg));
+			m_ses.m_alerts.post_alert(tracker_warning_alert(get_handle(), req.url, msg));
 		}
 	}
 	
@@ -792,10 +792,8 @@ namespace libtorrent
  
  		if (m_ses.m_alerts.should_post(alert::info))
  		{
- 			std::stringstream s;
- 			s << "Got scrape response from tracker: " << req.url;
  			m_ses.m_alerts.post_alert(scrape_reply_alert(
- 				get_handle(), m_incomplete, m_complete, s.str()));
+ 				get_handle(), m_incomplete, m_complete, req.url, "got scrape response from tracker"));
  		}
  	}
  
@@ -891,10 +889,8 @@ namespace libtorrent
 
 		if (m_ses.m_alerts.should_post(alert::info))
 		{
-			std::stringstream s;
-			s << "Got response from tracker: " << r.url;
 			m_ses.m_alerts.post_alert(tracker_reply_alert(
-				get_handle(), peer_list.size(), s.str()));
+				get_handle(), peer_list.size(), r.url, "got response from tracker"));
 		}
 		m_got_tracker_response = true;
 	}
@@ -3740,16 +3736,14 @@ namespace libtorrent
 
 		if (m_ses.m_alerts.should_post(alert::warning))
 		{
-			std::stringstream s;
-			s << "tracker: \"" << r.url << "\" timed out";
 			if (r.kind == tracker_request::announce_request)
 			{
-				m_ses.m_alerts.post_alert(tracker_alert(get_handle()
-					, m_failed_trackers + 1, 0, s.str()));
+				m_ses.m_alerts.post_alert(tracker_error_alert(get_handle()
+					, m_failed_trackers + 1, 0, r.url, "tracker timed out"));
 			}
 			else if (r.kind == tracker_request::scrape_request)
 			{
-				m_ses.m_alerts.post_alert(scrape_failed_alert(get_handle(), s.str()));
+				m_ses.m_alerts.post_alert(scrape_failed_alert(get_handle(), r.url, "tracker timed out"));
 			}
 		}
 
@@ -3772,16 +3766,14 @@ namespace libtorrent
 #endif
 		if (m_ses.m_alerts.should_post(alert::warning))
 		{
-			std::stringstream s;
-			s << "tracker: \"" << r.url << "\" " << str;
 			if (r.kind == tracker_request::announce_request)
 			{
-				m_ses.m_alerts.post_alert(tracker_alert(get_handle()
-					, m_failed_trackers + 1, response_code, s.str()));
+				m_ses.m_alerts.post_alert(tracker_error_alert(get_handle()
+					, m_failed_trackers + 1, response_code, r.url, str));
 			}
 			else if (r.kind == tracker_request::scrape_request)
 			{
-				m_ses.m_alerts.post_alert(scrape_failed_alert(get_handle(), s.str()));
+				m_ses.m_alerts.post_alert(scrape_failed_alert(get_handle(), r.url, str));
 			}
 		}
 

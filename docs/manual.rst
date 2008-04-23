@@ -3740,6 +3740,23 @@ It is generated at severity level ``info``.
 tracker_alert
 -------------
 
+This is a base class for all alerts related to trackers.
+
+::
+
+	struct tracker_alert: torrent_alert
+	{
+		tracker_alert(torrent_handle const& h
+			, std::string const& url
+			, alert::severity_t s
+			, std::string const& msg);
+
+		std::string url;
+	};
+
+tracker_error_alert
+-------------------
+
 This alert is generated on tracker time outs, premature disconnects, invalid response or
 a HTTP response other than "200 OK". From the alert you can get the handle to the torrent
 the tracker belongs to. This alert is generated as severity level ``warning``.
@@ -3751,10 +3768,10 @@ to 0.
 
 ::
 
-	struct tracker_alert: torrent_alert
+	struct tracker_error_alert: tracker_alert
 	{
-		tracker_alert(torrent_handle const& h, int times, int status
-			, const std::string& msg);
+		tracker_error_alert(torrent_handle const& h, int times, int status
+			, std::string const& url, std::string const& msg);
 		virtual std::auto_ptr<alert> clone() const;
 
 		int times_in_row;
@@ -3771,11 +3788,12 @@ the DHT. It is generated with severity level ``info``.
 
 ::
 
-	struct tracker_reply_alert: torrent_alert
+	struct tracker_reply_alert: tracker_alert
 	{
 		tracker_reply_alert(const torrent_handle& h
 			, int num_peers
-			, const std::string& msg);
+			. std::string const& url
+			, std::string const& msg);
 
 		int num_peers;
 
@@ -3795,9 +3813,10 @@ the tracker. It is generated with severity level ``warning``.
 
 ::
 
-	struct tracker_warning_alert: torrent_alert
+	struct tracker_warning_alert: tracker_alert
 	{
 		tracker_warning_alert(torrent_handle const& h
+			, std::string const& url
 			, std::string const& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
@@ -3808,11 +3827,12 @@ scrape_reply_alert
 
 ::
 
-	struct scrape_reply_alert: torrent_alert
+	struct scrape_reply_alert: tracker_alert
 	{
 		scrape_reply_alert(torrent_handle const& h
 			, int incomplete_
 			, int complete_
+			, std::string const& url
 			, std::string const& msg);
 
 		int incomplete;
@@ -3830,9 +3850,10 @@ scrape_failed_alert
 
 ::
 
-	struct scrape_failed_alert: torrent_alert
+	struct scrape_failed_alert: tracker_alert
 	{
 		scrape_failed_alert(torrent_handle const& h
+			, std::string const& url
 			, std::string const& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
