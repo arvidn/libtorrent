@@ -2991,6 +2991,14 @@ namespace libtorrent
 #endif
 			}
 		}
+
+		if (m_ses.m_alerts.should_post(alert::info))
+		{
+			m_ses.m_alerts.post_alert(torrent_checked_alert(
+				get_handle()
+				, "torrent finished checking"));
+		}
+		
 #ifndef NDEBUG
 		m_files_checked = true;
 #endif
