@@ -318,7 +318,8 @@ namespace libtorrent
 			tracker_request const& r);
 		virtual void tracker_request_error(tracker_request const& r
 			, int response_code, const std::string& str);
-		virtual void tracker_warning(std::string const& msg);
+		virtual void tracker_warning(tracker_request const& req
+			, std::string const& msg);
 		virtual void tracker_scrape_response(tracker_request const& req
 			, int complete, int incomplete, int downloaded);
 

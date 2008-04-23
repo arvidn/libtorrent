@@ -144,7 +144,7 @@ namespace libtorrent
 			{
 				std::string tracker_address_type = target_address.address().is_v4() ? "IPv4" : "IPv6";
 				std::string bind_address_type = bind_interface().is_v4() ? "IPv4" : "IPv6";
-				cb->tracker_warning("the tracker only resolves to an "
+				cb->tracker_warning(tracker_req(), "the tracker only resolves to an "
 					+ tracker_address_type + " address, and you're listening on an "
 					+ bind_address_type + " socket. This may prevent you from receiving incoming connections.");
 			}

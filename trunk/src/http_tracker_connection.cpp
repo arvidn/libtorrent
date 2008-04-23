@@ -306,7 +306,7 @@ namespace libtorrent
 		entry const* warning = e.find_key("warning message");
 		if (warning && warning->type() == entry::string_t)
 		{
-			cb->tracker_warning(warning->string());
+			cb->tracker_warning(tracker_req(), warning->string());
 		}
 
 		std::vector<peer_entry> peer_list;

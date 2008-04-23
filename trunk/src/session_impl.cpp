@@ -1035,7 +1035,7 @@ namespace aux {
 				{
 					m_alerts.post_alert(
 						tracker_announce_alert(
-							t.get_handle(), "tracker announce"));
+							t.get_handle(), req.url, "tracker announce"));
 				}
 			}
 
@@ -1672,7 +1672,7 @@ namespace aux {
 				{
 					m_alerts.post_alert(
 						tracker_announce_alert(
-							t.get_handle(), "tracker announce, event=stopped"));
+							t.get_handle(), req.url, "tracker announce, event=stopped"));
 				}
 			}
 #ifndef NDEBUG
