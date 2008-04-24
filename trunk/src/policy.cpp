@@ -384,12 +384,26 @@ namespace libtorrent
 					, "blocked peer removed from peer list"));
 				}
 			}
-			if (p) p->clear_peer(&i->second);
-			if (i->second.seed) --m_num_seeds;
-			m_peers.erase(i++);
+			erase_peer(i++);
 		}
 	}
-	
+
+	// any peer that is erased from m_peers will be
+	// erased through this function. This way we can make
+	// sure that any references to the peer are removed
+	// as well, such as in the piece picker.
+	void policy::erase_peer(iterator i)
+	{
+		if (m_torrent->has_picker())
+			m_torrent->picker().clear_peer(&i->second);
+		if (i->second.seed) --m_num_seeds;
+		if (is_connect_candidate(i->second, m_torrent->is_finished()))
+			--m_num_connect_candidates;
+		if (m_round_robin == i) ++m_round_robin;
+
+		m_peers.erase(i);
+	}
+
 	bool policy::is_connect_candidate(peer const& p, bool finished)
 	{
 		if (p.connection
@@ -450,16 +464,14 @@ namespace libtorrent
 
 	policy::iterator policy::find_connect_candidate()
 	{
-		INVARIANT_CHECK;
+// too expensive
+//		INVARIANT_CHECK;
 
 		ptime now = time_now();
-		ptime min_connect_time(now);
 		iterator candidate = m_peers.end();
 
 		int min_reconnect_time = m_torrent->settings().min_reconnect_time;
 		bool finished = m_torrent->is_finished();
-
-		int min_cidr_distance = (std::numeric_limits<int>::max)();
 		address external_ip = m_torrent->session().external_address();
 
 		// don't bias any particular peers when seeding
@@ -472,75 +484,35 @@ namespace libtorrent
 			external_ip = address_v4(bytes);
 		}
 
-#ifndef TORRENT_DISABLE_GEO_IP
-		int max_inet_as_rate = -1;
-		bool has_db = m_torrent->session().has_asnum_db();
-#endif
+		if (m_round_robin == iterator() || m_round_robin == m_peers.end())
+			m_round_robin = m_peers.begin();
 
-		int connect_candidates = 0;
-		int seeds = 0;
-		for (iterator i = m_peers.begin(); i != m_peers.end(); ++i)
+		for (int iterations = (std::min)(int(m_peers.size()), 300);
+			iterations > 0; ++m_round_robin, --iterations)
 		{
-			if (i->second.seed) ++seeds;
-			if (!is_connect_candidate(i->second, finished)) continue;
-			++connect_candidates;
+			if (m_round_robin == m_peers.end()) m_round_robin = m_peers.begin();
 
-			// prefer peers with lower failcount
+			if (!is_connect_candidate(m_round_robin->second, finished)) continue;
+
 			if (candidate != m_peers.end()
-				&& candidate->second.failcount < i->second.failcount)
+				&& !compare_peer(candidate->second, m_round_robin->second, external_ip)) continue;
+
+			if (now - m_round_robin->second.connected <
+				seconds(m_round_robin->second.failcount * min_reconnect_time))
 				continue;
 
-			if (now - i->second.connected < seconds(i->second.failcount * min_reconnect_time))
-				continue;
-
-			TORRENT_ASSERT(i->second.connected <= now);
-
-			// don't replace a candidate that is on the local
-			// network with one that isn't. Local peers should
-			// always be tried first
-			if (candidate != m_peers.end()
-				&& is_local(candidate->second.ip.address())
-				&& !is_local(i->second.ip.address()))
-				continue;
-
-			if (i->second.connected > min_connect_time) continue;
-
-#ifndef TORRENT_DISABLE_GEO_IP
-			if (!finished && has_db)
-			{
-				// don't bias fast peers when seeding
-				std::pair<const int, int>* inet_as = i->second.inet_as;
-				int peak_rate = inet_as ? inet_as->second : 0;
-				if (peak_rate <= max_inet_as_rate) continue;
-				max_inet_as_rate = peak_rate;
-			}
-
-			if (max_inet_as_rate <= 0)
-#endif
-			{
-				int distance = cidr_distance(external_ip, i->second.ip.address());
-				if (distance > min_cidr_distance) continue;
-
-				min_cidr_distance = distance;
-			}
-
-			min_connect_time = i->second.connected;
-			candidate = i;
+			candidate = m_round_robin;
 		}
 		
-		m_num_connect_candidates = connect_candidates;
-		m_num_seeds = seeds;
-		TORRENT_ASSERT(min_connect_time <= now);
-
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 		if (candidate != m_peers.end())
 		{
 			(*m_torrent->session().m_logger) << time_now_string()
 				<< " *** FOUND CONNECTION CANDIDATE ["
 				" ip: " << candidate->second.ip <<
-				" d: " << min_cidr_distance <<
+				" d: " << cidr_distance(external_ip, candidate->second.ip.address()) <<
 				" external: " << external_ip <<
-				" t: " << total_seconds(time_now() - min_connect_time) <<
+				" t: " << total_seconds(time_now() - candidate->second.connected) <<
 				" ]\n";
 		}
 #endif
@@ -553,10 +525,6 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_torrent->is_paused()) return;
-
-		piece_picker* p = 0;
-		if (m_torrent->has_picker())
-			p = &m_torrent->picker();
 
 #ifndef TORRENT_DISABLE_DHT
 		bool pinged = false;
@@ -589,9 +557,7 @@ namespace libtorrent
 				&& !pe.banned
 				&& now - pe.connected > minutes(120))
 			{
-				if (p) p->clear_peer(&pe);
-				if (pe.seed) --m_num_seeds;
-				m_peers.erase(i++);
+				erase_peer(i++);
 			}
 			else
 			{
@@ -599,52 +565,6 @@ namespace libtorrent
 			}
 		}
 
-		// -------------------------------------
-		// maintain the number of connections
-		// -------------------------------------
-/*
-		// count the number of connected peers except for peers
-		// that are currently in the process of disconnecting
-		int num_connected_peers = 0;
-
-		for (iterator i = m_peers.begin();
-			i != m_peers.end(); ++i)
-		{
-			if (i->connection && !i->connection->is_disconnecting())
-				++num_connected_peers;
-		}
-
-		if (m_torrent->max_connections() != (std::numeric_limits<int>::max)())
-		{
-			int max_connections = m_torrent->max_connections();
-
-			if (num_connected_peers >= max_connections)
-			{
-				// every minute, disconnect the worst peer in hope of finding a better peer
-
-				ptime local_time = time_now();
-				if (m_last_optimistic_disconnect + seconds(120) <= local_time
-					&& find_connect_candidate() != m_peers.end())
-				{
-					m_last_optimistic_disconnect = local_time;
-					--max_connections; // this will have the effect of disconnecting the worst peer
-				}
-			}
-			else
-			{
-				// don't do a disconnect earlier than 1 minute after some peer was connected
-				m_last_optimistic_disconnect = time_now();
-			}
-
-			while (num_connected_peers > max_connections)
-			{
-				bool ret = disconnect_one_peer();
-				(void)ret;
-				TORRENT_ASSERT(ret);
-				--num_connected_peers;
-			}
-		}
-*/
 		// ------------------------
 		// upload shift
 		// ------------------------
@@ -769,6 +689,9 @@ namespace libtorrent
 						"with higher priority, closing");
 				}
 			}
+
+			if (m_num_connect_candidates > 0)
+				--m_num_connect_candidates;
 		}
 		else
 		{
@@ -797,8 +720,6 @@ namespace libtorrent
 		TORRENT_ASSERT(i->second.connection);
 		if (!c.fast_reconnect())
 			i->second.connected = time_now();
-		if (m_num_connect_candidates > 0)
-			--m_num_connect_candidates;
 		return true;
 	}
 
@@ -823,10 +744,7 @@ namespace libtorrent
 					p->connection->disconnect("duplicate connection");
 					return false;
 				}
-				if (m_torrent->has_picker())
-					m_torrent->picker().clear_peer(&i->second);
-				if (i->second.seed) --m_num_seeds;
-				m_peers.erase(i);	
+				erase_peer(i);
 			}
 		}
 		else
@@ -1405,6 +1323,39 @@ namespace libtorrent
 		{
 			return prev_amount_upload;
 		}
+	}
+
+	// this returns true if lhs is a better connect candidate than rhs
+	bool policy::compare_peer(policy::peer const& lhs, policy::peer const& rhs
+		, address const& external_ip) const
+	{
+		// prefer peers with lower failcount
+		if (lhs.failcount < rhs.failcount) return true;
+		if (lhs.failcount > rhs.failcount) return false;
+
+		// Local peers should always be tried first
+		bool lhs_local = is_local(lhs.ip.address());
+		bool rhs_local = is_local(rhs.ip.address());
+		if (lhs_local && !rhs_local) return true;
+		if (!lhs_local && rhs_local) return false;
+
+		if (lhs.connected < rhs.connected) return true;
+		if (lhs.connected > rhs.connected) return false;
+
+#ifndef TORRENT_DISABLE_GEO_IP
+		// don't bias fast peers when seeding
+		if (!m_torrent->is_finished() && m_torrent->session().has_asnum_db())
+		{
+			std::pair<const int, int>* lhs_as = lhs.inet_as;
+			std::pair<const int, int>* rhs_as = rhs.inet_as;
+			if (lhs_as ? lhs_as->second : 0 > rhs_as ? rhs->second : 0) return true;
+			if (lhs_as ? lhs_as->second : 0 < rhs_as ? rhs->second : 0) return false;
+		}
+#endif
+		int lhs_distance = cidr_distance(external_ip, lhs.ip.address());
+		int rhs_distance = cidr_distance(external_ip, rhs.ip.address());
+		if (lhs_distance < rhs_distance) return true;
+		return false;
 	}
 }
 
