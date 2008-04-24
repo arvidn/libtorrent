@@ -859,7 +859,8 @@ namespace libtorrent
 	policy::peer* policy::peer_from_tracker(tcp::endpoint const& remote, peer_id const& pid
 		, int src, char flags)
 	{
-		INVARIANT_CHECK;
+		// way too expensive
+		//INVARIANT_CHECK;
 
 		// just ignore the obviously invalid entries
 		if (remote.address() == address() || remote.port() == 0)

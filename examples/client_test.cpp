@@ -1232,19 +1232,29 @@ int main(int ac, char* av[])
 
 				bool paused = h.is_paused();
 				bool auto_managed = h.is_auto_managed();
-				if (paused && !auto_managed) out << "paused  ";
-				else if (paused && auto_managed) out << "queued  ";
+				out << std::setw(13) << std::setiosflags(std::ios::left);
+				if (paused && !auto_managed) out << "paused";
+				else if (paused && auto_managed) out << "queued";
 				else
 				{
 					static char const* state_str[] =
-						{"queued for checking", "checking", "connecting", "downloading metadata"
+						{"checking (q)", "checking", "connecting", "dl metadata"
 						, "downloading", "finished", "seeding", "allocating"};
-					out << state_str[s.state] << " ";
+					out << state_str[s.state];
 				}
 
 				if ((print_downloads && s.state != torrent_status::seeding)
 					|| print_peers)
 					h.get_peer_info(peers);
+
+				out << "download: " << "(" << esc("32") << add_suffix(s.total_download) << esc("0") << ") "
+					"upload: " << esc("31") << (s.upload_rate > 0 ? add_suffix(s.upload_rate) + "/s ": "         ") << esc("0")
+					<< "(" << esc("31") << add_suffix(s.total_upload) << esc("0") << ") "
+					<< "ratio: " << ratio(s.total_payload_download, s.total_payload_upload)
+					<< "  bw queue: (" << s.up_bandwidth_queue << " | " << s.down_bandwidth_queue << ") "
+					"all-time (" << s.active_time - s.seeding_time << "/" << s.active_time << ")"
+					" (Rx: " << esc("32") << add_suffix(s.all_time_download) << esc("0")
+					<< " Tx: " << esc("31") << add_suffix(s.all_time_upload) << esc("0") << ") " << s.seed_cycles << "\n";
 
 				if (s.state != torrent_status::seeding)
 				{
@@ -1262,41 +1272,25 @@ int main(int ac, char* av[])
 					{
 						progress_bar_color = "32"; // green
 					}
+					out << "  progress: " << esc("32") << s.total_done << esc("0") << " Bytes ";
 					out.precision(4);
 					out.width(5);
 					out.fill(' ');
 					out << (s.progress*100) << "% ";
-					out << progress_bar(s.progress, terminal_width - 63, progress_bar_color);
-					out << "\n";
-					out << "  total downloaded: " << esc("32") << s.total_done << esc("0") << " Bytes ";
-					out	<< "peers: " << s.num_peers << " (" << s.connect_candidates << ") "
-						<< "seeds: " << s.num_seeds << " "
-						<< "distributed copies: " << s.distributed_copies << "\n"
-						<< "  magnet-link: " << make_magnet_uri(h) << "\n"
-						<< "  download: " << esc("32") << (s.download_rate > 0 ? add_suffix(s.download_rate) + "/s ": "         ") << esc("0")
-						<< "(" << esc("32") << add_suffix(s.total_download) << esc("0") << ") ";
-				}
-				else
-				{
-					out << "download: " << "(" << esc("32") << add_suffix(s.total_download) << esc("0") << ") ";
-				}
-				out << "upload: " << esc("31") << (s.upload_rate > 0 ? add_suffix(s.upload_rate) + "/s ": "         ") << esc("0")
-					<< "(" << esc("31") << add_suffix(s.total_upload) << esc("0") << ") "
-					<< "ratio: " << ratio(s.total_payload_download, s.total_payload_upload)
-					<< "  bw queue: (" << s.up_bandwidth_queue << " | " << s.down_bandwidth_queue << ") "
-					"all-time (" << s.active_time - s.seeding_time << "/" << s.active_time << ")"
-					" (Rx: " << esc("32") << add_suffix(s.all_time_download) << esc("0")
-					<< " Tx: " << esc("31") << add_suffix(s.all_time_upload) << esc("0") << ") " << s.seed_cycles << "\n";
-				if (s.state != torrent_status::seeding)
-				{
-					boost::posix_time::time_duration t = s.next_announce;
-					out << "  next announce: " << esc("37")
-						<< to_string(t.hours(),2) << ":"
-						<< to_string(t.minutes(),2) << ":"
-						<< to_string(t.seconds(), 2) << esc("0") << " ";
-					out << "tracker: " << s.current_tracker << "\n";
+					out << progress_bar(s.progress, terminal_width - 37, progress_bar_color) << "\n";
 					if (print_piece_bar && s.progress < 1.f && s.pieces)
-						out << piece_bar(*s.pieces, terminal_width - 3) << "\n";
+						out << "  " << piece_bar(*s.pieces, terminal_width - 5) << "\n";
+					out << "  peers: " << esc("37") << s.num_peers << esc("0") << " (" << esc("37") << s.connect_candidates << esc("0") << ") "
+						<< "seeds: " << esc("37") << s.num_seeds << esc("0") << " "
+						<< "distributed copies: " << esc("37") << s.distributed_copies << esc("0")
+//						<< "  magnet-link: " << make_magnet_uri(h) << "\n"
+						<< " download: " << esc("32") << (s.download_rate > 0 ? add_suffix(s.download_rate) + "/s ": "         ") << esc("0");
+					boost::posix_time::time_duration t = s.next_announce;
+					out << " next announce: " << esc("37")
+						<< to_string(t.hours(), 2) << ":"
+						<< to_string(t.minutes(), 2) << ":"
+						<< to_string(t.seconds(), 2) << esc("0") << " ";
+					out << "tracker: " << esc("36") << s.current_tracker << esc("0") << "\n";
 				}
 
 				if (print_peers && !peers.empty())
