@@ -14,6 +14,7 @@ extern char const* alert_msg_doc;
 extern char const* alert_severity_doc;
 extern char const* torrent_alert_doc;
 extern char const* tracker_alert_doc;
+extern char const* tracker_error_alert_doc;
 extern char const* tracker_warning_alert_doc;
 extern char const* tracker_reply_alert_doc;
 extern char const* tracker_announce_alert_doc;
@@ -79,8 +80,14 @@ void bind_alert()
     class_<tracker_alert, bases<torrent_alert>, noncopyable>(
         "tracker_alert", tracker_alert_doc, no_init
     )
-        .def_readonly("times_in_row", &tracker_alert::times_in_row)
-        .def_readonly("status_code", &tracker_alert::status_code)
+        .def_readonly("url", &tracker_alert::url)
+        ;
+
+    class_<tracker_error_alert, bases<tracker_alert>, noncopyable>(
+        "tracker_error_alert", tracker_error_alert_doc, no_init
+    )
+        .def_readonly("times_in_row", &tracker_error_alert::times_in_row)
+        .def_readonly("status_code", &tracker_error_alert::status_code)
         ;
 
     class_<tracker_warning_alert, bases<torrent_alert>, noncopyable>(

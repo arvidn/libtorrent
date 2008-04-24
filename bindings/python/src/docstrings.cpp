@@ -202,6 +202,9 @@ char const* tracker_alert_doc =
     "\"200 OK\". From the alert you can get the handle to the torrent\n"
     "the tracker belongs to. This alert is generated as severity level\n"
     "`alert.severity_levels.warning`.";
+
+char const* tracker_error_alert_doc =
+    "";
     
 char const* tracker_warning_alert_doc =
     "This alert is triggered if the tracker reply contains a warning\n"
