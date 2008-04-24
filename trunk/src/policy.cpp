@@ -1330,26 +1330,24 @@ namespace libtorrent
 		, address const& external_ip) const
 	{
 		// prefer peers with lower failcount
-		if (lhs.failcount < rhs.failcount) return true;
-		if (lhs.failcount > rhs.failcount) return false;
+		if (lhs.failcount != rhs.failcount)
+			return lhs.failcount < rhs.failcount;
 
 		// Local peers should always be tried first
 		bool lhs_local = is_local(lhs.ip.address());
 		bool rhs_local = is_local(rhs.ip.address());
-		if (lhs_local && !rhs_local) return true;
-		if (!lhs_local && rhs_local) return false;
+		if (lhs_local != rhs_local) return lhs_local > rhs_local;
 
-		if (lhs.connected < rhs.connected) return true;
-		if (lhs.connected > rhs.connected) return false;
+		if (lhs.connected != rhs.connected)
+			return lhs.connected < rhs.connected;
 
 #ifndef TORRENT_DISABLE_GEO_IP
 		// don't bias fast peers when seeding
 		if (!m_torrent->is_finished() && m_torrent->session().has_asnum_db())
 		{
-			std::pair<const int, int>* lhs_as = lhs.inet_as;
-			std::pair<const int, int>* rhs_as = rhs.inet_as;
-			if (lhs_as ? lhs_as->second : 0 > rhs_as ? rhs_as->second : 0) return true;
-			if (lhs_as ? lhs_as->second : 0 < rhs_as ? rhs_as->second : 0) return false;
+			int lhs_as = lhs.inet_as ? lhs.inet_as->second : 0;
+			int rhs_as = rhs.inet_as ? rhs.inet_as->second : 0;
+			if (lhs_as != rhs_as) return lhs_as > rhs_as;
 		}
 #endif
 		int lhs_distance = cidr_distance(external_ip, lhs.ip.address());
